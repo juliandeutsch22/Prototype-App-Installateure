@@ -7,7 +7,7 @@ import { listUsers } from '@/lib/db/users';
 import { listAbwesendInRange, type Abwesenheit } from '@/lib/db/vacations';
 import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
 import { subscribeAssignmentsForMonth, saveAssignments, deleteAssignment } from '@/lib/db/assignments';
-import { subscribeMaterials } from '@/lib/db/materials';
+import { subscribeMaterials, lagerFrei, type LagerStand } from '@/lib/db/materials';
 import { createMaterialOrder } from '@/lib/db/materialOrders';
 import {
   subscribeEinsatzMaterialForDate,
@@ -118,6 +118,10 @@ export default function AssignmentsView() {
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
   const [tagesListen, setTagesListen] = useState<WithId<EinsatzMaterial>[]>([]);
   const [ruestliste, setRuestliste] = useState<RuestPosition[]>([]);
+  /** Rüstpositionen, für die in dieser Sitzung eine Anforderung angelegt wurde (G14). */
+  const [angefordert, setAngefordert] = useState<Set<string>>(new Set());
+  /** Frei je Artikel laut Datenbank (M32) — `null`, solange unbekannt. */
+  const [lagerStand, setLagerStand] = useState<Map<string, LagerStand> | null>(null);
   /** Eine freie Zeile der Rüstliste, die eingetippt, aber nicht hinzugefügt ist. */
   const [offeneRuestzeile, setOffeneRuestzeile] = useState<string | null>(null);
   const [ruestFehler, setRuestFehler] = useState<string | null>(null);
@@ -283,6 +287,34 @@ export default function AssignmentsView() {
     const treffer = tagesListen.find((l) => l.projectNumber === projectNumber);
     setRuestliste(treffer?.positionen ?? []);
   }, [projectNumber, tagesListen]);
+
+  /*
+    WAS FÜR DIESE RÜSTLISTE FREI IST (Testbericht 30.09.2026, M32): frei
+    nach Zusagen und allen Rüstlisten ab heute, die eigene gespeicherte
+    Menge wieder dazugezählt — sonst reservierte sie sich selbst weg.
+  */
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    Promise.resolve()
+      .then(() => lagerFrei())
+      .then((k) => { if (!weg) setLagerStand(k); })
+      .catch(() => undefined);
+    return () => { weg = true; };
+  }, [user, materials, tagesListen]);
+
+  const ruestVerfuegbar = useMemo(() => {
+    if (!lagerStand) return undefined;
+    const eigene = new Map<string, number>();
+    if (date >= todayStr()) {
+      for (const p of tagesListen.find((l) => l.projectNumber === projectNumber)?.positionen ?? []) {
+        if (p.materialId) eigene.set(p.materialId, (eigene.get(p.materialId) ?? 0) + p.menge);
+      }
+    }
+    const karte = new Map<string, number>();
+    for (const [id, st] of lagerStand) karte.set(id, st.frei + (eigene.get(id) ?? 0));
+    return karte;
+  }, [lagerStand, tagesListen, projectNumber, date]);
 
   /**
    * Wo steht diese Person an diesem Tag SCHON — auf anderen Baustellen?
@@ -495,6 +527,7 @@ export default function AssignmentsView() {
         userId: abholer.uid,
         userName: abholer.name,
       });
+      setAngefordert((alt) => new Set(alt).add(position.id));
       toast.success('Anforderung angelegt');
     } catch {
       setRuestFehler('Die Anforderung konnte nicht angelegt werden.');
@@ -742,6 +775,8 @@ export default function AssignmentsView() {
                 onAnforderung={anforderungAnlegen}
                 anforderungLaeuft={anforderungLaeuft}
                 onOffen={setOffeneRuestzeile}
+                verfuegbar={ruestVerfuegbar}
+                angefordert={angefordert}
               />
               {/*
                 Der Fehler der ANFORDERUNG steht weiter hier — sie ist ein

@@ -36,6 +36,7 @@ import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { abschlussText } from './abschlussText';
 import { useReiterImBild } from '@/components/reiterImBild';
+import { fmtMenge } from '@/lib/belegLayout';
 
 type Tab = 'aktiv' | 'einkauf' | 'retouren' | 'archiv';
 
@@ -393,7 +394,7 @@ export default function AdminOrdersView() {
                         title={
                           <span>
                             {o.materialName}{' '}
-                            <span className="text-ink-muted">×{o.quantity}</span>
+                            <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
                           </span>
                         }
                         subtitle={

@@ -23,18 +23,18 @@ import InfoHint from '@/components/InfoHint';
 import Nachladen from '@/components/Nachladen';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
-import { leseZahl, zahlOder } from '@/lib/zahl';
+import { leseZahl, preisAlsText, zahlOder } from '@/lib/zahl';
 import { grundAus } from '@/lib/fehlerGrund';
 import ZahlFeld from '@/components/ZahlFeld';
+import { EINHEITEN } from '@/lib/einheit';
 
-/**
- * Die ueblichen Mengeneinheiten im Sanitaer- und Heizungsbau.
- *
- * Als Vorschlagsliste, nicht als Zwang: ein Betrieb fuehrt auch Sonderposten,
- * und ein Auswahlfeld, das die passende Einheit nicht kennt, ist schlimmer
- * als ein freies Feld.
- */
-const EINHEITEN = ['Stk', 'm', 'lfm', 'm²', 'kg', 'l', 'Pkg', 'Rolle', 'Sack', 'Paar'];
+/*
+  Die üblichen Mengeneinheiten im Sanitär- und Heizungsbau — als
+  Vorschlagsliste, nicht als Zwang: ein Betrieb führt auch Sonderposten, und
+  ein Auswahlfeld, das die passende Einheit nicht kennt, ist schlimmer als ein
+  freies Feld. Die Liste steht in `@/lib/einheit`, samt der Regel, welche
+  Einheit Nachkommastellen nimmt (M27).
+*/
 
 const empty = {
   name: '',
@@ -103,14 +103,6 @@ export default function MaterialCatalog({
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
   const [editId, setEditId] = useState<string | null>(null);
-  /*
-    DER BESTAND, WIE ER BEIM ÖFFNEN DASTAND. Das Formular schrieb ihn bisher
-    bei jedem Speichern absolut zurück — wer nur die Kategorie änderte, während
-    ein Monteur zwei Stück abholte, setzte den Bestand wieder auf den alten
-    Wert, und die Abholung war verschwunden (Prüflauf 25.09.2026, P3-18).
-    Mitgeschickt wird er deshalb nur, wenn jemand ihn hier geändert hat.
-  */
-  const [stockBeimOeffnen, setStockBeimOeffnen] = useState<string | null>(null);
   /*
     DER EINKAUFSPREIS KOMMT NICHT MIT DEM ARTIKEL (offene Punkte B1). Solange
     er nicht geholt ist, geht er beim Speichern NICHT mit: das leere Feld
@@ -182,7 +174,7 @@ export default function MaterialCatalog({
         (preise) => {
           if (offenerArtikel.current !== m.id) return;
           const ek = preise.get(m.id);
-          setForm((f) => ({ ...f, einkaufspreis: ek != null ? String(ek) : '' }));
+          setForm((f) => ({ ...f, einkaufspreis: ek != null ? preisAlsText(ek) : '' }));
           setEkStand('da');
         },
         () => {
@@ -190,14 +182,13 @@ export default function MaterialCatalog({
         },
       );
     }
-    setStockBeimOeffnen(String(m.stock ?? 0));
     setForm({
       name: m.name,
       category: m.category ?? '',
       stock: String(m.stock ?? 0),
       articleNumber: m.articleNumber ?? '',
       unit: m.unit ?? 'Stk',
-      verkaufspreis: m.verkaufspreis != null ? String(m.verkaufspreis) : '',
+      verkaufspreis: m.verkaufspreis != null ? preisAlsText(m.verkaufspreis) : '',
       einkaufspreis: '',
     });
   }
@@ -205,7 +196,6 @@ export default function MaterialCatalog({
     setEditId(null);
     offenerArtikel.current = null;
     setEkStand('da');
-    setStockBeimOeffnen(null);
     setForm(empty);
   }
 
@@ -255,8 +245,13 @@ export default function MaterialCatalog({
           : {}),
       };
       if (editId) {
-        const bestandGeaendert = bestand !== (Number(stockBeimOeffnen) || 0);
-        await updateMaterial(editId, bestandGeaendert ? { ...data, stock: bestand } : data);
+        /*
+          DER BESTAND BLEIBT HIER DRAUSSEN (Testbericht 30.09.2026, M28): er
+          ändert sich nur über Wareneingang, Abholung, Retoure oder Inventur,
+          jede mit Eintrag im Bewegungsprotokoll. Vorher liess er sich hier
+          ohne Grund überschreiben.
+        */
+        await updateMaterial(editId, data);
       } else {
         await createMaterial(user.companyId, { ...data, stock: bestand });
       }
@@ -316,8 +311,21 @@ export default function MaterialCatalog({
                 </InfoHint>
               </p>
             </div>
-            <ZahlFeld id="mstock" label="Lagerbestand" value={form.stock}
-              onChange={(t) => setForm({ ...form, stock: t })} required pflicht />
+            {editId ? (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-ink">Lagerbestand</span>
+                <p className="text-sm text-ink">
+                  {form.stock} {form.unit || 'Stk'}
+                </p>
+                <p className="text-xs text-ink-muted">
+                  Ändert sich über Wareneingang oder Inventur im Reiter „Bestand“ — mit Grund im
+                  Bewegungsprotokoll.
+                </p>
+              </div>
+            ) : (
+              <ZahlFeld id="mstock" label="Anfangsbestand" value={form.stock}
+                onChange={(t) => setForm({ ...form, stock: t })} required pflicht />
+            )}
             <ZahlFeld
               id="mpreis"
               label="Verkaufspreis netto je Einheit (€)"

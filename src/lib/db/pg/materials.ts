@@ -1,9 +1,10 @@
 /**
  * Materialstamm — auf Postgres.
  */
-import type { Material } from '@/types';
+import type { Lagerbewegung, Material } from '@/types';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import { abfragen, abonnieren, anlegen as kernAnlegen, aendern, loeschen, derClient, type WithId } from './kern';
+import { zeileAlsObjekt } from './felder';
 
 const MATERIAL = 'materials';
 
@@ -56,6 +57,71 @@ export async function adjustStock(materialId: string, delta: number) {
     p_delta: delta,
   });
   if (error) throw new Error(error.message);
+}
+
+/**
+ * Wareneingang mit Lieferant, Lieferschein und Bezug (Testbericht 30.09.2026,
+ * M29). Zurück kommt der neue Bestand.
+ */
+export async function lagerEingang(eingang: {
+  materialId: string; menge: number; lieferant: string; lieferschein?: string; bezug?: string;
+}): Promise<number> {
+  const { data, error } = await derClient().rpc('lager_eingang', {
+    p_material: eingang.materialId,
+    p_menge: eingang.menge,
+    p_lieferant: eingang.lieferant,
+    p_lieferschein: eingang.lieferschein ?? null,
+    p_bezug: eingang.bezug ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return Number(data);
+}
+
+/** Inventur: der gezählte Bestand, mit Grund (M28). */
+export async function lagerInventur(materialId: string, bestand: number, grund: string): Promise<number> {
+  const { data, error } = await derClient().rpc('lager_inventur', {
+    p_material: materialId, p_bestand: bestand, p_grund: grund,
+  });
+  if (error) throw new Error(error.message);
+  return Number(data);
+}
+
+/** Das Bewegungsprotokoll eines Artikels, jüngste zuerst (M28). */
+export async function listLagerbewegungen(materialId: string, max = 200): Promise<Lagerbewegung[]> {
+  const { data, error } = await derClient()
+    .from('lagerbewegungen')
+    .select('*')
+    .eq('material_id', materialId)
+    .order('created_at', { ascending: false })
+    .limit(max);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((z) => zeileAlsObjekt<WithId<Lagerbewegung>>('lagerbewegungen', z));
+}
+
+/** Was je Artikel frei ist (Testbericht 30.09.2026, M32, G19). */
+export interface LagerStand {
+  bestand: number;
+  /** Zugesagte, noch nicht abgeholte Anforderungen. */
+  zugesagt: number;
+  /** Auf Rüstlisten ab heute geplant. */
+  geplant: number;
+  /** Bestand minus beides — unter null heisst „fehlt“. */
+  frei: number;
+}
+
+export async function lagerFrei(): Promise<Map<string, LagerStand>> {
+  const { data, error } = await derClient().rpc('lager_frei');
+  if (error) throw new Error(error.message);
+  const karte = new Map<string, LagerStand>();
+  for (const z of (data ?? []) as Array<Record<string, unknown>>) {
+    karte.set(String(z.material_id), {
+      bestand: Number(z.bestand),
+      zugesagt: Number(z.zugesagt),
+      geplant: Number(z.geplant),
+      frei: Number(z.frei),
+    });
+  }
+  return karte;
 }
 
 export function listMaterials(companyId: string, max = KATALOG_GRENZE) {

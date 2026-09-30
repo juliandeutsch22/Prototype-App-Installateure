@@ -9,6 +9,8 @@ import { InputField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { ZahlWertFeld } from '@/components/ZahlFeld';
+import { mengeFehler } from '@/lib/einheit';
+import { fmtMenge } from '@/lib/belegLayout';
 
 /**
  * Die Rüstliste eines Einsatzes zusammenstellen — was in den Bus soll.
@@ -51,6 +53,14 @@ interface Props {
    * `null` — dieselbe Naht wie am Handwerksschein (`MaterialErfassen`).
    */
   onOffen?: (offen: string | null) => void;
+  /**
+   * Was je Artikel für DIESE Rüstliste verfügbar ist (Testbericht
+   * 30.09.2026, M32): frei nach Zusagen und anderen Rüstlisten, die eigene
+   * gespeicherte Menge wieder dazugezählt. Ohne Angabe gilt der Bestand.
+   */
+  verfuegbar?: Map<string, number>;
+  /** Positionen, für die schon eine Anforderung angelegt wurde (G14). */
+  angefordert?: Set<string>;
 }
 
 export default function RuestlistePlanen({
@@ -60,6 +70,8 @@ export default function RuestlistePlanen({
   onAnforderung,
   anforderungLaeuft = false,
   onOffen,
+  verfuegbar,
+  angefordert,
 }: Props) {
   const [suche, setSuche] = useState('');
   const [freierName, setFreierName] = useState('');
@@ -131,7 +143,8 @@ export default function RuestlistePlanen({
               („Leihgerät Kernbohrer") hat keinen Bestand, und „0 von 1
               vorhanden" wäre dort eine Falschaussage statt einer Warnung.
             */
-            const fehlt = artikel ? Math.max(0, p.menge - (artikel.stock ?? 0)) : 0;
+            const da = artikel ? (verfuegbar?.get(artikel.id) ?? artikel.stock ?? 0) : 0;
+            const fehlt = artikel ? Math.max(0, Math.round((p.menge - Math.max(da, 0)) * 1000) / 1000) : 0;
             return (
               <li key={p.id} className="py-3">
                 <div className="flex flex-wrap items-end gap-3">
@@ -144,6 +157,10 @@ export default function RuestlistePlanen({
                       onWert={(n) => mengeSetzen(p.id, n)}
                     />
                   </div>
+                  {/* Je Einheit (M27): „2,5 Stk“ fällt auf; null heisst „tippe noch“. */}
+                  {p.menge > 0 && mengeFehler(p.menge, p.einheit ?? artikel?.unit) && (
+                    <p className="basis-full text-sm text-danger">{mengeFehler(p.menge, p.einheit ?? artikel?.unit)}</p>
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="flex flex-wrap items-center gap-2 font-medium text-ink">
                       {p.name}
@@ -152,7 +169,10 @@ export default function RuestlistePlanen({
                     </p>
                     {artikel && (
                       <p className="text-sm text-ink-muted">
-                        Lager: <span>{artikel.stock ?? 0}</span>
+                        Lager: <span>{fmtMenge(artikel.stock ?? 0)}</span>
+                        {verfuegbar?.has(artikel.id) && (
+                          <> · für diese Liste frei: <span>{fmtMenge(Math.max(da, 0))}</span></>
+                        )}
                         {artikel.category ? ` · ${artikel.category}` : ''}
                       </p>
                     )}
@@ -180,17 +200,25 @@ export default function RuestlistePlanen({
                     <Hinweiszeile stufe="warn">
                       <div className="flex flex-wrap items-center gap-3">
                         <span>
-                          Im Lager fehlen <strong>{fehlt}</strong>.
+                          Im Lager fehlen <strong>{fmtMenge(fehlt)}</strong>.
                         </span>
-                        {onAnforderung && (
+                        {/*
+                          NACH DEM ANLEGEN IST DER KNOPF ERLEDIGT (Testbericht
+                          30.09.2026, G14): er blieb aktiv, und ein zweiter
+                          Tipp legte dieselbe Anforderung noch einmal an.
+                        */}
+                        {onAnforderung && (angefordert?.has(p.id) ? (
+                          <span className="text-sm text-ink-muted">Anforderung angelegt</span>
+                        ) : (
                           <Button
                             variant="secondary"
                             loading={anforderungLaeuft}
+                            disabled={anforderungLaeuft}
                             onClick={() => onAnforderung(p, fehlt)}
                           >
-                            Anforderung über {fehlt} anlegen
+                            Anforderung über {fmtMenge(fehlt)} anlegen
                           </Button>
-                        )}
+                        ))}
                       </div>
                     </Hinweiszeile>
                   </div>
@@ -231,7 +259,7 @@ export default function RuestlistePlanen({
                   <ListRow
                     key={m.id}
                     title={m.name}
-                    subtitle={[m.category, `Lager: ${m.stock ?? 0}`].filter(Boolean).join(' · ')}
+                    subtitle={[m.category, `Lager: ${fmtMenge(m.stock ?? 0)}`].filter(Boolean).join(' · ')}
                   >
                     <Button
                       variant="secondary"

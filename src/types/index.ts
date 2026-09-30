@@ -838,6 +838,27 @@ export interface EinkaufPosten {
 }
 
 /**
+ * Eine Bewegung im Lager (Testbericht 30.09.2026, M28): jede Änderung des
+ * Bestands, mit Art, Menge (Vorzeichen), Bestand danach und Beleg.
+ */
+export interface Lagerbewegung {
+  id: string;
+  companyId: string;
+  materialId: string;
+  art: 'anfangsbestand' | 'eingang' | 'entnahme' | 'retoure' | 'inventur' | 'zugang' | 'abgang';
+  menge: number;
+  bestandNachher: number;
+  grund?: string | null;
+  lieferant?: string | null;
+  lieferschein?: string | null;
+  bezug?: string | null;
+  materialOrderId?: string | null;
+  erfasstVon?: string | null;
+  erfasstVonName?: string | null;
+  createdAt?: number;
+}
+
+/**
  * Ein Eintrag im Fehlerprotokoll — ein Absturz, ein unbehandelter Fehler oder
  * ein von Hand gemeldetes Problem. Ohne Inhaltsdaten; nur `beschreibung` ist
  * frei getippt.

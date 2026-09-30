@@ -32,6 +32,7 @@ import { fmtMenge } from '@/lib/belegLayout';
 import { bestellMail, bestellText, einkaufsliste, type EinkaufsGruppe, type EinkaufsZeile } from './einkauf';
 import { downloadBestellungPdf } from './bestellungPdf';
 import { zahlOder } from '@/lib/zahl';
+import { mengeFehler } from '@/lib/einheit';
 import { grundAus } from '@/lib/fehlerGrund';
 
 /**
@@ -508,8 +509,13 @@ function LagerPostenFormular({
       setFehler('Welcher Artikel? Im Katalog suchen oder frei eintragen.');
       return;
     }
-    if (!Number.isFinite(zahl) || zahl <= 0) {
-      setFehler('Die Menge muss grösser als null sein.');
+    // Je Einheit (M27): Meter mit Komma, Stück ganz. Ohne Einheit zählt nur „mehr als null“.
+    const mitEinheit = einheit.trim() || gewaehlt?.unit || '';
+    const falsch = mitEinheit
+      ? mengeFehler(zahl, mitEinheit)
+      : !Number.isFinite(zahl) || zahl <= 0 ? 'Die Menge muss grösser als null sein.' : null;
+    if (falsch) {
+      setFehler(falsch);
       return;
     }
     setSpeichert(true);

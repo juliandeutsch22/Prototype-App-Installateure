@@ -3,7 +3,7 @@
  * „7.500,50“ ergab im Angebot kommentarlos 0,00 €.
  */
 import { describe, it, expect } from 'vitest';
-import { leseZahl, zahlAlsText, zahlOder } from '@/lib/zahl';
+import { leseZahl, preisAlsText, zahlAlsText, zahlOder } from '@/lib/zahl';
 
 describe('leseZahl', () => {
   it.each([
@@ -58,5 +58,24 @@ describe('leseZahl', () => {
       expect(leseZahl(zahlAlsText(n), { negativ: true })).toEqual({ wert: n, fehler: null });
     }
     expect(zahlAlsText(1.125)).toBe('1,1250');
+  });
+});
+
+// Testbericht 30.09.2026, G8 — Preise mit zwei Nachkommastellen.
+describe('preisAlsText', () => {
+  it('„4,20“ statt „4,2“, und ganze Euro mit „,00“', () => {
+    expect(preisAlsText(4.2)).toBe('4,20');
+    expect(preisAlsText(12)).toBe('12,00');
+  });
+
+  it('behält mehr Stellen, wo der Katalog sie hat — und liest sich zurück', () => {
+    expect(preisAlsText(0.125)).toBe('0,1250');
+    expect(leseZahl(preisAlsText(0.125)).wert).toBe(0.125);
+    expect(leseZahl(preisAlsText(1234.5)).wert).toBe(1234.5);
+  });
+
+  it('Gegenprobe: nichts bleibt leer', () => {
+    expect(preisAlsText(null)).toBe('');
+    expect(preisAlsText(Number.NaN)).toBe('');
   });
 });

@@ -48,19 +48,27 @@ describe('Materialstamm', () => {
     expect(await material.listMaterials('lager-a', 3)).toHaveLength(3);
   });
 
-  it('bucht ab und zurück', async () => {
+  it('bucht zu — einen Abgang aber nur mit Ansage (Testbericht 30.09.2026, M28)', async () => {
     const id = await material.createMaterial('lager-a', { name: 'Fitting', stock: 20 });
-    await material.adjustStock(id, -5);
-    expect(await bestand(id)).toBe(15);
     await material.adjustStock(id, 3);
-    expect(await bestand(id)).toBe(18);
+    expect(await bestand(id)).toBe(23);
+    // Ein Minus ohne Abholung oder Inventur war der Weg, den Bestand ohne Grund zu senken.
+    await expect(material.adjustStock(id, -5)).rejects.toThrow(/Abholung oder Inventur/);
+    expect(await bestand(id)).toBe(23);
   });
 
-  it('geht nicht unter null', async () => {
+  it('geht nicht unter null — auch wenn mehr abgeholt wird, als da ist', async () => {
     // Ein negativer Lagerstand ist keine Aussage über ein Lager, sondern ein
     // Zeichen, dass die Buchführung nicht mehr stimmt.
     const id = await material.createMaterial('lager-a', { name: 'Knapp', stock: 2 });
-    await material.adjustStock(id, -10);
+    const auftrag = crypto.randomUUID();
+    const { error } = await admin.from('material_orders').insert({
+      id: auftrag, company_id: 'lager-a', material_id: id, material_name: 'Knapp', quantity: 10,
+      status: 'Abholbereit', transaction_type: 'order', user_id: monteur.uid, user_name: 'Monteur',
+    });
+    expect(error).toBeNull();
+    const abgeholt = await verwaltung.client.rpc('anforderung_abschliessen', { p_order: auftrag });
+    expect(abgeholt.error).toBeNull();
     expect(await bestand(id)).toBe(0);
   });
 

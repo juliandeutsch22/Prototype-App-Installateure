@@ -493,6 +493,30 @@ export default function WartungenView() {
         {darfAendern && (
           <>
             {/*
+              EINE FESTE REIHENFOLGE (Testbericht 30.09.2026, G8): „Erledigt“
+              zuerst, dann „Baustelle anlegen“, zuletzt „Bearbeiten“. Vorher
+              stand „Erledigt“ mal an erster, mal an zweiter Stelle — je
+              nachdem, ob es etwas einzuplanen gab —, und der Daumen traf in
+              der Liste den falschen Knopf.
+            */}
+            {!nurBearbeiten && (
+            <Button
+              variant="secondary"
+              onClick={() =>
+                setErledigung({
+                  wartung: w,
+                  datum: heute,
+                  intervall: w.intervallMonate,
+                  // Die eingeplante Baustelle steht schon da: niemand soll
+                  // eine Nummer abtippen, die die App kennt.
+                  baustelle: w.offeneBaustelle ?? '',
+                })
+              }
+            >
+              Erledigt
+            </Button>
+            )}
+            {/*
               Einplanen steht nur dort, wo es etwas zu planen gibt: bei einer
               anstehenden Wartung ohne offene Baustelle. An einer Vereinbarung,
               die erst in acht Monaten fällig wird, wäre der Knopf eine
@@ -513,23 +537,6 @@ export default function WartungenView() {
               >
                 Baustelle anlegen
               </Button>
-            )}
-            {!nurBearbeiten && (
-            <Button
-              variant="secondary"
-              onClick={() =>
-                setErledigung({
-                  wartung: w,
-                  datum: heute,
-                  intervall: w.intervallMonate,
-                  // Die eingeplante Baustelle steht schon da: niemand soll
-                  // eine Nummer abtippen, die die App kennt.
-                  baustelle: w.offeneBaustelle ?? '',
-                })
-              }
-            >
-              Erledigt
-            </Button>
             )}
             <Button variant="ghost" onClick={() => formOeffnen(w)}>
               Bearbeiten

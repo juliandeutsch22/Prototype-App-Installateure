@@ -21,8 +21,8 @@ test('Ein Monteur legt Material in den Korb und sendet es ab', async ({ page }) 
   await anmelden(page, MONTEUR.email);
 
   await page.getByRole('link', { name: 'Material anfordern' }).first().click();
-  await page.getByRole('button', { name: new RegExp(`${ARTIKEL.name} anfordern`) }).click();
-  await page.getByRole('button', { name: 'Bestellung aufgeben' }).click();
+  await page.getByRole('button', { name: new RegExp(`${ARTIKEL.name} zur Anforderung`) }).click();
+  await page.getByRole('button', { name: 'Anforderung abschicken' }).click();
 
   await expect(async () => {
     const { data } = await admin

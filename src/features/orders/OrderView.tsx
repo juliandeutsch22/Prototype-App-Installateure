@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { subscribeMaterials, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
+import { subscribeMaterials, LOW_STOCK_THRESHOLD, lagerFrei, type LagerStand } from '@/lib/db/materials';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import {
   createMaterialOrderOhneEmpfang,
@@ -30,9 +30,11 @@ import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/S
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAusMs } from '@/lib/datum';
 import { abschlussText } from './abschlussText';
-import { zahlOder } from '@/lib/zahl';
+import { zahlAlsText, zahlOder } from '@/lib/zahl';
+import { mengeFehler, mengeMitKomma } from '@/lib/einheit';
 import { useReiterImBild } from '@/components/reiterImBild';
 import ZahlFeld from '@/components/ZahlFeld';
+import { fmtMenge } from '@/lib/belegLayout';
 
 type Tab = 'bestellen' | 'meine' | 'retoure';
 
@@ -73,6 +75,22 @@ export default function OrderView() {
   // Am Telefon läuft die Reiterleiste seitlich: der gewählte Reiter bleibt im Bild.
   const reiterleiste = useReiterImBild<HTMLDivElement>(tab);
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
+  /*
+    WAS FREI IST, NICHT WAS IM REGAL STEHT (Testbericht 30.09.2026, G19):
+    „5 Stk (knapp)“, obwohl 3 davon zugesagt oder für einen Einsatz geplant
+    waren. Die Zahl kommt aus der Datenbank; bis sie da ist oder wenn sie
+    ausbleibt, steht der Bestand.
+  */
+  const [frei, setFrei] = useState<Map<string, LagerStand> | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    Promise.resolve()
+      .then(() => lagerFrei())
+      .then((k) => { if (!weg) setFrei(k); })
+      .catch(() => undefined);
+    return () => { weg = true; };
+  }, [user, materials]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [myOrders, setMyOrders] = useState<WithId<MaterialOrder>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -303,8 +321,8 @@ export default function OrderView() {
     setSaving(false);
     if (failed.length === 0) {
       setNote('');
-      if (vorgemerkt) toast.info(vorgemerktMeldung('Anforderung aufgegeben'));
-      else toast.success('Bestellung aufgegeben');
+      if (vorgemerkt) toast.info(vorgemerktMeldung('Anforderung abgeschickt'));
+      else toast.success('Anforderung abgeschickt');
       setTab('meine');
     } else {
       setError(
@@ -318,9 +336,12 @@ export default function OrderView() {
     // Ohne diese Prüfung ginge eine negative Menge als increment(-n) durch und
     // eine Retoure würde den Lagerbestand VERRINGERN.
     // Zentral gelesen (M15); „1,5“ wird nicht still zu 1.
-    const qty = zahlOder(retQty, NaN);
-    if (!Number.isInteger(qty) || qty < 1) {
-      setError('Bitte eine ganze Menge von mindestens 1 angeben.');
+    const qty = zahlOder(retQty, NaN, { negativ: true });
+    // Je Einheit (M27): Rohr in Metern mit Komma, Stück ganz.
+    const einheit = materials.find((m) => m.id === retMaterial)?.unit;
+    const falsch = mengeFehler(qty, einheit);
+    if (falsch) {
+      setError(falsch);
       return;
     }
     setSaving(true);
@@ -468,7 +489,8 @@ export default function OrderView() {
               ) : (
                 <List>
                   {filtered.map((m) => {
-                    const low = (m.stock ?? 0) <= LOW_STOCK_THRESHOLD;
+                    const verfuegbar = frei?.get(m.id)?.frei ?? m.stock ?? 0;
+                    const low = verfuegbar <= LOW_STOCK_THRESHOLD;
                     return (
                       <ListRow
                         key={m.id}
@@ -482,8 +504,12 @@ export default function OrderView() {
                             {/* Knapp: Punkt in Warnfarbe, Wort in Grau — keine farbige
                                 Schrift im Fliesstext (Designlinie „Fassung 3"). */}
                             <span className={low ? 'stand stand-warn h-auto' : undefined}>
-                              Lager: {m.stock ?? 0} {m.unit ?? 'Stk'}
-                              {low && ' (knapp)'}
+                              {frei?.has(m.id)
+                                ? verfuegbar > 0
+                                  ? `${fmtMenge(verfuegbar)} ${m.unit ?? 'Stk'} frei`
+                                  : 'nichts frei'
+                                : `Lager: ${fmtMenge(m.stock ?? 0)} ${m.unit ?? 'Stk'}`}
+                              {low && verfuegbar > 0 && ' (knapp)'}
                             </span>
                           </>
                         }
@@ -536,16 +562,26 @@ export default function OrderView() {
                   disabled={!freiName.trim() || !(zahlOder(freiMenge, NaN) > 0)}
                   onClick={freiHinzufuegen}
                 >
-                  Hinzufügen
+                  In die Liste
                 </Button>
               </div>
             </div>
           </Card>
 
-          <Card title={`Anforderung (${cart.length})`}>
+          {/*
+            DER WARENKORB IST SICHTBAR NOCH NICHT ABGESCHICKT (Testbericht
+            30.09.2026, M36). „Anfordern“ legte nur in den Korb, und Monteure
+            hielten die Anforderung nach dem ersten Tipp für erledigt. Jetzt
+            heissen die Knöpfe „Zur Anforderung“ und „Anforderung abschicken“,
+            und die Karte ist hervorgehoben, solange etwas darin liegt.
+          */}
+          <Card
+            title={cart.length > 0 ? `Anforderung (${cart.length}) — noch nicht abgeschickt` : 'Anforderung (0)'}
+            className={cart.length > 0 ? 'ring-2 ring-brand' : ''}
+          >
             {cart.length === 0 ? (
               <EmptyState>
-                Noch nichts ausgewählt. Im Katalog oben beim Artikel auf „Anfordern" tippen.
+                Noch nichts ausgewählt. Im Katalog oben beim Artikel auf „Zur Anforderung“ tippen.
               </EmptyState>
             ) : (
               <>
@@ -561,7 +597,7 @@ export default function OrderView() {
                       title={
                         <span>
                           {line.materialName}{' '}
-                          <span className="text-ink-muted">×{line.quantity}</span>
+                          <span className="text-ink-muted">×{fmtMenge(line.quantity)}</span>
                         </span>
                       }
                       subtitle={
@@ -587,12 +623,15 @@ export default function OrderView() {
                     </ListRow>
                   ))}
                 </List>
-                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <p className="mt-4 text-sm text-ink-muted">
+                  Erst mit „Anforderung abschicken“ geht sie an die Verwaltung.
+                </p>
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                   <Button onClick={submitCart} loading={saving} className="w-full sm:w-auto">
-                    Bestellung aufgeben
+                    Anforderung abschicken
                   </Button>
                   <Button variant="ghost" onClick={() => setCart([])} className="w-full sm:w-auto">
-                    Warenkorb leeren
+                    Liste leeren
                   </Button>
                 </div>
               </>
@@ -614,7 +653,7 @@ export default function OrderView() {
                     key={o.id}
                     title={
                       <span>
-                        {o.materialName} <span className="text-ink-muted">×{o.quantity}</span>
+                        {o.materialName} <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
                       </span>
                     }
                     subtitle={[
@@ -666,7 +705,7 @@ export default function OrderView() {
                     key={o.id}
                     title={
                       <span>
-                        {o.materialName} <span className="text-ink-muted">×{o.quantity}</span>
+                        {o.materialName} <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
                       </span>
                     }
                     subtitle={[
@@ -833,9 +872,11 @@ function QtyAdder({
   const [menge, setMenge] = useState('1');
   const [added, setAdded] = useState(0);
 
-  // Ganze Stück, zentral gelesen (M15): „1,5“ ist ungültig, nicht still 1.
+  // Zentral gelesen (M15), und je Einheit (M27): Meter und Kilo mit Komma,
+  // Stück ganz — „1,5 Stk“ ist ungültig, nicht still 1.
   const zahl = zahlOder(menge, NaN);
-  const gueltig = Number.isInteger(zahl) && zahl >= 1;
+  const mitKomma = mengeMitKomma(material.unit);
+  const gueltig = mengeFehler(zahl, material.unit) === null;
 
   function anfordern() {
     if (!gueltig) return;
@@ -850,7 +891,7 @@ function QtyAdder({
     <div className="flex items-center gap-1">
       {added > 0 && (
         <span className="mr-1 text-sm font-bold text-brand" aria-live="polite">
-          ×{added}
+          ×{fmtMenge(added)}
         </span>
       )}
       {/*
@@ -862,14 +903,14 @@ function QtyAdder({
       */}
       <IconButton
         label={`Menge für ${material.name} verringern`}
-        onClick={() => setMenge(String(Math.max(1, (gueltig ? zahl : 1) - 1)))}
+        onClick={() => setMenge(zahlAlsText(Math.max(1, (gueltig ? zahl : 1) - 1)))}
         disabled={gueltig && zahl <= 1}
       >
         −
       </IconButton>
       <input
         type="text"
-        inputMode="numeric"
+        inputMode={mitKomma ? 'decimal' : 'numeric'}
         autoComplete="off"
         data-zahl=""
         value={menge}
@@ -882,17 +923,17 @@ function QtyAdder({
       />
       <IconButton
         label={`Menge für ${material.name} erhöhen`}
-        onClick={() => setMenge(String((gueltig ? zahl : 0) + 1))}
+        onClick={() => setMenge(zahlAlsText((gueltig ? zahl : 0) + 1))}
       >
         +
       </IconButton>
       <Button
         variant={added > 0 ? 'primary' : 'secondary'}
-        aria-label={`${material.name} anfordern`}
+        aria-label={`${material.name} zur Anforderung`}
         disabled={!gueltig}
         onClick={anfordern}
       >
-        Anfordern
+        Zur Anforderung
       </Button>
     </div>
   );

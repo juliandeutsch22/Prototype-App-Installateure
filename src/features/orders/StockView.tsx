@@ -1,11 +1,14 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { darfKatalogEinspielen } from '@/lib/permissions';
 import {
   subscribeMaterials,
-  adjustStock,
   LOW_STOCK_THRESHOLD,
+  lagerFrei,
+  type LagerStand,
 } from '@/lib/db/materials';
+import { fmtMenge } from '@/lib/belegLayout';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import { subscribeAllOrders } from '@/lib/db/materialOrders';
 import type { WithId } from '@/lib/db/core';
@@ -21,10 +24,8 @@ import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import MaterialCatalog from './MaterialCatalog';
-import ConfirmDialog from '@/components/ConfirmDialog';
-import { zahlOder } from '@/lib/zahl';
+import { BewegungenDialog, InventurDialog, WareneingangDialog } from './LagerDialoge';
 import { useReiterImBild } from '@/components/reiterImBild';
-import ZahlFeld from '@/components/ZahlFeld';
 
 /*
   Der Katalogimport wird erst beim Öffnen geladen. Er bringt den
@@ -33,6 +34,9 @@ import ZahlFeld from '@/components/ZahlFeld';
 const KatalogImport = lazy(() => import('@/features/materials/KatalogImport'));
 
 type Tab = 'bestand' | 'katalog' | 'import';
+
+const darfEinspielenFuer = (user: Parameters<typeof darfKatalogEinspielen>[0] | null | undefined) =>
+  user ? darfKatalogEinspielen(user) : false;
 
 /**
  * Lager — eigener Bereich statt versteckter vierter Reiter unter
@@ -55,7 +59,23 @@ const ANFORDERUNGEN_JE_SEITE = 200;
 export default function StockView() {
   const { user } = useAuth();
   const toast = useToast();
-  const [tab, setTab] = useState<Tab>('bestand');
+  /*
+    DER REITER STEHT IN DER ADRESSE (Testbericht 30.09.2026, G8): „Zurück“,
+    Neuladen und ein geteilter Link landen auf demselben Reiter. Vorher
+    blieb die Adresse /lager, und ein Neuladen im Katalog sprang auf den
+    Bestand zurück. Ein unbekannter oder nicht erlaubter Wert gilt als Bestand.
+  */
+  const [params, setParams] = useSearchParams();
+  const gewuenscht = params.get('reiter');
+  const tab: Tab = gewuenscht === 'katalog' || (gewuenscht === 'import' && darfEinspielenFuer(user))
+    ? gewuenscht
+    : 'bestand';
+  const setTab = (t: Tab) => {
+    const neu = new URLSearchParams(params);
+    if (t === 'bestand') neu.delete('reiter');
+    else neu.set('reiter', t);
+    setParams(neu);
+  };
   // Am Telefon läuft die Reiterleiste seitlich: der gewählte Reiter bleibt im Bild.
   const reiterleiste = useReiterImBild<HTMLDivElement>(tab);
   // Die Leitung — oder die Verwaltung mit Freigabe „Katalog einspielen“ (M37).
@@ -67,7 +87,6 @@ export default function StockView() {
   /** Ein Nebenladevorgang ist ausgefallen — der Bestand steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [busyId, setBusyId] = useState<string | null>(null);
   /**
    * Welcher Artikel im Katalog geöffnet werden soll.
    *
@@ -121,7 +140,26 @@ export default function StockView() {
    * Der reine Lagerstand täuscht sonst: 20 Stück im Regal, von denen 18
    * bereits drei Monteuren zugesagt sind, sind keine 20 verfügbaren Stück.
    */
-  const reserved = useMemo(() => {
+  /*
+    DIE ZAHLEN DER DATENBANK (Testbericht 30.09.2026, M32, G19): zugesagte
+    Anforderungen und Rüstlisten ab heute, nach derselben Regel, mit der
+    „Aus Lager“ prüft. Neu geholt, sobald sich Artikel oder Anforderungen
+    bewegen. Bis sie da sind — oder wenn sie ausbleiben —, rechnet die
+    Ansicht wie bisher selbst.
+  */
+  const [stand, setStand] = useState<Map<string, LagerStand> | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    Promise.resolve()
+      .then(() => lagerFrei())
+      .then((k) => { if (!weg) setStand(k); })
+      // Schlägt ein Nachladen fehl, bleibt der letzte Stand — besser als zurück auf die eigene Rechnung.
+      .catch(() => undefined);
+    return () => { weg = true; };
+  }, [user, materials, orders]);
+
+  const selbstGerechnet = useMemo(() => {
     // Rückfall auf den Namen: nicht jede Anforderung trägt eine materialId.
     // Der Altbestand kennt Positionen ohne Verweis (Prototyp: „nur wenn matId
     // bekannt"), und auch eine per Sprache erfasste Zeile kann sie verlieren.
@@ -139,6 +177,13 @@ export default function StockView() {
     }
     return map;
   }, [orders, materials]);
+
+  const reserved = useMemo(() => {
+    if (!stand) return selbstGerechnet;
+    const map = new Map<string, number>();
+    for (const [id, st] of stand) map.set(id, st.zugesagt + st.geplant);
+    return map;
+  }, [stand, selbstGerechnet]);
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -162,39 +207,14 @@ export default function StockView() {
 
   /*
     DER WARENEINGANG FRAGT IN EINEM DIALOG DER APP, nicht über
-    `window.prompt`: der liess sich nicht gestalten und tat, wo der Browser
-    ihn unterdrückt, beim Klick gar nichts (Prüflauf 24.09.2026, F7). Und
-    ein Fehlschlag meldete sich vorher unten auf der Seite, während oben
-    trotzdem „eingebucht" stand — jetzt bleibt der Dialog offen und sagt es.
+    `window.prompt` (Prüflauf 24.09.2026, F7) — seit dem Testbericht vom
+    30.09.2026 (M29) mit Lieferant, Lieferschein und Bestellbezug. Dazu die
+    Inventur mit Grund und das Bewegungsprotokoll je Artikel (M28): der
+    Bestand ändert sich nur noch über Bewegungen.
   */
   const [eingang, setEingang] = useState<WithId<Material> | null>(null);
-  const [eingangMenge, setEingangMenge] = useState('1');
-
-  function book(m: WithId<Material>) {
-    setEingangMenge('1');
-    setEingang(m);
-  }
-
-  /** Wareneingang, atomar über increment. */
-  async function eingangBuchen() {
-    if (!eingang) return;
-    const m = eingang;
-    const n = zahlOder(eingangMenge, NaN);
-    // Ohne diese Prüfung ginge eine negative oder krumme Zahl als
-    // increment() durch und der Wareneingang würde den Bestand senken.
-    // „1,5“ wird nicht still zu 1 (M15).
-    if (!Number.isInteger(n) || n < 1) {
-      throw new Error('Bitte eine ganze Menge von mindestens 1 angeben.');
-    }
-    setBusyId(m.id);
-    try {
-      await adjustStock(m.id, n);
-    } finally {
-      setBusyId(null);
-    }
-    setEingang(null);
-    toast.success(`${n} ${m.unit ?? 'Stk'} ${m.name} eingebucht`);
-  }
+  const [inventur, setInventur] = useState<WithId<Material> | null>(null);
+  const [bewegungen, setBewegungen] = useState<WithId<Material> | null>(null);
 
   if (!user) return null;
 
@@ -252,12 +272,13 @@ export default function StockView() {
               label="Knapp"
               tone={lowCount > 0 ? 'warning' : 'success'}
               value={lowCount}
-              hint={`ab ${LOW_STOCK_THRESHOLD} oder weniger`}
+              // „ab 5 oder weniger“ war missverständlich (G8): gemeint ist das Freie.
+              hint={`höchstens ${LOW_STOCK_THRESHOLD} frei`}
             />
             <Metric
               label="Reserviert"
-              value={[...reserved.values()].reduce((a, b) => a + b, 0)}
-              hint="offen angefordert"
+              value={fmtMenge([...reserved.values()].reduce((a, b) => a + b, 0))}
+              hint="zugesagt und auf Rüstlisten"
             />
           </MetricRow>
 
@@ -299,7 +320,10 @@ export default function StockView() {
                               <>
                                 {m.category && ' · '}
                                 <span>
-                                  {m.stock ?? 0} im Lager, {m.reserved} reserviert
+                                  {fmtMenge(m.stock ?? 0)} im Lager, {fmtMenge(m.reserved)} reserviert
+                                  {stand?.get(m.id)?.geplant
+                                    ? ` (davon ${fmtMenge(stand.get(m.id)!.geplant)} auf Rüstlisten)`
+                                    : ''}
                                 </span>
                               </>
                             )}
@@ -315,18 +339,20 @@ export default function StockView() {
                           Einkaufsliste.
                         */}
                         {m.free < 0 ? (
-                          <Warnung>{-m.free} {m.unit ?? 'Stk'} fehlen</Warnung>
+                          <Warnung>{fmtMenge(-m.free)} {m.unit ?? 'Stk'} fehlen</Warnung>
                         ) : low ? (
-                          <Warnung>{m.free} {m.unit ?? 'Stk'} frei</Warnung>
+                          <Warnung>{fmtMenge(m.free)} {m.unit ?? 'Stk'} frei</Warnung>
                         ) : (
-                          <Marke>{m.free} {m.unit ?? 'Stk'} frei</Marke>
+                          <Marke>{fmtMenge(m.free)} {m.unit ?? 'Stk'} frei</Marke>
                         )}
-                        <Button
-                          variant="ghost"
-                          loading={busyId === m.id}
-                          onClick={() => book(m)}
-                        >
+                        <Button variant="ghost" onClick={() => setEingang(m)}>
                           Wareneingang
+                        </Button>
+                        <Button variant="ghost" onClick={() => setInventur(m)}>
+                          Inventur
+                        </Button>
+                        <Button variant="ghost" onClick={() => setBewegungen(m)}>
+                          Bewegungen
                         </Button>
                         {/*
                           Bezeichnung, Kategorie, Artikelnummer, Einheit UND
@@ -364,24 +390,27 @@ export default function StockView() {
       )}
 
       {eingang && (
-        <ConfirmDialog
-          open
-          title={`Wareneingang: ${eingang.name}`}
-          message="Die Menge kommt zum Bestand dazu."
-          confirmLabel="Einbuchen"
-          confirmTone="primary"
-          onConfirm={eingangBuchen}
-          onCancel={() => setEingang(null)}
-        >
-          <ZahlFeld
-            id="eingang-menge"
-            label={`Menge (${eingang.unit ?? 'Stk'})`}
-            pflicht
-            value={eingangMenge}
-            onChange={setEingangMenge}
-          />
-        </ConfirmDialog>
+        <WareneingangDialog
+          companyId={user.companyId}
+          artikel={eingang}
+          onAbbrechen={() => setEingang(null)}
+          onFertig={(text) => {
+            setEingang(null);
+            toast.success(text);
+          }}
+        />
       )}
+      {inventur && (
+        <InventurDialog
+          artikel={inventur}
+          onAbbrechen={() => setInventur(null)}
+          onFertig={(text) => {
+            setInventur(null);
+            toast.success(text);
+          }}
+        />
+      )}
+      {bewegungen && <BewegungenDialog artikel={bewegungen} onSchliessen={() => setBewegungen(null)} />}
     </div>
   );
 }

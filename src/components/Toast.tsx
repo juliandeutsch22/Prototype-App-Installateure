@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
 type ToastTone = 'success' | 'error' | 'info';
 interface Toast {
@@ -32,10 +32,29 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const counter = useRef(0);
 
+  /*
+    DIE UHREN GEHEN MIT DEM ANBIETER. Lief eine Meldung noch, als der Anbieter
+    verschwand (Abmelden, Seitenwechsel, Ende eines Tests), setzte ihr Ablauf
+    danach einen Zustand, den es nicht mehr gab — im Test als „window is not
+    defined“ nach dem Abbau der Umgebung.
+  */
+  const uhren = useRef(new Set<ReturnType<typeof setTimeout>>());
+  useEffect(() => {
+    const laufend = uhren.current;
+    return () => {
+      for (const u of laufend) clearTimeout(u);
+      laufend.clear();
+    };
+  }, []);
+
   const push = useCallback((tone: ToastTone, message: string) => {
     const id = ++counter.current;
     setToasts((t) => [...t, { id, tone, message }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3500);
+    const uhr = setTimeout(() => {
+      uhren.current.delete(uhr);
+      setToasts((t) => t.filter((x) => x.id !== id));
+    }, 3500);
+    uhren.current.add(uhr);
   }, []);
 
   const api = useRef<ToastApi>({
