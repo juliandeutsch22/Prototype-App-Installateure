@@ -60,3 +60,26 @@ test('Ein Monteur meldet sich an und bucht seine Zeit', async ({ page }) => {
 
   await keineFehlermeldung(page);
 });
+
+/*
+  Testbericht 30.09.2026, H9: Klicks und Eingaben gingen direkt nach dem Laden
+  verloren. Die Anmeldung meldet sich beim Start mehrmals, und jede Meldung
+  baute die ganze Seite neu auf. Diese Prüfung tippt, sobald das Feld da ist
+  — vor dem Ende der Netzrunden — und sieht nach, ob der Text danach noch
+  dasteht.
+*/
+test('Getippter Text bleibt stehen, auch wenn direkt nach dem Laden getippt wird', async ({ page }) => {
+  await anmelden(page, MONTEUR.email);
+  await page.goto('/time');
+  const kommentar = page.locator('#comment');
+  await kommentar.waitFor({ state: 'visible', timeout: 20_000 });
+  await kommentar.fill('Verteiler gesetzt, Leitung gespült');
+
+  await page.waitForLoadState('networkidle');
+  // Die Anmeldung meldet sich auch beim Zurückkehren in den Tab.
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await page.waitForTimeout(1500);
+
+  await expect(page.locator('#comment')).toHaveValue('Verteiler gesetzt, Leitung gespült');
+  await expect(page.getByText('Anmeldung wird geprüft …')).toHaveCount(0);
+});
