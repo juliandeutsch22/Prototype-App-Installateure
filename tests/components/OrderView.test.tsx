@@ -44,8 +44,13 @@ const anlegen = vi.fn();
 const retoure = vi.fn();
 const statusSetzen = vi.fn();
 
+let lagerStand: Map<string, unknown> | null = null;
 vi.mock('@/lib/db/materials', () => ({
   LOW_STOCK_THRESHOLD: 5,
+  lagerFrei: async () => {
+    if (!lagerStand) throw new Error('nicht geladen');
+    return lagerStand;
+  },
   subscribeMaterials: (
     _c: string,
     cb: (rows: WithId<Material>[]) => void,
@@ -590,5 +595,21 @@ describe('Mengen je Einheit', () => {
     await userEvent.clear(feld);
     await userEvent.type(feld, '1,5');
     expect(screen.getByRole('button', { name: /Dichtung 1\/2" anfordern/ })).toBeDisabled();
+  });
+});
+
+// Testbericht 30.09.2026, G19 — der Monteur sieht, was frei ist, nicht was im Regal steht.
+describe('Freie Menge', () => {
+  it('„2 Stk frei (knapp)“ statt „Lager: 3 Stk“, wenn eines zugesagt ist', async () => {
+    lagerStand = new Map([['m2', { bestand: 3, zugesagt: 1, geplant: 0, frei: 2 }]]);
+    zeige();
+    expect(await screen.findByText(/2 Stk frei \(knapp\)/)).toBeInTheDocument();
+    lagerStand = null;
+  });
+
+  it('Gegenprobe: ohne Zahlen der Datenbank steht der Bestand', async () => {
+    lagerStand = null;
+    zeige();
+    expect(await screen.findByText(/Lager: 3 Stk/)).toBeInTheDocument();
   });
 });

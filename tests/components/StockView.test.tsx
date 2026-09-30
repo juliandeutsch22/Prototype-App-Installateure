@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
@@ -53,7 +53,10 @@ vi.mock('@/lib/db/materials', () => ({
   lagerEingang: (...a: unknown[]) => bestandAendern(...a),
   lagerInventur: (...a: unknown[]) => inventurBuchen(...a),
   listLagerbewegungen: (...a: unknown[]) => bewegungenLaden(...a),
+  lagerFrei: () => lagerStand(),
 }));
+// Ohne eigene Vorgabe rechnet die Ansicht selbst — wie wenn die Zahlen ausbleiben.
+const lagerStand = vi.fn<() => Promise<Map<string, unknown>>>(async () => { throw new Error('nicht geladen'); });
 const inventurBuchen = vi.fn();
 const bewegungenLaden = vi.fn<(...a: unknown[]) => Promise<unknown[]>>(async () => []);
 vi.mock('@/lib/db/einkauf', () => ({
@@ -420,5 +423,18 @@ describe('Reiter in der Adresse', () => {
   it('Gegenprobe: ein unbekannter Reiter gilt als Bestand', async () => {
     zeige('/lager?reiter=irgendwas');
     expect(await screen.findByRole('tab', { name: 'Bestand' })).toHaveAttribute('aria-selected', 'true');
+  });
+});
+
+// Testbericht 30.09.2026, M32 — die Rüstliste reserviert; die Zahlen kommen aus der Datenbank.
+describe('Lager — Reservierung durch Rüstlisten', () => {
+  afterEach(() => lagerStand.mockReset().mockImplementation(async () => { throw new Error('nicht geladen'); }));
+
+  it('zeigt Freies und Geplantes nach der Rechnung der Datenbank', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    lagerStand.mockResolvedValue(new Map([['m1', { bestand: 20, zugesagt: 2, geplant: 3, frei: 15 }]]));
+    zeige();
+    expect(await screen.findByText(/15 m frei/)).toBeInTheDocument();
+    expect(screen.getByText(/5 reserviert \(davon 3 auf Rüstlisten\)/)).toBeInTheDocument();
   });
 });

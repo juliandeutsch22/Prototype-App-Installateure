@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { subscribeMaterials, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
+import { subscribeMaterials, LOW_STOCK_THRESHOLD, lagerFrei, type LagerStand } from '@/lib/db/materials';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import {
   createMaterialOrderOhneEmpfang,
@@ -75,6 +75,22 @@ export default function OrderView() {
   // Am Telefon läuft die Reiterleiste seitlich: der gewählte Reiter bleibt im Bild.
   const reiterleiste = useReiterImBild<HTMLDivElement>(tab);
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
+  /*
+    WAS FREI IST, NICHT WAS IM REGAL STEHT (Testbericht 30.09.2026, G19):
+    „5 Stk (knapp)“, obwohl 3 davon zugesagt oder für einen Einsatz geplant
+    waren. Die Zahl kommt aus der Datenbank; bis sie da ist oder wenn sie
+    ausbleibt, steht der Bestand.
+  */
+  const [frei, setFrei] = useState<Map<string, LagerStand> | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    Promise.resolve()
+      .then(() => lagerFrei())
+      .then((k) => { if (!weg) setFrei(k); })
+      .catch(() => undefined);
+    return () => { weg = true; };
+  }, [user, materials]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [myOrders, setMyOrders] = useState<WithId<MaterialOrder>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -473,7 +489,8 @@ export default function OrderView() {
               ) : (
                 <List>
                   {filtered.map((m) => {
-                    const low = (m.stock ?? 0) <= LOW_STOCK_THRESHOLD;
+                    const verfuegbar = frei?.get(m.id)?.frei ?? m.stock ?? 0;
+                    const low = verfuegbar <= LOW_STOCK_THRESHOLD;
                     return (
                       <ListRow
                         key={m.id}
@@ -487,8 +504,12 @@ export default function OrderView() {
                             {/* Knapp: Punkt in Warnfarbe, Wort in Grau — keine farbige
                                 Schrift im Fliesstext (Designlinie „Fassung 3"). */}
                             <span className={low ? 'stand stand-warn h-auto' : undefined}>
-                              Lager: {m.stock ?? 0} {m.unit ?? 'Stk'}
-                              {low && ' (knapp)'}
+                              {frei?.has(m.id)
+                                ? verfuegbar > 0
+                                  ? `${fmtMenge(verfuegbar)} ${m.unit ?? 'Stk'} frei`
+                                  : 'nichts frei'
+                                : `Lager: ${fmtMenge(m.stock ?? 0)} ${m.unit ?? 'Stk'}`}
+                              {low && verfuegbar > 0 && ' (knapp)'}
                             </span>
                           </>
                         }

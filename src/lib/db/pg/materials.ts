@@ -98,6 +98,32 @@ export async function listLagerbewegungen(materialId: string, max = 200): Promis
   return (data ?? []).map((z) => zeileAlsObjekt<WithId<Lagerbewegung>>('lagerbewegungen', z));
 }
 
+/** Was je Artikel frei ist (Testbericht 30.09.2026, M32, G19). */
+export interface LagerStand {
+  bestand: number;
+  /** Zugesagte, noch nicht abgeholte Anforderungen. */
+  zugesagt: number;
+  /** Auf Rüstlisten ab heute geplant. */
+  geplant: number;
+  /** Bestand minus beides — unter null heisst „fehlt“. */
+  frei: number;
+}
+
+export async function lagerFrei(): Promise<Map<string, LagerStand>> {
+  const { data, error } = await derClient().rpc('lager_frei');
+  if (error) throw new Error(error.message);
+  const karte = new Map<string, LagerStand>();
+  for (const z of (data ?? []) as Array<Record<string, unknown>>) {
+    karte.set(String(z.material_id), {
+      bestand: Number(z.bestand),
+      zugesagt: Number(z.zugesagt),
+      geplant: Number(z.geplant),
+      frei: Number(z.frei),
+    });
+  }
+  return karte;
+}
+
 export function listMaterials(companyId: string, max = KATALOG_GRENZE) {
   return abfragen<Material>(MATERIAL, companyId, { grenze: max });
 }

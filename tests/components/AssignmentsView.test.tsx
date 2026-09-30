@@ -93,7 +93,12 @@ let ruestlisten: (EinsatzMaterial & { id: string })[] = [];
 const ruestSpeichern = vi.fn();
 const anforderungAnlegen = vi.fn();
 
+let lagerStand: Map<string, unknown> | null = null;
 vi.mock('@/lib/db/materials', () => ({
+  lagerFrei: async () => {
+    if (!lagerStand) throw new Error('nicht geladen');
+    return lagerStand;
+  },
   subscribeMaterials: (_c: string, cb: (r: (Material & { id: string })[]) => void) => {
     cb(MATERIAL);
     return () => undefined;
@@ -812,5 +817,38 @@ describe('Einsatz löschen', () => {
     await nutzer.click(within(dialog).getByRole('button', { name: /löschen/i }));
     expect(await screen.findByText(/konnte nicht gelöscht werden/)).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
+
+// Testbericht 30.09.2026, G14 und M32 — Rüstliste und Lager.
+describe('Rüstliste: Nachbestellung und Reservierung', () => {
+  async function baustelleWaehlen() {
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+  }
+
+  it('nach dem Anlegen ist der Knopf erledigt — keine doppelte Anforderung (G14)', async () => {
+    zeige();
+    await baustelleWaehlen();
+    await userEvent.type(await screen.findByRole('searchbox', { name: /Artikel aus dem Lager/ }), 'Mischbatterie');
+    await userEvent.click(await screen.findByRole('button', { name: /Mischbatterie auf die Rüstliste/ }));
+    const menge = screen.getByRole('textbox', { name: 'Menge' });
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '3');
+    await userEvent.click(await screen.findByRole('button', { name: /Anforderung über 2 anlegen/ }));
+    expect((await screen.findAllByText('Anforderung angelegt')).length).toBeGreaterThan(1);
+    expect(screen.queryByRole('button', { name: /Anforderung über/ })).toBeNull();
+  });
+
+  it('rechnet mit dem, was nach anderen Zusagen und Rüstlisten frei ist (M32)', async () => {
+    const id = MATERIAL.find((m) => m.name === 'Mischbatterie')!.id;
+    // Im Regal 1, aber schon für einen anderen Einsatz geplant: für diese Liste nichts frei.
+    lagerStand = new Map([[id, { bestand: 1, zugesagt: 0, geplant: 1, frei: 0 }]]);
+    zeige();
+    await baustelleWaehlen();
+    await userEvent.type(await screen.findByRole('searchbox', { name: /Artikel aus dem Lager/ }), 'Mischbatterie');
+    await userEvent.click(await screen.findByRole('button', { name: /Mischbatterie auf die Rüstliste/ }));
+    expect(await screen.findByRole('button', { name: /Anforderung über 1 anlegen/ })).toBeInTheDocument();
+    expect(screen.getByText(/für diese Liste frei/)).toBeInTheDocument();
+    lagerStand = null;
   });
 });

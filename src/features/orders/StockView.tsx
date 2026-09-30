@@ -5,7 +5,10 @@ import { darfKatalogEinspielen } from '@/lib/permissions';
 import {
   subscribeMaterials,
   LOW_STOCK_THRESHOLD,
+  lagerFrei,
+  type LagerStand,
 } from '@/lib/db/materials';
+import { fmtMenge } from '@/lib/belegLayout';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import { subscribeAllOrders } from '@/lib/db/materialOrders';
 import type { WithId } from '@/lib/db/core';
@@ -137,7 +140,26 @@ export default function StockView() {
    * Der reine Lagerstand täuscht sonst: 20 Stück im Regal, von denen 18
    * bereits drei Monteuren zugesagt sind, sind keine 20 verfügbaren Stück.
    */
-  const reserved = useMemo(() => {
+  /*
+    DIE ZAHLEN DER DATENBANK (Testbericht 30.09.2026, M32, G19): zugesagte
+    Anforderungen und Rüstlisten ab heute, nach derselben Regel, mit der
+    „Aus Lager“ prüft. Neu geholt, sobald sich Artikel oder Anforderungen
+    bewegen. Bis sie da sind — oder wenn sie ausbleiben —, rechnet die
+    Ansicht wie bisher selbst.
+  */
+  const [stand, setStand] = useState<Map<string, LagerStand> | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    Promise.resolve()
+      .then(() => lagerFrei())
+      .then((k) => { if (!weg) setStand(k); })
+      // Schlägt ein Nachladen fehl, bleibt der letzte Stand — besser als zurück auf die eigene Rechnung.
+      .catch(() => undefined);
+    return () => { weg = true; };
+  }, [user, materials, orders]);
+
+  const selbstGerechnet = useMemo(() => {
     // Rückfall auf den Namen: nicht jede Anforderung trägt eine materialId.
     // Der Altbestand kennt Positionen ohne Verweis (Prototyp: „nur wenn matId
     // bekannt"), und auch eine per Sprache erfasste Zeile kann sie verlieren.
@@ -155,6 +177,13 @@ export default function StockView() {
     }
     return map;
   }, [orders, materials]);
+
+  const reserved = useMemo(() => {
+    if (!stand) return selbstGerechnet;
+    const map = new Map<string, number>();
+    for (const [id, st] of stand) map.set(id, st.zugesagt + st.geplant);
+    return map;
+  }, [stand, selbstGerechnet]);
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -243,12 +272,13 @@ export default function StockView() {
               label="Knapp"
               tone={lowCount > 0 ? 'warning' : 'success'}
               value={lowCount}
-              hint={`ab ${LOW_STOCK_THRESHOLD} oder weniger`}
+              // „ab 5 oder weniger“ war missverständlich (G8): gemeint ist das Freie.
+              hint={`höchstens ${LOW_STOCK_THRESHOLD} frei`}
             />
             <Metric
               label="Reserviert"
-              value={[...reserved.values()].reduce((a, b) => a + b, 0)}
-              hint="offen angefordert"
+              value={fmtMenge([...reserved.values()].reduce((a, b) => a + b, 0))}
+              hint="zugesagt und auf Rüstlisten"
             />
           </MetricRow>
 
@@ -290,7 +320,10 @@ export default function StockView() {
                               <>
                                 {m.category && ' · '}
                                 <span>
-                                  {m.stock ?? 0} im Lager, {m.reserved} reserviert
+                                  {fmtMenge(m.stock ?? 0)} im Lager, {fmtMenge(m.reserved)} reserviert
+                                  {stand?.get(m.id)?.geplant
+                                    ? ` (davon ${fmtMenge(stand.get(m.id)!.geplant)} auf Rüstlisten)`
+                                    : ''}
                                 </span>
                               </>
                             )}
@@ -306,11 +339,11 @@ export default function StockView() {
                           Einkaufsliste.
                         */}
                         {m.free < 0 ? (
-                          <Warnung>{-m.free} {m.unit ?? 'Stk'} fehlen</Warnung>
+                          <Warnung>{fmtMenge(-m.free)} {m.unit ?? 'Stk'} fehlen</Warnung>
                         ) : low ? (
-                          <Warnung>{m.free} {m.unit ?? 'Stk'} frei</Warnung>
+                          <Warnung>{fmtMenge(m.free)} {m.unit ?? 'Stk'} frei</Warnung>
                         ) : (
-                          <Marke>{m.free} {m.unit ?? 'Stk'} frei</Marke>
+                          <Marke>{fmtMenge(m.free)} {m.unit ?? 'Stk'} frei</Marke>
                         )}
                         <Button variant="ghost" onClick={() => setEingang(m)}>
                           Wareneingang
