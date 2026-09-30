@@ -64,6 +64,22 @@ export function abziehbar<T extends Invoice>(alle: T[], projectNumber: string): 
 }
 
 /**
+ * Muss diese Rechnung von einer SCHLUSSRECHNUNG abgezogen werden?
+ *
+ * Anzahlungs- und Teilrechnungen ja (Testbericht 30.09.2026, K2): ihre
+ * Umsatzsteuer ist schon ausgewiesen; fehlt der Abzug, steht sie zweimal auf
+ * Belegen desselben Betriebs (§ 11 Abs 12 UStG). Im Pilotbetrieb ging so eine
+ * Schlussrechnung über den vollen Betrag hinaus, weil das Häkchen nicht
+ * gesetzt war. Die Datenbank (`app.vorrechnungen_pruefen`) verlangt dasselbe.
+ *
+ * Eine Einzelrechnung ohne verbrauchte Belege bleibt ein freiwilliger Abzug —
+ * ob sie Teil derselben Leistung war, weiss nur der Betrieb.
+ */
+export function pflichtAbzug(r: Pick<Invoice, 'art'>): boolean {
+  return r.art === 'anzahlung' || r.art === 'teil';
+}
+
+/**
  * Welche der abziehbaren Rechnungen zur Steuerbehandlung DIESER Rechnung
  * passen — und welche nicht.
  *

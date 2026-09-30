@@ -227,7 +227,7 @@ describe('Betriebsurlaub', () => {
   });
 
   it('niemand schreibt sich den Bezug zum Betriebsurlaub selbst in einen Antrag', async () => {
-    const { data: b } = await admin.from('betriebsurlaube').select('id').single();
+    const { data: b } = await admin.from('betriebsurlaube').select('id').eq('company_id', BETRIEB).single();
     await expect(antrag(monteur, { von: '2027-01-11', bis: '2027-01-11', betriebsurlaub_id: b!.id }))
       .rejects.toThrow();
     const eigener = await antrag(monteur, { von: '2027-01-12', bis: '2027-01-12' });
@@ -238,7 +238,7 @@ describe('Betriebsurlaub', () => {
 
   it('Löschen nimmt zurück, was er gebucht hat — der eigene Urlaub daneben bleibt', async () => {
     // Die Arbeit der Kollegin am 29.12. stammt nicht vom Betriebsurlaub.
-    const { data: b } = await admin.from('betriebsurlaube').select('id').single();
+    const { data: b } = await admin.from('betriebsurlaube').select('id').eq('company_id', BETRIEB).single();
     const fremd = await monteur.client.rpc('betriebsurlaub_loeschen', { p_id: b!.id });
     expect(fremd.error).not.toBeNull();
 

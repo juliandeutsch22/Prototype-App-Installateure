@@ -14,6 +14,8 @@ import {
   cancelInvoice,
   reactivateInvoice,
   stornorechnungAusstellen,
+  schlussrechnungenOhneAbzug,
+  type SchlussOhneAbzug,
   mahnungFesthalten,
   sucheRechnungen,
   scheineAufRechnung,
@@ -52,7 +54,7 @@ import {
 import { geltenderSatz, pruefeReverseCharge, sichtAusWieUid } from './reverseCharge';
 import { pruefeEmpfaengerUid } from './empfaengerUid';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
-import { abziehbar, alsVorrechnung, mitAbzug, nachSteuer } from './vorrechnungen';
+import { abziehbar, alsVorrechnung, mitAbzug, nachSteuer, pflichtAbzug } from './vorrechnungen';
 import { scheinAbgleich } from './scheinAbgleich';
 import { pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from './pauschale';
 import { listQuotesForProject } from '@/lib/db/quotes';
@@ -146,6 +148,8 @@ export default function InvoicesView() {
     leere Datei, die wie ein Erfolg aussah.
   */
   const [exportZeilen, setExportZeilen] = useState<WithId<Invoice>[] | null>(null);
+  /** Schlussrechnungen ohne Abzug ihrer Anzahlung — geholt mit dem Zeitraum (K2). */
+  const [ohneAbzug, setOhneAbzug] = useState<SchlussOhneAbzug[]>([]);
   /*
     Der Kontenrahmen des Betriebs — ohne ihn gibt es keinen Buchungsstapel.
     Er wird einmal geladen und nicht abonniert: er ändert sich einmal beim
@@ -1367,6 +1371,18 @@ export default function InvoicesView() {
   );
 
   /**
+   * Stellt dieser Betrieb überhaupt Anzahlungen und Teilrechnungen?
+   *
+   * Ist der Haken aus, gibt es die Auswahl nicht — und damit auch keine
+   * andere Art als die Einzelrechnung. ABGELEITET und nicht bloss
+   * ausgeblendet: dreht jemand die Einstellung ab, während hier eine
+   * Schlussrechnung vorbereitet wird, entstünde sonst ein Beleg über eine
+   * Einstellung, die es nicht mehr gibt.
+   */
+  const artWaehlbar = !!company?.rechnungsarten;
+  const art: RechnungsArt = artWaehlbar ? artWahl : 'einzel';
+
+  /**
    * Die gewählten Abzüge als Kopie, wie sie auf dem Beleg stehen.
    *
    * Aus `abzugsfaehig` und nicht aus der Rechnungsliste der Ansicht: nur die
@@ -1380,9 +1396,22 @@ export default function InvoicesView() {
     „Bauleistung" danach umstellt.
   */
   const steuer = useMemo(() => nachSteuer(abzugsfaehig, reverseCharge), [abzugsfaehig, reverseCharge]);
+  /*
+    BEI DER SCHLUSSRECHNUNG KEIN HÄKCHEN, SONDERN PFLICHT (Testbericht
+    30.09.2026, K2). Anzahlungen und Teilrechnungen werden abgezogen, ohne
+    dass jemand daran denken muss, und lassen sich nicht abwählen — die
+    Datenbank wiese die Rechnung sonst ab.
+  */
+  const pflicht = useMemo(
+    () => (art === 'schluss' ? steuer.passend.filter(pflichtAbzug).map((r) => r.id) : []),
+    [art, steuer],
+  );
   const abzuege = useMemo(
-    () => steuer.passend.filter((r) => gewaehlteAbzuege.includes(r.id)).map(alsVorrechnung),
-    [steuer, gewaehlteAbzuege],
+    () =>
+      steuer.passend
+        .filter((r) => gewaehlteAbzuege.includes(r.id) || pflicht.includes(r.id))
+        .map(alsVorrechnung),
+    [steuer, gewaehlteAbzuege, pflicht],
   );
 
   /**
@@ -1406,18 +1435,6 @@ export default function InvoicesView() {
     Datenbank (`rechnung_anlegen`) weist beides ebenso ab.
   */
   const leer = !!preview && (preview.positions.length === 0 || preview.totalNetto <= 0);
-
-  /**
-   * Stellt dieser Betrieb überhaupt Anzahlungen und Teilrechnungen?
-   *
-   * Ist der Haken aus, gibt es die Auswahl nicht — und damit auch keine
-   * andere Art als die Einzelrechnung. ABGELEITET und nicht bloss
-   * ausgeblendet: dreht jemand die Einstellung ab, während hier eine
-   * Schlussrechnung vorbereitet wird, entstünde sonst ein Beleg über eine
-   * Einstellung, die es nicht mehr gibt.
-   */
-  const artWaehlbar = !!company?.rechnungsarten;
-  const art: RechnungsArt = artWaehlbar ? artWahl : 'einzel';
 
   /** Abgezogen wird nur, wo es etwas abzuziehen gibt. */
   const zieheAb = art === 'teil' || art === 'schluss';
@@ -1457,7 +1474,16 @@ export default function InvoicesView() {
     setExportLaeuft(true);
     setExportFehler(null);
     try {
-      setExportZeilen(await listInvoicesInRange(user.companyId, exportVon, exportBis));
+      /*
+        ÜBER ALLE ZEITRÄUME, nicht nur über den gewählten: die Anzahlung liegt
+        typischerweise Monate vor der Schlussrechnung.
+      */
+      const [zeilen, fehlAbzug] = await Promise.all([
+        listInvoicesInRange(user.companyId, exportVon, exportBis),
+        schlussrechnungenOhneAbzug(),
+      ]);
+      setExportZeilen(zeilen);
+      setOhneAbzug(fehlAbzug);
     } catch {
       setExportZeilen(null);
       setExportFehler(
@@ -1614,24 +1640,12 @@ export default function InvoicesView() {
         ...(inv.paymentStatus !== 'Storniert'
           ? [
               /*
-                Nur noch die beiden Zustände, die am DATUM hängen
-                und nicht am Geld — und nur dort, wo die Rechnung
-                gerade in einem von ihnen steht. Bei „Teilbezahlt"
-                hätte „Auf Offen setzen" keine Wirkung: der Stand
-                ergibt sich aus den Eingängen und käme sofort
-                zurück.
+                KEIN STATUS VON HAND (Testbericht 30.09.2026, H5). Hier
+                liess sich „Überfällig" setzen, auch zwei Wochen vor dem
+                Zahlungsziel — und dann mahnen. Der Stand ergibt sich aus
+                Zahlungsziel und Eingängen; die Datenbank lässt nichts
+                anderes mehr zu.
               */
-              ...(inv.paymentStatus === 'Offen' || inv.paymentStatus === 'Überfällig'
-                ? (['Offen', 'Überfällig'] as const).filter((s) => s !== inv.paymentStatus)
-                : []
-              )
-                .map((s) => ({
-                  label: `Auf „${s}" setzen`,
-                  onSelect: async () => {
-                    await updateInvoiceStatus(inv.id, s);
-                    toast.success('Status geändert');
-                  },
-                })),
               {
                 label: 'Stornieren',
                 danger: true,
@@ -2440,8 +2454,9 @@ export default function InvoicesView() {
                     <CheckboxField
                       key={r.id}
                       id={`abzug-${r.id}`}
-                      label={`${r.invoiceNumber} vom ${datumAT(r.invoiceDate)} — ${euro(r.totalBrutto)} brutto (davon ${euro(r.totalVat)} USt)`}
-                      checked={gewaehlteAbzuege.includes(r.id)}
+                      label={`${r.invoiceNumber} vom ${datumAT(r.invoiceDate)} — ${euro(r.totalBrutto)} brutto (davon ${euro(r.totalVat)} USt)${pflicht.includes(r.id) ? ' — wird abgezogen' : ''}`}
+                      checked={gewaehlteAbzuege.includes(r.id) || pflicht.includes(r.id)}
+                      disabled={pflicht.includes(r.id)}
                       onChange={(e) =>
                         setGewaehlteAbzuege((alt) =>
                           e.target.checked ? [...alt, r.id] : alt.filter((x) => x !== r.id),
@@ -2973,6 +2988,18 @@ export default function InvoicesView() {
                 storniert. Das gehoert geklaert, BEVOR der Export in die
                 Kanzlei geht — nicht danach.
               */}
+              {ohneAbzug.length > 0 && (
+                <div className="mt-3">
+                  <Hinweiszeile stufe="warn">
+                    <p>
+                      <strong>Schlussrechnung ohne Abzug der Anzahlung:</strong>{' '}
+                      {ohneAbzug.map((o) => `${o.invoiceNumber} (nicht abgezogen: ${o.fehlend})`).join('; ')}.
+                      Die Umsatzsteuer der Anzahlung steht damit zweimal auf den Belegen. Berichtigt wird
+                      über Storno und eine neue Schlussrechnung — am besten vor der Übergabe an die Kanzlei.
+                    </p>
+                  </Hinweiszeile>
+                </div>
+              )}
               {e.luecken.length > 0 && (
                 <div className="mt-3">
                   <Hinweiszeile stufe="warn">
@@ -3100,13 +3127,22 @@ export default function InvoicesView() {
         onCancel={() => setToCancel(null)}
         onConfirm={async () => {
           if (toCancel) {
-            await cancelInvoice(toCancel, cancelNote.trim() || 'Storno ohne Angabe');
+            /*
+              OHNE GRUND KEIN STORNO (Testbericht 30.09.2026, H4). Hier stand
+              ein Ersatztext, „Storno ohne Angabe" — er beantwortet bei einer
+              Prüfung nicht, warum der Umsatz fehlt. Die Datenbank verlangt
+              den Grund ebenso; der Dialog bleibt mit der Meldung offen.
+            */
+            if (!cancelNote.trim()) {
+              throw new Error('Bitte einen Grund angeben — er steht in der Liste, im Ausgangsbuch und im Buchungsstapel.');
+            }
+            await cancelInvoice(toCancel, cancelNote.trim());
             toast.success('Rechnung storniert');
           }
           setToCancel(null);
         }}
       >
-        <InputField id="cancelnote" label="Grund (erscheint in der Liste)" value={cancelNote}
+        <InputField id="cancelnote" label="Grund (erscheint in der Liste)" required pflicht value={cancelNote}
           onChange={(e) => setCancelNote(e.target.value)} placeholder="z. B. Falscher Kunde" />
       </ConfirmDialog>
 

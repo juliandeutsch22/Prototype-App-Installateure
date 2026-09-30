@@ -582,6 +582,30 @@ export async function stornorechnungAusstellen(
   return String((data as { storno_nummer: string }).storno_nummer);
 }
 
+/** Eine gültige Schlussrechnung, neben der eine nicht abgezogene Vorrechnung steht. */
+export interface SchlussOhneAbzug {
+  invoiceNumber: string;
+  /** Die Nummern der Anzahlungs- bzw. Teilrechnungen, die fehlen. */
+  fehlend: string;
+}
+
+/**
+ * Schlussrechnungen, die ihre Anzahlung nicht abgezogen haben (Testbericht
+ * 30.09.2026, K2).
+ *
+ * Neue lässt die Datenbank nicht mehr zu; ausgestellte bleiben, wie sie
+ * hinausgingen. Diese Liste macht sie vor dem Export sichtbar — berichtigt
+ * wird über Storno und eine neue Schlussrechnung.
+ */
+export async function schlussrechnungenOhneAbzug(): Promise<SchlussOhneAbzug[]> {
+  const { data, error } = await derClient().rpc('schlussrechnungen_ohne_abzug');
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as { invoice_number: string; fehlend: string }[]).map((z) => ({
+    invoiceNumber: z.invoice_number,
+    fehlend: z.fehlend,
+  }));
+}
+
 /**
  * Eine Mahnung festhalten.
  *

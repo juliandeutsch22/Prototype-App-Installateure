@@ -11,6 +11,7 @@
 import type { Invoice } from '@/types';
 import type { WithId } from './core';
 import * as pg from './pg/invoices';
+import type { SchlussOhneAbzug } from './pg/invoices';
 
 // Die reinen Rechenregeln liegen in lib/invoiceNumbers — ohne Datenbank und
 // damit ohne Stack prüfbar. Hier durchgereicht, damit die Aufrufer wie bisher
@@ -108,6 +109,12 @@ export function reactivateInvoice(inv: WithId<Invoice>): Promise<void> {
 
 export function stornorechnungAusstellen(inv: WithId<Invoice>, praefix: string): Promise<string> {
   return pg.stornorechnungAusstellen(inv, praefix);
+}
+
+export type { SchlussOhneAbzug } from './pg/invoices';
+
+export function schlussrechnungenOhneAbzug(): Promise<SchlussOhneAbzug[]> {
+  return pg.schlussrechnungenOhneAbzug();
 }
 
 export function mahnungFesthalten(

@@ -58,7 +58,7 @@ reproduziert ist es damit noch nicht — das ist der erste Schritt jedes Fixes
 
 - **K1 – Links führen auf localhost**
   - Rücksetzmail: `redirectTo` = Adresse der laufenden App (`window.location.origin`). Damit stimmt der Link auf jeder Domain, ohne Umgebungsvariable im Browser.
-  - `betrieb-anlegen`: `redirect_to` aus dem Function-Geheimnis `APP_URL`; fehlt es, bricht die Function mit Hinweis ab, statt einen Localhost-Link zu liefern.
+  - `betrieb-anlegen`: `redirect_to` aus dem Function-Geheimnis `APP_URL`, sonst aus der Adresse der App, von der aus angelegt wird (`Origin`). Ein Abbruch ohne `APP_URL` wäre unnötig: der globale Administrator legt immer aus der App heraus an.
   - Prüfungen: Einheitstest für beide Aufrufe; ein Browser-Weg vom Rücksetzlink bis „Neues Passwort setzen“ bis zur Anmeldung.
   - Grenze: Den Mailversand selbst kann nur ein echter Nachtest prüfen (das machst du).
 - **K2 – Schlussrechnung zieht Anzahlungen nicht ab**

@@ -62,7 +62,15 @@ export async function buildStornoPdf(o: StornoOptionen): Promise<Blob> {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const inv = o.invoice;
   const art = ART[inv.art ?? 'einzel'];
-  const datum = inv.cancelledAt != null ? stornoTag(inv.cancelledAt) : undefined;
+  /*
+    DAS DATUM IST DER TAG DER AUSSTELLUNG (Testbericht 30.09.2026, H6). Bis
+    hierher trug der Beleg den Tag des Stornos — wurde er später ausgestellt,
+    stand eine höhere Nummer mit älterem Datum im Kreis (RE-2026-1503 vom
+    25.09. hinter RE-2026-1502 vom 30.09.). Der Tag des Stornos steht jetzt im
+    Text. Ohne `stornoAm` wird der Beleg gerade ausgestellt: dann ist es heute.
+  */
+  const datum = stornoTag(inv.stornoAm ?? Date.now());
+  const storniertAm = inv.cancelledAt != null ? stornoTag(inv.cancelledAt) : undefined;
 
   briefkopf(doc, o.company);
   empfaenger(doc, o.company, { name: inv.customerName, adresse: inv.address, uid: inv.customerVatId });
@@ -93,7 +101,8 @@ export async function buildStornoPdf(o: StornoOptionen): Promise<Blob> {
   let y = TABELLE_AB + 4;
   doc.setFontSize(10).setTextColor(...TINTE);
   y = absatz(
-    `Hiermit stornieren wir die ${art} ${inv.invoiceNumber} vom ${fmtDatum(inv.invoiceDate)} in voller Höhe.`,
+    `Hiermit stornieren wir die ${art} ${inv.invoiceNumber} vom ${fmtDatum(inv.invoiceDate)} in voller Höhe.`
+      + (storniertAm && storniertAm !== datum ? ` Der Storno wurde am ${fmtDatum(storniertAm)} erfasst.` : ''),
     y,
   );
   if (inv.cancellationNote?.trim()) {

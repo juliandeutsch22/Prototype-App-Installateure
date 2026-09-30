@@ -151,11 +151,11 @@ npm run dev            # Vite
 
 npm run typecheck      # tsc --noEmit
 npm run lint           # eslint, --max-warnings 0
-npm test               # 2986 Tests: Rechnung und Ansichten, ohne Datenbank
+npm test               # 3001 Tests: Rechnung und Ansichten, ohne Datenbank
 
 # Die Datenbankprüfungen brauchen den lokalen Stack (Docker):
 npm run stack          # Supabase lokal hochfahren, Migrationen einspielen
-npm run supabase:test  # 1262 Tests gegen eine ECHTE Postgres-Datenbank
+npm run supabase:test  # 1280 Tests gegen eine ECHTE Postgres-Datenbank
 
 npm run durchklick     # acht Wege im echten Browser (Playwright)
 
