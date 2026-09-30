@@ -13,14 +13,14 @@ import type { AppUser, Betriebsurlaub, Krankmeldung } from '@/types';
  * `tests/supabase/abwesenheiten.test.ts`.
  */
 
-const speichern = vi.fn<[unknown], Promise<unknown>>(
+const speichern = vi.fn<(a0: unknown) => Promise<unknown>>(
   async () => ({ id: 'k', angelegt: 2, entfernt: 0, uebersprungen: 0 }),
 );
-const loeschen = vi.fn<[string], Promise<number>>(async () => 2);
-const buAnlegen = vi.fn<[unknown], Promise<unknown>>(
+const loeschen = vi.fn<(a0: string) => Promise<number>>(async () => 2);
+const buAnlegen = vi.fn<(a0: unknown) => Promise<unknown>>(
   async () => ({ id: 'b', mitarbeiter: 3, tage: 12, uebersprungen: 0 }),
 );
-const buLoeschen = vi.fn<[string], Promise<unknown>>(async () => ({ tage: 12, mitarbeiter: 3 }));
+const buLoeschen = vi.fn<(a0: string) => Promise<unknown>>(async () => ({ tage: 12, mitarbeiter: 3 }));
 let meldungen: (Krankmeldung & { id: string })[] = [];
 let urlaube: (Betriebsurlaub & { id: string })[] = [];
 

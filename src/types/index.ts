@@ -1338,7 +1338,6 @@ export interface InvoiceDiscount {
   label?: string;
 }
 
-/** followUps/{id} — neuer optionaler Typ aus dem KI-Magic-Moment (Spec §6). */
 /**
  * wartungen/{id} — eine wiederkehrende Wartung, die der Betrieb schuldet.
  *
@@ -1413,13 +1412,3 @@ export interface Wartung {
   updatedAt?: number;
 }
 
-export interface FollowUp {
-  id: string;
-  companyId: string;
-  projectNumber?: string;
-  title: string;
-  dueWeek?: string; // ISO-Woche, z. B. "2026-W26"
-  createdFrom: 'voice' | 'manual';
-  done: boolean;
-  createdAt?: number;
-}

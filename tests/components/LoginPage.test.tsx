@@ -20,8 +20,8 @@ import type { CurrentUser } from '@/types';
  * Monteur, dessen Profil im Funkloch nicht geladen werden konnte.
  */
 
-const anmelden = vi.fn<unknown[], Promise<undefined>>(async () => undefined);
-const zuruecksetzen = vi.fn<[string], Promise<undefined>>(async () => undefined);
+const anmelden = vi.fn<(...args: unknown[]) => Promise<undefined>>(async () => undefined);
+const zuruecksetzen = vi.fn<(a0: string) => Promise<undefined>>(async () => undefined);
 let authFehler: string | null = null;
 let angemeldet: CurrentUser | null = null;
 

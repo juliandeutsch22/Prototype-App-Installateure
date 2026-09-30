@@ -8,20 +8,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { kunstadresse } from '@shared/benutzername';
 
-const anmelden = vi.fn<[{ email: string; password: string }], Promise<{ error: null }>>(
+const anmelden = vi.fn<(a0: { email: string; password: string }) => Promise<{ error: null }>>(
   async () => ({ error: null }),
 );
-const zuruecksetzen = vi.fn<[string], Promise<{ error: null }>>(async () => ({ error: null }));
-const aendern = vi.fn<[unknown], Promise<{ error: { message: string; code?: string } | null }>>(
+const zuruecksetzen = vi.fn<(a0: string) => Promise<{ error: null }>>(async () => ({ error: null }));
+const aendern = vi.fn<(a0: unknown) => Promise<{ error: { message: string; code?: string } | null }>>(
   async () => ({ error: null }),
 );
 let metadaten: Record<string, unknown> = {};
 
 /** Der Prüf-Client für das aktuelle Passwort — getrennt vom Haupt-Client. */
-const pruefAnmelden = vi.fn<[{ email: string; password: string }], Promise<{ error: { message: string } | null }>>(
+const pruefAnmelden = vi.fn<(a0: { email: string; password: string }) => Promise<{ error: { message: string } | null }>>(
   async () => ({ error: null }),
 );
-const pruefAbmelden = vi.fn<[{ scope: string }], Promise<{ error: null }>>(async () => ({ error: null }));
+const pruefAbmelden = vi.fn<(a0: { scope: string }) => Promise<{ error: null }>>(async () => ({ error: null }));
 
 vi.mock('@/lib/supabase', () => ({
   merkenSetzen: vi.fn(),

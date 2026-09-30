@@ -88,12 +88,14 @@ const tiefeAbfrage = vi.fn(async () => tiefGeladen);
 let serverTreffer: (WorkSheet & { id: string })[] = [];
 const zeitraumSuche = vi.fn(async () => serverTreffer);
 const baustellenSuche = vi.fn(async () => serverTreffer);
+const textSuche = vi.fn(async () => serverTreffer);
 
 vi.mock('@/lib/db/workSheets', () => ({
   listRecentWorkSheets: vi.fn(async () => geladen),
   listSignedWorkSheetsInRange: (...a: unknown[]) => tiefeAbfrage(...(a as [])),
   listWorkSheetsInRange: (...a: unknown[]) => zeitraumSuche(...(a as [])),
   listWorkSheetsForProject: (...a: unknown[]) => baustellenSuche(...(a as [])),
+  searchWorkSheets: (...a: unknown[]) => textSuche(...(a as [])),
   cancelWorkSheet: vi.fn(async () => undefined),
   discardWorkSheetDraft: (...a: unknown[]) => verwerfen(...(a as [])),
   restoreWorkSheetDraft: (...a: unknown[]) => zurueckholen(...(a as [])),
@@ -103,7 +105,7 @@ vi.mock('@/lib/db/workSheets', () => ({
   nicht das Laden, sondern was die Ansicht damit tut — und was sie sagt, wenn
   ein Bild NICHT mehr dort liegt, wo der Schein es verzeichnet.
 */
-const fotoAdresse = vi.fn<[string], Promise<string>>(async (p) => `https://x/${p}`);
+const fotoAdresse = vi.fn<(a0: string) => Promise<string>>(async (p) => `https://x/${p}`);
 vi.mock('@/lib/db/scheinFotos', () => ({
   fotoAdresse: (p: string) => fotoAdresse(p),
 }));
@@ -176,6 +178,7 @@ beforeEach(() => {
   serverTreffer = [];
   zeitraumSuche.mockClear();
   baustellenSuche.mockClear();
+  textSuche.mockClear();
   verwerfen.mockClear();
   zurueckholen.mockClear();
   zeitenGeholt.mockClear();
@@ -760,19 +763,24 @@ describe('Scheine suchen', () => {
   });
 
   /*
-    Firestore kann keine Volltextsuche. Nach einem Namen liesse sich nur mit
-    einem zusätzlich gepflegten Feld suchen, und bis das auf jedem Altbestand
-    nachgetragen wäre, fände sie alte Scheine stillschweigend nicht — genau
-    das Verhalten, das hier weg soll. Also wird es gesagt, nicht behauptet.
+    Seit 30.09.2026 auch der Kundenname und die Notiz — vorher ging das nur
+    im geladenen Bestand, und ein Schein vom März blieb unauffindbar. Der
+    Grund dagegen war Firestore; unter Postgres gilt er nicht mehr.
   */
-  it('bietet beim Kundennamen gar keine Serversuche an, sondern erklärt es', async () => {
+  it('holt einen Kundennamen vom Server', async () => {
+    serverTreffer = [alterSchein()];
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/Familie Huber/);
 
     await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'Steiner');
-    expect(screen.getByText(/nur im geladenen Bestand/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Auf dem Server suchen' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/nur im geladenen Bestand/)).not.toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
+
+    expect(await screen.findByText(/Familie Steiner/)).toBeInTheDocument();
+    expect(textSuche.mock.calls[0]).toEqual(['perl', 'Steiner', 150]);
+    expect(baustellenSuche).not.toHaveBeenCalled();
+    expect(zeitraumSuche).not.toHaveBeenCalled();
   });
 
   /*

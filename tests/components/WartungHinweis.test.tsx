@@ -26,7 +26,7 @@ let faellig: (Wartung & { id: string })[] = [];
 // Die Signatur steht am Doppelgänger, nicht an seinen Parametern: der Test
 // liest später `mock.calls[0][1]` — den Stichtag — und braucht dafür Typen.
 const listFaelligeWartungen =
-  vi.fn<[string, string], Promise<(Wartung & { id: string })[]>>(async () => faellig);
+  vi.fn<(a0: string, a1: string) => Promise<(Wartung & { id: string })[]>>(async () => faellig);
 vi.mock('@/lib/db/wartungen', () => ({
   listFaelligeWartungen: (c: string, b: string) => listFaelligeWartungen(c, b),
 }));

@@ -26,7 +26,7 @@ import type { Company } from '@/types';
 
 // Die Signatur steht am Doppelgänger: der Test liest später die NUTZLAST des
 // zweiten Arguments — was tatsächlich zum Betrieb geschrieben wird.
-const updateCompany = vi.fn<[string, Record<string, unknown>], Promise<void>>(
+const updateCompany = vi.fn<(a0: string, a1: Record<string, unknown>) => Promise<void>>(
   async () => undefined,
 );
 /** Was der Zähler als Nächstes vergäbe (Launch-Check, K6). */

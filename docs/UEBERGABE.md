@@ -151,13 +151,13 @@ npm run dev            # Vite
 
 npm run typecheck      # tsc --noEmit
 npm run lint           # eslint, --max-warnings 0
-npm test               # 1716 Tests: Rechnung und Ansichten, ohne Datenbank
+npm test               # 2986 Tests: Rechnung und Ansichten, ohne Datenbank
 
 # Die Datenbankprüfungen brauchen den lokalen Stack (Docker):
 npm run stack          # Supabase lokal hochfahren, Migrationen einspielen
-npm run supabase:test  # 728 Tests gegen eine ECHTE Postgres-Datenbank
+npm run supabase:test  # 1262 Tests gegen eine ECHTE Postgres-Datenbank
 
-npm run durchklick     # vier Wege im echten Browser (Playwright)
+npm run durchklick     # acht Wege im echten Browser (Playwright)
 
 npm run pruefen:links  # jeder Link je Rolle, gegen die Vorschau (Playwright)
 ```
@@ -208,6 +208,7 @@ Diese Liste ist teuer bezahlt. Wer sie liest, spart sich die Wiederholung.
 | **Eine Fehlererkennung nach Wortlaut ist immer zu kurz.** | Dieselbe Meldung heißt in Safari, Chrome und Firefox anders. Die erste Fassung der Nachlade-Erkennung traf die Safari-Formulierung nicht — die Selbstheilung lief deshalb nicht an, und der Monteur bekam die Tafel mit dem Knopf, der nicht wirken kann. Erkennung UND ein sauberer Fehlschlag aus dem Worker, nicht eines von beiden. |
 | **„Erneut versuchen" kann einen Nachladefehler nicht heilen.** | React merkt sich das abgelehnte Versprechen eines `lazy`-Imports und scheitert sofort wieder, ohne das Netz zu fragen. Nur ein echtes Neuladen hilft — die Fehlergrenze tut das jetzt selbst. |
 | **Firebase im Browser ist nicht Firebase unter Node.** | `npm audit` meldete für `firebase` 10 Lücken in `undici` — dem HTTP-Client des Node-Teils. Im Browser-Paket steckt er nicht (am Build geprüft, 29.09.2026); die App nutzt nur Push. Statt eines Sprungs auf Firebase 12, der den nachweislich funktionierenden Push riskiert, hebt `overrides.undici` in `package.json` die Node-Abhängigkeit an. Wer Firebase anhebt, hebt `public/sw.js` mit (`firebasejs/<Fassung>/…-compat.js`) — App und Worker sollen dieselbe Fassung sprechen. |
+| **npm 10 scheitert an `npm install` für Vitest 4.** | Der Abhängigkeitsbaum (Vitest 4 mit seinen optionalen Partnern) bringt npm 10.9 zum Absturz: „Cannot read properties of null (reading 'edgesOut')" — und der Abbruch leert dabei `node_modules`. Das Lockfile ist deshalb mit `npx -y npm@11 install …` erzeugt; `npm ci` unter npm 10, wie es die CI nutzt, liest es fehlerfrei (am 30.09.2026 geprüft). Wer eine Abhängigkeit ändert, tut das mit npm 11. |
 | **Ein Pfadfilter im Workflow ist eine Aussage über Abhängigkeiten.** | Der alte Functions-Deploy hörte nur auf `functions/**`. `shared/` wird beim Bauen dorthin kopiert, liegt aber daneben — eine Änderung ging damit ins Hosting und nicht in die Functions. Dieselbe Abhängigkeit besteht heute zwischen `shared/` und `supabase/functions/_shared/`. |
 | **Ein `pointercancel` beendet die Zeigerspur endgültig, die Berührungsspur läuft weiter.** | Beansprucht der Browser die Geste für sich, kommt kein `pointermove` mehr — die Unterschrift blieb ein Punkt. In derselben Geste kamen noch neun `touchmove` an. Wer mit dem Finger zeichnet, gehört deshalb an `touchstart`/`touchmove`, nicht an die Zeigerereignisse. Nachgemessen in einem echten Browser: 8285 gezeichnete Pixel ungestört, 36 nach dem Abbruch. |
 | **React meldet Berührungsereignisse an der Wurzel als PASSIV an.** | In einem passiven Listener ist `preventDefault()` wirkungslos, und ohne das scrollt die Seite unter dem Finger weg, statt dass er zeichnet. Wer eine Berührung abfangen muss, hängt den Listener nativ ans Element mit `{ passive: false }` — nicht über `onTouchStart`. |
@@ -479,7 +480,7 @@ kaputte Code nie geladen wurde.
 
 | Was | Zustand |
 |---|---|
-| **Wiedervorlagen** (`follow_ups`) | Tabelle, Richtlinien und Datenschicht existieren; geschrieben wurde nur aus der KI-Spracherfassung, und die ist am 19.09.2026 ersatzlos entfernt worden. Damit ist der Bereich unerreichbar — keine Ansicht liest oder schreibt ihn. Entweder bekommt er einen echten Eingang (Wiedervorlage aus Angebot oder Mahnung) oder er fällt weg; beides ist eine Produktentscheidung, keine Programmierfrage. |
+| **Wiedervorlagen** (`follow_ups`) | **Am 30.09.2026 entfernt.** Geschrieben hat dorthin nur die KI-Spracherfassung (entfernt am 19.09.2026); keine Ansicht las oder schrieb die Tabelle. Mit ihr sind Datenschicht, Typ und die Zeile im Umnummern der Baustelle weg. Eine Sicherung von vorher spielt der Rücklauf trotzdem ein: er übergeht die Tabelle und nennt sie (`ENTFERNTE_TABELLEN` in `scripts/ruecklaufPlan.mjs`). |
 
 ### Eine offene Produktfrage
 

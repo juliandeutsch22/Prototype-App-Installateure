@@ -15,7 +15,7 @@ import type { AppUser, TimeEntry } from '@/types';
  * findet sie offen vor.
  */
 
-const createTimeEntryOhneEmpfang = vi.fn<[string, Partial<TimeEntry>], Promise<string>>(
+const createTimeEntryOhneEmpfang = vi.fn<(a0: string, a1: Partial<TimeEntry>) => Promise<string>>(
   async () => 'confirmed',
 );
 vi.mock('@/lib/db/timeEntries', () => ({

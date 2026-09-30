@@ -95,7 +95,7 @@ const listInvoicesForProject = vi.fn(async () => {
   if (baustellenAbfrageWirft) throw new Error('offline');
   return derBaustelle;
 });
-const listInvoicesInRange = vi.fn<[string, string, string], Promise<(Invoice & { id: string })[]>>(
+const listInvoicesInRange = vi.fn<(a0: string, a1: string, a2: string) => Promise<(Invoice & { id: string })[]>>(
   async () => imZeitraum,
 );
 /*

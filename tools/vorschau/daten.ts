@@ -99,6 +99,3 @@ export const wartungen = [
   { id: 'w2', companyId: 'perl', customerId: 'k2', customerName: 'Gemeinde Neudorf bei Wiener Neustadt', anlage: 'Wärmepumpe', intervallMonate: 24, faelligAm: '2027-03-01', aktiv: true },
 ];
 
-export const folgetermine = [
-  { id: 'f1', companyId: 'perl', projectNumber: 'B-2026-0147', title: 'Restarbeiten Verteiler und Dämmung nachziehen', dueWeek: '2026-W40', createdFrom: 'voice', done: false },
-];

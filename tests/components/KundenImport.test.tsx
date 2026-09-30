@@ -35,7 +35,7 @@ const CSV =
   'Kaputt KG;;;;;;;keine-mail;\n' +
   'Maier GmbH;;;;;;;;\n';
 
-let fertig: ReturnType<typeof vi.fn>;
+let fertig: ReturnType<typeof vi.fn<() => void>>;
 
 function zeige() {
   fertig = vi.fn();

@@ -404,7 +404,7 @@ describe('Die Plattform steht ausserhalb', () => {
 });
 
 describe('Vollständigkeit gegenüber Firestore', () => {
-  it('hat für jede der zwanzig Sammlungen eine Entsprechung', async () => {
+  it('hat für jede Sammlung eine Entsprechung', async () => {
     // Die Vorgabe lautet: keine bestehende Funktion darf fehlen. Diese Liste
     // ist die Landkarte dorthin — jede Firestore-Sammlung und die Tabelle,
     // die ihre Arbeit übernimmt.
@@ -424,7 +424,7 @@ describe('Vollständigkeit gegenüber Firestore', () => {
       quotes: 'quotes',
       invoices: 'invoices',
       wartungen: 'wartungen',
-      followUps: 'follow_ups',
+      // followUps entfiel am 30.09.2026 — nur die KI-Erfassung schrieb dorthin.
       counters: 'number_counters',
       systemLaeufe: 'system_laeufe',
       // monthlyStats und monthlyStatsMeta werden eine Sicht, keine Tabelle —

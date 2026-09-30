@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * Die Anmeldung auf Supabase — gegen den laufenden Stapel.
  *

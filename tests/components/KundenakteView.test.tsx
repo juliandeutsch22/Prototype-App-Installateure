@@ -49,7 +49,7 @@ const listQuotesForCustomer = vi.fn(async () => angebote);
 const listWartungenForCustomer = vi.fn(async () => wartungen);
 let rechnungen: unknown[] = [];
 let rechnungenWirft = false;
-const listInvoicesForCustomer = vi.fn<[string, string, string[]], Promise<unknown[]>>(async () => {
+const listInvoicesForCustomer = vi.fn<(a0: string, a1: string, a2: string[]) => Promise<unknown[]>>(async () => {
   if (rechnungenWirft) throw new Error('weg');
   return rechnungen;
 });

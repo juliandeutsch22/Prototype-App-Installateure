@@ -13,7 +13,7 @@ import type { Role, TimeEntry } from '@/types';
  * nach — ganztags oder für einige Stunden.
  */
 
-const anlegen = vi.fn<unknown[], Promise<string>>(async () => 'confirmed');
+const anlegen = vi.fn<(...args: unknown[]) => Promise<string>>(async () => 'confirmed');
 vi.mock('@/lib/db/timeEntries', () => ({
   createTimeEntryOhneEmpfang: (...a: unknown[]) => anlegen(...a),
   updateTimeEntryOhneEmpfang: vi.fn(async () => 'confirmed'),

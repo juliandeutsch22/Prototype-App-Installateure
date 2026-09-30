@@ -7,7 +7,7 @@ import userEvent from '@testing-library/user-event';
  * ändert, gibt das aktuelle an; wer über einen Rücksetzlink oder mit dem
  * Startpasswort kommt, nicht — er kennt keines.
  */
-const passwortSetzen = vi.fn<[string, string | undefined], Promise<void>>(async () => undefined);
+const passwortSetzen = vi.fn<(a0: string, a1: string | undefined) => Promise<void>>(async () => undefined);
 vi.mock('@/lib/auth/sitzung', () => ({
   passwortSetzen: (neu: string, aktuell?: string) => passwortSetzen(neu, aktuell),
 }));

@@ -268,7 +268,7 @@ describe('Abonnieren', () => {
     } as unknown as SupabaseClient;
 
     const stände: Array<unknown[]> = [];
-    const ab = abonnieren('follow_ups', 'kern-a',
+    const ab = abonnieren('customers', 'kern-a',
       (z) => stände.push(z), (e) => { throw e; }, {}, beobachtet);
 
     for (let i = 0; i < 80 && stände.length === 0; i += 1) await warte(50);
@@ -322,41 +322,41 @@ describe('Abonnieren', () => {
 
   it('nimmt auf, was während des Holens gemeldet wird', async () => {
     const { gestellt, melden } = gestellterKanal(chef.client, 600);
-    const stände: Array<Array<{ title: string }>> = [];
-    const ab = abonnieren<{ title: string }>('follow_ups', 'kern-a',
+    const stände: Array<Array<{ name: string }>> = [];
+    const ab = abonnieren<{ name: string }>('customers', 'kern-a',
       (z) => stände.push(z), (e) => { throw e; }, {}, gestellt);
 
     await warte(150);
     melden({
       eventType: 'INSERT',
-      new: { id: crypto.randomUUID(), company_id: 'kern-a', title: 'Im Fenster', done: false },
+      new: { id: crypto.randomUUID(), company_id: 'kern-a', name: 'Im Fenster', active: true },
       old: {},
     });
 
     for (let i = 0; i < 40 && stände.length === 0; i += 1) await warte(50);
     // Sofort da — nicht erst beim Nachfassen.
-    expect(stände[0].map((f) => f.title)).toContain('Im Fenster');
+    expect(stände[0].map((f) => f.name)).toContain('Im Fenster');
     ab();
   });
 
   it('lässt beim Nachfassen fallen, was es nicht mehr gibt', async () => {
-    const id = await anlegen('follow_ups', 'kern-a',
-      { title: 'Verschwindet gleich', createdFrom: 'manual' }, chef.client);
+    const id = await anlegen('customers', 'kern-a',
+      kunde('Verschwindet gleich'), chef.client);
 
     const { gestellt } = gestellterKanal(chef.client);
-    const stände: Array<Array<{ title: string }>> = [];
-    const ab = abonnieren<{ title: string }>('follow_ups', 'kern-a',
+    const stände: Array<Array<{ name: string }>> = [];
+    const ab = abonnieren<{ name: string }>('customers', 'kern-a',
       (z) => stände.push(z), (e) => { throw e; }, {}, gestellt);
 
     for (let i = 0; i < 40 && stände.length === 0; i += 1) await warte(50);
-    expect(stände[0].map((f) => f.title)).toContain('Verschwindet gleich');
+    expect(stände[0].map((f) => f.name)).toContain('Verschwindet gleich');
 
     // Gelöscht, ohne dass eine Meldung darüber ankommt — der Kanal ist ja
     // gestellt. Nur das Nachfassen kann das noch bemerken.
-    await loeschen('follow_ups', id, chef.client);
+    await loeschen('customers', id, chef.client);
     await warte(NACHFASSEN_MS + 600);
 
-    expect(stände[stände.length - 1].map((f) => f.title)).not.toContain('Verschwindet gleich');
+    expect(stände[stände.length - 1].map((f) => f.name)).not.toContain('Verschwindet gleich');
     ab();
   });
 
@@ -379,7 +379,7 @@ describe('Abonnieren', () => {
       },
     } as unknown as SupabaseClient;
 
-    const ab = abonnieren('follow_ups', 'kern-a', () => {}, (e) => { throw e; }, {}, beobachtet);
+    const ab = abonnieren('customers', 'kern-a', () => {}, (e) => { throw e; }, {}, beobachtet);
     for (let i = 0; i < 80 && verlauf.length === 0; i += 1) await warte(50);
     ab();
     await warte(NACHFASSEN_MS + 600);
@@ -389,19 +389,19 @@ describe('Abonnieren', () => {
   it('bekommt mit, was kurz nach dem Abonnieren geschrieben wird', async () => {
     // Über welchen Weg die Zeile ankommt — Bestand oder Meldung —, ist dem
     // Aufrufer gleich. Dass sie ankommt, ist der Punkt.
-    const stände: Array<Array<{ title: string }>> = [];
-    const ab = abonnieren<{ title: string }>('follow_ups', 'kern-a',
+    const stände: Array<Array<{ name: string }>> = [];
+    const ab = abonnieren<{ name: string }>('customers', 'kern-a',
       (z) => stände.push(z), (e) => { throw e; }, {}, chef.client);
 
-    await anlegen('follow_ups', 'kern-a',
-      { title: 'Gleich nach dem Abonnieren', createdFrom: 'manual' }, chef.client);
+    await anlegen('customers', 'kern-a',
+      kunde('Gleich nach dem Abonnieren'), chef.client);
 
     for (let i = 0; i < 100; i += 1) {
       const letzter = stände[stände.length - 1] ?? [];
-      if (letzter.some((f) => f.title === 'Gleich nach dem Abonnieren')) break;
+      if (letzter.some((f) => f.name === 'Gleich nach dem Abonnieren')) break;
       await warte(50);
     }
-    expect((stände[stände.length - 1] ?? []).map((f) => f.title))
+    expect((stände[stände.length - 1] ?? []).map((f) => f.name))
       .toContain('Gleich nach dem Abonnieren');
     ab();
   });

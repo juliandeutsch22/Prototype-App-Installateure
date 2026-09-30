@@ -165,7 +165,7 @@ export function updateProject(id: string, data: Partial<Project>) {
  * Die Nummer einer Baustelle ändern — mit allem, was an ihr hängt.
  *
  * Buchungen, Einsätze, Rüstlisten, Schein-Entwürfe, Anforderungen, Angebote
- * und Wiedervorlagen tragen die Nummer als Text; ein einfaches `update` der
+ * und Wartungen tragen die Nummer als Text; ein einfaches `update` der
  * Baustelle liesse sie auf der alten stehen. Die Datenbankfunktion zieht
  * alles in EINEM Schritt nach — oder lehnt mit Grund ab, sobald die Nummer
  * auf einer Rechnung oder einem unterschriebenen Schein steht.

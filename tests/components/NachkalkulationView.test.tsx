@@ -76,7 +76,7 @@ let eintraege: (TimeEntry & { id: string })[] = [];
 let rechnungen: (Invoice & { id: string })[] = [];
 let angebote: (Quote & { id: string })[] = [];
 
-const listEntriesForProjects = vi.fn<[string, string[]], Promise<(TimeEntry & { id: string })[]>>(
+const listEntriesForProjects = vi.fn<(a0: string, a1: string[]) => Promise<(TimeEntry & { id: string })[]>>(
   async () => eintraege,
 );
 

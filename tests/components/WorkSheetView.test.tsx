@@ -73,12 +73,12 @@ const listMaterials = vi.fn(async () => materialien);
 vi.mock('@/lib/db/materials', () => ({
   listMaterials: () => listMaterials(),
 }));
-const createWorkSheet = vi.fn<[string, NewWorkSheet], Promise<string>>(async () => 's1');
-const updateWorkSheetDraft = vi.fn<[string, Partial<NewWorkSheet>], Promise<void>>(
+const createWorkSheet = vi.fn<(a0: string, a1: NewWorkSheet) => Promise<string>>(async () => 's1');
+const updateWorkSheetDraft = vi.fn<(a0: string, a1: Partial<NewWorkSheet>) => Promise<void>>(
   async () => undefined,
 );
 type Unterschrift = { name: string; bild: string; geraetZeit: number };
-const signWorkSheet = vi.fn<[string, Unterschrift, Unterschrift], Promise<void>>(
+const signWorkSheet = vi.fn<(a0: string, a1: Unterschrift, a2: Unterschrift) => Promise<void>>(
   async () => undefined,
 );
 let entwurf: (WorkSheet & { id: string }) | undefined;
@@ -110,14 +110,14 @@ vi.mock('@/lib/db/workSheets', () => ({
   und vor dem Unterschreiben warnt.
 */
 const komprimiere = vi.fn(async (b: Blob) => b);
-const fotoHochladen = vi.fn<[string, string, Blob, number], Promise<unknown>>(async () => ({
+const fotoHochladen = vi.fn<(a0: string, a1: string, a2: Blob, a3: number) => Promise<unknown>>(async () => ({
   pfad: 'scheine/perl/s1/aaa.jpg',
   hash: 'aaa',
   bytes: 340_000,
   geraetZeit: 1,
 }));
-const fotoEntfernen = vi.fn<[string], Promise<void>>(async () => undefined);
-const fotoAdresse = vi.fn<[string], Promise<string>>(async (p: string) => `https://signiert/${p}`);
+const fotoEntfernen = vi.fn<(a0: string) => Promise<void>>(async () => undefined);
+const fotoAdresse = vi.fn<(a0: string) => Promise<string>>(async (p: string) => `https://signiert/${p}`);
 vi.mock('@/lib/db/scheinFotos', () => ({
   komprimiere: (b: Blob) => komprimiere(b),
   fotoHochladen: (c: string, s: string, b: Blob, z: number) => fotoHochladen(c, s, b, z),
@@ -158,7 +158,7 @@ vi.mock('@/components/SignaturePad', () => ({
   }),
 }));
 
-const callScheinVorbereiten = vi.fn<[], Promise<{ zeiten: WorkSheetZeit[] }>>(
+const callScheinVorbereiten = vi.fn<() => Promise<{ zeiten: WorkSheetZeit[] }>>(
   async () => ({ zeiten: [] }),
 );
 

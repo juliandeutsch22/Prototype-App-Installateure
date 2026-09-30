@@ -38,7 +38,6 @@ const DATEN = {
   einsatzMaterial: { '*': 'D.ruestlisten', getEinsatzMaterial: 'D.ruestlisten[0]' },
   quotes: { '*': 'D.angebote', getQuote: 'D.angebote[0]' },
   wartungen: { '*': 'D.wartungen' },
-  followUps: { listOpenFollowUps: 'D.folgetermine' },
   offenePosten: { ladeOffenePosten: '{ urlaub: 1, anforderungen: 2, mahnungen: 1 }' },
   laeufe: { ladeLauf: 'null' },
   monatsbilanzen: { bilanzMarker: 'null' },

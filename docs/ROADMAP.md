@@ -3869,7 +3869,7 @@ zeigten und deshalb keine mehr sind:
   Einschränkung noch da** — nachgezogen ist es nicht. Das steht jetzt so in der
   Ansicht und als offener Punkt in `FUNKTIONEN.md`; es ist ein kleiner
   Handgriff, aber einer mit eigener Prüfung, und der gehört nicht in denselben
-  Zug wie ein Abbau.
+  Zug wie ein Abbau. **Nachgezogen am 30.09.2026** (`searchWorkSheets`).
 
 Dazu ist `lib/offlineWrite.ts` gefallen: die Hülle, die auf Firestores
 Bestätigung wartete. Ihre einzige lebende Zeile war ein Fehlerkanal, den nichts

@@ -73,11 +73,11 @@ vi.mock('@/lib/db/wartungen', () => ({
   der Vorschlag, und gegen sie wird geprüft, ob die Nummer noch frei ist.
 */
 let baustellen: { projectNumber: string }[] = [];
-const createProject = vi.fn<[string, Record<string, unknown>], Promise<string>>(
+const createProject = vi.fn<(a0: string, a1: Record<string, unknown>) => Promise<string>>(
   async () => 'p-neu',
 );
 const listRecentProjects = vi.fn(async () => baustellen);
-const reserveProjectNumber = vi.fn<[string, unknown], Promise<string | null>>(
+const reserveProjectNumber = vi.fn<(a0: string, a1: unknown) => Promise<string | null>>(
   async () => 'B-2026-0015',
 );
 vi.mock('@/lib/db/projects', () => ({

@@ -24,10 +24,12 @@ erzeugt und Seite für Seite gerendert, elf Seiten pixelgleich. React Router
 absolut, die geänderte Auflösung relativer Pfade trifft keinen), acht
 Durchklick-Wege grün. `undici` über `overrides` angehoben, siehe
 `UEBERGABE.md`. Die unbenutzte Abhängigkeit `@firebase/rules-unit-testing`
-(aus der Firestore-Zeit) ist entfernt. **Offen:** Vite 5 und Vitest 1 tragen
-Befunde, die nur den lokalen Entwicklungsserver und den Testlauf betreffen,
-nicht die ausgelieferte App; ihr Sprung (Vite 8, Vitest 5) ist ein eigener
-Auftrag.
+(aus der Firestore-Zeit) ist entfernt. **Nachgezogen am 30.09.2026:** Vite 7,
+Vitest 4 und das React-Plugin 5 — `npm audit` meldet damit nichts mehr, auch
+nicht für den Entwicklungsserver. Das Bauziel ist auf die Werte von Vite 5
+festgeschrieben (`vite.config.ts`), damit ältere iPhones nicht still
+herausfallen. Vite 8 mit dem neuen Bündler (Rolldown) ist bewusst nicht
+genommen: er ändert das Bündeln selbst, und dafür gibt es keinen Befund.
 
 **Entschieden und umgesetzt am 29.09.2026:** A3 (das DATANORM-Preiskennzeichen
 folgt der Norm: 1 = Listenpreis, 2 = Nettopreis, alles andere unbekannt. Der

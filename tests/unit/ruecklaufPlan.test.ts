@@ -10,7 +10,7 @@
  */
 import { describe, it, expect } from 'vitest';
 // @ts-expect-error — Werkzeug des Betriebs, bewusst als .mjs ohne Typen.
-import { standLesen, betriebAusStand, kontenAusStand } from '../../scripts/ruecklaufPlan.mjs';
+import { standLesen, betriebAusStand, kontenAusStand, entfernteAussondern } from '../../scripts/ruecklaufPlan.mjs';
 
 const zeile = (sammlung: string, daten: Record<string, unknown>) =>
   `${JSON.stringify({ sammlung, daten })}\n`;
@@ -129,5 +129,26 @@ describe('Die Anmeldekonten, die neu gebaut werden müssen', () => {
   it('kommt ohne Benutzer zurecht', () => {
     const nurFirma = zeile('companies', { id: 'perl', name: 'Perl' });
     expect(kontenAusStand(standLesen(nurFirma).sammlungen)).toEqual([]);
+  });
+});
+
+describe('Tabellen, die es nicht mehr gibt', () => {
+  it('übergeht die Wiedervorlagen einer alten Sicherung und nennt sie', () => {
+    const { sammlungen } = standLesen(
+      STAND + zeile('follow_ups', { id: 'f1', company_id: 'perl', title: 'Rückruf' }),
+    );
+    const uebergangen = entfernteAussondern(sammlungen);
+    expect(uebergangen).toEqual([
+      expect.objectContaining({ tabelle: 'follow_ups', zeilen: 1 }),
+    ]);
+    expect(sammlungen.has('follow_ups')).toBe(false);
+    // Der Rest bleibt unberührt.
+    expect(sammlungen.get('customers')).toHaveLength(1);
+  });
+
+  it('Gegenprobe: eine unbekannte Tabelle bleibt drin — dort passt die Datei nicht', () => {
+    const { sammlungen } = standLesen(STAND + zeile('gibt_es_nicht', { id: 'x', company_id: 'perl' }));
+    expect(entfernteAussondern(sammlungen)).toEqual([]);
+    expect(sammlungen.has('gibt_es_nicht')).toBe(true);
   });
 });

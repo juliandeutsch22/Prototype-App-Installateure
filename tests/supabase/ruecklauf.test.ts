@@ -130,12 +130,22 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
 
     /* 5. Zurückspielen — mit dem echten Werkzeug, als eigener Vorgang. */
     const datei = join(mkdtempSync(join(tmpdir(), 'ruecklauf-')), 'stand.jsonl');
-    writeFileSync(datei, inhalt);
+    /*
+      Dazu eine Zeile aus einer Tabelle, die es nicht mehr gibt — so sieht
+      eine Sicherung von vor dem 30.09.2026 aus. Sie darf den Rücklauf nicht
+      kippen, und sie muss genannt werden.
+    */
+    const wiedervorlage = JSON.stringify({
+      sammlung: 'follow_ups',
+      daten: { id: crypto.randomUUID(), company_id: BETRIEB, title: 'Alt', created_from: 'voice', done: false },
+    });
+    writeFileSync(datei, `${inhalt.trimEnd()}\n${wiedervorlage}\n`);
     const { stdout } = await lauf('node', ['scripts/ruecklauf.mjs', datei, '--schreiben'], {
       env: { ...process.env, RUECKLAUF_URL: API, RUECKLAUF_DIENSTSCHLUESSEL: SERVICE },
       cwd: process.cwd(),
     });
     expect(stdout).toContain('Fertig.');
+    expect(stdout).toContain('übergangen: follow_ups (1 Zeilen)');
 
     /* 6. Und nun der Vergleich. */
     for (const [t, anzahl] of Object.entries(vorher)) {

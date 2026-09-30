@@ -18,7 +18,7 @@ import type { AppUser, TimeEntry } from '@/types';
  */
 
 const MONTEUR = 'u1';
-const buchen = vi.fn<unknown[], Promise<string>>(async () => 'confirmed');
+const buchen = vi.fn<(...args: unknown[]) => Promise<string>>(async () => 'confirmed');
 
 vi.mock('@/lib/db/timeEntries', () => ({
   createTimeEntryOhneEmpfang: (...a: unknown[]) => buchen(...a),

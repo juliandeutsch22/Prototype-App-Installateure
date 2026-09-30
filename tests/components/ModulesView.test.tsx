@@ -19,7 +19,7 @@ import type { Company } from '@/types';
  *   2. Kein Modul behauptet eine Voraussetzung, die es nicht gibt.
  */
 
-const updateCompany = vi.fn<[string, Record<string, unknown>], Promise<void>>(
+const updateCompany = vi.fn<(a0: string, a1: Record<string, unknown>) => Promise<void>>(
   async () => undefined,
 );
 vi.mock('@/lib/db/company', () => ({

@@ -93,6 +93,35 @@ export function betriebAusStand(sammlungen) {
 }
 
 /**
+ * Tabellen, die es nicht mehr gibt — mit dem Grund.
+ *
+ * Eine Sicherung von VOR dem Entfernen trägt sie noch. Der Rücklauf spielte
+ * sie ein, bis eine Runde nichts mehr schafft, und bräche dann ab — mit dem
+ * Rest schon im Ziel. Eine Tabelle, die es absichtlich nicht mehr gibt, ist
+ * aber kein Fehler der Datei; sie wird übergangen und genannt.
+ *
+ * NUR WAS HIER STEHT. Eine unbekannte Tabelle, die nicht in dieser Liste
+ * steht, führt weiter zum Abbruch: dort passt die Datei nicht zur Datenbank,
+ * und das soll auffallen.
+ */
+export const ENTFERNTE_TABELLEN = {
+  follow_ups:
+    'Wiedervorlagen, am 30.09.2026 entfernt — geschrieben hat dorthin nur die KI-Erfassung, und sichtbar waren sie nirgends',
+};
+
+/** Nimmt die entfernten Tabellen aus dem Stand und sagt, was übergangen wurde. */
+export function entfernteAussondern(sammlungen) {
+  const uebergangen = [];
+  for (const [tabelle, grund] of Object.entries(ENTFERNTE_TABELLEN)) {
+    const zeilen = sammlungen.get(tabelle);
+    if (!zeilen) continue;
+    uebergangen.push({ tabelle, zeilen: zeilen.length, grund });
+    sammlungen.delete(tabelle);
+  }
+  return uebergangen;
+}
+
+/**
  * Die Anmeldekonten, die zum Stand gehören.
  *
  * WARUM DER RÜCKLAUF SIE ÜBERHAUPT ANFASSEN MUSS. `public.users.id` verweist
