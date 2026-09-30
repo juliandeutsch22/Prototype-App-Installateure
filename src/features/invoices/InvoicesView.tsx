@@ -57,7 +57,7 @@ import { pruefeEmpfaengerUid } from './empfaengerUid';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { abziehbar, alsVorrechnung, mitAbzug, nachSteuer, pflichtAbzug } from './vorrechnungen';
 import { scheinAbgleich } from './scheinAbgleich';
-import { pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from './pauschale';
+import { einheitspreisVorschau, pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from './pauschale';
 import { listQuotesForProject } from '@/lib/db/quotes';
 import { calcTotals, discountLabel, type InvoicePosition } from './totals';
 import { todayStr, localDateStr, fmtDauer, tageWort } from '@/lib/time';
@@ -113,6 +113,8 @@ export default function InvoicesView() {
    * angenommenes Angebot; sonst Nummer und Betrag des Angebots.
    */
   const [pauschalAus, setPauschalAus] = useState<string | null>(null);
+  /** Stammt die Vorschau aus einer Einheitspreis-Baustelle (M16)? Dann gilt der Hinweis zum Aufmaß. */
+  const [nachAufmass, setNachAufmass] = useState(false);
   /*
     Die unterschriebenen Scheine des Betriebs — für die Frage, welche Leistung
     noch auf keiner Rechnung steht. Einmal geladen, nicht abonniert: die
@@ -806,6 +808,7 @@ export default function InvoicesView() {
     setBusy(true);
     setError(null);
     setPauschalAus(null);
+    setNachAufmass(false);
     try {
       /*
         EINE ANZAHLUNG KOMMT NICHT AUS DEN ZEITEINTRÄGEN — es gibt noch keine.
@@ -903,7 +906,8 @@ export default function InvoicesView() {
         Monteur fertig gebucht hat.
       */
       const baustelle = projects.find((x) => x.projectNumber === projectNumber);
-      if (baustelle?.billingMode === 'Pauschal') {
+      if (baustelle?.billingMode === 'Pauschal' || baustelle?.billingMode === 'Einheitspreis') {
+        const einheitspreis = baustelle.billingMode === 'Einheitspreis';
         const angebote = baustelle.id
           ? await listQuotesForProject(user.companyId, baustelle.id)
           : [];
@@ -911,13 +915,20 @@ export default function InvoicesView() {
         if (schon) {
           setPreview(null);
           setError(
-            `Pauschalbaustelle: die Pauschale ist mit ${schon} bereits verrechnet. Stunden und Material danach sind darin enthalten. Mehrarbeit ausserhalb des Angebots verrechnet, wer die Baustelle in der Akte auf „Regie" stellt — oder als eigene Rechnung nach Vereinbarung.`,
+            einheitspreis
+              ? `Einheitspreisbaustelle: die Leistung ist mit ${schon} bereits verrechnet. Ein weiteres Aufmaß geht als eigene Rechnung nach Vereinbarung — oder wer die Baustelle in der Akte auf „Regie" stellt.`
+              : `Pauschalbaustelle: die Pauschale ist mit ${schon} bereits verrechnet. Stunden und Material danach sind darin enthalten. Mehrarbeit ausserhalb des Angebots verrechnet, wer die Baustelle in der Akte auf „Regie" stellt — oder als eigene Rechnung nach Vereinbarung.`,
           );
           return;
         }
         const angebot = pauschalAngebot(angebote);
         setPauschalAus(angebot ? `${angebot.quoteNumber} (${euro(angebot.totalNetto)} netto)` : '');
-        await vorschauUebernehmen(pauschalVorschau(art, assembled, angebot, satz));
+        setNachAufmass(einheitspreis);
+        await vorschauUebernehmen(
+          einheitspreis
+            ? einheitspreisVorschau(art, assembled, angebot, satz)
+            : pauschalVorschau(art, assembled, angebot, satz),
+        );
         return;
       }
       if (assembled.positions.length === 0) {
@@ -2310,7 +2321,13 @@ export default function InvoicesView() {
             <div className="mb-3">
               <Hinweiszeile>
                 <p>
-                  {art === 'teil'
+                  {nachAufmass
+                    ? art === 'teil'
+                      ? `Einheitspreisbaustelle: die Mengen des bisherigen Aufmaßes bitte eintragen${pauschalAus ? ` — Positionen und Preise aus dem Angebot ${pauschalAus}` : ''}. Die Schlussrechnung zieht diese Teilrechnung ab.`
+                      : pauschalAus
+                        ? `Einheitspreisbaustelle: Positionen und Einheitspreise kommen aus dem Angebot ${pauschalAus}. Die Mengen bitte nach Aufmaß eintragen — vorbelegt sind die des Angebots. Stunden und Material der Scheine werden nicht einzeln verrechnet.`
+                        : 'Einheitspreisbaustelle ohne angenommenes Angebot: Positionen, Mengen nach Aufmaß und Einheitspreise bitte eintragen. Stunden und Material der Scheine werden nicht einzeln verrechnet.'
+                    : art === 'teil'
                     ? 'Pauschalbaustelle: den Teilbetrag legt die Vereinbarung fest — die Schlussrechnung zieht ihn ab.'
                     : pauschalAus
                       ? `Pauschalbaustelle: die Positionen kommen aus dem Angebot ${pauschalAus}. Stunden und Material der Scheine sind darin enthalten und werden nicht einzeln verrechnet.`

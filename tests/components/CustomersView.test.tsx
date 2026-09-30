@@ -146,19 +146,49 @@ beforeEach(() => {
 });
 
 describe('Kundenverwaltung', () => {
-  it('verhindert einen zweiten Kunden mit demselben Namen', async () => {
+  /*
+    TESTBERICHT 30.09.2026, M11: ein gleicher Name ist erlaubt — mit
+    Rückfrage. Vorher wies die Maske jeden zweiten „Huber“ ab.
+  */
+  it('fragt bei gleichem Namen nach, nennt den bestehenden mit Adresse — und legt auf Bestätigung an', async () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText('Hausverwaltung Nord');
 
-    // Das Formular klappt seit dem 18.09. erst auf Klick auf.
     await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
-    // Andere Schreibweise, derselbe Kunde.
+    // Andere Schreibweise, derselbe Name.
     await nutzer.type(screen.getByLabelText('Name oder Firma'), '  hausverwaltung NORD ');
     await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
 
-    expect(await screen.findByText(/gibt es bereits/)).toBeInTheDocument();
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent(/Es gibt schon „Hausverwaltung Nord“/);
     expect(createCustomer).not.toHaveBeenCalled();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Trotzdem anlegen' }));
+    await waitFor(() => expect(createCustomer).toHaveBeenCalledTimes(1));
+  });
+
+  it('Gegenprobe: wer die Rückfrage abbricht, legt nichts an', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText('Hausverwaltung Nord');
+    await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Hausverwaltung Nord');
+    await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
+    const dialog = await screen.findByRole('dialog');
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Abbrechen' }));
+    expect(createCustomer).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: ein neuer Name wird ohne Rückfrage angelegt', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText('Hausverwaltung Nord');
+    await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Familie Gruber');
+    await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
+    await waitFor(() => expect(createCustomer).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('fasst in der Vorschau gleiche Namen zu EINEM Kunden zusammen', async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -613,5 +613,93 @@ describe('Einen Entwurf bearbeiten', () => {
     await vi.waitFor(() => expect(createQuote).toHaveBeenCalled());
     const daten = createQuote.mock.calls[0][1] as { positions: { istArbeitszeit?: boolean }[] };
     expect(daten.positions[0].istArbeitszeit).toBe(true);
+  });
+});
+
+/*
+  TESTBERICHT 30.09.2026, M17 — ein versendetes Angebot überarbeiten: als
+  neue Fassung mit eigener Nummer, die auf das alte verweist. Das alte bleibt.
+*/
+describe('Neue Fassung eines versendeten Angebots (M17)', () => {
+  function mitPositionen() {
+    versendetesAngebot();
+    angebote[0].positions = [{ label: 'Facharbeiterstunden', qty: 20, unit: 'h', unitPrice: 65, netto: 1300 }];
+    angebote[0].discount = { mode: 'percent', value: 5 };
+    angebote[0].notes = 'Nur in den Ferien.';
+  }
+
+  it('holt Kunde, Positionen, Rabatt und Anmerkungen in einen neuen Entwurf mit Verweis', async () => {
+    const nutzer = userEvent.setup();
+    mitPositionen();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Neue Fassung' }));
+    expect(await screen.findByText('Neue Fassung von AN-2026-0007')).toBeInTheDocument();
+    expect(screen.getByLabelText('Bezeichnung')).toHaveValue('Facharbeiterstunden');
+    await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+
+    await waitFor(() => expect(createQuote).toHaveBeenCalled());
+    const neu = createQuote.mock.calls[0][1] as Quote;
+    expect(neu).toMatchObject({
+      vorgaengerId: 'q1',
+      status: 'Entwurf',
+      customerId: 'k1',
+      notes: 'Nur in den Ferien.',
+      discount: { mode: 'percent', value: 5 },
+    });
+    expect(neu.quoteNumber).toBe('AN-2026-0001');
+    // Das versendete bleibt, wie es ist.
+    expect(updateQuote).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: ein neues Angebot trägt keinen Verweis und keinen Rabatt', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Pauschale');
+    await nutzer.type(screen.getByLabelText('Menge'), '1');
+    await nutzer.type(screen.getByLabelText('Einzelpreis netto'), '100');
+    await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+    await waitFor(() => expect(createQuote).toHaveBeenCalled());
+    const neu = createQuote.mock.calls[0][1] as Quote;
+    expect(neu.vorgaengerId).toBeUndefined();
+    expect(neu.discount).toBeNull();
+  });
+
+  it('bietet die neue Fassung nicht für einen Entwurf an — der wird bearbeitet', async () => {
+    mitPositionen();
+    angebote[0].status = 'Entwurf';
+    zeichne();
+    expect(await screen.findByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Neue Fassung' })).toBeNull();
+  });
+});
+
+/*
+  TESTBERICHT 30.09.2026, M16 — die Abrechnungsart wird beim Annehmen
+  gewählt: Pauschal (wie bisher, Vorgabe), Regie oder Einheitspreis.
+*/
+describe('Abrechnungsart beim Annehmen (M16)', () => {
+  it('legt die Baustelle mit der gewählten Abrechnung an', async () => {
+    const nutzer = userEvent.setup();
+    versendetesAngebot();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Annehmen → Baustelle' }));
+    const dialog = await screen.findByRole('dialog');
+    await nutzer.selectOptions(within(dialog).getByLabelText('Abrechnung der Baustelle'), 'Einheitspreis');
+    expect(within(dialog).getByText(/Mengen kommen aus dem Aufmaß/)).toBeInTheDocument();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Annehmen' }));
+    await waitFor(() => expect(createProject).toHaveBeenCalled());
+    expect(createProject.mock.calls[0][1]).toMatchObject({ billingMode: 'Einheitspreis' });
+  });
+
+  it('Gegenprobe: ohne Wahl bleibt es Pauschal, wie bisher', async () => {
+    const nutzer = userEvent.setup();
+    versendetesAngebot();
+    zeichne();
+    await screen.findByRole('button', { name: 'Annehmen → Baustelle' });
+    await annehmenBestaetigt(nutzer);
+    await waitFor(() => expect(createProject).toHaveBeenCalled());
+    expect(createProject.mock.calls[0][1]).toMatchObject({ billingMode: 'Pauschal' });
   });
 });

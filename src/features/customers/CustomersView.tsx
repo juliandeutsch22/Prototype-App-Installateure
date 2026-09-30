@@ -44,6 +44,16 @@ function schluessel(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
+/** Die Rückfrage: wen es schon gibt, mit Adresse — daran erkennt man ihn. */
+function rueckfrageText(name: string, gleiche: Customer[]): string {
+  const wer = gleiche
+    .slice(0, 3)
+    .map((k) => `„${k.name}“ (${k.address?.trim() || 'ohne Adresse'})`)
+    .join(', ');
+  const mehr = gleiche.length > 3 ? ` und ${gleiche.length - 3} weitere` : '';
+  return `Es gibt schon ${wer}${mehr}. Ist „${name}“ ein anderer Kunde, trotzdem anlegen; sonst den bestehenden bearbeiten.`;
+}
+
 /**
  * Kundenverwaltung.
  *
@@ -98,6 +108,11 @@ export default function CustomersView() {
   };
   const [speichert, setSpeichert] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Customer> | null>(null);
+  /**
+   * Kunden mit demselben Namen, die es schon gibt — die Rückfrage vor dem
+   * Anlegen (Testbericht 30.09.2026, M11). `null`: keine Rückfrage offen.
+   */
+  const [gleichNamig, setGleichNamig] = useState<WithId<Customer>[] | null>(null);
 
   /*
     ZWEI RECHTE, NICHT EINES. Kunden pflegt, wer die Freigabe hat (siehe
@@ -174,6 +189,10 @@ export default function CustomersView() {
 
   async function speichern(e: FormEvent) {
     e.preventDefault();
+    await speichernBestaetigt(false);
+  }
+
+  async function speichernBestaetigt(trotzdem: boolean) {
     if (!user || !form.name.trim()) return;
     setSpeichert(true);
     setError(null);
@@ -186,11 +205,20 @@ export default function CustomersView() {
             : 'Kunde gespeichert',
         );
       } else {
-        // Doppelte Anlage abfangen — der Grund, warum es diese Ansicht gibt.
-        const doppelt = kunden.find((k) => schluessel(k.name) === schluessel(form.name));
-        if (doppelt) {
-          setError(`„${doppelt.name}" gibt es bereits. Bitte den bestehenden Kunden bearbeiten.`);
-          return;
+        /*
+          GLEICHER NAME IST ERLAUBT — MIT RÜCKFRAGE (Testbericht 30.09.2026,
+          M11). Huber und Gruber gibt es oft; vorher wies die Maske jeden
+          zweiten ab, auch mit anderer Adresse. Jetzt sagt sie, wen es schon
+          gibt und wo, und legt auf Bestätigung trotzdem an. Gefragt wird der
+          Server, nicht die geladene Liste: sie kennt den ganzen Bestand.
+        */
+        if (!trotzdem) {
+          const treffer = await searchCustomers(user.companyId, form.name.trim(), 50);
+          const gleiche = treffer.filter((k) => schluessel(k.name) === schluessel(form.name));
+          if (gleiche.length > 0) {
+            setGleichNamig(gleiche);
+            return;
+          }
         }
         await createCustomer(user.companyId, form);
         toast.success('Kunde angelegt');
@@ -583,6 +611,19 @@ export default function CustomersView() {
           </div>
         )}
       </Card>
+
+      <ConfirmDialog
+        open={gleichNamig !== null}
+        title="Gleicher Name — trotzdem anlegen?"
+        message={gleichNamig ? rueckfrageText(form.name.trim(), gleichNamig) : ''}
+        confirmLabel="Trotzdem anlegen"
+        confirmTone="primary"
+        onCancel={() => setGleichNamig(null)}
+        onConfirm={async () => {
+          setGleichNamig(null);
+          await speichernBestaetigt(true);
+        }}
+      />
 
       <ConfirmDialog
         open={!!toDelete}

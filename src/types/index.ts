@@ -469,6 +469,12 @@ export interface Quote {
    * der Baustellennummer, die Nummer am Angebot nicht.
    */
   projectId?: string;
+  /**
+   * Die Fassung, die dieses Angebot überarbeitet (Testbericht 30.09.2026,
+   * M17). Ein versendetes Angebot ändert sich nicht; überarbeitet wird es als
+   * neuer Entwurf mit eigener Nummer, der hierher verweist.
+   */
+  vorgaengerId?: string;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -516,7 +522,7 @@ export interface WorkSheet {
    * und lässt sich als einziger Zustand wieder aufnehmen.
    */
   status: 'Entwurf' | 'Unterschrieben' | 'Storniert' | 'Verworfen';
-  abrechnung: 'Regie' | 'Pauschal';
+  abrechnung: Abrechnungsart;
   /** Die kopierten Positionen — nach der Unterschrift unveränderlich. */
   zeiten: WorkSheetZeit[];
   material: WorkSheetMaterial[];
@@ -647,6 +653,14 @@ export interface Customer {
   createdAt?: number;
 }
 
+
+
+/**
+ * Wie eine Baustelle abgerechnet wird (Testbericht 30.09.2026, M16):
+ * nach Aufwand (Regie), zum vereinbarten Festpreis (Pauschal) oder zu den
+ * Einheitspreisen des Angebots mit den Mengen nach Aufmaß.
+ */
+export type Abrechnungsart = 'Regie' | 'Pauschal' | 'Einheitspreis';
 export interface Project {
   id: string;
   companyId: string;
@@ -681,7 +695,7 @@ export interface Project {
    * bestätigten Stunden die Rechnungsgrundlage, auf einer Pauschalbaustelle
    * belegt derselbe Schein nur, DASS gearbeitet wurde.
    */
-  billingMode?: 'Regie' | 'Pauschal';
+  billingMode?: Abrechnungsart;
   /**
    * Freiwilliger Name der Baustelle („Bad 2. OG“) — steht im Titel vor dem
    * Kunden (Testbericht 30.09.2026, G4). Ohne ihn ist der Titel der Kunde.

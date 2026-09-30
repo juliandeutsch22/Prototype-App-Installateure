@@ -7,7 +7,7 @@
  * einzeln prüfen können muss: durch die Ansicht hindurch sähe ein falscher
  * Vergleich nur wie „der Speichern-Balken benimmt sich komisch" aus.
  */
-import type { Project } from '@/types';
+import type { Abrechnungsart, Project } from '@/types';
 import { leseZahl, zahlAlsText } from '@/lib/zahl';
 
 /**
@@ -26,7 +26,7 @@ export interface BaustellenEntwurf {
   bezeichnung: string;
   address: string;
   status: Project['status'];
-  billingMode: '' | 'Regie' | 'Pauschal';
+  billingMode: '' | Abrechnungsart;
   estimatedHours: string;
   description: string;
   startDate: string;

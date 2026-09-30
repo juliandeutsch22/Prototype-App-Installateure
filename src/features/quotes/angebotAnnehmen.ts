@@ -5,7 +5,7 @@ import {
   reserveProjectNumber,
   type NewProject,
 } from '@/lib/db/projects';
-import type { Quote } from '@/types';
+import type { Abrechnungsart, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 
 /**
@@ -49,6 +49,12 @@ export async function angebotAnnehmen(
   companyId: string,
   q: WithId<Quote>,
   vorsatzBaustelle: string,
+  /**
+   * Wie die Baustelle abgerechnet wird — beim Annehmen gewählt (Testbericht
+   * 30.09.2026, M16). Pauschal war bisher die einzige Möglichkeit und bleibt
+   * die Vorgabe.
+   */
+  abrechnung: Abrechnungsart = 'Pauschal',
 ): Promise<{ projectNumber: string }> {
   /*
     GIBT ES DIE BAUSTELLE ZU DIESEM ANGEBOT SCHON? (Prüflauf 25.09.2026,
@@ -72,7 +78,7 @@ export async function angebotAnnehmen(
     customerName: q.customerName,
     address: q.address,
     status: 'Aktiv',
-    billingMode: 'Pauschal',
+    billingMode: abrechnung,
     estimatedHours: q.kalkulierteStunden > 0 ? q.kalkulierteStunden : undefined,
     description: beschreibungAusAngebot(q),
     projectManagers: [],

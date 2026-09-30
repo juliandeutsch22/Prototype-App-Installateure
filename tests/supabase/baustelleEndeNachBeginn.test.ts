@@ -75,3 +75,18 @@ describe('Bezeichnung der Baustelle (G4)', () => {
     expect(error?.code).toBe('23514');
   });
 });
+
+// Testbericht 30.09.2026, M16 — die dritte Abrechnungsart.
+describe('Abrechnung Einheitspreis (M16)', () => {
+  it('eine Baustelle nach Einheitspreis lässt sich anlegen', async () => {
+    const { error } = await chefin.client.from('projects')
+      .insert({ ...baustelle('M16-1', null, null), billing_mode: 'Einheitspreis' });
+    expect(error).toBeNull();
+  });
+
+  it('Gegenprobe: ein unbekannter Wert wird weiter abgewiesen', async () => {
+    const { error } = await chefin.client.from('projects')
+      .insert({ ...baustelle('M16-2', null, null), billing_mode: 'Stundenlohn' });
+    expect(error?.code).toBe('23514');
+  });
+});
