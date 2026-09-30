@@ -155,6 +155,14 @@ export default function TimeForm({
   // mit dem Kunden — nicht der Zeiger auf der Uhr.
   const [isNightWork, setIsNightWork] = useState(entry?.isNightWork ?? false);
   const [isEmergency, setIsEmergency] = useState(entry?.isEmergency ?? false);
+  /*
+    ERST NACH EINER EINGABE WARNEN (Testbericht 30.09.2026, G18). Die Maske
+    ist mit heute und 07:00–16:00 vorbelegt; stand für heute schon etwas da —
+    etwa gleich nach dem Buchen —, meldete sie „bereits gebucht“, bevor
+    jemand etwas eingegeben hatte. Geprüft wird weiter immer: beim Absenden
+    steht der Grund als Fehler da.
+  */
+  const [angefasst, setAngefasst] = useState(false);
   const [vehiclePlate, setVehiclePlate] = useState(() => ohneKennzeichenVorsatz(entry?.vehiclePlate ?? '', kennzeichenVorsatz));
   /** Für wen wird gebucht (nur wenn `staff` gesetzt ist). */
   const [targetUid, setTargetUid] = useState(entry?.userId ?? '');
@@ -521,6 +529,14 @@ export default function TimeForm({
         if (stand === 'queued') toast.info(vorgemerktMeldung('Zeit gebucht'));
         else toast.success(target ? `Zeit für ${target.name} gebucht` : 'Zeit gebucht');
         setComment('');
+        /*
+          ZUSCHLÄGE GELTEN FÜR EINEN EINSATZ, nicht für den nächsten
+          (Testbericht 30.09.2026, G18): der Notdienst blieb nach dem Buchen
+          angehakt und wäre mit der nächsten Buchung mitgegangen.
+        */
+        setIsNightWork(false);
+        setIsEmergency(false);
+        setAngefasst(false);
       }
       onSaved();
     } catch (err) {
@@ -628,7 +644,7 @@ export default function TimeForm({
   const gesperrt = billed || meldungsTag || antragsTag;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} onChange={() => setAngefasst(true)} className="space-y-4">
       {/* Bereits verrechnete Einträge sind die Grundlage einer verschickten
           Rechnung — eine Änderung würde den Beleg nachträglich verfälschen. */}
       {billed && (
@@ -738,7 +754,7 @@ export default function TimeForm({
         jetzt gibt es vier verschiedene Fälle mit vier verschiedenen
         Handlungen, und die Meldung nennt jeweils die eigene.
       */}
-      {konflikt && (
+      {konflikt && (angefasst || isEdit) && (
         <Hinweiszeile stufe="warn" role="alert">
           <p>{konflikt}</p>
         </Hinweiszeile>
@@ -1082,7 +1098,7 @@ export default function TimeForm({
           ) : undefined
         }
         rechts={
-          <Button type="submit" loading={saving} disabled={!!konflikt || gesperrt}>
+          <Button type="submit" loading={saving} disabled={(!!konflikt && (angefasst || isEdit)) || gesperrt}>
             {isEdit
               ? 'Änderungen speichern'
               : alsKrankmeldung
