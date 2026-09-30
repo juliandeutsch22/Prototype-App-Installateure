@@ -21,14 +21,15 @@ import {
   sucheRechnungen,
   scheineAufRechnung,
   RECHNUNG_TREFFER,
+  listInvoicesByIds,
 } from '@/lib/db/invoices';
 import { listZahlungen, listZahlungenImZeitraum, createZahlung, createZahlungMitSkonto, deleteZahlung } from '@/lib/db/zahlungen';
 import { istUeberfaellig, zahlstand } from './zahlstand';
 import { skontoBedingung, skontoZumAusgleich, zugesagterSkonto } from './skonto';
 import { listActiveProjects } from '@/lib/db/projects';
-import { listCustomers } from '@/lib/db/customers';
+import { listCustomers, updateCustomer } from '@/lib/db/customers';
 import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
-import { buildBmdCsv, bmdCsvFilename } from './bmdExport';
+import { buildBmdCsv, bmdCsvFilename, buildBmdZahlungenCsv, bmdZahlungenFilename } from './bmdExport';
 import { buchungskonten, type Buchungskonto } from '@/lib/db/konten';
 import { downloadCsv } from '@/features/accounting/export';
 import { listEntriesForProjects } from '@/lib/db/timeEntries';
@@ -43,6 +44,7 @@ import {
   TEXTE,
   FRIST_TAGE,
   verzugszinsen,
+  zinssatzText,
   type Mahnstufe,
 } from './mahnung';
 import { postenNeuLaden } from '@/app/offenePosten';
@@ -52,14 +54,16 @@ import {
   auffaellige,
   AUFFAELLIG_AB_TAGEN,
 } from '@/features/worksheets/unverrechnet';
-import { geltenderSatz, pruefeReverseCharge, sichtAusWieUid } from './reverseCharge';
+import { geltenderSatz, pruefeReverseCharge } from './reverseCharge';
+import { istUnternehmerKunde, uidFehler, uidNormalisieren } from '@/lib/uid';
 import { pruefeEmpfaengerUid } from './empfaengerUid';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { abziehbar, alsVorrechnung, mitAbzug, nachSteuer, pflichtAbzug } from './vorrechnungen';
 import { scheinAbgleich } from './scheinAbgleich';
 import { einheitspreisVorschau, pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from './pauschale';
+import { ANZAHLUNG_PROZENT_VORGABE, anteilFehler, anzahlungVorschau } from './anzahlung';
 import { listQuotesForProject } from '@/lib/db/quotes';
-import { calcTotals, discountLabel, type InvoicePosition } from './totals';
+import { discountLabel, type InvoicePosition } from './totals';
 import { todayStr, localDateStr, fmtDauer, tageWort } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { Invoice, Project, RechnungsArt, WorkSheet, Zahlungseingang } from '@/types';
@@ -115,6 +119,10 @@ export default function InvoicesView() {
   const [pauschalAus, setPauschalAus] = useState<string | null>(null);
   /** Stammt die Vorschau aus einer Einheitspreis-Baustelle (M16)? Dann gilt der Hinweis zum Aufmaß. */
   const [nachAufmass, setNachAufmass] = useState(false);
+  /** Anteil vom angenommenen Angebot für eine Anzahlung (M20). */
+  const [anzahlungProzent, setAnzahlungProzent] = useState<number | null>(ANZAHLUNG_PROZENT_VORGABE);
+  /** Die letzte Anzahlung entstand ohne angenommenes Angebot — Betrag von Hand. */
+  const [anzahlungOhneAngebot, setAnzahlungOhneAngebot] = useState(false);
   /*
     Die unterschriebenen Scheine des Betriebs — für die Frage, welche Leistung
     noch auf keiner Rechnung steht. Einmal geladen, nicht abonniert: die
@@ -154,6 +162,15 @@ export default function InvoicesView() {
     leere Datei, die wie ein Erfolg aussah.
   */
   const [exportZeilen, setExportZeilen] = useState<WithId<Invoice>[] | null>(null);
+  /**
+   * Zahlungen des Zeitraums samt ihren Rechnungen — für den eigenen
+   * Zahlungsstapel (Testbericht 30.09.2026, H7 vorgebaut). `null`: nicht
+   * geladen; der Rechnungsstapel hängt nicht davon ab.
+   */
+  const [exportZahlungen, setExportZahlungen] = useState<{
+    zahlungen: Zahlungseingang[];
+    rechnungen: WithId<Invoice>[];
+  } | null>(null);
   /** Schlussrechnungen ohne Abzug ihrer Anzahlung — geholt mit dem Zeitraum (K2). */
   const [ohneAbzug, setOhneAbzug] = useState<SchlussOhneAbzug[]>([]);
   /*
@@ -200,6 +217,11 @@ export default function InvoicesView() {
   const [zArt, setZArt] = useState<Zahlungseingang['art']>('Überweisung');
   const [zSkonto, setZSkonto] = useState(false);
   const [zHinweis, setZHinweis] = useState('');
+  /**
+   * Eingang vom Kunden oder Rückzahlung an ihn (Testbericht 30.09.2026, M21).
+   * Die Rückzahlung wird positiv eingetragen und negativ gebucht.
+   */
+  const [zRichtung, setZRichtung] = useState<'eingang' | 'rueckzahlung'>('eingang');
   const [zLoeschen, setZLoeschen] = useState<string | null>(null);
   const [zFehler, setZFehler] = useState<string | null>(null);
   /*
@@ -258,6 +280,8 @@ export default function InvoicesView() {
   const [mahnFrist, setMahnFrist] = useState('');
   const [reverseCharge, setReverseCharge] = useState(false);
   const [kundenUid, setKundenUid] = useState('');
+  /** Eine in der Rechnung korrigierte UID auch in den Kundenstamm schreiben (M10). */
+  const [uidInKunden, setUidInKunden] = useState(false);
   /** Grund der Steuerbefreiung — nur bei 0 % ohne Reverse Charge (A2). */
   const [steuerbefreiung, setSteuerbefreiung] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
@@ -618,8 +642,20 @@ export default function InvoicesView() {
     setZArt('Überweisung');
     setZHinweis('');
     setZSkonto(false);
-    const rest = zahlstand(inv).rest;
-    setZBetrag(rest > 0 ? String(rest) : '');
+    const { rest, guthaben } = zahlstand(inv);
+    /*
+      EIN GUTHABEN WILL ZURÜCK (M21). Steht eines offen, ist die Rückzahlung
+      vorgewählt und der Betrag eingesetzt — das war der Fall aus dem Bericht:
+      200 € auf der stornierten RE-2026-1500, und kein Weg, sie zu buchen.
+    */
+    if (guthaben > 0) {
+      setZRichtung('rueckzahlung');
+      setZBetrag(zahlAlsText(guthaben));
+      setZHinweis('Rückzahlung des Guthabens');
+    } else {
+      setZRichtung('eingang');
+      setZBetrag(rest > 0 ? String(rest) : '');
+    }
     try {
       setZahlungen(await listZahlungen(inv.companyId, inv.id));
     } catch {
@@ -649,7 +685,8 @@ export default function InvoicesView() {
     da; gesetzt wird er bewusst. Die Skonto-Summe kommt aus derselben Liste
     wie der Kopf.
   */
-  const skontoAngebot = zahlungsStand && zArt !== 'Skonto'
+  const zGuthaben = zahlungsStand ? zahlstand(zahlungsStand).guthaben : 0;
+  const skontoAngebot = zahlungsStand && zArt !== 'Skonto' && zRichtung === 'eingang'
     ? skontoZumAusgleich(
       {
         ...zahlungsStand,
@@ -664,16 +701,27 @@ export default function InvoicesView() {
 
   const zahlungSpeichern = async () => {
     if (!zahlungFuer || !user) return;
-    const gelesen = leseZahl(zBetrag, { negativ: true });
+    const rueck = zRichtung === 'rueckzahlung';
+    const gelesen = leseZahl(zBetrag, { negativ: !rueck });
     if (gelesen.fehler) {
       setZFehler(gelesen.fehler);
       return;
     }
-    const betrag = gelesen.wert ?? 0;
-    if (!Number.isFinite(betrag) || betrag === 0) {
-      setZFehler('Ein Betrag von null ist kein Zahlungseingang.');
+    const eingetragen = gelesen.wert ?? 0;
+    if (!Number.isFinite(eingetragen) || eingetragen === 0) {
+      setZFehler(rueck ? 'Eine Rückzahlung über null ist keine.' : 'Ein Betrag von null ist kein Zahlungseingang.');
       return;
     }
+    /*
+      ZURÜCK GEHT HÖCHSTENS DAS GUTHABEN (M21). Danach ist es erledigt; mehr
+      zurückzuzahlen hiesse, eine neue Forderung des Kunden zu erfinden. Wer
+      eine Rücklastschrift buchen will, trägt sie als Eingang mit Minus ein.
+    */
+    if (rueck && Math.round(eingetragen * 100) > Math.round(zGuthaben * 100)) {
+      setZFehler(`Zurückzuzahlen sind höchstens ${euro(zGuthaben)} — das Guthaben des Kunden.`);
+      return;
+    }
+    const betrag = rueck ? -eingetragen : eingetragen;
     const zahlung = {
       invoiceId: zahlungFuer.id,
       datum: zDatum,
@@ -693,7 +741,8 @@ export default function InvoicesView() {
     setZHinweis('');
     setZSkonto(false);
     setZFehler(null);
-    toast.success('Zahlung erfasst');
+    setZRichtung('eingang');
+    toast.success(rueck ? 'Rückzahlung gebucht' : 'Zahlung erfasst');
   };
 
   const numberTaken = invoiceNumber !== '' && isInvoiceNumberTaken(invoices, invoiceNumber);
@@ -737,6 +786,14 @@ export default function InvoicesView() {
    * später berichtigt werden muss.
    */
   const rcPruefung = pruefeReverseCharge(reverseCharge, kundenUid, company?.vatId);
+  const uidFormFehler = uidFehler(kundenUid);
+  const kundeDerVorschau = (() => {
+    const p = projects.find((x) => x.projectNumber === projectNumber);
+    return p ? kundeZu(p.customerId, p.customerName) : undefined;
+  })();
+  const uidWeichtAb =
+    !!kundeDerVorschau && !!uidNormalisieren(kundenUid) && !uidFormFehler
+    && uidNormalisieren(kundenUid) !== uidNormalisieren(kundeDerVorschau.vatId);
   /*
     OHNE STEUER UND OHNE ÜBERGANG: der Grund gehört auf den Beleg (§ 11 Abs 1
     Z 3 lit e UStG, offene Punkte A2). Er sperrt den Knopf wie die fehlende
@@ -825,20 +882,19 @@ export default function InvoicesView() {
         Entscheidung.
       */
       if (art === 'anzahlung') {
-        const zeile = { label: 'Anzahlung gemäß Vereinbarung', qty: 1, unit: 'Pauschale', unitPrice: 0, netto: 0 };
-        await vorschauUebernehmen({
-          positions: [zeile],
-          ...calcTotals([zeile], satz),
-          discount: null,
-          linkedEntries: [],
-          linkedOrders: [],
-          linkedWorkSheets: [],
-          // Kein Leistungszeitraum: die Leistung ist noch nicht erbracht, und
-          // einen zu behaupten wäre gegenüber dem Finanzamt falsch.
-          leistung: null,
-          materialOhnePreis: [],
-          entries: [],
-        });
+        /*
+          ALS ANTEIL VOM ANGEBOT (Testbericht 30.09.2026, M20): mit einem
+          angenommenen Angebot steht der Betrag schon da, und der
+          voraussichtliche Zeitraum kommt aus Beginn und Ende der Baustelle.
+          Ohne Angebot bleibt es bei der Null — siehe `anzahlung.ts`.
+        */
+        const baustelle = projects.find((x) => x.projectNumber === projectNumber);
+        const angebote = baustelle?.id ? await listQuotesForProject(user.companyId, baustelle.id) : [];
+        const angebot = pauschalAngebot(angebote);
+        setAnzahlungOhneAngebot(!angebot);
+        await vorschauUebernehmen(
+          anzahlungVorschau({ angebot, prozent: anzahlungProzent, baustelle, vatRate: satz }),
+        );
         return;
       }
       /**
@@ -993,11 +1049,10 @@ export default function InvoicesView() {
       aus den Stammdaten kopiert und damit verlässlich gleich geschrieben.
       Findet sich nichts, bleibt das Feld leer und will ausgefüllt werden.
     */
-    const kunde = projects.find((x) => x.projectNumber === projectNumber)?.customerName ?? '';
-    const treffer = kunden.find(
-      (k) => k.name.trim().toLowerCase() === kunde.trim().toLowerCase(),
-    );
+    const baustelle = projects.find((x) => x.projectNumber === projectNumber);
+    const treffer = kundeZu(baustelle?.customerId, baustelle?.customerName);
     setKundenUid(treffer?.vatId?.trim() ?? '');
+    setUidInKunden(false);
     const vorschlag = nextInvoiceNumber(invoices, vorsaetze.rechnung);
     setSuggestedNumber(vorschlag);
     setInvoiceNumber(vorschlag);
@@ -1005,6 +1060,13 @@ export default function InvoicesView() {
 
   async function confirmInvoice() {
     if (!user || !company || !preview || !summen || !invoiceNumber || numberTaken || leer) return;
+    // Eine UID in falscher Form kommt nicht auf den Beleg (M10); die
+    // Datenbank weist sie ebenso ab.
+    const uidFalsch = uidFehler(kundenUid);
+    if (uidFalsch) {
+      setError(uidFalsch);
+      return;
+    }
     // Eine Menge oder ein Preis, der sich nicht lesen lässt, steht nicht still
     // als letzte lesbare Zahl auf der Rechnung (M15).
     const unlesbar = unlesbareZahlIn(document);
@@ -1072,6 +1134,9 @@ export default function InvoicesView() {
         Leistung" daneben. Ohne Kunden im Stamm bleibt es, wie es war.
       */
       const kunde = kundeZu(project?.customerId, project?.customerName);
+      const uidNeu = uidNormalisieren(kundenUid);
+      const uidUebernehmen =
+        uidInKunden && !!kunde && !!uidNeu && uidNeu !== uidNormalisieren(kunde.vatId);
       const anschrift = kunde?.address?.trim() || project?.address || '';
       const baustellenOrt = project?.address?.trim();
       const leistungsort =
@@ -1095,7 +1160,7 @@ export default function InvoicesView() {
           ist sie Pflichtangabe (§ 11 Abs 1 Z 2 UStG); darunter schadet sie
           nicht und hilft dem Empfänger beim Zuordnen.
         */
-        customerVatId: kundenUid.trim(),
+        customerVatId: uidNormalisieren(kundenUid),
         steuerbefreiung: brauchtBefreiung ? steuerbefreiung.trim() : undefined,
         subtotalNetto: preview.subtotalNetto,
         // null statt undefined: „kein Rabatt" soll als bewusster Wert in der
@@ -1171,7 +1236,7 @@ export default function InvoicesView() {
           ist sie Pflichtangabe (§ 11 Abs 1 Z 2 UStG); darunter schadet sie
           nicht und hilft dem Empfänger beim Zuordnen.
         */
-        customerVatId: kundenUid.trim(),
+        customerVatId: uidNormalisieren(kundenUid),
         steuerbefreiung: brauchtBefreiung ? steuerbefreiung.trim() : undefined,
         skonto,
       });
@@ -1181,10 +1246,27 @@ export default function InvoicesView() {
       setDiscount({ mode: 'percent', value: '', label: '' });
       setReverseCharge(false);
       setKundenUid('');
+      setUidInKunden(false);
       setArtWahl('einzel');
       setAbzugsfaehig([]);
       setGewaehlteAbzuege([]);
       toast.success(`Rechnung ${reserved} erstellt`);
+      /*
+        DIE KORRIGIERTE UID IN DEN KUNDEN (Testbericht 30.09.2026, M10) — nur
+        auf Wunsch und erst, wenn die Rechnung steht. Schlägt es fehl, ist die
+        Rechnung trotzdem richtig; gesagt wird es dennoch.
+      */
+      if (uidUebernehmen && kunde) {
+        try {
+          await updateCustomer(user.companyId, kunde.id, { vatId: uidNeu, kundenart: 'unternehmen' });
+          setKunden((alle) =>
+            alle.map((k) => (k.id === kunde.id ? { ...k, vatId: uidNeu, kundenart: 'unternehmen' } : k)),
+          );
+          toast.success(`UID ${uidNeu} beim Kunden ${kunde.name} gespeichert`);
+        } catch (err) {
+          toast.error(grundAus(err, 'Die UID konnte nicht beim Kunden gespeichert werden.'));
+        }
+      }
     } catch (e) {
       /*
         Die Datenbank sagt genau, woran es lag — welche Nummer belegt ist
@@ -1214,7 +1296,7 @@ export default function InvoicesView() {
    * der Rechnung oder im Kundenstamm.
    */
   function istUnternehmer(inv: Invoice) {
-    return !!(inv.customerVatId?.trim() || kundeDerRechnung(inv)?.vatId?.trim());
+    return istUnternehmerKunde(kundeDerRechnung(inv), inv.customerVatId);
   }
 
   function zinsenFuer(inv: Invoice, stufe: Mahnstufe, datum: string) {
@@ -1226,6 +1308,7 @@ export default function InvoicesView() {
       unternehmer: istUnternehmer(inv),
       basiszinssatz: company?.rates?.basiszinssatz,
       basiszinssatzAb: company?.rates?.basiszinssatzAb,
+      basiszinssaetze: company?.rates?.basiszinssaetze,
     });
   }
 
@@ -1547,6 +1630,21 @@ export default function InvoicesView() {
       ]);
       setExportZeilen(zeilen);
       setOhneAbzug(fehlAbzug);
+      /*
+        DIE ZAHLUNGEN LAUFEN NEBENHER. Schlägt ihr Laden fehl, fehlt nur der
+        Zahlungsstapel — Journal und Rechnungsstapel stehen trotzdem.
+      */
+      try {
+        const zahl = await listZahlungenImZeitraum(user.companyId, exportVon, exportBis);
+        const bekannt = new Set(zeilen.map((r) => r.id));
+        const fehlen = [...new Set(zahl.map((z) => z.invoiceId).filter((id) => !bekannt.has(id)))];
+        const weitere = fehlen.length > 0
+          ? await Promise.resolve().then(() => listInvoicesByIds(user.companyId, fehlen))
+          : [];
+        setExportZahlungen({ zahlungen: zahl, rechnungen: [...zeilen, ...weitere] });
+      } catch {
+        setExportZahlungen(null);
+      }
     } catch {
       setExportZeilen(null);
       setExportFehler(
@@ -1705,11 +1803,13 @@ export default function InvoicesView() {
             weiteren Zahlung Guthaben des Kunden. Der Dialog sagt es noch
             einmal, bevor eingetragen wird.
           */
-          label: inv.paymentStatus === 'Storniert'
-            ? 'Zahlung erfassen (wird Guthaben) …'
-            : inv.paymentStatus === 'Bezahlt' || inv.paymentStatus === 'Überzahlt'
-              ? 'Weitere Zahlung erfassen …'
-              : 'Zahlung erfassen',
+          label: zahlstand(inv).guthaben > 0
+            ? 'Guthaben zurückzahlen …'
+            : inv.paymentStatus === 'Storniert'
+              ? 'Zahlung erfassen (wird Guthaben) …'
+              : inv.paymentStatus === 'Bezahlt' || inv.paymentStatus === 'Überzahlt'
+                ? 'Weitere Zahlung erfassen …'
+                : 'Zahlung erfassen',
           onSelect: () => void zahlungOeffnen(inv),
         },
         ...(inv.paymentStatus !== 'Storniert'
@@ -2058,7 +2158,19 @@ export default function InvoicesView() {
           </Button>
         </div>
         {art === 'anzahlung' && (
-          <div className="mt-3">
+          <div className="mt-3 space-y-3">
+            <div className="max-w-xs">
+              <ZahlWertFeld
+                id="anzahlung-prozent"
+                label="Anteil vom angenommenen Angebot (%)"
+                wert={anzahlungProzent}
+                leerAls={null}
+                onWert={(n) => setAnzahlungProzent(n)}
+              />
+              {anteilFehler(anzahlungProzent) && (
+                <p className="mt-1 text-sm text-danger">{anteilFehler(anzahlungProzent)}</p>
+              )}
+            </div>
             <Hinweiszeile>
               <p>
                 Eine Anzahlung verrechnet noch keine Leistung: sie nimmt keine Stunden und kein
@@ -2164,14 +2276,14 @@ export default function InvoicesView() {
           <div className="mb-4 grid gap-3 sm:grid-cols-2">
             <InputField
               id="leistung-von"
-              label="Leistung von"
+              label={art === 'anzahlung' ? 'Leistung voraussichtlich von' : 'Leistung von'}
               type="date"
               value={leistungVon}
               onChange={(e) => setLeistungVon(e.target.value)}
             />
             <InputField
               id="leistung-bis"
-              label="Leistung bis"
+              label={art === 'anzahlung' ? 'Leistung voraussichtlich bis' : 'Leistung bis'}
               type="date"
               value={leistungBis}
               onChange={(e) => setLeistungBis(e.target.value)}
@@ -2332,6 +2444,16 @@ export default function InvoicesView() {
                     : pauschalAus
                       ? `Pauschalbaustelle: die Positionen kommen aus dem Angebot ${pauschalAus}. Stunden und Material der Scheine sind darin enthalten und werden nicht einzeln verrechnet.`
                       : 'Pauschalbaustelle ohne angenommenes Angebot: den vereinbarten Betrag bitte in der Zeile eintragen. Stunden und Material der Scheine sind darin enthalten.'}
+                </p>
+              </Hinweiszeile>
+            </div>
+          )}
+          {art === 'anzahlung' && anzahlungOhneAngebot && (
+            <div className="mb-3">
+              <Hinweiszeile>
+                <p>
+                  Zu dieser Baustelle gibt es kein angenommenes Angebot: den vereinbarten Betrag
+                  bitte in der Zeile eintragen.
                 </p>
               </Hinweiszeile>
             </div>
@@ -2734,10 +2856,23 @@ export default function InvoicesView() {
                 onChange={(e) => setKundenUid(e.target.value)}
                 pflicht={uidPruefung.pflicht}
               />
-              {kundenUid.trim() && !sichtAusWieUid(kundenUid) && (
-                <p className="mt-1 text-sm text-warning">
-                  Das sieht nicht nach einer UID-Nummer aus. Österreich: ATU und acht Ziffern.
+              {uidFormFehler && (
+                <p className="mt-1 text-sm text-danger" role="alert">
+                  {uidFormFehler}
                 </p>
+              )}
+              {uidWeichtAb && kundeDerVorschau && (
+                <CheckboxField
+                  id="uid-in-kunden"
+                  className="mt-2"
+                  label={
+                    kundeDerVorschau.vatId?.trim()
+                      ? `Auch beim Kunden speichern (dort steht ${kundeDerVorschau.vatId.trim()})`
+                      : 'Auch beim Kunden speichern'
+                  }
+                  checked={uidInKunden}
+                  onChange={(e) => setUidInKunden(e.target.checked)}
+                />
               )}
               {uidPruefung.text && (
                 <p className="mt-1 text-sm text-warning" role="alert">
@@ -2841,6 +2976,7 @@ export default function InvoicesView() {
                 loading={busy}
                 disabled={
                   numberTaken || !invoiceNumber || !rcPruefung.vollstaendig || befreiungFehlt
+                  || !!uidFormFehler
                   || !!summen?.gutschrift
                   || !company?.addressLine?.trim() || leer
                 }
@@ -3095,6 +3231,7 @@ export default function InvoicesView() {
               // Eine Zusammenstellung, die zu einem anderen Zeitraum gehört als der
               // im Feld, ist die gefährlichste Anzeige von allen.
               setExportZeilen(null);
+              setExportZahlungen(null);
             }}
           />
           <InputField
@@ -3107,6 +3244,7 @@ export default function InvoicesView() {
               // Eine Zusammenstellung, die zu einem anderen Zeitraum gehört als der
               // im Feld, ist die gefährlichste Anzeige von allen.
               setExportZeilen(null);
+              setExportZahlungen(null);
             }}
           />
         </FormGrid>
@@ -3209,7 +3347,19 @@ export default function InvoicesView() {
                   weiter bekommen, als wäre nichts gewesen.
                 */}
                 {konten.length > 0 && (() => {
-                  const b = buildBmdCsv(exportZeilen, konten, exportVon, exportBis);
+                  const debitorVon = (inv: Invoice) => kundeDerRechnung(inv)?.kundennummer;
+                  const b = buildBmdCsv(exportZeilen, konten, exportVon, exportBis, debitorVon);
+                  /*
+                    DER ZAHLUNGSSTAPEL ERSCHEINT NUR, WENN EIN BANK- ODER
+                    SKONTOKONTO HINTERLEGT IST (H7 vorgebaut). Wer die Bank
+                    von der Kanzlei buchen lässt, sieht ihn gar nicht — und
+                    kann ihn nicht versehentlich doppelt einspielen.
+                  */
+                  const zs = exportZahlungen && konten.some((k) => k.zweck === 'bank' || k.zweck === 'skonto')
+                    ? buildBmdZahlungenCsv(
+                      exportZahlungen.zahlungen, exportZahlungen.rechnungen, konten, exportVon, exportBis, debitorVon,
+                    )
+                    : null;
                   return (
                     <>
                       <Button
@@ -3233,6 +3383,27 @@ export default function InvoicesView() {
                         Import von deiner Kanzlei geprüft</strong> — die Konten stehen in den
                         Einstellungen und stammen von dort, nicht aus dieser App.
                       </InfoHint>
+                      {zs && (
+                        <Button
+                          variant="secondary"
+                          disabled={zs.fehlend.length > 0 || zs.zeilen.length === 0}
+                          onClick={() => {
+                            downloadCsv(zs.csv, bmdZahlungenFilename(exportVon, exportBis));
+                            toast.success(`Zahlungsstapel erzeugt — ${zs.zeilen.length} Zeilen`);
+                          }}
+                        >
+                          Zahlungsstapel für BMD
+                        </Button>
+                      )}
+                      {zs && zs.fehlend.length > 0 && (
+                        <div className="mt-2 basis-full">
+                          <Hinweiszeile stufe="warn">
+                            <p>
+                              <strong>Für den Zahlungsstapel fehlt:</strong> {zs.fehlend.join('; ')}.
+                            </p>
+                          </Hinweiszeile>
+                        </div>
+                      )}
                       {b.fehlend.length > 0 && (
                         <div className="mt-2 basis-full">
                           <Hinweiszeile stufe="warn">
@@ -3349,12 +3520,12 @@ export default function InvoicesView() {
                 : ` · offen ${euro(zahlstand(zahlungsStand!).rest)}`)
             : ''
         }
-        confirmLabel="Zahlung eintragen"
+        confirmLabel={zRichtung === 'rueckzahlung' ? 'Rückzahlung buchen' : 'Zahlung eintragen'}
         confirmTone="primary"
         onCancel={() => setZahlungFuer(null)}
         onConfirm={zahlungSpeichern}
       >
-        {zahlungFuer && (zahlungFuer.paymentStatus === 'Storniert'
+        {zahlungFuer && zRichtung === 'eingang' && (zahlungFuer.paymentStatus === 'Storniert'
           || zahlungFuer.paymentStatus === 'Bezahlt' || zahlungFuer.paymentStatus === 'Überzahlt') && (
           <div className="mb-3">
             <Hinweiszeile stufe="warn">
@@ -3364,6 +3535,25 @@ export default function InvoicesView() {
                   : 'Diese Rechnung ist schon bezahlt. Eine weitere Zahlung wird zum Guthaben des Kunden.'}
               </p>
             </Hinweiszeile>
+          </div>
+        )}
+        {(zGuthaben > 0 || zRichtung === 'rueckzahlung') && (
+          <div className="mb-3">
+            <SelectField
+              id="z-richtung"
+              label="Richtung"
+              value={zRichtung}
+              onChange={(e) => {
+                const neu = e.target.value as 'eingang' | 'rueckzahlung';
+                setZRichtung(neu);
+                setZSkonto(false);
+                setZFehler(null);
+                if (neu === 'rueckzahlung') setZBetrag(zahlAlsText(zGuthaben));
+              }}
+            >
+              <option value="eingang">Zahlungseingang vom Kunden</option>
+              <option value="rueckzahlung">Rückzahlung an den Kunden (Zahlungsausgang)</option>
+            </SelectField>
           </div>
         )}
         <FormGrid cols={2}>
@@ -3378,8 +3568,8 @@ export default function InvoicesView() {
           />
           <ZahlFeld
             id="z-betrag"
-            label="Betrag (€)"
-            negativ
+            label={zRichtung === 'rueckzahlung' ? 'Zurückgezahlt (€)' : 'Betrag (€)'}
+            negativ={zRichtung === 'eingang'}
             value={zBetrag}
             onChange={(text) => setZBetrag(text)}
             required
@@ -3421,7 +3611,8 @@ export default function InvoicesView() {
         )}
         <InfoHint about="den Betrag">
           Vorausgefüllt steht der offene Rest, weil er fast immer stimmt. Bei einer Teilzahlung
-          wird er überschrieben; ein negativer Betrag ist eine Rückzahlung an den Kunden.
+          wird er überschrieben. Ein Guthaben des Kunden wird als Rückzahlung gebucht; ein
+          negativer Eingang ist eine Rücklastschrift.
         </InfoHint>
 
         {zFehler && <p className="mt-3 text-sm text-danger">{zFehler}</p>}
@@ -3437,7 +3628,7 @@ export default function InvoicesView() {
               {zahlungen.map((z) => (
                 <ListRow
                   key={z.id}
-                  title={<span>{euro(z.betrag)}</span>}
+                  title={<span>{z.betrag < 0 ? `Rückzahlung ${euro(-z.betrag)}` : euro(z.betrag)}</span>}
                   subtitle={
                     <span>
                       {datumAT(z.datum)} · {z.art}
@@ -3528,8 +3719,8 @@ export default function InvoicesView() {
           if (z.art === 'berechnet') {
             return (
               <p className="mt-3 text-sm text-ink-muted">
-                Verzugszinsen {euro(z.betrag)} ({z.satz.toLocaleString('de-AT', { maximumFractionDigits: 2 })} %
-                p. a., {z.tage} Tage{z.ab ? ` ab ${datumAT(z.ab)}` : ''}, {z.grundlage}) stehen auf dem
+                Verzugszinsen {euro(z.betrag)} ({zinssatzText(z, datumAT)}, {z.tage} Tage
+                {z.ab ? ` ab ${datumAT(z.ab)}` : ''}, {z.grundlage}) stehen auf dem
                 Beleg.{z.ab ? ' Für die Zeit davor ist kein Basiszinssatz eingetragen.' : ''}
               </p>
             );

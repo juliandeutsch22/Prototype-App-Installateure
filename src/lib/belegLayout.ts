@@ -154,7 +154,12 @@ export function fusszeilen(doc: jsPDF, company: Company): void {
       company.iban && `IBAN ${company.iban}`,
       company.bic && `BIC ${company.bic}`,
     ],
-    [company.vatId && `UID: ${company.vatId}`, company.companyRegister],
+    [
+      company.vatId && `UID: ${company.vatId}`,
+      company.companyRegister,
+      // § 14 UGB: zur Firmenbuchnummer das Firmenbuchgericht (M12), eigene Zeile.
+      company.firmenbuchgericht ?? undefined,
+    ],
   ].map((s) => s.filter((z): z is string => !!z && z.trim() !== ''));
   const x = [RAND, 88, 146];
   const breite = [64, 54, RECHTS - 146];

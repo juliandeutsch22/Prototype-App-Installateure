@@ -66,3 +66,39 @@ describe('H10 — Rechnungsvorgaben', () => {
     }
   });
 });
+
+// Testbericht 30.09.2026, G30 — die Basiszinssätze als Verlauf je Halbjahr.
+describe('G30 — Basiszinssätze je Halbjahr', () => {
+  const rates = async () =>
+    ((await admin.from('companies').select('rates').eq('id', BETRIEB).single()).data!.rates ?? {}) as Record<string, unknown>;
+
+  it('die Buchhaltung speichert einen Verlauf und nimmt den Einzelsatz heraus', async () => {
+    const { error } = await buero.client.rpc('rechnungsvorgaben_speichern', {
+      p_vorgaben: {
+        basiszinssaetze: [{ ab: '2025-07-01', satz: 2.08 }, { ab: '2026-01-01', satz: 1.53 }, { ab: '2026-07-01', satz: -0.2 }],
+        basiszinssatz: null, basiszinssatzAb: null,
+      },
+    });
+    expect(error).toBeNull();
+    const r = await rates();
+    expect(r.basiszinssaetze).toEqual([
+      { ab: '2025-07-01', satz: 2.08 }, { ab: '2026-01-01', satz: 1.53 }, { ab: '2026-07-01', satz: -0.2 },
+    ]);
+    expect(r).not.toHaveProperty('basiszinssatz');
+  });
+
+  it('weist ein falsches Halbjahr, einen doppelten Eintrag und Unsinn ab', async () => {
+    const falsch = [
+      { basiszinssaetze: [{ ab: '2026-03-01', satz: 1 }] },
+      { basiszinssaetze: [{ ab: '2026-07-01', satz: 1 }, { ab: '2026-07-01', satz: 2 }] },
+      { basiszinssaetze: [{ ab: '2026-07-01', satz: 'viel' }] },
+      { basiszinssaetze: [{ ab: '2026-07-01', satz: 25 }] },
+      { basiszinssaetze: [{ ab: '2026-07-01', satz: 1, extra: true }] },
+      { basiszinssaetze: 'nein' },
+    ];
+    for (const p_vorgaben of falsch) {
+      const { error } = await buero.client.rpc('rechnungsvorgaben_speichern', { p_vorgaben });
+      expect(error, JSON.stringify(p_vorgaben)).not.toBeNull();
+    }
+  });
+});

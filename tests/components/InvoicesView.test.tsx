@@ -6,6 +6,7 @@ import { ToastProvider } from '@/components/Toast';
 import type { Invoice, Material, Project, TimeEntry, WorkSheet } from '@/types';
 import InvoicesView from '@/features/invoices/InvoicesView';
 import { cancelInvoice } from '@/lib/db/invoices';
+import { updateCustomer } from '@/lib/db/customers';
 
 /**
  * Die Rechnungsansicht — bis jetzt ohne eigenen Test, und dabei die Ansicht,
@@ -226,7 +227,10 @@ vi.mock('@/lib/db/projects', () => ({
   listProjectsByNumbers: vi.fn(async () => [PROJEKT]),
 }));
 let kunden: Array<{ id?: string; name: string; vatId?: string; address?: string }> = [];
-vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => kunden) }));
+vi.mock('@/lib/db/customers', () => ({
+  listCustomers: vi.fn(async () => kunden),
+  updateCustomer: vi.fn(async () => 0),
+}));
 /*
   Der Kontenrahmen. Leer ist der Regelfall: ohne hinterlegte Konten gibt es
   keinen Buchungsstapel, und die Ansicht muss trotzdem vollständig sein.
@@ -360,6 +364,8 @@ beforeEach(() => {
   angebote = [];
   PROJEKT.billingMode = undefined;
   PROJEKT.customerId = undefined;
+  PROJEKT.startDate = undefined;
+  PROJEKT.endDate = undefined;
   reservierteNummer = 'RE-2026-1099';
   reservierungWirft = null;
   reihenfolge.length = 0;
@@ -763,7 +769,7 @@ describe('Reverse Charge in der Rechnungsmaske', () => {
     await bisZurVorschau();
     await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
     await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU123');
-    expect(await screen.findByText(/sieht nicht nach einer UID/)).toBeInTheDocument();
+    expect(await screen.findByText(/„ATU“ und acht Ziffern/)).toBeInTheDocument();
   });
 
   it('rechnet die Steuer aus der Vorschau heraus', async () => {
@@ -1122,6 +1128,53 @@ describe('Die UID des Kunden ohne Reverse Charge', () => {
     await bisZurVorschau();
     expect(screen.getByText(/Bei Privatkunden bleibt das Feld leer/)).toBeInTheDocument();
     expect(screen.queryByText(/§ 11 Abs 1 Z 2 UStG/)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Testbericht 30.09.2026, M10 — eine in der Rechnung korrigierte UID auf
+ * Wunsch in den Kunden übernehmen; eine falsche hält die Rechnung auf.
+ */
+describe('Die korrigierte UID', () => {
+  beforeEach(() => vi.mocked(updateCustomer).mockClear());
+
+  it('lässt sich beim Kunden speichern — auf Wunsch', async () => {
+    kunden = [{ id: 'k9', name: 'Familie Huber', vatId: 'ATU55556666' }];
+    await bisZurVorschau();
+    const feld = screen.getByLabelText(/UID-Nummer des Kunden/);
+    await userEvent.clear(feld);
+    await userEvent.type(feld, 'atu 5555 7777');
+    await userEvent.click(screen.getByRole('checkbox', { name: /Auch beim Kunden speichern \(dort steht ATU55556666\)/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+
+    await waitFor(() => expect(updateCustomer).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0]).toMatchObject({ customerVatId: 'ATU55557777' });
+    expect(vi.mocked(updateCustomer).mock.calls[0].slice(1)).toEqual([
+      'k9', { vatId: 'ATU55557777', kundenart: 'unternehmen' },
+    ]);
+  });
+
+  it('Gegenprobe: ohne Haken bleibt der Kunde, wie er ist', async () => {
+    kunden = [{ id: 'k9', name: 'Familie Huber', vatId: 'ATU55556666' }];
+    await bisZurVorschau();
+    const feld = screen.getByLabelText(/UID-Nummer des Kunden/);
+    await userEvent.clear(feld);
+    await userEvent.type(feld, 'ATU55557777');
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(updateCustomer).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: dieselbe UID bietet nichts an', async () => {
+    kunden = [{ id: 'k9', name: 'Familie Huber', vatId: 'ATU55556666' }];
+    await bisZurVorschau();
+    expect(screen.queryByRole('checkbox', { name: /Auch beim Kunden speichern/ })).toBeNull();
+  });
+
+  it('eine UID in falscher Form sperrt das Erstellen', async () => {
+    await bisZurVorschau();
+    await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU123');
+    expect(screen.getByRole('button', { name: /Rechnung erstellen/ })).toBeDisabled();
   });
 });
 
@@ -2101,6 +2154,58 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     expect(inv.linkedEntries).toEqual([]);
   });
 
+  /*
+    Testbericht 30.09.2026, M20: die Anzahlung als Anteil vom angenommenen
+    Angebot, mit dem geplanten Zeitraum der Baustelle.
+  */
+  it('rechnet 30 % vom angenommenen Angebot und nimmt den geplanten Zeitraum', async () => {
+    angebote = [{
+      id: 'q7', quoteNumber: 'AN-2026-0012', status: 'Angenommen', quoteDate: '2026-09-01',
+      positions: [], discount: null, subtotalNetto: 8183, totalNetto: 8183, totalVat: 1636.6, totalBrutto: 9819.6,
+    }];
+    PROJEKT.startDate = '2026-10-05';
+    PROJEKT.endDate = '2026-10-23';
+    const bestaetigen = await bisZurVorschau('anzahlung');
+    expect(screen.getByDisplayValue('Anzahlung 30 % auf Angebot AN-2026-0012 vom 01.09.2026')).toBeInTheDocument();
+    expect(screen.getByLabelText('Leistung voraussichtlich von')).toHaveValue('2026-10-05');
+    expect(screen.getByLabelText('Leistung voraussichtlich bis')).toHaveValue('2026-10-23');
+
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const inv = lege.mock.calls[0][0] as Invoice;
+    // 30 % von 8.183,00 € netto — die Zahl aus dem Arbeitsauftrag.
+    expect(inv.totalNetto).toBe(2454.9);
+    expect(inv).toMatchObject({ leistungVon: '2026-10-05', leistungBis: '2026-10-23' });
+  });
+
+  it('nimmt einen anderen Anteil', async () => {
+    angebote = [{
+      id: 'q7', quoteNumber: 'AN-2026-0012', status: 'Angenommen', quoteDate: '2026-09-01',
+      positions: [], discount: null, subtotalNetto: 1000, totalNetto: 1000, totalVat: 200, totalBrutto: 1200,
+    }];
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: /Art der Rechnung/ }), 'anzahlung');
+    const feld = screen.getByLabelText('Anteil vom angenommenen Angebot (%)');
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '50');
+    await userEvent.click(screen.getByRole('button', { name: 'Anzahlung vorbereiten' }));
+    expect(await screen.findByDisplayValue('Anzahlung 50 % auf Angebot AN-2026-0012 vom 01.09.2026')).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne angenommenes Angebot bleibt die Null, und es wird gesagt', async () => {
+    angebote = [{
+      id: 'q8', quoteNumber: 'AN-2026-0013', status: 'Versendet', quoteDate: '2026-09-01',
+      positions: [], discount: null, subtotalNetto: 1000, totalNetto: 1000, totalVat: 200, totalBrutto: 1200,
+    }];
+    PROJEKT.startDate = '2026-10-05';
+    await bisZurVorschau('anzahlung');
+    expect(screen.getByDisplayValue('Anzahlung gemäß Vereinbarung')).toBeInTheDocument();
+    expect(screen.getByText(/kein angenommenes Angebot/)).toBeInTheDocument();
+    // Nur ein Beginn ist kein Zeitraum — erfunden wird keiner.
+    expect(screen.getByLabelText('Leistung voraussichtlich von')).toHaveValue('');
+  });
+
   it('verlangt für die Anzahlung keinen Leistungszeitraum', async () => {
     // Die Leistung ist noch nicht erbracht — ein Datum wäre erfunden.
     await bisZurVorschau('anzahlung');
@@ -3051,6 +3156,49 @@ describe('Paket 5a — die Rechnungsliste', () => {
     expect((await screen.findAllByText(/RE-2026-1510/)).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/zu RE-2026-1500/).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Stornorechnung').length).toBeGreaterThan(0);
+  });
+
+  /*
+    TESTBERICHT 30.09.2026, M21 — „200 € zurückzuzahlen“ bei RE-2026-1500
+    liess sich nicht als Rückzahlung buchen.
+  */
+  it('bucht das Guthaben als Rückzahlung — vorgewählt und eingesetzt', async () => {
+    createZahlung.mockClear();
+    erfassteZahlungen = [];
+    rechnungen = [
+      { id: 's', invoiceNumber: 'RE-2026-1500', projectNumber: '2026-042', customerName: 'Max',
+        invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Storniert', totalBrutto: 504,
+        bezahltBetrag: 200 },
+    ] as unknown as (Invoice & { id: string })[];
+    bisherigeZahlungen = [{ id: 'z1', invoiceId: 's', datum: '2026-09-10', betrag: 200, art: 'Überweisung' }];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-1500/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Guthaben zurückzahlen …' }));
+    expect(await screen.findByLabelText('Richtung')).toHaveValue('rueckzahlung');
+    expect(screen.getByLabelText(/^Zurückgezahlt/)).toHaveValue('200');
+    expect(screen.queryByText(/Eine Zahlung hierauf wird zum Guthaben/)).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Rückzahlung buchen' }));
+    await waitFor(() => expect(createZahlung).toHaveBeenCalled());
+    expect(erfassteZahlungen[0]).toMatchObject({ invoiceId: 's', betrag: -200, hinweis: 'Rückzahlung des Guthabens' });
+  });
+
+  it('Gegenprobe: mehr als das Guthaben geht nicht zurück', async () => {
+    createZahlung.mockClear();
+    rechnungen = [
+      { id: 's', invoiceNumber: 'RE-2026-1500', projectNumber: '2026-042', customerName: 'Max',
+        invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Storniert', totalBrutto: 504,
+        bezahltBetrag: 200 },
+    ] as unknown as (Invoice & { id: string })[];
+    bisherigeZahlungen = [{ id: 'z1', invoiceId: 's', datum: '2026-09-10', betrag: 200, art: 'Überweisung' }];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-1500/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Guthaben zurückzahlen …' }));
+    const feld = await screen.findByLabelText(/^Zurückgezahlt/);
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '250');
+    await userEvent.click(screen.getByRole('button', { name: 'Rückzahlung buchen' }));
+    expect(await screen.findByText(/höchstens € 200,00/)).toBeInTheDocument();
+    expect(createZahlung).not.toHaveBeenCalled();
   });
 
   it('sagt bei einer bezahlten Rechnung, dass eine weitere Zahlung Guthaben wird (G15)', async () => {

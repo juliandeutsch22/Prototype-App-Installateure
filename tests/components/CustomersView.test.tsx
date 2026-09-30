@@ -95,6 +95,8 @@ vi.mock('@/lib/db/customers', () => ({
   searchCustomers: (c: string, begriff: string, max?: number) =>
     searchCustomers(c, begriff, max),
   createCustomer: (...a: unknown[]) => createCustomer(...(a as [])),
+  naechsteKundennummer: vi.fn(async () => '10042'),
+  kundenAdressePruefen: vi.fn(async () => kunden.filter((k) => (k as { adressePruefen?: boolean }).adressePruefen)),
   updateCustomer: vi.fn(async () => 0),
   deleteCustomer: vi.fn(async () => undefined),
   listProjectsForCustomer: () => listProjectsForCustomer(),
@@ -268,7 +270,35 @@ describe('Kundenverwaltung', () => {
      * schlichtes „Adresse" an beiden Stellen hätte genau die Verwechslung
      * erzeugt, die das Modell vermeiden soll.
      */
-    expect(screen.getByLabelText('Rechnungsadresse')).toBeInTheDocument();
+    // Seit M12 eine Gruppe aus Straße, PLZ, Ort und Land — sie heisst weiter so.
+    expect(screen.getByRole('group', { name: 'Rechnungsadresse' })).toBeInTheDocument();
+  });
+
+  /* TESTBERICHT 30.09.2026, M12 — Adressen in Teilen, Kundennummer. */
+  it('legt mit Straße, PLZ, Ort, Land und der vorgeschlagenen Kundennummer an (M12)', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    expect(await screen.findByDisplayValue('10042')).toBeInTheDocument();
+    await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Familie Gruber');
+    await nutzer.type(screen.getByLabelText('Straße und Hausnummer'), 'Gartengasse 12');
+    await nutzer.type(screen.getByLabelText('PLZ'), '2700');
+    await nutzer.type(screen.getByLabelText('Ort'), 'Wiener Neustadt');
+    await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
+    await waitFor(() => expect(createCustomer).toHaveBeenCalled());
+    expect((createCustomer.mock.calls[0] as unknown[])[1]).toMatchObject({
+      strasse: 'Gartengasse 12', plz: '2700', ort: 'Wiener Neustadt', land: 'AT', kundennummer: '10042',
+    });
+  });
+
+  it('Gegenprobe: eine PLZ, die in Österreich nicht passt, wird gemeldet', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.type(screen.getByLabelText('PLZ'), '27000');
+    expect(screen.getByText('Die PLZ hat in diesem Land vier Ziffern.')).toBeInTheDocument();
+    await nutzer.selectOptions(screen.getByLabelText('Land'), 'DE');
+    expect(screen.queryByText(/Die PLZ hat/)).toBeNull();
   });
 
   it('zeigt die Liste zuerst, nicht die leere Maske', async () => {
@@ -473,5 +503,45 @@ describe('Das Büro mit der Freigabe „Kunden pflegen“', () => {
     await alsBuero(true, async () => {
       expect(screen.queryByText('Bestehende Baustellen übernehmen')).not.toBeInTheDocument();
     });
+  });
+});
+
+// Testbericht 30.09.2026, M10 — Kundenart und die Form der UID.
+describe('Kundenart und UID beim Anlegen', () => {
+  it('eine UID in falscher Form hält das Anlegen auf', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Baumeister Gruber');
+    await nutzer.type(screen.getByLabelText('UID-Nummer'), 'ATU123');
+    expect(screen.getAllByText(/„ATU“ und acht Ziffern/).length).toBeGreaterThan(0);
+    await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
+    expect(createCustomer).not.toHaveBeenCalled();
+  });
+
+  it('mit UID wird aus der Privatperson ein Unternehmen', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    expect(screen.getByLabelText('Kundenart')).toHaveValue('privat');
+    await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Baumeister Gruber');
+    await nutzer.type(screen.getByLabelText('UID-Nummer'), 'ATU12345678');
+    expect(screen.getByLabelText('Kundenart')).toHaveValue('unternehmen');
+    await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
+    await waitFor(() => expect(createCustomer).toHaveBeenCalled());
+    expect((createCustomer.mock.calls[0] as unknown[])[1]).toMatchObject({
+      vatId: 'ATU12345678', kundenart: 'unternehmen',
+    });
+  });
+
+  it('Gegenprobe: ein Unternehmen ohne UID bleibt Unternehmen', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Kleinbetrieb Moser');
+    await nutzer.selectOptions(screen.getByLabelText('Kundenart'), 'unternehmen');
+    await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
+    await waitFor(() => expect(createCustomer).toHaveBeenCalled());
+    expect((createCustomer.mock.calls[0] as unknown[])[1]).toMatchObject({ vatId: '', kundenart: 'unternehmen' });
   });
 });

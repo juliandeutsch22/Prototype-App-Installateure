@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -562,5 +562,28 @@ describe('Die Verwaltung mit der Freigabe „Kunden pflegen“', () => {
     zeige();
     await screen.findByText('Hausverwaltung Nord');
     expect(screen.queryByLabelText('UID-Nummer')).not.toBeInTheDocument();
+  });
+});
+
+// Testbericht 30.09.2026, M10 — Kundenart und die Form der UID in der Akte.
+describe('Kundenart und UID in der Akte', () => {
+  it('eine geänderte UID in falscher Form wird nicht gespeichert', async () => {
+    const bediener = userEvent.setup();
+    zeige();
+    const feld = await screen.findByLabelText('UID-Nummer');
+    await bediener.clear(feld);
+    await bediener.type(feld, 'ATU1');
+    await bediener.click(screen.getByRole('button', { name: 'Speichern' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/acht Ziffern/);
+    expect(updateCustomer).not.toHaveBeenCalled();
+  });
+
+  it('die Kundenart lässt sich wählen und wird gespeichert', async () => {
+    const bediener = userEvent.setup();
+    zeige();
+    await bediener.selectOptions(await screen.findByLabelText('Kundenart'), 'unternehmen');
+    await bediener.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(updateCustomer).toHaveBeenCalled());
+    expect(updateCustomer).toHaveBeenCalledWith('perl', 'k1', expect.objectContaining({ kundenart: 'unternehmen' }));
   });
 });

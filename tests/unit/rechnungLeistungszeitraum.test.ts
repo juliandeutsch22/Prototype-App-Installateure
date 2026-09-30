@@ -66,7 +66,7 @@ function basis(leistung: AssembledInvoice['leistung']): AssembledInvoice {
 /** Der Textstrom des PDFs — die Zeichenbefehle samt Koordinaten. */
 function befehle(
   leistung: AssembledInvoice['leistung'],
-  extra?: { reverseCharge?: boolean; customerVatId?: string; vatRate?: number; steuerbefreiung?: string },
+  extra?: { reverseCharge?: boolean; customerVatId?: string; vatRate?: number; steuerbefreiung?: string; art?: 'anzahlung' },
 ): string {
   tabellen.length = 0;
   const doc = generateInvoicePdf({
@@ -117,6 +117,23 @@ describe('Der Leistungszeitraum auf dem Beleg', () => {
     const zeilen = (s: string) => s.split('\n').filter((z) => z.includes('Baustelle')).length;
     expect(zeilen(ohne)).toBe(zeilen(mit));
     expect(mit.length).toBeGreaterThan(ohne.length);
+  });
+});
+
+// Testbericht 30.09.2026, M20 — auf der Anzahlung steht der GEPLANTE Zeitraum.
+describe('Der Zeitraum auf der Anzahlungsrechnung', () => {
+  it('heisst „Leistung geplant“ und sagt weiter, dass die Leistung aussteht', () => {
+    const s = befehle({ von: '2026-10-05', bis: '2026-10-23' }, { art: 'anzahlung' });
+    expect(s).toContain('Leistung geplant');
+    expect(s).not.toContain('Leistungszeitraum');
+    expect(s).toContain('05.10.2026');
+    expect(s).toContain('noch zu erbringende Leistung');
+  });
+
+  it('Gegenprobe: ohne Zeitraum bleibt es beim Hinweis allein', () => {
+    const s = befehle(null, { art: 'anzahlung' });
+    expect(s).not.toContain('Leistung geplant');
+    expect(s).toContain('noch zu erbringende Leistung');
   });
 });
 

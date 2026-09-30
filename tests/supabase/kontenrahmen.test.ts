@@ -125,3 +125,18 @@ describe('Was die Datenbank nicht zulässt', () => {
     ).rejects.toThrow();
   });
 });
+
+// Testbericht 30.09.2026, H7 vorgebaut — die Zwecke für den Zahlungsstapel.
+describe('Bank- und Skontokonto', () => {
+  it('nimmt beide Zwecke an, je einmal', async () => {
+    await k.kontoAnlegen(BETRIEB, { zweck: 'bank', konto: '2800' });
+    await k.kontoAnlegen(BETRIEB, { zweck: 'skonto', konto: '4420' });
+    await expect(k.kontoAnlegen(BETRIEB, { zweck: 'bank', konto: '2810' })).rejects.toThrow();
+  });
+
+  it('Gegenprobe: einen erfundenen Zweck gibt es nicht', async () => {
+    const { error } = await admin.from('buchungskonten')
+      .insert({ company_id: BETRIEB, zweck: 'kasse', konto: '2700' });
+    expect(error).not.toBeNull();
+  });
+});

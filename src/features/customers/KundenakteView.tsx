@@ -37,6 +37,10 @@ import { datumAT } from '@/lib/datum';
 import { euro } from '@/lib/betrag';
 import Datenauskunft from '@/features/recht/Datenauskunft';
 import { zeigtAuskunft } from '@/features/recht/auskunftDatei';
+import AdressteileFelder from '@/components/AdressteileFelder';
+import { adresseZeile } from '@/lib/adresse';
+import KundenartUidFelder from '@/components/KundenartUidFelder';
+import { uidSperrt } from '@/lib/uid';
 
 /**
  * Die Akte eines Kunden — alles, was der Betrieb über ihn weiss.
@@ -169,6 +173,12 @@ export default function KundenakteView() {
       setSpeicherFehler('Ohne Namen geht es nicht — daran hängen Baustellen und Rechnungen.');
       return;
     }
+    // Eine falsch geschriebene UID hält auf — nur wenn sie geändert wurde (M10).
+    const uidFalsch = uidSperrt(entwurf.vatId, kundeDaten?.vatId);
+    if (uidFalsch) {
+      setSpeicherFehler(uidFalsch);
+      return;
+    }
     setSpeichert(true);
     setSpeicherFehler(null);
     try {
@@ -187,8 +197,8 @@ export default function KundenakteView() {
       // Neu laden: der Name ist der Schlüssel, unter dem Angebote und
       // namensgleiche Baustellen gesucht werden.
       setVersuch((v) => v + 1);
-    } catch {
-      setSpeicherFehler('Der Kunde konnte nicht gespeichert werden.');
+    } catch (err) {
+      setSpeicherFehler(grundAus(err, 'Der Kunde konnte nicht gespeichert werden.'));
     } finally {
       setSpeichert(false);
     }
@@ -586,10 +596,16 @@ function alsEntwurf(k: Customer): NewCustomer {
   return {
     name: k.name ?? '',
     address: k.address ?? '',
+    strasse: k.strasse ?? '',
+    plz: k.plz ?? '',
+    ort: k.ort ?? '',
+    land: k.land ?? 'AT',
+    kundennummer: k.kundennummer ?? '',
     contactName: k.contactName ?? '',
     contactPhone: k.contactPhone ?? '',
     email: k.email ?? '',
     vatId: k.vatId ?? '',
+    kundenart: k.kundenart ?? null,
     notes: k.notes ?? '',
     active: k.active !== false,
   };
@@ -615,6 +631,7 @@ function StammdatenLesen({ k }: { k: Customer }) {
         <Angabe wort="Rechnungsadresse">
           {k.address ? <AdresseLink adresse={k.address} /> : null}
         </Angabe>
+        {k.kundennummer && <Angabe wort="Kundennummer">{k.kundennummer}</Angabe>}
         <Angabe wort="Ansprechpartner">{k.contactName}</Angabe>
         <Angabe wort="Telefon">
           {k.contactPhone ? <TelefonLink nummer={k.contactPhone} name={k.contactName} /> : null}
@@ -625,6 +642,9 @@ function StammdatenLesen({ k }: { k: Customer }) {
           nur in der Bearbeitungsmaske zu sehen — also genau dort, wo man sie
           versehentlich ändert, während man sie nachsieht.
         */}
+        <Angabe wort="Kundenart">
+          {k.kundenart === 'unternehmen' ? 'Unternehmen' : k.kundenart === 'privat' ? 'Privatperson' : null}
+        </Angabe>
         <Angabe wort="UID-Nummer">
           {k.vatId ? <span>{k.vatId}</span> : null}
         </Angabe>
@@ -678,9 +698,19 @@ function StammdatenFormular({
           id="k-name" label="Name" pflicht value={entwurf.name}
           onChange={(e) => setze('name', e.target.value)}
         />
+        <div className="sm:col-span-2">
+          <AdressteileFelder
+            idPrefix="k-adresse"
+            titel="Rechnungsadresse"
+            wert={entwurf}
+            onChange={(teile) =>
+              setEntwurf({ ...entwurf, ...teile, land: teile.land ?? 'AT', address: adresseZeile({ ...entwurf, ...teile }) })
+            }
+          />
+        </div>
         <InputField
-          id="k-adresse" label="Rechnungsadresse" value={entwurf.address ?? ''}
-          onChange={(e) => setze('address', e.target.value)}
+          id="k-nummer" label="Kundennummer (freiwillig)" value={entwurf.kundennummer ?? ''}
+          onChange={(e) => setze('kundennummer', e.target.value)}
         />
         <InputField
           id="k-ansprech" label="Ansprechpartner" value={entwurf.contactName ?? ''}
@@ -694,12 +724,13 @@ function StammdatenFormular({
           id="k-mail" label="E-Mail" type="email" value={entwurf.email ?? ''}
           onChange={(e) => setze('email', e.target.value)}
         />
-        <InputField
-          id="k-uid" label="UID-Nummer" value={entwurf.vatId ?? ''}
-          placeholder="z. B. ATU…"
-          onChange={(e) => setze('vatId', e.target.value)}
-        />
       </FormGrid>
+      <KundenartUidFelder
+        idPrefix="k"
+        kundenart={entwurf.kundenart}
+        vatId={entwurf.vatId}
+        onChange={({ kundenart, vatId }) => setEntwurf({ ...entwurf, kundenart: kundenart || null, vatId })}
+      />
 
       <div className="flex flex-col gap-1">
         <label htmlFor="k-notiz" className="text-sm font-medium text-ink">Notiz</label>

@@ -1,4 +1,4 @@
-import type { Invoice } from '@/types';
+import type { Invoice, Zahlungseingang } from '@/types';
 import { csvZelle as cell } from '@/lib/csvZelle';
 
 /**
@@ -23,7 +23,7 @@ import { csvZelle as cell } from '@/lib/csvZelle';
  * und Steuer getrennt wären dasselbe Ergebnis mit doppeltem Abstimmaufwand.
  */
 
-export type Kontozweck = 'erloes' | 'reverse_charge' | 'anzahlung' | 'debitoren';
+export type Kontozweck = 'erloes' | 'reverse_charge' | 'anzahlung' | 'debitoren' | 'bank' | 'skonto';
 
 export interface Buchungskonto {
   zweck: Kontozweck;
@@ -42,7 +42,15 @@ export interface BmdZeile {
   buchungstext: string;
   betrag: number;
   steuercode: string;
+  /**
+   * Die Kunden- bzw. Debitorennummer aus dem Kundenstamm (Testbericht
+   * 30.09.2026, H7 vorgebaut) — leer, wo keine hinterlegt ist.
+   */
+  debitor?: string;
 }
+
+/** Die Debitorennummer einer Rechnung — aus dem Kundenstamm, von der Ansicht gereicht. */
+export type DebitorVon = (inv: Invoice) => string | null | undefined;
 
 export interface BmdErgebnis {
   /** Leer, solange etwas fehlt. */
@@ -65,6 +73,31 @@ export interface BmdErgebnis {
 const KOPF = [
   'Sollkonto', 'Habenkonto', 'Belegdatum', 'Belegnummer', 'Buchungstext', 'Betrag', 'Steuercode',
 ];
+
+/*
+  DIE DEBITORENNUMMER STEHT AM ENDE — UND NUR, WENN ES EINE GIBT (Testbericht
+  30.09.2026, H7 vorgebaut). Eine Kanzlei ordnet die Spalten einmal zu; eine
+  neue Spalte in der Mitte verschöbe jede Zuordnung danach. Ohne hinterlegte
+  Kundennummern bleibt die Datei Zeichen für Zeichen, wie sie war. Ob BMD
+  die Nummer als Personenkonto liest, klärt der Importtest mit der Kanzlei.
+*/
+const DEBITOR = 'Debitorennummer';
+
+function alsCsv(zeilen: BmdZeile[]): string {
+  const mitDebitor = zeilen.some((z) => !!z.debitor);
+  const csv = [
+    [...KOPF, ...(mitDebitor ? [DEBITOR] : [])].join(';'),
+    ...zeilen.map((z) =>
+      [
+        z.soll, z.haben, z.belegdatum, z.belegnummer, z.buchungstext, betrag(z.betrag), z.steuercode,
+        ...(mitDebitor ? [z.debitor ?? ''] : []),
+      ]
+        .map(cell)
+        .join(';'),
+    ),
+  ].join('\r\n');
+  return `${csv}\r\n`;
+}
 
 /** Beträge mit Komma — BMD liest in deutscher Schreibweise. */
 const betrag = (n: number) => n.toFixed(2).replace('.', ',');
@@ -100,6 +133,7 @@ export function buildBmdCsv(
   konten: Buchungskonto[],
   von: string,
   bis: string,
+  debitorVon?: DebitorVon,
 ): BmdErgebnis {
   const erloes = new Map<string, Buchungskonto>();
   let rc: Buchungskonto | undefined;
@@ -281,16 +315,110 @@ export function buildBmdCsv(
   */
   if (fehlend.length > 0) return { csv: '', zeilen: [], fehlend };
 
-  const csv = [
-    KOPF.join(';'),
-    ...zeilen.map((z) =>
-      [z.soll, z.haben, z.belegdatum, z.belegnummer, z.buchungstext, betrag(z.betrag), z.steuercode]
-        .map(cell)
-        .join(';'),
-    ),
-  ].join('\r\n');
+  if (debitorVon) {
+    const nummer = new Map(imZeitraum.map((i) => [i.invoiceNumber, debitorVon(i)?.trim() || '']));
+    for (const z of zeilen) {
+      const r = imZeitraum.find((i) => i.invoiceNumber === z.belegnummer || i.stornoNummer === z.belegnummer);
+      z.debitor = r ? nummer.get(r.invoiceNumber) ?? '' : '';
+    }
+  }
 
-  return { csv: `${csv}\r\n`, zeilen, fehlend };
+  return { csv: alsCsv(zeilen), zeilen, fehlend };
+}
+
+/**
+ * Zahlungen, Rückzahlungen und Skonto als EIGENER Stapel (Testbericht
+ * 30.09.2026, H7 vorgebaut).
+ *
+ * GETRENNT VOM RECHNUNGSSTAPEL, weil viele Kanzleien die Bank selbst aus dem
+ * Kontoauszug buchen; wer beides importiert, bucht jede Zahlung doppelt.
+ * Deshalb ein eigener Knopf und eine eigene Datei, die der Betrieb nur auf
+ * Wunsch der Kanzlei weitergibt.
+ *
+ * - Eingang: Bank an Debitoren.
+ * - Rückzahlung (negativer Betrag): Debitoren an Bank, mit dem Betrag ohne
+ *   Vorzeichen — wie die Stornobuchung mit vertauschten Konten.
+ * - Skonto: Erlösschmälerung an Debitoren, mit dem Steuercode des
+ *   Erlöskontos der Rechnung; so berichtigt BMD die Umsatzsteuer im Satz
+ *   der Rechnung.
+ *
+ * Wie beim Rechnungsstapel: fehlt ein Konto, entsteht keine Datei.
+ */
+export function buildBmdZahlungenCsv(
+  zahlungen: Pick<Zahlungseingang, 'invoiceId' | 'datum' | 'betrag' | 'art' | 'hinweis'>[],
+  rechnungen: (Invoice & { id: string })[],
+  konten: Buchungskonto[],
+  von: string,
+  bis: string,
+  debitorVon?: DebitorVon,
+): BmdErgebnis {
+  const zweck = (z: Kontozweck) => konten.find((k) => k.zweck === z);
+  const erloes = new Map(konten.filter((k) => k.zweck === 'erloes').map((k) => [satzSchluessel(k.ustSatz), k]));
+  const bank = zweck('bank');
+  const skonto = zweck('skonto');
+  const debitoren = zweck('debitoren');
+  const rc = zweck('reverse_charge');
+  const nachId = new Map(rechnungen.map((r) => [r.id, r]));
+
+  const fehlend: string[] = [];
+  const vermisst = (satz: string) => {
+    if (!fehlend.includes(satz)) fehlend.push(satz);
+  };
+
+  const imZeitraum = zahlungen
+    .filter((z) => z.datum >= von && z.datum <= bis)
+    .sort((a, b) => a.datum.localeCompare(b.datum));
+
+  if (imZeitraum.length > 0 && !debitoren) {
+    vermisst('Sammelkonto für Forderungen aus Lieferungen und Leistungen (Debitoren)');
+  }
+
+  const zeilen: BmdZeile[] = [];
+  for (const z of imZeitraum) {
+    const r = nachId.get(z.invoiceId);
+    if (!r) {
+      vermisst('Eine Zahlung gehört zu einer Rechnung, die nicht geladen werden konnte — bitte erneut laden.');
+      continue;
+    }
+    const text = `${r.customerName}${z.hinweis ? ` / ${z.hinweis}` : ''}`;
+    const debitor = debitorVon?.(r)?.trim() || '';
+    if (z.art === 'Skonto') {
+      if (!skonto) {
+        vermisst('Konto für gewährte Skonti (Erlösschmälerung)');
+        continue;
+      }
+      const code = r.reverseCharge ? rc?.steuercode : erloes.get(satzSchluessel(r.vatRate))?.steuercode;
+      if (!debitoren) continue;
+      zeilen.push({
+        soll: skonto.konto, haben: debitoren.konto, belegdatum: datum(z.datum), belegnummer: r.invoiceNumber,
+        buchungstext: `Skonto ${r.invoiceNumber} ${text}`, betrag: Math.abs(z.betrag), steuercode: code ?? '', debitor,
+      });
+      continue;
+    }
+    if (!bank) {
+      vermisst('Bankkonto (für Zahlungseingänge und Rückzahlungen)');
+      continue;
+    }
+    if (!debitoren) continue;
+    const rueck = z.betrag < 0;
+    zeilen.push({
+      soll: rueck ? debitoren.konto : bank.konto,
+      haben: rueck ? bank.konto : debitoren.konto,
+      belegdatum: datum(z.datum),
+      belegnummer: r.invoiceNumber,
+      buchungstext: `${rueck ? 'Rückzahlung' : 'Zahlung'} ${r.invoiceNumber} ${text}`,
+      betrag: Math.abs(z.betrag),
+      steuercode: '',
+      debitor,
+    });
+  }
+
+  if (fehlend.length > 0) return { csv: '', zeilen: [], fehlend };
+  return { csv: alsCsv(zeilen), zeilen, fehlend };
+}
+
+export function bmdZahlungenFilename(von: string, bis: string): string {
+  return `Zahlungsstapel_BMD_${von}_bis_${bis}.csv`;
 }
 
 export function bmdCsvFilename(von: string, bis: string): string {

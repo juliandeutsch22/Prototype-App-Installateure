@@ -106,6 +106,23 @@ describe('Speichern', () => {
     expect(nutzlast).toHaveProperty('bic');
     expect(nutzlast).toHaveProperty('contactLine');
   });
+
+  /* Testbericht 30.09.2026, M12 — Anschrift in Teilen, Firmenbuchgericht (§ 14 UGB). */
+  it('speichert die Anschrift in Teilen und das Firmenbuchgericht (M12)', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.type(feld('Straße und Hausnummer'), 'Teststraße 1');
+    await nutzer.type(feld('PLZ'), '8200');
+    await nutzer.type(feld('Ort'), 'Gleisdorf');
+    await nutzer.type(feld('Firmenbuchgericht'), 'Landesgericht Graz');
+    expect(screen.getByText('Im Briefkopf: Teststraße 1, 8200 Gleisdorf')).toBeInTheDocument();
+    await nutzer.click(speichern());
+    expect(updateCompany.mock.calls[0][1]).toMatchObject({
+      strasse: 'Teststraße 1', plz: '8200', ort: 'Gleisdorf', land: 'AT', firmenbuchgericht: 'Landesgericht Graz',
+    });
+    // Die Zeile schreibt die Datenbank, nicht die Maske.
+    expect(updateCompany.mock.calls[0][1]).not.toHaveProperty('addressLine');
+  });
 });
 
 describe('Die Hausfarbe', () => {

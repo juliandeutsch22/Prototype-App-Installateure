@@ -61,6 +61,8 @@ const VORSCHLAG = {
   debitoren: { konto: '2000', steuercode: '' },
   anzahlung: { konto: '3500', steuercode: 'M20' },
   reverse: { konto: '4005', steuercode: 'M00' },
+  bank: { konto: '2800', steuercode: '' },
+  skonto: { konto: '4420', steuercode: '' },
   saetze: [
     { satz: '20', konto: '4000', steuercode: 'M20' },
     { satz: '0', konto: '4009', steuercode: 'M00' },
@@ -91,6 +93,9 @@ export default function KontenrahmenView() {
   const [debitoren, setDebitoren] = useState<Zeile>(LEER);
   const [anzahlung, setAnzahlung] = useState<Zeile>(LEER);
   const [reverse, setReverse] = useState<Zeile>(LEER);
+  /** Für den Zahlungsstapel (Testbericht 30.09.2026, H7 vorgebaut). */
+  const [bank, setBank] = useState<Zeile>(LEER);
+  const [skonto, setSkonto] = useState<Zeile>(LEER);
   const [saetze, setSaetze] = useState<Satzzeile[]>([]);
 
   useEffect(() => {
@@ -105,6 +110,8 @@ export default function KontenrahmenView() {
         setDebitoren(eines('debitoren'));
         setAnzahlung(eines('anzahlung'));
         setReverse(eines('reverse_charge'));
+        setBank(eines('bank'));
+        setSkonto(eines('skonto'));
         setSaetze(
           rows
             .filter((r) => r.zweck === 'erloes')
@@ -160,6 +167,8 @@ export default function KontenrahmenView() {
       nimm(debitoren, 'debitoren');
       nimm(anzahlung, 'anzahlung');
       nimm(reverse, 'reverse_charge');
+      nimm(bank, 'bank');
+      nimm(skonto, 'skonto');
       for (const s of saetze) {
         if (s.konto.trim() === '') continue;
         gewollt.push({
@@ -196,6 +205,8 @@ export default function KontenrahmenView() {
     setDebitoren((z) => ({ ...z, ...VORSCHLAG.debitoren }));
     setAnzahlung((z) => ({ ...z, ...VORSCHLAG.anzahlung }));
     setReverse((z) => ({ ...z, ...VORSCHLAG.reverse }));
+    setBank((z) => ({ ...z, ...VORSCHLAG.bank }));
+    setSkonto((z) => ({ ...z, ...VORSCHLAG.skonto }));
     setSaetze((alt) =>
       VORSCHLAG.saetze.map((v) => {
         const vorhanden = alt.find((a) => a.satz === v.satz);
@@ -320,6 +331,46 @@ export default function KontenrahmenView() {
               ergibt 0,00 €, aber beim Übergang der Steuerschuld schuldet der Empfänger die
               Steuer, und in der Umsatzsteuervoranmeldung stehen die beiden getrennt. Deshalb ein
               eigenes Konto.
+            </InfoHint>
+          </div>
+        </div>
+      </Card>
+
+      <Card
+        title="Zahlungen (eigener Stapel)"
+        hint={
+          <>
+            Nur für den <strong>Zahlungsstapel</strong>: Zahlungseingänge, Rückzahlungen und
+            Skonto. Viele Kanzleien buchen die Bank selbst aus dem Kontoauszug — dann bleibt er
+            weg, sonst stünde jede Zahlung doppelt in den Büchern.
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-end gap-x-2">
+            <div className="min-w-[10rem] grow">
+              <InputField
+                id="k-bank"
+                label="Bankkonto"
+                placeholder="z. B. 2800"
+                value={bank.konto}
+                onChange={(e) => setBank({ ...bank, konto: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-end gap-x-2">
+            <div className="min-w-[10rem] grow">
+              <InputField
+                id="k-skonto"
+                label="Gewährte Skonti (Erlösschmälerung)"
+                placeholder="z. B. 4420"
+                value={skonto.konto}
+                onChange={(e) => setSkonto({ ...skonto, konto: e.target.value })}
+              />
+            </div>
+            <InfoHint about="das Skontokonto">
+              Der Steuercode kommt aus dem Erlöskonto der jeweiligen Rechnung — so berichtigt die
+              Buchhaltung die Umsatzsteuer im Satz, mit dem die Rechnung gestellt wurde.
             </InfoHint>
           </div>
         </div>

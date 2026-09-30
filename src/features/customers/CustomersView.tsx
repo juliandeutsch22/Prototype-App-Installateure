@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   searchCustomers,
+  kundenAdressePruefen,
+  naechsteKundennummer,
   createCustomer,
   updateCustomer,
   deleteCustomer,
@@ -16,25 +18,34 @@ import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import RowMenu from '@/components/RowMenu';
-import { Marke } from '@/components/Badge';
+import { Marke, Warnung } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import Nachladen from '@/components/Nachladen';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
+import { InputField, FormGrid, Pflichthinweis, CheckboxField } from '@/components/Field';
+import AdressteileFelder from '@/components/AdressteileFelder';
 import { List, ListRow } from '@/components/ListRow';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import KundenImport from './KundenImport';
+import KundenartUidFelder from '@/components/KundenartUidFelder';
+import { uidSperrt } from '@/lib/uid';
 import { grundAus } from '@/lib/fehlerGrund';
 
 const LEER: NewCustomer = {
   name: '',
   address: '',
+  strasse: '',
+  plz: '',
+  ort: '',
+  land: 'AT',
+  kundennummer: '',
   contactName: '',
   contactPhone: '',
   email: '',
   vatId: '',
+  kundenart: 'privat',
   notes: '',
   active: true,
 };
@@ -150,6 +161,8 @@ export default function CustomersView() {
     nach der jemand aufgehört hat zu tippen.
   */
   const [begriff, setBegriff] = useState('');
+  /** Nur Kunden, deren alte Anschrift zu prüfen ist (M12). */
+  const [nurPruefen, setNurPruefen] = useState(false);
   const [ohneSuche, setOhneSuche] = useState(0);
   useEffect(() => {
     const t = setTimeout(() => setBegriff(suche), 300);
@@ -161,7 +174,9 @@ export default function CustomersView() {
       if (!user) return;
       setLoading(true);
       try {
-        const treffer = await searchCustomers(user.companyId, begriff, grenze);
+        const treffer = nurPruefen
+          ? await kundenAdressePruefen(user.companyId)
+          : await searchCustomers(user.companyId, begriff, grenze);
         setKunden(treffer);
         /*
           WIE VIELE OHNE SUCHE DA WAREN — getrennt gemerkt.
@@ -178,7 +193,7 @@ export default function CustomersView() {
         setLoading(false);
       }
     },
-    [user, grenze, begriff],
+    [user, grenze, begriff, nurPruefen],
   );
 
   useEffect(() => {
@@ -194,6 +209,12 @@ export default function CustomersView() {
 
   async function speichernBestaetigt(trotzdem: boolean) {
     if (!user || !form.name.trim()) return;
+    // Eine falsch geschriebene UID hält auf — nur wenn sie geändert wurde (M10).
+    const uidFalsch = uidSperrt(form.vatId, bearbeitet?.vatId);
+    if (uidFalsch) {
+      setError(uidFalsch);
+      return;
+    }
     setSpeichert(true);
     setError(null);
     try {
@@ -320,7 +341,18 @@ export default function CustomersView() {
         subtitle="Stammdaten, Ansprechpartner und Baustellenhistorie"
         action={
           darfAendern && !formOffen ? (
-            <Button onClick={() => { setBearbeitet(null); setForm(LEER); setFormOffen(true); }}>
+            <Button
+              onClick={() => {
+                setBearbeitet(null);
+                setForm(LEER);
+                setFormOffen(true);
+                // Die nächste freie Kundennummer als Vorschlag (M12) — scheitert es, bleibt das Feld leer.
+                void Promise.resolve()
+                  .then(() => naechsteKundennummer())
+                  .then((nr) => setForm((f) => (f.kundennummer ? f : { ...f, kundennummer: nr })))
+                  .catch(() => undefined);
+              }}
+            >
               Neuer Kunde
             </Button>
           ) : undefined
@@ -340,11 +372,18 @@ export default function CustomersView() {
             />
             {/* Ausdrücklich die RECHNUNGSadresse: die Baustelle hat ihre
                 eigene, und eine Hausverwaltung hat zwanzig davon. */}
+            <AdressteileFelder
+              idPrefix="kadr"
+              titel="Rechnungsadresse"
+              wert={form}
+              onChange={(teile) => setForm({ ...form, ...teile, land: teile.land ?? 'AT' })}
+            />
             <InputField
-              id="kadr"
-              label="Rechnungsadresse"
-              value={form.address ?? ''}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
+              id="knr"
+              label="Kundennummer (freiwillig)"
+              placeholder="z. B. 10001"
+              value={form.kundennummer ?? ''}
+              onChange={(e) => setForm({ ...form, kundennummer: e.target.value })}
             />
             <FormGrid>
               <InputField
@@ -368,13 +407,15 @@ export default function CustomersView() {
                 value={form.email ?? ''}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
-              <InputField
-                id="kuid"
-                label="UID-Nummer (bei Firmen)"
-                value={form.vatId ?? ''}
-                onChange={(e) => setForm({ ...form, vatId: e.target.value })}
-              />
             </FormGrid>
+            <KundenartUidFelder
+              idPrefix="k"
+              kundenart={form.kundenart}
+              vatId={form.vatId}
+              onChange={({ kundenart, vatId }) =>
+                setForm({ ...form, kundenart: kundenart || null, vatId })
+              }
+            />
             <InputField
               id="knotes"
               label="Notiz"
@@ -493,6 +534,15 @@ export default function CustomersView() {
         }
         buendig
       >
+        {/* M12: die Kunden, deren alte Anschrift sich nicht eindeutig zerlegen liess. */}
+        <div className="px-4 pt-3">
+          <CheckboxField
+            id="k-nur-pruefen"
+            label="Nur Anschriften, die zu prüfen sind"
+            checked={nurPruefen}
+            onChange={(e) => setNurPruefen(e.target.checked)}
+          />
+        </div>
         {/* Bündig: Kunden als Zeilen von Kante zu Kante (Designlinie „Fassung 3"). */}
         {loading ? (
           <div className="p-4">
@@ -519,7 +569,14 @@ export default function CustomersView() {
             {sichtbar.map((k) => (
               <ListRow
                 key={k.id}
-                title={k.name}
+                title={
+                  <span className="flex flex-wrap items-center gap-2">
+                    {k.name}
+                    {k.kundennummer && <span className="text-sm font-normal text-ink-muted">Nr. {k.kundennummer}</span>}
+                    {/* M12: die alte Zeile liess sich nicht eindeutig zerlegen. */}
+                    {k.adressePruefen && <Warnung>Adresse prüfen</Warnung>}
+                  </span>
+                }
                 subtitle={
                   <>
                     <span className="flex flex-wrap items-center gap-x-3">
@@ -566,10 +623,16 @@ export default function CustomersView() {
                           setForm({
                             name: k.name,
                             address: k.address ?? '',
+                            strasse: k.strasse ?? '',
+                            plz: k.plz ?? '',
+                            ort: k.ort ?? '',
+                            land: k.land ?? 'AT',
+                            kundennummer: k.kundennummer ?? '',
                             contactName: k.contactName ?? '',
                             contactPhone: k.contactPhone ?? '',
                             email: k.email ?? '',
                             vatId: k.vatId ?? '',
+                            kundenart: k.kundenart ?? null,
                             notes: k.notes ?? '',
                             active: k.active ?? true,
                           });

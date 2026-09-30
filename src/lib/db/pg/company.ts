@@ -97,6 +97,7 @@ export type Rechnungsvorgaben = Partial<
     | 'pauschale458'
     | 'basiszinssatz'
     | 'basiszinssatzAb'
+    | 'basiszinssaetze'
   >
 >;
 
@@ -115,6 +116,7 @@ export async function rechnungsvorgabenSpeichern(vorgaben: Rechnungsvorgaben): P
       [
         'dueDays', 'skontoProzent', 'skontoTage', 'mahnspesen',
         'mahnspesenVerbraucher', 'pauschale458', 'basiszinssatz', 'basiszinssatzAb',
+        'basiszinssaetze',
       ] as const
     ).map((k) => [k, vorgaben[k] ?? null]),
   );

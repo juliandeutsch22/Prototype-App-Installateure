@@ -153,22 +153,26 @@ export function generateInvoicePdf(opts: {
     ['Baustelle', project.projectNumber],
   ];
   if (leistungVon && leistungBis) {
+    /*
+      BEI EINER ANZAHLUNG IST ES DER VORAUSSICHTLICHE ZEITRAUM (Testbericht
+      30.09.2026, M20): die Leistung steht noch aus, und so steht es auch da.
+    */
+    const geplant = art === 'anzahlung';
     kopf.push(
       leistungVon === leistungBis
-        ? ['Leistungsdatum', fmtDatum(leistungVon)]
-        : ['Leistungszeitraum', `${fmtDatum(leistungVon)} – ${fmtDatum(leistungBis)}`],
+        ? [geplant ? 'Leistung geplant am' : 'Leistungsdatum', fmtDatum(leistungVon)]
+        : [geplant ? 'Leistung geplant' : 'Leistungszeitraum', `${fmtDatum(leistungVon)} – ${fmtDatum(leistungBis)}`],
     );
   }
   kopfdaten(doc, kopf);
 
   titel(doc, UEBERSCHRIFT[art]);
   let zusatzY = 97;
-  if (!(leistungVon && leistungBis) && art === 'anzahlung') {
+  if (art === 'anzahlung') {
     /*
-      BEI EINER ANZAHLUNG GIBT ES NOCH KEINEN ZEITRAUM — und einen zu
-      erfinden wäre gegenüber dem Finanzamt falsch. Stattdessen steht da,
-      worauf die Zahlung geht; sonst liest sich der Beleg wie eine Rechnung
-      über eine Leistung, die niemand erbracht hat.
+      BEI EINER ANZAHLUNG IST DIE LEISTUNG NOCH NICHT ERBRACHT. Das steht da,
+      mit oder ohne geplanten Zeitraum; sonst liest sich der Beleg wie eine
+      Rechnung über eine Leistung, die niemand erbracht hat.
     */
     doc.setFontSize(9).setTextColor(...GRAU);
     doc.text('Anzahlung auf eine noch zu erbringende Leistung', RAND, zusatzY);

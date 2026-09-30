@@ -379,4 +379,38 @@ describe('Rechnungsvorgaben (Reiter der Buchhaltung)', () => {
     expect(Object.keys(rechnungsvorgabenSpeichern.mock.calls[0][0])).not.toContain('fach');
     expect(updateCompany).not.toHaveBeenCalled();
   });
+
+  /*
+    TESTBERICHT 30.09.2026, G30 — der Basiszinssatz als Verlauf. Vorher war
+    nur das laufende und das nächste Halbjahr wählbar.
+  */
+  it('trägt einen älteren Basiszinssatz ein und übernimmt den Einzelsatz in die Liste', async () => {
+    const nutzer = userEvent.setup();
+    firma = {
+      id: 'perl', name: 'Perl Installationen',
+      rates: { dueDays: 14, basiszinssatz: 1.53, basiszinssatzAb: '2026-07-01' } as Company['rates'],
+    };
+    zeige('rechnung');
+    expect(await screen.findByText('1,53 %')).toBeInTheDocument();
+    await nutzer.selectOptions(screen.getByLabelText('Halbjahr ab'), '2025-01-01');
+    await nutzer.type(screen.getByLabelText('Basiszinssatz (%)'), '2,58');
+    await nutzer.click(screen.getByRole('button', { name: 'Satz eintragen' }));
+    expect(screen.getByText('2,58 %')).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Rechnungsvorgaben speichern' }));
+    await waitFor(() => expect(rechnungsvorgabenSpeichern).toHaveBeenCalled());
+    expect(rechnungsvorgabenSpeichern.mock.calls[0][0]).toMatchObject({
+      basiszinssaetze: [{ ab: '2025-01-01', satz: 2.58 }, { ab: '2026-07-01', satz: 1.53 }],
+      basiszinssatz: undefined,
+      basiszinssatzAb: undefined,
+    });
+  });
+
+  it('Gegenprobe: ohne Satz für das laufende Halbjahr wird gewarnt', async () => {
+    firma = {
+      id: 'perl', name: 'Perl Installationen',
+      rates: { dueDays: 14, basiszinssaetze: [{ ab: '2020-01-01', satz: -0.88 }] } as Company['rates'],
+    };
+    zeige('rechnung');
+    expect(await screen.findByText(/Für das laufende Halbjahr .* ist kein Satz eingetragen/)).toBeInTheDocument();
+  });
 });

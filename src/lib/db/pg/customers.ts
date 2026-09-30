@@ -205,3 +205,22 @@ export function searchCustomers(
     grenze: max,
   });
 }
+
+/**
+ * Kunden, deren alte Anschrift sich nicht eindeutig zerlegen liess — die
+ * Liste „zu prüfen“ (Testbericht 30.09.2026, M12).
+ */
+export function kundenAdressePruefen(companyId: string, max = KUNDEN_GRENZE): Promise<WithId<Customer>[]> {
+  return abfragen<Customer>(KUNDEN, companyId, {
+    wo: [{ art: 'gleich', feld: 'adressePruefen', wert: true }],
+    sortiere: { feld: 'name' },
+    grenze: max,
+  });
+}
+
+/** Die nächste freie Kundennummer — ein Vorschlag (M12). */
+export async function naechsteKundennummer(): Promise<string> {
+  const { data, error } = await derClient().rpc('naechste_kundennummer');
+  if (error) throw new Error(error.message);
+  return String(data ?? '');
+}

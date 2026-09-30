@@ -84,7 +84,9 @@ describe('Die Form einer UID', () => {
     // Eine Ziffer zu wenig, das „U" vergessen — genau das passiert beim
     // Abtippen vom Briefkopf.
     expect(sichtAusWieUid('ATU1234567')).toBe(false);
-    expect(sichtAusWieUid('AT12345678')).toBe(true); // fremde Form, nicht abgelehnt
+    // Das vergessene „U“ wurde früher als „fremde Form“ durchgelassen
+    // (Testbericht 30.09.2026, M10) — „AT“ ist aber Österreich.
+    expect(sichtAusWieUid('AT12345678')).toBe(false);
     expect(sichtAusWieUid('12345678')).toBe(false);
   });
 

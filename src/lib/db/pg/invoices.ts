@@ -257,6 +257,20 @@ export async function listInvoicesInRange(companyId: string, von: string, bis: s
   return zusammensetzen([...nachDatum, ...nachStorno.filter((k) => !schon.has(k.id))], companyId);
 }
 
+/**
+ * Bestimmte Rechnungen, nach Kennung — für den Zahlungsstapel (Testbericht
+ * 30.09.2026, H7 vorgebaut): eine Zahlung im Zeitraum gehört oft zu einer
+ * Rechnung aus einem früheren.
+ */
+export async function listInvoicesByIds(companyId: string, ids: string[]) {
+  const eindeutig = [...new Set(ids.filter(Boolean))];
+  if (eindeutig.length === 0) return [];
+  const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+    wo: [{ art: 'in', feld: 'id', werte: eindeutig }],
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
 /** '2026-09-01' und −1 → '2026-08-31'. Gerechnet in UTC, damit keine Zeitumstellung dazwischenfunkt. */
 function tagVerschoben(iso: string, tage: number): string {
   const ms = Date.parse(`${iso}T00:00:00Z`) + tage * 86_400_000;

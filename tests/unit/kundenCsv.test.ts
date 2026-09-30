@@ -85,7 +85,7 @@ describe('Probelauf', () => {
     expect(p.fehler.map((f) => [f.zeile, f.grund])).toEqual([
       [2, 'Kein Name'],
       [3, 'E-Mail-Adresse „keine-adresse" ist ungültig'],
-      [4, '„ATU1234" hat nicht die Form einer UID-Nummer'],
+      [4, '„ATU1234": Eine österreichische UID-Nummer ist „ATU“ und acht Ziffern, z. B. ATU12345678.'],
     ]);
     // Huber in Zeile 3 war fehlerhaft — die zweite Schreibweise in Zeile 6 ist damit die erste gültige.
     expect(p.kunden.map((k) => [k.zeile, k.kunde.name, k.kunde.vatId])).toEqual([

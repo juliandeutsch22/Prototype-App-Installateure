@@ -89,3 +89,13 @@ export function kundenEinspielen(
 ): Promise<{ angelegt: number; uebersprungen: number }> {
   return pg.kundenEinspielen(kunden);
 }
+
+/** Kunden, deren Anschrift zu prüfen ist (M12). */
+export function kundenAdressePruefen(companyId: string): Promise<WithId<Customer>[]> {
+  return pg.kundenAdressePruefen(companyId);
+}
+
+/** Die nächste freie Kundennummer — ein Vorschlag (M12). */
+export function naechsteKundennummer(): Promise<string> {
+  return pg.naechsteKundennummer();
+}

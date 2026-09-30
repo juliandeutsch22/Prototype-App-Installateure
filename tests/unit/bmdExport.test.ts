@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildBmdCsv, type Buchungskonto } from '@/features/invoices/bmdExport';
+import { buildBmdCsv, buildBmdZahlungenCsv, type Buchungskonto } from '@/features/invoices/bmdExport';
 import type { Invoice, Vorrechnung } from '@/types';
 
 /**
@@ -328,5 +328,72 @@ describe('Stornierte Rechnungen', () => {
     const e = bauen([storno({ cancelledAt: new Date('2026-05-01T00:30:00').getTime() })]);
     expect(e.zeilen).toHaveLength(1);
     expect(e.zeilen[0]).toMatchObject({ haben: '4000' });
+  });
+});
+
+/*
+  TESTBERICHT 30.09.2026, H7 VORGEBAUT — die Debitorennummer aus dem
+  Kundenstamm und Zahlungen samt Skonto als eigener Stapel.
+*/
+describe('Die Debitorennummer', () => {
+  it('steht als letzte Spalte da, wenn der Kunde eine hat', () => {
+    const e = buildBmdCsv([rechnung()], KONTEN, '2026-04-01', '2026-04-30', () => '10042');
+    const [kopf, zeile] = e.csv.split('\r\n');
+    expect(kopf.endsWith(';Debitorennummer')).toBe(true);
+    expect(zeile).toBe('2000;4000;30.04.2026;RE-2026-0001;Familie Huber / B-200;1200,00;M20;10042');
+  });
+
+  it('Gegenprobe: ohne Kundennummern bleibt die Datei, wie sie war', () => {
+    const ohne = buildBmdCsv([rechnung()], KONTEN, '2026-04-01', '2026-04-30');
+    const leer = buildBmdCsv([rechnung()], KONTEN, '2026-04-01', '2026-04-30', () => '');
+    expect(leer.csv).toBe(ohne.csv);
+    expect(ohne.csv.split('\r\n')[0]).toBe('Sollkonto;Habenkonto;Belegdatum;Belegnummer;Buchungstext;Betrag;Steuercode');
+  });
+});
+
+describe('Der Zahlungsstapel', () => {
+  const MIT_BANK: Buchungskonto[] = [...KONTEN, { zweck: 'bank', konto: '2800' }, { zweck: 'skonto', konto: '4420' }];
+  const r = { ...rechnung({ invoiceNumber: 'RE-2026-0001' }), id: 'r1' } as Invoice & { id: string };
+  const rc = { ...rechnung({ invoiceNumber: 'RE-2026-0002', reverseCharge: true, vatRate: 0 }), id: 'r2' } as Invoice & { id: string };
+
+  it('Eingang, Rückzahlung und Skonto — mit den richtigen Seiten', () => {
+    const e = buildBmdZahlungenCsv([
+      { invoiceId: 'r1', datum: '2026-05-10', betrag: 1176, art: 'Überweisung' },
+      { invoiceId: 'r1', datum: '2026-05-10', betrag: 24, art: 'Skonto' },
+      { invoiceId: 'r1', datum: '2026-05-20', betrag: -50, art: 'Überweisung', hinweis: 'zu viel' },
+    ], [r], MIT_BANK, '2026-05-01', '2026-05-31', () => '10042');
+    expect(e.fehlend).toEqual([]);
+    expect(e.zeilen.map((z) => [z.soll, z.haben, z.betrag, z.steuercode, z.debitor])).toEqual([
+      ['2800', '2000', 1176, '', '10042'],
+      ['4420', '2000', 24, 'M20', '10042'],
+      ['2000', '2800', 50, '', '10042'],
+    ]);
+    expect(e.zeilen[2].buchungstext).toBe('Rückzahlung RE-2026-0001 Familie Huber / zu viel');
+  });
+
+  it('Skonto auf Reverse Charge nimmt den Code des Übergangs der Steuerschuld', () => {
+    const e = buildBmdZahlungenCsv(
+      [{ invoiceId: 'r2', datum: '2026-05-10', betrag: 10, art: 'Skonto' }], [rc], MIT_BANK, '2026-05-01', '2026-05-31',
+    );
+    expect(e.zeilen[0]).toMatchObject({ soll: '4420', steuercode: 'M00' });
+  });
+
+  it('Gegenprobe: ohne Bank- oder Skontokonto entsteht keine Datei', () => {
+    const e = buildBmdZahlungenCsv([
+      { invoiceId: 'r1', datum: '2026-05-10', betrag: 1176, art: 'Überweisung' },
+      { invoiceId: 'r1', datum: '2026-05-10', betrag: 24, art: 'Skonto' },
+    ], [r], KONTEN, '2026-05-01', '2026-05-31');
+    expect(e.csv).toBe('');
+    expect(e.fehlend).toEqual([
+      'Bankkonto (für Zahlungseingänge und Rückzahlungen)',
+      'Konto für gewährte Skonti (Erlösschmälerung)',
+    ]);
+  });
+
+  it('Gegenprobe: Zahlungen ausserhalb des Zeitraums bleiben draussen', () => {
+    const e = buildBmdZahlungenCsv(
+      [{ invoiceId: 'r1', datum: '2026-06-01', betrag: 100, art: 'Bar' }], [r], MIT_BANK, '2026-05-01', '2026-05-31',
+    );
+    expect(e.zeilen).toEqual([]);
   });
 });

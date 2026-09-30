@@ -20,6 +20,7 @@
  * und ist eine Beurteilung, keine Rechnung. Der Betrieb entscheidet je
  * Rechnung — die App sorgt dafür, dass die Entscheidung vollständig wird.
  */
+import { uidFehler, uidNormalisieren } from '@/lib/uid';
 
 /** Der Pflichtsatz auf dem Beleg. Wortlaut nach § 11 Abs 1a UStG. */
 export const RC_HINWEIS =
@@ -68,19 +69,16 @@ export function geltenderSatz(aktiv: boolean, satz: number): number {
 }
 
 /**
- * Sieht die UID nach einer österreichischen UID aus?
+ * Hat die UID die Form einer UID-Nummer?
  *
  * ABSICHTLICH NUR EINE FORMPRÜFUNG und keine Gültigkeitsabfrage: die läuft
- * über das MIAS-Verfahren beim Finanzamt und braucht einen Netzzugang, den
- * eine Rechnungsmaske nicht haben sollte. Was hier gefangen wird, ist der
- * Vertipper — eine fehlende Ziffer, ein vergessenes „ATU".
+ * über VIES bzw. das MIAS-Verfahren und braucht einen Netzzugang, den eine
+ * Rechnungsmaske nicht haben sollte. Was hier gefangen wird, ist der
+ * Vertipper — eine fehlende Ziffer, ein vergessenes „U".
  *
- * Andere Länder haben andere Formen; deshalb wird eine fremde UID nicht
- * abgelehnt, sondern nur eine österreichische auf ihre Form geprüft.
+ * Die Muster je EU-Staat stehen seit dem Testbericht vom 30.09.2026 (M10) in
+ * `@/lib/uid`; ausserhalb der EU gilt weiter nur die grobe Form.
  */
 export function sichtAusWieUid(uid: string): boolean {
-  const u = uid.trim().replace(/\s/g, '').toUpperCase();
-  if (u.startsWith('ATU')) return /^ATU\d{8}$/.test(u);
-  // Fremdes Land: mindestens zwei Buchstaben Länderkennung und etwas dahinter.
-  return /^[A-Z]{2}[0-9A-Z]{6,14}$/.test(u);
+  return uidNormalisieren(uid) !== '' && uidFehler(uid) === null;
 }

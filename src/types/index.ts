@@ -48,7 +48,13 @@ export interface Company {
   accentForeground?: string; // Hex, Vordergrund auf Akzent
   logoUrl?: string;
   // Rechnungs-Stammdaten (ersetzen die hartkodierten "Perl"-Werte im PDF)
-  addressLine?: string; // "Musterstraße 1 · 1010 Wien"
+  addressLine?: string; // "Musterstraße 1 · 1010 Wien" — seit 30.09.2026 aus den Teilen (M12)
+  strasse?: string | null;
+  plz?: string | null;
+  ort?: string | null;
+  land?: string;
+  /** Das Firmenbuchgericht (§ 14 UGB), z. B. „Landesgericht Wiener Neustadt“ (M12). */
+  firmenbuchgericht?: string | null;
   contactLine?: string; // "Tel · Mail · Web"
   iban?: string;
   bic?: string;
@@ -264,6 +270,12 @@ export interface InvoiceRates {
    */
   basiszinssatz?: number;
   basiszinssatzAb?: string;
+  /**
+   * Der Verlauf der Basiszinssätze, je Halbjahr einer (Testbericht
+   * 30.09.2026, G30) — für ältere, noch offene Forderungen. Ersetzt beim
+   * nächsten Speichern den einzelnen Satz darüber.
+   */
+  basiszinssaetze?: { ab: string; satz: number }[];
   /**
    * Skonto, das neue Rechnungen zusagen: Prozent und Frist in Tagen ab
    * Rechnungsdatum. Beides leer heisst kein Skonto — die Vorgabe ab Werk.
@@ -640,14 +652,31 @@ export interface Customer {
   companyId: string;
   /** Firmenname oder „Familie Huber". */
   name: string;
-  /** Rechnungsadresse — NICHT die Baustellenadresse. */
+  /**
+   * Rechnungsadresse — NICHT die Baustellenadresse. Seit 30.09.2026 (M12)
+   * setzt die Datenbank sie aus Straße, PLZ, Ort und Land zusammen.
+   */
   address?: string;
+  strasse?: string | null;
+  plz?: string | null;
+  ort?: string | null;
+  /** ISO-Code, Vorgabe „AT“. */
+  land?: string;
+  /** Die alte Zeile liess sich nicht eindeutig zerlegen — bitte prüfen (M12). */
+  adressePruefen?: boolean;
+  /** Kunden- bzw. Debitorennummer (M12, für den Export an die Kanzlei). */
+  kundennummer?: string | null;
   contactName?: string;
   contactPhone?: string;
   /** Für den späteren Versand von Handwerksscheinen und Rechnungen. */
   email?: string;
   /** UID-Nummer für Rechnungen an Unternehmen. */
   vatId?: string;
+  /**
+   * Privatperson oder Unternehmen (Testbericht 30.09.2026, M10) — für
+   * Verzugszinsen und Mahnpauschale. Ohne Angabe gilt: wer eine UID hat.
+   */
+  kundenart?: 'privat' | 'unternehmen' | null;
   notes?: string;
   active?: boolean;
   createdAt?: number;
