@@ -29,9 +29,16 @@ export default function Datenauskunft({
   art,
   id,
   onGeloescht,
+  aktiv = false,
 }: {
   art: AuskunftArt;
   id: string;
+  /**
+   * Ein noch aktives Konto (nur bei Mitarbeitern). Gelöscht wird erst nach
+   * dem Deaktivieren — das sagt der Knopf jetzt vorher (Testbericht
+   * 30.09.2026, M42), statt erst nach dem Klick eine Meldung zu schicken.
+   */
+  aktiv?: boolean;
   /** Nach der Löschung: die Akte neu laden, oder — war es der ganze Kunde — verlassen. */
   onGeloescht?: (ganz: boolean) => void;
 }) {
@@ -102,10 +109,24 @@ export default function Datenauskunft({
           <Button variant="secondary" loading={laedt === 'auskunft'} onClick={() => void herunterladen()}>
             Auskunft herunterladen
           </Button>
-          <Button variant="ghost" loading={laedt === 'probe'} onClick={() => void pruefen()}>
+          <Button
+            variant="ghost"
+            loading={laedt === 'probe'}
+            disabled={art === 'mitarbeiter' && aktiv}
+            onClick={() => void pruefen()}
+          >
             Löschen …
           </Button>
         </div>
+        {art === 'mitarbeiter' && aktiv && (
+          <Hinweiszeile>
+            <p>
+              <b>Zuerst deaktivieren.</b> Gelöscht wird nur ein deaktiviertes Konto — wer noch
+              arbeitet, braucht Einsätze und Zeiten. Den Status auf „inaktiv“ stellen und
+              speichern.
+            </p>
+          </Hinweiszeile>
+        )}
         {fehler && <Hinweiszeile stufe="fehl" role="alert">{fehler}</Hinweiszeile>}
       </div>
 

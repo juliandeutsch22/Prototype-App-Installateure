@@ -203,8 +203,9 @@ export default function SupportzugangView() {
                   <span className="text-sm">
                     <strong className="text-ink">Nur ansehen</strong>
                     <span className="mt-1 block text-ink-muted">
-                      Er sieht den Betrieb so, wie du ihn siehst — und kann nichts ändern.
-                      Bis zu sieben Tage.
+                      Er sieht den Betrieb wie ein Administrator und kann nichts ändern.
+                      Ausgenommen bleiben Zeitbuchungen, Urlaube, Krankenstände, Angebote und
+                      Scheinfotos — die sieht er nicht. Bis zu sieben Tage.
                     </span>
                   </span>
                 </label>
@@ -225,8 +226,9 @@ export default function SupportzugangView() {
                   <span className="text-sm">
                     <strong className="text-ink">Mitarbeiten</strong>
                     <span className="mt-1 block text-ink-muted">
-                      Er kann auch ändern — wie ein Administrator. Höchstens einen
-                      Tag, und jede Änderung trägt seine Kennung.
+                      Er kann auch ändern — wie ein Administrator. Zeitbuchungen, Urlaube,
+                      Krankenstände und Scheinfotos bleiben auch hier verschlossen. Höchstens
+                      einen Tag, und jede Änderung trägt seine Kennung.
                     </span>
                   </span>
                 </label>

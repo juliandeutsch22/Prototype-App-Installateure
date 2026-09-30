@@ -176,3 +176,25 @@ describe('Den Bilanzlauf gibt es nicht mehr', () => {
     expect(screen.queryByRole('link', { name: 'Zu den Monatsbilanzen' })).not.toBeInTheDocument();
   });
 });
+
+describe('Im Supportzugang (Testbericht 30.09.2026, M40)', () => {
+  it('meldet nichts — den Stand der Läufe liest der Support nicht', async () => {
+    // Ohne Aufzeichnung hiesse es sonst „noch nie durchgelaufen“.
+    laeufe = {};
+    (authWert as { einblick?: unknown }).einblick = { company_id: 'perl' };
+    try {
+      const { container } = zeige();
+      await new Promise((r) => setTimeout(r, 20));
+      expect(ladeLauf).not.toHaveBeenCalled();
+      expect(container.textContent).toBe('');
+    } finally {
+      delete (authWert as { einblick?: unknown }).einblick;
+    }
+  });
+
+  it('Gegenprobe: ohne Supportzugang meldet dieselbe Lage „steht aus“', async () => {
+    laeufe = {};
+    zeige();
+    expect(await screen.findByText(/nächtlicher Lauf steht aus/)).toBeInTheDocument();
+  });
+});

@@ -90,7 +90,14 @@ function dayLabel(iso: string): string {
  * Ampel die eigentliche Kontrollinstanz der Geschäftsführung.
  */
 export default function AccountingView() {
-  const { user, company } = useAuth();
+  const { user, company, einblick } = useAuth();
+  /*
+    IM SUPPORTZUGANG SIND ZEITBUCHUNGEN VERSCHLOSSEN (Art. 9 DSGVO, in jeder
+    Stufe). Gerechnet ergäbe das „11 Tage fehlen, −88:00“ für jeden — ein
+    Fehlalarm, der den Support in die Irre führt (Testbericht 30.09.2026,
+    M40). Stattdessen steht „nicht einsehbar“.
+  */
+  const imSupport = !!einblick;
   const toast = useToast();
   const [users, setUsers] = useState<AppUser[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -440,7 +447,7 @@ export default function AccountingView() {
                 Zeit erfassen
               </Button>
             )}
-            {rows.length > 0 && (
+            {rows.length > 0 && !imSupport && (
               <Button variant="secondary" onClick={exportMonthCsv}>
                 Monats-CSV
               </Button>
@@ -448,7 +455,15 @@ export default function AccountingView() {
           </span>
         }
       >
-        {alleRows.length >= 8 && (
+        {imSupport && (
+          <Hinweiszeile>
+            <p>
+              Im Supportzugang sind Zeitbuchungen, Urlaube und Krankenstände nicht einsehbar.
+              Soll, Ist, Salden und fehlende Tage stehen deshalb nicht da.
+            </p>
+          </Hinweiszeile>
+        )}
+        {!imSupport && alleRows.length >= 8 && (
           <div className="mb-4 space-y-2">
             <InputField
               id="accsuche"
@@ -539,7 +554,9 @@ export default function AccountingView() {
                       <span className="font-semibold text-ink">{u.name}</span>
                       {/* „vollständig" braucht keine Pille — nur die Ausnahme
                           verdient Aufmerksamkeit. */}
-                      {completeness.status === 'missing' ? (
+                      {imSupport ? (
+                        <Marke>nicht einsehbar</Marke>
+                      ) : completeness.status === 'missing' ? (
                         <Warnung>
                           {`${tageWort(completeness.missingCount)} ${
                             completeness.missingCount === 1 ? 'fehlt' : 'fehlen'}`}
@@ -556,9 +573,10 @@ export default function AccountingView() {
                         (Prüflauf 24.09.2026, D20). Hier rutschen sie in die
                         nächste Zeile.
                       */}
-                      {!stats.hasConfig && <Marke>kein Eintritt hinterlegt</Marke>}
+                      {!imSupport && !stats.hasConfig && <Marke>kein Eintritt hinterlegt</Marke>}
                     </span>
                     <span className="flex shrink-0 items-center gap-3">
+                      {!imSupport && (
                       <span className="hidden text-right sm:block">
                         <span className="block text-sm font-semibold text-ink">
                           {fmtMin(stats.istMin)}
@@ -574,6 +592,7 @@ export default function AccountingView() {
                           {stats.istLaufend && ' bisher'}
                         </span>
                       </span>
+                      )}
                       {/* Fehlen Buchungen, ist der Saldo eine Datenluecke und
                           kein Befund ueber den Mitarbeiter. Rot behauptete das
                           Gegenteil — und bei zwanzig Zeilen ergab das eine Wand
@@ -584,7 +603,7 @@ export default function AccountingView() {
                         00:00 — das sah aus wie ein gepflegter Datensatz und
                         verbarg, dass die Stammdaten unvollstaendig sind.
                       */}
-                      {!stats.hasConfig ? null : (
+                      {imSupport || !stats.hasConfig ? null : (
                         /*
                           DER SALDO IST EINE ZAHL, KEINE AUFFORDERUNG. Er stand
                           als gefüllte Pille neben der Lückenmeldung, und zwei
@@ -614,7 +633,12 @@ export default function AccountingView() {
                     </span>
                   </button>
 
-                  {open && (
+                  {open && imSupport && (
+                    <p className="border-t border-line px-4 py-4 text-sm text-ink-muted">
+                      Zeitbuchungen, Urlaube und Krankenstände sind im Supportzugang nicht einsehbar.
+                    </p>
+                  )}
+                  {open && !imSupport && (
                     <div className="border-t border-line px-4 py-4">
                       {/* Zuerst die Zahlen des Monats, dann erst die Tage.
                           Wer eine Zeitkarte öffnet, will meist nur wissen,

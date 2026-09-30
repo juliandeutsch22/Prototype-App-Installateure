@@ -234,3 +234,14 @@ describe('Was in einem Zugang angesehen wurde', () => {
     await screen.findByText('Nichts angesehen.');
   });
 });
+
+describe('Was der Support sieht (Testbericht 30.09.2026, M41)', () => {
+  it('nennt die Bereiche, die in beiden Stufen verschlossen bleiben', async () => {
+    zeige();
+    await screen.findByRole('button', { name: 'Einblick gewähren' });
+    // Vorher: „sieht den Betrieb so, wie du ihn siehst“ — das stimmte nicht.
+    expect(screen.queryByText(/so, wie du ihn siehst/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Ausgenommen bleiben Zeitbuchungen, Urlaube, Krankenstände, Angebote und/)).toBeInTheDocument();
+    expect(screen.getByText(/Zeitbuchungen, Urlaube,\s+Krankenstände und Scheinfotos bleiben auch hier verschlossen/)).toBeInTheDocument();
+  });
+});

@@ -26,7 +26,7 @@ import {
 } from './benutzerEntwurf';
 import { DEFAULT_VACATION_DAYS } from '@/lib/db/benutzerVorgaben';
 import { JAHRESBEGINN_VORGABE } from '@/lib/time';
-import { benutzernameFehler, kontoAnzeige, kunstadresse } from '@shared/benutzername';
+import { benutzernameFehler, kontoAnzeige, kunstadresse, mailAdresseFehler } from '@shared/benutzername';
 
 
 /** Benutzerverwaltung (GF/Admin): anlegen, Stammdaten und Rollen pflegen. */
@@ -178,6 +178,14 @@ export default function UserMgmtView() {
       setError(falsch);
       setSaving(false);
       return;
+    }
+    if (anmeldung === 'email') {
+      const mailFalsch = mailAdresseFehler(form.email);
+      if (mailFalsch) {
+        setError(mailFalsch);
+        setSaving(false);
+        return;
+      }
     }
     if (anmeldung === 'benutzername') {
       // Dieselbe Prüfung wie in der Edge Function — hier nur früher gesagt.

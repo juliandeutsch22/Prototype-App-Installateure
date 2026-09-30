@@ -474,3 +474,28 @@ describe('Gesamtsaldo neben dem Monatssaldo (Testbericht 30.09.2026, M8)', () =>
     expect(zeitguthabenLaden).not.toHaveBeenCalled();
   });
 });
+
+describe('Im Supportzugang (Testbericht 30.09.2026, M40)', () => {
+  it('steht „nicht einsehbar“ statt fehlender Tage und eines Saldos', async () => {
+    // Zeitbuchungen liest der Support nicht — die Liste kommt leer an.
+    buchungen = [];
+    (authWert as { einblick?: unknown }).einblick = { company_id: 'perl', stufe: 'ansehen' };
+    try {
+      const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      render(
+        <ToastProvider>
+          <AccountingView />
+        </ToastProvider>,
+      );
+      const kopf = await screen.findByRole('button', { name: /Neu Eingestellt/ });
+      expect(kopf).toHaveTextContent('nicht einsehbar');
+      expect(kopf).not.toHaveTextContent(/fehlen|−|-\d/);
+      expect(screen.getByText(/Im Supportzugang sind Zeitbuchungen/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Monats-CSV' })).not.toBeInTheDocument();
+      await nutzer.click(kopf);
+      expect(screen.queryByText('Saldo im Monat')).not.toBeInTheDocument();
+    } finally {
+      delete (authWert as { einblick?: unknown }).einblick;
+    }
+  });
+});

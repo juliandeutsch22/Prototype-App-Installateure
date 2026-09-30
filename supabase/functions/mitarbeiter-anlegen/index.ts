@@ -38,7 +38,7 @@ import {
 } from '../_shared/dienstSchluessel.ts';
 import { mitCors } from '../_eigen/cors.ts';
 import {
-  benutzernameAus, benutzernameFehler, istBenutzerkonto,
+  benutzernameAus, benutzernameFehler, istBenutzerkonto, mailAdresseFehler,
 } from '../_shared/benutzername.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
@@ -105,6 +105,8 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   const email = String(eingabe?.email ?? '').trim().toLowerCase();
   const passwort = String(eingabe?.passwort ?? '');
   if (!email.includes('@')) return fehler('Die E-Mail-Adresse fehlt oder ist unbrauchbar.', 400);
+  const mailFalsch = mailAdresseFehler(email);
+  if (mailFalsch) return fehler(mailFalsch, 400);
   /*
     EIN BENUTZERNAME KOMMT ALS KUNSTADRESSE AN (`shared/benutzername.ts`).
     Hier wird er noch einmal nach denselben Regeln geprüft wie im Browser —
@@ -151,9 +153,15 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     const schonDa = kontoAntwort.status === 422 || /already|registered|exists/i.test(text);
     return fehler(
       schonDa
+        /*
+          ALLGEMEIN GEHALTEN (Testbericht 30.09.2026, G12): die Meldung sagt
+          nicht, dass es den Namen oder die Adresse schon gibt — auch nicht,
+          ob in diesem oder einem anderen Betrieb. Vergeben lässt er sich
+          trotzdem nicht; das ist alles, was die Maske wissen muss.
+        */
         ? (benutzername
-          ? `Den Benutzernamen „${benutzername}" gibt es schon — bitte einen anderen wählen.`
-          : `Zu ${email} gibt es schon ein Konto.`)
+          ? `Den Benutzernamen „${benutzername}" kann Senklot nicht vergeben — bitte einen anderen wählen.`
+          : `Mit ${email} lässt sich kein Konto anlegen — bitte eine andere Adresse verwenden.`)
         : (text || 'Das Konto liess sich nicht anlegen.'),
       schonDa ? 409 : 500,
     );
