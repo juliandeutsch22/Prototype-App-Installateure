@@ -308,7 +308,7 @@ export default function AccountingView() {
   function exportMonthCsv() {
     // Bewusst alleRows: der Monatsexport ist ein Abschluss und darf nicht
     // davon abhaengen, was gerade im Suchfeld steht.
-    downloadCsv(buildMonthCsv(alleRows, year, month, halbeTage, lohn), monthCsvFilename(year, month));
+    downloadCsv(buildMonthCsv(alleRows, year, month, halbeTage, lohn, entries.filter((e) => e.date.startsWith(monthPrefix))), monthCsvFilename(year, month));
     toast.success('Monats-CSV heruntergeladen');
   }
 

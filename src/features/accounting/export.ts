@@ -1,6 +1,6 @@
 import type { AppUser, TimeEntry } from '@/types';
 import { PETROL } from '@/lib/belegLayout';
-import { calcWorkMin, calcMonthStats, type MonthStats } from '@/lib/time';
+import { calcWorkMin, calcMonthStats, groupProjectHours, type MonthStats } from '@/lib/time';
 import { zuschlagszeit, kennzeichen } from './zuschlaege';
 import { ueberstundenNachTagesgrenze } from './ueberstunden';
 import type { Nachtzeit, UeberstundenRegel } from '@/lib/lohnregeln';
@@ -128,6 +128,8 @@ export function buildMonthCsv(
   month: number,
   halbeTage: boolean,
   lohn: Lohnregeln = {},
+  /** Alle Buchungen des Monats, auch ohne Zeitkonto — für die Projektauswertung (M25). */
+  projektEintraege?: TimeEntry[],
 ): string {
   const lines: string[] = [];
 
@@ -217,20 +219,24 @@ export function buildMonthCsv(
     );
   }
 
-  // Projektauswertung: nur Fachkraftstunden, Helferzeit zählt nicht gegen
-  // das Projektbudget (Legacy: calculateProjectHours).
-  const byProject = new Map<string, number>();
-  for (const { e } of all) {
-    if (e.status !== 'Anwesend' || !e.projectNumber || e.isHelper) continue;
-    const min = calcWorkMin(e);
-    if (min <= 0) continue;
-    byProject.set(e.projectNumber, (byProject.get(e.projectNumber) ?? 0) + min);
-  }
-  if (byProject.size > 0) {
-    lines.push('', 'Projektauswertung (ohne Helferstunden)');
-    lines.push(row(['Projektnummer', 'Gesamtstunden']));
-    for (const key of [...byProject.keys()].sort()) {
-      lines.push(row([key, hours(byProject.get(key) ?? 0)]));
+  /*
+    PROJEKTAUSWERTUNG — ALLE PERSONEN, WIE IN DER ÜBERSICHT (Testbericht
+    30.09.2026, M25). Hier standen nur die Stunden der Zeilen oben, also nur
+    von Personen mit Zeitkonto: PR-187 hatte in der Datei 25,50 Std, in der
+    Oberfläche 38:33, eine andere Baustelle fehlte ganz. Jetzt zählen alle
+    Buchungen des Monats (`projektEintraege`), getrennt nach Facharbeiter-
+    und Helferstunden — dieselbe Rechnung wie `groupProjectHours`.
+  */
+  const projekte = groupProjectHours(
+    projektEintraege ?? all.map(({ e }) => e),
+  );
+  if (projekte.length > 0) {
+    lines.push('', 'Projektauswertung (alle Personen)');
+    lines.push(row(['Projektnummer', 'Facharbeiter(Std)', 'Helfer(Std)', 'Gesamt(Std)']));
+    for (const p of projekte) {
+      // Die Nummer, wie sie gebucht wurde — der Gruppenschlüssel lässt den Vorsatz weg.
+      const nummer = p.entries[0]?.projectNumber ?? p.projectNumber;
+      lines.push(row([nummer, hours(p.fachMin), hours(p.helperMin), hours(p.fachMin + p.helperMin)]));
     }
   }
 

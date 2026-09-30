@@ -74,7 +74,7 @@ describe('CSV-Aufbau', () => {
     expect(countFields(line)).toBe(countFields(csv.split('\n')[0]));
   });
 
-  it('schließt Helferstunden aus der Projektauswertung aus', () => {
+  it('weist Helferstunden in der Projektauswertung getrennt aus', () => {
     const csv = buildMonthCsv(
       [
         makeRow([
@@ -86,7 +86,9 @@ describe('CSV-Aufbau', () => {
       5, true,
     );
     const projLine = csv.split('\n').find((l) => l.startsWith('2025-001;'));
-    expect(projLine).toBe('2025-001;9,00'); // nur der Fachkraft-Eintrag
+    // Seit 30.09.2026 (M25) wie die Übersicht: Fach und Helfer getrennt,
+    // die Fachstunden (fürs Budget) stehen weiter für sich.
+    expect(projLine).toBe('2025-001;9,00;9,00;18,00');
   });
 
   it('gibt für Krank/Urlaub keine Arbeitszeit aus', () => {
