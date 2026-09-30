@@ -59,8 +59,10 @@ describe('Der Bestand', () => {
     expect(await bestand()).toBe(20);
   });
 
-  it('bucht das Lager weiter von Hand — der Wareneingang', async () => {
-    const { error } = await lager.client.rpc('bestand_anpassen', { p_material: artikel, p_delta: 5 });
+  it('bucht das Lager weiter von Hand — der Wareneingang, jetzt mit Lieferant (M29)', async () => {
+    const { error } = await lager.client.rpc('lager_eingang', {
+      p_material: artikel, p_menge: 5, p_lieferant: 'Frauenthal', p_lieferschein: 'LS-1', p_bezug: null,
+    });
     expect(error).toBeNull();
     expect(await bestand()).toBe(25);
     await admin.from('materials').update({ stock: 20 }).eq('id', artikel);

@@ -5,7 +5,7 @@
  * `lib/listengrenzen.ts` — ohne Datenbankbezug, weil sechs Ansichten sie
  * brauchen.
  */
-import type { Material } from '@/types';
+import type { Lagerbewegung, Material } from '@/types';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import type { WithId } from './core';
 import * as pg from './pg/materials';
@@ -40,6 +40,23 @@ export function deleteMaterial(id: string): Promise<void> {
 
 export function adjustStock(materialId: string, delta: number): Promise<void> {
   return pg.adjustStock(materialId, delta);
+}
+
+/** Wareneingang mit Lieferant, Lieferschein und Bezug (M29). */
+export function lagerEingang(eingang: {
+  materialId: string; menge: number; lieferant: string; lieferschein?: string; bezug?: string;
+}): Promise<number> {
+  return pg.lagerEingang(eingang);
+}
+
+/** Inventur mit Grund (M28). */
+export function lagerInventur(materialId: string, bestand: number, grund: string): Promise<number> {
+  return pg.lagerInventur(materialId, bestand, grund);
+}
+
+/** Das Bewegungsprotokoll eines Artikels (M28). */
+export function listLagerbewegungen(materialId: string, max = 200): Promise<Lagerbewegung[]> {
+  return pg.listLagerbewegungen(materialId, max);
 }
 
 export function listMaterials(companyId: string, max = KATALOG_GRENZE): Promise<WithId<Material>[]> {

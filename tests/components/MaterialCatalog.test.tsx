@@ -232,22 +232,21 @@ describe('Der Bestand beim Bearbeiten', () => {
     expect(Object.keys(daten)).not.toContain('stock');
   });
 
-  it('geht mit, wenn ihn jemand hier geändert hat', async () => {
+  /*
+    TESTBERICHT 30.09.2026, M28: beim Bearbeiten ist der Bestand kein Feld
+    mehr — er ändert sich über Wareneingang oder Inventur, mit Grund.
+  */
+  it('lässt sich beim Bearbeiten nicht mehr überschreiben', async () => {
     materialien = [{ id: 'm1', companyId: 'perl', name: 'Eckventil', stock: 4 } as WithId<Material>];
     const nutzer = userEvent.setup();
     zeige();
 
     await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
-    const feld = screen.getByLabelText(/Lagerbestand/);
-    await nutzer.clear(feld);
-    await nutzer.type(feld, '12');
-    await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
-
-    await waitFor(() => expect(aendern).toHaveBeenCalled());
-    expect(aendern.mock.calls[0][1]).toMatchObject({ stock: 12 });
+    expect(screen.queryByRole('textbox', { name: /Lagerbestand|Anfangsbestand/ })).toBeNull();
+    expect(screen.getByText(/über Wareneingang oder Inventur/)).toBeInTheDocument();
   });
 
-  it('steht beim Anlegen immer drin', async () => {
+  it('steht beim Anlegen immer drin — als Anfangsbestand', async () => {
     const nutzer = userEvent.setup();
     zeige();
     await nutzer.type(await screen.findByLabelText(/Bezeichnung/), 'Neu');

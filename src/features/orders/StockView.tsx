@@ -4,7 +4,6 @@ import { useAuth } from '@/app/AuthContext';
 import { darfKatalogEinspielen } from '@/lib/permissions';
 import {
   subscribeMaterials,
-  adjustStock,
   LOW_STOCK_THRESHOLD,
 } from '@/lib/db/materials';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
@@ -22,10 +21,8 @@ import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import MaterialCatalog from './MaterialCatalog';
-import ConfirmDialog from '@/components/ConfirmDialog';
-import { zahlOder } from '@/lib/zahl';
+import { BewegungenDialog, InventurDialog, WareneingangDialog } from './LagerDialoge';
 import { useReiterImBild } from '@/components/reiterImBild';
-import ZahlFeld from '@/components/ZahlFeld';
 
 /*
   Der Katalogimport wird erst beim Öffnen geladen. Er bringt den
@@ -87,7 +84,6 @@ export default function StockView() {
   /** Ein Nebenladevorgang ist ausgefallen — der Bestand steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [busyId, setBusyId] = useState<string | null>(null);
   /**
    * Welcher Artikel im Katalog geöffnet werden soll.
    *
@@ -182,39 +178,14 @@ export default function StockView() {
 
   /*
     DER WARENEINGANG FRAGT IN EINEM DIALOG DER APP, nicht über
-    `window.prompt`: der liess sich nicht gestalten und tat, wo der Browser
-    ihn unterdrückt, beim Klick gar nichts (Prüflauf 24.09.2026, F7). Und
-    ein Fehlschlag meldete sich vorher unten auf der Seite, während oben
-    trotzdem „eingebucht" stand — jetzt bleibt der Dialog offen und sagt es.
+    `window.prompt` (Prüflauf 24.09.2026, F7) — seit dem Testbericht vom
+    30.09.2026 (M29) mit Lieferant, Lieferschein und Bestellbezug. Dazu die
+    Inventur mit Grund und das Bewegungsprotokoll je Artikel (M28): der
+    Bestand ändert sich nur noch über Bewegungen.
   */
   const [eingang, setEingang] = useState<WithId<Material> | null>(null);
-  const [eingangMenge, setEingangMenge] = useState('1');
-
-  function book(m: WithId<Material>) {
-    setEingangMenge('1');
-    setEingang(m);
-  }
-
-  /** Wareneingang, atomar über increment. */
-  async function eingangBuchen() {
-    if (!eingang) return;
-    const m = eingang;
-    const n = zahlOder(eingangMenge, NaN);
-    // Ohne diese Prüfung ginge eine negative oder krumme Zahl als
-    // increment() durch und der Wareneingang würde den Bestand senken.
-    // „1,5“ wird nicht still zu 1 (M15).
-    if (!Number.isInteger(n) || n < 1) {
-      throw new Error('Bitte eine ganze Menge von mindestens 1 angeben.');
-    }
-    setBusyId(m.id);
-    try {
-      await adjustStock(m.id, n);
-    } finally {
-      setBusyId(null);
-    }
-    setEingang(null);
-    toast.success(`${n} ${m.unit ?? 'Stk'} ${m.name} eingebucht`);
-  }
+  const [inventur, setInventur] = useState<WithId<Material> | null>(null);
+  const [bewegungen, setBewegungen] = useState<WithId<Material> | null>(null);
 
   if (!user) return null;
 
@@ -341,12 +312,14 @@ export default function StockView() {
                         ) : (
                           <Marke>{m.free} {m.unit ?? 'Stk'} frei</Marke>
                         )}
-                        <Button
-                          variant="ghost"
-                          loading={busyId === m.id}
-                          onClick={() => book(m)}
-                        >
+                        <Button variant="ghost" onClick={() => setEingang(m)}>
                           Wareneingang
+                        </Button>
+                        <Button variant="ghost" onClick={() => setInventur(m)}>
+                          Inventur
+                        </Button>
+                        <Button variant="ghost" onClick={() => setBewegungen(m)}>
+                          Bewegungen
                         </Button>
                         {/*
                           Bezeichnung, Kategorie, Artikelnummer, Einheit UND
@@ -384,24 +357,27 @@ export default function StockView() {
       )}
 
       {eingang && (
-        <ConfirmDialog
-          open
-          title={`Wareneingang: ${eingang.name}`}
-          message="Die Menge kommt zum Bestand dazu."
-          confirmLabel="Einbuchen"
-          confirmTone="primary"
-          onConfirm={eingangBuchen}
-          onCancel={() => setEingang(null)}
-        >
-          <ZahlFeld
-            id="eingang-menge"
-            label={`Menge (${eingang.unit ?? 'Stk'})`}
-            pflicht
-            value={eingangMenge}
-            onChange={setEingangMenge}
-          />
-        </ConfirmDialog>
+        <WareneingangDialog
+          companyId={user.companyId}
+          artikel={eingang}
+          onAbbrechen={() => setEingang(null)}
+          onFertig={(text) => {
+            setEingang(null);
+            toast.success(text);
+          }}
+        />
       )}
+      {inventur && (
+        <InventurDialog
+          artikel={inventur}
+          onAbbrechen={() => setInventur(null)}
+          onFertig={(text) => {
+            setInventur(null);
+            toast.success(text);
+          }}
+        />
+      )}
+      {bewegungen && <BewegungenDialog artikel={bewegungen} onSchliessen={() => setBewegungen(null)} />}
     </div>
   );
 }

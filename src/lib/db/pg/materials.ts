@@ -1,9 +1,10 @@
 /**
  * Materialstamm — auf Postgres.
  */
-import type { Material } from '@/types';
+import type { Lagerbewegung, Material } from '@/types';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import { abfragen, abonnieren, anlegen as kernAnlegen, aendern, loeschen, derClient, type WithId } from './kern';
+import { zeileAlsObjekt } from './felder';
 
 const MATERIAL = 'materials';
 
@@ -56,6 +57,45 @@ export async function adjustStock(materialId: string, delta: number) {
     p_delta: delta,
   });
   if (error) throw new Error(error.message);
+}
+
+/**
+ * Wareneingang mit Lieferant, Lieferschein und Bezug (Testbericht 30.09.2026,
+ * M29). Zurück kommt der neue Bestand.
+ */
+export async function lagerEingang(eingang: {
+  materialId: string; menge: number; lieferant: string; lieferschein?: string; bezug?: string;
+}): Promise<number> {
+  const { data, error } = await derClient().rpc('lager_eingang', {
+    p_material: eingang.materialId,
+    p_menge: eingang.menge,
+    p_lieferant: eingang.lieferant,
+    p_lieferschein: eingang.lieferschein ?? null,
+    p_bezug: eingang.bezug ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return Number(data);
+}
+
+/** Inventur: der gezählte Bestand, mit Grund (M28). */
+export async function lagerInventur(materialId: string, bestand: number, grund: string): Promise<number> {
+  const { data, error } = await derClient().rpc('lager_inventur', {
+    p_material: materialId, p_bestand: bestand, p_grund: grund,
+  });
+  if (error) throw new Error(error.message);
+  return Number(data);
+}
+
+/** Das Bewegungsprotokoll eines Artikels, jüngste zuerst (M28). */
+export async function listLagerbewegungen(materialId: string, max = 200): Promise<Lagerbewegung[]> {
+  const { data, error } = await derClient()
+    .from('lagerbewegungen')
+    .select('*')
+    .eq('material_id', materialId)
+    .order('created_at', { ascending: false })
+    .limit(max);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((z) => zeileAlsObjekt<WithId<Lagerbewegung>>('lagerbewegungen', z));
 }
 
 export function listMaterials(companyId: string, max = KATALOG_GRENZE) {
