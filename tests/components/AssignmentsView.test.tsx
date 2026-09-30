@@ -174,6 +174,39 @@ describe('Einsatzplanung — speichern', () => {
     expect(zeilen[0]).toMatchObject({ userId: 'u1', asHelper: false, projectNumber: '2026-042' });
   });
 
+  /* Testbericht 30.09.2026, M34 — eine Uhrzeit je Einsatz, freiwillig. */
+  it('nimmt eine Uhrzeit mit, wenn eine eingetragen ist (M34)', async () => {
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
+    await userEvent.type(screen.getByLabelText('Beginn (optional)'), '07:30');
+    await userEvent.type(screen.getByLabelText('Ende (optional)'), '12:00');
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+
+    await waitFor(() => expect(speichere).toHaveBeenCalled());
+    expect(speichere.mock.calls[0][3][0]).toMatchObject({ zeitVon: '07:30', zeitBis: '12:00' });
+  });
+
+  it('Gegenprobe: ohne Uhrzeit bleibt es der ganze Tag', async () => {
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+    await waitFor(() => expect(speichere).toHaveBeenCalled());
+    expect(speichere.mock.calls[0][3][0]).toMatchObject({ zeitVon: null, zeitBis: null });
+  });
+
+  it('weist ein Ende vor dem Beginn ab (M34)', async () => {
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
+    await userEvent.type(screen.getByLabelText('Beginn (optional)'), '12:00');
+    await userEvent.type(screen.getByLabelText('Ende (optional)'), '07:30');
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+    expect(await screen.findByText(/Ende des Einsatzes liegt vor dem Beginn/)).toBeInTheDocument();
+    expect(speichere).not.toHaveBeenCalled();
+  });
+
   it('nimmt den Helfer-Haken mit — er kostet bare Münze', async () => {
     // Ein Helfer wird mit einem anderen Satz verrechnet. Geht der Haken beim
     // Speichern verloren, steht am Monatsende der falsche Betrag auf der
@@ -509,6 +542,38 @@ describe('Einsatzplanung — Rüstliste', () => {
       transactionType: 'order',
       status: 'Offen',
     });
+  });
+
+  /* Testbericht 30.09.2026, G31 — wer abholt, steht auf der Anforderung. */
+  async function unterdeckungAnfordern() {
+    await userEvent.type(
+      await screen.findByRole('searchbox', { name: /Artikel aus dem Lager/ }),
+      'Mischbatterie',
+    );
+    await userEvent.click(await screen.findByRole('button', { name: /Mischbatterie auf die Rüstliste/ }));
+    const menge = screen.getByRole('textbox', { name: 'Menge' });
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '3');
+    await userEvent.click(await screen.findByRole('button', { name: /Anforderung über 2 anlegen/ }));
+    await waitFor(() => expect(anforderungAnlegen).toHaveBeenCalled());
+    return anforderungAnlegen.mock.calls[0][1] as { userId: string; userName: string; note: string };
+  }
+
+  it('legt die Anforderung auf den eingeteilten Monteur an, nicht auf den Planer (G31)', async () => {
+    zeige();
+    await baustelleWaehlen();
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
+    const a = await unterdeckungAnfordern();
+    expect(a).toMatchObject({ userId: 'u1', userName: 'Max Mustermann' });
+    expect(a.note).toMatch(/angelegt von Planer/);
+  });
+
+  it('Gegenprobe: ist noch niemand eingeteilt, bleibt es der Planer', async () => {
+    zeige();
+    await baustelleWaehlen();
+    const a = await unterdeckungAnfordern();
+    expect(a).toMatchObject({ userId: 'pl', userName: 'Planer' });
+    expect(a.note).not.toMatch(/angelegt von/);
   });
 
   it('meldet KEINE Unterdeckung bei einer freien Zeile', async () => {

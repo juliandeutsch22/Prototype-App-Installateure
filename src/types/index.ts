@@ -1103,6 +1103,12 @@ export interface Assignment {
   userName?: string;
   asHelper?: boolean;
   comment?: string;
+  /**
+   * Optional die Uhrzeit des Einsatzes, 'HH:MM' (Testbericht 30.09.2026,
+   * M34). Ohne Angabe gilt der ganze Tag.
+   */
+  zeitVon?: string | null;
+  zeitBis?: string | null;
   createdBy?: string;
   createdAt?: number;
 }

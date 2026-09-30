@@ -511,3 +511,41 @@ describe('Rüstliste live', () => {
     }
   }, 30_000);
 });
+
+/*
+  TESTBERICHT 30.09.2026, M34 — eine Uhrzeit je Einsatz. Sie kommt als
+  „07:30“ zurück, wie ein Zeitfeld sie liefert; ohne Angabe bleibt sie leer,
+  und ein Ende vor dem Beginn weist die Datenbank ab.
+*/
+describe('Uhrzeit je Einsatz (M34)', () => {
+  const TAG_ZEIT = '2026-05-06';
+
+  it('speichert von–bis und liest sie wie ein Zeitfeld zurück', async () => {
+    await leeren(TAG_ZEIT);
+    clientEinreichen(planer.client);
+    await einsaetze.saveAssignments(BETRIEB, TAG_ZEIT, BAU, [
+      zeile(anton, { date: TAG_ZEIT, zeitVon: '07:30', zeitBis: '12:00' }),
+    ]);
+    const rows = await einsaetze.listAssignmentsForDate(BETRIEB, TAG_ZEIT);
+    expect(rows.map((r) => [r.zeitVon, r.zeitBis])).toEqual([['07:30', '12:00']]);
+    await leeren(TAG_ZEIT);
+  });
+
+  it('Gegenprobe: ohne Uhrzeit bleibt sie leer', async () => {
+    await leeren(TAG_ZEIT);
+    clientEinreichen(planer.client);
+    await einsaetze.saveAssignments(BETRIEB, TAG_ZEIT, BAU, [zeile(anton, { date: TAG_ZEIT, zeitVon: null, zeitBis: null })]);
+    const rows = await einsaetze.listAssignmentsForDate(BETRIEB, TAG_ZEIT);
+    expect(rows.map((r) => [r.zeitVon ?? null, r.zeitBis ?? null])).toEqual([[null, null]]);
+    await leeren(TAG_ZEIT);
+  });
+
+  it('ein Ende vor dem Beginn wird abgewiesen', async () => {
+    await leeren(TAG_ZEIT);
+    clientEinreichen(planer.client);
+    await expect(
+      einsaetze.saveAssignments(BETRIEB, TAG_ZEIT, BAU, [zeile(anton, { date: TAG_ZEIT, zeitVon: '12:00', zeitBis: '07:30' })]),
+    ).rejects.toThrow(/assignments_zeit_folge/);
+    await leeren(TAG_ZEIT);
+  });
+});

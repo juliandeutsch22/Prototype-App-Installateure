@@ -521,3 +521,39 @@ describe('Wochenplan — Abwesenheiten mit Grund', () => {
     expect(mittwoch).toHaveTextContent('Frei: Erna Beispiel');
   });
 });
+
+/*
+  TESTBERICHT 30.09.2026, M33 — eine Krankmeldung verdrängt den Einsatz
+  nicht mehr: er steht mit „fehlt“ da, und ist niemand mehr dort,
+  „Unbesetzt“.
+*/
+describe('Wochenplan — eingeteilt und krank (M33)', () => {
+  const MI = '2026-09-02';
+
+  it('der Einsatz bleibt sichtbar: „Unbesetzt — fehlt: Erna (Krank)“', async () => {
+    einsaetze = [{ id: 'e1', companyId: 'perl', date: MI, projectNumber: BAUSTELLEN[0].projectNumber, userId: 'u2', userName: 'Erna Beispiel' }];
+    abwesend = [{ userId: 'u2', von: MI, bis: MI, grund: 'Krank', zeiten: null }];
+    zeige();
+    await screen.findByRole('row', { name: /Erna Beispiel/ });
+    expect(liste().getByText(/Unbesetzt — fehlt: Erna Beispiel \(Krank\)/)).toBeInTheDocument();
+    expect(tabelle().getByText(`fehlt: ${BAUSTELLEN[0].projectNumber}`)).toBeInTheDocument();
+  });
+
+  it('mit einem Zweiten vor Ort ist sie besetzt — es fehlt nur einer', async () => {
+    einsaetze = [
+      { id: 'e1', companyId: 'perl', date: MI, projectNumber: BAUSTELLEN[0].projectNumber, userId: 'u2', userName: 'Erna Beispiel' },
+      { id: 'e2', companyId: 'perl', date: MI, projectNumber: BAUSTELLEN[0].projectNumber, userId: 'u1', userName: 'Max Mustermann' },
+    ];
+    abwesend = [{ userId: 'u2', von: MI, bis: MI, grund: 'Krank', zeiten: null }];
+    zeige();
+    await screen.findByRole('row', { name: /Erna Beispiel/ });
+    expect(liste().getByText(/^fehlt: Erna Beispiel \(Krank\)/)).toBeInTheDocument();
+    expect(liste().queryByText(/Unbesetzt/)).toBeNull();
+  });
+
+  it('sagt im Hinweis, dass er Einsätze zeigt, nicht gebuchte Zeiten (G23)', async () => {
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /^Was bedeutet/ }));
+    expect(await screen.findByText(/zeigt Einsätze, nicht gebuchte Zeiten/)).toBeInTheDocument();
+  });
+});

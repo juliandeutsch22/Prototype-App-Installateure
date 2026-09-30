@@ -49,6 +49,9 @@ import { byNewest } from '@/lib/timestamps';
 import { istUeberfaellig, offenerRest } from '@/features/invoices/zahlstand';
 import { euroGerundet } from '@/lib/betrag';
 import { baustellenTitel } from '@/lib/baustellenTitel';
+import { besetzung, fehlenText, ganztagsWeg } from '@/features/assignments/besetzung';
+import { listAbwesendInRange } from '@/lib/db/vacations';
+import { einsatzZeit } from '@/features/assignments/einsatzZeit';
 
 /**
  * 'YYYY-MM-DD' -> 'Mo., 01.09.'
@@ -100,6 +103,8 @@ interface EinsatzZeile {
   contactPhone?: string;
   asHelper: boolean;
   comment?: string;
+  /** Die Uhrzeit, falls geplant (M34): „07:30–12:00“. */
+  zeit?: string | null;
   /**
    * Die Ruestliste dieses Einsatzes — was mitzunehmen ist.
    *
@@ -119,6 +124,10 @@ interface TagesBaustelle {
   contactName?: string;
   namen: string[];
   helfer: number;
+  /** Eingeteilt und ganztags weg (M33) — mit Grund, soweit sichtbar. */
+  fehlen: { name: string; grund: string | null }[];
+  /** Eingeteilt waren welche, da ist keiner (M33). */
+  unbesetzt: boolean;
 }
 
 interface DashData {
@@ -260,7 +269,16 @@ export default function DashboardView() {
          * fuhr im Zweifel die falsche an.
          */
         const heute = todayStr();
-        const heutige = einsaetze.filter((a) => a.date === heute);
+        /*
+          WER HEUTE GANZTAGS WEG IST, HAT HEUTE KEINEN EINSATZ (Testbericht
+          30.09.2026, M33). Vorher stand der Einsatz trotz Krankmeldung als
+          „Heute“ da. Scheitert die Abfrage, bleibt es wie bisher.
+        */
+        const eigeneAbwesenheit = einsaetze.some((a) => a.date === heute)
+          ? await Promise.resolve().then(() => listAbwesendInRange(heute, heute)).catch(() => [])
+          : [];
+        const heuteWeg = !!ganztagsWeg(eigeneAbwesenheit, user.uid, heute);
+        const heutige = heuteWeg ? [] : einsaetze.filter((a) => a.date === heute);
         if (heutige.length > 0) {
           /*
             Die Ruestlisten des Tages dazu — aber nur, wenn das Modul an ist,
@@ -290,6 +308,7 @@ export default function DashboardView() {
               contactPhone: pr?.contactPhone,
               asHelper: !!a.asHelper,
               comment: a.comment,
+              zeit: einsatzZeit(a),
             };
           });
         } else {
@@ -346,7 +365,11 @@ export default function DashboardView() {
 
           /** Die heutige Einteilung des Betriebs, nach Baustelle gebuendelt. */
           const heute = todayStr();
-          const einsaetze = await listAssignmentsForDate(user.companyId, heute);
+          const [einsaetze, abwesend] = await Promise.all([
+            listAssignmentsForDate(user.companyId, heute),
+            // Wer heute fehlt (M33). Ohne diese Auskunft bleibt die Karte, wie sie war.
+            Promise.resolve().then(() => listAbwesendInRange(heute, heute)).catch(() => []),
+          ]);
           const nachBaustelle = new Map<string, Assignment[]>();
           for (const a of einsaetze) {
             const liste = nachBaustelle.get(a.projectNumber) ?? [];
@@ -356,6 +379,7 @@ export default function DashboardView() {
           out.heuteBetrieb = [...nachBaustelle.entries()]
             .map(([pn, rows]) => {
               const pr = projects.find((x) => x.projectNumber === pn);
+              const lage = besetzung(rows, abwesend, heute);
               return {
                 projectNumber: pn,
                 // Angezeigter Titel: Bezeichnung und Kunde (G4).
@@ -363,11 +387,11 @@ export default function DashboardView() {
                 address: pr?.address,
                 contactPhone: pr?.contactPhone,
                 contactName: pr?.contactName,
-                namen: rows
-                  .map((r) => r.userName ?? '')
-                  .filter(Boolean)
-                  .sort((a, b) => a.localeCompare(b, 'de')),
-                helfer: rows.filter((r) => r.asHelper).length,
+                // Wer da ist — wer fehlt, steht darunter (M33).
+                namen: lage.da.filter((n) => n !== 'Unbekannt').sort((a, b) => a.localeCompare(b, 'de')),
+                helfer: rows.filter((r) => r.asHelper && !ganztagsWeg(abwesend, r.userId, heute)).length,
+                fehlen: lage.fehlen,
+                unbesetzt: lage.unbesetzt,
               };
             })
             .sort((a, b) => a.customerName.localeCompare(b.customerName, 'de'));
@@ -674,7 +698,10 @@ export default function DashboardView() {
                   {e.customerName}
                   {e.asHelper && <Marke>Helfer</Marke>}
                 </p>
-                <p className="text-meta text-ink-muted">{e.projectNumber}</p>
+                <p className="text-meta text-ink-muted">
+                  {e.zeit ? `${e.zeit} · ` : ''}
+                  {e.projectNumber}
+                </p>
                 {/* Die Notiz des Büros bleibt in Tinte, nicht gedämpft: sie
                     sagt, was heute zu tun ist („Verteiler, Vormittag"). */}
                 {e.comment && <p className="mt-1 text-sm text-ink">{e.comment}</p>}
@@ -793,12 +820,20 @@ export default function DashboardView() {
                           ({b.projectNumber})
                         </span>
                       </span>
-                      <Marke>
-                        {b.namen.length} {b.namen.length === 1 ? 'Person' : 'Personen'}
-                        {b.helfer > 0 && `, davon ${b.helfer} Helfer`}
-                      </Marke>
+                      {b.unbesetzt ? (
+                        <Zustand stand="achtung">Unbesetzt</Zustand>
+                      ) : (
+                        <Marke>
+                          {b.namen.length} {b.namen.length === 1 ? 'Person' : 'Personen'}
+                          {b.helfer > 0 && `, davon ${b.helfer} Helfer`}
+                        </Marke>
+                      )}
                     </div>
-                    <p className="mt-0.5 text-meta text-ink-muted">{b.namen.join(', ')}</p>
+                    {b.namen.length > 0 && <p className="mt-0.5 text-meta text-ink-muted">{b.namen.join(', ')}</p>}
+                    {/* M33: eine Krankmeldung verdrängt den Einsatz nicht mehr still. */}
+                    {b.fehlen.length > 0 && (
+                      <p className="mt-0.5 text-meta font-medium text-danger">Fehlt: {fehlenText(b.fehlen)}</p>
+                    )}
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 text-sm">
                       <AdresseLink adresse={b.address} />
                       <TelefonLink nummer={b.contactPhone} name={b.contactName} />

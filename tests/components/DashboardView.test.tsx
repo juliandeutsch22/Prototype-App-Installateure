@@ -134,6 +134,11 @@ vi.mock('@/lib/db/projects', () => ({
     baustellen.filter((p) => nummern.includes(p.projectNumber)),
   ),
 }));
+/** Wer heute ganztags weg ist (M33). */
+const abwesend: { wert: { userId: string; von: string; bis: string; grund: string | null; zeiten: string | null }[] } = { wert: [] };
+vi.mock('@/lib/db/vacations', () => ({
+  listAbwesendInRange: vi.fn(async () => abwesend.wert),
+}));
 vi.mock('@/lib/db/assignments', () => ({
   listUpcomingAssignments: vi.fn(async () => einsaetze),
   listAssignmentsForDate: vi.fn(async () => einsaetze),
@@ -222,11 +227,27 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  abwesend.wert = [];
   offeneRechnungen.wert = [];
   rolle.wert = 'Mitarbeiter';
 });
 
 describe('Startseite — Monteur', () => {
+  it('wer heute krank ist, hat heute keinen Einsatz auf der Startseite (M33)', async () => {
+    abwesend.wert = [{ userId: 'm1', von: HEUTE, bis: HEUTE, grund: 'Krank', zeiten: null }];
+    zeichne();
+    // Dieselbe Ladung bringt die fehlenden Tage — sind sie da, ist auch „Heute“ entschieden.
+    await screen.findByText(/Tage ohne Buchung/);
+    expect(screen.queryByText(/Heute — 2 Baustellen/i)).toBeNull();
+    expect(screen.queryByText('Bad, Vormittag')).toBeNull();
+  });
+
+  it('Gegenprobe: stundenweise weg — die Einsätze bleiben', async () => {
+    abwesend.wert = [{ userId: 'm1', von: HEUTE, bis: HEUTE, grund: 'ZA', zeiten: '13:00–17:00' }];
+    zeichne();
+    expect(await screen.findByText(/Heute — 2 Baustellen/i)).toBeInTheDocument();
+  });
+
   it('zeigt ALLE Einsätze von heute, nicht nur den ersten', async () => {
     zeichne();
     const karte = (await screen.findByText(/Heute — 2 Baustellen/i)).closest('section')!;
@@ -366,6 +387,18 @@ describe('Startseite — Geschäftsführung', () => {
     expect(within(karte).getByText(/Familie Huber/)).toBeInTheDocument();
     expect(within(karte).getByText(/Gemeinde Neudorf/)).toBeInTheDocument();
     expect(within(karte).getAllByText('Anton Berger')).toHaveLength(2);
+  });
+
+  /*
+    TESTBERICHT 30.09.2026, M33 — eine Krankmeldung verdrängt den Einsatz
+    nicht mehr still: die Karte sagt „Unbesetzt“ und wer fehlt.
+  */
+  it('meldet eine Baustelle als unbesetzt, wenn der Eingeteilte krank ist (M33)', async () => {
+    abwesend.wert = [{ userId: 'm1', von: HEUTE, bis: HEUTE, grund: 'Krank', zeiten: null }];
+    zeichne();
+    const karte = (await screen.findByText(/Heute im Einsatz/i)).closest('section')!;
+    expect(await within(karte).findAllByText('Unbesetzt')).toHaveLength(2);
+    expect(within(karte).getAllByText('Fehlt: Anton Berger (Krank)')).toHaveLength(2);
   });
 });
 
