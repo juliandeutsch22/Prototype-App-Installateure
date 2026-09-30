@@ -46,7 +46,7 @@ begin
         where f.company_id = c.id and f.notzugang
           and f.widerrufen_am is null and f.gilt_bis > now())
     from public.companies c
-    left join public.betriebsanlagen b on b.company_id = c.id
+    left join public.betriebsanlagen b on b.betrieb_kennung = c.id
     order by lower(c.name);
 end;
 $$;

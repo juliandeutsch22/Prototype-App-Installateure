@@ -103,7 +103,7 @@ describe('Passwort über den Notzugang (P2)', () => {
     const { data: protokoll } = await chefinMitMail.client.from('support_zugriffe')
       .select('bereich').eq('company_id', BETRIEB);
     expect((protokoll ?? []).map((z) => z.bereich).join('\n'))
-      .toMatch(/Passwort von .* neu gesetzt .* Grund: Passwort vergessen .* Rückruf an \+43 1 234 56 78/);
+      .toMatch(/Passwort von .* neu gesetzt .*Grund: Passwort vergessen.*Rückruf an \+43 1 234 56 78/);
   });
 
   it('Gegenprobe: ein Konto mit E-Mail — das setzt sein Passwort selbst', async () => {
