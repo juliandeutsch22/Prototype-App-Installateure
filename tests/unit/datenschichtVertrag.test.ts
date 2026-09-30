@@ -12,7 +12,7 @@
  * ändern will, muss die Fassung bewusst nachziehen und erklärt damit im
  * Verlauf, was er getan hat.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import ts from 'typescript';
@@ -94,8 +94,18 @@ function signaturen(): string[] {
 }
 
 describe('Die Datenschicht behält ihre Aussenseite', () => {
+  /*
+    EINMAL ÜBERSETZEN, MIT EIGENER FRIST. Der Compiler liest dafür das ganze
+    Projekt — allein drei Sekunden, auf dem ausgelasteten Bauserver mehr als
+    die fünf, die Vitest einem Test gibt (30.09.2026, neben den
+    Ansichtsprüfungen gelaufen). Zweimal übersetzt wurde bisher ohne Grund.
+  */
+  let jetzt: string[];
+  beforeAll(() => {
+    jetzt = signaturen();
+  }, 60_000);
+
   it('kein Export hat seine Signatur verändert', () => {
-    const jetzt = signaturen();
 
     if (!existsSync(FASSUNG)) {
       // Beim ersten Lauf wird die Fassung angelegt. Danach ist sie der Massstab.
@@ -124,6 +134,6 @@ describe('Die Datenschicht behält ihre Aussenseite', () => {
     die Vorgaben der Belegschaft — alles Dinge, die Ansichten importieren.
   */
   it('es sind mindestens die 136, die der Vertrag heute trägt', () => {
-    expect(signaturen().length).toBeGreaterThanOrEqual(136);
+    expect(jetzt.length).toBeGreaterThanOrEqual(136);
   });
 });
