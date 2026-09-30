@@ -161,8 +161,9 @@ describe('Der Anfangsbestand übersteht den Weg', () => {
   });
 
   it('rechnet mit den Nachkommastellen weiter, statt sie zu runden', async () => {
-    // 8,33 Tage Anspruch, 4 genommen: 4,33 übrig. Würde die Spalte runden,
-    // stünden hier 4 — ein Drittel Tag, den niemand verschenkt hat.
+    // 7,05 Tage Anspruch (taggenau seit M3: 25 × 103 ÷ 365), 4 genommen:
+    // 3,05 übrig. Würde die Spalte runden, stünden hier 3 — ein Bruchteil
+    // eines Tages, den niemand verschenkt hat.
     const uid = await frischeKennung();
     await createUserDoc(BETRIEB, uid, profil(uid, {
       yearlyVacationDays: 25,
@@ -172,7 +173,7 @@ describe('Der Anfangsbestand übersteht den Weg', () => {
     const stand = urlaubsStand((await getUserByUid(BETRIEB, uid))!, 2026, [
       { von: '2026-10-05', tage: 4 },
     ]);
-    expect(stand.anspruch).toBe(8.33);
-    expect(stand.rest).toBe(4.33);
+    expect(stand.anspruch).toBe(7.05);
+    expect(stand.rest).toBe(3.05);
   });
 });
