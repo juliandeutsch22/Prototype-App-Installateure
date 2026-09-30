@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { isTopLevel } from '@/lib/permissions';
+import { darfEinkaufSehen, darfKatalogEinspielen } from '@/lib/permissions';
 import {
   subscribeMaterials,
   createMaterial,
@@ -82,8 +82,14 @@ export default function MaterialCatalog({
   onUebernommen?: () => void;
 } = {}) {
   const { user } = useAuth();
-  /** Den Einkaufspreis setzt nur die Geschäftsführung — er ist Margendaten. */
-  const darfKosten = user ? isTopLevel(user.role) : false;
+  /*
+    DEN EINKAUFSPREIS SIEHT die Leitung — oder die Verwaltung mit Freigabe
+    „Einkaufspreise sehen“ oder „Katalog einspielen“; SETZEN darf ihn die
+    Leitung und, wer einspielen darf (Testbericht 30.09.2026, M37). Er ist
+    Margendaten; die Grenze zieht die Datenbank.
+  */
+  const darfKosten = user ? darfEinkaufSehen(user) : false;
+  const darfEkSetzen = user ? darfKatalogEinspielen(user) : false;
   const toast = useToast();
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -229,7 +235,7 @@ export default function MaterialCatalog({
           gescheitert wäre dann ihr GANZES Speichern, der Knopf täte nichts,
           und niemand wüsste warum. Sie schickt das Feld deshalb nicht mit.
         */
-        ...(darfKosten && ekStand === 'da'
+        ...(darfEkSetzen && ekStand === 'da'
           ? { einkaufspreis: ek === '' ? 0 : Math.max(0, Number(ek) || 0) }
           : {}),
       };
@@ -323,7 +329,7 @@ export default function MaterialCatalog({
                   min="0"
                   step="0.01"
                   placeholder={ekStand === 'laedt' ? 'wird geladen …' : 'leer = nicht gepflegt'}
-                  disabled={ekStand !== 'da'}
+                  disabled={ekStand !== 'da' || !darfEkSetzen}
                   value={form.einkaufspreis}
                   onChange={(e) => setForm({ ...form, einkaufspreis: e.target.value })}
                 />
