@@ -279,7 +279,8 @@ export function generateInvoicePdf(opts: {
         e.isHelper ? 'Helfer' : 'Fachkraft',
         // Ganz, nicht auf 60 Zeichen gekappt: die Tabelle bricht jetzt um,
         // und ein abgeschnittener Satz belegt nichts.
-        e.comment ?? '',
+        // Die Notiz der Buchung, sonst die Tätigkeit aus dem Schein (G17).
+        e.comment?.trim() || assembled.taetigkeiten?.[e.id] || '',
         fmtHours(calcWorkMin(e)),
       ]),
       foot: [['', '', '', 'Summe', fmtHours(totalMin)]],

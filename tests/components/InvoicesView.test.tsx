@@ -215,7 +215,10 @@ vi.mock('@/lib/db/zahlungen', () => ({
   createZahlung: (...a: unknown[]) => createZahlung(...(a as [string, Record<string, unknown>])),
   createZahlungMitSkonto: (...a: unknown[]) => createZahlungMitSkonto(...(a as [])),
   deleteZahlung: vi.fn(async () => undefined),
+  // Die Kennzahl „Bezahlt im laufenden Monat“ (G27) liest die Eingänge des Monats.
+  listZahlungenImZeitraum: (...a: unknown[]) => zahlungenImMonat(...(a as [])),
 }));
+const zahlungenImMonat = vi.fn<(...a: unknown[]) => Promise<unknown[]>>(async () => []);
 const createZahlungMitSkonto = vi.fn(async () => undefined);
 
 vi.mock('@/lib/db/projects', () => ({
@@ -2476,10 +2479,18 @@ describe('Die Kennzahl „Bezahlt"', () => {
       { id: 's', invoiceNumber: 'RE-2026-1500', projectNumber: '2026-042', customerName: 'Max', paymentStatus: 'Storniert', totalBrutto: 504, bezahltBetrag: 200 },
       { id: 'b', invoiceNumber: 'RE-2026-1501', projectNumber: '2026-042', customerName: 'Max', paymentStatus: 'Überzahlt', totalBrutto: 100, bezahltBetrag: 130 },
     ] as unknown as (Invoice & { id: string })[];
+    // Seit G27 zählt die Kachel die Eingänge des laufenden Monats.
+    const heute = new Date().toISOString().slice(0, 10);
+    zahlungenImMonat.mockResolvedValue([
+      { id: 'z1', invoiceId: 's', datum: heute, betrag: 200, art: 'Überweisung' },
+      { id: 'z2', invoiceId: 'b', datum: heute, betrag: 130, art: 'Überweisung' },
+    ]);
     zeige();
-    const kachel = (await screen.findByText('Bezahlt', { selector: 'p, span, div, dt' })).parentElement!;
-    expect(kachel).toHaveTextContent('€ 100,00');
+    const kachel = (await screen.findByText('Bezahlt im laufenden Monat', { selector: 'p, span, div, dt' })).parentElement!;
+    // Die 200 € auf den Storno sind Guthaben des Kunden und zählen nicht.
+    await waitFor(() => expect(kachel).toHaveTextContent('€ 130,00'));
     expect(kachel).not.toHaveTextContent('€ 330,00');
+    zahlungenImMonat.mockResolvedValue([]);
   });
 });
 
@@ -2767,7 +2778,10 @@ describe('Die Kennzahlen „Offen" und „Überfällig"', () => {
     ] as unknown as (Invoice & { id: string })[];
     zeige();
     await screen.findByText(/RE-2026-1003/);
-    expect(kachel('Bezahlt')).toHaveTextContent('auf die 1 jüngsten Rechnungen');
+    // Seit G27: der laufende Monat, mit seinem ersten Tag.
+    const erster = new Date();
+    const tt = `01.${String(erster.getMonth() + 1).padStart(2, '0')}.${erster.getFullYear()}`;
+    await waitFor(() => expect(kachel('Bezahlt im laufenden Monat')).toHaveTextContent(`seit ${tt}`));
   });
 });
 
@@ -2985,5 +2999,49 @@ describe('Storno und Zahlungsstand', () => {
     await waitFor(() => expect(cancelInvoice).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'h1' }), 'Falscher Kunde',
     ));
+  });
+});
+
+/*
+  TESTBERICHT 30.09.2026, PAKET 5a — Rechnungsdetail (M19), Stornorechnung als
+  eigene Zeile (G28), Zahlung auf eine erledigte Rechnung (G15).
+*/
+describe('Paket 5a — die Rechnungsliste', () => {
+  it('öffnet die Rechnung in der App, ohne PDF (M19)', async () => {
+    rechnungen = [
+      { id: 'd', invoiceNumber: 'RE-2026-1600', projectNumber: '2026-001', customerName: 'Familie Huber',
+        invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Offen', totalNetto: 100, totalVat: 20,
+        totalBrutto: 120, positions: [{ label: 'Facharbeiterstunden', qty: 2, unit: 'h', unitPrice: 50, netto: 100 }] },
+    ] as unknown as (Invoice & { id: string })[];
+    zeige();
+    const knopf = (await screen.findAllByRole('button', { name: /RE-2026-1600/ }))
+      .find((b) => !b.getAttribute('aria-label')?.startsWith('Weitere Aktionen'))!;
+    await userEvent.click(knopf);
+    expect(await screen.findByText('Facharbeiterstunden')).toBeInTheDocument();
+    expect(screen.getByText('Brutto')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'PDF laden' })).toBeInTheDocument();
+  });
+
+  it('zeigt die Stornorechnung als eigene Zeile, verknüpft mit der stornierten (G28)', async () => {
+    rechnungen = [
+      { id: 's', invoiceNumber: 'RE-2026-1500', projectNumber: '2026-042', customerName: 'Max',
+        invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Storniert', totalBrutto: 504,
+        stornoNummer: 'RE-2026-1510', stornoAm: Date.UTC(2026, 8, 20, 10) },
+    ] as unknown as (Invoice & { id: string })[];
+    zeige();
+    expect((await screen.findAllByText(/RE-2026-1510/)).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/zu RE-2026-1500/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Stornorechnung').length).toBeGreaterThan(0);
+  });
+
+  it('sagt bei einer bezahlten Rechnung, dass eine weitere Zahlung Guthaben wird (G15)', async () => {
+    rechnungen = [
+      { id: 'b', invoiceNumber: 'RE-2026-1003', projectNumber: '2026-001', customerName: 'Max',
+        invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Bezahlt', totalBrutto: 100, bezahltBetrag: 100 },
+    ] as unknown as (Invoice & { id: string })[];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-1003/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Weitere Zahlung erfassen …' }));
+    expect(await screen.findByText(/schon bezahlt\. Eine weitere Zahlung wird zum Guthaben/)).toBeInTheDocument();
   });
 });

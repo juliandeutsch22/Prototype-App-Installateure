@@ -44,6 +44,12 @@ export interface AssembledInvoice {
   /** Materialzeilen ohne Preis im Katalog — die Ansicht weist darauf hin. */
   materialOhnePreis: string[];
   entries: TimeEntry[]; // für optionalen Leistungsnachweis
+  /**
+   * Die Tätigkeit aus dem Schein je Buchung (Testbericht 30.09.2026, G17):
+   * gleicher Tag, gleiche Person. Der Leistungsnachweis nimmt sie, wo die
+   * Buchung selbst keine Notiz trägt — vorher stand die Spalte leer.
+   */
+  taetigkeiten?: Record<string, string>;
 }
 
 /**
@@ -210,13 +216,39 @@ export function assembleInvoice(
     etwa wenn nur geliefert und verbaut wurde. Nähme man nur die Zeiteinträge,
     fiele dieser Tag aus dem Zeitraum, den die Rechnung behauptet.
   */
+  /*
+    SEIT DEM 30.09.2026 (Testbericht G16) ZÄHLEN ALLE UNTERSCHRIEBENEN,
+    NOCH NICHT VERRECHNETEN SCHEINE DER BAUSTELLE — nicht nur die mit
+    Material. Ein Schein über reine Arbeitszeit ohne Buchung (etwa bei einer
+    Pauschale) liess den Zeitraum sonst leer, und die Rechnung war nach § 11
+    UStG unvollständig.
+  */
   const verbraucht = new Set(mat.herkunft.scheine);
   const leistung = leistungszeitraum([
     ...eligibleEntries.map((e) => e.date),
-    ...material?.scheine.filter((s) => verbraucht.has(s.id)).map((s) => s.datum) ?? [],
+    ...material?.scheine
+      .filter((s) => verbraucht.has(s.id)
+        || (s.status === 'Unterschrieben' && !material.bereitsVerrechnet?.has(s.id)))
+      .map((s) => s.datum) ?? [],
   ]);
 
+  const taetigkeiten: Record<string, string> = {};
+  for (const e of eligibleEntries) {
+    const name = (e.userName ?? '').trim().toLowerCase();
+    if (!name) continue;
+    for (const schein of material?.scheine ?? []) {
+      const z = (schein.zeiten ?? []).find(
+        (x) => x.datum === e.date && x.mitarbeiter?.trim().toLowerCase() === name && x.taetigkeit?.trim(),
+      );
+      if (z?.taetigkeit) {
+        taetigkeiten[e.id] = z.taetigkeit.trim();
+        break;
+      }
+    }
+  }
+
   return {
+    taetigkeiten,
     positions,
     discount: null,
     ...calcTotals(positions, rates.vatRate),

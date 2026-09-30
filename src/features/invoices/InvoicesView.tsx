@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon } from '@/lib/lohnregeln';
@@ -22,7 +22,7 @@ import {
   scheineAufRechnung,
   RECHNUNG_TREFFER,
 } from '@/lib/db/invoices';
-import { listZahlungen, createZahlung, createZahlungMitSkonto, deleteZahlung } from '@/lib/db/zahlungen';
+import { listZahlungen, listZahlungenImZeitraum, createZahlung, createZahlungMitSkonto, deleteZahlung } from '@/lib/db/zahlungen';
 import { istUeberfaellig, zahlstand } from './zahlstand';
 import { skontoBedingung, skontoZumAusgleich, zugesagterSkonto } from './skonto';
 import { listActiveProjects } from '@/lib/db/projects';
@@ -68,7 +68,8 @@ import Button from '@/components/Button';
 import Metric, { MetricRow } from '@/components/Metric';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
-import { Warnung } from '@/components/Badge';
+import { Marke, Warnung } from '@/components/Badge';
+import RechnungDetail from './RechnungDetail';
 import PageHeader from '@/components/PageHeader';
 import { praefixeVon } from '@/lib/praefixe';
 import { isTopLevel } from '@/lib/permissions';
@@ -265,6 +266,8 @@ export default function InvoicesView() {
    * würde.
    */
   const [suggestedNumber, setSuggestedNumber] = useState('');
+  /** Die Rechnung, deren Detailansicht offen ist (M19). */
+  const [detailFuer, setDetailFuer] = useState<WithId<Invoice> | null>(null);
   const [appendDetail, setAppendDetail] = useState(true);
   /**
    * Rabatt als Formularzustand: `value` bleibt Text, damit ein halb getipptes
@@ -539,6 +542,34 @@ export default function InvoicesView() {
     Betriebs gibt es nicht. Die Zahl bleibt, sagt aber dazu, worüber sie
     gerechnet ist.
   */
+  /*
+    „BEZAHLT IM LAUFENDEN MONAT“ (Testbericht 30.09.2026, G27). Die alte Zahl
+    summierte die Zahlungen auf die zuletzt geladenen Rechnungen — welcher
+    Zeitraum, blieb offen, und die Zahl änderte sich mit „Ältere laden“.
+    Jetzt: die Zahlungseingänge vom Monatsersten bis heute, nach
+    Wertstellung, ohne Skonto (das ist kein Geld), Rückzahlungen abgezogen.
+    Neu geholt, sobald sich an den Rechnungen etwas bewegt.
+  */
+  const [bezahltImMonat, setBezahltImMonat] = useState<number | null>(null);
+  const monatsErster = `${todayStr().slice(0, 7)}-01`;
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    listZahlungenImZeitraum(user.companyId, monatsErster, todayStr())
+      .then((z) => {
+        if (weg) return;
+        // Zahlungen auf eine stornierte Rechnung sind Guthaben des Kunden, keine
+        // beglichene Forderung (Launch-Check, M13) — sie zählen hier nicht.
+        const storniert = new Set(invoices.filter((i) => i.paymentStatus === 'Storniert').map((i) => i.id));
+        const summe = z
+          .filter((x) => x.art !== 'Skonto' && !storniert.has(x.invoiceId))
+          .reduce((s, x) => s + (Number(x.betrag) || 0), 0);
+        setBezahltImMonat(Math.round(summe * 100) / 100);
+      })
+      .catch(() => { if (!weg) setBezahltImMonat(null); });
+    return () => { weg = true; };
+  }, [user, monatsErster, invoices]);
+
   const stats = useMemo(() => {
     let offen = 0;
     let ueberfaellig = 0;
@@ -1243,6 +1274,12 @@ export default function InvoicesView() {
    * Die Stornorechnung als PDF — beim ersten Mal wird sie ausgestellt, danach
    * nur neu gedruckt. Wirft, damit der Dialog beim Fehler offen bleibt.
    */
+  /** Der Tag der Stornorechnung, TT.MM.JJJJ — `stornoAm` ist ein Zeitpunkt. */
+  function stornoDatum(inv: Invoice): string {
+    const t = inv.stornoAm ?? inv.cancelledAt;
+    return t ? datumAT(localDateStr(new Date(t))) : '—';
+  }
+
   async function stornorechnungDrucken(inv: WithId<Invoice>) {
     if (!company) return;
     const nummer = inv.stornoNummer ?? (await stornorechnungAusstellen(inv, vorsaetze.rechnung));
@@ -1594,6 +1631,8 @@ export default function InvoicesView() {
     <RowMenu
       about={`Rechnung ${inv.invoiceNumber}`}
       items={[
+        // Die Rechnung in der App lesen, ohne Datei (Testbericht 30.09.2026, M19).
+        { label: 'Ansehen', onSelect: () => setDetailFuer(inv) },
         { label: 'PDF erneut laden', onSelect: () => void redownload(inv) },
         /*
           MAHNEN steht im Menü, nicht als Knopf in der Zeile.
@@ -1635,7 +1674,17 @@ export default function InvoicesView() {
           Guthaben des Kunden.
         */
         {
-          label: 'Zahlung erfassen',
+          /*
+            DIE BESCHRIFTUNG SAGT, WAS PASSIERT (Testbericht 30.09.2026,
+            G15): bei einer bezahlten oder stornierten Rechnung wird aus einer
+            weiteren Zahlung Guthaben des Kunden. Der Dialog sagt es noch
+            einmal, bevor eingetragen wird.
+          */
+          label: inv.paymentStatus === 'Storniert'
+            ? 'Zahlung erfassen (wird Guthaben) …'
+            : inv.paymentStatus === 'Bezahlt' || inv.paymentStatus === 'Überzahlt'
+              ? 'Weitere Zahlung erfassen …'
+              : 'Zahlung erfassen',
           onSelect: () => void zahlungOeffnen(inv),
         },
         ...(inv.paymentStatus !== 'Storniert'
@@ -1717,8 +1766,13 @@ export default function InvoicesView() {
         <Metric label="Überfällig" tone={stats.ueberfaellig > 0 ? 'danger' : 'default'}
           value={euro(stats.ueberfaellig)}
           hint={forderungenFehler ? 'nur die jüngsten — offene Forderungen nicht geladen' : undefined} />
-        <Metric label="Bezahlt" tone="success" value={euro(stats.bezahlt)}
-          hint={`auf die ${invoices.length} jüngsten Rechnungen`} />
+        {bezahltImMonat !== null ? (
+          <Metric label="Bezahlt im laufenden Monat" tone="success" value={euro(bezahltImMonat)}
+            hint={`Zahlungseingänge seit ${datumAT(monatsErster)}, ohne Skonto`} />
+        ) : (
+          <Metric label="Bezahlt" tone="success" value={euro(stats.bezahlt)}
+            hint={`auf die ${invoices.length} zuletzt geladenen Rechnungen`} />
+        )}
       </MetricRow>
 
       {/*
@@ -2584,8 +2638,15 @@ export default function InvoicesView() {
                 Diese Rechnungsnummer ist bereits vergeben.
               </p>
             )}
-            <CheckboxField id="invdetail" label="Leistungsnachweis anhängen"
-              checked={appendDetail} onChange={(e) => setAppendDetail(e.target.checked)} />
+            {/*
+              BEI EINER ANZAHLUNG GIBT ES NICHTS NACHZUWEISEN (G16): die Leistung
+              ist noch nicht erbracht, das PDF liess den Nachweis ohnehin weg —
+              der Haken stand trotzdem gesetzt da.
+            */}
+            {art !== 'anzahlung' && (
+              <CheckboxField id="invdetail" label="Leistungsnachweis anhängen"
+                checked={appendDetail} onChange={(e) => setAppendDetail(e.target.checked)} />
+            )}
             {/* Die ZAHL bleibt stehen — sie gehört zu dem, was der Knopf gleich
                 tut. Der allgemeine Teil („Material wird nicht verrechnet")
                 steht im „i" der Karte. */}
@@ -2710,6 +2771,26 @@ export default function InvoicesView() {
                     )}
                 </p>
               </Hinweiszeile>
+            )}
+            {/*
+              OHNE IBAN NENNT DIE RECHNUNG KEIN KONTO (Testbericht 30.09.2026,
+              M19). Das PDF liess die Zeile still weg; bezahlt wird dann per
+              Rückfrage oder gar nicht. Eine Warnung, keine Sperre — manche
+              Betriebe kassieren bar.
+            */}
+            {company?.addressLine?.trim() && !company?.iban?.trim() && (
+              <p className="text-sm text-warning">
+                In den Firmendaten ist keine IBAN hinterlegt — die Rechnung nennt dann kein Konto für
+                die Überweisung.
+                {user && isTopLevel(user.role) && (
+                  <>
+                    {' '}
+                    <Link to="/settings/firma" className="link-hinweis-weiter">
+                      Firmendaten
+                    </Link>
+                  </>
+                )}
+              </p>
             )}
             {company?.addressLine?.trim() && !company?.vatId?.trim() && (
               <p className="text-sm text-warning">
@@ -2837,8 +2918,13 @@ export default function InvoicesView() {
               ]}
             >
               {visible.map((inv) => (
-                <tr key={inv.id}>
-                  <td className="whitespace-nowrap font-medium text-ink-deep">{inv.invoiceNumber}</td>
+                <Fragment key={inv.id}>
+                <tr>
+                  <td className="whitespace-nowrap font-medium text-ink-deep">
+                    <button type="button" className="link" onClick={() => setDetailFuer(inv)}>
+                      {inv.invoiceNumber}
+                    </button>
+                  </td>
                   <td>
                     <span className="font-medium text-ink-deep">{inv.customerName}</span>
                     <span className="block text-meta text-ink-muted">{rechnungNotizen(inv)}</span>
@@ -2851,6 +2937,31 @@ export default function InvoicesView() {
                   </td>
                   <td className="r">{rechnungMenue(inv)}</td>
                 </tr>
+                {/*
+                  DIE STORNORECHNUNG ALS EIGENE ZEILE (Testbericht 30.09.2026,
+                  G28). Im Ausgangsbuch ist sie ein eigener Beleg; hier stand
+                  sie nur als Vermerk unter der stornierten Rechnung. Sie
+                  folgt ihr direkt — so bleibt sichtbar, wozu sie gehört.
+                */}
+                {inv.stornoNummer && (
+                  <tr>
+                    <td className="whitespace-nowrap font-medium text-ink-deep">{inv.stornoNummer}</td>
+                    <td>
+                      <span className="font-medium text-ink-deep">{inv.customerName}</span>
+                      <span className="block text-meta text-ink-muted">Stornorechnung zu {inv.invoiceNumber}</span>
+                    </td>
+                    <td className="whitespace-nowrap">{stornoDatum(inv)}</td>
+                    <td className="whitespace-nowrap">—</td>
+                    <td className="r whitespace-nowrap font-medium text-ink-deep">{euro(-inv.totalBrutto)}</td>
+                    <td><Marke>Stornorechnung</Marke></td>
+                    <td className="r">
+                      <Button variant="ghost" groesse="klein" onClick={() => void stornorechnungDrucken(inv)}>
+                        PDF
+                      </Button>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </Tabelle>
           ) : (
@@ -2858,7 +2969,11 @@ export default function InvoicesView() {
               {visible.map((inv) => (
                 <ListRow
                   key={inv.id}
-                  title={`${inv.invoiceNumber} · ${inv.customerName}`}
+                  title={
+                    <button type="button" className="text-left" onClick={() => setDetailFuer(inv)}>
+                      {`${inv.invoiceNumber} · ${inv.customerName}`}
+                    </button>
+                  }
                   wert={euro(inv.totalBrutto)}
                   zustand={<StatusBadge status={inv.paymentStatus} />}
                   subtitle={
@@ -2878,7 +2993,24 @@ export default function InvoicesView() {
                 >
                   {rechnungMenue(inv)}
                 </ListRow>
-              ))}
+              )).flatMap((zeile, i) => {
+                const inv = visible[i];
+                if (!inv.stornoNummer) return [zeile];
+                return [
+                  zeile,
+                  <ListRow
+                    key={`${inv.id}-storno`}
+                    title={`${inv.stornoNummer} · ${inv.customerName}`}
+                    wert={euro(-inv.totalBrutto)}
+                    zustand={<Marke>Stornorechnung</Marke>}
+                    subtitle={`${stornoDatum(inv)} · zu ${inv.invoiceNumber}`}
+                  >
+                    <Button variant="ghost" groesse="klein" onClick={() => void stornorechnungDrucken(inv)}>
+                      PDF
+                    </Button>
+                  </ListRow>,
+                ];
+              })}
             </List>
           )
         )}
@@ -3179,6 +3311,11 @@ export default function InvoicesView() {
         will im selben Moment sehen, was schon da war — sonst bucht er die
         Überweisung vom Dienstag ein zweites Mal ein.
       */}
+      <RechnungDetail
+        inv={detailFuer}
+        onClose={() => setDetailFuer(null)}
+        onPdf={(i) => void redownload(i as WithId<Invoice>)}
+      />
       <ConfirmDialog
         open={!!zahlungFuer}
         title={zahlungFuer ? `Zahlungen — ${zahlungFuer.invoiceNumber}` : 'Zahlungen'}
@@ -3195,6 +3332,18 @@ export default function InvoicesView() {
         onCancel={() => setZahlungFuer(null)}
         onConfirm={zahlungSpeichern}
       >
+        {zahlungFuer && (zahlungFuer.paymentStatus === 'Storniert'
+          || zahlungFuer.paymentStatus === 'Bezahlt' || zahlungFuer.paymentStatus === 'Überzahlt') && (
+          <div className="mb-3">
+            <Hinweiszeile stufe="warn">
+              <p>
+                {zahlungFuer.paymentStatus === 'Storniert'
+                  ? 'Diese Rechnung ist storniert. Eine Zahlung hierauf wird zum Guthaben des Kunden.'
+                  : 'Diese Rechnung ist schon bezahlt. Eine weitere Zahlung wird zum Guthaben des Kunden.'}
+              </p>
+            </Hinweiszeile>
+          </div>
+        )}
         <FormGrid cols={2}>
           <InputField
             id="z-datum"

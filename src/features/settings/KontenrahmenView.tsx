@@ -9,6 +9,7 @@ import {
 } from '@/lib/db/konten';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
@@ -81,6 +82,8 @@ export default function KontenrahmenView() {
   const betrieb = user?.companyId ?? '';
 
   const [geladen, setGeladen] = useState<WithId<Buchungskonto>[] | null>(null);
+  /** Ob gerade der Vorschlag eingesetzt wurde — dann steht der Hinweis auf die Kanzlei da (M26). */
+  const [vorschlagDrin, setVorschlagDrin] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [speichert, setSpeichert] = useState(false);
 
@@ -188,6 +191,7 @@ export default function KontenrahmenView() {
   }
 
   function vorschlagEinsetzen() {
+    setVorschlagDrin(true);
     setDebitoren((z) => ({ ...z, ...VORSCHLAG.debitoren }));
     setAnzahlung((z) => ({ ...z, ...VORSCHLAG.anzahlung }));
     setReverse((z) => ({ ...z, ...VORSCHLAG.reverse }));
@@ -231,6 +235,20 @@ export default function KontenrahmenView() {
         }
       >
         <div className="space-y-4">
+          {/*
+            EIN VORSCHLAG IST KEINE FREIGABE (Testbericht 30.09.2026, M26). Die
+            Konten kommen aus dem Kontenplan der Kanzlei; eingesetzt und
+            gespeichert wurde der Vorschlag bisher ohne jeden Hinweis darauf.
+          */}
+          {vorschlagDrin && (
+            <Hinweiszeile stufe="warn">
+              <p>
+                <b>Vorschlag – mit der Kanzlei abstimmen.</b> Die Nummern stammen aus dem
+                österreichischen Einheitskontenrahmen; ob sie zum Kontenplan deiner Kanzlei passen,
+                weiß nur sie. Vor dem ersten Buchungsstapel bitte abgleichen.
+              </p>
+            </Hinweiszeile>
+          )}
           <div className="flex flex-wrap items-end gap-x-2">
             <div className="min-w-[10rem] grow">
               <InputField
