@@ -9,6 +9,7 @@ import { InputField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { ZahlWertFeld } from '@/components/ZahlFeld';
+import { mengeFehler } from '@/lib/einheit';
 
 /**
  * Die Rüstliste eines Einsatzes zusammenstellen — was in den Bus soll.
@@ -144,6 +145,10 @@ export default function RuestlistePlanen({
                       onWert={(n) => mengeSetzen(p.id, n)}
                     />
                   </div>
+                  {/* Je Einheit (M27): „2,5 Stk“ fällt auf; null heisst „tippe noch“. */}
+                  {p.menge > 0 && mengeFehler(p.menge, p.einheit ?? artikel?.unit) && (
+                    <p className="basis-full text-sm text-danger">{mengeFehler(p.menge, p.einheit ?? artikel?.unit)}</p>
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="flex flex-wrap items-center gap-2 font-medium text-ink">
                       {p.name}

@@ -30,9 +30,11 @@ import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/S
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAusMs } from '@/lib/datum';
 import { abschlussText } from './abschlussText';
-import { zahlOder } from '@/lib/zahl';
+import { zahlAlsText, zahlOder } from '@/lib/zahl';
+import { mengeFehler, mengeMitKomma } from '@/lib/einheit';
 import { useReiterImBild } from '@/components/reiterImBild';
 import ZahlFeld from '@/components/ZahlFeld';
+import { fmtMenge } from '@/lib/belegLayout';
 
 type Tab = 'bestellen' | 'meine' | 'retoure';
 
@@ -318,9 +320,12 @@ export default function OrderView() {
     // Ohne diese Prüfung ginge eine negative Menge als increment(-n) durch und
     // eine Retoure würde den Lagerbestand VERRINGERN.
     // Zentral gelesen (M15); „1,5“ wird nicht still zu 1.
-    const qty = zahlOder(retQty, NaN);
-    if (!Number.isInteger(qty) || qty < 1) {
-      setError('Bitte eine ganze Menge von mindestens 1 angeben.');
+    const qty = zahlOder(retQty, NaN, { negativ: true });
+    // Je Einheit (M27): Rohr in Metern mit Komma, Stück ganz.
+    const einheit = materials.find((m) => m.id === retMaterial)?.unit;
+    const falsch = mengeFehler(qty, einheit);
+    if (falsch) {
+      setError(falsch);
       return;
     }
     setSaving(true);
@@ -561,7 +566,7 @@ export default function OrderView() {
                       title={
                         <span>
                           {line.materialName}{' '}
-                          <span className="text-ink-muted">×{line.quantity}</span>
+                          <span className="text-ink-muted">×{fmtMenge(line.quantity)}</span>
                         </span>
                       }
                       subtitle={
@@ -614,7 +619,7 @@ export default function OrderView() {
                     key={o.id}
                     title={
                       <span>
-                        {o.materialName} <span className="text-ink-muted">×{o.quantity}</span>
+                        {o.materialName} <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
                       </span>
                     }
                     subtitle={[
@@ -666,7 +671,7 @@ export default function OrderView() {
                     key={o.id}
                     title={
                       <span>
-                        {o.materialName} <span className="text-ink-muted">×{o.quantity}</span>
+                        {o.materialName} <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
                       </span>
                     }
                     subtitle={[
@@ -833,9 +838,11 @@ function QtyAdder({
   const [menge, setMenge] = useState('1');
   const [added, setAdded] = useState(0);
 
-  // Ganze Stück, zentral gelesen (M15): „1,5“ ist ungültig, nicht still 1.
+  // Zentral gelesen (M15), und je Einheit (M27): Meter und Kilo mit Komma,
+  // Stück ganz — „1,5 Stk“ ist ungültig, nicht still 1.
   const zahl = zahlOder(menge, NaN);
-  const gueltig = Number.isInteger(zahl) && zahl >= 1;
+  const mitKomma = mengeMitKomma(material.unit);
+  const gueltig = mengeFehler(zahl, material.unit) === null;
 
   function anfordern() {
     if (!gueltig) return;
@@ -850,7 +857,7 @@ function QtyAdder({
     <div className="flex items-center gap-1">
       {added > 0 && (
         <span className="mr-1 text-sm font-bold text-brand" aria-live="polite">
-          ×{added}
+          ×{fmtMenge(added)}
         </span>
       )}
       {/*
@@ -862,14 +869,14 @@ function QtyAdder({
       */}
       <IconButton
         label={`Menge für ${material.name} verringern`}
-        onClick={() => setMenge(String(Math.max(1, (gueltig ? zahl : 1) - 1)))}
+        onClick={() => setMenge(zahlAlsText(Math.max(1, (gueltig ? zahl : 1) - 1)))}
         disabled={gueltig && zahl <= 1}
       >
         −
       </IconButton>
       <input
         type="text"
-        inputMode="numeric"
+        inputMode={mitKomma ? 'decimal' : 'numeric'}
         autoComplete="off"
         data-zahl=""
         value={menge}
@@ -882,7 +889,7 @@ function QtyAdder({
       />
       <IconButton
         label={`Menge für ${material.name} erhöhen`}
-        onClick={() => setMenge(String((gueltig ? zahl : 0) + 1))}
+        onClick={() => setMenge(zahlAlsText((gueltig ? zahl : 0) + 1))}
       >
         +
       </IconButton>

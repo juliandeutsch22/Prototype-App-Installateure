@@ -424,7 +424,7 @@ describe('Material anfordern — Retoure', () => {
     await userEvent.type(menge, '-3');
     await userEvent.click(screen.getByRole('button', { name: 'Retoure erfassen' }));
 
-    expect(await screen.findByText(/Menge von mindestens 1/)).toBeInTheDocument();
+    expect(await screen.findByText(/größer als null/)).toBeInTheDocument();
     expect(retoure).not.toHaveBeenCalled();
   });
 
@@ -555,5 +555,40 @@ describe('Material anfordern — die eigene Verfolgung', () => {
     expect(await screen.findByText('Keine offenen Bestellungen.')).toBeInTheDocument();
     const erledigt = screen.getByRole('heading', { name: 'Erledigt (1)' }).closest('section')!;
     expect(within(erledigt).getByText('Retoure')).toBeInTheDocument();
+  });
+});
+
+// Testbericht 30.09.2026, M27 — Mengen je Einheit: Meter mit Komma, Stück ganz.
+describe('Mengen je Einheit', () => {
+  it('Gegenprobe: „2,5“ Stück bei einer Retoure wird abgewiesen', async () => {
+    zeige();
+    await userEvent.click(screen.getByRole('tab', { name: 'Retoure' }));
+    await userEvent.type(await screen.findByRole('searchbox', { name: /^Material/ }), 'Dichtung');
+    await userEvent.click(await screen.findByRole('button', { name: /Dichtung 1\/2" zurückgeben/ }));
+    const menge = screen.getByRole('textbox', { name: /Menge/ });
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '2,5');
+    await userEvent.click(screen.getByRole('button', { name: 'Retoure erfassen' }));
+    expect(await screen.findByText(/ganze Stück/)).toBeInTheDocument();
+    expect(retoure).not.toHaveBeenCalled();
+  });
+
+  it('Rohr in Metern nimmt „2,5“ in die Anforderung', async () => {
+    zeige();
+    const feld = await screen.findByRole('textbox', { name: /Menge m für Kupferrohr 15mm/ });
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '2,5');
+    const knopf = screen.getByRole('button', { name: /Kupferrohr 15mm anfordern/ });
+    expect(knopf).toBeEnabled();
+    await userEvent.click(knopf);
+    expect((await screen.findAllByText('×2,5')).length).toBeGreaterThan(0);
+  });
+
+  it('Gegenprobe: bei Stück bleibt „1,5“ gesperrt', async () => {
+    zeige();
+    const feld = await screen.findByRole('textbox', { name: /Menge Stk für Dichtung/ });
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '1,5');
+    expect(screen.getByRole('button', { name: /Dichtung 1\/2" anfordern/ })).toBeDisabled();
   });
 });

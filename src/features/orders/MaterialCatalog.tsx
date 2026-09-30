@@ -26,15 +26,15 @@ import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { leseZahl, preisAlsText, zahlOder } from '@/lib/zahl';
 import { grundAus } from '@/lib/fehlerGrund';
 import ZahlFeld from '@/components/ZahlFeld';
+import { EINHEITEN } from '@/lib/einheit';
 
-/**
- * Die ueblichen Mengeneinheiten im Sanitaer- und Heizungsbau.
- *
- * Als Vorschlagsliste, nicht als Zwang: ein Betrieb fuehrt auch Sonderposten,
- * und ein Auswahlfeld, das die passende Einheit nicht kennt, ist schlimmer
- * als ein freies Feld.
- */
-const EINHEITEN = ['Stk', 'm', 'lfm', 'm²', 'kg', 'l', 'Pkg', 'Rolle', 'Sack', 'Paar'];
+/*
+  Die üblichen Mengeneinheiten im Sanitär- und Heizungsbau — als
+  Vorschlagsliste, nicht als Zwang: ein Betrieb führt auch Sonderposten, und
+  ein Auswahlfeld, das die passende Einheit nicht kennt, ist schlimmer als ein
+  freies Feld. Die Liste steht in `@/lib/einheit`, samt der Regel, welche
+  Einheit Nachkommastellen nimmt (M27).
+*/
 
 const empty = {
   name: '',
