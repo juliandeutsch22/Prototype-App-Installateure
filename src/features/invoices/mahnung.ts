@@ -200,6 +200,31 @@ export type MahnkostenSaetze = Pick<InvoiceRates, 'mahnspesen' | 'mahnspesenVerb
 export const PAUSCHALE_458 = 40;
 
 /**
+ * Die Summe der Mahnspesen über alle Stufen — so viel verlangt eine Rechnung
+ * höchstens, wenn sie alle drei durchläuft (Testbericht 30.09.2026, M22).
+ */
+export function spesenSumme(spesen: number[] | undefined): number {
+  return Math.round((spesen ?? []).reduce((s, w) => s + (typeof w === 'number' && w > 0 ? w : 0), 0) * 100) / 100;
+}
+
+/**
+ * Was die Maske zu den Mahnspesen sagt (M22): an Firmenkunden höchstens 40 €
+ * je Rechnung — die Datenbank weist mehr ab (`companies_mahnspesen_grenze`);
+ * an Privatkunden nur eine Warnung über 40 €, denn das Gesetz verlangt
+ * „angemessen“ und nennt keinen Betrag.
+ */
+export function mahnspesenBefund(
+  saetze: Pick<InvoiceRates, 'mahnspesen' | 'mahnspesenVerbraucher' | 'pauschale458'>,
+): { firmaZuViel: number | null; privatHoch: number | null } {
+  const firma = saetze.pauschale458 ? 0 : spesenSumme(saetze.mahnspesen);
+  const privat = spesenSumme(saetze.mahnspesenVerbraucher ?? saetze.mahnspesen);
+  return {
+    firmaZuViel: firma > PAUSCHALE_458 ? firma : null,
+    privatHoch: privat > PAUSCHALE_458 ? privat : null,
+  };
+}
+
+/**
  * Was eine Mahnung an Kosten verlangt — je nachdem, an wen sie geht.
  *
  * FIRMEN- UND PRIVATKUNDEN GETRENNT, weil das Gesetz sie trennt. Gegenüber

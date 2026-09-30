@@ -8,6 +8,7 @@ import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { isTopLevel } from '@/lib/permissions';
 import type { AppUser, InvoiceRates } from '@/types';
 import Card from '@/components/Card';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import LohnregelnKarte from './LohnregelnKarte';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
@@ -17,8 +18,8 @@ import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
-import { euroBetrag } from '@/lib/betrag';
-import { halbjahresbeginn } from '@/features/invoices/mahnung';
+import { euro, euroBetrag } from '@/lib/betrag';
+import { halbjahresbeginn, mahnspesenBefund } from '@/features/invoices/mahnung';
 import { todayStr } from '@/lib/time';
 
 /** Zahl aus einem Eingabefeld — akzeptiert Komma wie Punkt. */
@@ -1257,6 +1258,34 @@ function RechnungsvorgabenFelder({
           />
         );
       })}
+      {/*
+        DIE GRENZE STEHT DA, BEVOR JEMAND SPEICHERT (Testbericht 30.09.2026,
+        M22). An Firmenkunden höchstens 40 € je Rechnung — mehr weist die
+        Datenbank ab; an Privatkunden eine Warnung, weil das Gesetz nur
+        „angemessen“ sagt. Keine Rechtsberatung; mit der WKO abzustimmen.
+      */}
+      {(() => {
+        const befund = mahnspesenBefund(rates);
+        return (
+          <>
+            {befund.firmaZuViel !== null && (
+              <p role="alert" className="text-sm text-danger">
+                Firmenkunden: höchstens 40 € je Rechnung (§ 458 UGB) — zusammen stehen hier{' '}
+                {euro(befund.firmaZuViel)}. So lässt sich nicht speichern.
+              </p>
+            )}
+            {befund.privatHoch !== null && (
+              <Hinweiszeile stufe="warn">
+                <p>
+                  Privatkunden: zusammen {euro(befund.privatHoch)} je Rechnung, mehr als 40 €. Das
+                  Gesetz verlangt nur „angemessene“ Kosten (§ 1333 Abs 2 ABGB) — bitte bewusst
+                  entscheiden.
+                </p>
+              </Hinweiszeile>
+            )}
+          </>
+        );
+      })()}
       {/*
         DER BASISZINSSATZ MIT SEINEM HALBJAHR, nicht allein. Eine Zahl
         ohne Stand veraltete still; so rechnet die Mahnung nur, solange
