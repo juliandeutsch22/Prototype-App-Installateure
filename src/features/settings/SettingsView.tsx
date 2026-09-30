@@ -8,6 +8,7 @@ import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { isTopLevel } from '@/lib/permissions';
 import type { AppUser, InvoiceRates } from '@/types';
 import Card from '@/components/Card';
+import LohnregelnKarte from './LohnregelnKarte';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
@@ -1109,6 +1110,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
         {fehlerBei('dezember')}
       </Card>
       )}
+
+      {teil === 'personal' && <LohnregelnKarte />}
 
       {teil === 'personal' && (
       <Card title="Monatsbilanzen">

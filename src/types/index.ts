@@ -166,6 +166,22 @@ export interface Company {
    * 100 % Zuschlag ausgewiesen. Ab Werk an; siehe `tagesAnteil`.
    */
   dezemberHalbtage?: boolean;
+  /**
+   * Die Nachtzeit, 'HH:MM' (Testbericht 30.09.2026, M35). Vorgabe 22:00–06:00;
+   * nur die Stunden darin tragen den Nachtzuschlag. Siehe `lib/lohnregeln.ts`.
+   */
+  nachtVon?: string;
+  nachtBis?: string;
+  /**
+   * Überstundenmodell: `zeitkonto` (Vorgabe, Gleitzeit mit Saldo) oder
+   * `tagesgrenze` — Stunden über der Grenze eines Tages als Überstunden 50 %,
+   * ausgewiesen in Lohn-CSV und Stundennachweis, nie als Geld.
+   */
+  ueberstundenModell?: 'zeitkonto' | 'tagesgrenze';
+  /** Bei `tagesgrenze`: über dem Tagessoll oder über zehn Stunden (Gleitzeit). */
+  ueberstundenGrenze?: 'tagessoll' | 'zehn';
+  /** Bei `tagesgrenze`: Arbeit an Sonn- und Feiertagen als Überstunden 100 %. */
+  ueberstundenHundertSonnFeiertag?: boolean;
   /** Vorschlag für den Grund der Steuerbefreiung auf Rechnungen mit 0 % (A2). */
   steuerbefreiungVorgabe?: string;
   urlaubUebertrag?: 'verjaehrung' | 'stichtag';
