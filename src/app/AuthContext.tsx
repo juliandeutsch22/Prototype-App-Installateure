@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useCallback,
   type ReactNode,
@@ -138,6 +139,19 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
+/**
+ * DENSELBEN STAND NICHT ALS NEUES OBJEKT SETZEN (Testbericht 30.09.2026, H9).
+ *
+ * Profil und Firma kommen erst aus dem Zwischenspeicher, dann vom Server —
+ * meist mit demselben Inhalt. Als neues Objekt gesetzt, lief jede Ansicht, die
+ * an ihnen hängt, noch einmal los: Listen luden neu, Formulare setzten sich
+ * zurück. Gleicher Inhalt behält jetzt das alte Objekt.
+ */
+function stabil<T>(neu: T) {
+  return (alt: T): T =>
+    alt !== null && neu !== null && JSON.stringify(alt) === JSON.stringify(neu) ? alt : neu;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
@@ -151,6 +165,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   */
   const [plattformKonto, setPlattformKonto] = useState<{ uid: string; email: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  /**
+   * Für wen gerade ein Stand angezeigt wird. Meldet sich die Anmeldung für
+   * DENSELBEN noch einmal — beim Start mehrmals, bei jeder Token-Erneuerung,
+   * beim Zurückkehren in den Tab —, wird still nachgezogen statt neu geladen.
+   */
+  const geladenFuer = useRef<string | null>(null);
 
   // Damit eine abgewiesene Änderung im Einblick als solche benannt wird und
   // nicht als fehlendes Recht (siehe `lib/fehlerGrund.ts`).
@@ -166,19 +186,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ausgangsfachKonto(wer?.uid ?? null);
       setError(null);
       if (!wer) {
+        geladenFuer.current = null;
         setUser(null);
         setCompany(null);
         setPlattformAdmin(false);
         setLoading(false);
         return;
       }
-      setPlattformAdmin(false);
-      setPlattformKonto(null);
-      setEinblick(null);
-      setEinblickFirma(null);
-      // Während das Profil geladen wird, "loading" halten, damit der
-      // Auth-Guard nicht fälschlich auf /login zurückspringt.
-      setLoading(true);
+      /*
+        DERSELBE NUTZER NOCH EINMAL: STILL NACHZIEHEN (Testbericht 30.09.2026,
+        H9). Hier stand für jede Meldung `setLoading(true)` — und `RequireAuth`
+        zeigt dann nur den Ladebalken. Die ganze Seite wurde abgebaut und neu
+        aufgebaut: getippter Text war weg, ein Klick in diesem Moment traf
+        nichts („Genehmigen" erst beim zweiten Mal). Der Nutzer ist derselbe;
+        es gibt nichts, worauf er warten müsste.
+      */
+      const nachziehen = geladenFuer.current === wer.uid;
+      if (!nachziehen) {
+        setPlattformAdmin(false);
+        setPlattformKonto(null);
+        setEinblick(null);
+        setEinblickFirma(null);
+        // Während das Profil geladen wird, "loading" halten, damit der
+        // Auth-Guard nicht fälschlich auf /login zurückspringt.
+        setLoading(true);
+      }
 
       /**
        * DER GLOBALE ADMINISTRATOR WIRD GEPRÜFT, BEVOR IRGENDETWAS GELESEN
@@ -239,9 +271,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 await zugriffMelden(wieder.company_id, wieder.id, 'Betrieb');
                 comp = await getCompany(wieder.company_id);
               }
-              setEinblickFirma(comp);
+              setEinblickFirma(stabil(comp));
               if (comp) applyBranding(comp);
-              setEinblick(wieder);
+              setEinblick(stabil<OffeneFreigabe | null>(wieder));
             } else {
               sessionStorage.removeItem(EINBLICK_MERKER);
             }
@@ -251,6 +283,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         setUser(null);
         setCompany(null);
+        geladenFuer.current = wer.uid;
         setLoading(false);
         return;
       }
@@ -264,14 +297,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
        * Anmeldung auf einem Gerät gibt es nichts zu zeigen, und nur dann
        * wartet man noch.
        */
-      let sofortDa = false;
+      // Beim stillen Nachziehen steht schon alles da — der Zwischenspeicher
+      // brächte nichts Neues, und ein Fehler danach unterbräche niemanden.
+      let sofortDa = nachziehen;
       try {
-        const schnell = await profilSchnell(wer.uid, wer.email);
+        const schnell = nachziehen ? null : await profilSchnell(wer.uid, wer.email);
         if (schnell) {
-          setUser(schnell);
+          setUser(stabil<CurrentUser | null>(schnell));
           const firma = await firmaSchnell(schnell.companyId).catch(() => null);
           if (firma) {
-            setCompany(firma);
+            setCompany(stabil<Company | null>(firma));
             applyBranding(firma);
           }
           setLoading(false);
@@ -316,7 +351,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setCompany(null);
         } else {
-          setUser(profile);
+          setUser(stabil<CurrentUser | null>(profile));
+          geladenFuer.current = profile.uid;
           firmaMerken(profile.uid, profile.companyId);
           // Der vorab geladene Stand zählt nur, wenn er zum Profil passt —
           // sonst hätte ein Firmenwechsel die falschen Stammdaten gezeigt.
@@ -328,7 +364,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   () => firmaSchnell(profile.companyId),
                   START_FRIST_MS,
                 );
-          setCompany(comp);
+          setCompany(stabil<Company | null>(comp));
           if (comp) applyBranding(comp);
           /*
             FÜR DEN NÄCHSTEN START ABLEGEN. Unter Firestore erledigt das der
