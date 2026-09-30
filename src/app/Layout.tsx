@@ -5,6 +5,8 @@ import { kontoAnzeige } from '@shared/benutzername';
 import {
   navGroupsForRole, tabBarForRole, hinweisZahl, hinweisSumme, hinweisWort, zusatzrechte, type NavItem,
 } from './navigation';
+import Seitenposition from './Seitenposition';
+import FehlerInsBlickfeld from './FehlerInsBlickfeld';
 import { useOffenePosten, postenNeuLaden } from './offenePosten';
 import type { OffenePosten } from '@/lib/db/offenePosten';
 import { Zaehler } from '@/components/Badge';
@@ -360,6 +362,10 @@ export default function Layout({ children }: { children: ReactNode }) {
         ist (Tabellen), scrollt in seinem eigenen Behaelter mit
         `overflow-x-auto`.
       */}
+      {/* Neue Seiten starten oben, „Zurück“ stellt die Position wieder her (M2). */}
+      <Seitenposition />
+      {/* Eine neue Fehlermeldung ausserhalb des Bildes wird hereingeholt (G10). */}
+      <FehlerInsBlickfeld />
       <main
         id="inhalt"
         ref={inhalt}

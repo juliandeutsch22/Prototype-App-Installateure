@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
+import { useUngespeichertWarnung } from '@/lib/ungespeichert';
 import { getUserByUid, updateUserProfile } from '@/lib/db/users';
 import { generatePassword, resendPasswordReset } from '@/lib/auth/provisionUser';
 import { passwortVergeben } from '@/lib/auth/sitzung';
@@ -105,6 +106,8 @@ export default function BenutzerakteView() {
   }, [daten]);
 
   const geaendert = entwurf !== null && daten !== null && !gleich(entwurf, alsEntwurf(daten));
+  // Wer mit ungespeicherten Änderungen weggeht, wird gefragt (Testbericht 30.09.2026, M1).
+  const warnung = useUngespeichertWarnung(geaendert);
 
   /*
     EIN ADMINISTRATOR LÄSST SICH NUR VON EINEM ADMINISTRATOR ANFASSEN.
@@ -338,6 +341,7 @@ export default function BenutzerakteView() {
   return (
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="space-y-3 lg:space-y-5">
+      {warnung}
       <PageHeader
         title={p.name}
         subtitle={

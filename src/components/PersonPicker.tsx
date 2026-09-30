@@ -109,32 +109,6 @@ export default function PersonPicker({
         <p className="mt-1 text-sm text-ink-muted">{emptyHint}</p>
       ) : (
         <>
-          {/* Die Ausgewählten zuerst und immer sichtbar: sonst muss man durch
-              zwanzig Zeilen scrollen, um zu sehen, wen man gewählt hat. */}
-          {gewaehlt.length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              {gewaehlt.map((p) => (
-                <button
-                  key={p.uid}
-                  type="button"
-                  onClick={() => umschalten(p.uid, false)}
-                  aria-label={`${p.name} entfernen`}
-                  // Weiss mit Linie wie ein Nebenknopf, keine getönte Pille
-                  // (Designlinie „Fassung 3": keine Pillen, nicht bunt).
-                  className="inline-flex min-h-touch items-center gap-2 rounded-sm border border-line bg-surface px-3 py-1 text-sm font-medium text-ink hover:bg-surface-2"
-                >
-                  {p.name}
-                  <span aria-hidden="true" className="text-base leading-none">
-                    ×
-                  </span>
-                </button>
-              ))}
-              <Button variant="ghost" onClick={() => onChange([])} className="px-2 text-sm">
-                Alle entfernen
-              </Button>
-            </div>
-          )}
-
           {/*
             DIE FRAGE, MIT DER JEMAND IN DIESE ANSICHT GEHT, ist nicht „wo
             steht Herr Maier", sondern „wer ist an diesem Tag ueberhaupt noch
@@ -231,6 +205,36 @@ export default function PersonPicker({
               </ul>
             )}
           </div>
+          {/*
+            DIE AUSGEWÄHLTEN UNTER DER LISTE, immer sichtbar: sonst muss man
+            durch zwanzig Zeilen scrollen, um zu sehen, wen man gewählt hat.
+            Bis zum 30.09.2026 standen sie DARÜBER — jede Wahl schob die Liste
+            um eine Zeile nach unten, und der nächste Klick traf die falsche
+            Person (Testbericht G6).
+          */}
+          {gewaehlt.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {gewaehlt.map((p) => (
+                <button
+                  key={p.uid}
+                  type="button"
+                  onClick={() => umschalten(p.uid, false)}
+                  aria-label={`${p.name} entfernen`}
+                  // Weiss mit Linie wie ein Nebenknopf, keine getönte Pille
+                  // (Designlinie „Fassung 3": keine Pillen, nicht bunt).
+                  className="inline-flex min-h-touch items-center gap-2 rounded-sm border border-line bg-surface px-3 py-1 text-sm font-medium text-ink hover:bg-surface-2"
+                >
+                  {p.name}
+                  <span aria-hidden="true" className="text-base leading-none">
+                    ×
+                  </span>
+                </button>
+              ))}
+              <Button variant="ghost" onClick={() => onChange([])} className="px-2 text-sm">
+                Alle entfernen
+              </Button>
+            </div>
+          )}
         </>
       )}
     </fieldset>

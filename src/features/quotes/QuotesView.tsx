@@ -485,6 +485,8 @@ export default function QuotesView() {
                       label="Einheit"
                       placeholder="z. B. h, Stk, m"
                       value={z.unit}
+                      // Vorbelegt: beim Hineintippen ersetzen statt anhängen (Testbericht 30.09.2026, G2).
+                      onFocus={(e) => e.currentTarget.select()}
                       onChange={(e) =>
                         setZeilen((v) =>
                           v.map((x, j) =>

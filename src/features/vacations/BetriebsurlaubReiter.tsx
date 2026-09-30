@@ -158,6 +158,8 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
             id="bu-bezeichnung"
             label="Bezeichnung"
             value={bezeichnung}
+            // Vorbelegt: beim Hineintippen ersetzen statt anhängen (Testbericht 30.09.2026, G2).
+            onFocus={(e) => e.currentTarget.select()}
             onChange={(e) => setBezeichnung(e.target.value)}
             pflicht
           />

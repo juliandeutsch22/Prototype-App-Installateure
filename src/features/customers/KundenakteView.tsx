@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
+import { useUngespeichertWarnung } from '@/lib/ungespeichert';
 import { canAccess } from '@/app/navigation';
 import {
   listCustomersByIds,
@@ -159,6 +160,8 @@ export default function KundenakteView() {
 
   const geaendert =
     entwurf !== null && kundeDaten !== null && !gleich(entwurf, alsEntwurf(kundeDaten));
+  // Wer mit ungespeicherten Änderungen weggeht, wird gefragt (Testbericht 30.09.2026, M1).
+  const warnung = useUngespeichertWarnung(geaendert);
 
   async function stammdatenSpeichern(): Promise<void> {
     if (!companyId || !id || !entwurf) return;
@@ -553,6 +556,7 @@ export default function KundenakteView() {
   return (
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="space-y-3 lg:space-y-5">
+      {warnung}
       <PageHeader
         title={k.name}
         subtitle={

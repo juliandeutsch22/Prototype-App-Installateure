@@ -47,8 +47,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
+      {/*
+        OBEN, NICHT UNTEN (Testbericht 30.09.2026, G29). Unten lagen die
+        Meldungen über dem Hauptknopf der Seite und über der Aktionsleiste —
+        „Material anlegen“ im Lager war bis zum Verschwinden nicht zu treffen.
+        Am Telefon oben in der Mitte, am Schreibtisch oben rechts, wo keine
+        Aktion steht. `safe-area` hält sie unter der Kamera-Aussparung.
+      */}
       <div
-        className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4"
+        className="pointer-events-none fixed inset-x-0 top-[max(1rem,env(safe-area-inset-top))] z-50 flex flex-col items-center gap-2 px-4 lg:left-auto lg:right-4 lg:items-end"
         aria-live="polite"
         role="status"
       >

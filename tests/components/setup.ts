@@ -54,3 +54,15 @@ if (typeof URL !== 'undefined' && !URL.createObjectURL) {
   URL.createObjectURL = () => `blob:test/${++lauf}`;
   URL.revokeObjectURL = () => undefined;
 }
+
+/**
+ * jsdom scrollt nicht und meldet „Not implemented: window.scrollTo“. Die
+ * Seitenposition (M2) und das Einblenden von Fehlern (G10) rufen beides bei
+ * jedem Seitenwechsel — ein stiller Ersatz hält die Ausgabe lesbar.
+ */
+if (typeof window !== 'undefined') {
+  window.scrollTo = (() => {}) as typeof window.scrollTo;
+  if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = () => {};
+  }
+}
