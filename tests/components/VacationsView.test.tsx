@@ -698,6 +698,23 @@ describe('Krank melden', () => {
     expect(await screen.findByText(/3 Tage eingetragen/)).toBeInTheDocument();
   });
 
+  it('eine vom Büro erfasste Krankmeldung sieht der Monteur nur an (Testbericht 30.09.2026, H8)', async () => {
+    eigeneKrank = [{ id: 'k1', companyId: 'perl', userId: 'm1', userName: 'Max', von: '2026-10-27', bis: '2026-10-29',
+      gemeldetVonUid: 'bu', gemeldetVonName: 'Brigitte' }];
+    zeichne();
+    expect(await screen.findByText('Vom Büro erfasst — ändert das Büro')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ende ändern' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Löschen' })).not.toBeInTheDocument();
+  });
+
+  it('eine laufende eigene Meldung: nur noch das Ende ändern, nicht löschen (H8)', async () => {
+    eigeneKrank = [{ id: 'k1', companyId: 'perl', userId: 'm1', userName: 'Max', von: '2026-01-05', bis: '2099-01-09',
+      gemeldetVonUid: 'm1', gemeldetVonName: 'Max' }];
+    zeichne();
+    expect(await screen.findByRole('button', { name: 'Ende ändern' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Löschen' })).not.toBeInTheDocument();
+  });
+
   it('zeigt die eigenen Krankmeldungen', async () => {
     eigeneKrank = [{ id: 'k1', companyId: 'perl', userId: 'm1', userName: 'Max', von: '2026-10-27', bis: '2026-10-29' }];
     zeichne();

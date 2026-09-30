@@ -416,6 +416,7 @@ export default function AccountingView() {
           id={meldung}
           meinName={user.name}
           mitNamen
+          buero
           onGeaendert={() => setMeldung(null)}
           onSchliessen={() => setMeldung(null)}
         />

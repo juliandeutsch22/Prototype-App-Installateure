@@ -61,6 +61,29 @@ describe('Pläne hochladen', () => {
     await vi.waitFor(() => expect(dokumentHochladen).toHaveBeenCalledTimes(1));
   });
 
+  it('fragt auch bei einem Mitarbeiternamen im Dateinamen nach (Testbericht 30.09.2026, H8)', async () => {
+    const nutzer = userEvent.setup();
+    render(
+      <ToastProvider>
+        <BaustellenPlaene companyId="perl" projectId="p1" darfAendern meinName="Chefin" personen={['Max Mustermann', 'Eva Berger']} />
+      </ToastProvider>,
+    );
+    await nutzer.upload(screen.getByLabelText('Pläne oder Bilder auswählen'), datei('Nachweis_Max_Mustermann_09.pdf'));
+    expect(await screen.findByText('Wirklich zu den Plänen?')).toBeInTheDocument();
+    expect(dokumentHochladen).not.toHaveBeenCalled();
+  });
+
+  it('ein Plan mit nur einem Vornamen darin geht ohne Rückfrage', async () => {
+    const nutzer = userEvent.setup();
+    render(
+      <ToastProvider>
+        <BaustellenPlaene companyId="perl" projectId="p1" darfAendern meinName="Chefin" personen={['Max Mustermann']} />
+      </ToastProvider>,
+    );
+    await nutzer.upload(screen.getByLabelText('Pläne oder Bilder auswählen'), datei('Grundriss Max EG.pdf'));
+    await vi.waitFor(() => expect(dokumentHochladen).toHaveBeenCalledTimes(1));
+  });
+
   it('lädt nach „Abbrechen" nichts hoch', async () => {
     const nutzer = userEvent.setup();
     zeichne();

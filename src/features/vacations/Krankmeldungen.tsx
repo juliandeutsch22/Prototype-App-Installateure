@@ -34,14 +34,25 @@ export function KrankmeldungListe({
   meldungen,
   mitNamen,
   meinName,
+  buero,
   onGeaendert,
 }: {
   meldungen: WithId<Krankmeldung>[];
   mitNamen: boolean;
   meinName: string;
+  /** Schaut das Büro (Buchhaltung, Leitung)? Es darf jede Meldung ändern. */
+  buero: boolean;
   onGeaendert: () => void;
 }) {
   const toast = useToast();
+  /*
+    WAS DER MONTEUR AN SEINEN MELDUNGEN DARF (Testbericht 30.09.2026, H8):
+    eine vom Büro erfasste nur ansehen; eine selbst erfasste ändern und
+    löschen, solange sie nicht begonnen hat, danach nur das Ende ändern. Die
+    Datenbank hält dieselbe Grenze (`app.krankmeldung_grenzen`); hier stehen
+    nur keine Knöpfe, die sie danach abweisen würde.
+  */
+  const vomBuero = (k: Krankmeldung) => !!k.gemeldetVonUid && k.gemeldetVonUid !== k.userId;
   const [bearbeitet, setBearbeitet] = useState<string | null>(null);
   const [neuesEnde, setNeuesEnde] = useState('');
   const [laeuft, setLaeuft] = useState<string | null>(null);
@@ -117,6 +128,8 @@ export function KrankmeldungListe({
                 <Button loading={laeuft === k.id} onClick={() => void endeSpeichern(k)}>Speichern</Button>
                 <Button variant="ghost" onClick={() => setBearbeitet(null)}>Abbrechen</Button>
               </span>
+            ) : !buero && vomBuero(k) ? (
+              <span className="text-sm text-ink-muted">Vom Büro erfasst — ändert das Büro</span>
             ) : (
               <>
                 <Button
@@ -130,13 +143,15 @@ export function KrankmeldungListe({
                 >
                   Ende ändern
                 </Button>
-                <Button
-                  variant="ghost"
-                  loading={laeuft === k.id}
-                  onClick={() => setLoeschen(k)}
-                >
-                  Löschen
-                </Button>
+                {(buero || k.von > heute) && (
+                  <Button
+                    variant="ghost"
+                    loading={laeuft === k.id}
+                    onClick={() => setLoeschen(k)}
+                  >
+                    Löschen
+                  </Button>
+                )}
               </>
             )}
           </ListRow>
@@ -172,6 +187,7 @@ export function KrankmeldungKarte({
   id,
   meinName,
   mitNamen,
+  buero,
   onGeaendert,
   onSchliessen,
 }: {
@@ -179,6 +195,7 @@ export function KrankmeldungKarte({
   id: string;
   meinName: string;
   mitNamen: boolean;
+  buero: boolean;
   onGeaendert: () => void;
   onSchliessen: () => void;
 }) {
@@ -215,6 +232,7 @@ export function KrankmeldungKarte({
           meldungen={[meldung]}
           mitNamen={mitNamen}
           meinName={meinName}
+          buero={buero}
           onGeaendert={onGeaendert}
         />
       )}
@@ -361,6 +379,7 @@ export function KrankenstaendeReiter({ companyId, meinName }: { companyId: strin
           <KrankmeldungListe
             meldungen={meldungen}
             mitNamen
+            buero
             meinName={meinName}
             onGeaendert={() => setStand((n) => n + 1)}
           />
