@@ -31,6 +31,7 @@ import { useToast } from '@/components/Toast';
 import { fmtMenge } from '@/lib/belegLayout';
 import { bestellMail, bestellText, einkaufsliste, type EinkaufsGruppe, type EinkaufsZeile } from './einkauf';
 import { downloadBestellungPdf } from './bestellungPdf';
+import { zahlOder } from '@/lib/zahl';
 import { grundAus } from '@/lib/fehlerGrund';
 
 /**
@@ -502,7 +503,7 @@ function LagerPostenFormular({
 
   async function speichern() {
     const name = (gewaehlt?.name ?? suche).trim();
-    const zahl = Number(menge.replace(',', '.'));
+    const zahl = zahlOder(menge, NaN);
     if (!name) {
       setFehler('Welcher Artikel? Im Katalog suchen oder frei eintragen.');
       return;

@@ -349,6 +349,24 @@ describe('Rechnungsvorgaben (Reiter der Buchhaltung)', () => {
     expect(kostensaetze).not.toHaveBeenCalled();
   });
 
+  it('speichert „7.500“ in den Mahnspesen nicht, „12,5“ schon (M15)', async () => {
+    const nutzer = userEvent.setup();
+    zeige('rechnung');
+    const spesen = await screen.findByLabelText('Mahnung · Privatkunden (€)');
+    await nutzer.type(spesen, '7.500');
+    await nutzer.click(screen.getByRole('button', { name: 'Rechnungsvorgaben speichern' }));
+    // Unter dem Feld und über dem Formular.
+    expect(await screen.findAllByText(/nicht eindeutig/)).not.toHaveLength(0);
+    expect(rechnungsvorgabenSpeichern).not.toHaveBeenCalled();
+
+    // Gegenprobe: eindeutig geschrieben, geht es durch — als Zahl.
+    await nutzer.clear(spesen);
+    await nutzer.type(spesen, '12,5');
+    await nutzer.click(screen.getByRole('button', { name: 'Rechnungsvorgaben speichern' }));
+    await waitFor(() => expect(rechnungsvorgabenSpeichern).toHaveBeenCalled());
+    expect((rechnungsvorgabenSpeichern.mock.calls[0][0] as { mahnspesenVerbraucher: number[] }).mahnspesenVerbraucher[1]).toBe(12.5);
+  });
+
   it('speichert über die eigene Funktion und nicht über den ganzen Betrieb', async () => {
     const nutzer = userEvent.setup();
     zeige('rechnung');

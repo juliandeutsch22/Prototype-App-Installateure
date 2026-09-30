@@ -206,7 +206,7 @@ describe('Material anfordern — der Warenkorb', () => {
      * Ausweg fuer alles darueber.
      */
     zeige();
-    const menge = await screen.findByRole('spinbutton', { name: /Menge .* Kupferrohr 15mm/ });
+    const menge = await screen.findByRole('textbox', { name: /Menge .* Kupferrohr 15mm/ });
     await userEvent.clear(menge);
     await userEvent.type(menge, '30');
     await userEvent.click(screen.getByRole('button', { name: /Kupferrohr 15mm anfordern/ }));
@@ -220,18 +220,18 @@ describe('Material anfordern — der Warenkorb', () => {
     // Eine stehengebliebene 30 waere die teurere Ueberraschung: die naechste
     // Position ist fast immer wieder eine.
     zeige();
-    const menge = await screen.findByRole('spinbutton', { name: /Menge .* Kupferrohr 15mm/ });
+    const menge = await screen.findByRole('textbox', { name: /Menge .* Kupferrohr 15mm/ });
     await userEvent.clear(menge);
     await userEvent.type(menge, '30');
     await userEvent.click(screen.getByRole('button', { name: /Kupferrohr 15mm anfordern/ }));
 
-    await waitFor(() => expect(menge).toHaveValue(1));
+    await waitFor(() => expect(menge).toHaveValue('1'));
   });
 
   it('fordert nichts an, solange die Menge unbrauchbar ist', async () => {
     // Ein leeres oder krummes Feld darf nicht als 0 oder NaN durchgehen.
     zeige();
-    const menge = await screen.findByRole('spinbutton', { name: /Menge .* Kupferrohr 15mm/ });
+    const menge = await screen.findByRole('textbox', { name: /Menge .* Kupferrohr 15mm/ });
     await userEvent.clear(menge);
     expect(screen.getByRole('button', { name: /Kupferrohr 15mm anfordern/ })).toBeDisabled();
     expect(anlegen).not.toHaveBeenCalled();
@@ -419,7 +419,7 @@ describe('Material anfordern — Retoure', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Retoure' }));
     await userEvent.type(await screen.findByRole('searchbox', { name: /^Material/ }), 'Kupfer');
     await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
-    const menge = screen.getByRole('spinbutton', { name: /Menge/ });
+    const menge = screen.getByRole('textbox', { name: /Menge/ });
     await userEvent.clear(menge);
     await userEvent.type(menge, '-3');
     await userEvent.click(screen.getByRole('button', { name: 'Retoure erfassen' }));
@@ -434,7 +434,7 @@ describe('Material anfordern — Retoure', () => {
     await userEvent.type(await screen.findByRole('searchbox', { name: /^Material/ }), 'KR15');
     await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
     await userEvent.selectOptions(screen.getByRole('combobox', { name: /Zustand/ }), 'defekt');
-    const menge = screen.getByRole('spinbutton', { name: /Menge/ });
+    const menge = screen.getByRole('textbox', { name: /Menge/ });
     await userEvent.clear(menge);
     await userEvent.type(menge, '4');
     await userEvent.click(screen.getByRole('button', { name: 'Retoure erfassen' }));

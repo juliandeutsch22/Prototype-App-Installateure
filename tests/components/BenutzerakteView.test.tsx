@@ -106,8 +106,8 @@ describe('Die Stammdaten in der Akte', () => {
 
     expect(await screen.findByRole('textbox', { name: /^Name/ })).toHaveValue('Erna Beispiel');
     expect(screen.getByRole('combobox', { name: /Rolle/ })).toHaveValue('Buchhaltung');
-    expect(screen.getByRole('spinbutton', { name: /Wochenstunden/ })).toHaveValue(20);
-    expect(screen.getByRole('spinbutton', { name: /Urlaubstage/ })).toHaveValue(30);
+    expect(screen.getByRole('textbox', { name: /Wochenstunden/ })).toHaveValue('20');
+    expect(screen.getByRole('textbox', { name: /Urlaubstage/ })).toHaveValue('30');
   });
 
   it('zeigt die Zeitkonto-Felder, ohne dass jemand sie aufklappen muss', async () => {
@@ -119,7 +119,7 @@ describe('Die Stammdaten in der Akte', () => {
       screen.queryByRole('button', { name: /Zeitkonto-Einstellungen anzeigen/ }),
     ).not.toBeInTheDocument();
     // Ohne eigenes Eintrittsdatum ist es ein Neueintritt: das Feld heisst wie in der Anlage (M6).
-    expect(screen.getByRole('spinbutton', { name: /Urlaub im ersten Jahr/ })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /Urlaub im ersten Jahr/ })).toBeInTheDocument();
   });
 
   it('zeigt Eintritt und Saldo-Start getrennt und benennt den Urlaub wie die Anlage (M6)', async () => {
@@ -128,7 +128,7 @@ describe('Die Stammdaten in der Akte', () => {
     await screen.findByRole('textbox', { name: /^Name/ });
     expect(screen.getByLabelText(/Eintrittsdatum/)).toHaveValue('2015-03-01');
     expect(screen.getByLabelText(/Saldo-Startdatum/)).toHaveValue('2026-10-01');
-    expect(screen.getByRole('spinbutton', { name: /Resturlaub beim Umstieg/ })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /Resturlaub beim Umstieg/ })).toBeInTheDocument();
   });
 
   it('speichert keinen Eintritt nach dem Saldo-Start (M6)', async () => {
@@ -171,7 +171,7 @@ describe('Die Stammdaten in der Akte', () => {
       stehen.
     */
     zeige();
-    const feld = await screen.findByRole('spinbutton', { name: /Wochenstunden/ });
+    const feld = await screen.findByRole('textbox', { name: /Wochenstunden/ });
     await userEvent.clear(feld);
     await userEvent.type(feld, '0');
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
@@ -187,7 +187,7 @@ describe('Die Stammdaten in der Akte', () => {
       uid: 'u2', name: 'Erna Beispiel', initialVacationDays: 7, eintritt: '2015-03-01',
     });
     zeige();
-    await userEvent.clear(await screen.findByRole('spinbutton', { name: /Resturlaub beim Umstieg/ }));
+    await userEvent.clear(await screen.findByRole('textbox', { name: /Resturlaub beim Umstieg/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
 
     await waitFor(() => expect(profilAendern).toHaveBeenCalled());

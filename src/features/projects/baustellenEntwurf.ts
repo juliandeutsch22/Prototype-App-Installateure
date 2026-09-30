@@ -8,6 +8,7 @@
  * Vergleich nur wie „der Speichern-Balken benimmt sich komisch" aus.
  */
 import type { Project } from '@/types';
+import { leseZahl, zahlAlsText } from '@/lib/zahl';
 
 /**
  * Der Entwurf trägt ZEICHENKETTEN, auch beim Stundenbudget.
@@ -42,7 +43,7 @@ export function alsEntwurf(p: Project): BaustellenEntwurf {
     address: p.address ?? '',
     status: p.status,
     billingMode: p.billingMode ?? '',
-    estimatedHours: p.estimatedHours != null ? String(p.estimatedHours) : '',
+    estimatedHours: p.estimatedHours != null ? zahlAlsText(p.estimatedHours) : '',
     description: p.description ?? '',
     startDate: p.startDate ?? '',
     endDate: p.endDate ?? '',
@@ -81,4 +82,20 @@ function gleicheMenge(a: readonly string[], b: readonly string[]): boolean {
   const links = [...a].sort();
   const rechts = [...b].sort();
   return links.every((w, i) => w === rechts[i]);
+}
+
+/**
+ * Das Stundenbudget aus dem Feld, zentral gelesen (Testbericht 30.09.2026,
+ * M15). Leer heisst „kein Budget“ — dann bleibt die Ampel der
+ * Projektauswertung bewusst aus, statt 0 h anzunehmen.
+ */
+export function stundenbudgetAus(text: string): number | undefined {
+  return leseZahl(text).wert ?? undefined;
+}
+
+/** Was vor dem Speichern der Stammdaten nicht stimmt — sonst `null`. */
+export function stammdatenFehler(e: Pick<BaustellenEntwurf, 'estimatedHours'>): string | null {
+  const budget = leseZahl(e.estimatedHours).fehler;
+  if (budget) return `Stundenbudget: ${budget}`;
+  return null;
 }

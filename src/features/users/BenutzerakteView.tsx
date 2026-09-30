@@ -32,6 +32,7 @@ import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import Datenauskunft from '@/features/recht/Datenauskunft';
 import { zeigtAuskunft } from '@/features/recht/auskunftDatei';
+import ZahlFeld from '@/components/ZahlFeld';
 
 /**
  * Die Akte eines Benutzers — und die Stelle, an der sie bearbeitet wird.
@@ -611,17 +612,17 @@ function StammdatenFormular({
           </div>
         )}
         <FormGrid>
-          <InputField
-            id="b-stunden" label="Wochenstunden" type="number" step="0.5" min="0"
+          <ZahlFeld
+            id="b-stunden" label="Wochenstunden"
             value={entwurf.weeklyTargetHours}
             // Mit eigenem Tagessoll sind die Wochenstunden dessen Summe (M5).
             disabled={Object.keys(entwurf.tagessoll).length > 0}
-            onChange={(e) => setze('weeklyTargetHours', e.target.value)}
+            onChange={(t) => setze('weeklyTargetHours', t)}
           />
-          <InputField
-            id="b-urlaub" label="Urlaubstage pro Jahr" type="number" min="0"
+          <ZahlFeld
+            id="b-urlaub" label="Urlaubstage pro Jahr"
             value={entwurf.yearlyVacationDays}
-            onChange={(e) => setze('yearlyVacationDays', e.target.value)}
+            onChange={(t) => setze('yearlyVacationDays', t)}
           />
           <InputField
             id="b-eintritt" label="Eintrittsdatum (im Betrieb seit)" type="date"
@@ -634,21 +635,19 @@ function StammdatenFormular({
             value={entwurf.appStartDate}
             onChange={(e) => setze('appStartDate', e.target.value)}
           />
-          <InputField
-            id="b-saldo" label="Start-Saldo (Stunden)" type="number" step="0.25"
+          <ZahlFeld
+            id="b-saldo" label="Start-Saldo (Stunden)" negativ
             value={entwurf.initialOvertime}
-            onChange={(e) => setze('initialOvertime', e.target.value)}
+            onChange={(t) => setze('initialOvertime', t)}
           />
           {/* Zwei Nachkommastellen wie in der Anlage: der aliquote Anspruch
               eines Neueintritts ist selten ein halber Tag. */}
-          <InputField
+          <ZahlFeld
             id="b-resturlaub"
             label={`${urlaubsfeldName(entwurf)} (Tage)`}
-            type="number"
-            step="0.01"
             placeholder="leer = voller Jahresanspruch"
             value={entwurf.initialVacationDays}
-            onChange={(e) => setze('initialVacationDays', e.target.value)}
+            onChange={(t) => setze('initialVacationDays', t)}
           />
         </FormGrid>
 

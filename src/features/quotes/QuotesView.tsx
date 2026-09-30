@@ -34,11 +34,16 @@ import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { euro } from '@/lib/betrag';
+import { leseZahl, zahlOder } from '@/lib/zahl';
+import ZahlFeld from '@/components/ZahlFeld';
 
-/** Zahl aus einem Eingabefeld — akzeptiert Komma wie Punkt. */
+/**
+ * Zahl aus einem Eingabefeld — über die zentrale Lesung (M15). „7.500,50“
+ * ergab hier vorher 0; was sich nicht eindeutig lesen lässt, meldet das
+ * Feld, und angelegt wird erst, wenn alles lesbar ist.
+ */
 function num(v: string): number {
-  const n = Number(v.replace(',', '.'));
-  return Number.isFinite(n) ? n : 0;
+  return zahlOder(v, 0);
 }
 
 interface ZeilenEingabe {
@@ -317,6 +322,11 @@ export default function QuotesView() {
 
   async function anlegen() {
     if (!user || !kunde || positionen.length === 0) return;
+    const unlesbar = zeilen.find((z) => leseZahl(z.qty).fehler || leseZahl(z.unitPrice).fehler);
+    if (unlesbar) {
+      setError(leseZahl(unlesbar.qty).fehler ?? leseZahl(unlesbar.unitPrice).fehler);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -472,12 +482,12 @@ export default function QuotesView() {
                     }
                   />
                   <FormGrid>
-                    <InputField
+                    <ZahlFeld
                       id={`anqqty${i}`}
                       label="Menge"
                       value={z.qty}
-                      onChange={(e) =>
-                        setZeilen((v) => v.map((x, j) => (j === i ? { ...x, qty: e.target.value } : x)))
+                      onChange={(text) =>
+                        setZeilen((v) => v.map((x, j) => (j === i ? { ...x, qty: text } : x)))
                       }
                     />
                     <InputField
@@ -503,13 +513,13 @@ export default function QuotesView() {
                         )
                       }
                     />
-                    <InputField
+                    <ZahlFeld
                       id={`anqprice${i}`}
                       label="Einzelpreis netto"
                       value={z.unitPrice}
-                      onChange={(e) =>
+                      onChange={(text) =>
                         setZeilen((v) =>
-                          v.map((x, j) => (j === i ? { ...x, unitPrice: e.target.value } : x)),
+                          v.map((x, j) => (j === i ? { ...x, unitPrice: text } : x)),
                         )
                       }
                     />

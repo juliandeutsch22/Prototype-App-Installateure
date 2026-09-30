@@ -235,7 +235,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
       'Ringstraße 3, 2700 Wiener Neustadt',
     );
     expect(screen.getByLabelText(/Abrechnung/)).toHaveValue('Pauschal');
-    expect(screen.getByLabelText(/Stundenbudget/)).toHaveValue(40);
+    expect(screen.getByLabelText(/Stundenbudget/)).toHaveValue('40');
   });
 
   it('zeigt die Speicherleiste erst, wenn sich wirklich etwas geändert hat', async () => {

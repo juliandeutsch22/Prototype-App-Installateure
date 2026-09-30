@@ -70,6 +70,8 @@ import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
 import { Marke, Warnung } from '@/components/Badge';
 import RechnungDetail from './RechnungDetail';
+import ZahlFeld, { ZahlWertFeld, ZahlZelle } from '@/components/ZahlFeld';
+import { leseZahl, unlesbareZahlIn, zahlAlsText, zahlOder } from '@/lib/zahl';
 import PageHeader from '@/components/PageHeader';
 import { praefixeVon } from '@/lib/praefixe';
 import { isTopLevel } from '@/lib/permissions';
@@ -654,13 +656,18 @@ export default function InvoicesView() {
           : zahlungsStand.skontoBetrag,
       },
       zDatum,
-      Number(zBetrag.replace(',', '.')),
+      zahlOder(zBetrag, NaN, { negativ: true }),
     )
     : null;
 
   const zahlungSpeichern = async () => {
     if (!zahlungFuer || !user) return;
-    const betrag = Number(zBetrag.replace(',', '.'));
+    const gelesen = leseZahl(zBetrag, { negativ: true });
+    if (gelesen.fehler) {
+      setZFehler(gelesen.fehler);
+      return;
+    }
+    const betrag = gelesen.wert ?? 0;
     if (!Number.isFinite(betrag) || betrag === 0) {
       setZFehler('Ein Betrag von null ist kein Zahlungseingang.');
       return;
@@ -747,7 +754,7 @@ export default function InvoicesView() {
   });
 
   const rabatt = useMemo(() => {
-    const v = Number(discount.value.replace(',', '.'));
+    const v = zahlOder(discount.value, 0);
     if (!Number.isFinite(v) || v <= 0) return null;
     return { mode: discount.mode, value: v, label: discount.label.trim() || undefined };
   }, [discount]);
@@ -951,8 +958,8 @@ export default function InvoicesView() {
     if (eigenerRabatt) {
       setDiscount({
         mode: eigenerRabatt.mode,
-        // Ein Zahlenfeld: Punkt, kein Komma — sonst stünde es leer da.
-        value: String(eigenerRabatt.value),
+        // Ein Textfeld mit zentraler Lesung (M15): mit Komma, wie man schreibt.
+        value: zahlAlsText(eigenerRabatt.value),
         label: eigenerRabatt.label ?? '',
       });
     }
@@ -987,6 +994,13 @@ export default function InvoicesView() {
 
   async function confirmInvoice() {
     if (!user || !company || !preview || !summen || !invoiceNumber || numberTaken || leer) return;
+    // Eine Menge oder ein Preis, der sich nicht lesen lässt, steht nicht still
+    // als letzte lesbare Zahl auf der Rechnung (M15).
+    const unlesbar = unlesbareZahlIn(document);
+    if (unlesbar) {
+      setError(unlesbar);
+      return;
+    }
     /*
       EINE NEGATIVE SCHLUSSRECHNUNG IST EINE GUTSCHRIFT, und die gibt es hier
       noch nicht: Zahlungsstand, offene Posten und Mahnlauf rechnen alle mit
@@ -2057,12 +2071,12 @@ export default function InvoicesView() {
           </div>
           <div className="mt-3 border-t border-line pt-4">
             <FormGrid cols={3}>
-              <InputField id="r-fach" label="Facharbeiter €/h" type="number" min="0" step="0.5"
-                value={String(rates.fach)}
-                onChange={(e) => setRates({ ...rates, fach: Number(e.target.value) || 0 })} />
-              <InputField id="r-helper" label="Helfer €/h" type="number" min="0" step="0.5"
-                value={String(rates.helper)}
-                onChange={(e) => setRates({ ...rates, helper: Number(e.target.value) || 0 })} />
+              <ZahlWertFeld id="r-fach" label="Facharbeiter €/h"
+                wert={rates.fach}
+                onWert={(n) => setRates({ ...rates, fach: n ?? 0 })} />
+              <ZahlWertFeld id="r-helper" label="Helfer €/h"
+                wert={rates.helper}
+                onWert={(n) => setRates({ ...rates, helper: n ?? 0 })} />
               <InputField id="r-night" label="Nachtzuschlag %" type="number" min="0" step="5"
                 value={String(Math.round(rates.nightSurcharge * 100))}
                 onChange={(e) =>
@@ -2076,10 +2090,10 @@ export default function InvoicesView() {
               <InputField id="r-due" label="Zahlungsziel (Tage)" type="number" min="0"
                 value={String(rates.dueDays)}
                 onChange={(e) => setRates({ ...rates, dueDays: Number(e.target.value) || 0 })} />
-              <InputField id="r-skonto" label="Skonto %" type="number" min="0" max="99" step="0.5"
+              <ZahlWertFeld id="r-skonto" label="Skonto %"
                 placeholder="leer = keines"
-                value={rates.skontoProzent ? String(rates.skontoProzent) : ''}
-                onChange={(e) => setRates({ ...rates, skontoProzent: Number(e.target.value) || undefined })} />
+                wert={rates.skontoProzent || null}
+                onWert={(n) => setRates({ ...rates, skontoProzent: n || undefined })} />
               <InputField id="r-skonto-tage" label="Skontofrist (Tage)" type="number" min="0"
                 placeholder="leer = keines"
                 value={rates.skontoTage ? String(rates.skontoTage) : ''}
@@ -2361,14 +2375,12 @@ export default function InvoicesView() {
                       />
                     </td>
                     <td className="py-2 pr-3">
-                      <input
+                      {/* Über die zentrale Zahlenlesung (M15): „7.500,50“ ist keine 0 mehr. */}
+                      <ZahlZelle
                         aria-label={`Menge Position ${i + 1}`}
-                        type="number"
-                        min="0"
-                        step="0.25"
                         className="min-h-touch w-24 rounded border border-line bg-surface px-2 py-1 text-right text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
-                        value={String(p.qty)}
-                        onChange={(e) => setPos(i, { qty: Number(e.target.value) || 0 })}
+                        wert={p.qty}
+                        onWert={(n) => setPos(i, { qty: n })}
                       />
                     </td>
                     <td className="py-2 pr-3">
@@ -2382,11 +2394,8 @@ export default function InvoicesView() {
                       />
                     </td>
                     <td className="py-2 pr-3">
-                      <input
+                      <ZahlZelle
                         aria-label={`Einzelpreis Position ${i + 1}`}
-                        type="number"
-                        min="0"
-                        step="0.01"
                         /*
                           EINE NULL FÄLLT AUF, statt sich als Zahl zu tarnen.
 
@@ -2402,8 +2411,8 @@ export default function InvoicesView() {
                             ? 'border-warning focus:border-warning focus:ring-warning/30'
                             : 'border-line focus:border-brand focus:ring-brand/30')
                         }
-                        value={String(p.unitPrice)}
-                        onChange={(e) => setPos(i, { unitPrice: Number(e.target.value) || 0 })}
+                        wert={p.unitPrice}
+                        onWert={(n) => setPos(i, { unitPrice: n })}
                       />
                     </td>
                     <td className="py-2 pr-3 text-right font-medium">{euro(p.netto)}</td>
@@ -2594,15 +2603,11 @@ export default function InvoicesView() {
                 <option value="percent">Prozent</option>
                 <option value="amount">Betrag (€)</option>
               </SelectField>
-              <InputField
+              <ZahlFeld
                 id="disc-value"
                 label={discount.mode === 'percent' ? 'Rabatt %' : 'Rabatt €'}
-                type="number"
-                min="0"
-                step={discount.mode === 'percent' ? '0.5' : '0.01'}
-                max={discount.mode === 'percent' ? '100' : undefined}
                 value={discount.value}
-                onChange={(e) => setDiscount({ ...discount, value: e.target.value })}
+                onChange={(text) => setDiscount({ ...discount, value: text })}
               />
             </FormGrid>
           </div>
@@ -3354,14 +3359,12 @@ export default function InvoicesView() {
             required
             pflicht
           />
-          <InputField
+          <ZahlFeld
             id="z-betrag"
             label="Betrag (€)"
-            type="number"
-            step="0.01"
-            inputMode="decimal"
+            negativ
             value={zBetrag}
-            onChange={(e) => setZBetrag(e.target.value)}
+            onChange={(text) => setZBetrag(text)}
             required
             pflicht
           />

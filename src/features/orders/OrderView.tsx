@@ -30,7 +30,9 @@ import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/S
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAusMs } from '@/lib/datum';
 import { abschlussText } from './abschlussText';
+import { zahlOder } from '@/lib/zahl';
 import { useReiterImBild } from '@/components/reiterImBild';
+import ZahlFeld from '@/components/ZahlFeld';
 
 type Tab = 'bestellen' | 'meine' | 'retoure';
 
@@ -219,7 +221,7 @@ export default function OrderView() {
   */
   function freiHinzufuegen() {
     const name = freiName.trim();
-    const menge = Number(freiMenge.replace(',', '.'));
+    const menge = zahlOder(freiMenge, NaN);
     if (!name || !(menge > 0)) return;
     setCart((prev) => [
       ...prev,
@@ -315,9 +317,10 @@ export default function OrderView() {
     if (!user || !retMaterial) return;
     // Ohne diese Prüfung ginge eine negative Menge als increment(-n) durch und
     // eine Retoure würde den Lagerbestand VERRINGERN.
-    const qty = Math.floor(Number(retQty));
-    if (!Number.isFinite(qty) || qty < 1) {
-      setError('Bitte eine Menge von mindestens 1 angeben.');
+    // Zentral gelesen (M15); „1,5“ wird nicht still zu 1.
+    const qty = zahlOder(retQty, NaN);
+    if (!Number.isInteger(qty) || qty < 1) {
+      setError('Bitte eine ganze Menge von mindestens 1 angeben.');
       return;
     }
     setSaving(true);
@@ -530,7 +533,7 @@ export default function OrderView() {
                 <Button
                   variant="secondary"
                   className="col-span-2 sm:col-span-1"
-                  disabled={!freiName.trim() || !(Number(freiMenge.replace(',', '.')) > 0)}
+                  disabled={!freiName.trim() || !(zahlOder(freiMenge, NaN) > 0)}
                   onClick={freiHinzufuegen}
                 >
                   Hinzufügen
@@ -753,8 +756,7 @@ export default function OrderView() {
               </div>
             )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <InputField id="retqty" label="Menge" type="number" min="1" value={retQty}
-                onChange={(e) => setRetQty(e.target.value)} />
+              <ZahlFeld id="retqty" label="Menge" value={retQty} onChange={setRetQty} />
               <SelectField id="retcond" label="Zustand" value={retCondition}
                 onChange={(e) => setRetCondition(e.target.value as typeof retCondition)}>
                 <option value="neu">Neu / originalverpackt</option>
@@ -831,8 +833,9 @@ function QtyAdder({
   const [menge, setMenge] = useState('1');
   const [added, setAdded] = useState(0);
 
-  const zahl = Math.floor(Number(menge.replace(',', '.')));
-  const gueltig = Number.isFinite(zahl) && zahl >= 1;
+  // Ganze Stück, zentral gelesen (M15): „1,5“ ist ungültig, nicht still 1.
+  const zahl = zahlOder(menge, NaN);
+  const gueltig = Number.isInteger(zahl) && zahl >= 1;
 
   function anfordern() {
     if (!gueltig) return;
@@ -865,10 +868,10 @@ function QtyAdder({
         −
       </IconButton>
       <input
-        type="number"
+        type="text"
         inputMode="numeric"
-        min="1"
-        step="1"
+        autoComplete="off"
+        data-zahl=""
         value={menge}
         onChange={(e) => setMenge(e.target.value)}
         onFocus={(e) => e.currentTarget.select()}

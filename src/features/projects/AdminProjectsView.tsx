@@ -34,6 +34,8 @@ import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import { fmtStunden } from '@/lib/time';
+import ZahlFeld from '@/components/ZahlFeld';
+import { stammdatenFehler, stundenbudgetAus } from './baustellenEntwurf';
 
 const empty = {
   projectNumber: '',
@@ -206,6 +208,11 @@ export default function AdminProjectsView() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!user) return;
+    const falsch = stammdatenFehler(form);
+    if (falsch) {
+      setError(falsch);
+      return;
+    }
     setSaving(true);
     setError(null);
     const nummer = form.projectNumber.trim();
@@ -217,7 +224,7 @@ export default function AdminProjectsView() {
         projectNumber: nummer,
         // Leeres Feld heißt "kein Budget" — dann bleibt die Ampel der
         // Projektauswertung bewusst aus, statt 0 h anzunehmen.
-        estimatedHours: form.estimatedHours === '' ? undefined : Number(form.estimatedHours) || 0,
+        estimatedHours: stundenbudgetAus(form.estimatedHours),
         assignedEmployees: assigned,
         projectManagers: managers,
       };
@@ -500,9 +507,9 @@ export default function AdminProjectsView() {
               <option>Pausiert</option>
               <option>Abgeschlossen</option>
             </SelectField>
-            <InputField id="phours" label="Stundenbudget (kalkuliert)" type="number" min="0" step="0.5"
+            <ZahlFeld id="phours" label="Stundenbudget (kalkuliert)"
               placeholder="z. B. 40" value={form.estimatedHours}
-              onChange={(e) => setForm({ ...form, estimatedHours: e.target.value })} />
+              onChange={(t) => setForm({ ...form, estimatedHours: t })} />
             <InputField id="pstart" label="Beginn" type="date" value={form.startDate}
               onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
             <InputField id="pend" label="Ende (geplant)" type="date" value={form.endDate}

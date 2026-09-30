@@ -1,5 +1,6 @@
 import { CheckboxField, InputField } from '@/components/Field';
 import { WEEKDAYS, zahlOderVorgabe, type BenutzerEntwurf } from './benutzerEntwurf';
+import { zahlOder } from '@/lib/zahl';
 import { DEFAULT_WEEKLY_HOURS } from '@/lib/db/benutzerVorgaben';
 
 /**
@@ -25,7 +26,7 @@ export default function TagessollFelder({
     return String(je).replace('.', ',');
   };
   const summe = tage.reduce(
-    (s, d) => s + (Number((form.tagessoll[String(d.value)] ?? '').replace(',', '.')) || 0),
+    (s, d) => s + zahlOder(form.tagessoll[String(d.value)] ?? '', 0),
     0,
   );
 

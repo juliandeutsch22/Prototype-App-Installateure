@@ -4,7 +4,7 @@ import { useAuth } from '@/app/AuthContext';
 import { useUngespeichertWarnung } from '@/lib/ungespeichert';
 import BetriebsurlaubHinweis from './BetriebsurlaubHinweis';
 import { baustelleUmnummern, listProjectsByIds, updateProject } from '@/lib/db/projects';
-import { alsEntwurf, gleich, type BaustellenEntwurf } from './baustellenEntwurf';
+import { alsEntwurf, gleich, stammdatenFehler, stundenbudgetAus, type BaustellenEntwurf } from './baustellenEntwurf';
 import BaustellenPlaene from './BaustellenPlaene';
 import { listUsers } from '@/lib/db/users';
 import { listCustomers } from '@/lib/db/customers';
@@ -32,6 +32,7 @@ import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/S
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { fmtStunden } from '@/lib/time';
+import ZahlFeld from '@/components/ZahlFeld';
 
 /**
  * Die Akte einer Baustelle — und die Stelle, an der sie bearbeitet wird.
@@ -220,6 +221,11 @@ export default function BaustellenakteView() {
       setSpeicherFehler('Ohne Kunden geht es nicht — die Rechnung weiss sonst nicht, an wen.');
       return;
     }
+    const falsch = stammdatenFehler(entwurf);
+    if (falsch) {
+      setSpeicherFehler(falsch);
+      return;
+    }
     const neueNummer = entwurf.projectNumber.trim();
     const nummerNeu = neueNummer !== daten.projectNumber;
     if (nummerNeu && !nummerBestaetigt) {
@@ -255,8 +261,7 @@ export default function BaustellenakteView() {
         billingMode: entwurf.billingMode || undefined,
         // Leeres Feld heisst „kein Budget" — dann bleibt die Ampel der
         // Projektauswertung bewusst aus, statt 0 h anzunehmen.
-        estimatedHours:
-          entwurf.estimatedHours === '' ? undefined : Number(entwurf.estimatedHours) || 0,
+        estimatedHours: stundenbudgetAus(entwurf.estimatedHours),
         description: entwurf.description,
         startDate: entwurf.startDate,
         endDate: entwurf.endDate,
@@ -587,10 +592,10 @@ function StammdatenFormular({
           <option value="Regie">Regie</option>
           <option value="Pauschal">Pauschal</option>
         </SelectField>
-        <InputField
-          id="b-budget" label="Stundenbudget (kalkuliert)" type="number" min="0" step="0.5"
+        <ZahlFeld
+          id="b-budget" label="Stundenbudget (kalkuliert)"
           placeholder="z. B. 40" value={entwurf.estimatedHours}
-          onChange={(e) => setze('estimatedHours', e.target.value)}
+          onChange={(t) => setze('estimatedHours', t)}
         />
         <InputField
           id="b-beginn" label="Beginn" type="date" value={entwurf.startDate}

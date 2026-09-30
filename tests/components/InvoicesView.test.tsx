@@ -501,7 +501,8 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
 
     const zeile = await screen.findByDisplayValue('Eckventil 1/2 Zoll');
     expect(zeile).toBeInTheDocument();
-    expect(screen.getByDisplayValue('8.5')).toBeInTheDocument();
+    // Mit Komma, wie man in Österreich schreibt (M15).
+    expect(screen.getByDisplayValue('8,5')).toBeInTheDocument();
   });
 
   it('lässt seinen PREIS von Hand überschreiben', async () => {
@@ -2547,7 +2548,7 @@ describe('Rechnungen — neu zusammengestellt, Satz und Rabatt bleiben', () => {
       },
     ];
     await bisZurVorschau();
-    expect(screen.getByLabelText('Rabatt %')).toHaveValue(10);
+    expect(screen.getByLabelText('Rabatt %')).toHaveValue('10');
     // Eine Position ändern — der Rabatt muss bleiben.
     const menge = screen.getByLabelText(/Menge Position 1/);
     await userEvent.clear(menge);

@@ -22,7 +22,9 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import MaterialCatalog from './MaterialCatalog';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { zahlOder } from '@/lib/zahl';
 import { useReiterImBild } from '@/components/reiterImBild';
+import ZahlFeld from '@/components/ZahlFeld';
 
 /*
   Der Katalogimport wird erst beim Öffnen geladen. Er bringt den
@@ -177,10 +179,11 @@ export default function StockView() {
   async function eingangBuchen() {
     if (!eingang) return;
     const m = eingang;
-    const n = Math.floor(Number(eingangMenge.replace(',', '.')));
+    const n = zahlOder(eingangMenge, NaN);
     // Ohne diese Prüfung ginge eine negative oder krumme Zahl als
     // increment() durch und der Wareneingang würde den Bestand senken.
-    if (!Number.isFinite(n) || n < 1) {
+    // „1,5“ wird nicht still zu 1 (M15).
+    if (!Number.isInteger(n) || n < 1) {
       throw new Error('Bitte eine ganze Menge von mindestens 1 angeben.');
     }
     setBusyId(m.id);
@@ -370,16 +373,12 @@ export default function StockView() {
           onConfirm={eingangBuchen}
           onCancel={() => setEingang(null)}
         >
-          <InputField
+          <ZahlFeld
             id="eingang-menge"
             label={`Menge (${eingang.unit ?? 'Stk'})`}
-            type="number"
-            inputMode="numeric"
-            min={1}
-            step={1}
             pflicht
             value={eingangMenge}
-            onChange={(e) => setEingangMenge(e.target.value)}
+            onChange={setEingangMenge}
           />
         </ConfirmDialog>
       )}

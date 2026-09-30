@@ -14,6 +14,7 @@ import {
   DEFAULT_WORK_DAYS,
   type UserProfileInput,
 } from '@/lib/db/benutzerVorgaben';
+import { leseZahl, zahlOder } from '@/lib/zahl';
 import { todayStr, urlaubsJahrVon, JAHRESBEGINN_VORGABE } from '@/lib/time';
 
 /**
@@ -109,14 +110,13 @@ export const WEEKDAYS: { value: number; label: string }[] = [
  * rund 170 Minusstunden, und die Zahl steht auf dem Lohnzettel.
  */
 export function zahlOderVorgabe(eingabe: string, vorgabe: number): number {
-  const n = Number(eingabe);
-  return eingabe.trim() !== '' && Number.isFinite(n) ? n : vorgabe;
+  // Zentral gelesen (M15): „38,5“ ist achtunddreissigeinhalb, nicht die Vorgabe.
+  return leseZahl(eingabe, { negativ: true }).wert ?? vorgabe;
 }
 
 /** Leeres Feld heisst „nicht angegeben" — und das ist nicht dasselbe wie 0. */
 export function zahlOderNull(eingabe: string): number | null {
-  const n = Number(eingabe);
-  return eingabe.trim() !== '' && Number.isFinite(n) ? n : null;
+  return leseZahl(eingabe, { negativ: true }).wert;
 }
 
 /** Was das Formular hält: alles als Zeichenkette, so wie ein `<input>` liefert. */
@@ -221,7 +221,7 @@ export function alsEntwurf(u: AppUser): BenutzerEntwurf {
  */
 export function tagessollAusEntwurf(e: Pick<BenutzerEntwurf, 'tagessoll' | 'workDays'>): Record<string, number> | null {
   const tage = e.workDays.length ? e.workDays : DEFAULT_WORK_DAYS;
-  const werte = tage.map((t) => [String(t), Number((e.tagessoll[String(t)] ?? '').replace(',', '.'))] as const);
+  const werte = tage.map((t) => [String(t), zahlOder(e.tagessoll[String(t)] ?? '', NaN)] as const);
   if (werte.some(([t]) => (e.tagessoll[t] ?? '').trim() === '')) return null;
   if (werte.some(([, h]) => !Number.isFinite(h) || h < 0 || h > 24)) return null;
   return Object.fromEntries(werte);
@@ -244,7 +244,21 @@ export function tagessollNachTagen(f: Pick<BenutzerEntwurf, 'tagessoll' | 'workD
  * Was Anlage und Akte gleich prüfen, bevor gespeichert wird (Testbericht
  * 30.09.2026, M5 und M6). `null` heisst: in Ordnung.
  */
-export function entwurfFehler(e: Pick<BenutzerEntwurf, 'tagessoll' | 'workDays' | 'eintritt' | 'appStartDate'>): string | null {
+export function entwurfFehler(
+  e: Pick<BenutzerEntwurf, 'tagessoll' | 'workDays' | 'eintritt' | 'appStartDate'> &
+    Partial<Pick<BenutzerEntwurf, 'weeklyTargetHours' | 'yearlyVacationDays' | 'initialOvertime' | 'initialVacationDays'>>,
+): string | null {
+  // Eine Zahl, die sich nicht lesen lässt, geht nicht als Vorgabe durch (M15).
+  const zahlen: [string, string | undefined, boolean][] = [
+    ['Wochenstunden', e.weeklyTargetHours, false],
+    ['Urlaubstage pro Jahr', e.yearlyVacationDays, false],
+    ['Start-Saldo', e.initialOvertime, true],
+    [urlaubsfeldName(e), e.initialVacationDays, false],
+  ];
+  for (const [name, text, negativ] of zahlen) {
+    const { fehler } = leseZahl(text ?? '', { negativ });
+    if (fehler) return `${name}: ${fehler}`;
+  }
   if (Object.keys(e.tagessoll).length > 0 && !tagessollAusEntwurf(e)) {
     return 'Bitte für jeden Arbeitstag ein Tagessoll zwischen 0 und 24 Stunden angeben.';
   }
