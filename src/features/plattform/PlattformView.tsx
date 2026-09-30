@@ -1,17 +1,19 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import MarkenBand from '@/components/MarkenBand';
 import { useAuth } from '@/app/AuthContext';
-import { betriebAnlegen } from '@/lib/db/plattform';
+import { betriebAnlegenMitAnmeldung, plattformBetriebe, type PlattformBetrieb } from '@/lib/db/plattform';
 import { notzugang, offeneFreigaben, type OffeneFreigabe } from '@/lib/db/support';
-import { betriebFehler, type NeuerBetrieb } from '@shared/plattform';
+import { betriebFehler, kennungVorschlag, WARNUNG_OHNE_MAIL, type NeuerBetrieb } from '@shared/plattform';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
-import { InputField, FormGrid } from '@/components/Field';
+import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { ErrorState } from '@/components/States';
 import { Marke, Warnung } from '@/components/Badge';
 import PasswortAendern from '@/features/auth/PasswortAendern';
 import { plattformFehler, type PlattformFehler } from '@/lib/db/fehlerprotokoll';
 import FehlerListe from './FehlerListe';
+import NotzugangPasswort from './NotzugangPasswort';
 
 /**
  * Die einzige Seite des globalen Administrators.
@@ -22,10 +24,15 @@ import FehlerListe from './FehlerListe';
  * `users`-Dokument, sein Token trägt keine `companyId`, und daran hängt jede
  * einzelne Leseregel. Warum das so gebaut ist, steht in `shared/plattform.ts`.
  *
- * WAS HIER NICHT STEHT UND NICHT STEHEN WIRD: eine Liste der angelegten
- * Betriebe mit Zahlen daneben, ein Zustand ihrer Nachtläufe, eine Statistik.
- * Jede davon wäre am Ende doch ein Fenster in fremde Betriebe — und dann
- * hätte dieses Konto genau das, was es nicht haben soll.
+ * WAS HIER NICHT STEHT UND NICHT STEHEN WIRD: Zahlen aus den Betrieben, ein
+ * Zustand ihrer Nachtläufe, eine Statistik. Jede davon wäre am Ende doch ein
+ * Fenster in fremde Betriebe — und dann hätte dieses Konto genau das, was es
+ * nicht haben soll.
+ *
+ * SEIT 30.09.2026 GIBT ES DIE LISTE DER BETRIEBE (Testbericht M43) — mit
+ * Name, Kennung, Anlagedatum und den Konten der Leitung, sonst nichts. Ohne
+ * sie musste man die Kennung für den Notzugang auswendig wissen. Die Grenze
+ * steht in `public.plattform_betriebe`, nicht hier.
  *
  * SEIT 20.09.2026 GIBT ES EINE EINZIGE AUSNAHME, und sie ist keine: die Liste
  * der Betriebe, die GERADE EINBLICK GEWÄHREN. Sie steht nicht hier, weil ein
@@ -46,13 +53,20 @@ import FehlerListe from './FehlerListe';
  * steht in `fehlerprotokoll_plattform`, nicht hier.
  */
 
-const LEER: NeuerBetrieb = { name: '', companyId: '', adminEmail: '', adminName: '' };
+const datumKurz = (iso: string) => new Date(iso).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const zeitKurz = (iso: string) =>
+  new Date(iso).toLocaleString('de-AT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+const LEER: NeuerBetrieb = { name: '', companyId: '', adminEmail: '', adminName: '', anmeldung: 'email', adminBenutzername: '' };
 
 interface Angelegt {
   companyId: string;
   name: string;
   passwortLink: string;
   adminEmail: string;
+  /** Mit Benutzername (P1): Name und Startpasswort, nur jetzt zu sehen. */
+  benutzername?: string;
+  startpasswort?: string | null;
 }
 
 export default function PlattformView() {
@@ -66,11 +80,34 @@ export default function PlattformView() {
     durch die eigenen Hände ging.
   */
   const [angelegt, setAngelegt] = useState<Angelegt[]>([]);
+  /** Hat jemand die Kennung selbst getippt? Dann folgt sie dem Namen nicht mehr (G21). */
+  const [kennungVonHand, setKennungVonHand] = useState(false);
+
+  /*
+    DIE BETRIEBE, OHNE INHALTE (Testbericht 30.09.2026, M43): Name, Kennung,
+    Leitungskonten, ob eine davon eine E-Mail hat, ein offener Notzugang.
+    Daraus wählt man den Notzugang, statt die Kennung auswendig zu wissen.
+  */
+  const [betriebe, setBetriebe] = useState<PlattformBetrieb[] | null>(null);
+  const [betriebeFehler, setBetriebeFehler] = useState<string | null>(null);
+  async function betriebeLaden() {
+    setBetriebeFehler(null);
+    try {
+      setBetriebe(await plattformBetriebe());
+    } catch (e) {
+      setBetriebeFehler(e instanceof Error ? e.message : 'Die Liste der Betriebe konnte nicht geladen werden.');
+    }
+  }
+  useEffect(() => {
+    void betriebeLaden();
+  }, []);
 
   /* Wer gerade Einblick gewährt. */
   const [offen, setOffen] = useState<OffeneFreigabe[]>([]);
   const [notForm, setNotForm] = useState({ companyId: '', grund: '', stunden: '4' });
   const [notLaeuft, setNotLaeuft] = useState(false);
+  /** Für welchen Betrieb im Notzugang das Passwortformular offen ist (P2). */
+  const [passwortFuer, setPasswortFuer] = useState<string | null>(null);
   const [notFehler, setNotFehler] = useState<string | null>(null);
 
   async function freigabenLaden() {
@@ -104,6 +141,7 @@ export default function PlattformView() {
       await notzugang(notForm.companyId.trim(), notForm.grund.trim(), Number(notForm.stunden));
       setNotForm({ companyId: '', grund: '', stunden: '4' });
       await freigabenLaden();
+      await betriebeLaden();
     } catch (err) {
       setNotFehler(err instanceof Error ? err.message : 'Der Notzugang wurde abgewiesen.');
     } finally {
@@ -127,17 +165,21 @@ export default function PlattformView() {
     setFehler(null);
     setLaeuft(true);
     try {
-      const data = await betriebAnlegen(form);
+      const data = await betriebAnlegenMitAnmeldung(form);
       setAngelegt((bisher) => [
         {
           companyId: data.companyId,
           name: form.name.trim(),
           passwortLink: data.passwortLink,
           adminEmail: form.adminEmail.trim().toLowerCase(),
+          benutzername: data.benutzername,
+          startpasswort: data.startpasswort,
         },
         ...bisher,
       ]);
       setForm(LEER);
+      setKennungVonHand(false);
+      await betriebeLaden();
     } catch (e) {
       /*
         Die Meldung der Function durchreichen statt sie zu ersetzen: sie sagt,
@@ -184,7 +226,14 @@ export default function PlattformView() {
               label="Name des Betriebs"
               placeholder="Name des Betriebs"
               value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  name: e.target.value,
+                  // Vorschlag aus dem Namen, solange niemand die Kennung selbst getippt hat (G21).
+                  companyId: kennungVonHand ? form.companyId : kennungVorschlag(e.target.value),
+                })
+              }
               required
               pflicht
             />
@@ -193,7 +242,10 @@ export default function PlattformView() {
               label="Kennung"
               placeholder="z. B. mustermann"
               value={form.companyId}
-              onChange={(e) => setForm({ ...form, companyId: e.target.value })}
+              onChange={(e) => {
+                setKennungVonHand(e.target.value !== '');
+                setForm({ ...form, companyId: e.target.value });
+              }}
               required
               pflicht
             />
@@ -206,17 +258,45 @@ export default function PlattformView() {
               required
               pflicht
             />
-            <InputField
-              id="b-adminmail"
-              label="Dessen E-Mail"
-              type="email"
-              placeholder="name@betrieb.at"
-              value={form.adminEmail}
-              onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
-              required
-              pflicht
-            />
+            <SelectField
+              id="b-anmeldung"
+              label="Anmeldung mit"
+              value={form.anmeldung ?? 'email'}
+              onChange={(e) => setForm({ ...form, anmeldung: e.target.value as 'email' | 'benutzername' })}
+            >
+              <option value="email">E-Mail</option>
+              <option value="benutzername">Benutzername</option>
+            </SelectField>
+            {form.anmeldung === 'benutzername' ? (
+              <InputField
+                id="b-adminname-login"
+                label="Benutzername"
+                placeholder="z. B. petra.perl"
+                autoComplete="off"
+                value={form.adminBenutzername ?? ''}
+                onChange={(e) => setForm({ ...form, adminBenutzername: e.target.value })}
+                required
+                pflicht
+              />
+            ) : (
+              <InputField
+                id="b-adminmail"
+                label="Dessen E-Mail"
+                type="email"
+                placeholder="name@betrieb.at"
+                value={form.adminEmail}
+                onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
+                required
+                pflicht
+              />
+            )}
           </FormGrid>
+          {/* P1: ohne E-Mail gibt es kein „Passwort vergessen“ — das steht da, bevor angelegt wird. */}
+          {form.anmeldung === 'benutzername' && (
+            <Hinweiszeile stufe="warn">
+              <p>{WARNUNG_OHNE_MAIL}</p>
+            </Hinweiszeile>
+          )}
 
           {fehler && <ErrorState message={fehler} />}
 
@@ -232,9 +312,9 @@ export default function PlattformView() {
           */}
           {eingabeFehler && !fehler && (
             <p className="text-sm text-ink-muted">
-              {Object.values(form).some((v) => String(v ?? '').trim() !== '')
+              {[form.name, form.companyId, form.adminName, form.adminEmail, form.adminBenutzername].some((v) => String(v ?? '').trim() !== '')
                 ? eingabeFehler
-                : 'Alle vier Felder ausfüllen — dann lässt sich der Betrieb anlegen.'}
+                : 'Alle Felder ausfüllen — dann lässt sich der Betrieb anlegen.'}
             </p>
           )}
 
@@ -280,6 +360,65 @@ export default function PlattformView() {
                 <Button variant="secondary" onClick={() => einblickStarten(f)}>
                   Öffnen
                 </Button>
+                {/* P2: nur im Notzugang — ein ausgesperrter Betrieb bekommt wieder ein Passwort. */}
+                {f.notzugang && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => setPasswortFuer((x) => (x === f.company_id ? null : f.company_id))}
+                  >
+                    Passwort neu setzen
+                  </Button>
+                )}
+                {f.notzugang && passwortFuer === f.company_id && (
+                  <div className="basis-full">
+                    <NotzugangPasswort kennung={f.company_id} name={f.name} />
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card
+        title={`Betriebe (${betriebe?.length ?? 0})`}
+        hint="Name, Kennung und die Konten der Leitung — ohne Einblick in Inhalte. Hat keine Leitung eine E-Mail, gibt es für den Betrieb kein „Passwort vergessen“; dann hilft im Ernstfall nur der Notzugang."
+      >
+        {betriebeFehler ? (
+          <ErrorState message={betriebeFehler} onRetry={() => void betriebeLaden()} />
+        ) : !betriebe ? (
+          <p className="text-sm text-ink-muted">Wird geladen …</p>
+        ) : betriebe.length === 0 ? (
+          <p className="text-sm text-ink-muted">Noch kein Betrieb angelegt.</p>
+        ) : (
+          <ul className="divide-y divide-line text-sm">
+            {betriebe.map((b) => (
+              <li key={b.kennung} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span className="min-w-0">
+                  <span className="block font-medium text-ink">
+                    {b.name} <span className="font-normal text-ink-muted">({b.kennung})</span>
+                  </span>
+                  <span className="block text-ink-muted">
+                    angelegt am {datumKurz(b.angelegtAm)} · {b.leitungskonten}{' '}
+                    {b.leitungskonten === 1 ? 'Leitungskonto' : 'Leitungskonten'}
+                    {b.leitungskonten > 0 && `, ${b.leitungMitMail} mit E-Mail`}
+                  </span>
+                </span>
+                <span className="flex flex-wrap items-center gap-2">
+                  {b.leitungMitMail === 0 && <Warnung>keine Leitung mit E-Mail</Warnung>}
+                  {b.notzugangBis && <Warnung>Notzugang bis {zeitKurz(b.notzugangBis)}</Warnung>}
+                  <Button
+                    variant="secondary"
+                    groesse="klein"
+                    onClick={() => {
+                      setNotForm((f) => ({ ...f, companyId: b.kennung }));
+                      document.getElementById('n-grund')?.focus();
+                    }}
+                    aria-label={`${b.name} für den Notzugang wählen`}
+                  >
+                    Notzugang
+                  </Button>
+                </span>
               </li>
             ))}
           </ul>
@@ -321,15 +460,33 @@ export default function PlattformView() {
       >
         <form onSubmit={notzugangOeffnen} className="space-y-4">
           <FormGrid>
-            <InputField
-              id="n-kennung"
-              label="Kennung des Betriebs"
-              placeholder="z. B. mustermann"
-              value={notForm.companyId}
-              onChange={(e) => setNotForm({ ...notForm, companyId: e.target.value })}
-              required
-              pflicht
-            />
+            {betriebe && betriebe.length > 0 ? (
+              <SelectField
+                id="n-kennung"
+                label="Betrieb"
+                value={notForm.companyId}
+                onChange={(e) => setNotForm({ ...notForm, companyId: e.target.value })}
+                required
+                pflicht
+              >
+                <option value="">— wählen —</option>
+                {betriebe.map((b) => (
+                  <option key={b.kennung} value={b.kennung}>
+                    {b.name} ({b.kennung})
+                  </option>
+                ))}
+              </SelectField>
+            ) : (
+              <InputField
+                id="n-kennung"
+                label="Kennung des Betriebs"
+                placeholder="z. B. mustermann"
+                value={notForm.companyId}
+                onChange={(e) => setNotForm({ ...notForm, companyId: e.target.value })}
+                required
+                pflicht
+              />
+            )}
             <InputField
               id="n-stunden"
               label="Stunden (1–24)"
@@ -379,18 +536,35 @@ export default function PlattformView() {
                 <p className="font-semibold text-ink">
                   {b.name} <span className="text-ink-muted">({b.companyId})</span>
                 </p>
-                <p className="mt-1 text-sm text-ink-muted">
-                  Erster Administrator: {b.adminEmail}
-                </p>
-                <p className="mt-2 break-all text-sm">
-                  <a href={b.passwortLink} className="link">
-                    {b.passwortLink}
-                  </a>
-                </p>
-                <p className="mt-1 text-xs text-warning">
-                  Diesen Link an den Administrator weitergeben — er setzt damit sein Passwort. Er
-                  steht nur jetzt hier; danach hilft nur noch „Passwort vergessen?".
-                </p>
+                {b.startpasswort ? (
+                  <>
+                    <p className="mt-1 text-sm text-ink-muted">
+                      Erster Administrator: Benutzername <strong className="text-ink">{b.benutzername}</strong>
+                    </p>
+                    <p className="mt-2 text-sm">
+                      Startpasswort: <span className="font-mono text-base text-ink">{b.startpasswort}</span>
+                    </p>
+                    <p className="mt-1 text-xs text-warning">
+                      Benutzername und Startpasswort an den Administrator weitergeben. Beim ersten
+                      Anmelden vergibt er ein eigenes. Das Startpasswort steht nur jetzt hier.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-1 text-sm text-ink-muted">
+                      Erster Administrator: {b.adminEmail}
+                    </p>
+                    <p className="mt-2 break-all text-sm">
+                      <a href={b.passwortLink} className="link">
+                        {b.passwortLink}
+                      </a>
+                    </p>
+                    <p className="mt-1 text-xs text-warning">
+                      Diesen Link an den Administrator weitergeben — er setzt damit sein Passwort. Er
+                      steht nur jetzt hier; danach hilft nur noch „Passwort vergessen?".
+                    </p>
+                  </>
+                )}
               </li>
             ))}
           </ul>

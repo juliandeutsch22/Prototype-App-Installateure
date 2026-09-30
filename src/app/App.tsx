@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import MarkenBand from '@/components/MarkenBand';
 import EinblickProtokoll from '@/components/EinblickProtokoll';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import { beiPasswortRuecksetzung, startpasswortOffen } from '@/lib/auth/sitzung';
 import { istBenutzerkonto } from '@shared/benutzername';
@@ -104,6 +104,21 @@ export default function App() {
  */
 function AppInhalt() {
   const { plattformAdmin, loading, einblick, user, signOut } = useAuth();
+  const ort = useLocation();
+  const navigate = useNavigate();
+
+  /*
+    DIE PLATTFORMSEITE HAT IHRE EIGENE ADRESSE (Testbericht 30.09.2026, G21).
+    Sie wird ohne Routen gezeigt; die Adresse blieb deshalb nach dem Anmelden
+    auf /login und nach „Einblick beenden“ auf der letzten Unterseite des
+    Betriebs stehen. Läuft ein Einblick, führt die Sammelroute von
+    /plattform ohnehin auf die Startseite.
+  */
+  useEffect(() => {
+    if (!loading && plattformAdmin && !einblick && ort.pathname !== '/plattform') {
+      navigate('/plattform', { replace: true });
+    }
+  }, [loading, plattformAdmin, einblick, ort.pathname, navigate]);
 
   /*
     WER ÜBER EINEN RÜCKSETZLINK KOMMT, WIRD ZUERST NACH EINEM PASSWORT

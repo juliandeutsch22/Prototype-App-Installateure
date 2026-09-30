@@ -257,3 +257,43 @@ describe('Die Eingabe wird serverseitig geprüft', () => {
     expect(daten.companyId).toBe(kennung.toLowerCase());
   }, 120_000);
 });
+
+/*
+  TESTBERICHT 30.09.2026, P1 — der erste Administrator mit Benutzername.
+  Die Function erzeugt das Startpasswort, gibt es einmal zurück, und damit
+  kommt er hinein; die App verlangt danach ein eigenes.
+*/
+describe('Erster Administrator mit Benutzername (P1)', () => {
+  it('legt an, gibt das Startpasswort zurück, und damit meldet er sich an', async () => {
+    const kennung = `bn-${crypto.randomUUID().slice(0, 6)}`;
+    const benutzername = `chef.${crypto.randomUUID().slice(0, 6)}`;
+    const { status, daten } = await anlegen(plattformToken, {
+      name: 'Gruber Installationen', companyId: kennung, adminName: 'Franz Gruber',
+      adminEmail: '', anmeldung: 'benutzername', adminBenutzername: benutzername,
+    });
+    expect(status).toBe(200);
+    expect(daten.passwortLink).toBe('');
+    expect(String(daten.startpasswort)).toMatch(/^[A-Za-z0-9]{14}$/);
+
+    const anmeldung = await fetch(`${API}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { apikey: ANON, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: `${benutzername}@benutzer.senklot.invalid`, password: daten.startpasswort }),
+    });
+    const sitzung = await anmeldung.json();
+    expect(sitzung.access_token).toBeTruthy();
+    // Die Marke, an der die App das eigene Passwort verlangt.
+    expect(sitzung.user?.user_metadata?.startpasswort).toBe(true);
+
+    const { data: zeile } = await admin.from('users').select('role, company_id').eq('id', daten.ersterAdminUid).single();
+    expect(zeile).toEqual({ role: 'Administrator', company_id: kennung });
+  });
+
+  it('Gegenprobe: ein unbrauchbarer Benutzername wird abgewiesen', async () => {
+    const { status } = await anlegen(plattformToken, {
+      name: 'Gruber Installationen', companyId: `bn-${crypto.randomUUID().slice(0, 6)}`, adminName: 'Franz Gruber',
+      adminEmail: '', anmeldung: 'benutzername', adminBenutzername: 'Franz Gruber',
+    });
+    expect(status).toBe(400);
+  });
+});

@@ -27,6 +27,8 @@
  * keinen einzigen Reiter.
  */
 
+import { benutzernameFehler, kunstadresse } from './benutzername';
+
 /** Wo die globalen Administratoren stehen. Kein Client kommt an diese Sammlung. */
 export const PLATTFORM_ADMINS = 'platformAdmins';
 
@@ -43,6 +45,13 @@ export interface NeuerBetrieb {
   adminEmail: string;
   /** Name des ersten Administrators. */
   adminName: string;
+  /**
+   * Womit sich der erste Administrator anmeldet (Testbericht 30.09.2026, P1).
+   * Fehlt die Angabe, ist es die E-Mail — wie bisher.
+   */
+  anmeldung?: 'email' | 'benutzername';
+  /** Sein Benutzername, wenn er sich damit anmeldet. */
+  adminBenutzername?: string;
 }
 
 /**
@@ -101,24 +110,71 @@ export function betriebFehler(b: Partial<NeuerBetrieb>): string | null {
   if (!KENNUNG.test(kennung)) {
     return 'Die Kennung besteht aus Kleinbuchstaben, Ziffern und Bindestrichen, beginnt mit einem Buchstaben und ist 2 bis 30 Zeichen lang.';
   }
-  if (!MAIL.test((b.adminEmail ?? '').trim())) {
+  if (b.anmeldung === 'benutzername') {
+    const f = benutzernameFehler(b.adminBenutzername ?? '');
+    if (f) return f;
+  } else if (!MAIL.test((b.adminEmail ?? '').trim())) {
     return 'Die E-Mail des ersten Administrators fehlt oder ist unvollständig.';
   }
   if (!b.adminName?.trim()) return 'Der erste Administrator braucht einen Namen.';
   return null;
 }
 
+/**
+ * Eine Kennung aus dem Namen vorschlagen (Testbericht 30.09.2026, G21):
+ * „Perl Installationen GmbH“ → „perl-installationen-gmbh“. Umlaute werden
+ * ausgeschrieben, alles andere wird zum Bindestrich; sie beginnt mit einem
+ * Buchstaben und hat höchstens 30 Zeichen. Ein Vorschlag, keine Vorschrift:
+ * wer die Kennung selbst tippt, behält seine.
+ */
+export function kennungVorschlag(name: string): string {
+  const t = name
+    .toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^[^a-z]+/, '')
+    .slice(0, 30)
+    .replace(/-+$/, '');
+  return t;
+}
+
 /** Die Eingabe in die Form bringen, in der sie gespeichert wird. */
 export function betriebNormalisiert(b: NeuerBetrieb): NeuerBetrieb {
+  /*
+    MIT BENUTZERNAMEN ist die Adresse die Kunstadresse (siehe
+    `benutzername.ts`) — gebildet hier, damit Browser und Function dieselbe
+    meinen.
+  */
+  if (b.anmeldung === 'benutzername') {
+    const benutzername = (b.adminBenutzername ?? '').trim().toLowerCase();
+    return {
+      name: b.name.trim(),
+      companyId: b.companyId.trim().toLowerCase(),
+      adminEmail: kunstadresse(benutzername),
+      adminName: b.adminName.trim(),
+      anmeldung: 'benutzername',
+      adminBenutzername: benutzername,
+    };
+  }
   return {
     name: b.name.trim(),
     companyId: b.companyId.trim().toLowerCase(),
     // Kleinbuchstaben: Firebase Auth behandelt Adressen ohnehin so, und zwei
     // Schreibweisen derselben Adresse ergäben sonst zwei Konten.
-    adminEmail: b.adminEmail.trim().toLowerCase(),
+    adminEmail: (b.adminEmail ?? '').trim().toLowerCase(),
     adminName: b.adminName.trim(),
   };
 }
+
+/**
+ * Die Warnung, wenn der erste Administrator keine E-Mail hat (P1): ohne sie
+ * gibt es kein „Passwort vergessen“, und hat der Betrieb sonst niemanden,
+ * der Passwörter vergibt, hilft nur der Support.
+ */
+export const WARNUNG_OHNE_MAIL =
+  'Ohne E-Mail kann sich dieser Betrieb bei vergessenem Passwort nur über den Senklot-Support '
+  + 'wiederherstellen lassen. Empfohlen: einen zweiten Administrator oder eine Geschäftsführung anlegen.';
 
 /**
  * Wohin ein Rücksetz- oder Einladungslink nach dem Bestätigen führt.

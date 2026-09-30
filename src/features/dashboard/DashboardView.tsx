@@ -52,6 +52,7 @@ import { baustellenTitel } from '@/lib/baustellenTitel';
 import { besetzung, fehlenText, ganztagsWeg } from '@/features/assignments/besetzung';
 import { listAbwesendInRange } from '@/lib/db/vacations';
 import { einsatzZeit } from '@/features/assignments/einsatzZeit';
+import { rolleAnzeige } from '@/lib/rolleAnzeige';
 
 /**
  * 'YYYY-MM-DD' -> 'Mo., 01.09.'
@@ -189,7 +190,7 @@ const WARNUNGEN_AUF_STARTSEITE = 8;
 
 /** Rollen-spezifisches Zuhause mit echten Kennzahlen. */
 export default function DashboardView() {
-  const { user, company } = useAuth();
+  const { user, company, einblick } = useAuth();
   /**
    * Karten und Verweise nur zeigen, wenn ihr Bereich eingeschaltet ist.
    *
@@ -590,7 +591,7 @@ export default function DashboardView() {
                 (Prüflauf 24.09.2026, D13). */}
             <span className="whitespace-nowrap">KW {heuteKopf.kw}</span> ·{' '}
             {company?.name ?? 'Installateur-App'} ·{' '}
-            <span className="whitespace-nowrap">Rolle: {user.role}</span>
+            <span className="whitespace-nowrap">Rolle: {rolleAnzeige(user.role, einblick)}</span>
             {heuteKopf.feiertag && (
               <>
                 {' · '}
