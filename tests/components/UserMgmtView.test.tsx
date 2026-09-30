@@ -398,9 +398,9 @@ describe('Neueintritt oder Bestand', () => {
     await userEvent.clear(eintritt);
     await userEvent.type(eintritt, '2026-10-15');
 
-    // 25 × 3 von 12 Monaten = 6,25 — und die Rechnung steht daneben.
-    expect((screen.getByLabelText(/Urlaub im ersten Jahr/) as HTMLInputElement).value).toBe('6.25');
-    expect(screen.getByText(/3 von 12 Monaten/)).toBeInTheDocument();
+    // Taggenau (M3): 25 × 78 Kalendertage ÷ 365 = 5,34 — und die Rechnung steht daneben.
+    expect((screen.getByLabelText(/Urlaub im ersten Jahr/) as HTMLInputElement).value).toBe('5.34');
+    expect(screen.getByText(/× 78 Kalendertage ab dem Eintritt ÷ 365/)).toBeInTheDocument();
   });
 
   it('trägt den Vorschlag sofort beim Umschalten ein, nicht erst beim Datum', async () => {
@@ -438,8 +438,8 @@ describe('Neueintritt oder Bestand', () => {
   it('rechnet den Vorschlag nach dem Urlaubsjahr des Betriebs', async () => {
     /*
       Bei einem Urlaubsjahr ab 1. Juli liegt ein Eintritt im Oktober im
-      Urlaubsjahr, das noch neun Monate läuft — nach dem Kalender gerechnet
-      bekäme die Person ein Dreivierteljahr Urlaub zu wenig.
+      Urlaubsjahr, das noch 259 Tage läuft — nach dem Kalender gerechnet
+      bekäme die Person ein halbes Jahr Urlaub zu wenig.
     */
     betrieb = { id: 'perl', name: 'Perl Installationen', urlaubJahresbeginn: '07-01' };
     zeige();
@@ -452,7 +452,7 @@ describe('Neueintritt oder Bestand', () => {
     await userEvent.type(eintritt, '2026-10-15');
 
     expect((screen.getByLabelText(/Urlaub im ersten Jahr/) as HTMLInputElement).value)
-      .toBe('18.75');
+      .toBe('17.74');
   });
 
   it('schreibt den Vorschlag auch wirklich in die Anlage', async () => {
@@ -470,7 +470,7 @@ describe('Neueintritt oder Bestand', () => {
 
     await waitFor(() => expect(anlegen).toHaveBeenCalled());
     expect(anlegen.mock.calls[0][1]).toMatchObject({
-      initialVacationDays: 6.25,
+      initialVacationDays: 5.34,
       appStartDate: '2026-10-15',
       initialOvertime: 0,
     });

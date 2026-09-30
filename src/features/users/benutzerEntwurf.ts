@@ -35,8 +35,16 @@ export type Eintrittsart = 'bestand' | 'neu';
 export interface AliquoterAnspruch {
   /** Tage, auf zwei Stellen gerundet. */
   tage: number;
-  /** Wie viele Monate des Urlaubsjahres noch übrig sind (1–12). */
-  monate: number;
+  /** Kalendertage vom Eintritt (mitgezählt) bis zum Ende des Urlaubsjahres. */
+  restTage: number;
+  /** Wie viele Tage das Urlaubsjahr hat (365 oder 366). */
+  jahresTage: number;
+}
+
+/** Tage zwischen zwei ISO-Daten, ohne Zeitzonen- und Sommerzeitfehler. */
+function tageZwischen(von: string, bis: string): number {
+  const utc = (iso: string) => Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)));
+  return Math.round((utc(bis) - utc(von)) / 86_400_000);
 }
 
 /**
@@ -47,14 +55,13 @@ export interface AliquoterAnspruch {
  * das volle Ausmass springen. Ist das Urlaubsjahr durch Kollektivvertrag auf
  * das Kalenderjahr umgestellt, ist die übliche Praxis die Aliquotierung des
  * angebrochenen Jahres. Welche Variante im Einzelfall gilt, entscheidet der
- * Kollektivvertrag und nicht die Software. Eine erzwungene Zahl wäre eine
- * Rechtsauskunft, die diese App nicht geben kann — ein Vorschlag mit
- * offengelegter Rechnung ist ehrlich und im Zweifel zu korrigieren.
+ * Kollektivvertrag und nicht die Software — die Zahl bleibt änderbar.
  *
- * GEZÄHLT WIRD IN GANZEN MONATEN, und der Eintrittsmonat zählt voll mit. Das
- * ist die für den Mitarbeiter günstige Lesart und die in Kollektivverträgen
- * übliche. Beginnt das Urlaubsjahr nicht am Monatsersten, wird die Zählung
- * dadurch grob — auch deshalb bleibt die Zahl änderbar.
+ * TAGGENAU SEIT DEM 30.09.2026 (Testbericht M3): Jahresanspruch ×
+ * Kalendertage ab dem Eintritt (mitgezählt) ÷ Tage des Urlaubsjahres. Vorher
+ * zählte der Eintrittsmonat voll: ein Eintritt am 30.09. ergab 8,33 Tage, am
+ * 01.10. 6,25 — zwei Tage Unterschied für einen Kalendertag. Die Lesart ist
+ * noch mit der WKO abzugleichen (siehe PLAN-TESTBERICHT).
  */
 export function aliquoterAnspruch(
   jahresanspruch: number,
@@ -62,11 +69,15 @@ export function aliquoterAnspruch(
   jahresbeginn: string = JAHRESBEGINN_VORGABE,
 ): AliquoterAnspruch {
   const jahr = urlaubsJahrVon(eintritt, jahresbeginn);
-  const beginnMonat = Number(jahresbeginn.slice(0, 2));
-  const vergangen = (Number(eintritt.slice(0, 4)) - jahr) * 12
-    + (Number(eintritt.slice(5, 7)) - beginnMonat);
-  const monate = Math.max(0, Math.min(12, 12 - vergangen));
-  return { monate, tage: Math.round((jahresanspruch * monate) / 12 * 100) / 100 };
+  const beginn = `${jahr}-${jahresbeginn}`;
+  const naechster = `${jahr + 1}-${jahresbeginn}`;
+  const jahresTage = tageZwischen(beginn, naechster);
+  const restTage = Math.max(0, Math.min(jahresTage, tageZwischen(eintritt, naechster)));
+  return {
+    restTage,
+    jahresTage,
+    tage: Math.round(((jahresanspruch * restTage) / jahresTage) * 100) / 100,
+  };
 }
 
 /**

@@ -416,12 +416,12 @@ export default function UserMgmtView() {
                 <strong className="text-ink">
                   {vorschlag(form.appStartDate, form.yearlyVacationDays).tage}
                 </strong>{' '}
-                Tage —{' '}
-                {zahlOderVorgabe(form.yearlyVacationDays, DEFAULT_VACATION_DAYS)} ×{' '}
-                {vorschlag(form.appStartDate, form.yearlyVacationDays).monate} von 12 Monaten.{' '}
-                <strong className="text-ink">Änderbar:</strong> ob im ersten Arbeitsjahr aliquot
-                oder nach sechs Monaten voll gerechnet wird, entscheidet der Kollektivvertrag —
-                nicht diese App.
+                Tage — taggenau: {zahlOderVorgabe(form.yearlyVacationDays, DEFAULT_VACATION_DAYS)}{' '}
+                Tage Jahresanspruch × {vorschlag(form.appStartDate, form.yearlyVacationDays).restTage}{' '}
+                Kalendertage ab dem Eintritt ÷ {vorschlag(form.appStartDate, form.yearlyVacationDays).jahresTage}{' '}
+                Tage des Urlaubsjahres.{' '}
+                <strong className="text-ink">Änderbar:</strong> gilt im Betrieb eine andere Regel,
+                etwa laut Kollektivvertrag, hier die Zahl anpassen.
               </p>
             )}
             {eintritt === 'bestand' && (

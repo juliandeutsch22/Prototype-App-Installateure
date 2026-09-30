@@ -150,40 +150,48 @@ describe('Der aliquote Anspruch im angebrochenen ersten Urlaubsjahr', () => {
     hatte damit 25 Tage statt rund sechs. Das stand nirgends und fiel erst
     auf, wenn jemand Urlaub einreicht, den er nicht hat.
   */
-  it('rechnet die Monate bis zum Ende des Urlaubsjahres', () => {
-    // Eintritt im Oktober, Kalenderjahr: Oktober, November, Dezember.
-    expect(aliquoterAnspruch(25, '2026-10-15')).toEqual({ monate: 3, tage: 6.25 });
+  it('rechnet taggenau bis zum Ende des Urlaubsjahres', () => {
+    // 15.10. bis 31.12.: 17 + 30 + 31 = 78 Kalendertage, 25 × 78 ÷ 365.
+    expect(aliquoterAnspruch(25, '2026-10-15')).toEqual({ restTage: 78, jahresTage: 365, tage: 5.34 });
   });
 
-  it('zählt den Eintrittsmonat voll mit', () => {
+  it('springt zwischen zwei Tagen um einen Tag, nicht um zwei (Testbericht M3)', () => {
     /*
-      Die für den Mitarbeiter günstige Lesart, und die in Kollektivverträgen
-      übliche. Wer am 31. Oktober anfängt, bekommt denselben Vorschlag wie
-      wer am 1. Oktober anfängt — beim Urlaub in die für den Betrieb günstige
-      Richtung zu irren ist keine Näherung, sondern ein Fehler.
+      VORHER zählte der Eintrittsmonat voll: 30.09. ergab 25 × 4/12 = 8,33,
+      01.10. ergab 25 × 3/12 = 6,25. Jetzt trennt die beiden genau ein
+      Kalendertag — 25 ÷ 365 = 0,07 Urlaubstage.
     */
-    expect(aliquoterAnspruch(25, '2026-10-31').monate).toBe(3);
-    expect(aliquoterAnspruch(25, '2026-10-01').monate).toBe(3);
+    const september = aliquoterAnspruch(25, '2026-09-30');
+    const oktober = aliquoterAnspruch(25, '2026-10-01');
+    expect(september).toEqual({ restTage: 93, jahresTage: 365, tage: 6.37 });
+    expect(oktober).toEqual({ restTage: 92, jahresTage: 365, tage: 6.3 });
   });
 
   it('gibt am ersten Tag des Urlaubsjahres den vollen Anspruch', () => {
     // Dann ist nichts angebrochen, und der Vorschlag ist der Jahresanspruch.
-    expect(aliquoterAnspruch(25, '2026-01-01')).toEqual({ monate: 12, tage: 25 });
+    expect(aliquoterAnspruch(25, '2026-01-01')).toEqual({ restTage: 365, jahresTage: 365, tage: 25 });
+  });
+
+  it('zählt im Schaltjahr 366 Tage', () => {
+    // 2028 ist ein Schaltjahr: der 1. Juli liegt 184 Tage vor dem Jahresende.
+    expect(aliquoterAnspruch(25, '2028-07-01')).toEqual({ restTage: 184, jahresTage: 366, tage: 12.57 });
   });
 
   it('richtet sich nach dem Urlaubsjahr des Betriebs, nicht nach dem Kalender', () => {
     /*
       Bei einem Urlaubsjahr ab 1. Juli liegt der Eintritt im Oktober 2026 im
-      Urlaubsjahr 2026 (1.7.2026 – 30.6.2027) — es bleiben neun Monate, nicht
-      drei. Nach dem Kalender gerechnet bekäme die Person ein Dreivierteljahr
-      Urlaub zu wenig.
+      Urlaubsjahr 2026 (1.7.2026 – 30.6.2027) — es bleibt der grössere Teil
+      des Jahres, nicht ein Viertel. Nach dem Kalender gerechnet bekäme die
+      Person ein halbes Jahr Urlaub zu wenig.
     */
-    expect(aliquoterAnspruch(25, '2026-10-15', '07-01')).toEqual({ monate: 9, tage: 18.75 });
-    // Und ein Eintritt im März gehört noch ins Urlaubsjahr davor.
-    expect(aliquoterAnspruch(25, '2027-03-01', '07-01').monate).toBe(4);
+    // 15.10.2026 bis 30.06.2027: 17 + 30 + 31 + 31 + 28 + 31 + 30 + 31 + 30 = 259.
+    expect(aliquoterAnspruch(25, '2026-10-15', '07-01')).toEqual({ restTage: 259, jahresTage: 365, tage: 17.74 });
+    // Und ein Eintritt im März gehört noch ins Urlaubsjahr davor: 1.3. bis 30.6. = 122 Tage.
+    expect(aliquoterAnspruch(25, '2027-03-01', '07-01').restTage).toBe(122);
   });
 
   it('rundet auf zwei Stellen und erfindet nichts dazu', () => {
-    expect(aliquoterAnspruch(25, '2026-08-10').tage).toBe(10.42);
+    // 10.08. bis 31.12.: 22 + 30 + 31 + 30 + 31 = 144 Tage, 25 × 144 ÷ 365 = 9,863…
+    expect(aliquoterAnspruch(25, '2026-08-10').tage).toBe(9.86);
   });
 });
