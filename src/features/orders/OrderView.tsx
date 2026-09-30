@@ -57,7 +57,7 @@ interface CartLine {
  * Baustelle.
  */
 function cartKey(companyId: string, uid: string) {
-  return `perl_cart_v2:${companyId}:${uid}`;
+  return `senklot.warenkorb:${companyId}:${uid}`;
 }
 
 /** Material bestellen, eigene Bestellungen verfolgen, Retouren erfassen. */

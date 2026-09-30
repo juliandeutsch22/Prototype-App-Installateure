@@ -34,7 +34,7 @@
 const VERSUCH = 'perl:letzterVersuch';
 
 /** Für welche Fassung bereits hart geräumt wurde — höchstens einmal je Fassung. */
-const HART = 'perl:hartErneuert';
+const HART = 'senklot:hartErneuert';
 
 /**
  * Der lokale Speicher, oder `null`.

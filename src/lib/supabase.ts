@@ -27,7 +27,7 @@ let gemerkt: SupabaseClient | null = null;
  * überleben: sonst läge die Sitzung im `sessionStorage` und der Adapter
  * suchte sie beim nächsten Start im `localStorage`.
  */
-const MERKER = 'perl.sitzungMerken';
+const MERKER = 'senklot.sitzungMerken';
 
 export function merkenSetzen(merken: boolean): void {
   try {

@@ -28,7 +28,7 @@ import { anmeldeAdresse, istBenutzerkonto, KEIN_MAILKONTO } from '@shared/benutz
 import { ruecksprungAdresse } from '@shared/plattform';
 
 /** Wo der eigene Zwischenspeicher liegt. */
-const SPEICHER = 'perl.sitzung';
+const SPEICHER = 'senklot.sitzung';
 
 interface Gemerkt {
   profil: CurrentUser;

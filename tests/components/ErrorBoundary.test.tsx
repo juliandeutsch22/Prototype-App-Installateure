@@ -134,7 +134,7 @@ describe('Fehlergrenze', () => {
     // Zweiter Versuch nach der Sperre: die Grenze zeigt ihre Tafel, und dort
     // darf nicht „Erneut versuchen" als Ausweg dastehen — der kann nicht
     // wirken.
-    sessionStorage.setItem('perl:nachladefehler', String(Date.now()));
+    sessionStorage.setItem('senklot:nachladefehler', String(Date.now()));
     render(
       <ErrorBoundary>
         <Wirft fehler={new TypeError(NACHLADE_MELDUNGEN[0])} />

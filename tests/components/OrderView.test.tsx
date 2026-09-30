@@ -376,7 +376,7 @@ describe('Material anfordern — der Warenkorb auf einem geteilten Tablet', () =
      * Baustelle auf.
      */
     localStorage.setItem(
-      'perl_cart_v2:perl:jemand-anderer',
+      'senklot.warenkorb:perl:jemand-anderer',
       JSON.stringify([{ materialId: 'm2', materialName: 'Fremd', quantity: 9, projectNumber: '', note: '' }]),
     );
     zeige();
@@ -388,16 +388,16 @@ describe('Material anfordern — der Warenkorb auf einem geteilten Tablet', () =
     // eigenen Schlüssel, nicht unter einem, den sich alle teilen.
     await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm anfordern/ }));
     await waitFor(() =>
-      expect(localStorage.getItem('perl_cart_v2:perl:u1')).toContain('Kupferrohr'),
+      expect(localStorage.getItem('senklot.warenkorb:perl:u1')).toContain('Kupferrohr'),
     );
-    expect(localStorage.getItem('perl_cart_v2:perl')).toBeNull();
+    expect(localStorage.getItem('senklot.warenkorb:perl')).toBeNull();
   });
 
   it('holt den eigenen Korb nach einem Neustart zurück', async () => {
     // Auf der Baustelle bricht die Verbindung — oder die App — weg, bevor
     // abgeschickt wurde. Der Korb neu getippt ist eine verlorene Viertelstunde.
     localStorage.setItem(
-      'perl_cart_v2:perl:u1',
+      'senklot.warenkorb:perl:u1',
       JSON.stringify([
         { materialId: 'm1', materialName: 'Kupferrohr 15mm', quantity: 7, projectNumber: '2026-042', note: '' },
       ]),
