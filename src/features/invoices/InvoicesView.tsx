@@ -59,8 +59,9 @@ import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from
 import { abziehbar, alsVorrechnung, mitAbzug, nachSteuer, pflichtAbzug } from './vorrechnungen';
 import { scheinAbgleich } from './scheinAbgleich';
 import { einheitspreisVorschau, pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from './pauschale';
+import { ANZAHLUNG_PROZENT_VORGABE, anteilFehler, anzahlungVorschau } from './anzahlung';
 import { listQuotesForProject } from '@/lib/db/quotes';
-import { calcTotals, discountLabel, type InvoicePosition } from './totals';
+import { discountLabel, type InvoicePosition } from './totals';
 import { todayStr, localDateStr, fmtDauer, tageWort } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { Invoice, Project, RechnungsArt, WorkSheet, Zahlungseingang } from '@/types';
@@ -116,6 +117,10 @@ export default function InvoicesView() {
   const [pauschalAus, setPauschalAus] = useState<string | null>(null);
   /** Stammt die Vorschau aus einer Einheitspreis-Baustelle (M16)? Dann gilt der Hinweis zum Aufmaß. */
   const [nachAufmass, setNachAufmass] = useState(false);
+  /** Anteil vom angenommenen Angebot für eine Anzahlung (M20). */
+  const [anzahlungProzent, setAnzahlungProzent] = useState<number | null>(ANZAHLUNG_PROZENT_VORGABE);
+  /** Die letzte Anzahlung entstand ohne angenommenes Angebot — Betrag von Hand. */
+  const [anzahlungOhneAngebot, setAnzahlungOhneAngebot] = useState(false);
   /*
     Die unterschriebenen Scheine des Betriebs — für die Frage, welche Leistung
     noch auf keiner Rechnung steht. Einmal geladen, nicht abonniert: die
@@ -836,20 +841,19 @@ export default function InvoicesView() {
         Entscheidung.
       */
       if (art === 'anzahlung') {
-        const zeile = { label: 'Anzahlung gemäß Vereinbarung', qty: 1, unit: 'Pauschale', unitPrice: 0, netto: 0 };
-        await vorschauUebernehmen({
-          positions: [zeile],
-          ...calcTotals([zeile], satz),
-          discount: null,
-          linkedEntries: [],
-          linkedOrders: [],
-          linkedWorkSheets: [],
-          // Kein Leistungszeitraum: die Leistung ist noch nicht erbracht, und
-          // einen zu behaupten wäre gegenüber dem Finanzamt falsch.
-          leistung: null,
-          materialOhnePreis: [],
-          entries: [],
-        });
+        /*
+          ALS ANTEIL VOM ANGEBOT (Testbericht 30.09.2026, M20): mit einem
+          angenommenen Angebot steht der Betrag schon da, und der
+          voraussichtliche Zeitraum kommt aus Beginn und Ende der Baustelle.
+          Ohne Angebot bleibt es bei der Null — siehe `anzahlung.ts`.
+        */
+        const baustelle = projects.find((x) => x.projectNumber === projectNumber);
+        const angebote = baustelle?.id ? await listQuotesForProject(user.companyId, baustelle.id) : [];
+        const angebot = pauschalAngebot(angebote);
+        setAnzahlungOhneAngebot(!angebot);
+        await vorschauUebernehmen(
+          anzahlungVorschau({ angebot, prozent: anzahlungProzent, baustelle, vatRate: satz }),
+        );
         return;
       }
       /**
@@ -2095,7 +2099,19 @@ export default function InvoicesView() {
           </Button>
         </div>
         {art === 'anzahlung' && (
-          <div className="mt-3">
+          <div className="mt-3 space-y-3">
+            <div className="max-w-xs">
+              <ZahlWertFeld
+                id="anzahlung-prozent"
+                label="Anteil vom angenommenen Angebot (%)"
+                wert={anzahlungProzent}
+                leerAls={null}
+                onWert={(n) => setAnzahlungProzent(n)}
+              />
+              {anteilFehler(anzahlungProzent) && (
+                <p className="mt-1 text-sm text-danger">{anteilFehler(anzahlungProzent)}</p>
+              )}
+            </div>
             <Hinweiszeile>
               <p>
                 Eine Anzahlung verrechnet noch keine Leistung: sie nimmt keine Stunden und kein
@@ -2201,14 +2217,14 @@ export default function InvoicesView() {
           <div className="mb-4 grid gap-3 sm:grid-cols-2">
             <InputField
               id="leistung-von"
-              label="Leistung von"
+              label={art === 'anzahlung' ? 'Leistung voraussichtlich von' : 'Leistung von'}
               type="date"
               value={leistungVon}
               onChange={(e) => setLeistungVon(e.target.value)}
             />
             <InputField
               id="leistung-bis"
-              label="Leistung bis"
+              label={art === 'anzahlung' ? 'Leistung voraussichtlich bis' : 'Leistung bis'}
               type="date"
               value={leistungBis}
               onChange={(e) => setLeistungBis(e.target.value)}
@@ -2369,6 +2385,16 @@ export default function InvoicesView() {
                     : pauschalAus
                       ? `Pauschalbaustelle: die Positionen kommen aus dem Angebot ${pauschalAus}. Stunden und Material der Scheine sind darin enthalten und werden nicht einzeln verrechnet.`
                       : 'Pauschalbaustelle ohne angenommenes Angebot: den vereinbarten Betrag bitte in der Zeile eintragen. Stunden und Material der Scheine sind darin enthalten.'}
+                </p>
+              </Hinweiszeile>
+            </div>
+          )}
+          {art === 'anzahlung' && anzahlungOhneAngebot && (
+            <div className="mb-3">
+              <Hinweiszeile>
+                <p>
+                  Zu dieser Baustelle gibt es kein angenommenes Angebot: den vereinbarten Betrag
+                  bitte in der Zeile eintragen.
                 </p>
               </Hinweiszeile>
             </div>

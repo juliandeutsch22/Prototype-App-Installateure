@@ -364,6 +364,8 @@ beforeEach(() => {
   angebote = [];
   PROJEKT.billingMode = undefined;
   PROJEKT.customerId = undefined;
+  PROJEKT.startDate = undefined;
+  PROJEKT.endDate = undefined;
   reservierteNummer = 'RE-2026-1099';
   reservierungWirft = null;
   reihenfolge.length = 0;
@@ -2150,6 +2152,58 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     expect(inv.art).toBe('anzahlung');
     // Gesperrt wird nichts: die Liste, die mit der Rechnung zum Sperren geht, ist leer.
     expect(inv.linkedEntries).toEqual([]);
+  });
+
+  /*
+    Testbericht 30.09.2026, M20: die Anzahlung als Anteil vom angenommenen
+    Angebot, mit dem geplanten Zeitraum der Baustelle.
+  */
+  it('rechnet 30 % vom angenommenen Angebot und nimmt den geplanten Zeitraum', async () => {
+    angebote = [{
+      id: 'q7', quoteNumber: 'AN-2026-0012', status: 'Angenommen', quoteDate: '2026-09-01',
+      positions: [], discount: null, subtotalNetto: 8183, totalNetto: 8183, totalVat: 1636.6, totalBrutto: 9819.6,
+    }];
+    PROJEKT.startDate = '2026-10-05';
+    PROJEKT.endDate = '2026-10-23';
+    const bestaetigen = await bisZurVorschau('anzahlung');
+    expect(screen.getByDisplayValue('Anzahlung 30 % auf Angebot AN-2026-0012 vom 01.09.2026')).toBeInTheDocument();
+    expect(screen.getByLabelText('Leistung voraussichtlich von')).toHaveValue('2026-10-05');
+    expect(screen.getByLabelText('Leistung voraussichtlich bis')).toHaveValue('2026-10-23');
+
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const inv = lege.mock.calls[0][0] as Invoice;
+    // 30 % von 8.183,00 € netto — die Zahl aus dem Arbeitsauftrag.
+    expect(inv.totalNetto).toBe(2454.9);
+    expect(inv).toMatchObject({ leistungVon: '2026-10-05', leistungBis: '2026-10-23' });
+  });
+
+  it('nimmt einen anderen Anteil', async () => {
+    angebote = [{
+      id: 'q7', quoteNumber: 'AN-2026-0012', status: 'Angenommen', quoteDate: '2026-09-01',
+      positions: [], discount: null, subtotalNetto: 1000, totalNetto: 1000, totalVat: 200, totalBrutto: 1200,
+    }];
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: /Art der Rechnung/ }), 'anzahlung');
+    const feld = screen.getByLabelText('Anteil vom angenommenen Angebot (%)');
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '50');
+    await userEvent.click(screen.getByRole('button', { name: 'Anzahlung vorbereiten' }));
+    expect(await screen.findByDisplayValue('Anzahlung 50 % auf Angebot AN-2026-0012 vom 01.09.2026')).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne angenommenes Angebot bleibt die Null, und es wird gesagt', async () => {
+    angebote = [{
+      id: 'q8', quoteNumber: 'AN-2026-0013', status: 'Versendet', quoteDate: '2026-09-01',
+      positions: [], discount: null, subtotalNetto: 1000, totalNetto: 1000, totalVat: 200, totalBrutto: 1200,
+    }];
+    PROJEKT.startDate = '2026-10-05';
+    await bisZurVorschau('anzahlung');
+    expect(screen.getByDisplayValue('Anzahlung gemäß Vereinbarung')).toBeInTheDocument();
+    expect(screen.getByText(/kein angenommenes Angebot/)).toBeInTheDocument();
+    // Nur ein Beginn ist kein Zeitraum — erfunden wird keiner.
+    expect(screen.getByLabelText('Leistung voraussichtlich von')).toHaveValue('');
   });
 
   it('verlangt für die Anzahlung keinen Leistungszeitraum', async () => {
