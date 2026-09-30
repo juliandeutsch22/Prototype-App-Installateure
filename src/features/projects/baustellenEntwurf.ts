@@ -94,8 +94,19 @@ export function stundenbudgetAus(text: string): number | undefined {
 }
 
 /** Was vor dem Speichern der Stammdaten nicht stimmt — sonst `null`. */
-export function stammdatenFehler(e: Pick<BaustellenEntwurf, 'estimatedHours'>): string | null {
+export function stammdatenFehler(
+  e: Pick<BaustellenEntwurf, 'estimatedHours' | 'startDate' | 'endDate'>,
+): string | null {
   const budget = leseZahl(e.estimatedHours).fehler;
   if (budget) return `Stundenbudget: ${budget}`;
+  // M13: kein Ende vor dem Beginn. ISO-Daten lassen sich als Text vergleichen;
+  // dieselbe Regel steht in der Datenbank (`projects_ende_nach_beginn`).
+  if (e.startDate && e.endDate && e.endDate < e.startDate) {
+    return `Das Ende (${datumText(e.endDate)}) liegt vor dem Beginn (${datumText(e.startDate)}) — bitte die Daten prüfen.`;
+  }
   return null;
+}
+
+function datumText(iso: string): string {
+  return `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 }

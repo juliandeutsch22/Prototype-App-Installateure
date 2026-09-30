@@ -319,6 +319,31 @@ describe('Baustellen — anlegen', () => {
     await waitFor(() => expect(lege).toHaveBeenCalled());
     expect(lege.mock.calls[0][1].estimatedHours).toBe(40);
   });
+
+  it('legt keine Baustelle mit Ende vor dem Beginn an (Testbericht 30.09.2026, M13)', async () => {
+    zeige();
+    await formOeffnen();
+    await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-045');
+    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await userEvent.type(screen.getByLabelText('Beginn'), '2026-10-05');
+    await userEvent.type(screen.getByLabelText('Ende (geplant)'), '2026-10-01');
+    await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
+
+    expect(await screen.findByText(/Das Ende \(01\.10\.2026\) liegt vor dem Beginn \(05\.10\.2026\)/)).toBeInTheDocument();
+    expect(lege).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: Ende am selben Tag geht', async () => {
+    zeige();
+    await formOeffnen();
+    await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-046');
+    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await userEvent.type(screen.getByLabelText('Beginn'), '2026-10-05');
+    await userEvent.type(screen.getByLabelText('Ende (geplant)'), '2026-10-05');
+    await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
+
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+  });
 });
 
 describe('Baustellen — der Weg in die Akte', () => {

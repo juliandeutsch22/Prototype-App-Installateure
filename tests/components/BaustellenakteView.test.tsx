@@ -281,6 +281,20 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
     );
   });
 
+  it('speichert kein Ende vor dem Beginn (Testbericht 30.09.2026, M13)', async () => {
+    zeige();
+    const beginn = await screen.findByLabelText('Beginn');
+    await userEvent.clear(beginn);
+    await userEvent.type(beginn, '2026-10-05');
+    const ende = screen.getByLabelText('Ende (geplant)');
+    await userEvent.clear(ende);
+    await userEvent.type(ende, '2026-10-01');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    expect(await screen.findByText(/liegt vor dem Beginn/)).toBeInTheDocument();
+    expect(updateProject).not.toHaveBeenCalled();
+  });
+
   it('schreibt die Abrechnungsart, die vorher nirgends änderbar war', async () => {
     /*
       Der Handwerksschein LIEST `billingMode` — auf einer Regiebaustelle sind
