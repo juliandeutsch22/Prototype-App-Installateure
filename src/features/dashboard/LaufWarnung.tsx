@@ -54,7 +54,7 @@ const WOHIN: Record<NachtLaufArt, { pfad: string; wort: string }> = {
 const ARTEN: NachtLaufArt[] = ['ausleitung'];
 
 export default function LaufWarnung() {
-  const { user } = useAuth();
+  const { user, einblick } = useAuth();
   const [offen, setOffen] = useState<Array<{ art: NachtLaufArt; text: string }>>([]);
 
   /*
@@ -64,8 +64,19 @@ export default function LaufWarnung() {
   const companyId = user?.companyId;
   const rolle = user?.role;
 
+  /*
+    NICHT IM SUPPORTZUGANG (Testbericht 30.09.2026, M40). Den Stand der
+    Läufe liest er nicht; ohne Aufzeichnung hiesse die Meldung „noch nie
+    durchgelaufen“, obwohl die Sicherung läuft — ein Fehlalarm, der den
+    Support in die Irre führt.
+  */
+  const imSupport = !!einblick;
+
   useEffect(() => {
-    if (!companyId || !rolle || !isTopLevel(rolle)) return;
+    if (imSupport || !companyId || !rolle || !isTopLevel(rolle)) {
+      setOffen([]);
+      return;
+    }
     let weg = false;
     void (async () => {
       /*
@@ -87,7 +98,7 @@ export default function LaufWarnung() {
     return () => {
       weg = true;
     };
-  }, [companyId, rolle]);
+  }, [companyId, rolle, imSupport]);
 
   if (offen.length === 0) return null;
 
