@@ -45,9 +45,9 @@ const KUNDE: Customer & { id: string } = {
 
 let angebot: (Quote & { id: string }) | null = ANGEBOT;
 let kundeScheitert = false;
-const updateQuote = vi.fn<[string, unknown], Promise<void>>(async () => undefined);
-const deleteQuote = vi.fn<[string], Promise<void>>(async () => undefined);
-const pdf = vi.fn<[unknown], Promise<void>>(async () => undefined);
+const updateQuote = vi.fn<(a0: string, a1: unknown) => Promise<void>>(async () => undefined);
+const deleteQuote = vi.fn<(a0: string) => Promise<void>>(async () => undefined);
+const pdf = vi.fn<(a0: unknown) => Promise<void>>(async () => undefined);
 const annehmen = vi.fn(async () => ({ projectNumber: 'B-2026-0007', abgeleitet: 'B-2026-0007' }));
 
 vi.mock('@/lib/db/quotes', () => ({

@@ -26,7 +26,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
-import { standLesen, betriebAusStand, kontenAusStand } from './ruecklaufPlan.mjs';
+import { standLesen, betriebAusStand, kontenAusStand, entfernteAussondern } from './ruecklaufPlan.mjs';
 
 const args = process.argv.slice(2);
 const datei = args.find((a) => !a.startsWith('--'));
@@ -101,6 +101,7 @@ try {
   abbruch(e.message);
 }
 
+const uebergangen = entfernteAussondern(sammlungen);
 const konten = kontenAusStand(sammlungen);
 const zeilenGesamt = [...sammlungen.values()].reduce((s, z) => s + z.length, 0);
 
@@ -110,6 +111,9 @@ console.log(`Ziel:       ${URL_BASIS}`);
 console.log(`Umfang:     ${zeilenGesamt} Zeilen in ${sammlungen.size} Tabellen, ${konten.length} Zugänge\n`);
 for (const [tabelle, zeilen] of [...sammlungen].sort()) {
   console.log(`  ${tabelle.padEnd(24)} ${String(zeilen.length).padStart(6)}`);
+}
+for (const u of uebergangen) {
+  console.log(`  übergangen: ${u.tabelle} (${u.zeilen} Zeilen) — ${u.grund}`);
 }
 
 /*

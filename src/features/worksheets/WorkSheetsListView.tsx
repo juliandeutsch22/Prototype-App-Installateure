@@ -5,6 +5,7 @@ import {
   listRecentWorkSheets,
   listSignedWorkSheetsInRange,
   listWorkSheetsInRange,
+  searchWorkSheets,
   listWorkSheetsForProject,
   cancelWorkSheet,
   discardWorkSheetDraft,
@@ -264,11 +265,8 @@ export default function WorkSheetsListView() {
     Dieselbe Fehlerform wie beim Buchhaltungs-Export damals: eine leere
     Antwort, die wie ein Befund aussieht.
 
-    Serverseitig gehen Baustellennummer (exakt) und Zeitraum. Nach Kundenname
-    oder Notiz wird weiterhin nur im geladenen Bestand gesucht — nicht weil es
-    nicht ginge (die Spalten sind da, siehe `scheinSuche.ts`), sondern weil es
-    noch nicht nachgezogen ist. Das steht in der Ansicht, statt es zu
-    behaupten.
+    Serverseitig gehen Baustellennummer (exakt), Zeitraum und seit 30.09.2026
+    auch Kundenname und Notiz (siehe `scheinSuche.ts`).
   */
   const [treffer, setTreffer] = useState<WithId<WorkSheet>[] | null>(null);
   const [trefferZu, setTrefferZu] = useState('');
@@ -276,13 +274,15 @@ export default function WorkSheetsListView() {
   const absicht = useMemo(() => deuteSuche(suche), [suche]);
 
   async function serverseitigSuchen() {
-    if (!user || absicht.art === 'text') return;
+    if (!user || !suche.trim()) return;
     setSucheLaeuft(true);
     try {
       const gefunden =
         absicht.art === 'baustelle'
           ? await listWorkSheetsForProject(user.companyId, absicht.nummer, PRUEF_GRENZE)
-          : await listWorkSheetsInRange(user.companyId, absicht.von, absicht.bis, PRUEF_GRENZE);
+          : absicht.art === 'zeitraum'
+            ? await listWorkSheetsInRange(user.companyId, absicht.von, absicht.bis, PRUEF_GRENZE)
+            : await searchWorkSheets(user.companyId, absicht.text, PRUEF_GRENZE);
       setTreffer(gefunden);
       setTrefferZu(suche.trim());
     } catch (e) {
@@ -626,7 +626,7 @@ export default function WorkSheetsListView() {
                   nicht geladen.
                 </p>
                 <p className="mt-1 text-sm text-ink-muted">{suchHinweis(absicht)}</p>
-                {absicht.art !== 'text' && (
+                {suche.trim() && (
                   <div className="mt-2">
                     <Button
                       variant="secondary"

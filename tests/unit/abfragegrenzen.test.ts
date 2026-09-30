@@ -50,8 +50,6 @@ const AUSNAHMEN: Record<string, string> = {
     eine Obergrenze; wo sie greift, sagt es die Ansicht (siehe
     `lib/katalogGrenze.ts`).
   */
-  // Nachfassungen sind per Status begrenzt: erledigte fallen heraus.
-  listOpenFollowUps: 'Nur offene — per Status begrenzt',
   /*
     Die Pläne hängen an den Baustellen, nach denen gefragt wird — und gefragt
     wird nur nach denen, die gerade auf dem Schirm stehen. Eine Mengengrenze

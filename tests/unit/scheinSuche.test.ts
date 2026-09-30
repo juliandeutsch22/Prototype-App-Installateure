@@ -64,20 +64,20 @@ describe('Was der Suchbegriff meint', () => {
   });
 
   it('erkennt einen Namen als das, was er ist', () => {
-    expect(deuteSuche('Huber')).toEqual({ art: 'text' });
-    expect(deuteSuche('   ')).toEqual({ art: 'text' });
+    expect(deuteSuche('Huber')).toEqual({ art: 'text', text: 'Huber' });
+    expect(deuteSuche('  Therme tauschen ')).toEqual({ art: 'text', text: 'Therme tauschen' });
+    expect(deuteSuche('   ')).toEqual({ art: 'text', text: '' });
   });
 
   /*
-    UND SAGT ES AUCH. Firestore kann keine Volltextsuche; nach einem Namen
-    liesse sich nur mit einem zusätzlich gepflegten Feld suchen, und bis das
-    auf jedem Altbestand nachgetragen wäre, fände sie alte Scheine
-    stillschweigend nicht — genau das Verhalten, das hier weg soll.
+    Seit 30.09.2026 sucht der Server auch nach Namen und Notiz — der Grund
+    dagegen war Firestore, das keine Volltextsuche kannte. Der Hinweis sagt,
+    wonach gesucht wird, wie bei Baustelle und Zeitraum.
   */
-  it('sagt beim Namen, was nicht geht, und was stattdessen', () => {
+  it('sagt beim Namen, dass der Server nach Kundenname oder Notiz sucht', () => {
     const hinweis = suchHinweis(deuteSuche('Huber'));
-    expect(hinweis).toMatch(/nur im geladenen Bestand/);
-    expect(hinweis).toMatch(/Baustellennummer/);
+    expect(hinweis).toBe('Auf dem Server nach Kundenname oder Notiz „Huber" suchen');
+    expect(hinweis).not.toMatch(/nur im geladenen Bestand/);
   });
 
   it('benennt bei Baustelle und Zeitraum, wonach gesucht wird', () => {

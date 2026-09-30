@@ -18,6 +18,7 @@ import type {
   WorkSheet, WorkSheetFoto, WorkSheetMaterial, WorkSheetUnterschrift, WorkSheetZeit,
 } from '@/types';
 import { abfragen, aendern, derClient, type WithId } from './kern';
+import { oderUeberSpalten } from './suche';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
 
 const SCHEINE = 'work_sheets';
@@ -236,6 +237,27 @@ export async function listWorkSheetsInRange(
       { art: 'ab', feld: 'datum', wert: von },
       { art: 'bis', feld: 'datum', wert: bis },
     ],
+    sortiere: { feld: 'datum', absteigend: true },
+    grenze: max,
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
+/**
+ * Scheine nach Kundenname oder Notiz — über den ganzen Bestand, auch mitten
+ * im Wort.
+ *
+ * Unter Firestore ging das nicht (keine Volltextsuche), deshalb wurde danach
+ * nur im geladenen Bestand gesucht, und ein Schein vom März blieb unauffindbar.
+ * Seit dem Umzug stehen `customer_name` und `notizen` als Spalten am Schein;
+ * gesucht wird wie bei den Kunden (`ilike`). Ohne Status-Filter, aus
+ * demselben Grund wie beim Zeitraum.
+ */
+export async function searchWorkSheets(companyId: string, begriff: string, max = 150) {
+  const oder = oderUeberSpalten(['customer_name', 'notizen'], begriff);
+  if (!oder) return [];
+  const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
+    oder,
     sortiere: { feld: 'datum', absteigend: true },
     grenze: max,
   });

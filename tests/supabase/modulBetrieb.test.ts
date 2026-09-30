@@ -1,14 +1,13 @@
 /**
- * Wartungen, Nachfassungen und Belegschaft auf Postgres.
+ * Wartungen und Belegschaft auf Postgres.
  *
- * Drei kleine Module, zwei davon mit einer Eigenheit, die der Umzug auflöst:
+ * Zwei kleine Module, beide mit einer Eigenheit, die der Umzug auflöst:
  * die fälligen Wartungen brauchten einen Nachfilter im Browser, und die
  * Belegschaft trug ihre Felder teils in `snake_case` und teils nicht.
  */
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { admin, betriebAnlegen, konto, type Konto } from './helfer';
 import * as wartungen from '@/lib/db/pg/wartungen';
-import * as nachfassen from '@/lib/db/pg/followUps';
 import * as belegschaft from '@/lib/db/pg/users';
 import { clientEinreichen } from '@/lib/db/pg/kern';
 
@@ -32,7 +31,6 @@ afterAll(() => clientEinreichen(null));
 
 async function leeren(): Promise<void> {
   await admin.from('wartungen').delete().eq('company_id', BETRIEB);
-  await admin.from('follow_ups').delete().eq('company_id', BETRIEB);
 }
 
 const vereinbarung = (rest: Record<string, unknown> = {}) => ({
@@ -172,40 +170,6 @@ describe('Wartungen', () => {
     clientEinreichen(anton.client);
     expect(await wartungen.listWartungen(BETRIEB)).toHaveLength(1);
     await expect(wartungen.createWartung(BETRIEB, vereinbarung())).rejects.toThrow();
-  });
-});
-
-describe('Nachfassungen', () => {
-  afterEach(() => clientEinreichen(chef.client));
-
-  it('legt an, listet die offenen und hakt ab', async () => {
-    await leeren();
-    const id = await nachfassen.createFollowUp(BETRIEB, {
-      title: 'Bei Huber wegen der Therme anrufen',
-      projectNumber: 'B-100',
-      dueWeek: '2026-W19',
-      createdFrom: 'voice',
-      done: false,
-    });
-    let rows = await nachfassen.listOpenFollowUps(BETRIEB);
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({
-      title: 'Bei Huber wegen der Therme anrufen', dueWeek: '2026-W19', createdFrom: 'voice',
-    });
-
-    await nachfassen.markFollowUpDone(id);
-    rows = await nachfassen.listOpenFollowUps(BETRIEB);
-    expect(rows).toEqual([]);
-  });
-
-  it('auch ein Monteur darf nachfassen', async () => {
-    // Die Nachfassung entsteht meist aus einer Sprachnotiz auf der Baustelle.
-    await leeren();
-    clientEinreichen(anton.client);
-    await nachfassen.createFollowUp(BETRIEB, {
-      title: 'Dichtung nachbestellen', createdFrom: 'voice', done: false,
-    });
-    expect(await nachfassen.listOpenFollowUps(BETRIEB)).toHaveLength(1);
   });
 });
 

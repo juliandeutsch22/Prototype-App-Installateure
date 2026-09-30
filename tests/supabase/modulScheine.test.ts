@@ -423,3 +423,58 @@ describe('Listen', () => {
     expect(rows.every((s) => s.zeiten.length === 2 && s.material.length === 2)).toBe(true);
   });
 });
+
+/*
+  NACH NAME UND NOTIZ — über den ganzen Bestand (seit 30.09.2026).
+
+  Vorher ging das nur im geladenen Bestand; ein Schein vom Vorjahr blieb
+  unauffindbar, egal was jemand tippte. Die Scheine hier liegen 2025, also
+  weit hinter den jüngsten, die eine Liste zuerst lädt.
+*/
+describe('Suche nach Kundenname und Notiz', () => {
+  afterEach(() => clientEinreichen(anton.client));
+
+  beforeAll(async () => {
+    clientEinreichen(chef.client);
+    await scheine.createWorkSheet(BETRIEB, entwurf({
+      datum: '2025-03-04', customerName: 'Wohnbau Steiner GmbH', notizen: 'Therme getauscht',
+    }));
+    await scheine.createWorkSheet(BETRIEB, entwurf({
+      datum: '2025-03-05', customerName: 'Familie Gruber', notizen: 'Rabatt 100% laut Zusage',
+    }));
+    // Derselbe Name in einem anderen Betrieb — der darf nie auftauchen.
+    await betriebAnlegen('schein-b');
+    await admin.from('work_sheets').insert({
+      id: crypto.randomUUID(), company_id: 'schein-b', project_number: 'X-1',
+      customer_name: 'Wohnbau Steiner GmbH', datum: '2025-03-04', status: 'Entwurf', abrechnung: 'Regie',
+    });
+  }, 120_000);
+
+  it('findet mitten im Namen, ohne auf Gross- und Kleinschreibung zu achten', async () => {
+    clientEinreichen(chef.client);
+    const rows = await scheine.searchWorkSheets(BETRIEB, 'steiner');
+    expect(rows.map((s) => s.customerName)).toEqual(['Wohnbau Steiner GmbH']);
+    // Mit Positionen, wie jede andere Liste.
+    expect(rows[0].zeiten).toHaveLength(2);
+  });
+
+  it('findet ein Wort aus der Notiz', async () => {
+    clientEinreichen(chef.client);
+    const rows = await scheine.searchWorkSheets(BETRIEB, 'THERME');
+    expect(rows.map((s) => s.datum)).toEqual(['2025-03-04']);
+  });
+
+  it('nimmt „%" wörtlich, nicht als Joker', async () => {
+    clientEinreichen(chef.client);
+    const rows = await scheine.searchWorkSheets(BETRIEB, '100%');
+    expect(rows.map((s) => s.customerName)).toEqual(['Familie Gruber']);
+    expect(await scheine.searchWorkSheets(BETRIEB, '%')).toHaveLength(1);
+  });
+
+  it('Gegenprobe: nichts aus einem fremden Betrieb, nichts ohne Begriff', async () => {
+    clientEinreichen(chef.client);
+    const rows = await scheine.searchWorkSheets(BETRIEB, 'Steiner');
+    expect(rows.every((s) => s.companyId === BETRIEB)).toBe(true);
+    expect(await scheine.searchWorkSheets(BETRIEB, '   ')).toEqual([]);
+  });
+});

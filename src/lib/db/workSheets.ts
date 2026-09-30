@@ -55,6 +55,12 @@ export function listWorkSheetsInRange(
   return pg.listWorkSheetsInRange(companyId, von, bis, max);
 }
 
+export function searchWorkSheets(
+  companyId: string, begriff: string, max = 150,
+): Promise<WithId<WorkSheet>[]> {
+  return pg.searchWorkSheets(companyId, begriff, max);
+}
+
 export function getWorkSheet(id: string): Promise<WithId<WorkSheet> | undefined> {
   return pg.getWorkSheet(id);
 }

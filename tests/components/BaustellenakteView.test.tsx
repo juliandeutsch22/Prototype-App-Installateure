@@ -53,7 +53,7 @@ let nebenladenScheitert = false;
 
 const listProjectsByIds = vi.fn(async () => baustellen);
 const updateProject = vi.fn(async () => undefined);
-const baustelleUmnummern = vi.fn<[string, string], Promise<void>>(async () => undefined);
+const baustelleUmnummern = vi.fn<(a0: string, a1: string) => Promise<void>>(async () => undefined);
 
 vi.mock('@/lib/db/projects', () => ({
   listProjectsByIds: () => listProjectsByIds(),
@@ -105,7 +105,7 @@ vi.mock('@/lib/db/baustellenDokumente', async () => {
 /** Angebote zur Baustelle — gesucht über ihre Kennung. */
 let angebote: { id: string; quoteNumber: string }[] = [];
 let angeboteScheitern = false;
-const listQuotesForProject = vi.fn<[string, string], Promise<typeof angebote>>(async () => {
+const listQuotesForProject = vi.fn<(a0: string, a1: string) => Promise<typeof angebote>>(async () => {
   if (angeboteScheitern) throw new Error('kaputt');
   return angebote;
 });

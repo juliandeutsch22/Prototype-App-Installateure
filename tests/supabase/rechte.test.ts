@@ -33,7 +33,7 @@ describe('Die Betriebe sehen einander nicht', () => {
   const tabellen = [
     'customers', 'projects', 'materials', 'suppliers',
     'time_entries', 'vacations', 'assignments', 'work_sheets',
-    'material_orders', 'einsatz_material', 'wartungen', 'follow_ups',
+    'material_orders', 'einsatz_material', 'wartungen',
   ];
 
   it('in keiner einzigen Tabelle', async () => {
@@ -69,9 +69,6 @@ describe('Die Betriebe sehen einander nicht', () => {
       company_id: 'perl',
       customer_id: (await admin.from('customers').select('id').eq('company_id', 'perl').limit(1)).data![0].id,
       customer_name: 'Familie Huber', anlage: 'Therme', intervall_monate: 12, faellig_am: '2027-03-01',
-    });
-    await admin.from('follow_ups').insert({
-      company_id: 'perl', title: 'Rückruf', created_from: 'manual',
     });
 
     const gesehen: string[] = [];

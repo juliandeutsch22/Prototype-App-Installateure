@@ -42,7 +42,7 @@ beforeAll(async () => {
 }, 120_000);
 
 describe('Die Nummer ändern', () => {
-  it('nimmt Buchungen, Einsätze, Rüstliste, Schein-Entwurf, Anforderung, Angebot und Wiedervorlage mit', async () => {
+  it('nimmt Buchungen, Einsätze, Rüstliste, Schein-Entwurf, Anforderung und Angebot mit', async () => {
     const alt = nummer();
     const neu = nummer();
     const id = await baustelle(alt);
@@ -65,7 +65,6 @@ describe('Die Nummer ändern', () => {
         quote_date: '2026-09-01', valid_until: '2026-10-01', status: 'Angenommen', vat_rate: 20,
         project_number: alt,
       }),
-      admin.from('follow_ups').insert({ company_id: BETRIEB, title: 'Nachfassen', created_from: 'manual', project_number: alt }),
     ];
     for (const s of setzen) {
       const { error } = await s;
@@ -76,10 +75,10 @@ describe('Die Nummer ändern', () => {
     expect(error).toBeNull();
     expect(data).toMatchObject({
       geaendert: true, alt, neu,
-      bewegt: { buchungen: 1, einsaetze: 1, ruestlisten: 1, scheine: 1, anforderungen: 1, angebote: 1, wiedervorlagen: 1 },
+      bewegt: { buchungen: 1, einsaetze: 1, ruestlisten: 1, scheine: 1, anforderungen: 1, angebote: 1 },
     });
 
-    for (const tabelle of ['time_entries', 'assignments', 'einsatz_material', 'work_sheets', 'material_orders', 'quotes', 'follow_ups']) {
+    for (const tabelle of ['time_entries', 'assignments', 'einsatz_material', 'work_sheets', 'material_orders', 'quotes']) {
       const aufAlt = await admin.from(tabelle).select('id', { count: 'exact', head: true })
         .eq('company_id', BETRIEB).eq('project_number', alt);
       expect({ tabelle, rest: aufAlt.count }).toEqual({ tabelle, rest: 0 });

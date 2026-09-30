@@ -81,9 +81,7 @@ const listProjectsForCustomer = vi.fn(async () => [] as (Project & { id: string 
   ist. Der 501. Kunde existierte für die App sonst schlicht nicht: nicht in
   der Liste, nicht in der Suche, nirgends. Und nichts sagte es.
 */
-const searchCustomers = vi.fn<
-  [string, string, number | undefined], Promise<typeof kunden>
->(async () => kunden);
+const searchCustomers = vi.fn<(a0: string, a1: string, a2: number | undefined) => Promise<typeof kunden>>(async () => kunden);
 
 /*
   SEIT DEM 14.09.2026 GEHT DER SUCHBEGRIFF MIT IN DIE ABFRAGE.

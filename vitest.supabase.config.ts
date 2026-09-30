@@ -37,9 +37,10 @@ export default defineConfig({
       DIE ANMELDUNG BRAUCHT EINEN BROWSER. Sie legt die Sitzung im
       `localStorage` oder im `sessionStorage` ab — das ist keine Nebensache,
       sondern die Entscheidung „überlebt die Sitzung den Browser".
-      Nachgebaute Speicher würden genau das nicht prüfen.
+      Nachgebaute Speicher würden genau das nicht prüfen. Das steht seit
+      Vitest 4 als `@vitest-environment jsdom` in der ersten Zeile der Datei
+      (`environmentMatchGlobs` gibt es nicht mehr).
     */
-    environmentMatchGlobs: [['tests/supabase/anmeldung.test.ts', 'jsdom']],
     testTimeout: 30_000,
     hookTimeout: 60_000,
     fileParallelism: false,

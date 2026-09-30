@@ -48,7 +48,7 @@ let loeschFehler: string | null = null;
 let spaet = false;
 let liefern: () => void = () => undefined;
 let anlegeFehler: string | null = null;
-const reserviere = vi.fn<[string, unknown], Promise<string | null>>(async () => null);
+const reserviere = vi.fn<(a0: string, a1: unknown) => Promise<string | null>>(async () => null);
 
 /* Mit welcher Grenze zuletzt abonniert wurde — der Nachladeknopf hebt sie an. */
 let letzteGrenze = 0;

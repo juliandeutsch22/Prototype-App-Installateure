@@ -15,10 +15,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: [
-      'tests/unit/**/*.test.ts',
-      'tests/components/**/*.test.tsx',
-    ],
+    // Welche Dateien zu welcher Umgebung gehören, steht unten bei `projects`.
     /*
       ZUR ZEITZONE: sie steht im `test`-Skript in package.json, nicht hier.
 
@@ -35,7 +32,17 @@ export default defineConfig({
       zu bedeuten.
     */
     environment: 'node',
-    environmentMatchGlobs: [['tests/components/**', 'jsdom']],
     setupFiles: ['tests/components/setup.ts'],
+    /*
+      Die Ansichtsprüfungen brauchen einen nachgebauten Browser, die übrigen
+      nicht. Früher `environmentMatchGlobs`; Vitest 4 kennt nur noch Projekte.
+    */
+    projects: [
+      { extends: true, test: { name: 'rechnung', include: ['tests/unit/**/*.test.ts'] } },
+      {
+        extends: true,
+        test: { name: 'ansicht', include: ['tests/components/**/*.test.tsx'], environment: 'jsdom' },
+      },
+    ],
   },
 });

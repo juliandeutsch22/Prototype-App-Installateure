@@ -27,9 +27,9 @@ const kunden: (Customer & { id: string })[] = [
  * Tupel ab und der Zugriff auf `mock.calls[0][1]` scheitert im Build. Die
  * Signatur steht deshalb als Typ da, ohne unbenutzte Bezeichner.
  */
-const createQuote = vi.fn<[string, unknown], Promise<string>>(async () => 'q1');
-const createProject = vi.fn<[string, unknown], Promise<string>>(async () => 'p1');
-const updateQuote = vi.fn<[string, unknown], Promise<void>>(async () => undefined);
+const createQuote = vi.fn<(a0: string, a1: unknown) => Promise<string>>(async () => 'q1');
+const createProject = vi.fn<(a0: string, a1: unknown) => Promise<string>>(async () => 'p1');
+const updateQuote = vi.fn<(a0: string, a1: unknown) => Promise<void>>(async () => undefined);
 const angebote: (Quote & { id: string })[] = [];
 
 vi.mock('@/lib/db/quotes', () => ({
@@ -41,7 +41,7 @@ vi.mock('@/lib/db/quotes', () => ({
 }));
 vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => kunden) }));
 let aktiveBaustellen: { projectNumber: string }[] = [];
-const reserveProjectNumber = vi.fn<[string, unknown], Promise<string | null>>(
+const reserveProjectNumber = vi.fn<(a0: string, a1: unknown) => Promise<string | null>>(
   async () => 'B-2026-0012',
 );
 /** Baustellen, die es zu einer Nummer schon gibt — für das zweite Annehmen. */

@@ -31,7 +31,7 @@ vi.mock('./AuthContext', () => ({
 vi.mock('@/lib/db/offenePosten', () => ({
   ladeOffenePosten: async () => undefined,
 }));
-const offeneVormerkungen = vi.fn<[string | undefined], Promise<number>>(async () => 0);
+const offeneVormerkungen = vi.fn<(a0: string | undefined) => Promise<number>>(async () => 0);
 vi.mock('@/lib/db/pg/ohneEmpfang', () => ({
   offeneVormerkungen: (uid?: string) => offeneVormerkungen(uid),
 }));

@@ -35,7 +35,7 @@ function person(p: Partial<AppUser> & { uid: string }): AppUser {
 let gefunden: AppUser | null = person({ uid: 'u2', name: 'Erna Beispiel', email: 'erna@perl.at' });
 let ladefehler = false;
 
-const profilAendern = vi.fn<unknown[], Promise<void>>(async () => undefined);
+const profilAendern = vi.fn<(...args: unknown[]) => Promise<void>>(async () => undefined);
 const passwortMail = vi.fn(async () => undefined);
 
 vi.mock('@/lib/db/users', () => ({
@@ -51,7 +51,7 @@ vi.mock('@/lib/auth/provisionUser', () => ({
   generatePassword: () => 'Messing-3319-Bogen',
 }));
 
-const vergeben = vi.fn<[string, string], Promise<void>>(async () => undefined);
+const vergeben = vi.fn<(a0: string, a1: string) => Promise<void>>(async () => undefined);
 vi.mock('@/lib/auth/sitzung', () => ({
   passwortVergeben: (uid: string, pw: string) => vergeben(uid, pw),
 }));

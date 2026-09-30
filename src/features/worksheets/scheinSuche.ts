@@ -1,31 +1,14 @@
 import { normProjectNumber } from '@/lib/time';
 
 /**
- * Was ein Suchbegriff meint — und was sich damit serverseitig holen lässt.
+ * Was ein Suchbegriff meint — und wonach der Server sucht.
  *
- * WARUM ES DAS BRAUCHT. Die Suche in der Scheinliste filterte den GELADENEN
- * Bestand im Browser: die jüngsten fünfzig. Ein Schein vom März war damit
- * nicht auffindbar, egal was jemand eintippte — und das Feld sagte nichts
- * dazu, es lieferte einfach kein Ergebnis. Dieselbe Fehlerform wie beim
- * Buchhaltungs-Export damals: eine leere Antwort, die wie ein Befund aussieht.
- *
- * WARUM NICHT EINFACH ALLES SERVERSEITIG SUCHEN. Der Grund war Firestore:
- * es kannte keine Volltextsuche, und nach einem Kundennamen liesse sich nur
- * mit einem zusätzlich gepflegten Feld suchen. **Seit dem Umzug auf Postgres
- * gilt er nicht mehr** — `customer_name` und `notizen` stehen als Spalten am
- * Schein, und die Kunden-, Baustellen- und Wartungssuche macht genau das
- * bereits über `ilike`. Hier ist es schlicht noch nicht nachgezogen; es steht
- * als offener Punkt in ROADMAP.md.
- *
- * Solange es so ist, sagt die Ansicht es, statt es zu verschweigen.
- *
- * Deshalb die Trennung, und sie steht auch in der Oberfläche:
- *
- *   Baustellennummer und Zeitraum  — serverseitig, exakt, ohne neues Feld
- *   Kundenname und Notiz           — nur im geladenen Bestand
- *
- * Das deckt ab, wonach im Büro tatsächlich gesucht wird („die Scheine zur
- * 2026-042", „alles vom März"), und behauptet für den Rest nichts.
+ * Die Liste zeigt die jüngsten Scheine; gefiltert wird sofort im geladenen
+ * Bestand. Ältere holt „Auf dem Server suchen", und dafür muss klar sein,
+ * WONACH: eine Baustellennummer (exakt, auch mit altem „PR-"), ein Zeitraum
+ * oder ein Kundenname bzw. ein Wort aus der Notiz (seit 30.09.2026 ebenfalls
+ * serverseitig — der Grund dagegen war Firestore, das keine Volltextsuche
+ * kannte).
  */
 
 import { monatsEnde } from '@shared/feiertage';
@@ -33,7 +16,7 @@ import { monatsEnde } from '@shared/feiertage';
 export type Suchabsicht =
   | { art: 'baustelle'; nummer: string }
   | { art: 'zeitraum'; von: string; bis: string; text: string }
-  | { art: 'text' };
+  | { art: 'text'; text: string };
 
 /**
  * Was der Begriff bedeutet.
@@ -49,7 +32,7 @@ export type Suchabsicht =
  */
 export function deuteSuche(text: string): Suchabsicht {
   const t = text.trim();
-  if (!t) return { art: 'text' };
+  if (!t) return { art: 'text', text: '' };
 
   /* Ein einzelner Tag. */
   if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return { art: 'zeitraum', von: t, bis: t, text: t };
@@ -81,7 +64,7 @@ export function deuteSuche(text: string): Suchabsicht {
   */
   if (/\d/.test(t)) return { art: 'baustelle', nummer: normProjectNumber(t) };
 
-  return { art: 'text' };
+  return { art: 'text', text: t };
 }
 
 /** Was die Oberfläche über den Begriff sagt, bevor jemand sucht. */
@@ -92,6 +75,6 @@ export function suchHinweis(absicht: Suchabsicht): string {
     case 'zeitraum':
       return `Auf dem Server nach Scheinen aus ${absicht.text} suchen`;
     default:
-      return 'Nach Kundenname oder Notiz kann nur im geladenen Bestand gesucht werden — für ältere Scheine bitte die Baustellennummer oder einen Zeitraum eingeben (etwa 2026-042, 09.2026 oder 2026).';
+      return `Auf dem Server nach Kundenname oder Notiz „${absicht.text}" suchen`;
   }
 }

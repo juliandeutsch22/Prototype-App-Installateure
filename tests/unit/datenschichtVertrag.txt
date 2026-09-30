@@ -25,9 +25,6 @@ src/lib/db/einsatzMaterial.ts#ladenUmschalten: (companyId: string, date: string,
 src/lib/db/einsatzMaterial.ts#listEinsatzMaterialForDate: (companyId: string, date: string) => Promise<WithId<EinsatzMaterial>[]>
 src/lib/db/einsatzMaterial.ts#saveEinsatzMaterial: (companyId: string, date: string, projectNumber: string, positionen: RuestPosition[], uids: string[], updatedBy: string) => Promise<void>
 src/lib/db/einsatzMaterial.ts#subscribeEinsatzMaterialForDate: (companyId: string, date: string, cb: (rows: WithId<EinsatzMaterial>[]) => void, onError: (e: Error) => void) => () => void
-src/lib/db/followUps.ts#createFollowUp: (companyId: string, f: NewFollowUp) => Promise<string>
-src/lib/db/followUps.ts#listOpenFollowUps: (companyId: string) => Promise<WithId<FollowUp>[]>
-src/lib/db/followUps.ts#markFollowUpDone: (id: string) => Promise<void>
 src/lib/db/invoices.ts#cancelInvoice: (inv: WithId<Invoice>, note: string) => Promise<void>
 src/lib/db/invoices.ts#createInvoice: (companyId: string, inv: NewInvoice) => Promise<string>
 src/lib/db/invoices.ts#decideInvoiceSeq: (last: number, desired?: number, year?: number, praefix?: string) => number
@@ -143,6 +140,7 @@ src/lib/db/workSheets.ts#listSignedWorkSheetsInRange: (companyId: string, von: s
 src/lib/db/workSheets.ts#listWorkSheetsForProject: (companyId: string, projectNumber: string, max?: number) => Promise<WithId<WorkSheet>[]>
 src/lib/db/workSheets.ts#listWorkSheetsInRange: (companyId: string, von: string, bis: string, max?: number) => Promise<WithId<WorkSheet>[]>
 src/lib/db/workSheets.ts#restoreWorkSheetDraft: (id: string) => Promise<void>
+src/lib/db/workSheets.ts#searchWorkSheets: (companyId: string, begriff: string, max?: number) => Promise<WithId<WorkSheet>[]>
 src/lib/db/workSheets.ts#signWorkSheet: (id: string, monteur: WorkSheetUnterschrift, kunde: WorkSheetUnterschrift) => Promise<void>
 src/lib/db/workSheets.ts#updateWorkSheetDraft: (id: string, data: Partial<NewWorkSheet>) => Promise<void>
 src/lib/db/workSheets.ts#vorbereiten: (projectNumber: string, datum: string) => Promise<{ zeiten: pg.ScheinZeit[]; }>

@@ -82,6 +82,16 @@ export default defineConfig({
     port: 5173,
   },
   build: {
+    /*
+      DAS ZIEL BLEIBT, WIE ES UNTER VITE 5 WAR. Vite 7 hat die Vorgabe auf
+      Safari 16 angehoben. Heute ergibt das noch dieselbe Ausgabe (am
+      30.09.2026 nachgeprüft: jede ausgelieferte Datei liest sich als
+      ES2020) — sobald aber eigener Code oder eine Bibliothek neuere Syntax
+      mitbringt, liesse Vite sie für ältere iPhones stehen, und dort bliebe
+      die Seite weiss. Der Betrieb hat die App gerade auf einem älteren
+      iPhone geprüft; das Werkzeug zu erneuern soll daran nichts ändern.
+    */
+    target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'],
     rollupOptions: {
       output: {
         /**

@@ -15,8 +15,8 @@ import { einblickNurLesend } from '@/lib/fehlerGrund';
  * Uhrzeiten scheitert nicht mehr am Speichern (vorher: `''` statt `null`).
  */
 
-const anlegen = vi.fn<unknown[], Promise<string>>(async () => 'confirmed');
-const aendern = vi.fn<unknown[], Promise<string>>(async () => 'confirmed');
+const anlegen = vi.fn<(...args: unknown[]) => Promise<string>>(async () => 'confirmed');
+const aendern = vi.fn<(...args: unknown[]) => Promise<string>>(async () => 'confirmed');
 vi.mock('@/lib/db/timeEntries', () => ({
   createTimeEntryOhneEmpfang: (...a: unknown[]) => anlegen(...a),
   updateTimeEntryOhneEmpfang: (...a: unknown[]) => aendern(...a),

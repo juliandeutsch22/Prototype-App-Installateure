@@ -32,7 +32,7 @@ const monteur: AppUser = {
  * Mit Parametern TYPISIERT, nicht benannt: sonst leitet TypeScript ein leeres
  * Tupel ab und der Zugriff auf `mock.calls[0][0]` scheitert im Build.
  */
-const createVacation = vi.fn<[string, unknown], Promise<string>>(async () => 'v-neu');
+const createVacation = vi.fn<(a0: string, a1: unknown) => Promise<string>>(async () => 'v-neu');
 
 /**
  * Entschieden wird SERVERSEITIG. Der Browser schickt nur, welcher Antrag wie
@@ -41,19 +41,14 @@ const createVacation = vi.fn<[string, unknown], Promise<string>>(async () => 'v-
  */
 // Die Signatur steht am Doppelgänger, nicht an seinen Parametern: der Test
 // liest später, MIT WELCHER Id gelöscht wurde.
-const deleteVacation = vi.fn<[string], Promise<void>>(async () => undefined);
+const deleteVacation = vi.fn<(a0: string) => Promise<void>>(async () => undefined);
 
-const callUrlaubEntscheiden = vi.fn<
-  [
-    {
+const callUrlaubEntscheiden = vi.fn<(a0: {
       vacationId: string;
       entscheidung: 'Genehmigt' | 'Abgelehnt' | 'Storniert';
       grund?: string;
       entscheiderName?: string;
-    },
-  ],
-  Promise<{ status: string; angelegt: number; uebersprungen: number; entfernt: number }>
->(async () => ({ status: 'Genehmigt', angelegt: 5, uebersprungen: 0, entfernt: 0 }));
+    }) => Promise<{ status: string; angelegt: number; uebersprungen: number; entfernt: number }>>(async () => ({ status: 'Genehmigt', angelegt: 5, uebersprungen: 0, entfernt: 0 }));
 
 vi.mock('@/lib/db/vacations', () => ({
   // Nach der GEFRAGTEN Person — die Genehmigenden laden auch die Urlaube
@@ -79,7 +74,7 @@ vi.mock('@/lib/db/users', () => ({
   listUsers: vi.fn(async () => belegschaft),
 }));
 
-const krankmeldungSpeichern = vi.fn<[unknown], Promise<unknown>>(
+const krankmeldungSpeichern = vi.fn<(a0: unknown) => Promise<unknown>>(
   async () => ({ id: 'k1', angelegt: 3, entfernt: 0, uebersprungen: 0 }),
 );
 let eigeneKrank: unknown[] = [];
