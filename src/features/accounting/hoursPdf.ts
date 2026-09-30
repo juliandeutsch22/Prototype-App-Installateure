@@ -8,6 +8,8 @@ import {
 import { BRAND_RGB, fmtDate, hours } from './export';
 import { FLAECHE, GRAU, TINTE } from '@/lib/belegLayout';
 import { zuschlagszeit, hatZuschlaege } from './zuschlaege';
+import { ueberstundenNachTagesgrenze } from './ueberstunden';
+import { nachtzeitText, nachtzeitVon, ueberstundenRegelVon } from '@/lib/lohnregeln';
 
 /** „N", „ND" oder „N+ND" — leer, wenn kein Kennzeichen gesetzt ist. */
 function zuschlagKuerzel(e: TimeEntry): string {
@@ -169,9 +171,22 @@ export function generateHoursPdf(opts: {
     Zierrat — anders als in der CSV, die die Lohnverrechnung maschinell
     liest und wo eine fehlende Spalte etwas anderes bedeutet als eine leere.
   */
-  const z = zuschlagszeit(sorted, halbeTage);
+  const nacht = nachtzeitVon(company);
+  const z = zuschlagszeit(sorted, halbeTage, nacht);
+  /*
+    ÜBERSTUNDEN NUR BEIM MODELL „TAGESGRENZE“ (Paket 2c) — und nur, wenn es
+    welche gibt, wie bei den Zuschlägen. Stunden, kein Geld.
+  */
+  const ue = ueberstundenNachTagesgrenze(user, sorted, ueberstundenRegelVon(company), halbeTage);
+  if (ue.fuenfzigMin > 0 || ue.hundertMin > 0) {
+    doc.text(
+      `Überstunden — 50 %: ${hours(ue.fuenfzigMin)} h · 100 %: ${hours(ue.hundertMin)} h`,
+      margin,
+      y + (abwesend.length ? 18 : 12) + (hatZuschlaege(z) ? 6 : 0),
+    );
+  }
   if (hatZuschlaege(z)) {
-    const teile = [`Nacht: ${hours(z.nachtMin)} h`, `Notdienst: ${hours(z.notdienstMin)} h`];
+    const teile = [`Nacht (${nachtzeitText(nacht, ' bis ')}): ${hours(z.nachtMin)} h`, `Notdienst: ${hours(z.notdienstMin)} h`];
     // Nacht und Notdienst schliessen einander nicht aus — ohne diesen
     // Zusatz addierte der Leser die beiden Zahlen und zählte doppelt.
     if (z.beidesMin > 0) teile.push(`davon beides: ${hours(z.beidesMin)} h`);

@@ -2,6 +2,8 @@ import type { AppUser, TimeEntry } from '@/types';
 import { PETROL } from '@/lib/belegLayout';
 import { calcWorkMin, calcMonthStats, type MonthStats } from '@/lib/time';
 import { zuschlagszeit, kennzeichen } from './zuschlaege';
+import { ueberstundenNachTagesgrenze } from './ueberstunden';
+import type { Nachtzeit, UeberstundenRegel } from '@/lib/lohnregeln';
 import { csvZelle } from '@/lib/csvZelle';
 
 /**
@@ -94,6 +96,17 @@ function safeName(name: string): string {
   return name.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_');
 }
 
+/**
+ * Die Lohnregeln des Betriebs (Paket 2c): Nachtzeit und Überstundenmodell.
+ * Ohne Angabe 22–6 Uhr und Zeitkonto — die Ausleitung wie bisher.
+ */
+export interface Lohnregeln {
+  nacht?: Nachtzeit;
+  ueberstunden?: UeberstundenRegel;
+}
+
+const mitTagesgrenze = (l: Lohnregeln) => l.ueberstunden?.modell === 'tagesgrenze';
+
 export interface UserWithEntries {
   user: AppUser;
   monthEntries: TimeEntry[];
@@ -114,6 +127,7 @@ export function buildMonthCsv(
   year: number,
   month: number,
   halbeTage: boolean,
+  lohn: Lohnregeln = {},
 ): string {
   const lines: string[] = [];
 
@@ -171,13 +185,19 @@ export function buildMonthCsv(
       // immer da, auch mit null — sonst hiesse eine fehlende Spalte etwas
       // anderes als eine leere.
       '24./31.12. ab 12 Uhr(Std)',
+      // Nur beim Überstundenmodell „Tagesgrenze“ — und hinten angehängt,
+      // damit die Spalten davor bleiben, wo sie waren.
+      ...(mitTagesgrenze(lohn) ? ['Überstunden 50 %(Std)', 'Überstunden 100 %(Std)'] : []),
     ]),
   );
   for (const { user, monthEntries, stats } of [...rows].sort((a, b) => a.user.name.localeCompare(b.user.name, 'de'))) {
     // „davon beides" ist keine Zierde: der Rohrbruch um zwei Uhr früh trägt
     // beide Kennzeichen. Wer Nacht und Notdienst addiert, zählt diese
     // Stunden doppelt — und sähe es der Datei nicht an.
-    const z = zuschlagszeit(monthEntries, halbeTage);
+    const z = zuschlagszeit(monthEntries, halbeTage, lohn.nacht);
+    const ue = lohn.ueberstunden
+      ? ueberstundenNachTagesgrenze(user, monthEntries, lohn.ueberstunden, halbeTage)
+      : null;
     lines.push(
       row([
         user.name,
@@ -192,6 +212,7 @@ export function buildMonthCsv(
         hours(z.beidesMin),
         hours(stats.zaMin),
         hours(z.dezemberMin),
+        ...(mitTagesgrenze(lohn) && ue ? [hours(ue.fuenfzigMin), hours(ue.hundertMin)] : []),
       ]),
     );
   }
@@ -234,6 +255,7 @@ export function buildUserCsv(
   year: number,
   month: number,
   halbeTage: boolean,
+  lohn: Lohnregeln = {},
 ): string {
   const lines: string[] = [];
   lines.push(row([`Zeiterfassung: ${user.name}`]));
@@ -284,12 +306,17 @@ export function buildUserCsv(
     die unterscheidet sich von „diese Datei kennt das Thema nicht", was
     vorher der Fall war und niemandem auffiel.
   */
-  const z = zuschlagszeit(monthEntries, halbeTage);
+  const z = zuschlagszeit(monthEntries, halbeTage, lohn.nacht);
   lines.push('');
   lines.push(row(['Nachtstunden', `${hours(z.nachtMin)} h`]));
   lines.push(row(['Notdienststunden', `${hours(z.notdienstMin)} h`]));
   lines.push(row(['davon beides', `${hours(z.beidesMin)} h`]));
   lines.push(row(['24./31.12. ab 12 Uhr', `${hours(z.dezemberMin)} h`]));
+  if (lohn.ueberstunden && mitTagesgrenze(lohn)) {
+    const ue = ueberstundenNachTagesgrenze(user, monthEntries, lohn.ueberstunden, halbeTage);
+    lines.push(row(['Überstunden 50 %', `${hours(ue.fuenfzigMin)} h`]));
+    lines.push(row(['Überstunden 100 %', `${hours(ue.hundertMin)} h`]));
+  }
 
   return lines.join('\n');
 }
