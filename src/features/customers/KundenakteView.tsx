@@ -37,6 +37,8 @@ import { datumAT } from '@/lib/datum';
 import { euro } from '@/lib/betrag';
 import Datenauskunft from '@/features/recht/Datenauskunft';
 import { zeigtAuskunft } from '@/features/recht/auskunftDatei';
+import AdressteileFelder from '@/components/AdressteileFelder';
+import { adresseZeile } from '@/lib/adresse';
 
 /**
  * Die Akte eines Kunden — alles, was der Betrieb über ihn weiss.
@@ -586,6 +588,11 @@ function alsEntwurf(k: Customer): NewCustomer {
   return {
     name: k.name ?? '',
     address: k.address ?? '',
+    strasse: k.strasse ?? '',
+    plz: k.plz ?? '',
+    ort: k.ort ?? '',
+    land: k.land ?? 'AT',
+    kundennummer: k.kundennummer ?? '',
     contactName: k.contactName ?? '',
     contactPhone: k.contactPhone ?? '',
     email: k.email ?? '',
@@ -615,6 +622,7 @@ function StammdatenLesen({ k }: { k: Customer }) {
         <Angabe wort="Rechnungsadresse">
           {k.address ? <AdresseLink adresse={k.address} /> : null}
         </Angabe>
+        {k.kundennummer && <Angabe wort="Kundennummer">{k.kundennummer}</Angabe>}
         <Angabe wort="Ansprechpartner">{k.contactName}</Angabe>
         <Angabe wort="Telefon">
           {k.contactPhone ? <TelefonLink nummer={k.contactPhone} name={k.contactName} /> : null}
@@ -678,9 +686,19 @@ function StammdatenFormular({
           id="k-name" label="Name" pflicht value={entwurf.name}
           onChange={(e) => setze('name', e.target.value)}
         />
+        <div className="sm:col-span-2">
+          <AdressteileFelder
+            idPrefix="k-adresse"
+            titel="Rechnungsadresse"
+            wert={entwurf}
+            onChange={(teile) =>
+              setEntwurf({ ...entwurf, ...teile, land: teile.land ?? 'AT', address: adresseZeile({ ...entwurf, ...teile }) })
+            }
+          />
+        </div>
         <InputField
-          id="k-adresse" label="Rechnungsadresse" value={entwurf.address ?? ''}
-          onChange={(e) => setze('address', e.target.value)}
+          id="k-nummer" label="Kundennummer (freiwillig)" value={entwurf.kundennummer ?? ''}
+          onChange={(e) => setze('kundennummer', e.target.value)}
         />
         <InputField
           id="k-ansprech" label="Ansprechpartner" value={entwurf.contactName ?? ''}

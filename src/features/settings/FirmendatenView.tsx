@@ -12,6 +12,8 @@ import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
+import AdressteileFelder from '@/components/AdressteileFelder';
+import { adresseZeile, type Adressteile } from '@/lib/adresse';
 
 /**
  * Die Stammdaten des Betriebs — was auf Rechnung, Stundenbericht und
@@ -38,7 +40,14 @@ export default function FirmendatenView() {
   const toast = useToast();
 
   const [name, setName] = useState(company?.name ?? '');
-  const [addressLine, setAddressLine] = useState(company?.addressLine ?? '');
+  /* Die Anschrift in Teilen (M12); die Zeile im Briefkopf setzt die Datenbank zusammen. */
+  const [adresse, setAdresse] = useState<Adressteile>({
+    strasse: company?.strasse ?? company?.addressLine ?? '',
+    plz: company?.plz ?? '',
+    ort: company?.ort ?? '',
+    land: company?.land ?? 'AT',
+  });
+  const [firmenbuchgericht, setFirmenbuchgericht] = useState(company?.firmenbuchgericht ?? '');
   const [contactLine, setContactLine] = useState(company?.contactLine ?? '');
   const [vatId, setVatId] = useState(company?.vatId ?? '');
   const [companyRegister, setCompanyRegister] = useState(company?.companyRegister ?? '');
@@ -103,7 +112,11 @@ export default function FirmendatenView() {
       */
       await updateCompany(user!.companyId, {
         name: name.trim(),
-        addressLine: addressLine.trim(),
+        strasse: adresse.strasse?.trim() ?? '',
+        plz: adresse.plz?.trim() ?? '',
+        ort: adresse.ort?.trim() ?? '',
+        land: adresse.land ?? 'AT',
+        firmenbuchgericht: firmenbuchgericht.trim(),
         contactLine: contactLine.trim(),
         vatId: vatId.trim(),
         companyRegister: companyRegister.trim(),
@@ -146,13 +159,12 @@ export default function FirmendatenView() {
               required
               pflicht
             />
-            <InputField
-              id="fd-adresse"
-              label="Anschrift (eine Zeile)"
-              placeholder="z. B. Musterstraße 1 · 2700 Wiener Neustadt"
-              value={addressLine}
-              onChange={(e) => setAddressLine(e.target.value)}
-            />
+            <div className="sm:col-span-2">
+              <AdressteileFelder idPrefix="fd-adresse" wert={adresse} onChange={setAdresse} />
+              {adresseZeile(adresse) && (
+                <p className="mt-1 text-sm text-ink-muted">Im Briefkopf: {adresseZeile(adresse)}</p>
+              )}
+            </div>
             <InputField
               id="fd-kontakt"
               label="Kontakt (eine Zeile)"
@@ -219,7 +231,7 @@ export default function FirmendatenView() {
 
         <Card
           title="Rechnungsangaben"
-          hint="UID und Firmenbuchnummer stehen im Fuß der Rechnung, die Bankverbindung im Zahlungshinweis."
+          hint="UID, Firmenbuchnummer und Firmenbuchgericht (§ 14 UGB) stehen im Fuß jedes Belegs, die Bankverbindung im Zahlungshinweis."
         >
           <FormGrid>
             <InputField
@@ -235,6 +247,13 @@ export default function FirmendatenView() {
               placeholder="z. B. FN 123456a"
               value={companyRegister}
               onChange={(e) => setCompanyRegister(e.target.value)}
+            />
+            <InputField
+              id="fd-fbg"
+              label="Firmenbuchgericht"
+              placeholder="z. B. Landesgericht Wiener Neustadt"
+              value={firmenbuchgericht}
+              onChange={(e) => setFirmenbuchgericht(e.target.value)}
             />
             <InputField
               id="fd-iban"

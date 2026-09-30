@@ -35,6 +35,7 @@ const firma: Company = {
   bankName: 'Raiffeisenbank',
   vatId: 'ATU12345678',
   companyRegister: 'FN 123456a',
+  firmenbuchgericht: 'Landesgericht Wiener Neustadt',
 } as Company;
 
 const KOMMENTAR =
@@ -134,6 +135,8 @@ describe('Die Rechnung im neuen Layout', () => {
       expect(text).toContain('IBAN AT12 3456 7890 1234 5678');
       expect(text).toContain('UID: ATU12345678');
       expect(text).toContain('FN 123456a');
+      // § 14 UGB: mit dem Firmenbuchgericht (Testbericht 30.09.2026, M12).
+      expect(text).toContain('Landesgericht Wiener Neustadt');
     }
   });
 
