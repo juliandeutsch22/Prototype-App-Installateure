@@ -321,8 +321,8 @@ export default function OrderView() {
     setSaving(false);
     if (failed.length === 0) {
       setNote('');
-      if (vorgemerkt) toast.info(vorgemerktMeldung('Anforderung aufgegeben'));
-      else toast.success('Bestellung aufgegeben');
+      if (vorgemerkt) toast.info(vorgemerktMeldung('Anforderung abgeschickt'));
+      else toast.success('Anforderung abgeschickt');
       setTab('meine');
     } else {
       setError(
@@ -562,16 +562,26 @@ export default function OrderView() {
                   disabled={!freiName.trim() || !(zahlOder(freiMenge, NaN) > 0)}
                   onClick={freiHinzufuegen}
                 >
-                  Hinzufügen
+                  In die Liste
                 </Button>
               </div>
             </div>
           </Card>
 
-          <Card title={`Anforderung (${cart.length})`}>
+          {/*
+            DER WARENKORB IST SICHTBAR NOCH NICHT ABGESCHICKT (Testbericht
+            30.09.2026, M36). „Anfordern“ legte nur in den Korb, und Monteure
+            hielten die Anforderung nach dem ersten Tipp für erledigt. Jetzt
+            heissen die Knöpfe „Zur Anforderung“ und „Anforderung abschicken“,
+            und die Karte ist hervorgehoben, solange etwas darin liegt.
+          */}
+          <Card
+            title={cart.length > 0 ? `Anforderung (${cart.length}) — noch nicht abgeschickt` : 'Anforderung (0)'}
+            className={cart.length > 0 ? 'ring-2 ring-brand' : ''}
+          >
             {cart.length === 0 ? (
               <EmptyState>
-                Noch nichts ausgewählt. Im Katalog oben beim Artikel auf „Anfordern" tippen.
+                Noch nichts ausgewählt. Im Katalog oben beim Artikel auf „Zur Anforderung“ tippen.
               </EmptyState>
             ) : (
               <>
@@ -613,12 +623,15 @@ export default function OrderView() {
                     </ListRow>
                   ))}
                 </List>
-                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <p className="mt-4 text-sm text-ink-muted">
+                  Erst mit „Anforderung abschicken“ geht sie an die Verwaltung.
+                </p>
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                   <Button onClick={submitCart} loading={saving} className="w-full sm:w-auto">
-                    Bestellung aufgeben
+                    Anforderung abschicken
                   </Button>
                   <Button variant="ghost" onClick={() => setCart([])} className="w-full sm:w-auto">
-                    Warenkorb leeren
+                    Liste leeren
                   </Button>
                 </div>
               </>
@@ -916,11 +929,11 @@ function QtyAdder({
       </IconButton>
       <Button
         variant={added > 0 ? 'primary' : 'secondary'}
-        aria-label={`${material.name} anfordern`}
+        aria-label={`${material.name} zur Anforderung`}
         disabled={!gueltig}
         onClick={anfordern}
       >
-        Anfordern
+        Zur Anforderung
       </Button>
     </div>
   );
