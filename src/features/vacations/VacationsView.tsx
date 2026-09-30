@@ -857,7 +857,19 @@ export default function VacationsView() {
         diese Seite öffnet. Wie er zustande kommt (Übertrag, Anfangsbestand,
         verfallene Tage), steht beim Antrag darunter.
       */}
-      {profil && !laden && (
+      {/*
+        OHNE ZEITKONTO KEIN RESTURLAUB (Testbericht 30.09.2026, G13). Die
+        Administration führt keines — sie ist eine Funktion im System, kein
+        Arbeitsverhältnis (`fuehrtZeitkonto`); ebenso die Geschäftsführung,
+        wenn es in ihrer Akte aus ist. Vorher stand bei ihr trotzdem ein
+        Resturlaub, gerechnet aus der Vorgabe von 25 Tagen.
+      */}
+      {profil && !laden && !fuehrtZeitkonto(profil) && (
+        <Hinweiszeile>
+          <p>Für dich führt Senklot kein Zeitkonto — deshalb steht hier kein Resturlaub.</p>
+        </Hinweiszeile>
+      )}
+      {profil && !laden && fuehrtZeitkonto(profil) && (
         <MetricRow>
           <Metric
             label="Resturlaub"

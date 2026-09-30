@@ -69,8 +69,10 @@ vi.mock('@/lib/db/vacations', () => ({
 }));
 /** Die Belegschaft — je Test umgestellt, für die Frage „entscheidet jemand anderer?". */
 let belegschaft: AppUser[] = [monteur];
+/** Das eigene Profil — je Test umstellbar (G13: die Administration führt kein Zeitkonto). */
+let eigenesProfil: AppUser = monteur;
 vi.mock('@/lib/db/users', () => ({
-  getUserByUid: vi.fn(async () => monteur),
+  getUserByUid: vi.fn(async () => eigenesProfil),
   listUsers: vi.fn(async () => belegschaft),
 }));
 
@@ -150,6 +152,7 @@ beforeEach(() => {
   betriebsurlaube = [];
   guthabenH = 10;
   belegschaft = [monteur];
+  eigenesProfil = monteur;
   rolle = { ...rolle, uid: 'm1', name: 'Max Mustermann', role: 'Mitarbeiter', docId: 'm1' };
 });
 
@@ -811,5 +814,21 @@ describe('Urlaub — erst rechnen, wenn ein Zeitraum gewählt ist (Prüflauf 24.
     await datum('Von', '2026-10-26');
     await datum('Bis (einschließlich)', '2026-10-30');
     expect(screen.getByText(/4 Arbeitstage/)).toBeInTheDocument();
+  });
+});
+
+describe('Ohne Zeitkonto kein Resturlaub (Testbericht 30.09.2026, G13)', () => {
+  it('die Administration sieht keinen Resturlaub, sondern warum', async () => {
+    eigenesProfil = { ...monteur, uid: 'a1', id: 'a1', name: 'Anna Admin', role: 'Administrator' };
+    rolle = { ...rolle, uid: 'a1', name: 'Anna Admin', role: 'Administrator', docId: 'a1' };
+    zeichne();
+    expect(await screen.findByText(/kein Zeitkonto/)).toBeInTheDocument();
+    expect(screen.queryByText('Resturlaub')).not.toBeInTheDocument();
+  });
+
+  it('Gegenprobe: der Monteur sieht seinen Resturlaub', async () => {
+    zeichne();
+    expect(await screen.findByText('Resturlaub')).toBeInTheDocument();
+    expect(screen.queryByText(/kein Zeitkonto/)).not.toBeInTheDocument();
   });
 });
