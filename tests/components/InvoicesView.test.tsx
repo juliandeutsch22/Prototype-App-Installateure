@@ -6,6 +6,7 @@ import { ToastProvider } from '@/components/Toast';
 import type { Invoice, Material, Project, TimeEntry, WorkSheet } from '@/types';
 import InvoicesView from '@/features/invoices/InvoicesView';
 import { cancelInvoice } from '@/lib/db/invoices';
+import { updateCustomer } from '@/lib/db/customers';
 
 /**
  * Die Rechnungsansicht — bis jetzt ohne eigenen Test, und dabei die Ansicht,
@@ -226,7 +227,10 @@ vi.mock('@/lib/db/projects', () => ({
   listProjectsByNumbers: vi.fn(async () => [PROJEKT]),
 }));
 let kunden: Array<{ id?: string; name: string; vatId?: string; address?: string }> = [];
-vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => kunden) }));
+vi.mock('@/lib/db/customers', () => ({
+  listCustomers: vi.fn(async () => kunden),
+  updateCustomer: vi.fn(async () => 0),
+}));
 /*
   Der Kontenrahmen. Leer ist der Regelfall: ohne hinterlegte Konten gibt es
   keinen Buchungsstapel, und die Ansicht muss trotzdem vollständig sein.
@@ -763,7 +767,7 @@ describe('Reverse Charge in der Rechnungsmaske', () => {
     await bisZurVorschau();
     await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
     await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU123');
-    expect(await screen.findByText(/sieht nicht nach einer UID/)).toBeInTheDocument();
+    expect(await screen.findByText(/„ATU“ und acht Ziffern/)).toBeInTheDocument();
   });
 
   it('rechnet die Steuer aus der Vorschau heraus', async () => {
@@ -1122,6 +1126,53 @@ describe('Die UID des Kunden ohne Reverse Charge', () => {
     await bisZurVorschau();
     expect(screen.getByText(/Bei Privatkunden bleibt das Feld leer/)).toBeInTheDocument();
     expect(screen.queryByText(/§ 11 Abs 1 Z 2 UStG/)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Testbericht 30.09.2026, M10 — eine in der Rechnung korrigierte UID auf
+ * Wunsch in den Kunden übernehmen; eine falsche hält die Rechnung auf.
+ */
+describe('Die korrigierte UID', () => {
+  beforeEach(() => vi.mocked(updateCustomer).mockClear());
+
+  it('lässt sich beim Kunden speichern — auf Wunsch', async () => {
+    kunden = [{ id: 'k9', name: 'Familie Huber', vatId: 'ATU55556666' }];
+    await bisZurVorschau();
+    const feld = screen.getByLabelText(/UID-Nummer des Kunden/);
+    await userEvent.clear(feld);
+    await userEvent.type(feld, 'atu 5555 7777');
+    await userEvent.click(screen.getByRole('checkbox', { name: /Auch beim Kunden speichern \(dort steht ATU55556666\)/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+
+    await waitFor(() => expect(updateCustomer).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0]).toMatchObject({ customerVatId: 'ATU55557777' });
+    expect(vi.mocked(updateCustomer).mock.calls[0].slice(1)).toEqual([
+      'k9', { vatId: 'ATU55557777', kundenart: 'unternehmen' },
+    ]);
+  });
+
+  it('Gegenprobe: ohne Haken bleibt der Kunde, wie er ist', async () => {
+    kunden = [{ id: 'k9', name: 'Familie Huber', vatId: 'ATU55556666' }];
+    await bisZurVorschau();
+    const feld = screen.getByLabelText(/UID-Nummer des Kunden/);
+    await userEvent.clear(feld);
+    await userEvent.type(feld, 'ATU55557777');
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(updateCustomer).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: dieselbe UID bietet nichts an', async () => {
+    kunden = [{ id: 'k9', name: 'Familie Huber', vatId: 'ATU55556666' }];
+    await bisZurVorschau();
+    expect(screen.queryByRole('checkbox', { name: /Auch beim Kunden speichern/ })).toBeNull();
+  });
+
+  it('eine UID in falscher Form sperrt das Erstellen', async () => {
+    await bisZurVorschau();
+    await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU123');
+    expect(screen.getByRole('button', { name: /Rechnung erstellen/ })).toBeDisabled();
   });
 });
 

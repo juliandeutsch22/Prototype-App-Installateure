@@ -505,3 +505,43 @@ describe('Das Büro mit der Freigabe „Kunden pflegen“', () => {
     });
   });
 });
+
+// Testbericht 30.09.2026, M10 — Kundenart und die Form der UID.
+describe('Kundenart und UID beim Anlegen', () => {
+  it('eine UID in falscher Form hält das Anlegen auf', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Baumeister Gruber');
+    await nutzer.type(screen.getByLabelText('UID-Nummer'), 'ATU123');
+    expect(screen.getAllByText(/„ATU“ und acht Ziffern/).length).toBeGreaterThan(0);
+    await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
+    expect(createCustomer).not.toHaveBeenCalled();
+  });
+
+  it('mit UID wird aus der Privatperson ein Unternehmen', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    expect(screen.getByLabelText('Kundenart')).toHaveValue('privat');
+    await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Baumeister Gruber');
+    await nutzer.type(screen.getByLabelText('UID-Nummer'), 'ATU12345678');
+    expect(screen.getByLabelText('Kundenart')).toHaveValue('unternehmen');
+    await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
+    await waitFor(() => expect(createCustomer).toHaveBeenCalled());
+    expect((createCustomer.mock.calls[0] as unknown[])[1]).toMatchObject({
+      vatId: 'ATU12345678', kundenart: 'unternehmen',
+    });
+  });
+
+  it('Gegenprobe: ein Unternehmen ohne UID bleibt Unternehmen', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Kleinbetrieb Moser');
+    await nutzer.selectOptions(screen.getByLabelText('Kundenart'), 'unternehmen');
+    await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
+    await waitFor(() => expect(createCustomer).toHaveBeenCalled());
+    expect((createCustomer.mock.calls[0] as unknown[])[1]).toMatchObject({ vatId: '', kundenart: 'unternehmen' });
+  });
+});

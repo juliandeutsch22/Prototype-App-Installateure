@@ -29,6 +29,8 @@ import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import KundenImport from './KundenImport';
+import KundenartUidFelder from '@/components/KundenartUidFelder';
+import { uidSperrt } from '@/lib/uid';
 import { grundAus } from '@/lib/fehlerGrund';
 
 const LEER: NewCustomer = {
@@ -43,6 +45,7 @@ const LEER: NewCustomer = {
   contactPhone: '',
   email: '',
   vatId: '',
+  kundenart: 'privat',
   notes: '',
   active: true,
 };
@@ -206,6 +209,12 @@ export default function CustomersView() {
 
   async function speichernBestaetigt(trotzdem: boolean) {
     if (!user || !form.name.trim()) return;
+    // Eine falsch geschriebene UID hält auf — nur wenn sie geändert wurde (M10).
+    const uidFalsch = uidSperrt(form.vatId, bearbeitet?.vatId);
+    if (uidFalsch) {
+      setError(uidFalsch);
+      return;
+    }
     setSpeichert(true);
     setError(null);
     try {
@@ -398,13 +407,15 @@ export default function CustomersView() {
                 value={form.email ?? ''}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
-              <InputField
-                id="kuid"
-                label="UID-Nummer (bei Firmen)"
-                value={form.vatId ?? ''}
-                onChange={(e) => setForm({ ...form, vatId: e.target.value })}
-              />
             </FormGrid>
+            <KundenartUidFelder
+              idPrefix="k"
+              kundenart={form.kundenart}
+              vatId={form.vatId}
+              onChange={({ kundenart, vatId }) =>
+                setForm({ ...form, kundenart: kundenart || null, vatId })
+              }
+            />
             <InputField
               id="knotes"
               label="Notiz"
@@ -621,6 +632,7 @@ export default function CustomersView() {
                             contactPhone: k.contactPhone ?? '',
                             email: k.email ?? '',
                             vatId: k.vatId ?? '',
+                            kundenart: k.kundenart ?? null,
                             notes: k.notes ?? '',
                             active: k.active ?? true,
                           });

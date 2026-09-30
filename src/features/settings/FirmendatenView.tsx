@@ -14,6 +14,7 @@ import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import AdressteileFelder from '@/components/AdressteileFelder';
 import { adresseZeile, type Adressteile } from '@/lib/adresse';
+import { uidFehler, uidSperrt } from '@/lib/uid';
 
 /**
  * Die Stammdaten des Betriebs — was auf Rechnung, Stundenbericht und
@@ -50,6 +51,7 @@ export default function FirmendatenView() {
   const [firmenbuchgericht, setFirmenbuchgericht] = useState(company?.firmenbuchgericht ?? '');
   const [contactLine, setContactLine] = useState(company?.contactLine ?? '');
   const [vatId, setVatId] = useState(company?.vatId ?? '');
+  const uidFalsch = uidFehler(vatId);
   const [companyRegister, setCompanyRegister] = useState(company?.companyRegister ?? '');
   const [iban, setIban] = useState(company?.iban ?? '');
   const [bic, setBic] = useState(company?.bic ?? '');
@@ -102,6 +104,13 @@ export default function FirmendatenView() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    // Die eigene UID steht auf jedem Beleg — eine falsche Form hält auf, wenn
+    // sie geändert wurde (Testbericht 30.09.2026, M10).
+    const uidSperre = uidSperrt(vatId, company?.vatId);
+    if (uidSperre) {
+      setError(uidSperre);
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -234,13 +243,17 @@ export default function FirmendatenView() {
           hint="UID, Firmenbuchnummer und Firmenbuchgericht (§ 14 UGB) stehen im Fuß jedes Belegs, die Bankverbindung im Zahlungshinweis."
         >
           <FormGrid>
-            <InputField
-              id="fd-uid"
-              label="UID-Nummer"
-              placeholder="z. B. ATU…"
-              value={vatId}
-              onChange={(e) => setVatId(e.target.value)}
-            />
+            <div>
+              <InputField
+                id="fd-uid"
+                label="UID-Nummer"
+                placeholder="z. B. ATU12345678"
+                value={vatId}
+                aria-invalid={uidFalsch ? true : undefined}
+                onChange={(e) => setVatId(e.target.value)}
+              />
+              {uidFalsch && <p className="mt-1 text-sm text-danger">{uidFalsch}</p>}
+            </div>
             <InputField
               id="fd-fn"
               label="Firmenbuchnummer"

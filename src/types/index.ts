@@ -666,6 +666,11 @@ export interface Customer {
   email?: string;
   /** UID-Nummer für Rechnungen an Unternehmen. */
   vatId?: string;
+  /**
+   * Privatperson oder Unternehmen (Testbericht 30.09.2026, M10) — für
+   * Verzugszinsen und Mahnpauschale. Ohne Angabe gilt: wer eine UID hat.
+   */
+  kundenart?: 'privat' | 'unternehmen' | null;
   notes?: string;
   active?: boolean;
   createdAt?: number;

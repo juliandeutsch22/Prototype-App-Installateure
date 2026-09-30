@@ -15,7 +15,7 @@
  * falsche Adresse geht.
  */
 import type { NewCustomer } from '@/lib/db/customers';
-import { sichtAusWieUid } from '@/features/invoices/reverseCharge';
+import { uidFehler } from '@/lib/uid';
 
 /** Mehr auf einmal ist kein Kundenstamm eines Installationsbetriebs, sondern eine falsche Datei. */
 export const HOECHSTENS = 5000;
@@ -224,8 +224,9 @@ export function pruefeKunden(zeilen: string[][]): KundenProbelauf {
     }
     const uidRoh = eins('uid');
     const uid = uidRoh?.replace(/\s/g, '').toUpperCase();
-    if (uid && !sichtAusWieUid(uid)) {
-      falsch(`„${uidRoh}" hat nicht die Form einer UID-Nummer`);
+    const uidFalsch = uid ? uidFehler(uid) : null;
+    if (uidFalsch) {
+      falsch(`„${uidRoh}": ${uidFalsch}`);
       return;
     }
 

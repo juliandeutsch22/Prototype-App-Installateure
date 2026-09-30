@@ -26,7 +26,7 @@ import { listZahlungen, listZahlungenImZeitraum, createZahlung, createZahlungMit
 import { istUeberfaellig, zahlstand } from './zahlstand';
 import { skontoBedingung, skontoZumAusgleich, zugesagterSkonto } from './skonto';
 import { listActiveProjects } from '@/lib/db/projects';
-import { listCustomers } from '@/lib/db/customers';
+import { listCustomers, updateCustomer } from '@/lib/db/customers';
 import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
 import { buildBmdCsv, bmdCsvFilename } from './bmdExport';
 import { buchungskonten, type Buchungskonto } from '@/lib/db/konten';
@@ -52,7 +52,8 @@ import {
   auffaellige,
   AUFFAELLIG_AB_TAGEN,
 } from '@/features/worksheets/unverrechnet';
-import { geltenderSatz, pruefeReverseCharge, sichtAusWieUid } from './reverseCharge';
+import { geltenderSatz, pruefeReverseCharge } from './reverseCharge';
+import { istUnternehmerKunde, uidFehler, uidNormalisieren } from '@/lib/uid';
 import { pruefeEmpfaengerUid } from './empfaengerUid';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { abziehbar, alsVorrechnung, mitAbzug, nachSteuer, pflichtAbzug } from './vorrechnungen';
@@ -258,6 +259,8 @@ export default function InvoicesView() {
   const [mahnFrist, setMahnFrist] = useState('');
   const [reverseCharge, setReverseCharge] = useState(false);
   const [kundenUid, setKundenUid] = useState('');
+  /** Eine in der Rechnung korrigierte UID auch in den Kundenstamm schreiben (M10). */
+  const [uidInKunden, setUidInKunden] = useState(false);
   /** Grund der Steuerbefreiung — nur bei 0 % ohne Reverse Charge (A2). */
   const [steuerbefreiung, setSteuerbefreiung] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
@@ -737,6 +740,14 @@ export default function InvoicesView() {
    * später berichtigt werden muss.
    */
   const rcPruefung = pruefeReverseCharge(reverseCharge, kundenUid, company?.vatId);
+  const uidFormFehler = uidFehler(kundenUid);
+  const kundeDerVorschau = (() => {
+    const p = projects.find((x) => x.projectNumber === projectNumber);
+    return p ? kundeZu(p.customerId, p.customerName) : undefined;
+  })();
+  const uidWeichtAb =
+    !!kundeDerVorschau && !!uidNormalisieren(kundenUid) && !uidFormFehler
+    && uidNormalisieren(kundenUid) !== uidNormalisieren(kundeDerVorschau.vatId);
   /*
     OHNE STEUER UND OHNE ÜBERGANG: der Grund gehört auf den Beleg (§ 11 Abs 1
     Z 3 lit e UStG, offene Punkte A2). Er sperrt den Knopf wie die fehlende
@@ -993,11 +1004,10 @@ export default function InvoicesView() {
       aus den Stammdaten kopiert und damit verlässlich gleich geschrieben.
       Findet sich nichts, bleibt das Feld leer und will ausgefüllt werden.
     */
-    const kunde = projects.find((x) => x.projectNumber === projectNumber)?.customerName ?? '';
-    const treffer = kunden.find(
-      (k) => k.name.trim().toLowerCase() === kunde.trim().toLowerCase(),
-    );
+    const baustelle = projects.find((x) => x.projectNumber === projectNumber);
+    const treffer = kundeZu(baustelle?.customerId, baustelle?.customerName);
     setKundenUid(treffer?.vatId?.trim() ?? '');
+    setUidInKunden(false);
     const vorschlag = nextInvoiceNumber(invoices, vorsaetze.rechnung);
     setSuggestedNumber(vorschlag);
     setInvoiceNumber(vorschlag);
@@ -1005,6 +1015,13 @@ export default function InvoicesView() {
 
   async function confirmInvoice() {
     if (!user || !company || !preview || !summen || !invoiceNumber || numberTaken || leer) return;
+    // Eine UID in falscher Form kommt nicht auf den Beleg (M10); die
+    // Datenbank weist sie ebenso ab.
+    const uidFalsch = uidFehler(kundenUid);
+    if (uidFalsch) {
+      setError(uidFalsch);
+      return;
+    }
     // Eine Menge oder ein Preis, der sich nicht lesen lässt, steht nicht still
     // als letzte lesbare Zahl auf der Rechnung (M15).
     const unlesbar = unlesbareZahlIn(document);
@@ -1072,6 +1089,9 @@ export default function InvoicesView() {
         Leistung" daneben. Ohne Kunden im Stamm bleibt es, wie es war.
       */
       const kunde = kundeZu(project?.customerId, project?.customerName);
+      const uidNeu = uidNormalisieren(kundenUid);
+      const uidUebernehmen =
+        uidInKunden && !!kunde && !!uidNeu && uidNeu !== uidNormalisieren(kunde.vatId);
       const anschrift = kunde?.address?.trim() || project?.address || '';
       const baustellenOrt = project?.address?.trim();
       const leistungsort =
@@ -1095,7 +1115,7 @@ export default function InvoicesView() {
           ist sie Pflichtangabe (§ 11 Abs 1 Z 2 UStG); darunter schadet sie
           nicht und hilft dem Empfänger beim Zuordnen.
         */
-        customerVatId: kundenUid.trim(),
+        customerVatId: uidNormalisieren(kundenUid),
         steuerbefreiung: brauchtBefreiung ? steuerbefreiung.trim() : undefined,
         subtotalNetto: preview.subtotalNetto,
         // null statt undefined: „kein Rabatt" soll als bewusster Wert in der
@@ -1171,7 +1191,7 @@ export default function InvoicesView() {
           ist sie Pflichtangabe (§ 11 Abs 1 Z 2 UStG); darunter schadet sie
           nicht und hilft dem Empfänger beim Zuordnen.
         */
-        customerVatId: kundenUid.trim(),
+        customerVatId: uidNormalisieren(kundenUid),
         steuerbefreiung: brauchtBefreiung ? steuerbefreiung.trim() : undefined,
         skonto,
       });
@@ -1181,10 +1201,27 @@ export default function InvoicesView() {
       setDiscount({ mode: 'percent', value: '', label: '' });
       setReverseCharge(false);
       setKundenUid('');
+      setUidInKunden(false);
       setArtWahl('einzel');
       setAbzugsfaehig([]);
       setGewaehlteAbzuege([]);
       toast.success(`Rechnung ${reserved} erstellt`);
+      /*
+        DIE KORRIGIERTE UID IN DEN KUNDEN (Testbericht 30.09.2026, M10) — nur
+        auf Wunsch und erst, wenn die Rechnung steht. Schlägt es fehl, ist die
+        Rechnung trotzdem richtig; gesagt wird es dennoch.
+      */
+      if (uidUebernehmen && kunde) {
+        try {
+          await updateCustomer(user.companyId, kunde.id, { vatId: uidNeu, kundenart: 'unternehmen' });
+          setKunden((alle) =>
+            alle.map((k) => (k.id === kunde.id ? { ...k, vatId: uidNeu, kundenart: 'unternehmen' } : k)),
+          );
+          toast.success(`UID ${uidNeu} beim Kunden ${kunde.name} gespeichert`);
+        } catch (err) {
+          toast.error(grundAus(err, 'Die UID konnte nicht beim Kunden gespeichert werden.'));
+        }
+      }
     } catch (e) {
       /*
         Die Datenbank sagt genau, woran es lag — welche Nummer belegt ist
@@ -1214,7 +1251,7 @@ export default function InvoicesView() {
    * der Rechnung oder im Kundenstamm.
    */
   function istUnternehmer(inv: Invoice) {
-    return !!(inv.customerVatId?.trim() || kundeDerRechnung(inv)?.vatId?.trim());
+    return istUnternehmerKunde(kundeDerRechnung(inv), inv.customerVatId);
   }
 
   function zinsenFuer(inv: Invoice, stufe: Mahnstufe, datum: string) {
@@ -2734,10 +2771,23 @@ export default function InvoicesView() {
                 onChange={(e) => setKundenUid(e.target.value)}
                 pflicht={uidPruefung.pflicht}
               />
-              {kundenUid.trim() && !sichtAusWieUid(kundenUid) && (
-                <p className="mt-1 text-sm text-warning">
-                  Das sieht nicht nach einer UID-Nummer aus. Österreich: ATU und acht Ziffern.
+              {uidFormFehler && (
+                <p className="mt-1 text-sm text-danger" role="alert">
+                  {uidFormFehler}
                 </p>
+              )}
+              {uidWeichtAb && kundeDerVorschau && (
+                <CheckboxField
+                  id="uid-in-kunden"
+                  className="mt-2"
+                  label={
+                    kundeDerVorschau.vatId?.trim()
+                      ? `Auch beim Kunden speichern (dort steht ${kundeDerVorschau.vatId.trim()})`
+                      : 'Auch beim Kunden speichern'
+                  }
+                  checked={uidInKunden}
+                  onChange={(e) => setUidInKunden(e.target.checked)}
+                />
               )}
               {uidPruefung.text && (
                 <p className="mt-1 text-sm text-warning" role="alert">
@@ -2841,6 +2891,7 @@ export default function InvoicesView() {
                 loading={busy}
                 disabled={
                   numberTaken || !invoiceNumber || !rcPruefung.vollstaendig || befreiungFehlt
+                  || !!uidFormFehler
                   || !!summen?.gutschrift
                   || !company?.addressLine?.trim() || leer
                 }
