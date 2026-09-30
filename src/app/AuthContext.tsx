@@ -477,7 +477,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           /* Ohne Merker überlebt der Einblick kein Neuladen — mehr nicht. */
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Der Einblick liess sich nicht beginnen.');
+        setError(e instanceof Error ? e.message : 'Der Einblick ließ sich nicht beginnen.');
       }
     })();
   }, []);

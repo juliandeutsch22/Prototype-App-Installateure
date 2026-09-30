@@ -48,7 +48,7 @@ function beschriftung(element: string): string | null {
 }
 
 describe('Zahleneingabe (M15)', () => {
-  it('kein Komma-zu-Punkt ausserhalb von lib/zahl.ts', () => {
+  it('kein Komma-zu-Punkt außerhalb von lib/zahl.ts', () => {
     const funde = QUELLEN.filter(
       (q) => q.pfad !== 'lib/zahl.ts' && /replace\(\s*(?:','|\/,\/g?)\s*,\s*'\.'\s*\)/.test(q.text),
     ).map((q) => q.pfad);

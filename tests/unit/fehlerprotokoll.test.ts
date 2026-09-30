@@ -43,7 +43,7 @@ beforeEach(() => {
 
 describe('Putzen', () => {
   it('nimmt Namen in Anführungszeichen, E-Mail-Adressen, Schlüsselwerte und Ziffernfolgen heraus', () => {
-    expect(bereinige('„Familie Huber" gibt es bereits')).toBe('„…“ gibt es bereits');
+    expect(bereinige('„Familie Huber“ gibt es bereits')).toBe('„…“ gibt es bereits');
     expect(bereinige('Kunde "Maier GmbH" fehlt')).toBe('Kunde "…" fehlt');
     expect(bereinige('an franz.huber@example.at geschickt')).toBe('an [E-Mail] geschickt');
     expect(bereinige('Key (name)=(Huber) already exists')).toBe('Key (name)=(…) already exists');
@@ -63,7 +63,7 @@ describe('Putzen', () => {
     expect(ansichtOhneKennung('/invoices?suche=Huber#x')).toBe('/invoices');
   });
 
-  it('hält Rauschen draussen: Nachladen, fehlendes Netz, fremde Skripte, Abbrüche', () => {
+  it('hält Rauschen draußen: Nachladen, fehlendes Netz, fremde Skripte, Abbrüche', () => {
     expect(istRauschen('Failed to fetch dynamically imported module: https://x/a.js')).toBe(true);
     expect(istRauschen('Failed to fetch')).toBe(true);
     expect(istRauschen('Load failed')).toBe(true);

@@ -120,7 +120,7 @@ describe('Navigation und Routen sagen dasselbe', () => {
   });
 
   it.each(NAV.map((i) => [i.path, i.label] as const))(
-    'zu „%s" (%s) gehoert eine bewachte Route',
+    'zu „%s“ (%s) gehoert eine bewachte Route',
     (pfad) => {
       expect(ROUTEN_PFADE).toContain(pfad);
       expect(BEWACHT).toContain(pfad);

@@ -44,7 +44,7 @@ describe('Problem melden', () => {
     expect(within(dialog).getByText(/keine Gesundheitsdaten/)).toBeInTheDocument();
   });
 
-  it('schickt den Text, schliesst und bedankt sich', async () => {
+  it('schickt den Text, schließt und bedankt sich', async () => {
     gemeldet.mockResolvedValue(undefined);
     const nutzer = userEvent.setup();
     melden();

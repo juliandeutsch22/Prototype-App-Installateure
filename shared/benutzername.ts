@@ -103,7 +103,7 @@ export function benutzernameFehler(roh: string): string | null {
   }
   if (!/^[a-z0-9._-]+$/.test(name)) {
     return 'Erlaubt sind nur Kleinbuchstaben a–z, Ziffern, Punkt, Bindestrich und Unterstrich — '
-      + 'also „ue" statt „ü" und keine Leerzeichen.';
+      + 'also „ue“ statt „ü“ und keine Leerzeichen.';
   }
   if (!/^[a-z0-9]/.test(name) || !/[a-z0-9]$/.test(name)) {
     return 'Der Benutzername muss mit einem Buchstaben oder einer Ziffer beginnen und enden.';

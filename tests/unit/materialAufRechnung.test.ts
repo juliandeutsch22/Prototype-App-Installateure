@@ -54,7 +54,7 @@ describe('Woher das Material kommt', () => {
     ]);
   });
 
-  it('lässt den ENTWURF draussen', async () => {
+  it('lässt den ENTWURF draußen', async () => {
     // Er ist noch änderbar. Was der Kunde nicht unterschrieben hat, gehört
     // nicht ungefragt auf seine Rechnung.
     const { positionen } = materialPositionen(
@@ -64,7 +64,7 @@ describe('Woher das Material kommt', () => {
     expect(positionen).toEqual([]);
   });
 
-  it('lässt den stornierten und den verworfenen Schein draussen', async () => {
+  it('lässt den stornierten und den verworfenen Schein draußen', async () => {
     const { positionen } = materialPositionen(
       [
         schein({ id: 's1', status: 'Storniert', material: [{ name: 'Eckventil 1/2 Zoll', menge: 2 }] }),
@@ -130,11 +130,11 @@ describe('Wenn der Preis fehlt', () => {
       ebenso gut entfernen.
     */
     const { positionen, herkunft } = materialPositionen(
-      [schein({ id: 's1', material: [{ name: 'Sonderteil vom Grosshandel', menge: 1 }] })],
+      [schein({ id: 's1', material: [{ name: 'Sonderteil vom Großhandel', menge: 1 }] })],
       KATALOG,
     );
     expect(positionen[0]).toMatchObject({ unitPrice: 0, netto: 0 });
-    expect(herkunft.ohnePreis).toEqual(['Sonderteil vom Grosshandel']);
+    expect(herkunft.ohnePreis).toEqual(['Sonderteil vom Großhandel']);
   });
 
   it('behandelt einen Katalogeintrag OHNE gepflegten Preis genauso', async () => {
@@ -310,7 +310,7 @@ describe('Die ganze Rechnung', () => {
 });
 
 describe('Namensvergleich', () => {
-  it('ignoriert Gross-/Kleinschreibung und Leerraum', async () => {
+  it('ignoriert Groß-/Kleinschreibung und Leerraum', async () => {
     expect(normName('  Eckventil   1/2  Zoll ')).toBe(normName('eckventil 1/2 zoll'));
   });
 });

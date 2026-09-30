@@ -63,13 +63,13 @@ export function dateiTyp(datei: Pick<File, 'name' | 'type'>): string | null {
  */
 export function dateiPruefen(datei: Pick<File, 'name' | 'type' | 'size'>): string | null {
   if (!dateiTyp(datei)) {
-    return `„${datei.name}": nur PDF und Bilder (JPEG, PNG, WebP, HEIC). Pläne aus einem CAD-Programm bitte als PDF exportieren.`;
+    return `„${datei.name}“: nur PDF und Bilder (JPEG, PNG, WebP, HEIC). Pläne aus einem CAD-Programm bitte als PDF exportieren.`;
   }
   if (datei.size > HOECHSTENS_BYTES) {
     const mb = (datei.size / 1024 / 1024).toFixed(1).replace('.', ',');
-    return `„${datei.name}" ist ${mb} MB gross — höchstens 25 MB.`;
+    return `„${datei.name}“ ist ${mb} MB groß — höchstens 25 MB.`;
   }
-  if (datei.size === 0) return `„${datei.name}" ist leer.`;
+  if (datei.size === 0) return `„${datei.name}“ ist leer.`;
   return null;
 }
 

@@ -55,7 +55,7 @@ describe('Beim Server nachfragen', () => {
     expect(await andereFassungAufDemServer()).toBeNull();
   });
 
-  it('sagt „weiss nicht", statt ohne Netz etwas zu behaupten', async () => {
+  it('sagt „weiß nicht“, statt ohne Netz etwas zu behaupten', async () => {
     // `null` ist ausdruecklich NICHT dasselbe wie „nein": wer beides gleich
     // behandelt, baut entweder eine Schleife oder eine App, die nie erfaehrt,
     // dass es etwas Neues gibt.

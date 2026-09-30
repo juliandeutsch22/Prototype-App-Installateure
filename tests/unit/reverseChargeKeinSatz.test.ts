@@ -51,7 +51,7 @@ describe('Der Steuersatz verspricht keinen Übergang der Steuerschuld', () => {
     }
     expect(
       treffer,
-      'Ein Steuersatz namens „Reverse Charge" setzt nur die Zahl auf null — ' +
+      'Ein Steuersatz namens „Reverse Charge“ setzt nur die Zahl auf null — ' +
         'ohne Pflichthinweis und ohne UID des Empfängers ist die Rechnung ungültig. ' +
         'Der Übergang gehört als Haken an die einzelne Rechnung.',
     ).toEqual([]);

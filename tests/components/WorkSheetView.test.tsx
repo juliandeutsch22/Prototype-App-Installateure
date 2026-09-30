@@ -620,7 +620,7 @@ describe('Handwerksschein', () => {
       expect(await screen.findByText(/lässt sich nicht öffnen/)).toBeInTheDocument();
     });
 
-    it('warnt NICHT vor einem verworfenen Entwurf als „schon vorhanden"', async () => {
+    it('warnt NICHT vor einem verworfenen Entwurf als „schon vorhanden“', async () => {
       /*
         Die Warnung soll vor DOPPELT bestätigten Stunden schützen. Ein
         aufgegebener Entwurf bestätigt nichts — er zählte sonst als Warnung
@@ -1026,7 +1026,7 @@ describe('Zeit beim Kunden eintragen', () => {
 
     expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeDisabled();
     expect(screen.getByText(/Noch nicht auf dem Schein/).parentElement).toHaveTextContent(
-      /das Material „Silikon sanitär"/,
+      /das Material „Silikon sanitär“/,
     );
 
     // Leeren reicht auch — wer es sich anders überlegt hat, muss nichts übernehmen.
@@ -1242,7 +1242,7 @@ describe('Schrittfolge', () => {
       .getByRole('navigation', { name: 'Schritte des Scheins' })
       .querySelector('[aria-current="step"]')?.textContent;
 
-  it('geht mit „Weiter" vor und mit „Zurück" wieder zurück', async () => {
+  it('geht mit „Weiter“ vor und mit „Zurück“ wieder zurück', async () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByRole('link', { name: /Hauptstraße 12/ });
@@ -1298,7 +1298,7 @@ describe('Schrittfolge', () => {
     expect(screen.queryByRole('button', { name: /^Weiter/ })).not.toBeInTheDocument();
   });
 
-  it('sperrt „Weiter" nicht — geprüft wird beim Unterschreiben', async () => {
+  it('sperrt „Weiter“ nicht — geprüft wird beim Unterschreiben', async () => {
     // Keiner der Schritte hat eine Pflichtangabe: ein Schein ohne Stunden,
     // Material oder Fotos ist gültig. Die Sperre sitzt am Abschluss.
     const nutzer = userEvent.setup();
@@ -1312,7 +1312,7 @@ describe('Schrittfolge', () => {
     expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeDisabled();
   });
 
-  it('springt aus der Zusammenfassung mit „Ändern" in den Schritt', async () => {
+  it('springt aus der Zusammenfassung mit „Ändern“ in den Schritt', async () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByRole('link', { name: /Hauptstraße 12/ });
@@ -1416,7 +1416,7 @@ describe('Schrittfolge', () => {
       screen.getByRole('button', { name: 'Unterschreiben und abschließen' }),
     ).toBeDisabled();
     expect(
-      screen.getByText(/Eingetippt, aber nicht hinzugefügt: „Silikon sanitär"/),
+      screen.getByText(/Eingetippt, aber nicht hinzugefügt: „Silikon sanitär“/),
     ).toBeInTheDocument();
 
     await nutzer.click(screen.getByRole('button', { name: 'Zum Material' }));
@@ -1426,7 +1426,7 @@ describe('Schrittfolge', () => {
     expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeEnabled();
   });
 
-  it('bietet „Als Entwurf speichern" in jedem Schritt an', async () => {
+  it('bietet „Als Entwurf speichern“ in jedem Schritt an', async () => {
     // Vormittags vorbereiten, nachmittags unterschreiben: wer nach den Zeiten
     // aufhört, soll nicht erst bis zur Unterschrift weiterklicken müssen.
     const nutzer = userEvent.setup();
@@ -1619,7 +1619,7 @@ describe('Schrittfolge', () => {
     });
   });
 
-  it('steht am Schreibtisch als eine Seite da — ohne Leiste und ohne „Weiter"', async () => {
+  it('steht am Schreibtisch als eine Seite da — ohne Leiste und ohne „Weiter“', async () => {
     schreibtisch();
     zeichne();
     await screen.findByRole('link', { name: /Hauptstraße 12/ });
@@ -1905,7 +1905,7 @@ describe('Prüflauf 25.09.2026', () => {
       expect(
         await screen.findByText(/Bitte eine Menge größer als 0 eintragen/),
       ).toBeInTheDocument();
-      expect(screen.getByText(/Zum Abschließen fehlen: Menge bei „Dichtung"/)).toBeInTheDocument();
+      expect(screen.getByText(/Zum Abschließen fehlen: Menge bei „Dichtung“/)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeDisabled();
 
       await nutzer.clear(screen.getByLabelText('Menge'));

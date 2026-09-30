@@ -561,7 +561,7 @@ export default function PlattformView() {
                     </p>
                     <p className="mt-1 text-xs text-warning">
                       Diesen Link an den Administrator weitergeben — er setzt damit sein Passwort. Er
-                      steht nur jetzt hier; danach hilft nur noch „Passwort vergessen?".
+                      steht nur jetzt hier; danach hilft nur noch „Passwort vergessen?“.
                     </p>
                   </>
                 )}

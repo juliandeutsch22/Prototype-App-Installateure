@@ -133,7 +133,7 @@ describe('Die Plattformseite', () => {
       Adresse —, und genau das braucht der Nächste, der es noch einmal
       versucht. Ein allgemeines „hat nicht geklappt" schickt ihn ins Raten.
     */
-    anlegen.mockRejectedValue(new Error('Die Kennung „perl" ist vergeben.'));
+    anlegen.mockRejectedValue(new Error('Die Kennung „perl“ ist vergeben.'));
     const nutzer = userEvent.setup();
     zeige();
     await ausfuellen(nutzer);

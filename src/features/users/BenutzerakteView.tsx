@@ -260,7 +260,7 @@ export default function BenutzerakteView() {
         {istBenutzerkonto(p.email) ? (
           eigenesKonto ? (
             <span className="text-sm text-ink-muted">
-              Das eigene Passwort unter „Mein Konto" ändern.
+              Das eigene Passwort unter „Mein Konto“ ändern.
             </span>
           ) : (
             <Button
@@ -645,7 +645,7 @@ function StammdatenFormular({
           <ZahlFeld
             id="b-resturlaub"
             label={`${urlaubsfeldName(entwurf)} (Tage)`}
-            placeholder="leer = voller Jahresanspruch"
+            placeholder="leer = voller Anspruch"
             value={entwurf.initialVacationDays}
             onChange={(t) => setze('initialVacationDays', t)}
           />

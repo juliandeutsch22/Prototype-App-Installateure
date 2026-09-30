@@ -154,7 +154,7 @@ describe('Ein Angebot ansehen', () => {
     expect(screen.getByRole('link', { name: 'B-2026-0007' }).className).toMatch(/\bmin-h-touch\b/);
   });
 
-  it('sagt „gibt es nicht", statt einen Ladefehler vorzutäuschen', async () => {
+  it('sagt „gibt es nicht“, statt einen Ladefehler vorzutäuschen', async () => {
     angebot = null;
     zeige();
     expect(await screen.findByText(/gibt es nicht \(mehr\)/)).toBeInTheDocument();

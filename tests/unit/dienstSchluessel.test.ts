@@ -133,7 +133,7 @@ describe('istJwtFormat', () => {
     expect(istJwtFormat('sb_secret_N7UND0Ugj')).toBe(false);
   });
 
-  it('drei Teile heisst drei GEFÜLLTE Teile', () => {
+  it('drei Teile heißt drei GEFÜLLTE Teile', () => {
     expect(istJwtFormat('a..c')).toBe(false);
     expect(istJwtFormat('a.b')).toBe(false);
     expect(istJwtFormat('a.b.c.d')).toBe(false);

@@ -56,7 +56,7 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
 
   // Nur die freie Zeile: ein Suchbegriff ist noch keine Absicht, ein
   // eingetippter Artikelname schon.
-  const offen = freierName.trim() ? `„${freierName.trim()}"` : null;
+  const offen = freierName.trim() ? `„${freierName.trim()}“` : null;
   useEffect(() => {
     onOffen?.(offen);
   }, [offen, onOffen]);

@@ -25,7 +25,7 @@ describe('istUeberfaellig', () => {
     expect(istUeberfaellig(r({}), HEUTE)).toBe(true);
   });
 
-  it('nimmt den Stand „Überfällig" beim Wort, solange etwas offen ist', () => {
+  it('nimmt den Stand „Überfällig“ beim Wort, solange etwas offen ist', () => {
     expect(istUeberfaellig(r({ paymentStatus: 'Überfällig', dueDate: '2099-01-01' }), HEUTE)).toBe(true);
   });
 

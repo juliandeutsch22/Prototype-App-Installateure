@@ -278,7 +278,7 @@ describe('Baustellen — anlegen', () => {
     expect(lege.mock.calls[0][1]).toMatchObject({ projectNumber: 'BT-77' });
   });
 
-  it('nennt eine vergebene Nummer beim Namen, statt „erneut versuchen"', async () => {
+  it('nennt eine vergebene Nummer beim Namen, statt „erneut versuchen“', async () => {
     anlegeFehler = 'duplicate key value violates unique constraint "projects_nummer_je_betrieb"';
     zeige();
     await formOeffnen();
@@ -637,7 +637,7 @@ describe('Baustellen — Suche über die Liste hinaus', () => {
 
     expect(await screen.findByText(/Hausverwaltung Berger/)).toBeInTheDocument();
     expect(
-      screen.getByText(/Eine Baustelle ausserhalb der geladenen Liste gefunden/),
+      screen.getByText(/Eine Baustelle außerhalb der geladenen Liste gefunden/),
     ).toBeInTheDocument();
   });
 
@@ -671,7 +671,7 @@ describe('Baustellen — Suche über die Liste hinaus', () => {
       Serversuche an und enthält dieselben Worte. Ein zu weiter Ausdruck
       träfe ihn und wäre damit blind für das, was hier geprüft wird.
     */
-    expect(screen.queryByText(/Baustellen? ausserhalb der geladenen Liste gefunden/))
+    expect(screen.queryByText(/Baustellen? außerhalb der geladenen Liste gefunden/))
       .not.toBeInTheDocument();
   });
 
@@ -690,7 +690,7 @@ describe('Baustellen — Suche über die Liste hinaus', () => {
     // Die Zeile der Baustelle, nicht der Hinweis über dem Feld: dort steht die
     // Nummer in Klammern hinter dem Kundennamen.
     expect(await screen.findByText('(2026-003)')).toBeInTheDocument();
-    expect(screen.queryByText(/Baustellen? ausserhalb der geladenen Liste gefunden/))
+    expect(screen.queryByText(/Baustellen? außerhalb der geladenen Liste gefunden/))
       .not.toBeInTheDocument();
   });
 });
@@ -728,7 +728,7 @@ describe('Baustellen — Kundenauswahl an der Grenze', () => {
 });
 
 describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
-  it('nennt die Auswahl „Baustellen filtern" — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl"', async () => {
+  it('nennt die Auswahl „Baustellen filtern“ — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl“', async () => {
     zeige();
     expect(await screen.findByRole('combobox', { name: 'Baustellen filtern' })).toBeInTheDocument();
   });

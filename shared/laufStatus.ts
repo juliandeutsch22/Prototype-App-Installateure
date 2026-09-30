@@ -157,7 +157,7 @@ export function pushBeurteilen(lauf: Lauf<'push'> | undefined): LaufUrteil {
       stand: 'unbekannt',
       // NICHT „funktioniert nicht": es ist schlicht nichts angefallen. Ein
       // Betrieb, der noch keine Meldung ausgelöst hat, hat kein Problem.
-      text: 'Seit der Einrichtung wurde noch keine Push-Meldung angestossen.',
+      text: 'Seit der Einrichtung wurde noch keine Push-Meldung angestoßen.',
       stundenHer: null,
     };
   }
@@ -174,7 +174,7 @@ export function pushBeurteilen(lauf: Lauf<'push'> | undefined): LaufUrteil {
   }
   return {
     stand: 'gut',
-    text: 'Die zuletzt angestossenen Push-Meldungen sind alle durchgegangen.',
+    text: 'Die zuletzt angestoßenen Push-Meldungen sind alle durchgegangen.',
     stundenHer: null,
   };
 }

@@ -86,7 +86,7 @@ describe('Was nachzutragen ist', () => {
     expect(offen).toHaveLength(1);
   });
 
-  it('erkennt eine Buchung mit führendem „PR-" aus Altbeständen', () => {
+  it('erkennt eine Buchung mit führendem „PR-“ aus Altbeständen', () => {
     // Sonst stünde für jede alte Schreibweise ein Nachtrag da, den es nicht
     // gibt — und der Hinweis verlöre seinen Wert.
     const offen = offeneNachtraege(
@@ -224,7 +224,7 @@ describe('Wer gemahnt wird', () => {
     expect(offen[0].minuten).toBe(180);
   });
 
-  it('nimmt Gross-, Kleinschreibung und doppelte Leerzeichen nicht übel', () => {
+  it('nimmt Groß-, Kleinschreibung und doppelte Leerzeichen nicht übel', () => {
     // Der Schein trägt keine Kennung, nur den Namen — dieselbe Zuordnung wie
     // in der Bürosicht. Ein zweites Leerzeichen darf sie nicht auseinander-
     // reissen.

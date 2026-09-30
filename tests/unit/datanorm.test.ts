@@ -20,8 +20,8 @@ const bytes = (...b: number[]) => Uint8Array.from(b).buffer;
 
 describe('DATANORM lesen', () => {
   it('liest den Vorlaufsatz als Kopf und nicht als Artikel', () => {
-    const e = liesDatanorm('V;20092026;HTI Grosshandel;EUR;1;04\nA;N;1029384;0;Rohr;;1;0;m;450;10;0');
-    expect(e.kopf).toEqual({ datum: '20092026', info: 'HTI Grosshandel', waehrung: 'EUR' });
+    const e = liesDatanorm('V;20092026;HTI Großhandel;EUR;1;04\nA;N;1029384;0;Rohr;;1;0;m;450;10;0');
+    expect(e.kopf).toEqual({ datum: '20092026', info: 'HTI Großhandel', waehrung: 'EUR' });
     expect(e.artikel).toHaveLength(1);
   });
 
@@ -88,7 +88,7 @@ describe('DATANORM lesen', () => {
     ]);
   });
 
-  it('meldet ein unbekanntes Verarbeitungskennzeichen, statt es als „neu" zu lesen', () => {
+  it('meldet ein unbekanntes Verarbeitungskennzeichen, statt es als „neu“ zu lesen', () => {
     const e = liesDatanorm('A;X;1029384;0;Eckventil;;1;0;Stk;2350;10;0');
     expect(e.artikel).toEqual([]);
     expect(e.unverstanden[0].grund).toMatch(/Verarbeitungskennzeichen/);
@@ -102,7 +102,7 @@ describe('DATANORM lesen', () => {
     */
     const e = liesDatanorm('A;N;1029384;0;Eckventil;;1;0;Stk;PST;10;0');
     expect(e.artikel).toEqual([]);
-    expect(e.unverstanden[0].grund).toBe('Preisfeld „PST" ist keine Zahl.');
+    expect(e.unverstanden[0].grund).toBe('Preisfeld „PST“ ist keine Zahl.');
   });
 
   it('nimmt einen Artikel ohne Preisangabe an — aber ohne Preis', () => {
@@ -171,7 +171,7 @@ describe('Zeichensatz erkennen', () => {
     expect(d).toEqual({ text: 'A;N;1;0;für', zeichensatz: 'cp850' });
   });
 
-  it('liest auch ß und die grossen Umlaute aus CP850', () => {
+  it('liest auch ß und die großen Umlaute aus CP850', () => {
     const d = dekodiere(bytes(0x9a, 0x8e, 0x99, 0xe1, 0x84, 0x94, 0x81));
     expect(d.text).toBe('ÜÄÖßäöü');
   });
@@ -201,7 +201,7 @@ describe('Befund für den Probelauf', () => {
     });
   });
 
-  it('zählt einen Löschsatz nicht als „ohne Preis"', () => {
+  it('zählt einen Löschsatz nicht als „ohne Preis“', () => {
     // Ein Löschsatz HAT keinen Preis und soll auch keinen haben. Stünde er
     // in der Spalte, sähe jeder Preisimport nach einer Lücke aus.
     const e = liesDatanorm('A;L;A3;;;;;;;;;');

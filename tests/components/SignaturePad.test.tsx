@@ -116,7 +116,9 @@ describe('Unterschriftsfeld — der Finger', () => {
     act(() => {
       feld.dispatchEvent(finger('touchstart', 10, 10));
       feld.dispatchEvent(finger('touchmove', 80, 40));
-      feld.dispatchEvent(finger('touchend', 80, 40));
+      // Ein Namenszug, kein einzelner Strich (G24): hin und zurück.
+      feld.dispatchEvent(finger('touchmove', 20, 50));
+      feld.dispatchEvent(finger('touchend', 20, 50));
     });
 
     expect(gemeldet).toHaveBeenCalledWith(true);
@@ -136,6 +138,7 @@ describe('Unterschriftsfeld — der Finger', () => {
     act(() => {
       feld.dispatchEvent(finger('touchstart', 10, 10));
       feld.dispatchEvent(finger('touchmove', 30, 20));
+      feld.dispatchEvent(finger('touchmove', 10, 45));
       // Genau hier stieg die alte Fassung aus.
       feld.dispatchEvent(zeiger('pointercancel', 30, 20, 'touch'));
       window.dispatchEvent(zeiger('pointercancel', 30, 20, 'touch'));
@@ -215,7 +218,8 @@ describe('Unterschriftsfeld — Maus und Stift', () => {
     act(() => {
       feld.dispatchEvent(zeiger('pointerdown', 10, 10));
       window.dispatchEvent(zeiger('pointermove', 80, 40));
-      window.dispatchEvent(zeiger('pointerup', 80, 40));
+      window.dispatchEvent(zeiger('pointermove', 20, 50));
+      window.dispatchEvent(zeiger('pointerup', 20, 50));
     });
 
     expect(auf.striche).toBeGreaterThan(1);
@@ -419,7 +423,7 @@ describe('Unterschriftsfeld — groß unterschreiben', () => {
     expect(ref.current?.bildLesen()).toBe('data:image/png;base64,AAA');
   });
 
-  it('schliesst mit Escape wie jeder Dialog', async () => {
+  it('schließt mit Escape wie jeder Dialog', async () => {
     render(<SignaturePad titel="Unterschrift Monteur" onChange={vi.fn()} />);
     await userEvent.click(screen.getByRole('button', { name: 'Groß unterschreiben' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -469,5 +473,23 @@ describe('Unterschriftsfeld — nach dem Drehen nichts abgeschnitten', () => {
     } finally {
       globalThis.ResizeObserver = vorher;
     }
+  });
+});
+
+// Testbericht 30.09.2026, G24 — zwei kurze Striche sind keine Unterschrift.
+describe('Unterschriftsfeld — genug Tinte', () => {
+  it('ein Kreuz aus zwei kurzen Strichen zählt nicht', () => {
+    const gemeldet = vi.fn();
+    render(<SignaturePad titel="Unterschrift Kunde" onChange={gemeldet} />);
+    const feld = screen.getByLabelText(/Unterschrift Kunde/);
+    act(() => {
+      feld.dispatchEvent(finger('touchstart', 10, 10));
+      feld.dispatchEvent(finger('touchmove', 55, 30));
+      feld.dispatchEvent(finger('touchend', 55, 30));
+      feld.dispatchEvent(finger('touchstart', 55, 10));
+      feld.dispatchEvent(finger('touchmove', 10, 30));
+      feld.dispatchEvent(finger('touchend', 10, 30));
+    });
+    expect(gemeldet).not.toHaveBeenCalledWith(true);
   });
 });

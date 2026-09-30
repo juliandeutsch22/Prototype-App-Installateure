@@ -89,7 +89,7 @@ describe('Der Leistungszeitraum auf dem Beleg', () => {
     expect(s).toContain('11.09.2026');
   });
 
-  it('heisst bei EINEM Tag „Leistungsdatum"', async () => {
+  it('heißt bei EINEM Tag „Leistungsdatum“', async () => {
     /*
       Keine Kosmetik, sondern genau die Unterscheidung, die das Gesetz trifft:
       „der Tag ... ODER der Zeitraum". „Zeitraum vom 4. bis 4." wäre die
@@ -122,7 +122,7 @@ describe('Der Leistungszeitraum auf dem Beleg', () => {
 
 // Testbericht 30.09.2026, M20 — auf der Anzahlung steht der GEPLANTE Zeitraum.
 describe('Der Zeitraum auf der Anzahlungsrechnung', () => {
-  it('heisst „Leistung geplant“ und sagt weiter, dass die Leistung aussteht', () => {
+  it('heißt „Leistung geplant“ und sagt weiter, dass die Leistung aussteht', () => {
     const s = befehle({ von: '2026-10-05', bis: '2026-10-23' }, { art: 'anzahlung' });
     expect(s).toContain('Leistung geplant');
     expect(s).not.toContain('Leistungszeitraum');
@@ -171,7 +171,7 @@ describe('Reverse Charge auf dem Beleg', () => {
     expect(summen()).toContain('Übergang der Steuerschuld');
   });
 
-  it('nennt die Summe „Rechnungsbetrag" statt „Brutto"', async () => {
+  it('nennt die Summe „Rechnungsbetrag“ statt „Brutto“', async () => {
     // „Brutto" heisst: da ist Steuer drin. Hier ist keine drin.
     befehle(null, MIT);
     expect(summen()).toContain('Rechnungsbetrag');

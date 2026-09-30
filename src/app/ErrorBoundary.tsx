@@ -111,7 +111,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           <h1 className="text-xl font-semibold text-ink">Da ist etwas schiefgelaufen</h1>
           <p className="mt-2 text-sm text-ink-muted">
             {istNachladeFehler(error)
-              ? 'Die Ansicht konnte nicht nachgeladen werden — meist, weil es gerade eine neue Fassung gibt. „Zur Startseite" holt sie. Deine gespeicherten Daten sind davon nicht betroffen.'
+              ? 'Die Ansicht konnte nicht nachgeladen werden — meist, weil es gerade eine neue Fassung gibt. „Zur Startseite“ holt sie. Deine gespeicherten Daten sind davon nicht betroffen.'
               : 'Die Ansicht konnte nicht geladen werden. Deine gespeicherten Daten sind davon nicht betroffen.'}
           </p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">

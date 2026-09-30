@@ -76,7 +76,7 @@ beforeEach(() => {
 });
 
 describe('Die Maske meldet, was wirklich geschah', () => {
-  it('sagt „wird automatisch gesendet", wenn die Buchung vorgemerkt ist', async () => {
+  it('sagt „wird automatisch gesendet“, wenn die Buchung vorgemerkt ist', async () => {
     buchen.mockResolvedValue('queued');
     zeichne();
     await buchenKlicken();

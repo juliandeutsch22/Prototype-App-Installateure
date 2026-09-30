@@ -197,7 +197,7 @@ async function standSchreiben(
     bytes += text.length;
     if (bytes > GRENZE_BYTES) {
       throw new Error(
-        'Der Bestand ist zu gross für einen Lauf in einem Stück. ' +
+        'Der Bestand ist zu groß für einen Lauf in einem Stück. ' +
         'Die Ausleitung muss auf ein Ziel umgestellt werden, das strömend schreibt.',
       );
     }
@@ -307,7 +307,7 @@ async function ausserHausLegen(
       Protokollzeile passen muss.
     */
     const text = (await r.text()).slice(0, 400);
-    throw new Error(`Sicherung ausser Haus (${r.status}): ${text}`);
+    throw new Error(`Sicherung außer Haus (${r.status}): ${text}`);
   }
   return `${ziel.eimer}/${pfad}`;
 }
@@ -396,7 +396,7 @@ async function dateienAusserHaus(
     const r = await fetch(url, { method: 'PUT', headers: kopfzeilen, body: inhalt });
     if (!r.ok) {
       const text = (await r.text()).slice(0, 400);
-      throw new Error(`Datei ausser Haus (${r.status}) ${imZiel}: ${text}`);
+      throw new Error(`Datei außer Haus (${r.status}) ${imZiel}: ${text}`);
     }
 
     /*

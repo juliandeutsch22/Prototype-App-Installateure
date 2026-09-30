@@ -88,7 +88,7 @@ describe('Wie die Zeit benannt wird', () => {
     expect(u.text).not.toContain('74');
   });
 
-  it('kommt mit „gerade eben" zurecht', () => {
+  it('kommt mit „gerade eben“ zurecht', () => {
     expect(beurteile(lauf({ zuletztErfolg: JETZT - 60_000 }), JETZT).text).toContain(
       'weniger als einer Stunde',
     );

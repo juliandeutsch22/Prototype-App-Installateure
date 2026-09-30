@@ -244,7 +244,7 @@ export function liesDatanorm(text: string): DatanormErgebnis {
       ergebnis.unverstanden.push({
         zeile: nummer,
         inhalt: roh.slice(0, 120),
-        grund: `Unbekanntes Verarbeitungskennzeichen „${kurz(1)}" — erwartet N, A oder L.`,
+        grund: `Unbekanntes Verarbeitungskennzeichen „${kurz(1)}“ — erwartet N, A oder L.`,
       });
       continue;
     }
@@ -287,7 +287,7 @@ export function liesDatanorm(text: string): DatanormErgebnis {
       ergebnis.unverstanden.push({
         zeile: nummer,
         inhalt: roh.slice(0, 120),
-        grund: `Preisfeld „${f[9].trim()}" ist keine Zahl.`,
+        grund: `Preisfeld „${f[9].trim()}“ ist keine Zahl.`,
       });
       continue;
     }
@@ -378,7 +378,7 @@ export function layoutWarnung(e: DatanormErgebnis): string | undefined {
       `${anteil} % der Artikelsätze (${e.unverstanden.length} von ${aSaetze}) wurden nicht ` +
       'verstanden. Das deutet darauf hin, dass die Felder in dieser Datei anders stehen als ' +
       'in DATANORM 4.0 vorgesehen. Es wird nichts übernommen — bitte die Datei mit dem ' +
-      'Grosshändler prüfen.'
+      'Großhändler prüfen.'
     );
   }
 
@@ -388,7 +388,7 @@ export function layoutWarnung(e: DatanormErgebnis): string | undefined {
       `${e.artikel.length} Artikelsätze teilen sich nur ${nummern.size} Artikelnummer(n). ` +
       'Vermutlich steht an dieser Stelle in Wahrheit die Katalog- oder Lieferantennummer, ' +
       'und alle weiteren Felder sind verschoben. Es wird nichts übernommen — bitte die Datei ' +
-      'mit dem Grosshändler prüfen.'
+      'mit dem Großhändler prüfen.'
     );
   }
 

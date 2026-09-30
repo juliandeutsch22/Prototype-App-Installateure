@@ -70,7 +70,7 @@ describe('Die Liste', () => {
     // „Material und Lager" sagt niemandem, dass damit drei Reiter
     // verschwinden. Die Aufzählung tut es.
     zeige();
-    expect(screen.getByText(/Betrifft: Material bestellen, Anforderungen, Lager/))
+    expect(screen.getByText(/Betrifft: Material anfordern, Anforderungen, Lager/))
       .toBeInTheDocument();
   });
 

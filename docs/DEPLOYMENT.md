@@ -41,7 +41,7 @@ Unterauftragsverarbeiter stehen bleibt.
 4. Unter *Authentication* so einstellen, wie `supabase/config.toml` es für
    den örtlichen Stack festhält (`tests/unit/anmeldeEinstellungen.test.ts`) —
    die Datei selbst erreicht das Projekt nicht: **Registrieren aus**
-   („Allow new users to sign up"), **Mindestlänge 8** und **„Secure password
+   („Allow new users to sign up“), **Mindestlänge 8** und **„Secure password
    change" an** (seit 28.09.2026, offene Punkte B5; im Projekt
    `installateur-demo` eingeschaltet am 29.09.2026). Ist eine Sitzung älter
    als ein Tag, meldet die App beim Passwortändern mit dem eben geprüften
@@ -128,7 +128,7 @@ node scripts/bootstrap-postgres.mjs
 ```
 
 Das Skript **setzt kein Passwort und gibt keinen Link aus**. Der Zugang wird
-über „Passwort vergessen?" auf dem Anmeldebildschirm freigeschaltet — so läuft
+über „Passwort vergessen?“ auf dem Anmeldebildschirm freigeschaltet — so läuft
 kein Geheimnis durch ein Protokoll, das später jeder mit Repo- oder
 Terminalzugriff liest. Es ist mehrfach ausführbar.
 
@@ -143,7 +143,7 @@ Token greift jede Leseregel.
 ## 5 · Die nächtliche Sicherung einrichten
 
 Der Zeitplan liegt als `pg_cron`-Eintrag in der Datenbank; die Arbeit tut die
-Edge Function `daten-ausleitung`. Ohne Ziel ausser Haus schreibt sie in den
+Edge Function `daten-ausleitung`. Ohne Ziel außer Haus schreibt sie in den
 eigenen Speicher — das hilft gegen einen Fehlgriff, **nicht** gegen einen
 Ausfall des Projekts.
 
@@ -163,10 +163,10 @@ Unter *Project Settings → Edge Functions → Secrets* hinterlegen:
 fehlenden Feldes — eine Sicherung, die stillschweigend woanders landet als
 gedacht, ist die gefährlichste Sorte.
 
-> **Diese Zugangsdaten gehören ausschliesslich in die Edge-Function-Secrets.**
+> **Diese Zugangsdaten gehören ausschließlich in die Edge-Function-Secrets.**
 > Nicht in GitHub, nicht ins Repository, nicht in eine Chatnachricht.
 
-**Der Schlüssel draussen darf nur anlegen** — nicht lesen, nicht löschen, nicht
+**Der Schlüssel draußen darf nur anlegen** — nicht lesen, nicht löschen, nicht
 überschreiben. Wer morgen dieses Projekt übernimmt, hat damit einen Schlüssel,
 mit dem er die abgelegten Stände *nicht vernichten kann*.
 
@@ -185,7 +185,7 @@ nicht beim Deploy.
 ### Nachsehen, was wirklich ausgeliefert wurde
 
 Im Kopf der App steht die Fassung (Commit und Bauzeit). Aus dem Betrieb kam
-schon „keine deiner Änderungen ist in der App" — der Deploy meldete Erfolg, das
+schon „keine deiner Änderungen ist in der App“ — der Deploy meldete Erfolg, das
 Telefon zeigte etwas anderes. Drei Möglichkeiten, und die Zeile beantwortet die
 ersten zwei in einer Sekunde: der Deploy kam nicht an, der Zwischenspeicher des
 Telefons hält eine alte Fassung, oder die Änderung hängt an einer Bedingung.
@@ -201,7 +201,7 @@ statt kaputt.
 
 **Es gibt kein Konto, das überall hineinsieht — und das ist keine Askese,
 sondern die Folge einer unangenehmen Feststellung:** der Generalschlüssel
-existierte längst. Er heisst `service_role`, liegt in den
+existierte längst. Er heißt `service_role`, liegt in den
 Edge-Function-Secrets, umgeht jeden Zeilenschutz, erreicht jeden Mandanten und
 hinterlässt keine Spur. Ihn als Supportweg zu benutzen hiesse: bei jeder
 Nachfrage eines Betriebs in ALLE Betriebe schauen zu können, ohne dass es
@@ -228,9 +228,9 @@ danach erscheint, entscheidet der Anspruch im Token:
 
 - Token **mit** `company_id` → die App, mit Navigation und Reitern nach Rolle.
 - Token mit `plattform_admin` → **eine einzige Seite ohne Navigation**:
-  „Betriebe anlegen", darunter „Einblick gewährt" und „Notzugang".
+  „Betriebe anlegen“, darunter „Einblick gewährt“ und „Notzugang“.
 
-Kein Rollenwechsler, kein „als Betrieb X anmelden". Ein Plattformkonto
+Kein Rollenwechsler, kein „als Betrieb X anmelden“. Ein Plattformkonto
 *wird* nie zu einem Betriebskonto; es bekommt nur für die Dauer einer
 Freigabe Zugang zu **einem** Betrieb.
 
@@ -247,15 +247,15 @@ herum gebaut. Die Stufe steht mit dem Gewähren fest und lässt sich
 nachträglich nicht anheben — sonst bezöge sich die Zustimmung auf etwas
 anderes als das, was danach gilt.
 
-**Der Support arbeitet in der ECHTEN App**, nicht in einem Nachbau: „Öffnen"
+**Der Support arbeitet in der ECHTEN App**, nicht in einem Nachbau: „Öffnen“
 setzt ihn in den Betrieb, mit denselben Reitern und denselben Ansichten, die
 der Betrieb sieht. Ganz oben steht dabei ein Band mit dem Namen des Betriebs
-— bei „Mitarbeiten" in Rot, weil die Oberfläche sonst aussieht wie jede
+— bei „Mitarbeiten“ in Rot, weil die Oberfläche sonst aussieht wie jede
 andere und genau daraus der Fehler entsteht, der weh tut.
 
 > Bis zum 21.09.2026 gab es dafür eine zweite, eigene Oberfläche mit vier
 > Listen ohne Details. Sie beantwortete die Frage nicht, mit der ein Betrieb
-> anruft („die Rechnung stimmt nicht" — welche Position denn?), und sie wäre
+> anruft („die Rechnung stimmt nicht“ — welche Position denn?), und sie wäre
 > jeder Änderung an der App hinterhergelaufen.
 
 ### Wie ein Supportfall abläuft
@@ -265,10 +265,10 @@ andere und genau daraus der Fehler entsteht, der weh tut.
    Geschäftsführung/Administration: Grund eintragen, **Stufe** wählen
    (Ansehen oder Mitarbeiten), Dauer wählen, freigeben. Ab diesem Moment
    steht **in seiner App ein Band über dem Inhalt**, für jeden Mitarbeiter,
-   mit dem Grund darin — bei „Mitarbeiten" in Rot und mit dem Zusatz, dass
+   mit dem Grund darin — bei „Mitarbeiten“ in Rot und mit dem Zusatz, dass
    der Support auch ändern kann.
 3. **Der Support meldet sich an** und sieht den Betrieb unter „Einblick
-   gewährt" — mit Grund, Stufe und Frist. „Öffnen" setzt ihn **in die echte
+   gewährt" — mit Grund, Stufe und Frist. „Öffnen“ setzt ihn **in die echte
    App** dieses Betriebs.
 4. **Jeder geöffnete Bereich wird protokolliert**, und zwar *bevor* er geladen
    wird: scheitert die Meldung, bleibt der Bereich zu.
@@ -290,19 +290,19 @@ andere und genau daraus der Fehler entsteht, der weh tut.
   Kundenwohnungen. Sie sind zusätzlich auch gegen Schreiben verriegelt: blind
   ändern zu können, was man nicht sehen darf, wäre die schlechteste aller
   Kombinationen.
-- **Bei „Ansehen" schreiben.** Nirgends. Der Riegel liegt als Auslöser vor
+- **Bei „Ansehen“ schreiben.** Nirgends. Der Riegel liegt als Auslöser vor
   *jeder* Tabelle mit `company_id`, nicht in der Oberfläche; ein
   Schema-Wächter prüft, dass keine fehlt.
-- **In einem anderen Betrieb schreiben.** Auch mit „Mitarbeiten" nicht: der
+- **In einem anderen Betrieb schreiben.** Auch mit „Mitarbeiten“ nicht: der
   Riegel vor jeder Tabelle liest den Betrieb aus der Zeile (bei `companies`
   aus der Kennung) und lässt nur durch, wofür GENAU dieser Betrieb
-  „Mitarbeiten" gewährt hat. Bis zum Prüflauf vom 25.09.2026 fehlte er an
-  `companies`; mit „Mitarbeiten" in A und „Ansehen" in B liessen sich die
+  „Mitarbeiten“ gewährt hat. Bis zum Prüflauf vom 25.09.2026 fehlte er an
+  `companies`; mit „Mitarbeiten“ in A und „Ansehen“ in B ließen sich die
   Bankdaten von B ändern.
 - **In zwei Betrieben zugleich arbeiten.** Es gilt der zuletzt begonnene
   Einblick (seit 29.09.2026, offene Punkte B3). Wer von A nach B wechselt,
   ist in B, und A ist zu, bis er dort wieder beginnt. Vorher sah, wer in A
-  „Mitarbeiten" und in B „Ansehen" hatte, in B auch, was dort nur die Spitze
+  „Mitarbeiten“ und in B „Ansehen“ hatte, in B auch, was dort nur die Spitze
   liest (etwa Angebote): die Rollenfunktionen kennen keinen Betrieb, und eine
   Rolle aus A galt auch in B.
 - **Was Zeiten, Urlaube oder Scheinfotos berührt — auch nicht über den
@@ -312,7 +312,7 @@ andere und genau daraus der Fehler entsteht, der weh tut.
   lückenlosen Folge) und die Datensicherung (sie nimmt nur der Betrieb selbst
   mit). Das rote Band nennt genau diese. Was die App sonst über den Server
   erledigt — Einsatz, Rüstliste, Angebot, Angebots- und Baustellennummer,
-  Kunden- und Katalogübernahme —, geht mit „Mitarbeiten" seit 29.09.2026
+  Kunden- und Katalogübernahme —, geht mit „Mitarbeiten“ seit 29.09.2026
   (offene Punkte B2) im Betrieb des aktuellen Einblicks
   (`app.arbeitsbetrieb()`).
 - **Sich selbst freigeben.** Der gewöhnliche Weg ist für ein Plattformkonto
@@ -325,7 +325,7 @@ Administrator ist weg, die Anmeldung klemmt. Er läuft ohne Zustimmung, aber
 nicht heimlich — gekennzeichnet, höchstens 24 Stunden, im Protokoll des
 Betriebs, mit demselben Band in seiner App, vom Betrieb jederzeit beendbar.
 
-**Ein Notzugang ist immer „Ansehen".** Schreibrechte ohne Zustimmung wären
+**Ein Notzugang ist immer „Ansehen“.** Schreibrechte ohne Zustimmung wären
 genau der Generalschlüssel, den dieser ganze Bau vermeiden soll. Damit bleibt
 ein Fall offen und er sei hier benannt: ist der letzte Administrator eines
 Betriebs weg, kann ihm auch der Support keinen neuen anlegen. Heute hilft nur
@@ -351,9 +351,9 @@ Auf `main` läuft **ein Workflow, drei Aufträge nacheinander**, nicht nebeneina
 
 | Schritt | Auftrag in `supabase-migrationen.yml` | Was er tut | Dauer |
 | --- | --- | --- | --- |
-| 1 | „Migrationen von null an" | Migrationen **von null an** gegen eine frische Datenbank + alle Datenbankprüfungen | ~6 min |
-| 2 | „Ins Projekt einspielen" | `db push` ins echte Projekt, danach die Edge Functions | ~3 min |
-| 3 | „App ausliefern" | ruft `deploy.yml` auf: Typen, Lint, alle Bausteinprüfungen, Bauen, Deploy auf Firebase Hosting | ~3 min |
+| 1 | „Migrationen von null an“ | Migrationen **von null an** gegen eine frische Datenbank + alle Datenbankprüfungen | ~6 min |
+| 2 | „Ins Projekt einspielen“ | `db push` ins echte Projekt, danach die Edge Functions | ~3 min |
+| 3 | „App ausliefern“ | ruft `deploy.yml` auf: Typen, Lint, alle Bausteinprüfungen, Bauen, Deploy auf Firebase Hosting | ~3 min |
 
 `deploy.yml` startet auf `main` **nicht selbst**; die Migrationen rufen es per
 `workflow_call` auf, und zwar erst, wenn das Einspielen gelungen ist. Zusammen
@@ -414,7 +414,7 @@ Jede Änderung muss deshalb **diese Richtung aushalten**:
 | Neue Funktion, neue Regel | Spalte **verpflichtend** machen |
 | Prüfung **lockern** | Prüfung **verschärfen** bei Bestandsdaten |
 
-**Zwei Schritte heisst:** erstens die neue Form daneben anlegen und beides
+**Zwei Schritte heißt:** erstens die neue Form daneben anlegen und beides
 schreiben; zweitens — in einem späteren Deploy, wenn alle Geräte die neue
 Fassung haben — die alte Form entfernen. Eine Woche dazwischen ist ein
 brauchbares Mass; auf einem Telefon, das im Urlaub liegt, läuft die alte
@@ -451,14 +451,14 @@ das Büro ist da und erreichbar, falls etwas auffällt.
 - ☐ **Supabase-Projekt in der EU**, nachweisbar für den AV-Vertrag.
 - ☐ **Point-in-Time-Recovery** aktiv (kostenpflichtiger Zusatz).
 - ☐ **AV-Verträge**: Supabase (Datenbank, Anmeldung, Speicher), Google
-  (Firebase Hosting und FCM), der Anbieter der Sicherung ausser Haus.
+  (Firebase Hosting und FCM), der Anbieter der Sicherung außer Haus.
 - ☐ **Verzeichnis der Verarbeitungstätigkeiten** und TOMs.
 - ✅ **Datenexport je Betrieb**: *Einstellungen → Datensicherung → Alle Daten
   herunterladen*. Die Sammlungsliste kommt aus dem Katalog der Datenbank, nicht
   aus einer Datei, die jemand pflegt — eine vergessene Tabelle wäre sonst eine
   unvollständige Auskunft.
 - ☐ **Zweiter Datenstandort**: siehe Schritt 5. Der Haken gehört gesetzt, wenn
-  die Sicherung ausserhalb des Supabase-Projekts liegt.
+  die Sicherung außerhalb des Supabase-Projekts liegt.
 - ☐ **§ 96 ArbVG**: reine Zeiterfassung ist unkritisch. **Kein GPS, solange
   keine Betriebsvereinbarung vorliegt** — eine Ortung nachzurüsten ist
   technisch eine Stunde und rechtlich ein halbes Jahr.
@@ -476,9 +476,9 @@ das Büro ist da und erreichbar, falls etwas auffällt.
 - **Anmeldung geht, aber jede Liste ist leer** → im Token fehlen Betrieb oder
   Rolle. Einmal ab- und wieder anmelden; bleibt es, hat der Trigger die
   Belegschaftszeile nicht gesehen.
-- **„Keine Meldungen aufs Telefon"** → auf iOS gibt es Web-Push erst ab
-  iOS 16.4 und **nur**, wenn die App über „Zum Home-Bildschirm" installiert
+- **„Keine Meldungen aufs Telefon“** → auf iOS gibt es Web-Push erst ab
+  iOS 16.4 und **nur**, wenn die App über „Zum Home-Bildschirm“ installiert
   wurde. Im Safari-Tab bleibt es still; das ist eine Eigenheit von iOS und wird
   in den Einstellungen erklärt.
-- **Die Sicherung meldet „halb eingerichtet"** → eines der fünf
+- **Die Sicherung meldet „halb eingerichtet“** → eines der fünf
   `SICHERUNG_S3_*`-Geheimnisse fehlt. Die Meldung nennt es beim Namen.

@@ -63,7 +63,7 @@ export default function BaustellenPlaene({
         await dokumentHochladen(companyId, projectId, datei, meinName);
         geschafft += 1;
       } catch {
-        probleme.push(`„${datei.name}" konnte nicht hochgeladen werden.`);
+        probleme.push(`„${datei.name}“ konnte nicht hochgeladen werden.`);
       }
     }
     setFortschritt(null);
@@ -80,11 +80,11 @@ export default function BaustellenPlaene({
       toast.success(`${d.dateiname} gelöscht`);
       if (dateiBlieb) {
         // Aus der App ist er weg; die Datei selbst liegt noch im Speicher.
-        toast.info('Die Datei selbst liess sich nicht entfernen und bleibt im Speicher.');
+        toast.info('Die Datei selbst ließ sich nicht entfernen und bleibt im Speicher.');
       }
       neuLaden();
     } catch {
-      setFehler([`„${d.dateiname}" konnte nicht gelöscht werden.`]);
+      setFehler([`„${d.dateiname}“ konnte nicht gelöscht werden.`]);
     }
   }
 

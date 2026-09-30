@@ -209,7 +209,7 @@ export function BewegungenDialog({
       open
       title={`Bewegungen: ${artikel.name}`}
       message={`Jede Änderung des Bestands, jüngste zuerst. Heute: ${fmtMenge(artikel.stock ?? 0)} ${einheit}.`}
-      confirmLabel="Schliessen"
+      confirmLabel="Schließen"
       confirmTone="primary"
       onConfirm={onSchliessen}
       onCancel={onSchliessen}

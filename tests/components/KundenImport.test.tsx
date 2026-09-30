@@ -65,7 +65,7 @@ describe('Kunden aus einer Datei', () => {
       expect.objectContaining({ name: 'Maier GmbH' }),
     ]);
     expect(screen.getByText('Nicht übernommen (2)')).toBeInTheDocument();
-    expect(screen.getByText('Zeile 4: E-Mail-Adresse „keine-mail" ist ungültig')).toBeInTheDocument();
+    expect(screen.getByText('Zeile 4: E-Mail-Adresse „keine-mail“ ist ungültig')).toBeInTheDocument();
     expect(screen.getByText('Zeile 5: Gibt es schon als Kunden')).toBeInTheDocument();
     expect(screen.getByText(/Nicht übernommen: Umsatz/)).toBeInTheDocument();
     expect(screen.getByText(/Straße → Adresse \(Straße\)/)).toBeInTheDocument();

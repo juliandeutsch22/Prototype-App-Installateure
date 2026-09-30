@@ -23,7 +23,7 @@ describe('Der Name der App', () => {
     document.title = 'Senklot';
   });
 
-  it('bleibt im Browserreiter „Senklot", auch wenn der Betrieb geladen ist', () => {
+  it('bleibt im Browserreiter „Senklot“, auch wenn der Betrieb geladen ist', () => {
     applyBranding({ name: 'Perl Installationen GmbH', brandColor: '#123456' });
     expect(document.title).toBe('Senklot');
   });

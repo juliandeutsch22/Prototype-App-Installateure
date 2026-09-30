@@ -941,7 +941,7 @@ export default function InvoicesView() {
         setPreview(null);
         setError(
           'Die bisherigen Rechnungen dieser Baustelle konnten nicht geladen werden. Ohne sie lässt '
-            + 'sich nicht ausschliessen, dass Material ein zweites Mal verrechnet wird — bitte noch '
+            + 'sich nicht ausschließen, dass Material ein zweites Mal verrechnet wird — bitte noch '
             + 'einmal zusammenstellen.',
         );
         return;
@@ -972,8 +972,8 @@ export default function InvoicesView() {
           setPreview(null);
           setError(
             einheitspreis
-              ? `Einheitspreisbaustelle: die Leistung ist mit ${schon} bereits verrechnet. Ein weiteres Aufmaß geht als eigene Rechnung nach Vereinbarung — oder wer die Baustelle in der Akte auf „Regie" stellt.`
-              : `Pauschalbaustelle: die Pauschale ist mit ${schon} bereits verrechnet. Stunden und Material danach sind darin enthalten. Mehrarbeit ausserhalb des Angebots verrechnet, wer die Baustelle in der Akte auf „Regie" stellt — oder als eigene Rechnung nach Vereinbarung.`,
+              ? `Einheitspreisbaustelle: die Leistung ist mit ${schon} bereits verrechnet. Ein weiteres Aufmaß geht als eigene Rechnung nach Vereinbarung — oder wer die Baustelle in der Akte auf „Regie“ stellt.`
+              : `Pauschalbaustelle: die Pauschale ist mit ${schon} bereits verrechnet. Stunden und Material danach sind darin enthalten. Mehrarbeit außerhalb des Angebots verrechnet, wer die Baustelle in der Akte auf „Regie“ stellt — oder als eigene Rechnung nach Vereinbarung.`,
           );
           return;
         }
@@ -1948,7 +1948,7 @@ export default function InvoicesView() {
         <Hinweiszeile stufe="warn" role="status">
           <p>
             <strong>Die offenen Forderungen konnten nicht geladen werden.</strong> Mahnlauf und
-            „nicht verrechnete Leistung" sind deshalb unvollständig — was hier fehlt, heisst
+            „nicht verrechnete Leistung“ sind deshalb unvollständig — was hier fehlt, heißt
             nicht, dass es nichts zu tun gibt. Bitte die Seite neu laden.
           </p>
         </Hinweiszeile>
@@ -1958,7 +1958,7 @@ export default function InvoicesView() {
         <Hinweiszeile stufe="warn" role="status">
           <p>
             <strong>Welche Handwerksscheine schon verrechnet sind, konnte nicht geladen werden.</strong>{' '}
-            „Nicht verrechnete Leistung" wird deshalb nicht angezeigt. Bitte die Seite neu laden.
+            „Nicht verrechnete Leistung“ wird deshalb nicht angezeigt. Bitte die Seite neu laden.
           </p>
         </Hinweiszeile>
       )}
@@ -2324,7 +2324,7 @@ export default function InvoicesView() {
             <div className="mb-3">
               <Hinweiszeile stufe="warn">
                 <p>
-                  „Leistung bis" liegt vor „Leistung von" — so stünde der Zeitraum verdreht auf der
+                  „Leistung bis“ liegt vor „Leistung von“ — so stünde der Zeitraum verdreht auf der
                   Rechnung. Zurückzunehmen wäre das nur noch mit einem Storno.
                 </p>
               </Hinweiszeile>
@@ -2364,7 +2364,7 @@ export default function InvoicesView() {
                     <>
                       {' '}
                       — <strong>{fmtDauer(abgleich.mehrMin)} mehr, als der Kunde unterschrieben hat.</strong>{' '}
-                      Das kann stimmen: Vorfertigung in der Werkstatt und der Weg zum Grosshändler
+                      Das kann stimmen: Vorfertigung in der Werkstatt und der Weg zum Großhändler
                       zählen auf die Baustelle, stehen aber auf keinem Schein. Nur wird der Kunde
                       danach fragen — besser jetzt als nach dem Versand.
                     </>
@@ -2767,7 +2767,7 @@ export default function InvoicesView() {
                 </div>
                 <InfoHint about="die erste Rechnungsnummer">
                   Die erste Rechnung in Senklot kann an den Nummernkreis des bisherigen Programms
-                  anschliessen: war dort die letzte 1499, hier 1500 eintragen. Danach vergibt die App
+                  anschließen: war dort die letzte 1499, hier 1500 eintragen. Danach vergibt die App
                   die Nummern lückenlos, und eine eigene Nummer geht nicht mehr.
                 </InfoHint>
               </div>
@@ -2952,7 +2952,7 @@ export default function InvoicesView() {
             {company?.addressLine?.trim() && !company?.vatId?.trim() && (
               <p className="text-sm text-warning">
                 Keine UID-Nummer des Betriebs hinterlegt. Ohne sie ist eine Rechnung über 400 € brutto
-                unvollständig — ausser der Betrieb ist Kleinunternehmer.
+                unvollständig — außer der Betrieb ist Kleinunternehmer.
                 {user && isTopLevel(user.role) && (
                   <>
                     {' '}
@@ -3051,7 +3051,7 @@ export default function InvoicesView() {
             {suchbegriff
               ? !serverTreffer && !suchFehler
                 ? 'Suche in allen Rechnungen …'
-                : `Keine Rechnung passt zu „${suchbegriff}".`
+                : `Keine Rechnung passt zu „${suchbegriff}“.`
               : invoices.length === 0
                 ? 'Noch keine Rechnungen.'
                 : 'Keine Rechnung in dieser Auswahl.'}
@@ -3275,7 +3275,7 @@ export default function InvoicesView() {
             Zeitraum zusammenstellen
           </Button>
           {exportVon > exportBis && (
-            <span className="text-sm text-warning">„Von" liegt nach „Bis".</span>
+            <span className="text-sm text-warning">„Von“ liegt nach „Bis“.</span>
           )}
         </div>
         {exportFehler && <div className="mt-3"><ErrorState message={exportFehler} /></div>}

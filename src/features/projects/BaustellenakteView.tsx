@@ -223,7 +223,7 @@ export default function BaustellenakteView() {
       return;
     }
     if (!entwurf.customerId && !entwurf.customerName.trim()) {
-      setSpeicherFehler('Ohne Kunden geht es nicht — die Rechnung weiss sonst nicht, an wen.');
+      setSpeicherFehler('Ohne Kunden geht es nicht — die Rechnung weiß sonst nicht, an wen.');
       return;
     }
     const falsch = stammdatenFehler(entwurf);

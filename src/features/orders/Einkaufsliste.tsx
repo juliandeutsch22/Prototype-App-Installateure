@@ -155,13 +155,13 @@ export default function Einkaufsliste({
         <Card title="Einkaufsliste">
           <EmptyState>
             Nichts auf der Einkaufsliste. Fehlt ein Artikel im Lager, bei der Anforderung auf
-            „Nicht auf Lager" tippen — oder oben Material dazusetzen.
+            „Nicht auf Lager“ tippen — oder oben Material dazusetzen.
           </EmptyState>
         </Card>
       ) : (
         gruppen.map((g) => {
           const h = g.supplierId ? nachId.get(g.supplierId) : undefined;
-          const titel = g.supplierId ? h?.name ?? 'Unbekannter Grosshändler' : 'Ohne Grosshändler';
+          const titel = g.supplierId ? h?.name ?? 'Unbekannter Großhändler' : 'Ohne Großhändler';
           const text = h
             ? bestellText({
                 company,
@@ -206,7 +206,7 @@ export default function Einkaufsliste({
                           <SelectField
                             id={`zuordnen-${z.schluessel}`}
                             label=""
-                            aria-label={`Grosshändler für ${z.bezeichnung}`}
+                            aria-label={`Großhändler für ${z.bezeichnung}`}
                             className="py-1 text-sm"
                             value=""
                             disabled={laeuft !== null}
@@ -219,11 +219,11 @@ export default function Einkaufsliste({
                                   await grosshaendlerZuordnen(z.anforderungen, ziel);
                                   await lagerPostenZuordnen(z.posten, ziel);
                                 },
-                                'Grosshändler zugeordnet',
+                                'Großhändler zugeordnet',
                               );
                             }}
                           >
-                            <option value="">Grosshändler wählen</option>
+                            <option value="">Großhändler wählen</option>
                             {grosshaendler.map((x) => (
                               <option key={x.id} value={x.id}>{x.name}</option>
                             ))}
@@ -287,7 +287,7 @@ export default function Einkaufsliste({
                         </a>
                       ) : (
                         <span className="text-sm text-ink-muted">
-                          Keine Bestelladresse — unten beim Grosshändler eintragen.
+                          Keine Bestelladresse — unten beim Großhändler eintragen.
                         </span>
                       )}
                       <Button
@@ -299,7 +299,7 @@ export default function Einkaufsliste({
                       </Button>
                       {mail?.gekuerzt && (
                         <p className="w-full text-sm text-warning">
-                          Die Liste ist für eine E-Mail zu lang — die Mail sagt „siehe Anhang".
+                          Die Liste ist für eine E-Mail zu lang — die Mail sagt „siehe Anhang“.
                           Bitte das PDF anhängen.
                         </p>
                       )}
@@ -307,8 +307,8 @@ export default function Einkaufsliste({
                   ) : (
                     <p className="mt-3 text-sm text-ink-muted">
                       {grosshaendler.length === 0
-                        ? 'Noch kein Grosshändler angelegt — unten anlegen, dann hier zuordnen.'
-                        : 'Erst einem Grosshändler zuordnen, dann lässt sich bestellen.'}
+                        ? 'Noch kein Großhändler angelegt — unten anlegen, dann hier zuordnen.'
+                        : 'Erst einem Großhändler zuordnen, dann lässt sich bestellen.'}
                     </p>
                   )}
                 </>
@@ -388,8 +388,8 @@ export default function Einkaufsliste({
         confirmTone="primary"
         message={
           bestelltFragen
-            ? `${bestelltFragen.zuBestellen.length} Position(en) bei ${
-                (bestelltFragen.supplierId && nachId.get(bestelltFragen.supplierId)?.name) || 'diesem Grosshändler'
+            ? `${bestelltFragen.zuBestellen.length} ${bestelltFragen.zuBestellen.length === 1 ? 'Position' : 'Positionen'} bei ${
+                (bestelltFragen.supplierId && nachId.get(bestelltFragen.supplierId)?.name) || 'diesem Großhändler'
               } gelten dann als bestellt und warten auf die Lieferung.`
             : ''
         }
@@ -513,7 +513,7 @@ function LagerPostenFormular({
     const mitEinheit = einheit.trim() || gewaehlt?.unit || '';
     const falsch = mitEinheit
       ? mengeFehler(zahl, mitEinheit)
-      : !Number.isFinite(zahl) || zahl <= 0 ? 'Die Menge muss grösser als null sein.' : null;
+      : !Number.isFinite(zahl) || zahl <= 0 ? 'Die Menge muss größer als null sein.' : null;
     if (falsch) {
       setFehler(falsch);
       return;
@@ -548,7 +548,7 @@ function LagerPostenFormular({
       hint={
         <>
           Für Material, das kein Monteur angefordert hat — etwa um das Lager aufzufüllen. Es steht
-          mit der Kommission „Lager" auf der Bestellung und kommt beim Eintreffen ins Lager.
+          mit der Kommission „Lager“ auf der Bestellung und kommt beim Eintreffen ins Lager.
         </>
       }
       action={
@@ -620,7 +620,7 @@ function LagerPostenFormular({
             <InputField id="lp-einheit" label="Einheit" placeholder="Stk, m, Pkg" value={einheit}
               onChange={(e) => setEinheit(e.target.value)} />
           </FormGrid>
-          <SelectField id="lp-bei" label="Grosshändler" value={bei} onChange={(e) => setBei(e.target.value)}>
+          <SelectField id="lp-bei" label="Großhändler" value={bei} onChange={(e) => setBei(e.target.value)}>
             <option value="">— später zuordnen —</option>
             {grosshaendler.map((g) => (
               <option key={g.id} value={g.id}>{g.name}</option>
@@ -692,11 +692,11 @@ function GrosshaendlerPflege({
     setFehler(null);
     try {
       await grosshaendlerSpeichern(companyId, bearbeitet === 'neu' ? null : bearbeitet, entwurf);
-      toast.success('Grosshändler gespeichert');
+      toast.success('Großhändler gespeichert');
       setBearbeitet(null);
       onGeaendert();
     } catch (err) {
-      setFehler(grundAus(err, 'Der Grosshändler konnte nicht gespeichert werden.'));
+      setFehler(grundAus(err, 'Der Großhändler konnte nicht gespeichert werden.'));
     } finally {
       setSpeichert(false);
     }
@@ -704,22 +704,22 @@ function GrosshaendlerPflege({
 
   return (
     <Card
-      title="Grosshändler"
+      title="Großhändler"
       hint={
         <>
           Wohin die Einkaufsliste geht. Die <strong>Bestelladresse</strong> ist meist die des
-          Vertreters oder des Bestellbüros — an sie öffnet „E-Mail" eine fertige Nachricht.
-          Grosshändler aus dem Katalogimport stehen hier schon; es fehlt oft nur die Adresse.
+          Vertreters oder des Bestellbüros — an sie öffnet „E-Mail“ eine fertige Nachricht.
+          Großhändler aus dem Katalogimport stehen hier schon; es fehlt oft nur die Adresse.
         </>
       }
       action={
         bearbeitet === null ? (
-          <Button variant="ghost" onClick={() => oeffnen(null)}>+ Grosshändler</Button>
+          <Button variant="ghost" onClick={() => oeffnen(null)}>+ Großhändler</Button>
         ) : undefined
       }
     >
       {grosshaendler.length === 0 && bearbeitet === null && (
-        <EmptyState>Noch kein Grosshändler angelegt.</EmptyState>
+        <EmptyState>Noch kein Großhändler angelegt.</EmptyState>
       )}
       {grosshaendler.length > 0 && (
         <List>
@@ -754,7 +754,7 @@ function GrosshaendlerPflege({
           <p className="flex flex-wrap items-center text-xs text-ink-muted">
             Die Kontaktzeile steht auf der Bestellung als Empfänger.
             <InfoHint about="Kontaktzeile">
-              Etwa „z. Hd. Herrn Maier, 0664 123 45 67". Eine Anschrift des Grosshändlers führt
+              Etwa „z. Hd. Herrn Maier, 0664 123 45 67“. Eine Anschrift des Großhändlers führt
               Senklot nicht — die Bestellung geht per E-Mail, nicht per Post.
             </InfoHint>
           </p>

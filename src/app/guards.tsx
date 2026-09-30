@@ -67,12 +67,12 @@ export function RequireModul({ id, children }: { id: ModulId; children: ReactNod
       {isAdmin(user.role) ? (
         <p className="mt-4">
           <Link to="/settings/module" className="link-weiter">
-            Unter „Module" wieder einschalten
+            Unter „Module“ wieder einschalten
           </Link>
         </p>
       ) : (
         <p className="mt-4 text-sm text-ink-muted">
-          Einschalten kann das die Administration unter „Module".
+          Einschalten kann das die Administration unter „Module“.
         </p>
       )}
     </div>

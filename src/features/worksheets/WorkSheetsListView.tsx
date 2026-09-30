@@ -418,20 +418,20 @@ export default function WorkSheetsListView() {
               Kranken- und Urlaubstage der Kollegen, also Gesundheitsdaten. Trägt er auf dem
               Schein die Zeile eines Kollegen ein, hat sie damit niemanden, der an sie erinnert
               wird — er sieht dessen Buchungen nicht, und der Kollege sieht diesen Schein nicht.
-              Genau diese Lücke schliesst diese Liste.
+              Genau diese Lücke schließt diese Liste.
               <br />
               <br />
               <strong>Was es kostet.</strong> Die Rechnung nimmt ihre Stunden aus den
               Zeiteinträgen, nicht vom Schein — der Schein liefert nur das Material. Eine
-              ungebuchte Stunde wird also nie verrechnet, nicht „später korrigiert", sondern
+              ungebuchte Stunde wird also nie verrechnet, nicht „später korrigiert“, sondern
               nie. Und sie fehlt in der Arbeitszeitaufzeichnung, die der Betrieb nach § 26 AZG
               zu führen hat: dort stünde ein Tag, an dem der Mann nachweislich beim Kunden war
               und laut Aufzeichnung nicht gearbeitet hat.
               <br />
               <br />
-              <strong>„Auf einer anderen Baustelle gebucht"</strong> ist der mildere Fall: die
+              <strong>„Auf einer anderen Baustelle gebucht“</strong> ist der mildere Fall: die
               Arbeitszeit ist aufgezeichnet, sie hängt nur am falschen Auftrag. Das kommt
-              regelmässig vor, wenn jemand den ganzen Tag auf die Hauptbaustelle bucht und
+              regelmäßig vor, wenn jemand den ganzen Tag auf die Hauptbaustelle bucht und
               zwischendurch bei diesem Kunden war. Zu tun ist es trotzdem — die Zuordnung
               entscheidet, wem die Stunde verrechnet wird.
               <br />
@@ -439,14 +439,14 @@ export default function WorkSheetsListView() {
               <strong>Verglichen werden Tag und Name, nicht die Minuten.</strong> Sie dürfen
               abweichen: der Schein bestätigt die Zeit beim Kunden, der Eintrag umfasst den
               Arbeitstag samt Anfahrt. Der Name kommt vom Schein, wie ihn der Monteur getippt
-              hat; Gross- und Kleinschreibung spielen keine Rolle, eine Abkürzung („F. Huber")
-              findet die Buchung aber nicht. Deshalb steht hier „keine Buchung gefunden" und
-              nicht „nicht gebucht".
+              hat; Groß- und Kleinschreibung spielen keine Rolle, eine Abkürzung („F. Huber“)
+              findet die Buchung aber nicht. Deshalb steht hier „keine Buchung gefunden“ und
+              nicht „nicht gebucht“.
               <br />
               <br />
               <strong>Woher die Daten stammen.</strong> Zunächst aus den unten geladenen
               Scheinen und den Zeiteinträgen desselben Zeitraums — das kostet keine zusätzliche
-              Abfrage. Mit „Weiter zurück prüfen" wird stattdessen gezielt über alle
+              Abfrage. Mit „Weiter zurück prüfen“ wird stattdessen gezielt über alle
               unterschriebenen Scheine des gewählten Zeitraums geprüft; darüber steht jedes Mal,
               worauf sich das Ergebnis stützt.
               <br />
@@ -677,7 +677,7 @@ export default function WorkSheetsListView() {
             {scheine.length === 0
               ? 'Noch kein Handwerksschein erstellt.'
               : suche.trim()
-                ? `Kein Schein passt zu „${suche}".`
+                ? `Kein Schein passt zu „${suche}“.`
                 : 'Kein offener Schein — nur verworfene Entwürfe.'}
           </EmptyState>
         ) : (

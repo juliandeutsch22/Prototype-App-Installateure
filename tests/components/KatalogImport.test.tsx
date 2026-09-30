@@ -70,7 +70,7 @@ function datei(inhalt: string, name = 'katalog.001'): File {
 }
 
 const SAUBER = [
-  'V;20092026;HTI Grosshandel;EUR',
+  'V;20092026;HTI Großhandel;EUR',
   'A;N;A1;0;Eckventil 1/2 Zoll;verchromt;1;0;Stk;2350;10;0',
   'A;N;A2;0;Kugelhahn;messing;1;0;Stk;1890;10;0',
   'A;N;A3;0;Kupferrohr;15 mm;2;0;m;450;20;0',
@@ -80,7 +80,7 @@ const SAUBER = [
 
 /** Dieselbe Datei, aber mit einer Stelle zu viel — alles verschiebt sich. */
 const VERSCHOBEN = [
-  'A;N;100001;0;HTI-Grosshandel GmbH;1;0;0;EUR;0',
+  'A;N;100001;0;HTI-Großhandel GmbH;1;0;0;EUR;0',
   'A;A;100001;A;1029384;Eckventil 1/2 Zoll;verchromt;;1;PST;2350;10;0',
   'A;A;100001;A;1029385;Kugelhahn;messing;;1;PST;1890;10;0',
   'A;A;100001;A;1029386;Kupferrohr;15 mm;;1;PST;450;10;0',
@@ -149,7 +149,7 @@ describe('Erst ansehen, dann übernehmen', () => {
     expect(await screen.findByText(/utf-8/)).toBeInTheDocument();
   });
 
-  it('führt „Verwerfen" zurück zur Dateiauswahl, ohne etwas geschrieben zu haben', async () => {
+  it('führt „Verwerfen“ zurück zur Dateiauswahl, ohne etwas geschrieben zu haben', async () => {
     await einlesen(SAUBER);
     await userEvent.click(screen.getByRole('button', { name: 'Verwerfen' }));
     expect(await screen.findByLabelText('DATANORM-Datei')).toBeInTheDocument();

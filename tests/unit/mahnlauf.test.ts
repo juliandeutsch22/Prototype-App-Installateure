@@ -47,7 +47,7 @@ describe('Was in den Lauf kommt', () => {
     Öffnen der Rechnungsliste gesetzt; wer sie heute noch nicht geöffnet hat,
     hätte sonst eine fällige Rechnung, die im Lauf fehlt.
   */
-  it('nimmt auch eine, die noch als „Offen" dasteht', () => {
+  it('nimmt auch eine, die noch als „Offen“ dasteht', () => {
     const l = mahnlauf([rechnung({ id: '1', paymentStatus: 'Offen' })], HEUTE, undefined);
     expect(l.zeilen).toHaveLength(1);
   });

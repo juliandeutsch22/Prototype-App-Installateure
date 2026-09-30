@@ -80,7 +80,7 @@ describe('Aufraeumen alter Staende', () => {
     expect(abgelaufeneStaende([stand('2020-01-01')], heute, 30)).toEqual([]);
   });
 
-  it('fasst nichts an, was nicht wie ein Stand heisst', () => {
+  it('fasst nichts an, was nicht wie ein Stand heißt', () => {
     // Läge aus irgendeinem Grund etwas anderes im Verzeichnis, wäre ein
     // Aufräumen, das es mitnimmt, ein Datenverlust ohne Ankündigung.
     const weg = abgelaufeneStaende(

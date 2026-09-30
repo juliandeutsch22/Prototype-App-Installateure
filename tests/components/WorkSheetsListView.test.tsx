@@ -232,7 +232,7 @@ describe('Liste der Handwerksscheine', () => {
   });
 
   it.each(['Buchhaltung', 'Verwaltung'] as const)(
-    'zeigt „Neuer Schein" für %s nicht — die Seite dahinter sperrt (P4-04)',
+    'zeigt „Neuer Schein“ für %s nicht — die Seite dahinter sperrt (P4-04)',
     async (rolle) => {
       // Prüflauf 25.09.2026, P4-04: der Knopf im Kopf hatte keine Prüfung
       // und führte beide Rollen auf „Kein Zugriff".
@@ -618,7 +618,7 @@ describe('Stunden ohne Buchung', () => {
     weit; was vier Monate zurückliegt, lag ausserhalb — und bucht niemand
     mehr von selbst nach.
   */
-  it('findet auf Anforderung den Schein ausserhalb der Liste', async () => {
+  it('findet auf Anforderung den Schein außerhalb der Liste', async () => {
     authWert.user.role = 'Buchhaltung';
     geladen = scheine;
     tiefGeladen = [offenerSchein({ id: 'alt', datum: vorTagen(200) })];

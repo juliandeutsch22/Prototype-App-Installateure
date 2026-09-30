@@ -116,7 +116,7 @@ describe('Urlaub in der Zeiterfassung', () => {
     expect(screen.getByRole('button', { name: 'Änderungen speichern' })).toBeDisabled();
   });
 
-  it('nennt im Einblick den Einblick, statt „bitte erneut versuchen"', async () => {
+  it('nennt im Einblick den Einblick, statt „bitte erneut versuchen“', async () => {
     // Prüflauf 24.09.2026, F8: der Supportzugang buchte, bekam 403 und las
     // „Die Zeit konnte nicht gebucht werden. Bitte erneut versuchen."
     einblickNurLesend(true);

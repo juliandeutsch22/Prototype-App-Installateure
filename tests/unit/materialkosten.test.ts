@@ -109,7 +109,7 @@ describe('Die Kosten', () => {
     expect(k.ohnePreis).toEqual(['Spezialdichtung']);
   });
 
-  it('behandeln 0 im Katalog wie „nicht gepflegt"', () => {
+  it('behandeln 0 im Katalog wie „nicht gepflegt“', () => {
     // Genau das speichert ein leer gelassenes Formularfeld.
     const k = materialkosten(
       [schein('s1', [{ name: 'Eckventil', menge: 4 }])],

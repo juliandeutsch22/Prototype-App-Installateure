@@ -119,7 +119,7 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     return fehler('Zu diesem Konto gibt es kein Anmeldekonto.', 404);
   }
   if (!istBenutzerkonto(String(konto.email ?? ''))) {
-    return fehler('Dieses Konto meldet sich mit E-Mail an — es setzt sein Passwort über „Passwort vergessen" selbst.', 409);
+    return fehler('Dieses Konto meldet sich mit E-Mail an — es setzt sein Passwort über „Passwort vergessen“ selbst.', 409);
   }
 
   const startpasswort = generatePassword(14);
@@ -130,7 +130,7 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   });
   if (!setzen.ok) {
     const f = await setzen.json().catch(() => ({}));
-    return fehler(String(f?.msg ?? f?.message ?? 'Das Passwort liess sich nicht setzen.'), 500);
+    return fehler(String(f?.msg ?? f?.message ?? 'Das Passwort ließ sich nicht setzen.'), 500);
   }
 
   // 6 und 7 — Sitzungen beenden und ins Protokoll des Betriebs.

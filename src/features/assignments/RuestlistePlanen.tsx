@@ -76,7 +76,7 @@ export default function RuestlistePlanen({
   const [suche, setSuche] = useState('');
   const [freierName, setFreierName] = useState('');
 
-  const offen = freierName.trim() ? `„${freierName.trim()}"` : null;
+  const offen = freierName.trim() ? `„${freierName.trim()}“` : null;
   useEffect(() => {
     onOffen?.(offen);
   }, [offen, onOffen]);

@@ -515,7 +515,7 @@ describe('Wenn ein Teil der Startseite nicht kommt', () => {
     zeichne();
 
     await screen.findByText(/Nicht geladen/);
-    expect(screen.getByText(/heisst nicht, dass nichts ansteht/)).toBeInTheDocument();
+    expect(screen.getByText(/heißt nicht, dass nichts ansteht/)).toBeInTheDocument();
   });
 
   /*
@@ -631,8 +631,8 @@ describe('Startseite — offene Rechnungen', () => {
   it('zählt den Rest einer angezahlten, fälligen Rechnung als überfällig', async () => {
     zeichne();
     const ueberfaellig = await screen.findByRole('link', { name: /Überfällig/ });
-    expect(ueberfaellig).toHaveTextContent(/€\s800$/);
-    expect(screen.getByRole('link', { name: /Offene Rechnungen/ })).toHaveTextContent(/€\s300$/);
+    expect(ueberfaellig).toHaveTextContent(/€\s800,00$/);
+    expect(screen.getByRole('link', { name: /Offene Rechnungen/ })).toHaveTextContent(/€\s300,00$/);
   });
 
   it('führt von jeder Summe in die passend gefilterte Rechnungsliste', async () => {

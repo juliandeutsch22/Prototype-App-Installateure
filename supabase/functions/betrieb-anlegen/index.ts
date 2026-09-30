@@ -175,9 +175,9 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     return fehler(
       schonDa
         ? (mitBenutzername
-          ? `Den Benutzernamen „${betrieb.adminBenutzername}" kann Senklot nicht vergeben — bitte einen anderen wählen.`
+          ? `Den Benutzernamen „${betrieb.adminBenutzername}“ kann Senklot nicht vergeben — bitte einen anderen wählen.`
           : `Zu ${betrieb.adminEmail} gibt es schon ein Konto. Ein Konto gehört zu genau einem Betrieb — bitte eine andere Adresse verwenden.`)
-        : (text || 'Das Konto liess sich nicht anlegen.'),
+        : (text || 'Das Konto ließ sich nicht anlegen.'),
       schonDa ? 409 : 500,
     );
   }
@@ -197,7 +197,7 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
 
   if (!zeilen.ok) {
     const grund = await zeilen.json().catch(() => ({}));
-    const text = String(grund?.message ?? 'Der Betrieb liess sich nicht anlegen.');
+    const text = String(grund?.message ?? 'Der Betrieb ließ sich nicht anlegen.');
     /*
       AUFRÄUMEN, WENN DIE DATENBANK NICHT MITSPIELT. Sonst bliebe ein
       Anmeldekonto ohne Betrieb zurück — und die nächste Anlage mit derselben

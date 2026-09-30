@@ -390,7 +390,7 @@ describe('Der Zahlungsstapel', () => {
     ]);
   });
 
-  it('Gegenprobe: Zahlungen ausserhalb des Zeitraums bleiben draussen', () => {
+  it('Gegenprobe: Zahlungen außerhalb des Zeitraums bleiben draußen', () => {
     const e = buildBmdZahlungenCsv(
       [{ invoiceId: 'r1', datum: '2026-06-01', betrag: 100, art: 'Bar' }], [r], MIT_BANK, '2026-05-01', '2026-05-31',
     );

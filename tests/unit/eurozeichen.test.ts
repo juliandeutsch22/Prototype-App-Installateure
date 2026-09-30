@@ -65,7 +65,7 @@ describe('Das Eurozeichen steht genau einmal da', () => {
       */
       const dahinter = [...quelle.matchAll(/\beuro(?:Gerundet|Preis)?\([^)]*\)[}`]?\s*€/g)].map((m) => m[0]);
       const davor = [...quelle.matchAll(/€\s*[{$]*\{?\s*euro(?:Gerundet|Preis)?\(/g)].map((m) => m[0]);
-      expect([...dahinter, ...davor], `„${dahinter[0] ?? davor[0]}" in ${pfad}`).toEqual([]);
+      expect([...dahinter, ...davor], `„${dahinter[0] ?? davor[0]}“ in ${pfad}`).toEqual([]);
     },
   );
 });

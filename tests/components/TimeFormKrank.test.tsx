@@ -101,7 +101,7 @@ describe('Krank in der Zeiterfassung', () => {
     expect(gespeichert).not.toHaveBeenCalled();
   });
 
-  it('bietet „Krank" beim Bearbeiten eines anderen Eintrags nicht an', () => {
+  it('bietet „Krank“ beim Bearbeiten eines anderen Eintrags nicht an', () => {
     zeichne({ entry: { id: 'e1', companyId: 'perl', userId: 'ich', date: '2026-10-01', status: 'Anwesend',
       startTime: '07:00', endTime: '16:00' } as TimeEntry & { id: string } });
     expect(optionen()).not.toContain('Krank');

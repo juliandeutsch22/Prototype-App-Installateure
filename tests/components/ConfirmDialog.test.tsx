@@ -40,7 +40,7 @@ describe('Bestaetigungsdialog', () => {
     expect(screen.getByRole('button', { name: 'Abbrechen' })).toHaveFocus();
   });
 
-  it('schliesst mit Escape', async () => {
+  it('schließt mit Escape', async () => {
     const onCancel = vi.fn();
     render(<ConfirmDialog open title="Weg damit?" onConfirm={vi.fn()} onCancel={onCancel} />);
     await userEvent.keyboard('{Escape}');

@@ -622,7 +622,7 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
     await bisZurVorschau();
     const bis = await screen.findByLabelText('Leistung bis');
     fireEvent.change(bis, { target: { value: '2026-07-01' } });
-    expect(await screen.findByText(/liegt vor „Leistung von"/)).toBeInTheDocument();
+    expect(await screen.findByText(/liegt vor „Leistung von“/)).toBeInTheDocument();
   });
 
   it('warnt NICHT bei einem eintägigen Zeitraum', async () => {
@@ -633,7 +633,7 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
     const von = await screen.findByLabelText('Leistung von');
     const bis = await screen.findByLabelText('Leistung bis');
     fireEvent.change(bis, { target: { value: (von as HTMLInputElement).value } });
-    expect(screen.queryByText(/liegt vor „Leistung von"/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/liegt vor „Leistung von“/)).not.toBeInTheDocument();
   });
 
   it('warnt bei abgeschnittenem Materialstamm gegen den falschen Rat', async () => {
@@ -1206,7 +1206,7 @@ describe('Über der 10.000-Euro-Grenze', () => {
     expect(screen.queryByText(/§ 11 Abs 1 Z 2 UStG/)).not.toBeInTheDocument();
   });
 
-  it('sperrt die Rechnung NICHT — die App weiss nicht, wer Unternehmer ist', async () => {
+  it('sperrt die Rechnung NICHT — die App weiß nicht, wer Unternehmer ist', async () => {
     /*
       Eine Rechnung über 12.000 € an eine Privatperson ist vollkommen in
       Ordnung und braucht keine Empfänger-UID. Ob der Empfänger Unternehmer
@@ -2073,14 +2073,14 @@ describe('Zahlungen erfassen', () => {
     DER HAKEN IST WEG, und das gehört geprüft: bliebe der Menüpunkt stehen,
     wäre er eine Sackgasse — die Datenbank weist den Schreibversuch ab.
   */
-  it('bietet „Auf Bezahlt setzen" nicht mehr an', async () => {
+  it('bietet „Auf Bezahlt setzen“ nicht mehr an', async () => {
     rechnungen = [offeneRechnung()];
     zeige();
     await screen.findByText(/RE-2026-0042/);
     await userEvent.click(
       await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }),
     );
-    expect(screen.queryByRole('menuitem', { name: /Auf „Bezahlt" setzen/ })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /Auf „Bezahlt“ setzen/ })).toBeNull();
     expect(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' })).toBeInTheDocument();
   });
 });
@@ -2597,7 +2597,7 @@ describe('Der Aussteller auf der Rechnung', () => {
  * der stornierten RE-2026-1500 mit — Geld, das dem Kunden als Guthaben
  * zurückgehört.
  */
-describe('Die Kennzahl „Bezahlt"', () => {
+describe('Die Kennzahl „Bezahlt“', () => {
   it('zählt kein Guthaben — weder auf einem Storno noch als Überzahlung', async () => {
     rechnungen = [
       { id: 's', invoiceNumber: 'RE-2026-1500', projectNumber: '2026-042', customerName: 'Max', paymentStatus: 'Storniert', totalBrutto: 504, bezahltBetrag: 200 },
@@ -2687,13 +2687,13 @@ describe('Rechnungen — neu zusammengestellt, Satz und Rabatt bleiben', () => {
 });
 
 describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
-  it('nennt die Auswahl „Rechnungen nach Status filtern" — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl"', async () => {
+  it('nennt die Auswahl „Rechnungen nach Status filtern“ — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl“', async () => {
     zeige();
     expect(await screen.findByRole('combobox', { name: 'Rechnungen nach Status filtern' })).toBeInTheDocument();
   });
 });
 
-describe('„Positionen zusammenstellen" bricht nicht um (Prüflauf 25.09.2026, P4-18)', () => {
+describe('„Positionen zusammenstellen“ bricht nicht um (Prüflauf 25.09.2026, P4-18)', () => {
   it('hält die Beschriftung in einer Zeile; Platz gibt die Baustellenauswahl her', async () => {
     /*
       Bei 834 px stand „zusammenstell|en" auf drei Zeilen, mit Auswahl der
@@ -2859,7 +2859,7 @@ describe('Die Rechnung geht an den Kunden, nicht an die Baustelle', () => {
   fünfzig jüngsten Rechnungen — die älteste Forderung fiel als erste heraus.
   Jetzt über alle unbezahlten; „Bezahlt" sagt dazu, worüber es gerechnet ist.
 */
-describe('Die Kennzahlen „Offen" und „Überfällig"', () => {
+describe('Die Kennzahlen „Offen“ und „Überfällig“', () => {
   const kachel = (name: string) =>
     screen.getAllByText(name).find((e) => e.tagName === 'P')!.parentElement!;
 
@@ -2895,7 +2895,7 @@ describe('Die Kennzahlen „Offen" und „Überfällig"', () => {
     expect(kachel('Offen')).toHaveTextContent('€ 0,00');
   });
 
-  it('„Bezahlt" sagt, worüber es gerechnet ist', async () => {
+  it('„Bezahlt“ sagt, worüber es gerechnet ist', async () => {
     rechnungen = [
       { id: 'b', invoiceNumber: 'RE-2026-1003', projectNumber: '2026-001', customerName: 'Max',
         paymentStatus: 'Bezahlt', totalBrutto: 100, bezahltBetrag: 100 },

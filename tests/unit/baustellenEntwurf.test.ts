@@ -32,7 +32,7 @@ describe('Aus einer Baustelle wird ein Entwurf', () => {
     expect(e.assignedEmployees).toEqual(['u1', 'u2']);
   });
 
-  it('macht aus „kein Budget" eine leere Eingabe und nicht eine Null', () => {
+  it('macht aus „kein Budget“ eine leere Eingabe und nicht eine Null', () => {
     /*
       Der Unterschied ist keine Kosmetik: `0` hiesse „null Stunden
       kalkuliert" und schaltete die Ampel der Projektauswertung scharf.

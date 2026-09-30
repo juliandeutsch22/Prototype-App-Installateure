@@ -253,7 +253,7 @@ describe('Der Kopf einer Baustelle bleibt ruhig', () => {
     expect(angabe.className).not.toContain('rounded-pill');
   });
 
-  it('lässt „über Budget" sehr wohl rot stehen', async () => {
+  it('lässt „über Budget“ sehr wohl rot stehen', async () => {
     /*
       Die Ausnahme darf auffallen. 45 Stunden auf ein Budget von 40 sind der
       eine Fall, für den die Farbe da ist. Seit dem 28.09.2026 ohne Pille
@@ -278,7 +278,7 @@ describe('Der Kopf einer Baustelle bleibt ruhig', () => {
 });
 
 describe('Projektauswertung — die Nummer, wie sie an der Baustelle steht (Launch-Check 25.09.2026)', () => {
-  it('zeigt „PR-187", nicht den Gruppierungsschlüssel „187"', () => {
+  it('zeigt „PR-187“, nicht den Gruppierungsschlüssel „187“', () => {
     const pr = { ...projekt, projectNumber: 'PR-187' } as Project;
     render(
       <ProjectSummary

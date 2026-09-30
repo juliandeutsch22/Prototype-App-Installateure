@@ -108,13 +108,13 @@ describe('Das Angebots-PDF', () => {
     expect(s).not.toMatch(/Stundenbudget/i);
   });
 
-  it('trägt Bank und UID in der Fusszeile', async () => {
+  it('trägt Bank und UID in der Fußzeile', async () => {
     const s = await text();
     expect(s).toContain('IBAN AT12 3456 7890 1234 5678');
     expect(s).toContain('UID: ATU12345678');
   });
 
-  it('heisst beim Herunterladen, was es ist', () => {
+  it('heißt beim Herunterladen, was es ist', () => {
     expect(angebotDateiname(angebot)).toBe('Angebot_AN-2026-0007.pdf');
   });
 });

@@ -147,8 +147,8 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
         title="Betriebsurlaub anlegen"
         hint={
           <>
-            Der Zeitraum steht im Wochenplan als „Betriebsurlaub", und wer im Zeitraum einen
-            Einsatz plant oder eine Baustelle terminiert, bekommt eine Warnung. Ändern heisst:
+            Der Zeitraum steht im Wochenplan als „Betriebsurlaub“, und wer im Zeitraum einen
+            Einsatz plant oder eine Baustelle terminiert, bekommt eine Warnung. Ändern heißt:
             löschen und neu anlegen.
           </>
         }
@@ -300,7 +300,7 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
         message={`${bezeichnung.trim() || 'Betriebsurlaub'}, ${zeitraumText(von, bis)}. ${
           abbuchen
             ? ausgenommen.length
-              ? 'Allen aktiven Mitarbeitern ausser den Ausgenommenen werden die Arbeitstage als Urlaub gebucht.'
+              ? 'Allen aktiven Mitarbeitern außer den Ausgenommenen werden die Arbeitstage als Urlaub gebucht.'
               : 'Allen aktiven Mitarbeitern werden die Arbeitstage als Urlaub gebucht.'
             : 'Es wird kein Urlaub gebucht — nur die Planung ist gesperrt.'
         }${ausgenommen.length ? ` Arbeiten in dieser Zeit: ${ausgenommenText}.` : ''}`}

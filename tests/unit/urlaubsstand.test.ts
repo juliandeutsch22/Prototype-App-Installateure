@@ -133,7 +133,7 @@ describe('Ohne Angabe bleibt alles wie vorher', () => {
 });
 
 describe('Null Tage sind eine Angabe, keine fehlende', () => {
-  it('ein Bestand von 0 heisst: aufgebraucht', () => {
+  it('ein Bestand von 0 heißt: aufgebraucht', () => {
     /*
       DER UNTERSCHIED, AN DEM ES HÄNGT. `0` und „nichts eingetragen" sehen in
       JavaScript schnell gleich aus — mit `||` oder `??` an der falschen
@@ -368,7 +368,7 @@ describe('Die Regel aus den Stammdaten des Betriebs', () => {
     expect(uebertragsRegel({}).art).toBe('verjaehrung');
   });
 
-  it('fällt auch bei „Stichtag ohne Datum" auf das Gesetz zurück', () => {
+  it('fällt auch bei „Stichtag ohne Datum“ auf das Gesetz zurück', () => {
     /*
       Die Datenbank lässt diesen Zustand nicht zu. Eine Rechnung, die sich
       darauf VERLÄSST, hat trotzdem eine Annahme eingebaut — und die Antwort

@@ -148,7 +148,7 @@ describe('Nachkalkulation', () => {
     expect(k.fachStunden).toBe(2);
   });
 
-  it('findet Buchungen mit führendem „PR-" aus Altbeständen', () => {
+  it('findet Buchungen mit führendem „PR-“ aus Altbeständen', () => {
     const alt = { ...zeit(600), projectNumber: 'PR-B-001' } as TimeEntry;
     const k = rechneBaustelle('B-001', 'Huber', [alt], [], undefined, kosten);
     // Würden sie übersehen, sähe die Baustelle profitabler aus, als sie ist.

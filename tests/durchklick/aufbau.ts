@@ -95,7 +95,7 @@ async function aufwecken(name: string): Promise<void> {
     }
     await new Promise((weiter) => setTimeout(weiter, 1000));
   }
-  console.warn(`Edge Function „${name}" liess sich nicht wecken.`);
+  console.warn(`Edge Function „${name}“ ließ sich nicht wecken.`);
 }
 
 export default async function aufbau(): Promise<void> {

@@ -99,13 +99,13 @@ export default function LaufStatus({
           sonst erfuhr man den guten Fall nur aus dem Fehlen des schlechten. */}
       {art === 'ausleitung' && lauf?.zielExtern === true && u.stand === 'gut' && (
         <span className="mt-1 block text-xs text-ink-muted">
-          Der Stand liegt ausser Haus, getrennt von den Daten.
+          Der Stand liegt außer Haus, getrennt von den Daten.
         </span>
       )}
       {art === 'ausleitung' && lauf?.zielExtern === false && (
         <span className="mt-1 block text-xs text-ink-muted">
           Der Stand liegt im selben Projekt wie die Daten. Gegen einen Fehlgriff hilft das,
-          gegen einen Verlust des Zugangs nicht — dafür muss ein Zielspeicher ausserhalb
+          gegen einen Verlust des Zugangs nicht — dafür muss ein Zielspeicher außerhalb
           eingerichtet sein (siehe DEPLOYMENT.md).
         </span>
       )}

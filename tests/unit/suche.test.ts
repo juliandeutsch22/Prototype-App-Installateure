@@ -10,13 +10,13 @@ import { describe, it, expect } from 'vitest';
 import { ilikeMuster, alsOderWert, oderUeberSpalten } from '@/lib/db/pg/suche';
 
 describe('Jokerzeichen gehören dem Benutzer, nicht der Abfrage', () => {
-  it('ein Prozentzeichen wird gesucht, nicht als „alles" gelesen', () => {
+  it('ein Prozentzeichen wird gesucht, nicht als „alles“ gelesen', () => {
     // Wer „50%" tippt, meint das Zeichen. Ohne Entschärfung fände er jeden
     // Namen, in dem irgendwo „50" vorkommt.
     expect(ilikeMuster('50%')).toBe('%50\\%%');
   });
 
-  it('ein Unterstrich steht für sich und nicht für „ein Zeichen"', () => {
+  it('ein Unterstrich steht für sich und nicht für „ein Zeichen“', () => {
     expect(ilikeMuster('A_B')).toBe('%A\\_B%');
   });
 
@@ -64,7 +64,7 @@ describe('Die Bedingung über mehrere Spalten', () => {
     expect(oderUeberSpalten(['name'], '   ')).toBeNull();
   });
 
-  it('und ein Begriff mit Leerzeichen aussen wird beschnitten', () => {
+  it('und ein Begriff mit Leerzeichen außen wird beschnitten', () => {
     expect(oderUeberSpalten(['name'], '  Huber  ')).toBe('name.ilike."%Huber%"');
   });
 });

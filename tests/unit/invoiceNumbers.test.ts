@@ -101,7 +101,7 @@ describe('Nummernvergabe im Zaehler', () => {
 });
 
 describe('Vergebene Nummern erkennen', () => {
-  it('erkennt eine belegte Nummer unabhaengig von Gross- und Kleinschreibung', () => {
+  it('erkennt eine belegte Nummer unabhaengig von Groß- und Kleinschreibung', () => {
     const list = [{ id: 'a', invoiceNumber: 'RE-2026-1001' }];
     expect(isInvoiceNumberTaken(list, 're-2026-1001')).toBe(true);
     expect(isInvoiceNumberTaken(list, 'RE-2026-1002')).toBe(false);

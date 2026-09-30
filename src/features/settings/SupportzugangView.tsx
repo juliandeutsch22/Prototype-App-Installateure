@@ -134,8 +134,8 @@ export default function SupportzugangView() {
         hint={
           <>
             Der Support kommt an deine Daten <strong>nur, wenn du es erlaubst</strong>, und
-            nur so weit, wie du es erlaubst. <strong>Ansehen</strong> heisst lesen und sonst
-            nichts. <strong>Mitarbeiten</strong> heisst: er kann für höchstens einen Tag
+            nur so weit, wie du es erlaubst. <strong>Ansehen</strong> heißt lesen und sonst
+            nichts. <strong>Mitarbeiten</strong> heißt: er kann für höchstens einen Tag
             dasselbe wie ein Administrator bei dir — frag ihn deshalb vorher, was er vorhat.
             <br />
             <br />

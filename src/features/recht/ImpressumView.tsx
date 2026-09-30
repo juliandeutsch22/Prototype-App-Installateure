@@ -24,7 +24,7 @@ export default function ImpressumView() {
       </Abschnitt>
 
       <Abschnitt titel="Unternehmensangaben">
-        <p>Unternehmensgegenstand: Entwicklung und Betrieb der Software „Senklot" für Installationsbetriebe.</p>
+        <p>Unternehmensgegenstand: Entwicklung und Betrieb der Software „Senklot“ für Installationsbetriebe.</p>
         <p>UID-Nummer: {BETREIBER.uid}</p>
         <p>Firmenbuch: {BETREIBER.firmenbuch}</p>
         <p>Gewerbe und Aufsicht: {BETREIBER.gewerbe}</p>

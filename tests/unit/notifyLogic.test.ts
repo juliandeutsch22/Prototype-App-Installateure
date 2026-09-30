@@ -173,7 +173,7 @@ describe('Tote Geräte abmelden', () => {
    * Betriebs abmelden. Im Zweifel lieber ein totes Token behalten als ein
    * lebendes verlieren.
    */
-  it('meldet bei „invalid-argument" niemanden ab — der Code ist mehrdeutig', () => {
+  it('meldet bei „invalid-argument“ niemanden ab — der Code ist mehrdeutig', () => {
     const res = [{ error: { code: 'messaging/invalid-argument' } }, {}, {}];
     expect(toteTokens(tokens, res)).toEqual([]);
   });
@@ -198,7 +198,7 @@ describe('Was in der Meldung steht', () => {
     expect(m.link).toBe('/material/anforderungen');
   });
 
-  it('kommt ohne Baustelle und ohne Namen aus, statt „undefined" zu zeigen', () => {
+  it('kommt ohne Baustelle und ohne Namen aus, statt „undefined“ zu zeigen', () => {
     const m = textNeueAnforderung({ companyId: 'perl', materialName: 'Dichtung' });
     expect(m.body).toBe('1× Dichtung');
   });
@@ -215,7 +215,7 @@ describe('Was in der Meldung steht', () => {
     expect(textEilAngefordert(order, 'a1').tag).not.toBe(textNeueAnforderung(order).tag);
   });
 
-  it('schickt den Monteur bei „abholbereit" in seine eigene Ansicht', () => {
+  it('schickt den Monteur bei „abholbereit“ in seine eigene Ansicht', () => {
     const m = textAbholbereit(order, 'a1');
     expect(m.link).toBe('/material/anfordern');
     expect(m.body).toBe('3× Kupferrohr 15 mm liegt bereit (2026-001)');
@@ -333,7 +333,7 @@ describe('Abwesenheiten', () => {
     expect(JSON.stringify(m)).not.toContain('Grippe');
   });
 
-  it('wer „Abwesenheiten" abschaltet, bekommt sie nicht', () => {
+  it('wer „Abwesenheiten“ abschaltet, bekommt sie nicht', () => {
     expect(willMeldung({ notifyAbwesenheit: false }, 'notifyAbwesenheit')).toBe(false);
     expect(willMeldung({ notifyNewOrder: false }, 'notifyAbwesenheit')).toBe(true);
   });

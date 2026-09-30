@@ -100,6 +100,13 @@ interface Props {
 */
 const MIN_BREITE = 40;
 const MIN_HOEHE = 12;
+/*
+  UND GENUG TINTE (Testbericht 30.09.2026, G24): zwei kurze Striche, die
+  zusammen den Rahmen aufspannen — ein Kreuz, ein Winkel —, gingen durch.
+  Ein Namenszug zieht weit mehr Weg als Breite und Höhe zusammen; gezählt
+  wird die Länge aller Striche.
+*/
+const MIN_LAENGE = 120;
 
 const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad(
   { titel, onChange, disabled = false },
@@ -118,6 +125,8 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
   const [reicht, setReicht] = useState(false);
   /** Die Ausdehnung aller Striche bisher. */
   const rahmen = useRef({ minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity });
+  /** Die Länge aller Striche bisher (G24). */
+  const laenge = useRef(0);
 
   /** Der Strichverlauf in CSS-Pixeln, relativ zur linken oberen Ecke. */
   const striche = useRef<Punkt[][]>([]);
@@ -329,7 +338,11 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
       r.maxX = Math.max(r.maxX, pt.x);
       r.minY = Math.min(r.minY, pt.y);
       r.maxY = Math.max(r.maxY, pt.y);
-      if (!gemeldet.current && r.maxX - r.minX >= MIN_BREITE && r.maxY - r.minY >= MIN_HOEHE) {
+      const strich = striche.current[striche.current.length - 1];
+      const vor = strich && strich.length > 1 ? strich[strich.length - 2] : null;
+      if (vor) laenge.current += Math.hypot(pt.x - vor.x, pt.y - vor.y);
+      if (!gemeldet.current && r.maxX - r.minX >= MIN_BREITE && r.maxY - r.minY >= MIN_HOEHE
+          && laenge.current >= MIN_LAENGE) {
         gemeldet.current = true;
         setReicht(true);
         stand.current.onChange(true);
@@ -494,6 +507,7 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
     striche.current = [];
     gemeldet.current = false;
     rahmen.current = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+    laenge.current = 0;
     setHatStriche(false);
     setReicht(false);
     neuMalen();

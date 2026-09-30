@@ -86,7 +86,7 @@ describe('Einblick gewähren', () => {
     expect(geben).toHaveBeenCalledWith('perl', 'g1', 'Rechnung stimmt nicht', 4, 'ansehen');
   });
 
-  it('gibt „mitarbeiten" nur weiter, wenn es jemand ausdrücklich wählt', async () => {
+  it('gibt „mitarbeiten“ nur weiter, wenn es jemand ausdrücklich wählt', async () => {
     zeige();
     await userEvent.type(await screen.findByLabelText('Wofür'), 'Bitte richtigstellen');
     await userEvent.click(screen.getByRole('radio', { name: /Mitarbeiten/ }));
@@ -96,7 +96,7 @@ describe('Einblick gewähren', () => {
     expect(geben).toHaveBeenCalledWith('perl', 'g1', 'Bitte richtigstellen', 24, 'mitarbeiten');
   });
 
-  it('bietet für „mitarbeiten" keine sieben Tage an', async () => {
+  it('bietet für „mitarbeiten“ keine sieben Tage an', async () => {
     // Die Datenbank weist sie ab. Eine Auswahl anzubieten, die gleich darauf
     // scheitert, ist eine Fehlermeldung mit Umweg.
     zeige();

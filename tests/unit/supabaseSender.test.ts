@@ -113,7 +113,7 @@ describe('Prüflauf 25.09.2026', () => {
     expect(erg.art).toBe('abgelehnt');
   });
 
-  it('P1-22: ein „Ändern" ohne getroffene Zeile ist abgelehnt, nicht gesendet', async () => {
+  it('P1-22: ein „Ändern“ ohne getroffene Zeile ist abgelehnt, nicht gesendet', async () => {
     const aendern = { ...sendung, art: 'aendern' as const };
     const keine = await supabaseSender(clientMitAntwort({ error: null, count: 0 }))(aendern);
     expect(keine.art).toBe('abgelehnt');

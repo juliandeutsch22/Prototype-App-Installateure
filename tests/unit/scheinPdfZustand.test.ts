@@ -104,7 +104,7 @@ function positionen(pdf: string): { y: number; text: string }[] {
 }
 
 describe('Prüflauf 25.09.2026', () => {
-  it('P1-13: kennzeichnet den Entwurf und sagt nicht „Elektronisch unterschrieben"', async () => {
+  it('P1-13: kennzeichnet den Entwurf und sagt nicht „Elektronisch unterschrieben“', async () => {
     const s = await text(basis);
     expect(s).toContain('ENTWURF \u2014 kein g');
     expect(s).not.toContain('Elektronisch unterschrieben');
@@ -137,7 +137,7 @@ describe('Prüflauf 25.09.2026', () => {
     for (const p of inhalt) expect(p.y, p.text).toBeLessThanOrEqual(280);
   });
 
-  it('P1-12: schreibt die Menge deutsch — „2,5 m", nicht „2.5 m"', async () => {
+  it('P1-12: schreibt die Menge deutsch — „2,5 m“, nicht „2.5 m“', async () => {
     tabellen.length = 0;
     await text({ ...basis, material: [{ name: 'Kupferrohr', menge: 2.5, einheit: 'm' }] });
     const material = tabellen.find((t) => t[0]?.[0] === 'Kupferrohr');

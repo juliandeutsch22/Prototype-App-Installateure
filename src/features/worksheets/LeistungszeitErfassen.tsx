@@ -232,7 +232,7 @@ export default function LeistungszeitErfassen({
             <p>
               Das sind <strong>{fmtDauer(minuten)}</strong> —{' '}
               {form.bis < form.von
-                ? 'über Mitternacht gerechnet, weil „Bis" vor „Von" liegt. Bei einer Notdienstnacht stimmt das; sonst sind Von und Bis vertauscht.'
+                ? 'über Mitternacht gerechnet, weil „Bis“ vor „Von“ liegt. Bei einer Notdienstnacht stimmt das; sonst sind Von und Bis vertauscht.'
                 : 'ein ungewöhnlich langer Einsatz. Bitte prüfen, ob Von und Bis stimmen.'}
             </p>
           </Hinweiszeile>

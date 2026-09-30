@@ -312,7 +312,7 @@ describe('Einsatzplanung — Urlaub', () => {
 });
 
 describe('Einsatzplanung — Krankenstand, Zeitausgleich, Betriebsurlaub', () => {
-  it('nennt einen Krankenstand als „abwesend" — ohne Grund, wie die Datenbank ihn liefert', async () => {
+  it('nennt einen Krankenstand als „abwesend“ — ohne Grund, wie die Datenbank ihn liefert', async () => {
     weitereAbwesend = [{ userId: 'u2', von: HEUTE, bis: HEUTE, grund: null, zeiten: null }];
     zeige();
     expect((await screen.findByText(/Abwesend an diesem Tag:/)).parentElement).toHaveTextContent('Erna Beispiel (abwesend)');
@@ -611,7 +611,7 @@ describe('Einsatzplanung — Rüstliste', () => {
     const knopf = screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' });
     expect(knopf).toBeDisabled();
     expect(screen.getByText(/Noch nicht auf der Rüstliste/).parentElement).toHaveTextContent(
-      /„Leihgerät Kernbohrer"/,
+      /„Leihgerät Kernbohrer“/,
     );
 
     await userEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }));

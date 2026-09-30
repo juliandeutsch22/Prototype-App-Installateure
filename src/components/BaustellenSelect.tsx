@@ -236,7 +236,7 @@ export default function BaustellenSelect({
         <div className="mt-2">
           <Hinweiszeile stufe="warn">
             <p>
-              Es ist noch keine Baustelle angelegt. Sie entsteht entweder direkt unter „Baustellen"
+              Es ist noch keine Baustelle angelegt. Sie entsteht entweder direkt unter „Baustellen“
               oder automatisch, sobald ein Angebot angenommen wird.
             </p>
           </Hinweiszeile>
@@ -260,7 +260,7 @@ export default function BaustellenSelect({
           <Hinweiszeile stufe="warn">
             <p>
               Es werden nur die ersten {projekte.length} laufenden Baustellen angeboten. Fehlt
-              eine, ist sie unter „Baustellen" zu finden — von dort führt ein Weg direkt hierher.
+              eine, ist sie unter „Baustellen“ zu finden — von dort führt ein Weg direkt hierher.
             </p>
           </Hinweiszeile>
         </div>

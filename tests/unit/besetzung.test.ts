@@ -19,12 +19,12 @@ describe('besetzung', () => {
     expect(b.unbesetzt).toBe(false);
   });
 
-  it('Gegenprobe: stundenweise weg heisst nicht fehlend', () => {
+  it('Gegenprobe: stundenweise weg heißt nicht fehlend', () => {
     expect(ganztagsWeg([ZA], 'u2', '2026-10-06')).toBeNull();
     expect(besetzung([{ userId: 'u2', userName: 'Max' }], [ZA], '2026-10-06').unbesetzt).toBe(false);
   });
 
-  it('Gegenprobe: ausserhalb des Zeitraums fehlt niemand', () => {
+  it('Gegenprobe: außerhalb des Zeitraums fehlt niemand', () => {
     expect(besetzung([{ userId: 'u1', userName: 'Erna' }], [KRANK], '2026-10-08').fehlen).toEqual([]);
   });
 

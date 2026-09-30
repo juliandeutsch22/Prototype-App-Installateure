@@ -339,7 +339,7 @@ describe('Benutzerverwaltung — die Liste', () => {
     expect(screen.queryByRole('textbox', { name: /^Name/ })).not.toBeInTheDocument();
   });
 
-  it('zeigt den Ladefehler, statt „keine Benutzer" zu behaupten', async () => {
+  it('zeigt den Ladefehler, statt „keine Benutzer“ zu behaupten', async () => {
     ladefehler = 'Fehlende Berechtigung';
     zeige();
     expect(await screen.findByText(/Fehlende Berechtigung/)).toBeInTheDocument();
@@ -506,7 +506,7 @@ describe('Anlegen mit Benutzername statt E-Mail', () => {
 
   it('weist einen unbrauchbaren Namen ab, bevor etwas angelegt wird', async () => {
     await mitBenutzername('jürgen');
-    expect(await screen.findByText(/„ue" statt „ü"/)).toBeInTheDocument();
+    expect(await screen.findByText(/„ue“ statt „ü“/)).toBeInTheDocument();
     expect(anlegen).not.toHaveBeenCalled();
   });
 
@@ -520,8 +520,23 @@ describe('Anlegen mit Benutzername statt E-Mail', () => {
 });
 
 describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
-  it('nennt die Auswahl „Benutzer nach Status filtern" — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl"', async () => {
+  it('nennt die Auswahl „Benutzer nach Status filtern“ — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl“', async () => {
     zeige();
     expect(await screen.findByRole('combobox', { name: 'Benutzer nach Status filtern' })).toBeInTheDocument();
+  });
+});
+
+// Testbericht 30.09.2026, G32 — „Außendienst“ zählt Monteure und Projektleitung.
+describe('Kennzahl Außendienst', () => {
+  it('zählt die Projektleitung mit', async () => {
+    leute = [
+      person({ uid: 'm1', name: 'Monteur Eins', role: 'Mitarbeiter' }),
+      person({ uid: 'p1', name: 'Projekt Leiter', role: 'Projektleiter' }),
+      person({ uid: 'v1', name: 'Verwaltung Eins', role: 'Verwaltung' }),
+    ];
+    zeige();
+    expect(await screen.findByText('Monteur Eins')).toBeInTheDocument();
+    const kennzahl = screen.getByText('Außendienst').closest('div')!;
+    expect(kennzahl.parentElement).toHaveTextContent(/Außendienst\s*2|2\s*Außendienst/);
   });
 });

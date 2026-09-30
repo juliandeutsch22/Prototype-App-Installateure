@@ -306,7 +306,7 @@ export default function FirmendatenView() {
           title="Farben"
           hint={
             'Die Hausfarben des Betriebs. Sie färben Knöpfe und Hervorhebungen in der ganzen ' +
-            'App — die Belege bleiben davon unberührt. Leer lassen heisst: die Vorgabe gilt.'
+            'App — die Belege bleiben davon unberührt. Leer lassen heißt: die Vorgabe gilt.'
           }
         >
           <FormGrid>

@@ -27,7 +27,7 @@ describe('CSV lesen', () => {
     ]);
   });
 
-  it('vergleicht Spaltennamen ohne Satzzeichen, Gross-/Kleinschreibung und ß', () => {
+  it('vergleicht Spaltennamen ohne Satzzeichen, Groß-/Kleinschreibung und ß', () => {
     expect(spaltenSchluessel('E-Mail')).toBe('email');
     expect(spaltenSchluessel('Straße')).toBe('strasse');
     expect(spaltenSchluessel(' UID-Nr. ')).toBe('uidnr');
@@ -52,7 +52,7 @@ describe('Probelauf', () => {
     expect(p.kunden.map((k) => k.zeile)).toEqual([2, 3]);
   });
 
-  it('nimmt „Name" als Nachnamen, wenn ein Vorname daneben steht', () => {
+  it('nimmt „Name“ als Nachnamen, wenn ein Vorname daneben steht', () => {
     expect(probe('Vorname;Name\nFranz;Huber').kunden[0].kunde.name).toBe('Franz Huber');
     expect(probe('Name\nFamilie Huber').kunden[0].kunde.name).toBe('Familie Huber');
   });
@@ -84,8 +84,8 @@ describe('Probelauf', () => {
     );
     expect(p.fehler.map((f) => [f.zeile, f.grund])).toEqual([
       [2, 'Kein Name'],
-      [3, 'E-Mail-Adresse „keine-adresse" ist ungültig'],
-      [4, '„ATU1234": Eine österreichische UID-Nummer ist „ATU“ und acht Ziffern, z. B. ATU12345678.'],
+      [3, 'E-Mail-Adresse „keine-adresse“ ist ungültig'],
+      [4, '„ATU1234“: Eine österreichische UID-Nummer ist „ATU“ und acht Ziffern, z. B. ATU12345678.'],
     ]);
     // Huber in Zeile 3 war fehlerhaft — die zweite Schreibweise in Zeile 6 ist damit die erste gültige.
     expect(p.kunden.map((k) => [k.zeile, k.kunde.name, k.kunde.vatId])).toEqual([
@@ -99,11 +99,11 @@ describe('Probelauf', () => {
     const p = probe('Name\nFamilie Huber\nMaier\nfamilie   HUBER');
     expect(p.kunden).toHaveLength(2);
     expect(p.fehler).toEqual([
-      { zeile: 4, grund: '„familie   HUBER" steht schon in Zeile 2', inhalt: 'familie   HUBER' },
+      { zeile: 4, grund: '„familie   HUBER“ steht schon in Zeile 2', inhalt: 'familie   HUBER' },
     ]);
   });
 
-  it('bricht ab, wenn es keine Namensspalte gibt, die Datei leer oder zu gross ist', () => {
+  it('bricht ab, wenn es keine Namensspalte gibt, die Datei leer oder zu groß ist', () => {
     expect(() => probe('Ort;PLZ\nWien;1010')).toThrow(/keine Spalte für den Namen/);
     expect(() => probe('')).toThrow('Die Datei ist leer.');
     const gross = `Name\n${Array.from({ length: HOECHSTENS + 1 }, (_, i) => `K${i}`).join('\n')}`;

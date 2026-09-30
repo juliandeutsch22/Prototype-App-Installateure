@@ -214,7 +214,7 @@ describe('Urlaubsantrag', () => {
     await datum('Von', '2026-12-21');
     await datum('Bis (einschließlich)', '2026-12-29');
 
-    expect(screen.getByText(/Überschneidet sich mit dem Betriebsurlaub „Weihnachten"/)).toBeInTheDocument();
+    expect(screen.getByText(/Überschneidet sich mit dem Betriebsurlaub „Weihnachten“/)).toBeInTheDocument();
     expect(screen.queryByText(/Arbeitstage/)).not.toBeInTheDocument();
     await nutzer.click(screen.getByRole('button', { name: 'Antrag einreichen' }));
     expect(createVacation).not.toHaveBeenCalled();
@@ -353,7 +353,7 @@ describe('Urlaub genehmigen', () => {
     expect(await screen.findByText(/1 übersprungen/)).toBeInTheDocument();
   });
 
-  it('sagt „im Zeitkonto" nur, wo eines geführt wird (Launch-Check, M4)', async () => {
+  it('sagt „im Zeitkonto“ nur, wo eines geführt wird (Launch-Check, M4)', async () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText('Max Mustermann');
@@ -361,7 +361,7 @@ describe('Urlaub genehmigen', () => {
     expect(await screen.findByText('Genehmigt — 5 Tage im Zeitkonto eingetragen')).toBeInTheDocument();
   });
 
-  it('beim Administrator ohne Zeitkonto nur „eingetragen"', async () => {
+  it('beim Administrator ohne Zeitkonto nur „eingetragen“', async () => {
     belegschaft = [{ ...monteur, role: 'Administrator' }];
     const nutzer = userEvent.setup();
     zeichne();
@@ -582,7 +582,7 @@ describe('Einen eigenen Antrag zurückziehen', () => {
   Betriebsurlaub da. Geändert wird er im Reiter „Betriebsurlaub"; die
   Datenbank lehnt das Zurücknehmen ebenfalls ab.
 */
-describe('Betriebsurlaub unter „Meine Anträge"', () => {
+describe('Betriebsurlaub unter „Meine Anträge“', () => {
   beforeEach(() => {
     rolle = { ...rolle, uid: 'chef', name: 'Julian Deutsch', role: 'Geschäftsführung', docId: 'chef' };
     antraege.push(

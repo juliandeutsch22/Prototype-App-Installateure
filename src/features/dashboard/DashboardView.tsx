@@ -47,7 +47,7 @@ import { AdresseLink, TelefonLink, KontaktZeile } from '@/components/Kontakt';
 import { LoadingState } from '@/components/States';
 import { byNewest } from '@/lib/timestamps';
 import { istUeberfaellig, offenerRest } from '@/features/invoices/zahlstand';
-import { euroGerundet } from '@/lib/betrag';
+import { euro } from '@/lib/betrag';
 import { baustellenTitel } from '@/lib/baustellenTitel';
 import { besetzung, fehlenText, ganztagsWeg } from '@/features/assignments/besetzung';
 import { listAbwesendInRange } from '@/lib/db/vacations';
@@ -777,12 +777,12 @@ export default function DashboardView() {
               <Metric
                 label="Überfällig"
                 tone="danger"
-                value={euroGerundet(data.invoiceSums.overdue)}
+                value={euro(data.invoiceSums.overdue)}
                 to="/invoices?status=%C3%9Cberf%C3%A4llig"
               />
             )}
             {data.invoiceSums && data.invoiceSums.open > 0 && (
-              <Metric label="Offene Rechnungen" value={euroGerundet(data.invoiceSums.open)} to="/invoices" />
+              <Metric label="Offene Rechnungen" value={euro(data.invoiceSums.open)} to="/invoices" />
             )}
           </MetricRow>
         )}
@@ -1059,7 +1059,7 @@ export default function DashboardView() {
       {nichtGeladen.length > 0 && (
         <Hinweiszeile stufe="warn" role="status">
           <p>
-            <strong>Nicht geladen: {nichtGeladen.join(' · ')}.</strong> Was hier fehlt, heisst
+            <strong>Nicht geladen: {nichtGeladen.join(' · ')}.</strong> Was hier fehlt, heißt
             nicht, dass nichts ansteht — bitte die Seite neu laden. Die Reiter oben zeigen den
             vollständigen Stand.
           </p>

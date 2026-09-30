@@ -318,7 +318,7 @@ describe('Der Zugang', () => {
 });
 
 describe('Wenn es die Person nicht gibt', () => {
-  it('unterscheidet „gibt es nicht" von „konnte nicht laden"', async () => {
+  it('unterscheidet „gibt es nicht“ von „konnte nicht laden“', async () => {
     gefunden = null;
     zeige();
     expect(await screen.findByText(/gibt es nicht/)).toBeInTheDocument();
@@ -376,10 +376,10 @@ describe('Ein Konto mit Benutzername', () => {
     expect(screen.queryByText('Messing-3319-Bogen')).not.toBeInTheDocument();
   });
 
-  it('beim eigenen Konto: kein Knopf, sondern der Weg zu „Mein Konto"', async () => {
+  it('beim eigenen Konto: kein Knopf, sondern der Weg zu „Mein Konto“', async () => {
     angemeldet = { ...angemeldet, uid: 'u3' };
     zeige('u3');
-    expect(await screen.findByText(/Das eigene Passwort unter „Mein Konto" ändern/)).toBeInTheDocument();
+    expect(await screen.findByText(/Das eigene Passwort unter „Mein Konto“ ändern/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Neues Startpasswort vergeben' })).not.toBeInTheDocument();
   });
 });

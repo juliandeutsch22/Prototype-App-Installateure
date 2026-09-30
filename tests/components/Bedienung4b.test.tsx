@@ -64,7 +64,7 @@ describe('M1 — ungespeicherte Änderungen', () => {
     expect(screen.getByText('Andere Seite')).toBeInTheDocument();
   });
 
-  it('meldet sich auch beim Schliessen des Tabs', () => {
+  it('meldet sich auch beim Schließen des Tabs', () => {
     mitRouter(true);
     const e = new Event('beforeunload', { cancelable: true });
     window.dispatchEvent(e);
@@ -113,7 +113,7 @@ describe('G6 — die Auswahl schiebt die Liste nicht', () => {
 });
 
 describe('G10 — Fehler ins Blickfeld', () => {
-  it('holt eine neue Fehlermeldung herein, die ausserhalb liegt', async () => {
+  it('holt eine neue Fehlermeldung herein, die außerhalb liegt', async () => {
     const hinein = vi.fn();
     Element.prototype.scrollIntoView = hinein;
     vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({

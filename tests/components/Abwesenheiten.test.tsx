@@ -109,7 +109,7 @@ describe('Krankenstände', () => {
 });
 
 describe('Betriebsurlaub', () => {
-  it('fragt nach und legt mit Häkchen „Urlaub abbuchen" an', async () => {
+  it('fragt nach und legt mit Häkchen „Urlaub abbuchen“ an', async () => {
     zeige(<BetriebsurlaubReiter companyId="perl" meinName="Brigitte" />);
     await datum('Von', '2026-12-28');
     await datum('Bis (einschließlich)', '2026-12-31');
@@ -148,7 +148,7 @@ describe('Betriebsurlaub', () => {
     await userEvent.click(await screen.findByLabelText('Max Monteur'));
     await userEvent.click(screen.getByRole('button', { name: 'Betriebsurlaub anlegen' }));
     const dialog = await screen.findByRole('dialog');
-    expect(dialog).toHaveTextContent(/ausser den Ausgenommenen/);
+    expect(dialog).toHaveTextContent(/außer den Ausgenommenen/);
     expect(dialog).toHaveTextContent(/Arbeiten in dieser Zeit: Max Monteur/);
     await userEvent.click(within(dialog).getByRole('button', { name: 'Anlegen' }));
     await waitFor(() =>

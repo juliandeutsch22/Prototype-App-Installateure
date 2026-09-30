@@ -48,6 +48,6 @@ describe('Ein abgeschaltetes Modul', () => {
     rolle = 'Geschäftsführung';
     zeige();
     expect(screen.queryByRole('link', { name: /wieder einschalten/ })).not.toBeInTheDocument();
-    expect(screen.getByText('Einschalten kann das die Administration unter „Module".')).toBeInTheDocument();
+    expect(screen.getByText('Einschalten kann das die Administration unter „Module“.')).toBeInTheDocument();
   });
 });

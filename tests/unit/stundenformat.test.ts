@@ -32,7 +32,7 @@ describe('Dezimalstunden', () => {
 });
 
 describe('Die Zahl und das Wort daneben', () => {
-  it('sagt bei eins „1 Tag" und sonst „n Tage"', () => {
+  it('sagt bei eins „1 Tag“ und sonst „n Tage“', () => {
     /*
       „1 Tage fehlen" stand in der Mitarbeiterübersicht. Es ist die Sorte
       Fehler, die einen Beleg billig aussehen lässt: wer eine Zahl anzeigt,

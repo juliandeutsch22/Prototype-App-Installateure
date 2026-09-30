@@ -128,11 +128,11 @@ afterEach(() => {
  */
 async function statusWaehlen(status: string) {
   await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für/ }));
-  await userEvent.click(screen.getByRole('menuitem', { name: `Auf „${status}" setzen` }));
+  await userEvent.click(screen.getByRole('menuitem', { name: `Auf „${status}“ setzen` }));
 }
 
 describe('Anforderungen — der Abschluss zieht vom Lager ab', () => {
-  it('fragt vor „Erledigt" nach und bucht erst nach der Bestätigung', async () => {
+  it('fragt vor „Erledigt“ nach und bucht erst nach der Bestätigung', async () => {
     anforderungen = [anforderung({ id: 'o1', status: 'Abholbereit' })];
     zeige();
 
@@ -185,7 +185,7 @@ describe('Anforderungen — der Abschluss zieht vom Lager ab', () => {
 });
 
 describe('Anforderungen — Reiter und Abzeichen widersprechen sich nicht', () => {
-  it('nennt den Reiter „Laufend", weil er mehr zählt als das „offen" im Menü', async () => {
+  it('nennt den Reiter „Laufend“, weil er mehr zählt als das „offen“ im Menü', async () => {
     // Prüflauf 24.09.2026, F13: Menü „1 offene", Reiter „Offen 3".
     anforderungen = [
       anforderung({ id: 'a', status: 'Offen' }),
@@ -243,7 +243,7 @@ describe('Anforderungen — die Reihenfolge der Arbeit', () => {
     expect(await screen.findByText('Aktuell keine offenen Bestellungen.')).toBeInTheDocument();
   });
 
-  it('führt eine Retoure unter Retouren, auch wenn ihr Status „Offen" lautet', async () => {
+  it('führt eine Retoure unter Retouren, auch wenn ihr Status „Offen“ lautet', async () => {
     // Die Zuordnung hängt am transactionType, nicht am Status. Liefe sie über
     // den Status, verschwände eine Retoure aus beiden Reitern.
     anforderungen = [
@@ -270,7 +270,7 @@ describe('Anforderungen — die Reihenfolge der Arbeit', () => {
 });
 
 describe('Anforderungen — die Notiz des Monteurs', () => {
-  it('steht in einer eigenen Zeile, mit „Notiz:" davor', async () => {
+  it('steht in einer eigenen Zeile, mit „Notiz:“ davor', async () => {
     /*
       GEMELDET: „die Notiz wird nirgends angezeigt". Sie hing im selben Grau
       an Name und Baustelle und ging darin unter.
@@ -338,7 +338,7 @@ describe('Anforderungen — löschen', () => {
 });
 
 describe('Anforderungen — wenn das Laden scheitert', () => {
-  it('zeigt den Fehler, statt „nichts angefordert" zu behaupten', async () => {
+  it('zeigt den Fehler, statt „nichts angefordert“ zu behaupten', async () => {
     ladefehler = 'Fehlende Berechtigung';
     zeige();
     expect(await screen.findByText(/Fehlende Berechtigung/)).toBeInTheDocument();
@@ -408,7 +408,7 @@ describe('Anforderungen — wie weit die Abfrage reicht', () => {
  * Einkaufsliste. Beides nur, solange noch niemand nachgesehen hat.
  */
 describe('Anforderungen — Lager oder Einkauf', () => {
-  it('„Aus Lager" bucht die Zeile als Lagerware', async () => {
+  it('„Aus Lager“ bucht die Zeile als Lagerware', async () => {
     anforderungen = [anforderung({ id: 'o1', materialId: 'm1' })];
     zeige();
     await userEvent.click(await screen.findByRole('button', { name: 'Aus Lager' }));
@@ -416,25 +416,25 @@ describe('Anforderungen — Lager oder Einkauf', () => {
     expect(aufEinkaufsliste).not.toHaveBeenCalled();
   });
 
-  it('„Nicht auf Lager" fragt nach dem Grosshändler — mit Vorschlag aus dem Katalog', async () => {
+  it('„Nicht auf Lager“ fragt nach dem Großhändler — mit Vorschlag aus dem Katalog', async () => {
     vorschlag = 'gh2';
     anforderungen = [anforderung({ id: 'o1', materialId: 'm1' })];
     zeige();
     await userEvent.click(await screen.findByRole('button', { name: 'Nicht auf Lager' }));
 
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByLabelText('Grosshändler')).toHaveValue('gh2');
-    await userEvent.selectOptions(within(dialog).getByLabelText('Grosshändler'), 'gh1');
+    expect(within(dialog).getByLabelText('Großhändler')).toHaveValue('gh2');
+    await userEvent.selectOptions(within(dialog).getByLabelText('Großhändler'), 'gh1');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Auf die Liste' }));
     await waitFor(() => expect(aufEinkaufsliste).toHaveBeenCalledWith('o1', 'gh1'));
   });
 
-  it('lässt den Grosshändler offen, wenn „später zuordnen" gewählt ist', async () => {
+  it('lässt den Großhändler offen, wenn „später zuordnen“ gewählt ist', async () => {
     anforderungen = [anforderung({ id: 'o1' })];
     zeige();
     await userEvent.click(await screen.findByRole('button', { name: 'Nicht auf Lager' }));
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByLabelText('Grosshändler')).toHaveValue('');
+    expect(within(dialog).getByLabelText('Großhändler')).toHaveValue('');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Auf die Liste' }));
     await waitFor(() => expect(aufEinkaufsliste).toHaveBeenCalledWith('o1', null));
   });
@@ -452,7 +452,7 @@ describe('Anforderungen — Lager oder Einkauf', () => {
     expect(await screen.findByText('bestellt · Holter')).toBeInTheDocument();
   });
 
-  it('zählt im Reiter „Einkauf", was noch zu bestellen ist', async () => {
+  it('zählt im Reiter „Einkauf“, was noch zu bestellen ist', async () => {
     anforderungen = [
       anforderung({ id: 'o1', status: 'In Bearbeitung', beschaffung: 'einkauf', supplierId: 'gh1' }),
       anforderung({ id: 'o2', status: 'In Bearbeitung', beschaffung: 'einkauf', supplierId: 'gh1',
@@ -495,14 +495,14 @@ describe('Anforderungen — eine ruhige Zeile (Prüflauf 24.09.2026, D11)', () =
     const menue = screen.getByRole('menu');
     const punkte = within(menue).getAllByRole('menuitem').map((m) => m.textContent);
     // Der aktuelle Status steht nicht zur Wahl, alle anderen schon.
-    expect(punkte).not.toContain('Auf „Offen" setzen');
-    expect(punkte).toContain('Auf „Erledigt" setzen');
+    expect(punkte).not.toContain('Auf „Offen“ setzen');
+    expect(punkte).toContain('Auf „Erledigt“ setzen');
     expect(punkte[punkte.length - 1]).toBe('Löschen');
   });
 });
 
 describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
-  it('nennt die Auswahl „Bestellungen nach Baustelle filtern" — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl"', async () => {
+  it('nennt die Auswahl „Bestellungen nach Baustelle filtern“ — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl“', async () => {
     // Die Auswahl steht nur, wenn es Baustellen zum Filtern gibt.
     anforderungen = [anforderung({ id: 'o1', projectNumber: '2026-042' })];
     zeige();

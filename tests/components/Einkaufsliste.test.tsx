@@ -108,7 +108,7 @@ beforeEach(() => {
   }
 });
 
-describe('Einkaufsliste — zusammengefasst je Grosshändler', () => {
+describe('Einkaufsliste — zusammengefasst je Großhändler', () => {
   it('macht aus drei Anforderungen EINE Zeile, mit allen Kommissionen', async () => {
     zeige([
       anf({ id: 'a', projectNumber: 'B-2' }),
@@ -151,7 +151,7 @@ describe('Einkaufsliste — zusammengefasst je Grosshändler', () => {
     expect(screen.getByText(/Keine Bestelladresse/)).toBeInTheDocument();
   });
 
-  it('erstellt das PDF mit den Zeilen des Grosshändlers', async () => {
+  it('erstellt das PDF mit den Zeilen des Großhändlers', async () => {
     zeige([anf({ id: 'a' })]);
     await userEvent.click(await screen.findByRole('button', { name: 'PDF' }));
     await waitFor(() => expect(pdf).toHaveBeenCalledTimes(1));
@@ -171,7 +171,7 @@ describe('Einkaufsliste — bestellt und geliefert', () => {
     await waitFor(() => expect(alsBestellt).toHaveBeenCalledWith(['a', 'b']));
   });
 
-  it('bucht „Geliefert" je Anforderung — und „Alles geliefert" für alle', async () => {
+  it('bucht „Geliefert“ je Anforderung — und „Alles geliefert“ für alle', async () => {
     const jetzt = Date.now() as never;
     zeige([anf({ id: 'a', bestelltAm: jetzt }), anf({ id: 'b', bestelltAm: jetzt })]);
     const knoepfe = await screen.findAllByRole('button', { name: 'Geliefert' });
@@ -198,23 +198,23 @@ describe('Einkaufsliste — bestellt und geliefert', () => {
   });
 });
 
-describe('Einkaufsliste — ohne Grosshändler', () => {
+describe('Einkaufsliste — ohne Großhändler', () => {
   it('lässt erst zuordnen, dann bestellen', async () => {
     zeige([anf({ id: 'a', supplierId: null }), anf({ id: 'b', supplierId: null })]);
-    expect(await screen.findByText('Ohne Grosshändler')).toBeInTheDocument();
+    expect(await screen.findByText('Ohne Großhändler')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Als bestellt markieren' })).not.toBeInTheDocument();
     await userEvent.selectOptions(
-      screen.getByRole('combobox', { name: 'Grosshändler für Eckventil 1/2' }),
+      screen.getByRole('combobox', { name: 'Großhändler für Eckventil 1/2' }),
       'gh2',
     );
     await waitFor(() => expect(zuordnen).toHaveBeenCalledWith(['a', 'b'], 'gh2'));
   });
 });
 
-describe('Einkaufsliste — die Grosshändler pflegen', () => {
-  it('legt einen Grosshändler an und meldet es nach oben', async () => {
+describe('Einkaufsliste — die Großhändler pflegen', () => {
+  it('legt einen Großhändler an und meldet es nach oben', async () => {
     const geaendert = zeige([], []);
-    await userEvent.click(await screen.findByRole('button', { name: '+ Grosshändler' }));
+    await userEvent.click(await screen.findByRole('button', { name: '+ Großhändler' }));
     await userEvent.type(screen.getByLabelText(/^Name/), 'Holter');
     await userEvent.type(screen.getByLabelText('Bestelladresse (E-Mail)'), 'bestellung@holter.test');
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
@@ -228,7 +228,7 @@ describe('Einkaufsliste — die Grosshändler pflegen', () => {
 
   it('lehnt eine Bestelladresse ab, die keine E-Mail ist', async () => {
     zeige([], []);
-    await userEvent.click(await screen.findByRole('button', { name: '+ Grosshändler' }));
+    await userEvent.click(await screen.findByRole('button', { name: '+ Großhändler' }));
     await userEvent.type(screen.getByLabelText(/^Name/), 'Holter');
     await userEvent.type(screen.getByLabelText('Bestelladresse (E-Mail)'), 'holter');
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
@@ -238,7 +238,7 @@ describe('Einkaufsliste — die Grosshändler pflegen', () => {
 });
 
 describe('Einkaufsliste — eigenes Material des Büros', () => {
-  it('steht mit der Anforderung in EINER Zeile, Kommission „Lager"', async () => {
+  it('steht mit der Anforderung in EINER Zeile, Kommission „Lager“', async () => {
     zeige([anf({ id: 'a', projectNumber: 'B-1' })], undefined, [posten({ id: 'p1' })]);
     expect(await screen.findByText('12 Stk × Eckventil 1/2')).toBeInTheDocument();
     expect(screen.getByText('Kommission B-1, Lager')).toBeInTheDocument();
@@ -269,16 +269,16 @@ describe('Einkaufsliste — eigenes Material des Büros', () => {
     expect(vonListe).toHaveBeenCalledWith('a');
   });
 
-  it('ordnet eigene Posten ohne Grosshändler mit zu', async () => {
+  it('ordnet eigene Posten ohne Großhändler mit zu', async () => {
     zeige([], undefined, [posten({ id: 'p1', supplierId: null })]);
     await userEvent.selectOptions(
-      await screen.findByRole('combobox', { name: 'Grosshändler für Eckventil 1/2' }),
+      await screen.findByRole('combobox', { name: 'Großhändler für Eckventil 1/2' }),
       'gh2',
     );
     await waitFor(() => expect(postenZuordnen).toHaveBeenCalledWith(['p1'], 'gh2'));
   });
 
-  it('bucht einen bestellten Posten als geliefert — „im Lager", nicht „abholbereit"', async () => {
+  it('bucht einen bestellten Posten als geliefert — „im Lager“, nicht „abholbereit“', async () => {
     zeige([], undefined, [posten({ id: 'p1', bestelltAm: Date.now() as never, notiz: 'Regal 3' })]);
     expect(await screen.findByText(/fürs Lager · Regal 3/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Geliefert' }));
@@ -290,14 +290,14 @@ describe('Einkaufsliste — eigenes Material des Büros', () => {
 describe('Einkaufsliste — Material dazusetzen', () => {
   const KATALOGARTIKEL = { id: 'm1', companyId: 'perl', name: 'Eckventil 1/2', articleNumber: 'EV-12', unit: 'Stk', stock: 0 };
 
-  it('sucht im Katalog, übernimmt Einheit und vorgeschlagenen Grosshändler', async () => {
+  it('sucht im Katalog, übernimmt Einheit und vorgeschlagenen Großhändler', async () => {
     suchen.mockResolvedValue([KATALOGARTIKEL]);
     vorschlag.mockResolvedValue('gh1');
     zeige([]);
     await userEvent.click(await screen.findByRole('button', { name: '+ Material' }));
     await userEvent.type(screen.getByLabelText(/^Artikel/), 'Eck');
     await userEvent.click(await screen.findByRole('button', { name: /Eckventil 1\/2/ }));
-    await waitFor(() => expect(screen.getByLabelText('Grosshändler')).toHaveValue('gh1'));
+    await waitFor(() => expect(screen.getByLabelText('Großhändler')).toHaveValue('gh1'));
     expect(screen.getByLabelText('Einheit')).toHaveValue('Stk');
     await userEvent.clear(screen.getByLabelText(/^Menge/));
     await userEvent.type(screen.getByLabelText(/^Menge/), '12');
@@ -326,17 +326,17 @@ describe('Einkaufsliste — Material dazusetzen', () => {
     );
   });
 
-  it('wählt den einzigen Grosshändler vor — wie bei „Nicht auf Lager"', async () => {
+  it('wählt den einzigen Großhändler vor — wie bei „Nicht auf Lager“', async () => {
     // Prüflauf 24.09.2026, L6: sonst landete die Zeile unter „Ohne Grosshändler".
     zeige([], [HOLTER]);
     await userEvent.click(await screen.findByRole('button', { name: '+ Material' }));
-    expect(screen.getByLabelText('Grosshändler')).toHaveValue('gh1');
+    expect(screen.getByLabelText('Großhändler')).toHaveValue('gh1');
   });
 
-  it('wählt bei mehreren Grosshändlern nichts vor', async () => {
+  it('wählt bei mehreren Großhändlern nichts vor', async () => {
     zeige([]);
     await userEvent.click(await screen.findByRole('button', { name: '+ Material' }));
-    expect(screen.getByLabelText('Grosshändler')).toHaveValue('');
+    expect(screen.getByLabelText('Großhändler')).toHaveValue('');
   });
 
   it('weist eine Menge von null ab und legt nichts an', async () => {
@@ -346,7 +346,7 @@ describe('Einkaufsliste — Material dazusetzen', () => {
     await userEvent.clear(screen.getByLabelText(/^Menge/));
     await userEvent.type(screen.getByLabelText(/^Menge/), '0');
     await userEvent.click(screen.getByRole('button', { name: 'Auf die Einkaufsliste' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('grösser als null');
+    expect(await screen.findByRole('alert')).toHaveTextContent('größer als null');
     expect(postenAnlegen).not.toHaveBeenCalled();
   });
 });

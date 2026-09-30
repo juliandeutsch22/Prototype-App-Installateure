@@ -22,7 +22,7 @@ export default function KundenGrenze({ kunden }: { kunden: readonly unknown[] })
       <Hinweiszeile stufe="warn">
         <p>
           Es werden nur die ersten {kunden.length} Kunden angeboten. Fehlt einer, ist er unter
-          „Kunden" zu finden — dort lässt sich auch nachladen.
+          „Kunden“ zu finden — dort lässt sich auch nachladen.
         </p>
       </Hinweiszeile>
     </div>

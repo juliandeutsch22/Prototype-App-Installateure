@@ -196,31 +196,31 @@ Diese Liste ist teuer bezahlt. Wer sie liest, spart sich die Wiederholung.
 | Falle | Was passiert |
 |---|---|
 | **`canvas.width = …` löscht die Zeichenfläche.** | Die Unterschrift verschwand bei jedem Neuberechnen der Größe. `SignaturePad` sichert und stellt jetzt wieder her — und reagiert auf `ResizeObserver` statt auf `window.resize`. |
-| **`catch(() => undefined)` versteckt vier Zustände hinter einem.** | „lädt", „leer", „Fehler", „fertig" sahen alle gleich aus. Deshalb `BaustellenSelect` als eigene Komponente, die nie stumm leer bleibt. |
-| **Ein Serveraufruf ohne Frist wartet ewig.** | Weder eine Firestore-Abfrage noch ein `fetch` bricht von selbst ab — sie warten, bis eine Antwort kommt, und auf einer toten Verbindung wartet der Aufrufer unbegrenzt. Zweimal als Fehler gemeldet („Schein lädt ewig", „iPhone lädt gar nicht"). Dagegen steht `lib/frist.ts`, gesetzt dort, wo ein Warten den Benutzer festhält — siehe §5. |
+| **`catch(() => undefined)` versteckt vier Zustände hinter einem.** | „lädt“, „leer“, „Fehler“, „fertig“ sahen alle gleich aus. Deshalb `BaustellenSelect` als eigene Komponente, die nie stumm leer bleibt. |
+| **Ein Serveraufruf ohne Frist wartet ewig.** | Weder eine Firestore-Abfrage noch ein `fetch` bricht von selbst ab — sie warten, bis eine Antwort kommt, und auf einer toten Verbindung wartet der Aufrufer unbegrenzt. Zweimal als Fehler gemeldet („Schein lädt ewig“, „iPhone lädt gar nicht“). Dagegen steht `lib/frist.ts`, gesetzt dort, wo ein Warten den Benutzer festhält — siehe §5. |
 | **Dieselbe Aussage an zwei Stellen läuft auseinander.** | Wer wohin darf, stand dreimal geschrieben; an sieben Stellen widersprachen sich die Listen. Siehe §5. |
-| **Ein Filter auf „ungleich" überspringt Zeilen OHNE Wert.** | Der nächtliche Bilanzlauf fragte `active != false` und übersprang damit stillschweigend jeden übernommenen Altbestand ohne `active`. In SQL ist es dieselbe Falle mit anderem Mechanismus: `active <> false` ist für `NULL` weder wahr noch falsch, die Zeile fällt heraus. In dieser App heißt „kein Wert" **aktiv** — wer darauf filtert, schreibt `coalesce(active, true)` oder `active is not false`. So steht es auch in `app.aktiv()`, das den fehlenden Anspruch im Token als aktiv liest: ein Deploy darf nicht den ganzen Betrieb aussperren. |
+| **Ein Filter auf „ungleich“ überspringt Zeilen OHNE Wert.** | Der nächtliche Bilanzlauf fragte `active != false` und übersprang damit stillschweigend jeden übernommenen Altbestand ohne `active`. In SQL ist es dieselbe Falle mit anderem Mechanismus: `active <> false` ist für `NULL` weder wahr noch falsch, die Zeile fällt heraus. In dieser App heißt „kein Wert“ **aktiv** — wer darauf filtert, schreibt `coalesce(active, true)` oder `active is not false`. So steht es auch in `app.aktiv()`, das den fehlenden Anspruch im Token als aktiv liest: ein Deploy darf nicht den ganzen Betrieb aussperren. |
 | **iOS friert eine Startbildschirm-App ein, statt sie neu zu laden.** | Beim Zurückkommen ist der JavaScript-Zustand noch da, die Netzverbindungen nicht. Ein Browser-Tab am Schreibtisch wird stattdessen neu geladen — deshalb sieht man es dort nie. Unter Firestore brauchte es dafür eine eigene Erneuerung der Dauerverbindung; Postgres-Abfragen gehen über gewöhnliche Anfragen, die beim Aufwachen neu aufgebaut werden. **Die Live-Verbindung (Realtime) tut es nicht von selbst** — sie meldet sich über ihren eigenen Zustand zurück. |
 | **Die Fassungsnummer eines Service Workers darf nicht aus dem Bundle kommen.** | Sie käme aus der ALTEN Fassung, der Worker meldete sich unter der alten Adresse an und erneuerte sich nie. Nur der Server weiß, ob es etwas Neues gibt — deshalb vergleicht der Worker die ausgelieferte `index.html` mit der gespeicherten. |
 | **Ein Service Worker darf beendet werden, sobald er geantwortet hat.** | Ohne `event.waitUntil` bricht die Hintergrundprüfung mitten im Laden ab — auf dem Telefon also fast immer, und der Deploy fällt nie auf. |
-| **Die alten Bausteine wegzuwerfen, sobald ein Deploy erkannt wird, bricht die laufende Seite.** | Sie ist noch die alte und fordert die alten Namen an — im Speicher gelöscht, auf dem Server nach dem Deploy nicht mehr vorhanden. Seit dem Code-Splitting lädt jede Ansicht erst beim Öffnen nach; wer auf „Später" tippt, bekommt danach eine Fehlermeldung statt der Ansicht. Aufgeräumt wird beim Übernehmen. |
-| **Es gibt keinen 404 für eine fehlende Datei.** | Der Hosting-Rewrite `"source": "**"` schickt JEDE unbekannte Adresse auf `index.html` — Status 200, `text/html`. Eine Bausteindatei, die es nach einem Deploy nicht mehr gibt, sieht damit aus wie ein Erfolg. Der Service Worker hat die Startseite daraufhin unter dem Namen der JavaScript-Datei gespeichert, und der Fehler blieb stehen. Gemeldet als „'text/html' is not a valid JavaScript MIME type". |
+| **Die alten Bausteine wegzuwerfen, sobald ein Deploy erkannt wird, bricht die laufende Seite.** | Sie ist noch die alte und fordert die alten Namen an — im Speicher gelöscht, auf dem Server nach dem Deploy nicht mehr vorhanden. Seit dem Code-Splitting lädt jede Ansicht erst beim Öffnen nach; wer auf „Später“ tippt, bekommt danach eine Fehlermeldung statt der Ansicht. Aufgeräumt wird beim Übernehmen. |
+| **Es gibt keinen 404 für eine fehlende Datei.** | Der Hosting-Rewrite `"source": "**"` schickt JEDE unbekannte Adresse auf `index.html` — Status 200, `text/html`. Eine Bausteindatei, die es nach einem Deploy nicht mehr gibt, sieht damit aus wie ein Erfolg. Der Service Worker hat die Startseite daraufhin unter dem Namen der JavaScript-Datei gespeichert, und der Fehler blieb stehen. Gemeldet als „'text/html' is not a valid JavaScript MIME type“. |
 | **Eine Fehlererkennung nach Wortlaut ist immer zu kurz.** | Dieselbe Meldung heißt in Safari, Chrome und Firefox anders. Die erste Fassung der Nachlade-Erkennung traf die Safari-Formulierung nicht — die Selbstheilung lief deshalb nicht an, und der Monteur bekam die Tafel mit dem Knopf, der nicht wirken kann. Erkennung UND ein sauberer Fehlschlag aus dem Worker, nicht eines von beiden. |
-| **„Erneut versuchen" kann einen Nachladefehler nicht heilen.** | React merkt sich das abgelehnte Versprechen eines `lazy`-Imports und scheitert sofort wieder, ohne das Netz zu fragen. Nur ein echtes Neuladen hilft — die Fehlergrenze tut das jetzt selbst. |
+| **„Erneut versuchen“ kann einen Nachladefehler nicht heilen.** | React merkt sich das abgelehnte Versprechen eines `lazy`-Imports und scheitert sofort wieder, ohne das Netz zu fragen. Nur ein echtes Neuladen hilft — die Fehlergrenze tut das jetzt selbst. |
 | **Firebase im Browser ist nicht Firebase unter Node.** | `npm audit` meldete für `firebase` 10 Lücken in `undici` — dem HTTP-Client des Node-Teils. Im Browser-Paket steckt er nicht (am Build geprüft, 29.09.2026); die App nutzt nur Push. Statt eines Sprungs auf Firebase 12, der den nachweislich funktionierenden Push riskiert, hebt `overrides.undici` in `package.json` die Node-Abhängigkeit an. Wer Firebase anhebt, hebt `public/sw.js` mit (`firebasejs/<Fassung>/…-compat.js`) — App und Worker sollen dieselbe Fassung sprechen. |
-| **npm 10 scheitert an `npm install` für Vitest 4.** | Der Abhängigkeitsbaum (Vitest 4 mit seinen optionalen Partnern) bringt npm 10.9 zum Absturz: „Cannot read properties of null (reading 'edgesOut')" — und der Abbruch leert dabei `node_modules`. Das Lockfile ist deshalb mit `npx -y npm@11 install …` erzeugt; `npm ci` unter npm 10, wie es die CI nutzt, liest es fehlerfrei (am 30.09.2026 geprüft). Wer eine Abhängigkeit ändert, tut das mit npm 11. |
+| **npm 10 scheitert an `npm install` für Vitest 4.** | Der Abhängigkeitsbaum (Vitest 4 mit seinen optionalen Partnern) bringt npm 10.9 zum Absturz: „Cannot read properties of null (reading 'edgesOut')“ — und der Abbruch leert dabei `node_modules`. Das Lockfile ist deshalb mit `npx -y npm@11 install …` erzeugt; `npm ci` unter npm 10, wie es die CI nutzt, liest es fehlerfrei (am 30.09.2026 geprüft). Wer eine Abhängigkeit ändert, tut das mit npm 11. |
 | **Ein Pfadfilter im Workflow ist eine Aussage über Abhängigkeiten.** | Der alte Functions-Deploy hörte nur auf `functions/**`. `shared/` wird beim Bauen dorthin kopiert, liegt aber daneben — eine Änderung ging damit ins Hosting und nicht in die Functions. Dieselbe Abhängigkeit besteht heute zwischen `shared/` und `supabase/functions/_shared/`. |
 | **Ein `pointercancel` beendet die Zeigerspur endgültig, die Berührungsspur läuft weiter.** | Beansprucht der Browser die Geste für sich, kommt kein `pointermove` mehr — die Unterschrift blieb ein Punkt. In derselben Geste kamen noch neun `touchmove` an. Wer mit dem Finger zeichnet, gehört deshalb an `touchstart`/`touchmove`, nicht an die Zeigerereignisse. Nachgemessen in einem echten Browser: 8285 gezeichnete Pixel ungestört, 36 nach dem Abbruch. |
 | **React meldet Berührungsereignisse an der Wurzel als PASSIV an.** | In einem passiven Listener ist `preventDefault()` wirkungslos, und ohne das scrollt die Seite unter dem Finger weg, statt dass er zeichnet. Wer eine Berührung abfangen muss, hängt den Listener nativ ans Element mit `{ passive: false }` — nicht über `onTouchStart`. |
 | **`setPointerCapture` ist auf WebKit keine Hilfe, sondern ein Verdächtiger.** | Es sollte den Strich über den Feldrand halten. Dieselbe Aufgabe erledigen Listener am FENSTER, solange ein Strich läuft — ohne die Nebenwirkung. |
 | **Ein Probestand ohne die echte CSS misst den eigenen Aufbau, nicht die App.** | Der erste Messlauf zeigte den Fehler sofort — aber nur, weil die Stylesheets 404 gaben und damit `touch-action: none` fehlte. Mit geladener CSS lief alles. Erst danach war die Messung etwas wert. Genauso: Vite liefert aus dem Zwischenspeicher, ein Wechsel der Fassung auf der Platte kommt ohne Neustart NICHT im Browser an — zwei Läufe lieferten deshalb identische Zahlen für zwei verschiedene Stände. |
-| **„Der Eigentümer darf seinen eigenen Beleg ändern" ist keine Grenze, solange nicht dabeisteht: WELCHES FELD.** | `isBilled` und `invoiceNumber` entscheiden, ob eine Stunde je auf eine Rechnung kommt. Der Eigentümer konnte sie an seinem eigenen Zeiteintrag setzen und damit seine Arbeitszeit aus der Verrechnung nehmen — ohne Fehlermeldung, und die Zeile steht im Zeitkonto ganz normal weiter. Wo eine Rolle eine Zeile nur teilweise bearbeiten darf, gehört die Feldliste in die Regel: `app.nur_diese_felder()`, angewandt im Trigger `time_entries_verrechnung`. |
+| **„Der Eigentümer darf seinen eigenen Beleg ändern“ ist keine Grenze, solange nicht dabeisteht: WELCHES FELD.** | `isBilled` und `invoiceNumber` entscheiden, ob eine Stunde je auf eine Rechnung kommt. Der Eigentümer konnte sie an seinem eigenen Zeiteintrag setzen und damit seine Arbeitszeit aus der Verrechnung nehmen — ohne Fehlermeldung, und die Zeile steht im Zeitkonto ganz normal weiter. Wo eine Rolle eine Zeile nur teilweise bearbeiten darf, gehört die Feldliste in die Regel: `app.nur_diese_felder()`, angewandt im Trigger `time_entries_verrechnung`. |
 | **Ein Test, der prüft, dass etwas VERBOTEN ist, ist erst die halbe Miete.** | Zu jedem neuen Riegel gehört die Gegenprobe, dass die echten Arbeitswege weiter durchgehen. Beim Materialstamm fehlte sie, und ein Knopf tat drei Wochen lang nichts. Beim Verrechnet-Kennzeichen waren es vier Verbots- und **sieben** Gegenprobe-Tests — und zwei davon schlugen sofort fehl (falsche Benutzerkennung im Testdatensatz). Ohne sie hätte ich es nicht gemerkt. |
-| **Eine Regel einzugrenzen heißt, jeden Schreibweg zu kennen — auch die unsichtbaren.** | Der Materialstamm wurde auf Verwaltung und Leitung eingegrenzt, mit der Begründung, gebucht werde ohnehin nur unter „Material → Lager". Falsch: der Monteur bewegt den Bestand beim Abholen und bei jeder Retoure, aus einem Vorgang heraus, der Anforderung UND Bestand zusammen schreibt. Der Bestandsteil scheiterte, also scheiterte alles — der Knopf tat nichts, ohne Meldung. Wo eine Rolle nur EIN Feld bewegen darf, ist die Feldliste die Grenze, nicht die Rolle. |
-| **Ein grüner Regeltest kann den Irrtum mitschreiben, den er prüfen sollte.** | Zur Regel oben gehörte ein Test „der Monteur ändert den Bestand nicht". Er war grün und hat die falsche Annahme drei Wochen festgehalten. Ein Regeltest ist erst dann etwas wert, wenn die Annahme dahinter am ABLAUF geprüft wurde — nicht am Kommentar über der Regel. |
-| **Zwei Schreibvorgänge hintereinander sind kein Vorgang.** | Die Retoure schrieb erst den Beleg, dann die Gutschrift. Scheiterte die zweite, stand der Beleg da (mit `processed: true`) und der Bestand war nicht erhöht — die Meldung „konnte nicht erfasst werden" war eine Lüge, und der zweite Versuch legte einen zweiten Beleg an. Was zusammengehört, gehört in EINEN Vorgang: heute eine Datenbankfunktion (`public.retoure_anlegen`), die entweder ganz oder gar nicht durchgeht. |
-| **Ein Bestätigungsdialog ohne `confirmLabel` sagt „Löschen".** | Zweimal aufgetreten: unter „Material abgeholt?" und unter „Benutzer deaktivieren?" stand je ein roter Löschen-Knopf — bei der Benutzerverwaltung in einer Ansicht, die per Entscheidung NIE etwas löscht. Wer das liest, tippt nicht darauf und meldet, die Aktion lasse sich nicht bestätigen. Bei jedem `ConfirmDialog` gehört `confirmLabel` gesetzt. |
-| **`Number(x) \|\| VORGABE` verschluckt die eingetragene Null.** | In JavaScript ist die Null unwahr. Wer null Wochenstunden einträgt, bekam vierzig — und danach rund 170 Minusstunden im Monat, auf dem Lohnzettel. Der Rückfall darf nur bei LEERER oder unbrauchbarer Eingabe greifen, denn leer heißt „nicht entschieden", null heißt „null". |
+| **Eine Regel einzugrenzen heißt, jeden Schreibweg zu kennen — auch die unsichtbaren.** | Der Materialstamm wurde auf Verwaltung und Leitung eingegrenzt, mit der Begründung, gebucht werde ohnehin nur unter „Material → Lager“. Falsch: der Monteur bewegt den Bestand beim Abholen und bei jeder Retoure, aus einem Vorgang heraus, der Anforderung UND Bestand zusammen schreibt. Der Bestandsteil scheiterte, also scheiterte alles — der Knopf tat nichts, ohne Meldung. Wo eine Rolle nur EIN Feld bewegen darf, ist die Feldliste die Grenze, nicht die Rolle. |
+| **Ein grüner Regeltest kann den Irrtum mitschreiben, den er prüfen sollte.** | Zur Regel oben gehörte ein Test „der Monteur ändert den Bestand nicht“. Er war grün und hat die falsche Annahme drei Wochen festgehalten. Ein Regeltest ist erst dann etwas wert, wenn die Annahme dahinter am ABLAUF geprüft wurde — nicht am Kommentar über der Regel. |
+| **Zwei Schreibvorgänge hintereinander sind kein Vorgang.** | Die Retoure schrieb erst den Beleg, dann die Gutschrift. Scheiterte die zweite, stand der Beleg da (mit `processed: true`) und der Bestand war nicht erhöht — die Meldung „konnte nicht erfasst werden“ war eine Lüge, und der zweite Versuch legte einen zweiten Beleg an. Was zusammengehört, gehört in EINEN Vorgang: heute eine Datenbankfunktion (`public.retoure_anlegen`), die entweder ganz oder gar nicht durchgeht. |
+| **Ein Bestätigungsdialog ohne `confirmLabel` sagt „Löschen“.** | Zweimal aufgetreten: unter „Material abgeholt?“ und unter „Benutzer deaktivieren?“ stand je ein roter Löschen-Knopf — bei der Benutzerverwaltung in einer Ansicht, die per Entscheidung NIE etwas löscht. Wer das liest, tippt nicht darauf und meldet, die Aktion lasse sich nicht bestätigen. Bei jedem `ConfirmDialog` gehört `confirmLabel` gesetzt. |
+| **`Number(x) \|\| VORGABE` verschluckt die eingetragene Null.** | In JavaScript ist die Null unwahr. Wer null Wochenstunden einträgt, bekam vierzig — und danach rund 170 Minusstunden im Monat, auf dem Lohnzettel. Der Rückfall darf nur bei LEERER oder unbrauchbarer Eingabe greifen, denn leer heißt „nicht entschieden“, null heißt „null“. |
 | **Ein deaktiviertes Konto war nur im Browser deaktiviert.** | Die Sicherheitsregeln kannten `active` nicht, und die Ansprüche wurden unabhängig davon gesetzt. Wer ausschied, behielt ein gültiges Konto und kam am UI vorbei an alles. Heute prüft `app.angemeldet()` den Aktiv-Zustand — also unter jeder Richtlinie — und `app.konto_sperren()` sperrt zusätzlich das Anmeldekonto. |
 | **Ein Anspruch im Token ist bis zu einer Stunde alt.** | Wer die Rolle wechselt oder deaktiviert wird, trägt sein altes Token weiter. Deshalb hängt der Aktiv-Zustand nicht nur am Token: die Sperre steht zusätzlich in der Datenbank, und das Anmeldekonto wird gesperrt. Drei Riegel, weil jeder für sich eine Lücke lässt. |
 | **Ein neuer Schlüsseltyp ist kein JWT.** | Ein `sb_secret_…` gehört nur in den `apikey`-Kopf; im `Authorization`-Kopf prüft das Tor ihn als JWT und weist ihn ab. Dieselbe Regel steht in `shared/dienstSchluessel.ts`, in `scripts/bootstrap-postgres.mjs` und in `app.anstoss_kopfzeilen()`. |
@@ -234,8 +234,8 @@ neue Technik einführt.
 
 | Falle von damals | Was heute an ihrer Stelle steht |
 |---|---|
-| **Der Emulator legt fehlende Indizes still selbst an** — lokal lief alles, produktiv blieb die Ansicht leer („Kundenakte ohne Baustellen"). | Postgres kennt keine Pflichtindizes; eine Abfrage ohne Index ist langsam, nicht leer. Dafür wacht `tests/supabase/schema.test.ts` darüber, dass jede Mandantentabelle einen Index mit `company_id` oder einem Fremdschlüssel als führender Spalte hat. **Die Lehre bleibt: ein lokaler Stand, der mehr verzeiht als der echte, ist eine Falle.** |
-| **Ein fehlendes Dokument wurde ABGELEHNT, nicht leer beantwortet** — `getUserByUid` warf, statt `null` zu liefern. | Unter dem Zeilenschutz ist es genau umgekehrt und das ist die bessere Eigenschaft: eine Zeile, die man nicht sehen darf, ist nicht „verboten", sondern nicht vorhanden. Fehlender und fremder Datensatz sehen von aussen gleich aus. |
+| **Der Emulator legt fehlende Indizes still selbst an** — lokal lief alles, produktiv blieb die Ansicht leer („Kundenakte ohne Baustellen“). | Postgres kennt keine Pflichtindizes; eine Abfrage ohne Index ist langsam, nicht leer. Dafür wacht `tests/supabase/schema.test.ts` darüber, dass jede Mandantentabelle einen Index mit `company_id` oder einem Fremdschlüssel als führender Spalte hat. **Die Lehre bleibt: ein lokaler Stand, der mehr verzeiht als der echte, ist eine Falle.** |
+| **Ein fehlendes Dokument wurde ABGELEHNT, nicht leer beantwortet** — `getUserByUid` warf, statt `null` zu liefern. | Unter dem Zeilenschutz ist es genau umgekehrt und das ist die bessere Eigenschaft: eine Zeile, die man nicht sehen darf, ist nicht „verboten“, sondern nicht vorhanden. Fehlender und fremder Datensatz sehen von außen gleich aus. |
 | **`vi.useFakeTimers()` ohne Einschränkung fror den Firestore-Client ein.** | Der Supabase-Client hängt an `fetch`, nicht an eigenen Zeitgebern. `vi.useFakeTimers({ toFake: ['Date'] })` steht trotzdem überall, wo Zeit gestellt wird — es ist die richtige Gewohnheit. |
 | **Trigger liefen MINDESTENS einmal, nicht genau einmal** — ein `+= delta` verzählte sich beim Wiederholungslauf, deshalb rechnete die Monatsbilanz jeden betroffenen Monat komplett neu. | Postgres-Trigger laufen im selben Vorgang wie die Änderung, also genau einmal. Die verdichteten Monatszahlen sind heute die Sicht `monthly_stats` — sie rechnet bei der Abfrage und kann sich gar nicht mehr verzählen. |
 | **Ein Schnappschuss kam zweimal** — einmal aus dem lokalen Zwischenspeicher, einmal vom Server, mit gleichem Inhalt und neuem Array. | Die Live-Verbindung liefert einzelne Änderungen, keine ganzen Listen. Wer einen Effekt an die Identität eines Arrays hängt, rechnet trotzdem doppelt — das ist eine React-Falle, keine Datenbank-Falle. |
@@ -256,7 +256,7 @@ Tabelle ist damit automatisch geprüft oder fällt durch.
 **Wer wohin darf, steht NUR in `src/app/navigation.ts`.** `RequireNav` liest
 Rolle *und* Modul aus demselben Eintrag, aus dem auch der Reiter gebaut wird.
 Vorher stand es zusätzlich als `RequireRole` an jeder Route — die Listen
-liefen auseinander, und die Projektleitung sah fünf Reiter, die „Kein Zugriff"
+liefen auseinander, und die Projektleitung sah fünf Reiter, die „Kein Zugriff“
 sagten. **Nicht wieder auseinanderziehen.** Ein statischer Test wacht darüber.
 
 **Was der Server tut, statt der Browser — und warum:**
@@ -269,8 +269,8 @@ sagten. **Nicht wieder auseinanderziehen.** Ein statischer Test wacht darüber.
 | Sicht `monthly_stats` | Verdichtete Zeitkonten, damit der Saldo nicht die ganze Historie lädt. Früher ein nächtlicher Lauf mit eigenem Zählwerk — heute rechnet die Datenbank es bei der Abfrage. |
 | Trigger `material_orders_push` → Edge Function `push-melden` | Push. Der Auslöser gehört an die Änderung, nicht an den Browser, der sie ausgelöst hat: der kann weg sein, bevor die Meldung raus ist. |
 | `app.schein_pruefsumme_setzen` (Trigger) | Friert den unterschriebenen Schein ein. Eine Prüfsumme, die der Browser rechnet, beweist nichts. |
-| `app.zahlstand_setzen` (Trigger) | Leitet den Zahlungsstand einer Rechnung aus ihren Eingängen ab. Ein Haken von Hand wird abgewiesen: „Bezahlt" ist eine Zahl, keine Meinung. |
-| `app.vorrechnungen_pruefen` (Trigger) | Der Abzug auf der Schlussrechnung. Der teure Fehler ist der doppelte Abzug — der Kunde zahlt zu wenig, und es fällt beim Jahresabschluss auf. Eine Prüfung im Browser sähe nur, was gerade geladen ist. Geprüft wird ausserdem, dass die Rechnung aufgeht: Gesamtleistung − Abzüge = Rechnungsbetrag. |
+| `app.zahlstand_setzen` (Trigger) | Leitet den Zahlungsstand einer Rechnung aus ihren Eingängen ab. Ein Haken von Hand wird abgewiesen: „Bezahlt“ ist eine Zahl, keine Meinung. |
+| `app.vorrechnungen_pruefen` (Trigger) | Der Abzug auf der Schlussrechnung. Der teure Fehler ist der doppelte Abzug — der Kunde zahlt zu wenig, und es fällt beim Jahresabschluss auf. Eine Prüfung im Browser sähe nur, was gerade geladen ist. Geprüft wird außerdem, dass die Rechnung aufgeht: Gesamtleistung − Abzüge = Rechnungsbetrag. |
 | `public.betrieb_auszug` | Auskunft nach Art. 15 DSGVO: der ganze Bestand als Datei. Seitenweise gelesen und gedeckelt — deshalb ist sie NICHT die Sicherung. |
 | Edge Function `daten-ausleitung` + `pg_cron` | Die Sicherung: schreibt jede Nacht den Bestand jedes Mandanten zeilenweise weg, samt Dateien, und räumt alte Stände auf. Von Hand anstoßbar, damit sich überhaupt prüfen lässt, ob sie läuft. |
 | Edge Function `mitarbeiter-anlegen` | Ein Anmeldekonto anlegen braucht den Dienstschlüssel. Der steht sonst im ausgelieferten JavaScript. Die Zeile in der Belegschaft schreibt weiterhin der Browser — siehe `README.md`, das ist Absicht. |
@@ -287,7 +287,7 @@ eigenen Tabelle hoch, und die darf nicht geleert werden: ein neu angelegter
 Zähler begänne wieder von vorn, und der Betrieb hätte zwei Rechnungen mit
 derselben Nummer in den Büchern.
 
-**Erklärungen hinter das „i" (`InfoHint`), Zustandsmeldungen nicht.** Was
+**Erklärungen hinter das „i“ (`InfoHint`), Zustandsmeldungen nicht.** Was
 immer gilt, klappt auf Tipp auf. Was gerade passiert oder gleich passieren
 wird — eine Warnung vor doppelten Datensätzen, die Folgen eines Stornos —
 bleibt sichtbar. **Eine Folge hinter einem Aufklapper ist keine Warnung.**
@@ -349,7 +349,7 @@ hinterlegt, und solange die Reitermarkierung aus `--accent` kam, war sie der
 einzige rote Punkt auf einer türkisen Seite. **Eine Markierung ist keine
 Handlung.**
 
-**Verläufe nur auf den grossen dunklen Trägerflächen** — Seitenleiste,
+**Verläufe nur auf den großen dunklen Trägerflächen** — Seitenleiste,
 Kopfleiste, Tableiste, Anmeldekopf, Sprach-Banner — und auf der 3 px hohen
 Markenkante. Alles andere ist einfarbig: Karten, Knöpfe, Kästen, Blätter,
 Dialoge. Der erste Entwurf hatte überall welche; nebeneinander war das kein
@@ -363,7 +363,7 @@ darunter gehört dem `html`. Die dunklen Ränder malt deshalb die App selbst —
 Kopf- und Tableiste rechnen `env(safe-area-inset-*)` in ihr Innenmaß ein.
 
 **Das Kästchen ist `.checkbox`, nicht `accent-color`.** `accent-color` färbt
-den Haken und sonst nichts; Grösse, Rundung und Rahmen bleiben die des
+den Haken und sonst nichts; Größe, Rundung und Rahmen bleiben die des
 Betriebssystems. Es gibt acht Kästchen in der App und nur eines davon läuft
 durch `CheckboxField` — eine Klasse in `index.css` ist die einzige Fassung,
 die alle acht gleich hält.
@@ -376,11 +376,11 @@ farbiger Schrift auf der Fläche der Karte.
 **Ein MELDUNGSKASTEN trägt die Farbe nur in der Schrift** — `border-line` wie
 jeder andere Rahmen, `bg-surface-2` als Fläche. Das ging über zwei Irrwege:
 zuerst die pastellgelb und pastellrot GEFÜLLTEN Kästen (die einzigen
-Farbflächen der App ausserhalb der Familie Türkis/Tinte — sie fielen auf, weil
+Farbflächen der App außerhalb der Familie Türkis/Tinte — sie fielen auf, weil
 sie fremd waren, nicht weil sie dringend waren), dann eine 3 px breite linke
 Kante in der Zustandsfarbe. Die Kante war ein DRITTES Idiom neben Pille und
 Kartenkante, und drei verschiedenfarbige Balken untereinander sahen verspielt
-aus. Aus dem Betrieb: „ich bin kein Fan von diesen einseitigen Balken."
+aus. Aus dem Betrieb: „ich bin kein Fan von diesen einseitigen Balken.“
 
 Die Begründung für den jetzigen Stand ist einfacher als beide Vorgänger: in
 einem Meldungskasten IST der Text die Meldung. Die Farbe sitzt damit genau
@@ -458,19 +458,19 @@ zwei verschiedene Codestände dieselben Zahlen.
 
 ### Die Edge Functions — was geprüft ist und was nicht
 
-Überholt ist der frühere Satz „die Edge Functions laufen ungetestet": alle
+Überholt ist der frühere Satz „die Edge Functions laufen ungetestet“: alle
 fünf (`mitarbeiter-anlegen`, `passwort-vergeben`, `betrieb-anlegen`,
 `daten-ausleitung`, `push-melden`) werden in `tests/supabase/` gegen den
 laufenden örtlichen Stapel aufgerufen — mit den Abweisungen, nicht nur dem
-glücklichen Fall. **Was kein Test erreicht, sind die Gegenstellen draussen:**
+glücklichen Fall. **Was kein Test erreicht, sind die Gegenstellen draußen:**
 der echte Versand an Firebase Cloud Messaging und das echte Sicherungsziel
-ausser Haus. Und die Functions laufen örtlich unter dem Supabase-CLI, nicht
+außer Haus. Und die Functions laufen örtlich unter dem Supabase-CLI, nicht
 im gehosteten Projekt — ob dort dieselben Einstellungen gelten (etwa, ob der
 Anmeldedienst eine `.invalid`-Adresse beim Anlegen annimmt), zeigt erst der
 erste echte Aufruf.
 
 **Fallstrick beim örtlichen Prüfen:** `supabase start` liest die Liste der
-Functions beim Start. Eine NEUE Function ist bis zum Neustart „not found",
+Functions beim Start. Eine NEUE Function ist bis zum Neustart „not found“,
 und eine geänderte läuft im Edge-Worker noch mit dem alten Stand, bis der
 Container neu startet (`docker restart supabase_edge_runtime_…`). Eine
 Gegenprobe ohne Neustart ist deshalb wertlos — sie bleibt grün, weil der
@@ -512,7 +512,7 @@ externen Speicherort landet der Stand im Storage DESSELBEN Supabase-Projekts.
 Fällt das Projekt aus oder wird der Zugang gesperrt, ist die Sicherung genauso
 weg wie die Daten. Der Handgriff dagegen steht in `DEPLOYMENT.md`; er braucht
 eine Entscheidung darüber, wohin — und ein Konto dort. **Die Zugangsdaten
-dafür gehören ausschliesslich in die Edge-Function-Secrets des
+dafür gehören ausschließlich in die Edge-Function-Secrets des
 Supabase-Projekts**, nicht ins Repository, nicht in GitHub-Secrets.
 
 ---
@@ -520,7 +520,7 @@ Supabase-Projekts**, nicht ins Repository, nicht in GitHub-Secrets.
 ## 7. Nächste Schritte
 
 Der vollständige Fahrplan mit Begründung je Stufe steht in `ROADMAP.md`
-unter „Der Weg zum Start in Österreich". Die Reihenfolge dort, kurz:
+unter „Der Weg zum Start in Österreich“. Die Reihenfolge dort, kurz:
 
 1. ~~**Zahlungseingang**~~ — **erledigt am 19.09.2026.** Datum, Betrag und
    Art je Rechnung; der Zahlungsstand wird daraus abgeleitet und lässt sich
@@ -541,7 +541,7 @@ unter „Der Weg zum Start in Österreich". Die Reihenfolge dort, kurz:
    Barumsätze hat. Wenn nein, entfällt die ganze Stufe.
 6. **Ansichtstests sind fertig; als Nächstes Prüfnetz für die Edge Functions**
    (siehe §6) und ein zweiter Betrieb von Hand, um die Mandantentrennung
-   einmal von aussen zu sehen.
+   einmal von außen zu sehen.
 
 ---
 
@@ -558,7 +558,7 @@ Praktisch heißt das:
   der beantragt, aber nicht genehmigt werden kann, ist kein halbes Feature,
   sondern keines.
 - **Lücken benennen, statt sie zu verschweigen.** `FUNKTIONEN.md` hat eine
-  Spalte „Bekannte Lücke", und sie ist gefüllt. Eine Behauptung, etwas sei
+  Spalte „Bekannte Lücke“, und sie ist gefüllt. Eine Behauptung, etwas sei
   geprüft, muss stimmen.
 - **Kommentare erklären, warum.** Bei jeder nicht offensichtlichen
   Entscheidung steht daneben, welcher Fehler sie verhindert. Das ist kein

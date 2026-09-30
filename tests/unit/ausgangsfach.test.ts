@@ -100,7 +100,7 @@ describe('schreiben', () => {
     expect(l.inhalt()).toHaveLength(0);
   });
 
-  it('sagt NICHT „vorgemerkt", wenn das Lager selbst scheitert', async () => {
+  it('sagt NICHT „vorgemerkt“, wenn das Lager selbst scheitert', async () => {
     const l = lagerImKopf();
     l.kaputt = true;
     // Sonst bekäme der Monteur eine Bestätigung für etwas, das nirgends liegt.

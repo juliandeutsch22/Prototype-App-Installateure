@@ -165,7 +165,7 @@ async function anstehendeZeilen() {
   await screen.findAllByText(/Bäckerei Stein/);
   const ueberschrift = screen.getByText(/^Steht an/);
   const karte = ueberschrift.closest('section');
-  if (!karte) throw new Error('Abschnitt „Steht an" nicht gefunden');
+  if (!karte) throw new Error('Abschnitt „Steht an“ nicht gefunden');
   return within(karte as HTMLElement);
 }
 

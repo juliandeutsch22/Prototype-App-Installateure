@@ -29,7 +29,7 @@ beforeEach(() => {
 });
 
 describe('Das Band der Supportsitzung', () => {
-  it('sagt bei „mitarbeiten", was im Einblick nicht geht', () => {
+  it('sagt bei „mitarbeiten“, was im Einblick nicht geht', () => {
     einblick = freigabe('mitarbeiten');
     render(<Supportsitzung />);
     const band = screen.getByRole('status');
@@ -44,7 +44,7 @@ describe('Das Band der Supportsitzung', () => {
     }
   });
 
-  it('bleibt bei „ansehen" bei dem einen Satz', () => {
+  it('bleibt bei „ansehen“ bei dem einen Satz', () => {
     einblick = freigabe('ansehen');
     render(<Supportsitzung />);
     const band = screen.getByRole('status');

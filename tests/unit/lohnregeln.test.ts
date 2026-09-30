@@ -58,7 +58,7 @@ describe('M35 — der Nachtzuschlag gilt nur für die Stunden in der Nachtzeit',
     expect(zuschlagszeit([eintrag()], true).nachtMin).toBe(90);
   });
 
-  it('die Pause geht zuerst von der Zeit ausserhalb der Nacht ab', () => {
+  it('die Pause geht zuerst von der Zeit außerhalb der Nacht ab', () => {
     // 20:00–23:30, 30 Minuten Pause: zwei Stunden davor, die Nachtstunden bleiben.
     expect(nachtArbeitMin(eintrag({ breakDuration: 30 }))).toBe(90);
     // 22:00–02:00 mit 30 Minuten Pause: alles ist Nacht, die Pause auch.

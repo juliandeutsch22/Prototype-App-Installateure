@@ -63,7 +63,7 @@ describe('Rechnung gegen unterschriebenen Schein', () => {
     expect(a.auffaellig).toBe(false);
   });
 
-  it('schweigt bei einer Stunde auf einer grossen Baustelle', () => {
+  it('schweigt bei einer Stunde auf einer großen Baustelle', () => {
     expect(AUFFAELLIG_AB_ANTEIL).toBe(0.25);
     // 41 h gegen 40 h bestätigt — absolut über der Grenze, anteilig nichts.
     const a = scheinAbgleich('2026-042', [eintrag(2460)], [schein([2400])]);
@@ -173,7 +173,7 @@ describe('Rechnung unter dem unterschriebenen Schein', () => {
     expect(a.zuWenig).toBe(false);
   });
 
-  it('lässt die Richtung „mehr" unverändert', () => {
+  it('lässt die Richtung „mehr“ unverändert', () => {
     const offen = scheinAbgleich('2026-042', [eintrag(600)], [schein([240])], new Set(['s1']));
     const ohne = scheinAbgleich('2026-042', [eintrag(600)], [schein([240])]);
     expect(offen.mehrMin).toBe(ohne.mehrMin);

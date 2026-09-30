@@ -43,7 +43,7 @@ describe('Was gilt, wenn der Betrieb nichts festgelegt hat', () => {
   });
 });
 
-describe('„Nicht festgelegt" ist nicht dasselbe wie „keiner"', () => {
+describe('„Nicht festgelegt“ ist nicht dasselbe wie „keiner“', () => {
   it('eine leere Zeichenkette bleibt leer', () => {
     /*
       OHNE DIESEN UNTERSCHIED KÄME EIN BETRIEB SEINEN VORSATZ NIE LOS: jede
@@ -92,7 +92,7 @@ describe('Die laufende Nummer überlebt einen Wechsel des Vorsatzes', () => {
 });
 
 describe('Ein getippter Vorsatz wird geputzt, nicht abgewiesen', () => {
-  it('Kleinbuchstaben werden gross', () => {
+  it('Kleinbuchstaben werden groß', () => {
     expect(praefixPutzen('re')).toBe('RE');
   });
 
@@ -176,7 +176,7 @@ describe('Das Kennzeichen', () => {
 });
 
 describe('hoechsteLfdImJahr — nur Nummern im Schema des Jahres (Launch-Check, K6)', () => {
-  it('überspringt „PR-187", das Vorjahr und fremde Nummern', async () => {
+  it('überspringt „PR-187“, das Vorjahr und fremde Nummern', async () => {
     const { hoechsteLfdImJahr } = await import('@/lib/praefixe');
     expect(hoechsteLfdImJahr(['PR-187', 'PR-2026-0003', 'B-2025-0900', '2026-0002', 'Bauträger 4711'], 2026)).toBe(3);
     expect(hoechsteLfdImJahr([], 2026)).toBe(0);

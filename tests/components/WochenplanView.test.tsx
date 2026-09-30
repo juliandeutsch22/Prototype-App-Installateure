@@ -437,7 +437,7 @@ describe('Team-Woche (nur lesen)', () => {
     expect(within(screen.getByRole('region', { name: 'Wochenplan als Liste' })).queryAllByRole('button')).toEqual([]);
   });
 
-  it('sagt „abwesend" statt „Urlaub" — und holt die Urlaube nicht selbst', async () => {
+  it('sagt „abwesend“ statt „Urlaub“ — und holt die Urlaube nicht selbst', async () => {
     einsaetze = [];
     abwesend = [{ userId: 'u2', von: MITTWOCH, bis: MITTWOCH }];
     zeigeLesend();
@@ -450,7 +450,7 @@ describe('Team-Woche (nur lesen)', () => {
     expect(vollerUrlaubGeholt).not.toHaveBeenCalled();
   });
 
-  it('zählt nicht „frei" — das ist eine Frage der Planung, nicht des Teams', async () => {
+  it('zählt nicht „frei“ — das ist eine Frage der Planung, nicht des Teams', async () => {
     einsaetze = [];
     zeigeLesend();
     await screen.findByRole('heading', { name: 'Team-Woche' });
@@ -477,7 +477,7 @@ describe('Wochenplan — Abwesenheiten mit Grund', () => {
     expect(tabelle().getByRole('button', { name: /Mi.*02\.09.*Tagesplanung/ })).toHaveTextContent('2 frei');
   });
 
-  it('ganztägig abwesend ohne Grund heisst „abwesend" — und zählt nicht als frei', async () => {
+  it('ganztägig abwesend ohne Grund heißt „abwesend“ — und zählt nicht als frei', async () => {
     // So sieht die Projektleitung einen Krankenstand.
     abwesend = [{ userId: 'u2', von: MITTWOCH, bis: MITTWOCH, grund: null, zeiten: null }];
     zeige();
@@ -486,7 +486,7 @@ describe('Wochenplan — Abwesenheiten mit Grund', () => {
     expect(tabelle().getByRole('button', { name: /Mi.*02\.09.*Tagesplanung/ })).toHaveTextContent('1 frei');
   });
 
-  it('Betriebsurlaub: grauer Block für alle, niemand frei — ausser wer eingeteilt ist', async () => {
+  it('Betriebsurlaub: grauer Block für alle, niemand frei — außer wer eingeteilt ist', async () => {
     betriebsurlaube = [{ id: 'b1', von: MITTWOCH, bis: MITTWOCH, bezeichnung: 'Betriebsurlaub' }];
     einsaetze = [
       { id: 'a1', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann' } as Assignment & { id: string },

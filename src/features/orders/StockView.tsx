@@ -301,8 +301,8 @@ export default function StockView() {
               ) : rows.length === 0 ? (
                 <EmptyState>
                   {materials.length === 0
-                    ? 'Noch kein Material im Katalog. Der Reiter „Katalog" legt den ersten Eintrag an.'
-                    : `Kein Material passt zu „${search}".`}
+                    ? 'Noch kein Material im Katalog. Der Reiter „Katalog“ legt den ersten Eintrag an.'
+                    : `Kein Material passt zu „${search}“.`}
                 </EmptyState>
               ) : (
                 <List>
