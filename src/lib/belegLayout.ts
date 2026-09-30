@@ -257,7 +257,8 @@ export function positionsTabelle(
     foot: o.fuss,
     columnStyles: {
       1: { halign: 'right', cellWidth: 17 },
-      2: { cellWidth: 17 },
+      // Breit genug für „Pauschale“ in einer Zeile (Testbericht 30.09.2026, G17).
+      2: { cellWidth: 22 },
       3: { halign: 'right', cellWidth: 27 },
       4: { halign: 'right', cellWidth: 27 },
     },
