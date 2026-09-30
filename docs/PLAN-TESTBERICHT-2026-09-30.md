@@ -54,7 +54,7 @@ reproduziert ist es damit noch nicht — das ist der erste Schritt jedes Fixes
 
 ## Paket 1 – Geld, Belege, Anmeldung (Startblocker)
 
-**PR 1a: K1, K2, H4, H5**
+**PR 1a: K1, K2, H4, H5, H6**
 
 - **K1 – Links führen auf localhost**
   - Rücksetzmail: `redirectTo` = Adresse der laufenden App (`window.location.origin`). Damit stimmt der Link auf jeder Domain, ohne Umgebungsvariable im Browser.
@@ -83,7 +83,7 @@ reproduziert ist es damit noch nicht — das ist der erste Schritt jedes Fixes
 - Die Zeitumstellung muss in SQL dasselbe ergeben wie `shared/arbeitszeit.ts`. Eine Prüfung vergleicht beide an denselben Fällen.
 - Im selben Schritt geprüft: Rechnungssummen (schon serverseitig) und Zuschläge.
 
-**H6 – Datum der Stornorechnung:** wartet auf die Steuerberatung. Ich lege nur einen ausgearbeiteten Vorschlag bei: Ausstellungsdatum als Rechnungsdatum, Stornotag im Text.
+**H6 – Datum der Stornorechnung** (in PR 1a, entschieden am 30.09.): Die Stornorechnung trägt das Ausstellungsdatum, der Storno-Tag steht im Text. Nummer und Datum laufen damit gleich. Ausgestellte Stornorechnungen bleiben unverändert. Die Steuerberatung bestätigt nachträglich.
 
 ---
 
@@ -101,23 +101,29 @@ reproduziert ist es damit noch nicht — das ist der erste Schritt jedes Fixes
 **PR 2b: M4, M6, M7, M5**
 - **M4:** „Resturlaub beim Umstieg“ wird Pflichtfeld bei „arbeitet schon im Betrieb“.
 - **M6:** Eintrittsdatum und Saldo-Startdatum getrennt speichern. Die Migration übernimmt das Saldo-Startdatum als Eintritt, wo keins steht. Begriffe in Akte und Formular werden gleich.
-- **M7** (Entscheidung, siehe unten): Buchungen vor dem Eintritt sperren; zwischen Eintritt und Saldo-Start warnen.
-- **M5:** optional ein Tagessoll je Wochentag; die Standardverteilung bleibt unverändert.
+- **M7:** Buchungen vor dem Eintritt sperrt die Datenbank; zwischen Eintritt und Saldo-Start warnt die Maske (der Anfangssaldo deckt diese Zeit ab).
+- **M5:** optional ein Tagessoll je Wochentag, **an der Person** (etwa ein kurzer Freitag); ohne Angabe bleibt die heutige gleichmäßige Verteilung.
 
-**Wartet auf Klärung:**
-- **M3** (WKO): aliquoter Urlaub.
-- **M35** (Kollektivvertrag): Nachtzuschlag stundengenau.
-- **Überstundenmodell** (deine Bestätigung vom 30.09. offen): Zeitkonto (Vorgabe) oder Tagesgrenze mit Überstunden in der Lohn-CSV, je Betrieb einstellbar.
+**PR 2c: Überstundenmodell, M3, M35**
+- **Überstundenmodell**, je Betrieb wählbar:
+  - Zeitkonto/Gleitzeit bleibt die Vorgabe (wie heute);
+  - alternativ eine Tagesgrenze: Stunden über dem Tagessoll (bei Gleitzeit über 10 h) als Überstunden 50 %, optional 100 % für Sonn- und Feiertag;
+  - ausgewiesen werden nur Stunden, in Lohn-CSV und Stundennachweis, nie Geld.
+- **M3 – aliquoter Urlaub** nach meiner Lesart von § 2 UrlG: im Rumpfjahr **taggenau** (Jahresanspruch × Kalendertage ab Eintritt ÷ Tage des Urlaubsjahres) statt monatsweise; der Sprung um zwei Tage verschwindet. Der Hinweistext nennt die Rechenregel. Später mit der WKO abgleichen.
+- **M35 – Nachtzuschlag stundengenau:** Nur die Stunden in der Nachtzeit bekommen den Zuschlag. Die Nachtzeit ist je Betrieb einstellbar (Vorgabe 22–6 Uhr). Die Maske schlägt den Zuschlag vor, wenn Stunden hineinfallen. Später mit der WKO abgleichen.
 
 ---
 
 ## Paket 3 – Datenschutz und Rechte
 
 **PR 3a: H8, H10, M9**
-- **H8 – Kunden:** Monteure lesen nur Kunden ihrer eingeteilten Baustellen und nur Name, Adresse, Ansprechpartner und Telefon.
+- **H8 – Kunden** (entschieden am 30.09.):
+  - Monteure lesen **alle** Kunden, aber nur Name und Adresse.
+  - Bei Kunden ihrer eingeteilten Baustellen, Wartungen und Scheine kommen Ansprechpartner und Telefon dazu.
+  - E-Mail, UID und Notizen bleiben bei Büro und Leitung.
   - Umsetzung über eine eingeschränkte Sicht bzw. Funktion, weil Zeilenschutz keine Spalten ausblenden kann.
   - **Vorher** jede Ansicht des Monteurs gegen Kundendaten prüfen (Schein, Einsatz, Baustelle, Wartung), damit nichts leer wird.
-- **H8 – Krankmeldungen:** Vom Büro erfasste Meldungen kann der Monteur nicht löschen, bei eigenen nur „Ende ändern“. Dafür braucht die Tabelle `erfasst_von`; bestehende Zeilen gelten als selbst erfasst.
+- **H8 – Krankmeldungen:** Vom Büro erfasste Meldungen kann der Monteur nur ansehen. Selbst erfasste kann er ändern und löschen, solange sie noch nicht begonnen haben; danach nur noch das Ende ändern. Dafür braucht die Tabelle `erfasst_von`; bestehende Zeilen gelten als selbst erfasst.
 - **H8 – Hochladen:** Die App legt Stundennachweise nicht selbst unter „Pläne“ ab (wird bestätigt). Deshalb ein fester Hinweis im Hochlade-Dialog und eine Warnung bei Dateinamen wie „Stunden“ oder einem Mitarbeiternamen.
 - **H10:** Die Buchhaltung pflegt Basiszinssatz, Mahnspesen, Skonto und Zahlungsziel; die Stunden- und Kostensätze bleiben bei der Leitung. Datenbankregel und Oberfläche werden gemeinsam angepasst.
 - **M9:**
@@ -135,7 +141,12 @@ reproduziert ist es damit noch nicht — das ist der erste Schritt jedes Fixes
   - Startpasswort ohne festes Muster.
 - Der Urlaubszähler zählt nur, was die Person entscheiden darf. Resturlaub der Administration wird mit dem Handbuch abgeglichen.
 
-**Wartet auf Entscheidung:** M37 und M38 (Zuschnitt für Lager und Projektleitung).
+**PR 3c: M37, M38** (entschieden am 30.09.)
+- Keine neuen Rollen, sondern **vergebbare Freigaben** nach dem Muster „Kunden pflegen“:
+  - „Katalog einspielen“ und „Einkaufspreise sehen“ (für den Lageristen);
+  - „Rechnungen lesen“ (für die Projektleitung, ihre Baustellen, ohne Anlegen).
+- Projektleitung: Filter „meine Baustellen“ in der Baustellenliste.
+- Ob die Projektleitung im Einsatzplan einteilbar ist und „Mein Einsatzplan“ sieht, ist eine **Betriebseinstellung** (Vorgabe: aus). Siehe auch M34 in PR 7a.
 
 ---
 
@@ -183,10 +194,15 @@ reproduziert ist es damit noch nicht — das ist der erste Schritt jedes Fixes
 - **M21:** Rückzahlung eines Guthabens als Zahlungsausgang.
 - **G30:** Basiszinssätze als Verlauf je Halbjahr.
 
-**Wartet auf Klärung:**
-- **H7** (Kanzlei-Importtest): Spalten, Steuercodes und Steuerbetrag im BMD-Stapel. Debitorennummern (M12) und Zahlungen/Skonto als eigenen Stapel kann ich vorher bauen.
-- **M22:** Höhe der Mahnspesengrenze.
-- **M23:** Test mit simuliertem Datum, in PR 5a.
+**In PR 5a zusätzlich:**
+- **M22 – Mahnspesen** (entschieden am 30.09.; keine Rechtsberatung, mit der WKO bestätigen):
+  - Unternehmer: höchstens die Pauschale von 40 € einmal je Rechnung (§ 458 UGB), hart geprüft.
+  - Privatkunden: Das Gesetz nennt keinen Betrag, nur „angemessen“ (§ 1333 Abs 2 ABGB). Die Maske warnt ab 40 € je Rechnung; der Betrieb darf bewusst darüber gehen.
+- **M23:** Mahnlauf-Test mit simuliertem Datum.
+
+**In PR 5b zusätzlich:**
+- **H7 – vorgebaut:** Debitorennummer je Kunde (aus M12) und Zahlungseingänge/Skonto als eigener Stapel.
+- **Erst nach dem Kanzlei-Importtest:** Spaltenköpfe, Steuercodes und Steuerbetrag.
 
 ---
 
@@ -201,9 +217,11 @@ reproduziert ist es damit noch nicht — das ist der erste Schritt jedes Fixes
 - **G5:** gleiche Felder beim Anlegen und in der Akte; Adresse aus dem Kunden vorschlagen.
 - **G7:** die Suche auch in der Ansicht, die der Test meinte.
 
-**Wartet auf Entscheidung:**
-- M11 (Dubletten);
-- M16–M18 (Angebote), mit Empfehlung zur Reihenfolge, siehe unten.
+**PR 6b: M11, M17, M16** (entschieden am 30.09.)
+- **M11:** Ein gleicher Kundenname ist erlaubt; beim Anlegen erscheint eine Rückfrage „Es gibt schon … (Adresse) – trotzdem anlegen?“.
+- **M17:** ein versendetes Angebot als Kopie bzw. neue Version überarbeiten.
+- **M16:** Abrechnungsart beim Annehmen wählen: Pauschal (wie heute), Regie oder Einheitspreis nach Aufmaß.
+- **M18** (Katalogartikel, Positionsrabatt, Titel- und Textpositionen) ist **für später vermerkt**, nach Rückmeldung der Pilotbetriebe.
 
 ---
 
@@ -216,7 +234,7 @@ reproduziert ist es damit noch nicht — das ist der erste Schritt jedes Fixes
 - Abholer der Rüstlisten-Anforderung ist der eingeteilte Monteur.
 
 **PR 7b (Lager): M27, M28, M29, M32, M36, G8, G14, G19**
-- **M27 – Dezimalmengen je Einheit:** Die Datenbanktypen ändern sich (`integer` → `numeric`), in Wareneingang, Anforderung, Rüstliste, Schein und Rechnung; bestehende Werte bleiben gleich.
+- **M27 – Dezimalmengen je Einheit:** m, lfm, kg, l, m² und m³ mit Nachkommastellen; Stk, Pkg und Set bleiben ganzzahlig, damit „2,5 Stück“ als Tippfehler auffällt. Die Datenbanktypen ändern sich (`integer` → `numeric`), in Wareneingang, Anforderung, Rüstliste, Schein und Rechnung; bestehende Werte bleiben gleich.
 - **M28:** Der Bestand ändert sich nur über Bewegungen; Inventurkorrektur mit Grund, Bewegungsprotokoll je Artikel.
 - **M29:** Wareneingang mit Lieferant, Lieferschein und Bestellbezug.
 - **M32:** Die Rüstliste reserviert Bestand.
@@ -225,8 +243,15 @@ reproduziert ist es damit noch nicht — das ist der erste Schritt jedes Fixes
 
 **PR 7c: M30, M31, M39**
 - Katalog getrennt vom Lager, mit Mindestmenge.
-- Materialaufschlag als Vorschlag.
+- Materialaufschlag: ein Standard in % je Betrieb, optional abweichend je Warengruppe (aus DATANORM). Der Verkaufspreis wird vorgeschlagen und bleibt überschreibbar.
 - Anlagendaten der Wartung; nächster Termin aus „zuletzt gewartet“ plus Intervall.
+
+**PR 7d: Lehrlinge, Punkte 1–4 aus 4.1** (vorgezogen am 30.09.)
+- Einstufung in der Benutzerakte: Facharbeiter, Obermonteur, Helfer, Lehrling. Beim Lehrling Lehrbeginn und Lehrzeit; das Lehrjahr ergibt sich daraus.
+- Verrechnungs- und Kostensatz je Stufe bzw. Lehrjahr unter „Sätze und Kosten“, ohne feste Vorgabe.
+- Die Zeitbuchung übernimmt den Satz aus der Einstufung; der Helfer-Haken bleibt für Ausnahmen.
+- Status „Berufsschule“: erfüllt das Tagessoll, nicht verrechenbar, Blocklehrgang als Zeitraum, im Wochenplan „abwesend“.
+- Einstufung, Lehrjahr und Berufsschulstunden in der Lohn-CSV.
 
 ---
 
@@ -237,7 +262,7 @@ reproduziert ist es damit noch nicht — das ist der erste Schritt jedes Fixes
 - Leere Karten verschwinden; feste Reihenfolge je Rolle nach der Tabelle in 4.2.
 - Voraussetzung: Die Fachseiten brauchen die Filter, auf die „und N weitere“ zeigt (z. B. Baustellen „über Budget“). Diese Filter entstehen im selben PR.
 - Abnahme: ein Browser-Test mit 40 Baustellen, 20 Anforderungen und 10 Personen in Handy- und Schreibtischbreite; die Seite ist höchstens etwa zwei Bildschirmhöhen lang.
-- Das ist eine sichtbare Umgestaltung. Bevor ich baue, lege ich je Rolle eine Skizze vor.
+- Das ist eine sichtbare Umgestaltung. Bevor ich baue, lege ich je Rolle eine Skizze mit Beispieldaten vor (entschieden am 30.09.); gebaut wird nach deiner Abnahme.
 
 ---
 
@@ -249,9 +274,10 @@ reproduziert ist es damit noch nicht — das ist der erste Schritt jedes Fixes
   - „Support (lesend)“ statt „Administrator“;
   - richtige Adresse nach dem Anmelden bzw. nach „Einblick beenden“;
   - Zeitstempel beschriftet.
-- **P1 + P2 (zusammen, nach deiner Festlegung der Identitätsprüfung):**
+- **P1 + P2 (zusammen):**
   - erster Admin mit Benutzername;
   - eng begrenzte Reset-Funktion mit fünf Schutzregeln;
+  - **Identitätsprüfung** (entschieden am 30.09.): Rückruf an die Telefonnummer aus Firmenbuch oder Gewerberegister. Im Reset-Dialog ist das eine Pflichtangabe, die ins Protokoll des Betriebs geht;
   - Gegenproben für E-Mail-Konten, Mitarbeiter-Konten und fehlenden Notzugang.
 
 ---
@@ -262,7 +288,8 @@ reproduziert ist es damit noch nicht — das ist der erste Schritt jedes Fixes
   - durchgehend ß;
   - einheitliche Anführungszeichen „…“;
   - TT.MM.JJJJ und Dezimalkomma;
-  - dazu eine Quelltext-Prüfung nach dem Muster der Eurozeichen-Prüfung.
+  - dazu eine Quelltext-Prüfung nach dem Muster der Eurozeichen-Prüfung;
+  - gilt für **alles Sichtbare** (Oberfläche, Belege, Exporte, Push-Texte, Handbuch, Doku); Code-Kommentare bleiben.
   - Das berührt viele Dateien und läuft deshalb als eigener, rein textlicher PR ohne Verhaltensänderung.
 - **Weitere Punkte:**
   - G9: abgeschnittener Platzhalter;
@@ -277,11 +304,9 @@ reproduziert ist es damit noch nicht — das ist der erste Schritt jedes Fixes
 
 ## Paket 11 – Erweiterungen (nach dem Start bzw. nach Klärung)
 
-- **Lehrlinge (4.1):**
-  - Einstufung an der Person;
-  - Sätze je Stufe und Lehrjahr;
-  - Status „Berufsschule“.
-  - Die KJBG-Warnungen erst nach Klärung mit der WKO.
+- **Lehrlinge:** Punkte 1–4 sind vorgezogen (PR 7d); die KJBG-Warnungen kommen erst nach Klärung mit der WKO.
+- **M18 – Angebote:** Katalogartikel, Positionsrabatt, Titel- und Textpositionen.
+- **M10 – VIES:** Knopf „online prüfen“ für die UID.
 - **Weitere Lücken:**
   - Personalnummer, Lohnarten;
   - Fahrzeuglager, Inventur;
@@ -303,24 +328,39 @@ reproduziert ist es damit noch nicht — das ist der erste Schritt jedes Fixes
 
 ---
 
-## Entscheidungen, die ich brauche (mit Empfehlung)
+## Entscheidungen vom 30.09.2026
 
-| Punkt | Frage | Empfehlung |
-|---|---|---|
-| **M7** | Buchungen vor dem Eintritt sperren oder warnen? | **Vor dem Eintritt sperren** (Datenbank). Zwischen Eintritt und Saldo-Start **warnen**: der Anfangssaldo deckt diese Zeit ab. |
-| **M11** | Dubletten | **Gleichen Namen zulassen, mit Rückfrage** „Es gibt schon … (Adresse) – trotzdem anlegen?“ |
-| **M16–M18** | Angebote | Reihenfolge: **M17** Duplizieren/Version (klein) → **M16** Abrechnungsart beim Annehmen → **M18** Katalogartikel, Rabatt, Titel (groß, erst nach Rückmeldung der Pilotbetriebe). |
-| **M37, M38** | Lager und Projektleitung | **Keine neuen Rollen**, sondern vergebbare Freigaben wie „Kunden pflegen“: „Katalog einspielen“, „Einkaufspreise sehen“, „Rechnungen lesen“. Dazu für die Projektleitung der Filter „meine Baustellen“. |
-| **H1** | Falsche Stunden überschreiben oder abweisen? | **Überschreiben**, wenn Uhrzeiten da sind; **abweisen** bei Arbeitszeit ohne Uhrzeit. |
-| **Überstunden** | Modell je Betrieb | wie am 30.09. vorgeschlagen; bitte bestätigen. |
-| **Paket 8** | Startseite | vor dem Bau eine Skizze je Rolle zur Abnahme. |
+Alle Entscheidungspunkte sind geklärt und oben an ihrer Stelle eingetragen:
+
+| Punkt | Entscheidung |
+|---|---|
+| **M7** | Vor dem Eintritt sperren, zwischen Eintritt und Saldo-Start warnen |
+| **H1** | Stunden überschreiben, wenn Uhrzeiten da sind |
+| **Überstunden** | je Betrieb wählbar: Zeitkonto (Vorgabe) oder Tagesgrenze |
+| **M5** | Tagessoll je Wochentag an der Person |
+| **M11** | gleicher Name erlaubt, mit Rückfrage |
+| **M16–M18** | M17 und M16 bauen, M18 für später vermerkt |
+| **M37** | vergebbare Freigaben statt neuer Rolle |
+| **M38** | Filter „meine Baustellen“, Freigabe „Rechnungen lesen“, Einsatzplan für die Projektleitung als Betriebseinstellung |
+| **H8 Kunden** | alle lesen Name und Adresse; eigene Baustellen zusätzlich Ansprechpartner und Telefon |
+| **H8 Krank** | Büro-Meldungen nur ansehen; eigene bis Beginn änderbar und löschbar, danach nur das Ende |
+| **H6** | Ausstellungsdatum, Storno-Tag im Text |
+| **M22** | Unternehmer höchstens 40 € (§ 458 UGB); Privatkunden Warnung ab 40 € |
+| **H7** | Debitorennummer sowie Zahlungen und Skonto vorbauen |
+| **M27** | Nachkommastellen je Einheit |
+| **M31** | Standard-Aufschlag plus Warengruppe |
+| **P1/P2** | bauen; Identitätsprüfung per Rückruf an die Registernummer |
+| **Paket 8** | erst Skizze je Rolle |
+| **G1** | ß, „…“ und Datumsformat in allem Sichtbaren |
+| **Lehrlinge** | Punkte 1–4 jetzt, KJBG später |
+| **M3, M35** | jetzt nach meiner Lesart, später mit der WKO abgleichen |
+| **M10** | nur Formatprüfung, VIES später |
+| **Arbeitsweise** | durcharbeiten: jeder PR wird bei grüner Prüfung gemergt, live geprüft und kurz berichtet; angehalten wird nur bei neuen Fragen und für die Startseiten-Skizze |
 
 **Extern bleibt offen:**
-- H6, M26, H7: Steuerberatung bzw. Kanzlei;
-- M3, M35, KJBG: WKO;
 - K4: Anwalt;
-- P2: Identitätsprüfung (du);
-- K3: Umgang mit der bestehenden Lücke bei Perl (Steuerberatung).
+- H7 (Format): Kanzlei;
+- Bestätigungen durch die Steuerberatung (H6, M26, K3 bei Perl) und die WKO (M3, M35, M22, KJBG).
 
 ---
 
@@ -328,15 +368,15 @@ reproduziert ist es damit noch nicht — das ist der erste Schritt jedes Fixes
 
 | Schritt | Inhalt | Umfang |
 |---|---|---|
-| 1 | PR 1a (K1, K2, H4, H5) | mittel |
+| 1 | PR 1a (K1, K2, H4, H5, H6) | mittel |
 | 2 | PR 1b (H1) | mittel |
 | 3 | PR 2a (H3, H2, M8, G18) | mittel |
 | 4 | PR 3a (H8, H10, M9) | mittel bis groß (Kundenleserecht) |
 | 5 | PR 4a (H9) | offen, bis die Ursache gemessen ist |
-| 6 | PR 2b, 3b, 4b | je klein bis mittel |
-| 7 | PR 5a, 6a, 7a, 9 (M43/G21) | je klein bis mittel |
-| 8 | PR 5b, 7b | je groß (Datenmodell) |
-| 9 | Paket 8 (Startseite) | groß, nach Skizzenabnahme |
+| 6 | PR 2b, 2c, 3b, 3c, 4b | je klein bis mittel |
+| 7 | PR 5a, 6a, 6b, 7a, 9 (M43/G21, P1/P2) | je klein bis mittel |
+| 8 | PR 5b, 7b, 7d | je groß (Datenmodell) |
+| 9 | Paket 8 (Startseite) | Skizze, nach Abnahme groß |
 | 10 | Paket 10 (Texte), 7c | mittel |
 
 Mit den Schritten 1 bis 5 sind alle K- und H-Punkte erledigt, die im Code
