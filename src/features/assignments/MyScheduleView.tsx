@@ -23,6 +23,7 @@ import PageHeader from '@/components/PageHeader';
 import MonthCalendar from '@/components/MonthCalendar';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { ganztagsWeg } from './besetzung';
+import { einsatzZeit } from './einsatzZeit';
 
 /** 'YYYY-MM-DD' -> 'Mo., 15.06.2026'. */
 function fmtDay(iso: string): string {
@@ -349,6 +350,7 @@ export default function MyScheduleView() {
                             {/* „Heute" war rot. Es ist kein Ausfall, sondern der
                                 Einsatz, der GERADE läuft. */}
                             {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
+                            {einsatzZeit(a) && <Marke>{einsatzZeit(a)}</Marke>}
                             <Marke>{a.asHelper ? 'Helfer' : 'Facharbeiter'}</Marke>
                           </span>
                         </div>
@@ -440,7 +442,10 @@ export default function MyScheduleView() {
                           <span className="block truncate text-ink">
                             {proj?.customerName ?? a.projectNumber}
                           </span>
-                          <span className="block text-xs text-ink-muted">{fmtDay(a.date)}</span>
+                          <span className="block text-xs text-ink-muted">
+                            {fmtDay(a.date)}
+                            {einsatzZeit(a) ? ` · ${einsatzZeit(a)}` : ''}
+                          </span>
                         </span>
                         <span className="flex shrink-0 gap-2">
                           {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}

@@ -51,6 +51,7 @@ import { euroGerundet } from '@/lib/betrag';
 import { baustellenTitel } from '@/lib/baustellenTitel';
 import { besetzung, fehlenText, ganztagsWeg } from '@/features/assignments/besetzung';
 import { listAbwesendInRange } from '@/lib/db/vacations';
+import { einsatzZeit } from '@/features/assignments/einsatzZeit';
 
 /**
  * 'YYYY-MM-DD' -> 'Mo., 01.09.'
@@ -102,6 +103,8 @@ interface EinsatzZeile {
   contactPhone?: string;
   asHelper: boolean;
   comment?: string;
+  /** Die Uhrzeit, falls geplant (M34): „07:30–12:00“. */
+  zeit?: string | null;
   /**
    * Die Ruestliste dieses Einsatzes — was mitzunehmen ist.
    *
@@ -305,6 +308,7 @@ export default function DashboardView() {
               contactPhone: pr?.contactPhone,
               asHelper: !!a.asHelper,
               comment: a.comment,
+              zeit: einsatzZeit(a),
             };
           });
         } else {
@@ -694,7 +698,10 @@ export default function DashboardView() {
                   {e.customerName}
                   {e.asHelper && <Marke>Helfer</Marke>}
                 </p>
-                <p className="text-meta text-ink-muted">{e.projectNumber}</p>
+                <p className="text-meta text-ink-muted">
+                  {e.zeit ? `${e.zeit} · ` : ''}
+                  {e.projectNumber}
+                </p>
                 {/* Die Notiz des Büros bleibt in Tinte, nicht gedämpft: sie
                     sagt, was heute zu tun ist („Verteiler, Vormittag"). */}
                 {e.comment && <p className="mt-1 text-sm text-ink">{e.comment}</p>}

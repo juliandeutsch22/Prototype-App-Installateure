@@ -40,6 +40,7 @@ import { useModul } from '@/lib/useModule';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
+import { einsatzZeit } from './einsatzZeit';
 
 /** 'YYYY-MM-DD' -> 'Fr., 28.08.2026'. */
 function fmtDay(iso: string): string {
@@ -96,6 +97,9 @@ export default function AssignmentsView() {
   const [projectNumber, setProjectNumber] = useState(uebergabe?.projectNumber ?? '');
   const [picks, setPicks] = useState<Record<string, Pick>>({});
   const [comment, setComment] = useState('');
+  /** Optional die Uhrzeit des Einsatzes (M34). Leer: der ganze Tag. */
+  const [zeitVon, setZeitVon] = useState('');
+  const [zeitBis, setZeitBis] = useState('');
   const [monthAssignments, setMonthAssignments] = useState<WithId<Assignment>[]>([]);
   const [urlaube, setUrlaube] = useState<Abwesenheit[]>([]);
   const [betriebsurlaube, setBetriebsurlaube] = useState<Betriebsurlaub[]>([]);
@@ -252,6 +256,8 @@ export default function AssignmentsView() {
     if (!projectNumber) {
       setPicks({});
       setComment('');
+      setZeitVon('');
+      setZeitBis('');
       return;
     }
     const existing = dayAssignments.filter((a) => a.projectNumber === projectNumber);
@@ -259,6 +265,8 @@ export default function AssignmentsView() {
     for (const a of existing) next[a.userId] = { on: true, asHelper: !!a.asHelper };
     setPicks(next);
     setComment(existing[0]?.comment ?? '');
+    setZeitVon(existing[0]?.zeitVon ?? '');
+    setZeitBis(existing[0]?.zeitBis ?? '');
   }, [projectNumber, dayAssignments]);
 
   /**
@@ -365,6 +373,11 @@ export default function AssignmentsView() {
       );
       return;
     }
+    // M34: eine Uhrzeit ist freiwillig — wenn beide da sind, dann in der richtigen Folge.
+    if (zeitVon && zeitBis && zeitBis <= zeitVon) {
+      setError('Das Ende des Einsatzes liegt vor dem Beginn — bitte die Uhrzeiten prüfen.');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -379,6 +392,8 @@ export default function AssignmentsView() {
           // Haken kostet bare Münze.
           asHelper: !!picks[u.uid]?.asHelper,
           comment,
+          zeitVon: zeitVon || null,
+          zeitBis: zeitBis || null,
           createdBy: user.uid,
         }));
       await saveAssignments(user.companyId, date, projectNumber, rows);
@@ -665,6 +680,13 @@ export default function AssignmentsView() {
               <InputField id="acomment" label="Kommentar / Aufgabe" value={comment}
                 onChange={(e) => setComment(e.target.value)} />
             </div>
+            {/* M34: optional — ohne Uhrzeit gilt der ganze Tag. */}
+            <div className="mt-4 grid grid-cols-2 gap-4 sm:max-w-sm">
+              <InputField id="azeitvon" label="Beginn (optional)" type="time" value={zeitVon}
+                onChange={(e) => setZeitVon(e.target.value)} />
+              <InputField id="azeitbis" label="Ende (optional)" type="time" value={zeitBis}
+                onChange={(e) => setZeitBis(e.target.value)} />
+            </div>
             {/*
               Nicht verbieten, sondern sagen. Bei einem Notdienst holt man auch
               mal jemanden aus dem Urlaub; eine Sperre stünde dann im Weg. Ein
@@ -790,6 +812,7 @@ export default function AssignmentsView() {
                           <span className="text-sm font-normal text-ink-muted">({pn})</span>
                         </h3>
                         <span className="flex flex-wrap items-center gap-2">
+                          {einsatzZeit(rows[0]) && <Marke>{einsatzZeit(rows[0])}</Marke>}
                           <Marke>{fach} Facharbeiter</Marke>
                           {helper > 0 && <Marke>{helper} Helfer</Marke>}
                           {/*

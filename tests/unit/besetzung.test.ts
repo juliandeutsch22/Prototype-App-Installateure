@@ -32,3 +32,18 @@ describe('besetzung', () => {
     expect(fehlenText([{ name: 'Erna', grund: null }])).toBe('Erna');
   });
 });
+
+import { einsatzZeit } from '@/features/assignments/einsatzZeit';
+
+// Testbericht 30.09.2026, M34 — die Uhrzeit eines Einsatzes.
+describe('einsatzZeit', () => {
+  it('von–bis, ab, bis', () => {
+    expect(einsatzZeit({ zeitVon: '07:30', zeitBis: '12:00' })).toBe('07:30–12:00');
+    expect(einsatzZeit({ zeitVon: '07:30:00' })).toBe('ab 07:30');
+    expect(einsatzZeit({ zeitBis: '12:00' })).toBe('bis 12:00');
+  });
+  it('Gegenprobe: ohne Uhrzeit nichts — der ganze Tag', () => {
+    expect(einsatzZeit({})).toBeNull();
+    expect(einsatzZeit({ zeitVon: null, zeitBis: '' })).toBeNull();
+  });
+});
