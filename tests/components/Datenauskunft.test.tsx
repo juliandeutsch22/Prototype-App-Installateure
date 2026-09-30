@@ -137,3 +137,27 @@ describe('Der Dateiname', () => {
     expect(auskunftDateiname('  ', '2026-09-29')).toBe('datenauskunft-person-2026-09-29.json');
   });
 });
+
+describe('Löschen bei einem aktiven Konto (Testbericht 30.09.2026, M42)', () => {
+  const zeichneMitarbeiter = (aktiv: boolean) =>
+    render(
+      <ToastProvider>
+        <Datenauskunft art="mitarbeiter" id="u-1" aktiv={aktiv} />
+      </ToastProvider>,
+    );
+
+  it('sagt vorher „zuerst deaktivieren“, und der Knopf ruht', () => {
+    zeichneMitarbeiter(true);
+    expect(screen.getByRole('button', { name: /Löschen/ })).toBeDisabled();
+    expect(screen.getByText(/Zuerst deaktivieren\./)).toBeInTheDocument();
+    expect(loeschen).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: bei einem deaktivierten Konto startet der Probelauf', async () => {
+    loeschen.mockResolvedValue({ art: 'mitarbeiter', person: 'Max', geloescht: false, ganz: false, hinweis: '', sofort: {}, aufbewahren: [] });
+    zeichneMitarbeiter(false);
+    expect(screen.queryByText(/Zuerst deaktivieren\./)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Löschen/ }));
+    await waitFor(() => expect(loeschen).toHaveBeenCalledWith('mitarbeiter', 'u-1', true));
+  });
+});
