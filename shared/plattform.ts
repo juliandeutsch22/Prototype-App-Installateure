@@ -119,3 +119,36 @@ export function betriebNormalisiert(b: NeuerBetrieb): NeuerBetrieb {
     adminName: b.adminName.trim(),
   };
 }
+
+/**
+ * Wohin ein Rücksetz- oder Einladungslink nach dem Bestätigen führt.
+ *
+ * OHNE DIESE ANGABE nimmt der Anmeldedienst seine „Site URL" — und die stand
+ * im Pilotbetrieb noch auf dem Entwicklungswert: der erste Administrator
+ * eines neuen Betriebs landete auf `localhost` und kam nie in sein Konto
+ * (Testbericht 30.09.2026, K1). Die Einstellung im Projekt ist inzwischen
+ * richtig; dass ein Link funktioniert, soll aber nicht an einer Einstellung
+ * hängen, die niemand sieht.
+ *
+ * ZUERST DIE AUSDRÜCKLICH GESETZTE ADRESSE, dann die Herkunft der Anfrage:
+ * die App ruft von ihrer eigenen Adresse aus, und genau dorthin soll der
+ * Link zurück. Gilt keine von beiden, bleibt es beim Dienst — `null`.
+ * Der Dienst nimmt ohnehin nur Adressen an, die in seiner Erlaubnisliste
+ * stehen; eine fremde Herkunft führt deshalb nirgendwohin.
+ */
+export function ruecksprungAdresse(
+  festgelegt?: string | null,
+  herkunft?: string | null,
+): string | null {
+  for (const kandidat of [festgelegt, herkunft]) {
+    const text = (kandidat ?? '').trim();
+    if (!text) continue;
+    try {
+      const adresse = new URL(text);
+      if (adresse.protocol === 'https:' || adresse.protocol === 'http:') return `${adresse.origin}/`;
+    } catch {
+      // Keine Adresse — die nächste Quelle versuchen.
+    }
+  }
+  return null;
+}

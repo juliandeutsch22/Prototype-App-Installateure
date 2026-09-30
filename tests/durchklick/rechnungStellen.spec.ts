@@ -185,7 +185,14 @@ test('Erst die Anzahlung, dann die Schlussrechnung mit Abzug', async ({ page }) 
   await page.locator('#inv-art').selectOption('schluss');
   await page.getByRole('button', { name: 'Positionen zusammenstellen' }).click();
 
-  await page.getByRole('checkbox', { name: /brutto \(davon/ }).check();
+  /*
+    DER ABZUG IST GESETZT, OHNE DASS JEMAND KLICKT (Testbericht 30.09.2026,
+    K2) — und er lässt sich nicht abwählen. Im Pilotbetrieb ging eine
+    Schlussrechnung ohne ihre Anzahlung hinaus, weil das Häkchen fehlte.
+  */
+  const abzug = page.getByRole('checkbox', { name: /brutto \(davon/ });
+  await expect(abzug).toBeChecked();
+  await expect(abzug).toBeDisabled();
   await expect(page.getByText('Restforderung brutto')).toBeVisible();
 
   await page.getByRole('button', { name: /Rechnung erstellen/ }).click();

@@ -11,7 +11,9 @@ import { kunstadresse } from '@shared/benutzername';
 const anmelden = vi.fn<(a0: { email: string; password: string }) => Promise<{ error: null }>>(
   async () => ({ error: null }),
 );
-const zuruecksetzen = vi.fn<(a0: string) => Promise<{ error: null }>>(async () => ({ error: null }));
+const zuruecksetzen = vi.fn<(a0: string, a1?: { redirectTo: string }) => Promise<{ error: null }>>(
+  async () => ({ error: null }),
+);
 const aendern = vi.fn<(a0: unknown) => Promise<{ error: { message: string; code?: string } | null }>>(
   async () => ({ error: null }),
 );
@@ -74,7 +76,24 @@ describe('Passwort vergessen', () => {
 
   it('schickt für eine Adresse den Link wie bisher', async () => {
     await sitzung.passwortZuruecksetzen('petra@perl.at');
-    expect(zuruecksetzen).toHaveBeenCalledWith('petra@perl.at');
+    expect(zuruecksetzen.mock.calls[0][0]).toBe('petra@perl.at');
+  });
+
+  /*
+    TESTBERICHT 30.09.2026, K1: der Link führte auf `localhost`, weil er
+    keine Zieladresse trug und der Dienst seine „Site URL" nahm. Jetzt führt
+    er dorthin, wo die App läuft.
+  */
+  it('der Link führt zur laufenden App zurück, nicht auf die Site URL des Dienstes', async () => {
+    vi.stubGlobal('window', { location: { origin: 'https://senklot.example' } });
+    try {
+      await sitzung.passwortZuruecksetzen('petra@perl.at');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(zuruecksetzen).toHaveBeenCalledWith('petra@perl.at', {
+      redirectTo: 'https://senklot.example/',
+    });
   });
 });
 

@@ -8,6 +8,23 @@ Aufwand. Was den Produktivbetrieb blockiert, steht oben.
 > worauf man sich verlassen kann*, findet das in
 > **[docs/FUNKTIONEN.md](./FUNKTIONEN.md)** — inklusive der Lücken.
 
+> **Aktueller Umsetzungsplan:** [PLAN-TESTBERICHT-2026-09-30.md](./PLAN-TESTBERICHT-2026-09-30.md)
+> — die Befunde des Testberichts vom 30.09.2026, mit dem Code abgeglichen
+> und in Pakete bzw. PRs geordnet.
+
+---
+
+## Erledigt: Testbericht 30.09.2026, PR 1a — Geld, Belege, Anmeldung
+
+- **K1** Rücksetz- und Einladungslinks tragen ihre Zieladresse selbst: die App, von der aus sie angefordert wurden (`ruecksprungAdresse`). Vorher nahm der Anmeldedienst seine „Site URL“, und die stand auf `localhost`.
+- **K2** Die Schlussrechnung zieht offene Anzahlungs- und Teilrechnungen ab — vorausgewählt, nicht abwählbar, und in der Datenbank erzwungen. Schon ausgestellte Fälle nennt der Buchhaltungs-Export.
+- **H4** Kein Storno ohne Grund, auch nicht über die Schnittstelle.
+- **H5** „Überfällig“ nur nach dem Zahlungsziel; der Menüpunkt von Hand ist weg, zu früh gesetzte Stände sind zurückgenommen.
+- **H6** Die Stornorechnung trägt das Ausstellungsdatum und zählt im Jahr der Ausstellung.
+- **K3** war schon am 25.09. geschlossen (Gegenprobe in `modulGeld.test.ts`).
+
+Nebenbei: `abwesenheiten.test.ts` fragte Betriebsurlaube ohne Betriebsfilter ab und hing damit an der Reihenfolge der Testdateien; die Rechnungsarten-Tests teilten sich eine Baustelle. Beide sind jetzt voneinander unabhängig.
+
 ---
 
 ## Fahrplan: was die App zu einer vollständigen Betriebslösung fehlt

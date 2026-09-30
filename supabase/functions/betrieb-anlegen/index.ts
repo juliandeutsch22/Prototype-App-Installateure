@@ -28,7 +28,9 @@
  * sie startet auch dann, wenn die Registry gerade nicht erreichbar ist, und
  * zwischen zwei Auslieferungen verschiebt sich unter ihr nichts.
  */
-import { betriebFehler, betriebNormalisiert, type NeuerBetrieb } from '../_shared/plattform.ts';
+import {
+  betriebFehler, betriebNormalisiert, ruecksprungAdresse, type NeuerBetrieb,
+} from '../_shared/plattform.ts';
 import {
   alleDienstSchluessel, dienstKopfzeilen, SCHLUESSEL_FEHLT,
 } from '../_shared/dienstSchluessel.ts';
@@ -196,10 +198,20 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     globale Administrator hat das Konto gerade selbst erzeugt — der Link gibt
     ihm nichts, was er nicht ohnehin schon hätte.
   */
+  /*
+    WOHIN DER LINK FÜHRT, steht ausdrücklich darin (Testbericht 30.09.2026,
+    K1): `APP_URL`, wenn das Projekt sie als Geheimnis kennt, sonst die
+    Adresse der App, von der der globale Administrator gerade anlegt. Ohne
+    diese Angabe nahm der Dienst seine „Site URL" — und die stand auf
+    `localhost`.
+  */
+  const ziel = ruecksprungAdresse(Deno.env.get('APP_URL'), req.headers.get('Origin'));
   const linkAntwort = await fetch(`${URL_BASIS}/auth/v1/admin/generate_link`, {
     method: 'POST',
     headers: alsDienst,
-    body: JSON.stringify({ type: 'recovery', email: betrieb.adminEmail }),
+    body: JSON.stringify({
+      type: 'recovery', email: betrieb.adminEmail, ...(ziel ? { redirect_to: ziel } : {}),
+    }),
   });
   const link = linkAntwort.ok ? await linkAntwort.json() : {};
 

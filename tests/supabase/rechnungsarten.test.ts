@@ -8,7 +8,7 @@
  * Jahresabschluss auf. Eine Prüfung im Browser hilft dagegen nicht: sie sieht
  * nur, was gerade geladen ist.
  */
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach, beforeEach } from 'vitest';
 import { admin, betriebAnlegen, buchung, konto, type Konto } from './helfer';
 import * as rechnungen from '@/lib/db/pg/invoices';
 import { clientEinreichen, type WithId } from '@/lib/db/pg/kern';
@@ -34,6 +34,20 @@ afterEach(() => clientEinreichen(buch.client));
 
 let lfd = 2000;
 
+/*
+  JEDER TEST AUF SEINER EIGENEN BAUSTELLE. Seit dem Testbericht vom 30.09.2026
+  (K2) muss eine Schlussrechnung ALLE offenen Anzahlungen ihrer Baustelle
+  abziehen. Liefen die Tests auf einer gemeinsamen Baustelle, stünde jede
+  Schlussrechnung neben den Anzahlungen der Tests davor — und würde zu Recht
+  abgewiesen. Geprüft würde dann die Reihenfolge der Tests, nicht die Regel.
+*/
+let baustellenNr = 200;
+let baustelle = 'B-200';
+beforeEach(() => {
+  baustellenNr += 1;
+  baustelle = `B-${baustellenNr}`;
+});
+
 /** Eine Rechnung über 1.200 € brutto, mit frei wählbarer Art und Baustelle. */
 async function anlegen(
   extra: Partial<rechnungen.NewInvoice> = {},
@@ -42,7 +56,7 @@ async function anlegen(
   lfd += 1;
   return rechnungen.createInvoice(betrieb, {
     invoiceNumber: `RE-${JAHR}-${lfd}`,
-    projectNumber: 'B-200',
+    projectNumber: baustelle,
     customerName: 'Familie Huber',
     invoiceDate: '2026-04-30',
     dueDate: '2026-05-14',

@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Invoice, Material, Project, TimeEntry, WorkSheet } from '@/types';
 import InvoicesView from '@/features/invoices/InvoicesView';
+import { cancelInvoice } from '@/lib/db/invoices';
 
 /**
  * Die Rechnungsansicht — bis jetzt ohne eigenen Test, und dabei die Ansicht,
@@ -98,6 +99,8 @@ const listInvoicesForProject = vi.fn(async () => {
 const listInvoicesInRange = vi.fn<(a0: string, a1: string, a2: string) => Promise<(Invoice & { id: string })[]>>(
   async () => imZeitraum,
 );
+/** Ausgestellte Schlussrechnungen ohne Abzug ihrer Anzahlung (Testbericht 30.09.2026, K2). */
+let ohneAbzug: { invoiceNumber: string; fehlend: string }[] = [];
 /*
   Welche Scheine laut Abdeckung ALLER Rechnungen verrechnet sind (Prüflauf
   25.09.2026, P2-03) — die Quelle für „nicht verrechnete Leistung".
@@ -145,6 +148,7 @@ vi.mock('@/lib/db/invoices', async () => {
     */
     listInvoicesInRange: (c: string, von: string, bis: string) =>
       listInvoicesInRange(c, von, bis),
+    schlussrechnungenOhneAbzug: async () => ohneAbzug,
     subscribeRecentInvoices: (
       _c: string,
       _g: number,
@@ -335,6 +339,7 @@ beforeEach(() => {
   alleScheine = [];
   offene = [];
   imZeitraum = [];
+  ohneAbzug = [];
   derBaustelle = [];
   baustellenAbfrageWirft = false;
   konten = [];
@@ -1516,6 +1521,27 @@ describe('Der Buchhaltungs-Export', () => {
     expect(screen.getByText(/Erlöskonto für 20 % Umsatzsteuer/)).toBeInTheDocument();
   });
 
+  it('nennt vor dem Export ausgestellte Schlussrechnungen ohne Abzug (K2)', async () => {
+    imZeitraum = [journal('0001', '2026-09-01')];
+    ohneAbzug = [{ invoiceNumber: 'RE-2026-1502', fehlend: 'RE-2026-1501' }];
+    zeige();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }),
+    );
+    expect(await screen.findByText(/Schlussrechnung ohne Abzug der Anzahlung/)).toBeInTheDocument();
+    expect(screen.getByText(/RE-2026-1502 \(nicht abgezogen: RE-2026-1501\)/)).toBeInTheDocument();
+  });
+
+  it('ohne solche Fälle keine Meldung (Gegenprobe)', async () => {
+    imZeitraum = [journal('0001', '2026-09-01')];
+    zeige();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }),
+    );
+    await screen.findByText(/1 Rechnung/);
+    expect(screen.queryByText(/Schlussrechnung ohne Abzug/)).toBeNull();
+  });
+
   it('rechnet nicht über die Liste, sondern holt den Zeitraum', async () => {
     // Die Arbeitsliste ist LEER — und das Journal trotzdem vollständig.
     rechnungen = [];
@@ -2073,8 +2099,9 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     derBaustelle = [ANZAHLUNG];
     await bisZurVorschau('schluss');
 
+    // Bei der Schlussrechnung ist der Abzug gesetzt, ohne dass jemand klickt (K2).
     const haken = await screen.findByRole('checkbox', { name: /RE-2026-1001/ });
-    await userEvent.click(haken);
+    expect(haken).toBeChecked();
 
     /*
       DIE STEUERFALLE: ohne Abzug stünde die Steuer der Anzahlung ein zweites
@@ -2092,7 +2119,7 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     */
     derBaustelle = [{ ...ANZAHLUNG, totalNetto: 200, totalVat: 40, totalBrutto: 240 }];
     const bestaetigen = await bisZurVorschau('schluss');
-    await userEvent.click(await screen.findByRole('checkbox', { name: /RE-2026-1001/ }));
+    expect(await screen.findByRole('checkbox', { name: /RE-2026-1001/ })).toBeChecked();
     await userEvent.click(bestaetigen);
 
     await waitFor(() => expect(lege).toHaveBeenCalled());
@@ -2148,11 +2175,39 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
   it('eine schon gewählte Anzahlung fällt heraus, wenn danach Reverse Charge angehakt wird', async () => {
     derBaustelle = [ANZAHLUNG];
     await bisZurVorschau('schluss');
-    await userEvent.click(await screen.findByRole('checkbox', { name: /RE-2026-1001/ }));
+    expect(await screen.findByRole('checkbox', { name: /RE-2026-1001/ })).toBeChecked();
     expect(screen.getByText(/Restforderung brutto/)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
     expect(screen.queryByText(/Restforderung brutto/)).toBeNull();
+  });
+
+  /*
+    TESTBERICHT 30.09.2026, K2: RE-2026-1502 ging ohne die Anzahlung hinaus,
+    weil das Häkchen nicht gesetzt war. Bei der Schlussrechnung ist der Abzug
+    jetzt Pflicht — vorausgewählt und nicht abwählbar.
+  */
+  it('bei der Schlussrechnung ist die Anzahlung abgezogen und lässt sich nicht abwählen', async () => {
+    // Kleiner als die Leistung im Test (624 € brutto) — sonst wäre es eine Gutschrift.
+    derBaustelle = [{ ...ANZAHLUNG, totalNetto: 200, totalVat: 40, totalBrutto: 240 }];
+    const bestaetigen = await bisZurVorschau('schluss');
+    const haken = await screen.findByRole('checkbox', { name: /RE-2026-1001.*wird abgezogen/ });
+    expect(haken).toBeChecked();
+    expect(haken).toBeDisabled();
+    await userEvent.click(haken);
+    expect(haken).toBeChecked();
+
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect((lege.mock.calls[0][0] as Invoice).vorrechnungen?.map((v) => v.invoiceId)).toEqual(['a1']);
+  });
+
+  it('bei der Teilrechnung bleibt der Abzug eine Wahl (Gegenprobe)', async () => {
+    derBaustelle = [ANZAHLUNG];
+    await bisZurVorschau('teil');
+    const haken = await screen.findByRole('checkbox', { name: /RE-2026-1001/ });
+    expect(haken).not.toBeChecked();
+    expect(haken).toBeEnabled();
   });
 
   it('eine Reverse-Charge-Anzahlung passt zu einer Reverse-Charge-Schlussrechnung', async () => {
@@ -2861,5 +2916,66 @@ describe('Skonto beim Anlegen', () => {
     await userEvent.click(knopf);
     await waitFor(() => expect(lege).toHaveBeenCalled());
     expect(lege.mock.calls[0][0]).toMatchObject({ skontoProzent: null, skontoBis: null });
+  });
+});
+
+/*
+  TESTBERICHT 30.09.2026, H4 und H5 — in der Maske. Die Regeln selbst stehen
+  in der Datenbank (tests/supabase/geldUndBelege.test.ts); hier geht es
+  darum, dass die Maske nicht mehr anbietet, was die Datenbank verbietet.
+*/
+describe('Storno und Zahlungsstand', () => {
+  const OFFEN: Invoice & { id: string } = {
+    id: 'h1',
+    companyId: 'perl',
+    invoiceNumber: 'RE-2026-0031',
+    projectNumber: '2026-042',
+    customerName: 'Familie Huber',
+    invoiceDate: '2026-08-20',
+    dueDate: '2026-10-14',
+    positions: [{ label: 'Leistung', qty: 1, unit: 'Pauschale', unitPrice: 1000, netto: 1000 }],
+    totalNetto: 1000,
+    totalVat: 200,
+    totalBrutto: 1200,
+    vatRate: 0.2,
+    paymentStatus: 'Offen',
+  } as unknown as Invoice & { id: string };
+
+  async function menue() {
+    rechnungen = [OFFEN];
+    zeige();
+    await screen.findAllByText(/RE-2026-0031/);
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0031/ }),
+    );
+  }
+
+  it('bietet keinen Status von Hand mehr an (H5)', async () => {
+    await menue();
+    expect(await screen.findByRole('menuitem', { name: 'Stornieren' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Überfällig/ })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /Auf „Offen/ })).toBeNull();
+  });
+
+  it('storniert nicht ohne Grund — und sagt es im Dialog (H4)', async () => {
+    vi.mocked(cancelInvoice).mockClear();
+    await menue();
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Stornieren' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Stornieren' }));
+    expect(await within(dialog).findByText(/Bitte einen Grund angeben/)).toBeInTheDocument();
+    expect(cancelInvoice).not.toHaveBeenCalled();
+  });
+
+  it('mit Grund geht der Storno hinaus (Gegenprobe)', async () => {
+    vi.mocked(cancelInvoice).mockClear();
+    await menue();
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Stornieren' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText(/Grund/), 'Falscher Kunde');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Stornieren' }));
+    await waitFor(() => expect(cancelInvoice).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'h1' }), 'Falscher Kunde',
+    ));
   });
 });

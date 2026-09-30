@@ -25,6 +25,7 @@ import type { Company, CurrentUser, Role } from '@/types';
 import { supabaseClient, merkenSetzen, pruefClient } from '@/lib/supabase';
 import { InactiveUserError, type Angemeldet } from '../kern';
 import { anmeldeAdresse, istBenutzerkonto, KEIN_MAILKONTO } from '@shared/benutzername';
+import { ruecksprungAdresse } from '@shared/plattform';
 
 /** Wo der eigene Zwischenspeicher liegt. */
 const SPEICHER = 'perl.sitzung';
@@ -87,7 +88,15 @@ export async function passwortZuruecksetzen(email: string): Promise<void> {
   */
   const adresse = anmeldeAdresse(email);
   if (istBenutzerkonto(adresse)) throw new Error(KEIN_MAILKONTO);
-  const { error } = await supabaseClient().auth.resetPasswordForEmail(adresse);
+  /*
+    DER LINK FÜHRT DORTHIN ZURÜCK, WO DIE APP GERADE LÄUFT — nicht auf die
+    „Site URL" des Anmeldedienstes, die im Pilotbetrieb auf `localhost` stand
+    (Testbericht 30.09.2026, K1).
+  */
+  const ziel = ruecksprungAdresse(null, typeof window === 'undefined' ? null : window.location.origin);
+  const { error } = await supabaseClient().auth.resetPasswordForEmail(
+    adresse, ziel ? { redirectTo: ziel } : undefined,
+  );
   if (error) throw new Error(error.message);
 }
 

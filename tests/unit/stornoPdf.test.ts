@@ -46,7 +46,7 @@ async function text(invoice: Invoice = rechnung): Promise<string> {
 }
 
 describe('Was auf der Stornorechnung steht', () => {
-  it('ihre eigene Nummer, das Datum des Stornos und die stornierte Rechnung', async () => {
+  it('ihre eigene Nummer, den Tag des Stornos und die stornierte Rechnung', async () => {
     const s = await text();
     expect(s).toContain('Stornorechnung');
     expect(s).toContain('RE-2026-0051');
@@ -54,6 +54,23 @@ describe('Was auf der Stornorechnung steht', () => {
     expect(s).toContain('RE-2026-0042');
     expect(s).toContain('20.08.2026');
     expect(s).toContain('Doppelt verrechnet');
+  });
+
+  /*
+    TESTBERICHT 30.09.2026, H6: der Beleg trug den Tag des Stornos; wurde er
+    später ausgestellt, stand eine höhere Nummer mit älterem Datum im Kreis.
+  */
+  it('trägt das Ausstellungsdatum und nennt den Tag des Stornos im Text', async () => {
+    const s = await text({ ...rechnung, stornoAm: new Date('2026-09-30T09:00:00+02:00').getTime() });
+    expect(s).toMatch(/Datum[\s\S]*30\.09\.2026/);
+    // Der Satz bricht im PDF um — geprüft werden seine Teile.
+    expect(s).toMatch(/Der Storno wurde am/);
+    expect(s).toMatch(/10\.09\.2026 erfasst/);
+  });
+
+  it('am selben Tag ausgestellt: kein doppeltes Datum im Text', async () => {
+    const s = await text({ ...rechnung, stornoAm: new Date('2026-09-10T15:00:00+02:00').getTime() });
+    expect(s).not.toContain('Der Storno wurde am');
   });
 
   it('die Beträge der Rechnung mit umgekehrtem Vorzeichen', async () => {

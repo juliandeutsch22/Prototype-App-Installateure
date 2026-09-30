@@ -43,13 +43,14 @@ async function anmelden(email: string): Promise<string> {
   return daten.access_token as string;
 }
 
-async function anlegen(token: string | null, rumpf: unknown) {
+async function anlegen(token: string | null, rumpf: unknown, extra: Record<string, string> = {}) {
   const antwort = await fetch(FUNKTION, {
     method: 'POST',
     headers: {
       apikey: ANON,
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...extra,
     },
     body: JSON.stringify(rumpf),
   });
@@ -169,6 +170,21 @@ describe('Ein Betrieb entsteht vollständig oder gar nicht', () => {
     const { data: protokoll } = await admin.from('betriebsanlagen')
       .select('name, erster_admin_uid').eq('betrieb_kennung', eingabe.companyId).single();
     expect(protokoll!.erster_admin_uid).toBe(daten.ersterAdminUid);
+  }, 120_000);
+
+  /*
+    TESTBERICHT 30.09.2026, K1: der Link führte auf `localhost`, weil er keine
+    Zieladresse trug und der Dienst seine „Site URL" nahm. Jetzt führt er zur
+    App zurück, von der aus angelegt wurde.
+  */
+  it('der Link führt zur App zurück, von der aus angelegt wurde', async () => {
+    const eingabe = gueltig(`anlage-${crypto.randomUUID().slice(0, 6)}`);
+    const { status, daten } = await anlegen(plattformToken, eingabe, {
+      Origin: 'http://127.0.0.1:3000',
+    });
+    expect(status).toBe(200);
+    const ziel = new URL(daten.passwortLink).searchParams.get('redirect_to');
+    expect(ziel).toBe('http://127.0.0.1:3000/');
   }, 120_000);
 
   it('weist eine vergebene Kennung ab und lässt kein Konto zurück', async () => {
