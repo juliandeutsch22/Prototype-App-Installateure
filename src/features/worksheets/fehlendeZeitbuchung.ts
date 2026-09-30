@@ -198,3 +198,25 @@ export function scheineOhneBuchung(
 export function minutenOhneBuchung(befunde: ScheinOhneBuchung[]): number {
   return befunde.reduce((s, b) => s + b.minutenOhneBuchung, 0);
 }
+
+/**
+ * Wie viele unterschriebene Scheine mit Zeit noch zu jung für die Prüfung
+ * sind (Testbericht 30.09.2026, H2).
+ *
+ * Der Schein des Tages wird bewusst noch nicht gemeldet (`OFFEN_AB_TAGEN`).
+ * Die Karte sagte darunter aber „zu jeder Stunde gibt es eine Buchung“ — für
+ * einen Schein von heute ohne jede Buchung. Die Zahl steht jetzt dabei, damit
+ * „nichts offen“ nicht mehr heisst, als geprüft wurde.
+ */
+export function nochNichtGeprueft(
+  scheine: Array<WorkSheet & { id: string }>,
+  heute: string,
+  abTagen = OFFEN_AB_TAGEN,
+): number {
+  return scheine.filter(
+    (s) =>
+      s.status === 'Unterschrieben' &&
+      tageZwischen(s.datum, heute) < abTagen &&
+      (s.zeiten ?? []).some((z) => z.minuten > 0),
+  ).length;
+}

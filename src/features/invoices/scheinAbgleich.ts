@@ -46,6 +46,20 @@ export interface ScheinAbgleich {
    * und Satz. Leer, wenn alles da ist oder keine offenen Scheine bekannt sind.
    */
   fehlend: FehlendeStunden[];
+  /**
+   * Gebuchte Stunden dieser Rechnung, für die KEIN noch nicht verrechneter
+   * Schein unterschrieben ist — je Person, Tag und Satz (Testbericht
+   * 30.09.2026, H2). Leer, wenn die Baustelle ohne Scheine arbeitet.
+   */
+  ohneSchein: OhneSchein[];
+}
+
+export interface OhneSchein {
+  datum: string;
+  /** So, wie er auf der Buchung steht. */
+  name: string;
+  helfer: boolean;
+  verrechnetMin: number;
 }
 
 export interface FehlendeStunden {
@@ -115,9 +129,18 @@ export function scheinAbgleich(
 
   const verrechnetMin = eintraege.reduce((s, e) => s + Math.max(calcWorkMin(e), 0), 0);
 
-  const eigene = scheine.filter(
+  const alleDerBaustelle = scheine.filter(
     (s) => s.status === 'Unterschrieben' && normProjectNumber(s.projectNumber) === pn,
   );
+  /*
+    NUR SCHEINE, DIE NOCH AUF KEINER RECHNUNG STEHEN (Testbericht 30.09.2026,
+    H2) — auch für die Richtung „mehr“. Mit allen Scheinen der Baustelle
+    meldete die Vorschau „Schein bestätigt 04:30, verrechnet werden 03:30“,
+    obwohl die 4:30 längst auf einer anderen Rechnung standen und die 3:30
+    gar keinen Schein hatten. Ohne Liste der offenen Scheine bleibt es beim
+    alten Verhalten.
+  */
+  const eigene = offen ? alleDerBaustelle.filter((s) => offen.has(s.id)) : alleDerBaustelle;
   const bestaetigtMin = eigene.reduce(
     (s, schein) => s + (schein.zeiten ?? []).reduce((z, zeile) => z + Math.max(zeile.minuten, 0), 0),
     0,
@@ -185,8 +208,35 @@ export function scheinAbgleich(
   }
   fehlend.sort((a, b) => a.datum.localeCompare(b.datum) || a.name.localeCompare(b.name, 'de'));
 
+  /*
+    GEBUCHT, ABER OHNE UNTERSCHRIEBENEN SCHEIN (Testbericht 30.09.2026, H2).
+    Die 3:30 Notdienst-Stunden gingen in die Rechnung, ohne dass ein Kunde sie
+    unterschrieben hatte — und die Vorschau zeigte stattdessen einen längst
+    verrechneten Schein. Gemeldet wird je Person, Tag und Satz, was kein
+    offener Schein abdeckt.
+
+    NUR AUF BAUSTELLEN MIT SCHEINEN. Wer auf einer Baustelle ohne
+    Handwerksscheine arbeitet, bekäme sonst jede Stunde jeder Rechnung als
+    Befund — und nach zwei Tagen würde die Meldung weggeklickt.
+  */
+  const ohneSchein: OhneSchein[] = [];
+  if (offen && alleDerBaustelle.length > 0) {
+    const namen = new Map<string, string>();
+    for (const e of eintraege) {
+      const k = schluessel(e.date, e.userName ?? '', !!e.isHelper);
+      if (!namen.has(k)) namen.set(k, (e.userName ?? '').trim());
+    }
+    for (const [k, min] of verrechnetJe) {
+      if (min <= 0 || bestaetigtJe.has(k)) continue;
+      const [datum, , satz] = k.split('|');
+      ohneSchein.push({ datum, name: namen.get(k) || '—', helfer: satz === 'h', verrechnetMin: min });
+    }
+    ohneSchein.sort((a, b) => a.datum.localeCompare(b.datum) || a.name.localeCompare(b.name, 'de'));
+  }
+
   return {
     fehlend,
+    ohneSchein,
     verrechnetMin,
     bestaetigtMin,
     scheine: eigene.length,

@@ -237,3 +237,43 @@ describe('Rechnung gegen Schein — je Person, Tag und Satz', () => {
     expect(scheinAbgleich('2026-042', [gebucht], [zweiSpannen], new Set(['sz'])).fehlend).toEqual([]);
   });
 });
+
+/*
+  Testbericht 30.09.2026, H2 — PR-2026-0189: die Vorschau meldete „Schein
+  bestätigt 04:30, verrechnet werden 03:30“. Die 4:30 standen aber schon auf
+  RE-2026-1504, und die 3:30 Notdienst-Stunden hatten gar keinen Schein.
+*/
+describe('Nur offene Scheine, und gebuchte Stunden ohne Schein', () => {
+  const verrechneterSchein = schein([270], { id: 'alt' });
+  const notdienst = eintrag(210, { date: '2026-06-16', userName: 'Max' });
+
+  it('ein schon verrechneter Schein bestätigt nichts mehr', () => {
+    const a = scheinAbgleich('2026-042', [notdienst], [verrechneterSchein], new Set());
+    expect(a.scheine).toBe(0);
+    expect(a.bestaetigtMin).toBe(0);
+  });
+
+  it('meldet die gebuchten Stunden ohne Schein je Person, Tag und Satz', () => {
+    const a = scheinAbgleich('2026-042', [notdienst], [verrechneterSchein], new Set());
+    expect(a.ohneSchein).toEqual([{ datum: '2026-06-16', name: 'Max', helfer: false, verrechnetMin: 210 }]);
+  });
+
+  it('schweigt, wenn ein offener Schein Person, Tag und Satz abdeckt', () => {
+    const offenerSchein = schein([210], { id: 'neu', datum: '2026-06-16',
+      zeiten: [{ datum: '2026-06-16', mitarbeiter: 'Max', minuten: 210 }] });
+    const a = scheinAbgleich('2026-042', [notdienst], [verrechneterSchein, offenerSchein], new Set(['neu']));
+    expect(a.ohneSchein).toEqual([]);
+  });
+
+  it('schweigt auf einer Baustelle ganz ohne Scheine', () => {
+    expect(scheinAbgleich('2026-042', [notdienst], [], new Set()).ohneSchein).toEqual([]);
+  });
+
+  it('meldet eine Helferbuchung, wenn der Schein nur Facharbeiterstunden trägt', () => {
+    const offenerSchein = schein([210], { id: 'neu', datum: '2026-06-16',
+      zeiten: [{ datum: '2026-06-16', mitarbeiter: 'Max', minuten: 210 }] });
+    const alsHelfer = { ...notdienst, isHelper: true };
+    const a = scheinAbgleich('2026-042', [alsHelfer], [offenerSchein], new Set(['neu']));
+    expect(a.ohneSchein).toEqual([{ datum: '2026-06-16', name: 'Max', helfer: true, verrechnetMin: 210 }]);
+  });
+});
