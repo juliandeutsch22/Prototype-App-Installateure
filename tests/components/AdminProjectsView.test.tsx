@@ -319,6 +319,31 @@ describe('Baustellen — anlegen', () => {
     await waitFor(() => expect(lege).toHaveBeenCalled());
     expect(lege.mock.calls[0][1].estimatedHours).toBe(40);
   });
+
+  it('legt keine Baustelle mit Ende vor dem Beginn an (Testbericht 30.09.2026, M13)', async () => {
+    zeige();
+    await formOeffnen();
+    await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-045');
+    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await userEvent.type(screen.getByLabelText('Beginn'), '2026-10-05');
+    await userEvent.type(screen.getByLabelText('Ende (geplant)'), '2026-10-01');
+    await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
+
+    expect(await screen.findByText(/Das Ende \(01\.10\.2026\) liegt vor dem Beginn \(05\.10\.2026\)/)).toBeInTheDocument();
+    expect(lege).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: Ende am selben Tag geht', async () => {
+    zeige();
+    await formOeffnen();
+    await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-046');
+    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await userEvent.type(screen.getByLabelText('Beginn'), '2026-10-05');
+    await userEvent.type(screen.getByLabelText('Ende (geplant)'), '2026-10-05');
+    await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
+
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+  });
 });
 
 describe('Baustellen — der Weg in die Akte', () => {
@@ -706,5 +731,90 @@ describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
   it('nennt die Auswahl „Baustellen filtern" — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl"', async () => {
     zeige();
     expect(await screen.findByRole('combobox', { name: 'Baustellen filtern' })).toBeInTheDocument();
+  });
+});
+
+/*
+  TESTBERICHT 30.09.2026, G3, G4, G5, G7 — Anlegen wie in der Akte, Adresse
+  aus dem Kunden als Vorschlag, eine Bezeichnung, und die Suche immer.
+*/
+describe('Baustelle anlegen wie in der Akte (G3, G4, G5)', () => {
+  const MIT_ADRESSE = { ...KUNDE, address: 'Hauptstraße 1, 8010 Graz' } as Customer & { id: string };
+
+  it('schlägt die Anschrift des Kunden vor — und wer tippt, ersetzt sie statt anzuhängen', async () => {
+    kundenBestand = [MIT_ADRESSE];
+    zeige();
+    await formOeffnen();
+    await userEvent.selectOptions(await screen.findByLabelText('Kunde'), 'k1');
+    const adresse = screen.getByLabelText('Baustellenadresse');
+    expect(adresse).toHaveValue('Hauptstraße 1, 8010 Graz');
+    expect(screen.getByText(/Vom Kunden übernommen/)).toBeInTheDocument();
+
+    await userEvent.type(adresse, 'Baustellenweg 5, 8020 Graz');
+    expect(adresse).toHaveValue('Baustellenweg 5, 8020 Graz');
+    expect(screen.queryByText(/Vom Kunden übernommen/)).toBeNull();
+  });
+
+  it('Gegenprobe: eine schon getippte Adresse überschreibt die Kundenwahl nicht', async () => {
+    kundenBestand = [MIT_ADRESSE];
+    zeige();
+    await formOeffnen();
+    await userEvent.type(await screen.findByLabelText('Baustellenadresse'), 'Am Bach 3');
+    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    expect(screen.getByLabelText('Baustellenadresse')).toHaveValue('Am Bach 3');
+  });
+
+  it('nimmt Bezeichnung und Abrechnung mit, wie die Akte sie kennt', async () => {
+    zeige();
+    await formOeffnen();
+    await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-050');
+    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await userEvent.type(screen.getByLabelText(/Bezeichnung/), 'Bad 2. OG');
+    await userEvent.selectOptions(screen.getByLabelText('Abrechnung'), 'Pauschal');
+    expect(screen.getByLabelText('Beschreibung / Auftragsumfang').tagName).toBe('TEXTAREA');
+    await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
+
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][1]).toMatchObject({ bezeichnung: 'Bad 2. OG', billingMode: 'Pauschal' });
+  });
+
+  it('Gegenprobe: ohne Angaben keine leeren Zeichenketten für Bezeichnung und Abrechnung', async () => {
+    zeige();
+    await formOeffnen();
+    await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-051');
+    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
+
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][1].bezeichnung).toBeUndefined();
+    expect(lege.mock.calls[0][1].billingMode).toBeUndefined();
+  });
+
+  it('zeigt die Bezeichnung im Titel, vor dem Kunden (G4)', async () => {
+    baustellen = [
+      { id: 'p1', companyId: 'perl', projectNumber: 'B-2026-0001', customerName: 'Familie Huber',
+        bezeichnung: 'Bad 2. OG', status: 'Aktiv' } as Project & { id: string },
+    ];
+    zeige();
+    expect(await screen.findByText('Bad 2. OG · Familie Huber')).toBeInTheDocument();
+  });
+});
+
+describe('Die Suche in der Baustellenliste (G7)', () => {
+  it('steht schon bei einer einzigen Baustelle da', async () => {
+    baustellen = [
+      { id: 'p1', companyId: 'perl', projectNumber: 'B-2026-0001', customerName: 'Familie Huber',
+        bezeichnung: 'Heizungstausch', status: 'Aktiv' } as Project & { id: string },
+    ];
+    zeige();
+    const suche = await screen.findByLabelText('Suche');
+    await userEvent.type(suche, 'heizung');
+    expect(await screen.findByText(/Heizungstausch/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne Baustellen keine Suche, sondern der Hinweis', async () => {
+    zeige();
+    expect(await screen.findByText('Noch keine Baustellen angelegt.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Suche')).toBeNull();
   });
 });

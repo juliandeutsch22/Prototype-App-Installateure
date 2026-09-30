@@ -4,11 +4,13 @@ import { useAuth } from '@/app/AuthContext';
 import { useUngespeichertWarnung } from '@/lib/ungespeichert';
 import BetriebsurlaubHinweis from './BetriebsurlaubHinweis';
 import { baustelleUmnummern, listProjectsByIds, updateProject } from '@/lib/db/projects';
-import { alsEntwurf, gleich, type BaustellenEntwurf } from './baustellenEntwurf';
+import { alsEntwurf, gleich, stammdatenFehler, stundenbudgetAus, type BaustellenEntwurf } from './baustellenEntwurf';
 import BaustellenPlaene from './BaustellenPlaene';
 import { listUsers } from '@/lib/db/users';
 import { listCustomers } from '@/lib/db/customers';
 import { listQuotesForProject } from '@/lib/db/quotes';
+import { pauschalAngebot } from '@/features/invoices/pauschale';
+import { euro } from '@/lib/betrag';
 import { canAccess } from '@/app/navigation';
 import { isGF } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
@@ -25,13 +27,16 @@ import PageHeader from '@/components/PageHeader';
 import PersonPicker from '@/components/PersonPicker';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import KundenGrenze from '@/components/AuswahlGrenze';
-import { InputField, SelectField, FormGrid } from '@/components/Field';
+import { InputField, SelectField, TextareaField, FormGrid } from '@/components/Field';
+import AdresseFeld from '@/components/AdresseFeld';
+import { baustellenTitel } from '@/lib/baustellenTitel';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { fmtStunden } from '@/lib/time';
+import ZahlFeld from '@/components/ZahlFeld';
 
 /**
  * Die Akte einer Baustelle — und die Stelle, an der sie bearbeitet wird.
@@ -220,6 +225,11 @@ export default function BaustellenakteView() {
       setSpeicherFehler('Ohne Kunden geht es nicht — die Rechnung weiss sonst nicht, an wen.');
       return;
     }
+    const falsch = stammdatenFehler(entwurf);
+    if (falsch) {
+      setSpeicherFehler(falsch);
+      return;
+    }
     const neueNummer = entwurf.projectNumber.trim();
     const nummerNeu = neueNummer !== daten.projectNumber;
     if (nummerNeu && !nummerBestaetigt) {
@@ -247,6 +257,7 @@ export default function BaustellenakteView() {
       await updateProject(id, {
         customerId: entwurf.customerId || undefined,
         customerName: entwurf.customerName,
+        bezeichnung: entwurf.bezeichnung.trim(),
         address: entwurf.address,
         status: entwurf.status,
         // Leer heisst „nicht festgelegt" — der Schein rechnet dann mit Regie,
@@ -255,8 +266,7 @@ export default function BaustellenakteView() {
         billingMode: entwurf.billingMode || undefined,
         // Leeres Feld heisst „kein Budget" — dann bleibt die Ampel der
         // Projektauswertung bewusst aus, statt 0 h anzunehmen.
-        estimatedHours:
-          entwurf.estimatedHours === '' ? undefined : Number(entwurf.estimatedHours) || 0,
+        estimatedHours: stundenbudgetAus(entwurf.estimatedHours),
         description: entwurf.description,
         startDate: entwurf.startDate,
         endDate: entwurf.endDate,
@@ -345,6 +355,8 @@ export default function BaustellenakteView() {
           fehler={speicherFehler}
           onSpeichern={() => void stammdatenSpeichern()}
           onVerwerfen={() => setEntwurf(alsEntwurf(b))}
+          angebote={angebote}
+          angeboteSichtbar={angeboteSichtbar}
         />
       ) : (
         <StammdatenLesen b={b} namen={namen} />
@@ -418,7 +430,7 @@ export default function BaustellenakteView() {
     <div className="space-y-3 lg:space-y-5">
       {warnung}
       <PageHeader
-        title={b.customerName}
+        title={baustellenTitel(b)}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <Link to="/admin-projects" className="link inline-flex min-h-touch items-center">← Zur Baustellenliste</Link>
@@ -467,6 +479,7 @@ function StammdatenLesen({ b, namen }: { b: Project; namen: Map<string, string> 
       <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
         <Angabe wort="Projektnummer"><span>{b.projectNumber}</span></Angabe>
         <Angabe wort="Kunde">{b.customerName}</Angabe>
+        {b.bezeichnung?.trim() && <Angabe wort="Bezeichnung">{b.bezeichnung}</Angabe>}
         <Angabe wort="Baustellenadresse">
           {b.address ? <AdresseLink adresse={b.address} /> : null}
         </Angabe>
@@ -503,6 +516,9 @@ interface FormularProps {
   fehler: string | null;
   onSpeichern: () => void;
   onVerwerfen: () => void;
+  /** Für den Hinweis, woher der Pauschalpreis kommt (M14). */
+  angebote: Quote[];
+  angeboteSichtbar: boolean;
 }
 
 /**
@@ -514,7 +530,7 @@ interface FormularProps {
  */
 function StammdatenFormular({
   entwurf, setEntwurf, kunden, staff, leads,
-  geaendert, speichert, fehler, onSpeichern, onVerwerfen,
+  geaendert, speichert, fehler, onSpeichern, onVerwerfen, angebote, angeboteSichtbar,
 }: FormularProps) {
   const setze = <F extends keyof BaustellenEntwurf>(feld: F, wert: BaustellenEntwurf[F]) =>
     setEntwurf({ ...entwurf, [feld]: wert });
@@ -536,10 +552,14 @@ function StammdatenFormular({
           id="b-kunde" label="Kunde" pflicht value={entwurf.customerId}
           onChange={(e) => {
             const k = kunden.find((x) => x.id === e.target.value);
+            const vorher = kunden.find((x) => x.id === entwurf.customerId)?.address;
             setEntwurf({
               ...entwurf,
               customerId: e.target.value,
               customerName: k?.name ?? entwurf.customerName,
+              // G5: die Anschrift des Kunden als Vorschlag — nur in ein leeres
+              // Feld oder statt des unveränderten Vorschlags des vorigen Kunden.
+              address: !entwurf.address || entwurf.address === vorher ? (k?.address ?? '') : entwurf.address,
             });
           }}
         >
@@ -560,8 +580,14 @@ function StammdatenFormular({
         {/* Ausdrücklich die BAUSTELLENadresse: die Rechnungsadresse steht beim
             Kunden, und eine Hausverwaltung hat zwanzig Baustellen. */}
         <InputField
+          id="b-bezeichnung" label="Bezeichnung (freiwillig)" placeholder="z. B. Bad 2. OG"
+          maxLength={120} value={entwurf.bezeichnung}
+          onChange={(e) => setze('bezeichnung', e.target.value)}
+        />
+        <AdresseFeld
           id="b-adresse" label="Baustellenadresse" value={entwurf.address}
-          onChange={(e) => setze('address', e.target.value)}
+          vorschlag={kunden.find((k) => k.id === entwurf.customerId)?.address}
+          onChange={(t) => setze('address', t)}
         />
         <SelectField
           id="b-status" label="Status" value={entwurf.status}
@@ -587,10 +613,11 @@ function StammdatenFormular({
           <option value="Regie">Regie</option>
           <option value="Pauschal">Pauschal</option>
         </SelectField>
-        <InputField
-          id="b-budget" label="Stundenbudget (kalkuliert)" type="number" min="0" step="0.5"
+        {entwurf.billingMode === 'Pauschal' && <PauschalHinweis angebote={angebote} sichtbar={angeboteSichtbar} />}
+        <ZahlFeld
+          id="b-budget" label="Stundenbudget (kalkuliert)"
           placeholder="z. B. 40" value={entwurf.estimatedHours}
-          onChange={(e) => setze('estimatedHours', e.target.value)}
+          onChange={(t) => setze('estimatedHours', t)}
         />
         <InputField
           id="b-beginn" label="Beginn" type="date" value={entwurf.startDate}
@@ -612,18 +639,11 @@ function StammdatenFormular({
       </FormGrid>
       <BetriebsurlaubHinweis companyId={companyId} von={entwurf.startDate} bis={entwurf.endDate} />
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="b-beschreibung" className="text-sm font-medium text-ink">
-          Beschreibung / Auftragsumfang
-        </label>
-        <textarea
-          id="b-beschreibung"
-          rows={3}
-          className="min-h-touch rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:ring-1 focus:ring-brand"
-          value={entwurf.description}
-          onChange={(e) => setze('description', e.target.value)}
-        />
-      </div>
+      <TextareaField
+        id="b-beschreibung" label="Beschreibung / Auftragsumfang"
+        value={entwurf.description}
+        onChange={(e) => setze('description', e.target.value)}
+      />
 
       <PersonPicker
         legend="Zugeordnete Mitarbeiter"
@@ -702,6 +722,32 @@ function Angabe({ wort, children }: { wort: string; children: React.ReactNode })
       <dd className="mt-0.5 text-sm text-ink">
         {children || <span className="text-ink-muted">nicht hinterlegt</span>}
       </dd>
+    </div>
+  );
+}
+
+/**
+ * WOHER DER PREIS EINER PAUSCHALBAUSTELLE KOMMT (Testbericht 30.09.2026, M14).
+ *
+ * Die Akte hat bewusst KEIN Preisfeld: eine Baustelle liest jeder im Betrieb,
+ * auch der Monteur — ein Preis dort wäre für alle lesbar, während Angebote
+ * Büro und Leitung vorbehalten sind. Der Preis steht im angenommenen Angebot;
+ * ohne Angebot trägt ihn die Rechnung ein. Das sagt dieser Hinweis, statt die
+ * Frage offen zu lassen.
+ */
+function PauschalHinweis({ angebote, sichtbar }: { angebote: Quote[]; sichtbar: boolean }) {
+  const angebot = sichtbar ? pauschalAngebot(angebote) : null;
+  return (
+    <div className="sm:col-span-2">
+      <Hinweiszeile stufe={sichtbar && !angebot ? 'warn' : undefined}>
+        <p>
+          {angebot
+            ? `Den Pauschalpreis legt das angenommene Angebot ${angebot.quoteNumber} fest (${euro(angebot.totalNetto)} netto). Die Rechnung übernimmt dessen Positionen.`
+            : sichtbar
+              ? 'Pauschal ohne angenommenes Angebot: der vereinbarte Preis steht noch nirgends. Die Rechnung setzt eine Zeile „Pauschale gemäß Vereinbarung“ mit 0,00 € an — dort den Betrag eintragen. Oder ein Angebot anlegen und annehmen, dann übernimmt die Rechnung dessen Positionen.'
+              : 'Den Pauschalpreis legt das angenommene Angebot fest; ohne Angebot trägt ihn das Büro in der Rechnung ein.'}
+        </p>
+      </Hinweiszeile>
     </div>
   );
 }

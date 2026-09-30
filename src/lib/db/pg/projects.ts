@@ -194,7 +194,7 @@ export function searchProjects(
 ): Promise<WithId<Project>[]> {
   return abfragen<Project>(BAUSTELLEN, companyId, {
     oder: oderUeberSpalten(
-      ['project_number', 'customer_name', 'address'], begriff,
+      ['project_number', 'customer_name', 'bezeichnung', 'address'], begriff,
     ),
     sortiere: { feld: 'projectNumber', absteigend: true },
     grenze: max,

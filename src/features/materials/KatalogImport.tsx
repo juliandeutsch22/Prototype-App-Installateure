@@ -18,7 +18,9 @@ import {
   type DatanormErgebnis,
 } from './datanorm';
 import { datumAusMs } from '@/lib/datum';
+import { leseZahl, zahlOder } from '@/lib/zahl';
 import { euroPreis } from '@/lib/betrag';
+import ZahlFeld from '@/components/ZahlFeld';
 
 /**
  * Den Artikelkatalog des Grosshändlers einspielen — erst ansehen, dann
@@ -141,8 +143,14 @@ export default function KatalogImport() {
     try {
       // Erst die Rabattsätze, dann der Lauf: die Übernahme liest sie, und
       // was hier nicht steht, lässt den Einkaufspreis leer.
+      // Ein Satz, der sich nicht lesen lässt, wird gemeldet, nicht still
+      // übersprungen (M15) — sonst fehlte der Einkaufspreis ohne ein Wort.
       for (const [gruppe, wert] of Object.entries(saetze)) {
-        const zahl = Number(wert.replace(',', '.'));
+        const { fehler } = leseZahl(wert);
+        if (fehler) throw new Error(`${gruppe === '' ? 'Ohne Gruppe' : `Gruppe ${gruppe}`}: ${fehler}`);
+      }
+      for (const [gruppe, wert] of Object.entries(saetze)) {
+        const zahl = zahlOder(wert, NaN);
         if (wert.trim() === '' || !Number.isFinite(zahl)) continue;
         await dn.rabattsatzSetzen(betrieb, lieferant, gruppe, zahl);
       }
@@ -344,16 +352,12 @@ export default function KatalogImport() {
                 {gruppen.map(([gruppe, anzahl]) => (
                   <div key={gruppe} className="flex flex-wrap items-end gap-3">
                     <div className="min-w-[8rem] grow">
-                      <InputField
+                      <ZahlFeld
                         id={`dn-satz-${gruppe || 'ohne'}`}
                         label={`${gruppe === '' ? 'Ohne Gruppe' : `Gruppe ${gruppe}`} (${anzahl} Artikel)`}
-                        type="number"
-                        min="0"
-                        max="99.999"
-                        step="0.1"
                         placeholder="Rabatt in % — leer = kein Einkaufspreis"
                         value={saetze[gruppe] ?? ''}
-                        onChange={(e) => setSaetze({ ...saetze, [gruppe]: e.target.value })}
+                        onChange={(t) => setSaetze({ ...saetze, [gruppe]: t })}
                       />
                     </div>
                   </div>

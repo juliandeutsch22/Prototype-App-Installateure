@@ -136,10 +136,10 @@ describe('Benutzerverwaltung — das Zeitkonto', () => {
     await userEvent.type(screen.getByRole('textbox', { name: /Mail/ }), 'aushilfe@perl.at');
     await userEvent.click(screen.getByRole('button', { name: /Zeitkonto-Einstellungen/ }));
 
-    const stunden = await screen.findByRole('spinbutton', { name: /Wochenstunden/ });
+    const stunden = await screen.findByRole('textbox', { name: /Wochenstunden/ });
     await userEvent.clear(stunden);
     await userEvent.type(stunden, '0');
-    const urlaub = screen.getByRole('spinbutton', { name: /Urlaubstage/ });
+    const urlaub = screen.getByRole('textbox', { name: /Urlaubstage/ });
     await userEvent.clear(urlaub);
     await userEvent.type(urlaub, '0');
 
@@ -160,7 +160,7 @@ describe('Benutzerverwaltung — das Zeitkonto', () => {
     await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'Neu');
     await userEvent.type(screen.getByRole('textbox', { name: /Mail/ }), 'neu@perl.at');
     await userEvent.click(screen.getByRole('button', { name: /Zeitkonto-Einstellungen/ }));
-    await userEvent.clear(await screen.findByRole('spinbutton', { name: /Wochenstunden/ }));
+    await userEvent.clear(await screen.findByRole('textbox', { name: /Wochenstunden/ }));
     await userEvent.click(screen.getByRole('button', { name: /Anlegen|Benutzer anlegen/ }));
 
     await waitFor(() => expect(anlegen).toHaveBeenCalled());
@@ -175,7 +175,7 @@ describe('Benutzerverwaltung — das Zeitkonto', () => {
     await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'Uebernahme');
     await userEvent.type(screen.getByRole('textbox', { name: /Mail/ }), 'ue@perl.at');
     await userEvent.click(screen.getByRole('button', { name: /Zeitkonto-Einstellungen/ }));
-    const saldo = await screen.findByRole('spinbutton', { name: /Start-Saldo/ });
+    const saldo = await screen.findByRole('textbox', { name: /Start-Saldo/ });
     await userEvent.clear(saldo);
     await userEvent.type(saldo, '-12.5');
     await userEvent.click(screen.getByRole('button', { name: /Anlegen|Benutzer anlegen/ }));

@@ -27,6 +27,7 @@ import {
 import { DEFAULT_VACATION_DAYS } from '@/lib/db/benutzerVorgaben';
 import { JAHRESBEGINN_VORGABE } from '@/lib/time';
 import { benutzernameFehler, kontoAnzeige, kunstadresse, mailAdresseFehler } from '@shared/benutzername';
+import ZahlFeld from '@/components/ZahlFeld';
 
 
 /** Benutzerverwaltung (GF/Admin): anlegen, Stammdaten und Rollen pflegen. */
@@ -434,16 +435,13 @@ export default function UserMgmtView() {
             )}
             {eintritt === 'bestand' && (
               <div className="mt-3 max-w-xs">
-                <InputField
+                <ZahlFeld
                   id="uvacinit"
                   label="Resturlaub beim Umstieg (Tage)"
-                  type="number"
-                  step="0.01"
-                  min="0"
                   pflicht
                   required
                   value={form.initialVacationDays}
-                  onChange={(e) => setForm({ ...form, initialVacationDays: e.target.value })}
+                  onChange={(t) => setForm({ ...form, initialVacationDays: t })}
                 />
               </div>
             )}
@@ -460,14 +458,13 @@ export default function UserMgmtView() {
           {showDetails && (
             <div className="space-y-4 border-t border-line pt-4">
               <FormGrid>
-                <InputField id="uhours" label="Wochenstunden" type="number" step="0.5" min="0"
+                <ZahlFeld id="uhours" label="Wochenstunden"
                   value={form.weeklyTargetHours}
                   disabled={Object.keys(form.tagessoll).length > 0}
-                  onChange={(e) => setForm({ ...form, weeklyTargetHours: e.target.value })} />
-                <InputField id="uvac" label="Urlaubstage pro Jahr" type="number" min="0"
+                  onChange={(t) => setForm({ ...form, weeklyTargetHours: t })} />
+                <ZahlFeld id="uvac" label="Urlaubstage pro Jahr"
                   value={form.yearlyVacationDays}
-                  onChange={(e) => {
-                    const jahresTage = e.target.value;
+                  onChange={(jahresTage) => {
                     setForm((f) => ({
                       ...f,
                       yearlyVacationDays: jahresTage,
@@ -515,9 +512,9 @@ export default function UserMgmtView() {
                   eine Gelegenheit für einen Tippfehler und sonst nichts.
                 */}
                 {eintritt === 'bestand' && (
-                  <InputField id="uinit" label="Start-Saldo (Stunden)" type="number" step="0.25"
+                  <ZahlFeld id="uinit" label="Start-Saldo (Stunden)" negativ
                     value={form.initialOvertime}
-                    onChange={(e) => setForm({ ...form, initialOvertime: e.target.value })} />
+                    onChange={(t) => setForm({ ...form, initialOvertime: t })} />
                 )}
                 {/*
                   ZWEI NACHKOMMASTELLEN, NICHT HALBE TAGE. Hier stand
@@ -529,13 +526,11 @@ export default function UserMgmtView() {
                 */}
                 {/* Beim Umstieg steht der Resturlaub oben als Pflichtfeld (M4). */}
                 {eintritt === 'neu' && (
-                  <InputField
+                  <ZahlFeld
                     id="uvacinit"
                     label="Urlaub im ersten Jahr (Tage)"
-                    type="number"
-                    step="0.01"
                     value={form.initialVacationDays}
-                    onChange={(e) => setForm({ ...form, initialVacationDays: e.target.value })} />
+                    onChange={(t) => setForm({ ...form, initialVacationDays: t })} />
                 )}
               </FormGrid>
               {/* Zwei Urlaubsfelder nebeneinander brauchen einen Satz dazu —

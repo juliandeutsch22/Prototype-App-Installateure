@@ -28,19 +28,27 @@ import RowMenu from '@/components/RowMenu';
 import { praefixeVon, belegNummer, hoechsteLfdImJahr } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import { InputField, SelectField, FormGrid, Pflichthinweis, CheckboxField } from '@/components/Field';
+import { InputField, SelectField, TextareaField, FormGrid, Pflichthinweis, CheckboxField } from '@/components/Field';
 import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import { fmtStunden } from '@/lib/time';
+import ZahlFeld from '@/components/ZahlFeld';
+import AdresseFeld from '@/components/AdresseFeld';
+import { baustellenTitel } from '@/lib/baustellenTitel';
+import { stammdatenFehler, stundenbudgetAus } from './baustellenEntwurf';
 
 const empty = {
   projectNumber: '',
   customerId: '',
   customerName: '',
+  /** Freiwilliger Name der Baustelle (G4). */
+  bezeichnung: '',
   address: '',
   status: 'Aktiv' as Project['status'],
+  /** Wie in der Akte (G5): leer heisst „nicht festgelegt", gilt als Regie. */
+  billingMode: '' as '' | 'Regie' | 'Pauschal',
   /** Kalkuliertes Stundenbudget — Grundlage der Ampel in der Projektauswertung. */
   estimatedHours: '',
   description: '',
@@ -206,6 +214,11 @@ export default function AdminProjectsView() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!user) return;
+    const falsch = stammdatenFehler(form);
+    if (falsch) {
+      setError(falsch);
+      return;
+    }
     setSaving(true);
     setError(null);
     const nummer = form.projectNumber.trim();
@@ -215,9 +228,12 @@ export default function AdminProjectsView() {
       const data = {
         ...form,
         projectNumber: nummer,
+        bezeichnung: form.bezeichnung.trim() || undefined,
+        // Leer heisst „nicht festgelegt" — keine leere Zeichenkette in die Daten.
+        billingMode: form.billingMode || undefined,
         // Leeres Feld heißt "kein Budget" — dann bleibt die Ampel der
         // Projektauswertung bewusst aus, statt 0 h anzunehmen.
-        estimatedHours: form.estimatedHours === '' ? undefined : Number(form.estimatedHours) || 0,
+        estimatedHours: stundenbudgetAus(form.estimatedHours),
         assignedEmployees: assigned,
         projectManagers: managers,
       };
@@ -386,7 +402,7 @@ export default function AdminProjectsView() {
     const q = suche.trim().toLowerCase();
     if (!q) return nachStatus;
     const oertlich = nachStatus.filter((p) =>
-      [p.customerName, p.projectNumber, p.address].some((v) => v?.toLowerCase().includes(q)),
+      [p.customerName, p.bezeichnung, p.projectNumber, p.address].some((v) => v?.toLowerCase().includes(q)),
     );
 
     /*
@@ -450,10 +466,14 @@ export default function AdminProjectsView() {
               value={form.customerId}
               onChange={(e) => {
                 const k = kunden.find((x) => x.id === e.target.value);
+                const vorher = kunden.find((x) => x.id === form.customerId)?.address;
                 setForm({
                   ...form,
                   customerId: e.target.value,
                   customerName: k?.name ?? form.customerName,
+                  // G5: die Anschrift des Kunden als Vorschlag — nur in ein
+                  // leeres Feld oder statt des Vorschlags des vorigen Kunden.
+                  address: !form.address || form.address === vorher ? (k?.address ?? '') : form.address,
                 });
               }}
               required
@@ -492,17 +512,28 @@ export default function AdminProjectsView() {
             )}
             {/* Ausdrücklich die BAUSTELLENadresse: die Rechnungsadresse steht
                 beim Kunden, und eine Hausverwaltung hat zwanzig Baustellen. */}
-            <InputField id="padr" label="Baustellenadresse" value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })} />
+            <InputField id="pbez" label="Bezeichnung (freiwillig)" placeholder="z. B. Bad 2. OG"
+              maxLength={120} value={form.bezeichnung}
+              onChange={(e) => setForm({ ...form, bezeichnung: e.target.value })} />
+            <AdresseFeld id="padr" label="Baustellenadresse" value={form.address}
+              vorschlag={kunden.find((k) => k.id === form.customerId)?.address}
+              onChange={(t) => setForm({ ...form, address: t })} />
             <SelectField id="pstatus" label="Status" value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value as Project['status'] })}>
               <option>Aktiv</option>
               <option>Pausiert</option>
               <option>Abgeschlossen</option>
             </SelectField>
-            <InputField id="phours" label="Stundenbudget (kalkuliert)" type="number" min="0" step="0.5"
+            {/* Dieselben Felder wie in der Akte (G5): die Abrechnung gab es nur dort. */}
+            <SelectField id="pabrechnung" label="Abrechnung" value={form.billingMode}
+              onChange={(e) => setForm({ ...form, billingMode: e.target.value as typeof form.billingMode })}>
+              <option value="">— nicht festgelegt (gilt als Regie) —</option>
+              <option value="Regie">Regie</option>
+              <option value="Pauschal">Pauschal</option>
+            </SelectField>
+            <ZahlFeld id="phours" label="Stundenbudget (kalkuliert)"
               placeholder="z. B. 40" value={form.estimatedHours}
-              onChange={(e) => setForm({ ...form, estimatedHours: e.target.value })} />
+              onChange={(t) => setForm({ ...form, estimatedHours: t })} />
             <InputField id="pstart" label="Beginn" type="date" value={form.startDate}
               onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
             <InputField id="pend" label="Ende (geplant)" type="date" value={form.endDate}
@@ -514,7 +545,7 @@ export default function AdminProjectsView() {
               onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} />
           </FormGrid>
           <BetriebsurlaubHinweis companyId={user?.companyId} von={form.startDate} bis={form.endDate} />
-          <InputField id="pdesc" label="Beschreibung / Auftragsumfang" value={form.description}
+          <TextareaField id="pdesc" label="Beschreibung / Auftragsumfang" value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <PersonPicker
             legend="Zugeordnete Mitarbeiter"
@@ -583,13 +614,14 @@ export default function AdminProjectsView() {
           </div>
         )}
         {/* Bündig: Suche gepolstert, Baustellen als Zeilen von Kante zu Kante. */}
-        {projects.length >= 8 && (
+        {/* G7: die Suche steht immer da, wie im Handbuch — nicht erst ab acht Baustellen. */}
+        {projects.length > 0 && (
           <div className="p-4">
             <InputField
               id="psuche"
               label="Suche"
               type="search"
-              placeholder="Kunde, Projektnummer oder Adresse"
+              placeholder="Kunde, Bezeichnung, Projektnummer oder Adresse"
               value={suche}
               onChange={(e) => setSuche(e.target.value)}
             />
@@ -634,7 +666,7 @@ export default function AdminProjectsView() {
                   key={p.id}
                   title={
                     <span>
-                      {p.customerName} <span className="text-ink-muted">({p.projectNumber})</span>
+                      {baustellenTitel(p)} <span className="text-ink-muted">({p.projectNumber})</span>
                     </span>
                   }
                   subtitle={
@@ -745,7 +777,7 @@ export default function AdminProjectsView() {
       <ConfirmDialog
         open={!!toDelete}
         title="Baustelle löschen?"
-        message={toDelete ? `${toDelete.customerName} (${toDelete.projectNumber}) wird entfernt.` : ''}
+        message={toDelete ? `${baustellenTitel(toDelete)} (${toDelete.projectNumber}) wird entfernt.` : ''}
         onCancel={() => setToDelete(null)}
         onConfirm={async () => {
           const weg = toDelete;

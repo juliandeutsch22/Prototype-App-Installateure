@@ -9,6 +9,7 @@ import { InputField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { EmptyState } from '@/components/States';
 import { neueKennung, type MaterialZeile } from './materialZeilen';
+import { ZahlWertFeld } from '@/components/ZahlFeld';
 
 /**
  * Das verbaute Material am Handwerksschein — vom Monteur selbst eingetragen.
@@ -85,11 +86,11 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
     onChange([...zeilen, { id: neueKennung(), name, menge: 1, einheit }]);
   }
 
-  function mengeSetzen(id: string, roh: string) {
-    // Ein leeres Feld heisst „ich tippe gerade", nicht „null Stück". Eine 0
-    // hart zu erzwingen risse die Zahl unter dem Finger weg.
-    const n = Number(roh);
-    const menge = roh.trim() === '' || Number.isNaN(n) ? 0 : n;
+  function mengeSetzen(id: string, n: number | null) {
+    // Ein leeres Feld heisst „ich tippe gerade", nicht „null Stück" — das
+    // Feld behält den Text, hier steht dann 0 und die Zeile bleibt markiert.
+    // Gelesen wird wie überall (M15): „1,5“ ist anderthalb, nicht nichts.
+    const menge = n ?? 0;
     onChange(zeilen.map((z) => (z.id === id ? { ...z, menge } : z)));
   }
 
@@ -106,15 +107,12 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
           {zeilen.map((z) => (
             <li key={z.id} className="flex flex-wrap items-end gap-3 py-3 first:pt-0">
               <div className="w-24 shrink-0">
-                <InputField
+                <ZahlWertFeld
                   id={`wsmenge-${z.id}`}
                   label="Menge"
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={String(z.menge)}
-                  aria-invalid={!(z.menge > 0) || undefined}
-                  onChange={(e) => mengeSetzen(z.id, e.target.value)}
+                  wert={z.menge}
+                  leerAls={0}
+                  onWert={(n) => mengeSetzen(z.id, n)}
                 />
               </div>
               <p className="min-w-0 flex-1 font-medium text-ink-deep">

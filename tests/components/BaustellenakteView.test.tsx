@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -44,7 +44,7 @@ const BELEGSCHAFT: AppUser[] = [
 
 const KUNDEN: (Customer & { id: string })[] = [
   { id: 'k1', companyId: 'perl', name: 'Hausverwaltung Nord' },
-  { id: 'k2', companyId: 'perl', name: 'Bäckerei Süd' },
+  { id: 'k2', companyId: 'perl', name: 'Bäckerei Süd', address: 'Marktplatz 7, 2700 Wiener Neustadt' },
 ];
 
 let baustellen: (Project & { id: string })[] = [BAUSTELLE];
@@ -103,7 +103,7 @@ vi.mock('@/lib/db/baustellenDokumente', async () => {
 });
 
 /** Angebote zur Baustelle — gesucht über ihre Kennung. */
-let angebote: { id: string; quoteNumber: string }[] = [];
+let angebote: { id: string; quoteNumber: string; status?: string; totalNetto?: number; quoteDate?: string }[] = [];
 let angeboteScheitern = false;
 const listQuotesForProject = vi.fn<(a0: string, a1: string) => Promise<typeof angebote>>(async () => {
   if (angeboteScheitern) throw new Error('kaputt');
@@ -235,7 +235,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
       'Ringstraße 3, 2700 Wiener Neustadt',
     );
     expect(screen.getByLabelText(/Abrechnung/)).toHaveValue('Pauschal');
-    expect(screen.getByLabelText(/Stundenbudget/)).toHaveValue(40);
+    expect(screen.getByLabelText(/Stundenbudget/)).toHaveValue('40');
   });
 
   it('zeigt die Speicherleiste erst, wenn sich wirklich etwas geändert hat', async () => {
@@ -279,6 +279,43 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
       'b1',
       expect.objectContaining({ estimatedHours: undefined }),
     );
+  });
+
+  it('speichert die Bezeichnung (G4)', async () => {
+    zeige();
+    await userEvent.type(await screen.findByLabelText(/Bezeichnung/), 'Bad 2. OG');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() =>
+      expect(updateProject).toHaveBeenCalledWith('b1', expect.objectContaining({ bezeichnung: 'Bad 2. OG' })),
+    );
+  });
+
+  it('schlägt beim Kundenwechsel dessen Anschrift nur vor, wenn das Feld leer ist (G5)', async () => {
+    zeige();
+    const adresse = await screen.findByLabelText(/Baustellenadresse/);
+    // Gegenprobe zuerst: eine eigene Baustellenadresse bleibt stehen.
+    await userEvent.selectOptions(screen.getByLabelText(/^Kunde/), 'k2');
+    expect(adresse).toHaveValue('Ringstraße 3, 2700 Wiener Neustadt');
+    // Geleert und neu gewählt: jetzt kommt der Vorschlag.
+    await userEvent.clear(adresse);
+    await userEvent.selectOptions(screen.getByLabelText(/^Kunde/), 'k1');
+    await userEvent.selectOptions(screen.getByLabelText(/^Kunde/), 'k2');
+    expect(adresse).toHaveValue('Marktplatz 7, 2700 Wiener Neustadt');
+    expect(screen.getByText(/Vom Kunden übernommen/)).toBeInTheDocument();
+  });
+
+  it('speichert kein Ende vor dem Beginn (Testbericht 30.09.2026, M13)', async () => {
+    zeige();
+    const beginn = await screen.findByLabelText('Beginn');
+    await userEvent.clear(beginn);
+    await userEvent.type(beginn, '2026-10-05');
+    const ende = screen.getByLabelText('Ende (geplant)');
+    await userEvent.clear(ende);
+    await userEvent.type(ende, '2026-10-01');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    expect(await screen.findByText(/liegt vor dem Beginn/)).toBeInTheDocument();
+    expect(updateProject).not.toHaveBeenCalled();
   });
 
   it('schreibt die Abrechnungsart, die vorher nirgends änderbar war', async () => {
@@ -473,6 +510,26 @@ describe('Das Angebot hinter der Baustelle', () => {
     await screen.findByText('Stundenauswertung');
     expect(listQuotesForProject).not.toHaveBeenCalled();
     expect(screen.queryByRole('link', { name: /Angebot AN/ })).toBeNull();
+  });
+
+  it('sagt bei Pauschal, woher der Preis kommt: aus dem angenommenen Angebot (M14)', async () => {
+    angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007', status: 'Angenommen', totalNetto: 7500.5, quoteDate: '2026-09-01' }];
+    zeige();
+    await userEvent.selectOptions(await screen.findByLabelText(/Abrechnung/), 'Pauschal');
+    expect(await screen.findByText(/legt das angenommene Angebot AN-2026-0007 fest/)).toBeInTheDocument();
+  });
+
+  it('ohne angenommenes Angebot: sagt, dass der Preis in der Rechnung eingetragen wird (M14)', async () => {
+    angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007', status: 'Versendet', totalNetto: 100 }];
+    zeige();
+    await userEvent.selectOptions(await screen.findByLabelText(/Abrechnung/), 'Pauschal');
+    expect(await screen.findByText(/Pauschal ohne angenommenes Angebot/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: bei Regie kein Hinweis zum Pauschalpreis', async () => {
+    zeige();
+    await userEvent.selectOptions(await screen.findByLabelText(/Abrechnung/), 'Regie');
+    expect(screen.queryByText(/Pauschalpreis|Pauschal ohne/)).toBeNull();
   });
 
   it('sagt es, wenn das Angebot nicht geladen werden konnte', async () => {

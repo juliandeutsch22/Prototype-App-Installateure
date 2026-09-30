@@ -23,7 +23,9 @@ import InfoHint from '@/components/InfoHint';
 import Nachladen from '@/components/Nachladen';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import { leseZahl, zahlOder } from '@/lib/zahl';
 import { grundAus } from '@/lib/fehlerGrund';
+import ZahlFeld from '@/components/ZahlFeld';
 
 /**
  * Die ueblichen Mengeneinheiten im Sanitaer- und Heizungsbau.
@@ -210,6 +212,14 @@ export default function MaterialCatalog({
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!user) return;
+    // Zentrale Zahlenlesung (M15): „7.500“ ist uneindeutig und wird gemeldet, nicht 0.
+    const unlesbar = [form.verkaufspreis, form.einkaufspreis, form.stock]
+      .map((t) => leseZahl(t).fehler)
+      .find(Boolean);
+    if (unlesbar) {
+      setError(unlesbar);
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -222,15 +232,15 @@ export default function MaterialCatalog({
         Lücken aus — deshalb geht ein leeres Feld als 0 hinein und wird dort
         als „ohne Preis" behandelt.
       */
-      const preis = form.verkaufspreis.trim().replace(',', '.');
-      const ek = form.einkaufspreis.trim().replace(',', '.');
-      const bestand = Number(form.stock) || 0;
+      const preis = form.verkaufspreis.trim();
+      const ek = form.einkaufspreis.trim();
+      const bestand = zahlOder(form.stock, 0);
       const data = {
         name: form.name.trim(),
         category: form.category.trim(),
         articleNumber: form.articleNumber.trim(),
         unit: form.unit.trim() || 'Stk',
-        verkaufspreis: preis === '' ? 0 : Math.max(0, Number(preis) || 0),
+        verkaufspreis: preis === '' ? 0 : Math.max(0, zahlOder(preis, 0)),
         /*
           DER EINKAUFSPREIS WANDERT NUR MIT, WENN DIE ROLLE IHN SETZEN DARF.
 
@@ -241,7 +251,7 @@ export default function MaterialCatalog({
           und niemand wüsste warum. Sie schickt das Feld deshalb nicht mit.
         */
         ...(darfEkSetzen && ekStand === 'da'
-          ? { einkaufspreis: ek === '' ? 0 : Math.max(0, Number(ek) || 0) }
+          ? { einkaufspreis: ek === '' ? 0 : Math.max(0, zahlOder(ek, 0)) }
           : {}),
       };
       if (editId) {
@@ -306,17 +316,14 @@ export default function MaterialCatalog({
                 </InfoHint>
               </p>
             </div>
-            <InputField id="mstock" label="Lagerbestand" type="number" min="0" value={form.stock}
-              onChange={(e) => setForm({ ...form, stock: e.target.value })} required pflicht />
-            <InputField
+            <ZahlFeld id="mstock" label="Lagerbestand" value={form.stock}
+              onChange={(t) => setForm({ ...form, stock: t })} required pflicht />
+            <ZahlFeld
               id="mpreis"
               label="Verkaufspreis netto je Einheit (€)"
-              type="number"
-              min="0"
-              step="0.01"
               placeholder="leer = nicht gepflegt"
               value={form.verkaufspreis}
-              onChange={(e) => setForm({ ...form, verkaufspreis: e.target.value })}
+              onChange={(t) => setForm({ ...form, verkaufspreis: t })}
             />
             {/*
               Der EINKAUFSPREIS steht nur der Geschäftsführung offen: er ist
@@ -327,16 +334,13 @@ export default function MaterialCatalog({
             */}
             {darfKosten && (
               <div className="flex flex-col gap-1.5">
-                <InputField
+                <ZahlFeld
                   id="mek"
                   label="Einkaufspreis netto je Einheit (€)"
-                  type="number"
-                  min="0"
-                  step="0.01"
                   placeholder={ekStand === 'laedt' ? 'wird geladen …' : 'leer = nicht gepflegt'}
                   disabled={ekStand !== 'da' || !darfEkSetzen}
                   value={form.einkaufspreis}
-                  onChange={(e) => setForm({ ...form, einkaufspreis: e.target.value })}
+                  onChange={(t) => setForm({ ...form, einkaufspreis: t })}
                 />
                 {ekStand === 'fehlt' && (
                   <p className="text-sm text-ink-muted">

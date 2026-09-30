@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, SelectHTMLAttributes, ReactNode } from 'react';
+import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes, ReactNode } from 'react';
 
 /*
  * `max-w-full min-w-0` GEHOEREN ZUR GRUNDAUSSTATTUNG, nicht zur Zierde.
@@ -108,6 +108,24 @@ export function InputField({ label, id, pflicht, className = '', ...rest }: Inpu
         className={`${fieldBase} ${className}`}
         {...rest}
       />
+    </div>
+  );
+}
+
+interface TextareaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label: string;
+  id: string;
+}
+
+/**
+ * Mehrzeiliges Feld mit Beschriftung — für Beschreibungen, die beim Anlegen
+ * und in der Akte gleich aussehen sollen (Testbericht 30.09.2026, G5).
+ */
+export function TextareaField({ label, id, className = '', rows = 3, ...rest }: TextareaFieldProps) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Beschriftung label={label} id={id} />
+      <textarea id={id} rows={rows} className={`${fieldBase} ${className}`} {...rest} />
     </div>
   );
 }

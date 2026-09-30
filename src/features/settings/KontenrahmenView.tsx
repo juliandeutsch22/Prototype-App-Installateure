@@ -16,6 +16,7 @@ import PageHeader from '@/components/PageHeader';
 import { InputField } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
+import { zahlOder } from '@/lib/zahl';
 import { ErrorState, SkeletonList } from '@/components/States';
 
 /**
@@ -68,7 +69,7 @@ const VORSCHLAG = {
 
 /** „20" → 0.2 — und `null`, wenn dort kein Satz steht. */
 function alsAnteil(satz: string): number | null {
-  const n = Number(satz.replace(',', '.'));
+  const n = zahlOder(satz, NaN);
   if (!Number.isFinite(n) || n < 0 || n >= 100) return null;
   return Math.round(n * 100) / 10000;
 }

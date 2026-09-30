@@ -493,7 +493,7 @@ describe('Einsatzplanung — Rüstliste', () => {
     await userEvent.click(await screen.findByRole('button', { name: /Mischbatterie auf die Rüstliste/ }));
 
     // Lager hat 1 — bei Menge 3 fehlen 2.
-    const menge = screen.getByRole('spinbutton', { name: 'Menge' });
+    const menge = screen.getByRole('textbox', { name: 'Menge' });
     await userEvent.clear(menge);
     await userEvent.type(menge, '3');
 

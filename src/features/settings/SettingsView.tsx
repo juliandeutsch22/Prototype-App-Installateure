@@ -20,11 +20,15 @@ import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { euro, euroBetrag } from '@/lib/betrag';
 import { halbjahresbeginn, mahnspesenBefund } from '@/features/invoices/mahnung';
+import { unlesbareZahlIn, zahlOder } from '@/lib/zahl';
+import ZahlFeld, { ZahlWertFeld } from '@/components/ZahlFeld';
 import { todayStr } from '@/lib/time';
 
 /** Zahl aus einem Eingabefeld — akzeptiert Komma wie Punkt. */
 function num(v: string, fallback: number): number {
-  const n = Number(v.replace(',', '.'));
+  // Leer bleibt 0 wie bisher (`Number('')`) — sonst spränge ein geleertes
+  // Feld beim Tippen auf die Vorgabe zurück.
+  const n = v.trim() === '' ? 0 : zahlOder(v, NaN);
   return Number.isFinite(n) ? n : fallback;
 }
 
@@ -383,6 +387,11 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   async function vorgabenSpeichern(e: FormEvent) {
     e.preventDefault();
     if (!user) return;
+    const unlesbar = unlesbareZahlIn(e.currentTarget as HTMLFormElement);
+    if (unlesbar) {
+      setError({ wo: 'rechnung', text: unlesbar });
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -408,6 +417,12 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!user) return;
+    // Eine Zahl, die sich nicht lesen lässt, wird nicht gespeichert — weder als 0 noch als die alte (M15).
+    const unlesbar = unlesbareZahlIn(e.currentTarget as HTMLFormElement);
+    if (unlesbar) {
+      setError({ wo: 'saetze', text: unlesbar });
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -477,23 +492,17 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           hint="Der Helfersatz gilt für Einsätze, die im Zeiteintrag als Helferarbeit gebucht sind — er hängt am Einsatz, nicht dauerhaft an einer Person."
         >
           <FormGrid>
-            <InputField
+            <ZahlWertFeld
               id="r-fach"
               label="Monteur / Facharbeiter (€/h)"
-              type="number"
-              min="0"
-              step="0.5"
-              value={String(rates.fach)}
-              onChange={(e) => setRates({ ...rates, fach: num(e.target.value, 0) })}
+              wert={rates.fach}
+              onWert={(n) => setRates({ ...rates, fach: n ?? 0 })}
             />
-            <InputField
+            <ZahlWertFeld
               id="r-helper"
               label="Helfer (€/h)"
-              type="number"
-              min="0"
-              step="0.5"
-              value={String(rates.helper)}
-              onChange={(e) => setRates({ ...rates, helper: num(e.target.value, 0) })}
+              wert={rates.helper}
+              onWert={(n) => setRates({ ...rates, helper: n ?? 0 })}
             />
           </FormGrid>
 
@@ -657,19 +666,19 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           }
         >
           <FormGrid>
-            <InputField
+            <ZahlFeld
               id="costfach"
               label="Kosten Facharbeiterstunde (€)"
               placeholder="noch nicht hinterlegt"
               value={costRates.fach}
-              onChange={(e) => setCostRates({ ...costRates, fach: e.target.value })}
+              onChange={(t) => setCostRates({ ...costRates, fach: t })}
             />
-            <InputField
+            <ZahlFeld
               id="costhelper"
               label="Kosten Helferstunde (€)"
               placeholder="noch nicht hinterlegt"
               value={costRates.helper}
-              onChange={(e) => setCostRates({ ...costRates, helper: e.target.value })}
+              onChange={(t) => setCostRates({ ...costRates, helper: t })}
             />
           </FormGrid>
           {costRates.fach.trim() === '' || costRates.helper.trim() === '' ? (
@@ -1169,19 +1178,14 @@ function RechnungsvorgabenFelder({
         gibt, ist seine Entscheidung. Leer heisst keines — dann sieht
         jede Rechnung aus wie bisher.
       */}
-      <InputField
+      <ZahlWertFeld
         id="r-skonto"
         label="Skonto (%)"
-        type="number"
-        min="0"
-        max="99"
-        step="0.5"
         placeholder="leer = keines"
-        value={rates.skontoProzent ? String(rates.skontoProzent) : ''}
-        onChange={(e) => {
-          const wert = Number(e.target.value.replace(',', '.'));
-          setRates({ ...rates, skontoProzent: wert > 0 && wert < 100 ? wert : undefined });
-        }}
+        wert={rates.skontoProzent ?? null}
+        onWert={(wert) =>
+          setRates({ ...rates, skontoProzent: wert !== null && wert > 0 && wert < 100 ? wert : undefined })
+        }
       />
       <InputField
         id="r-skonto-tage"
@@ -1222,18 +1226,15 @@ function RechnungsvorgabenFelder({
       />
       {!rates.pauschale458 &&
         (['Erinnerung', 'Mahnung', 'Letzte Mahnung'] as const).map((wort, i) => (
-          <InputField
+          <ZahlWertFeld
             key={`firma-${wort}`}
             id={`r-mahn-${i}`}
             label={`${wort} · Firmenkunden (€)`}
-            type="number"
-            min="0"
-            step="0.01"
             placeholder="leer = keine"
-            value={rates.mahnspesen?.[i] ? String(rates.mahnspesen[i]) : ''}
-            onChange={(e) => {
+            wert={rates.mahnspesen?.[i] || null}
+            onWert={(n) => {
               const werte = [...(rates.mahnspesen ?? [0, 0, 0])];
-              werte[i] = Math.max(0, Number(e.target.value.replace(',', '.')) || 0);
+              werte[i] = n ?? 0;
               setRates({ ...rates, mahnspesen: werte });
             }}
           />
@@ -1241,18 +1242,15 @@ function RechnungsvorgabenFelder({
       {(['Erinnerung', 'Mahnung', 'Letzte Mahnung'] as const).map((wort, i) => {
         const privat = rates.mahnspesenVerbraucher ?? rates.mahnspesen;
         return (
-          <InputField
+          <ZahlWertFeld
             key={`privat-${wort}`}
             id={`r-mahn-privat-${i}`}
             label={`${wort} · Privatkunden (€)`}
-            type="number"
-            min="0"
-            step="0.01"
             placeholder="leer = keine"
-            value={privat?.[i] ? String(privat[i]) : ''}
-            onChange={(e) => {
+            wert={privat?.[i] || null}
+            onWert={(n) => {
               const werte = [...(privat ?? [0, 0, 0])];
-              werte[i] = Math.max(0, Number(e.target.value.replace(',', '.')) || 0);
+              werte[i] = n ?? 0;
               setRates({ ...rates, mahnspesenVerbraucher: werte });
             }}
           />
@@ -1293,18 +1291,13 @@ function RechnungsvorgabenFelder({
         Zur Wahl stehen nur Halbjahresanfänge — ein anderes Datum gibt
         es für diesen Satz nicht.
       */}
-      <InputField
+      <ZahlWertFeld
         id="r-basiszins"
         label="Basiszinssatz (%)"
-        type="number"
-        step="0.01"
+        negativ
         placeholder="leer = keine Zinsen an Unternehmer"
-        value={rates.basiszinssatz ?? ''}
-        onChange={(e) => {
-          const roh = e.target.value.replace(',', '.').trim();
-          const wert = roh === '' ? NaN : Number(roh);
-          setRates({ ...rates, basiszinssatz: Number.isFinite(wert) ? wert : undefined });
-        }}
+        wert={rates.basiszinssatz ?? null}
+        onWert={(wert) => setRates({ ...rates, basiszinssatz: wert ?? undefined })}
       />
       <SelectField
         id="r-basiszins-ab"
