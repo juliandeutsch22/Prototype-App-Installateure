@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -299,6 +299,42 @@ describe('Wartungen', () => {
     await nutzer.tab();
 
     expect((screen.getByLabelText('Nächster Termin') as HTMLInputElement).value).toBe('2027-03-15');
+  });
+
+  it('rechnet den Termin neu, sobald sich das Intervall ändert (M39)', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await geladen();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Neue Wartung' }));
+    await nutzer.type(screen.getByLabelText('Zuletzt gewartet'), '2026-01-31');
+    await nutzer.selectOptions(screen.getByLabelText('Intervall'), '6');
+    // Monatsende bleibt Monatsende — wie in der Datenbank.
+    expect((screen.getByLabelText('Nächster Termin') as HTMLInputElement).value).toBe('2026-07-31');
+    expect(screen.getByText(/plus Intervall berechnet/)).toBeTruthy();
+  });
+
+  it('speichert Anlagendaten und Preis (M39)', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await geladen();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Neue Wartung' }));
+    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await nutzer.type(screen.getByLabelText('Anlage'), 'Therme');
+    await nutzer.type(screen.getByLabelText('Zuletzt gewartet'), '2026-03-15');
+    await nutzer.type(screen.getByLabelText('Hersteller'), 'Vaillant');
+    await nutzer.type(screen.getByLabelText('Typ'), 'ecoTEC plus');
+    await nutzer.type(screen.getByLabelText('Seriennummer'), '21184500');
+    await nutzer.type(screen.getByLabelText('Baujahr'), '2018');
+    await nutzer.type(screen.getByLabelText(/Preis je Wartung/), '149');
+    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    await waitFor(() => expect(createWartung).toHaveBeenCalled());
+    expect((createWartung.mock.calls[0] as unknown[])[1]).toMatchObject({
+      hersteller: 'Vaillant', typ: 'ecoTEC plus', seriennummer: '21184500', baujahr: 2018, preis: 149,
+      faelligAm: '2027-03-15',
+    });
   });
 });
 

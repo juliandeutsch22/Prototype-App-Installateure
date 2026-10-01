@@ -77,6 +77,18 @@ export async function lagerEingang(eingang: {
   return Number(data);
 }
 
+/**
+ * Verkaufspreise aus Einkaufspreis und Aufschlag setzen — nur, wo keiner
+ * steht (M31). Zurück kommt, wie viele gesetzt wurden und wie viele ohne
+ * Einkaufspreis oder ohne Aufschlag offen blieben.
+ */
+export async function verkaufspreiseVorschlagen(): Promise<{ gesetzt: number; ohneEinkauf: number; ohneAufschlag: number }> {
+  const { data, error } = await derClient().rpc('verkaufspreise_vorschlagen');
+  if (error) throw new Error(error.message);
+  const d = data as { gesetzt: number; ohneEinkauf: number; ohneAufschlag: number };
+  return { gesetzt: Number(d.gesetzt), ohneEinkauf: Number(d.ohneEinkauf), ohneAufschlag: Number(d.ohneAufschlag) };
+}
+
 /** Inventur: der gezählte Bestand, mit Grund (M28). */
 export async function lagerInventur(materialId: string, bestand: number, grund: string): Promise<number> {
   const { data, error } = await derClient().rpc('lager_inventur', {

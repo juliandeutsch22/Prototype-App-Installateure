@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { imLager, istKnapp } from './lagerartikel';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { darfKatalogEinspielen } from '@/lib/permissions';
@@ -187,7 +188,8 @@ export default function StockView() {
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return [...materials]
+    return materials
+      .filter(imLager)
       .map((m) => ({
         ...m,
         reserved: reserved.get(m.id) ?? 0,
@@ -201,7 +203,7 @@ export default function StockView() {
   }, [materials, reserved, search]);
 
   const lowCount = useMemo(
-    () => rows.filter((m) => m.free <= LOW_STOCK_THRESHOLD).length,
+    () => rows.filter((m) => istKnapp(m.free, m, LOW_STOCK_THRESHOLD)).length,
     [rows],
   );
 
@@ -267,13 +269,18 @@ export default function StockView() {
       ) : (
         <>
           <MetricRow>
-            <Metric label="Artikel" value={materials.length} />
+            <Metric
+              label="Im Lager"
+              value={materials.filter(imLager).length}
+              // Katalog und Lager sind getrennt (M30): nicht jeder Katalogartikel liegt im Regal.
+              hint={`von ${materials.length} im Katalog`}
+            />
             <Metric
               label="Knapp"
               tone={lowCount > 0 ? 'warning' : 'success'}
               value={lowCount}
               // „ab 5 oder weniger“ war missverständlich (G8): gemeint ist das Freie.
-              hint={`höchstens ${LOW_STOCK_THRESHOLD} frei`}
+              hint={`unter Mindestmenge, sonst höchstens ${LOW_STOCK_THRESHOLD} frei`}
             />
             <Metric
               label="Reserviert"
@@ -302,23 +309,28 @@ export default function StockView() {
                 <EmptyState>
                   {materials.length === 0
                     ? 'Noch kein Material im Katalog. Der Reiter „Katalog“ legt den ersten Eintrag an.'
-                    : `Kein Material passt zu „${search}“.`}
+                    : !materials.some(imLager)
+                      ? 'Noch kein Artikel im Lager geführt. Im Katalog beim Artikel „Im Lager führen“ anhaken.'
+                      : `Kein Lagerartikel passt zu „${search}“.`}
                 </EmptyState>
               ) : (
                 <List>
                   {rows.map((m) => {
-                    const low = m.free <= LOW_STOCK_THRESHOLD;
+                    const low = istKnapp(m.free, m, LOW_STOCK_THRESHOLD);
                     return (
                       <ListRow
                         key={m.id}
                         title={m.name}
                         subtitle={
-                          (m.category || m.reserved > 0) && (
+                          (m.category || m.reserved > 0 || m.mindestmenge != null) && (
                           <>
                             {m.category}
+                            {m.mindestmenge != null && (
+                              <>{m.category && ' · '}Mindestmenge {fmtMenge(m.mindestmenge)}</>
+                            )}
                             {m.reserved > 0 && (
                               <>
-                                {m.category && ' · '}
+                                {(m.category || m.mindestmenge != null) && ' · '}
                                 <span>
                                   {fmtMenge(m.stock ?? 0)} im Lager, {fmtMenge(m.reserved)} reserviert
                                   {stand?.get(m.id)?.geplant

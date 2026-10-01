@@ -357,12 +357,35 @@ describe('Lager — wenn ein Ladevorgang scheitert', () => {
     expect(await screen.findByText(/Fehlende Berechtigung/)).toBeInTheDocument();
   });
 
+  it('führt nur, was im Lager geführt wird — Katalogartikel bleiben draußen (M30)', async () => {
+    materialien = [
+      material({ id: 'l1', name: 'Kupferrohr 15', lagerartikel: true }),
+      material({ id: 'k1', name: 'Kugelhahn aus dem Katalog', stock: 0, lagerartikel: false }),
+    ];
+    zeige();
+    expect(await screen.findByText('Kupferrohr 15')).toBeInTheDocument();
+    expect(screen.queryByText('Kugelhahn aus dem Katalog')).not.toBeInTheDocument();
+    expect(screen.getByText('von 2 im Katalog')).toBeInTheDocument();
+  });
+
+  it('knapp heißt: unter der Mindestmenge, wo eine steht (M30)', async () => {
+    materialien = [
+      material({ id: 'a', name: 'Fitting', stock: 20, lagerartikel: true, mindestmenge: 25 }),
+      material({ id: 'b', name: 'Dichtband', stock: 4, lagerartikel: true, mindestmenge: 2 }),
+    ];
+    zeige();
+    expect(await screen.findByText(/Mindestmenge 25/)).toBeInTheDocument();
+    // Fitting liegt unter 25, Dichtband über seiner Mindestmenge von 2 — obwohl höchstens 5 frei.
+    const knapp = screen.getByText('Knapp').closest('div')!.parentElement!;
+    expect(knapp).toHaveTextContent('1');
+  });
+
   it('unterscheidet einen leeren Katalog von einer erfolglosen Suche', async () => {
     materialien = [material({ id: 'm1' })];
     zeige();
 
     await userEvent.type(await screen.findByRole('textbox', { name: /Suche/ }), 'Wasserhahn');
-    expect(await screen.findByText(/Kein Material passt zu/)).toBeInTheDocument();
+    expect(await screen.findByText(/Kein Lagerartikel passt zu/)).toBeInTheDocument();
 
     await userEvent.clear(screen.getByRole('textbox', { name: /Suche/ }));
     materialien = [];

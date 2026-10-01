@@ -48,6 +48,8 @@ import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { datumAT } from '@/lib/datum';
+import { ZahlWertFeld } from '@/components/ZahlFeld';
+import { euro } from '@/lib/betrag';
 
 const fmtDatum = (iso?: string) =>
   datumAT(iso) || '—';
@@ -65,6 +67,15 @@ const STAND: Record<Dringlichkeit, Stand> = {
   unklar: 'ruht',
 };
 
+/** Hersteller, Typ, Seriennummer und Baujahr in einer Zeile — was davon da ist. */
+function anlagendaten(w: Pick<Wartung, 'hersteller' | 'typ' | 'seriennummer' | 'baujahr'>): string {
+  return [
+    [w.hersteller, w.typ].filter(Boolean).join(' '),
+    w.seriennummer ? `SN ${w.seriennummer}` : '',
+    w.baujahr ? `Bj. ${w.baujahr}` : '',
+  ].filter(Boolean).join(', ');
+}
+
 const LEER = (): NewWartung => ({
   customerId: '',
   customerName: '',
@@ -75,7 +86,28 @@ const LEER = (): NewWartung => ({
   faelligAm: '',
   aktiv: true,
   hinweis: '',
+  hersteller: '',
+  typ: '',
+  seriennummer: '',
+  baujahr: null,
+  preis: null,
 });
+
+/**
+ * DER NÄCHSTE TERMIN FOLGT AUS „ZULETZT GEWARTET“ PLUS INTERVALL
+ * (Testbericht 30.09.2026, M39) — sobald sich eines von beiden ändert, nicht
+ * erst beim Verlassen des Feldes. Das Feld bleibt änderbar (ein vereinbarter
+ * Ausweichtag); die Datenbank rechnet dasselbe (`app.wartung_termin`).
+ */
+function mitTermin<T extends { zuletztAm?: string; intervallMonate: number; faelligAm: string }>(f: T): T {
+  if (!f.zuletztAm) return f;
+  try {
+    return { ...f, faelligAm: naechsterTermin(f.zuletztAm, f.intervallMonate) };
+  } catch {
+    // Ein unfertiges Datum beim Tippen: dann bleibt der Termin, wie er ist.
+    return f;
+  }
+}
 
 /** Was gerade erledigt eingetragen wird. */
 interface Erledigung {
@@ -320,6 +352,10 @@ export default function WartungenView() {
       toast.error('Bitte eintragen, was gewartet wird.');
       return;
     }
+    if (form.baujahr != null && (form.baujahr < 1900 || form.baujahr > 2100)) {
+      toast.error('Das Baujahr liegt zwischen 1900 und 2100.');
+      return;
+    }
     if (!form.faelligAm) {
       toast.error('Ohne Termin wüsste niemand, wann die Wartung ansteht.');
       return;
@@ -332,6 +368,9 @@ export default function WartungenView() {
         address: form.address?.trim() || undefined,
         hinweis: form.hinweis?.trim() || undefined,
         zuletztAm: form.zuletztAm || undefined,
+        hersteller: form.hersteller?.trim() || null,
+        typ: form.typ?.trim() || null,
+        seriennummer: form.seriennummer?.trim() || null,
       };
       if (bearbeitet) {
         await updateWartung(bearbeitet.id, daten);
@@ -473,6 +512,8 @@ export default function WartungenView() {
             {fmtDatum(w.faelligAm)}
             {w.zuletztAm ? ` · zuletzt ${fmtDatum(w.zuletztAm)}` : ' · noch nie gewartet'}
             {w.hinweis ? ` · ${w.hinweis}` : ''}
+            {anlagendaten(w) ? ` · ${anlagendaten(w)}` : ''}
+            {w.preis != null ? ` · ${euro(w.preis)} je Wartung` : ''}
             {/*
               WAS SCHON EINGEPLANT IST, SAGT ES. Ohne diese Zeile hiess
               „fällig" zweierlei — „noch nichts passiert" und „steht längst im
@@ -591,7 +632,7 @@ export default function WartungenView() {
               <SelectField id="w-intervall"
                 label="Intervall"
                 value={String(form.intervallMonate)}
-                onChange={(e) => setForm({ ...form, intervallMonate: Number(e.target.value) })}
+                onChange={(e) => setForm(mitTermin({ ...form, intervallMonate: Number(e.target.value) }))}
               >
                 {INTERVALLE.map((m) => (
                   <option key={m} value={m}>
@@ -603,15 +644,52 @@ export default function WartungenView() {
                 label="Zuletzt gewartet"
                 type="date"
                 value={form.zuletztAm ?? ''}
-                onChange={(e) => setForm({ ...form, zuletztAm: e.target.value })}
+                onChange={(e) => setForm(mitTermin({ ...form, zuletztAm: e.target.value }))}
                 onBlur={terminVorschlagen}
               />
-              <InputField id="w-termin"
-                label="Nächster Termin"
-                pflicht
-                type="date"
-                value={form.faelligAm}
-                onChange={(e) => setForm({ ...form, faelligAm: e.target.value })}
+              <div className="flex flex-col gap-1">
+                <InputField id="w-termin"
+                  label="Nächster Termin"
+                  pflicht
+                  type="date"
+                  value={form.faelligAm}
+                  onChange={(e) => setForm({ ...form, faelligAm: e.target.value })}
+                />
+                {form.zuletztAm && (
+                  <p className="text-xs text-ink-muted">
+                    Aus „zuletzt gewartet“ plus Intervall berechnet — für einen vereinbarten Ausweichtag änderbar.
+                  </p>
+                )}
+              </div>
+              {/* Anlagendaten (M39): stand vorher, wenn überhaupt, im Freitext. */}
+              <InputField id="w-hersteller"
+                label="Hersteller"
+                placeholder="z. B. Vaillant"
+                value={form.hersteller ?? ''}
+                onChange={(e) => setForm({ ...form, hersteller: e.target.value })}
+              />
+              <InputField id="w-typ"
+                label="Typ"
+                placeholder="z. B. ecoTEC plus VC 206"
+                value={form.typ ?? ''}
+                onChange={(e) => setForm({ ...form, typ: e.target.value })}
+              />
+              <InputField id="w-seriennummer"
+                label="Seriennummer"
+                value={form.seriennummer ?? ''}
+                onChange={(e) => setForm({ ...form, seriennummer: e.target.value })}
+              />
+              <ZahlWertFeld id="w-baujahr"
+                label="Baujahr"
+                placeholder="z. B. 2018"
+                wert={form.baujahr ?? null}
+                onWert={(n) => setForm({ ...form, baujahr: n == null ? null : Math.round(n) })}
+              />
+              <ZahlWertFeld id="w-preis"
+                label="Preis je Wartung netto (€)"
+                placeholder="leer = nicht vereinbart"
+                wert={form.preis ?? null}
+                onWert={(n) => setForm({ ...form, preis: n })}
               />
               <InputField id="w-hinweis"
                 label="Hinweis"

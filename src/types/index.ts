@@ -14,6 +14,7 @@
  *    Sprach-Einträge dürfen zusätzlich `hours` direkt setzen.
  */
 import type { Einstufung, Satzklasse, Stufensaetze } from '@/lib/einstufung';
+import type { Materialaufschlag } from '@/lib/aufschlag';
 
 
 export type Role =
@@ -257,6 +258,11 @@ export interface InvoiceRates {
    * Helfersatz (siehe `verrechnungssatz`).
    */
   stufen?: Stufensaetze;
+  /**
+   * Materialaufschlag (M31): Standard und je Warengruppe, Prozent auf den
+   * Einkaufspreis. Ohne Angabe kein Vorschlag für den Verkaufspreis.
+   */
+  materialaufschlag?: Materialaufschlag;
   /**
    * Mahnspesen je Stufe, in Euro — [Erinnerung, Mahnung, letzte Mahnung].
    *
@@ -826,6 +832,17 @@ export interface Material {
    * gekennzeichnet und für NEUE Erfassungen nicht mehr angeboten.
    */
   ausgelaufen?: boolean;
+  /**
+   * Führt der Betrieb den Artikel im Lager (Testbericht 30.09.2026, M30)?
+   * Ein Katalogartikel ist es nicht von selbst — nach einem DATANORM-Import
+   * stünden sonst zehntausende Artikel im Bestand. Wer Bestand hat, wird von
+   * der Datenbank geführt; abschalten geht nur bei Bestand null.
+   */
+  lagerartikel?: boolean;
+  /** Mindestmenge (M30): darunter gilt der Artikel als knapp. Leer: höchstens 5 frei. */
+  mindestmenge?: number | null;
+  /** Warengruppe aus DATANORM (M31) — bestimmt einen abweichenden Aufschlag. */
+  warengruppe?: string | null;
 }
 
 /**
@@ -1540,6 +1557,13 @@ export interface Wartung {
   hinweis?: string;
   /** Baustelle, auf der zuletzt gewartet wurde — für den Weg in die Historie. */
   letzteBaustelle?: string;
+  /** Anlagendaten (Testbericht 30.09.2026, M39) — vorher, wenn überhaupt, im Freitext. */
+  hersteller?: string | null;
+  typ?: string | null;
+  seriennummer?: string | null;
+  baujahr?: number | null;
+  /** Vereinbarter Preis je Wartung, netto in Euro (M39). */
+  preis?: number | null;
   /**
    * Die Baustelle, die für die ANSTEHENDE Wartung schon angelegt ist.
    *

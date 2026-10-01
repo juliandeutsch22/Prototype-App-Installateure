@@ -331,3 +331,82 @@ describe('Ausgelaufene Artikel im Katalog', () => {
     expect(within(neu).queryByText('ausgelaufen')).toBeNull();
   });
 });
+
+/**
+ * KATALOG UND LAGER GETRENNT (Testbericht 30.09.2026, M30) und der
+ * Materialaufschlag (M31).
+ */
+describe('Im Lager führen', () => {
+  it('ohne Haken nur Katalog: kein Anfangsbestand, keine Mindestmenge', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.type(await screen.findByLabelText(/Bezeichnung/), 'Kugelhahn');
+    await nutzer.click(screen.getByLabelText('Im Lager führen'));
+    expect(screen.queryByLabelText(/Anfangsbestand/)).toBeNull();
+    expect(screen.queryByLabelText(/Mindestmenge/)).toBeNull();
+    await nutzer.click(screen.getByRole('button', { name: 'Material anlegen' }));
+    await waitFor(() => expect(anlegen).toHaveBeenCalled());
+    expect(anlegen.mock.calls[0][1]).toMatchObject({ name: 'Kugelhahn', stock: 0, lagerartikel: false, mindestmenge: null });
+  });
+
+  it('mit Haken samt Mindestmenge und Warengruppe', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.type(await screen.findByLabelText(/Bezeichnung/), 'Fitting');
+    await nutzer.clear(screen.getByLabelText(/Anfangsbestand/));
+    await nutzer.type(screen.getByLabelText(/Anfangsbestand/), '40');
+    await nutzer.type(screen.getByLabelText(/Mindestmenge/), '10');
+    await nutzer.type(screen.getByLabelText(/Warengruppe/), '1201');
+    await nutzer.click(screen.getByRole('button', { name: 'Material anlegen' }));
+    await waitFor(() => expect(anlegen).toHaveBeenCalled());
+    expect(anlegen.mock.calls[0][1]).toMatchObject({
+      stock: 40, lagerartikel: true, mindestmenge: 10, warengruppe: '1201',
+    });
+  });
+
+  it('lässt sich mit Bestand nicht abschalten', async () => {
+    materialien = [{ id: 'm1', companyId: 'perl', name: 'Eckventil', stock: 4, lagerartikel: true } as WithId<Material>];
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    expect(screen.getByLabelText('Im Lager führen')).toBeDisabled();
+    expect(screen.getByText(/erst, wenn die Inventur den Bestand auf null/)).toBeInTheDocument();
+  });
+
+  it('zeigt einen Katalogartikel als „nur Katalog“, nicht mit Bestand', async () => {
+    materialien = [{ id: 'k1', companyId: 'perl', name: 'Pressfitting', stock: 0, lagerartikel: false } as WithId<Material>];
+    zeige();
+    expect(await screen.findByText('nur Katalog')).toBeInTheDocument();
+  });
+});
+
+describe('Verkaufspreis aus Einkauf plus Aufschlag (M31)', () => {
+  const MIT_AUFSCHLAG = {
+    ...CHEF,
+    company: { id: 'perl', name: 'Perl', rates: { materialaufschlag: { standard: 25, warengruppen: { '1201': 40 } } } },
+  };
+
+  it('schlägt vor — Warengruppe vor Standard — und übernimmt erst auf Klick', async () => {
+    angemeldet = MIT_AUFSCHLAG as unknown as typeof VERWALTUNG;
+    materialien = [{ id: 'm1', companyId: 'perl', name: 'Fitting', stock: 0, warengruppe: '1201' } as WithId<Material>];
+    preisLaden = async () => new Map([['m1', 10]]);
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    expect(await screen.findByText(/Vorschlag: € 14,00 \(Einkauf \+ 40 %\)/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Verkaufspreis/)).toHaveValue('');
+    await nutzer.click(screen.getByRole('button', { name: 'Übernehmen' }));
+    expect(screen.getByLabelText(/Verkaufspreis/)).toHaveValue('14,00');
+  });
+
+  it('ohne Aufschlag kein Vorschlag', async () => {
+    angemeldet = CHEF;
+    materialien = [{ id: 'm1', companyId: 'perl', name: 'Fitting', stock: 0 } as WithId<Material>];
+    preisLaden = async () => new Map([['m1', 10]]);
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    await waitFor(() => expect(screen.getByLabelText(/Einkaufspreis/)).toHaveValue('10,00'));
+    expect(screen.queryByText(/Vorschlag:/)).toBeNull();
+  });
+});

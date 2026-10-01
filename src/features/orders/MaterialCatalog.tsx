@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { imLager, istKnapp } from './lagerartikel';
+import { aufschlagFuer, verkaufspreisVorschlag } from '@/lib/aufschlag';
 import { useAuth } from '@/app/AuthContext';
 import { darfEinkaufSehen, darfKatalogEinspielen } from '@/lib/permissions';
 import {
@@ -18,7 +20,9 @@ import { Marke, Warnung } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
+import { CheckboxField, InputField, FormGrid, Pflichthinweis } from '@/components/Field';
+import { euro } from '@/lib/betrag';
+import { fmtMenge } from '@/lib/belegLayout';
 import InfoHint from '@/components/InfoHint';
 import Nachladen from '@/components/Nachladen';
 import { useToast } from '@/components/Toast';
@@ -49,6 +53,13 @@ const empty = {
   unit: '',
   verkaufspreis: '',
   einkaufspreis: '',
+  /*
+    VON HAND ANGELEGT HEISST MEIST „LIEGT IM REGAL“ — deshalb vorbelegt (M30).
+    Eingespielte Artikel stehen dagegen nur im Katalog, bis jemand sie führt.
+  */
+  lagerartikel: true,
+  mindestmenge: '',
+  warengruppe: '',
 };
 
 /**
@@ -88,7 +99,8 @@ export default function MaterialCatalog({
   zuBearbeiten?: WithId<Material> | null;
   onUebernommen?: () => void;
 } = {}) {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
+  const aufschlag = company?.rates?.materialaufschlag;
   /*
     DEN EINKAUFSPREIS SIEHT die Leitung — oder die Verwaltung mit Freigabe
     „Einkaufspreise sehen“ oder „Katalog einspielen“; SETZEN darf ihn die
@@ -147,7 +159,7 @@ export default function MaterialCatalog({
   }, [materials, search]);
 
   const lowStock = useMemo(
-    () => materials.filter((m) => (m.stock ?? 0) <= LOW_STOCK_THRESHOLD).length,
+    () => materials.filter((m) => imLager(m) && istKnapp(m.stock ?? 0, m, LOW_STOCK_THRESHOLD)).length,
     [materials],
   );
 
@@ -190,6 +202,9 @@ export default function MaterialCatalog({
       unit: m.unit ?? 'Stk',
       verkaufspreis: m.verkaufspreis != null ? preisAlsText(m.verkaufspreis) : '',
       einkaufspreis: '',
+      lagerartikel: imLager(m),
+      mindestmenge: m.mindestmenge != null ? String(m.mindestmenge).replace('.', ',') : '',
+      warengruppe: m.warengruppe ?? '',
     });
   }
   function reset() {
@@ -203,7 +218,7 @@ export default function MaterialCatalog({
     e.preventDefault();
     if (!user) return;
     // Zentrale Zahlenlesung (M15): „7.500“ ist uneindeutig und wird gemeldet, nicht 0.
-    const unlesbar = [form.verkaufspreis, form.einkaufspreis, form.stock]
+    const unlesbar = [form.verkaufspreis, form.einkaufspreis, form.stock, form.mindestmenge]
       .map((t) => leseZahl(t).fehler)
       .find(Boolean);
     if (unlesbar) {
@@ -231,6 +246,12 @@ export default function MaterialCatalog({
         articleNumber: form.articleNumber.trim(),
         unit: form.unit.trim() || 'Stk',
         verkaufspreis: preis === '' ? 0 : Math.max(0, zahlOder(preis, 0)),
+        // M30/M31: ob er im Lager liegt, ab wann er knapp ist, welche Warengruppe den Aufschlag bestimmt.
+        lagerartikel: form.lagerartikel,
+        mindestmenge: form.lagerartikel && form.mindestmenge.trim() !== ''
+          ? Math.max(0, zahlOder(form.mindestmenge, 0))
+          : null,
+        warengruppe: form.warengruppe.trim() || null,
         /*
           DER EINKAUFSPREIS WANDERT NUR MIT, WENN DIE ROLLE IHN SETZEN DARF.
 
@@ -253,7 +274,7 @@ export default function MaterialCatalog({
         */
         await updateMaterial(editId, data);
       } else {
-        await createMaterial(user.companyId, { ...data, stock: bestand });
+        await createMaterial(user.companyId, { ...data, stock: form.lagerartikel ? bestand : 0 });
       }
       toast.success(editId ? 'Material gespeichert' : 'Material angelegt');
       reset();
@@ -311,7 +332,31 @@ export default function MaterialCatalog({
                 </InfoHint>
               </p>
             </div>
-            {editId ? (
+            <InputField id="mwg" label="Warengruppe" placeholder="aus DATANORM, z. B. 1201" value={form.warengruppe}
+              onChange={(e) => setForm({ ...form, warengruppe: e.target.value })} />
+          </FormGrid>
+          {/*
+            KATALOG UND LAGER GETRENNT (Testbericht 30.09.2026, M30). Nicht jeder
+            Katalogartikel liegt im Regal; erst dieser Haken führt ihn im Lager.
+            Abschalten geht nur bei Bestand null — sonst stünde ein Bestand in
+            keiner Lagerliste.
+          */}
+          <div className="space-y-1">
+            <CheckboxField
+              id="mlager"
+              label="Im Lager führen"
+              checked={form.lagerartikel}
+              disabled={!!editId && form.lagerartikel && zahlOder(form.stock, 0) !== 0}
+              onChange={(e) => setForm({ ...form, lagerartikel: e.target.checked })}
+            />
+            <p className="text-xs text-ink-muted">
+              {!!editId && form.lagerartikel && zahlOder(form.stock, 0) !== 0
+                ? 'Liegt im Lager — abschalten geht erst, wenn die Inventur den Bestand auf null gesetzt hat.'
+                : 'Ohne Haken steht der Artikel nur im Katalog: anforderbar und verrechenbar, aber in keiner Lagerliste.'}
+            </p>
+          </div>
+          <FormGrid>
+            {!form.lagerartikel ? null : editId ? (
               <div className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium text-ink">Lagerbestand</span>
                 <p className="text-sm text-ink">
@@ -326,13 +371,39 @@ export default function MaterialCatalog({
               <ZahlFeld id="mstock" label="Anfangsbestand" value={form.stock}
                 onChange={(t) => setForm({ ...form, stock: t })} required pflicht />
             )}
-            <ZahlFeld
-              id="mpreis"
-              label="Verkaufspreis netto je Einheit (€)"
-              placeholder="leer = nicht gepflegt"
-              value={form.verkaufspreis}
-              onChange={(t) => setForm({ ...form, verkaufspreis: t })}
-            />
+            {form.lagerartikel && (
+              <ZahlFeld id="mmin" label="Mindestmenge" placeholder="leer = knapp ab höchstens 5 frei"
+                value={form.mindestmenge} onChange={(t) => setForm({ ...form, mindestmenge: t })} />
+            )}
+            <div className="flex flex-col gap-1.5">
+              <ZahlFeld
+                id="mpreis"
+                label="Verkaufspreis netto je Einheit (€)"
+                placeholder="leer = nicht gepflegt"
+                value={form.verkaufspreis}
+                onChange={(t) => setForm({ ...form, verkaufspreis: t })}
+              />
+              {/*
+                DER VORSCHLAG AUS EINKAUF PLUS AUFSCHLAG (M31) — nur ein
+                Vorschlag: der Verkaufspreis ist die Kalkulation des Betriebs
+                und bleibt, was hier steht, bis jemand übernimmt.
+              */}
+              {(() => {
+                if (!darfKosten || ekStand !== 'da') return null;
+                const ek = leseZahl(form.einkaufspreis).wert;
+                const vorschlag = verkaufspreisVorschlag(ek, aufschlag, form.warengruppe);
+                if (vorschlag == null) return null;
+                const prozent = aufschlagFuer(aufschlag, form.warengruppe);
+                return (
+                  <p className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
+                    <span>Vorschlag: {euro(vorschlag)} (Einkauf + {fmtMenge(prozent ?? 0)} %)</span>
+                    <Button type="button" variant="ghost" onClick={() => setForm({ ...form, verkaufspreis: preisAlsText(vorschlag) })}>
+                      Übernehmen
+                    </Button>
+                  </p>
+                );
+              })()}
+            </div>
             {/*
               Der EINKAUFSPREIS steht nur der Geschäftsführung offen: er ist
               die Grundlage der Nachkalkulation, also Margendaten. SETZEN kann
@@ -410,7 +481,8 @@ export default function MaterialCatalog({
           ) : (
             <List>
               {visible.map((m) => {
-                const low = (m.stock ?? 0) <= LOW_STOCK_THRESHOLD;
+                const lager = imLager(m);
+                const low = lager && istKnapp(m.stock ?? 0, m, LOW_STOCK_THRESHOLD);
                 return (
                   <ListRow
                     key={m.id}
@@ -428,7 +500,10 @@ export default function MaterialCatalog({
                       nachsieht.
                     */}
                     {m.ausgelaufen && <Warnung>ausgelaufen</Warnung>}
-                    {low ? (
+                    {!lager ? (
+                      // Nur im Katalog (M30): kein Bestand, den jemand prüfen müsste.
+                      <span className="text-sm text-ink-muted">nur Katalog</span>
+                    ) : low ? (
                       <Warnung>{m.stock ?? 0} {m.unit ?? 'Stk'}</Warnung>
                     ) : (
                       <Marke>{m.stock ?? 0} {m.unit ?? 'Stk'}</Marke>

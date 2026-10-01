@@ -3,6 +3,8 @@ import { useAuth } from '@/app/AuthContext';
 import { updateCompany, naechsteNummern, rechnungsvorgabenSpeichern, type NaechsteNummern } from '@/lib/db/company';
 import { kostensaetze } from '@/lib/db/kosten';
 import { STUFEN, satzName, stufeLeerHeisst, type Stufe } from '@/lib/einstufung';
+import { verkaufspreiseVorschlagen } from '@/lib/db/materials';
+import MaterialaufschlagFelder from './MaterialaufschlagFelder';
 import { praefixeVon, praefixPutzen, praefixFehler, belegNummer, PRAEFIX_MAX } from '@/lib/praefixe';
 import { listUsers } from '@/lib/db/users';
 import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
@@ -376,6 +378,25 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
       weg = true;
     };
   }, [companyId, kostenStand, teil]);
+
+  const [vorschlagLaeuft, setVorschlagLaeuft] = useState(false);
+  /** Verkaufspreise aus Einkauf und Aufschlag, nur wo keiner steht (M31). */
+  async function preiseVorschlagen() {
+    setVorschlagLaeuft(true);
+    setError(null);
+    try {
+      const r = await verkaufspreiseVorschlagen();
+      const offen = [
+        r.ohneEinkauf > 0 ? `${r.ohneEinkauf} ohne Einkaufspreis` : '',
+        r.ohneAufschlag > 0 ? `${r.ohneAufschlag} ohne Aufschlag` : '',
+      ].filter(Boolean).join(', ');
+      toast.success(`${r.gesetzt === 1 ? '1 Verkaufspreis' : `${r.gesetzt} Verkaufspreise`} gesetzt${offen ? ` — offen: ${offen}` : ''}`);
+    } catch (err) {
+      setError({ wo: 'saetze', text: grundAus(err, 'Die Verkaufspreise konnten nicht vorgeschlagen werden.') });
+    } finally {
+      setVorschlagLaeuft(false);
+    }
+  }
 
   /**
    * Nur die Rechnungsvorgaben — der Reiter der Buchhaltung (Testbericht
@@ -751,6 +772,30 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               )}
             </p>
           )}
+        </Card>
+
+        {/*
+          MATERIALAUFSCHLAG (Testbericht 30.09.2026, M31): vom Einkaufs- zum
+          Verkaufspreis. Ein Vorschlag, keine Regel — der Verkaufspreis ist die
+          Kalkulation des Betriebs und bleibt im Katalog überschreibbar.
+        */}
+        <Card
+          title="Materialaufschlag"
+          hint="Prozent auf den Einkaufspreis. Daraus schlägt der Katalog den Verkaufspreis vor; ein eingetragener Verkaufspreis bleibt, wie er ist."
+        >
+          <MaterialaufschlagFelder
+            key={JSON.stringify(company?.rates?.materialaufschlag ?? null)}
+            wert={rates.materialaufschlag}
+            onWert={(a) => setRates({ ...rates, materialaufschlag: a })}
+          />
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+            <Button type="button" variant="secondary" loading={vorschlagLaeuft} onClick={() => void preiseVorschlagen()}>
+              Verkaufspreise vorschlagen
+            </Button>
+            <p className="text-sm text-ink-muted">
+              Setzt den Verkaufspreis nur bei Artikeln ohne Preis — mit dem gespeicherten Aufschlag.
+            </p>
+          </div>
         </Card>
 
         {fehlerBei('saetze')}

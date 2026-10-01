@@ -11,6 +11,7 @@ import Hinweiszeile from '@/components/Hinweiszeile';
 import { ZahlWertFeld } from '@/components/ZahlFeld';
 import { mengeFehler } from '@/lib/einheit';
 import { fmtMenge } from '@/lib/belegLayout';
+import { imLager } from '@/features/orders/lagerartikel';
 
 /**
  * Die Rüstliste eines Einsatzes zusammenstellen — was in den Bus soll.
@@ -167,7 +168,12 @@ export default function RuestlistePlanen({
                       {p.einheit && <span className="text-sm text-ink-muted">{p.einheit}</span>}
                       {!p.materialId && <Marke>{FREI}</Marke>}
                     </p>
-                    {artikel && (
+                    {artikel && !imLager(artikel) && (
+                      <p className="text-sm text-ink-muted">
+                        Nicht im Lager geführt{artikel.category ? ` · ${artikel.category}` : ''}
+                      </p>
+                    )}
+                    {artikel && imLager(artikel) && (
                       <p className="text-sm text-ink-muted">
                         Lager: <span>{fmtMenge(artikel.stock ?? 0)}</span>
                         {verfuegbar?.has(artikel.id) && (
@@ -200,7 +206,12 @@ export default function RuestlistePlanen({
                     <Hinweiszeile stufe="warn">
                       <div className="flex flex-wrap items-center gap-3">
                         <span>
-                          Im Lager fehlen <strong>{fmtMenge(fehlt)}</strong>.
+                          {artikel && !imLager(artikel) ? (
+                            // Ein Katalogartikel liegt nicht im Regal (M30): er muss bestellt werden.
+                            <>Nicht im Lager — <strong>{fmtMenge(fehlt)}</strong> zu bestellen.</>
+                          ) : (
+                            <>Im Lager fehlen <strong>{fmtMenge(fehlt)}</strong>.</>
+                          )}
                         </span>
                         {/*
                           NACH DEM ANLEGEN IST DER KNOPF ERLEDIGT (Testbericht

@@ -47,6 +47,8 @@ vi.mock('@/lib/db/users', () => ({ listUsers: vi.fn(async () => []) }));
 let gespeicherteKosten: { fach: number; helper: number; stufen?: Record<string, number> } | null = null;
 const kostensaetze = vi.fn(async () => gespeicherteKosten);
 vi.mock('@/lib/db/kosten', () => ({ kostensaetze: () => kostensaetze() }));
+const vorschlagen = vi.fn(async () => ({ gesetzt: 12, ohneEinkauf: 3, ohneAufschlag: 0 }));
+vi.mock('@/lib/db/materials', () => ({ verkaufspreiseVorschlagen: () => vorschlagen() }));
 
 let firma: Partial<Company> = { id: 'perl', name: 'Perl Installationen' };
 
@@ -120,6 +122,28 @@ describe('Sätze je Einstufung (Testbericht 4.1)', () => {
     gespeicherteKosten = { fach: 40, helper: 26, stufen: { obermonteur: 45.5 } };
     zeige();
     await waitFor(() => expect(feld('Kosten Obermonteur (€)').value).toBe('45,5'));
+  });
+});
+
+describe('Materialaufschlag (Testbericht M31)', () => {
+  it('speichert Standard und Warengruppe als Teil der Sätze', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.type(feld('Standard-Aufschlag (%)'), '25');
+    await nutzer.click(screen.getByRole('button', { name: 'Warengruppe hinzufügen' }));
+    await nutzer.type(feld('Warengruppe'), '1201');
+    await nutzer.type(feld('Aufschlag (%)'), '40');
+    await nutzer.click(screen.getByRole('button', { name: 'Sätze speichern' }));
+    const daten = updateCompany.mock.calls[0][1] as { rates: { materialaufschlag: unknown } };
+    expect(daten.rates.materialaufschlag).toEqual({ standard: 25, warengruppen: { '1201': 40 } });
+  });
+
+  it('schlägt Verkaufspreise nur auf Knopfdruck vor und sagt, was offen bleibt', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(screen.getByRole('button', { name: 'Verkaufspreise vorschlagen' }));
+    await waitFor(() => expect(vorschlagen).toHaveBeenCalled());
+    expect((await screen.findAllByText(/12 Verkaufspreise gesetzt — offen: 3 ohne Einkaufspreis/)).length).toBeGreaterThan(0);
   });
 });
 
