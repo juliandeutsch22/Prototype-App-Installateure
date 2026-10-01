@@ -44,7 +44,7 @@ vi.mock('@/lib/db/users', () => ({ listUsers: vi.fn(async () => []) }));
   Die Kostensätze kommen seit dem 29.09.2026 nicht mit dem Betrieb, sondern
   aus einer eigenen Tabelle, die nur die Spitze liest (offene Punkte B1).
 */
-let gespeicherteKosten: { fach: number; helper: number } | null = null;
+let gespeicherteKosten: { fach: number; helper: number; stufen?: Record<string, number> } | null = null;
 const kostensaetze = vi.fn(async () => gespeicherteKosten);
 vi.mock('@/lib/db/kosten', () => ({ kostensaetze: () => kostensaetze() }));
 
@@ -91,6 +91,36 @@ beforeEach(() => {
   firma = { id: 'perl', name: 'Perl Installationen' };
   gespeicherteKosten = null;
   kostensaetze.mockClear();
+});
+
+describe('Sätze je Einstufung (Testbericht 4.1)', () => {
+  it('stehen ohne feste Vorgabe da und sagen, was leer heisst', async () => {
+    zeige();
+    expect(feld('Obermonteur (€/h)').value).toBe('');
+    expect(feld('Obermonteur (€/h)').placeholder).toBe('leer = Facharbeitersatz');
+    expect(feld('Lehrling, 1. Lehrjahr (€/h)').placeholder).toBe('leer = Helfersatz');
+  });
+
+  it('speichert Verrechnungs- und Kostensatz je Stufe, eine 0 als 0', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.type(feld('Lehrling, 1. Lehrjahr (€/h)'), '0');
+    await nutzer.type(feld('Lehrling, 3. Lehrjahr (€/h)'), '42');
+    await nutzer.type(feld('Kosten Facharbeiterstunde (€)'), '38,50');
+    await nutzer.type(feld('Kosten Helferstunde (€)'), '24');
+    await nutzer.type(feld('Kosten Lehrling, 1. Lehrjahr (€)'), '12,40');
+    await nutzer.click(screen.getByRole('button', { name: 'Sätze speichern' }));
+
+    const daten = updateCompany.mock.calls[0][1] as { rates: { stufen: unknown }; costRates: unknown };
+    expect(daten.rates.stufen).toEqual({ lj1: 0, lj3: 42 });
+    expect(daten.costRates).toEqual({ fach: 38.5, helper: 24, stufen: { lj1: 12.4 } });
+  });
+
+  it('liest gespeicherte Kosten je Stufe wieder ein', async () => {
+    gespeicherteKosten = { fach: 40, helper: 26, stufen: { obermonteur: 45.5 } };
+    zeige();
+    await waitFor(() => expect(feld('Kosten Obermonteur (€)').value).toBe('45,5'));
+  });
 });
 
 describe('Interne Kostensätze', () => {

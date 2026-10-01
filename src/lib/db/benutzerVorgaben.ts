@@ -9,6 +9,7 @@
  * das Zeitkonto hinge davon ab, welche Datenquelle gerade läuft.
  */
 import type { Role } from '@/types';
+import type { Einstufung } from '@/lib/einstufung';
 
 export const DEFAULT_WEEKLY_HOURS = 40;
 export const DEFAULT_VACATION_DAYS = 25;
@@ -38,4 +39,9 @@ export interface UserProfileInput {
   rechnungenLesen?: boolean;
   /** Nur Geschäftsführung: führt ein Zeitkonto. */
   fuehrtZeitkonto?: boolean;
+  /** Einstufung (4.1) — `null` heisst nicht festgelegt, zählt wie Facharbeiter. */
+  einstufung?: Einstufung | null;
+  /** Nur beim Lehrling; sonst `null`. */
+  lehrbeginn?: string | null;
+  lehrzeitMonate?: number | null;
 }

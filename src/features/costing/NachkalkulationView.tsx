@@ -334,6 +334,7 @@ export default function NachkalkulationView() {
                           <span className="mt-1 block text-xs text-ink-muted">
                             {fmtStd(k.fachStunden * 60)} h Facharbeit
                             {k.helferStunden > 0 ? `, ${fmtStd(k.helferStunden * 60)} h Helfer` : ''}
+                            {k.lehrlingStunden > 0 ? `, ${fmtStd(k.lehrlingStunden * 60)} h Lehrling` : ''}
                             {' · '}
                             {k.erloesQuelle === 'Rechnungen'
                               ? 'Erlös aus Rechnungen'

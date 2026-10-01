@@ -1,5 +1,5 @@
 /**
- * Krankmeldungen und Betriebsurlaub — nur die Weiche.
+ * Krankmeldungen, Betriebsurlaub und Berufsschule — nur die Weiche.
  *
  * Beide schreiben Tage ins Zeitkonto und tun das serverseitig, siehe
  * `pg/abwesenheiten.ts`.
@@ -11,6 +11,7 @@ export {
   krankmeldungSpeichern,
   krankmeldungLoeschen,
   urlaubEintragen,
+  berufsschuleEintragen,
   listBetriebsurlaubeAb,
   listBetriebsurlaubeImZeitraum,
   betriebsurlaubAnlegen,

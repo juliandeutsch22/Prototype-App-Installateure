@@ -709,6 +709,11 @@ export default function AccountingView() {
                               <b className="font-semibold text-ink">{fmtDauer(stats.zaMin)}</b> ZA ·{' '}
                             </>
                           )}
+                          {stats.berufsschuleDays > 0 && (
+                            <>
+                              <b className="font-semibold text-ink">{stats.berufsschuleDays}</b> Tage Berufsschule ·{' '}
+                            </>
+                          )}
                           <b
                             className={`font-semibold ${
                               stats.urlaubRest < 5 ? 'text-warning' : 'text-ink'
@@ -885,6 +890,8 @@ export default function AccountingView() {
                             <Marke>Urlaub</Marke>
                           ) : x.entry.status === 'Zeitausgleich' ? (
                             <Marke>ZA</Marke>
+                          ) : x.entry.status === 'Berufsschule' ? (
+                            <Marke>Berufsschule</Marke>
                           ) : (
                             <span className="text-ink-muted">Anwesend</span>
                           );

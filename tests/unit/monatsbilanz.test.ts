@@ -60,14 +60,14 @@ function baueFall(saat: number) {
     initialOvertime: Math.floor(r() * 40) - 20,
   };
 
-  // Buchungen: nicht jeden Tag, mit Krank, Urlaub und Nachtschichten.
+  // Buchungen: nicht jeden Tag, mit Krank, Urlaub, Berufsschule (4.1) und Nachtschichten.
   const eintraege: (TimeEntry & { id: string })[] = [];
   for (const d = new Date(eintritt); d < heute; d.setDate(d.getDate() + 1)) {
     if (!arbeitstage.includes(d.getDay())) continue;
     const w = r();
     if (w < 0.15) continue; // Lücke
     const datum = localDateStr(d);
-    const status = w < 0.2 ? 'Krank' : w < 0.28 ? 'Urlaub' : 'Anwesend';
+    const status = w < 0.2 ? 'Krank' : w < 0.28 ? 'Urlaub' : w < 0.32 ? 'Berufsschule' : 'Anwesend';
     const nacht = status === 'Anwesend' && r() < 0.08;
     eintraege.push({
       id: `e-${datum}`,

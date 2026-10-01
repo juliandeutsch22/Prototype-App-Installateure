@@ -91,8 +91,8 @@ export function generateHoursPdf(opts: {
     totalMin += wm;
     return [
       fmtDate(e.date),
-      // Die Spalte ist schmal; „ZA" erklärt die Summenzeile darunter.
-      e.status === 'Zeitausgleich' ? 'ZA' : e.status,
+      // Die Spalte ist schmal; „ZA“ und „BS“ erklärt die Summenzeile darunter.
+      e.status === 'Zeitausgleich' ? 'ZA' : e.status === 'Berufsschule' ? 'BS' : e.status,
       e.projectNumber || '–',
       e.customerName || '–',
       e.startTime && e.endTime ? `${e.startTime}–${e.endTime}` : '–',
@@ -151,11 +151,13 @@ export function generateHoursPdf(opts: {
     (s, e) => s + zeitausgleichMin(e, tagessollStunden(user, e.date) * tagesAnteil(e.date, halbeTage)),
     0,
   );
+  const schule = sorted.filter((e) => e.status === 'Berufsschule').length;
   doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(...GRAU);
   const abwesend = [
     krank ? `Krankenstandstage: ${krank}` : '',
     urlaub ? `Urlaubstage: ${tageZahl(urlaub)}` : '',
     zaMin ? `Zeitausgleich (ZA): ${hours(zaMin)} h` : '',
+    schule ? `Berufsschule (BS): ${schule} Tage` : '',
   ].filter(Boolean);
   if (abwesend.length) doc.text(abwesend.join('    '), margin, y + 12);
 

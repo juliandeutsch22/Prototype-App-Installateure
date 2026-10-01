@@ -16,6 +16,7 @@ import {
 } from '@/lib/db/benutzerVorgaben';
 import { leseZahl, zahlOder } from '@/lib/zahl';
 import { todayStr, urlaubsJahrVon, JAHRESBEGINN_VORGABE } from '@/lib/time';
+import { LEHRZEIT_MAX, LEHRZEIT_MIN, type Einstufung } from '@/lib/einstufung';
 
 /**
  * Was für ein Zugang hier entsteht — und es sind zwei verschiedene Dinge.
@@ -147,6 +148,11 @@ export interface BenutzerEntwurf {
   rechnungenLesen: boolean;
   /** Nur für die Geschäftsführung angeboten. */
   fuehrtZeitkonto: boolean;
+  /** Einstufung (4.1); leer heisst nicht festgelegt — zählt wie Facharbeiter. */
+  einstufung: Einstufung | '';
+  /** Nur beim Lehrling: Lehrbeginn (ISO) und Lehrzeit in Monaten. */
+  lehrbeginn: string;
+  lehrzeitMonate: string;
 }
 
 /** Für welche Rollen der Haken „Kunden pflegen“ etwas bedeutet. */
@@ -184,6 +190,9 @@ export function leererEntwurf(): BenutzerEntwurf {
     einkaufSehen: false,
     rechnungenLesen: false,
     fuehrtZeitkonto: false,
+    einstufung: '',
+    lehrbeginn: '',
+    lehrzeitMonate: '',
   };
 }
 
@@ -211,6 +220,9 @@ export function alsEntwurf(u: AppUser): BenutzerEntwurf {
     einkaufSehen: u.einkaufSehen === true,
     rechnungenLesen: u.rechnungenLesen === true,
     fuehrtZeitkonto: u.fuehrtZeitkonto === true,
+    einstufung: u.einstufung ?? '',
+    lehrbeginn: u.lehrbeginn ?? '',
+    lehrzeitMonate: u.lehrzeitMonate ? String(u.lehrzeitMonate) : '',
   };
 }
 
@@ -246,7 +258,8 @@ export function tagessollNachTagen(f: Pick<BenutzerEntwurf, 'tagessoll' | 'workD
  */
 export function entwurfFehler(
   e: Pick<BenutzerEntwurf, 'tagessoll' | 'workDays' | 'eintritt' | 'appStartDate'> &
-    Partial<Pick<BenutzerEntwurf, 'weeklyTargetHours' | 'yearlyVacationDays' | 'initialOvertime' | 'initialVacationDays'>>,
+    Partial<Pick<BenutzerEntwurf, 'weeklyTargetHours' | 'yearlyVacationDays' | 'initialOvertime' | 'initialVacationDays'
+      | 'einstufung' | 'lehrbeginn' | 'lehrzeitMonate'>>,
 ): string | null {
   // Eine Zahl, die sich nicht lesen lässt, geht nicht als Vorgabe durch (M15).
   const zahlen: [string, string | undefined, boolean][] = [
@@ -265,6 +278,20 @@ export function entwurfFehler(
   // ISO-Daten lassen sich als Text vergleichen.
   if (e.eintritt && e.appStartDate && e.eintritt > e.appStartDate) {
     return 'Das Eintrittsdatum liegt nach dem Saldo-Start — vor dem Eintritt kann das Zeitkonto nicht rechnen.';
+  }
+  return lehreFehler(e);
+}
+
+/**
+ * Beim Lehrling gehören Lehrbeginn und Lehrzeit dazu — ohne sie gibt es kein
+ * Lehrjahr und damit keinen Satz (4.1). Die Datenbank prüft dasselbe.
+ */
+export function lehreFehler(e: Partial<Pick<BenutzerEntwurf, 'einstufung' | 'lehrbeginn' | 'lehrzeitMonate'>>): string | null {
+  if (e.einstufung !== 'lehrling') return null;
+  if (!e.lehrbeginn) return 'Beim Lehrling bitte den Lehrbeginn angeben — daraus ergibt sich das Lehrjahr.';
+  const monate = Number(e.lehrzeitMonate);
+  if (!Number.isInteger(monate) || monate < LEHRZEIT_MIN || monate > LEHRZEIT_MAX) {
+    return `Die Lehrzeit liegt zwischen ${LEHRZEIT_MIN / 12} und ${LEHRZEIT_MAX / 12} Jahren.`;
   }
   return null;
 }
@@ -312,6 +339,10 @@ export function alsProfil(e: BenutzerEntwurf): UserProfileInput {
     einkaufSehen: mitLagerFreigaben(e.role) && e.einkaufSehen,
     rechnungenLesen: mitRechnungsFreigabe(e.role) && e.rechnungenLesen,
     fuehrtZeitkonto: mitZeitkontoWahl(e.role) && e.fuehrtZeitkonto,
+    einstufung: e.einstufung || null,
+    // Lehrbeginn und Lehrzeit nur beim Lehrling — sonst lebten sie unsichtbar weiter.
+    lehrbeginn: e.einstufung === 'lehrling' ? e.lehrbeginn || null : null,
+    lehrzeitMonate: e.einstufung === 'lehrling' ? Number(e.lehrzeitMonate) || null : null,
   };
 }
 

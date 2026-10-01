@@ -100,6 +100,30 @@ export async function urlaubEintragen(daten: {
   return { id: d.id, tage: Number(d.tage), uebersprungen: Number(d.uebersprungen) };
 }
 
+/**
+ * Berufsschule eintragen, auch als Zeitraum (Blocklehrgang) — Testbericht
+ * 30.09.2026, 4.1. Die Arbeitstage im Zeitraum werden „Berufsschule“; wo
+ * schon etwas gebucht ist, bleibt es und wird als übersprungen gezählt. Nur
+ * für Lehrlinge, selbst höchstens 14 Tage zurück — das prüft die Datenbank.
+ */
+export async function berufsschuleEintragen(daten: {
+  /** `null` = der Angemeldete selbst. */
+  userId: string | null;
+  von: string;
+  bis: string;
+  notiz?: string;
+}): Promise<{ tage: number; angelegt: number; uebersprungen: number }> {
+  const { data, error } = await derClient().rpc('berufsschule_eintragen', {
+    p_user: daten.userId,
+    p_von: daten.von,
+    p_bis: daten.bis,
+    p_notiz: daten.notiz ?? null,
+  });
+  if (error) throw new Error(error.message);
+  const d = data as { tage: number; angelegt: number; uebersprungen: number };
+  return { tage: Number(d.tage), angelegt: Number(d.angelegt), uebersprungen: Number(d.uebersprungen) };
+}
+
 /** Löscht die Meldung samt ihrer Krank-Tage; zurück kommt deren Zahl. */
 export async function krankmeldungLoeschen(id: string): Promise<number> {
   const { data, error } = await derClient().rpc('krankmeldung_loeschen', { p_id: id });

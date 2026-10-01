@@ -162,8 +162,12 @@ describe('Überstunden in der Lohn-CSV', () => {
     });
     const zeilenDanach = mit.split('\n');
     const ab = zeilenDanach.indexOf('Mitarbeiter-Zusammenfassung');
-    expect(zeilenDanach[ab + 1].endsWith('Überstunden 50 %(Std);Überstunden 100 %(Std)')).toBe(true);
+    // Direkt hinter der Dezember-Spalte; dahinter nur, was seither hinten angehängt wurde (4.1).
+    expect(zeilenDanach[ab + 1]).toContain(
+      '24./31.12. ab 12 Uhr(Std);Überstunden 50 %(Std);Überstunden 100 %(Std);Einstufung;Lehrjahr;Berufsschule-Tage;Berufsschule(Std)',
+    );
+    expect(zeilenDanach[ab + 1].endsWith('Berufsschule(Std)')).toBe(true);
     // 06:00–18:00 mit Pause sind 11,5 Stunden, 3,5 über dem Tagessoll von 8.
-    expect(zeilenDanach[ab + 2].endsWith(';3,50;0,00')).toBe(true);
+    expect(zeilenDanach[ab + 2].endsWith(';3,50;0,00;;;0;0,00')).toBe(true);
   });
 });

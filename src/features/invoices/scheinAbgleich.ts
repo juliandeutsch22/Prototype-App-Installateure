@@ -1,6 +1,7 @@
 import type { TimeEntry, WorkSheet } from '@/types';
 import { calcWorkMin, normProjectNumber } from '@/lib/time';
 import { normName } from './materialPositionen';
+import { satzklasse } from '@/lib/einstufung';
 
 /**
  * Was die Rechnung verrechnet, gegen das, was der Kunde unterschrieben hat.
@@ -177,7 +178,8 @@ export function scheinAbgleich(
     `${datum}|${normName(name)}|${helfer ? 'h' : 'f'}`;
   const verrechnetJe = new Map<string, number>();
   for (const e of eintraege) {
-    const k = schluessel(e.date, e.userName ?? '', !!e.isHelper);
+    // Helfer ist, wer als Helfer zählt — per Haken oder per Einstufung (4.1).
+    const k = schluessel(e.date, e.userName ?? '', satzklasse(e) === 'helfer');
     verrechnetJe.set(k, (verrechnetJe.get(k) ?? 0) + Math.max(calcWorkMin(e), 0));
   }
   const bestaetigtJe = new Map<string, { datum: string; name: string; helfer: boolean; min: number }>();
@@ -223,7 +225,7 @@ export function scheinAbgleich(
   if (offen && alleDerBaustelle.length > 0) {
     const namen = new Map<string, string>();
     for (const e of eintraege) {
-      const k = schluessel(e.date, e.userName ?? '', !!e.isHelper);
+      const k = schluessel(e.date, e.userName ?? '', satzklasse(e) === 'helfer');
       if (!namen.has(k)) namen.set(k, (e.userName ?? '').trim());
     }
     for (const [k, min] of verrechnetJe) {

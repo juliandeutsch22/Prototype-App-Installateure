@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { updateCompany, naechsteNummern, rechnungsvorgabenSpeichern, type NaechsteNummern } from '@/lib/db/company';
 import { kostensaetze } from '@/lib/db/kosten';
+import { STUFEN, satzName, stufeLeerHeisst, type Stufe } from '@/lib/einstufung';
 import { praefixeVon, praefixPutzen, praefixFehler, belegNummer, PRAEFIX_MAX } from '@/lib/praefixe';
 import { listUsers } from '@/lib/db/users';
 import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
@@ -96,6 +97,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
    * Als Text gehalten, weil eine Zahl kein „noch nichts eingetragen" kennt.
    */
   const [costRates, setCostRates] = useState({ fach: '', helper: '' });
+  /** Kosten je Stufe (4.1) — als Text wie die übrigen Kostensätze; leer heisst „wie Facharbeiter bzw. Helfer“. */
+  const [costStufen, setCostStufen] = useState<Partial<Record<Stufe, string>>>({});
   const [saving, setSaving] = useState(false);
   /*
     DER FEHLER WEISS, WO ER HINGEHÖRT. Vorher gab es einen für die ganze
@@ -359,6 +362,11 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           fach: String(k.fach).replace('.', ','),
           helper: String(k.helper).replace('.', ','),
         });
+        setCostStufen(
+          Object.fromEntries(
+            Object.entries(k.stufen ?? {}).map(([s, v]) => [s, String(v).replace('.', ',')]),
+          ),
+        );
       })
       // Nicht still leer lassen: leere Felder sähen aus wie „nie hinterlegt".
       .catch((err) => {
@@ -431,7 +439,16 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
         rechnungsarten,
         steuerbefreiungVorgabe: steuerbefreiungVorgabe.trim(),
         ...(kostenGesetzt
-          ? { costRates: { fach: num(costRates.fach, 0), helper: num(costRates.helper, 0) } }
+          ? {
+              costRates: {
+                fach: num(costRates.fach, 0),
+                helper: num(costRates.helper, 0),
+                // Immer mitgeschickt: ein geleertes Feld soll auch leer ankommen.
+                stufen: Object.fromEntries(
+                  STUFEN.filter((s) => (costStufen[s] ?? '').trim() !== '').map((s) => [s, num(costStufen[s] ?? '', 0)]),
+                ),
+              },
+            }
           : {}),
       });
       await reloadCompany();
@@ -480,7 +497,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
       <form onSubmit={submit} className="space-y-6">
         <Card
           title="Stundensätze"
-          hint="Der Helfersatz gilt für Einsätze, die im Zeiteintrag als Helferarbeit gebucht sind — er hängt am Einsatz, nicht dauerhaft an einer Person."
+          hint="Welcher Satz für eine Stunde gilt, folgt aus der Einstufung der Person (Benutzerakte). Der Haken „als Helfer“ an der Buchung bleibt für Ausnahmen und geht vor."
         >
           <FormGrid>
             <ZahlWertFeld
@@ -495,6 +512,30 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               wert={rates.helper}
               onWert={(n) => setRates({ ...rates, helper: n ?? 0 })}
             />
+          </FormGrid>
+          {/*
+            SÄTZE JE EINSTUFUNG (Testbericht 4.1). Ohne feste Vorgabe: ein
+            leeres Feld heisst beim Obermonteur Facharbeiter-, beim Lehrling
+            Helfersatz; 0 heisst „nicht verrechnet“. Welcher Satz gilt, steht
+            an der Person (Benutzerakte → Einstufung).
+          */}
+          <p className="section-label mb-2 mt-4 border-t border-line pt-4">Je Einstufung</p>
+          <FormGrid>
+            {STUFEN.map((s) => (
+              <ZahlWertFeld
+                key={s}
+                id={`r-stufe-${s}`}
+                label={`${satzName(s)} (€/h)`}
+                placeholder={stufeLeerHeisst(s)}
+                wert={rates.stufen?.[s] ?? null}
+                onWert={(n) => {
+                  const stufen = { ...(rates.stufen ?? {}) };
+                  if (n == null) delete stufen[s];
+                  else stufen[s] = n;
+                  setRates({ ...rates, stufen });
+                }}
+              />
+            ))}
           </FormGrid>
 
         </Card>
@@ -671,6 +712,19 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               value={costRates.helper}
               onChange={(t) => setCostRates({ ...costRates, helper: t })}
             />
+          </FormGrid>
+          <p className="section-label mb-2 mt-4 border-t border-line pt-4">Je Einstufung</p>
+          <FormGrid>
+            {STUFEN.map((s) => (
+              <ZahlFeld
+                key={s}
+                id={`cost-stufe-${s}`}
+                label={`Kosten ${satzName(s)} (€)`}
+                placeholder={stufeLeerHeisst(s).replace('satz', 'kosten')}
+                value={costStufen[s] ?? ''}
+                onChange={(t) => setCostStufen({ ...costStufen, [s]: t })}
+              />
+            ))}
           </FormGrid>
           {costRates.fach.trim() === '' || costRates.helper.trim() === '' ? (
             /*

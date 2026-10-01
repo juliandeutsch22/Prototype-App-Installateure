@@ -2,6 +2,7 @@ import type { Invoice, Quote, TimeEntry } from '@/types';
 import { calcWorkMin, normProjectNumber } from '@/lib/time';
 import { KEINE_MATERIALKOSTEN, type Materialkosten } from './materialkosten';
 import type { Stand } from '@/components/Badge';
+import { istLehrlingssatz, kostensatz, satzklasse, type Satzklasse, type Stufensaetze } from '@/lib/einstufung';
 
 /**
  * Nachkalkulation: hat die Baustelle Geld verdient?
@@ -42,15 +43,19 @@ export interface KostenSaetze {
   fach: number;
   /** Kosten je Helferstunde. */
   helper: number;
+  /** Kosten je Stufe (4.1); leer: Obermonteur wie Facharbeiter, Lehrling wie Helfer. */
+  stufen?: Stufensaetze;
 }
 
 export interface Nachkalkulation {
   projectNumber: string;
   customerName: string;
-  /** Geleistete Facharbeiterstunden. */
+  /** Geleistete Facharbeiterstunden, Obermonteure eingeschlossen. */
   fachStunden: number;
   /** Geleistete Helferstunden. */
   helferStunden: number;
+  /** Geleistete Lehrlingsstunden, alle Lehrjahre (seit 30.09.2026, 4.1). */
+  lehrlingStunden: number;
   /** Personalkosten aus den geleisteten Stunden. */
   personalkosten: number;
   /** Materialkosten aus den unterschriebenen Scheinen — 0, wenn keine bekannt. */
@@ -98,21 +103,36 @@ export function rechneBaustelle(
 ): Nachkalkulation {
   const pn = normProjectNumber(projectNumber);
 
-  let fachMin = 0;
-  let helferMin = 0;
+  /*
+    JE SATZ, NICHT NUR FACHARBEITER UND HELFER (seit 30.09.2026, 4.1). Die
+    Stunde eines Lehrlings im 1. Lehrjahr kostet den Betrieb etwas anderes
+    als die eines Obermonteurs; der Satz kommt aus der Buchung.
+  */
+  const minJe = new Map<Satzklasse, number>();
   for (const e of entries) {
     if (e.status !== 'Anwesend') continue;
     if (normProjectNumber(e.projectNumber ?? '') !== pn) continue;
     const min = calcWorkMin(e);
     if (min <= 0) continue;
-    if (e.isHelper) helferMin += min;
-    else fachMin += min;
+    const k = satzklasse(e);
+    minJe.set(k, (minJe.get(k) ?? 0) + min);
   }
 
-  const fachStunden = Math.round((fachMin / 60) * 100) / 100;
-  const helferStunden = Math.round((helferMin / 60) * 100) / 100;
-  const personalkosten =
-    Math.round((fachStunden * kosten.fach + helferStunden * kosten.helper) * 100) / 100;
+  const stunden = (min: number) => Math.round((min / 60) * 100) / 100;
+  let fachMin = 0;
+  let helferMin = 0;
+  let lehrlingMin = 0;
+  let kostenSumme = 0;
+  for (const [k, min] of minJe) {
+    if (k === 'helfer') helferMin += min;
+    else if (istLehrlingssatz(k)) lehrlingMin += min;
+    else fachMin += min;
+    kostenSumme += stunden(min) * kostensatz(k, kosten);
+  }
+  const fachStunden = stunden(fachMin);
+  const helferStunden = stunden(helferMin);
+  const lehrlingStunden = stunden(lehrlingMin);
+  const personalkosten = Math.round(kostenSumme * 100) / 100;
 
   const eigene = invoices.filter(
     (i) => normProjectNumber(i.projectNumber) === pn && i.paymentStatus !== 'Storniert',
@@ -172,6 +192,7 @@ export function rechneBaustelle(
     customerName,
     fachStunden,
     helferStunden,
+    lehrlingStunden,
     personalkosten,
     materialkosten: material.kosten,
     materialLuecken: [...material.ohnePreis, ...ausAngebot],

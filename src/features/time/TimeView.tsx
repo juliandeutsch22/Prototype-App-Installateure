@@ -508,6 +508,12 @@ export default function TimeView() {
           // Ein Tag aus einem genehmigten Antrag ändert sich
           // nur über den Antrag.
           <AntragKnopf eintrag={e} />
+        ) : e.status === 'Berufsschule' ? (
+          // Ein Berufsschultag wird nicht umgebaut, sondern gelöscht und
+          // neu eingetragen — die Datenbank lässt es anders nicht zu (4.1).
+          <Button variant="ghost" onClick={() => setToDelete(e)}>
+            Löschen
+          </Button>
         ) : e.status === 'Zeitausgleich' && !(user && canEditTime(user.role)) ? (
           // Einen gebuchten Zeitausgleich ändert nur das Büro —
           // die Datenbank lehnt es sonst ab. Zwei Knöpfe, die

@@ -5,6 +5,7 @@ import { zuschlagszeit, kennzeichen } from './zuschlaege';
 import { ueberstundenNachTagesgrenze } from './ueberstunden';
 import type { Nachtzeit, UeberstundenRegel } from '@/lib/lohnregeln';
 import { csvZelle } from '@/lib/csvZelle';
+import { EINSTUFUNGEN, lehrjahr, type EinstufungDerPerson } from '@/lib/einstufung';
 
 /**
  * Exporte der Mitarbeiterübersicht (portiert aus Legacy:3776-3865 und
@@ -117,6 +118,16 @@ export interface UserWithEntries {
 /* 1) Monats-CSV über alle Mitarbeiter                                 */
 /* ------------------------------------------------------------------ */
 
+/** Die Einstufung ohne Lehrjahr — das steht in der eigenen Spalte daneben. */
+function einstufungSpalte(u: EinstufungDerPerson): string {
+  return u.einstufung ? EINSTUFUNGEN.find((s) => s.wert === u.einstufung)?.name ?? '' : '';
+}
+
+function lehrjahrSpalte(u: EinstufungDerPerson, tag: string): string | number {
+  if (u.einstufung !== 'lehrling' || !u.lehrbeginn || !u.lehrzeitMonate) return '';
+  return lehrjahr(u.lehrbeginn, u.lehrzeitMonate, tag);
+}
+
 /**
  * Monatsexport (Legacy:3803-3828): Detailzeilen, danach eine Zusammenfassung
  * je Mitarbeiter. Die drei Blöcke stehen bewusst in EINER Datei — so wie es
@@ -190,8 +201,12 @@ export function buildMonthCsv(
       // Nur beim Überstundenmodell „Tagesgrenze“ — und hinten angehängt,
       // damit die Spalten davor bleiben, wo sie waren.
       ...(mitTagesgrenze(lohn) ? ['Überstunden 50 %(Std)', 'Überstunden 100 %(Std)'] : []),
+      // Seit 30.09.2026 (Testbericht 4.1), ganz hinten — die Stellen davor bleiben.
+      'Einstufung', 'Lehrjahr', 'Berufsschule-Tage', 'Berufsschule(Std)',
     ]),
   );
+  // Das Lehrjahr am letzten Tag des Monats: wechselt es mittendrin, gilt für die Abrechnung der neue Stand.
+  const monatsletzter = `${year}-${String(month + 1).padStart(2, '0')}-${String(new Date(year, month + 1, 0).getDate()).padStart(2, '0')}`;
   for (const { user, monthEntries, stats } of [...rows].sort((a, b) => a.user.name.localeCompare(b.user.name, 'de'))) {
     // „davon beides" ist keine Zierde: der Rohrbruch um zwei Uhr früh trägt
     // beide Kennzeichen. Wer Nacht und Notdienst addiert, zählt diese
@@ -215,6 +230,10 @@ export function buildMonthCsv(
         hours(stats.zaMin),
         hours(z.dezemberMin),
         ...(mitTagesgrenze(lohn) && ue ? [hours(ue.fuenfzigMin), hours(ue.hundertMin)] : []),
+        einstufungSpalte(user),
+        lehrjahrSpalte(user, monatsletzter),
+        stats.berufsschuleDays,
+        hours(stats.berufsschuleMin),
       ]),
     );
   }
@@ -305,6 +324,9 @@ export function buildUserCsv(
   lines.push(row([`Urlaub ${year} gesamt`, `${tage(stats.yearlyUrlaubDays)} Tage`]));
   lines.push(row(['Resturlaub', `${tage(stats.urlaubRest)} Tage`]));
   lines.push(row(['Zeitausgleich', `${hours(stats.zaMin)} h`]));
+  if (stats.berufsschuleDays > 0) {
+    lines.push(row(['Berufsschule', `${stats.berufsschuleDays} Tage (${hours(stats.berufsschuleMin)} h)`]));
+  }
 
   /*
     ZUSCHLÄGE STEHEN IMMER DA, auch mit null Stunden. Der Block ist die

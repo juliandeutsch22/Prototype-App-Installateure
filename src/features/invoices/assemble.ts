@@ -3,6 +3,9 @@ import { calcWorkMin } from '@/lib/time';
 import { NACHTZEIT_VORGABE, nachtArbeitMin, type Nachtzeit } from '@/lib/lohnregeln';
 import { calcTotals, cent, positionNetto, type InvoicePosition } from './totals';
 import { leistungszeitraum, materialPositionen } from './materialPositionen';
+import {
+  SATZKLASSEN, istLehrlingssatz, satzklasse, verrechnungssatz, type Satzklasse,
+} from '@/lib/einstufung';
 
 export type { InvoicePosition } from './totals';
 
@@ -85,21 +88,37 @@ export function norm(n?: string) {
     .replace(/^pr-/, '');
 }
 
-/** Ein Abrechnungstopf: gleiche Qualifikation, gleiche Zuschläge. */
+/**
+ * Ein Abrechnungstopf: gleicher Satz, gleiche Zuschläge.
+ *
+ * DER SATZ KOMMT SEIT DEM 30.09.2026 AUS DER EINSTUFUNG (Testbericht 4.1):
+ * Obermonteur und Lehrjahre haben eigene Töpfe. Der Helfer-Haken an der
+ * Buchung geht weiter vor — siehe `satzklasse`.
+ */
 interface Bucket {
-  helper: boolean;
+  satz: Satzklasse;
   night: boolean;
   emergency: boolean;
   minutes: number;
 }
 
-function bucketKey(e: TimeEntry, nacht: boolean): string {
-  return `${e.isHelper ? 'h' : 'f'}|${nacht ? 'n' : '-'}|${e.isEmergency ? 'e' : '-'}`;
+function bucketKey(satz: Satzklasse, e: TimeEntry, nacht: boolean): string {
+  return `${satz}|${nacht ? 'n' : '-'}|${e.isEmergency ? 'e' : '-'}`;
 }
+
+const STUNDEN_NAME: Record<Satzklasse, string> = {
+  facharbeiter: 'Facharbeiterstunden',
+  obermonteur: 'Obermonteurstunden',
+  helfer: 'Helferstunden',
+  lj1: 'Lehrlingsstunden (1. Lehrjahr)',
+  lj2: 'Lehrlingsstunden (2. Lehrjahr)',
+  lj3: 'Lehrlingsstunden (3. Lehrjahr)',
+  lj4: 'Lehrlingsstunden (4. Lehrjahr)',
+};
 
 /** Beschriftung der Position, damit der Kunde den Aufschlag nachvollziehen kann. */
 function positionLabel(b: Bucket, rates: InvoiceRates): string {
-  const base = b.helper ? 'Helferstunden' : 'Facharbeiterstunden';
+  const base = STUNDEN_NAME[b.satz];
   const extras: string[] = [];
   if (b.emergency) extras.push(`Notdienst +${Math.round(rates.emergencySurcharge * 100)} %`);
   if (b.night) extras.push(`Nachtarbeit +${Math.round(rates.nightSurcharge * 100)} %`);
@@ -156,11 +175,12 @@ export function assembleInvoice(
       Vorher trug das Kennzeichen den ganzen Eintrag.
     */
     const nachtTeil = nachtArbeitMin(e, nacht);
+    const satz = satzklasse(e);
     for (const [imNacht, minuten] of [[true, nachtTeil], [false, min - nachtTeil]] as const) {
       if (minuten <= 0) continue;
-      const key = bucketKey(e, imNacht);
+      const key = bucketKey(satz, e, imNacht);
       const cur = buckets.get(key) ?? {
-        helper: !!e.isHelper,
+        satz,
         night: imNacht,
         emergency: !!e.isEmergency,
         minutes: 0,
@@ -171,10 +191,10 @@ export function assembleInvoice(
   }
 
   const positions: InvoicePosition[] = [];
-  // Feste Reihenfolge: erst Facharbeiter, dann Helfer; innerhalb davon
-  // Grundleistung vor Zuschlagsarbeit.
+  // Feste Reihenfolge: Facharbeiter, Obermonteur, Helfer, Lehrjahre; innerhalb
+  // davon Grundleistung vor Zuschlagsarbeit.
   const ordered = [...buckets.values()].sort((a, b) => {
-    if (a.helper !== b.helper) return a.helper ? 1 : -1;
+    if (a.satz !== b.satz) return SATZKLASSEN.indexOf(a.satz) - SATZKLASSEN.indexOf(b.satz);
     const rank = (x: Bucket) => (x.emergency ? 2 : 0) + (x.night ? 1 : 0);
     return rank(a) - rank(b);
   });
@@ -182,7 +202,14 @@ export function assembleInvoice(
   for (const b of ordered) {
     const hours = Math.round((b.minutes / 60) * 100) / 100;
     if (hours <= 0) continue;
-    const baseRate = b.helper ? rates.helper : rates.fach;
+    const baseRate = verrechnungssatz(b.satz, rates);
+    /*
+      EIN LEHRJAHR ZUM SATZ 0 HEISST „NICHT VERRECHNET“ — viele Betriebe
+      verrechnen das 1. und 2. Lehrjahr gar nicht. Dann steht keine Zeile mit
+      null Euro auf der Rechnung; die Buchungen werden trotzdem mit ihr
+      verknüpft und tauchen nicht als offen wieder auf.
+    */
+    if (baseRate === 0 && istLehrlingssatz(b.satz)) continue;
     const factor =
       1 +
       (b.night ? rates.nightSurcharge : 0) +
