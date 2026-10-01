@@ -14,6 +14,7 @@ let kollege: Konto;
 let chefin: Konto;
 let rohr = '';
 const heute = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Vienna' }).format(new Date());
+const UNTERSCHRIFT = { name: 'Huber', bild: 'data:image/png;base64,AAA', geraetZeit: 1776000000000 };
 
 async function bestand(): Promise<number> {
   const { data } = await admin.from('materials').select('stock').eq('id', rohr).single();
@@ -116,12 +117,17 @@ describe('Rüstliste: Abbuchung beim Einladen', () => {
     const schein = crypto.randomUUID();
     expect((await admin.from('work_sheets').insert({
       id: schein, company_id: BETRIEB, project_number: 'PR-7', customer_name: 'Familie Huber',
-      datum: heute, status: 'Unterschrieben', abrechnung: 'Regie',
+      datum: heute, status: 'Entwurf', abrechnung: 'Regie',
       erstellt_von_uid: monteur.uid, erstellt_von_name: 'Max',
     })).error).toBeNull();
+    // Positionen gehen nur in einen Entwurf; danach wird unterschrieben.
     expect((await admin.from('work_sheet_material').insert({
       company_id: BETRIEB, work_sheet_id: schein, position: 0, name: 'Kupferrohr 15', menge: 5, einheit: 'm',
     })).error).toBeNull();
+    expect(await bestand()).toBe(15);
+    expect((await admin.from('work_sheets').update({
+      status: 'Unterschrieben', unterschrift_monteur: UNTERSCHRIFT, unterschrift_kunde: UNTERSCHRIFT,
+    }).eq('id', schein)).error).toBeNull();
     expect(await bestand()).toBe(15);
   });
 
