@@ -112,6 +112,14 @@ export default function TimeForm({
   const ausRouter = (useLocation().state ?? null) as {
     projectNumber?: string;
     asHelper?: boolean;
+    /*
+      „Wie zuletzt buchen“ von der Startseite (Nachtest 01.10.2026, Paket B):
+      die Zeiten der letzten Buchung. Gebucht wird erst hier, mit Anfahrt,
+      Fahrzeug und Zuschlägen, die nur der Monteur kennt.
+    */
+    startTime?: string;
+    endTime?: string;
+    breakDuration?: number;
   } | null;
   /*
     Die Vorbelegung der aufrufenden Ansicht geht VOR der aus dem Router: sie
@@ -138,13 +146,14 @@ export default function TimeForm({
   const [zaStundenweise, setZaStundenweise] = useState(
     entry?.status === 'Zeitausgleich' && !!entry.startTime && !!entry.endTime,
   );
-  const [startTime, setStartTime] = useState(entry?.startTime || vorbelegung?.startTime || '07:00');
-  const [endTime, setEndTime] = useState(entry?.endTime || vorbelegung?.endTime || '16:00');
+  const ausStart = vorbelegung ? undefined : ausRouter;
+  const [startTime, setStartTime] = useState(entry?.startTime || vorbelegung?.startTime || ausStart?.startTime || '07:00');
+  const [endTime, setEndTime] = useState(entry?.endTime || vorbelegung?.endTime || ausStart?.endTime || '16:00');
   // Die Nachtzeit des Betriebs (M35) und wie viel der Spanne hineinfällt.
   const nacht = nachtzeitVon(company);
   const nachtImEintrag = nachtMinutenIn(startTime, endTime, nacht);
   const [breakDuration, setBreakDuration] = useState(
-    String(entry?.breakDuration ?? vorbelegung?.breakDuration ?? 30),
+    String(entry?.breakDuration ?? vorbelegung?.breakDuration ?? ausStart?.breakDuration ?? 30),
   );
   const [travelTime, setTravelTime] = useState(String(entry?.travelTime ?? 0));
   const [projectNumber, setProjectNumber] = useState(entry?.projectNumber ?? prefill?.projectNumber ?? '');

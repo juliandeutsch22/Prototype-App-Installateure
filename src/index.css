@@ -813,3 +813,24 @@ textarea {
   .link-still:hover { text-decoration: underline; text-underline-offset: 3px; }
   .textlinks { display: flex; gap: 1.125rem; padding: 0.125rem 0.25rem; font-size: 0.875rem; flex-wrap: wrap; }
 }
+
+/* ── Startseite (Nachtest 01.10.2026, Paket B) ──────────────────────────── */
+@layer components {
+  .start-abschnitt { padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 600; color: var(--ink-deep); background: var(--surface-2); border-bottom: 1px solid var(--border); }
+  .start-weiter { display: flex; align-items: center; min-height: 2.75rem; padding: 0.5rem 1rem; border-top: 1px solid var(--border); font-size: 0.875rem; font-weight: 600; color: var(--ink-deep); }
+  .start-weiter:hover { background: var(--surface-2); }
+  /* Status: in schmalen Karten vorn in der Detailzeile, in breiten rechts. */
+  .start-status-rechts { display: none; }
+  @media (min-width: 1024px) {
+    .start-breit .start-status-vorn { display: none; }
+    .start-breit .start-status-rechts { display: inline-flex; }
+  }
+  /* Kennzahlen in der schmalen rechten Spalte: immer zwei je Reihe. */
+  @media (min-width: 1024px) {
+    .kennzahlen-raster { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row; }
+    .kennzahlen-raster .kennzahl:nth-child(2n) { border-right: 0; }
+    .kennzahlen-raster .kennzahl:nth-child(n+3) { border-top: 1px solid var(--border); }
+  }
+  /* Keine Silbentrennung in Namen, Nummern und Beträgen (U1, U9). */
+  .kein-trennen { hyphens: manual; -webkit-hyphens: manual; }
+}

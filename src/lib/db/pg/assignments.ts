@@ -60,6 +60,24 @@ export function listAssignmentsForUserInRange(
 }
 
 /**
+ * Alle Einsätze des Betriebs in einem Zeitraum — einmal gelesen, nicht live.
+ *
+ * Für die Startseite (Nachtest 01.10.2026, Paket B): Auslastung der Woche
+ * und „Baustellen ohne Einsatz in den nächsten 14 Tagen“. Der Zeitraum ist
+ * kurz, die Grenze trotzdem gesetzt.
+ */
+export function listAssignmentsInRange(companyId: string, from: string, to: string, max = 3000) {
+  return abfragen<Assignment>(EINSAETZE, companyId, {
+    wo: [
+      { art: 'ab', feld: 'date', wert: from },
+      { art: 'bis', feld: 'date', wert: to },
+    ],
+    sortiere: { feld: 'date' },
+    grenze: max,
+  });
+}
+
+/**
  * Alle Einsätze eines Monats, live.
  *
  * Der Kalender braucht den ganzen Monat auf einmal, sonst könnte er die

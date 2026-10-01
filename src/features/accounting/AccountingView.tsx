@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon, ueberstundenRegelVon } from '@/lib/lohnregeln';
 import { listUsers } from '@/lib/db/users';
@@ -110,7 +111,13 @@ export default function AccountingView() {
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
-  const [nurLuecken, setNurLuecken] = useState(false);
+  /*
+    AUS DER ADRESSE (Startseite, Nachtest 01.10.2026): `?filter=luecken`
+    hakt „Nur mit fehlenden Tagen“ an, `&monat=JJJJ-MM` wählt den Monat mit
+    dem ältesten fehlenden Tag — am Monatsersten liegen die Lücken im Vormonat.
+  */
+  const [adresse] = useSearchParams();
+  const [nurLuecken, setNurLuecken] = useState(adresse.get('filter') === 'luecken');
   /** Offener Zeitraum-Export für einen Mitarbeiter. */
   const [exportFor, setExportFor] = useState<AppUser | null>(null);
   /** Erfassen fuer einen Mitarbeiter bzw. Korrigieren eines Eintrags. */
@@ -121,8 +128,9 @@ export default function AccountingView() {
   const [meldung, setMeldung] = useState<string | null>(null);
 
   const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth());
+  const monatAusAdresse = /^(\d{4})-(\d{2})$/.exec(adresse.get('monat') ?? '');
+  const [year, setYear] = useState(monatAusAdresse ? Number(monatAusAdresse[1]) : now.getFullYear());
+  const [month, setMonth] = useState(monatAusAdresse ? Number(monatAusAdresse[2]) - 1 : now.getMonth());
 
   useEffect(() => {
     if (!user) return;

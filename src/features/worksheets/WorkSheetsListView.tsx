@@ -37,6 +37,10 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
+import Adressfilter from '@/components/Adressfilter';
+import { scheineAufRechnung } from '@/lib/db/invoices';
+import { SCHEIN_FILTER, bekannt } from '@/features/dashboard/start/ziele';
+import { AUFFAELLIG_AB_TAGEN, UNVERRECHNET_BASIS, unverrechneteScheine } from './unverrechnet';
 
 const STAND: Record<WorkSheet['status'], Stand> = {
   Unterschrieben: 'gut',
@@ -83,6 +87,13 @@ export default function WorkSheetsListView() {
   const toast = useToast();
   const [suchparameter] = useSearchParams();
   const markiert = suchparameter.get('markiert');
+  /*
+    „Nicht verrechnet“ aus der Adresse (Startseite, Nachtest 01.10.2026):
+    unterschriebene Scheine auf keiner gültigen Rechnung — dieselbe Rechnung
+    wie unter Rechnungen und auf der Startseite, über dieselben jüngsten
+    Scheine. „…-alt“: nur die über vier Wochen.
+  */
+  const nurUnverrechnet = bekannt(SCHEIN_FILTER, suchparameter.get('filter'));
 
   const [scheine, setScheine] = useState<WithId<WorkSheet>[]>([]);
   /*
@@ -94,7 +105,7 @@ export default function WorkSheetsListView() {
     decken bei einem Fünf-Mann-Betrieb gut einen Monat ab, und wer weiter
     zurück muss, lädt nach — sichtbar, statt es nie zu erfahren.
   */
-  const [grenze, setGrenze] = useState(SCHEINE_JE_SEITE);
+  const [grenze, setGrenze] = useState(nurUnverrechnet ? Math.max(SCHEINE_JE_SEITE, UNVERRECHNET_BASIS) : SCHEINE_JE_SEITE);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
@@ -313,10 +324,36 @@ export default function WorkSheetsListView() {
   */
   const trefferGelten = treffer !== null && trefferZu === suche.trim() && trefferZu !== '';
 
+  /** Welche der geladenen Scheine auf einer gültigen Rechnung stehen — nur mit dem Filter geholt. */
+  const [verrechnet, setVerrechnet] = useState<string[] | null>(null);
+  const scheinSchluessel = useMemo(() => scheine.map((x) => x.id).join('|'), [scheine]);
+  useEffect(() => {
+    if (!user || !nurUnverrechnet) {
+      setVerrechnet(null);
+      return;
+    }
+    let weg = false;
+    scheineAufRechnung(user.companyId, scheinSchluessel ? scheinSchluessel.split('|') : [])
+      .then((ids) => { if (!weg) setVerrechnet(ids); })
+      .catch(() => { if (!weg) setVerrechnet([]); });
+    return () => {
+      weg = true;
+    };
+  }, [user, nurUnverrechnet, scheinSchluessel]);
+  const unverrechnet = useMemo(() => {
+    if (!nurUnverrechnet || !verrechnet) return null;
+    const zeilen = unverrechneteScheine(scheine, [{ linkedWorkSheets: verrechnet, paymentStatus: 'Offen' }], todayStr());
+    return new Set(
+      (nurUnverrechnet === 'nicht-verrechnet-alt' ? zeilen.filter((z) => z.tage >= AUFFAELLIG_AB_TAGEN) : zeilen)
+        .map((z) => z.schein.id),
+    );
+  }, [nurUnverrechnet, verrechnet, scheine]);
+
   const sichtbar = useMemo(() => {
     const q = suche.trim().toLowerCase();
     const grundmenge = trefferGelten ? (treffer as WithId<WorkSheet>[]) : scheine;
     return grundmenge.filter((s) => {
+      if (unverrechnet && !unverrechnet.has(s.id)) return false;
       if (s.status === 'Verworfen' && !zeigeVerworfene) return false;
       // Das Serverergebnis ist bereits die Antwort auf den Begriff; noch
       // einmal danach zu filtern würde einen Treffer wegwerfen, dessen
@@ -326,7 +363,7 @@ export default function WorkSheetsListView() {
         v?.toLowerCase().includes(q),
       );
     });
-  }, [scheine, treffer, trefferGelten, suche, zeigeVerworfene]);
+  }, [scheine, treffer, trefferGelten, suche, zeigeVerworfene, unverrechnet]);
 
   async function pdfAusgeben(s: WithId<WorkSheet>) {
     setBusy(true);
@@ -580,8 +617,15 @@ export default function WorkSheetsListView() {
         </Card>
       )}
 
+      {nurUnverrechnet && (
+        <Adressfilter
+          text={nurUnverrechnet === 'nicht-verrechnet-alt' ? 'nicht verrechnet, älter als 4 Wochen' : 'unterschrieben, nicht verrechnet'}
+          parameter={['filter']}
+        />
+      )}
+
       <Card
-        title={`Scheine (${scheine.length - verworfene})`}
+        title={unverrechnet ? `Nicht verrechnet (${sichtbar.length})` : `Scheine (${scheine.length - verworfene})`}
         action={
           <input
             aria-label="Scheine durchsuchen"
@@ -668,13 +712,15 @@ export default function WorkSheetsListView() {
           </label>
         )}
         </div>
-        {loading ? (
+        {loading || (nurUnverrechnet && !unverrechnet) ? (
           <div className="px-4 pb-4">
             <SkeletonList rows={4} />
           </div>
         ) : sichtbar.length === 0 ? (
           <EmptyState>
-            {scheine.length === 0
+            {unverrechnet
+              ? 'Unter den jüngsten Scheinen ist keiner unverrechnet.'
+              : scheine.length === 0
               ? 'Noch kein Handwerksschein erstellt.'
               : suche.trim()
                 ? `Kein Schein passt zu „${suche}“.`

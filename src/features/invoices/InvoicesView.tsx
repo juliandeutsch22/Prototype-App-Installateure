@@ -53,6 +53,7 @@ import {
   unverrechneteScheine,
   auffaellige,
   AUFFAELLIG_AB_TAGEN,
+  UNVERRECHNET_BASIS,
 } from '@/features/worksheets/unverrechnet';
 import { geltenderSatz, pruefeReverseCharge } from './reverseCharge';
 import { istUnternehmerKunde, uidFehler, uidNormalisieren } from '@/lib/uid';
@@ -93,12 +94,21 @@ import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/S
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { euro } from '@/lib/betrag';
+import Adressfilter from '@/components/Adressfilter';
+import { RECHNUNGS_SICHTEN, bekannt, type RechnungsSicht } from '@/features/dashboard/start/ziele';
 
 /** Rechnungen: aus Baustelle erzeugen, Zahlung verfolgen, stornieren. */
 /** Wie viele Rechnungen die Liste zunaechst zeigt. */
 const RECHNUNGEN_JE_SEITE = 50;
 
 /** Die Zahlstände, nach denen die Liste filtert — auch über `?status=`. */
+/** Was eine Sicht aus der Adresse zeigt (Startseite, Nachtest 01.10.2026). */
+const SICHT_TITEL: Record<RechnungsSicht, string> = {
+  'mahnung-faellig': 'Mahnung fällig',
+  'bezahlt-heute': 'Heute bezahlt',
+  'bezahlt-monat': 'Im laufenden Monat bezahlt',
+};
+
 const FILTERSTATI = ['Offen', 'Überfällig', 'Teilbezahlt', 'Bezahlt', 'Überzahlt', 'Storniert'] as const satisfies readonly Invoice['paymentStatus'][];
 
 export default function InvoicesView() {
@@ -199,6 +209,7 @@ export default function InvoicesView() {
   */
   const [suchparameter] = useSearchParams();
   const statusAusAdresse = suchparameter.get('status');
+  const sicht = bekannt(RECHNUNGS_SICHTEN, suchparameter.get('sicht'));
   useEffect(() => {
     if (statusAusAdresse && (FILTERSTATI as readonly string[]).includes(statusAusAdresse)) {
       setStatusFilter(statusAusAdresse as Invoice['paymentStatus']);
@@ -450,7 +461,7 @@ export default function InvoicesView() {
       .catch(() => {
         if (!weg) setForderungenFehler(true);
       });
-    listRecentWorkSheets(user.companyId, 60)
+    listRecentWorkSheets(user.companyId, UNVERRECHNET_BASIS)
       .then(async (rows) => {
         if (weg) return;
         setScheineAllerBaustellen(rows);
@@ -1495,6 +1506,50 @@ export default function InvoicesView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- istUnternehmer liest Kunden und Baustellen
     [offeneRechnungen, company?.rates, kunden, projects],
   );
+
+  /*
+    SICHTEN AUS DER ADRESSE (Startseite, Nachtest 01.10.2026): „Mahnung
+    fällig“ zeigt genau die Rechnungen des Mahnlaufs, „bezahlt heute“ und
+    „bezahlt im Monat“ die mit einem Zahlungseingang in diesem Zeitraum —
+    über ALLE Rechnungen, nicht nur die zuletzt geladenen.
+  */
+  const [zahlSicht, setZahlSicht] = useState<{ sicht: RechnungsSicht; zeilen: WithId<Invoice>[] } | null>(null);
+  useEffect(() => {
+    if (!user || (sicht !== 'bezahlt-heute' && sicht !== 'bezahlt-monat')) {
+      setZahlSicht(null);
+      return;
+    }
+    let weg = false;
+    const heute = todayStr();
+    const von = sicht === 'bezahlt-heute' ? heute : `${heute.slice(0, 7)}-01`;
+    void (async () => {
+      try {
+        const zahlungen = (await listZahlungenImZeitraum(user.companyId, von, heute)).filter((z) => z.art !== 'Skonto');
+        const ids = [...new Set(zahlungen.map((z) => z.invoiceId))];
+        const zeilen = ids.length ? await listInvoicesByIds(user.companyId, ids) : [];
+        if (!weg) {
+          setZahlSicht({
+            sicht,
+            zeilen: zeilen
+              .filter((i) => i.paymentStatus !== 'Storniert')
+              .sort((a, b) => b.invoiceNumber.localeCompare(a.invoiceNumber)),
+          });
+        }
+      } catch {
+        if (!weg) setZahlSicht({ sicht, zeilen: [] });
+      }
+    })();
+    return () => {
+      weg = true;
+    };
+  }, [user, sicht, invoices]);
+  const liste = useMemo(() => {
+    if (sicht === 'mahnung-faellig') return lauf.zeilen.map((z) => z.rechnung as WithId<Invoice>);
+    if (sicht === 'bezahlt-heute' || sicht === 'bezahlt-monat') {
+      return zahlSicht?.sicht === sicht ? zahlSicht.zeilen : [];
+    }
+    return visible;
+  }, [sicht, lauf, zahlSicht, visible]);
 
   /**
    * Unterschriebene Leistung, für die nie eine Rechnung geschrieben wurde.
@@ -3005,7 +3060,7 @@ export default function InvoicesView() {
       )}
 
       <Card
-        title={`Alle Rechnungen (${visible.length})`}
+        title={`${sicht ? SICHT_TITEL[sicht] : 'Alle Rechnungen'} (${liste.length})`}
         /*
           DER TEXT SAGT, WAS GILT (Prüflauf 25.09.2026, P2-20). Hier stand,
           „Bezahlt" trage jemand von Hand ein, eine stornierte Rechnung lasse
@@ -3023,17 +3078,24 @@ export default function InvoicesView() {
           'Die Liste zeigt die jüngsten Rechnungen; die Suche nach Nummer, Kunde oder ' +
           'Baustelle geht über alle.'
         }
-        action={
+        action={sicht ? undefined : (
           <SelectField id="invfilter" label="" aria-label="Rechnungen nach Status filtern" className="py-1 text-sm" value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}>
             <option value="alle">Alle</option>
             {FILTERSTATI.map((st) => <option key={st} value={st}>{st}</option>)}
           </SelectField>
-        }
+        )}
         buendig
       >
         {/* Bündig: die Suche gepolstert oben, darunter Zeilen bzw. Tabelle
-            von Kante zu Kante (Designlinie „Fassung 3"). */}
+            von Kante zu Kante (Designlinie „Fassung 3"). Eine Sicht aus der
+            Adresse ist schon die Auswahl — dort steht statt der Suche, was
+            gefiltert ist. */}
+        {sicht ? (
+          <div className="p-4">
+            <Adressfilter text={SICHT_TITEL[sicht]} parameter={['sicht']} />
+          </div>
+        ) : (
         <div className="p-4">
           <InputField
             id="invsuche"
@@ -3055,11 +3117,12 @@ export default function InvoicesView() {
             </p>
           )}
         </div>
+        )}
         {loading ? (
           <div className="px-4 pb-4">
             <SkeletonList rows={4} />
           </div>
-        ) : visible.length === 0 ? (
+        ) : liste.length === 0 ? (
           <EmptyState>
             {suchbegriff
               ? !serverTreffer && !suchFehler
@@ -3088,7 +3151,7 @@ export default function InvoicesView() {
                 { name: 'Aktionen', versteckt: true },
               ]}
             >
-              {visible.map((inv) => (
+              {liste.map((inv) => (
                 <Fragment key={inv.id}>
                 <tr>
                   <td className="whitespace-nowrap font-medium text-ink-deep">
@@ -3137,7 +3200,7 @@ export default function InvoicesView() {
             </Tabelle>
           ) : (
             <List>
-              {visible.map((inv) => (
+              {liste.map((inv) => (
                 <ListRow
                   key={inv.id}
                   title={
@@ -3165,7 +3228,7 @@ export default function InvoicesView() {
                   {rechnungMenue(inv)}
                 </ListRow>
               )).flatMap((zeile, i) => {
-                const inv = visible[i];
+                const inv = liste[i];
                 if (!inv.stornoNummer) return [zeile];
                 return [
                   zeile,

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   listOwnVacations,
@@ -154,6 +155,13 @@ export default function VacationsView() {
   /** Buchhaltung und Spitze: Krankenstände und Betriebsurlaub. */
   const buero = user ? canEditTime(user.role) : false;
   const [reiter, setReiter] = useState<Reiter>('antraege');
+  /*
+    „Urlaubsanträge →“ von der Startseite (Nachtest 01.10.2026): der Reiter
+    Anträge, und die offenen Anträge ins Bild — sie stehen unter dem
+    Antragsformular und wären sonst erst nach dem Scrollen zu sehen.
+  */
+  const [adresse] = useSearchParams();
+  const zuDenOffenen = useRef(adresse.get('reiter') === 'antraege');
   // Am Telefon läuft die Reiterleiste seitlich: der gewählte Reiter bleibt im Bild.
   const reiterleiste = useReiterImBild<HTMLDivElement>(reiter);
 
@@ -263,6 +271,12 @@ export default function VacationsView() {
   useEffect(() => {
     void laden_();
   }, [laden_]);
+
+  useEffect(() => {
+    if (laden || !zuDenOffenen.current || !darfEntscheiden) return;
+    zuDenOffenen.current = false;
+    document.getElementById('offene-antraege')?.scrollIntoView?.({ block: 'start' });
+  }, [laden, darfEntscheiden]);
 
   /** Die Arbeitstage im gewählten Zeitraum — die Zahl, die zählt. */
   const tage = useMemo(
@@ -1103,6 +1117,7 @@ export default function VacationsView() {
           hier wartet jemand auf eine Antwort. */}
       {darfEntscheiden && (
         <Card
+          id="offene-antraege"
           title={`Offene Anträge (${offene.length})`}
           hint={
             <>

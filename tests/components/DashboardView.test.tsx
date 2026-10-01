@@ -115,19 +115,16 @@ vi.mock('@/lib/db/users', () => ({
   listUsers: vi.fn(async () => [monteur]),
 }));
 /*
-  Ein Bestand, den ein einzelner Test vorgeben kann — fuer die Frage, wie
-  viele Zeilen die Startseite vertraegt. `null` heisst: der gewoehnliche
-  Bestand oben. Der Zugriff steht IM Rueckruf, nicht in der Fabrik: die laeuft
-  vor dem Modulrumpf, und der Wert waere dort noch nicht da.
+  Ein Bestand, den ein einzelner Test vorgeben kann. `null` heisst: der
+  gewoehnliche Bestand oben. Der Zugriff steht IM Rueckruf, nicht in der
+  Fabrik: die laeuft vor dem Modulrumpf.
 */
 let baustellenUeberschreibung: Project[] | null = null;
 
 vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(async () =>
     baustellenUeberschreibung ??
-    // Wie die echte Abfrage: abgeschlossene Baustellen kommen gar nicht erst
-    // zurück. Ein Mock, der ALLE liefert, würde den Filter der Ansicht
-    // prüfen statt den der Datenschicht — und damit am Fehler vorbei.
+    // Wie die echte Abfrage: abgeschlossene Baustellen kommen gar nicht erst zurück.
     baustellen.filter((p) => p.status === 'Aktiv' || p.status === 'Pausiert'),
   ),
   listProjectsByNumbers: vi.fn(async (_c: string, nummern: string[]) =>
@@ -138,14 +135,18 @@ vi.mock('@/lib/db/projects', () => ({
 const abwesend: { wert: { userId: string; von: string; bis: string; grund: string | null; zeiten: string | null }[] } = { wert: [] };
 vi.mock('@/lib/db/vacations', () => ({
   listAbwesendInRange: vi.fn(async () => abwesend.wert),
+  listOpenVacations: vi.fn(async () => []),
+  listOwnVacations: vi.fn(async () => []),
 }));
 vi.mock('@/lib/db/assignments', () => ({
   listUpcomingAssignments: vi.fn(async () => einsaetze),
   listAssignmentsForDate: vi.fn(async () => einsaetze),
+  listAssignmentsForUserInRange: vi.fn(async () => []),
+  listAssignmentsInRange: vi.fn(async () => einsaetze),
 }));
 /*
-  Welche Abfrage scheitern soll. Die Startseite lädt in drei Blöcken; jeder
-  muss für sich stolpern können, ohne die anderen mitzureissen.
+  Welche Abfrage scheitern soll. Die Startseite lädt in Blöcken; jeder muss
+  für sich stolpern können, ohne die anderen mitzureissen.
 */
 const scheitert = { persoenlich: false, betrieblich: false };
 
@@ -154,20 +155,43 @@ vi.mock('@/lib/db/timeEntries', () => ({
     if (scheitert.persoenlich) throw new Error('kein Netz');
     return buchungen;
   }),
+  listOwnEntriesInRange: vi.fn(async () => buchungen),
   listEntriesInRange: vi.fn(async () => buchungen),
   listEntriesForProjects: vi.fn(async () => zeitenJeBaustelle),
 }));
+/** Offene Anforderungen, wie `listOpenOrders` sie liefert. */
+const anforderungen: { wert: MaterialOrder[] } = { wert: [] };
 vi.mock('@/lib/db/materialOrders', () => ({
   listOpenOrders: vi.fn(async () => {
     if (scheitert.betrieblich) throw new Error('kein Netz');
-    return [] as MaterialOrder[];
+    return anforderungen.wert;
   }),
-  listOwnOpenOrders: vi.fn(async () => [] as MaterialOrder[]),
+  listOwnOpenOrders: vi.fn(async () => anforderungen.wert.filter((o) => o.userId === 'm1')),
+}));
+vi.mock('@/lib/db/einkauf', () => ({ listLagerPosten: vi.fn(async () => []) }));
+vi.mock('@/lib/db/materials', () => ({
+  LOW_STOCK_THRESHOLD: 5,
+  listMaterials: vi.fn(async () => []),
+  lagerFrei: vi.fn(async () => new Map()),
 }));
 /** Die offenen Forderungen, wie `listUnpaidInvoices` sie liefert. */
 const offeneRechnungen: { wert: unknown[] } = { wert: [] };
 vi.mock('@/lib/db/invoices', () => ({
   listUnpaidInvoices: vi.fn(async () => offeneRechnungen.wert),
+  listInvoicesByIds: vi.fn(async () => []),
+  scheineAufRechnung: vi.fn(async () => []),
+}));
+vi.mock('@/lib/db/zahlungen', () => ({ listZahlungenImZeitraum: vi.fn(async () => []) }));
+vi.mock('@/lib/db/workSheets', () => ({
+  listRecentWorkSheets: vi.fn(async () => []),
+  listOwnWorkSheetsSince: vi.fn(async () => []),
+}));
+vi.mock('@/lib/db/wartungen', () => ({ listFaelligeWartungen: vi.fn(async () => []) }));
+vi.mock('@/lib/db/konten', () => ({ buchungskonten: vi.fn(async () => [{ zweck: 'erloes', konto: '4000' }]) }));
+vi.mock('@/lib/db/monatsbilanzen', () => ({
+  bilanzMarker: vi.fn(async () => null),
+  listBilanzen: vi.fn(async () => []),
+  monatVon: (d: string) => d.slice(0, 7),
 }));
 
 /** Die Rüstliste zur ersten Baustelle — Material, das mitkommen soll. */
@@ -229,7 +253,26 @@ afterEach(() => {
   vi.useRealTimers();
   abwesend.wert = [];
   offeneRechnungen.wert = [];
+  anforderungen.wert = [];
   rolle.wert = 'Mitarbeiter';
+});
+
+/** Die Karte, in der ein Text steht — Handlungsbedarf, Heute, … */
+const karteMit = async (text: RegExp | string) => (await screen.findByText(text)).closest('section.karte') as HTMLElement;
+
+/** Eine Anforderung für die Lager- und Leitungssicht. */
+const anforderung = (teil: Partial<MaterialOrder> & { id: string }): MaterialOrder => ({
+  companyId: 'perl',
+  materialId: null,
+  materialName: 'Kupferrohr 15',
+  quantity: 4,
+  status: 'Offen',
+  transactionType: 'order',
+  userId: 'm2',
+  userName: 'Max Muster',
+  projectNumber: 'B-001',
+  createdAt: Date.parse('2026-09-10T08:00:00Z'),
+  ...teil,
 });
 
 describe('Startseite — Monteur', () => {
@@ -237,82 +280,85 @@ describe('Startseite — Monteur', () => {
     abwesend.wert = [{ userId: 'm1', von: HEUTE, bis: HEUTE, grund: 'Krank', zeiten: null }];
     zeichne();
     // Dieselbe Ladung bringt die fehlenden Tage — sind sie da, ist auch „Heute“ entschieden.
-    await screen.findByText(/Tage ohne Buchung/);
-    expect(screen.queryByText(/Heute — 2 Baustellen/i)).toBeNull();
+    await screen.findByText('Tage ohne Buchung');
+    expect(screen.queryByText('2 Einsätze')).toBeNull();
     expect(screen.queryByText('Bad, Vormittag')).toBeNull();
   });
 
   it('Gegenprobe: stundenweise weg — die Einsätze bleiben', async () => {
     abwesend.wert = [{ userId: 'm1', von: HEUTE, bis: HEUTE, grund: 'ZA', zeiten: '13:00–17:00' }];
     zeichne();
-    expect(await screen.findByText(/Heute — 2 Baustellen/i)).toBeInTheDocument();
+    expect(await screen.findByText(/2 Einsätze/)).toBeInTheDocument();
   });
 
-  it('zeigt ALLE Einsätze von heute, nicht nur den ersten', async () => {
+  it('zeigt ALLE Einsätze von heute: den ersten ausführlich, den zweiten unter „Danach“', async () => {
     zeichne();
-    const karte = (await screen.findByText(/Heute — 2 Baustellen/i)).closest('section')!;
+    const karte = await karteMit(/2 Einsätze/);
     expect(within(karte).getByText('Familie Huber')).toBeInTheDocument();
     expect(within(karte).getByText('Gemeinde Neudorf')).toBeInTheDocument();
-    // Die Kommentare unterscheiden die beiden Einsätze — ohne sie weiß der
-    // Monteur nicht, welche Baustelle wann dran ist.
+    // Die Aufgaben unterscheiden die beiden Einsätze.
     expect(within(karte).getByText('Bad, Vormittag')).toBeInTheDocument();
     expect(within(karte).getByText('Heizung, Nachmittag')).toBeInTheDocument();
+    expect(within(karte).getByRole('heading', { name: /Danach/ })).toBeInTheDocument();
   });
 
   it('macht Adresse und Telefonnummer zu Handgriffen', async () => {
     zeichne();
-    await screen.findByText(/Heute — 2 Baustellen/i);
-
+    await screen.findByText(/2 Einsätze/);
     const route = screen.getByRole('link', { name: /Hauptstraße 12/ });
-    expect(route).toHaveAttribute(
-      'href',
-      expect.stringContaining('google.com/maps/search/?api=1&query='),
-    );
+    expect(route).toHaveAttribute('href', expect.stringContaining('google.com/maps/search/?api=1&query='));
     expect(route).toHaveAttribute('target', '_blank');
-
     // Leerzeichen müssen aus der Nummer heraus — `tel:` verträgt sie nicht.
-    expect(screen.getByRole('link', { name: /0664 1234567/ })).toHaveAttribute(
-      'href',
-      'tel:06641234567',
-    );
-    // Ein FÜHRENDES Plus bleibt erhalten — ohne Landesvorwahl scheitert der
-    // Anruf ins Ausland; Leerzeichen dazwischen fallen weg.
-    expect(screen.getByRole('link', { name: /\+43 2635 12345/ })).toHaveAttribute(
-      'href',
-      'tel:+43263512345',
-    );
+    expect(screen.getByRole('link', { name: /0664 1234567/ })).toHaveAttribute('href', 'tel:06641234567');
+    // Ein FÜHRENDES Plus bleibt erhalten.
+    expect(screen.getByRole('link', { name: /\+43 2635 12345/ })).toHaveAttribute('href', 'tel:+43263512345');
   });
 
-  it('nennt die fehlenden Tage statt eines Saldos', async () => {
+  it('„Wie zuletzt buchen“ trägt die Zeiten der letzten Buchung — gebucht wird erst in der Zeiterfassung', async () => {
     zeichne();
-    // Gebucht ist nur der 1.9. — vom 2.9. bis gestern (14.9.) fehlt alles.
-    const hinweis = await screen.findByRole('alert');
-    expect(hinweis).toHaveTextContent(/Tage ohne Buchung/);
-    // Konkrete Daten, nicht nur eine Zahl: „3 Tage fehlen" zwingt zum Suchen.
-    expect(hinweis).toHaveTextContent(/\d{2}\.\d{2}\./);
-    // Und ausdrücklich KEIN Saldo mehr.
-    expect(screen.queryByText(/Saldo/i)).not.toBeInTheDocument();
+    const knopf = await screen.findByRole('link', { name: /Wie zuletzt buchen/ });
+    expect(knopf).toHaveAttribute('href', '/time');
+    expect(knopf).toHaveTextContent('07:00–16:00 · 30 min Pause · 08:30 Std');
+  });
+
+  it('nennt die fehlenden Tage einzeln, höchstens drei, mit dem Weg zum Nachtragen', async () => {
+    zeichne();
+    // Gebucht ist nur der 1.9. — vom 2.9. bis gestern (14.9.) fehlen neun Werktage.
+    const karte = await karteMit('Tage ohne Buchung');
+    const abschnitt = within(karte).getByRole('region', { name: 'Tage ohne Buchung' });
+    expect(within(abschnitt).getAllByRole('listitem')).toHaveLength(3);
+    // Das Älteste zuerst, mit Wochentag und Datum.
+    expect(within(abschnitt).getByText('Mittwoch, 02.09.2026')).toBeInTheDocument();
+    expect(within(abschnitt).getByRole('link', { name: /Mittwoch, 02\.09\.2026/ })).toHaveAttribute('href', '/time?datum=2026-09-02');
+    expect(within(abschnitt).getByRole('link', { name: 'und 6 weitere →' })).toHaveAttribute('href', '/time?filter=fehlend');
+  });
+
+  it('zeigt abholbereites Material mit dem Weg zu „Meine Anforderungen“', async () => {
+    anforderungen.wert = [anforderung({ id: 'o1', userId: 'm1', status: 'Abholbereit', abholbereitSeit: Date.parse('2026-09-12T08:00:00Z') })];
+    zeichne();
+    const abschnitt = await screen.findByRole('region', { name: 'Material abholbereit' });
+    expect(within(abschnitt).getByText('4 × Kupferrohr 15')).toBeInTheDocument();
+    expect(within(abschnitt).getAllByText('seit 12.09.').length).toBeGreaterThan(0);
+    expect(within(abschnitt).getByRole('link', { name: /Kupferrohr/ })).toHaveAttribute('href', '/material?reiter=meine&status=Abholbereit');
   });
 });
 
 /**
- * Wer wegen fehlender Tage gemahnt wird (Prüflauf F17, entschieden am
- * 24.09.2026): nur, wer ein Zeitkonto führt. Die Administration sah bisher
- * „25 Tage ohne Buchung · Jetzt nachtragen“, obwohl sie kein Soll hat — sie
- * landet im persönlichen Teil, weil sie ihre Einsätze sehen soll.
+ * Wer wegen fehlender Tage gemahnt wird (Prüflauf F17): nur, wer ein
+ * Zeitkonto führt.
  */
 describe('Startseite — fehlende Tage nur mit Zeitkonto', () => {
-  it('die Administration sieht ihre Einsätze, aber keine fehlenden Tage', async () => {
+  it('der Administrator sieht seine Einsätze, aber keine fehlenden Tage', async () => {
     rolle.wert = 'Administrator';
     zeichne();
-    await screen.findByText(/Heute — 2 Baustellen/i);
+    await screen.findByText('Dein Einsatz heute');
     expect(screen.queryByText(/Tage ohne Buchung/)).not.toBeInTheDocument();
   });
 
-  it('die Projektleitung führt jetzt ein Zeitkonto und wird gemahnt', async () => {
+  it('der Projektleiter führt ein Zeitkonto und wird gemahnt', async () => {
     rolle.wert = 'Projektleiter';
     zeichne();
-    expect(await screen.findByText(/Tage ohne Buchung/)).toBeInTheDocument();
+    expect(await screen.findByText('Deine Tage ohne Buchung')).toBeInTheDocument();
   });
 });
 
@@ -321,96 +367,137 @@ describe('Startseite — Geschäftsführung', () => {
     rolle.wert = 'Geschäftsführung';
   });
 
-  it('listet alle aktiven Baustellen, aber keine abgeschlossene', async () => {
+  it('zählt die aktiven Baustellen, ohne die abgeschlossene, und führt in die gefilterte Liste', async () => {
     zeichne();
-    const karte = (await screen.findByText(/Aktive Baustellen \(2\)/i)).closest('section')!;
-    expect(within(karte).getByText(/Familie Huber/)).toBeInTheDocument();
-    expect(within(karte).getByText(/Gemeinde Neudorf/)).toBeInTheDocument();
-    // Die abgeschlossene Baustelle gehört hier nicht hin — sie macht mit den
-    // Jahren den Großteil des Bestands aus.
-    expect(within(karte).queryByText(/Altbau Meier/)).not.toBeInTheDocument();
+    const zahl = await screen.findByRole('link', { name: /Aktive Baustellen/ });
+    expect(zahl).toHaveTextContent(/Aktive Baustellen.*2/);
+    expect(zahl).toHaveAttribute('href', '/admin-projects?filter=aktiv');
   });
 
-  it('führt in den Baustellen-Tab und in die Einsatzplanung', async () => {
+  it('zeigt unter „Heute“, wer wo ist, mit dem Weg in die Tagesplanung', async () => {
     zeichne();
-    await screen.findByText(/Aktive Baustellen/i);
-    expect(screen.getByRole('link', { name: /Baustellen verwalten/i })).toHaveAttribute(
-      'href',
-      '/admin-projects',
-    );
-    expect(screen.getByRole('link', { name: /Zur Einsatzplanung/i })).toHaveAttribute(
-      'href',
-      '/assignments',
-    );
+    const karte = await karteMit(/im Einsatz/);
+    const da = within(karte).getByRole('region', { name: 'Im Einsatz' });
+    expect(within(da).getByText(/Familie Huber/)).toBeInTheDocument();
+    expect(within(da).getByText(/Gemeinde Neudorf/)).toBeInTheDocument();
+    expect(within(karte).getByRole('link', { name: 'Einsatzplanung' })).toHaveAttribute('href', `/assignments/tag?datum=${HEUTE}`);
   });
 
-  it('schreibt die Baustellenstunden mit KOMMA, wie die Auswertung', async () => {
-    /*
-      AUFGEFALLEN AUF DER STARTSEITE: dort stand „39.5 von 40 h" — mit
-      PUNKT. Das Dashboard rechnete selbst und gab die Zahl roh aus;
-      JavaScript schreibt sie so. In der Projektauswertung stand dieselbe
-      Zahl als „39,5 h". Kein Rechenfehler, aber zwei Schreibweisen für
-      dieselbe Größe in derselben deutschsprachigen App.
-    */
-    // 8,5 von 10 h = 85 % — erst ab 80 % erscheint die Baustelle ueberhaupt
-    // in dieser Karte.
-    baustellen[0].estimatedHours = 10;
+  it('schreibt die Baustellenstunden mit KOMMA — und nennt die Baustelle erst ab 90 %', async () => {
+    // 8,5 von 9 h = 94 %.
+    baustellen[0].estimatedHours = 9;
     zeitenJeBaustelle = [
       {
-        id: 'b1',
-        companyId: 'perl',
-        date: '2026-06-01',
-        status: 'Anwesend',
-        userId: 'm1',
-        userName: 'Anton Berger',
-        projectNumber: 'B-001',
-        startTime: '07:00',
-        endTime: '16:00',
-        breakDuration: 30,
+        id: 'b1', companyId: 'perl', date: '2026-06-01', status: 'Anwesend', userId: 'm1', userName: 'Anton Berger',
+        projectNumber: 'B-001', startTime: '07:00', endTime: '16:00', breakDuration: 30,
       } as TimeEntry & { id: string },
     ];
+    rolle.wert = 'Projektleiter';
     try {
       zeichne();
-      const karte = (await screen.findByText(/Baustellen am Limit/i)).closest('section')!;
-      expect(within(karte).getByText(/8,5 von 10 h/)).toBeInTheDocument();
-      expect(within(karte).queryByText(/8\.5/)).not.toBeInTheDocument();
+      const abschnitt = await screen.findByRole('region', { name: 'Baustellen über oder nahe Budget' });
+      expect(within(abschnitt).getByText(/8,5 von 9 Std/)).toBeInTheDocument();
+      // Einmal vorn (schmal), einmal rechts (breit) — die Breite entscheidet per CSS.
+      expect(within(abschnitt).getAllByText('94 %').length).toBeGreaterThan(0);
     } finally {
       delete baustellen[0].estimatedHours;
       zeitenJeBaustelle = [];
     }
   });
 
-  it('zeigt die heutige Einteilung nach Baustelle', async () => {
-    zeichne();
-    const karte = (await screen.findByText(/Heute im Einsatz/i)).closest('section')!;
-    // Beide Baustellen, jeweils mit der Person darauf.
-    expect(within(karte).getByText(/Familie Huber/)).toBeInTheDocument();
-    expect(within(karte).getByText(/Gemeinde Neudorf/)).toBeInTheDocument();
-    expect(within(karte).getAllByText('Anton Berger')).toHaveLength(2);
-  });
-
   /*
     TESTBERICHT 30.09.2026, M33 — eine Krankmeldung verdrängt den Einsatz
-    nicht mehr still: die Karte sagt „Unbesetzt“ und wer fehlt.
+    nicht mehr still: „unbesetzt“ steht unter Handlungsbedarf, wer fehlt
+    unter Heute.
   */
-  it('meldet eine Baustelle als unbesetzt, wenn der Eingeteilte krank ist (M33)', async () => {
+  it('meldet unbesetzte Einsätze, wenn der Eingeteilte krank ist (M33)', async () => {
     abwesend.wert = [{ userId: 'm1', von: HEUTE, bis: HEUTE, grund: 'Krank', zeiten: null }];
     zeichne();
-    const karte = (await screen.findByText(/Heute im Einsatz/i)).closest('section')!;
-    expect(await within(karte).findAllByText('Unbesetzt')).toHaveLength(2);
-    expect(within(karte).getAllByText('Fehlt: Anton Berger (Krank)')).toHaveLength(2);
+    const thema = await screen.findByRole('link', { name: /2 Einsätze unbesetzt/ });
+    expect(thema).toHaveAttribute('href', `/assignments/tag?datum=${HEUTE}&filter=unbesetzt`);
+    expect(thema).toHaveTextContent(/Anton Berger krank/);
+    const weg = await screen.findByRole('region', { name: 'Abwesend' });
+    expect(within(weg).getByText('Anton Berger')).toBeInTheDocument();
+  });
+
+  it('fasst nach Themen zusammen und klappt „und N weitere“ an Ort und Stelle auf', async () => {
+    rolle.wert = 'Geschäftsführung';
+    anforderungen.wert = [
+      anforderung({ id: 'e1', isUrgent: true }),
+    ];
+    baustellenUeberschreibung = Array.from({ length: 3 }, (_, i) => ({
+      id: `x${i}`, companyId: 'perl', projectNumber: `X-${i}`, customerName: `Kunde ${i}`, status: 'Aktiv',
+      endDate: '2026-09-01',
+    })) as Project[];
+    zeichne();
+    const karte = await karteMit(/Handlungsbedarf/);
+    expect(within(karte).getByText(/Themen/)).toBeInTheDocument();
+    expect(within(karte).getByRole('region', { name: 'Überfällig' })).toBeInTheDocument();
+    expect(within(karte).getByRole('link', { name: /1 Eilanforderung offen/ })).toHaveAttribute('href', '/anforderungen?filter=eil');
+  });
+});
+
+describe('Startseite — Verwaltung', () => {
+  beforeEach(() => {
+    rolle.wert = 'Verwaltung';
+  });
+
+  it('Eil zuerst, dann die älteste — höchstens drei, der Rest auf der gefilterten Liste', async () => {
+    anforderungen.wert = [
+      anforderung({ id: 'a', materialName: 'Alt', createdAt: Date.parse('2026-09-01T08:00:00Z') }),
+      anforderung({ id: 'b', materialName: 'Neu', createdAt: Date.parse('2026-09-14T08:00:00Z') }),
+      anforderung({ id: 'c', materialName: 'Eilig', isUrgent: true, createdAt: Date.parse('2026-09-14T09:00:00Z') }),
+      anforderung({ id: 'd', materialName: 'Mittel', createdAt: Date.parse('2026-09-05T08:00:00Z') }),
+    ];
+    zeichne();
+    const abschnitt = await screen.findByRole('region', { name: 'Offene Anforderungen' });
+    const titel = within(abschnitt).getAllByRole('listitem').map((li) => li.textContent);
+    expect(titel[0]).toMatch(/Eilig/);
+    expect(titel[1]).toMatch(/Alt/);
+    expect(titel[2]).toMatch(/Mittel/);
+    expect(within(abschnitt).getByRole('link', { name: 'und 1 weitere →' })).toHaveAttribute('href', '/anforderungen?filter=offen');
+  });
+
+  it('bestellt und überfällig: nach dem Liefertermin, rot', async () => {
+    anforderungen.wert = [
+      anforderung({ id: 'l', status: 'In Bearbeitung', beschaffung: 'einkauf', bestelltAm: Date.parse('2026-09-08T08:00:00Z'), liefertermin: '2026-09-11' }),
+    ];
+    zeichne();
+    const abschnitt = await screen.findByRole('region', { name: 'Bestellt und überfällig' });
+    expect(within(abschnitt).getAllByText('4 Tage')[0]).toHaveClass('stand-fehl');
+    expect(within(abschnitt).getByText(/Liefertermin 11\.09\./)).toBeInTheDocument();
+  });
+
+  it('seit über drei Tagen abholbereit — nach dem Zeitstempel der Datenbank', async () => {
+    anforderungen.wert = [
+      anforderung({ id: 'x', status: 'Abholbereit', abholbereitSeit: Date.parse('2026-09-10T08:00:00Z') }),
+      anforderung({ id: 'y', status: 'Abholbereit', materialName: 'Frisch', abholbereitSeit: Date.parse('2026-09-14T08:00:00Z') }),
+    ];
+    zeichne();
+    const abschnitt = await screen.findByRole('region', { name: 'Seit über 3 Tagen abholbereit' });
+    expect(within(abschnitt).getAllByRole('listitem')).toHaveLength(1);
+    expect(within(abschnitt).queryByText(/Frisch/)).not.toBeInTheDocument();
+  });
+
+  it('nichts zu tun: „Heute liegt nichts an“ und die Kennzahlen, eine Spalte', async () => {
+    // Ohne Eintritt keine fehlenden Tage — sonst stünde „Deine Tage ohne Buchung“ da.
+    const eintritt = monteur.appStartDate;
+    (monteur as { appStartDate?: string }).appStartDate = undefined;
+    try {
+      zeichne();
+      expect(await screen.findByText('Heute liegt nichts an')).toBeInTheDocument();
+      expect(await screen.findByRole('link', { name: /^Anforderungen/ })).toHaveTextContent(/0/);
+      expect(document.querySelector('.zwei-spalten')).toBeNull();
+    } finally {
+      (monteur as { appStartDate?: string }).appStartDate = eintritt;
+    }
   });
 });
 
 describe('Startseite — was der Monteur heute mitnehmen soll', () => {
   /**
-   * Die Rüstliste am Einsatztag. Sie ist der Grund, warum die Planung sie
-   * überhaupt erfasst: der Monteur steht morgens vor dem Lager und muss
-   * wissen, was in den Bus kommt.
-   *
-   * DER HAKEN GILT FÜR DIE MANNSCHAFT, nicht für die Person — deshalb steht
-   * der Name dabei. Wenn Max die Kiste eingeladen hat, soll Tom sie nicht
-   * ein zweites Mal suchen.
+   * Die Rüstliste am Einsatztag. DER HAKEN GILT FÜR DIE MANNSCHAFT, nicht
+   * für die Person — deshalb steht der Name dabei.
    */
   beforeEach(() => {
     rolle.wert = 'Mitarbeiter';
@@ -444,7 +531,6 @@ describe('Startseite — was der Monteur heute mitnehmen soll', () => {
   });
 
   it('nennt, WER etwas schon eingeladen hat', async () => {
-    // Ohne den Namen sucht der Zweite dieselbe Kiste noch einmal.
     zeichne();
     expect(await screen.findByText(/eingeladen von Erna Beispiel/)).toBeInTheDocument();
   });
@@ -453,11 +539,7 @@ describe('Startseite — was der Monteur heute mitnehmen soll', () => {
     zeichne();
     const kaestchen = await screen.findByRole('checkbox', { name: /Eckventil/ });
     expect(kaestchen).not.toBeChecked();
-
     await userEvent.click(kaestchen);
-
-    // Sofort umgesprungen — auf der Baustelle wird ein Kästchen, das nicht
-    // reagiert, ein zweites Mal angetippt.
     expect(kaestchen).toBeChecked();
     await waitFor(() => expect(umschalten).toHaveBeenCalled());
     const [, datum, baustelle, positionId, an] = umschalten.mock.calls[0];
@@ -467,9 +549,18 @@ describe('Startseite — was der Monteur heute mitnehmen soll', () => {
     expect(an).toBe(true);
   });
 
+  it('zeigt höchstens drei Zeilen, der Rest klappt auf', async () => {
+    (ruestlisten.wert[0] as { positionen: unknown[] }).positionen = Array.from({ length: 5 }, (_, i) => ({
+      id: `q${i}`, name: `Teil ${i}`, menge: 1,
+    }));
+    zeichne();
+    await screen.findByText('Teil 0');
+    expect(screen.queryByText('Teil 3')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'und 2 weitere →' }));
+    expect(screen.getByText('Teil 3')).toBeInTheDocument();
+  });
+
   it('zeigt an der Baustelle OHNE Liste auch keine', async () => {
-    // Die zweite Baustelle hat keine Rüstliste. Ein leerer Materialblock
-    // dort sähe aus wie „nichts mitzunehmen" statt „nichts geplant".
     zeichne();
     await screen.findByText('Material');
     expect(screen.getAllByText('Material')).toHaveLength(1);
@@ -477,74 +568,44 @@ describe('Startseite — was der Monteur heute mitnehmen soll', () => {
 });
 
 /**
- * Wenn ein Teil der Startseite nicht kommt.
- *
- * Die drei Blöcke liefen über `Promise.allSettled`, dessen Ergebnis verworfen
- * wurde. Warf einer, wurde sein `setLaden(false)` nie erreicht: der Kreisel
- * blieb für IMMER stehen, und die Warnungen dieses Blocks — fehlende Tage,
- * offene Anforderungen, überfällige Rechnungen — erschienen einfach nie.
- *
- * Die Startseite war damit die einzige Ansicht der App ganz ohne
- * Fehlerzustand, und ausgerechnet sie sagt, was ansteht.
+ * Wenn ein Teil der Startseite nicht kommt: kein ewiger Kreisel, und die
+ * Seite sagt, welcher Teil fehlt — eine Startseite, die weniger zeigt, sähe
+ * sonst aus wie ein ruhiger Tag.
  */
 describe('Wenn ein Teil der Startseite nicht kommt', () => {
   it('hört auf zu laden, statt ewig zu kreiseln', async () => {
     scheitert.persoenlich = true;
     zeichne();
-
-    // Der Kreisel verschwindet — vorher blieb er für immer stehen.
-    await waitFor(() =>
-      expect(screen.queryByText(/Wird geladen/)).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText(/Wird geladen/)).not.toBeInTheDocument());
   });
 
   it('sagt, welcher Teil fehlt', async () => {
     scheitert.persoenlich = true;
     zeichne();
-
     expect(await screen.findByText(/Nicht geladen: Deine Tage und Einsätze/)).toBeInTheDocument();
   });
 
-  /*
-    DER ZWEITE SATZ IST DER WICHTIGE. Eine Startseite, die weniger zeigt als
-    sonst, sieht aus wie ein ruhiger Tag — genau diesen Schluss darf sie
-    nicht zulassen.
-  */
   it('lässt nicht den Schluss zu, es stünde nichts an', async () => {
     scheitert.persoenlich = true;
     zeichne();
-
     await screen.findByText(/Nicht geladen/);
     expect(screen.getByText(/heißt nicht, dass nichts ansteht/)).toBeInTheDocument();
   });
 
-  /*
-    DIE BLÖCKE BLEIBEN GETRENNT. Fällt die Betriebssicht aus, soll der
-    Monteur trotzdem sehen, wo er heute hin muss.
-  */
   it('reisst die anderen Blöcke nicht mit', async () => {
     rolle.wert = 'Geschäftsführung';
     scheitert.betrieblich = true;
     zeichne();
-
-    await screen.findByText(/Nicht geladen: Baustellen, Anforderungen und Rechnungen/);
-    expect(screen.queryByText(/Deine Tage und Einsätze/)).not.toBeInTheDocument();
+    await screen.findByText(/Nicht geladen: Anforderungen und Lager/);
+    expect(screen.queryByText(/Baustellen und Einsätze/)).not.toBeInTheDocument();
+    // Die Leitungssicht ist trotzdem da.
+    expect(await screen.findByRole('link', { name: /Aktive Baustellen/ })).toBeInTheDocument();
   });
 
-  /*
-    UND SIE BLEIBT NICHT STEHEN. Die Startseite lädt neu, sobald sich Rolle,
-    Konto oder ein Modul ändert. Eine Meldung aus dem vorigen Anlauf wäre
-    danach eine Behauptung über einen Zustand, den es nicht mehr gibt.
-  */
   it('räumt die Meldung weg, sobald neu geladen wird', async () => {
     scheitert.persoenlich = true;
     const { rerender } = zeichne();
     await screen.findByText(/Nicht geladen/);
-
-    // Ein Rollenwechsel ändert `mgmt` und `fuehrtZeitkonto` — beides
-    // Abhängigkeiten des Ladeeffekts. Er läuft damit von vorne, diesmal ohne
-    // Fehler. (Das Konto zu klonen ginge nicht: `role` ist ein Getter, und
-    // ein Spread würde ihn einfrieren.)
     scheitert.persoenlich = false;
     rolle.wert = 'Geschäftsführung';
     rerender(
@@ -552,69 +613,26 @@ describe('Wenn ein Teil der Startseite nicht kommt', () => {
         <DashboardView />
       </MemoryRouter>,
     );
-
     await waitFor(() => expect(screen.queryByText(/Nicht geladen/)).not.toBeInTheDocument());
+  });
+
+  it('behauptet beim ersten Zeichnen nicht, es läge nichts an', () => {
+    // Bis die Ladeblöcke gezählt sind, lädt die Seite — vorher stand dort kurz „Heute liegt nichts an“.
+    zeichne();
+    expect(screen.queryByText('Heute liegt nichts an')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-geladen="nein"]')).not.toBeNull();
   });
 
   it('schweigt, solange alles durchkommt', async () => {
     zeichne();
-    await waitFor(() =>
-      expect(screen.queryByText(/Wird geladen/)).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText(/Wird geladen/)).not.toBeInTheDocument());
     expect(screen.queryByText(/Nicht geladen/)).not.toBeInTheDocument();
-  });
-});
-
-/**
- * WIE VIELE ZEILEN DIE STARTSEITE VERTRÄGT.
- *
- * Sie ist eine Rangfolge, keine Übersicht: oben steht, was heute jemanden
- * angeht. Zwei Karten wuchsen ungedeckelt mit dem Betrieb — alle laufenden
- * Baustellen und alle Budgetwarnungen — und schoben damit genau die kurzen,
- * wichtigen Karten darunter aus dem Blick.
- *
- * Zwei andere waren längst gedeckelt („Tage ohne Buchung", „Material
- * angefordert"), und dieses Muster wird hier fortgesetzt: die ersten N, dann
- * die Zahl der übrigen und der Weg dorthin.
- */
-describe('Startseite — wie viele Zeilen je Karte', () => {
-  const vieleBaustellen = (n: number): Project[] =>
-    Array.from({ length: n }, (_, i) => ({
-      id: `p${i}`,
-      companyId: 'perl',
-      projectNumber: `2026-${String(i).padStart(3, '0')}`,
-      customerName: `Kunde ${String(i).padStart(3, '0')}`,
-      status: 'Aktiv',
-      estimatedHours: 0,
-    })) as Project[];
-
-  it('zeigt bei wenigen Baustellen alle und sagt nichts dazu', async () => {
-    baustellenUeberschreibung = vieleBaustellen(5);
-    rolle.wert = 'Geschäftsführung';
-    zeichne();
-
-    expect(await screen.findByText(/Aktive Baustellen \(5\)/)).toBeInTheDocument();
-    expect(screen.getByText(/Kunde 004/)).toBeInTheDocument();
-    expect(screen.queryByText(/weitere/)).not.toBeInTheDocument();
-  });
-
-  it('deckelt bei zwölf und nennt den Rest samt Weg', async () => {
-    baustellenUeberschreibung = vieleBaustellen(30);
-    rolle.wert = 'Geschäftsführung';
-    zeichne();
-
-    // Die Zahl im Titel bleibt die WAHRE — sie ist die Aussage der Karte.
-    expect(await screen.findByText(/Aktive Baustellen \(30\)/)).toBeInTheDocument();
-    expect(screen.getByText(/Kunde 011/)).toBeInTheDocument();
-    expect(screen.queryByText(/Kunde 012/)).not.toBeInTheDocument();
-    expect(screen.getByText(/und 18 weitere/)).toBeInTheDocument();
   });
 });
 
 /*
   GEMELDET: „im Dashboard steht nur der Betrag der offenen Rechnungen ohne
-  irgendwelche Quick Links". Eine Summe, hinter der Arbeit steht, ohne Weg
-  dorthin, lässt einen suchen.
+  irgendwelche Quick Links". Jede Summe führt in die passend gefilterte Liste.
 */
 describe('Startseite — offene Rechnungen', () => {
   beforeEach(() => {
@@ -622,39 +640,40 @@ describe('Startseite — offene Rechnungen', () => {
     offeneRechnungen.wert = [
       // Angezahlt und seit Juli fällig: der Rest ist ÜBERFÄLLIG, obwohl der
       // Stand „Teilbezahlt" heisst.
-      { id: 'r1', paymentStatus: 'Teilbezahlt', dueDate: '2026-07-15', totalBrutto: 1200, bezahltBetrag: 400 },
+      { id: 'r1', invoiceNumber: 'RE-1', customerName: 'Huber', paymentStatus: 'Teilbezahlt', dueDate: '2026-07-15', totalBrutto: 1200, bezahltBetrag: 400 },
       // Ziel läuft noch.
-      { id: 'r2', paymentStatus: 'Offen', dueDate: '2026-10-01', totalBrutto: 300 },
+      { id: 'r2', invoiceNumber: 'RE-2', customerName: 'Meier', paymentStatus: 'Offen', dueDate: '2026-10-01', totalBrutto: 300 },
     ];
   });
 
   it('zählt den Rest einer angezahlten, fälligen Rechnung als überfällig', async () => {
     zeichne();
-    const ueberfaellig = await screen.findByRole('link', { name: /Überfällig/ });
-    expect(ueberfaellig).toHaveTextContent(/€\s800,00$/);
-    expect(screen.getByRole('link', { name: /Offene Rechnungen/ })).toHaveTextContent(/€\s300,00$/);
+    expect(await screen.findByRole('link', { name: /^Überfällig/ })).toHaveTextContent(/€\s800,00/);
+    expect(screen.getByRole('link', { name: /^Offen/ })).toHaveTextContent(/€\s300,00/);
   });
 
   it('führt von jeder Summe in die passend gefilterte Rechnungsliste', async () => {
     zeichne();
-    expect(await screen.findByRole('link', { name: /Überfällig/ })).toHaveAttribute(
-      'href',
-      '/invoices?status=%C3%9Cberf%C3%A4llig',
-    );
-    expect(screen.getByRole('link', { name: /Offene Rechnungen/ })).toHaveAttribute('href', '/invoices');
+    expect(await screen.findByRole('link', { name: /^Überfällig/ })).toHaveAttribute('href', '/invoices?status=%C3%9Cberf%C3%A4llig');
+    expect(screen.getByRole('link', { name: /^Offen/ })).toHaveAttribute('href', '/invoices');
+  });
+
+  it('nennt die überfälligen Rechnungen als Thema unter „Überfällig“', async () => {
+    zeichne();
+    const thema = await screen.findByRole('link', { name: /1 Rechnung überfällig/ });
+    expect(thema).toHaveTextContent(/62 Tage/);
   });
 });
 
 /*
-  Prüflauf 25.09.2026, P4-15: eingeteilt werden nicht nur Monteure. Die
-  Karte „Heute" bot jedem Eingeteilten „Mein Einsatzplan" (/my-schedule, nur
-  Monteure) und „Schein schreiben" (/worksheet, nur wer Scheine schreibt) an
-  — Verwaltung und Buchhaltung landeten auf „Kein Zugriff".
+  Prüflauf 25.09.2026, P4-15: eingeteilt werden nicht nur Monteure. „Mein
+  Einsatzplan" (/my-schedule, nur Monteure) und „Schein schreiben" (nur wer
+  Scheine schreibt) stehen nur da, wo sie hinführen dürfen.
 */
 describe('Startseite — Verweise nur, wohin man darf (P4-15)', () => {
   it('zeigt dem Monteur Einsatzplan und Schein', async () => {
     zeichne();
-    const karte = (await screen.findByText(/Heute — 2 Baustellen/i)).closest('section')!;
+    const karte = await karteMit(/2 Einsätze/);
     expect(within(karte).getByRole('link', { name: 'Mein Einsatzplan' })).toHaveAttribute('href', '/my-schedule');
     expect(within(karte).getAllByRole('link', { name: 'Schein schreiben' })).toHaveLength(2);
   });
@@ -662,17 +681,18 @@ describe('Startseite — Verweise nur, wohin man darf (P4-15)', () => {
   it.each(['Verwaltung', 'Buchhaltung'])('zeigt %s beides nicht', async (r) => {
     rolle.wert = r;
     zeichne();
-    const karte = (await screen.findByText(/Heute — 2 Baustellen/i)).closest('section')!;
+    const karte = await karteMit('Dein Einsatz heute');
     expect(within(karte).queryByRole('link', { name: 'Mein Einsatzplan' })).not.toBeInTheDocument();
     expect(within(karte).queryByRole('link', { name: 'Schein schreiben' })).not.toBeInTheDocument();
-    // „Zeit erfassen" bleibt — das darf jede Rolle.
-    expect(within(karte).getAllByRole('link', { name: 'Zeit erfassen' })).toHaveLength(2);
+    // Zeit buchen darf jede Rolle.
+    expect(within(karte).getByRole('link', { name: /Wie zuletzt buchen/ })).toBeInTheDocument();
+    expect(within(karte).getByRole('link', { name: 'Zeit erfassen' })).toBeInTheDocument();
   });
 
-  it('zeigt der Projektleitung den Schein, aber nicht den Einsatzplan der Monteure', async () => {
+  it('zeigt dem Projektleiter den Schein, aber nicht den Einsatzplan der Monteure', async () => {
     rolle.wert = 'Projektleiter';
     zeichne();
-    const karte = (await screen.findByText(/Heute — 2 Baustellen/i)).closest('section')!;
+    const karte = await karteMit('Dein Einsatz heute');
     expect(within(karte).queryByRole('link', { name: 'Mein Einsatzplan' })).not.toBeInTheDocument();
     expect(within(karte).getAllByRole('link', { name: 'Schein schreiben' })).toHaveLength(2);
   });

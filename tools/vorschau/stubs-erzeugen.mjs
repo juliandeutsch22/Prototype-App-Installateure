@@ -50,7 +50,9 @@ const FEST = {
     'export const DEFAULT_VACATION_DAYS = 25;\n' +
     'export const DEFAULT_WORK_DAYS = [1, 2, 3, 4, 5];\n',
   meldungsvorgaben: 'export const PREFS_DEFAULTS = {} as never;\n',
-  materials: 'export const LOW_STOCK_THRESHOLD = 5;\n',
+  // `lagerFrei` liefert eine Map je Artikel — ein Feld hätte die Startseite als „nicht geladen“ gemeldet.
+  materials: 'export const LOW_STOCK_THRESHOLD = 5;\n' +
+    'export const lagerFrei = () => A(new Map());\n',
   materialOrders:
     "export const ORDER_STATUS_FLOW = ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'] as const;\n",
   quelle: 'export const nutztPostgres = () => false;\n',

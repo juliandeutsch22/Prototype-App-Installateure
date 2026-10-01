@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import Adressfilter from '@/components/Adressfilter';
 import { useAuth } from '@/app/AuthContext';
 import {
   listWartungen,
@@ -181,6 +182,9 @@ export default function WartungenView() {
 
   const darfAendern = user ? isGF(user.role) : false;
   const heute = todayStr();
+  /** „Fällig, ohne Baustelle“ aus der Adresse — von der Startseite (Nachtest 01.10.2026). */
+  const [adresse] = useSearchParams();
+  const nurOhneBaustelle = adresse.get('filter') === 'faellig-ohne-baustelle';
 
   const companyId = user?.companyId;
 
@@ -234,10 +238,11 @@ export default function WartungenView() {
       wartungen
         .filter((w) => {
           const s = beurteile(w, heute).stand;
+          if (nurOhneBaustelle) return (s === 'überfällig' || s === 'fällig') && !w.offeneBaustelle;
           return s === 'überfällig' || s === 'fällig' || s === 'unklar';
         })
         .sort(nachFaelligkeit),
-    [wartungen, heute],
+    [wartungen, heute, nurOhneBaustelle],
   );
 
   /*
@@ -523,9 +528,16 @@ export default function WartungenView() {
             {w.offeneBaustelle ? (
               <span className="mt-1 block text-xs text-ink-muted">
                 Eingeplant auf Baustelle{' '}
-                <Link className="link-hinweis-weiter" to={`/projects?baustelle=${encodeURIComponent(w.offeneBaustelle)}`}>
-                  {w.offeneBaustelle}
-                </Link>
+                {/* Auf die Baustellenliste nur, wer sie sehen darf. Vorher führte
+                    der Link auf `/projects`, eine Adresse, die es nicht gibt —
+                    und landete auf der Startseite (Nachtest 01.10.2026). */}
+                {darfAendern ? (
+                  <Link className="link-hinweis-weiter" to={`/admin-projects?baustelle=${encodeURIComponent(w.offeneBaustelle)}`}>
+                    {w.offeneBaustelle}
+                  </Link>
+                ) : (
+                  w.offeneBaustelle
+                )}
               </span>
             ) : null}
           </>
@@ -732,8 +744,10 @@ export default function WartungenView() {
         </Card>
       )}
 
+      {nurOhneBaustelle && <Adressfilter text="fällige Wartungen ohne Baustelle" parameter={['filter']} />}
+
       {/* Bündig: Wartungen als Zeilen von Kante zu Kante (Designlinie „Fassung 3"). */}
-      <Card title={`Steht an (${anstehend.length})`} buendig>
+      <Card title={`${nurOhneBaustelle ? 'Fällig, ohne Baustelle' : 'Steht an'} (${anstehend.length})`} buendig>
         {loading ? (
           <div className="p-4">
             <SkeletonList />

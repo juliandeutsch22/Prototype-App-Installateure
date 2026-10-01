@@ -143,9 +143,11 @@ async function oeffneMitarbeiter() {
   const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
   // Der ToastProvider gehoert dazu: die Ansicht meldet Erfolge darueber.
   render(
-    <ToastProvider>
-      <AccountingView />
-    </ToastProvider>,
+    <MemoryRouter>
+      <ToastProvider>
+        <AccountingView />
+      </ToastProvider>
+    </MemoryRouter>,
   );
   const kopf = await screen.findByRole('button', { name: /Neu Eingestellt/ });
   await nutzer.click(kopf);
@@ -338,9 +340,11 @@ describe('Mitarbeiteruebersicht — die leere Liste erklaert sich', () => {
   it('sagt, WARUM niemand dasteht, wenn es nur Leitung gibt', async () => {
     benutzer = [gf];
     render(
-      <ToastProvider>
-        <AccountingView />
-      </ToastProvider>,
+      <MemoryRouter>
+        <ToastProvider>
+          <AccountingView />
+        </ToastProvider>
+      </MemoryRouter>,
     );
 
     expect(await screen.findByText(/Kein Konto erscheint in dieser Auswertung/)).toBeInTheDocument();
@@ -362,9 +366,11 @@ describe('Mitarbeiteruebersicht — die leere Liste erklaert sich', () => {
     } as AppUser;
     benutzer = [gf, pl];
     render(
-      <ToastProvider>
-        <AccountingView />
-      </ToastProvider>,
+      <MemoryRouter>
+        <ToastProvider>
+          <AccountingView />
+        </ToastProvider>
+      </MemoryRouter>,
     );
 
     expect(await screen.findByText('Paula Leiter')).toBeInTheDocument();
@@ -376,9 +382,11 @@ describe('Mitarbeiteruebersicht — die leere Liste erklaert sich', () => {
   it('zeigt die Geschäftsführung, wenn ihr Zeitkonto eingeschaltet ist', async () => {
     benutzer = [{ ...gf, fuehrtZeitkonto: true }];
     render(
-      <ToastProvider>
-        <AccountingView />
-      </ToastProvider>,
+      <MemoryRouter>
+        <ToastProvider>
+          <AccountingView />
+        </ToastProvider>
+      </MemoryRouter>,
     );
 
     expect(await screen.findByText('Julian Deutsch')).toBeInTheDocument();
@@ -387,9 +395,11 @@ describe('Mitarbeiteruebersicht — die leere Liste erklaert sich', () => {
   it('und die Administration nie — auch nicht mit gesetztem Haken', async () => {
     benutzer = [{ ...gf, id: 'ad', uid: 'ad', name: 'Ada Admin', role: 'Administrator', fuehrtZeitkonto: true }];
     render(
-      <ToastProvider>
-        <AccountingView />
-      </ToastProvider>,
+      <MemoryRouter>
+        <ToastProvider>
+          <AccountingView />
+        </ToastProvider>
+      </MemoryRouter>,
     );
 
     await screen.findByText(/Kein Konto erscheint in dieser Auswertung/);
@@ -399,9 +409,11 @@ describe('Mitarbeiteruebersicht — die leere Liste erklaert sich', () => {
   it('und die Geschäftsführung ohne Zeitkonto weiterhin nicht', async () => {
     benutzer = [gf];
     render(
-      <ToastProvider>
-        <AccountingView />
-      </ToastProvider>,
+      <MemoryRouter>
+        <ToastProvider>
+          <AccountingView />
+        </ToastProvider>
+      </MemoryRouter>,
     );
 
     await screen.findByText(/Kein Konto erscheint in dieser Auswertung/);
@@ -413,9 +425,11 @@ describe('Mitarbeiteruebersicht — die leere Liste erklaert sich', () => {
     // verschiedene Lagen mit zwei verschiedenen naechsten Schritten.
     benutzer = [];
     render(
-      <ToastProvider>
-        <AccountingView />
-      </ToastProvider>,
+      <MemoryRouter>
+        <ToastProvider>
+          <AccountingView />
+        </ToastProvider>
+      </MemoryRouter>,
     );
 
     expect(await screen.findByText('Noch keine Benutzer angelegt.')).toBeInTheDocument();
@@ -466,9 +480,11 @@ describe('Gesamtsaldo neben dem Monatssaldo (Testbericht 30.09.2026, M8)', () =>
   it('lädt erst beim Aufklappen', async () => {
     zeitguthabenLaden.mockClear();
     render(
-      <ToastProvider>
-        <AccountingView />
-      </ToastProvider>,
+      <MemoryRouter>
+        <ToastProvider>
+          <AccountingView />
+        </ToastProvider>
+      </MemoryRouter>,
     );
     await screen.findByRole('button', { name: /Neu Eingestellt/ });
     expect(zeitguthabenLaden).not.toHaveBeenCalled();
@@ -483,9 +499,11 @@ describe('Im Supportzugang (Testbericht 30.09.2026, M40)', () => {
     try {
       const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       render(
-        <ToastProvider>
-          <AccountingView />
-        </ToastProvider>,
+        <MemoryRouter>
+          <ToastProvider>
+            <AccountingView />
+          </ToastProvider>
+        </MemoryRouter>,
       );
       const kopf = await screen.findByRole('button', { name: /Neu Eingestellt/ });
       expect(kopf).toHaveTextContent('nicht einsehbar');

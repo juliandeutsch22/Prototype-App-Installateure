@@ -1,0 +1,1980 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Handbuch Senklot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    /* Kupfer und Stahl — die Werkstoffe des Gewerks. Das Petrol ist die Farbe
+       der Marke und steht deshalb nur dort, wo die Marke spricht, nicht als
+       zweiter Akzent. */
+    --grund: #F2F5F6;
+    --flaeche: #FFFFFF;
+    --flaeche-2: #E9EEF1;
+    --tinte: #16222B;
+    --gedaempft: #5B6E7A;
+    --linie: #D5DFE5;
+    --linie-stark: #B6C5CE;
+    --kupfer: #A65B36;
+    --kupfer-schwach: #F0E2DA;
+    --petrol: #0F4552;
+    --gut: #2E7355;
+    --gut-grund: #E3EFE9;
+    --acht: #8A6210;
+    --acht-grund: #F6EDD9;
+    --kritisch: #A33228;
+    --kritisch-grund: #F7E4E1;
+
+    --seriell: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    --anzeige: 'Familjen Grotesk', 'Helvetica Neue', Arial, sans-serif;
+    --lesen: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --grund: #11181D;
+      --flaeche: #19222A;
+      --flaeche-2: #212C35;
+      --tinte: #E2E9ED;
+      --gedaempft: #94A6B2;
+      --linie: #2A353D;
+      --linie-stark: #3C4B55;
+      --kupfer: #DE9670;
+      --kupfer-schwach: #33231B;
+      --petrol: #7FBACA;
+      --gut: #6FBF98;
+      --gut-grund: #14261F;
+      --acht: #D9AE55;
+      --acht-grund: #2A2213;
+      --kritisch: #E4867B;
+      --kritisch-grund: #2C1A18;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --grund: #11181D;
+    --flaeche: #19222A;
+    --flaeche-2: #212C35;
+    --tinte: #E2E9ED;
+    --gedaempft: #94A6B2;
+    --linie: #2A353D;
+    --linie-stark: #3C4B55;
+    --kupfer: #DE9670;
+    --kupfer-schwach: #33231B;
+    --petrol: #7FBACA;
+    --gut: #6FBF98;
+    --gut-grund: #14261F;
+    --acht: #D9AE55;
+    --acht-grund: #2A2213;
+    --kritisch: #E4867B;
+    --kritisch-grund: #2C1A18;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--grund);
+    color: var(--tinte);
+    font-family: var(--lesen);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .blatt {
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: 3.5rem 1.5rem 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+  }
+
+  /* ---- Kopf ---- */
+
+  .kopf { display: flex; flex-direction: column; gap: 1.1rem; }
+
+  .marke {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--seriell);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gedaempft);
+  }
+
+  .marke svg { width: 1.45rem; height: 1.45rem; display: block; flex: none; }
+  .marke b { color: var(--tinte); font-weight: 600; letter-spacing: 0.16em; }
+
+  h1 {
+    font-family: var(--anzeige);
+    font-weight: 700;
+    font-size: clamp(2.1rem, 5.5vw, 3.1rem);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .vorspann {
+    max-width: 40rem;
+    font-size: 1.08rem;
+    color: var(--gedaempft);
+    margin: 0;
+  }
+
+  .stempel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.5rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--linie);
+    font-family: var(--seriell);
+    font-size: 0.76rem;
+    color: var(--gedaempft);
+  }
+
+  .stempel b { color: var(--tinte); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+  /* ---- Abschnitte ---- */
+
+  section { display: flex; flex-direction: column; gap: 1.6rem; }
+
+  .abschnittskopf { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .abschnittskopf::before {
+    content: "";
+    width: 2.75rem;
+    height: 3px;
+    background: var(--kupfer);
+  }
+
+  h2 {
+    font-family: var(--anzeige);
+    font-weight: 600;
+    font-size: 1.55rem;
+    letter-spacing: -0.015em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .frage {
+    margin: 0;
+    max-width: 42rem;
+    color: var(--gedaempft);
+    font-size: 1rem;
+  }
+
+  h3 {
+    font-family: var(--anzeige);
+    font-weight: 600;
+    font-size: 1.05rem;
+    letter-spacing: -0.005em;
+    margin: 0;
+  }
+
+  /* ---- Rollen ---- */
+
+  .rollen {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 0.1rem 2rem;
+  }
+
+  .rolle {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.7rem;
+    align-items: baseline;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid var(--linie);
+  }
+
+  .rolle p { margin: 0; font-size: 0.94rem; color: var(--gedaempft); }
+
+  .marker {
+    font-family: var(--seriell);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--kupfer);
+    background: var(--kupfer-schwach);
+    padding: 0.16rem 0.42rem;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  /* ---- Bereiche ---- */
+
+  .bereiche {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+    gap: 0 2.5rem;
+  }
+
+  .bereich {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 1.15rem 0;
+    border-top: 1px solid var(--linie);
+  }
+
+  .bereich p { margin: 0; font-size: 0.97rem; }
+
+  .bereich .wer {
+    font-family: var(--seriell);
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+    color: var(--gedaempft);
+    margin-top: 0.15rem;
+  }
+
+  .neu {
+    font-family: var(--seriell);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--gut);
+    background: var(--gut-grund);
+    padding: 0.12rem 0.38rem;
+    border-radius: 3px;
+    margin-left: 0.5rem;
+    vertical-align: 0.14em;
+  }
+
+  /* ---- Tabelle ---- */
+
+  .rahmen { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    min-width: 34rem;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+
+  th {
+    font-family: var(--seriell);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gedaempft);
+    text-align: left;
+    padding: 0 0.9rem 0.6rem 0;
+    border-bottom: 2px solid var(--linie-stark);
+  }
+
+  td {
+    padding: 0.62rem 0.9rem 0.62rem 0;
+    border-bottom: 1px solid var(--linie);
+    vertical-align: baseline;
+  }
+
+  td:first-child { font-weight: 600; }
+  td:last-child, th:last-child { padding-right: 0; color: var(--gedaempft); }
+
+  tr.behoben td:first-child { box-shadow: inset 3px 0 0 var(--gut); padding-left: 0.7rem; }
+
+  .ja, .nein, .gar {
+    font-family: var(--seriell);
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .ja { color: var(--gut); }
+  .nein { color: var(--kritisch); }
+  .gar { color: var(--gedaempft); }
+
+  /* ---- Hinweisblock ---- */
+
+  .hinweis {
+    background: var(--flaeche);
+    border: 1px solid var(--linie);
+    border-left: 3px solid var(--kupfer);
+    padding: 1.3rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .hinweis.geloest { border-left-color: var(--gut); }
+  .hinweis p { margin: 0; font-size: 0.97rem; }
+  .hinweis p.erst { color: var(--tinte); }
+  .hinweis p:not(.erst) { color: var(--gedaempft); }
+
+  /* ---- Die drei Formen der Abzeichen ---- */
+
+  .formen {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 1.5rem 2.5rem;
+  }
+
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1.15rem 0;
+    border-top: 1px solid var(--linie);
+  }
+
+  .form p { margin: 0; font-size: 0.95rem; color: var(--gedaempft); }
+  .form .muster { display: flex; align-items: center; gap: 0.5rem; min-height: 1.6rem; }
+
+  .m-marke {
+    font-family: var(--seriell);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--gedaempft);
+  }
+
+  .m-zustand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--anzeige);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--tinte);
+  }
+
+  .m-punkt { width: 0.4rem; height: 0.4rem; border-radius: 50%; background: var(--gut); flex: none; }
+
+  .m-warnung {
+    font-family: var(--anzeige);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--acht);
+    border: 1.5px solid var(--acht);
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .m-zaehler {
+    font-family: var(--anzeige);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    background: var(--petrol);
+    padding: 0.08rem 0.42rem;
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  :root[data-theme="dark"] .m-zaehler { color: #11181D; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .m-zaehler { color: #11181D; }
+  }
+
+  /* ---- Lücken ---- */
+
+  .luecken { display: flex; flex-direction: column; gap: 0.1rem; }
+
+  .luecke {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.3rem;
+    padding: 0.95rem 0;
+    border-bottom: 1px solid var(--linie);
+  }
+
+  .luecke:first-child { border-top: 1px solid var(--linie); }
+  .luecke p { margin: 0; font-size: 0.95rem; color: var(--gedaempft); }
+  .luecke strong { color: var(--tinte); font-family: var(--anzeige); font-weight: 600; font-size: 1rem; }
+
+  .schwere {
+    font-family: var(--seriell);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    padding: 0.12rem 0.38rem;
+    border-radius: 3px;
+    margin-left: 0.5rem;
+    vertical-align: 0.14em;
+    white-space: nowrap;
+  }
+  .schwere.geld { color: var(--kritisch); background: var(--kritisch-grund); }
+  .schwere.offen { color: var(--acht); background: var(--acht-grund); }
+  .schwere.einrichtung { color: var(--gedaempft); background: var(--flaeche-2); }
+
+  @media (min-width: 46rem) {
+    .luecke { grid-template-columns: 13rem minmax(0, 1fr); gap: 0.3rem 1.5rem; align-items: baseline; }
+  }
+
+  .fuss {
+    border-top: 1px solid var(--linie);
+    padding-top: 1.2rem;
+    font-family: var(--seriell);
+    font-size: 0.74rem;
+    color: var(--gedaempft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 1.5rem;
+  }
+
+  code {
+    font-family: var(--seriell);
+    font-size: 0.86em;
+    background: var(--flaeche-2);
+    padding: 0.08em 0.3em;
+    border-radius: 3px;
+  }
+
+  a { color: var(--kupfer); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible { outline: 2px solid var(--kupfer); outline-offset: 3px; border-radius: 2px; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    a { transition: opacity 0.15s ease; }
+    a:hover { opacity: 0.75; }
+  }
+</style>
+
+<div class="blatt">
+
+  <header class="kopf">
+    <div class="marke">
+      <svg viewBox="0 0 64 64" role="img" aria-label="Senklot">
+        <rect width="64" height="64" rx="14" fill="#0F4552"></rect>
+        <path d="M32 6 V17" stroke="#FFFFFF" stroke-width="1.6"></path>
+        <path d="M32 17 L41 30 L32 58 L23 30 Z" fill="#FFFFFF"></path>
+      </svg>
+      <span><b>Senklot</b> · Betriebssoftware für Installationsbetriebe in Österreich</span>
+    </div>
+    <h1>Was die App kann, und wer was darf</h1>
+    <p class="vorspann">
+      Fünfundzwanzig Bereiche, sechs Rollen, jeder Betrieb für sich. Diese Seite ist die
+      Antwort auf die Frage, mit der man vor der App sitzt — was gibt es, wer
+      darf was, und worauf kann ich mich verlassen. Auch dort, wo die Antwort
+      unangenehm ist.
+    </p>
+    <p class="vorspann">
+      Seit dem 15.09. heisst die Software <strong>Senklot</strong> — am
+      Startbildschirm, im Reiter und über dem Anmeldeformular. Im Kopf der App
+      steht weiterhin der Betrieb: Senklot ist, womit gearbeitet wird, der
+      Betrieb ist, wer damit arbeitet.
+    </p>
+    <p class="vorspann">
+      <strong>Senklot ist für Installationsbetriebe in Österreich gebaut</strong>
+      — Sanitär, Heizung, Lüftung —, nicht für einen einzelnen. Jeder Betrieb
+      hat seinen eigenen, getrennten Bestand, eigene Nummernkreise, Sätze,
+      Rollen und Module. Das österreichische Recht steckt im Kern: UStG und
+      BAO bei den Belegen, ABGB und UGB beim Mahnen, das Urlaubsgesetz beim
+      Urlaubsjahr. <strong>Perl Installationen ist der
+      Pilotbetrieb</strong>; wo hier „der Betrieb" etwas zurückgemeldet oder
+      getestet hat, ist er gemeint.
+    </p>
+    <p class="vorspann">
+      <strong>Am 16.09. hat der Bestand zum ersten Mal wirklich das Haus
+      verlassen.</strong> Damit ist die grösste Lücke dieses Handbuchs
+      geschlossen, und sie steht unten nicht mehr unter „Was noch fehlt",
+      sondern gleich als eigener Abschnitt.
+    </p>
+    <p class="vorspann">
+      <strong>Seit dem 18.09. gehören die Nummernkreise dem Betrieb.</strong>
+      Vier Vorsätze standen fest im Quelltext — <code>RE-</code>,
+      <code>AN-</code>, <code>B-</code> und, am schlimmsten, der Bezirkskenner
+      <code>WZ-</code> auf jedem Kennzeichen. Sie sind jetzt Einstellungen.
+    </p>
+    <p class="vorspann">
+      <strong>Am 19.09. ist Firebase abgebaut worden</strong> — bis auf
+      Auslieferung und Push-Versand. Und das Geld hat zwei Stücke dazubekommen,
+      die ein Installateur wirklich braucht: <strong>Zahlungseingänge</strong>
+      (der Zahlungsstand wird daraus abgeleitet, nicht mehr gesetzt) und
+      <strong>Anzahlungs-, Teil- und Schlussrechnungen</strong> — letztere
+      hinter einem Schalter, der ab Werk aus ist.
+    </p>
+    <p class="vorspann">
+      <strong>Am 20.09. sind die drei Wege nach aussen entstanden.</strong> Der
+      Artikelkatalog des Grosshändlers kommt als DATANORM-Datei herein, der
+      Buchungsstapel geht als BMD-Datei zur Kanzlei hinaus, und der
+      <strong>Supportzugang</strong> ersetzt etwas, das vorher undeklariert war:
+      den Dienstschlüssel. Dazu: der Urlaub kennt jetzt das Urlaubsjahr des
+      Betriebs und den Unterschied zwischen Neueintritt und Bestand.
+    </p>
+    <p class="vorspann">
+      <strong>Am 23.09. kamen die Rückmeldungen aus dem Betrieb herein</strong>
+      — und mit ihnen ein Fehler, der still Arbeitszeit verschluckt hat: im
+      Büro für andere erfasste Zeiten kamen nie an, obwohl „gespeichert"
+      dastand. Behoben, samt dem Ausgangsfach, das ihn für ein Funkloch hielt.
+      Dazu neu: <strong>Pläne an der Baustelle</strong> für die Monteure,
+      <strong>Angebote als PDF</strong>, Belege im Layout eines
+      Geschäftsbriefs, die <strong>Team-Woche</strong> für alle (ein Schalter,
+      ab Werk aus) und die <strong>Anmeldung mit Benutzername</strong> statt
+      E-Mail.
+    </p>
+    <p class="vorspann">
+      <strong>Am 24.09. kamen drei Wünsche aus dem Betrieb dazu</strong>, jeder
+      bis zum Ende durchgezogen: das Lager hakt Anforderungen ab und eine
+      <strong>Einkaufsliste</strong> geht als PDF oder E-Mail an den Vertreter
+      des Grosshändlers; es gibt <strong>Zeitausgleich</strong> ganztags oder
+      stundenweise mit Blick aufs Guthaben, die <strong>Krankmeldung</strong>
+      ohne Genehmigung und den <strong>Betriebsurlaub</strong>, der den Plan
+      sperrt und auf Wunsch allen den Urlaub bucht. Dazu: eine
+      Baustellennummer lässt sich ändern, ohne dass Buchungen an der alten
+      hängen bleiben, und Angebote sind bearbeitbar, solange sie Entwurf sind.
+    </p>
+    <p class="vorspann">
+      <strong>Am selben Tag noch einmal fünf</strong>: „Krank“ in der
+      Zeiterfassung ist jetzt eine <strong>Krankmeldung</strong> — es gibt nur
+      noch einen Weg. Ein <strong>Betriebsurlaub</strong> wird Neueintritten
+      automatisch nachgebucht. Der <strong>Resturlaub</strong> steht oben auf
+      der Urlaubsseite und bei jedem Antrag, den jemand genehmigt. Die
+      <strong>Rechnungssuche</strong> geht über alle Rechnungen, und die
+      Kundenakte zeigt sie. Und das Büro setzt <strong>eigenes Material</strong>
+      auf die Einkaufsliste, etwa fürs Lager.
+    </p>
+    <p class="vorspann">
+      <strong>Und am Ende desselben Tages die Vorbereitung auf den
+      Pilotbetrieb</strong>: Abstürze landen im eigenen
+      <strong>Fehlerprotokoll</strong> statt nur in der Konsole des Geräts,
+      und jeder kann ein <strong>Problem melden</strong>. Der
+      <strong>Kundenstamm</strong> kommt aus einer CSV-Datei herein — erst
+      ansehen, dann übernehmen. Und es gibt <strong>Datenschutzerklärung und
+      Impressum</strong>, als Entwurf gekennzeichnet, bis jemand mit
+      Rechtskenntnis sie freigibt.
+    </p>
+    <p class="vorspann">
+      <strong>Und dann ein Prüflauf von aussen.</strong> Ein unabhängiger
+      Durchgang durch alle Abläufe, alle Rollen und beide Bildschirmgrössen
+      hat Fehler und Lücken gefunden; daraus ist ein Plan in neun Paketen
+      geworden, und alle neun sind erledigt. <strong>Urlaub entsteht nur
+      noch über einen Antrag</strong> — trägt ihn das Büro ein, wird daraus ein
+      genehmigter —, es gibt einen Resturlaub statt zweier, das „Soll bisher“
+      zieht keine künftige Krankmeldung mehr ab, und kommende Abwesenheiten
+      stehen in der Zeiterfassung. <strong>Neue Baustellen bekommen wieder die
+      richtige Nummer</strong>, die Pflicht-Baustelle trägt ihren Stern, und wo
+      der Server etwas ablehnt, steht der Grund statt „Bitte erneut
+      versuchen“. <strong>Die Rechnung wird gegen den Schein je Person, Tag
+      und Satz geprüft</strong> — eine richtige Summe deckt keine fehlenden
+      Facharbeiterstunden mehr zu. Und wo die App bisher den Browser fragen
+      liess (Urlaub ablehnen, Wareneingang), fragt sie jetzt selbst.
+      <strong>Die Darstellung ist vereinheitlicht</strong>: ein Datumsformat
+      (24.09.2026) überall, keine Schrift mit Inhalt unter 12 px, deutsche
+      Silbentrennung, Platzhalter als Beispiel erkennbar, Knöpfe in
+      Daumenhöhe. <strong>Und die langen Seiten sind kürzer</strong>: die
+      Zeitmaske des Monteurs legt Wegzeit, Fahrzeug und Zuschläge hinter
+      „Weitere Angaben“, die Einstellungen haben eigene Seiten für
+      Nummernkreise und Personal, und die Anforderungen tragen Status und
+      Löschen im „⋯“ der Zeile. <strong>Und die Farben sind eine</strong>:
+      Belege, Unterschrift, Knöpfe und Meldungen tragen die Töne der Oberfläche
+      statt eigener. <strong>Und die Rollen sind entschieden</strong>: ob das
+      Büro Kunden pflegt, gibt die Geschäftsführung je Person frei; der
+      Projektleiter führt ein Zeitkonto, die Geschäftsführung wählt es selbst,
+      der Administrator hat keines; und beim Betriebsurlaub lassen sich
+      einzelne Mitarbeiter ausnehmen. <strong>Und „Problem melden“ geht an
+      den, der es beheben kann</strong>: jede Meldung an den Senklot-Support,
+      mit Name und E-Mail-Adresse für die Rückfrage — nicht mehr an die
+      Geschäftsführung, die damit nichts anfangen konnte.
+    </p>
+    <p class="vorspann">
+      <strong>Und zuletzt der Launch-Check</strong> — ein Durchgang durch den
+      ganzen Betrieb vor dem Start, mit neun kritischen Befunden. Alle neun
+      sind behoben: <strong>Zeiten überschneiden sich nicht mehr</strong>,
+      auch über Mitternacht; <strong>„Aus Lager“ geht nur, was da ist</strong>;
+      eine <strong>Pauschalbaustelle</strong> rechnet ihren Preis ab, nicht die
+      Stunden; über den <strong>eigenen Urlaub</strong> entscheidet jemand
+      anderer; <strong>Rechnungsnummern laufen lückenlos</strong>, und alle
+      Nummern kommen aus einem Zähler; ein <strong>Storno</strong> lässt sich
+      nur am selben Tag aufheben (und nicht mehr, sobald die Stornorechnung
+      ausgestellt ist); das <strong>Passwort</strong> ändert nur, wer
+      das alte kennt. Dazu zwei Dutzend kleinere Dinge — und die Stellen, an
+      denen dieses Handbuch der App widersprach, sind angeglichen.
+    </p>
+    <p class="vorspann">
+      <strong>Zielmarkt ist Österreich</strong>, und das ist keine Nebensache:
+      es steckt in UStG, § 19 Abs 1a, UrlG, der Empfänger-UID ab 10.000 € und
+      der Schnittstelle zur Buchhaltung — <strong>BMD, nicht DATEV</strong>.
+      Eine deutsche Fassung wäre kein Sprachschalter, sondern eigene Arbeit.
+    </p>
+    <p class="vorspann">
+      <strong>Seit dem 25. September</strong> ist das Offene abgearbeitet, das
+      der Prüflauf mit vier unabhängigen Prüfern hinterlassen hat. Das
+      Wichtigste für den Alltag: zu einem Storno gibt es jetzt die
+      <strong>Stornorechnung</strong>, die Mahnung rechnet
+      <strong>Verzugszinsen</strong>, eine Rechnung kann
+      <strong>Skonto</strong> zusagen, und die Geschäftsführung kann einer
+      Person auf Verlangen <strong>Auskunft geben und ihre Daten löschen</strong>
+      (DSGVO). Die Oberfläche hat eine ruhigere Linie. Was noch offen ist, steht
+      am Ende des Abschnitts „Seit dem 25. September“.
+    </p>
+    <div class="stempel">
+      <span>Stand <b>29.09.2026</b></span>
+      <span>Fassung <b>54fe3b0</b></span>
+      <span>Automatische Prüfungen <b>4255</b></span>
+      <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
+    </div>
+  </header>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Seit dem 25. September</h2>
+      <p class="frage">Was sich seit dem letzten Stand dieses Handbuchs geändert hat — zuerst das, was man im Alltag merkt.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>24. und 31. Dezember halb<span class="neu">neu</span></h3>
+        <p>Nach dem <strong>Kollektivvertrag Metallgewerbe</strong> endet die Normalarbeitszeit an beiden Tagen um 12 Uhr. Die App rechnet sie jetzt als <strong>halbe Tage</strong>: halbes Soll, und Urlaub an beiden Tagen zusammen ist <strong>ein</strong> Urlaubstag — auch im Betriebsurlaub zu Weihnachten. Arbeit nach 12 Uhr steht als eigene Zuschlagsspalte in der Lohn-CSV und im Stundennachweis. Eine Einstellung unter Personal, ab Werk an; bestehende Urlaube wurden angeglichen.</p>
+        <p class="wer">Büro, Geschäftsführung — und jeder beim Resturlaub</p>
+      </div>
+      <div class="bereich">
+        <h3>Scheine nach Kunde und Notiz finden<span class="neu">neu</span></h3>
+        <p>Die Suche in der Scheinliste findet jetzt auch ältere Scheine über den <strong>Kundennamen</strong> oder ein Wort aus der <strong>Notiz</strong>, nicht nur die zuletzt geladenen. Baustellennummer und Zeitraum gingen schon vorher über alle Scheine.</p>
+        <p class="wer">Alle, die die Scheinliste sehen</p>
+      </div>
+      <div class="bereich">
+        <h3>Bibliotheken auf aktuellem Stand<span class="neu">sicherheit</span></h3>
+        <p>Die Prüfung der Abhängigkeiten meldete 16 bekannte Lücken, eine davon kritisch — jetzt keine mehr in dem, was an die Geräte ausgeliefert wird. Erneuert sind die PDF-Erzeugung (jsPDF 4) und die Seitennavigation (React Router 7). Alle sieben Belegarten sind vorher und nachher erzeugt und Seite für Seite verglichen: <strong>pixelgleich</strong>. Alle Seiten der App wurden für Geschäftsführung, Büro und Monteur vorher und nachher aufgerufen: gleiches Verhalten. <strong>Seit 30.09. sind auch die Werkzeuge der Entwicklung (Vite, Vitest) erneuert</strong>; die Prüfung meldet jetzt überhaupt keine Lücke mehr. Die App läuft weiter auf denselben Geräten wie vorher, auch auf älteren iPhones.</p>
+        <p class="wer">Unsichtbar im Alltag</p>
+      </div>
+      <div class="bereich">
+        <h3>Kommende Wochen<span class="neu">neu</span></h3>
+        <p>In der Zeiterfassung stand eingetragener Urlaub — etwa der Betriebsurlaub im Jänner — bisher ganz oben in seiner Kalenderwoche, und die laufende Woche rutschte darunter. Jetzt steht alles <strong>nach dieser Woche</strong> gesammelt in einem zugeklappten Abschnitt <em>Kommende Wochen</em>, mit Anzahl und letztem Tag; aufgeklappt kommt der nächste Tag zuerst. Darunter steht die laufende Woche offen. Offen startet der Abschnitt nur, wenn sonst nichts dasteht oder darin doppelt gebucht ist.</p>
+        <p class="wer">Jeder für sich</p>
+      </div>
+      <div class="bereich">
+        <h3>Betriebsurlaub ist kein Antrag<span class="neu">geändert</span></h3>
+        <p>Unter „Meine Anträge“ heisst er jetzt <strong>„Betriebsurlaub · eingetragen von …“</strong> und hat keinen Knopf <em>Zurücknehmen</em> mehr — auch die Datenbank lehnt das ab. Für eine Person zurückgenommen, verschwanden die Tage aus dem Zeitkonto, während Wochenplan und Nachbuchen den Betriebsurlaub weiter sahen. Wer in der Zeit arbeiten soll, wird beim Anlegen ausgenommen; nachträglich: im Reiter „Betriebsurlaub“ löschen und mit der Ausnahme neu anlegen.</p>
+        <p class="wer">Jeder · geändert wird im Reiter Betriebsurlaub (Buchhaltung, GF, Administrator)</p>
+      </div>
+      <div class="bereich">
+        <h3>Stornorechnung<span class="neu">neu</span></h3>
+        <p>Ein Storno war bisher nur ein Vermerk; der Kunde bekam keinen Beleg. Jetzt stellt die Buchhaltung im Menü der stornierten Rechnung eine <strong>Stornorechnung</strong> aus: eigene Nummer aus dem Rechnungskreis, datiert auf den Tag des Stornos, die Beträge der Rechnung ins Minus. Danach lässt sie sich beliebig oft neu drucken — und der Storno <strong>nicht mehr aufheben</strong>, weil der Beleg womöglich schon beim Kunden liegt. BMD-Stapel und Ausgangsbuch buchen den Storno unter ihrer Nummer. Eine Teilgutschrift gibt es bewusst nicht: ein Nachlass geht über Storno und neue Rechnung.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Verzugszinsen<span class="neu">neu</span></h3>
+        <p>Ab der Mahnung — nicht auf der Zahlungserinnerung — stehen gesetzliche Verzugszinsen mit Satz, Tagen und Grundlage auf dem Beleg und im offenen Betrag. An Verbraucher 4 % im Jahr (§ 1000 ABGB), an Kunden mit UID 9,2 Punkte über dem <strong>Basiszinssatz</strong> (§ 456 UGB). Den Basiszinssatz trägt der Betrieb <strong>zum 1. Jänner und 1. Juli</strong> in den Einstellungen ein; er gilt nur für sein Halbjahr. Fehlt er, geht die Mahnung an Unternehmer ohne Zinsen hinaus, und der Mahndialog sagt es. Gefordert wird nie mehr, als sich belegen lässt.</p>
+        <p class="wer">Buchhaltung · Leitung · Basiszinssatz: Einstellungen → Sätze und Kosten</p>
+      </div>
+      <div class="bereich">
+        <h3>Skonto<span class="neu">ab werk aus</span></h3>
+        <p>Wer Skonto gibt, stellt Prozent und Frist in den Einstellungen ein; ab Werk gibt es keines. Die Rechnung nennt dann Frist und Betrag („Bei Zahlung bis … abzüglich 2 % Skonto: …“) — nur auf Rechnung und Schlussrechnung, nicht auf einer Anzahlung. Zahlt der Kunde in der Frist den Betrag abzüglich Skonto, bietet das Erfassen der Zahlung einen Haken an, der den Rest ausgleicht. Das Ausgangsbuch führt den Skonto getrennt vom Geld; die Umsatzsteuer darauf berichtigt die Kanzlei.</p>
+        <p class="wer">Buchhaltung · Leitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Auskunft und Löschen je Person<span class="neu">dsgvo</span></h3>
+        <p>In der Akte eines Mitarbeiters oder Kunden steht die Karte „Datenschutz“. <strong>Auskunft herunterladen</strong> liefert eine Datei mit allem, was zu dieser Person gespeichert ist — ohne die Daten anderer. <strong>Löschen</strong> zeigt zuerst einen Probelauf: sofort geht, was keiner Aufbewahrung unterliegt; was die BAO sieben Jahre verlangt (Zeiten, Urlaube, Rechnungen, Scheine …), bleibt gesperrt, mit dem Tag, an dem die Frist endet. Ein Mitarbeiter muss zuerst deaktiviert sein.</p>
+        <p class="wer">Nur Geschäftsführung und Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Einkaufspreise nur für die Führung</h3>
+        <p>Einkaufspreise und interne Kostensätze lesen und ändern nur noch Geschäftsführung und Administrator — nicht mehr jeder, der den Katalog sieht. Die Kontostände der Zeitkonten sehen nur die Person selbst, die Führung und wer Urlaub entscheidet; Kollegen sehen weiter die Namen.</p>
+        <p class="wer">Datenbank, nicht nur Oberfläche</p>
+      </div>
+      <div class="bereich">
+        <h3>Mahnspesen je Kundenart<span class="neu">neu</span></h3>
+        <p>Firmenkunden (mit UID) und Privatkunden haben eigene Mahnspesen je Stufe. An Privatkunden sind nur angemessene Mahnkosten zu ersetzen (§ 1333 Abs 2 ABGB); solange keine eigenen Sätze eingetragen sind, gelten dort die bisherigen weiter. An Firmenkunden lässt sich statt der Spesen die <strong>Pauschale von 40 € nach § 458 UGB</strong> verrechnen, ab der Mahnung — sie deckt die Mahnkosten bis zu dieser Höhe ab, beides zusammen wäre zu viel.</p>
+        <p class="wer">Einstellungen → Sätze und Kosten → Rechnungsvorgaben</p>
+      </div>
+      <div class="bereich">
+        <h3>Katalog: Preiskennzeichen berichtigt<span class="neu">behoben</span></h3>
+        <p>DATANORM kennzeichnet einen <strong>Listenpreis mit 1</strong> und einen <strong>Nettopreis mit 2</strong>. Die App las die 1 als Nettopreis und übernahm damit Listenpreise als Einkaufspreise — die Nachkalkulation rechnete zu teuer. Das ist behoben, und bereits so übernommene Einkaufspreise sind nachgerechnet: Listenpreis abzüglich des Rabattsatzes der Gruppe; ohne Satz bleibt der Einkauf leer und die Nachkalkulation meldet die Lücke. Von Hand geänderte Einkaufspreise bleiben.</p>
+        <p class="wer">Rabattsätze je Gruppe prüfen, dann stimmt der Einkauf</p>
+      </div>
+      <div class="bereich">
+        <h3>Kleinere Entscheidungen</h3>
+        <p>Bei 0 % ohne Reverse Charge verlangt und druckt die Rechnung den <strong>Grund der Steuerbefreiung</strong>. Die Umbuchung einer Anzahlung im BMD-Stapel geht so, wie die Anzahlung gebucht wurde — die Steuer stand vorher doppelt in der Voranmeldung. Eine eigene <strong>Krankmeldung</strong> reicht 14 Tage zurück; davor trägt das Büro ein. Der <strong>Wochenplan für alle</strong> ist ab Werk an. Das Passwort ändert nach mehr als einem Tag nur, wer frisch angemeldet ist — seit 29.09. auch in der Produktion eingeschaltet. Die Nacht der Zeitumstellung zählt richtig. Die <strong>Datenschutzerklärung</strong> duzt jetzt wie die ganze App und nennt Auskunft und Löschung über die App.</p>
+        <p class="wer">Entschieden vom Betrieb, 28. und 29.09.</p>
+      </div>
+      <div class="bereich">
+        <h3>Absicherungen im Hintergrund</h3>
+        <p>Eingeteilt und gebucht werden nur Personen des eigenen Betriebs; eine alte Baustellennummer findet nach dem Umnummern ihre Baustelle; eine beim Unterschreiben fehlende Prüfsumme trägt ein Nachtlauf nach; jeder Link führt nur dorthin, wo die Rolle hin darf. Der Support arbeitet in einem Betrieb zur Zeit, und kein Einblick ohne Eintrag im Protokoll.</p>
+        <p class="wer">Jede mit Gegenprobe</p>
+      </div>
+      <div class="bereich">
+        <h3>Eine ruhigere Oberfläche</h3>
+        <p>Die Designlinie „Fassung 3“ ist in neun Schritten umgesetzt: ohne Kästen und Pillen, Rechnungen am Schreibtisch als Tabelle, Akten zweispaltig, die Wochen der Zeiterfassung zum Aufklappen, die Einstellungen wieder als Reiter.</p>
+        <p class="wer">Alle Rollen</p>
+      </div>
+    </div>
+    <div class="hinweis">
+      <p class="erst"><strong>Was noch offen ist — und bei wem.</strong></p>
+      <p>
+        <strong>Nach sieben Jahren:</strong> ob gesperrte Belege einer
+        gelöschten Person dann gelöscht oder anonymisiert werden, entscheidet
+        der Betrieb mit dem Steuerberater — vor 2031 läuft keine Frist ab.
+        <strong>Zweimal im Jahr:</strong> zum 1. Jänner und 1. Juli den
+        Basiszinssatz eintragen.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Der Umzug, den niemand sehen soll</h2>
+      <p class="frage">
+        Seit dem 14. September liegen die Daten nicht mehr in Firestore,
+        sondern in einer Postgres-Datenbank. Für den Monteur ändert das nichts
+        — und genau das war die Vorgabe. Für ein paar Stellen im Handbuch
+        ändert es alles, weil Grenzen verschwinden, die vorher aus dem
+        Werkzeug stammten und nicht aus der Sache.
+      </p>
+    </div>
+
+    <div class="rahmen">
+      <table>
+        <thead>
+          <tr>
+            <th>Was</th>
+            <th>Bis 13.09.</th>
+            <th>Seit 14.09.</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="behoben">
+            <td>Kunde, Adresse, Wartung suchen</td>
+            <td>nur im geladenen Bestand</td>
+            <td>über den ganzen Bestand, auch mitten im Wort</td>
+          </tr>
+          <tr class="behoben">
+            <td>„Weitere laden"-Knöpfe</td>
+            <td>über sechs Listen verteilt</td>
+            <td>entfallen — die Liste ist vollständig; nur die Zeiterfassung holt mit „Ältere Einträge laden“ bewusst einen längeren Zeitraum</td>
+          </tr>
+          <tr>
+            <td>Mandantentrennung</td>
+            <td>Firestore-Rules</td>
+            <td>Zeilenschutz in der Datenbank (RLS)</td>
+          </tr>
+          <tr>
+            <td>Anmeldung</td>
+            <td>Firebase Auth</td>
+            <td>Supabase Auth; Konten legt eine Serverfunktion an</td>
+          </tr>
+          <tr>
+            <td>Nächtliche Sicherung</td>
+            <td>Cloud Scheduler</td>
+            <td><code>pg_cron</code> in der Datenbank selbst</td>
+          </tr>
+          <tr>
+            <td>Push-Meldungen</td>
+            <td>Firestore-Auslöser</td>
+            <td>Datenbank-Trigger — versandt weiterhin über Firebase</td>
+          </tr>
+          <tr>
+            <td>Auswertungen</td>
+            <td>im Browser gerechnet</td>
+            <td>als Sicht in der Datenbank</td>
+          </tr>
+          <tr class="behoben">
+            <td>Monatsbilanz-Nachtlauf</td>
+            <td>eigener nächtlicher Lauf</td>
+            <td>gibt es nicht mehr — die Zahl entsteht beim Lesen</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="hinweis geloest">
+      <p class="erst"><strong>Die Narbe, die der Rückbau hinterlassen hat — und was daraus wurde.</strong></p>
+      <p>
+        Mit Postgres fielen die Nachladeknöpfe weg, und das war richtig: sie
+        waren eine Eigenschaft von Firestore. Nur war die Obergrenze damit
+        nicht verschwunden, sondern eine Schicht tiefer gerutscht. Der
+        Datenbankserver liefert von sich aus <strong>höchstens tausend
+        Zeilen</strong> — ohne Fehler, ohne Hinweis. Gemessen: 1 500 Zeilen in
+        der Tabelle, 1 000 in der Antwort.
+      </p>
+      <p>
+        Für zehn Monteure erreicht die Zeiterfassung die tausend in etwa vier
+        Monaten. Danach hätte jede Jahresauswertung zu wenig gezeigt, und
+        nichts daran hätte falsch ausgesehen. <strong>Seit 15.09. blättert
+        jede Abfrage</strong>, in Schritten von 500 — bewusst unter der Grenze,
+        damit eine volle Seite von einer abgeschnittenen zu unterscheiden ist.
+      </p>
+    </div>
+
+    <div class="hinweis geloest">
+      <p class="erst"><strong>Eine zweite Narbe, gefunden am 16.09.: die Startseite warnte vor einem Lauf, den es nicht mehr gibt.</strong></p>
+      <p>
+        Dauerhaft stand dort „Ein nächtlicher Lauf steht aus". Gemeint war der
+        Bilanzlauf — unter Firestore rechnete er nachts die Monatssummen
+        zusammen. Unter Postgres ist die Monatsbilanz eine <em>Sicht</em>: sie
+        entsteht beim Lesen, es gibt keinen Lauf, der ausstehen könnte, und in
+        der Zeitplanung der Datenbank steht auch keiner.
+      </p>
+      <p>
+        Die Warnung hat also monatelang etwas gemeldet, das gar nicht mehr
+        existiert. <strong>Das ist die teuerste Sorte Fehlalarm</strong>: wer
+        jeden Tag dieselbe Warnung liest, die nie etwas bedeutet, liest die
+        nächste auch nicht mehr — und die nächste wäre die Sicherung gewesen.
+        Überwacht wird jetzt nur noch, was es gibt.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Die Sicherung liegt jetzt wirklich woanders</h2>
+      <p class="frage">
+        Das war die letzte Lücke, bei der ein Ausfall <strong>unwiederbringlich</strong>
+        gewesen wäre: die nächtliche Ausleitung schrieb in den Speicher
+        desselben Projekts, in dem auch die Daten liegen. Gegen einen
+        Fehlgriff half das sofort — gegen „der Zugang zum Projekt ist weg"
+        gar nicht. Seit dem 16.09. liegt jeder Stand zusätzlich bei einem
+        zweiten Anbieter.
+      </p>
+    </div>
+
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Erst drinnen, dann draussen</h3>
+        <p>Der Stand geht zuerst in den eigenen Speicher und danach ausser Haus. Die Reihenfolge ist Absicht: scheitert der Weg nach draussen, liegt der Stand wenigstens drinnen. Andersherum stünde man am Ende mit gar nichts da.</p>
+        <p class="wer">Fünf Zugangsdaten, alle oder keines — halb eingerichtet gilt als Fehler, mit dem Namen des fehlenden Feldes</p>
+      </div>
+      <div class="bereich">
+        <h3>Der Schlüssel draussen darf nur anlegen</h3>
+        <p>Nicht lesen, nicht löschen, nicht überschreiben. Wer morgen dieses Projekt übernimmt, hat damit einen Schlüssel, mit dem er die abgelegten Stände <em>nicht vernichten kann</em> — das ist der halbe Zweck einer Sicherung ausser Haus. Weil nicht überschrieben werden darf, trägt der Pfad draussen die Uhrzeit.</p>
+        <p class="wer">Drinnen liegt weiterhin ein Stand je Tag</p>
+      </div>
+      <div class="bereich">
+        <h3>Die Fotos gehen mit<span class="neu">neu</span></h3>
+        <p>Die Ausleitung schrieb Tabellenzeilen — und die Beweisfotos am Handwerksschein sind keine. Ein Schein wäre nach einem Wiederanlauf zurückgekommen und seine Fotos nicht, also genau das, wofür es den Schein gibt. Sie gehen seit 16.09. mit, eine Handvoll je Nacht, und die Ansicht sagt, wie viele noch fehlen.</p>
+        <p class="wer">Gezählt wird aus dem Speicher, nicht aus den Zeilen — eine Datei ohne Zeile bräuchte man am dringendsten</p>
+      </div>
+      <div class="bereich">
+        <h3>Der Weg zurück<span class="neu">neu</span></h3>
+        <p>Eine Sicherung, aus der noch nie jemand zurückgespielt hat, ist eine Vermutung. Bei <em>jedem</em> Prüflauf geht ein Durchgang die ganze Strecke: Betrieb anlegen, echt ausleiten, den Betrieb vollständig löschen — samt Anmeldekonten — und mit dem echten Werkzeug zurückspielen. Nichts daran ist nachgebildet.</p>
+        <p class="wer">Ein Werkzeug für die Hand, keine Serverfunktion: im Ernstfall ist das Projekt weg, und eine Funktion darin wäre es auch</p>
+      </div>
+    </div>
+
+    <div class="hinweis geloest">
+      <p class="erst"><strong>Was der Rücklauf nicht zurückbringt — und warum das in Ordnung ist.</strong></p>
+      <p>
+        <strong>Die Passwörter.</strong> Sie stehen als Prüfsumme in der
+        Anmeldeverwaltung und damit nicht in der Sicherung. Jeder
+        wiederhergestellte Zugang braucht einmal „Passwort vergessen". Keine
+        Lücke, sondern die Folge davon, dass eine Sicherung keine Passwörter
+        mitnimmt.
+      </p>
+      <p>
+        <strong>Die Anmeldekonten baut er neu — unter derselben Kennung.</strong>
+        Bekämen sie neue, zeigte jede Zeitbuchung, jeder Schein und jede
+        Zuordnung ins Leere. Genau dieser Befund hat die Bauform bestimmt.
+      </p>
+      <p>
+        <strong>Die Fotos holt er nicht.</strong> Der Schlüssel draussen darf
+        nur anlegen — mit ihm lässt sich nichts herunterladen. Wer
+        wiederherstellt, holt die Dateien mit seinem <em>eigenen</em> Zugang
+        aus dem Eimer. Ein Handgriff, keine Automatik, und er steht hier,
+        damit ihn niemand erst im Ernstfall entdeckt.
+      </p>
+    </div>
+
+    <div class="hinweis">
+      <p class="erst"><strong>Warum die Signatur selbst geschrieben ist.</strong></p>
+      <p>
+        Der Speicher verlangt eine SigV4-Signatur. Ein fertiges Paket dafür
+        wären einige hundert Kilobyte für dreissig Zeilen Rechnung — und es
+        müsste in zwei verschiedenen Laufzeiten funktionieren. Stattdessen
+        dreissig eigene Zeilen, geprüft <strong>gegen die veröffentlichten
+        Testvektoren von AWS</strong>: bekannter Schlüssel, bekannte Zeit,
+        bekannte Anfrage, erwartete Kopfzeile Zeichen für Zeichen.
+      </p>
+      <p>
+        Das war nötig, weil eine falsch gerechnete Signatur ein „403" ohne
+        jeden Hinweis ergibt, welcher der acht Schritte danebenlag — und genau
+        das ist dann auch passiert: der Endpunkt trug einen Pfadanteil, den
+        die Signatur nicht mitzählte. Bei einem blanken Rechnernamen fällt das
+        nie auf. <strong>Und der Weg ist nicht anbietereigen:</strong> derselbe
+        Code trägt morgen zu einem anderen Anbieter. Eine Sicherung soll den
+        überleben, gegen dessen Ausfall sie gebaut ist.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Die sechs Rollen</h2>
+      <p class="frage">
+        Jedes Konto hat genau eine. Sie entscheidet, welche Reiter überhaupt
+        erscheinen — und, was wichtiger ist, was der Server zulässt. Die
+        Oberfläche zu umgehen hilft niemandem: die Grenze liegt in den
+        Datenbankregeln, nicht im Browser.
+        <br><br>
+        Der <em>globale Administrator</em> ist keine siebte Rolle: er gehört zu
+        keinem Betrieb, hat keine Rolle und sieht in keinen Betrieb hinein.
+        Siehe „Unter der Oberfläche".
+      </p>
+    </div>
+    <div class="rollen">
+      <div class="rolle">
+        <span class="marker">MITARBEITER</span>
+        <p>So heisst die Rolle in der App — gemeint sind Monteur, Helfer und Lehrling. Bucht die eigene Zeit, fordert Material an (auch, was nicht im Katalog steht), schreibt Handwerksscheine, beantragt Urlaub.</p>
+      </div>
+      <div class="rolle">
+        <span class="marker">VERWALTUNG</span>
+        <p>Arbeitet Materialanforderungen ab, führt das Lager, sieht die Wartungen. Kunden pflegt sie, wenn die Geschäftsführung es freigibt.</p>
+      </div>
+      <div class="rolle">
+        <span class="marker">BUCHHALTUNG</span>
+        <p>Rechnungen, Mahnungen, Zeitkonten, Exporte. Keine Baustellenplanung. Kunden mit Freigabe.</p>
+      </div>
+      <div class="rolle">
+        <span class="marker">PROJEKTLEITER</span>
+        <p>Plant Baustellen und Einsätze wie die Geschäftsführung — <em>ohne</em> Einblick in Zeitkonten und Margen. Führt seit 24.09. selbst ein Zeitkonto.</p>
+      </div>
+      <div class="rolle">
+        <span class="marker">GESCHÄFTSFÜHRUNG</span>
+        <p>Alles Betriebliche: Sätze, Nachkalkulation, Benutzer, Datensicherung. Ob sie ein Zeitkonto führt, legt sie selbst fest.</p>
+      </div>
+      <div class="rolle">
+        <span class="marker">ADMINISTRATOR</span>
+        <p>Zusätzlich die Einrichtung: Module ein- und ausschalten, Administratoren anlegen. Kein Zeitkonto: Zeit auf Baustellen lässt sich trotzdem buchen, Urlaub steht als Abwesenheit im Kalender — einen Saldo und ein „im Zeitkonto eingetragen“ gibt es nicht.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Draußen</h2>
+      <p class="frage">Was auf der Baustelle und im Auto passiert — auf dem Telefon bedienbar, mit dem Daumen.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Zeiterfassung<span class="neu">urlaub nur per antrag</span></h3>
+        <p><strong>Seit 24.09. entsteht Urlaub nur über einen Antrag.</strong> Der Monteur beantragt ihn auf der Urlaubsseite; das Büro trägt ihn in der Zeiterfassung als Zeitraum ein („Urlaub bis“), und daraus wird ein genehmigter Antrag — schon gebuchte Tage überspringt es und sagt, wie viele. Ein Tag aus einem Antrag trägt in der Liste den Knopf <em>Urlaubsantrag</em> statt Bearbeiten und Löschen; zurückgenommen wird er dort. Die Liste zeigt jetzt auch kommende Urlaubs- und Kranktage — <strong>seit 29.09.</strong> gesammelt oben unter „Kommende Wochen“, zugeklappt —, und das „Soll bisher“ zieht nur ab, was schon vorbei ist.</p>
+        <p><strong>„Krank“ ist eine Krankmeldung:</strong> wer es wählt, trägt „Krank bis“ ein, und die Tage stehen als Meldung im Zeitkonto, im Wochenplan und bei den Krankenständen des Büros. Ein Krank-Tag trägt in der Liste statt „Bearbeiten“ den Knopf <em>Krankmeldung</em> — dort „Ende ändern“ oder löschen, auch in einem Betrieb ohne Modul Urlaub. Direkt ändern lässt ihn die Datenbank nicht mehr; alte Krank-Tage sind zu Meldungen zusammengefasst worden.</p>
+        <p>Tag buchen: Anwesend, Urlaub und <strong>seit 24.09. Zeitausgleich</strong> — ganztags oder mit Von–Bis, das bucht das Büro; der Monteur beantragt ihn auf der Urlaubsseite. Ein ZA-Tag zählt keine Arbeitszeit, das Soll bleibt: das Guthaben sinkt um genau die freie Zeit. Von–Bis, Pause, Baustelle, Fahrzeug. Die Maske schreibt hin, <em>was sie bucht</em> — „Arbeitszeit: 08:30 Std", noch während getippt wird. Eine Kachel „Zuschlag" zeigt die eigenen Nacht- und Notdienststunden, und offene Scheine erscheinen als Nachtrag mit vorbelegter Spanne — bei dem, der <em>auf dem Schein steht</em>, nicht bei dem, der ihn geschrieben hat.</p>
+        <p><strong>Seit 24.09. kürzer am Telefon:</strong> Wegzeit, Fahrzeug, Helfername und Zuschläge stehen hinter „Weitere Angaben“ — was gesetzt ist, steht trotzdem in der Zeile, und wer sie täglich braucht, findet sie offen vor. Der Helfer-Haken bleibt draussen, er ändert den Stundensatz. „Zu meinen Einträgen“ springt zur Liste. Wo die Baustelle nicht Pflicht ist (Büro und Leitung), steht davor der Schalter „Erweiterte Erfassung“. <strong>Seit 25.09.</strong> überschneiden sich Zeiten derselben Person nicht mehr, auch nicht über Mitternacht — ein geteilter Dienst auf derselben Baustelle geht, solange die Zeiten nicht übereinanderliegen —, und fällt die Zeit in die Nacht, schlägt die Maske den Zuschlag vor.</p>
+        <p class="wer">Jeder für sich · Buchhaltung und Leitung auch für andere</p>
+      </div>
+      <div class="bereich">
+        <h3>Mein Einsatzplan<span class="neu">team-woche</span></h3>
+        <p>Monatskalender der eigenen Einsätze mit Adresse und Telefonnummer des Kunden — beides anklickbar. Von dort direkt in die Zeitbuchung oder den Schein. Am Einsatz stehen die Aufgabe, die Rüstliste und die <strong>Pläne der Baustelle</strong>. <strong>Seit 23.09., wenn der Betrieb es einschaltet: eine zweite Seite „Team-Woche“</strong> — wer an welchem Tag auf welcher Baustelle ist, nur zum Lesen. Wer Urlaub hat, steht als „abwesend“ da, ohne Grund.</p>
+        <p class="wer">Monteur · Team-Woche: alle, sobald der Schalter an ist</p>
+      </div>
+      <div class="bereich">
+        <h3>Meine Baustellen<span class="neu">auch eingeteilte</span></h3>
+        <p>Die Baustellen, denen man zugeteilt ist — <strong>seit 24.09. auch die, auf die man eingeteilt ist</strong>, mit dem nächsten Einsatztag —, mit Ansprechpartner, Beschreibung — mehrzeilig, so wie sie aus dem Angebot kommt — und <strong>den Plänen und Dokumenten, die das Büro hochgeladen hat</strong>: PDF und Bilder, zum Antippen.</p>
+        <p class="wer">Monteur</p>
+      </div>
+      <div class="bereich">
+        <h3>Material anfordern</h3>
+        <p>Warenkorb aus dem Katalog, freie Menge, Kennzeichen für Eilzustellung. Der eigene Auftrag lässt sich jederzeit selbst abschließen. Ohne Empfang wandert die Anforderung ins Ausgangsfach — siehe unten.</p>
+        <p class="wer">Monteur · Verwaltung · Leitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Urlaub<span class="neu">za · krank · betriebsurlaub</span></h3>
+        <p>Antrag stellen, Stand sehen, zurückziehen — mit Rückfrage. Die Genehmigung schreibt die Tage ins Zeitkonto. <strong>Der Resturlaub stimmt ab dem ersten Tag:</strong> vorher rechnete die App „Jahresanspruch minus Urlaub, der in der App steht", und vor dem Umstieg steht dort keiner — ein Betrieb, der im September umsteigt, sah für jeden den vollen Anspruch. Und wer entscheiden darf, <em>liest</em> die Anträge jetzt auch.
+        <strong>Seit 20.09. kennt die App das Urlaubsjahr des Betriebs</strong> — es muss
+        nicht am 1. Jänner beginnen. Der Anspruch liegt in Jahrgängen, verbraucht wird der
+        älteste zuerst, und nicht verbrauchte Tage verfallen nach zwei Jahren
+        (§ 4 Abs 5 UrlG) oder zum Stichtag des Betriebs.</p>
+        <p><strong>Seit 24.09. hat der Antrag eine Art:</strong> Urlaub, Zeitausgleich oder
+        Krankmeldung. Beim <em>Zeitausgleich</em> — ganzer Tag oder etwa 13–17 Uhr — steht
+        das eigene Guthaben daneben: grün „ausreichend“, sonst eine Warnung; beantragen geht
+        trotzdem, entschieden wird bei der Genehmigung, und dort steht „ZA – 4 Std.“ samt
+        Guthaben. Die <em>Krankmeldung</em> braucht keine Genehmigung: die Tage stehen sofort
+        im Zeitkonto, das Ende lässt sich ändern. Buchhaltung, Geschäftsführung und
+        Administrator haben zwei Reiter mehr: <em>Krankenstände</em> (erfassen, etwa nach
+        einem Anruf) und <em>Betriebsurlaub</em> — mit Häkchen „Urlaubskonto aller aktiven
+        Mitarbeiter belasten“ bekommt jeder den Zeitraum als genehmigten Urlaub, Löschen
+        nimmt genau das zurück; für eine einzelne Person zurücknehmen lässt er sich nicht. <strong>Seit 24.09. lassen sich einzelne Mitarbeiter ausnehmen</strong> — wer in der Zeit arbeitet, bekommt keinen Urlaub gebucht, auch nicht später beim Nachbuchen, und steht im Wochenplan als frei. Push geht an den, der entscheiden muss, und an den, über
+        dessen Antrag entschieden ist; eine Krankmeldung nur ans Büro.</p>
+        <p><strong>Der Resturlaub steht oben</strong>, als Zahl — und was noch beantragt ist.
+        Im Antrag steht, was danach bleibt, im Urlaubsjahr des Antrags. Wer genehmigt, sieht
+        bei jedem Urlaubsantrag den Resturlaub der Person vorher und nachher, mit Warnung,
+        wenn er nicht reicht. Ein <strong>Betriebsurlaub</strong> zählt ab dem Starttag jedes
+        Einzelnen, und wer danach eintritt oder wieder aktiv wird, bekommt ihn automatisch
+        nachgebucht.</p>
+        <p class="wer">Antrag und Krankmeldung: jeder · Entscheidung: laut Einstellung · Krankenstände und Betriebsurlaub: Buchhaltung, GF, Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Handwerksscheine</h3>
+        <p>Zeiten vorausgefüllt <em>oder vor Ort selbst eingetragen</em>, Material von Hand ergänzt, Fotos freiwillig. Unterschrift mit dem Finger, danach eingefroren; Korrektur nur als Storno mit Grund.</p>
+        <p class="wer">Monteur · Büro · Leitung</p>
+      </div>
+    </div>
+    <div class="hinweis geloest">
+      <p class="erst"><strong>Wer entscheiden darf, durfte bis zum 16.09. nicht lesen.</strong></p>
+      <p>
+        Seit dem 13.09. legt der Betrieb selbst fest, wer Urlaub genehmigt — in
+        dem einen ist das die Buchhaltung, im anderen ein Vorarbeiter, im
+        dritten eine Bürokraft. Die Leseregel kannte weiter nur Leitung und
+        Buchhaltung. Eine eingetragene Genehmigende aus der Verwaltung bekam
+        also das Recht zu entscheiden und eine <strong>leere Liste</strong>
+        dazu.
+      </p>
+      <p>
+        Aufgefallen ist das erst durch die Zahl im Menü. Ohne sie sieht eine
+        leere Liste aus wie „gerade nichts da"; mit ihr wäre es eine Lüge
+        gewesen — null, wo drei warten. Ein Urlaubsantrag ist im Unterschied
+        zum Krankenstand kein Gesundheitsdatum, die engere Grenze bei den
+        Zeiteinträgen bleibt unberührt.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Der Schein, im Einzelnen</h2>
+      <p class="frage">
+        Der Beleg, um den sich das meiste dreht — weil an ihm die Kette vom
+        Einsatz zum Geld hängt.
+      </p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Leistungszeit vor Ort</h3>
+        <p>Der Monteur trägt Von, Bis und Pause selbst ein, wenn er noch nichts gebucht hat. Das ist die Zeit <em>beim Kunden</em>, ohne Anfahrt — also genau die Zahl, die später auf der Rechnung steht.</p>
+        <p class="wer">Warnt ab 14 Stunden, sperrt nicht: Notdienstnächte gibt es wirklich</p>
+      </div>
+      <div class="bereich">
+        <h3>Fotos, freiwillig</h3>
+        <p>Höchstens acht, am Gerät auf 1600 px verkleinert. Sie gehen über ihren Inhalts-Hash in die Prüfsumme ein — ein später ausgetauschtes Bild fällt damit auf. Nie Bedingung: ohne Netz lässt sich nichts hochladen, unterschreiben aber schon. <strong>Seit 16.09. gehen sie auch in die Sicherung ausser Haus.</strong></p>
+        <p class="wer">Sofort am Entwurf festgehalten, damit keine Datei ohne Beleg zurückbleibt</p>
+      </div>
+      <div class="bereich">
+        <h3>Suche über die Liste hinaus</h3>
+        <p>Baustellennummer, Zeitraum, Kundenname und Notiz werden auf dem Server gesucht und finden damit auch Scheine von vor Monaten. <strong>Seit 30.09. auch nach Kundenname und Notiz</strong> — ein Wortteil genügt, Groß- und Kleinschreibung zählt nicht.</p>
+        <p class="wer">Alle, die die Scheinliste sehen</p>
+      </div>
+      <div class="bereich">
+        <h3>Stunden ohne Buchung</h3>
+        <p>Unterschriebene Scheine, deren Stunden in keiner Zeiterfassung stehen — je Person und Tag. Getrennt nach „keine Buchung gefunden" und „auf eine andere Baustelle gebucht", weil nur das erste verlorene Zeit ist.</p>
+        <p class="wer">Buchhaltung und Leitung — nur sie dürfen fremde Zeiten anlegen</p>
+      </div>
+    </div>
+    <div class="hinweis">
+      <p class="erst"><strong>Warum das der Monteur nicht selbst sieht.</strong></p>
+      <p>
+        Er wird an <em>seine eigenen</em> offenen Scheine erinnert. Fremde
+        Zeiteinträge darf er weder lesen noch schreiben: in derselben Ablage
+        stehen Kranken- und Urlaubstage, also Gesundheitsdaten nach Art. 9
+        DSGVO. Trägt er auf dem Schein die Zeile eines Kollegen ein, hätte sie
+        damit niemanden, der an sie erinnert wird — er sieht dessen Buchungen
+        nicht, und der Kollege sieht diesen Schein nicht. Genau diese Lücke
+        schließt die Bürosicht.
+      </p>
+      <p>
+        <strong>Die Scheine selbst sieht dagegen jeder im Betrieb.</strong> Das
+        ist Absicht: ein Schein ist ein Geschäftsbeleg über einen Kundenauftrag,
+        kein Personaldokument, und der Monteur braucht ihn fachlich — dieselbe
+        Baustelle, Nachbesserung, Gewährleistung. Wer ins Notizfeld etwas über
+        die Gesundheit eines Kollegen schreibt, umgeht diese Trennung allerdings
+        von Hand.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Im Büro</h2>
+      <p class="frage">Wer kommt wann wohin, was liegt im Lager, und welcher Kunde gehört zu welcher Baustelle.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Kunden<span class="neu">akte</span></h3>
+        <p>Stammdaten mit Dublettenschutz — zwei Schreibweisen desselben Namens ergeben keinen zweiten Kunden mehr. Jeder Kunde hat jetzt eine <strong>eigene Seite</strong>, auf der auch bearbeitet wird: Baustellen, Angebote, Altbestände nachträglich zuordnen. Gesucht wird über Name, Adresse, Ansprechpartner, Telefon und E-Mail, auf dem Server und mitten im Wort — „uber" findet „Familie Huber". <strong>Seit 24.09. stehen in der Akte auch die Rechnungen</strong> — die jüngsten fünf, auf Wunsch alle, jede verlinkt. Gefunden über die Baustellen des Kunden, nicht über den Namen: ein umbenannter Kunde behält auf alten Rechnungen den alten.</p>
+        <p><strong>Kunden aus einer Datei:</strong> eine CSV aus dem bisherigen Programm oder aus Excel — Strichpunkt oder Komma, auch mit Umlauten aus Windows. Zuerst ein <em>Probelauf</em>: welche Spalte wofür genommen wird und welche nicht, was neu ist, was es schon gibt (die Datenbank sieht über den ganzen Bestand nach, die Schreibweise ist egal) und was fehlerhaft ist — mit Zeile und Grund. Erst auf den zweiten Klick wird geschrieben, und zwar alle oder keiner. Die Kundennummer des Altprogramms landet in der Notiz.</p>
+        <p><strong>Seit 24.09. entscheidet die Geschäftsführung je Person</strong>, ob Verwaltung und Buchhaltung Kunden anlegen, ändern und aus einer Datei übernehmen — ein Haken in der Benutzerakte. Die Datenbank fragt ihn bei jedem Schreiben frisch: ein Entzug gilt sofort. Baustellen einem Kunden zuordnen bleibt bei der Leitung.</p>
+        <p class="wer">Lesen: Buchhaltung · Verwaltung · Leitung · Ändern und Import: Leitung, das Büro mit Freigabe</p>
+      </div>
+      <div class="bereich">
+        <h3>Angebote<span class="neu">bearbeiten</span></h3>
+        <p>Positionen kalkulieren, Arbeitszeit getrennt ausweisen. <strong>Seit 23.09. hat jedes Angebot eine eigene Seite und ein PDF</strong> im Layout der Rechnung — an die Anschrift aus dem Kundenstamm, die kalkulierten Stunden bewusst nicht. Wird es angenommen, entsteht die Baustelle samt Stundenbudget; die Anmerkungen werden ihr Auftragsumfang, und die Baustelle verweist zurück aufs Angebot. <strong>Seit 24.09. lässt sich ein Angebot bearbeiten, solange es Entwurf ist</strong> — danach sperrt die Datenbank den Inhalt, denn beim Kunden liegt, was verschickt wurde.</p>
+        <p class="wer">Buchhaltung · Leitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Baustellen<span class="neu">nummer ändern</span></h3>
+        <p>Anlegen, Kunde zuordnen, Team und Projektleitung, Stundenbudget — dasselbe Muster wie beim Kunden: eine eigene Seite je Baustelle, Bearbeiten darin. Fachzeit über die ganze Laufzeit gegen das Budget, Stunden je Mitarbeiter, letzter Buchungstag. Gesucht wird nach Nummer, Bezeichnung, Adresse und Kunde — serverseitig, samt der alten, abgeschlossenen. <strong>Seit 23.09.: Pläne und Dokumente</strong> (PDF, Bilder, bis 25 MB) — sichtbar für das Büro und für Monteure, die im Team stehen oder dort eingeteilt sind. Eine Baustelle mit Buchungen, Scheinen oder Plänen lässt sich nicht löschen, und die Liste sagt jetzt warum, statt wortlos offen zu bleiben. <strong>Seit 24.09. nimmt eine geänderte Projektnummer alles mit</strong> — Zeitbuchungen, Einsätze, Rüstlisten, Schein-Entwürfe, Anforderungen, Angebote; vorher zeigte die Baustelle danach null Stunden. Steht die Nummer schon auf einer Rechnung oder einem unterschriebenen Schein, bleibt sie, und die Meldung sagt warum. Fällt der geplante Zeitraum in einen Betriebsurlaub, steht das beim Datum.</p>
+        <p class="wer">Leitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Wartungen</h3>
+        <p>Wiederkehrende Wartungen je Anlage. „Erledigt eintragen" rückt den nächsten Termin nach; aus einer fälligen Wartung entsteht mit einem Griff eine Baustelle, mit Anlagenadresse und Vorschlag für die Nummer. Die Liste zeigt, was als nächstes fällig wird — wer eine bestimmte Anlage sucht, findet sie über die Suche statt durchs Blättern.</p>
+        <p class="wer">Sehen: Verwaltung und Leitung — der Monteur bekommt die Baustelle, die daraus entsteht · Ändern: Leitung — die Verwaltung trägt bewusst keine Termine ein (entschieden 24.09.)</p>
+      </div>
+      <div class="bereich">
+        <h3>Anforderungen<span class="neu">einkaufsliste</span></h3>
+        <p><strong>Seit 24.09. hakt das Lager ab:</strong> „Aus Lager“ macht die Anforderung gleich abholbereit, „Nicht auf Lager“ setzt sie auf die <strong>Einkaufsliste</strong> beim gewählten Grosshändler. Der Reiter „Einkauf“ fasst gleiche Artikel zu einer Zeile zusammen, mit den Baustellen als Kommission, und schickt die Bestellung als PDF (ohne Preise) oder als fertige E-Mail an den Vertreter; „Geliefert“ bucht die Ware ins Lager, einmal, auch bei doppeltem Klick. Der Monteur sieht „wird bestellt“. <strong>Dazu setzt das Büro eigenes Material auf die Liste</strong> — „Material dazusetzen“: Artikel aus dem Katalog suchen oder frei eintragen, Menge, Grosshändler. Es steht mit der Kommission „Lager“ in derselben Zeile wie gleiche Artikel aus Anforderungen und kommt beim Eintreffen ins Lager. Eingehende Materialanforderungen abarbeiten: bestellen, teilliefern, abschließen, Retoure buchen. Die <strong>Notiz des Monteurs</strong> steht seit 23.09. in einer eigenen Zeile — oft das Einzige, was man wirklich lesen muss. Der Lagerabzug läuft als Datenbankfunktion — zwei gleichzeitige Abschlüsse ziehen nicht doppelt ab, und unter null geht es nicht. <strong>Seit 25.09. geht „Aus Lager“ nur, was frei ist</strong> — im Regal, abzüglich dessen, was anderen schon zugesagt ist; sonst nennt die App die Zahlen und verweist auf „Nicht auf Lager“. Anforderungen ohne Katalogartikel (der Monteur tippt sie frei) laufen über die Einkaufsliste. <strong>Wie viele offen sind, steht seit 16.09. am Reiter selbst.</strong></p>
+        <p class="wer">Verwaltung · Leitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Lager<span class="neu">katalogimport</span></h3>
+        <p>Bestand, Mindestmenge, Katalogpflege. Unterschreitet ein Artikel seine Mindestmenge, meldet es sich. <strong>Seit 20.09. lässt sich der Artikelkatalog des Grosshändlers als DATANORM-Datei einspielen</strong> — in zwei Schritten: erst der Probelauf, dann die Übernahme. Siehe den eigenen Abschnitt unten.</p>
+        <p class="wer">Verwaltung · Leitung · Katalogimport nur Geschäftsführung und Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Einsatzplanung</h3>
+        <p>Kalender mit Mitarbeitern je Tag und Baustelle. Freie Leute stehen zuerst, Urlaub warnt beim Einteilen, und die Rüstliste hält fest, was mitgenommen werden soll. <strong>Die Tagesübersicht zeigt je Baustelle Aufgabe und Rüstliste</strong> und hat einen Knopf „Bearbeiten“ — vorher ging das nur über den Wochenplan. Ob den Wochenplan auch die Monteure lesend sehen, entscheidet ein Schalter in den Einstellungen. <strong>Seit 24.09. zeigen Wochenplan und Tagesplanung jede Abwesenheit</strong> — Urlaub, Zeitausgleich (auch „ZA 13:00–17:00“), Krankmeldung. Den Grund sieht die Leitung, einen Krankenstand nur das Büro, Kollegen lesen „abwesend“. Der Betriebsurlaub steht als grauer Block, niemand gilt dann als frei — ausser wer beim Anlegen ausgenommen wurde —, und die Tagesplanung warnt und nennt, wer arbeitet.</p>
+        <p class="wer">Leitung · Schalter „Team-Woche“: Geschäftsführung und Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Benutzerverwaltung<span class="neu">akte</span></h3>
+        <p>Konten anlegen, Rolle, Wochenstunden, Arbeitstage, Eintrittsdatum, Start-Saldo und Resturlaub — in einer eigenen Akte je Person, wie bei Kunde und Baustelle. <strong>Seit 20.09. wird beim Anlegen gefragt, ob die Person neu eintritt oder schon im Betrieb ist:</strong> wer bei einem Neueintritt das Feld „Resturlaub“ leer liess — was naheliegt —, bekam den VOLLEN Jahresanspruch ab Tag eins. Wer am 1. Oktober anfing, hatte 25 Tage statt rund sechs. Gelöscht wird niemand: ausgeschiedene Konten werden deaktiviert, damit ihre Buchungen bleiben. Das Anmeldekonto legt eine Serverfunktion an, nicht der Browser. <strong>Seit 23.09. wahlweise mit Benutzername statt E-Mail</strong> — siehe unten.</p>
+        <p><strong>Seit 24.09. zwei Haken:</strong> „Darf Kunden anlegen und ändern“ bei Verwaltung und Buchhaltung, „Führt ein Zeitkonto“ bei der Geschäftsführung. Wechselt die Rolle, fallen sie mit.</p>
+        <p class="wer">Leitung · Administratoren nur durch Administratoren</p>
+      </div>
+    </div>
+    <div class="hinweis geloest">
+      <p class="erst"><strong>Warum das Anlegen vom Browser weggezogen ist.</strong></p>
+      <p>
+        Bis zum 15.09. legte die App Anmeldekonten mit dem <em>öffentlichen</em>
+        Schlüssel an, direkt aus dem Browser. Das verlangt in der Datenbank den
+        Schalter „jeder darf sich registrieren" — und der gehört aus, denn
+        dieser Schlüssel steht im ausgelieferten JavaScript. Jeder mit der
+        Adresse der App hätte sich ein Konto anlegen können.
+      </p>
+      <p>
+        Jetzt liegt das Anlegen in einer Serverfunktion, die die
+        Belegschaftstabelle fragt statt das mitgeschickte Token: <em>steht der
+        Anfragende dort als aktive Geschäftsführung oder Administrator?</em>
+        Die Profilzeile schreibt weiterhin der Browser — auf ihr liegen zwei
+        Datenbankregeln, die genau diesen Anspruch prüfen, und mit dem
+        Serverschlüssel geschrieben wären beide ausgehebelt.
+      </p>
+    </div>
+
+    <div class="hinweis">
+      <p class="erst"><strong>Anmelden mit Benutzername — und was dafür wegfällt.</strong></p>
+      <p>
+        Nicht jeder Monteur hat eine E-Mail-Adresse, die er am Diensttelefon
+        lesen will. Beim Anlegen lässt sich deshalb „Anmeldung mit:
+        Benutzername“ wählen — etwa <code>manfred.huber</code>. Der
+        Anmeldedienst kennt nur Adressen; intern bekommt das Konto eine, die
+        auf <code>.invalid</code> endet und nie zugestellt wird. Die App zeigt
+        überall nur den Namen. Er gilt über alle Betriebe in Senklot — ist er
+        vergeben, einfach einen anderen wählen.
+      </p>
+      <p>
+        <strong>Der Preis: kein „Passwort vergessen“ per Mail.</strong> Die
+        Anmeldemaske sagt das, statt eine Mail vorzutäuschen, die nie ankommt.
+        Stattdessen vergibt die Geschäftsführung oder Administrator in der
+        Benutzerakte ein <strong>neues Startpasswort</strong>, das einmal auf
+        dem Schirm steht. Beim nächsten Anmelden fragt die App nach einem
+        eigenen — das gilt jetzt für jedes neu angelegte Konto, auch mit
+        E-Mail.
+      </p>
+      <p>
+        <strong>Nur für Benutzernamen-Konten, nie für eines mit Adresse.</strong>
+        Sonst könnte sich das Büro still in das Konto eines Kollegen setzen:
+        Passwort neu, anmelden, und der Betroffene merkt es am nächsten
+        Morgen. Wer eine Adresse hat, setzt sein Passwort selbst. Bereits
+        angemeldete Geräte bleiben beim neuen Startpasswort angemeldet — für
+        ein verlorenes Telefon ist „Konto deaktivieren“ das Mittel.
+      </p>
+    </div>
+
+    <div class="hinweis geloest">
+      <p class="erst"><strong>Zeit für andere erfasst — und nie angekommen.</strong></p>
+      <p>
+        Gemeldet am 23.09.: in der Mitarbeiterübersicht erfasste Zeiten
+        erschienen nicht, Saldo und Fehlzeiten blieben gleich — obwohl eine
+        Erfolgsmeldung kam. Der Bearbeitungsvermerk trug noch ein Feld aus der
+        Firestore-Zeit, das es in Postgres nie gab; die Datenbank wies
+        <em>jede</em> Buchung für jemand anderen ab.
+      </p>
+      <p>
+        Dass es niemand merkte, lag am zweiten Fehler: das Ausgangsfach hielt
+        die Abweisung für ein Funkloch, legte die Buchung zurück, versuchte es
+        fünfmal und gab still auf. <strong>Eine Ablehnung des Servers ist jetzt
+        endgültig</strong> und steht sofort als Fehler in der Maske; nur was
+        sich von selbst gibt, wird wiederholt.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Ums Geld</h2>
+      <p class="frage">Von der geleisteten Stunde zur bezahlten Rechnung — und die Frage, ob sich die Baustelle gerechnet hat.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Rechnungen</h3>
+        <p>Aus der Baustelle zusammengestellt: Stunden <em>und</em> Material aus den unterschriebenen Handwerksscheinen, Preise frei änderbar. Leistungszeitraum nach § 11 UStG, Rabatt, Nummernkreis ohne Lücken, <strong>PDF seit 23.09. als Geschäftsbrief</strong>: keine Farbflächen, Empfänger im Kuvertfenster, Bank, UID und Firmenbuch in der Fusszeile jeder Seite — dasselbe Layout für Leistungsnachweis, Mahnung und Angebot. Vor dem Anlegen steht, was die Scheine bestätigen — neben dem, was verrechnet wird. <strong>Seit 24.09. auch je Person, Tag und Satz:</strong> fehlen unterschriebene Stunden, steht jede Zeile da — „24.09. · Manfred Monteur · Facharbeiter: unterschrieben 08:00, verrechnet 00:00“ —, auch wenn die Summe stimmt. Fehlt der Leistungszeitraum oder steht er verdreht, sagt es die Maske: eine geschriebene Rechnung geht nur noch über einen Storno weg. <strong>Seit 24.09. sucht die Liste über alle Rechnungen</strong> — Nummer, Kunde, Baustelle —, nicht nur über die zuletzt geladenen fünfzig.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Bauleistung ohne Steuer</h3>
+        <p>Reverse Charge nach § 19 Abs 1a UStG: Die Steuerschuld geht auf den Auftraggeber über, die Rechnung weist 0 % aus und trägt den Pflichthinweis. Wird an einer Stelle entschieden, damit Satz und Hinweis nie auseinanderlaufen.</p>
+        <p class="wer">Buchhaltung · Leitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Mahnlauf<span class="neu">behoben</span></h3>
+        <p>Drei Stufen mit eigenem Beleg, änderbarer Frist und Mahnspesen. Der Lauf stellt zusammen, was heute zu mahnen ist — dringlichstes zuerst; nach der dritten Mahnung stehen die Forderungen getrennt als „braucht eine Entscheidung". <strong>Die eigene Frist zählt jetzt mit:</strong> eine gestern verschickte Zahlungserinnerung wurde bis zum 16.09. heute schon wieder angeboten, sechs Tage vor Ablauf der selbst gesetzten Frist. <strong>Seit 23.09. auch nach einer Teilzahlung:</strong> „Teilbezahlt“ verschwand vorher aus „Überfällig“ — mahnen ging, man sah nur nicht mehr, dass man sollte. <strong>Seit 29.09. mit Verzugszinsen</strong> ab der Mahnung und mit <strong>Mahnspesen je Kundenart</strong> — siehe „Seit dem 25. September“.</p>
+        <p class="wer">Buchhaltung · Leitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Zahlungseingänge<span class="neu">neu</span></h3>
+        <p>Datum, Betrag, Art — und der Zahlungsstand wird daraus <em>abgeleitet</em>, nicht gesetzt. Die Datenbank weist einen Haken von Hand ab. <strong>Mahnlauf, offene Posten und Startseite rechnen seither mit dem REST:</strong> eine Rechnung über 1.000 €, auf die 400 gekommen sind, wurde vorher über den vollen Betrag gemahnt. Eine stornierte Rechnung mit Zahlung führt ein <strong>Guthaben</strong> des Kunden, statt die Zahlung verschwinden zu lassen. <strong>Seit 29.09. mit Skonto:</strong> zahlt der Kunde in der Frist abzüglich Skonto, gleicht ein Haken den Rest aus.</p>
+        <p class="wer">Buchhaltung · Leitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Anzahlung, Teil, Schluss<span class="neu">hinter einem schalter</span></h3>
+        <p>Der Haken „Wir stellen Anzahlungs-, Teil- und Schlussrechnungen“ steht in den Einstellungen und ist <strong>ab Werk aus</strong>. Ohne ihn sieht die Rechnungsmaske genau so aus wie vorher. Eingeschaltet zieht die Schlussrechnung jede Vorrechnung einzeln ab — mit Entgelt UND Steuer, denn wer eine Steuer ausweist, schuldet sie (§ 11 Abs 12 UStG). <strong>Abgezogen wird nur, was keine Belege verbraucht hat:</strong> eine Teilrechnung über einen abgeschlossenen Bauabschnitt hat ihre Stunden mitgenommen und steht in der Schlussrechnung gar nicht mehr.</p>
+        <p class="wer">Buchhaltung · Leitung · Schalter: nur Geschäftsführung und Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Buchungsstapel für BMD<span class="neu">neu</span></h3>
+        <p>Das Rechnungsausgangsbuch ist eine LISTE — sie beschreibt Rechnungen. Der Stapel <em>bucht</em> sie: Soll- und Habenkonto je Vorgang, brutto mit Steuercode. Der Unterschied ist die ganze Gefahr, denn eine falsch kontierte Zeile importiert sich fehlerfrei und fällt frühestens beim Jahresabschluss auf. <strong>Deshalb rät er nicht:</strong> jedes Konto kommt aus dem Kontenrahmen des Betriebs, und fehlt eines, entsteht <em>keine Datei</em>, sondern eine Liste dessen, was fehlt.</p>
+        <p class="wer">Buchhaltung · Leitung · Konten pflegen: auch die Buchhaltung</p>
+      </div>
+      <div class="bereich">
+        <h3>Nicht verrechnete Leistung</h3>
+        <p>Unterschriebene Scheine, die auf keiner gültigen Rechnung stehen und älter als vier Wochen sind. Wird eine Rechnung storniert, tauchen ihre Scheine wieder auf — der Storno nimmt die Forderung zurück.</p>
+        <p class="wer">Buchhaltung · Leitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Mitarbeiterübersicht</h3>
+        <p>Zeitkonten, fehlende Tage, Monats- und Mitarbeiterexport, Stundennachweis. Nacht- und Notdienststunden stehen als eigene Spalten in den Lohn-CSVs — davor wurde der Zuschlag verrechnet, aber nie ausgewiesen. <strong>Seit 24.09. steht hier, wer ein Zeitkonto führt</strong>: Monteur, Verwaltung, Buchhaltung, Projektleiter, die Geschäftsführung nur, wenn sie es für sich eingeschaltet hat. Nur sie mahnt die Startseite wegen Tagen ohne Buchung — der Administrator las dort vorher „25 Tage ohne Buchung“.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Nachkalkulation</h3>
+        <p>Erlös gegen Personal- <em>und</em> Materialkosten je Baustelle, Deckungsbeitrag. Rechnet mit Kostensätzen, nicht mit Verrechnungssätzen — wer beide verwechselt, hält eine Marge von null für ein Ergebnis. Artikel ohne Einkaufspreis werden benannt, nicht geschätzt. <strong>Mitten im Projekt ist sie eine Momentaufnahme:</strong> eine Anzahlung zählt als Erlös, deren Kosten erst entstehen — am Ende stimmt sie.</p>
+        <p class="wer">Nur Geschäftsführung und Administrator</p>
+      </div>
+    </div>
+    <div class="hinweis">
+      <p class="erst"><strong>„Davon beides" — die Spalte, die niemand erwartet.</strong></p>
+      <p>
+        Nacht und Notdienst schließen einander nicht aus: der Rohrbruch um zwei
+        Uhr früh ist beides. Wer die zwei Zahlen addiert, zählt diese Stunden
+        doppelt, und niemand sähe es der Datei an. Die Überschneidung steht
+        deshalb als eigene Spalte daneben. <strong>Geld rechnet die App
+        dabei nicht</strong> — die Höhe des Zuschlags hängt am Kollektivvertrag,
+        an Einstufung, Uhrzeit und Anlass; eine geschätzte Zahl, die in einem
+        Lohnzettel landet, wäre schlimmer als keine.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Was die Oberfläche sagt, ohne zu reden</h2>
+      <p class="frage">
+        Am 16.09. sind die farbigen Abzeichen quer durch die App neu geordnet
+        worden. Vorher gab es <em>eine</em> Form — eine gefüllte Pille in acht
+        Farbtönen — für fünf verschiedene Aufgaben. Gelb hiess damit
+        gleichzeitig „Helfer" (eine Tatsache), „Krank" (ein Status), „knapp"
+        (ein Engpass) und „bitte prüfen" (eine Aufforderung). Eine Farbe, die
+        vier Dinge heisst, heisst nichts.
+      </p>
+    </div>
+
+    <div class="formen">
+      <div class="form">
+        <div class="muster"><span class="m-marke">40 h Budget</span></div>
+        <h3>Marke</h3>
+        <p>Eine Tatsache ohne Urteil. Keine Fläche, keine Farbe — sie ordnet sich dem unter, wonach man in der Zeile sucht: dem Namen, der Nummer, dem Betrag. Das ist die Mehrheit aller Abzeichen und war die Hauptquelle des Lärms.</p>
+      </div>
+      <div class="form">
+        <div class="muster"><span class="m-zustand"><span class="m-punkt"></span>Bezahlt</span></div>
+        <h3>Zustand</h3>
+        <p>Ein Wert aus einer kleinen Menge. Der Punkt trägt die Farbe, das Wort die Bedeutung — die farbige Fläche schrumpft von einer Pille auf sechs Bildpunkte, und zehn davon untereinander ergeben wieder eine lesbare Liste.</p>
+      </div>
+      <div class="form">
+        <div class="muster"><span class="m-warnung">12 Tage</span></div>
+        <h3>Warnung</h3>
+        <p>Hier liegt etwas für dich — die einzige Pille, und genau deshalb heisst sie jetzt etwas. Seit dem 17.09. umrandet statt gefüllt: die Form trägt die Bedeutung, die Farbe muss dafür keine Fläche sein. Zwei Stufen: „sollte jemand ansehen" und „ist überfällig". Eine dritte wäre eine Unterscheidung, die niemand beim Überfliegen trifft.</p>
+      </div>
+      <div class="form">
+        <div class="muster"><span class="m-zaehler">3</span></div>
+        <h3>Zähler im Menü</h3>
+        <p>Wie viele offene Posten hinter einem Reiter liegen. In der Farbe der Marke, nicht in Gelb oder Rot: drei wartende Urlaubsanträge sind kein Fehler, sondern Arbeit, die jemandem gehört.</p>
+      </div>
+    </div>
+
+    <div class="hinweis geloest">
+      <p class="erst"><strong>Drei Zahlen im Menü — und die Begründung, warum nicht mehr.</strong></p>
+      <p>
+        Die Navigation sagte bisher, <em>wo</em> etwas liegt, aber nie,
+        <em>dass</em> dort etwas liegt. Aufgenommen ist jetzt, was drei
+        Bedingungen zugleich erfüllt: es ist normalerweise <strong>null</strong>,
+        jeder Eintrag ist eine <strong>Entscheidung</strong>, und es hat einen
+        klaren <strong>Besitzer</strong>. Das trifft auf offene Urlaubsanträge,
+        offene Materialanforderungen und fällige Mahnungen zu.
+      </p>
+      <p>
+        <strong>„Nicht eingetragene Zeiten" steht bewusst nicht dabei</strong>,
+        obwohl danach gefragt war: die stehen am Monatsende bei jedem offen,
+        und niemand kann sie wegentscheiden. Eine Zahl, die immer leuchtet,
+        ist keine Meldung mehr, sondern Tapete — und hätte den beiden anderen
+        die Wirkung mit weggenommen. Wer einen Posten nicht entscheiden darf,
+        bekommt ihn gar nicht erst gezählt; die Rollengrenze steht dabei
+        zweimal, in der Abfrage und im Zeilenschutz der Tabellen.
+      </p>
+    </div>
+
+    <div class="hinweis geloest">
+      <p class="erst"><strong>Gelb und Rot gehörten nicht zu dieser App — und das war messbar.</strong></p>
+      <p>
+        Jeder Strukturton der Oberfläche liegt im Türkis zwischen 187° und
+        194°; selbst das Grün ist mit 63 % Sättigung in dieses Band gezogen.
+        Die beiden Warnfarben kamen unverändert aus einer fremden Vorgabe und
+        standen bei <strong>96 % und 93 %</strong> — die zwei gesättigtsten
+        Flächen der ganzen App, mitten in einer sehr ruhigen.
+      </p>
+      <p>
+        Dazu ein zweiter Fehler, der die Rangfolge umdrehte: das Gelb war
+        <em>dunkler</em> als das Rot und wog damit optisch schwerer als die
+        dringendere Farbe. Beide liegen jetzt im Band der übrigen Töne — und
+        <strong>der Kontrast steigt dabei, er sinkt nicht</strong>. Eine Farbe,
+        die hübscher und schlechter lesbar ist, wäre hier die falsche Richtung:
+        gearbeitet wird draussen, im Sommer mit Sonne auf dem Display.
+      </p>
+    </div>
+
+    <div class="hinweis geloest">
+      <p class="erst"><strong>Seit 24.09. eine Farbe — auch auf Papier.</strong></p>
+      <p>
+        Die Oberfläche war längst in Petrol und Tinte gesetzt, die Belege nicht:
+        der Stundennachweis druckte ein Marineblau, der Schein ein Schiefergrau,
+        Rechnung und Angebot die Grautöne einer fremden Vorgabe, die Unterschrift
+        ein fast schwarzes Blau. Jetzt <strong>sind</strong> die Belegfarben die
+        Werte der Oberfläche, und eine Prüfung vergleicht sie mit dem Stylesheet
+        — ändert sich dort ein Ton, fällt der Beleg auf. Dazu: eine Farbe für
+        Hauptknöpfe statt zweier, Überschriften halbfett statt fett, und
+        Meldungen als ruhiger Streifen mit farbiger Kante statt einer
+        gesättigten Fläche.
+      </p>
+      <p>
+        <strong>Und was der Betrieb gleich danach zurückgemeldet hat:</strong>
+        die aufgeklappte Mitarbeiterkarte zeigt den Saldo jetzt ruhig und ohne
+        Rot, die fehlenden Tage als neutrale Liste — rot unter rot hiess nichts
+        mehr. Das „i“ bricht nirgends mehr mitten in der Zeile um; eine Prüfung
+        sucht die Stellen im Quelltext. Und die Einstellungen haben wieder
+        Reiter statt einer Auswahlliste — am Telefon wischt man sie seitlich,
+        am Schreibtisch stehen sie in zwei Zeilen.
+      </p>
+    </div>
+
+    <div class="hinweis geloest">
+      <p class="erst"><strong>Ein Tab-Wechsel ist kein Ausfall mehr.</strong></p>
+      <p>
+        Wer kurz in einen anderen Browser-Tab sah, fand danach einen roten
+        Kasten „Das hat nicht geklappt" vor, der die Liste <em>ersetzte</em> und
+        bis zum Neuladen stand — obwohl die Verbindung längst wieder da war.
+        Jede Ansicht meldete ihren Abriss selbst und räumte ihn nie wieder weg,
+        weil der geglückte Wiederaufbau nur den Erfolgsweg auslöst.
+      </p>
+      <p>
+        Jetzt steht dort ein schmales Band über dem Inhalt, in Bernstein statt
+        Rot, mit einem Knopf zum Neuladen: <em>„Die Anzeige aktualisiert sich
+        gerade nicht von selbst."</em> Die Daten bleiben stehen, und der
+        Vorbehalt nimmt sich von selbst zurück. Beim Nachmessen im echten
+        Browser kam heraus, dass drei von vier Abonnements gar keinen
+        Wiederaufbau hatten — und das vierte seine fünf Versuche in zwei
+        Zehntelsekunden verbrauchte.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Die Oberfläche am Telefon, nachgemessen</h2>
+      <p class="frage">
+        Zwischen dem 16. und dem 18.09. ist die App dreimal am Telefon
+        durchgemessen worden — nicht durchgesehen. Eine Vorschau rendert die
+        echten Ansichten gegen eine gestubbte Datenschicht, und eine Messung
+        meldet jedes Element, das aus seinem Behälter läuft. Was dabei
+        herauskam, hätte man beim Ansehen überwiegend nicht gefunden.
+      </p>
+    </div>
+
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Das Tablet war kaputt, und nur das Tablet</h3>
+        <p>Auf neun von achtundzwanzig Ansichten liess sich die Seite bei 834 px waagrecht schieben. Dem Inhalt standen 575 px zu, sein Mindestmass lag bei 592 — am Telefon fällt das nicht auf (keine Seitenleiste), am Schreibtisch auch nicht (genug Platz). Genau dazwischen bricht es.</p>
+        <p class="wer">28 Routen mal drei Breiten: 390, 834, 1440</p>
+      </div>
+      <div class="bereich">
+        <h3>Ein abgeschnittener Betrag ist nicht unschön, er ist falsch</h3>
+        <p>Bei drei Kennzahlen nebeneinander blieben auf 390 px rund 95 Pixel je Spalte; „€ 22 104,60" braucht 118 und stand als „€ 22 104…" da. Die Leiste ist auf dem Telefon jetzt zweispaltig. <strong>Die dritte Karte steht damit allein</strong> — das bleibt so: drei Spalten schnitten wieder ab, und der naheliegende Griff (die letzte über beide Spalten) änderte nachgemessen nichts.</p>
+        <p class="wer">Gemessen, nicht geschätzt — auch dort, wo das Ergebnis „lassen" heisst</p>
+      </div>
+      <div class="bereich">
+        <h3>Die Liste steht zuerst<span class="neu">neu</span></h3>
+        <p>In Kunden, Baustellen, Angeboten und Benutzern stand das lange Anlege-Formular ganz oben; bis zur ersten vorhandenen Zeile waren es bei den Baustellen <strong>1590 px</strong> — zweieinhalb Bildschirme. Jetzt klappt es über den Knopf in der Kopfzeile auf, wie die Wartungen es längst tun. <strong>Zeiterfassung und Urlaub bleiben ausgenommen:</strong> dort ist das Formular der Zweck.</p>
+        <p class="wer">Der Knopf trägt seit 18.09. ein Pluszeichen</p>
+      </div>
+      <div class="bereich">
+        <h3>Wo es mehr als zwei Aktionen gibt<span class="neu">neu</span></h3>
+        <p>In der Baustellenliste lagen rechts fünf Elemente; das letzte rutschte auf einem iPhone XS allein in eine zweite Zeile — und das war ausgerechnet das ✕. <strong>Die einzige unumkehrbare Aktion stand damit am auffälligsten da.</strong> Löschen und „Schein nachtragen" liegen jetzt im Zeilenmenü.</p>
+        <p class="wer">Die Regel stand längst im Baustein der Zeile — sie war nur nicht befolgt</p>
+      </div>
+    </div>
+
+    <div class="hinweis geloest">
+      <p class="erst"><strong>„€ 22 104,60 €" — das Zeichen stand zweimal da.</strong></p>
+      <p>
+        Gesehen auf einem Telefon, nicht im Quelltext. Der Grund ist der
+        <em>Name</em> und nicht die Unachtsamkeit: die Funktion, die einen
+        Betrag formatiert, gibt es in <strong>acht Dateien</strong> — vier
+        stellen das Eurozeichen voran, vier nicht. Wer aus der Nachbardatei
+        abschreibt, schreibt die falsche Hälfte ab, und auf einen einzelnen
+        Betrag geschaut fällt das nie auf. Nur auf dem Beleg.
+      </p>
+      <p>
+        Zusammengelegt wurden die acht <strong>nicht</strong>: zwei erzeugen
+        PDFs, die Startseite rundet auf ganze Euro. Stattdessen eine Prüfung,
+        die für jede Fassung mit vorangestelltem Zeichen jede Aufrufstelle
+        danach absucht — samt einem Wächter über den Wächter, der meldet, wenn
+        die acht Kopien eines Tages verschwinden und die Prüfung damit ihre
+        Grundlage verliert. Eine Prüfung, die still grün meldet, weil sie
+        nichts mehr findet, ist schlimmer als keine.
+      </p>
+    </div>
+
+    <div class="hinweis">
+      <p class="erst"><strong>Kleiner heisst kleinere Schrift, nicht ein kleineres Ziel für den Finger.</strong></p>
+      <p>
+        Die Seitenüberschrift und die Knopfbeschriftungen gehen am Telefon eine
+        Stufe zurück; die <em>Höhe</em> der Knöpfe bleibt, wo sie war. Ein
+        Monteur bedient das mit Arbeitshandschuhen. Die Eingabefelder bleiben
+        aus einem zweiten Grund bei voller Grösse: unter 16 px zoomt iOS beim
+        Hineintippen von selbst hinein.
+      </p>
+      <p>
+        <strong>Die Warnpille ist umrandet statt gefüllt.</strong> Pastellgelb
+        und Pastellrot waren die einzigen Farbflächen der Oberfläche, die nicht
+        aus der Familie Türkis/Tinte stammen — sie fielen auf, weil sie
+        <em>fremd</em> waren, nicht weil sie dringend waren. Die Form bleibt
+        und damit die Bedeutung. Der Kontrast steigt dabei, nachgerechnet:
+        von 4,76:1 auf 5,42:1 und von 5,48:1 auf 7,14:1.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Unter der Oberfläche</h2>
+      <p class="frage">Was man nicht bedient, worauf sich aber alles andere stützt.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Startseite<span class="neu">neu</span></h3>
+        <p><strong>Seit 01.10. für jede Rolle gleich gebaut:</strong> eine Karte <em>Handlungsbedarf</em>, eine Karte <em>Heute</em> und höchstens vier Kennzahlen. Im Handlungsbedarf steht je Thema ein Abschnitt mit höchstens drei Zeilen, das Dringlichste zuerst; „und N weitere →“ öffnet die Fachseite schon gefiltert, und oben auf der Fachseite steht, wonach gefiltert ist („Alle zeigen“ nimmt den Filter weg). Leere Abschnitte gibt es nicht. Ist nichts zu tun, steht „Heute liegt nichts an“.</p>
+        <p><strong>Monteur:</strong> Tage ohne Buchung, Scheine ohne Zeitbuchung, abholbereites Material; unter Heute der Einsatz mit Adresse, Telefon und Aufgabe, der Knopf <strong>„Wie zuletzt buchen“</strong> (er öffnet die Zeiterfassung mit der Baustelle und den Zeiten der letzten Buchung — gespeichert wird dort, mit Anfahrt und Fahrzeug), die Rüstliste und weitere Einsätze unter „Danach“; dazu Saldo und Resturlaub. <strong>Verwaltung:</strong> offene Anforderungen, Bestellungen über dem Liefertermin, seit über drei Tagen Abholbereites, Artikel unter der Mindestmenge, heute erwartete Lieferungen. <strong>Buchhaltung:</strong> fällige Mahnungen, Überfälliges, das noch nicht gemahnt werden kann, Scheine über vier Wochen ohne Rechnung, fehlende Stunden, Urlaubsanträge (wenn sie entscheidet), heutige Zahlungseingänge. <strong>Projektleiter:</strong> unbesetzte Einsätze, Baustellen ab 90 % des Budgets, Baustellen ohne Einsatz in den nächsten 14 Tagen, fällige Wartungen ohne Baustelle, Eilanforderungen, wer heute fehlt und wer wo ist, die Auslastung der Woche. <strong>Geschäftsführung und Administrator:</strong> eine Zeile je Thema unter Überfällig, Heute und Diese Woche — „und N weitere“ klappt die übrigen Themen auf der Startseite auf —, dazu fehlende Einstellungen wie der Basiszinssatz des laufenden Halbjahres. Lagerarbeit steht dort nur, wenn der Betrieb keine Verwaltung hat.</p>
+        <p><strong>Liefertermin:</strong> beim „Als bestellt markieren“ in der Einkaufsliste lässt sich der erwartete Liefertermin eintragen, später je Zeile über „Termin“. Danach richtet sich „bestellt und überfällig“.</p>
+        <p class="wer">Jeder, je nach Rolle anderes</p>
+      </div>
+      <div class="bereich">
+        <h3>Module</h3>
+        <p>Bereiche für den Betrieb ein- und ausschalten. Vor dem Abschalten zeigt die App, was mit verschwindet. Kein Rechtesystem — es nimmt den Weg weg, nicht das Recht.</p>
+        <p class="wer">Nur Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Firmendaten<span class="neu">behoben</span></h3>
+        <p>Briefkopf, Logo, Bankverbindung, UID, Firmenbuchnummer — alles, was auf Rechnung und Schein erscheint. Die Hausfarbe wird beim Setzen gegen die Lesbarkeitsnorm geprüft. <strong>Ohne hinterlegtes Logo steht jetzt der Firmenname da</strong>, nicht mehr fest verdrahtet das Zeichen von Perl: ein zweiter Betrieb sah sonst täglich die Marke des ersten in seiner eigenen Seitenleiste.</p>
+        <p class="wer">Leitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Nummernkreise<span class="neu">neu</span></h3>
+        <p>Der Vorsatz von Rechnung, Angebot, Baustelle und Kennzeichen — je Betrieb einstellbar, mit Vorschau der nächsten Nummer — <strong>seit 25.09. der tatsächlich nächsten</strong>, aus demselben Zähler, aus dem „Neue Baustelle“, die Angebotsannahme und die Rechnung ziehen. Rechnungsnummern laufen lückenlos; eine eigene gibt es nur bei der allerersten Rechnung, beim Umstieg aus dem bisherigen Programm. <strong>Leer ist ausdrücklich erlaubt</strong> und etwas anderes als „nicht festgelegt": wer ohne Vorsatz zählt, bekommt „2026-1001" und keinen führenden Strich. Die Baustellennummer wird seit 18.09. vorgeschlagen (derselbe gesperrte Zähler wie bei Rechnung und Angebot) und bleibt überschreibbar — manche Betriebe führen die Nummer des Bauträgers. <strong>Seit 24.09. eine eigene Seite</strong> in den Einstellungen; vorher stand sie unter „Sätze und Kosten“, zusammen mit Urlaubsjahr, Genehmigenden und Wochenplan — die stehen jetzt unter „Personal“.</p>
+        <p class="wer">Nur Geschäftsführung und Administrator — wer ihn ändert, ändert die Nummer jeder künftigen Rechnung</p>
+      </div>
+      <div class="bereich">
+        <h3>Mandantentrennung</h3>
+        <p>Jede Abfrage ist auf den eigenen Betrieb eingegrenzt — seit dem Umzug als <em>Zeilenschutz in der Datenbank</em>. Eine Zeile, die man nicht sehen darf, ist nicht „verboten", sondern nicht vorhanden: fehlender und fremder Datensatz sehen von aussen gleich aus, und das ist die ehrlichere Antwort. <strong>1 260 Prüfungen laufen gegen eine echte Postgres-Datenbank</strong>, darunter zwei Betriebe, die am selben Tag auf derselben Baustellennummer arbeiten.</p>
+        <p class="wer">Gilt für alle</p>
+      </div>
+      <div class="bereich">
+        <h3>Globaler Administrator<span class="neu">supportzugang</span></h3>
+        <p>Ein Konto, das Betriebe <em>anlegt</em> und in keinen <em>hineinsieht</em>. Es gehört zu keinem Betrieb, sein Anspruch trägt keine Mandantenkennung — und daran hängt jede einzelne Leseregel. <strong>Seit 20.09. gibt es eine Ausnahme, die keine ist:</strong> was ein Betrieb ausdrücklich freigibt. Siehe den eigenen Abschnitt unten.</p>
+        <p class="wer">Eingerichtet in der Supabase-Konsole; die App zeigt ihm eine einzige Seite, ohne Navigation</p>
+      </div>
+      <div class="bereich">
+        <h3>Datensicherung<span class="neu">ausser haus</span></h3>
+        <p>Nächtliche Ausleitung des ganzen Bestands <em>samt Fotos</em>, an einen zweiten Ort bei einem anderen Anbieter; Sicherung von Hand anstoßbar, vollständiger Download für die DSGVO-Auskunft, Rücklauf als Werkzeug für die Hand. Der Zeitplan liegt in der Datenbank. Bleibt der Nachtlauf zwei Nächte aus, meldet sich die Startseite. Die Seite sagt, ob der Stand ausser Haus liegt; wie viele Fotos noch fehlen, sagt sie nach „Sicherung jetzt erstellen“ — der Nachtlauf hält das nicht je Betrieb fest. Siehe den eigenen Abschnitt oben.</p>
+        <p class="wer">Nur Geschäftsführung und Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Push-Meldungen mit Wächter</h3>
+        <p>Seit 23.09. kommen sie als „Senklot“, nicht mehr „from Perl Zeit“. Der Auslöser warf bisher die Kennung seiner Anfrage weg — ein systematischer Ausfall wäre unsichtbar geblieben. Jetzt wird sie festgehalten und stündlich beurteilt. Beurteilt wird ein <em>Anteil</em>, keine Frist: Push läuft nur, wenn es etwas zu melden gibt, und ein ruhiges Wochenende ist kein Befund.</p>
+        <p class="wer">Anzeige für die Geschäftsführung</p>
+      </div>
+      <div class="bereich">
+        <h3>Acht Wege im echten Browser<span class="neu">einer mehr</span></h3>
+        <p>Zeit buchen, Material anfordern, Schein unterschreiben, Rechnung stellen, Anzahlung bis Schlussrechnung, der Katalogimport, der allererste Besuch über den Link — und seit 23.09. die Anmeldung mit Benutzername: anlegen, erstes Anmelden mit dem Startpasswort, eigenes vergeben, am nächsten Tag ohne Rückfrage wieder herein, neues Startpasswort aus der Akte.</p>
+        <p class="wer">Läuft mit, nicht bedienbar</p>
+      </div>
+      <div class="bereich">
+        <h3>Kontenrahmen<span class="neu">neu</span></h3>
+        <p>Welche Konten die Kanzlei bebucht — Erlöskonten je Steuersatz, Bauleistung, erhaltene Anzahlungen, Debitorensammelkonto. In keinem Gesetz steht, dass Erlöse zu 20 % auf 4000 gehören; das steht im Kontenplan der Kanzlei. Der österreichische Einheitskontenrahmen lässt sich als <em>Vorschlag</em> einsetzen und ist ausdrücklich keine Vorbelegung.</p>
+        <p class="wer">Administrator, Geschäftsführung — <strong>und die Buchhaltung</strong>: sie ist die Rolle, die mit der Kanzlei spricht</p>
+      </div>
+      <div class="bereich">
+        <h3>Offline und Ladezeit</h3>
+        <p>Buchungen im Funkloch gehen ins Ausgangsfach und werden nachgesendet. Jede Ansicht lädt erst beim Aufrufen; jede Abfrage blättert, bis sie vollständig ist. Ein Prüflauf über die ganze Datenschicht setzt das durch — wer eine Abfrage schreibt, die sich still abschneiden lässt, bekommt sie beim Namen genannt.</p>
+        <p class="wer">Gilt für alle</p>
+      </div>
+    </div>
+
+    <div class="hinweis geloest">
+      <p class="erst"><strong>Der Vorsatz, der einem fremden Bezirk gehörte.</strong></p>
+      <p>
+        <code>WZ</code> ist der Kenner eines bestimmten Bezirks und stand
+        <strong>dreifach</strong> in der Buchungsmaske — als Konstante, als
+        Regel zum Abziehen und als sichtbare Beschriftung am Feld. Ein zweiter
+        Betrieb hätte ihn auf <em>jedem</em> Zeiteintrag stehen gehabt, ohne
+        Möglichkeit, ihn loszuwerden, und von dort wandert die Zahl in den
+        Lohnexport. Derselbe Fehler wie das fest verdrahtete Firmenlogo vom
+        15.09., nur an einer Stelle, an der man nicht hinsieht.
+      </p>
+      <p>
+        <strong>Die Vorsätze gelten ab jetzt, nicht rückwirkend.</strong> Eine
+        ausgestellte Rechnung behält ihre Nummer — § 132 BAO lässt sie ohnehin
+        nicht mehr ändern. Wer mitten im Jahr umstellt, hat damit einen
+        lückenlosen Zahlenkreis in <em>zwei Schreibweisen</em>; gelesen werden
+        deshalb die Ziffern am Ende und nicht der Vorsatz. Prüfte die App ihn
+        mit, finge die Zählung wieder bei 1001 an und risse genau die Lücke,
+        die der Steuerberater erklärt haben will.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Der Katalog des Grosshändlers, und der Weg zur Kanzlei</h2>
+      <p class="frage">
+        Ein Installateurbetrieb steht nicht allein da. Er kauft bei einem
+        Grosshändler ein und gibt seine Belege einem Steuerberater. Beide
+        sprechen ein Format — und solange Senklot keines davon spricht, tippt
+        das Büro ab.
+      </p>
+    </div>
+
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Erst ansehen, dann übernehmen</h3>
+        <p>Die DATANORM-Datei wird eingelesen und <strong>zunächst nur gezeigt</strong>: wie viele Artikel erkannt wurden, wie viele ohne Preis blieben, welche Zeilen mit Nummer und Grund NICHT verstanden wurden. Geschrieben wird erst auf den zweiten Klick — und dann alles oder nichts in einer Transaktion.</p>
+        <p class="wer">Nur Geschäftsführung und Administrator — wer einzeln keine Einkaufspreise setzen darf, darf sie auch nicht zu vierzigtausend Stück einspielen</p>
+      </div>
+      <div class="bereich">
+        <h3>Listenpreis ist nicht Einkaufspreis</h3>
+        <p>DATANORM liefert die Rabatt<em>gruppe</em>, nicht den Satz — wie hoch Ihr Rabatt ist, haben Sie mit Ihrem Grosshändler ausgehandelt, und das steht in keiner Norm. Ohne hinterlegten Satz bleibt der Einkaufspreis <strong>leer</strong> und die Nachkalkulation meldet die Lücke weiter. Ein Listenpreis als Einkauf gebucht liesse jede Baustelle schlechter aussehen, als sie ist.</p>
+        <p class="wer">Der Satz wird je Rabattgruppe abgefragt und bleibt für den nächsten Katalog gespeichert</p>
+      </div>
+      <div class="bereich">
+        <h3>Gelöscht wird nie ein Artikel</h3>
+        <p>Ein Löschsatz sagt, dass der Grosshändler den Artikel nicht mehr führt — nicht, dass er nie auf einem Schein oder einer Rechnung stand. Er wird <code>ausgelaufen</code> markiert, bleibt im Katalog und wird für neue Erfassungen nicht mehr angeboten. <strong>Der Verkaufspreis wird nie angefasst:</strong> das ist die Kalkulation des Betriebs.</p>
+        <p class="wer">Cent und Preiseinheit werden herausgerechnet — aus „2350“ bei Preiseinheit 100 werden 0,235 € je Stück, nicht 2350 €</p>
+      </div>
+      <div class="bereich">
+        <h3>Wenn die Felder verrutscht sind</h3>
+        <p>Der gefährlichste Fehler dieser Schnittstelle, weil er formal aufgehen kann: es kämen Artikel heraus, nur stünde die Lieferantennummer als Artikelnummer darin. Zwei Spuren verraten es — die Sätze scheitern reihenweise am gleichen Feld, oder alle Artikel teilen sich dieselbe Nummer. <strong>In beiden Fällen ist die Übernahme gesperrt.</strong></p>
+        <p class="wer">Auch der Zeichensatz wird erkannt und genannt — DATANORM stammt aus der DOS-Zeit, und CP850 kennt weder Node noch ein Browser</p>
+      </div>
+    </div>
+
+    <div class="hinweis">
+      <p class="erst"><strong>Geprüft ist die NORM, nicht die Datei Ihres Grosshändlers.</strong></p>
+      <p>
+        Die Feldreihenfolge folgt DATANORM 4.0. Ob sie zur Datei passt, die
+        der Grosshändler eines Betriebs liefert, entscheidet der erste Probelauf an echten
+        Daten — und nicht dieser Satz. Die Beispieldatei, mit der die Arbeit
+        begann, passte <em>nicht</em>: sie führte vor der Artikelnummer noch
+        eine Katalognummer, und damit verschiebt sich alles um eine Stelle.
+        Genau dafür gibt es die Sperre oben.
+      </p>
+      <p>
+        <strong>Dasselbe gilt für die Konten:</strong> die Buchungslogik ist
+        geprüft, die Kontonummern sind es nicht — sie kommen aus den
+        Einstellungen und damit vom Betrieb. Der erste Buchungsstapel gehört
+        vor dem Import von der Kanzlei angesehen.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Der Supportzugang — und was er ersetzt</h2>
+      <p class="frage">
+        Der globale Administrator konnte bisher einen Betrieb anlegen und
+        danach nie wieder etwas über ihn erfahren. Eine starke Zusage, und sie
+        stimmte. Nur: rief der Betrieb an, weil eine Rechnung nicht stimmt,
+        konnte niemand nachsehen — und der einzige Weg hinein war der
+        <strong>Dienstschlüssel</strong>. Er umgeht jeden Zeilenschutz,
+        erreicht jeden Mandanten und hinterlässt keine Spur. Der
+        Generalschlüssel existierte also längst. Er war nur nirgends erklärt
+        und nirgends begrenzt.
+      </p>
+    </div>
+
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Der Betrieb gewährt ihn</h3>
+        <p>Unter Einstellungen → Supportzugang: Grund eintragen, Dauer wählen, freigeben. <strong>Befristet</strong> (höchstens sieben Tage zum Ansehen, einen Tag zum Mitarbeiten, und die Frist steht in der Datenbank, nicht in der Ansicht), <strong>begründet</strong> (ohne Grund keine Freigabe, und der Grund lässt sich nachträglich nicht ändern), <strong>widerrufbar</strong> mit einem Klick — und ein Widerruf lässt sich nicht zurücknehmen.</p>
+        <p class="wer">Nur Geschäftsführung und Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Jeder im Betrieb sieht es</h3>
+        <p>Solange ein Zugang offen ist, steht ein Band über der App — mit dem Grund, für jeden. Gewährt hat den Zugang die Führung; betroffen ist der ganze Betrieb. <strong>Genau das ist der Unterschied zwischen einem Supportzugang und einem Generalschlüssel: der eine ist sichtbar.</strong></p>
+        <p class="wer">Dazu ein Protokoll: wer wann welchen Bereich geöffnet hat — angehängt wird, geändert nie</p>
+      </div>
+      <div class="bereich">
+        <h3>Ansehen — oder einen Tag mitarbeiten</h3>
+        <p><strong>Ab Werk heisst ein Zugang „Ansehen“: lesen, und sonst nichts.</strong> „Mitarbeiten“ muss der Betrieb eigens wählen; dann kann der Support für höchstens einen Tag ändern wie ein Administrator, jede Änderung trägt seine Kennung, und das Band über der App ist rot statt gelb. Bis zum 25.09. stand hier nur „lesen“ — das war seit dem 21.09. nur noch die halbe Wahrheit. Das Lesen gilt nicht in der Oberfläche, sondern als Riegel vor <em>jeder</em> Tabelle, die einen Betrieb trägt. Die meisten Schreibregeln verlangen ohnehin eine Rolle, und ein Plattformkonto hat keine — aber „die meisten“ ist keine Zusage: eine einzige Regel, die zum Schreiben nur den Betrieb prüft, machte aus dem Lesezugang einen Schreibzugang. Ein Schema-Wächter prüft, dass keine Tabelle den Riegel verliert.</p>
+        <p class="wer">Geprüft, indem der Riegel einzeln kaputtgemacht wird · seit 29.09.: ein Betrieb zur Zeit, und „Mitarbeiten“ reicht auch für Einsatz, Rüstliste, Angebot und Übernahmen</p>
+      </div>
+      <div class="bereich">
+        <h3>Geschäftsdaten ja, Mitarbeiterdaten nein</h3>
+        <p>Zeitbuchungen und Urlaube waren schon zu — dort stehen Kranken- und Urlaubstage, also Gesundheitsdaten nach Art. 9 DSGVO — und das <em>bleibt</em> so nachweislich. Scheinfotos aus Kundenwohnungen wurden geschlossen. Rechnungen, Positionen und Zahlungseingänge sind ausdrücklich offen: sonst wäre der Zugang an der häufigsten Frage vorbeigebaut.</p>
+        <p class="wer">Angebote bleiben zu — was nicht gebraucht wird, bleibt zu</p>
+      </div>
+    </div>
+
+    <div class="hinweis">
+      <p class="erst"><strong>Der Notzugang — und warum es ihn geben muss.</strong></p>
+      <p>
+        Eine rein einvernehmliche Lösung versagt ausgerechnet dort, wofür man
+        sie braucht: <em>wer sich ausgesperrt hat, kann nichts mehr
+        freigeben.</em> Der Notzugang läuft deshalb ohne Zustimmung — aber
+        nicht heimlich. Er ist als solcher gekennzeichnet, gilt höchstens 24
+        Stunden, steht im Protokoll des Betriebs, erzeugt dasselbe Band in
+        seiner App und lässt sich von ihm jederzeit beenden. Schreiben kann er
+        nicht — „Mitarbeiten“ gibt es nur mit Zustimmung.
+      </p>
+      <p>
+        <strong>Was das nicht heisst:</strong> der Dienstschlüssel existiert
+        weiter und kann weiterhin alles — er liegt in den Serverfunktionen und
+        im nächtlichen Lauf. Er ist nur nicht mehr der Supportweg. Diesen
+        Unterschied zu verschweigen wäre genau die Art Zusage, die dieses
+        Handbuch nicht macht.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Wenn etwas schiefgeht — und was darüber öffentlich steht</h2>
+      <p class="frage">
+        Ein Absturz landete bis zum 24.09. nur in der Konsole des Geräts. Das
+        war Absicht — kein fremder Dienst, keine Daten ausser Haus —, hatte
+        aber einen Preis: man erfuhr nur, was jemand meldete. Auf der Baustelle
+        meldet niemand eine weisse Seite; er ruft irgendwann an oder hört auf,
+        die App zu benutzen.
+      </p>
+    </div>
+
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Das Fehlerprotokoll<span class="neu">neu</span></h3>
+        <p>Abstürze und Fehler, die an der Fehlergrenze vorbeigehen, landen in der <em>eigenen</em> Datenbank — geputzt: keine Formularinhalte, kein Text in Anführungszeichen (dort stehen in dieser App Namen), keine E-Mail-Adressen oder Ziffernfolgen, die Ansicht ohne Kennung und Suchbegriff. Nachladen nach einem Deploy, fehlendes Netz und fremde Skripte gelten als Rauschen.</p>
+        <p class="wer">Liest nur der Senklot-Support, nicht der Betrieb · nach 90 Tagen gelöscht · die Unterseite Einstellungen → Fehler gibt es seit 25.09. nicht mehr</p>
+      </div>
+      <div class="bereich">
+        <h3>Problem melden<span class="neu">an den support</span></h3>
+        <p>In der Seitenleiste, im Profilblatt und auf der Fehlertafel. Man schreibt, was passiert ist; Ansicht, Fassung, Gerät und der Fehler von eben gehen mit. <strong>Die Meldung geht an den Senklot-Support, und nur dorthin</strong> — mit Name und E-Mail-Adresse, damit er nachfragen kann. Anzukreuzen gibt es nichts mehr. Bis zum 25.09. las sie die Geschäftsführung, die mit „beim Speichern kam eine Fehlermeldung“ nichts anfangen konnte. Der Dialog sagt <em>vorher</em>, wohin es geht, und bittet, keine Gesundheits- oder Kundendaten einzutragen.</p>
+        <p class="wer">Schreiben: jeder im Betrieb · Antwort per E-Mail, in der App gibt es keinen Rückkanal</p>
+      </div>
+      <div class="bereich">
+        <h3>Was die Plattform davon sieht</h3>
+        <p>Die technischen Fehler aller Betriebe — ohne Person, damit ein Absturz nach einem Deploy auffällt, bevor jemand anruft. Dazu jede Meldung mit ihrem Absender — bei einem Konto mit Benutzernamen nur der Name, denn dessen interne Adresse erreicht niemanden. Ältere Meldungen bleiben unter ihrer alten Zusage: ohne Häkchen unsichtbar, mit Häkchen ohne Namen. <strong>Das ist die dritte, benannte Ausnahme</strong> von „die Plattform sieht in keinen Betrieb hinein“ — ein Fenster in die eigene Software, nicht in den Betrieb.</p>
+        <p class="wer">Eine eng geschnittene Datenbankfunktion, kein Zeilenschutz: ein Schema-Wächter verbietet, dass eine Leseregel das Plattformkonto hereinlässt</p>
+      </div>
+      <div class="bereich">
+        <h3>Datenschutz und Impressum<span class="neu">entwurf</span></h3>
+        <p>Zwei öffentliche Seiten, erreichbar ohne Anmeldung und verlinkt an der Anmeldung, in der Seitenleiste und im Profilblatt. Die Datenschutzerklärung beschreibt, was die App <em>tatsächlich</em> verarbeitet — aus dem Code abgelesen —, und listet die Unterauftragsverarbeiter: Supabase, Google für Auslieferung und Push, das Sicherungsziel und der Mailanbieter.</p>
+        <p class="wer">Band „Entwurf“ über beiden Seiten, bis die Texte freigegeben sind</p>
+      </div>
+    </div>
+
+    <div class="hinweis">
+      <p class="erst"><strong>Warum nicht einfach ein Dienst wie Sentry.</strong></p>
+      <p>
+        Er schickte Bildschirminhalte, Adressen und Eingaben an einen weiteren
+        Anbieter in einem weiteren Land, mit einem weiteren
+        Auftragsverarbeitungsvertrag — für einen Betrieb, dessen Zeiterfassung
+        Krankenstände enthält. Das eigene Protokoll liegt in derselben
+        Datenbank wie alles andere, und was hineingeht, ist an einer Stelle
+        festgelegt und geprüft. Eine Schleife, die bei jedem Zeichnen abstürzt,
+        bremst sich zweimal: im Browser (derselbe Fehler einmal in zehn
+        Minuten) und in der Datenbank (dreissig je Konto und Stunde).
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Was beim Löschen passiert</h2>
+      <p class="frage">
+        Geprüft über alle Löschwege der App, zuletzt nachgezogen mit dem Umzug
+        nach Postgres. Die Rückfragen sind unverändert; was sich geändert hat,
+        ist die <em>Absicherung dahinter</em> — sie steht jetzt als Regel in
+        der Datenbank statt als Regel vor der Datenbank.
+      </p>
+    </div>
+
+    <div class="rahmen">
+      <table>
+        <thead>
+          <tr>
+            <th>Was gelöscht wird</th>
+            <th>Rückfrage</th>
+            <th>Was zusätzlich schützt</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Baustelle</td>
+            <td><span class="ja">ja</span></td>
+            <td>Dialog nennt Kunde und Nummer; mit Buchungen, Scheinen oder Plänen gesperrt — und die Liste sagt seit 23.09. warum</td>
+          </tr>
+          <tr>
+            <td>Kunde</td>
+            <td><span class="ja">ja</span></td>
+            <td>Nur löschbar, solange keine Baustelle daran hängt</td>
+          </tr>
+          <tr>
+            <td>Angebot</td>
+            <td><span class="ja">ja</span></td>
+            <td>Server lässt nur Entwürfe löschen</td>
+          </tr>
+          <tr>
+            <td>Zeiteintrag</td>
+            <td><span class="ja">ja</span></td>
+            <td>Verrechnete Einträge sind gesperrt; Tage einer Krankmeldung gehen nur über die Meldung</td>
+          </tr>
+          <tr>
+            <td>Einsatz im Plan</td>
+            <td><span class="ja">ja</span></td>
+            <td>Ein Scheitern wird gemeldet, statt den Dialog wortlos offen zu lassen</td>
+          </tr>
+          <tr>
+            <td>Plan an der Baustelle</td>
+            <td><span class="ja">ja</span></td>
+            <td>Nur wer die Baustelle ändern darf; Dialog sagt „auch für die Monteure“
+          </tr>
+          <tr>
+            <td>Materialanforderung</td>
+            <td><span class="ja">ja</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Eigenes Material auf der Einkaufsliste</td>
+            <td><span class="gar">ohne Rückfrage</span></td>
+            <td>Nur solange nicht bestellt — was beim Grosshändler liegt, kommt</td>
+          </tr>
+          <tr>
+            <td>Artikel im Lager</td>
+            <td><span class="ja">ja</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Wartungsvereinbarung</td>
+            <td><span class="ja">ja</span></td>
+            <td>Dialog rät zum Anhalten statt zum Löschen</td>
+          </tr>
+          <tr>
+            <td>Handwerksschein</td>
+            <td><span class="gar">gar nicht löschbar</span></td>
+            <td>Es gibt keine Löschregel — die Datenbank kennt den Weg nicht. Nur verwerfen (mit Rückfrage) oder stornieren (mit Grund)</td>
+          </tr>
+          <tr>
+            <td>Rechnung stornieren</td>
+            <td><span class="ja">ja</span></td>
+            <td>Verlangt zusätzlich einen Grund im Klartext; mit gebuchtem Skonto erst, wenn dessen Eintrag gelöscht ist. Aufheben geht nur am selben Tag und nicht mehr nach der Stornorechnung</td>
+          </tr>
+          <tr>
+            <td>Daten einer Person (DSGVO)</td>
+            <td><span class="ja">ja, mit Probelauf</span></td>
+            <td>Nur Geschäftsführung und Administrator; was die BAO sieben Jahre verlangt, bleibt gesperrt und der Probelauf nennt das Fristende; ein Mitarbeiter muss zuerst deaktiviert sein</td>
+          </tr>
+          <tr>
+            <td>Benutzerkonto</td>
+            <td><span class="gar">gar nicht löschbar</span></td>
+            <td>Nur deaktivieren, mit Rückfrage — die Buchungen bleiben</td>
+          </tr>
+          <tr>
+            <td>Rechnung endgültig löschen</td>
+            <td><span class="gar">gibt es nicht mehr</span></td>
+            <td>Der Weg wurde ersatzlos entfernt — der Storno ist die Korrektur</td>
+          </tr>
+          <tr>
+            <td>Urlaubsantrag zurückziehen</td>
+            <td><span class="ja">ja</span></td>
+            <td>Nur der eigene, noch nicht entschiedene Antrag</td>
+          </tr>
+          <tr>
+            <td>Krankmeldung</td>
+            <td><span class="ja">ja</span></td>
+            <td>Die eigene oder durchs Büro; nimmt die Krank-Tage mit, die sie eingetragen hat. Ist jemand früher gesund, ist „Ende ändern“ der Weg</td>
+          </tr>
+          <tr>
+            <td>Eintrag im Fehlerprotokoll</td>
+            <td><span class="gar">gar nicht löschbar</span></td>
+            <td>Niemand ändert oder löscht; die Datenbank räumt nach 90 Tagen selbst auf</td>
+          </tr>
+          <tr>
+            <td>Betriebsurlaub</td>
+            <td><span class="ja">ja</span></td>
+            <td>Nur Büro und Spitze; nimmt genau die Urlaubstage zurück, die er gebucht hat — eigener Urlaub im Zeitraum bleibt</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="hinweis geloest">
+      <p class="erst"><strong>Ein deaktiviertes Konto kommt jetzt gar nicht mehr herein.</strong></p>
+      <p>
+        Unter Firebase war „deaktiviert" ein Merkmal in der Belegschaftstabelle:
+        die App zeigte nichts mehr, das Token blieb aber gültig. Jetzt sperrt
+        das Abschalten die Anmeldung selbst und wirft die offenen Sitzungen weg
+        — der Versuch scheitert eine Schicht früher, bei der Anmeldung, nicht
+        erst beim Lesen.
+      </p>
+      <p>
+        Was das <em>nicht</em> heisst: ein bereits ausgestelltes Token behält
+        seine Rolle bis zu einer Stunde. Wer jemandem die Geschäftsführung
+        wegnimmt, nimmt sie ihm nicht in derselben Sekunde. Die Tabelle
+        entscheidet, nicht das Token — und die Tabelle wird bei jeder
+        schreibenden Regel frisch gefragt.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Der Launch-Check</h2>
+      <p class="frage">
+        Am 25.09. ging jemand den ganzen Betrieb durch — alle Rollen, Handy
+        und Tablet — und fand neun kritische Fehler, fünfzehn mittlere und
+        eine Liste kleinerer. Jeder Punkt wurde zuerst geprüft: stimmt er, und
+        was ist die richtige Antwort darauf. Nicht jede Antwort ist die
+        vorgeschlagene.
+      </p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>In der Datenbank, nicht nur in der Maske</h3>
+        <p>Überschneidende Zeiten, „Aus Lager“ über den Bestand, der eigene Urlaub, die Nummernkreise und das Aufheben eines Stornos sind Regeln der Datenbank. Eine Maske, die man umgeht, eine ältere App auf einem Telefon oder ein zweiter Weg zum selben Ziel kommen an ihnen nicht vorbei.</p>
+        <p class="wer">Jede Regel mit Gegenprobe: mit der alten Fassung schlagen die neuen Prüfungen fehl</p>
+      </div>
+      <div class="bereich">
+        <h3>Vier Augen — ausser es gibt nur zwei</h3>
+        <p>Über den eigenen Urlaub entscheidet jemand anderer. Gibt es im Betrieb niemanden sonst, der entscheiden darf, entscheidet die Geschäftsführung auch über sich — sonst bliebe ihr Antrag für immer offen. Die Liste zeigt am eigenen Antrag „Entscheidet jemand anderer“ statt der Knöpfe.</p>
+        <p class="wer">Der Betriebsurlaub ist ausgenommen: er ist eine Entscheidung über den Betrieb</p>
+      </div>
+      <div class="bereich">
+        <h3>Was sich an der Oberfläche ändert</h3>
+        <p>Eine Pauschalbaustelle rechnet ihren Preis ab. Ohne Anschrift des Betriebs gibt es keine Rechnung. Angebot annehmen fragt nach, eine neue Position beginnt leer. Die Urlaubsvorschau nennt den Betriebsurlaub, statt Tage zu zählen. Der Budgetstand zeigt 120 %, wenn es 120 % sind. Beide Salden stehen in Stunden:Minuten mit ihrem Zeitraum. Beim Hochladen von Plänen steht, dass die Monteure sie sehen; ein Stundennachweis wird hinterfragt. Die eigenen Baustellen stehen in der Auswahl oben.</p>
+        <p class="wer">Und: Datum, Komma, Baustellennummer im Wochenplan, grössere Pfeile, gleiche Zeilenaktionen, eine Unterschrift braucht Breite und Höhe</p>
+      </div>
+      <div class="bereich">
+        <h3>Bewusst so geblieben</h3>
+        <p>Der Kostensatz hat keine Vorgabe — die App setzt keinen Marktpreis. „Abgeholt“ geht schon bei „Offen“: eine eigene Anforderung darf man jederzeit abschliessen. „Stunden ohne Buchung“ steht über der Scheinliste, weil eine ungebuchte Stunde eine Frist hat. Der Monteur kann auf fremde Baustellen buchen — Aushilfe und Notdienst. Nicht nachstellbar waren der wirkungslose erste Klick auf „Neue Baustelle“ und das fehlende Teammitglied.</p>
+        <p class="wer">Siehe docs/FUNKTIONEN.md, Abschnitt „Launch-Check“</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="abschnittskopf">
+      <h2>Was noch fehlt</h2>
+      <p class="frage">
+        Der Vollständigkeit halber, weil ein Handbuch ohne diese Liste eine
+        Werbebroschüre wäre. Was hier steht, ist überwiegend <strong>Erprobung
+        und Einrichtung, nicht Code</strong> — und das ist ein besserer Zustand
+        als umgekehrt. „Suchen nach Kunde und Adresse" stand hier bis zum 14.09., „Sicherung im selben Haus" bis zum 16.09., „Firebase ist noch nicht abgebaut“ bis zum 19.09.
+        und „der Grosshandelskatalog“ bis zum 20.09. Keines steht mehr hier. Seit 23.09. auch nicht mehr: „die Edge Functions ohne Prüfnetz“ — alle fünf laufen jetzt in den Prüfungen gegen den örtlichen Stapel. Und seit 24.09.: „Baustellennummer ändern“ — die Buchungen, Einsätze und Belege wandern jetzt mit, oder die Änderung wird mit Begründung abgelehnt. Am selben Tag gefallen: „Betriebsurlaub für später Eingetretene“ und „Krank von Hand, ohne Meldung“ — und mit der Pilotvorbereitung das fehlende Impressum. Am 29.09. gefallen: „Storno- oder Gutschriftbeleg“ (jetzt die Stornorechnung) und „Skonto, Verzugszinsen“ — siehe „Seit dem 25. September“.
+      </p>
+    </div>
+    <div class="luecken">
+      <div class="luecke">
+        <strong>Aus dem Prüflauf<span class="schwere einrichtung">erledigt</span></strong>
+        <p>Alle neun Pakete sind erledigt — zuletzt die Rollen nach den Entscheidungen des Betriebs: Kunden pflegt das Büro mit Freigabe, Wartungstermine trägt die Verwaltung nicht ein, „Anforderungen“ steht in ihrer unteren Leiste, und das Zeitkonto führt, wer ein Soll hat. Offen ist aus dem Prüflauf nichts mehr. <strong>Bewusst geblieben:</strong> der Schein ist am Telefon weiter rund 3 400 px lang — Zeiten, Material, Fotos und zwei Unterschriften sind der Beleg selbst.</p>
+      </div>
+      <div class="luecke">
+        <strong>24. und 31. Dezember<span class="schwere erledigt">erledigt</span></strong>
+        <p>Frei sind sie nicht — aber auch keine vollen Arbeitstage. Der <strong>Kollektivvertrag Metallgewerbe</strong> (gilt für die Sanitär-, Heizungs- und Lüftungstechniker) sagt in Abschnitt VI, Punkt 23: an beiden Tagen endet die Arbeitszeit <strong>um 12 Uhr bei vollem Lohn</strong>; wer danach arbeitet, bekommt 100 % Zuschlag. Und: wird für beide Tage Urlaub vereinbart, zählen sie <strong>zusammen nur als ein Urlaubstag</strong>.</p>
+        <p>Seit 29.09. rechnet die App genau so — als Einstellung „24. und 31. Dezember“ unter Einstellungen → Personal, <strong>ab Werk an</strong>; ein Betrieb ohne diesen Kollektivvertrag schaltet sie ab. Beide Tage zählen im Soll je einen halben Tag; Urlaub, Krankenstand und ganztägiger Zeitausgleich ebenso. Urlaub an beiden Tagen ist ein Urlaubstag, an einem allein ein halber. Arbeit nach 12 Uhr steht als eigene Spalte in der Lohn-CSV, im Stundennachweis und in der Zuschlagskachel. Umschalten rechnet Zeitkonto und Resturlaub rückwirkend nach, auch bei schon genehmigten Urlauben.</p>
+      </div>
+      <div class="luecke">
+        <strong>Knöpfe im Einblick<span class="schwere offen">bewusst</span></strong>
+        <p>Im Supportzugang der Stufe „ansehen“ bleiben die Knöpfe bedienbar. Die Datenbank lehnt jede Änderung ab, und die Maske sagt seit 24.09. warum („Im Einblick wird nur gelesen …“). Sie alle zu sperren hiesse, rund hundert Stellen einzeln anzufassen; ein Riegel über alle Hauptknöpfe träfe auch PDF und Export, die der Support zum Helfen braucht.</p>
+      </div>
+      <div class="luecke">
+        <strong>Urlaub zurücknehmen ohne Modul Urlaub<span class="schwere erledigt">erledigt</span></strong>
+        <p>Seit 29.09.: ist das Modul aus, nimmt, wer Urlaub entscheiden darf, den Antrag direkt am Tag zurück — in der Zeiterfassung und in der Mitarbeiterübersicht, mit Zeitraum und Pflichtgrund. Ein Tag aus dem Betriebsurlaub bleibt davon ausgenommen.</p>
+      </div>
+      <div class="luecke">
+        <strong>Die Rechtstexte sind ein Entwurf<span class="schwere einrichtung">einrichtung</span></strong>
+        <p>Datenschutzerklärung und Impressum stehen, sind aber nicht rechtlich geprüft ; die Angaben zum Betreiber, der Anbieter der Sicherung ausser Haus und der Mailanbieter fehlen noch und stehen in eckigen Klammern da. Sie gehören an <em>eine</em> Stelle im Code, und erst wenn jemand mit Rechtskenntnis sie freigibt, verschwindet das Band „Entwurf“. Der Auftragsverarbeitungsvertrag mit dem Pilotbetrieb ist davon unabhängig.</p>
+      </div>
+      <div class="luecke">
+        <strong>Fehler vor der Anmeldung<span class="schwere erledigt">erledigt</span></strong>
+        <p>Seit 29.09. landet ein Absturz vor der Anmeldung in einem eigenen Protokoll, das die Plattform als „Vor der Anmeldung“ sieht — abgesichert gegen Missbrauch: nur über eine Funktion, Felder gekürzt, keine Wiederholungen, höchstens 100 Einträge je Stunde. Anmeldung, Impressum und Datenschutz zeigen bei einem Absturz jetzt die Fehlertafel statt einer weissen Seite. Ein Nachladefehler, bei dem auch das Neuladen nicht geholfen hat, gilt weiterhin als Rauschen.</p>
+      </div>
+      <div class="luecke">
+        <strong>Die Bestellung verschickt das Mailprogramm<span class="schwere offen">offen</span></strong>
+        <p>„E-Mail an den Vertreter“ öffnet eine fertige Nachricht im Mailprogramm des Geräts; abschicken muss man sie dort. Direkt aus der App zu senden bräuchte das Mailkonto des Betriebs als Geheimnis beim Server — eine Einrichtung, keine Programmierung.</p>
+      </div>
+      <div class="luecke">
+        <strong>Der erste volle Katalog<span class="schwere offen">offen</span></strong>
+        <p>Der DATANORM-Leser ist gegen die <strong>Norm</strong> geprüft, und eine Testdatei des Betriebs ist erfolgreich eingespielt. Seit 29.09. liest er auch das Preiskennzeichen nach der Norm. Ob ein voller Katalog des Grosshändlers ohne Auffälligkeit durchgeht, zeigt der erste; dafür gibt es Probelauf und Layout-Sperre.</p>
+        <p>Dasselbe beim Buchungsstapel: die Buchungslogik ist geprüft, die <em>Kontonummern</em> kommen vom Betrieb. Der erste Stapel gehört vor dem Import von der Kanzlei angesehen.</p>
+      </div>
+      <div class="luecke">
+        <strong>Der Dienstschlüssel bleibt<span class="schwere offen">bewusst</span></strong>
+        <p>Er liegt in den Serverfunktionen und im nächtlichen Lauf, umgeht jeden Zeilenschutz und hinterlässt keine Spur. <strong>Er ist seit 20.09. nicht mehr der Supportweg</strong> — mehr ist er aber auch nicht geworden. Wer ihn hat, kann alles; das ist die Kehrseite davon, dass ein Server überhaupt arbeiten kann.</p>
+      </div>
+      <div class="luecke">
+        <strong>Der Rücklauf braucht Vorarbeit<span class="schwere einrichtung">einrichtung</span></strong>
+        <p>Zwei Handgriffe, die im Ernstfall niemand improvisieren soll. <strong>Erstens:</strong> der Rücklauf füllt eine Datenbank, er baut keine — im Ernstfall also zuerst ein frisches Projekt mit den Migrationen, dann der Rücklauf. <strong>Zweitens:</strong> die Fotos holt er nicht, weil der Schlüssel draussen nur anlegen darf; sie kommen mit dem eigenen Zugang aus dem Eimer.</p>
+        <p>Das ist kein Mangel an der Sicherung, sondern die Kehrseite einer bewussten Entscheidung: ein Schlüssel, der herunterladen darf, darf meistens auch löschen.</p>
+      </div>
+      <div class="luecke">
+        <strong>Die Gegenstellen draussen<span class="schwere offen">offen</span></strong>
+        <p>Alle fünf Serverfunktionen laufen in den Prüfungen gegen den örtlichen Stapel, mit ihren Abweisungen. Den echten Push-Versand hat der Betrieb am 29.09. auf dem iPhone bestätigt — die Meldungen kommen an. Was kein Test erreicht: das echte Sicherungsziel ausser Haus und ob das gehostete Projekt eine <code>.invalid</code>-Adresse beim Anlegen annimmt — den Beweis liefert das erste Benutzernamen-Konto in Produktion.</p>
+      </div>
+      <div class="luecke">
+        <strong>Auf dem iPhone bestätigt<span class="schwere erledigt">erledigt</span></strong>
+        <p>Der Betrieb hat die App am 29.09. auf dem iPhone getestet, auch auf einem älteren Modell: <strong>der Start ist schnell, die Push-Meldungen kommen an</strong>. Die Unterschrift war schon am 07.09. am Gerät bestätigt. Automatisch abgesichert ist auf iOS nichts davon — die acht Wege im Browser laufen in Chromium, nicht in Safari.</p>
+      </div>
+      <div class="luecke">
+        <strong>Zwei Betriebe nie ausgeliefert<span class="schwere offen">offen</span></strong>
+        <p>Im Code ist die Trennung am schärfsten Fall geprüft — zwei Betriebe, derselbe Tag, dieselbe Baustellennummer. <strong>Nicht geprüft ist die Auslieferung:</strong> die Erstanlage ist nie für einen zweiten Mandanten im gehosteten Projekt gelaufen, und die betrieblichen Fragen (AV-Vertrag als Auftragsverarbeiter, die Freigabe der Rechtstexte, getrenntes Produktivprojekt) sind davon unberührt.</p>
+        <p><strong>Zwei fest verdrahtete Reste sind seither gefallen:</strong> das Firmenlogo am 15.09. und der Bezirkskenner <code>WZ</code> am 18.09. Beide hätten einem zweiten Betrieb etwas vom ersten aufgestempelt, und gefunden hat sie nicht die Trennungsprüfung, sondern der Blick auf eine einzelne Ansicht. Solange nie ein zweiter Mandant ausgeliefert wurde, ist das die wahrscheinlichste Sorte Fund.</p>
+      </div>
+      <div class="luecke">
+        <strong>Nach sieben Jahren<span class="schwere offen">steuerberatung</span></strong>
+        <p>Die Löschung je Person entfernt heute, was nicht aufbewahrt werden muss, und nennt für den Rest das Fristende. Ob danach gelöscht oder anonymisiert wird — und was mit dem Namen auf den Belegen anderer geschieht —, entscheidet der Betrieb mit dem Steuerberater. Vor 2031 läuft in diesem Bestand keine Frist ab.</p>
+      </div>
+    </div>
+
+    <div class="hinweis">
+      <p class="erst"><strong>Und eine Idee, die verworfen wurde.</strong></p>
+      <p>
+        Die Unterschriftsbilder liegen als PNG im Datensatz und machen jeden
+        unterschriebenen Schein rund 70 KB schwer. Sie in den Dateispeicher zu
+        verlagern wäre der große Hebel für die Ladezeit gewesen und ist
+        trotzdem falsch: dieser Speicher kennt keine Warteschlange für
+        Offline-Vorgänge. Ein Foto darf fehlen, eine Unterschrift nicht — im
+        Keller ohne Empfang ließe sich kein Schein mehr unterschreiben, und
+        genau dafür ist die Funktion gebaut.
+      </p>
+    </div>
+  </section>
+
+  <footer class="fuss">
+    <span>Senklot · Betriebssoftware für Installationsbetriebe in Österreich</span>
+    <span>4 255 automatische Prüfungen: 2 987 im Kleinen, 1 260 gegen eine echte Datenbank, 8 Wege im echten Browser</span>
+    <span>Stand 29.09.2026</span>
+  </footer>
+
+</div>
+
+
+</body>
+</html>

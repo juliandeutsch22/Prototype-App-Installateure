@@ -32,6 +32,15 @@ export function listAssignmentsForUserInRange(
   return pg.listAssignmentsForUserInRange(companyId, uid, from, to);
 }
 
+export function listAssignmentsInRange(
+  companyId: string,
+  from: string,
+  to: string,
+  max = 3000,
+): Promise<WithId<Assignment>[]> {
+  return pg.listAssignmentsInRange(companyId, from, to, max);
+}
+
 export function subscribeAssignmentsForMonth(
   companyId: string,
   year: number,

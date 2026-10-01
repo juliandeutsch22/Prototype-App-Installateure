@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon } from '@/lib/lohnregeln';
 import {
@@ -19,6 +20,7 @@ import {
   getISOWeek,
   localDateStr,
   monatsLetzter,
+  offeneWerktage,
   todayStr,
   tageWort,
 } from '@/lib/time';
@@ -88,6 +90,14 @@ export default function TimeView() {
     70 KB wiegt.
   */
   const [eigeneScheine, setEigeneScheine] = useState<WithId<WorkSheet>[]>([]);
+  /*
+    AUS DER ADRESSE (Startseite, Nachtest 01.10.2026): `?datum=JJJJ-MM-TT`
+    belegt das Formular mit diesem Tag vor, `?filter=fehlend` zeigt oben die
+    Tage ohne Buchung der letzten fünf Wochen — dieselbe Rechnung wie auf
+    der Startseite.
+  */
+  const [adresse] = useSearchParams();
+  const zeigeFehlende = adresse.get('filter') === 'fehlend';
   /** Was aus einem offenen Nachtrag ins Formular übernommen wurde. */
   const [vorbelegung, setVorbelegung] = useState<{
     date: string;
@@ -95,7 +105,10 @@ export default function TimeView() {
     startTime?: string;
     endTime?: string;
     breakDuration?: number;
-  } | null>(null);
+  } | null>(() => {
+    const tag = adresse.get('datum');
+    return tag && /^\d{4}-\d{2}-\d{2}$/.test(tag) && tag <= todayStr() ? { date: tag, projectNumber: '' } : null;
+  });
   const [profile, setProfile] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -355,6 +368,14 @@ export default function TimeView() {
    * Jüngster Anwesenheitseintrag mit Zeitspanne — Vorlage für „wie zuletzt".
    * Krank- und Urlaubstage taugen nicht als Vorlage, sie tragen keine Zeiten.
    */
+  /** Tage ohne Buchung der letzten fünf Wochen — wie auf der Startseite (`LUECKEN_TAGE`). */
+  const fehlendeTage = useMemo(() => {
+    if (!zeigeFehlende || !profile || !fuehrtZeitkonto(profile)) return [];
+    const von = new Date();
+    von.setDate(von.getDate() - 35);
+    return offeneWerktage(profile, entries, von, new Date());
+  }, [zeigeFehlende, profile, entries]);
+
   const lastEntry = useMemo(
     () =>
       [...entries]
@@ -662,6 +683,34 @@ export default function TimeView() {
         </Hinweiszeile>
       )}
 
+      {zeigeFehlende && profile && (
+        <Card title={fehlendeTage.length ? `Tage ohne Buchung (${fehlendeTage.length})` : 'Tage ohne Buchung'} buendig>
+          {fehlendeTage.length === 0 ? (
+            <EmptyState>In den letzten fünf Wochen ist jeder Arbeitstag gebucht.</EmptyState>
+          ) : (
+            <List>
+              {fehlendeTage.map((tag) => (
+                <ListRow
+                  key={tag}
+                  title={`${new Date(`${tag}T00:00:00`).toLocaleDateString('de-AT', { weekday: 'long' })}, ${datumAT(tag)}`}
+                >
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setEditing(null);
+                      setVorbelegung({ date: tag, projectNumber: '' });
+                      document.getElementById('zeit-formular')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+                    }}
+                  >
+                    Nachtragen
+                  </Button>
+                </ListRow>
+              ))}
+            </List>
+          )}
+        </Card>
+      )}
+
       {doppelteTage.size > 0 && (
         <Hinweiszeile stufe="fehl" role="alert">
           <p>
@@ -762,7 +811,7 @@ export default function TimeView() {
         )}
       </MetricRow>
 
-      <Card title={editing ? 'Eintrag bearbeiten' : 'Neuen Eintrag erfassen'}>
+      <Card id="zeit-formular" title={editing ? 'Eintrag bearbeiten' : 'Neuen Eintrag erfassen'}>
         <TimeForm
           /*
             Der Schlüssel trägt die Vorbelegung mit: die Felder werden mit

@@ -870,6 +870,8 @@ export interface EinkaufPosten {
   angelegtVonName?: string | null;
   bestelltAm?: number | null;
   geliefertAm?: number | null;
+  /** Erwarteter Liefertermin ('YYYY-MM-DD') — nur an bestellten Posten. */
+  liefertermin?: string | null;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -954,6 +956,10 @@ export interface MaterialOrder {
   bestelltAm?: number | null;
   /** Wann die Ware eingetroffen ist — ab da liegt sie im Lager. */
   geliefertAm?: number | null;
+  /** Erwarteter Liefertermin ('YYYY-MM-DD') — nur an bestellten Zeilen, vom Lager gesetzt. */
+  liefertermin?: string | null;
+  /** Seit wann abholbereit — setzt nur die Datenbank. */
+  abholbereitSeit?: number | null;
   createdAt?: number;
   updatedAt?: number;
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
+import Adressfilter from '@/components/Adressfilter';
 import { useAuth } from '@/app/AuthContext';
 import { einplanbar } from '@/lib/permissions';
 import { listActiveProjects } from '@/lib/db/projects';
@@ -85,7 +86,15 @@ export default function AssignmentsView() {
   const uebergabe = useLocation().state as
     | { datum?: string; projectNumber?: string }
     | null;
-  const startDatum = uebergabe?.datum ?? todayStr();
+  /*
+    AUS DER ADRESSE (Startseite, Nachtest 01.10.2026): `?datum=` wählt den
+    Tag, `&filter=unbesetzt` zeigt nur die Baustellen, deren Eingeteilte alle
+    ganztags fehlen. Die Übergabe aus dem Wochenplan geht vor.
+  */
+  const [adresse] = useSearchParams();
+  const datumAusAdresse = /^\d{4}-\d{2}-\d{2}$/.test(adresse.get('datum') ?? '') ? adresse.get('datum')! : null;
+  const nurUnbesetzt = adresse.get('filter') === 'unbesetzt';
+  const startDatum = uebergabe?.datum ?? datumAusAdresse ?? todayStr();
 
   const [date, setDate] = useState(startDatum);
   const [cursor, setCursor] = useState(() => {
@@ -545,6 +554,12 @@ export default function AssignmentsView() {
     list.push(a);
     byProject.set(a.projectNumber, list);
   }
+  // „Unbesetzt“: eingeteilt waren welche, und alle fehlen ganztags (M33).
+  if (nurUnbesetzt) {
+    for (const [pn, rows] of [...byProject.entries()]) {
+      if (!rows.every((r) => imUrlaub.has(r.userId))) byProject.delete(pn);
+    }
+  }
 
   return (
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
@@ -828,9 +843,10 @@ export default function AssignmentsView() {
 
           {/* Bündig: jede Baustelle ein Abschnitt mit ihren Leuten darunter,
               statt eines Kastens in der Karte (Designlinie „Fassung 3"). */}
-          <Card title={`Einsätze am ${fmtDay(date)}`} buendig>
-            {dayAssignments.length === 0 ? (
-              <EmptyState>Keine Einsätze an diesem Tag.</EmptyState>
+          {nurUnbesetzt && <Adressfilter text="nur unbesetzte Einsätze" parameter={['filter']} />}
+          <Card title={`${nurUnbesetzt ? 'Unbesetzte Einsätze' : 'Einsätze'} am ${fmtDay(date)}`} buendig>
+            {byProject.size === 0 ? (
+              <EmptyState>{nurUnbesetzt ? 'An diesem Tag ist jeder Einsatz besetzt.' : 'Keine Einsätze an diesem Tag.'}</EmptyState>
             ) : (
               <div>
                 {[...byProject.entries()].map(([pn, rows]) => {

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
@@ -98,9 +99,11 @@ vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
 function zeige() {
   return render(
-    <ToastProvider>
-      <OrderView />
-    </ToastProvider>,
+    <MemoryRouter>
+      <ToastProvider>
+        <OrderView />
+      </ToastProvider>
+    </MemoryRouter>,
   );
 }
 

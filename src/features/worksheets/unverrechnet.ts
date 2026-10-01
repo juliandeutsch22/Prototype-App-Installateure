@@ -46,6 +46,13 @@ function tageZwischen(vonIso: string, bisIso: string): number {
 export const AUFFAELLIG_AB_TAGEN = 28;
 
 /**
+ * Über wie viele der jüngsten Scheine gesucht wird — unter Rechnungen, auf
+ * der Startseite und im Filter der Scheinliste dieselbe Zahl, damit überall
+ * dieselben Scheine als „nicht verrechnet“ gelten.
+ */
+export const UNVERRECHNET_BASIS = 60;
+
+/**
  * Die unterschriebenen Scheine, die auf keiner gültigen Rechnung stehen.
  *
  * ÄLTESTE ZUERST — das ist die Aussage. Eine Leistung von vorgestern ist

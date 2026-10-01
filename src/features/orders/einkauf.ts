@@ -1,6 +1,8 @@
 import type { Company, EinkaufPosten, Material, MaterialOrder } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { fmtMenge } from '@/lib/belegLayout';
+import { todayStr } from '@/lib/time';
+import { datumAT } from '@/lib/datum';
 
 /**
  * Die Einkaufsliste — was nicht im Lager liegt, gesammelt je Grosshändler.
@@ -52,6 +54,8 @@ export interface Unterwegs {
   kommission?: string;
   notiz?: string;
   bestelltAm?: number | null;
+  /** Erwarteter Liefertermin ('YYYY-MM-DD'), falls eingetragen. */
+  liefertermin?: string | null;
 }
 
 /** Was je Grosshändler auf der Liste steht. */
@@ -140,6 +144,7 @@ export function einkaufsliste(
         wer: o.userName,
         kommission: o.projectNumber,
         bestelltAm: o.bestelltAm,
+        liefertermin: o.liefertermin ?? null,
       });
       continue;
     }
@@ -162,6 +167,7 @@ export function einkaufsliste(
         kommission: LAGER_KOMMISSION,
         notiz: p.notiz ?? undefined,
         bestelltAm: p.bestelltAm,
+        liefertermin: p.liefertermin ?? null,
       });
       continue;
     }
@@ -240,4 +246,10 @@ export function bestellMail(o: {
     ),
     gekuerzt: true,
   };
+}
+
+/** „Liefertermin 03.10.2026“, überschritten mit dem Hinweis dazu. */
+export function lieferterminText(termin?: string | null, heute = todayStr()): string {
+  if (!termin) return '';
+  return termin < heute ? `Liefertermin ${datumAT(termin)} überschritten` : `Liefertermin ${datumAT(termin)}`;
 }

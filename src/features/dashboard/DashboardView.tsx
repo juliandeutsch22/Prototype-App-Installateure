@@ -1,545 +1,167 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { getUserByUid, listUsers } from '@/lib/db/users';
-import { listOwnEntriesSince, listEntriesInRange, listEntriesForProjects } from '@/lib/db/timeEntries';
-import { listUpcomingAssignments, listAssignmentsForDate } from '@/lib/db/assignments';
-import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
-import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
-import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
 import { useModul } from '@/lib/useModule';
-import RuestlisteAbhaken from '@/features/assignments/RuestlisteAbhaken';
-import { listUnpaidInvoices } from '@/lib/db/invoices';
-import {
-  localDateStr,
-  todayStr,
-  offeneWerktage,
-  groupProjectHours,
-  normProjectNumber,
-  calcBudgetState,
-  fmtStd,
-  tageWort,
-  getISOWeek,
-  fmtStunden,
-} from '@/lib/time';
+import { localDateStr, todayStr, getISOWeek } from '@/lib/time';
 import { getAustrianHolidayName } from '@shared/feiertage';
 import { datumAT } from '@/lib/datum';
 import {
   fuehrtZeitkonto,
   canProcessOrders,
   isGF,
+  isTopLevel,
   canInvoice,
   canEditTime,
   isMitarbeiter,
   canWriteWorkSheet,
+  darfUrlaubEntscheiden,
+  darfEinkaufSehen,
 } from '@/lib/permissions';
 import { canAccess, zusatzrechte } from '@/app/navigation';
-import type { Assignment, EinsatzMaterial, MaterialOrder, Project, RuestPosition } from '@/types';
 import Card from '@/components/Card';
+import Icon from '@/components/Icon';
 import Hinweiszeile from '@/components/Hinweiszeile';
-import Metric, { MetricRow } from '@/components/Metric';
-import { Marke, Warnung, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import { LoadingState } from '@/components/States';
+import { rolleAnzeige } from '@/lib/rolleAnzeige';
 import LaufWarnung from './LaufWarnung';
 import WartungHinweis from './WartungHinweis';
-import StatusBadge from '@/components/StatusBadge';
-import { AdresseLink, TelefonLink, KontaktZeile } from '@/components/Kontakt';
-import { LoadingState } from '@/components/States';
-import { byNewest } from '@/lib/timestamps';
-import { istUeberfaellig, offenerRest } from '@/features/invoices/zahlstand';
-import { euro } from '@/lib/betrag';
-import { baustellenTitel } from '@/lib/baustellenTitel';
-import { besetzung, fehlenText, ganztagsWeg } from '@/features/assignments/besetzung';
-import { listAbwesendInRange } from '@/lib/db/vacations';
-import { einsatzZeit } from '@/features/assignments/einsatzZeit';
-import { rolleAnzeige } from '@/lib/rolleAnzeige';
+import Handlungsbedarf from './start/Handlungsbedarf';
+import Kennzahlen from './start/Kennzahlen';
+import HeuteEigene from './start/HeuteEigene';
+import HeuteLeitung from './start/HeuteLeitung';
+import HeuteListe from './start/HeuteListe';
+import { startseite } from './start/aufbau';
+import { grundpfad } from './start/ziele';
+import {
+  buchhaltung,
+  einstellungen,
+  lager,
+  leitung,
+  persoenlich,
+  startRolle,
+  team,
+  type Kontext,
+  type StartDaten,
+  type StartRolle,
+} from './start/laden';
 
 /**
- * 'YYYY-MM-DD' -> 'Mo., 01.09.'
+ * DIE STARTSEITE (Testbericht 4.2, Nachtest 01.10.2026 Paket B; Skizzen in
+ * `docs/design/startseite-skizzen`).
  *
- * Ohne Wochentag muesste man nachrechnen, welcher Tag da fehlt. Das Jahr
- * bleibt weg: die Luecken liegen im Fenster der letzten Wochen.
+ * Für jede Rolle derselbe Aufbau:
+ *   1. Seitenkopf — der Tag als Überschrift, KW, Betrieb, Rolle.
+ *   2. Handlungsbedarf — EINE Karte, je Thema ein Abschnitt mit höchstens
+ *      drei Zeilen und „und N weitere →“ auf die gefilterte Fachseite.
+ *   3. Heute — was heute ansteht (Einsatz, Lieferungen, Zahlungseingänge,
+ *      wer wo ist).
+ *   4. Kennzahlen — höchstens vier, jede ein Verweis.
+ *
+ * Am Schreibtisch links Handlungsbedarf, rechts Heute und Kennzahlen; am
+ * Telefon eine Spalte in dieser Reihenfolge. Ist nichts zu tun: „Heute
+ * liegt nichts an“ und darunter, über die ganze Breite, Heute (bei der
+ * Leitung, wenn es Einsätze gibt) und die Kennzahlen — keine leere Spalte
+ * (G20).
+ *
+ * Was eine Rolle zeigt, steht in `start/aufbau.ts` und `start/regeln.ts`;
+ * geladen wird in `start/laden.ts`.
  */
-function fmtTag(iso: string): string {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString('de-AT', {
-    weekday: 'short',
-    day: '2-digit',
-    month: '2-digit',
-  });
-}
-
-/** Eine Baustelle, deren Stundenbudget knapp wird oder überschritten ist. */
-interface ProjectAlert {
-  projectNumber: string;
-  customerName: string;
-  pct: number | null;
-  over: boolean;
-  /**
-   * Verbrauchte Fachzeit in MINUTEN.
-   *
-   * Vorher standen hier fertig gerundete Stunden, die roh ausgegeben wurden —
-   * JavaScript schreibt sie mit PUNKT. Auf der Startseite stand „39.5 von
-   * 40 h", in der Projektauswertung „39,5 h". Formatiert wird jetzt erst beim
-   * Anzeigen, mit derselben Funktion wie dort.
-   */
-  usedMin: number;
-  estimatedHours: number;
-}
-
-/** Ein Einsatz mit den Stammdaten der Baustelle — Adresse und Nummer zählen im Auto. */
-interface EinsatzZeile {
-  id: string;
-  /**
-   * Der Tag des Einsatzes — mitgefuehrt, nicht aus `todayStr()` geholt.
-   *
-   * Bleibt die App ueber Mitternacht offen, waere „heute" ein anderer Tag
-   * als der, zu dem diese Zeile gehoert: der Haken auf der Ruestliste ginge
-   * dann an ein Dokument, das es nicht gibt.
-   */
-  date: string;
-  projectNumber: string;
-  customerName: string;
-  address?: string;
-  contactName?: string;
-  contactPhone?: string;
-  asHelper: boolean;
-  comment?: string;
-  /** Die Uhrzeit, falls geplant (M34): „07:30–12:00“. */
-  zeit?: string | null;
-  /**
-   * Die Ruestliste dieses Einsatzes — was mitzunehmen ist.
-   *
-   * Sie haengt am Paar aus Tag und Baustelle, nicht am einzelnen Einsatz:
-   * die Kiste steht einmal im Bus, auch wenn drei Leute hinfahren.
-   */
-  material?: RuestPosition[];
-  geladen?: NonNullable<EinsatzMaterial['geladen']>;
-}
-
-/** Alle Einsätze eines Tages, nach Baustelle gebündelt — die Sicht der Leitung. */
-interface TagesBaustelle {
-  projectNumber: string;
-  customerName: string;
-  address?: string;
-  contactPhone?: string;
-  contactName?: string;
-  namen: string[];
-  helfer: number;
-  /** Eingeteilt und ganztags weg (M33) — mit Grund, soweit sichtbar. */
-  fehlen: { name: string; grund: string | null }[];
-  /** Eingeteilt waren welche, da ist keiner (M33). */
-  unbesetzt: boolean;
-}
-
-interface DashData {
-  /**
-   * Werktage ohne Buchung — statt des Saldos.
-   *
-   * Der Saldo seit Eintritt braucht als einzige Zahl wirklich alle Buchungen
-   * und gehoert deshalb dorthin, wo man ohnehin auf sein Zeitkonto schaut.
-   * Auf der Startseite steht die Frage, die man handeln kann: was fehlt noch?
-   */
-  fehlendeTage?: string[];
-  /**
-   * Ist ueberhaupt ein Eintritt hinterlegt?
-   *
-   * Ohne ihn laesst sich nicht sagen, welche Tage fehlen — die Startseite
-   * schweigt dann. Fuer eine Rolle ohne Zeitkonto ist das richtig; fuer
-   * einen Monteur waere es eine verschluckte Datenluecke, und niemand
-   * erfuehre, warum die Warnung ausbleibt.
-   */
-  hatEintritt?: boolean;
-  /** Die heutigen Einsätze — MEHRZAHL, ein Monteur kann an einem Tag auf zwei Baustellen sein. */
-  heuteEigene?: EinsatzZeile[];
-  ownOpenOrders?: number;
-  /** Alle laufenden Baustellen (Leitung). */
-  aktiveBaustellen?: Project[];
-  /** Die heutige Einteilung des ganzen Betriebs (Leitung). */
-  heuteBetrieb?: TagesBaustelle[];
-  openOrders?: MaterialOrder[];
-  projectAlerts?: ProjectAlert[];
-  invoiceSums?: { open: number; overdue: number };
-  /** Wer hat noch nicht gebucht — statt Salden. */
-  team?: { uid: string; name: string; fehlendeTage: number; hatKonfig: boolean }[];
-}
-
-/**
- * Wie weit die Luecken-Pruefung zurueckreicht.
- *
- * Ein Monat plus ein paar Tage: am Monatsersten waere ein reiner
- * Kalendermonat leer und die Luecken des Vormonats verschwaenden genau dann,
- * wenn sie nachgetragen gehoeren. Der Zeitraum ist fest — er waechst nicht
- * mit den Dienstjahren.
- */
-const LUECKEN_TAGE = 35;
-
-/**
- * Wie viele Zeilen die Startseite je Karte zeigt.
- *
- * Die Startseite ist eine Rangfolge, keine Übersicht: oben steht, was heute
- * jemanden angeht. Eine Karte, die mit dem Betrieb wächst, verschiebt alles
- * unter ihr aus dem Blick — und zwar genau die kurzen, wichtigen Karten.
- *
- * ZWEI VERSCHIEDENE ZAHLEN, weil die Karten verschiedene Fragen beantworten:
- * die Baustellenliste ist eine Übersicht („was haben wir gerade?") und
- * braucht Substanz; die Budgetwarnungen sind eine Arbeitsliste und sind nach
- * Auslastung sortiert — die schlimmsten stehen oben, der Rest ist Nachlauf.
- */
-const BAUSTELLEN_AUF_STARTSEITE = 12;
-const WARNUNGEN_AUF_STARTSEITE = 8;
-
-/** Rollen-spezifisches Zuhause mit echten Kennzahlen. */
 export default function DashboardView() {
   const { user, company, einblick } = useAuth();
-  /**
-   * Karten und Verweise nur zeigen, wenn ihr Bereich eingeschaltet ist.
-   *
-   * Die Startseite ist die Stelle, an der ein abgeschaltetes Modul am
-   * ehesten durchschlaegt: sie zieht aus allen Bereichen zusammen. Bliebe die
-   * Karte „Material angefordert" stehen, waehrend der Bereich aus ist, fuehrte
-   * jeder Verweis darin in eine Sackgasse.
-   */
   const scheineAn = useModul('scheine');
   const materialAn = useModul('material');
   const rechnungenAn = useModul('rechnungen');
-  const [data, setData] = useState<DashData>({});
-  const [laden, setLaden] = useState({ persoenlich: true, betrieblich: true, team: true });
+  const wartungAn = useModul('wartung');
+  const urlaubAn = useModul('urlaub');
+  const einsatzAn = useModul('einsatzplanung');
+  const [data, setData] = useState<StartDaten>({});
   /*
-    WELCHER TEIL NICHT KAM — und dass es überhaupt jemand erfährt.
-
-    Die drei Blöcke liefen über `Promise.allSettled`, dessen Ergebnis
-    verworfen wurde. Warf einer, wurde sein `setLaden(false)` nie erreicht:
-    der Kreisel blieb für immer stehen, und die Warnungen dieses Blocks —
-    fehlende Tage, offene Anforderungen, überfällige Rechnungen — erschienen
-    einfach nie. Die Startseite war damit die einzige Ansicht der App ganz
-    ohne Fehlerzustand, und ausgerechnet sie sagt, was ansteht.
-
-    Ein ewiger Kreisel behauptet zwar nichts Falsches — `nothingToShow`
-    verlangt, dass nichts mehr lädt —, aber er erklärt auch nichts. Und wer
-    sich an eine Startseite gewöhnt, die dauernd lädt, sieht auch dann nicht
-    hin, wenn sie etwas zu sagen hat.
+    Wie viele Ladeblöcke noch laufen. Beginnt bei 1, nicht bei 0: bis der
+    Effekt seine Blöcke zählt, ist die Seite noch nicht geladen — sonst stand
+    einen Augenblick „Heute liegt nichts an“ da.
+  */
+  const [laeuft, setLaeuft] = useState(1);
+  /*
+    WELCHER TEIL NICHT KAM — und dass es jemand erfährt. Jeder Block für
+    sich: fällt die Buchhaltung aus, sieht der Monteur trotzdem, wo er heute
+    hin muss, und die Seite sagt, was fehlt. Eine Startseite, die weniger
+    zeigt als sonst, sähe sonst aus wie ein ruhiger Tag.
   */
   const [nichtGeladen, setNichtGeladen] = useState<string[]>([]);
+
+  const rolle: StartRolle = user ? startRolle(user.role) : 'monteur';
   const mitZeitkonto = user ? fuehrtZeitkonto(user) : false;
-  const mgmt = user ? canProcessOrders(user.role) || isGF(user.role) : false;
-  const leitung = user ? isGF(user.role) : false;
+  const heute = todayStr();
+
+  const darf = useMemo(() => {
+    const zusatz = zusatzrechte(user, company);
+    return (ziel: string) => !!user && canAccess(user.role, grundpfad(ziel), company?.modules, zusatz);
+  }, [user, company]);
+  const urlaubEntscheiden = !!user && urlaubAn && darfUrlaubEntscheiden(user.role, user.uid, company?.vacationApprovers);
 
   useEffect(() => {
     if (!user) return;
-    let cancelled = false;
-    setLaden({ persoenlich: true, betrieblich: true, team: true });
+    let weg = false;
+    const k: Kontext = { user, company, heute: todayStr() };
+    const r = startRolle(user.role);
+    setData({});
     setNichtGeladen([]);
 
-    const reiche = (teil: Partial<DashData>) => {
-      if (!cancelled) setData((v) => ({ ...v, ...teil }));
-    };
+    const bloecke: [string, () => Promise<Partial<StartDaten>>][] = [];
+    if (mitZeitkonto || isMitarbeiter(user.role)) {
+      bloecke.push(['Deine Tage und Einsätze', () => persoenlich(k, {
+        material: materialAn,
+        scheine: scheineAn && r === 'monteur',
+        kennzahlen: r === 'monteur',
+      })]);
+    }
+    if (materialAn && canProcessOrders(user.role)) {
+      const lagerSelbst = r === 'verwaltung' || r === 'leitung';
+      bloecke.push(['Anforderungen und Lager', () => lager(k, {
+        posten: lagerSelbst && darfEinkaufSehen(user),
+        bestand: lagerSelbst,
+      })]);
+    }
+    if (canInvoice(user.role) && (rechnungenAn || scheineAn)) {
+      bloecke.push(['Rechnungen und Scheine', () => buchhaltung(k, { rechnungen: rechnungenAn, scheine: scheineAn })]);
+    }
+    if (canEditTime(user.role) || urlaubEntscheiden) {
+      bloecke.push(['Die Mannschaft', () => team(k, { luecken: canEditTime(user.role), urlaub: urlaubEntscheiden })]);
+    }
+    if (isGF(user.role)) {
+      bloecke.push(['Baustellen und Einsätze', () => leitung(k, { einsatzplanung: einsatzAn, wartung: wartungAn, budget: true })]);
+    }
+    if (isTopLevel(user.role)) {
+      bloecke.push(['Einstellungen', () => einstellungen(k, { rechnungen: rechnungenAn, konten: true })]);
+    }
 
-    /** Persoenliches: fehlende Zeiten und die heutigen Einsaetze. */
-    const persoenlich = async () => {
-      const out: DashData = {};
-      if (mitZeitkonto || isMitarbeiter(user.role)) {
-        const fenster = new Date();
-        fenster.setDate(fenster.getDate() - LUECKEN_TAGE);
-        const ab = localDateStr(fenster);
-
-        const [profile, entries, einsaetze] = await Promise.all([
-          getUserByUid(user.companyId, user.uid),
-          listOwnEntriesSince(user.companyId, user.uid, ab),
-          listUpcomingAssignments(user.companyId, user.uid, todayStr(), 20),
-        ]);
-
-        /*
-          FEHLENDE TAGE NUR MIT ZEITKONTO. Die Administration landet hier, weil
-          sie auch ihre Einsätze sehen soll (`isMitarbeiter` schliesst sie
-          ein) — und bekam bisher „25 Tage ohne Buchung“ dazu, obwohl sie kein
-          Soll hat (Prüflauf F17). Gefragt wird die frische Zeile, nicht das
-          gemerkte Profil: schaltet die Geschäftsführung ihr Zeitkonto um,
-          soll die Startseite es beim nächsten Laden wissen.
-        */
-        if (profile && fuehrtZeitkonto(profile)) {
-          out.hatEintritt = !!profile.appStartDate;
-          out.fehlendeTage = offeneWerktage(profile, entries, fenster, new Date());
-        }
-
-        /**
-         * ALLE Einsaetze von heute, nicht der erste.
-         *
-         * Vorher stand hier `assignments.find(...)` — der erste Treffer, der
-         * Rest fiel stillschweigend weg. Wer vormittags auf der einen und
-         * nachmittags auf der anderen Baustelle ist, sah nur die eine und
-         * fuhr im Zweifel die falsche an.
-         */
-        const heute = todayStr();
-        /*
-          WER HEUTE GANZTAGS WEG IST, HAT HEUTE KEINEN EINSATZ (Testbericht
-          30.09.2026, M33). Vorher stand der Einsatz trotz Krankmeldung als
-          „Heute“ da. Scheitert die Abfrage, bleibt es wie bisher.
-        */
-        const eigeneAbwesenheit = einsaetze.some((a) => a.date === heute)
-          ? await Promise.resolve().then(() => listAbwesendInRange(heute, heute)).catch(() => [])
-          : [];
-        const heuteWeg = !!ganztagsWeg(eigeneAbwesenheit, user.uid, heute);
-        const heutige = heuteWeg ? [] : einsaetze.filter((a) => a.date === heute);
-        if (heutige.length > 0) {
-          /*
-            Die Ruestlisten des Tages dazu — aber nur, wenn das Modul an ist,
-            und ohne die Startseite mitzureissen, wenn sie nicht kommen. Wo
-            der Monteur heute hin muss, ist die wichtigere Information; sie
-            darf nicht daran haengen, dass eine Materialabfrage durchkommt.
-          */
-          const [projekte, listen] = await Promise.all([
-            listProjectsByNumbers(user.companyId, heutige.map((a) => a.projectNumber)),
-            materialAn
-              ? listEinsatzMaterialForDate(user.companyId, heute).catch(() => [])
-              : Promise.resolve([]),
-          ]);
-          out.heuteEigene = heutige.map((a) => {
-            const pr = projekte.find((x) => x.projectNumber === a.projectNumber);
-            const liste = listen.find((l) => l.projectNumber === a.projectNumber);
-            return {
-              material: liste?.positionen,
-              geladen: liste?.geladen ?? {},
-              id: a.id,
-              date: a.date,
-              projectNumber: a.projectNumber,
-              // Angezeigter Titel: Bezeichnung und Kunde (G4).
-              customerName: pr ? baustellenTitel(pr) : `Baustelle ${a.projectNumber}`,
-              address: pr?.address,
-              contactName: pr?.contactName,
-              contactPhone: pr?.contactPhone,
-              asHelper: !!a.asHelper,
-              comment: a.comment,
-              zeit: einsatzZeit(a),
-            };
-          });
-        } else {
-          out.heuteEigene = [];
-        }
-      }
-      reiche(out);
-    };
-
-    /** Betriebliches: Baustellen, heutige Einteilung, Anforderungen, Rechnungen. */
-    const betrieblich = async () => {
-      const out: DashData = {};
-      if (mgmt) {
-        const [orders, projects, invoices] = await Promise.all([
-          listOpenOrders(user.companyId),
-          listActiveProjects(user.companyId),
-          canInvoice(user.role) ? listUnpaidInvoices(user.companyId) : Promise.resolve([]),
-        ]);
-
-        out.openOrders = orders
-          .filter((o) => o.transactionType !== 'return')
-          .sort((a, b) => byNewest(a, b));
-
-        if (canInvoice(user.role)) {
-          /*
-            DER REST, NICHT DER RECHNUNGSBETRAG. Auf der Startseite steht,
-            wie viel Geld noch kommen muss; eine Teilzahlung mindert das.
-            „Teilbezahlt" zählt dabei zu „offen" — mit dem, was von ihr übrig
-            ist. Vorher stand dort die Summe der Bruttobeträge, und die war
-            nach jeder Anzahlung zu hoch.
-          */
-          // Überfällig nach dem ZIEL, nicht nach dem Stand: eine angezahlte
-          // Rechnung heisst „Teilbezahlt" und kann trotzdem längst fällig sein.
-          const heute = todayStr();
-          const sum = (offenNichtUeberfaellig: boolean) =>
-            invoices
-              .filter((i) => istUeberfaellig(i, heute) !== offenNichtUeberfaellig)
-              .reduce((a, i) => a + offenerRest(i), 0);
-          out.invoiceSums = { open: sum(true), overdue: sum(false) };
-        }
-
-        if (leitung) {
-          /**
-           * ALLE laufenden Baustellen, nicht nur die auffaelligen.
-           *
-           * Das Radar zeigt weiterhin, was aus dem Ruder laeuft — aber die
-           * Frage „welche Baustellen haben wir gerade?" beantwortete die
-           * Startseite bisher gar nicht. Wer sie stellte, musste erst in die
-           * Verwaltung wechseln.
-           */
-          out.aktiveBaustellen = [...projects]
-            .filter((pr) => pr.status === 'Aktiv')
-            .sort((a, b) => a.customerName.localeCompare(b.customerName, 'de'));
-
-          /** Die heutige Einteilung des Betriebs, nach Baustelle gebuendelt. */
-          const heute = todayStr();
-          const [einsaetze, abwesend] = await Promise.all([
-            listAssignmentsForDate(user.companyId, heute),
-            // Wer heute fehlt (M33). Ohne diese Auskunft bleibt die Karte, wie sie war.
-            Promise.resolve().then(() => listAbwesendInRange(heute, heute)).catch(() => []),
-          ]);
-          const nachBaustelle = new Map<string, Assignment[]>();
-          for (const a of einsaetze) {
-            const liste = nachBaustelle.get(a.projectNumber) ?? [];
-            liste.push(a);
-            nachBaustelle.set(a.projectNumber, liste);
-          }
-          out.heuteBetrieb = [...nachBaustelle.entries()]
-            .map(([pn, rows]) => {
-              const pr = projects.find((x) => x.projectNumber === pn);
-              const lage = besetzung(rows, abwesend, heute);
-              return {
-                projectNumber: pn,
-                // Angezeigter Titel: Bezeichnung und Kunde (G4).
-                customerName: pr ? baustellenTitel(pr) : `Baustelle ${pn}`,
-                address: pr?.address,
-                contactPhone: pr?.contactPhone,
-                contactName: pr?.contactName,
-                // Wer da ist — wer fehlt, steht darunter (M33).
-                namen: lage.da.filter((n) => n !== 'Unbekannt').sort((a, b) => a.localeCompare(b, 'de')),
-                helfer: rows.filter((r) => r.asHelper && !ganztagsWeg(abwesend, r.userId, heute)).length,
-                fehlen: lage.fehlen,
-                unbesetzt: lage.unbesetzt,
-              };
-            })
-            .sort((a, b) => a.customerName.localeCompare(b.customerName, 'de'));
-
-          // Projekt-Radar: nur die Baustellen MIT Budget, und nur deren
-          // Eintraege. Abgeschlossene fallen weg und machen mit der Zeit den
-          // Grossteil aus.
-          const mitBudget = projects.filter((pr) => (pr.estimatedHours ?? 0) > 0);
-          if (mitBudget.length > 0) {
-            const allEntries = await listEntriesForProjects(
-              user.companyId,
-              mitBudget.map((pr) => pr.projectNumber),
-            );
-            const byProject = groupProjectHours(allEntries);
-            out.projectAlerts = mitBudget
-              .map((pr) => {
-                const hours = byProject.find(
-                  (h) => h.projectNumber === normProjectNumber(pr.projectNumber),
-                );
-                const fachMin = hours?.fachMin ?? 0;
-                const state = calcBudgetState(fachMin, pr.estimatedHours);
-                return {
-                  projectNumber: pr.projectNumber,
-                  customerName: pr.customerName,
-                  pct: state.pct,
-                  over: state.over,
-                  usedMin: fachMin,
-                  estimatedHours: pr.estimatedHours ?? 0,
-                  tone: state.tone,
-                };
-              })
-              .filter((pr) => pr.tone === 'warning' || pr.tone === 'danger')
-              .sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0));
-          }
-        }
-      } else if (isMitarbeiter(user.role)) {
-        const orders = await listOwnOpenOrders(user.companyId, user.uid);
-        out.ownOpenOrders = orders.filter((o) => o.transactionType !== 'return').length;
-      }
-      reiche(out);
-    };
-
-    /**
-     * Team: WER HAT NOCH NICHT GEBUCHT — nicht, wer wie viele Stunden vor
-     * oder zurueck liegt.
-     *
-     * Ein Saldo auf der Startseite war zweimal falsch: er kostete jeden
-     * Zeiteintrag des Betriebs, und er beantwortete nicht die Frage, die
-     * jemand mit dieser Liste vor sich tatsaechlich hat. Handeln kann man an
-     * einer Luecke — die laesst sich nachtragen. An „-3,5 h" nicht.
-     *
-     * Der Bereich ist fest begrenzt: zwanzig Leute mal fuenfunddreissig Tage
-     * sind rund 500 Dokumente, und das bleibt so, auch in zehn Jahren.
-     */
-    const team = async () => {
-      const out: DashData = {};
-      if (canEditTime(user.role)) {
-        const alle = await listUsers(user.companyId);
-        const zeitkonten = alle.filter((u) => fuehrtZeitkonto(u) && u.active !== false);
-
-        const fenster = new Date();
-        fenster.setDate(fenster.getDate() - LUECKEN_TAGE);
-        const eintraege = await listEntriesInRange(
-          user.companyId,
-          localDateStr(fenster),
-          todayStr(),
-        );
-
-        out.team = zeitkonten
-          .map((u) => {
-            const eigene = eintraege.filter((e) => e.userId === u.uid);
-            return {
-              uid: u.uid,
-              name: u.name,
-              fehlendeTage: offeneWerktage(u, eigene, fenster, new Date()).length,
-              hatKonfig: !!u.appStartDate,
-            };
-          })
-          // Wer etwas offen hat, steht oben — die Liste ist eine Arbeitsliste.
-          .sort((a, b) => b.fehlendeTage - a.fehlendeTage || a.name.localeCompare(b.name, 'de'));
-      }
-      reiche(out);
-    };
-
-    /**
-     * Jeder Block für sich, mit Auffang.
-     *
-     * `allSettled` verschluckte die Ablehnung, und `finally` gab es nicht —
-     * beides zusammen ergab den ewigen Kreisel. Jetzt wird der Ladezustand
-     * IMMER beendet, und wer nicht kam, sagt es.
-     *
-     * Die Blöcke bleiben getrennt: fällt die Betriebssicht aus, soll der
-     * Monteur trotzdem sehen, wo er heute hin muss.
-     */
-    const mitAuffang = (
-      teil: 'persoenlich' | 'betrieblich' | 'team',
-      name: string,
-      lauf: () => Promise<void>,
-    ) =>
-      lauf()
+    setLaeuft(bloecke.length);
+    for (const [name, lauf] of bloecke) {
+      void Promise.resolve()
+        .then(lauf)
+        .then((teil) => {
+          if (!weg) setData((v) => ({ ...v, ...teil }));
+        })
         .catch(() => {
-          if (!cancelled) setNichtGeladen((f) => (f.includes(name) ? f : [...f, name]));
+          if (!weg) setNichtGeladen((f) => (f.includes(name) ? f : [...f, name]));
         })
         .finally(() => {
-          if (!cancelled) setLaden((v) => ({ ...v, [teil]: false }));
+          if (!weg) setLaeuft((n) => n - 1);
         });
-
-    void Promise.allSettled([
-      mitAuffang('persoenlich', 'Deine Tage und Einsätze', persoenlich),
-      mitAuffang('betrieblich', 'Baustellen, Anforderungen und Rechnungen', betrieblich),
-      mitAuffang('team', 'Die Mannschaft', team),
-    ]);
+    }
     return () => {
-      cancelled = true;
+      weg = true;
     };
-  }, [user, mitZeitkonto, mgmt, leitung, materialAn]);
+  }, [user, company, mitZeitkonto, materialAn, scheineAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden]);
 
-  /**
-   * Grundregel gegen ein ueberladenes wie gegen ein leeres Dashboard: jede
-   * Karte erscheint nur mit Inhalt. Bleibt nichts uebrig, steht dort eine
-   * ruhige Zeile statt einer Wand aus Nullen.
-   */
-  const nochAmLaden = laden.persoenlich || laden.betrieblich || laden.team;
-  const offeneTage = data.fehlendeTage ?? [];
-  const nothingToShow =
-    !nochAmLaden &&
-    offeneTage.length === 0 &&
-    !data.heuteEigene?.length &&
-    !data.aktiveBaustellen?.length &&
-    !data.heuteBetrieb?.length &&
-    !data.projectAlerts?.length &&
-    !data.openOrders?.length &&
-    !data.team?.length &&
-    !data.ownOpenOrders &&
-    !data.invoiceSums?.open &&
-    !data.invoiceSums?.overdue;
+  const seite = useMemo(
+    () => startseite(data, { rolle, heute, jetzt: Date.now(), darf, urlaubEntscheiden }),
+    [data, rolle, heute, darf, urlaubEntscheiden],
+  );
 
   if (!user) return null;
 
-  /*
-    Einmal gerechnet, dreimal gelesen. Wochentag ausgeschrieben, weil genau
-    der die Frage beantwortet, die jemand um 6:50 Uhr im Auto hat — danach
-    das Datum so, wie es überall in der App steht: „Freitag, 25.09.2026".
-    Bis zum 25.09.2026 stand hier „Freitag, 25. September", die einzige
-    Stelle mit ausgeschriebenem Monat.
-  */
-  const heuteKopf = (() => {
+  const kopf = (() => {
     const d = new Date();
     return {
       datum: `${d.toLocaleDateString('de-AT', { weekday: 'long' })}, ${datumAT(localDateStr(d))}`,
@@ -548,90 +170,64 @@ export default function DashboardView() {
     };
   })();
 
-  /* Ob die Spalten der Leitung überhaupt etwas tragen — sonst kein leerer Behälter. */
-  const linksDa =
-    (leitung && !!data.heuteBetrieb?.length) ||
-    (leitung && !!data.aktiveBaustellen?.length) ||
-    !!data.projectAlerts?.length;
-  const rechtsDa = (materialAn && !!data.openOrders?.length) || !!data.team?.length;
+  const nochAmLaden = laeuft > 0;
+  const eigene = data.heuteEigene ?? [];
+  const planVerweis = darf('/my-schedule');
+  const scheinVerweis = scheineAn && canWriteWorkSheet(user.role);
+
+  const heuteKarten = (
+    <>
+      {eigene.length > 0 && (
+        <HeuteEigene
+          einsaetze={eigene}
+          letzteBuchung={data.letzteBuchung}
+          materialAn={materialAn}
+          scheinVerweis={scheinVerweis}
+          planVerweis={planVerweis}
+          titel={rolle === 'monteur' ? 'Heute' : 'Dein Einsatz heute'}
+        />
+      )}
+      {seite.heute?.art === 'liste' && (
+        <HeuteListe zusatz={seite.heute.zusatz} zeilen={seite.heute.zeilen} verweis={seite.heute.verweis} />
+      )}
+      {seite.heute?.art === 'leitung' && (
+        <HeuteLeitung heute={heute} abwesend={data.abwesendHeute ?? []} tag={data.heuteBetrieb ?? []} />
+      )}
+    </>
+  );
+  const hatHeute = eigene.length > 0 || !!seite.heute;
+  const hatBedarf = seite.abschnitte.length > 0;
+  const hatRechts = hatHeute || seite.kennzahlen.length > 0;
 
   return (
-    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am
-    // Schreibtisch — Hinweiszeilen und Karten gehören enger zusammen als
-    // die 24 px, die für eine Seite aus lauter Kästen gedacht waren.
-    <div className="space-y-3 lg:space-y-5">
-      {/*
-        DER TAG IST DIE UEBERSCHRIFT, NICHT DIE BEGRUESSUNG.
-
-        Hier stand „Willkommen, {Vorname}" ueber „{Firma} · Rolle: {Rolle}".
-        Beide Zeilen aendern sich nie — auf dem Bildschirm, der am oeftesten
-        geoeffnet wird, stand damit an der auffaelligsten Stelle nichts, was
-        man nicht schon wusste.
-
-        Und darunter geht es ausschliesslich um HEUTE: „Heute — 2
-        Baustellen", „Heute im Einsatz", die fehlenden Buchungen, die faellige
-        Wartung. Das Thema der Seite war der heutige Tag, und genau der stand
-        nirgends.
-
-        DAS IST MEHR ALS SCHMUCK. Die App laeuft mit Service Worker und haelt
-        Ansichten vor; ein veralteter Stand sieht genauso aus wie ein frischer.
-        Ein sichtbares Datum ist die billigste Auskunft darueber, dass man auf
-        den heutigen Tag schaut — und nach einem Wochenende oder Feiertag
-        beantwortet es die Frage, warum nichts ansteht, bevor sie entsteht.
-
-        Die Kalenderwoche steht dabei: im Betrieb wird nach ihr geplant und
-        Material bestellt.
-      */}
+    <div className="space-y-3 lg:space-y-5" data-geladen={nochAmLaden ? 'nein' : 'ja'}>
+      {/* Der Tag ist die Überschrift: die App hält Ansichten vor, und ein
+          sichtbares Datum ist die billigste Auskunft, dass man auf heute schaut. */}
       <PageHeader
-        title={heuteKopf.datum}
+        title={kopf.datum}
         subtitle={
           <>
-            {/* Umbrechen nur zwischen den Teilen: auf 375 px stand sonst
-                „Rolle:" am Zeilenende und die Rolle allein darunter
-                (Prüflauf 24.09.2026, D13). */}
-            <span className="whitespace-nowrap">KW {heuteKopf.kw}</span> ·{' '}
+            {/* Umbrechen nur zwischen den Teilen (D13). */}
+            <span className="whitespace-nowrap">KW {kopf.kw}</span> ·{' '}
             {company?.name ?? 'Installateur-App'} ·{' '}
             <span className="whitespace-nowrap">Rolle: {rolleAnzeige(user.role, einblick)}</span>
-            {heuteKopf.feiertag && (
+            {kopf.feiertag && (
               <>
                 {' · '}
-                <span className="font-semibold text-warning">{heuteKopf.feiertag}</span>
+                <span className="font-semibold text-warning">{kopf.feiertag}</span>
               </>
             )}
           </>
         }
       />
 
-      {/*
-        DIE NACHTLÄUFE ZUERST, noch vor allem anderen.
-
-        Sie sind das Einzige auf dieser Seite, bei dem der Schaden mit der Zeit
-        wächst statt aufzufallen: eine ausgefallene Sicherung merkt man an dem
-        Tag, an dem man sie braucht. Steht nichts an, steht hier auch nichts —
-        eine dauerhafte grüne Kachel wäre nach zwei Wochen unsichtbar.
-      */}
+      {/* Die Nachtläufe zuerst: ihr Schaden wächst mit der Zeit, statt aufzufallen. */}
       <LaufWarnung />
 
-      {/*
-        Direkt danach die Wartungen: das Einzige auf dieser Seite, das UMSATZ
-        kostet, wenn man es übersieht — und zwar lautlos. Der Kunde meldet
-        sich nicht, wenn niemand kommt.
-      */}
-      <WartungHinweis />
+      {/* Die Verwaltung vereinbart Wartungstermine; bei der Leitung stehen sie im Handlungsbedarf. */}
+      {rolle === 'verwaltung' && <WartungHinweis />}
 
-      {/*
-        Fehlende Zeiten statt Saldo.
-
-        Der Saldo seit Eintritt steht in der Zeiterfassung, wo man ohnehin auf
-        sein Konto schaut. Hier steht, was man TUN kann: die Tage, an denen
-        nichts gebucht ist. Die Datumsangaben ausgeschrieben, nicht nur
-        gezaehlt — „3 Tage fehlen" zwingt zum Suchen, welche.
-      */}
-      {/*
-        Kein Eintrittsdatum: ausdruecklich sagen statt schweigen. Nur fuer
-        alle, die ein Zeitkonto FUEHREN — die Administration hat keines und
-        braucht den Hinweis nicht.
-      */}
+      {/* Ohne Eintrittsdatum lässt sich nicht sagen, welche Tage fehlen — gesagt, nicht verschwiegen. */}
       {mitZeitkonto && data.hatEintritt === false && (
         <Hinweiszeile>
           <p>
@@ -642,420 +238,48 @@ export default function DashboardView() {
         </Hinweiszeile>
       )}
 
-      {offeneTage.length > 0 && (
-        /* Eine Zeile über den Karten, kein farbiger Kasten (Designlinie
-           „Fassung 3"): das Dreieck trägt die Farbe, der Satz den Inhalt. */
-        <Hinweiszeile stufe="warn" role="alert">
-          <p>
-            <b>
-              {offeneTage.length === 1 ? 'Ein Tag ohne Buchung' : `${offeneTage.length} Tage ohne Buchung`}
-            </b>
-            {' — '}
-            {offeneTage.slice(-5).map(fmtTag).join(', ')}
-            {offeneTage.length > 5 && ` und ${offeneTage.length - 5} weitere`}.{' '}
-            {/* Tastfläche 48 px ohne neue Zeilenhöhe: senkrechtes Polster an
-                einem Link im Fliesstext verschiebt nichts (Prüflauf
-                25.09.2026, Touch-Ziele). */}
-            <Link to="/time" className="link-hinweis-weiter py-3.5 -my-3.5">
-              Jetzt nachtragen
-            </Link>
-          </p>
-        </Hinweiszeile>
-      )}
-
-      {/*
-        Die eigenen Einsaetze von heute — fuer den Monteur die wichtigste
-        Information des Tages, deshalb ganz oben. MEHRERE moeglich: wer
-        vormittags woanders ist als nachmittags, sah vorher nur die erste
-        Baustelle.
-      */}
-      {data.heuteEigene && data.heuteEigene.length > 0 && (
-        <Card
-          title={data.heuteEigene.length === 1 ? 'Heute' : `Heute — ${data.heuteEigene.length} Baustellen`}
-          action={
-            // Nur, wer den Einsatzplan hat (nur Monteure) — eingeteilt werden
-            // auch andere, und die landeten auf „Kein Zugriff" (Prüflauf
-            // 25.09.2026, P4-15).
-            user && canAccess(user.role, '/my-schedule', company?.modules, zusatzrechte(user, company)) ? (
-              <Link to="/my-schedule" className="link-weiter text-sm">
-                Mein Einsatzplan
-              </Link>
-            ) : undefined
-          }
-          buendig
-        >
-          {/*
-            JEDE BAUSTELLE EIN ABSCHNITT DER KARTE, KEIN KASTEN DARIN
-            (Designlinie „Fassung 3", keine Karte in der Karte). Alle
-            Baustellen behalten dabei ihre Knöpfe: der Entwurf zeigt die
-            zweite nur als Zeile, aber „Zeit erfassen" mit der Baustelle
-            vorbelegt ist genau der Weg, den ein Monteur mit zwei Einsätzen am
-            Nachmittag braucht.
-          */}
-          <div className="divide-y divide-line">
-            {data.heuteEigene.map((e) => (
-              <div key={e.id} className="px-4 py-4">
-                <p className="flex flex-wrap items-center gap-2 text-base font-semibold text-ink-deep">
-                  {e.customerName}
-                  {e.asHelper && <Marke>Helfer</Marke>}
-                </p>
-                <p className="text-meta text-ink-muted">
-                  {e.zeit ? `${e.zeit} · ` : ''}
-                  {e.projectNumber}
-                </p>
-                {/* Die Notiz des Büros bleibt in Tinte, nicht gedämpft: sie
-                    sagt, was heute zu tun ist („Verteiler, Vormittag"). */}
-                {e.comment && <p className="mt-1 text-sm text-ink">{e.comment}</p>}
-                <KontaktZeile
-                  adresse={e.address}
-                  nummer={e.contactPhone}
-                  name={e.contactName}
-                  className="mt-3"
-                />
-                {/*
-                  Was mitzunehmen ist — unter der Adresse, ueber den Knoepfen.
-                  Die Reihenfolge ist die des Morgens: wohin, was mit, dann
-                  losfahren. Der Haken gilt fuer die Mannschaft, nicht fuer
-                  die Person: die Kiste steht einmal im Bus.
-                */}
-                {materialAn && e.material && e.material.length > 0 && (
-                  <RuestlisteAbhaken
-                    date={e.date}
-                    projectNumber={e.projectNumber}
-                    positionen={e.material}
-                    geladen={e.geladen ?? {}}
-                  />
-                )}
-                {/*
-                  Der Schein entsteht am Ende genau dieses Einsatzes. Ihn hier
-                  anzubieten spart den Umweg ueber einen eigenen Bereich, in
-                  dem die Baustelle noch einmal gesucht werden muesste.
-                */}
-                {/* Zwei gleich breite Knöpfe über die ganze Breite: mit dem
-                    Daumen besser zu treffen als zwei schmale am linken Rand.
-                    Steht nur einer da, nimmt er die ganze Zeile. */}
-                <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap [&>:only-child]:col-span-2">
-                  <Link
-                    to="/time"
-                    state={{ projectNumber: e.projectNumber, asHelper: !!e.asHelper }}
-                    className="flex min-h-touch items-center justify-center rounded bg-brand px-2 py-2 text-center sm:px-5 text-fliess font-semibold text-brand-fg shadow-sm"
-                  >
-                    Zeit erfassen
-                  </Link>
-                  {/* Schreiben darf nicht jeder Eingeteilte (P4-15). */}
-                  {scheineAn && user && canWriteWorkSheet(user.role) && (
-                    <Link
-                      to={`/worksheet?projekt=${encodeURIComponent(e.projectNumber)}`}
-                      className="flex min-h-touch items-center justify-center rounded border border-line bg-surface px-2 py-2 text-center sm:px-5 text-fliess font-medium text-ink-deep shadow-sm"
-                    >
-                      Schein schreiben
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* Kennzahlen: jede Kachel nur, wenn sie fuer diese Rolle etwas aussagt. */}
-      {(materialAn || rechnungenAn) &&
-        (data.ownOpenOrders !== undefined || data.invoiceSums) &&
-        ((data.ownOpenOrders ?? 0) > 0 ||
-          (data.invoiceSums?.open ?? 0) > 0 ||
-          (data.invoiceSums?.overdue ?? 0) > 0) && (
-          <MetricRow>
-            {data.ownOpenOrders !== undefined && data.ownOpenOrders > 0 && (
-              <Metric
-                label="Material"
-                value={data.ownOpenOrders}
-                hint="von dir angefordert"
-                to="/material"
-              />
-            )}
-            {data.invoiceSums && data.invoiceSums.overdue > 0 && (
-              <Metric
-                label="Überfällig"
-                tone="danger"
-                value={euro(data.invoiceSums.overdue)}
-                to="/invoices?status=%C3%9Cberf%C3%A4llig"
-              />
-            )}
-            {data.invoiceSums && data.invoiceSums.open > 0 && (
-              <Metric label="Offene Rechnungen" value={euro(data.invoiceSums.open)} to="/invoices" />
-            )}
-          </MetricRow>
-        )}
-
-      {/*
-        AM SCHREIBTISCH ZWEI SPALTEN (Designlinie „Fassung 3", Büro-Start):
-        links, wo gearbeitet wird — Einsatz und Baustellen —, rechts, was
-        wartet — Material und Team. Am Telefon stehen beide Spalten
-        untereinander in derselben Reihenfolge wie bisher.
-      */}
-      {(linksDa || rechtsDa) && (
-        <div className="zwei-spalten">
-          <div className="spalte">
-          {/*
-            Die heutige Einteilung des Betriebs — die Frage, mit der die Leitung
-            in den Tag geht: wer ist wo? Beantwortete die Startseite bisher gar
-            nicht.
-          */}
-          {leitung && data.heuteBetrieb && data.heuteBetrieb.length > 0 && (
-            <Card
-              title="Heute im Einsatz"
-              action={
-                <Link to="/assignments" className="link-weiter text-sm">
-                  Zur Einsatzplanung
-                </Link>
-              }
-              buendig
-            >
-              <ul className="divide-y divide-line">
-                {data.heuteBetrieb.map((b) => (
-                  <li key={b.projectNumber} className="px-4 py-3">
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <span className="font-medium text-ink-deep">
-                        {b.customerName}{' '}
-                        <span className="text-sm font-normal text-ink-muted">
-                          ({b.projectNumber})
-                        </span>
-                      </span>
-                      {b.unbesetzt ? (
-                        <Zustand stand="achtung">Unbesetzt</Zustand>
-                      ) : (
-                        <Marke>
-                          {b.namen.length} {b.namen.length === 1 ? 'Person' : 'Personen'}
-                          {b.helfer > 0 && `, davon ${b.helfer} Helfer`}
-                        </Marke>
-                      )}
-                    </div>
-                    {b.namen.length > 0 && <p className="mt-0.5 text-meta text-ink-muted">{b.namen.join(', ')}</p>}
-                    {/* M33: eine Krankmeldung verdrängt den Einsatz nicht mehr still. */}
-                    {b.fehlen.length > 0 && (
-                      <p className="mt-0.5 text-meta font-medium text-danger">Fehlt: {fehlenText(b.fehlen)}</p>
-                    )}
-                    <div className="mt-2 flex flex-wrap items-center gap-x-3 text-sm">
-                      <AdresseLink adresse={b.address} />
-                      <TelefonLink nummer={b.contactPhone} name={b.contactName} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
-
-          {/*
-            Alle laufenden Baustellen. Das Radar darunter zeigt, was aus dem Ruder
-            laeuft; diese Karte beantwortet die schlichtere Frage „was haben wir
-            gerade?", fuer die man bisher in die Verwaltung wechseln musste.
-          */}
-          {/*
-            WIE VIELE ZEILEN DIE STARTSEITE VERTRÄGT.
-
-            Diese Karte zeigte ALLE laufenden Baustellen. Bei zwanzig Stück geht
-            das — der Kommentar unten spricht genau davon —, bei achtzig nicht
-            mehr: dann steht die längste und harmloseste Liste der Seite vor den
-            kurzen, wichtigen darunter (Baustellen am Limit, Material,
-            Mannschaft). Die Startseite wird dadurch nicht falsch, aber ihre
-            Reihenfolge kippt, und das ist ihr einziger Zweck.
-
-            ZWÖLF, nicht fünf: die Karte beantwortet die Frage „welche Baustellen
-            haben wir gerade?", und dafür braucht es mehr als einen Ausschnitt.
-            Der Rest steht als Zahl da, mit dem Weg dorthin — dasselbe Muster wie
-            bei den offenen Anforderungen und den Tagen ohne Buchung.
-          */}
-          {leitung && data.aktiveBaustellen && data.aktiveBaustellen.length > 0 && (
-            <Card
-              title={`Aktive Baustellen (${data.aktiveBaustellen.length})`}
-              action={
-                <Link to="/admin-projects" className="link-weiter text-sm">
-                  Baustellen verwalten
-                </Link>
-              }
-              buendig
-            >
-              <ul className="divide-y divide-line">
-                {data.aktiveBaustellen.slice(0, BAUSTELLEN_AUF_STARTSEITE).map((pr) => (
-                  <li key={pr.id} className="px-4 py-3">
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <span className="font-medium text-ink-deep">
-                        {baustellenTitel(pr)}{' '}
-                        <span className="text-sm font-normal text-ink-muted">
-                          ({pr.projectNumber})
-                        </span>
-                      </span>
-                      {pr.estimatedHours ? (
-                        <Marke>{fmtStunden(pr.estimatedHours)} h Budget</Marke>
-                      ) : null}
-                    </div>
-                    {/*
-                      Kompakt gehalten: die Karte zeigt ALLE laufenden Baustellen,
-                      und bei zwanzig Stueck entscheidet die Zeilenhoehe darueber,
-                      ob die Liste noch zu ueberblicken ist. Die Adresse bleibt
-                      einzeilig und wird abgeschnitten — sie ist hier der
-                      Anfasser zur Karte, nicht der vorzulesende Text.
-                    */}
-                    <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 text-sm">
-                      <AdresseLink adresse={pr.address} className="min-w-0 max-w-full" kuerzen />
-                      <TelefonLink nummer={pr.contactPhone} name={pr.contactName} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              {data.aktiveBaustellen.length > BAUSTELLEN_AUF_STARTSEITE && (
-                <p className="border-t border-line px-4 py-3 text-sm text-ink-muted">
-                  und {data.aktiveBaustellen.length - BAUSTELLEN_AUF_STARTSEITE} weitere — alle unter{' '}
-                  <Link to="/admin-projects" className="link-weiter">
-                    Baustellen
-                  </Link>
-                  .
-                </p>
-              )}
-            </Card>
-          )}
-
-          {/* Projekt-Radar: nur was aus dem Ruder läuft. */}
-          {data.projectAlerts && data.projectAlerts.length > 0 && (
-            <Card
-              title="Baustellen am Limit"
-              action={
-                <Link to="/accounting" className="link-weiter text-sm">
-                  Zur Auswertung
-                </Link>
-              }
-              buendig
-            >
-              <ul className="divide-y divide-line">
-                {data.projectAlerts.slice(0, WARNUNGEN_AUF_STARTSEITE).map((pr) => (
-                  <li
-                    key={pr.projectNumber}
-                    className="flex min-h-touch items-center justify-between gap-3 px-4 py-2.5"
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium text-ink-deep">{baustellenTitel(pr)}</span>
-                      <span className="block text-meta text-ink-muted">
-                        {fmtStd(pr.usedMin)} von {fmtStunden(pr.estimatedHours)} h · {pr.projectNumber}
-                      </span>
-                    </span>
-                    <Warnung stufe={pr.over ? 'dringend' : 'achtung'}>
-                      {pr.over ? 'überschritten' : `${pr.pct} %`}
-                    </Warnung>
-                  </li>
-                ))}
-              </ul>
-              {/*
-                Die Liste ist nach Auslastung sortiert, die schlimmsten stehen
-                oben. Acht davon sind eine Arbeitsliste; vierzig sind eine
-                Tapete, die niemand mehr liest — und dann geht auch die eine
-                unter, die wirklich brennt.
-              */}
-              {data.projectAlerts.length > WARNUNGEN_AUF_STARTSEITE && (
-                <p className="border-t border-line px-4 py-3 text-sm text-ink-muted">
-                  und {data.projectAlerts.length - WARNUNGEN_AUF_STARTSEITE} weitere —{' '}
-                  <Link to="/accounting" className="link-weiter">
-                    zur Auswertung
-                  </Link>
-                  .
-                </p>
-              )}
-            </Card>
-          )}
-          </div>
-          <div className="spalte">
-          {/* Offene Materialanforderungen — als Liste, weil eine Zahl nicht sagt,
-              was der Monteur auf der Baustelle braucht. */}
-          {materialAn && data.openOrders && data.openOrders.length > 0 && (
-            <Card
-              title={`Material angefordert (${data.openOrders.length})`}
-              action={
-                <Link to="/material/anforderungen" className="link-weiter text-sm">
-                  Bearbeiten
-                </Link>
-              }
-              buendig
-            >
-              <ul className="divide-y divide-line">
-                {data.openOrders.slice(0, 5).map((o) => (
-                  <li key={o.id} className="flex min-h-touch items-center justify-between gap-3 px-4 py-2.5">
-                    <span className="min-w-0">
-                      {/* Umbrechen statt kürzen: in der schmaleren rechten Spalte
-                          fiel sonst genau das weg, was bestellt ist („Stange 5 m, hart"). */}
-                      <span className="block font-medium text-ink-deep">
-                        {o.quantity}× {o.materialName}
-                      </span>
-                      <span className="block text-meta text-ink-muted">
-                        {[o.userName, o.projectNumber].filter(Boolean).join(' · ')}
-                      </span>
-                    </span>
-                    <StatusBadge status={o.status} />
-                  </li>
-                ))}
-              </ul>
-              {data.openOrders.length > 5 && (
-                <p className="border-t border-line px-4 py-3 text-sm text-ink-muted">
-                  und {data.openOrders.length - 5} weitere
-                </p>
-              )}
-            </Card>
-          )}
-
-          {/*
-            Team: wer hat noch nicht gebucht. Kein Saldo mehr — der beantwortete
-            die Frage nicht, die jemand mit dieser Liste vor sich hat, und kostete
-            jeden Zeiteintrag des Betriebs.
-          */}
-          {data.team && data.team.length > 0 && (
-            <Card
-              title="Team — offene Zeiten"
-              action={
-                <Link to="/accounting" className="link-weiter text-sm">
-                  Zur Monatsauswertung
-                </Link>
-              }
-              buendig
-            >
-              <ul className="divide-y divide-line">
-                {data.team.map((t) => (
-                  <li key={t.uid} className="flex min-h-touch items-center justify-between gap-3 px-4 py-2.5">
-                    <span className="min-w-0 truncate font-medium text-ink-deep">{t.name}</span>
-                    {!t.hatKonfig ? (
-                      <Marke>kein Startdatum</Marke>
-                    ) : t.fehlendeTage > 0 ? (
-                      <Warnung>{tageWort(t.fehlendeTage)} offen</Warnung>
-                    ) : (
-                      <Zustand stand="gut">vollständig</Zustand>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              <p className="border-t border-line px-4 py-3 text-xs text-ink-muted">
-                Geprüft werden die letzten {LUECKEN_TAGE} Tage bis gestern. Der Stundensaldo steht im
-                Zeitkonto des Mitarbeiters.
-              </p>
-            </Card>
-          )}
-          </div>
-        </div>
-      )}
-
-      {nochAmLaden && (
+      {nochAmLaden && !hatBedarf && !hatHeute ? (
         <Card>
           <LoadingState />
         </Card>
+      ) : hatBedarf ? (
+        hatRechts ? (
+          <div className="zwei-spalten">
+            <div className="spalte start-breit">
+              <Handlungsbedarf abschnitte={seite.abschnitte} zaehlwort={seite.zaehlwort} />
+            </div>
+            <div className="spalte">
+              {heuteKarten}
+              <Kennzahlen werte={seite.kennzahlen} raster />
+            </div>
+          </div>
+        ) : (
+          <div className="start-breit">
+            <Handlungsbedarf abschnitte={seite.abschnitte} zaehlwort={seite.zaehlwort} />
+          </div>
+        )
+      ) : (
+        /* Nichts zu tun: EINE Spalte über die ganze Breite (G20). */
+        <div className="spalte start-breit">
+          {!nochAmLaden && (
+            <section className="panel karte flex items-start gap-3 p-4" aria-label="Heute liegt nichts an">
+              <Icon name="haken" size={20} className="mt-0.5 shrink-0 text-success" />
+              <div>
+                <h2 className="titel-karte">Heute liegt nichts an</h2>
+                <p className="mt-0.5 text-sm text-ink-muted">{leerText(rolle)}</p>
+              </div>
+            </section>
+          )}
+          {heuteKarten}
+          <Kennzahlen werte={seite.kennzahlen} />
+        </div>
       )}
 
-      {/*
-        WAS NICHT KAM, statt eines Kreisels, der nie aufhört.
+      {nochAmLaden && (hatBedarf || hatHeute) && (
+        <p className="text-sm text-ink-muted" role="status">Wird noch geladen …</p>
+      )}
 
-        Die Meldung steht UNTEN, nach allem, was sehr wohl geladen wurde: der
-        Monteur soll zuerst sehen, wo er heute hin muss, und erst danach
-        erfahren, dass ein Teil fehlt.
-
-        Der zweite Satz ist der wichtige. Eine Startseite, die weniger zeigt
-        als sonst, sieht aus wie ein ruhiger Tag — und genau diesen Schluss
-        darf sie hier nicht zulassen.
-      */}
+      {/* Was nicht kam — unten, nach allem, was geladen wurde. */}
       {nichtGeladen.length > 0 && (
         <Hinweiszeile stufe="warn" role="status">
           <p>
@@ -1065,14 +289,21 @@ export default function DashboardView() {
           </p>
         </Hinweiszeile>
       )}
-
-      {nothingToShow && (
-        <Card>
-          <p className="text-ink-muted">
-            Nichts Offenes. {isMitarbeiter(user.role) ? 'Zeit buchen über die Leiste unten.' : ''}
-          </p>
-        </Card>
-      )}
     </div>
   );
+}
+
+function leerText(rolle: StartRolle): string {
+  switch (rolle) {
+    case 'monteur':
+      return 'Alle Tage gebucht, kein Schein ohne Zeit, nichts zum Abholen.';
+    case 'verwaltung':
+      return 'Keine offene Anforderung, nichts überfällig, kein Artikel unter der Mindestmenge.';
+    case 'buchhaltung':
+      return 'Keine Mahnung fällig, keine Rechnung überfällig, alle Scheine verrechnet, alle Zeiten gebucht.';
+    case 'projektleitung':
+      return 'Alle Einsätze besetzt, keine Baustelle am Budgetlimit, keine ohne Einsatz.';
+    default:
+      return 'Keine Entscheidung offen, alle Einsätze besetzt, alle Zeiten gebucht, keine Rechnung überfällig.';
+  }
 }

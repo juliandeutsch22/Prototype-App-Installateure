@@ -20,6 +20,7 @@ export {
   lagerPostenLoeschen,
   lagerPostenZuordnen,
   lagerPostenBestellt,
+  lieferterminSetzen,
   artikelSuchen,
 } from './pg/einkauf';
 export type { Grosshaendler, GrosshaendlerDaten, NeuerLagerPosten } from './pg/einkauf';
