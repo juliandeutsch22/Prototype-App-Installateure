@@ -102,9 +102,12 @@ test.beforeAll(async () => {
   // 20 Anforderungen: offen (zwei Eil), bestellt (zwei überfällig, eine heute), abholbereit, erledigt.
   const anforderungen = Array.from({ length: 20 }, (_, i) => {
     const l = leute[i % leute.length];
+    // Jede Zeile mit denselben Feldern: ein Sammel-Insert setzt fehlende sonst auf NULL statt auf den Vorgabewert.
     const basis = {
       id: crypto.randomUUID(), company_id: BETRIEB, material_name: `Artikel ${i + 1}`, quantity: 1 + (i % 5),
       transaction_type: 'order', user_id: l.uid, user_name: l.name, project_number: baustellen[i].project_number,
+      is_urgent: false, processed: false, beschaffung: null as string | null, bestellt_am: null as string | null,
+      liefertermin: null as string | null,
     };
     if (i < 9) return { ...basis, status: 'Offen', is_urgent: i < 2 };
     if (i < 13) {
