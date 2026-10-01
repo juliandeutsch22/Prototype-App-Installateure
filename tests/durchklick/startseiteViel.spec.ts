@@ -126,8 +126,8 @@ test.beforeAll(async () => {
 async function startseitePruefen(page: Page): Promise<number> {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  // Fertig ist die Seite, wenn nichts mehr lädt.
-  await expect(page.getByText('Wird noch geladen …')).toHaveCount(0, { timeout: 20_000 });
+  // Fertig ist die Seite, wenn kein Ladeblock mehr läuft.
+  await expect(page.locator('[data-geladen="ja"]')).toHaveCount(1, { timeout: 20_000 });
   await expect(page.getByText(/Nicht geladen/)).toHaveCount(0);
   await keineFehlermeldung(page);
 

@@ -75,7 +75,12 @@ export default function DashboardView() {
   const urlaubAn = useModul('urlaub');
   const einsatzAn = useModul('einsatzplanung');
   const [data, setData] = useState<StartDaten>({});
-  const [laeuft, setLaeuft] = useState(0);
+  /*
+    Wie viele Ladeblöcke noch laufen. Beginnt bei 1, nicht bei 0: bis der
+    Effekt seine Blöcke zählt, ist die Seite noch nicht geladen — sonst stand
+    einen Augenblick „Heute liegt nichts an“ da.
+  */
+  const [laeuft, setLaeuft] = useState(1);
   /*
     WELCHER TEIL NICHT KAM — und dass es jemand erfährt. Jeder Block für
     sich: fällt die Buchhaltung aus, sieht der Monteur trotzdem, wo er heute
@@ -195,7 +200,7 @@ export default function DashboardView() {
   const hatRechts = hatHeute || seite.kennzahlen.length > 0;
 
   return (
-    <div className="space-y-3 lg:space-y-5">
+    <div className="space-y-3 lg:space-y-5" data-geladen={nochAmLaden ? 'nein' : 'ja'}>
       {/* Der Tag ist die Überschrift: die App hält Ansichten vor, und ein
           sichtbares Datum ist die billigste Auskunft, dass man auf heute schaut. */}
       <PageHeader

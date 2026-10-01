@@ -616,6 +616,13 @@ describe('Wenn ein Teil der Startseite nicht kommt', () => {
     await waitFor(() => expect(screen.queryByText(/Nicht geladen/)).not.toBeInTheDocument());
   });
 
+  it('behauptet beim ersten Zeichnen nicht, es läge nichts an', () => {
+    // Bis die Ladeblöcke gezählt sind, lädt die Seite — vorher stand dort kurz „Heute liegt nichts an“.
+    zeichne();
+    expect(screen.queryByText('Heute liegt nichts an')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-geladen="nein"]')).not.toBeNull();
+  });
+
   it('schweigt, solange alles durchkommt', async () => {
     zeichne();
     await waitFor(() => expect(screen.queryByText(/Wird geladen/)).not.toBeInTheDocument());
