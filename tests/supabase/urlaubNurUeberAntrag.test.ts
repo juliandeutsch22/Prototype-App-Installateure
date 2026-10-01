@@ -221,8 +221,18 @@ describe('Übernahme des Altbestands', () => {
     // alte Fassung zurück; die spätere Migration stellt den heutigen Stand
     // wieder her — sonst rechneten die Prüfungen danach mit ganzen Tagen am
     // 24./31.12., je nachdem, in welcher Reihenfolge sie laufen.
+    //
+    // SEIT DEM 30.09.2026 (Paket 7d) hat die Monatssicht eine Spalte mehr
+    // (`berufsschule_tage`), und `urlaub_entscheiden` kennt den Berufsschultag.
+    // Eine Sicht lässt sich nicht um Spalten kürzen: deshalb erst weg, dann
+    // die Dezember-Fassung, dann der heutige Stand aus der Lehrlings-Migration
+    // — und das Leserecht wie ursprünglich vergeben.
+    await db.query('drop view if exists public.monthly_stats');
     await db.query(readFileSync(
       join(__dirname, '../../supabase/migrations/20260929200000_dezember_halbtage.sql'), 'utf8'));
+    await db.query(readFileSync(
+      join(__dirname, '../../supabase/migrations/20260930400000_lehrlinge.sql'), 'utf8'));
+    await db.query('grant select on public.monthly_stats to authenticated');
 
     const tage = await eintraege(alt.uid, '2027-04-01', '2027-04-30');
     expect(tage.every((t) => t.vacation_id !== null)).toBe(true);

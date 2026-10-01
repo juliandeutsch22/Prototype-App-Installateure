@@ -94,7 +94,8 @@ describe('3 — den Satz setzt die Datenbank', () => {
 
   it('offene Buchungen ziehen nach, verrechnete behalten ihren Satz', async () => {
     const helfer = await konto(BETRIEB, 'Mitarbeiter', 'wechsel');
-    const offen = buchung(helfer, '2099-11-03');
+    // Beide Zeilen mit denselben Spalten: eine Sammelanlage füllt fehlende sonst mit null statt der Vorgabe.
+    const offen = buchung(helfer, '2099-11-03', { is_billed: false, invoice_number: null });
     const verrechnet = buchung(helfer, '2099-11-04', { is_billed: true, invoice_number: 'RE-7D' });
     expect((await admin.from('time_entries').insert([offen, verrechnet])).error).toBeNull();
     expect(await satzVon(offen.id)).toBe('facharbeiter');
