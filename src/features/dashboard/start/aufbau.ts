@@ -13,6 +13,7 @@ import {
   istAbholbereitAlt,
   istLieferungUeberfaellig,
   lieferungenHeute,
+  lueckenMonat,
   mahnungenFaellig,
   offeneAnforderungen,
   ohneEinsatz,
@@ -448,7 +449,7 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
   }
   const luecken = (d.team ?? []).filter((t) => t.fehlendeTage > 0);
   if (luecken.length) {
-    themen.push(wenn(ZIEL.luecken, {
+    themen.push(wenn(ZIEL.luecken(lueckenMonat(luecken)), {
       key: 'luecken', wann: 'woche',
       titel: `${anzahl(luecken.length, 'Person', 'Personen')} mit Tagen ohne Buchung`,
       detail: [...luecken].sort((a, b) => b.fehlendeTage - a.fehlendeTage).slice(0, 2).map((t) => `${t.name} (${t.fehlendeTage})`).join(', '),

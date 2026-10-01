@@ -162,9 +162,11 @@ vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
 function zeige() {
   return render(
-    <ToastProvider>
-      <TimeView />
-    </ToastProvider>,
+    <MemoryRouter>
+      <ToastProvider>
+        <TimeView />
+      </ToastProvider>
+    </MemoryRouter>,
   );
 }
 

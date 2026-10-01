@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
+import Adressfilter from '@/components/Adressfilter';
 import { subscribeMaterials, LOW_STOCK_THRESHOLD, lagerFrei, type LagerStand } from '@/lib/db/materials';
 import { imLager, istKnapp } from './lagerartikel';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
@@ -72,7 +74,13 @@ const EIGENE_ANFORDERUNGEN = 100;
 export default function OrderView() {
   const { user } = useAuth();
   const toast = useToast();
-  const [tab, setTab] = useState<Tab>('bestellen');
+  /*
+    REITER UND STAND AUS DER ADRESSE (Startseite, Nachtest 01.10.2026):
+    „Material abholbereit →“ landet auf „Meine Bestellungen“, nur Abholbereites.
+  */
+  const [adresse] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => (adresse.get('reiter') === 'meine' ? 'meine' : 'bestellen'));
+  const nurAbholbereit = tab === 'meine' && adresse.get('status') === 'Abholbereit';
   // Am Telefon läuft die Reiterleiste seitlich: der gewählte Reiter bleibt im Bild.
   const reiterleiste = useReiterImBild<HTMLDivElement>(tab);
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
@@ -223,8 +231,9 @@ export default function OrderView() {
   );
 
   const activeOrders = useMemo(
-    () => myOrders.filter((o) => o.status !== 'Erledigt' && o.transactionType !== 'return'),
-    [myOrders],
+    () => myOrders.filter((o) => o.status !== 'Erledigt' && o.transactionType !== 'return'
+      && (!nurAbholbereit || o.status === 'Abholbereit')),
+    [myOrders, nurAbholbereit],
   );
   const doneOrders = useMemo(
     () => myOrders.filter((o) => o.status === 'Erledigt' || o.transactionType === 'return'),
@@ -379,7 +388,11 @@ export default function OrderView() {
 
   const TABS: { key: Tab; label: string; count?: number }[] = [
     { key: 'bestellen', label: 'Bestellen', count: cart.length },
-    { key: 'meine', label: 'Meine Bestellungen', count: activeOrders.length },
+    {
+      key: 'meine',
+      label: 'Meine Bestellungen',
+      count: myOrders.filter((o) => o.status !== 'Erledigt' && o.transactionType !== 'return').length,
+    },
     { key: 'retoure', label: 'Retoure' },
   ];
 
@@ -647,8 +660,9 @@ export default function OrderView() {
 
       {tab === 'meine' && (
         <>
+          {nurAbholbereit && <Adressfilter text="nur abholbereite Anforderungen" parameter={['status']} />}
           {/* Bündig: Anforderungen als Zeilen von Kante zu Kante. */}
-          <Card title={`Offen (${activeOrders.length})`} buendig>
+          <Card title={`${nurAbholbereit ? 'Abholbereit' : 'Offen'} (${activeOrders.length})`} buendig>
             {activeOrders.length === 0 ? (
               <EmptyState>Keine offenen Bestellungen.</EmptyState>
             ) : (

@@ -28,7 +28,7 @@ export const ZIEL = {
   rechnung: (nummer: string) => `/invoices?suche=${q(nummer)}`,
   scheine: (filter: ScheinFilter) => `/worksheets?filter=${filter}`,
   schein: (id: string) => `/worksheets?markiert=${q(id)}`,
-  luecken: '/accounting?filter=luecken',
+  luecken: (monat?: string) => `/accounting?filter=luecken${monat ? `&monat=${monat}` : ''}`,
   urlaubsantraege: '/vacations?reiter=antraege',
   tag: (datum: string, filter?: 'unbesetzt') =>
     `/assignments/tag?datum=${datum}${filter ? `&filter=${filter}` : ''}`,

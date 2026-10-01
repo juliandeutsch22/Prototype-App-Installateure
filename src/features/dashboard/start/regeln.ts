@@ -8,6 +8,13 @@ import { datumAT } from '@/lib/datum';
 import { fmtStd, fmtStunden, tageWort } from '@/lib/time';
 import { baustellenTitel } from '@/lib/baustellenTitel';
 import { abschnitt, type Abschnitt, type Zeile } from './abschnitte';
+import { istAbholbereitAlt, istLieferungHeute, istLieferungUeberfaellig } from '@/features/orders/anforderungStand';
+import { BUDGET_AB_PROZENT, endeVorbei, ohneProjektleiter, type BudgetZeile } from '@/features/projects/baustellenLage';
+
+export { BUDGET_AB_PROZENT, type BudgetZeile };
+export { ohneEinsatzListe, OHNE_EINSATZ_TAGE } from '@/features/projects/baustellenLage';
+
+export { istAbholbereitAlt, istLieferungUeberfaellig };
 import { ZIEL } from './ziele';
 
 /**
@@ -118,14 +125,6 @@ export function offeneAnforderungen(orders: MaterialOrder[], heute: string): Abs
   return abschnitt('anf-offen', 'Offene Anforderungen', zeilen, ZIEL.anforderungen('offen'));
 }
 
-/** Bestellt, noch nicht geliefert, Liefertermin vorbei. */
-export function istLieferungUeberfaellig(
-  o: Pick<MaterialOrder, 'bestelltAm' | 'geliefertAm' | 'liefertermin' | 'status'>,
-  heute: string,
-): boolean {
-  return !!o.bestelltAm && !o.geliefertAm && !!o.liefertermin && o.liefertermin < heute && o.status !== 'Erledigt';
-}
-
 export function bestelltUeberfaellig(orders: MaterialOrder[], heute: string): Abschnitt | null {
   const zeilen: Zeile[] = orders
     .filter((o) => nurEchte(o) && istLieferungUeberfaellig(o, heute))
@@ -138,13 +137,6 @@ export function bestelltUeberfaellig(orders: MaterialOrder[], heute: string): Ab
       to: ZIEL.anforderungen('bestellt-ueberfaellig'),
     }));
   return abschnitt('anf-bestellt', 'Bestellt und überfällig', zeilen, ZIEL.anforderungen('bestellt-ueberfaellig'));
-}
-
-export const ABHOLBEREIT_ALT_TAGE = 3;
-
-/** Seit über drei Tagen abholbereit — gerechnet ab dem Zeitstempel der Datenbank. */
-export function istAbholbereitAlt(o: Pick<MaterialOrder, 'status' | 'abholbereitSeit'>, jetzt: number): boolean {
-  return o.status === 'Abholbereit' && !!o.abholbereitSeit && jetzt - o.abholbereitSeit > ABHOLBEREIT_ALT_TAGE * TAG_MS;
 }
 
 export function abholbereitAlt(orders: MaterialOrder[], jetzt: number): Abschnitt | null {
@@ -193,7 +185,7 @@ export function lieferungenHeute(
 ): Zeile[] {
   const zeilen: Zeile[] = [];
   for (const o of orders) {
-    if (!nurEchte(o) || !o.bestelltAm || o.geliefertAm || o.liefertermin !== heute) continue;
+    if (!nurEchte(o) || !istLieferungHeute(o, heute)) continue;
     zeilen.push({
       key: `lief-a-${o.id}`,
       titel: mengeText(o),
@@ -271,10 +263,18 @@ export interface TeamLuecke {
   uid: string;
   name: string;
   fehlendeTage: number;
+  /** Der älteste fehlende Tag — für den Monat der Mitarbeiterübersicht. */
+  aeltesterTag?: string;
   zuletztGebucht?: string;
 }
 
+/** Der Monat (JJJJ-MM) mit dem ältesten fehlenden Tag im Team. */
+export function lueckenMonat(team: TeamLuecke[]): string | undefined {
+  return team.map((t) => t.aeltesterTag).filter((t): t is string => !!t).sort()[0]?.slice(0, 7);
+}
+
 export function stundenOhneBuchung(team: TeamLuecke[]): Abschnitt | null {
+  const ziel = ZIEL.luecken(lueckenMonat(team));
   const zeilen: Zeile[] = team
     .filter((t) => t.fehlendeTage > 0)
     .sort((a, b) => b.fehlendeTage - a.fehlendeTage || a.name.localeCompare(b.name, 'de'))
@@ -283,9 +283,9 @@ export function stundenOhneBuchung(team: TeamLuecke[]): Abschnitt | null {
       titel: t.name,
       detail: t.zuletztGebucht ? `zuletzt gebucht ${datumAT(t.zuletztGebucht)}` : 'in den letzten Wochen nichts gebucht',
       status: { text: tageWort(t.fehlendeTage), ton: 'warn' },
-      to: ZIEL.luecken,
+      to: ZIEL.luecken(t.aeltesterTag?.slice(0, 7)),
     }));
-  return abschnitt('luecken', 'Stunden ohne Buchung', zeilen, ZIEL.luecken);
+  return abschnitt('luecken', 'Stunden ohne Buchung', zeilen, ziel);
 }
 
 export function urlaubsantraege(antraege: Vacation[]): Abschnitt | null {
@@ -326,17 +326,6 @@ export function zahlungenHeute(zahlungen: ZahlungHeute[]): Zeile[] {
 
 // ───────────────────────────────────────────────────────── Projektleitung ──
 
-/** Eine Baustelle am Budget — ab 90 % (die Auswertung warnt schon ab 80 %). */
-export interface BudgetZeile {
-  projectNumber: string;
-  titel: string;
-  pct: number;
-  usedMin: number;
-  estimatedHours: number;
-}
-
-export const BUDGET_AB_PROZENT = 90;
-
 export function budgetNahe(alle: BudgetZeile[]): Abschnitt | null {
   const zeilen: Zeile[] = alle
     .filter((b) => b.pct >= BUDGET_AB_PROZENT)
@@ -370,35 +359,6 @@ export function unbesetzteEinsaetze(heute: string, tag: TagesBaustelle[]): Absch
       to: ZIEL.tag(heute, 'unbesetzt'),
     }));
   return abschnitt('unbesetzt', 'Unbesetzte Einsätze', zeilen, ZIEL.tag(heute, 'unbesetzt'));
-}
-
-export const OHNE_EINSATZ_TAGE = 14;
-
-/**
- * Aktive Baustellen ohne Einsatz in den nächsten 14 Tagen.
- *
- * Nicht dabei: pausierte, solche, deren Beginn erst danach liegt, und
- * solche, deren Ende schon vorbei ist (die stehen unter „Ende überschritten“).
- */
-export function ohneEinsatzListe(
-  projekte: Pick<Project, 'projectNumber' | 'status' | 'startDate' | 'endDate'>[],
-  einsaetze: { projectNumber: string; date: string }[],
-  heute: string,
-): { projectNumber: string; zuletzt?: string }[] {
-  const bis = iso(Date.parse(`${heute}T12:00:00Z`) + OHNE_EINSATZ_TAGE * TAG_MS);
-  const kommend = new Set(einsaetze.filter((e) => e.date >= heute && e.date <= bis).map((e) => e.projectNumber));
-  const zuletzt = new Map<string, string>();
-  for (const e of einsaetze) {
-    if (e.date >= heute) continue;
-    const alt = zuletzt.get(e.projectNumber);
-    if (!alt || e.date > alt) zuletzt.set(e.projectNumber, e.date);
-  }
-  return projekte
-    .filter((p) => p.status === 'Aktiv'
-      && !kommend.has(p.projectNumber)
-      && !(p.startDate && p.startDate > bis)
-      && !(p.endDate && p.endDate < heute))
-    .map((p) => ({ projectNumber: p.projectNumber, zuletzt: zuletzt.get(p.projectNumber) }));
 }
 
 export function ohneEinsatz(
@@ -456,7 +416,7 @@ export function eilanforderungen(orders: MaterialOrder[]): Abschnitt | null {
 
 export function ohneProjektleitung(projekte: Project[]): Abschnitt | null {
   const zeilen: Zeile[] = projekte
-    .filter((p) => p.status === 'Aktiv' && !(p.projectManagers?.length))
+    .filter(ohneProjektleiter)
     .sort((a, b) => a.projectNumber.localeCompare(b.projectNumber))
     .map((p) => ({
       key: `ohnepl-${p.id}`,
@@ -470,7 +430,7 @@ export function ohneProjektleitung(projekte: Project[]): Abschnitt | null {
 
 export function endeUeberschritten(projekte: Project[], heute: string): Abschnitt | null {
   const zeilen: Zeile[] = projekte
-    .filter((p) => p.status === 'Aktiv' && !!p.endDate && p.endDate < heute)
+    .filter((p) => endeVorbei(p, heute))
     .sort((a, b) => (a.endDate ?? '').localeCompare(b.endDate ?? ''))
     .map((p) => ({
       key: `ende-${p.id}`,

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { postenNeuLaden } from '@/app/offenePosten';
 import {
@@ -37,6 +38,35 @@ import { grundAus } from '@/lib/fehlerGrund';
 import { abschlussText } from './abschlussText';
 import { useReiterImBild } from '@/components/reiterImBild';
 import { fmtMenge } from '@/lib/belegLayout';
+import { todayStr } from '@/lib/time';
+import Adressfilter from '@/components/Adressfilter';
+import { ANFORDERUNGS_FILTER, bekannt, type AnforderungsFilter } from '@/features/dashboard/start/ziele';
+import { istAbholbereitAlt, istLieferungHeute, istLieferungUeberfaellig } from './anforderungStand';
+import { lieferterminText } from './einkauf';
+
+/** Was ein Filter aus der Adresse zeigt (Startseite, Nachtest 01.10.2026). */
+const FILTER_TEXT: Record<AnforderungsFilter, string> = {
+  offen: 'nur offene Anforderungen, Eil zuerst',
+  eil: 'nur Eilanforderungen',
+  'abholbereit-alt': 'seit über 3 Tagen abholbereit',
+  'bestellt-ueberfaellig': 'bestellt, Liefertermin überschritten',
+  'lieferung-heute': 'Lieferung heute erwartet',
+};
+
+function passtZuFilter(o: MaterialOrder, f: AnforderungsFilter, heute: string, jetzt: number): boolean {
+  switch (f) {
+    case 'offen':
+      return o.status === 'Offen';
+    case 'eil':
+      return !!o.isUrgent && (o.status === 'Offen' || o.status === 'In Bearbeitung');
+    case 'abholbereit-alt':
+      return istAbholbereitAlt(o, jetzt);
+    case 'bestellt-ueberfaellig':
+      return istLieferungUeberfaellig(o, heute);
+    case 'lieferung-heute':
+      return istLieferungHeute(o, heute);
+  }
+}
 
 type Tab = 'aktiv' | 'einkauf' | 'retouren' | 'archiv';
 
@@ -82,6 +112,9 @@ export default function AdminOrdersView() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<WithId<MaterialOrder> | null>(null);
   const [tab, setTab] = useState<Tab>('aktiv');
+  /** Ein Filter aus der Adresse — von der Startseite („und N weitere →“). */
+  const [adresse] = useSearchParams();
+  const adressFilter = bekannt(ANFORDERUNGS_FILTER, adresse.get('filter'));
   // Am Telefon läuft die Reiterleiste seitlich: der gewählte Reiter bleibt im Bild.
   const reiterleiste = useReiterImBild<HTMLDivElement>(tab);
   const [projectFilter, setProjectFilter] = useState('');
@@ -180,9 +213,14 @@ export default function AdminOrdersView() {
         : tab === 'archiv'
           ? purchases.filter((o) => o.status === 'Erledigt')
           : purchases.filter((o) => o.status !== 'Erledigt');
-    const nachProjekt = projectFilter
-      ? base.filter((o) => o.projectNumber === projectFilter)
+    const heute = todayStr();
+    const jetzt = Date.now();
+    const gefiltert = adressFilter && tab === 'aktiv'
+      ? base.filter((o) => passtZuFilter(o, adressFilter, heute, jetzt))
       : base;
+    const nachProjekt = projectFilter
+      ? gefiltert.filter((o) => o.projectNumber === projectFilter)
+      : gefiltert;
     const q = suche.trim().toLowerCase();
     if (!q) return nachProjekt;
     return nachProjekt.filter((o) =>
@@ -190,7 +228,7 @@ export default function AdminOrdersView() {
         v?.toLowerCase().includes(q),
       ),
     );
-  }, [tab, purchases, returns, projectFilter, suche]);
+  }, [tab, purchases, returns, projectFilter, suche, adressFilter]);
 
   /**
    * Offene Anforderungen nach Arbeitsschritt gruppiert, Eilfälle oben.
@@ -318,6 +356,10 @@ export default function AdminOrdersView() {
         ))}
       </div>
 
+      {adressFilter && tab === 'aktiv' && (
+        <Adressfilter text={FILTER_TEXT[adressFilter]} parameter={['filter']} />
+      )}
+
       {tab === 'einkauf' && company ? (
         <>
           {lagerFehler && (
@@ -378,7 +420,9 @@ export default function AdminOrdersView() {
                   ? 'Keine Retouren erfasst.'
                   : tab === 'archiv'
                     ? 'Noch nichts erledigt.'
-                    : 'Aktuell keine offenen Bestellungen.'}
+                    : adressFilter
+                      ? 'Zu diesem Filter steht nichts an.'
+                      : 'Aktuell keine offenen Bestellungen.'}
             </EmptyState>
           ) : (
             <div>
@@ -402,6 +446,7 @@ export default function AdminOrdersView() {
                             {o.userName}
                             {o.projectNumber && ` · ${o.projectNumber}`}
                             {o.condition && ` · ${CONDITION_LABEL[o.condition] ?? o.condition}`}
+                            {o.bestelltAm && !o.geliefertAm && o.liefertermin && ` · ${lieferterminText(o.liefertermin)}`}
                             {/*
                               DIE NOTIZ BEKOMMT EINE EIGENE ZEILE. Angehängt an
                               Name und Baustelle, im selben Grau, ging sie unter —

@@ -34,9 +34,6 @@ import {
   localDateStr,
   todayStr,
   offeneWerktage,
-  groupProjectHours,
-  normProjectNumber,
-  calcBudgetState,
   type SaldoResult,
 } from '@/lib/time';
 import { fuehrtZeitkonto, einplanbar } from '@/lib/permissions';
@@ -52,8 +49,8 @@ import { basiszinsVerlauf, halbjahresbeginn } from '@/features/invoices/mahnung'
 import { imLager, istKnapp } from '@/features/orders/lagerartikel';
 import { monateDazu } from '@/features/maintenance/wartungsplan';
 import { eigenerResturlaub, eigenerSaldo } from './eigeneKonten';
+import { budgetStand, ohneEinsatzListe, planFenster } from '@/features/projects/baustellenLage';
 import {
-  ohneEinsatzListe,
   type BudgetZeile,
   type KnapperArtikel,
   type TagesBaustelle,
@@ -156,12 +153,6 @@ const tageZurueck = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
   return d;
-};
-
-const tageVoraus = (heute: string, n: number) => {
-  const d = new Date(`${heute}T00:00:00`);
-  d.setDate(d.getDate() + n);
-  return localDateStr(d);
 };
 
 const still = <T>(p: () => Promise<T>, ersatz: T): Promise<T> =>
@@ -281,7 +272,7 @@ export async function lager(
 async function knappeArtikel(companyId: string): Promise<KnapperArtikel[]> {
   const [artikel, frei] = await Promise.all([listMaterials(companyId), lagerFrei()]);
   return artikel
-    .filter((m) => imLager(m) && !m.ausgelaufen)
+    .filter((m) => imLager(m))
     .map((m) => ({ m, frei: frei.get(m.id)?.frei ?? m.stock }))
     // Wie die Lagerliste: unter der Mindestmenge, ohne Mindestmenge ab der Grenze.
     .filter(({ m, frei: f }) => istKnapp(f, m, LOW_STOCK_THRESHOLD))
@@ -348,10 +339,12 @@ export async function team(
       .map((u) => {
         const eigene = eintraege.filter((e) => e.userId === u.uid);
         const zuletzt = eigene.map((e) => e.date).filter((d) => d <= k.heute).sort().pop();
+        const fehlend = offeneWerktage(u, eigene, fenster, new Date());
         return {
           uid: u.uid,
           name: u.name,
-          fehlendeTage: offeneWerktage(u, eigene, fenster, new Date()).length,
+          fehlendeTage: fehlend.length,
+          aeltesterTag: fehlend[0],
           zuletztGebucht: zuletzt,
         };
       });
@@ -372,8 +365,7 @@ export async function leitung(
   const out: Partial<StartDaten> = {};
   const montag = montagDer(heute);
   const woche = wocheAb(montag);
-  const vorher = tageVoraus(heute, -90);
-  const bis = tageVoraus(heute, 14);
+  const { von: vorher, bis } = planFenster(heute);
   const [projekte, alle, einsaetzeHeute, abwesend, plan] = await Promise.all([
     listActiveProjects(user.companyId),
     listUsers(user.companyId),
@@ -421,25 +413,9 @@ export async function leitung(
 
   if (was.budget) {
     const mitBudget = projekte.filter((pr) => (pr.estimatedHours ?? 0) > 0);
-    if (mitBudget.length > 0) {
-      const eintraege = await listEntriesForProjects(user.companyId, mitBudget.map((pr) => pr.projectNumber));
-      const stunden = groupProjectHours(eintraege);
-      out.budget = mitBudget
-        .map((pr) => {
-          const h = stunden.find((x) => x.projectNumber === normProjectNumber(pr.projectNumber));
-          const fachMin = h?.fachMin ?? 0;
-          const stand = calcBudgetState(fachMin, pr.estimatedHours);
-          return {
-            projectNumber: pr.projectNumber,
-            titel: baustellenTitel(pr),
-            pct: stand.pct ?? 0,
-            usedMin: fachMin,
-            estimatedHours: pr.estimatedHours ?? 0,
-          };
-        });
-    } else {
-      out.budget = [];
-    }
+    out.budget = mitBudget.length
+      ? budgetStand(mitBudget, await listEntriesForProjects(user.companyId, mitBudget.map((pr) => pr.projectNumber)))
+      : [];
   }
 
   if (was.wartung) {

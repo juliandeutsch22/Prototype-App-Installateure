@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { imLager, istKnapp } from './lagerartikel';
 import { useSearchParams } from 'react-router-dom';
+import Adressfilter from '@/components/Adressfilter';
 import { useAuth } from '@/app/AuthContext';
 import { darfKatalogEinspielen } from '@/lib/permissions';
 import {
@@ -88,6 +89,8 @@ export default function StockView() {
   /** Ein Nebenladevorgang ist ausgefallen — der Bestand steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  /** „Unter Mindestmenge“ aus der Adresse — von der Startseite (Nachtest 01.10.2026). */
+  const nurKnapp = params.get('filter') === 'knapp';
   /**
    * Welcher Artikel im Katalog geöffnet werden soll.
    *
@@ -198,13 +201,17 @@ export default function StockView() {
       .filter((m) =>
         q ? [m.name, m.category, m.articleNumber].some((v) => v?.toLowerCase().includes(q)) : true,
       )
+      .filter((m) => !nurKnapp || istKnapp(m.free, m, LOW_STOCK_THRESHOLD))
       // Knappes zuerst — wer das Lager öffnet, will wissen, was fehlt.
       .sort((a, b) => a.free - b.free || a.name.localeCompare(b.name, 'de'));
-  }, [materials, reserved, search]);
+  }, [materials, reserved, search, nurKnapp]);
 
   const lowCount = useMemo(
-    () => rows.filter((m) => istKnapp(m.free, m, LOW_STOCK_THRESHOLD)).length,
-    [rows],
+    () =>
+      materials
+        .filter(imLager)
+        .filter((m) => istKnapp((m.stock ?? 0) - (reserved.get(m.id) ?? 0), m, LOW_STOCK_THRESHOLD)).length,
+    [materials, reserved],
   );
 
   /*
@@ -281,6 +288,7 @@ export default function StockView() {
               value={lowCount}
               // „ab 5 oder weniger“ war missverständlich (G8): gemeint ist das Freie.
               hint={`unter Mindestmenge, sonst höchstens ${LOW_STOCK_THRESHOLD} frei`}
+              to={lowCount > 0 && !nurKnapp ? '/lager?filter=knapp' : undefined}
             />
             <Metric
               label="Reserviert"
@@ -288,6 +296,8 @@ export default function StockView() {
               hint="zugesagt und auf Rüstlisten"
             />
           </MetricRow>
+
+          {nurKnapp && <Adressfilter text="nur knappe Artikel (unter Mindestmenge)" parameter={['filter']} />}
 
           {/* Bündig: Suche gepolstert, Bestände als Zeilen von Kante zu Kante. */}
           <Card title="Bestände" buendig>

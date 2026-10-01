@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
@@ -125,9 +126,11 @@ const { default: VacationsView } = await import('@/features/vacations/VacationsV
 
 function zeichne() {
   return render(
-    <ToastProvider>
-      <VacationsView />
-    </ToastProvider>,
+    <MemoryRouter>
+      <ToastProvider>
+        <VacationsView />
+      </ToastProvider>
+    </MemoryRouter>,
   );
 }
 

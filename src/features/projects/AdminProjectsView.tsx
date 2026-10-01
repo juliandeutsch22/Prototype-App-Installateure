@@ -1,5 +1,17 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Hinweiszeile from '@/components/Hinweiszeile';
+import Adressfilter from '@/components/Adressfilter';
+import { BAUSTELLEN_FILTER, bekannt as bekannterWert, type BaustellenFilter } from '@/features/dashboard/start/ziele';
+import {
+  BUDGET_AB_PROZENT,
+  budgetStand,
+  endeVorbei,
+  ohneEinsatzListe,
+  ohneProjektleiter,
+  planFenster,
+} from './baustellenLage';
+import { listEntriesForProjects } from '@/lib/db/timeEntries';
+import { listAssignmentsInRange } from '@/lib/db/assignments';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import BetriebsurlaubHinweis from './BetriebsurlaubHinweis';
@@ -33,7 +45,7 @@ import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
-import { fmtStunden } from '@/lib/time';
+import { fmtStunden, todayStr } from '@/lib/time';
 import ZahlFeld from '@/components/ZahlFeld';
 import AdresseFeld from '@/components/AdresseFeld';
 import { baustellenTitel } from '@/lib/baustellenTitel';
@@ -134,6 +146,15 @@ export default function AdminProjectsView() {
     sie soll nicht plötzlich Baustellen vermissen, die sie bisher sah.
   */
   const istProjektleitung = user?.role === 'Projektleiter';
+
+  /*
+    FILTER AUS DER ADRESSE (Startseite, Nachtest 01.10.2026): „aktiv“,
+    „über oder nahe Budget“ (ab 90 %), „ohne Einsatz in den nächsten 14
+    Tagen“, „ohne Projektleiter“, „Ende überschritten“. Budget und Einsätze
+    werden nur geholt, wenn danach gefiltert wird.
+  */
+  const adressFilter = bekannterWert(BAUSTELLEN_FILTER, suchparameter.get('filter'));
+  const [lage, setLage] = useState<{ art: BaustellenFilter; nummern: Set<string> } | null>(null);
   const [nurMeine, setNurMeine] = useState(false);
 
   /**
@@ -387,11 +408,65 @@ export default function AdminProjectsView() {
     };
   }, [user, suche]);
 
+  /** Die Nummern der aktiven Baustellen — woran die Auswertung hängt, nicht jede Live-Meldung. */
+  const aktiveNummern = useMemo(
+    () => projects.filter((p) => p.status === 'Aktiv').map((p) => p.projectNumber).sort().join('|'),
+    [projects],
+  );
+  useEffect(() => {
+    if (!user || (adressFilter !== 'budget' && adressFilter !== 'ohne-einsatz')) {
+      setLage(null);
+      return;
+    }
+    let weg = false;
+    const aktiv = projects.filter((p) => p.status === 'Aktiv');
+    void (async () => {
+      try {
+        let nummern: string[];
+        if (adressFilter === 'budget') {
+          const mitBudget = aktiv.filter((p) => (p.estimatedHours ?? 0) > 0);
+          const eintraege = mitBudget.length
+            ? await listEntriesForProjects(user.companyId, mitBudget.map((p) => p.projectNumber))
+            : [];
+          nummern = budgetStand(mitBudget, eintraege).filter((b) => b.pct >= BUDGET_AB_PROZENT).map((b) => b.projectNumber);
+        } else {
+          const heute = todayStr();
+          const { von, bis } = planFenster(heute);
+          const plan = await listAssignmentsInRange(user.companyId, von, bis);
+          nummern = ohneEinsatzListe(aktiv, plan, heute).map((x) => x.projectNumber);
+        }
+        if (!weg) setLage({ art: adressFilter, nummern: new Set(nummern) });
+      } catch {
+        if (!weg) setLage({ art: adressFilter, nummern: new Set() });
+      }
+    })();
+    return () => {
+      weg = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- an den aktiven Nummern, nicht an jeder Live-Meldung
+  }, [user, adressFilter, aktiveNummern]);
+  const lageFehlt = (adressFilter === 'budget' || adressFilter === 'ohne-einsatz') && lage?.art !== adressFilter;
+
   const visible = useMemo(() => {
+    const heute = todayStr();
+    const nachAdresse = !adressFilter
+      ? sorted
+      : sorted.filter((p) => {
+        switch (adressFilter) {
+          case 'aktiv':
+            return p.status === 'Aktiv';
+          case 'ohne-leitung':
+            return ohneProjektleiter(p);
+          case 'ende-ueberschritten':
+            return endeVorbei(p, heute);
+          default:
+            return lage?.art === adressFilter && lage.nummern.has(p.projectNumber);
+        }
+      });
     const meine = nurMeine && user
-      ? sorted.filter((p) =>
+      ? nachAdresse.filter((p) =>
           (p.projectManagers ?? []).includes(user.uid) || (p.assignedEmployees ?? []).includes(user.uid))
-      : sorted;
+      : nachAdresse;
     const nachStatus =
       filter === 'alle'
         ? meine
@@ -416,7 +491,7 @@ export default function AdminProjectsView() {
     */
     const bekannt = new Set(oertlich.map((p) => p.id));
     return [...oertlich, ...serverTreffer.filter((p) => !bekannt.has(p.id))];
-  }, [sorted, filter, suche, serverTreffer, nurMeine, user]);
+  }, [sorted, filter, suche, serverTreffer, nurMeine, user, adressFilter, lage]);
 
   /** Wie viele Treffer NUR vom Server kamen — das ist die Aussage, nicht die Summe. */
   const nurVomServer = useMemo(() => {
@@ -593,6 +668,19 @@ export default function AdminProjectsView() {
       </Card>
       )}
 
+      {adressFilter && (
+        <Adressfilter
+          text={{
+            aktiv: 'nur aktive Baustellen',
+            budget: `über oder nahe Budget (ab ${BUDGET_AB_PROZENT} %)`,
+            'ohne-einsatz': 'ohne Einsatz in den nächsten 14 Tagen',
+            'ohne-leitung': 'ohne Projektleiter',
+            'ende-ueberschritten': 'Ende überschritten',
+          }[adressFilter]}
+          parameter={['filter']}
+        />
+      )}
+
       <Card
         title={`Alle Baustellen (${visible.length})`}
         action={
@@ -644,7 +732,7 @@ export default function AdminProjectsView() {
             )}
           </div>
         )}
-        {loading ? (
+        {loading || lageFehlt ? (
           <div className="p-4">
             <SkeletonList rows={4} />
           </div>
