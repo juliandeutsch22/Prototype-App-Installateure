@@ -23,11 +23,12 @@ function EintragZeile({ z }: { z: Zeile }) {
       <span className="min-w-0 flex-1">
         <span className="kein-trennen block font-medium text-ink-deep">{z.titel}</span>
         {(z.detail || z.status) && (
-          <span className="kein-trennen mt-0.5 flex flex-wrap items-center gap-x-1.5 text-meta text-ink-muted">
+          // Fließtext, nicht Flexbox: bricht das Detail um, bleibt der Punkt
+          // beim Status und das Detail läuft in der nächsten Zeile weiter.
+          <span className="kein-trennen mt-0.5 block text-meta text-ink-muted">
             {/* Am Telefon steht der Status vorn in der Detailzeile. */}
-            {status && <span className="start-status-vorn">{status}</span>}
-            {status && z.detail && <span className="start-status-vorn" aria-hidden="true">·</span>}
-            {z.detail && <span>{z.detail}</span>}
+            {status && <span className="start-status-vorn">{status}{z.detail && <span aria-hidden="true"> · </span>}</span>}
+            {z.detail}
           </span>
         )}
       </span>

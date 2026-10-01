@@ -37,7 +37,7 @@ import { auffaellige } from '@/features/worksheets/unverrechnet';
 import { istUeberfaellig, offenerRest } from '@/features/invoices/zahlstand';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { euro } from '@/lib/betrag';
-import { fmtMin, tageWort } from '@/lib/time';
+import { fmtMin, getISOWeek, tageWort } from '@/lib/time';
 import { baustellenTitel } from '@/lib/baustellenTitel';
 
 /**
@@ -163,9 +163,10 @@ function lagerKennzahlen(d: StartDaten, u: Umfeld): Kennzahl[] {
     const eil = offen.filter((o) => o.isUrgent).length;
     out.push({
       key: 'anf',
-      label: 'Offene Anforderungen',
+      // Kurz, damit es am Telefon in die halbe Breite passt.
+      label: 'Anforderungen',
       wert: offen.length,
-      zusatz: eil ? `davon ${eil} Eil` : 'keine Eil',
+      zusatz: eil ? `offen, davon ${eil} Eil` : 'offen',
       to: ZIEL.anforderungen('offen'),
     });
   }
@@ -295,7 +296,7 @@ function baustellenKennzahlen(d: StartDaten, u: Umfeld, mitAuslastung: boolean):
   if (mitAuslastung && d.auslastung != null && u.darf(ZIEL.woche)) {
     out.push({
       key: 'auslastung',
-      label: 'Auslastung diese Woche',
+      label: `Auslastung KW ${getISOWeek(new Date(`${u.heute}T12:00:00`)).week}`,
       wert: `${d.auslastung} %`,
       zusatz: 'der Personentage verplant',
       to: ZIEL.woche,
@@ -341,7 +342,7 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
     themen.push(wenn(ZIEL.einstellungen('saetze'), {
       key: 'basiszins', wann: 'ueberfaellig',
       titel: `Basiszinssatz ab ${tagKurz(d.basiszinsFehltAb)} fehlt`,
-      detail: 'Einstellungen · Sätze — ohne ihn rechnet der Mahnlauf keine Verzugszinsen',
+      detail: 'Einstellungen · Sätze',
       status: { text: `seit ${tagKurz(d.basiszinsFehltAb)}`, ton: 'fehl' },
     }));
   }
@@ -506,7 +507,7 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
     themen.push(wenn(ZIEL.einstellungen('konten'), {
       key: 'konten', wann: 'woche',
       titel: 'Kontenrahmen nicht eingerichtet',
-      detail: 'Einstellungen · Konten — nötig für den Export an die Buchhaltung',
+      detail: 'Einstellungen · Konten',
       status: { text: 'einrichten', ton: 'leise' },
     }));
   }

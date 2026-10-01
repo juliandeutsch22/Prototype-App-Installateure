@@ -486,7 +486,7 @@ describe('Startseite — Verwaltung', () => {
     try {
       zeichne();
       expect(await screen.findByText('Heute liegt nichts an')).toBeInTheDocument();
-      expect(await screen.findByRole('link', { name: /Offene Anforderungen/ })).toHaveTextContent(/0/);
+      expect(await screen.findByRole('link', { name: /^Anforderungen/ })).toHaveTextContent(/0/);
       expect(document.querySelector('.zwei-spalten')).toBeNull();
     } finally {
       (monteur as { appStartDate?: string }).appStartDate = eintritt;
