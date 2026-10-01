@@ -12,7 +12,8 @@ import * as pg from './pg/materials';
 
 export { KATALOG_GRENZE, katalogAbgeschnitten } from '@/lib/listengrenzen';
 
-export type NewMaterial = Pick<Material, 'name' | 'category' | 'stock' | 'articleNumber' | 'unit'>;
+export type NewMaterial = Pick<Material, 'name' | 'category' | 'stock' | 'articleNumber' | 'unit'>
+  & Partial<Pick<Material, 'lagerartikel' | 'mindestmenge' | 'warengruppe' | 'verkaufspreis' | 'einkaufspreis'>>;
 
 /** Ab diesem Bestand gilt Material als knapp (Legacy markiert das rot). */
 export const LOW_STOCK_THRESHOLD = 5;
@@ -47,6 +48,11 @@ export function lagerEingang(eingang: {
   materialId: string; menge: number; lieferant: string; lieferschein?: string; bezug?: string;
 }): Promise<number> {
   return pg.lagerEingang(eingang);
+}
+
+/** Verkaufspreise aus Einkauf und Aufschlag, nur wo keiner steht (M31). */
+export function verkaufspreiseVorschlagen(): Promise<{ gesetzt: number; ohneEinkauf: number; ohneAufschlag: number }> {
+  return pg.verkaufspreiseVorschlagen();
 }
 
 /** Inventur mit Grund (M28). */

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { subscribeMaterials, LOW_STOCK_THRESHOLD, lagerFrei, type LagerStand } from '@/lib/db/materials';
+import { imLager, istKnapp } from './lagerartikel';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import {
   createMaterialOrderOhneEmpfang,
@@ -490,7 +491,9 @@ export default function OrderView() {
                 <List>
                   {filtered.map((m) => {
                     const verfuegbar = frei?.get(m.id)?.frei ?? m.stock ?? 0;
-                    const low = verfuegbar <= LOW_STOCK_THRESHOLD;
+                    // Nur im Katalog (M30): kein Regalbestand — das Büro bestellt ihn.
+                    const lager = imLager(m);
+                    const low = lager && istKnapp(verfuegbar, m, LOW_STOCK_THRESHOLD);
                     return (
                       <ListRow
                         key={m.id}
@@ -504,7 +507,9 @@ export default function OrderView() {
                             {/* Knapp: Punkt in Warnfarbe, Wort in Grau — keine farbige
                                 Schrift im Fliesstext (Designlinie „Fassung 3"). */}
                             <span className={low ? 'stand stand-warn h-auto' : undefined}>
-                              {frei?.has(m.id)
+                              {!lager
+                                ? 'wird bestellt'
+                                : frei?.has(m.id)
                                 ? verfuegbar > 0
                                   ? `${fmtMenge(verfuegbar)} ${m.unit ?? 'Stk'} frei`
                                   : 'nichts frei'
