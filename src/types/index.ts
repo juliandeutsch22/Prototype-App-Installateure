@@ -1028,7 +1028,13 @@ export interface EinsatzMaterial {
    * und ein Serverzeitstempel ist in einer verschachtelten Karte nicht zu
    * haben, ohne die Regel aufzuweichen.
    */
-  geladen?: Record<string, { von: string; am: number }>;
+  geladen?: Record<string, {
+    von: string;
+    am: number;
+    /** Vom Lager abgebucht beim Einladen (Nachtest 01.10.2026) — Menge und Artikel. */
+    gebucht?: number;
+    material?: string;
+  }>;
   updatedAt?: number;
   updatedBy?: string;
 }
