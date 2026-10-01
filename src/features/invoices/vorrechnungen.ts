@@ -64,6 +64,24 @@ export function abziehbar<T extends Invoice>(alle: T[], projectNumber: string): 
 }
 
 /**
+ * Der Leistungszeitraum aus Anzahlungs- und Teilrechnungen derselben
+ * Baustelle (Nachtest 01.10.2026, N3): früheste „Leistung geplant von“ bis
+ * späteste „bis“. Vorbelegung für die Schlussrechnung, wenn die Scheine
+ * keinen Zeitraum hergeben — überschreibbar wie jede Vorbelegung.
+ */
+export function leistungAusVorrechnungen(
+  rechnungen: Pick<Invoice, 'art' | 'paymentStatus' | 'leistungVon' | 'leistungBis'>[],
+): { von: string; bis: string } | null {
+  const mit = rechnungen.filter(
+    (r) => (r.art === 'anzahlung' || r.art === 'teil') && r.paymentStatus !== 'Storniert'
+      && r.leistungVon && r.leistungBis,
+  );
+  if (mit.length === 0) return null;
+  const bis = mit.map((r) => r.leistungBis!).sort();
+  return { von: mit.map((r) => r.leistungVon!).sort()[0], bis: bis[bis.length - 1] };
+}
+
+/**
  * Muss diese Rechnung von einer SCHLUSSRECHNUNG abgezogen werden?
  *
  * Anzahlungs- und Teilrechnungen ja (Testbericht 30.09.2026, K2): ihre

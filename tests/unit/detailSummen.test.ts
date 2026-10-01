@@ -59,3 +59,16 @@ describe('N2 — Detailansicht der Schlussrechnung', () => {
     expect(detailSummen(alt)[2].betrag).toBe(6000);
   });
 });
+
+describe('N3 — Leistungszeitraum der Schlussrechnung aus der Anzahlung', () => {
+  it('früheste Anzahlung von, späteste bis; stornierte und Einzelrechnungen zählen nicht', async () => {
+    const { leistungAusVorrechnungen } = await import('@/features/invoices/vorrechnungen');
+    expect(leistungAusVorrechnungen([
+      { art: 'anzahlung', paymentStatus: 'Bezahlt', leistungVon: '2026-10-12', leistungBis: '2026-10-23' },
+      { art: 'teil', paymentStatus: 'Offen', leistungVon: '2026-10-05', leistungBis: '2026-10-20' },
+      { art: 'anzahlung', paymentStatus: 'Storniert', leistungVon: '2026-01-01', leistungBis: '2026-12-31' },
+      { art: 'einzel', paymentStatus: 'Offen', leistungVon: '2026-09-01', leistungBis: '2026-11-30' },
+    ])).toEqual({ von: '2026-10-05', bis: '2026-10-23' });
+    expect(leistungAusVorrechnungen([{ art: 'anzahlung', paymentStatus: 'Offen' }])).toBeNull();
+  });
+});
