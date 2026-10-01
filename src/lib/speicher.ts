@@ -95,6 +95,13 @@ export async function firestoreResteEntfernen(): Promise<void> {
     // Die alte Firebase-Anmeldung legte ihren Nutzer auch hier ab.
     for (const k of lokal ? schluessel(lokal) : []) {
       if (k.startsWith('firebase:authUser:') || k.startsWith('firebase:host:')) lokal!.removeItem(k);
+      /*
+        UND DIE MEHR-TAB-ABSTIMMUNG DES ALTEN FIRESTORE-SDK (Nachtest
+        01.10.2026, N7): `firestore_online_state_…`, `firestore_sequence_number_…`,
+        `firestore_clients_…` und Verwandte. Das SDK lädt seit dem 19.09.2026
+        nicht mehr — die Schlüssel stammen aus der Zeit davor und blieben liegen.
+      */
+      else if (k.startsWith('firestore_')) lokal!.removeItem(k);
     }
   } catch {
     /* nicht schlimm */

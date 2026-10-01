@@ -76,3 +76,22 @@ describe('Reste der Firestore-Zeit', () => {
     expect(istFirestoreRest('installateur-ausgangsfach')).toBe(false);
   });
 });
+
+/*
+  Nachtest 01.10.2026, N7: nach dem Abmelden lagen noch
+  `firestore_online_state_…` und `firestore_sequence_number_…` im Speicher.
+  Das SDK lädt nicht mehr; es sind Reste der Firestore-Zeit.
+*/
+describe('Firestore-Reste im lokalen Speicher (N7)', () => {
+  it('räumt die Schlüssel der alten Mehr-Tab-Abstimmung weg — Push und eigene Schlüssel bleiben', async () => {
+    const { firestoreResteEntfernen } = await import('@/lib/speicher');
+    localStorage.clear();
+    localStorage.setItem('firestore_online_state_[DEFAULT]_perl-app', '{}');
+    localStorage.setItem('firestore_sequence_number_[DEFAULT]_perl-app', '7');
+    localStorage.setItem('firestore_clients_[DEFAULT]_perl-app_abc', '{}');
+    localStorage.setItem('firebase:authUser:abc:[DEFAULT]', '{}');
+    localStorage.setItem('senklot.angemeldetBleiben', 'ja');
+    await firestoreResteEntfernen();
+    expect(Object.keys(localStorage).sort()).toEqual(['senklot.angemeldetBleiben']);
+  });
+});
