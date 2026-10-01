@@ -536,10 +536,24 @@ export function kanalHalten(a: KanalAuftrag): () => void {
   const sichtbar = () =>
     typeof document === 'undefined' || document.visibilityState === 'visible';
 
+  /*
+    JEDER AUFBAU BEKOMMT EINEN EIGENEN NAMEN (Nachtest 01.10.2026, N1).
+
+    `removeChannel` trägt einen Kanal erst aus, wenn das Abmelden beim
+    Server durch ist — also später. `channel(name)` gibt bis dahin den
+    ALTEN Kanal gleichen Namens zurück, schon abonniert, und das folgende
+    `.on(…)` wirft: „cannot add postgres_changes callbacks … after
+    subscribe()“. So geschah es bei jeder Rückkehr in den Tab und jedem
+    „wieder online“; die Ansicht hatte danach keinen Live-Kanal mehr und
+    zeigte still einen veralteten Stand. Mit einer laufenden Nummer im Namen
+    ist jeder Aufbau ein neuer Kanal.
+  */
+  let aufbau = 0;
   const anmelden = () => {
     if (beendet) return;
+    aufbau += 1;
     kanal = a.client
-      .channel(`${a.tabelle}-${schluessel}`)
+      .channel(`${a.tabelle}-${schluessel}-${aufbau}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: a.tabelle, filter: a.filter },

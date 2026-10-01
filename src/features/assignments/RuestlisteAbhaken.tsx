@@ -3,6 +3,7 @@ import { useAuth } from '@/app/AuthContext';
 import { ladenUmschalten } from '@/lib/db/einsatzMaterial';
 import type { EinsatzMaterial, RuestPosition } from '@/types';
 import { grundAus } from '@/lib/fehlerGrund';
+import { localDateStr, todayStr } from '@/lib/time';
 
 /**
  * Die Rüstliste aus der Sicht des Monteurs: was mitkommt, und was schon im
@@ -44,6 +45,13 @@ export default function RuestlisteAbhaken({
   if (positionen.length === 0) return null;
 
   const offen = positionen.filter((p) => !oertlich[p.id]).length;
+  /*
+    ZURÜCKNEHMEN NUR AM SELBEN TAG (Nachtest 01.10.2026): mit dem Haken bucht
+    die Datenbank den Lagerabgang. Am nächsten Tag ist das Material im Bus
+    oder verbaut; was übrig bleibt, geht über die Retoure zurück.
+  */
+  const heute = todayStr();
+  const vonHeute = (am: number) => localDateStr(new Date(am)) === heute;
 
   async function umschalten(p: RuestPosition) {
     if (!user || !abhakbar) return;
@@ -89,7 +97,10 @@ export default function RuestlisteAbhaken({
                   id={id}
                   type="checkbox"
                   checked={!!eintrag}
-                  disabled={!abhakbar}
+                  disabled={!abhakbar || (!!eintrag && !vonHeute(eintrag.am))}
+                  title={eintrag && !vonHeute(eintrag.am)
+                    ? 'Eingeladen lässt sich nur am selben Tag zurücknehmen — was übrig bleibt, geht über die Retoure zurück.'
+                    : undefined}
                   onChange={() => void umschalten(p)}
                   className="checkbox"
                 />
@@ -102,6 +113,7 @@ export default function RuestlisteAbhaken({
                   {eintrag && (
                     <span className="block text-xs text-ink-muted">
                       eingeladen von {eintrag.von}
+                      {eintrag.gebucht ? ' · vom Lager abgebucht' : ''}
                     </span>
                   )}
                 </span>
@@ -110,6 +122,12 @@ export default function RuestlisteAbhaken({
           );
         })}
       </ul>
+      {abhakbar && (
+        <p className="pt-2 text-xs text-ink-muted">
+          Der Haken bucht Lagermaterial vom Bestand ab. Zurücknehmen geht nur heute; was übrig
+          bleibt, kommt über die Retoure zurück.
+        </p>
+      )}
       {fehler && (
         <p role="alert" className="py-2 text-sm text-danger">
           {fehler}

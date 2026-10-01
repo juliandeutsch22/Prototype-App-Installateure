@@ -359,3 +359,101 @@ describe('abonnieren: ein Abbruch ist kein Fehler', () => {
     expect(fehler).toEqual([]);
   });
 });
+
+/**
+ * NACHTEST 01.10.2026, N1 — „cannot add postgres_changes callbacks … after
+ * subscribe()“ im Fehlerprotokoll, bei Lager und Rechnungen.
+ *
+ * Der Nachbau hier verhält sich wie supabase-js: `channel(name)` gibt einen
+ * Kanal GLEICHEN NAMENS zurück, solange er noch nicht ausgetragen ist — und
+ * `removeChannel` trägt erst aus, wenn das Abmelden beim Server durch ist,
+ * also später. Ein `.on(…)` an einem schon abonnierten Kanal wirft.
+ *
+ * Beim Zurückkommen in den Tab meldete `kanalHalten` den alten Kanal ab und
+ * legte SOFORT einen neuen unter demselben Namen an: zurück kam der alte,
+ * `.on` warf, und die Ansicht hatte von da an gar keinen Live-Kanal mehr.
+ */
+function clientWieSupabase() {
+  const offen: { topic: string; abonniert: boolean }[] = [];
+  const themen: string[] = [];
+  let abonnements = 0;
+  const client = {
+    channel: (topic: string) => {
+      const da = offen.find((k) => k.topic === topic);
+      const eintrag = da ?? { topic, abonniert: false };
+      if (!da) offen.push(eintrag);
+      const kanal = {
+        _eintrag: eintrag,
+        on: () => {
+          if (eintrag.abonniert) {
+            throw new Error(`cannot add \`postgres_changes\` callbacks for realtime:${topic} after \`subscribe()\`.`);
+          }
+          return kanal;
+        },
+        subscribe: (cb: (status: string) => void) => {
+          eintrag.abonniert = true;
+          themen.push(topic);
+          abonnements += 1;
+          cb('SUBSCRIBED');
+          return kanal;
+        },
+      };
+      return kanal;
+    },
+    removeChannel: (kanal: { _eintrag: { topic: string } }) =>
+      // Ausgetragen wird erst nach der Antwort des Servers.
+      new Promise((fertig) => setTimeout(() => {
+        const i = offen.indexOf(kanal._eintrag as (typeof offen)[number]);
+        if (i >= 0) offen.splice(i, 1);
+        fertig('ok');
+      }, 50)),
+    from: () => {
+      const bauer = {
+        select: () => bauer, eq: () => bauer, order: () => bauer, range: () => bauer, limit: () => bauer,
+        then: (aufl: (w: { data: unknown[]; error: null }) => unknown) =>
+          Promise.resolve({ data: [], error: null }).then(aufl),
+      };
+      return bauer;
+    },
+  } as unknown as SupabaseClient;
+  return { client, themen, abonnements: () => abonnements };
+}
+
+describe('N1 — derselbe Kanalname wird nicht wiederverwendet', () => {
+  it('nach der Rückkehr in den Tab steht ein neuer Kanal, ohne Fehler', async () => {
+    const { client, themen, abonnements } = clientWieSupabase();
+    const fehler: unknown[] = [];
+    const fang = (e: ErrorEvent) => { fehler.push(e.error ?? e.message); e.preventDefault(); };
+    window.addEventListener('error', fang);
+    const stopp = abonnieren('materials', 'perl', () => {}, (e) => fehler.push(e), {}, client);
+    expect(abonnements()).toBe(1);
+
+    sichtbarkeit('hidden');
+    sichtbarkeit('visible');
+    await vi.advanceTimersByTimeAsync(10);
+
+    expect(fehler).toEqual([]);
+    expect(abonnements()).toBe(2);
+    expect(new Set(themen).size).toBe(2);
+
+    // Auch ein zweites Mal hintereinander, bevor das erste Abmelden durch ist.
+    sichtbarkeit('hidden');
+    sichtbarkeit('visible');
+    await vi.advanceTimersByTimeAsync(10);
+    expect(fehler).toEqual([]);
+    expect(abonnements()).toBe(3);
+
+    stopp();
+    window.removeEventListener('error', fang);
+  });
+
+  it('auch der Wiederaufbau nach einem Abbruch nimmt einen neuen Namen', async () => {
+    const { client, themen } = clientWieSupabase();
+    const stopp = abonnieren('invoices', 'perl', () => {}, () => {}, {}, client);
+    window.dispatchEvent(new Event('online'));
+    await vi.advanceTimersByTimeAsync(10);
+    expect(themen).toHaveLength(2);
+    expect(new Set(themen).size).toBe(2);
+    stopp();
+  });
+});

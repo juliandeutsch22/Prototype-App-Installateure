@@ -58,7 +58,7 @@ import { geltenderSatz, pruefeReverseCharge } from './reverseCharge';
 import { istUnternehmerKunde, uidFehler, uidNormalisieren } from '@/lib/uid';
 import { pruefeEmpfaengerUid } from './empfaengerUid';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
-import { abziehbar, alsVorrechnung, mitAbzug, nachSteuer, pflichtAbzug } from './vorrechnungen';
+import { abziehbar, alsVorrechnung, leistungAusVorrechnungen, mitAbzug, nachSteuer, pflichtAbzug } from './vorrechnungen';
 import { scheinAbgleich } from './scheinAbgleich';
 import { einheitspreisVorschau, pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from './pauschale';
 import { ANZAHLUNG_PROZENT_VORGABE, anteilFehler, anzahlungVorschau } from './anzahlung';
@@ -1037,7 +1037,20 @@ export default function InvoicesView() {
     if (!user) return;
     try {
       const derBaustelle = await listInvoicesForProject(user.companyId, projectNumber);
-      setAbzugsfaehig(abziehbar(derBaustelle, projectNumber));
+      const abziehbare = abziehbar(derBaustelle, projectNumber);
+      setAbzugsfaehig(abziehbare);
+      /*
+        OHNE ZEITRAUM AUS DEN SCHEINEN: der aus der Anzahlung (N3). Sie trägt
+        „Leistung geplant von–bis“; eine Schlussrechnung mit leerem Feld
+        müsste das Büro sonst von Hand abschreiben.
+      */
+      if (!assembled.leistung) {
+        const ausAnzahlung = leistungAusVorrechnungen(abziehbare);
+        if (ausAnzahlung) {
+          setLeistungVon((v) => v || ausAnzahlung.von);
+          setLeistungBis((b) => b || ausAnzahlung.bis);
+        }
+      }
       setAbzugFehler(false);
     } catch {
       setAbzugsfaehig([]);

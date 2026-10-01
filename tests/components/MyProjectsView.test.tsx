@@ -29,6 +29,8 @@ vi.mock('@/lib/db/projects', () => ({
 vi.mock('@/lib/db/assignments', () => ({
   listUpcomingAssignments: vi.fn(async () => einsaetze),
 }));
+let abwesend: { userId: string; von: string; bis: string; grund: string | null; zeiten: string | null }[] = [];
+vi.mock('@/lib/db/vacations', () => ({ listAbwesendInRange: vi.fn(async () => abwesend) }));
 vi.mock('@/lib/time', async () => {
   const echt = await vi.importActual<typeof import('@/lib/time')>('@/lib/time');
   return { ...echt, todayStr: () => '2026-09-24' };
@@ -74,6 +76,7 @@ beforeEach(() => {
   baustellen = [];
   perNummer = [];
   einsaetze = [];
+  abwesend = [];
   listProjectsByNumbers.mockClear();
   faellt = false;
   plaene.wert = [];
@@ -222,5 +225,34 @@ describe('Meine Baustellen — auch aus der Einteilung', () => {
   it('sagt ehrlich, wenn es weder noch gibt', async () => {
     render(<MyProjectsView />);
     expect(await screen.findByText(/auf keiner laufenden Baustelle und hast keinen kommenden Einsatz/)).toBeInTheDocument();
+  });
+});
+
+/**
+ * Nachtest 01.10.2026, N6: Der Einsatzplan blendet einen Einsatz am Tag einer
+ * Krankmeldung aus („das Büro plant ihn neu“) — hier stand er weiter als
+ * „nächster Einsatz“.
+ */
+describe('Meine Baustellen bei Abwesenheit', () => {
+  it('nennt den Einsatz an einem abwesenden Tag nicht als nächsten', async () => {
+    perNummer = [baustelle({ id: 'p9', projectNumber: 'PR-2026-0189', customerName: 'Familie Gruber' })];
+    einsaetze = [
+      { projectNumber: 'PR-2026-0189', date: '2026-10-01' },
+      { projectNumber: 'PR-2026-0189', date: '2026-10-08' },
+    ];
+    abwesend = [{ userId: 'm1', von: '2026-09-30', bis: '2026-10-02', grund: null, zeiten: null }];
+    render(<MyProjectsView />);
+    expect(await screen.findByText('Familie Gruber')).toBeInTheDocument();
+    expect(screen.queryByText('nächster Einsatz 01.10.2026')).toBeNull();
+    expect(screen.getByText('nächster Einsatz 08.10.2026')).toBeInTheDocument();
+    expect(screen.getByText(/am 01\.10\.2026 liegt an einem Tag, an dem du\s+abwesend bist — das Büro plant ihn neu/)).toBeInTheDocument();
+  });
+
+  it('die Abwesenheit eines Kollegen ändert nichts', async () => {
+    perNummer = [baustelle({ id: 'p9', projectNumber: 'PR-2026-0189', customerName: 'Familie Gruber' })];
+    einsaetze = [{ projectNumber: 'PR-2026-0189', date: '2026-10-01' }];
+    abwesend = [{ userId: 'jemand', von: '2026-10-01', bis: '2026-10-01', grund: null, zeiten: null }];
+    render(<MyProjectsView />);
+    expect(await screen.findByText('nächster Einsatz 01.10.2026')).toBeInTheDocument();
   });
 });

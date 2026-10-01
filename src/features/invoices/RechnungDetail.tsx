@@ -4,6 +4,7 @@ import { euro, euroBetrag } from '@/lib/betrag';
 import { datumAT } from '@/lib/datum';
 import type { Invoice } from '@/types';
 import { zahlstand } from './zahlstand';
+import { detailSummen } from './detailSummen';
 
 const ARTNAME: Record<string, string> = {
   einzel: 'Rechnung',
@@ -82,9 +83,15 @@ export default function RechnungDetail({
         )}
 
         <dl className="divide-y divide-line">
-          {zeile('Netto', euro(inv.totalNetto))}
-          {zeile('Umsatzsteuer', euro(inv.totalVat))}
-          {zeile('Brutto', <b>{euro(inv.totalBrutto)}</b>)}
+          {/* Gegliedert wie Vorschau und PDF — mit Abzug der Anzahlung (N2). */}
+          {detailSummen(inv).map((z, i) => (
+            <div key={i} className={`flex justify-between gap-3 py-1 ${z.abzug ? 'text-danger' : ''}`}>
+              <dt className={z.abzug ? '' : 'text-ink-muted'}>{z.wort}</dt>
+              <dd className="whitespace-nowrap text-right text-ink">
+                {z.betont ? <b>{euro(z.betrag)}</b> : z.abzug ? `−${euro(z.betrag)}` : euro(z.betrag)}
+              </dd>
+            </div>
+          ))}
           {zeile('Bezahlt', stand.bezahlt > 0 ? euro(stand.bezahlt) : null)}
           {zeile('Offen', inv.paymentStatus !== 'Storniert' ? euro(stand.rest) : null)}
           {zeile('Guthaben des Kunden', stand.guthaben > 0 ? euro(stand.guthaben) : null)}
