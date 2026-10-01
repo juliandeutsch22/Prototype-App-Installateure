@@ -240,6 +240,33 @@ export function lagerPostenBestellt(ids: string[]): Promise<void> {
   return postenSchreiben(ids, { bestellt_am: new Date().toISOString() }, true);
 }
 
+/**
+ * Der erwartete Liefertermin (Nachtest 01.10.2026, Paket B) — für
+ * Anforderungen und eigene Posten zugleich. `null` nimmt ihn zurück.
+ *
+ * Nur an BESTELLTEN Zeilen: die Datenbank weist einen Termin an einer noch
+ * nicht bestellten Zeile ab (`…_liefertermin_bestellt`); die Bedingung steht
+ * deshalb auch in der Abfrage, damit eine inzwischen zurückgenommene Zeile
+ * nicht den ganzen Aufruf scheitern lässt.
+ */
+export async function lieferterminSetzen(
+  anforderungen: string[],
+  posten: string[],
+  datum: string | null,
+): Promise<void> {
+  const wert = { liefertermin: datum || null };
+  if (anforderungen.length > 0) {
+    const { error } = await derClient().from(ANFORDERUNGEN).update(wert)
+      .in('id', anforderungen).not('bestellt_am', 'is', null);
+    if (error) throw new Error(error.message);
+  }
+  if (posten.length > 0) {
+    const { error } = await derClient().from(POSTEN).update(wert)
+      .in('id', posten).not('bestellt_am', 'is', null);
+    if (error) throw new Error(error.message);
+  }
+}
+
 /** Wie viele Artikel die Suche zeigt — genug zum Wählen, nicht der Katalog. */
 const ARTIKEL_TREFFER = 20;
 

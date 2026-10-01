@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '@/components/Icon';
-import type { Abschnitt, Ton, Zeile } from './abschnitte';
+import { summe, type Abschnitt, type Ton, type Zeile } from './abschnitte';
 
 const TON: Record<Ton, string> = {
   fehl: 'stand-fehl',
@@ -83,13 +83,11 @@ export default function Handlungsbedarf({
   zaehlwort,
 }: {
   abschnitte: Abschnitt[];
-  /** „Themen“ bei der Geschäftsführung, sonst die Zahl der Einträge. */
+  /** „Themen“ bei der Geschäftsführung; sonst steht nur die Zahl der Einträge. */
   zaehlwort?: string;
 }) {
   if (abschnitte.length === 0) return null;
-  const zahl = zaehlwort
-    ? abschnitte.reduce((s, a) => s + a.anzahl, 0)
-    : abschnitte.reduce((s, a) => s + a.anzahl, 0);
+  const zahl = summe(abschnitte);
   return (
     <section className="panel karte" aria-labelledby="handlungsbedarf-titel">
       <header className="karte-kopf">
@@ -104,4 +102,4 @@ export default function Handlungsbedarf({
   );
 }
 
-export { EintragZeile };
+export { EintragZeile, AbschnittBlock };

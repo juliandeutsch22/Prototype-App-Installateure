@@ -29,6 +29,11 @@ interface Props {
   geladen: NonNullable<EinsatzMaterial['geladen']>;
   /** Darf hier abgehakt werden? Sonst nur anzeigen. */
   abhakbar?: boolean;
+  /**
+   * Höchstens so viele Zeilen, der Rest hinter „und N weitere“ (Startseite,
+   * Nachtest 01.10.2026). Ohne Angabe alle.
+   */
+  max?: number;
 }
 
 export default function RuestlisteAbhaken({
@@ -37,8 +42,10 @@ export default function RuestlisteAbhaken({
   positionen,
   geladen,
   abhakbar = true,
+  max,
 }: Props) {
   const { user } = useAuth();
+  const [alle, setAlle] = useState(false);
   const [oertlich, setOertlich] = useState<NonNullable<EinsatzMaterial['geladen']>>(geladen);
   const [fehler, setFehler] = useState<string | null>(null);
 
@@ -82,7 +89,7 @@ export default function RuestlisteAbhaken({
         </span>
       </p>
       <ul className="divide-y divide-line border-y border-line">
-        {positionen.map((p) => {
+        {(max && !alle ? positionen.slice(0, max) : positionen).map((p) => {
           const eintrag = oertlich[p.id];
           const id = `rl-${projectNumber}-${p.id}`;
           return (
@@ -122,6 +129,16 @@ export default function RuestlisteAbhaken({
           );
         })}
       </ul>
+      {max != null && positionen.length > max && (
+        <button
+          type="button"
+          aria-expanded={alle}
+          onClick={() => setAlle((a) => !a)}
+          className="flex min-h-touch w-full items-center border-b border-line text-left text-sm font-semibold text-ink-deep"
+        >
+          {alle ? 'weniger anzeigen' : `und ${positionen.length - max} weitere →`}
+        </button>
+      )}
       {abhakbar && (
         <p className="pt-2 text-xs text-ink-muted">
           Der Haken bucht Lagermaterial vom Bestand ab. Zurücknehmen geht nur heute; was übrig

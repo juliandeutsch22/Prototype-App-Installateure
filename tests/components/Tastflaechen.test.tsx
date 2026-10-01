@@ -38,7 +38,8 @@ describe('Tastflächen', () => {
   });
 
   it.each([
-    ['src/features/dashboard/DashboardView.tsx', 'to="/time"', 14],
+    // „Jetzt nachtragen“ der Startseite ist seit dem 01.10.2026 eine eigene Zeile
+    // (Abschnitt „Tage ohne Buchung“, min-h-touch) — kein Link im Fließtext mehr.
     ['src/features/dashboard/WartungHinweis.tsx', 'to="/wartungen"', 14],
     ['src/features/quotes/QuotesView.tsx', 'to={`/quotes/${q.id}`}', 16],
   ])('%s: der Link %s hat 44 px Tastfläche ohne neue Zeilenhöhe', (datei, ziel, schrift) => {

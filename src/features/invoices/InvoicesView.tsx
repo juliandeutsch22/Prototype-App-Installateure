@@ -53,6 +53,7 @@ import {
   unverrechneteScheine,
   auffaellige,
   AUFFAELLIG_AB_TAGEN,
+  UNVERRECHNET_BASIS,
 } from '@/features/worksheets/unverrechnet';
 import { geltenderSatz, pruefeReverseCharge } from './reverseCharge';
 import { istUnternehmerKunde, uidFehler, uidNormalisieren } from '@/lib/uid';
@@ -450,7 +451,7 @@ export default function InvoicesView() {
       .catch(() => {
         if (!weg) setForderungenFehler(true);
       });
-    listRecentWorkSheets(user.companyId, 60)
+    listRecentWorkSheets(user.companyId, UNVERRECHNET_BASIS)
       .then(async (rows) => {
         if (weg) return;
         setScheineAllerBaustellen(rows);

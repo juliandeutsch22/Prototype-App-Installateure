@@ -13,10 +13,12 @@ import {
   lagerPostenLoeschen,
   lagerPostenZuordnen,
   lieferantVorschlag,
+  lieferterminSetzen,
   vonEinkaufslisteNehmen,
   type Grosshaendler,
 } from '@/lib/db/einkauf';
-import { localDateStr } from '@/lib/time';
+import { localDateStr, todayStr } from '@/lib/time';
+import { datumAT } from '@/lib/datum';
 import { postenNeuLaden } from '@/app/offenePosten';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -29,7 +31,15 @@ import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { EmptyState, ErrorState } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { fmtMenge } from '@/lib/belegLayout';
-import { bestellMail, bestellText, einkaufsliste, type EinkaufsGruppe, type EinkaufsZeile } from './einkauf';
+import {
+  bestellMail,
+  bestellText,
+  einkaufsliste,
+  lieferterminText,
+  type EinkaufsGruppe,
+  type EinkaufsZeile,
+  type Unterwegs,
+} from './einkauf';
 import { downloadBestellungPdf } from './bestellungPdf';
 import { zahlOder } from '@/lib/zahl';
 import { mengeFehler } from '@/lib/einheit';
@@ -87,6 +97,11 @@ export default function Einkaufsliste({
   const [fehler, setFehler] = useState<string | null>(null);
   const [laeuft, setLaeuft] = useState<string | null>(null);
   const [bestelltFragen, setBestelltFragen] = useState<EinkaufsGruppe | null>(null);
+  /** Der erwartete Liefertermin im Dialog „Als bestellt markieren" — freiwillig. */
+  const [termin, setTermin] = useState('');
+  /** Die bestellte Zeile, deren Liefertermin gerade geändert wird. */
+  const [terminFuer, setTerminFuer] = useState<Unterwegs | null>(null);
+  const [terminNeu, setTerminNeu] = useState('');
 
   const materialIds = useMemo(
     () =>
@@ -348,8 +363,19 @@ export default function Einkaufsliste({
                           o.art === 'lager' ? 'fürs Lager' : o.wer,
                           o.art === 'lager' ? o.notiz : o.kommission,
                           o.bestelltAm ? `bestellt ${fmtTag(o.bestelltAm)}` : '',
+                          lieferterminText(o.liefertermin),
                         ].filter(Boolean).join(' · ')}
                       >
+                        <Button
+                          variant="ghost"
+                          disabled={laeuft !== null}
+                          onClick={() => {
+                            setTerminNeu(o.liefertermin ?? '');
+                            setTerminFuer(o);
+                          }}
+                        >
+                          {o.liefertermin ? 'Termin ändern' : 'Termin'}
+                        </Button>
                         <Button
                           variant="secondary"
                           loading={laeuft === o.id}
@@ -393,21 +419,76 @@ export default function Einkaufsliste({
               } gelten dann als bestellt und warten auf die Lieferung.`
             : ''
         }
-        onCancel={() => setBestelltFragen(null)}
+        onCancel={() => {
+          setBestelltFragen(null);
+          setTermin('');
+        }}
         onConfirm={async () => {
           const g = bestelltFragen;
+          const datum = termin;
           setBestelltFragen(null);
+          setTermin('');
           if (!g) return;
+          const anforderungen = g.zuBestellen.flatMap((z) => z.anforderungen);
+          const posten = g.zuBestellen.flatMap((z) => z.posten);
           await tun(
             `bestellt-${g.supplierId}`,
             async () => {
-              await alsBestelltMarkieren(g.zuBestellen.flatMap((z) => z.anforderungen));
-              await lagerPostenBestellt(g.zuBestellen.flatMap((z) => z.posten));
+              await alsBestelltMarkieren(anforderungen);
+              await lagerPostenBestellt(posten);
+              // Erst bestellt, dann der Termin: die Datenbank nimmt ihn nur an
+              // einer bestellten Zeile an.
+              if (datum) await lieferterminSetzen(anforderungen, posten, datum);
             },
-            'Als bestellt markiert',
+            datum ? `Als bestellt markiert — Liefertermin ${datumAT(datum)}` : 'Als bestellt markiert',
           );
         }}
-      />
+      >
+        <InputField
+          id="einkauf-liefertermin"
+          label="Erwarteter Liefertermin (freiwillig)"
+          type="date"
+          min={todayStr()}
+          value={termin}
+          onChange={(e) => setTermin(e.target.value)}
+        />
+      </ConfirmDialog>
+
+      {/*
+        DER LIEFERTERMIN (Nachtest 01.10.2026, Paket B): woran die Startseite
+        der Verwaltung „bestellt und überfällig“ und „Lieferung heute“
+        erkennt. Leer gespeichert nimmt ihn zurück.
+      */}
+      <ConfirmDialog
+        open={!!terminFuer}
+        title="Erwarteter Liefertermin"
+        confirmLabel="Speichern"
+        confirmTone="primary"
+        message={terminFuer ? `${fmtMenge(terminFuer.menge)}${terminFuer.einheit ? ` ${terminFuer.einheit}` : ''} × ${terminFuer.bezeichnung}` : ''}
+        onCancel={() => setTerminFuer(null)}
+        onConfirm={async () => {
+          const o = terminFuer;
+          setTerminFuer(null);
+          if (!o) return;
+          await tun(
+            `termin-${o.id}`,
+            () => lieferterminSetzen(
+              o.art === 'anforderung' ? [o.id] : [],
+              o.art === 'lager' ? [o.id] : [],
+              terminNeu || null,
+            ),
+            terminNeu ? `Liefertermin ${datumAT(terminNeu)} eingetragen` : 'Liefertermin entfernt',
+          );
+        }}
+      >
+        <InputField
+          id="einkauf-liefertermin-aendern"
+          label="Liefertermin (leer lassen, um ihn zu entfernen)"
+          type="date"
+          value={terminNeu}
+          onChange={(e) => setTerminNeu(e.target.value)}
+        />
+      </ConfirmDialog>
     </div>
   );
 }
