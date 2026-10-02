@@ -15,7 +15,7 @@
 export const GEPRUEFT = false;
 
 /** Stand der Texte — mit jeder Änderung nachziehen. */
-export const STAND = '24.09.2026';
+export const STAND = '02.10.2026';
 
 const OFFEN = (was: string) => `[${was} — wird ergänzt]`;
 
@@ -56,7 +56,7 @@ export const VERARBEITER: { wer: string; wofuer: string; wo: string }[] = [
   },
   {
     wer: OFFEN('Anbieter der Sicherung außer Haus'),
-    wofuer: 'nächtliche Sicherung des gesamten Bestands eines Betriebs, 30 Tage aufbewahrt',
+    wofuer: 'nächtliche Sicherung des gesamten Bestands eines Betriebs, nach der Ablauffrist beim Anbieter gelöscht (vorgesehen 90 Tage)',
     wo: OFFEN('Standort'),
   },
   {

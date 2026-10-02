@@ -420,6 +420,48 @@ describe('Startseite — Geschäftsführung', () => {
     expect(within(weg).getByText('Anton Berger')).toBeInTheDocument();
   });
 
+  /*
+    02.10.2026 — die Konten der Belegschaft: eine Lehrzeit, die endet, und
+    ein Betrieb, der nur eine Leitung ohne E-Mail hat.
+  */
+  it('erinnert an das Ende der Lehrzeit und an die einzige Leitung ohne E-Mail', async () => {
+    const { listUsers } = await import('@/lib/db/users');
+    vi.mocked(listUsers).mockImplementation(async () => [
+      monteur,
+      { ...monteur, uid: 'l1', id: 'l1', name: 'Lena Lehrling', einstufung: 'lehrling', lehrbeginn: '2023-10-01', lehrzeitMonate: 36 },
+      { ...monteur, uid: 'gf', id: 'gf', name: 'Gerda Chefin', role: 'Geschäftsführung', email: 'gerda@benutzer.senklot.invalid' },
+    ]);
+    try {
+      zeichne();
+      const lehrzeit = await screen.findByRole('link', { name: /Lehrzeit von Lena Lehrling endet am 30\.09\./ });
+      expect(lehrzeit).toHaveAttribute('href', '/user-mgmt/l1');
+      // Diese Woche hat hier mehr als drei Themen — die übrigen klappen an Ort und Stelle auf.
+      const woche = screen.getByRole('region', { name: 'Diese Woche' });
+      const mehr = within(woche).queryByRole('button', { name: /weitere/ });
+      if (mehr) await userEvent.click(mehr);
+      expect(within(woche).getByRole('link', { name: /Nur ein Leitungskonto, ohne E-Mail/ })).toHaveAttribute('href', '/user-mgmt');
+    } finally {
+      vi.mocked(listUsers).mockImplementation(async () => [monteur]);
+    }
+  });
+
+  it('Gegenprobe: ohne Lehrling und mit Leitung mit E-Mail — keine solche Zeile', async () => {
+    const { listUsers } = await import('@/lib/db/users');
+    vi.mocked(listUsers).mockImplementation(async () => [
+      monteur,
+      { ...monteur, uid: 'gf', id: 'gf', name: 'Gerda Chefin', role: 'Geschäftsführung', email: 'gerda@perl.at' },
+    ]);
+    try {
+      zeichne();
+      await screen.findByRole('link', { name: /Aktive Baustellen/ });
+      await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+      expect(screen.queryByText(/Lehrzeit/)).toBeNull();
+      expect(screen.queryByText(/Leitungskonto/)).toBeNull();
+    } finally {
+      vi.mocked(listUsers).mockImplementation(async () => [monteur]);
+    }
+  });
+
   it('fasst nach Themen zusammen und klappt „und N weitere“ an Ort und Stelle auf', async () => {
     rolle.wert = 'Geschäftsführung';
     anforderungen.wert = [
@@ -430,6 +472,12 @@ describe('Startseite — Geschäftsführung', () => {
       endDate: '2026-09-01',
     })) as Project[];
     zeichne();
+    /*
+      Erst wenn alle Blöcke da sind: die Karte steht schon vorher und wechselt
+      mit den Kennzahlen von einer Spalte in zwei — eine früh gegriffene Karte
+      ist dann nicht mehr im Dokument.
+    */
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
     const karte = await karteMit(/Handlungsbedarf/);
     expect(within(karte).getByText(/Themen/)).toBeInTheDocument();
     expect(within(karte).getByRole('region', { name: 'Überfällig' })).toBeInTheDocument();

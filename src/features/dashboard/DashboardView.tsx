@@ -132,7 +132,7 @@ export default function DashboardView() {
       bloecke.push(['Baustellen und Einsätze', () => leitung(k, { einsatzplanung: einsatzAn, wartung: wartungAn, budget: true })]);
     }
     if (isTopLevel(user.role)) {
-      bloecke.push(['Einstellungen', () => einstellungen(k, { rechnungen: rechnungenAn, konten: true })]);
+      bloecke.push(['Einstellungen', () => einstellungen(k, { rechnungen: rechnungenAn, konten: true, personen: true })]);
     }
 
     setLaeuft(bloecke.length);

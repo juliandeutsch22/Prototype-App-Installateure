@@ -104,8 +104,9 @@ export default function DatenschutzView() {
           Solange der Betrieb die Daten führt und gesetzliche Aufbewahrungsfristen es verlangen
           (etwa sieben Jahre für Buchhaltungsbelege und Arbeitszeitaufzeichnungen nach § 132 BAO).
           Verlangst du die Löschung, entfernt der Betrieb sofort, was keiner Aufbewahrung
-          unterliegt; der Rest bleibt gesperrt, bis die Frist abgelaufen ist. Sicherungen werden nach 30
-          Tagen gelöscht, das Fehlerprotokoll nach 90 Tagen. Endet die Nutzung durch den Betrieb,
+          unterliegt; der Rest bleibt gesperrt, bis die Frist abgelaufen ist. Sicherungen im eigenen
+          Rechenzentrum werden nach 30 Tagen gelöscht, die Kopie außer Haus nach der Ablauffrist beim
+          Anbieter der Sicherung (vorgesehen 90 Tage); das Fehlerprotokoll nach 90 Tagen. Endet die Nutzung durch den Betrieb,
           werden seine Daten nach Rückgabe gelöscht, wie im Auftragsverarbeitungsvertrag vereinbart.
         </p>
       </Abschnitt>

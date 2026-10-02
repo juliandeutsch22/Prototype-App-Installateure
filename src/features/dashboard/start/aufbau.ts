@@ -511,6 +511,29 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: 'einrichten', ton: 'leise' },
     }));
   }
+  const lehrzeit = d.lehrzeitEnden ?? [];
+  if (lehrzeit.length) {
+    const erste = lehrzeit[0];
+    const vorbei = erste.ende < h;
+    themen.push(wenn(lehrzeit.length === 1 ? ZIEL.benutzer(erste.uid) : ZIEL.benutzerverwaltung, {
+      key: 'lehrzeit', wann: vorbei ? 'ueberfaellig' : 'woche',
+      titel: lehrzeit.length === 1
+        ? `Lehrzeit von ${erste.name} ${vorbei ? 'endete' : 'endet'} am ${tagKurz(erste.ende)}`
+        : `${anzahl(lehrzeit.length, 'Lehrzeit endet', 'Lehrzeiten enden')}`,
+      detail: lehrzeit.length === 1
+        ? 'Einstufung ändern, sobald die Prüfung abgelegt ist'
+        : lehrzeit.map((z) => `${z.name} ${tagKurz(z.ende)}`).join(', '),
+      status: { text: 'ändern', ton: vorbei ? 'warn' : 'leise' },
+    }));
+  }
+  if (d.einzigeLeitungOhneMail) {
+    themen.push(wenn(ZIEL.benutzerverwaltung, {
+      key: 'leitung-mail', wann: 'woche',
+      titel: 'Nur ein Leitungskonto, ohne E-Mail',
+      detail: 'Passwort vergessen geht dann nur über den Support — zweites anlegen',
+      status: { text: 'anlegen', ton: 'leise' },
+    }));
+  }
   if ((d.firmaFehlt ?? []).length) {
     themen.push(wenn(ZIEL.einstellungen('firma'), {
       key: 'firma', wann: 'woche',
