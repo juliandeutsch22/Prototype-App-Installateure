@@ -13,7 +13,7 @@
  * Die Signaturen hier sind der Vertrag mit den Ansichten — siehe
  * `tests/unit/datenschichtVertrag.test.ts`. Sie ändern sich beim Umzug nicht.
  */
-import type { Customer, Project } from '@/types';
+import type { Customer, Project, UidPruefung } from '@/types';
 import { KUNDEN_GRENZE } from '@/lib/listengrenzen';
 import type { WithId } from './core';
 import * as pg from './pg/customers';
@@ -98,4 +98,14 @@ export function kundenAdressePruefen(companyId: string): Promise<WithId<Customer
 /** Die nächste freie Kundennummer — ein Vorschlag (M12). */
 export function naechsteKundennummer(): Promise<string> {
   return pg.naechsteKundennummer();
+}
+
+/** Die VIES-Abfragen eines Kunden, neueste zuerst. */
+export function listUidPruefungen(companyId: string, customerId: string): Promise<UidPruefung[]> {
+  return pg.listUidPruefungen(companyId, customerId);
+}
+
+/** Die gespeicherte UID des Kunden bei VIES prüfen; das Ergebnis wird festgehalten. */
+export function uidBeiViesPruefen(customerId: string): Promise<{ pruefung: UidPruefung; hinweis?: string }> {
+  return pg.uidBeiViesPruefen(customerId);
 }

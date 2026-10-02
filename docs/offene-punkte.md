@@ -91,16 +91,26 @@ Anpassung, kein Umbau.
 | D6 | Steuerberatung | **K3** die Lücke im Rechnungskreis des Pilotbetriebs aus der Zeit vor dem 25.09. festhalten | der Kreis läuft seit 25.09. lückenlos |
 | D7 | Kanzlei | **H7 / C4** Spaltenköpfe und Steuercodes des BMD-Stapels, Kundennummer, Zahlungsstapel — Importtest an einer Beispieldatei | vorgebaut, unverändert bis zum Test |
 | D8 | Anwalt | **K4** Datenschutzerklärung und Impressum freigeben, Angaben in eckigen Klammern ergänzen | Entwurf mit Band „Entwurf“ |
+| D9 | Steuerberatung | **E2** Reicht die VIES-Abfrage mit Abfrage-ID als Nachweis der Kunden-UID, oder braucht es für österreichische Nummern zusätzlich die Bestätigung über FinanzOnline (Stufe 2)? | VIES-Abfrage mit festgehaltenem Ergebnis, Zeitpunkt und Abfrage-ID in der Kundenakte |
+| D10 | Anwalt | **E3** Kalender-Abo: Kundenname, Adresse und Ansprechpartner gehen an den Kalenderdienst der Person (Google, Apple, Microsoft) — genügt der Schalter des Betriebs samt Satz in der Datenschutzerklärung? | ab Werk aus, der Betrieb schaltet es ein; Ausschalten beendet alle Abos |
 
 ## E. Für später vermerkt (entschieden am 30.09.2026)
 
 | # | Punkt |
 |---|---|
-| E2 | **M10** UID-Prüfung online über VIES (heute nur die Form je EU-Staat) |
-| E3 | Paket 11: Personalnummer, Lohnarten, Fahrzeuglager, Prüfprotokoll, Kalender-Export, Mailversand aus der App (braucht SMTP-Zugang als Function-Geheimnis), ebInterface |
+| E3 | Paket 11: Personalnummer, Lohnarten, Fahrzeuglager, Prüfprotokoll, ebInterface; Mailversand aus der App (braucht SMTP-Zugang als Function-Geheimnis) ist am 02.10.2026 zurückgestellt — der Mehrwert ist offen |
 | E4 | Plattform: Stufe „nur lesen“ nach einer Kündigung (im Auftrag optional). Die Erinnerung bei nur einem Leitungskonto ohne E-Mail steht seit 02.10.2026 auf der Startseite des Betriebs |
 
 ## Erledigt seit dem Prüflauf
+
+**Am 02.10.2026, auch:** E2 (M10) — die UID eines Kunden lässt sich in der
+Kundenakte bei VIES prüfen; Ergebnis, Zeitpunkt laut VIES, Abfrage-ID und wer
+gefragt hat, bleiben als Nachweis (`uid_pruefungen`, Serverfunktion
+`uid-pruefen`). Aus E3 der Kalender-Export: als Kalender-Abo je Person, wenn
+der Betrieb es erlaubt (`kalender_abos`, Serverfunktion `kalender`). Offen
+dabei: der erste echte Abruf von VIES aus dem Produktivprojekt — lokal hat der
+Container keinen Weg nach außen; geprüft ist alles davor und danach und der
+Ablauf an den echten Antwortformen von VIES.
 
 **Am 02.10.2026, auch:** E1 (M18) — Angebote mit Katalogartikeln (Suche auf
 dem Server), Positionsrabatt, Titel- und Textzeilen; die Rechnung übernimmt

@@ -635,7 +635,7 @@
     <div class="stempel">
       <span>Stand <b>02.10.2026</b></span>
       <span>Fassung <b>Folgearbeiten 02.10.</b></span>
-      <span>Automatische Prüfungen <b>5131</b></span>
+      <span>Automatische Prüfungen <b>5200</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -665,6 +665,16 @@
         <h3>Angebote gegliedert<span class="neu">neu</span></h3>
         <p>Ein Angebot kennt jetzt drei Arten von Zeilen. <strong>Position</strong> wie bisher, auf Wunsch mit einem <strong>Rabatt in Prozent</strong> nur für diese Zeile — der Einzelpreis bleibt der Listenpreis, das Netto steht nach Abzug da. <strong>Titel</strong> gliedern („Bad“, „Heizraum“) und tragen auf dem Angebot die Summe ihrer Positionen. <strong>Text</strong> ist ein Hinweis ohne Preis („Fliesenarbeiten bauseits“). Mit den Pfeilen rückt eine Zeile an ihren Platz. <strong>„Aus dem Katalog …“</strong> sucht im ganzen Katalog, auch in einem eingespielten Großhandelskatalog, und übernimmt Bezeichnung, Einheit und Verkaufspreis; danach ist es eine gewöhnliche Position. Nimmt der Kunde an, übernimmt die Rechnung Titel, Text und Rabatt, und das PDF von Angebot und Rechnung zeigt sie gleich.</p>
         <p class="wer">Büro, Leitung</p>
+      </div>
+      <div class="bereich">
+        <h3>UID bei VIES prüfen<span class="neu">neu</span></h3>
+        <p>In der Kundenakte steht unter den Stammdaten „Prüfung bei VIES“. Geprüft wird die gespeicherte UID-Nummer — wer sie ändert, speichert zuerst. Senklot fragt das Abfragesystem der EU-Kommission mit der eigenen UID aus den Firmendaten; dann gibt es eine <strong>Abfrage-ID</strong>, die belegt, dass der Betrieb zu diesem Zeitpunkt gefragt hat. Festgehalten werden Ergebnis, Zeitpunkt laut VIES, Name und Anschrift, wie VIES sie liefert, und wer gefragt hat; frühere Abfragen stehen eingeklappt darunter. Fehlt die eigene UID oder erkennt VIES sie nicht an, kommt das Ergebnis ohne Abfrage-ID, und die Akte sagt warum. Ist VIES oder der Dienst eines Landes gerade nicht erreichbar, wird nichts festgehalten — später noch einmal prüfen. UID-Nummern außerhalb der EU (Schweiz, Norwegen, Vereinigtes Königreich) kennt VIES nicht.</p>
+        <p class="wer">Büro, Leitung · nicht Monteure</p>
+      </div>
+      <div class="bereich">
+        <h3>Einsatzplan im eigenen Kalender<span class="neu">neu</span></h3>
+        <p>Erlaubt der Betrieb es (Einstellungen → Personal → „Wochenplan und Einsatzplan“, ab Werk aus), steht unten in „Mein Einsatzplan“ die Karte <strong>„Im eigenen Kalender“</strong>. „Kalender-Abo einrichten“ zeigt einen geheimen Link — <strong>nur einmal</strong>. Am iPhone „Im Kalender öffnen“ antippen; im Google Kalender am Computer „Weitere Kalender → Per URL“; in Outlook „Aus dem Internet abonnieren“. Der Kalender holt die Einsätze dann selbst ab, zwei Monate zurück und ein Jahr voraus, mit Uhrzeit, Adresse als Ort und Ansprechpartner in der Notiz — wie oft, entscheidet die Kalender-App (meist stündlich, Google auch seltener). Ein neuer Link ersetzt den alten, „Abo beenden“ beendet ihn. Wird jemand deaktiviert oder schaltet der Betrieb es aus, enden die Abos sofort; Wiedereinschalten belebt keinen alten Link. Kundenname und Adresse liegen damit beim Kalenderdienst der Person — deshalb entscheidet der Betrieb.</p>
+        <p class="wer">Monteur, Projektleiter im Einsatzplan · Schalter: Geschäftsführung, Administrator</p>
       </div>
       <div class="bereich">
         <h3>Datenauskunft vollständig<span class="neu">behoben</span></h3>
@@ -901,9 +911,9 @@
         Lücke im Rechnungskreis aus der Zeit vor dem 25.09. festgehalten wird.
         <strong>Kanzlei:</strong> Spalten und Steuercodes des BMD-Stapels an
         einer Beispieldatei. <strong>Anwalt:</strong> Datenschutzerklärung und
-        Impressum. <strong>Für später vermerkt:</strong> die UID-Prüfung über
-        VIES. Katalogartikel, Positionsrabatt sowie Titel- und Textzeilen im
-        Angebot sind seit dem 02.10. gebaut.
+        Impressum. Katalogartikel, Positionsrabatt sowie Titel- und Textzeilen
+        im Angebot, die UID-Prüfung über VIES und das Kalender-Abo sind seit
+        dem 02.10. gebaut.
       </p>
     </div>
   </section>
@@ -1773,7 +1783,7 @@
       </div>
       <div class="bereich">
         <h3>Mandantentrennung</h3>
-        <p>Jede Abfrage ist auf den eigenen Betrieb eingegrenzt — seit dem Umzug als <em>Zeilenschutz in der Datenbank</em>. Eine Zeile, die man nicht sehen darf, ist nicht „verboten“, sondern nicht vorhanden: fehlender und fremder Datensatz sehen von außen gleich aus, und das ist die ehrlichere Antwort. <strong>1 521 Prüfungen laufen gegen eine echte Postgres-Datenbank</strong>, darunter zwei Betriebe, die am selben Tag auf derselben Baustellennummer arbeiten.</p>
+        <p>Jede Abfrage ist auf den eigenen Betrieb eingegrenzt — seit dem Umzug als <em>Zeilenschutz in der Datenbank</em>. Eine Zeile, die man nicht sehen darf, ist nicht „verboten“, sondern nicht vorhanden: fehlender und fremder Datensatz sehen von außen gleich aus, und das ist die ehrlichere Antwort. <strong>1 545 Prüfungen laufen gegen eine echte Postgres-Datenbank</strong>, darunter zwei Betriebe, die am selben Tag auf derselben Baustellennummer arbeiten.</p>
         <p class="wer">Gilt für alle</p>
       </div>
       <div class="bereich">
@@ -2224,7 +2234,7 @@
       </div>
       <div class="luecke">
         <strong>Die Gegenstellen draußen<span class="schwere offen">offen</span></strong>
-        <p>Alle fünf Serverfunktionen laufen in den Prüfungen gegen den örtlichen Stapel, mit ihren Abweisungen. Den echten Push-Versand hat der Betrieb am 29.09. auf dem iPhone bestätigt — die Meldungen kommen an. Was kein Test erreicht: das echte Sicherungsziel außer Haus und ob das gehostete Projekt eine <code>.invalid</code>-Adresse beim Anlegen annimmt — den Beweis liefert das erste Benutzernamen-Konto in Produktion.</p>
+        <p>Alle zehn Serverfunktionen laufen in den Prüfungen gegen den örtlichen Stapel, mit ihren Abweisungen; <code>uid-pruefen</code> bis vor die Abfrage bei VIES (siehe „VIES aus dem Produktivprojekt“). Den echten Push-Versand hat der Betrieb am 29.09. auf dem iPhone bestätigt — die Meldungen kommen an. Was kein Test erreicht: das echte Sicherungsziel außer Haus und ob das gehostete Projekt eine <code>.invalid</code>-Adresse beim Anlegen annimmt — den Beweis liefert das erste Benutzernamen-Konto in Produktion.</p>
       </div>
       <div class="luecke">
         <strong>Auf dem iPhone bestätigt<span class="schwere erledigt">erledigt</span></strong>
@@ -2237,11 +2247,15 @@
       </div>
       <div class="luecke">
         <strong>Bestätigungen von außen<span class="schwere offen">offen</span></strong>
-        <p>Gebaut ist nach der eigenen Lesart; bestätigen muss jemand anderer. <strong>WKO:</strong> aliquoter Urlaub taggenau, Nachtzuschlag stundengenau, Mahnspesen an Privatkunden — und erst danach die Schutzregeln für Jugendliche (KJBG). <strong>Steuerberatung:</strong> ob die Buchung des Stornos mit der Stornorechnung ins Jahr der Ausstellung wandert, der vorgeschlagene Kontenrahmen, und wie die Lücke im Rechnungskreis von vor dem 25.09. festgehalten wird. <strong>Kanzlei:</strong> Spalten und Steuercodes des BMD-Stapels an einer Beispieldatei, auch für Kundennummer und Zahlungsstapel. <strong>Anwalt:</strong> die Rechtstexte, siehe oben.</p>
+        <p>Gebaut ist nach der eigenen Lesart; bestätigen muss jemand anderer. <strong>WKO:</strong> aliquoter Urlaub taggenau, Nachtzuschlag stundengenau, Mahnspesen an Privatkunden — und erst danach die Schutzregeln für Jugendliche (KJBG). <strong>Steuerberatung:</strong> ob die Buchung des Stornos mit der Stornorechnung ins Jahr der Ausstellung wandert, der vorgeschlagene Kontenrahmen, und wie die Lücke im Rechnungskreis von vor dem 25.09. festgehalten wird. <strong>Kanzlei:</strong> Spalten und Steuercodes des BMD-Stapels an einer Beispieldatei, auch für Kundennummer und Zahlungsstapel. <strong>Anwalt:</strong> die Rechtstexte, siehe oben, und ob für das Kalender-Abo der Schalter des Betriebs samt Satz in der Datenschutzerklärung genügt. <strong>Steuerberatung, dazu:</strong> ob die VIES-Abfrage mit Abfrage-ID als Nachweis der Kunden-UID reicht oder es für österreichische Nummern zusätzlich die Bestätigung über FinanzOnline braucht.</p>
       </div>
       <div class="luecke">
         <strong>Für später vermerkt<span class="schwere einrichtung">später</span></strong>
-        <p>Die UID-Prüfung online über VIES; Personalnummer und Lohnarten, Fahrzeuglager, Prüfprotokoll, Kalender-Export, ebInterface. Auf der Plattform fehlt eine Stufe „nur lesen“ nach einer Kündigung.</p>
+        <p>Personalnummer und Lohnarten, Fahrzeuglager, Prüfprotokoll, ebInterface. Der Mailversand aus der App ist zurückgestellt, solange sein Nutzen offen ist. Auf der Plattform fehlt eine Stufe „nur lesen“ nach einer Kündigung.</p>
+      </div>
+      <div class="luecke">
+        <strong>VIES aus dem Produktivprojekt<span class="schwere offen">erster Abruf</span></strong>
+        <p>Geprüft sind alle Regeln vor und nach der Abfrage gegen die echte Datenbank und das Lesen der Antwort an den Formen, die VIES am 02.10. tatsächlich geliefert hat. Der Weg vom Server zu VIES selbst lief nur im gehosteten Projekt — die erste Prüfung im Betrieb zeigt, ob er steht. Kommt dort „VIES ist gerade nicht erreichbar“ dauerhaft, ist es dieser Weg und nicht die Nummer.</p>
       </div>
       <div class="luecke">
         <strong>Nach sieben Jahren<span class="schwere offen">steuerberatung</span></strong>
@@ -2265,7 +2279,7 @@
 
   <footer class="fuss">
     <span>Senklot · Betriebssoftware für Installationsbetriebe in Österreich</span>
-    <span>5 131 automatische Prüfungen: 3 574 im Kleinen, 1 521 gegen eine echte Datenbank, 30 Läufe im echten Browser, 6 Linkprüfungen je Rolle</span>
+    <span>5 200 automatische Prüfungen: 3 619 im Kleinen, 1 545 gegen eine echte Datenbank, 30 Läufe im echten Browser, 6 Linkprüfungen je Rolle</span>
     <span>Stand 02.10.2026</span>
   </footer>
 

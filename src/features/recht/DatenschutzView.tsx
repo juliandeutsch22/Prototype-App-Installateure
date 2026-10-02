@@ -45,6 +45,17 @@ export default function DatenschutzView() {
             zu Baustellen.
           </li>
           <li>Kunden, Angebote, Rechnungen und Zahlungen des Betriebs.</li>
+          <li>
+            Prüft das Büro die UID-Nummer eines Kunden, gehen diese Nummer und die UID-Nummer des
+            Betriebs an das Abfragesystem VIES der EU-Kommission; Ergebnis, Zeitpunkt und wer
+            gefragt hat, stehen danach beim Kunden.
+          </li>
+          <li>
+            Wenn der Betrieb es erlaubt und du ein Kalender-Abo einrichtest: deine Einsätze samt
+            Kundenname, Adresse und Ansprechpartner gehen an den Kalenderdienst, den du dafür
+            wählst (etwa Google, Apple oder Microsoft). In Senklot steht nur, wann das Abo
+            eingerichtet und zuletzt abgeholt wurde; beenden kannst du es jederzeit.
+          </li>
           <li>Wenn du Push-Meldungen erlaubst: eine Kennung deines Geräts.</li>
           <li>
             Ein Fehlerprotokoll: stürzt die App ab, werden Fehlermeldung, Ansicht, Fassung der App

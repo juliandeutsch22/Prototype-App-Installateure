@@ -195,6 +195,12 @@ export interface Company {
   ueberstundenHundertSonnFeiertag?: boolean;
   /** Die Projektleitung ist im Einsatzplan einteilbar und sieht „Mein Einsatzplan“ (M38). Ab Werk aus. */
   projektleitungImEinsatzplan?: boolean;
+  /**
+   * Mitarbeiter dürfen ihren Einsatzplan als Kalender abonnieren. Ab Werk
+   * aus: Kundenname und Adresse gehen damit an den Kalenderdienst der Person
+   * (Google, Apple, Microsoft). Ausschalten beendet alle Abos.
+   */
+  kalenderAboErlaubt?: boolean;
   /** Vorschlag für den Grund der Steuerbefreiung auf Rechnungen mit 0 % (A2). */
   steuerbefreiungVorgabe?: string;
   urlaubUebertrag?: 'verjaehrung' | 'stichtag';
@@ -915,6 +921,34 @@ export interface KontoUmstellung {
   durch: string;
   durchName?: string | null;
   am: number;
+}
+
+/**
+ * Eine Abfrage der Kunden-UID bei VIES — der Nachweis, wie VIES geantwortet
+ * hat. Name und Anschrift stehen so da, wie VIES sie liefert; manche Staaten
+ * geben sie nicht heraus. Die Abfrage-ID gibt es nur, wenn die eigene UID in
+ * den Firmendaten steht und VIES sie anerkennt (`eigeneUid`).
+ */
+export interface UidPruefung {
+  id: string;
+  customerId: string;
+  uid: string;
+  gueltig: boolean;
+  name?: string | null;
+  adresse?: string | null;
+  abfrageId?: string | null;
+  eigeneUid?: string | null;
+  /** Zeitpunkt laut VIES. */
+  abgefragtAm: number;
+  durch: string;
+  durchName?: string | null;
+  am: number;
+}
+
+/** Das Kalender-Abo einer Person — der Link selbst steht nirgends. */
+export interface KalenderAbo {
+  angelegtAm: number;
+  zuletztAbgerufen?: number | null;
 }
 
 /**

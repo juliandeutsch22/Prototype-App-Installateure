@@ -24,6 +24,7 @@ import MonthCalendar from '@/components/MonthCalendar';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { ganztagsWeg } from './besetzung';
 import { einsatzZeit } from './einsatzZeit';
+import KalenderAboKarte from './KalenderAboKarte';
 
 /** 'YYYY-MM-DD' -> 'Mo., 15.06.2026'. */
 function fmtDay(iso: string): string {
@@ -43,7 +44,7 @@ function fmtDay(iso: string): string {
  * ist und welche noch frei sind — die Frage, die er tatsächlich stellt.
  */
 export default function MyScheduleView() {
-  const { user } = useAuth();
+  const { user, company, einblick } = useAuth();
   // Querverweise nur zeigen, wenn ihr Ziel ueberhaupt existiert — ein Link in
   // die Meldung „ist ausgeschaltet" ist eine Sackgasse.
   const scheineAn = useModul('scheine');
@@ -478,6 +479,7 @@ export default function MyScheduleView() {
             {urlaubAn && (
             <Card
               title="Mein Urlaub"
+              className="mt-3 lg:mt-5"
               action={
                 <Link to="/vacations" className="link-weiter text-sm">
                   Beantragen
@@ -507,6 +509,13 @@ export default function MyScheduleView() {
               )}
             </Card>
             )}
+
+            {/*
+              Ganz unten: einmal eingerichtet, braucht man die Karte nicht
+              mehr. Nur, wenn der Betrieb es erlaubt; der Supportzugang liest
+              mit und legt nichts an.
+            */}
+            {company?.kalenderAboErlaubt && !einblick && user && <KalenderAboKarte userId={user.uid} />}
           </div>
         </div>
       )}

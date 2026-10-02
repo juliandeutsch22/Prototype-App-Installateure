@@ -279,8 +279,11 @@ describe('Wochenplan für alle', () => {
     await nutzer.click(within(karte).getByRole('button', { name: 'Speichern' }));
 
     expect(updateCompany).toHaveBeenCalledTimes(1);
-    // Seit 30.09.2026 schreibt die Karte auch den Schalter für die Projektleitung (M38) — unverändert aus.
-    expect(updateCompany.mock.calls[0]).toEqual(['perl', { wochenplanFuerAlle: true, projektleitungImEinsatzplan: false }]);
+    // Seit 30.09.2026 schreibt die Karte auch den Schalter für die Projektleitung (M38), seit
+    // 02.10.2026 den fürs Kalender-Abo — beide unverändert aus.
+    expect(updateCompany.mock.calls[0]).toEqual(['perl', {
+      wochenplanFuerAlle: true, projektleitungImEinsatzplan: false, kalenderAboErlaubt: false,
+    }]);
     expect(reloadCompany).toHaveBeenCalled();
   });
 
@@ -291,7 +294,27 @@ describe('Wochenplan für alle', () => {
     expect(schalter.checked).toBe(false);
     await nutzer.click(schalter);
     await nutzer.click(within(schalter.closest('section')!).getByRole('button', { name: 'Speichern' }));
-    expect(updateCompany.mock.calls[0]).toEqual(['perl', { wochenplanFuerAlle: false, projektleitungImEinsatzplan: true }]);
+    expect(updateCompany.mock.calls[0]).toEqual(['perl', {
+      wochenplanFuerAlle: false, projektleitungImEinsatzplan: true, kalenderAboErlaubt: false,
+    }]);
+  });
+
+  it('das Kalender-Abo ist ab Werk aus und lässt sich einschalten (Gegenprobe: eingeschaltet geladen)', async () => {
+    const nutzer = userEvent.setup();
+    zeige('personal');
+    const schalter = feld('Mitarbeiter dürfen ihren Einsatzplan als Kalender abonnieren');
+    expect(schalter.checked).toBe(false);
+    await nutzer.click(schalter);
+    await nutzer.click(within(schalter.closest('section')!).getByRole('button', { name: 'Speichern' }));
+    expect(updateCompany.mock.calls[0]).toEqual(['perl', {
+      wochenplanFuerAlle: false, projektleitungImEinsatzplan: false, kalenderAboErlaubt: true,
+    }]);
+  });
+
+  it('zeigt ein eingeschaltetes Kalender-Abo des Betriebs', async () => {
+    firma = { id: 'perl', name: 'Perl Installationen', kalenderAboErlaubt: true };
+    zeige('personal');
+    expect(feld('Mitarbeiter dürfen ihren Einsatzplan als Kalender abonnieren').checked).toBe(true);
   });
 
   it('zeigt den eingeschalteten Zustand des Betriebs', async () => {

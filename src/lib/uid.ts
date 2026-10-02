@@ -2,10 +2,11 @@
  * Die Form einer UID-Nummer — Österreich und die übrigen EU-Staaten
  * (Testbericht 30.09.2026, M10).
  *
- * NUR DIE FORM, NICHT DIE GÜLTIGKEIT. Ob die Nummer vergeben ist, sagt erst
- * die Abfrage über VIES bzw. FinanzOnline; das ist ein fremder Dienst mit
- * eigener Verfügbarkeit und bleibt für später. Was hier gefangen wird, ist
- * der Vertipper: „ATU123", eine Ziffer zu wenig, „GR" statt „EL".
+ * NUR DIE FORM, NICHT DIE GÜLTIGKEIT. Ob die Nummer vergeben ist, sagt
+ * VIES — abgefragt seit dem 02.10.2026 in der Kundenakte über die
+ * Serverfunktion `uid-pruefen` (`shared/vies.ts`), mit festgehaltenem
+ * Ergebnis. Was hier gefangen wird, ist der Vertipper beim Tippen: „ATU123",
+ * eine Ziffer zu wenig, „GR" statt „EL".
  *
  * DIESELBEN MUSTER STEHEN IN DER DATENBANK (`app.uid_form_fehler`). Dort
  * entscheiden sie, hier sagen sie es früher und mit Beispiel — ein Test

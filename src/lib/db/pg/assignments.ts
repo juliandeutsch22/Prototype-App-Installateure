@@ -5,10 +5,10 @@
  * war dort ein Batch aus Löschungen, Anlagen und einer Mitzieh-Änderung an
  * der Rüstliste; hier ist es EIN Aufruf, der in einer Transaktion läuft.
  */
-import type { Assignment } from '@/types';
+import type { Assignment, KalenderAbo } from '@/types';
 import { monatsEnde } from '@shared/feiertage';
 import { abfragen, abonnieren, derClient, loeschen, type WithId } from './kern';
-import { objektAlsZeile } from './felder';
+import { objektAlsZeile, zeileAlsObjekt } from './felder';
 
 const EINSAETZE = 'assignments';
 
@@ -185,4 +185,31 @@ export async function saveAssignments(
  */
 export function deleteAssignment(id: string): Promise<void> {
   return loeschen(EINSAETZE, id);
+}
+
+/*
+  DAS KALENDER-ABO (Entscheidung vom 02.10.2026). Der Link kommt nur beim
+  Anlegen zurück; gespeichert ist sein Hashwert. Lesen darf jede Person nur
+  das eigene (`kalender_abos_lesen`).
+*/
+export async function kalenderAboStand(userId: string): Promise<KalenderAbo | null> {
+  const { data, error } = await derClient()
+    .from('kalender_abos')
+    .select('angelegt_am, zuletzt_abgerufen')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? zeileAlsObjekt<KalenderAbo>('kalender_abos', data as Record<string, unknown>) : null;
+}
+
+/** Einen neuen geheimen Schlüssel anlegen — der bisherige hört damit auf. */
+export async function kalenderAboAnlegen(): Promise<string> {
+  const { data, error } = await derClient().rpc('kalender_abo_anlegen');
+  if (error) throw new Error(error.message);
+  return String(data ?? '');
+}
+
+export async function kalenderAboBeenden(): Promise<void> {
+  const { error } = await derClient().rpc('kalender_abo_beenden');
+  if (error) throw new Error(error.message);
 }

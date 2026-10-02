@@ -4,7 +4,7 @@
  * Zwei Stellen wurden beim Umzug von Firestore nicht nur übersetzt, sondern
  * richtig gestellt; beide sind unten kommentiert.
  */
-import type { Customer, Project } from '@/types';
+import type { Customer, Project, UidPruefung } from '@/types';
 import { KUNDEN_GRENZE } from '@/lib/listengrenzen';
 import { abfragen, anlegen, aendern, loeschen, derClient, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
@@ -223,4 +223,41 @@ export async function naechsteKundennummer(): Promise<string> {
   const { data, error } = await derClient().rpc('naechste_kundennummer');
   if (error) throw new Error(error.message);
   return String(data ?? '');
+}
+
+/**
+ * Die VIES-Abfragen eines Kunden, neueste zuerst (offene Punkte E2). Lesen
+ * dürfen sie alle, die den Kunden lesen; geschrieben werden sie nur in
+ * `uid-pruefen`.
+ */
+export async function listUidPruefungen(companyId: string, customerId: string, max = 20): Promise<UidPruefung[]> {
+  const { data, error } = await derClient()
+    .from('uid_pruefungen')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('customer_id', customerId)
+    .order('am', { ascending: false })
+    .limit(max);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((z) => {
+    const u = zeileAlsObjekt<WithId<UidPruefung>>('uid_pruefungen', z as Record<string, unknown>);
+    return { ...u, id: String(u.id) };
+  });
+}
+
+/**
+ * Die gespeicherte UID des Kunden bei VIES prüfen lassen. Gefragt wird mit
+ * der UID am Kunden, nicht mit dem Formular. `hinweis` sagt, warum eine
+ * Abfrage-ID fehlt, wenn VIES die eigene UID nicht anerkannt hat.
+ */
+export async function uidBeiViesPruefen(customerId: string): Promise<{ pruefung: UidPruefung; hinweis?: string }> {
+  const { data, error } = await derClient().functions.invoke('uid-pruefen', { body: { kunde: customerId } });
+  if (error) {
+    const rumpf = await (error as { context?: Response }).context?.json?.()
+      .catch(() => undefined);
+    throw new Error(rumpf?.error ?? error.message);
+  }
+  const d = data as { pruefung: Record<string, unknown>; hinweis?: string };
+  const u = zeileAlsObjekt<WithId<UidPruefung>>('uid_pruefungen', d.pruefung);
+  return { pruefung: { ...u, id: String(u.id) }, ...(d.hinweis ? { hinweis: d.hinweis } : {}) };
 }

@@ -397,6 +397,13 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# DAS KALENDER-ABO KOMMT OHNE ANMELDUNG. Google, Apple und Outlook holen es
+# selbst ab und schicken keinen Anmeldekopf mit; die geheime Adresse ist die
+# Berechtigung, und die Function prüft sie selbst (`kalender_abruf`). Alle
+# anderen Functions verlangen weiter eine Anmeldung.
+[functions.kalender]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

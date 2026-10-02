@@ -130,6 +130,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   const [wochenplanFuerAlle, setWochenplanFuerAlle] = useState(false);
   /** Die Projektleitung im Einsatzplan (M38) — ab Werk aus. */
   const [plImPlan, setPlImPlan] = useState(false);
+  const [kalenderAbo, setKalenderAbo] = useState(false);
   const [wochenplanSpeichert, setWochenplanSpeichert] = useState(false);
   const [dezemberHalbtage, setDezemberHalbtage] = useState(true);
   const [dezemberSpeichert, setDezemberSpeichert] = useState(false);
@@ -164,6 +165,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
     setRechnungsarten(company?.rechnungsarten ?? false);
     setWochenplanFuerAlle(company?.wochenplanFuerAlle ?? false);
     setPlImPlan(company?.projektleitungImEinsatzplan === true);
+    setKalenderAbo(company?.kalenderAboErlaubt === true);
     setDezemberHalbtage(company?.dezemberHalbtage !== false);
     const beginn = company?.urlaubJahresbeginn ?? '01-01';
     setBeginnMonat(beginn.slice(0, 2));
@@ -293,9 +295,11 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
     setWochenplanSpeichert(true);
     setError(null);
     try {
-      await updateCompany(user.companyId, { wochenplanFuerAlle, projektleitungImEinsatzplan: plImPlan });
+      await updateCompany(user.companyId, {
+        wochenplanFuerAlle, projektleitungImEinsatzplan: plImPlan, kalenderAboErlaubt: kalenderAbo,
+      });
       await reloadCompany();
-      toast.success(wochenplanFuerAlle ? 'Wochenplan für alle sichtbar' : 'Wochenplan nur fürs Büro');
+      toast.success('Einstellungen zum Einsatzplan gespeichert');
     } catch (err) {
       setError({ wo: 'wochenplan', text: grundAus(err, 'Die Einstellung zum Wochenplan konnte nicht gespeichert werden.') });
     } finally {
@@ -1181,7 +1185,10 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             „Team-Woche“: wer an welchem Tag auf welcher Baustelle ist. Zu ändern gibt es dort
             nichts. Wer Urlaub hat, steht als „abwesend“ da — ohne Grund und ohne Antragsstand.
             Projektleiter lassen sich zusätzlich wie Monteure einteilen; sie sehen dann
-            „Mein Einsatzplan“.
+            „Mein Einsatzplan“. Mit dem Kalender-Abo holt sich jede Person unter „Mein
+            Einsatzplan“ einen geheimen Link für Google, Apple oder Outlook; dort stehen dann
+            Kundenname, Adresse und Ansprechpartner der Einsätze — beim Kalenderdienst der
+            Person. Ausschalten beendet alle Abos sofort.
           </>
         }
       >
@@ -1196,6 +1203,12 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           label="Projektleiter sind im Einsatzplan einteilbar und sehen „Mein Einsatzplan“"
           checked={plImPlan}
           onChange={(e) => setPlImPlan(e.target.checked)}
+        />
+        <CheckboxField
+          id="kalenderAboErlaubt"
+          label="Mitarbeiter dürfen ihren Einsatzplan als Kalender abonnieren"
+          checked={kalenderAbo}
+          onChange={(e) => setKalenderAbo(e.target.checked)}
         />
         <div className="mt-4">
           <Button type="button" loading={wochenplanSpeichert} onClick={wochenplanSpeichern}>

@@ -72,9 +72,9 @@ export function geltenderSatz(aktiv: boolean, satz: number): number {
  * Hat die UID die Form einer UID-Nummer?
  *
  * ABSICHTLICH NUR EINE FORMPRÜFUNG und keine Gültigkeitsabfrage: die läuft
- * über VIES bzw. das MIAS-Verfahren und braucht einen Netzzugang, den eine
- * Rechnungsmaske nicht haben sollte. Was hier gefangen wird, ist der
- * Vertipper — eine fehlende Ziffer, ein vergessenes „U".
+ * über VIES und gehört zum Kunden, nicht zur einzelnen Rechnung — in der
+ * Kundenakte, mit festgehaltenem Nachweis (seit 02.10.2026). Was hier
+ * gefangen wird, ist der Vertipper — eine fehlende Ziffer, ein vergessenes „U".
  *
  * Die Muster je EU-Staat stehen seit dem Testbericht vom 30.09.2026 (M10) in
  * `@/lib/uid`; ausserhalb der EU gilt weiter nur die grobe Form.

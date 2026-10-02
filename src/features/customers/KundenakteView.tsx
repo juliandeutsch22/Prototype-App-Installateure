@@ -40,7 +40,8 @@ import { zeigtAuskunft } from '@/features/recht/auskunftDatei';
 import AdressteileFelder from '@/components/AdressteileFelder';
 import { adresseZeile } from '@/lib/adresse';
 import KundenartUidFelder from '@/components/KundenartUidFelder';
-import { uidSperrt } from '@/lib/uid';
+import { uidNormalisieren, uidSperrt } from '@/lib/uid';
+import UidVies from './UidVies';
 
 /**
  * Die Akte eines Kunden — alles, was der Betrieb über ihn weiss.
@@ -351,6 +352,11 @@ export default function KundenakteView() {
       ) : (
         <StammdatenLesen k={k} />
       )}
+      <UidVies
+        kunde={k}
+        uidGeaendert={!!entwurf && uidNormalisieren(entwurf.vatId) !== uidNormalisieren(k.vatId)}
+        darfPruefen={!einblick}
+      />
     </Card>
   );
   const baustellenKarte = (
