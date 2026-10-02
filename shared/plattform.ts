@@ -52,6 +52,11 @@ export interface NeuerBetrieb {
   anmeldung?: 'email' | 'benutzername';
   /** Sein Benutzername, wenn er sich damit anmeldet. */
   adminBenutzername?: string;
+  /**
+   * Ein Test- oder Vorführbetrieb (Nachtest 01.10.2026, Paket D): er lässt
+   * sich später ohne Export und ohne Frist löschen.
+   */
+  testbetrieb?: boolean;
 }
 
 /**
@@ -193,6 +198,7 @@ export function betriebNormalisiert(b: NeuerBetrieb): NeuerBetrieb {
       adminName: b.adminName.trim(),
       anmeldung: 'benutzername',
       adminBenutzername: benutzername,
+      testbetrieb: b.testbetrieb === true,
     };
   }
   return {
@@ -202,6 +208,7 @@ export function betriebNormalisiert(b: NeuerBetrieb): NeuerBetrieb {
     // Schreibweisen derselben Adresse ergäben sonst zwei Konten.
     adminEmail: (b.adminEmail ?? '').trim().toLowerCase(),
     adminName: b.adminName.trim(),
+    testbetrieb: b.testbetrieb === true,
   };
 }
 

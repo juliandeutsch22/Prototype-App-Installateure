@@ -339,6 +339,64 @@ Datenbank tut es nicht.
 
 ---
 
+## 7a · Einen Betrieb deaktivieren oder löschen
+
+Seit dem Nachtest vom 01.10.2026 (Paket D) auf der Plattformseite unter
+„Betriebe“ → „Verwalten“. Jeder Schritt verlangt einen Grund und steht im
+Protokoll der Plattform (`betrieb_protokoll`, nur ergänzbar, ohne Inhalte).
+Die Bedingungen prüft die Datenbank, nicht die Maske.
+
+**Deaktivieren** — bei Kündigung, Zahlungsverzug, Missbrauch oder auf Wunsch
+des Betriebs. Jederzeit rückgängig.
+
+- Alle Anmeldekonten sind gesperrt, offene Sitzungen beendet. Ein noch
+  gültiges Token sieht nichts mehr: `app.aktiv()` fragt auch, ob der Betrieb
+  ruht, und steht hinter jeder Richtlinie.
+- Ein Supportzugang greift nicht mehr.
+- Push und die nächtliche Sicherung ruhen für diesen Betrieb; der letzte
+  Stand bleibt liegen. Eine Mail verschickt die App ohnehin nicht selbst.
+- Die Daten bleiben unverändert. Wieder aktivieren entsperrt genau die Konten,
+  die in der Belegschaft aktiv sind, und bricht eine geplante Löschung ab.
+- Eine Stufe „nur lesen“ gibt es nicht. Soll der Betrieb nach der Kündigung
+  noch exportieren, bleibt er bis dahin aktiv.
+
+**Löschen** — nie sofort, nie mit einem Klick. Senklot ist
+Auftragsverarbeiter; gelöscht wird auf Antrag des Betriebs, nachdem er seine
+Daten hat. Die Aufbewahrung nach § 132 BAO trifft den Betrieb selbst.
+
+1. Deaktivieren.
+2. **Übergabe erstellen**: alle Tabellen als ein Stand (dasselbe Format wie
+   die Sicherung, also auch mit `scripts/ruecklauf.mjs` lesbar) und ein
+   Verzeichnis aller Scheinfotos und Baustellendokumente mit Links; alles
+   eine Woche gültig. Belege als PDF erzeugt die App im Browser — der Stand
+   enthält ihre Daten vollständig, die PDFs zieht der Betrieb vor der
+   Kündigung selbst. Ein Testbetrieb braucht keine Übergabe.
+3. **Löschung planen**: vorgeschlagen 30 Tage, mindestens 7 (Testbetrieb ab
+   sofort). Bis zum Ablauf lässt sie sich abbrechen; den Betrieb über den
+   Termin informieren.
+4. Nach Ablauf **endgültig löschen**: Kennung eintippen, Grund nennen. Die
+   Edge Function `betrieb-loeschen` löscht zuerst die Dateien (über die
+   Speicherschnittstelle), dann alle Zeilen in einer Transaktion
+   (`betrieb_loeschen_ausfuehren` — über jede Tabelle mit `company_id`, auch
+   künftige), dann die Anmeldekonten. Push-Geräte und Einträge im
+   Fehlerprotokoll gehen mit.
+5. Es bleibt das **Löschprotokoll** (wer, wann, auf welchen Antrag, wie viele
+   Zeilen und Konten — keine Inhalte), und die **Kennung ist gesperrt**: sie
+   steht in Pfaden der Sicherungen und in alten Exporten und wird nie wieder
+   vergeben (Trigger `companies_kennung_gesperrt`).
+
+**Die Sicherung außer Haus** löscht die App bewusst nicht — ihr Schlüssel
+darf nur anlegen, damit ein gestohlener Schlüssel keine Sicherung zerstören
+kann. Deshalb braucht der Zielspeicher eine **Ablaufregel**
+(Lifecycle-Regel), empfohlen **90 Tage** für die Präfixe `ausleitung/` und
+`dateien/`. Ältere Stände eines gelöschten Betriebs verschwinden damit
+spätestens nach dieser Frist. Die Frist gehört in die AVV; einzurichten ist
+sie beim Anbieter des Zielspeichers, nicht in dieser App.
+
+**Testbetriebe** werden beim Anlegen mit „Testbetrieb“ gekennzeichnet; bei
+bestehenden setzt „Verwalten“ → „Als Testbetrieb kennzeichnen“ das
+Kennzeichen nach.
+
 ## 8 · Änderungen im laufenden Betrieb einspielen
 
 ### Der Weg, kurz

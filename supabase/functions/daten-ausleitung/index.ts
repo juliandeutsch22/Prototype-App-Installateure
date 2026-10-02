@@ -482,6 +482,106 @@ async function betriebAusleiten(
   };
 }
 
+/** Wie lange die Links einer Übergabe gelten: eine Woche. */
+const UEBERGABE_SEKUNDEN = 7 * 24 * 60 * 60;
+
+async function signieren(eimer: string, pfade: string[]): Promise<Map<string, string>> {
+  const links = new Map<string, string>();
+  for (let i = 0; i < pfade.length; i += 500) {
+    const teil = pfade.slice(i, i + 500);
+    const r = await fetch(`${URL_BASIS}/storage/v1/object/sign/${encodeURIComponent(eimer)}`, {
+      method: 'POST', headers: alsDienst,
+      body: JSON.stringify({ expiresIn: UEBERGABE_SEKUNDEN, paths: teil }),
+    });
+    if (!r.ok) throw new Error(`Speicher (${eimer}): ${await r.text()}`);
+    for (const e of (await r.json()) as Array<{ path: string; signedURL?: string | null }>) {
+      if (e.signedURL) links.set(e.path, `${URL_BASIS}/storage/v1${e.signedURL}`);
+    }
+  }
+  return links;
+}
+
+async function ablegen(pfad: string, inhalt: string, typ: string): Promise<void> {
+  const r = await fetch(`${URL_BASIS}/storage/v1/object/${EIMER}/${pfad}`, {
+    method: 'POST',
+    headers: { ...alsDienst, 'Content-Type': typ, 'x-upsert': 'true' },
+    body: inhalt,
+  });
+  if (!r.ok) throw new Error(`Speicher: ${await r.text()}`);
+  await r.body?.cancel();
+}
+
+/**
+ * DIE ÜBERGABE AN EINEN DEAKTIVIERTEN BETRIEB (Nachtest 01.10.2026, Paket D),
+ * vor seiner Löschung: alle Tabellen als ein Stand (dasselbe Format wie die
+ * Sicherung, also auch für `scripts/ruecklauf.mjs` lesbar) und ein
+ * Verzeichnis aller Scheinfotos und Baustellendokumente mit Links. Alles mit
+ * einer Woche Gültigkeit, das Datum steht im Protokoll der Plattform.
+ *
+ * Belege als PDF erzeugt die App im Browser; der Stand enthält ihre Daten
+ * vollständig, Unterschriften eingeschlossen.
+ */
+async function uebergabe(
+  admin: string, betrieb: string, grund: string,
+  tabellen: string[], schluessel: Record<string, string[]>,
+): Promise<Response> {
+  const liste = await fetch(`${URL_BASIS}/rest/v1/rpc/betrieb_uebergabe_dateien`, {
+    method: 'POST', headers: alsDienst, body: JSON.stringify({ p_admin: admin, p_kennung: betrieb }),
+  });
+  const dateien = await liste.json().catch(() => null);
+  if (!liste.ok) {
+    const d = dateien as { message?: string; code?: string } | null;
+    return fehler(String(d?.message ?? 'Abgewiesen.'), d?.code === '42501' ? 403 : 409);
+  }
+
+  const inhalt = await standSchreiben(betrieb, tabellen, schluessel);
+  const stempel = new Date().toISOString().replace(/[:.]/g, '-');
+  const datenPfad = `uebergabe/${betrieb}/${stempel}-daten.jsonl`;
+  await ablegen(datenPfad, inhalt, 'application/x-ndjson');
+
+  const jeEimer = new Map<string, string[]>();
+  for (const d of (dateien ?? []) as Array<{ eimer: string; pfad: string }>) {
+    jeEimer.set(d.eimer, [...(jeEimer.get(d.eimer) ?? []), d.pfad]);
+  }
+  const verzeichnis: Array<{ eimer: string; pfad: string; link: string | null }> = [];
+  for (const [eimer, pfade] of jeEimer) {
+    const links = await signieren(eimer, pfade);
+    for (const p of pfade) verzeichnis.push({ eimer, pfad: p, link: links.get(p) ?? null });
+  }
+  const gueltigBis = new Date(Date.now() + UEBERGABE_SEKUNDEN * 1000).toISOString();
+  const verzeichnisPfad = `uebergabe/${betrieb}/${stempel}-dateien.json`;
+  await ablegen(
+    verzeichnisPfad,
+    JSON.stringify({ betrieb, erstellt: new Date().toISOString(), gueltigBis, dateien: verzeichnis }, null, 2),
+    'application/json',
+  );
+  const eigene = await signieren(EIMER, [datenPfad, verzeichnisPfad]);
+
+  const zeilen = inhalt === '' ? 0 : inhalt.split('\n').length - 1;
+  const fest = await fetch(`${URL_BASIS}/rest/v1/rpc/betrieb_export_festhalten`, {
+    method: 'POST', headers: alsDienst,
+    body: JSON.stringify({
+      p_admin: admin, p_kennung: betrieb, p_grund: grund,
+      p_angaben: { zeilen, bytes: inhalt.length, dateien: verzeichnis.length, gueltig_bis: gueltigBis },
+    }),
+  });
+  if (!fest.ok) {
+    const d = await fest.json().catch(() => ({}));
+    return fehler(`Der Export liegt bereit, der Vermerk im Protokoll wurde aber abgewiesen: ${String(d?.message ?? '')}`, 500);
+  }
+  await fest.body?.cancel();
+
+  return antwort({
+    companyId: betrieb,
+    zeilen,
+    bytes: inhalt.length,
+    dateien: verzeichnis.length,
+    datenLink: eigene.get(datenPfad) ?? null,
+    dateienLink: eigene.get(verzeichnisPfad) ?? null,
+    gueltigBis,
+  });
+}
+
 Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return fehler('Nur POST.', 405);
 
@@ -544,9 +644,24 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     });
     if (!firmen.ok) return fehler('Die Betriebe sind nicht lesbar.', 500);
 
+    /*
+      EIN DEAKTIVIERTER BETRIEB RUHT (Nachtest 01.10.2026, Paket D): kein
+      neuer Stand, kein Aufräumen — der letzte Stand bleibt, wie er ist.
+    */
+    const ruhendAntwort = await fetch(
+      `${URL_BASIS}/rest/v1/betrieb_zustand?select=betrieb_kennung&deaktiviert_am=not.is.null`,
+      { headers: alsDienst },
+    );
+    const ruhend = new Set(
+      ruhendAntwort.ok
+        ? ((await ruhendAntwort.json()) as Array<{ betrieb_kennung: string }>).map((z) => z.betrieb_kennung)
+        : [],
+    );
+
     const bilanzen: Bilanz[] = [];
     const gescheitert: Array<{ companyId: string; meldung: string }> = [];
     for (const { id } of (await firmen.json()) as Array<{ id: string }>) {
+      if (ruhend.has(id)) continue;
       try {
         bilanzen.push(await betriebAusleiten(id, tabellen, schluessel, heute));
       } catch (e) {
@@ -563,6 +678,7 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     }
     return antwort({
       mandanten: bilanzen.length,
+      ruhend: ruhend.size,
       zeilen: bilanzen.reduce((s, b) => s + b.zeilen, 0),
       bytes: bilanzen.reduce((s, b) => s + b.bytes, 0),
       gescheitert,
@@ -592,7 +708,41 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     { headers: alsDienst },
   );
   const [profil] = profilAntwort.ok ? await profilAntwort.json() : [];
-  if (!profil?.active) return fehler('Keine Anmeldung.', 401);
+  if (!profil) {
+    /*
+      DER GLOBALE ADMINISTRATOR hat keine Zeile in einer Belegschaft. Er darf
+      genau eines: die Übergabe an einen deaktivierten Betrieb — mit Grund.
+      Die Plattformtabelle entscheidet, nicht das Token.
+    */
+    const adminAntwort = await fetch(
+      `${URL_BASIS}/rest/v1/platform_admins?id=eq.${wer.id}&select=id`, { headers: alsDienst },
+    );
+    const admins = adminAntwort.ok ? await adminAntwort.json() : [];
+    if (!Array.isArray(admins) || admins.length === 0) return fehler('Keine Anmeldung.', 401);
+    let eingabe: { betrieb?: unknown; grund?: unknown } = {};
+    try {
+      eingabe = await req.json();
+    } catch {
+      return fehler('Die Anfrage enthält keine lesbaren Daten.', 400);
+    }
+    const betrieb = String(eingabe?.betrieb ?? '').trim();
+    const grund = String(eingabe?.grund ?? '').trim();
+    if (!betrieb) return fehler('Welcher Betrieb, steht nicht in der Anfrage.', 400);
+    if (!grund) return fehler('Ohne Grund keine Übergabe — er steht im Protokoll.', 400);
+    try {
+      return await uebergabe(wer.id, betrieb, grund, tabellen, schluessel);
+    } catch (e) {
+      return fehler(e instanceof Error ? e.message : 'Die Übergabe ist gescheitert.', 500);
+    }
+  }
+  if (!profil.active) return fehler('Keine Anmeldung.', 401);
+  // Ein noch gültiges Token aus einem deaktivierten Betrieb stösst nichts mehr an.
+  const ruhtAntwort = await fetch(
+    `${URL_BASIS}/rest/v1/betrieb_zustand?select=betrieb_kennung&deaktiviert_am=not.is.null&betrieb_kennung=eq.${encodeURIComponent(profil.company_id)}`,
+    { headers: alsDienst },
+  );
+  const ruht = ruhtAntwort.ok ? ((await ruhtAntwort.json()) as unknown[]).length > 0 : false;
+  if (ruht) return fehler('Keine Anmeldung.', 401);
   if (profil.role !== 'Geschäftsführung' && profil.role !== 'Administrator') {
     return fehler('Nur Geschäftsführung oder Administration.', 403);
   }

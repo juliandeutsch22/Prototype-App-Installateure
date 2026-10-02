@@ -223,6 +223,15 @@ describe('Interne Hilfsfunktionen', () => {
       'app.einblick_aktuell()',
       // Ende der Aufbewahrung (B8) — nur die Löschung rechnet damit.
       'app.aufbewahrt_bis(date)',
+      // Betriebe deaktivieren und löschen (Nachtest 01.10.2026, Paket D).
+      'app.betrieb_ruht(text)',
+      'app.zustand_zeile(text)',
+      'app.grund_pflicht(text)',
+      'app.plattform_pflicht()',
+      'app.plattform_konto_pflicht(uuid)',
+      'app.loeschung_pruefen(text, text)',
+      'app.kennung_nicht_gesperrt()',
+      'app.protokoll_unveraenderlich()',
     ];
     const offen: string[] = [];
     for (const f of intern) {
@@ -376,7 +385,7 @@ describe('Die Plattform steht ausserhalb', () => {
     const mitBetrieb = await zeilen<{ table_name: string }>(`
       select table_name from information_schema.columns
        where table_schema = 'public'
-         and table_name in ('platform_admins', 'betriebsanlagen')
+         and table_name in ('platform_admins', 'betriebsanlagen', 'betrieb_zustand', 'betrieb_protokoll')
          and column_name = 'company_id'
     `);
     expect(mitBetrieb).toEqual([]);
@@ -388,18 +397,18 @@ describe('Die Plattform steht ausserhalb', () => {
     const richtlinien = await zeilen(`
       select policyname from pg_policies
        where schemaname = 'public'
-         and tablename in ('platform_admins', 'betriebsanlagen')
+         and tablename in ('platform_admins', 'betriebsanlagen', 'betrieb_zustand', 'betrieb_protokoll')
     `);
     expect(richtlinien).toEqual([]);
 
     const geschuetzt = await zeilen<{ tablename: string }>(`
       select tablename from pg_tables
        where schemaname = 'public'
-         and tablename in ('platform_admins', 'betriebsanlagen')
+         and tablename in ('platform_admins', 'betriebsanlagen', 'betrieb_zustand', 'betrieb_protokoll')
          and rowsecurity = true
        order by 1
     `);
-    expect(geschuetzt.map((r) => r.tablename)).toEqual(['betriebsanlagen', 'platform_admins']);
+    expect(geschuetzt.map((r) => r.tablename).sort()).toEqual(['betrieb_protokoll', 'betrieb_zustand', 'betriebsanlagen', 'platform_admins']);
   });
 });
 

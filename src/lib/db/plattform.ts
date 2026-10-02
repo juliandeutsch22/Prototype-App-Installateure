@@ -46,3 +46,46 @@ export function notzugangPasswort(eingabe: {
 }): Promise<string> {
   return pg.notzugangPasswort(eingabe);
 }
+
+export type { BetriebProtokollEintrag, GeloeschterBetrieb, Uebergabe, BetriebGeloescht } from './pg/plattform';
+
+/*
+  BETRIEBE DEAKTIVIEREN UND LÖSCHEN (Nachtest 01.10.2026, Paket D) — jede
+  Bedingung (Plattform, Grund, Reihenfolge, Frist) prüft die Datenbank.
+*/
+
+export function betriebDeaktivieren(kennung: string, grund: string): Promise<void> {
+  return pg.betriebDeaktivieren(kennung, grund);
+}
+
+export function betriebAktivieren(kennung: string, grund: string): Promise<void> {
+  return pg.betriebAktivieren(kennung, grund);
+}
+
+export function testbetriebSetzen(kennung: string, testbetrieb: boolean, grund: string): Promise<void> {
+  return pg.testbetriebSetzen(kennung, testbetrieb, grund);
+}
+
+export function loeschungPlanen(kennung: string, grund: string, tage?: number): Promise<string> {
+  return pg.loeschungPlanen(kennung, grund, tage);
+}
+
+export function loeschungAbbrechen(kennung: string, grund: string): Promise<void> {
+  return pg.loeschungAbbrechen(kennung, grund);
+}
+
+export function betriebProtokoll(kennung: string | null, grenze = 50): Promise<pg.BetriebProtokollEintrag[]> {
+  return pg.betriebProtokoll(kennung, grenze);
+}
+
+export function geloeschteBetriebe(): Promise<pg.GeloeschterBetrieb[]> {
+  return pg.geloeschteBetriebe();
+}
+
+export function betriebUebergabe(kennung: string, grund: string): Promise<pg.Uebergabe> {
+  return pg.betriebUebergabe(kennung, grund);
+}
+
+export function betriebLoeschen(kennung: string, bestaetigung: string, grund: string): Promise<pg.BetriebGeloescht> {
+  return pg.betriebLoeschen(kennung, bestaetigung, grund);
+}
