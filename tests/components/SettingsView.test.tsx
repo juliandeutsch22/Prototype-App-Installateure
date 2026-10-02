@@ -287,7 +287,7 @@ describe('Wochenplan für alle', () => {
   it('die Projektleitung im Einsatzplan ist ab Werk aus und lässt sich einschalten (M38)', async () => {
     const nutzer = userEvent.setup();
     zeige('personal');
-    const schalter = feld('Die Projektleitung ist im Einsatzplan einteilbar und sieht „Mein Einsatzplan“');
+    const schalter = feld('Projektleiter sind im Einsatzplan einteilbar und sehen „Mein Einsatzplan“');
     expect(schalter.checked).toBe(false);
     await nutzer.click(schalter);
     await nutzer.click(within(schalter.closest('section')!).getByRole('button', { name: 'Speichern' }));

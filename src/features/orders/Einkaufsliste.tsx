@@ -25,6 +25,7 @@ import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
 import InfoHint from '@/components/InfoHint';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import EinheitFeld from '@/components/EinheitFeld';
 import { Marke } from '@/components/Badge';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
@@ -698,8 +699,7 @@ function LagerPostenFormular({
           <FormGrid>
             <InputField id="lp-menge" label="Menge" pflicht inputMode="decimal" value={menge}
               onChange={(e) => setMenge(e.target.value)} />
-            <InputField id="lp-einheit" label="Einheit" placeholder="Stk, m, Pkg" value={einheit}
-              onChange={(e) => setEinheit(e.target.value)} />
+            <EinheitFeld id="lp-einheit" value={einheit} onChange={setEinheit} leer="—" />
           </FormGrid>
           <SelectField id="lp-bei" label="Großhändler" value={bei} onChange={(e) => setBei(e.target.value)}>
             <option value="">— später zuordnen —</option>

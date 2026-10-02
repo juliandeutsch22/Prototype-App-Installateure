@@ -1113,7 +1113,7 @@ export default function WorkSheetView() {
                     }`}
                   >
                     {e.name}
-                    <span className="ml-1 opacity-70">({e.projectNumber})</span>
+                    <span className="nr ml-1 opacity-70">({e.projectNumber})</span>
                   </button>
                 ))}
               </div>

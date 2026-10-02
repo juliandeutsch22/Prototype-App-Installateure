@@ -1811,6 +1811,17 @@ export default function InvoicesView() {
       )}
     </>
   );
+  /*
+    DIE ZEILE DER STORNORECHNUNG MIT „⋯“ WIE JEDE ANDERE (Nachtest
+    01.10.2026, U15) — vorher stand dort als einzige ein Knopf „PDF“.
+  */
+  const stornoMenue = (inv: (typeof visible)[number]) => (
+    <RowMenu
+      about={`Stornorechnung ${inv.stornoNummer}`}
+      items={[{ label: 'Stornorechnung als PDF', onSelect: () => void stornorechnungDrucken(inv) }]}
+    />
+  );
+
   const rechnungMenue = (inv: (typeof visible)[number]) => (
     <>
     {/* Der Status stand doppelt in der Zeile: einmal farbig als
@@ -1960,7 +1971,8 @@ export default function InvoicesView() {
           value={euro(stats.ueberfaellig)}
           hint={forderungenFehler ? 'nur die jüngsten — offene Forderungen nicht geladen' : undefined} />
         {bezahltImMonat !== null ? (
-          <Metric label="Bezahlt im laufenden Monat" tone="success" value={euro(bezahltImMonat)}
+          // „im laufenden Monat“ wurde am Telefon gekürzt (U10); was gilt, sagt der Zusatz.
+          <Metric label="Bezahlt im Monat" tone="success" value={euro(bezahltImMonat)}
             hint={`Zahlungseingänge seit ${datumAT(monatsErster)}, ohne Skonto`} />
         ) : (
           <Metric label="Bezahlt" tone="success" value={euro(stats.bezahlt)}
@@ -2054,7 +2066,7 @@ export default function InvoicesView() {
                 }
                 subtitle={
                   <span>
-                    Baustelle {schein.projectNumber} · Leistung vom {datumAT(schein.datum)} ·{' '}
+                    Baustelle <span className="nr">{schein.projectNumber}</span> · Leistung vom {datumAT(schein.datum)} ·{' '}
                     {schein.abrechnung}
                   </span>
                 }
@@ -3155,7 +3167,7 @@ export default function InvoicesView() {
                 <Fragment key={inv.id}>
                 <tr>
                   <td className="whitespace-nowrap font-medium text-ink-deep">
-                    <button type="button" className="link" onClick={() => setDetailFuer(inv)}>
+                    <button type="button" className="link -my-3 inline-block py-3" onClick={() => setDetailFuer(inv)}>
                       {inv.invoiceNumber}
                     </button>
                   </td>
@@ -3182,16 +3194,14 @@ export default function InvoicesView() {
                     <td className="whitespace-nowrap font-medium text-ink-deep">{inv.stornoNummer}</td>
                     <td>
                       <span className="font-medium text-ink-deep">{inv.customerName}</span>
-                      <span className="block text-meta text-ink-muted">Stornorechnung zu {inv.invoiceNumber}</span>
+                      <span className="block text-meta text-ink-muted">Stornorechnung zu <span className="nr">{inv.invoiceNumber}</span></span>
                     </td>
                     <td className="whitespace-nowrap">{stornoDatum(inv)}</td>
                     <td className="whitespace-nowrap">—</td>
                     <td className="r whitespace-nowrap font-medium text-ink-deep">{euro(-inv.totalBrutto)}</td>
                     <td><Marke>Stornorechnung</Marke></td>
                     <td className="r">
-                      <Button variant="ghost" groesse="klein" onClick={() => void stornorechnungDrucken(inv)}>
-                        PDF
-                      </Button>
+                      {stornoMenue(inv)}
                     </td>
                   </tr>
                 )}
@@ -3204,8 +3214,9 @@ export default function InvoicesView() {
                 <ListRow
                   key={inv.id}
                   title={
-                    <button type="button" className="text-left" onClick={() => setDetailFuer(inv)}>
-                      {`${inv.invoiceNumber} · ${inv.customerName}`}
+                    // Tastfläche 48 px ohne höhere Zeile (U15): senkrechtes Polster, Gegenrand negativ.
+                    <button type="button" className="-my-3 block py-3 text-left" onClick={() => setDetailFuer(inv)}>
+                      <span className="nr">{inv.invoiceNumber}</span> · {inv.customerName}
                     </button>
                   }
                   wert={euro(inv.totalBrutto)}
@@ -3239,9 +3250,7 @@ export default function InvoicesView() {
                     zustand={<Marke>Stornorechnung</Marke>}
                     subtitle={`${stornoDatum(inv)} · zu ${inv.invoiceNumber}`}
                   >
-                    <Button variant="ghost" groesse="klein" onClick={() => void stornorechnungDrucken(inv)}>
-                      PDF
-                    </Button>
+                    {stornoMenue(inv)}
                   </ListRow>,
                 ];
               })}

@@ -827,7 +827,7 @@ export default function OrderView() {
               <option value="">— keine —</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.projectNumber}>
-                  {p.customerName} ({p.projectNumber})
+                  {p.customerName} <span className="nr">({p.projectNumber})</span>
                 </option>
               ))}
             </SelectField>

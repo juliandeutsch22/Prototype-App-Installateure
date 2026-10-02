@@ -348,7 +348,7 @@ describe('Mitarbeiteruebersicht — die leere Liste erklaert sich', () => {
     );
 
     expect(await screen.findByText(/Kein Konto erscheint in dieser Auswertung/)).toBeInTheDocument();
-    expect(screen.getByText(/Die Administration steht hier nie/)).toBeInTheDocument();
+    expect(screen.getByText(/Der Administrator steht hier nie/)).toBeInTheDocument();
     expect(screen.getByText(/Geschäftsführung nur, wenn es in ihrer Benutzerakte eingeschaltet ist/)).toBeInTheDocument();
   });
 

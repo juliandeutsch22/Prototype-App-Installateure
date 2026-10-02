@@ -182,9 +182,15 @@ export default function MonthCalendar({
                 {day}
               </span>
               {count > 0 && (
+                /*
+                  DIE ANZAHL IST KEIN ZWEITER KREIS (Nachtest 01.10.2026, U13):
+                  am gewählten Tag standen zwei gleiche „1“ übereinander — Tag
+                  und Zahl der Einsätze. Die Anzahl ist ein eckiges, umrandetes
+                  Abzeichen; der Tag bleibt der Kreis.
+                */
                 <span
-                  className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold leading-none ${
-                    past ? 'bg-line text-ink-muted' : 'bg-accent-deep text-white'
+                  className={`inline-flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-[3px] border px-1 text-xs font-semibold leading-none ${
+                    past ? 'border-line bg-surface text-ink-muted' : 'border-accent-deep bg-surface text-accent-deep'
                   }`}
                 >
                   {count}

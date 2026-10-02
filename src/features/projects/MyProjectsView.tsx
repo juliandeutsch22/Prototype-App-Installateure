@@ -134,7 +134,7 @@ export default function MyProjectsView() {
               title={baustellenTitel(p)}
               action={<StatusBadge status={p.status} />}
             >
-              <p className="text-sm text-ink-muted">{p.projectNumber}</p>
+              <p className="nr text-sm text-ink-muted">{p.projectNumber}</p>
               {neuZuPlanen.has(p.projectNumber) && (
                 <p className="mt-1 text-sm text-ink-muted">
                   Der Einsatz am {fmt(neuZuPlanen.get(p.projectNumber))} liegt an einem Tag, an dem du

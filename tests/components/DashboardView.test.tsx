@@ -309,9 +309,9 @@ describe('Startseite — Monteur', () => {
     expect(route).toHaveAttribute('href', expect.stringContaining('google.com/maps/search/?api=1&query='));
     expect(route).toHaveAttribute('target', '_blank');
     // Leerzeichen müssen aus der Nummer heraus — `tel:` verträgt sie nicht.
-    expect(screen.getByRole('link', { name: /0664 1234567/ })).toHaveAttribute('href', 'tel:06641234567');
+    expect(screen.getByRole('link', { name: /0664 1234567/ })).toHaveAttribute('href', 'tel:+436641234567');
     // Ein FÜHRENDES Plus bleibt erhalten.
-    expect(screen.getByRole('link', { name: /\+43 2635 12345/ })).toHaveAttribute('href', 'tel:+43263512345');
+    expect(screen.getByRole('link', { name: /02635 12345/ })).toHaveAttribute('href', 'tel:+43263512345');
   });
 
   it('„Wie zuletzt buchen“ trägt die Zeiten der letzten Buchung — gebucht wird erst in der Zeiterfassung', async () => {

@@ -2469,16 +2469,16 @@ describe('Rechnungen suchen — über alle, nicht nur die geladenen', () => {
     suchTreffer = [rechnung('alt', 'RE-2025-1001', 'Familie Huber')];
     zeige();
     await userEvent.type(await screen.findByLabelText('Suche'), 'Huber');
-    expect(await screen.findByText('RE-2025-1001 · Familie Huber')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'RE-2025-1001 · Familie Huber' })).toBeInTheDocument();
     expect(suche).toHaveBeenLastCalledWith('perl', 'Huber');
-    expect(screen.queryByText('RE-2026-1010 · Familie Maier')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'RE-2026-1010 · Familie Maier' })).not.toBeInTheDocument();
   });
 
   it('nimmt den Suchbegriff aus der Adresse — so verlinkt die Kundenakte', async () => {
     suchTreffer = [rechnung('alt', 'RE-2025-1001', 'Familie Huber')];
     zeige('/invoices?suche=RE-2025-1001');
     expect(await screen.findByLabelText('Suche')).toHaveValue('RE-2025-1001');
-    expect(await screen.findByText('RE-2025-1001 · Familie Huber')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'RE-2025-1001 · Familie Huber' })).toBeInTheDocument();
   });
 
   it('sagt, wenn die Suche nicht erreichbar ist — und sucht im Geladenen', async () => {
@@ -2487,7 +2487,7 @@ describe('Rechnungen suchen — über alle, nicht nur die geladenen', () => {
     zeige();
     await userEvent.type(await screen.findByLabelText('Suche'), 'Maier');
     expect(await screen.findByText(/Suche über alle Rechnungen ist gerade nicht erreichbar/)).toBeInTheDocument();
-    expect(screen.getByText('RE-2026-1010 · Familie Maier')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'RE-2026-1010 · Familie Maier' })).toBeInTheDocument();
   });
 });
 
@@ -2610,7 +2610,7 @@ describe('Die Kennzahl „Bezahlt“', () => {
       { id: 'z2', invoiceId: 'b', datum: heute, betrag: 130, art: 'Überweisung' },
     ]);
     zeige();
-    const kachel = (await screen.findByText('Bezahlt im laufenden Monat', { selector: 'p, span, div, dt' })).parentElement!;
+    const kachel = (await screen.findByText('Bezahlt im Monat', { selector: 'p, span, div, dt' })).parentElement!;
     // Die 200 € auf den Storno sind Guthaben des Kunden und zählen nicht.
     await waitFor(() => expect(kachel).toHaveTextContent('€ 130,00'));
     expect(kachel).not.toHaveTextContent('€ 330,00');
@@ -2905,7 +2905,7 @@ describe('Die Kennzahlen „Offen“ und „Überfällig“', () => {
     // Seit G27: der laufende Monat, mit seinem ersten Tag.
     const erster = new Date();
     const tt = `01.${String(erster.getMonth() + 1).padStart(2, '0')}.${erster.getFullYear()}`;
-    await waitFor(() => expect(kachel('Bezahlt im laufenden Monat')).toHaveTextContent(`seit ${tt}`));
+    await waitFor(() => expect(kachel('Bezahlt im Monat')).toHaveTextContent(`seit ${tt}`));
   });
 });
 

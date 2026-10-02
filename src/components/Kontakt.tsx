@@ -1,5 +1,5 @@
 import Icon from './Icon';
-import { mapsUrl, telUrl, mailUrl } from '@/lib/kontakt';
+import { mapsUrl, telUrl, mailUrl, telefonAnzeige } from '@/lib/kontakt';
 
 /**
  * Adresse und Telefonnummer einer Baustelle — als Handgriff, nicht als Text.
@@ -64,8 +64,9 @@ export function TelefonLink({ nummer, name, variante = 'text', className = '' }:
   return (
     <a href={telUrl(nummer)} className={`${gemeinsam} ${stil} ${className}`}>
       <Icon name="phone" size={16} aria-hidden />
-      <span>{nummer}</span>
-      <span className="sr-only">{name ? `— ${name} anrufen` : '— anrufen'}</span>
+      <span className="nr">{telefonAnzeige(nummer)}</span>
+      {/* Immer ein ganzer Satz für den Vorleser (U3): der Name, sonst „Kunde“ — nie nur „— anrufen“. */}
+      <span className="sr-only">{` — ${name?.trim() || 'Kunde'} anrufen`}</span>
     </a>
   );
 }

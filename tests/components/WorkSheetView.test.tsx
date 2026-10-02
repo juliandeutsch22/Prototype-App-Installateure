@@ -268,7 +268,7 @@ describe('Handwerksschein', () => {
     ).toHaveAttribute('href', expect.stringContaining('google.com/maps'));
     expect(screen.getByRole('link', { name: /0664 1234567/ })).toHaveAttribute(
       'href',
-      'tel:06641234567',
+      'tel:+436641234567',
     );
   });
 

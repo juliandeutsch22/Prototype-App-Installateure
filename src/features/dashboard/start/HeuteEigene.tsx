@@ -81,7 +81,7 @@ function Einsatz({
         {e.asHelper && <Marke>Helfer</Marke>}
       </p>
       <p className="kein-trennen text-meta text-ink-muted">
-        {e.projectNumber}
+        <span className="nr">{e.projectNumber}</span>
         {e.zeit ? ` · ${e.zeit}` : ''}
       </p>
       <KontaktZeile adresse={e.address} nummer={e.contactPhone} name={e.contactName} className="mt-3" />

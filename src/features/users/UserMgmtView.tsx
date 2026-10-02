@@ -333,7 +333,7 @@ export default function UserMgmtView() {
                     Unterstrich, 3 bis 40 Zeichen — also „ue“ statt „ü“. Der Name gilt über
                     alle Betriebe in Senklot; ist er schon vergeben, einfach einen anderen
                     wählen. Ein vergessenes Passwort lässt sich nicht per Mail zurücksetzen:
-                    Geschäftsführung oder Administration vergeben in der Benutzerakte ein
+                    Geschäftsführung oder Administrator vergeben in der Benutzerakte ein
                     neues Startpasswort. Nachträglich auf E-Mail umstellen geht nicht.
                   </InfoHint>
                 </p>

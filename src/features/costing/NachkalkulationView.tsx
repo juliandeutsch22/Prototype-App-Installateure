@@ -307,7 +307,7 @@ export default function NachkalkulationView() {
                         <span>
                           {k.customerName}{' '}
                           <span className="text-sm font-normal text-ink-muted">
-                            ({k.projectNumber})
+                            <span className="nr">({k.projectNumber})</span>
                           </span>
                         </span>
                       }

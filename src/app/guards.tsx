@@ -72,7 +72,7 @@ export function RequireModul({ id, children }: { id: ModulId; children: ReactNod
         </p>
       ) : (
         <p className="mt-4 text-sm text-ink-muted">
-          Einschalten kann das die Administration unter „Module“.
+          Einschalten kann das der Administrator unter „Module“.
         </p>
       )}
     </div>

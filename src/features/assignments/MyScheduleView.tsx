@@ -342,7 +342,7 @@ export default function MyScheduleView() {
                                 da ist — sonst stünde sie doppelt. */}
                             {proj?.customerName && (
                               <span className="ml-1 text-sm font-normal text-ink-muted">
-                                ({a.projectNumber})
+                                <span className="nr">({a.projectNumber})</span>
                               </span>
                             )}
                           </span>

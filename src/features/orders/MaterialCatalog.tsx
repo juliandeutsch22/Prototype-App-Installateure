@@ -30,7 +30,7 @@ import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { leseZahl, preisAlsText, zahlOder } from '@/lib/zahl';
 import { grundAus } from '@/lib/fehlerGrund';
 import ZahlFeld from '@/components/ZahlFeld';
-import { EINHEITEN } from '@/lib/einheit';
+import EinheitFeld from '@/components/EinheitFeld';
 
 /*
   Die üblichen Mengeneinheiten im Sanitär- und Heizungsbau — als
@@ -308,19 +308,7 @@ export default function MaterialCatalog({
               Jetzt schlägt es die üblichen Einheiten vor und erklärt sich.
             */}
             <div>
-              <InputField
-                id="munit"
-                label="Einheit"
-                placeholder="Stk"
-                list="einheiten"
-                value={form.unit}
-                onChange={(e) => setForm({ ...form, unit: e.target.value })}
-              />
-              <datalist id="einheiten">
-                {EINHEITEN.map((e) => (
-                  <option key={e} value={e} />
-                ))}
-              </datalist>
+              <EinheitFeld id="munit" value={form.unit || 'Stk'} onChange={(unit) => setForm({ ...form, unit })} />
               <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
                 Das Wort hinter der Zahl — „100 Stk“, „30 m“.
                 <InfoHint about="die Einheit">

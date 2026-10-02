@@ -36,6 +36,8 @@ export default function Supportband() {
   const [grund, setGrund] = useState<string | null>(null);
   const [notzugang, setNotzugang] = useState(false);
   const [schreibt, setSchreibt] = useState(false);
+  /** Am Telefon einzeilig; „Details“ klappt den ganzen Satz auf (Nachtest 01.10.2026, U17). */
+  const [details, setDetails] = useState(false);
 
   useEffect(() => {
     if (!user?.companyId) return undefined;
@@ -84,7 +86,24 @@ export default function Supportband() {
         schreibt ? 'bg-danger-bg font-bold text-danger' : 'bg-warning-bg font-medium text-warning',
       ].join(' ')}
     >
-      <span>
+      {/*
+        AM TELEFON EINE ZEILE (U17): das Band nahm auf jeder Seite zwei bis
+        drei Zeilen ein. Kurz steht da, dass der Support mitsieht und ob er
+        ändern kann; „Details“ zeigt Grund und ganzen Satz. Am Schreibtisch
+        steht wie bisher alles. Farbe und Inhalt bleiben gleich.
+      */}
+      <span className={details ? 'hidden' : 'md:hidden'}>
+        {notzugang ? 'Notzugang: ' : ''}Support sieht mit — {schreibt ? 'kann ändern' : 'lesend'}
+      </span>
+      <button
+        type="button"
+        aria-expanded={details}
+        onClick={() => setDetails((d) => !d)}
+        className="min-h-touch -my-2 underline underline-offset-2 md:hidden"
+      >
+        {details ? 'Weniger' : 'Details'}
+      </button>
+      <span className={details ? 'w-full' : 'hidden md:inline'}>
         {notzugang ? 'Notzugang: ' : ''}Der Support hat gerade Einblick in den Betrieb —{' '}
         {schreibt ? 'er kann auch ändern' : 'lesend'}. Grund: {grund}
       </span>

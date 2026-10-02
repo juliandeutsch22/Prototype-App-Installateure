@@ -21,6 +21,37 @@ export function useReiterImBild<T extends HTMLElement>(gewaehlt: unknown) {
     leiste.current
       ?.querySelector('[aria-selected="true"], [aria-current="page"]')
       ?.scrollIntoView?.({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+    randMerken(leiste.current);
   }, [gewaehlt]);
+
+  /*
+    UND DIE LEISTE SAGT, DASS SIE WEITERGEHT (Nachtest 01.10.2026, U16): am
+    Telefon war „Sätze und Kosten“ am rechten Rand abgeschnitten, ohne
+    Hinweis, dass man wischen kann. Steht rechts (oder links) noch etwas,
+    trägt die Leiste `data-mehr-rechts` (bzw. `-links`), und die Kante läuft
+    dort weich aus (index.css).
+  */
+  useEffect(() => {
+    const el = leiste.current;
+    if (!el) return;
+    const merken = () => randMerken(el);
+    merken();
+    el.addEventListener('scroll', merken, { passive: true });
+    window.addEventListener('resize', merken);
+    return () => {
+      el.removeEventListener('scroll', merken);
+      window.removeEventListener('resize', merken);
+    };
+  }, []);
   return leiste;
+}
+
+function randMerken(el: HTMLElement | null): void {
+  if (!el) return;
+  const rechts = el.scrollWidth - el.clientWidth - el.scrollLeft > 2;
+  const links = el.scrollLeft > 2;
+  if (rechts) el.setAttribute('data-mehr-rechts', '');
+  else el.removeAttribute('data-mehr-rechts');
+  if (links) el.setAttribute('data-mehr-links', '');
+  else el.removeAttribute('data-mehr-links');
 }

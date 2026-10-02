@@ -188,7 +188,7 @@ describe('Die Stammdaten für alle, die nur lesen', () => {
     );
     expect(within(angabe('Telefon')).getByRole('link')).toHaveAttribute(
       'href',
-      'tel:06641234567',
+      'tel:+436641234567',
     );
   });
 
@@ -409,7 +409,7 @@ describe('Die Stammdaten bearbeiten — in der Akte statt woanders', () => {
     await bediener.type(feld, '0664 9999999');
 
     expect(screen.getByRole('link', { name: /0664 9999999/ }))
-      .toHaveAttribute('href', 'tel:06649999999');
+      .toHaveAttribute('href', 'tel:+436649999999');
   });
 });
 

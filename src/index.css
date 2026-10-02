@@ -332,6 +332,19 @@ textarea:focus {
   .reiterleiste::-webkit-scrollbar {
     display: none;
   }
+  /* Hinweis, dass die Leiste weitergeht (U16) — kein Farbfeld, nur eine weich auslaufende Kante. */
+  .reiterleiste[data-mehr-rechts] {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+  }
+  .reiterleiste[data-mehr-links] {
+    -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 2.5rem), transparent);
+    mask-image: linear-gradient(to left, #000 calc(100% - 2.5rem), transparent);
+  }
+  .reiterleiste[data-mehr-links][data-mehr-rechts] {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent);
+  }
 
   .panel {
     background-color: var(--surface);
@@ -720,7 +733,10 @@ textarea {
 
   /* ── Kennzahlen: EINE Leiste mit Trennlinien ────────────────────────── */
   .kennzahlen { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden; }
-  .kennzahl { padding: 0.75rem 1rem; border-right: 1px solid var(--border); min-width: 0; }
+  /* Jede Kennzahl misst ihre eigene Breite (container): der Wert wird in einer
+     schmalen Zelle kleiner gesetzt, statt mit „…“ zu enden — in der rechten
+     Spalte der Startseite bei 1.150 px stand „€ 29 592,…“ (Nachtest 01.10.). */
+  .kennzahl { padding: 0.75rem 1rem; border-right: 1px solid var(--border); min-width: 0; container-type: inline-size; }
   .kennzahl:nth-child(2n) { border-right: 0; }
   .kennzahl:nth-child(n+3) { border-top: 1px solid var(--border); }
   /* Eine einzelne Kennzahl nimmt die ganze Leiste, statt eine leere Hälfte neben sich zu lassen. */
@@ -735,8 +751,8 @@ textarea {
     .kennzahl:nth-child(n+3) { border-top: 0; }
   }
   .kennzahl-name { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
-  .kennzahl-wert { font-size: 1.3125rem; line-height: 1.75rem; font-weight: 600; color: var(--ink-deep); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  @media (min-width: 1024px) { .kennzahl-wert { font-size: 1.5rem; line-height: 2rem; } }
+  .kennzahl-wert { font-size: clamp(0.9375rem, 15cqi, 1.3125rem); line-height: 1.75rem; font-weight: 600; color: var(--ink-deep); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media (min-width: 1024px) { .kennzahl-wert { font-size: clamp(0.9375rem, 15cqi, 1.5rem); line-height: 2rem; } }
   .kennzahl-zusatz { font-size: 0.78125rem; color: var(--text-muted); margin-top: 2px; }
   /*
    * IN EINER KARTE ist die Leiste kein zweiter Kasten (keine Karte in der
@@ -833,4 +849,30 @@ textarea {
   }
   /* Keine Silbentrennung in Namen, Nummern und Beträgen (U1, U9). */
   .kein-trennen { hyphens: manual; -webkit-hyphens: manual; }
+  /*
+    SILBENTRENNUNG NUR FÜR LANGE WÖRTER in Listen, Metazeilen, Tabellen und
+    Kennzahlen (Nachtest 01.10.2026, U1, U9). „Pressfitting Bo-gen“ und
+    „alle 12 Mo-nate“ trennten kurze Wörter in schmalen Zeilen; ganz aus
+    darf sie nicht sein, sonst bricht „Wohnungseigentümergemeinschaft“ wieder
+    ohne Strich mitten im Wort (D3). Ab 13 Zeichen, mindestens 6 vorn und 5
+    hinten. Wird vererbt; Fließtext außerhalb dieser Stellen trennt wie bisher.
+  */
+  li, td, th, label, .zeile-meta, .text-meta, .kennzahl, .titel-karte, .start-abschnitt, .abschnitt {
+    hyphenate-limit-chars: 13 6 5;
+    -webkit-hyphenate-limit-before: 6;
+    -webkit-hyphenate-limit-after: 5;
+  }
+  /* Nummern und Namen mit Bindestrich brechen nicht am Bindestrich um (U8). */
+  .nr { white-space: nowrap; }
+}
+
+/*
+  FOKUS ÜBER DER FESTEN LEISTE (Nachtest 01.10.2026, U14). Am Telefon kleben
+  Reiterleiste und Aktionsleiste („Zeit buchen“) unten, zusammen rund 8 rem.
+  Springt der Fokus in ein Feld darunter — Tabulator, „Weiter“ der Tastatur,
+  eine Fehlermeldung —, rollt der Browser es mit diesem Abstand ins Bild,
+  statt es hinter der Leiste stehen zu lassen.
+*/
+@media (max-width: 1023px) {
+  html { scroll-padding-bottom: 9rem; }
 }

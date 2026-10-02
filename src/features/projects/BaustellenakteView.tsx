@@ -435,7 +435,7 @@ export default function BaustellenakteView() {
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <Link to="/admin-projects" className="link inline-flex min-h-touch items-center">← Zur Baustellenliste</Link>
-            <span className="text-ink-muted">{b.projectNumber}</span>
+            <span className="nr text-ink-muted">{b.projectNumber}</span>
             <StatusBadge status={b.status} />
             {b.estimatedHours ? <Marke>{fmtStunden(b.estimatedHours)} h Budget</Marke> : null}
           </span>

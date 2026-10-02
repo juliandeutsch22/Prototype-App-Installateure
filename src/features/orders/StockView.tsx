@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { imLager, istKnapp } from './lagerartikel';
 import { useSearchParams } from 'react-router-dom';
 import Adressfilter from '@/components/Adressfilter';
+import RowMenu from '@/components/RowMenu';
 import { useAuth } from '@/app/AuthContext';
 import { darfKatalogEinspielen } from '@/lib/permissions';
 import {
@@ -367,31 +368,31 @@ export default function StockView() {
                         ) : (
                           <Marke>{fmtMenge(m.free)} {m.unit ?? 'Stk'} frei</Marke>
                         )}
-                        <Button variant="ghost" onClick={() => setEingang(m)}>
+                        {/*
+                          EINE HAUPTAKTION, DER REST IM MENÜ (Nachtest 01.10.2026,
+                          U12; Regel des Handbuchs: mehr als zwei Aktionen ins
+                          Zeilenmenü). Vier Knöpfe standen in zwei Zeilen unter
+                          jedem Artikel, und die Liste wurde am Telefon sehr
+                          lang. Bearbeiten führt weiter ins Katalogformular —
+                          eine zweite Stelle mit denselben Regeln gibt es nicht.
+                        */}
+                        <Button variant="secondary" onClick={() => setEingang(m)}>
                           Wareneingang
                         </Button>
-                        <Button variant="ghost" onClick={() => setInventur(m)}>
-                          Inventur
-                        </Button>
-                        <Button variant="ghost" onClick={() => setBewegungen(m)}>
-                          Bewegungen
-                        </Button>
-                        {/*
-                          Bezeichnung, Kategorie, Artikelnummer, Einheit UND
-                          der Bestand selbst — alles im Katalogformular, das
-                          es laengst gibt. Ein zweites Formular hier waere
-                          eine zweite Stelle, an der dieselben Regeln
-                          auseinanderlaufen koennen.
-                        */}
-                        <Button
-                          variant="ghost"
-                          onClick={() => {
-                            setZuBearbeiten(m);
-                            setTab('katalog');
-                          }}
-                        >
-                          Bearbeiten
-                        </Button>
+                        <RowMenu
+                          about={m.name}
+                          items={[
+                            { label: 'Inventur', onSelect: () => setInventur(m) },
+                            { label: 'Bewegungen', onSelect: () => setBewegungen(m) },
+                            {
+                              label: 'Bearbeiten',
+                              onSelect: () => {
+                                setZuBearbeiten(m);
+                                setTab('katalog');
+                              },
+                            },
+                          ]}
+                        />
                       </ListRow>
                     );
                   })}
