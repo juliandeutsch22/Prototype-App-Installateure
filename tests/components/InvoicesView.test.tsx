@@ -2212,6 +2212,27 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     expect(screen.queryByText(/Ohne Leistungszeitraum/)).toBeNull();
   });
 
+  // Testbericht 30.09.2026, G16 — bei einer Anzahlung gibt es nichts nachzuweisen.
+  it('bietet bei der Anzahlung keinen gesetzten Haken „Leistungsnachweis anhängen“ an (G16)', async () => {
+    const bestaetigen = await bisZurVorschau('anzahlung');
+    expect(screen.queryByRole('checkbox', { name: 'Leistungsnachweis anhängen' })).toBeNull();
+
+    const preis = screen.getByLabelText('Einzelpreis Position 1');
+    await userEvent.clear(preis);
+    await userEvent.type(preis, '1000');
+    await waitFor(() => expect(bestaetigen).toBeEnabled());
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(pdfAusgabe).toHaveBeenCalled());
+    // Und auf dem Beleg steht keiner: es gibt keine Buchung, die er nachweisen könnte.
+    const opts = pdfAusgabe.mock.calls[0][0] as { appendDetail?: boolean; assembled: { entries: unknown[] } };
+    expect(opts.appendDetail && opts.assembled.entries.length > 0).toBeFalsy();
+  });
+
+  it('Gegenprobe: bei der Einzelrechnung steht der Haken da und ist gesetzt (G16)', async () => {
+    await bisZurVorschau();
+    expect(screen.getByRole('checkbox', { name: 'Leistungsnachweis anhängen' })).toBeChecked();
+  });
+
   it('bietet die Anzahlung der Baustelle zum Abzug an und rechnet den Rest aus', async () => {
     derBaustelle = [ANZAHLUNG];
     await bisZurVorschau('schluss');
@@ -3210,5 +3231,24 @@ describe('Paket 5a — die Rechnungsliste', () => {
     await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-1003/ }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Weitere Zahlung erfassen …' }));
     expect(await screen.findByText(/schon bezahlt\. Eine weitere Zahlung wird zum Guthaben/)).toBeInTheDocument();
+  });
+
+  // Testbericht 30.09.2026, G15 — auch bei einer stornierten Rechnung steht da, was passiert.
+  it('sagt bei einer stornierten Rechnung, dass eine Zahlung zum Guthaben wird (G15)', async () => {
+    bisherigeZahlungen = [];
+    rechnungen = [
+      { id: 'x', invoiceNumber: 'RE-2026-1004', projectNumber: '2026-001', customerName: 'Max',
+        invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Storniert', totalBrutto: 100 },
+    ] as unknown as (Invoice & { id: string })[];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-1004/ }));
+    // Schon der Menüpunkt sagt es …
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Zahlung erfassen (wird Guthaben) …' }));
+    // … und der Dialog noch einmal, bevor eingetragen wird.
+    expect(await screen.findByText(
+      'Diese Rechnung ist storniert. Eine Zahlung hierauf wird zum Guthaben des Kunden.',
+    )).toBeInTheDocument();
+    expect(screen.queryByText(/schon bezahlt/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Zahlung eintragen' })).toBeInTheDocument();
   });
 });

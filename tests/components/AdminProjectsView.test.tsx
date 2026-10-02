@@ -818,3 +818,54 @@ describe('Die Suche in der Baustellenliste (G7)', () => {
     expect(screen.queryByLabelText('Suche')).toBeNull();
   });
 });
+
+/*
+  TESTBERICHT 30.09.2026, M38 — die Projektleitung sieht alle Baustellen und
+  kann auf die eigenen einschränken: Leitung ODER Team.
+*/
+describe('Nur meine Baustellen (M38)', () => {
+  const nutzer = authWert.user as { uid: string; role: string };
+  const vorher = { ...nutzer };
+  afterEach(() => {
+    nutzer.role = vorher.role;
+    nutzer.uid = vorher.uid;
+  });
+
+  beforeEach(() => {
+    baustellen = [
+      { id: 'p1', companyId: 'perl', projectNumber: '2026-101', customerName: 'Leitung Huber', status: 'Aktiv',
+        projectManagers: ['pl'] },
+      { id: 'p2', companyId: 'perl', projectNumber: '2026-102', customerName: 'Team Gruber', status: 'Aktiv',
+        assignedEmployees: ['u1', 'pl'] },
+      { id: 'p3', companyId: 'perl', projectNumber: '2026-103', customerName: 'Fremd Berger', status: 'Aktiv',
+        projectManagers: ['pl2'], assignedEmployees: ['u1'] },
+    ] as (Project & { id: string })[];
+  });
+
+  it('schränkt die Liste der Projektleitung auf die eigenen ein — Leitung oder Team', async () => {
+    nutzer.role = 'Projektleiter';
+    nutzer.uid = 'pl';
+    zeige();
+    expect(await screen.findByText('Alle Baustellen (3)')).toBeInTheDocument();
+    const haken = screen.getByRole('checkbox', { name: 'Nur meine Baustellen' });
+    // Ab Werk aus: die Projektleitung sieht zuerst alle Baustellen.
+    expect(haken).not.toBeChecked();
+
+    await userEvent.click(haken);
+    expect(await screen.findByText('Alle Baustellen (2)')).toBeInTheDocument();
+    expect(screen.getByText(/2026-101/)).toBeInTheDocument();
+    expect(screen.getByText(/2026-102/)).toBeInTheDocument();
+    expect(screen.queryByText(/2026-103/)).toBeNull();
+
+    // Wieder aus: alle drei.
+    await userEvent.click(haken);
+    expect(await screen.findByText('Alle Baustellen (3)')).toBeInTheDocument();
+    expect(screen.getByText(/2026-103/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: die Geschäftsführung bekommt den Haken gar nicht', async () => {
+    zeige();
+    expect(await screen.findByText('Alle Baustellen (3)')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'Nur meine Baustellen' })).toBeNull();
+  });
+});

@@ -157,6 +157,20 @@ describe('Die Abzeichen für offene Posten', () => {
       expect(within(zeile('Urlaub')).getByText('1 offener Urlaubsantrag')).toBeInTheDocument());
   });
 
+  // Testbericht 30.09.2026, G32 — der Vorleser las „Anforderungen1 offene …“.
+  it('trennt Menüpunkt und Zahl für den Vorleser mit einem Komma (G32)', async () => {
+    ladenMock.mockResolvedValue(zahlen(0, 1, 0));
+    zeige();
+    const aside = document.querySelector('aside')!;
+    // Ob vor dem Komma ein Leerraum steht, entscheidet die Namensberechnung
+    // der Umgebung (jsdom setzt einen, weil es kein CSS kennt); dass das Komma
+    // zwischen Wort und Zahl steht, entscheidet die App.
+    const link = await within(aside).findByRole('link', {
+      name: /^Anforderungen\s*,\s*1 offene Materialanforderung$/,
+    });
+    expect(link).toBeInTheDocument();
+  });
+
   it('zeigt nichts, wo nichts offen ist', async () => {
     ladenMock.mockResolvedValue(zahlen(0, 0, 2));
     zeige();

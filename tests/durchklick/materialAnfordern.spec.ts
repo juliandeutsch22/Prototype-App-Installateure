@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { admin, ARTIKEL, BETRIEB, MONTEUR } from './aufbau';
-import { anmelden, keineFehlermeldung } from './helfer';
+import { anmelden, keineFehlermeldung, menue } from './helfer';
 
 /**
  * Material anfordern — der zweite Weg, der auf der Baustelle entsteht.
@@ -20,7 +20,7 @@ test.beforeEach(async () => {
 test('Ein Monteur legt Material in den Korb und sendet es ab', async ({ page }) => {
   await anmelden(page, MONTEUR.email);
 
-  await page.getByRole('link', { name: 'Material anfordern' }).first().click();
+  await menue(page, 'Material anfordern', 'Material');
   await page.getByRole('button', { name: new RegExp(`${ARTIKEL.name} zur Anforderung`) }).click();
   await page.getByRole('button', { name: 'Anforderung abschicken' }).click();
 

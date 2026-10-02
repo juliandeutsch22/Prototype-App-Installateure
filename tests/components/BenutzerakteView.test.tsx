@@ -194,6 +194,14 @@ describe('Die Stammdaten in der Akte', () => {
     expect(profilAendern.mock.calls[0][1]).toMatchObject({ initialVacationDays: null });
   });
 
+  // Testbericht 30.09.2026, G9 — das leere Feld sagt, was es bedeutet.
+  it('sagt im leeren Urlaubsfeld „leer = voller Anspruch“ (G9)', async () => {
+    zeige();
+    const feld = await screen.findByRole('textbox', { name: /Urlaub im ersten Jahr/ });
+    expect(feld).toHaveValue('');
+    expect(feld).toHaveAttribute('placeholder', 'leer = voller Anspruch');
+  });
+
   it('speichert nicht ohne Namen', async () => {
     zeige();
     await userEvent.clear(await screen.findByRole('textbox', { name: /^Name/ }));

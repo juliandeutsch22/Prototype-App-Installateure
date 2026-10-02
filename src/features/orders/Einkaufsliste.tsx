@@ -417,7 +417,7 @@ export default function Einkaufsliste({
           bestelltFragen
             ? `${bestelltFragen.zuBestellen.length} ${bestelltFragen.zuBestellen.length === 1 ? 'Position' : 'Positionen'} bei ${
                 (bestelltFragen.supplierId && nachId.get(bestelltFragen.supplierId)?.name) || 'diesem Großhändler'
-              } gelten dann als bestellt und warten auf die Lieferung.`
+              } ${bestelltFragen.zuBestellen.length === 1 ? 'gilt dann als bestellt und wartet' : 'gelten dann als bestellt und warten'} auf die Lieferung.`
             : ''
         }
         onCancel={() => {

@@ -171,6 +171,22 @@ describe('Einkaufsliste — bestellt und geliefert', () => {
     await waitFor(() => expect(alsBestellt).toHaveBeenCalledWith(['a', 'b']));
   });
 
+  // Testbericht 30.09.2026, G32 — „1 Position“ / „2 Positionen“ statt „Position(en)“.
+  it('zählt in der Rückfrage Positionen in Einzahl und Mehrzahl (G32)', async () => {
+    zeige([anf({ id: 'a' }), anf({ id: 'b', materialId: 'm2', materialName: 'Kupferrohr 15' })]);
+    await userEvent.click(await screen.findByRole('button', { name: 'Als bestellt markieren' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('2 Positionen bei Holter gelten dann als bestellt und warten auf die Lieferung.');
+    expect(dialog).not.toHaveTextContent('Position(en)');
+  });
+
+  it('Gegenprobe: zwei Anforderungen auf denselben Artikel sind „1 Position“ — und das Zeitwort passt (G32)', async () => {
+    zeige([anf({ id: 'a' }), anf({ id: 'b' })]);
+    await userEvent.click(await screen.findByRole('button', { name: 'Als bestellt markieren' }));
+    // Nicht „1 Position … gelten“: Einzahl auch im Zeitwort.
+    expect(await screen.findByRole('dialog')).toHaveTextContent('1 Position bei Holter gilt dann als bestellt und wartet auf die Lieferung.');
+  });
+
   it('bucht „Geliefert“ je Anforderung — und „Alles geliefert“ für alle', async () => {
     const jetzt = Date.now() as never;
     zeige([anf({ id: 'a', bestelltAm: jetzt }), anf({ id: 'b', bestelltAm: jetzt })]);

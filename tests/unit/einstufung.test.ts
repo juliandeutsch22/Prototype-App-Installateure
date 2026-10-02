@@ -6,6 +6,7 @@ import {
 import { assembleInvoice, INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { rechneBaustelle } from '@/features/costing/nachkalkulation';
 import { calcMonthStats } from '@/lib/time';
+import { buildMonthCsv } from '@/features/accounting/export';
 import { buchungKonflikt } from '@/lib/tagesbuchungen';
 import { lehreFehler } from '@/features/users/benutzerEntwurf';
 import type { AppUser, InvoiceRates, TimeEntry } from '@/types';
@@ -182,6 +183,47 @@ describe('Berufsschule im Zeitkonto', () => {
     expect(mit.berufsschuleMin).toBe(2 * 8 * 60);
     expect(mit.sollMin).toBe(ohne.sollMin - 2 * 8 * 60);
     expect(mit.istMin).toBe(0);
+  });
+
+  /*
+    Testbericht 30.09.2026, 4.1 Punkt 7 — die Lohn-CSV trägt Einstufung,
+    Lehrjahr und Berufsschule. Bisher war nur die Kopfzeile geprüft; hier
+    stehen die WERTE, je Spalte über ihren Namen gelesen.
+  */
+  it('schreibt Einstufung, Lehrjahr und Berufsschule des Lehrlings in die Lohn-CSV (4.1 Punkt 7)', () => {
+    const tage = ['2025-10-06', '2025-10-13'];
+    const schule = tage.map((d, i) => buchung({
+      id: `b${i}`, date: d, status: 'Berufsschule', startTime: undefined, endTime: undefined,
+    }));
+    // Lehrbeginn 20.10.2024: am 1. Oktober noch 1., am Monatsletzten schon 2. Lehrjahr.
+    const leo: AppUser = {
+      ...lehrling, id: 'u2', uid: 'u2', name: 'Leo Lehrling', lehrbeginn: '2024-10-20', appStartDate: '2024-10-20',
+    };
+    const fach: AppUser = { ...lehrling, id: 'u3', uid: 'u3', name: 'Franz Facharbeiter', einstufung: 'facharbeiter' };
+    delete fach.lehrbeginn;
+    delete fach.lehrzeitMonate;
+    const zeile = (user: AppUser, eintraege: TimeEntry[]) =>
+      ({ user, monthEntries: eintraege, stats: calcMonthStats(user, eintraege, eintraege, 2025, 9, true) });
+
+    const csv = buildMonthCsv([zeile(lehrling, schule), zeile(leo, []), zeile(fach, [])], 2025, 9, true);
+    const zeilen = csv.split('\n');
+    const kopf = zeilen.findIndex((z) => z.startsWith('Name;Ist(Std)'));
+    const spalten = zeilen[kopf].split(';');
+    const werte = (name: string) => {
+      const z = zeilen.slice(kopf + 1).find((x) => x.startsWith(`${name};`))!.split(';');
+      return Object.fromEntries(spalten.map((s, i) => [s, z[i]]));
+    };
+
+    expect(werte('Lena Lehrling')).toMatchObject({
+      Einstufung: 'Lehrling', Lehrjahr: '1', 'Berufsschule-Tage': '2', 'Berufsschule(Std)': '16,00',
+    });
+    expect(werte('Leo Lehrling')).toMatchObject({
+      Einstufung: 'Lehrling', Lehrjahr: '2', 'Berufsschule-Tage': '0', 'Berufsschule(Std)': '0,00',
+    });
+    // Gegenprobe: kein Lehrling, kein Lehrjahr.
+    expect(werte('Franz Facharbeiter')).toMatchObject({
+      Einstufung: 'Facharbeiter', Lehrjahr: '', 'Berufsschule-Tage': '0', 'Berufsschule(Std)': '0,00',
+    });
   });
 
   it('gilt für den ganzen Tag: daneben lässt sich keine Arbeitszeit buchen', () => {

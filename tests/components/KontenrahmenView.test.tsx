@@ -89,6 +89,18 @@ describe('Was hinterlegt ist, steht in den Feldern', () => {
     expect((screen.getAllByLabelText('Erlöskonto')[0] as HTMLInputElement).value).toBe('4000');
     expect(gespeichert).toEqual([]);
   });
+
+  // Testbericht 30.09.2026, M26 — ein Vorschlag ist keine Freigabe der Kanzlei.
+  it('sagt nach dem Einsetzen, dass der Vorschlag mit der Kanzlei abzustimmen ist (M26)', async () => {
+    zeige();
+    const knopf = await screen.findByRole('button', { name: 'Vorschlag einsetzen' });
+    // Vorher steht der Hinweis nicht da — er gehört zum eingesetzten Vorschlag.
+    expect(screen.queryByText(/Vorschlag – mit der Kanzlei abstimmen/)).toBeNull();
+
+    await userEvent.click(knopf);
+    expect(screen.getByText('Vorschlag – mit der Kanzlei abstimmen.')).toBeInTheDocument();
+    expect(screen.getByText(/Vor dem ersten Buchungsstapel bitte abgleichen/)).toBeInTheDocument();
+  });
 });
 
 describe('Speichern', () => {

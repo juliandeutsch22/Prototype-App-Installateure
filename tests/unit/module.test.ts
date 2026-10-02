@@ -16,6 +16,16 @@ import { navForRole, tabBarForRole, canAccess } from '@/app/navigation';
  * Genau diese drei stehen hier.
  */
 
+// Testbericht 30.09.2026, G26 — die Nachkalkulation rechnet auch das Material.
+describe('Wie die Module beschrieben sind', () => {
+  it('die Nachkalkulation stellt den Erlös gegen Personal- UND Materialkosten (G26)', () => {
+    const zweck = modul('nachkalkulation')?.zweck ?? '';
+    expect(zweck).toContain('Erlös gegen Personal- und Materialkosten');
+    // Vorher hieß es „Erlös gegen Personalkosten“ — als fehlte das Material.
+    expect(zweck).not.toMatch(/gegen Personalkosten/);
+  });
+});
+
 describe('Welche Module gelten', () => {
   it('nimmt ohne Festlegung die Standardwerte', () => {
     const an = aktiveModule(undefined);

@@ -92,6 +92,54 @@ describe('M2 — neue Seiten starten oben', () => {
     fireEvent.click(screen.getByText('weiter'));
     expect(scroll).toHaveBeenCalledWith(0, 0);
   });
+
+  // Testbericht 30.09.2026, M2 — „Zurück“ kehrt dorthin zurück, wo man war.
+  it('stellt beim Zurückgehen die alte Position wieder her', () => {
+    // jsdom scrollt nicht; der Ersatz merkt sich, wohin gescrollt werden soll.
+    let position = 0;
+    const vorher = Object.getOwnPropertyDescriptor(window, 'scrollY');
+    Object.defineProperty(window, 'scrollY', { configurable: true, get: () => position });
+    const scroll = vi.spyOn(window, 'scrollTo').mockImplementation(((_x: number, y: number) => {
+      position = y;
+    }) as typeof window.scrollTo);
+    function Liste() {
+      const navigate = useNavigate();
+      return <button type="button" onClick={() => navigate('/akte')}>öffnen</button>;
+    }
+    function Akte() {
+      const navigate = useNavigate();
+      return <button type="button" onClick={() => navigate(-1)}>zurück</button>;
+    }
+    try {
+      render(
+        <MemoryRouter initialEntries={['/liste']}>
+          <Seitenposition />
+          <Routes>
+            <Route path="/liste" element={<Liste />} />
+            <Route path="/akte" element={<Akte />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      // In der langen Liste weit nach unten.
+      position = 1200;
+      fireEvent.scroll(window);
+
+      fireEvent.click(screen.getByText('öffnen'));
+      // Die Akte beginnt oben …
+      expect(position).toBe(0);
+
+      scroll.mockClear();
+      fireEvent.click(screen.getByText('zurück'));
+      // … und zurück steht man wieder bei 1200, nicht oben in der Liste.
+      expect(screen.getByText('öffnen')).toBeInTheDocument();
+      expect(scroll).toHaveBeenCalledWith(0, 1200);
+      expect(scroll).not.toHaveBeenCalledWith(0, 0);
+      expect(position).toBe(1200);
+    } finally {
+      if (vorher) Object.defineProperty(window, 'scrollY', vorher);
+      else delete (window as { scrollY?: number }).scrollY;
+    }
+  });
 });
 
 describe('G6 — die Auswahl schiebt die Liste nicht', () => {

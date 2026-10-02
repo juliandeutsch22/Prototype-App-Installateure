@@ -612,10 +612,20 @@
       (DSGVO). Die Oberfläche hat eine ruhigere Linie. Was noch offen ist, steht
       am Ende des Abschnitts „Seit dem 25. September“.
     </p>
+    <p class="vorspann">
+      <strong>Seit dem 1. Oktober</strong> ist abgearbeitet, was der Nachtest
+      gefunden hat: die <strong>Startseite</strong> ist nach den Skizzen neu
+      gebaut — Handlungsbedarf, Heute, höchstens vier Kennzahlen —, die
+      <strong>Rüstliste bucht beim Einladen ab</strong>, die Live-Aktualisierung
+      hält wieder, und der globale Administrator kann einen Betrieb
+      <strong>deaktivieren und in Stufen löschen</strong>. Dazu viele kleine
+      Dinge in der Oberfläche, vor allem am Telefon. Alles im Abschnitt
+      „Seit dem 1. Oktober“.
+    </p>
     <div class="stempel">
-      <span>Stand <b>29.09.2026</b></span>
-      <span>Fassung <b>54fe3b0</b></span>
-      <span>Automatische Prüfungen <b>4255</b></span>
+      <span>Stand <b>02.10.2026</b></span>
+      <span>Fassung <b>Nachtest 01.10., Pakete A–E</b></span>
+      <span>Automatische Prüfungen <b>5057</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -626,6 +636,26 @@
       <p class="frage">Was der Nachtest vom 01.10. gefunden hat und wie es jetzt ist.</p>
     </div>
     <div class="bereiche">
+      <div class="bereich">
+        <h3>Die Rüstliste bucht ab<span class="neu">neu</span></h3>
+        <p>Bis „eingeladen“ ist das Material nur reserviert. Mit dem Haken „eingeladen“ bucht die App den Lagerabgang — mit der Baustelle als Bezug und einem Eintrag im Bewegungsprotokoll, höchstens so viel, wie da ist. Was übrig bleibt, kommt über die Retoure zurück. Steht dasselbe Material später als verbaut auf dem Schein, mindert das den Bestand nicht noch einmal; der Schein dient dann nur der Verrechnung. Am selben Tag lässt sich „eingeladen“ zurücknehmen.</p>
+        <p class="wer">Monteur, Verwaltung, Leitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Live-Aktualisierung<span class="neu">behoben</span></h3>
+        <p>Lager, Rechnungen und die übrigen Listen aktualisieren sich wieder von selbst, auch nach einem Seitenwechsel und zurück. Schließt ein Kollege eine Anforderung ab oder erfasst eine Zahlung, steht es ohne Neuladen da.</p>
+        <p class="wer">Jeder</p>
+      </div>
+      <div class="bereich">
+        <h3>Schlussrechnung im Detail<span class="neu">behoben</span></h3>
+        <p>Die Detailansicht einer Schlussrechnung gliedert wie Vorschau und PDF: Gesamtleistung, abzüglich jeder Anzahlung mit Nummer, Datum, netto, USt und brutto, darunter die Restforderung. Der Leistungszeitraum wird aus den Scheinen oder, wenn die nichts hergeben, aus Anzahlung und Teilrechnungen derselben Baustelle vorbelegt.</p>
+        <p class="wer">Buchhaltung, Leitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Meine Baustellen bei Abwesenheit<span class="neu">behoben</span></h3>
+        <p>Liegt der nächste Einsatz an einem Tag, an dem man krank oder im Urlaub ist, steht dort wie im Einsatzplan „das Büro plant ihn neu“ statt „nächster Einsatz“.</p>
+        <p class="wer">Monteur</p>
+      </div>
       <div class="bereich">
         <h3>Zwei Adressen in einem Feld<span class="neu">behoben</span></h3>
         <p>Wer in ein vorbelegtes Adressfeld am Anfang tippt, schrieb bisher die neue Adresse vor die alte — so entstand „Alois-Köberl-Gasse 11KI-Teststraße 1, 8200 Gleisdorf“. Steht ein Vorschlag mitten in einer anderen Adresse, fragt das Feld jetzt <strong>„Welche gilt?“</strong> und bietet beide Teile als Knopf an. Eine schon gespeicherte doppelte Adresse ändert die App nicht von selbst; sie ist in der Baustelle einmal zu berichtigen.</p>
@@ -685,6 +715,11 @@
         <h3>Kennung ohne Rechtsform<span class="neu">geändert</span></h3>
         <p>Beim Anlegen schlägt die Plattform die Kennung ohne Rechtsform und an einer Wortgrenze gekürzt vor: aus „Installateur Müller &amp; Söhne GmbH“ wird <code>installateur-mueller-soehne</code> statt <code>installateur-mueller-soehne-gm</code>. „Passwort neu setzen“ im Notzugang steht nur noch, wenn der Betrieb ein aktives Leitungskonto mit Benutzername hat.</p>
         <p class="wer">Globaler Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Geprüft wie am Telefon<span class="neu">neu</span></h3>
+        <p>Die Wege des Monteurs — Zeit buchen, Material anfordern, Schein mit Foto und Unterschrift und jede seiner Seiten — laufen bei jeder Änderung auch in WebKit, der Maschine von Safari auf dem iPhone, bei 390 px und auf dem Tablet bei 834 px. Dazu kommt eine durchgehende Prüfung „Woche im Zeitraffer“: planen, Material anfordern und einladen, Zeiten buchen, Schein unterschreiben, Krankmeldung, Anzahlung und Schlussrechnung, Zahlung mit Skonto, Lohnliste und Buchungsstapel für die Kanzlei. Eine Seitenprüfung je Rolle achtet auf TT.MM.JJJJ, Dezimalkomma und keinen doppelten Punkt nach einem Datum.</p>
+        <p class="wer">Betreiber</p>
       </div>
       <div class="bereich">
         <h3>Nicht nachgestellt<span class="neu">offen</span></h3>
@@ -2044,7 +2079,7 @@
   <footer class="fuss">
     <span>Senklot · Betriebssoftware für Installationsbetriebe in Österreich</span>
     <span>4 255 automatische Prüfungen: 2 987 im Kleinen, 1 260 gegen eine echte Datenbank, 8 Wege im echten Browser</span>
-    <span>Stand 29.09.2026</span>
+    <span>Stand 02.10.2026</span>
   </footer>
 
 </div>

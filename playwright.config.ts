@@ -45,6 +45,16 @@ import { defineConfig, devices } from '@playwright/test';
  */
 const ORT = 'http://127.0.0.1:5173';
 
+/*
+  DIE WEGE DES MONTEURS LAUFEN DREIMAL (Nachtest 01.10.2026, Paket E: „Handy
+  zuerst“): in Chromium am Schreibtisch wie alle anderen, in WebKit — der
+  Maschine von Safari auf jedem iPhone — bei 390 px, und auf dem Tablet bei
+  834 px. Zeit buchen, Material anfordern, Schein mit Unterschrift und Foto,
+  und jede seiner Seiten einmal.
+*/
+const MONTEUR_WEGE = /(zeitBuchen|materialAnfordern|scheinUnterschreiben|monteurSeiten)\.spec\.ts$/;
+const CHROMIUM_START = process.env.CHROMIUM_PFAD ? { executablePath: process.env.CHROMIUM_PFAD } : {};
+
 const STAPEL = {
   VITE_SUPABASE_URL: 'http://127.0.0.1:54321',
   VITE_SUPABASE_ANON_KEY:
@@ -88,9 +98,22 @@ export default defineConfig({
           hundert Megabyte nach, oder er bricht ab. In der CI ist die Variable
           nicht gesetzt, dort installiert der Auftrag den passenden selbst.
         */
-        launchOptions: process.env.CHROMIUM_PFAD
-          ? { executablePath: process.env.CHROMIUM_PFAD }
-          : {},
+        launchOptions: CHROMIUM_START,
+      },
+    },
+    {
+      name: 'webkit-telefon',
+      testMatch: MONTEUR_WEGE,
+      use: { ...devices['iPhone 13'] },
+    },
+    {
+      name: 'tablet-834',
+      testMatch: MONTEUR_WEGE,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 834, height: 1112 },
+        hasTouch: true,
+        launchOptions: CHROMIUM_START,
       },
     },
   ],
