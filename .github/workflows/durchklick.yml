@@ -78,11 +78,11 @@ jobs:
       - name: Stapel hochfahren
         run: supabase start
 
-      # NUR CHROMIUM, nicht alle drei Browser: jeder weitere kostet Minuten
-      # Ladezeit für einen Erkenntnisgewinn, den diese sieben Wege nicht
-      # hergeben — sie prüfen Abläufe, nicht Darstellung.
+      # Chromium für alle Wege, dazu WebKit (Safari) für die Wege des
+      # Monteurs am Telefon (Nachtest 01.10.2026, Paket E) — Firefox nicht:
+      # kein Gerät der Monteure läuft damit.
       - name: Browser holen
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
 
       - name: Durchklick
         run: npm run durchklick

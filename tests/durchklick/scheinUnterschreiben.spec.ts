@@ -50,6 +50,16 @@ async function unterschreiben(flaeche: import('@playwright/test').Locator, hoehe
 }
 
 test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({ page }) => {
+  /*
+    NUR DER SCHEIN AUS DIESEM LAUF ZÄHLT. Seit dem 02.10.2026 läuft dieser Weg
+    in drei Browsern nacheinander (Chromium, WebKit am Telefon, Tablet), und
+    ein unterschriebener Schein lässt sich nicht wegräumen — er ist ein Beleg.
+    Deshalb wird gemerkt, was vorher da war.
+  */
+  const { data: vorher } = await admin.from('work_sheets').select('id').eq('company_id', BETRIEB);
+  const alteIds = new Set((vorher ?? []).map((z) => z.id as string));
+  let neuerSchein = '';
+
   await anmelden(page, MONTEUR.email);
 
   await page.getByRole('link', { name: 'Handwerksscheine' }).first().click();
@@ -82,7 +92,7 @@ test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({
   await page.getByRole('button', { name: 'Zeile hinzufügen' }).click();
 
   /*
-    WEITER DURCH DIE SCHRITTE. Material und Fotos bleiben leer — beides ist
+    WEITER DURCH DIE SCHRITTE. Material bleibt leer — es ist
     freiwillig, und „Weiter" sperrt nicht. Jeder Schritt muss aber wirklich
     erscheinen, sonst klickte die Prüfung durch eine Leiste, die nichts tut.
   */
@@ -92,6 +102,27 @@ test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({
   await page.getByRole('button', { name: 'Weiter: Fotos' }).click();
   await expect(schritt).toHaveText('3 Fotos');
   await expect(page.getByLabel('Notizen, Regiearbeiten, Mängel')).toBeVisible();
+  /*
+    EIN FOTO (Nachtest 01.10.2026, Paket E: „Schein mit Unterschrift und
+    Foto“). Das Bild entsteht im Browser selbst — ein echtes JPEG, das die App
+    verkleinern muss wie eines aus der Kamera.
+  */
+  const jpeg = await page.evaluate(() => {
+    const c = document.createElement('canvas');
+    c.width = 640;
+    c.height = 480;
+    const x = c.getContext('2d')!;
+    x.fillStyle = '#2f7d6b';
+    x.fillRect(0, 0, 640, 480);
+    x.fillStyle = '#ffffff';
+    x.fillRect(80, 80, 200, 120);
+    return c.toDataURL('image/jpeg', 0.85).split(',')[1];
+  });
+  await page.locator('input[type="file"][accept="image/*"]').setInputFiles({
+    name: 'baustelle.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(jpeg, 'base64'),
+  });
+  await expect(page.getByText('Weiteres Foto')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/Nicht hochgeladen/)).toHaveCount(0);
   await page.getByRole('button', { name: 'Weiter: Unterschrift' }).click();
   await expect(schritt).toHaveText('4 Unterschrift');
 
@@ -121,11 +152,13 @@ test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({
   await page.getByRole('button', { name: 'Unterschreiben und abschließen' }).click();
 
   await expect(async () => {
-    const { data } = await admin
-      .from('work_sheets').select('project_number, unterschrift_monteur, unterschrift_kunde')
+    const { data: alle } = await admin
+      .from('work_sheets').select('id, project_number, unterschrift_monteur, unterschrift_kunde')
       .eq('company_id', BETRIEB);
-    expect(data ?? []).toHaveLength(1);
-    const schein = (data ?? [])[0];
+    const data = (alle ?? []).filter((z) => !alteIds.has(z.id as string));
+    expect(data).toHaveLength(1);
+    const schein = data[0];
+    neuerSchein = schein.id as string;
     expect(schein.project_number).toBe(BAUSTELLE.nummer);
     // BEIDE Unterschriften, und beide mit einem Bild darin: ein leeres Feld
     // würde als Objekt durchgehen und wäre auf dem Papier ein weisser Fleck.
@@ -140,9 +173,18 @@ test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({
 
   // Und die Zeit steht darauf: 08:00 bis 16:00, ohne Pause.
   const { data: stunden } = await admin
-    .from('work_sheet_hours').select('von, bis, minuten').eq('company_id', BETRIEB);
+    .from('work_sheet_hours').select('von, bis, minuten').eq('work_sheet_id', neuerSchein);
   expect(stunden ?? []).toHaveLength(1);
   expect((stunden ?? [])[0].minuten).toBe(480);
+
+  // Das Foto hängt am Schein, und die Datei liegt im Speicher.
+  const { data: bilder } = await admin
+    .from('work_sheet_photos').select('pfad').eq('work_sheet_id', neuerSchein);
+  expect(bilder ?? []).toHaveLength(1);
+  const { data: datei, error: dateiFehler } = await admin.storage
+    .from('scheinfotos').download(String((bilder ?? [])[0].pfad));
+  expect(dateiFehler).toBeNull();
+  expect((await datei!.arrayBuffer()).byteLength).toBeGreaterThan(500);
 
   await keineFehlermeldung(page);
 });
