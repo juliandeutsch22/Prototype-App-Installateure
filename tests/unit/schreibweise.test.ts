@@ -26,6 +26,8 @@ const SCHWEIZER = [
   'Grosshandel', 'ausser', 'Ausser', 'ausserdem', 'ausserhalb', 'heisst', 'heissen', 'hiess', 'liess',
   'regelmässig', 'gemäss', 'mässig', 'weiss', 'bloss', 'Strasse', 'Fusszeile', 'angestossen', 'draussen',
   'aussen', 'Massnahme', 'schliesslich', 'fliessend', 'Fliesstext',
+  'hiesse', 'hiessen', 'liesse', 'liessen', 'weisse', 'weissen', 'weisser', 'einschliesslich',
+  'Fuss', 'Fussnote', 'Fussleiste', 'dreissig', 'Bildschirmgrössen', 'Mindestmass', 'Grosshandelskatalog',
 ];
 const WORT = new RegExp(`(?<![A-Za-zÄÖÜäöüß])(${SCHWEIZER.join('|')})(?![A-Za-zÄÖÜäöüß])`);
 const ANFUEHRUNG = /„[^"„“\n$\\]{1,120}"/;
@@ -33,6 +35,21 @@ const ANFUEHRUNG = /„[^"„“\n$\\]{1,120}"/;
 function dateien(): string[] {
   return execSync('git ls-files "src/*.ts" "src/*.tsx" "shared/*.ts"', { encoding: 'utf8' })
     .split('\n')
+    .filter(Boolean);
+}
+
+/**
+ * Das Handbuch gehört zum Sichtbaren (Entscheidung G1 vom 30.09.2026): der
+ * Betrieb liest es, und es wird als Seite veröffentlicht. Geprüft wird der
+ * Text zwischen den Tags — Stil, Code und Attribute bleiben außen vor, weil
+ * dort Klassennamen und Bezeichner stehen.
+ */
+const HANDBUCH = 'docs/handbuch/handbuch.html';
+function handbuchText(html: string): string[] {
+  return html
+    .replace(/<(style|script|code|pre)\b[\s\S]*?<\/\1>/g, ' ')
+    .split(/<[^>]+>/)
+    .map((t) => t.trim())
     .filter(Boolean);
 }
 
@@ -72,6 +89,19 @@ describe('Schreibweise im Sichtbaren', () => {
     const funde = alle.flatMap((p) =>
       sichtbareTexte(p).filter((t) => ANFUEHRUNG.test(t)).map((t) => `${p}: ${t.trim().slice(0, 60)}`));
     expect(funde).toEqual([]);
+  });
+
+  it('das Handbuch hält dieselbe Schreibweise', () => {
+    const texte = handbuchText(readFileSync(HANDBUCH, 'utf8'));
+    expect(texte.some((t) => /ß/.test(t))).toBe(true);
+    const funde = texte.filter((t) => WORT.test(t) || ANFUEHRUNG.test(t)).map((t) => t.slice(0, 60));
+    expect(funde).toEqual([]);
+  });
+
+  it('Gegenprobe Handbuch: Text wird gefunden, Klassen und Code nicht', () => {
+    const probe = '<style>.fuss{}</style><p class="draussen">Das heisst „Ja"</p><code>ausser</code>';
+    expect(handbuchText(probe)).toEqual(['Das heisst „Ja"']);
+    expect(handbuchText(probe).some((t) => WORT.test(t) && ANFUEHRUNG.test(t))).toBe(true);
   });
 
   it('Gegenprobe: die Prüfung erkennt, was sie finden soll', () => {

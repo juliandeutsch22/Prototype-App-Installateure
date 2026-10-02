@@ -23,7 +23,7 @@ Umbaufläche. Zwei Annahmen davon haben beim Nachsehen nicht gehalten.
 
 **Erstens: gerechnet wurde gegen einen Echtbetrieb, den es noch nicht gibt.**
 Die Roadmap stellt als Prüffrage „kommt das Büro ohne ein zweites System
-durch den Tag?" und beantwortet sie mit „heute nicht ganz" — angeboten wird
+durch den Tag?" und beantwortet sie mit „heute nicht ganz“ — angeboten wird
 in Word, der Steuerberater bekommt PDFs. Es liegen also keine
 aufbewahrungspflichtigen Rechnungen in der Datenbank. **Das ist der
 billigste Zeitpunkt, den dieser Umzug je haben wird.** Nach dem Echtstart
@@ -73,9 +73,9 @@ der eigentliche Anlass des Umzugs — nicht die Datenbank an sich.
 
 | Wo | Warum es sie gibt | Was an ihre Stelle tritt |
 |---|---|---|
-| `src/lib/listengrenzen.ts` und „Weitere laden" in jeder Liste | Firestore kann nicht zählen und nicht suchen | `count(*)` und `offset`. Der Knopf bleibt, wo er dem Menschen dient |
+| `src/lib/listengrenzen.ts` und „Weitere laden“ in jeder Liste | Firestore kann nicht zählen und nicht suchen | `count(*)` und `offset`. Der Knopf bleibt, wo er dem Menschen dient |
 | `tests/unit/abfragegrenzen.test.ts` | Wächter, der jede Abfrage zwingt, eine Grenze zu tragen | entfällt vollständig |
-| Suche nur über die Nummer; Aufgabe L4 seit Wochen zurückgestellt | jede Firestore-Näherung braucht ein nachzupflegendes Feld und verliert Treffer in der Wortmitte | `pg_trgm` findet „uber" in „Familie Huber", mit Index, ohne Zusatzfeld |
+| Suche nur über die Nummer; Aufgabe L4 seit Wochen zurückgestellt | jede Firestore-Näherung braucht ein nachzupflegendes Feld und verliert Treffer in der Wortmitte | `pg_trgm` findet „uber“ in „Familie Huber“, mit Index, ohne Zusatzfeld |
 | 40 Indizes von Hand, `tests/unit/indexabgleich.test.ts` | der Emulator legt fehlende Indizes still selbst an, produktiv bleibt die Ansicht leer | ein fehlender Index äußert sich als langsame Abfrage, nicht als leere Liste; `EXPLAIN` sagt welcher |
 | Material über den normalisierten Namen zugeordnet | es gibt keinen Verbund | ein `join` über den Fremdschlüssel |
 | `monthlyStats`, `bilanzNachziehen`, `bilanzenNachtlauf` | Firestore kann nicht summieren | eine Sicht oder ein Trigger in derselben Transaktion — die Bilanz ist dann *sofort* richtig |
@@ -235,7 +235,7 @@ Vier Wege, auf denen so ein Umzug gewöhnlich scheitert.
   Datenschicht. Wer sie durch die Oberfläche legt, hat am Ende beide
   Datenbanken in derselben Ansicht.
 - **Das Prüfnetz wird nicht abgekürzt.** Eine Migration, die die 225
-  Prüfungen „später" portiert, portiert sie nie.
+  Prüfungen „später“ portiert, portiert sie nie.
 - **Stufe 7 wird nicht verschoben.** Sie ist der Zweck der Übung. Wird sie
   ans Ende einer Warteschlange geschoben, haben wir die Datenbank
   gewechselt und die Narben mitgenommen.
@@ -318,7 +318,7 @@ gehalten worden; von zehn Mutationen sind zunächst acht gefallen, die zwei
 1. **Ein Fehler im Ausgangsfach.** Nach dem Wegräumen einer abgelehnten Zeile
    samt ihrer Nachfolger lief die Schleife auf einem veralteten Abzug weiter
    und sendete die gerade verworfene Zeile doch noch. Der Monteur hätte eine
-   Meldung „verloren" bekommen und die Buchung wäre trotzdem angekommen.
+   Meldung „verloren“ bekommen und die Buchung wäre trotzdem angekommen.
 
 2. **Ein Schloss ohne Tür.** Die Richtlinien rufen Helfer im Schema `app` auf.
    Ohne `grant usage on schema app` scheitert nicht die Prüfung, sondern der
@@ -341,18 +341,18 @@ gesehen. Zwei Entscheidungen tragen das:
 
 - **Die Datenbank vergibt die Folge**, nicht der Aufrufer. Zwei offene Tabs,
   die erst die höchste Nummer lesen und dann schreiben, vergeben zweimal
-  dieselbe — und dann überholt beim Nachsenden das „Ändern" sein „Anlegen".
+  dieselbe — und dann überholt beim Nachsenden das „Ändern“ sein „Anlegen“.
 - **Gewartet wird auf das Ende der Transaktion**, nicht auf die Anfrage.
   IndexedDB meldet eine Anfrage als erfolgreich, lange bevor festgeschrieben
   ist; bricht die Transaktion danach ab, ist nichts geschrieben. Wer hier
-  abkürzt, sagt „vorgemerkt" für eine Buchung, die es nie gab.
+  abkürzt, sagt „vorgemerkt“ für eine Buchung, die es nie gab.
 
 Der zweite Punkt war zunächst ungeprüft: die erste Mutation dagegen ist
 durchgelaufen, weil der erzwungene Abbruch zu früh kam und schon die Anfrage
-scheitern liess. Erst ein Abbruch NACH der erfolgreichen Anfrage trennt die
+scheitern ließ. Erst ein Abbruch NACH der erfolgreichen Anfrage trennt die
 beiden Fassungen.
 
-### Die Abonnements trennen die Betriebe — mit einer Fussangel
+### Die Abonnements trennen die Betriebe — mit einer Fußangel
 
 `tests/supabase/abos.test.ts`. Gemessen: eine Änderung im eigenen Betrieb
 kommt unter einer Sekunde an, ein fremder Betrieb bekommt nichts. Das ist
@@ -360,9 +360,9 @@ nicht selbstverständlich, denn **Abfrage und Meldeweg sind zwei Wege mit zwei
 Prüfungen**: eine Tabelle zu veröffentlichen, ohne dass eine Lese-Richtlinie
 greift, schickt jede Änderung an jeden angemeldeten Empfänger, ohne dass je
 eine Abfrage etwas Falsches zurückgäbe. Deshalb steht in der Migration jede
-Tabelle einzeln und nie ein „alle Tabellen".
+Tabelle einzeln und nie ein „alle Tabellen“.
 
-**Die Fussangel, und sie hat Folgen für Stufe 4:** `SUBSCRIBED` sagt, dass der
+**Die Fußangel, und sie hat Folgen für Stufe 4:** `SUBSCRIBED` sagt, dass der
 Kanal steht — nicht, dass das Abonnement serverseitig schon hört. Wer
 unmittelbar danach schreibt, verliert die Meldung lautlos. Firestore lieferte
 den ersten Bestand aus demselben Abo; hier sind Abonnieren und Bestand holen
@@ -403,13 +403,13 @@ Sicht geworden, jede mit `company_id`, jede mit eingeschaltetem Zeilenschutz.
 lebende Buchung, `work_sheet_hours` eine mit der Unterschrift eingefrorene
 Kopie — mit dem Mitarbeiter als *Namen* und ohne Fremdschlüssel auf die
 Buchung. Sie dürfen auseinanderlaufen; genau darauf beruht die Meldung
-„Scheine warten noch auf deine Zeitbuchung". Dasselbe gilt für
+„Scheine warten noch auf deine Zeitbuchung“. Dasselbe gilt für
 `work_sheet_material`, `invoice_lines` und `quote_lines`: ein geänderter Preis
 darf einen unterschriebenen Beleg nicht rückwirkend ändern.
 
 **2. `project_number` bleibt, `project_id` kommt dazu.** Heute hängt nichts an
 einer Baustellen-Id, alles an der getippten Nummer — weil der Monteur auf
-„2026-014" bucht, bevor das Büro die Baustelle angelegt hat. Ein
+„2026-014“ bucht, bevor das Büro die Baustelle angelegt hat. Ein
 Pflicht-Fremdschlüssel tötete diesen Ablauf. Also beides: die Nummer trägt den
 Alltag, ein nullbarer Fremdschlüssel wird per Trigger aufgelöst, sobald er
 passt.
@@ -470,7 +470,7 @@ früher glatt null Stunden ergab.
 
 Die Prüfungen leeren die lokale Datenbank vor jedem Lauf. Das war nicht von
 Anfang an so: der erste Satz ging beim zweiten Lauf kaputt, weil er seine
-eigenen Rechnungsnummern liegen liess. Ein Test, der nur auf einer frischen
+eigenen Rechnungsnummern liegen ließ. Ein Test, der nur auf einer frischen
 Datenbank durchgeht, ist eine Falle.
 
 ### Was Stufe 1 nicht umfasst
@@ -519,11 +519,11 @@ schaltet nur die Administration; die Genehmigenden für Urlaub sind
 einstellbar; der Einkaufspreis — die Marge — gehört der Geschäftsführung
 allein; und auf der Rüstliste hakt nur ab, wer eingeteilt ist.
 
-**Drei eigene Fehler.** Die Einstellungen liessen sich löschen, weil `for all`
+**Drei eigene Fehler.** Die Einstellungen ließen sich löschen, weil `for all`
 auch DELETE umfasst. Beim Zurückholen eines verworfenen Entwurfs konnte der
 Inhalt mitgeändert werden, weil der Trigger nur den Zustandswechsel prüfte und
 nicht, was sonst im selben Schreibvorgang mitkam. Und mein Test aus Stufe 1
-liess die Projektleitung Urlaub genehmigen — er beschrieb meinen zu groben
+ließ die Projektleitung Urlaub genehmigen — er beschrieb meinen zu groben
 Trigger statt der Regel.
 
 ### Stand nach Stufe 2
@@ -562,7 +562,7 @@ einer festgehaltenen Fassung: **130 Signaturen**. Verschwindet oder ändert
 sich eine, fällt der Lauf. Neue dürfen dazukommen — die Schicht darf wachsen,
 nur nicht schrumpfen.
 
-Damit ist „die Ansichten werden nicht angefasst" keine Absichtserklärung mehr,
+Damit ist „die Ansichten werden nicht angefasst“ keine Absichtserklärung mehr,
 sondern eine Prüfung. Reine Typ-Exporte stehen bewusst nicht drin: sie kämen
 als `any` heraus und sagten damit nichts zu; ändert sich ein Typ, bricht
 ohnehin der Typprüfer an jeder Ansicht, die ihn benutzt.
@@ -585,15 +585,15 @@ Dinge in einem lieferte, die jetzt getrennt sind.
 2. **Was während des Holens hereinkommt, wird gepuffert.** Zwischen dem Abzug
    und dem Bereitmelden liegt ein Fenster.
 3. **Einmal wird nachgefasst.** Der unangenehme Teil: `SUBSCRIBED` sagt, dass
-   der Kanal steht, nicht dass das Abonnement serverseitig hört. Von aussen
+   der Kanal steht, nicht dass das Abonnement serverseitig hört. Von außen
    ist dieser Zustand nicht beobachtbar. Also wird nach 1,2 Sekunden ein
    zweites Mal geholt.
 
 Punkt 3 ist nicht aus Vorsicht entstanden, sondern aus einem roten Lauf: ohne
-ihn flatterten zwei Prüfungen. Ein Flattern im Test heisst draussen, dass die
+ihn flatterten zwei Prüfungen. Ein Flattern im Test heißt draußen, dass die
 Liste des Monteurs manchmal unvollständig ist, ohne dass es jemand merkt.
 
-Ein erster Versuch, das Fenster künstlich aufzureissen, ist verworfen: er
+Ein erster Versuch, das Fenster künstlich aufzureißen, ist verworfen: er
 verlor die Meldung an die Anlaufzeit des Abonnements statt an das Fenster und
 bewies damit das Falsche. Geprüft wird jetzt mit einem **gestellten Kanal**,
 der meldet, was der Test sagt, und wann der Test es sagt — damit hängen die
@@ -604,7 +604,7 @@ Prüfungen an meiner Ablauflogik und nicht an der Tagesform des Meldewegs.
 | | |
 |---|---|
 | Prüfungen gegen die echte Datenbank | 228 |
-| festgenagelte Signaturen der Aussenseite | 136 |
+| festgenagelte Signaturen der Außenseite | 136 |
 | Mutationen angesetzt | 13 |
 | beim ersten Anlauf gefangen | 9 |
 | echte Lücken durch die vier übrigen | 4 |
@@ -631,7 +631,7 @@ Anforderungen, Einsatzplanung und Rüstliste** — jedes nach demselben Schnitt:
 Zwei Vorgänge waren in Firestore Batches, die nur deshalb hielten, weil
 niemand sie unterbrach:
 
-* **Einteilung speichern** war „alle löschen, dann alle schreiben". Brach die
+* **Einteilung speichern** war „alle löschen, dann alle schreiben“. Brach die
   Verbindung dazwischen ab — auf der Baustelle keine Seltenheit —, war der
   Tag für diese Baustelle leer, und niemand erfuhr davon. Jetzt ist es
   `public.einsatz_speichern`: eine Transaktion, die ganz durchgeht oder gar
@@ -653,7 +653,7 @@ alle drei eine eigene Prüfung haben:
    verlöre jedes Speichern der Planung sämtliche Haken der Monteure — und die
    Liste sähe danach einfach unabgehakt aus.
 2. **Die Kennung ist Text, kein UUID.** Sie entsteht im Browser und sieht aus
-   wie `pmf3k2x9abcd`. Sie auf UUID zu zwingen hiesse, beim Umzug jede
+   wie `pmf3k2x9abcd`. Sie auf UUID zu zwingen hieße, beim Umzug jede
    bestehende Position UND jeden Schlüssel in `geladen` gemeinsam
    umzuschreiben; ginge dabei ein Paar auseinander, stünde der Haken am
    falschen Artikel. Der Gewinn wäre ein hübscherer Datentyp.
@@ -758,15 +758,15 @@ blieb sie grün, egal welche der beiden Seiten ich kaputtmachte — sie sagte
 also nichts. Jetzt stellt sie den Datenbankaufruf von Hand und prüft die
 Spaltenliste allein.
 
-### `null` ist nicht dasselbe wie „nicht da"
+### `null` ist nicht dasselbe wie „nicht da“
 
-Firestore kannte nur „Feld nicht da". Postgres hat eine Spalte mit `null`. Die
+Firestore kannte nur „Feld nicht da“. Postgres hat eine Spalte mit `null`. Die
 App-Typen sagen `notizen?: string` und nicht `string | null`, und der Umweg
 über `as T` lässt den Typprüfer diese Lüge nicht sehen.
 
 `zeileAlsObjekt` lässt leere Spalten deshalb weg — an einer Stelle, für alle
-Module. Beim SCHREIBEN bleibt `null` erhalten: „ausdrücklich geleert" ist eine
-Absicht, „nicht mitgeschickt" eine andere. Gelesen bedeuten beide dasselbe.
+Module. Beim SCHREIBEN bleibt `null` erhalten: „ausdrücklich geleert“ ist eine
+Absicht, „nicht mitgeschickt“ eine andere. Gelesen bedeuten beide dasselbe.
 
 Aufgefallen ist es an einer einzigen Prüfung, die `undefined` erwartete und
 `null` bekam. Es hätte jedes der acht bereits umgestellten Module betroffen.
@@ -796,7 +796,7 @@ hoch, und das war alles. Drei Dinge fehlten, jedes mit einem Grund im Betrieb:
 * **Wunschnummer.** Wer von Hand eine höhere Nummer setzt, führt bewusst
   seinen bestehenden Kreis fort. Eine verbrauchte Nummer wird abgelehnt, und
   der Fehlertext nennt die nächste freie.
-* **Der Start bei 1001.** „RE-2026-0001" sieht nach der ersten Rechnung des
+* **Der Start bei 1001.** „RE-2026-0001“ sieht nach der ersten Rechnung des
   Betriebs aus. Das ist eine Auskunft an jeden Kunden, die niemand geben will.
 
 Diese Regeln standen in `lib/invoiceNumbers` und galten damit nur für den, der
@@ -805,13 +805,13 @@ Prüfungen erwarteten den alten Zählerstart und sind nachgezogen worden —
 ausdrücklich, mit dem Grund im Kommentar, nicht stillschweigend.
 
 **Storno und Storno-Aufhebung holen sich die betroffenen Belege aus der
-Abdeckung, nicht aus dem Aufruf.** Eine unvollständige Liste hinterliesse
+Abdeckung, nicht aus dem Aufruf.** Eine unvollständige Liste hinterließe
 genau den halben Zustand, den die Klammer verhindern soll: Rechnung storniert,
 Stunden weiter gesperrt — Geld, das nie wieder eingefordert wird. Die
 Firestore-Fassung war hier auf 500 Schreibvorgänge je Stapel begrenzt; diese
 Grenze fällt weg.
 
-Beim Angebot ist der Unterschied zwischen „leer" und „nicht mitgeschickt" die
+Beim Angebot ist der Unterschied zwischen „leer“ und „nicht mitgeschickt“ die
 ganze Prüfung wert: ein Statuswechsel darf weder die Kalkulation abräumen noch
 einen Nachlass löschen, den der Kunde schriftlich hat. Eine Mutation ist an
 meiner ersten Fassung dieser Prüfung vorbeigekommen — sie sah nur die
@@ -828,13 +828,13 @@ für die Anweisung schlicht nicht da. PostgREST meldet dann keinen Fehler,
 sondern null geänderte Zeilen — und der Aufrufer sieht einen geglückten
 Schreibvorgang.
 
-Draussen hiesse das: die Verwaltung ändert die Wochenstunden eines
-Mitarbeiters, bekommt „gespeichert" und sieht beim nächsten Laden den alten
-Wert. Oder ein Urlaubsantrag wird „zurückgezogen" und steht am nächsten Tag
+Draußen hieße das: die Verwaltung ändert die Wochenstunden eines
+Mitarbeiters, bekommt „gespeichert“ und sieht beim nächsten Laden den alten
+Wert. Oder ein Urlaubsantrag wird „zurückgezogen“ und steht am nächsten Tag
 wieder da. Kein Fehler, keine Meldung, kein Hinweis.
 
 `aendern` und `loeschen` zählen jetzt die betroffenen Zeilen und melden
-„nichts getroffen" als Fehler. Ein Aufruf, in dem jedes Feld `undefined` war,
+„nichts getroffen“ als Fehler. Ein Aufruf, in dem jedes Feld `undefined` war,
 ist davon ausgenommen: er wollte nichts ändern und darf nicht daran
 scheitern.
 
@@ -844,7 +844,7 @@ Rolle hochsetzt und dafür keine Fehlermeldung bekam.
 ### Der Vertragswächter hatte zwei eigene Löcher
 
 **Durchgereichte Exporte fielen heraus.** `export { x } from './y'` liefert
-dem Compiler ein Alias und keinen Wert; die Prüfung liess solche Exporte
+dem Compiler ein Alias und keinen Wert; die Prüfung ließ solche Exporte
 stillschweigend aus dem Vertrag fallen. Neun Namen waren betroffen, darunter
 die Rechennamen der Rechnungsnummern und die Vorgaben der Belegschaft — alles
 Dinge, die Ansichten importieren. Die Zahl im Wächter über dem Wächter steht
@@ -857,7 +857,7 @@ hat.
 
 Zugleich ist der Vertrag auf das eingegrenzt, was er zusagt: die
 AUSSENSEITE. `fs/` und `pg/` sind das Innere, das diese Stufe gerade
-austauscht; es festzunageln hiesse, die Fassung bei jedem Modul nachzuziehen
+austauscht; es festzunageln hieße, die Fassung bei jedem Modul nachzuziehen
 — und eine Fassung, die dauernd nachgezogen wird, sagt bald gar nichts mehr.
 
 ### Wartung: noch ein Nachfilter verschwindet
@@ -893,11 +893,11 @@ eine Zeile Code.
 
 ### Ein Spaltenname, der stillschweigend nichts geliefert hätte
 
-`system_laeufe.ausser_haus` hiess in der App seit jeher `zielExtern`. Die
+`system_laeufe.ausser_haus` hieß in der App seit jeher `zielExtern`. Die
 Umrechnung zwischen beiden Welten ist mechanisch; eine Spalte, die anders
-heisst, fällt heraus und kommt als Feld an, nach dem niemand fragt. Die
+heißt, fällt heraus und kommt als Feld an, nach dem niemand fragt. Die
 Ansicht hätte dann nichts über den Ablageort der Sicherung gesagt — und
-„nichts behauptet" sieht aus wie „in Ordnung". Die Spalte heisst jetzt wie die
+„nichts behauptet“ sieht aus wie „in Ordnung“. Die Spalte heißt jetzt wie die
 Sache.
 
 ### `core.ts` trägt nur noch die Kennung
@@ -922,7 +922,7 @@ steht mit Datum im Wächter, damit sie auffällt, wenn sie stehen bleibt.
 | Prüfungen gegen die echte Datenbank | 427 |
 | Prüfungen gegen den Firestore-Emulator | 225 |
 | bewachte Abfragen | 93 |
-| festgenagelte Signaturen der Aussenseite | 136 |
+| festgenagelte Signaturen der Außenseite | 136 |
 | Mutationen in Stufe 3 | 56 |
 | davon gefangen | 56 |
 
@@ -932,7 +932,7 @@ steht mit Datum im Wächter, damit sie auffällt, wenn sie stehen bleibt.
   ist Stufe 5.
 * **Fotos und Push.** Firebase Storage und FCM bleiben bis Stufe 6.
 * **Die 35 Durchstich- und 35 Abfrageprüfungen.** Sie laufen gegen den
-  Firestore-Emulator und prüfen die Weichen von aussen — sie ziehen erst
+  Firestore-Emulator und prüfen die Weichen von außen — sie ziehen erst
   um, wenn die Datenquelle umgeschaltet wird (Stufe 8).
 * **Der Rückbau.** Die Narben — der Vollständigkeits-Marker, die
   Obergrenzen, die gespiegelten Namensfelder — stehen noch. Sie fallen in
@@ -960,7 +960,7 @@ Meldeweg nichts.
 ### Die Mandantengrenze hält der Zeilenschutz, nicht der Kanalfilter
 
 Eine Mutation kam durch: nimmt man dem Kanal den Filter `company_id=eq.…`
-weg, bleibt „ein fremder Betrieb kommt nie an" trotzdem grün. Das ist die
+weg, bleibt „ein fremder Betrieb kommt nie an“ trotzdem grün. Das ist die
 richtige Antwort — der Meldeweg wertet den Zeilenschutz je Zeile UND je
 Empfänger aus. Der Filter spart Meldungen, er zieht keine Grenze.
 
@@ -992,14 +992,14 @@ werden vier Nachladungen.
 Die Lastmessung hat einen Fehler aufgedeckt, der kein Testartefakt ist.
 
 `einsatz_material_positionen.id` war betriebsweit eindeutig. Die Kennung kommt
-aber vom Gerät und meint „diese Position IN DIESER Liste" — genauso ist
+aber vom Gerät und meint „diese Position IN DIESER Liste“ — genauso ist
 `geladen` abgelegt. Traf dieselbe Kennung ein zweites Mal, änderte das
 Speichern die Zeile der ERSTEN Liste, ohne sie umzuhängen: **die zweite Liste
 stand leer da.** Kein Fehler, keine Meldung. Der Kopf ist da, die Positionen
 fehlen, und der Monteur fährt ohne Material los.
 
 Ein Zusammentreffen ist unwahrscheinlich — die Kennung trägt einen Zeitstempel
-und fünf Zufallszeichen. „Unwahrscheinlich und lautlos" ist aber die
+und fünf Zufallszeichen. „Unwahrscheinlich und lautlos“ ist aber die
 schlechteste Kombination, die ein Fehler haben kann. Der Schlüssel ist jetzt
 das Paar aus Liste und Kennung.
 
@@ -1046,8 +1046,8 @@ ist genau dort wertlos, wo er beweisen soll.
 
 Drei Stellen, an denen Postgres und JavaScript auseinandergehen:
 
-* **Zahlen.** `numeric(12,3)` schreibt sich als „2.500", JavaScript schreibt
-  „2.5". Ohne Angleichung wäre fast jede Prüfsumme verschieden.
+* **Zahlen.** `numeric(12,3)` schreibt sich als „2.500“, JavaScript schreibt
+  „2.5“. Ohne Angleichung wäre fast jede Prüfsumme verschieden.
 * **Ränder.** `trim()` schneidet in JavaScript mehr ab als Leerzeichen —
   Tabulator, Zeilenumbruch, geschütztes Leerzeichen, Byte-Order-Mark.
 * **Die Reihenfolge der Fotos.** Sie ist Teil des Belegs, hatte aber keine
@@ -1065,9 +1065,9 @@ Hashes. Drei Mutationen an der Kanonisierung fallen damit sofort auf.
 das schloss den Nachtrag des Hashes ein. Unter Firestore lief die Berechnung
 über das Admin-SDK und damit an den Regeln vorbei; in Postgres gibt es
 diesen Weg nicht, und das ist gut so. Die Ausnahme lautet deshalb nicht „der
-Trigger darf", sondern: es darf sich ausschliesslich `inhalt_hash` ändern, er
+Trigger darf", sondern: es darf sich ausschließlich `inhalt_hash` ändern, er
 muss vorher leer gewesen sein, und der neue Wert muss der **richtige** sein.
-Ein Kennzeichen „ich bin der Trigger" hätte geprüft, WER schreibt, statt WAS
+Ein Kennzeichen „ich bin der Trigger“ hätte geprüft, WER schreibt, statt WAS
 geschrieben wird.
 
 **Ein Entwurf konnte eine Prüfsumme mitbringen.** Der Nachtrag springt nur
@@ -1075,7 +1075,7 @@ an, wenn das Feld leer ist. Am Entwurf war jede Änderung erlaubt — er ist ja
 in Arbeit. Ein Monteur konnte also am Entwurf eine ausgedachte Prüfsumme
 eintragen und danach unterschreiben: der Trigger sah ein gefülltes Feld,
 rechnete nicht nach, und auf dem Beleg stand eine Zahl, die der Client sich
-selbst gegeben hatte. Genau das, was die Prüfsumme ausschliessen soll. Jetzt
+selbst gegeben hatte. Genau das, was die Prüfsumme ausschließen soll. Jetzt
 gilt: ein Entwurf hat keine Prüfsumme, und was der Client hineinschreibt,
 wird beim Speichern verworfen.
 
@@ -1089,7 +1089,7 @@ nachzuziehen, nichts nachts zu rechnen und nichts neu aufzubauen.
 
 Der Vergleich mit `app.schein_hash` in der Ausnahme ist die ZWEITE Sperre.
 Eine Mutation hat gezeigt, dass ohne ihn nichts kaputtgeht — die erste Sperre
-schliesst schon. Das Fenster „unterschrieben, Hash leer" ist von aussen nicht
+schließt schon. Das Fenster „unterschrieben, Hash leer“ ist von außen nicht
 erreichbar; eine Prüfung dafür gibt es deshalb nicht. Der Vergleich bleibt
 trotzdem stehen: er trägt genau dann, wenn die Berechnung einmal fehlschlägt.
 
@@ -1126,7 +1126,7 @@ Unter Firestore war es genauso. Der Kommentar dort sprach von drei Riegeln;
 der dritte („der `active`-Claim, den die Regeln prüfen") hat dieses Fenster
 nie geschlossen, weil das alte Token den alten Anspruch trägt.
 
-In Postgres lässt es sich schliessen, und zwar billig: `app.aktiv()` fragt
+In Postgres lässt es sich schließen, und zwar billig: `app.aktiv()` fragt
 jetzt die Belegschaft statt das Token — ein Zugriff über den
 Primärschlüssel. Firestore konnte das nicht; dort hätte jede Regelprüfung
 eine gezählte Leseoperation gekostet.
@@ -1145,7 +1145,7 @@ auszusperren. Jetzt sind es hundert Jahre.
 
 ### Die Prüfung hat zwei Fragen vermischt
 
-Das Testkonto „gesperrt" wurde bisher deaktiviert ANGELEGT und meldete sich
+Das Testkonto „gesperrt“ wurde bisher deaktiviert ANGELEGT und meldete sich
 dann an. Das geht nicht mehr — und das ist der Punkt. Die beiden Fragen
 gehören getrennt:
 
@@ -1194,10 +1194,10 @@ beiden Push-Meldungen.
 ## Stufe 5, dritter Teil: Urlaub entscheiden
 
 13.09.2026. `urlaubEntscheiden` war als Edge Function eingeplant. Sie ist
-keine geworden: die Function tut nichts, was ausserhalb der Datenbank
+keine geworden: die Function tut nichts, was außerhalb der Datenbank
 passieren müsste — sie liest Zeiteinträge, schreibt Zeiteinträge und setzt
 einen Status. Als `security definer`-Funktion läuft dasselbe in EINER
-Transaktion statt in einem Stapel, den ein Abbruch halb stehen liesse.
+Transaktion statt in einem Stapel, den ein Abbruch halb stehen ließe.
 
 ### Warum das überhaupt serverseitig bleibt
 
@@ -1217,7 +1217,7 @@ eigener Test hält das fest.
 `shared/feiertage.ts` rechnet im Browser, `app.urlaubstage` in der Datenbank.
 Das ist eine Doppelung, und sie ist gefährlich: liefen beide auseinander,
 bekäme ein Monteur für eine Woche mit Feiertag fünf Tage abgezogen und hätte
-trotzdem einen Tag als „nicht gebucht" offen — bemerkt würde es an einem
+trotzdem einen Tag als „nicht gebucht“ offen — bemerkt würde es an einem
 Urlaubskonto, das am Jahresende nicht aufgeht.
 
 Zusammengehalten werden sie nicht durch Hinsehen: `tests/supabase/urlaub.test.ts`
@@ -1240,7 +1240,7 @@ nicht hunderttausend Zeilen schreiben.
 
 ### Zwei Mutationen sind durchgekommen
 
-**Die Berechtigungsprüfung liess sich entfernen, ohne dass ein Test rot
+**Die Berechtigungsprüfung ließ sich entfernen, ohne dass ein Test rot
 wurde.** Abgewiesen wurde der Mitarbeiter trotzdem — vom Trigger
 `urlaub_entscheidung_geschuetzt` auf `vacations`, denn ein Trigger greift
 auch bei `security definer`. Die Prüfung in der Funktion ist also zweite
@@ -1248,20 +1248,20 @@ Reihe, und das soll sie bleiben: sie sagt dem Abgewiesenen, woran es liegt,
 statt ihn über die Zeilenregel eines Statuswechsels stolpern zu lassen.
 Beobachtbar ist davon genau die Meldung — der Test prüft jetzt sie.
 
-**Die Arbeitstage liessen sich beim Entscheidenden statt beim Antragsteller
+**Die Arbeitstage ließen sich beim Entscheidenden statt beim Antragsteller
 lesen.** Kein Test merkte es, weil in allen Prüfungen beide fünf Tage die
 Woche arbeiteten. Für einen Teilzeitmitarbeiter wären aus zwei Urlaubstagen
 fünf geworden — auffallen würde es erst am Jahresende. Jetzt arbeitet Cäsar
 Montag und Mittwoch, und der Chef, der genehmigt, fünf Tage.
 
-### Die erste Weiche ausserhalb der Datenschicht
+### Die erste Weiche außerhalb der Datenschicht
 
 `callUrlaubEntscheiden` in `lib/functions.ts` schaltet jetzt selbst, und die
 Ansicht merkt nichts: sie bekommt in beiden Fällen `{ data }`. Die achtzehn
 Weichen in `lib/db/` hält `datenschichtVertrag.test.ts` zusammen — der prüft
 aber nur Dateien unter `src/lib/db/`. Diese eine stand ungeprüft da; ein
 vertauschter Zweig wäre still geblieben, bis in Stufe 8 der Schalter umgelegt
-wird. `tests/unit/weichenInFunctions.test.ts` schliesst das.
+wird. `tests/unit/weichenInFunctions.test.ts` schließt das.
 
 ### Stand
 
@@ -1297,14 +1297,14 @@ was er über die Funktion bekommt (die ganze Mannschaft dieses einen Tages).
 
 ### Zwei Formen, die man nicht sieht, bis sie auf dem Beleg stehen
 
-**Die Uhrzeit.** Firestore speicherte „07:30" als Zeichenkette, und die
+**Die Uhrzeit.** Firestore speicherte „07:30“ als Zeichenkette, und die
 Ansicht stellt sie unverändert dar. Postgres gibt eine `time`-Spalte als
-„07:30:00" aus. Also `to_char(…, 'HH24:MI')` — eine Zeile, die nur deshalb
+„07:30:00“ aus. Also `to_char(…, 'HH24:MI')` — eine Zeile, die nur deshalb
 da ist, weil sonst auf jedem Schein drei Zeichen zu viel stünden.
 
 **Die Sortierung.** `localeCompare(…, 'de')` im Browser und
-`collate "de-x-icu"` hier sind dieselbe ICU-Tabelle: „Öllinger" steht vor
-„Ostermann", nicht hinter „Zehner". Der Test lässt beide Seiten dieselben
+`collate "de-x-icu"` hier sind dieselbe ICU-Tabelle: „Öllinger“ steht vor
+„Ostermann“, nicht hinter „Zehner“. Der Test lässt beide Seiten dieselben
 sieben Namen sortieren und vergleicht.
 
 **Was leer ist, fehlt.** Die Function ließ `undefined` weg, und `undefined`
@@ -1411,8 +1411,8 @@ Dateien vom Gerät annimmt; alles andere passt in Zeilen.
 `scheine/{betrieb}/{schein}/{datei}` bleibt Zeichen für Zeichen stehen. Er
 steht im Schein und geht in dessen Prüfsumme ein — die Zeile `FOTO` in
 `kanonischerInhalt` führt Pfad und Hash. Würde der Umzug ihn umschreiben,
-etwa das führende `scheine/` weglassen, weil der Eimer schon so heisst,
-liesse sich **kein einziger unterschriebener Schein mehr nachrechnen**. Der
+etwa das führende `scheine/` weglassen, weil der Eimer schon so heißt,
+ließe sich **kein einziger unterschriebener Schein mehr nachrechnen**. Der
 erste Abschnitt ist also bewusst doppelt gemoppelt.
 
 Damit fällt auch die letzte datierte Ausnahme in `datenschichtNaht.test.ts`:
@@ -1425,7 +1425,7 @@ Unter Firebase kam die Bildadresse aus `getDownloadURL` und galt für immer.
 Jetzt wird bei jedem Ansehen eine befristete ausgestellt — eine Stunde. Wer
 so eine Adresse weitergibt, gibt keinen dauerhaften Zugang mehr weiter.
 
-Grösse und Typ stehen am Eimer statt in einer Richtlinie: zwei Megabyte und
+Größe und Typ stehen am Eimer statt in einer Richtlinie: zwei Megabyte und
 `image/*`. Beides fängt nicht den Normalfall ab — der Browser verkleinert auf
 zwei- bis vierhundert Kilobyte —, sondern den Fehler.
 
@@ -1441,7 +1441,7 @@ bekommt jetzt einen einmaligen Namen.
 **Eine Mutation ist geblieben, und sie bleibt bewusst.** Die Mandantenprüfung
 an der *Löschregel* lässt sich entfernen, ohne dass etwas rot wird: der
 Speicherdienst sucht vor dem Löschen das Objekt, und daran scheitert ein
-fremder Betrieb schon an der Leseregel. Sie zu streichen hiesse, sich darauf
+fremder Betrieb schon an der Leseregel. Sie zu streichen hieße, sich darauf
 zu verlassen, dass `remove` auch morgen erst liest und die Leseregel nie
 weiter wird — zwei Annahmen über fremden Code als einziges Schloss an einem
 unterschriebenen Beleg. Sie steht als das da, was sie ist: ein zweites
@@ -1468,9 +1468,9 @@ keine Datei schreiben. Also wartet er auf das Projekt.
 ## Die Durchstiche laufen jetzt auch auf Postgres
 
 13.09.2026. Die acht Durchstich-Ketten in `tests/durchstich.test.ts` prüfen
-die Arbeitsabläufe von einem Ende zum anderen — und sie liefen ausschliesslich
+die Arbeitsabläufe von einem Ende zum anderen — und sie liefen ausschließlich
 gegen den Firestore-Emulator. Die Module waren einzeln gegen Postgres geprüft,
-die KETTEN nicht. Das war vor dem Umschalten die grösste offene Stelle: ein
+die KETTEN nicht. Das war vor dem Umschalten die größte offene Stelle: ein
 Fehler an einer Naht fällt einer Modulprüfung nicht auf, weil jede Seite für
 sich stimmt.
 
@@ -1485,7 +1485,7 @@ Vier neue Dateien decken sie ab — `durchstich1` bis `durchstich4` in
 | 8 zwei Betriebe nebeneinander | `durchstich4.test.ts` |
 
 Kette 7 (Storno als eine Klammer) steht nicht dabei, und das ist kein
-Versehen: `modulGeld.test.ts` prüft sie bereits vollständig, einschliesslich
+Versehen: `modulGeld.test.ts` prüft sie bereits vollständig, einschließlich
 des Punktes, um den es geht — die betroffenen Belege kommen aus der Abdeckung
 und nicht aus dem Aufruf. Eine zweite Fassung wäre Doppelung.
 
@@ -1503,7 +1503,7 @@ Beide sind Verbesserungen, und beide stehen jetzt als Zusage im Test:
 **Ein Schein, den es nicht gibt.** Firestore wies eine unbekannte Kennung als
 ZUGRIFF ab — die Regel las `resource.data.companyId`, und bei einem fehlenden
 Dokument ist `resource` null. Ein fehlender Schein kam also als Fehler zurück,
-nicht als „nicht gefunden"; die Oberfläche musste beide Ausgänge gleich
+nicht als „nicht gefunden“; die Oberfläche musste beide Ausgänge gleich
 behandeln. Der Zeilenschutz filtert stattdessen: ein fehlender und ein fremder
 Schein kommen beide als `undefined` zurück. Aus zwei Ausgängen ist einer
 geworden.
@@ -1534,13 +1534,13 @@ beiden Push-Meldungen und das Umschalten selbst.
 niemand gestellt hatte: welche Häkchen gehören bei der Anlage gesetzt? Zwei
 Befunde daraus.
 
-### „Automatically expose new tables" muss AN bleiben
+### „Automatically expose new tables“ muss AN bleiben
 
 Nachgesehen, nicht vermutet: **keine einzige Migration vergibt Tabellenrechte.**
 Sie verlassen sich darauf, dass `authenticated` sie über die
 Standard-Privilegien des Schemas `public` bekommt — genau das, was dieses
 Häkchen einschaltet. Aus wäre es ein harter Bruch: 27 Tabellen ohne jedes
-Recht, jede Abfrage mit „permission denied for table …".
+Recht, jede Abfrage mit „permission denied for table …“.
 
 Das Häkchen ist auch nicht die Sicherheitsgrenze. Die ist der Zeilenschutz,
 und `schema.test.ts` lässt keine Tabelle ohne ihn durch.
@@ -1556,8 +1556,8 @@ Sache: der Zeilenschutz.
 Ein Loch war das nicht — jede Richtlinie verlangt eine Anmeldung, und ohne
 Token ist `auth.uid()` null. Der Punkt ist die **Reichweite eines künftigen
 Fehlers**: fällt eine der siebzig Richtlinien einmal zu weit aus, ist der
-Unterschied zwischen „ein angemeldeter Mitarbeiter eines anderen Betriebs"
-und „jeder, der die Adresse der Seite kennt".
+Unterschied zwischen „ein angemeldeter Mitarbeiter eines anderen Betriebs“
+und „jeder, der die Adresse der Seite kennt“.
 
 `20260914090000_anon_zumachen.sql` nimmt die Rechte weg und ändert die
 Vorgabe für künftige Tabellen. Die Datenbankfunktionen bleiben ausdrücklich
@@ -1617,7 +1617,7 @@ Projekt jetzt bereit.
 geworden. Das hier nicht, und der Grund ist handfest: **ein Anmeldekonto
 entsteht im Anmeldedienst, nicht in einer Tabelle.** Sein Passwort wird dort
 gehasht, seine Kennung dort vergeben, sein Rücksetzlink dort signiert. Von
-Hand in `auth.users` zu schreiben hiesse, all das nachzubauen — und beim
+Hand in `auth.users` zu schreiben hieße, all das nachzubauen — und beim
 nächsten Update des Dienstes wäre es falsch.
 
 Geteilt ist die Arbeit deshalb so: die Function legt das Konto an, alles
@@ -1670,7 +1670,7 @@ Zeitfenster dazwischen eine Function, die bei jedem Aufruf scheitert.
 ### Als Nächstes
 
 Der nächtliche Ausleitungslauf und die beiden Push-Meldungen. `voiceExtract`
-bleibt draussen: die KI-Spracherfassung ist nicht eingeschaltet und soll es
+bleibt draußen: die KI-Spracherfassung ist nicht eingeschaltet und soll es
 vorerst nicht werden.
 
 ## Der nächtliche Ausleitungslauf
@@ -1678,7 +1678,7 @@ vorerst nicht werden.
 14.09.2026. `pg_cron` weckt eine Edge Function, die jeden Betrieb zeilenweise
 als `.jsonl` wegschreibt, alte Stände wegräumt und das Ergebnis in
 `system_laeufe` festhält — dieselbe Überwachung wie bisher, also bleibt die
-Anzeige „Sicherung überfällig" unverändert.
+Anzeige „Sicherung überfällig“ unverändert.
 
 ### Zwei Wege in dieselbe Function
 
@@ -1696,8 +1696,8 @@ Prüfungen dazu laufen unverändert weiter.
 
 Das Ziel ist heute ein Eimer im **selben Projekt**. Gegen einen Fehlgriff,
 eine kaputte Migration oder eine versehentlich geleerte Tabelle hilft das
-sofort. Gegen „der Zugang zum Projekt ist weg" hilft es **nicht** — dafür muss
-das Ziel ausserhalb liegen. Solange es das nicht tut, steht
+sofort. Gegen „der Zugang zum Projekt ist weg“ hilft es **nicht** — dafür muss
+das Ziel außerhalb liegen. Solange es das nicht tut, steht
 `system_laeufe.ziel_extern` auf `false`, und die Ansicht schreibt „Eimer im
 selben Projekt" statt eines beruhigenden Namens.
 
@@ -1750,14 +1750,14 @@ statt jede Nacht in einen Fehler zu laufen, den niemand liest.
 
 ### Als Nächstes
 
-Die Anmeldung. Sie ist der letzte grosse Brocken und der, ohne den sich der
+Die Anmeldung. Sie ist der letzte große Brocken und der, ohne den sich der
 Schalter gar nicht umlegen lässt.
 
 ## Die Anmeldung zieht um
 
 14.09.2026. Der Block, der quer lag — und der in keiner meiner früheren
 Aufzählungen stand. `AuthContext.tsx` sprach direkt mit Firebase Auth und
-Firestore, `provisionUser.ts` ebenso. Damit liess sich der Umzug **gar nicht
+Firestore, `provisionUser.ts` ebenso. Damit ließ sich der Umzug **gar nicht
 umschalten**: die Datenschicht hätte mit Postgres geredet, das Token wäre
 weiter von Firebase gekommen, und keine einzige Zeilenregel hätte gegriffen.
 
@@ -1792,8 +1792,8 @@ eigenen Client, der nichts speichert.
 Ein mitten in der Sitzung deaktiviertes Konto sieht **seine eigene Zeile nicht
 mehr**: der Zeilenschutz filtert sie weg, die Abfrage gelingt und liefert
 nichts. `active: false` ist nirgends zu sehen. Für die Anmeldung sah das
-genauso aus wie „dieses Konto hat gar kein Profil" — und auf dem Bildschirm
-stand „Kein Benutzerprofil für dieses Konto gefunden".
+genauso aus wie „dieses Konto hat gar kein Profil“ — und auf dem Bildschirm
+stand „Kein Benutzerprofil für dieses Konto gefunden“.
 
 Nicht falsch, und trotzdem die schlechtere Auskunft. Wer gerade ausgeschieden
 ist, soll lesen, dass sein Zugang beendet wurde, und nicht raten, ob etwas
@@ -1852,8 +1852,8 @@ nicht mehr getan hätte, und bemerkt würde es daran, dass jemand eine Meldung
 
 Zwei Dinge, und beide gehen still daneben:
 
-**Das signierte JWT für Google.** Ohne SDK sind es dreissig Zeilen — und genau
-die, bei denen ein Tippfehler zu „invalid_grant" führt und zu sonst gar
+**Das signierte JWT für Google.** Ohne SDK sind es dreißig Zeilen — und genau
+die, bei denen ein Tippfehler zu „invalid_grant“ führt und zu sonst gar
 nichts. Sie stehen jetzt in `shared/fcmVersand.ts` und werden gegen einen
 selbst erzeugten Schlüssel nachgerechnet: Signatur geprüft, Rumpf gelesen,
 und die Gegenprobe mit veränderter Nutzlast fällt durch.
@@ -1874,20 +1874,20 @@ standen in EINEM Ausnahmeblock. Ein Ausnahmeblock in plpgsql macht die ganze
 Anweisung rückgängig: scheitert die zweite, ist auch die erste wieder weg —
 und die Meldung sprach von beiden, sodass nicht einmal zu sehen war, welche.
 Genau so ist es beim ersten Einspielen passiert; `pg_net` fehlte danach, und
-der Trigger stiess ins Leere. Jetzt ein Block je Erweiterung.
+der Trigger stieß ins Leere. Jetzt ein Block je Erweiterung.
 
 **`pg_net` läuft im Datenbankcontainer.** `127.0.0.1` ist dort nicht der
 Stapel, sondern der Container selbst. Im Projekt fällt das nicht auf — dort
 ist es die öffentliche URL —, in der Prüfung schon: `net._http_response`
-enthielt „Couldn't connect to server", und bei einer Push-Meldung heisst das
+enthielt „Couldn't connect to server“, und bei einer Push-Meldung heißt das
 schlicht, dass nichts kommt.
 
 **Eine Mutation hat eine halbe Prüfung aufgedeckt.** Die Antwort der Function
 nannte nur die Zahl der EMPFÄNGER. Wer die Meldungsart abgeschaltet hat,
 bekommt aber nichts — und das ist eine Einstellung, die jemand bewusst
-getroffen hat. `willMeldung` liess sich ersatzlos streichen, ohne dass etwas
+getroffen hat. `willMeldung` ließ sich ersatzlos streichen, ohne dass etwas
 rot wurde. Jetzt steht in der Antwort auch die Zahl der GERÄTE: „ein
-Empfänger, null Geräte" heisst, dass niemand etwas merkt.
+Empfänger, null Geräte" heißt, dass niemand etwas merkt.
 
 ### Was ungeprüft bleibt, und warum
 
@@ -1926,7 +1926,7 @@ und filterten im Browser. **Wer den 501. Kunden suchte, fand ihn nicht — und
 bekam darüber keine Auskunft, sondern eine leere Liste.** Genau dafür stand
 über jeder Liste ein Nachladeknopf, den niemand verstand.
 
-Postgres sucht über den ganzen Bestand und findet „uber" in „Huber".
+Postgres sucht über den ganzen Bestand und findet „uber“ in „Huber“.
 Trigram-Indizes tragen das; ohne sie liefe dieselbe Suche als vollständiger
 Tabellendurchlauf — bei zweihundert Kunden unauffällig, bei fünfzehntausend
 Zeilen an dem Tag, an dem niemand damit rechnet.
@@ -1943,10 +1943,10 @@ Klammern. Gemessen, nicht vermutet:
 
     failed to parse logic tree ((name.ilike.%Huber,%,address.ilike.%Huber,%))
 
-Ein Kundenname wie „Huber, Franz" zerreisst also die Abfrage. Das ist der
+Ein Kundenname wie „Huber, Franz“ zerreißt also die Abfrage. Das ist der
 gutmütige Ausgang — der andere ist ein Begriff, der den Filterbaum nicht
-zerreisst, sondern **umbaut**. Dazu kommt, dass `%` und `_` in `ilike`
-Jokerzeichen sind: wer „50%" tippt, meint das Zeichen und nicht „alles, was
+zerreißt, sondern **umbaut**. Dazu kommt, dass `%` und `_` in `ilike`
+Jokerzeichen sind: wer „50%“ tippt, meint das Zeichen und nicht „alles, was
 mit 50 beginnt".
 
 `pg/suche.ts` entschärft beides, und die Reihenfolge zählt — erst der
@@ -1960,9 +1960,9 @@ Unterstrich, Klammern, Apostroph und Anführungszeichen im Namen tragen.
 Beide entstanden dadurch, dass `kunden` nicht mehr die geladene Liste ist,
 sondern das **Suchergebnis**:
 
-**„Noch keine Kunden."** Die Leermeldung unterschied am `length === 0`
-zwischen „es gibt keine" und „nichts passt". Mit serverseitiger Suche läse ein
-Betrieb mit vierhundert Kunden beim ersten Fehlversuch „Noch keine Kunden" —
+**„Noch keine Kunden.“** Die Leermeldung unterschied am `length === 0`
+zwischen „es gibt keine“ und „nichts passt“. Mit serverseitiger Suche läse ein
+Betrieb mit vierhundert Kunden beim ersten Fehlversuch „Noch keine Kunden“ —
 ein Schrecken ohne Grund. Die Unterscheidung hängt jetzt am Suchbegriff.
 
 **Der Nachladehinweis verschwand beim Tippen.** Er spricht über die geladene
@@ -1970,13 +1970,13 @@ Liste; gespeist mit den Treffern wäre er beim ersten Suchversuch weg, und mit
 ihm die Auskunft, dass die Liste an ihrer Grenze steht. Die Zahl ohne Suche
 wird jetzt getrennt gemerkt.
 
-Und der Satz daneben — „Die Suche geht nur über diese" — ist unter Postgres
+Und der Satz daneben — „Die Suche geht nur über diese“ — ist unter Postgres
 schlicht falsch. Er steht nur noch dort, wo er stimmt. Eine Auskunft, die
 einmal danebenlag, wird beim nächsten Mal nicht mehr geglaubt.
 
 ### Ein Knopf, der ins Leere gerufen hätte
 
-„Monatsbilanzen aufbauen" in den Einstellungen ruft eine Cloud Function, die
+„Monatsbilanzen aufbauen“ in den Einstellungen ruft eine Cloud Function, die
 es nach dem Umschalten nicht mehr gibt. Unter Postgres ist `monthly_stats`
 eine Sicht: sie rechnet bei jeder Abfrage neu, es gibt nichts aufzubauen und
 nichts nachzuziehen. Der Knopf bleibt nicht stehen und wird auch nicht
@@ -2020,14 +2020,14 @@ niemand hin. `system_laeufe` — die Tabelle hinter der Überwachungsansicht —
 bleibt dabei **leer**, denn geschrieben wird sie von der Edge Function, und
 die ist nie angelaufen.
 
-In der Ansicht stünde also nicht „fehlgeschlagen", sondern gar nichts. Und gar
-nichts sieht aus wie „noch nie gelaufen", nicht wie „seit drei Wochen kaputt".
+In der Ansicht stünde also nicht „fehlgeschlagen“, sondern gar nichts. Und gar
+nichts sieht aus wie „noch nie gelaufen“, nicht wie „seit drei Wochen kaputt“.
 
 Das ist kein gedachtes Beispiel: bei der Einrichtung ist genau das dreimal
 passiert, und gefunden wurde es jedes Mal von Hand. Ein zweiter
-`pg_cron`-Eintrag sieht jetzt eine Viertelstunde nach dem Anstoss nach, was
-daraus geworden ist, und schreibt alles ausser 200 als Fehlschlag fest — für
-jeden Betrieb, denn scheitert der Anstoss, ist der Lauf für alle ausgefallen.
+`pg_cron`-Eintrag sieht jetzt eine Viertelstunde nach dem Anstoß nach, was
+daraus geworden ist, und schreibt alles außer 200 als Fehlschlag fest — für
+jeden Betrieb, denn scheitert der Anstoß, ist der Lauf für alle ausgefallen.
 
 Der letzte **Erfolgs**zeitpunkt bleibt dabei stehen, wo er stand.
 
@@ -2070,7 +2070,7 @@ Geprüft, bevor der Schalter fiel:
 * **Kein Firebase-eigener Weg bleibt erreichbar.** Die einzige Ansicht, die
   noch eine Cloud Function ruft, ist die KI-Erfassung — und die ist doppelt
   aus: `standard: false` am Modul, und `VITE_ENABLE_VOICE` ist nicht gesetzt.
-* **Der Knopf „Monatsbilanzen aufbauen"** stand schon in Stufe 7 hinter
+* **Der Knopf „Monatsbilanzen aufbauen“** stand schon in Stufe 7 hinter
   `nutztPostgres()` und ist unter Postgres gar nicht da.
 * **Fehlende Zugangsdaten scheitern laut.** `supabaseClient()` wirft mit dem
   Namen dessen, was fehlt, statt sich still mit `undefined` zu verbinden.
@@ -2099,7 +2099,7 @@ wie unter Firestore:
 Unter Firestore stimmte er: das SDK legte den Vorgang in IndexedDB ab und
 sendete ihn nach. Unter Postgres stimmte davon nichts. Der Aufruf scheiterte,
 die Buchung war weg, und auf dem Bildschirm stand eine Zusage, die niemand
-hielt. Gemerkt hätte man es am Monatsende, wenn niemand mehr weiss, welcher
+hielt. Gemerkt hätte man es am Monatsende, wenn niemand mehr weiß, welcher
 Tag es war.
 
 **Warum keine der bestehenden Prüfungen das gefangen hat**, und das ist die
@@ -2128,7 +2128,7 @@ wird geschrieben wie bisher, und ein Fehlschlag ist ein Fehlschlag. „Wird
 nachgesendet" zu melden, wo nichts gelagert werden kann, wäre dieselbe Lüge in
 neuen Kleidern.
 
-### Drei Prüfungen, weil eine die Lücke wieder zuliesse
+### Drei Prüfungen, weil eine die Lücke wieder zuließe
 
 | Prüfung | Beantwortet die Frage |
 |---|---|
@@ -2167,7 +2167,7 @@ Anlage muss dieselbe Grenze nicht haben.
 
 **Zusammen mit einer Grenze (`limit`) bricht es laut ab.** Jeder Block brächte
 sonst seine eigenen `grenze` Zeilen mit, und zusammengelegt stünde eine andere
-Auswahl da als die gefragte; das nachträglich in der App zu sortieren hiesse,
+Auswahl da als die gefragte; das nachträglich in der App zu sortieren hieße,
 die Sortierregeln von Postgres nachzubauen — für Umlaute gehen die beiden
 auseinander. Heute ruft niemand so, und wer es täte, erfährt es sofort statt
 über eine Liste, die fast stimmt.
@@ -2208,10 +2208,10 @@ Vier der fünf Anläufe sind an der App gescheitert, nicht an der Prüfung, und
 jeder davon ist ein Stück Wissen über den echten Weg:
 
 * Die **Baustelle ist Pflicht** bei der Zeitbuchung; ohne sie gibt der Browser
-  „Please select an item in the list" und es wird nichts gebucht.
+  „Please select an item in the list“ und es wird nichts gebucht.
 * Der **Name des Kunden in Druckbuchstaben** ist Pflicht am Schein — der Knopf
-  „Unterschreiben und abschließen" bleibt sonst gesperrt.
-* Die **Rolle entscheidet über die Navigation**: „Rechnungen" gibt es für die
+  „Unterschreiben und abschließen“ bleibt sonst gesperrt.
+* Die **Rolle entscheidet über die Navigation**: „Rechnungen“ gibt es für die
   Verwaltung nicht, nur für Buchhaltung und Führung.
 * Die **Kennung eines Zeiteintrags kommt vom Gerät** — die Spalte hat bewusst
   keine Vorgabe (das ist die Bedingung fürs Nachsenden ohne Empfang).
@@ -2269,7 +2269,7 @@ Dabei kamen zwei Befunde heraus, beide gegen die eigene Annahme:
 
 ### Die Push-Meldungen haben jetzt einen Wächter
 
-`app.push_anstossen` warf die Nummer seiner Anfrage weg. Der Anstoss galt als
+`app.push_anstossen` warf die Nummer seiner Anfrage weg. Der Anstoß galt als
 getan, sobald er in der Warteschlange lag; was zurückkam, landete in
 `net._http_response`, und dort sah niemand hin.
 
@@ -2319,7 +2319,7 @@ Fehler und ohne Hinweis.** Gemessen:
 
 Die Grenze war nie im Code. Sie sass eine Ebene tiefer, und der Rückbau in
 Stufe 7 hat genau das Gegenteil bewirkt: vorher stand die Obergrenze in einer
-Datei, wo man sie lesen konnte, und ein Knopf sagte „es gibt mehr". Danach
+Datei, wo man sie lesen konnte, und ein Knopf sagte „es gibt mehr“. Danach
 stand nirgends mehr etwas — und die Liste war trotzdem abgeschnitten.
 
 **Für einen Betrieb mit zehn Monteuren erreicht `time_entries` die tausend in
@@ -2328,21 +2328,21 @@ daran sähe falsch aus.
 
 ### Was jetzt passiert
 
-`abfragen` blättert, mit einer Seitengrösse von 500. **Nicht 1000**: wer 1000
-anfordert und 1000 bekommt, weiss nicht, ob das die Antwort war oder die
-Deckelung; wer 500 anfordert und 500 bekommt, weiss es. Dass 500 wirklich
+`abfragen` blättert, mit einer Seitengröße von 500. **Nicht 1000**: wer 1000
+anfordert und 1000 bekommt, weiß nicht, ob das die Antwort war oder die
+Deckelung; wer 500 anfordert und 500 bekommt, weiß es. Dass 500 wirklich
 unter der Grenze liegt, ist gemessen — die Prüfung liest die Deckelung des
-Servers und vergleicht sie mit der Seitengrösse.
+Servers und vergleicht sie mit der Seitengröße.
 
 Dazu ein **eindeutiger Zweitschlüssel** auf jeder Abfrage. Ohne ihn ist die
-Reihenfolge bei gleichen Sortierwerten offen, und beim Blättern heisst offen:
+Reihenfolge bei gleichen Sortierwerten offen, und beim Blättern heißt offen:
 eine Zeile kann auf zwei Seiten stehen und eine andere auf keiner. Das fällt
 nicht als Fehler auf, sondern als eine Liste, in der ein Eintrag doppelt steht
 und ein anderer fehlt.
 
 ### Zwei Fehler auf dem Weg dorthin, beide von den Prüfungen gefunden
 
-**Die Sicht ohne Kennung.** Der Zweitschlüssel ist `id` — ausser bei
+**Die Sicht ohne Kennung.** Der Zweitschlüssel ist `id` — außer bei
 `monthly_stats`, das seit Stufe 7 eine SICHT ist und keine hat. `order by id`
 darauf ist schlicht ein Fehler; vier Prüfungen sind darüber gefallen. Gefunden
 hat das nicht der Kopf, sondern der volle Lauf.
@@ -2356,7 +2356,7 @@ und Sichten sind keine. Sie war grün, während der Fehler danebenstand.
 Die **Ausleitung** blättert seit jeher selbst (`Range`, Seiten zu 1000). Die
 nächtliche Sicherung war also vollständig — hätte sie dieselbe Deckelung
 stillschweigend getroffen, wäre die Sicherung unvollständig gewesen und der
-Wächter hätte „erfolgreich" gemeldet.
+Wächter hätte „erfolgreich“ gemeldet.
 
 ### Als Nächstes
 

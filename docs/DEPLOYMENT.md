@@ -203,7 +203,7 @@ statt kaputt.
 sondern die Folge einer unangenehmen Feststellung:** der Generalschlüssel
 existierte längst. Er heißt `service_role`, liegt in den
 Edge-Function-Secrets, umgeht jeden Zeilenschutz, erreicht jeden Mandanten und
-hinterlässt keine Spur. Ihn als Supportweg zu benutzen hiesse: bei jeder
+hinterlässt keine Spur. Ihn als Supportweg zu benutzen hieße: bei jeder
 Nachfrage eines Betriebs in ALLE Betriebe schauen zu können, ohne dass es
 irgendwo stünde.
 
