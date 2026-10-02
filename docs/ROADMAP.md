@@ -162,10 +162,10 @@ den ein schmaler Lichtstreifen einmal von links nach rechts wandert, und
 Pillenform statt Kästchen. Der Ladekreis dreht im selben Türkis wie die
 übrigen Markierungen.
 
-**Eine weisse Fuge zwischen Navigation und Inhalt.** Am Rand jeder dunklen
+**Eine weiße Fuge zwischen Navigation und Inhalt.** Am Rand jeder dunklen
 Leiste — rechts an der Seitenleiste, unter der Kopfleiste, über der
 Tableiste. Sie sitzt HINTER der Markenkante, nicht statt ihr: die Kante
-gehört zur Leiste, der weisse Streifen trennt sie vom Arbeitsbereich.
+gehört zur Leiste, der weiße Streifen trennt sie vom Arbeitsbereich.
 Dieselbe Trennung, nur rund, liegt als schmaler Ring um das Profil-Abzeichen.
 
 Zuerst lag an Kopf- und Tableiste zusätzlich die leuchtende Markenkante über
@@ -515,7 +515,7 @@ greifbar.
 jedes Mandanten weg — vor dem Bilanzlauf um 03:15, damit sie den Stand des
 abgelaufenen Tages festhält und nicht einen, der gerade umgerechnet wird.
 
-**Zeilenweises JSON, kein grosses Objekt.** Ein Stand je Mandant und Tag,
+**Zeilenweises JSON, kein großes Objekt.** Ein Stand je Mandant und Tag,
 `ausleitung/{companyId}/{JJJJ-MM-TT}.jsonl`, eine Zeile je Dokument mit ihrer
 Sammlung. So lässt er sich schreiben und wieder einlesen, ohne ihn je
 vollständig im Speicher zu halten — bei 15.660 Zeiteinträgen der Unterschied
@@ -527,7 +527,7 @@ Tag, überschreibt der zweite Lauf den ersten. Sonst wüchse der Speicher mit
 jedem Wiederholungsversuch, und beim Wiederanlauf müsste jemand raten, welche
 von zwei Dateien die vollständige ist.
 
-**Der jüngste Stand wird nie gelöscht.** Aufbewahrt werden dreissig Tage —
+**Der jüngste Stand wird nie gelöscht.** Aufbewahrt werden dreißig Tage —
 aber wenn die Ausleitung wochenlang scheitert, wären irgendwann alle Stände
 älter als die Frist, und ein Aufräumen nach reinem Alter löschte den letzten
 vorhandenen. Ausgerechnet dann, wenn ohnehin niemand hinsieht. Ebenso wird
@@ -561,7 +561,7 @@ durch `firestore.rules`, die Workflows und die vier Ansichten ohne Test. Das
 Muster war jedes Mal dasselbe: ein Kommentar beschrieb eine enge Grenze, und
 die Regel darunter war weiter. Genau der Fall, der bei `users` schon einmal
 aufgefallen war — dort stand „nur GF/Admin“ über einer Regel, die
-`isLeadership()` zuliess.
+`isLeadership()` zuließ.
 
 **1. Deaktivieren war eine Anzeigeeinstellung.** `active` wurde ausschließlich
 in `AuthContext.loadProfile` geprüft. Die Regeln kannten das Feld an keiner
@@ -1516,7 +1516,7 @@ draußen ist.
 
 In der Vorschau steht jetzt eine Zeile: „Ein Schein bestätigt 04:00,
 verrechnet werden 08:00". Ruhig, solange es passt; als Warnung, sobald die
-Abweichung **beide** Schwellen reisst — mindestens eine Stunde UND mindestens
+Abweichung **beide** Schwellen reißt — mindestens eine Stunde UND mindestens
 ein Viertel über dem Bestätigten. Jede Bedingung allein wäre Lärm: ein Viertel
 mehr ist bei einem Einstundeneinsatz eine Viertelstunde, eine Stunde mehr auf
 einer Vierzigstundenbaustelle nichts.
@@ -1543,7 +1543,7 @@ Datei erfährt, hält man für ganz.
 
 Die Ausleitung schreibt jetzt `zielExtern` in ihren Laufstatus, und die
 Sicherungsansicht sagt es unter der Zustandszeile. Nicht gelb — es ist eine
-Einrichtungsgrenze, kein Fehler; gelb neben einem „lief durch“ hiesse, da sei
+Einrichtungsgrenze, kein Fehler; gelb neben einem „lief durch“ hieße, da sei
 etwas kaputt. Und nur bei `false`: ein Lauf aus einer älteren Fassung, die das
 Feld nicht schreibt, ist kein Befund.
 
@@ -1558,7 +1558,7 @@ aussieht.
 
 ### Was serverseitig geht — und was nicht, samt Begründung in der Ansicht
 
-Firestore kann keine Volltextsuche. Nach einem Kundennamen liesse sich nur mit
+Firestore kann keine Volltextsuche. Nach einem Kundennamen ließe sich nur mit
 einem zusätzlich gepflegten Feld (`nameLower`) suchen, und bis das auf jedem
 Altbestand nachgetragen wäre, fände die Suche alte Scheine **stillschweigend**
 nicht — genau das Verhalten, das hier beseitigt werden soll. Deshalb die
@@ -1589,7 +1589,7 @@ Treffer weg, dessen Nummer anders geschrieben ist (`PR-2026-042`) — also
 gerade der alte Schein, um den es geht.
 
 **Es gilt für genau den Begriff, mit dem es geholt wurde.** Tippt jemand
-weiter, verschwindet es. Stehen zu bleiben hiesse, Scheine unter einem
+weiter, verschwindet es. Stehen zu bleiben hieße, Scheine unter einem
 Suchbegriff zu zeigen, zu dem sie nicht passen.
 
 **Ein Fehler wird gemeldet, nicht als leeres Ergebnis ausgegeben.** Wer sucht,
@@ -1607,13 +1607,13 @@ fiel sie auf.
 
 ## Nicht gebaut, und das ist eine Rücknahme: Unterschriftsbilder in den Storage
 
-Ich hatte das selbst als grössten verbleibenden Hebel für die Ladezeit
+Ich hatte das selbst als größten verbleibenden Hebel für die Ladezeit
 vorgeschlagen. Beim Nachsehen ist es die falsche Idee, und zwar aus genau dem
 Grund, der schon die Fotos freiwillig gemacht hat: **Firebase Storage kennt
 keine Warteschlange für Offline-Schreibvorgänge**, Firestore schon.
 
 Ein Foto darf deshalb fehlen. **Eine Unterschrift nicht.** Läge sie im
-Storage, liesse sich im Keller ohne Empfang kein Schein mehr unterschreiben —
+Storage, ließe sich im Keller ohne Empfang kein Schein mehr unterschreiben —
 und das ist der Kernfall, für den die Funktion gebaut wurde. Der Vorschlag
 hätte den Hauptzweck beschädigt, um eine Liste schneller zu machen.
 
@@ -1680,7 +1680,7 @@ Lösung ist eine serverseitige Suche nach Baustelle, Kunde oder Zeitraum — das
 halbe Werkzeug steht mit `listSignedWorkSheetsInRange` bereits.
 
 **Aufbewahrung und Löschung nach Fristablauf** (§ 132 BAO, sieben Jahre) ist
-die einzige Form von „Archiv“, die sich verteidigen liesse — eine rechtliche
+die einzige Form von „Archiv“, die sich verteidigen ließe — eine rechtliche
 Frage, keine Geschwindigkeitsfrage, und nicht dringend. Zu beachten:
 `allow delete: if false` — Scheine lassen sich derzeit bewusst gar nicht
 löschen.
@@ -1740,13 +1740,13 @@ sieht dabei vollständig aus — die Gesamtstunden stimmen ja.
 Nacht und Notdienst schließen einander nicht aus: der Rohrbruch um zwei Uhr
 früh ist beides. Wer die zwei Zahlen addiert, zählt diese Stunden doppelt —
 und niemand sähe es der Datei an. Die Überschneidung steht deshalb als eigene
-Spalte daneben, statt sich auf eine Fussnote zu verlassen.
+Spalte daneben, statt sich auf eine Fußnote zu verlassen.
 
 ### Was bewusst nicht passiert
 
 **Gerechnet wird kein Geld.** Die Höhe des Zuschlags steht im
 Kollektivvertrag und hängt an Einstufung, Uhrzeit und Anlass; sie hier zu
-schätzen hiesse, eine Zahl zu erfinden, die dann in einem Lohnzettel landet.
+schätzen hieße, eine Zahl zu erfinden, die dann in einem Lohnzettel landet.
 Ausgewiesen werden die STUNDEN — die Bewertung macht die Lohnverrechnung, die
 den Vertrag kennt.
 
@@ -1759,7 +1759,7 @@ Erweiterung etwas anderes; er sucht sie jetzt über die Kopfzeile.
 
 Der Entwurf entsteht mit dem ersten Foto, das Bild geht sofort in den Storage
 — der **Verweis** darauf entstand aber erst, wenn der Monteur den Entwurf
-speicherte. Wer fotografierte und dann das Fenster schloss, hinterliess eine
+speicherte. Wer fotografierte und dann das Fenster schloss, hinterließ eine
 Datei, auf die kein Dokument zeigt.
 
 Das kostet dauerhaft, und es ist zugleich ein Bild aus einer fremden Wohnung
@@ -1770,7 +1770,7 @@ Die Liste wird jetzt nach jedem Upload und nach jedem Entfernen sofort ans
 Dokument geschrieben (`fotosAmEntwurf`), und zwar mit einer **ausdrücklich
 übergebenen** Liste statt aus dem Zustand der Ansicht: React verarbeitet
 `setFotos` erst nach dem laufenden Durchlauf, und ein Schreibvorgang von dort
-liesse ausgerechnet das eben hochgeladene Bild weg. Dafür führt die Ansicht
+ließe ausgerechnet das eben hochgeladene Bild weg. Dafür führt die Ansicht
 einen Spiegel der Liste als `useRef` — derselbe Grund wie bei den selbst
 erfassten Zeilen.
 
@@ -1802,7 +1802,7 @@ steht sichtbar da, sobald sie erreicht ist — dieselbe Regel wie überall seit
 „Sichtbare Grenzen“.
 
 Über der Liste steht jedes Mal, **worauf sich das Ergebnis stützt**. Ohne das
-hiesse „nichts offen“ mal „im letzten Monat“ und mal „im letzten Jahr“, ohne
+hieße „nichts offen“ mal „im letzten Monat“ und mal „im letzten Jahr“, ohne
 dass es jemand unterscheiden könnte.
 
 ### Eine Abkehr von der ersten Fassung
@@ -1854,7 +1854,7 @@ nachweislich beim Kunden war und laut Aufzeichnung nicht gearbeitet hat).
 In den **Handwerksscheinen**, über der Liste, und nur für `canEditTime`
 (Buchhaltung, Geschäftsführung, Administrator) — genau die Rolle, die fremde
 Zeiteinträge lesen **und** anlegen darf. Für alle anderen wird die Abfrage gar
-nicht erst abgeschickt: sie bliebe an den Regeln hängen und hinterliesse nur
+nicht erst abgeschickt: sie bliebe an den Regeln hängen und hinterließe nur
 einen Fehler in einer Ansicht, die sie sonst benutzen können.
 
 Verglichen wird je **Person und Tag**, nicht je Schein: auf einem Schein kann
@@ -1943,7 +1943,7 @@ zwischengespeicherten Bestand der Sammlung, und der wächst mit jedem Monat.
 Das ist die Bremse, die man für „zu viel Offline-Speicher“ hält.
 
 Die naheliegende Antwort — den Speicher kleiner machen — wäre die falsche:
-sie nähme dem Monteur im Keller die Daten weg und liesse die Abfrage trotzdem
+sie nähme dem Monteur im Keller die Daten weg und ließe die Abfrage trotzdem
 suchen. Die richtige ist, das Suchen überflüssig zu machen. Eine Zeile:
 `enablePersistentCacheIndexAutoCreation`. Welche Indizes entstehen, entscheidet
 das SDK anhand der Abfragen, die tatsächlich laufen — eine von Hand gepflegte
@@ -2032,7 +2032,7 @@ Nachreichen; erst der zweite Griff auf „Unterschreiben“ geht ohne es hinaus.
 Ein Bild, das dabei still verschwindet, wäre die schlechteste aller Antworten.
 
 **Die Beweiskraft hängt an einem Umweg.** Die Prüfsumme des Scheins sieht nur
-Firestore, nicht die Bilddatei im Storage. Ohne Gegenmassnahme liesse sich das
+Firestore, nicht die Bilddatei im Storage. Ohne Gegenmassnahme ließe sich das
 Bild nach der Unterschrift austauschen, ohne dass irgendetwas auffiele — der
 Beleg wäre genau dort löcherig, wo er beweisen soll. Deshalb bildet der Client
 beim Hochladen einen **Inhalts-Hash**, der im Schein steht und in die
@@ -2050,7 +2050,7 @@ Weiteres, das dazugehört:
 - **Das Storage-SDK wird erst beim ersten Foto geladen.** Es ist ein eigenes
   Bündel; die meisten Aufrufe dieser App kommen nie in die Nähe eines Fotos.
 - **Höchstens acht je Schein.** Nicht aus technischer Not — ein Beleg mit
-  dreissig Bildern hilft niemandem.
+  dreißig Bildern hilft niemandem.
 - **Storage-Regeln** neu: nur der eigene Mandant, nur Bilder, höchstens 2 MB,
   alles andere zu. Überschreiben ist erlaubt, damit ein abgebrochener Upload
   wiederholbar bleibt; der Schutz gegen das Austauschen sitzt im Hash.
@@ -2062,7 +2062,7 @@ Weiteres, das dazugehört:
 
 > **Eine Regel musste dabei nachgezogen werden.** `nurStorno()` vergleicht die
 > Felder, die sich beim Stornieren NICHT ändern dürfen. Die Fotoliste gehörte
-> dazu, sonst liesse sich der Nachweis beim Storno stillschweigend
+> dazu, sonst ließe sich der Nachweis beim Storno stillschweigend
 > umschreiben. Dabei fiel eine ältere Schwäche auf: die Regel las `notizen`
 > und `unterschriften` direkt, und ein Zugriff auf ein FEHLENDES Feld bricht
 > in Firestore-Regeln ab — ein unterschriebener Schein ohne Notiz ließ sich
@@ -2616,9 +2616,9 @@ Genehmigenden, gezogen vom Zeilenschutz:
 | `stichtag` | Rest wird übertragen, verfällt an `urlaub_stichtag` ('MM-DD') |
 
 **Die Vorgabe ist das Gesetz, nicht das bisherige Verhalten.** „Kein Übertrag“
-als dritte Wahl anzubieten hiesse, einen Fehler zur Einstellung zu erklären.
+als dritte Wahl anzubieten hieße, einen Fehler zur Einstellung zu erklären.
 
-**Gerechnet wird in Jahrgängen**, weil ein blosser Saldo nicht sagen kann,
+**Gerechnet wird in Jahrgängen**, weil ein bloßer Saldo nicht sagen kann,
 welche Tage alt sind: wer 2026 zehn Tage übrig hatte und 2027 wieder zehn,
 dem verfallen Ende 2028 die von 2026. Verbraucht wird der älteste zuerst —
 das ist die für den Mitarbeiter günstige Reihenfolge. Und was verfällt, wird
@@ -2838,7 +2838,7 @@ kann sie, ändern nicht.
 
 **Den Urlaubs- und Zeitkontostand dieser Person.** Beides gibt es — in der
 Mitarbeiterübersicht und in der Buchhaltung —, und es in der Akte zu
-wiederholen hiesse, dieselbe Zahl an einer dritten Stelle zu rechnen. Ob sie
+wiederholen hieße, dieselbe Zahl an einer dritten Stelle zu rechnen. Ob sie
 hier fehlt, entscheidet der Betrieb im Gebrauch; zwei Quellen für eine Zahl
 sind teurer als ein Klick.
 
@@ -2871,7 +2871,7 @@ Mehrmandanten-Betrieb erreichen soll. Die Variable ist ersatzlos weg.
 | --- | --- |
 | Anmeldung, App-Zeichen, Startbildschirm | **Senklot** — dort ist der Betrieb noch unbekannt, und die App gehört dem Produkt |
 | Seitenleiste und mobile Kopfleiste | **Der Betrieb**: sein hinterlegtes Logo, sonst sein Name als Schriftzug |
-| Fuss der Seitenleiste | **Senklot**, klein und gedämpft |
+| Fuß der Seitenleiste | **Senklot**, klein und gedämpft |
 
 **Warum der Betrieb oben steht.** Die Seitenleiste ist der Arbeitsplatz von
 Perls Leuten. Ihnen zwanzigmal am Tag zu sagen, in welcher Software sie
@@ -2880,7 +2880,7 @@ spätestens, wenn jemand für zwei Firmen arbeitet.
 
 **Warum die Produktmarke trotzdem vorkommt.** Wenn ein Monteur anruft und
 sagt „die App tut nicht“, ist „Senklot“ das Wort, mit dem er sucht und mit
-dem das Büro den Support anspricht. Sie steht deshalb am Fuss, hinter dem
+dem das Büro den Support anspricht. Sie steht deshalb am Fuß, hinter dem
 Abmelden — dort konkurriert sie mit nichts. **Gedämpft, aber nicht blass:**
 `white/60` gegen die dunkle Fläche sind rund 4,9:1. Eine Beschriftung, die
 man erraten muss, hilft im Supportfall niemandem.
@@ -2939,7 +2939,7 @@ dessen, wofür die Anzeige gebaut wurde. Gemeldet wird jetzt der tatsächliche
 Versuch.
 
 **Ein Fehlschlag nach draußen ist ein Fehlschlag.** Ihn als Erfolg mit
-Fussnote zu melden wäre die bequeme Fassung und die falsche: genau das
+Fußnote zu melden wäre die bequeme Fassung und die falsche: genau das
 Ausbleiben der Sicherung ist der stille Ausfall, gegen den das Ganze gebaut
 ist. Ist gar kein Ziel eingerichtet, ist das etwas anderes — eine benannte
 Lücke, kein Fehler, und der Lauf gilt als erfolgreich.
@@ -2952,7 +2952,7 @@ niemand käme auf die Idee, nach dem fünften zu suchen.
 ### Die Signatur — und warum sie selbst geschrieben ist
 
 Die S3-Schnittstelle verlangt eine SigV4-Signatur. Ein SDK dafür wäre ein
-Paket von einigen hundert Kilobyte für dreissig Zeilen Rechnung, die sich
+Paket von einigen hundert Kilobyte für dreißig Zeilen Rechnung, die sich
 exakt nachprüfen lässt — und es müsste in Deno UND im Node-Testlauf laufen.
 Stattdessen `shared/s3Signatur.ts`, das nichts importiert außer Web Crypto.
 
@@ -3136,7 +3136,7 @@ Entscheidung getroffen hat.
 
 **Die Signatur rechnete am Pfad des Endpunkts vorbei.** `putAnfrage` signierte
 bisher nur `<eimer>/<pfad>`. Bei Google Cloud Storage ist der Endpunkt ein
-blosser Hostname, und dann fällt das nie auf. Steht dort aber ein Pfad —
+bloßer Hostname, und dann fällt das nie auf. Steht dort aber ein Pfad —
 `…/storage/v1/s3` bei Supabase, `…/s3` hinter einem Vorschaltserver —,
 rechnete die Signatur über etwas anderes als der Server über die empfangene
 Adresse: ein 403 ohne Begründung, das nach einem falschen Schlüssel aussieht.
@@ -3199,7 +3199,7 @@ Drei Fehler übereinander, und der dritte war der eigentliche:
    Kanal ab — und das Abmelden ruft denselben Rückruf noch einmal auf,
    SYNCHRON, mitten aus der Behandlung heraus. Die Behandlung lief also in
    sich selbst, fünf Ebenen tief, und die unterste meldete den Ausfall. Die
-   dreissig Sekunden, die davor schützen sollten, gab es nie. Gemessen: der
+   dreißig Sekunden, die davor schützen sollten, gab es nie. Gemessen: der
    Hinweis stand nach 0,2 Sekunden da; nach dem Umbau nach 38.
 
 **Was jetzt steht.** Der Zustand der Live-Verbindung liegt an EINER Stelle
@@ -3278,7 +3278,7 @@ alles wog gleich viel: „40 h Budget“ schrie so laut wie „über Budget“.
 | **Warnung** | hier liegt etwas für dich | die gefüllte Pille — und NUR noch hier, zwei Stufen |
 
 Dass die gefüllte Pille jetzt nur noch eines bedeutet, ist die eigentliche
-Wirkung. Fünfzig Fundstellen in dreissig Ansichten sind einzeln eingeordnet
+Wirkung. Fünfzig Fundstellen in dreißig Ansichten sind einzeln eingeordnet
 worden; der Übersetzer hat dazu gezwungen, weil der alte Standard-Export weg
 ist. **Die Rollen haben ihre sechs Farben verloren** — eine Legende, die
 niemand auswendig lernt, und „Buchhaltung“ sagt, was „Gelb“ nicht sagt.
@@ -3370,7 +3370,7 @@ Betrag um denselben Blick — im Menü steht neben dem Wort nichts.
 und kein Verzug, sondern Arbeit, die jemandem gehört. Die Farbe ist die der
 Marke: auf der dunklen Seitenleiste `accent-bright` mit dunkler Zahl (6,4:1,
 die Fläche selbst 4,0:1 gegen die Leiste), auf den hellen Blättern von unten
-`accent-deep` mit weisser Zahl (5,2:1).
+`accent-deep` mit weißer Zahl (5,2:1).
 
 **Null ist kein Abzeichen**, und diese Entscheidung steht an genau einer
 Stelle. Sie stand zwischendurch an vieren — nachgemessen fiel eine Mutation,
@@ -3439,7 +3439,7 @@ eine Vorgabe dort wäre dieselbe Aussage wie ein fest verdrahteter Wert, nur an
 einer anderen Stelle.
 
 **Das Kennzeichen hat als einziges KEINE Vorgabe.** `WZ` als Vorgabe zu
-behalten hiesse, ihn jedem neuen Betrieb aufzustempeln. Die bestehenden
+behalten hieße, ihn jedem neuen Betrieb aufzustempeln. Die bestehenden
 Bestände übernimmt die Migration aus den DATEN — `where exists (select 1 from
 time_entries where vehicle_plate like 'WZ-%')` statt `where company_id =
 'perl'`; eine Betriebskennung im Quelltext wäre genau der behobene Fehler.
@@ -3475,7 +3475,7 @@ nicht das Nachdenken — der Vorschlag gehört in den Zustand.
 ## Erledigt: die Liste zuerst, das Formular auf Klick (18.09.2026)
 
 **Gefragt war, ob das lange Anlege-Formular oben in jedem Reiter Sinn ergibt.
-Gemessen** am Telefon (390 × 780 px, davon nach Kopf- und Fussleiste rund
+Gemessen** am Telefon (390 × 780 px, davon nach Kopf- und Fußleiste rund
 590 px sichtbar), bis zur ersten vorhandenen Zeile:
 
 | Ansicht | vorher | jetzt |
@@ -3950,7 +3950,7 @@ Absatz gibt:
 | **Fest** | Wo „anders“ schlicht „falsch“ heißt | Die Zwölfstundengrenze, die USt auf den Rücklass, die Steuerschuld kraft Rechnungslegung |
 
 Die Zwölfstundengrenze ist **kein Geschmack, sondern § 9 AZG**. Sie
-einstellbar zu machen hiesse, einem Betrieb anzubieten, sie falsch zu setzen —
+einstellbar zu machen hieße, einem Betrieb anzubieten, sie falsch zu setzen —
 und dann steht die App im Prüfbericht. Dasselbe beim Rücklass: „Umsatzsteuer
 auf den vollen Betrag" ist keine Vorliebe, und ein Schalter dafür wäre ein
 Schalter für eine falsche Umsatzsteuervoranmeldung.
@@ -4008,7 +4008,7 @@ ein Format, und solange Senklot keines davon spricht, tippt das Büro ab.
 **16.1 DATANORM — der Artikelkatalog des Großhändlers — FERTIG (20.09.2026)**
 
 DIE WICHTIGSTE DER DREI, weil der Materialstamm bis heute von Hand gepflegt
-wird. Ein Installateur führt aber nicht dreissig Artikel, sondern die
+wird. Ein Installateur führt aber nicht dreißig Artikel, sondern die
 Preisliste seines Großhändlers — Zehntausende. Ohne Katalog steht auf jeder
 Rechnung Material mit 0,00 €, und die Nachkalkulation weist einen
 Deckungsbeitrag aus, der um die Materialkosten zu hoch ist. Genau die Lücke,
@@ -4111,7 +4111,7 @@ Unverändert wie bisher geplant, mit **einer Ergänzung**: die KI-Erfassung geht
 in derselben Bewegung raus. Ein abgeschalteter Bereich, den niemand
 einschalten wird, ist Ballast, den jede spätere Änderung mitschleppt — und
 ein toter Pfad, der noch kompiliert, ist der, den jemand versehentlich wieder
-anschliesst.
+anschließt.
 
 Dazu gehört ein Fund von heute: **`docs/DEPLOYMENT.md` beschreibt ein System,
 das es nicht mehr gibt.** Firestore-Region, Firebase-Auth, Bootstrap über ein
@@ -4346,7 +4346,7 @@ eine Schemaänderung eingespielt, geht die Buchung still verloren.
 § 132 BAO verlangt **sieben Jahre**, bei Grundstücken reichen die Fristen der
 Vorsteuerberichtigung deutlich weiter (§ 18 Abs 10 UStG, bis 22 Jahre).
 
-**Die nächtliche Ausleitung erfüllt das nicht** — sie hält dreissig Stände und
+**Die nächtliche Ausleitung erfüllt das nicht** — sie hält dreißig Stände und
 rollt. Das ist eine Sicherung gegen Ausfall und kein Archiv. Was fehlt, ist
 ein **Jahresabschluss-Export**: einmal je Jahr, unveränderlich, in sich
 vollständig (Belege als PDF plus Journal als CSV), unabhängig davon, ob der
@@ -4376,9 +4376,9 @@ Mobilfunknetz. Drei Geräte, eine Stunde, ein geschriebenes Ergebnis.
   gefährlich ist der **Probelauf**: erst ein Bericht („412 Zeilen, 3
   Dubletten, 2 ohne Pflichtfeld"), dann alles oder nichts. Und:
   übernommene Rechnungen bekommen eine **eigene Herkunft** und ziehen **keine
-  Nummer aus dem laufenden Kreis** — sonst reisst der Import genau die Lücke
+  Nummer aus dem laufenden Kreis** — sonst reißt der Import genau die Lücke
   in die Nummerierung, die niemand erklären will.
-- **Briefpapier.** Ränder und ein Schalter „Kopf und Fuss weglassen“ für
+- **Briefpapier.** Ränder und ein Schalter „Kopf und Fuß weglassen“ für
   vorgedrucktes Papier. Kleine Sache, und das Erste, was ein Betrieb sieht.
 
 ---
@@ -4427,7 +4427,7 @@ In dieser Reihenfolge, nach Nutzen je Aufwand:
 
 | Frage | Warum sie jetzt fällt |
 | --- | --- |
-| **Wird über Senklot bar oder mit Karte vor Ort kassiert?** | Wenn ja, braucht es eine RKSV-Lösung: Signatureinheit, DEP, Startbeleg, FinanzOnline. Das ist eine eigene Stufe in der Grössenordnung von Stufe 10. Wenn nein, baue ich die **Sperre**: eine Zahlungsart, die Barzahlung ausschliesst, und ein PDF, das nie wie ein Barbeleg aussieht. Beides ist sauber — nur „nicht daran denken“ ist es nicht, denn die Belegerteilungspflicht (§ 132a BAO) gilt ab dem ersten Euro bar |
+| **Wird über Senklot bar oder mit Karte vor Ort kassiert?** | Wenn ja, braucht es eine RKSV-Lösung: Signatureinheit, DEP, Startbeleg, FinanzOnline. Das ist eine eigene Stufe in der Größenordnung von Stufe 10. Wenn nein, baue ich die **Sperre**: eine Zahlungsart, die Barzahlung ausschließt, und ein PDF, das nie wie ein Barbeleg aussieht. Beides ist sauber — nur „nicht daran denken“ ist es nicht, denn die Belegerteilungspflicht (§ 132a BAO) gilt ab dem ersten Euro bar |
 | **Rechnet Perl an den Bund oder an Gemeinden?** | Nur dann ist ebInterface/Peppol ein Startthema. Die beiden Felder aus 10.6 nehme ich so oder so mit |
 | **Urlaubsjahr: Kalenderjahr oder Arbeitsjahr?** | Bestimmt, ob 11.3 eine Einstellung oder eine Umstellung wird |
 | **Gilt bei Perl Normalarbeitszeit, Gleitzeit oder Durchrechnung?** | Entscheidet, ob die Saldenrechnung bleiben kann, wie sie ist |
@@ -4601,7 +4601,7 @@ Zwei unbegrenzte Abfragen waren die Ursache, beide sind jetzt begrenzt:
   gebucht?
 - **Projekt-Radar**: las ebenfalls alle Eintraege des Betriebs. Laedt jetzt
   nur die Eintraege der Baustellen MIT Budget. Abgeschlossene Baustellen
-  fallen weg, und die machen mit der Zeit den Grossteil aus.
+  fallen weg, und die machen mit der Zeit den Großteil aus.
 
 **Die Grenze des Radars, ehrlich benannt:** eine einzelne, lange laufende
 Baustelle mit vielen Stunden laedt weiterhin ihre gesamte Historie. Bei der

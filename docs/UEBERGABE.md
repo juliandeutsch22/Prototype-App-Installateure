@@ -296,7 +296,7 @@ bleibt sichtbar. **Eine Folge hinter einem Aufklapper ist keine Warnung.**
 legt sie, und sie steht an drei Stellen: der Start der App weicht nach acht
 Sekunden auf den gespeicherten Anspruch aus, statt weiter zu warten; die
 Prüfung auf Doppelbuchung gibt vor dem Buchen auf, statt die Buchung zu
-verhindern; und die von Hand angestossene Sicherung meldet, dass keine Antwort
+verhindern; und die von Hand angestoßene Sicherung meldet, dass keine Antwort
 kam, statt endlos zu drehen. **Nicht jede Abfrage trägt eine Frist** — eine
 Liste, die lädt, darf laden.
 

@@ -1,9 +1,11 @@
 # Offene Punkte
 
-Stand 29.09.2026. Alles, was bewusst nicht umgesetzt ist, an einem Ort:
+Stand 02.10.2026. Alles, was bewusst nicht umgesetzt ist, an einem Ort:
 aus dem Design-Durchgang (`docs/design/fortschritt.md`), aus dem Prüflauf
-mit vier unabhängigen Prüfern (`docs/pruefung-2026-09-25.md`) und aus den
-Lücken, die die Prüfer neben den Fehlern gemeldet haben.
+mit vier unabhängigen Prüfern (`docs/pruefung-2026-09-25.md`), aus den
+Lücken, die die Prüfer neben den Fehlern gemeldet haben, und aus dem
+Testbericht vom 30.09. samt Nachtest vom 01.10.2026
+(`docs/PLAN-TESTBERICHT-2026-09-30.md`; alle Pakete bis PR #215 gemergt).
 
 Jeder Punkt hat einen Grund, warum er offen ist, und einen Vorschlag. Was
 eine Entscheidung braucht, ist als solche markiert. Wird ein Punkt erledigt,
@@ -14,6 +16,7 @@ wandert er hier heraus und in die jeweilige Doku.
 | # | Punkt | Warum offen | Vorschlag |
 |---|---|---|---|
 | A9 | **Was nach Ablauf der sieben Jahre geschieht** — mit Belegen und Zeitaufzeichnungen einer Person, die die Löschung verlangt hat (B8). Die Löschung entfernt heute, was nicht aufbewahrt werden muss, und nennt für den Rest das Fristende; nach Ablauf löscht sie noch nichts | Vor 2031 läuft in diesem Bestand keine Frist ab. Offen ist, ob danach gelöscht oder anonymisiert wird — und was mit dem Namen einer Person auf den Belegen **anderer** geschieht (Schein des Kunden, genehmigter Urlaub, erfasste Zahlung). Laufende Verfahren verlängern die Frist (§ 132 Abs. 1 BAO) | **Beim Betrieb** (29.09.2026: wie empfohlen): mit dem Steuerberater entscheiden; dann denselben Aufruf um den zweiten Schritt erweitern |
+| A10 | **Angebote zeigen die Marge, die Nachkalkulation ist Führungssache** — die Projektleitung sieht in Angeboten die Vorkalkulation mit den Kostensätzen | Eine der beiden Grenzen ist falsch gezogen; das hängt daran, ob die Projektleitung im Betrieb mitkalkulieren soll (`FUNKTIONEN.md`, „Eine Ungereimtheit“) | **Beim Betrieb:** entweder die Kostensätze im Angebot nur der Führung zeigen, oder die Nachkalkulation der Projektleitung für ihre Baustellen öffnen |
 
 **Sicherheitsupdate der Bibliotheken (29.09.2026):** `npm audit --omit=dev`
 meldet 0 Befunde (vorher 16, davon einer kritisch). jsPDF 2 → 4 und
@@ -69,7 +72,37 @@ bewusste Ausnahme, dokumentiert in `docs/design/linie.md`).
 |---|---|---|
 | C4 | BMD-Spaltennamen („Sollkonto;Habenkonto;…“) sind nicht gegen eine Importdefinition geprüft | **Dokumentiert** (28.09.2026) in `FUNKTIONEN.md` und am Kopf in `bmdExport.ts`; der Abgleich selbst braucht eine Beispieldatei der Kanzlei |
 | C11 | Vorschau-Werkzeug: Stubs für Scheinentwurf, Rechnungssuche, Datanorm-Import und Ausgangsfach fehlten; `messen.mjs` und README nannten `section-label` | **Erledigt** (26.09.2026): Werkzeug eingecheckt (`tools/vorschau/`, `npm run vorschau`), feste Formen in `stubs-erzeugen.mjs` und `tools/vorschau/fest/`, Ausnahme auf `titel-karte` |
+| C14 | **G8** abgeschnittene letzte Zeile der Angebotsliste (Windows, etwa 1.570 × 700 px) | In Chromium auch in Nachbargrößen nicht nachstellbar, nichts geändert; mit Fenstergröße, Browser und Bildschirmfoto wieder aufnehmen |
+| C15 | Auf iOS sichert kein Test Push, Startbildschirm und Kamera ab | Seit 01.10. laufen die Monteurswege in WebKit (CI); der Rest bleibt Handprüfung am Gerät |
 | C12 | `npm test` führt die Datenbanktests nicht aus; grün sagt nichts über Zeilenregeln und Trigger | Bleibt so (Stack nur in der CI); im Handbuch benannt |
+
+## D. Bestätigungen von außen (Testbericht 30.09.2026)
+
+Gebaut ist nach der eigenen Lesart bzw. vorgebaut; bestätigen muss jemand
+anderer. Ändert sich dabei etwas, ist es eine Einstellung oder eine kleine
+Anpassung, kein Umbau.
+
+| # | Bei wem | Punkt | Stand im Code |
+|---|---|---|---|
+| D1 | WKO | **M3** aliquoter Urlaub taggenau, **M35** Nachtzuschlag nur für die Minuten in der Nachtzeit | umgesetzt nach Lesart, Urlaub bleibt änderbarer Vorschlag |
+| D2 | WKO | **M22** Mahnspesen an Privatkunden: Warnung ab 40 € (§ 1333 Abs 2 ABGB) | an Unternehmer hart 40 € (§ 458 UGB), an Private nur Warnung |
+| D3 | WKO | **KJBG** — Schutzregeln für Jugendliche (Lehrlinge) | nicht gebaut; Einstufung, Sätze und Berufsschule (Punkte 1–4) stehen |
+| D4 | Steuerberatung | **H6** Buchung des Stornos: die Stornorechnung trägt das Ausstellungsdatum, gebucht wird der Storno weiter am Stornotag | wandert die Buchung mit, ist es eine Zeile im BMD-Stapel |
+| D5 | Steuerberatung | **M26** der vorgeschlagene Kontenrahmen | Hinweis „Vorschlag – mit der Kanzlei abstimmen“ steht |
+| D6 | Steuerberatung | **K3** die Lücke im Rechnungskreis des Pilotbetriebs aus der Zeit vor dem 25.09. festhalten | der Kreis läuft seit 25.09. lückenlos |
+| D7 | Kanzlei | **H7 / C4** Spaltenköpfe und Steuercodes des BMD-Stapels, Kundennummer, Zahlungsstapel — Importtest an einer Beispieldatei | vorgebaut, unverändert bis zum Test |
+| D8 | Anwalt | **K4** Datenschutzerklärung und Impressum freigeben, Angaben in eckigen Klammern ergänzen | Entwurf mit Band „Entwurf“ |
+
+## E. Für später vermerkt (entschieden am 30.09.2026)
+
+| # | Punkt |
+|---|---|
+| E1 | **M18** Angebote: Katalogartikel, Positionsrabatt, Titel- und Textpositionen |
+| E2 | **M10** UID-Prüfung online über VIES (heute nur die Form je EU-Staat) |
+| E3 | Paket 11: Personalnummer, Lohnarten, Fahrzeuglager, Prüfprotokoll, Kalender-Export, Mailversand aus der App (braucht SMTP-Zugang als Function-Geheimnis), ebInterface |
+| E4 | Plattform: Erinnerung, solange ein Betrieb nur ein Leitungskonto ohne E-Mail hat; Stufe „nur lesen“ nach einer Kündigung (beide im Auftrag optional) |
+| E5 | Konto nachträglich zwischen E-Mail und Benutzername umstellen |
+| E6 | Lehrling nach dem Ende der Lehrzeit: bleibt im letzten Lehrjahr, bis jemand die Einstufung ändert |
 
 ## Erledigt seit dem Prüflauf
 
