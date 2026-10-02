@@ -132,6 +132,25 @@ describe('Ein Angebot ansehen', () => {
     expect(screen.getByText(/WC im Erdgeschoss tauschen/)).toBeInTheDocument();
   });
 
+  it('Titel mit der Summe ihrer Positionen, Text ohne Beträge, Rabatt an der Position (M18)', async () => {
+    angebot = {
+      ...ANGEBOT,
+      positions: [
+        { art: 'titel', label: 'Bad', qty: 0, unit: '', unitPrice: 0, netto: 0 },
+        { label: 'Waschtisch', qty: 2, unit: 'Stk', unitPrice: 100, netto: 180, rabattProzent: 10 },
+        { art: 'text', label: 'Fliesen bauseits', qty: 0, unit: '', unitPrice: 0, netto: 0 },
+        { label: 'WC', qty: 1, unit: 'Stk', unitPrice: 300, netto: 300 },
+      ],
+    };
+    zeige();
+    // Gezählt werden die Positionen, nicht Titel und Text.
+    const positionen = (await screen.findByText(/Positionen \(2\)/)).closest('section')!;
+    expect(within(positionen).getByText('Bad')).toBeInTheDocument();
+    expect(within(positionen).getByText(/Summe € 480,00/)).toBeInTheDocument();
+    expect(within(positionen).getByText('Fliesen bauseits')).toBeInTheDocument();
+    expect(within(positionen).getByText(/2 Stk × € 100,00, abzüglich 10 % Rabatt/)).toBeInTheDocument();
+  });
+
   it('verlinkt Kunde und — nach der Annahme — die Baustelle', async () => {
     angebot = { ...ANGEBOT, status: 'Angenommen', projectNumber: 'B-2026-0007', projectId: 'p9' };
     zeige();

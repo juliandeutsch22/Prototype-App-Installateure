@@ -40,6 +40,12 @@ vi.mock('@/lib/db/quotes', () => ({
   reserveQuoteNumber: vi.fn(async () => 'AN-2026-0001'),
 }));
 vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => kunden) }));
+/** Der Katalog für „Aus dem Katalog …“ (M18) — gesucht wird auf dem Server. */
+const sucheKatalog = vi.fn<(c: string, b: string) => Promise<unknown[]>>(async () => [
+  { id: 'm1', companyId: 'perl', name: 'Gastherme 24 kW', articleNumber: 'GT-24', unit: 'Stk', verkaufspreis: 2500, stock: 0 },
+  { id: 'm2', companyId: 'perl', name: 'Gastherme alt', unit: 'Stk', verkaufspreis: 1, stock: 0, ausgelaufen: true },
+]);
+vi.mock('@/lib/db/materials', () => ({ sucheKatalog: (c: string, b: string) => sucheKatalog(c, b) }));
 let aktiveBaustellen: { projectNumber: string }[] = [];
 const reserveProjectNumber = vi.fn<(a0: string, a1: unknown) => Promise<string | null>>(
   async () => 'B-2026-0012',
@@ -701,5 +707,124 @@ describe('Abrechnungsart beim Annehmen (M16)', () => {
     await annehmenBestaetigt(nutzer);
     await waitFor(() => expect(createProject).toHaveBeenCalled());
     expect(createProject.mock.calls[0][1]).toMatchObject({ billingMode: 'Pauschal' });
+  });
+});
+
+/**
+ * Titel, Text, Positionsrabatt und Katalogartikel (Testbericht 30.09.2026,
+ * M18). Die Rechnung dahinter prüft `tests/unit/angebotPositionen.test.ts`;
+ * hier, was die Maske tut und was sie speichert.
+ */
+describe('Titel, Text, Rabatt und Katalog (M18)', () => {
+  async function erstePosition(nutzer: ReturnType<typeof userEvent.setup>, label: string, menge: string, preis: string) {
+    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await nutzer.type(screen.getByLabelText('Bezeichnung'), label);
+    await nutzer.type(screen.getByLabelText('Menge'), menge);
+    await nutzer.type(screen.getByLabelText('Einheit'), 'Stk');
+    await nutzer.type(screen.getByLabelText('Einzelpreis netto'), preis);
+  }
+
+  it('ein Positionsrabatt mindert das Netto der Zeile und wird mitgespeichert', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await erstePosition(nutzer, 'Waschtisch', '2', '100');
+    await nutzer.type(screen.getByLabelText('Rabatt %'), '10');
+    // In der Zeile und in der Summe darunter.
+    expect(screen.getAllByText(/180,00/).length).toBeGreaterThanOrEqual(2);
+
+    await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+    await waitFor(() => expect(createQuote).toHaveBeenCalled());
+    const q = createQuote.mock.calls[0][1] as Quote;
+    expect(q.positions).toEqual([expect.objectContaining({ label: 'Waschtisch', unitPrice: 100, rabattProzent: 10, netto: 180 })]);
+    expect(q.totalNetto).toBe(180);
+  });
+
+  it('Gegenprobe: ein Rabatt von 100 % wird nicht gespeichert', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await erstePosition(nutzer, 'Waschtisch', '1', '100');
+    await nutzer.type(screen.getByLabelText('Rabatt %'), '100');
+    await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+    expect(await screen.findByText(/zwischen 0 und 100 %/)).toBeInTheDocument();
+    expect(createQuote).not.toHaveBeenCalled();
+  });
+
+  it('Titel und Text: ohne Preis, in der gewählten Reihenfolge, der Titel nennt seine Summe', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await erstePosition(nutzer, 'WC', '1', '300');
+    await nutzer.click(screen.getByRole('button', { name: 'Titel hinzufügen' }));
+    await nutzer.type(screen.getByLabelText('Titel'), 'Bad');
+    // Der Titel gehört vor seine Position.
+    await nutzer.click(screen.getByRole('button', { name: 'Titel nach oben' }));
+    await nutzer.click(screen.getByRole('button', { name: 'Text hinzufügen' }));
+    await nutzer.type(screen.getByLabelText('Text'), 'Fliesen bauseits');
+    expect(screen.getByText('Summe € 300,00')).toBeInTheDocument();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+    await waitFor(() => expect(createQuote).toHaveBeenCalled());
+    const q = createQuote.mock.calls[0][1] as Quote;
+    expect(q.positions.map((p) => [p.art ?? 'position', p.label, p.netto])).toEqual([
+      ['titel', 'Bad', 0], ['position', 'WC', 300], ['text', 'Fliesen bauseits', 0],
+    ]);
+    expect(q.totalNetto).toBe(300);
+  });
+
+  it('Gegenprobe: nur Titel und Text bieten nichts an — anlegen geht nicht', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await nutzer.click(screen.getByRole('button', { name: 'Titel hinzufügen' }));
+    await nutzer.type(screen.getByLabelText('Titel'), 'Bad');
+    // Die leere Position weg: es bleibt nur der Titel.
+    await nutzer.click(screen.getByRole('button', { name: 'Position entfernen' }));
+    expect(screen.queryByLabelText('Bezeichnung')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Angebot anlegen' })).toBeDisabled();
+  });
+
+  it('übernimmt einen Artikel aus dem Katalog — mit Preis und Einheit, ohne ausgelaufene', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await nutzer.click(screen.getByRole('button', { name: 'Aus dem Katalog …' }));
+    await nutzer.type(screen.getByLabelText('Artikel aus dem Katalog'), 'therme');
+    await nutzer.click(await screen.findByRole('button', { name: 'Gastherme 24 kW übernehmen' }));
+    expect(screen.queryByRole('button', { name: 'Gastherme alt übernehmen' })).not.toBeInTheDocument();
+    expect(sucheKatalog).toHaveBeenCalledWith('perl', 'therme');
+
+    // Die leere erste Zeile ist dem Artikel gewichen.
+    expect(screen.getAllByLabelText('Bezeichnung')).toHaveLength(1);
+    expect(screen.getByLabelText('Bezeichnung')).toHaveValue('Gastherme 24 kW');
+    expect(screen.getByText(/· aus dem Katalog/)).toBeInTheDocument();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+    await waitFor(() => expect(createQuote).toHaveBeenCalled());
+    const q = createQuote.mock.calls[0][1] as Quote;
+    expect(q.positions).toEqual([expect.objectContaining({ label: 'Gastherme 24 kW', qty: 1, unit: 'Stk', unitPrice: 2500, materialId: 'm1' })]);
+  });
+
+  it('ein Entwurf mit Titel und Rabatt kommt so ins Formular, wie er gespeichert ist', async () => {
+    angebote.push({
+      id: 'q9', companyId: 'perl', quoteNumber: 'AN-2026-0009', customerId: 'k1', customerName: 'Gemeinde Neudorf',
+      address: 'Rathausplatz 1', quoteDate: '2026-09-01', validUntil: '2026-10-01', status: 'Entwurf',
+      positions: [
+        { art: 'titel', label: 'Bad', qty: 0, unit: '', unitPrice: 0, netto: 0 },
+        { label: 'Waschtisch', qty: 2, unit: 'Stk', unitPrice: 100, netto: 180, rabattProzent: 10, istArbeitszeit: false },
+      ],
+      subtotalNetto: 180, totalNetto: 180, totalVat: 36, totalBrutto: 216, vatRate: 0.2, kalkulierteStunden: 0,
+    } as Quote & { id: string });
+    zeichne();
+    await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+    expect(screen.getByLabelText('Titel')).toHaveValue('Bad');
+    expect(screen.getByLabelText('Rabatt %')).toHaveValue('10');
+    await userEvent.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    await waitFor(() => expect(updateQuote).toHaveBeenCalled());
+    const d = updateQuote.mock.calls[0][1] as Quote;
+    expect(d.positions.map((p) => [p.art ?? 'position', p.rabattProzent ?? null, p.netto])).toEqual([['titel', null, 0], ['position', 10, 180]]);
   });
 });

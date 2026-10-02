@@ -230,6 +230,59 @@ export interface BelegPosition {
   unit: string;
   unitPrice: number;
   netto: number;
+  /** Titel und Text tragen keine Beträge (M18); ohne Angabe eine Position. */
+  art?: 'position' | 'titel' | 'text';
+  /** Nachlass auf diese Position in Prozent; `netto` ist schon nach Abzug. */
+  rabattProzent?: number | null;
+}
+
+/** Eine Zelle der Positionstabelle: Text, oder Text über mehrere Spalten. */
+export type BelegZelle = string | { content: string; colSpan?: number; styles?: { fontStyle?: 'bold' | 'italic' | 'normal'; halign?: 'right' } };
+
+/**
+ * DIE ZEILEN DER POSITIONSTABELLE (M18), ohne jsPDF — damit sie sich prüfen
+ * lassen.
+ *
+ *   - Ein Titel steht fett über die ganze Breite. Nach seiner letzten
+ *     Position folgt „Summe <Titel>“ mit dem Netto seiner Positionen — wie
+ *     auf jedem gegliederten Angebot im Baugewerbe.
+ *   - Ein Text steht über die ganze Breite, ohne Beträge.
+ *   - Eine Position mit Rabatt nennt ihn unter der Bezeichnung; der
+ *     Einzelpreis bleibt der Listenpreis, das Netto steht nach Abzug.
+ */
+export function belegZeilen(positionen: BelegPosition[]): BelegZelle[][] {
+  const zeilen: BelegZelle[][] = [];
+  let titel: { name: string; summe: number; positionen: number } | null = null;
+  const titelSchliessen = () => {
+    if (titel && titel.positionen > 0) {
+      zeilen.push([
+        { content: `Summe ${titel.name}`, colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } },
+        { content: euroBetrag(Math.round(titel.summe * 100) / 100), styles: { halign: 'right', fontStyle: 'bold' } },
+      ]);
+    }
+    titel = null;
+  };
+  for (const p of positionen) {
+    const art = p.art ?? 'position';
+    if (art === 'titel') {
+      titelSchliessen();
+      titel = { name: p.label, summe: 0, positionen: 0 };
+      zeilen.push([{ content: p.label, colSpan: 5, styles: { fontStyle: 'bold' } }]);
+    } else if (art === 'text') {
+      zeilen.push([{ content: p.label, colSpan: 5 }]);
+    } else {
+      const rabatt = p.rabattProzent != null && p.rabattProzent > 0 && p.rabattProzent < 100
+        ? `\nabzüglich ${String(p.rabattProzent).replace('.', ',')} % Rabatt`
+        : '';
+      zeilen.push([`${p.label}${rabatt}`, fmtMenge(p.qty), p.unit, euroBetrag(p.unitPrice), euroBetrag(p.netto)]);
+      if (titel) {
+        titel.summe += p.netto || 0;
+        titel.positionen += 1;
+      }
+    }
+  }
+  titelSchliessen();
+  return zeilen;
 }
 
 /**
@@ -252,13 +305,7 @@ export function positionsTabelle(
     ...TABELLENSTIL,
     startY: o.startY,
     head: [['Bezeichnung', 'Menge', 'Einheit', 'Einzelpreis €', 'Netto €']],
-    body: o.positions.map((p) => [
-      p.label,
-      fmtMenge(p.qty),
-      p.unit,
-      euroBetrag(p.unitPrice),
-      euroBetrag(p.netto),
-    ]),
+    body: belegZeilen(o.positions),
     foot: o.fuss,
     columnStyles: {
       1: { halign: 'right', cellWidth: 17 },

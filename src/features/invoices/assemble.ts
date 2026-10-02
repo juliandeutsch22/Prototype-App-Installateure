@@ -1,7 +1,7 @@
 import type { Material, InvoiceDiscount, InvoiceRates, TimeEntry, WorkSheet } from '@/types';
 import { calcWorkMin } from '@/lib/time';
 import { NACHTZEIT_VORGABE, nachtArbeitMin, type Nachtzeit } from '@/lib/lohnregeln';
-import { calcTotals, cent, positionNetto, type InvoicePosition } from './totals';
+import { calcTotals, cent, positionNetto, zeilenNetto, type InvoicePosition } from './totals';
 import { leistungszeitraum, materialPositionen } from './materialPositionen';
 import {
   SATZKLASSEN, istLehrlingssatz, satzklasse, verrechnungssatz, type Satzklasse,
@@ -69,7 +69,7 @@ export function recalc(
   vatRate: number,
   discount?: InvoiceDiscount | null,
 ): AssembledInvoice {
-  const gerundet = positions.map((p) => ({ ...p, netto: positionNetto(p.qty, p.unitPrice) }));
+  const gerundet = positions.map((p) => ({ ...p, netto: zeilenNetto(p) }));
   return { ...base, positions: gerundet, discount: discount ?? null, ...calcTotals(gerundet, vatRate, discount) };
 }
 

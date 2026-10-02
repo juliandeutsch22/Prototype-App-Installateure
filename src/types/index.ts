@@ -480,6 +480,12 @@ export interface Quote {
      * 24.09.2026 — dann ist es unbekannt, nicht „nein".
      */
     istArbeitszeit?: boolean;
+    /** Titel und Text tragen keinen Preis (M18); ohne Angabe eine Position. */
+    art?: 'position' | 'titel' | 'text';
+    /** Nachlass auf diese Position in Prozent; das Netto ist schon nach Abzug. */
+    rabattProzent?: number | null;
+    /** Aus dem Katalog übernommen — der Artikel, nur zum Nachsehen. */
+    materialId?: string | null;
   }[];
   discount?: InvoiceDiscount | null;
   discountAmount?: number;
@@ -1318,7 +1324,13 @@ export interface Invoice {
    * den Zeiteinträgen neu berechnen, änderte sich eine bereits verschickte
    * Rechnung, sobald jemand einen Eintrag korrigiert.
    */
-  positions?: { label: string; qty: number; unit: string; unitPrice: number; netto: number }[];
+  positions?: {
+    label: string; qty: number; unit: string; unitPrice: number; netto: number;
+    /** Titel und Text tragen keinen Preis (M18); ohne Angabe eine Position. */
+    art?: 'position' | 'titel' | 'text';
+    /** Nachlass auf diese Position in Prozent; das Netto ist schon nach Abzug. */
+    rabattProzent?: number | null;
+  }[];
   /** Summe der Positionen VOR Rabatt. Ohne sie liesse sich der Rabatt im
    *  Nachhinein nicht mehr nachvollziehen. */
   subtotalNetto?: number;

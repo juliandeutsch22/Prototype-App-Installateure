@@ -1,4 +1,5 @@
 import BottomSheet from '@/components/BottomSheet';
+import { positionsRabattText } from './totals';
 import Button from '@/components/Button';
 import { euro, euroBetrag } from '@/lib/betrag';
 import { datumAT } from '@/lib/datum';
@@ -69,15 +70,27 @@ export default function RechnungDetail({
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {inv.positions.map((p, i) => (
-                <tr key={i}>
-                  <td className="py-1 pr-2">{p.label}</td>
-                  <td className="whitespace-nowrap py-1 text-right">
-                    {String(p.qty).replace('.', ',')} {p.unit}
-                  </td>
-                  <td className="whitespace-nowrap py-1 text-right">{euroBetrag(p.netto)}</td>
-                </tr>
-              ))}
+              {inv.positions.map((p, i) =>
+                // Titel und Text ohne Beträge, wie auf dem PDF (M18).
+                p.art === 'titel' || p.art === 'text' ? (
+                  <tr key={i}>
+                    <td colSpan={3} className={`py-1 pr-2 ${p.art === 'titel' ? 'font-semibold' : 'text-ink-muted'}`}>{p.label}</td>
+                  </tr>
+                ) : (
+                  <tr key={i}>
+                    <td className="py-1 pr-2">
+                      {p.label}
+                      {positionsRabattText(p.rabattProzent) && (
+                        <span className="block text-xs text-ink-muted">{positionsRabattText(p.rabattProzent)}</span>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap py-1 text-right">
+                      {String(p.qty).replace('.', ',')} {p.unit}
+                    </td>
+                    <td className="whitespace-nowrap py-1 text-right">{euroBetrag(p.netto)}</td>
+                  </tr>
+                ),
+              )}
             </tbody>
           </table>
         )}

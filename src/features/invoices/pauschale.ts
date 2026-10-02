@@ -1,7 +1,7 @@
 import type { Invoice, Quote, RechnungsArt } from '@/types';
 import type { AssembledInvoice } from './assemble';
 import { norm } from './assemble';
-import { calcTotals, positionNetto, type InvoicePosition } from './totals';
+import { calcTotals, istPreiszeile, zeilenNetto, type InvoicePosition } from './totals';
 
 /**
  * Die Rechnung einer PAUSCHALBAUSTELLE.
@@ -22,6 +22,23 @@ import { calcTotals, positionNetto, type InvoicePosition } from './totals';
  * gestellt) steht eine Zeile mit 0,00 € da — wie bei der Anzahlung: die Null
  * sieht aus wie ein Preis, ist aber eine fehlende Entscheidung.
  */
+
+/**
+ * Art und Positionsrabatt gehen aus dem Angebot mit (M18): ein Titel bleibt
+ * ein Titel, und der Rabatt, den das Angebot einer Position gab, gibt auch
+ * die Rechnung. Nur gesetzt, wo vorhanden — ältere Angebote ergeben
+ * dieselben Zeilen wie bisher.
+ */
+function mitArt(
+  quelle: Pick<InvoicePosition, 'art' | 'rabattProzent'>,
+  zeile: InvoicePosition,
+): InvoicePosition {
+  return {
+    ...zeile,
+    ...(quelle.art && quelle.art !== 'position' ? { art: quelle.art } : {}),
+    ...(quelle.rabattProzent != null ? { rabattProzent: quelle.rabattProzent } : {}),
+  };
+}
 
 /** Das Angebot, das diese Baustelle trägt — das jüngste angenommene. */
 export function pauschalAngebot<T extends Quote>(angebote: T[]): T | null {
@@ -86,12 +103,12 @@ export function pauschalVorschau(
   }
 
   const positionen: InvoicePosition[] = angebot
-    ? angebot.positions.map((p) => ({
+    ? angebot.positions.map((p) => mitArt(p, {
         label: p.label,
         qty: p.qty,
         unit: p.unit,
         unitPrice: p.unitPrice,
-        netto: positionNetto(p.qty, p.unitPrice),
+        netto: zeilenNetto(p),
       }))
     : [{ label: 'Pauschale gemäß Vereinbarung', qty: 1, unit: 'Pauschale', unitPrice: 0, netto: 0 }];
   const discount = angebot?.discount ?? null;
@@ -128,8 +145,9 @@ export function einheitspreisVorschau(
   const teil = art === 'teil';
   const positionen: InvoicePosition[] = angebot
     ? angebot.positions.map((p) => {
-        const qty = teil ? 0 : p.qty;
-        return { label: p.label, qty, unit: p.unit, unitPrice: p.unitPrice, netto: positionNetto(qty, p.unitPrice) };
+        // Titel und Text haben keine Menge, auch nicht nach Aufmaß.
+        const qty = teil && istPreiszeile(p) ? 0 : p.qty;
+        return mitArt(p, { label: p.label, qty, unit: p.unit, unitPrice: p.unitPrice, netto: zeilenNetto({ ...p, qty }) });
       })
     : [{ label: 'Leistung nach Aufmaß', qty: 0, unit: '', unitPrice: 0, netto: 0 }];
   const discount = angebot?.discount ?? null;

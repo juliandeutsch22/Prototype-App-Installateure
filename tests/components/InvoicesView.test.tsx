@@ -2577,6 +2577,40 @@ describe('Pauschalbaustelle', () => {
     expect(screen.queryByText(/Pauschalbaustelle/)).toBeNull();
   });
 
+  /*
+    TESTBERICHT 30.09.2026, M18 — Titel, Text und Positionsrabatt des
+    Angebots gehen in die Rechnung mit: angezeigt, nachgerechnet, gespeichert.
+  */
+  it('übernimmt Titel, Text und Positionsrabatt aus dem Angebot (M18)', async () => {
+    PROJEKT.billingMode = 'Pauschal';
+    angebote = [{
+      ...ANGEBOT,
+      positions: [
+        { art: 'titel', label: 'Bad', qty: 0, unit: '', unitPrice: 0, netto: 0 },
+        { label: 'Waschtisch', qty: 2, unit: 'Stk', unitPrice: 100, netto: 180, rabattProzent: 10 },
+        { art: 'text', label: 'Fliesen bauseits', qty: 0, unit: '', unitPrice: 0, netto: 0 },
+      ],
+      subtotalNetto: 180, totalNetto: 180, totalVat: 36, totalBrutto: 216,
+    }];
+    await bisZurVorschau();
+    expect(screen.getByLabelText('Titel 1')).toHaveValue('Bad');
+    expect(screen.getByLabelText('Text 3')).toHaveValue('Fliesen bauseits');
+    expect(screen.getByText(/abzüglich 10 % Rabatt \(aus dem Angebot\)/)).toBeInTheDocument();
+    // Titel und Text haben keine Menge und keinen Preis.
+    expect(screen.queryByLabelText('Menge Position 1')).toBeNull();
+
+    // Die Menge ändern: der Rabatt rechnet mit — 3 × 100 € abzüglich 10 %.
+    const menge = screen.getByLabelText('Menge Position 2');
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '3');
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const r = lege.mock.calls[0][0] as { positions: Array<Record<string, unknown>>; totalNetto: number };
+    expect(r.positions.map((x) => [x.art ?? 'position', x.netto])).toEqual([['titel', 0], ['position', 270], ['text', 0]]);
+    expect(r.positions[1].rabattProzent).toBe(10);
+    expect(r.totalNetto).toBe(270);
+  });
+
   it('eine Regiebaustelle rechnet weiter die Stunden', async () => {
     PROJEKT.billingMode = 'Regie';
     angebote = [ANGEBOT];
