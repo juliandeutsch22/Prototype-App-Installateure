@@ -484,6 +484,7 @@ declare
   z public.betrieb_zustand;
   g text;
   tage integer;
+  mindestens integer;
   wann timestamptz;
 begin
   perform app.plattform_pflicht();
@@ -498,10 +499,15 @@ begin
   if not z.testbetrieb and z.export_am is null then
     raise exception 'Vor dem Löschen braucht der Betrieb seinen vollständigen Export' using errcode = '22023';
   end if;
-  tage := coalesce(p_tage, case when z.testbetrieb then 0 else 30 end);
-  if tage < case when z.testbetrieb then 0 else 7 end or tage > 365 then
-    raise exception 'Die Frist liegt zwischen % und 365 Tagen', case when z.testbetrieb then 0 else 7 end
-      using errcode = '22023';
+  if z.testbetrieb then
+    mindestens := 0;
+    tage := coalesce(p_tage, 0);
+  else
+    mindestens := 7;
+    tage := coalesce(p_tage, 30);
+  end if;
+  if tage < mindestens or tage > 365 then
+    raise exception 'Die Frist liegt zwischen % und 365 Tagen', mindestens using errcode = '22023';
   end if;
   wann := now() + make_interval(days => tage);
 
