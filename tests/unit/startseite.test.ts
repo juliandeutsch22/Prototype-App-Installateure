@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type { Invoice, MaterialOrder, Project, Wartung } from '@/types';
+import type { Invoice, MaterialOrder, Project, Wartung, WorkSheet } from '@/types';
+import { euro } from '@/lib/betrag';
 import { abschnitt, JE_ABSCHNITT, summe } from '@/features/dashboard/start/abschnitte';
 import {
   abholbereitAlt,
@@ -120,6 +121,45 @@ describe('Buchhaltung', () => {
     const a = ueberfaelligNichtMahnbar(r, lauf, HEUTE);
     for (const z of a?.zeilen ?? []) expect(imLauf.has(z.key.replace('ueber-', ''))).toBe(false);
     expect((a?.anzahl ?? 0) + lauf.zeilen.length).toBe(2);
+  });
+
+  // Testbericht 30.09.2026, M24 — die Startseite der Buchhaltung zeigt die Finanzkennzahlen.
+  const umfeld = (teil: Partial<Umfeld> = {}): Umfeld => ({
+    rolle: 'buchhaltung', heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false, ...teil,
+  });
+  const schein = (id: string, tage: number) =>
+    ({ schein: { id, projectNumber: 'PR-1', customerName: 'Kunde', datum: '2026-08-01' } as WorkSheet & { id: string }, tage });
+
+  it('zeigt Offen, Überfällig, Nicht verrechnet und Bezahlt im Monat (M24)', () => {
+    const s = startseite({
+      unbezahlt: [
+        rechnung({ id: 'RE-1', totalBrutto: 200, dueDate: '2026-10-14' }),
+        rechnung({ id: 'RE-2', totalBrutto: 300, dueDate: '2026-10-20' }),
+        rechnung({ id: 'RE-3', totalBrutto: 150, dueDate: '2026-09-15' }),
+      ],
+      unverrechnet: [schein('s1', 40), schein('s2', 3)],
+      bezahltImMonat: { summe: 1234.5, anzahl: 4 },
+    }, umfeld());
+
+    expect(s.kennzahlen.map((k) => k.label)).toEqual(['Offen', 'Überfällig', 'Nicht verrechnet', 'Bezahlt im September']);
+    const nach = new Map(s.kennzahlen.map((k) => [k.key, k]));
+    expect(nach.get('offen')).toMatchObject({ wert: euro(500), zusatz: '2 Rechnungen', to: ZIEL.rechnungen });
+    // Rot nur, wo etwas überfällig ist.
+    expect(nach.get('ueberfaellig')).toMatchObject({
+      wert: euro(150), zusatz: '1 Rechnung', to: ZIEL.rechnungenUeberfaellig, ton: 'danger',
+    });
+    expect(nach.get('unverrechnet')).toMatchObject({ wert: '2 Scheine', zusatz: 'davon 1 über 4 Wochen' });
+    expect(nach.get('bezahlt')).toMatchObject({ wert: euro(1234.5), zusatz: '4 Rechnungen', to: ZIEL.rechnungenSicht('bezahlt-monat') });
+  });
+
+  it('Gegenprobe: ohne Überfälliges kein Rot — und ohne Recht auf Rechnungen keine Geldkennzahl (M24)', () => {
+    const daten = { unbezahlt: [rechnung({ id: 'RE-1', dueDate: '2026-10-14' })], bezahltImMonat: { summe: 0, anzahl: 0 } };
+    const ueber = startseite(daten, umfeld()).kennzahlen.find((k) => k.key === 'ueberfaellig');
+    expect(ueber).toMatchObject({ wert: euro(0), zusatz: 'keine Rechnung' });
+    expect(ueber?.ton).toBeUndefined();
+
+    const ohne = startseite(daten, umfeld({ darf: (z) => !z.startsWith('/invoices') }));
+    expect(ohne.kennzahlen).toEqual([]);
   });
 });
 

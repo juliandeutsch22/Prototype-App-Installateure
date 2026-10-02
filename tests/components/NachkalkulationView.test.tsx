@@ -337,6 +337,12 @@ describe('Mit Kostensätzen', () => {
  * die Lücke sieht, statt sie für eine Null zu halten.
  */
 describe('Material im Ergebnis', () => {
+  // Testbericht 30.09.2026, G26 — die Überschrift nennt, was abgezogen wird.
+  it('sagt schon in der Unterzeile: Erlös gegen Personal- und Materialkosten (G26)', async () => {
+    zeige();
+    expect(await screen.findByText('Erlös gegen Personal- und Materialkosten — je Baustelle')).toBeInTheDocument();
+  });
+
   it('zieht es ab und schreibt es in die Zeile', async () => {
     projekte = [projekt('2026-001')];
     rechnungen = [rechnung('2026-001', 2000)];

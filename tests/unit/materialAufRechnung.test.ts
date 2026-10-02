@@ -290,6 +290,63 @@ describe('Die ganze Rechnung', () => {
     expect(r.leistung).toEqual({ von: '2026-09-07', bis: '2026-09-07' });
   });
 
+  // Testbericht 30.09.2026, G16 — auch ein Schein ohne Material bestimmt den Zeitraum.
+  it('nimmt einen unterschriebenen Schein OHNE Material in den Zeitraum (G16)', () => {
+    /*
+      Ein Schein über reine Arbeitszeit, für die niemand Stunden gebucht hat
+      (etwa bei einer Pauschale), liess den Zeitraum sonst leer — und die
+      Rechnung war nach § 11 UStG unvollständig.
+    */
+    const nurSchein = assembleInvoice('B-001', [], INVOICE_DEFAULTS, {
+      scheine: [schein({ id: 's1', datum: '2026-09-12', material: [] })],
+      katalog: KATALOG,
+    });
+    expect(nurSchein.leistung).toEqual({ von: '2026-09-12', bis: '2026-09-12' });
+    // Material kam keines dazu, also merkt sich die Rechnung den Schein nicht als verbraucht.
+    expect(nurSchein.linkedWorkSheets).toEqual([]);
+
+    const mitStunden = assembleInvoice('B-001', zeiten, INVOICE_DEFAULTS, {
+      scheine: [schein({ id: 's1', datum: '2026-09-12', material: [] })],
+      katalog: KATALOG,
+    });
+    expect(mitStunden.leistung).toEqual({ von: '2026-09-07', bis: '2026-09-12' });
+  });
+
+  it('Gegenprobe: ein Entwurf oder ein schon verrechneter Schein ohne Material zählt nicht (G16)', () => {
+    const r = assembleInvoice('B-001', zeiten, INVOICE_DEFAULTS, {
+      scheine: [
+        schein({ id: 's1', datum: '2026-09-20', status: 'Entwurf' }),
+        schein({ id: 's2', datum: '2026-09-30' }),
+      ],
+      katalog: KATALOG,
+      bereitsVerrechnet: new Set(['s2']),
+    });
+    expect(r.leistung).toEqual({ von: '2026-09-07', bis: '2026-09-07' });
+  });
+
+  // Testbericht 30.09.2026, G17 — die Tätigkeit aus dem Schein gehört in den Leistungsnachweis.
+  it('übernimmt die Tätigkeit des Scheins für die Buchung desselben Tages und derselben Person (G17)', () => {
+    const buchungen: Array<TimeEntry & { id: string }> = [
+      { ...zeiten[0], userName: 'Max Monteur' },
+      // Anderer Tag — dafür steht im Schein nichts.
+      { ...zeiten[0], id: 'z2', date: '2026-09-08', userName: 'Max Monteur' },
+    ];
+    const r = assembleInvoice('B-001', buchungen, INVOICE_DEFAULTS, {
+      scheine: [schein({
+        id: 's1',
+        datum: '2026-09-07',
+        zeiten: [
+          { datum: '2026-09-07', mitarbeiter: 'Eva Andere', minuten: 240, taetigkeit: 'Nicht von Max' },
+          // Gross-/Kleinschreibung und Leerzeichen stören nicht.
+          { datum: '2026-09-07', mitarbeiter: ' max monteur ', minuten: 510, taetigkeit: '  Bad, Rohinstallation ' },
+        ],
+      })],
+      katalog: KATALOG,
+    });
+    expect(r.taetigkeiten).toEqual({ z1: 'Bad, Rohinstallation' });
+    expect(r.entries.map((e) => e.id)).toEqual(['z1', 'z2']);
+  });
+
   it('läuft ohne Material genauso wie vorher', async () => {
     // Die Zusicherung an alles Bestehende: wer keine Scheine mitgibt, bekommt
     // exakt die Rechnung von früher.

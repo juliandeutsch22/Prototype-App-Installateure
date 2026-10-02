@@ -127,6 +127,33 @@ describe('Die Rechnung im neuen Layout', () => {
     expect(zeile[3]).toBe(KOMMENTAR);
   });
 
+  // Testbericht 30.09.2026, G17 — ohne Notiz an der Buchung stand die Spalte leer.
+  it('nimmt im Leistungsnachweis die Tätigkeit aus dem Schein, wo die Buchung keine Notiz hat (G17)', () => {
+    const buchung = (id: string, date: string, comment?: string) => ({
+      id, companyId: 'perl', date, status: 'Anwesend', startTime: '07:00', endTime: '11:00',
+      breakDuration: 0, userId: 'm1', userName: 'Manfred Monteur', comment,
+    }) as TimeEntry & { id: string };
+    generateInvoicePdf({
+      company: firma,
+      project: { customerName: 'Familie Huber', address: 'Gartengasse 12', projectNumber: 'B-001' },
+      invoiceNumber: 'RE-2026-0002',
+      invoiceDate: '2026-09-15',
+      dueDate: '2026-09-29',
+      assembled: {
+        positions: [{ label: 'Facharbeit', qty: 8, unit: 'h', unitPrice: 78, netto: 624 }],
+        subtotalNetto: 624, discount: null, discountAmount: 0, totalNetto: 624, totalVat: 124.8, totalBrutto: 748.8,
+        linkedEntries: [], linkedOrders: [], linkedWorkSheets: [], leistung: null, materialOhnePreis: [],
+        entries: [buchung('e1', '2026-09-01'), buchung('e2', '2026-09-02', 'Eigene Notiz')],
+        taetigkeiten: { e1: 'Bad, Rohinstallation', e2: 'Aus dem Schein' },
+      },
+      appendDetail: true,
+    });
+    const zeilen = tabellen[1].body as string[][];
+    expect(zeilen[0][3]).toBe('Bad, Rohinstallation');
+    // Die Notiz der Buchung geht vor.
+    expect(zeilen[1][3]).toBe('Eigene Notiz');
+  });
+
   it('trägt Bank und UID in der Fußzeile JEDER Seite', () => {
     const seiten = rechnung().internal.pages.filter(Boolean);
     expect(seiten).toHaveLength(2);

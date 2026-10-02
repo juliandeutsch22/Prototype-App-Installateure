@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Betriebsurlaub, Krankmeldung } from '@/types';
@@ -126,6 +126,21 @@ describe('Betriebsurlaub', () => {
         von: '2026-12-28', bis: '2026-12-31', bezeichnung: 'Weihnachten', abbuchen: true,
       })),
     );
+  });
+
+  // Testbericht 30.09.2026, G2 — vorbelegte Felder: Tippen ersetzt, statt anzuhängen.
+  it('markiert die vorbelegte Bezeichnung beim Hineingehen, damit Tippen sie ersetzt (G2)', async () => {
+    zeige(<BetriebsurlaubReiter companyId="perl" meinName="Brigitte" />);
+    const feld = screen.getByLabelText(/Bezeichnung/) as HTMLInputElement;
+    expect(feld.value).toBe('Betriebsurlaub');
+
+    act(() => feld.focus());
+    expect(feld.selectionStart).toBe(0);
+    expect(feld.selectionEnd).toBe('Betriebsurlaub'.length);
+
+    // Kein „BetriebsurlaubWeihnachten“ — wie früher „StkStk“.
+    await userEvent.keyboard('Weihnachten');
+    expect(feld.value).toBe('Weihnachten');
   });
 
   it('ohne Häkchen wird nichts abgebucht — und die Rückfrage sagt das', async () => {
