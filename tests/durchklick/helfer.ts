@@ -41,3 +41,29 @@ export async function keineFehlermeldung(page: Page): Promise<void> {
     );
   }
 }
+
+/**
+ * Zu einem Menüpunkt, so wie man es auf DIESEM Gerät tut (Nachtest
+ * 01.10.2026, Paket E): am Schreibtisch und auf dem Tablet über die
+ * Seitenleiste, am Telefon über die Leiste unten (dort steht die Kurzform,
+ * etwa „Material“) oder über „Mehr“.
+ */
+export async function menue(page: Page, name: string, kurz?: string): Promise<void> {
+  const leiste = page.getByRole('navigation', { name: 'Hauptnavigation' }).locator('visible=true');
+  await leiste.first().waitFor({ timeout: 20_000 });
+  // Nicht genau: mit offenen Posten heißt der Link „…, 2 offene …“.
+  const voll = leiste.getByRole('link', { name }).locator('visible=true');
+  if (await voll.count()) {
+    await voll.first().click();
+    return;
+  }
+  if (kurz) {
+    const tab = leiste.getByRole('link', { name: kurz }).locator('visible=true');
+    if (await tab.count()) {
+      await tab.first().click();
+      return;
+    }
+  }
+  await page.getByRole('button', { name: /^Mehr/ }).click();
+  await page.getByRole('link', { name }).locator('visible=true').first().click();
+}

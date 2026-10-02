@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { admin, BAUSTELLE, BETRIEB, MONTEUR } from './aufbau';
-import { anmelden, keineFehlermeldung } from './helfer';
+import { anmelden, keineFehlermeldung, menue } from './helfer';
 
 /**
  * Der Handwerksschein mit zwei Unterschriften.
@@ -62,7 +62,7 @@ test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({
 
   await anmelden(page, MONTEUR.email);
 
-  await page.getByRole('link', { name: 'Handwerksscheine' }).first().click();
+  await menue(page, 'Handwerksscheine', 'Scheine');
   await page.getByRole('link', { name: 'Neuer Schein' }).click();
 
   /*

@@ -70,7 +70,8 @@ test('Ein Monteur meldet sich an und bucht seine Zeit', async ({ page }) => {
 */
 test('Getippter Text bleibt stehen, auch wenn direkt nach dem Laden getippt wird', async ({ page }) => {
   await anmelden(page, MONTEUR.email);
-  await page.goto('/time');
+  // Nicht auf „load“ warten: getippt wird, sobald das Feld da ist — und WebKit meldet „load“ hier erst spät.
+  await page.goto('/time', { waitUntil: 'domcontentloaded' });
   const kommentar = page.locator('#comment');
   await kommentar.waitFor({ state: 'visible', timeout: 20_000 });
   await kommentar.fill('Verteiler gesetzt, Leitung gespült');
