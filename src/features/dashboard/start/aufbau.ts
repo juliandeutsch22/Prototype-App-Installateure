@@ -530,7 +530,7 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
     themen.push(wenn(ZIEL.benutzerverwaltung, {
       key: 'leitung-mail', wann: 'woche',
       titel: 'Nur ein Leitungskonto, ohne E-Mail',
-      detail: 'Passwort vergessen geht dann nur über den Support — zweites anlegen',
+      detail: 'Passwort vergessen geht dann nur über den Support — zweites anlegen oder auf E-Mail umstellen',
       status: { text: 'anlegen', ton: 'leise' },
     }));
   }

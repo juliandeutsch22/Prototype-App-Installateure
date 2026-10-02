@@ -19,7 +19,7 @@
  *           keine Lücke; die Ansicht unterscheidet die beiden nicht, aber der
  *           Vertrag tut es.
  */
-import type { AppUser } from '@/types';
+import type { AppUser, KontoUmstellung } from '@/types';
 import { abfragen, derClient, aendern, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
 import {
@@ -183,3 +183,22 @@ export async function createUserDoc(
 // Einsätze verweisen über die Kennung auf den Nutzer und würden verwaisen.
 // Gesperrt wird über `active: false` — das nimmt die Anmeldung und die
 // Auswertungen, lässt die Vergangenheit aber lesbar.
+
+/**
+ * Die Umstellungen der Anmeldung einer Person, jüngste zuerst. Lesen darf
+ * sie nur die Spitze (Richtlinie `konto_umstellungen_lesen`); geschrieben
+ * werden sie nur in `konto-umstellen`.
+ */
+export async function listKontoUmstellungen(uid: string, max = 20): Promise<KontoUmstellung[]> {
+  const { data, error } = await derClient()
+    .from('konto_umstellungen')
+    .select('*')
+    .eq('user_id', uid)
+    .order('am', { ascending: false })
+    .limit(max);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((z) => {
+    const k = zeileAlsObjekt<WithId<KontoUmstellung>>('konto_umstellungen', z as Record<string, unknown>);
+    return { ...k, id: String(k.id) };
+  });
+}

@@ -195,6 +195,31 @@ export async function passwortVergeben(uid: string, passwort: string): Promise<v
   }
 }
 
+/** Wohin ein Konto umgestellt wird — und womit es sich danach anmeldet. */
+export type KontoZiel =
+  | { nach: 'mail'; email: string }
+  | { nach: 'benutzername'; benutzername: string; grund: string };
+
+/**
+ * Ein Konto zwischen E-Mail und Benutzername umstellen (02.10.2026).
+ * Über die Edge Function `konto-umstellen`; das Startpasswort kommt nur beim
+ * Weg auf den Benutzernamen zurück, und nur dieses eine Mal.
+ */
+export async function kontoUmstellen(
+  uid: string, ziel: KontoZiel,
+): Promise<{ anmeldung: string; startpasswort?: string }> {
+  const { data, error } = await supabaseClient().functions.invoke('konto-umstellen', {
+    body: { uid, ...ziel },
+  });
+  if (error) {
+    const rumpf = await (error as { context?: Response }).context?.json?.()
+      .catch(() => undefined);
+    throw new Error(rumpf?.error ?? error.message);
+  }
+  const antwort = data as { anmeldung?: string; startpasswort?: string } | null;
+  return { anmeldung: String(antwort?.anmeldung ?? ''), startpasswort: antwort?.startpasswort };
+}
+
 /**
  * Meldet sich, wenn eine Sitzung aus einem RÜCKSETZLINK entstanden ist.
  *

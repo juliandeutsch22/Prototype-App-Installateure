@@ -36,6 +36,7 @@ import { einstufungText, lehrzeitEnde } from '@/lib/einstufung';
 import Datenauskunft from '@/features/recht/Datenauskunft';
 import { zeigtAuskunft } from '@/features/recht/auskunftDatei';
 import ZahlFeld from '@/components/ZahlFeld';
+import KontoUmstellen from './KontoUmstellen';
 
 /**
  * Die Akte eines Benutzers — und die Stelle, an der sie bearbeitet wird.
@@ -323,6 +324,15 @@ export default function BenutzerakteView() {
           </Hinweiszeile>
         </div>
       )}
+      <KontoUmstellen
+        person={p}
+        eigenesKonto={eigenesKonto}
+        onUmgestellt={(startpasswort) => {
+          // Zuerst das Passwort: die Akte lädt gleich neu, das hier bleibt stehen.
+          if (startpasswort) setVergeben(startpasswort);
+          setVersuch((v) => v + 1);
+        }}
+      />
       {/* Bewusst kein Löschen: Zeiteinträge, Bestellungen und Einsätze
           verweisen auf die Kennung und würden verwaisen. */}
       <p className="mt-3 text-sm text-ink-muted">
