@@ -577,7 +577,7 @@ export default function WorkSheetsListView() {
                 subtitle={
                   <>
                     <span>
-                      Baustelle {schein.projectNumber} · Leistung vom {datumAT(schein.datum)}
+                      Baustelle <span className="nr">{schein.projectNumber}</span> · Leistung vom {datumAT(schein.datum)}
                     </span>
                     <span className="mt-1 block">
                       {zeilen.map((z) => (
@@ -740,7 +740,7 @@ export default function WorkSheetsListView() {
                     <span>
                       {s.customerName}{' '}
                       <span className="text-sm font-normal text-ink-muted">
-                        ({s.projectNumber})
+                        <span className="nr">({s.projectNumber})</span>
                       </span>
                     </span>
                   }

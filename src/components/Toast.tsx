@@ -72,16 +72,22 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         „Material anlegen“ im Lager war bis zum Verschwinden nicht zu treffen.
         Am Telefon oben in der Mitte, am Schreibtisch oben rechts, wo keine
         Aktion steht. `safe-area` hält sie unter der Kamera-Aussparung.
+
+        NACHGEZOGEN AM 01.10.2026 (Nachtest, G29): oben rechts lag die
+        Meldung am Schreibtisch über dem Hauptknopf des Seitenkopfs („Neue
+        Baustelle“, „Neuer Schein“). Dort steht sie jetzt unten links im
+        Inhalt, neben der Seitenleiste — Aktionsleisten stehen rechts. Und sie
+        lässt Klicks durch: was darunter liegt, bleibt in jedem Fall treffbar.
       */}
       <div
-        className="pointer-events-none fixed inset-x-0 top-[max(1rem,env(safe-area-inset-top))] z-50 flex flex-col items-center gap-2 px-4 lg:left-auto lg:right-4 lg:items-end"
+        className="pointer-events-none fixed inset-x-0 top-[max(1rem,env(safe-area-inset-top))] z-50 flex flex-col items-center gap-2 px-4 lg:bottom-4 lg:left-[18.5rem] lg:right-auto lg:top-auto lg:items-start lg:px-0"
         aria-live="polite"
         role="status"
       >
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto w-full max-w-sm rounded border border-l-4 border-line bg-surface px-4 py-3 text-sm font-medium text-ink shadow-lg ${toneClasses[t.tone]}`}
+            className={`pointer-events-none w-full max-w-sm rounded border border-l-4 border-line bg-surface px-4 py-3 text-sm font-medium text-ink shadow-lg ${toneClasses[t.tone]}`}
           >
             {t.message}
           </div>

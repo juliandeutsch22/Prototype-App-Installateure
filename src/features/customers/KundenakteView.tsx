@@ -509,7 +509,7 @@ export default function KundenakteView() {
                   {r.invoiceNumber}
                 </Link>
                 <span className="ml-2 whitespace-nowrap text-xs text-ink-muted">
-                  {fmtDatum(r.invoiceDate)} · {r.projectNumber}
+                  {fmtDatum(r.invoiceDate)} · <span className="nr">{r.projectNumber}</span>
                 </span>
               </span>
               <span className="whitespace-nowrap text-sm text-ink-muted">

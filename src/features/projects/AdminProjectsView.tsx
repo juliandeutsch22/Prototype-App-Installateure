@@ -1,4 +1,5 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import OhneUmbruch from '@/components/OhneUmbruch';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Adressfilter from '@/components/Adressfilter';
 import { BAUSTELLEN_FILTER, bekannt as bekannterWert, type BaustellenFilter } from '@/features/dashboard/start/ziele';
@@ -711,10 +712,15 @@ export default function AdminProjectsView() {
               id="psuche"
               label="Suche"
               type="search"
-              placeholder="Kunde, Bezeichnung, Projektnummer oder Adresse"
+              placeholder="Suchen …"
+              aria-describedby="psuche-hilfe"
               value={suche}
               onChange={(e) => setSuche(e.target.value)}
             />
+            {/* Der Platzhalter war am Telefon abgeschnitten (U11) — was gesucht wird, steht hier. */}
+            <p id="psuche-hilfe" className="mt-1 text-xs text-ink-muted">
+              Kunde, Bezeichnung, Projektnummer oder Adresse
+            </p>
             {/*
               WAS DIE SUCHE ERREICHT, BEVOR SIE ETWAS FINDET.
 
@@ -756,7 +762,7 @@ export default function AdminProjectsView() {
                   key={p.id}
                   title={
                     <span>
-                      {baustellenTitel(p)} <span className="text-ink-muted">({p.projectNumber})</span>
+                      <OhneUmbruch text={baustellenTitel(p)} /> <span className="nr text-ink-muted">({p.projectNumber})</span>
                     </span>
                   }
                   subtitle={

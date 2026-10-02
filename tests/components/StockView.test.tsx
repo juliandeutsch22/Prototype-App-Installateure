@@ -298,7 +298,9 @@ describe('Lager — Inventur und Bewegungen', () => {
     materialien = [material({ id: 'm1', stock: 20 })];
     inventurBuchen.mockResolvedValueOnce(18);
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Inventur' }));
+    // Seit U12 im Zeilenmenü „⋯“.
+    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Inventur' }));
     const dialog = await screen.findByRole('dialog');
     const feld = within(dialog).getByLabelText(/^Gezählter Bestand/);
     await userEvent.clear(feld);
@@ -312,7 +314,9 @@ describe('Lager — Inventur und Bewegungen', () => {
     materialien = [material({ id: 'm1', stock: 20 })];
     inventurBuchen.mockClear();
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Inventur' }));
+    // Seit U12 im Zeilenmenü „⋯“.
+    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Inventur' }));
     const dialog = await screen.findByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Bestand buchen' }));
     expect(await within(dialog).findByText(/Ohne Grund keine Korrektur/)).toBeInTheDocument();
@@ -326,7 +330,9 @@ describe('Lager — Inventur und Bewegungen', () => {
       { id: 'b1', materialId: 'm1', art: 'eingang', menge: 12, bestandNachher: 22, lieferant: 'Frauenthal', lieferschein: 'LS-4711', createdAt: Date.UTC(2026, 8, 29, 10) },
     ]);
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Bewegungen' }));
+    // Seit U12 im Zeilenmenü „⋯“.
+    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Bewegungen' }));
     const dialog = await screen.findByRole('dialog');
     expect(await within(dialog).findByText(/Inventur -2 m/)).toBeInTheDocument();
     expect(within(dialog).getByText(/Grund: Bruch/)).toBeInTheDocument();

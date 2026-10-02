@@ -97,7 +97,7 @@ describe('Meine Baustellen', () => {
     const route = await screen.findByRole('link', { name: /Route:/ });
     expect(route.getAttribute('href')).toContain('Hauptstra');
     expect(screen.getByRole('link', { name: /0664/ }).getAttribute('href')).toBe(
-      'tel:06641234567',
+      'tel:+436641234567',
     );
   });
 

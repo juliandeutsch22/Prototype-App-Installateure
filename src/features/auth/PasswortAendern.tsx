@@ -103,7 +103,7 @@ export default function PasswortAendern({
           <br />
           <strong>Das Büro kann es nicht nachsehen.</strong> Es steht nirgends im Klartext.{' '}
           {benutzerkonto
-            ? 'Wer es vergisst, bekommt von der Geschäftsführung oder Administration ein neues Startpasswort.'
+            ? 'Wer es vergisst, bekommt von der Geschäftsführung oder vom Administrator ein neues Startpasswort.'
             : 'Wer es vergisst, lässt sich über „Passwort vergessen?“ einen neuen Link schicken.'}
         </>
       }

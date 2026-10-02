@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '@/components/Icon';
+import OhneUmbruch from '@/components/OhneUmbruch';
 import { summe, type Abschnitt, type Ton, type Zeile } from './abschnitte';
 
 const TON: Record<Ton, string> = {
@@ -21,14 +22,14 @@ function EintragZeile({ z }: { z: Zeile }) {
   const inhalt = (
     <>
       <span className="min-w-0 flex-1">
-        <span className="kein-trennen block font-medium text-ink-deep">{z.titel}</span>
+        <span className="block font-medium text-ink-deep"><OhneUmbruch text={z.titel} /></span>
         {(z.detail || z.status) && (
           // Fließtext, nicht Flexbox: bricht das Detail um, bleibt der Punkt
           // beim Status und das Detail läuft in der nächsten Zeile weiter.
-          <span className="kein-trennen mt-0.5 block text-meta text-ink-muted">
+          <span className="mt-0.5 block text-meta text-ink-muted">
             {/* Am Telefon steht der Status vorn in der Detailzeile. */}
             {status && <span className="start-status-vorn">{status}{z.detail && <span aria-hidden="true"> · </span>}</span>}
-            {z.detail}
+            <OhneUmbruch text={z.detail} />
           </span>
         )}
       </span>

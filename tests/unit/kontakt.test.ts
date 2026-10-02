@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapsUrl, telUrl, mailUrl } from '@/lib/kontakt';
+import { mapsUrl, telUrl, mailUrl, telefonAnzeige } from '@/lib/kontakt';
 
 /**
  * Adresse, Nummer und Mail als Handgriff.
@@ -30,8 +30,10 @@ describe('mapsUrl', () => {
 describe('telUrl', () => {
   it('macht aus einer getippten Nummer eine wählbare', () => {
     // So stehen Nummern in der Praxis in den Stammdaten.
-    expect(telUrl('0664 123 45 67')).toBe('tel:06641234567');
-    expect(telUrl('+43 (0)2622/12345')).toBe('tel:+430262212345');
+    // Seit 01.10.2026 international (U2): eine führende 0 wird +43, die (0) nach +43 fällt weg.
+    expect(telUrl('0664 123 45 67')).toBe('tel:+436641234567');
+    expect(telUrl('+43 (0)2622/12345')).toBe('tel:+43262212345');
+    expect(telUrl('0049 89 123456')).toBe('tel:+4989123456');
   });
 
   it('behält ein führendes Plus — und wirft ein mittendrin weg', () => {
@@ -40,7 +42,23 @@ describe('telUrl', () => {
       scheiterte der Anruf wortlos: das Telefon wählt und kommt nirgends an.
     */
     expect(telUrl('+43 664 1234567')).toBe('tel:+436641234567');
-    expect(telUrl('0664+1234567')).toBe('tel:06641234567');
+    expect(telUrl('0664+1234567')).toBe('tel:+436641234567');
+  });
+});
+
+describe('telefonAnzeige', () => {
+  it('schreibt österreichische Nummern einheitlich in der Inlandsform (U2)', () => {
+    expect(telefonAnzeige('06606322503')).toBe('0660 6322503');
+    expect(telefonAnzeige('0660 6322503')).toBe('0660 6322503');
+    expect(telefonAnzeige('+43 3112 12345')).toBe('03112 12345');
+    expect(telefonAnzeige('+43 1 2345678')).toBe('01 2345678');
+    expect(telefonAnzeige('0316/123456')).toBe('0316 123456');
+    expect(telefonAnzeige('+43 (0)2622/12345')).toBe('02622 12345');
+  });
+
+  it('lässt ausländische und unvollständige Nummern, wie sie sind', () => {
+    expect(telefonAnzeige('+49 89 123456')).toBe('+49 89 123456');
+    expect(telefonAnzeige('112')).toBe('112');
   });
 });
 

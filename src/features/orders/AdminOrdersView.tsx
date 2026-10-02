@@ -444,7 +444,7 @@ export default function AdminOrdersView() {
                         subtitle={
                           <>
                             {o.userName}
-                            {o.projectNumber && ` · ${o.projectNumber}`}
+                            {o.projectNumber && <> · <span className="nr">{o.projectNumber}</span></>}
                             {o.condition && ` · ${CONDITION_LABEL[o.condition] ?? o.condition}`}
                             {o.bestelltAm && !o.geliefertAm && o.liefertermin && ` · ${lieferterminText(o.liefertermin)}`}
                             {/*

@@ -178,7 +178,15 @@ export default function PersonPicker({
                   const id = `${idPrefix}-${p.uid}`;
                   return (
                     <li key={p.uid} className={an ? 'bg-surface-2' : ''}>
-                      <div className="flex flex-wrap items-center justify-between gap-2 px-3">
+                      {/*
+                        DIE ZEILE ÄNDERT BEIM ANHAKEN IHRE HÖHE NICHT (Nachtest
+                        01.10.2026, G6). „als Helfer“ erschien erst nach dem
+                        Haken und brach am Telefon in eine zweite Zeile um —
+                        alles darunter rutschte, und der nächste Tipp traf die
+                        falsche Person. Der Platz steht jetzt immer bereit,
+                        unsichtbar bis zum Haken; die Zeile bricht nicht um.
+                      */}
+                      <div className="flex flex-nowrap items-center justify-between gap-2 px-3">
                         <label
                           htmlFor={id}
                           className="flex min-h-touch min-w-0 flex-1 cursor-pointer items-center gap-3 py-1"
@@ -197,7 +205,11 @@ export default function PersonPicker({
                             )}
                           </span>
                         </label>
-                        {an && renderExtra?.(p.uid)}
+                        {renderExtra && (
+                          <div className={`shrink-0 ${an ? '' : 'invisible'}`} aria-hidden={!an}>
+                            {renderExtra(p.uid)}
+                          </div>
+                        )}
                       </div>
                     </li>
                   );

@@ -109,3 +109,22 @@ describe('PersonPicker — ohne Verfuegbarkeit unveraendert', () => {
     expect(namen[2]).toContain('Berta');
   });
 });
+
+/*
+  G6 (Nachtest 01.10.2026): „als Helfer“ erschien erst nach dem Haken und
+  machte die Zeile höher — die Liste darunter rutschte. Der Platz steht jetzt
+  immer da, unsichtbar und für den Vorleser stumm, bis angehakt ist.
+*/
+describe('PersonPicker — die Zeile behält beim Anhaken ihre Höhe (G6)', () => {
+  it('hält den Platz für die Zusatzwahl frei, sichtbar erst mit Haken', () => {
+    const leute: PickablePerson[] = [{ uid: 'a', name: 'Anton' }, { uid: 'b', name: 'Berta' }];
+    render(
+      <PersonPicker legend="Mitarbeiter" people={leute} selected={['a']} onChange={() => {}} idPrefix="t"
+        renderExtra={(uid) => <span data-testid={`extra-${uid}`}>als Helfer</span>} />,
+    );
+    expect(screen.getByTestId('extra-a').parentElement).not.toHaveClass('invisible');
+    const frei = screen.getByTestId('extra-b').parentElement!;
+    expect(frei).toHaveClass('invisible');
+    expect(frei).toHaveAttribute('aria-hidden', 'true');
+  });
+});

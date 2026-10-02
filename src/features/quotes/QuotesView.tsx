@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import OhneUmbruch from '@/components/OhneUmbruch';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -736,7 +737,7 @@ export default function QuotesView() {
                   // Tastfläche 48 px, Zeile unverändert: Polster und Gegen-
                   // rand heben sich im Layout auf (Prüflauf 25.09.2026).
                   <Link to={`/quotes/${q.id}`} className="link py-3 -my-3">
-                    {q.quoteNumber} · {q.customerName}
+                    <span className="nr">{q.quoteNumber}</span> · <OhneUmbruch text={q.customerName} />
                   </Link>
                 }
                 wert={`${euro(q.totalBrutto)} brutto`}
@@ -746,7 +747,7 @@ export default function QuotesView() {
                     {datumAT(q.quoteDate)} · gültig bis {datumAT(q.validUntil)}
                     <span className="mt-1 block text-xs text-ink-muted">
                       {fmtStunden(q.kalkulierteStunden)} h kalkuliert
-                      {q.projectNumber ? ` · Baustelle ${q.projectNumber}` : ''}
+                      {q.projectNumber ? <> · Baustelle <span className="nr">{q.projectNumber}</span></> : ''}
                     </span>
                   </>
                 }

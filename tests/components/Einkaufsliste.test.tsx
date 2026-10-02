@@ -317,7 +317,7 @@ describe('Einkaufsliste — Material dazusetzen', () => {
     await userEvent.click(await screen.findByRole('button', { name: '+ Material' }));
     await userEvent.type(screen.getByLabelText(/^Artikel/), 'Sonderteil XY');
     expect(await screen.findByText(/Nicht im Katalog/)).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText('Einheit'), 'Stk');
+    await userEvent.selectOptions(screen.getByLabelText('Einheit'), 'Stk'); // feste Auswahl seit U5
     await userEvent.click(screen.getByRole('button', { name: 'Auf die Einkaufsliste' }));
     await waitFor(() =>
       expect(postenAnlegen).toHaveBeenCalledWith('perl', expect.objectContaining({

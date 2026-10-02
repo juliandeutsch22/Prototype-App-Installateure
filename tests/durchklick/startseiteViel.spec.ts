@@ -5,7 +5,8 @@ import { anmelden, keineFehlermeldung } from './helfer';
 /**
  * Die Startseite mit einem vollen Betrieb (Nachtest 01.10.2026, Paket B,
  * Abnahme): 40 aktive Baustellen, 20 Anforderungen, 10 Personen — am
- * Telefon (390 px) und am Schreibtisch (1280 px).
+ * Telefon (390 px), bei 1.150 px (G20: keine leere Spalte, nichts
+ * abgeschnitten) und am Schreibtisch (1280 px).
  *
  * Geprüft wird, was mit dem Betrieb wachsen könnte und nicht soll:
  *   - kein Abschnitt zeigt mehr als drei Zeilen;
@@ -147,12 +148,16 @@ async function startseitePruefen(page: Page): Promise<number> {
   }));
   // Nichts ragt seitlich heraus.
   expect(masse.breite).toBeLessThanOrEqual(masse.sichtBreite);
+  // Kein Kennzahlwert endet mit „…“ — ein abgeschnittener Betrag ist falsch.
+  const abgeschnitten = await page.locator('.kennzahl-wert').evaluateAll((els) =>
+    els.filter((e) => e.scrollWidth > e.clientWidth).map((e) => e.textContent));
+  expect(abgeschnitten).toEqual([]);
   // Etwa zwei Bildschirmhöhen — mit Luft für Kopfleiste und Leiste unten.
   expect(masse.hoehe / masse.sicht).toBeLessThanOrEqual(2.25);
   return masse.hoehe / masse.sicht;
 }
 
-for (const [breite, hoehe, wo] of [[390, 844, 'am Telefon'], [1280, 900, 'am Schreibtisch']] as const) {
+for (const [breite, hoehe, wo] of [[390, 844, 'am Telefon'], [1150, 800, 'bei 1.150 px'], [1280, 900, 'am Schreibtisch']] as const) {
   test.describe(`Startseite mit vollem Betrieb ${wo}`, () => {
     test.use({ viewport: { width: breite, height: hoehe } });
 

@@ -1119,7 +1119,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           }
         >
           <p className="text-sm text-ink">
-            Über Urlaubsanträge entscheiden <strong>{immerDabei.join(', ') || 'Geschäftsführung und Administration'}</strong> immer
+            Über Urlaubsanträge entscheiden <strong>{immerDabei.join(', ') || 'Geschäftsführung und Administrator'}</strong> immer
             — das lässt sich nicht abwählen, sonst könnte eine Fehleingabe den ganzen Betrieb
             aussperren. Hier kommen weitere Personen dazu.
           </p>
@@ -1180,7 +1180,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             Eingeschaltet finden alle Mitarbeiter unter „Mein Einsatzplan“ eine zweite Seite
             „Team-Woche“: wer an welchem Tag auf welcher Baustelle ist. Zu ändern gibt es dort
             nichts. Wer Urlaub hat, steht als „abwesend“ da — ohne Grund und ohne Antragsstand.
-            Die Projektleitung lässt sich zusätzlich wie ein Monteur einteilen; sie sieht dann
+            Projektleiter lassen sich zusätzlich wie Monteure einteilen; sie sehen dann
             „Mein Einsatzplan“.
           </>
         }
@@ -1193,7 +1193,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
         />
         <CheckboxField
           id="projektleitungImEinsatzplan"
-          label="Die Projektleitung ist im Einsatzplan einteilbar und sieht „Mein Einsatzplan“"
+          label="Projektleiter sind im Einsatzplan einteilbar und sehen „Mein Einsatzplan“"
           checked={plImPlan}
           onChange={(e) => setPlImPlan(e.target.checked)}
         />
