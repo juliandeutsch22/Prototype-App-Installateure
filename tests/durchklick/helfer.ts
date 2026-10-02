@@ -22,6 +22,15 @@ export async function anmelden(page: Page, email: string): Promise<void> {
   await expect(page.getByRole('button', { name: 'Anmelden' })).toHaveCount(0, {
     timeout: 20_000,
   });
+  /*
+    UND DIE STARTRUNDE ABWARTEN (02.10.2026). Nach dem Anmelden läuft die App
+    noch ihre Startrunde — Anmeldung prüfen, Startseite aufbauen. Ein
+    `page.goto` mitten hinein brach WebKit mit „Frame load interrupted“ ab;
+    an zwei Wegen nacheinander, deshalb hier und nicht je Prüfung. Angekommen
+    ist man, wenn das Netz ruht und die Startseite ihre Überschrift zeigt.
+  */
+  await page.waitForLoadState('networkidle');
+  await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 20_000 });
 }
 
 /**
