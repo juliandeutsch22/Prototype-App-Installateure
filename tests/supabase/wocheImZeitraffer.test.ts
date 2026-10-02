@@ -246,12 +246,15 @@ describe(`Eine Woche im Zeitraffer (${MO} bis ${FR})`, () => {
     clientEinreichen(buch.client);
     const imMonat = (await zeitenDb.listEntriesInRange(BETRIEB, MONAT_VON, MONAT_BIS)).filter((e) => e.userId === monteur.uid);
     const imJahr = (await zeitenDb.listEntriesInRange(BETRIEB, `${JAHR}-01-01`, `${JAHR}-12-31`)).filter((e) => e.userId === monteur.uid);
-    const stats = calcMonthStats(mitarbeiter, imMonat, imJahr, JAHR, MONAT, false);
-    const csv = buildMonthCsv([{ user: mitarbeiter, monthEntries: imMonat, stats }], JAHR, MONAT, false);
+    // Monat wie in der Ansicht: von null an gezählt.
+    const stats = calcMonthStats(mitarbeiter, imMonat, imJahr, JAHR, MONAT - 1, false);
+    const csv = buildMonthCsv([{ user: mitarbeiter, monthEntries: imMonat, stats }], JAHR, MONAT - 1, false);
 
     const zeilen = csv.split(/\r?\n/).filter((z) => z.includes('Max Mustermann'));
     expect(zeilen.filter((z) => z.includes('Krank'))).toHaveLength(2);
     expect(zeilen.filter((z) => z.includes(BAUSTELLE))).toHaveLength(3);
+    // In der Zusammenfassung: zwei Krankentage.
+    expect(stats.krankDays).toBe(2);
     // 3 × 8,5 h gearbeitet — dieselbe Rechnung wie in der Zeiterfassung.
     expect(imMonat.filter((e) => e.status === 'Anwesend').reduce((s, e) => s + calcWorkMin(e), 0)).toBe(3 * 510);
   });
