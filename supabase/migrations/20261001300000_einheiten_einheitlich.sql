@@ -70,16 +70,47 @@ create trigger einkauf_posten_einheit_norm
   before insert or update of einheit on public.einkauf_posten
   for each row execute function app.posten_einheit_norm();
 
--- Der Bestand einmal vereinheitlicht — ohne den Zeitstempel der letzten
--- Änderung zu verschieben, denn geändert hat sich nur die Schreibweise.
-alter table public.materials disable trigger materials_updated_at;
-update public.materials
-   set unit = app.einheit_norm(unit)
- where unit is distinct from app.einheit_norm(unit);
-alter table public.materials enable trigger materials_updated_at;
+/*
+  DER BESTAND EINMAL VEREINHEITLICHT — ohne den Zeitstempel der letzten
+  Änderung zu verschieben, denn geändert hat sich nur die Schreibweise.
 
-alter table public.einkauf_posten disable trigger einkauf_posten_updated_at;
-update public.einkauf_posten
-   set einheit = app.einheit_norm(einheit)
- where einheit is distinct from app.einheit_norm(einheit);
-alter table public.einkauf_posten enable trigger einkauf_posten_updated_at;
+  NACHGEZOGEN AM 02.10.2026: Der erste Anlauf scheiterte beim Einspielen in
+  das Projekt („Den Katalog pflegt die Verwaltung oder die Führung“). Beim
+  Einspielen ist niemand angemeldet, und die Sperren auf dem Katalog und auf
+  den Mengen der Posten fragen nach einer Rolle. In der Prüfung von null an
+  fiel das nicht auf — dort ist die Tabelle beim Einspielen leer. Deshalb
+  ruhen während der Angleichung ALLE Trigger der beiden Tabellen (nur die
+  eigenen, nicht die Fremdschlüssel): geändert wird ausschliesslich die
+  Schreibweise der Einheit, und für sie gilt keine dieser Regeln. Als
+  Funktion, damit `tests/supabase/einheiten.test.ts` genau diesen Weg mit
+  bestehenden Zeilen nachstellt.
+*/
+create or replace function app.einheiten_angleichen() returns integer
+  language plpgsql
+  set search_path = ''
+as $$
+declare
+  n integer;
+  m integer;
+begin
+  alter table public.materials disable trigger user;
+  update public.materials
+     set unit = app.einheit_norm(unit)
+   where unit is distinct from app.einheit_norm(unit);
+  get diagnostics n = row_count;
+  alter table public.materials enable trigger user;
+
+  alter table public.einkauf_posten disable trigger user;
+  update public.einkauf_posten
+     set einheit = app.einheit_norm(einheit)
+   where einheit is distinct from app.einheit_norm(einheit);
+  get diagnostics m = row_count;
+  alter table public.einkauf_posten enable trigger user;
+
+  return n + m;
+end;
+$$;
+
+revoke all on function app.einheiten_angleichen() from public, anon, authenticated;
+
+select app.einheiten_angleichen();
