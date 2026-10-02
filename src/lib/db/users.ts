@@ -1,7 +1,7 @@
 /**
  * Die Belegschaft — nur die Weiche.
  */
-import type { AppUser } from '@/types';
+import type { AppUser, KontoUmstellung } from '@/types';
 import * as pg from './pg/users';
 
 /*
@@ -21,6 +21,10 @@ export function listUsers(companyId: string): Promise<AppUser[]> {
 
 export function getUserByUid(companyId: string, uid: string): Promise<AppUser | null> {
   return pg.getUserByUid(companyId, uid);
+}
+
+export function listKontoUmstellungen(uid: string, max?: number): Promise<KontoUmstellung[]> {
+  return pg.listKontoUmstellungen(uid, max);
 }
 
 export function updateUserProfile(

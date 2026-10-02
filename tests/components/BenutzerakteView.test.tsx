@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
-import type { AppUser } from '@/types';
+import type { AppUser, KontoUmstellung } from '@/types';
 import { kunstadresse } from '@shared/benutzername';
 
 /**
@@ -44,6 +44,7 @@ vi.mock('@/lib/db/users', () => ({
     return gefunden;
   },
   updateUserProfile: (...a: unknown[]) => profilAendern(...a),
+  listKontoUmstellungen: async () => protokoll,
 }));
 
 vi.mock('@/lib/auth/provisionUser', () => ({
@@ -52,8 +53,13 @@ vi.mock('@/lib/auth/provisionUser', () => ({
 }));
 
 const vergeben = vi.fn<(a0: string, a1: string) => Promise<void>>(async () => undefined);
+let protokoll: KontoUmstellung[] = [];
+const umstellen = vi.fn<(uid: string, ziel: Record<string, string>) => Promise<{ anmeldung: string; startpasswort?: string }>>(
+  async () => ({ anmeldung: 'neu@perl.at' }),
+);
 vi.mock('@/lib/auth/sitzung', () => ({
   passwortVergeben: (uid: string, pw: string) => vergeben(uid, pw),
+  kontoUmstellen: (uid: string, ziel: Record<string, string>) => umstellen(uid, ziel),
 }));
 
 let angemeldet = {
@@ -479,5 +485,108 @@ describe('Kunden pflegen und Zeitkonto', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(profilAendern).toHaveBeenCalled());
     expect(profilAendern.mock.calls[0][1]).toMatchObject({ role: 'Mitarbeiter', kundenPflegen: false });
+  });
+});
+
+/**
+ * Konto umstellen zwischen E-Mail und Benutzername (02.10.2026). Was die
+ * Function darf, prüft `tests/supabase/kontoUmstellen.test.ts`; hier, was die
+ * Maske vorher sagt, was sie schickt und was danach dasteht.
+ */
+describe('Konto umstellen', () => {
+  beforeEach(() => {
+    protokoll = [];
+    umstellen.mockClear();
+    passwortMail.mockClear();
+    angemeldet = { ...angemeldet, uid: 'gf1' };
+  });
+
+  it('vom Benutzernamen auf die E-Mail: schickt die Adresse, danach die Passwort-Mail an sie', async () => {
+    gefunden = person({ uid: 'u3', name: 'Hans Helfer', email: kunstadresse('hans') });
+    const nutzer = userEvent.setup();
+    zeige('u3');
+    await nutzer.click(await screen.findByRole('button', { name: 'Auf E-Mail umstellen …' }));
+    expect(screen.getByText(/das Passwort bleibt/)).toBeInTheDocument();
+    await nutzer.type(screen.getByRole('textbox', { name: /E-Mail/ }), 'hans@perl.at');
+    await nutzer.click(screen.getByRole('button', { name: 'Umstellen' }));
+
+    await waitFor(() => expect(umstellen).toHaveBeenCalledWith('u3', { nach: 'mail', email: 'hans@perl.at' }));
+    await waitFor(() => expect(passwortMail).toHaveBeenCalledWith('neu@perl.at'));
+    expect(await screen.findByText(/Passwort-Mail an neu@perl\.at gesendet/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: eine unvollständige Adresse geht nicht hinaus', async () => {
+    gefunden = person({ uid: 'u3', name: 'Hans Helfer', email: kunstadresse('hans') });
+    const nutzer = userEvent.setup();
+    zeige('u3');
+    await nutzer.click(await screen.findByRole('button', { name: 'Auf E-Mail umstellen …' }));
+    await nutzer.type(screen.getByRole('textbox', { name: /E-Mail/ }), 'hans@perl');
+    await nutzer.click(screen.getByRole('button', { name: 'Umstellen' }));
+    expect(await screen.findByText(/vollständige E-Mail-Adresse/)).toBeInTheDocument();
+    expect(umstellen).not.toHaveBeenCalled();
+  });
+
+  it('von der E-Mail auf den Benutzernamen: nur mit Grund, danach das Startpasswort genau einmal', async () => {
+    gefunden = person({ uid: 'u2', name: 'Erna Beispiel', email: 'erna@perl.at' });
+    umstellen.mockImplementationOnce(async () => {
+      gefunden = person({ uid: 'u2', name: 'Erna Beispiel', email: kunstadresse('erna') });
+      return { anmeldung: kunstadresse('erna'), startpasswort: 'Kupfer-2741-Muffe' };
+    });
+    const nutzer = userEvent.setup();
+    zeige('u2');
+    await nutzer.click(await screen.findByRole('button', { name: 'Auf Benutzername umstellen …' }));
+    expect(screen.getByText(/überall abgemeldet/)).toBeInTheDocument();
+    await nutzer.type(screen.getByRole('textbox', { name: /^Benutzername/ }), 'erna');
+    await nutzer.click(screen.getByRole('button', { name: 'Umstellen' }));
+    expect(await screen.findByText(/Bitte einen Grund angeben/)).toBeInTheDocument();
+    expect(umstellen).not.toHaveBeenCalled();
+
+    await nutzer.type(screen.getByRole('textbox', { name: /Grund/ }), 'Kein Postfach');
+    await nutzer.click(screen.getByRole('button', { name: 'Umstellen' }));
+    await waitFor(() => expect(umstellen).toHaveBeenCalledWith('u2', { nach: 'benutzername', benutzername: 'erna', grund: 'Kein Postfach' }));
+
+    const hinweis = await screen.findByRole('alert');
+    expect(within(hinweis).getByText('Kupfer-2741-Muffe')).toBeInTheDocument();
+    expect(within(hinweis).getByText('erna')).toBeInTheDocument();
+    await nutzer.click(within(hinweis).getByRole('button', { name: 'Verstanden' }));
+    expect(screen.queryByText('Kupfer-2741-Muffe')).not.toBeInTheDocument();
+  });
+
+  it('sagt, wenn der Server ablehnt, und lässt die Eingabe stehen', async () => {
+    gefunden = person({ uid: 'u2', name: 'Erna Beispiel', email: 'erna@perl.at' });
+    umstellen.mockRejectedValueOnce(new Error('Diesen Benutzernamen kann Senklot nicht vergeben — bitte einen anderen wählen.'));
+    const nutzer = userEvent.setup();
+    zeige('u2');
+    await nutzer.click(await screen.findByRole('button', { name: 'Auf Benutzername umstellen …' }));
+    await nutzer.type(screen.getByRole('textbox', { name: /^Benutzername/ }), 'erna');
+    await nutzer.type(screen.getByRole('textbox', { name: /Grund/ }), 'Kein Postfach');
+    await nutzer.click(screen.getByRole('button', { name: 'Umstellen' }));
+    expect(await screen.findByText(/kann Senklot nicht vergeben/)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /^Benutzername/ })).toHaveValue('erna');
+  });
+
+  it('das eigene Konto: auf die E-Mail ja, auf den Benutzernamen nein', async () => {
+    angemeldet = { ...angemeldet, uid: 'u3' };
+    gefunden = person({ uid: 'u3', name: 'Hans Helfer', email: kunstadresse('hans') });
+    const erst = zeige('u3');
+    expect(await screen.findByRole('button', { name: 'Auf E-Mail umstellen …' })).toBeInTheDocument();
+    erst.unmount();
+
+    angemeldet = { ...angemeldet, uid: 'u2' };
+    gefunden = person({ uid: 'u2', name: 'Erna Beispiel', email: 'erna@perl.at' });
+    zeige('u2');
+    await screen.findByText(/Das eigene Konto lässt sich nicht sperren/);
+    expect(screen.queryByRole('button', { name: /Auf Benutzername umstellen/ })).not.toBeInTheDocument();
+  });
+
+  it('zeigt das Protokoll: wann, wohin, durch wen, warum', async () => {
+    gefunden = person({ uid: 'u3', name: 'Hans Helfer', email: kunstadresse('hans') });
+    protokoll = [{
+      id: '1', userId: 'u3', nach: 'benutzername', grund: 'Kein Postfach', durch: 'gf1', durchName: 'Chefin',
+      am: Date.parse('2026-10-02T09:30:00+02:00'),
+    }];
+    zeige('u3');
+    expect(await screen.findByText('Anmeldung umgestellt')).toBeInTheDocument();
+    expect(screen.getByText(/02\.10\.2026 · auf Benutzername · durch Chefin · Kein Postfach/)).toBeInTheDocument();
   });
 });

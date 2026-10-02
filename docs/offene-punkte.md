@@ -100,9 +100,13 @@ Anpassung, kein Umbau.
 | E2 | **M10** UID-Prüfung online über VIES (heute nur die Form je EU-Staat) |
 | E3 | Paket 11: Personalnummer, Lohnarten, Fahrzeuglager, Prüfprotokoll, Kalender-Export, Mailversand aus der App (braucht SMTP-Zugang als Function-Geheimnis), ebInterface |
 | E4 | Plattform: Stufe „nur lesen“ nach einer Kündigung (im Auftrag optional). Die Erinnerung bei nur einem Leitungskonto ohne E-Mail steht seit 02.10.2026 auf der Startseite des Betriebs |
-| E5 | Konto nachträglich zwischen E-Mail und Benutzername umstellen |
 
 ## Erledigt seit dem Prüflauf
+
+**Am 02.10.2026, auch:** E5 — ein Konto lässt sich zwischen E-Mail und
+Benutzername umstellen (Edge Function `konto-umstellen`, Protokoll
+`konto_umstellungen`). Dabei aufgefallen und behoben: die Datenauskunft je
+Person zählte die seit 30.09.2026 erfassten Lagerbewegungen nicht mit.
 
 **Am 02.10.2026:** A10 war keine offene Frage mehr — Angebote tragen nur
 Verkaufspreise und kalkulierte Stunden; Kostensätze und Einkaufspreise lesen

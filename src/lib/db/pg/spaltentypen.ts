@@ -64,6 +64,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   invoices: {
     cancelled_at: 'zeitpunkt', storno_am: 'zeitpunkt', created_at: 'zeitpunkt', updated_at: 'zeitpunkt',
   },
+  konto_umstellungen: { am: 'zeitpunkt' },
   krankmeldungen: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   material_einkaufspreise: { updated_at: 'zeitpunkt' },
   material_orders: {

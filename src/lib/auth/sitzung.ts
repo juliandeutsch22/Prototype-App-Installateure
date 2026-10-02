@@ -45,6 +45,14 @@ export function passwortVergeben(uid: string, passwort: string): Promise<void> {
   return pg.passwortVergeben(uid, passwort);
 }
 
+export type { KontoZiel } from './pg/sitzung';
+
+export function kontoUmstellen(
+  uid: string, ziel: pg.KontoZiel,
+): Promise<{ anmeldung: string; startpasswort?: string }> {
+  return pg.kontoUmstellen(uid, ziel);
+}
+
 export function beiPasswortRuecksetzung(ruf: () => void): () => void {
   return pg.beiPasswortRuecksetzung(ruf);
 }

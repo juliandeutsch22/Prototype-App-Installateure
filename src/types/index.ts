@@ -898,6 +898,20 @@ export interface Lagerbewegung {
 }
 
 /**
+ * Eine Umstellung der Anmeldung zwischen E-Mail und Benutzername
+ * (02.10.2026) — wer, wann, wohin, warum. Ohne Adressen.
+ */
+export interface KontoUmstellung {
+  id: string;
+  userId: string;
+  nach: 'mail' | 'benutzername';
+  grund?: string | null;
+  durch: string;
+  durchName?: string | null;
+  am: number;
+}
+
+/**
  * Ein Eintrag im Fehlerprotokoll — ein Absturz, ein unbehandelter Fehler oder
  * ein von Hand gemeldetes Problem. Ohne Inhaltsdaten; nur `beschreibung` ist
  * frei getippt.
