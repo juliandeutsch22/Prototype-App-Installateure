@@ -15,7 +15,7 @@ export const firma = {
   iban: 'AT12 3456 7890 1234 5678', bic: 'GIBAATWWXXX', bankName: 'Erste Bank',
   vatId: 'ATU12345678', companyRegister: 'FN 123456a',
   rates: { fach: 78, helper: 52, vatRate: 0.2, anfahrt: 45, nacht: 0.5, notdienst: 1 },
-  modules: {}, urlaubUebertrag: 'verjaehrung',
+  modules: {}, urlaubUebertrag: 'verjaehrung', kalenderAboErlaubt: true,
 };
 
 export const benutzer = [
@@ -99,3 +99,16 @@ export const wartungen = [
   { id: 'w2', companyId: 'perl', customerId: 'k2', customerName: 'Gemeinde Neudorf bei Wiener Neustadt', anlage: 'Wärmepumpe', intervallMonate: 24, faelligAm: '2027-03-01', aktiv: true },
 ];
 
+/** Eine VIES-Abfrage zum ersten Kunden (UID ATU87654321). */
+export const uidPruefungen = [
+  {
+    id: '1', customerId: 'k1', uid: 'ATU87654321', gueltig: true,
+    name: 'WOHNUNGSEIGENTÜMERGEMEINSCHAFT HAUPTSTRASSE 112-118', adresse: 'Hauptstraße 112\nAT-2700 Wiener Neustadt',
+    abfrageId: 'WAPIAAAAZ8Cq1x2b', eigeneUid: 'ATU12345678',
+    abgefragtAm: Date.parse('2026-10-02T08:15:00Z'), durch: 'u3', durchName: 'Erna Buchhalter',
+    am: Date.parse('2026-10-02T08:15:01Z'),
+  },
+];
+
+/** Das eigene Kalender-Abo — eingerichtet, zuletzt vor einer Stunde abgeholt. */
+export const kalenderAbo = { angelegtAm: Date.parse('2026-10-01T06:00:00Z'), zuletztAbgerufen: Date.parse('2026-10-02T20:15:00Z') };

@@ -8,6 +8,7 @@ export const passwortZuruecksetzen = async () => {};
 export const passwortSetzen = async () => {};
 export const startpasswortOffen = async () => false;
 export const passwortVergeben = async () => {};
+export const kontoUmstellen = async () => ({ anmeldung: 'vorschau@perl.at' });
 export const beiPasswortRuecksetzung = () => () => {};
 export const istPlattformAdmin = async () => false;
 export const kontoAnlegen = async () => 'neu';

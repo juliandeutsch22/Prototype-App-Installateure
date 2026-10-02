@@ -3,7 +3,7 @@ import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
-import type { Customer, Project, Quote, Wartung } from '@/types';
+import type { Customer, Project, Quote, UidPruefung, Wartung } from '@/types';
 
 /**
  * Die Kundenakte.
@@ -56,6 +56,9 @@ const listInvoicesForCustomer = vi.fn<(a0: string, a1: string, a2: string[]) => 
 /** Wie viele Baustellen beim Umbenennen nachgezogen wurden. */
 let nachgezogen = 0;
 const updateCustomer = vi.fn(async () => nachgezogen);
+let pruefungen: UidPruefung[] = [];
+const listUidPruefungen = vi.fn(async () => pruefungen);
+const uidBeiViesPruefen = vi.fn<(k: string) => Promise<{ pruefung: UidPruefung; hinweis?: string }>>();
 
 vi.mock('@/lib/db/customers', () => ({
   listCustomersByIds: () => listCustomersByIds(),
@@ -63,6 +66,8 @@ vi.mock('@/lib/db/customers', () => ({
   listUnlinkedProjectsByName: () => listUnlinkedProjectsByName(),
   assignProjectToCustomer: (...a: unknown[]) => assignProjectToCustomer(...(a as [])),
   updateCustomer: (...a: unknown[]) => updateCustomer(...(a as [])),
+  listUidPruefungen: () => listUidPruefungen(),
+  uidBeiViesPruefen: (k: string) => uidBeiViesPruefen(k),
 }));
 vi.mock('@/lib/db/quotes', () => ({
   listQuotesForCustomer: (...a: unknown[]) => listQuotesForCustomer(...(a as [])),
@@ -94,7 +99,8 @@ const NUTZER = () => ({
   kundenPflegen: freigabe,
 });
 let nutzer = NUTZER();
-vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ user: nutzer }) }));
+let einblick: unknown = null;
+vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ user: nutzer, einblick }) }));
 
 const { default: KundenakteView } = await import('@/features/customers/KundenakteView');
 
@@ -136,6 +142,10 @@ beforeEach(() => {
   listUnlinkedProjectsByName.mockClear();
   listWartungenForCustomer.mockClear();
   listQuotesForCustomer.mockClear();
+  pruefungen = [];
+  einblick = null;
+  listUidPruefungen.mockClear();
+  uidBeiViesPruefen.mockReset();
 });
 
 /**
@@ -585,5 +595,77 @@ describe('Kundenart und UID in der Akte', () => {
     await bediener.click(screen.getByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(updateCustomer).toHaveBeenCalled());
     expect(updateCustomer).toHaveBeenCalledWith('perl', 'k1', expect.objectContaining({ kundenart: 'unternehmen' }));
+  });
+});
+
+describe('Prüfung bei VIES (offene Punkte E2)', () => {
+  const PRUEFUNG: UidPruefung = {
+    id: '1', customerId: 'k1', uid: 'ATU12345678', gueltig: true, name: 'HAUSVERWALTUNG NORD GMBH',
+    adresse: 'Ringstraße 3\nAT-2700 Wiener Neustadt', abfrageId: 'WAPIAAAAZ1', eigeneUid: 'ATU99999999',
+    abgefragtAm: Date.parse('2026-10-02T08:15:00Z'), durch: 'buch', durchName: 'Erna Buch', am: Date.parse('2026-10-02T08:15:01Z'),
+  };
+
+  it('fragt die gespeicherte UID ab und zeigt Ergebnis, Zeitpunkt und Abfrage-ID', async () => {
+    uidBeiViesPruefen.mockResolvedValue({ pruefung: PRUEFUNG });
+    const u = userEvent.setup();
+    zeige();
+    expect(await screen.findByText('Noch nicht bei VIES geprüft.')).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Bei VIES prüfen' }));
+    expect(uidBeiViesPruefen).toHaveBeenCalledWith('k1');
+    expect(await screen.findByText('gültig')).toBeInTheDocument();
+    expect(screen.getByText(/laut VIES am 02\.10\.2026, 10:15/)).toBeInTheDocument();
+    expect(screen.getByText('WAPIAAAAZ1')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Erneut bei VIES prüfen' })).toBeInTheDocument();
+  });
+
+  it('sagt, wenn VIES nicht antwortet — und hält nichts fest', async () => {
+    uidBeiViesPruefen.mockRejectedValue(new Error('Der Dienst dieses Landes antwortet gerade nicht. Bitte später noch einmal prüfen.'));
+    const u = userEvent.setup();
+    zeige();
+    await u.click(await screen.findByRole('button', { name: 'Bei VIES prüfen' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/antwortet gerade nicht/);
+    expect(screen.getByText('Noch nicht bei VIES geprüft.')).toBeInTheDocument();
+  });
+
+  it('eine Abfrage zu einer früheren UID gilt nicht für die heutige (Gegenprobe: zur heutigen)', async () => {
+    pruefungen = [{ ...PRUEFUNG, uid: 'ATU11111111' }];
+    const { unmount } = zeige();
+    expect(await screen.findByText('Noch nicht bei VIES geprüft.')).toBeInTheDocument();
+    unmount();
+    pruefungen = [PRUEFUNG, { ...PRUEFUNG, id: '0', gueltig: false, abfrageId: null }];
+    zeige();
+    expect(await screen.findByText('gültig')).toBeInTheDocument();
+    expect(screen.getByText('Frühere Abfragen (1)')).toBeInTheDocument();
+  });
+
+  it('eine geänderte, noch nicht gespeicherte UID wird nicht geprüft', async () => {
+    const u = userEvent.setup();
+    zeige();
+    const feld = await screen.findByLabelText('UID-Nummer');
+    await u.clear(feld);
+    await u.type(feld, 'ATU87654321');
+    expect(screen.getByText(/Erst speichern/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Bei VIES prüfen' })).toBeNull();
+  });
+
+  it('eine Schweizer UID: VIES kennt sie nicht, kein Knopf', async () => {
+    kunden = [{ ...KUNDE, vatId: 'CHE123456789' }];
+    zeige();
+    expect(await screen.findByText(/außerhalb der EU lässt sich bei VIES nicht prüfen/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /VIES prüfen/ })).toBeNull();
+  });
+
+  it('ohne UID kein Abschnitt, und der Supportzugang liest nur mit', async () => {
+    kunden = [{ ...KUNDE, vatId: '' }];
+    const { unmount } = zeige();
+    await screen.findByText('Stammdaten');
+    expect(screen.queryByText('Prüfung bei VIES')).toBeNull();
+    unmount();
+    kunden = [KUNDE];
+    einblick = { betrieb: 'perl' };
+    pruefungen = [PRUEFUNG];
+    zeige();
+    expect(await screen.findByText('gültig')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /VIES prüfen/ })).toBeNull();
   });
 });

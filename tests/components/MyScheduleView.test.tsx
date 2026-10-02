@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { ToastProvider } from '@/components/Toast';
 import type { Assignment, EinsatzMaterial, Project, Vacation } from '@/types';
 
 /**
@@ -33,6 +34,9 @@ const listen: Record<string, (EinsatzMaterial & { id: string })[]> = {};
 vi.mock('@/lib/db/assignments', () => ({
   listAssignmentsForUserInRange: vi.fn(async () => EINSAETZE),
   listUpcomingAssignments: vi.fn(async () => EINSAETZE),
+  kalenderAboStand: vi.fn(async () => null),
+  kalenderAboAnlegen: vi.fn(async () => 'x'),
+  kalenderAboBeenden: vi.fn(async () => undefined),
 }));
 vi.mock('@/lib/db/projects', () => ({
   listProjectsByNumbers: vi.fn(async () => BAUSTELLEN),
@@ -59,9 +63,10 @@ vi.mock('@/lib/db/baustellenDokumente', () => ({
   GUELTIG_SEKUNDEN: 3600,
 }));
 
-const authWert = {
+const authWert: Record<string, unknown> = {
   user: { uid: 'm1', email: 'm1@perl.at', name: 'Anton Berger', role: 'Mitarbeiter' as const, companyId: 'perl', docId: 'm1' },
-  company: { id: 'perl', name: 'Perl Installationen' },
+  company: { id: 'perl', name: 'Perl Installationen' } as Record<string, unknown>,
+  einblick: null,
   loading: false,
   error: null,
   signIn: vi.fn(),
@@ -76,7 +81,9 @@ const { default: MyScheduleView } = await import('@/features/assignments/MySched
 function zeichne() {
   return render(
     <MemoryRouter>
-      <MyScheduleView />
+      <ToastProvider>
+        <MyScheduleView />
+      </ToastProvider>
     </MemoryRouter>,
   );
 }
@@ -88,6 +95,8 @@ beforeEach(() => {
   for (const k of Object.keys(listen)) delete listen[k];
   plaene.wert = [];
   abwesend.wert = [];
+  authWert.company = { id: 'perl', name: 'Perl Installationen' };
+  authWert.einblick = null;
 });
 
 afterEach(() => {
@@ -195,5 +204,26 @@ describe('Mein Einsatzplan — Abwesenheit (M33)', () => {
     zeichne();
     expect((await within(await screen.findByText('Nächste Einsätze').then((t) => t.closest('section')!)).findAllByText(/Gemeinde Neudorf|B-002/)).length).toBeGreaterThan(0);
     expect(screen.queryByText(/an dem du abwesend bist/)).toBeNull();
+  });
+});
+
+describe('Mein Einsatzplan — das Kalender-Abo (02.10.2026)', () => {
+  it('steht nur da, wenn der Betrieb es eingeschaltet hat (Gegenprobe: ausgeschaltet)', async () => {
+    const { unmount } = zeichne();
+    await screen.findByText('Bad');
+    expect(screen.queryByText('Im eigenen Kalender')).toBeNull();
+    unmount();
+    authWert.company = { id: 'perl', name: 'Perl Installationen', kalenderAboErlaubt: true };
+    zeichne();
+    expect(await screen.findByText('Im eigenen Kalender')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Kalender-Abo einrichten' })).toBeInTheDocument();
+  });
+
+  it('der Supportzugang legt keines an', async () => {
+    authWert.company = { id: 'perl', name: 'Perl Installationen', kalenderAboErlaubt: true };
+    authWert.einblick = { betrieb: 'perl' };
+    zeichne();
+    await screen.findByText('Bad');
+    expect(screen.queryByText('Im eigenen Kalender')).toBeNull();
   });
 });

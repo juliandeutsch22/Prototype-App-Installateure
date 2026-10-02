@@ -23,6 +23,7 @@ const DATEN = {
   customers: {
     listCustomers: 'D.kunden', listCustomersByIds: 'D.kunden', searchCustomers: 'D.kunden',
     listProjectsForCustomer: 'D.baustellen', listUnlinkedProjectsByName: '[]',
+    listUidPruefungen: 'D.uidPruefungen',
   },
   company: { getCompany: 'D.firma', auszug: 'D.firma' },
   materialOrders: { '*': 'D.bestellungen' },
@@ -66,6 +67,10 @@ const FEST = {
     "export const nextInvoiceNumber = () => 'RE-2026-0234';\n" +
     'export const isInvoiceNumberTaken = () => false;\n',
   konten: 'export const buchungskonten = () => A([]);\n',
+  // Das Kalender-Abo (02.10.2026): eingerichtet, damit die Karte ihren Normalfall zeigt.
+  assignments:
+    'export const kalenderAboStand = () => A(D.kalenderAbo);\n' +
+    "export const kalenderAboAnlegen = () => A('Beispiel-Schluessel');\n",
   // Seit B1 (29.09.2026) nicht mehr am Betrieb und am Artikel.
   kosten:
     'export const kostensaetze = () => A({ fach: 46, helper: 31 });\n' +
