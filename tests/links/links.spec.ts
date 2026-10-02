@@ -21,6 +21,7 @@ import type { Role } from '@/types';
 import { NAV } from '@/app/navigation';
 import { firma } from '../../tools/vorschau/daten';
 import { darfZiel, pfadVon } from './linkziel';
+import { SCHREIBWEISE } from './schreibweise';
 
 const ROLLEN: Role[] = [
   'Mitarbeiter', 'Verwaltung', 'Buchhaltung', 'Projektleiter', 'Geschäftsführung', 'Administrator',
@@ -30,6 +31,7 @@ const ROLLEN: Role[] = [
 const HOECHSTENS = 90;
 
 const AKTEN = ['/customers/', '/admin-projects/', '/quotes/', '/user-mgmt/'];
+
 
 /** Unter welchem Muster ein Pfad als „schon besucht" gilt. */
 function muster(pfad: string): string {
@@ -72,6 +74,21 @@ for (const rolle of ROLLEN) {
       }
 
       await aufklappen(page);
+
+      /*
+        SCHREIBWEISE IM SICHTBAREN (Testbericht 30.09.2026, G1): TT.MM.JJJJ
+        statt ISO-Datum, Dezimalkomma bei Mengen und Stunden, kein doppelter
+        Punkt nach einem Datum („Di., 29.09..“). Geprüft am gerenderten Text
+        jeder Seite — die Quelle eines solchen Satzes ist oft eine
+        zusammengesetzte Zeichenkette, die keine Quelltextsuche findet.
+        Dateinamen (`…_2026-09-01_…`) sind Daten des Betriebs und zählen nicht.
+      */
+      const text = await page.locator('main').innerText();
+      for (const [regel, muster] of SCHREIBWEISE) {
+        const treffer = text.match(muster);
+        if (treffer) befunde.push(`${ziel}: ${regel} „${treffer[0]}“`);
+      }
+
       const hrefs = await page.$$eval('a[href]', (as) => as.map((a) => a.getAttribute('href') ?? ''));
       for (const href of new Set(hrefs)) {
         const urteil = darfZiel(rolle, href, module);
