@@ -107,7 +107,7 @@ beforeAll(async () => {
     }).eq('id', schein),
     await admin.from('time_entries').insert(buchung(monteur, heute, { project_number: 'PR-2026-0001' })),
     await admin.from('material_orders').insert({
-      company_id: LOESCHEN, material_name: 'Fitting', quantity: 2, transaction_type: 'order',
+      id: crypto.randomUUID(), company_id: LOESCHEN, material_name: 'Fitting', quantity: 2, transaction_type: 'order',
       user_id: monteur.uid, user_name: 'Max', project_number: 'PR-2026-0001', status: 'Offen',
     }),
     await admin.from('user_prefs').upsert({ user_id: monteur.uid, company_id: LOESCHEN, push_tokens: ['geraet-1'] }),

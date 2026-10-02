@@ -45,6 +45,10 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   baustelle_alte_nummern: { geaendert_am: 'zeitpunkt' },
   betrieb_kostensaetze: { updated_at: 'zeitpunkt' },
   betriebsanlagen: { angelegt_am: 'zeitpunkt' },
+  betrieb_protokoll: { am: 'zeitpunkt' },
+  betrieb_zustand: {
+    deaktiviert_am: 'zeitpunkt', export_am: 'zeitpunkt', loeschung_geplant_fuer: 'zeitpunkt', geloescht_am: 'zeitpunkt',
+  },
   betriebsurlaube: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   buchungskonten: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   companies: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },

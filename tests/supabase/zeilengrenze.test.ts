@@ -158,11 +158,15 @@ describe('Der Zweitschlüssel und die Beziehungen ohne Kennung', () => {
       Ausleitung, ist nur mit dem Dienstschlüssel erreichbar und wird dort mit
       einer eigenen Abfrage gelesen. Ein Zweitschlüssel dafür wäre eine
       Vorkehrung für einen Weg, den es nicht gibt.
+
+      `betrieb_zustand` (Paket D, 02.10.2026) gehört wie `betriebsanlagen` der
+      Plattform: Schlüssel ist die Kennung des Betriebs, gelesen wird nur über
+      die Plattformfunktionen, nie über `abfragen`.
     */
-    expect(rows.map((r) => r.table_name)).toEqual([
-      'ausleitung_dateien', 'betriebsanlagen', 'monthly_stats', 'number_counters',
+    expect(rows.map((r) => r.table_name).sort()).toEqual([
+      'ausleitung_dateien', 'betrieb_zustand', 'betriebsanlagen', 'monthly_stats', 'number_counters',
       'system_laeufe', 'user_prefs',
-    ]);
+    ].sort());
   }, 60_000);
 
   it('blättert auch über die Sicht ohne Kennung vollständig', async () => {
