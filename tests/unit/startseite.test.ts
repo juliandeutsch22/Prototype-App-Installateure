@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { Invoice, MaterialOrder, Project, Wartung, WorkSheet } from '@/types';
+import type { AppUser, Invoice, MaterialOrder, Project, Wartung, WorkSheet } from '@/types';
 import { euro } from '@/lib/betrag';
 import { abschnitt, JE_ABSCHNITT, summe } from '@/features/dashboard/start/abschnitte';
 import {
@@ -12,6 +12,8 @@ import {
   tageOhneBuchung,
   ueberfaelligNichtMahnbar,
   wartungenOhneBaustelle,
+  lehrzeitEnden,
+  einzigeLeitungOhneMail,
 } from '@/features/dashboard/start/regeln';
 import { auslastung } from '@/features/dashboard/start/laden';
 import { startseite, type Umfeld } from '@/features/dashboard/start/aufbau';
@@ -257,6 +259,78 @@ describe('Geschäftsführung und Administrator', () => {
   });
 });
 
+describe('Personen: Lehrzeit und Leitung ohne E-Mail', () => {
+  const person = (teil: Partial<AppUser> & { uid: string }): AppUser => ({
+    id: teil.uid, companyId: 'b', name: teil.uid, email: `${teil.uid}@betrieb.at`, role: 'Mitarbeiter', active: true, ...teil,
+  });
+  // Lehrbeginn 01.11.2023, 36 Monate → letzter Tag 31.10.2026 (31 Tage nach dem 30.09.).
+  const lehrling = (uid: string, lehrbeginn: string, teil: Partial<AppUser> = {}) =>
+    person({ uid, einstufung: 'lehrling', lehrbeginn, lehrzeitMonate: 36, ...teil });
+
+  it('nennt Lehrzeiten, die in 30 Tagen enden oder schon geendet haben, früheste zuerst', () => {
+    const z = lehrzeitEnden([
+      lehrling('bald', '2023-10-30'), // Ende 29.10.2026, in 29 Tagen
+      lehrling('vorbei', '2023-09-01'), // Ende 31.08.2026
+      lehrling('genau', '2023-10-31'), // Ende 30.10.2026, in 30 Tagen
+    ], HEUTE);
+    expect(z.map((x) => [x.uid, x.ende])).toEqual([
+      ['vorbei', '2026-08-31'], ['bald', '2026-10-29'], ['genau', '2026-10-30'],
+    ]);
+  });
+
+  it('Gegenprobe: später endend, umgestuft, ohne Lehrbeginn oder deaktiviert — keine Zeile', () => {
+    expect(lehrzeitEnden([
+      lehrling('spaeter', '2023-11-01'), // Ende 31.10.2026, in 31 Tagen
+      lehrling('umgestuft', '2023-09-01', { einstufung: 'facharbeiter' }),
+      lehrling('ohne', '2023-09-01', { lehrbeginn: null }),
+      lehrling('weg', '2023-09-01', { active: false }),
+    ], HEUTE)).toEqual([]);
+  });
+
+  it('meldet die einzige Leitung, wenn sie keine E-Mail hat', () => {
+    const chef = person({ uid: 'chef', role: 'Administrator', email: 'chef@benutzer.senklot.invalid' });
+    expect(einzigeLeitungOhneMail([chef, person({ uid: 'm' })])).toBe(true);
+    // Eine deaktivierte zweite Leitung hilft nicht.
+    expect(einzigeLeitungOhneMail([chef, person({ uid: 'alt', role: 'Geschäftsführung', active: false })])).toBe(true);
+  });
+
+  it('Gegenprobe: Leitung mit E-Mail oder eine zweite Leitung — keine Meldung', () => {
+    const ohne = person({ uid: 'chef', role: 'Administrator', email: 'chef@benutzer.senklot.invalid' });
+    expect(einzigeLeitungOhneMail([person({ uid: 'chefin', role: 'Geschäftsführung' })])).toBe(false);
+    expect(einzigeLeitungOhneMail([ohne, person({ uid: 'gf', role: 'Geschäftsführung', email: 'gf@benutzer.senklot.invalid' })])).toBe(false);
+    expect(einzigeLeitungOhneMail([])).toBe(false);
+  });
+
+  const umfeld = (teil: Partial<Umfeld> = {}): Umfeld => ({
+    rolle: 'leitung', heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false, ...teil,
+  });
+  const zeilen = (s: ReturnType<typeof startseite>) =>
+    s.abschnitte.flatMap((a) => [...a.zeilen, ...(a.weiter && 'aufklappen' in a.weiter ? a.weiter.aufklappen : [])]);
+
+  it('eine Lehrzeit führt in die Akte; eine vergangene steht unter Überfällig', () => {
+    const bald = startseite({ lehrzeitEnden: [{ uid: 'u1', name: 'Anna Huber', ende: '2026-10-29' }] }, umfeld());
+    expect(bald.abschnitte[0].titel).toBe('Diese Woche');
+    expect(zeilen(bald)[0]).toMatchObject({ titel: 'Lehrzeit von Anna Huber endet am 29.10.', to: '/user-mgmt/u1' });
+
+    const vorbei = startseite({ lehrzeitEnden: [{ uid: 'u1', name: 'Anna Huber', ende: '2026-08-31' }] }, umfeld());
+    expect(vorbei.abschnitte[0].titel).toBe('Überfällig');
+    expect(zeilen(vorbei)[0].titel).toBe('Lehrzeit von Anna Huber endete am 31.08.');
+  });
+
+  it('mehrere Lehrzeiten führen in die Benutzerverwaltung und nennen alle', () => {
+    const s = startseite({ lehrzeitEnden: [
+      { uid: 'u1', name: 'Anna', ende: '2026-10-10' }, { uid: 'u2', name: 'Ben', ende: '2026-10-20' },
+    ] }, umfeld());
+    expect(zeilen(s)[0]).toMatchObject({ titel: '2 Lehrzeiten enden', detail: 'Anna 10.10., Ben 20.10.', to: '/user-mgmt' });
+  });
+
+  it('die Leitung ohne E-Mail steht unter Diese Woche — und nur, wo die Benutzerverwaltung offen ist', () => {
+    const s = startseite({ einzigeLeitungOhneMail: true }, umfeld());
+    expect(zeilen(s)[0]).toMatchObject({ titel: 'Nur ein Leitungskonto, ohne E-Mail', to: '/user-mgmt' });
+    expect(startseite({ einzigeLeitungOhneMail: true }, umfeld({ darf: (z) => !z.startsWith('/user-mgmt') })).abschnitte).toEqual([]);
+  });
+});
+
 describe('Die Ziele der Startseite', () => {
   const ziele = [
     ZIEL.zeitFehlend, ZIEL.zeitTag(HEUTE), ZIEL.meineAbholbereit, ZIEL.lagerKnapp, ZIEL.rechnungenUeberfaellig,
@@ -265,6 +339,7 @@ describe('Die Ziele der Startseite', () => {
     ...ANFORDERUNGS_FILTER.map(ZIEL.anforderungen), ...BAUSTELLEN_FILTER.map(ZIEL.baustellen),
     ...SCHEIN_FILTER.map(ZIEL.scheine), ...RECHNUNGS_SICHTEN.map(ZIEL.rechnungenSicht),
     ZIEL.einstellungen('saetze'), ZIEL.einstellungen('konten'), ZIEL.einstellungen('firma'),
+    ZIEL.benutzerverwaltung, ZIEL.benutzer('u1'),
   ];
 
   it.each(ziele)('%s ist eine bekannte Seite', (ziel) => {

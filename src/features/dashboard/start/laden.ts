@@ -57,6 +57,9 @@ import {
   type TeamLuecke,
   type UnverrechneteZeile,
   type ZahlungHeute,
+  type LehrzeitEndeZeile,
+  lehrzeitEnden,
+  einzigeLeitungOhneMail,
 } from './regeln';
 
 /**
@@ -141,6 +144,9 @@ export interface StartDaten {
   basiszinsFehltAb?: string | null;
   kontenFehlen?: boolean;
   firmaFehlt?: string[];
+  // Personen
+  lehrzeitEnden?: LehrzeitEndeZeile[];
+  einzigeLeitungOhneMail?: boolean;
 }
 
 export interface Kontext {
@@ -459,10 +465,13 @@ export function auslastung(
 
 // ─────────────────────────────────────────────────────────── Einstellungen ──
 
-/** Fehlende Einstellungen, die Rechnung und Mahnung brauchen. */
+/**
+ * Fehlende Einstellungen, die Rechnung und Mahnung brauchen — und was an den
+ * Konten der Belegschaft zu tun ist (Lehrzeit zu Ende, Leitung ohne E-Mail).
+ */
 export async function einstellungen(
   k: Kontext,
-  was: { rechnungen: boolean; konten: boolean },
+  was: { rechnungen: boolean; konten: boolean; personen: boolean },
 ): Promise<Partial<StartDaten>> {
   const { company, heute } = k;
   const out: Partial<StartDaten> = {};
@@ -477,6 +486,13 @@ export async function einstellungen(
   if (was.konten && k.user.companyId) {
     const konten = await still(() => buchungskonten(k.user.companyId), null);
     out.kontenFehlen = konten !== null && konten.length === 0;
+  }
+  if (was.personen && k.user.companyId) {
+    const personen = await still(() => listUsers(k.user.companyId), null);
+    if (personen) {
+      out.lehrzeitEnden = lehrzeitEnden(personen, heute);
+      out.einzigeLeitungOhneMail = einzigeLeitungOhneMail(personen);
+    }
   }
   return out;
 }

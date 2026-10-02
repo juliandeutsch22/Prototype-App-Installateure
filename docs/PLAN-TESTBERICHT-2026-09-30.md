@@ -364,6 +364,24 @@ Alle Entscheidungspunkte sind geklärt und oben an ihrer Stelle eingetragen:
 
 ---
 
+## Entscheidungen vom 02.10.2026
+
+Nach Abschluss aller Pakete und des Nachtests (bis PR #216) sind die offenen
+Punkte so entschieden:
+
+| Punkt | Entscheidung |
+|---|---|
+| **A10** Marge im Angebot | keine Frage mehr: Angebote tragen nur Verkaufspreise, Kostensätze und Einkaufspreise liest seit 29.09. nur die Führung |
+| **Hinweise** | Ende der Lehrzeit und „nur ein Leitungskonto ohne E-Mail“ auf der Startseite der Leitung |
+| **Konto umstellen** | E-Mail ↔ Benutzername für Geschäftsführung und Administrator, über eine Serverfunktion |
+| **M18** | jetzt bauen: Katalogartikel, Positionsrabatt, Titel- und Textpositionen |
+| **VIES, Kalender** | jetzt bauen: UID online prüfen mit gespeichertem Nachweis; Einsatzplan als Kalender-Abo |
+| **Externe Klärung** | je ein Fragenkatalog für WKO, Steuerberatung, Kanzlei und Anwalt (geteilte Dokumente); umgesetzt wird nach den Antworten |
+| **Mailversand** | vorerst nicht: der Mehrwert ist offen |
+| **Prüflisten** (Testbetrieb in Produktion, iPhone) | nicht jetzt |
+
+---
+
 ## Reihenfolge und Umfang
 
 | Schritt | Inhalt | Umfang |

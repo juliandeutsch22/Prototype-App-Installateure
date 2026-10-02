@@ -16,7 +16,6 @@ wandert er hier heraus und in die jeweilige Doku.
 | # | Punkt | Warum offen | Vorschlag |
 |---|---|---|---|
 | A9 | **Was nach Ablauf der sieben Jahre geschieht** — mit Belegen und Zeitaufzeichnungen einer Person, die die Löschung verlangt hat (B8). Die Löschung entfernt heute, was nicht aufbewahrt werden muss, und nennt für den Rest das Fristende; nach Ablauf löscht sie noch nichts | Vor 2031 läuft in diesem Bestand keine Frist ab. Offen ist, ob danach gelöscht oder anonymisiert wird — und was mit dem Namen einer Person auf den Belegen **anderer** geschieht (Schein des Kunden, genehmigter Urlaub, erfasste Zahlung). Laufende Verfahren verlängern die Frist (§ 132 Abs. 1 BAO) | **Beim Betrieb** (29.09.2026: wie empfohlen): mit dem Steuerberater entscheiden; dann denselben Aufruf um den zweiten Schritt erweitern |
-| A10 | **Angebote zeigen die Marge, die Nachkalkulation ist Führungssache** — die Projektleitung sieht in Angeboten die Vorkalkulation mit den Kostensätzen | Eine der beiden Grenzen ist falsch gezogen; das hängt daran, ob die Projektleitung im Betrieb mitkalkulieren soll (`FUNKTIONEN.md`, „Eine Ungereimtheit“) | **Beim Betrieb:** entweder die Kostensätze im Angebot nur der Führung zeigen, oder die Nachkalkulation der Projektleitung für ihre Baustellen öffnen |
 
 **Sicherheitsupdate der Bibliotheken (29.09.2026):** `npm audit --omit=dev`
 meldet 0 Befunde (vorher 16, davon einer kritisch). jsPDF 2 → 4 und
@@ -100,11 +99,20 @@ Anpassung, kein Umbau.
 | E1 | **M18** Angebote: Katalogartikel, Positionsrabatt, Titel- und Textpositionen |
 | E2 | **M10** UID-Prüfung online über VIES (heute nur die Form je EU-Staat) |
 | E3 | Paket 11: Personalnummer, Lohnarten, Fahrzeuglager, Prüfprotokoll, Kalender-Export, Mailversand aus der App (braucht SMTP-Zugang als Function-Geheimnis), ebInterface |
-| E4 | Plattform: Erinnerung, solange ein Betrieb nur ein Leitungskonto ohne E-Mail hat; Stufe „nur lesen“ nach einer Kündigung (beide im Auftrag optional) |
+| E4 | Plattform: Stufe „nur lesen“ nach einer Kündigung (im Auftrag optional). Die Erinnerung bei nur einem Leitungskonto ohne E-Mail steht seit 02.10.2026 auf der Startseite des Betriebs |
 | E5 | Konto nachträglich zwischen E-Mail und Benutzername umstellen |
-| E6 | Lehrling nach dem Ende der Lehrzeit: bleibt im letzten Lehrjahr, bis jemand die Einstufung ändert |
 
 ## Erledigt seit dem Prüflauf
+
+**Am 02.10.2026:** A10 war keine offene Frage mehr — Angebote tragen nur
+Verkaufspreise und kalkulierte Stunden; Kostensätze und Einkaufspreise lesen
+seit 29.09.2026 nur Geschäftsführung und Administrator (siehe `FUNKTIONEN.md`,
+„Eine Ungereimtheit, die keine mehr ist“). E6: das Ende der Lehrzeit steht ab
+30 Tage vorher auf der Startseite der Leitung, bis die Einstufung geändert ist;
+umgestuft wird weiter von Hand, weil nur der Betrieb weiß, ob die Prüfung
+bestanden ist. Die Datenschutzerklärung nennt die Aufbewahrung der Sicherung
+jetzt richtig: 30 Tage im eigenen Rechenzentrum, außer Haus nach der Ablauffrist
+beim Anbieter (vorgesehen 90 Tage) — vorher stand für beide 30 Tage.
 
 **C-Punkte, erledigt am 28.09.2026:** C5 (Gesamtsaldo = Summe der
 Monatssalden, `tests/unit/saldoGleichMonate.test.ts`), C6 (Sprunglink „Zum

@@ -38,6 +38,9 @@ export const ZIEL = {
   wartungenOhneBaustelle: '/wartungen?filter=faellig-ohne-baustelle',
   einstellungen: (reiter: 'saetze' | 'rechnung' | 'konten' | 'firma') => `/settings/${reiter}`,
   einsatzplan: '/my-schedule',
+  benutzerverwaltung: '/user-mgmt',
+  /** Die Akte einer Person. */
+  benutzer: (uid: string) => `/user-mgmt/${q(uid)}`,
 } as const;
 
 export const ANFORDERUNGS_FILTER = [

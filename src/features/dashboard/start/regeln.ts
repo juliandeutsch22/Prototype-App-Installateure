@@ -1,4 +1,6 @@
-import type { EinkaufPosten, Invoice, MaterialOrder, Project, Vacation, Wartung, WorkSheet } from '@/types';
+import type { AppUser, EinkaufPosten, Invoice, MaterialOrder, Project, Vacation, Wartung, WorkSheet } from '@/types';
+import { lehrzeitEnde } from '@/lib/einstufung';
+import { istBenutzerkonto } from '@shared/benutzername';
 import type { OffenerNachtrag } from '@/features/worksheets/zeitNachtrag';
 import type { Mahnlauf } from '@/features/invoices/mahnlauf';
 import { istUeberfaellig, offenerRest } from '@/features/invoices/zahlstand';
@@ -440,4 +442,51 @@ export function endeUeberschritten(projekte: Project[], heute: string): Abschnit
       to: ZIEL.baustelle(p.projectNumber),
     }));
   return abschnitt('ende', 'Ende überschritten', zeilen, ZIEL.baustellen('ende-ueberschritten'));
+}
+
+// ─────────────────────────────────────────────────────────── Personen ──
+
+/** So lange vor dem Ende der Lehrzeit erinnert die Startseite der Leitung. */
+export const LEHRZEIT_VORLAUF_TAGE = 30;
+
+export interface LehrzeitEndeZeile {
+  uid: string;
+  name: string;
+  /** Der letzte Tag der Lehrzeit (ISO). */
+  ende: string;
+}
+
+/**
+ * LEHRLINGE, DEREN LEHRZEIT ENDET ODER SCHON GEENDET HAT — solange sie noch
+ * als Lehrling eingestuft sind.
+ *
+ * Die App stuft nicht selbst um: ob die Lehrabschlussprüfung bestanden ist
+ * und was danach gilt (Facharbeiter, Helfer, Austritt), weiß nur der Betrieb.
+ * Bis jemand die Einstufung ändert, zählt die Person im letzten Lehrjahr —
+ * mit dessen Satz. Darum erinnert die Leitung ab 30 Tage vorher, und die
+ * Zeile bleibt, bis die Einstufung geändert ist.
+ */
+export function lehrzeitEnden(personen: AppUser[], heute: string): LehrzeitEndeZeile[] {
+  return personen
+    .filter((p) => p.active !== false && p.einstufung === 'lehrling' && p.lehrbeginn && p.lehrzeitMonate)
+    .map((p) => ({ uid: p.uid, name: p.name, ende: lehrzeitEnde(p.lehrbeginn!, p.lehrzeitMonate!) }))
+    .filter((z) => tageZwischen(heute, z.ende) <= LEHRZEIT_VORLAUF_TAGE)
+    .sort((a, b) => a.ende.localeCompare(b.ende));
+}
+
+/**
+ * NUR EIN LEITUNGSKONTO, UND DAS OHNE E-MAIL — der Betrieb kann sich dann
+ * selbst nicht mehr helfen, wenn dessen Passwort vergessen ist: „Passwort
+ * vergessen“ braucht eine Adresse, und ein Startpasswort setzt nur eine
+ * zweite Leitung. Dann bleibt nur der Notzugang über den Senklot-Support.
+ *
+ * Leitung heißt hier wie auf der Plattform: Administrator oder
+ * Geschäftsführung, aktiv. Zwei Leitungskonten ohne E-Mail helfen einander
+ * und lösen die Zeile nicht aus.
+ */
+export function einzigeLeitungOhneMail(personen: AppUser[]): boolean {
+  const leitung = personen.filter(
+    (p) => p.active !== false && (p.role === 'Administrator' || p.role === 'Geschäftsführung'),
+  );
+  return leitung.length === 1 && istBenutzerkonto(leitung[0].email);
 }
