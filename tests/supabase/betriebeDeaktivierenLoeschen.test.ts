@@ -21,7 +21,8 @@ const RUHT = 'pd-ruht';
 const TEST = 'pd-testbetrieb';
 const heute = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Vienna' }).format(new Date());
 const UNTERSCHRIFT = { name: 'Huber', bild: 'data:image/png;base64,AAA', geraetZeit: 1776000000000 };
-const PASSWORT = 'Test-Passwort-2026!';
+/** Dasselbe wie in `helfer.ts` — ein Passwortwechsel hier beendete die Sitzungen der Konten. */
+const PASSWORT = 'stufe-eins-2026';
 
 let plattform: Konto;
 let chefin: Konto;
@@ -76,9 +77,6 @@ beforeAll(async () => {
   chefinRuht = await konto(RUHT, 'Geschäftsführung', 'pdruht');
   ehemaligeRuht = await konto(RUHT, 'Mitarbeiter', 'pdehem', false);
   chefinTest = await konto(TEST, 'Administrator', 'pdtest');
-  for (const k of [chefin, monteur, chefinBleibt, chefinRuht, ehemaligeRuht, chefinTest]) {
-    await admin.auth.admin.updateUserById(k.uid, { password: PASSWORT });
-  }
 
   // Ein Betrieb mit allem, woran ein Löschen hängen bleiben könnte.
   for (const b of [LOESCHEN, BLEIBT]) {
@@ -207,7 +205,9 @@ describe('Löschen', () => {
     expect(r.daten.dateien).toBe(1);
     expect(Number(r.daten.zeilen)).toBeGreaterThan(5);
     expect(String(r.daten.datenLink)).toMatch(/^http/);
-    const daten = await (await fetch(String(r.daten.datenLink))).text();
+    // Lokal trägt der Link den Rechnernamen innerhalb des Stapels; gehostet ist es die öffentliche Adresse.
+    const link = String(r.daten.datenLink).replace(/^https?:\/\/[^/]+/, API);
+    const daten = await (await fetch(link)).text();
     expect(daten).toContain('work_sheets');
     expect(daten).not.toContain('geraet-1');
 
