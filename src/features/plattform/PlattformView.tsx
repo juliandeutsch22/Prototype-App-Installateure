@@ -104,6 +104,17 @@ export default function PlattformView() {
 
   /* Wer gerade Einblick gewährt. */
   const [offen, setOffen] = useState<OffeneFreigabe[]>([]);
+  /**
+   * Hat der Betrieb ein aktives Leitungskonto mit Benutzername (N5)? Nur dafür
+   * setzt der Notzugang ein Passwort neu. `null`, solange die Liste fehlt —
+   * dann bleibt der Knopf weg, statt etwas zu versprechen.
+   */
+  const betriebZu = (kennung: string) => betriebe?.find((b) => b.kennung === kennung);
+  const passwortMoeglich = (kennung: string): boolean | null => {
+    const b = betriebZu(kennung);
+    return b ? b.leitungskonten - b.leitungMitMail > 0 : null;
+  };
+  const mitMail = (kennung: string) => betriebZu(kennung)?.leitungMitMail ?? 0;
   const [notForm, setNotForm] = useState({ companyId: '', grund: '', stunden: '4' });
   const [notLaeuft, setNotLaeuft] = useState(false);
   /** Für welchen Betrieb im Notzugang das Passwortformular offen ist (P2). */
@@ -360,8 +371,19 @@ export default function PlattformView() {
                 <Button variant="secondary" onClick={() => einblickStarten(f)}>
                   Öffnen
                 </Button>
-                {/* P2: nur im Notzugang — ein ausgesperrter Betrieb bekommt wieder ein Passwort. */}
-                {f.notzugang && (
+                {/*
+                  P2: nur im Notzugang — ein ausgesperrter Betrieb bekommt wieder ein Passwort.
+                  NUR, WENN ES DAFÜR EIN KONTO GIBT (Nachtest 01.10.2026, N5): ein aktives
+                  Leitungskonto mit Benutzername. Vorher stand der Knopf auch bei einem
+                  Betrieb ohne ein solches, und erst nach dem Klick kam die Erklärung.
+                */}
+                {f.notzugang && passwortMoeglich(f.company_id) === false && (
+                  <span className="basis-full text-ink-muted">
+                    Kein aktives Leitungskonto mit Benutzername — Passwort neu setzen geht hier nicht.
+                    {mitMail(f.company_id) > 0 && ' Mit E-Mail hilft „Passwort vergessen“ auf der Anmeldeseite.'}
+                  </span>
+                )}
+                {f.notzugang && passwortMoeglich(f.company_id) && (
                   <Button
                     variant="ghost"
                     onClick={() => setPasswortFuer((x) => (x === f.company_id ? null : f.company_id))}
