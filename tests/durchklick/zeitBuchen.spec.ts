@@ -70,7 +70,14 @@ test('Ein Monteur meldet sich an und bucht seine Zeit', async ({ page }) => {
 */
 test('Getippter Text bleibt stehen, auch wenn direkt nach dem Laden getippt wird', async ({ page }) => {
   await anmelden(page, MONTEUR.email);
-  // Nicht auf „load“ warten: getippt wird, sobald das Feld da ist — und WebKit meldet „load“ hier erst spät.
+  /*
+    ERST DIE ANMELDUNG ZU ENDE KOMMEN LASSEN. Nach dem Anmelden springt die
+    App selbst auf die Startseite; in WebKit unterbrach dieser Sprung das
+    Laden von /time („Frame load interrupted“). Geprüft werden soll das
+    frische Laden der Zeiterfassung, nicht das Rennen mit der Anmeldung.
+  */
+  await page.waitForLoadState('networkidle');
+  // Nicht auf „load“ warten: getippt wird, sobald das Feld da ist.
   await page.goto('/time', { waitUntil: 'domcontentloaded' });
   const kommentar = page.locator('#comment');
   await kommentar.waitFor({ state: 'visible', timeout: 20_000 });
