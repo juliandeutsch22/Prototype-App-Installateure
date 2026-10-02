@@ -211,6 +211,25 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   }
 
   /*
+    ALS TESTBETRIEB GEKENNZEICHNET (Nachtest 01.10.2026, Paket D): er lässt
+    sich später ohne Export und Frist löschen. Scheitert nur der Vermerk, ist
+    der Betrieb trotzdem angelegt — die Meldung sagt es, und die Plattform
+    setzt das Kennzeichen in der Liste nach.
+  */
+  let testHinweis: string | undefined;
+  if (betrieb.testbetrieb) {
+    const vermerk = await fetch(`${URL_BASIS}/rest/v1/rpc/betrieb_als_testbetrieb`, {
+      method: 'POST',
+      headers: alsDienst,
+      body: JSON.stringify({ p_admin: aufrufer, p_kennung: betrieb.companyId }),
+    });
+    if (!vermerk.ok) {
+      await vermerk.body?.cancel();
+      testHinweis = 'Angelegt, aber nicht als Testbetrieb vermerkt — bitte in der Liste nachholen.';
+    }
+  }
+
+  /*
     DER LINK KOMMT ZURÜCK, STATT VERSENDET ZU WERDEN.
 
     Der Betrieb versendet seine Post selbst, und eine Mailanbindung wäre ein
@@ -232,6 +251,7 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
       passwortLink: '',
       startpasswort,
       benutzername: betrieb.adminBenutzername,
+      ...(testHinweis ? { hinweis: testHinweis } : {}),
     });
   }
 
@@ -249,5 +269,6 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     companyId: betrieb.companyId,
     ersterAdminUid: konto.id,
     passwortLink: String(link?.action_link ?? ''),
+    ...(testHinweis ? { hinweis: testHinweis } : {}),
   });
 }));

@@ -1,19 +1,23 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import MarkenBand from '@/components/MarkenBand';
 import { useAuth } from '@/app/AuthContext';
-import { betriebAnlegenMitAnmeldung, plattformBetriebe, type PlattformBetrieb } from '@/lib/db/plattform';
+import {
+  betriebAnlegenMitAnmeldung, geloeschteBetriebe, plattformBetriebe,
+  type GeloeschterBetrieb, type PlattformBetrieb,
+} from '@/lib/db/plattform';
 import { notzugang, offeneFreigaben, type OffeneFreigabe } from '@/lib/db/support';
 import { betriebFehler, kennungVorschlag, WARNUNG_OHNE_MAIL, type NeuerBetrieb } from '@shared/plattform';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
-import { InputField, SelectField, FormGrid } from '@/components/Field';
+import { CheckboxField, InputField, SelectField, FormGrid } from '@/components/Field';
 import { ErrorState } from '@/components/States';
 import { Marke, Warnung } from '@/components/Badge';
 import PasswortAendern from '@/features/auth/PasswortAendern';
 import { plattformFehler, type PlattformFehler } from '@/lib/db/fehlerprotokoll';
 import FehlerListe from './FehlerListe';
 import NotzugangPasswort from './NotzugangPasswort';
+import BetriebVerwalten from './BetriebVerwalten';
 
 /**
  * Die einzige Seite des globalen Administrators.
@@ -57,7 +61,7 @@ const datumKurz = (iso: string) => new Date(iso).toLocaleDateString('de-AT', { d
 const zeitKurz = (iso: string) =>
   new Date(iso).toLocaleString('de-AT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
-const LEER: NeuerBetrieb = { name: '', companyId: '', adminEmail: '', adminName: '', anmeldung: 'email', adminBenutzername: '' };
+const LEER: NeuerBetrieb = { name: '', companyId: '', adminEmail: '', adminName: '', anmeldung: 'email', adminBenutzername: '', testbetrieb: false };
 
 interface Angelegt {
   companyId: string;
@@ -67,6 +71,8 @@ interface Angelegt {
   /** Mit Benutzername (P1): Name und Startpasswort, nur jetzt zu sehen. */
   benutzername?: string;
   startpasswort?: string | null;
+  /** Etwas, das beim Anlegen nur halb klappte (etwa der Vermerk „Testbetrieb“). */
+  hinweis?: string;
 }
 
 export default function PlattformView() {
@@ -90,12 +96,21 @@ export default function PlattformView() {
   */
   const [betriebe, setBetriebe] = useState<PlattformBetrieb[] | null>(null);
   const [betriebeFehler, setBetriebeFehler] = useState<string | null>(null);
+  /** Paket D: welcher Betrieb gerade verwaltet wird (deaktivieren, löschen). */
+  const [verwaltet, setVerwaltet] = useState<string | null>(null);
+  /** Das Löschprotokoll — gelöschte Betriebe, ohne Inhalte. */
+  const [geloescht, setGeloescht] = useState<GeloeschterBetrieb[]>([]);
   async function betriebeLaden() {
     setBetriebeFehler(null);
     try {
       setBetriebe(await plattformBetriebe());
     } catch (e) {
       setBetriebeFehler(e instanceof Error ? e.message : 'Die Liste der Betriebe konnte nicht geladen werden.');
+    }
+    try {
+      setGeloescht(await geloeschteBetriebe());
+    } catch {
+      setGeloescht([]);
     }
   }
   useEffect(() => {
@@ -104,6 +119,17 @@ export default function PlattformView() {
 
   /* Wer gerade Einblick gewährt. */
   const [offen, setOffen] = useState<OffeneFreigabe[]>([]);
+  /**
+   * Hat der Betrieb ein aktives Leitungskonto mit Benutzername (N5)? Nur dafür
+   * setzt der Notzugang ein Passwort neu. `null`, solange die Liste fehlt —
+   * dann bleibt der Knopf weg, statt etwas zu versprechen.
+   */
+  const betriebZu = (kennung: string) => betriebe?.find((b) => b.kennung === kennung);
+  const passwortMoeglich = (kennung: string): boolean | null => {
+    const b = betriebZu(kennung);
+    return b ? b.leitungskonten - b.leitungMitMail > 0 : null;
+  };
+  const mitMail = (kennung: string) => betriebZu(kennung)?.leitungMitMail ?? 0;
   const [notForm, setNotForm] = useState({ companyId: '', grund: '', stunden: '4' });
   const [notLaeuft, setNotLaeuft] = useState(false);
   /** Für welchen Betrieb im Notzugang das Passwortformular offen ist (P2). */
@@ -174,6 +200,7 @@ export default function PlattformView() {
           adminEmail: form.adminEmail.trim().toLowerCase(),
           benutzername: data.benutzername,
           startpasswort: data.startpasswort,
+          hinweis: data.hinweis,
         },
         ...bisher,
       ]);
@@ -291,6 +318,12 @@ export default function PlattformView() {
               />
             )}
           </FormGrid>
+          <CheckboxField
+            id="b-testbetrieb"
+            label="Testbetrieb (lässt sich später ohne Übergabe und ohne Frist löschen)"
+            checked={form.testbetrieb === true}
+            onChange={(e) => setForm({ ...form, testbetrieb: e.target.checked })}
+          />
           {/* P1: ohne E-Mail gibt es kein „Passwort vergessen“ — das steht da, bevor angelegt wird. */}
           {form.anmeldung === 'benutzername' && (
             <Hinweiszeile stufe="warn">
@@ -360,8 +393,19 @@ export default function PlattformView() {
                 <Button variant="secondary" onClick={() => einblickStarten(f)}>
                   Öffnen
                 </Button>
-                {/* P2: nur im Notzugang — ein ausgesperrter Betrieb bekommt wieder ein Passwort. */}
-                {f.notzugang && (
+                {/*
+                  P2: nur im Notzugang — ein ausgesperrter Betrieb bekommt wieder ein Passwort.
+                  NUR, WENN ES DAFÜR EIN KONTO GIBT (Nachtest 01.10.2026, N5): ein aktives
+                  Leitungskonto mit Benutzername. Vorher stand der Knopf auch bei einem
+                  Betrieb ohne ein solches, und erst nach dem Klick kam die Erklärung.
+                */}
+                {f.notzugang && passwortMoeglich(f.company_id) === false && (
+                  <span className="basis-full text-ink-muted">
+                    Kein aktives Leitungskonto mit Benutzername — Passwort neu setzen geht hier nicht.
+                    {mitMail(f.company_id) > 0 && ' Mit E-Mail hilft „Passwort vergessen“ auf der Anmeldeseite.'}
+                  </span>
+                )}
+                {f.notzugang && passwortMoeglich(f.company_id) && (
                   <Button
                     variant="ghost"
                     onClick={() => setPasswortFuer((x) => (x === f.company_id ? null : f.company_id))}
@@ -405,8 +449,20 @@ export default function PlattformView() {
                   </span>
                 </span>
                 <span className="flex flex-wrap items-center gap-2">
-                  {b.leitungMitMail === 0 && <Warnung>keine Leitung mit E-Mail</Warnung>}
+                  {b.testbetrieb && <Marke>Testbetrieb</Marke>}
+                  {b.deaktiviertAm && <Warnung stufe="dringend">deaktiviert</Warnung>}
+                  {b.loeschungGeplantFuer && <Warnung stufe="dringend">Löschung ab {zeitKurz(b.loeschungGeplantFuer)}</Warnung>}
+                  {!b.deaktiviertAm && b.leitungMitMail === 0 && <Warnung>keine Leitung mit E-Mail</Warnung>}
                   {b.notzugangBis && <Warnung>Notzugang bis {zeitKurz(b.notzugangBis)}</Warnung>}
+                  <Button
+                    variant="ghost"
+                    groesse="klein"
+                    aria-expanded={verwaltet === b.kennung}
+                    onClick={() => setVerwaltet((x) => (x === b.kennung ? null : b.kennung))}
+                    aria-label={`${b.name} verwalten`}
+                  >
+                    Verwalten
+                  </Button>
                   <Button
                     variant="secondary"
                     groesse="klein"
@@ -419,9 +475,30 @@ export default function PlattformView() {
                     Notzugang
                   </Button>
                 </span>
+                {verwaltet === b.kennung && (
+                  <div className="basis-full">
+                    <BetriebVerwalten betrieb={b} geaendert={betriebeLaden} />
+                  </div>
+                )}
               </li>
             ))}
           </ul>
+        )}
+        {geloescht.length > 0 && (
+          <div className="mt-4 border-t border-line pt-3">
+            <p className="text-sm font-medium text-ink">Gelöscht ({geloescht.length})</p>
+            <p className="text-sm text-ink-muted">
+              Das Löschprotokoll, ohne Inhalte. Diese Kennungen werden nie wieder vergeben.
+            </p>
+            <ul className="mt-1 space-y-1 text-sm text-ink-muted">
+              {geloescht.map((g) => (
+                <li key={g.kennung}>
+                  {g.name} <span className="nr">({g.kennung})</span> · gelöscht am {datumKurz(g.geloeschtAm)}
+                  {g.testbetrieb ? ' · Testbetrieb' : ''}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </Card>
 
@@ -536,6 +613,7 @@ export default function PlattformView() {
                 <p className="font-semibold text-ink">
                   {b.name} <span className="text-ink-muted">({b.companyId})</span>
                 </p>
+                {b.hinweis && <p className="mt-1 text-sm text-warning">{b.hinweis}</p>}
                 {b.startpasswort ? (
                   <>
                     <p className="mt-1 text-sm text-ink-muted">

@@ -52,6 +52,11 @@ export interface NeuerBetrieb {
   anmeldung?: 'email' | 'benutzername';
   /** Sein Benutzername, wenn er sich damit anmeldet. */
   adminBenutzername?: string;
+  /**
+   * Ein Test- oder Vorführbetrieb (Nachtest 01.10.2026, Paket D): er lässt
+   * sich später ohne Export und ohne Frist löschen.
+   */
+  testbetrieb?: boolean;
 }
 
 /**
@@ -122,21 +127,59 @@ export function betriebFehler(b: Partial<NeuerBetrieb>): string | null {
 
 /**
  * Eine Kennung aus dem Namen vorschlagen (Testbericht 30.09.2026, G21):
- * „Perl Installationen GmbH“ → „perl-installationen-gmbh“. Umlaute werden
+ * „Perl Installationen GmbH“ → „perl-installationen“. Umlaute werden
  * ausgeschrieben, alles andere wird zum Bindestrich; sie beginnt mit einem
  * Buchstaben und hat höchstens 30 Zeichen. Ein Vorschlag, keine Vorschrift:
  * wer die Kennung selbst tippt, behält seine.
+ *
+ * SEIT DEM NACHTEST 01.10.2026 (N4) ohne Rechtsform und an einer Wortgrenze
+ * gekürzt. Aus „Installateur Müller & Söhne GmbH“ wurde
+ * „installateur-mueller-soehne-gm“ — abgeschnitten mitten in der Rechtsform,
+ * in einer Kennung, die sich nie mehr ändern lässt und in jedem Datensatz
+ * steht. Die Rechtsform fällt am Ende weg (auch „GmbH & Co KG“), weil sie
+ * sich ändern kann, der Betrieb aber derselbe bleibt.
  */
+const RECHTSFORMEN: string[][] = [
+  ['gmbh'], ['gesmbh'], ['ges', 'm', 'b', 'h'], ['mbh'], ['kg'], ['og'], ['ag'], ['se'],
+  ['e', 'u'], ['eu'], ['gesbr'], ['ges', 'b', 'r'], ['gesnbr'], ['ges', 'n', 'b', 'r'],
+  ['keg'], ['oeg'], ['co'], ['cokg'], ['ohg'], ['ug'], ['eg'], ['e', 'gen'],
+];
+const HOECHSTENS = 30;
+
 export function kennungVorschlag(name: string): string {
-  const t = name
+  const woerter = name
     .toLowerCase()
     .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^[^a-z]+/, '')
-    .slice(0, 30)
-    .replace(/-+$/, '');
-  return t;
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+  // Vorn steht ein Buchstabe: führende Ziffern fallen weg („3 Brüder“ → „brueder“).
+  while (woerter.length && !/^[a-z]/.test(woerter[0])) {
+    woerter[0] = woerter[0].replace(/^[^a-z]+/, '');
+    if (!woerter[0]) woerter.shift();
+  }
+  // Rechtsformen am Ende ablegen, solange davor noch ein Wort steht.
+  for (let weiter = true; weiter;) {
+    weiter = false;
+    for (const form of RECHTSFORMEN) {
+      if (woerter.length > form.length && form.every((w, i) => woerter[woerter.length - form.length + i] === w)) {
+        woerter.splice(woerter.length - form.length);
+        weiter = true;
+        break;
+      }
+    }
+  }
+  // An einer Wortgrenze kürzen; nur ein einzelnes überlanges Wort wird geschnitten.
+  let kennung = '';
+  for (const w of woerter) {
+    const mit = kennung ? `${kennung}-${w}` : w;
+    if (mit.length > HOECHSTENS) {
+      if (!kennung) kennung = w.slice(0, HOECHSTENS);
+      break;
+    }
+    kennung = mit;
+  }
+  return kennung;
 }
 
 /** Die Eingabe in die Form bringen, in der sie gespeichert wird. */
@@ -155,6 +198,7 @@ export function betriebNormalisiert(b: NeuerBetrieb): NeuerBetrieb {
       adminName: b.adminName.trim(),
       anmeldung: 'benutzername',
       adminBenutzername: benutzername,
+      testbetrieb: b.testbetrieb === true,
     };
   }
   return {
@@ -164,6 +208,7 @@ export function betriebNormalisiert(b: NeuerBetrieb): NeuerBetrieb {
     // Schreibweisen derselben Adresse ergäben sonst zwei Konten.
     adminEmail: (b.adminEmail ?? '').trim().toLowerCase(),
     adminName: b.adminName.trim(),
+    testbetrieb: b.testbetrieb === true,
   };
 }
 
