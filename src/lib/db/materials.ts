@@ -75,3 +75,8 @@ export function lagerFrei(): Promise<Map<string, pg.LagerStand>> {
 export function listMaterials(companyId: string, max = KATALOG_GRENZE): Promise<WithId<Material>[]> {
   return pg.listMaterials(companyId, max);
 }
+
+/** Artikel aus dem Katalog suchen, auf dem Server (M18). */
+export function sucheKatalog(companyId: string, begriff: string, max?: number): Promise<WithId<Material>[]> {
+  return pg.sucheKatalog(companyId, begriff, max);
+}

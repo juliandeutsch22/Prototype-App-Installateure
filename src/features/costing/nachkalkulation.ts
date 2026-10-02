@@ -183,6 +183,8 @@ export function rechneBaustelle(
   const ausAngebot =
     quote && quote.status === 'Angenommen' && material.scheine === 0
       ? (quote.positions ?? [])
+          // Titel und Textzeilen sind kein Material (M18).
+          .filter((p) => (p.art ?? 'position') === 'position')
           .filter((p) => !(p.istArbeitszeit ?? false) && !istStundenEinheit(p.unit))
           .map((p) => `${p.label} (aus dem Angebot)`)
       : [];

@@ -7,7 +7,7 @@ import { listCustomersByIds } from '@/lib/db/customers';
 import { isGF } from '@/lib/permissions';
 import { praefixeVon } from '@/lib/praefixe';
 import { todayStr } from '@/lib/time';
-import { discountLabel } from '@/features/invoices/totals';
+import { discountLabel, positionsRabattText, titelSummen } from '@/features/invoices/totals';
 import type { Abrechnungsart, Customer, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
@@ -286,20 +286,34 @@ export default function AngebotView() {
       </dl>
     </Card>
   );
+  const titel = titelSummen(q.positions);
   const positionen = (
-    <Card title={`Positionen (${q.positions.length})`}>
+    <Card title={`Positionen (${q.positions.filter((p) => (p.art ?? 'position') === 'position').length})`}>
       <ul className="divide-y divide-line">
-        {q.positions.map((p, i) => (
-          <li key={i} className="flex items-start justify-between gap-3 py-2">
-            <div className="min-w-0">
-              <p className="text-sm text-ink">{p.label}</p>
-              <p className="text-xs text-ink-muted">
-                {fmtMenge(p.qty)} {p.unit} × {euro(p.unitPrice)}
-              </p>
-            </div>
-            <span className="shrink-0 text-sm text-ink">{euro(p.netto)}</span>
-          </li>
-        ))}
+        {q.positions.map((p, i) =>
+          // Titel mit der Summe seiner Positionen, Text ohne Beträge (M18).
+          p.art === 'titel' ? (
+            <li key={i} className="flex items-start justify-between gap-3 pb-1 pt-3">
+              <p className="text-sm font-semibold text-ink">{p.label}</p>
+              {titel.has(i) && <span className="shrink-0 text-sm text-ink-muted">Summe {euro(titel.get(i)!)}</span>}
+            </li>
+          ) : p.art === 'text' ? (
+            <li key={i} className="py-2">
+              <p className="whitespace-pre-line text-sm text-ink-muted">{p.label}</p>
+            </li>
+          ) : (
+            <li key={i} className="flex items-start justify-between gap-3 py-2">
+              <div className="min-w-0">
+                <p className="text-sm text-ink">{p.label}</p>
+                <p className="text-xs text-ink-muted">
+                  {fmtMenge(p.qty)} {p.unit} × {euro(p.unitPrice)}
+                  {positionsRabattText(p.rabattProzent) ? `, ${positionsRabattText(p.rabattProzent)}` : ''}
+                </p>
+              </div>
+              <span className="shrink-0 text-sm text-ink">{euro(p.netto)}</span>
+            </li>
+          ),
+        )}
       </ul>
       <dl className="mt-3 space-y-1 border-t border-ink pt-3 text-sm">
         {(q.discountAmount ?? 0) > 0 && q.discount && (

@@ -93,7 +93,11 @@ async function zusammensetzen(
     const liste = nachRechnung.get(z.invoiceId) ?? [];
     // Nur die Felder einer Position — `id`, `companyId`, `invoiceId` und
     // `position` sind Buchhaltung der Datenbank und gehören nicht auf den Beleg.
-    liste.push({ label: z.label, qty: z.qty, unit: z.unit, unitPrice: z.unitPrice, netto: z.netto });
+    const pos: Position = { label: z.label, qty: z.qty, unit: z.unit, unitPrice: z.unitPrice, netto: z.netto };
+    // Nur, was von der gewöhnlichen Position abweicht (M18).
+    if (z.art && z.art !== 'position') pos.art = z.art;
+    if (z.rabattProzent != null) pos.rabattProzent = Number(z.rabattProzent);
+    liste.push(pos);
     nachRechnung.set(z.invoiceId, liste);
   }
 

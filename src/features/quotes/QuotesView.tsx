@@ -11,7 +11,7 @@ import {
 } from '@/lib/db/quotes';
 import { listCustomers } from '@/lib/db/customers';
 import { angebotAnnehmen, annahmeMeldung } from './angebotAnnehmen';
-import { calcTotals, cent, positionNetto, type InvoicePosition } from '@/features/invoices/totals';
+import { calcTotals, cent, positionNetto, rabattAnteil, titelSummen, type InvoicePosition, type PositionsArt } from '@/features/invoices/totals';
 import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { todayStr, localDateStr, fmtStunden } from '@/lib/time';
 import { isGF } from '@/lib/permissions';
@@ -28,7 +28,7 @@ import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
 import { praefixeVon } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { InputField, SelectField, FormGrid } from '@/components/Field';
+import { InputField, SelectField, FormGrid, TextareaField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
@@ -39,6 +39,7 @@ import { leseZahl, zahlAlsText, zahlOder } from '@/lib/zahl';
 import ZahlFeld from '@/components/ZahlFeld';
 import AdresseFeld from '@/components/AdresseFeld';
 import AbrechnungWahl from './AbrechnungWahl';
+import KatalogSuche from './KatalogSuche';
 
 /**
  * Zahl aus einem Eingabefeld — über die zentrale Lesung (M15). „7.500,50“
@@ -50,10 +51,16 @@ function num(v: string): number {
 }
 
 interface ZeilenEingabe {
+  /** Position, Titel oder Text (M18). Titel und Text tragen nur die Bezeichnung. */
+  art: PositionsArt;
   label: string;
   qty: string;
   unit: string;
   unitPrice: string;
+  /** Rabatt auf diese Position in Prozent, leer = keiner (M18). */
+  rabatt: string;
+  /** Aus dem Katalog übernommen — der Artikel. */
+  materialId?: string | null;
   /** Zählt diese Zeile als Facharbeiterstunde ins Budget? */
   istArbeitszeit: boolean;
   /**
@@ -99,12 +106,33 @@ function zaehltAlsArbeitszeit(einheit: string, bezeichnung: string): boolean {
   einträgt, bekommt den Haken wie bisher von selbst.
 */
 const LEERE_ZEILE: ZeilenEingabe = {
+  art: 'position',
   label: '',
   qty: '',
   unit: '',
   unitPrice: '',
+  rabatt: '',
   istArbeitszeit: false,
 };
+
+/** Ein Titel oder ein Text: nur die Bezeichnung (M18). */
+const ohnePreis = (art: 'titel' | 'text'): ZeilenEingabe => ({ ...LEERE_ZEILE, art });
+
+/**
+ * Was an einer Zeile nicht stimmt, bevor gespeichert wird: eine unlesbare
+ * Zahl (M15) oder ein Rabatt, der keiner ist. `null`, wenn alles passt.
+ */
+function zeilenFehler(zeilen: ZeilenEingabe[]): string | null {
+  for (const z of zeilen) {
+    if (z.art !== 'position') continue;
+    const f = leseZahl(z.qty).fehler ?? leseZahl(z.unitPrice).fehler ?? leseZahl(z.rabatt).fehler;
+    if (f) return f;
+    if (z.rabatt.trim() && rabattAnteil(num(z.rabatt)) === null) {
+      return `Der Rabatt bei „${z.label.trim() || 'einer Position'}“ muss zwischen 0 und 100 % liegen.`;
+    }
+  }
+  return null;
+}
 
 /**
  * Angebote und Vorkalkulation.
@@ -150,6 +178,8 @@ export default function QuotesView() {
   });
   const [notes, setNotes] = useState('');
   const [zeilen, setZeilen] = useState<ZeilenEingabe[]>([{ ...LEERE_ZEILE }]);
+  /** Ist die Suche im Katalog offen (M18)? */
+  const [katalogOffen, setKatalogOffen] = useState(false);
   /**
    * Der Entwurf, der gerade bearbeitet wird — oder `null` beim Anlegen.
    *
@@ -204,16 +234,23 @@ export default function QuotesView() {
   const positionen: InvoicePosition[] = useMemo(
     () =>
       zeilen
-        .filter((z) => z.label.trim() && num(z.qty) > 0)
-        .map((z) => {
+        // Titel und Text zählen mit ihrer Bezeichnung; eine Position braucht eine Menge.
+        .filter((z) => z.label.trim() && (z.art !== 'position' || num(z.qty) > 0))
+        .map((z): InvoicePosition & { istArbeitszeit: boolean } => {
+          if (z.art !== 'position') {
+            return { art: z.art, label: z.label.trim(), qty: 0, unit: '', unitPrice: 0, netto: 0, istArbeitszeit: false };
+          }
           const qty = num(z.qty);
           const unitPrice = cent(num(z.unitPrice));
+          const rabattProzent = rabattAnteil(num(z.rabatt));
           return {
             label: z.label.trim(),
             qty,
             unit: z.unit,
             unitPrice,
-            netto: positionNetto(qty, unitPrice),
+            netto: positionNetto(qty, unitPrice, rabattProzent),
+            ...(rabattProzent ? { rabattProzent } : {}),
+            ...(z.materialId ? { materialId: z.materialId } : {}),
             // Gespeichert, damit ein wieder geöffneter Entwurf ihn nicht raten muss.
             istArbeitszeit: z.istArbeitszeit,
           };
@@ -242,18 +279,65 @@ export default function QuotesView() {
         Speichern weg; ihre Stunden standen trotzdem im Budget.
       */
       zeilen
-        .filter((z) => z.istArbeitszeit && z.label.trim() && num(z.qty) > 0)
+        .filter((z) => z.art === 'position' && z.istArbeitszeit && z.label.trim() && num(z.qty) > 0)
         .reduce((s, z) => s + num(z.qty), 0),
     [zeilen],
   );
 
   const kunde = kunden.find((k) => k.id === customerId);
+  /** Ein Angebot nur aus Titeln und Texten bietet nichts an. */
+  const preiszeilen = positionen.some((p) => (p.art ?? 'position') === 'position');
+  /** Die Summe je Titel, an der Stelle der Eingabezeile (nicht der gespeicherten). */
+  const titelSumme = useMemo(() => {
+    const summen = titelSummen(zeilen.map((z) => ({
+      art: z.art,
+      netto: z.art === 'position' && z.label.trim() && num(z.qty) > 0
+        ? positionNetto(num(z.qty), cent(num(z.unitPrice)), rabattAnteil(num(z.rabatt)))
+        : 0,
+    })));
+    return summen;
+  }, [zeilen]);
+
+  /** Eine Zeile um eins nach oben oder unten — ein Titel gehört vor seine Positionen. */
+  function verschieben(i: number, um: -1 | 1) {
+    setZeilen((v) => {
+      const j = i + um;
+      if (j < 0 || j >= v.length) return v;
+      const neu = [...v];
+      [neu[i], neu[j]] = [neu[j], neu[i]];
+      return neu;
+    });
+  }
+
+  function zeilenKnoepfe(i: number) {
+    const was = zeilen[i].art === 'titel' ? 'Titel' : zeilen[i].art === 'text' ? 'Text' : 'Position';
+    return (
+      <div className="flex items-center gap-1">
+        {i > 0 && (
+          <IconButton label={`${was} nach oben`} onClick={() => verschieben(i, -1)}>↑</IconButton>
+        )}
+        {i < zeilen.length - 1 && (
+          <IconButton label={`${was} nach unten`} onClick={() => verschieben(i, 1)}>↓</IconButton>
+        )}
+        {zeilen.length > 1 && (
+          <IconButton
+            label={`${was} entfernen`}
+            tone="danger"
+            onClick={() => setZeilen((v) => v.filter((_, j) => j !== i))}
+          >
+            ✕
+          </IconButton>
+        )}
+      </div>
+    );
+  }
 
   function formularLeeren() {
     setCustomerId('');
     setAddress('');
     setNotes('');
     setZeilen([{ ...LEERE_ZEILE }]);
+    setKatalogOffen(false);
     setBearbeitet(null);
     setFassungVon(null);
     setRabattVorlage(null);
@@ -275,14 +359,20 @@ export default function QuotesView() {
     setStundenVorher(geraten ? q.kalkulierteStunden : null);
     setZeilen(
       q.positions.length
-        ? q.positions.map((p) => ({
-            label: p.label,
-            qty: zahlAlsText(p.qty),
-            unit: p.unit,
-            unitPrice: zahlAlsText(p.unitPrice),
-            istArbeitszeit: p.istArbeitszeit ?? zaehltAlsArbeitszeit(p.unit, p.label),
-            hakenVonHand: p.istArbeitszeit !== undefined,
-          }))
+        ? q.positions.map((p) =>
+            p.art === 'titel' || p.art === 'text'
+              ? { ...ohnePreis(p.art), label: p.label }
+              : {
+                  art: 'position' as const,
+                  label: p.label,
+                  qty: zahlAlsText(p.qty),
+                  unit: p.unit,
+                  unitPrice: zahlAlsText(p.unitPrice),
+                  rabatt: p.rabattProzent != null ? zahlAlsText(p.rabattProzent) : '',
+                  materialId: p.materialId ?? null,
+                  istArbeitszeit: p.istArbeitszeit ?? zaehltAlsArbeitszeit(p.unit, p.label),
+                  hakenVonHand: p.istArbeitszeit !== undefined,
+                })
         : [{ ...LEERE_ZEILE }],
     );
     setError(null);
@@ -336,7 +426,12 @@ export default function QuotesView() {
   }, [zuBearbeiten, zuFassen, zuKopieren, loading, angebote]);
 
   async function aenderungenSpeichern() {
-    if (!bearbeitet || !kunde || positionen.length === 0) return;
+    if (!bearbeitet || !kunde || !preiszeilen) return;
+    const falsch = zeilenFehler(zeilen);
+    if (falsch) {
+      setError(falsch);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -365,10 +460,10 @@ export default function QuotesView() {
   }
 
   async function anlegen() {
-    if (!user || !kunde || positionen.length === 0) return;
-    const unlesbar = zeilen.find((z) => leseZahl(z.qty).fehler || leseZahl(z.unitPrice).fehler);
-    if (unlesbar) {
-      setError(leseZahl(unlesbar.qty).fehler ?? leseZahl(unlesbar.unitPrice).fehler);
+    if (!user || !kunde || !preiszeilen) return;
+    const falsch = zeilenFehler(zeilen);
+    if (falsch) {
+      setError(falsch);
       return;
     }
     setBusy(true);
@@ -529,7 +624,38 @@ export default function QuotesView() {
           <div className="mt-6">
             <span className="section-label">Positionen</span>
             <div className="mt-2 space-y-3">
-              {zeilen.map((z, i) => (
+              {zeilen.map((z, i) => z.art !== 'position' ? (
+                /*
+                  TITEL UND TEXT (M18): nur die Bezeichnung. Der Titel zeigt
+                  die Summe der Positionen bis zum nächsten Titel — so steht
+                  sie auch auf dem Angebot.
+                */
+                <div key={i} className="rounded border border-line p-3">
+                  {z.art === 'titel' ? (
+                    <InputField
+                      id={`anqlabel${i}`}
+                      label="Titel"
+                      placeholder="z. B. Bad, Heizraum"
+                      value={z.label}
+                      onChange={(e) => setZeilen((v) => v.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))}
+                    />
+                  ) : (
+                    <TextareaField
+                      id={`anqlabel${i}`}
+                      label="Text"
+                      rows={2}
+                      value={z.label}
+                      onChange={(e) => setZeilen((v) => v.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))}
+                    />
+                  )}
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-sm text-ink-muted">
+                      {z.art === 'titel' ? `Summe ${euro(titelSumme.get(i) ?? 0)}` : 'ohne Preis'}
+                    </span>
+                    {zeilenKnoepfe(i)}
+                  </div>
+                </div>
+              ) : (
                 <div key={i} className="rounded border border-line p-3">
                   <InputField
                     id={`anqlabel${i}`}
@@ -551,7 +677,12 @@ export default function QuotesView() {
                       )
                     }
                   />
-                  <FormGrid>
+                  {/*
+                    ZWEI SPALTEN AUCH AM TELEFON: vier kurze Zahlenfelder
+                    untereinander machten die Position doppelt so lang wie
+                    nötig (M18 brachte den Rabatt dazu).
+                  */}
+                  <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-4">
                     <ZahlFeld
                       id={`anqqty${i}`}
                       label="Menge"
@@ -593,7 +724,17 @@ export default function QuotesView() {
                         )
                       }
                     />
-                  </FormGrid>
+                    {/* Ein Nachlass auf genau diese Position (M18); leer = keiner. */}
+                    <ZahlFeld
+                      id={`anqrabatt${i}`}
+                      label="Rabatt %"
+                      placeholder="kein"
+                      value={z.rabatt}
+                      onChange={(text) =>
+                        setZeilen((v) => v.map((x, j) => (j === i ? { ...x, rabatt: text } : x)))
+                      }
+                    />
+                  </div>
                   {/*
                     Der Haken entscheidet, was als Stundenbudget in die
                     Baustelle wandert. Eine Anfahrtspauschale kann die Einheit
@@ -618,27 +759,54 @@ export default function QuotesView() {
                   </label>
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-sm text-ink-muted">
-                      {euro(positionNetto(num(z.qty), cent(num(z.unitPrice))))}
+                      {euro(positionNetto(num(z.qty), cent(num(z.unitPrice)), rabattAnteil(num(z.rabatt))))}
+                      {z.materialId ? ' · aus dem Katalog' : ''}
                     </span>
-                    {zeilen.length > 1 && (
-                      <IconButton
-                        label="Position entfernen"
-                        tone="danger"
-                        onClick={() => setZeilen((v) => v.filter((_, j) => j !== i))}
-                      >
-                        ✕
-                      </IconButton>
-                    )}
+                    {zeilenKnoepfe(i)}
                   </div>
                 </div>
               ))}
             </div>
-            <div className="mt-3">
+            {katalogOffen && user && (
+              <div className="mt-3">
+                <KatalogSuche
+                  companyId={user.companyId}
+                  onSchliessen={() => setKatalogOffen(false)}
+                  onWahl={(m) =>
+                    setZeilen((v) => [
+                      // Eine leere erste Zeile weicht dem Artikel, statt stehen zu bleiben.
+                      ...v.filter((x) => x.art !== 'position' || x.label.trim() || x.qty.trim() || x.unitPrice.trim()),
+                      {
+                        ...LEERE_ZEILE,
+                        label: m.name,
+                        qty: '1',
+                        unit: m.unit ?? '',
+                        unitPrice: m.verkaufspreis != null ? zahlAlsText(m.verkaufspreis) : '',
+                        materialId: m.id,
+                        istArbeitszeit: zaehltAlsArbeitszeit(m.unit ?? '', m.name),
+                      },
+                    ])
+                  }
+                />
+              </div>
+            )}
+            <div className="mt-3 flex flex-wrap gap-2">
               <Button
                 variant="ghost"
                 onClick={() => setZeilen((v) => [...v, { ...LEERE_ZEILE }])}
               >
                 Position hinzufügen
+              </Button>
+              {!katalogOffen && (
+                <Button variant="ghost" onClick={() => setKatalogOffen(true)}>
+                  Aus dem Katalog …
+                </Button>
+              )}
+              <Button variant="ghost" onClick={() => setZeilen((v) => [...v, ohnePreis('titel')])}>
+                Titel hinzufügen
+              </Button>
+              <Button variant="ghost" onClick={() => setZeilen((v) => [...v, ohnePreis('text')])}>
+                Text hinzufügen
               </Button>
             </div>
           </div>
@@ -699,7 +867,7 @@ export default function QuotesView() {
             <Button
               onClick={bearbeitet ? aenderungenSpeichern : anlegen}
               loading={busy}
-              disabled={!customerId || positionen.length === 0}
+              disabled={!customerId || !preiszeilen}
             >
               {bearbeitet ? 'Änderungen speichern' : 'Angebot anlegen'}
             </Button>

@@ -64,7 +64,7 @@ import { scheinAbgleich } from './scheinAbgleich';
 import { einheitspreisVorschau, pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from './pauschale';
 import { ANZAHLUNG_PROZENT_VORGABE, anteilFehler, anzahlungVorschau } from './anzahlung';
 import { listQuotesForProject } from '@/lib/db/quotes';
-import { discountLabel, type InvoicePosition } from './totals';
+import { discountLabel, istPreiszeile, positionsRabattText, type InvoicePosition } from './totals';
 import { todayStr, localDateStr, fmtDauer, tageWort } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { Invoice, Project, RechnungsArt, WorkSheet, Zahlungseingang } from '@/types';
@@ -2583,7 +2583,31 @@ export default function InvoicesView() {
                 </tr>
               </thead>
               <tbody>
-                {preview.positions.map((p, i) => (
+                {preview.positions.map((p, i) => !istPreiszeile(p) ? (
+                  /*
+                    TITEL UND TEXT AUS DEM ANGEBOT (M18): nur die Bezeichnung,
+                    keine Menge und kein Preis — sie zählen nie zur Summe.
+                  */
+                  <tr key={i} className="border-b border-line/60">
+                    <td colSpan={5} className="py-2 pr-3">
+                      <input
+                        aria-label={`${p.art === 'titel' ? 'Titel' : 'Text'} ${i + 1}`}
+                        className={`min-h-touch w-full min-w-[10rem] rounded border border-line bg-surface px-2 py-1 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30 ${p.art === 'titel' ? 'font-semibold text-ink' : 'text-ink-muted'}`}
+                        value={p.label}
+                        onChange={(e) => setPos(i, { label: e.target.value })}
+                      />
+                    </td>
+                    <td className="py-2 text-right">
+                      <IconButton
+                        label={`${p.art === 'titel' ? 'Titel' : 'Text'} ${i + 1} entfernen`}
+                        tone="danger"
+                        onClick={() => entfernePos(i)}
+                      >
+                        ✕
+                      </IconButton>
+                    </td>
+                  </tr>
+                ) : (
                   <tr key={i} className="border-b border-line/60">
                     <td className="py-2 pr-3">
                       <input
@@ -2592,6 +2616,9 @@ export default function InvoicesView() {
                         value={p.label}
                         onChange={(e) => setPos(i, { label: e.target.value })}
                       />
+                      {positionsRabattText(p.rabattProzent) && (
+                        <span className="mt-1 block text-xs text-ink-muted">{positionsRabattText(p.rabattProzent)} (aus dem Angebot)</span>
+                      )}
                     </td>
                     <td className="py-2 pr-3">
                       {/* Über die zentrale Zahlenlesung (M15): „7.500,50“ ist keine 0 mehr. */}

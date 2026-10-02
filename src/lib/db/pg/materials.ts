@@ -5,6 +5,7 @@ import type { Lagerbewegung, Material } from '@/types';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import { abfragen, abonnieren, anlegen as kernAnlegen, aendern, loeschen, derClient, type WithId } from './kern';
 import { zeileAlsObjekt } from './felder';
+import { oderUeberSpalten } from './suche';
 
 const MATERIAL = 'materials';
 
@@ -138,4 +139,17 @@ export async function lagerFrei(): Promise<Map<string, LagerStand>> {
 
 export function listMaterials(companyId: string, max = KATALOG_GRENZE) {
   return abfragen<Material>(MATERIAL, companyId, { grenze: max });
+}
+
+/**
+ * Artikel aus dem Katalog suchen — auf dem Server, nach Name, Artikelnummer
+ * und Kategorie (M18). Ein eingespielter Großhandelskatalog hat leicht
+ * zehntausende Artikel; geladen wird davon nur, was zur Suche passt.
+ */
+export function sucheKatalog(companyId: string, begriff: string, max = 20) {
+  return abfragen<Material>(MATERIAL, companyId, {
+    oder: oderUeberSpalten(['name', 'article_number', 'category'], begriff),
+    sortiere: { feld: 'name' },
+    grenze: max,
+  });
 }

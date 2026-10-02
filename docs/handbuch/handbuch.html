@@ -635,7 +635,7 @@
     <div class="stempel">
       <span>Stand <b>02.10.2026</b></span>
       <span>Fassung <b>Folgearbeiten 02.10.</b></span>
-      <span>Automatische Prüfungen <b>5099</b></span>
+      <span>Automatische Prüfungen <b>5131</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -660,6 +660,11 @@
         <h3>Konto umstellen<span class="neu">neu</span></h3>
         <p>In der Akte unter „Zugang“ lässt sich ein Konto zwischen E-Mail und Benutzername umstellen; Zeiten, Urlaube und Scheine bleiben dran. <strong>Auf die E-Mail:</strong> die Adresse eintragen, das Passwort bleibt, und es geht gleich eine Passwort-Mail an die neue Adresse — kommt sie nicht an, stimmt die Adresse nicht. Das geht auch beim eigenen Konto. <strong>Auf den Benutzernamen:</strong> nur mit Grund; die Person wird überall abgemeldet und bekommt ein Startpasswort, das nur einmal dasteht. Das eigene Konto stellt so eine zweite Leitung um. Jede Umstellung steht darunter mit Datum, Richtung, wer und warum.</p>
         <p class="wer">Geschäftsführung, Administrator · einen Administrator nur ein Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Angebote gegliedert<span class="neu">neu</span></h3>
+        <p>Ein Angebot kennt jetzt drei Arten von Zeilen. <strong>Position</strong> wie bisher, auf Wunsch mit einem <strong>Rabatt in Prozent</strong> nur für diese Zeile — der Einzelpreis bleibt der Listenpreis, das Netto steht nach Abzug da. <strong>Titel</strong> gliedern („Bad“, „Heizraum“) und tragen auf dem Angebot die Summe ihrer Positionen. <strong>Text</strong> ist ein Hinweis ohne Preis („Fliesenarbeiten bauseits“). Mit den Pfeilen rückt eine Zeile an ihren Platz. <strong>„Aus dem Katalog …“</strong> sucht im ganzen Katalog, auch in einem eingespielten Großhandelskatalog, und übernimmt Bezeichnung, Einheit und Verkaufspreis; danach ist es eine gewöhnliche Position. Nimmt der Kunde an, übernimmt die Rechnung Titel, Text und Rabatt, und das PDF von Angebot und Rechnung zeigt sie gleich.</p>
+        <p class="wer">Büro, Leitung</p>
       </div>
       <div class="bereich">
         <h3>Datenauskunft vollständig<span class="neu">behoben</span></h3>
@@ -896,9 +901,9 @@
         Lücke im Rechnungskreis aus der Zeit vor dem 25.09. festgehalten wird.
         <strong>Kanzlei:</strong> Spalten und Steuercodes des BMD-Stapels an
         einer Beispieldatei. <strong>Anwalt:</strong> Datenschutzerklärung und
-        Impressum. <strong>Für später vermerkt:</strong> Katalogartikel,
-        Positionsrabatt und Titelpositionen im Angebot, die UID-Prüfung über
-        VIES.
+        Impressum. <strong>Für später vermerkt:</strong> die UID-Prüfung über
+        VIES. Katalogartikel, Positionsrabatt sowie Titel- und Textzeilen im
+        Angebot sind seit dem 02.10. gebaut.
       </p>
     </div>
   </section>
@@ -1768,7 +1773,7 @@
       </div>
       <div class="bereich">
         <h3>Mandantentrennung</h3>
-        <p>Jede Abfrage ist auf den eigenen Betrieb eingegrenzt — seit dem Umzug als <em>Zeilenschutz in der Datenbank</em>. Eine Zeile, die man nicht sehen darf, ist nicht „verboten“, sondern nicht vorhanden: fehlender und fremder Datensatz sehen von außen gleich aus, und das ist die ehrlichere Antwort. <strong>1 513 Prüfungen laufen gegen eine echte Postgres-Datenbank</strong>, darunter zwei Betriebe, die am selben Tag auf derselben Baustellennummer arbeiten.</p>
+        <p>Jede Abfrage ist auf den eigenen Betrieb eingegrenzt — seit dem Umzug als <em>Zeilenschutz in der Datenbank</em>. Eine Zeile, die man nicht sehen darf, ist nicht „verboten“, sondern nicht vorhanden: fehlender und fremder Datensatz sehen von außen gleich aus, und das ist die ehrlichere Antwort. <strong>1 521 Prüfungen laufen gegen eine echte Postgres-Datenbank</strong>, darunter zwei Betriebe, die am selben Tag auf derselben Baustellennummer arbeiten.</p>
         <p class="wer">Gilt für alle</p>
       </div>
       <div class="bereich">
@@ -2236,7 +2241,7 @@
       </div>
       <div class="luecke">
         <strong>Für später vermerkt<span class="schwere einrichtung">später</span></strong>
-        <p>Im Angebot Katalogartikel, Positionsrabatt sowie Titel- und Textpositionen; die UID-Prüfung online über VIES; Personalnummer und Lohnarten, Fahrzeuglager, Prüfprotokoll, Kalender-Export, ebInterface. Auf der Plattform fehlt eine Stufe „nur lesen“ nach einer Kündigung.</p>
+        <p>Die UID-Prüfung online über VIES; Personalnummer und Lohnarten, Fahrzeuglager, Prüfprotokoll, Kalender-Export, ebInterface. Auf der Plattform fehlt eine Stufe „nur lesen“ nach einer Kündigung.</p>
       </div>
       <div class="luecke">
         <strong>Nach sieben Jahren<span class="schwere offen">steuerberatung</span></strong>
@@ -2260,7 +2265,7 @@
 
   <footer class="fuss">
     <span>Senklot · Betriebssoftware für Installationsbetriebe in Österreich</span>
-    <span>5 099 automatische Prüfungen: 3 550 im Kleinen, 1 513 gegen eine echte Datenbank, 30 Läufe im echten Browser, 6 Linkprüfungen je Rolle</span>
+    <span>5 131 automatische Prüfungen: 3 574 im Kleinen, 1 521 gegen eine echte Datenbank, 30 Läufe im echten Browser, 6 Linkprüfungen je Rolle</span>
     <span>Stand 02.10.2026</span>
   </footer>
 

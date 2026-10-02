@@ -50,6 +50,11 @@ async function zusammensetzen(
     const pos: Position = { label: z.label, qty: z.qty, unit: z.unit, unitPrice: z.unitPrice, netto: z.netto };
     // NULL heisst „unbekannt" und bleibt weg — nicht als `false` durchreichen.
     if (typeof z.istArbeitszeit === 'boolean') pos.istArbeitszeit = z.istArbeitszeit;
+    // Nur, was von der gewöhnlichen Position abweicht (M18) — ältere Zeilen
+    // kommen so zurück, wie sie immer zurückkamen.
+    if (z.art && z.art !== 'position') pos.art = z.art;
+    if (z.rabattProzent != null) pos.rabattProzent = Number(z.rabattProzent);
+    if (z.materialId) pos.materialId = z.materialId;
     liste.push(pos);
     nachAngebot.set(z.quoteId, liste);
   }
