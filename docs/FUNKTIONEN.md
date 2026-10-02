@@ -35,8 +35,8 @@ unterscheidet vier Stufen:
 | Stufe | Was sie wert ist |
 |---|---|
 | **Datenbank** | Läuft gegen eine echte Postgres-Instanz (`npm run supabase:test`). Prüft Zeilenschutz, Datenbankfunktionen, Trigger, tatsächliches Verhalten. Belastbar. |
-| **Browser** | Der Weg im echten Chromium gegen den laufenden Stapel (`npm run durchklick`). Fünf Wege, nicht mehr — siehe unten. |
-| **Links** | Seit 28.09.2026 geht `npm run pruefen:links` je Rolle durch die Vorschau und hält jeden Link gegen die Rechte der Rolle (`canAccess`, wie Menü und Wächter) — ein Link auf „Kein Zugriff“ oder ins Leere macht die CI rot. Nicht erfasst: Knöpfe, die erst beim Klick weiterleiten. |
+| **Browser** | Der Weg im echten Chromium gegen den laufenden Stapel (`npm run durchklick`). Fünf Wege, nicht mehr — siehe unten. **Seit 02.10.2026** laufen die Wege des Monteurs (Zeit buchen, Material anfordern, Schein mit Foto und Unterschrift, seine Seiten) zusätzlich in **WebKit bei 390 px** (Safari auf dem iPhone) und auf dem **Tablet bei 834 px**. |
+| **Links** | Seit 28.09.2026 geht `npm run pruefen:links` je Rolle durch die Vorschau und hält jeden Link gegen die Rechte der Rolle (`canAccess`, wie Menü und Wächter) — ein Link auf „Kein Zugriff“ oder ins Leere macht die CI rot. Nicht erfasst: Knöpfe, die erst beim Klick weiterleiten. **Seit 02.10.2026** prüft derselbe Lauf auch die **Schreibweise im Sichtbaren** jeder Seite: TT.MM.JJJJ statt ISO-Datum, Dezimalkomma bei Mengen und Stunden, kein doppelter Punkt nach einem Datum (G1, Muster mit Gegenprobe in `tests/unit/schreibweiseSichtbar.test.ts`). |
 | **Rechnung** | Reine Funktionstests der Formeln. Sagen, dass die Mathematik stimmt — nicht, dass die App läuft. |
 | **Ansicht** | Rendern und Klicken, **aber jeder Datenbankzugriff ist ersetzt**. Findet Bedienfehler, keine Datenfehler. |
 | **—** | Nicht automatisch geprüft. |
@@ -163,6 +163,19 @@ Stornobeleg (M12): die Stornorechnung; eine Teilgutschrift bewusst nicht.
 ---
 
 ## Die ehrliche Bilanz zur Prüftiefe
+
+> **Seit dem Nachtest (02.10.2026)** kommen hinzu: die durchgehende Prüfung
+> **„Woche im Zeitraffer“** gegen die echte Datenbank
+> (`tests/supabase/wocheImZeitraffer.test.ts` — planen, Material anfordern
+> und einladen, Zeiten buchen, Schein unterschreiben, Krankmeldung,
+> Anzahlung und Schlussrechnung, Zahlung mit Skonto, Lohn-CSV und
+> BMD-Stapel, mit den Nähten dazwischen); die Wege des Monteurs zusätzlich in
+> **WebKit bei 390 px** und auf dem **Tablet bei 834 px**, der Schein dort
+> mit Foto; und die Schreibweise im Sichtbaren je Rolle. Der Mahnlauf mit
+> simuliertem Datum steht seit dem 30.09. in
+> `tests/unit/mahnlaufSimuliert.test.ts` (Stufen 1–3, Zinsen für Verbraucher
+> und Unternehmer, Spesen je Kundenart, fehlender Basiszinssatz). Die Zahlen
+> der Tabelle unten sind vom 19.09.2026.
 
 2465 automatische Prüfungen klingen nach viel. Aufgeschlüsselt (Lauf vom
 19.09.2026):
