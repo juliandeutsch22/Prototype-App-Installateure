@@ -24,6 +24,7 @@ import MonthCalendar from '@/components/MonthCalendar';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { ganztagsWeg } from './besetzung';
 import { einsatzZeit } from './einsatzZeit';
+import { stufeImEinsatz } from './stufeImEinsatz';
 import KalenderAboKarte from './KalenderAboKarte';
 
 /** 'YYYY-MM-DD' -> 'Mo., 15.06.2026'. */
@@ -352,7 +353,7 @@ export default function MyScheduleView() {
                                 Einsatz, der GERADE läuft. */}
                             {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
                             {einsatzZeit(a) && <Marke>{einsatzZeit(a)}</Marke>}
-                            <Marke>{a.asHelper ? 'Helfer' : 'Facharbeiter'}</Marke>
+                            <Marke>{stufeImEinsatz(a.asHelper, user)}</Marke>
                           </span>
                         </div>
                         {a.comment && <p className="mt-1 text-sm text-ink-muted">{a.comment}</p>}
@@ -450,7 +451,7 @@ export default function MyScheduleView() {
                         </span>
                         <span className="flex shrink-0 gap-2">
                           {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
-                          {a.asHelper && <Marke>Helfer</Marke>}
+                          {stufeImEinsatz(a.asHelper, user) === 'Helfer' && <Marke>Helfer</Marke>}
                         </span>
                       </li>
                     );

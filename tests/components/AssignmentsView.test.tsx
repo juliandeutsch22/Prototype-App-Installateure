@@ -47,7 +47,8 @@ vi.mock('@/lib/db/projects', () => ({
   }),
   listProjectsByNumbers: vi.fn(async () => [PROJEKT]),
 }));
-vi.mock('@/lib/db/users', () => ({ listUsers: vi.fn(async () => [MONTEUR, KOLLEGE]) }));
+let personen: AppUser[] = [MONTEUR, KOLLEGE];
+vi.mock('@/lib/db/users', () => ({ listUsers: vi.fn(async () => personen) }));
 /*
   DIE ABWESENHEITEN kommen aus `wochenplan_abwesend`: Urlaub, Zeitausgleich,
   Krankmeldung — mit Grund, wo er gesehen werden darf. Die Testdaten bleiben
@@ -148,6 +149,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
   einsaetze = [];
+  personen = [MONTEUR, KOLLEGE];
   urlaube = [];
   betriebsurlaube = [];
   weitereAbwesend = [];
@@ -867,5 +869,103 @@ describe('Rüstliste: Nachbestellung und Reservierung', () => {
     expect(await screen.findByRole('button', { name: /Anforderung über 1 anlegen/ })).toBeInTheDocument();
     expect(screen.getByText(/für diese Liste frei/)).toBeInTheDocument();
     lagerStand = null;
+  });
+});
+
+/*
+  EINSTUFUNG UND HELFER-KENNZEICHEN (Entscheidung 03.10.2026). Die Einstufung
+  an der Person bestimmt den Satz; der Haken am Einsatz bleibt nur für die
+  Ausnahme bei Fachkräften. Ein Haken beim Lehrling verdrängte seinen
+  Lehrlingssatz — falscher Betrag auf der Rechnung.
+*/
+describe('Einsatzplanung — Einstufung', () => {
+  const HELFERIN: AppUser = { ...MONTEUR, id: 'u3', uid: 'u3', name: 'Hanna Helfer', einstufung: 'helfer' } as AppUser;
+  const LEHRLING: AppUser = {
+    ...MONTEUR, id: 'u4', uid: 'u4', name: 'Leo Lehrling',
+    einstufung: 'lehrling', lehrbeginn: '2025-09-01', lehrzeitMonate: 36,
+  } as AppUser;
+  const OBERMONTEUR: AppUser = { ...MONTEUR, id: 'u5', uid: 'u5', name: 'Otto Ober', einstufung: 'obermonteur' } as AppUser;
+
+  async function einplanenUndSpeichern(...namen: RegExp[]) {
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    for (const n of namen) await userEvent.click(screen.getByRole('checkbox', { name: n }));
+  }
+  const speichern = async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+    await waitFor(() => expect(speichere).toHaveBeenCalled());
+    return speichere.mock.calls[0][3] as { userId: string; asHelper: boolean }[];
+  };
+
+  it('plant den eingestuften Helfer als Helfer ein — ohne Haken zur Wahl', async () => {
+    personen = [MONTEUR, HELFERIN];
+    zeige();
+    await einplanenUndSpeichern(/^Hanna Helfer/);
+    expect(screen.queryByRole('checkbox', { name: 'als Helfer' })).toBeNull();
+    const zeilen = await speichern();
+    expect(zeilen).toEqual([expect.objectContaining({ userId: 'u3', asHelper: true })]);
+  });
+
+  it('bietet dem Lehrling keinen Helfer-Haken an und speichert ihn ohne', async () => {
+    personen = [MONTEUR, LEHRLING];
+    // Eine ältere Einteilung mit Haken wird beim nächsten Speichern richtig.
+    einsaetze = [
+      {
+        id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042',
+        userId: 'u4', userName: 'Leo Lehrling', asHelper: true,
+      } as Assignment & { id: string },
+    ];
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: /^Leo Lehrling/ })).toBeChecked());
+    expect(screen.queryByRole('checkbox', { name: 'als Helfer' })).toBeNull();
+    const zeilen = await speichern();
+    expect(zeilen).toEqual([expect.objectContaining({ userId: 'u4', asHelper: false })]);
+  });
+
+  it('Gegenprobe: Facharbeiter und Obermonteur behalten den Haken für die Ausnahme', async () => {
+    personen = [MONTEUR, OBERMONTEUR];
+    zeige();
+    await einplanenUndSpeichern(/^Max Mustermann/, /^Otto Ober/);
+    const haken = screen.getAllByRole('checkbox', { name: 'als Helfer' });
+    expect(haken).toHaveLength(2);
+    haken.forEach((h) => expect(h).not.toBeChecked());
+    await userEvent.click(haken[1]);
+    const zeilen = await speichern();
+    expect(zeilen.find((z) => z.userId === 'u1')?.asHelper).toBe(false);
+    expect(zeilen.find((z) => z.userId === 'u5')?.asHelper).toBe(true);
+  });
+
+  it('zählt am Einsatz die tatsächliche Stufe statt „Facharbeiter“ für alle', async () => {
+    personen = [MONTEUR, KOLLEGE, LEHRLING, OBERMONTEUR];
+    einsaetze = [
+      { id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann' },
+      { id: 'a2', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u2', userName: 'Erna Beispiel', asHelper: true },
+      { id: 'a3', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u4', userName: 'Leo Lehrling' },
+      { id: 'a4', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u5', userName: 'Otto Ober' },
+    ] as (Assignment & { id: string })[];
+    zeige();
+    const karte = (await screen.findByText(/Einsätze am/)).closest('section')!;
+    for (const t of ['1 Facharbeiter', '1 Obermonteur', '1 Helfer', '1 Lehrling']) {
+      expect(within(karte).getByText(t)).toBeInTheDocument();
+    }
+    // An der Person steht die Stufe, wo sie vom Facharbeiter abweicht.
+    const zeile = (name: string) => within(karte).getByText(name).closest('li')!;
+    expect(within(zeile('Leo Lehrling')).getByText('Lehrling')).toBeInTheDocument();
+    expect(within(zeile('Otto Ober')).getByText('Obermonteur')).toBeInTheDocument();
+    expect(within(zeile('Max Mustermann')).queryByText('Facharbeiter')).toBeNull();
+  });
+
+  it('zeigt keine „0 Facharbeiter“, wenn nur ein Lehrling eingeteilt ist', async () => {
+    personen = [MONTEUR, LEHRLING, HELFERIN];
+    einsaetze = [
+      { id: 'a3', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u4', userName: 'Leo Lehrling' },
+      { id: 'a5', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u3', userName: 'Hanna Helfer' },
+      { id: 'a6', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann', asHelper: true },
+    ] as (Assignment & { id: string })[];
+    zeige();
+    const karte = (await screen.findByText(/Einsätze am/)).closest('section')!;
+    expect(await within(karte).findByText('1 Lehrling')).toBeInTheDocument();
+    expect(within(karte).getByText('2 Helfer')).toBeInTheDocument();
+    expect(within(karte).queryByText(/Facharbeiter/)).toBeNull();
   });
 });
