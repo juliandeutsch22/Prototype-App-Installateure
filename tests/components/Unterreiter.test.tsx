@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -87,41 +87,57 @@ describe('Unterreiter', () => {
      * Punkt 6). Wo man steht, sagt dann nur noch der gewählte Reiter — und
      * der muss GANZ zu sehen sein, beim Öffnen wie beim Wechsel.
      *
-     * jsdom kennt `scrollIntoView` nicht und rechnet keine Breiten. Geprüft
-     * wird deshalb der Auftrag an den Browser: welcher Reiter, und dass die
-     * Seite dabei senkrecht stehen bleibt und nicht gleitet.
+     * UND DABEI ROLLT NUR DIE LEISTE (03.10.2026): `scrollIntoView` rollte
+     * auch die Seite, am iPhone blieben danach dunkle Ecken an der
+     * Kopfleiste. jsdom rechnet keine Breiten — die Lage wird vorgegeben:
+     * Leiste 0–300 px, jeder Reiter 120 px breit nebeneinander.
      */
     const original = Element.prototype.scrollIntoView;
+    const proto = HTMLElement.prototype as unknown as { getBoundingClientRect: () => DOMRect };
+    const echt = proto.getBoundingClientRect;
+    let seiteGerollt = 0;
+    beforeEach(() => {
+      seiteGerollt = 0;
+      Element.prototype.scrollIntoView = function () {
+        seiteGerollt += 1;
+      } as Element['scrollIntoView'];
+      proto.getBoundingClientRect = function (this: HTMLElement) {
+        if (this.getAttribute('aria-label') === 'Bereiche') return { left: 0, right: 300 } as DOMRect;
+        const leiste = this.closest('nav');
+        if (!leiste || this.tagName !== 'A') return { left: 0, right: 0 } as DOMRect;
+        const i = [...leiste.querySelectorAll('a')].indexOf(this as HTMLAnchorElement);
+        const links = i * 120 - leiste.scrollLeft;
+        return { left: links, right: links + 120 } as DOMRect;
+      };
+    });
     afterEach(() => {
       Element.prototype.scrollIntoView = original;
+      proto.getBoundingClientRect = echt;
     });
 
-    function beobachte() {
-      const aufrufe: { reiter: string | null; optionen: unknown }[] = [];
-      Element.prototype.scrollIntoView = function (this: Element, optionen?: unknown) {
-        aufrufe.push({ reiter: this.textContent, optionen });
-      } as Element['scrollIntoView'];
-      return aufrufe;
-    }
-
-    const ERWARTET = { behavior: 'auto', block: 'nearest', inline: 'nearest' };
-
     it('beim Oeffnen einer hinteren Unterseite', async () => {
-      const aufrufe = beobachte();
       rolle = 'Administrator';
       zeige('/settings/sicherung');
-      await screen.findByRole('navigation', { name: 'Bereiche' });
-      expect(aufrufe[aufrufe.length - 1]).toEqual({ reiter: 'Datensicherung', optionen: ERWARTET });
+      const leiste = await screen.findByRole('navigation', { name: 'Bereiche' });
+      const reiter = within(leiste).getByRole('link', { name: 'Datensicherung' });
+      const r = reiter.getBoundingClientRect();
+      expect(r.left).toBeGreaterThanOrEqual(0);
+      expect(r.right).toBeLessThanOrEqual(300);
+      expect(leiste.scrollLeft).toBeGreaterThan(0);
+      expect(seiteGerollt).toBe(0);
     });
 
     it('beim Wechsel ueber die Leiste', async () => {
-      const aufrufe = beobachte();
       rolle = 'Administrator';
       zeige('/settings/meldungen');
       const leiste = await screen.findByRole('navigation', { name: 'Bereiche' });
+      expect(leiste.scrollLeft).toBe(0);
       await userEvent.click(within(leiste).getByRole('link', { name: 'Module' }));
       await screen.findByText('Module-Inhalt');
-      expect(aufrufe[aufrufe.length - 1]).toEqual({ reiter: 'Module', optionen: ERWARTET });
+      const r = within(leiste).getByRole('link', { name: 'Module' }).getBoundingClientRect();
+      expect(r.left).toBeGreaterThanOrEqual(0);
+      expect(r.right).toBeLessThanOrEqual(300);
+      expect(seiteGerollt).toBe(0);
     });
   });
 

@@ -8,9 +8,15 @@ import { useEffect, useRef } from 'react';
  * niemand, wo er gerade ist. Deshalb wird er beim Öffnen und bei jedem
  * Wechsel ganz ins Bild geholt.
  *
- * `inline: 'nearest'` rollt nur so weit wie nötig, `block: 'nearest'` lässt
- * die Seite senkrecht stehen, `behavior: 'auto'` springt ohne Gleiten. Das
- * `?.` vor dem Aufruf, weil jsdom `scrollIntoView` nicht kennt.
+ * NUR DIE LEISTE ROLLT, NIE DIE SEITE. Bis 03.10.2026 stand hier
+ * `scrollIntoView({ inline: 'nearest', block: 'nearest' })`. Das rollt jeden
+ * rollbaren Vorfahren mit — auch das Dokument. Gemeldet am 03.10.2026 aus
+ * der Startbildschirm-App am iPhone: nach „Planung“ standen an der Kopfleiste
+ * links und rechts dunkle Ecken, bis ein Reiter der unteren Leiste die Seite
+ * wieder nach oben setzte. „Planung“ ist der einzige Reiter dieser Leiste mit
+ * Unterreitern, und dieser Aufruf war das Einzige, das nur dort lief. Jetzt
+ * wird nur `scrollLeft` der Leiste gesetzt, so weit wie nötig — dasselbe, was
+ * `inline: 'nearest'` wollte, ohne die Seite anzufassen.
  *
  * Gesucht wird der Reiter mit `aria-selected="true"` (Reiter als Knöpfe)
  * oder `aria-current="page"` (Reiter als Links, siehe Unterreiter).
@@ -18,10 +24,10 @@ import { useEffect, useRef } from 'react';
 export function useReiterImBild<T extends HTMLElement>(gewaehlt: unknown) {
   const leiste = useRef<T>(null);
   useEffect(() => {
-    leiste.current
-      ?.querySelector('[aria-selected="true"], [aria-current="page"]')
-      ?.scrollIntoView?.({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
-    randMerken(leiste.current);
+    const el = leiste.current;
+    const reiter = el?.querySelector<HTMLElement>('[aria-selected="true"], [aria-current="page"]');
+    if (el && reiter) insBild(el, reiter);
+    randMerken(el);
   }, [gewaehlt]);
 
   /*
@@ -44,6 +50,14 @@ export function useReiterImBild<T extends HTMLElement>(gewaehlt: unknown) {
     };
   }, []);
   return leiste;
+}
+
+/** Den Reiter in der Leiste sichtbar machen — nur die Leiste rollt. */
+export function insBild(leiste: HTMLElement, reiter: HTMLElement): void {
+  const l = leiste.getBoundingClientRect();
+  const r = reiter.getBoundingClientRect();
+  if (r.left < l.left) leiste.scrollLeft -= l.left - r.left;
+  else if (r.right > l.right) leiste.scrollLeft += r.right - l.right;
 }
 
 function randMerken(el: HTMLElement | null): void {

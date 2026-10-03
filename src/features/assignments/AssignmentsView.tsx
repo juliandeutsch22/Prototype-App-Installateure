@@ -748,6 +748,18 @@ export default function AssignmentsView() {
                 onChange={(e) => setZeitBis(e.target.value)} />
             </div>
             {/*
+              DIE UHRZEIT WIEDER WEGNEHMEN (gemeldet am 03.10.2026). Das
+              Uhrzeitfeld am iPhone hat keinen Knopf zum Leeren — einmal
+              gesetzt, liess sich der Einsatz nur neu planen. Ohne Uhrzeit gilt
+              wieder der ganze Tag; gespeichert wird es erst mit „Einsatz
+              speichern“, wie jede andere Änderung hier.
+            */}
+            {(zeitVon || zeitBis) && (
+              <Button type="button" variant="ghost" className="mt-1" onClick={() => { setZeitVon(''); setZeitBis(''); }}>
+                Uhrzeit entfernen
+              </Button>
+            )}
+            {/*
               Nicht verbieten, sondern sagen. Bei einem Notdienst holt man auch
               mal jemanden aus dem Urlaub; eine Sperre stünde dann im Weg. Ein
               stilles Durchwinken wäre aber genauso falsch.
