@@ -449,6 +449,25 @@ describe('Genehmigende aus den Einstellungen', () => {
     expect(screen.queryByText(/Offene Anträge/)).not.toBeInTheDocument();
   });
 
+  // Analyse 03.10.2026, Paket 2 — wer entscheidet, sieht wartende Anträge zuerst.
+  it('stellt wartende Anträge über das eigene Antragsformular', async () => {
+    rolle = { ...rolle, uid: 'chef', name: 'Julian Deutsch', role: 'Geschäftsführung', docId: 'chef' };
+    zeichne();
+    const offen = await screen.findByText(/Offene Anträge \(1\)/);
+    const formular = screen.getByText('Antrag stellen');
+    expect(offen.compareDocumentPosition(formular) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('Gegenprobe: ohne wartende Anträge steht die Liste nach dem Formular', async () => {
+    antraege.splice(0, antraege.length);
+    rolle = { ...rolle, uid: 'chef', name: 'Julian Deutsch', role: 'Geschäftsführung', docId: 'chef' };
+    zeichne();
+    const offen = await screen.findByText(/Offene Anträge \(0\)/);
+    const formular = screen.getByText('Antrag stellen');
+    expect(offen.compareDocumentPosition(formular) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    expect(screen.getByText('Kein Antrag wartet auf eine Entscheidung.')).toBeInTheDocument();
+  });
+
   it('laesst die Geschaeftsfuehrung immer entscheiden', async () => {
     /**
      * Waere sie abwaehlbar, koennte eine Fehleingabe den ganzen Betrieb
