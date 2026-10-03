@@ -11,6 +11,7 @@ import {
   fmtStunden,
 } from '@/lib/time';
 import type { Project, TimeEntry } from '@/types';
+import { budgetArt } from '@/lib/einstufung';
 import Card from '@/components/Card';
 import { Warnung } from '@/components/Badge';
 import Zeitmarker from '@/features/time/Zeitmarker';
@@ -157,21 +158,25 @@ export default function ProjectSummary({
         {rows.map((r) => {
           const isOpen = open === r.projectNumber;
           // Mitarbeiter-Zwischensummen, größter Beitrag zuerst.
-          const byUser = new Map<string, { name: string; fachMin: number; helperMin: number }>();
+          const byUser = new Map<string, { name: string; fachMin: number; helperMin: number; lehrlingMin: number }>();
           for (const e of r.entries) {
             const key = e.userId || 'unbekannt';
             const cur = byUser.get(key) ?? {
               name: e.userName || 'Unbekannt',
               fachMin: 0,
               helperMin: 0,
+              lehrlingMin: 0,
             };
             const min = calcWorkMin(e);
-            if (e.isHelper) cur.helperMin += min;
+            // Dieselbe Aufteilung wie `groupProjectHours` (`budgetArt`).
+            const art = budgetArt(e);
+            if (art === 'helfer') cur.helperMin += min;
+            else if (art === 'lehrling') cur.lehrlingMin += min;
             else cur.fachMin += min;
             byUser.set(key, cur);
           }
           const people = [...byUser.values()].sort(
-            (a, b) => b.fachMin + b.helperMin - (a.fachMin + a.helperMin),
+            (a, b) => b.fachMin + b.helperMin + b.lehrlingMin - (a.fachMin + a.helperMin + a.lehrlingMin),
           );
           const nummer = angezeigteNummer(r);
 
@@ -232,6 +237,11 @@ export default function ProjectSummary({
                     {r.helperMin > 0 && (
                       <span className="text-sm text-ink-muted">
                         +{dauer(r.helperMin)} Helfer
+                      </span>
+                    )}
+                    {r.lehrlingMin > 0 && (
+                      <span className="text-sm text-ink-muted">
+                        +{dauer(r.lehrlingMin)} nicht im Budget
                       </span>
                     )}
                     <Icon
@@ -297,6 +307,9 @@ export default function ProjectSummary({
                         <span className="text-ink-muted">{dauer(p.fachMin)}</span>
                         {p.helperMin > 0 && (
                           <span className="text-ink-muted">+{dauer(p.helperMin)} Helfer</span>
+                        )}
+                        {p.lehrlingMin > 0 && (
+                          <span className="text-ink-muted">+{dauer(p.lehrlingMin)} nicht im Budget</span>
                         )}
                       </span>
                     ))}
@@ -374,6 +387,13 @@ export default function ProjectSummary({
                         </span>
                         <span className="text-ink-muted"> (kostenneutral für das Budget)</span>
                       </>
+                    )}
+                    {/* Entscheidung 03.10.2026: Lehrlinge, deren Stunden nicht ins Budget zählen. */}
+                    {r.lehrlingMin > 0 && (
+                      <span className="text-ink-muted">
+                        {' '}
+                        · + {dauer(r.lehrlingMin)} Lehrling, nicht im Budget
+                      </span>
                     )}
                   </p>
                 </div>

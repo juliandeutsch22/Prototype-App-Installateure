@@ -44,4 +44,6 @@ export interface UserProfileInput {
   /** Nur beim Lehrling; sonst `null`. */
   lehrbeginn?: string | null;
   lehrzeitMonate?: number | null;
+  /** Nur beim Lehrling bedeutsam: zählen seine Stunden ins Projekt-Budget? */
+  stundenInsBudget?: boolean;
 }

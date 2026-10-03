@@ -251,11 +251,22 @@ export function buildMonthCsv(
   );
   if (projekte.length > 0) {
     lines.push('', 'Projektauswertung (alle Personen)');
-    lines.push(row(['Projektnummer', 'Facharbeiter(Std)', 'Helfer(Std)', 'Gesamt(Std)']));
+    /*
+      LEHRLINGSSTUNDEN AUSSERHALB DES BUDGETS hinten angehängt (Entscheidung
+      03.10.2026): die ersten vier Spalten bleiben, wie sie ein Empfänger
+      kennt; „Gesamt“ zählt alle Stunden der Baustelle.
+    */
+    lines.push(row(['Projektnummer', 'Facharbeiter(Std)', 'Helfer(Std)', 'Gesamt(Std)', 'Lehrling nicht im Budget(Std)']));
     for (const p of projekte) {
       // Die Nummer, wie sie gebucht wurde — der Gruppenschlüssel lässt den Vorsatz weg.
       const nummer = p.entries[0]?.projectNumber ?? p.projectNumber;
-      lines.push(row([nummer, hours(p.fachMin), hours(p.helperMin), hours(p.fachMin + p.helperMin)]));
+      lines.push(row([
+        nummer,
+        hours(p.fachMin),
+        hours(p.helperMin),
+        hours(p.fachMin + p.helperMin + p.lehrlingMin),
+        hours(p.lehrlingMin),
+      ]));
     }
   }
 

@@ -1,4 +1,5 @@
-import { InputField, SelectField, FormGrid } from '@/components/Field';
+import { InputField, SelectField, FormGrid, CheckboxField } from '@/components/Field';
+import InfoHint from '@/components/InfoHint';
 import { todayStr } from '@/lib/time';
 import { datumAT as fmtDatum } from '@/lib/datum';
 import {
@@ -79,6 +80,26 @@ export default function EinstufungFelder({
           </>
         )}
       </FormGrid>
+      {/*
+        JE PERSON, NICHT JE LEHRJAHR (Entscheidung 03.10.2026): ob die Stunden
+        eines Lehrlings ins Budget der Baustelle gehören, hängt an seiner
+        Leistung. Die Buchung merkt sich den Stand vom Tag.
+      */}
+      {lehrling && (
+        <div className="flex flex-wrap items-center gap-1">
+          <CheckboxField
+            id={`${idPrefix}-insbudget`}
+            label="Stunden zählen ins Projekt-Budget"
+            checked={form.stundenInsBudget}
+            onChange={(e) => setForm({ ...form, stundenInsBudget: e.target.checked })}
+          />
+          <InfoHint about="Stunden im Projekt-Budget">
+            Gilt für Buchungen ab dem Umschalten. Bisher gebuchte Stunden bleiben, wie sie gezählt
+            wurden. Ohne Haken stehen die Stunden auf der Baustelle als „nicht im Budget“, verrechnet
+            werden sie weiter zum Satz des Lehrjahres.
+          </InfoHint>
+        </div>
+      )}
       <p className="text-sm text-ink-muted">
         {vollstaendig ? (
           <>

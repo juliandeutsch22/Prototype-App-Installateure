@@ -1,5 +1,6 @@
 import type { AppUser, Company, TimeEntry } from '@/types';
 import { fuehrtZeitkonto } from './permissions';
+import { budgetArt } from './einstufung';
 /*
   DIE VORGABE FÜR URLAUBSTAGE KOMMT AUS EINER QUELLE, NICHT AUS ZWEIEN.
 
@@ -1239,6 +1240,8 @@ export interface ProjectHours {
   fachMin: number;
   /** Helferminuten — kostenneutral für das Budget (Legacy:3684). */
   helperMin: number;
+  /** Lehrlingsminuten, die nicht ins Budget zählen (`budgetArt`, 03.10.2026). */
+  lehrlingMin: number;
   entries: TimeEntry[];
 }
 
@@ -1261,8 +1264,10 @@ export function groupProjectHours(entries: TimeEntry[]): ProjectHours[] {
     const min = calcWorkMin(e);
     if (min <= 0) continue;
     const key = normProjectNumber(e.projectNumber);
-    const cur = map.get(key) ?? { projectNumber: key, fachMin: 0, helperMin: 0, entries: [] };
-    if (e.isHelper) cur.helperMin += min;
+    const cur = map.get(key) ?? { projectNumber: key, fachMin: 0, helperMin: 0, lehrlingMin: 0, entries: [] };
+    const art = budgetArt(e);
+    if (art === 'helfer') cur.helperMin += min;
+    else if (art === 'lehrling') cur.lehrlingMin += min;
     else cur.fachMin += min;
     cur.entries.push(e);
     map.set(key, cur);

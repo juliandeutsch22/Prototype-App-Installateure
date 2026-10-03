@@ -256,6 +256,33 @@ describe('Die Einstufung (Testbericht 4.1)', () => {
     );
   });
 
+  // Entscheidung 03.10.2026 — Lehrlingsstunden im Projekt-Budget je Person.
+  it('bietet beim Lehrling den Schalter „Stunden zählen ins Projekt-Budget“ und speichert ihn', async () => {
+    gefunden = person({
+      uid: 'u2', name: 'Erna Beispiel', einstufung: 'lehrling', lehrbeginn: '2023-09-01', lehrzeitMonate: 36,
+    });
+    zeige();
+    const schalter = await screen.findByRole('checkbox', { name: 'Stunden zählen ins Projekt-Budget' });
+    expect(schalter).toBeChecked(); // ab Werk wie bisher
+    await userEvent.click(schalter);
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalled());
+    expect(profilAendern.mock.calls[0][1]).toEqual(expect.objectContaining({ stundenInsBudget: false }));
+  });
+
+  it('Gegenprobe: ohne Lehre kein Schalter, und gespeichert wird wieder „zählt“', async () => {
+    gefunden = person({
+      uid: 'u2', name: 'Erna Beispiel', einstufung: 'lehrling', lehrbeginn: '2023-09-01', lehrzeitMonate: 36,
+      stundenInsBudget: false,
+    });
+    zeige();
+    await userEvent.selectOptions(await screen.findByLabelText('Einstufung'), 'facharbeiter');
+    expect(screen.queryByRole('checkbox', { name: 'Stunden zählen ins Projekt-Budget' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalled());
+    expect(profilAendern.mock.calls[0][1]).toEqual(expect.objectContaining({ stundenInsBudget: true }));
+  });
+
   it('zeigt „nicht festgelegt“, solange keine Einstufung gesetzt ist', async () => {
     zeige();
     await screen.findByRole('textbox', { name: /^Name/ });

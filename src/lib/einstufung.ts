@@ -118,6 +118,20 @@ export function satzklasse(e: { satz?: Satzklasse | null; isHelper?: boolean | n
 
 export const istLehrlingssatz = (k: Satzklasse) => k.startsWith('lj');
 
+/**
+ * Wohin eine Stunde im Projekt-Budget gehört (Entscheidung 03.10.2026).
+ *
+ * FACH zählt gegen das Budget. HELFER zählt nicht — dieselbe Regel wie seit
+ * jeher. LEHRLING zählt nicht, wenn an der Person „Stunden zählen ins
+ * Projekt-Budget“ aus war, als gebucht wurde. Eine eigene Summe statt unter
+ * „Helfer“: ein Lehrling ist kein Helfer, und so stünde er dort.
+ */
+export function budgetArt(e: { isHelper?: boolean | null; insBudget?: boolean | null }): 'fach' | 'helfer' | 'lehrling' {
+  if (e.isHelper) return 'helfer';
+  if (e.insBudget === false) return 'lehrling';
+  return 'fach';
+}
+
 /** Wie der Satz heisst — in Rechnung, Nachweis und Auswertung gleich. */
 export function satzName(k: Satzklasse): string {
   switch (k) {
