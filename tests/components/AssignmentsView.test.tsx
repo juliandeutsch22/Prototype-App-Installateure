@@ -201,6 +201,23 @@ describe('Einsatzplanung — speichern', () => {
     expect(speichere.mock.calls[0][3][0]).toMatchObject({ zeitVon: null, zeitBis: null });
   });
 
+  it('eine eingetragene Uhrzeit lässt sich wieder entfernen — dann gilt der ganze Tag (03.10.2026)', async () => {
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
+    expect(screen.queryByRole('button', { name: 'Uhrzeit entfernen' })).toBeNull();
+    await userEvent.type(screen.getByLabelText('Beginn (optional)'), '07:30');
+    await userEvent.type(screen.getByLabelText('Ende (optional)'), '12:00');
+    await userEvent.click(screen.getByRole('button', { name: 'Uhrzeit entfernen' }));
+    expect(screen.getByLabelText('Beginn (optional)')).toHaveValue('');
+    expect(screen.getByLabelText('Ende (optional)')).toHaveValue('');
+    expect(screen.queryByRole('button', { name: 'Uhrzeit entfernen' })).toBeNull();
+    expect(speichere).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+    await waitFor(() => expect(speichere).toHaveBeenCalled());
+    expect(speichere.mock.calls[0][3][0]).toMatchObject({ zeitVon: null, zeitBis: null });
+  });
+
   it('weist ein Ende vor dem Beginn ab (M34)', async () => {
     zeige();
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
