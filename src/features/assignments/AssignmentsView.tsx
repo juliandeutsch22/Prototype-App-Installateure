@@ -42,6 +42,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { einsatzZeit } from './einsatzZeit';
+import { STUFEN_IM_EINSATZ, alsHelferEingestuft, istLehrling, stufeAnzahl, stufeImEinsatz } from './stufeImEinsatz';
 
 /** 'YYYY-MM-DD' -> 'Fr., 28.08.2026'. */
 function fmtDay(iso: string): string {
@@ -430,8 +431,9 @@ export default function AssignmentsView() {
           userId: u.uid,
           userName: u.name,
           // Helfer werden mit einem anderen Satz verrechnet — ein vergessener
-          // Haken kostet bare Münze.
-          asHelper: !!picks[u.uid]?.asHelper,
+          // Haken kostet bare Münze. Bei Helfer und Lehrling entscheidet die
+          // Einstufung, nicht der Haken (`stufeImEinsatz`).
+          asHelper: alsHelferEingestuft(u) || (!istLehrling(u) && !!picks[u.uid]?.asHelper),
           comment,
           zeitVon: zeitVon || null,
           zeitBis: zeitBis || null,
@@ -518,7 +520,9 @@ export default function AssignmentsView() {
     */
     const eingeteilt = staff.filter((u) => picks[u.uid]?.on);
     const abholer =
-      eingeteilt.find((u) => !picks[u.uid]?.asHelper) ?? eingeteilt[0] ?? { uid: user.uid, name: user.name };
+      eingeteilt.find((u) =>
+        ['Facharbeiter', 'Obermonteur'].includes(stufeImEinsatz(picks[u.uid]?.asHelper, u)),
+      ) ?? eingeteilt[0] ?? { uid: user.uid, name: user.name };
     setAnforderungLaeuft(true);
     setRuestFehler(null);
     try {
@@ -718,21 +722,37 @@ export default function AssignmentsView() {
                 onChange={(next) =>
                   setPicks(() => {
                     const out: Record<string, Pick> = {};
-                    for (const uid of next) out[uid] = { on: true, asHelper: !!picks[uid]?.asHelper };
+                    // Neu Gewählte bekommen den Haken aus der Einstufung.
+                    for (const uid of next) {
+                      out[uid] = {
+                        on: true,
+                        asHelper: picks[uid]
+                          ? !!picks[uid].asHelper
+                          : alsHelferEingestuft(staff.find((u) => u.uid === uid)),
+                      };
+                    }
                     return out;
                   })
                 }
                 emptyHint="Keine aktiven Mitarbeiter vorhanden."
-                renderExtra={(uid) => (
-                  <CheckboxField
-                    id={`helper-${uid}`}
-                    label="als Helfer"
-                    checked={!!picks[uid]?.asHelper}
-                    onChange={(e) =>
-                      setPicks((c) => ({ ...c, [uid]: { on: true, asHelper: e.target.checked } }))
-                    }
-                  />
-                )}
+                renderExtra={(uid) => {
+                  // Helfer und Lehrling: die Einstufung steht fest, ein Haken
+                  // hätte keine Wirkung bzw. den falschen Satz.
+                  const person = staff.find((u) => u.uid === uid);
+                  if (alsHelferEingestuft(person) || istLehrling(person)) {
+                    return <span className="text-sm text-ink-muted">{stufeImEinsatz(false, person)}</span>;
+                  }
+                  return (
+                    <CheckboxField
+                      id={`helper-${uid}`}
+                      label="als Helfer"
+                      checked={!!picks[uid]?.asHelper}
+                      onChange={(e) =>
+                        setPicks((c) => ({ ...c, [uid]: { on: true, asHelper: e.target.checked } }))
+                      }
+                    />
+                  );
+                }}
               />
             </div>
 
@@ -863,8 +883,11 @@ export default function AssignmentsView() {
               <div>
                 {[...byProject.entries()].map(([pn, rows]) => {
                   const proj = projects.find((p) => p.projectNumber === pn);
-                  const fach = rows.filter((r) => !r.asHelper).length;
-                  const helper = rows.filter((r) => r.asHelper).length;
+                  const stufeVon = (r: (typeof rows)[number]) =>
+                    stufeImEinsatz(r.asHelper, users.find((u) => u.uid === r.userId));
+                  const zaehlung = STUFEN_IM_EINSATZ.map(
+                    (stufe) => [stufe, rows.filter((r) => stufeVon(r) === stufe).length] as const,
+                  ).filter(([, n]) => n > 0);
                   /*
                     AUFGABE UND MATERIAL STEHEN HIER, nicht nur im Formular.
                     Gemeldet: „man sieht nirgends ausser in der Bearbeitung,
@@ -888,8 +911,9 @@ export default function AssignmentsView() {
                         </h3>
                         <span className="flex flex-wrap items-center gap-2">
                           {einsatzZeit(rows[0]) && <Marke>{einsatzZeit(rows[0])}</Marke>}
-                          <Marke>{fach} Facharbeiter</Marke>
-                          {helper > 0 && <Marke>{helper} Helfer</Marke>}
+                          {zaehlung.map(([stufe, n]) => (
+                            <Marke key={stufe}>{stufeAnzahl(stufe, n)}</Marke>
+                          ))}
                           {/*
                             BEARBEITEN DIREKT HIER. Bisher ging das nur, indem
                             man oben dieselbe Baustelle noch einmal wählte —
@@ -950,7 +974,7 @@ export default function AssignmentsView() {
                               )}
                             </span>
                             <span className="flex shrink-0 items-center gap-2">
-                              {a.asHelper && <Marke>Helfer</Marke>}
+                              {stufeVon(a) !== 'Facharbeiter' && <Marke>{stufeVon(a)}</Marke>}
                               <IconButton label={`Einsatz von ${a.userName} löschen`} tone="danger"
                                 onClick={() => setToDelete(a)}>
                                 ✕
