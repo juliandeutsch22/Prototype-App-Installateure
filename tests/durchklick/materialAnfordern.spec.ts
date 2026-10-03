@@ -22,7 +22,7 @@ test('Ein Monteur legt Material in den Korb und sendet es ab', async ({ page }) 
 
   await menue(page, 'Material anfordern', 'Material');
   await page.getByRole('button', { name: new RegExp(`${ARTIKEL.name} zur Anforderung`) }).click();
-  await page.getByRole('button', { name: 'Anforderung abschicken' }).click();
+  await page.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }).click();
 
   await expect(async () => {
     const { data } = await admin

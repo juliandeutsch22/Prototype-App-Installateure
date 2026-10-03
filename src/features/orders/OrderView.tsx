@@ -17,6 +17,7 @@ import type { Material, MaterialOrder, Project } from '@/types';
 import Card from '@/components/Card';
 import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { Marke, Warnung } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
@@ -643,15 +644,28 @@ export default function OrderView() {
                 <p className="mt-4 text-sm text-ink-muted">
                   Erst mit „Anforderung abschicken“ geht sie an die Verwaltung.
                 </p>
-                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                  <Button onClick={submitCart} loading={saving} className="w-full sm:w-auto">
-                    Anforderung abschicken
-                  </Button>
-                  <Button variant="ghost" onClick={() => setCart([])} className="w-full sm:w-auto">
-                    Liste leeren
-                  </Button>
-                </div>
           </Card>
+          )}
+          {/*
+            DER KNOPF BLEIBT IM BLICK (Analyse 03.10.2026, Paket 2). Am Telefon
+            lag „Anforderung abschicken“ unter dem ganzen Katalog; wer weiter
+            Artikel suchte, sah nicht mehr, dass noch nichts abgeschickt war.
+            Die Leiste klebt über der Reiterleiste, solange der Katalog im
+            Bild ist; am Schreibtisch steht sie unter der Karte.
+          */}
+          {cart.length > 0 && (
+            <Aktionsleiste
+              links={
+                <Button variant="ghost" onClick={() => setCart([])}>
+                  Liste leeren
+                </Button>
+              }
+              rechts={
+                <Button onClick={submitCart} loading={saving}>
+                  {`Anforderung (${cart.length}) abschicken`}
+                </Button>
+              }
+            />
           )}
         </>
       )}
