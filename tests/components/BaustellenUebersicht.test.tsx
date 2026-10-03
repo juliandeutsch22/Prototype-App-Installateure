@@ -106,6 +106,19 @@ describe('Baustellenübersicht', () => {
     expect(screen.getByText('20 %')).toBeInTheDocument();
   });
 
+  // Entscheidung 03.10.2026 — Lehrlingsstunden ohne Budget als eigene Summe.
+  it('führt Lehrlingsstunden ohne Budget eigens an — nicht als Helfer, nicht gegen das Budget', async () => {
+    bestand = [
+      eintrag({ id: 'a' }),
+      eintrag({ id: 'l', insBudget: false } as Partial<TimeEntry>),
+    ];
+    zeige();
+    const zeile = await summenzeile();
+    expect(zeile).toContain('+8,0 h Lehrling, nicht im Budget');
+    expect(zeile).not.toContain('Helfer');
+    expect(screen.getByText('20 %')).toBeInTheDocument();
+  });
+
   it('nennt die Mitarbeiter, größter Beitrag zuerst', async () => {
     bestand = [
       eintrag({ id: 'a', userId: 'u1', userName: 'Wenig Arbeiter', endTime: '09:00' }),

@@ -349,6 +349,8 @@ export interface AppUser {
   /** Nur beim Lehrling: Lehrbeginn und Lehrzeit in Monaten — daraus das Lehrjahr. */
   lehrbeginn?: string | null;
   lehrzeitMonate?: number | null;
+  /** Nur beim Lehrling: zählen seine Stunden ins Projekt-Budget? Ab Werk ja (03.10.2026). */
+  stundenInsBudget?: boolean;
   /** Freigabe „Kunden pflegen“ — wirkt für Verwaltung und Buchhaltung (siehe `darfKundenPflegen`). */
   kundenPflegen?: boolean;
   /** Freigaben seit 30.09.2026 (M37, M38) — wirken nur in der passenden Rolle. */
@@ -1133,6 +1135,11 @@ export interface TimeEntry {
    * Einstufung: sie zählen wie bisher. Siehe `satzklasse`.
    */
   satz?: Satzklasse | null;
+  /**
+   * Nur beim Lehrling: zählt diese Buchung ins Projekt-Budget? Den Stand vom
+   * Tag setzt die Datenbank (Entscheidung 03.10.2026). Leer heisst: zählt.
+   */
+  insBudget?: boolean | null;
   userId: string; // uid
   userName?: string;
   source?: EntrySource;

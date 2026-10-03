@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { listEntriesForProjects } from '@/lib/db/timeEntries';
 import { groupProjectHours, calcBudgetState, calcWorkMin, fmtStd, balkenBreite, fmtStunden } from '@/lib/time';
+import { budgetArt } from '@/lib/einstufung';
 import type { Project, TimeEntry } from '@/types';
 import { TeilFehler } from '@/components/States';
 import { datumAT } from '@/lib/datum';
@@ -34,6 +35,7 @@ interface Person {
   name: string;
   fachMin: number;
   helperMin: number;
+  lehrlingMin: number;
 }
 
 type Stand =
@@ -43,6 +45,7 @@ type Stand =
       art: 'bereit';
       fachMin: number;
       helperMin: number;
+      lehrlingMin: number;
       personen: Person[];
       zuletzt: string | null;
     };
@@ -93,7 +96,7 @@ export default function BaustellenUebersicht({
 
   const budget = calcBudgetState(stand.fachMin, projekt.estimatedHours);
 
-  if (stand.fachMin === 0 && stand.helperMin === 0) {
+  if (stand.fachMin === 0 && stand.helperMin === 0 && stand.lehrlingMin === 0) {
     return (
       <p className="text-sm text-ink-muted">
         Auf diese Baustelle ist noch keine Stunde gebucht.
@@ -117,6 +120,10 @@ export default function BaustellenUebersicht({
         */}
         {stand.helperMin > 0 && (
           <span className="text-ink-muted"> · +{fmtStd(stand.helperMin)} h Helfer</span>
+        )}
+        {/* Lehrlinge, deren Stunden nicht ins Budget zählen (Entscheidung 03.10.2026). */}
+        {stand.lehrlingMin > 0 && (
+          <span className="text-ink-muted"> · +{fmtStd(stand.lehrlingMin)} h Lehrling, nicht im Budget</span>
         )}
       </p>
 
@@ -154,6 +161,9 @@ export default function BaustellenUebersicht({
             {p.helperMin > 0 && (
               <span className="text-ink-muted">+{fmtStd(p.helperMin)} h Helfer</span>
             )}
+            {p.lehrlingMin > 0 && (
+              <span className="text-ink-muted">+{fmtStd(p.lehrlingMin)} h nicht im Budget</span>
+            )}
           </span>
         ))}
       </div>
@@ -175,7 +185,7 @@ export default function BaustellenUebersicht({
 function auswerten(eintraege: TimeEntry[]): Extract<Stand, { art: 'bereit' }> {
   const gruppe = groupProjectHours(eintraege)[0];
   if (!gruppe) {
-    return { art: 'bereit', fachMin: 0, helperMin: 0, personen: [], zuletzt: null };
+    return { art: 'bereit', fachMin: 0, helperMin: 0, lehrlingMin: 0, personen: [], zuletzt: null };
   }
 
   const nachPerson = new Map<string, Person>();
@@ -185,11 +195,14 @@ function auswerten(eintraege: TimeEntry[]): Extract<Stand, { art: 'bereit' }> {
       name: e.userName || 'Unbekannt',
       fachMin: 0,
       helperMin: 0,
+      lehrlingMin: 0,
     };
     // Dieselbe Aufteilung wie in `groupProjectHours` — dort steht auch, was
     // ueberhaupt als Arbeitszeit zaehlt.
     const min = calcWorkMin(e);
-    if (e.isHelper) cur.helperMin += min;
+    const art = budgetArt(e);
+    if (art === 'helfer') cur.helperMin += min;
+    else if (art === 'lehrling') cur.lehrlingMin += min;
     else cur.fachMin += min;
     nachPerson.set(schluessel, cur);
   }
@@ -198,9 +211,10 @@ function auswerten(eintraege: TimeEntry[]): Extract<Stand, { art: 'bereit' }> {
     art: 'bereit',
     fachMin: gruppe.fachMin,
     helperMin: gruppe.helperMin,
+    lehrlingMin: gruppe.lehrlingMin,
     // Groesster Beitrag zuerst: wer die Baustelle getragen hat, steht vorn.
     personen: [...nachPerson.values()].sort(
-      (a, b) => b.fachMin + b.helperMin - (a.fachMin + a.helperMin),
+      (a, b) => b.fachMin + b.helperMin + b.lehrlingMin - (a.fachMin + a.helperMin + a.lehrlingMin),
     ),
     zuletzt: gruppe.entries.reduce<string | null>(
       (max, e) => (max === null || e.date > max ? e.date : max),

@@ -346,4 +346,24 @@ describe('Projektstunden und Budget', () => {
     const g = groupProjectHours([pe({ isHelper: true })]);
     expect(calcBudgetState(g[0].fachMin, 8).pct).toBe(0);
   });
+
+  // Entscheidung 03.10.2026 — Lehrlingsstunden im Budget je Person.
+  it('führt Lehrlingsstunden ohne Budget als eigene Summe — nicht als Fach-, nicht als Helferzeit', () => {
+    const g = groupProjectHours([
+      pe(),
+      pe({ id: 'l1', insBudget: false }),
+      pe({ id: 'l2', insBudget: true }),
+      pe({ id: 'h1', isHelper: true, insBudget: false }),
+    ]);
+    expect(g[0].fachMin).toBe(960); // Facharbeiter + Lehrling mit Budget
+    expect(g[0].lehrlingMin).toBe(480);
+    expect(g[0].helperMin).toBe(480); // das Helfer-Kennzeichen geht vor
+    expect(calcBudgetState(g[0].fachMin, 16).pct).toBe(100);
+  });
+
+  it('Gegenprobe: alte Buchungen ohne Wert zählen wie bisher ins Budget', () => {
+    const g = groupProjectHours([pe({ insBudget: null }), pe({ id: 'e2', insBudget: undefined })]);
+    expect(g[0].fachMin).toBe(960);
+    expect(g[0].lehrlingMin).toBe(0);
+  });
 });

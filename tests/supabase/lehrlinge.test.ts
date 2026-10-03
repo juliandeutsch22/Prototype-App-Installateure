@@ -107,6 +107,54 @@ describe('3 — den Satz setzt die Datenbank', () => {
   });
 });
 
+/*
+  ENTSCHEIDUNG 03.10.2026 — Lehrlingsstunden im Projekt-Budget je Person.
+  Die Buchung merkt sich den Stand vom Tag; ein Umschalten ändert alte
+  Buchungen nicht.
+*/
+describe('3b — Lehrlingsstunden im Projekt-Budget', () => {
+  async function imBudget(id: string): Promise<boolean | null> {
+    const { data, error } = await admin.from('time_entries').select('ins_budget').eq('id', id).single();
+    if (error) throw new Error(error.message);
+    return (data as { ins_budget: boolean | null }).ins_budget;
+  }
+
+  it('beim Lehrling steht der Schalter an der Buchung — ab Werk „zählt“', async () => {
+    const zeile = buchung(lehrling, '2099-12-01', { ins_budget: false });
+    expect((await lehrling.client.from('time_entries').insert(zeile)).error).toBeNull();
+    // Was die App schickt, zählt nicht: die Datenbank setzt den Stand der Person.
+    expect(await imBudget(zeile.id)).toBe(true);
+  });
+
+  it('Gegenprobe: bei anderen bleibt die Spalte leer', async () => {
+    const zeile = buchung(monteur, '2099-12-01');
+    expect((await monteur.client.from('time_entries').insert(zeile)).error).toBeNull();
+    expect(await imBudget(zeile.id)).toBeNull();
+  });
+
+  it('Umschalten gilt für neue Buchungen — alte behalten ihren Stand, auch beim Ändern', async () => {
+    const alt = buchung(lehrling, '2099-12-02');
+    expect((await lehrling.client.from('time_entries').insert(alt)).error).toBeNull();
+
+    expect((await chefin.client.from('users').update({ stunden_ins_budget: false }).eq('id', lehrling.uid)).error).toBeNull();
+    const neu = buchung(lehrling, '2099-12-03');
+    expect((await lehrling.client.from('time_entries').insert(neu)).error).toBeNull();
+    expect(await imBudget(neu.id)).toBe(false);
+
+    // Die alte Buchung bleibt „zählt“ — auch wenn sie später korrigiert wird.
+    expect((await lehrling.client.from('time_entries').update({ comment: 'korrigiert' }).eq('id', alt.id)).error).toBeNull();
+    expect(await imBudget(alt.id)).toBe(true);
+
+    await chefin.client.from('users').update({ stunden_ins_budget: true }).eq('id', lehrling.uid);
+  });
+
+  it('den Schalter stellt nur die Spitze, nicht der Lehrling selbst', async () => {
+    await lehrling.client.from('users').update({ stunden_ins_budget: false }).eq('id', lehrling.uid);
+    const { data } = await admin.from('users').select('stunden_ins_budget').eq('id', lehrling.uid).single();
+    expect((data as { stunden_ins_budget: boolean }).stunden_ins_budget).toBe(true);
+  });
+});
+
 describe('2 — Sätze je Stufe', () => {
   it('eine unbekannte Stufe im Verrechnungssatz: abgewiesen', async () => {
     const { error } = await admin.from('companies')

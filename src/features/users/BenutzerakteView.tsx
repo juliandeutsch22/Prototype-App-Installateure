@@ -445,6 +445,7 @@ function StammdatenLesen({ p }: { p: AppUser }) {
             {p.einstufung === 'lehrling' && p.lehrbeginn && p.lehrzeitMonate
               ? ` · Lehrbeginn ${fmtDatum(p.lehrbeginn)}, Lehrzeit bis ${fmtDatum(lehrzeitEnde(p.lehrbeginn, p.lehrzeitMonate))}`
               : ''}
+            {p.einstufung === 'lehrling' && p.stundenInsBudget === false ? ' · Stunden nicht im Projekt-Budget' : ''}
           </span>
         ) : (
           <span className="text-ink-muted">nicht festgelegt — zählt wie Facharbeiter</span>

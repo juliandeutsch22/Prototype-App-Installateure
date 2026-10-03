@@ -153,6 +153,8 @@ export interface BenutzerEntwurf {
   /** Nur beim Lehrling: Lehrbeginn (ISO) und Lehrzeit in Monaten. */
   lehrbeginn: string;
   lehrzeitMonate: string;
+  /** Nur beim Lehrling: zählen seine Stunden ins Projekt-Budget? (03.10.2026) */
+  stundenInsBudget: boolean;
 }
 
 /** Für welche Rollen der Haken „Kunden pflegen“ etwas bedeutet. */
@@ -193,6 +195,7 @@ export function leererEntwurf(): BenutzerEntwurf {
     einstufung: '',
     lehrbeginn: '',
     lehrzeitMonate: '',
+    stundenInsBudget: true,
   };
 }
 
@@ -223,6 +226,7 @@ export function alsEntwurf(u: AppUser): BenutzerEntwurf {
     einstufung: u.einstufung ?? '',
     lehrbeginn: u.lehrbeginn ?? '',
     lehrzeitMonate: u.lehrzeitMonate ? String(u.lehrzeitMonate) : '',
+    stundenInsBudget: u.stundenInsBudget !== false,
   };
 }
 
@@ -343,6 +347,8 @@ export function alsProfil(e: BenutzerEntwurf): UserProfileInput {
     // Lehrbeginn und Lehrzeit nur beim Lehrling — sonst lebten sie unsichtbar weiter.
     lehrbeginn: e.einstufung === 'lehrling' ? e.lehrbeginn || null : null,
     lehrzeitMonate: e.einstufung === 'lehrling' ? Number(e.lehrzeitMonate) || null : null,
+    // Ohne Lehre wieder „zählt“ — sonst lebte ein „aus“ unsichtbar weiter.
+    stundenInsBudget: e.einstufung === 'lehrling' ? e.stundenInsBudget : true,
   };
 }
 

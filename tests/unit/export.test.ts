@@ -87,8 +87,24 @@ describe('CSV-Aufbau', () => {
     );
     const projLine = csv.split('\n').find((l) => l.startsWith('2025-001;'));
     // Seit 30.09.2026 (M25) wie die Übersicht: Fach und Helfer getrennt,
-    // die Fachstunden (fürs Budget) stehen weiter für sich.
-    expect(projLine).toBe('2025-001;9,00;9,00;18,00');
+    // die Fachstunden (fürs Budget) stehen weiter für sich. Seit 03.10.2026
+    // hinten angehängt: Lehrlingsstunden, die nicht ins Budget zählen.
+    expect(projLine).toBe('2025-001;9,00;9,00;18,00;0,00');
+  });
+
+  it('hängt Lehrlingsstunden ohne Budget hinten an und zählt sie in „Gesamt“ (03.10.2026)', () => {
+    const csv = buildMonthCsv(
+      [
+        makeRow([
+          entry({ projectNumber: '2025-001' }),
+          entry({ id: 'e2', date: '2025-06-03', projectNumber: '2025-001', insBudget: false }),
+        ]),
+      ],
+      2025,
+      5, true,
+    );
+    expect(csv).toContain('Projektnummer;Facharbeiter(Std);Helfer(Std);Gesamt(Std);Lehrling nicht im Budget(Std)');
+    expect(csv.split('\n').find((l) => l.startsWith('2025-001;'))).toBe('2025-001;9,00;0,00;18,00;9,00');
   });
 
   it('gibt für Krank/Urlaub keine Arbeitszeit aus', () => {
