@@ -52,7 +52,7 @@ const ORT = 'http://127.0.0.1:5173';
   834 px. Zeit buchen, Material anfordern, Schein mit Unterschrift und Foto,
   und jede seiner Seiten einmal.
 */
-const MONTEUR_WEGE = /(zeitBuchen|materialAnfordern|scheinUnterschreiben|monteurSeiten)\.spec\.ts$/;
+const MONTEUR_WEGE = /(zeitBuchen|materialAnfordern|scheinUnterschreiben|monteurSeiten|fokusRahmen)\.spec\.ts$/;
 const CHROMIUM_START = process.env.CHROMIUM_PFAD ? { executablePath: process.env.CHROMIUM_PFAD } : {};
 
 const STAPEL = {

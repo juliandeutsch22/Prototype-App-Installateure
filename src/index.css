@@ -260,6 +260,21 @@ h4 {
   border-radius: var(--radius-sm);
 }
 
+/*
+ * DER INHALT SELBST BEKOMMT KEINEN RAHMEN (gemeldet am 03.10.2026, iPhone).
+ * Nach einem Seitenwechsel setzt die App den Fokus auf `main#inhalt`, damit
+ * Tastatur und Vorlesehilfe dort weitermachen (Layout.tsx). Die Regel oben
+ * zeichnete dann einen gerundeten Rahmen um die ganze Seite: oben in der
+ * Kopfleiste unsichtbar, seitlich ausserhalb des Bildschirms — übrig blieben
+ * zwei dunkle Ecken über der weissen Fuge. `outline-none` am Element verlor
+ * gegen diese Regel, weil sie in der Datei später steht. Die Kennung hebt die
+ * Ausnahme über jede Klasse.
+ */
+#inhalt:focus-visible {
+  outline: none;
+  border-radius: 0;
+}
+
 /* Formularfelder bekommen zusätzlich zur Randfarbe einen weichen Ring im
  * Cyan der Marke. */
 input:focus,
