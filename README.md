@@ -7,10 +7,12 @@ Wartungen. Entstanden aus einer monolithischen Einzeldatei
 
 ## Dokumentation
 
-**Wer hier neu ist, fängt bei der Übergabe an.**
+**Wer hier neu ist, fängt bei der Übergabe an.** Für jede Überarbeitung gilt die Arbeitsweise in [`CLAUDE.md`](CLAUDE.md).
 
 | Datei | Beantwortet |
 |---|---|
+| [`CLAUDE.md`](CLAUDE.md) | **Arbeitsweise.** Grundsätze, Ablauf je Thema, Prüfungen – gilt für jede Überarbeitung. |
+| [`docs/stand-2026-10-03.md`](docs/stand-2026-10-03.md) | Laufender Stand und Umsetzungsplan (Abschnitt 10). |
 | [`docs/UEBERGABE.md`](docs/UEBERGABE.md) | **Einstieg.** Wie das Projekt aufgebaut ist, was man nicht versehentlich umwirft, wo die Lücken sind. |
 | [`docs/FUNKTIONEN.md`](docs/FUNKTIONEN.md) | Was es gibt, wer was darf, wodurch es geprüft ist — inklusive der bekannten Lücken. |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Änderungsprotokoll: was wurde wann warum gebaut. |

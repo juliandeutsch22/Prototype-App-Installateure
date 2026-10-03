@@ -839,22 +839,6 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
       )}
 
       {/*
-        Monatsbilanzen — der einmalige Erstaufbau.
-
-        Der Stundensaldo läuft seit dem ersten Arbeitstag und braucht deshalb
-        als einzige Zahl im Programm wirklich jede Buchung; nach zehn
-        Dienstjahren sind das über zweitausend Dokumente bei jedem Aufruf des
-        Zeitkontos. Die Bilanzen verdichten das auf eine Zeile je Monat.
-
-        Bewusst ein Knopf und keine automatische Umstellung: der Lauf liest
-        einmal die gesamte Buchungsgeschichte — genau das, was danach
-        vermieden wird. Er gehört zu einem ruhigen Zeitpunkt angestoßen, nicht
-        beim ersten Seitenaufruf eines beliebigen Mitarbeiters.
-
-        Bis er gelaufen ist, rechnet das Zeitkonto weiter direkt aus den
-        Buchungen. Langsamer, aber richtig — und niemals eine falsche Zahl.
-      */}
-      {/*
         Der Urlaubsübertrag — dieselbe Grenze wie bei den Genehmigenden.
         `companies_aendern` verlangt ohnehin die Spitze; die Bedingung hier
         nimmt nur den Weg weg, statt einen Knopf anzubieten, der abgewiesen
@@ -1119,17 +1103,18 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               Eine Genehmigung trägt die Urlaubstage ins Zeitkonto ein. Wer sie aussprechen darf,
               entscheidet damit über bezahlte Tage — die Auswahl gilt deshalb auch serverseitig,
               nicht nur in der Oberfläche.
+              <br />
+              <br />
+              Die immer Berechtigten lassen sich nicht abwählen, sonst könnte eine Fehleingabe den
+              ganzen Betrieb aussperren. Bleibt die Auswahl leer, entscheidet zusätzlich die
+              Buchhaltung — so war es, bevor es diese Einstellung gab.
             </>
           }
         >
+          {/* Die Begründungen stehen hinter dem „i“ (Analyse 03.10.2026, Paket 1). */}
           <p className="text-sm text-ink">
-            Über Urlaubsanträge entscheiden <strong>{immerDabei.join(', ') || 'Geschäftsführung und Administrator'}</strong> immer
-            — das lässt sich nicht abwählen, sonst könnte eine Fehleingabe den ganzen Betrieb
-            aussperren. Hier kommen weitere Personen dazu.
-          </p>
-          <p className="mt-2 text-sm text-ink-muted">
-            Bleibt die Auswahl leer, entscheidet zusätzlich die <strong>Buchhaltung</strong> — so
-            war es, bevor es diese Einstellung gab.
+            Immer: <strong>{immerDabei.join(', ') || 'Geschäftsführung und Administrator'}</strong>.
+            Hier kommen weitere Personen dazu.
           </p>
 
           <div className="mt-4">
@@ -1156,20 +1141,6 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
         </Card>
       )}
 
-      {/*
-        HIER STAND EIN KNOPF, UND DASS ER WEG IST, IST DIE AUSKUNFT.
-
-        Die Monatsbilanzen mussten früher vorgerechnet und abgelegt werden —
-        eine Sammlung, ein Aufbaulauf, ein Trigger zum Nachziehen, ein
-        Nachtlauf zum Ausgleichen und ein Marker für die Vollständigkeit. Eine
-        Bilanz war dadurch immer nur IRGENDWANN richtig, und eine fehlende war
-        von einem Monat ohne Buchungen nicht zu unterscheiden.
-
-        `monthly_stats` ist eine SICHT. Sie rechnet bei jeder Abfrage neu und
-        kann nicht unvollständig sein. Der Knopf wurde deshalb nicht
-        stillgelegt, sondern entfernt — und an seiner Stelle steht, warum. Wer
-        ihn sucht, soll die Antwort dort finden, wo er ihn vermutet.
-      */}
       {/*
         DER WOCHENPLAN FÜR ALLE — ein Schalter, ab Werk aus. Ob Kollegen
         sehen sollen, wer wo ist, entscheidet der Betrieb. Wer abwesend ist,
@@ -1255,15 +1226,11 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
 
       {teil === 'personal' && <LohnregelnKarte />}
 
-      {teil === 'personal' && (
-      <Card title="Monatsbilanzen">
-        <p className="text-sm text-ink">
-          Die Monatsbilanzen sind eine Sicht auf die Zeitbuchungen: sie rechnen bei jeder
-          Abfrage neu. Es gibt nichts aufzubauen und nichts nachzuziehen — und damit auch
-          keinen Stand, der stillstehen und auf einem Lohnzettel landen könnte.
-        </p>
-      </Card>
-      )}
+      {/*
+        KEINE KARTE „MONATSBILANZEN“ MEHR (Analyse 03.10.2026, Paket 1). Sie
+        erklärte nur, warum es den früheren Aufbau-Knopf nicht mehr gibt:
+        `monthly_stats` ist eine Sicht und rechnet bei jeder Abfrage neu.
+      */}
     </div>
   );
 }

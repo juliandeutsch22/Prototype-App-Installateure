@@ -219,12 +219,6 @@ export default function TimeView() {
    * obere Grenze und zählte auch Buchungen in der ZUKUNFT mit, für die noch
    * gar kein Soll besteht. Der Saldo sah dadurch zu gut aus.
    */
-  /** Wie viele Einträge bis heute — die kommenden Abwesenheiten zählen hier nicht. */
-  const bisHeute = useMemo(() => {
-    const heute = todayStr();
-    return entries.filter((e) => e.date <= heute).length;
-  }, [entries]);
-
   const laufendeEintraege = useMemo(() => {
     const jetzt = new Date();
     const monatsErster = localDateStr(new Date(jetzt.getFullYear(), jetzt.getMonth(), 1));
@@ -727,12 +721,12 @@ export default function TimeView() {
         </Hinweiszeile>
       )}
 
+      {/*
+        KEINE KACHEL „EINTRÄGE“ MEHR (Analyse 03.10.2026, Paket 1). Die Zahl
+        der Buchungen der letzten Monate sagte nichts und schob das Formular
+        am Telefon nach unten.
+      */}
       <MetricRow>
-        <Metric
-          label="Einträge"
-          value={bisHeute}
-          hint={`letzte ${monate} Monate`}
-        />
         {/* Dieselbe Zahl wie auf dem Dashboard — und deshalb auch mit
             demselben Vorbehalt. Ein Saldo aus Tagen, an denen gar nichts
             gebucht wurde, ist kein Befund über den Mitarbeiter, sondern eine

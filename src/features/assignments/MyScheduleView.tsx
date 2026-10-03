@@ -152,6 +152,17 @@ export default function MyScheduleView() {
     [naechste, abwesend, user],
   );
   const ausgeblendet = naechste.length - anstehend.length;
+  /*
+    HEUTE STEHT SCHON DARÜBER (Analyse 03.10.2026, Paket 1). Ist der heutige
+    Tag gewählt, zeigt die Karte oben seine Einsätze; „Nächste Einsätze“
+    beginnt dann morgen. Ist ein anderer Tag gewählt, bleibt heute in der
+    Liste — sonst stünde er nirgends.
+  */
+  const heuteGewaehlt = selected === todayStr();
+  const kommende = useMemo(
+    () => (heuteGewaehlt ? anstehend.filter((a) => a.date !== todayStr()) : anstehend),
+    [anstehend, heuteGewaehlt],
+  );
 
   /**
    * Baustellen-Stammdaten nur zu den Nummern, die tatsächlich vorkommen.
@@ -432,11 +443,13 @@ export default function MyScheduleView() {
               stünde nichts an.
             */}
             <Card title="Nächste Einsätze" className="mt-3 lg:mt-5">
-              {anstehend.length === 0 ? (
-                <EmptyState>Zurzeit ist nichts eingeplant.</EmptyState>
+              {kommende.length === 0 ? (
+                <EmptyState>
+                  {anstehend.length > 0 ? 'Nach heute ist nichts eingeplant.' : 'Zurzeit ist nichts eingeplant.'}
+                </EmptyState>
               ) : (
                 <ul className="divide-y divide-line">
-                  {anstehend.slice(0, 15).map((a) => {
+                  {kommende.slice(0, 15).map((a) => {
                     const proj = projects.find((p) => p.projectNumber === a.projectNumber);
                     return (
                       <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2">

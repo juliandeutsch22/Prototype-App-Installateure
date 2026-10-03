@@ -10,7 +10,6 @@ import Abschnitt from '@/components/Abschnitt';
 import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { Marke } from '@/components/Badge';
-import Metric, { MetricRow } from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
@@ -132,15 +131,6 @@ export default function UserMgmtView() {
     [gefiltert],
   );
   const inaktiv = useMemo(() => users.filter((u) => u.active === false).length, [users]);
-  const stats = useMemo(
-    () => ({
-      total: users.length,
-      active: users.filter((u) => u.active !== false).length,
-      // Draußen sind Monteure und Projektleitung (G32) — nicht nur die Rolle Mitarbeiter.
-      field: users.filter((u) => u.role === 'Mitarbeiter' || u.role === 'Projektleiter').length,
-    }),
-    [users],
-  );
 
   function toggleWorkday(d: number) {
     setForm((f) => ({
@@ -247,17 +237,10 @@ export default function UserMgmtView() {
       />
 
       {/*
-        „Außendienst" statt „Im Außendienst": bei drei Kennzahlen nebeneinander
-        bleiben auf 390 px rund 95 px je Beschriftung, und die längere wurde
-        dort zu „IM AUSSENDI…" abgeschnitten. Die Leiste ist bewusst EINE
-        Reihe (siehe Metric.tsx) — kürzer beschriften ist hier richtiger, als
-        die Leiste für einen Sonderfall umzubauen.
+        KEINE KENNZAHLEN „BENUTZER / AKTIV / AUSSENDIENST“ MEHR (Analyse
+        03.10.2026, Paket 1). Die Liste darunter zeigt dieselben Leute nach
+        Rolle gruppiert, der Filter die Inaktiven.
       */}
-      <MetricRow>
-        <Metric label="Benutzer" value={stats.total} />
-        <Metric label="Aktiv" value={stats.active} />
-        <Metric label="Außendienst" value={stats.field} />
-      </MetricRow>
 
       {handoverPassword && (
         <Hinweiszeile stufe="warn" role="alert">

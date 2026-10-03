@@ -526,17 +526,17 @@ describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
   });
 });
 
-// Testbericht 30.09.2026, G32 — „Außendienst“ zählt Monteure und Projektleitung.
-describe('Kennzahl Außendienst', () => {
-  it('zählt die Projektleitung mit', async () => {
+// Analyse 03.10.2026, Paket 1 — die Kennzahlenzeile ist weg, die Liste zeigt die Leute.
+describe('Keine Kennzahlenzeile über der Liste', () => {
+  it('zeigt die Leute nach Rolle, ohne „Benutzer / Aktiv / Außendienst“', async () => {
     leute = [
       person({ uid: 'm1', name: 'Monteur Eins', role: 'Mitarbeiter' }),
       person({ uid: 'p1', name: 'Projekt Leiter', role: 'Projektleiter' }),
-      person({ uid: 'v1', name: 'Verwaltung Eins', role: 'Verwaltung' }),
     ];
     zeige();
     expect(await screen.findByText('Monteur Eins')).toBeInTheDocument();
-    const kennzahl = screen.getByText('Außendienst').closest('div')!;
-    expect(kennzahl.parentElement).toHaveTextContent(/Außendienst\s*2|2\s*Außendienst/);
+    expect(screen.getByText('Projekt Leiter')).toBeInTheDocument();
+    expect(screen.queryByText('Außendienst')).toBeNull();
+    expect(screen.queryByText('Aktiv')).toBeNull();
   });
 });

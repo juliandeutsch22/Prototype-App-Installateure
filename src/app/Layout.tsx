@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { kontoAnzeige } from '@shared/benutzername';
 import {
-  navGroupsForRole, tabBarForRole, hinweisZahl, hinweisSumme, hinweisWort, zusatzrechte, type NavItem,
+  navGroupsForRole, OHNE_UEBERSCHRIFT, tabBarForRole, hinweisZahl, hinweisSumme, hinweisWort, zusatzrechte, type NavItem,
 } from './navigation';
 import Seitenposition from './Seitenposition';
 import FehlerInsBlickfeld from './FehlerInsBlickfeld';
@@ -209,6 +209,16 @@ export default function Layout({ children }: { children: ReactNode }) {
     als der Seitenwechsel für die Abzeichen ohnehin gebraucht wurde.
   */
   const moreActive = mehr.some((i) => i.path === ort.pathname);
+  /*
+    IM BLATT „MEHR“ NUR, WAS UNTEN NICHT SCHON STEHT (Analyse 03.10.2026,
+    Paket 1). Es zeigte alle Gruppen, also auch die vier Einträge der Leiste
+    darunter noch einmal — wer „Mehr“ öffnet, sucht genau das andere.
+    Gruppen und Reihenfolge bleiben die der Seitenleiste.
+  */
+  const mehrPfade = new Set(mehr.map((i) => i.path));
+  const mehrGruppen = groups
+    .map((g) => ({ ...g, items: g.items.filter((i) => mehrPfade.has(i.path)) }))
+    .filter((g) => g.items.length > 0);
 
   /*
     HIER STEHT DER BETRIEB, NICHT DAS PRODUKT. Die Seitenleiste ist der
@@ -274,7 +284,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <nav className="flex flex-col gap-4 overflow-y-auto" aria-label="Hauptnavigation">
           {groups.map(({ group, items: groupItems }) => (
             <div key={group} className="flex flex-col gap-1">
-              {group !== 'Allgemein' && (
+              {!OHNE_UEBERSCHRIFT.has(group) && (
                 <p className="px-3 pb-1 text-xs font-semibold text-white/60">
                   {group}
                 </p>
@@ -496,9 +506,9 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* „Mehr"-Drawer (mobil) */}
       <BottomSheet open={moreOpen} onClose={() => setMoreOpen(false)} label="Weitere Bereiche">
         <nav className="flex flex-col gap-3" aria-label="Weitere Bereiche">
-          {groups.map(({ group, items: groupItems }) => (
+          {mehrGruppen.map(({ group, items: groupItems }) => (
             <div key={group}>
-              {group !== 'Allgemein' && (
+              {!OHNE_UEBERSCHRIFT.has(group) && (
                 <p className="mb-1 px-1 text-xs font-semibold text-ink-muted">
                   {group}
                 </p>

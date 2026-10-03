@@ -371,10 +371,11 @@ describe('Drei Unterseiten statt einer (Prüflauf 24.09.2026, D10)', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Personal' })).toBeInTheDocument();
     for (const t of [
       'Urlaubsjahr und Übertrag', 'Wer Urlaub genehmigt', 'Wochenplan und Einsatzplan', '24. und 31. Dezember',
-      'Monatsbilanzen',
     ]) {
       expect(screen.getByText(t)).toBeInTheDocument();
     }
+    // Analyse 03.10.2026, Paket 1: die erklärende Karte ist weg.
+    expect(screen.queryByText('Monatsbilanzen')).toBeNull();
     expect(screen.queryByText('Nummernkreise und Fuhrpark')).toBeNull();
   });
 
@@ -405,6 +406,19 @@ describe('Drei Unterseiten statt einer (Prüflauf 24.09.2026, D10)', () => {
     expect(await within(karte).findByText(/Dafür fehlt die Berechtigung/)).toBeInTheDocument();
     const wochenplan = screen.getByText('Wochenplan und Einsatzplan').closest('section') as HTMLElement;
     expect(within(wochenplan).queryByText(/Dafür fehlt die Berechtigung/)).toBeNull();
+  });
+
+  // Analyse 03.10.2026, Paket 1 — die Begründungen stehen hinter dem „i“.
+  it('zeigt bei „Wer Urlaub genehmigt“ eine Zeile und die Begründung erst hinter dem „i“', async () => {
+    const nutzer = userEvent.setup();
+    zeige('personal');
+    const karte = screen.getByText('Wer Urlaub genehmigt').closest('section') as HTMLElement;
+    expect(within(karte).getByText(/Hier kommen weitere Personen dazu/)).toBeInTheDocument();
+    expect(within(karte).queryByText(/Bleibt die Auswahl leer/)).toBeNull();
+    await nutzer.click(within(karte).getByRole('button', { name: 'Was bedeutet Wer Urlaub genehmigt?' }));
+    expect(within(karte).getByText(/Bleibt die Auswahl leer, entscheidet zusätzlich die/)).toBeInTheDocument();
+    // Gegenprobe: Auswahl und Speichern bleiben sichtbar.
+    expect(within(karte).getByRole('button', { name: 'Genehmigende speichern' })).toBeInTheDocument();
   });
 });
 

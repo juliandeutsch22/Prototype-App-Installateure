@@ -334,3 +334,32 @@ describe('Zum Inhalt (offene Punkte C6)', () => {
     await waitFor(() => expect(screen.getByRole('textbox', { name: 'Beginn' })).toHaveFocus());
   });
 });
+
+// Analyse 03.10.2026, Paket 1 — Navigation ohne Doppelungen.
+describe('Navigation aufgeräumt (Paket 1)', () => {
+  it('zeigt im Blatt „Mehr“ nur, was nicht schon unten in der Leiste steht', async () => {
+    ladenMock.mockResolvedValue(undefined);
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /^Mehr/ }));
+    const blatt = await screen.findByRole('navigation', { name: 'Weitere Bereiche' });
+    // Die Geschäftsführung hat unten Start, Planung, Baustellen und Rechnungen.
+    for (const unten of ['Start', 'Einsatzplanung', 'Baustellen', 'Rechnungen']) {
+      expect(within(blatt).queryByRole('link', { name: new RegExp(`^${unten}`) })).toBeNull();
+    }
+    // Gegenprobe: was unten fehlt, steht im Blatt.
+    expect(within(blatt).getByRole('link', { name: /^Urlaub/ })).toBeInTheDocument();
+    expect(within(blatt).getByRole('link', { name: /^Einstellungen/ })).toBeInTheDocument();
+  });
+
+  it('nennt die Startseite „Start“ und stellt die Einstellungen ans Ende der Seitenleiste', async () => {
+    zeige();
+    const aside = document.querySelector('aside')!;
+    await within(aside).findByRole('link', { name: /^Start/ });
+    expect(within(aside).queryByRole('link', { name: /Dashboard/ })).toBeNull();
+    const nav = within(aside).getByRole('navigation', { name: 'Hauptnavigation' });
+    const links = within(nav).getAllByRole('link');
+    expect(links[links.length - 1]).toHaveTextContent('Einstellungen');
+    // Gegenprobe: Start bleibt der erste Eintrag.
+    expect(links[0]).toHaveTextContent('Start');
+  });
+});
