@@ -1,25 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Senklot">
   <title>Senklot</title>
 
-  <!-- UMGEKEHRT GEGENÜBER DER ERSTEN FASSUNG: Zeichen in Farbe, Platte weiss.
-       Ein dunkles Feld auf dem Startbildschirm konkurriert mit jedem anderen
-       dunklen Feld daneben; eine weisse Platte tritt zurück und lässt das
-       Zeichen die Arbeit machen. Die Farbe bleibt dieselbe — gewechselt hat
-       nur, wer von beiden Fläche ist und wer Figur. -->
+  <!-- Petrol auf weisser Platte: ein dunkles Feld auf dem Startbildschirm
+       konkurriert mit jedem anderen dunklen Feld daneben; eine weisse Platte
+       tritt zurück und lässt das Zeichen die Arbeit machen. -->
   <rect width="64" height="64" rx="14" fill="#FFFFFF"/>
 
-  <!-- Die Schnur: Haarlinie, stumpf abgeschnitten. Ein runder Abschluss
-       macht sie weich, und weich ist das Gegenteil von genau.
-
-       1,8 STATT 1,6 SEIT DER UMKEHRUNG. Eine helle Linie auf dunklem Grund
-       wirkt breiter als sie ist, eine dunkle auf hellem schmaler — dasselbe
-       Mass hätte nach dem Tausch dünner ausgesehen. Korrigiert wird das
-       Auge, nicht die Zahl. -->
-  <path d="M32 6 V17" stroke="#0F4552" stroke-width="1.8"/>
-
-  <!-- Der Körper aus VIER GERADEN. Die Rundungen der ersten Fassung liessen
-       ihn als Blatt lesen; gerade Kanten machen daraus wieder ein Werkzeug.
-       Die breiteste Stelle sitzt im oberen Drittel — daran, und nicht an der
-       Silhouette allein, erkennt man ein Senklot. -->
-  <path d="M32 17 L41 30 L32 58 L23 30 Z" fill="#0F4552"/>
+  <!-- DAS SENKLOT AUS VIER TEILEN (Fassung vom 03.10.2026): Schnur, Öse,
+       Schulter und Spitze. Die Fuge zwischen Schulter und Spitze ist die
+       Kante, an der man ein Senklot vom Pfeil unterscheidet; sie bleibt
+       auch im App-Zeichen offen. -->
+  <path d="M31.05 23.05 V6.95 A0.95 0.95 0 0 1 32.95 6.95 V23.05 Z" fill="#0F4552"/>
+  <rect x="28.9" y="24.2" width="6.2" height="4.5" rx="0.6" fill="#0F4552"/>
+  <path d="M26.8 29.8 H37.2 L42.4 36.5 H21.6 Z" fill="#0F4552"/>
+  <path d="M21.6 37.9 H42.4 L32 58 Z" fill="#0F4552"/>
 </svg>

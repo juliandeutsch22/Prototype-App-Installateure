@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Senklot">
   <title>Senklot</title>
   <!-- FÜR 16 PIXEL GEZEICHNET, nicht verkleinert: die Schnur wäre dort ein
-       Grauschleier. Der Körper trägt allein und sitzt deshalb grösser.
-
-       Auch hier umgekehrt. Bei 16 px ist das der grössere Gewinn als beim
-       App-Zeichen: eine dunkle Figur auf hellem Grund bleibt bis zum letzten
-       Pixel eine Figur, eine helle auf dunklem läuft an den Kanten zu. -->
+       Grauschleier. Öse, Schulter und Spitze tragen allein und sitzen
+       deshalb grösser; die Fugen sind auf knapp ein Pixel bei 16 px
+       verbreitert, sonst liefen die drei Teile zu einem Klecks zusammen. -->
   <rect width="64" height="64" rx="12" fill="#FFFFFF"/>
-  <path d="M32 6 L44 26 L32 59 L20 26 Z" fill="#0F4552"/>
+  <rect x="27.2" y="4" width="9.6" height="7.1" rx="1" fill="#0F4552"/>
+  <path d="M23.9 14.6 H40.1 L48.3 25.1 H15.7 Z" fill="#0F4552"/>
+  <path d="M15.7 28.6 H48.3 L32 60 Z" fill="#0F4552"/>
 </svg>
