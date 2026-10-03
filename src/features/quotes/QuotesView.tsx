@@ -25,6 +25,7 @@ import Hinweiszeile from '@/components/Hinweiszeile';
 import { Zustand } from '@/components/Badge';
 import { STAND } from './stand';
 import IconButton from '@/components/IconButton';
+import RowMenu from '@/components/RowMenu';
 import PageHeader from '@/components/PageHeader';
 import { praefixeVon } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -920,19 +921,16 @@ export default function QuotesView() {
                   </>
                 }
               >
+                {/*
+                  HÖCHSTENS ZWEI KNÖPFE, DER REST IM „⋯“ (Analyse 03.10.2026,
+                  Paket 2). Bis zu fünf Knöpfe je Zeile — wie bei Baustellen
+                  und Rechnungen steht das Seltenere jetzt im Menü, mit
+                  Namen, die sagen, was passiert.
+                */}
                 {darfAendern && q.status === 'Entwurf' && (
-                  <>
-                    <Button variant="ghost" disabled={busy} onClick={() => bearbeiten(q)}>
-                      Bearbeiten
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      loading={busy}
-                      onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
-                    >
-                      Versendet
-                    </Button>
-                  </>
+                  <Button variant="ghost" disabled={busy} onClick={() => bearbeiten(q)}>
+                    Bearbeiten
+                  </Button>
                 )}
                 {/* M17: was beim Kunden liegt, wird als neue Fassung überarbeitet. */}
                 {darfAendern && (q.status === 'Versendet' || q.status === 'Abgelehnt') && (
@@ -941,29 +939,25 @@ export default function QuotesView() {
                   </Button>
                 )}
                 {darfAendern && (q.status === 'Versendet' || q.status === 'Entwurf') && (
-                  <>
-                    <Button variant="ghost" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setAnnehmenFragen(q); }}>
-                      Annehmen → Baustelle
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      loading={busy}
-                      onClick={() => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt')}
-                    >
-                      Abgelehnt
-                    </Button>
-                  </>
+                  <Button variant="ghost" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setAnnehmenFragen(q); }}>
+                    Annehmen → Baustelle
+                  </Button>
                 )}
-                {/* Löschen nur im Entwurf: alles Versendete bleibt
-                    nachvollziehbar, auch ein abgelehntes Angebot. */}
-                {darfAendern && q.status === 'Entwurf' && (
-                  <IconButton
-                    label={`Angebot ${q.quoteNumber} löschen`}
-                    tone="danger"
-                    onClick={() => setToDelete(q)}
-                  >
-                    ✕
-                  </IconButton>
+                {darfAendern && (q.status === 'Versendet' || q.status === 'Entwurf') && (
+                  <RowMenu
+                    about={`Angebot ${q.quoteNumber}`}
+                    items={[
+                      ...(q.status === 'Entwurf'
+                        ? [{ label: 'Als versendet markieren', onSelect: () => void status(q, 'Versendet', 'Als versendet markiert') }]
+                        : []),
+                      { label: 'Als abgelehnt markieren', onSelect: () => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt') },
+                      // Löschen nur im Entwurf: alles Versendete bleibt
+                      // nachvollziehbar, auch ein abgelehntes Angebot.
+                      ...(q.status === 'Entwurf'
+                        ? [{ label: 'Löschen', danger: true, onSelect: () => setToDelete(q) }]
+                        : []),
+                    ]}
+                  />
                 )}
               </ListRow>
             ))}
