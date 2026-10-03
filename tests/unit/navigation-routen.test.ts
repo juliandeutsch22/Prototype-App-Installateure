@@ -207,6 +207,8 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
       // Was auf den Belegen steht — Briefkopf, Logo, UID, Bankverbindung.
       'firma',
       'saetze',
+      // Seit 03.10.2026 (Paket 2) ein Reiter für Buchhaltung und Leitung.
+      'rechnung',
       // Seit dem 24.09.2026 eigene Unterseiten statt Karten unter den Sätzen.
       'nummern',
       'personal',

@@ -133,6 +133,9 @@ export default function DashboardView() {
     }
     if (isTopLevel(user.role)) {
       bloecke.push(['Einstellungen', () => einstellungen(k, { rechnungen: rechnungenAn, konten: true, personen: true })]);
+    } else if (r === 'buchhaltung' && rechnungenAn) {
+      // Den Basiszinssatz pflegt die Buchhaltung selbst (Paket 2, 03.10.2026).
+      bloecke.push(['Einstellungen', () => einstellungen(k, { rechnungen: true, konten: false, personen: false })]);
     }
 
     setLaeuft(bloecke.length);

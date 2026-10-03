@@ -65,7 +65,7 @@ const NUTZER = {
   uid: 'chef',
   email: 'chefin@perl.at',
   name: 'Julian Deutsch',
-  role: 'Geschäftsführung' as const,
+  role: 'Geschäftsführung' as 'Geschäftsführung' | 'Buchhaltung',
   companyId: 'perl',
   docId: 'chef',
 };
@@ -88,6 +88,7 @@ function zeige(teil: 'saetze' | 'rechnung' | 'nummern' | 'personal' = 'saetze') 
 const feld = (label: string) => screen.getByLabelText(label) as HTMLInputElement;
 
 beforeEach(() => {
+  NUTZER.role = 'Geschäftsführung';
   updateCompany.mockClear();
   rechnungsvorgabenSpeichern.mockClear();
   firma = { id: 'perl', name: 'Perl Installationen' };
@@ -227,6 +228,25 @@ describe('Interne Kostensätze', () => {
   });
 });
 
+// Analyse 03.10.2026, Paket 2 — die Rechnungsvorgaben an EINEM Ort.
+describe('Rechnungsvorgaben an einem Ort (Paket 2)', () => {
+  it('stehen nicht mehr unter „Sätze und Kosten“', async () => {
+    zeige('saetze');
+    expect(await screen.findByText('Stundensätze')).toBeInTheDocument();
+    expect(screen.queryByText('Rechnungsvorgaben')).toBeNull();
+    expect(screen.queryByLabelText('Zahlungsziel (Tage)')).toBeNull();
+  });
+
+  it('die Leitung pflegt sie unter „Rechnungsvorgaben“ — samt Umsatzsteuer', async () => {
+    zeige('rechnung');
+    expect(await screen.findByLabelText('Zahlungsziel (Tage)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Umsatzsteuer')).toBeInTheDocument();
+    // Gegenprobe: Stunden- und Kostensätze stehen hier nicht.
+    expect(screen.queryByText('Stundensätze')).toBeNull();
+    expect(screen.queryByText('Interne Kostensätze')).toBeNull();
+  });
+});
+
 describe('Anzahlungen und Teilrechnungen', () => {
   it('sind ab Werk aus — der Haken ist leer', async () => {
     /*
@@ -234,22 +254,28 @@ describe('Anzahlungen und Teilrechnungen', () => {
       Rechnung entsteht. Wer nie eine Anzahlung stellt, soll dort kein Feld
       bekommen, das er jedes Mal überliest.
     */
-    zeige();
+    // Seit Paket 2 (03.10.2026) unter „Rechnungsvorgaben“, nicht mehr unter „Sätze“.
+    zeige('rechnung');
     expect(feld('Wir stellen Anzahlungs-, Teil- und Schlussrechnungen').checked).toBe(false);
   });
 
-  it('gehen mit dem Speichern der Sätze mit', async () => {
+  it('gehen mit dem Speichern der Rechnungsvorgaben mit — ohne die Kostensätze', async () => {
     const nutzer = userEvent.setup();
-    zeige();
+    gespeicherteKosten = { fach: 38.5, helper: 24 };
+    zeige('rechnung');
     await nutzer.click(feld('Wir stellen Anzahlungs-, Teil- und Schlussrechnungen'));
-    await nutzer.click(screen.getByRole('button', { name: 'Sätze speichern' }));
+    await nutzer.click(screen.getByRole('button', { name: 'Rechnungsvorgaben speichern' }));
 
+    await waitFor(() => expect(updateCompany).toHaveBeenCalled());
     expect(updateCompany.mock.calls[0][1]).toMatchObject({ rechnungsarten: true });
+    // Die Kostensätze speichert nur „Sätze und Kosten“.
+    expect(Object.keys(updateCompany.mock.calls[0][1] as object)).not.toContain('costRates');
+    expect(rechnungsvorgabenSpeichern).not.toHaveBeenCalled();
   });
 
   it('zeigen den eingeschalteten Zustand des Betriebs', async () => {
     firma = { id: 'perl', name: 'Perl Installationen', rechnungsarten: true };
-    zeige();
+    zeige('rechnung');
     expect(feld('Wir stellen Anzahlungs-, Teil- und Schlussrechnungen').checked).toBe(true);
   });
 
@@ -258,7 +284,7 @@ describe('Anzahlungen und Teilrechnungen', () => {
     // Rechnungen etwas ändern — und niemand traut sich, es zu probieren.
     // Der Satz steht seit dem Prüflauf (D10) im „i" neben dem Haken.
     const nutzer = userEvent.setup();
-    zeige();
+    zeige('rechnung');
     await nutzer.click(screen.getByRole('button', { name: /Anzahlungs- und Schlussrechnungen/ }));
     expect(screen.getByText(/Bereits ausgestellte Belege bleiben, wie sie sind/)).toBeInTheDocument();
   });
@@ -428,6 +454,10 @@ describe('Drei Unterseiten statt einer (Prüflauf 24.09.2026, D10)', () => {
   Kostensätze. Gespeichert wird über die eigene Funktion der Datenbank.
 */
 describe('Rechnungsvorgaben (Reiter der Buchhaltung)', () => {
+  beforeEach(() => {
+    NUTZER.role = 'Buchhaltung';
+  });
+
   it('zeigt nur die Vorgaben — keine Stunden-, Zuschlags- oder Kostensätze', async () => {
     firma = { id: 'perl', name: 'Perl Installationen', rates: { dueDays: 21, skontoProzent: 2, skontoTage: 10 } as Company['rates'] };
     zeige('rechnung');

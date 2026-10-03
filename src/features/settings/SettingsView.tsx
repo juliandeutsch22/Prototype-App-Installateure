@@ -69,7 +69,7 @@ const MONATE = [
 export type EinstellungsTeil = 'saetze' | 'rechnung' | 'nummern' | 'personal';
 
 const KOPF: Record<EinstellungsTeil, { titel: string; unter: string }> = {
-  saetze: { titel: 'Sätze und Kosten', unter: 'Stundensätze, Zuschläge, Rechnungsvorgaben und Kostensätze' },
+  saetze: { titel: 'Sätze und Kosten', unter: 'Stundensätze, Zuschläge und Kostensätze' },
   rechnung: { titel: 'Rechnungsvorgaben', unter: 'Zahlungsziel, Skonto, Mahnspesen und Basiszinssatz' },
   nummern: { titel: 'Nummernkreise', unter: 'Vorsätze für Rechnungen, Angebote, Baustellen und Kennzeichen' },
   personal: { titel: 'Personal', unter: 'Urlaubsjahr, Genehmigung und Wochenplan' },
@@ -438,6 +438,36 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
     }
   }
 
+  /**
+   * Die Rechnungsvorgaben der Leitung — mit Umsatzsteuer, Befreiungsgrund und
+   * Rechnungsarten (Paket 2). Die Kostensätze gehen hier nicht mit: sie
+   * stehen unter „Sätze und Kosten“ und werden nur dort gespeichert.
+   */
+  async function rechnungSpeichern(e: FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    const unlesbar = unlesbareZahlIn(e.currentTarget as HTMLFormElement);
+    if (unlesbar) {
+      setError({ wo: 'rechnung', text: unlesbar });
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await updateCompany(user.companyId, {
+        rates,
+        rechnungsarten,
+        steuerbefreiungVorgabe: steuerbefreiungVorgabe.trim(),
+      });
+      await reloadCompany();
+      toast.success('Rechnungsvorgaben gespeichert');
+    } catch (err) {
+      setError({ wo: 'rechnung', text: grundAus(err, 'Die Rechnungsvorgaben konnten nicht gespeichert werden.') });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!user) return;
@@ -498,7 +528,105 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
     <div className="space-y-6">
       <PageHeader title={KOPF[teil].titel} subtitle={KOPF[teil].unter} />
 
-      {teil === 'rechnung' && (
+      {/*
+        EIN REITER FÜR BUCHHALTUNG UND LEITUNG (Analyse 03.10.2026, Paket 2).
+        Die Vorgaben standen für die Leitung zusätzlich mitten in „Sätze und
+        Kosten“ — zwei Orte für dieselben Werte. Die Leitung sieht hier
+        zusätzlich Umsatzsteuer und Rechnungsarten; die Buchhaltung nur, was
+        ihre eigene Funktion der Datenbank speichern darf.
+      */}
+      {teil === 'rechnung' && darfGenehmigerSetzen && (
+        <form onSubmit={rechnungSpeichern} className="space-y-6">
+          <Card
+            title="Rechnungsvorgaben"
+            hint="Diese Werte sind die Vorgabe für neue Rechnungen. Beim Erstellen lassen sie sich für den Einzelfall noch anpassen."
+          >
+            <FormGrid>
+              <SelectField
+                id="r-vat"
+                label="Umsatzsteuer"
+                value={String(rates.vatRate)}
+                onChange={(e) => setRates({ ...rates, vatRate: Number(e.target.value) })}
+              >
+                <option value="0.2">20 %</option>
+                <option value="0.13">13 %</option>
+                <option value="0.1">10 %</option>
+                {/*
+                  „0 % (Reverse Charge)" STAND HIER UND WAR EINE FALLE.
+
+                  Die Auswahl setzte nur den Satz auf null. Weder der
+                  Pflichthinweis nach § 11 Abs 1a UStG noch die UID des
+                  Empfängers kamen dabei auf den Beleg — die Rechnung sah aus
+                  wie Reverse Charge und war keine. Und sie galt als VORGABE für
+                  jede Rechnung des Betriebs, auch die an Privatkunden.
+
+                  Der Übergang der Steuerschuld hängt an der einzelnen Leistung,
+                  nicht am Betrieb. Er wird deshalb je Rechnung angehakt, in der
+                  Vorschau beim Erstellen. Die Null bleibt als Satz wählbar — es
+                  gibt echte Nullfälle wie die Ausfuhrlieferung —, aber ohne die
+                  Beschriftung, die etwas anderes verspricht.
+                */}
+                <option value="0">0 %</option>
+              </SelectField>
+              {/*
+                NUR BEI 0 %: dann braucht jede Rechnung den Grund der Befreiung
+                (A2), und ein Kleinunternehmer soll ihn nicht jedes Mal tippen.
+                Die Rechnungsmaske schlägt ihn vor; ändern lässt er sich dort.
+              */}
+              {rates.vatRate === 0 && (
+                <InputField
+                  id="r-befreiung"
+                  label="Grund der Steuerbefreiung (Vorschlag)"
+                  placeholder="z. B. Kleinunternehmer, § 6 Abs 1 Z 27 UStG"
+                  value={steuerbefreiungVorgabe}
+                  onChange={(e) => setSteuerbefreiungVorgabe(e.target.value)}
+                />
+              )}
+              <RechnungsvorgabenFelder rates={rates} setRates={setRates} />
+            </FormGrid>
+            <RechnungsvorgabenHinweis />
+
+            {/*
+              ANZAHLUNGEN SIND NICHT FÜR JEDEN BETRIEB EIN THEMA.
+
+              Die Auswahl „Art der Rechnung" steht sonst in der Maske, in der
+              JEDE Rechnung entsteht — auch die vierhundert im Jahr, die schlicht
+              Rechnungen sind. Wer nie eine Anzahlung stellt, bekäme ein Feld,
+              das er jedes Mal überliest. Deshalb steht der Haken hier und ist
+              ab Werk aus.
+            */}
+            <div className="mt-4 border-t border-line pt-4">
+              <CheckboxField
+                id="rechnungsarten"
+                label="Wir stellen Anzahlungs-, Teil- und Schlussrechnungen"
+                checked={rechnungsarten}
+                onChange={(e) => setRechnungsarten(e.target.checked)}
+              />
+              <p className="mt-2 flex flex-wrap items-center gap-1 text-sm text-ink-muted">
+                Die Schlussrechnung zieht die Anzahlungen samt Umsatzsteuer wieder ab.
+                <InfoHint about="Anzahlungs- und Schlussrechnungen">
+                  Beim Anlegen einer Rechnung steht dann die Art zur Wahl. Ohne den Abzug in der
+                  Schlussrechnung wäre dieselbe Steuer zweimal ausgewiesen und zweimal geschuldet
+                  (§ 11 Abs 12 UStG).
+                  <br />
+                  <br />
+                  <strong>Bereits ausgestellte Belege bleiben, wie sie sind:</strong> sie behalten
+                  ihre Art und ihre Abzüge und drucken unverändert, auch wenn der Haken später
+                  wieder weggeht.
+                </InfoHint>
+              </p>
+            </div>
+          </Card>
+          {fehlerBei('rechnung')}
+          <div className="flex justify-end">
+            <Button type="submit" loading={saving}>
+              Rechnungsvorgaben speichern
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {teil === 'rechnung' && !darfGenehmigerSetzen && (
         <form onSubmit={vorgabenSpeichern} className="space-y-6">
           <Card
             title="Rechnungsvorgaben"
@@ -619,87 +747,6 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 </tr>
               </tbody>
             </table>
-          </div>
-        </Card>
-
-        <Card
-          title="Rechnungsvorgaben"
-          hint="Diese Werte sind die Vorgabe für neue Rechnungen. Beim Erstellen lassen sie sich für den Einzelfall noch anpassen."
-        >
-          <FormGrid>
-            <SelectField
-              id="r-vat"
-              label="Umsatzsteuer"
-              value={String(rates.vatRate)}
-              onChange={(e) => setRates({ ...rates, vatRate: Number(e.target.value) })}
-            >
-              <option value="0.2">20 %</option>
-              <option value="0.13">13 %</option>
-              <option value="0.1">10 %</option>
-              {/*
-                „0 % (Reverse Charge)" STAND HIER UND WAR EINE FALLE.
-
-                Die Auswahl setzte nur den Satz auf null. Weder der
-                Pflichthinweis nach § 11 Abs 1a UStG noch die UID des
-                Empfängers kamen dabei auf den Beleg — die Rechnung sah aus
-                wie Reverse Charge und war keine. Und sie galt als VORGABE für
-                jede Rechnung des Betriebs, auch die an Privatkunden.
-
-                Der Übergang der Steuerschuld hängt an der einzelnen Leistung,
-                nicht am Betrieb. Er wird deshalb je Rechnung angehakt, in der
-                Vorschau beim Erstellen. Die Null bleibt als Satz wählbar — es
-                gibt echte Nullfälle wie die Ausfuhrlieferung —, aber ohne die
-                Beschriftung, die etwas anderes verspricht.
-              */}
-              <option value="0">0 %</option>
-            </SelectField>
-            {/*
-              NUR BEI 0 %: dann braucht jede Rechnung den Grund der Befreiung
-              (A2), und ein Kleinunternehmer soll ihn nicht jedes Mal tippen.
-              Die Rechnungsmaske schlägt ihn vor; ändern lässt er sich dort.
-            */}
-            {rates.vatRate === 0 && (
-              <InputField
-                id="r-befreiung"
-                label="Grund der Steuerbefreiung (Vorschlag)"
-                placeholder="z. B. Kleinunternehmer, § 6 Abs 1 Z 27 UStG"
-                value={steuerbefreiungVorgabe}
-                onChange={(e) => setSteuerbefreiungVorgabe(e.target.value)}
-              />
-            )}
-            <RechnungsvorgabenFelder rates={rates} setRates={setRates} />
-          </FormGrid>
-          <RechnungsvorgabenHinweis />
-
-          {/*
-            ANZAHLUNGEN SIND NICHT FÜR JEDEN BETRIEB EIN THEMA.
-
-            Die Auswahl „Art der Rechnung" steht sonst in der Maske, in der
-            JEDE Rechnung entsteht — auch die vierhundert im Jahr, die schlicht
-            Rechnungen sind. Wer nie eine Anzahlung stellt, bekäme ein Feld,
-            das er jedes Mal überliest. Deshalb steht der Haken hier und ist
-            ab Werk aus.
-          */}
-          <div className="mt-4 border-t border-line pt-4">
-            <CheckboxField
-              id="rechnungsarten"
-              label="Wir stellen Anzahlungs-, Teil- und Schlussrechnungen"
-              checked={rechnungsarten}
-              onChange={(e) => setRechnungsarten(e.target.checked)}
-            />
-            <p className="mt-2 flex flex-wrap items-center gap-1 text-sm text-ink-muted">
-              Die Schlussrechnung zieht die Anzahlungen samt Umsatzsteuer wieder ab.
-              <InfoHint about="Anzahlungs- und Schlussrechnungen">
-                Beim Anlegen einer Rechnung steht dann die Art zur Wahl. Ohne den Abzug in der
-                Schlussrechnung wäre dieselbe Steuer zweimal ausgewiesen und zweimal geschuldet
-                (§ 11 Abs 12 UStG).
-                <br />
-                <br />
-                <strong>Bereits ausgestellte Belege bleiben, wie sie sind:</strong> sie behalten
-                ihre Art und ihre Abzüge und drucken unverändert, auch wenn der Haken später
-                wieder weggeht.
-              </InfoHint>
-            </p>
           </div>
         </Card>
 
