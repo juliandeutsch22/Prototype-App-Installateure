@@ -97,6 +97,7 @@ beforeEach(() => {
   abwesend.wert = [];
   authWert.company = { id: 'perl', name: 'Perl Installationen' };
   authWert.einblick = null;
+  authWert.user = { ...(authWert.user as object), einstufung: null };
 });
 
 afterEach(() => {
@@ -118,6 +119,29 @@ describe('Mein Einsatzplan — der Einsatz selbst', () => {
     zeichne();
     await screen.findByText('Bad');
     expect(screen.getAllByRole('link', { name: 'Zeit erfassen' })[0]).toHaveAttribute('href', '/time');
+  });
+});
+
+describe('Mein Einsatzplan — als was ich eingeteilt bin', () => {
+  // Vorher stand beim Lehrling „Facharbeiter“ (Entscheidung 03.10.2026).
+  const marke = async () => {
+    const karte = (await screen.findByText(/Einsätze am/)).closest('section')!;
+    await within(karte).findByText('Bad');
+    return karte;
+  };
+
+  it('zeigt dem Lehrling „Lehrling“, nicht „Facharbeiter“', async () => {
+    authWert.user = { ...(authWert.user as object), einstufung: 'lehrling' };
+    zeichne();
+    const karte = await marke();
+    expect(within(karte).getByText('Lehrling')).toBeInTheDocument();
+    expect(within(karte).queryByText('Facharbeiter')).toBeNull();
+  });
+
+  it('Gegenprobe: ohne Einstufung bleibt es „Facharbeiter“', async () => {
+    zeichne();
+    const karte = await marke();
+    expect(within(karte).getByText('Facharbeiter')).toBeInTheDocument();
   });
 });
 

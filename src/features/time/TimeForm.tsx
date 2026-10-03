@@ -333,6 +333,16 @@ export default function TimeForm({
   const besitzerUid = targetUid || entry?.userId || (staff ? '' : user?.uid);
   // Wem der Tag gehört, entscheidet über Eintritt und Saldo-Start (M7).
   const besitzer = staff?.find((u) => u.uid === besitzerUid) ?? (besitzerUid === user?.uid ? user : null);
+  /*
+    DAS HELFER-KENNZEICHEN FOLGT BEI HELFER UND LEHRLING DER EINSTUFUNG
+    (Entscheidung 03.10.2026). Der eingestufte Helfer hat ohnehin den
+    Helfersatz; ohne Kennzeichen zählten seine Stunden aber ins
+    Projekt-Budget. Beim Lehrling verdrängte das Kennzeichen den
+    Lehrlingssatz (`satzklasse`). Zur Wahl steht es nur noch für die
+    Ausnahme: eine Fachkraft, die einen Tag zuarbeitet.
+  */
+  const helferFest: boolean | null =
+    besitzer?.einstufung === 'helfer' ? true : besitzer?.einstufung === 'lehrling' ? false : null;
   // Eine alte Buchung, deren Tag bleibt, lässt auch die Datenbank ändern.
   const vorEintritt = isEdit && entry?.date === date ? null : eintrittsHinweis(besitzer, date);
   useEffect(() => {
@@ -557,7 +567,7 @@ export default function TimeForm({
             : '',
         helperName: canHaveProject ? helperName : '',
         comment,
-        isHelper: canHaveProject ? isHelper : false,
+        isHelper: canHaveProject ? helferFest ?? isHelper : false,
         isNightWork: canHaveProject && showWorkFields ? isNightWork : false,
         isEmergency: canHaveProject && showWorkFields ? isEmergency : false,
       };
@@ -1120,12 +1130,14 @@ export default function TimeForm({
 
       {canHaveProject && showWorkFields && (
         <>
-          <CheckboxField
-            id="isHelper"
-            label="Einsatz als Helfer (zählt nicht zum Projekt-Budget)"
-            checked={isHelper}
-            onChange={(e) => setIsHelper(e.target.checked)}
-          />
+          {helferFest === null && (
+            <CheckboxField
+              id="isHelper"
+              label="Einsatz als Helfer (zählt nicht zum Projekt-Budget)"
+              checked={isHelper}
+              onChange={(e) => setIsHelper(e.target.checked)}
+            />
+          )}
           {aussendienst ? (
             <div className="rounded-sm border border-line">
               <button
