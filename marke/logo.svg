@@ -1,7 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 208 64" role="img" aria-label="Senklot">
   <title>Senklot</title>
-  <path d="M16 9 V21" stroke="#0F4552" stroke-width="1.7"/>
-  <path d="M16 21 L24 33 L16 56 L8 33 Z" fill="#0F4552"/>
+  <!-- Dasselbe Zeichen wie in icon.svg, auf die Höhe der Wortmarke gesetzt. -->
+  <g fill="#0F4552" transform="translate(16 9) scale(0.904) translate(-32 -6)">
+    <path d="M31.05 23.05 V6.95 A0.95 0.95 0 0 1 32.95 6.95 V23.05 Z"/>
+    <rect x="28.9" y="24.2" width="6.2" height="4.5" rx="0.6"/>
+    <path d="M26.8 29.8 H37.2 L42.4 36.5 H21.6 Z"/>
+    <path d="M21.6 37.9 H42.4 L32 58 Z"/>
+  </g>
 
   <!-- Mittlere Stärke, offene Laufweite: fett und eng gesetzt wirkt laut und
        altert schnell. Poppins, weil die App sie ohnehin trägt — die Marke

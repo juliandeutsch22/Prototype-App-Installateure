@@ -32,7 +32,7 @@ export default function ProduktMarke({ hoehe = 40, className = '' }: Props) {
   /*
     Das Sichtfeld ist enger als beim App-Zeichen: dort steht das Senklot in
     einer Platte, hier steht es frei. Schnur und Körper reichen von y=6 bis
-    y=58 und von x=23 bis x=41 — plus etwas Luft ergibt das 22 × 56.
+    y=58 und von x=21,6 bis x=42,4 — plus etwas Luft ergibt das 22 × 56.
   */
   const breite = Math.round((hoehe * 22) / 56);
 
@@ -49,10 +49,11 @@ export default function ProduktMarke({ hoehe = 40, className = '' }: Props) {
         aria-hidden="true"
         className="shrink-0"
       >
-        {/* Stumpfe Enden: ein runder Abschluss macht die Schnur weich, und
-            weich ist das Gegenteil von genau. */}
-        <path d="M32 6 V17" stroke="currentColor" strokeWidth="1.8" />
-        <path d="M32 17 L41 30 L32 58 L23 30 Z" fill="currentColor" />
+        {/* Dasselbe Senklot wie `marke/icon.svg`: Schnur, Öse, Schulter, Spitze. */}
+        <path d="M31.05 23.05 V6.95 A0.95 0.95 0 0 1 32.95 6.95 V23.05 Z" fill="currentColor" />
+        <rect x="28.9" y="24.2" width="6.2" height="4.5" rx="0.6" fill="currentColor" />
+        <path d="M26.8 29.8 H37.2 L42.4 36.5 H21.6 Z" fill="currentColor" />
+        <path d="M21.6 37.9 H42.4 L32 58 Z" fill="currentColor" />
       </svg>
       {/*
         Mittlere Stärke, offene Laufweite — fett und eng gesetzt wirkt laut

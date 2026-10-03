@@ -16,31 +16,34 @@ kommt von *plumbum*, Blei — dem Werkstoff des Senklots.
 | `favicon.svg` | **Eigens für kleine Größen gezeichnet**, nicht verkleinert |
 | `*.png` | Aus den SVG erzeugt, siehe unten |
 
-## Die Haltung
+## Die Form (seit 03.10.2026)
 
-Modern, ruhig, zeitlos. Das heisst hier konkret:
+Das Senklot besteht aus vier Teilen, wie das Werkzeug: **Schnur, Öse,
+Schulter, Spitze.** Vorlage war die Zeichnung, die der Betrieb am 03.10.2026
+ausgesucht hat; übernommen ist sie in Petrol statt Schwarzblau, und die gelbe
+Schnur ist ebenfalls Petrol — die Marke bleibt einfarbig, damit sie auf
+dunklem Grund als weißes Zeichen funktioniert (Seitenleiste, Anmeldung).
 
 * **Fläche statt Verlauf.** Ein Verlauf datiert ein Zeichen auf das Jahr, in
   dem er gemacht wurde.
-* **Gerade Kanten statt Rundungen.** Die erste Fassung hatte weiche Flanken
-  und las sich als Blatt. Vier Geraden machen daraus wieder ein Werkzeug.
-* **Zwei Farben, nicht drei.** Weiss auf Petrol. Der Mint-Akzent an der
-  Schnur war ein Detail zu viel.
-* **Stumpfe Linienenden.** Ein runder Abschluss macht die Schnur weich, und
-  weich ist das Gegenteil von genau.
+* **Die Fuge zwischen Schulter und Spitze bleibt offen.** An ihr erkennt man
+  ein Senklot und nicht einen Pfeil oder eine Raute.
+* **Die Schnur endet oben rund** — so in der Vorlage; unten stößt sie stumpf
+  an die Öse.
 * **Mittlere Schriftstärke, offene Laufweite.** Fett und eng gesetzt wirkt
   laut und altert schnell.
 
-Die breiteste Stelle des Körpers sitzt im oberen Drittel, das Verhältnis liegt
-bei etwa 1:2,3. Daran — und nicht an der Silhouette allein — erkennt man ein
-Senklot; breiter wird daraus eine Raute, schmaler ein Pfeil.
+Die Maße stehen in `icon.svg` (64er-Raster); `logo.svg`, die Produktmarke in
+der App (`src/components/ProduktMarke.tsx`) und der Kopf des Handbuchs tragen
+dieselben Pfade.
 
 ## Warum es zwei Zeichnungen gibt
 
 `favicon.svg` ist nicht `icon.svg` in klein. Bei 16 Pixeln wird die Schnur zu
-einem Grauschleier und die Öse zu einem Pixel Matsch; was dort trägt, ist der
-Körper allein. Er sitzt deshalb größer im Feld und ohne Schnur. Ein bloß
-verkleinertes Zeichen sähe bei 16 px nach Fehler aus.
+einem Grauschleier; was dort trägt, sind Öse, Schulter und Spitze. Sie sitzen
+deshalb größer im Feld, ohne Schnur, und die Fugen zwischen ihnen sind auf
+knapp ein Pixel verbreitert — sonst liefen die drei Teile zu einem Klecks
+zusammen. Ein bloß verkleinertes Zeichen sähe bei 16 px nach Fehler aus.
 
 `icon-maskable-512.png` trägt den Grund über den Rand hinaus, weil Android bis
 zu 20 % wegschneidet. Ohne das köpft das System die Öse.
@@ -67,11 +70,6 @@ ihnen, statt sich zu behaupten. Eine weisse Platte tritt zurück und lässt das
 Senklot die Arbeit machen — und bei 16 Pixeln im Reiter ist der Gewinn am
 grössten: eine dunkle Figur auf hellem Grund bleibt bis zum letzten Pixel eine
 Figur, eine helle auf dunklem läuft an den Kanten zu.
-
-**Die Schnur steht seither auf 1,8 statt 1,6.** Eine helle Linie auf dunklem
-Grund wirkt breiter als sie ist, eine dunkle auf hellem schmaler; dasselbe
-Mass hätte nach dem Tausch dünner ausgesehen. Korrigiert wird das Auge, nicht
-die Zahl.
 
 **Und das Apple-Touch-Icon ist seither quadratisch und randlos.** iOS rundet
 es selbst ab und rechnet Durchsichtigkeit vorher gegen Schwarz. Solange die
@@ -140,8 +138,7 @@ Mensch — auf einem Tablet, an dem mehrere arbeiten, ist „wer bin ich hier
 gerade?" eine echte Frage, und ein weisser Kreis unter weisser Schrift
 beantwortet sie nicht.
 
-**Nicht angefasst:** die Rundungen der Oberfläche. „Gerade Kanten statt
-Rundungen" ist eine Aussage über den Körper des Senklots, der mit weichen
-Flanken als Blatt las — keine über Knöpfe und Karten. Eine App mit scharfen
-Ecken wäre eine andere Entscheidung mit eigenem Preis, und sie stünde hier
-ohne Begründung.
+**Nicht angefasst:** die Rundungen der Oberfläche. Die geraden Kanten des
+Senklots sind eine Aussage über das Zeichen — keine über Knöpfe und Karten.
+Eine App mit scharfen Ecken wäre eine andere Entscheidung mit eigenem Preis,
+und sie stünde hier ohne Begründung.
