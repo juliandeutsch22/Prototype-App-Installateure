@@ -155,8 +155,8 @@ export default function DashboardView() {
   }, [user, company, mitZeitkonto, materialAn, scheineAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden]);
 
   const seite = useMemo(
-    () => startseite(data, { rolle, heute, jetzt: Date.now(), darf, urlaubEntscheiden }),
-    [data, rolle, heute, darf, urlaubEntscheiden],
+    () => startseite(data, { rolle, heute, jetzt: Date.now(), darf, urlaubEntscheiden, ich: user?.uid }),
+    [data, rolle, heute, darf, urlaubEntscheiden, user?.uid],
   );
 
   if (!user) return null;

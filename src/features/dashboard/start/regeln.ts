@@ -287,7 +287,10 @@ export function stundenOhneBuchung(team: TeamLuecke[]): Abschnitt | null {
       status: { text: tageWort(t.fehlendeTage), ton: 'warn' },
       to: ZIEL.luecken(t.aeltesterTag?.slice(0, 7)),
     }));
-  return abschnitt('luecken', 'Stunden ohne Buchung', zeilen, ziel);
+  // „Stunden ohne Buchung“ heißt in der Scheinliste etwas anderes (Stunden
+  // auf Scheinen, die nicht gebucht sind). Hier sind es Personen mit Tagen
+  // ohne Buchung (Analyse 03.10.2026, Paket 1).
+  return abschnitt('luecken', 'Personen mit Tagen ohne Buchung', zeilen, ziel);
 }
 
 export function urlaubsantraege(antraege: Vacation[]): Abschnitt | null {

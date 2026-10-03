@@ -389,7 +389,9 @@ describe('Material anfordern — der Warenkorb auf einem geteilten Tablet', () =
     );
     zeige();
 
-    expect(await screen.findByRole('heading', { name: 'Anforderung (0)' })).toBeInTheDocument();
+    // Ein leerer Korb zeigt keine Karte (Analyse 03.10.2026, Paket 1) — und der fremde Korb kommt nicht herein.
+    await screen.findByRole('button', { name: /Kupferrohr 15mm zur Anforderung/ });
+    expect(screen.queryByRole('heading', { name: /^Anforderung \(/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Fremd/)).not.toBeInTheDocument();
 
     // Und die Gegenprobe beim Schreiben: der eigene Korb landet unter dem
@@ -399,6 +401,8 @@ describe('Material anfordern — der Warenkorb auf einem geteilten Tablet', () =
       expect(localStorage.getItem('senklot.warenkorb:perl:u1')).toContain('Kupferrohr'),
     );
     expect(localStorage.getItem('senklot.warenkorb:perl')).toBeNull();
+    // Mit dem ersten Artikel erscheint die Karte.
+    expect(screen.getByRole('heading', { name: /^Anforderung \(1\) — noch nicht abgeschickt/ })).toBeInTheDocument();
   });
 
   it('holt den eigenen Korb nach einem Neustart zurück', async () => {

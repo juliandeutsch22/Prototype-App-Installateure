@@ -88,7 +88,7 @@ describe('Der Bereich steht im Protokoll, bevor er lädt', () => {
 
 describe('Der Name des Bereichs', () => {
   it('ist der Menüname, auch für Akten, Unterseiten und den einzelnen Schein', () => {
-    expect(bereichVon('/')).toBe('Dashboard');
+    expect(bereichVon('/')).toBe('Start');
     expect(bereichVon('/invoices')).toBe('Rechnungen');
     expect(bereichVon('/customers/k1')).toBe('Kunden');
     expect(bereichVon('/settings/firma')).toBe('Einstellungen');

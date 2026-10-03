@@ -407,7 +407,8 @@ export default function WorkSheetsListView() {
       */}
       <PageHeader
         title="Handwerksscheine"
-        subtitle="Unterschriebene Leistungsnachweise der Baustellen"
+        // In der Liste stehen auch Entwürfe (Analyse 03.10.2026, Paket 1).
+        subtitle="Leistungsnachweise der Baustellen, auch Entwürfe"
         action={
           darfSchreiben && (
           <Link

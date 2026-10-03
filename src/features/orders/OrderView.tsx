@@ -592,17 +592,16 @@ export default function OrderView() {
             hielten die Anforderung nach dem ersten Tipp für erledigt. Jetzt
             heissen die Knöpfe „Zur Anforderung“ und „Anforderung abschicken“,
             und die Karte ist hervorgehoben, solange etwas darin liegt.
+
+            LEER STEHT SIE NICHT DA (Analyse 03.10.2026, Paket 1): „Anforderung
+            (0)“ war eine Karte ohne Inhalt unter dem Katalog. Sie erscheint
+            mit dem ersten „Zur Anforderung“.
           */}
+          {cart.length > 0 && (
           <Card
-            title={cart.length > 0 ? `Anforderung (${cart.length}) — noch nicht abgeschickt` : 'Anforderung (0)'}
-            className={cart.length > 0 ? 'ring-2 ring-brand' : ''}
+            title={`Anforderung (${cart.length}) — noch nicht abgeschickt`}
+            className="ring-2 ring-brand"
           >
-            {cart.length === 0 ? (
-              <EmptyState>
-                Noch nichts ausgewählt. Im Katalog oben beim Artikel auf „Zur Anforderung“ tippen.
-              </EmptyState>
-            ) : (
-              <>
                 <div className="mb-4">
                   <InputField id="onote" label="Notiz für die Projektleitung (optional)"
                     placeholder="z. B. dringend, bis Freitag"
@@ -652,9 +651,8 @@ export default function OrderView() {
                     Liste leeren
                   </Button>
                 </div>
-              </>
-            )}
           </Card>
+          )}
         </>
       )}
 

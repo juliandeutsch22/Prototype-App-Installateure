@@ -185,6 +185,12 @@ beforeEach(() => {
 });
 
 describe('Liste der Handwerksscheine', () => {
+  it('nennt im Untertitel auch die Entwürfe (Analyse 03.10.2026, Paket 1)', async () => {
+    zeichne();
+    expect(await screen.findByText('Leistungsnachweise der Baustellen, auch Entwürfe')).toBeInTheDocument();
+    expect(screen.queryByText('Unterschriebene Leistungsnachweise der Baustellen')).toBeNull();
+  });
+
   it('hat den Knopf für einen neuen Schein im Kopf — wie die anderen Listen', async () => {
     /*
       Gemeldet: „der Tab sieht ganz anders aus — der Button erstreckt sich

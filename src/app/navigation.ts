@@ -14,7 +14,7 @@ export interface NavItem {
   /** Rollen, die diesen Screen sehen dürfen. */
   roles: Role[];
   /** Gruppierung in der Navigation. */
-  group: 'Allgemein' | 'Außendienst' | 'Verwaltung' | 'Buchhaltung';
+  group: 'Allgemein' | 'Außendienst' | 'Verwaltung' | 'Buchhaltung' | 'Einstellungen';
   /**
    * Zu welchem abschaltbaren Modul dieser Eintrag gehört.
    *
@@ -89,7 +89,9 @@ const TOP: Role[] = ['Geschäftsführung', 'Administrator'];
 const NUR_ADMIN: Role[] = ['Administrator'];
 
 export const NAV: NavItem[] = [
-  { path: '/', label: 'Dashboard', short: 'Start', icon: 'home', roles: ALL, group: 'Allgemein' },
+  // „Start“ wie in der unteren Leiste — zwei Namen für dieselbe Seite waren
+  // einer zu viel (Analyse 03.10.2026, Paket 1).
+  { path: '/', label: 'Start', short: 'Start', icon: 'home', roles: ALL, group: 'Allgemein' },
 
   // JEDE Rolle muss die eigene Zeit buchen können (auch die Buchhaltung:
   // Krankenstand und Urlaub). Legacy setzt den Tab unbedingt, ohne
@@ -148,7 +150,12 @@ export const NAV: NavItem[] = [
   // Der Reiter steht JEDER Rolle offen, weil die Meldungseinstellungen jedem
   // gehören. Was darunter enger ist, steht in UNTER — Sätze und Module sind
   // Geschäftsführungssache.
-  { path: '/settings', label: 'Einstellungen', short: 'Einstellungen', icon: 'settings', roles: ALL, group: 'Allgemein' },
+  //
+  // AM ENDE DER SEITENLEISTE, nicht an zweiter Stelle (Analyse 03.10.2026,
+  // Paket 1): man öffnet ihn selten, und oben schob er die tägliche Arbeit
+  // nach unten. Eine eigene Gruppe ohne Überschrift, damit er hinter der
+  // Buchhaltung steht.
+  { path: '/settings', label: 'Einstellungen', short: 'Einstellungen', icon: 'settings', roles: ALL, group: 'Einstellungen' },
 
   // Margen sind Geschaeftsfuehrungssache — die Projektleitung sieht sie nicht.
   { path: '/costing', label: 'Nachkalkulation', short: 'Kalkulation', icon: 'calculator', roles: TOP, group: 'Buchhaltung', modul: 'nachkalkulation' },
@@ -355,7 +362,10 @@ export function tabBarForRole(
 
 
 /** Reihenfolge der Navigationsgruppen. */
-export const NAV_GROUPS = ['Allgemein', 'Außendienst', 'Verwaltung', 'Buchhaltung'] as const;
+export const NAV_GROUPS = ['Allgemein', 'Außendienst', 'Verwaltung', 'Buchhaltung', 'Einstellungen'] as const;
+
+/** Gruppen, die in Seitenleiste und Blatt „Mehr“ ohne Überschrift stehen. */
+export const OHNE_UEBERSCHRIFT: ReadonlySet<string> = new Set(['Allgemein', 'Einstellungen']);
 
 /** Sichtbare Navigation, nach Gruppen gebündelt (für übersichtliche Sidebar). */
 export function navGroupsForRole(

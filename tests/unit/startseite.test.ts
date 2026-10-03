@@ -163,6 +163,27 @@ describe('Buchhaltung', () => {
     const ohne = startseite(daten, umfeld({ darf: (z) => !z.startsWith('/invoices') }));
     expect(ohne.kennzahlen).toEqual([]);
   });
+
+  // Analyse 03.10.2026, Paket 1 — die eigenen Tage stehen nur einmal da.
+  it('zeigt die eigene Person nicht zusätzlich unter „Personen mit Tagen ohne Buchung“', () => {
+    const daten = {
+      fehlendeTage: ['2026-10-12', '2026-10-13'],
+      team: [
+        { uid: 'ich', name: 'Bea Büro', fehlendeTage: 2, aeltesterTag: '2026-10-12' },
+        { uid: 'max', name: 'Max Monteur', fehlendeTage: 1, aeltesterTag: '2026-10-13' },
+      ],
+    };
+    const s = startseite(daten, umfeld({ ich: 'ich' }));
+    const eigene = s.abschnitte.find((a) => a.titel === 'Deine Tage ohne Buchung');
+    const team = s.abschnitte.find((a) => a.key === 'luecken');
+    expect(eigene).toBeDefined();
+    expect(team?.titel).toBe('Personen mit Tagen ohne Buchung');
+    expect(team?.zeilen.map((z) => z.titel)).toEqual(['Max Monteur']);
+
+    // Gegenprobe: ohne eigene Kennung stünde sie doppelt — genau der gemeldete Fall.
+    const vorher = startseite(daten, umfeld());
+    expect(vorher.abschnitte.find((a) => a.key === 'luecken')?.zeilen).toHaveLength(2);
+  });
 });
 
 describe('Projektleitung', () => {

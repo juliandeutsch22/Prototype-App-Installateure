@@ -268,7 +268,7 @@ describe('Zeiterfassung — welcher Weg zum Saldo', () => {
     eintraege = [eintrag({ id: 'e1' })];
     zeige();
 
-    await screen.findByText('Einträge');
+    await screen.findByText('Diese Woche');
     expect(screen.queryByText('Saldo')).toBeNull();
   });
 });
@@ -291,6 +291,16 @@ describe('Zeiterfassung — wenn etwas nicht lädt', () => {
 });
 
 describe('Zeiterfassung — die Kachel „Diese Woche“', () => {
+  it('steht ohne die Kachel „Einträge“ da (Analyse 03.10.2026, Paket 1)', async () => {
+    // Die Zahl der Buchungen sagte nichts und schob das Formular nach unten.
+    eintraege = [eintrag({ id: 'e1' })];
+    zeige();
+    await screen.findByText('Diese Woche');
+    expect(screen.queryByText('Einträge')).toBeNull();
+    // Gegenprobe: die Liste der eigenen Einträge bleibt.
+    expect(screen.getByText('Meine Einträge')).toBeInTheDocument();
+  });
+
   it('summiert die TATSÄCHLICHE Kalenderwoche, nicht die letzte mit Buchungen', async () => {
     /**
      * Ein gemeldeter Fehler von früher: genommen wurde die neueste Woche MIT
@@ -605,7 +615,7 @@ describe('Zuschlagsstunden', () => {
     eintraege = [eintrag({ id: 'e1' })];
     zeige();
 
-    await screen.findByText('Einträge');
+    await screen.findByText('Diese Woche');
     expect(screen.queryByText('Zuschlag')).not.toBeInTheDocument();
   });
 
@@ -615,7 +625,7 @@ describe('Zuschlagsstunden', () => {
     eintraege = [eintrag({ id: 'k1', status: 'Krank', isNightWork: true })];
     zeige();
 
-    await screen.findByText('Einträge');
+    await screen.findByText('Diese Woche');
     expect(screen.queryByText('Zuschlag')).not.toBeInTheDocument();
   });
 });

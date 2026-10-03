@@ -27,13 +27,16 @@ const EINSAETZE: Assignment[] = [
   { id: 'a2', companyId: 'perl', date: MORGEN, projectNumber: 'B-002', userId: 'm1', userName: 'Anton' },
 ];
 
+/** Abweichende „nächste Einsätze“ für einzelne Prüfungen; leer = EINSAETZE. */
+const kommend: { wert: Assignment[] | null } = { wert: null };
+
 /** Welcher Tag gerade abgefragt wird — die Ansicht lädt je gewähltem Tag. */
 const geholt: { tage: string[] } = { tage: [] };
 const listen: Record<string, (EinsatzMaterial & { id: string })[]> = {};
 
 vi.mock('@/lib/db/assignments', () => ({
   listAssignmentsForUserInRange: vi.fn(async () => EINSAETZE),
-  listUpcomingAssignments: vi.fn(async () => EINSAETZE),
+  listUpcomingAssignments: vi.fn(async () => kommend.wert ?? EINSAETZE),
   kalenderAboStand: vi.fn(async () => null),
   kalenderAboAnlegen: vi.fn(async () => 'x'),
   kalenderAboBeenden: vi.fn(async () => undefined),
@@ -95,6 +98,7 @@ beforeEach(() => {
   for (const k of Object.keys(listen)) delete listen[k];
   plaene.wert = [];
   abwesend.wert = [];
+  kommend.wert = null;
   authWert.company = { id: 'perl', name: 'Perl Installationen' };
   authWert.einblick = null;
   authWert.user = { ...(authWert.user as object), einstufung: null };
@@ -228,6 +232,26 @@ describe('Mein Einsatzplan — Abwesenheit (M33)', () => {
     zeichne();
     expect((await within(await screen.findByText('Nächste Einsätze').then((t) => t.closest('section')!)).findAllByText(/Gemeinde Neudorf|B-002/)).length).toBeGreaterThan(0);
     expect(screen.queryByText(/an dem du abwesend bist/)).toBeNull();
+  });
+});
+
+// Analyse 03.10.2026, Paket 1 — heute steht schon in der Karte darüber.
+describe('Mein Einsatzplan — Nächste Einsätze ab morgen', () => {
+  const karte = () => screen.getByText('Nächste Einsätze').closest('section')!;
+
+  it('wiederholt den heutigen Einsatz nicht, zeigt aber den morgigen', async () => {
+    zeichne();
+    await screen.findByText('Bad');
+    expect((await within(karte()).findAllByText(/Gemeinde Neudorf|B-002/)).length).toBeGreaterThan(0);
+    expect(within(karte()).queryByText(/Familie Huber|B-001/)).toBeNull();
+  });
+
+  it('sagt „Nach heute ist nichts eingeplant“, wenn nur heute etwas ansteht', async () => {
+    kommend.wert = [EINSAETZE[0]];
+    zeichne();
+    expect(await within(await screen.findByText('Nächste Einsätze').then((t) => t.closest('section')!)).findByText('Nach heute ist nichts eingeplant.')).toBeInTheDocument();
+    // Gegenprobe: oben steht der heutige Einsatz weiterhin.
+    expect(screen.getByText('Bad')).toBeInTheDocument();
   });
 });
 

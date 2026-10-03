@@ -54,6 +54,8 @@ export interface Umfeld {
   darf: (ziel: string) => boolean;
   /** Entscheidet diese Person über Urlaub? */
   urlaubEntscheiden: boolean;
+  /** Die eigene Kennung — damit die eigene Person nicht in zwei Abschnitten steht. */
+  ich?: string;
 }
 
 export type HeuteArt =
@@ -190,7 +192,13 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
     d.lauf ? erlaubt(mahnungenFaellig(d.lauf), u) : null,
     d.lauf && d.unbezahlt ? erlaubt(ueberfaelligNichtMahnbar(d.unbezahlt, d.lauf, u.heute), u) : null,
     d.unverrechnet ? erlaubt(scheineNichtVerrechnet(auffaellige(d.unverrechnet)), u) : null,
-    erlaubt(stundenOhneBuchung(d.team ?? []), u),
+    /*
+      DIE EIGENE PERSON NUR EINMAL (Analyse 03.10.2026, Paket 1): ihre Tage
+      stehen schon oben unter „Deine Tage ohne Buchung“. Nur hier, nicht beim
+      Laden — die Geschäftsführung hat keinen eigenen Abschnitt und sähe ihre
+      Tage sonst gar nicht.
+    */
+    erlaubt(stundenOhneBuchung((d.team ?? []).filter((t) => t.uid !== u.ich)), u),
     u.urlaubEntscheiden ? erlaubt(urlaubsantraege(d.antraege ?? []), u) : null,
   ]);
   const zahlungen = zahlungenHeute(d.zahlungenHeute ?? []);
