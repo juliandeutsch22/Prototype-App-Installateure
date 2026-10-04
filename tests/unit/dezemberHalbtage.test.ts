@@ -191,7 +191,8 @@ describe('Arbeit nach 12 Uhr', () => {
     expect(monat).toContain('Zeitausgleich(Std);24./31.12. ab 12 Uhr(Std)');
     // … Urlaub 0,5 Tage, Resturlaub 24,5, Zeitausgleich 0, danach 3,5 h —
     // dahinter seit 30.09.2026 Einstufung, Lehrjahr und Berufsschule (4.1).
-    expect(monat).toMatch(/;0,5;24,5;0,00;0,00;0,00;0,00;3,50;;;0;0,00$/m);
+    // und seit 04.10.2026 der Sonderurlaub (Plan 10.3).
+    expect(monat).toMatch(/;0,5;24,5;0,00;0,00;0,00;0,00;3,50;;;0;0,00;0;0;0,00;0$/m);
 
     const person = buildUserCsv(monteur, eintraege, stats, 2025, 11, true);
     expect(person).toContain('Urlaub (Monat);0,5 Tage');

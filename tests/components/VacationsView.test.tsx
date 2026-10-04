@@ -72,6 +72,27 @@ vi.mock('@/lib/db/vacations', () => ({
 let belegschaft: AppUser[] = [monteur];
 /** Das eigene Profil — je Test umstellbar (G13: die Administration führt kein Zeitkonto). */
 let eigenesProfil: AppUser = monteur;
+/** Anträge auf Sonderurlaub — je Test setzbar (Plan 10.3). */
+let freistellungen: Array<Record<string, unknown>> = [];
+const freistellungBeantragen = vi.fn<(a: Record<string, unknown>) => Promise<string>>(async () => 'f-neu');
+const freistellungEntscheiden = vi.fn<(d: Record<string, unknown>) => Promise<Record<string, unknown>>>(
+  async () => ({ status: 'Bestätigt', angelegt: 1, uebersprungen: 0, entfernt: 0, nachweis: null, dateiBlieb: false }),
+);
+vi.mock('@/lib/db/freistellungen', () => ({
+  listEigeneFreistellungen: vi.fn(async (_c: string, uid: string) => freistellungen.filter((f) => f.userId === uid)),
+  listOffeneFreistellungen: vi.fn(async () => freistellungen.filter((f) => f.status === 'Beantragt')),
+  listBestaetigteFreistellungenAb: vi.fn(async () => []),
+  listFreistellungenVon: vi.fn(async (_c: string, uids: string[]) => freistellungen.filter((f) => uids.includes(f.userId as string))),
+  freistellungBeantragen: (a: Record<string, unknown>) => freistellungBeantragen(a),
+  freistellungEntscheiden: (d: Record<string, unknown>) => freistellungEntscheiden(d),
+  freistellungZurueckziehen: vi.fn(async () => undefined),
+  nachweisPruefen: () => null,
+  nachweisHochladen: vi.fn(async () => 'pfad'),
+  nachweisEntfernen: vi.fn(async () => undefined),
+  nachweisAdresse: vi.fn(async () => 'https://beispiel'),
+  nachweiseAufraeumen: vi.fn(async () => 0),
+}));
+
 /** Anpassungen des Urlaubsanspruchs — je Test setzbar. */
 let anpassungen: Array<{ id: string; userId: string; urlaubsjahr: number; tage: number; grund: string }> = [];
 vi.mock('@/lib/db/urlaubsanspruch', () => ({
@@ -151,6 +172,9 @@ async function datum(label: string, wert: string) {
 
 beforeEach(() => {
   anpassungen = [];
+  freistellungen = [];
+  freistellungBeantragen.mockClear();
+  freistellungEntscheiden.mockClear();
   createVacation.mockClear();
   deleteVacation.mockClear();
   callUrlaubEntscheiden
@@ -884,5 +908,158 @@ describe('Ohne Zeitkonto kein Resturlaub (Testbericht 30.09.2026, G13)', () => {
     zeichne();
     expect(await screen.findByText('Resturlaub')).toBeInTheDocument();
     expect(screen.queryByText(/kein Zeitkonto/)).not.toBeInTheDocument();
+  });
+});
+
+describe('Sonderurlaub (Plan 10.3)', () => {
+  const frei = (rest: Record<string, unknown>) => ({
+    id: 'f1', companyId: 'perl', userId: 'm1', userName: 'Max Mustermann', status: 'Beantragt',
+    von: '2026-11-11', bis: '2026-11-13', ...rest,
+  });
+
+  it('der Antrag auf Sonderurlaub geht mit Anlass und Ereignistag über den eigenen Weg', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.selectOptions(await screen.findByLabelText('Art'), 'dienstverhinderung');
+    await nutzer.selectOptions(screen.getByLabelText(/^Anlass/), 'hochzeit');
+    await datum('Tag des Ereignisses', '2026-11-13');
+    await datum('Von', '2026-11-11');
+    await datum('Bis (einschließlich)', '2026-11-13');
+    expect(screen.getByText(/3 Arbeitstage in diesem Zeitraum/)).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Antrag einreichen' }));
+    await waitFor(() => expect(freistellungBeantragen).toHaveBeenCalledTimes(1));
+    expect(freistellungBeantragen.mock.calls[0][0]).toMatchObject({
+      art: 'dienstverhinderung', anlass: 'hochzeit', ereignisDatum: '2026-11-13', von: '2026-11-11', bis: '2026-11-13',
+    });
+    expect(createVacation).not.toHaveBeenCalled();
+  });
+
+  it('ohne Anlass geht der Antrag nicht hinaus', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.selectOptions(await screen.findByLabelText('Art'), 'dienstverhinderung');
+    await nutzer.click(screen.getByRole('button', { name: 'Antrag einreichen' }));
+    expect(await screen.findByText('Bitte den Anlass wählen.')).toBeInTheDocument();
+    expect(freistellungBeantragen).not.toHaveBeenCalled();
+  });
+
+  it('ein zweiter Antrag zum selben Anlass braucht eine Begründung — beim Todesfall nicht', async () => {
+    freistellungen = [frei({ art: 'dienstverhinderung', anlass: 'hochzeit', ereignisDatum: '2026-11-13' })];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.selectOptions(await screen.findByLabelText('Art'), 'dienstverhinderung');
+    await nutzer.selectOptions(screen.getByLabelText(/^Anlass/), 'hochzeit');
+    await datum('Tag des Ereignisses', '2026-11-13');
+    expect(screen.getByLabelText(/^Begründung/)).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Antrag einreichen' }));
+    expect(await screen.findByText(/Bitte in der Notiz begründen/)).toBeInTheDocument();
+    expect(freistellungBeantragen).not.toHaveBeenCalled();
+    // Gegenprobe: ein anderer Anlass ist kein zweiter Antrag.
+    await nutzer.selectOptions(screen.getByLabelText(/^Anlass/), 'geburt');
+    expect(screen.queryByLabelText(/^Begründung/)).not.toBeInTheDocument();
+  });
+
+  it('die zweite Woche Pflegefreistellung erscheint erst, wenn die erste verbraucht ist', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.selectOptions(await screen.findByLabelText('Art'), 'pflegefreistellung');
+    await nutzer.click(screen.getByLabelText(/Kind unter 12/));
+    expect(screen.queryByLabelText(/Zweite Woche/)).not.toBeInTheDocument();
+  });
+
+  it('… und mit verbrauchter erster Woche ist sie da', async () => {
+    freistellungen = [frei({ art: 'pflegefreistellung', status: 'Bestätigt', von: '2026-09-07', bis: '2026-09-11', minuten: 2400 })];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.selectOptions(await screen.findByLabelText('Art'), 'pflegefreistellung');
+    await nutzer.click(screen.getByLabelText(/Kind unter 12/));
+    expect(screen.getByLabelText(/Zweite Woche/)).toBeInTheDocument();
+  });
+
+  it('beim unbezahlten Urlaub kein Nachweis, dafür die Kalendertage', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.selectOptions(await screen.findByLabelText('Art'), 'unbezahlt');
+    await datum('Von', '2027-03-01');
+    await datum('Bis (einschließlich)', '2027-05-31');
+    expect(screen.getByText(/92 Kalendertage — der Urlaubsanspruch sinkt dadurch aliquot/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nachweis wählen' })).not.toBeInTheDocument();
+  });
+
+  it('die eigene Liste zeigt Anlass, Entscheidung und den Vermerk zum Nachweis', async () => {
+    freistellungen = [frei({
+      art: 'dienstverhinderung', anlass: 'tod_eltern', ereignisDatum: '2026-11-10', status: 'Bestätigt',
+      entschiedenVonName: 'Frau Wagner', nachweisGeprueftVonName: 'Frau Wagner', nachweisGeprueftAm: Date.UTC(2026, 10, 9, 10),
+    })];
+    zeichne();
+    expect(await screen.findByText('Mein Sonderurlaub')).toBeInTheDocument();
+    expect(screen.getByText(/Tod der Eltern oder Schwiegereltern/)).toBeInTheDocument();
+    expect(screen.getByText(/Nachweis geprüft von Frau Wagner am 09.11.2026/)).toBeInTheDocument();
+  });
+
+  it('der Mitarbeiter sieht keine Liste zum Bestätigen', async () => {
+    zeichne();
+    await screen.findByLabelText('Art');
+    expect(screen.queryByText('Sonderurlaub bestätigen')).not.toBeInTheDocument();
+  });
+
+  describe('Bestätigen', () => {
+    const buero = () => {
+      rolle = { ...rolle, uid: 'b1', name: 'Frau Wagner', role: 'Buchhaltung', docId: 'b1' };
+      belegschaft = [monteur, { ...monteur, uid: 'b1', id: 'b1', name: 'Frau Wagner', role: 'Buchhaltung' }];
+    };
+
+    it('mit Nachweis: Bestätigen schickt den Haken mit', async () => {
+      buero();
+      freistellungen = [frei({ art: 'dienstverhinderung', anlass: 'hochzeit', ereignisDatum: '2026-11-13', nachweisPfad: 'perl/m1/f1/a.pdf' })];
+      const nutzer = userEvent.setup();
+      zeichne();
+      expect(await screen.findByText('Sonderurlaub bestätigen')).toBeInTheDocument();
+      await nutzer.click(await screen.findByLabelText('Nachweis geprüft'));
+      await nutzer.click(screen.getByRole('button', { name: 'Bestätigen' }));
+      await waitFor(() => expect(freistellungEntscheiden).toHaveBeenCalledTimes(1));
+      expect(freistellungEntscheiden.mock.calls[0][0]).toMatchObject({ id: 'f1', entscheidung: 'Bestätigt', nachweisGeprueft: true });
+    });
+
+    it('warnt, wenn der Beginn mehr als 14 Tage nach dem Ereignis liegt', async () => {
+      buero();
+      freistellungen = [frei({ art: 'dienstverhinderung', anlass: 'wohnungswechsel', ereignisDatum: '2026-10-20', von: '2026-11-16', bis: '2026-11-17' })];
+      zeichne();
+      expect(await screen.findByText(/Beginn mehr als 14 Tage nach dem Ereignis/)).toBeInTheDocument();
+    });
+
+    it('unbezahlten Urlaub entscheidet das Büro nicht', async () => {
+      buero();
+      freistellungen = [frei({ art: 'unbezahlt', von: '2026-11-16', bis: '2026-11-17' })];
+      zeichne();
+      expect(await screen.findByText(/Über unbezahlten Urlaub entscheiden Geschäftsführung oder Administration/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Bestätigen' })).not.toBeInTheDocument();
+    });
+
+    it('die Geschäftsführung bestätigt unbezahlten Urlaub samt vorgeschlagener Kürzung', async () => {
+      rolle = { ...rolle, uid: 'gf', name: 'Chefin', role: 'Geschäftsführung', docId: 'gf' };
+      belegschaft = [monteur, { ...monteur, uid: 'gf', id: 'gf', name: 'Chefin', role: 'Geschäftsführung' }];
+      freistellungen = [frei({ art: 'unbezahlt', von: '2027-03-01', bis: '2027-05-31' })];
+      const nutzer = userEvent.setup();
+      zeichne();
+      expect(await screen.findByText(/verringert sich der Jahresanspruch um 6,3 Tage/)).toBeInTheDocument();
+      await nutzer.click(screen.getByRole('button', { name: 'Bestätigen' }));
+      await waitFor(() => expect(freistellungEntscheiden).toHaveBeenCalledTimes(1));
+      expect(freistellungEntscheiden.mock.calls[0][0]).toMatchObject({
+        entscheidung: 'Bestätigt', kuerzung: [{ urlaubsjahr: 2027, tage: 6.3 }],
+      });
+    });
+
+    it('abgewählt geht die Kürzung nicht mit', async () => {
+      rolle = { ...rolle, uid: 'gf', name: 'Chefin', role: 'Geschäftsführung', docId: 'gf' };
+      belegschaft = [monteur, { ...monteur, uid: 'gf', id: 'gf', name: 'Chefin', role: 'Geschäftsführung' }];
+      freistellungen = [frei({ art: 'unbezahlt', von: '2027-03-01', bis: '2027-05-31' })];
+      const nutzer = userEvent.setup();
+      zeichne();
+      await nutzer.click(await screen.findByLabelText('Urlaubsjahr 2027 kürzen'));
+      await nutzer.click(screen.getByRole('button', { name: 'Bestätigen' }));
+      await waitFor(() => expect(freistellungEntscheiden).toHaveBeenCalledTimes(1));
+      expect(freistellungEntscheiden.mock.calls[0][0]).toMatchObject({ kuerzung: [] });
+    });
   });
 });

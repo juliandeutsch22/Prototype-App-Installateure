@@ -22,7 +22,9 @@
 
 /** Nur die Felder, die für die Rechnung zählen — bewusst schmal gehalten. */
 export interface Zeitangaben {
-  status: 'Anwesend' | 'Krank' | 'Urlaub' | 'Zeitausgleich' | 'Berufsschule';
+  status:
+    | 'Anwesend' | 'Krank' | 'Urlaub' | 'Zeitausgleich' | 'Berufsschule'
+    | 'Dienstverhinderung' | 'Pflegefreistellung' | 'Unbezahlt';
   startTime?: string;
   endTime?: string;
   breakDuration?: number;
@@ -65,6 +67,33 @@ export function wienVersatzMin(datum: string, zeit: string): number {
 function folgetag(datum: string): string {
   const [j, m, t] = datum.split('-').map(Number);
   return new Date(Date.UTC(j, m - 1, t + 1)).toISOString().slice(0, 10);
+}
+
+/**
+ * ERFÜLLT DIESER EINTRAG DAS TAGESSOLL GANZ? Krank, Urlaub, Berufsschule und
+ * seit dem 04.10.2026 der ganztägige Sonderurlaub, die ganztägige
+ * Pflegefreistellung und der unbezahlte Urlaub (Plan 10.3). Der unbezahlte
+ * zählt im Zeitkonto neutral — die Lohnverrechnung zieht ihn ab, nicht das
+ * Soll. Stundenweise zählt nur die Zeit (`freigestelltMin`).
+ */
+export function istGanztagsGutschrift(e: Pick<Zeitangaben, 'status' | 'startTime' | 'endTime'>): boolean {
+  if (e.status === 'Krank' || e.status === 'Urlaub' || e.status === 'Berufsschule' || e.status === 'Unbezahlt') {
+    return true;
+  }
+  return (e.status === 'Dienstverhinderung' || e.status === 'Pflegefreistellung') && !(e.startTime && e.endTime);
+}
+
+/**
+ * Die Minuten eines STUNDENWEISEN Sonderurlaubs oder einer stundenweisen
+ * Pflegefreistellung — erfüllte Sollzeit, aber keine Arbeitszeit. Sonst 0.
+ */
+export function freigestelltMin(e: Pick<Zeitangaben, 'status' | 'startTime' | 'endTime'>): number {
+  if (e.status !== 'Dienstverhinderung' && e.status !== 'Pflegefreistellung') return 0;
+  if (!e.startTime || !e.endTime) return 0;
+  const [vh, vm] = e.startTime.split(':').map(Number);
+  const [bh, bm] = e.endTime.split(':').map(Number);
+  const spanne = bh * 60 + bm - (vh * 60 + vm);
+  return spanne > 0 ? spanne : 0;
 }
 
 export function calcWorkMin(entry: Zeitangaben): number {

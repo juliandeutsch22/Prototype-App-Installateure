@@ -1,5 +1,5 @@
 import type { TimeEntry } from '@/types';
-import { normProjectNumber } from './time';
+import { normProjectNumber, tagesStatusName } from './time';
 
 /**
  * Darf an einem Tag noch eine weitere Zeit gebucht werden?
@@ -62,8 +62,18 @@ function istGanztags(e: Tagesbuchung): boolean {
     e.status === 'Krank' ||
     e.status === 'Urlaub' ||
     e.status === 'Berufsschule' ||
-    (e.status === 'Zeitausgleich' && !(e.startTime && e.endTime))
+    e.status === 'Unbezahlt' ||
+    (istTeilfrei(e.status) && !(e.startTime && e.endTime))
   );
+}
+
+/**
+ * Was stundenweise frei sein kann: Zeitausgleich und seit dem 04.10.2026
+ * Sonderurlaub und Pflegefreistellung (Behördenweg, ein Nachmittag Pflege).
+ * Mit Uhrzeit sind sie ein Teil des Tages — Arbeit daneben ja, darüber nein.
+ */
+function istTeilfrei(status: Tagesbuchung['status']): boolean {
+  return status === 'Zeitausgleich' || status === 'Dienstverhinderung' || status === 'Pflegefreistellung';
 }
 
 function minuten(hhmm?: string): number | null {
@@ -109,11 +119,12 @@ export function buchungKonflikt(
 
   const ganztags = vorhandene.find(istGanztags);
   if (ganztags) {
-    return `Für diesen Tag ist bereits „${ganztags.status}“ eingetragen. ${ganztags.status} gilt für den ganzen Tag — zum Ändern bitte den bestehenden Eintrag bearbeiten.`;
+    const name = tagesStatusName(ganztags.status);
+    return `Für diesen Tag ist bereits „${name}“ eingetragen. ${name} gilt für den ganzen Tag — zum Ändern bitte den bestehenden Eintrag bearbeiten.`;
   }
 
   if (istGanztags(neu)) {
-    return `Für diesen Tag sind bereits Zeiten gebucht. „${neu.status}“ gilt für den ganzen Tag — dafür müssen die gebuchten Zeiten zuerst gelöscht werden.`;
+    return `Für diesen Tag sind bereits Zeiten gebucht. „${tagesStatusName(neu.status)}“ gilt für den ganzen Tag — dafür müssen die gebuchten Zeiten zuerst gelöscht werden.`;
   }
 
   /*
@@ -125,14 +136,17 @@ export function buchungKonflikt(
   if (neu.status === 'Zeitausgleich' && za) {
     return 'Für diesen Tag ist bereits Zeitausgleich eingetragen — bitte den bestehenden Eintrag bearbeiten.';
   }
-  // Alles, was hier noch übrig ist und kein Zeitausgleich ist, ist Arbeit —
-  // auch ein Eintrag ohne erkennbaren Status. Im Zweifel wie bisher prüfen.
-  const arbeit = vorhandene.filter((v) => v.status !== 'Zeitausgleich');
-  const gegen = neu.status === 'Zeitausgleich' ? arbeit : za ? [za] : [];
-  if (gegen.some((v) => ueberschneiden(neu, v))) {
-    return 'Die Zeiten überschneiden sich mit dem Zeitausgleich an diesem Tag.';
+  // Alles, was hier noch übrig ist und nicht stundenweise frei ist, ist
+  // Arbeit — auch ein Eintrag ohne erkennbaren Status. Im Zweifel prüfen.
+  const frei = vorhandene.filter((v) => istTeilfrei(v.status));
+  const arbeit = vorhandene.filter((v) => !istTeilfrei(v.status));
+  const gegen = istTeilfrei(neu.status) ? arbeit : frei;
+  const ueberFrei = gegen.find((v) => ueberschneiden(neu, v));
+  if (ueberFrei) {
+    const wer = istTeilfrei(neu.status) ? neu : ueberFrei;
+    return `Die Zeiten überschneiden sich mit ${wer.status === 'Zeitausgleich' ? 'dem Zeitausgleich' : 'der Freistellung'} an diesem Tag.`;
   }
-  if (neu.status === 'Zeitausgleich') return null;
+  if (istTeilfrei(neu.status)) return null;
 
   // Ab hier zählt nur gearbeitete Zeit: ein Zeitausgleich daneben ist keine
   // zweite Buchung, die man mit dieser verwechseln könnte.

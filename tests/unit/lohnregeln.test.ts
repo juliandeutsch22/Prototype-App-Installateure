@@ -166,8 +166,11 @@ describe('Überstunden in der Lohn-CSV', () => {
     expect(zeilenDanach[ab + 1]).toContain(
       '24./31.12. ab 12 Uhr(Std);Überstunden 50 %(Std);Überstunden 100 %(Std);Einstufung;Lehrjahr;Berufsschule-Tage;Berufsschule(Std)',
     );
-    expect(zeilenDanach[ab + 1].endsWith('Berufsschule(Std)')).toBe(true);
+    // Seit 04.10.2026 hängt der Sonderurlaub (Plan 10.3) ganz hinten an.
+    expect(zeilenDanach[ab + 1].endsWith(
+      'Berufsschule(Std);Sonderurlaub-Tage;Pflegefreistellung-Tage;Freigestellt stundenweise(Std);Unbezahlt-Tage',
+    )).toBe(true);
     // 06:00–18:00 mit Pause sind 11,5 Stunden, 3,5 über dem Tagessoll von 8.
-    expect(zeilenDanach[ab + 2].endsWith(';3,50;0,00;;;0;0,00')).toBe(true);
+    expect(zeilenDanach[ab + 2].endsWith(';3,50;0,00;;;0;0,00;0;0;0,00;0')).toBe(true);
   });
 });

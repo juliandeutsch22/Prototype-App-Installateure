@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { AppUser, Invoice, MaterialOrder, Project, Wartung, WorkSheet } from '@/types';
+import type { AppUser, Freistellung, Invoice, MaterialOrder, Project, Wartung, WorkSheet } from '@/types';
 import { euro } from '@/lib/betrag';
 import { abschnitt, JE_ABSCHNITT, summe } from '@/features/dashboard/start/abschnitte';
 import {
@@ -403,5 +403,38 @@ describe('Die Ziele der Startseite', () => {
     expect(grundpfad('/assignments/tag?datum=2026-09-30')).toBe('/assignments');
     expect(canAccess('Verwaltung', grundpfad(ZIEL.anforderungen('offen')))).toBe(true);
     expect(canAccess('Mitarbeiter', grundpfad(ZIEL.anforderungen('offen')))).toBe(false);
+  });
+});
+
+describe('Sonderurlaub auf der Startseite (Plan 10.3)', () => {
+  const antrag = (id: string, art: Freistellung['art'], von: string) => ({
+    id, companyId: 'perl', userId: `u-${id}`, userName: `Person ${id}`, art, von, bis: von, status: 'Beantragt' as const,
+  }) as Freistellung;
+  const daten = { freistellungen: [antrag('a', 'dienstverhinderung', '2026-11-11'), antrag('b', 'unbezahlt', '2026-11-16')] };
+
+  it('die Buchhaltung sieht offenen Sonderurlaub — ohne den unbezahlten, über den sie nicht entscheidet', () => {
+    const s = startseite(daten, {
+      rolle: 'buchhaltung', heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false, freistellungBestaetigen: true,
+    });
+    const ab = s.abschnitte.find((a) => a.key === 'sonderurlaub');
+    expect(ab?.zeilen.map((z) => z.titel)).toEqual(['Person a']);
+    expect(ab?.zeilen[0].detail).toContain('Sonderurlaub');
+    // Den Anlass nie auf der Startseite.
+    expect(JSON.stringify(ab)).not.toMatch(/hochzeit|Eheschließung/);
+  });
+
+  it('Gegenprobe: ohne das Recht kein Abschnitt', () => {
+    const s = startseite(daten, {
+      rolle: 'buchhaltung', heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false,
+    });
+    expect(s.abschnitte.find((a) => a.key === 'sonderurlaub')).toBeUndefined();
+  });
+
+  it('die Leitung sieht beide als ein Thema', () => {
+    const s = startseite(daten, {
+      rolle: 'leitung', heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: true, freistellungBestaetigen: true,
+    });
+    const zeilen = s.abschnitte.flatMap((a) => a.zeilen);
+    expect(zeilen.some((z) => z.titel === '2 Anträge auf Sonderurlaub')).toBe(true);
   });
 });

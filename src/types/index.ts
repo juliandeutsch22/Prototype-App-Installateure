@@ -201,6 +201,10 @@ export interface Company {
    * (Google, Apple, Microsoft). Ausschalten beendet alle Abos.
    */
   kalenderAboErlaubt?: boolean;
+  /** Abweichende Tage je Anlass der Dienstverhinderung (Schlüssel → Arbeitstage), leer = Vorbelegung. */
+  freistellungAnlaesse?: Record<string, number> | null;
+  /** Ab so vielen Kalendertagen unbezahlt am Stück schlägt die App die Kürzung des Anspruchs vor. */
+  kuerzungAbTagen?: number;
   /** Vorschlag für den Grund der Steuerbefreiung auf Rechnungen mit 0 % (A2). */
   steuerbefreiungVorgabe?: string;
   urlaubUebertrag?: 'verjaehrung' | 'stichtag';
@@ -1159,6 +1163,8 @@ export interface TimeEntry {
   vacationId?: string;
   /** Aus welcher Krankmeldung dieser Eintrag entstanden ist — wie `vacationId`. */
   krankmeldungId?: string;
+  /** Aus welchem bestätigten Sonderurlaub dieser Eintrag entstanden ist — wie `vacationId`. */
+  freistellungId?: string;
 }
 
 /**
@@ -1166,7 +1172,10 @@ export interface TimeEntry {
  * verrechenbar und nur bei Lehrlingen möglich; eingetragen über
  * `berufsschule_speichern`, auch als Zeitraum (Blocklehrgang).
  */
-export type TagesStatus = 'Anwesend' | 'Krank' | 'Urlaub' | 'Zeitausgleich' | 'Berufsschule';
+export type TagesStatus =
+  | 'Anwesend' | 'Krank' | 'Urlaub' | 'Zeitausgleich' | 'Berufsschule'
+  /** Sonderurlaub, Pflegefreistellung, unbezahlter Urlaub (Plan 10.3) — nur über `freistellungen`. */
+  | 'Dienstverhinderung' | 'Pflegefreistellung' | 'Unbezahlt';
 
 /**
  * vacations/{id} — ein Urlaubsantrag.
@@ -1267,6 +1276,39 @@ export interface UrlaubsanspruchAnpassung {
   entferntAm?: number | null;
   entferntVonName?: string | null;
   entferntGrund?: string | null;
+  createdAt?: number;
+}
+
+/**
+ * freistellungen/{id} — Sonderurlaub (Dienstverhinderung), Pflegefreistellung
+ * oder unbezahlter Urlaub (Plan 10.3). Lesen: die Person und das Büro.
+ */
+export interface Freistellung {
+  id: string;
+  companyId: string;
+  userId: string;
+  userName: string;
+  art: 'dienstverhinderung' | 'pflegefreistellung' | 'unbezahlt';
+  anlass?: string | null;
+  ereignisDatum?: string | null;
+  von: string;
+  bis: string;
+  zeitVon?: string | null;
+  zeitBis?: string | null;
+  kindUnter12?: boolean;
+  zusatzwoche?: boolean;
+  notiz?: string | null;
+  status: 'Beantragt' | 'Bestätigt' | 'Abgelehnt' | 'Storniert';
+  /** Nur bis zur Entscheidung. */
+  nachweisPfad?: string | null;
+  nachweisGeprueftVonName?: string | null;
+  nachweisGeprueftAm?: number | null;
+  teilungFreigegeben?: boolean;
+  /** Gutgeschriebene Minuten — gesetzt beim Bestätigen. */
+  minuten?: number | null;
+  entschiedenVonName?: string | null;
+  entschiedenAm?: number | null;
+  grund?: string | null;
   createdAt?: number;
 }
 

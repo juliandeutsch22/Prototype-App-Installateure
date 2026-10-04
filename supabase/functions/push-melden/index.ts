@@ -23,9 +23,12 @@
 import {
   abwesenheitAusZeile,
   empfaengerAntrag,
+  empfaengerFreistellung,
   empfaengerKrankmeldung,
   textAntrag,
   textEntscheidung,
+  textFreistellungAntrag,
+  textFreistellungEntscheidung,
   textKrankmeldung,
   type Belegschaftsmitglied,
   EMPFAENGER_NEUE_ANFORDERUNG,
@@ -267,6 +270,11 @@ async function auftraegeAbwesenheit(ereignis: Ereignis): Promise<Auftrag[] | nul
       ? [{ art: 'notifyAbwesenheit', uids: [a.userId], meldung: textEntscheidung(a, kennung) }]
       : [];
   }
+  if (ereignis.art === 'freistellung-entschieden') {
+    return a.userId
+      ? [{ art: 'notifyAbwesenheit', uids: [a.userId], meldung: textFreistellungEntscheidung(a, kennung) }]
+      : [];
+  }
 
   const r = await fetch(`${URL_BASIS}/rest/v1/rpc/push_empfaenger_abwesenheit`, {
     method: 'POST',
@@ -278,6 +286,11 @@ async function auftraegeAbwesenheit(ereignis: Ereignis): Promise<Auftrag[] | nul
 
   if (ereignis.art === 'antrag') {
     return [{ art: 'notifyAbwesenheit', uids: empfaengerAntrag(leute, a.userId), meldung: textAntrag(a, kennung) }];
+  }
+  if (ereignis.art === 'freistellung-antrag') {
+    return [{
+      art: 'notifyAbwesenheit', uids: empfaengerFreistellung(leute, a), meldung: textFreistellungAntrag(a, kennung),
+    }];
   }
   if (ereignis.art === 'krank') {
     return [{

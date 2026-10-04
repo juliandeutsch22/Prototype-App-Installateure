@@ -23,6 +23,7 @@ import {
   offeneWerktage,
   todayStr,
   tageWort,
+  tagesStatusName,
 } from '@/lib/time';
 import { tageMitEchterDoppelung } from '@/lib/tagesbuchungen';
 import { canEditTime, fuehrtZeitkonto } from '@/lib/permissions';
@@ -51,7 +52,7 @@ import { useToast } from '@/components/Toast';
 import TimeForm from './TimeForm';
 import { KrankmeldungKarte } from '@/features/vacations/Krankmeldungen';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
-import AntragKnopf from '@/features/time/AntragKnopf';
+import AntragKnopf, { FreistellungKnopf } from '@/features/time/AntragKnopf';
 import { datumAT } from '@/lib/datum';
 
 /** Wie viele Monate die Liste zunaechst zurueckreicht. */
@@ -477,9 +478,10 @@ export default function TimeView() {
         ? e.startTime && e.endTime
           ? `${e.startTime}–${e.endTime}`
           : null
-        : e.status === 'Zeitausgleich' && e.startTime && e.endTime
-          ? `Zeitausgleich ${e.startTime}–${e.endTime}`
-          : e.status;
+        : (e.status === 'Zeitausgleich' || e.status === 'Dienstverhinderung' || e.status === 'Pflegefreistellung')
+            && e.startTime && e.endTime
+          ? `${tagesStatusName(e.status)} ${e.startTime}–${e.endTime}`
+          : tagesStatusName(e.status);
     const subtitle = [timeLabel, e.comment].filter(Boolean).join(' · ');
     return (
       <ListRow
@@ -519,6 +521,9 @@ export default function TimeView() {
           <Button variant="ghost" onClick={() => setMeldung(e.krankmeldungId!)}>
             Krankmeldung
           </Button>
+        ) : e.freistellungId ? (
+          // Ein Tag aus einem bestätigten Sonderurlaub ändert sich nur über den Antrag.
+          <FreistellungKnopf />
         ) : e.vacationId ? (
           // Ein Tag aus einem genehmigten Antrag ändert sich
           // nur über den Antrag.

@@ -11,7 +11,7 @@ import { budgetArt } from './einstufung';
   zweimal die nackte 25.
 */
 import { DEFAULT_VACATION_DAYS as DEFAULT_URLAUBSTAGE } from './db/benutzerVorgaben';
-import { calcWorkMin } from '@shared/arbeitszeit';
+import { calcWorkMin, freigestelltMin, istGanztagsGutschrift as ganztagsAusShared } from '@shared/arbeitszeit';
 import {
   getAustrianHolidayName,
   getEasterDate,
@@ -568,6 +568,16 @@ export function tageZahl(n: number): string {
   return n.toLocaleString('de-AT', { maximumFractionDigits: 2 });
 }
 
+/**
+ * Wie ein Tagesstatus in Listen heißt. Die Datenbank sagt „Dienst-
+ * verhinderung" (das Gesetz), jeder im Betrieb sagt „Sonderurlaub".
+ */
+export function tagesStatusName(status: TimeEntry['status']): string {
+  if (status === 'Dienstverhinderung') return 'Sonderurlaub';
+  if (status === 'Unbezahlt') return 'Unbezahlter Urlaub';
+  return status;
+}
+
 /** Eine Anpassung des Anspruchs mit Vorzeichen: „−6,25 Tage", „+2 Tage". */
 export function vorzeichenTage(n: number): string {
   const betrag = tageZahl(Math.abs(n));
@@ -693,17 +703,28 @@ function sollMinuten(
  * sofort: sie IST schon geleistet, und wer gerade gebucht hat, soll sie im
  * Saldo sehen.
  */
-function ganztagGutschreiben(e: Pick<TimeEntry, 'status' | 'date'>, heuteIso: string): boolean {
-  return istGanztagsGutschrift(e.status) && e.date < heuteIso;
+function ganztagGutschreiben(e: Pick<TimeEntry, 'status' | 'date' | 'startTime' | 'endTime'>, heuteIso: string): boolean {
+  return istGanztagsGutschrift(e) && e.date < heuteIso;
 }
 
 /**
- * Die Tagesstatus, die das Tagessoll erfüllen: Krank, Urlaub und seit dem
- * 30.09.2026 die Berufsschule (Testbericht 4.1). Eine Stelle für alle
- * Rechnungen — Saldo, Monatssoll, Monatsbilanz.
+ * Die Einträge, die das Tagessoll ganz erfüllen: Krank, Urlaub, seit dem
+ * 30.09.2026 die Berufsschule (Testbericht 4.1) und seit dem 04.10.2026 der
+ * ganztägige Sonderurlaub samt Pflegefreistellung und unbezahltem Urlaub
+ * (Plan 10.3). Eine Stelle für alle Rechnungen — Saldo, Monatssoll,
+ * Monatsbilanz; die Regel selbst steht in `shared/arbeitszeit.ts`.
  */
-export function istGanztagsGutschrift(status: TimeEntry['status']): boolean {
-  return status === 'Krank' || status === 'Urlaub' || status === 'Berufsschule';
+export function istGanztagsGutschrift(e: Pick<TimeEntry, 'status' | 'startTime' | 'endTime'>): boolean {
+  return ganztagsAusShared(e);
+}
+
+/**
+ * Stundenweise freigestellt (Behördenweg, ein Nachmittag Pflege): die Minuten
+ * zählen als erfüllte Sollzeit, aber nicht als Arbeitszeit — und wie ein
+ * ganzer Tag erst, wenn der Tag vorbei ist.
+ */
+function freigestelltGutschreiben(e: Pick<TimeEntry, 'status' | 'date' | 'startTime' | 'endTime'>, heuteIso: string): number {
+  return e.date < heuteIso ? freigestelltMin(e) : 0;
 }
 
 /**
@@ -739,6 +760,7 @@ export function calcOverallSaldo(
     bookedDates.add(e.date);
     if (e.status === 'Anwesend') istMin += calcWorkMin(e);
     else if (ganztagGutschreiben(e, heuteIso)) istMin += tagesAnteil(e.date, halbeTage) * tagessollStunden(user, e.date) * 60;
+    else istMin += freigestelltGutschreiben(e, heuteIso);
   }
 
   /**
@@ -795,6 +817,9 @@ export function saldoAusBilanzen(
     abwesendHalbtage: number;
     /** Seit 30.09.2026 (4.1); ältere Bilanzen kennen die Spalte nicht. */
     berufsschuleTage?: number;
+    /** Seit 04.10.2026 (Plan 10.3): ganztägige Freistellungen und stundenweise Minuten. */
+    freistellungTage?: number;
+    freigestelltMin?: number;
     tage: string[];
   }>,
   laufenderMonat: TimeEntry[],
@@ -833,7 +858,8 @@ export function saldoAusBilanzen(
     // Ein Krank- oder Urlaubstag am 24./31.12. schreibt nur einen halben
     // gut — so viel Soll hatte der Tag.
     const halbe = halbeTage ? b.abwesendHalbtage * 0.5 : 0;
-    istMin += (b.krankTage + b.urlaubTage + (b.berufsschuleTage ?? 0) - halbe) * dailyH * 60;
+    istMin += (b.krankTage + b.urlaubTage + (b.berufsschuleTage ?? 0) + (b.freistellungTage ?? 0) - halbe) * dailyH * 60;
+    istMin += b.freigestelltMin ?? 0;
     for (const t of b.tage) {
       if (t >= user.appStartDate) gebucht.add(t);
     }
@@ -852,6 +878,7 @@ export function saldoAusBilanzen(
     gebucht.add(e.date);
     if (e.status === 'Anwesend') istMin += calcWorkMin(e);
     else if (ganztagGutschreiben(e, heuteIso)) istMin += tagesAnteil(e.date, halbeTage) * tagessollStunden(user, e.date) * 60;
+    else istMin += freigestelltGutschreiben(e, heuteIso);
   }
 
   const pflicht = pflichtTage(user, new Date(`${user.appStartDate}T00:00:00`), new Date());
@@ -904,6 +931,14 @@ export interface MonthStats {
    */
   berufsschuleDays: number;
   berufsschuleMin: number;
+  /** Sonderurlaub (Dienstverhinderung) ganztags im Monat, in Tagen (Plan 10.3). */
+  sonderurlaubDays: number;
+  /** Pflegefreistellung ganztags, in Tagen. */
+  pflegeDays: number;
+  /** Unbezahlter Urlaub, in Tagen — zieht die Lohnverrechnung ab, nicht das Zeitkonto. */
+  unbezahltDays: number;
+  /** Stundenweiser Sonderurlaub und stundenweise Pflegefreistellung, in Minuten. */
+  freigestelltMin: number;
   yearlyUrlaubDays: number;
   /** Tage, die in diesem Jahr zur Verfügung stehen — siehe `urlaubsStand`. */
   urlaubsAnspruch: number;
@@ -991,7 +1026,7 @@ export function calcMonthStats(
     [
       ...new Set(
         monthEntries
-          .filter((e) => istGanztagsGutschrift(e.status) && imSoll.has(e.date))
+          .filter((e) => istGanztagsGutschrift(e) && imSoll.has(e.date))
           .map((e) => e.date),
       ),
     ],
@@ -1008,12 +1043,26 @@ export function calcMonthStats(
     schultage.reduce((s, e) => s + tagessollStunden(user, e.date) * tagesAnteil(e.date, halbeTage) * 60, 0),
   );
 
+  /*
+    SONDERURLAUB IM MONAT (Plan 10.3) — für Lohn-CSV und Stundennachweis.
+    Ganztags in Tagen je Art; stundenweise in Minuten. Der unbezahlte Urlaub
+    steht eigens da: ihn zieht die Lohnverrechnung ab, das Zeitkonto nicht.
+  */
+  const ganztagsFrei = (status: TimeEntry['status']) =>
+    monthEntries.filter((e) => e.status === status && istGanztagsGutschrift(e)).length;
+  const sonderurlaubDays = ganztagsFrei('Dienstverhinderung');
+  const pflegeDays = ganztagsFrei('Pflegefreistellung');
+  const unbezahltDays = ganztagsFrei('Unbezahlt');
+  const freigestelltImMonat = monthEntries.reduce((s, e) => s + freigestelltMin(e), 0);
+  // Vom Soll geht nur ab, was im Soll steckt — wie bei den ganzen Tagen.
+  const freigestelltImSoll = monthEntries.filter((e) => imSoll.has(e.date)).reduce((s, e) => s + freigestelltMin(e), 0);
+
   const requiredDays = Math.max(0, tageGewicht(pflichtImMonat, halbeTage) - abwesendImSoll);
   /*
     MIT EIGENEM TAGESSOLL (M5) je Tag: das Soll der Pflichttage minus das der
     Krank- und Urlaubstage darin. Ohne bleibt die bisherige Rechnung.
   */
-  const sollMin = hatTagessoll(user)
+  const sollGanzeTage = hatTagessoll(user)
     ? Math.round(
         Math.max(
           0,
@@ -1022,7 +1071,7 @@ export function calcMonthStats(
               user,
               [...new Set(
                 monthEntries
-                  .filter((e) => istGanztagsGutschrift(e.status) && imSoll.has(e.date))
+                  .filter((e) => istGanztagsGutschrift(e) && imSoll.has(e.date))
                   .map((e) => e.date),
               )],
               halbeTage,
@@ -1030,6 +1079,7 @@ export function calcMonthStats(
         ),
       )
     : Math.round(requiredDays * dailyTargetH * 60);
+  const sollMin = freigestelltImSoll > 0 ? Math.max(0, sollGanzeTage - freigestelltImSoll) : sollGanzeTage;
 
   /*
     DER RESTURLAUB KOMMT AUS `urlaubsStand` UND WIRD HIER NICHT GERECHNET.
@@ -1097,6 +1147,10 @@ export function calcMonthStats(
     zaMin,
     berufsschuleDays,
     berufsschuleMin,
+    sonderurlaubDays,
+    pflegeDays,
+    unbezahltDays,
+    freigestelltMin: freigestelltImMonat,
     yearlyUrlaubDays,
     urlaubRest: stand.rest,
     urlaubsAnspruch: stand.anspruch,

@@ -203,6 +203,9 @@ export function buildMonthCsv(
       ...(mitTagesgrenze(lohn) ? ['Überstunden 50 %(Std)', 'Überstunden 100 %(Std)'] : []),
       // Seit 30.09.2026 (Testbericht 4.1), ganz hinten — die Stellen davor bleiben.
       'Einstufung', 'Lehrjahr', 'Berufsschule-Tage', 'Berufsschule(Std)',
+      // Seit 04.10.2026 (Plan 10.3), wieder ganz hinten. Der unbezahlte Urlaub
+      // steht eigens: ihn zieht die Lohnverrechnung ab, das Zeitkonto nicht.
+      'Sonderurlaub-Tage', 'Pflegefreistellung-Tage', 'Freigestellt stundenweise(Std)', 'Unbezahlt-Tage',
     ]),
   );
   // Das Lehrjahr am letzten Tag des Monats: wechselt es mittendrin, gilt für die Abrechnung der neue Stand.
@@ -234,6 +237,10 @@ export function buildMonthCsv(
         lehrjahrSpalte(user, monatsletzter),
         stats.berufsschuleDays,
         hours(stats.berufsschuleMin),
+        stats.sonderurlaubDays,
+        stats.pflegeDays,
+        hours(stats.freigestelltMin),
+        stats.unbezahltDays,
       ]),
     );
   }
@@ -338,6 +345,10 @@ export function buildUserCsv(
   if (stats.berufsschuleDays > 0) {
     lines.push(row(['Berufsschule', `${stats.berufsschuleDays} Tage (${hours(stats.berufsschuleMin)} h)`]));
   }
+  if (stats.sonderurlaubDays > 0) lines.push(row(['Sonderurlaub', `${stats.sonderurlaubDays} Tage`]));
+  if (stats.pflegeDays > 0) lines.push(row(['Pflegefreistellung', `${stats.pflegeDays} Tage`]));
+  if (stats.freigestelltMin > 0) lines.push(row(['Stundenweise freigestellt', `${hours(stats.freigestelltMin)} h`]));
+  if (stats.unbezahltDays > 0) lines.push(row(['Unbezahlter Urlaub', `${stats.unbezahltDays} Tage`]));
 
   /*
     ZUSCHLÄGE STEHEN IMMER DA, auch mit null Stunden. Der Block ist die

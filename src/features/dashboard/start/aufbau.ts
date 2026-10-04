@@ -29,6 +29,7 @@ import {
   unbesetzteEinsaetze,
   unterMindestmenge,
   urlaubsantraege,
+  freistellungsantraege,
   wartungenOhneBaustelle,
   zahlungenHeute,
 } from './regeln';
@@ -55,6 +56,8 @@ export interface Umfeld {
   darf: (ziel: string) => boolean;
   /** Entscheidet diese Person über Urlaub? */
   urlaubEntscheiden: boolean;
+  /** Bestätigt diese Person Sonderurlaub (Büro, Spitze; Modul Urlaub an)? */
+  freistellungBestaetigen?: boolean;
   /** Die eigene Kennung — damit die eigene Person nicht in zwei Abschnitten steht. */
   ich?: string;
 }
@@ -201,6 +204,8 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(stundenOhneBuchung((d.team ?? []).filter((t) => t.uid !== u.ich)), u),
     erlaubt(basiszinsFehlt(d.basiszinsFehltAb), u),
     u.urlaubEntscheiden ? erlaubt(urlaubsantraege(d.antraege ?? []), u) : null,
+    // Unbezahlten Urlaub entscheidet die Buchhaltung nicht — er steht hier nicht.
+    u.freistellungBestaetigen ? erlaubt(freistellungsantraege(d.freistellungen ?? [], false), u) : null,
   ]);
   const zahlungen = zahlungenHeute(d.zahlungenHeute ?? []);
   return {
@@ -416,6 +421,16 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       titel: anzahl(antraege.length, 'Urlaubsantrag', 'Urlaubsanträge'),
       detail: `frühester: ${erster.userName}, ${tagKurz(erster.von)}`,
       status: { text: 'entscheiden', ton: 'warn' },
+    }));
+  }
+  const frei = u.freistellungBestaetigen ? (d.freistellungen ?? []).filter((f) => f.status === 'Beantragt') : [];
+  if (frei.length) {
+    const erster = [...frei].sort((a, b) => a.von.localeCompare(b.von))[0];
+    themen.push(wenn(ZIEL.urlaubsantraege, {
+      key: 'sonderurlaub', wann: 'heute',
+      titel: anzahl(frei.length, 'Antrag auf Sonderurlaub', 'Anträge auf Sonderurlaub'),
+      detail: `frühester: ${erster.userName}, ${tagKurz(erster.von)}`,
+      status: { text: 'bestätigen', ton: 'warn' },
     }));
   }
   if (lagerHier) {

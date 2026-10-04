@@ -14,6 +14,7 @@ import Card from '@/components/Card';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import LohnregelnKarte from './LohnregelnKarte';
+import SonderurlaubKarte from './SonderurlaubKarte';
 import BasiszinsVerlauf from './BasiszinsVerlauf';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
@@ -1272,6 +1273,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
       )}
 
       {teil === 'personal' && <LohnregelnKarte />}
+
+      {teil === 'personal' && darfGenehmigerSetzen && <SonderurlaubKarte />}
 
       {/*
         KEINE KARTE „MONATSBILANZEN“ MEHR (Analyse 03.10.2026, Paket 1). Sie

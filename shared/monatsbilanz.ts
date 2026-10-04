@@ -1,4 +1,4 @@
-import { calcWorkMin, type Zeitangaben } from './arbeitszeit';
+import { calcWorkMin, freigestelltMin, istGanztagsGutschrift, type Zeitangaben } from './arbeitszeit';
 import { tagesAnteil } from './feiertage';
 
 /**
@@ -59,6 +59,13 @@ export interface Monatsbilanz {
   /** ANZAHL der Berufsschultage (seit 30.09.2026) — sie erfüllen das Tagessoll wie Krank und Urlaub. */
   berufsschuleTage: number;
   /**
+   * ANZAHL der ganztägigen Freistellungen (seit 04.10.2026): Sonderurlaub,
+   * Pflegefreistellung, unbezahlter Urlaub — sie erfüllen das Tagessoll.
+   */
+  freistellungTage: number;
+  /** Minuten stundenweiser Freistellung — erfüllte Sollzeit, keine Arbeitszeit. */
+  freigestelltMin: number;
+  /**
    * Die Daten mit Buchung, aufsteigend.
    *
    * Nötig für die Lückenrechnung: „an welchen Werktagen fehlt eine Buchung?"
@@ -90,6 +97,8 @@ export function bilanzAusEintraegen(monat: string, eintraege: EintragDoc[]): Mon
   let urlaubTage = 0;
   let abwesendHalbtage = 0;
   let berufsschuleTage = 0;
+  let freistellungTage = 0;
+  let freigestellt = 0;
   const tage = new Set<string>();
 
   for (const e of eintraege) {
@@ -98,8 +107,10 @@ export function bilanzAusEintraegen(monat: string, eintraege: EintragDoc[]): Mon
     if (e.status === 'Krank') krankTage++;
     else if (e.status === 'Urlaub') urlaubTage++;
     else if (e.status === 'Berufsschule') berufsschuleTage++;
+    else if (istGanztagsGutschrift(e)) freistellungTage++;
+    else if (e.status === 'Dienstverhinderung' || e.status === 'Pflegefreistellung') freigestellt += freigestelltMin(e);
     else anwesendMin += calcWorkMin(e);
-    if ((e.status === 'Krank' || e.status === 'Urlaub' || e.status === 'Berufsschule') && tagesAnteil(e.date, true) < 1) {
+    if (istGanztagsGutschrift(e) && tagesAnteil(e.date, true) < 1) {
       abwesendHalbtage++;
     }
   }
@@ -111,6 +122,8 @@ export function bilanzAusEintraegen(monat: string, eintraege: EintragDoc[]): Mon
     urlaubTage,
     abwesendHalbtage,
     berufsschuleTage,
+    freistellungTage,
+    freigestelltMin: freigestellt,
     tage: [...tage].sort(),
   };
 }

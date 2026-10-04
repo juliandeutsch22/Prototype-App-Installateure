@@ -28,6 +28,23 @@ import type { WithId } from '@/lib/db/core';
  * Pflichtgrund wie auf der Urlaubsseite. Alle anderen sehen, woher der Tag
  * kommt.
  */
+/**
+ * Statt „Bearbeiten" und „Löschen" bei einem Tag aus einem bestätigten
+ * Sonderurlaub (Plan 10.3): er ändert sich nur über den Antrag auf der Seite
+ * Urlaub. Ohne das Modul Urlaub gibt es keinen Sonderurlaub-Antrag — dann
+ * steht nur, woher der Tag kommt.
+ */
+export function FreistellungKnopf() {
+  const navigate = useNavigate();
+  const urlaubAn = useModul('urlaub');
+  if (!urlaubAn) return <Marke>aus Antrag</Marke>;
+  return (
+    <Button variant="ghost" onClick={() => navigate('/vacations')}>
+      Antrag
+    </Button>
+  );
+}
+
 export default function AntragKnopf({ eintrag }: { eintrag: Pick<TimeEntry, 'status' | 'vacationId'> }) {
   const navigate = useNavigate();
   const urlaubAn = useModul('urlaub');
