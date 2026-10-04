@@ -3,8 +3,10 @@ import { firmenZeilen, logoZeichnen } from '@/lib/pdfBriefkopf';
 import autoTable from 'jspdf-autotable';
 import type { AppUser, Company, TimeEntry } from '@/types';
 import {
-  calcWorkMin, dezemberHalbtage, tageGewicht, tagesAnteil, tagessollStunden, tageZahl, zeitausgleichMin,
+  calcWorkMin, dezemberHalbtage, istGanztagsGutschrift, tageGewicht, tagesAnteil, tagessollStunden, tageZahl,
+  zeitausgleichMin,
 } from '@/lib/time';
+import { freigestelltMin } from '@shared/arbeitszeit';
 import { BRAND_RGB, fmtDate, hours } from './export';
 import { FLAECHE, GRAU, TINTE } from '@/lib/belegLayout';
 import { zuschlagszeit, hatZuschlaege } from './zuschlaege';
@@ -12,6 +14,15 @@ import { ueberstundenNachTagesgrenze } from './ueberstunden';
 import { nachtzeitText, nachtzeitVon, ueberstundenRegelVon } from '@/lib/lohnregeln';
 
 /** „N", „ND" oder „N+ND" — leer, wenn kein Kennzeichen gesetzt ist. */
+/** Die Spalte „Status" ist schmal; die Kürzel erklärt der Summenblock. */
+const KUERZEL: Partial<Record<TimeEntry['status'], string>> = {
+  Zeitausgleich: 'ZA',
+  Berufsschule: 'BS',
+  Dienstverhinderung: 'SU',
+  Pflegefreistellung: 'PF',
+  Unbezahlt: 'UB',
+};
+
 function zuschlagKuerzel(e: TimeEntry): string {
   const teile: string[] = [];
   if (e.isNightWork) teile.push('N');
@@ -92,7 +103,7 @@ export function generateHoursPdf(opts: {
     return [
       fmtDate(e.date),
       // Die Spalte ist schmal; „ZA“ und „BS“ erklärt die Summenzeile darunter.
-      e.status === 'Zeitausgleich' ? 'ZA' : e.status === 'Berufsschule' ? 'BS' : e.status,
+      KUERZEL[e.status] ?? e.status,
       e.projectNumber || '–',
       e.customerName || '–',
       e.startTime && e.endTime ? `${e.startTime}–${e.endTime}` : '–',
@@ -152,12 +163,23 @@ export function generateHoursPdf(opts: {
     0,
   );
   const schule = sorted.filter((e) => e.status === 'Berufsschule').length;
+  // Sonderurlaub (Plan 10.3): ganztags in Tagen, stundenweise in Stunden.
+  const ganz = (status: TimeEntry['status']) =>
+    sorted.filter((e) => e.status === status && istGanztagsGutschrift(e)).length;
+  const sonder = ganz('Dienstverhinderung');
+  const pflege = ganz('Pflegefreistellung');
+  const unbezahlt = ganz('Unbezahlt');
+  const freiMin = sorted.reduce((s, e) => s + freigestelltMin(e), 0);
   doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(...GRAU);
   const abwesend = [
     krank ? `Krankenstandstage: ${krank}` : '',
     urlaub ? `Urlaubstage: ${tageZahl(urlaub)}` : '',
     zaMin ? `Zeitausgleich (ZA): ${hours(zaMin)} h` : '',
     schule ? `Berufsschule (BS): ${schule} Tage` : '',
+    sonder ? `Sonderurlaub (SU): ${sonder} Tage` : '',
+    pflege ? `Pflegefreistellung (PF): ${pflege} Tage` : '',
+    freiMin ? `Stundenweise freigestellt: ${hours(freiMin)} h` : '',
+    unbezahlt ? `Unbezahlter Urlaub (UB): ${unbezahlt} Tage` : '',
   ].filter(Boolean);
   if (abwesend.length) doc.text(abwesend.join('    '), margin, y + 12);
 

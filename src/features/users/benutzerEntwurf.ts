@@ -15,6 +15,7 @@ import {
   type UserProfileInput,
 } from '@/lib/db/benutzerVorgaben';
 import { leseZahl, zahlOder } from '@/lib/zahl';
+import { aliquot, tageZwischen } from '@shared/urlaubAliquot';
 import { todayStr, urlaubsJahrVon, JAHRESBEGINN_VORGABE } from '@/lib/time';
 import { LEHRZEIT_MAX, LEHRZEIT_MIN, type Einstufung } from '@/lib/einstufung';
 
@@ -41,12 +42,6 @@ export interface AliquoterAnspruch {
   restTage: number;
   /** Wie viele Tage das Urlaubsjahr hat (365 oder 366). */
   jahresTage: number;
-}
-
-/** Tage zwischen zwei ISO-Daten, ohne Zeitzonen- und Sommerzeitfehler. */
-function tageZwischen(von: string, bis: string): number {
-  const utc = (iso: string) => Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)));
-  return Math.round((utc(bis) - utc(von)) / 86_400_000);
 }
 
 /**
@@ -78,7 +73,7 @@ export function aliquoterAnspruch(
   return {
     restTage,
     jahresTage,
-    tage: Math.round(((jahresanspruch * restTage) / jahresTage) * 100) / 100,
+    tage: aliquot(jahresanspruch, restTage, jahresTage),
   };
 }
 

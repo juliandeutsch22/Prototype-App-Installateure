@@ -222,16 +222,20 @@ describe('Übernahme des Altbestands', () => {
     // wieder her — sonst rechneten die Prüfungen danach mit ganzen Tagen am
     // 24./31.12., je nachdem, in welcher Reihenfolge sie laufen.
     //
-    // SEIT DEM 30.09.2026 (Paket 7d) hat die Monatssicht eine Spalte mehr
-    // (`berufsschule_tage`), und `urlaub_entscheiden` kennt den Berufsschultag.
-    // Eine Sicht lässt sich nicht um Spalten kürzen: deshalb erst weg, dann
-    // die Dezember-Fassung, dann der heutige Stand aus der Lehrlings-Migration
-    // — und das Leserecht wie ursprünglich vergeben.
+    // Die Monatssicht hat seither Spalten dazubekommen; eine Sicht lässt sich
+    // nicht um Spalten kürzen: deshalb erst weg, dann die Dezember-Fassung,
+    // dann der HEUTIGE Stand — und das Leserecht wie ursprünglich vergeben.
+    //
+    // DER HEUTIGE STAND IST DIE NEUESTE MIGRATION, die Monatssicht und
+    // `urlaub_entscheiden` definiert — seit dem 04.10.2026 die des
+    // Sonderurlaubs. Vorher stand hier die Lehrlings-Migration vom 30.09.;
+    // sie setzte `satz_setzen` hinter #230 zurück und scheitert, sobald ein
+    // Sonderurlaubstag im Bestand ist (ihre Statusliste kennt ihn nicht).
     await db.query('drop view if exists public.monthly_stats');
     await db.query(readFileSync(
       join(__dirname, '../../supabase/migrations/20260929200000_dezember_halbtage.sql'), 'utf8'));
     await db.query(readFileSync(
-      join(__dirname, '../../supabase/migrations/20260930400000_lehrlinge.sql'), 'utf8'));
+      join(__dirname, '../../supabase/migrations/20261004200000_freistellungen.sql'), 'utf8'));
     await db.query('grant select on public.monthly_stats to authenticated');
 
     const tage = await eintraege(alt.uid, '2027-04-01', '2027-04-30');

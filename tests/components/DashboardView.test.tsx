@@ -134,6 +134,7 @@ vi.mock('@/lib/db/projects', () => ({
 /** Wer heute ganztags weg ist (M33). */
 const abwesend: { wert: { userId: string; von: string; bis: string; grund: string | null; zeiten: string | null }[] } = { wert: [] };
 vi.mock('@/lib/db/urlaubsanspruch', () => ({ listAnpassungen: vi.fn(async () => []) }));
+vi.mock('@/lib/db/freistellungen', () => ({ listOffeneFreistellungen: vi.fn(async () => []) }));
 vi.mock('@/lib/db/vacations', () => ({
   listAbwesendInRange: vi.fn(async () => abwesend.wert),
   listOpenVacations: vi.fn(async () => []),

@@ -98,6 +98,8 @@ export default function DashboardView() {
     return (ziel: string) => !!user && canAccess(user.role, grundpfad(ziel), company?.modules, zusatz);
   }, [user, company]);
   const urlaubEntscheiden = !!user && urlaubAn && darfUrlaubEntscheiden(user.role, user.uid, company?.vacationApprovers);
+  // Sonderurlaub bestätigen Büro und Spitze (Plan 10.3) — nur mit dem Modul Urlaub.
+  const freistellungBestaetigen = !!user && urlaubAn && canEditTime(user.role);
 
   useEffect(() => {
     if (!user) return;
@@ -126,7 +128,9 @@ export default function DashboardView() {
       bloecke.push(['Rechnungen und Scheine', () => buchhaltung(k, { rechnungen: rechnungenAn, scheine: scheineAn })]);
     }
     if (canEditTime(user.role) || urlaubEntscheiden) {
-      bloecke.push(['Die Mannschaft', () => team(k, { luecken: canEditTime(user.role), urlaub: urlaubEntscheiden })]);
+      bloecke.push(['Die Mannschaft', () => team(k, {
+        luecken: canEditTime(user.role), urlaub: urlaubEntscheiden, freistellungen: freistellungBestaetigen,
+      })]);
     }
     if (isGF(user.role)) {
       bloecke.push(['Baustellen und Einsätze', () => leitung(k, { einsatzplanung: einsatzAn, wartung: wartungAn, budget: true })]);
@@ -155,11 +159,11 @@ export default function DashboardView() {
     return () => {
       weg = true;
     };
-  }, [user, company, mitZeitkonto, materialAn, scheineAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden]);
+  }, [user, company, mitZeitkonto, materialAn, scheineAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen]);
 
   const seite = useMemo(
-    () => startseite(data, { rolle, heute, jetzt: Date.now(), darf, urlaubEntscheiden, ich: user?.uid }),
-    [data, rolle, heute, darf, urlaubEntscheiden, user?.uid],
+    () => startseite(data, { rolle, heute, jetzt: Date.now(), darf, urlaubEntscheiden, freistellungBestaetigen, ich: user?.uid }),
+    [data, rolle, heute, darf, urlaubEntscheiden, freistellungBestaetigen, user?.uid],
   );
 
   if (!user) return null;

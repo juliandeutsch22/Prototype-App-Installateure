@@ -349,6 +349,26 @@ describe('Abwesenheiten melden', () => {
     expect(daten.geplant).toEqual([{ art: 'notifyAbwesenheit', empfaenger: 1, geraete: 1 }]);
   }, 120_000);
 
+  /*
+    SONDERURLAUB (Plan 10.3): der neue Antrag geht an die, die bestätigen —
+    hier die Buchhaltung; den unbezahlten entscheidet nur die Spitze, und die
+    gibt es in diesem Betrieb nicht. Die Entscheidung geht an die Person.
+  */
+  it('ein neuer Sonderurlaub geht ans Büro, ein unbezahlter nur an die Spitze', async () => {
+    const frei = (art: string) => ({ ...zeile(), art, status: 'Beantragt' });
+    const sonder = await anstossen({ quelle: 'abwesenheit', art: 'freistellung-antrag', zeile: frei('dienstverhinderung') });
+    expect(sonder.daten.geplant).toEqual([{ art: 'notifyAbwesenheit', empfaenger: 1, geraete: 1 }]);
+    const unbezahlt = await anstossen({ quelle: 'abwesenheit', art: 'freistellung-antrag', zeile: frei('unbezahlt') });
+    expect(unbezahlt.daten.geplant).toEqual([{ art: 'notifyAbwesenheit', empfaenger: 0, geraete: 0 }]);
+  }, 120_000);
+
+  it('die Entscheidung über Sonderurlaub geht an die Person', async () => {
+    const { daten } = await anstossen({
+      quelle: 'abwesenheit', art: 'freistellung-entschieden', zeile: { ...zeile(), art: 'pflegefreistellung', status: 'Bestätigt' },
+    });
+    expect(daten.geplant).toEqual([{ art: 'notifyAbwesenheit', empfaenger: 1, geraete: 1 }]);
+  }, 120_000);
+
   it('wer „Abwesenheiten" abgeschaltet hat, bekommt kein Gerät gezählt', async () => {
     await admin.from('user_prefs').update({ notify_abwesenheit: false }).eq('user_id', monteur.uid);
     const { daten } = await anstossen({
@@ -376,5 +396,30 @@ describe('Abwesenheiten melden', () => {
     );
     expect(JSON.parse(letzte.rows[0].content).geplant)
       .toEqual([{ art: 'notifyAbwesenheit', empfaenger: 1, geraete: 1 }]);
+  }, 180_000);
+
+  it('der Trigger stösst auch beim neuen Sonderurlaub an — ohne Anlass und Notiz in der Nachricht', async () => {
+    const vorher = (await db.query('select count(*)::int as n from net._http_response')).rows[0].n;
+    const { error } = await monteur.client.rpc('freistellung_beantragen', {
+      p_art: 'dienstverhinderung', p_anlass: 'tod_eltern', p_ereignis: '2026-11-09',
+      p_von: '2026-11-10', p_bis: '2026-11-10', p_notiz: 'Begräbnis in Linz',
+    });
+    expect(error).toBeNull();
+    let nachher = vorher;
+    for (let i = 0; i < 30 && nachher === vorher; i += 1) {
+      await new Promise((r) => setTimeout(r, 500));
+      nachher = (await db.query('select count(*)::int as n from net._http_response')).rows[0].n;
+    }
+    expect(nachher).toBeGreaterThan(vorher);
+    const letzte = await db.query(
+      'select content from net._http_response order by created desc limit 1',
+    );
+    expect(JSON.parse(letzte.rows[0].content).geplant)
+      .toEqual([{ art: 'notifyAbwesenheit', empfaenger: 1, geraete: 1 }]);
+    // Was der Trigger verschickt hat, enthält den Anlass nicht.
+    const anfrage = await db.query(`select body from net.http_request_queue order by id desc limit 1`).catch(() => ({ rows: [] }));
+    for (const r of anfrage.rows as Array<{ body: string }>) {
+      expect(String(r.body)).not.toMatch(/tod_eltern|Linz/);
+    }
   }, 180_000);
 });

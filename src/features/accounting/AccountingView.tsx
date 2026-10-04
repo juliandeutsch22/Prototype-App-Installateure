@@ -25,6 +25,7 @@ import {
   tageWort,
   tageZahl,
   vorzeichenTage,
+  tagesStatusName,
   dezemberHalbtage,
   tagesAnteil,
 } from '@/lib/time';
@@ -59,7 +60,7 @@ import {
   downloadCsv,
   entriesInRange,
 } from './export';
-import AntragKnopf from '@/features/time/AntragKnopf';
+import AntragKnopf, { FreistellungKnopf } from '@/features/time/AntragKnopf';
 import { datumAT } from '@/lib/datum';
 
 const MONTHS = [
@@ -740,6 +741,26 @@ export default function AccountingView() {
                               <b className="font-semibold text-ink">{stats.berufsschuleDays}</b> Tage Berufsschule ·{' '}
                             </>
                           )}
+                          {stats.sonderurlaubDays > 0 && (
+                            <>
+                              <b className="font-semibold text-ink">{stats.sonderurlaubDays}</b> Tage Sonderurlaub ·{' '}
+                            </>
+                          )}
+                          {stats.pflegeDays > 0 && (
+                            <>
+                              <b className="font-semibold text-ink">{stats.pflegeDays}</b> Tage Pflegefreistellung ·{' '}
+                            </>
+                          )}
+                          {stats.freigestelltMin > 0 && (
+                            <>
+                              <b className="font-semibold text-ink">{fmtDauer(stats.freigestelltMin)}</b> freigestellt ·{' '}
+                            </>
+                          )}
+                          {stats.unbezahltDays > 0 && (
+                            <>
+                              <b className="font-semibold text-ink">{stats.unbezahltDays}</b> Tage unbezahlt ·{' '}
+                            </>
+                          )}
                           <b
                             className={`font-semibold ${
                               stats.urlaubRest < 5 ? 'text-warning' : 'text-ink'
@@ -921,6 +942,9 @@ export default function AccountingView() {
                             <Marke>ZA</Marke>
                           ) : x.entry.status === 'Berufsschule' ? (
                             <Marke>Berufsschule</Marke>
+                          ) : x.entry.status === 'Dienstverhinderung' || x.entry.status === 'Pflegefreistellung'
+                              || x.entry.status === 'Unbezahlt' ? (
+                            <Marke>{tagesStatusName(x.entry.status)}</Marke>
                           ) : (
                             <span className="text-ink-muted">Anwesend</span>
                           );
@@ -942,6 +966,8 @@ export default function AccountingView() {
                             >
                               Krankmeldung
                             </Button>
+                          ) : e.freistellungId ? (
+                            <FreistellungKnopf />
                           ) : e.vacationId ? (
                             // Ein Tag aus einem genehmigten Antrag ändert sich
                             // nur über den Antrag.

@@ -1,4 +1,5 @@
-import type { AppUser, EinkaufPosten, Invoice, MaterialOrder, Project, Vacation, Wartung, WorkSheet } from '@/types';
+import type { AppUser, EinkaufPosten, Freistellung, Invoice, MaterialOrder, Project, Vacation, Wartung, WorkSheet } from '@/types';
+import { ART_NAME } from '@shared/freistellung';
 import { lehrzeitEnde } from '@/lib/einstufung';
 import { istBenutzerkonto } from '@shared/benutzername';
 import type { OffenerNachtrag } from '@/features/worksheets/zeitNachtrag';
@@ -322,6 +323,25 @@ export function urlaubsantraege(antraege: Vacation[]): Abschnitt | null {
       to: ZIEL.urlaubsantraege,
     }));
   return abschnitt('urlaub', 'Urlaubsanträge', zeilen, ZIEL.urlaubsantraege);
+}
+
+/**
+ * OFFENER SONDERURLAUB (Plan 10.3) — für Büro und Spitze. Die Art steht da,
+ * der Anlass nicht: die Startseite ist kein Ort für Familiendaten. Den
+ * unbezahlten Urlaub sieht nur, wer darüber entscheidet.
+ */
+export function freistellungsantraege(antraege: Freistellung[], mitUnbezahlt: boolean): Abschnitt | null {
+  const zeilen: Zeile[] = antraege
+    .filter((f) => f.status === 'Beantragt' && (mitUnbezahlt || f.art !== 'unbezahlt'))
+    .sort((a, b) => a.von.localeCompare(b.von))
+    .map((f) => ({
+      key: `freistellung-${f.id}`,
+      titel: f.userName,
+      detail: `${f.von === f.bis ? datumAT(f.von) : `${tagKurz(f.von)}–${datumAT(f.bis)}`} · ${ART_NAME[f.art]}`,
+      status: { text: f.art === 'unbezahlt' ? 'entscheiden' : 'bestätigen', ton: 'warn' },
+      to: ZIEL.urlaubsantraege,
+    }));
+  return abschnitt('sonderurlaub', 'Sonderurlaub', zeilen, ZIEL.urlaubsantraege);
 }
 
 export interface ZahlungHeute {

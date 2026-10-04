@@ -10,6 +10,11 @@ import {
 } from '@/lib/db/vacations';
 import { getUserByUid, listUsers } from '@/lib/db/users';
 import { listAnpassungen } from '@/lib/db/urlaubsanspruch';
+import { listEigeneFreistellungen, listOffeneFreistellungen } from '@/lib/db/freistellungen';
+import type { FreistellungArt } from '@shared/freistellung';
+import FreistellungFormular from './FreistellungFormular';
+import FreistellungListe from './FreistellungListe';
+import FreistellungenBestaetigen from './FreistellungenBestaetigen';
 import {
   krankmeldungSpeichern,
   listEigeneKrankmeldungen,
@@ -35,7 +40,7 @@ import {
   vorzeichenTage,
   type SaldoResult,
 } from '@/lib/time';
-import type { AppUser, Betriebsurlaub, Krankmeldung, UrlaubsanspruchAnpassung, Vacation } from '@/types';
+import type { AppUser, Betriebsurlaub, Freistellung, Krankmeldung, UrlaubsanspruchAnpassung, Vacation } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import InfoHint from '@/components/InfoHint';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -102,7 +107,11 @@ function spanne(von: string, bis: string): number {
 /** Saldo in Stunden → „+12:30" / „−3:30". */
 const vorzeichen = (min: number) => (min >= 0 ? `+${fmtMin(min)}` : `−${fmtMin(-min)}`);
 
-type Art = 'Urlaub' | 'Zeitausgleich' | 'Krank';
+type Art = 'Urlaub' | 'Zeitausgleich' | 'Krank' | FreistellungArt;
+
+/** Sonderurlaub, Pflegefreistellung, unbezahlter Urlaub — eigener Antrag (Plan 10.3). */
+const istFreistellung = (a: Art): a is FreistellungArt =>
+  a === 'dienstverhinderung' || a === 'pflegefreistellung' || a === 'unbezahlt';
 type Reiter = 'antraege' | 'krank' | 'betrieb';
 
 /*
@@ -168,6 +177,10 @@ export default function VacationsView() {
   const reiterleiste = useReiterImBild<HTMLDivElement>(reiter);
 
   const [eigene, setEigene] = useState<WithId<Vacation>[]>([]);
+  /** Die eigenen Anträge auf Sonderurlaub (Plan 10.3). */
+  const [eigeneFrei, setEigeneFrei] = useState<Freistellung[]>([]);
+  /** Wie viele Anträge auf Sonderurlaub warten — fürs Büro, entscheidet, wo die Karte steht. */
+  const [offeneFrei, setOffeneFrei] = useState(0);
   /** Die eigenen Anpassungen des Anspruchs (Elternkarenz, unbezahlter Urlaub). */
   const [meineAnpassungen, setMeineAnpassungen] = useState<UrlaubsanspruchAnpassung[]>([]);
   const [offene, setOffene] = useState<WithId<Vacation>[]>([]);
@@ -221,7 +234,7 @@ export default function VacationsView() {
       setLaden(true);
       setError(null);
       try {
-        const [meine, profilDaten, anpassungen] = await Promise.all([
+        const [meine, profilDaten, anpassungen, frei] = await Promise.all([
           /*
             MEHR ALS DIE LETZTEN SECHZIG. Die Vorgabe reichte, solange nur das
             laufende Jahr zählte. Für den Übertrag hängt der Anspruch am
@@ -233,8 +246,15 @@ export default function VacationsView() {
           getUserByUid(user.companyId, user.uid),
           // Nicht still: ohne sie stünde ein zu hoher Resturlaub da.
           listAnpassungen(user.companyId, user.uid),
+          listEigeneFreistellungen(user.companyId, user.uid),
         ]);
         setEigene(meine);
+        setEigeneFrei(frei);
+        if (buero) {
+          listOffeneFreistellungen(user.companyId)
+            .then((o) => setOffeneFrei(o.length))
+            .catch(() => setOffeneFrei(0));
+        }
         setMeineAnpassungen(anpassungen);
         setProfil(profilDaten ?? null);
         /*
@@ -272,7 +292,7 @@ export default function VacationsView() {
         setLaden(false);
       }
     },
-    [user, darfEntscheiden, company?.vacationApprovers],
+    [user, darfEntscheiden, buero, company?.vacationApprovers],
   );
 
   useEffect(() => {
@@ -934,7 +954,7 @@ export default function VacationsView() {
 
   return (
     <div className="space-y-3 lg:space-y-5">
-      <PageHeader title="Urlaub" subtitle="Urlaub, Zeitausgleich und Krankmeldung" />
+      <PageHeader title="Urlaub" subtitle="Urlaub, Zeitausgleich, Sonderurlaub und Krankmeldung" />
 
       {/*
         DIE BÜRO-REITER nur für Buchhaltung und Spitze: Krankenstände sind
@@ -1007,8 +1027,35 @@ export default function VacationsView() {
         oben, sobald die Anträge da waren.
       */}
       {darfEntscheiden && !laden && offene.length > 0 && offeneKarte}
+      {/* Dasselbe für den Sonderurlaub: wartet einer, steht die Karte oben. */}
+      {buero && !laden && offeneFrei > 0 && (
+        <FreistellungenBestaetigen user={user} company={company} />
+      )}
 
       <Card title={art === 'Krank' ? 'Krank melden' : 'Antrag stellen'}>
+        {/*
+          DIE ART STEHT VOR DEM FORMULAR: Sonderurlaub, Pflegefreistellung und
+          unbezahlter Urlaub haben ein eigenes (`FreistellungFormular`), mit
+          ihren Feldern und ihrem eigenen Weg in die Datenbank.
+        */}
+        <div className="mb-4">
+          <SelectField
+            id="uart"
+            label="Art"
+            value={art}
+            onChange={(e) => {
+              setArt(e.target.value as Art);
+              setError(null);
+            }}
+          >
+            <option value="Urlaub">Urlaub</option>
+            <option value="Zeitausgleich">Zeitausgleich</option>
+            <option value="dienstverhinderung">Sonderurlaub (Hochzeit, Todesfall, Umzug …)</option>
+            <option value="pflegefreistellung">Pflegefreistellung</option>
+            <option value="unbezahlt">Unbezahlter Urlaub</option>
+            <option value="Krank">Krankmeldung</option>
+          </SelectField>
+        </div>
         {/*
           KOMMENDER BETRIEBSURLAUB steht hier, wo jemand seinen Urlaub plant —
           sonst beantragt er Tage, die ohnehin zu sind.
@@ -1027,20 +1074,19 @@ export default function VacationsView() {
             </Hinweiszeile>
           </div>
         )}
+        {istFreistellung(art) ? (
+          <FreistellungFormular
+            art={art}
+            user={user}
+            profil={profil}
+            company={company}
+            eigene={eigeneFrei}
+            onGestellt={() =>
+              void listEigeneFreistellungen(user.companyId, user.uid).then(setEigeneFrei).catch(() => undefined)
+            }
+          />
+        ) : (
         <form onSubmit={beantragen} className="space-y-4">
-          <SelectField
-            id="uart"
-            label="Art"
-            value={art}
-            onChange={(e) => {
-              setArt(e.target.value as Art);
-              setError(null);
-            }}
-          >
-            <option value="Urlaub">Urlaub</option>
-            <option value="Zeitausgleich">Zeitausgleich</option>
-            <option value="Krank">Krankmeldung</option>
-          </SelectField>
 
           {art === 'Zeitausgleich' && (
             <CheckboxField
@@ -1233,10 +1279,14 @@ export default function VacationsView() {
             {art === 'Krank' ? 'Krank melden' : 'Antrag einreichen'}
           </Button>
         </form>
+        )}
       </Card>
 
       {/* Ohne offene Anträge steht die Liste nach dem eigenen Antrag — dort sagt sie „Kein Antrag wartet“. */}
       {darfEntscheiden && !laden && offene.length === 0 && offeneKarte}
+      {buero && !laden && offeneFrei === 0 && (
+        <FreistellungenBestaetigen user={user} company={company} />
+      )}
 
       {/* Bündig: die Anträge sind Zeilen von Kante zu Kante (Designlinie „Fassung 3"). */}
       <Card title="Meine Anträge" buendig>
@@ -1313,6 +1363,20 @@ export default function VacationsView() {
           </List>
         )}
       </Card>
+
+      {eigeneFrei.length > 0 && (
+        <Card title="Mein Sonderurlaub" buendig>
+          <FreistellungListe
+            antraege={eigeneFrei}
+            companyId={user.companyId}
+            uid={user.uid}
+            anlaesse={company?.freistellungAnlaesse}
+            onGeaendert={() =>
+              void listEigeneFreistellungen(user.companyId, user.uid).then(setEigeneFrei).catch(() => undefined)
+            }
+          />
+        </Card>
+      )}
 
       {eigeneKrank.length > 0 && (
         <Card title="Meine Krankmeldungen">

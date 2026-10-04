@@ -330,6 +330,49 @@ export function textEntscheidung(a: AbwesenheitDoc, id: string): Meldung {
   };
 }
 
+/* ------------------------------------------------------------------ */
+/* Sonderurlaub (Plan 10.3)                                            */
+/* ------------------------------------------------------------------ */
+
+const FREISTELLUNG_NAME: Record<string, string> = {
+  dienstverhinderung: 'Sonderurlaub',
+  pflegefreistellung: 'Pflegefreistellung',
+  unbezahlt: 'unbezahlten Urlaub',
+};
+
+/**
+ * Wer von einem neuen Sonderurlaub erfährt: wer ihn bestätigen darf —
+ * Büro, Geschäftsführung, Administration; beim unbezahlten Urlaub nur
+ * Geschäftsführung und Administration. Nie die Person selbst.
+ */
+export function empfaengerFreistellung(leute: Belegschaftsmitglied[], a: AbwesenheitDoc): string[] {
+  const spitze = (u: Belegschaftsmitglied) => u.role === 'Geschäftsführung' || u.role === 'Administrator';
+  return leute
+    .filter((u) => u.active !== false && u.uid !== a.userId && (a.art === 'unbezahlt' ? spitze(u) : u.buero))
+    .map((u) => u.uid);
+}
+
+/** Der Anlass steht NIE in der Meldung — er verrät Familien- und Gesundheitsdaten. */
+export function textFreistellungAntrag(a: AbwesenheitDoc, id: string): Meldung {
+  return {
+    title: `Neuer Antrag auf ${FREISTELLUNG_NAME[a.art ?? ''] ?? 'Sonderurlaub'}`,
+    body: `${a.userName ?? 'Ein Mitarbeiter'}: ${zeitraumKurz(a)}`,
+    link: '/vacations',
+    tag: `freistellung-${id}`,
+  };
+}
+
+export function textFreistellungEntscheidung(a: AbwesenheitDoc, id: string): Meldung {
+  const was = a.art === 'unbezahlt' ? 'Unbezahlter Urlaub' : a.art === 'pflegefreistellung' ? 'Pflegefreistellung' : 'Sonderurlaub';
+  const wie = a.status === 'Bestätigt' ? 'bestätigt' : a.status === 'Abgelehnt' ? 'abgelehnt' : 'zurückgenommen';
+  return {
+    title: `${was} ${wie}`,
+    body: zeitraumKurz(a),
+    link: '/vacations',
+    tag: `freistellung-${id}`,
+  };
+}
+
 /**
  * Die Krankmeldung ans Büro. Der Titel sagt nur „Krankmeldung" — keine
  * Anmerkung, nichts, was auf einem fremden Sperrbildschirm mehr verriete.

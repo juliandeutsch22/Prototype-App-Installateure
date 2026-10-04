@@ -3,6 +3,7 @@ import type {
   Company,
   EinkaufPosten,
   EinsatzMaterial,
+  Freistellung,
   Invoice,
   MaterialOrder,
   Project,
@@ -28,6 +29,7 @@ import { listUnpaidInvoices, listInvoicesByIds, scheineAufRechnung } from '@/lib
 import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
 import { listRecentWorkSheets, listOwnWorkSheetsSince } from '@/lib/db/workSheets';
 import { listAbwesendInRange, listOpenVacations, type Abwesenheit } from '@/lib/db/vacations';
+import { listOffeneFreistellungen } from '@/lib/db/freistellungen';
 import { listFaelligeWartungen } from '@/lib/db/wartungen';
 import { buchungskonten } from '@/lib/db/konten';
 import {
@@ -131,6 +133,8 @@ export interface StartDaten {
   // Team
   team?: TeamLuecke[];
   antraege?: Vacation[];
+  /** Offener Sonderurlaub (Plan 10.3) — fürs Büro und die Spitze. */
+  freistellungen?: Freistellung[];
   // Leitung
   projekte?: Project[];
   budget?: BudgetZeile[];
@@ -330,7 +334,7 @@ export async function buchhaltung(
 
 export async function team(
   k: Kontext,
-  was: { luecken: boolean; urlaub: boolean },
+  was: { luecken: boolean; urlaub: boolean; freistellungen?: boolean },
 ): Promise<Partial<StartDaten>> {
   const { user } = k;
   const out: Partial<StartDaten> = {};
@@ -357,6 +361,9 @@ export async function team(
   }
   if (was.urlaub) {
     out.antraege = await listOpenVacations(user.companyId, 100);
+  }
+  if (was.freistellungen) {
+    out.freistellungen = await listOffeneFreistellungen(user.companyId);
   }
   return out;
 }

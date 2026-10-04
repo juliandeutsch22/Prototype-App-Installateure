@@ -74,6 +74,15 @@ export function darfUrlaubEntscheiden(
   return isBuch(rolle);
 }
 
+/**
+ * Sonderurlaub und Pflegefreistellung BESTÄTIGEN Büro, Geschäftsführung und
+ * Administration — ohne Ermessen, der Anlass wird bestätigt (Plan 10.3).
+ * Unbezahlten Urlaub ENTSCHEIDEN nur Geschäftsführung und Administration.
+ * Dieselbe Grenze zieht `app.darf_freistellung_entscheiden`.
+ */
+export const darfFreistellungBestaetigen = (r: Role) => canEditTime(r);
+export const darfUnbezahltEntscheiden = (r: Role) => isTopLevel(r);
+
 export const canManageProjects = (r: Role) => isGF(r);
 
 /**
