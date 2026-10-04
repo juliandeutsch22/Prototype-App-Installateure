@@ -533,10 +533,41 @@ describe('Die Liste führt zum Angebot', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/AN-2026-0007/);
-    await nutzer.click(screen.getByRole('button', { name: 'Abgelehnt' }));
+    // Seit Paket 2 (03.10.2026) im „⋯“-Menü, mit sprechendem Namen.
+    await nutzer.click(screen.getByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Als abgelehnt markieren' }));
     expect(
       await screen.findByText(/^Der Status konnte nicht gespeichert werden\. Keine Verbindung zum Server/),
     ).toBeInTheDocument();
+  });
+
+  // Analyse 03.10.2026, Paket 2 — höchstens zwei Knöpfe, der Rest im Menü.
+  it('zeigt beim versendeten Angebot „Neue Fassung“ und „Annehmen“, den Rest im Menü', async () => {
+    versendetesAngebot();
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    expect(screen.getByRole('button', { name: 'Neue Fassung' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Annehmen → Baustelle' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Abgelehnt' })).toBeNull();
+    await nutzer.click(screen.getByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
+    // Versendet: kein „Als versendet markieren“ und kein Löschen.
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Als abgelehnt markieren']);
+  });
+
+  it('beim Entwurf: „Bearbeiten“ und „Annehmen“, im Menü auch Löschen — mit Rückfrage', async () => {
+    versendetesAngebot();
+    angebote[angebote.length - 1].status = 'Entwurf';
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    expect(screen.getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual([
+      'Als versendet markieren', 'Als abgelehnt markieren', 'Löschen',
+    ]);
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Löschen' }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 });
 
