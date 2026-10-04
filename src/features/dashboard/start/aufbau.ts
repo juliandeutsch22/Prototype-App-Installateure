@@ -21,6 +21,7 @@ import {
   scheineNichtVerrechnet,
   scheinOhneZeit,
   stundenOhneBuchung,
+  basiszinsFehlt,
   tageOhneBuchung,
   tageZwischen,
   tagKurz,
@@ -194,11 +195,11 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
     d.unverrechnet ? erlaubt(scheineNichtVerrechnet(auffaellige(d.unverrechnet)), u) : null,
     /*
       DIE EIGENE PERSON NUR EINMAL (Analyse 03.10.2026, Paket 1): ihre Tage
-      stehen schon oben unter „Deine Tage ohne Buchung“. Nur hier, nicht beim
-      Laden — die Geschäftsführung hat keinen eigenen Abschnitt und sähe ihre
-      Tage sonst gar nicht.
+      stehen schon oben unter „Deine Tage ohne Buchung“. Bei der Leitung
+      genauso (Thema „ohne eigene Buchung“, siehe `leitung`).
     */
     erlaubt(stundenOhneBuchung((d.team ?? []).filter((t) => t.uid !== u.ich)), u),
+    erlaubt(basiszinsFehlt(d.basiszinsFehltAb), u),
     u.urlaubEntscheiden ? erlaubt(urlaubsantraege(d.antraege ?? []), u) : null,
   ]);
   const zahlungen = zahlungenHeute(d.zahlungenHeute ?? []);
@@ -347,10 +348,11 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
     }
   }
   if (d.basiszinsFehltAb) {
-    themen.push(wenn(ZIEL.einstellungen('saetze'), {
+    // Seit Paket 2 (03.10.2026) ein Reiter für Buchhaltung und Leitung.
+    themen.push(wenn(ZIEL.einstellungen('rechnung'), {
       key: 'basiszins', wann: 'ueberfaellig',
       titel: `Basiszinssatz ab ${tagKurz(d.basiszinsFehltAb)} fehlt`,
-      detail: 'Einstellungen · Sätze',
+      detail: 'Einstellungen · Rechnungsvorgaben',
       status: { text: `seit ${tagKurz(d.basiszinsFehltAb)}`, ton: 'fehl' },
     }));
   }
@@ -456,7 +458,8 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: 'einplanen', ton: 'warn' },
     }));
   }
-  const luecken = (d.team ?? []).filter((t) => t.fehlendeTage > 0);
+  // Die eigenen Tage stehen schon im Thema „ohne eigene Buchung“ (Paket 1).
+  const luecken = (d.team ?? []).filter((t) => t.fehlendeTage > 0 && t.uid !== u.ich);
   if (luecken.length) {
     themen.push(wenn(ZIEL.luecken(lueckenMonat(luecken)), {
       key: 'luecken', wann: 'woche',

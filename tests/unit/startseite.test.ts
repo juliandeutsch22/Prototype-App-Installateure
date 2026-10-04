@@ -179,6 +179,11 @@ describe('Buchhaltung', () => {
     expect(eigene).toBeDefined();
     expect(team?.titel).toBe('Personen mit Tagen ohne Buchung');
     expect(team?.zeilen.map((z) => z.titel)).toEqual(['Max Monteur']);
+    // Paket 2: auch die Buchhaltung bekommt den fehlenden Basiszinssatz — sie pflegt ihn.
+    const zins = startseite({ basiszinsFehltAb: '2026-07-01' }, umfeld({ ich: 'ich' }));
+    expect(zins.abschnitte.find((a) => a.key === 'basiszins')?.zeilen[0]).toMatchObject({
+      titel: 'Basiszinssatz ab 01.07.2026 fehlt', to: ZIEL.einstellungen('rechnung'),
+    });
 
     // Gegenprobe: ohne eigene Kennung stünde sie doppelt — genau der gemeldete Fall.
     const vorher = startseite(daten, umfeld());
@@ -272,6 +277,31 @@ describe('Geschäftsführung und Administrator', () => {
     expect(s.abschnitte[0].titel).toBe('Überfällig');
     expect(s.abschnitte[0].zeilen[0].titel).toBe('Basiszinssatz ab 01.07. fehlt');
     expect(s.zaehlwort).toBe('Thema');
+  });
+
+  // Paket 2 (03.10.2026) — ein Reiter für Buchhaltung und Leitung.
+  it('führt beim fehlenden Basiszinssatz auf „Rechnungsvorgaben“', () => {
+    const s = startseite({ basiszinsFehltAb: '2026-07-01' }, umfeld());
+    expect(s.abschnitte[0].zeilen[0]).toMatchObject({ to: ZIEL.einstellungen('rechnung'), detail: 'Einstellungen · Rechnungsvorgaben' });
+  });
+
+  // Korrektur zu Paket 1: auch die Leitung hat ihre eigenen Tage schon als Thema.
+  it('zählt die eigene Person nicht zusätzlich unter „Personen mit Tagen ohne Buchung“', () => {
+    const daten = {
+      fehlendeTage: ['2026-10-12'],
+      team: [
+        { uid: 'chef', name: 'Chefin', fehlendeTage: 1, aeltesterTag: '2026-10-12' },
+        { uid: 'max', name: 'Max Monteur', fehlendeTage: 2, aeltesterTag: '2026-10-12' },
+      ],
+    };
+    const zeilen = (x: ReturnType<typeof startseite>) =>
+      x.abschnitte.flatMap((a) => [...a.zeilen, ...(a.weiter && 'aufklappen' in a.weiter ? a.weiter.aufklappen : [])]);
+    const mit = zeilen(startseite(daten, umfeld({ ich: 'chef' })));
+    expect(mit.find((z) => z.key === 'eigene-tage')).toBeDefined();
+    expect(mit.find((z) => z.key === 'luecken')?.titel).toBe('1 Person mit Tagen ohne Buchung');
+    // Gegenprobe: ohne eigene Kennung zählte sie doppelt.
+    const ohne = zeilen(startseite(daten, umfeld()));
+    expect(ohne.find((z) => z.key === 'luecken')?.titel).toBe('2 Personen mit Tagen ohne Buchung');
   });
 
   it('keine Zeile auf eine Seite, die die Rolle nicht sehen darf', () => {

@@ -293,6 +293,23 @@ export function stundenOhneBuchung(team: TeamLuecke[]): Abschnitt | null {
   return abschnitt('luecken', 'Personen mit Tagen ohne Buchung', zeilen, ziel);
 }
 
+/**
+ * Der Basiszinssatz des laufenden Halbjahres fehlt — die Buchhaltung pflegt
+ * ihn unter „Rechnungsvorgaben“ (Analyse 03.10.2026, Paket 2). Ohne ihn
+ * rechnet keine Mahnung die gesetzlichen Verzugszinsen richtig.
+ */
+export function basiszinsFehlt(ab: string | null | undefined): Abschnitt | null {
+  if (!ab) return null;
+  const tag = datumAT(ab);
+  return abschnitt('basiszins', 'Basiszinssatz', [{
+    key: 'basiszins',
+    titel: `Basiszinssatz ab ${tag} fehlt`,
+    detail: 'Einstellungen · Rechnungsvorgaben',
+    status: { text: `seit ${tag}`, ton: 'fehl' },
+    to: ZIEL.einstellungen('rechnung'),
+  }]);
+}
+
 export function urlaubsantraege(antraege: Vacation[]): Abschnitt | null {
   const zeilen: Zeile[] = antraege
     .filter((v) => v.status === 'Beantragt')

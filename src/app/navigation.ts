@@ -235,12 +235,13 @@ export const UNTER: Record<string, Unterseite[]> = {
     // überhaupt sei.
     { pfad: 'saetze', label: 'Sätze und Kosten', roles: TOP },
     /*
-      DIE RECHNUNGSVORGABEN DER BUCHHALTUNG (Testbericht 30.09.2026, H10):
-      Zahlungsziel, Skonto, Mahnspesen, Basiszinssatz — ohne die Stunden- und
-      Kostensätze daneben. Die Leitung pflegt dieselben Werte weiter unter
-      „Sätze und Kosten“ und braucht den Reiter nicht.
+      DIE RECHNUNGSVORGABEN (Testbericht 30.09.2026, H10): Zahlungsziel,
+      Skonto, Mahnspesen, Basiszinssatz — ohne die Stunden- und Kostensätze
+      daneben. Seit 03.10.2026 (Paket 2) EIN Reiter für Buchhaltung und
+      Leitung; vorher pflegte die Leitung dieselben Werte mitten in „Sätze
+      und Kosten“.
     */
-    { pfad: 'rechnung', label: 'Rechnungsvorgaben', roles: ['Buchhaltung'] },
+    { pfad: 'rechnung', label: 'Rechnungsvorgaben', roles: ['Buchhaltung', ...TOP] },
     // Bis zum 24.09.2026 standen beide auf „Sätze und Kosten" — dort sucht
     // niemand Rechnungsvorsätze oder den Urlaubsübertrag (Prüflauf, D10).
     { pfad: 'nummern', label: 'Nummernkreise', roles: TOP },
