@@ -86,6 +86,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   system_laeufe: { updated_at: 'zeitpunkt', zuletzt_erfolg: 'zeitpunkt', zuletzt_versuch: 'zeitpunkt' },
   time_entries: { created_at: 'zeitpunkt', end_time: 'uhrzeit', start_time: 'uhrzeit', updated_at: 'zeitpunkt' },
   uid_pruefungen: { abgefragt_am: 'zeitpunkt', am: 'zeitpunkt' },
+  urlaubsanspruch_anpassungen: { created_at: 'zeitpunkt', entfernt_am: 'zeitpunkt', updated_at: 'zeitpunkt' },
   user_prefs: { updated_at: 'zeitpunkt' },
   users: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   vacations: {

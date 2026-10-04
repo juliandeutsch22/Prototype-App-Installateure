@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon, ueberstundenRegelVon } from '@/lib/lohnregeln';
 import { listUsers } from '@/lib/db/users';
+import { listAnpassungen } from '@/lib/db/urlaubsanspruch';
 import { listProjectsByNumbers } from '@/lib/db/projects';
 import {
   subscribeEntriesInRange,
@@ -23,11 +24,12 @@ import {
   uebertragsRegel,
   tageWort,
   tageZahl,
+  vorzeichenTage,
   dezemberHalbtage,
   tagesAnteil,
 } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
-import type { AppUser, Project, TimeEntry } from '@/types';
+import type { AppUser, Project, TimeEntry, UrlaubsanspruchAnpassung } from '@/types';
 import { fuehrtZeitkonto } from '@/lib/permissions';
 import Card from '@/components/Card';
 import Hinweiszeile from '@/components/Hinweiszeile';
@@ -257,6 +259,21 @@ export default function AccountingView() {
     return () => { abgemeldet = true; };
   }, [user, fruehesterStart, year]);
 
+  /*
+    DIE ANPASSUNGEN DES URLAUBSANSPRUCHS (Elternkarenz, unbezahlter Urlaub).
+    Ohne sie stünde in Übersicht und Lohn-CSV ein zu hoher Resturlaub —
+    deshalb ein sichtbarer Teilfehler, kein stilles Weiterrechnen.
+  */
+  const [anpassungen, setAnpassungen] = useState<UrlaubsanspruchAnpassung[]>([]);
+  useEffect(() => {
+    if (!user) return;
+    let abgemeldet = false;
+    listAnpassungen(user.companyId)
+      .then((rows) => { if (!abgemeldet) setAnpassungen(rows); })
+      .catch(() => { if (!abgemeldet) setNebenFehler('Die Anpassungen des Urlaubsanspruchs'); });
+    return () => { abgemeldet = true; };
+  }, [user]);
+
   const urlaubsRegel = useMemo(() => uebertragsRegel(company), [company]);
   const halbeTage = dezemberHalbtage(company);
   // Nachtzeit und Überstundenmodell des Betriebs (Paket 2c) für die Ausleitung.
@@ -286,11 +303,12 @@ export default function AccountingView() {
               .filter((e) => e.userId === u.uid)
               .map((e) => ({ von: e.date, tage: tagesAnteil(e.date, halbeTage) })),
             regel: urlaubsRegel,
+            anpassungen: anpassungen.filter((a) => a.userId === u.uid),
           }),
           completeness: calcCompleteness(u, monthEntries, year, month),
         };
       }),
-    [relevant, entries, monthPrefix, year, month, urlaubVerlauf, urlaubsRegel, halbeTage],
+    [relevant, entries, monthPrefix, year, month, urlaubVerlauf, urlaubsRegel, halbeTage, anpassungen],
   );
 
   /**
@@ -730,6 +748,9 @@ export default function AccountingView() {
                             {tageZahl(stats.urlaubRest)}
                           </b>{' '}
                           Tage Resturlaub
+                          {stats.urlaubAngepasst !== 0 && (
+                            <> (Anspruch angepasst: {vorzeichenTage(stats.urlaubAngepasst)})</>
+                          )}
                         </p>
                       </div>
                       {/*

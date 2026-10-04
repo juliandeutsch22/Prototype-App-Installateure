@@ -1,7 +1,8 @@
-import type { AppUser, Company, Vacation } from '@/types';
+import type { AppUser, Company, UrlaubsanspruchAnpassung, Vacation } from '@/types';
 import { listOwnEntriesInRange, listOwnEntriesSince } from '@/lib/db/timeEntries';
 import { bilanzMarker, listBilanzen, monatVon } from '@/lib/db/monatsbilanzen';
 import { listOwnVacations } from '@/lib/db/vacations';
+import { listAnpassungen } from '@/lib/db/urlaubsanspruch';
 import {
   antragNachUrlaubsjahr,
   calcOverallSaldo,
@@ -58,14 +59,18 @@ export async function eigenerResturlaub(
   profil: AppUser,
   company: Company | null | undefined,
 ): Promise<{ rest: number; anspruch: number }> {
-  const eigene = await listOwnVacations(companyId, profil.uid, 500);
-  return resturlaubAus(eigene, profil, company);
+  const [eigene, anpassungen] = await Promise.all([
+    listOwnVacations(companyId, profil.uid, 500),
+    listAnpassungen(companyId, profil.uid),
+  ]);
+  return resturlaubAus(eigene, profil, company, anpassungen);
 }
 
 export function resturlaubAus(
   eigene: Vacation[],
   profil: AppUser,
   company: Company | null | undefined,
+  anpassungen: readonly UrlaubsanspruchAnpassung[] = [],
 ): { rest: number; anspruch: number } {
   const halbeTage = dezemberHalbtage(company);
   const regel = uebertragsRegel(company);
@@ -74,6 +79,6 @@ export function resturlaubAus(
     // Zeitausgleich geht vom Zeitguthaben ab, nicht vom Urlaub.
     .filter((v) => v.status === 'Genehmigt' && v.art !== 'Zeitausgleich')
     .flatMap((v) => antragNachUrlaubsjahr(v, profil.workDays, halbeTage, regel.jahresbeginn));
-  const stand = urlaubsStand(profil, jahr, posten, regel);
+  const stand = urlaubsStand(profil, jahr, posten, regel, anpassungen);
   return { rest: stand.rest, anspruch: stand.anspruch };
 }

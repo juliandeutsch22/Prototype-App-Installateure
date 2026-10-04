@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
-import type { AppUser, KontoUmstellung } from '@/types';
+import type { AppUser, KontoUmstellung, UrlaubsanspruchAnpassung } from '@/types';
 import { kunstadresse } from '@shared/benutzername';
 
 /**
@@ -62,6 +62,15 @@ vi.mock('@/lib/auth/sitzung', () => ({
   kontoUmstellen: (uid: string, ziel: Record<string, string>) => umstellen(uid, ziel),
 }));
 
+let anpassungen: UrlaubsanspruchAnpassung[] = [];
+const anpassen = vi.fn<(d: Record<string, unknown>) => Promise<string>>(async () => 'neu');
+const entfernen = vi.fn<(id: string, grund: string) => Promise<void>>(async () => undefined);
+vi.mock('@/lib/db/urlaubsanspruch', () => ({
+  listAnpassungen: async () => anpassungen,
+  anspruchAnpassen: (d: Record<string, unknown>) => anpassen(d),
+  anpassungEntfernen: (id: string, grund: string) => entfernen(id, grund),
+}));
+
 let angemeldet = {
   uid: 'gf1', companyId: 'perl', name: 'Chefin', role: 'Geschäftsführung' as AppUser['role'],
 };
@@ -94,6 +103,9 @@ beforeEach(() => {
   profilAendern.mockClear();
   passwortMail.mockClear();
   vergeben.mockReset().mockResolvedValue(undefined);
+  anpassungen = [];
+  anpassen.mockClear();
+  entfernen.mockClear();
 });
 
 describe('Die Stammdaten in der Akte', () => {
@@ -615,5 +627,59 @@ describe('Konto umstellen', () => {
     zeige('u3');
     expect(await screen.findByText('Anmeldung umgestellt')).toBeInTheDocument();
     expect(screen.getByText(/02\.10\.2026 · auf Benutzername · durch Chefin · Kein Postfach/)).toBeInTheDocument();
+  });
+});
+
+describe('Urlaubsanspruch anpassen (Plan 10.3)', () => {
+  it('legt eine Anpassung mit Jahr, Tagen und Grund an', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Anspruch anpassen' }));
+    const jahr = screen.getByRole('textbox', { name: /^Urlaubsjahr/ });
+    await nutzer.clear(jahr);
+    await nutzer.type(jahr, '2026');
+    await nutzer.type(screen.getByRole('textbox', { name: /^Tage/ }), '-6,25');
+    await nutzer.type(screen.getByRole('textbox', { name: /^Grund/ }), 'Unbezahlter Urlaub 01.03.–31.05.');
+    await nutzer.click(screen.getByRole('button', { name: 'Anpassung speichern' }));
+    await waitFor(() => expect(anpassen).toHaveBeenCalledTimes(1));
+    expect(anpassen.mock.calls[0][0]).toEqual({
+      userId: 'u2', urlaubsjahr: 2026, tage: -6.25, grund: 'Unbezahlter Urlaub 01.03.–31.05.',
+    });
+  });
+
+  it('speichert ohne Grund nicht', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Anspruch anpassen' }));
+    await nutzer.type(screen.getByRole('textbox', { name: /^Tage/ }), '-2');
+    await nutzer.click(screen.getByRole('button', { name: 'Anpassung speichern' }));
+    expect(await screen.findByText(/Bitte einen Grund angeben/)).toBeInTheDocument();
+    expect(anpassen).not.toHaveBeenCalled();
+  });
+
+  it('zeigt bestehende Anpassungen und entfernt sie nur mit Grund', async () => {
+    anpassungen = [{
+      id: 'a1', companyId: 'perl', userId: 'u2', urlaubsjahr: 2026, tage: -6.25,
+      grund: 'Elternkarenz', angelegtVonName: 'Chefin',
+    }];
+    const nutzer = userEvent.setup();
+    zeige();
+    expect(await screen.findByText('Urlaubsjahr 2026: −6,25 Tage')).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Entfernen' }));
+    const dialog = screen.getByRole('dialog');
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Entfernen' }));
+    expect(await within(dialog).findByText(/Bitte einen Grund angeben/)).toBeInTheDocument();
+    expect(entfernen).not.toHaveBeenCalled();
+    await nutzer.type(within(dialog).getByRole('textbox', { name: /Grund/ }), 'Irrtümlich eingetragen');
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Entfernen' }));
+    await waitFor(() => expect(entfernen).toHaveBeenCalledWith('a1', 'Irrtümlich eingetragen'));
+  });
+
+  it('fehlt bei einer Person ohne Zeitkonto', async () => {
+    gefunden = person({ uid: 'u2', name: 'Ada Admin', email: 'ada@perl.at', role: 'Administrator' });
+    angemeldet = { uid: 'ad1', companyId: 'perl', name: 'Chef-Admin', role: 'Administrator' };
+    zeige();
+    await screen.findByText('Ada Admin', { selector: 'h1' });
+    expect(screen.queryByRole('button', { name: 'Anspruch anpassen' })).not.toBeInTheDocument();
   });
 });

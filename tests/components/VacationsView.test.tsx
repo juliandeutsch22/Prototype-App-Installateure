@@ -72,6 +72,13 @@ vi.mock('@/lib/db/vacations', () => ({
 let belegschaft: AppUser[] = [monteur];
 /** Das eigene Profil — je Test umstellbar (G13: die Administration führt kein Zeitkonto). */
 let eigenesProfil: AppUser = monteur;
+/** Anpassungen des Urlaubsanspruchs — je Test setzbar. */
+let anpassungen: Array<{ id: string; userId: string; urlaubsjahr: number; tage: number; grund: string }> = [];
+vi.mock('@/lib/db/urlaubsanspruch', () => ({
+  listAnpassungen: vi.fn(async (_c: string, uid?: string) =>
+    anpassungen.filter((a) => !uid || a.userId === uid)),
+}));
+
 vi.mock('@/lib/db/users', () => ({
   getUserByUid: vi.fn(async () => eigenesProfil),
   listUsers: vi.fn(async () => belegschaft),
@@ -143,6 +150,7 @@ async function datum(label: string, wert: string) {
 }
 
 beforeEach(() => {
+  anpassungen = [];
   createVacation.mockClear();
   deleteVacation.mockClear();
   callUrlaubEntscheiden
@@ -823,6 +831,30 @@ describe('Resturlaub', () => {
     antraege.push(urlaub('g', '2026-03-02', 24, 'Genehmigt'), urlaub('b', '2026-11-02', 3, 'Beantragt'));
     zeichne();
     expect(await screen.findByText(/nach Genehmigung −2 Tage \(reicht nicht\)/)).toBeInTheDocument();
+  });
+
+  it('rechnet eine Anpassung des Anspruchs mit und nennt sie (Plan 10.3)', async () => {
+    anpassungen = [{ id: 'a1', userId: 'm1', urlaubsjahr: 2026, tage: -6.25, grund: 'Unbezahlter Urlaub' }];
+    antraege.push(urlaub('g', '2026-03-02', 3, 'Genehmigt'));
+    zeichne();
+    expect(await screen.findByText('15,75 Tage')).toBeInTheDocument();
+    expect(screen.getByText('3 von 18,75 genehmigt')).toBeInTheDocument();
+    expect(screen.getByText('Davon angepasst: −6,25 Tage')).toBeInTheDocument();
+  });
+
+  it('ohne Anpassung steht kein „Davon angepasst"', async () => {
+    antraege.push(urlaub('g', '2026-03-02', 3, 'Genehmigt'));
+    zeichne();
+    expect(await screen.findByText('22 Tage')).toBeInTheDocument();
+    expect(screen.queryByText(/Davon angepasst/)).not.toBeInTheDocument();
+  });
+
+  it('der Genehmigende sieht den Resturlaub samt Anpassung des Antragstellers', async () => {
+    rolle = { ...rolle, uid: 'chef', name: 'Chefin', role: 'Geschäftsführung', docId: 'chef' };
+    anpassungen = [{ id: 'a1', userId: 'm1', urlaubsjahr: 2026, tage: -5, grund: 'Elternkarenz' }];
+    antraege.push(urlaub('g', '2026-03-02', 20, 'Genehmigt'), urlaub('b', '2026-11-02', 3, 'Beantragt'));
+    zeichne();
+    expect(await screen.findByText(/Resturlaub: 0 Tage — nach Genehmigung −3 Tage \(reicht nicht\)/)).toBeInTheDocument();
   });
 });
 
