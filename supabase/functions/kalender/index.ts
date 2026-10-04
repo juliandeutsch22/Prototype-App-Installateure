@@ -1,6 +1,8 @@
 /**
  * Das Kalender-Abo: die Einsätze einer Person als .ics unter einer geheimen
- * Adresse (Entscheidung vom 02.10.2026; aus offene Punkte E3).
+ * Adresse (Entscheidung vom 02.10.2026; aus offene Punkte E3) — oder, für die
+ * Leitung, der ganze Einsatzplan (Plan 10.4, PR B). Welches von beiden, sagt
+ * die Datenbank anhand des Links; beide tragen die Termine.
  *
  * OHNE ANMELDUNG — und das ist Absicht. Google, Apple und Outlook holen ein
  * Abo selbst ab und können keinen Anmeldekopf mitschicken. Die Adresse ist
@@ -16,7 +18,10 @@
 import {
   alleDienstSchluessel, dienstKopfzeilen,
 } from '../_shared/dienstSchluessel.ts';
-import { kalenderDatei, type KalenderEinsatz } from '../_shared/kalenderIcs.ts';
+import {
+  gesamtplanDatei, kalenderDatei,
+  type KalenderBaustelle, type KalenderEinsatz, type KalenderTermin,
+} from '../_shared/kalenderIcs.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
 const SCHLUESSEL = alleDienstSchluessel(Deno.env.toObject());
@@ -29,7 +34,7 @@ const FORM = /^[A-Za-z0-9_-]{43}$/;
 const text = (inhalt: string, status: number) =>
   new Response(inhalt, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 
-const UNBEKANNT = () => text('Diesen Kalender gibt es nicht (mehr). Einen neuen Link gibt es in Senklot unter „Mein Einsatzplan“.', 404);
+const UNBEKANNT = () => text('Diesen Kalender gibt es nicht (mehr). Einen neuen Link gibt es in Senklot unter „Mein Einsatzplan“ bzw. „Einsatzplanung → Wochenplan“.', 404);
 
 async function hashwert(schluessel: string): Promise<string> {
   const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(schluessel));
@@ -48,21 +53,28 @@ Deno.serve(async (req: Request): Promise<Response> => {
     body: JSON.stringify({ p_schluessel_hash: await hashwert(schluessel) }),
   });
   if (!r.ok) return text('Der Kalender ist gerade nicht erreichbar.', 503);
-  const daten = await r.json().catch(() => null) as
-    { kennung?: string; betrieb?: string; einsaetze?: KalenderEinsatz[] } | null;
-  if (!daten || !Array.isArray(daten.einsaetze)) return UNBEKANNT();
+  const daten = await r.json().catch(() => null) as {
+    art?: string; kennung?: string; betrieb?: string;
+    einsaetze?: KalenderEinsatz[]; baustellen?: KalenderBaustelle[]; termine?: KalenderTermin[];
+  } | null;
+  if (!daten) return UNBEKANNT();
+  const gesamt = daten.art === 'gesamt';
+  if (gesamt ? !Array.isArray(daten.baustellen) : !Array.isArray(daten.einsaetze)) return UNBEKANNT();
 
-  const datei = kalenderDatei({
+  const grund = {
     person: String(daten.kennung ?? ''),
     betrieb: String(daten.betrieb ?? ''),
-    einsaetze: daten.einsaetze,
+    termine: Array.isArray(daten.termine) ? daten.termine : [],
     jetzt: new Date(),
-  });
+  };
+  const datei = gesamt
+    ? gesamtplanDatei({ ...grund, baustellen: daten.baustellen! })
+    : kalenderDatei({ ...grund, einsaetze: daten.einsaetze! });
   return new Response(req.method === 'HEAD' ? null : datei, {
     status: 200,
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
-      'Content-Disposition': 'inline; filename="einsaetze.ics"',
+      'Content-Disposition': `inline; filename="${gesamt ? 'einsatzplan' : 'einsaetze'}.ics"`,
       // Nicht in fremden Zwischenspeichern: die Adresse ist das Geheimnis.
       'Cache-Control': 'private, no-store',
     },

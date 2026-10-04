@@ -17,6 +17,7 @@ import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import { ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { montagDer, wocheAb, wocheVerschoben } from './wochenplan';
+import KalenderAboKarte from './KalenderAboKarte';
 
 /**
  * Das Wochenbrett: wer ist diese Woche wo — und wer ist frei.
@@ -76,7 +77,7 @@ function abwesendText(a: Pick<Abwesenheit, 'grund' | 'zeiten'>): string {
  * nie, dort steht „abwesend".
  */
 export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolean }) {
-  const { user, company } = useAuth();
+  const { user, company, einblick } = useAuth();
   const navigate = useNavigate();
 
   const [montag, setMontag] = useState(() => montagDer(todayStr()));
@@ -786,6 +787,15 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
           </>
         )}
       </Card>
+
+      {/*
+        DER GANZE PLAN IM EIGENEN KALENDER (Plan 10.4, PR B) — nur für die,
+        die planen (die Team-Woche der Monteure bekommt ihn nicht), nur wenn
+        der Betrieb das Abo erlaubt, und nicht im Supportzugang.
+      */}
+      {!nurLesen && company?.kalenderAboErlaubt && !einblick && (
+        <KalenderAboKarte userId={user.uid} art="gesamt" />
+      )}
     </div>
   );
 }

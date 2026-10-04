@@ -5,7 +5,7 @@
  * war dort ein Batch aus Löschungen, Anlagen und einer Mitzieh-Änderung an
  * der Rüstliste; hier ist es EIN Aufruf, der in einer Transaktion läuft.
  */
-import type { Assignment, KalenderAbo } from '@/types';
+import type { Assignment, KalenderAbo, KalenderAboArt } from '@/types';
 import { monatsEnde } from '@shared/feiertage';
 import { abfragen, abonnieren, derClient, loeschen, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
@@ -190,26 +190,28 @@ export function deleteAssignment(id: string): Promise<void> {
 /*
   DAS KALENDER-ABO (Entscheidung vom 02.10.2026). Der Link kommt nur beim
   Anlegen zurück; gespeichert ist sein Hashwert. Lesen darf jede Person nur
-  das eigene (`kalender_abos_lesen`).
+  das eigene (`kalender_abos_lesen`). Je Person gibt es zwei Arten — das
+  eigene Abo und den Gesamtplan der Leitung (Plan 10.4, PR B).
 */
-export async function kalenderAboStand(userId: string): Promise<KalenderAbo | null> {
+export async function kalenderAboStand(userId: string, art: KalenderAboArt = 'eigen'): Promise<KalenderAbo | null> {
   const { data, error } = await derClient()
     .from('kalender_abos')
     .select('angelegt_am, zuletzt_abgerufen')
     .eq('user_id', userId)
+    .eq('art', art)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? zeileAlsObjekt<KalenderAbo>('kalender_abos', data as Record<string, unknown>) : null;
 }
 
 /** Einen neuen geheimen Schlüssel anlegen — der bisherige hört damit auf. */
-export async function kalenderAboAnlegen(): Promise<string> {
-  const { data, error } = await derClient().rpc('kalender_abo_anlegen');
+export async function kalenderAboAnlegen(art: KalenderAboArt = 'eigen'): Promise<string> {
+  const { data, error } = await derClient().rpc('kalender_abo_anlegen', { p_art: art });
   if (error) throw new Error(error.message);
   return String(data ?? '');
 }
 
-export async function kalenderAboBeenden(): Promise<void> {
-  const { error } = await derClient().rpc('kalender_abo_beenden');
+export async function kalenderAboBeenden(art: KalenderAboArt = 'eigen'): Promise<void> {
+  const { error } = await derClient().rpc('kalender_abo_beenden', { p_art: art });
   if (error) throw new Error(error.message);
 }

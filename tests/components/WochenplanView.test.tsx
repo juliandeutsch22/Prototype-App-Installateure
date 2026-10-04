@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Assignment, Project, Termin, Vacation } from '@/types';
 
 /**
@@ -58,7 +59,11 @@ vi.mock('@/lib/db/vacations', () => ({
   }),
   listAbwesendInRange: vi.fn(async () => abwesend),
 }));
+const kalenderAboStand = vi.fn<(...a: unknown[]) => Promise<null>>(async () => null);
 vi.mock('@/lib/db/assignments', () => ({
+  kalenderAboStand: (...a: unknown[]) => kalenderAboStand(...a),
+  kalenderAboAnlegen: vi.fn(async () => 'x'),
+  kalenderAboBeenden: vi.fn(async () => undefined),
   subscribeAssignmentsInRange: (
     _c: string,
     _v: string,
@@ -70,7 +75,11 @@ vi.mock('@/lib/db/assignments', () => ({
   },
 }));
 
-const authWert = {
+const authWert: {
+  user: { uid: string; companyId: string; name: string; role: 'Projektleiter'; email: string; docId: string };
+  company: { id: string; name: string; kalenderAboErlaubt?: boolean };
+  [k: string]: unknown;
+} = {
   user: { uid: 'pl', companyId: 'perl', name: 'Planer', role: 'Projektleiter' as const, email: 'pl@perl.at', docId: 'pl' },
   company: { id: 'perl', name: 'Perl Installationen' },
   loading: false, error: null,
@@ -94,9 +103,12 @@ vi.mock('react-router-dom', async () => {
 const { default: WochenplanView } = await import('@/features/assignments/WochenplanView');
 
 function zeige() {
+  // Mit Toast-Rahmen wie in `main.tsx`: die Karte des Kalender-Abos meldet darüber.
   return render(
     <MemoryRouter>
-      <WochenplanView />
+      <ToastProvider>
+        <WochenplanView />
+      </ToastProvider>
     </MemoryRouter>,
   );
 }
@@ -117,6 +129,7 @@ beforeEach(() => {
   einsaetze = [];
   urlaube = [];
   termineDerWoche = [];
+  authWert.company = { id: 'perl', name: 'Perl Installationen' };
   abwesend = [];
   betriebsurlaube = [];
   gefahren.zu = null;
@@ -593,5 +606,27 @@ describe('Termine im Wochenplan (Plan 10.4)', () => {
     expect(await tabelle().findByRole('rowheader', { name: 'Max Mustermann' })).toBeInTheDocument();
     expect(tabelle().queryByRole('rowheader', { name: 'Termine' })).not.toBeInTheDocument();
     expect(liste().queryByRole('list', { name: /^Termine am/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('Der ganze Plan im eigenen Kalender (Plan 10.4, PR B)', () => {
+  it('steht unter dem Wochenplan, wenn der Betrieb das Abo erlaubt — mit der Art „gesamt"', async () => {
+    authWert.company = { id: 'perl', name: 'Perl Installationen', kalenderAboErlaubt: true };
+    zeige();
+    expect(await screen.findByRole('heading', { name: /Im eigenen Kalender/ })).toBeInTheDocument();
+    await waitFor(() => expect(kalenderAboStand).toHaveBeenCalledWith('pl', 'gesamt'));
+  });
+
+  it('nicht ohne Erlaubnis des Betriebs', async () => {
+    zeige();
+    await screen.findByRole('table', { name: 'Wochenplan als Tabelle' });
+    expect(screen.queryByRole('heading', { name: /Im eigenen Kalender/ })).not.toBeInTheDocument();
+  });
+
+  it('nicht in der Team-Woche der Monteure', async () => {
+    authWert.company = { id: 'perl', name: 'Perl Installationen', kalenderAboErlaubt: true };
+    render(<MemoryRouter><ToastProvider><WochenplanView nurLesen /></ToastProvider></MemoryRouter>);
+    await screen.findByRole('table', { name: 'Wochenplan als Tabelle' });
+    expect(screen.queryByRole('heading', { name: /Im eigenen Kalender/ })).not.toBeInTheDocument();
   });
 });

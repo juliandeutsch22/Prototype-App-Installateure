@@ -13,16 +13,16 @@ import type { KalenderAbo } from '@/types';
 
 let stand: KalenderAbo | null = null;
 let standWirft = false;
-const kalenderAboStand = vi.fn(async () => {
+const kalenderAboStand = vi.fn<(...a: unknown[]) => Promise<KalenderAbo | null>>(async () => {
   if (standWirft) throw new Error('weg');
   return stand;
 });
-const kalenderAboAnlegen = vi.fn(async () => 'Abc_-123');
-const kalenderAboBeenden = vi.fn(async () => undefined);
+const kalenderAboAnlegen = vi.fn<(...a: unknown[]) => Promise<string>>(async () => 'Abc_-123');
+const kalenderAboBeenden = vi.fn<(...a: unknown[]) => Promise<void>>(async () => undefined);
 vi.mock('@/lib/db/assignments', () => ({
-  kalenderAboStand: () => kalenderAboStand(),
-  kalenderAboAnlegen: () => kalenderAboAnlegen(),
-  kalenderAboBeenden: () => kalenderAboBeenden(),
+  kalenderAboStand: (...a: unknown[]) => kalenderAboStand(...a),
+  kalenderAboAnlegen: (...a: unknown[]) => kalenderAboAnlegen(...a),
+  kalenderAboBeenden: (...a: unknown[]) => kalenderAboBeenden(...a),
 }));
 
 const { default: KalenderAboKarte } = await import('@/features/assignments/KalenderAboKarte');
@@ -114,5 +114,38 @@ describe('Kalender-Abo', () => {
     standWirft = false;
     await u.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
     expect(await screen.findByRole('button', { name: 'Kalender-Abo einrichten' })).toBeInTheDocument();
+  });
+});
+
+describe('Kalender-Abo — der ganze Einsatzplan (Plan 10.4, PR B)', () => {
+  const zeigeGesamt = () => render(<ToastProvider><KalenderAboKarte userId="pl" art="gesamt" /></ToastProvider>);
+
+  it('fragt, legt an und beendet mit der Art „gesamt" — ein eigener Link', async () => {
+    const u = userEvent.setup();
+    zeigeGesamt();
+    expect(await screen.findByText(/Der ganze Einsatzplan im Kalender deines Telefons/)).toBeInTheDocument();
+    expect(kalenderAboStand).toHaveBeenCalledWith('pl', 'gesamt');
+    await u.click(screen.getByRole('button', { name: 'Kalender-Abo einrichten' }));
+    expect(kalenderAboAnlegen).toHaveBeenCalledWith('gesamt');
+    expect(await screen.findByRole('link', { name: 'Im Kalender öffnen' })).toBeInTheDocument();
+  });
+
+  it('beim Beenden steht, dass der Einsatzplan danach fehlt', async () => {
+    const u = userEvent.setup();
+    stand = { angelegtAm: Date.parse('2026-10-01T06:00:00Z'), zuletztAbgerufen: null };
+    zeigeGesamt();
+    await u.click(await screen.findByRole('button', { name: 'Abo beenden …' }));
+    expect(screen.getByText('Der Kalender zeigt den Einsatzplan danach nicht mehr.')).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Abo beenden' }));
+    expect(kalenderAboBeenden).toHaveBeenCalledWith('gesamt');
+  });
+
+  it('Gegenprobe: ohne Art bleibt es das eigene Abo', async () => {
+    const u = userEvent.setup();
+    zeige();
+    expect(await screen.findByText(/Deine Einsätze und Termine im Kalender deines Telefons/)).toBeInTheDocument();
+    expect(kalenderAboStand).toHaveBeenCalledWith('m1', 'eigen');
+    await u.click(screen.getByRole('button', { name: 'Kalender-Abo einrichten' }));
+    expect(kalenderAboAnlegen).toHaveBeenCalledWith('eigen');
   });
 });
