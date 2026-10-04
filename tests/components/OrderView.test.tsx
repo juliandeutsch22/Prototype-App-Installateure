@@ -129,7 +129,7 @@ describe('Material anfordern — der Warenkorb', () => {
       '2026-042',
     );
     await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm zur Anforderung/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Anforderung abschicken' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
     expect(anlegen.mock.calls[0][0]).toBe('perl');
@@ -157,7 +157,7 @@ describe('Material anfordern — der Warenkorb', () => {
     await userEvent.clear(screen.getByLabelText('Menge'));
     await userEvent.type(screen.getByLabelText('Menge'), '2');
     await userEvent.click(knopf);
-    await userEvent.click(screen.getByRole('button', { name: 'Anforderung abschicken' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
     expect(anlegen.mock.calls[0][1]).toMatchObject({
@@ -197,7 +197,7 @@ describe('Material anfordern — der Warenkorb', () => {
       screen.getByRole('textbox', { name: /Notiz für die Projektleitung/ }),
       'Bitte bis Donnerstag',
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Anforderung abschicken' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(2));
     expect(anlegen.mock.calls.map((c) => (c[1] as { note: string }).note)).toEqual([
@@ -218,7 +218,7 @@ describe('Material anfordern — der Warenkorb', () => {
     await userEvent.clear(menge);
     await userEvent.type(menge, '30');
     await userEvent.click(screen.getByRole('button', { name: /Kupferrohr 15mm zur Anforderung/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Anforderung abschicken' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
     expect(anlegen.mock.calls[0][1].quantity).toBe(30);
@@ -252,7 +252,7 @@ describe('Material anfordern — der Warenkorb', () => {
     const knopf = await screen.findByRole('button', { name: /Kupferrohr 15mm zur Anforderung/ });
     await userEvent.click(knopf);
     await userEvent.click(screen.getByRole('button', { name: /Kupferrohr 15mm zur Anforderung/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Anforderung abschicken' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
     expect(anlegen.mock.calls[0][1].quantity).toBe(2);
@@ -285,7 +285,7 @@ describe('Material anfordern — der Warenkorb', () => {
     );
 
     await userEvent.click(await screen.findByRole('button', { name: /Dichtung .* zur Anforderung/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Anforderung abschicken' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
     expect(anlegen.mock.calls[0][1].projectNumber).toBe('');
@@ -336,7 +336,7 @@ describe('Material anfordern — wenn das Absenden teilweise scheitert', () => {
     zeige();
     await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm zur Anforderung/ }));
     await userEvent.click(await screen.findByRole('button', { name: /Dichtung .* zur Anforderung/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Anforderung abschicken' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() => expect(screen.getByText(/konnten nicht gesendet werden/)).toBeInTheDocument());
 
@@ -356,7 +356,7 @@ describe('Material anfordern — wenn das Absenden teilweise scheitert', () => {
 
     zeige();
     await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm zur Anforderung/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Anforderung abschicken' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
 
     expect(await screen.findByText(/wird automatisch gesendet/)).toBeInTheDocument();
   });
@@ -364,7 +364,7 @@ describe('Material anfordern — wenn das Absenden teilweise scheitert', () => {
   it('leert den Korb und wechselt zur Verfolgung, wenn alles durchging', async () => {
     zeige();
     await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm zur Anforderung/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Anforderung abschicken' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() =>
       expect(screen.getByRole('tab', { name: /Meine Bestellungen/ })).toHaveAttribute(
@@ -628,6 +628,19 @@ describe('Warenkorb-Beschriftung', () => {
     await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm zur Anforderung/ }));
     expect(screen.getByRole('heading', { name: /noch nicht abgeschickt/ })).toBeInTheDocument();
     expect(screen.getByText(/Erst mit „Anforderung abschicken“ geht sie an die Verwaltung/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Anforderung abschicken' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ })).toBeInTheDocument();
+  });
+
+  // Analyse 03.10.2026, Paket 2 — der Knopf klebt am Telefon über der Reiterleiste.
+  it('steht in der festen Leiste und nennt die Zahl der Positionen', async () => {
+    zeige();
+    await screen.findByRole('button', { name: /Kupferrohr 15mm zur Anforderung/ });
+    // Leerer Korb: keine Leiste.
+    expect(document.querySelector('.aktionsleiste')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /Kupferrohr 15mm zur Anforderung/ }));
+    const leiste = document.querySelector('.aktionsleiste') as HTMLElement;
+    expect(leiste).not.toBeNull();
+    expect(within(leiste).getByRole('button', { name: 'Anforderung (1) abschicken' })).toBeInTheDocument();
+    expect(within(leiste).getByRole('button', { name: 'Liste leeren' })).toBeInTheDocument();
   });
 });
