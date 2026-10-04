@@ -1,7 +1,7 @@
 /**
  * Einsatzplanung — nur die Weiche.
  */
-import type { Assignment, KalenderAbo } from '@/types';
+import type { Assignment, KalenderAbo, KalenderAboArt } from '@/types';
 import type { WithId } from './core';
 import * as pg from './pg/assignments';
 
@@ -74,18 +74,18 @@ export function deleteAssignment(id: string): Promise<void> {
   return pg.deleteAssignment(id);
 }
 
-/** Das eigene Kalender-Abo — ob es eines gibt, und wann es zuletzt abgeholt wurde. */
-export function kalenderAboStand(userId: string): Promise<KalenderAbo | null> {
-  return pg.kalenderAboStand(userId);
+/** Ein Kalender-Abo der Person — ob es eines gibt, und wann es zuletzt abgeholt wurde. */
+export function kalenderAboStand(userId: string, art: KalenderAboArt = 'eigen'): Promise<KalenderAbo | null> {
+  return pg.kalenderAboStand(userId, art);
 }
 
-/** Einen neuen Abo-Schlüssel anlegen; der bisherige hört auf. Kommt nur hier zurück. */
-export function kalenderAboAnlegen(): Promise<string> {
-  return pg.kalenderAboAnlegen();
+/** Einen neuen Abo-Schlüssel anlegen; der bisherige derselben Art hört auf. Kommt nur hier zurück. */
+export function kalenderAboAnlegen(art: KalenderAboArt = 'eigen'): Promise<string> {
+  return pg.kalenderAboAnlegen(art);
 }
 
-export function kalenderAboBeenden(): Promise<void> {
-  return pg.kalenderAboBeenden();
+export function kalenderAboBeenden(art: KalenderAboArt = 'eigen'): Promise<void> {
+  return pg.kalenderAboBeenden(art);
 }
 
 export type { WithId };

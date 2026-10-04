@@ -54,7 +54,16 @@ export default function DatenschutzView() {
             Wenn der Betrieb es erlaubt und du ein Kalender-Abo einrichtest: deine Einsätze samt
             Kundenname, Adresse und Ansprechpartner gehen an den Kalenderdienst, den du dafür
             wählst (etwa Google, Apple oder Microsoft). In Senklot steht nur, wann das Abo
-            eingerichtet und zuletzt abgeholt wurde; beenden kannst du es jederzeit.
+            eingerichtet und zuletzt abgeholt wurde; beenden kannst du es jederzeit. Dasselbe gilt
+            für die Termine, an denen du teilnimmst oder deren Baustelle du an dem Tag hast.
+          </li>
+          <li>
+            Richtet die Leitung (Geschäftsführung, Administration, Projektleitung) den ganzen
+            Einsatzplan als Kalender-Abo ein, gehen auch Name und Einsatzort der Mitarbeiter —
+            wer an welchem Tag auf welcher Baustelle ist, mit Uhrzeit und Einstufung — sowie die
+            Termine des Betriebs an deren Kalenderdienst. Abwesenheiten wie Urlaub oder
+            Krankenstand stehen nicht darin. Das Abo endet, sobald die Person die Einsatzplanung
+            nicht mehr sieht.
           </li>
           <li>Wenn du Push-Meldungen erlaubst: eine Kennung deines Geräts.</li>
           <li>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { KalenderAbo } from '@/types';
+import type { KalenderAbo, KalenderAboArt } from '@/types';
 import { kalenderAboAnlegen, kalenderAboBeenden, kalenderAboStand } from '@/lib/db/assignments';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -14,16 +14,37 @@ function zeitpunkt(ms: number): string {
   });
 }
 
+/** Was je Art anders ist — der Rest ist derselbe Ablauf. */
+const TEXTE: Record<KalenderAboArt, { leer: string; ende: string; hinweis: string }> = {
+  eigen: {
+    leer: 'Deine Einsätze und Termine im Kalender deines Telefons — Google, Apple oder Outlook holen sie selbst ab.',
+    ende: 'Der Kalender zeigt deine Einsätze danach nicht mehr.',
+    hinweis:
+      'Deine Einsätze und Termine erscheinen im Kalender deines Telefons und werden laufend nachgezogen — meist innerhalb einer Stunde, je nach Kalender auch seltener. iPhone und Mac: „Im Kalender öffnen“ antippen. Google Kalender: am Computer unter „Weitere Kalender → Per URL“ den Link einfügen. Outlook: „Kalender hinzufügen → Aus dem Internet abonnieren“. Wer den Link hat, sieht deine Einsätze samt Kundenadressen — nicht weitergeben.',
+  },
+  gesamt: {
+    leer: 'Der ganze Einsatzplan im Kalender deines Telefons: je Baustelle und Tag ein Eintrag mit den Eingeteilten, dazu die Termine.',
+    ende: 'Der Kalender zeigt den Einsatzplan danach nicht mehr.',
+    hinweis:
+      'Der ganze Einsatzplan des Betriebs — je Baustelle und Tag ein Eintrag mit Kunde, Adresse und den Eingeteilten samt Stufe und Uhrzeit, dazu alle Termine. Abwesenheiten stehen nicht darin. Er wird laufend nachgezogen, meist innerhalb einer Stunde. Das Abo endet von selbst, wenn du die Einsatzplanung nicht mehr siehst oder das Modul ausgeschaltet wird. Wer den Link hat, sieht Namen und Einsatzorte der Mitarbeiter und Kundenadressen — nicht weitergeben. Dein eigenes Abo unter „Mein Einsatzplan“ ist ein getrennter Link.',
+  },
+};
+
 /**
  * DER EINSATZPLAN IM EIGENEN KALENDER — ganz unten in „Mein Einsatzplan“
  * (Entscheidung vom 02.10.2026). Nur, wenn der Betrieb es eingeschaltet hat.
+ *
+ * MIT `art="gesamt"` DER GANZE PLAN für die Leitung, unter Einsatzplanung →
+ * Wochenplan (Plan 10.4, PR B). Ein eigener Link: wer beides hat, trägt zwei
+ * Kalender ein und kann sie getrennt ein- und ausblenden.
  *
  * DER LINK STEHT NUR EINMAL DA. Gespeichert ist sein Hashwert; wer ihn
  * verliert, legt einen neuen an, und der alte hört auf. Darum fragen „Neuer
  * Link“ und „Abo beenden“ vorher nach: der Kalender am Telefon zeigt danach
  * nichts mehr, bis der neue Link dort eingetragen ist.
  */
-export default function KalenderAboKarte({ userId }: { userId: string }) {
+export default function KalenderAboKarte({ userId, art = 'eigen' }: { userId: string; art?: KalenderAboArt }) {
+  const texte = TEXTE[art];
   const toast = useToast();
   const [stand, setStand] = useState<KalenderAbo | null | 'laedt' | 'fehler'>('laedt');
   const [link, setLink] = useState<string | null>(null);
@@ -34,19 +55,19 @@ export default function KalenderAboKarte({ userId }: { userId: string }) {
 
   useEffect(() => {
     let weg = false;
-    kalenderAboStand(userId)
+    kalenderAboStand(userId, art)
       .then((s) => { if (!weg) setStand(s); })
       .catch(() => { if (!weg) setStand('fehler'); });
     return () => {
       weg = true;
     };
-  }, [userId, nochmal]);
+  }, [userId, art, nochmal]);
 
   async function anlegen() {
     setLaeuft(true);
     setFehler(null);
     try {
-      const adresse = kalenderAdresse(import.meta.env.VITE_SUPABASE_URL, await kalenderAboAnlegen());
+      const adresse = kalenderAdresse(import.meta.env.VITE_SUPABASE_URL, await kalenderAboAnlegen(art));
       if (!adresse) throw new Error('Die Adresse des Kalenders ließ sich nicht bilden.');
       setLink(adresse);
       setFrage(null);
@@ -62,7 +83,7 @@ export default function KalenderAboKarte({ userId }: { userId: string }) {
     setLaeuft(true);
     setFehler(null);
     try {
-      await kalenderAboBeenden();
+      await kalenderAboBeenden(art);
       setLink(null);
       setFrage(null);
       setNochmal((n) => n + 1);
@@ -89,15 +110,7 @@ export default function KalenderAboKarte({ userId }: { userId: string }) {
     <Card
       title="Im eigenen Kalender"
       className="mt-3 lg:mt-5"
-      hint={
-        <>
-          Deine Einsätze erscheinen im Kalender deines Telefons und werden laufend nachgezogen —
-          meist innerhalb einer Stunde, je nach Kalender auch seltener. iPhone und Mac: „Im
-          Kalender öffnen“ antippen. Google Kalender: am Computer unter „Weitere Kalender → Per
-          URL“ den Link einfügen. Outlook: „Kalender hinzufügen → Aus dem Internet abonnieren“.
-          Wer den Link hat, sieht deine Einsätze samt Kundenadressen — nicht weitergeben.
-        </>
-      }
+      hint={texte.hinweis}
     >
       {stand === 'laedt' ? (
         <p className="text-sm text-ink-muted">Lädt …</p>
@@ -140,10 +153,7 @@ export default function KalenderAboKarte({ userId }: { userId: string }) {
               </span>
             </p>
           ) : (
-            <p className="text-sm text-ink-muted">
-              Deine Einsätze im Kalender deines Telefons — Google, Apple oder Outlook holen sie
-              selbst ab.
-            </p>
+            <p className="text-sm text-ink-muted">{texte.leer}</p>
           )}
 
           {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
@@ -154,7 +164,7 @@ export default function KalenderAboKarte({ userId }: { userId: string }) {
               <p className="text-sm text-ink">
                 {frage === 'neu'
                   ? 'Der bisherige Link hört dann auf; im Kalender muss der neue eingetragen werden.'
-                  : 'Der Kalender zeigt deine Einsätze danach nicht mehr.'}
+                  : texte.ende}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button

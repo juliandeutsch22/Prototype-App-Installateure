@@ -1,8 +1,9 @@
 import type { Termin, TerminArt } from '@/types';
+import { terminArtName } from '@shared/kalenderIcs';
 
 /** „Lieferung" heißt am Telefon „Aviso" — beides steht da, damit es jeder findet. */
 export function artName(art: TerminArt): string {
-  return art === 'Lieferung' ? 'Lieferung (Aviso)' : art;
+  return terminArtName(art);
 }
 
 /** „08:00–10:00", „ab 08:00", „bis 10:00" — oder leer, wenn der Tag reicht. */

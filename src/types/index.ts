@@ -952,6 +952,9 @@ export interface UidPruefung {
 }
 
 /** Das Kalender-Abo einer Person — der Link selbst steht nirgends. */
+/** Das eigene Abo oder der ganze Einsatzplan (Plan 10.4, PR B) — zwei getrennte Links. */
+export type KalenderAboArt = 'eigen' | 'gesamt';
+
 export interface KalenderAbo {
   angelegtAm: number;
   zuletztAbgerufen?: number | null;
