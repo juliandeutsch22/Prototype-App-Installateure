@@ -86,6 +86,13 @@ export const darfUnbezahltEntscheiden = (r: Role) => isTopLevel(r);
 export const canManageProjects = (r: Role) => isGF(r);
 
 /**
+ * Termine anlegen, ändern, löschen (Plan 10.4): wer plant — und die
+ * Verwaltung, die das Aviso des Großhändlers am Telefon annimmt. Dieselbe
+ * Grenze ziehen die Richtlinien auf `termine`.
+ */
+export const darfTermineSchreiben = (r: Role) => isGF(r) || isVerw(r);
+
+/**
  * Benutzer anlegen und Rollen vergeben — OHNE Projektleitung.
  *
  * Wer Rollen vergibt, vergibt sie auch an sich: mit diesem Recht könnte sich

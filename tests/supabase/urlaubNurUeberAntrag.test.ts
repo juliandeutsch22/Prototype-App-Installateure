@@ -12,7 +12,7 @@
  * Die Tage liegen im Februar und März 2027 (1. Februar ist ein Montag).
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Client } from 'pg';
 import { admin, betriebAnlegen, buchung, konto, type Konto } from './helfer';
@@ -226,16 +226,21 @@ describe('Übernahme des Altbestands', () => {
     // nicht um Spalten kürzen: deshalb erst weg, dann die Dezember-Fassung,
     // dann der HEUTIGE Stand — und das Leserecht wie ursprünglich vergeben.
     //
-    // DER HEUTIGE STAND IST DIE NEUESTE MIGRATION, die Monatssicht und
-    // `urlaub_entscheiden` definiert — seit dem 04.10.2026 die des
-    // Sonderurlaubs. Vorher stand hier die Lehrlings-Migration vom 30.09.;
-    // sie setzte `satz_setzen` hinter #230 zurück und scheitert, sobald ein
+    // DER HEUTIGE STAND: die Migration des Sonderurlaubs (die neueste, die
+    // Monatssicht und `urlaub_entscheiden` definiert) UND JEDE DANACH, der
+    // Reihe nach. Nur die des Sonderurlaubs setzte `person_loeschen` auf den
+    // Stand vor den Terminen zurück — die Löschprüfungen danach schlugen fehl,
+    // je nachdem, in welcher Reihenfolge die Dateien liefen (CI zu #239).
+    // Die Lehrlings-Migration vom 30.09. steht hier nicht mehr: sie setzte
+    // `satz_setzen` hinter #230 zurück und scheitert, sobald ein
     // Sonderurlaubstag im Bestand ist (ihre Statusliste kennt ihn nicht).
     await db.query('drop view if exists public.monthly_stats');
     await db.query(readFileSync(
       join(__dirname, '../../supabase/migrations/20260929200000_dezember_halbtage.sql'), 'utf8'));
-    await db.query(readFileSync(
-      join(__dirname, '../../supabase/migrations/20261004200000_freistellungen.sql'), 'utf8'));
+    const ordner = join(__dirname, '../../supabase/migrations');
+    for (const datei of readdirSync(ordner).filter((d) => d >= '20261004200000' && d.endsWith('.sql')).sort()) {
+      await db.query(readFileSync(join(ordner, datei), 'utf8'));
+    }
     await db.query('grant select on public.monthly_stats to authenticated');
 
     const tage = await eintraege(alt.uid, '2027-04-01', '2027-04-30');

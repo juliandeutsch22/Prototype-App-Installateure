@@ -8,6 +8,7 @@ import { listUsers } from '@/lib/db/users';
 import { listAbwesendInRange, type Abwesenheit } from '@/lib/db/vacations';
 import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
 import { subscribeAssignmentsForMonth, saveAssignments, deleteAssignment } from '@/lib/db/assignments';
+import TermineKarte from '@/features/termine/TermineKarte';
 import { subscribeMaterials, lagerFrei, type LagerStand } from '@/lib/db/materials';
 import { createMaterialOrder } from '@/lib/db/materialOrders';
 import {
@@ -872,6 +873,13 @@ export default function AssignmentsView() {
               {materialAn && projectNumber ? 'Einsatz und Rüstliste speichern' : 'Einsatz speichern'}
             </Button>
           </div>
+
+          {/*
+            DIE TERMINE DES TAGES ÜBER DEN EINSÄTZEN (Plan 10.4): „Lieferung
+            8–10 Uhr" soll der Planer sehen, bevor er einteilt — damit gleich
+            jemand zur Annahme auf der Baustelle steht.
+          */}
+          <TermineKarte titel={`Termine am ${fmtDay(date)}`} vorgabe={{ bezug: 'frei', datum: date }} />
 
           {/* Bündig: jede Baustelle ein Abschnitt mit ihren Leuten darunter,
               statt eines Kastens in der Karte (Designlinie „Fassung 3"). */}

@@ -3,7 +3,7 @@ import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
-import type { Assignment, EinsatzMaterial, Project, Vacation } from '@/types';
+import type { Assignment, EinsatzMaterial, Project, Termin, Vacation } from '@/types';
 
 /**
  * „Mein Einsatzplan" — die Ansicht, in der der Monteur sieht, wo er in den
@@ -34,6 +34,19 @@ const kommend: { wert: Assignment[] | null } = { wert: null };
 const geholt: { tage: string[] } = { tage: [] };
 const listen: Record<string, (EinsatzMaterial & { id: string })[]> = {};
 
+/** Was die Datenbank an Terminen herausgibt — gefiltert wird in der Ansicht. */
+const termine: { wert: Termin[] } = { wert: [] };
+vi.mock('@/lib/db/users', () => ({
+  listUsers: vi.fn(async () => [{ uid: 'm1', name: 'Anton Berger' }, { uid: 'm2', name: 'Bruno Kollege' }]),
+}));
+vi.mock('@/lib/db/termine', () => ({
+  listTermineImZeitraum: vi.fn(async () => termine.wert),
+  listTermineDerBaustelle: vi.fn(async () => []),
+  listTermineDesKunden: vi.fn(async () => []),
+  terminAnlegen: vi.fn(async () => 'neu'),
+  terminAendern: vi.fn(async () => undefined),
+  terminLoeschen: vi.fn(async () => undefined),
+}));
 vi.mock('@/lib/db/assignments', () => ({
   listAssignmentsForUserInRange: vi.fn(async () => EINSAETZE),
   listUpcomingAssignments: vi.fn(async () => kommend.wert ?? EINSAETZE),
@@ -99,6 +112,7 @@ beforeEach(() => {
   plaene.wert = [];
   abwesend.wert = [];
   kommend.wert = null;
+  termine.wert = [];
   authWert.company = { id: 'perl', name: 'Perl Installationen' };
   authWert.einblick = null;
   authWert.user = { ...(authWert.user as object), einstufung: null };
@@ -273,5 +287,52 @@ describe('Mein Einsatzplan — das Kalender-Abo (02.10.2026)', () => {
     zeichne();
     await screen.findByText('Bad');
     expect(screen.queryByText('Im eigenen Kalender')).toBeNull();
+  });
+});
+
+describe('Mein Einsatzplan — Termine (Plan 10.4)', () => {
+  const t = (id: string, rest: Partial<Termin>): Termin => ({
+    id, companyId: 'perl', art: 'Lieferung', datum: HEUTE, zeitVon: null, zeitBis: null,
+    projectNumber: null, customerId: null, teilnehmer: [], ...rest,
+  });
+
+  it('am Tag: die Lieferung auf meiner Baustelle und mein eigener Termin — nicht der auf einer fremden', async () => {
+    termine.wert = [
+      // Heute auf B-001 eingeteilt: die Lieferung dort nehme ich an.
+      t('t1', { projectNumber: 'B-001', zeitVon: '08:00', zeitBis: '10:00' }),
+      // Ich bin Teilnehmer, ohne Baustelle.
+      t('t2', { art: 'Besichtigung', customerId: 'k1', teilnehmer: ['m1', 'm2'], ortName: 'Hausverwaltung Nord', ortAdresse: 'Ringstraße 3, 2700 Wiener Neustadt' }),
+      // B-002 erst morgen — heute geht mich die Abnahme dort nichts an.
+      t('t3', { art: 'Abnahme', projectNumber: 'B-002', teilnehmer: ['m2'] }),
+    ];
+    zeichne();
+    const amTag = await screen.findByRole('region', { name: 'Termine an diesem Tag' });
+    expect(within(amTag).getByText('Lieferung (Aviso) · 08:00–10:00')).toBeInTheDocument();
+    expect(within(amTag).getByText('Besichtigung')).toBeInTheDocument();
+    // Kunden liest der Monteur nicht — Name und Adresse stehen am Termin.
+    expect(within(amTag).getByText('Hausverwaltung Nord (ohne Baustelle)')).toBeInTheDocument();
+    expect(within(amTag).getByRole('link', { name: /Ringstraße 3/ })).toBeInTheDocument();
+    expect(await within(amTag).findByText('Teilnehmer: Anton Berger, Bruno Kollege')).toBeInTheDocument();
+    expect(within(amTag).queryByText('Abnahme')).not.toBeInTheDocument();
+  });
+
+  it('„Nächste Termine": morgen auf der Baustelle, auf der ich morgen stehe — heute steht schon oben', async () => {
+    termine.wert = [
+      t('t1', { projectNumber: 'B-001' }),
+      t('t4', { art: 'Baustellenbesprechung', datum: MORGEN, projectNumber: 'B-002' }),
+      t('t5', { art: 'Abnahme', datum: MORGEN, projectNumber: 'B-001' }),
+    ];
+    zeichne();
+    const karte = (await screen.findByRole('heading', { name: 'Nächste Termine' })).closest('section')!;
+    expect(within(karte).getByText(/Baustellenbesprechung/)).toBeInTheDocument();
+    expect(within(karte).queryByText(/Lieferung/)).not.toBeInTheDocument();
+    expect(within(karte).queryByText(/Abnahme/)).not.toBeInTheDocument();
+  });
+
+  it('ohne Termine bleibt die Ansicht, wie sie war', async () => {
+    zeichne();
+    await screen.findByText('Bad');
+    expect(screen.queryByRole('region', { name: 'Termine an diesem Tag' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Nächste Termine' })).not.toBeInTheDocument();
   });
 });

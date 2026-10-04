@@ -94,7 +94,7 @@ describe('Eine Person der Belegschaft', () => {
     const { b, fehler } = await loeschen(chef, 'mitarbeiter', monteur.uid);
     expect(fehler).toBeNull();
     expect(b!.geloescht).toBe(false);
-    expect(b!.sofort).toEqual({ einstellungen: 1, fehlerprotokoll: 1, einsaetze: 1, ruestlisten: 1, baustellen: 1 });
+    expect(b!.sofort).toEqual({ einstellungen: 1, fehlerprotokoll: 1, einsaetze: 1, ruestlisten: 1, baustellen: 1, termine: 0 });
     expect(b!.aufbewahren).toEqual([
       { was: 'Zeitbuchungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
       { was: 'Krankmeldungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
@@ -143,7 +143,7 @@ describe('Ein Kunde', () => {
 
     const probe = await loeschen(chef, 'kunde', kunde);
     expect(probe.b!.ganz).toBe(false);
-    expect(probe.b!.sofort).toEqual({ wartungen: 1, kontaktdaten: 2 });
+    expect(probe.b!.sofort).toEqual({ wartungen: 1, kontaktdaten: 2, termine: 0 });
     expect(probe.b!.aufbewahren.map((a) => [a.was, a.anzahl, a.bis])).toEqual([
       ['Rechnungen samt Zahlungen', 1, '2106-12-31'],
       ['Baustellen mit Name und Adresse', 1, expect.stringMatching(/-12-31$/)],

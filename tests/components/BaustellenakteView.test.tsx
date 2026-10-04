@@ -55,6 +55,15 @@ const listProjectsByIds = vi.fn(async () => baustellen);
 const updateProject = vi.fn(async () => undefined);
 const baustelleUmnummern = vi.fn<(a0: string, a1: string) => Promise<void>>(async () => undefined);
 
+// Termine (Plan 10.4): ohne eigene Prüfung hier leer — geprüft in TermineKarte.test.tsx.
+vi.mock('@/lib/db/termine', () => ({
+  listTermineImZeitraum: vi.fn(async () => []),
+  listTermineDerBaustelle: vi.fn(async () => []),
+  listTermineDesKunden: vi.fn(async () => []),
+  terminAnlegen: vi.fn(async () => 'neu'),
+  terminAendern: vi.fn(async () => undefined),
+  terminLoeschen: vi.fn(async () => undefined),
+}));
 vi.mock('@/lib/db/projects', () => ({
   listProjectsByIds: () => listProjectsByIds(),
   updateProject: (...a: unknown[]) => updateProject(...(a as [])),
@@ -137,6 +146,7 @@ let nutzer = NUTZER();
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ user: nutzer }) }));
 
 const { default: BaustellenakteView } = await import('@/features/projects/BaustellenakteView');
+const { listTermineDerBaustelle } = await import('@/lib/db/termine');
 
 function zeige(id = 'b1') {
   return render(
@@ -592,5 +602,21 @@ describe('Pläne und Dokumente', () => {
     expect(await screen.findByRole('link', { name: 'Alt.pdf' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Plan oder Bild hinzufügen/ })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Alt.pdf löschen' })).toBeNull();
+  });
+});
+
+describe('Termine in der Baustellenakte (Plan 10.4)', () => {
+  it('zeigt die Termine dieser Baustelle, mit „Termin anlegen" für die Leitung', async () => {
+    zeige();
+    const titel = await screen.findByRole('heading', { name: 'Termine' });
+    expect(within(titel.closest('section')!).getByRole('button', { name: 'Termin anlegen' })).toBeInTheDocument();
+    await waitFor(() => expect(listTermineDerBaustelle).toHaveBeenCalledWith('perl', '2026-101'));
+  });
+
+  it('nicht ohne das Modul Einsatzplanung', async () => {
+    modulAn = false;
+    zeige();
+    await screen.findByText('Projektnummer');
+    expect(screen.queryByRole('heading', { name: 'Termine' })).not.toBeInTheDocument();
   });
 });

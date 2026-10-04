@@ -15,7 +15,8 @@ import { listQuotesForCustomer } from '@/lib/db/quotes';
 import { listInvoicesForCustomer } from '@/lib/db/invoices';
 import { listWartungenForCustomer } from '@/lib/db/wartungen';
 import { useModul } from '@/lib/useModule';
-import { canInvoice, darfKundenPflegen, isGF } from '@/lib/permissions';
+import { canInvoice, darfKundenPflegen, darfTermineSchreiben, isGF } from '@/lib/permissions';
+import TermineKarte from '@/features/termine/TermineKarte';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { todayStr } from '@/lib/time';
 import type { Customer, Invoice, Project, Quote, Wartung } from '@/types';
@@ -83,6 +84,7 @@ export default function KundenakteView() {
   const wartungAn = useModul('wartung');
   const angeboteAn = useModul('angebote');
   const rechnungenAn = useModul('rechnungen');
+  const einsatzAn = useModul('einsatzplanung');
 
   const [kunde, setKunde] = useState<Teil<WithId<Customer> | null>>(LAEDT);
   const [baustellen, setBaustellen] = useState<Teil<WithId<Project>[]>>(LAEDT);
@@ -560,6 +562,26 @@ export default function KundenakteView() {
       )}
     </Card>
   ) : null;
+  /*
+    TERMINE BEIM KUNDEN UND AUF SEINEN BAUSTELLEN (Plan 10.4) — hier legt
+    die Verwaltung die Besichtigung an, bevor es eine Baustelle gibt. Nur
+    für Leitung und Verwaltung: die Buchhaltung liest Termine nicht, die
+    Karte zeigte ihr sonst „Keine Termine". Gewartet wird auf die
+    Baustellen, damit deren Termine nicht einen Augenblick fehlen.
+  */
+  const terminKarte = einsatzAn && user && darfTermineSchreiben(user.role) && baustellen.zustand !== 'laedt' ? (
+    <TermineKarte
+      titel="Termine"
+      vorgabe={{
+        bezug: 'kunde',
+        customerId: k.id,
+        baustellen: (baustellen.zustand === 'bereit' ? baustellen.daten : []).map((b) => ({
+          projectNumber: b.projectNumber,
+          label: [b.projectNumber, b.address].filter(Boolean).join(' · '),
+        })),
+      }}
+    />
+  ) : null;
   const auskunft = zeigtAuskunft(user?.role, !!einblick) ? (
     <Datenauskunft
       art="kunde"
@@ -589,9 +611,9 @@ export default function KundenakteView() {
       />
 
       <Aktenspalten
-        telefon={[stammdaten, baustellenKarte, wartungKarte, rechnungKarte, angebotKarte, auskunft]}
+        telefon={[stammdaten, terminKarte, baustellenKarte, wartungKarte, rechnungKarte, angebotKarte, auskunft]}
         links={[stammdaten, wartungKarte, auskunft]}
-        rechts={[baustellenKarte, rechnungKarte, angebotKarte]}
+        rechts={[terminKarte, baustellenKarte, rechnungKarte, angebotKarte]}
       />
     </div>
   );

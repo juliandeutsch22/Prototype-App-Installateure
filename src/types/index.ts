@@ -1347,6 +1347,44 @@ export interface Assignment {
   createdAt?: number;
 }
 
+/** Die Arten eines Termins (Plan 10.4) — „Lieferung" ist das Aviso des Großhändlers. */
+export const TERMIN_ARTEN = [
+  'Kundentermin',
+  'Besichtigung',
+  'Baustellenbesprechung',
+  'Abnahme',
+  'Lieferung',
+  'Behörde',
+  'Sonstiges',
+] as const;
+export type TerminArt = (typeof TERMIN_ARTEN)[number];
+
+/**
+ * termine/{id} — ein Termin, der kein Einsatz ist (Plan 10.4). Er bucht
+ * nichts. Er hängt an einer Baustelle ODER an einem Kunden (Besichtigung vor
+ * der Baustelle).
+ */
+export interface Termin {
+  id: string;
+  companyId: string;
+  art: TerminArt;
+  datum: string; // 'YYYY-MM-DD'
+  /** 'HH:MM'; beim Aviso das Zeitfenster. Ohne Angabe: irgendwann am Tag. */
+  zeitVon?: string | null;
+  zeitBis?: string | null;
+  projectNumber?: string | null;
+  customerId?: string | null;
+  teilnehmer: string[];
+  /** Name und Adresse von Baustelle bzw. Kunde — gesetzt von der Datenbank. */
+  ortName?: string | null;
+  ortAdresse?: string | null;
+  notiz?: string | null;
+  angelegtVonUid?: string | null;
+  angelegtVonName?: string | null;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
 /** invoices/{id} */
 /**
  * Was eine Rechnung IST — und nicht bloss, wie sie heisst.
