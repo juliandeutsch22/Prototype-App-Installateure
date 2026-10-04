@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import type { AppUser, Assignment, Project, Vacation } from '@/types';
+import type { AppUser, Assignment, Project, Termin, Vacation } from '@/types';
 
 /**
  * Das Wochenbrett — die Frage VOR der Tagesplanung: wer ist frei.
@@ -28,6 +28,15 @@ const mk = (uid: string, name: string) =>
 let einsaetze: (Assignment & { id: string })[] = [];
 let urlaube: (Vacation & { id: string })[] = [];
 
+let termineDerWoche: Termin[] = [];
+vi.mock('@/lib/db/termine', () => ({
+  listTermineImZeitraum: vi.fn(async () => termineDerWoche),
+  listTermineDerBaustelle: vi.fn(async () => []),
+  listTermineDesKunden: vi.fn(async () => []),
+  terminAnlegen: vi.fn(async () => 'neu'),
+  terminAendern: vi.fn(async () => undefined),
+  terminLoeschen: vi.fn(async () => undefined),
+}));
 vi.mock('@/lib/db/users', () => ({
   listUsers: vi.fn(async () => [mk('u1', 'Max Mustermann'), mk('u2', 'Erna Beispiel')]),
 }));
@@ -107,6 +116,7 @@ beforeEach(() => {
   vi.setSystemTime(new Date(2026, 8, 2, 9, 0, 0));
   einsaetze = [];
   urlaube = [];
+  termineDerWoche = [];
   abwesend = [];
   betriebsurlaube = [];
   gefahren.zu = null;
@@ -555,5 +565,33 @@ describe('Wochenplan — eingeteilt und krank (M33)', () => {
     zeige();
     await userEvent.click(await screen.findByRole('button', { name: /^Was bedeutet/ }));
     expect(await screen.findByText(/zeigt Einsätze, nicht gebuchte Zeiten/)).toBeInTheDocument();
+  });
+});
+
+describe('Termine im Wochenplan (Plan 10.4)', () => {
+  const LIEFERUNG: Termin = {
+    id: 't1', companyId: 'perl', art: 'Lieferung', datum: '2026-09-01', zeitVon: '08:00', zeitBis: '10:00',
+    projectNumber: '2026-042', customerId: null, teilnehmer: [], ortName: 'Familie Huber',
+  };
+
+  it('stehen als eigene Zeile über den Mitarbeitern — und in der Tagesliste beim Tag', async () => {
+    termineDerWoche = [LIEFERUNG];
+    zeige();
+    await screen.findByRole('table', { name: 'Wochenplan als Tabelle' });
+    expect(await tabelle().findByRole('rowheader', { name: 'Termine' })).toBeInTheDocument();
+    expect(tabelle().getByText('Lieferung (Aviso) · 08:00–10:00')).toBeInTheDocument();
+    expect(tabelle().getByText('Familie Huber · 2026-042')).toBeInTheDocument();
+    const amDienstag = liste().getByRole('list', { name: 'Termine am 01.09.' });
+    expect(within(amDienstag).getByText('Lieferung (Aviso) · 08:00–10:00')).toBeInTheDocument();
+    // Unter einem Termin steht nicht „Nichts geplant" — nur, dass kein Einsatz da ist.
+    expect(liste().getByText('Kein Einsatz geplant.')).toBeInTheDocument();
+  });
+
+  it('ohne Termine bleibt das Brett, wie es war — keine leere Zeile', async () => {
+    zeige();
+    await screen.findByRole('table', { name: 'Wochenplan als Tabelle' });
+    expect(await tabelle().findByRole('rowheader', { name: 'Max Mustermann' })).toBeInTheDocument();
+    expect(tabelle().queryByRole('rowheader', { name: 'Termine' })).not.toBeInTheDocument();
+    expect(liste().queryByRole('list', { name: /^Termine am/ })).not.toBeInTheDocument();
   });
 });

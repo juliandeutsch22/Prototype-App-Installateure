@@ -60,6 +60,15 @@ let pruefungen: UidPruefung[] = [];
 const listUidPruefungen = vi.fn(async () => pruefungen);
 const uidBeiViesPruefen = vi.fn<(k: string) => Promise<{ pruefung: UidPruefung; hinweis?: string }>>();
 
+// Termine (Plan 10.4): ohne eigene Prüfung hier leer — geprüft in TermineKarte.test.tsx.
+vi.mock('@/lib/db/termine', () => ({
+  listTermineImZeitraum: vi.fn(async () => []),
+  listTermineDerBaustelle: vi.fn(async () => []),
+  listTermineDesKunden: vi.fn(async () => []),
+  terminAnlegen: vi.fn(async () => 'neu'),
+  terminAendern: vi.fn(async () => undefined),
+  terminLoeschen: vi.fn(async () => undefined),
+}));
 vi.mock('@/lib/db/customers', () => ({
   listCustomersByIds: () => listCustomersByIds(),
   listProjectsForCustomer: () => listProjectsForCustomer(),
@@ -667,5 +676,30 @@ describe('Prüfung bei VIES (offene Punkte E2)', () => {
     zeige();
     expect(await screen.findByText('gültig')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /VIES prüfen/ })).toBeNull();
+  });
+});
+
+describe('Termine in der Kundenakte (Plan 10.4)', () => {
+  it('die Verwaltung sieht die Karte und kann anlegen — hier entsteht die Besichtigung', async () => {
+    rolle = 'Verwaltung';
+    nutzer = NUTZER();
+    zeige();
+    const titel = await screen.findByRole('heading', { name: 'Termine' });
+    expect(within(titel.closest('section')!).getByRole('button', { name: 'Termin anlegen' })).toBeInTheDocument();
+  });
+
+  it('nicht die Buchhaltung — sie liest keine Termine, die Karte sagte sonst „Keine Termine"', async () => {
+    rolle = 'Buchhaltung';
+    nutzer = NUTZER();
+    zeige();
+    await screen.findByRole('heading', { name: 'Stammdaten' });
+    expect(screen.queryByRole('heading', { name: 'Termine' })).not.toBeInTheDocument();
+  });
+
+  it('nicht ohne das Modul Einsatzplanung', async () => {
+    modulAn = false;
+    zeige();
+    await screen.findByRole('heading', { name: 'Stammdaten' });
+    expect(screen.queryByRole('heading', { name: 'Termine' })).not.toBeInTheDocument();
   });
 });

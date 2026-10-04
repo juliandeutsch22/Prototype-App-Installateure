@@ -88,6 +88,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   support_zugriffe: { wann: 'zeitpunkt' },
   suppliers: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   system_laeufe: { updated_at: 'zeitpunkt', zuletzt_erfolg: 'zeitpunkt', zuletzt_versuch: 'zeitpunkt' },
+  termine: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt', zeit_bis: 'uhrzeit', zeit_von: 'uhrzeit' },
   time_entries: { created_at: 'zeitpunkt', end_time: 'uhrzeit', start_time: 'uhrzeit', updated_at: 'zeitpunkt' },
   uid_pruefungen: { abgefragt_am: 'zeitpunkt', am: 'zeitpunkt' },
   urlaubsanspruch_anpassungen: { created_at: 'zeitpunkt', entfernt_am: 'zeitpunkt', updated_at: 'zeitpunkt' },

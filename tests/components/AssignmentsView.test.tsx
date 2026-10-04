@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Assignment, EinsatzMaterial, Material, Project, Vacation } from '@/types';
 import AssignmentsView from '@/features/assignments/AssignmentsView';
+import { listTermineImZeitraum } from '@/lib/db/termine';
 
 /**
  * Die Einsatzplanung — die Ansicht, die als einzige Daten LÖSCHT, und bis
@@ -40,6 +41,15 @@ let loeschenScheitert = false;
 const speichere = vi.fn();
 const loesche = vi.fn();
 
+// Termine (Plan 10.4): ohne eigene Prüfung hier leer — geprüft in TermineKarte.test.tsx.
+vi.mock('@/lib/db/termine', () => ({
+  listTermineImZeitraum: vi.fn(async () => []),
+  listTermineDerBaustelle: vi.fn(async () => []),
+  listTermineDesKunden: vi.fn(async () => []),
+  terminAnlegen: vi.fn(async () => 'neu'),
+  terminAendern: vi.fn(async () => undefined),
+  terminLoeschen: vi.fn(async () => undefined),
+}));
 vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(async () => {
     if (ladefehler) throw new Error('kein Netz');
@@ -967,5 +977,14 @@ describe('Einsatzplanung — Einstufung', () => {
     expect(await within(karte).findByText('1 Lehrling')).toBeInTheDocument();
     expect(within(karte).getByText('2 Helfer')).toBeInTheDocument();
     expect(within(karte).queryByText(/Facharbeiter/)).toBeNull();
+  });
+});
+
+describe('Termine in der Tagesplanung (Plan 10.4)', () => {
+  it('stehen beim gewählten Tag über den Einsätzen — mit „Termin anlegen" für die Planung', async () => {
+    zeige({ datum: '2026-09-03' });
+    const titel = await screen.findByRole('heading', { name: /^Termine am / });
+    expect(within(titel.closest('section')!).getByRole('button', { name: 'Termin anlegen' })).toBeInTheDocument();
+    await waitFor(() => expect(listTermineImZeitraum).toHaveBeenCalledWith('perl', '2026-09-03', '2026-09-03'));
   });
 });

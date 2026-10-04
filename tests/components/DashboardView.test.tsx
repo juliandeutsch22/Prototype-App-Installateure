@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import type { Assignment, MaterialOrder, Project, TimeEntry } from '@/types';
+import type { Assignment, MaterialOrder, Project, Termin, TimeEntry } from '@/types';
 
 /**
  * Die Startseite hatte bis hierher KEINEN Test.
@@ -108,6 +108,16 @@ const rolle = { wert: 'Mitarbeiter' as string };
 /** Stunden je Baustelle — nur der Budget-Radar liest sie. */
 let zeitenJeBaustelle: (TimeEntry & { id: string })[] = [];
 
+/** Die Termine von heute, wie die Datenbank sie herausgibt (Plan 10.4). */
+const termine: { wert: Termin[] } = { wert: [] };
+vi.mock('@/lib/db/termine', () => ({
+  listTermineImZeitraum: vi.fn(async () => termine.wert),
+  listTermineDerBaustelle: vi.fn(async () => []),
+  listTermineDesKunden: vi.fn(async () => []),
+  terminAnlegen: vi.fn(async () => 'neu'),
+  terminAendern: vi.fn(async () => undefined),
+  terminLoeschen: vi.fn(async () => undefined),
+}));
 vi.mock('@/lib/db/users', () => ({
   // Die eigene Zeile trägt die Rolle der Anmeldung — die Startseite fragt sie
   // nach dem Zeitkonto.
@@ -256,6 +266,7 @@ afterEach(() => {
   abwesend.wert = [];
   offeneRechnungen.wert = [];
   anforderungen.wert = [];
+  termine.wert = [];
   rolle.wert = 'Mitarbeiter';
 });
 
@@ -745,5 +756,33 @@ describe('Startseite — Verweise nur, wohin man darf (P4-15)', () => {
     const karte = await karteMit('Dein Einsatz heute');
     expect(within(karte).queryByRole('link', { name: 'Mein Einsatzplan' })).not.toBeInTheDocument();
     expect(within(karte).getAllByRole('link', { name: 'Schein schreiben' })).toHaveLength(2);
+  });
+});
+
+describe('Startseite — Termine heute (Plan 10.4)', () => {
+  const termin = (id: string, teilnehmer: string[]): Termin => ({
+    id, companyId: 'perl', art: 'Besichtigung', datum: HEUTE, zeitVon: '14:00', zeitBis: '15:00',
+    projectNumber: 'B-001', customerId: null, teilnehmer, notiz: 'Schlüssel beim Nachbarn',
+    ortName: 'Familie Huber', ortAdresse: 'Hauptstraße 12, 2700 Wiener Neustadt',
+  });
+
+  it('wer teilnimmt, sieht seinen Termin unter Heute', async () => {
+    termine.wert = [termin('t1', ['m1'])];
+    zeichne();
+    // Erst wenn alles geladen ist: davor ordnet die Seite ihre Spalten noch um.
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    const karte = await karteMit('Deine Termine heute');
+    expect(within(karte).getByText('Besichtigung · 14:00–15:00')).toBeInTheDocument();
+    expect(within(karte).getByText('Familie Huber · B-001')).toBeInTheDocument();
+    expect(within(karte).getByRole('link', { name: /Hauptstraße 12/ })).toBeInTheDocument();
+    expect(within(karte).getByText('Schlüssel beim Nachbarn')).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ein Termin ohne mich steht nicht da — auch wenn die Datenbank ihn der Leitung gibt', async () => {
+    rolle.wert = 'Projektleiter';
+    termine.wert = [termin('t2', ['m2'])];
+    zeichne();
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    expect(screen.queryByText('Deine Termine heute')).toBeNull();
   });
 });

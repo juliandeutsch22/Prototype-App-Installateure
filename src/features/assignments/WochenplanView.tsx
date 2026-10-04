@@ -7,9 +7,11 @@ import { listUsers } from '@/lib/db/users';
 import { listAbwesendInRange, type Abwesenheit } from '@/lib/db/vacations';
 import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
 import { subscribeAssignmentsInRange } from '@/lib/db/assignments';
+import { listTermineImZeitraum } from '@/lib/db/termine';
+import { bezugText, terminKopf } from '@/features/termine/terminText';
 import { todayStr, getAustrianHolidayName, isWeekend } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
-import type { Project, AppUser, Assignment, Betriebsurlaub } from '@/types';
+import type { Project, AppUser, Assignment, Betriebsurlaub, Termin } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
@@ -83,6 +85,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
   const [einsaetze, setEinsaetze] = useState<WithId<Assignment>[]>([]);
   const [urlaube, setUrlaube] = useState<Abwesenheit[]>([]);
   const [betriebsurlaube, setBetriebsurlaube] = useState<Betriebsurlaub[]>([]);
+  const [termine, setTermine] = useState<Termin[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
 
@@ -131,6 +134,31 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
       verworfen = true;
     };
   }, [user, montag, bis]);
+
+  /*
+    DIE TERMINE DER WOCHE (Plan 10.4): eine Lieferung am Dienstag 8–10 soll
+    der Planer neben den Leuten sehen. Was jemand sieht, entscheidet der
+    Zeilenschutz — in der Team-Woche nur die eigenen und die auf Baustellen,
+    auf denen man an dem Tag steht.
+  */
+  useEffect(() => {
+    if (!user) return;
+    let verworfen = false;
+    listTermineImZeitraum(user.companyId, montag, bis)
+      .then((t) => {
+        if (!verworfen) setTermine(t);
+      })
+      .catch(() => {
+        if (!verworfen) {
+          setTermine([]);
+          setNebenFehler('Die Termine');
+        }
+      });
+    return () => {
+      verworfen = true;
+    };
+  }, [user, montag, bis]);
+  const termineAm = (tag: string) => termine.filter((t) => t.datum === tag);
 
   /** Der Betrieb hat zu — an diesen Tagen ist niemand „frei". */
   useEffect(() => {
@@ -485,6 +513,32 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                 </tr>
               </thead>
               <tbody>
+                {termine.length > 0 && (
+                  <tr>
+                    <th
+                      scope="row"
+                      className="sticky left-0 z-10 border-b border-line bg-surface p-2 text-left font-medium text-ink"
+                    >
+                      Termine
+                    </th>
+                    {tage.map((tag) => (
+                      <td key={tag} className="border-b border-line p-1 align-top">
+                        <span className="flex flex-col gap-1">
+                          {termineAm(tag).map((t) => (
+                            <span
+                              key={t.id}
+                              title={`${terminKopf(t)} · ${bezugText(t)}`}
+                              className="block rounded-sm border border-line px-1.5 py-1 text-left text-xs"
+                            >
+                              <span className="block truncate font-medium text-ink">{terminKopf(t)}</span>
+                              <span className="block truncate text-ink-muted">{bezugText(t)}</span>
+                            </span>
+                          ))}
+                        </span>
+                      </td>
+                    ))}
+                  </tr>
+                )}
                 {staff.map((u) => (
                   <tr key={u.uid}>
                     <th
@@ -646,6 +700,16 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                   </div>
 
                   <div className="space-y-2 px-4 pb-3">
+                    {termineAm(tag).length > 0 && (
+                      <ul aria-label={`Termine am ${datum}`} className="space-y-1">
+                        {termineAm(tag).map((tt) => (
+                          <li key={tt.id} className="text-sm">
+                            <span className="font-medium text-ink">{terminKopf(tt)}</span>{' '}
+                            <span className="text-ink-muted">· {bezugText(tt)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     {t && t.baustellen.length > 0 ? (
                       t.baustellen.map((b) =>
                         nurLesen ? (
@@ -686,7 +750,10 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                     ) : zuAm.has(tag) ? (
                       <p className="text-sm text-ink-muted">Betriebsurlaub — {zuAm.get(tag)}.</p>
                     ) : (
-                      <p className="text-sm text-ink-muted">Nichts geplant.</p>
+                      // Stehen darüber Termine, wäre „Nichts geplant" ein Widerspruch.
+                      <p className="text-sm text-ink-muted">
+                        {termineAm(tag).length > 0 ? 'Kein Einsatz geplant.' : 'Nichts geplant.'}
+                      </p>
                     )}
 
                     {!nurLesen && !wochenende && !feiertag && t && t.frei.length > 0 && (

@@ -6,15 +6,19 @@ import {
   listUpcomingAssignments,
 } from '@/lib/db/assignments';
 import { listProjectsByNumbers } from '@/lib/db/projects';
+import { listTermineImZeitraum } from '@/lib/db/termine';
+import { listUsers } from '@/lib/db/users';
+import TerminListe from '@/features/termine/TerminListe';
+import { betrifftMich } from '@/features/termine/terminText';
 import { listAbwesendInRange, listOwnVacations, type Abwesenheit } from '@/lib/db/vacations';
 import { useModul } from '@/lib/useModule';
 import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
 import RuestlisteAbhaken from './RuestlisteAbhaken';
 import PlaeneListe from '@/features/projects/PlaeneListe';
 import { planeVon, usePlaene } from '@/features/projects/usePlaene';
-import type { Assignment, Project, Vacation, EinsatzMaterial } from '@/types';
+import type { AppUser, Assignment, Project, Vacation, EinsatzMaterial, Termin } from '@/types';
 import type { WithId } from '@/lib/db/core';
-import { tageWort, todayStr } from '@/lib/time';
+import { localDateStr, tageWort, todayStr } from '@/lib/time';
 import Card from '@/components/Card';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
@@ -243,6 +247,68 @@ export default function MyScheduleView() {
     };
   }, [user, selected, materialAn]);
 
+  /*
+    DIE TERMINE (Plan 10.4): die, an denen ich teilnehme, und die auf einer
+    Baustelle, auf der ich an dem Tag eingeteilt bin — ich nehme die
+    Lieferung an. Einmal für den angezeigten Monat (der gewählte Tag), einmal
+    für die nächsten acht Wochen (die Liste darunter). Ein Fehlschlag sagt
+    es, hält aber den Plan nicht auf.
+  */
+  const [termineMonat, setTermineMonat] = useState<Termin[]>([]);
+  const [termineKommend, setTermineKommend] = useState<Termin[]>([]);
+  const [personen, setPersonen] = useState<AppUser[]>([]);
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    const letzter = new Date(cursor.year, cursor.month + 1, 0).getDate();
+    listTermineImZeitraum(user.companyId, `${prefix}-01`, `${prefix}-${String(letzter).padStart(2, '0')}`)
+      .then((t) => {
+        if (!weg) setTermineMonat(t);
+      })
+      .catch(() => {
+        if (!weg) setNebenFehler('Die Termine');
+      });
+    return () => {
+      weg = true;
+    };
+  }, [user, prefix, cursor.year, cursor.month]);
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    const ab = todayStr();
+    const ende = new Date(`${ab}T00:00:00`);
+    ende.setDate(ende.getDate() + 56);
+    listTermineImZeitraum(user.companyId, ab, localDateStr(ende))
+      .then((t) => {
+        if (!weg) setTermineKommend(t);
+      })
+      .catch(() => {
+        if (!weg) setNebenFehler('Die Termine');
+      });
+    return () => {
+      weg = true;
+    };
+  }, [user]);
+  const meineAmTag = useMemo(
+    () => (user ? termineMonat.filter((t) => t.datum === selected && betrifftMich(t, user.uid, rows)) : []),
+    [termineMonat, selected, rows, user],
+  );
+  const meineKommend = useMemo(
+    () =>
+      user
+        ? termineKommend.filter(
+            (t) => betrifftMich(t, user.uid, naechste) && !(heuteGewaehlt && t.datum === todayStr()),
+          )
+        : [],
+    [termineKommend, naechste, user, heuteGewaehlt],
+  );
+  // Die Namen der übrigen Teilnehmer — nur, wenn es überhaupt Termine gibt.
+  const mitTerminen = meineAmTag.length + meineKommend.length > 0;
+  useEffect(() => {
+    if (!user || !mitTerminen || personen.length > 0) return;
+    listUsers(user.companyId).then(setPersonen).catch(() => undefined);
+  }, [user, mitTerminen, personen.length]);
+
   /** Fällt der gewählte Tag in einen eigenen Urlaub — und ist er entschieden? */
   const urlaubAmTag = useMemo(
     () =>
@@ -335,6 +401,12 @@ export default function MyScheduleView() {
                     </p>
                   </Hinweiszeile>
                 </div>
+              )}
+              {meineAmTag.length > 0 && (
+                <section aria-label="Termine an diesem Tag" className="mb-3 border-b border-line pb-3">
+                  <h3 className="section-label">Termine</h3>
+                  <TerminListe termine={meineAmTag} personen={personen} mitAdresse />
+                </section>
               )}
               {visible.length === 0 ? (
                 <EmptyState>
@@ -484,6 +556,17 @@ export default function MyScheduleView() {
                 </p>
               )}
             </Card>
+
+            {meineKommend.length > 0 && (
+              <Card title="Nächste Termine" className="mt-3 lg:mt-5">
+                <TerminListe termine={meineKommend.slice(0, 10)} personen={personen} mitDatum mitAdresse />
+                {meineKommend.length > 10 && (
+                  <p className="mt-2 text-sm text-ink-muted">
+                    und {meineKommend.length - 10} weitere — im Kalender links nachschlagen.
+                  </p>
+                )}
+              </Card>
+            )}
 
             {/*
               „Wann habe ich frei, und ist es schon entschieden?" — die zweite

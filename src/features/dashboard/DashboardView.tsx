@@ -30,6 +30,7 @@ import Kennzahlen from './start/Kennzahlen';
 import HeuteEigene from './start/HeuteEigene';
 import HeuteLeitung from './start/HeuteLeitung';
 import HeuteListe from './start/HeuteListe';
+import TermineHeute from './start/TermineHeute';
 import { startseite } from './start/aufbau';
 import { grundpfad } from './start/ziele';
 import {
@@ -40,6 +41,7 @@ import {
   persoenlich,
   startRolle,
   team,
+  termineHeute,
   type Kontext,
   type StartDaten,
   type StartRolle,
@@ -135,6 +137,10 @@ export default function DashboardView() {
     if (isGF(user.role)) {
       bloecke.push(['Baustellen und Einsätze', () => leitung(k, { einsatzplanung: einsatzAn, wartung: wartungAn, budget: true })]);
     }
+    // Termine gehören zur Einsatzplanung (Plan 10.4) — jede Rolle kann Teilnehmer sein.
+    if (einsatzAn) {
+      bloecke.push(['Deine Termine', () => termineHeute(k)]);
+    }
     if (isTopLevel(user.role)) {
       bloecke.push(['Einstellungen', () => einstellungen(k, { rechnungen: rechnungenAn, konten: true, personen: true })]);
     } else if (r === 'buchhaltung' && rechnungenAn) {
@@ -179,6 +185,7 @@ export default function DashboardView() {
 
   const nochAmLaden = laeuft > 0;
   const eigene = data.heuteEigene ?? [];
+  const termine = data.termineHeute ?? [];
   const planVerweis = darf('/my-schedule');
   const scheinVerweis = scheineAn && canWriteWorkSheet(user.role);
 
@@ -194,6 +201,9 @@ export default function DashboardView() {
           titel={rolle === 'monteur' ? 'Heute' : 'Dein Einsatz heute'}
         />
       )}
+      {termine.length > 0 && (
+        <TermineHeute termine={termine} planVerweis={planVerweis} />
+      )}
       {seite.heute?.art === 'liste' && (
         <HeuteListe zusatz={seite.heute.zusatz} zeilen={seite.heute.zeilen} verweis={seite.heute.verweis} />
       )}
@@ -202,7 +212,7 @@ export default function DashboardView() {
       )}
     </>
   );
-  const hatHeute = eigene.length > 0 || !!seite.heute;
+  const hatHeute = eigene.length > 0 || termine.length > 0 || !!seite.heute;
   const hatBedarf = seite.abschnitte.length > 0;
   const hatRechts = hatHeute || seite.kennzahlen.length > 0;
 

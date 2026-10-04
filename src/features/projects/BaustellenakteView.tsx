@@ -21,6 +21,7 @@ import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Aktenspalten from '@/components/Aktenspalten';
+import TermineKarte from '@/features/termine/TermineKarte';
 import Button from '@/components/Button';
 import { Marke } from '@/components/Badge';
 import StatusBadge from '@/components/StatusBadge';
@@ -70,6 +71,7 @@ export default function BaustellenakteView() {
   const { user, company } = useAuth();
   const toast = useToast();
   const scheineAn = useModul('scheine');
+  const einsatzAn = useModul('einsatzplanung');
   /*
     Angebote tragen Preise und sind Büro und Leitung vorbehalten (Zeilenschutz
     `quotes_lesen`). Wer sie nicht sehen darf, bekommt auch keinen Verweis —
@@ -389,6 +391,10 @@ export default function BaustellenakteView() {
       )}
     </Card>
   );
+  // Termine gehören zur Einsatzplanung: ohne das Modul gibt es sie nicht.
+  const termineKarte = einsatzAn ? (
+    <TermineKarte titel="Termine" vorgabe={{ bezug: 'baustelle', projectNumber: b.projectNumber }} />
+  ) : null;
   const weiterKarte = (
     <Card title="Weiter">
       {/* Die Links tragen ihre 48 px Tastfläche selbst — deshalb kein
@@ -445,9 +451,9 @@ export default function BaustellenakteView() {
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
       <Aktenspalten
-        telefon={[stammdaten, plaene, stunden, weiterKarte]}
+        telefon={[stammdaten, termineKarte, plaene, stunden, weiterKarte]}
         links={[stammdaten]}
-        rechts={[stunden, plaene, weiterKarte]}
+        rechts={[termineKarte, stunden, plaene, weiterKarte]}
       />
 
       <ConfirmDialog

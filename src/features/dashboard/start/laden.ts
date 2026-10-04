@@ -9,6 +9,7 @@ import type {
   Project,
   RuestPosition,
   Role,
+  Termin,
   Vacation,
   Wartung,
 } from '@/types';
@@ -30,6 +31,7 @@ import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
 import { listRecentWorkSheets, listOwnWorkSheetsSince } from '@/lib/db/workSheets';
 import { listAbwesendInRange, listOpenVacations, type Abwesenheit } from '@/lib/db/vacations';
 import { listOffeneFreistellungen } from '@/lib/db/freistellungen';
+import { listTermineImZeitraum } from '@/lib/db/termine';
 import { listFaelligeWartungen } from '@/lib/db/wartungen';
 import { buchungskonten } from '@/lib/db/konten';
 import {
@@ -151,6 +153,8 @@ export interface StartDaten {
   // Personen
   lehrzeitEnden?: LehrzeitEndeZeile[];
   einzigeLeitungOhneMail?: boolean;
+  // Termine (Plan 10.4)
+  termineHeute?: Termin[];
 }
 
 export interface Kontext {
@@ -167,6 +171,19 @@ const tageZurueck = (n: number) => {
 
 const still = <T>(p: () => Promise<T>, ersatz: T): Promise<T> =>
   Promise.resolve().then(p).catch(() => ersatz);
+
+// ──────────────────────────────────────────────────────────────── Termine ──
+
+/**
+ * Die eigenen Termine von heute — für jede Rolle, an der ein Termin hängt.
+ * Nur als Teilnehmer: wer bloß auf der Baustelle eingeteilt ist, sieht die
+ * Lieferung in „Mein Einsatzplan" (Plan 10.4). Gefiltert wird hier, weil die
+ * Leitung von der Datenbank alle Termine des Betriebs bekommt.
+ */
+export async function termineHeute(k: Kontext): Promise<Partial<StartDaten>> {
+  const alle = await listTermineImZeitraum(k.user.companyId, k.heute, k.heute);
+  return { termineHeute: alle.filter((t) => t.teilnehmer.includes(k.user.uid)) };
+}
 
 // ──────────────────────────────────────────────────────────── persönlich ──
 
