@@ -12,9 +12,9 @@ kommt von *plumbum*, Blei — dem Werkstoff des Senklots.
 | Datei | Wofür |
 |---|---|
 | `logo.svg` | Wortmarke, waagrecht. Für Kopfzeilen, Briefpapier, Anmeldebildschirm |
-| `icon.svg` | App-Zeichen, quadratisch: Senklot in Petrol auf weisser Platte |
-| `favicon.svg` | **Eigens für kleine Größen gezeichnet**, nicht verkleinert |
-| `*.png` | Aus den SVG erzeugt, siehe unten |
+| `icon.svg` | Das Zeichen als Fläche, 64er-Raster — die Maße für Wortmarke und Produktmarke |
+| `app-zeichen.png` | **Vorlage für App-Zeichen und Favicon**: das Senklot auf Schwarz, 1024 × 1536 |
+| `*.png` (übrige) | Aus `app-zeichen.png` erzeugt, siehe unten |
 
 ## Die Form (seit 03.10.2026)
 
@@ -37,16 +37,37 @@ Die Maße stehen in `icon.svg` (64er-Raster); `logo.svg`, die Produktmarke in
 der App (`src/components/ProduktMarke.tsx`) und der Kopf des Handbuchs tragen
 dieselben Pfade.
 
-## Warum es zwei Zeichnungen gibt
+## App-Zeichen und Favicon (seit 04.10.2026)
 
-`favicon.svg` ist nicht `icon.svg` in klein. Bei 16 Pixeln wird die Schnur zu
-einem Grauschleier; was dort trägt, sind Öse, Schulter und Spitze. Sie sitzen
-deshalb größer im Feld, ohne Schnur, und die Fugen zwischen ihnen sind auf
-knapp ein Pixel verbreitert — sonst liefen die drei Teile zu einem Klecks
-zusammen. Ein bloß verkleinertes Zeichen sähe bei 16 px nach Fehler aus.
+Am Startbildschirm und im Browserreiter steht seit dem 04.10.2026 ein Bild
+statt der Fläche: das Senklot in Petrol mit Glanz und Glühen auf Schwarz
+(`app-zeichen.png`), vom Betrieb ausgesucht. **Nur dort.** Wortmarke,
+Produktmarke in der App und Kopf des Handbuchs bleiben die einfarbige Fläche
+aus `icon.svg` — sie stehen klein, weiß auf Petrol oder neben Schrift, und
+dort trägt eine Fläche, ein Glanzbild nicht.
 
-`icon-maskable-512.png` trägt den Grund über den Rand hinaus, weil Android bis
-zu 20 % wegschneidet. Ohne das köpft das System die Öse.
+Die gelieferte Datei hatte einen durchsichtigen Grund, das Glühen stand nur in
+den Farbwerten. Ein Browser rechnet bei Durchsichtigkeit die Farbe weg — vom
+Glühen wäre nichts geblieben. `app-zeichen.png` ist deshalb dieselbe Datei
+ohne Durchsichtigkeit: genau das Bild, wie es auf Schwarz aussieht.
+
+Wie zugeschnitten wird, steht in `rastern.mjs`:
+
+* **Hochformat aufs Quadrat.** Die Vorlage kommt mittig auf ein schwarzes
+  Quadrat. Oben reicht das Glühen bis an den Rand; die oberste Zeile läuft
+  deshalb nach oben aus, statt hart an Schwarz zu stoßen.
+* **Das Favicon ist enger zugeschnitten** als das App-Zeichen, damit bei
+  16 px möglichst viel vom Zeichen bleibt. Die Schnur ist dort nur noch ein
+  Hauch; erkennbar bleibt das Lot an Schulter und Spitze.
+* **`icon-maskable-512.png` zeigt das ganze Quadrat**, weil Android bis auf
+  einen Kreis von 80 % wegschneidet. Ohne den Rand köpft das System die
+  Schnur.
+* **Apple-Touch-Icon quadratisch und randlos**, ohne durchsichtige Ecke: iOS
+  rundet selbst ab.
+
+Bis zum 03.10.2026 war das Favicon eine eigene Zeichnung für 16 px
+(`favicon.svg`, ohne Schnur, mit breiteren Fugen). Mit dem Bild als Vorlage
+gibt es sie nicht mehr; sie steht in der Geschichte des Repositorys.
 
 ## Farben
 
@@ -59,7 +80,10 @@ Zwei, mehr nicht.
 | Zeichen | `#0F4552` |
 | Grund | `#FFFFFF` |
 
-### Die Platte ist weiss, nicht petrol
+Das gilt für die Fläche (Wortmarke, Produktmarke). App-Zeichen und Favicon
+sind seit dem 04.10.2026 das Bild auf Schwarz, siehe oben.
+
+### Die Platte war weiss, nicht petrol (bis 03.10.2026)
 
 Die erste Fassung war umgekehrt: weisses Zeichen auf petrol Platte. Gewechselt
 hat nicht die Farbe, sondern wer von beiden Fläche ist und wer Figur.
@@ -95,11 +119,16 @@ Browser aussieht. Ein zweiter Rasterer wäre eine zweite Wahrheit. Ohne
 
 Die PNG unter `public/` sind diese hier — App-Zeichen, Apple-Touch-Icon und
 Favicon in drei Größen. Die 16er-Fassung steht in `index.html` ausdrücklich
-da, statt sie den Browser aus der 32er rechnen zu lassen: genau dafür gibt es
-die zweite Zeichnung.
+da, statt sie den Browser aus der 32er rechnen zu lassen: in halben Schritten
+verkleinert bleibt sie ruhiger als das, was der Browser in einem Zug daraus
+macht.
 
 Der Service Worker nimmt `/icon-192.png` als Bild der Push-Meldung und
-`/favicon-64.png` als Abzeichen — beides wechselt damit mit.
+`/favicon-64.png` als Abzeichen — beides wechselt damit mit. Android zeichnet
+das Abzeichen in der Statusleiste nur aus der Durchsichtigkeit; ein deckendes
+Bild wird dort ein volles Quadrat. Das war mit der weissen Platte schon so
+(damals mit gerundeten Ecken) und bleibt eine offene Kleinigkeit: ein eigenes
+Abzeichen als weisse Silhouette auf durchsichtigem Grund.
 
 Am Startbildschirm und im Reiter steht jetzt **Senklot**
 (`manifest.webmanifest`, `<title>`), und über dem Anmeldeformular steht die
@@ -107,10 +136,10 @@ Produktmarke statt eines Kundenlogos — vor der Anmeldung ist der Mandant
 unbekannt, und die Vorgabe zeigte bis dahin jedem zweiten Betrieb das Zeichen
 des ersten.
 
-`background_color` im Manifest steht auf `#ffffff` und nicht mehr auf dem
-Grund der App: der Startbildschirm zeigt das Zeichen auf dieser Farbe, und mit
-weisser Platte wäre auf `#eef6f8` ein schwach sichtbares Quadrat darum
-gestanden.
+`background_color` im Manifest ist der Grund des App-Zeichens, seit dem
+04.10.2026 also `#000000`: Android zeigt beim Start das Zeichen auf dieser
+Farbe, und auf Weiss stünde ein schwarzes Quadrat darin. (Mit der weissen
+Platte war es aus demselben Grund `#ffffff`.)
 
 **Was NICHT gewechselt ist:** `BrandLogo` zeigt weiter das Logo des Betriebs.
 Das Logo IM Kopf der App gehört dem Betrieb, nicht dem Produkt — die App ist
