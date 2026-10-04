@@ -1,5 +1,5 @@
 /**
- * App-Zeichen und Favicon — das Senklot auf Schwarz (seit 04.10.2026).
+ * App-Zeichen und Favicon — das Senklot auf Weiß (seit 04.10.2026).
  *
  * Was hier steht, sieht kein Test der Oberfläche: der Reiter, der
  * Startbildschirm, der Start der App unter Android. Ein falsch
@@ -72,10 +72,11 @@ describe('App-Zeichen und Favicon', () => {
     expect([breite, hoehe]).toEqual([groesse, groesse]);
   });
 
-  it.each(ZEICHEN)('$datei hat eine deckend schwarze Ecke — keine durchsichtige, keine weisse Platte', ({ datei }) => {
-    // iOS rechnet Durchsichtigkeit gegen Schwarz, Android schneidet rund zu:
-    // beides geht nur ohne Bruch, wenn der Grund bis in die Ecke Schwarz ist.
-    expect(pngKopf(lies(`public/${datei}`)).ecke).toEqual([0, 0, 0, 255]);
+  it.each(ZEICHEN)('$datei hat eine deckend weisse Ecke — keine durchsichtige', ({ datei }) => {
+    // iOS rechnet Durchsichtigkeit gegen Schwarz: eine durchsichtige Ecke
+    // würde dort schwarz. Android schneidet rund zu. Beides geht nur ohne
+    // Bruch, wenn der Grund bis in die Ecke deckend Weiss ist.
+    expect(pngKopf(lies(`public/${datei}`)).ecke).toEqual([255, 255, 255, 255]);
   });
 
   it.each(ZEICHEN)('$datei ist dieselbe Datei wie in marke/', ({ datei }) => {
@@ -85,8 +86,8 @@ describe('App-Zeichen und Favicon', () => {
   });
 
   it('startet unter Android auf dem Grund des Zeichens', () => {
-    // Auf Weiss stünde beim Start ein schwarzes Quadrat.
-    expect(manifest.background_color.toLowerCase()).toBe('#000000');
+    // Auf einer anderen Farbe stünde beim Start ein weisses Quadrat.
+    expect(manifest.background_color.toLowerCase()).toBe('#ffffff');
   });
 
   it('lässt die Farbe des Statusbalkens beim Petrol der Kopfleiste', () => {
