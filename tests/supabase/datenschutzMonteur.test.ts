@@ -124,7 +124,13 @@ describe('H8 — Krankmeldungen', () => {
   });
 
   it('eine eigene Meldung, die noch nicht begonnen hat, darf der Monteur löschen', async () => {
-    const { data } = await speichern(monteur, { von: tag(20), bis: tag(22) });
+    /*
+      EINE GANZE WOCHE, nicht drei Tage: am 04.10.2026 waren das Samstag bis
+      Nationalfeiertag — ohne Arbeitstag, und die Meldung kam gar nicht
+      zustande. Acht Tage enthalten immer Arbeitstage.
+    */
+    const { data, error } = await speichern(monteur, { von: tag(20), bis: tag(27) });
+    expect(error).toBeNull();
     const weg = await monteur.client.rpc('krankmeldung_loeschen', { p_id: (data as { id: string }).id });
     expect(weg.error).toBeNull();
   });

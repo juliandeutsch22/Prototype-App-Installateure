@@ -824,6 +824,95 @@ export default function VacationsView() {
     );
   }
 
+  /** Die Arbeitsliste der Genehmigenden — oben, wenn jemand wartet (siehe unten). */
+  const offeneKarte = (
+    <Card
+      id="offene-antraege"
+      title={`Offene Anträge (${offene.length})`}
+      hint={
+        <>
+          Eine Genehmigung trägt die Tage sofort ins Zeitkonto ein — Urlaub mit vollem
+          Tagessoll, Zeitausgleich ohne Ist (er geht vom Zeitguthaben ab). Deshalb erscheint
+          beides weder als fehlende Zeit auf der Startseite noch als falsches Minus im Saldo.
+          Tage, an denen bereits gebucht war, bleiben unangetastet, und eine Rücknahme entfernt
+          nur die Tage, die durch die Genehmigung entstanden sind.
+        </>
+      }
+      buendig
+    >
+      {offene.length === 0 ? (
+        <EmptyState>Kein Antrag wartet auf eine Entscheidung.</EmptyState>
+      ) : (
+        <List>
+          {offene.map((v) => {
+            const parallel = gleichzeitig(v);
+            const saldoMin = v.saldoBeiAntrag != null ? Math.round(Number(v.saldoBeiAntrag) * 60) : null;
+            const kostet = v.zaStunden != null ? Math.round(Number(v.zaStunden) * 60) : 0;
+            return (
+              <ListRow
+                key={v.id}
+                title={v.userName}
+                subtitle={
+                  <>
+                    <span className="block">
+                      {zeitraum(v)} · {istZa(v) ? umfang(v) : tageText(Number(v.tage))}
+                    </span>
+                    {v.notiz && <span className="mt-1 block">{v.notiz}</span>}
+                    {!istZa(v) && restZeile(v)}
+                    {/*
+                      DAS ZEITGUTHABEN BEIM ANTRAG — die Zahl, nach der
+                      beim Zeitausgleich entschieden wird.
+                    */}
+                    {istZa(v) && saldoMin !== null && (
+                      <span
+                        className={`mt-1 block text-xs ${
+                          saldoMin - kostet < 0 ? 'font-medium text-warning' : 'text-ink-muted'
+                        }`}
+                      >
+                        Zeitguthaben beim Antrag: {vorzeichen(saldoMin)} Std
+                        {saldoMin - kostet < 0 ? ' — reicht nicht' : ''}
+                      </span>
+                    )}
+                    {/*
+                      Wer sonst noch weg ist. Ohne diese Zeile wäre die
+                      Entscheidung ein Blindflug — und der zweite Monteur
+                      bekäme dieselbe Woche genehmigt.
+                    */}
+                    {parallel.length > 0 && (
+                      <span className="mt-1 block text-xs text-warning">
+                        Gleichzeitig im Urlaub: {parallel.join(', ')}
+                      </span>
+                    )}
+                  </>
+                }
+              >
+                {v.userId === user?.uid && andereEntscheiden ? (
+                  <span className="text-xs text-ink-muted">Entscheidet jemand anderer</span>
+                ) : (
+                  <>
+                    <Button
+                      loading={arbeitet === v.id}
+                      onClick={() => entscheiden(v, 'Genehmigt')}
+                    >
+                      Genehmigen
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      loading={arbeitet === v.id}
+                      onClick={() => ablehnen(v)}
+                    >
+                      Ablehnen
+                    </Button>
+                  </>
+                )}
+              </ListRow>
+            );
+          })}
+        </List>
+      )}
+    </Card>
+  );
+
   const REITER: { key: Reiter; label: string }[] = [
     { key: 'antraege', label: 'Anträge' },
     { key: 'krank', label: 'Krankenstände' },
@@ -896,6 +985,15 @@ export default function VacationsView() {
           )}
         </MetricRow>
       )}
+
+      {/*
+        WARTET JEMAND, STEHT DAS OBEN (Analyse 03.10.2026, Paket 2). Wer
+        entscheidet, fand die offenen Anträge erst unter dem eigenen
+        Antragsformular. Gibt es keine, bleibt die Reihenfolge, wie sie war.
+        Erst nach dem Laden gezeigt: sonst sprang die Karte von unten nach
+        oben, sobald die Anträge da waren.
+      */}
+      {darfEntscheiden && !laden && offene.length > 0 && offeneKarte}
 
       <Card title={art === 'Krank' ? 'Krank melden' : 'Antrag stellen'}>
         {/*
@@ -1113,99 +1211,8 @@ export default function VacationsView() {
         </form>
       </Card>
 
-      {/* Die Arbeitsliste der Genehmigenden steht VOR der eigenen Historie:
-          hier wartet jemand auf eine Antwort. */}
-      {darfEntscheiden && (
-        <Card
-          id="offene-antraege"
-          title={`Offene Anträge (${offene.length})`}
-          hint={
-            <>
-              Eine Genehmigung trägt die Tage sofort ins Zeitkonto ein — Urlaub mit vollem
-              Tagessoll, Zeitausgleich ohne Ist (er geht vom Zeitguthaben ab). Deshalb erscheint
-              beides weder als fehlende Zeit auf der Startseite noch als falsches Minus im Saldo.
-              Tage, an denen bereits gebucht war, bleiben unangetastet, und eine Rücknahme entfernt
-              nur die Tage, die durch die Genehmigung entstanden sind.
-            </>
-          }
-          buendig
-        >
-          {laden ? (
-            <div className="p-4">
-              <SkeletonList rows={2} />
-            </div>
-          ) : offene.length === 0 ? (
-            <EmptyState>Kein Antrag wartet auf eine Entscheidung.</EmptyState>
-          ) : (
-            <List>
-              {offene.map((v) => {
-                const parallel = gleichzeitig(v);
-                const saldoMin = v.saldoBeiAntrag != null ? Math.round(Number(v.saldoBeiAntrag) * 60) : null;
-                const kostet = v.zaStunden != null ? Math.round(Number(v.zaStunden) * 60) : 0;
-                return (
-                  <ListRow
-                    key={v.id}
-                    title={v.userName}
-                    subtitle={
-                      <>
-                        <span className="block">
-                          {zeitraum(v)} · {istZa(v) ? umfang(v) : tageText(Number(v.tage))}
-                        </span>
-                        {v.notiz && <span className="mt-1 block">{v.notiz}</span>}
-                        {!istZa(v) && restZeile(v)}
-                        {/*
-                          DAS ZEITGUTHABEN BEIM ANTRAG — die Zahl, nach der
-                          beim Zeitausgleich entschieden wird.
-                        */}
-                        {istZa(v) && saldoMin !== null && (
-                          <span
-                            className={`mt-1 block text-xs ${
-                              saldoMin - kostet < 0 ? 'font-medium text-warning' : 'text-ink-muted'
-                            }`}
-                          >
-                            Zeitguthaben beim Antrag: {vorzeichen(saldoMin)} Std
-                            {saldoMin - kostet < 0 ? ' — reicht nicht' : ''}
-                          </span>
-                        )}
-                        {/*
-                          Wer sonst noch weg ist. Ohne diese Zeile wäre die
-                          Entscheidung ein Blindflug — und der zweite Monteur
-                          bekäme dieselbe Woche genehmigt.
-                        */}
-                        {parallel.length > 0 && (
-                          <span className="mt-1 block text-xs text-warning">
-                            Gleichzeitig im Urlaub: {parallel.join(', ')}
-                          </span>
-                        )}
-                      </>
-                    }
-                  >
-                    {v.userId === user?.uid && andereEntscheiden ? (
-                      <span className="text-xs text-ink-muted">Entscheidet jemand anderer</span>
-                    ) : (
-                      <>
-                        <Button
-                          loading={arbeitet === v.id}
-                          onClick={() => entscheiden(v, 'Genehmigt')}
-                        >
-                          Genehmigen
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          loading={arbeitet === v.id}
-                          onClick={() => ablehnen(v)}
-                        >
-                          Ablehnen
-                        </Button>
-                      </>
-                    )}
-                  </ListRow>
-                );
-              })}
-            </List>
-          )}
-        </Card>
-      )}
+      {/* Ohne offene Anträge steht die Liste nach dem eigenen Antrag — dort sagt sie „Kein Antrag wartet“. */}
+      {darfEntscheiden && !laden && offene.length === 0 && offeneKarte}
 
       {/* Bündig: die Anträge sind Zeilen von Kante zu Kante (Designlinie „Fassung 3"). */}
       <Card title="Meine Anträge" buendig>
