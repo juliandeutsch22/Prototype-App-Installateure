@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import userEvent from '@testing-library/user-event';
@@ -55,6 +55,13 @@ const eintraege = [
 
 /** Wen die Ansicht als Belegschaft vorfindet — je Test setzbar. */
 let benutzer: AppUser[] = [monteur];
+
+/** Anpassungen des Urlaubsanspruchs — je Test setzbar. */
+let anpassungen: Array<{ id: string; userId: string; urlaubsjahr: number; tage: number; grund: string }> = [];
+vi.mock('@/lib/db/urlaubsanspruch', () => ({
+  listAnpassungen: vi.fn(async (_c: string, uid?: string) =>
+    anpassungen.filter((a) => !uid || a.userId === uid)),
+}));
 
 vi.mock('@/lib/db/users', () => ({
   listUsers: vi.fn(async () => benutzer),
@@ -125,6 +132,7 @@ vi.mock('@/features/vacations/zeitguthaben', () => ({
 
 
 beforeEach(() => {
+  anpassungen = [];
   benutzer = [monteur];
   buchungen = eintraege;
   // Fest auf den 31.08.2026, damit "heute" den Test nicht mit der Zeit
@@ -515,5 +523,21 @@ describe('Im Supportzugang (Testbericht 30.09.2026, M40)', () => {
     } finally {
       delete (authWert as { einblick?: unknown }).einblick;
     }
+  });
+});
+
+describe('Mitarbeiteruebersicht — angepasster Urlaubsanspruch (Plan 10.3)', () => {
+  it('rechnet die Anpassung in den Resturlaub und nennt sie', async () => {
+    await oeffneMitarbeiter();
+    const ohne = screen.getByText(/Tage Resturlaub/).textContent ?? '';
+    expect(ohne).not.toMatch(/Anspruch angepasst/);
+    cleanup();
+
+    anpassungen = [{ id: 'a1', userId: 'u1', urlaubsjahr: 2026, tage: -6.25, grund: 'Unbezahlter Urlaub' }];
+    await oeffneMitarbeiter();
+    const mit = screen.getByText(/Tage Resturlaub/).textContent ?? '';
+    expect(mit).toMatch(/Anspruch angepasst: −6,25 Tage/);
+    const zahl = (t: string) => Number(t.match(/([\d,]+)\s*Tage Resturlaub/)![1].replace(',', '.'));
+    expect(zahl(mit)).toBeCloseTo(zahl(ohne) - 6.25, 2);
   });
 });

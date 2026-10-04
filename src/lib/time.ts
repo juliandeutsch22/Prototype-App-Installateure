@@ -180,6 +180,18 @@ export interface UrlaubsStand {
    * und dann ist es ein Streit statt einer Auskunft.
    */
   verfallen: number;
+  /**
+   * Die Anpassungen dieses Urlaubsjahres zusammen (negativ = weniger). Sie
+   * stecken schon im Anspruch; die Zahl steht hier, damit die Ansicht
+   * „davon angepasst" sagen kann.
+   */
+  angepasst: number;
+}
+
+/** Eine Anpassung des Anspruchs, so weit die Rechnung sie braucht. */
+export interface AnspruchsAnpassung {
+  urlaubsjahr: number;
+  tage: number;
 }
 
 /** Ein Urlaub, wie ihn beide Aufrufer liefern können: Beginn und Dauer. */
@@ -293,18 +305,29 @@ interface Jahrgang {
  * App landet — die Buchhaltung darf fremde Zeiteinträge nachtragen —, wäre
  * sonst zweimal abgezogen.
  *
+ * ANPASSUNGEN (Elternkarenz, Präsenzdienst, längerer unbezahlter Urlaub)
+ * ändern den Jahrgang ihres Urlaubsjahres, nicht den Verbrauch: ein um 6,25
+ * Tage gekürztes Jahr hat von Anfang an weniger, und auch sein Übertrag und
+ * seine Verjährung rechnen mit dem Gekürzten. Ohne Anpassungen kommt auf die
+ * Nachkommastelle dasselbe heraus wie vorher.
+ *
  * @param posten Der GANZE Verlauf seit dem Startdatum, nicht nur das Jahr.
+ * @param anpassungen Die geltenden Anpassungen der Person, alle Jahre.
  */
 export function urlaubsStand(
   user: Pick<AppUser, 'yearlyVacationDays' | 'initialVacationDays' | 'appStartDate'>,
   jahr: number,
   posten: readonly UrlaubsPosten[],
   regel: UebertragRegel = UEBERTRAG_VORGABE,
+  anpassungen: readonly AnspruchsAnpassung[] = [],
 ): UrlaubsStand {
   const jahresanspruch = Number(user.yearlyVacationDays ?? DEFAULT_URLAUBSTAGE) || DEFAULT_URLAUBSTAGE;
   const start = user.appStartDate ?? null;
   const bestand = user.initialVacationDays;
   const beginn = regel.jahresbeginn ?? JAHRESBEGINN_VORGABE;
+  const angepasstIn = (j: number) =>
+    Math.round(anpassungen.reduce((s, a) => (a.urlaubsjahr === j ? s + Number(a.tage) : s), 0) * 100) / 100;
+  const angepasst = angepasstIn(jahr);
 
   /*
     „NICHT ANGEGEBEN" UND „NULL TAGE" SIND ZWEI VERSCHIEDENE AUSSAGEN — und
@@ -330,9 +353,10 @@ export function urlaubsStand(
   */
   if (start === null || startjahr > jahr) {
     const genommen = summe(posten.filter((p) => imJahr(p, jahr, beginn)));
+    const anspruch = jahresanspruch + angepasst;
     return {
-      anspruch: jahresanspruch, genommen, rest: jahresanspruch - genommen,
-      ausAnfangsbestand: false, uebertrag: 0, verfallen: 0,
+      anspruch, genommen, rest: anspruch - genommen,
+      ausAnfangsbestand: false, uebertrag: 0, verfallen: 0, angepasst,
     };
   }
 
@@ -355,10 +379,15 @@ export function urlaubsStand(
       jahrgaenge = jahrgaenge.filter((g) => g.jahr >= j - VERJAEHRUNG_JAHRE);
     }
 
+    /*
+      Die Anpassung gehört zum Jahrgang, auch im Startjahr mit Anfangsbestand:
+      ein unbezahlter Urlaub nach dem Startdatum steht in keinem mitgebrachten
+      Bestand.
+    */
     if (j === startjahr) {
-      jahrgaenge.push({ jahr: j, offen: bestandAngegeben ? Number(bestand) : jahresanspruch });
+      jahrgaenge.push({ jahr: j, offen: (bestandAngegeben ? Number(bestand) : jahresanspruch) + angepasstIn(j) });
     } else {
-      jahrgaenge.push({ jahr: j, offen: jahresanspruch });
+      jahrgaenge.push({ jahr: j, offen: jahresanspruch + angepasstIn(j) });
     }
 
     if (j === jahr) uebertragInsJahr = summeOffen(jahrgaenge.filter((g) => g.jahr < j));
@@ -416,6 +445,7 @@ export function urlaubsStand(
     ausAnfangsbestand,
     uebertrag: uebertragInsJahr,
     verfallen: verfallenImJahr,
+    angepasst,
   };
 }
 
@@ -536,6 +566,12 @@ export function tageWort(n: number): string {
  */
 export function tageZahl(n: number): string {
   return n.toLocaleString('de-AT', { maximumFractionDigits: 2 });
+}
+
+/** Eine Anpassung des Anspruchs mit Vorzeichen: „−6,25 Tage", „+2 Tage". */
+export function vorzeichenTage(n: number): string {
+  const betrag = tageZahl(Math.abs(n));
+  return `${n < 0 ? '−' : '+'}${betrag} ${Math.abs(n) === 1 ? 'Tag' : 'Tage'}`;
 }
 
 /** Minuten -> 'HH:MM'. */
@@ -874,6 +910,8 @@ export interface MonthStats {
   /** Stammt der Anspruch aus dem mitgebrachten Bestand? Für die Beschriftung. */
   urlaubAusAnfangsbestand: boolean;
   urlaubRest: number;
+  /** Anpassungen des Anspruchs in diesem Urlaubsjahr — steckt schon im Rest. */
+  urlaubAngepasst: number;
 }
 
 /**
@@ -1035,7 +1073,7 @@ export function calcMonthStats(
     localDateStr(monatsEnde),
     urlaub.regel?.jahresbeginn ?? JAHRESBEGINN_VORGABE,
   );
-  const stand = urlaubsStand(user, urlaubsjahr, verlauf, urlaub.regel);
+  const stand = urlaubsStand(user, urlaubsjahr, verlauf, urlaub.regel, urlaub.anpassungen);
 
   // Laufend heißt: der letzte Tag des Monats liegt noch vor uns.
   const heute = new Date();
@@ -1063,6 +1101,7 @@ export function calcMonthStats(
     urlaubRest: stand.rest,
     urlaubsAnspruch: stand.anspruch,
     urlaubAusAnfangsbestand: stand.ausAnfangsbestand,
+    urlaubAngepasst: stand.angepasst,
   };
 }
 
@@ -1078,6 +1117,8 @@ export interface UrlaubsQuelle {
   /** Alle Urlaubstage seit dem Startdatum — nicht nur die des Jahres. */
   verlauf?: readonly UrlaubsPosten[];
   regel?: UebertragRegel;
+  /** Die geltenden Anpassungen des Anspruchs dieser Person. */
+  anpassungen?: readonly AnspruchsAnpassung[];
 }
 
 export type CompletenessStatus = 'complete' | 'today_only' | 'missing';

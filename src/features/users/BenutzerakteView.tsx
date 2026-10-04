@@ -6,7 +6,7 @@ import { getUserByUid, updateUserProfile } from '@/lib/db/users';
 import { generatePassword, resendPasswordReset } from '@/lib/auth/provisionUser';
 import { passwortVergeben } from '@/lib/auth/sitzung';
 import { istBenutzerkonto, kontoAnzeige } from '@shared/benutzername';
-import { canManageAdmins } from '@/lib/permissions';
+import { canManageAdmins, fuehrtZeitkonto } from '@/lib/permissions';
 import { ROLES, type AppUser, type Role } from '@/types';
 import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
@@ -31,12 +31,13 @@ import TagessollFelder from './TagessollFelder';
 import EinstufungFelder from './EinstufungFelder';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
-import { todayStr } from '@/lib/time';
+import { todayStr, uebertragsRegel } from '@/lib/time';
 import { einstufungText, lehrzeitEnde } from '@/lib/einstufung';
 import Datenauskunft from '@/features/recht/Datenauskunft';
 import { zeigtAuskunft } from '@/features/recht/auskunftDatei';
 import ZahlFeld from '@/components/ZahlFeld';
 import KontoUmstellen from './KontoUmstellen';
+import UrlaubsanspruchKarte from './UrlaubsanspruchKarte';
 
 /**
  * Die Akte eines Benutzers — und die Stelle, an der sie bearbeitet wird.
@@ -66,7 +67,7 @@ const tageText = (tage: number[]) =>
 
 export default function BenutzerakteView() {
   const { uid } = useParams<{ uid: string }>();
-  const { user, einblick } = useAuth();
+  const { user, einblick, company } = useAuth();
   const toast = useToast();
 
   const [person, setPerson] = useState<Teil<AppUser | null>>(LAEDT);
@@ -343,6 +344,14 @@ export default function BenutzerakteView() {
     </Card>
   ) : null;
 
+  /*
+    NUR MIT ZEITKONTO: ohne Zeitkonto führt Senklot keinen Resturlaub, und
+    eine Anpassung hätte nichts, woran sie wirkt.
+  */
+  const anspruch = fuehrtZeitkonto(p) ? (
+    <UrlaubsanspruchKarte person={p} jahresbeginn={uebertragsRegel(company).jahresbeginn ?? '01-01'} />
+  ) : null;
+
   const auskunft = zeigtAuskunft(user?.role, !!einblick) ? (
     <Datenauskunft
       art="mitarbeiter"
@@ -368,9 +377,9 @@ export default function BenutzerakteView() {
       />
 
       <Aktenspalten
-        telefon={[stammdaten, zugang, auskunft]}
+        telefon={[stammdaten, zugang, anspruch, auskunft]}
         links={[stammdaten]}
-        rechts={[zugang, auskunft]}
+        rechts={[zugang, anspruch, auskunft]}
       />
 
       <ConfirmDialog

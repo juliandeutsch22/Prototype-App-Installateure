@@ -9,6 +9,7 @@ import {
   entscheiden as urlaubEntscheiden,
 } from '@/lib/db/vacations';
 import { getUserByUid, listUsers } from '@/lib/db/users';
+import { listAnpassungen } from '@/lib/db/urlaubsanspruch';
 import {
   krankmeldungSpeichern,
   listEigeneKrankmeldungen,
@@ -31,9 +32,10 @@ import {
   tagesAnteil,
   tagessollStunden,
   tageZahl,
+  vorzeichenTage,
   type SaldoResult,
 } from '@/lib/time';
-import type { AppUser, Betriebsurlaub, Krankmeldung, Vacation } from '@/types';
+import type { AppUser, Betriebsurlaub, Krankmeldung, UrlaubsanspruchAnpassung, Vacation } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import InfoHint from '@/components/InfoHint';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -166,6 +168,8 @@ export default function VacationsView() {
   const reiterleiste = useReiterImBild<HTMLDivElement>(reiter);
 
   const [eigene, setEigene] = useState<WithId<Vacation>[]>([]);
+  /** Die eigenen Anpassungen des Anspruchs (Elternkarenz, unbezahlter Urlaub). */
+  const [meineAnpassungen, setMeineAnpassungen] = useState<UrlaubsanspruchAnpassung[]>([]);
   const [offene, setOffene] = useState<WithId<Vacation>[]>([]);
   /**
    * Ob im Betrieb noch jemand ANDERER über Urlaub entscheiden darf — dann
@@ -217,7 +221,7 @@ export default function VacationsView() {
       setLaden(true);
       setError(null);
       try {
-        const [meine, profilDaten] = await Promise.all([
+        const [meine, profilDaten, anpassungen] = await Promise.all([
           /*
             MEHR ALS DIE LETZTEN SECHZIG. Die Vorgabe reichte, solange nur das
             laufende Jahr zählte. Für den Übertrag hängt der Anspruch am
@@ -227,8 +231,11 @@ export default function VacationsView() {
           */
           listOwnVacations(user.companyId, user.uid, 500),
           getUserByUid(user.companyId, user.uid),
+          // Nicht still: ohne sie stünde ein zu hoher Resturlaub da.
+          listAnpassungen(user.companyId, user.uid),
         ]);
         setEigene(meine);
+        setMeineAnpassungen(anpassungen);
         setProfil(profilDaten ?? null);
         /*
           NEBENBEI, UND STILL BEI EINEM FEHLER: die eigenen Krankmeldungen und
@@ -337,8 +344,9 @@ export default function VacationsView() {
         */
         genehmigtePosten,
         regel,
+        meineAnpassungen,
       ),
-    [genehmigtePosten, jahr, profil, regel],
+    [genehmigtePosten, jahr, profil, regel, meineAnpassungen],
   );
   const genommen = stand.genommen;
   const anspruch = stand.anspruch;
@@ -363,8 +371,8 @@ export default function VacationsView() {
     () =>
       antragsJahr === jahr || !profil
         ? stand.rest
-        : urlaubsStand(profil, antragsJahr, genehmigtePosten, regel).rest,
-    [antragsJahr, jahr, profil, stand.rest, genehmigtePosten, regel],
+        : urlaubsStand(profil, antragsJahr, genehmigtePosten, regel, meineAnpassungen).rest,
+    [antragsJahr, jahr, profil, stand.rest, genehmigtePosten, regel, meineAnpassungen],
   );
 
   /**
@@ -376,7 +384,10 @@ export default function VacationsView() {
    * ohnehin — Profil und Urlaube der Belegschaft.
    */
   const [antragsteller, setAntragsteller] = useState<
-    Record<string, { profil: AppUser; genehmigt: WithId<Vacation>[] } | 'fehler'>
+    Record<
+      string,
+      { profil: AppUser; genehmigt: WithId<Vacation>[]; anpassungen: UrlaubsanspruchAnpassung[] } | 'fehler'
+    >
   >({});
   useEffect(() => {
     if (!user || !darfEntscheiden) return;
@@ -386,9 +397,10 @@ export default function VacationsView() {
     void Promise.all(
       uids.map(async (uid) => {
         try {
-          const [p, urlaube] = await Promise.all([
+          const [p, urlaube, anpassungen] = await Promise.all([
             getUserByUid(user.companyId, uid),
             listOwnVacations(user.companyId, uid, 500),
+            listAnpassungen(user.companyId, uid),
           ]);
           if (!p) return [uid, 'fehler'] as const;
           return [
@@ -396,6 +408,7 @@ export default function VacationsView() {
             {
               profil: p,
               genehmigt: urlaube.filter((v) => v.status === 'Genehmigt' && !istZa(v)),
+              anpassungen,
             },
           ] as const;
         } catch {
@@ -422,7 +435,7 @@ export default function VacationsView() {
     const verteilen = (x: { von: string; bis?: string | null; tage: number }) =>
       antragNachUrlaubsjahr(x, a.profil.workDays, halbeTage, regel.jahresbeginn);
     const antragsjahr = urlaubsJahrVon(v.von, regel.jahresbeginn);
-    const rest = urlaubsStand(a.profil, antragsjahr, a.genehmigt.flatMap(verteilen), regel).rest;
+    const rest = urlaubsStand(a.profil, antragsjahr, a.genehmigt.flatMap(verteilen), regel, a.anpassungen).rest;
     /* Abgezogen wird, was von diesem Antrag in sein erstes Urlaubsjahr fällt. */
     const imJahr = verteilen(v)
       .filter((p) => urlaubsJahrVon(p.von, regel.jahresbeginn) === antragsjahr)
@@ -978,7 +991,7 @@ export default function VacationsView() {
             label="Resturlaub"
             value={tageText(stand.rest)}
             tone={stand.rest < 0 ? 'warning' : 'brand'}
-            hint={`${genommen} von ${anspruch} genehmigt`}
+            hint={`${tageZahl(genommen)} von ${tageZahl(anspruch)} genehmigt`}
           />
           {beantragt > 0 && (
             <Metric label="Beantragt" value={tageText(beantragt)} hint="noch nicht entschieden" />
@@ -1138,8 +1151,8 @@ export default function VacationsView() {
               </>
             )}
             <span className={`block basis-full text-xs ${zeitraumGewaehlt ? 'mt-1' : ''}`}>
-              {jahresName} genehmigt: <span>{genommen}</span> von{' '}
-              <span>{anspruch}</span> Tagen
+              {jahresName} genehmigt: <span>{tageZahl(genommen)}</span> von{' '}
+              <span>{tageZahl(anspruch)}</span> Tagen
               {/* Eine richtige Zahl mit falscher Erklärung ist auch eine
                   falsche Auskunft: „von 25" stimmt weder im Umstiegsjahr
                   (dort sind es die mitgebrachten Tage) noch dort, wo ein
@@ -1147,7 +1160,7 @@ export default function VacationsView() {
               {stand.ausAnfangsbestand
                 ? ' (Restanspruch beim Umstieg).'
                 : stand.uebertrag > 0
-                  ? `, davon ${stand.uebertrag} aus dem vorigen Urlaubsjahr.`
+                  ? `, davon ${tageZahl(stand.uebertrag)} aus dem vorigen Urlaubsjahr.`
                   : '.'}
               {/* Verfallene Tage werden GENANNT. Sie lautlos abzuziehen wäre
                   genau die Sorte Zahl, über die sich jemand später beschwert
@@ -1156,6 +1169,17 @@ export default function VacationsView() {
                 <span className="mt-1 block">
                   <span>{stand.verfallen}</span>
                   {stand.verfallen === 1 ? ' Tag ist' : ' Tage sind'} heuer verfallen.
+                </span>
+              )}
+              {stand.angepasst !== 0 && (
+                <span className="mt-1 flex flex-wrap items-center">
+                  <span>Davon angepasst: {vorzeichenTage(stand.angepasst)}</span>
+                  <InfoHint about="Angepasster Urlaubsanspruch">
+                    {meineAnpassungen
+                      .filter((x) => x.urlaubsjahr === jahr)
+                      .map((x) => `${vorzeichenTage(x.tage)}: ${x.grund}`)
+                      .join(' · ')}
+                  </InfoHint>
                 </span>
               )}
             </span>

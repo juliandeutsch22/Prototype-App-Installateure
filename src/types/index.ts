@@ -1249,6 +1249,27 @@ export interface Krankmeldung {
   createdAt?: number;
 }
 
+/**
+ * urlaubsanspruch_anpassungen/{id} — mehr oder weniger Urlaub in EINEM
+ * Urlaubsjahr, mit Grund (Elternkarenz, Präsenzdienst, unbezahlter Urlaub).
+ * Entfernt wird mit Grund; die Zeile bleibt.
+ */
+export interface UrlaubsanspruchAnpassung {
+  id: string;
+  companyId: string;
+  userId: string;
+  /** Benannt nach dem Kalenderjahr, in dem das Urlaubsjahr beginnt. */
+  urlaubsjahr: number;
+  /** Negativ = weniger Anspruch. */
+  tage: number;
+  grund: string;
+  angelegtVonName?: string | null;
+  entferntAm?: number | null;
+  entferntVonName?: string | null;
+  entferntGrund?: string | null;
+  createdAt?: number;
+}
+
 /** betriebsurlaube/{id} — der Betrieb hat zu. */
 export interface Betriebsurlaub {
   id: string;
