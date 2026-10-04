@@ -13,7 +13,7 @@ kommt von *plumbum*, Blei — dem Werkstoff des Senklots.
 |---|---|
 | `logo.svg` | Wortmarke, waagrecht. Für Kopfzeilen, Briefpapier, Anmeldebildschirm |
 | `icon.svg` | Das Zeichen als Fläche, 64er-Raster — die Maße für Wortmarke und Produktmarke |
-| `app-zeichen.png` | **Vorlage für App-Zeichen und Favicon**: das Senklot auf Schwarz, 1024 × 1536 |
+| `app-zeichen.png` | **Vorlage für App-Zeichen und Favicon**: das Senklot auf Weiß, 1024 × 1536 |
 | `*.png` (übrige) | Aus `app-zeichen.png` erzeugt, siehe unten |
 
 ## Die Form (seit 03.10.2026)
@@ -40,22 +40,25 @@ dieselben Pfade.
 ## App-Zeichen und Favicon (seit 04.10.2026)
 
 Am Startbildschirm und im Browserreiter steht seit dem 04.10.2026 ein Bild
-statt der Fläche: das Senklot in Petrol mit Glanz und Glühen auf Schwarz
+statt der Fläche: das Senklot in Petrol mit Glanz auf Weiß
 (`app-zeichen.png`), vom Betrieb ausgesucht. **Nur dort.** Wortmarke,
 Produktmarke in der App und Kopf des Handbuchs bleiben die einfarbige Fläche
 aus `icon.svg` — sie stehen klein, weiß auf Petrol oder neben Schrift, und
 dort trägt eine Fläche, ein Glanzbild nicht.
 
-Die gelieferte Datei hatte einen durchsichtigen Grund, das Glühen stand nur in
-den Farbwerten. Ein Browser rechnet bei Durchsichtigkeit die Farbe weg — vom
-Glühen wäre nichts geblieben. `app-zeichen.png` ist deshalb dieselbe Datei
-ohne Durchsichtigkeit: genau das Bild, wie es auf Schwarz aussieht.
+Die gelieferte Datei zeigte das Senklot mit Glühen auf Schwarz. Ihr Grund ist
+durchsichtig; das Glühen steht nur in den Farbwerten, die Durchsichtigkeit
+schneidet das Senklot sauber frei. Am selben Tag hat der Betrieb sich für
+Weiß entschieden (zuerst war es kurz das Bild auf Schwarz, #238).
+`app-zeichen.png` ist deshalb die Datei auf Weiß gelegt — das Glühen gehört
+zum schwarzen Grund und fällt dabei weg. Abseits des Senklots lagen noch Reste
+mit höchstens 2 % Deckkraft, auf Weiß als grauer Schleier zu sehen; sie sind
+entfernt, die Kanten des Senklots sind unberührt.
 
 Wie zugeschnitten wird, steht in `rastern.mjs`:
 
-* **Hochformat aufs Quadrat.** Die Vorlage kommt mittig auf ein schwarzes
-  Quadrat. Oben reicht das Glühen bis an den Rand; die oberste Zeile läuft
-  deshalb nach oben aus, statt hart an Schwarz zu stoßen.
+* **Hochformat aufs Quadrat.** Die Vorlage kommt mittig auf ein weißes
+  Quadrat; sie ist am ganzen Rand weiß, der Übergang ist unsichtbar.
 * **Das Favicon ist enger zugeschnitten** als das App-Zeichen, damit bei
   16 px möglichst viel vom Zeichen bleibt. Die Schnur ist dort nur noch ein
   Hauch; erkennbar bleibt das Lot an Schulter und Spitze.
@@ -81,7 +84,7 @@ Zwei, mehr nicht.
 | Grund | `#FFFFFF` |
 
 Das gilt für die Fläche (Wortmarke, Produktmarke). App-Zeichen und Favicon
-sind seit dem 04.10.2026 das Bild auf Schwarz, siehe oben.
+sind seit dem 04.10.2026 das Bild auf Weiß, siehe oben — derselbe Grund.
 
 ### Die Platte war weiss, nicht petrol (bis 03.10.2026)
 
@@ -136,10 +139,9 @@ Produktmarke statt eines Kundenlogos — vor der Anmeldung ist der Mandant
 unbekannt, und die Vorgabe zeigte bis dahin jedem zweiten Betrieb das Zeichen
 des ersten.
 
-`background_color` im Manifest ist der Grund des App-Zeichens, seit dem
-04.10.2026 also `#000000`: Android zeigt beim Start das Zeichen auf dieser
-Farbe, und auf Weiss stünde ein schwarzes Quadrat darin. (Mit der weissen
-Platte war es aus demselben Grund `#ffffff`.)
+`background_color` im Manifest ist der Grund des App-Zeichens, also
+`#ffffff`: Android zeigt beim Start das Zeichen auf dieser Farbe, und auf
+einer anderen stünde ein Quadrat darum.
 
 **Was NICHT gewechselt ist:** `BrandLogo` zeigt weiter das Logo des Betriebs.
 Das Logo IM Kopf der App gehört dem Betrieb, nicht dem Produkt — die App ist
