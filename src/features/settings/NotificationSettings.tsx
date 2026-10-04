@@ -62,6 +62,8 @@ export default function NotificationSettings() {
   const [error, setError] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — die Seite steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
+  // Selten gebraucht — das Formular bleibt zu, bis es jemand öffnet.
+  const [passwortOffen, setPasswortOffen] = useState(false);
 
   // Wer Anforderungen bearbeitet, ist der Empfänger der Eingangsmeldung;
   // wer selbst anfordert, der der Abholmeldung. Beides zu zeigen, wenn nur
@@ -155,19 +157,54 @@ export default function NotificationSettings() {
     <div className="space-y-6">
       <PageHeader
         title="Mein Konto"
-        subtitle="Passwort und Benachrichtigungen — alles, was nur dich betrifft"
+        subtitle="Benachrichtigungen und Passwort — alles, was nur dich betrifft"
       />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
       {/*
-        DAS PASSWORT ZUERST, und zwar auf der EINZIGEN Unterseite, die jede
-        Rolle sieht. Ein eigener Reiter dafür wäre ein neunzehnter für eine
-        Sache, die man zweimal im Jahr braucht; hinter „Sätze und Kosten" oder
-        „Firmendaten" fände es kein Monteur, weil er diese Seiten gar nicht
-        sieht. Hier steht es bei allem anderen, was ihm selbst gehört.
+        ERST DAS GERÄT, DANN DIE AUSWAHL, DANN DAS PASSWORT (Analyse
+        03.10.2026, Paket 2). Wer hierherkommt, will meistens die Meldungen
+        auf dem Telefon einschalten — das Passwort braucht man zweimal im
+        Jahr. Es steht weiter auf der einzigen Unterseite, die jede Rolle
+        sieht, aber hinter einem Knopf.
       */}
-      <PasswortAendern benutzerkonto={istBenutzerkonto(user?.email)} />
+      <Card
+        title="Dieses Gerät"
+        hint="Jedes Gerät meldet sich einzeln an — Telefon und Rechner getrennt. Das ist Absicht: so entscheidest du, wo dich eine Meldung erreicht."
+      >
+        <p
+          className={
+            zustand.ton === 'ok'
+              ? 'font-medium text-success'
+              : zustand.ton === 'hinweis'
+                ? 'text-warning'
+                : 'text-ink-muted'
+          }
+        >
+          {zustand.text}
+        </p>
+
+        {(push === 'aus' || push === 'bereit') && (
+          <div className="mt-4">
+            {push === 'bereit' ? (
+              <Button variant="ghost" loading={busy} onClick={() => void geraetAbmelden()}>
+                Auf diesem Gerät abschalten
+              </Button>
+            ) : (
+              <Button loading={busy} onClick={() => void geraetAnmelden()}>
+                Auf diesem Gerät einschalten
+              </Button>
+            )}
+          </div>
+        )}
+
+        {error && (
+          <div className="mt-3">
+            <ErrorState message={error} />
+          </div>
+        )}
+      </Card>
 
       <Card
         title="Wovon möchtest du erfahren?"
@@ -223,43 +260,15 @@ export default function NotificationSettings() {
         </div>
       </Card>
 
-      <Card
-        title="Dieses Gerät"
-        hint="Jedes Gerät meldet sich einzeln an — Telefon und Rechner getrennt. Das ist Absicht: so entscheidest du, wo dich eine Meldung erreicht."
-      >
-        <p
-          className={
-            zustand.ton === 'ok'
-              ? 'font-medium text-success'
-              : zustand.ton === 'hinweis'
-                ? 'text-warning'
-                : 'text-ink-muted'
-          }
-        >
-          {zustand.text}
-        </p>
-
-        {(push === 'aus' || push === 'bereit') && (
-          <div className="mt-4">
-            {push === 'bereit' ? (
-              <Button variant="ghost" loading={busy} onClick={() => void geraetAbmelden()}>
-                Auf diesem Gerät abschalten
-              </Button>
-            ) : (
-              <Button loading={busy} onClick={() => void geraetAnmelden()}>
-                Auf diesem Gerät einschalten
-              </Button>
-            )}
-          </div>
-        )}
-
-
-        {error && (
-          <div className="mt-3">
-            <ErrorState message={error} />
-          </div>
-        )}
-      </Card>
+      {passwortOffen ? (
+        <PasswortAendern benutzerkonto={istBenutzerkonto(user?.email)} />
+      ) : (
+        <Card title="Passwort">
+          <Button variant="secondary" onClick={() => setPasswortOffen(true)}>
+            Passwort ändern
+          </Button>
+        </Card>
+      )}
 
       {/*
         NUR FÜR DIE FÜHRUNG, aus demselben Grund wie die Lauf-Warnung auf der

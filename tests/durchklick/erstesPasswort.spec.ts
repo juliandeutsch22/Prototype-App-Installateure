@@ -97,9 +97,9 @@ test('Wer über den Link kommt, vergibt ein Passwort — und kommt damit wieder 
     Kosten" gar nicht heran.
   */
   await page.goto('/settings/meldungen');
-  await expect(page.getByRole('heading', { name: 'Passwort ändern' })).toBeVisible({
-    timeout: 20_000,
-  });
+  // Hinter einem Knopf, weil man es selten braucht (Analyse 03.10.2026).
+  await page.getByRole('button', { name: 'Passwort ändern', exact: true }).click({ timeout: 20_000 });
+  await expect(page.getByRole('heading', { name: 'Passwort ändern' })).toBeVisible();
 
   /*
     ABER NUR MIT DEM AKTUELLEN (Launch-Check 25.09.2026, K7). Ein falsches
@@ -116,7 +116,7 @@ test('Wer über den Link kommt, vergibt ein Passwort — und kommt damit wieder 
   await aendern.click();
   await expect(page.getByText('Das Passwort ist gesetzt.')).toBeVisible({ timeout: 20_000 });
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Passwort ändern' })).toBeVisible({
+  await expect(page.getByRole('button', { name: 'Passwort ändern', exact: true })).toBeVisible({
     timeout: 20_000,
   });
 });
