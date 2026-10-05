@@ -64,6 +64,7 @@ import { scheinAbgleich } from './scheinAbgleich';
 import { einheitspreisVorschau, pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from './pauschale';
 import { ANZAHLUNG_PROZENT_VORGABE, anteilFehler, anzahlungVorschau } from './anzahlung';
 import { listQuotesForProject } from '@/lib/db/quotes';
+import { listBasiszinssaetze, type ZentralerBasiszinssatz } from '@/lib/db/basiszins';
 import { discountLabel, istPreiszeile, positionsRabattText, type InvoicePosition } from './totals';
 import { todayStr, localDateStr, fmtDauer, tageWort } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
@@ -122,6 +123,16 @@ export default function InvoicesView() {
   const [error, setError] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — die Rechnungsliste steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
+  /**
+   * Der zentral gepflegte Basiszinssatz (seit 05.10.2026). Kommt er nicht,
+   * rechnet die Mahnung mit dem eigenen Verlauf des Betriebs wie bisher.
+   */
+  const [zentralerBasiszins, setZentralerBasiszins] = useState<ZentralerBasiszinssatz[]>([]);
+  useEffect(() => {
+    let weg = false;
+    listBasiszinssaetze().then((l) => { if (!weg) setZentralerBasiszins(l); }, () => undefined);
+    return () => { weg = true; };
+  }, []);
   /**
    * Stammt die Vorschau aus der Pauschale? `null`: nein; `''`: ja, aber ohne
    * angenommenes Angebot; sonst Nummer und Betrag des Angebots.
@@ -1333,6 +1344,7 @@ export default function InvoicesView() {
       basiszinssatz: company?.rates?.basiszinssatz,
       basiszinssatzAb: company?.rates?.basiszinssatzAb,
       basiszinssaetze: company?.rates?.basiszinssaetze,
+      zentral: zentralerBasiszins,
     });
   }
 

@@ -162,9 +162,12 @@ describe('Der Zweitschlüssel und die Beziehungen ohne Kennung', () => {
       `betrieb_zustand` (Paket D, 02.10.2026) gehört wie `betriebsanlagen` der
       Plattform: Schlüssel ist die Kennung des Betriebs, gelesen wird nur über
       die Plattformfunktionen, nie über `abfragen`.
+
+      `basiszinssaetze` (05.10.2026) hängt an keinem Betrieb; Schlüssel ist das
+      Halbjahr, gelesen wird mit einer eigenen Abfrage (`pg/basiszins.ts`).
     */
     expect(rows.map((r) => r.table_name).sort()).toEqual([
-      'ausleitung_dateien', 'betrieb_zustand', 'betriebsanlagen', 'monthly_stats', 'number_counters',
+      'ausleitung_dateien', 'basiszinssaetze', 'betrieb_zustand', 'betriebsanlagen', 'monthly_stats', 'number_counters',
       'system_laeufe', 'user_prefs',
     ].sort());
   }, 60_000);

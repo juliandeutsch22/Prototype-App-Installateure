@@ -237,6 +237,9 @@ vi.mock('@/lib/db/customers', () => ({
 */
 let konten: Array<Record<string, unknown>> = [];
 vi.mock('@/lib/db/konten', () => ({ buchungskonten: vi.fn(async () => konten) }));
+/** Der zentral gepflegte Basiszinssatz (seit 05.10.2026); ab Werk leer wie vor ihm. */
+let zentraleSaetze: Array<{ ab: string; satz: number }> = [];
+vi.mock('@/lib/db/basiszins', () => ({ listBasiszinssaetze: vi.fn(async () => zentraleSaetze) }));
 vi.mock('@/lib/db/timeEntries', () => ({
   listEntriesForProjects: vi.fn(async () => zeiten),
 }));
@@ -979,6 +982,24 @@ describe('Eine überfällige Rechnung mahnen', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Mahnung erzeugen' }));
     expect(await screen.findByText(/fehlt der\s+Basiszinssatz/)).toBeInTheDocument();
     expect(screen.queryByText(/stehen auf dem Beleg/)).not.toBeInTheDocument();
+  });
+
+  it('rechnet mit dem zentralen Basiszinssatz, wenn der Betrieb selbst keinen hat', async () => {
+    zentraleSaetze = [{ ab: '2026-07-01', satz: 1.53 }];
+    try {
+      rechnungen = [{ ...UEBERFAELLIG, mahnstufe: 1, customerVatId: 'ATU99999999' }];
+      await menue();
+      await userEvent.click(await screen.findByRole('menuitem', { name: 'Mahnung erzeugen' }));
+      expect(await screen.findByText(/Verzugszinsen .* stehen auf dem/)).toBeInTheDocument();
+      expect(screen.queryByText(/fehlt der\s+Basiszinssatz/)).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Erzeugen' }));
+      await waitFor(() => expect(mahnungPdf).toHaveBeenCalled());
+      expect((mahnungPdf.mock.calls[mahnungPdf.mock.calls.length - 1] as unknown[])[0]).toMatchObject({
+        zinsen: { art: 'berechnet', satz: 10.73, grundlage: '§ 456 UGB' },
+      });
+    } finally {
+      zentraleSaetze = [];
+    }
   });
 
   it('die Zahlungserinnerung trägt keine Zinsen', async () => {

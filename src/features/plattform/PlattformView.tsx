@@ -18,6 +18,7 @@ import { plattformFehler, type PlattformFehler } from '@/lib/db/fehlerprotokoll'
 import FehlerListe from './FehlerListe';
 import NotzugangPasswort from './NotzugangPasswort';
 import BetriebVerwalten from './BetriebVerwalten';
+import BasiszinsZentral from './BasiszinsZentral';
 
 /**
  * Die einzige Seite des globalen Administrators.
@@ -501,6 +502,8 @@ export default function PlattformView() {
           </div>
         )}
       </Card>
+
+      <BasiszinsZentral />
 
       {/*
         FEHLER DER APP, nicht der Betriebe: gebündelt nach Meldung, mit dem

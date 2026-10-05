@@ -275,25 +275,35 @@ export interface Basiszinssatz {
   satz: number;
 }
 
+/** Ein gültiger Eintrag: ein Halbjahresbeginn und eine endliche Zahl. */
+function gueltig(b: Basiszinssatz | null | undefined): b is Basiszinssatz {
+  return !!b && typeof b.satz === 'number' && Number.isFinite(b.satz) && /^\d{4}-(01|07)-01$/.test(b.ab);
+}
+
 /**
  * Der Verlauf der Basiszinssätze eines Betriebs — die Liste und, wo es sie
  * noch gibt, der einzelne Satz aus der Zeit davor. Je Halbjahr einer; die
  * Liste gewinnt.
+ *
+ * DER ZENTRALE SATZ GEWINNT ÜBER BEIDE (seit 05.10.2026). Der Basiszinssatz
+ * gilt für ganz Österreich; der Betreiber pflegt ihn an einer Stelle
+ * (`public.basiszinssaetze`). Was ein Betrieb selbst eingetragen hat, gilt nur
+ * noch für Halbjahre, zu denen zentral nichts steht — so ändert sich bei
+ * keinem Betrieb etwas, solange die zentrale Liste leer ist.
  */
 export function basiszinsVerlauf(rates?: {
   basiszinssaetze?: Basiszinssatz[] | null;
   basiszinssatz?: number | null;
   basiszinssatzAb?: string | null;
-} | null): Basiszinssatz[] {
+} | null, zentral?: Basiszinssatz[] | null): Basiszinssatz[] {
   const je = new Map<string, number>();
-  if (typeof rates?.basiszinssatz === 'number' && Number.isFinite(rates.basiszinssatz)
-      && /^\d{4}-(01|07)-01$/.test(rates.basiszinssatzAb ?? '')) {
-    je.set(rates.basiszinssatzAb!, rates.basiszinssatz);
-  }
+  const alt = { ab: rates?.basiszinssatzAb ?? '', satz: rates?.basiszinssatz as number };
+  if (gueltig(alt)) je.set(alt.ab, alt.satz);
   for (const b of rates?.basiszinssaetze ?? []) {
-    if (b && typeof b.satz === 'number' && Number.isFinite(b.satz) && /^\d{4}-(01|07)-01$/.test(b.ab)) {
-      je.set(b.ab, b.satz);
-    }
+    if (gueltig(b)) je.set(b.ab, b.satz);
+  }
+  for (const b of zentral ?? []) {
+    if (gueltig(b)) je.set(b.ab, b.satz);
   }
   return [...je.entries()].map(([ab, satz]) => ({ ab, satz })).sort((a, b) => a.ab.localeCompare(b.ab));
 }
@@ -362,6 +372,8 @@ export function verzugszinsen(o: {
   basiszinssatz?: number | null;
   basiszinssatzAb?: string | null;
   basiszinssaetze?: Basiszinssatz[] | null;
+  /** Die zentral gepflegten Sätze; sie gewinnen je Halbjahr. */
+  zentral?: Basiszinssatz[] | null;
 }): Verzugszinsen {
   if (o.stufe < 2 || !(o.rest >= 0.01) || !o.faellig) return { art: 'keine' };
   const von = Date.parse(`${o.faellig}T00:00:00Z`);
@@ -374,7 +386,7 @@ export function verzugszinsen(o: {
     return mitBetrag(o.rest, ZINS_VERBRAUCHER, tage, '§ 1000 ABGB');
   }
 
-  const saetze = new Map(basiszinsVerlauf(o).map((b) => [b.ab, b.satz]));
+  const saetze = new Map(basiszinsVerlauf(o, o.zentral).map((b) => [b.ab, b.satz]));
   /*
     Die Halbjahre des Verzugs, vom letzten rückwärts: jeder Tag nach dem
     Zahlungsziel bis zum Mahntag. Beim ersten ohne Satz ist Schluss.
