@@ -9,6 +9,10 @@ import PageHeader from '@/components/PageHeader';
 import { ErrorState } from '@/components/States';
 import LaufStatus from './LaufStatus';
 import { useToast } from '@/components/Toast';
+import { SelectField } from '@/components/Field';
+import { listInvoicesInRange } from '@/lib/db/invoices';
+import { listCustomers } from '@/lib/db/customers';
+import { todayStr } from '@/lib/time';
 
 /**
  * Datensicherung und Auskunft.
@@ -31,6 +35,21 @@ import { useToast } from '@/components/Toast';
  * nicht. Deshalb steht sie oben.
  */
 
+/**
+ * Die wählbaren Zeiträume des Belegarchivs: alle Belege, oder ein Jahr der
+ * Aufbewahrungsfrist (§ 132 BAO: sieben Jahre) samt dem laufenden.
+ */
+function archivZeitraeume(heute: string): { wert: string; label: string; von: string; bis: string }[] {
+  const jahr = Number(heute.slice(0, 4));
+  return [
+    { wert: 'alle', label: 'Alle Belege', von: '2000-01-01', bis: heute },
+    ...Array.from({ length: 8 }, (_, i) => {
+      const j = jahr - i;
+      return { wert: String(j), label: String(j), von: `${j}-01-01`, bis: i === 0 ? heute : `${j}-12-31` };
+    }),
+  ];
+}
+
 /** Zwei Minuten. Der Lauf liest den ganzen Mandanten; das dauert. */
 const FRIST_MS = 120_000;
 
@@ -43,7 +62,10 @@ export default function SicherungView() {
   const { user, company } = useAuth();
   const toast = useToast();
 
-  const [laeuft, setLaeuft] = useState<'sicherung' | 'download' | null>(null);
+  const [laeuft, setLaeuft] = useState<'sicherung' | 'download' | 'archiv' | null>(null);
+  const [archivWahl, setArchivWahl] = useState('alle');
+  const [archivStand, setArchivStand] = useState<{ fertig: number; gesamt: number } | null>(null);
+  const [archivErgebnis, setArchivErgebnis] = useState<{ rechnungen: number; stornos: number; hinweise: number } | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const [laufStand, setLaufStand] = useState(0);
   const [letzte, setLetzte] = useState<
@@ -105,6 +127,39 @@ export default function SicherungView() {
       );
     } finally {
       setLaeuft(null);
+    }
+  }
+
+  async function archivErstellen() {
+    if (!user || !company) return;
+    const z = archivZeitraeume(todayStr()).find((x) => x.wert === archivWahl);
+    if (!z) return;
+    setLaeuft('archiv');
+    setFehler(null);
+    setArchivErgebnis(null);
+    setArchivStand(null);
+    try {
+      const [rechnungen, kunden] = await Promise.all([
+        listInvoicesInRange(user.companyId, z.von, z.bis),
+        listCustomers(user.companyId),
+      ]);
+      const { belegArchiv } = await import('@/features/invoices/belegArchiv');
+      const e = await belegArchiv({
+        company, rechnungen, kunden, von: z.von, bis: z.bis,
+        fortschritt: (fertig, gesamt) => setArchivStand({ fertig, gesamt }),
+      });
+      const url = URL.createObjectURL(e.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${company.name}-Belegarchiv-${z.wert === 'alle' ? `bis-${z.bis}` : z.wert}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setArchivErgebnis({ rechnungen: e.rechnungen, stornos: e.stornos, hinweise: e.hinweise.length });
+    } catch (e) {
+      setFehler(e instanceof Error ? e.message : 'Das Belegarchiv konnte nicht erstellt werden.');
+    } finally {
+      setLaeuft(null);
+      setArchivStand(null);
     }
   }
 
@@ -192,6 +247,50 @@ export default function SicherungView() {
             {laeuft === 'download' ? 'Wird zusammengestellt …' : 'Alle Daten herunterladen'}
           </Button>
         </div>
+      </Card>
+
+      <Card
+        title="Belegarchiv"
+        hint={
+          <>
+            Alle Rechnungen und Stornorechnungen des Zeitraums als PDF, dazu das
+            Rechnungsausgangsbuch als CSV, in einer ZIP-Datei. Rechnungen sind sieben Jahre
+            aufzubewahren (§ 132 BAO), auch nach dem Ende des Senklot-Vertrags; das Archiv lässt
+            sich ohne Senklot öffnen. Die PDFs entstehen aus den gespeicherten Rechnungen, genau wie
+            beim erneuten Laden. Was fehlt, etwa eine nie ausgestellte Stornorechnung, steht in der
+            Datei „Hinweise.txt“.
+          </>
+        }
+      >
+        <div className="flex flex-wrap items-end gap-3">
+          <SelectField
+            id="archiv-zeitraum"
+            label="Zeitraum"
+            value={archivWahl}
+            onChange={(e) => setArchivWahl(e.target.value)}
+            disabled={laeuft !== null}
+          >
+            {archivZeitraeume(todayStr()).map((z) => (
+              <option key={z.wert} value={z.wert}>{z.label}</option>
+            ))}
+          </SelectField>
+          <Button variant="ghost" onClick={() => void archivErstellen()} disabled={laeuft !== null}>
+            {laeuft === 'archiv'
+              ? archivStand
+                ? `Belege: ${archivStand.fertig} von ${archivStand.gesamt}`
+                : 'Wird zusammengestellt …'
+              : 'Belegarchiv herunterladen'}
+          </Button>
+        </div>
+        {archivErgebnis && (
+          <p className="mt-3 text-sm text-ink">
+            Im Archiv: {archivErgebnis.rechnungen} {archivErgebnis.rechnungen === 1 ? 'Rechnung' : 'Rechnungen'},{' '}
+            {archivErgebnis.stornos} {archivErgebnis.stornos === 1 ? 'Stornorechnung' : 'Stornorechnungen'}
+            {archivErgebnis.hinweise > 0
+              ? `. ${archivErgebnis.hinweise === 1 ? 'Ein Hinweis steht' : `${archivErgebnis.hinweise} Hinweise stehen`} in „Hinweise.txt“.`
+              : '.'}
+          </p>
+        )}
       </Card>
     </div>
   );
