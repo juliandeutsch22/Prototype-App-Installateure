@@ -107,6 +107,17 @@ function zeige() {
   );
 }
 
+/**
+ * Die Auswahl der Baustelle, ERST WENN DIE BAUSTELLEN GELADEN SIND. Bis
+ * dahin steht sie gesperrt mit „lädt …“ da; wer früher wählt, findet die
+ * Baustelle nicht — auf einem langsamen CI-Rechner geschah genau das.
+ */
+async function baustelleFeld() {
+  const feld = await screen.findByRole('combobox', { name: /Für welche Baustelle/ });
+  await waitFor(() => expect(feld).toBeEnabled());
+  return feld;
+}
+
 beforeEach(() => {
   localStorage.clear();
   materialien = [ROHR, DICHTUNG];
@@ -125,7 +136,7 @@ describe('Material anfordern — der Warenkorb', () => {
   it('schickt Menge, Baustelle und Besteller an die Datenbank', async () => {
     zeige();
     await userEvent.selectOptions(
-      await screen.findByRole('combobox', { name: /Für welche Baustelle/ }),
+      await baustelleFeld(),
       '2026-042',
     );
     await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm zur Anforderung/ }));
@@ -148,7 +159,7 @@ describe('Material anfordern — der Warenkorb', () => {
   it('fordert auch an, was nicht im Katalog steht (Launch-Check 25.09.2026)', async () => {
     zeige();
     await userEvent.selectOptions(
-      await screen.findByRole('combobox', { name: /Für welche Baustelle/ }),
+      await baustelleFeld(),
       '2026-042',
     );
     const knopf = screen.getByRole('button', { name: 'In die Liste' });
@@ -275,7 +286,7 @@ describe('Material anfordern — der Warenkorb', () => {
     // NUR SO wird die Bedingung im Warenkorb tatsächlich geprüft. Ohne diesen
     // Umweg bliebe der Haken schon deshalb aus, weil das Kästchen gesperrt
     // ist — und der Test wäre auch dann grün, wenn die Bedingung fehlte.
-    const baustelle = await screen.findByRole('combobox', { name: /Für welche Baustelle/ });
+    const baustelle = await baustelleFeld();
     await userEvent.selectOptions(baustelle, '2026-042');
     await userEvent.click(screen.getByRole('checkbox', { name: /Eilzustellung/ }));
     await waitFor(() => expect(screen.getByRole('checkbox', { name: /Eilzustellung/ })).toBeChecked());
@@ -297,7 +308,7 @@ describe('Material anfordern — der Warenkorb', () => {
     // „Eil" ankreuzt, erwartet einen Anruf, und der käme hier nicht.
     zeige();
     await userEvent.selectOptions(
-      await screen.findByRole('combobox', { name: /Für welche Baustelle/ }),
+      await baustelleFeld(),
       '2026-099',
     );
     await userEvent.click(screen.getByRole('checkbox', { name: /Eilzustellung/ }));
@@ -310,7 +321,7 @@ describe('Material anfordern — der Warenkorb', () => {
   it('sagt nichts, wenn die Baustelle eine Projektleitung hat', async () => {
     zeige();
     await userEvent.selectOptions(
-      await screen.findByRole('combobox', { name: /Für welche Baustelle/ }),
+      await baustelleFeld(),
       '2026-042',
     );
     await userEvent.click(screen.getByRole('checkbox', { name: /Eilzustellung/ }));
