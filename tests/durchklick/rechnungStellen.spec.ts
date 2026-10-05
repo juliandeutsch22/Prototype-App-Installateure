@@ -120,6 +120,30 @@ test('Das Büro stellt aus der gebuchten Zeit eine Rechnung', async ({ page }) =
     expect(Number(data!.bezahlt_betrag)).toBe(haelfte);
   }).toPass({ timeout: 25_000 });
 
+  /*
+    DIE RECHNUNG ANSEHEN — am Schreibtisch, wo dieser Lauf steht. Das Blatt
+    dafür war bis zum 05.10.2026 ab Tablet-Breite ausgeblendet: der Menüpunkt
+    und die Nummer öffneten es unsichtbar, und kein Ansichtstest sah das,
+    weil jsdom kein CSS kennt.
+  */
+  // Der Zahlungsdialog bleibt nach dem Eintragen offen — er zeigt, was eingegangen ist.
+  await page.getByRole('button', { name: 'Abbrechen' }).click();
+  await page.getByRole('button', { name: /Weitere Aktionen für Rechnung/ }).first().click();
+  await page.getByRole('menuitem', { name: 'Ansehen' }).click();
+  const ansicht = page.getByRole('dialog', { name: /Rechnung RE-/ });
+  await expect(ansicht).toBeVisible();
+  // Nicht der Zahlungsstand: den zieht die Liste erst kurz nach der Datenbank nach.
+  await expect(ansicht.getByRole('button', { name: 'PDF laden' })).toBeVisible();
+  // Der sichtbare Knopf — der erste ist der für die Tastatur, nur bei Fokus zu sehen.
+  await ansicht.getByRole('button', { name: 'Schließen' }).last().click();
+  await expect(ansicht).toHaveCount(0);
+
+  // Dasselbe über die Rechnungsnummer in der Liste.
+  await page.getByRole('button', { name: /^RE-\d{4}-\d+$/ }).first().click();
+  await expect(ansicht).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(ansicht).toHaveCount(0);
+
   await keineFehlermeldung(page);
 });
 

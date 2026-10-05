@@ -42,7 +42,7 @@ export default function RechnungDetail({
     ) : null;
 
   return (
-    <BottomSheet open onClose={onClose} label={`${ARTNAME[inv.art ?? 'einzel'] ?? 'Rechnung'} ${inv.invoiceNumber}`}>
+    <BottomSheet open auchBreit onClose={onClose} label={`${ARTNAME[inv.art ?? 'einzel'] ?? 'Rechnung'} ${inv.invoiceNumber}`}>
       <div className="space-y-4 px-4 pb-4 text-sm">
         <div>
           <p className="text-base font-semibold text-ink-deep">
