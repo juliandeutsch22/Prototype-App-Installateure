@@ -34,6 +34,7 @@ import { listOffeneFreistellungen } from '@/lib/db/freistellungen';
 import { listTermineImZeitraum } from '@/lib/db/termine';
 import { listFaelligeWartungen } from '@/lib/db/wartungen';
 import { buchungskonten } from '@/lib/db/konten';
+import { listBasiszinssaetze } from '@/lib/db/basiszins';
 import {
   localDateStr,
   todayStr,
@@ -501,7 +502,10 @@ export async function einstellungen(
   const out: Partial<StartDaten> = {};
   if (was.rechnungen) {
     const ab = halbjahresbeginn(heute);
-    out.basiszinsFehltAb = basiszinsVerlauf(company?.rates).some((b) => b.ab === ab) ? null : ab;
+    // Steht der Satz zentral, braucht der Betrieb keinen eigenen. Kommt die
+    // zentrale Liste nicht, bleibt es beim eigenen Verlauf wie bisher.
+    const zentral = await still(() => listBasiszinssaetze(), []);
+    out.basiszinsFehltAb = basiszinsVerlauf(company?.rates, zentral).some((b) => b.ab === ab) ? null : ab;
     const fehlt: string[] = [];
     if (!company?.strasse?.trim() || !company?.plz?.trim() || !company?.ort?.trim()) fehlt.push('Anschrift');
     if (!company?.iban?.trim()) fehlt.push('IBAN');

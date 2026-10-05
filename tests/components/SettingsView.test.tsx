@@ -40,6 +40,8 @@ vi.mock('@/lib/db/company', () => ({
   rechnungsvorgabenSpeichern: (v: Record<string, unknown>) => rechnungsvorgabenSpeichern(v),
 }));
 vi.mock('@/lib/db/users', () => ({ listUsers: vi.fn(async () => []) }));
+// Der zentrale Basiszinssatz (seit 05.10.2026) — hier leer, wie vor ihm.
+vi.mock('@/lib/db/basiszins', () => ({ listBasiszinssaetze: vi.fn(async () => []) }));
 /*
   Die Kostensätze kommen seit dem 29.09.2026 nicht mit dem Betrieb, sondern
   aus einer eigenen Tabelle, die nur die Spitze liest (offene Punkte B1).

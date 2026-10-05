@@ -23,6 +23,13 @@ vi.mock('@/lib/db/plattform', () => ({
   plattformBetriebe: vi.fn(async () => betriebe),
 }));
 
+// Der zentrale Basiszinssatz hat eine eigene Prüfung (`BasiszinsZentral.test.tsx`).
+vi.mock('@/lib/db/basiszins', () => ({
+  listBasiszinssaetze: vi.fn(async () => []),
+  basiszinssatzSetzen: vi.fn(async () => undefined),
+  basiszinssatzEntfernen: vi.fn(async () => undefined),
+}));
+
 const plattformFehler = vi.fn();
 vi.mock('@/lib/db/fehlerprotokoll', () => ({
   plattformFehler: (...a: unknown[]) => plattformFehler(...a),
