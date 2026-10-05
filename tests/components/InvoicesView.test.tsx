@@ -1922,6 +1922,27 @@ describe('Zahlungen erfassen', () => {
     });
   });
 
+  it('sagt bei Bar und Karte, dass der Beleg aus der Registrierkasse kommt', async () => {
+    rechnungen = [offeneRechnung()];
+    zeige();
+    await screen.findByText(/RE-2026-0042/);
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }),
+    );
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' }));
+    const art = await screen.findByLabelText('Art');
+    const satz = /Beleg für Bar- und Kartenzahlungen erteilt die Registrierkasse/;
+
+    // Eine Überweisung ist kein Barumsatz: dort stünde der Satz nur im Weg.
+    expect(screen.queryByText(satz)).not.toBeInTheDocument();
+    await userEvent.selectOptions(art, 'Bar');
+    expect(screen.getByText(satz)).toBeInTheDocument();
+    await userEvent.selectOptions(art, 'Karte');
+    expect(screen.getByText(satz)).toBeInTheDocument();
+    await userEvent.selectOptions(art, 'Sonstiges');
+    expect(screen.queryByText(satz)).not.toBeInTheDocument();
+  });
+
   it('gleicht in der Frist den Rest als Skonto aus — nur mit Haken (B7)', async () => {
     // Zugesagt 2 % bis 08.09. (Systemzeit 01.09.): 1.176 € überwiesen, 24 € Skonto.
     rechnungen = [offeneRechnung({ skontoProzent: 2, skontoBis: '2026-09-08' })];

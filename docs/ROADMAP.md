@@ -4425,6 +4425,13 @@ In dieser Reihenfolge, nach Nutzen je Aufwand:
 
 ### Was du entscheiden musst, bevor ich anfange
 
+> **NACHTRAG 05.10.2026 — entschieden, und zwar für jeden Betrieb, nicht nur
+> für Perl** (`docs/stand-2026-10-03.md`, Abschnitt 11): keine eigene
+> Registrierkasse, sondern ein Hinweis bei Bar und Karte; ebInterface erst,
+> wenn ein Betrieb an den Bund verrechnet, die Bestellnummer des Kunden
+> kommt vorher; Gleitzeit und Durchrechnung als eigene Stufe nach dem
+> Launch. Das Urlaubsjahr ist längst eine Einstellung je Betrieb.
+
 | Frage | Warum sie jetzt fällt |
 | --- | --- |
 | **Wird über Senklot bar oder mit Karte vor Ort kassiert?** | Wenn ja, braucht es eine RKSV-Lösung: Signatureinheit, DEP, Startbeleg, FinanzOnline. Das ist eine eigene Stufe in der Größenordnung von Stufe 10. Wenn nein, baue ich die **Sperre**: eine Zahlungsart, die Barzahlung ausschließt, und ein PDF, das nie wie ein Barbeleg aussieht. Beides ist sauber — nur „nicht daran denken“ ist es nicht, denn die Belegerteilungspflicht (§ 132a BAO) gilt ab dem ersten Euro bar |

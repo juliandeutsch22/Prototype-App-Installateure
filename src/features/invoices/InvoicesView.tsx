@@ -3705,6 +3705,18 @@ export default function InvoicesView() {
             placeholder="z. B. Kontoauszug 14"
           />
         </FormGrid>
+        {/*
+          SENKLOT IST KEINE REGISTRIERKASSE. Bar und Karte sind Barumsätze
+          (§ 131b BAO); den Beleg dafür erteilt die Kasse des Betriebs. Ohne
+          den Satz läge der Schluss nahe, mit dem Eintrag hier sei die
+          Belegerteilungspflicht erfüllt.
+        */}
+        {zRichtung === 'eingang' && (zArt === 'Bar' || zArt === 'Karte') && (
+          <p className="mt-2 text-sm text-ink-muted">
+            Den Beleg für Bar- und Kartenzahlungen erteilt die Registrierkasse des Betriebs.
+            Senklot vermerkt nur die Zahlung.
+          </p>
+        )}
         {zahlungFuer?.skontoProzent && zahlungFuer.skontoBis && (
           <p className="mt-2 text-sm text-ink-muted">
             Zugesagt: {zahlungFuer.skontoProzent.toLocaleString('de-AT', { maximumFractionDigits: 2 })} %
