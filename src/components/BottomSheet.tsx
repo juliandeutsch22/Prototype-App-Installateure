@@ -11,6 +11,11 @@ interface BottomSheetProps {
   onClose: () => void;
   /** Beschriftung für die Vorlesehilfe. */
   label: string;
+  /**
+   * Auch ab Tablet-Breite zeigen — dort als Fenster in der Mitte. Ohne die
+   * Angabe gibt es das Blatt nur am Telefon (das „Mehr“-Menü).
+   */
+  auchBreit?: boolean;
   children: ReactNode;
 }
 
@@ -28,7 +33,7 @@ interface BottomSheetProps {
  * Pointer-Events statt Touch-Events: dieselbe Behandlung für Finger, Stift
  * und Maus, ohne drei Wege zu pflegen.
  */
-export default function BottomSheet({ open, onClose, label, children }: BottomSheetProps) {
+export default function BottomSheet({ open, onClose, label, auchBreit = false, children }: BottomSheetProps) {
   const [dy, setDy] = useState(0);
   const [zieht, setZieht] = useState(false);
   const start = useRef<{ y: number; t: number } | null>(null);
@@ -64,6 +69,9 @@ export default function BottomSheet({ open, onClose, label, children }: BottomSh
     // Vom Inhalt aus nur ziehen, wenn er nicht gescrollt ist — sonst kaempfen
     // Wischen und Scrollen gegeneinander.
     if (nurWennOben && (scrollRef.current?.scrollTop ?? 0) > 0) return;
+    // Als Fenster in der Mitte wird nicht gezogen: wer mit der Maus Text
+    // markiert, soll das Fenster dabei nicht nach unten wegschieben.
+    if (auchBreit && window.matchMedia?.('(min-width: 768px)').matches) return;
     start.current = { y: e.clientY, t: e.timeStamp };
     setZieht(true);
   }
@@ -89,8 +97,15 @@ export default function BottomSheet({ open, onClose, label, children }: BottomSh
   }
 
   return (
+    /*
+      AB TABLET-BREITE NUR AUF AUSDRÜCKLICHEN WUNSCH. Das Blatt war fürs
+      Telefon gebaut und dort `md:hidden` — die Rechnung, die es seit dem
+      30.09.2026 zeigt, öffnete sich am Schreibtisch deshalb unsichtbar
+      (gemeldet am 05.10.2026). Mit `auchBreit` steht es dort als Fenster in
+      der Mitte; Wischen braucht es da nicht, Escape und der Rand schliessen.
+    */
     <div
-      className="fixed inset-0 z-40 bg-ink/40 md:hidden"
+      className={`fixed inset-0 z-40 bg-ink/40 ${auchBreit ? 'md:flex md:items-center md:justify-center md:p-6' : 'md:hidden'}`}
       onClick={schliessen}
       // Der Hintergrund verblasst mit, während das Blatt nach unten geht —
       // ohne das wirkt die Bewegung, als klebe der Schatten fest.
@@ -102,7 +117,9 @@ export default function BottomSheet({ open, onClose, label, children }: BottomSh
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        className="absolute inset-x-0 bottom-0 rounded-t-lg border border-b-0 border-line bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg focus-visible:outline-none"
+        className={`absolute inset-x-0 bottom-0 rounded-t-lg border border-b-0 border-line bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg focus-visible:outline-none${
+          auchBreit ? ' md:relative md:inset-auto md:w-full md:max-w-xl md:rounded-lg md:border-b' : ''
+        }`}
         style={{
           transform: `translateY(${dy}px)`,
           // Während des Ziehens keine Übergangszeit: sonst hinkt das Blatt
@@ -118,7 +135,7 @@ export default function BottomSheet({ open, onClose, label, children }: BottomSh
             Ziel darunter misst die volle Touch-Höhe. */}
         <div
           onPointerDown={(e) => beginn(e, false)}
-          className="-mt-4 cursor-grab touch-none px-4 pb-2 pt-4 active:cursor-grabbing"
+          className={`-mt-4 cursor-grab touch-none px-4 pb-2 pt-4 active:cursor-grabbing${auchBreit ? ' md:hidden' : ''}`}
           aria-hidden="true"
         >
           <div className="mx-auto h-1 w-10 rounded-full bg-line" />
@@ -136,7 +153,7 @@ export default function BottomSheet({ open, onClose, label, children }: BottomSh
         <div
           ref={scrollRef}
           onPointerDown={(e) => beginn(e, true)}
-          className="max-h-[60vh] overflow-y-auto"
+          className={`max-h-[60vh] overflow-y-auto${auchBreit ? ' md:max-h-[80vh]' : ''}`}
         >
           {children}
         </div>
