@@ -780,6 +780,14 @@ export default function AssignmentsView() {
                 Uhrzeit entfernen
               </Button>
             )}
+            {/* Verdrehte Zeiten gleich sagen, nicht erst beim Speichern (05.10.2026). */}
+            {zeitVon && zeitBis && zeitBis <= zeitVon && (
+              <div className="mt-2">
+                <Hinweiszeile stufe="warn">
+                  <p>Das Ende liegt nicht nach dem Beginn — so lässt sich der Einsatz nicht speichern.</p>
+                </Hinweiszeile>
+              </div>
+            )}
             {/*
               Nicht verbieten, sondern sagen. Bei einem Notdienst holt man auch
               mal jemanden aus dem Urlaub; eine Sperre stünde dann im Weg. Ein

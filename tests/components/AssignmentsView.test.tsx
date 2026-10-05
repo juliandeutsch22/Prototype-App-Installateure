@@ -230,6 +230,19 @@ describe('Einsatzplanung — speichern', () => {
     expect(speichere.mock.calls[0][3][0]).toMatchObject({ zeitVon: null, zeitBis: null });
   });
 
+  it('sagt ein Ende vor dem Beginn gleich unter den Feldern (05.10.2026)', async () => {
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    const satz = /Das Ende liegt nicht nach dem Beginn/;
+    await userEvent.type(screen.getByLabelText('Beginn (optional)'), '12:01');
+    await userEvent.type(screen.getByLabelText('Ende (optional)'), '12:00');
+    expect(screen.getByText(satz)).toBeInTheDocument();
+    // Gegenprobe: in der richtigen Folge steht nichts da.
+    await userEvent.clear(screen.getByLabelText('Ende (optional)'));
+    await userEvent.type(screen.getByLabelText('Ende (optional)'), '16:00');
+    expect(screen.queryByText(satz)).not.toBeInTheDocument();
+  });
+
   it('weist ein Ende vor dem Beginn ab (M34)', async () => {
     zeige();
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');

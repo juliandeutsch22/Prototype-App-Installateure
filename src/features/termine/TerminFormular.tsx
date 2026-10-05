@@ -7,6 +7,7 @@ import BaustellenSelect from '@/components/BaustellenSelect';
 import PersonPicker from '@/components/PersonPicker';
 import Button from '@/components/Button';
 import InfoHint from '@/components/InfoHint';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import { InputField, SelectField, TextareaField, FormGrid } from '@/components/Field';
 import { ErrorState } from '@/components/States';
 import { useToast } from '@/components/Toast';
@@ -127,6 +128,23 @@ export default function TerminFormular({
         <InputField id="termin-von" label={art === 'Lieferung' ? 'Zeitfenster von' : 'Von'} type="time" value={zeitVon} onChange={(e) => setZeitVon(e.target.value)} />
         <InputField id="termin-bis" label={art === 'Lieferung' ? 'Zeitfenster bis' : 'Bis'} type="time" value={zeitBis} onChange={(e) => setZeitBis(e.target.value)} />
       </FormGrid>
+      {/*
+        DIE UHRZEIT WIEDER WEGNEHMEN, wie beim Einsatz (gemeldet am
+        05.10.2026): das Uhrzeitfeld am iPhone hat keinen Knopf zum Leeren.
+        Und verdrehte Zeiten gleich sagen, nicht erst beim Speichern.
+      */}
+      {(zeitVon || zeitBis) && (
+        <div className="-mt-2 flex flex-col items-start gap-2">
+          <Button type="button" variant="ghost" onClick={() => { setZeitVon(''); setZeitBis(''); }}>
+            Uhrzeit entfernen
+          </Button>
+          {zeitVon && zeitBis && zeitBis <= zeitVon && (
+            <Hinweiszeile stufe="warn">
+              <p>„{art === 'Lieferung' ? 'Zeitfenster bis' : 'Bis'}“ liegt nicht nach „{art === 'Lieferung' ? 'Zeitfenster von' : 'Von'}“ — so lässt sich der Termin nicht speichern.</p>
+            </Hinweiszeile>
+          )}
+        </div>
+      )}
 
       {vorgabe.bezug === 'baustelle' ? null : (
         <fieldset className="flex flex-col gap-3">
