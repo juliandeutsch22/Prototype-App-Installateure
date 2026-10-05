@@ -4162,7 +4162,7 @@ Normalfall, und ein Betrag am Beleg könnte nur den letzten festhalten.
   Schlussrechnung fordert 7.000 €, und die Summe der offenen Posten ist zu
   keinem Zeitpunkt größer als die Gesamtleistung.
 
-#### 10.3 Haft- und Deckungsrücklass, Skonto — **WARTET** (erst auf Anforderung)
+#### 10.3 Haft- und Deckungsrücklass, Skonto — **ERLEDIGT** (Skonto 29.09., Rücklass 05.10.2026)
 
 Alle drei mindern **den Zahlungsbetrag, nicht das Entgelt**. Genau daran
 scheitert die naheliegende Umsetzung:

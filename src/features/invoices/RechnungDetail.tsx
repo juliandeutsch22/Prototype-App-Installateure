@@ -106,6 +106,12 @@ export default function RechnungDetail({
               </dd>
             </div>
           ))}
+          {zeile(
+            inv.ruecklassArt === 'deckung' ? 'Deckungsrücklass' : 'Haftrücklass',
+            inv.ruecklassBetrag != null && inv.ruecklassBis
+              ? `${euro(inv.ruecklassBetrag)} (${(inv.ruecklassProzent ?? 0).toLocaleString('de-AT', { maximumFractionDigits: 2 })} %), fällig am ${datumAT(inv.ruecklassBis)}`
+              : null,
+          )}
           {zeile('Bezahlt', stand.bezahlt > 0 ? euro(stand.bezahlt) : null)}
           {zeile('Offen', inv.paymentStatus !== 'Storniert' ? euro(stand.rest) : null)}
           {zeile('Guthaben des Kunden', stand.guthaben > 0 ? euro(stand.guthaben) : null)}

@@ -24,7 +24,8 @@ import {
   listInvoicesByIds,
 } from '@/lib/db/invoices';
 import { listZahlungen, listZahlungenImZeitraum, createZahlung, createZahlungMitSkonto, deleteZahlung } from '@/lib/db/zahlungen';
-import { istUeberfaellig, zahlstand } from './zahlstand';
+import { istUeberfaellig, mahnbar, offenerRuecklass, zahlstand } from './zahlstand';
+import { haftruecklassBisVorschlag, RUECKLASS_NAME, ruecklassArtFuer, ruecklassBetrag } from './ruecklass';
 import { skontoBedingung, skontoZumAusgleich, zugesagterSkonto } from './skonto';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listCustomers, updateCustomer } from '@/lib/db/customers';
@@ -304,6 +305,10 @@ export default function InvoicesView() {
   const [kundenUid, setKundenUid] = useState('');
   /** Die Bestellnummer des Kunden (seit 05.10.2026) — optional, gedruckt. */
   const [bestellnummer, setBestellnummer] = useState('');
+  /** Haft- oder Deckungsrücklass (seit 05.10.2026) — die Art folgt der Rechnungsart. */
+  const [ruecklassAn, setRuecklassAn] = useState(false);
+  const [ruecklassProzent, setRuecklassProzent] = useState<number | null>(null);
+  const [ruecklassBis, setRuecklassBis] = useState('');
   /** Eine in der Rechnung korrigierte UID auch in den Kundenstamm schreiben (M10). */
   const [uidInKunden, setUidInKunden] = useState(false);
   /** Grund der Steuerbefreiung — nur bei 0 % ohne Reverse Charge (A2). */
@@ -414,7 +419,8 @@ export default function InvoicesView() {
   useEffect(() => {
     const today = todayStr();
     invoices
-      .filter((i) => i.paymentStatus === 'Offen' && i.dueDate && i.dueDate < today)
+      // Über `istUeberfaellig`: ein Rücklass, der noch nicht fällig ist, ist kein Verzug.
+      .filter((i) => i.paymentStatus === 'Offen' && istUeberfaellig(i, today))
       // Hier ist Stille richtig: die Umstellung ist eine Nebenleistung, sie
       // laeuft bei jedem Laden erneut und heilt sich damit selbst. Ein Hinweis
       // je Rechnung waere Laerm ohne Handlungsmoeglichkeit.
@@ -631,9 +637,13 @@ export default function InvoicesView() {
     for (const i of invoices) unbezahlt.set(i.id, i);
     for (const i of unbezahlt.values()) {
       const stand = zahlstand(i);
-      // Nach dem ZIEL, nicht nach dem Stand — siehe `istUeberfaellig`.
-      if (istUeberfaellig(i, heute)) ueberfaellig += stand.rest;
-      else if (i.paymentStatus !== 'Storniert') offen += stand.rest;
+      // Nach dem ZIEL, nicht nach dem Stand — siehe `istUeberfaellig`. Ein
+      // Rücklass, der noch nicht fällig ist, zählt als offen, nicht als überfällig.
+      if (istUeberfaellig(i, heute)) {
+        const faellig = mahnbar(i, heute).rest;
+        ueberfaellig += faellig;
+        offen += stand.rest - faellig;
+      } else if (i.paymentStatus !== 'Storniert') offen += stand.rest;
     }
     for (const i of invoices) {
       const stand = zahlstand(i);
@@ -678,7 +688,14 @@ export default function InvoicesView() {
       setZHinweis('Rückzahlung des Guthabens');
     } else {
       setZRichtung('eingang');
-      setZBetrag(rest > 0 ? String(rest) : '');
+      /*
+        MIT RÜCKLASS DER ZAHLBETRAG (seit 05.10.2026): der Kunde überweist,
+        was die Rechnung ohne Rücklass fordert. Ist nur noch der Rücklass
+        offen, ist er der Betrag.
+      */
+      const ruecklass = offenerRuecklass(inv);
+      const vorschlag = ruecklass > 0 && rest > ruecklass ? Math.round((rest - ruecklass) * 100) / 100 : rest;
+      setZBetrag(vorschlag > 0 ? String(vorschlag) : '');
     }
     try {
       setZahlungen(await listZahlungen(inv.companyId, inv.id));
@@ -1135,6 +1152,11 @@ export default function InvoicesView() {
       );
       return;
     }
+    // Ein angehakter Rücklass ohne Satz oder Fälligkeit ginge sonst still verloren.
+    if (ruecklassAn && ruecklassArt && (!ruecklass || !ruecklass.bis || ruecklass.bis <= todayStr())) {
+      setError('Für den Rücklass fehlen Prozentsatz oder eine Fälligkeit nach dem heutigen Tag.');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -1143,7 +1165,8 @@ export default function InvoicesView() {
       const due = new Date();
       due.setDate(due.getDate() + rates.dueDays);
       const dueDate = localDateStr(due);
-      const skonto = skontoBedingung({
+      // Mit Rücklass kein Skonto — beides auf einer Rechnung rechnet Senklot noch nicht.
+      const skonto = ruecklass ? null : skontoBedingung({
         prozent: rates.skontoProzent,
         tage: rates.skontoTage,
         rechnungsdatum: invoiceDate,
@@ -1209,6 +1232,10 @@ export default function InvoicesView() {
         customerVatId: uidNormalisieren(kundenUid),
         steuerbefreiung: brauchtBefreiung ? steuerbefreiung.trim() : undefined,
         bestellnummer: bestellnummer.trim() || null,
+        ruecklassArt: ruecklass?.art ?? null,
+        ruecklassProzent: ruecklass?.prozent ?? null,
+        ruecklassBetrag: ruecklass?.betrag ?? null,
+        ruecklassBis: ruecklass?.bis || null,
         subtotalNetto: preview.subtotalNetto,
         // null statt undefined: „kein Rabatt" soll als bewusster Wert in der
         // Zeile stehen, nicht als fehlendes Feld.
@@ -1286,6 +1313,7 @@ export default function InvoicesView() {
         customerVatId: uidNormalisieren(kundenUid),
         steuerbefreiung: brauchtBefreiung ? steuerbefreiung.trim() : undefined,
         bestellnummer: bestellnummer.trim() || undefined,
+        ruecklass: ruecklass ? { art: ruecklass.art, prozent: ruecklass.prozent, betrag: ruecklass.betrag, bis: ruecklass.bis } : null,
         skonto,
       });
 
@@ -1296,6 +1324,9 @@ export default function InvoicesView() {
       setKundenUid('');
       setUidInKunden(false);
       setBestellnummer('');
+      setRuecklassAn(false);
+      setRuecklassProzent(null);
+      setRuecklassBis('');
       setArtWahl('einzel');
       setAbzugsfaehig([]);
       setGewaehlteAbzuege([]);
@@ -1351,8 +1382,9 @@ export default function InvoicesView() {
   function zinsenFuer(inv: Invoice, stufe: Mahnstufe, datum: string) {
     return verzugszinsen({
       stufe,
-      rest: zahlstand(inv).rest,
-      faellig: inv.dueDate,
+      // Ohne einen Rücklass, der noch nicht fällig ist (seit 05.10.2026).
+      rest: mahnbar(inv, datum).rest,
+      faellig: mahnbar(inv, datum).faellig,
       bis: datum,
       unternehmer: istUnternehmer(inv),
       basiszinssatz: company?.rates?.basiszinssatz,
@@ -1512,6 +1544,10 @@ export default function InvoicesView() {
       // Aus dem Dokument — Altbestand hat ihn nicht und bleibt, wie er war.
       leistungsort: inv.leistungsort,
       bestellnummer: inv.bestellnummer ?? undefined,
+      // Aus dem Dokument, wie es angelegt wurde.
+      ruecklass: inv.ruecklassArt && inv.ruecklassProzent && inv.ruecklassBetrag != null && inv.ruecklassBis
+        ? { art: inv.ruecklassArt, prozent: inv.ruecklassProzent, betrag: inv.ruecklassBetrag, bis: inv.ruecklassBis }
+        : null,
       art: inv.art,
       vorrechnungen: inv.vorrechnungen,
       skonto: inv.skontoProzent && inv.skontoBis
@@ -1666,6 +1702,25 @@ export default function InvoicesView() {
     () => (preview ? mitAbzug(preview, abzuege) : null),
     [preview, abzuege],
   );
+
+  /**
+   * Der Rücklass dieser Rechnung — oder keiner. Grundlage ist die ganze
+   * Leistung, einbehalten wird höchstens, was die Rechnung noch fordert.
+   */
+  const ruecklassArt = ruecklassArtFuer(art);
+  const ruecklass = useMemo(() => {
+    if (!ruecklassAn || !ruecklassArt || !summen || !(ruecklassProzent && ruecklassProzent > 0)) return null;
+    return {
+      art: ruecklassArt,
+      prozent: ruecklassProzent,
+      betrag: ruecklassBetrag({
+        grundlageBrutto: summen.gesamtBrutto,
+        prozent: ruecklassProzent,
+        forderungBrutto: summen.totalBrutto,
+      }),
+      bis: ruecklassBis,
+    };
+  }, [ruecklassAn, ruecklassArt, summen, ruecklassProzent, ruecklassBis]);
 
   /*
     OHNE POSITIONEN ODER ÜBER NULL EURO GIBT ES KEINE RECHNUNG (Prüflauf
@@ -3030,6 +3085,54 @@ export default function InvoicesView() {
               onChange={(e) => setBestellnummer(e.target.value)}
             />
 
+            {ruecklassArt && (
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <CheckboxField
+                    id="ruecklass-an"
+                    label={`${RUECKLASS_NAME[ruecklassArt]} einbehalten`}
+                    checked={ruecklassAn}
+                    onChange={(e) => {
+                      setRuecklassAn(e.target.checked);
+                      if (e.target.checked && !ruecklassBis && ruecklassArt === 'haft') {
+                        setRuecklassBis(haftruecklassBisVorschlag(todayStr()));
+                      }
+                    }}
+                  />
+                  <InfoHint about="den Rücklass">
+                    Der Kunde behält einen Teil des Betrags ein: der Haftrücklass bis zum Ende der
+                    Gewährleistung (vorgeschlagen sind drei Jahre), der Deckungsrücklass einer
+                    Teilrechnung, bis abgerechnet ist. Die Umsatzsteuer steht voll auf der Rechnung.
+                    Der Mahnlauf übergeht den Rücklass bis zur Fälligkeit; 30 Tage davor erinnert die
+                    Startseite daran. Skonto entfällt auf einer Rechnung mit Rücklass.
+                  </InfoHint>
+                </div>
+                {ruecklassAn && (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <ZahlWertFeld
+                      id="ruecklass-prozent"
+                      label="Rücklass (%)"
+                      wert={ruecklassProzent}
+                      leerAls={null}
+                      onWert={setRuecklassProzent}
+                    />
+                    <InputField
+                      id="ruecklass-bis"
+                      label="Fällig am"
+                      type="date"
+                      value={ruecklassBis}
+                      onChange={(e) => setRuecklassBis(e.target.value)}
+                    />
+                  </div>
+                )}
+                {ruecklass && summen && (
+                  <p className="text-sm text-ink-muted">
+                    Einbehalten: {euro(ruecklass.betrag)}. Zu zahlen jetzt: {euro(summen.totalBrutto - ruecklass.betrag)}.
+                  </p>
+                )}
+              </div>
+            )}
+
             {brauchtBefreiung && (
               <div>
                 <InputField
@@ -3751,6 +3854,12 @@ export default function InvoicesView() {
           <p className="mt-2 text-sm text-ink-muted">
             Den Beleg für Bar- und Kartenzahlungen erteilt die Registrierkasse des Betriebs.
             Senklot vermerkt nur die Zahlung.
+          </p>
+        )}
+        {zahlungFuer && zRichtung === 'eingang' && offenerRuecklass(zahlungFuer) > 0 && (
+          <p className="mt-2 text-sm text-ink-muted">
+            Davon {zahlungFuer.ruecklassArt === 'deckung' ? 'Deckungsrücklass' : 'Haftrücklass'}{' '}
+            {euro(offenerRuecklass(zahlungFuer))}, fällig am {datumAT(zahlungFuer.ruecklassBis ?? '')}.
           </p>
         )}
         {zahlungFuer?.skontoProzent && zahlungFuer.skontoBis && (

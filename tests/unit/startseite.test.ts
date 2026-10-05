@@ -164,6 +164,19 @@ describe('Buchhaltung', () => {
     expect(ohne.kennzahlen).toEqual([]);
   });
 
+  // Rücklass (05.10.2026): der nicht fällige Teil einer überfälligen Rechnung bleibt offen.
+  it('ein noch nicht fälliger Rücklass zählt unter „Offen“, samt seiner Rechnung', () => {
+    const s = startseite({
+      unbezahlt: [rechnung({
+        id: 'RE-4', totalBrutto: 1200, dueDate: '2026-09-15',
+        ruecklassArt: 'haft', ruecklassProzent: 5, ruecklassBetrag: 60, ruecklassBis: '2029-09-01',
+      })],
+    }, umfeld());
+    const nach = new Map(s.kennzahlen.map((k) => [k.key, k]));
+    expect(nach.get('ueberfaellig')).toMatchObject({ wert: euro(1140), zusatz: '1 Rechnung' });
+    expect(nach.get('offen')).toMatchObject({ wert: euro(60), zusatz: '1 Rechnung' });
+  });
+
   // Analyse 03.10.2026, Paket 1 — die eigenen Tage stehen nur einmal da.
   it('zeigt die eigene Person nicht zusätzlich unter „Personen mit Tagen ohne Buchung“', () => {
     const daten = {

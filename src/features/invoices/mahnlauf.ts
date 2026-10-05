@@ -1,6 +1,6 @@
 import type { Invoice } from '@/types';
 import { darfMahnen, mahnkosten, naechsteStufe, type Mahnstufe, type MahnkostenSaetze } from './mahnung';
-import { offenerRest } from './zahlstand';
+import { mahnbar, offenerRest } from './zahlstand';
 
 /**
  * Der Mahnlauf — nicht Rechnung für Rechnung, sondern in einem Durchgang.
@@ -112,11 +112,13 @@ export function mahnlauf(
       continue;
     }
     if (!darfMahnen(inv, heute).moeglich) continue;
+    // Ohne den Rücklass, solange er nicht fällig ist (seit 05.10.2026).
+    const m = mahnbar(inv, heute);
     zeilen.push({
       rechnung: inv,
       stufe,
-      tageUeberfaellig: inv.dueDate ? tageZwischen(inv.dueDate, heute) : 0,
-      offen: offenerRest(inv),
+      tageUeberfaellig: m.faellig ? tageZwischen(m.faellig, heute) : 0,
+      offen: m.rest,
       spesen: (({ spesen, pauschale }) => spesen + pauschale)(mahnkosten(stufe, saetze, istUnternehmer(inv))),
     });
   }

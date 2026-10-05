@@ -1,5 +1,8 @@
 import type { Invoice, InvoiceRates } from '@/types';
-import { offenerRest } from './zahlstand';
+import { mahnbar, offenerRest } from './zahlstand';
+
+/** TT.MM.JJJJ — hier ohne die Datumsbibliothek, die Datei bleibt ohne Oberflächen-Importe. */
+const datumKurzAT = (iso?: string | null) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}` : '—');
 
 /**
  * Mahnwesen — was mit einer Rechnung geschieht, die nicht bezahlt wird.
@@ -93,7 +96,7 @@ export function darfMahnen(
   inv: Pick<
     Invoice,
     'paymentStatus' | 'dueDate' | 'mahnstufe' | 'gemahntAm' | 'mahnfrist'
-    | 'totalBrutto' | 'bezahltBetrag'
+    | 'totalBrutto' | 'bezahltBetrag' | 'ruecklassBetrag' | 'ruecklassBis'
   >,
   heute: string,
 ): MahnPruefung {
@@ -121,7 +124,12 @@ export function darfMahnen(
   if (offenerRest(inv) <= 0) {
     return { moeglich: false, grund: 'Die Rechnung ist bezahlt.' };
   }
-  if (!inv.dueDate || inv.dueDate >= heute) {
+  // Offen ist nur noch ein Rücklass, der nicht fällig ist (seit 05.10.2026).
+  const m = mahnbar(inv, heute);
+  if (m.rest <= 0) {
+    return { moeglich: false, grund: `Offen ist nur der Rücklass, fällig am ${datumKurzAT(inv.ruecklassBis)}.` };
+  }
+  if (!m.faellig || m.faellig >= heute) {
     return { moeglich: false, grund: 'Das Zahlungsziel ist noch nicht abgelaufen.' };
   }
   if (naechsteStufe(inv) === null) {

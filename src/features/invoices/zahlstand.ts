@@ -49,6 +49,43 @@ export function offenerRest(inv: Rechnung): number {
   return zahlstand(inv).rest;
 }
 
+type MitRuecklass = Rechnung & Pick<Invoice, 'dueDate' | 'ruecklassBetrag' | 'ruecklassBis'>;
+
+/**
+ * Der noch offene Teil eines Rücklasses (seit 05.10.2026).
+ *
+ * ZAHLUNGEN TILGEN ZUERST DEN ÜBRIGEN BETRAG. Der Kunde zahlt, was die
+ * Rechnung als Zahlbetrag nennt, und behält den Rücklass ein; was danach
+ * offen ist, bis zu dessen Höhe, ist der Rücklass.
+ */
+export function offenerRuecklass(inv: MitRuecklass): number {
+  const r = runde(inv.ruecklassBetrag ?? 0);
+  if (!(r > 0)) return 0;
+  return runde(Math.min(zahlstand(inv).rest, r));
+}
+
+/**
+ * Was heute zu mahnen ist — und ab wann es fällig war.
+ *
+ * OHNE RÜCKLASS: der Rest ab dem Zahlungsziel, wie bisher. MIT RÜCKLASS
+ * zählt sein offener Teil erst, wenn er fällig ist; davor mahnt der Lauf
+ * nur den übrigen Betrag. Ist der Rücklass dabei, gilt die spätere der
+ * beiden Fälligkeiten: die Verzugszinsen rechnen dann ab ihr — zu wenig zu
+ * fordern ist zulässig, zu viel nicht. Dieselbe Regel steht in der Datenbank
+ * (`app.mahnbar_ab`) für die Zahl am Menüpunkt.
+ */
+export function mahnbar(inv: MitRuecklass, heute: string): { rest: number; faellig?: string } {
+  const { rest } = zahlstand(inv);
+  const r = offenerRuecklass(inv);
+  if (r <= 0) return { rest, faellig: inv.dueDate };
+  const haupt = runde(rest - r);
+  const ruecklassFaellig = !!inv.ruecklassBis && inv.ruecklassBis < heute;
+  if (!ruecklassFaellig) return { rest: haupt, faellig: inv.dueDate };
+  if (haupt <= 0) return { rest, faellig: inv.ruecklassBis ?? undefined };
+  const spaeter = (inv.dueDate ?? '') > (inv.ruecklassBis ?? '') ? inv.dueDate : inv.ruecklassBis ?? undefined;
+  return { rest, faellig: spaeter };
+}
+
 /**
  * Ist diese Rechnung überfällig — unabhängig davon, ob schon etwas kam?
  *
@@ -65,10 +102,12 @@ export function offenerRest(inv: Rechnung): number {
  * Startseite sieht ihn womöglich vorher.
  */
 export function istUeberfaellig(
-  inv: Pick<Invoice, 'paymentStatus' | 'dueDate' | 'totalBrutto' | 'bezahltBetrag'>,
+  inv: Pick<Invoice, 'paymentStatus' | 'dueDate' | 'totalBrutto' | 'bezahltBetrag' | 'ruecklassBetrag' | 'ruecklassBis'>,
   heute: string,
 ): boolean {
-  if (inv.paymentStatus === 'Überfällig') return offenerRest(inv) > 0;
+  // Ein noch nicht fälliger Rücklass ist kein Verzug (seit 05.10.2026).
+  const m = mahnbar(inv, heute);
+  if (inv.paymentStatus === 'Überfällig') return m.rest > 0;
   if (inv.paymentStatus !== 'Offen' && inv.paymentStatus !== 'Teilbezahlt') return false;
-  return !!inv.dueDate && inv.dueDate < heute && offenerRest(inv) > 0;
+  return !!m.faellig && m.faellig < heute && m.rest > 0;
 }

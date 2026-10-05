@@ -1547,6 +1547,15 @@ export interface Invoice {
    */
   bestellnummer?: string | null;
   /**
+   * Haft- oder Deckungsrücklass (seit 05.10.2026). Mindert den Zahlbetrag,
+   * nicht das Entgelt; der Mahnlauf übergeht ihn bis `ruecklassBis`. Den
+   * Betrag (brutto) rechnet die Datenbank beim Anlegen.
+   */
+  ruecklassArt?: 'haft' | 'deckung' | null;
+  ruecklassProzent?: number | null;
+  ruecklassBetrag?: number | null;
+  ruecklassBis?: string | null;
+  /**
    * Leistungszeitraum — der Tag oder Zeitraum, über den die Leistung erbracht
    * wurde.
    *

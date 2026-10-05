@@ -11,7 +11,7 @@ import {
   titel,
 } from '@/lib/belegLayout';
 import { TEXTE, mahnkosten, type Mahnstufe, type Verzugszinsen } from './mahnung';
-import { zahlstand } from './zahlstand';
+import { mahnbar, zahlstand } from './zahlstand';
 import type { Company, Invoice } from '@/types';
 import { euroBetrag } from '@/lib/betrag';
 
@@ -127,6 +127,19 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
     // PDFs, und jsPDF schrieb die ganze Zeile dann als Zeichensalat.
     zeilen.push(['Bereits bezahlt', `- ${euroBetrag(stand.bezahlt)} €`]);
   }
+  /*
+    DER RÜCKLASS, SOLANGE ER NICHT FÄLLIG IST (seit 05.10.2026): er steht
+    da, wird aber nicht gefordert. Ohne die Zeile ginge die Rechnung des
+    Kunden nicht auf — er hat ihn ja zu Recht einbehalten.
+  */
+  const gefordert = mahnbar(o.invoice, o.datum).rest;
+  const nichtFaellig = Math.round((stand.rest - gefordert) * 100) / 100;
+  if (nichtFaellig > 0) {
+    zeilen.push([
+      `${o.invoice.ruecklassArt === 'deckung' ? 'Deckungsrücklass' : 'Haftrücklass'}, fällig am ${fmtDatum(o.invoice.ruecklassBis ?? undefined)}`,
+      `- ${euroBetrag(nichtFaellig)} €`,
+    ]);
+  }
   if (spesen > 0) zeilen.push(['Mahnspesen', `${euroBetrag(spesen)} €`]);
   if (pauschale > 0) zeilen.push(['Pauschale für Betreibungskosten (§ 458 UGB)', `${euroBetrag(pauschale)} €`]);
   const zinsen = o.zinsen?.art === 'berechnet' ? o.zinsen : null;
@@ -166,7 +179,7 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
   doc.setDrawColor(...TINTE).setLineWidth(0.35).line(rand, y - 3.5, betragX, y - 3.5);
   doc.setFont('helvetica', 'bold');
   doc.text('Offener Betrag', rand, y + 1);
-  doc.text(`${euroBetrag(stand.rest + spesen + pauschale + (zinsen?.betrag ?? 0))} €`, betragX, y + 1, { align: 'right' });
+  doc.text(`${euroBetrag(gefordert + spesen + pauschale + (zinsen?.betrag ?? 0))} €`, betragX, y + 1, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   y += 12;
 
