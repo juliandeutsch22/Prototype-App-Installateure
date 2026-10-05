@@ -1,6 +1,6 @@
 # Offene Punkte
 
-Stand 02.10.2026. Alles, was bewusst nicht umgesetzt ist, an einem Ort:
+Stand 05.10.2026. Alles, was bewusst nicht umgesetzt ist, an einem Ort:
 aus dem Design-Durchgang (`docs/design/fortschritt.md`), aus dem Prüflauf
 mit vier unabhängigen Prüfern (`docs/pruefung-2026-09-25.md`), aus den
 Lücken, die die Prüfer neben den Fehlern gemeldet haben, und aus dem
@@ -15,7 +15,7 @@ wandert er hier heraus und in die jeweilige Doku.
 
 | # | Punkt | Warum offen | Vorschlag |
 |---|---|---|---|
-| A9 | **Was nach Ablauf der sieben Jahre geschieht** — mit Belegen und Zeitaufzeichnungen einer Person, die die Löschung verlangt hat (B8). Die Löschung entfernt heute, was nicht aufbewahrt werden muss, und nennt für den Rest das Fristende; nach Ablauf löscht sie noch nichts | Vor 2031 läuft in diesem Bestand keine Frist ab. Offen ist, ob danach gelöscht oder anonymisiert wird — und was mit dem Namen einer Person auf den Belegen **anderer** geschieht (Schein des Kunden, genehmigter Urlaub, erfasste Zahlung). Laufende Verfahren verlängern die Frist (§ 132 Abs. 1 BAO) | **Beim Betrieb** (29.09.2026: wie empfohlen): mit dem Steuerberater entscheiden; dann denselben Aufruf um den zweiten Schritt erweitern |
+| A9 | **Was nach Ablauf der sieben Jahre geschieht** — mit Belegen und Zeitaufzeichnungen einer Person, die die Löschung verlangt hat (B8). Die Löschung entfernt heute, was nicht aufbewahrt werden muss, und nennt für den Rest das Fristende; nach Ablauf löscht sie noch nichts | Vor 2031 läuft in diesem Bestand keine Frist ab. Offen ist, ob danach gelöscht oder anonymisiert wird — und was mit dem Namen einer Person auf den Belegen **anderer** geschieht (Schein des Kunden, genehmigter Urlaub, erfasste Zahlung). Laufende Verfahren verlängern die Frist (§ 132 Abs. 1 BAO) | Mit der Steuerberatung entscheiden (29.09.2026: wie empfohlen); dann denselben Aufruf um den zweiten Schritt erweitern. Gilt für jeden Betrieb, die früheste Frist läuft 2031 ab |
 
 **Sicherheitsupdate der Bibliotheken (29.09.2026):** `npm audit --omit=dev`
 meldet 0 Befunde (vorher 16, davon einer kritisch). jsPDF 2 → 4 und
@@ -85,7 +85,7 @@ Anpassung, kein Umbau.
 |---|---|---|---|
 | D1 | WKO | **M3** aliquoter Urlaub taggenau, **M35** Nachtzuschlag nur für die Minuten in der Nachtzeit | umgesetzt nach Lesart, Urlaub bleibt änderbarer Vorschlag |
 | D2 | WKO | **M22** Mahnspesen an Privatkunden: Warnung ab 40 € (§ 1333 Abs 2 ABGB) | an Unternehmer hart 40 € (§ 458 UGB), an Private nur Warnung |
-| D3 | WKO | **KJBG** — Schutzregeln für Jugendliche (Lehrlinge) | nicht gebaut; Einstufung, Sätze und Berufsschule (Punkte 1–4) stehen |
+| D3 | WKO | **KJBG** — Schutzregeln für Jugendliche (Lehrlinge) | nicht gebaut; Einstufung, Sätze und Berufsschule (Punkte 1–4) stehen. Wird mit den Arbeitszeitgrenzen gebaut (Stand-Datei 11.1, Punkt 4); die WKO bestätigt die Werte |
 | D4 | Steuerberatung | **H6** Buchung des Stornos: die Stornorechnung trägt das Ausstellungsdatum, gebucht wird der Storno weiter am Stornotag | wandert die Buchung mit, ist es eine Zeile im BMD-Stapel |
 | D5 | Steuerberatung | **M26** der vorgeschlagene Kontenrahmen | Hinweis „Vorschlag – mit der Kanzlei abstimmen“ steht |
 | D6 | Steuerberatung | **K3** die Lücke im Rechnungskreis des Pilotbetriebs aus der Zeit vor dem 25.09. festhalten | der Kreis läuft seit 25.09. lückenlos |
@@ -94,12 +94,18 @@ Anpassung, kein Umbau.
 | D9 | Steuerberatung | **E2** Reicht die VIES-Abfrage mit Abfrage-ID als Nachweis der Kunden-UID, oder braucht es für österreichische Nummern zusätzlich die Bestätigung über FinanzOnline (Stufe 2)? | VIES-Abfrage mit festgehaltenem Ergebnis, Zeitpunkt und Abfrage-ID in der Kundenakte |
 | D10 | Anwalt | **E3** Kalender-Abo: Kundenname, Adresse und Ansprechpartner gehen an den Kalenderdienst der Person (Google, Apple, Microsoft) — genügt der Schalter des Betriebs samt Satz in der Datenschutzerklärung? | ab Werk aus, der Betrieb schaltet es ein; Ausschalten beendet alle Abos |
 
-## E. Für später vermerkt (entschieden am 30.09.2026)
+## E. Für später vermerkt
 
-| # | Punkt |
-|---|---|
-| E3 | Paket 11: Personalnummer, Lohnarten, Fahrzeuglager, Prüfprotokoll, ebInterface; Mailversand aus der App (braucht SMTP-Zugang als Function-Geheimnis) ist am 02.10.2026 zurückgestellt — der Mehrwert ist offen |
-| E4 | Plattform: Stufe „nur lesen“ nach einer Kündigung (im Auftrag optional). Die Erinnerung bei nur einem Leitungskonto ohne E-Mail steht seit 02.10.2026 auf der Startseite des Betriebs |
+Seit 05.10.2026 eingeordnet in `docs/stand-2026-10-03.md`, Abschnitt 11:
+Senklot ist für jeden Betrieb gebaut, die Punkte sind Produktentscheidungen.
+
+| # | Punkt | Einordnung |
+|---|---|---|
+| E3 | Mailversand aus der App | nach dem Launch, sobald der eigene Mailversand (SMTP) steht (11.2) |
+| E3 | Personalnummer, Lohnarten | nach dem Launch, als Zuordnung im Export (11.2) |
+| E3 | Prüfprotokoll | nach dem Launch, als Vorlage je Betrieb (11.2) |
+| E3 | Fahrzeuglager, ebInterface | bewusst nicht gebaut, bis ein Betrieb es braucht (11.3); die Bestellnummer des Kunden kommt vorher (11.1) |
+| E4 | Plattform-Stufe „nur lesen“ nach einer Kündigung | ersetzt durch einen vollständigen Archiv-Export (11.1) |
 
 ## Erledigt seit dem Prüflauf
 

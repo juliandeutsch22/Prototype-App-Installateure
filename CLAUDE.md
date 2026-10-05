@@ -1,8 +1,14 @@
 # Arbeitsweise in diesem Repository
 
 Diese Datei gilt für jede Überarbeitung, egal von wem. Sie fasst zusammen, was
-der Betrieb (Pilotbetrieb Perl Installationen) als Grundsatz festgelegt hat.
-Der laufende Plan steht in `docs/stand-2026-10-03.md`, Abschnitt 10.
+der Auftraggeber als Grundsatz festgelegt hat. Der laufende Plan steht in
+`docs/stand-2026-10-03.md`, Abschnitt 11.
+
+**Senklot ist für jeden österreichischen Installationsbetrieb gebaut, nicht
+für einen einzelnen.** Perl Installationen ist der Pilotbetrieb und damit der
+erste Prüfstein, entscheidet aber nicht über den Umfang. Was nur manche
+Betriebe brauchen, wird eine Einstellung je Betrieb oder eine klar benannte
+Grenze, keine Annahme über „den“ Betrieb.
 
 ## Grundsätze (verbindlich)
 

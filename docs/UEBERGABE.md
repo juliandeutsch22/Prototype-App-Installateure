@@ -482,7 +482,11 @@ kaputte Code nie geladen wurde.
 |---|---|
 | **Wiedervorlagen** (`follow_ups`) | **Am 30.09.2026 entfernt.** Geschrieben hat dorthin nur die KI-Spracherfassung (entfernt am 19.09.2026); keine Ansicht las oder schrieb die Tabelle. Mit ihr sind Datenschicht, Typ und die Zeile im Umnummern der Baustelle weg. Eine Sicherung von vorher spielt der Rücklauf trotzdem ein: er übergeht die Tabelle und nennt sie (`ENTFERNTE_TABELLEN` in `scripts/ruecklaufPlan.mjs`). |
 
-### Eine offene Produktfrage
+### Eine Produktfrage, inzwischen entschieden
+
+> **Erledigt am 02.10.2026** (offene Punkte A10): Angebote tragen nur
+> Verkaufspreise und kalkulierte Stunden; Kostensätze und Einkaufspreise lesen
+> nur Geschäftsführung und Administrator. Der Text darunter ist der Stand davor.
 
 Die **Nachkalkulation** ist Geschäftsführungssache, weil sie Margen zeigt. Die
 **Angebote** stehen auch der Projektleitung offen — und darin steht die
