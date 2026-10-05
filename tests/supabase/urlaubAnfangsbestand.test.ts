@@ -41,9 +41,14 @@ async function frischeKennung(): Promise<string> {
   return data.user!.id;
 }
 
+/*
+  DIE GANZE KENNUNG IN DER ADRESSE. Vorher standen nur ihre ersten vier
+  Zeichen darin — 65 536 Möglichkeiten, und am 05.10.2026 trafen sich zwei
+  Profile dieses Laufs darauf (`users_email_je_betrieb`).
+*/
 const profil = (uid: string, rest: Record<string, unknown> = {}) => ({
   name: `Petra ${uid.slice(0, 4)}`,
-  email: `petra-${uid.slice(0, 4)}@${BETRIEB}.test`,
+  email: `petra-${uid}@${BETRIEB}.test`,
   role: 'Mitarbeiter' as const,
   active: true,
   appStartDate: '2026-09-15',
