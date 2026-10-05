@@ -158,6 +158,34 @@ describe('Anlegen', () => {
     expect(terminAnlegen).not.toHaveBeenCalled();
   });
 
+  it('sagt verdrehte Zeiten gleich unter den Feldern, nicht erst beim Speichern (05.10.2026)', async () => {
+    zeige({ bezug: 'baustelle', projectNumber: '2026-042' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Termin anlegen' }));
+    const satz = /liegt nicht nach „Von“ — so lässt sich der Termin nicht speichern/;
+    await userEvent.type(screen.getByLabelText('Von'), '12:22');
+    await userEvent.type(screen.getByLabelText('Bis'), '12:12');
+    expect(screen.getByText(satz)).toBeInTheDocument();
+    // Gegenprobe: in der richtigen Folge steht nichts da.
+    await userEvent.clear(screen.getByLabelText('Bis'));
+    await userEvent.type(screen.getByLabelText('Bis'), '13:00');
+    expect(screen.queryByText(satz)).not.toBeInTheDocument();
+  });
+
+  it('die Uhrzeit lässt sich wieder entfernen — dann gilt der ganze Tag (05.10.2026)', async () => {
+    zeige({ bezug: 'baustelle', projectNumber: '2026-042' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Termin anlegen' }));
+    // Ohne Uhrzeit gibt es nichts zu entfernen.
+    expect(screen.queryByRole('button', { name: 'Uhrzeit entfernen' })).not.toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Von'), '10:00');
+    await userEvent.type(screen.getByLabelText('Bis'), '08:00');
+    await userEvent.click(screen.getByRole('button', { name: 'Uhrzeit entfernen' }));
+    expect((screen.getByLabelText('Von') as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText('Bis') as HTMLInputElement).value).toBe('');
+    await userEvent.click(within(karte()).getByRole('button', { name: 'Termin anlegen' }));
+    await waitFor(() => expect(terminAnlegen).toHaveBeenCalledTimes(1));
+    expect(terminAnlegen.mock.calls[0][1]).toMatchObject({ zeitVon: '', zeitBis: '' });
+  });
+
   it('in der Baustellenakte steht die Baustelle fest', async () => {
     zeige({ bezug: 'baustelle', projectNumber: '2026-042' });
     await userEvent.click(await screen.findByRole('button', { name: 'Termin anlegen' }));
