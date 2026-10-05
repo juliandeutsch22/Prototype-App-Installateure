@@ -66,6 +66,25 @@ async function text(o: Partial<Parameters<typeof buildMahnungPdf>[0]> = {}): Pro
   });
 }
 
+describe('Rücklass (05.10.2026)', () => {
+  const mitRuecklass = (bis: string) => ({
+    ...rechnung, ruecklassArt: 'haft' as const, ruecklassProzent: 5, ruecklassBetrag: 60, ruecklassBis: bis,
+  });
+
+  it('steht da, solange er nicht fällig ist — gefordert wird nur der übrige Betrag', async () => {
+    const s = await text({ invoice: mitRuecklass('2029-08-01') });
+    expect(s).toContain('Haftrücklass, fällig am 01.08.2029');
+    expect(s).toMatch(betrag('- 60,00'));
+    expect(s).toMatch(betrag('1.140,00'));
+  });
+
+  it('Gegenprobe: ist er fällig, wird er mitgefordert', async () => {
+    const s = await text({ invoice: mitRuecklass('2026-09-10') });
+    expect(s).not.toContain('Haftrücklass');
+    expect(s).toMatch(betrag('1.200,00'));
+  });
+});
+
 describe('Was auf jeder Mahnung steht', () => {
   it('nennt die Rechnung, um die es geht', async () => {
     // Der Kunde soll ohne Suchen wissen, worum es geht.

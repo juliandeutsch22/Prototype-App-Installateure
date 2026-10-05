@@ -4,7 +4,7 @@ import { lehrzeitEnde } from '@/lib/einstufung';
 import { istBenutzerkonto } from '@shared/benutzername';
 import type { OffenerNachtrag } from '@/features/worksheets/zeitNachtrag';
 import type { Mahnlauf } from '@/features/invoices/mahnlauf';
-import { istUeberfaellig, offenerRest } from '@/features/invoices/zahlstand';
+import { istUeberfaellig, mahnbar, offenerRuecklass } from '@/features/invoices/zahlstand';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { euro } from '@/lib/betrag';
 import { datumAT } from '@/lib/datum';
@@ -233,17 +233,52 @@ export function ueberfaelligNichtMahnbar(
   const ausgereizt = new Set(lauf.ausgereizt.map((r) => r.id));
   const zeilen: Zeile[] = rechnungen
     .filter((r) => istUeberfaellig(r, heute) && !imLauf.has(r.id))
-    .sort((a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? ''))
-    .map((r) => ({
-      key: `ueber-${r.id}`,
-      titel: r.customerName,
-      detail: ausgereizt.has(r.id)
-        ? `${r.invoiceNumber} · 3. Mahnung heraus — Inkasso prüfen`
-        : `${r.invoiceNumber} · ${euro(offenerRest(r))}`,
-      status: { text: r.dueDate ? tageWort(tageZwischen(r.dueDate, heute)) : 'überfällig', ton: 'fehl' },
-      to: ZIEL.rechnung(r.invoiceNumber),
-    }));
+    .sort((a, b) => (mahnbar(a, heute).faellig ?? '').localeCompare(mahnbar(b, heute).faellig ?? ''))
+    .map((r) => {
+      // Was zu mahnen ist und ab wann — ein Rücklass erst ab seiner Fälligkeit.
+      const m = mahnbar(r, heute);
+      return {
+        key: `ueber-${r.id}`,
+        titel: r.customerName,
+        detail: ausgereizt.has(r.id)
+          ? `${r.invoiceNumber} · 3. Mahnung heraus — Inkasso prüfen`
+          : `${r.invoiceNumber} · ${euro(m.rest)}`,
+        status: { text: m.faellig ? tageWort(tageZwischen(m.faellig, heute)) : 'überfällig', ton: 'fehl' as const },
+        to: ZIEL.rechnung(r.invoiceNumber),
+      };
+    });
   return abschnitt('ueberfaellig', 'Überfällig, noch nicht mahnbar', zeilen, ZIEL.rechnungenUeberfaellig);
+}
+
+/** Wie viele Tage vor der Fälligkeit ein Rücklass auf der Startseite steht. */
+export const RUECKLASS_VORLAUF_TAGE = 30;
+
+/** Die Rücklässe, die in den nächsten 30 Tagen fällig werden — offen, nicht schon überfällig. */
+export function ruecklaesseBald(rechnungen: (Invoice & { id: string })[], heute: string): (Invoice & { id: string })[] {
+  const bis = new Date(`${heute}T00:00:00Z`);
+  bis.setUTCDate(bis.getUTCDate() + RUECKLASS_VORLAUF_TAGE);
+  const grenze = bis.toISOString().slice(0, 10);
+  return rechnungen
+    .filter((r) => r.paymentStatus !== 'Storniert' && offenerRuecklass(r) > 0
+      && !!r.ruecklassBis && r.ruecklassBis >= heute && r.ruecklassBis <= grenze)
+    .sort((a, b) => (a.ruecklassBis ?? '').localeCompare(b.ruecklassBis ?? ''));
+}
+
+/**
+ * DER RÜCKLASS, BEVOR ER FÄLLIG WIRD (seit 05.10.2026). Ohne Erinnerung
+ * merkt ihn niemand an, und drei Prozent jeder Baustelle bleiben beim Kunden
+ * liegen. Ab der Fälligkeit steht er unter „überfällig“ und im Mahnlauf —
+ * hier nur davor, damit dieselbe Rechnung nicht zweimal dasteht.
+ */
+export function ruecklassWirdFaellig(rechnungen: (Invoice & { id: string })[], heute: string): Abschnitt | null {
+  const zeilen: Zeile[] = ruecklaesseBald(rechnungen, heute).map((r) => ({
+    key: `ruecklass-${r.id}`,
+    titel: r.customerName,
+    detail: `${r.invoiceNumber} · ${r.ruecklassArt === 'deckung' ? 'Deckungsrücklass' : 'Haftrücklass'} ${euro(offenerRuecklass(r))}`,
+    status: { text: `fällig ${tagKurz(r.ruecklassBis!)}`, ton: 'warn' },
+    to: ZIEL.rechnung(r.invoiceNumber),
+  }));
+  return abschnitt('ruecklass', 'Rücklass wird fällig', zeilen, ZIEL.rechnungen);
 }
 
 export interface UnverrechneteZeile {

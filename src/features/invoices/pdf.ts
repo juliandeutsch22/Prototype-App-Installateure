@@ -109,6 +109,8 @@ export function generateInvoicePdf(opts: {
   leistungsort?: string;
   /** Die Bestellnummer des Kunden — eine eigene Zeile, wenn angegeben. */
   bestellnummer?: string;
+  /** Haft- oder Deckungsrücklass, wie er an der Rechnung steht — oder keiner. */
+  ruecklass?: { art: 'haft' | 'deckung'; prozent: number; betrag: number; bis: string } | null;
   /** Einzel-, Anzahlungs-, Teil- oder Schlussrechnung. Ohne Angabe: einzel. */
   art?: RechnungsArt;
   /**
@@ -244,11 +246,29 @@ export function generateInvoicePdf(opts: {
   let y = (doc.lastAutoTable?.finalY ?? 120) + 12;
   const breite = RECHTS - RAND;
   doc.setFontSize(9.5).setFont('helvetica', 'normal').setTextColor(...TINTE);
+  /*
+    DER RÜCKLASS MINDERT DEN ZAHLBETRAG, NICHT DIE RECHNUNG (seit
+    05.10.2026). Die Summen darüber bleiben samt Umsatzsteuer voll; hier
+    steht, was einbehalten wird, bis wann, und was jetzt zu zahlen ist.
+  */
+  const rueck = opts.ruecklass ?? null;
+  const zahlbetrag = rueck ? Math.round((forderung - rueck.betrag) * 100) / 100 : forderung;
+  if (rueck) {
+    const name = rueck.art === 'deckung' ? 'Deckungsrücklass' : 'Haftrücklass';
+    const absatz = doc.splitTextToSize(
+      `${name} ${rueck.prozent.toLocaleString('de-AT', { maximumFractionDigits: 2 })} %: ` +
+        `${euroBetrag(rueck.betrag)} € werden einbehalten und sind am ${fmtDatum(rueck.bis)} fällig.`,
+      breite,
+    ) as string[];
+    y = platzFuer(doc, y, absatz.length * 5 + 3);
+    doc.text(absatz, RAND, y);
+    y += absatz.length * 5 + 2;
+  }
   const zahlung = doc.splitTextToSize(
     // Betrag und Frist gehören in den Überweisungssatz — sonst muss der Kunde
     // sie sich aus der Tabelle zusammensuchen. DER REST, nicht die
     // Gesamtleistung: was schon bezahlt ist, wird nicht noch einmal gefordert.
-    `Bitte überweisen Sie ${euroBetrag(forderung)} € bis ${fmtDatum(dueDate)}` +
+    `Bitte überweisen Sie ${euroBetrag(zahlbetrag)} € bis ${fmtDatum(dueDate)}` +
       (company.iban ? ` auf IBAN ${company.iban}${company.bic ? ` / BIC ${company.bic}` : ''}` : '') +
       '.' +
       // Das Skonto als Betrag, nicht nur als Prozentsatz — sonst rechnet jeder Kunde anders.

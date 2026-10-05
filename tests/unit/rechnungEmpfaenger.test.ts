@@ -46,7 +46,10 @@ const LEISTUNG: AssembledInvoice = {
   entries: [],
 };
 
-function beleg(extra: { leistungsort?: string; art?: RechnungsArt; bestellnummer?: string } = {}): string {
+function beleg(extra: {
+  leistungsort?: string; art?: RechnungsArt; bestellnummer?: string;
+  ruecklass?: { art: 'haft' | 'deckung'; prozent: number; betrag: number; bis: string } | null;
+} = {}): string {
   tabellen.length = 0;
   const doc = generateInvoicePdf({
     company: firma,
@@ -109,5 +112,25 @@ describe('Bestellnummer des Kunden', () => {
     const ohne = tabellen[0].startY!;
     beleg({ leistungsort: 'Bergweg 3', art: 'anzahlung', bestellnummer: 'PO-77' });
     expect(tabellen[0].startY!).toBeGreaterThan(ohne);
+  });
+});
+
+/*
+  DER RÜCKLASS (05.10.2026) mindert den Zahlbetrag, nicht die Rechnung: die
+  Summen bleiben voll, darunter steht der Einbehalt mit Fälligkeit, und der
+  Überweisungssatz nennt den Betrag ohne ihn.
+*/
+describe('Rücklass auf dem Beleg', () => {
+  it('nennt Einbehalt und Fälligkeit, und der Überweisungssatz den Zahlbetrag', () => {
+    const text = beleg({ ruecklass: { art: 'haft', prozent: 5, betrag: 36, bis: '2029-09-15' } });
+    // Das Eurozeichen steht im Datenstrom des PDFs anders kodiert.
+    expect(text).toMatch(/Haftrücklass 5 %: 36,00 . werden einbehalten und sind am 15\.09\.2029 fällig\./);
+    expect(text).toContain('Bitte überweisen Sie 684,00');
+  });
+
+  it('Gegenprobe: ohne Rücklass der volle Betrag und kein Einbehalt', () => {
+    const text = beleg();
+    expect(text).not.toContain('einbehalten');
+    expect(text).toContain('Bitte überweisen Sie 720,00');
   });
 });

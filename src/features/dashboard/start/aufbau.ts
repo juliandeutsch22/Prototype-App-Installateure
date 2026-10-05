@@ -26,6 +26,8 @@ import {
   tageZwischen,
   tagKurz,
   ueberfaelligNichtMahnbar,
+  ruecklassWirdFaellig,
+  ruecklaesseBald,
   unbesetzteEinsaetze,
   unterMindestmenge,
   urlaubsantraege,
@@ -36,7 +38,7 @@ import {
 import { anzahl, themenAbschnitte, type Thema } from './themen';
 import { ZIEL } from './ziele';
 import { auffaellige } from '@/features/worksheets/unverrechnet';
-import { istUeberfaellig, offenerRest } from '@/features/invoices/zahlstand';
+import { istUeberfaellig, mahnbar, offenerRest, offenerRuecklass } from '@/features/invoices/zahlstand';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { euro } from '@/lib/betrag';
 import { fmtMin, getISOWeek, tageWort } from '@/lib/time';
@@ -195,6 +197,7 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
     eigeneTage(d, u),
     d.lauf ? erlaubt(mahnungenFaellig(d.lauf), u) : null,
     d.lauf && d.unbezahlt ? erlaubt(ueberfaelligNichtMahnbar(d.unbezahlt, d.lauf, u.heute), u) : null,
+    d.unbezahlt ? erlaubt(ruecklassWirdFaellig(d.unbezahlt, u.heute), u) : null,
     d.unverrechnet ? erlaubt(scheineNichtVerrechnet(auffaellige(d.unverrechnet)), u) : null,
     /*
       DIE EIGENE PERSON NUR EINMAL (Analyse 03.10.2026, Paket 1): ihre Tage
@@ -229,17 +232,21 @@ function geldKennzahlen(d: StartDaten, u: Umfeld, mitBezahlt: boolean): Kennzahl
     const ueber = d.unbezahlt.filter((i) => istUeberfaellig(i, u.heute));
     const offen = d.unbezahlt.filter((i) => !istUeberfaellig(i, u.heute));
     const summe = (l: typeof ueber) => l.reduce((s, i) => s + offenerRest(i), 0);
+    // Überfällig ist nur, was zu mahnen ist; ein noch nicht fälliger Rücklass
+    // bleibt offen — dieselbe Rechnung zählt dann in beiden Kacheln.
+    const faellig = ueber.reduce((s, i) => s + mahnbar(i, u.heute).rest, 0);
+    const mitRuecklass = ueber.filter((i) => offenerRest(i) - mahnbar(i, u.heute).rest > 0.005).length;
     out.push({
       key: 'offen',
       label: 'Offen',
-      wert: euro(summe(offen)),
-      zusatz: anzahl(offen.length, 'Rechnung', 'Rechnungen'),
+      wert: euro(summe(offen) + summe(ueber) - faellig),
+      zusatz: anzahl(offen.length + mitRuecklass, 'Rechnung', 'Rechnungen'),
       to: ZIEL.rechnungen,
     });
     out.push({
       key: 'ueberfaellig',
       label: 'Überfällig',
-      wert: euro(summe(ueber)),
+      wert: euro(faellig),
       zusatz: ueber.length ? anzahl(ueber.length, 'Rechnung', 'Rechnungen') : 'keine Rechnung',
       to: ZIEL.rechnungenUeberfaellig,
       ton: ueber.length ? 'danger' : undefined,
@@ -341,14 +348,28 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
   if (d.unbezahlt) {
     const ueber = d.unbezahlt.filter((i) => istUeberfaellig(i, h));
     if (ueber.length) {
-      const aeltester = [...ueber].sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
+      // Ab der Fälligkeit dessen, was zu mahnen ist — bei einem Rücklass seine.
+      const ab = (i: (typeof ueber)[number]) => mahnbar(i, h).faellig ?? i.dueDate;
+      const aeltester = [...ueber].sort((a, b) => ab(a).localeCompare(ab(b)))[0];
       const mahnungen = d.lauf?.zeilen.length ?? 0;
       themen.push(wenn(ZIEL.rechnungenUeberfaellig, {
         key: 'rechnungen', wann: 'ueberfaellig',
         titel: `${anzahl(ueber.length, 'Rechnung', 'Rechnungen')} überfällig`,
-        detail: [euro(ueber.reduce((s, i) => s + offenerRest(i), 0)), mahnungen ? anzahl(mahnungen, 'Mahnung fällig', 'Mahnungen fällig') : '']
+        detail: [euro(ueber.reduce((s, i) => s + mahnbar(i, h).rest, 0)), mahnungen ? anzahl(mahnungen, 'Mahnung fällig', 'Mahnungen fällig') : '']
           .filter(Boolean).join(' · '),
-        status: { text: tageWort(tageZwischen(aeltester.dueDate, h)), ton: 'fehl' },
+        status: { text: tageWort(tageZwischen(ab(aeltester), h)), ton: 'fehl' },
+      }));
+    }
+  }
+  if (d.unbezahlt) {
+    // Rücklässe, die in den nächsten 30 Tagen fällig werden (seit 05.10.2026).
+    const bald = ruecklaesseBald(d.unbezahlt, h);
+    if (bald.length) {
+      themen.push(wenn(ZIEL.rechnungen, {
+        key: 'ruecklass', wann: 'woche',
+        titel: `${anzahl(bald.length, 'Rücklass wird', 'Rücklässe werden')} fällig`,
+        detail: euro(bald.reduce((s, i) => s + offenerRuecklass(i), 0)),
+        status: { text: `ab ${tagKurz(bald[0].ruecklassBis!)}`, ton: 'warn' },
       }));
     }
   }

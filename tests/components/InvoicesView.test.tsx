@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Invoice, Material, Project, TimeEntry, WorkSheet } from '@/types';
 import InvoicesView from '@/features/invoices/InvoicesView';
-import { cancelInvoice } from '@/lib/db/invoices';
+import { cancelInvoice, updateInvoiceStatus } from '@/lib/db/invoices';
 import { updateCustomer } from '@/lib/db/customers';
 
 /**
@@ -3185,6 +3185,102 @@ describe('Skonto beim Anlegen', () => {
     await userEvent.click(knopf);
     await waitFor(() => expect(lege).toHaveBeenCalled());
     expect(lege.mock.calls[0][0]).toMatchObject({ skontoProzent: null, skontoBis: null });
+  });
+});
+
+/** Haft- und Deckungsrücklass beim Anlegen (Stand-Datei 11.1, Punkt 5). */
+describe('Rücklass beim Anlegen', () => {
+  const firma = authWert.company as unknown as { rates?: Record<string, unknown> };
+  afterEach(() => {
+    firma.rates = undefined;
+  });
+
+  it('behält einen Haftrücklass ein — Fälligkeit nach drei Jahren vorgeschlagen, Betrag von der ganzen Leistung', async () => {
+    const knopf = await bisZurVorschau();
+    await userEvent.click(screen.getByLabelText('Haftrücklass einbehalten'));
+    // Systemzeit 01.09.2026 — drei Jahre Gewährleistung.
+    expect(screen.getByLabelText('Fällig am')).toHaveValue('2029-09-01');
+    await userEvent.type(screen.getByLabelText('Rücklass (%)'), '5');
+    expect(screen.getByText(/Einbehalten: .*Zu zahlen jetzt:/)).toBeInTheDocument();
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const r = lege.mock.calls[0][0] as { totalBrutto: number; ruecklassBetrag: number };
+    expect(lege.mock.calls[0][0]).toMatchObject({ ruecklassArt: 'haft', ruecklassProzent: 5, ruecklassBis: '2029-09-01' });
+    expect(r.ruecklassBetrag).toBe(Math.round(r.totalBrutto * 5) / 100);
+    await waitFor(() => expect(pdfAusgabe).toHaveBeenCalled());
+    expect(pdfAusgabe.mock.calls[0][0]).toMatchObject({
+      ruecklass: { art: 'haft', prozent: 5, betrag: r.ruecklassBetrag, bis: '2029-09-01' },
+    });
+  });
+
+  it('mit Rücklass kein Skonto — auch wenn eines eingestellt ist', async () => {
+    firma.rates = { fach: 65, helper: 45, nightSurcharge: 0.5, emergencySurcharge: 1, vatRate: 0.2, dueDays: 14,
+      skontoProzent: 3, skontoTage: 10 };
+    const knopf = await bisZurVorschau();
+    await userEvent.click(screen.getByLabelText('Haftrücklass einbehalten'));
+    await userEvent.type(screen.getByLabelText('Rücklass (%)'), '3');
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0]).toMatchObject({ ruecklassArt: 'haft', skontoProzent: null, skontoBis: null });
+  });
+
+  it('ohne Satz wird nicht ausgestellt — und es steht da, warum', async () => {
+    const knopf = await bisZurVorschau();
+    await userEvent.click(screen.getByLabelText('Haftrücklass einbehalten'));
+    await userEvent.click(knopf);
+    expect(await screen.findByText(/Für den Rücklass fehlen Prozentsatz oder eine Fälligkeit/)).toBeInTheDocument();
+    expect(lege).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: ohne Haken kein Rücklass', async () => {
+    const knopf = await bisZurVorschau();
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0]).toMatchObject({ ruecklassArt: null, ruecklassProzent: null, ruecklassBetrag: null, ruecklassBis: null });
+  });
+});
+
+/** Ein offener Rücklass in der Liste: offen, nicht überfällig, solange er nicht fällig ist. */
+describe('Rücklass in der Liste', () => {
+  const kachel = (name: string) =>
+    screen.getAllByText(name).find((e) => e.tagName === 'P')!.parentElement!;
+  // 1.200 € brutto, Zahlungsziel vorbei, 60 € Haftrücklass.
+  const mitRuecklass = (p: Partial<Invoice>): Invoice & { id: string } => ({
+    id: 'rl', invoiceNumber: 'RE-2026-1100', projectNumber: '2026-001', customerName: 'Bauträger Nord',
+    invoiceDate: '2026-07-01', dueDate: '2026-07-15', totalNetto: 1000, totalVat: 200, totalBrutto: 1200,
+    paymentStatus: 'Teilbezahlt', bezahltBetrag: 1140,
+    ruecklassArt: 'haft', ruecklassProzent: 5, ruecklassBetrag: 60, ruecklassBis: '2029-07-01',
+    ...p,
+  }) as Invoice & { id: string };
+
+  it('ist nur der Rücklass offen, steht er unter „Offen“, nicht unter „Überfällig“', async () => {
+    rechnungen = [mitRuecklass({})];
+    zeige();
+    await screen.findByText(/RE-2026-1100/);
+    expect(kachel('Offen')).toHaveTextContent('€ 60,00');
+    expect(kachel('Überfällig')).toHaveTextContent('€ 0,00');
+  });
+
+  it('Gegenprobe: nach seiner Fälligkeit ist er überfällig', async () => {
+    rechnungen = [mitRuecklass({ ruecklassBis: '2026-08-01' })];
+    zeige();
+    await screen.findByText(/RE-2026-1100/);
+    expect(kachel('Überfällig')).toHaveTextContent('€ 60,00');
+    expect(kachel('Offen')).toHaveTextContent('€ 0,00');
+  });
+
+  it('eine Rechnung, die ganz Rücklass ist, wird nicht auf „Überfällig“ gestellt — eine ohne schon', async () => {
+    vi.mocked(updateInvoiceStatus).mockClear();
+    // Schlussrechnung, deren Rest ganz einbehalten wird.
+    rechnungen = [
+      mitRuecklass({ paymentStatus: 'Offen', bezahltBetrag: 0, totalBrutto: 60, totalNetto: 50, totalVat: 10 }),
+      mitRuecklass({ id: 'ohne', invoiceNumber: 'RE-2026-1101', paymentStatus: 'Offen', bezahltBetrag: 0,
+        ruecklassArt: null, ruecklassProzent: null, ruecklassBetrag: null, ruecklassBis: null }),
+    ];
+    zeige();
+    await screen.findByText(/RE-2026-1101/);
+    await waitFor(() => expect(updateInvoiceStatus).toHaveBeenCalledWith('ohne', 'Überfällig'));
+    expect(updateInvoiceStatus).not.toHaveBeenCalledWith('rl', 'Überfällig');
   });
 });
 
