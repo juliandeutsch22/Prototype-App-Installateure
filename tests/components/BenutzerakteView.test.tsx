@@ -38,6 +38,11 @@ let ladefehler = false;
 const profilAendern = vi.fn<(...args: unknown[]) => Promise<void>>(async () => undefined);
 const passwortMail = vi.fn(async () => undefined);
 
+/** Das Geburtsdatum (05.10.2026) hat eine eigene Prüfung (`ArbeitszeitGrenzenKarten.test.tsx`). */
+vi.mock('@/lib/db/arbeitszeitGrenzen', () => ({
+  getGeburtsdatum: vi.fn(async () => null),
+  setGeburtsdatum: vi.fn(async () => undefined),
+}));
 vi.mock('@/lib/db/users', () => ({
   getUserByUid: async () => {
     if (ladefehler) throw new Error('kaputt');

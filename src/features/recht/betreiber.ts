@@ -15,7 +15,7 @@
 export const GEPRUEFT = false;
 
 /** Stand der Texte — mit jeder Änderung nachziehen. */
-export const STAND = '02.10.2026';
+export const STAND = '05.10.2026';
 
 const OFFEN = (was: string) => `[${was} — wird ergänzt]`;
 

@@ -42,6 +42,7 @@ import Icon from '@/components/Icon';
 import ExportDialog from './ExportDialog';
 import ProjectSummary from './ProjectSummary';
 import Gesamtsaldo from './Gesamtsaldo';
+import ArbeitszeitGrenzenKarte from './ArbeitszeitGrenzenKarte';
 import TimeForm from '@/features/time/TimeForm';
 import { KrankmeldungKarte } from '@/features/vacations/Krankmeldungen';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -1166,6 +1167,15 @@ export default function AccountingView() {
           </div>
         )}
       </Card>
+
+      {/*
+        DIE GESETZLICHEN GRENZEN DES MONATS (05.10.2026). Im Supportzugang
+        nicht: Zeitbuchungen sind dort verschlossen, und eine Prüfung ohne
+        Daten meldete „keine Grenze überschritten“ — eine falsche Entwarnung.
+      */}
+      {!imSupport && (
+        <ArbeitszeitGrenzenKarte companyId={user.companyId} personen={relevant} jahr={year} monat={month} />
+      )}
 
       {/* Deckungsbeitrags-Sicht: Ist gegen kalkuliertes Budget je Baustelle. */}
       <ProjectSummary

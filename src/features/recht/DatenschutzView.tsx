@@ -41,6 +41,12 @@ export default function DatenschutzView() {
             Betrieb, deren Rolle es verlangt; nach einer Diagnose fragt die App nicht.
           </li>
           <li>
+            Wenn der Betrieb es einträgt, dein Geburtsdatum — nur, um die Schutzregeln für
+            Jugendliche unter 18 zu prüfen (KJBG). Sehen können es du selbst sowie Büro und
+            Leitung. Dazu Begründungen des Büros, wenn deine Arbeitszeit eine gesetzliche Grenze
+            überschreitet (etwa Notdienst).
+          </li>
+          <li>
             Handwerksscheine mit Unterschriften und, wenn aufgenommen, Fotos; Pläne und Dokumente
             zu Baustellen.
           </li>

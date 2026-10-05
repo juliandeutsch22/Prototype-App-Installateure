@@ -29,6 +29,7 @@ import {
 } from './benutzerEntwurf';
 import TagessollFelder from './TagessollFelder';
 import EinstufungFelder from './EinstufungFelder';
+import GeburtsdatumKarte from './GeburtsdatumKarte';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { todayStr, uebertragsRegel } from '@/lib/time';
@@ -334,12 +335,16 @@ export default function BenutzerakteView() {
           setVersuch((v) => v + 1);
         }}
       />
-      {/* Bewusst kein Löschen: Zeiteinträge, Bestellungen und Einsätze
-          verweisen auf die Kennung und würden verwaisen. */}
+      {/*
+        DEAKTIVIEREN IST NICHT LÖSCHEN. Hier stand „Gelöscht wird ein Benutzer
+        nie“ — und dieselbe Seite bietet unter „Datenschutz“ die Löschung nach
+        DSGVO an (UI-Prüfung 05.10.2026). Beides stimmt jetzt zusammen.
+      */}
       <p className="mt-3 text-sm text-ink-muted">
-        Gelöscht wird ein Benutzer nie — seine Buchungen und Scheine hängen
-        an ihm. Deaktivieren sperrt die Anmeldung und nimmt ihn aus den
-        Auswahllisten.
+        Deaktivieren sperrt die Anmeldung und nimmt die Person aus den
+        Auswahllisten. Löschen nach DSGVO geht erst danach, unter
+        „Datenschutz“; Buchungen und Scheine bleiben dabei, solange sie
+        aufbewahrt werden müssen.
       </p>
     </Card>
   ) : null;
@@ -350,6 +355,11 @@ export default function BenutzerakteView() {
   */
   const anspruch = fuehrtZeitkonto(p) ? (
     <UrlaubsanspruchKarte person={p} jahresbeginn={uebertragsRegel(company).jahresbeginn ?? '01-01'} />
+  ) : null;
+
+  // Wer die Akte ändern darf, pflegt auch das Geburtsdatum; im Support nie.
+  const geburtsdatum = darfAendern && user && !einblick ? (
+    <GeburtsdatumKarte companyId={user.companyId} uid={p.uid} />
   ) : null;
 
   const auskunft = zeigtAuskunft(user?.role, !!einblick) ? (
@@ -377,9 +387,9 @@ export default function BenutzerakteView() {
       />
 
       <Aktenspalten
-        telefon={[stammdaten, zugang, anspruch, auskunft]}
+        telefon={[stammdaten, zugang, geburtsdatum, anspruch, auskunft]}
         links={[stammdaten]}
-        rechts={[zugang, anspruch, auskunft]}
+        rechts={[zugang, geburtsdatum, anspruch, auskunft]}
       />
 
       <ConfirmDialog

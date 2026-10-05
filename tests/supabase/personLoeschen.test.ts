@@ -94,7 +94,7 @@ describe('Eine Person der Belegschaft', () => {
     const { b, fehler } = await loeschen(chef, 'mitarbeiter', monteur.uid);
     expect(fehler).toBeNull();
     expect(b!.geloescht).toBe(false);
-    expect(b!.sofort).toEqual({ einstellungen: 1, fehlerprotokoll: 1, einsaetze: 1, ruestlisten: 1, baustellen: 1, termine: 0 });
+    expect(b!.sofort).toEqual({ einstellungen: 1, fehlerprotokoll: 1, einsaetze: 1, ruestlisten: 1, baustellen: 1, termine: 0, geburtsdatum: 0 });
     expect(b!.aufbewahren).toEqual([
       { was: 'Zeitbuchungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
       { was: 'Krankmeldungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },

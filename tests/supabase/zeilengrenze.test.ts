@@ -165,9 +165,12 @@ describe('Der Zweitschlüssel und die Beziehungen ohne Kennung', () => {
 
       `basiszinssaetze` (05.10.2026) hängt an keinem Betrieb; Schlüssel ist das
       Halbjahr, gelesen wird mit einer eigenen Abfrage (`pg/basiszins.ts`).
+
+      `geburtsdaten` (05.10.2026): Schlüssel ist die Person, eine Zeile je
+      Person; gelesen mit einer eigenen Abfrage (`pg/geburtsdaten.ts`).
     */
     expect(rows.map((r) => r.table_name).sort()).toEqual([
-      'ausleitung_dateien', 'basiszinssaetze', 'betrieb_zustand', 'betriebsanlagen', 'monthly_stats', 'number_counters',
+      'ausleitung_dateien', 'basiszinssaetze', 'betrieb_zustand', 'betriebsanlagen', 'geburtsdaten', 'monthly_stats', 'number_counters',
       'system_laeufe', 'user_prefs',
     ].sort());
   }, 60_000);

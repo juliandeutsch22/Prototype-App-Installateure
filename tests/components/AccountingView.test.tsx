@@ -66,6 +66,13 @@ vi.mock('@/lib/db/urlaubsanspruch', () => ({
 vi.mock('@/lib/db/users', () => ({
   listUsers: vi.fn(async () => benutzer),
 }));
+/** Geburtsdaten und Begründungen der Arbeitszeitgrenzen (05.10.2026) — ab Werk leer. */
+vi.mock('@/lib/db/arbeitszeitGrenzen', () => ({
+  listGeburtsdaten: vi.fn(async () => new Map()),
+  listBegruendungen: vi.fn(async () => []),
+  setBegruendung: vi.fn(async () => undefined),
+  removeBegruendung: vi.fn(async () => undefined),
+}));
 vi.mock('@/lib/db/projects', () => ({
   // Die Ansicht laedt nur noch die Baustellen, die in den geladenen
   // Buchungen VORKOMMEN — nicht mehr den gesamten Bestand.
@@ -520,6 +527,8 @@ describe('Im Supportzugang (Testbericht 30.09.2026, M40)', () => {
       expect(screen.queryByRole('button', { name: 'Monats-CSV' })).not.toBeInTheDocument();
       await nutzer.click(kopf);
       expect(screen.queryByText('Saldo im Monat')).not.toBeInTheDocument();
+      // Ohne Zeitbuchungen keine Prüfung der Grenzen — sie entwarnte fälschlich.
+      expect(screen.queryByText(/Arbeitszeitgrenzen/)).not.toBeInTheDocument();
     } finally {
       delete (authWert as { einblick?: unknown }).einblick;
     }
