@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { admin, BAUSTELLE, BETRIEB, BUERO, MONTEUR } from './aufbau';
+import { admin, BAUSTELLE, BETRIEB, BUERO, CHEFIN, MONTEUR } from './aufbau';
 import { anmelden, keineFehlermeldung } from './helfer';
 
 /**
@@ -48,7 +48,7 @@ test.beforeEach(async () => {
   if (error) throw new Error(error.message);
 });
 
-test('Das Büro stellt aus der gebuchten Zeit eine Rechnung', async ({ page }) => {
+test('Das Büro stellt aus der gebuchten Zeit eine Rechnung', async ({ page, browser }) => {
   await anmelden(page, BUERO.email);
 
   await page.getByRole('link', { name: 'Rechnungen' }).first().click();
@@ -145,6 +145,30 @@ test('Das Büro stellt aus der gebuchten Zeit eine Rechnung', async ({ page }) =
   await expect(ansicht).toHaveCount(0);
 
   await keineFehlermeldung(page);
+
+  /*
+    UND DIE RECHNUNG STEHT IM BELEGARCHIV (seit 05.10.2026) — als PDF, aus
+    dem echten Browser. Erst hier läuft die PDF-Erzeugung mit der echten
+    Tabellen-Bibliothek; der Ansichtstest ersetzt sie.
+  */
+  const { data: gestellt } = await admin
+    .from('invoices').select('invoice_number').eq('company_id', BETRIEB).single();
+  const chefin = await browser.newPage();
+  await anmelden(chefin, CHEFIN.email);
+  await chefin.goto('/settings/sicherung');
+  const laden = chefin.waitForEvent('download');
+  await chefin.getByRole('button', { name: 'Belegarchiv herunterladen' }).click();
+  const datei = await laden;
+  expect(datei.suggestedFilename()).toMatch(/Belegarchiv.*\.zip$/);
+  const zip = await (await datei.createReadStream()).toArray();
+  const inhalt = Buffer.concat(zip).toString('latin1');
+  // Die Namen stehen unverschlüsselt im Verzeichnis, das PDF ungepackt dahinter.
+  expect(inhalt).toContain(`Rechnungen/${gestellt!.invoice_number}.pdf`);
+  expect(inhalt).toContain('%PDF');
+  expect(inhalt).toContain('Rechnungsausgangsbuch_');
+  await expect(chefin.getByText(/Im Archiv: 1 Rechnung, 0 Stornorechnungen/)).toBeVisible();
+  await keineFehlermeldung(chefin);
+  await chefin.close();
 });
 
 

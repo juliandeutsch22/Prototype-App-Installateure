@@ -38,6 +38,16 @@ vi.mock('@/lib/db/company', () => ({
   auszug: (...a: unknown[]) => export_(...a),
 }));
 
+const rechnungenImZeitraum = vi.fn(async () => [] as unknown[]);
+vi.mock('@/lib/db/invoices', () => ({
+  listInvoicesInRange: (...a: unknown[]) => rechnungenImZeitraum(...(a as [])),
+}));
+vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => []) }));
+const archiv = vi.fn();
+vi.mock('@/features/invoices/belegArchiv', () => ({
+  belegArchiv: (...a: unknown[]) => archiv(...a),
+}));
+
 vi.mock('@/app/AuthContext', () => ({
   useAuth: () => ({
     user: { uid: 'gf', companyId: 'perl', name: 'Chef', role: 'Geschäftsführung' },
@@ -56,6 +66,8 @@ function zeige() {
 beforeEach(() => {
   ausleitung.mockReset();
   export_.mockReset();
+  rechnungenImZeitraum.mockClear();
+  archiv.mockReset();
   letzterLauf = undefined;
 });
 
@@ -181,6 +193,36 @@ describe('Datensicherung', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Sicherung jetzt erstellen' })).toBeEnabled(),
     );
+  });
+});
+
+/** Das Belegarchiv (Stand-Datei 11.1, Punkt 6) — die Zusammenstellung prüft `belegArchiv.test.ts`. */
+describe('Belegarchiv', () => {
+  beforeEach(() => {
+    // jsdom kennt keine Objekt-Adressen; der Download selbst läuft im Durchklick.
+    URL.createObjectURL = vi.fn(() => 'blob:x');
+    URL.revokeObjectURL = vi.fn();
+  });
+
+  it('lädt das gewählte Jahr und sagt, was im Archiv steht', async () => {
+    archiv.mockResolvedValue({ blob: new Blob(), rechnungen: 12, stornos: 1, hinweise: ['x'] });
+    zeige();
+    const jahr = String(new Date().getFullYear() - 1);
+    await userEvent.selectOptions(screen.getByLabelText('Zeitraum'), jahr);
+    await userEvent.click(screen.getByRole('button', { name: 'Belegarchiv herunterladen' }));
+    expect(await screen.findByText(/Im Archiv: 12 Rechnungen, 1 Stornorechnung\. Ein Hinweis steht in „Hinweise\.txt“\./)).toBeInTheDocument();
+    expect(rechnungenImZeitraum).toHaveBeenCalledWith('perl', `${jahr}-01-01`, `${jahr}-12-31`);
+    expect(archiv.mock.calls[0][0]).toMatchObject({ von: `${jahr}-01-01`, bis: `${jahr}-12-31` });
+  });
+
+  it('meldet den Fehler, statt still nichts herunterzuladen', async () => {
+    archiv.mockRejectedValue(new Error('Zu viele Dateien für ein Archiv (70000). Bitte einen kürzeren Zeitraum wählen.'));
+    zeige();
+    await userEvent.click(screen.getByRole('button', { name: 'Belegarchiv herunterladen' }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/kürzeren Zeitraum/));
+    // Gegenprobe: keine Erfolgszeile.
+    expect(screen.queryByText(/Im Archiv:/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Belegarchiv herunterladen' })).toBeEnabled();
   });
 });
 
