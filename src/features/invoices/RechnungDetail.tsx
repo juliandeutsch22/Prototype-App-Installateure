@@ -58,6 +58,7 @@ export default function RechnungDetail({
           {zeile('Leistungszeitraum', inv.leistungVon && inv.leistungBis
             ? `${datumAT(inv.leistungVon)} – ${datumAT(inv.leistungBis)}` : null)}
           {zeile('Leistungsort', inv.leistungsort)}
+          {zeile('Bestellnummer des Kunden', inv.bestellnummer)}
         </dl>
 
         {inv.positions && inv.positions.length > 0 && (

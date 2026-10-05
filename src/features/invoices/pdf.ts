@@ -107,6 +107,8 @@ export function generateInvoicePdf(opts: {
    * eine eigene Zeile unter der Überschrift, wie beim Angebot.
    */
   leistungsort?: string;
+  /** Die Bestellnummer des Kunden — eine eigene Zeile, wenn angegeben. */
+  bestellnummer?: string;
   /** Einzel-, Anzahlungs-, Teil- oder Schlussrechnung. Ohne Angabe: einzel. */
   art?: RechnungsArt;
   /**
@@ -206,6 +208,23 @@ export function generateInvoicePdf(opts: {
     doc.setFontSize(9).setTextColor(...GRAU);
     doc.text(
       doc.splitTextToSize(`Ort der Leistung: ${ort}`, RECHTS - RAND)[0] as string,
+      RAND,
+      zusatzY,
+    );
+    doc.setTextColor(...TINTE);
+    zusatzY += 5;
+  }
+  /*
+    DIE BESTELLNUMMER DES KUNDEN als eigene Zeile, nicht in den Kopfdaten:
+    dort ist rechts neben der Bezeichnung nur Platz für eine kurze Nummer, und
+    Bestellnummern von Firmen und Behörden sind oft lang. Ohne Angabe bleibt
+    der Beleg, wie er war.
+  */
+  const bestellung = opts.bestellnummer?.trim();
+  if (bestellung) {
+    doc.setFontSize(9).setTextColor(...GRAU);
+    doc.text(
+      doc.splitTextToSize(`Ihre Bestellnummer: ${bestellung}`, RECHTS - RAND)[0] as string,
       RAND,
       zusatzY,
     );

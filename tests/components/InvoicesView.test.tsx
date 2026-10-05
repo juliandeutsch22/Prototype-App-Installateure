@@ -406,6 +406,32 @@ describe('Rechnungen — der Weg von Zeiten zu einer Rechnung', () => {
     expect(lege.mock.calls[0][0].linkedEntries).toEqual(['z1']);
   });
 
+  it('schreibt die Bestellnummer des Kunden in die Rechnung (05.10.2026)', async () => {
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.type(screen.getByLabelText('Bestellnummer des Kunden'), ' 4500123456 ');
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0].bestellnummer).toBe('4500123456');
+  });
+
+  it('belegt die Bestellnummer der letzten Rechnung derselben Baustelle vor', async () => {
+    rechnungen = [
+      { id: 'a1', invoiceNumber: 'RE-2026-1001', projectNumber: '2026-042', invoiceDate: '2026-07-01', bestellnummer: 'PO-ALT' },
+      { id: 'a2', invoiceNumber: 'RE-2026-1002', projectNumber: '2026-042', invoiceDate: '2026-08-01', bestellnummer: 'PO-NEU' },
+      { id: 'a3', invoiceNumber: 'RE-2026-1003', projectNumber: '2026-099', invoiceDate: '2026-08-20', bestellnummer: 'FREMD' },
+    ] as Array<Invoice & { id: string }>;
+    await bisZurVorschau();
+    expect((screen.getByLabelText('Bestellnummer des Kunden') as HTMLInputElement).value).toBe('PO-NEU');
+  });
+
+  it('Gegenprobe: ohne Bestellnummer geht keine in die Rechnung', async () => {
+    const bestaetigen = await bisZurVorschau();
+    expect((screen.getByLabelText('Bestellnummer des Kunden') as HTMLInputElement).value).toBe('');
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0].bestellnummer).toBeNull();
+  });
+
   it('schreibt die RESERVIERTE Nummer in die Rechnung, nicht die vorgeschlagene', async () => {
     /**
      * Der Vorschlag im Feld stammt aus der Liste im Browser und ist veraltet,

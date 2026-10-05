@@ -99,6 +99,11 @@ describe('Datum und Dateiname', () => {
     expect(stornoTag(Date.parse('2026-09-30T23:30:00Z'))).toBe('2026-10-01');
   });
 
+  it('nennt die Bestellnummer der Rechnung, wenn es eine gibt (05.10.2026)', async () => {
+    expect(await text({ ...rechnung, bestellnummer: '4500123456' })).toContain('Ihre Bestellnummer: 4500123456');
+    expect(await text()).not.toContain('Bestellnummer');
+  });
+
   it('der Dateiname nennt die Stornorechnung', () => {
     expect(stornoDateiname('RE-2026-0051')).toBe('Stornorechnung_RE-2026-0051.pdf');
   });

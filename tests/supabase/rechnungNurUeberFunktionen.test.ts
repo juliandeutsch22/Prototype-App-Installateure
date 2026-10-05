@@ -238,6 +238,35 @@ describe('Empfänger und Ort der Leistung (P2-02)', () => {
 });
 
 /*
+  DIE BESTELLNUMMER DES KUNDEN (05.10.2026): kommt mit der Rechnung in die
+  Datenbank, wird getrimmt, leer bleibt leer, und danach ist sie eingefroren.
+*/
+describe('Bestellnummer des Kunden', () => {
+  it('wird mitgeschrieben, getrimmt und wieder gelesen', async () => {
+    const id = await anlegen({ bestellnummer: '  4500123456/10 ' });
+    const alle = await rechnungen.listUnpaidInvoices(BETRIEB);
+    expect(alle.find((r) => r.id === id)?.bestellnummer).toBe('4500123456/10');
+  });
+
+  it('Gegenprobe: ohne Angabe oder nur mit Leerzeichen bleibt sie leer', async () => {
+    const ohne = await anlegen({});
+    const leer = await anlegen({ bestellnummer: '   ' });
+    const { data } = await admin.from('invoices').select('id, bestellnummer').in('id', [ohne, leer]);
+    expect((data ?? []).map((z) => z.bestellnummer)).toEqual([null, null]);
+  });
+
+  it('ist eingefroren wie der Rest des Belegs', async () => {
+    const id = await anlegen({ bestellnummer: 'PO-1' });
+    const { error } = await buch.client.from('invoices').update({ bestellnummer: 'PO-2' }).eq('id', id);
+    expect(error?.code).toBe('42501');
+  });
+
+  it('länger als 60 Zeichen wird sie abgewiesen', async () => {
+    await expect(anlegen({ bestellnummer: 'X'.repeat(61) })).rejects.toThrow(/bestellnummer/);
+  });
+});
+
+/*
   PRÜFLAUF 25.09.2026, P2-14. Das Ausgangsbuch führt einen Storno als
   Gegenbuchung in dem Zeitraum, in dem storniert wurde. Dafür muss der
   Export eines Zeitraums auch die ältere Rechnung finden, die darin
