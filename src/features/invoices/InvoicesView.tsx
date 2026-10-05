@@ -302,6 +302,8 @@ export default function InvoicesView() {
   const [mahnFrist, setMahnFrist] = useState('');
   const [reverseCharge, setReverseCharge] = useState(false);
   const [kundenUid, setKundenUid] = useState('');
+  /** Die Bestellnummer des Kunden (seit 05.10.2026) — optional, gedruckt. */
+  const [bestellnummer, setBestellnummer] = useState('');
   /** Eine in der Rechnung korrigierte UID auch in den Kundenstamm schreiben (M10). */
   const [uidInKunden, setUidInKunden] = useState(false);
   /** Grund der Steuerbefreiung — nur bei 0 % ohne Reverse Charge (A2). */
@@ -1088,6 +1090,15 @@ export default function InvoicesView() {
     const treffer = kundeZu(baustelle?.customerId, baustelle?.customerName);
     setKundenUid(treffer?.vatId?.trim() ?? '');
     setUidInKunden(false);
+    /*
+      DIE BESTELLNUMMER DER LETZTEN RECHNUNG DIESER BAUSTELLE vorbelegen.
+      Anzahlung, Teil- und Schlussrechnung gehen auf dieselbe Bestellung;
+      sie viermal abzutippen wäre viermal die Gelegenheit für einen Zahlendreher.
+    */
+    const letzte = invoices
+      .filter((r) => r.projectNumber === projectNumber && r.bestellnummer?.trim())
+      .sort((x, y) => (y.invoiceDate ?? '').localeCompare(x.invoiceDate ?? ''))[0];
+    setBestellnummer(letzte?.bestellnummer?.trim() ?? '');
     const vorschlag = nextInvoiceNumber(invoices, vorsaetze.rechnung);
     setSuggestedNumber(vorschlag);
     setInvoiceNumber(vorschlag);
@@ -1197,6 +1208,7 @@ export default function InvoicesView() {
         */
         customerVatId: uidNormalisieren(kundenUid),
         steuerbefreiung: brauchtBefreiung ? steuerbefreiung.trim() : undefined,
+        bestellnummer: bestellnummer.trim() || null,
         subtotalNetto: preview.subtotalNetto,
         // null statt undefined: „kein Rabatt" soll als bewusster Wert in der
         // Zeile stehen, nicht als fehlendes Feld.
@@ -1273,6 +1285,7 @@ export default function InvoicesView() {
         */
         customerVatId: uidNormalisieren(kundenUid),
         steuerbefreiung: brauchtBefreiung ? steuerbefreiung.trim() : undefined,
+        bestellnummer: bestellnummer.trim() || undefined,
         skonto,
       });
 
@@ -1282,6 +1295,7 @@ export default function InvoicesView() {
       setReverseCharge(false);
       setKundenUid('');
       setUidInKunden(false);
+      setBestellnummer('');
       setArtWahl('einzel');
       setAbzugsfaehig([]);
       setGewaehlteAbzuege([]);
@@ -1497,6 +1511,7 @@ export default function InvoicesView() {
       steuerbefreiung: inv.steuerbefreiung,
       // Aus dem Dokument — Altbestand hat ihn nicht und bleibt, wie er war.
       leistungsort: inv.leistungsort,
+      bestellnummer: inv.bestellnummer ?? undefined,
       art: inv.art,
       vorrechnungen: inv.vorrechnungen,
       skonto: inv.skontoProzent && inv.skontoBis
@@ -3005,6 +3020,15 @@ export default function InvoicesView() {
                 </p>
               )}
             </div>
+
+            <InputField
+              id="bestellnummer"
+              label="Bestellnummer des Kunden"
+              placeholder="optional"
+              maxLength={60}
+              value={bestellnummer}
+              onChange={(e) => setBestellnummer(e.target.value)}
+            />
 
             {brauchtBefreiung && (
               <div>

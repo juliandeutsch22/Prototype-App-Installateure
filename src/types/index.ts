@@ -1541,6 +1541,12 @@ export interface Invoice {
    */
   leistungsort?: string;
   /**
+   * Die Bestellnummer des Kunden (seit 05.10.2026). Steht als eigene Zeile
+   * auf dem Beleg; Firmen und Hausverwaltungen ordnen die Rechnung darüber
+   * zu. Leer: keine angegeben.
+   */
+  bestellnummer?: string | null;
+  /**
    * Leistungszeitraum — der Tag oder Zeitraum, über den die Leistung erbracht
    * wurde.
    *

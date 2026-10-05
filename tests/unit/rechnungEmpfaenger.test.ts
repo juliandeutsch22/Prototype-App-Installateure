@@ -46,7 +46,7 @@ const LEISTUNG: AssembledInvoice = {
   entries: [],
 };
 
-function beleg(extra: { leistungsort?: string; art?: RechnungsArt } = {}): string {
+function beleg(extra: { leistungsort?: string; art?: RechnungsArt; bestellnummer?: string } = {}): string {
   tabellen.length = 0;
   const doc = generateInvoicePdf({
     company: firma,
@@ -85,5 +85,29 @@ describe('Empfänger und Ort der Leistung', () => {
     beleg({ art: 'anzahlung' });
     const mitEiner = tabellen[0].startY!;
     expect(mitZwei).toBeGreaterThan(mitEiner);
+  });
+});
+
+/*
+  DIE BESTELLNUMMER DES KUNDEN (seit 05.10.2026) — eine eigene Zeile wie der
+  Ort der Leistung. Ohne Angabe bleibt der Beleg, wie er war.
+*/
+describe('Bestellnummer des Kunden', () => {
+  it('steht als eigene Zeile auf dem Beleg', () => {
+    expect(beleg({ bestellnummer: '4500123456/10' })).toContain('Ihre Bestellnummer: 4500123456/10');
+  });
+
+  it('Gegenprobe: ohne Bestellnummer keine solche Zeile, und die Tabelle beginnt wie vorher', () => {
+    beleg({ bestellnummer: '  ' });
+    const leer = tabellen[0].startY!;
+    expect(beleg()).not.toContain('Bestellnummer');
+    expect(tabellen[0].startY).toBe(leer);
+  });
+
+  it('die Tabelle rückt nach, wenn sie dasteht', () => {
+    beleg({ leistungsort: 'Bergweg 3', art: 'anzahlung' });
+    const ohne = tabellen[0].startY!;
+    beleg({ leistungsort: 'Bergweg 3', art: 'anzahlung', bestellnummer: 'PO-77' });
+    expect(tabellen[0].startY!).toBeGreaterThan(ohne);
   });
 });

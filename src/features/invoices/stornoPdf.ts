@@ -105,6 +105,10 @@ export async function buildStornoPdf(o: StornoOptionen): Promise<Blob> {
       + (storniertAm && storniertAm !== datum ? ` Der Storno wurde am ${fmtDatum(storniertAm)} erfasst.` : ''),
     y,
   );
+  // Die Bestellnummer der Rechnung, damit der Kunde den Storno derselben Bestellung zuordnet.
+  if (inv.bestellnummer?.trim()) {
+    y = absatz(`Ihre Bestellnummer: ${inv.bestellnummer.trim()}`, y + 1);
+  }
   if (inv.cancellationNote?.trim()) {
     y = absatz(`Grund: ${inv.cancellationNote.trim()}`, y + 1);
   }
