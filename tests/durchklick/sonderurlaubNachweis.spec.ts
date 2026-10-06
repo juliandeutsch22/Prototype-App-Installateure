@@ -81,12 +81,24 @@ test('Sonderurlaub mit Nachweis: anhängen, beim Bestätigen ansehen, nach „ge
   await buero.goto('/vacations');
   const karte = buero.locator('section', { has: buero.getByRole('heading', { name: /Sonderurlaub bestätigen/ }) });
   await expect(karte.getByText(/Eigene Eheschließung/)).toBeVisible({ timeout: 15_000 });
+  /*
+    GEPRÜFT WIRD DIE ANFRAGE, NICHT DIE ADRESSZEILE. Das Fenster öffnet sich
+    im Klick leer und lädt danach die signierte Adresse (Safari blockt sonst).
+    Ob der Browser das PDF dann anzeigt oder herunterlädt, entscheidet er
+    selbst — im Headless-Browser der CI bleibt die Adresszeile dabei leer.
+  */
   const neuesFenster = kontext.waitForEvent('page', { timeout: 15_000 });
+  const signiert = kontext.waitForEvent('request', {
+    // Die App erzeugt die Adresse selbst mit einem POST auf denselben Pfad — gemeint ist der Abruf mit Token.
+    predicate: (r) => r.method() === 'GET'
+      && new RegExp(`/storage/v1/object/sign/${EIMER}/.+[?&]token=`).test(r.url()),
+    timeout: 15_000,
+  });
   await karte.getByRole('button', { name: 'Nachweis ansehen' }).click();
   const fenster = await neuesFenster;
-  await expect.poll(() => fenster.url(), { timeout: 15_000 }).toMatch(new RegExp(`/storage/v1/object/sign/${EIMER}/`));
+  const adresse = (await signiert).url();
   // Die Adresse liefert die Datei aus — für das Büro, solange der Antrag offen ist.
-  const antwort = await buero.request.get(fenster.url());
+  const antwort = await buero.request.get(adresse);
   expect(antwort.status()).toBe(200);
   await fenster.close();
 
