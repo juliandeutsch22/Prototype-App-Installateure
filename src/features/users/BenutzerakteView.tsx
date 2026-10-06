@@ -22,7 +22,7 @@ import { MailLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import {
-  alsEntwurf, alsProfil, entwurfFehler, gleich, mitKundenFreigabe, mitLagerFreigaben,
+  alsEntwurf, alsProfil, entwurfFehler, gleich, jugendschutzHinweise, mitKundenFreigabe, mitLagerFreigaben,
   mitRechnungsFreigabe, mitZeitkontoWahl,
   tagessollNachTagen, urlaubsfeldName, WEEKDAYS,
   type BenutzerEntwurf,
@@ -81,6 +81,13 @@ export default function BenutzerakteView() {
   /** Nur für diesen Augenblick sichtbar — nirgends gespeichert. */
   const [vergeben, setVergeben] = useState<string | null>(null);
   const [versuch, setVersuch] = useState(0);
+  /*
+    DAS GEBURTSDATUM DER PERSON — gemeldet von ihrer Karte (Runde 3, M2).
+    Ist sie unter 18, fragt die Akte vor dem Speichern nach, wenn das
+    Tagessoll über 8 oder das Wochensoll über 40 Stunden liegt.
+  */
+  const [geburtsdatumDerPerson, setGeburtsdatumDerPerson] = useState<string | null>(null);
+  const [jugendschutz, setJugendschutz] = useState<string[] | null>(null);
 
   const companyId = user?.companyId;
 
@@ -125,7 +132,8 @@ export default function BenutzerakteView() {
   const darfAendern =
     !!user && !!daten && (daten.role !== 'Administrator' || canManageAdmins(user.role));
 
-  async function speichern(): Promise<void> {
+  /** `bestaetigt`: die Rückfrage zum Jugendschutz ist beantwortet. */
+  async function speichern(bestaetigt = false): Promise<void> {
     if (!uid || !entwurf) return;
     if (!entwurf.name.trim()) {
       setSpeicherFehler('Ohne Namen geht es nicht — er steht auf jeder Buchung und jedem Schein.');
@@ -134,6 +142,11 @@ export default function BenutzerakteView() {
     const falsch = entwurfFehler(entwurf);
     if (falsch) {
       setSpeicherFehler(falsch);
+      return;
+    }
+    const hinweise = bestaetigt ? [] : jugendschutzHinweise(entwurf, geburtsdatumDerPerson, todayStr());
+    if (hinweise.length > 0) {
+      setJugendschutz(hinweise);
       return;
     }
     setSpeichert(true);
@@ -236,6 +249,7 @@ export default function BenutzerakteView() {
           speichert={speichert}
           fehler={speicherFehler}
           onSpeichern={() => void speichern()}
+          eintritt={entwurf.eintritt}
           onVerwerfen={() => setEntwurf(alsEntwurf(p))}
           gespeichert={p}
         />
@@ -360,7 +374,7 @@ export default function BenutzerakteView() {
 
   // Wer die Akte ändern darf, pflegt auch das Geburtsdatum; im Support nie.
   const geburtsdatum = darfAendern && user && !einblick ? (
-    <GeburtsdatumKarte companyId={user.companyId} uid={p.uid} />
+    <GeburtsdatumKarte companyId={user.companyId} uid={p.uid} onStand={setGeburtsdatumDerPerson} />
   ) : null;
 
   const auskunft = zeigtAuskunft(user?.role, !!einblick) ? (
@@ -392,6 +406,23 @@ export default function BenutzerakteView() {
         links={[stammdaten]}
         rechts={[zugang, geburtsdatum, anspruch, auskunft]}
       />
+
+      <ConfirmDialog
+        open={!!jugendschutz}
+        title={`${p.name} ist unter 18`}
+        confirmLabel="Trotzdem speichern"
+        confirmTone="primary"
+        message="Für Jugendliche gelten engere Grenzen der Arbeitszeit (KJBG). Gespeichert wird trotzdem; Buchungen über der Grenze zeigt die Mitarbeiterübersicht als Verstoß."
+        onCancel={() => setJugendschutz(null)}
+        onConfirm={async () => {
+          setJugendschutz(null);
+          await speichern(true);
+        }}
+      >
+        <ul className="space-y-1 text-sm text-ink">
+          {(jugendschutz ?? []).map((h) => <li key={h}>{h}</li>)}
+        </ul>
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={neuesPasswortFragen}
@@ -507,6 +538,8 @@ function StammdatenLesen({ p }: { p: AppUser }) {
 
 interface FormularProps {
   entwurf: BenutzerEntwurf;
+  /** Für den Hinweis bei einem Lehrbeginn vor dem Eintritt (Runde 3, G18). */
+  eintritt: string;
   setEntwurf: (e: BenutzerEntwurf) => void;
   rollen: readonly Role[];
   eigenesKonto: boolean;
@@ -523,7 +556,7 @@ interface FormularProps {
 /** Dieselben Stammdaten, bearbeitbar. */
 function StammdatenFormular({
   entwurf, setEntwurf, rollen, eigenesKonto, onTag,
-  geaendert, speichert, fehler, onSpeichern, onVerwerfen, gespeichert,
+  geaendert, speichert, fehler, onSpeichern, onVerwerfen, gespeichert, eintritt,
 }: FormularProps) {
   const setze = <F extends keyof BenutzerEntwurf>(feld: F, wert: BenutzerEntwurf[F]) =>
     setEntwurf({ ...entwurf, [feld]: wert });
@@ -570,7 +603,7 @@ function StammdatenFormular({
         </SelectField>
       </FormGrid>
 
-      <EinstufungFelder form={entwurf} setForm={setEntwurf} idPrefix="b" gespeichert={gespeichert} />
+      <EinstufungFelder form={entwurf} setForm={setEntwurf} idPrefix="b" gespeichert={gespeichert} eintritt={eintritt} />
 
       {/*
         NUR DORT, WO DER HAKEN ETWAS BEDEUTET. Die Leitung pflegt Kunden

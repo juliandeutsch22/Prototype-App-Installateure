@@ -118,6 +118,9 @@ vi.mock('@/lib/db/termine', () => ({
   terminAendern: vi.fn(async () => undefined),
   terminLoeschen: vi.fn(async () => undefined),
 }));
+/** Das eigene Geburtsdatum (Runde 3, M2) — ab Werk keines, wie vorher. */
+const geburt: { wert: string | null } = { wert: null };
+vi.mock('@/lib/db/arbeitszeitGrenzen', () => ({ getGeburtsdatum: vi.fn(async () => geburt.wert) }));
 vi.mock('@/lib/db/users', () => ({
   // Die eigene Zeile trägt die Rolle der Anmeldung — die Startseite fragt sie
   // nach dem Zeitkonto.
@@ -267,6 +270,7 @@ afterEach(() => {
   offeneRechnungen.wert = [];
   anforderungen.wert = [];
   termine.wert = [];
+  geburt.wert = null;
   rolle.wert = 'Mitarbeiter';
 });
 
@@ -784,5 +788,23 @@ describe('Startseite — Termine heute (Plan 10.4)', () => {
     zeichne();
     await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
     expect(screen.queryByText('Deine Termine heute')).toBeNull();
+  });
+});
+
+describe('Startseite — Lehrling unter 18 (Runde 3, M2)', () => {
+  it('nennt die eigenen Überschreitungen leise im Handlungsbedarf', async () => {
+    // Am 01.09. 07:00–16:00 mit 30 Min. Pause: 8:30 Std. — für Jugendliche zu viel.
+    geburt.wert = '2010-03-15';
+    zeichne();
+    const karte = await karteMit('Grenzen für Jugendliche');
+    expect(within(karte).getByText(/8:30 Std\. am 01\.09\. — höchstens 8 Std\./)).toBeInTheDocument();
+    expect(within(karte).getAllByText('über der Grenze').length).toBeGreaterThan(0);
+  });
+
+  it('Gegenprobe: erwachsen — kein Abschnitt', async () => {
+    geburt.wert = '1990-01-01';
+    zeichne();
+    await screen.findByText('Tage ohne Buchung');
+    expect(screen.queryByText('Grenzen für Jugendliche')).not.toBeInTheDocument();
   });
 });

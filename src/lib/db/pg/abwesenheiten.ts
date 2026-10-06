@@ -112,12 +112,19 @@ export async function berufsschuleEintragen(daten: {
   von: string;
   bis: string;
   notiz?: string;
+  /**
+   * Unterrichtszeit je Schultag in Minuten (Runde 3, M1); leer = Tagessoll.
+   * Nur mitgeschickt, wenn gesetzt — so trifft der Aufruf auch eine
+   * Datenbank, die den Wert noch nicht kennt.
+   */
+  unterrichtMin?: number | null;
 }): Promise<{ tage: number; angelegt: number; uebersprungen: number }> {
   const { data, error } = await derClient().rpc('berufsschule_eintragen', {
     p_user: daten.userId,
     p_von: daten.von,
     p_bis: daten.bis,
     p_notiz: daten.notiz ?? null,
+    ...(daten.unterrichtMin != null ? { p_unterricht_min: daten.unterrichtMin } : {}),
   });
   if (error) throw new Error(error.message);
   const d = data as { tage: number; angelegt: number; uebersprungen: number };

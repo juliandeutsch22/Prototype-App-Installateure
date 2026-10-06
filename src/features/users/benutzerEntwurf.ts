@@ -14,10 +14,11 @@ import {
   DEFAULT_WORK_DAYS,
   type UserProfileInput,
 } from '@/lib/db/benutzerVorgaben';
-import { leseZahl, zahlOder } from '@/lib/zahl';
+import { leseZahl, zahlAlsText, zahlOder } from '@/lib/zahl';
 import { aliquot, tageZwischen } from '@shared/urlaubAliquot';
 import { todayStr, urlaubsJahrVon, JAHRESBEGINN_VORGABE } from '@/lib/time';
 import { LEHRZEIT_MAX, LEHRZEIT_MIN, type Einstufung } from '@/lib/einstufung';
+import { GRENZEN, istJugendlich } from '@/features/accounting/arbeitszeitGrenzen';
 
 /**
  * Was für ein Zugang hier entsteht — und es sind zwei verschiedene Dinge.
@@ -370,4 +371,56 @@ export function gleich(a: BenutzerEntwurf, b: BenutzerEntwurf): boolean {
     }
     return x === y;
   });
+}
+
+const stunden = (h: number) => zahlAlsText(Math.round(h * 100) / 100);
+
+/**
+ * WAS DIE AKTE VOR DEM SPEICHERN FRAGT, WENN DIE PERSON UNTER 18 IST
+ * (Runde 3, M2). Ein Tagessoll von 8,5 Std. für eine 17-Jährige ging ohne
+ * ein Wort durch; der Verstoss zeigte sich erst an den Buchungen.
+ *
+ * Ein Hinweis, keine Sperre: ob ein längerer Tag bei anderer Verteilung der
+ * Wochenarbeitszeit zulässig ist (§ 11 Abs 2 KJBG, bis 9 Std.), ist mit der
+ * WKO noch zu klären — die Akte sagt es dazu und speichert nach Rückfrage.
+ * Ohne Geburtsdatum und ab 18 kommt nichts (Gegenprobe in den Tests).
+ */
+export function jugendschutzHinweise(
+  e: BenutzerEntwurf,
+  geburtsdatum: string | null | undefined,
+  heute: string,
+): string[] {
+  if (!istJugendlich(geburtsdatum, heute)) return [];
+  const p = alsProfil(e);
+  const wochenStd = p.weeklyTargetHours ?? 0;
+  const tage = WEEKDAYS.filter((d) => (p.workDays ?? []).includes(d.value));
+  const out: string[] = [];
+  const woche = GRENZEN.jugendlich.woche / 60;
+  const tag = GRENZEN.jugendlich.tag / 60;
+  if (wochenStd > woche) {
+    out.push(`Wochensoll ${stunden(wochenStd)} Std. — für Jugendliche höchstens ${woche} Std. in der Woche (§ 11 KJBG).`);
+  }
+  const ausnahme = `bei anderer Verteilung der Wochenarbeitszeit bis ${GRENZEN.jugendlich.tagVerteilt / 60} Std. (§ 11 Abs 2 KJBG, vorbehaltlich der WKO-Klärung)`;
+  if (p.tagessoll) {
+    const lang = tage.filter((d) => (p.tagessoll?.[String(d.value)] ?? 0) > tag);
+    if (lang.length > 0) {
+      const liste = lang.map((d) => `${d.label} ${stunden(p.tagessoll![String(d.value)])} Std.`).join(', ');
+      out.push(`Tagessoll ${liste} — für Jugendliche höchstens ${tag} Std. am Tag, ${ausnahme}.`);
+    }
+  } else if (tage.length > 0 && wochenStd / tage.length > tag) {
+    out.push(`Tagessoll ${stunden(wochenStd / tage.length)} Std. (Wochenstunden durch Arbeitstage) — für Jugendliche höchstens ${tag} Std. am Tag (§ 11 KJBG).`);
+  }
+  return out;
+}
+
+/**
+ * LEHRBEGINN VOR DEM EINTRITT (Runde 3, G18): kann gewollt sein — Lehrzeit
+ * aus einem anderen Betrieb wird angerechnet. Deshalb ein Hinweis und keine
+ * Sperre. `eintritt` ist der Eintritt in DIESEN Betrieb.
+ */
+export function lehrbeginnVorEintritt(
+  e: Pick<BenutzerEntwurf, 'einstufung' | 'lehrbeginn'>,
+  eintritt: string | null | undefined,
+): boolean {
+  return e.einstufung === 'lehrling' && !!e.lehrbeginn && !!eintritt && e.lehrbeginn < eintritt;
 }

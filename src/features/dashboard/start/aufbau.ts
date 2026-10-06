@@ -34,6 +34,7 @@ import {
   freistellungsantraege,
   wartungenOhneBaustelle,
   zahlungenHeute,
+  jugendschutzEigen,
 } from './regeln';
 import { anzahl, themenAbschnitte, type Thema } from './themen';
 import { ZIEL } from './ziele';
@@ -107,6 +108,8 @@ function monteur(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(tageOhneBuchung(d.fehlendeTage ?? [], d.planNachTag), u),
     erlaubt(scheinOhneZeit(d.nachtraege ?? []), u),
     erlaubt(abholbereitEigen(d.eigeneOrders ?? []), u),
+    // Zuletzt und leise: ein Hinweis für Jugendliche, keine Aufgabe (Runde 3, M2).
+    erlaubt(jugendschutzEigen(d.eigeneGrenzfaelle ?? []), u),
   ]);
   const kennzahlen: Kennzahl[] = [];
   if (d.saldo?.hasConfig) {

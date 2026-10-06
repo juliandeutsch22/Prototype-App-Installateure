@@ -87,6 +87,15 @@ vi.mock('@/lib/db/timeEntries', () => ({
   deleteTimeEntry: vi.fn(async () => undefined),
 }));
 
+/*
+  Das eigene Geburtsdatum (Runde 3, M2) — ab Werk keines: dann ändert sich an
+  der Ansicht nichts, wie vor der Prüfung.
+*/
+let geburtsdatum: string | null = null;
+vi.mock('@/lib/db/arbeitszeitGrenzen', () => ({
+  getGeburtsdatum: vi.fn(async () => geburtsdatum),
+}));
+
 vi.mock('@/lib/db/users', () => ({
   getUserByUid: vi.fn(async () => {
     if (profilFehlerWerfen) throw new Error('kein Netz');
@@ -181,6 +190,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
   eintraege = [];
+  geburtsdatum = null;
   profilFehlerWerfen = false;
   marker = null;
   rolle = 'Mitarbeiter';
@@ -840,5 +850,65 @@ describe('Zeiterfassung — kommende Wochen', () => {
     ];
     zeige();
     expect(await screen.findAllByText('05.10.2026')).toHaveLength(2);
+  });
+});
+
+describe('Zeiterfassung — vom Büro gebucht, über der Grenze für Jugendliche (Runde 3, M2)', () => {
+  /*
+    „Der Lehrling selbst ... kann die vom Büro gebuchte Zeit bearbeiten oder
+    löschen.“ Gesperrt wird in der Datenbank; hier stehen die Knöpfe gar
+    nicht erst da, und der Grund steht hinter dem „i“.
+  */
+  const buero = (over: Partial<TimeEntry> & { id: string }) => eintrag({ angelegtVon: 'buero', ...over });
+
+  it('ohne Bearbeiten und Löschen, mit dem Grund', async () => {
+    geburtsdatum = '2010-03-15';
+    eintraege = [
+      buero({ id: 'lang', date: '2026-09-01', startTime: '07:00', endTime: '17:00', breakDuration: 30 }),
+      buero({ id: 'frueh', date: '2026-08-31', startTime: '05:00', endTime: '10:00' }),
+    ];
+    zeige();
+    const lang = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    await waitFor(() => expect(within(lang).getByText('vom Büro gebucht')).toBeInTheDocument());
+    expect(within(lang).queryByRole('button', { name: 'Bearbeiten' })).toBeNull();
+    expect(within(lang).queryByRole('button', { name: 'Löschen' })).toBeNull();
+    const frueh = screen.getByText('31.08.2026').closest('li') as HTMLElement;
+    expect(within(frueh).getByText('vom Büro gebucht')).toBeInTheDocument();
+
+    await userEvent.setup({ advanceTimers: () => undefined }).click(
+      within(lang).getByRole('button', { name: /vom Büro gebucht/ }),
+    );
+    expect(await screen.findByText(/nur das Büro/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: selbst gebucht, innerhalb der Grenze oder erwachsen — die Knöpfe bleiben', async () => {
+    geburtsdatum = '2010-03-15';
+    eintraege = [
+      eintrag({ id: 'selbst', date: '2026-09-01', startTime: '07:00', endTime: '17:00', angelegtVon: 'u1' }),
+      buero({ id: 'kurz', date: '2026-08-31', startTime: '07:00', endTime: '15:00' }),
+    ];
+    zeige();
+    const selbst = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    // Erst wenn das Geburtsdatum da ist, könnte etwas verschwinden — also darauf warten.
+    await act(async () => { await Promise.resolve(); });
+    expect(within(selbst).getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    const kurz = screen.getByText('31.08.2026').closest('li') as HTMLElement;
+    expect(within(kurz).getByRole('button', { name: 'Löschen' })).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: erwachsen — die vom Büro gebuchte lange Zeit bleibt bearbeitbar', async () => {
+    geburtsdatum = '1990-01-01';
+    eintraege = [buero({ id: 'lang', date: '2026-09-01', startTime: '07:00', endTime: '17:00' })];
+    zeige();
+    const lang = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    await act(async () => { await Promise.resolve(); });
+    expect(within(lang).getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    expect(within(lang).queryByText('vom Büro gebucht')).toBeNull();
+  });
+
+  it('der Berufsschultag nennt seine Unterrichtszeit (M1)', async () => {
+    eintraege = [eintrag({ id: 's1', date: '2026-09-01', status: 'Berufsschule', startTime: undefined, endTime: undefined, unterrichtMin: 450 })];
+    zeige();
+    expect(await screen.findByText(/Berufsschule · Unterricht 07:30 Std/)).toBeInTheDocument();
   });
 });

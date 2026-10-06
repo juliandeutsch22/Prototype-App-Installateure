@@ -16,7 +16,20 @@ import { todayStr } from '@/lib/time';
  * sieht, und ein gemeinsames Speichern müsste zwei Tabellen auf einmal
  * schreiben.
  */
-export default function GeburtsdatumKarte({ companyId, uid }: { companyId: string; uid: string }) {
+export default function GeburtsdatumKarte({
+  companyId,
+  uid,
+  onStand,
+}: {
+  companyId: string;
+  uid: string;
+  /**
+   * Meldet das gespeicherte Datum — geladen und nach jedem Speichern. Die
+   * Akte fragt damit vor dem Speichern nach, wenn die Person unter 18 ist und
+   * das Soll darüber liegt (Runde 3, M2).
+   */
+  onStand?: (datum: string | null) => void;
+}) {
   const toast = useToast();
   const [gespeichert, setGespeichert] = useState<string | null | undefined>(undefined);
   const [wert, setWert] = useState('');
@@ -29,9 +42,12 @@ export default function GeburtsdatumKarte({ companyId, uid }: { companyId: strin
         if (weg) return;
         setGespeichert(d);
         setWert(d ?? '');
+        onStand?.(d);
       })
       .catch(() => { if (!weg) setGespeichert(null); });
     return () => { weg = true; };
+    // Nur beim Laden der Person melden — nicht, weil die Akte neu zeichnet.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId, uid]);
 
   if (gespeichert === undefined) return null;
@@ -42,6 +58,7 @@ export default function GeburtsdatumKarte({ companyId, uid }: { companyId: strin
     try {
       await setGeburtsdatum(companyId, uid, wert || null);
       setGespeichert(wert || null);
+      onStand?.(wert || null);
       toast.success(wert ? 'Geburtsdatum gespeichert' : 'Geburtsdatum entfernt');
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));

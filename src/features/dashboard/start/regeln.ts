@@ -3,6 +3,7 @@ import { ART_NAME } from '@shared/freistellung';
 import { lehrzeitEnde } from '@/lib/einstufung';
 import { istBenutzerkonto } from '@shared/benutzername';
 import type { OffenerNachtrag } from '@/features/worksheets/zeitNachtrag';
+import { grenzText, type Grenzfall } from '@/features/accounting/arbeitszeitGrenzen';
 import type { Mahnlauf } from '@/features/invoices/mahnlauf';
 import { istUeberfaellig, mahnbar, offenerRuecklass } from '@/features/invoices/zahlstand';
 import { beurteile } from '@/features/maintenance/wartungsplan';
@@ -73,6 +74,29 @@ export function tageOhneBuchung(tage: string[], planNachTag: Map<string, string>
     to: ZIEL.zeitTag(t),
   }));
   return abschnitt('tage', 'Tage ohne Buchung', zeilen, ZIEL.zeitFehlend);
+}
+
+/**
+ * DIE EIGENEN ÜBERSCHREITUNGEN EINES JUGENDLICHEN (Runde 3, M2) — laufender
+ * und letzter Monat, das Jüngste zuerst. Leise: zu tun hat der Lehrling
+ * nichts, er soll es aber wissen und dem Büro sagen können, wenn eine Zeit
+ * nicht stimmt. Das Büro sieht dieselben Fälle in der Mitarbeiterübersicht.
+ */
+export function jugendschutzEigen(faelle: Grenzfall[]): Abschnitt | null {
+  const zeilen: Zeile[] = [...faelle]
+    .filter((f) => f.jugendlich)
+    .sort((a, b) => b.bezug.localeCompare(a.bezug))
+    .map((f) => {
+      const { titel, gesetz } = grenzText(f);
+      return {
+        key: `kjbg-${f.art}-${f.bezug}`,
+        titel,
+        detail: gesetz,
+        status: { text: 'über der Grenze', ton: 'leise' },
+        to: ZIEL.zeit,
+      };
+    });
+  return abschnitt('jugendschutz', 'Grenzen für Jugendliche', zeilen, ZIEL.zeit);
 }
 
 export function scheinOhneZeit(nachtraege: OffenerNachtrag[]): Abschnitt | null {

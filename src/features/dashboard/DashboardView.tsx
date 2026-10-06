@@ -117,6 +117,7 @@ export default function DashboardView() {
         material: materialAn,
         scheine: scheineAn && r === 'monteur',
         kennzahlen: r === 'monteur',
+        jugendschutz: r === 'monteur',
       })]);
     }
     if (materialAn && canProcessOrders(user.role)) {
