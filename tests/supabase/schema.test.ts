@@ -232,6 +232,8 @@ describe('Interne Hilfsfunktionen', () => {
       'app.loeschung_pruefen(text, text)',
       'app.kennung_nicht_gesperrt()',
       'app.protokoll_unveraenderlich()',
+      // Kontingent eines Sonderurlaubs-Anlasses — nur `freistellung_entscheiden` (Runde 3, G17).
+      'app.anlass_kontingent(text, text)',
     ];
     const offen: string[] = [];
     for (const f of intern) {

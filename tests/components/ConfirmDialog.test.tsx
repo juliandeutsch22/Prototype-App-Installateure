@@ -78,4 +78,23 @@ describe('Bestaetigungsdialog', () => {
     expect(knopf).toBeInTheDocument();
     expect(knopf.className).not.toMatch(/bg-danger/);
   });
+
+  // Runde 3, G20: ein Lesedialog hat nichts abzubrechen.
+  it('zeigt als Lesedialog nur „Schließen“ — und der ruft onCancel', async () => {
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+    render(
+      <ConfirmDialog open title="Bewegungen" nurSchliessen onConfirm={onConfirm} onCancel={onCancel} />,
+    );
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Schließen']);
+    expect(screen.getByRole('button', { name: 'Schließen' })).toHaveFocus();
+    await userEvent.click(screen.getByRole('button', { name: 'Schließen' }));
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: ohne die Option bleiben Abbrechen und Bestätigen', () => {
+    render(<ConfirmDialog open title="Weg damit?" onConfirm={vi.fn()} onCancel={vi.fn()} />);
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Abbrechen', 'Löschen']);
+  });
 });

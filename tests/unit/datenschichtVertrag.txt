@@ -21,7 +21,7 @@ src/lib/db/customers.ts#listUnlinkedProjectsByName: (companyId: string, customer
 src/lib/db/customers.ts#searchCustomers: (companyId: string, begriff: string, max?: number) => Promise<WithId<Customer>[]>
 src/lib/db/customers.ts#updateCustomer: (companyId: string, id: string, data: Partial<NewCustomer>) => Promise<number>
 src/lib/db/einsatzMaterial.ts#getEinsatzMaterial: (companyId: string, date: string, projectNumber: string) => Promise<WithId<EinsatzMaterial> | null>
-src/lib/db/einsatzMaterial.ts#ladenUmschalten: (companyId: string, date: string, projectNumber: string, positionId: string, an: boolean, vonName: string) => Promise<void>
+src/lib/db/einsatzMaterial.ts#ladenUmschalten: (companyId: string, date: string, projectNumber: string, positionId: string, an: boolean, vonName: string) => Promise<number>
 src/lib/db/einsatzMaterial.ts#listEinsatzMaterialForDate: (companyId: string, date: string) => Promise<WithId<EinsatzMaterial>[]>
 src/lib/db/einsatzMaterial.ts#saveEinsatzMaterial: (companyId: string, date: string, projectNumber: string, positionen: RuestPosition[], uids: string[], updatedBy: string) => Promise<void>
 src/lib/db/einsatzMaterial.ts#subscribeEinsatzMaterialForDate: (companyId: string, date: string, cb: (rows: WithId<EinsatzMaterial>[]) => void, onError: (e: Error) => void) => () => void

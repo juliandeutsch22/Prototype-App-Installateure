@@ -418,6 +418,14 @@ describe('Der Zugang', () => {
     await waitFor(() => expect(profilAendern).toHaveBeenCalledWith('u3', { active: true }));
   });
 
+  it('nennt ein deaktiviertes Konto „deaktiviert“, nicht „inaktiv“ (Runde 3, G5)', async () => {
+    gefunden = person({ uid: 'u3', name: 'Ausgeschieden', active: false });
+    zeige('u3');
+    await screen.findByRole('button', { name: 'Konto aktivieren' });
+    expect(screen.getAllByText('deaktiviert').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/inaktiv/i)).not.toBeInTheDocument();
+  });
+
   it('bietet keine Deaktivierung des EIGENEN Kontos an', async () => {
     /*
       AUS DER LISTENPRÜFUNG ÜBERNOMMEN. Wer sich selbst sperrt, kommt nicht
@@ -650,6 +658,25 @@ describe('Konto umstellen', () => {
     zeige('u2');
     await screen.findByText(/Das eigene Konto lässt sich nicht sperren/);
     expect(screen.queryByRole('button', { name: /Auf Benutzername umstellen/ })).not.toBeInTheDocument();
+  });
+
+  /*
+    SELBST PRÜFEN (Arbeitsauftrag Runde 3): das eigene Konto vom Benutzernamen
+    auf die E-Mail — bis zum Aufruf. Die Richtung zum Benutzernamen bleibt
+    für das eigene Konto gesperrt (Prüfung darüber; in der Datenbank
+    `tests/supabase/kontoUmstellen.test.ts`).
+  */
+  it('das eigene Konto auf die E-Mail: sagt „dein Konto“ und schickt die eigene Kennung (Selbst prüfen)', async () => {
+    angemeldet = { ...angemeldet, uid: 'u3' };
+    gefunden = person({ uid: 'u3', name: 'Hans Helfer', email: kunstadresse('hans') });
+    const nutzer = userEvent.setup();
+    zeige('u3');
+    await nutzer.click(await screen.findByRole('button', { name: 'Auf E-Mail umstellen …' }));
+    expect(screen.getByText(/Danach meldet sich dein Konto mit dieser Adresse an/)).toBeInTheDocument();
+    await nutzer.type(screen.getByRole('textbox', { name: /E-Mail/ }), 'hans@perl.at');
+    await nutzer.click(screen.getByRole('button', { name: 'Umstellen' }));
+    await waitFor(() => expect(umstellen).toHaveBeenCalledWith('u3', { nach: 'mail', email: 'hans@perl.at' }));
+    await waitFor(() => expect(passwortMail).toHaveBeenCalled());
   });
 
   it('zeigt das Protokoll: wann, wohin, durch wen, warum', async () => {

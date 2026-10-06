@@ -5,7 +5,7 @@ import { abschnitt, type Abschnitt, type Zeile } from './abschnitte';
  *
  * „Alles Obige, zusammengefasst nach Dringlichkeit“: aus jedem Abschnitt der
  * anderen Rollen wird eine Zeile mit Anzahl und dem wichtigsten Detail; die
- * Zeile führt auf die gefilterte Fachseite. Drei Abschnitte — Überfällig,
+ * Zeile führt auf die gefilterte Fachseite. Drei Abschnitte — Dringend,
  * Heute, Diese Woche —, je höchstens drei Themen. „und N weitere“ klappt
  * die übrigen Themen an Ort und Stelle auf (Abnahme 01.10.2026): sie
  * stammen von verschiedenen Fachseiten, eine gemeinsame gibt es nicht.
@@ -22,7 +22,13 @@ export function themenAbschnitte(themen: (Thema | null | false | undefined)[]): 
   const teil = (wann: Dringlichkeit): Zeile[] =>
     da.filter((t) => t.wann === wann).map((t) => ({ key: t.key, titel: t.titel, detail: t.detail, status: t.status, to: t.to }));
   return [
-    abschnitt('t-ueberfaellig', 'Überfällig', teil('ueberfaellig'), undefined, true),
+    /*
+      „Dringend“, nicht „Überfällig“ (Runde 3, G6): daneben steht die
+      Kennzahl „Überfällig“ für Rechnungen. Unter derselben Überschrift
+      standen hier auch Baustellen über dem Endtermin und fehlende
+      Buchungen — man las „Überfällig“ zweimal und meinte Verschiedenes.
+    */
+    abschnitt('t-ueberfaellig', 'Dringend', teil('ueberfaellig'), undefined, true),
     abschnitt('t-heute', 'Heute', teil('heute'), undefined, true),
     abschnitt('t-woche', 'Diese Woche', teil('woche'), undefined, true),
   ].filter((a): a is Abschnitt => !!a);

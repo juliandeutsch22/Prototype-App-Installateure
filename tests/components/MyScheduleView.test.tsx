@@ -336,3 +336,14 @@ describe('Mein Einsatzplan — Termine (Plan 10.4)', () => {
     expect(screen.queryByRole('heading', { name: 'Nächste Termine' })).not.toBeInTheDocument();
   });
 });
+
+describe('Name und Nummer (Runde 3, G4)', () => {
+  it('trennt den Kundennamen und die Baustellennummer durch ein echtes Leerzeichen', async () => {
+    // Nur per Abstand getrennt, stand beim Kopieren und Vorlesen „Familie Huber(B-001)“.
+    zeichne();
+    await screen.findByText('Bad');
+    const zeile = screen.getAllByText((_, el) => el?.tagName === 'SPAN' && /^Familie Huber/.test(el.textContent ?? ''))
+      .find((el) => el.classList.contains('font-semibold'))!;
+    expect(zeile.textContent).toBe('Familie Huber (B-001)');
+  });
+});

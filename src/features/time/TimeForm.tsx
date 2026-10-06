@@ -1341,9 +1341,11 @@ export default function TimeForm({
         DIE KNÖPFE KLEBEN AM TELEFON UNTEN (Designlinie „Fassung 3"): das
         Formular ist länger als der Bildschirm, und wer „Weitere Angaben"
         aufklappt, soll zum Buchen nicht zurückblättern. Abbrechen links und
-        schmal, die Hauptaktion rechts und breit.
+        schmal, die Hauptaktion rechts und breit. Erst nach dem Rollen
+        (Runde 3, G22): beim Öffnen lag sie über dem Datumsfeld.
       */}
       <Aktionsleiste
+        erstNachDemRollen
         links={
           onCancel ? (
             <Button type="button" variant="secondary" onClick={onCancel}>

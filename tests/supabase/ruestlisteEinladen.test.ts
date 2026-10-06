@@ -67,7 +67,10 @@ describe('Rüstliste: Abbuchung beim Einladen', () => {
   });
 
   it('„eingeladen“ bucht den Abgang mit der Baustelle als Bezug — und reserviert nicht mehr', async () => {
-    expect((await umschalten(monteur, true)).error).toBeNull();
+    const r = await umschalten(monteur, true);
+    expect(r.error).toBeNull();
+    // Runde 3, G15: die gebuchte Menge kommt zurück — für „8 m abgebucht“.
+    expect(Number(r.data)).toBe(8);
     expect(await bestand()).toBe(12);
     expect(await frei()).toEqual({ geplant: 0, frei: 12 });
     const { data } = await admin.from('lagerbewegungen').select('art, menge, bezug, erfasst_von')
@@ -77,17 +80,23 @@ describe('Rüstliste: Abbuchung beim Einladen', () => {
   });
 
   it('ein zweites „eingeladen“ bucht nicht doppelt', async () => {
-    expect((await umschalten(monteur, true)).error).toBeNull();
+    const r = await umschalten(monteur, true);
+    expect(r.error).toBeNull();
+    expect(Number(r.data)).toBe(0);
     expect(await bestand()).toBe(12);
   });
 
   it('am selben Tag zurückgenommen: zurückgebucht; wieder eingeladen: wieder ab', async () => {
-    expect((await umschalten(monteur, false)).error).toBeNull();
+    const r = await umschalten(monteur, false);
+    expect(r.error).toBeNull();
+    expect(Number(r.data)).toBe(8);
     expect(await bestand()).toBe(20);
     expect(await frei()).toEqual({ geplant: 8, frei: 12 });
-    const { data } = await admin.from('lagerbewegungen').select('art, menge')
+    const { data } = await admin.from('lagerbewegungen').select('art, menge, grund')
       .eq('material_id', rohr).order('created_at', { ascending: false }).limit(1);
-    expect(data?.[0].art).toBe('retoure');
+    // Runde 3, G15: keine „Retoure“ — das Material war nie auf der Baustelle.
+    expect(data?.[0].art).toBe('einladen_zurueck');
+    expect(data?.[0].grund).toMatch(/eingeladen zurückgenommen$/);
     expect(Number(data?.[0].menge)).toBe(8);
 
     expect((await umschalten(monteur, true)).error).toBeNull();
@@ -111,6 +120,11 @@ describe('Rüstliste: Abbuchung beim Einladen', () => {
     });
     expect(error).toBeNull();
     expect(await bestand()).toBe(15);
+    // Eine echte Rückgabe bleibt „Retoure“ (Runde 3, G15).
+    const { data } = await admin.from('lagerbewegungen').select('art, menge')
+      .eq('material_id', rohr).order('created_at', { ascending: false }).limit(1);
+    expect(data?.[0].art).toBe('retoure');
+    expect(Number(data?.[0].menge)).toBe(3);
   });
 
   it('der Schein mit dem verbauten Material mindert den Bestand nicht noch einmal', async () => {

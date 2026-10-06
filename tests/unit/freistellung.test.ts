@@ -6,6 +6,7 @@ import {
   kalendertage,
   laengerAlsEinMonat,
   pflegeStand,
+  tageUeberKontingent,
   warnungen,
   type FreistellungFuerRegeln,
 } from '@shared/freistellung';
@@ -30,6 +31,37 @@ const anlaesse = anlaesseDesBetriebs(null);
 const tageVon = (f: FreistellungFuerRegeln) => kalendertage(f.von, f.bis);
 const f = (rest: Partial<FreistellungFuerRegeln>): FreistellungFuerRegeln => ({
   id: 'x', userId: 'u', art: 'dienstverhinderung', von: '2026-11-02', bis: '2026-11-02', status: 'Beantragt', ...rest,
+});
+
+// Runde 3, G17 — wie viele Tage beim Bestätigen eine Wahl brauchen.
+describe('Tage über dem Kontingent', () => {
+  const fall = { anlass: 'tod_eltern', ereignisDatum: '2026-11-01' };
+
+  it('zählt diesen Antrag und die bestätigten desselben Falls', () => {
+    expect(tageUeberKontingent(f({ ...fall, von: '2026-11-02', bis: '2026-11-04' }), [], anlaesse, tageVon)).toBe(1);
+    const bestaetigt = f({ id: 'a', ...fall, status: 'Bestätigt', von: '2026-11-02', bis: '2026-11-02' });
+    expect(tageUeberKontingent(f({ id: 'b', ...fall, von: '2026-11-03', bis: '2026-11-04' }), [bestaetigt], anlaesse, tageVon)).toBe(1);
+  });
+
+  it('höchstens die Tage dieses Antrags', () => {
+    const bestaetigt = f({ id: 'a', ...fall, status: 'Bestätigt', von: '2026-11-02', bis: '2026-11-05' });
+    expect(tageUeberKontingent(f({ id: 'b', ...fall, von: '2026-11-06', bis: '2026-11-06' }), [bestaetigt], anlaesse, tageVon)).toBe(1);
+  });
+
+  it('Gegenprobe: im Kontingent, ein offener zweiter Antrag, ein anderer Fall, die notwendige Zeit — 0', () => {
+    expect(tageUeberKontingent(f({ ...fall, von: '2026-11-02', bis: '2026-11-03' }), [], anlaesse, tageVon)).toBe(0);
+    const offen = f({ id: 'a', ...fall, status: 'Beantragt', von: '2026-11-02', bis: '2026-11-02' });
+    expect(tageUeberKontingent(f({ id: 'b', ...fall, von: '2026-11-03', bis: '2026-11-04' }), [offen], anlaesse, tageVon)).toBe(0);
+    const andererFall = f({ id: 'a', anlass: 'tod_eltern', ereignisDatum: '2026-05-01', status: 'Bestätigt', von: '2026-05-04', bis: '2026-05-05' });
+    expect(tageUeberKontingent(f({ id: 'b', ...fall, von: '2026-11-03', bis: '2026-11-04' }), [andererFall], anlaesse, tageVon)).toBe(0);
+    expect(tageUeberKontingent(f({ anlass: 'vorladung', ereignisDatum: '2026-11-02', von: '2026-11-02', bis: '2026-11-06' }), [], anlaesse, tageVon)).toBe(0);
+    expect(tageUeberKontingent(f({ art: 'pflegefreistellung', von: '2026-11-02', bis: '2026-11-09' }), [], anlaesse, tageVon)).toBe(0);
+  });
+
+  it('nimmt die Tage, die der Betrieb eingestellt hat', () => {
+    const mehr = anlaesseDesBetriebs({ tod_eltern: 3 });
+    expect(tageUeberKontingent(f({ ...fall, von: '2026-11-02', bis: '2026-11-04' }), [], mehr, tageVon)).toBe(0);
+  });
 });
 
 describe('Warnungen für die Bestätigenden', () => {

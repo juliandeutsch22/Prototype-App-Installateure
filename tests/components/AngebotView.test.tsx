@@ -221,7 +221,7 @@ describe('Weiter mit dem Angebot', () => {
   it('vermerkt die Ablehnung', async () => {
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click(await screen.findByRole('button', { name: 'Abgelehnt' }));
+    await nutzer.click(await screen.findByRole('button', { name: 'Als abgelehnt markieren' }));
     expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, { status: 'Abgelehnt' });
   });
 

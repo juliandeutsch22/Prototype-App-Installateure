@@ -364,7 +364,9 @@ export default function AngebotView() {
               loading={busy}
               onClick={() => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt')}
             >
-              Abgelehnt
+              {/* Wortlaut wie im Menü der Angebotsliste (Runde 3, G5): „Abgelehnt“
+                  allein las sich wie der Status, nicht wie der Knopf, der ihn setzt. */}
+              Als abgelehnt markieren
             </Button>
           </>
         )}

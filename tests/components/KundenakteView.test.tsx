@@ -512,6 +512,17 @@ describe('Die Rechnungen der Akte', () => {
     expect(listInvoicesForCustomer).toHaveBeenCalledWith('perl', 'k1', ['p1']);
   });
 
+  it('trennt Nummer und Datum durch ein echtes Leerzeichen (Runde 3, G4)', async () => {
+    // Nur per Abstand getrennt, las sich die Zeile beim Kopieren „RE-2026-100110.09.2026“.
+    rechnungen = [{
+      id: 'r1', invoiceNumber: 'RE-2026-1001', invoiceDate: '2026-09-10', projectNumber: '2026-001',
+      totalBrutto: 1200, paymentStatus: 'Offen',
+    }];
+    zeige();
+    const link = await screen.findByRole('link', { name: 'RE-2026-1001' });
+    expect(link.parentElement!.textContent).toMatch(/^RE-2026-1001 10\.09\.2026 · 2026-001$/);
+  });
+
   it('zeigt die jüngsten fünf — alle erst auf Wunsch', async () => {
     rechnungen = Array.from({ length: 7 }, (_, i) => ({
       id: `r${i}`, invoiceNumber: `RE-2026-10${i}`, invoiceDate: '2026-09-10', projectNumber: '2026-001',

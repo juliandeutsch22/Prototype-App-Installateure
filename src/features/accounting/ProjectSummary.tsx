@@ -6,9 +6,7 @@ import {
   calcWorkMin,
   fmtMin,
   fmtDauer,
-  fmtStd,
   balkenBreite,
-  fmtStunden,
 } from '@/lib/time';
 import type { Project, TimeEntry } from '@/types';
 import { budgetArt } from '@/lib/einstufung';
@@ -41,21 +39,20 @@ function dayLabel(iso: string): string {
 }
 
 /**
- * ZWEI SCHREIBWEISEN, UND JEDE HAT IHREN ORT (Prüflauf 25.09.2026, P4-10).
+ * EINE SCHREIBWEISE IN DER GANZEN KARTE: `HH:MM Std` (Prüflauf 25.09.2026,
+ * P4-10; Runde 3, G7).
  *
  * Arbeitszeit steht in der App als `HH:MM Std` — so auch die Einträge in der
- * Tabelle dieser Karte („09:00"). Daneben stand die Fachzeit des Monats als
- * „9,0 h": dieselbe Art Zahl in zwei Schreibweisen in einer Karte. Fachzeit,
- * Helferzeit und die Zeiten je Mitarbeiter sind Arbeitszeit → `dauer`.
- *
- * DEZIMAL BLEIBT, WAS GEGEN DAS BUDGET GEHALTEN WIRD: der Satz unter dem
- * Balken und „gesamt … / … h Budget". Das Budget ist in Dezimalstunden
- * kalkuliert (`estimatedHours`), der Prozentwert rechnet damit, und dieselbe
- * Gegenüberstellung steht so auch auf der Startseite und in der
- * Baustellenakte. Dort ist die Dezimalzahl fachlich nötig.
+ * Tabelle dieser Karte („09:00"). Bis Runde 3 blieb der Satz gegen das Budget
+ * dezimal, und so stand in EINER Zeile „10:45 Std“ und „10,8 h“ — derselbe
+ * Wert zweimal, verschieden geschrieben, und die gerundete Dezimalzahl
+ * verbarg dabei eine Viertelstunde. Jetzt auch das Budget in Std:Min; es
+ * ist in Dezimalstunden gespeichert (`estimatedHours`) und wird nur für die
+ * Anzeige in Minuten umgerechnet. Der Prozentwert rechnet weiter mit den
+ * Minuten und dem Budget, wie er war.
  */
-const h = fmtStd;
 const dauer = fmtDauer;
+const budgetDauer = (stunden: number) => fmtDauer(Math.round(stunden * 60));
 
 /**
  * Die Baustellennummer, wie sie überall sonst steht — MIT Vorsatz: „PR-187".
@@ -269,9 +266,9 @@ export default function ProjectSummary({
                 {r.budget && r.budget.pct !== null && r.gesamtFachMin !== null ? (
                   <>
                     <p className="mt-2 text-xs text-ink-muted">
-                      <span>{h(r.fachMin)} h</span> in {label} · gesamt{' '}
-                      <span className="font-semibold">{h(r.gesamtFachMin)} h</span> von{' '}
-                      <span>{fmtStunden(r.project?.estimatedHours ?? 0)} h</span>
+                      <span>{dauer(r.fachMin)}</span> in {label} · gesamt{' '}
+                      <span className="font-semibold">{dauer(r.gesamtFachMin)}</span> von{' '}
+                      <span>{budgetDauer(r.project?.estimatedHours ?? 0)}</span>
                     </p>
                     <div className="mt-1 flex items-center gap-2">
                       <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-surface-3">
@@ -380,7 +377,7 @@ export default function ProjectSummary({
                     {r.project?.estimatedHours && r.gesamtFachMin !== null ? (
                       <span className="text-ink-muted">
                         {' '}
-                        · gesamt {h(r.gesamtFachMin)} h / {fmtStunden(r.project.estimatedHours)} h Budget
+                        · gesamt {dauer(r.gesamtFachMin)} / {budgetDauer(r.project.estimatedHours)} Budget
                       </span>
                     ) : null}
                     {r.helperMin > 0 && (

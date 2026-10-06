@@ -6,6 +6,7 @@ import { ToastProvider } from '@/components/Toast';
 import type { AppUser } from '@/types';
 import UserMgmtView from '@/features/users/UserMgmtView';
 import { istBenutzerkonto, kunstadresse } from '@shared/benutzername';
+import { leseZahl } from '@/lib/zahl';
 
 /**
  * Benutzerverwaltung — wer im Betrieb was darf, und wer noch hinein kommt.
@@ -318,6 +319,20 @@ describe('Benutzerverwaltung — die Liste', () => {
     expect(screen.queryByText('Ausgeschieden')).not.toBeInTheDocument();
   });
 
+  it('nennt deaktivierte Konten im Filter und an der Zeile „deaktiviert“ (Runde 3, G5)', async () => {
+    leute = [
+      person({ uid: 'u2', name: 'Erna Beispiel' }),
+      person({ uid: 'u3', name: 'Ausgeschieden', active: false }),
+    ];
+    zeige();
+    const filter = await screen.findByRole('combobox', { name: 'Benutzer nach Status filtern' });
+    expect(within(filter).getByRole('option', { name: 'Deaktivierte (1)' })).toBeInTheDocument();
+    await userEvent.selectOptions(filter, 'alle');
+    expect(await screen.findByText('Ausgeschieden')).toBeInTheDocument();
+    expect(screen.getByText('deaktiviert')).toBeInTheDocument();
+    expect(screen.queryByText(/inaktiv/i)).not.toBeInTheDocument();
+  });
+
   it('zeigt die Liste zuerst, nicht die leere Maske', async () => {
     // Gemessen: 932 px bis zur ersten Zeile. Ein Benutzer wird ein paarmal im
     // Jahr angelegt und dauernd nachgesehen.
@@ -399,8 +414,24 @@ describe('Neueintritt oder Bestand', () => {
     await userEvent.type(eintritt, '2026-10-15');
 
     // Taggenau (M3): 25 × 78 Kalendertage ÷ 365 = 5,34 — und die Rechnung steht daneben.
-    expect((screen.getByLabelText(/Urlaub im ersten Jahr/) as HTMLInputElement).value).toBe('5.34');
+    expect((screen.getByLabelText(/Urlaub im ersten Jahr/) as HTMLInputElement).value).toBe('5,34');
     expect(screen.getByText(/× 78 Kalendertage ab dem Eintritt ÷ 365/)).toBeInTheDocument();
+  });
+
+  it('schreibt den Vorschlag österreichisch: TT.MM.JJJJ und Dezimalkomma (Runde 3, G1)', async () => {
+    // Gesehen: „Vorschlag für 2026-10-06: 5.96 Tage“ — Datum und Zahl wie aus der Datenbank.
+    zeige();
+    await formOeffnen();
+    await userEvent.click(screen.getByLabelText(/Tritt neu ein/));
+    await userEvent.click(screen.getByRole('button', { name: /Zeitkonto-Einstellungen/ }));
+
+    const eintritt = await screen.findByLabelText('Eintrittsdatum');
+    await userEvent.clear(eintritt);
+    await userEvent.type(eintritt, '2026-10-15');
+
+    const satz = screen.getByText(/Vorschlag für/).textContent ?? '';
+    expect(satz).toMatch(/^Vorschlag für 15\.10\.2026: 5,34 Tage/);
+    expect(satz).not.toMatch(/2026-10-15|5\.34/);
   });
 
   it('trägt den Vorschlag sofort beim Umschalten ein, nicht erst beim Datum', async () => {
@@ -420,7 +451,7 @@ describe('Neueintritt oder Bestand', () => {
 
     const feld = (await screen.findByLabelText(/Urlaub im ersten Jahr/)) as HTMLInputElement;
     expect(feld.value).not.toBe('');
-    expect(Number(feld.value)).not.toBeNaN();
+    expect(leseZahl(feld.value).wert).not.toBeNull();
   });
 
   it('verlangt beim Neueintritt keinen Überstundensaldo', async () => {
@@ -452,7 +483,7 @@ describe('Neueintritt oder Bestand', () => {
     await userEvent.type(eintritt, '2026-10-15');
 
     expect((screen.getByLabelText(/Urlaub im ersten Jahr/) as HTMLInputElement).value)
-      .toBe('17.74');
+      .toBe('17,74');
   });
 
   it('schreibt den Vorschlag auch wirklich in die Anlage', async () => {

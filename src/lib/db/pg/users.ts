@@ -85,8 +85,36 @@ function alsBenutzer(zeile: WithId<Zeile>): AppUser {
 export async function listUsers(companyId: string): Promise<AppUser[]> {
   const zeilen = await abfragen<Zeile>(BELEGSCHAFT, companyId);
   const anfang = await anfaenge(companyId, zeilen.map((z) => z.id));
-  return zeilen.map((z) => alsBenutzer(mitAnfang(z, anfang.get(z.id))));
+  const voll = zeilen.map((z) => alsBenutzer(mitAnfang(z, anfang.get(z.id))));
+  /*
+    DIE KOLLEGEN DES MONTEURS (Runde 3, G25). Die Rolle „Mitarbeiter“ liest
+    in `users` nur die eigene Zeile; von den anderen gibt `kollegen()` Name,
+    Rolle, Einstufung und „aktiv“ — genug für Team-Woche, Termine und den
+    eigenen Einsatzplan. Woran man es erkennt: höchstens eine Zeile kam
+    zurück. Wer mehr liest (Büro, Führung), bekommt alles wie bisher, ohne
+    zweite Abfrage.
+  */
+  if (zeilen.length > 1) return voll;
+  const { data, error } = await derClient().rpc('kollegen');
+  if (error) throw new Error(error.message);
+  const schon = new Set(voll.map((u) => u.uid));
+  const andere = ((data ?? []) as Kollege[])
+    .filter((k) => !schon.has(k.id))
+    .map((k) => alsBenutzer({
+      id: k.id,
+      companyId: k.company_id,
+      name: k.name,
+      // Nicht gelesen, nicht erfunden: leer, wie jede Angabe, die fehlt.
+      email: '',
+      role: k.role as AppUser['role'],
+      active: k.active,
+      einstufung: (k.einstufung ?? null) as AppUser['einstufung'],
+    }));
+  return [...voll, ...andere].sort((a, b) => a.name.localeCompare(b.name, 'de'));
 }
+
+/** Was `kollegen()` je Person herausgibt. */
+type Kollege = { id: string; company_id: string; name: string; role: string; active: boolean; einstufung: string | null };
 
 /**
  * Einen Benutzer über seine Auth-Kennung holen.

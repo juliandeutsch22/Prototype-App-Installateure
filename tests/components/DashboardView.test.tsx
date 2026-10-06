@@ -497,7 +497,7 @@ describe('Startseite — Geschäftsführung', () => {
     await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
     const karte = await karteMit(/Handlungsbedarf/);
     expect(within(karte).getByText(/Themen/)).toBeInTheDocument();
-    expect(within(karte).getByRole('region', { name: 'Überfällig' })).toBeInTheDocument();
+    expect(within(karte).getByRole('region', { name: 'Dringend' })).toBeInTheDocument();
     expect(within(karte).getByRole('link', { name: /1 Eilanforderung offen/ })).toHaveAttribute('href', '/anforderungen?filter=eil');
   });
 });

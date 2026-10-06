@@ -6,6 +6,7 @@ import { ToastProvider } from '@/components/Toast';
 import type { Material, MaterialOrder } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import StockView from '@/features/orders/StockView';
+import { listGrosshaendler } from '@/lib/db/einkauf';
 
 /**
  * Lager — der dritte Schritt des Materialablaufs.
@@ -233,7 +234,9 @@ describe('Lager — Wareneingang', () => {
     const feld = within(dialog).getByLabelText(/^Menge/);
     await userEvent.clear(feld);
     if (menge) await userEvent.type(feld, menge);
-    if (lieferant) await userEvent.type(within(dialog).getByLabelText(/^Lieferant/), lieferant);
+    // Seit Runde 3 (G19) eine Auswahl der Großhändler.
+    const auswahl = await within(dialog).findByRole('combobox', { name: /^Lieferant/ });
+    if (lieferant) await userEvent.selectOptions(auswahl, lieferant);
     await userEvent.type(within(dialog).getByLabelText(/^Lieferschein/), 'LS-4711');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
     return dialog;
@@ -247,6 +250,44 @@ describe('Lager — Wareneingang', () => {
       materialId: 'm1', menge: 12, lieferant: 'Frauenthal', lieferschein: 'LS-4711', bezug: undefined,
     }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('bietet die angelegten Großhändler zur Wahl an — und „Anderer Lieferant …“ (Runde 3, G19)', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Wareneingang' }));
+    const dialog = await screen.findByRole('dialog');
+    const auswahl = await within(dialog).findByRole('combobox', { name: /^Lieferant/ });
+    expect(within(auswahl).getAllByRole('option').map((o) => o.textContent))
+      .toEqual(['Bitte wählen …', 'Frauenthal', 'Anderer Lieferant …']);
+    // Das Textfeld steht erst, wenn jemand einen anderen Lieferanten will.
+    expect(within(dialog).queryByLabelText(/Name des Lieferanten/)).not.toBeInTheDocument();
+  });
+
+  it('nimmt einen anderen Lieferanten als Freitext (Runde 3, G19)', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Wareneingang' }));
+    const dialog = await screen.findByRole('dialog');
+    const feld = within(dialog).getByLabelText(/^Menge/);
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '2');
+    await userEvent.selectOptions(await within(dialog).findByRole('combobox', { name: /^Lieferant/ }), 'Anderer Lieferant …');
+    await userEvent.type(within(dialog).getByLabelText(/Name des Lieferanten/), 'Baumarkt Mödling');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith({
+      materialId: 'm1', menge: 2, lieferant: 'Baumarkt Mödling', lieferschein: undefined, bezug: undefined,
+    }));
+  });
+
+  it('ohne angelegte Großhändler bleibt es beim Textfeld „Lieferant“', async () => {
+    vi.mocked(listGrosshaendler).mockResolvedValueOnce([]);
+    materialien = [material({ id: 'm1', stock: 20 })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Wareneingang' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('textbox', { name: /^Lieferant/ })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('combobox', { name: /^Lieferant/ })).not.toBeInTheDocument();
   });
 
   it('ohne Lieferant bucht er nicht', async () => {
@@ -323,6 +364,20 @@ describe('Lager — Inventur und Bewegungen', () => {
     expect(inventurBuchen).not.toHaveBeenCalled();
   });
 
+  it('nennt eine zurückgenommene Rüstlisten-Buchung „Einladen zurückgenommen“, eine Retoure „Retoure“ (Runde 3, G15)', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    bewegungenLaden.mockResolvedValueOnce([
+      { id: 'b3', materialId: 'm1', art: 'retoure', menge: 3, bestandNachher: 20, createdAt: Date.UTC(2026, 9, 1, 12) },
+      { id: 'b2', materialId: 'm1', art: 'einladen_zurueck', menge: 8, bestandNachher: 17, grund: 'Rüstliste 01.10.2026 · eingeladen zurückgenommen', createdAt: Date.UTC(2026, 9, 1, 7) },
+    ]);
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Bewegungen' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(await within(dialog).findByText(/Einladen zurückgenommen \+8 m/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/^Retoure \+3 m/)).toBeInTheDocument();
+  });
+
   it('zeigt das Bewegungsprotokoll mit Lieferant und Grund', async () => {
     materialien = [material({ id: 'm1', stock: 20 })];
     bewegungenLaden.mockResolvedValueOnce([
@@ -338,6 +393,10 @@ describe('Lager — Inventur und Bewegungen', () => {
     expect(within(dialog).getByText(/Grund: Bruch/)).toBeInTheDocument();
     expect(within(dialog).getByText(/Wareneingang \+12 m/)).toBeInTheDocument();
     expect(within(dialog).getByText(/Frauenthal · Lieferschein LS-4711/)).toBeInTheDocument();
+    // Runde 3, G20: ein Lesedialog — nur „Schließen“.
+    expect(within(dialog).getAllByRole('button').map((b) => b.textContent)).toEqual(['Schließen']);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Schließen' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
 

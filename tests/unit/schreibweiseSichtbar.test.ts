@@ -12,6 +12,21 @@ describe('Schreibweise im Sichtbaren (G1)', () => {
     expect(fund('12.5 m Kupferrohr')).toEqual(['Dezimalpunkt statt Komma']);
   });
 
+  it('findet den Vorschlag beim Anlegen, wie ihn Runde 3 sah (G1)', () => {
+    expect(fund('Vorschlag für 2026-10-06: 5.96 Tage — taggenau')).toEqual([
+      'ISO-Datum statt TT.MM.JJJJ', 'Dezimalpunkt statt Komma',
+    ]);
+    expect(fund('noch 0.5 Tag offen')).toEqual(['Dezimalpunkt statt Komma']);
+  });
+
+  it('lässt den richtig geschriebenen Vorschlag stehen (G1)', () => {
+    for (const richtig of [
+      'Vorschlag für 06.10.2026: 5,96 Tage', 'seit 5 Tagen', '1 Tag', 'am 06.10. Tagesbericht',
+    ]) {
+      expect({ richtig, funde: fund(richtig) }).toEqual({ richtig, funde: [] });
+    }
+  });
+
   it('lässt stehen, was richtig ist', () => {
     for (const richtig of [
       'Di., 29.09.2026', 'bis 30.09.2026.', 'Saldo 8,33 h', '€ 1.416,00', '1.000 Stk',

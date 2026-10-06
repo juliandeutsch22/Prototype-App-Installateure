@@ -396,7 +396,7 @@ export default function BenutzerakteView() {
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <Link to="/user-mgmt" className="link inline-flex min-h-touch items-center">← Zur Benutzerliste</Link>
             <Marke>{p.role}</Marke>
-            {p.active === false && <Marke>inaktiv</Marke>}
+            {p.active === false && <Marke>deaktiviert</Marke>}
           </span>
         }
       />
@@ -486,7 +486,7 @@ function StammdatenLesen({ p }: { p: AppUser }) {
       )}
       <Angabe wort="Zustand">
         {p.active === false
-          ? <Zustand stand="ruht">inaktiv</Zustand>
+          ? <Zustand stand="ruht">deaktiviert</Zustand>
           : <Zustand stand="gut">aktiv</Zustand>}
       </Angabe>
       <Angabe wort="Einstufung">

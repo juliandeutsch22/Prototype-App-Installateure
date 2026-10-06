@@ -132,9 +132,11 @@ describe('Durchstich 5: Rüstliste — geplant, gesehen, eingeladen', () => {
     ]);
 
     clientEinreichen(monteur.client);
+    // Seit Runde 3 (G15) meldet das Einladen, wie viel vom Lager abging — hier
+    // nichts, die Position hat keinen Lagerartikel. Entscheidend: kein Fehler.
     await expect(
       ruestDb.ladenUmschalten(BETRIEB, TAG, BAUSTELLE, 'p1', true, 'Max'),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(0);
   }, 120_000);
 
   it('streicht die Planung eine Position, geht ihr Haken mit', async () => {

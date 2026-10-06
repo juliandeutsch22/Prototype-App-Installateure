@@ -425,10 +425,16 @@ export default function MyScheduleView() {
                             {proj?.customerName ?? a.projectNumber}
                             {/* Nummer nur zusätzlich zeigen, wenn ein Kundenname
                                 da ist — sonst stünde sie doppelt. */}
+                            {/* Ein echtes Leerzeichen, nicht nur Abstand per
+                                Klasse: kopiert, vorgelesen oder ohne Stil stand
+                                „Max Musterkunde(PR-187)“ (Runde 3, G4). */}
                             {proj?.customerName && (
-                              <span className="ml-1 text-sm font-normal text-ink-muted">
-                                <span className="nr">({a.projectNumber})</span>
-                              </span>
+                              <>
+                                {' '}
+                                <span className="text-sm font-normal text-ink-muted">
+                                  <span className="nr">({a.projectNumber})</span>
+                                </span>
+                              </>
                             )}
                           </span>
                           <span className="flex gap-2">

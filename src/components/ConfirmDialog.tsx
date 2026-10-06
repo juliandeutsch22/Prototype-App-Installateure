@@ -26,6 +26,7 @@ export default function ConfirmDialog({
   confirmTone = 'danger',
   onConfirm,
   onCancel,
+  nurSchliessen = false,
   children,
 }: {
   open: boolean;
@@ -35,6 +36,12 @@ export default function ConfirmDialog({
   confirmTone?: 'danger' | 'primary';
   onConfirm: () => void | Promise<void>;
   onCancel: () => void;
+  /**
+   * Ein Dialog, der nur etwas zeigt (etwa das Bewegungsprotokoll): ein
+   * einziger Knopf „Schließen“. Mit „Abbrechen“ daneben fragte man sich, was
+   * es abzubrechen gäbe (Runde 3, G20). Er ruft `onCancel`.
+   */
+  nurSchliessen?: boolean;
   /** Zusätzliche Eingaben, z. B. ein Grund für die Aktion. */
   children?: ReactNode;
 }) {
@@ -105,12 +112,20 @@ export default function ConfirmDialog({
           </div>
         )}
         <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button variant="secondary" onClick={onCancel} disabled={busy} autoFocus>
-            Abbrechen
-          </Button>
-          <Button variant={confirmTone} onClick={handleConfirm} loading={busy}>
-            {confirmLabel}
-          </Button>
+          {nurSchliessen ? (
+            <Button variant="primary" onClick={onCancel} autoFocus>
+              Schließen
+            </Button>
+          ) : (
+            <>
+              <Button variant="secondary" onClick={onCancel} disabled={busy} autoFocus>
+                Abbrechen
+              </Button>
+              <Button variant={confirmTone} onClick={handleConfirm} loading={busy}>
+                {confirmLabel}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>

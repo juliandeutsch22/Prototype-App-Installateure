@@ -25,7 +25,9 @@ import {
   type BenutzerEntwurf, type Eintrittsart,
 } from './benutzerEntwurf';
 import { DEFAULT_VACATION_DAYS } from '@/lib/db/benutzerVorgaben';
-import { JAHRESBEGINN_VORGABE } from '@/lib/time';
+import { JAHRESBEGINN_VORGABE, tageZahl } from '@/lib/time';
+import { datumAT } from '@/lib/datum';
+import { zahlAlsText } from '@/lib/zahl';
 import { benutzernameFehler, kontoAnzeige, kunstadresse, mailAdresseFehler } from '@shared/benutzername';
 import ZahlFeld from '@/components/ZahlFeld';
 
@@ -239,7 +241,7 @@ export default function UserMgmtView() {
       {/*
         KEINE KENNZAHLEN „BENUTZER / AKTIV / AUSSENDIENST“ MEHR (Analyse
         03.10.2026, Paket 1). Die Liste darunter zeigt dieselben Leute nach
-        Rolle gruppiert, der Filter die Inaktiven.
+        Rolle gruppiert, der Filter die Deaktivierten.
       */}
 
       {handoverPassword && (
@@ -397,7 +399,7 @@ export default function UserMgmtView() {
                     setForm((f) => ({
                       ...f,
                       initialOvertime: '0',
-                      initialVacationDays: String(
+                      initialVacationDays: zahlAlsText(
                         vorschlag(f.appStartDate, f.yearlyVacationDays).tage,
                       ),
                     }));
@@ -415,11 +417,11 @@ export default function UserMgmtView() {
 
             {eintritt === 'neu' && (
               <p className="mt-3 rounded-sm border border-line bg-surface px-3 py-2 text-sm text-ink-muted">
-                Vorschlag für {form.appStartDate || 'das Eintrittsdatum'}:{' '}
+                Vorschlag für {datumAT(form.appStartDate) || 'das Eintrittsdatum'}:{' '}
                 <strong className="text-ink">
-                  {vorschlag(form.appStartDate, form.yearlyVacationDays).tage}
+                  {tageZahl(vorschlag(form.appStartDate, form.yearlyVacationDays).tage)}
                 </strong>{' '}
-                Tage — taggenau: {zahlOderVorgabe(form.yearlyVacationDays, DEFAULT_VACATION_DAYS)}{' '}
+                Tage — taggenau: {tageZahl(zahlOderVorgabe(form.yearlyVacationDays, DEFAULT_VACATION_DAYS))}{' '}
                 Tage Jahresanspruch × {vorschlag(form.appStartDate, form.yearlyVacationDays).restTage}{' '}
                 Kalendertage ab dem Eintritt ÷ {vorschlag(form.appStartDate, form.yearlyVacationDays).jahresTage}{' '}
                 Tage des Urlaubsjahres.{' '}
@@ -466,7 +468,7 @@ export default function UserMgmtView() {
                       // lassen hiesse, eine Zahl aus einer alten Rechnung zu
                       // zeigen.
                       ...(eintritt === 'neu'
-                        ? { initialVacationDays: String(vorschlag(f.appStartDate, jahresTage).tage) }
+                        ? { initialVacationDays: zahlAlsText(vorschlag(f.appStartDate, jahresTage).tage) }
                         : {}),
                     }));
                   }} />
@@ -496,7 +498,7 @@ export default function UserMgmtView() {
                       ...f,
                       appStartDate: datum,
                       ...(eintritt === 'neu'
-                        ? { initialVacationDays: String(vorschlag(datum, f.yearlyVacationDays).tage) }
+                        ? { initialVacationDays: zahlAlsText(vorschlag(datum, f.yearlyVacationDays).tage) }
                         : {}),
                     }));
                   }} />
@@ -607,7 +609,9 @@ export default function UserMgmtView() {
             onChange={(e) => setStatus(e.target.value as typeof status)}
           >
             <option value="aktiv">Aktive</option>
-            <option value="inaktiv">Inaktive ({inaktiv})</option>
+            {/* „Deaktiviert“ wie im Statusfeld der Akte (Runde 3, G5) — für
+                dieselbe Sache standen zwei Wörter auf dem Bildschirm. */}
+            <option value="inaktiv">Deaktivierte ({inaktiv})</option>
             <option value="alle">Alle</option>
           </SelectField>
         }
@@ -653,7 +657,7 @@ export default function UserMgmtView() {
                     {u.name}
                     {/* Die Rolle steht bereits in der Gruppenueberschrift —
                         sie an jeder Zeile zu wiederholen ist Laerm. */}
-                    {u.active === false && <Marke>inaktiv</Marke>}
+                    {u.active === false && <Marke>deaktiviert</Marke>}
                   </span>
                 }
                 subtitle={kontoAnzeige(u.email)}

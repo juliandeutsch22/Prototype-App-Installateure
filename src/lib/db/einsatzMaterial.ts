@@ -57,7 +57,7 @@ export function ladenUmschalten(
   positionId: string,
   an: boolean,
   vonName: string,
-): Promise<void> {
+): Promise<number> {
   return pg.ladenUmschalten(companyId, date, projectNumber, positionId, an, vonName);
 }
 

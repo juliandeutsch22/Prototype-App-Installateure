@@ -25,9 +25,16 @@ import { datumKurz, terminKopf } from './terminText';
 export default function TermineKarte({
   titel,
   vorgabe,
+  onTermine,
 }: {
   titel: string;
   vorgabe: TerminVorgabe;
+  /**
+   * Bekommt die geladenen Termine — auch nach jeder Änderung. Die
+   * Einsatzplanung zeigt damit am Einsatz, was am selben Tag auf der
+   * Baustelle ansteht (Runde 3, G23), ohne ein zweites Mal zu laden.
+   */
+  onTermine?: (termine: Termin[]) => void;
 }) {
   const { user } = useAuth();
   const toast = useToast();
@@ -73,6 +80,12 @@ export default function TermineKarte({
       verworfen = true;
     };
   }, [laden, versuch]);
+
+  useEffect(() => {
+    if (termine) onTermine?.(termine);
+    // Nur bei neuen Terminen melden — ein neuer Rückruf allein ist keine Änderung.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [termine]);
 
   // Die Namen der Teilnehmer — und die Auswahl im Formular.
   useEffect(() => {
