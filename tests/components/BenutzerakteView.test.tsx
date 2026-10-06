@@ -39,8 +39,9 @@ const profilAendern = vi.fn<(...args: unknown[]) => Promise<void>>(async () => u
 const passwortMail = vi.fn(async () => undefined);
 
 /** Das Geburtsdatum (05.10.2026) hat eine eigene Prüfung (`ArbeitszeitGrenzenKarten.test.tsx`). */
+let geburtsdatum: string | null = null;
 vi.mock('@/lib/db/arbeitszeitGrenzen', () => ({
-  getGeburtsdatum: vi.fn(async () => null),
+  getGeburtsdatum: vi.fn(async () => geburtsdatum),
   setGeburtsdatum: vi.fn(async () => undefined),
 }));
 vi.mock('@/lib/db/users', () => ({
@@ -103,6 +104,7 @@ function angabe(wort: string) {
 
 beforeEach(() => {
   gefunden = person({ uid: 'u2', name: 'Erna Beispiel', email: 'erna@perl.at' });
+  geburtsdatum = null;
   ladefehler = false;
   angemeldet = { uid: 'gf1', companyId: 'perl', name: 'Chefin', role: 'Geschäftsführung' };
   profilAendern.mockClear();
@@ -713,5 +715,98 @@ describe('Urlaubsanspruch anpassen (Plan 10.3)', () => {
     zeige();
     await screen.findByText('Ada Admin', { selector: 'h1' });
     expect(screen.queryByRole('button', { name: 'Anspruch anpassen' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Jugendschutz in der Akte (Runde 3, M2)', () => {
+  /*
+    „Ein Tagessoll von 8,5 Std. für eine unter 18-Jährige wird in der Akte
+    ohne Hinweis gespeichert.“ Jetzt fragt die Akte nach — und speichert auf
+    Wunsch trotzdem.
+  */
+  async function wochenstunden(wert: string) {
+    const feld = await screen.findByRole('textbox', { name: /Wochenstunden/ });
+    await userEvent.clear(feld);
+    await userEvent.type(feld, wert);
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+  }
+
+  it('unter 18 und 42 Wochenstunden: Rückfrage, gespeichert erst nach „Trotzdem speichern“', async () => {
+    geburtsdatum = '2010-03-15';
+    zeige();
+    expect(await screen.findByText(/Unter 18 — es gelten die Grenzen des KJBG/)).toBeInTheDocument();
+    await wochenstunden('42');
+
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('Erna Beispiel ist unter 18');
+    expect(dialog).toHaveTextContent('Wochensoll 42 Std. — für Jugendliche höchstens 40 Std. in der Woche');
+    expect(profilAendern).not.toHaveBeenCalled();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Trotzdem speichern' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalledTimes(1));
+    expect(profilAendern.mock.calls[0][1]).toMatchObject({ weeklyTargetHours: 42 });
+  });
+
+  it('„Abbrechen“ speichert nicht', async () => {
+    geburtsdatum = '2010-03-15';
+    zeige();
+    expect(await screen.findByText(/Unter 18/)).toBeInTheDocument();
+    await wochenstunden('42');
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Abbrechen' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(profilAendern).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: ab 18 keine Rückfrage', async () => {
+    geburtsdatum = '1990-01-01';
+    zeige();
+    expect(await screen.findByLabelText('Geburtsdatum')).toHaveValue('1990-01-01');
+    await wochenstunden('42');
+    await waitFor(() => expect(profilAendern).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne Geburtsdatum keine Rückfrage', async () => {
+    zeige();
+    expect(await screen.findByLabelText('Geburtsdatum')).toHaveValue('');
+    await wochenstunden('42');
+    await waitFor(() => expect(profilAendern).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('Gegenprobe: unter 18 mit 40 Wochenstunden keine Rückfrage', async () => {
+    geburtsdatum = '2010-03-15';
+    zeige();
+    expect(await screen.findByText(/Unter 18/)).toBeInTheDocument();
+    await userEvent.clear(await screen.findByRole('textbox', { name: /^Name/ }));
+    await userEvent.type(screen.getByRole('textbox', { name: /^Name/ }), 'Erna B.');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
+
+describe('Lehrbeginn vor dem Eintritt (Runde 3, G18)', () => {
+  it('ein Hinweis, keine Sperre', async () => {
+    gefunden = person({
+      uid: 'u2', name: 'Erna Beispiel', einstufung: 'lehrling', lehrbeginn: '2024-09-01', lehrzeitMonate: 36,
+      eintritt: '2026-01-01',
+    });
+    zeige();
+    expect(await screen.findByText(/Der Lehrbeginn liegt vor dem Eintritt \(01\.01\.2026\)\. Wird Lehrzeit angerechnet\?/)).toBeInTheDocument();
+    await userEvent.clear(screen.getByRole('textbox', { name: /^Name/ }));
+    await userEvent.type(screen.getByRole('textbox', { name: /^Name/ }), 'Erna B.');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalledTimes(1));
+  });
+
+  it('Gegenprobe: Lehrbeginn am Eintritt — kein Hinweis', async () => {
+    gefunden = person({
+      uid: 'u2', name: 'Erna Beispiel', einstufung: 'lehrling', lehrbeginn: '2026-01-01', lehrzeitMonate: 36,
+      eintritt: '2026-01-01',
+    });
+    zeige();
+    expect(await screen.findByLabelText(/^Lehrbeginn/)).toHaveValue('2026-01-01');
+    expect(screen.queryByText(/Der Lehrbeginn liegt vor dem Eintritt/)).not.toBeInTheDocument();
   });
 });

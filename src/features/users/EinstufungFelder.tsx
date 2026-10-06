@@ -1,11 +1,12 @@
 import { InputField, SelectField, FormGrid, CheckboxField } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import { todayStr } from '@/lib/time';
 import { datumAT as fmtDatum } from '@/lib/datum';
 import {
   EINSTUFUNGEN, LEHRZEIT_VORGABE, lehrjahr, lehrzeitEnde, type Einstufung, type FruehereEinstufung,
 } from '@/lib/einstufung';
-import type { BenutzerEntwurf } from './benutzerEntwurf';
+import { lehrbeginnVorEintritt, type BenutzerEntwurf } from './benutzerEntwurf';
 
 /** Übliche Lehrzeiten: zwei bis vier Jahre, halbjährlich. */
 const LEHRZEITEN = [24, 30, 36, 42, 48];
@@ -35,12 +36,15 @@ export default function EinstufungFelder({
   setForm,
   idPrefix,
   gespeichert,
+  eintritt,
 }: {
   form: BenutzerEntwurf;
   setForm: (f: BenutzerEntwurf) => void;
   idPrefix: string;
   /** In der Akte: der gespeicherte Stand, für Umstufung und frühere Stufen. */
   gespeichert?: { einstufung?: Einstufung | null; einstufungVerlauf?: FruehereEinstufung[] | null };
+  /** Der Eintritt in den Betrieb — für den Hinweis, wenn die Lehre davor begann (Runde 3, G18). */
+  eintritt?: string | null;
 }) {
   const lehrling = form.einstufung === 'lehrling';
   const bisher = gespeichert?.einstufung ?? null;
@@ -99,6 +103,19 @@ export default function EinstufungFelder({
           </>
         )}
       </FormGrid>
+      {/*
+        LEHRBEGINN VOR DEM EINTRITT (Runde 3, G18): wird Lehrzeit aus einem
+        anderen Betrieb angerechnet, stimmt das so. Deshalb fragt die Maske
+        nur nach und speichert trotzdem.
+      */}
+      {lehrbeginnVorEintritt(form, eintritt) && (
+        <Hinweiszeile>
+          <p>
+            Der Lehrbeginn liegt vor dem Eintritt ({fmtDatum(eintritt)}). Wird Lehrzeit angerechnet?
+            Dann stimmt das so — das Lehrjahr zählt ab dem Lehrbeginn.
+          </p>
+        </Hinweiszeile>
+      )}
       {/*
         JE PERSON, NICHT JE LEHRJAHR (Entscheidung 03.10.2026): ob die Stunden
         eines Lehrlings ins Budget der Baustelle gehören, hängt an seiner

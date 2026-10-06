@@ -16,7 +16,9 @@ import type {
   Wartung,
 } from '@/types';
 import { getUserByUid, listUsers } from '@/lib/db/users';
-import { listOwnEntriesSince, listEntriesInRange, listEntriesForProjects } from '@/lib/db/timeEntries';
+import { listOwnEntriesSince, listOwnEntriesInRange, listEntriesInRange, listEntriesForProjects } from '@/lib/db/timeEntries';
+import { getGeburtsdatum } from '@/lib/db/arbeitszeitGrenzen';
+import { andereVerteilung, grenzfaelle, istJugendlich, type Grenzfall } from '@/features/accounting/arbeitszeitGrenzen';
 import {
   listUpcomingAssignments,
   listAssignmentsForDate,
@@ -41,6 +43,7 @@ import {
   localDateStr,
   todayStr,
   offeneWerktage,
+  tagessollStunden,
   type SaldoResult,
 } from '@/lib/time';
 import { fuehrtZeitkonto, einplanbar } from '@/lib/permissions';
@@ -125,6 +128,8 @@ export interface StartDaten {
   letzteBuchung?: LetzteBuchung | null;
   saldo?: SaldoResult | null;
   resturlaub?: { rest: number; anspruch: number } | null;
+  /** Eigene Überschreitungen der Grenzen für Jugendliche, laufender und letzter Monat (Runde 3, M2). */
+  eigeneGrenzfaelle?: Grenzfall[];
   // Lager
   orders?: MaterialOrder[];
   lagerPosten?: EinkaufPosten[];
@@ -192,7 +197,7 @@ export async function termineHeute(k: Kontext): Promise<Partial<StartDaten>> {
 
 export async function persoenlich(
   k: Kontext,
-  was: { material: boolean; scheine: boolean; kennzahlen: boolean },
+  was: { material: boolean; scheine: boolean; kennzahlen: boolean; jugendschutz?: boolean },
 ): Promise<Partial<StartDaten>> {
   const { user, heute } = k;
   const out: Partial<StartDaten> = {};
@@ -281,7 +286,36 @@ export async function persoenlich(
     out.saldo = saldo;
     out.resturlaub = urlaub;
   }
+  if (was.jugendschutz) {
+    out.eigeneGrenzfaelle = await eigeneGrenzfaelle(k, profil);
+  }
   return out;
+}
+
+/**
+ * DIE EIGENEN ÜBERSCHREITUNGEN, WENN MAN UNTER 18 IST (Runde 3, M2): der
+ * laufende und der letzte Monat, gerechnet wie in der Mitarbeiterübersicht
+ * und nur bis heute. Für alle anderen bleibt es bei der Frage nach dem
+ * Geburtsdatum. Scheitert etwas, fehlt der Hinweis — nicht die Seite.
+ */
+async function eigeneGrenzfaelle(k: Kontext, profil: AppUser | null): Promise<Grenzfall[]> {
+  const { user, heute } = k;
+  const geboren = await still(() => getGeburtsdatum(user.companyId, user.uid), null);
+  if (!istJugendlich(geboren, heute)) return [];
+  const [j, m] = heute.split('-').map(Number);
+  const vormonat = new Date(Date.UTC(j, m - 2, 1)).toISOString().slice(0, 10);
+  const ab = new Date(Date.UTC(j, m - 2, 1 - 7)).toISOString().slice(0, 10);
+  const rows = await still(() => listOwnEntriesInRange(user.companyId, user.uid, ab, heute), []);
+  return grenzfaelle(
+    rows,
+    { von: vormonat, bis: heute },
+    {
+      geburtsdatum: geboren,
+      schultagMin: profil ? (t) => tagessollStunden(profil, t) * 60 : undefined,
+      andereVerteilung: andereVerteilung(profil),
+    },
+    { stichtag: heute },
+  ).filter((f) => f.jugendlich);
 }
 
 // ──────────────────────────────────────────────────────────────── Lager ──

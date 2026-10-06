@@ -540,3 +540,27 @@ describe('Keine Kennzahlenzeile über der Liste', () => {
     expect(screen.queryByText('Aktiv')).toBeNull();
   });
 });
+
+describe('Anlage: Lehrbeginn vor dem Eintritt (Runde 3, G18)', () => {
+  async function lehrlingMitEintritt(lehrbeginn: string) {
+    zeige();
+    await formOeffnen();
+    await userEvent.selectOptions(screen.getByLabelText('Einstufung'), 'lehrling');
+    await userEvent.click(screen.getByLabelText(/Tritt neu ein/));
+    await userEvent.click(screen.getByRole('button', { name: /Zeitkonto-Einstellungen/ }));
+    const eintritt = await screen.findByLabelText('Eintrittsdatum');
+    await userEvent.clear(eintritt);
+    await userEvent.type(eintritt, '2026-10-15');
+    await userEvent.type(screen.getByLabelText(/^Lehrbeginn/), lehrbeginn);
+  }
+
+  it('fragt „Wird Lehrzeit angerechnet?“, sperrt aber nicht', async () => {
+    await lehrlingMitEintritt('2025-09-01');
+    expect(screen.getByText(/Der Lehrbeginn liegt vor dem Eintritt \(15\.10\.2026\)\. Wird Lehrzeit angerechnet\?/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: Lehrbeginn am Eintritt — kein Hinweis', async () => {
+    await lehrlingMitEintritt('2026-10-15');
+    expect(screen.queryByText(/Der Lehrbeginn liegt vor dem Eintritt/)).not.toBeInTheDocument();
+  });
+});

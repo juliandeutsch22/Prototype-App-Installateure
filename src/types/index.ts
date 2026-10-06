@@ -1174,6 +1174,18 @@ export interface TimeEntry {
   lastEditedBy?: string;
   lastEditedByUid?: string;
   /**
+   * Wer die Buchung angelegt hat — gesetzt von der Datenbank, nie von der
+   * Maske (Runde 3, M2). Daran hängt, ob eine Buchung „vom Büro gebucht“ ist.
+   * Leer bei älteren Buchungen, deren Anleger nicht eindeutig war.
+   */
+  angelegtVon?: string | null;
+  /**
+   * Nur beim Berufsschultag: die Unterrichtszeit in Minuten (Runde 3, M1).
+   * Sie zählt in der Prüfung der Arbeitszeitgrenzen statt des Tagessolls;
+   * leer heisst Tagessoll. Das Zeitkonto rechnet weiter mit dem Tagessoll.
+   */
+  unterrichtMin?: number | null;
+  /**
    * Aus welchem genehmigten Urlaubsantrag dieser Eintrag entstanden ist.
    *
    * Nur bei `status === 'Urlaub'` gesetzt und nur bei Einträgen, die die

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
@@ -18,7 +18,8 @@ const setBegruendung = vi.fn(async (_c: string, b: { userId: string; art: string
 const setGeburtsdatum = vi.fn(async () => undefined);
 let gespeichertesDatum: string | null = null;
 
-vi.mock('@/lib/db/timeEntries', () => ({ listEntriesInRange: vi.fn(async () => buchungen) }));
+const listEntriesInRange = vi.fn(async () => buchungen);
+vi.mock('@/lib/db/timeEntries', () => ({ listEntriesInRange: () => listEntriesInRange() }));
 vi.mock('@/lib/db/arbeitszeitGrenzen', () => ({
   listGeburtsdaten: vi.fn(async () => geburtsdaten),
   listBegruendungen: vi.fn(async () => begruendungen),
@@ -39,7 +40,19 @@ const zeige = () => render(
   </ToastProvider>,
 );
 
+/*
+  HEUTE IST DER 31.10.2026. Seit Runde 3 (M1) meldet die Karte keine Tage in
+  der Zukunft; die Fälle hier liegen im Oktober und müssen deshalb hinter
+  „heute“ liegen — sonst hinge das Ergebnis am Tag, an dem der Test läuft.
+*/
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(2026, 9, 31, 12, 0, 0));
+  listEntriesInRange.mockClear();
   buchungen = [];
   geburtsdaten = new Map();
   begruendungen = [];

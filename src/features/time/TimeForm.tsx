@@ -5,12 +5,18 @@ import {
   createTimeEntryOhneEmpfang,
   updateTimeEntryOhneEmpfang,
   eintraegeAmTag,
+  listOwnEntriesInRange,
   DuplicateEntryError,
 } from '@/lib/db/timeEntries';
+import { getGeburtsdatum } from '@/lib/db/arbeitszeitGrenzen';
+import {
+  andereVerteilung, grenzfaelleDerBuchung, grenzText, istJugendlich, umfeldDerBuchung, unterrichtAusEingabe,
+  type Grenzfall,
+} from '@/features/accounting/arbeitszeitGrenzen';
 import { buchungKonflikt } from '@/lib/tagesbuchungen';
 import { berufsschuleEintragen, krankmeldungSpeichern, urlaubEintragen } from '@/lib/db/abwesenheiten';
 import { ergebnisText } from '@/features/vacations/abwesenheitText';
-import { todayStr, getAustrianHolidayName, fmtMin, tageWort } from '@/lib/time';
+import { todayStr, getAustrianHolidayName, fmtMin, tageWort, tagessollStunden } from '@/lib/time';
 import { zeitbild, zeitSatz } from './zeitPlausibilitaet';
 import { nachtMinutenIn, nachtzeitText, nachtzeitVon } from '@/lib/lohnregeln';
 import { bearbeitungsvermerk } from './bearbeitungsvermerk';
@@ -22,6 +28,7 @@ import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { eintrittsHinweis } from './eintrittsHinweis';
 import Aktionsleiste from '@/components/Aktionsleiste';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { ErrorState } from '@/components/States';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
@@ -30,6 +37,8 @@ import type { WithId } from '@/lib/db/core';
 import type { AppUser, Project, TimeEntry, Role } from '@/types';
 import { praefixeVon, ohneKennzeichenVorsatz, mitKennzeichenVorsatz } from '@/lib/praefixe';
 import { grundAus } from '@/lib/fehlerGrund';
+import { zahlAlsText } from '@/lib/zahl';
+import { mitFrist } from '@/lib/frist';
 import { aktiveModule } from '@/lib/module';
 
 
@@ -81,6 +90,12 @@ interface Props {
     endTime?: string;
     breakDuration?: number;
   } | null;
+  /**
+   * Das Stammdatenblatt dessen, dem die Buchung gehört — für die Rückfrage
+   * zum Jugendschutz (Runde 3, M2): Tagessoll und dessen Verteilung. Bucht
+   * das Büro für jemanden, kommt es aus `staff`.
+   */
+  besitzerProfil?: AppUser | null;
 }
 
 /** Formular zur manuellen Zeiterfassung (portiert aus der Legacy-Zeitform). */
@@ -92,6 +107,7 @@ export default function TimeForm({
   staff,
   lastEntry,
   vorbelegung,
+  besitzerProfil,
 }: Props) {
   const { user, company } = useAuth();
   const toast = useToast();
@@ -163,6 +179,8 @@ export default function TimeForm({
   /** Urlaub bis (einschließlich) — das Büro trägt ihn als genehmigten Antrag ein. */
   const [urlaubBis, setUrlaubBis] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
   const [schuleBis, setSchuleBis] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
+  /** Unterrichtszeit je Schultag (Runde 3, M1) — leer heisst Tagessoll. */
+  const [unterricht, setUnterricht] = useState('');
   const [isHelper, setIsHelper] = useState(entry?.isHelper ?? asHelperVorschlag ?? false);
   const [helperName, setHelperName] = useState(entry?.helperName ?? '');
   /*
@@ -386,6 +404,78 @@ export default function TimeForm({
     [tagesEintraege, status, projectNumber, canHaveProject, mitZeiten, startTime, endTime],
   );
 
+  /*
+    JUGENDSCHUTZ VOR DEM SPEICHERN (Runde 3, M2). Für eine 17-Jährige nahm die
+    Maske 10:45 Std. ab 5 Uhr ohne ein Wort an; der Verstoss stand erst
+    hinterher in der Mitarbeiterübersicht. Jetzt fragt sie vorher nach — bei
+    der eigenen Buchung wie beim Büro, das für jemanden bucht. Gesperrt wird
+    nicht: die Buchung muss stimmen, auch wenn die Zeit unzulässig war.
+
+    Geprüft wird mit derselben Regel wie in der Mitarbeiterübersicht
+    (`grenzfaelleDerBuchung`), darum braucht es die Buchungen ringsum: die
+    Woche, den Vortag für die Ruhezeit, den Montag danach für die
+    Wochenfreizeit. Geladen wird nur für Jugendliche — für alle anderen
+    bleibt es bei der einen Abfrage nach dem Geburtsdatum. Fällt eine Abfrage
+    aus, entfällt die Rückfrage; die Buchung geht trotzdem. Wer schneller
+    tippt, als die Abfragen antworten, wird beim Speichern abgewartet.
+  */
+  /** `undefined`: noch nicht geladen — anders als `null`, „keines hinterlegt“. */
+  const [geburtsdatum, setGeburtsdatum] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    setGeburtsdatum(undefined);
+    if (!user || !besitzerUid) return;
+    let verworfen = false;
+    Promise.resolve()
+      .then(() => getGeburtsdatum(user.companyId, besitzerUid))
+      .then((d) => { if (!verworfen) setGeburtsdatum(d); })
+      .catch(() => { if (!verworfen) setGeburtsdatum(null); });
+    return () => {
+      verworfen = true;
+    };
+  }, [user, besitzerUid]);
+  const jugendlichAmTag = istJugendlich(geburtsdatum, date);
+  const [umfeld, setUmfeld] = useState<WithId<TimeEntry>[] | null>(null);
+  useEffect(() => {
+    setUmfeld(null);
+    if (!user || !besitzerUid || !jugendlichAmTag) return;
+    let verworfen = false;
+    const { von, bis } = umfeldDerBuchung(date);
+    Promise.resolve()
+      .then(() => listOwnEntriesInRange(user.companyId, besitzerUid, von, bis))
+      .then((rows) => { if (!verworfen) setUmfeld(rows); })
+      .catch(() => undefined);
+    return () => {
+      verworfen = true;
+    };
+  }, [user, besitzerUid, date, jugendlichAmTag]);
+  /** Die Fälle, nach denen vor dem Speichern gefragt wird — offen, solange die Rückfrage steht. */
+  const [rueckfrage, setRueckfrage] = useState<Grenzfall[] | null>(null);
+  const grenzPerson = target ?? besitzerProfil ?? null;
+
+  async function jugendschutzFaelle(): Promise<Grenzfall[]> {
+    if (!user || !besitzerUid || status !== 'Anwesend') return [];
+    // Höchstens drei Sekunden, wie die Prüfung auf Doppelbuchung: ohne Netz
+    // wird gebucht (und nachgesendet), nicht gewartet.
+    const geboren = geburtsdatum !== undefined
+      ? geburtsdatum
+      : await mitFrist(Promise.resolve().then(() => getGeburtsdatum(user.companyId, besitzerUid)), 3000)
+        .catch(() => null);
+    if (!istJugendlich(geboren, date)) return [];
+    const { von, bis } = umfeldDerBuchung(date);
+    const rows = umfeld ?? await mitFrist(
+      Promise.resolve().then(() => listOwnEntriesInRange(user.companyId, besitzerUid, von, bis)),
+      3000,
+    ).catch(() => null);
+    if (!rows) return [];
+    const andere = rows.filter((e) => e.id !== entry?.id);
+    const neu = { date, status: 'Anwesend' as const, startTime, endTime, breakDuration: Number(breakDuration) || 0 };
+    return grenzfaelleDerBuchung([...andere, neu], date, {
+      geburtsdatum: geboren,
+      schultagMin: grenzPerson ? (t) => tagessollStunden(grenzPerson, t) * 60 : undefined,
+      andereVerteilung: andereVerteilung(grenzPerson),
+    }).filter((f) => f.jugendlich);
+  }
+
   /**
    * Was aus den drei Feldern gerechnet wird — damit es dasteht, bevor
    * gespeichert wird. Siehe `zeitPlausibilitaet.ts`.
@@ -401,8 +491,13 @@ export default function TimeForm({
     [startTime, endTime, breakDuration, date],
   );
 
-  async function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    void absenden(false);
+  }
+
+  /** `bestaetigt`: die Rückfrage zum Jugendschutz ist schon beantwortet. */
+  async function absenden(bestaetigt: boolean) {
     if (!user) return;
     setError(null);
 
@@ -441,6 +536,11 @@ export default function TimeForm({
     }
     if (alsBerufsschule && schuleBis < date) {
       setError('„Berufsschule bis“ liegt vor dem Datum.');
+      return;
+    }
+    const unterrichtGelesen = unterrichtAusEingabe(unterricht);
+    if (alsBerufsschule && unterrichtGelesen.fehler) {
+      setError(unterrichtGelesen.fehler);
       return;
     }
     if (staff && !isEdit && !targetUid) {
@@ -495,6 +595,8 @@ export default function TimeForm({
           von: date,
           bis: schuleBis,
           notiz: comment.trim(),
+          // Leer bleibt der Aufruf, wie er war: es zählt das Tagessoll.
+          ...(unterrichtGelesen.min != null ? { unterrichtMin: unterrichtGelesen.min } : {}),
         });
         const uebersprungen =
           r.uebersprungen > 0 ? `, ${r.uebersprungen} schon gebucht und übersprungen` : '';
@@ -502,6 +604,7 @@ export default function TimeForm({
           `Berufsschule${target ? ` für ${target.name}` : ''} eingetragen — ${tageWort(r.angelegt)}${uebersprungen}`,
         );
         setComment('');
+        setUnterricht('');
         setStatus('Anwesend');
         onSaved();
       } catch (err) {
@@ -547,6 +650,14 @@ export default function TimeForm({
       setError('Warum zählen diese Stunden nicht als Nachtarbeit? Bitte den Grund eintragen.');
       setSaving(false);
       return;
+    }
+    if (!bestaetigt) {
+      const faelle = await jugendschutzFaelle();
+      if (faelle.length > 0) {
+        setSaving(false);
+        setRueckfrage(faelle);
+        return;
+      }
     }
     try {
       const project = projects.find((p) => p.projectNumber === projectNumber);
@@ -725,6 +836,7 @@ export default function TimeForm({
   const gesperrt = billed || meldungsTag || antragsTag;
 
   return (
+    <>
     <form onSubmit={handleSubmit} onChange={() => setAngefasst(true)} className="space-y-4">
       {/* Bereits verrechnete Einträge sind die Grundlage einer verschickten
           Rechnung — eine Änderung würde den Beleg nachträglich verfälschen. */}
@@ -906,6 +1018,31 @@ export default function TimeForm({
             required
             pflicht
           />
+          {/*
+            DIE UNTERRICHTSZEIT (Runde 3, M1, vorbehaltlich der WKO-Klärung).
+            Die Prüfung der Grenzen für Jugendliche setzte den Schultag mit dem
+            Tagessoll an — an einem langen Donnerstag ein Verstoss, den es nicht
+            gab. Leer bleibt es dabei.
+          */}
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="min-w-0 flex-1">
+              <InputField
+                id="unterricht"
+                label="Unterricht je Schultag (Std., optional)"
+                inputMode="decimal"
+                placeholder={
+                  grenzPerson ? `leer = Tagessoll, z. B. ${zahlAlsText(Math.round(tagessollStunden(grenzPerson, date) * 100) / 100)}` : 'leer = Tagessoll'
+                }
+                value={unterricht}
+                onChange={(e) => setUnterricht(e.target.value)}
+              />
+            </div>
+            <InfoHint about="Unterricht je Schultag">
+              Zählt in der Prüfung der Arbeitszeitgrenzen für Jugendliche statt des Tagessolls — etwa
+              „7,5“ oder „7:30“. Leer zählt der Schultag mit dem Tagessoll. Das Zeitkonto rechnet den
+              Schultag weiter mit dem Tagessoll. Die Regel ist mit der WKO noch zu klären.
+            </InfoHint>
+          </div>
         </div>
       )}
       {!showWorkFields && status !== 'Zeitausgleich' && !alsKrankmeldung && !alsUrlaubEintrag && !alsBerufsschule && (
@@ -1229,6 +1366,38 @@ export default function TimeForm({
         }
       />
     </form>
+    {/*
+      AUSSERHALB DES FORMULARS: die Knöpfe des Dialogs sind gewöhnliche
+      Knöpfe und schickten im Formular dieses gleich noch einmal ab.
+    */}
+    <ConfirmDialog
+      open={!!rueckfrage}
+      title="Grenze für Jugendliche"
+      confirmLabel={isEdit ? 'Trotzdem speichern' : 'Trotzdem buchen'}
+      confirmTone="primary"
+      message={
+        besitzerUid && besitzerUid !== user?.uid
+          ? `${target?.name ?? grenzPerson?.name ?? entry?.userName ?? 'Die Person'} ist unter 18. Mit dieser Buchung wird eine Grenze des KJBG überschritten. Gespeichert wird trotzdem; die Mitarbeiterübersicht zeigt den Verstoß.`
+          : 'Du bist unter 18. Mit dieser Buchung wird eine Grenze des KJBG überschritten. Bitte die Zeiten prüfen; gebucht wird trotzdem, wenn du bestätigst — das Büro sieht den Verstoß.'
+      }
+      onCancel={() => setRueckfrage(null)}
+      onConfirm={async () => {
+        setRueckfrage(null);
+        await absenden(true);
+      }}
+    >
+      <ul className="space-y-1 text-sm text-ink">
+        {(rueckfrage ?? []).map((f) => {
+          const { titel, gesetz } = grenzText(f);
+          return (
+            <li key={`${f.art}-${f.bezug}`}>
+              {titel} <span className="text-ink-muted">({gesetz})</span>
+            </li>
+          );
+        })}
+      </ul>
+    </ConfirmDialog>
+    </>
   );
 }
 

@@ -340,7 +340,13 @@ export default function UserMgmtView() {
           </FormGrid>
 
           {/* Die Einstufung bestimmt den Satz der Stunden, nicht die Rechte (4.1). */}
-          <EinstufungFelder form={form} setForm={setForm} idPrefix="u" />
+          <EinstufungFelder
+            form={form}
+            setForm={setForm}
+            idPrefix="u"
+            // Beim Neueintritt ist der Saldo-Start der Eintritt (M6).
+            eintritt={eintritt === 'neu' ? form.appStartDate : form.eintritt}
+          />
 
           {/* Zeitkonto-Details sind vorbelegt — für den Normalfall reicht oben. */}
           {/*

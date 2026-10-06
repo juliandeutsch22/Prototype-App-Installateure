@@ -1,4 +1,6 @@
 import { calcWorkMin, wienVersatzMin, type Zeitangaben } from '@shared/arbeitszeit';
+import { nachtMinutenIn, type Nachtzeit } from '@/lib/lohnregeln';
+import { leseZahl } from '@/lib/zahl';
 
 /**
  * Die gesetzlichen Grenzen der Arbeitszeit — geprüft an dem, was gebucht ist
@@ -23,6 +25,15 @@ import { calcWorkMin, wienVersatzMin, type Zeitangaben } from '@shared/arbeitsze
  *                 Sonntag (§ 19 KJBG). Die Berufsschule zählt zur
  *                 Wochenarbeitszeit (§ 11 Abs 6 KJBG).
  *
+ * VORBEHALTLICH DER WKO-KLÄRUNG (Runde 3, M1):
+ *   - Ein Berufsschultag zählt mit seiner Unterrichtszeit, wenn sie beim
+ *     Eintragen angegeben wurde; sonst mit dem Tagessoll.
+ *   - Ist die Wochenarbeitszeit anders verteilt (eigenes Tagessoll mit
+ *     kürzeren und längeren Tagen, zusammen höchstens 40 Std.), gilt am Tag
+ *     bis 9 Std. (§ 11 Abs 2 KJBG).
+ *   - Mit `stichtag` zählt nur, was bis dahin gebucht ist: ein Tag in der
+ *     Zukunft ist noch nicht gearbeitet und kein Verstoss.
+ *
  * NICHT GEPRÜFT: die Ruhepausen, der Durchschnitt von 48 Std. über 17 Wochen
  * (§ 9 Abs 4 AZG), Gleitzeit- und Durchrechnungsmodelle (Stand-Datei 11.2)
  * und die Ausnahmen der Kollektivverträge. Gebucht ohne Uhrzeit (alte
@@ -45,11 +56,27 @@ export interface Grenzfall {
 
 export const GRENZEN = {
   erwachsen: { tag: 12 * 60, woche: 60 * 60, ruhezeit: 11 * 60, wochenruhe: 36 * 60 },
-  jugendlich: { tag: 8 * 60, woche: 40 * 60, ruhezeit: 12 * 60 },
+  /** `tagVerteilt`: bei anderer Verteilung der Wochenarbeitszeit (§ 11 Abs 2 KJBG). */
+  jugendlich: { tag: 8 * 60, tagVerteilt: 9 * 60, woche: 40 * 60, ruhezeit: 12 * 60 },
 } as const;
 
-/** Ein Eintrag, soweit er hier zählt. */
-export type GrenzEintrag = Zeitangaben & { date: string };
+/** Die Nachtruhe für Jugendliche: 20 bis 6 Uhr (§ 17 KJBG). */
+export const NACHTRUHE_JUGENDLICHE: Nachtzeit = { von: 20 * 60, bis: 6 * 60 };
+
+/**
+ * Ein Eintrag, soweit er hier zählt. `unterrichtMin` nur am Berufsschultag
+ * (Runde 3, M1) — leer heisst: es zählt das Tagessoll.
+ */
+export type GrenzEintrag = Zeitangaben & { date: string; unterrichtMin?: number | null };
+
+/** Die Person, soweit die Prüfung sie braucht. */
+export interface GrenzPerson {
+  geburtsdatum?: string | null;
+  /** Das Tagessoll in Minuten — so zählt ein Berufsschultag ohne Unterrichtszeit. */
+  schultagMin?: (tag: string) => number;
+  /** Wochenarbeitszeit anders verteilt: am Tag bis 9 Std. (siehe `andereVerteilung`). */
+  andereVerteilung?: boolean;
+}
 
 const TAG = 24 * 60;
 
@@ -97,15 +124,25 @@ interface Intervall { von: number; bis: number; tag: string }
  * `eintraege` sind die Einträge DIESER Person; sie sollen eine Woche vor und
  * nach dem Zeitraum mit umfassen — sonst fehlen der Woche am Rand Tage, der
  * Ruhezeit am Ersten der Vortag und der Wochenfreizeit der Montag danach.
- * `schultagMin` ist das Tagessoll, mit dem ein Berufsschultag in die Woche
- * eines Jugendlichen zählt.
+ * Ein Berufsschultag zählt in die Woche eines Jugendlichen mit seiner
+ * Unterrichtszeit, ohne sie mit `schultagMin` (dem Tagessoll).
+ *
+ * `stichtag`: was danach liegt, zählt nicht — für die Prüfung des Gebuchten
+ * (Mitarbeiterübersicht, Startseite). Die Rückfrage vor dem Buchen lässt ihn
+ * weg: wer für nächste Woche bucht, soll den Verstoss vorher sehen.
  */
 export function grenzfaelle(
-  eintraege: GrenzEintrag[],
-  zeitraum: { von: string; bis: string },
-  person: { geburtsdatum?: string | null; schultagMin?: (tag: string) => number },
+  alleEintraege: GrenzEintrag[],
+  gesamterZeitraum: { von: string; bis: string },
+  person: GrenzPerson,
+  { stichtag }: { stichtag?: string } = {},
 ): Grenzfall[] {
   const faelle: Grenzfall[] = [];
+  const zeitraum = stichtag && stichtag < gesamterZeitraum.bis
+    ? { von: gesamterZeitraum.von, bis: stichtag }
+    : gesamterZeitraum;
+  if (zeitraum.von > zeitraum.bis) return faelle;
+  const eintraege = stichtag ? alleEintraege.filter((e) => e.date <= stichtag) : alleEintraege;
   const jugendlich = (tag: string) => istJugendlich(person.geburtsdatum, tag);
   const imZeitraum = (tag: string) => tag >= zeitraum.von && tag <= zeitraum.bis;
 
@@ -117,7 +154,10 @@ export function grenzfaelle(
     if (e.status === 'Berufsschule') {
       belegt.add(e.date);
       if (jugendlich(e.date)) {
-        minutenJeTag.set(e.date, (minutenJeTag.get(e.date) ?? 0) + (person.schultagMin?.(e.date) ?? 0));
+        const schule = e.unterrichtMin != null && e.unterrichtMin > 0
+          ? e.unterrichtMin
+          : person.schultagMin?.(e.date) ?? 0;
+        minutenJeTag.set(e.date, (minutenJeTag.get(e.date) ?? 0) + schule);
       }
       continue;
     }
@@ -138,7 +178,9 @@ export function grenzfaelle(
   for (const [tag, min] of minutenJeTag) {
     if (!imZeitraum(tag)) continue;
     const jung = jugendlich(tag);
-    const grenze = jung ? GRENZEN.jugendlich.tag : GRENZEN.erwachsen.tag;
+    const grenze = !jung
+      ? GRENZEN.erwachsen.tag
+      : person.andereVerteilung ? GRENZEN.jugendlich.tagVerteilt : GRENZEN.jugendlich.tag;
     if (min > grenze) faelle.push({ art: 'tag', bezug: tag, jugendlich: jung, ist: min, grenze });
   }
 
@@ -254,7 +296,7 @@ export function grenzText(f: Grenzfall): { titel: string; gesetz: string } {
     case 'tag':
       return {
         titel: `${stdMin(f.ist)} Std. am ${kurz(f.bezug)} — höchstens ${f.grenze / 60} Std.`,
-        gesetz: f.jugendlich ? '§ 11 KJBG' : '§ 9 AZG',
+        gesetz: !f.jugendlich ? '§ 9 AZG' : f.grenze > GRENZEN.jugendlich.tag ? '§ 11 Abs 2 KJBG' : '§ 11 KJBG',
       };
     case 'woche':
       return {
@@ -287,4 +329,109 @@ export function grenzText(f: Grenzfall): { titel: string; gesetz: string } {
 /** Der Schlüssel eines Falls — an ihm hängt die Begründung. */
 export function fallSchluessel(userId: string, f: { art: string; bezug: string }): string {
   return `${userId}|${f.art}|${f.bezug}`;
+}
+
+/**
+ * Ist die Wochenarbeitszeit ANDERS VERTEILT? Dann darf ein Jugendlicher am Tag
+ * bis 9 Std. arbeiten (§ 11 Abs 2 KJBG; Runde 3, M1, vorbehaltlich der
+ * WKO-Klärung). Gelesen aus dem eigenen Tagessoll: kürzere und längere Tage
+ * nebeneinander, zusammen höchstens 40 Std. Gleichmässig verteilt — auch
+ * ohne eigenes Tagessoll — bleibt es bei 8 Std.
+ */
+export function andereVerteilung(
+  p: { tagessoll?: Record<string, number> | null; workDays?: number[] | null } | null | undefined,
+): boolean {
+  if (!p?.tagessoll) return false;
+  const tage = p.workDays && p.workDays.length ? p.workDays : [1, 2, 3, 4, 5];
+  const werte = tage.map((t) => p.tagessoll?.[String(t)]);
+  if (werte.some((h) => typeof h !== 'number' || !Number.isFinite(h))) return false;
+  const zahlen = werte as number[];
+  const summe = zahlen.reduce((a, b) => a + b, 0);
+  return Math.min(...zahlen) < Math.max(...zahlen) && summe <= GRENZEN.jugendlich.woche / 60;
+}
+
+function plusTage(iso: string, n: number): string {
+  return isoVon(tagNr(iso) + n);
+}
+
+/**
+ * Die Grenzfälle, die eine Buchung an `tag` betrifft — für die Rückfrage vor
+ * dem Speichern (Runde 3, M2). Dieselbe Prüfung wie in der
+ * Mitarbeiterübersicht, nur auf das eingeschränkt, woran diese Buchung
+ * beteiligt ist: der Tag selbst (Tagesgrenze, Nachtruhe), die Ruhezeit davor
+ * und danach, die Woche und ihre Wochenfreizeit — am Montag auch die der
+ * Woche davor, deren Montag danach er ist.
+ *
+ * `eintraege` sollen von einer Woche vor dem Montag dieser Woche bis zum
+ * Montag danach reichen (`umfeldDerBuchung`).
+ */
+export function grenzfaelleDerBuchung(eintraege: GrenzEintrag[], tag: string, person: GrenzPerson): Grenzfall[] {
+  const { von, bis } = umfeldDerBuchung(tag);
+  const montag = montagVon(tag);
+  const folgetag = plusTage(tag, 1);
+  return grenzfaelle(eintraege, { von, bis }, person).filter((f) => {
+    switch (f.art) {
+      case 'tag':
+      case 'nacht':
+        return f.bezug === tag;
+      case 'ruhezeit':
+        return f.bezug === tag || f.bezug === folgetag;
+      case 'woche':
+      case 'wochenruhe':
+        return f.bezug === montag;
+      case 'wochenfrei':
+        return f.bezug === montag || (tag === montag && f.bezug === von);
+    }
+  });
+}
+
+/** Welche Tage `grenzfaelleDerBuchung` braucht: Montag der Vorwoche bis Montag danach. */
+export function umfeldDerBuchung(tag: string): { von: string; bis: string } {
+  const montag = montagVon(tag);
+  return { von: plusTage(montag, -7), bis: plusTage(montag, 7) };
+}
+
+/**
+ * Vom Büro gebucht und über der Grenze für Jugendliche — dann ändert oder
+ * löscht die Buchung nur das Büro (Runde 3, M2). DIESELBE REGEL WIE IN DER
+ * DATENBANK (`app.jugendschutz_gesperrt`, 20261006300000_jugendschutz.sql):
+ * angelegt von jemand anderem, Person am Tag unter 18, und der Tag hat mehr
+ * als 8 Std. oder die Buchung liegt zwischen 20 und 6 Uhr. Hier nur, damit
+ * die Knöpfe gar nicht erst dastehen; sperren tut die Datenbank.
+ *
+ * Bewusst ohne die 9 Std. bei anderer Verteilung: die Sperre schützt eine
+ * Buchung, sie beurteilt sie nicht.
+ */
+export function buerobuchungGesperrt(
+  e: GrenzEintrag & { userId: string; angelegtVon?: string | null },
+  eintraegeDerPerson: GrenzEintrag[],
+  geburtsdatum: string | null | undefined,
+): 'tag' | 'nacht' | null {
+  if (!e.angelegtVon || e.angelegtVon === e.userId) return null;
+  if (e.status !== 'Anwesend' || !istJugendlich(geburtsdatum, e.date)) return null;
+  const tagMin = eintraegeDerPerson
+    .filter((x) => x.date === e.date && x.status === 'Anwesend')
+    .reduce((s, x) => s + calcWorkMin(x), 0);
+  if (tagMin > GRENZEN.jugendlich.tag) return 'tag';
+  if (nachtMinutenIn(e.startTime, e.endTime, NACHTRUHE_JUGENDLICHE) > 0) return 'nacht';
+  return null;
+}
+
+/**
+ * Die Unterrichtszeit aus dem Feld am Berufsschultag (Runde 3, M1): „7,5“,
+ * „7.5“ oder „7:30“ in Minuten. Leer heisst Tagessoll (`min: null`). Wie die
+ * Datenbank: mehr als null und höchstens 12 Stunden.
+ */
+export function unterrichtAusEingabe(text: string): { min: number | null; fehler: string | null } {
+  const t = text.trim();
+  if (t === '') return { min: null, fehler: null };
+  const uhr = /^(\d{1,2}):([0-5]\d)$/.exec(t);
+  // Dezimal über die eine Zahleneingabe der App (M15): „7,5“ wie „7.5“.
+  const dezimal = uhr ? null : leseZahl(t).wert;
+  const min = uhr
+    ? Number(uhr[1]) * 60 + Number(uhr[2])
+    : dezimal !== null ? Math.round(dezimal * 60) : NaN;
+  if (!Number.isFinite(min)) return { min: null, fehler: `„${t}“ ist keine Stundenzahl — etwa „7,5“ oder „7:30“.` };
+  if (min < 1 || min > 12 * 60) return { min: null, fehler: 'Die Unterrichtszeit liegt zwischen 0 und 12 Stunden.' };
+  return { min, fehler: null };
 }

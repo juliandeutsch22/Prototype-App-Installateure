@@ -291,6 +291,24 @@ export default function AccountingView() {
   );
 
   const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+  /*
+    DER STAND DER BUCHUNGEN FÜR DIE ARBEITSZEITGRENZEN (Runde 3, G12). Die
+    Buchungen hält diese Seite ohnehin live; ändert sich im Monat samt einer
+    Woche davor und danach etwas — gebucht, korrigiert, gelöscht, auch von
+    einem anderen Gerät —, prüft die Karte neu. Am Inhalt, nicht an der
+    Identität des Arrays: jede Meldung der Live-Verbindung ist ein neues.
+  */
+  const grenzStand = useMemo(() => {
+    const ab = new Date(Date.UTC(year, month, 1 - 7)).toISOString().slice(0, 10);
+    const bis = new Date(Date.UTC(year, month + 1, 7)).toISOString().slice(0, 10);
+    return entries
+      .filter((e) => e.date >= ab && e.date <= bis)
+      .map((e) => `${e.id}:${e.userId}:${e.date}:${e.status}:${e.startTime ?? ''}-${e.endTime ?? ''}:${e.breakDuration ?? 0}`)
+      .sort()
+      .join('|');
+  }, [entries, year, month]);
+
   const alleRows = useMemo(
     () =>
       relevant.map((u) => {
@@ -435,6 +453,8 @@ export default function AccountingView() {
             ownerRole={
               editing ? users.find((u) => u.uid === editing.userId)?.role : undefined
             }
+            // Für die Rückfrage zum Jugendschutz (Runde 3, M2); beim Erfassen kommt die Person aus `staff`.
+            besitzerProfil={editing ? users.find((u) => u.uid === editing.userId) ?? null : null}
             onSaved={() => {
               setCreating(false);
               setEditing(null);
@@ -1174,7 +1194,19 @@ export default function AccountingView() {
         Daten meldete „keine Grenze überschritten“ — eine falsche Entwarnung.
       */}
       {!imSupport && (
-        <ArbeitszeitGrenzenKarte companyId={user.companyId} personen={relevant} jahr={year} monat={month} />
+        <ArbeitszeitGrenzenKarte
+          companyId={user.companyId}
+          personen={relevant}
+          jahr={year}
+          monat={month}
+          aktualisiert={loading ? undefined : grenzStand}
+          // Verstoß gegen das KJBG: die Buchung gleich im Formular oben öffnen (Runde 3, M3).
+          onKorrigieren={(e) => {
+            setCreating(false);
+            setEditing(e);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
       )}
 
       {/* Deckungsbeitrags-Sicht: Ist gegen kalkuliertes Budget je Baustelle. */}

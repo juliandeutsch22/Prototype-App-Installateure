@@ -644,13 +644,15 @@
       Belege: der <strong>BMD-Stapel trägt die Kundennummer</strong>, die
       Stornorechnung hat überall dasselbe Datum, eine <strong>Rechnung geht nur
       an einen vollständigen Empfänger</strong>, und eine
-      <strong>Umstufung gilt ab ihrem Tag</strong>. Alles im Abschnitt
+      <strong>Umstufung gilt ab ihrem Tag</strong>. Für Jugendliche fragt
+      Senklot <strong>vor dem Buchen</strong> nach, wenn eine KJBG-Grenze
+      überschritten würde. Alles im Abschnitt
       „Seit dem 6. Oktober“.
     </p>
     <div class="stempel">
       <span>Stand <b>06.10.2026</b></span>
       <span>Fassung <b>Runde 3 · vor dem Pilot</b></span>
-      <span>Automatische Prüfungen <b>5741</b></span>
+      <span>Automatische Prüfungen <b>5822</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -741,6 +743,33 @@
         <h3>Projektleitung: Rechnungen nur lesen<span class="neu">behoben</span></h3>
         <p>Mit der Freigabe „Rechnungen seiner Baustellen lesen“ sah der Projektleiter die ganze Rechnungsseite — Anlegen, Zahlung, Mahnen, Storno, Export —, und erst die Datenbank wies ab. Jetzt sieht er die Rechnungen seiner Baustellen mit „Ansehen“ und „PDF erneut laden“ und die Kennzahlen dazu, sonst nichts. Auch über die Schnittstelle liest er nur diese Rechnungen und ihre Positionen; ohne Freigabe keine.</p>
         <p class="wer">Projektleiter mit Freigabe</p>
+      </div>
+      <div class="bereich">
+        <h3>Jugendschutz: Hinweis beim Festlegen und beim Buchen<span class="neu">neu</span></h3>
+        <p>Für Personen unter 18 — erkannt am <strong>Geburtsdatum in der Benutzerakte</strong> — gelten engere Grenzen: 8 Std. am Tag, 40 in der Woche, 12 Std. Ruhezeit, keine Arbeit zwischen 20 und 6 Uhr (KJBG). Bisher zeigte sich ein Verstoß erst nachträglich in der Mitarbeiterübersicht. Jetzt fragt Senklot <strong>vorher</strong> nach, sperrt aber nicht:</p>
+        <p><strong>Benutzerakte:</strong> Liegt das Tagessoll eines Wochentags über 8 Std. oder das Wochensoll über 40 Std., fragt „Speichern“ nach („Lena Lehrling ist unter 18“, mit den betroffenen Tagen) und speichert mit „Trotzdem speichern“. Ein längerer Tag kann bei anderer Verteilung der Wochenarbeitszeit bis 9 Std. zulässig sein; das steht dabei.</p>
+        <p><strong>Zeiterfassung:</strong> Bucht ein Lehrling selbst — oder das Büro für ihn in der Mitarbeiterübersicht — eine Zeit über der Tagesgrenze, in der Nachtruhe, mit zu kurzer Ruhezeit vor oder nach dem Tag oder über 40 Std. in der Woche, nennt die Maske vor dem Speichern genau diese Fälle; gebucht wird mit „Trotzdem buchen“. Geprüft wird mit denselben Regeln wie in der Mitarbeiterübersicht, samt der Buchungen ringsum.</p>
+        <p><strong>Startseite des Lehrlings:</strong> Ein leiser Abschnitt „Grenzen für Jugendliche“ nennt die eigenen Überschreitungen im laufenden und im letzten Monat, mit Verweis auf die Zeiterfassung.</p>
+        <p><strong>Vom Büro gebucht, über der Grenze:</strong> Hat das Büro für eine Person unter 18 eine Zeit gebucht und liegt der Tag über 8 Std. oder die Zeit zwischen 20 und 6 Uhr, kann die Person sie <strong>nicht ändern oder löschen</strong> — nur das Büro. Statt „Bearbeiten“ und „Löschen“ steht „vom Büro gebucht“, der Grund hinter dem „i“. Die Datenbank setzt das durch, nicht nur die Oberfläche; wer eine Buchung angelegt hat, merkt sich die Datenbank selbst.</p>
+        <p>Grenzen: Ohne Geburtsdatum ist niemand jugendlich — es gibt dann keinen Hinweis und keine Sperre. Die Sperre kennt nur die Tagesgrenze (8 Std., auch bei anderer Verteilung) und die Nachtruhe; zu kurze Ruhezeit, Woche und Wochenfreizeit meldet die Maske und die Mitarbeiterübersicht, sperren sie aber nicht. Bei Buchungen von vor dem 06.10.2026 ist der Anleger nur bekannt, wenn das Büro sie angelegt und seither niemand geändert hat; sonst bleiben sie frei. Bei der Anlage eines Benutzers fragt Senklot noch nicht nach — das Geburtsdatum wird erst in der Akte eingetragen. Der Hinweis auf der Startseite gilt für die Rolle Mitarbeiter.</p>
+        <p class="wer">Geschäftsführung, Administrator (Akte); Büro und Lehrlinge (Zeiterfassung); Lehrlinge unter 18 (Startseite)</p>
+      </div>
+      <div class="bereich">
+        <h3>Berufsschultag in der Prüfung<span class="neu">vorbereitet</span></h3>
+        <p>Die Karte „Arbeitszeitgrenzen“ meldete für einen Berufsschultag „8:30 Std. — höchstens 8 Std.“, weil der Schultag mit dem Tagessoll zählte, und sie meldete auch Tage in der Zukunft. <strong>Vorbehaltlich der Klärung mit der WKO</strong> gilt jetzt: Beim Eintragen der Berufsschule lässt sich die <strong>Unterrichtszeit je Schultag</strong> angeben („7,5“ oder „7:30“); die Prüfung nimmt diese Zeit, ohne Angabe weiter das Tagessoll. Ist die Wochenarbeitszeit anders verteilt — eigenes Tagessoll mit kürzeren und längeren Tagen, zusammen höchstens 40 Std. —, gelten am Tag bis 9 Std. (§ 11 Abs 2 KJBG). Geprüft wird nur, was bis heute gebucht ist: ein Tag in der Zukunft ist kein Verstoß. Die Zeiterfassung zeigt am Schultag „Berufsschule · Unterricht 07:30 Std“.</p>
+        <p>Grenzen: Das Zeitkonto rechnet den Schultag weiter mit dem Tagessoll — die Unterrichtszeit zählt nur in der Prüfung. Sie gilt für alle Tage eines eingetragenen Zeitraums gleich; einen einzelnen Schultag ändert man, indem man ihn löscht und neu einträgt. Ob die Regeln so stimmen, klärt der Betrieb mit der WKO.</p>
+        <p class="wer">Lehrlinge und Büro (Eintragen); Büro und Leitung (Mitarbeiterübersicht)</p>
+      </div>
+      <div class="bereich">
+        <h3>Verstoß statt „Begründen“ bei Jugendlichen<span class="neu">vorbereitet</span></h3>
+        <p>Beim Arbeitszeitgesetz sind Notdienst und Gefahr in Verzug zulässige Ausnahmen; dort bleibt „Begründen“. Die Grenzen für Jugendliche sind weitgehend zwingend — ein „begründeter“ Fall wirkte wie erlaubt. <strong>Vorbehaltlich der WKO-Klärung</strong> steht bei Fällen nach dem KJBG deshalb „<strong>Verstoß — Buchung korrigieren</strong>“: der Verweis öffnet die Buchung oben im Formular (bei mehreren Buchungen am Tag je eine, bei Ruhezeit auch die vom Vortag); bei Woche und Wochenfreizeit führt der Tagesnachweis hin. Eine <strong>Notiz</strong> ist möglich, nimmt den Fall aber nicht aus der Zählung: die Kopfzeile nennt „1 Verstoß Jugendschutz“ neben den Fällen ohne Begründung.</p>
+        <p>Dazu: Die Karte prüft nach einer Buchung, Korrektur oder Löschung auf derselben Seite <strong>sofort neu</strong>, ohne Neuladen — auch, wenn auf einem anderen Gerät gebucht wurde.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung, Administrator (Mitarbeiterübersicht)</p>
+      </div>
+      <div class="bereich">
+        <h3>Lehrbeginn vor dem Eintritt<span class="neu">behoben</span></h3>
+        <p>Ein Lehrbeginn vor dem Eintrittsdatum wurde ohne Hinweis angenommen. Das kann gewollt sein, wenn Lehrzeit aus einem anderen Betrieb angerechnet wird. Jetzt steht bei Anlage und in der Akte: „Der Lehrbeginn liegt vor dem Eintritt (01.01.2026). Wird Lehrzeit angerechnet? Dann stimmt das so — das Lehrjahr zählt ab dem Lehrbeginn.“ Gespeichert wird trotzdem.</p>
+        <p class="wer">Geschäftsführung, Administrator</p>
       </div>
     </div>
   </section>

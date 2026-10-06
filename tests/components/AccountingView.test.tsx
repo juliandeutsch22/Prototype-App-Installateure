@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import userEvent from '@testing-library/user-event';
@@ -80,6 +80,10 @@ vi.mock('@/lib/db/projects', () => ({
 }));
 /** Was die Ansicht als Buchungen vorfindet — je Test setzbar. */
 let buchungen: (TimeEntry & { id: string })[] = eintraege;
+/** Der Rückruf der Live-Verbindung — damit ein Test eine neue Buchung „ankommen“ lassen kann (G12). */
+let liveSenden: ((rows: (TimeEntry & { id: string })[]) => void) | null = null;
+/** Wie oft die Karte „Arbeitszeitgrenzen“ ihre Buchungen geholt hat. */
+let grenzAbfragen = 0;
 
 vi.mock('@/lib/db/timeEntries', () => ({
   subscribeEntriesInRange: vi.fn(
@@ -89,11 +93,15 @@ vi.mock('@/lib/db/timeEntries', () => ({
       _to: string,
       cb: (rows: (TimeEntry & { id: string })[]) => void,
     ) => {
+      liveSenden = cb;
       cb(buchungen);
       return () => undefined;
     },
   ),
-  listEntriesInRange: vi.fn(async () => buchungen),
+  listEntriesInRange: vi.fn(async () => {
+    grenzAbfragen += 1;
+    return buchungen;
+  }),
   listEntriesForProjects: vi.fn(async () => buchungen),
   /*
     Der Urlaubsverlauf für den Übertrag — dieselben Buchungen, auf Urlaub
@@ -142,6 +150,8 @@ beforeEach(() => {
   anpassungen = [];
   benutzer = [monteur];
   buchungen = eintraege;
+  liveSenden = null;
+  grenzAbfragen = 0;
   // Fest auf den 31.08.2026, damit "heute" den Test nicht mit der Zeit
   // verschiebt. shouldAdvanceTime, weil userEvent intern Zeitgeber braucht.
   vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -548,5 +558,41 @@ describe('Mitarbeiteruebersicht — angepasster Urlaubsanspruch (Plan 10.3)', ()
     expect(mit).toMatch(/Anspruch angepasst: −6,25 Tage/);
     const zahl = (t: string) => Number(t.match(/([\d,]+)\s*Tage Resturlaub/)![1].replace(',', '.'));
     expect(zahl(mit)).toBeCloseTo(zahl(ohne) - 6.25, 2);
+  });
+});
+
+describe('Mitarbeiteruebersicht — Arbeitszeitgrenzen nach dem Buchen (Runde 3, G12)', () => {
+  it('eine neue Buchung auf derselben Seite prüft die Karte neu, ohne Neuladen', async () => {
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <AccountingView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('Im August 2026 wurde keine Grenze überschritten.')).toBeInTheDocument();
+    const vorher = grenzAbfragen;
+
+    // Das Büro bucht 13 Stunden — die Live-Verbindung meldet den neuen Stand.
+    buchungen = [...eintraege, { ...eintrag('2026-08-31'), id: 'neu', startTime: '05:00', endTime: '18:00' }];
+    act(() => liveSenden!(buchungen));
+
+    expect(await screen.findByText(/13:00 Std\. am 31\.08\. — höchstens 12 Std\./)).toBeInTheDocument();
+    expect(grenzAbfragen).toBe(vorher + 1);
+  });
+
+  it('Gegenprobe: ein Schnappschuss ohne Änderung prüft nicht neu', async () => {
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <AccountingView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('Im August 2026 wurde keine Grenze überschritten.')).toBeInTheDocument();
+    const vorher = grenzAbfragen;
+    act(() => liveSenden!([...buchungen]));
+    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
+    expect(grenzAbfragen).toBe(vorher);
   });
 });

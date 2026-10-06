@@ -9,6 +9,8 @@ import {
   deleteTimeEntry,
 } from '@/lib/db/timeEntries';
 import { getUserByUid } from '@/lib/db/users';
+import { getGeburtsdatum } from '@/lib/db/arbeitszeitGrenzen';
+import { buerobuchungGesperrt } from '@/features/accounting/arbeitszeitGrenzen';
 import {
   calcWorkMin,
   fmtMin,
@@ -139,6 +141,26 @@ export default function TimeView() {
       .catch(() => setProfilFehler(true));
   }, [user]);
   useEffect(profilLaden, [profilLaden]);
+
+  /*
+    DAS EIGENE GEBURTSDATUM — nur für eine Frage (Runde 3, M2): Hat das Büro
+    für mich unter 18 eine Zeit über der Grenze gebucht, ändert oder löscht
+    sie nur das Büro; dann stehen die Knöpfe gar nicht erst da. Sperren tut
+    die Datenbank. Fehlt die Antwort, bleiben die Knöpfe — die Datenbank
+    sagt beim Versuch, warum es nicht geht.
+  */
+  const [geburtsdatum, setGeburtsdatum] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user || canEditTime(user.role)) return;
+    let verworfen = false;
+    Promise.resolve()
+      .then(() => getGeburtsdatum(user.companyId, user.uid))
+      .then((d) => { if (!verworfen) setGeburtsdatum(d); })
+      .catch(() => undefined);
+    return () => {
+      verworfen = true;
+    };
+  }, [user]);
 
   /**
    * Die ANGEZEIGTEN Eintraege: ein Fenster von einigen Monaten, live.
@@ -481,8 +503,11 @@ export default function TimeView() {
         : (e.status === 'Zeitausgleich' || e.status === 'Dienstverhinderung' || e.status === 'Pflegefreistellung')
             && e.startTime && e.endTime
           ? `${tagesStatusName(e.status)} ${e.startTime}–${e.endTime}`
-          : tagesStatusName(e.status);
+          : e.status === 'Berufsschule' && e.unterrichtMin
+            ? `${tagesStatusName(e.status)} · Unterricht ${fmtDauer(e.unterrichtMin)}`
+            : tagesStatusName(e.status);
     const subtitle = [timeLabel, e.comment].filter(Boolean).join(' · ');
+    const vomBueroGesperrt = !canEditTime(user.role) && buerobuchungGesperrt(e, entries, geburtsdatum);
     return (
       <ListRow
         key={e.id}
@@ -540,6 +565,17 @@ export default function TimeView() {
           // nur eine Fehlermeldung bringen, stehen hier nicht
           // (Prüflauf 25.09.2026, P1-26).
           <Marke>vom Büro gebucht</Marke>
+        ) : vomBueroGesperrt ? (
+          // Vom Büro gebucht, über der Grenze für Jugendliche (Runde 3, M2).
+          <span className="flex flex-wrap items-center justify-end gap-1">
+            <Marke>vom Büro gebucht</Marke>
+            <InfoHint about="vom Büro gebucht">
+              {vomBueroGesperrt === 'tag'
+                ? 'Das Büro hat diese Zeit gebucht, und der Tag liegt über 8 Stunden — mehr, als für Jugendliche unter 18 erlaubt ist.'
+                : 'Das Büro hat diese Zeit gebucht, und sie liegt zwischen 20 und 6 Uhr — in der Nachtruhe für Jugendliche unter 18.'}
+              {' '}Ändern oder löschen kann sie deshalb nur das Büro. Stimmt etwas nicht, sag es dort.
+            </InfoHint>
+          </span>
         ) : (
           <>
             <Button variant="ghost" onClick={() => setEditing(e)}>
@@ -823,6 +859,8 @@ export default function TimeView() {
           entry={editing ?? undefined}
           lastEntry={lastEntry}
           vorbelegung={editing ? null : vorbelegung}
+          // Tagessoll und Verteilung für die Rückfrage zum Jugendschutz (Runde 3, M2).
+          besitzerProfil={profile}
           onSaved={() => {
             setEditing(null);
             // Die Vorbelegung ist verbraucht. Bliebe sie stehen, käme sie
