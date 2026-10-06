@@ -146,39 +146,34 @@ describe('Die gerechnete Arbeitszeit in der Maske', () => {
   });
 });
 
-describe('Nachtarbeit — ein Hinweis, kein automatischer Haken (Launch-Check M2)', () => {
-  it('schlägt bei 20:00–02:00 vor, Nachtarbeit anzukreuzen — erst der Klick setzt sie', () => {
-    zeichne();
-    setze('Von', '20:00');
-    setze('Bis', '02:00');
-    const knopf = screen.getByRole('button', { name: 'Nachtarbeit ankreuzen' });
-    expect(screen.getByText(/liegen in der Nachtzeit/)).toBeInTheDocument();
-    fireEvent.click(knopf);
-    // Gesetzt steht sie in der Zeile „Weitere Angaben", und der Hinweis geht.
-    expect(screen.getByRole('button', { name: /Weitere Angaben/ }).textContent).toMatch(/Nachtarbeit/);
-    expect(screen.queryByRole('button', { name: 'Nachtarbeit ankreuzen' })).not.toBeInTheDocument();
-  });
-
-  it('schweigt am gewöhnlichen Tag', () => {
-    zeichne();
-    expect(screen.queryByText(/liegen in der Nachtzeit/)).not.toBeInTheDocument();
-  });
-});
-
 /*
-  SEIT DEM TESTBERICHT VOM 30.09.2026 (M35) trägt das Kennzeichen nur die
-  Stunden in der Nachtzeit. Der Vorschlag kommt deshalb, sobald Zeit
-  hineinfällt, und nennt ihren Umfang. Vorher (Prüflauf 25.09.2026, P1-19)
-  kam er nur bei überwiegender Nacht, weil das Kennzeichen damals die ganze
-  Buchung zählte — bei 20:00–23:30 gar nicht.
+  RUNDE 3, M4: KEIN HAKEN MEHR. Die Stunden in der Nachtzeit zählen von
+  selbst; die Maske sagt, wie viele, und lässt sie nur mit Grund abwählen.
+  Vorher (Launch-Check M2, M35) schlug sie den Haken vor — und wer ihn
+  übersah, hatte „Nacht 0,00“ in der Lohnliste.
 */
-describe('Nachtarbeit — stundengenau (Testbericht 30.09.2026, M35)', () => {
-  it('schlägt sie bei 20:00–23:30 vor und nennt die anderthalb Nachtstunden', () => {
+describe('Nachtarbeit zählt von selbst (Runde 3, M4)', () => {
+  it('20:00–23:30: anderthalb Stunden zählen als Nachtarbeit, ohne Haken', () => {
     zeichne();
     setze('Von', '20:00');
     setze('Bis', '23:30');
-    expect(screen.getByRole('button', { name: 'Nachtarbeit ankreuzen' })).toBeInTheDocument();
-    expect(screen.getByText(/01:30 Std\. liegen in der Nachtzeit \(22–6 Uhr\)/)).toBeInTheDocument();
-    expect(screen.getByText(/gilt nur für diese Stunden/)).toBeInTheDocument();
+    expect(screen.getByText(/01:30 Std\. liegen in der Nachtzeit \(22–6 Uhr\) und zählen als Nachtarbeit/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nachtarbeit ankreuzen' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Nachtarbeit')).not.toBeInTheDocument();
+  });
+
+  it('abwählen geht nur mit Grund', () => {
+    zeichne();
+    setze('Von', '20:00');
+    setze('Bis', '02:00');
+    fireEvent.click(screen.getByLabelText('Nicht als Nachtarbeit zählen'));
+    expect(screen.getByText(/abgewählt, sie zählen nicht als Nachtarbeit/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Grund/)).toBeRequired();
+  });
+
+  it('Gegenprobe: am gewöhnlichen Tag steht nichts davon', () => {
+    zeichne();
+    expect(screen.queryByText(/liegen in der Nachtzeit/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Nicht als Nachtarbeit zählen')).not.toBeInTheDocument();
   });
 });

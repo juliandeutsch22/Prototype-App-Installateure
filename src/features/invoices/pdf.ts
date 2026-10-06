@@ -43,6 +43,7 @@ import { calcWorkMin } from '@/lib/time';
 import { istLehrlingssatz, satzklasse } from '@/lib/einstufung';
 import { zugesagterSkonto } from './skonto';
 import { euroBetrag } from '@/lib/betrag';
+import { ibanAnzeige } from '@shared/iban';
 
 /**
  * Die Spalte „Typ“ im Leistungsnachweis — seit dem 30.09.2026 aus dem Satz
@@ -269,7 +270,7 @@ export function generateInvoicePdf(opts: {
     // sie sich aus der Tabelle zusammensuchen. DER REST, nicht die
     // Gesamtleistung: was schon bezahlt ist, wird nicht noch einmal gefordert.
     `Bitte überweisen Sie ${euroBetrag(zahlbetrag)} € bis ${fmtDatum(dueDate)}` +
-      (company.iban ? ` auf IBAN ${company.iban}${company.bic ? ` / BIC ${company.bic}` : ''}` : '') +
+      (company.iban ? ` auf IBAN ${ibanAnzeige(company.iban)}${company.bic ? ` / BIC ${company.bic}` : ''}` : '') +
       '.' +
       // Das Skonto als Betrag, nicht nur als Prozentsatz — sonst rechnet jeder Kunde anders.
       (opts.skonto

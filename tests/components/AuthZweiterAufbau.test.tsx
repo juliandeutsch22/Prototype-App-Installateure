@@ -26,6 +26,8 @@ const firma = () => ({ id: 'perl', name: 'Perl Installationen' });
 vi.mock('@/lib/auth/sitzung', async () => {
   const kern = await import('@/lib/auth/kern');
   return {
+    // Runde 3, H1: ohne zweiten Faktor, der fehlt — die Weiche lässt durch.
+    zweiterFaktorBedarf: () => Promise.resolve('keiner'),
     InactiveUserError: kern.InactiveUserError,
     beiAenderung: (r: typeof ruf) => {
       ruf = r;

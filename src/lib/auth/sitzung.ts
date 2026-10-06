@@ -80,3 +80,13 @@ export function firmaSchnell(companyId: string): Promise<Company | null> {
 export function profilMerken(profil: CurrentUser, firma: Company | null): void {
   return pg.profilMerken(profil, firma);
 }
+
+/*
+  DIE ZWEI-FAKTOR-ANMELDUNG (Runde 3, H1) — dieselbe Naht: die Arbeit steht
+  in `pg/zweiFaktor.ts`.
+*/
+export {
+  zweiterFaktorBedarf, zweiterFaktorStand, einrichtenBeginnen, einrichtenBestaetigen,
+  neueCodes, codePruefen, codeEinloesen, ausschalten as zweitenFaktorAusschalten,
+} from './pg/zweiFaktor';
+export type { ZweiterFaktorBedarf, ZweiterFaktorStand, NeuerFaktor } from './pg/zweiFaktor';

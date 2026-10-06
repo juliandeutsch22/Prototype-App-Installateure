@@ -148,7 +148,8 @@ describe('Projektauswertung — Marker am Eintrag', () => {
     // Derselbe Grund: Nachtarbeit trägt ebenfalls einen Zuschlag.
     render(
       <ProjectSummary
-        entries={[eintrag({ id: 'a', isNightWork: true } as Partial<TimeEntry>)]}
+        // Seit Runde 3, M4 aus Von und Bis: 20:00–23:30 liegt zum Teil in der Nachtzeit.
+        entries={[eintrag({ id: 'a', startTime: '20:00', endTime: '23:30', breakDuration: 0 } as Partial<TimeEntry>)]}
         projects={[projekt]}
         gesamtEntries={[]}
         label="September 2026"

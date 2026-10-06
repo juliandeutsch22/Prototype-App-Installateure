@@ -18,6 +18,8 @@ import {
   firmaSchnell,
   profilMerken,
   InactiveUserError,
+  zweiterFaktorBedarf,
+  type ZweiterFaktorBedarf,
 } from '@/lib/auth/sitzung';
 import { benutzerSpurenLoeschen } from '@/lib/speicher';
 import { getCompany } from '@/lib/db/company';
@@ -135,6 +137,12 @@ interface AuthState {
   einblick: OffeneFreigabe | null;
   einblickStarten: (f: OffeneFreigabe) => void;
   einblickBeenden: () => void;
+  /**
+   * Was nach dem Passwort noch fehlt (Runde 3, H1). Solange es nicht
+   * `keiner` ist, bleiben `user` und `plattformAdmin` leer — die App zeigt
+   * nur die Seite für den zweiten Faktor.
+   */
+  zweiterFaktor: ZweiterFaktorBedarf;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -156,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [plattformAdmin, setPlattformAdmin] = useState(false);
+  const [zweiterFaktor, setZweiterFaktor] = useState<ZweiterFaktorBedarf>('keiner');
   const [einblick, setEinblick] = useState<OffeneFreigabe | null>(null);
   const [einblickFirma, setEinblickFirma] = useState<Company | null>(null);
   /*
@@ -190,9 +199,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setCompany(null);
         setPlattformAdmin(false);
+        setZweiterFaktor('keiner');
         setLoading(false);
         return;
       }
+
+      /*
+        DER ZWEITE FAKTOR VOR ALLEM ANDEREN (Runde 3, H1). Fehlt er, liefert
+        die Datenbank diesem Konto keine Zeile — auch nicht das eigene
+        Profil. Ohne diese Weiche stünde hier „Kein Benutzerprofil“ oder
+        „deaktiviert“, und beides wäre falsch. Meist ohne Netz entschieden
+        (siehe `zweiterFaktorBedarf`).
+      */
+      const bedarf = await zweiterFaktorBedarf().catch((): ZweiterFaktorBedarf => 'keiner');
+      if (bedarf !== 'keiner') {
+        geladenFuer.current = null;
+        setUser(null);
+        setCompany(null);
+        setPlattformAdmin(false);
+        setPlattformKonto(null);
+        setEinblick(null);
+        setZweiterFaktor(bedarf);
+        setLoading(false);
+        return;
+      }
+      setZweiterFaktor('keiner');
       /*
         DERSELBE NUTZER NOCH EINMAL: STILL NACHZIEHEN (Testbericht 30.09.2026,
         H9). Hier stand für jede Meldung `setLoading(true)` — und `RequireAuth`
@@ -528,6 +559,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         einblick,
         einblickStarten,
         einblickBeenden,
+        zweiterFaktor,
       }}
     >
       {children}

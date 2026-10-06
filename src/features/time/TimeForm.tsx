@@ -165,10 +165,15 @@ export default function TimeForm({
   const [schuleBis, setSchuleBis] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
   const [isHelper, setIsHelper] = useState(entry?.isHelper ?? asHelperVorschlag ?? false);
   const [helperName, setHelperName] = useState(entry?.helperName ?? '');
-  // Zuschläge werden bewusst gesetzt, nicht aus der Uhrzeit geraten: ob ein
-  // Einsatz als Nachtarbeit oder Notdienst gilt, entscheidet die Vereinbarung
-  // mit dem Kunden — nicht der Zeiger auf der Uhr.
-  const [isNightWork, setIsNightWork] = useState(entry?.isNightWork ?? false);
+  /*
+    NACHTARBEIT ZÄHLT VON SELBST (Runde 3, M4): die Stunden in der Nachtzeit
+    des Betriebs, aus Von und Bis. Der Haken ist weg — er wurde vergessen, und
+    dann fehlte der Zuschlag in der Lohnliste. Wer eine Buchung bewusst nicht
+    als Nachtarbeit zählen will, wählt sie mit Grund ab. Den Notdienst setzt
+    weiter der Mensch: ob ein Einsatz einer war, sagt keine Uhr.
+  */
+  const [nachtAbwahl, setNachtAbwahl] = useState(!!entry?.nachtAbgewaehlt?.trim());
+  const [nachtGrund, setNachtGrund] = useState(entry?.nachtAbgewaehlt ?? '');
   const [isEmergency, setIsEmergency] = useState(entry?.isEmergency ?? false);
   /*
     ERST NACH EINER EINGABE WARNEN (Testbericht 30.09.2026, G18). Die Maske
@@ -210,7 +215,7 @@ export default function TimeForm({
     // gelöscht.
     () =>
       !!entry &&
-      !!(entry.projectNumber || entry.isEmergency || entry.isNightWork || entry.isHelper),
+      !!(entry.projectNumber || entry.isEmergency || entry.isHelper),
   );
   const canHaveProject = aussendienst || (darfErweitern && erweitert);
   /*
@@ -538,6 +543,11 @@ export default function TimeForm({
       }
       return;
     }
+    if (showWorkFields && mitZeiten && nachtImEintrag > 0 && nachtAbwahl && !nachtGrund.trim()) {
+      setError('Warum zählen diese Stunden nicht als Nachtarbeit? Bitte den Grund eintragen.');
+      setSaving(false);
+      return;
+    }
     try {
       const project = projects.find((p) => p.projectNumber === projectNumber);
       /*
@@ -568,7 +578,14 @@ export default function TimeForm({
         helperName: canHaveProject ? helperName : '',
         comment,
         isHelper: canHaveProject ? helferFest ?? isHelper : false,
-        isNightWork: canHaveProject && showWorkFields ? isNightWork : false,
+        // Mit Von und Bis setzt die Datenbank das Kennzeichen selbst (M4);
+        // ohne sie bleibt es, wie es war.
+        isNightWork: showWorkFields && mitZeiten
+          ? nachtImEintrag > 0 && !nachtAbwahl
+          : entry?.isNightWork ?? false,
+        nachtAbgewaehlt: showWorkFields && mitZeiten && nachtImEintrag > 0 && nachtAbwahl
+          ? nachtGrund.trim()
+          : null,
         isEmergency: canHaveProject && showWorkFields ? isEmergency : false,
       };
 
@@ -604,7 +621,8 @@ export default function TimeForm({
           (Testbericht 30.09.2026, G18): der Notdienst blieb nach dem Buchen
           angehakt und wäre mit der nächsten Buchung mitgegangen.
         */
-        setIsNightWork(false);
+        setNachtAbwahl(false);
+        setNachtGrund('');
         setIsEmergency(false);
         setAngefasst(false);
       }
@@ -626,7 +644,6 @@ export default function TimeForm({
     Number(travelTime) > 0 && `Wegzeit ${travelTime} Min.`,
     vehiclePlate && `Fahrzeug ${mitKennzeichenVorsatz(vehiclePlate, kennzeichenVorsatz)}`,
     helperName.trim() && `Helfer ${helperName.trim()}`,
-    isNightWork && 'Nachtarbeit',
     isEmergency && 'Notdienst',
   ].filter(Boolean) as string[];
 
@@ -688,12 +705,6 @@ export default function TimeForm({
       {/* Eine Gruppe mit Linie oben statt eines getönten Kastens in der Karte. */}
       <fieldset className="border-t border-line pt-2">
         <legend className="pr-2 section-label">Zuschläge</legend>
-        <CheckboxField
-          id="isNightWork"
-          label="Nachtarbeit"
-          checked={isNightWork}
-          onChange={(e) => setIsNightWork(e.target.checked)}
-        />
         <div className="flex flex-wrap items-center gap-2">
           <CheckboxField
             id="isEmergency"
@@ -1009,26 +1020,36 @@ export default function TimeForm({
           )}
 
           {/*
-            EIN HINWEIS, KEIN AUTOMATISCHER HAKEN. Ob Nachtarbeit verrechnet
-            wird, bleibt eine bewusste Angabe. SEIT DEM 30.09.2026 (M35) trägt
-            das Kennzeichen nur die Stunden in der Nachtzeit des Betriebs —
-            deshalb der Vorschlag, sobald Zeit hineinfällt, mit ihrem Umfang.
-            Vorher kam er erst bei überwiegender Nacht: bei 20:00–23:30 gar
-            nicht, weil das Kennzeichen damals die ganze Buchung zählte.
+            NACHTARBEIT OHNE HAKEN (Runde 3, M4). Fällt Zeit in die Nachtzeit,
+            steht hier, wie viel davon als Nachtarbeit zählt — in Zeitkonto,
+            Lohnliste, Stundennachweis und Rechnung. Abwählen nur mit Grund;
+            er steht an der Buchung.
           */}
-          {canHaveProject && !isNightWork && nachtImEintrag > 0 && (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
-              <span>
-                {fmtMin(nachtImEintrag)} Std. liegen in der Nachtzeit ({nachtzeitText(nacht)}).
-                Der Nachtzuschlag gilt nur für diese Stunden.
-              </span>
-              <button
-                type="button"
-                className="link min-h-touch"
-                onClick={() => setIsNightWork(true)}
-              >
-                Nachtarbeit ankreuzen
-              </button>
+          {showWorkFields && mitZeiten && nachtImEintrag > 0 && (
+            <div className="space-y-2 text-sm">
+              <p className="text-ink-muted">
+                {nachtAbwahl
+                  ? `${fmtMin(nachtImEintrag)} Std. liegen in der Nachtzeit (${nachtzeitText(nacht)}) — abgewählt, sie zählen nicht als Nachtarbeit.`
+                  : `${fmtMin(nachtImEintrag)} Std. liegen in der Nachtzeit (${nachtzeitText(nacht)}) und zählen als Nachtarbeit.`}
+              </p>
+              <CheckboxField
+                id="nachtAbwahl"
+                label="Nicht als Nachtarbeit zählen"
+                checked={nachtAbwahl}
+                onChange={(e) => setNachtAbwahl(e.target.checked)}
+              />
+              {nachtAbwahl && (
+                <InputField
+                  id="nachtGrund"
+                  label="Grund"
+                  placeholder="z. B. mit dem Kunden pauschal vereinbart"
+                  value={nachtGrund}
+                  maxLength={300}
+                  onChange={(e) => setNachtGrund(e.target.value)}
+                  required
+                  pflicht
+                />
+              )}
             </div>
           )}
 
@@ -1071,7 +1092,7 @@ export default function TimeForm({
                 es unbemerkt passiert: die Baustelle verlöre ihre Stunden und
                 die Rechnung eine Position, ohne dass jemand es merkt.
               */}
-              {!erweitert && entry && (entry.projectNumber || entry.isEmergency || entry.isNightWork) && (
+              {!erweitert && entry && (entry.projectNumber || entry.isEmergency) && (
                 <div className="mt-2">
                   <Hinweiszeile stufe="warn">
                     <p>
@@ -1213,5 +1234,5 @@ export default function TimeForm({
 
 /** Trägt ein Eintrag Angaben, die hinter „Weitere Angaben" stehen? */
 function hatWeitereAngaben(e?: Partial<TimeEntry>): boolean {
-  return !!e && !!(e.travelTime || e.vehiclePlate || e.helperName || e.isNightWork || e.isEmergency);
+  return !!e && !!(e.travelTime || e.vehiclePlate || e.helperName || e.isEmergency);
 }

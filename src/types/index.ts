@@ -201,6 +201,11 @@ export interface Company {
    * (Google, Apple, Microsoft). Ausschalten beendet alle Abos.
    */
   kalenderAboErlaubt?: boolean;
+  /**
+   * Zwei-Faktor-Anmeldung für Administrator und Geschäftsführung Pflicht
+   * (Runde 3, H1). Einschalten nur mit eigenem zweiten Faktor.
+   */
+  zweiFaktorPflicht?: boolean;
   /** Abweichende Tage je Anlass der Dienstverhinderung (Schlüssel → Arbeitstage), leer = Vorbelegung. */
   freistellungAnlaesse?: Record<string, number> | null;
   /** Ab so vielen Kalendertagen unbezahlt am Stück schlägt die App die Kürzung des Anspruchs vor. */
@@ -1126,8 +1131,17 @@ export interface TimeEntry {
   /** Direkt gesetzte Stunden (v. a. Sprach-Einträge). Greift nur, wenn keine
    * Zeitspanne (start+end) gesetzt ist — siehe calcWorkMin. */
   hours?: number;
-  /** Nachtarbeit — wird bewusst manuell gesetzt, nicht aus der Uhrzeit geraten. */
+  /**
+   * Nachtarbeit. SEIT 06.10.2026 (Runde 3, M4) setzt die Datenbank das
+   * Kennzeichen aus Von und Bis und der Nachtzeit des Betriebs; nur ohne
+   * Von/Bis gilt noch der Haken. Gezählt wird mit `nachtArbeitMin`.
+   */
   isNightWork?: boolean;
+  /**
+   * Bewusst NICHT als Nachtarbeit gezählt — mit diesem Grund (Runde 3, M4).
+   * Leer heisst: die Stunden in der Nachtzeit zählen von selbst.
+   */
+  nachtAbgewaehlt?: string | null;
   /** Notdienst / Störungseinsatz außerhalb der regulären Zeit. */
   isEmergency?: boolean;
   customerName?: string;

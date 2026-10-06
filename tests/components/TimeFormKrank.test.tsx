@@ -59,21 +59,34 @@ beforeEach(() => {
   authWert.user = { ...authWert.user, role: 'Mitarbeiter' };
 });
 
+
+/*
+  DIE TAGE LIEGEN IN DER ZUKUNFT, gerechnet ab heute. Hier standen feste Daten
+  (05.10.2026 ff.); seit dem 06.10.2026 lag der Beginn in der Vergangenheit,
+  „bis“ blieb auf heute stehen, und die Prüfung fiel — an einem Datum, nicht
+  an einem Fehler.
+*/
+function tag(versatz: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 30 + versatz);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Vienna' }).format(d);
+}
+
 describe('Krank in der Zeiterfassung', () => {
   it('legt eine Krankmeldung über mehrere Tage an — keinen Zeiteintrag', async () => {
     zeichne();
     await userEvent.clear(screen.getByLabelText(/^Datum/));
-    await userEvent.type(screen.getByLabelText(/^Datum/), '2026-10-05');
+    await userEvent.type(screen.getByLabelText(/^Datum/), tag(0));
     await userEvent.selectOptions(screen.getByLabelText('Status'), 'Krank');
     const bis = screen.getByLabelText(/^Krank bis/);
-    expect(bis).toHaveValue('2026-10-05');
+    expect(bis).toHaveValue(tag(0));
     await userEvent.clear(bis);
-    await userEvent.type(bis, '2026-10-07');
+    await userEvent.type(bis, tag(2));
     await userEvent.type(screen.getByLabelText(/keine Diagnose/), 'Arzt ab Montag');
     await userEvent.click(screen.getByRole('button', { name: 'Krank melden' }));
     await waitFor(() =>
       expect(melden).toHaveBeenCalledWith({
-        userId: null, von: '2026-10-05', bis: '2026-10-07', notiz: 'Arzt ab Montag', melderName: 'Max Monteur',
+        userId: null, von: tag(0), bis: tag(2), notiz: 'Arzt ab Montag', melderName: 'Max Monteur',
       }),
     );
     expect(anlegen).not.toHaveBeenCalled();
@@ -108,7 +121,7 @@ describe('Krank in der Zeiterfassung', () => {
   });
 
   it('sperrt einen Tag, der zu einer Krankmeldung gehört', async () => {
-    zeichne({ entry: { id: 'e1', companyId: 'perl', userId: 'ich', date: '2026-10-05', status: 'Krank',
+    zeichne({ entry: { id: 'e1', companyId: 'perl', userId: 'ich', date: tag(0), status: 'Krank',
       krankmeldungId: 'k1' } as TimeEntry & { id: string } });
     expect(screen.getByText(/gehört zu einer Krankmeldung und wird nur über sie geändert/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Änderungen speichern' })).toBeDisabled();

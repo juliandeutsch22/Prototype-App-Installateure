@@ -4,6 +4,7 @@ import type { UserOptions } from 'jspdf-autotable';
 import type { Company } from '@/types';
 import { firmenZeilen, logoZeichnen } from './pdfBriefkopf';
 import { euroBetrag } from '@/lib/betrag';
+import { ibanAnzeige } from '@shared/iban';
 
 /**
  * Das Layout der Belege, die an den Kunden gehen — Rechnung,
@@ -151,7 +152,7 @@ export function fusszeilen(doc: jsPDF, company: Company): void {
     [company.name, company.addressLine],
     [
       company.bankName,
-      company.iban && `IBAN ${company.iban}`,
+      company.iban && `IBAN ${ibanAnzeige(company.iban)}`,
       company.bic && `BIC ${company.bic}`,
     ],
     [

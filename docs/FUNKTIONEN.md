@@ -1,6 +1,6 @@
 # Funktionsübersicht
 
-Stand: 25.09.2026.
+Stand: 06.10.2026.
 
 > **DER VORBEHALT VON HIER IST EINGELÖST.** Diese Datei war in der
 > Firestore-Zeit geschrieben und sprach von Sammlungen, vom Emulator, von
@@ -42,6 +42,19 @@ unterscheidet vier Stufen:
 | **—** | Nicht automatisch geprüft. |
 
 ---
+
+## Testbericht Runde 3 (06.10.2026)
+
+Was der dritte Testbericht im Code gefunden hat und wie es jetzt ist. Die
+Zeilen in den Bereichen darunter gelten weiter; wo sich etwas geändert hat,
+steht es hier.
+
+| Befund | Wie es jetzt ist | Wo | Geprüft wodurch | Grenzen |
+|---|---|---|---|---|
+| **H1** Testbetrieb hebelt die Löschstufe aus | Nachträglich als Testbetrieb kennzeichnen nur ohne Rechnung, unterschriebenen Schein und Zeitbuchung (`app.betrieb_echte_daten`, `plattform_testbetrieb`); die Liste nennt den Grund (`plattform_betriebe.echte_daten`), die Seite bietet den Knopf dann nicht an. „Kein Testbetrieb“ jederzeit, eine als Testbetrieb geplante Löschung wird dabei abgebrochen. Eine geplante Frist bleibt fest. „Endgültig löschen“ erscheint ohne Neuladen (G12), fehlender Grund wird genannt (G13). | Migration `20261006100000_testbetrieb_nur_ohne_daten.sql`, `BetriebVerwalten.tsx` | Datenbank (5, `betriebeDeaktivierenLoeschen.test.ts`), Ansicht (4) | — |
+| **H1** Zwei-Faktor-Anmeldung | TOTP über Supabase Auth. Plattformkonto: Pflicht (`app.ist_plattform()` verlangt `aal2`). Administrator und Geschäftsführung: angeboten, je Betrieb Pflicht (`companies.zwei_faktor_pflicht`, einschalten nur mit eigenem Faktor). Wer einen hat, braucht ihn (`app.aktiv()` über `app.zweiter_faktor_fehlt`); die Edge Functions fragen dasselbe (`zweiter_faktor_fehlt`). Zehn Wiederherstellungscodes, gehasht, je einer gilt einmal und entfernt den Faktor; fünf Fehlversuche je Viertelstunde. Zurücksetzen über den Notzugang mit Grund und Rückruf (`plattform_zweiter_faktor_zuruecksetzen`), im Protokoll des Betriebs. Datenauskunft nennt „seit“, die Löschung nach DSGVO entfernt ihn. | Migration `20261006110000_zwei_faktor.sql`, `src/lib/auth/pg/zweiFaktor.ts`, `ZweiFaktorSeite.tsx`, `ZweiFaktorKarte.tsx`, `NotzugangZweiFaktor.tsx`, `shared/zweiFaktor.ts` | Datenbank (16, `zweiFaktor.test.ts`), Browser (1, `zweiFaktor.spec.ts`), Ansicht (5) | Den Zugang des Plattformkontos selbst stellt bei Verlust der Codes nur der Betreiber im Supabase-Projekt wieder her. Im gehosteten Projekt muss TOTP eingeschaltet sein (ab Werk an). |
+| **H3** IBAN ohne Prüfung | Länge je Land und Prüfziffer (Modulo 97), BIC-Format — in den Firmendaten und in der Datenbank (`app.iban_fehler`, Auslöser `companies_bankverbindung`); gespeichert ohne Leerzeichen, gedruckt in Vierergruppen. Altbestand markiert; Rechnung mit ungültiger IBAN gesperrt (Maske und Auslöser `invoices_iban`). | Migration `20261006120000_iban_pruefung.sql`, `shared/iban.ts`, `FirmendatenView.tsx`, `InvoicesView.tsx` | Rechnung (8), Datenbank (5), Ansicht (2) | — |
+| **M4** Nachtstunden nur mit Haken | Die Minuten in der Nachtzeit zählen von selbst (`nachtArbeitMin`), in Zeitkonto, Lohn-CSV, Stundennachweis, Rechnung und an der Marke „Nacht“. Abwählen mit Grund (`time_entries.nacht_abgewaehlt`). Die Datenbank setzt `is_night_work` aus Von/Bis (`app.nacht_setzen`). Verrechnete Buchungen bleiben, wie verrechnet. | Migration `20261006130000_nachtstunden_automatisch.sql`, `lohnregeln.ts`, `TimeForm.tsx` | Rechnung (8), Ansicht (3) | Ohne Von/Bis gilt weiter der Haken. |
 
 ## Außendienst
 

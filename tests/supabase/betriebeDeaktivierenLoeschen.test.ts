@@ -321,3 +321,102 @@ describe('Testbetrieb', () => {
       .toBeNull();
   });
 });
+
+/*
+  RUNDE 3, H1: nachträglich nur ohne echte Daten. Gegenproben über die
+  Schnittstelle — die Oberfläche bietet den Knopf dann gar nicht an, aber die
+  Grenze steht hier.
+*/
+describe('Testbetrieb nachträglich — nur ohne echte Daten', () => {
+  const MIT_RECHNUNG = 'pd-echt-re';
+  const MIT_ZEIT = 'pd-echt-zeit';
+  const MIT_SCHEIN = 'pd-echt-schein';
+  const LEER = 'pd-leer';
+
+  beforeAll(async () => {
+    for (const b of [MIT_RECHNUNG, MIT_ZEIT, MIT_SCHEIN, LEER]) await betriebAnlegen(b);
+    const { error: re } = await admin.from('invoices').insert({
+      company_id: MIT_RECHNUNG, invoice_number: 'RE-2026-0001', project_number: 'PR-2026-0001',
+      customer_name: 'Familie Huber', invoice_date: heute, due_date: heute,
+      total_netto: 100, total_vat: 20, total_brutto: 120, payment_status: 'Offen',
+    });
+    if (re) throw new Error(re.message);
+    const zeitKonto = await konto(MIT_ZEIT, 'Mitarbeiter', 'pdzeit');
+    const { error: ze } = await admin.from('time_entries').insert(buchung(zeitKonto, heute));
+    if (ze) throw new Error(ze.message);
+    const scheinKonto = await konto(MIT_SCHEIN, 'Mitarbeiter', 'pdschein');
+    const id = crypto.randomUUID();
+    for (const s of [
+      await admin.from('work_sheets').insert({
+        id, company_id: MIT_SCHEIN, project_number: 'PR-2026-0001', customer_name: 'Familie Huber',
+        datum: heute, status: 'Entwurf', abrechnung: 'Regie', erstellt_von_uid: scheinKonto.uid, erstellt_von_name: 'Max',
+      }),
+      await admin.from('work_sheets').update({
+        status: 'Unterschrieben', unterschrift_monteur: UNTERSCHRIFT, unterschrift_kunde: UNTERSCHRIFT,
+      }).eq('id', id),
+    ]) if (s.error) throw new Error(s.error.message);
+  }, 60_000);
+
+  it('abgewiesen bei Rechnung, Zeitbuchung oder unterschriebenem Schein — mit Grund', async () => {
+    for (const [b, grund] of [
+      [MIT_RECHNUNG, /Rechnungen/], [MIT_ZEIT, /Zeitbuchungen/], [MIT_SCHEIN, /unterschriebene Scheine/],
+    ] as const) {
+      const r = await plattform.client.rpc('plattform_testbetrieb', { p_kennung: b, p_testbetrieb: true, p_grund: 'Versuch' });
+      expect(r.error?.code, b).toBe('22023');
+      expect(r.error?.message).toMatch(grund);
+      const { rows: [z] } = await db.query('select testbetrieb from public.betrieb_zustand where betrieb_kennung = $1', [b]);
+      expect(z?.testbetrieb ?? false).toBe(false);
+    }
+  });
+
+  it('die Liste nennt den Grund, damit die Seite den Knopf nicht anbietet', async () => {
+    const { data } = await plattform.client.rpc('plattform_betriebe');
+    const zeilen = data as Array<{ kennung: string; echte_daten: string | null }>;
+    expect(zeilen.find((z) => z.kennung === MIT_RECHNUNG)?.echte_daten).toMatch(/Rechnungen/);
+    expect(zeilen.find((z) => z.kennung === LEER)?.echte_daten).toBeNull();
+  });
+
+  it('Gegenprobe: ein Betrieb ohne Daten lässt sich kennzeichnen, „Kein Testbetrieb“ geht immer', async () => {
+    expect((await plattform.client.rpc('plattform_testbetrieb', { p_kennung: LEER, p_testbetrieb: true, p_grund: 'Vorführung' })).error)
+      .toBeNull();
+    // Daten kommen danach dazu — zurücknehmen geht trotzdem.
+    const k = await konto(LEER, 'Mitarbeiter', 'pdleer');
+    expect((await admin.from('time_entries').insert(buchung(k, heute))).error).toBeNull();
+    expect((await plattform.client.rpc('plattform_testbetrieb', { p_kennung: LEER, p_testbetrieb: false, p_grund: 'doch echt' })).error)
+      .toBeNull();
+  });
+
+  it('wer die Kennzeichnung entfernt, bricht eine als Testbetrieb geplante Löschung ab', async () => {
+    const b = 'pd-test-geplant';
+    await betriebAnlegen(b);
+    for (const [fn, args] of [
+      ['plattform_testbetrieb', { p_kennung: b, p_testbetrieb: true, p_grund: 'Vorführung' }],
+      ['plattform_betrieb_deaktivieren', { p_kennung: b, p_grund: 'Aufräumen' }],
+      ['plattform_loeschung_planen', { p_kennung: b, p_grund: 'Aufräumen' }],
+      ['plattform_testbetrieb', { p_kennung: b, p_testbetrieb: false, p_grund: 'doch echt' }],
+    ] as const) {
+      expect((await plattform.client.rpc(fn, args)).error, fn).toBeNull();
+    }
+    const { rows: [z] } = await db.query('select loeschung_geplant_fuer from public.betrieb_zustand where betrieb_kennung = $1', [b]);
+    expect(z.loeschung_geplant_fuer).toBeNull();
+    // Und neu planen geht nur noch mit Übergabe — wie bei jedem echten Betrieb.
+    const neu = await plattform.client.rpc('plattform_loeschung_planen', { p_kennung: b, p_grund: 'Aufräumen' });
+    expect(neu.error?.message).toMatch(/Export/);
+  });
+
+  it('eine spätere Kennzeichnung verkürzt eine geplante Frist nicht', async () => {
+    const b = 'pd-frist-bleibt';
+    await betriebAnlegen(b);
+    expect((await plattform.client.rpc('plattform_betrieb_deaktivieren', { p_kennung: b, p_grund: 'Kündigung' })).error).toBeNull();
+    await db.query('update public.betrieb_zustand set export_am = now() where betrieb_kennung = $1', [b]);
+    expect((await plattform.client.rpc('plattform_loeschung_planen', { p_kennung: b, p_grund: 'Antrag', p_tage: 30 })).error)
+      .toBeNull();
+    const vorher = (await db.query('select loeschung_geplant_fuer from public.betrieb_zustand where betrieb_kennung = $1', [b])).rows[0];
+    expect((await plattform.client.rpc('plattform_testbetrieb', { p_kennung: b, p_testbetrieb: true, p_grund: 'x' })).error).toBeNull();
+    const nachher = (await db.query('select loeschung_geplant_fuer from public.betrieb_zustand where betrieb_kennung = $1', [b])).rows[0];
+    expect(nachher.loeschung_geplant_fuer).toEqual(vorher.loeschung_geplant_fuer);
+    const r = await rufe('betrieb-loeschen', plattform.token, { kennung: b, bestaetigung: b, grund: 'zu früh' });
+    expect(r.status).toBe(409);
+    expect(String(r.daten.error)).toMatch(/Frist läuft noch/);
+  });
+});

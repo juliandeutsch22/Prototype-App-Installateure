@@ -634,13 +634,55 @@
       Dinge in der Oberfläche, vor allem am Telefon. Alles im Abschnitt
       „Seit dem 1. Oktober“.
     </p>
+    <p class="vorspann">
+      <strong>Seit dem 6. Oktober</strong> ist abgearbeitet, was der
+      Testbericht der dritten Runde im Code gefunden hat — zuerst, was vor dem
+      Pilot sein muss: ein echter Betrieb lässt sich nicht mehr als Testbetrieb
+      kennzeichnen, das Plattformkonto meldet sich nur mit
+      <strong>zweitem Faktor</strong> an, die <strong>IBAN wird geprüft</strong>,
+      und <strong>Nachtstunden zählen ohne Haken</strong>. Alles im Abschnitt
+      „Seit dem 6. Oktober“.
+    </p>
     <div class="stempel">
-      <span>Stand <b>05.10.2026</b></span>
-      <span>Fassung <b>Belegarchiv 05.10.</b></span>
-      <span>Automatische Prüfungen <b>5548</b></span>
+      <span>Stand <b>06.10.2026</b></span>
+      <span>Fassung <b>Runde 3 · vor dem Pilot</b></span>
+      <span>Automatische Prüfungen <b>5668</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
+
+  <section id="seit-6-oktober">
+    <div class="abschnittskopf">
+      <h2>Seit dem 6. Oktober</h2>
+      <p class="frage">Was der Testbericht der dritten Runde vom 06.10. im Code gefunden hat und wie es jetzt ist.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Testbetrieb nur ohne echte Daten<span class="neu">behoben</span></h3>
+        <p>Ein Testbetrieb lässt sich ohne Übergabe und ohne Frist löschen. Bisher konnte die Plattform jeden Betrieb nachträglich so kennzeichnen, auch einen mit Rechnungen — Deaktivieren, Kennzeichnen, Planen, Löschen dauerte keine zwei Minuten. Jetzt geht das nachträgliche Kennzeichnen nur, solange der Betrieb <strong>keine Rechnung, keinen unterschriebenen Schein und keine Zeitbuchung</strong> hat; die Datenbank weist es sonst mit Grund ab, und die Plattformseite bietet den Knopf gar nicht an („Kein Testbetrieb: er hat Rechnungen“). Beim Anlegen bleibt die Kennzeichnung frei. „Kein Testbetrieb“ geht immer; war schon eine Löschung als Testbetrieb geplant, wird sie dabei abgebrochen — sie braucht dann Übergabe und Frist. Eine geplante Löschung behält ihren Zeitpunkt; eine spätere Kennzeichnung verkürzt ihn nicht.</p>
+        <p>Dazu: „Endgültig löschen“ erscheint, sobald die Frist um ist, ohne Neuladen — auch bei einer Frist von 0 Tagen, wenn die Uhr des Geräts ein paar Sekunden nachgeht. Solange der Grund fehlt, sagt die Seite es unter dem Feld und am Knopf.</p>
+        <p class="wer">Globaler Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Zwei-Faktor-Anmeldung<span class="neu">neu</span></h3>
+        <p>Nach dem Passwort ein sechsstelliger Code aus einer Authenticator-App am Telefon (Google oder Microsoft Authenticator, Passwörter-App am iPhone). Für das <strong>Plattformkonto ist er Pflicht</strong>: ohne ihn kommt es nicht auf seine Seite, und jede Plattformfunktion weist ab — in der Datenbank und in den Serverfunktionen, nicht nur in der Oberfläche. Für <strong>Administrator und Geschäftsführung</strong> wird er unter Mein Konto angeboten („Einrichten“); dort schaltet die Leitung auch die <strong>Pflicht für den Betrieb</strong> ein — erst, nachdem sie selbst einen hat, sonst sperrte sie sich aus. Wer zur Leitung gehört und noch keinen hat, richtet ihn dann bei der nächsten Anmeldung ein. Wer einen eingerichtet hat, braucht ihn auch, gleich welche Rolle; ausschalten geht nur ohne Pflicht.</p>
+        <p>Eingerichtet wird mit dem QR-Code (oder dem Schlüssel zum Abtippen) und dem ersten Code. Danach zeigt die App einmal <strong>zehn Wiederherstellungscodes</strong> — ausdrucken oder sicher ablegen, nicht am Telefon. Ohne Telefon gilt bei der Anmeldung „Wiederherstellungscode verwenden“: ein Code entfernt den zweiten Faktor genau einmal, danach gelten auch die übrigen nicht mehr; bei Pflicht folgt sofort die neue Einrichtung mit neuen Codes. Nach fünf falschen Codes in einer Viertelstunde ist Pause. Unter Mein Konto stehen, wie viele Codes noch offen sind, und „Neue Wiederherstellungscodes“.</p>
+        <p>Weder Telefon noch Code: Für ein Konto der Leitung setzt der Senklot-Support den zweiten Faktor über den <strong>Notzugang</strong> zurück — nur, solange der Betrieb einen Notzugang offen hat, mit Grund und Rückruf an die Nummer aus Firmenbuch oder Gewerberegister, wie beim Passwort. Alle Sitzungen des Kontos enden, und der Vorgang steht im Protokoll des Betriebs unter Supportzugang. Das Plattformkonto selbst stellt bei Verlust der Codes der Betreiber im Supabase-Projekt wieder her. Die Datenauskunft nennt, seit wann ein zweiter Faktor besteht, nie das Geheimnis; die Löschung nach DSGVO entfernt ihn.</p>
+        <p class="wer">Plattform (Pflicht); Administrator und Geschäftsführung (angeboten, je Betrieb Pflicht)</p>
+      </div>
+      <div class="bereich">
+        <h3>IBAN und BIC geprüft<span class="neu">behoben</span></h3>
+        <p>Alle Belege im Pilotbetrieb trugen „IBAN AT74123456“ — zehn Zeichen, eine österreichische IBAN hat zwanzig. Jetzt prüfen Firmendaten und Datenbank beim Speichern die <strong>Länge je Land und die Prüfziffer</strong> (Modulo 97) und den BIC (8 oder 11 Zeichen). Gespeichert wird ohne Leerzeichen, gezeigt und gedruckt in Vierergruppen („AT61 1904 3002 3457 3201“). Ein Altbestand bleibt stehen, bis jemand ihn berichtigt, ist aber in den Firmendaten rot markiert und steht auf der Startseite der Leitung unter „Firmendaten unvollständig“ („gültige IBAN“). <strong>Eine Rechnung entsteht mit ungültiger IBAN nicht</strong>: die Maske sagt es mit dem Weg zu den Firmendaten, und die Datenbank weist sie ebenso ab. Ohne IBAN geht es weiter wie bisher, mit Hinweis.</p>
+        <p class="wer">Geschäftsführung, Administrator; wer Rechnungen erstellt</p>
+      </div>
+      <div class="bereich">
+        <h3>Nachtstunden ohne Haken<span class="neu">behoben</span></h3>
+        <p>Bei einer Buchung 05:00–16:00 meldete die Maske „01:00 Std. liegen in der Nachtzeit“, die Lohn-CSV zeigte „Nacht 0,00“ — der Haken „Nachtarbeit“ fehlte. Der Haken ist weg: die Minuten in der Nachtzeit des Betriebs (Einstellungen › Personal) <strong>zählen von selbst</strong> aus Von und Bis, in Zeitkonto, Lohn-CSV, Stundennachweis und Rechnung, mit der Marke „Nacht“ an der Buchung. Beispiel: 20:00–23:30 bei 22–6 Uhr sind 1:30 Std. Nacht; über Mitternacht zählt auch die Zeit danach; Notdienst und Nacht zugleich stehen weiter als „davon beides“. Soll eine Buchung bewusst nicht als Nachtarbeit zählen, gibt es in der Maske „Nicht als Nachtarbeit zählen“ mit Pflichtfeld Grund. Die Datenbank setzt das Kennzeichen selbst, auch wenn noch eine ältere App auf einem Telefon bucht.</p>
+        <p>Nicht verrechnete Buchungen zählen ab jetzt automatisch nach; <strong>verrechnete bleiben</strong>, wie sie verrechnet wurden. Ohne Von und Bis (Stunden aus der Spracheingabe) gilt weiter der alte Haken.</p>
+        <p class="wer">Alle, die Zeit buchen; Buchhaltung</p>
+      </div>
+    </div>
+  </section>
 
   <section id="seit-5-oktober">
     <div class="abschnittskopf">
@@ -900,7 +942,7 @@
       </div>
       <div class="bereich">
         <h3>Betriebe löschen<span class="neu">neu</span></h3>
-        <p>Nie sofort, nie mit einem Klick: nur aus „deaktiviert“, nach der <strong>Übergabe</strong> an den Betrieb (alle Daten als ein Stand und ein Verzeichnis aller Fotos und Pläne, eine Woche abrufbar), mit einer Frist von mindestens 7 Tagen (vorgeschlagen 30), in der sich alles abbrechen lässt, und am Ende mit eingetippter Kennung. Dann sind Daten, Dateien, Anmeldekonten und Push-Geräte weg. Es bleibt ein Löschprotokoll ohne Inhalte, und die Kennung wird nie wieder vergeben. Ein <strong>Testbetrieb</strong> — beim Anlegen oder später so gekennzeichnet — lässt sich ohne Übergabe und ohne Frist löschen. Ältere Stände in der Sicherung außer Haus laufen über deren Ablaufregel aus (empfohlen 90 Tage).</p>
+        <p>Nie sofort, nie mit einem Klick: nur aus „deaktiviert“, nach der <strong>Übergabe</strong> an den Betrieb (alle Daten als ein Stand und ein Verzeichnis aller Fotos und Pläne, eine Woche abrufbar), mit einer Frist von mindestens 7 Tagen (vorgeschlagen 30), in der sich alles abbrechen lässt, und am Ende mit eingetippter Kennung. Dann sind Daten, Dateien, Anmeldekonten und Push-Geräte weg. Es bleibt ein Löschprotokoll ohne Inhalte, und die Kennung wird nie wieder vergeben. Ein <strong>Testbetrieb</strong> — beim Anlegen oder später so gekennzeichnet — lässt sich ohne Übergabe und ohne Frist löschen. Seit 06.10. geht das spätere Kennzeichnen nur noch ohne echte Daten (siehe „Seit dem 6. Oktober“). Ältere Stände in der Sicherung außer Haus laufen über deren Ablaufregel aus (empfohlen 90 Tage).</p>
         <p class="wer">Globaler Administrator</p>
       </div>
       <div class="bereich">

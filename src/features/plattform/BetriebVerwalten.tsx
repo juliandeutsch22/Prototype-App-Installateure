@@ -65,6 +65,24 @@ export default function BetriebVerwalten({
     setTage(betrieb.testbetrieb ? '0' : '30');
   }, [betrieb.testbetrieb]);
 
+  /*
+    DIE FRIST LÄUFT AUCH OHNE NEULADEN AB (Runde 3, G12). Bei einer Frist
+    von 0 Tagen setzt die Datenbank den Zeitpunkt auf „jetzt“ — nach der Uhr
+    des Servers. Geht die Uhr des Geräts ein paar Sekunden nach, stand danach
+    „Vor Ablauf der Frist …“, bis jemand neu lud. Jetzt zeichnet die Maske
+    sich zum Ablauf selbst neu.
+  */
+  const [, setUhr] = useState(0);
+  const geplantAb = betrieb.loeschungGeplantFuer ? new Date(betrieb.loeschungGeplantFuer).getTime() : null;
+  useEffect(() => {
+    if (geplantAb === null) return;
+    const rest = geplantAb - Date.now();
+    if (rest < 0) return;
+    // Höchstens einen Tag warten: längere Zeitgeber laufen in Browsern über.
+    const t = setTimeout(() => setUhr((n) => n + 1), Math.min(rest + 250, 86_400_000));
+    return () => clearTimeout(t);
+  });
+
   async function schritt(tun: () => Promise<string | void>) {
     setFehler(null);
     setMeldung(null);
@@ -143,17 +161,37 @@ export default function BetriebVerwalten({
             Wieder aktivieren
           </Button>
         )}
-        <Button
-          variant="ghost"
-          groesse="klein"
-          disabled={laeuft || ohneGrund}
-          onClick={() => void schritt(async () => {
-            await testbetriebSetzen(k, !betrieb.testbetrieb, grund.trim());
-          })}
-        >
-          {betrieb.testbetrieb ? 'Kein Testbetrieb' : 'Als Testbetrieb kennzeichnen'}
-        </Button>
+        {/*
+          NACHTRÄGLICH NUR OHNE ECHTE DATEN (Runde 3, H1): ein Testbetrieb ist
+          ohne Übergabe und Frist löschbar. Die Datenbank weist es ab; die
+          Maske bietet es dann gar nicht erst an. „Kein Testbetrieb“ geht
+          immer.
+        */}
+        {(betrieb.testbetrieb || !betrieb.echteDaten) && (
+          <Button
+            variant="ghost"
+            groesse="klein"
+            disabled={laeuft || ohneGrund}
+            onClick={() => void schritt(async () => {
+              await testbetriebSetzen(k, !betrieb.testbetrieb, grund.trim());
+              return betrieb.testbetrieb && geplant
+                ? 'Kein Testbetrieb mehr. Die geplante Löschung ist abgebrochen — sie braucht jetzt Übergabe und Frist.'
+                : undefined;
+            })}
+          >
+            {betrieb.testbetrieb ? 'Kein Testbetrieb' : 'Als Testbetrieb kennzeichnen'}
+          </Button>
+        )}
       </div>
+      {/* Runde 3, G13: gesperrte Knöpfe sagen, was fehlt. */}
+      {ohneGrund && (
+        <p className="text-sm text-ink-muted">Für jeden Schritt zuerst oben einen Grund eintragen.</p>
+      )}
+      {!betrieb.testbetrieb && betrieb.echteDaten && (
+        <p className="text-sm text-ink-muted">
+          Kein Testbetrieb: {betrieb.echteDaten}. Gelöscht wird er nur mit Übergabe und Frist.
+        </p>
+      )}
 
       {deaktiviert && (
         <div className="space-y-2 border-t border-line pt-3">
@@ -271,6 +309,12 @@ export default function BetriebVerwalten({
                   >
                     Endgültig löschen
                   </Button>
+                  {(ohneGrund || bestaetigung.trim() !== k) && (
+                    <p className="text-sm text-ink-muted">
+                      {ohneGrund ? 'Zum Löschen oben einen Grund eintragen' : 'Zum Löschen die Kennung genau eintippen'}
+                      {ohneGrund && bestaetigung.trim() !== k ? ' und die Kennung genau eintippen.' : '.'}
+                    </p>
+                  )}
                 </div>
               ) : (
                 <p className="text-sm text-ink-muted">Vor Ablauf der Frist lässt sich nicht löschen.</p>

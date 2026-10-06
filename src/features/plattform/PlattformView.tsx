@@ -14,9 +14,11 @@ import { CheckboxField, InputField, SelectField, FormGrid } from '@/components/F
 import { ErrorState } from '@/components/States';
 import { Marke, Warnung } from '@/components/Badge';
 import PasswortAendern from '@/features/auth/PasswortAendern';
+import ZweiFaktorKarte from '@/features/settings/ZweiFaktorKarte';
 import { plattformFehler, type PlattformFehler } from '@/lib/db/fehlerprotokoll';
 import FehlerListe from './FehlerListe';
 import NotzugangPasswort from './NotzugangPasswort';
+import NotzugangZweiFaktor from './NotzugangZweiFaktor';
 import BetriebVerwalten from './BetriebVerwalten';
 import BasiszinsZentral from './BasiszinsZentral';
 
@@ -135,6 +137,8 @@ export default function PlattformView() {
   const [notLaeuft, setNotLaeuft] = useState(false);
   /** Für welchen Betrieb im Notzugang das Passwortformular offen ist (P2). */
   const [passwortFuer, setPasswortFuer] = useState<string | null>(null);
+  /** Für welchen Betrieb im Notzugang das Formular zum zweiten Faktor offen ist (Runde 3, H1). */
+  const [zweiterFaktorFuer, setZweiterFaktorFuer] = useState<string | null>(null);
   const [notFehler, setNotFehler] = useState<string | null>(null);
 
   async function freigabenLaden() {
@@ -419,6 +423,19 @@ export default function PlattformView() {
                     <NotzugangPasswort kennung={f.company_id} name={f.name} />
                   </div>
                 )}
+                {f.notzugang && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => setZweiterFaktorFuer((x) => (x === f.company_id ? null : f.company_id))}
+                  >
+                    Zwei-Faktor zurücksetzen
+                  </Button>
+                )}
+                {f.notzugang && zweiterFaktorFuer === f.company_id && (
+                  <div className="basis-full">
+                    <NotzugangZweiFaktor kennung={f.company_id} name={f.name} />
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -659,6 +676,9 @@ export default function PlattformView() {
         Betrieb vorher: einmal per Link hinein und danach nie wieder.
       */}
       <PasswortAendern />
+
+      {/* Runde 3, H1: Pflicht für dieses Konto — hier die Wiederherstellungscodes. */}
+      <ZweiFaktorKarte />
 
       <div className="border-t border-line pt-4">
         <Button variant="ghost" onClick={() => void signOut()}>

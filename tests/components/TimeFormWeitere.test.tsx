@@ -94,15 +94,16 @@ describe('Weitere Angaben', () => {
     await nutzer.type(screen.getByLabelText('Baustelle'), 'B-1');
     await nutzer.click(zeile());
     await nutzer.type(screen.getByLabelText('Fahrzeug (Kennzeichen)'), '123AB');
-    await nutzer.click(screen.getByLabelText('Nachtarbeit'));
+    await nutzer.click(screen.getByLabelText('Notdienst / Störungseinsatz'));
     await nutzer.click(zeile());
 
-    expect(screen.queryByLabelText('Nachtarbeit')).toBeNull();
-    expect(zeile()).toHaveTextContent('Fahrzeug WZ-123AB · Nachtarbeit');
+    expect(screen.queryByLabelText('Fahrzeug (Kennzeichen)')).toBeNull();
+    expect(zeile()).toHaveTextContent('Fahrzeug WZ-123AB · Notdienst');
 
     await nutzer.click(screen.getByRole('button', { name: 'Zeit buchen' }));
     const daten = createTimeEntryOhneEmpfang.mock.calls[0][1];
-    expect(daten).toMatchObject({ vehiclePlate: 'WZ-123AB', isNightWork: true, projectNumber: 'B-1' });
+    // Tagsüber (07:00–16:00) keine Nachtarbeit — sie zählt seit Runde 3, M4 von selbst.
+    expect(daten).toMatchObject({ vehiclePlate: 'WZ-123AB', isEmergency: true, isNightWork: false, projectNumber: 'B-1' });
   });
 
   it('der Notdienst geht nach dem Buchen nicht in die nächste Buchung mit (Testbericht 30.09.2026, G18)', async () => {

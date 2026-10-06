@@ -47,6 +47,18 @@ export function notzugangPasswort(eingabe: {
   return pg.notzugangPasswort(eingabe);
 }
 
+export type { LeitungMitZweitemFaktor } from './pg/plattform';
+
+/** Leitungskonten mit zweitem Faktor im Notzugang (Runde 3, H1). */
+export function leitungMitZweitemFaktor(kennung: string): Promise<pg.LeitungMitZweitemFaktor[]> {
+  return pg.leitungMitZweitemFaktor(kennung);
+}
+
+/** Den zweiten Faktor eines Leitungskontos über den Notzugang zurücksetzen (Runde 3, H1). */
+export function zweitenFaktorZuruecksetzen(eingabe: { uid: string; grund: string; rueckruf: string }): Promise<void> {
+  return pg.zweitenFaktorZuruecksetzen(eingabe);
+}
+
 export type { BetriebProtokollEintrag, GeloeschterBetrieb, Uebergabe, BetriebGeloescht } from './pg/plattform';
 
 /*

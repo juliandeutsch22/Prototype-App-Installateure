@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
-import { API, ANON, admin, betriebAnlegen, konto, deaktivieren, type Konto } from './helfer';
+import { API, ANON, admin, betriebAnlegen, konto, deaktivieren, type Konto, zweitenFaktorEinrichten } from './helfer';
 import { clientEinreichen } from '@/lib/db/pg/kern';
 
 const BETRIEB = 'anspruch-a';
@@ -217,6 +217,8 @@ describe('Was sich am Konto ändert, gilt sofort', () => {
     const c = createClient(API, ANON, { auth: { persistSession: false } });
     const an = await c.auth.signInWithPassword({ email, password: PASSWORT });
     expect(an.error).toBeNull();
+    // Ohne zweiten Faktor ist ein Plattformkonto ohnehin keines (Runde 3, H1).
+    await zweitenFaktorEinrichten(c);
 
     const { data: f } = await admin.from('support_freigaben').insert({
       company_id: BETRIEB, gewaehrt_von: anton.uid, grund: 'Prüfung',

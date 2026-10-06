@@ -19,6 +19,8 @@ const WERT = {
   loading: false,
   error: null,
   plattformAdmin: false,
+  // Runde 3, H1: in der Vorschau verlangt niemand einen zweiten Faktor.
+  zweiterFaktor: 'keiner',
   signIn: async () => {},
   signOut: async () => {},
   resetPassword: async () => {},

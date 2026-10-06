@@ -1,3 +1,4 @@
+import { ibanFehler } from '@shared/iban';
 import type {
   AppUser,
   Company,
@@ -509,6 +510,8 @@ export async function einstellungen(
     const fehlt: string[] = [];
     if (!company?.strasse?.trim() || !company?.plz?.trim() || !company?.ort?.trim()) fehlt.push('Anschrift');
     if (!company?.iban?.trim()) fehlt.push('IBAN');
+    // Runde 3, H3: eine ungültige IBAN sperrt jede neue Rechnung.
+    else if (ibanFehler(company.iban)) fehlt.push('gültige IBAN');
     out.firmaFehlt = fehlt;
   }
   if (was.konten && k.user.companyId) {

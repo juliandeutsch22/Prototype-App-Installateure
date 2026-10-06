@@ -15,6 +15,7 @@ import { budgetArt } from '@/lib/einstufung';
 import Card from '@/components/Card';
 import { Warnung } from '@/components/Badge';
 import Zeitmarker from '@/features/time/Zeitmarker';
+import type { Nachtzeit } from '@/lib/lohnregeln';
 import Icon from '@/components/Icon';
 import { EmptyState } from '@/components/States';
 
@@ -107,7 +108,10 @@ export default function ProjectSummary({
   projects,
   label,
   gesamtEntries,
+  nacht,
 }: {
+  /** Die Nachtzeit des Betriebs — für die Marke „Nacht“ (Runde 3, M4). */
+  nacht?: Nachtzeit;
   entries: TimeEntry[];
   projects: Project[];
   label: string;
@@ -349,7 +353,7 @@ export default function ProjectSummary({
                                 */}
                                 <span className="flex flex-wrap items-center gap-1">
                                   <span>{e.userName ?? '–'}</span>
-                                  <Zeitmarker eintrag={e} />
+                                  <Zeitmarker eintrag={e} nacht={nacht} />
                                 </span>
                               </td>
                               <td className="py-1 pr-3 text-ink-muted">
