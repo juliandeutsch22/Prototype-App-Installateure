@@ -252,6 +252,7 @@ describe('Jede Änderung, die dazugehört, kommt an', () => {
       (melde, fehler) => rechnungen.subscribeRecentInvoices(BETRIEB, 50, melde, fehler),
       async () => { await rechnungen.createInvoice(BETRIEB, {
         invoiceNumber: `RE-${jahr}-7777`, projectNumber: 'B-700', customerName: 'Huber',
+        address: 'Hauptplatz 1, 8200 Gleisdorf',
         invoiceDate: '2026-05-31', dueDate: '2026-06-14',
         totalNetto: 100, totalVat: 20, totalBrutto: 120, paymentStatus: 'Offen',
         positions: [{ label: 'Arbeit', qty: 1, unit: 'h', unitPrice: 100, netto: 100 }],

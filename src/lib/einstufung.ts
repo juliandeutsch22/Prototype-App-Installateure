@@ -85,14 +85,47 @@ export function lehrzeitEnde(lehrbeginn: string, lehrzeitMonate: number): string
   return ende.toISOString().slice(0, 10);
 }
 
+/**
+ * Eine frühere Stufe der Person (Runde 3, M13): sie galt bis VOR `bis`.
+ * Die Schlüssel stehen so, wie die Datenbank sie in `einstufung_verlauf`
+ * schreibt — die Umwandlung in camelCase reicht nur eine Ebene tief.
+ */
+export interface FruehereEinstufung {
+  einstufung: Einstufung | null;
+  lehrbeginn?: string | null;
+  lehrzeit_monate?: number | null;
+  bis: string;
+}
+
 export interface EinstufungDerPerson {
   einstufung?: Einstufung | null;
   lehrbeginn?: string | null;
   lehrzeitMonate?: number | null;
+  einstufungVerlauf?: FruehereEinstufung[] | null;
 }
 
-/** Der Satz einer Person an einem Tag. Ohne Einstufung: Facharbeiter, wie bisher. */
+/**
+ * Der Satz einer Person an einem Tag. Ohne Einstufung: Facharbeiter, wie bisher.
+ *
+ * JEDE BUCHUNG ZÄHLT ZUM SATZ IHRES TAGES (Runde 3, M13): eine Umstufung gilt
+ * ab dem Tag, an dem sie eingetragen wurde. Liegt der Tag vor einer früheren
+ * Stufe `bis`, gilt die früheste solche — wie `app.satzklasse_am`.
+ */
 export function satzklasseAm(p: EinstufungDerPerson, tag: string): Satzklasse {
+  const frueher = (p.einstufungVerlauf ?? [])
+    .map((v, n) => ({ v, n }))
+    .filter(({ v }) => v.bis > tag)
+    .sort((a, b) => (a.v.bis < b.v.bis ? -1 : a.v.bis > b.v.bis ? 1 : a.n - b.n))[0]?.v;
+  if (frueher) {
+    return satzDerStufe(
+      { einstufung: frueher.einstufung, lehrbeginn: frueher.lehrbeginn, lehrzeitMonate: frueher.lehrzeit_monate },
+      tag,
+    );
+  }
+  return satzDerStufe(p, tag);
+}
+
+function satzDerStufe(p: EinstufungDerPerson, tag: string): Satzklasse {
   switch (p.einstufung) {
     case 'obermonteur':
       return 'obermonteur';

@@ -36,7 +36,7 @@ import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { euro } from '@/lib/betrag';
-import { leseZahl, zahlAlsText, zahlOder } from '@/lib/zahl';
+import { leseZahl, preisAlsText, zahlAlsText, zahlOder } from '@/lib/zahl';
 import ZahlFeld from '@/components/ZahlFeld';
 import AdresseFeld from '@/components/AdresseFeld';
 import AbrechnungWahl from './AbrechnungWahl';
@@ -368,7 +368,7 @@ export default function QuotesView() {
                   label: p.label,
                   qty: zahlAlsText(p.qty),
                   unit: p.unit,
-                  unitPrice: zahlAlsText(p.unitPrice),
+                  unitPrice: preisAlsText(p.unitPrice),
                   rabatt: p.rabattProzent != null ? zahlAlsText(p.rabattProzent) : '',
                   materialId: p.materialId ?? null,
                   istArbeitszeit: p.istArbeitszeit ?? zaehltAlsArbeitszeit(p.unit, p.label),
@@ -724,6 +724,15 @@ export default function QuotesView() {
                           v.map((x, j) => (j === i ? { ...x, unitPrice: text } : x)),
                         )
                       }
+                      // „4,2“ wird beim Verlassen „4,20“ (Runde 3, G8) — ein Preis liest sich in Cent.
+                      onBlur={() => {
+                        const { wert, fehler } = leseZahl(z.unitPrice);
+                        if (wert == null || fehler) return;
+                        const text = preisAlsText(wert);
+                        if (text !== z.unitPrice) {
+                          setZeilen((v) => v.map((x, j) => (j === i ? { ...x, unitPrice: text } : x)));
+                        }
+                      }}
                     />
                     {/* Ein Nachlass auf genau diese Position (M18); leer = keiner. */}
                     <ZahlFeld
@@ -782,7 +791,7 @@ export default function QuotesView() {
                         label: m.name,
                         qty: '1',
                         unit: m.unit ?? '',
-                        unitPrice: m.verkaufspreis != null ? zahlAlsText(m.verkaufspreis) : '',
+                        unitPrice: m.verkaufspreis != null ? preisAlsText(m.verkaufspreis) : '',
                         materialId: m.id,
                         istArbeitszeit: zaehltAlsArbeitszeit(m.unit ?? '', m.name),
                       },

@@ -143,15 +143,17 @@ export default function SicherungView() {
         listInvoicesInRange(user.companyId, z.von, z.bis),
         listCustomers(user.companyId),
       ]);
-      const { belegArchiv } = await import('@/features/invoices/belegArchiv');
+      const { belegArchiv, ersterBelegTag } = await import('@/features/invoices/belegArchiv');
+      // „Alle Belege“ beginnt beim ersten Beleg, nicht am 01.01.2000 (Runde 3, G11).
+      const von = z.wert === 'alle' ? ersterBelegTag(rechnungen, z.bis) : z.von;
       const e = await belegArchiv({
-        company, rechnungen, kunden, von: z.von, bis: z.bis,
+        company, rechnungen, kunden, von, bis: z.bis,
         fortschritt: (fertig, gesamt) => setArchivStand({ fertig, gesamt }),
       });
       const url = URL.createObjectURL(e.blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${company.name}-Belegarchiv-${z.wert === 'alle' ? `bis-${z.bis}` : z.wert}.zip`;
+      a.download = `${company.name}-Belegarchiv-${z.wert === 'alle' ? `${von}-bis-${z.bis}` : z.wert}.zip`;
       a.click();
       URL.revokeObjectURL(url);
       setArchivErgebnis({ rechnungen: e.rechnungen, stornos: e.stornos, hinweise: e.hinweise.length });

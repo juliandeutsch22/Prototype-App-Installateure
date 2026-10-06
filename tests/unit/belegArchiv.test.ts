@@ -8,7 +8,7 @@ vi.mock('jspdf-autotable', () => ({
   },
 }));
 
-import { belegArchiv } from '@/features/invoices/belegArchiv';
+import { ersterBelegTag, belegArchiv } from '@/features/invoices/belegArchiv';
 import { druckAngaben } from '@/features/invoices/nachdruck';
 import type { Company, Invoice } from '@/types';
 
@@ -114,7 +114,14 @@ describe('Belegarchiv', () => {
     expect(hinweise).toContain('- RE-2026-0004: storniert');
   });
 
-  it('die Stornorechnung steht im Jahr des Stornos, die Rechnung in ihrem', async () => {
+  /*
+    RUNDE 3, M7: EINE QUELLE FÜR DAS BELEGDATUM (`stornoBelegTag`). Bis hier
+    stand die Stornorechnung im Archiv und im Journal im Jahr des Stornos, auf
+    dem Beleg und in der Liste mit dem Tag ihrer Ausstellung. Jetzt trägt sie
+    überall den Tag der Ausstellung; ohne ausgestellte Stornorechnung zählt der
+    Tag des Stornos. Welches Datum gilt, klärt die Steuerberatung.
+  */
+  it('die Stornorechnung steht im Jahr ihres Belegdatums, die Rechnung in ihrem', async () => {
     const alt = rechnung({
       invoiceNumber: 'RE-2025-0050', invoiceDate: '2025-11-03', dueDate: '2025-11-17',
       // Storniert im März 2026, die Stornorechnung erst im Jänner 2027 ausgestellt.
@@ -124,10 +131,16 @@ describe('Belegarchiv', () => {
     const jahr = async (j: string) => [...(await entpacken((await belegArchiv({
       company: firma, rechnungen: [alt], kunden: [], von: `${j}-01-01`, bis: `${j}-12-31`,
     })).blob)).keys()].filter((n) => n.endsWith('.pdf'));
-    expect(await jahr('2026')).toEqual(['Stornorechnungen/Stornorechnung_RE-2026-0010.pdf']);
+    expect(await jahr('2027')).toEqual(['Stornorechnungen/Stornorechnung_RE-2026-0010.pdf']);
     expect(await jahr('2025')).toEqual(['Rechnungen/RE-2025-0050.pdf']);
-    // Nach dem Storno, wie im Journal — nicht nach dem Tag der Ausstellung.
-    expect(await jahr('2027')).toEqual([]);
+    expect(await jahr('2026')).toEqual([]);
+  });
+
+  it('G11: der erste Beleg — Rechnungsdatum oder Belegdatum einer Stornorechnung', () => {
+    const a = rechnung({ invoiceNumber: 'RE-2026-0060', invoiceDate: '2026-04-01' });
+    const b = rechnung({ invoiceNumber: 'RE-2026-0061', invoiceDate: '2026-02-15' });
+    expect(ersterBelegTag([a, b], '2026-10-06')).toBe('2026-02-15');
+    expect(ersterBelegTag([], '2026-10-06')).toBe('2026-10-06');
   });
 
   it('meldet Lücken im Nummernkreis zuerst', async () => {

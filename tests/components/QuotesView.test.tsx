@@ -622,6 +622,31 @@ describe('Einen Entwurf bearbeiten', () => {
       .toEqual([true, false]);
   });
 
+  // Runde 3, G8: ein Preis steht mit zwei Nachkommastellen im Feld.
+  it('zeigt Preise mit zwei Nachkommastellen — beim Öffnen und nach dem Tippen', async () => {
+    entwurf(true);
+    zeichne();
+    await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+    expect(screen.getByLabelText('Einzelpreis netto', { selector: '#anqprice0' })).toHaveValue('70,00');
+    const preis = screen.getByLabelText('Einzelpreis netto', { selector: '#anqprice1' });
+    await userEvent.clear(preis);
+    await userEvent.type(preis, '4,2');
+    expect(preis).toHaveValue('4,2');
+    await userEvent.tab();
+    expect(preis).toHaveValue('4,20');
+  });
+
+  it('Gegenprobe: eine unlesbare Eingabe bleibt stehen, wie getippt', async () => {
+    entwurf(true);
+    zeichne();
+    await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+    const preis = screen.getByLabelText('Einzelpreis netto', { selector: '#anqprice1' });
+    await userEvent.clear(preis);
+    await userEvent.type(preis, '4,2x');
+    await userEvent.tab();
+    expect(preis).toHaveValue('4,2x');
+  });
+
   it('sagt es, wenn der Haken bei einem alten Angebot aus der Einheit abgeleitet wurde', async () => {
     entwurf(false);
     zeichne();

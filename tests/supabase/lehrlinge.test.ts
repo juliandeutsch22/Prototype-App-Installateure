@@ -108,6 +108,70 @@ describe('3 — den Satz setzt die Datenbank', () => {
 });
 
 /*
+  Runde 3, M13: Jede Buchung zählt zum Satz ihres Tages. Eine Umstufung gilt
+  ab dem Tag, an dem sie eingetragen wird — frühere Stunden behalten die alte
+  Stufe, auch unverrechnet. Die erste Einstufung zieht weiter nach (Test oben).
+*/
+describe('3c — die Umstufung gilt ab ihrem Tag', () => {
+  const heute = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' });
+
+  async function verlaufVon(uid: string): Promise<Array<Record<string, unknown>>> {
+    const { data, error } = await admin.from('users').select('einstufung_verlauf').eq('id', uid).single();
+    if (error) throw new Error(error.message);
+    return (data as { einstufung_verlauf: Array<Record<string, unknown>> }).einstufung_verlauf;
+  }
+
+  it('ein Lehrling wird Facharbeiter: die offenen Lehrlingsstunden bleiben beim Lehrlingssatz', async () => {
+    const azubi = await konto(BETRIEB, 'Mitarbeiter', 'lap');
+    expect((await admin.from('users')
+      .update({ einstufung: 'lehrling', lehrbeginn: '2025-09-01', lehrzeit_monate: 36 })
+      .eq('id', azubi.uid)).error).toBeNull();
+    const alt = buchung(azubi, '2026-09-15', { is_billed: false, invoice_number: null });
+    const neu = buchung(azubi, '2099-11-05', { is_billed: false, invoice_number: null });
+    expect((await admin.from('time_entries').insert([alt, neu])).error).toBeNull();
+    expect(await satzVon(alt.id)).toBe('lj2');
+
+    const { error } = await chefin.client.from('users')
+      .update({ einstufung: 'facharbeiter', lehrbeginn: null, lehrzeit_monate: null }).eq('id', azubi.uid);
+    expect(error).toBeNull();
+    expect(await satzVon(alt.id)).toBe('lj2');
+    expect(await satzVon(neu.id)).toBe('facharbeiter');
+    expect(await verlaufVon(azubi.uid)).toEqual([
+      { einstufung: 'lehrling', lehrbeginn: '2025-09-01', lehrzeit_monate: 36, bis: heute },
+    ]);
+
+    // Eine spätere Änderung der alten Buchung behält ihren Tagessatz.
+    expect((await admin.from('time_entries').update({ end_time: '15:00' }).eq('id', alt.id)).error).toBeNull();
+    expect(await satzVon(alt.id)).toBe('lj2');
+    // Eine neue Buchung vor dem Tag der Umstufung bekommt die Stufe von damals.
+    const nachgetragen = buchung(azubi, '2026-09-16');
+    expect((await admin.from('time_entries').insert(nachgetragen)).error).toBeNull();
+    expect(await satzVon(nachgetragen.id)).toBe('lj2');
+  });
+
+  it('zweimal am selben Tag umgestuft: die Tage davor behalten die Stufe vom Morgen', async () => {
+    const wechsel = await konto(BETRIEB, 'Mitarbeiter', 'zweimal');
+    await admin.from('users').update({ einstufung: 'helfer' }).eq('id', wechsel.uid);
+    const alt = buchung(wechsel, '2026-09-10');
+    expect((await admin.from('time_entries').insert(alt)).error).toBeNull();
+    await chefin.client.from('users').update({ einstufung: 'obermonteur' }).eq('id', wechsel.uid);
+    await chefin.client.from('users').update({ einstufung: 'facharbeiter' }).eq('id', wechsel.uid);
+    expect(await satzVon(alt.id)).toBe('helfer');
+    expect(await verlaufVon(wechsel.uid)).toHaveLength(1);
+  });
+
+  it('den Verlauf schreibt niemand von aussen um', async () => {
+    const azubi = await konto(BETRIEB, 'Mitarbeiter', 'verlauf');
+    await admin.from('users').update({ einstufung: 'helfer' }).eq('id', azubi.uid);
+    await chefin.client.from('users').update({ einstufung: 'facharbeiter' }).eq('id', azubi.uid);
+    const { error } = await chefin.client.from('users')
+      .update({ einstufung_verlauf: [] }).eq('id', azubi.uid);
+    expect(error).toBeNull();
+    expect(await verlaufVon(azubi.uid)).toHaveLength(1);
+  });
+});
+
+/*
   ENTSCHEIDUNG 03.10.2026 — Lehrlingsstunden im Projekt-Budget je Person.
   Die Buchung merkt sich den Stand vom Tag; ein Umschalten ändert alte
   Buchungen nicht.

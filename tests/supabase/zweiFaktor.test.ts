@@ -9,7 +9,7 @@
  * Dazu die Pflicht je Betrieb für die Leitung, „wer einen hat, braucht ihn“,
  * und das Zurücksetzen über den Notzugang mit Rückruf.
  */
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import {
   admin, API, ANON, betriebAnlegen, konto, plattformkonto, zweitenFaktorEinrichten, type Konto,
@@ -240,4 +240,15 @@ describe('Zurücksetzen über den Notzugang', () => {
     });
     expect(r.error?.code).toBe('42501');
   });
+});
+
+/*
+  DEN NOTZUGANG WIEDER SCHLIESSEN. `support_freigaben_offen` nennt der
+  Plattform alle offenen Freigaben aller Betriebe — ein hier offen gelassener
+  Notzugang stünde sonst im Ergebnis von `supportzugang.test.ts`, je nachdem,
+  welche Datei zuerst läuft.
+*/
+afterAll(async () => {
+  await admin.from('support_freigaben').update({ widerrufen_am: new Date().toISOString() })
+    .eq('company_id', BETRIEB).is('widerrufen_am', null);
 });

@@ -92,3 +92,25 @@ describe('Was nicht in den Lauf gehört', () => {
     ], heute, SAETZE).zeilen).toHaveLength(0);
   });
 });
+
+/*
+  Runde 3, „Selbst prüfen“: der Rücklass im Mahnlauf. Solange er nicht fällig
+  ist, steht er nicht in der Forderung; ab seiner Fälligkeit wird er mitgemahnt.
+*/
+describe('Eine Rechnung mit Haftrücklass', () => {
+  const mitRuecklass = rechnung({
+    id: 'h1', ruecklassArt: 'haft', ruecklassProzent: 5, ruecklassBetrag: 60, ruecklassBis: '2027-09-01',
+  });
+
+  it('mahnt vor der Fälligkeit des Rücklasses nur den übrigen Betrag', () => {
+    expect(mahnlauf([mitRuecklass], '2026-09-16', SAETZE).zeilen[0]).toMatchObject({ stufe: 1, offen: 1140 });
+  });
+
+  it('nach einer Zahlung des übrigen Betrags ist nichts zu mahnen, solange der Rücklass nicht fällig ist', () => {
+    const bezahlt = { ...mitRuecklass, bezahltBetrag: 1140 } as Invoice & { id: string };
+    expect(mahnlauf([bezahlt], '2026-10-20', SAETZE).zeilen).toHaveLength(0);
+    // Ab seiner Fälligkeit wird er gemahnt — gezählt ab dem Tag, an dem er fällig wurde.
+    const lauf = mahnlauf([bezahlt], '2027-09-03', SAETZE);
+    expect(lauf.zeilen[0]).toMatchObject({ stufe: 1, offen: 60, tageUeberfaellig: 2 });
+  });
+});

@@ -161,9 +161,10 @@ describe('Die Rechnung im neuen Layout', () => {
       const text = s.join('\n');
       expect(text).toContain('IBAN AT12 3456 7890 1234 5678');
       expect(text).toContain('UID: ATU12345678');
-      expect(text).toContain('FN 123456a');
-      // § 14 UGB: mit dem Firmenbuchgericht (Testbericht 30.09.2026, M12).
-      expect(text).toContain('Landesgericht Wiener Neustadt');
+      // § 14 UGB: „FN …, Landesgericht …“ in einer Angabe (M12; Runde 3, M8),
+      // in der schmalen Spalte auf zwei Zeilen umbrochen.
+      expect(text).toContain('(FN 123456a, Landesgericht Wiener) Tj');
+      expect(text).toContain('(Neustadt) Tj');
     }
   });
 

@@ -640,13 +640,17 @@
       Pilot sein muss: ein echter Betrieb lässt sich nicht mehr als Testbetrieb
       kennzeichnen, das Plattformkonto meldet sich nur mit
       <strong>zweitem Faktor</strong> an, die <strong>IBAN wird geprüft</strong>,
-      und <strong>Nachtstunden zählen ohne Haken</strong>. Alles im Abschnitt
+      und <strong>Nachtstunden zählen ohne Haken</strong>. Dazu Exporte und
+      Belege: der <strong>BMD-Stapel trägt die Kundennummer</strong>, die
+      Stornorechnung hat überall dasselbe Datum, eine <strong>Rechnung geht nur
+      an einen vollständigen Empfänger</strong>, und eine
+      <strong>Umstufung gilt ab ihrem Tag</strong>. Alles im Abschnitt
       „Seit dem 6. Oktober“.
     </p>
     <div class="stempel">
       <span>Stand <b>06.10.2026</b></span>
       <span>Fassung <b>Runde 3 · vor dem Pilot</b></span>
-      <span>Automatische Prüfungen <b>5668</b></span>
+      <span>Automatische Prüfungen <b>5741</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -681,6 +685,63 @@
         <p>Nicht verrechnete Buchungen zählen ab jetzt automatisch nach; <strong>verrechnete bleiben</strong>, wie sie verrechnet wurden. Ohne Von und Bis (Stunden aus der Spracheingabe) gilt weiter der alte Haken.</p>
         <p class="wer">Alle, die Zeit buchen; Buchhaltung</p>
       </div>
+      <div class="bereich">
+        <h3>Ein Datum für die Stornorechnung<span class="neu">behoben</span></h3>
+        <p>RE-2026-1503 stand in Liste und PDF mit 30.09., im Ausgangsbuch und im BMD-Stapel mit 25.09. Jetzt nehmen alle Ansichten dasselbe Belegdatum: den <strong>Tag der Ausstellung</strong> der Stornorechnung, ohne ausgestellte Stornorechnung den Tag des Stornos. Das gilt auch für den Zeitraum des Ausgangsbuchs und das Jahr im Belegarchiv. Welches Datum die Buchung tragen soll, klärt noch die Steuerberatung; umgestellt wird dann an einer Stelle. Ein Storno ohne ausgestellte Stornorechnung steht im Ausgangsbuch mit dem Hinweis „Storno ohne Stornorechnung“ über dem Knopf.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung</p>
+      </div>
+      <div class="bereich">
+        <h3>BMD: Kundennummer und Zahlungsstapel<span class="neu">behoben</span></h3>
+        <p>Der Buchungsstapel trägt jetzt die Spalte <strong>Kundennummer</strong>: die Kundennummer aus der Kundenakte, sonst das Debitoren-Sammelkonto aus dem Kontenrahmen. Daneben steht immer der Knopf <strong>„Zahlungen und Skonto für BMD“</strong>: Zahlungseingänge, Rückzahlungen und Skonto im gewählten Zeitraum, mit derselben Spalte. Fehlt dafür ein Konto, ist der Knopf grau und nennt, was fehlt. Beide Stapel sind <em>vorgebaut</em>, bis die Kanzlei eine Beispieldatei importiert hat — das steht so am Knopf.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung</p>
+      </div>
+      <div class="bereich">
+        <h3>Ausgangsbuch mit Bestellnummer und Rücklass<span class="neu">behoben</span></h3>
+        <p>Das Rechnungsausgangsbuch (CSV) hat am Ende drei Spalten mehr: „Bestellnummer“, „Rücklass (€)“ und „Rücklass fällig am“. Die bisherigen Spalten bleiben, wo sie waren.</p>
+        <p class="wer">Buchhaltung</p>
+      </div>
+      <div class="bereich">
+        <h3>Lohn-CSV: Projektauswertung je Einstufung<span class="neu">behoben</span></h3>
+        <p>Die 10,75 Stunden eines Lehrlings standen unter „Facharbeiter (Std)“. Die Projektauswertung hat jetzt je Einstufung eine Spalte — Facharbeiter, Obermonteur, Helfer, Lehrling —, dazu Gesamt und weiterhin „Lehrling nicht im Budget“. Gezählt wird nach dem Satz an der Buchung, wie in der Nachkalkulation; der Haken „als Helfer“ zählt als Helfer.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung</p>
+      </div>
+      <div class="bereich">
+        <h3>Firmenbuch im Belegfuß<span class="neu">behoben</span></h3>
+        <p>Im Fuß jeder Rechnung steht „FN 123456a, Landesgericht …“. Bei einer GmbH, KG, OG, AG, FlexCo oder einem e.U. — erkannt an der Rechtsform im Firmennamen — ohne Firmenbuchnummer oder Firmenbuchgericht warnt die Rechnungsmaske, und die Startseite der Leitung nennt es unter „Firmendaten unvollständig“. Die Rechnung geht trotzdem: ob eine Eintragung besteht, weiß nur der Betrieb.</p>
+        <p class="wer">Geschäftsführung, Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Rechnung nur an einen vollständigen Empfänger<span class="neu">behoben</span></h3>
+        <p>RE-2026-1500 trug als Anschrift nur „Alois-Köberl-Gasse 11“. Jetzt entsteht keine Rechnung, solange der Kunde „Adresse prüfen“ trägt oder PLZ und Ort fehlen; die Maske sagt es mit dem Link „Zur Kundenakte“, und die Datenbank weist sie ebenso ab. Ohne Kunden im Stamm muss die Anschrift auf der Rechnung selbst PLZ und Ort haben. Ausgestellte Belege bleiben, wie sie sind.</p>
+        <p>Dasselbe für die <strong>Kundenart</strong> (Privatperson oder Unternehmen): Rechnung und Mahnung verlangen sie bei einem Kunden aus dem Stamm, weil Verzugszinsen und Mahnspesen an ihr hängen. Eine UID auf der Rechnung genügt — sie macht den Kunden zum Unternehmen. In der Kundenliste findet „Nur Kunden ohne Kundenart“ die Altkunden, die Zeile sagt „Kundenart prüfen“, und im Mahnlauf steht „Kundenart fehlt“. <em>Grenze:</em> eine Baustelle ohne verknüpften Kunden prüft nur die Anschrift, keine Kundenart.</p>
+        <p class="wer">Wer Rechnungen erstellt oder mahnt; wer Kunden pflegt</p>
+      </div>
+      <div class="bereich">
+        <h3>Korrigierte UID auch beim Kunden<span class="neu">behoben</span></h3>
+        <p>Wird im Rechnungsformular die UID des Kunden berichtigt, ist „UID auch beim Kunden speichern?“ jetzt vorab angehakt — sonst stand die falsche beim nächsten Mal wieder da.</p>
+        <p class="wer">Wer Rechnungen erstellt</p>
+      </div>
+      <div class="bereich">
+        <h3>Katalogartikel bis in die Nachkalkulation<span class="neu">behoben</span></h3>
+        <p>Die Nachkalkulation von PR-2026-0193 meldete „Ohne Einkaufspreis: Pressfitting Bogen 15 mm (aus dem Angebot)“, obwohl der Artikel 2,10 € Einkauf hat. Eine Zeile aus „Aus dem Katalog …“ merkt sich ihren Artikel; Bezeichnung und Preis bleiben änderbar. Die Rechnung aus dem Angebot trägt ihn weiter, und die Nachkalkulation rechnet Menge × Einkaufspreis als Material ein, solange kein Schein Material trägt. Ohne Artikel hilft der Name wie bei den Scheinen; nur was dann keinen Einkaufspreis hat, steht als Lücke da.</p>
+        <p class="wer">Geschäftsführung</p>
+      </div>
+      <div class="bereich">
+        <h3>Umstufung gilt ab ihrem Tag<span class="neu">behoben</span></h3>
+        <p>Die Benutzerakte sagte, die Einstufung gelte „für neue und für noch nicht verrechnete Stunden“; das Handbuch, „jede Buchung behält den Satz ihres Tages“. Es gilt jetzt das Zweite, und die Akte sagt es: <strong>Jede Stunde zählt zum Satz ihres Tages.</strong> Eine Umstufung gilt ab dem Tag, an dem sie gespeichert wird; Stunden davor behalten die alte Stufe, auch wenn sie noch nicht verrechnet sind. Wird ein Lehrling nach der Lehrabschlussprüfung Facharbeiter, bleiben seine Lehrlingsstunden beim Lehrlingssatz. Die Akte zeigt vor dem Speichern „Umstufung von Lehrling auf Facharbeiter: gilt ab heute“ und danach die frühere Stufe mit ihrem letzten Tag.</p>
+        <p>Ausnahmen: Bekommt jemand zum ersten Mal eine Einstufung, gilt sie für alle noch nicht verrechneten Stunden — davor gab es keine. Ein berichtigter Lehrbeginn gilt ebenso für alle noch nicht verrechneten Stunden.</p>
+        <p class="wer">Geschäftsführung, Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Kleinigkeiten aus dem Test<span class="neu">behoben</span></h3>
+        <p>Preise im Angebot stehen mit zwei Nachkommastellen („4,20“), auch nach dem Tippen. Beim Speichern der Kundenakte heißt es „Kunde gespeichert. Der neue Name steht jetzt auch auf 3 Baustellen.“ — und nur, wenn sich dort der Name geändert hat. Nach „Rückzahlung buchen“ schließt der Zahlungsdialog mit „Rückzahlung über € 200,00 gebucht“; nach einem Zahlungseingang bleibt er für die nächste Zahlung offen. Bei VIES steht zu „ohne Abfrage-ID“ der Grund, etwa „VIES erkennt die eigene UID-Nummer aus den Firmendaten nicht an“, und bei einem Unternehmen ohne UID sagt der Abschnitt, wann geprüft werden kann. Der Hinweis zum Mahnlauf nennt jetzt, dass Verzugszinsen und Spesen auf der Mahnung stehen.</p>
+        <p class="wer">Alle Betroffenen</p>
+      </div>
+      <div class="bereich">
+        <h3>Projektleitung: Rechnungen nur lesen<span class="neu">behoben</span></h3>
+        <p>Mit der Freigabe „Rechnungen seiner Baustellen lesen“ sah der Projektleiter die ganze Rechnungsseite — Anlegen, Zahlung, Mahnen, Storno, Export —, und erst die Datenbank wies ab. Jetzt sieht er die Rechnungen seiner Baustellen mit „Ansehen“ und „PDF erneut laden“ und die Kennzahlen dazu, sonst nichts. Auch über die Schnittstelle liest er nur diese Rechnungen und ihre Positionen; ohne Freigabe keine.</p>
+        <p class="wer">Projektleiter mit Freigabe</p>
+      </div>
     </div>
   </section>
 
@@ -702,7 +763,7 @@
       </div>
       <div class="bereich">
         <h3>Belegarchiv<span class="neu">neu</span></h3>
-        <p>Unter Einstellungen › Datensicherung lädt „Belegarchiv herunterladen“ eine ZIP-Datei: alle Rechnungen und Stornorechnungen des gewählten Zeitraums als PDF, dazu das Rechnungsausgangsbuch als CSV. Wählbar sind alle Belege oder ein einzelnes Jahr der siebenjährigen Aufbewahrungsfrist (§ 132 BAO). Die PDFs entstehen aus den gespeicherten Rechnungen, genau wie bei „PDF erneut laden“; das Archiv lässt sich ohne Senklot öffnen und ersetzt ein Konto „nur lesen“ nach dem Ende des Vertrags. Die Stornorechnung steht im Jahr des Stornos, wie im Journal.</p>
+        <p>Unter Einstellungen › Datensicherung lädt „Belegarchiv herunterladen“ eine ZIP-Datei: alle Rechnungen und Stornorechnungen des gewählten Zeitraums als PDF, dazu das Rechnungsausgangsbuch als CSV. Wählbar sind alle Belege oder ein einzelnes Jahr der siebenjährigen Aufbewahrungsfrist (§ 132 BAO). Die PDFs entstehen aus den gespeicherten Rechnungen, genau wie bei „PDF erneut laden“; das Archiv lässt sich ohne Senklot öffnen und ersetzt ein Konto „nur lesen“ nach dem Ende des Vertrags. Die Stornorechnung steht im Jahr ihres Belegdatums, wie im Journal (seit 06.10., siehe dort). „Alle Belege“ beginnt beim ersten Beleg des Betriebs, nicht beim 01.01.2000 — in den Hinweisen und im Dateinamen.</p>
         <p>Was fehlt, steht in „Hinweise.txt“: Lücken im Nummernkreis, Rechnungen ohne gespeicherte Positionen (Altbestand, dann kein PDF) und Stornos ohne ausgestellte Stornorechnung — das Archiv stellt keine aus. Mahnungen, Angebote und Arbeitsscheine sind nicht als PDF dabei; ihre Daten enthält „Alle Daten herunterladen“.</p>
         <p class="wer">Geschäftsführung und Administrator</p>
       </div>
@@ -1011,7 +1072,7 @@
       </div>
       <div class="bereich">
         <h3>Lehrlinge<span class="neu">neu</span></h3>
-        <p>Jede Person hat eine <strong>Einstufung</strong>: Facharbeiter, Obermonteur, Helfer oder Lehrling; beim Lehrling mit Lehrbeginn, Lehrzeit und dem Lehrjahr daneben. Verrechnungs- und Kostensatz lassen sich je Stufe festlegen, und jede Buchung behält den Satz ihres Tages. <strong>Berufsschule</strong> trägt der Lehrling selbst ein, auch als Zeitraum; sie erfüllt das Tagessoll und steht in Wochenplan, Lohn-CSV und Stundennachweis.</p>
+        <p>Jede Person hat eine <strong>Einstufung</strong>: Facharbeiter, Obermonteur, Helfer oder Lehrling; beim Lehrling mit Lehrbeginn, Lehrzeit und dem Lehrjahr daneben. Verrechnungs- und Kostensatz lassen sich je Stufe festlegen, und jede Buchung behält den Satz ihres Tages — seit 06.10. auch nach einer Umstufung (siehe dort). <strong>Berufsschule</strong> trägt der Lehrling selbst ein, auch als Zeitraum; sie erfüllt das Tagessoll und steht in Wochenplan, Lohn-CSV und Stundennachweis.</p>
         <p class="wer">Einstufung: Geschäftsführung, Administrator · Berufsschule: Lehrling, Büro</p>
       </div>
       <div class="bereich">
@@ -1126,7 +1187,7 @@
       </div>
       <div class="bereich">
         <h3>Stornorechnung<span class="neu">neu</span></h3>
-        <p>Ein Storno war bisher nur ein Vermerk; der Kunde bekam keinen Beleg. Jetzt stellt die Buchhaltung im Menü der stornierten Rechnung eine <strong>Stornorechnung</strong> aus: eigene Nummer aus dem Rechnungskreis, die Beträge der Rechnung ins Minus. Seit dem 30.09. trägt sie das Datum ihrer Ausstellung und die Nummer aus deren Jahr; der Tag des Stornos steht im Text. Danach lässt sie sich beliebig oft neu drucken — und der Storno <strong>nicht mehr aufheben</strong>, weil der Beleg womöglich schon beim Kunden liegt. BMD-Stapel und Ausgangsbuch buchen den Storno unter ihrer Nummer. Eine Teilgutschrift gibt es bewusst nicht: ein Nachlass geht über Storno und neue Rechnung.</p>
+        <p>Ein Storno war bisher nur ein Vermerk; der Kunde bekam keinen Beleg. Jetzt stellt die Buchhaltung im Menü der stornierten Rechnung eine <strong>Stornorechnung</strong> aus: eigene Nummer aus dem Rechnungskreis, die Beträge der Rechnung ins Minus. Seit dem 30.09. trägt sie das Datum ihrer Ausstellung und die Nummer aus deren Jahr; der Tag des Stornos steht im Text. Danach lässt sie sich beliebig oft neu drucken — und der Storno <strong>nicht mehr aufheben</strong>, weil der Beleg womöglich schon beim Kunden liegt. BMD-Stapel und Ausgangsbuch buchen den Storno unter ihrer Nummer und seit 06.10. mit demselben Datum wie Liste und Beleg. Eine Teilgutschrift gibt es bewusst nicht: ein Nachlass geht über Storno und neue Rechnung.</p>
         <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
       </div>
       <div class="bereich">

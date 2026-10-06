@@ -113,6 +113,16 @@ describe('Umbenennen durch das Büro', () => {
     expect(p!.customer_name).toBe('Neu GmbH');
   });
 
+  // Runde 3, G9: gezählt wird nur, wo sich der Name auf der Baustelle ändert.
+  it('derselbe Name noch einmal gespeichert: keine Baustelle gezählt', async () => {
+    const { data: k } = await admin.from('customers').select('id').eq('company_id', BETRIEB).eq('name', 'Neu GmbH').single();
+    const { data, error } = await buero.client.rpc('kunde_umbenennen', {
+      p_kunde: k!.id, p_name: 'Neu GmbH', p_rest: { contact_phone: '0664 1234567' },
+    });
+    expect(error).toBeNull();
+    expect(data).toBe(0);
+  });
+
   it('ohne Freigabe bleibt beides, wie es war', async () => {
     await freigabe(buchhaltung, false);
     const { data: k } = await admin.from('customers').select('id').eq('company_id', BETRIEB).eq('name', 'Neu GmbH').single();

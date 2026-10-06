@@ -20,6 +20,7 @@ const rechnung = (nr: string) => ({
   company_id: BETRIEB, invoice_number: nr, project_number: 'PR-2026-0001',
   customer_name: 'Familie Huber', invoice_date: heute, due_date: heute,
   total_netto: 100, total_vat: 20, total_brutto: 120, payment_status: 'Offen',
+  address: 'Hauptplatz 1, 8200 Gleisdorf',
 });
 
 describe('IBAN in den Firmendaten', () => {
@@ -57,14 +58,28 @@ describe('IBAN in den Firmendaten', () => {
   });
 
   it('mit ungültiger IBAN entsteht keine Rechnung — mit Hinweis auf die Firmendaten', async () => {
-    const { error } = await admin.from('invoices').insert(rechnung('RE-2026-0001'));
+    const { error } = await chefin.client.from('invoices').insert(rechnung('RE-2026-0001'));
     expect(error?.message).toMatch(/IBAN in den Firmendaten ist ungültig.*Firmendaten berichtigen/);
   });
 
   it('Gegenprobe: berichtigt, und die Rechnung entsteht', async () => {
     expect((await chefin.client.from('companies').update({ iban: 'AT61 1904 3002 3457 3201' }).eq('id', BETRIEB)).error)
       .toBeNull();
-    const { error } = await admin.from('invoices').insert(rechnung('RE-2026-0002'));
+    const { error } = await chefin.client.from('invoices').insert(rechnung('RE-2026-0002'));
     expect(error).toBeNull();
+  });
+});
+
+/*
+  DER RÜCKLAUF AUS DER SICHERUNG spielt den Bestand zurück, wie er war —
+  auch mit einer alten ungültigen IBAN (20261006200000).
+*/
+describe('Rücklauf mit dem Dienstschlüssel', () => {
+  it('nimmt eine alte ungültige IBAN und eine Rechnung dazu an', async () => {
+    const b = 'h3-ruecklauf';
+    const { error: e1 } = await admin.from('companies').upsert({ id: b, name: b, iban: 'AT74123456' });
+    expect(e1).toBeNull();
+    const { error: e2 } = await admin.from('invoices').insert({ ...rechnung('RE-2026-0009'), company_id: b, address: 'Alois-Köberl-Gasse 11' });
+    expect(e2).toBeNull();
   });
 });

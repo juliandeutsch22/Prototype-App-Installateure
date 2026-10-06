@@ -149,6 +149,7 @@ describe('Die Rechnung', () => {
     const id = crypto.randomUUID();
     const { error } = await buch.client.from('invoices').insert({
       id, company_id: 'belege', invoice_number: nummer, project_number: '2026-100',
+      address: 'Hauptplatz 1, 8200 Gleisdorf',
       customer_name: 'Familie Berger', invoice_date: '2026-04-10', due_date: '2026-05-10',
       total_netto: 1000, total_vat: 200, total_brutto: 1200, vat_rate: 20,
       payment_status: 'Offen',
@@ -231,6 +232,7 @@ describe('Die Rechnung', () => {
     const { data: id, error: angelegt } = await buch.client.rpc('rechnung_anlegen', {
       p_kopf: {
         invoice_number: 'RE-2026-0013', project_number: '2026-100',
+        address: 'Hauptplatz 1, 8200 Gleisdorf',
         customer_name: 'Familie Berger', invoice_date: '2026-04-10', due_date: '2026-05-10',
         total_netto: 600, total_vat: 120, total_brutto: 720, vat_rate: 0.2,
         payment_status: 'Offen',

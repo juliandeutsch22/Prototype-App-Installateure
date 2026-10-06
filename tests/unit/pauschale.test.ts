@@ -124,3 +124,23 @@ describe('einheitspreisVorschau', () => {
     expect(v.positions[0].label).toMatch(/Teilbetrag der Pauschale/);
   });
 });
+
+// Runde 3, M12: der Katalogbezug der Angebotszeile geht mit auf die Rechnung.
+describe('Katalogartikel aus dem Angebot (Runde 3, M12)', () => {
+  const mitArtikel = angebot({
+    positions: [
+      { label: 'Bogen 15 mm verpresst', qty: 10, unit: 'Stk', unitPrice: 6, netto: 60, materialId: 'm-press' },
+      { label: 'Montage', qty: 1, unit: 'Pauschale', unitPrice: 75, netto: 75 },
+    ],
+  });
+
+  it('die Pauschale trägt die Artikel-ID weiter', () => {
+    const v = pauschalVorschau('einzel', BELEGE, mitArtikel, 0.2);
+    expect(v.positions.map((p) => p.materialId ?? null)).toEqual(['m-press', null]);
+  });
+
+  it('die Einheitspreisrechnung trägt die Artikel-ID weiter', () => {
+    const v = einheitspreisVorschau('einzel', BELEGE, mitArtikel, 0.2);
+    expect(v.positions.map((p) => p.materialId ?? null)).toEqual(['m-press', null]);
+  });
+});

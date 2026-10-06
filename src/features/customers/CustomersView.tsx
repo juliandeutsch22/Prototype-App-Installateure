@@ -4,6 +4,7 @@ import { useAuth } from '@/app/AuthContext';
 import {
   searchCustomers,
   kundenAdressePruefen,
+  kundenOhneKundenart,
   naechsteKundennummer,
   createCustomer,
   updateCustomer,
@@ -163,6 +164,8 @@ export default function CustomersView() {
   const [begriff, setBegriff] = useState('');
   /** Nur Kunden, deren alte Anschrift zu prüfen ist (M12). */
   const [nurPruefen, setNurPruefen] = useState(false);
+  /** Nur Kunden ohne Kundenart (Runde 3, M10). */
+  const [nurOhneArt, setNurOhneArt] = useState(false);
   const [ohneSuche, setOhneSuche] = useState(0);
   useEffect(() => {
     const t = setTimeout(() => setBegriff(suche), 300);
@@ -176,7 +179,9 @@ export default function CustomersView() {
       try {
         const treffer = nurPruefen
           ? await kundenAdressePruefen(user.companyId)
-          : await searchCustomers(user.companyId, begriff, grenze);
+          : nurOhneArt
+            ? await kundenOhneKundenart(user.companyId)
+            : await searchCustomers(user.companyId, begriff, grenze);
         setKunden(treffer);
         /*
           WIE VIELE OHNE SUCHE DA WAREN — getrennt gemerkt.
@@ -193,7 +198,7 @@ export default function CustomersView() {
         setLoading(false);
       }
     },
-    [user, grenze, begriff, nurPruefen],
+    [user, grenze, begriff, nurPruefen, nurOhneArt],
   );
 
   useEffect(() => {
@@ -221,8 +226,9 @@ export default function CustomersView() {
       if (bearbeitet) {
         const nachgezogen = await updateCustomer(user.companyId, bearbeitet.id, form);
         toast.success(
+          // Runde 3, G9: sagen, WAS nachgezogen wurde — und nur, wenn sich der Name dort geändert hat.
           nachgezogen > 0
-            ? `Kunde gespeichert, ${nachgezogen} ${nachgezogen === 1 ? 'Baustelle' : 'Baustellen'} nachgezogen`
+            ? `Kunde gespeichert. Der neue Name steht jetzt auch auf ${nachgezogen === 1 ? 'einer Baustelle' : `${nachgezogen} Baustellen`}.`
             : 'Kunde gespeichert',
         );
       } else {
@@ -540,7 +546,20 @@ export default function CustomersView() {
             id="k-nur-pruefen"
             label="Nur Anschriften, die zu prüfen sind"
             checked={nurPruefen}
-            onChange={(e) => setNurPruefen(e.target.checked)}
+            onChange={(e) => {
+              setNurPruefen(e.target.checked);
+              if (e.target.checked) setNurOhneArt(false);
+            }}
+          />
+          {/* Runde 3, M10: ohne Kundenart gehen Rechnung und Mahnung nicht. */}
+          <CheckboxField
+            id="k-nur-ohne-art"
+            label="Nur Kunden ohne Kundenart (Kundenart prüfen)"
+            checked={nurOhneArt}
+            onChange={(e) => {
+              setNurOhneArt(e.target.checked);
+              if (e.target.checked) setNurPruefen(false);
+            }}
           />
         </div>
         {/* Bündig: Kunden als Zeilen von Kante zu Kante (Designlinie „Fassung 3"). */}
@@ -575,6 +594,7 @@ export default function CustomersView() {
                     {k.kundennummer && <span className="text-sm font-normal text-ink-muted">Nr. {k.kundennummer}</span>}
                     {/* M12: die alte Zeile liess sich nicht eindeutig zerlegen. */}
                     {k.adressePruefen && <Warnung>Adresse prüfen</Warnung>}
+                    {!k.kundenart && <Warnung>Kundenart prüfen</Warnung>}
                   </span>
                 }
                 subtitle={

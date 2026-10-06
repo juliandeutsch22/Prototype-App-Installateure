@@ -1,3 +1,4 @@
+import { rechneBaustelle } from '@/features/costing/nachkalkulation';
 import { describe, it, expect } from 'vitest';
 import {
   buildMonthCsv,
@@ -89,7 +90,8 @@ describe('CSV-Aufbau', () => {
     // Seit 30.09.2026 (M25) wie die Übersicht: Fach und Helfer getrennt,
     // die Fachstunden (fürs Budget) stehen weiter für sich. Seit 03.10.2026
     // hinten angehängt: Lehrlingsstunden, die nicht ins Budget zählen.
-    expect(projLine).toBe('2025-001;9,00;9,00;18,00;0,00');
+    // Seit Runde 3 (M6) je Einstufung: Facharbeiter, Obermonteur, Helfer, Lehrling.
+    expect(projLine).toBe('2025-001;9,00;0,00;9,00;0,00;18,00;0,00');
   });
 
   it('hängt Lehrlingsstunden ohne Budget hinten an und zählt sie in „Gesamt“ (03.10.2026)', () => {
@@ -97,14 +99,32 @@ describe('CSV-Aufbau', () => {
       [
         makeRow([
           entry({ projectNumber: '2025-001' }),
-          entry({ id: 'e2', date: '2025-06-03', projectNumber: '2025-001', insBudget: false }),
+          entry({ id: 'e2', date: '2025-06-03', projectNumber: '2025-001', insBudget: false, satz: 'lj2' }),
         ]),
       ],
       2025,
       5, true,
     );
-    expect(csv).toContain('Projektnummer;Facharbeiter(Std);Helfer(Std);Gesamt(Std);Lehrling nicht im Budget(Std)');
-    expect(csv.split('\n').find((l) => l.startsWith('2025-001;'))).toBe('2025-001;9,00;0,00;18,00;9,00');
+    expect(csv).toContain('Projektnummer;Facharbeiter(Std);Obermonteur(Std);Helfer(Std);Lehrling(Std);Gesamt(Std);Lehrling nicht im Budget(Std)');
+    expect(csv.split('\n').find((l) => l.startsWith('2025-001;'))).toBe('2025-001;9,00;0,00;0,00;9,00;18,00;9,00');
+  });
+
+  /*
+    RUNDE 3, M6: 10,75 Std. eines Lehrlings standen unter „Facharbeiter
+    (Std)“, weil sie ins Budget zählten. Jetzt je Einstufung, mit denselben
+    Werten wie die Nachkalkulation.
+  */
+  it('Lehrlingsstunden im Budget stehen unter „Lehrling“, nicht unter „Facharbeiter“', () => {
+    const eintraege = [
+      entry({ projectNumber: 'PR-193', satz: 'facharbeiter' }),
+      entry({ id: 'e2', date: '2025-06-03', projectNumber: 'PR-193', satz: 'lj1', insBudget: true }),
+      entry({ id: 'e3', date: '2025-06-04', projectNumber: 'PR-193', satz: 'obermonteur' }),
+    ];
+    const csv = buildMonthCsv([makeRow(eintraege)], 2025, 5, true);
+    expect(csv.split('\n').find((l) => l.startsWith('PR-193;'))).toBe('PR-193;9,00;9,00;0,00;9,00;27,00;0,00');
+    const nk = rechneBaustelle('PR-193', 'Huber', eintraege, [], undefined, {} as never);
+    expect(nk.lehrlingStunden).toBe(9);
+    expect(nk.fachStunden).toBe(18);
   });
 
   it('gibt für Krank/Urlaub keine Arbeitszeit aus', () => {

@@ -210,6 +210,18 @@ export function searchCustomers(
  * Kunden, deren alte Anschrift sich nicht eindeutig zerlegen liess — die
  * Liste „zu prüfen“ (Testbericht 30.09.2026, M12).
  */
+export function kundenOhneKundenart(companyId: string, max = KUNDEN_GRENZE): Promise<WithId<Customer>[]> {
+  /*
+    Runde 3, M10: Altkunden ohne Kundenart. Sie entscheidet über Zinsen und
+    Mahnspesen; ohne sie gehen Rechnung und Mahnung nicht.
+  */
+  return abfragen<Customer>(KUNDEN, companyId, {
+    wo: [{ art: 'leer', feld: 'kundenart' }],
+    sortiere: { feld: 'name' },
+    grenze: max,
+  });
+}
+
 export function kundenAdressePruefen(companyId: string, max = KUNDEN_GRENZE): Promise<WithId<Customer>[]> {
   return abfragen<Customer>(KUNDEN, companyId, {
     wo: [{ art: 'gleich', feld: 'adressePruefen', wert: true }],

@@ -664,6 +664,35 @@ describe('Prüfung bei VIES (offene Punkte E2)', () => {
     expect(screen.queryByRole('button', { name: /VIES prüfen/ })).toBeNull();
   });
 
+  // Runde 3, G21: „ohne Abfrage-ID“ sagt, warum.
+  it('nennt den Grund für eine Abfrage ohne Abfrage-ID', async () => {
+    pruefungen = [{ ...PRUEFUNG, abfrageId: null, eigeneUid: null,
+      ohneIdGrund: 'VIES erkennt die eigene UID-Nummer aus den Firmendaten nicht an.' }];
+    zeige();
+    expect(await screen.findByText(
+      /^ohne Abfrage-ID: VIES erkennt die eigene UID-Nummer aus den Firmendaten nicht an\./,
+    )).toBeInTheDocument();
+  });
+
+  it('bei einer älteren Abfrage ohne gespeicherten Grund: aus der fehlenden eigenen UID', async () => {
+    pruefungen = [{ ...PRUEFUNG, abfrageId: null, eigeneUid: null }];
+    zeige();
+    expect(await screen.findByText(/ohne Abfrage-ID: Die eigene UID-Nummer ging nicht mit/)).toBeInTheDocument();
+  });
+
+  it('ein Unternehmen ohne UID: der Abschnitt sagt, wann geprüft werden kann', async () => {
+    kunden = [{ ...KUNDE, vatId: '', kundenart: 'unternehmen' }];
+    zeige();
+    expect(await screen.findByText('Mit einer gespeicherten UID-Nummer lässt sie sich hier bei VIES prüfen.')).toBeInTheDocument();
+  });
+
+  it('eine gespeicherte UID in falscher Form: der Abschnitt nennt den Fehler', async () => {
+    kunden = [{ ...KUNDE, vatId: 'ATU1234' }];
+    zeige();
+    expect(await screen.findByText(/hat nicht die richtige Form: Eine österreichische UID-Nummer/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /VIES prüfen/ })).toBeNull();
+  });
+
   it('ohne UID kein Abschnitt, und der Supportzugang liest nur mit', async () => {
     kunden = [{ ...KUNDE, vatId: '' }];
     const { unmount } = zeige();

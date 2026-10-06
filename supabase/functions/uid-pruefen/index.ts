@@ -116,6 +116,8 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     p_abfrage_id: ergebnis.abfrageId,
     p_eigene_uid: eigeneGeschickt,
     p_abgefragt_am: ergebnis.zeitpunkt,
+    // Runde 3, G21: der Grund bleibt an der Abfrage stehen, nicht nur in dieser Antwort.
+    p_ohne_id_grund: ergebnis.abfrageId ? null : ohneIdGrund,
   });
   if (!fest.ok) {
     return fehler(fest.grund || 'Das Ergebnis ließ sich nicht festhalten.', fest.code === '40001' ? 409 : 500);

@@ -5,6 +5,7 @@ import type { Company } from '@/types';
 import { firmenZeilen, logoZeichnen } from './pdfBriefkopf';
 import { euroBetrag } from '@/lib/betrag';
 import { ibanAnzeige } from '@shared/iban';
+import { firmenbuchZeile } from './firmenbuch';
 
 /**
  * Das Layout der Belege, die an den Kunden gehen — Rechnung,
@@ -157,9 +158,8 @@ export function fusszeilen(doc: jsPDF, company: Company): void {
     ],
     [
       company.vatId && `UID: ${company.vatId}`,
-      company.companyRegister,
-      // § 14 UGB: zur Firmenbuchnummer das Firmenbuchgericht (M12), eigene Zeile.
-      company.firmenbuchgericht ?? undefined,
+      // § 14 UGB: „FN 123456a, Landesgericht …“ (M12; Runde 3, M8).
+      firmenbuchZeile(company),
     ],
   ].map((s) => s.filter((z): z is string => !!z && z.trim() !== ''));
   const x = [RAND, 88, 146];

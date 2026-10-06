@@ -128,6 +128,7 @@ describe('Durchstich 8: zwei Betriebe nebeneinander', () => {
     clientEinreichen(buchA.client);
     await rechnungenDb.createInvoice(PERL, {
       invoiceNumber: 'RE-2026-9001', projectNumber: NUMMER, customerName: 'Familie Huber',
+      address: 'Hauptplatz 1, 8200 Gleisdorf',
       invoiceDate: '2026-06-30', dueDate: '2026-07-14',
       totalNetto: 1000, totalVat: 200, totalBrutto: 1200, paymentStatus: 'Offen',
       // Ohne Positionen legt die Datenbank keine Rechnung an (P2-10).
@@ -139,6 +140,7 @@ describe('Durchstich 8: zwei Betriebe nebeneinander', () => {
       // DIESELBE Nummer im anderen Betrieb — erlaubt, und genau deshalb
       // gefährlich, wenn eine Abfrage den Betrieb vergisst.
       invoiceNumber: 'RE-2026-9001', projectNumber: NUMMER, customerName: 'Familie Berger',
+      address: 'Hauptplatz 1, 8200 Gleisdorf',
       invoiceDate: '2026-06-30', dueDate: '2026-07-14',
       totalNetto: 500, totalVat: 100, totalBrutto: 600, paymentStatus: 'Offen',
       positions: [{ label: 'Leistung', qty: 1, unit: 'Pauschale', unitPrice: 500, netto: 500 }],

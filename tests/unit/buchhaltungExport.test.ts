@@ -265,6 +265,10 @@ describe('Der Leistungszeitraum im Journal', () => {
       'Rechnungsart',
       // Skonto (B7) — ebenfalls am Ende, aus demselben Grund.
       'Skonto',
+      // Runde 3, G24: Bestellnummer und Rücklass, wieder hinten an.
+      'Bestellnummer',
+      'Rücklass (€)',
+      'Rücklass fällig am',
     ]);
     const felder = zeile.split(';');
     expect(felder[2]).toBe('03.12.2026');
@@ -287,8 +291,8 @@ describe('Der Leistungszeitraum im Journal', () => {
       [], '2026-01-01', '2026-12-31',
     );
     const [, erste, zweite] = r.csv.split('\n');
-    expect(erste.split(';').slice(-2)[0]).toBe('anzahlung');
-    expect(zweite.split(';').slice(-2)[0]).toBe('einzel');
+    expect(erste.split(';').slice(-5)[0]).toBe('anzahlung');
+    expect(zweite.split(';').slice(-5)[0]).toBe('einzel');
   });
 
   it('führt einen Skonto getrennt vom Geld, das gekommen ist (B7)', () => {
@@ -449,5 +453,34 @@ describe('Reverse Charge im Journal', () => {
     // Altbestände tragen sie nicht — dann ist die aus dem Kundenstamm besser
     // als ein leeres Feld.
     expect(feld(zeile({}), 'UID-Nummer')).toBe('ATU99999999');
+  });
+});
+
+/* Runde 3, G24: Bestellnummer und Rücklass im Ausgangsbuch. */
+describe('Bestellnummer und Rücklass im Ausgangsbuch', () => {
+  it('stehen in den letzten drei Spalten', () => {
+    const r = buildInvoiceCsv(
+      [{
+        companyId: 'perl', invoiceNumber: 'RE-2026-1507', projectNumber: 'PR-2026-0193', customerName: 'CT Bau',
+        invoiceDate: '2026-10-06', dueDate: '2026-10-20', totalNetto: 1000, totalVat: 200, totalBrutto: 1200,
+        vatRate: 0.2, paymentStatus: 'Offen', bestellnummer: 'BE-4711',
+        ruecklassArt: 'haft', ruecklassProzent: 5, ruecklassBetrag: 60, ruecklassBis: '2029-10-06',
+      } as never],
+      [], '2026-10-01', '2026-10-31',
+    );
+    const zeile = r.csv.split('\n')[1].split(';');
+    expect(zeile.slice(-3)).toEqual(['BE-4711', '60,00', '06.10.2029']);
+  });
+
+  it('Gegenprobe: ohne Bestellnummer und Rücklass bleiben sie leer', () => {
+    const r = buildInvoiceCsv(
+      [{
+        companyId: 'perl', invoiceNumber: 'RE-2026-1508', projectNumber: 'PR-2026-0193', customerName: 'CT Bau',
+        invoiceDate: '2026-10-06', dueDate: '2026-10-20', totalNetto: 100, totalVat: 20, totalBrutto: 120,
+        vatRate: 0.2, paymentStatus: 'Offen',
+      } as never],
+      [], '2026-10-01', '2026-10-31',
+    );
+    expect(r.csv.split('\n')[1].split(';').slice(-3)).toEqual(['', '', '']);
   });
 });

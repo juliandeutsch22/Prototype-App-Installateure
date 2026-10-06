@@ -98,6 +98,9 @@ import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { euro } from '@/lib/betrag';
 import { ibanFehler } from '@shared/iban';
+import { stornoBelegTag } from './stornoBelegTag';
+import { empfaengerFehler, kundenartFehlt } from './empfaenger';
+import { firmenbuchFehlt } from '@/lib/firmenbuch';
 import Adressfilter from '@/components/Adressfilter';
 import { RECHNUNGS_SICHTEN, bekannt, type RechnungsSicht } from '@/features/dashboard/start/ziele';
 
@@ -117,6 +120,17 @@ const FILTERSTATI = ['Offen', 'Überfällig', 'Teilbezahlt', 'Bezahlt', 'Überza
 
 export default function InvoicesView() {
   const { user, company } = useAuth();
+  /*
+    DIE PROJEKTLEITUNG LIEST NUR (Freigabe „Rechnungen seiner Baustellen
+    lesen“, M38; Runde 3, Selbst prüfen). Sie kommt nur mit der Freigabe
+    hierher, und die Datenbank zeigt ihr nur die Rechnungen ihrer Baustellen.
+    Anlegen, Zahlung, Mahnen, Storno und Export standen trotzdem da und
+    scheiterten erst beim Schreiben; „nicht verrechnete Leistung“ hätte ohne
+    Zugriff auf die Abdeckung jeden Schein als offen gemeldet. Deshalb sieht
+    sie die Liste, die Kennzahlen ihrer Rechnungen, Ansicht und PDF — sonst
+    nichts.
+  */
+  const nurLesen = user?.role === 'Projektleiter';
   // Die Vorsätze des Betriebs — `RE-` stand hier bisher fest im Code.
   const vorsaetze = praefixeVon(company);
   const toast = useToast();
@@ -311,8 +325,12 @@ export default function InvoicesView() {
   const [ruecklassAn, setRuecklassAn] = useState(false);
   const [ruecklassProzent, setRuecklassProzent] = useState<number | null>(null);
   const [ruecklassBis, setRuecklassBis] = useState('');
-  /** Eine in der Rechnung korrigierte UID auch in den Kundenstamm schreiben (M10). */
-  const [uidInKunden, setUidInKunden] = useState(false);
+  /**
+   * Eine in der Rechnung korrigierte UID auch in den Kundenstamm schreiben
+   * (M10). Vorbelegt mit „ja“ (Runde 3, M11): die korrigierte UID landete
+   * sonst nicht beim Kunden, und die nächste Rechnung sperrte wieder.
+   */
+  const [uidInKunden, setUidInKunden] = useState(true);
   /** Grund der Steuerbefreiung — nur bei 0 % ohne Reverse Charge (A2). */
   const [steuerbefreiung, setSteuerbefreiung] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
@@ -419,6 +437,8 @@ export default function InvoicesView() {
   // "Überfällig" setzen. Ohne das blieb der Status ungenutzt und der Betrieb
   // sah nie, welche Rechnung angemahnt gehört.
   useEffect(() => {
+    // Den Status stellt, wer schreiben darf — beim Lesen liefe es nur ins Leere.
+    if (nurLesen) return;
     const today = todayStr();
     invoices
       // Über `istUeberfaellig`: ein Rücklass, der noch nicht fällig ist, ist kein Verzug.
@@ -427,7 +447,7 @@ export default function InvoicesView() {
       // laeuft bei jedem Laden erneut und heilt sich damit selbst. Ein Hinweis
       // je Rechnung waere Laerm ohne Handlungsmoeglichkeit.
       .forEach((i) => void updateInvoiceStatus(i.id, 'Überfällig').catch(() => undefined));
-  }, [invoices]);
+  }, [invoices, nurLesen]);
 
   /*
     NUR FÜRS BÜRO. Der Monteur kommt hier gar nicht her; die Abfrage lädt die
@@ -482,7 +502,8 @@ export default function InvoicesView() {
       .catch(() => {
         if (!weg) setForderungenFehler(true);
       });
-    listRecentWorkSheets(user.companyId, UNVERRECHNET_BASIS)
+    // Ohne Zugriff auf die Abdeckung stünde jeder Schein als unverrechnet da.
+    if (!nurLesen) listRecentWorkSheets(user.companyId, UNVERRECHNET_BASIS)
       .then(async (rows) => {
         if (weg) return;
         setScheineAllerBaustellen(rows);
@@ -512,7 +533,7 @@ export default function InvoicesView() {
     return () => {
       weg = true;
     };
-  }, [user]);
+  }, [user, nurLesen]);
 
   const sorted = useMemo(
     () => [...invoices].sort((a, b) => b.invoiceNumber.localeCompare(a.invoiceNumber)),
@@ -613,7 +634,8 @@ export default function InvoicesView() {
   const [bezahltImMonat, setBezahltImMonat] = useState<number | null>(null);
   const monatsErster = `${todayStr().slice(0, 7)}-01`;
   useEffect(() => {
-    if (!user) return;
+    // Zahlungseingänge liest die Projektleitung nicht; die Kennzahl käme als Null.
+    if (!user || nurLesen) return;
     let weg = false;
     listZahlungenImZeitraum(user.companyId, monatsErster, todayStr())
       .then((z) => {
@@ -628,7 +650,7 @@ export default function InvoicesView() {
       })
       .catch(() => { if (!weg) setBezahltImMonat(null); });
     return () => { weg = true; };
-  }, [user, monatsErster, invoices]);
+  }, [user, nurLesen, monatsErster, invoices]);
 
   const stats = useMemo(() => {
     let offen = 0;
@@ -785,7 +807,19 @@ export default function InvoicesView() {
     setZSkonto(false);
     setZFehler(null);
     setZRichtung('eingang');
-    toast.success(rueck ? 'Rückzahlung gebucht' : 'Zahlung erfasst');
+    /*
+      NACH DER RÜCKZAHLUNG SCHLIESST DER DIALOG (Runde 3, G14). Er blieb offen
+      und sah aus wie vorher — man wusste nicht, ob gebucht war. Eine
+      Rückzahlung erledigt das Guthaben; danach gibt es hier nichts mehr zu
+      tun. Nach einem Eingang bleibt er offen: die nächste Teilzahlung oder der
+      Skonto folgt oft gleich, und die Liste darüber zeigt den neuen Stand.
+    */
+    if (rueck) {
+      setZahlungFuer(null);
+      toast.success(`Rückzahlung über ${euro(eingetragen)} gebucht`);
+      return;
+    }
+    toast.success('Zahlung erfasst');
   };
 
   const numberTaken = invoiceNumber !== '' && isInvoiceNumberTaken(invoices, invoiceNumber);
@@ -837,6 +871,17 @@ export default function InvoicesView() {
   const uidWeichtAb =
     !!kundeDerVorschau && !!uidNormalisieren(kundenUid) && !uidFormFehler
     && uidNormalisieren(kundenUid) !== uidNormalisieren(kundeDerVorschau.vatId);
+  /*
+    DER EMPFÄNGER MUSS VOLLSTÄNDIG SEIN (Runde 3, M9, M10): PLZ und Ort, kein
+    „Adresse prüfen“, eine Kundenart. Dieselben Regeln prüft die Datenbank;
+    hier stehen sie vor dem Klick, mit dem Weg in die Kundenakte.
+  */
+  const empfaengerBefund = (() => {
+    const p = projects.find((x) => x.projectNumber === projectNumber);
+    if (!p) return null;
+    const anschrift = kundeDerVorschau?.address?.trim() || p.address || '';
+    return empfaengerFehler(kundeDerVorschau, anschrift, kundenUid);
+  })();
   /*
     OHNE STEUER UND OHNE ÜBERGANG: der Grund gehört auf den Beleg (§ 11 Abs 1
     Z 3 lit e UStG, offene Punkte A2). Er sperrt den Knopf wie die fehlende
@@ -1108,7 +1153,7 @@ export default function InvoicesView() {
     const baustelle = projects.find((x) => x.projectNumber === projectNumber);
     const treffer = kundeZu(baustelle?.customerId, baustelle?.customerName);
     setKundenUid(treffer?.vatId?.trim() ?? '');
-    setUidInKunden(false);
+    setUidInKunden(true);
     /*
       DIE BESTELLNUMMER DER LETZTEN RECHNUNG DIESER BAUSTELLE vorbelegen.
       Anzahlung, Teil- und Schlussrechnung gehen auf dieselbe Bestellung;
@@ -1130,6 +1175,16 @@ export default function InvoicesView() {
     const uidFalsch = uidFehler(kundenUid);
     if (uidFalsch) {
       setError(uidFalsch);
+      return;
+    }
+    // Runde 3, M9/M10 und H3: dieselben Sperren wie am Knopf, falls er doch erreicht wird.
+    if (empfaengerBefund) {
+      setError(empfaengerBefund.text);
+      return;
+    }
+    const iban = ibanFehler(company.iban);
+    if (iban) {
+      setError(`Die IBAN in den Firmendaten ist ungültig: ${iban}`);
       return;
     }
     // Eine Menge oder ein Preis, der sich nicht lesen lässt, steht nicht still
@@ -1408,6 +1463,16 @@ export default function InvoicesView() {
     if (!company) return;
     const stufe = naechsteStufe(inv);
     if (!stufe) return;
+    /*
+      OHNE KUNDENART KEINE MAHNUNG (Runde 3, M10): Zinsen und Mahnspesen
+      hängen an ihr. Die Datenbank weist die Mahnstufe ebenso ab; hier steht
+      es, bevor ein Beleg entsteht.
+    */
+    const kundeVorher = kundeDerRechnung(inv);
+    if (kundenartFehlt(kundeVorher, inv.customerVatId)) {
+      setError(`Für ${kundeVorher!.name} ist keine Kundenart hinterlegt (Privatperson oder Unternehmen) — bitte vor dem Mahnen in der Kundenakte festlegen.`);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -1468,8 +1533,9 @@ export default function InvoicesView() {
    */
   /** Der Tag der Stornorechnung, TT.MM.JJJJ — `stornoAm` ist ein Zeitpunkt. */
   function stornoDatum(inv: Invoice): string {
-    const t = inv.stornoAm ?? inv.cancelledAt;
-    return t ? datumAT(localDateStr(new Date(t))) : '—';
+    // Runde 3, M7: dieselbe Quelle wie Ausgangsbuch, BMD-Stapel und Archiv.
+    const t = stornoBelegTag(inv);
+    return t ? datumAT(t) : '—';
   }
 
   async function stornorechnungDrucken(inv: WithId<Invoice>) {
@@ -1841,6 +1907,10 @@ export default function InvoicesView() {
     />
   );
 
+  /** Beim Lesen bleiben Ansicht und PDF — alles andere schreibt (siehe `nurLesen`). */
+  const nurLeseEintraege = <T extends { label: string }>(eintraege: T[]): T[] =>
+    nurLesen ? eintraege.filter((e) => e.label === 'Ansehen' || e.label === 'PDF erneut laden') : eintraege;
+
   const rechnungMenue = (inv: (typeof visible)[number]) => (
     <>
     {/* Der Status stand doppelt in der Zeile: einmal farbig als
@@ -1851,7 +1921,7 @@ export default function InvoicesView() {
         auf dem Telefon ohnehin ein eigenes Rad oeffnet. */}
     <RowMenu
       about={`Rechnung ${inv.invoiceNumber}`}
-      items={[
+      items={nurLeseEintraege([
         // Die Rechnung in der App lesen, ohne Datei (Testbericht 30.09.2026, M19).
         { label: 'Ansehen', onSelect: () => setDetailFuer(inv) },
         { label: 'PDF erneut laden', onSelect: () => void redownload(inv) },
@@ -1969,7 +2039,7 @@ export default function InvoicesView() {
                 (`allow delete: if false`).
               */
             ]),
-      ]}
+      ])}
     />
     </>
   );
@@ -1977,7 +2047,12 @@ export default function InvoicesView() {
   return (
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="space-y-3 lg:space-y-5">
-      <PageHeader title="Rechnungen" subtitle="Aus einer Baustelle erzeugen, Zahlung verfolgen, stornieren" />
+      <PageHeader
+        title="Rechnungen"
+        subtitle={nurLesen
+          ? 'Die Rechnungen Ihrer Baustellen — zum Lesen'
+          : 'Aus einer Baustelle erzeugen, Zahlung verfolgen, stornieren'}
+      />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
@@ -2043,7 +2118,7 @@ export default function InvoicesView() {
         Die Zeile steht über beiden Karten, nicht in ihnen — sie betrifft die
         Grundlage, nicht das Ergebnis.
       */}
-      {forderungenFehler && (
+      {!nurLesen && forderungenFehler && (
         <Hinweiszeile stufe="warn" role="status">
           <p>
             <strong>Die offenen Forderungen konnten nicht geladen werden.</strong> Mahnlauf und
@@ -2062,7 +2137,7 @@ export default function InvoicesView() {
         </Hinweiszeile>
       )}
 
-      {!forderungenFehler && !abdeckungFehler && scheineVerrechnet !== null
+      {!nurLesen && !forderungenFehler && !abdeckungFehler && scheineVerrechnet !== null
         && auffaellige(offeneLeistung).length > 0 && (
         <Card
           title={`Nicht verrechnete Leistung (${auffaellige(offeneLeistung).length})`}
@@ -2112,16 +2187,16 @@ export default function InvoicesView() {
         </Card>
       )}
 
-      {!forderungenFehler && (lauf.zeilen.length > 0 || lauf.ausgereizt.length > 0) && (
+      {!nurLesen && !forderungenFehler && (lauf.zeilen.length > 0 || lauf.ausgereizt.length > 0) && (
         <Card
           title={`Mahnlauf (${lauf.zeilen.length})`}
           hint={
             'Was heute gemahnt werden kann — die weit fortgeschrittenen Forderungen oben, denn ' +
             'eine Rechnung vor der letzten Mahnung ist dringender als eine, die gerade erst die ' +
             'Frist überschritten hat. Verschickt wird einzeln: jede Mahnung erzeugt ihren Beleg ' +
-            'und wird an der Rechnung festgehalten. Verzugszinsen stehen bewusst auf keiner ' +
-            'Mahnung — der gesetzliche Satz hängt am Basiszinssatz und ändert sich halbjährlich; ' +
-            'eine falsch gerechnete Zinsforderung wäre schlechter als keine.'
+            'und wird an der Rechnung festgehalten. Ab der ersten Mahnung nach der Erinnerung ' +
+            'stehen Verzugszinsen und Spesen je Kundenart auf dem Beleg; an Unternehmer nur mit ' +
+            'dem Basiszinssatz des laufenden Halbjahres — fehlt er, sagt es der Dialog.'
           }
         >
           {lauf.zeilen.length > 0 ? (
@@ -2154,6 +2229,10 @@ export default function InvoicesView() {
                           : ''}{' '}
                         · {z.tageUeberfaellig} Tage überfällig
                         {z.spesen > 0 ? ` · ${euro(z.spesen)} Spesen` : ''}
+                        {/* Runde 3, M10: schon im Lauf sichtbar, was das Mahnen aufhält. */}
+                        {kundenartFehlt(kundeDerRechnung(z.rechnung), z.rechnung.customerVatId)
+                          ? ' · Kundenart fehlt'
+                          : ''}
                       </span>
                     }
                   >
@@ -2192,6 +2271,7 @@ export default function InvoicesView() {
         </Card>
       )}
 
+      {!nurLesen && (
       <Card
         title="Neue Rechnung aus Baustelle"
         hint="Zusammengestellt wird, was auf dieser Baustelle als „Anwesend“ gebucht und noch NICHT verrechnet ist — dazu das ausgegebene Material. Eine Position kann deshalb nie zweimal auf eine Rechnung geraten. Gesperrt werden die Belege aber erst beim Anlegen, nicht schon beim Zusammenstellen: bis dahin lässt sich alles gefahrlos ansehen und wieder verwerfen."
@@ -2349,6 +2429,7 @@ export default function InvoicesView() {
 
         {error && <div className="mt-3"><ErrorState message={error} /></div>}
       </Card>
+      )}
 
       {/* Vorschau vor dem Erzeugen: danach sind die Belege gesperrt und eine
           Korrektur ginge nur noch über Storno. */}
@@ -2993,8 +3074,8 @@ export default function InvoicesView() {
                   className="mt-2"
                   label={
                     kundeDerVorschau.vatId?.trim()
-                      ? `Auch beim Kunden speichern (dort steht ${kundeDerVorschau.vatId.trim()})`
-                      : 'Auch beim Kunden speichern'
+                      ? `UID auch beim Kunden speichern? (dort steht ${kundeDerVorschau.vatId.trim()})`
+                      : 'UID auch beim Kunden speichern?'
                   }
                   checked={uidInKunden}
                   onChange={(e) => setUidInKunden(e.target.checked)}
@@ -3151,6 +3232,39 @@ export default function InvoicesView() {
                 ) : ' Das macht die Geschäftsführung unter Einstellungen › Firmendaten.'}
               </p>
             )}
+            {empfaengerBefund && (
+              <p className="text-sm text-danger" role="alert">
+                {empfaengerBefund.text}
+                {empfaengerBefund.kundeId && (
+                  <>
+                    {' '}
+                    <Link to={`/customers/${empfaengerBefund.kundeId}`} className="link-hinweis-weiter">
+                      Zur Kundenakte
+                    </Link>
+                  </>
+                )}
+              </p>
+            )}
+            {/*
+              FIRMENBUCH (Runde 3, M8): wer im Firmenbuch steht, nennt auf der
+              Rechnung Nummer und Gericht (§ 14 UGB). Eine Warnung, keine
+              Sperre — die Rechtsform steht nur im Namen, und ein Name kann
+              täuschen.
+            */}
+            {firmenbuchFehlt(company).length > 0 && (
+              <p className="text-sm text-warning">
+                In den Firmendaten fehlt {firmenbuchFehlt(company).join(' und ')} — bei einer GmbH, KG, OG oder
+                einem eingetragenen Unternehmen gehört beides in den Fuß jeder Rechnung (§ 14 UGB).
+                {user && isTopLevel(user.role) && (
+                  <>
+                    {' '}
+                    <Link to="/settings/firma" className="link-hinweis-weiter">
+                      Firmendaten
+                    </Link>
+                  </>
+                )}
+              </p>
+            )}
             {company?.addressLine?.trim() && !company?.vatId?.trim() && (
               <p className="text-sm text-warning">
                 Keine UID-Nummer des Betriebs hinterlegt. Ohne sie ist eine Rechnung über 400 € brutto
@@ -3182,6 +3296,7 @@ export default function InvoicesView() {
                   || !!summen?.gutschrift
                   || !company?.addressLine?.trim() || leer
                   || !!ibanFehler(company?.iban)
+                  || !!empfaengerBefund
                 }
                 className="w-full sm:w-auto">
                 Rechnung erstellen &amp; PDF
@@ -3413,6 +3528,7 @@ export default function InvoicesView() {
         Zahlendreher, ausgerechnet bei den Zahlen fuer die
         Umsatzsteuervoranmeldung.
       */}
+      {!nurLesen && (
       <Card
         title="Buchhaltungs-Export"
         hint={
@@ -3537,6 +3653,18 @@ export default function InvoicesView() {
                   </Hinweiszeile>
                 </div>
               )}
+              {e.ohneStornorechnung.length > 0 && (
+                <div className="mt-3">
+                  <Hinweiszeile stufe="warn">
+                    <p>
+                      <strong>Storno ohne Stornorechnung:</strong> {e.ohneStornorechnung.join(', ')}. Die
+                      Gegenbuchung steht am Tag des Stornos. Wird die Stornorechnung später ausgestellt,
+                      trägt sie das Datum ihrer Ausstellung — bitte vor der Übergabe an die Kanzlei
+                      ausstellen.
+                    </p>
+                  </Hinweiszeile>
+                </div>
+              )}
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <Button
                   variant="secondary"
@@ -3558,12 +3686,14 @@ export default function InvoicesView() {
                   const debitorVon = (inv: Invoice) => kundeDerRechnung(inv)?.kundennummer;
                   const b = buildBmdCsv(exportZeilen, konten, exportVon, exportBis, debitorVon);
                   /*
-                    DER ZAHLUNGSSTAPEL ERSCHEINT NUR, WENN EIN BANK- ODER
-                    SKONTOKONTO HINTERLEGT IST (H7 vorgebaut). Wer die Bank
-                    von der Kanzlei buchen lässt, sieht ihn gar nicht — und
-                    kann ihn nicht versehentlich doppelt einspielen.
+                    DER ZAHLUNGSSTAPEL HAT IMMER SEINEN KNOPF (Runde 3, M5).
+                    Bis zum 06.10. erschien er nur mit Bank- oder Skontokonto
+                    im Kontenrahmen — der Pilotbetrieb fand ihn deshalb nicht,
+                    obwohl das Handbuch ihn beschrieb. Jetzt steht er da und
+                    sagt, was fehlt. Dass er nur auf Wunsch der Kanzlei
+                    weitergeht (sonst bucht sie Zahlungen doppelt), steht im „i“.
                   */
-                  const zs = exportZahlungen && konten.some((k) => k.zweck === 'bank' || k.zweck === 'skonto')
+                  const zs = exportZahlungen
                     ? buildBmdZahlungenCsv(
                       exportZahlungen.zahlungen, exportZahlungen.rechnungen, konten, exportVon, exportBis, debitorVon,
                     )
@@ -3592,17 +3722,34 @@ export default function InvoicesView() {
                         Einstellungen und stammen von dort, nicht aus dieser App.
                       </InfoHint>
                       {zs && (
-                        <Button
-                          variant="secondary"
-                          disabled={zs.fehlend.length > 0 || zs.zeilen.length === 0}
-                          onClick={() => {
-                            downloadCsv(zs.csv, bmdZahlungenFilename(exportVon, exportBis));
-                            toast.success(`Zahlungsstapel erzeugt — ${zs.zeilen.length} Zeilen`);
-                          }}
-                        >
-                          Zahlungsstapel für BMD
-                        </Button>
+                        <>
+                          <Button
+                            variant="secondary"
+                            disabled={zs.fehlend.length > 0 || zs.zeilen.length === 0}
+                            onClick={() => {
+                              downloadCsv(zs.csv, bmdZahlungenFilename(exportVon, exportBis));
+                              toast.success(`Zahlungsstapel erzeugt — ${zs.zeilen.length} Zeilen`);
+                            }}
+                          >
+                            Zahlungen und Skonto für BMD
+                          </Button>
+                          <InfoHint about="den Zahlungsstapel">
+                            Zahlungseingänge (Bank an Debitoren), Rückzahlungen (Debitoren an Bank) und
+                            gewährte Skonti (Erlösschmälerung an Debitoren, mit dem Steuercode der
+                            Rechnung) im gewählten Zeitraum, als eigene Datei. <strong>Nur weitergeben,
+                            wenn die Kanzlei die Zahlungen nicht selbst aus dem Kontoauszug bucht</strong> —
+                            sonst stehen sie doppelt in den Büchern.
+                          </InfoHint>
+                          {zs.fehlend.length === 0 && zs.zeilen.length === 0 && (
+                            <span className="basis-full text-sm text-ink-muted">Im Zeitraum gibt es keine Zahlungen.</span>
+                          )}
+                        </>
                       )}
+                      <p className="basis-full text-sm text-ink-muted">
+                        Beide BMD-Stapel sind vorgebaut: Das endgültige Format legt die Kanzlei nach ihrem
+                        Importtest fest. Die letzte Spalte trägt die Kundennummer, ohne sie das
+                        Sammelkonto der Debitoren.
+                      </p>
                       {zs && zs.fehlend.length > 0 && (
                         <div className="mt-2 basis-full">
                           <Hinweiszeile stufe="warn">
@@ -3631,6 +3778,7 @@ export default function InvoicesView() {
           );
         })()}
       </Card>
+      )}
 
       <ConfirmDialog
         open={!!aufheben}
@@ -3933,6 +4081,16 @@ export default function InvoicesView() {
           if (mahnFuer) await mahnen(mahnFuer, mahnFrist);
         }}
       >
+        {mahnFuer && kundenartFehlt(kundeDerRechnung(mahnFuer), mahnFuer.customerVatId) && (
+          <p className="mb-3 text-sm text-danger" role="alert">
+            Für {kundeDerRechnung(mahnFuer)!.name} ist keine Kundenart hinterlegt. Sie entscheidet über
+            Verzugszinsen und Mahnspesen — bitte zuerst{' '}
+            <Link to={`/customers/${kundeDerRechnung(mahnFuer)!.id}`} className="link-hinweis-weiter">
+              in der Kundenakte festlegen
+            </Link>
+            .
+          </p>
+        )}
         <InputField
           id="mahnfrist"
           label="Neue Frist"
@@ -3955,7 +4113,7 @@ export default function InvoicesView() {
             // Kein stiller Wegfall: wer mahnt, soll wissen, dass die Zinsen fehlen und warum.
             return (
               <p className="mt-3 text-sm text-warning">
-                Der Kunde hat eine UID — für Verzugszinsen unter Unternehmern fehlt der
+                Der Kunde ist Unternehmer — für Verzugszinsen unter Unternehmern fehlt der
                 Basiszinssatz des laufenden Halbjahres (Einstellungen → Rechnungsvorgaben, für die Leitung unter Sätze und Kosten). Die Mahnung
                 geht ohne Zinsen hinaus.
               </p>

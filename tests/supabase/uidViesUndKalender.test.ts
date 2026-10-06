@@ -174,6 +174,21 @@ describe('UID bei VIES prüfen — was festgehalten wird', () => {
     expect(new Date(data.abgefragt_am).toISOString()).toBe('2026-10-02T10:15:00.000Z');
   });
 
+  // Runde 3, G21: der Grund für eine fehlende Abfrage-ID bleibt an der Abfrage stehen.
+  it('hält den Grund fest, wenn VIES keine Abfrage-ID vergeben hat', async () => {
+    const grund = 'VIES erkennt die eigene UID-Nummer aus den Firmendaten nicht an.';
+    const ohne = await festhalten('ATU87654321', { p_abfrage_id: null, p_eigene_uid: null, p_ohne_id_grund: grund });
+    expect(ohne.error).toBeNull();
+    expect(ohne.data).toMatchObject({ abfrage_id: null, ohne_id_grund: grund });
+    // Gegenprobe: mit Abfrage-ID gibt es keinen Grund, auch wenn einer mitkommt.
+    const mit = await festhalten('ATU87654321', { p_ohne_id_grund: grund });
+    expect(mit.data).toMatchObject({ abfrage_id: 'WAPIAAAAZ1', ohne_id_grund: null });
+    // Eine Edge Function vom alten Stand ruft ohne Grund — das geht weiter.
+    const alt = await festhalten('ATU87654321', { p_abfrage_id: null });
+    expect(alt.error).toBeNull();
+    expect(alt.data).toMatchObject({ ohne_id_grund: null });
+  });
+
   it('wurde die UID inzwischen geändert, gibt es keinen Nachweis für die alte', async () => {
     const vorher = (await admin.from('uid_pruefungen').select('id').eq('customer_id', kundeMitUid)).data!.length;
     const { error } = await festhalten('DE123456789');

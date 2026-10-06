@@ -43,6 +43,7 @@ async function rechnung(brutto = 1000): Promise<string> {
     invoiceNumber: `RE-${JAHR}-${lfd}`,
     projectNumber: 'B-100',
     customerName: 'Familie Huber',
+    address: 'Hauptplatz 1, 8200 Gleisdorf',
     invoiceDate: '2026-04-30',
     dueDate: '2026-05-14',
     totalNetto: Math.round((brutto / 1.2) * 100) / 100,
