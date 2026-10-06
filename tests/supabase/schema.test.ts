@@ -234,6 +234,9 @@ describe('Interne Hilfsfunktionen', () => {
       'app.protokoll_unveraenderlich()',
       // Kontingent eines Sonderurlaubs-Anlasses — nur `freistellung_entscheiden` (Runde 3, G17).
       'app.anlass_kontingent(text, text)',
+      // Auslöser der IBAN-Prüfung und der Zwei-Faktor-Pflicht (Runde 3, H3 und H1).
+      'app.bankverbindung_pruefen()',
+      'app.zwei_faktor_pflicht_pruefen()',
     ];
     const offen: string[] = [];
     for (const f of intern) {
