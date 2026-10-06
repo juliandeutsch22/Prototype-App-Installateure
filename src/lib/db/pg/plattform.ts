@@ -71,6 +71,12 @@ export interface PlattformBetrieb {
   exportAm: string | null;
   /** Ab wann die Löschung ausgeführt werden kann — sonst `null`. */
   loeschungGeplantFuer: string | null;
+  /**
+   * Warum sich der Betrieb nicht mehr nachträglich als Testbetrieb
+   * kennzeichnen lässt (Runde 3, H1) — etwa „er hat Rechnungen“; `null`,
+   * solange er keine echten Daten hat.
+   */
+  echteDaten: string | null;
 }
 
 export async function plattformBetriebe(): Promise<PlattformBetrieb[]> {
@@ -80,7 +86,7 @@ export async function plattformBetriebe(): Promise<PlattformBetrieb[]> {
     kennung: string; name: string; angelegt_am: string; leitungskonten: number;
     leitung_mit_mail: number; notzugang_bis: string | null;
     testbetrieb?: boolean | null; deaktiviert_am?: string | null; deaktiviert_grund?: string | null;
-    export_am?: string | null; loeschung_geplant_fuer?: string | null;
+    export_am?: string | null; loeschung_geplant_fuer?: string | null; echte_daten?: string | null;
   }[]).map((z) => ({
     kennung: z.kennung,
     name: z.name,
@@ -93,6 +99,7 @@ export async function plattformBetriebe(): Promise<PlattformBetrieb[]> {
     deaktiviertGrund: z.deaktiviert_grund ?? null,
     exportAm: z.export_am ?? null,
     loeschungGeplantFuer: z.loeschung_geplant_fuer ?? null,
+    echteDaten: z.echte_daten ?? null,
   }));
 }
 
@@ -227,4 +234,24 @@ export async function notzugangPasswort(eingabe: {
     throw new Error(rumpf?.error ?? error.message);
   }
   return String((data as { startpasswort?: string })?.startpasswort ?? '');
+}
+
+/** Ein Leitungskonto mit eingerichtetem zweiten Faktor, solange ein Notzugang offen ist (Runde 3, H1). */
+export interface LeitungMitZweitemFaktor {
+  uid: string;
+  name: string;
+  rolle: string;
+}
+
+export async function leitungMitZweitemFaktor(kennung: string): Promise<LeitungMitZweitemFaktor[]> {
+  const { data, error } = await derClient().rpc('plattform_leitung_mit_zweitem_faktor', { p_company: kennung });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as LeitungMitZweitemFaktor[];
+}
+
+/** Den zweiten Faktor über den Notzugang entfernen — mit Grund und Rückruf. */
+export async function zweitenFaktorZuruecksetzen(eingabe: { uid: string; grund: string; rueckruf: string }): Promise<void> {
+  await rpcOhneErgebnis('plattform_zweiter_faktor_zuruecksetzen', {
+    p_uid: eingabe.uid, p_grund: eingabe.grund, p_rueckruf: eingabe.rueckruf,
+  });
 }

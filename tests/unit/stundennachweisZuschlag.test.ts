@@ -70,10 +70,17 @@ describe('Zuschlagsstunden im Stundennachweis', () => {
     expect(zeilen[0]).toContain('N+ND');
   });
 
-  it('lässt die Spalte leer, wo kein Kennzeichen gesetzt ist', () => {
-    nachweis([eintrag()]);
+  it('lässt die Spalte leer, wo keine Zuschläge anfallen', () => {
+    nachweis([eintrag({ startTime: '07:00', endTime: '15:00' })]);
     expect(zeilen[0]).toContain('');
     expect(zeilen[0].some((z) => z === 'N' || z === 'ND' || z === 'N+ND')).toBe(false);
+  });
+
+  /* Runde 3, M4: die Nachtstunden zählen ohne Haken — auch hier. */
+  it('„N“ und die Nachtstunden auch ohne Haken', () => {
+    const text = befehle(nachweis([eintrag({ isNightWork: false })]));
+    expect(zeilen[0]).toContain('N');
+    expect(text).toContain('Nacht \\(22 bis 6 Uhr\\): 4,00 h');
   });
 
   it('nennt die Summen unter der Tabelle, samt Legende', () => {
@@ -99,7 +106,7 @@ describe('Zuschlagsstunden im Stundennachweis', () => {
     fehlende Spalte etwas anderes bedeutet als eine leere.
   */
   it('schweigt, wenn keine anfielen', () => {
-    const text = befehle(nachweis([eintrag()]));
+    const text = befehle(nachweis([eintrag({ startTime: '07:00', endTime: '15:00' })]));
     expect(text).not.toContain('Zuschlagsstunden');
   });
 });

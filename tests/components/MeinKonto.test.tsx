@@ -29,7 +29,11 @@ vi.mock('@/lib/push', () => ({
   enablePush: vi.fn(),
   disablePush: vi.fn(),
 }));
-vi.mock('@/lib/auth/sitzung', () => ({ passwortSetzen: vi.fn(async () => undefined) }));
+vi.mock('@/lib/auth/sitzung', () => ({
+  passwortSetzen: vi.fn(async () => undefined),
+  // Runde 3, H1: ein Monteur bekommt die Zwei-Faktor-Karte nicht angeboten.
+  zweiterFaktorStand: vi.fn(async () => ({ angeboten: false })),
+}));
 
 const { default: NotificationSettings } = await import('@/features/settings/NotificationSettings');
 

@@ -48,4 +48,14 @@ describe('Die Anmeldung im örtlichen Stack', () => {
   it('verlangt acht Zeichen, wie die App', () => {
     expect(wert('auth', 'minimum_password_length')).toBe('8');
   });
+
+  /*
+    Runde 3, H1: die Zwei-Faktor-Anmeldung braucht TOTP. Aus, und das
+    Plattformkonto käme im örtlichen Stack nie auf seine Seite — die Prüfungen
+    dazu liefen gegen eine Anmeldung, die es so nicht gibt.
+  */
+  it('kennt TOTP als zweiten Faktor — Einrichten und Prüfen', () => {
+    expect(wert('auth.mfa.totp', 'enroll_enabled')).toBe('true');
+    expect(wert('auth.mfa.totp', 'verify_enabled')).toBe('true');
+  });
 });

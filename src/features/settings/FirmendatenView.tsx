@@ -15,6 +15,7 @@ import { grundAus } from '@/lib/fehlerGrund';
 import AdressteileFelder from '@/components/AdressteileFelder';
 import { adresseZeile, type Adressteile } from '@/lib/adresse';
 import { uidFehler, uidSperrt } from '@/lib/uid';
+import { bicFehler, ibanAnzeige, ibanFehler, ibanNormal } from '@shared/iban';
 
 /**
  * Die Stammdaten des Betriebs — was auf Rechnung, Stundenbericht und
@@ -53,8 +54,11 @@ export default function FirmendatenView() {
   const [vatId, setVatId] = useState(company?.vatId ?? '');
   const uidFalsch = uidFehler(vatId);
   const [companyRegister, setCompanyRegister] = useState(company?.companyRegister ?? '');
-  const [iban, setIban] = useState(company?.iban ?? '');
+  // In Vierergruppen gezeigt, ohne Leerzeichen gespeichert (Runde 3, H3).
+  const [iban, setIban] = useState(ibanAnzeige(company?.iban));
   const [bic, setBic] = useState(company?.bic ?? '');
+  const ibanFalsch = ibanFehler(iban);
+  const bicFalsch = bicFehler(bic);
   const [bankName, setBankName] = useState(company?.bankName ?? '');
   const [logoUrl, setLogoUrl] = useState(company?.logoUrl ?? '');
   const [brandColor, setBrandColor] = useState(company?.brandColor ?? '');
@@ -111,6 +115,21 @@ export default function FirmendatenView() {
       setError(uidSperre);
       return;
     }
+    /*
+      DIE IBAN STEHT IM ZAHLUNGSHINWEIS JEDER RECHNUNG (Runde 3, H3): eine
+      falsche schickt das Geld ins Leere. Wie bei der UID hält nur ein
+      geänderter Wert auf; ein Altbestand steht markiert da, bis jemand ihn
+      berichtigt — dann prüft auch die Datenbank.
+    */
+    const ibanGeaendert = ibanNormal(iban) !== ibanNormal(company?.iban);
+    if (ibanGeaendert && ibanFalsch) {
+      setError(ibanFalsch);
+      return;
+    }
+    if (ibanNormal(bic) !== ibanNormal(company?.bic) && bicFalsch) {
+      setError(bicFalsch);
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -129,8 +148,8 @@ export default function FirmendatenView() {
         contactLine: contactLine.trim(),
         vatId: vatId.trim(),
         companyRegister: companyRegister.trim(),
-        iban: iban.trim(),
-        bic: bic.trim(),
+        iban: ibanNormal(iban),
+        bic: ibanNormal(bic),
         bankName: bankName.trim(),
         logoUrl,
         brandColor: brandColor.trim(),
@@ -268,18 +287,34 @@ export default function FirmendatenView() {
               value={firmenbuchgericht}
               onChange={(e) => setFirmenbuchgericht(e.target.value)}
             />
-            <InputField
-              id="fd-iban"
-              label="IBAN"
-              value={iban}
-              onChange={(e) => setIban(e.target.value)}
-            />
-            <InputField
-              id="fd-bic"
-              label="BIC"
-              value={bic}
-              onChange={(e) => setBic(e.target.value)}
-            />
+            <div>
+              <InputField
+                id="fd-iban"
+                label="IBAN"
+                placeholder="z. B. AT61 1904 3002 3457 3201"
+                value={iban}
+                aria-invalid={ibanFalsch ? true : undefined}
+                onChange={(e) => setIban(e.target.value)}
+                onBlur={() => setIban((x) => ibanAnzeige(x))}
+              />
+              {ibanFalsch && (
+                <p className="mt-1 text-sm text-danger">
+                  {ibanFalsch}
+                  {ibanNormal(iban) === ibanNormal(company?.iban) && ' Mit dieser IBAN lässt sich keine Rechnung erstellen.'}
+                </p>
+              )}
+            </div>
+            <div>
+              <InputField
+                id="fd-bic"
+                label="BIC"
+                placeholder="z. B. BKAUATWW"
+                value={bic}
+                aria-invalid={bicFalsch ? true : undefined}
+                onChange={(e) => setBic(e.target.value)}
+              />
+              {bicFalsch && <p className="mt-1 text-sm text-danger">{bicFalsch}</p>}
+            </div>
             <InputField
               id="fd-bank"
               label="Bank"

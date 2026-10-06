@@ -507,7 +507,7 @@ export default function TimeView() {
           <Warnung stufe="dringend">doppelt gebucht</Warnung>
         )}
         {e.source === 'voice' && <Marke>KI</Marke>}
-        <Zeitmarker eintrag={e} />
+        <Zeitmarker eintrag={e} nacht={nacht} />
         <span className="font-medium text-ink">
           {fmtMin(calcWorkMin(e))}
         </span>

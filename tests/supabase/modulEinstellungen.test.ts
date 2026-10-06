@@ -94,7 +94,7 @@ describe('Firmeneinstellungen', () => {
 
     const pl = await konto(BETRIEB, 'Projektleiter', 'pl');
     clientEinreichen(pl.client);
-    await expect(firma.updateCompany(BETRIEB, { iban: 'AT00' })).rejects.toThrow();
+    await expect(firma.updateCompany(BETRIEB, { iban: 'DE89370400440532013000' })).rejects.toThrow();
   }, 60_000);
 
   it('ein Monteur ändert nichts — und bekommt das auch gesagt', async () => {
@@ -103,7 +103,7 @@ describe('Firmeneinstellungen', () => {
       Trefferprüfung sähe das wie ein geglücktes Speichern aus.
     */
     clientEinreichen(anton.client);
-    await expect(firma.updateCompany(BETRIEB, { iban: 'AT00' })).rejects.toThrow();
+    await expect(firma.updateCompany(BETRIEB, { iban: 'DE89370400440532013000' })).rejects.toThrow();
     clientEinreichen(chef.client);
     expect((await firma.getCompany(BETRIEB))!.iban).toBe('AT611904300234573201');
   });

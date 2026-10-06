@@ -65,9 +65,9 @@ describe('M35 — der Nachtzuschlag gilt nur für die Stunden in der Nachtzeit',
     expect(nachtArbeitMin(eintrag({ startTime: '22:00', endTime: '02:00', breakDuration: 30 }))).toBe(210);
   });
 
-  it('ohne Kennzeichen keine Nachtstunden, ohne Uhrzeiten der ganze Eintrag', () => {
-    expect(nachtArbeitMin(eintrag({ isNightWork: false }))).toBe(0);
+  it('ohne Uhrzeiten zählt wie bisher der ganze Eintrag — nur mit Haken', () => {
     expect(nachtArbeitMin(eintrag({ startTime: undefined, endTime: undefined, hours: 3 }))).toBe(180);
+    expect(nachtArbeitMin(eintrag({ startTime: undefined, endTime: undefined, hours: 3, isNightWork: false }))).toBe(0);
   });
 
   it('Nacht und Notdienst: „davon beides“ sind nur die Nachtstunden', () => {
@@ -172,5 +172,53 @@ describe('Überstunden in der Lohn-CSV', () => {
     )).toBe(true);
     // 06:00–18:00 mit Pause sind 11,5 Stunden, 3,5 über dem Tagessoll von 8.
     expect(zeilenDanach[ab + 2].endsWith(';3,50;0,00;;;0;0,00;0;0;0,00;0')).toBe(true);
+  });
+});
+
+/*
+  RUNDE 3, M4: die Nachtminuten zählen von selbst. Vorher stand bei 05:00–16:00
+  „01:00 Std. liegen in der Nachtzeit“ in der Maske und „Nacht 0,00“ in der
+  Lohn-CSV, weil der Haken fehlte.
+*/
+describe('M4 — Nachtstunden ohne Haken', () => {
+  const ohneHaken = (x: Partial<TimeEntry> = {}) => eintrag({ isNightWork: false, ...x });
+
+  it('20:00–23:30 bei Nachtzeit 22–6: 1:30 Std. Nacht, ohne Haken', () => {
+    expect(nachtArbeitMin(ohneHaken())).toBe(90);
+    expect(zuschlagszeit([ohneHaken()], true).nachtMin).toBe(90);
+  });
+
+  it('der Befund: 05:00–16:00 ergibt eine Nachtstunde', () => {
+    expect(nachtArbeitMin(ohneHaken({ startTime: '05:00', endTime: '16:00', breakDuration: 30 }))).toBe(60);
+  });
+
+  it('über Mitternacht: 21:00–03:00 sind fünf Nachtstunden', () => {
+    expect(nachtArbeitMin(ohneHaken({ startTime: '21:00', endTime: '03:00', breakDuration: 0 }))).toBe(300);
+  });
+
+  it('Notdienst und Nacht gleichzeitig: „davon beides“', () => {
+    const z = zuschlagszeit([ohneHaken({ isEmergency: true })], true);
+    expect(z).toMatchObject({ nachtMin: 90, notdienstMin: 210, beidesMin: 90 });
+  });
+
+  it('bewusst abgewählt mit Grund: keine Nachtstunden', () => {
+    expect(nachtArbeitMin(ohneHaken({ nachtAbgewaehlt: 'Mit dem Kunden pauschal vereinbart' }))).toBe(0);
+    // Ein leerer Grund ist keine Abwahl.
+    expect(nachtArbeitMin(ohneHaken({ nachtAbgewaehlt: '  ' }))).toBe(90);
+  });
+
+  it('Gegenprobe: eine schon ohne Kennzeichen verrechnete Buchung bleibt ohne Nachtstunden', () => {
+    expect(nachtArbeitMin(ohneHaken({ isBilled: true, invoiceNumber: 'RE-2026-1500' }))).toBe(0);
+    // Mit Kennzeichen verrechnet: bleibt, wie verrechnet.
+    expect(nachtArbeitMin(eintrag({ isBilled: true }))).toBe(90);
+  });
+
+  it('die Rechnung bekommt die Nachtposition ohne Haken', () => {
+    const res = assembleInvoice('2026-001', [ohneHaken()]);
+    expect(res.positions.some((p) => /Nachtarbeit/.test(p.label) && p.qty === 1.5)).toBe(true);
+  });
+
+  it('Gegenprobe: tagsüber bleibt alles ohne Nacht', () => {
+    expect(nachtArbeitMin(ohneHaken({ startTime: '07:00', endTime: '16:00' }))).toBe(0);
   });
 });

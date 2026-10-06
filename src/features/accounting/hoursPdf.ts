@@ -11,7 +11,7 @@ import { BRAND_RGB, fmtDate, hours } from './export';
 import { FLAECHE, GRAU, TINTE } from '@/lib/belegLayout';
 import { zuschlagszeit, hatZuschlaege } from './zuschlaege';
 import { ueberstundenNachTagesgrenze } from './ueberstunden';
-import { nachtzeitText, nachtzeitVon, ueberstundenRegelVon } from '@/lib/lohnregeln';
+import { nachtArbeitMin, nachtzeitText, nachtzeitVon, ueberstundenRegelVon, type Nachtzeit } from '@/lib/lohnregeln';
 
 /** „N", „ND" oder „N+ND" — leer, wenn kein Kennzeichen gesetzt ist. */
 /** Die Spalte „Status" ist schmal; die Kürzel erklärt der Summenblock. */
@@ -23,9 +23,10 @@ const KUERZEL: Partial<Record<TimeEntry['status'], string>> = {
   Unbezahlt: 'UB',
 };
 
-function zuschlagKuerzel(e: TimeEntry): string {
+function zuschlagKuerzel(e: TimeEntry, nacht: Nachtzeit): string {
   const teile: string[] = [];
-  if (e.isNightWork) teile.push('N');
+  // Runde 3, M4: „N“, wo Nachtstunden gezählt werden — nicht nur, wo ein Haken stand.
+  if (nachtArbeitMin(e, nacht) > 0) teile.push('N');
   if (e.isEmergency) teile.push('ND');
   return teile.join('+');
 }
@@ -109,7 +110,7 @@ export function generateHoursPdf(opts: {
       e.startTime && e.endTime ? `${e.startTime}–${e.endTime}` : '–',
       wm > 0 ? `${hours(wm)} h` : '–',
       // Kurz, weil die Spalte schmal ist; die Legende steht im Summenblock.
-      zuschlagKuerzel(e),
+      zuschlagKuerzel(e, nachtzeitVon(company)),
       e.comment || '',
     ];
   });

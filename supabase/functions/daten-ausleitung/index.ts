@@ -50,6 +50,8 @@ import {
 } from '../_shared/ausleitungZiel.ts';
 import { inhaltsHash, pfadKodieren } from '../_shared/s3Signatur.ts';
 import { mitCors } from '../_eigen/cors.ts';
+import { zweiterFaktorFehlt } from '../_eigen/zweiterFaktor.ts';
+import { ZWEITER_FAKTOR_FEHLT } from '../_shared/zweiFaktor.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
 /*
@@ -702,6 +704,8 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   });
   if (!werAntwort.ok) return fehler('Keine Anmeldung.', 401);
   const wer = await werAntwort.json();
+  // Runde 3, H1: wer einen zweiten Faktor braucht, kommt ohne ihn auch hier nicht weiter.
+  if (await zweiterFaktorFehlt(URL_BASIS, alsDienst, String(wer.id), token)) return fehler(ZWEITER_FAKTOR_FEHLT, 403);
 
   const profilAntwort = await fetch(
     `${URL_BASIS}/rest/v1/users?select=company_id,role,active&id=eq.${wer.id}`,

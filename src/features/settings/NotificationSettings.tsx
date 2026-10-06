@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { getPrefs, savePrefs, PREFS_DEFAULTS } from '@/lib/db/prefs';
 import { getPushState, enablePush, disablePush, type PushState } from '@/lib/push';
-import { canProcessOrders, isGF, isMitarbeiter } from '@/lib/permissions';
+import { canProcessOrders, isGF, isMitarbeiter, isTopLevel } from '@/lib/permissions';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
@@ -12,6 +12,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, TeilFehler } from '@/components/States';
 import PushStatus from './PushStatus';
 import PasswortAendern from '@/features/auth/PasswortAendern';
+import ZweiFaktorKarte from './ZweiFaktorKarte';
 import { istBenutzerkonto } from '@shared/benutzername';
 import { grundAus } from '@/lib/fehlerGrund';
 
@@ -51,7 +52,7 @@ const PUSH_TEXT: Record<PushState, { text: string; ton: 'ok' | 'hinweis' | 'aus'
  * Telefon wechselt, verliert sonst unbemerkt seine Meldungen.
  */
 export default function NotificationSettings() {
-  const { user } = useAuth();
+  const { user, einblick, reloadCompany } = useAuth();
   const toast = useToast();
   const [newOrder, setNewOrder] = useState(PREFS_DEFAULTS.notifyNewOrder ?? true);
   const [orderReady, setOrderReady] = useState(PREFS_DEFAULTS.notifyOrderReady ?? true);
@@ -259,6 +260,17 @@ export default function NotificationSettings() {
           </div>
         </div>
       </Card>
+
+      {/*
+        Nicht im Einblick des Supports: dort ist das Konto das Plattformkonto,
+        und dessen zweiter Faktor gehört auf die Plattformseite.
+      */}
+      {!einblick && (
+        <ZweiFaktorKarte
+          betrieb={isTopLevel(user.role) ? user.companyId : undefined}
+          onBetriebGeaendert={reloadCompany}
+        />
+      )}
 
       {passwortOffen ? (
         <PasswortAendern benutzerkonto={istBenutzerkonto(user?.email)} />

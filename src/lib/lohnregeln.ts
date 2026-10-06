@@ -82,23 +82,31 @@ export function ueberstundenRegelVon(
 }
 
 /**
- * DIE NACHTSTUNDEN EINES EINTRAGS MIT KENNZEICHEN „NACHT“ (Testbericht
- * 30.09.2026, M35).
+ * DIE NACHTSTUNDEN EINES EINTRAGS (Testbericht 30.09.2026, M35; Runde 3, M4).
  *
  * Nur die Arbeitsminuten in der Nachtzeit des Betriebs (Vorgabe 22–6 Uhr).
  * Vorher trug das Kennzeichen die ganze Buchung: 20:00–23:30 ergab
  * dreieinhalb Nachtstunden statt anderthalb.
  *
+ * SEIT RUNDE 3 OHNE HAKEN: Die Minuten zählen von selbst, sobald Von und Bis
+ * in die Nachtzeit fallen. Ausgenommen:
+ *   - eine Buchung, die jemand mit Grund abgewählt hat (`nachtAbgewaehlt`);
+ *   - eine VERRECHNETE Buchung ohne Kennzeichen — sie ist so verrechnet und
+ *     bleibt so (die Datenbank setzt das Kennzeichen ab jetzt spätestens beim
+ *     Verrechnen; was davor ohne verrechnet wurde, bleibt ohne).
+ *
  * DIE PAUSE GEHT ZUERST VON DER ZEIT AUSSERHALB DER NACHT AB — wo sie lag,
  * steht in keinem Eintrag, und so bleibt dem Arbeitnehmer im Zweifel die
  * Nachtstunde. Ohne Von/Bis ist nicht bekannt, wann gearbeitet wurde: dann
- * zählt wie bisher der ganze Eintrag.
+ * zählt wie bisher der ganze Eintrag, wenn der Haken gesetzt ist.
  */
 export function nachtArbeitMin(e: TimeEntry, nacht: Nachtzeit = NACHTZEIT_VORGABE): number {
-  if (!e.isNightWork || e.status !== 'Anwesend') return 0;
+  if (e.status !== 'Anwesend') return 0;
   const gesamt = calcWorkMin(e);
   if (gesamt <= 0) return 0;
-  if (!e.startTime || !e.endTime) return gesamt;
+  if (!e.startTime || !e.endTime) return e.isNightWork ? gesamt : 0;
+  if (e.nachtAbgewaehlt?.trim()) return 0;
+  if (e.isBilled && !e.isNightWork) return 0;
   const imNacht = nachtMinutenIn(e.startTime, e.endTime, nacht);
   const spanne = spanneMin(e.startTime, e.endTime);
   const pause = Number(e.breakDuration ?? 0) || 0;

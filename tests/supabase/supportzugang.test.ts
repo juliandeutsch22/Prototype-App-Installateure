@@ -825,7 +825,7 @@ describe('Die Stufe „mitarbeiten"', () => {
     await einblickBeginnen(plattform, ANDERER, notId as string);
 
     await plattform.client.from('companies')
-      .update({ iban: 'AT00 0000 0000 0000 0000', bank_name: 'Vom Support' }).eq('id', ANDERER);
+      .update({ iban: 'DE89 3704 0044 0532 0130 00', bank_name: 'Vom Support' }).eq('id', ANDERER);
     const { data: b } = await admin.from('companies').select('iban, bank_name').eq('id', ANDERER).single();
     expect(b).toEqual({ iban: null, bank_name: null });
 

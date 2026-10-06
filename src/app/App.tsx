@@ -43,6 +43,9 @@ const DatenschutzView = lazy(() => import('@/features/recht/DatenschutzView'));
   weiterkommt; sie ist dafür klein genug.
 */
 import PasswortAendern from '@/features/auth/PasswortAendern';
+// Ebenso fest eingebunden: sie steht direkt nach dem Passwort (Runde 3, H1).
+import ZweiFaktorSeite from '@/features/auth/ZweiFaktorSeite';
+import { WiederherstellungsCodes } from '@/features/auth/ZweiFaktorEinrichten';
 const PlattformView = lazy(() => import('@/features/plattform/PlattformView'));
 const DashboardView = lazy(() => import('@/features/dashboard/DashboardView'));
 const TimeView = lazy(() => import('@/features/time/TimeView'));
@@ -103,7 +106,14 @@ export default function App() {
  * keinen) und in der Edge Function, die den Betrieb anlegt.
  */
 function AppInhalt() {
-  const { plattformAdmin, loading, einblick, user, signOut } = useAuth();
+  const { plattformAdmin, loading, einblick, user, signOut, zweiterFaktor } = useAuth();
+  /*
+    Die Wiederherstellungscodes nach der Einrichtung. Sie stehen über allem,
+    bis sie als notiert bestätigt sind: mit dem Bestätigen des Faktors lädt
+    die App schon im Hintergrund, und ohne diesen Halt wären die Codes weg,
+    bevor jemand sie lesen konnte.
+  */
+  const [neueCodes, setNeueCodes] = useState<string[] | null>(null);
   const ort = useLocation();
   const navigate = useNavigate();
 
@@ -155,6 +165,26 @@ function AppInhalt() {
       weg = true;
     };
   }, [uid]);
+
+  if (neueCodes) {
+    return (
+      <div className="mx-auto max-w-xl space-y-6 p-4 sm:p-6">
+        <MarkenBand />
+        <h1 className="text-xl font-semibold text-ink">Zwei-Faktor-Anmeldung eingerichtet</h1>
+        <WiederherstellungsCodes codes={neueCodes} onWeiter={() => setNeueCodes(null)} />
+      </div>
+    );
+  }
+
+  if (!loading && zweiterFaktor !== 'keiner') {
+    return (
+      <ZweiFaktorSeite
+        bedarf={zweiterFaktor}
+        onCodes={setNeueCodes}
+        onAbmelden={() => void signOut()}
+      />
+    );
+  }
 
   if (passwortFaellig) {
     return (

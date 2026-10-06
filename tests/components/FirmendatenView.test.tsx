@@ -93,18 +93,41 @@ describe('Speichern', () => {
   it('nimmt alle Briefkopf-Angaben mit', async () => {
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.type(feld('IBAN'), 'AT02 3456 7890 1234 5678');
+    await nutzer.type(feld('IBAN'), 'AT61 1904 3002 3457 3201');
     await nutzer.type(feld('Firmenbuchnummer'), 'FN 123456a');
     await nutzer.click(speichern());
 
     const nutzlast = updateCompany.mock.calls[0][1];
+    // Gespeichert ohne Leerzeichen (Runde 3, H3); gedruckt wird in Vierergruppen.
     expect(nutzlast).toMatchObject({
-      iban: 'AT02 3456 7890 1234 5678',
+      iban: 'AT611904300234573201',
       companyRegister: 'FN 123456a',
     });
     // Und die Felder, die man nicht angefasst hat, fehlen nicht.
     expect(nutzlast).toHaveProperty('bic');
     expect(nutzlast).toHaveProperty('contactLine');
+  });
+
+  /* Runde 3, H3 — eine ungültige IBAN hält auf; ein Altbestand ist markiert. */
+  it('hält eine falsche IBAN auf und sagt warum', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.type(feld('IBAN'), 'AT74123456');
+    expect(screen.getByText(/Eine IBAN aus AT hat 20 Zeichen, diese hat 10/)).toBeInTheDocument();
+    await nutzer.click(speichern());
+    expect(updateCompany).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: eine falsche BIC hält ebenso auf, eine richtige nicht', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.type(feld('BIC'), 'BKAU');
+    await nutzer.click(speichern());
+    expect(updateCompany).not.toHaveBeenCalled();
+    await nutzer.clear(feld('BIC'));
+    await nutzer.type(feld('BIC'), 'BKAUATWW');
+    await nutzer.click(speichern());
+    expect(updateCompany.mock.calls[0][1]).toMatchObject({ bic: 'BKAUATWW' });
   });
 
   /* Testbericht 30.09.2026, M12 — Anschrift in Teilen, Firmenbuchgericht (§ 14 UGB). */

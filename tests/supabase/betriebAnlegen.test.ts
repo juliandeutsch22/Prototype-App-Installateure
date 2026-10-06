@@ -14,7 +14,8 @@
  * niemand anmelden kann, um den fehlenden anzulegen).
  */
 import { describe, it, expect, beforeAll } from 'vitest';
-import { admin, API, ANON } from './helfer';
+import { createClient } from '@supabase/supabase-js';
+import { admin, API, ANON, zweitenFaktorEinrichten } from './helfer';
 
 const FUNKTION = `${API}/functions/v1/betrieb-anlegen`;
 const PASSWORT = 'stufe-eins-2026';
@@ -69,9 +70,18 @@ beforeAll(async () => {
   const { error } = await admin.from('platform_admins')
     .insert({ id: plattform.uid, name: 'Plattform' });
   if (error) throw new Error(error.message);
-  // NACH dem Eintrag neu anmelden: der Anspruch steht im Token, und das alte
-  // trägt ihn noch nicht.
-  plattformToken = plattform.token;
+  /*
+    NACH dem Eintrag neu anmelden: der Anspruch steht im Token, und das alte
+    trägt ihn noch nicht. Und mit dem zweiten Faktor — ohne ihn weist die
+    Function das Plattformkonto ab (Runde 3, H1).
+  */
+  const c = createClient(API, ANON, { auth: { persistSession: false } });
+  const an = await c.auth.signInWithPassword({
+    email: (await admin.auth.admin.getUserById(plattform.uid)).data.user!.email!, password: PASSWORT,
+  });
+  if (an.error) throw an.error;
+  await zweitenFaktorEinrichten(c);
+  plattformToken = (await c.auth.getSession()).data.session!.access_token;
 
   const mitarbeiter = await kontoMitToken('anlage-mitarbeiter');
   mitarbeiterToken = mitarbeiter.token;

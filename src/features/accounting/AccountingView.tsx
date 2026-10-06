@@ -1051,7 +1051,7 @@ export default function AccountingView() {
                                       */}
                                       <span className="flex flex-wrap items-center gap-1">
                                         {status(x)}
-                                        {x.entry && <Zeitmarker eintrag={x.entry} />}
+                                        {x.entry && <Zeitmarker eintrag={x.entry} nacht={nachtzeitVon(company)} />}
                                       </span>
                                     </td>
                                     <td className="py-2 pr-3 text-ink-muted">
@@ -1120,7 +1120,7 @@ export default function AccountingView() {
                                   </div>
                                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted">
                                     {status(x)}
-                                    {x.entry && <Zeitmarker eintrag={x.entry} />}
+                                    {x.entry && <Zeitmarker eintrag={x.entry} nacht={nachtzeitVon(company)} />}
                                     {x.zeit && <span>{x.zeit}</span>}
                                     {x.entry?.customerName && <span>{x.entry.customerName}</span>}
                                   </div>
@@ -1183,6 +1183,7 @@ export default function AccountingView() {
         gesamtEntries={gesamtProjektzeiten}
         projects={projects}
         label={`${MONTHS[month]} ${year}`}
+        nacht={nachtzeitVon(company)}
       />
 
       <ConfirmDialog

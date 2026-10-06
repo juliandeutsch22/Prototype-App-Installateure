@@ -63,19 +63,32 @@ beforeEach(() => {
   authWert.user = { uid: 'ich', name: 'Lena Lehrling', role: 'Mitarbeiter', companyId: 'perl', einstufung: 'lehrling' };
 });
 
+
+/*
+  DIE TAGE LIEGEN IN DER ZUKUNFT, gerechnet ab heute. Hier standen feste Daten
+  (05.10.2026 ff.); seit dem 06.10.2026 lag der Beginn in der Vergangenheit,
+  „bis“ blieb auf heute stehen, und die Prüfung fiel — an einem Datum, nicht
+  an einem Fehler.
+*/
+function tag(versatz: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 30 + versatz);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Vienna' }).format(d);
+}
+
 describe('Berufsschule', () => {
   it('trägt einen Blocklehrgang als Zeitraum ein — keinen Zeiteintrag', async () => {
     zeichne();
     await userEvent.clear(screen.getByLabelText(/^Datum/));
-    await userEvent.type(screen.getByLabelText(/^Datum/), '2026-10-05');
+    await userEvent.type(screen.getByLabelText(/^Datum/), tag(0));
     await userEvent.selectOptions(screen.getByLabelText('Status'), 'Berufsschule');
     const bis = screen.getByLabelText(/^Berufsschule bis/);
-    expect(bis).toHaveValue('2026-10-05');
+    expect(bis).toHaveValue(tag(0));
     await userEvent.clear(bis);
-    await userEvent.type(bis, '2026-10-09');
+    await userEvent.type(bis, tag(4));
     await userEvent.click(screen.getByRole('button', { name: 'Berufsschule eintragen' }));
     await waitFor(() =>
-      expect(eintragen).toHaveBeenCalledWith({ userId: null, von: '2026-10-05', bis: '2026-10-09', notiz: '' }),
+      expect(eintragen).toHaveBeenCalledWith({ userId: null, von: tag(0), bis: tag(4), notiz: '' }),
     );
     expect(anlegen).not.toHaveBeenCalled();
     expect(gespeichert).toHaveBeenCalled();

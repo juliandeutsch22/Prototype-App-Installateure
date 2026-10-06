@@ -6,6 +6,7 @@
  * Geheimnis ist hier keines; der Stack hört nur auf 127.0.0.1.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { totp } from '../totp';
 
 export const API = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321';
 export const ANON =
@@ -93,7 +94,10 @@ export async function konto(
  * Auslöser an `platform_admins`, nicht dieser Helfer — geprüft wird also der
  * echte Weg und nicht ein nachgebauter.
  */
-export async function plattformkonto(marke: string): Promise<Konto> {
+export async function plattformkonto(
+  marke: string,
+  { zweiterFaktor = true }: { zweiterFaktor?: boolean } = {},
+): Promise<Konto & { geheimnis: string | null }> {
   const email = `${marke}-${crypto.randomUUID().slice(0, 8)}@plattform.test`;
   const { data, error } = await admin.auth.admin.createUser({
     email, password: PASSWORT, email_confirm: true,
@@ -107,11 +111,26 @@ export async function plattformkonto(marke: string): Promise<Konto> {
   const client = createClient(API, ANON, { auth: { persistSession: false } });
   const an = await client.auth.signInWithPassword({ email, password: PASSWORT });
   if (an.error) throw an.error;
-  await client.realtime.setAuth(an.data.session!.access_token);
-  return {
-    client, uid, betrieb: '', rolle: 'Administrator',
-    token: an.data.session!.access_token,
-  };
+  /*
+    DER ZWEITE FAKTOR IST FÜR DIE PLATTFORM PFLICHT (Runde 3, H1): ohne ihn
+    darf das Konto nichts. Eingerichtet wird er auf dem echten Weg über
+    Supabase Auth; den Code rechnet `totp` statt der App am Telefon.
+  */
+  const geheimnis = zweiterFaktor ? await zweitenFaktorEinrichten(client) : null;
+  const { data: sitzung } = await client.auth.getSession();
+  const token = sitzung.session!.access_token;
+  await client.realtime.setAuth(token);
+  return { client, uid, betrieb: '', rolle: 'Administrator', token, geheimnis };
+}
+
+/** TOTP einrichten und bestätigen — danach trägt die Sitzung `aal2`. Gibt das Geheimnis zurück. */
+export async function zweitenFaktorEinrichten(client: SupabaseClient): Promise<string> {
+  const { data: neu, error: e1 } = await client.auth.mfa.enroll({ factorType: 'totp' });
+  if (e1) throw e1;
+  const geheimnis = neu.totp.secret;
+  const { error: e2 } = await client.auth.mfa.challengeAndVerify({ factorId: neu.id, code: totp(geheimnis) });
+  if (e2) throw e2;
+  return geheimnis;
 }
 
 /**

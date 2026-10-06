@@ -106,4 +106,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   work_sheet_photos: { geraet_zeit: 'zeitpunkt' },
   work_sheets: { created_at: 'zeitpunkt', unterschrieben_am: 'zeitpunkt', updated_at: 'zeitpunkt' },
   zeitkonto_anfang: { updated_at: 'zeitpunkt' },
+  /* Nur über Funktionen erreichbar (Runde 3, H1); die Zeile steht da, weil die Karte das Schema abbildet. */
+  zwei_faktor_codes: { created_at: 'zeitpunkt', ungueltig_am: 'zeitpunkt', verbraucht_am: 'zeitpunkt' },
+  zwei_faktor_fehlversuche: { am: 'zeitpunkt' },
 };

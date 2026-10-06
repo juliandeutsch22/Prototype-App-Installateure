@@ -46,6 +46,10 @@ Unterauftragsverarbeiter stehen bleibt.
    `installateur-demo` eingeschaltet am 29.09.2026). Ist eine Sitzung älter
    als ein Tag, meldet die App beim Passwortändern mit dem eben geprüften
    aktuellen Passwort frisch an; einen Einmalcode per Mail braucht es nicht.
+   **Multi-Factor → TOTP: Anmelden und Prüfen eingeschaltet** (seit
+   06.10.2026, Runde 3, H1; in gehosteten Projekten ab Werk an). Ohne TOTP
+   kommt das Plattformkonto nach dem Ausliefern nicht mehr auf seine Seite:
+   die Datenbank verlangt für jede Plattformfunktion `aal2`.
 
 > **Der `service_role`-Schlüssel gehört nirgendwo hin, wo ein Browser ihn
 > sieht.** Er hebelt den Zeilenschutz vollständig aus. Er wird an genau zwei
@@ -229,6 +233,14 @@ danach erscheint, entscheidet der Anspruch im Token:
 - Token **mit** `company_id` → die App, mit Navigation und Reitern nach Rolle.
 - Token mit `plattform_admin` → **eine einzige Seite ohne Navigation**:
   „Betriebe anlegen“, darunter „Einblick gewährt“ und „Notzugang“.
+
+**Davor der zweite Faktor** (seit 06.10.2026): Das Plattformkonto richtet
+beim ersten Anmelden eine Authenticator-App ein und gibt danach bei jeder
+Anmeldung den Code ein; die zehn Wiederherstellungscodes gehören ausgedruckt
+in den Tresor. Sind Telefon und Codes weg, entfernt der Betreiber den Faktor
+im Supabase-Projekt unter *Authentication → Users → (Konto) → MFA factors*.
+Für die Leitung eines Betriebs setzt der Support den zweiten Faktor über den
+Notzugang zurück (Rückruf-Regel wie beim Passwort).
 
 Kein Rollenwechsler, kein „als Betrieb X anmelden“. Ein Plattformkonto
 *wird* nie zu einem Betriebskonto; es bekommt nur für die Dauer einer

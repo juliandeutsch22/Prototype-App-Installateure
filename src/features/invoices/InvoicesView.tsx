@@ -97,6 +97,7 @@ import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/S
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { euro } from '@/lib/betrag';
+import { ibanFehler } from '@shared/iban';
 import Adressfilter from '@/components/Adressfilter';
 import { RECHNUNGS_SICHTEN, bekannt, type RechnungsSicht } from '@/features/dashboard/start/ziele';
 
@@ -3131,6 +3132,25 @@ export default function InvoicesView() {
                 )}
               </p>
             )}
+            {/*
+              EINE UNGÜLTIGE IBAN SPERRT (Runde 3, H3). Anders als eine fehlende:
+              die nennt kein Konto, eine falsche schickt das Geld ins Leere.
+              Die Datenbank weist die Rechnung ebenso ab.
+            */}
+            {ibanFehler(company?.iban) && (
+              <p className="text-sm text-danger" role="alert">
+                Die IBAN in den Firmendaten ist ungültig: {ibanFehler(company?.iban)} Eine Rechnung lässt sich
+                erst erstellen, wenn sie berichtigt ist.
+                {user && isTopLevel(user.role) ? (
+                  <>
+                    {' '}
+                    <Link to="/settings/firma" className="link-hinweis-weiter">
+                      Zu den Firmendaten
+                    </Link>
+                  </>
+                ) : ' Das macht die Geschäftsführung unter Einstellungen › Firmendaten.'}
+              </p>
+            )}
             {company?.addressLine?.trim() && !company?.vatId?.trim() && (
               <p className="text-sm text-warning">
                 Keine UID-Nummer des Betriebs hinterlegt. Ohne sie ist eine Rechnung über 400 € brutto
@@ -3161,6 +3181,7 @@ export default function InvoicesView() {
                   || !!uidFormFehler
                   || !!summen?.gutschrift
                   || !company?.addressLine?.trim() || leer
+                  || !!ibanFehler(company?.iban)
                 }
                 className="w-full sm:w-auto">
                 Rechnung erstellen &amp; PDF

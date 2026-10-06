@@ -28,6 +28,7 @@ const basis: PlattformBetrieb = {
   kennung: 'senklot-test', name: 'Senklot Testbetrieb GmbH', angelegtAm: '2026-09-01T08:00:00Z',
   leitungskonten: 1, leitungMitMail: 0, notzugangBis: null, testbetrieb: false,
   deaktiviertAm: null, deaktiviertGrund: null, exportAm: null, loeschungGeplantFuer: null,
+  echteDaten: null,
 };
 
 const zeige = (b: Partial<PlattformBetrieb>, geaendert = vi.fn()) =>
@@ -109,6 +110,43 @@ describe('Betrieb verwalten', () => {
     await nutzer.click(loeschen);
     expect(db.betriebLoeschen).toHaveBeenCalledWith('senklot-test', 'senklot-test', 'Löschung laut Antrag');
     expect(await screen.findByText(/Gelöscht: 120 Zeilen, 3 Dateien, 2 Anmeldekonten/)).toBeInTheDocument();
+  });
+
+  it('Runde 3, H1: ein Betrieb mit echten Daten bekommt keinen Knopf „Als Testbetrieb kennzeichnen“', () => {
+    zeige({ echteDaten: 'er hat Rechnungen' });
+    expect(screen.queryByRole('button', { name: 'Als Testbetrieb kennzeichnen' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Kein Testbetrieb: er hat Rechnungen/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe H1: ohne echte Daten bleibt der Knopf, „Kein Testbetrieb“ immer', () => {
+    const { unmount } = zeige({});
+    expect(screen.getByRole('button', { name: 'Als Testbetrieb kennzeichnen' })).toBeInTheDocument();
+    unmount();
+    zeige({ testbetrieb: true, echteDaten: 'er hat Rechnungen' });
+    expect(screen.getByRole('button', { name: 'Kein Testbetrieb' })).toBeInTheDocument();
+  });
+
+  it('Runde 3, G13: solange der Grund fehlt, sagt die Maske es', async () => {
+    const nutzer = userEvent.setup();
+    zeige({ deaktiviertAm: '2026-10-01T08:00:00Z', exportAm: '2026-10-01T09:00:00Z', loeschungGeplantFuer: '2026-10-01T10:00:00Z' });
+    expect(screen.getByText('Für jeden Schritt zuerst oben einen Grund eintragen.')).toBeInTheDocument();
+    expect(screen.getByText(/Zum Löschen oben einen Grund eintragen und die Kennung/)).toBeInTheDocument();
+    await nutzer.type(screen.getByLabelText(/Grund/), 'Antrag');
+    expect(screen.queryByText('Für jeden Schritt zuerst oben einen Grund eintragen.')).not.toBeInTheDocument();
+    expect(screen.getByText('Zum Löschen die Kennung genau eintippen.')).toBeInTheDocument();
+  });
+
+  it('Runde 3, G12: läuft die Frist ab, erscheint „Endgültig löschen“ ohne Neuladen', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const gleich = new Date(Date.now() + 2_000).toISOString();
+      zeige({ deaktiviertAm: '2026-10-01T08:00:00Z', testbetrieb: true, loeschungGeplantFuer: gleich });
+      expect(screen.queryByRole('button', { name: 'Endgültig löschen' })).not.toBeInTheDocument();
+      await vi.advanceTimersByTimeAsync(3_000);
+      expect(screen.getByRole('button', { name: 'Endgültig löschen' })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('eine Ablehnung der Datenbank steht in der Maske, wörtlich', async () => {

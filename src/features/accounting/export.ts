@@ -3,7 +3,7 @@ import { PETROL } from '@/lib/belegLayout';
 import { calcWorkMin, calcMonthStats, groupProjectHours, type MonthStats } from '@/lib/time';
 import { zuschlagszeit, kennzeichen } from './zuschlaege';
 import { ueberstundenNachTagesgrenze } from './ueberstunden';
-import type { Nachtzeit, UeberstundenRegel } from '@/lib/lohnregeln';
+import { nachtArbeitMin, type Nachtzeit, type UeberstundenRegel } from '@/lib/lohnregeln';
 import { csvZelle } from '@/lib/csvZelle';
 import { EINSTUFUNGEN, lehrjahr, type EinstufungDerPerson } from '@/lib/einstufung';
 
@@ -179,7 +179,7 @@ export function buildMonthCsv(
         hours(wm),
         // Gesamtzeit schließt die Wegzeit ein — nur in diesem Export.
         hours(wm + travel),
-        kennzeichen(e.isNightWork),
+        kennzeichen(nachtArbeitMin(e, lohn.nacht) > 0),
         kennzeichen(e.isEmergency),
       ]),
     );
@@ -326,7 +326,7 @@ export function buildUserCsv(
         e.breakDuration ?? 0,
         e.travelTime ?? 0,
         hours(calcWorkMin(e)),
-        kennzeichen(e.isNightWork),
+        kennzeichen(nachtArbeitMin(e, lohn.nacht) > 0),
         kennzeichen(e.isEmergency),
         e.comment ?? '',
       ]),

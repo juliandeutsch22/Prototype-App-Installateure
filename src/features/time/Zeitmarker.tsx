@@ -1,5 +1,6 @@
 import { Marke } from '@/components/Badge';
 import type { TimeEntry } from '@/types';
+import { NACHTZEIT_VORGABE, nachtArbeitMin, type Nachtzeit } from '@/lib/lohnregeln';
 
 /**
  * Die Marker eines Zeiteintrags: Helfer, Notdienst, Nachtarbeit.
@@ -20,10 +21,11 @@ import type { TimeEntry } from '@/types';
  * an zwei von vier Stellen.
  */
 
-/** Nur die Felder, die einen Marker auslösen. */
-export type MarkierterEintrag = Pick<TimeEntry, 'isHelper' | 'isEmergency' | 'isNightWork'>;
-
-export default function Zeitmarker({ eintrag }: { eintrag: MarkierterEintrag }) {
+/**
+ * „Nacht“ STEHT, WO NACHTSTUNDEN GEZÄHLT WERDEN (Runde 3, M4) — nicht nur, wo
+ * ein Haken war. Dafür die Nachtzeit des Betriebs; ohne Angabe 22–6 Uhr.
+ */
+export default function Zeitmarker({ eintrag, nacht = NACHTZEIT_VORGABE }: { eintrag: TimeEntry; nacht?: Nachtzeit }) {
   return (
     <>
       {/*
@@ -34,7 +36,7 @@ export default function Zeitmarker({ eintrag }: { eintrag: MarkierterEintrag }) 
       */}
       {eintrag.isHelper && <Marke>Helfer</Marke>}
       {eintrag.isEmergency && <Marke>Notdienst</Marke>}
-      {eintrag.isNightWork && <Marke>Nacht</Marke>}
+      {nachtArbeitMin(eintrag, nacht) > 0 && <Marke>Nacht</Marke>}
     </>
   );
 }

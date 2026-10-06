@@ -588,7 +588,7 @@ describe('Module stellt nur die Administration', () => {
 
   it('die Geschaeftsfuehrung darf alles ANDERE weiterhin aendern', async () => {
     const { error } = await aChef.client.from('companies')
-      .update({ bank_name: 'Raiffeisen', iban: 'AT00 0000 0000 0000 0000' }).eq('id', 'firma-a');
+      .update({ bank_name: 'Raiffeisen', iban: 'AT61 1904 3002 3457 3201' }).eq('id', 'firma-a');
     expect(error).toBeNull();
   });
 });

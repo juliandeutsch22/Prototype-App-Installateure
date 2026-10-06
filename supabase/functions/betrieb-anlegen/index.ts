@@ -35,6 +35,8 @@ import {
   alleDienstSchluessel, dienstKopfzeilen, SCHLUESSEL_FEHLT,
 } from '../_shared/dienstSchluessel.ts';
 import { mitCors } from '../_eigen/cors.ts';
+import { zweiterFaktorFehlt } from '../_eigen/zweiterFaktor.ts';
+import { ZWEITER_FAKTOR_FEHLT } from '../_shared/zweiFaktor.ts';
 import { generatePassword } from '../_shared/startpasswort.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
@@ -93,6 +95,8 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   const token = kopf.startsWith('Bearer ') ? kopf.slice(7) : '';
   const aufrufer = token ? await werRuftAn(token) : null;
   if (!aufrufer) return fehler('Keine Anmeldung.', 401);
+  // Runde 3, H1: wer einen zweiten Faktor braucht, kommt ohne ihn auch hier nicht weiter.
+  if (await zweiterFaktorFehlt(URL_BASIS, alsDienst, aufrufer, token)) return fehler(ZWEITER_FAKTOR_FEHLT, 403);
 
   /*
     DIE TABELLE ENTSCHEIDET, NICHT DAS TOKEN.

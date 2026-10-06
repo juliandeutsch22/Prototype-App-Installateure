@@ -10,6 +10,7 @@ import {
   TINTE,
   titel,
 } from '@/lib/belegLayout';
+import { ibanAnzeige } from '@shared/iban';
 import { TEXTE, mahnkosten, type Mahnstufe, type Verzugszinsen } from './mahnung';
 import { mahnbar, zahlstand } from './zahlstand';
 import type { Company, Invoice } from '@/types';
@@ -187,7 +188,7 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
 
   if (o.company.iban) {
     y = absatz(
-      `Bankverbindung: IBAN ${o.company.iban}` +
+      `Bankverbindung: IBAN ${ibanAnzeige(o.company.iban)}` +
         (o.company.bic ? ` / BIC ${o.company.bic}` : '') +
         (o.company.bankName ? ` (${o.company.bankName})` : ''),
       y,
