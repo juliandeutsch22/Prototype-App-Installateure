@@ -15,6 +15,18 @@ function zeitpunkt(ms: number): string {
 }
 
 /**
+ * Warum eine Abfrage keine Abfrage-ID hat (Runde 3, G21). Seit dem
+ * 06.10.2026 steht der Grund an der Abfrage; für ältere leitet er sich aus
+ * der mitgeschickten eigenen UID ab — ohne sie vergibt VIES keine ID.
+ */
+function ohneIdGrund(p: Pick<UidPruefung, 'ohneIdGrund' | 'eigeneUid'>): string {
+  if (p.ohneIdGrund) return p.ohneIdGrund;
+  return p.eigeneUid
+    ? 'VIES hat keine vergeben.'
+    : 'Die eigene UID-Nummer ging nicht mit — sie fehlt in den Firmendaten, oder VIES kennt sie nicht.';
+}
+
+/**
  * DIE UID DES KUNDEN BEI VIES PRÜFEN — in der Kundenakte, unter den
  * Stammdaten (Entscheidung vom 02.10.2026; offene Punkte E2).
  *
@@ -56,7 +68,28 @@ export default function UidVies({
     };
   }, [kunde.companyId, kunde.id, pruefbar]);
 
-  if (!uid || uidFehler(uid)) return null;
+  /*
+    OHNE PRÜFBARE UID BLEIBT DER BEREICH MEIST WEG — eine Privatperson hat
+    keine. Bei einem Unternehmen sagt er, warum es nichts zu prüfen gibt
+    (Runde 3, G21): vorher erschien er erst, wenn eine UID in richtiger Form
+    gespeichert war, und niemand wusste, wo die Prüfung zu finden ist.
+  */
+  if (!uid) {
+    return kunde.kundenart === 'unternehmen' ? (
+      <Rahmen>
+        <p className="text-sm text-ink-muted">Mit einer gespeicherten UID-Nummer lässt sie sich hier bei VIES prüfen.</p>
+      </Rahmen>
+    ) : null;
+  }
+  if (uidFehler(uid)) {
+    return (
+      <Rahmen>
+        <p className="text-sm text-ink-muted">
+          Die gespeicherte UID-Nummer hat nicht die richtige Form: {uidFehler(uid)} Geprüft wird sie, sobald sie stimmt.
+        </p>
+      </Rahmen>
+    );
+  }
   if (!beiViesPruefbar(uid)) {
     return (
       <Rahmen>
@@ -97,7 +130,9 @@ export default function UidVies({
             <span className="text-ink">laut VIES am {zeitpunkt(letzte.abgefragtAm)}</span>
           </p>
           <p className="text-ink-muted">
-            {letzte.abfrageId ? <>Abfrage-ID <span className="nr">{letzte.abfrageId}</span></> : 'ohne Abfrage-ID'}
+            {letzte.abfrageId
+              ? <>Abfrage-ID <span className="nr">{letzte.abfrageId}</span></>
+              : `ohne Abfrage-ID: ${ohneIdGrund(letzte)}`}
             {letzte.durchName ? ` · gefragt von ${letzte.durchName}` : ''}
           </p>
           {(letzte.name || letzte.adresse) && (

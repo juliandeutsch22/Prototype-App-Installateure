@@ -10,7 +10,7 @@
  * Die Gegenproben aus dem Arbeitsauftrag: E-Mail-Konten,
  * Mitarbeiter-Konten und fehlender Notzugang.
  */
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 import { admin, API, ANON, betriebAnlegen, konto, plattformkonto, type Konto } from './helfer';
 import { kunstadresse } from '../../shared/benutzername';
@@ -140,4 +140,15 @@ describe('Passwort über den Notzugang (P2)', () => {
     });
     expect(b.error).not.toBeNull();
   });
+});
+
+/*
+  DEN NOTZUGANG WIEDER SCHLIESSEN. `support_freigaben_offen` nennt der
+  Plattform alle offenen Freigaben aller Betriebe — ein hier offen gelassener
+  Notzugang stünde sonst im Ergebnis von `supportzugang.test.ts`, je nachdem,
+  welche Datei zuerst läuft.
+*/
+afterAll(async () => {
+  await admin.from('support_freigaben').update({ widerrufen_am: new Date().toISOString() })
+    .eq('company_id', BETRIEB).is('widerrufen_am', null);
 });

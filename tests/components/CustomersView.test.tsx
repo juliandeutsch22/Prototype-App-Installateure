@@ -26,6 +26,9 @@ const kunden: (Customer & { id: string })[] = [
   },
 ];
 
+/** Runde 3, M10: die Kunden für die Prüfung „Kundenart prüfen“. */
+let artListe: (Customer & { id: string })[] = [];
+
 const projekteOhneKunde: (Project & { id: string })[] = [
   {
     id: 'p1',
@@ -91,13 +94,15 @@ const searchCustomers = vi.fn<(a0: string, a1: string, a2: number | undefined) =
   das zweite Argument ist der Begriff — unter Postgres sucht die Datenbank
   darüber, unter Firestore filtert die Datenschicht wie bisher im Browser.
 */
+const updateCustomer = vi.fn(async () => 0);
 vi.mock('@/lib/db/customers', () => ({
   searchCustomers: (c: string, begriff: string, max?: number) =>
     searchCustomers(c, begriff, max),
   createCustomer: (...a: unknown[]) => createCustomer(...(a as [])),
   naechsteKundennummer: vi.fn(async () => '10042'),
   kundenAdressePruefen: vi.fn(async () => kunden.filter((k) => (k as { adressePruefen?: boolean }).adressePruefen)),
-  updateCustomer: vi.fn(async () => 0),
+  kundenOhneKundenart: vi.fn(async () => artListe.filter((k) => !k.kundenart)),
+  updateCustomer: () => updateCustomer(),
   deleteCustomer: vi.fn(async () => undefined),
   listProjectsForCustomer: () => listProjectsForCustomer(),
   listUnlinkedProjectsByName: () => listUnlinkedProjectsByName(),
@@ -259,6 +264,29 @@ describe('Kundenverwaltung', () => {
     await userEvent.click(within(zeile).getByRole('button', { name: /Weitere Aktionen für Kunde Hausverwaltung Nord/ }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Bearbeiten' }));
     expect(screen.getByLabelText(/^Name/)).toHaveValue('Hausverwaltung Nord');
+  });
+
+  // Runde 3, G9: die Meldung sagt, was nachgezogen wurde.
+  it('sagt nach dem Umbenennen, auf wie vielen Baustellen der neue Name steht', async () => {
+    window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
+    updateCustomer.mockResolvedValueOnce(3);
+    zeichne();
+    const zeile = (await screen.findByText('Hausverwaltung Nord')).closest('li')!;
+    await userEvent.click(within(zeile).getByRole('button', { name: /Weitere Aktionen für Kunde Hausverwaltung Nord/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Bearbeiten' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    expect(await screen.findByText('Kunde gespeichert. Der neue Name steht jetzt auch auf 3 Baustellen.')).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne geänderten Namen nur „Kunde gespeichert“', async () => {
+    window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
+    zeichne();
+    const zeile = (await screen.findByText('Hausverwaltung Nord')).closest('li')!;
+    await userEvent.click(within(zeile).getByRole('button', { name: /Weitere Aktionen für Kunde Hausverwaltung Nord/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Bearbeiten' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    expect(await screen.findByText('Kunde gespeichert')).toBeInTheDocument();
+    expect(screen.queryByText(/Der neue Name steht/)).toBeNull();
   });
 
   it('nennt die Rechnungsadresse beim Namen', async () => {
@@ -543,5 +571,30 @@ describe('Kundenart und UID beim Anlegen', () => {
     await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
     await waitFor(() => expect(createCustomer).toHaveBeenCalled());
     expect((createCustomer.mock.calls[0] as unknown[])[1]).toMatchObject({ vatId: '', kundenart: 'unternehmen' });
+  });
+});
+
+/* Runde 3, M10: Altkunden ohne Kundenart finden. */
+describe('Kundenart prüfen', () => {
+  it('der Filter zeigt nur Kunden ohne Kundenart, und die Zeile sagt es', async () => {
+    artListe = [
+      { id: 'a', companyId: 'perl', name: 'Anna Beispiel', kundenart: null },
+      { id: 'b', companyId: 'perl', name: 'Bau GmbH', kundenart: 'unternehmen' },
+    ];
+    searchCustomers.mockImplementation(async () => artListe);
+    zeichne();
+    expect(await screen.findByText('Anna Beispiel')).toBeInTheDocument();
+    expect(screen.getAllByText('Kundenart prüfen')).toHaveLength(1);
+    await userEvent.click(screen.getByLabelText(/Nur Kunden ohne Kundenart/));
+    await waitFor(() => expect(screen.queryByText('Bau GmbH')).toBeNull());
+    expect(screen.getByText('Anna Beispiel')).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: mit Kundenart keine Marke', async () => {
+    artListe = [{ id: 'b', companyId: 'perl', name: 'Bau GmbH', kundenart: 'unternehmen' }];
+    searchCustomers.mockImplementation(async () => artListe);
+    zeichne();
+    expect(await screen.findByText('Bau GmbH')).toBeInTheDocument();
+    expect(screen.queryByText('Kundenart prüfen')).toBeNull();
   });
 });

@@ -3,7 +3,7 @@ import InfoHint from '@/components/InfoHint';
 import { todayStr } from '@/lib/time';
 import { datumAT as fmtDatum } from '@/lib/datum';
 import {
-  EINSTUFUNGEN, LEHRZEIT_VORGABE, lehrjahr, lehrzeitEnde, type Einstufung,
+  EINSTUFUNGEN, LEHRZEIT_VORGABE, lehrjahr, lehrzeitEnde, type Einstufung, type FruehereEinstufung,
 } from '@/lib/einstufung';
 import type { BenutzerEntwurf } from './benutzerEntwurf';
 
@@ -12,6 +12,15 @@ const LEHRZEITEN = [24, 30, 36, 42, 48];
 
 const jahreText = (monate: number) =>
   `${String(monate / 12).replace('.5', '½')} Jahre`;
+
+const stufenName = (e: Einstufung | null | '' | undefined) =>
+  EINSTUFUNGEN.find((s) => s.wert === e)?.name ?? 'Nicht festgelegt';
+
+/** Der letzte Tag, an dem eine frühere Stufe galt — `bis` zählt nicht mehr dazu. */
+function letzterTag(bis: string): string {
+  const [y, m, d] = bis.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d - 1, 12)).toISOString().slice(0, 10);
+}
 
 /**
  * EINSTUFUNG AN DER PERSON (Testbericht 30.09.2026, 4.1 Punkt 1).
@@ -25,14 +34,24 @@ export default function EinstufungFelder({
   form,
   setForm,
   idPrefix,
+  gespeichert,
 }: {
   form: BenutzerEntwurf;
   setForm: (f: BenutzerEntwurf) => void;
   idPrefix: string;
+  /** In der Akte: der gespeicherte Stand, für Umstufung und frühere Stufen. */
+  gespeichert?: { einstufung?: Einstufung | null; einstufungVerlauf?: FruehereEinstufung[] | null };
 }) {
   const lehrling = form.einstufung === 'lehrling';
+  const bisher = gespeichert?.einstufung ?? null;
+  // Die erste Einstufung gilt rückwirkend — es gab davor keine Stufe, die bleiben könnte.
+  const umstufung = !!bisher && (form.einstufung || null) !== bisher;
+  const verlauf = gespeichert?.einstufungVerlauf ?? [];
   const monate = Number(form.lehrzeitMonate);
   const heute = todayStr();
+  // Heute schon einmal umgestuft: für die Tage davor gilt, was der Verlauf festhält.
+  const heuteSchon = verlauf.slice(-1)[0];
+  const bleibt = heuteSchon && heuteSchon.bis === heute ? heuteSchon.einstufung : bisher;
   const vollstaendig = lehrling && !!form.lehrbeginn && monate > 0;
 
   return (
@@ -108,8 +127,30 @@ export default function EinstufungFelder({
           </>
         ) : null}
         Die Einstufung bestimmt den Stundensatz auf Rechnung und Nachkalkulation, nicht die Rechte.
-        Sie gilt für neue und für noch nicht verrechnete Stunden; verrechnete bleiben, wie sie sind.
+        Jede Stunde zählt zum Satz ihres Tages.
+        <InfoHint about="Umstufung">
+          Eine Umstufung gilt ab dem Tag, an dem sie gespeichert wird. Stunden davor behalten den
+          Satz der bisherigen Stufe, auch wenn sie noch nicht verrechnet sind — wird ein Lehrling
+          nach der Lehrabschlussprüfung Facharbeiter, bleiben seine Lehrlingsstunden beim
+          Lehrlingssatz. Ausnahme: Bekommt jemand zum ersten Mal eine Einstufung, gilt sie für
+          alle noch nicht verrechneten Stunden; davor gab es keine Stufe. Ein berichtigter
+          Lehrbeginn gilt ebenso für alle noch nicht verrechneten Stunden, weil sich das Lehrjahr
+          aus dem Tag der Buchung ergibt.
+        </InfoHint>
       </p>
+      {umstufung && (
+        <p className="text-sm text-warning">
+          Umstufung von {stufenName(bisher)} auf {stufenName(form.einstufung)}: gilt ab heute
+          ({fmtDatum(heute)}). Stunden bis {fmtDatum(letzterTag(heute))} bleiben beim Satz
+          {' '}{stufenName(bleibt)}.
+        </p>
+      )}
+      {verlauf.length > 0 && (
+        <p className="text-sm text-ink-muted">
+          Frühere Einstufung:{' '}
+          {verlauf.map((v) => `${stufenName(v.einstufung)} bis ${fmtDatum(letzterTag(v.bis))}`).join(', ')}.
+        </p>
+      )}
     </div>
   );
 }

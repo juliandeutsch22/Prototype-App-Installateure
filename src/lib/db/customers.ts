@@ -90,6 +90,11 @@ export function kundenEinspielen(
   return pg.kundenEinspielen(kunden);
 }
 
+/** Kunden ohne Kundenart — „Kundenart prüfen“ (Runde 3, M10). */
+export function kundenOhneKundenart(companyId: string): Promise<WithId<Customer>[]> {
+  return pg.kundenOhneKundenart(companyId);
+}
+
 /** Kunden, deren Anschrift zu prüfen ist (M12). */
 export function kundenAdressePruefen(companyId: string): Promise<WithId<Customer>[]> {
   return pg.kundenAdressePruefen(companyId);

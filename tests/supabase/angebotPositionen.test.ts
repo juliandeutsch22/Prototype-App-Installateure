@@ -98,6 +98,7 @@ describe('Rechnung mit Titel, Text und Rabatt', () => {
     nummer += 1;
     return {
       invoiceNumber: `RE-${JAHR}-${nummer}`, projectNumber: 'B-900', customerName: 'Familie Huber',
+      address: 'Hauptplatz 1, 8200 Gleisdorf',
       invoiceDate: `${JAHR}-04-30`, dueDate: `${JAHR}-05-14`,
       totalNetto: 180, totalVat: 36, totalBrutto: 216, vatRate: 0.2, paymentStatus: 'Offen' as const,
       positions,

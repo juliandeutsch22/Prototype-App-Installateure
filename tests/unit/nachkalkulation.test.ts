@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { rechneBaustelle, margenTon } from '@/features/costing/nachkalkulation';
-import type { Invoice, Quote, TimeEntry } from '@/types';
+import type { Invoice, Material, Quote, TimeEntry } from '@/types';
 
 /**
  * Die Nachkalkulation beantwortet die eine Frage, die die Budget-Ampel NICHT
@@ -194,6 +194,57 @@ describe('Material aus dem Angebot (Launch-Check 25.09.2026, M9)', () => {
 
   it('ein nicht angenommenes Angebot zählt nicht', () => {
     const k = rechneBaustelle('B-4', 'Huber', [], [], { ...angebot, status: 'Versendet' } as Quote, kosten);
+    expect(k.materialLuecken).toEqual([]);
+  });
+});
+
+/*
+  Runde 3, M12: PR-2026-0193 meldete „Ohne Einkaufspreis: Pressfitting Bogen
+  15 mm (aus dem Angebot)", obwohl der Katalogartikel 2,10 € EK hat. Die
+  Angebotszeile trägt den Artikel; die Nachkalkulation sieht ihn jetzt an.
+*/
+describe('Katalogartikel im Angebot (Runde 3, M12)', () => {
+  const katalog = [
+    { id: 'm-press', companyId: 'perl', name: 'Pressfitting Bogen 15 mm', stock: 0, einkaufspreis: 2.1 },
+    { id: 'm-ohne', companyId: 'perl', name: 'Ventil', stock: 0 },
+  ] as Material[];
+  const angebot = {
+    status: 'Angenommen',
+    totalNetto: 300,
+    positions: [
+      // Bezeichnung nach der Übernahme geändert — der Artikel bleibt.
+      { label: 'Bogen 15 mm verpresst', qty: 10, unit: 'Stk', unitPrice: 6, netto: 60, materialId: 'm-press' },
+      { label: 'Ventil', qty: 1, unit: 'Stk', unitPrice: 40, netto: 40, materialId: 'm-ohne' },
+      { label: 'Montage', qty: 2, unit: 'h', unitPrice: 100, netto: 200, istArbeitszeit: true },
+    ],
+  } as unknown as Quote;
+
+  it('rechnet den Einkaufspreis des Artikels ein, statt ihn als Lücke zu melden', () => {
+    const k = rechneBaustelle('B-5', 'Huber', [], [rechnung(300)], angebot, kosten, undefined, katalog);
+    expect(k.materialLuecken).toEqual(['Ventil (aus dem Angebot)']);
+    expect(k.materialkosten).toBe(21);
+    expect(k.deckungsbeitrag).toBe(279);
+  });
+
+  it('findet den Artikel ohne Bezug über den Namen, wie bei den Scheinen', () => {
+    const ohneBezug = {
+      ...angebot,
+      positions: [{ label: 'pressfitting bogen 15 mm', qty: 4, unit: 'Stk', unitPrice: 6, netto: 24 }],
+    } as unknown as Quote;
+    const k = rechneBaustelle('B-5', 'Huber', [], [], ohneBezug, kosten, undefined, katalog);
+    expect(k.materialLuecken).toEqual([]);
+    expect(k.materialkosten).toBe(8.4);
+  });
+
+  it('bleibt ohne Katalog beim Hinweis — nichts wird geschätzt', () => {
+    const k = rechneBaustelle('B-5', 'Huber', [], [], angebot, kosten);
+    expect(k.materialLuecken).toEqual(['Bogen 15 mm verpresst (aus dem Angebot)', 'Ventil (aus dem Angebot)']);
+    expect(k.materialkosten).toBe(0);
+  });
+
+  it('zählt nichts doppelt, sobald ein Schein Material trägt', () => {
+    const k = rechneBaustelle('B-5', 'Huber', [], [rechnung(300)], angebot, kosten, { kosten: 50, ohnePreis: [], scheine: 1 }, katalog);
+    expect(k.materialkosten).toBe(50);
     expect(k.materialLuecken).toEqual([]);
   });
 });

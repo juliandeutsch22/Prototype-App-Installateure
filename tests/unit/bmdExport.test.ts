@@ -52,6 +52,8 @@ describe('Eine gewöhnliche Rechnung', () => {
         buchungstext: 'Familie Huber / B-200',
         betrag: 1200,
         steuercode: 'M20',
+        // Runde 3, M5: ohne Kundennummer das Sammelkonto der Debitoren.
+        debitor: '2000',
       },
     ]);
   });
@@ -60,7 +62,7 @@ describe('Eine gewöhnliche Rechnung', () => {
     // TT.MM.JJJJ und Komma. Ein ISO-Datum liest BMD als Text, und aus
     // „1200.00" wird beim Import je nach Einstellung 120000.
     const e = bauen([rechnung()]);
-    expect(e.csv.split('\r\n')[1]).toBe('2000;4000;30.04.2026;RE-2026-0001;Familie Huber / B-200;1200,00;M20');
+    expect(e.csv.split('\r\n')[1]).toBe('2000;4000;30.04.2026;RE-2026-0001;Familie Huber / B-200;1200,00;M20;2000');
   });
 
   it('nimmt für Bauleistungen das Konto für den Übergang der Steuerschuld', () => {
@@ -114,7 +116,7 @@ describe('Was fehlt, wird benannt — und es entsteht keine Datei', () => {
     // Ein leerer Monat ist kein Fehler im Kontenrahmen.
     const e = bauen([rechnung()], [], '2026-01-01', '2026-01-31');
     expect(e.fehlend).toEqual([]);
-    expect(e.csv.trim()).toBe('Sollkonto;Habenkonto;Belegdatum;Belegnummer;Buchungstext;Betrag;Steuercode');
+    expect(e.csv.trim()).toBe('Sollkonto;Habenkonto;Belegdatum;Belegnummer;Buchungstext;Betrag;Steuercode;Kundennummer');
   });
 });
 
@@ -335,19 +337,30 @@ describe('Stornierte Rechnungen', () => {
   TESTBERICHT 30.09.2026, H7 VORGEBAUT — die Debitorennummer aus dem
   Kundenstamm und Zahlungen samt Skonto als eigener Stapel.
 */
-describe('Die Debitorennummer', () => {
-  it('steht als letzte Spalte da, wenn der Kunde eine hat', () => {
+/*
+  RUNDE 3, M5: die Spalte steht IMMER da — vorher nur, wenn ein Kunde eine
+  Nummer hatte, und der Pilotbetrieb sah sie deshalb nie.
+*/
+describe('Die Kundennummer', () => {
+  it('steht als letzte Spalte da, mit der Nummer des Kunden', () => {
     const e = buildBmdCsv([rechnung()], KONTEN, '2026-04-01', '2026-04-30', () => '10042');
     const [kopf, zeile] = e.csv.split('\r\n');
-    expect(kopf.endsWith(';Debitorennummer')).toBe(true);
+    expect(kopf.endsWith(';Steuercode;Kundennummer')).toBe(true);
     expect(zeile).toBe('2000;4000;30.04.2026;RE-2026-0001;Familie Huber / B-200;1200,00;M20;10042');
   });
 
-  it('Gegenprobe: ohne Kundennummern bleibt die Datei, wie sie war', () => {
+  it('ohne Kundennummer steht das Sammelkonto der Debitoren', () => {
     const ohne = buildBmdCsv([rechnung()], KONTEN, '2026-04-01', '2026-04-30');
     const leer = buildBmdCsv([rechnung()], KONTEN, '2026-04-01', '2026-04-30', () => '');
     expect(leer.csv).toBe(ohne.csv);
-    expect(ohne.csv.split('\r\n')[0]).toBe('Sollkonto;Habenkonto;Belegdatum;Belegnummer;Buchungstext;Betrag;Steuercode');
+    expect(ohne.csv.split('\r\n')[0]).toBe('Sollkonto;Habenkonto;Belegdatum;Belegnummer;Buchungstext;Betrag;Steuercode;Kundennummer');
+    expect(ohne.csv.split('\r\n')[1].split(';').slice(-1)[0]).toBe('2000');
+  });
+
+  it('Gegenprobe: die ersten sieben Spalten bleiben, wie sie waren', () => {
+    const e = buildBmdCsv([rechnung()], KONTEN, '2026-04-01', '2026-04-30', () => '10042');
+    expect(e.csv.split('\r\n')[1].split(';').slice(0, 7)).toEqual(
+      ['2000', '4000', '30.04.2026', 'RE-2026-0001', 'Familie Huber / B-200', '1200,00', 'M20']);
   });
 });
 

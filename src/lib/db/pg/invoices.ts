@@ -97,6 +97,7 @@ async function zusammensetzen(
     // Nur, was von der gewöhnlichen Position abweicht (M18).
     if (z.art && z.art !== 'position') pos.art = z.art;
     if (z.rabattProzent != null) pos.rabattProzent = Number(z.rabattProzent);
+    if (z.materialId) pos.materialId = z.materialId;
     liste.push(pos);
     nachRechnung.set(z.invoiceId, liste);
   }
@@ -242,7 +243,12 @@ export async function listInvoicesInRange(companyId: string, von: string, bis: s
     weiter, weil der Stornotag in Ortszeit zählt und die Spalte in UTC
     steht — die Exporte schneiden danach genau auf den Tag zu.
   */
-  const [nachDatum, nachStorno] = await Promise.all([
+  /*
+    UND NACH DEM TAG DER STORNORECHNUNG (Runde 3, M7): ihr Belegdatum ist der
+    Tag ihrer Ausstellung (`stornoBelegTag`), und der kann nach dem Storno
+    liegen.
+  */
+  const [nachDatum, nachStorno, nachStornorechnung] = await Promise.all([
     abfragen<KopfZeile>(RECHNUNGEN, companyId, {
       wo: [
         { art: 'ab', feld: 'invoiceDate', wert: von },
@@ -256,9 +262,20 @@ export async function listInvoicesInRange(companyId: string, von: string, bis: s
         { art: 'bis', feld: 'cancelledAt', wert: tagVerschoben(bis, 1) },
       ],
     }),
+    abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+      wo: [
+        { art: 'ab', feld: 'stornoAm', wert: tagVerschoben(von, -1) },
+        { art: 'bis', feld: 'stornoAm', wert: tagVerschoben(bis, 1) },
+      ],
+    }),
   ]);
   const schon = new Set(nachDatum.map((k) => k.id));
-  return zusammensetzen([...nachDatum, ...nachStorno.filter((k) => !schon.has(k.id))], companyId);
+  const dazu = [...nachStorno, ...nachStornorechnung].filter((k) => {
+    if (schon.has(k.id)) return false;
+    schon.add(k.id);
+    return true;
+  });
+  return zusammensetzen([...nachDatum, ...dazu], companyId);
 }
 
 /**

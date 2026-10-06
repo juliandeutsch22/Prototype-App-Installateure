@@ -30,13 +30,15 @@ import { calcTotals, istPreiszeile, zeilenNetto, type InvoicePosition } from './
  * dieselben Zeilen wie bisher.
  */
 function mitArt(
-  quelle: Pick<InvoicePosition, 'art' | 'rabattProzent'>,
+  quelle: Pick<InvoicePosition, 'art' | 'rabattProzent' | 'materialId'>,
   zeile: InvoicePosition,
 ): InvoicePosition {
   return {
     ...zeile,
     ...(quelle.art && quelle.art !== 'position' ? { art: quelle.art } : {}),
     ...(quelle.rabattProzent != null ? { rabattProzent: quelle.rabattProzent } : {}),
+    // Der Katalogbezug geht mit (Runde 3, M12) — für Einkaufspreis und Nachkalkulation.
+    ...(quelle.materialId ? { materialId: quelle.materialId } : {}),
   };
 }
 

@@ -300,6 +300,33 @@ describe('Die Einstufung (Testbericht 4.1)', () => {
     expect(profilAendern.mock.calls[0][1]).toEqual(expect.objectContaining({ stundenInsBudget: true }));
   });
 
+  // Runde 3, M13: eine Umstufung gilt ab ihrem Tag — die Akte sagt es, bevor gespeichert wird.
+  it('sagt bei einer Umstufung, dass frühere Stunden den bisherigen Satz behalten', async () => {
+    gefunden = person({
+      uid: 'u2', name: 'Erna Beispiel', einstufung: 'lehrling', lehrbeginn: '2023-09-01', lehrzeitMonate: 36,
+    });
+    zeige();
+    await userEvent.selectOptions(await screen.findByLabelText('Einstufung'), 'facharbeiter');
+    expect(screen.getByText(/Umstufung von Lehrling auf Facharbeiter: gilt ab heute/)).toBeInTheDocument();
+    expect(screen.getByText(/bleiben beim Satz Lehrling\./)).toBeInTheDocument();
+    expect(screen.queryByText(/für neue und für noch nicht verrechnete Stunden/)).toBeNull();
+  });
+
+  it('Gegenprobe: die erste Einstufung ist keine Umstufung', async () => {
+    zeige();
+    await userEvent.selectOptions(await screen.findByLabelText('Einstufung'), 'helfer');
+    expect(screen.queryByText(/Umstufung von/)).toBeNull();
+  });
+
+  it('nennt frühere Stufen mit ihrem letzten Tag', async () => {
+    gefunden = person({
+      uid: 'u2', name: 'Erna Beispiel', einstufung: 'facharbeiter',
+      einstufungVerlauf: [{ einstufung: 'lehrling', lehrbeginn: '2023-09-01', lehrzeit_monate: 36, bis: '2026-10-06' }],
+    });
+    zeige();
+    expect(await screen.findByText(/Frühere Einstufung: Lehrling bis 05\.10\.2026\./)).toBeInTheDocument();
+  });
+
   it('zeigt „nicht festgelegt“, solange keine Einstufung gesetzt ist', async () => {
     zeige();
     await screen.findByRole('textbox', { name: /^Name/ });

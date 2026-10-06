@@ -66,6 +66,26 @@ describe('Der Satz einer Buchung', () => {
     ).toBe('lj2');
   });
 
+  // Runde 3, M13: Jede Buchung zählt zum Satz ihres Tages — auch nach einer Umstufung.
+  it('nach der Umstufung behalten frühere Tage die alte Stufe', () => {
+    const p = {
+      einstufung: 'facharbeiter' as const,
+      einstufungVerlauf: [
+        { einstufung: 'helfer' as const, bis: '2026-03-01' },
+        { einstufung: 'lehrling' as const, lehrbeginn: '2023-09-01', lehrzeit_monate: 36, bis: '2026-10-06' },
+      ],
+    };
+    expect(satzklasseAm(p, '2026-02-28')).toBe('helfer');
+    expect(satzklasseAm(p, '2026-03-01')).toBe('lj3');
+    expect(satzklasseAm(p, '2026-10-05')).toBe('lj3');
+    expect(satzklasseAm(p, '2026-10-06')).toBe('facharbeiter');
+  });
+
+  it('Gegenprobe: ohne Verlauf gilt die heutige Stufe für jeden Tag', () => {
+    expect(satzklasseAm({ einstufung: 'facharbeiter' }, '2020-01-01')).toBe('facharbeiter');
+    expect(satzklasseAm({ einstufung: 'facharbeiter', einstufungVerlauf: [] }, '2020-01-01')).toBe('facharbeiter');
+  });
+
   it('der Helfer-Haken geht vor — er bleibt für Ausnahmen', () => {
     expect(satzklasse({ satz: 'obermonteur', isHelper: true })).toBe('helfer');
     expect(satzklasse({ satz: 'lj3' })).toBe('lj3');

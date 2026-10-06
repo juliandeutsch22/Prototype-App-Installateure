@@ -46,6 +46,8 @@ vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => []) }));
 const archiv = vi.fn();
 vi.mock('@/features/invoices/belegArchiv', () => ({
   belegArchiv: (...a: unknown[]) => archiv(...a),
+  // Der erste Beleg des Bestands (Runde 3, G11) — die Rechnung prüft `belegArchiv.test.ts`.
+  ersterBelegTag: () => '2026-03-02',
 }));
 
 vi.mock('@/app/AuthContext', () => ({
@@ -213,6 +215,25 @@ describe('Belegarchiv', () => {
     expect(await screen.findByText(/Im Archiv: 12 Rechnungen, 1 Stornorechnung\. Ein Hinweis steht in „Hinweise\.txt“\./)).toBeInTheDocument();
     expect(rechnungenImZeitraum).toHaveBeenCalledWith('perl', `${jahr}-01-01`, `${jahr}-12-31`);
     expect(archiv.mock.calls[0][0]).toMatchObject({ von: `${jahr}-01-01`, bis: `${jahr}-12-31` });
+  });
+
+  it('„Alle Belege“ beginnt beim ersten Beleg, nicht am 01.01.2000 (Runde 3, G11)', async () => {
+    archiv.mockResolvedValue({ blob: new Blob(), rechnungen: 3, stornos: 0, hinweise: [] });
+    const klicks: string[] = [];
+    const klick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      klicks.push(this.download);
+    });
+    try {
+      zeige();
+      await userEvent.selectOptions(screen.getByLabelText('Zeitraum'), 'alle');
+      await userEvent.click(screen.getByRole('button', { name: 'Belegarchiv herunterladen' }));
+      await screen.findByText(/Im Archiv: 3 Rechnungen/);
+      expect(archiv.mock.calls[0][0]).toMatchObject({ von: '2026-03-02' });
+      expect(klicks[0]).toMatch(/Belegarchiv-2026-03-02-bis-\d{4}-\d{2}-\d{2}\.zip$/);
+      expect(klicks[0]).not.toContain('2000');
+    } finally {
+      klick.mockRestore();
+    }
   });
 
   it('meldet den Fehler, statt still nichts herunterzuladen', async () => {

@@ -1,3 +1,4 @@
+import { stornoBelegTag } from './stornoBelegTag';
 import {
   briefkopf,
   empfaenger,
@@ -69,7 +70,8 @@ export async function buildStornoPdf(o: StornoOptionen): Promise<Blob> {
     25.09. hinter RE-2026-1502 vom 30.09.). Der Tag des Stornos steht jetzt im
     Text. Ohne `stornoAm` wird der Beleg gerade ausgestellt: dann ist es heute.
   */
-  const datum = stornoTag(inv.stornoAm ?? Date.now());
+  // Runde 3, M7: dieselbe Quelle wie Liste, Ausgangsbuch, BMD-Stapel und Archiv.
+  const datum = stornoBelegTag({ stornoAm: inv.stornoAm ?? Date.now(), cancelledAt: inv.cancelledAt })!;
   const storniertAm = inv.cancelledAt != null ? stornoTag(inv.cancelledAt) : undefined;
 
   briefkopf(doc, o.company);

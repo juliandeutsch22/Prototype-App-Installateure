@@ -182,6 +182,7 @@ export default function NachkalkulationView() {
                 angebotDerBaustelle(angeboteJeBaustelle[i]),
                 kosten,
                 material,
+                katalog,
               );
             })
             // Die schlechtesten oben: eine Auswertung ist eine Arbeitsliste.

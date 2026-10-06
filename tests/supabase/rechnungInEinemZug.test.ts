@@ -58,6 +58,7 @@ async function verrechnungsstand(id: string) {
 const entwurf = (rest: Record<string, unknown> = {}) => ({
   projectNumber: 'B-300',
   customerName: 'Familie Huber',
+  address: 'Hauptplatz 1, 8200 Gleisdorf',
   invoiceDate: '2026-04-30',
   dueDate: '2026-05-14',
   subtotalNetto: 800,

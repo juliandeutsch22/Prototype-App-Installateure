@@ -24,7 +24,8 @@ const PROJEKT: Project & { id: string } = {
   companyId: 'perl',
   projectNumber: '2026-042',
   customerName: 'Familie Huber',
-  address: 'Bergweg 3',
+  // Mit PLZ und Ort: ohne sie entsteht seit Runde 3 (M9) keine Rechnung.
+  address: 'Bergweg 3, 2700 Wiener Neustadt',
   status: 'Aktiv',
 } as Project & { id: string };
 
@@ -226,9 +227,20 @@ vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(async () => [PROJEKT]),
   listProjectsByNumbers: vi.fn(async () => [PROJEKT]),
 }));
-let kunden: Array<{ id?: string; name: string; vatId?: string; address?: string }> = [];
+let kunden: Array<{
+  id?: string; name: string; vatId?: string; address?: string;
+  plz?: string; ort?: string; adressePruefen?: boolean; kundenart?: 'privat' | 'unternehmen' | null;
+}> = [];
+/*
+  KUNDEN WIE AUS DEM STAMM: mit PLZ, Ort und Kundenart (Runde 3, M9/M10) —
+  wie die Datenbank sie setzt (eine UID macht zum Unternehmen). Wo eine
+  Prüfung das Fehlen braucht, setzt sie den Wert ausdrücklich.
+*/
+const mitStamm = (k: (typeof kunden)[number]) => ({
+  plz: '2700', ort: 'Wiener Neustadt', kundenart: k.vatId ? 'unternehmen' : 'privat', ...k,
+});
 vi.mock('@/lib/db/customers', () => ({
-  listCustomers: vi.fn(async () => kunden),
+  listCustomers: vi.fn(async () => kunden.map(mitStamm)),
   updateCustomer: vi.fn(async () => 0),
 }));
 /*
@@ -955,6 +967,31 @@ describe('Eine überfällige Rechnung mahnen', () => {
     expect(mahnung.mock.calls[0][1]).toMatchObject({ stufe: 1 });
   });
 
+  /* Runde 3, M10: ohne Kundenart keine Mahnung — Zinsen und Spesen hängen an ihr. */
+  it('mahnt nicht ohne Kundenart und zeigt den Weg in die Kundenakte', async () => {
+    kunden = [{ id: 'k7', name: UEBERFAELLIG.customerName, kundenart: null }];
+    rechnungen = [{ ...UEBERFAELLIG, customerVatId: undefined }];
+    offene = rechnungen;
+    await menue();
+    // Schon im Mahnlauf steht, was das Mahnen aufhält.
+    expect(await screen.findByText(/· Kundenart fehlt/)).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('menuitem', { name: /erzeugen/ }));
+    expect(await screen.findByText(/ist keine Kundenart hinterlegt/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /in der Kundenakte festlegen/ })).toHaveAttribute('href', '/customers/k7');
+    await userEvent.click(await screen.findByRole('button', { name: 'Erzeugen' }));
+    expect(mahnungPdf).not.toHaveBeenCalled();
+    expect(mahnung).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: mit Kundenart steht im Mahnlauf kein Hinweis', async () => {
+    kunden = [{ id: 'k7', name: UEBERFAELLIG.customerName, kundenart: 'privat' }];
+    rechnungen = [{ ...UEBERFAELLIG, customerVatId: undefined }];
+    offene = rechnungen;
+    await menue();
+    expect(await screen.findByText(/Tage überfällig/)).toBeInTheDocument();
+    expect(screen.queryByText(/· Kundenart fehlt/)).toBeNull();
+  });
+
   it('hält NICHTS fest, wenn der Beleg scheitert', async () => {
     /*
       Der Fall, für den die Reihenfolge da ist. Stünde der Vermerk zuerst,
@@ -1191,7 +1228,8 @@ describe('Die korrigierte UID', () => {
     const feld = screen.getByLabelText(/UID-Nummer des Kunden/);
     await userEvent.clear(feld);
     await userEvent.type(feld, 'atu 5555 7777');
-    await userEvent.click(screen.getByRole('checkbox', { name: /Auch beim Kunden speichern \(dort steht ATU55556666\)/ }));
+    // Runde 3, M11: die Frage steht da und ist mit „ja“ vorbelegt.
+    expect(screen.getByRole('checkbox', { name: /UID auch beim Kunden speichern\? \(dort steht ATU55556666\)/ })).toBeChecked();
     await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
 
     await waitFor(() => expect(updateCustomer).toHaveBeenCalled());
@@ -1207,6 +1245,7 @@ describe('Die korrigierte UID', () => {
     const feld = screen.getByLabelText(/UID-Nummer des Kunden/);
     await userEvent.clear(feld);
     await userEvent.type(feld, 'ATU55557777');
+    await userEvent.click(screen.getByRole('checkbox', { name: /UID auch beim Kunden speichern\?/ }));
     await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
     await waitFor(() => expect(lege).toHaveBeenCalled());
     expect(updateCustomer).not.toHaveBeenCalled();
@@ -1215,13 +1254,91 @@ describe('Die korrigierte UID', () => {
   it('Gegenprobe: dieselbe UID bietet nichts an', async () => {
     kunden = [{ id: 'k9', name: 'Familie Huber', vatId: 'ATU55556666' }];
     await bisZurVorschau();
-    expect(screen.queryByRole('checkbox', { name: /Auch beim Kunden speichern/ })).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: /UID auch beim Kunden speichern/ })).toBeNull();
   });
 
   it('eine UID in falscher Form sperrt das Erstellen', async () => {
     await bisZurVorschau();
     await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU123');
     expect(screen.getByRole('button', { name: /Rechnung erstellen/ })).toBeDisabled();
+  });
+});
+
+/*
+  RUNDE 3, M9 UND M10: Rechnung nur an einen vollständigen Empfänger — mit
+  PLZ und Ort, ohne „Adresse prüfen“, mit Kundenart. Dieselben Regeln prüft
+  die Datenbank (tests/supabase/rechnungEmpfaenger.test.ts).
+*/
+describe('Der Empfänger der Rechnung', () => {
+  const knopf = () => screen.getByRole('button', { name: /Rechnung erstellen/ });
+
+  it('„Adresse prüfen“ sperrt — mit dem Weg in die Kundenakte', async () => {
+    kunden = [{ id: 'k5', name: 'Familie Huber', address: 'Alois-Köberl-Gasse 11', adressePruefen: true }];
+    await bisZurVorschau();
+    expect(screen.getByText(/als „Adresse prüfen“ markiert/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Zur Kundenakte' })).toHaveAttribute('href', '/customers/k5');
+    expect(knopf()).toBeDisabled();
+  });
+
+  it('ohne PLZ und Ort keine Rechnung', async () => {
+    kunden = [{ id: 'k5', name: 'Familie Huber', address: 'Alois-Köberl-Gasse 11', plz: '', ort: '' }];
+    await bisZurVorschau();
+    expect(screen.getByText(/fehlen PLZ und Ort/)).toBeInTheDocument();
+    expect(knopf()).toBeDisabled();
+  });
+
+  it('ohne Kundenart keine Rechnung — eine UID auf der Rechnung genügt', async () => {
+    kunden = [{ id: 'k5', name: 'Familie Huber', kundenart: null }];
+    await bisZurVorschau();
+    expect(screen.getByText(/keine Kundenart hinterlegt/)).toBeInTheDocument();
+    expect(knopf()).toBeDisabled();
+    await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU55556666');
+    expect(screen.queryByText(/keine Kundenart hinterlegt/)).toBeNull();
+  });
+
+  it('ohne Kunden im Stamm: die Anschrift der Baustelle braucht PLZ und Ort', async () => {
+    kunden = [];
+    PROJEKT.address = 'Bergweg 3';
+    try {
+      await bisZurVorschau();
+      expect(screen.getByText(/Rechnungsanschrift hat keine PLZ und keinen Ort/)).toBeInTheDocument();
+      expect(knopf()).toBeDisabled();
+    } finally {
+      PROJEKT.address = 'Bergweg 3, 2700 Wiener Neustadt';
+    }
+  });
+
+  it('Gegenprobe: vollständig, und es geht wie immer', async () => {
+    kunden = [{ id: 'k5', name: 'Familie Huber', address: 'Bergweg 3, 2700 Wiener Neustadt' }];
+    await bisZurVorschau();
+    expect(screen.queryByText(/PLZ und Ort|Adresse prüfen|Kundenart/)).toBeNull();
+    expect(knopf()).toBeEnabled();
+  });
+});
+
+/* Runde 3, M8: § 14 UGB — Firmenbuchnummer und -gericht. */
+describe('Firmenbuch in der Rechnungsmaske', () => {
+  it('warnt bei einer GmbH ohne Firmenbuchgericht, sperrt aber nicht', async () => {
+    const vorher = { ...authWert.company };
+    Object.assign(authWert.company, { name: 'Perl Installationen GmbH', companyRegister: 'FN 123456a', firmenbuchgericht: '' });
+    try {
+      await bisZurVorschau();
+      expect(screen.getByText(/In den Firmendaten fehlt Firmenbuchgericht/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Rechnung erstellen/ })).toBeEnabled();
+    } finally {
+      Object.assign(authWert.company, vorher);
+    }
+  });
+
+  it('Gegenprobe: mit beidem keine Warnung, ohne Rechtsform auch nicht', async () => {
+    const vorher = { ...authWert.company };
+    Object.assign(authWert.company, { name: 'Perl Installationen GmbH', companyRegister: 'FN 123456a', firmenbuchgericht: 'Landesgericht Wiener Neustadt' });
+    try {
+      await bisZurVorschau();
+      expect(screen.queryByText(/In den Firmendaten fehlt Firmenbuch/)).toBeNull();
+    } finally {
+      Object.assign(authWert.company, vorher);
+    }
   });
 });
 
@@ -1625,6 +1742,27 @@ describe('Der Buchhaltungs-Export', () => {
     expect(screen.getByText(/Erlöskonto für 20 % Umsatzsteuer/)).toBeInTheDocument();
   });
 
+  /*
+    RUNDE 3, M5: Der Knopf für Zahlungen und Skonto steht immer da — vorher
+    nur mit Bank- oder Skontokonto, und der Pilotbetrieb fand ihn nie.
+  */
+  it('bietet „Zahlungen und Skonto für BMD“ auch ohne Bankkonto an und sagt, was fehlt', async () => {
+    konten = KONTEN.filter((k) => k.zweck !== 'bank' && k.zweck !== 'skonto');
+    imZeitraum = [journal('0001', '2026-09-01')];
+    zahlungenImMonat.mockResolvedValue([
+      { id: 'z1', invoiceId: imZeitraum[0].id, datum: '2026-09-10', betrag: 120, art: 'Überweisung' },
+    ]);
+    try {
+      zeige();
+      await userEvent.click(await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }));
+      expect(await screen.findByRole('button', { name: 'Zahlungen und Skonto für BMD' })).toBeDisabled();
+      expect(screen.getByText(/Für den Zahlungsstapel fehlt:/).closest('p')).toHaveTextContent(/Bankkonto/);
+      expect(screen.getByText(/Beide BMD-Stapel sind vorgebaut/)).toBeInTheDocument();
+    } finally {
+      zahlungenImMonat.mockResolvedValue([]);
+    }
+  });
+
   it('nennt vor dem Export ausgestellte Schlussrechnungen ohne Abzug (K2)', async () => {
     imZeitraum = [journal('0001', '2026-09-01')];
     ohneAbzug = [{ invoiceNumber: 'RE-2026-1502', fehlend: 'RE-2026-1501' }];
@@ -1967,6 +2105,9 @@ describe('Zahlungen erfassen', () => {
       betrag: 400,
       art: 'Überweisung',
     });
+    // Runde 3, G14 Gegenprobe: nach einem Eingang bleibt der Dialog für die nächste Zahlung offen.
+    expect(await screen.findByText('Zahlung erfasst')).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Betrag/)).toBeInTheDocument();
   });
 
   it('sagt bei Bar und Karte, dass der Beleg aus der Registrierkasse kommt', async () => {
@@ -2900,11 +3041,11 @@ describe('Die Rechnung geht an den Kunden, nicht an die Baustelle', () => {
 
     expect(lege.mock.calls[0][0]).toMatchObject({
       address: 'Kundenweg 1, 2700 Wiener Neustadt',
-      leistungsort: 'Bergweg 3',
+      leistungsort: 'Bergweg 3, 2700 Wiener Neustadt',
     });
     expect(pdfAusgabe.mock.calls[0][0]).toMatchObject({
       project: { address: 'Kundenweg 1, 2700 Wiener Neustadt' },
-      leistungsort: 'Bergweg 3',
+      leistungsort: 'Bergweg 3, 2700 Wiener Neustadt',
     });
   });
 
@@ -2919,7 +3060,7 @@ describe('Die Rechnung geht an den Kunden, nicht an die Baustelle', () => {
     kunden = [KUNDE, { id: 'k2', name: 'Familie Huber', address: 'Ganz woanders 9' }];
     await userEvent.click(await bisZurVorschau());
     await waitFor(() => expect(lege).toHaveBeenCalled());
-    expect(lege.mock.calls[0][0].address).toBe('Bergweg 3');
+    expect(lege.mock.calls[0][0].address).toBe('Bergweg 3, 2700 Wiener Neustadt');
     expect(lege.mock.calls[0][0].leistungsort).toBeUndefined();
   });
 
@@ -2927,7 +3068,7 @@ describe('Die Rechnung geht an den Kunden, nicht an die Baustelle', () => {
     kunden = [];
     await userEvent.click(await bisZurVorschau());
     await waitFor(() => expect(lege).toHaveBeenCalled());
-    expect(lege.mock.calls[0][0].address).toBe('Bergweg 3');
+    expect(lege.mock.calls[0][0].address).toBe('Bergweg 3, 2700 Wiener Neustadt');
     expect(lege.mock.calls[0][0].leistungsort).toBeUndefined();
   });
 
@@ -3399,6 +3540,9 @@ describe('Paket 5a — die Rechnungsliste', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Rückzahlung buchen' }));
     await waitFor(() => expect(createZahlung).toHaveBeenCalled());
     expect(erfassteZahlungen[0]).toMatchObject({ invoiceId: 's', betrag: -200, hinweis: 'Rückzahlung des Guthabens' });
+    // Runde 3, G14: danach schliesst der Dialog, und die Meldung sagt, was gebucht ist.
+    await waitFor(() => expect(screen.queryByLabelText('Richtung')).toBeNull());
+    expect(await screen.findByText('Rückzahlung über € 200,00 gebucht')).toBeInTheDocument();
   });
 
   it('Gegenprobe: mehr als das Guthaben geht nicht zurück', async () => {
@@ -3448,5 +3592,56 @@ describe('Paket 5a — die Rechnungsliste', () => {
     )).toBeInTheDocument();
     expect(screen.queryByText(/schon bezahlt/)).toBeNull();
     expect(screen.getByRole('button', { name: 'Zahlung eintragen' })).toBeInTheDocument();
+  });
+});
+
+/*
+  RUNDE 3, SELBST PRÜFEN — „Rechnungen seiner Baustellen lesen“ (M38). Die
+  Projektleitung kommt nur mit der Freigabe her; die Datenbank zeigt ihr nur
+  die Rechnungen ihrer Baustellen (tests/supabase/freigabenLagerProjektleitung).
+  Die Seite bietet ihr deshalb nur, was sie darf: lesen.
+*/
+describe('Die Projektleitung liest nur', () => {
+  const offeneRechnung = {
+    id: 'pl1', invoiceNumber: 'RE-2026-0042', projectNumber: '2026-042', customerName: 'Familie Huber',
+    invoiceDate: '2026-08-01', dueDate: '2026-08-15', address: 'Bergweg 3, 2700 Wiener Neustadt',
+    totalNetto: 100, totalVat: 20, totalBrutto: 120, paymentStatus: 'Offen',
+    positions: [{ label: 'Facharbeiterstunden', qty: 1, unit: 'h', unitPrice: 100, netto: 100 }],
+  } as unknown as Invoice & { id: string };
+
+  beforeEach(() => {
+    (authWert.user as { role: string }).role = 'Projektleiter';
+    vi.mocked(updateInvoiceStatus).mockClear();
+  });
+  afterEach(() => {
+    (authWert.user as { role: string }).role = 'Buchhaltung';
+  });
+
+  it('sieht die Liste mit Ansicht und PDF — ohne Anlegen, Zahlung, Mahnen, Storno und Export', async () => {
+    rechnungen = [offeneRechnung];
+    offene = [offeneRechnung];
+    zeige();
+    expect(await screen.findByText('Die Rechnungen Ihrer Baustellen — zum Lesen')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }));
+    const eintraege = (await screen.findAllByRole('menuitem')).map((e) => e.textContent);
+    expect(eintraege).toEqual(['Ansehen', 'PDF erneut laden']);
+    expect(screen.queryByText('Neue Rechnung aus Baustelle')).toBeNull();
+    expect(screen.queryByText('Buchhaltungs-Export')).toBeNull();
+    expect(screen.queryByText(/^Mahnlauf/)).toBeNull();
+    // Was sie nicht lesen darf, wird gar nicht erst gefragt — und kein Status von hier aus gesetzt.
+    expect(listRecentWorkSheets).not.toHaveBeenCalled();
+    expect(updateInvoiceStatus).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: die Buchhaltung bekommt alles', async () => {
+    (authWert.user as { role: string }).role = 'Buchhaltung';
+    rechnungen = [offeneRechnung];
+    offene = [offeneRechnung];
+    zeige();
+    expect(await screen.findByText('Neue Rechnung aus Baustelle')).toBeInTheDocument();
+    expect(await screen.findByText(/^Mahnlauf/)).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }));
+    expect(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Stornieren' })).toBeInTheDocument();
   });
 });

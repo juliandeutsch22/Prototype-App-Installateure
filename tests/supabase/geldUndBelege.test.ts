@@ -44,6 +44,7 @@ async function anlegen(extra: Partial<rechnungen.NewInvoice> = {}): Promise<stri
     invoiceNumber: `RE-${JAHR}-${lfd}`,
     projectNumber: baustelle,
     customerName: 'Familie Huber',
+    address: 'Hauptplatz 1, 8200 Gleisdorf',
     invoiceDate: `${JAHR}-04-30`,
     dueDate: `${JAHR}-05-14`,
     totalNetto: 1000,

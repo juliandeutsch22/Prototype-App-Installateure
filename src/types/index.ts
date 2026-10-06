@@ -13,7 +13,7 @@
  *  - `timeEntries` haben start/end/Pause; "hours" wird daraus berechnet.
  *    Sprach-Einträge dürfen zusätzlich `hours` direkt setzen.
  */
-import type { Einstufung, Satzklasse, Stufensaetze } from '@/lib/einstufung';
+import type { Einstufung, FruehereEinstufung, Satzklasse, Stufensaetze } from '@/lib/einstufung';
 import type { Materialaufschlag } from '@/lib/aufschlag';
 
 
@@ -358,6 +358,8 @@ export interface AppUser {
   /** Nur beim Lehrling: Lehrbeginn und Lehrzeit in Monaten — daraus das Lehrjahr. */
   lehrbeginn?: string | null;
   lehrzeitMonate?: number | null;
+  /** Frühere Stufen, jede bis zum Tag ihrer Umstufung — schreibt nur die Datenbank (Runde 3, M13). */
+  einstufungVerlauf?: FruehereEinstufung[] | null;
   /** Nur beim Lehrling: zählen seine Stunden ins Projekt-Budget? Ab Werk ja (03.10.2026). */
   stundenInsBudget?: boolean;
   /** Freigabe „Kunden pflegen“ — wirkt für Verwaltung und Buchhaltung (siehe `darfKundenPflegen`). */
@@ -949,6 +951,8 @@ export interface UidPruefung {
   adresse?: string | null;
   abfrageId?: string | null;
   eigeneUid?: string | null;
+  /** Warum VIES keine Abfrage-ID vergeben hat (seit Runde 3, G21). */
+  ohneIdGrund?: string | null;
   /** Zeitpunkt laut VIES. */
   abgefragtAm: number;
   durch: string;
@@ -1489,6 +1493,8 @@ export interface Invoice {
     art?: 'position' | 'titel' | 'text';
     /** Nachlass auf diese Position in Prozent; das Netto ist schon nach Abzug. */
     rabattProzent?: number | null;
+    /** Der Katalogartikel aus dem Angebot (Runde 3, M12) — für den Einkaufspreis. */
+    materialId?: string | null;
   }[];
   /** Summe der Positionen VOR Rabatt. Ohne sie liesse sich der Rabatt im
    *  Nachhinein nicht mehr nachvollziehen. */

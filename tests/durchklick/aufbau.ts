@@ -130,6 +130,8 @@ export default async function aufbau(): Promise<void> {
 
   const { error: kundeFehler } = await admin.from('customers').insert({
     company_id: BETRIEB, name: BAUSTELLE.kunde, address: 'Hauptstrasse 1, 1010 Wien',
+    // Ohne Kundenart entsteht seit Runde 3 (M10) keine Rechnung — ein gepflegter Kunde hat sie.
+    kundenart: 'privat',
   });
   if (kundeFehler) throw new Error(kundeFehler.message);
 

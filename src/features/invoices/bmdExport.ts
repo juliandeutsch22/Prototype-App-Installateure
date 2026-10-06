@@ -1,3 +1,4 @@
+import { stornoBelegTag } from './stornoBelegTag';
 import type { Invoice, Zahlungseingang } from '@/types';
 import { csvZelle as cell } from '@/lib/csvZelle';
 
@@ -75,22 +76,23 @@ const KOPF = [
 ];
 
 /*
-  DIE DEBITORENNUMMER STEHT AM ENDE — UND NUR, WENN ES EINE GIBT (Testbericht
-  30.09.2026, H7 vorgebaut). Eine Kanzlei ordnet die Spalten einmal zu; eine
-  neue Spalte in der Mitte verschöbe jede Zuordnung danach. Ohne hinterlegte
-  Kundennummern bleibt die Datei Zeichen für Zeichen, wie sie war. Ob BMD
-  die Nummer als Personenkonto liest, klärt der Importtest mit der Kanzlei.
+  DIE KUNDENNUMMER STEHT AM ENDE — IN JEDER ZEILE (Runde 3, M5). Eine Kanzlei
+  ordnet die Spalten einmal zu; eine neue Spalte in der Mitte verschöbe jede
+  Zuordnung danach. Bis zum 06.10. kam die Spalte nur, wenn wenigstens ein
+  Kunde eine Nummer hatte — der Pilotbetrieb sah sie deshalb nie, obwohl das
+  Handbuch sie beschrieb. Jetzt steht sie immer da: die Kundennummer, sonst
+  das Sammelkonto der Debitoren. Ob BMD sie als Personenkonto liest, klärt der
+  Importtest mit der Kanzlei; bis dahin ist der Stapel vorgebaut.
 */
-const DEBITOR = 'Debitorennummer';
+const KUNDENNUMMER = 'Kundennummer';
 
 function alsCsv(zeilen: BmdZeile[]): string {
-  const mitDebitor = zeilen.some((z) => !!z.debitor);
   const csv = [
-    [...KOPF, ...(mitDebitor ? [DEBITOR] : [])].join(';'),
+    [...KOPF, KUNDENNUMMER].join(';'),
     ...zeilen.map((z) =>
       [
         z.soll, z.haben, z.belegdatum, z.belegnummer, z.buchungstext, betrag(z.betrag), z.steuercode,
-        ...(mitDebitor ? [z.debitor ?? ''] : []),
+        z.debitor ?? '',
       ]
         .map(cell)
         .join(';'),
@@ -105,13 +107,6 @@ const betrag = (n: number) => n.toFixed(2).replace('.', ',');
 function datum(iso: string): string {
   const [j, m, t] = iso.slice(0, 10).split('-');
   return `${t}.${m}.${j}`;
-}
-
-/** Aus einem Zeitstempel wird das Datum in ORTSZEIT, nicht in UTC. */
-function tagVon(ms: number): string {
-  const d = new Date(ms);
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 /** Steuersätze werden auf vier Nachkommastellen verglichen, nicht auf Gleitkomma. */
@@ -180,7 +175,9 @@ export function buildBmdCsv(
   const imZeitraum = invoices
     .filter((i) => {
       if (i.invoiceDate >= von && i.invoiceDate <= bis) return true;
-      return i.cancelledAt != null && tagVon(i.cancelledAt) >= von && tagVon(i.cancelledAt) <= bis;
+      // Runde 3, M7: dasselbe Belegdatum wie Liste, PDF, Archiv und Ausgangsbuch.
+      const t = stornoBelegTag(i);
+      return t != null && t >= von && t <= bis;
     })
     .sort((a, b) => a.invoiceNumber.localeCompare(b.invoiceNumber, 'de'));
 
@@ -261,12 +258,13 @@ export function buildBmdCsv(
 
     /*
       Die Stornobuchung ist die ursprüngliche mit vertauschten Konten, am
-      Stornotag. Ein negativer Betrag auf der ursprünglichen Seite wäre
+      Belegtag des Stornos (`stornoBelegTag`, Runde 3 M7). Ein negativer Betrag auf der ursprünglichen Seite wäre
       dasselbe Ergebnis — aber keine Buchhaltung kennzeichnet einen Storno so,
       und eine Kanzlei, die ihn übersieht, korrigiert ihn nie.
     */
-    if (storniert && i.cancelledAt != null && debitoren && habenKonto) {
-      const tag = tagVon(i.cancelledAt);
+    const stornoTag = storniert ? stornoBelegTag(i) : null;
+    if (stornoTag != null && debitoren && habenKonto) {
+      const tag = stornoTag;
       if (tag >= von && tag <= bis) {
         zeilen.push({
           soll: habenKonto.konto,
@@ -315,12 +313,11 @@ export function buildBmdCsv(
   */
   if (fehlend.length > 0) return { csv: '', zeilen: [], fehlend };
 
-  if (debitorVon) {
-    const nummer = new Map(imZeitraum.map((i) => [i.invoiceNumber, debitorVon(i)?.trim() || '']));
-    for (const z of zeilen) {
-      const r = imZeitraum.find((i) => i.invoiceNumber === z.belegnummer || i.stornoNummer === z.belegnummer);
-      z.debitor = r ? nummer.get(r.invoiceNumber) ?? '' : '';
-    }
+  // Kundennummer, sonst das Sammelkonto der Debitoren (Runde 3, M5).
+  const nummer = new Map(imZeitraum.map((i) => [i.invoiceNumber, debitorVon?.(i)?.trim() || '']));
+  for (const z of zeilen) {
+    const r = imZeitraum.find((i) => i.invoiceNumber === z.belegnummer || i.stornoNummer === z.belegnummer);
+    z.debitor = (r ? nummer.get(r.invoiceNumber) : '') || debitoren?.konto || '';
   }
 
   return { csv: alsCsv(zeilen), zeilen, fehlend };
@@ -381,7 +378,8 @@ export function buildBmdZahlungenCsv(
       continue;
     }
     const text = `${r.customerName}${z.hinweis ? ` / ${z.hinweis}` : ''}`;
-    const debitor = debitorVon?.(r)?.trim() || '';
+    // Kundennummer, sonst das Sammelkonto der Debitoren (Runde 3, M5).
+    const debitor = debitorVon?.(r)?.trim() || debitoren?.konto || '';
     if (z.art === 'Skonto') {
       if (!skonto) {
         vermisst('Konto für gewährte Skonti (Erlösschmälerung)');

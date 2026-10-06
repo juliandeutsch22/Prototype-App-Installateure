@@ -1,3 +1,4 @@
+import { stornoBelegTag } from './stornoBelegTag';
 import type { Customer, Invoice } from '@/types';
 import { zahlstand } from './zahlstand';
 import { csvZelle as cell } from '@/lib/csvZelle';
@@ -54,12 +55,6 @@ function fmtDate(iso: string | undefined): string {
   });
 }
 
-/** Aus einem Zeitstempel wird das Datum in ORTSZEIT, nicht in UTC — wie im Buchungsstapel. */
-function tagVon(ms: number): string {
-  const d = new Date(ms);
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
 
 function row(values: unknown[]): string {
   return values.map(cell).join(';');
@@ -132,6 +127,15 @@ const KOPF = [
     braucht ihn getrennt — die Umsatzsteuer darauf wird berichtigt.
   */
   'Skonto',
+  /*
+    BESTELLNUMMER UND RÜCKLASS, am Ende (Runde 3, G24) — aus demselben Grund
+    wie Art und Skonto. Der Rücklass steht als Betrag und mit Fälligkeit: er
+    ist Teil der Forderung, aber erst später fällig, und die Kanzlei führt
+    ihn getrennt.
+  */
+  'Bestellnummer',
+  'Rücklass (€)',
+  'Rücklass fällig am',
 ];
 
 export interface RechnungsExport {
@@ -143,6 +147,12 @@ export interface RechnungsExport {
   luecken: string[];
   /** Storni dieses Zeitraums als Gegenzeile — auch von Rechnungen aus früheren. */
   gegenbuchungen: number;
+  /**
+   * Storni im Zeitraum ohne ausgestellte Stornorechnung (Runde 3, M7). Ihre
+   * Gegenbuchung steht am Tag des Stornos; wird die Stornorechnung später
+   * ausgestellt, trägt sie deren Datum — dann in einem anderen Zeitraum.
+   */
+  ohneStornorechnung: string[];
 }
 
 /**
@@ -168,9 +178,10 @@ export function buildInvoiceCsv(
     nicht in die Summe.
   */
   const storniertIm = (i: Invoice) => {
-    if (i.paymentStatus !== 'Storniert' || i.cancelledAt == null) return false;
-    const tag = tagVon(i.cancelledAt);
-    return tag >= von && tag <= bis;
+    if (i.paymentStatus !== 'Storniert') return false;
+    // Runde 3, M7: dasselbe Belegdatum wie Liste, PDF, Archiv und BMD-Stapel.
+    const tag = stornoBelegTag(i);
+    return tag != null && tag >= von && tag <= bis;
   };
   const eintraege = [
     ...imZeitraum.map((i) => ({ i, storno: false })),
@@ -205,7 +216,7 @@ export function buildInvoiceCsv(
         row([
           // Mit Stornorechnung (B7) ist sie der Beleg dieser Zeile; der Grund nennt die Rechnung.
           i.stornoNummer ?? i.invoiceNumber,
-          fmtDate(tagVon(i.cancelledAt!)),
+          fmtDate(stornoBelegTag(i)!),
           i.leistungVon ? fmtDate(i.leistungVon) : '',
           i.leistungBis ? fmtDate(i.leistungBis) : '',
           '',
@@ -225,6 +236,9 @@ export function buildInvoiceCsv(
             ? `Stornorechnung zu ${i.invoiceNumber}${i.cancellationNote ? ` — ${i.cancellationNote}` : ''}`
             : (i.cancellationNote ?? ''),
           i.art ?? 'einzel',
+          '',
+          i.bestellnummer ?? '',
+          '',
           '',
         ]),
       );
@@ -258,6 +272,9 @@ export function buildInvoiceCsv(
         // Altbestand trägt keine Art — er ist durchwegs eine Einzelrechnung.
         i.art ?? 'einzel',
         i.skontoBetrag ? num(i.skontoBetrag) : '',
+        i.bestellnummer ?? '',
+        i.ruecklassBetrag ? num(i.ruecklassBetrag) : '',
+        i.ruecklassBis ? fmtDate(i.ruecklassBis) : '',
       ]),
     );
     /**
@@ -267,7 +284,7 @@ export function buildInvoiceCsv(
      * Nur ein Storno ohne Datum (Altbestand) nimmt sie wie bisher gleich
      * heraus: für ihn gibt es keinen anderen Zeitraum.
      */
-    if (!storniert || i.cancelledAt != null) {
+    if (!storniert || stornoBelegTag(i) != null) {
       summeNetto += i.totalNetto ?? 0;
       summeBrutto += i.totalBrutto ?? 0;
     }
@@ -312,6 +329,7 @@ export function buildInvoiceCsv(
         .map((i) => ({ invoiceNumber: i.stornoNummer! })),
     ]),
     gegenbuchungen: eintraege.filter((e) => e.storno).length,
+    ohneStornorechnung: eintraege.filter((e) => e.storno && !e.i.stornoNummer).map((e) => e.i.invoiceNumber),
   };
 }
 

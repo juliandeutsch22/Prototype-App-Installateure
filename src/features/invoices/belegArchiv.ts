@@ -1,7 +1,8 @@
 import type { Company, Customer, Invoice } from '@/types';
 import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
 import { druckAngaben } from './nachdruck';
-import { stornoDateiname, stornoTag } from './stornoPdf';
+import { stornoDateiname } from './stornoPdf';
+import { stornoBelegTag } from './stornoBelegTag';
 import { zipErstellen, type ZipDatei } from '@/lib/zip';
 import { datumAT } from '@/lib/datum';
 import { todayStr } from '@/lib/time';
@@ -38,6 +39,21 @@ function dateiname(s: string): string {
 
 const pause = () => new Promise<void>((r) => setTimeout(r, 0));
 
+/**
+ * Der Tag des ersten Belegs — für „Alle Belege“ (Runde 3, G11). Vorher stand
+ * dort der 01.01.2000, in den Hinweisen und im Dateinamen; ein Betrieb, der
+ * 2026 begonnen hat, las von Belegen aus 26 Jahren. Ohne Beleg: `bis`.
+ */
+export function ersterBelegTag(rechnungen: Invoice[], bis: string): string {
+  let erster = bis;
+  for (const r of rechnungen) {
+    if (r.invoiceDate && r.invoiceDate < erster) erster = r.invoiceDate;
+    const s = r.paymentStatus === 'Storniert' ? stornoBelegTag(r) : null;
+    if (s && s < erster) erster = s;
+  }
+  return erster;
+}
+
 /** Die Bytes eines Blobs — über `FileReader`, den jeder Browser kennt, auch ältere Safari. */
 function bytes(blob: Blob): Promise<Uint8Array> {
   return new Promise((fertig, fehler) => {
@@ -72,10 +88,8 @@ export async function belegArchiv(o: {
     Tag ihrer Ausstellung sortiert, fiele eine spät ausgestellte in keinen
     Zeitraum, der sie auch lädt.
   */
-  const stornoTagVon = (i: Invoice) => {
-    const t = i.cancelledAt ?? i.stornoAm;
-    return t != null ? stornoTag(t) : null;
-  };
+  // Runde 3, M7: dasselbe Belegdatum wie Liste, PDF, Ausgangsbuch und BMD-Stapel.
+  const stornoTagVon = (i: Invoice) => stornoBelegTag(i);
   const storniert = o.rechnungen
     .filter((i) => i.paymentStatus === 'Storniert')
     .filter((i) => {

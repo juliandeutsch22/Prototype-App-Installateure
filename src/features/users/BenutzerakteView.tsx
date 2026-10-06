@@ -237,6 +237,7 @@ export default function BenutzerakteView() {
           fehler={speicherFehler}
           onSpeichern={() => void speichern()}
           onVerwerfen={() => setEntwurf(alsEntwurf(p))}
+          gespeichert={p}
         />
       ) : (
         <>
@@ -515,12 +516,14 @@ interface FormularProps {
   fehler: string | null;
   onSpeichern: () => void;
   onVerwerfen: () => void;
+  /** Der gespeicherte Stand — für den Hinweis bei einer Umstufung (Runde 3, M13). */
+  gespeichert: AppUser;
 }
 
 /** Dieselben Stammdaten, bearbeitbar. */
 function StammdatenFormular({
   entwurf, setEntwurf, rollen, eigenesKonto, onTag,
-  geaendert, speichert, fehler, onSpeichern, onVerwerfen,
+  geaendert, speichert, fehler, onSpeichern, onVerwerfen, gespeichert,
 }: FormularProps) {
   const setze = <F extends keyof BenutzerEntwurf>(feld: F, wert: BenutzerEntwurf[F]) =>
     setEntwurf({ ...entwurf, [feld]: wert });
@@ -567,7 +570,7 @@ function StammdatenFormular({
         </SelectField>
       </FormGrid>
 
-      <EinstufungFelder form={entwurf} setForm={setEntwurf} idPrefix="b" />
+      <EinstufungFelder form={entwurf} setForm={setEntwurf} idPrefix="b" gespeichert={gespeichert} />
 
       {/*
         NUR DORT, WO DER HAKEN ETWAS BEDEUTET. Die Leitung pflegt Kunden

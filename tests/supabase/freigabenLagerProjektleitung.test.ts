@@ -141,6 +141,47 @@ describe('M38 — Rechnungen lesen', () => {
     expect(data ?? []).toHaveLength(0);
   });
 
+  /*
+    Runde 3, Selbst prüfen: auch über die Schnittstelle (PostgREST) nicht mehr
+    als die Rechnungen ihrer Baustellen — die Positionen folgen der Rechnung,
+    Zahlungen, Storno und Status bleiben bei Buchhaltung und Spitze.
+  */
+  it('liest die Positionen ihrer Rechnung, nicht die einer fremden', async () => {
+    const { error } = await admin.from('invoice_lines').insert([
+      { company_id: BETRIEB, invoice_id: meineRechnung, position: 0, label: 'Eigene Zeile', qty: 1, unit: 'h', unit_price: 100, netto: 100 },
+      { company_id: BETRIEB, invoice_id: fremdeRechnung, position: 0, label: 'Fremde Zeile', qty: 1, unit: 'h', unit_price: 200, netto: 200 },
+    ]);
+    expect(error).toBeNull();
+    const { data } = await pl.client.from('invoice_lines').select('label');
+    expect((data ?? []).map((z) => z.label)).toEqual(['Eigene Zeile']);
+    const ohne = await plOhne.client.from('invoice_lines').select('label');
+    expect(ohne.data ?? []).toHaveLength(0);
+  });
+
+  it('bucht keine Zahlung, storniert nicht und setzt keinen Status — auch nicht auf der eigenen', async () => {
+    const zahlung = await pl.client.from('zahlungseingaenge').insert({
+      company_id: BETRIEB, invoice_id: meineRechnung, datum: '2026-09-10', betrag: 120, art: 'Überweisung',
+      erfasst_von: pl.uid,
+    });
+    expect(zahlung.error).not.toBeNull();
+    const storno = await pl.client.rpc('rechnung_stornieren', { p_id: meineRechnung, p_grund: 'Versuch' });
+    expect(storno.error).not.toBeNull();
+    const status = await pl.client.from('invoices').update({ payment_status: 'Überfällig' })
+      .eq('id', meineRechnung).select('id');
+    expect(status.data ?? []).toHaveLength(0);
+    const { data } = await admin.from('invoices').select('payment_status').eq('id', meineRechnung).single();
+    expect(data!.payment_status).toBe('Offen');
+  });
+
+  it('wird die Freigabe zurückgenommen, liest sie nichts mehr', async () => {
+    await freigeben(pl, { rechnungen_lesen: false });
+    const { data } = await pl.client.from('invoices').select('id');
+    expect(data ?? []).toHaveLength(0);
+    await freigeben(pl, { rechnungen_lesen: true });
+    const wieder = await pl.client.from('invoices').select('id');
+    expect((wieder.data ?? []).map((r) => r.id)).toEqual([meineRechnung]);
+  });
+
   it('anlegen darf sie keine', async () => {
     const { error } = await pl.client.from('invoices').insert({
       company_id: BETRIEB, invoice_number: 'F3C-R9', project_number: 'F3C-1', customer_name: 'X',

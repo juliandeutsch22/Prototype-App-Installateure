@@ -1,4 +1,5 @@
-import type { Invoice, Quote, TimeEntry } from '@/types';
+import type { Invoice, Material, Quote, TimeEntry } from '@/types';
+import { normName } from '@/features/invoices/materialPositionen';
 import { calcWorkMin, normProjectNumber } from '@/lib/time';
 import { KEINE_MATERIALKOSTEN, type Materialkosten } from './materialkosten';
 import type { Stand } from '@/components/Badge';
@@ -100,6 +101,8 @@ export function rechneBaustelle(
     gemeint ist. Die Ansicht reicht die echten Werte durch.
   */
   material: Materialkosten = KEINE_MATERIALKOSTEN,
+  // Für die Einkaufspreise der Angebotszeilen (Runde 3, M12).
+  katalog: Material[] = [],
 ): Nachkalkulation {
   const pn = normProjectNumber(projectNumber);
 
@@ -168,26 +171,46 @@ export function rechneBaustelle(
     erloesQuelle = 'Angebot';
   }
 
-  const deckungsbeitrag =
-    Math.round((erloes - personalkosten - material.kosten) * 100) / 100;
-
   /*
     MATERIAL AUS DEM ANGEBOT, DAS AUF KEINEM SCHEIN STEHT (Launch-Check
-    25.09.2026, M9). Einkaufspreise kennt die Rechnung nur aus den Scheinen.
-    Ist dort gar kein Material erfasst, das angenommene Angebot aber verkauft
-    einen Heizkörper um 250 €, stand der Deckungsbeitrag bei 100 % — ohne ein
-    Wort. Jetzt steht der Heizkörper bei den Lücken. Sobald ein Schein
-    Material trägt, gilt der Schein: sonst wäre derselbe Heizkörper doppelt
-    gemeldet.
+    25.09.2026, M9). Einkaufspreise kennt die Rechnung sonst nur aus den
+    Scheinen. Ist dort gar kein Material erfasst, das angenommene Angebot aber
+    verkauft einen Heizkörper um 250 €, stand der Deckungsbeitrag bei 100 % —
+    ohne ein Wort. Sobald ein Schein Material trägt, gilt der Schein: sonst
+    wäre derselbe Heizkörper doppelt gezählt.
+
+    MIT DEM ARTIKEL AUS DEM KATALOG (Runde 3, M12): PR-2026-0193 meldete den
+    Pressfitting als „ohne Einkaufspreis", obwohl der Artikel 2,10 € EK hat.
+    Die Angebotszeile kennt ihren Artikel (`materialId`); gilt sein
+    Einkaufspreis, zählt Menge × EK als Materialkosten. Ohne Artikel hilft der
+    Name wie bei den Scheinen. Nur was dann noch keinen Preis hat, ist eine
+    Lücke.
   */
-  const ausAngebot =
-    quote && quote.status === 'Angenommen' && material.scheine === 0
-      ? (quote.positions ?? [])
-          // Titel und Textzeilen sind kein Material (M18).
-          .filter((p) => (p.art ?? 'position') === 'position')
-          .filter((p) => !(p.istArbeitszeit ?? false) && !istStundenEinheit(p.unit))
-          .map((p) => `${p.label} (aus dem Angebot)`)
-      : [];
+  const ekNachId = new Map<string, number>();
+  const ekNachName = new Map<string, number>();
+  for (const m of katalog) {
+    if (typeof m.einkaufspreis === 'number' && m.einkaufspreis > 0) {
+      if (m.id) ekNachId.set(m.id, m.einkaufspreis);
+      ekNachName.set(normName(m.name), m.einkaufspreis);
+    }
+  }
+  let angebotKosten = 0;
+  const ausAngebot: string[] = [];
+  if (quote && quote.status === 'Angenommen' && material.scheine === 0) {
+    for (const p of quote.positions ?? []) {
+      // Titel und Textzeilen sind kein Material (M18).
+      if ((p.art ?? 'position') !== 'position') continue;
+      if (p.istArbeitszeit ?? false) continue;
+      if (istStundenEinheit(p.unit)) continue;
+      const ek = (p.materialId ? ekNachId.get(p.materialId) : undefined) ?? ekNachName.get(normName(p.label));
+      if (ek === undefined) ausAngebot.push(`${p.label} (aus dem Angebot)`);
+      else angebotKosten += (p.qty ?? 0) * ek;
+    }
+  }
+  const materialSumme = Math.round((material.kosten + angebotKosten) * 100) / 100;
+
+  const deckungsbeitrag =
+    Math.round((erloes - personalkosten - materialSumme) * 100) / 100;
 
   return {
     projectNumber,
@@ -196,7 +219,7 @@ export function rechneBaustelle(
     helferStunden,
     lehrlingStunden,
     personalkosten,
-    materialkosten: material.kosten,
+    materialkosten: materialSumme,
     materialLuecken: [...material.ohnePreis, ...ausAngebot],
     erloes,
     erloesQuelle,

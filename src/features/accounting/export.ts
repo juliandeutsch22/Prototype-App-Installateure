@@ -5,7 +5,7 @@ import { zuschlagszeit, kennzeichen } from './zuschlaege';
 import { ueberstundenNachTagesgrenze } from './ueberstunden';
 import { nachtArbeitMin, type Nachtzeit, type UeberstundenRegel } from '@/lib/lohnregeln';
 import { csvZelle } from '@/lib/csvZelle';
-import { EINSTUFUNGEN, lehrjahr, type EinstufungDerPerson } from '@/lib/einstufung';
+import { EINSTUFUNGEN, istLehrlingssatz, lehrjahr, satzklasse, type EinstufungDerPerson } from '@/lib/einstufung';
 
 /**
  * Exporte der Mitarbeiterübersicht (portiert aus Legacy:3776-3865 und
@@ -259,19 +259,29 @@ export function buildMonthCsv(
   if (projekte.length > 0) {
     lines.push('', 'Projektauswertung (alle Personen)');
     /*
-      LEHRLINGSSTUNDEN AUSSERHALB DES BUDGETS hinten angehängt (Entscheidung
-      03.10.2026): die ersten vier Spalten bleiben, wie sie ein Empfänger
-      kennt; „Gesamt“ zählt alle Stunden der Baustelle.
+      JE EINSTUFUNG, WIE IN DER NACHKALKULATION (Runde 3, M6). Bis zum
+      06.10. standen die Stunden eines Lehrlings unter „Facharbeiter (Std)“,
+      wenn sie ins Budget zählten — 10,75 Std. des Lehrlings als Facharbeit.
+      Jetzt eine Spalte je Einstufung aus dem Satz der Buchung (`satzklasse`,
+      dieselbe Regel wie die Nachkalkulation; der Helfer-Haken geht vor).
+      „Lehrling nicht im Budget“ bleibt hinten: sie ist eine Teilmenge der
+      Lehrlingsstunden und sagt, was nicht gegen das Budget zählt.
     */
-    lines.push(row(['Projektnummer', 'Facharbeiter(Std)', 'Helfer(Std)', 'Gesamt(Std)', 'Lehrling nicht im Budget(Std)']));
+    lines.push(row([
+      'Projektnummer', 'Facharbeiter(Std)', 'Obermonteur(Std)', 'Helfer(Std)', 'Lehrling(Std)',
+      'Gesamt(Std)', 'Lehrling nicht im Budget(Std)',
+    ]));
     for (const p of projekte) {
       // Die Nummer, wie sie gebucht wurde — der Gruppenschlüssel lässt den Vorsatz weg.
       const nummer = p.entries[0]?.projectNumber ?? p.projectNumber;
+      const je = minutenJeEinstufung(p.entries);
       lines.push(row([
         nummer,
-        hours(p.fachMin),
-        hours(p.helperMin),
-        hours(p.fachMin + p.helperMin + p.lehrlingMin),
+        hours(je.facharbeiter),
+        hours(je.obermonteur),
+        hours(je.helfer),
+        hours(je.lehrling),
+        hours(je.facharbeiter + je.obermonteur + je.helfer + je.lehrling),
         hours(p.lehrlingMin),
       ]));
     }
@@ -280,6 +290,26 @@ export function buildMonthCsv(
   void year;
   void month;
   return lines.join('\n');
+}
+
+/**
+ * Die Arbeitsminuten einer Baustelle je Einstufung — nach dem Satz der
+ * Buchung, wie die Nachkalkulation (`rechneBaustelle`). Nur Anwesenheit mit
+ * Arbeitszeit; die Lehrjahre stehen zusammen unter „Lehrling“.
+ */
+export function minutenJeEinstufung(eintraege: TimeEntry[]): Record<'facharbeiter' | 'obermonteur' | 'helfer' | 'lehrling', number> {
+  const je = { facharbeiter: 0, obermonteur: 0, helfer: 0, lehrling: 0 };
+  for (const e of eintraege) {
+    if (e.status !== 'Anwesend') continue;
+    const min = calcWorkMin(e);
+    if (min <= 0) continue;
+    const k = satzklasse(e);
+    if (k === 'helfer') je.helfer += min;
+    else if (k === 'obermonteur') je.obermonteur += min;
+    else if (istLehrlingssatz(k)) je.lehrling += min;
+    else je.facharbeiter += min;
+  }
+  return je;
 }
 
 export function monthCsvFilename(year: number, month: number): string {

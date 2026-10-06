@@ -32,14 +32,14 @@ describe('M25 — Projektstunden in der Monats-CSV', () => {
   it('zählt alle Buchungen des Monats, getrennt nach Fach und Helfer', () => {
     const csv = buildMonthCsv(zeilen, 2026, 8, true, {}, [...seine, chefin, helfer, andere]);
     const teil = csv.split('Projektauswertung (alle Personen)')[1];
-    expect(teil).toContain('PR-187;7,00;2,00;9,00');
+    expect(teil).toContain('PR-187;7,00;0,00;2,00;0,00;9,00;0,00');
     // Vorher fehlte eine Baustelle, auf der nur Personen ohne Zeitkonto gebucht hatten.
-    expect(teil).toContain('PR-189;1,00;0,00;1,00');
+    expect(teil).toContain('PR-189;1,00;0,00;0,00;0,00;1,00;0,00');
   });
 
   it('ohne eigene Liste die Buchungen der Zeilen', () => {
     const csv = buildMonthCsv(zeilen, 2026, 8, true);
-    expect(csv).toContain('PR-187;4,00;0,00;4,00');
+    expect(csv).toContain('PR-187;4,00;0,00;0,00;0,00;4,00;0,00');
   });
 });
 

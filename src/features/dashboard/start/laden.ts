@@ -1,4 +1,5 @@
 import { ibanFehler } from '@shared/iban';
+import { firmenbuchFehlt } from '@/lib/firmenbuch';
 import type {
   AppUser,
   Company,
@@ -512,6 +513,8 @@ export async function einstellungen(
     if (!company?.iban?.trim()) fehlt.push('IBAN');
     // Runde 3, H3: eine ungültige IBAN sperrt jede neue Rechnung.
     else if (ibanFehler(company.iban)) fehlt.push('gültige IBAN');
+    // Runde 3, M8: § 14 UGB — wer im Firmenbuch steht, nennt Nummer und Gericht.
+    fehlt.push(...firmenbuchFehlt(company));
     out.firmaFehlt = fehlt;
   }
   if (was.konten && k.user.companyId) {
