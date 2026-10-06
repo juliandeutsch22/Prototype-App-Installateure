@@ -8,6 +8,7 @@
 export const SCHREIBWEISE: Array<[string, RegExp]> = [
   // Dateinamen und Nummern (`…_2026-09-01_…`, `PR-2026-0189`) sind Daten des Betriebs.
   ['ISO-Datum statt TT.MM.JJJJ', /(?<![\w-])20\d{2}-\d{2}-\d{2}(?![\w-])/],
-  ['Dezimalpunkt statt Komma', /(?<![\d.])\d+\.\d{1,2}\s?(?:h|Std\.?|€|%|m|lfm|Stk|kg|l)(?![\wäöü])/],
+  // „Tage?“ seit Runde 3 (G1): „Vorschlag für …: 5.96 Tage“ beim Anlegen.
+  ['Dezimalpunkt statt Komma', /(?<![\d.])\d+\.\d{1,2}\s?(?:h|Std\.?|€|%|m|lfm|Stk|kg|l|Tage?)(?![\wäöü])/],
   ['doppelter Punkt nach einem Datum', /\d{2}\.\d{2}\.(?:\d{4}\.)?\./],
 ];

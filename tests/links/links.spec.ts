@@ -109,3 +109,32 @@ for (const rolle of ROLLEN) {
     expect(besucht).toBeGreaterThanOrEqual(start.length);
   });
 }
+
+/*
+  DAS ANLEGEFORMULAR (Runde 3, G1): Der Vorschlag „Vorschlag für …: … Tage“
+  steht erst, wenn das Formular offen und „Tritt neu ein“ gewählt ist — die
+  Suche oben öffnet keine Formulare und hat ihn darum nie gesehen. Gesehen
+  wurde „Vorschlag für 2026-10-06: 5.96 Tage“.
+*/
+test('Schreibweise im Anlegeformular „Tritt neu ein“', async ({ page }) => {
+  await page.goto(`./?pfad=${encodeURIComponent('/user-mgmt')}&rolle=Administrator`, {
+    waitUntil: 'networkidle',
+  });
+  await page.getByRole('button', { name: 'Neuer Benutzer' }).click();
+  await page.getByLabel(/Tritt neu ein/).check();
+  await page.getByRole('button', { name: /Zeitkonto-Einstellungen anzeigen/ }).click();
+
+  const satz = page.getByText(/^Vorschlag für/);
+  await expect(satz).toBeVisible();
+  const befunde: string[] = [];
+  const text = await page.locator('main').innerText();
+  for (const [regel, muster] of SCHREIBWEISE) {
+    const treffer = text.match(muster);
+    if (treffer) befunde.push(`${regel} „${treffer[0]}“`);
+  }
+  // Auch die Zahl im Feld: sie ist kein Text der Seite, steht aber vor dem Betrieb.
+  const feld = await page.getByLabel(/Urlaub im ersten Jahr/).inputValue();
+  if (/\d\.\d/.test(feld)) befunde.push(`Feld „Urlaub im ersten Jahr“ mit Punkt: ${feld}`);
+  expect(befunde).toEqual([]);
+  expect(await satz.innerText()).toMatch(/^Vorschlag für \d{2}\.\d{2}\.\d{4}: \d+(,\d+)? Tage/);
+});

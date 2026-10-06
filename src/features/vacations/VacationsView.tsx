@@ -368,6 +368,8 @@ export default function VacationsView() {
       ),
     [genehmigtePosten, jahr, profil, regel, meineAnpassungen],
   );
+  /** Bekannt ohne Zeitkonto — solange das Profil lädt, bleibt es beim Bisherigen. */
+  const ohneKonto = !!profil && !fuehrtZeitkonto(profil);
   const genommen = stand.genommen;
   const anspruch = stand.anspruch;
 
@@ -1046,6 +1048,13 @@ export default function VacationsView() {
             onChange={(e) => {
               setArt(e.target.value as Art);
               setError(null);
+              /*
+                NEUE ART, LEERE DATEN (Runde 3, G16). Die Tage eines
+                Urlaubsantrags passen selten zu einer Krankmeldung oder
+                Pflegefreistellung; stehen sie noch da, schickt man sie
+                ungesehen mit ab.
+              */
+              formularLeeren();
             }}
           >
             <option value="Urlaub">Urlaub</option>
@@ -1076,6 +1085,8 @@ export default function VacationsView() {
         )}
         {istFreistellung(art) ? (
           <FreistellungFormular
+            // Eigener Schlüssel je Art: der Wechsel beginnt mit leeren Feldern (G16).
+            key={art}
             art={art}
             user={user}
             profil={profil}
@@ -1183,10 +1194,14 @@ export default function VacationsView() {
                   in diesem Zeitraum
                   {urlaubsWert !== tage.length && `, als Urlaub ${tageText(urlaubsWert)}`}
                 </span>
-                <span className="ml-1">
-                  — danach bleiben {tageText(restImAntragsjahr - urlaubsWert)}
-                  {antragsJahr !== jahr ? ` im Urlaubsjahr ${antragsJahr}` : ''}.
-                </span>
+                {ohneKonto ? (
+                  <span>.</span>
+                ) : (
+                  <span className="ml-1">
+                    — danach bleiben {tageText(restImAntragsjahr - urlaubsWert)}
+                    {antragsJahr !== jahr ? ` im Urlaubsjahr ${antragsJahr}` : ''}.
+                  </span>
+                )}
                 <InfoHint about="Arbeitstage">
                   Gezählt werden nur die Tage, an denen dieser Mitarbeiter ohnehin arbeiten würde.
                   Wochenenden, gesetzliche Feiertage und freie Wochentage bei Teilzeit fallen heraus:
@@ -1196,6 +1211,13 @@ export default function VacationsView() {
                 </InfoHint>
               </>
             )}
+            {/*
+              OHNE ZEITKONTO KEINE RECHNUNG GEGEN DEN ANSPRUCH (Runde 3, G10).
+              Oben steht „kein Resturlaub“; darunter stand trotzdem „In diesem
+              Jahr genehmigt: 4 von 25 Tagen“ — gerechnet aus der Vorgabe, die
+              für diese Person gar nicht gilt. Ebenso „danach bleiben …“.
+            */}
+            {!ohneKonto && (
             <span className={`block basis-full text-xs ${zeitraumGewaehlt ? 'mt-1' : ''}`}>
               {jahresName} genehmigt: <span>{tageZahl(genommen)}</span> von{' '}
               <span>{tageZahl(anspruch)}</span> Tagen
@@ -1213,7 +1235,8 @@ export default function VacationsView() {
                   — und dann ist es ein Streit statt einer Auskunft. */}
               {stand.verfallen > 0 && (
                 <span className="mt-1 block">
-                  <span>{stand.verfallen}</span>
+                  {/* Mit Komma: seit den halben Dezembertagen kann es „2,5“ sein (Runde 3, G1). */}
+                  <span>{tageZahl(stand.verfallen)}</span>
                   {stand.verfallen === 1 ? ' Tag ist' : ' Tage sind'} heuer verfallen.
                 </span>
               )}
@@ -1229,6 +1252,7 @@ export default function VacationsView() {
                 </span>
               )}
             </span>
+            )}
           </div>
           )}
 

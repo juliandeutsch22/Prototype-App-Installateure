@@ -248,7 +248,7 @@ export async function ladenUmschalten(
   an: boolean,
   vonName: string,
   client?: SupabaseClient,
-): Promise<void> {
+): Promise<number> {
   /*
     Der Betrieb steht im Anmeldekontext, die Datenbankfunktion holt ihn sich
     dort (`app.arbeitsbetrieb()` — beim Support der Betrieb des Einblicks).
@@ -258,7 +258,7 @@ export async function ladenUmschalten(
   */
   void companyId;
 
-  const { error } = await derClient(client).rpc('laden_umschalten', {
+  const { data, error } = await derClient(client).rpc('laden_umschalten', {
     p_datum: date,
     p_baustelle: projectNumber,
     p_position: positionId,
@@ -266,4 +266,6 @@ export async function ladenUmschalten(
     p_von: vonName,
   });
   if (error) throw new Error(error.message);
+  // Die gebuchte Menge — für „1 Stk abgebucht“ (Runde 3, G15).
+  return Number(data ?? 0) || 0;
 }

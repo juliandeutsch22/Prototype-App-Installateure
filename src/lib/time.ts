@@ -558,6 +558,17 @@ export function tageWort(n: number): string {
 }
 
 /**
+ * Dieselbe Anzahl nach „seit“, „in“, „von“: „seit 5 Tagen“ (Runde 3, G2).
+ *
+ * Eigene Funktion statt einer Endung am Aufrufort: auf der Startseite stand
+ * „Ende überschritten … seit 5 Tage“, weil dort `tageWort` hinter die
+ * Präposition geklebt war — der Dativ fiel nur auf, wo jemand hinsah.
+ */
+export function tageWortDativ(n: number): string {
+  return n === 1 ? '1 Tag' : `${tageZahl(n)} Tagen`;
+}
+
+/**
  * Eine Anzahl Tage als Zahl, österreichisch geschrieben: „20,5".
  *
  * Seit der 24. und 31. Dezember halb zählen, gibt es halbe Solltage und

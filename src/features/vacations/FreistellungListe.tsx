@@ -7,7 +7,7 @@ import { List, ListRow } from '@/components/ListRow';
 import { Zustand, type Stand } from '@/components/Badge';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
-import { freistellungWas, freistellungZeitraum, nachweisVermerk } from './freistellungText';
+import { freistellungWas, freistellungZeitraum, nachweisVermerk, ueberVermerk } from './freistellungText';
 import { NachweisWahl } from './FreistellungFormular';
 
 const STAND: Record<Freistellung['status'], Stand> = {
@@ -69,6 +69,7 @@ export default function FreistellungListe({
       <List>
         {antraege.map((f) => {
           const vermerk = nachweisVermerk(f);
+          const ueber = f.status === 'Bestätigt' ? ueberVermerk(f) : null;
           return (
             <ListRow
               key={f.id}
@@ -86,6 +87,7 @@ export default function FreistellungListe({
                     </span>
                   )}
                   {vermerk && <span className="mt-1 block text-xs text-ink-muted">{vermerk}</span>}
+                  {ueber && <span className="mt-1 block text-xs text-ink-muted">{ueber}</span>}
                   {f.status === 'Beantragt' && f.nachweisPfad && (
                     <span className="mt-1 block text-xs text-ink-muted">Nachweis liegt bei — wird nach der Entscheidung gelöscht.</span>
                   )}

@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Lagerbewegung, Material } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { lagerEingang, lagerInventur, listLagerbewegungen } from '@/lib/db/materials';
 import { listGrosshaendler } from '@/lib/db/einkauf';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ZahlFeld from '@/components/ZahlFeld';
-import { InputField } from '@/components/Field';
+import { InputField, SelectField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { zahlAlsText, zahlOder } from '@/lib/zahl';
 import { mengeFehler } from '@/lib/einheit';
@@ -18,8 +18,16 @@ import { datumAT, datumAusMs } from '@/lib/datum';
  *
  * DER LIEFERANT IST PFLICHT, Lieferschein und Bezug nicht: ohne Lieferant ist
  * ein Eingang nicht zuzuordnen; ein Lieferschein liegt nicht immer schon da.
- * Vorgeschlagen werden die Grosshändler der Einkaufsliste.
+ *
+ * DIE GROSSHÄNDLER ALS AUSWAHL (Runde 3, G19). Vorher standen sie nur als
+ * Vorschlagsliste unter einem Textfeld — am Handy sieht man die erst beim
+ * Tippen, und im Test wirkte das Feld wie reiner Freitext. Jetzt eine
+ * Auswahl der angelegten Großhändler; „Anderer Lieferant …“ öffnet das
+ * Textfeld, denn Ware kommt auch vom Baumarkt oder direkt vom Hersteller.
+ * Ohne angelegte Großhändler bleibt es beim Textfeld allein.
  */
+const ANDERER = '__anderer';
+
 export function WareneingangDialog({
   companyId,
   artikel,
@@ -36,26 +44,37 @@ export function WareneingangDialog({
   const [lieferschein, setLieferschein] = useState('');
   const [bezug, setBezug] = useState('');
   const [vorschlaege, setVorschlaege] = useState<string[]>([]);
+  /** Gewählter Großhändler; leer = noch keiner, `ANDERER` = getippt. */
+  const [wahl, setWahl] = useState('');
+  // Wer schon tippte, bevor die Liste kam, verliert seinen Text nicht.
+  const getippt = useRef('');
 
   useEffect(() => {
     let weg = false;
     // Ein fehlender Vorschlag hält den Eingang nicht auf — getippt geht immer.
     Promise.resolve()
       .then(() => listGrosshaendler(companyId))
-      .then((g) => { if (!weg) setVorschlaege(g.filter((x) => x.active).map((x) => x.name)); })
+      .then((g) => {
+        if (weg) return;
+        setVorschlaege(g.filter((x) => x.active).map((x) => x.name));
+        if (getippt.current.trim()) setWahl(ANDERER);
+      })
       .catch(() => undefined);
     return () => { weg = true; };
   }, [companyId]);
+
+  const tippen = vorschlaege.length === 0 || wahl === ANDERER;
+  const name = tippen ? lieferant.trim() : wahl;
 
   async function buchen() {
     const n = zahlOder(menge, NaN);
     const falsch = mengeFehler(n, artikel.unit);
     if (falsch) throw new Error(falsch);
-    if (!lieferant.trim()) throw new Error('Von welchem Lieferanten kommt die Ware?');
+    if (!name) throw new Error('Von welchem Lieferanten kommt die Ware?');
     await lagerEingang({
       materialId: artikel.id,
       menge: n,
-      lieferant: lieferant.trim(),
+      lieferant: name,
       lieferschein: lieferschein.trim() || undefined,
       bezug: bezug.trim() || undefined,
     });
@@ -80,18 +99,29 @@ export function WareneingangDialog({
           value={menge}
           onChange={setMenge}
         />
-        <InputField
-          id="eingang-lieferant"
-          label="Lieferant"
-          pflicht
-          list="eingang-lieferanten"
-          autoComplete="off"
-          value={lieferant}
-          onChange={(e) => setLieferant(e.target.value)}
-        />
-        <datalist id="eingang-lieferanten">
-          {vorschlaege.map((v) => <option key={v} value={v} />)}
-        </datalist>
+        {vorschlaege.length > 0 && (
+          <SelectField
+            id="eingang-grosshaendler"
+            label="Lieferant"
+            pflicht
+            value={wahl}
+            onChange={(e) => setWahl(e.target.value)}
+          >
+            <option value="">Bitte wählen …</option>
+            {vorschlaege.map((v) => <option key={v} value={v}>{v}</option>)}
+            <option value={ANDERER}>Anderer Lieferant …</option>
+          </SelectField>
+        )}
+        {tippen && (
+          <InputField
+            id="eingang-lieferant"
+            label={vorschlaege.length > 0 ? 'Name des Lieferanten' : 'Lieferant'}
+            pflicht
+            autoComplete="off"
+            value={lieferant}
+            onChange={(e) => { getippt.current = e.target.value; setLieferant(e.target.value); }}
+          />
+        )}
         <InputField
           id="eingang-lieferschein"
           label="Lieferschein-Nr."
@@ -178,6 +208,8 @@ const ART: Record<Lagerbewegung['art'], string> = {
   eingang: 'Wareneingang',
   entnahme: 'Entnahme',
   retoure: 'Retoure',
+  // Keine Rückgabe von der Baustelle, sondern ein zurückgenommener Haken (G15).
+  einladen_zurueck: 'Einladen zurückgenommen',
   inventur: 'Inventur',
   zugang: 'Zugang',
   abgang: 'Abgang',
@@ -209,8 +241,8 @@ export function BewegungenDialog({
       open
       title={`Bewegungen: ${artikel.name}`}
       message={`Jede Änderung des Bestands, jüngste zuerst. Heute: ${fmtMenge(artikel.stock ?? 0)} ${einheit}.`}
-      confirmLabel="Schließen"
-      confirmTone="primary"
+      // Ein Lesedialog: nur „Schließen“, kein „Abbrechen“ daneben (Runde 3, G20).
+      nurSchliessen
       onConfirm={onSchliessen}
       onCancel={onSchliessen}
     >

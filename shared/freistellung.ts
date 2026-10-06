@@ -186,6 +186,33 @@ export function warnungen(
   return raus;
 }
 
+/**
+ * WIE VIELE ARBEITSTAGE DIESES ANTRAGS ÜBER DEM KONTINGENT LIEGEN
+ * (Runde 3, G17) — beim Bestätigen muss dafür gewählt werden: als Urlaub
+ * buchen oder mit Grund als Sonderurlaub bestätigen.
+ *
+ * Wie `freistellung_entscheiden`: dieser Antrag und die BESTÄTIGTEN desselben
+ * Falls. Ein offener zweiter Antrag zählt nicht — er kann abgelehnt werden.
+ * Darum kann die Warnung oben („zusammen … Arbeitstage“) mehr nennen; die
+ * Datenbank rechnet mit den tatsächlich gebuchten Tagen und meldet zurück,
+ * wie viele es waren. Stundenweise und „die notwendige Zeit“: 0.
+ */
+export function tageUeberKontingent(
+  antrag: FreistellungFuerRegeln,
+  andere: readonly FreistellungFuerRegeln[],
+  anlaesse: readonly Anlass[],
+  tageVon: (f: FreistellungFuerRegeln) => number,
+): number {
+  if (antrag.art !== 'dienstverhinderung' || antrag.zeitVon) return 0;
+  const anlass = anlassVon(antrag.anlass, anlaesse);
+  if (!anlass || anlass.tage === null) return 0;
+  const hier = tageVon(antrag);
+  const schon = andere
+    .filter((x) => x.id !== antrag.id && x.status === 'Bestätigt' && selberFall(antrag, x))
+    .reduce((s, x) => s + tageVon(x), 0);
+  return Math.max(0, Math.min(hier, schon + hier - anlass.tage));
+}
+
 /* ------------------------------------------------------------------ */
 /* Pflegefreistellung: eine Woche je Arbeitsjahr, dazu eine für Kinder  */
 /* ------------------------------------------------------------------ */

@@ -122,7 +122,7 @@ export default function Datenauskunft({
           <Hinweiszeile>
             <p>
               <b>Zuerst deaktivieren.</b> Gelöscht wird nur ein deaktiviertes Konto — wer noch
-              arbeitet, braucht Einsätze und Zeiten. Den Status auf „inaktiv“ stellen und
+              arbeitet, braucht Einsätze und Zeiten. Den Status auf „Deaktiviert“ stellen und
               speichern.
             </p>
           </Hinweiszeile>

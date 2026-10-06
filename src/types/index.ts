@@ -909,7 +909,8 @@ export interface Lagerbewegung {
   id: string;
   companyId: string;
   materialId: string;
-  art: 'anfangsbestand' | 'eingang' | 'entnahme' | 'retoure' | 'inventur' | 'zugang' | 'abgang';
+  /** `einladen_zurueck`: „eingeladen“ in der Rüstliste am selben Tag zurückgenommen (Runde 3, G15). */
+  art: 'anfangsbestand' | 'eingang' | 'entnahme' | 'retoure' | 'inventur' | 'zugang' | 'abgang' | 'einladen_zurueck';
   menge: number;
   bestandNachher: number;
   grund?: string | null;
@@ -1339,6 +1340,15 @@ export interface Freistellung {
   teilungFreigegeben?: boolean;
   /** Gutgeschriebene Minuten — gesetzt beim Bestätigen. */
   minuten?: number | null;
+  /**
+   * Sonderurlaub über dem Kontingent des Anlasses (Runde 3, G17): die
+   * Tage darüber als Urlaub gebucht oder mit Grund als Sonderurlaub bestätigt.
+   */
+  ueberKontingent?: 'urlaub' | 'sonderurlaub' | null;
+  ueberTage?: number | null;
+  ueberGrund?: string | null;
+  /** Der Urlaubsantrag, der die Tage darüber trägt. */
+  ueberUrlaubId?: string | null;
   entschiedenVonName?: string | null;
   entschiedenAm?: number | null;
   grund?: string | null;

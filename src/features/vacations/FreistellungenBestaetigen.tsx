@@ -17,11 +17,12 @@ import {
   kalendertage,
   laengerAlsEinMonat,
   pflegeStand,
+  tageUeberKontingent,
   warnungen,
   type FreistellungFuerRegeln,
 } from '@shared/freistellung';
 import { kuerzungsVorschlag } from '@shared/urlaubAliquot';
-import { darfUnbezahltEntscheiden } from '@/lib/permissions';
+import { darfUnbezahltEntscheiden, darfUrlaubEntscheiden } from '@/lib/permissions';
 import { DEFAULT_VACATION_DAYS as DEFAULT_URLAUBSTAGE } from '@/lib/db/benutzerVorgaben';
 import { fmtDauer, todayStr, uebertragsRegel, urlaubsTage, tageZahl } from '@/lib/time';
 import { leseZahl } from '@/lib/zahl';
@@ -35,12 +36,15 @@ import { Warnung } from '@/components/Badge';
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
-import { freistellungWas, freistellungZeitraum, nachweisVermerk } from './freistellungText';
+import { freistellungWas, freistellungZeitraum, nachweisVermerk, ueberVermerk } from './freistellungText';
 
 /** Was ein Bestätigen im Zeitkonto bewirkt hat, in einem Satz. */
-function ergebnis(e: { angelegt: number; uebersprungen: number; entfernt: number }): string {
+function ergebnis(e: { angelegt: number; uebersprungen: number; entfernt: number; alsUrlaub?: number }): string {
   const teile: string[] = [];
-  if (e.angelegt) teile.push(`${e.angelegt} ${e.angelegt === 1 ? 'Tag' : 'Tage'} eingetragen`);
+  if (e.angelegt) {
+    teile.push(`${e.angelegt} ${e.angelegt === 1 ? 'Tag' : 'Tage'} eingetragen${
+      e.alsUrlaub ? `, davon ${e.alsUrlaub} als Urlaub` : ''}`);
+  }
   if (e.entfernt) teile.push(`${e.entfernt} ${e.entfernt === 1 ? 'Tag' : 'Tage'} entfernt`);
   if (e.uebersprungen) teile.push(`${e.uebersprungen} übersprungen (dort war schon gebucht)`);
   return teile.join(', ');
@@ -81,9 +85,14 @@ export default function FreistellungenBestaetigen({
   const [arbeitet, setArbeitet] = useState<string | null>(null);
   const [begruenden, setBegruenden] = useState<{ f: Freistellung; art: 'Abgelehnt' | 'Storniert' } | null>(null);
   const [grund, setGrund] = useState('');
+  /** Je Antrag: was mit den Tagen über dem Kontingent geschieht (Runde 3, G17). */
+  const [ueberWahl, setUeberWahl] = useState<Record<string, 'urlaub' | 'sonderurlaub'>>({});
+  const [ueberGrund, setUeberGrund] = useState<Record<string, string>>({});
 
   const anlaesse = useMemo(() => anlaesseDesBetriebs(company?.freistellungAnlaesse), [company?.freistellungAnlaesse]);
   const spitze = darfUnbezahltEntscheiden(user.role);
+  // Tage als Urlaub buchen darf nur, wer über Urlaub entscheidet — wie in der Datenbank.
+  const urlaubEntscheiden = darfUrlaubEntscheiden(user.role, user.uid, company?.vacationApprovers);
   const regel = uebertragsRegel(company);
 
   const laden = useCallback(async () => {
@@ -148,7 +157,21 @@ export default function FreistellungenBestaetigen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [offene, leute, company?.kuerzungAbTagen]);
 
-  async function bestaetigen(f: Freistellung) {
+  async function bestaetigen(f: Freistellung, ueber: number) {
+    /*
+      ÜBER DEM KONTINGENT (Runde 3, G17): vorher ging die Bestätigung mit
+      einem Hinweis durch, ohne Grund. Jetzt erst nach einer Wahl — die
+      Datenbank verlangt sie ebenso.
+    */
+    const wahl = ueber > 0 ? ueberWahl[f.id] : undefined;
+    if (ueber > 0 && !wahl) {
+      toast.error('Bitte wählen, wie die Tage über dem Kontingent gebucht werden.');
+      return;
+    }
+    if (wahl === 'sonderurlaub' && (ueberGrund[f.id] ?? '').trim().length < 3) {
+      toast.error('Bitte begründen, warum die Tage über dem Kontingent als Sonderurlaub gelten.');
+      return;
+    }
     const zeilen = (kuerzung[f.id] ?? []).filter((z) => z.an);
     const k: Array<{ urlaubsjahr: number; tage: number }> = [];
     for (const z of zeilen) {
@@ -163,6 +186,8 @@ export default function FreistellungenBestaetigen({
     try {
       const e = await freistellungEntscheiden({
         id: f.id, entscheidung: 'Bestätigt', nachweisGeprueft: !!geprueft[f.id], kuerzung: k,
+        ueberKontingent: wahl ?? null,
+        ueberGrund: wahl === 'sonderurlaub' ? (ueberGrund[f.id] ?? '').trim() : undefined,
       });
       toast.success(`Bestätigt — ${ergebnis(e)}`);
       if (e.dateiBlieb) toast.error('Der Nachweis konnte nicht gelöscht werden — beim nächsten Öffnen wird er weggeräumt.');
@@ -185,10 +210,25 @@ export default function FreistellungenBestaetigen({
     setVersuch((v) => v + 1);
   }
 
+  /*
+    DAS FENSTER ÖFFNET SICH NOCH IM KLICK (Runde 3, G26). Safari auf iPhone und
+    iPad öffnet ein neues Fenster nur unmittelbar auf eine Berührung; nach dem
+    Warten auf die signierte Adresse blockte es `window.open` still, und der
+    Nachweis ließ sich nicht ansehen. Erst ein leeres Fenster, dann die Adresse.
+  */
   async function ansehen(pfad: string) {
+    const fenster = window.open('', '_blank');
     try {
-      window.open(await nachweisAdresse(pfad), '_blank', 'noopener');
+      const adresse = await nachweisAdresse(pfad);
+      if (fenster) {
+        // Wie `noopener`: der Nachweis bekommt keinen Zugriff auf die App.
+        fenster.opener = null;
+        fenster.location.href = adresse;
+      } else {
+        window.open(adresse, '_blank', 'noopener');
+      }
     } catch (err) {
+      fenster?.close();
       toast.error(grundAus(err, 'Der Nachweis lässt sich nicht öffnen.'));
     }
   }
@@ -214,6 +254,8 @@ export default function FreistellungenBestaetigen({
           ? 'Geteilt — das bestätigen Geschäftsführung oder Administration.'
           : null;
     const kz = kuerzung[f.id];
+    const ueber = tageUeberKontingent(alsRegel(f), andere, anlaesse, tageVon);
+    const wahl = ueberWahl[f.id];
     return (
       <ListRow
         key={f.id}
@@ -275,13 +317,64 @@ export default function FreistellungenBestaetigen({
                 ))}
               </span>
             )}
+            {ueber > 0 && !sperre && (
+              <span
+                role="radiogroup"
+                aria-labelledby={`ueber-titel-${f.id}`}
+                className="flex flex-col gap-1 border-t border-line pt-2"
+              >
+                <span id={`ueber-titel-${f.id}`} className="flex flex-wrap items-center gap-2 text-ink">
+                  {ueber === 1 ? '1 Arbeitstag liegt' : `${ueber} Arbeitstage liegen`} über dem Kontingent. Wie bestätigen?
+                  <InfoHint about="Tage über dem Kontingent">
+                    Als Urlaub: die letzten Tage des Antrags werden als genehmigter Urlaub gebucht und zählen
+                    gegen den Resturlaub. Das darf nur, wer über Urlaub entscheidet. Als Sonderurlaub: alle Tage
+                    bleiben bezahlte Dienstverhinderung — mit einem Grund, der am Antrag stehen bleibt.
+                  </InfoHint>
+                </span>
+                <label className="flex min-h-touch items-start gap-3 py-1">
+                  <input
+                    type="radio"
+                    name={`ueber-${f.id}`}
+                    className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                    checked={wahl === 'urlaub'}
+                    disabled={!urlaubEntscheiden}
+                    onChange={() => setUeberWahl({ ...ueberWahl, [f.id]: 'urlaub' })}
+                  />
+                  <span className="text-sm">
+                    Tage darüber als Urlaub buchen
+                    {!urlaubEntscheiden && (
+                      <span className="block text-ink-muted">Nur, wer über Urlaub entscheidet.</span>
+                    )}
+                  </span>
+                </label>
+                <label className="flex min-h-touch items-start gap-3 py-1">
+                  <input
+                    type="radio"
+                    name={`ueber-${f.id}`}
+                    className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                    checked={wahl === 'sonderurlaub'}
+                    onChange={() => setUeberWahl({ ...ueberWahl, [f.id]: 'sonderurlaub' })}
+                  />
+                  <span className="text-sm">Als Sonderurlaub bestätigen (mit Grund)</span>
+                </label>
+                {wahl === 'sonderurlaub' && (
+                  <InputField
+                    id={`ueber-grund-${f.id}`}
+                    label="Grund für die Tage darüber"
+                    pflicht
+                    value={ueberGrund[f.id] ?? ''}
+                    onChange={(e) => setUeberGrund({ ...ueberGrund, [f.id]: e.target.value })}
+                  />
+                )}
+              </span>
+            )}
             {sperre && <span className="text-ink-muted">{sperre}</span>}
           </span>
         }
       >
         {!sperre && (
           <>
-            <Button loading={arbeitet === f.id} onClick={() => void bestaetigen(f)}>Bestätigen</Button>
+            <Button loading={arbeitet === f.id} onClick={() => void bestaetigen(f, ueber)}>Bestätigen</Button>
             <Button variant="ghost" onClick={() => { setGrund(''); setBegruenden({ f, art: 'Abgelehnt' }); }}>Ablehnen</Button>
           </>
         )}
@@ -310,8 +403,14 @@ export default function FreistellungenBestaetigen({
               <p className="mb-2 text-sm font-medium text-ink">Bestätigt, noch nicht vorbei</p>
               <List>
                 {laufend.map((f) => {
-                  const darf = f.art !== 'unbezahlt' || spitze;
+                  /*
+                    Mit Urlaub für die Tage darüber nimmt zurück, wer über
+                    Urlaub entscheidet (G17) — der Urlaub geht mit zurück.
+                  */
+                  const mitUrlaub = !!f.ueberUrlaubId && !urlaubEntscheiden;
+                  const darf = (f.art !== 'unbezahlt' || spitze) && !mitUrlaub;
                   const vermerk = nachweisVermerk(f);
+                  const ueberText = ueberVermerk(f);
                   return (
                     <ListRow
                       key={f.id}
@@ -320,6 +419,12 @@ export default function FreistellungenBestaetigen({
                         <>
                           <span className="block">{freistellungWas(f, company?.freistellungAnlaesse)}</span>
                           {vermerk && <span className="mt-1 block text-xs text-ink-muted">{vermerk}</span>}
+                          {ueberText && <span className="mt-1 block text-xs text-ink-muted">{ueberText}</span>}
+                          {mitUrlaub && (
+                            <span className="mt-1 block text-xs text-ink-muted">
+                              Zurücknehmen kann, wer über Urlaub entscheidet — der Urlaub für die Tage darüber geht mit.
+                            </span>
+                          )}
                         </>
                       }
                     >
@@ -341,7 +446,7 @@ export default function FreistellungenBestaetigen({
         open={!!begruenden}
         title={begruenden?.art === 'Abgelehnt' ? 'Antrag ablehnen?' : 'Sonderurlaub zurücknehmen?'}
         message={begruenden
-          ? `${begruenden.f.userName}, ${freistellungZeitraum(begruenden.f)}${begruenden.art === 'Storniert' ? ' — die Tage verschwinden aus dem Zeitkonto, eine Kürzung des Anspruchs mit ihnen' : ''}. Der Grund geht an ${begruenden.f.userName}.`
+          ? `${begruenden.f.userName}, ${freistellungZeitraum(begruenden.f)}${begruenden.art === 'Storniert' ? ` — die Tage verschwinden aus dem Zeitkonto, eine Kürzung des Anspruchs mit ihnen${begruenden.f.ueberUrlaubId ? ', ebenso der Urlaub für die Tage über dem Kontingent' : ''}` : ''}. Der Grund geht an ${begruenden.f.userName}.`
           : undefined}
         confirmLabel={begruenden?.art === 'Abgelehnt' ? 'Ablehnen' : 'Zurücknehmen'}
         onConfirm={begruendetEntscheiden}

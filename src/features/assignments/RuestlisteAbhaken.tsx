@@ -4,6 +4,8 @@ import { ladenUmschalten } from '@/lib/db/einsatzMaterial';
 import type { EinsatzMaterial, RuestPosition } from '@/types';
 import { grundAus } from '@/lib/fehlerGrund';
 import { localDateStr, todayStr } from '@/lib/time';
+import { fmtMenge } from '@/lib/belegLayout';
+import { useToastWennDa } from '@/components/Toast';
 
 /**
  * Die Rüstliste aus der Sicht des Monteurs: was mitkommt, und was schon im
@@ -45,6 +47,8 @@ export default function RuestlisteAbhaken({
   max,
 }: Props) {
   const { user } = useAuth();
+  // Ohne Meldungsträger (etwa in einer Einzelprüfung) bleibt es beim Haken.
+  const toast = useToastWennDa();
   const [alle, setAlle] = useState(false);
   const [oertlich, setOertlich] = useState<NonNullable<EinsatzMaterial['geladen']>>(geladen);
   const [fehler, setFehler] = useState<string | null>(null);
@@ -72,7 +76,25 @@ export default function RuestlisteAbhaken({
     });
     setFehler(null);
     try {
-      await ladenUmschalten(user.companyId, date, projectNumber, p.id, an, user.name);
+      const gebucht = await ladenUmschalten(user.companyId, date, projectNumber, p.id, an, user.name);
+      /*
+        EINE KURZE BESTÄTIGUNG (Runde 3, G15). Der Haken bucht vom Bestand ab
+        — ohne Meldung sah das aus wie ein Merkzettel. Gesagt wird, was die
+        Datenbank tatsächlich gebucht hat: bei knappem Bestand weniger als
+        geplant, bei freien Zeilen ohne Lagerartikel nichts.
+      */
+      const n = typeof gebucht === 'number' ? gebucht : 0;
+      const einheit = p.einheit || 'Stk';
+      if (an && n > 0) {
+        setOertlich((c) => (c[p.id] ? { ...c, [p.id]: { ...c[p.id], gebucht: n } } : c));
+        toast?.success(`${fmtMenge(n)} ${einheit} abgebucht`);
+      } else if (an) {
+        toast?.success('Eingeladen — nichts vom Lager abgebucht');
+      } else if (n > 0) {
+        toast?.success(`Einladen zurückgenommen — ${fmtMenge(n)} ${einheit} wieder im Lager`);
+      } else {
+        toast?.success('Einladen zurückgenommen');
+      }
     } catch (err) {
       setOertlich(vorher);
       setFehler(grundAus(err, 'Das konnte nicht gespeichert werden. Bitte noch einmal antippen.'));

@@ -9,7 +9,7 @@ import { istUeberfaellig, mahnbar, offenerRuecklass } from '@/features/invoices/
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { euro } from '@/lib/betrag';
 import { datumAT } from '@/lib/datum';
-import { fmtStd, fmtStunden, tageWort } from '@/lib/time';
+import { fmtStd, fmtStunden, tageWort, tageWortDativ } from '@/lib/time';
 import { baustellenTitel } from '@/lib/baustellenTitel';
 import { abschnitt, type Abschnitt, type Zeile } from './abschnitte';
 import { istAbholbereitAlt, istLieferungHeute, istLieferungUeberfaellig } from '@/features/orders/anforderungStand';
@@ -195,7 +195,14 @@ export function unterMindestmenge(artikel: KnapperArtikel[]): Abschnitt | null {
       key: `knapp-${m.id}`,
       titel: m.name,
       detail: [
-        `${fmtStunden(m.frei)}${m.unit ? ` ${m.unit}` : ''} frei`,
+        /*
+          Unter null ist mehr zugesagt als da ist (Reservierungen über dem
+          Bestand). „-1 Stk frei“ stand so auf der Startseite (Runde 3, G3);
+          gemeint ist, dass eines fehlt.
+        */
+        m.frei < 0
+          ? `${fmtStunden(-m.frei)}${m.unit ? ` ${m.unit}` : ''} fehlt`
+          : `${fmtStunden(m.frei)}${m.unit ? ` ${m.unit}` : ''} frei`,
         m.mindestmenge != null ? `Mindestmenge ${fmtStunden(m.mindestmenge)}` : '',
       ].filter(Boolean).join(' · '),
       status: m.frei <= 0 ? { text: 'leer', ton: 'fehl' } : { text: 'knapp', ton: 'warn' },
@@ -494,7 +501,7 @@ export function wartungenOhneBaustelle(wartungen: Wartung[], heute: string): Abs
         detail: `fällig ${datumAT(w.faelligAm)}`,
         status: b.stand === 'überfällig'
           ? { text: 'überfällig', ton: 'fehl' as const }
-          : { text: tage <= 7 ? 'diese Woche' : `in ${tageWort(tage)}`, ton: tage <= 7 ? ('warn' as const) : ('leise' as const) },
+          : { text: tage <= 7 ? 'diese Woche' : `in ${tageWortDativ(tage)}`, ton: tage <= 7 ? ('warn' as const) : ('leise' as const) },
         to: ZIEL.wartungenOhneBaustelle,
       };
     });
@@ -537,7 +544,7 @@ export function endeUeberschritten(projekte: Project[], heute: string): Abschnit
       key: `ende-${p.id}`,
       titel: baustellenTitel(p),
       detail: `${p.projectNumber} · Ende ${datumAT(p.endDate!)}`,
-      status: { text: `seit ${tageWort(tageZwischen(p.endDate!, heute))}`, ton: 'fehl' },
+      status: { text: `seit ${tageWortDativ(tageZwischen(p.endDate!, heute))}`, ton: 'fehl' },
       to: ZIEL.baustelle(p.projectNumber),
     }));
   return abschnitt('ende', 'Ende überschritten', zeilen, ZIEL.baustellen('ende-ueberschritten'));

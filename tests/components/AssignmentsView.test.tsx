@@ -1001,3 +1001,57 @@ describe('Termine in der Tagesplanung (Plan 10.4)', () => {
     await waitFor(() => expect(listTermineImZeitraum).toHaveBeenCalledWith('perl', '2026-09-03', '2026-09-03'));
   });
 });
+
+/*
+  RUNDE 3, G23: Einsatz und Lieferung am selben Tag auf derselben Baustelle
+  standen getrennt — ohne Hinweis am Einsatz.
+*/
+describe('Termine am Einsatz (Runde 3, G23)', () => {
+  const termin = (rest: Record<string, unknown>) => ({
+    id: 't1', companyId: 'perl', art: 'Lieferung', datum: HEUTE, zeitVon: '08:00', zeitBis: '10:00',
+    projectNumber: '2026-042', teilnehmer: [], ...rest,
+  });
+
+  it('nennt beim Planen die Lieferung auf dieser Baustelle am selben Tag', async () => {
+    vi.mocked(listTermineImZeitraum).mockResolvedValue([termin({})] as never);
+    try {
+      zeige();
+      await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+      const satz = (await screen.findByText(/Am selben Tag auf dieser Baustelle:/)).closest('p');
+      expect(satz).toHaveTextContent(/Lieferung.*08:00–10:00/);
+    } finally {
+      vi.mocked(listTermineImZeitraum).mockResolvedValue([]);
+    }
+  });
+
+  it('… und an der Baustelle in der Liste der Einsätze', async () => {
+    einsaetze = [{
+      id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann',
+    } as Assignment & { id: string }];
+    vi.mocked(listTermineImZeitraum).mockResolvedValue([termin({})] as never);
+    try {
+      zeige();
+      const karte = (await screen.findByText(/Einsätze am/)).closest('section')!;
+      expect(await within(karte).findByText(/Am selben Tag:/)).toBeInTheDocument();
+      expect(within(karte).getByText(/Am selben Tag:/).closest('p')).toHaveTextContent(/Lieferung.*08:00–10:00/);
+    } finally {
+      vi.mocked(listTermineImZeitraum).mockResolvedValue([]);
+    }
+  });
+
+  it('Gegenprobe: ein Termin auf einer anderen Baustelle steht nicht am Einsatz', async () => {
+    einsaetze = [{
+      id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann',
+    } as Assignment & { id: string }];
+    vi.mocked(listTermineImZeitraum).mockResolvedValue([termin({ projectNumber: '2026-099' })] as never);
+    try {
+      zeige();
+      await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+      await screen.findByRole('heading', { name: /^Termine am / });
+      await waitFor(() => expect(listTermineImZeitraum).toHaveBeenCalled());
+      expect(screen.queryByText(/Am selben Tag/)).not.toBeInTheDocument();
+    } finally {
+      vi.mocked(listTermineImZeitraum).mockResolvedValue([]);
+    }
+  });
+});

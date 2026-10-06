@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type FormEvent } from 'react';
 import type { AppUser, Company, Freistellung } from '@/types';
 import { freistellungBeantragen, nachweisHochladen, nachweisPruefen } from '@/lib/db/freistellungen';
 import {
+  ART_NAME,
   KUERZUNG_AB_VORGABE,
   anlaesseDesBetriebs,
   anlassVon,
@@ -16,6 +17,8 @@ import Button from '@/components/Button';
 import InfoHint from '@/components/InfoHint';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import { ErrorState } from '@/components/States';
+import Hinweiszeile from '@/components/Hinweiszeile';
+import { datumAT } from '@/lib/datum';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 
@@ -76,11 +79,33 @@ export default function FreistellungFormular({
     ? pflegeStand(eigene, profil.weeklyTargetHours, profil.eintritt ?? profil.appStartDate, von)
     : null;
 
+  /*
+    DIE ÜBERSCHNEIDUNG SCHON IM FORMULAR (Runde 3, G16), wie beim Urlaub.
+    Dieselbe Regel wie `freistellung_beantragen`: ein offener oder bestätigter
+    eigener Antrag im selben Zeitraum. Vorher meldete erst das Absenden die
+    Ablehnung der Datenbank; entscheiden tut sie weiterhin.
+  */
+  const ueberschneidung = useMemo(() => {
+    if (bisTag < von) return null;
+    const andere = eigene
+      .filter((f) => (f.status === 'Beantragt' || f.status === 'Bestätigt') && f.von <= bisTag && f.bis >= von)
+      .sort((a, b) => a.von.localeCompare(b.von))[0];
+    if (!andere) return null;
+    const wann = andere.von === andere.bis
+      ? `am ${datumAT(andere.von)}`
+      : `vom ${datumAT(andere.von)} bis ${datumAT(andere.bis)}`;
+    return `Überschneidet sich mit dem Antrag auf ${ART_NAME[andere.art]} ${wann} (${andere.status}). Bitte einen anderen Zeitraum wählen.`;
+  }, [eigene, von, bisTag]);
+
   async function absenden(e: FormEvent) {
     e.preventDefault();
     setFehler(null);
     if (art === 'dienstverhinderung' && !anlass) {
       setFehler('Bitte den Anlass wählen.');
+      return;
+    }
+    if (ueberschneidung) {
+      setFehler(ueberschneidung);
       return;
     }
     if (begruendungNoetig && notiz.trim().length < 3) {
@@ -169,6 +194,11 @@ export default function FreistellungFormular({
           />
         )}
       </FormGrid>
+      {ueberschneidung && (
+        <Hinweiszeile stufe="warn">
+          <p>{ueberschneidung}</p>
+        </Hinweiszeile>
+      )}
       {mitStunden && (
         <FormGrid>
           <InputField id="fzvon" label="Frei von" type="time" pflicht required value={zeitVon} onChange={(e) => setZeitVon(e.target.value)} />

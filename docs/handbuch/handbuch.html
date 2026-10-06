@@ -646,13 +646,14 @@
       an einen vollständigen Empfänger</strong>, und eine
       <strong>Umstufung gilt ab ihrem Tag</strong>. Für Jugendliche fragt
       Senklot <strong>vor dem Buchen</strong> nach, wenn eine KJBG-Grenze
-      überschritten würde. Alles im Abschnitt
+      überschritten würde, und viele Texte und Handgriffe der Oberfläche sind
+      bereinigt. Alles im Abschnitt
       „Seit dem 6. Oktober“.
     </p>
     <div class="stempel">
       <span>Stand <b>06.10.2026</b></span>
       <span>Fassung <b>Runde 3 · vor dem Pilot</b></span>
-      <span>Automatische Prüfungen <b>5822</b></span>
+      <span>Automatische Prüfungen <b>5899</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -770,6 +771,94 @@
         <h3>Lehrbeginn vor dem Eintritt<span class="neu">behoben</span></h3>
         <p>Ein Lehrbeginn vor dem Eintrittsdatum wurde ohne Hinweis angenommen. Das kann gewollt sein, wenn Lehrzeit aus einem anderen Betrieb angerechnet wird. Jetzt steht bei Anlage und in der Akte: „Der Lehrbeginn liegt vor dem Eintritt (01.01.2026). Wird Lehrzeit angerechnet? Dann stimmt das so — das Lehrjahr zählt ab dem Lehrbeginn.“ Gespeichert wird trotzdem.</p>
         <p class="wer">Geschäftsführung, Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Datum und Komma beim Anlegen<span class="neu">behoben</span></h3>
+        <p>Beim Anlegen einer Person mit „Tritt neu ein“ stand der Vorschlag als „Vorschlag für 2026-10-06: 5.96 Tage“ da — Datum und Zahl wie aus der Datenbank. Jetzt <strong>„Vorschlag für 06.10.2026: 5,96 Tage“</strong>, und auch das Feld „Urlaub im ersten Jahr“ zeigt „5,96“. Gespeichert wird dieselbe Zahl wie bisher. Die automatische Seitenprüfung kennt jetzt auch „Tage“ und öffnet das Anlegeformular eigens, damit ein Punkt statt Komma dort nicht mehr durchrutscht. Nebenbei: verfallene Urlaubstage stehen mit Komma („2,5 Tage sind heuer verfallen“).</p>
+        <p class="wer">Geschäftsführung, Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>„seit 5 Tagen“<span class="neu">behoben</span></h3>
+        <p>Nach „seit“, „in“ und „von“ steht die Zahl der Tage jetzt im richtigen Fall: „Ende überschritten · seit 5 Tagen“, „Wartung in 12 Tagen“, „Resturlaub 20 Tage von 25 Tagen“. Ein Tag bleibt „1 Tag“.</p>
+        <p class="wer">Alle (Startseite)</p>
+      </div>
+      <div class="bereich">
+        <h3>„1 Stk fehlt“ statt „-1 Stk frei“<span class="neu">behoben</span></h3>
+        <p>Unter „Unter Mindestmenge“ auf der Startseite der Verwaltung stand bei mehr Reservierungen als Bestand „-1 Stk frei“. Jetzt <strong>„1 Stk fehlt“</strong>. Null und mehr bleiben „… frei“.</p>
+        <p class="wer">Verwaltung (Startseite)</p>
+      </div>
+      <div class="bereich">
+        <h3>Leerzeichen zwischen Name und Nummer<span class="neu">behoben</span></h3>
+        <p>In „Mein Einsatzplan“ stand beim Kopieren oder Vorlesen „Max Musterkunde(PR-187)“, in den Rechnungen der Kundenakte „RE-2026-150706.10.2026“ — der Abstand war nur gezeichnet. Jetzt steht ein echtes Leerzeichen dazwischen: „Max Musterkunde (PR-187)“, „RE-2026-1507 06.10.2026“.</p>
+        <p class="wer">Monteur (Einsatzplan); wer Kundenakten liest</p>
+      </div>
+      <div class="bereich">
+        <h3>„deaktiviert“ statt „inaktiv“, „Als abgelehnt markieren“<span class="neu">behoben</span></h3>
+        <p>Ein gesperrtes Konto heißt überall <strong>„deaktiviert“</strong> — in der Benutzerakte, an der Zeile der Benutzerverwaltung und im Filter („Deaktivierte (2)“), wie im Statusfeld. Der Hinweis in der Datenauskunft sagt „Status auf ‚Deaktiviert‘ stellen“. In der Angebotsansicht heißt der Knopf wie im Menü der Liste <strong>„Als abgelehnt markieren“</strong>. Kunden behalten „inaktiv“ — dort gibt es kein „deaktivieren“.</p>
+        <p class="wer">Geschäftsführung, Administrator; wer Angebote bearbeitet</p>
+      </div>
+      <div class="bereich">
+        <h3>„Dringend“ statt zweimal „Überfällig“<span class="neu">behoben</span></h3>
+        <p>Auf der Startseite der Leitung hieß der erste Abschnitt im Handlungsbedarf „Überfällig“ — daneben stand die Kennzahl „Überfällig“ für Rechnungen. Der Abschnitt heißt jetzt <strong>„Dringend“</strong>; Baustellen über dem Endtermin stehen darin als „Ende überschritten“. Die Kennzahl „Überfällig“ meint weiter nur Rechnungen.</p>
+        <p class="wer">Geschäftsführung, Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Projektauswertung in Std:Min<span class="neu">behoben</span></h3>
+        <p>In einer Zeile standen „10:45 Std“ und „10,8 h“. Jetzt durchgehend Std:Min, auch gegen das Budget: „10:45 Std in Oktober 2026 · gesamt 30:15 Std von 40:00 Std“ und „gesamt … / 40:00 Std Budget“. Der Prozentwert rechnet unverändert.</p>
+        <p class="wer">Buchhaltung, Projektleiter, Geschäftsführung, Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Ohne Zeitkonto keine Urlaubsrechnung<span class="neu">behoben</span></h3>
+        <p>Wer kein Zeitkonto führt (Administration, Geschäftsführung mit ausgeschaltetem Zeitkonto), sah oben „kein Zeitkonto — kein Resturlaub“ und darunter trotzdem „In diesem Jahr genehmigt: 4 von 25 Tagen“. Diese Zeile und „danach bleiben …“ fallen dort jetzt weg; die Zahl der Arbeitstage im Zeitraum bleibt.</p>
+        <p class="wer">Wer kein Zeitkonto führt</p>
+      </div>
+      <div class="bereich">
+        <h3>Rüstliste: „1 Stk abgebucht“ und „Einladen zurückgenommen“<span class="neu">behoben</span></h3>
+        <p>Der Haken „eingeladen“ bucht Lagermaterial ab — ohne Meldung sah das aus wie ein Merkzettel. Jetzt bestätigt eine kurze Meldung, was die Datenbank <strong>tatsächlich</strong> gebucht hat („1 Stk abgebucht“; bei knappem Bestand weniger als geplant; „Eingeladen — nichts vom Lager abgebucht“ bei freien Zeilen ohne Lagerartikel). Wird der Haken am selben Tag zurückgenommen: „Einladen zurückgenommen — 8 m wieder im Lager“.</p>
+        <p>Im Bewegungsprotokoll des Lagers heißt diese Rücknahme jetzt <strong>„Einladen zurückgenommen“</strong> statt „Retoure“. Eine echte Rückgabe von der Baustelle bleibt „Retoure“. Bestehende Zeilen sind umbenannt (erkannt am Grund „Rüstliste … · eingeladen zurückgenommen“); Mengen und Bestände sind unverändert.</p>
+        <p class="wer">Monteur (Rüstliste); Verwaltung, Leitung (Bewegungsprotokoll)</p>
+      </div>
+      <div class="bereich">
+        <h3>Pflegefreistellung: Überschneidung schon im Formular<span class="neu">behoben</span></h3>
+        <p>Sonderurlaub, Pflegefreistellung und unbezahlter Urlaub zeigen eine Überschneidung mit einem eigenen offenen oder bestätigten Antrag jetzt <strong>schon beim Ausfüllen</strong> („Überschneidet sich mit dem Antrag auf Pflegefreistellung vom 11.11.2026 bis 13.11.2026 (Bestätigt)“), wie beim Urlaub; abgeschickt wird so nicht. Beim Wechsel der Antragsart stehen Datum, Anmerkung und Anlass wieder leer — die Tage eines Urlaubsantrags gehen nicht mehr ungesehen in eine Krankmeldung über.</p>
+        <p class="wer">Alle, die Urlaub beantragen</p>
+      </div>
+      <div class="bereich">
+        <h3>Sonderurlaub über dem Kontingent<span class="neu">neu</span></h3>
+        <p>Liegt ein Sonderurlaub über den Tagen, die für den Anlass vorgesehen sind (etwa „Tod der Eltern: 3 Arbeitstage, vorgesehen sind 2“), fragt das Bestätigen jetzt, <strong>wie die Tage darüber gebucht werden</strong>:</p>
+        <p><strong>Tage darüber als Urlaub buchen</strong> — die letzten Tage des Antrags werden genehmigter Urlaub und zählen im Resturlaub, im Zeitkonto, in der Lohn-CSV und im Wochenplan als Urlaub. Das darf nur, wer über Urlaub entscheidet. <strong>Als Sonderurlaub bestätigen</strong> — alle Tage bleiben bezahlte Dienstverhinderung, mit Pflichtgrund. Ohne Wahl geht das Bestätigen nicht, auch nicht über die Schnittstelle. Wahl, Tage und Grund stehen am Antrag („1 Tag über dem Kontingent als Urlaub gebucht“), auch in der eigenen Liste der Person. Zurücknehmen nimmt den Urlaub mit; enthält der Sonderurlaub solchen Urlaub, nimmt ihn zurück, wer über Urlaub entscheidet.</p>
+        <p>Gezählt werden die Tage dieses Antrags und die schon bestätigten desselben Falls (gleicher Anlass, gleicher Ereignistag); ein noch offener zweiter Antrag zählt nicht. Die Tage je Anlass sind die aus Einstellungen › Personal.</p>
+        <p class="wer">Büro, Geschäftsführung, Administrator (Bestätigen); Mitarbeiter (sieht den Vermerk)</p>
+      </div>
+      <div class="bereich">
+        <h3>Wareneingang: Großhändler zur Auswahl<span class="neu">behoben</span></h3>
+        <p>Der Lieferant ist jetzt eine <strong>Auswahl der angelegten Großhändler</strong>. „Anderer Lieferant …“ öffnet das Textfeld für alles andere (Baumarkt, Hersteller). Ohne angelegte Großhändler bleibt es beim Textfeld.</p>
+        <p class="wer">Verwaltung, Leitung</p>
+      </div>
+      <div class="bereich">
+        <h3>„Bewegungen“ nur mit „Schließen“<span class="neu">behoben</span></h3>
+        <p>Das Bewegungsprotokoll eines Artikels ist ein Lesedialog und hat nur noch den Knopf „Schließen“ — „Abbrechen“ daneben fragte, was es abzubrechen gäbe. Alle anderen Dialoge bleiben, wie sie sind.</p>
+        <p class="wer">Verwaltung, Buchhaltung, Leitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Zeiterfassung am Handy: Knopf über keinem Feld<span class="neu">behoben</span></h3>
+        <p>Beim Öffnen der Zeiterfassung lag der klebende Knopf „Zeit buchen“ über dem Datumsfeld. Jetzt steht die Leiste beim Öffnen unter dem Formular; sie <strong>klebt erst, wenn man ins Formular gerollt ist</strong>, und bleibt dann unten im Blick. Am Schreibtisch unverändert; in den Akten (Kunde, Benutzer, Baustelle) klebt der Speichern-Balken weiter sofort.</p>
+        <p class="wer">Alle, die am Telefon Zeit buchen</p>
+      </div>
+      <div class="bereich">
+        <h3>Einsatz: Lieferung am selben Tag<span class="neu">neu</span></h3>
+        <p>Wer einen Einsatz plant, sieht jetzt beim Einsatz, was am selben Tag auf <strong>derselben Baustelle</strong> als Termin steht — „Am selben Tag auf dieser Baustelle: Lieferung (Aviso) · 08:00–10:00. Steht jemand zur Annahme da?“ — und in der Liste der Einsätze an der Baustelle „Am selben Tag: …“. Termine anderer Baustellen erscheinen dort nicht. Gemeint sind Termine (auch das Aviso); Bestellungen ins Lager sind keine Lieferung auf die Baustelle.</p>
+        <p class="wer">Projektleiter, Geschäftsführung, Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Monteure sehen von Kollegen nur Name und Rolle<span class="neu">behoben</span></h3>
+        <p>Über die Schnittstelle las ein Monteur die ganzen Zeilen seiner Kollegen, mit E-Mail-Adressen und Freigaben. Jetzt liest die Rolle Mitarbeiter (Monteur, Lehrling, Helfer) die <strong>eigene Zeile ganz</strong> und von den anderen nur <strong>Name, Rolle, Einstufung und ob das Konto aktiv ist</strong> — das prüft die Datenbank, nicht die Oberfläche. Team-Woche, Termine und „Mein Einsatzplan“ zeigen alle Namen wie bisher. Büro und Führung (Verwaltung, Buchhaltung, Projektleiter, Geschäftsführung, Administrator) lesen weiter alles, weil sie planen, abrechnen und verwalten.</p>
+        <p class="wer">Mitarbeiter (eingeschränkt); alle anderen Rollen unverändert</p>
+      </div>
+      <div class="bereich">
+        <h3>Nachweis zum Sonderurlaub im Browser geprüft<span class="neu">neu</span></h3>
+        <p>Der Weg „Nachweis anhängen — beim Bestätigen ansehen — nach ‚Nachweis geprüft‘ gelöscht“ läuft jetzt als automatische Browserprüfung, in Chromium und in WebKit (Safari am iPhone). „Nachweis ansehen“ öffnet das Fenster jetzt noch im Tippen und lädt den Nachweis danach hinein — Safari auf iPhone und iPad blockte das Fenster vorher still. Am Gerät selbst bleibt zu prüfen, ob die Kamera ein Foto liefert, das angenommen wird (JPEG, PNG, WebP, HEIC, PDF bis 10 MB).</p>
+        <p class="wer">Mitarbeiter (anhängen); Büro, Geschäftsführung, Administrator (bestätigen)</p>
       </div>
     </div>
   </section>

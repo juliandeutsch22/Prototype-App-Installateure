@@ -516,7 +516,10 @@ export default function KundenakteView() {
                 >
                   {r.invoiceNumber}
                 </Link>
-                <span className="ml-2 whitespace-nowrap text-xs text-ink-muted">
+                {/* Leerzeichen im Text (Runde 3, G4): sonst las sich
+                    „RE-2026-150706.10.2026“ beim Kopieren und Vorlesen. */}
+                {' '}
+                <span className="ml-1 whitespace-nowrap text-xs text-ink-muted">
                   {fmtDatum(r.invoiceDate)} · <span className="nr">{r.projectNumber}</span>
                 </span>
               </span>

@@ -42,7 +42,7 @@ import { auffaellige } from '@/features/worksheets/unverrechnet';
 import { istUeberfaellig, mahnbar, offenerRest, offenerRuecklass } from '@/features/invoices/zahlstand';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { euro } from '@/lib/betrag';
-import { fmtMin, getISOWeek, tageWort } from '@/lib/time';
+import { fmtMin, getISOWeek, tageWort, tageWortDativ } from '@/lib/time';
 import { baustellenTitel } from '@/lib/baustellenTitel';
 
 /**
@@ -126,7 +126,7 @@ function monteur(d: StartDaten, u: Umfeld): Startseite {
       key: 'urlaub',
       label: 'Resturlaub',
       wert: tageWort(d.resturlaub.rest),
-      zusatz: `von ${tageWort(d.resturlaub.anspruch)}`,
+      zusatz: `von ${tageWortDativ(d.resturlaub.anspruch)}`,
       to: '/vacations',
     });
   }

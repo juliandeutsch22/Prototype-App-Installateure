@@ -103,7 +103,7 @@ describe('Projektauswertung — Budget gegen die GANZE Baustelle', () => {
       screen.getByText(
         (_, el) =>
           el?.tagName === 'P' &&
-          /8,5 h in September 2026 · gesamt 16,5 h von 20 h/.test(el.textContent ?? ''),
+          /08:30 Std in September 2026 · gesamt 16:30 Std von 20:00 Std/.test(el.textContent ?? ''),
       ),
     ).toBeInTheDocument();
   });
@@ -322,7 +322,7 @@ describe('Projektauswertung — die Nummer, wie sie an der Baustelle steht (Laun
  * Einträge hatte als einziges in der App eine zweistellige Jahreszahl.
  */
 describe('Projektauswertung — Zeiten und Datum wie überall', () => {
-  it('schreibt Arbeitszeit als HH:MM Std, das Budget bleibt dezimal', async () => {
+  it('schreibt Arbeitszeit UND Budget als HH:MM Std (Runde 3, G7)', async () => {
     render(
       <ProjectSummary
         entries={[
@@ -334,26 +334,25 @@ describe('Projektauswertung — Zeiten und Datum wie überall', () => {
         label="September 2026"
       />,
     );
-    // 07:00–16:00 mit 30 min Pause: 08:30.
-    expect(screen.getByText('08:30 Std')).toBeInTheDocument();
+    // 07:00–16:00 mit 30 min Pause: 08:30 — im Kopf und im Satz zum Budget.
+    expect(screen.getAllByText('08:30 Std').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('+08:30 Std Helfer')).toBeInTheDocument();
-    // Die Gegenüberstellung mit dem Budget (40 h) bleibt in Dezimalstunden.
+    // Runde 3, G7: auch die Gegenüberstellung mit dem Budget in Std:Min —
+    // vorher stand „10:45 Std“ neben „10,8 h“ in einer Zeile.
     expect(
       screen.getByText(
         (_, el) =>
           el?.tagName === 'P' &&
-          /8,5 h in September 2026 · gesamt 8,5 h von 40 h/.test(el.textContent ?? ''),
+          /08:30 Std in September 2026 · gesamt 08:30 Std von 40:00 Std/.test(el.textContent ?? ''),
       ),
     ).toBeInTheDocument();
 
     await aufklappen();
     expect(screen.getByText('Fachzeit in September 2026: 08:30 Std')).toBeInTheDocument();
     expect(screen.getByText(/\+ 08:30 Std Helfer-Leistung/)).toBeInTheDocument();
-    expect(screen.getByText(/gesamt 8,5 h \/ 40 h Budget/)).toBeInTheDocument();
-    // Dezimalstunden stehen nur noch in den Sätzen, die gegen das Budget halten.
-    for (const el of screen.queryAllByText(/\d,\d h/)) {
-      expect(el.closest('p')?.textContent).toMatch(/von 40 h|h Budget/);
-    }
+    expect(screen.getByText(/gesamt 08:30 Std \/ 40:00 Std Budget/)).toBeInTheDocument();
+    // Keine Dezimalstunden mehr in der Karte.
+    expect(document.body.textContent).not.toMatch(/\d,\d+ h\b/);
   });
 
   it('schreibt das Datum der Einträge mit vierstelligem Jahr', async () => {

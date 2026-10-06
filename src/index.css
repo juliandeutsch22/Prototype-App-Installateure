@@ -791,6 +791,11 @@ textarea {
   .aktionsleiste-knoepfe > :only-child { grid-column: 1 / -1; }
   /* In einer Karte reicht die Leiste bis an deren Ränder und schliesst sie unten ab. */
   .karte-koerper .aktionsleiste { margin: 1rem -1rem -1rem; padding-inline: 1rem; }
+  /*
+   * Die Zeiterfassung klebt ihre Leiste erst nach dem Rollen (Runde 3, G22):
+   * beim Öffnen lag sie über dem Datumsfeld. Gesetzt von Aktionsleiste.tsx.
+   */
+  .aktionsleiste-frei { position: static; }
   @media (min-width: 1024px) {
     .aktionsleiste, .karte-koerper .aktionsleiste { position: static; margin: 0; border-top: 0; padding: 0; background: transparent; }
     .aktionsleiste-summe { justify-content: flex-end; }

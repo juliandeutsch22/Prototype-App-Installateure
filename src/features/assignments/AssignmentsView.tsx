@@ -9,6 +9,7 @@ import { listAbwesendInRange, type Abwesenheit } from '@/lib/db/vacations';
 import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
 import { subscribeAssignmentsForMonth, saveAssignments, deleteAssignment } from '@/lib/db/assignments';
 import TermineKarte from '@/features/termine/TermineKarte';
+import { terminKopf } from '@/features/termine/terminText';
 import { subscribeMaterials, lagerFrei, type LagerStand } from '@/lib/db/materials';
 import { createMaterialOrder } from '@/lib/db/materialOrders';
 import {
@@ -25,6 +26,7 @@ import type {
   Material,
   EinsatzMaterial,
   RuestPosition,
+  Termin,
 } from '@/types';
 import Card from '@/components/Card';
 import Hinweiszeile from '@/components/Hinweiszeile';
@@ -73,6 +75,8 @@ export default function AssignmentsView() {
   const toast = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
+  /** Die Termine des gewählten Tages — gemeldet von der Terminkarte (G23). */
+  const [termineDesTages, setTermineDesTages] = useState<Termin[]>([]);
   /**
    * Tag und Baustelle koennen vom Wochenplan mitkommen.
    *
@@ -553,6 +557,16 @@ export default function AssignmentsView() {
   if (!user) return null;
 
   // Tagesübersicht nach Baustelle gruppieren.
+  /*
+    TERMINE AUF DERSELBEN BAUSTELLE AM SELBEN TAG (Runde 3, G23). Lieferung
+    und Einsatz standen getrennt: wer einteilte, sah die Lieferung um 8 Uhr
+    nur in der Terminkarte darunter — und niemand stand zur Annahme da.
+    Nur Termine des gewählten Tages; die Karte lädt je Tag neu.
+  */
+  const termineAuf = (pn: string) =>
+    termineDesTages.filter((t) => t.datum === date && t.projectNumber === pn).map(terminKopf);
+  const termineHier = projectNumber ? termineAuf(projectNumber) : [];
+
   const byProject = new Map<string, WithId<Assignment>[]>();
   for (const a of dayAssignments) {
     const list = byProject.get(a.projectNumber) ?? [];
@@ -675,6 +689,17 @@ export default function AssignmentsView() {
                     Einige Mitarbeiter sind heute bereits auf anderen Baustellen eingeteilt (siehe
                     Hinweis am Namen). Eine zusätzliche Einteilung ist möglich — die bestehende
                     bleibt bestehen.
+                  </p>
+                </Hinweiszeile>
+              </div>
+            )}
+
+            {termineHier.length > 0 && (
+              <div className="mt-3">
+                <Hinweiszeile>
+                  <p>
+                    <strong>Am selben Tag auf dieser Baustelle:</strong> {termineHier.join('; ')}.
+                    Steht jemand zur Annahme da?
                   </p>
                 </Hinweiszeile>
               </div>
@@ -887,7 +912,11 @@ export default function AssignmentsView() {
             8–10 Uhr" soll der Planer sehen, bevor er einteilt — damit gleich
             jemand zur Annahme auf der Baustelle steht.
           */}
-          <TermineKarte titel={`Termine am ${fmtDay(date)}`} vorgabe={{ bezug: 'frei', datum: date }} />
+          <TermineKarte
+            titel={`Termine am ${fmtDay(date)}`}
+            vorgabe={{ bezug: 'frei', datum: date }}
+            onTermine={setTermineDesTages}
+          />
 
           {/* Bündig: jede Baustelle ein Abschnitt mit ihren Leuten darunter,
               statt eines Kastens in der Karte (Designlinie „Fassung 3"). */}
@@ -918,6 +947,7 @@ export default function AssignmentsView() {
                     : [];
                   const geladen = tagesListen.find((l) => l.projectNumber === pn)?.geladen ?? {};
                   const inBearbeitung = pn === projectNumber;
+                  const termineDort = termineAuf(pn);
                   return (
                     <div key={pn}>
                       <div className="abschnitt flex-wrap">
@@ -952,8 +982,13 @@ export default function AssignmentsView() {
                           )}
                         </span>
                       </div>
-                      {(aufgabe || material.length > 0) && (
+                      {(aufgabe || material.length > 0 || termineDort.length > 0) && (
                         <div className="space-y-2 border-t border-line px-4 py-2 text-sm">
+                          {termineDort.length > 0 && (
+                            <p className="text-ink">
+                              <span className="font-medium">Am selben Tag:</span> {termineDort.join('; ')}
+                            </p>
+                          )}
                           {aufgabe && (
                             <p className="whitespace-pre-line text-ink">
                               <span className="font-medium">Aufgabe:</span> {aufgabe}

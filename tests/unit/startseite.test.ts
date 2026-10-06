@@ -268,11 +268,11 @@ describe('Geschäftsführung und Administrator', () => {
     rolle: 'leitung', heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: true, ...teil,
   });
 
-  it('ordnet Themen nach Überfällig, Heute, Diese Woche — je höchstens drei, der Rest klappt auf', () => {
+  it('ordnet Themen nach Dringend, Heute, Diese Woche — je höchstens drei, der Rest klappt auf', () => {
     const abschnitte = themenAbschnitte(Array.from({ length: 5 }, (_, i) => ({
       key: `t${i}`, titel: `T${i}`, wann: i === 0 ? 'ueberfaellig' as const : 'woche' as const, to: '/x',
     })));
-    expect(abschnitte.map((a) => a.titel)).toEqual(['Überfällig', 'Diese Woche']);
+    expect(abschnitte.map((a) => a.titel)).toEqual(['Dringend', 'Diese Woche']);
     expect(abschnitte[1].weiter && 'aufklappen' in abschnitte[1].weiter).toBe(true);
   });
 
@@ -285,9 +285,9 @@ describe('Geschäftsführung und Administrator', () => {
     expect(titel(ohne).some((t) => /1 Anforderung offen/.test(t))).toBe(true);
   });
 
-  it('der fehlende Basiszinssatz steht unter Überfällig', () => {
+  it('der fehlende Basiszinssatz steht unter Dringend', () => {
     const s = startseite({ basiszinsFehltAb: '2026-07-01' }, umfeld());
-    expect(s.abschnitte[0].titel).toBe('Überfällig');
+    expect(s.abschnitte[0].titel).toBe('Dringend');
     expect(s.abschnitte[0].zeilen[0].titel).toBe('Basiszinssatz ab 01.07. fehlt');
     expect(s.zaehlwort).toBe('Thema');
   });
@@ -371,13 +371,13 @@ describe('Personen: Lehrzeit und Leitung ohne E-Mail', () => {
   const zeilen = (s: ReturnType<typeof startseite>) =>
     s.abschnitte.flatMap((a) => [...a.zeilen, ...(a.weiter && 'aufklappen' in a.weiter ? a.weiter.aufklappen : [])]);
 
-  it('eine Lehrzeit führt in die Akte; eine vergangene steht unter Überfällig', () => {
+  it('eine Lehrzeit führt in die Akte; eine vergangene steht unter Dringend', () => {
     const bald = startseite({ lehrzeitEnden: [{ uid: 'u1', name: 'Anna Huber', ende: '2026-10-29' }] }, umfeld());
     expect(bald.abschnitte[0].titel).toBe('Diese Woche');
     expect(zeilen(bald)[0]).toMatchObject({ titel: 'Lehrzeit von Anna Huber endet am 29.10.', to: '/user-mgmt/u1' });
 
     const vorbei = startseite({ lehrzeitEnden: [{ uid: 'u1', name: 'Anna Huber', ende: '2026-08-31' }] }, umfeld());
-    expect(vorbei.abschnitte[0].titel).toBe('Überfällig');
+    expect(vorbei.abschnitte[0].titel).toBe('Dringend');
     expect(zeilen(vorbei)[0].titel).toBe('Lehrzeit von Anna Huber endete am 31.08.');
   });
 

@@ -38,6 +38,10 @@ export interface FreistellungErgebnis {
   uebersprungen: number;
   entfernt: number;
   nachweis: string | null;
+  /** Arbeitstage über dem Kontingent des Anlasses (Runde 3, G17). */
+  ueber?: number;
+  /** Davon als Urlaub gebucht. */
+  alsUrlaub?: number;
 }
 
 /** Die eigenen Anträge, jüngste zuerst. */
@@ -173,6 +177,10 @@ export async function freistellungEntscheiden(daten: {
   grund?: string;
   nachweisGeprueft?: boolean;
   kuerzung?: Array<{ urlaubsjahr: number; tage: number }>;
+  /** Tage über dem Kontingent: als Urlaub buchen oder als Sonderurlaub bestätigen (G17). */
+  ueberKontingent?: 'urlaub' | 'sonderurlaub' | null;
+  /** Pflicht bei „sonderurlaub“. */
+  ueberGrund?: string;
 }): Promise<FreistellungErgebnis & { dateiBlieb: boolean }> {
   const { data, error } = await derClient().rpc('freistellung_entscheiden', {
     p_id: daten.id,
@@ -180,6 +188,8 @@ export async function freistellungEntscheiden(daten: {
     p_grund: daten.grund ?? '',
     p_nachweis_geprueft: daten.nachweisGeprueft ?? false,
     p_kuerzung: daten.kuerzung && daten.kuerzung.length > 0 ? daten.kuerzung : null,
+    p_ueber_kontingent: daten.ueberKontingent ?? null,
+    p_ueber_grund: daten.ueberGrund ?? null,
   });
   if (error) throw new Error(error.message);
   const ergebnis = data as FreistellungErgebnis;

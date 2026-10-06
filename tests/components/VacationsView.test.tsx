@@ -74,6 +74,8 @@ let belegschaft: AppUser[] = [monteur];
 let eigenesProfil: AppUser = monteur;
 /** Anträge auf Sonderurlaub — je Test setzbar (Plan 10.3). */
 let freistellungen: Array<Record<string, unknown>> = [];
+/** Bestätigte, die noch laufen (Liste „Bestätigt, noch nicht vorbei“). */
+let laufendeFrei: Array<Record<string, unknown>> = [];
 const freistellungBeantragen = vi.fn<(a: Record<string, unknown>) => Promise<string>>(async () => 'f-neu');
 const freistellungEntscheiden = vi.fn<(d: Record<string, unknown>) => Promise<Record<string, unknown>>>(
   async () => ({ status: 'Bestätigt', angelegt: 1, uebersprungen: 0, entfernt: 0, nachweis: null, dateiBlieb: false }),
@@ -81,7 +83,7 @@ const freistellungEntscheiden = vi.fn<(d: Record<string, unknown>) => Promise<Re
 vi.mock('@/lib/db/freistellungen', () => ({
   listEigeneFreistellungen: vi.fn(async (_c: string, uid: string) => freistellungen.filter((f) => f.userId === uid)),
   listOffeneFreistellungen: vi.fn(async () => freistellungen.filter((f) => f.status === 'Beantragt')),
-  listBestaetigteFreistellungenAb: vi.fn(async () => []),
+  listBestaetigteFreistellungenAb: vi.fn(async () => laufendeFrei),
   listFreistellungenVon: vi.fn(async (_c: string, uids: string[]) => freistellungen.filter((f) => uids.includes(f.userId as string))),
   freistellungBeantragen: (a: Record<string, unknown>) => freistellungBeantragen(a),
   freistellungEntscheiden: (d: Record<string, unknown>) => freistellungEntscheiden(d),
@@ -173,6 +175,7 @@ async function datum(label: string, wert: string) {
 beforeEach(() => {
   anpassungen = [];
   freistellungen = [];
+  laufendeFrei = [];
   freistellungBeantragen.mockClear();
   freistellungEntscheiden.mockClear();
   createVacation.mockClear();
@@ -909,6 +912,27 @@ describe('Ohne Zeitkonto kein Resturlaub (Testbericht 30.09.2026, G13)', () => {
     expect(await screen.findByText('Resturlaub')).toBeInTheDocument();
     expect(screen.queryByText(/kein Zeitkonto/)).not.toBeInTheDocument();
   });
+
+  it('ohne Zeitkonto auch kein „genehmigt: x von y Tagen“ und kein „danach bleiben“ (Runde 3, G10)', async () => {
+    eigenesProfil = { ...monteur, uid: 'a1', id: 'a1', name: 'Anna Admin', role: 'Administrator' };
+    rolle = { ...rolle, uid: 'a1', name: 'Anna Admin', role: 'Administrator', docId: 'a1' };
+    zeichne();
+    expect(await screen.findByText(/kein Zeitkonto/)).toBeInTheDocument();
+    await datum('Von', '2026-10-26');
+    await datum('Bis (einschließlich)', '2026-10-30');
+    expect(screen.getByText(/4 Arbeitstage/)).toBeInTheDocument();
+    expect(screen.queryByText(/genehmigt:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/danach bleiben/)).not.toBeInTheDocument();
+  });
+
+  it('Gegenprobe: mit Zeitkonto bleiben „genehmigt“ und „danach bleiben“ stehen', async () => {
+    zeichne();
+    expect(await screen.findByText('Resturlaub')).toBeInTheDocument();
+    await datum('Von', '2026-10-26');
+    await datum('Bis (einschließlich)', '2026-10-30');
+    expect(screen.getByText(/genehmigt:/)).toBeInTheDocument();
+    expect(screen.getByText(/danach bleiben/)).toBeInTheDocument();
+  });
 });
 
 describe('Sonderurlaub (Plan 10.3)', () => {
@@ -976,6 +1000,72 @@ describe('Sonderurlaub (Plan 10.3)', () => {
     expect(screen.getByLabelText(/Zweite Woche/)).toBeInTheDocument();
   });
 
+  // Runde 3, G16: die Überschneidung schon im Formular, nicht erst beim Absenden.
+  it('Pflegefreistellung: zeigt die Überschneidung mit einem eigenen Antrag vor dem Absenden', async () => {
+    freistellungen = [frei({ art: 'pflegefreistellung', status: 'Bestätigt', von: '2026-11-11', bis: '2026-11-13' })];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.selectOptions(await screen.findByLabelText('Art'), 'pflegefreistellung');
+    await datum('Von', '2026-11-12');
+    await datum('Bis (einschließlich)', '2026-11-12');
+    expect(await screen.findByText(
+      'Überschneidet sich mit dem Antrag auf Pflegefreistellung vom 11.11.2026 bis 13.11.2026 (Bestätigt). Bitte einen anderen Zeitraum wählen.',
+    )).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Antrag einreichen' }));
+    expect(freistellungBeantragen).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: daneben, abgelehnt oder storniert überschneidet nichts', async () => {
+    freistellungen = [
+      frei({ art: 'pflegefreistellung', status: 'Bestätigt', von: '2026-11-11', bis: '2026-11-13' }),
+      frei({ id: 'f2', art: 'pflegefreistellung', status: 'Abgelehnt', von: '2026-11-16', bis: '2026-11-16' }),
+      frei({ id: 'f3', art: 'dienstverhinderung', status: 'Storniert', von: '2026-11-17', bis: '2026-11-17' }),
+    ];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.selectOptions(await screen.findByLabelText('Art'), 'pflegefreistellung');
+    await datum('Von', '2026-11-16');
+    await datum('Bis (einschließlich)', '2026-11-17');
+    expect(screen.queryByText(/Überschneidet sich/)).not.toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Antrag einreichen' }));
+    await waitFor(() => expect(freistellungBeantragen).toHaveBeenCalledTimes(1));
+  });
+
+  it('beim Wechsel der Antragsart stehen die Daten des vorigen Antrags nicht mehr da (G16)', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.selectOptions(await screen.findByLabelText('Art'), 'dienstverhinderung');
+    await datum('Von', '2026-11-11');
+    await datum('Bis (einschließlich)', '2026-11-13');
+    await nutzer.type(screen.getByLabelText(/^Anmerkung/), 'Hochzeit Bruder');
+    await nutzer.selectOptions(screen.getByLabelText('Art'), 'pflegefreistellung');
+    expect((screen.getByLabelText('Von') as HTMLInputElement).value).not.toBe('2026-11-11');
+    expect((screen.getByLabelText('Bis (einschließlich)') as HTMLInputElement).value).not.toBe('2026-11-13');
+    expect((screen.getByLabelText(/^Anmerkung/) as HTMLInputElement).value).toBe('');
+  });
+
+  it('… auch vom Urlaub zur Krankmeldung (G16)', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByLabelText('Von');
+    await datum('Von', '2026-11-23');
+    await datum('Bis (einschließlich)', '2026-11-27');
+    await nutzer.selectOptions(screen.getByLabelText('Art'), 'Krank');
+    expect((screen.getByLabelText('Krank ab') as HTMLInputElement).value).not.toBe('2026-11-23');
+  });
+
+  it('im Antrag: ab 14 Kalendertagen der Hinweis auf die Kürzung, bei 13 nicht (Selbst prüfen)', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.selectOptions(await screen.findByLabelText('Art'), 'unbezahlt');
+    await datum('Von', '2027-03-01');
+    await datum('Bis (einschließlich)', '2027-03-14');
+    expect(screen.getByText(/14 Kalendertage — der Urlaubsanspruch sinkt dadurch aliquot/)).toBeInTheDocument();
+    await datum('Bis (einschließlich)', '2027-03-13');
+    expect(screen.getByText(/^13 Kalendertage\.$/)).toBeInTheDocument();
+    expect(screen.queryByText(/sinkt dadurch aliquot/)).not.toBeInTheDocument();
+  });
+
   it('beim unbezahlten Urlaub kein Nachweis, dafür die Kalendertage', async () => {
     const nutzer = userEvent.setup();
     zeichne();
@@ -995,6 +1085,15 @@ describe('Sonderurlaub (Plan 10.3)', () => {
     expect(await screen.findByText('Mein Sonderurlaub')).toBeInTheDocument();
     expect(screen.getByText(/Tod der Eltern oder Schwiegereltern/)).toBeInTheDocument();
     expect(screen.getByText(/Nachweis geprüft von Frau Wagner am 09.11.2026/)).toBeInTheDocument();
+  });
+
+  it('die eigene Liste sagt, was mit den Tagen über dem Kontingent geschah (G17)', async () => {
+    freistellungen = [frei({
+      art: 'dienstverhinderung', anlass: 'tod_eltern', ereignisDatum: '2026-11-10', status: 'Bestätigt',
+      entschiedenVonName: 'Frau Wagner', ueberKontingent: 'urlaub', ueberTage: 1, ueberUrlaubId: 'v1',
+    })];
+    zeichne();
+    expect(await screen.findByText('1 Tag über dem Kontingent als Urlaub gebucht')).toBeInTheDocument();
   });
 
   it('der Mitarbeiter sieht keine Liste zum Bestätigen', async () => {
@@ -1019,6 +1118,22 @@ describe('Sonderurlaub (Plan 10.3)', () => {
       await nutzer.click(screen.getByRole('button', { name: 'Bestätigen' }));
       await waitFor(() => expect(freistellungEntscheiden).toHaveBeenCalledTimes(1));
       expect(freistellungEntscheiden.mock.calls[0][0]).toMatchObject({ id: 'f1', entscheidung: 'Bestätigt', nachweisGeprueft: true });
+    });
+
+    // Runde 3, G26: Safari öffnet ein Fenster nur direkt auf den Klick, nicht nach einem `await`.
+    it('„Nachweis ansehen“ öffnet das Fenster sofort und setzt die Adresse danach', async () => {
+      buero();
+      freistellungen = [frei({ art: 'dienstverhinderung', anlass: 'hochzeit', ereignisDatum: '2026-11-13', nachweisPfad: 'perl/m1/f1/a.pdf' })];
+      const fenster = { opener: {} as unknown, location: { href: '' }, close: vi.fn() };
+      const oeffnen = vi.spyOn(window, 'open').mockReturnValue(fenster as unknown as Window);
+      const nutzer = userEvent.setup();
+      zeichne();
+      await nutzer.click(await screen.findByRole('button', { name: 'Nachweis ansehen' }));
+      expect(oeffnen).toHaveBeenCalledWith('', '_blank');
+      await waitFor(() => expect(fenster.location.href).toBe('https://beispiel'));
+      expect(fenster.opener).toBeNull();
+      expect(oeffnen).toHaveBeenCalledTimes(1);
+      oeffnen.mockRestore();
     });
 
     it('warnt, wenn der Beginn mehr als 14 Tage nach dem Ereignis liegt', async () => {
@@ -1048,6 +1163,137 @@ describe('Sonderurlaub (Plan 10.3)', () => {
       expect(freistellungEntscheiden.mock.calls[0][0]).toMatchObject({
         entscheidung: 'Bestätigt', kuerzung: [{ urlaubsjahr: 2027, tage: 6.3 }],
       });
+    });
+
+    /*
+      RUNDE 3, G17: „3 Arbeitstage — vorgesehen sind 2“ ging ohne Begründung
+      durch. Jetzt erst nach einer Wahl: als Urlaub buchen oder mit Grund als
+      Sonderurlaub bestätigen. 11.–13.11.2026 sind Mi–Fr, drei Arbeitstage.
+    */
+    const ueberKontingent = () =>
+      frei({ art: 'dienstverhinderung', anlass: 'tod_eltern', ereignisDatum: '2026-11-09' });
+
+    it('über dem Kontingent: ohne Wahl kein Bestätigen (G17)', async () => {
+      buero();
+      freistellungen = [ueberKontingent()];
+      const nutzer = userEvent.setup();
+      zeichne();
+      expect(await screen.findByText(/1 Arbeitstag liegt über dem Kontingent/)).toBeInTheDocument();
+      await nutzer.click(screen.getByRole('button', { name: 'Bestätigen' }));
+      expect(await screen.findByText(/Bitte wählen, wie die Tage über dem Kontingent gebucht werden/)).toBeInTheDocument();
+      expect(freistellungEntscheiden).not.toHaveBeenCalled();
+    });
+
+    it('über dem Kontingent: „als Urlaub buchen“ geht mit der Wahl an die Datenbank (G17)', async () => {
+      buero();
+      freistellungen = [ueberKontingent()];
+      const nutzer = userEvent.setup();
+      zeichne();
+      await nutzer.click(await screen.findByLabelText(/Tage darüber als Urlaub buchen/));
+      await nutzer.click(screen.getByRole('button', { name: 'Bestätigen' }));
+      await waitFor(() => expect(freistellungEntscheiden).toHaveBeenCalledTimes(1));
+      expect(freistellungEntscheiden.mock.calls[0][0]).toMatchObject({
+        id: 'f1', entscheidung: 'Bestätigt', ueberKontingent: 'urlaub',
+      });
+    });
+
+    it('über dem Kontingent: „als Sonderurlaub“ nur mit Grund (G17)', async () => {
+      buero();
+      freistellungen = [ueberKontingent()];
+      const nutzer = userEvent.setup();
+      zeichne();
+      await nutzer.click(await screen.findByLabelText(/Als Sonderurlaub bestätigen/));
+      await nutzer.click(screen.getByRole('button', { name: 'Bestätigen' }));
+      expect(await screen.findByText(/Bitte begründen, warum die Tage über dem Kontingent/)).toBeInTheDocument();
+      expect(freistellungEntscheiden).not.toHaveBeenCalled();
+      await nutzer.type(screen.getByLabelText(/^Grund für die Tage darüber/), 'Beisetzung im Ausland');
+      await nutzer.click(screen.getByRole('button', { name: 'Bestätigen' }));
+      await waitFor(() => expect(freistellungEntscheiden).toHaveBeenCalledTimes(1));
+      expect(freistellungEntscheiden.mock.calls[0][0]).toMatchObject({
+        ueberKontingent: 'sonderurlaub', ueberGrund: 'Beisetzung im Ausland',
+      });
+    });
+
+    it('Gegenprobe: im Kontingent keine Wahl, und es geht wie bisher (G17)', async () => {
+      buero();
+      freistellungen = [frei({ art: 'dienstverhinderung', anlass: 'hochzeit', ereignisDatum: '2026-11-13' })];
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText('Sonderurlaub bestätigen');
+      expect(screen.queryByText(/über dem Kontingent/)).not.toBeInTheDocument();
+      await nutzer.click(await screen.findByRole('button', { name: 'Bestätigen' }));
+      await waitFor(() => expect(freistellungEntscheiden).toHaveBeenCalledTimes(1));
+      expect(freistellungEntscheiden.mock.calls[0][0]).toMatchObject({ ueberKontingent: null });
+    });
+
+    it('„als Urlaub“ nur, wer über Urlaub entscheidet (G17)', async () => {
+      buero();
+      genehmiger = ['gf'];
+      freistellungen = [ueberKontingent()];
+      zeichne();
+      expect(await screen.findByLabelText(/Tage darüber als Urlaub buchen/)).toBeDisabled();
+      expect(screen.getByText('Nur, wer über Urlaub entscheidet.')).toBeInTheDocument();
+      expect(screen.getByLabelText(/Als Sonderurlaub bestätigen/)).not.toBeDisabled();
+    });
+
+    it('bestätigt mit Urlaub: der Vermerk steht da, zurücknehmen nur, wer über Urlaub entscheidet (G17)', async () => {
+      buero();
+      genehmiger = ['gf'];
+      laufendeFrei = [frei({
+        id: 'f9', art: 'dienstverhinderung', anlass: 'tod_eltern', ereignisDatum: '2026-11-09', status: 'Bestätigt',
+        ueberKontingent: 'urlaub', ueberTage: 1, ueberUrlaubId: 'v9',
+      })];
+      zeichne();
+      expect(await screen.findByText('1 Tag über dem Kontingent als Urlaub gebucht')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Zurücknehmen' })).not.toBeInTheDocument();
+      expect(screen.getByText(/Zurücknehmen kann, wer über Urlaub entscheidet/)).toBeInTheDocument();
+    });
+
+    it('Gegenprobe: ohne Urlaub darüber nimmt das Büro wie bisher zurück (G17)', async () => {
+      buero();
+      genehmiger = ['gf'];
+      laufendeFrei = [frei({
+        id: 'f9', art: 'dienstverhinderung', anlass: 'tod_eltern', ereignisDatum: '2026-11-09', status: 'Bestätigt',
+        ueberKontingent: 'sonderurlaub', ueberTage: 1, ueberGrund: 'Beisetzung im Ausland',
+      })];
+      zeichne();
+      expect(await screen.findByText('1 Tag über dem Kontingent als Sonderurlaub bestätigt — Beisetzung im Ausland')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Zurücknehmen' })).toBeInTheDocument();
+    });
+
+    /*
+      SELBST PRÜFEN (Arbeitsauftrag Runde 3): unbezahlter Urlaub ab 14
+      Kalendertagen mit Kürzungsvorschlag, Zurücknehmen nimmt die Kürzung weg.
+      Dass die Datenbank die Kürzung mit dem Storno entfernt, prüft
+      `tests/supabase/freistellungen.test.ts`; hier die Grenze und der Weg.
+    */
+    it('Kürzungsvorschlag ab 14 Kalendertagen — bei 13 keiner (Selbst prüfen)', async () => {
+      rolle = { ...rolle, uid: 'gf', name: 'Chefin', role: 'Geschäftsführung', docId: 'gf' };
+      belegschaft = [monteur, { ...monteur, uid: 'gf', id: 'gf', name: 'Chefin', role: 'Geschäftsführung' }];
+      freistellungen = [
+        frei({ id: 'f14', art: 'unbezahlt', von: '2027-03-01', bis: '2027-03-14' }),
+        frei({ id: 'f13', art: 'unbezahlt', von: '2027-04-05', bis: '2027-04-17' }),
+      ];
+      zeichne();
+      // 25 × 14 ÷ 365 = 0,96
+      expect(await screen.findByText(/von 14 Tagen verringert sich der Jahresanspruch um 0,96 Tage/)).toBeInTheDocument();
+      expect(screen.queryByText(/von 13 Tagen verringert sich/)).not.toBeInTheDocument();
+      expect(screen.getAllByText(/Kalendertage/).some((e) => /13 Kalendertage/.test(e.textContent ?? ''))).toBe(true);
+    });
+
+    it('Zurücknehmen nennt die Kürzung und schickt den Storno mit Grund (Selbst prüfen)', async () => {
+      rolle = { ...rolle, uid: 'gf', name: 'Chefin', role: 'Geschäftsführung', docId: 'gf' };
+      belegschaft = [monteur, { ...monteur, uid: 'gf', id: 'gf', name: 'Chefin', role: 'Geschäftsführung' }];
+      laufendeFrei = [frei({ id: 'f7', art: 'unbezahlt', status: 'Bestätigt', von: '2027-03-01', bis: '2027-05-31' })];
+      const nutzer = userEvent.setup();
+      zeichne();
+      await nutzer.click(await screen.findByRole('button', { name: 'Zurücknehmen' }));
+      const dialog = await screen.findByRole('dialog');
+      expect(dialog).toHaveTextContent(/eine Kürzung des Anspruchs mit ihnen/);
+      await nutzer.type(within(dialog).getByRole('textbox', { name: /Grund/ }), 'Doch nicht');
+      await nutzer.click(within(dialog).getByRole('button', { name: 'Zurücknehmen' }));
+      await waitFor(() => expect(freistellungEntscheiden).toHaveBeenCalledTimes(1));
+      expect(freistellungEntscheiden.mock.calls[0][0]).toEqual({ id: 'f7', entscheidung: 'Storniert', grund: 'Doch nicht' });
     });
 
     it('abgewählt geht die Kürzung nicht mit', async () => {

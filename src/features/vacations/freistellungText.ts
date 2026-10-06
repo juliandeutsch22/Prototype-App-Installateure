@@ -31,3 +31,15 @@ export function nachweisVermerk(f: Pick<Freistellung, 'nachweisGeprueftVonName' 
   return `Nachweis geprüft von ${f.nachweisGeprueftVonName}${am}`;
 }
 
+/**
+ * Was mit den Tagen über dem Kontingent geschah (Runde 3, G17) — für die
+ * eigene Liste und für die Bestätigenden.
+ */
+export function ueberVermerk(f: Pick<Freistellung, 'ueberKontingent' | 'ueberTage' | 'ueberGrund'>): string | null {
+  if (!f.ueberKontingent || !f.ueberTage) return null;
+  const n = Number(f.ueberTage);
+  const tage = `${n} ${n === 1 ? 'Tag' : 'Tage'} über dem Kontingent`;
+  return f.ueberKontingent === 'urlaub'
+    ? `${tage} als Urlaub gebucht`
+    : `${tage} als Sonderurlaub bestätigt${f.ueberGrund ? ` — ${f.ueberGrund}` : ''}`;
+}
