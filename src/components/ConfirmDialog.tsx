@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import Button from './Button';
 import Hinweiszeile from './Hinweiszeile';
-import { useFokusFalle } from './fokusFalle';
+import { istOben, useFokusFalle } from './fokusFalle';
 import { ImFenster } from './imFenster';
 import { grundAus } from '@/lib/fehlerGrund';
 
@@ -66,7 +66,7 @@ export default function ConfirmDialog({
   */
   useEffect(() => {
     if (!open || busy) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onCancel();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && istOben(dialog) && onCancel();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, busy, onCancel]);

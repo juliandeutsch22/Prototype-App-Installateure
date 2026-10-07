@@ -702,7 +702,7 @@ textarea {
     (docs/ui-umbau/entscheidungen.md, E7). Die neuen Bausteine in
     `src/styles/lot.css` kommen ohne sie aus.
   */
-  .seitenkopf { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .seitenkopf { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.25rem 1rem; flex-wrap: wrap; }
   .seitenkopf h1 { font-size: 1.375rem; line-height: 1.75rem; font-weight: 600; color: var(--ink-deep); }
   @media (min-width: 760px) { .seitenkopf h1 { font-size: 1.625rem; line-height: 2rem; } }
   .seitenkopf-ort { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); margin-bottom: 0.125rem; }
@@ -829,10 +829,6 @@ textarea {
   @media (min-width: 1200px) {
     .start-breit .start-status-vorn { display: none; }
     .start-breit .start-status-rechts { display: inline-flex; }
-  }
-  /* Kennzahlen in der schmalen rechten Spalte: immer zwei je Reihe. */
-  @media (min-width: 1200px) {
-    .kennzahlen-raster .kennzahl { flex-basis: 40%; }
   }
   /* Keine Silbentrennung in Namen, Nummern und Beträgen (U1, U9). */
   .kein-trennen { hyphens: manual; -webkit-hyphens: manual; }

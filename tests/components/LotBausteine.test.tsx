@@ -5,6 +5,7 @@
  * Lot-Verlauf, Segmente und die Wahl hell/dunkel.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { useState } from 'react';
 import { render, screen, within, act, renderHook } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -310,5 +311,29 @@ describe('Hell oder dunkel', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
     act(() => result.current[1]('hell'));
     expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+  });
+});
+
+describe('Escape bei Dialog im Seitenfenster', () => {
+  it('schliesst nur den Dialog obenauf, das Fenster darunter bleibt', async () => {
+    const fensterZu = vi.fn();
+    const dialogZu = vi.fn();
+    function Beides() {
+      const [dialog, setDialog] = useState(false);
+      return (
+        <BottomSheet open onClose={fensterZu} label="Artikel" auchBreit titel="Artikel">
+          <button type="button" onClick={() => setDialog(true)}>Löschen …</button>
+          <ConfirmDialog open={dialog} title="Wirklich löschen?" onConfirm={() => undefined} onCancel={() => { dialogZu(); setDialog(false); }} />
+        </BottomSheet>
+      );
+    }
+    render(<Beides />);
+    await userEvent.click(screen.getByRole('button', { name: 'Löschen …' }));
+    await userEvent.keyboard('{Escape}');
+    expect(dialogZu).toHaveBeenCalledTimes(1);
+    expect(fensterZu).not.toHaveBeenCalled();
+    // Gegenprobe: ohne Dialog schliesst Escape das Fenster.
+    await userEvent.keyboard('{Escape}');
+    expect(fensterZu).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { useFokusFalle } from './fokusFalle';
+import { istOben, useFokusFalle } from './fokusFalle';
 import { AB_TABLET } from '@/lib/breiten';
 import { ImFenster } from './imFenster';
 
@@ -67,7 +67,7 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
   useEffect(() => {
     if (!open) return;
     setDy(0);
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && schliessen();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && istOben(blattRef) && schliessen();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, schliessen]);
