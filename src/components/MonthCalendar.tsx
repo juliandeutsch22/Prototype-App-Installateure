@@ -65,18 +65,18 @@ export default function MonthCalendar({
           type="button"
           onClick={() => onShiftMonth(-1)}
           aria-label="Vorheriger Monat"
-          className="min-h-touch min-w-touch rounded text-lg font-bold text-ink-muted hover:bg-surface-2"
+          className="min-h-touch min-w-touch rounded text-lg font-semibold text-ink-muted hover:bg-surface-2"
         >
           ‹
         </button>
-        <span className="font-bold text-ink">
+        <span className="font-semibold text-ink">
           {MONTHS[month]} {year}
         </span>
         <button
           type="button"
           onClick={() => onShiftMonth(1)}
           aria-label="Nächster Monat"
-          className="min-h-touch min-w-touch rounded text-lg font-bold text-ink-muted hover:bg-surface-2"
+          className="min-h-touch min-w-touch rounded text-lg font-semibold text-ink-muted hover:bg-surface-2"
         >
           ›
         </button>
@@ -86,7 +86,7 @@ export default function MonthCalendar({
         {DOW.map((d, i) => (
           <div
             key={d}
-            className={`py-2 text-center text-xs font-bold ${i > 4 ? 'text-ink-muted/70' : 'text-ink-muted'}`}
+            className={`py-2 text-center text-xs font-semibold ${i > 4 ? 'text-ink-muted/70' : 'text-ink-muted'}`}
           >
             {d}
           </div>
@@ -171,7 +171,7 @@ export default function MonthCalendar({
                   isSelected
                     ? 'bg-accent-deep text-white'
                     : isToday
-                      ? 'bg-info-bg font-bold text-info'
+                      ? 'bg-info-bg font-semibold text-info'
                       : // Vergangene Tage ohne Planung treten zurück; wo etwas
                         // geplant war, bleibt der Tag lesbar.
                         past && count === 0

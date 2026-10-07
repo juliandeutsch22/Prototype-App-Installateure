@@ -185,7 +185,7 @@ export default function RowMenu({ about, items }: RowMenuProps) {
                   zurueckZumKnopf();
                   i.onSelect();
                 }}
-                className={`block min-h-touch w-full whitespace-nowrap px-4 text-left text-sm font-medium hover:bg-surface-2 ${
+                className={`block min-h-touch w-full whitespace-nowrap px-4 text-left text-sm font-normal hover:bg-surface-2 ${
                   i.danger ? 'text-danger' : 'text-ink'
                 }`}
               >

@@ -36,3 +36,33 @@ mal drei Breiten wären über tausend Bilder im Repository.
 umgesetzt werden; er dient zur Orientierung. Massgeblich sind die Linie
 (Grundwerte, Bausteine, Regeln) und das Protokoll — angepasst an das, was die
 App tatsächlich kann, ohne dass eine Funktion verloren geht.
+
+**E7 — Was aus „Fassung 3“ bleibt.** Die Klassennamen der bestehenden
+Bausteine (`zeile`, `karte-kopf`, `stand-*`, `kennzahl` …) bleiben und tragen
+jetzt die Lot-Werte; so erreicht die Linie jede Seite, die sie schon benutzt.
+Positionsselektoren sind daraus entfernt, wo es ohne Nebenwirkung ging (die
+Kennzahlen, die Startseite); `:first-child`/`:last-child` an Zeilen, Segmenten
+und Tabellenzeilen bleiben, weil jeder Ersatz Trennlinien doppelt oder gar
+nicht zöge. Neue Bausteine stehen in `src/styles/lot.css` und kommen ohne sie
+aus.
+
+**E8 — Kein weisses Kopfband.** Der Entwurf setzt den Seitenkopf als weisses
+Band über die ganze Breite. In der App stehen auf mehreren Seiten Reiter
+(Einstellungen, Planung, Mein Einsatzplan) oder Hinweise über dem Kopf; ein
+Band mit negativen Rändern läge dann über ihnen. Der Seitenkopf trägt deshalb
+die Schrift und die Ordnung des Entwurfs (Ortszeile, Titel, ⋯, Hauptaktion,
+„Hilfe zu dieser Seite“), aber keinen eigenen Grund.
+
+**E9 — Breiten.** Tailwinds `md` und `lg` sind auf die Grenzen der Linie
+gesetzt (760 und 1.200 px, `src/lib/breiten.ts`). Zwischen 1.024 und 1.199 px
+gilt damit die Tablet-Anordnung, wie im Entwurf.
+
+**E10 — Hausfarben im dunklen Modus.** Der dunkle Satz setzt die vier
+Mandantenfarben mit `!important`: `applyBranding` schreibt sie als
+Inline-Stil, und eine für Weiss gewählte Hausfarbe wäre auf dunklem Grund
+unlesbar. Im dunklen Modus gelten die Töne der Linie.
+
+**E11 — Belegfarben.** Belege und Exporte bleiben prüfsummengleich (0.1). Ihre
+Farben in `src/lib/belegLayout.ts` waren bis zum Umbau dieselben wie die der
+Oberfläche; sie bleiben beim Stand vor Lot, die Prüfung vergleicht sie jetzt
+mit diesem festen Stand.

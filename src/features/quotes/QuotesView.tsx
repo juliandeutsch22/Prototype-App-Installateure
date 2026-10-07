@@ -826,7 +826,7 @@ export default function QuotesView() {
             der Baustelle — und der ist oft eine Liste. Dasselbe Feld wie dort.
           */}
           <div className="mt-4 flex flex-col gap-1">
-            <label htmlFor="anqnotes" className="text-sm font-medium text-ink">
+            <label htmlFor="anqnotes" className="text-sm font-normal text-ink">
               Anmerkungen
             </label>
             <textarea

@@ -125,7 +125,7 @@ export default function ModulesView() {
             return (
               <li key={m.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
                 <div className="min-w-[12rem] flex-1">
-                  <p className="flex flex-wrap items-center gap-2 font-medium text-ink">
+                  <p className="flex flex-wrap items-center gap-2 font-normal text-ink">
                     {m.name}
                     {/* Eine Aufforderung, keine Eigenschaft: ohne das andere
                         Modul lässt sich dieses gar nicht einschalten. */}

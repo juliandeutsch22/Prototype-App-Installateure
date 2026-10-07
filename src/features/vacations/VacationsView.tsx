@@ -464,7 +464,7 @@ export default function VacationsView() {
       .reduce((s, p) => s + p.tage, 0);
     const danach = rest - imJahr;
     return (
-      <span className={`mt-1 block text-xs ${danach < 0 ? 'font-medium text-warning' : 'text-ink-muted'}`}>
+      <span className={`mt-1 block text-xs ${danach < 0 ? 'font-normal text-warning' : 'text-ink-muted'}`}>
         Resturlaub: {tageText(rest)} — nach Genehmigung {tageText(danach)}
         {danach < 0 ? ' (reicht nicht)' : ''}
       </span>
@@ -850,7 +850,7 @@ export default function VacationsView() {
       );
     }
     return (
-      <span className="mt-1 block text-xs font-medium text-warning" role="alert">
+      <span className="mt-1 block text-xs font-normal text-warning" role="alert">
         {jetzt <= 0
           ? `Kein Zeitguthaben (${vorzeichen(jetzt)} Std) — der Zeitausgleich ginge ins Minus.`
           : `Das Zeitguthaben (${vorzeichen(jetzt)} Std) reicht nicht — danach stünden ${vorzeichen(danach)} Std.`}{' '}
@@ -901,7 +901,7 @@ export default function VacationsView() {
                     {istZa(v) && saldoMin !== null && (
                       <span
                         className={`mt-1 block text-xs ${
-                          saldoMin - kostet < 0 ? 'font-medium text-warning' : 'text-ink-muted'
+                          saldoMin - kostet < 0 ? 'font-normal text-warning' : 'text-ink-muted'
                         }`}
                       >
                         Zeitguthaben beim Antrag: {vorzeichen(saldoMin)} Std
@@ -974,7 +974,7 @@ export default function VacationsView() {
               className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm transition sm:px-4 ${
                 reiter === r.key
                   ? 'border-b-brand-fixed font-semibold text-ink-deep'
-                  : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
+                  : 'border-b-transparent font-normal text-ink-muted hover:text-ink'
               }`}
             >
               {r.label}

@@ -30,15 +30,11 @@ function token(name: string): string {
   return treffer[1];
 }
 
-/** Sättigung in Prozent, wie sie ein Farbwähler anzeigt. */
-function saettigung(hex: string): number {
+/** Buntheit in Prozent: Abstand zwischen hellstem und dunkelstem Kanal. */
+function buntheit(hex: string): number {
   const n = parseInt(hex.slice(1), 16);
-  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => v / 255);
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const l = (max + min) / 2;
-  if (max === min) return 0;
-  return Math.round(((max - min) / (1 - Math.abs(2 * l - 1))) * 100);
+  const k = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  return Math.round(((Math.max(...k) - Math.min(...k)) / 255) * 100);
 }
 
 /** Helligkeit in Prozent. */
@@ -49,17 +45,19 @@ function helligkeit(hex: string): number {
 }
 
 describe('Die Warnflächen gehören zur Familie', () => {
-  it('sind nicht gesättigter als Türkis und Grün', () => {
+  it('sind blass und nicht bunt', () => {
     /*
-      DIE OBERGRENZE IST NICHT GEGRIFFEN, sondern abgelesen: `info-bg` und
-      `success-bg` sind die beiden farbigen Flächen, die niemand als
-      aufdringlich empfunden hat. Wer Gelb oder Rot darüber hebt, holt sich
-      genau den gemeldeten Zustand zurück.
+      SEIT DER LINIE „LOT“ GEMESSEN ALS BUNTHEIT, NICHT ALS SÄTTIGUNG. Die
+      Flächen des Entwurfs (Bernstein #FAF1E4) sind fast weiss; die
+      HSL-Sättigung bläht gerade solche Töne auf (68 % für eine Fläche, die
+      man kaum als farbig sieht). Die Buntheit — der Abstand zwischen
+      hellstem und dunkelstem Farbkanal — misst, was das Auge sieht. Das
+      Tailwind-Gelb, um das es hier ging (#fef3c7), lag bei 22 %.
     */
-    const grenze = Math.max(saettigung(token('--info-bg')), saettigung(token('--success-bg'))) + 5;
-
-    expect(saettigung(token('--warning-bg'))).toBeLessThanOrEqual(grenze);
-    expect(saettigung(token('--danger-bg'))).toBeLessThanOrEqual(grenze);
+    for (const name of ['--warning-bg', '--danger-bg', '--info-bg', '--success-bg'] as const) {
+      expect(buntheit(token(name)), name).toBeLessThanOrEqual(10);
+    }
+    expect(buntheit('#fef3c7')).toBeGreaterThan(10);
   });
 
   it('und Rot wiegt nicht leichter als Gelb', () => {

@@ -1226,7 +1226,7 @@ export default function WorkSheetView() {
                     </span>
                     <span className="flex shrink-0 items-center gap-2">
                       {z.helfer && <Marke>Helfer</Marke>}
-                      <span className="font-medium text-ink">{fmtMin(z.minuten)}</span>
+                      <span className="font-normal text-ink">{fmtMin(z.minuten)}</span>
                     </span>
                     {/*
                       WEGNEHMEN NUR, WAS HIER EINGETRAGEN WURDE. Zeilen aus

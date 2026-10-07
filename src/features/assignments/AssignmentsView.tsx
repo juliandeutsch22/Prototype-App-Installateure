@@ -986,17 +986,17 @@ export default function AssignmentsView() {
                         <div className="space-y-2 border-t border-line px-4 py-2 text-sm">
                           {termineDort.length > 0 && (
                             <p className="text-ink">
-                              <span className="font-medium">Am selben Tag:</span> {termineDort.join('; ')}
+                              <span className="font-normal">Am selben Tag:</span> {termineDort.join('; ')}
                             </p>
                           )}
                           {aufgabe && (
                             <p className="whitespace-pre-line text-ink">
-                              <span className="font-medium">Aufgabe:</span> {aufgabe}
+                              <span className="font-normal">Aufgabe:</span> {aufgabe}
                             </p>
                           )}
                           {material.length > 0 && (
                             <div>
-                              <p className="font-medium text-ink">Material:</p>
+                              <p className="font-normal text-ink">Material:</p>
                               <ul className="mt-1 space-y-0.5 text-ink">
                                 {material.map((m) => (
                                   <li key={m.id} className="flex flex-wrap gap-x-2">

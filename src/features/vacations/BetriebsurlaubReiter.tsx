@@ -213,7 +213,7 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
           <div>
             <button
               type="button"
-              className="flex min-h-touch items-center gap-2 text-sm font-medium text-brand"
+              className="flex min-h-touch items-center gap-2 text-sm font-normal text-brand"
               aria-expanded={ausnahmenOffen}
               aria-controls="bu-ausnahmen"
               onClick={() => setAusnahmenOffen((o) => !o)}

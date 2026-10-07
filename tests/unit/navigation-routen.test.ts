@@ -102,6 +102,9 @@ const OHNE_REITER: Record<string, string> = {
   // Einsatzplan heraus geöffnet. Ein Reiter „neuer Schein" ohne gewählten Tag
   // wäre sinnlos. Rollen und Modul stehen dort ausgeschrieben.
   '/worksheet': 'wird aus Liste und Einsatzplan heraus geöffnet',
+  // Die Musterseite der Linie „Lot“ (Protokoll 4.2): Werkzeug für die
+  // Abnahme, kein Menüpunkt. Sie steht hinter `RequireRole` (Administrator).
+  '/_muster': 'nur über die Adresse, hinter RequireRole Administrator',
 };
 
 /** Die Rollen, die einen Navigationseintrag sehen duerfen. */
@@ -149,6 +152,14 @@ describe('Navigation und Routen sagen dasselbe', () => {
       (p) => !bewacht(p) && !(p in OHNE_REITER) && !umgeleitet.includes(p),
     );
     expect(ungeschuetzt).toEqual([]);
+  });
+
+  it('die Musterseite steht nur dem Administrator offen', () => {
+    // Ohne Wächter wäre sie für jede Rolle erreichbar — sie ist aber nur ein
+    // Werkzeug für die Abnahme (Protokoll 4.2). Den globalen Admin lässt
+    // `AppInhalt` eigens durch, weil er keine Hülle mit Routen hat.
+    expect(APP).toMatch(/path="\/_muster" element=\{<RequireRole roles=\{\['Administrator'\]\}>/);
+    expect(APP).toMatch(/plattformAdmin && !einblick && ort\.pathname === '\/_muster'/);
   });
 
   it('haelt die alten Adressen am Leben', () => {

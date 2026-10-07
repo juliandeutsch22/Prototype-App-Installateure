@@ -195,7 +195,7 @@ export default function BetriebVerwalten({
 
       {deaktiviert && (
         <div className="space-y-2 border-t border-line pt-3">
-          <p className="text-sm font-medium text-ink">Übergabe</p>
+          <p className="text-sm font-normal text-ink">Übergabe</p>
           <p className="text-sm text-ink-muted">
             Alle Tabellen als ein Stand und ein Verzeichnis aller Scheinfotos und Baustellendokumente,
             je mit Link, eine Woche gültig — für den Betrieb vor der Löschung. Belege als PDF erzeugt
@@ -230,7 +230,7 @@ export default function BetriebVerwalten({
 
       {deaktiviert && (
         <div className="space-y-2 border-t border-line pt-3">
-          <p className="text-sm font-medium text-ink">Löschen</p>
+          <p className="text-sm font-normal text-ink">Löschen</p>
           {!geplant ? (
             <>
               <p className="text-sm text-ink-muted">
@@ -329,7 +329,7 @@ export default function BetriebVerwalten({
 
       {protokoll && protokoll.length > 0 && (
         <div className="border-t border-line pt-3">
-          <p className="text-sm font-medium text-ink">Protokoll</p>
+          <p className="text-sm font-normal text-ink">Protokoll</p>
           <ul className="mt-1 space-y-1 text-sm text-ink-muted">
             {protokoll.map((p, i) => (
               <li key={`${p.am}-${i}`}>

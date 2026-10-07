@@ -65,9 +65,9 @@ export default function RechnungDetail({
           <table className="w-full text-left">
             <thead>
               <tr className="text-xs text-ink-muted">
-                <th className="py-1 font-medium">Bezeichnung</th>
-                <th className="py-1 text-right font-medium">Menge</th>
-                <th className="py-1 text-right font-medium">Netto</th>
+                <th className="py-1 font-normal">Bezeichnung</th>
+                <th className="py-1 text-right font-normal">Menge</th>
+                <th className="py-1 text-right font-normal">Netto</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">

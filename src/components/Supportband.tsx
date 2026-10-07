@@ -83,7 +83,7 @@ export default function Supportband() {
         // „Er kann auch ändern" ist eine andere Nachricht als „er sieht zu"
         // und bekommt deshalb eine andere Farbe. Eine Warnfarbe für beides
         // hiesse: die eine stumpft die andere ab.
-        schreibt ? 'bg-danger-bg font-bold text-danger' : 'bg-warning-bg font-medium text-warning',
+        schreibt ? 'bg-danger-bg font-semibold text-danger' : 'bg-warning-bg font-normal text-warning',
       ].join(' ')}
     >
       {/*

@@ -293,7 +293,7 @@ export default function SupportzugangView() {
                       <Marke>ansehen</Marke>
                     )}
                     {laeuft ? <Marke>läuft</Marke> : null}
-                    <span className="font-medium text-ink">{f.grund}</span>
+                    <span className="font-normal text-ink">{f.grund}</span>
                   </div>
                   <p className="mt-1 text-ink-muted">
                     {f.createdAt ? `${zeit(f.createdAt)} · ` : ''}

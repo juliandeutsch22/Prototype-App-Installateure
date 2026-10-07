@@ -175,7 +175,7 @@ export default function MyProjectsView() {
                 <p className="section-label">Ansprechpartner</p>
                 {p.contactName || p.contactPhone ? (
                   <div className="mt-1">
-                    {p.contactName && <p className="font-medium text-ink">{p.contactName}</p>}
+                    {p.contactName && <p className="font-normal text-ink">{p.contactName}</p>}
                     <TelefonLink
                       nummer={p.contactPhone}
                       name={p.contactName}

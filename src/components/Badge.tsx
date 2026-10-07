@@ -44,16 +44,19 @@ import type { Role } from '@/types';
 /**
  * Die Werte, die ein `Zustand` annehmen kann.
  *
- * ABSICHTLICH FÜNF UND NICHT ACHT. Jeder trägt eine Bedeutung, die sich in
- * einem Satz sagen lässt — das war bei `info` neben `brand` neben `violet`
- * nicht mehr der Fall, und deshalb war die Wahl zwischen ihnen Geschmack.
+ * DIE FÜNF ZUSTÄNDE DER LINIE „LOT“ (Regel 5): offen (leerer Ring), läuft
+ * (Petrol), erledigt (grau, tritt zurück), Achtung (Bernstein), Fehler (Rot).
+ * `gut` ist dabei „läuft, ist in Ordnung“ und sieht aus wie `laeuft`; was
+ * fertig ist und nicht mehr zählt, ist `ruht` — das „erledigt“ des Entwurfs.
  */
 export type Stand =
-  /** Läuft, ist in Ordnung, ist erledigt. */
+  /** Noch nicht begonnen, wartet auf jemanden. */
+  | 'offen'
+  /** Läuft, ist in Ordnung. */
   | 'gut'
   /** In Arbeit, unterwegs, angenommen — noch nicht fertig, aber auf Kurs. */
   | 'laeuft'
-  /** Ruht, ist abgeschlossen, zählt nicht mehr mit. */
+  /** Erledigt, abgeschlossen, zählt nicht mehr mit. */
   | 'ruht'
   /** Sollte jemand ansehen. */
   | 'achtung'
@@ -65,6 +68,7 @@ export type Stand =
  * Die Namen der Linie sind kürzer, die Bedeutung ist dieselbe.
  */
 const standKlasse: Record<Stand, string> = {
+  offen: 'stand-offen',
   gut: 'stand-ok',
   laeuft: 'stand-info',
   ruht: 'stand-leise',
@@ -195,11 +199,11 @@ export function Zaehler({
   if (!Number.isFinite(anzahl) || anzahl < 1) return null;
 
   const ton = auf === 'dunkel'
-    ? 'bg-accent-bright text-ink-deep'
-    : 'bg-accent-deep text-white';
+    ? 'bg-white text-navi'
+    : 'bg-brand-fixed text-white';
   return (
     <span
-      className={`inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-pill px-1.5 py-0.5 text-xs font-bold leading-none ${ton}`}
+      className={`inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-pill px-1.5 py-0.5 text-xs font-semibold leading-none ${ton}`}
     >
       <span aria-hidden="true">{anzahl > 99 ? '99+' : anzahl}</span>
       {/* Ein Komma davor, eigens: sonst las der Vorleser „Anforderungen1 offene …“ (G32). */}

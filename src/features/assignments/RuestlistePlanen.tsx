@@ -163,7 +163,7 @@ export default function RuestlistePlanen({
                     <p className="basis-full text-sm text-danger">{mengeFehler(p.menge, p.einheit ?? artikel?.unit)}</p>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-center gap-2 font-medium text-ink">
+                    <p className="flex flex-wrap items-center gap-2 font-normal text-ink">
                       {p.name}
                       {p.einheit && <span className="text-sm text-ink-muted">{p.einheit}</span>}
                       {!p.materialId && <Marke>{FREI}</Marke>}

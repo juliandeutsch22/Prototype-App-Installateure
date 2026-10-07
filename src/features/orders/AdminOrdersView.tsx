@@ -347,7 +347,7 @@ export default function AdminOrdersView() {
             className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 sm:px-4 text-sm transition ${
               tab === t.key
                 ? 'border-b-brand-fixed font-semibold text-ink-deep'
-                : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
+                : 'border-b-transparent font-normal text-ink-muted hover:text-ink'
             }`}
           >
             {t.label}
@@ -456,7 +456,7 @@ export default function AdminOrdersView() {
                             */}
                             {o.note && (
                               <span className="mt-1 block text-ink">
-                                <span className="font-medium">Notiz:</span> {o.note}
+                                <span className="font-normal">Notiz:</span> {o.note}
                               </span>
                             )}
                           </>

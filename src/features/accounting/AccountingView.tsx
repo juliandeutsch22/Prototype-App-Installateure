@@ -860,7 +860,7 @@ export default function AccountingView() {
                           Titel; die Daten selbst stehen in normaler Schrift.
                         */
                         <details className="group mt-4 rounded border border-line bg-surface-2 text-sm">
-                          <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-medium text-warning [&::-webkit-details-marker]:hidden">
+                          <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-normal text-warning [&::-webkit-details-marker]:hidden">
                             <span>
                               {completeness.missingCount === 1
                                 ? '1 Arbeitstag ohne Buchung'
@@ -1014,7 +1014,7 @@ export default function AccountingView() {
                         return (
                           <div className="mt-4">
                             <details className="group">
-                              <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm font-medium text-ink [&::-webkit-details-marker]:hidden">
+                              <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm font-normal text-ink [&::-webkit-details-marker]:hidden">
                                 <span>
                                   Tagesnachweis ·{' '}
                                   <span className="whitespace-nowrap">
@@ -1041,12 +1041,12 @@ export default function AccountingView() {
                               <table className="mt-1 hidden w-full text-sm sm:table">
                               <thead>
                                 <tr className="border-b border-line text-left text-ink-muted">
-                                  <th className="py-2 pr-3 font-medium">Tag</th>
-                                  <th className="py-2 pr-3 font-medium">Status</th>
-                                  <th className="py-2 pr-3 font-medium">Zeit</th>
-                                  <th className="py-2 pr-3 font-medium">Baustelle</th>
-                                  <th className="py-2 pr-3 text-right font-medium">Stunden</th>
-                                  <th className="py-2 text-right font-medium">
+                                  <th className="py-2 pr-3 font-normal">Tag</th>
+                                  <th className="py-2 pr-3 font-normal">Status</th>
+                                  <th className="py-2 pr-3 font-normal">Zeit</th>
+                                  <th className="py-2 pr-3 font-normal">Baustelle</th>
+                                  <th className="py-2 pr-3 text-right font-normal">Stunden</th>
+                                  <th className="py-2 text-right font-normal">
                                     <span className="sr-only">Aktionen</span>
                                   </th>
                                 </tr>
@@ -1058,7 +1058,7 @@ export default function AccountingView() {
                                   // denselben, und React zoege die Zeilen
                                   // beim Bearbeiten durcheinander.
                                   <tr key={x.entry?.id ?? x.d} className="border-b border-line/60">
-                                    <td className="whitespace-nowrap py-2 pr-3 font-medium text-ink">
+                                    <td className="whitespace-nowrap py-2 pr-3 font-normal text-ink">
                                       {dayLabel(x.d)}
                                     </td>
                                     <td className="py-2 pr-3">
@@ -1078,7 +1078,7 @@ export default function AccountingView() {
                                       {x.zeit ?? '—'}
                                     </td>
                                     <td className="py-2 pr-3">{x.entry?.customerName ?? '—'}</td>
-                                    <td className="py-2 pr-3 text-right font-medium">
+                                    <td className="py-2 pr-3 text-right font-normal">
                                       {x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}
                                     </td>
                                     <td className="py-2">

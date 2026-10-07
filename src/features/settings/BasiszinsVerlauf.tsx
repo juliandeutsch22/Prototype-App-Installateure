@@ -59,7 +59,7 @@ export default function BasiszinsVerlauf({
 
   return (
     <div className="flex flex-col gap-3 sm:col-span-2">
-      <p className="text-sm font-medium text-ink">Basiszinssatz je Halbjahr</p>
+      <p className="text-sm font-normal text-ink">Basiszinssatz je Halbjahr</p>
       {geltend.length === 0 ? (
         <p className="text-sm text-ink-muted">Noch keiner eingetragen — Mahnungen an Unternehmer tragen dann keine Zinsen.</p>
       ) : (

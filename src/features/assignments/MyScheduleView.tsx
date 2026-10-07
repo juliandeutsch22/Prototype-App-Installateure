@@ -494,7 +494,7 @@ export default function MyScheduleView() {
                           {scheineAn && (
                           <Link
                             to={`/worksheet?projekt=${encodeURIComponent(a.projectNumber)}&datum=${a.date}`}
-                            className="flex min-h-touch items-center rounded border border-line px-4 py-2 font-medium text-ink"
+                            className="flex min-h-touch items-center rounded border border-line px-4 py-2 font-normal text-ink"
                           >
                             Schein schreiben
                           </Link>

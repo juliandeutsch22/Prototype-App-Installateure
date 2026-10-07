@@ -1,166 +1,162 @@
+/* Bausteine der Linie „Lot“ — vor den Tailwind-Ebenen, weil `@import` am Anfang stehen muss; ihr `@layer components` ordnet sie trotzdem richtig ein. */
+@import './styles/lot.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /*
- * Design-Tokens. Mandanten-themebar: brand/accent kommen aus
- * companies/{companyId} (applyBranding setzt sie zur Laufzeit). Alle übrigen
- * Rollen sind bewusst hochkontrastig (Sonnenlicht auf der Baustelle).
+ * GRUNDWERTE DER DESIGNLINIE „LOT“ (docs/design/senklot-designlinie-v2.html,
+ * docs/ui-umbau/protokoll.md Abschnitt 4).
  *
- * FARBWELT — SEIT DER MARKE SENKLOT: FLÄCHE STATT VERLAUF.
+ * Die alten Namen (`--bg`, `--text`, `--border` …) bleiben die Quelle, weil
+ * jede Tailwind-Klasse der App über sie liest (tailwind.config.js). Würden
+ * sie umbenannt, müsste jede Seite mit — so trägt eine Stelle die Linie in
+ * alle Ansichten. Die Lot-Namen darunter sind Verweise für die Bausteine in
+ * `src/styles/lot.css`.
  *
- * Das Zeichen kennt zwei Farben und keinen Verlauf: „Ein Verlauf datiert ein
- * Zeichen auf das Jahr, in dem er gemacht wurde" (marke/LIESMICH.md). Die
- * Oberfläche folgt jetzt derselben Regel. Vier Verläufe und die Mint-Familie
- * sind ersatzlos entfallen; die dunklen Trägerflächen sind flaches Petrol.
+ * MANDANT UND OBERFLÄCHE BLEIBEN GETRENNT. `applyBranding` setzt `--brand`,
+ * `--brand-fg`, `--accent`, `--accent-fg` aus den Firmendaten — was HANDELT
+ * (Hauptknöpfe), darf die Hausfarbe tragen. Was STRUKTUR ist (Navigation,
+ * Linien, Markierungen, Status), kommt aus den festen Tönen hier: ein Betrieb
+ * mit roter Hausfarbe soll keine roten Reitermarken bekommen, weil Rot in
+ * dieser Linie „Fehler“ heisst.
  *
- * DAS WAR KEIN REINER GESCHMACKSWECHSEL. Ein Verlauf ist nur so lesbar wie
- * seine hellste Stelle, und das war #107a8c mit 5,0:1 — genau dort, wo in
- * der Seitenleiste der Benutzername stand. Flach sind es 10,5:1 auf der
- * ganzen Fläche. Die Gruppenüberschriften in Weiß auf 60 % steigen dabei von
- * rund 3,3:1 auf 4,9:1.
+ * KEINE GRÜNE FARBE MEHR. Lot kennt fünf Zustände — offen, läuft, erledigt,
+ * Achtung, Fehler —, und „erledigt“ tritt zurück, statt sich zu melden.
+ * `--success` ist deshalb Petrol: was gelungen ist oder läuft, steht in der
+ * Farbe der Marke, nicht in einer zusätzlichen Signalfarbe.
  *
- * DIE REGEL, DIE DARAUS FOLGT: was auf der dunklen Trägerfläche zur BEDIENUNG
- * gehört, ist weiß — Beschriftung, Markierung, Trennung. Deshalb ist der
- * Strich am aktiven Eintrag der Seitenleiste weiß und nicht mehr cyan: auf
- * einer flachen Fläche schliesst Cyan an keinen Ton mehr an.
- *
- * MIT GENAU EINER AUSNAHME, und die ist keine Nachlässigkeit: der Avatar.
- * Er ist keine Bedienoberfläche, sondern ein Mensch — auf einem Tablet, an
- * dem mehrere arbeiten, ist „wer bin ich hier gerade?" eine echte Frage, und
- * ein weisser Kreis unter weisser Schrift beantwortet sie nicht. Er bleibt
- * deshalb in --accent-bright, dem einzigen hellen Ton, der übrig ist. Text
- * von Bedeutung trägt der nie und einen Zustand nie allein — auf Weiß
- * erreicht er nur 2,6:1. Was gelesen werden muss, steht in --text,
- * --text-muted, --brand oder --accent.
+ * BELEGE HABEN IHRE EIGENEN FARBEN (`src/lib/belegLayout.ts`). Sie waren bis
+ * zum Umbau dieselben wie hier; das Protokoll verlangt Belege und Exporte
+ * prüfsummengleich, also bleiben sie beim Stand vor Lot stehen.
  */
 :root {
-  /* Marke (Defaults; werden vom Mandanten-Theme überschrieben).
-   * brand  = tiefes Türkis: trägt Navigation und Primäraktionen (10,5:1 auf
-   *   Weiß).
-   * accent = abgedunkeltes Cyan für Hervorhebungen — 5,2:1 auf Weiß und in
-   *   beide Richtungen AA. Für destruktive Aktionen gibt es --danger;
-   *   „Marke" und „Achtung" bleiben unterscheidbar. */
+  color-scheme: light;
+
   --brand: #0f4552;
   --brand-fg: #ffffff;
-  --accent: #00778a;
+  --accent: #0f4552;
   --accent-fg: #ffffff;
 
-  /*
-   * FESTE FARBEN DER OBERFLÄCHE — hier greift `applyBranding` nicht hin.
-   *
-   * Die Trennung ist die Antwort auf einen roten Unterstrich unter den
-   * Reitern: der Betrieb hat `accentColor: #d51f26` in seinen Stammdaten,
-   * und solange eine Markierung aus `--accent` kam, trug sie diese Farbe —
-   * mitten in einer türkisen Oberfläche. Seitdem gilt:
-   *
-   *   --brand / --accent   MANDANT. Was HANDELT: Knöpfe, Abzeichen, Links.
-   *   die Töne hier        OBERFLÄCHE. Was STRUKTUR ist: Trägerflächen,
-   *                        Kanten, Reitermarkierung, Kästchen, Kalender.
-   *
-   * `--accent-deep` ist der einzige davon, der Text tragen darf (5,2:1 auf
-   * Weiß, Weiß darauf ebenso). `--accent-bright` ist Fläche — auf Weiß nur
-   * 2,6:1.
-   *
-   * `--brand-fixed` IST DIE FARBE DES PRODUKTS, NICHT DIE DES BETRIEBS. Sie
-   * sieht aus wie die Vorgabe von `--brand` und ist es trotzdem nicht: an
-   * `--brand` greift `applyBranding`, an diese hier nicht. Wo Senklot selbst
-   * spricht — die dunkle Trägerfläche, der Strich unter jeder Überschrift,
-   * der Balken des Telefons —, muss dieselbe Farbe stehen wie auf dem
-   * App-Zeichen, auch bei einem Betrieb mit rotem Erscheinungsbild.
-   */
-  --ink-deep: #0a2030;
+  /* Die Farbe des Produkts, nicht die des Betriebs: Statusbalken, Manifest,
+   * Markierungen. Unverändert seit der Marke Senklot. */
   --brand-fixed: #0f4552;
-  --accent-deep: #00778a;
-  --accent-bright: #12b0c6;
+  --ink-deep: #13262c;
+  /* Links und Häkchen: Petrol wie im Entwurf. */
+  --accent-deep: #0f4552;
+  /* Der helle Ton auf der dunklen Navigation (Avatar, Zähler). */
+  --accent-bright: #c6dce0;
 
-  /* Flächen & Text */
-  --bg: #eef6f8;
+  --bg: #f3f6f6;
   --surface: #ffffff;
-  --surface-2: #f1f8fa;
-  --text: #0a2030;
-  /* Nebentext dunkler als üblich: gearbeitet wird draußen, im Sommer mit
-   * Sonne auf dem Display. Über 7:1 (AAA) auf ALLEN drei Flächen:
-   * Weiß 8,46, surface-2 7,88, Grund 7,73. */
-  --text-muted: #38505f;
-  /* Platzhalter sichtbar HELLER als Eingegebenes, aber noch lesbar (4,9:1 auf
-   * Weiß). Mit dem Ton des Nebentexts sahen Beispiele wie „ATU12345678" wie
-   * ausgefüllte Werte aus (Prüflauf 24.09.2026, D4). */
-  --text-placeholder: #5f7482;
-  /* Linien tragen einen Hauch Cyan statt neutralem Grau — dadurch gehören
-   * Rahmen, Trennstriche und Flächen sichtbar zusammen. */
-  --border: #cfe3e9;
-  /* Aus `--accent-bright` (#12b0c6) abgeleitet. Hier stand #18b4c9 — ein
-   * Türkis, das es als Token nicht gab (Prüflauf 24.09.2026, C7). */
-  --border-strong: rgba(18, 176, 198, 0.34);
-  /* Der weiche Ring um ein Feld mit Fokus — derselbe Ton, schwächer. */
-  --focus-ring: rgba(18, 176, 198, 0.22);
-  /* Eine Stufe dunkler als `--surface-2`, deckend: Lade-Platzhalter, die
-   * Schiene der Budgetbalken, Hover auf schon getönter Fläche. */
-  --surface-3: #dceaef;
+  --surface-2: #f3f6f6;
+  --surface-3: #e9eeef;
+  --text: #13262c;
+  /* 5,4:1 auf Weiss, 5,0:1 auf Papier — AA für Fliesstext. */
+  --text-muted: #5a6d72;
+  /* Sichtbar heller als Eingegebenes, aber noch 4,6:1 auf Weiss. */
+  --text-placeholder: #66787d;
+  --border: #dfe7e9;
+  --border-strong: #c2d2d5;
+  /* Deckend statt halbtransparent (Protokoll 0.2). */
+  --focus-ring: #c2d2d5;
 
-  /* Semantische Zustände (Text + Fläche).
-   * „info" liegt jetzt im Türkis der Marke statt im alten Blau: die
-   * Hinweiskästen und der aktive Navigationseintrag sind dieselbe Familie,
-   * nicht zwei konkurrierende Blautöne. Kontrast 5,1:1 auf eigener Fläche. */
-  --success: #15803d;
-  --success-bg: #dcf7e6;
-  /*
-   * GELB UND ROT KAMEN UNVERÄNDERT AUS TAILWIND — und das war zu sehen.
-   *
-   * GEMESSEN, NICHT GESCHÄTZT. Jeder Strukturton dieser App liegt zwischen
-   * 187° und 194° (Türkis); selbst `success-bg` ist mit 63 % Sättigung in
-   * dieses Band gezogen, `info-bg` liegt bei 65 %. Die beiden Warnfarben
-   * standen bei 96 % und 93 % — die zwei gesättigtsten Flächen der ganzen
-   * Oberfläche, aus einer fremden Palette, mitten in einer sehr ruhigen.
-   *
-   * Dazu ein zweiter Fehler, der die Rangfolge umdrehte: das Gelb war mit
-   * L 89 % DUNKLER als das Rot mit L 94 %. Die harmlosere Farbe wog optisch
-   * schwerer als die dringende.
-   *
-   * Jetzt liegen beide Flächen bei 66 % und 68 % — im selben Band wie Türkis
-   * und Grün —, und der Text ist eine Spur tiefer. DER KONTRAST STEIGT
-   * DABEI, er sinkt nicht: 4,51 auf 4,76 beim Gelb, 5,30 auf 5,48 beim Rot.
-   * Auf Weiss tragen beide über 5:1. `tests/unit/kontrast.test.ts` hält das
-   * fest — eine Farbe, die hübscher und schlechter lesbar ist, wäre in
-   * dieser App die falsche Richtung.
-   */
-  --warning: #a55409;
-  --warning-bg: #f7f0d9;
-  --danger: #ad1a1a;
-  --danger-bg: #f8dbd8;
-  --info: #0e6d80;
-  --info-bg: #d9f2f7;
+  --success: #0f4552;
+  --success-bg: #e4eef0;
+  --warning: #94570a;
+  --warning-bg: #faf1e4;
+  --danger: #b42318;
+  --danger-bg: #f8e6e4;
+  --info: #0f4552;
+  --info-bg: #e4eef0;
 
-  /*
-   * KEINE VERLÄUFE MEHR — vier standen hier, alle sind weg.
-   *
-   * Die Regel davor lautete: Verlauf auf den grossen dunklen Trägerflächen
-   * und auf der Markenkante, Fläche überall sonst. Sie war sauber
-   * beantwortbar, und sie war trotzdem eine Regel zu viel. Seit das Zeichen
-   * steht, gilt eine einzige: FLÄCHE. Überall.
-   *
-   * Wer hier wieder einen Verlauf einführen will, muss zuerst seine hellste
-   * Stelle nachrechnen — daran ist der letzte gescheitert.
-   */
+  /* Navigation: eigener, etwas tieferer Ton als Petrol, damit der aktive
+   * Eintrag (navi-tief) und die Hauptknöpfe (Petrol) nicht verschwimmen. */
+  --navi: #0f3c47;
+  --navi-tief: #0a2f38;
+  --navi-text: #c6dce0;
+  --navi-gruppe: #8eafb5;
+  --navi-linie: #1e4c57;
 
-  /* Radius & Schatten — weiche Ecken und lange, flache Schatten mit
-   * negativer Streuung: die Kante bleibt scharf, der Schatten liegt darunter
-   * statt darum herum. */
-  /* Kleiner seit der Designlinie „Fassung 3" (26.09.2026, docs/design/
-   * linie.md § 4): mit weniger Kästen und mehr Zeilen wirkten 18 px an den
-   * Karten weich und verspielt. 12 / 10 / 8 px halten die Ecken freundlich,
-   * ohne dass die Fläche rund wirkt. */
+  /* Radien 8/12. Karten tragen keinen Schatten mehr — Linien statt Karten
+   * (Regel 1); nur was über der Seite schwebt, wirft einen. */
   --radius-sm: 0.5rem;
-  --radius: 0.625rem;
+  --radius: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-pill: 999px;
-  --shadow-sm: 0 1px 2px rgba(10, 32, 48, 0.05), 0 6px 16px -12px rgba(10, 32, 48, 0.22);
-  --shadow: 0 1px 2px rgba(10, 32, 48, 0.05), 0 10px 26px -16px rgba(10, 32, 48, 0.3);
-  --shadow-lg: 0 2px 8px rgba(10, 32, 48, 0.1), 0 24px 60px -18px rgba(10, 32, 48, 0.38);
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-lg: 0 16px 40px -24px #0f455299;
 
-  /* Akzentstreifen an Karten (Signatur des Prototyps) */
-  --accent-strip: 4px;
+  /* Lot-Namen für die Bausteine. */
+  --papier: var(--bg);
+  --flaeche: var(--surface);
+  --tinte: var(--text);
+  --grau: var(--text-muted);
+  --linie: var(--border);
+  --linie-stark: var(--border-strong);
+  --petrol: #0f4552;
+  --petrol-tief: #0a3540;
+  --petrol-hell: #e4eef0;
+  --achtung: var(--warning);
+  --achtung-hell: var(--warning-bg);
+  --fehler: var(--danger);
+  --abwesend: var(--surface-3);
+  --schatten: var(--shadow-lg);
+}
+
+/*
+ * DER DUNKLE SATZ — nur auf ausdrückliche Wahl (Protokoll 0.2), nie aus der
+ * Systemeinstellung. Gesetzt über `data-theme` am Dokument (src/lib/darstellung.ts).
+ *
+ * `!important` bei den vier Mandantenfarben, und das ist Absicht: `applyBranding`
+ * schreibt sie als Inline-Stil an das Dokument, und der schlägt jede Regel ohne
+ * `!important`. Eine Hausfarbe ist für Weiss gewählt; auf dunklem Grund wäre
+ * ein dunkelblauer Hauptknopf unsichtbar. Im dunklen Modus gelten deshalb die
+ * Töne der Linie.
+ *
+ * Nur am Bildschirm: gedruckt wird immer hell.
+ */
+@media screen {
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --brand: #236c7b !important;
+    --brand-fg: #ffffff !important;
+    --accent: #236c7b !important;
+    --accent-fg: #ffffff !important;
+    --brand-fixed: #2d8597;
+    --ink-deep: #e5eff0;
+    --accent-deep: #7cc4d2;
+    --accent-bright: #9fb9be;
+    --bg: #0c1c20;
+    --surface: #12262b;
+    --surface-2: #0f2226;
+    --surface-3: #1a3036;
+    --text: #e5eff0;
+    --text-muted: #9fb5ba;
+    --text-placeholder: #84999e;
+    --border: #22393f;
+    --border-strong: #33515a;
+    --focus-ring: #33515a;
+    --success: #7cc4d2;
+    --success-bg: #17343b;
+    --warning: #e2a54a;
+    --warning-bg: #2a2316;
+    --danger: #f07a6e;
+    --danger-bg: #3a1f1c;
+    --info: #7cc4d2;
+    --info-bg: #17343b;
+    --navi: #091619;
+    --navi-tief: #0f2328;
+    --navi-text: #9fb9be;
+    --navi-gruppe: #7f9ca2;
+    --navi-linie: #1b3238;
+    --shadow-lg: 0 16px 40px -24px #000000;
+    --petrol: #2d8597;
+    --petrol-tief: #236c7b;
+    --petrol-hell: #17343b;
+  }
 }
 
 html,
@@ -253,9 +249,15 @@ h4 {
   color: var(--ink-deep);
 }
 
+/* Zwei Stärken, 400 und 600 (Linie „Lot“): auch <b> und <strong> bleiben halbfett. */
+b,
+strong {
+  font-weight: 600;
+}
+
 /* Sichtbarer Tastatur-Fokus (Barrierearmut, Büro/Desktop) */
 :focus-visible {
-  outline: 2px solid var(--brand);
+  outline: 3px solid var(--brand-fixed);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
@@ -349,23 +351,22 @@ textarea:focus {
   }
   /* Hinweis, dass die Leiste weitergeht (U16) — kein Farbfeld, nur eine weich auslaufende Kante. */
   .reiterleiste[data-mehr-rechts] {
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
-    mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+    -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
+    mask-image: linear-gradient(to right, #000 88%, transparent);
   }
   .reiterleiste[data-mehr-links] {
-    -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 2.5rem), transparent);
-    mask-image: linear-gradient(to left, #000 calc(100% - 2.5rem), transparent);
+    -webkit-mask-image: linear-gradient(to left, #000 88%, transparent);
+    mask-image: linear-gradient(to left, #000 88%, transparent);
   }
   .reiterleiste[data-mehr-links][data-mehr-rechts] {
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent);
-    mask-image: linear-gradient(to right, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
   }
 
   .panel {
     background-color: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow);
   }
 
   /*
@@ -378,7 +379,7 @@ textarea:focus {
    * einem Betrieb mit eigener Hausfarbe die Farbe des Produkts behält.
    */
   .panel-dark {
-    background-color: var(--brand-fixed);
+    background-color: var(--navi);
     color: #ffffff;
   }
 
@@ -403,8 +404,8 @@ textarea:focus {
     flex: none;
     width: 1.25rem;
     height: 1.25rem;
-    border: 2px solid var(--border);
-    border-radius: 0.4375rem;
+    border: 2px solid var(--border-strong);
+    border-radius: 0.3125rem;
     background-color: var(--surface);
     background-position: center;
     background-repeat: no-repeat;
@@ -677,174 +678,134 @@ textarea {
  * Die ruhigen Links der Linie heissen deshalb `.link-still`.
  */
 @layer components {
-  /* ── Seitenkopf ─────────────────────────────────────────────────────── */
-  .seitenkopf { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-  .seitenkopf h1 { font-size: 1.5rem; line-height: 1.875rem; font-weight: 600; color: var(--ink-deep); letter-spacing: -0.01em; }
-  @media (min-width: 1024px) { .seitenkopf h1 { font-size: 1.875rem; line-height: 2.25rem; } }
-  .seitenkopf-strich { width: 2rem; height: 3px; border-radius: 2px; background: var(--brand-fixed); margin: 0.5rem 0 0.375rem; }
-  .seitenkopf-meta { font-size: 0.84375rem; line-height: 1.25rem; color: var(--text-muted); }
-  .seitenkopf-rechts { display: flex; gap: 0.5rem; align-items: center; flex: none; }
+  /*
+    DIE BAUSTEINE DER LINIE „LOT“, auf die die Seiten schon gebaut sind.
 
-  /* ── Karte: EINE Ebene, innen Zeilen und Abschnitte ─────────────────── */
-  .karte-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.875rem 1rem 0.625rem; }
+    Die Klassennamen sind seit „Fassung 3“ dieselben, und deshalb steht die
+    Linie hier und nicht an jeder Seite: wer `zeile`, `karte-kopf` oder
+    `stand-*` benutzt, bekommt Lot. Neue Bausteine stehen in
+    `src/styles/lot.css`.
+
+    Breiten wie im Entwurf: Handy bis 759 px, Tablet 760–1199, Schreibtisch ab
+    1200. Keine `clamp()`, keine `calc()` und keine Container-Abfragen
+    (Protokoll 0.2). Die wenigen `:first-child`/`:last-child` hier stammen aus
+    „Fassung 3“ und bleiben: sie nehmen die erste Trennlinie einer Liste weg,
+    und jeder Ersatz ohne sie zöge Linien doppelt oder gar nicht
+    (docs/ui-umbau/entscheidungen.md, E7). Die neuen Bausteine in
+    `src/styles/lot.css` kommen ohne sie aus.
+  */
+  .seitenkopf { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .seitenkopf h1 { font-size: 1.375rem; line-height: 1.75rem; font-weight: 600; color: var(--ink-deep); }
+  @media (min-width: 760px) { .seitenkopf h1 { font-size: 1.625rem; line-height: 2rem; } }
+  .seitenkopf-ort { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); margin-bottom: 0.125rem; }
+  .seitenkopf-meta { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); margin-top: 0.25rem; }
+  .seitenkopf-rechts { display: flex; gap: 0.5rem; align-items: center; flex: none; flex-wrap: wrap; }
+  .seitenkopf-hilfe { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: var(--text-muted); font-size: 0.875rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .seitenkopf-hilfe:hover { color: var(--text); }
+  .karte-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; }
   .karte-kopf h2 { font-size: 1rem; line-height: 1.375rem; font-weight: 600; color: var(--ink-deep); }
-  .anzahl { color: var(--text-muted); font-weight: 500; margin-left: 0.375rem; }
+  .anzahl { color: var(--text-muted); font-weight: 400; margin-left: 0.375rem; }
   .karte-koerper { padding: 0 1rem 1rem; }
   .karte-fuss { border-top: 1px solid var(--border); padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; }
-  .abschnitt { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem 0.5rem; border-top: 1px solid var(--border); background: var(--surface-2); }
-  .abschnitt h2, .abschnitt h3 { font-size: 0.9375rem; line-height: 1.25rem; font-weight: 600; color: var(--ink-deep); }
-  /* Die Zeile nach einem Abschnitt trägt ihren Rand, auch wenn sie die
-     erste ihrer Liste ist — sonst stösst die Tönung ohne Kante an Weiss. */
+  .abschnitt { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem 0.5rem; border-top: 1px solid var(--border); background: var(--surface); }
+  .abschnitt h2, .abschnitt h3 { font-size: 0.8125rem; line-height: 1.25rem; font-weight: 600; color: var(--text-muted); }
   .abschnitt + ul > .zeile:first-child, .abschnitt + div > ul > .zeile:first-child { border-top: 1px solid var(--border); }
-
-  /*
-   * IM GEPOLSTERTEN KARTENKÖRPER reicht ein Abschnitt trotzdem von Kante zu
-   * Kante: die Tönung ist eine Zeile der Karte, kein eingerückter Kasten.
-   * Zeilen dagegen fluchten dort mit dem übrigen Inhalt — ihr eigener
-   * Seitenrand käme sonst zu dem des Körpers hinzu, und am Telefon blieben
-   * dem Text 32 px weniger. Wer Zeilen bis an die Kante will, gibt der
-   * Karte `buendig` (siehe Card.tsx).
-   */
   .karte-koerper > .abschnitt { margin-inline: -1rem; }
-  /* In der bündigen Karte trägt der Körper schon die Linie unter dem Kopf. */
   .karte-buendig > .abschnitt:first-child { border-top: 0; }
-  /*
-   * DIE KARTE SCHNEIDET MIT `clip`, NICHT MIT `hidden`. Beides hält die
-   * getönten Abschnitte in der Rundung; `hidden` macht die Karte aber zu
-   * einem Rollbereich, und darin klebt eine `sticky`-Aktionsleiste nicht
-   * mehr am Bildschirm, sondern an der Karte. `hidden` steht davor für
-   * Browser, die `clip` nicht kennen.
-   */
   .karte { overflow: hidden; overflow: clip; }
   .karte-koerper .zeile { padding-inline: 0; }
-
-  /* ── Zeile ──────────────────────────────────────────────────────────── */
-  .zeile { display: flex; align-items: center; gap: 0.75rem; min-height: 3.5rem; padding: 0.625rem 1rem; border-top: 1px solid var(--border); }
+  .zeile { display: flex; align-items: center; gap: 0.75rem 1rem; min-height: 3.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); background: var(--surface); }
   .zeile:first-child { border-top: 0; }
+  .zeile-ganz { position: relative; cursor: pointer; }
+  .zeile-ganz:hover { background: var(--petrol-hell); }
+  .zeile-ziel { color: inherit; text-decoration: none; }
+  .zeile-ziel::after { content: ''; position: absolute; inset: 0; }
+  .zeile-ziel:focus-visible { outline: none; }
+  .zeile-ganz:focus-within { outline: 3px solid var(--brand-fixed); outline-offset: -3px; }
   .zeile-text { flex: 1; min-width: 0; }
-  .zeile-titel { font-size: 0.9375rem; line-height: 1.3125rem; font-weight: 500; color: var(--ink-deep); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .zeile-titel { font-size: 0.9375rem; line-height: 1.375rem; font-weight: 600; color: var(--ink-deep); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .zeile-meta { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .zeile-wert { font-size: 0.9375rem; font-weight: 500; white-space: nowrap; text-align: right; color: var(--ink-deep); }
-  .zeile-wert small { display: block; font-size: 0.78125rem; font-weight: 400; color: var(--text-muted); }
-  .zeile-pfeil { color: var(--text-placeholder); flex: none; width: 1rem; height: 1rem; }
-
-  /* ── Stand: grauer Text mit farbigem Punkt (die einzige Farbe im Inhalt) ── */
-  .stand { display: inline-flex; align-items: center; gap: 0.375rem; height: 1.375rem; font-size: 0.78125rem; font-weight: 500; white-space: nowrap; color: var(--text-muted); }
-  .stand::before { content: ''; width: 7px; height: 7px; border-radius: 999px; background: var(--surface-3); flex: none; }
-  .stand-ok::before { background: var(--success); }
+  .zeile-wert { font-size: 0.9375rem; font-weight: 400; white-space: nowrap; text-align: right; color: var(--ink-deep); font-variant-numeric: tabular-nums; }
+  .zeile-wert small { display: block; font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); }
+  .zeile-pfeil { color: var(--text-muted); flex: none; width: 1rem; height: 1rem; }
+  /*
+    FÜNF ZUSTÄNDE UND NICHT MEHR (Regel 5). Offen ist ein leerer Ring, läuft
+    ein Punkt in Petrol, erledigt tritt grau zurück; nur Achtung (Bernstein)
+    und Fehler (Rot) heben auch den Text. Der Punkt trägt die Farbe, das Wort
+    die Bedeutung — Farbe allein reicht nicht.
+  */
+  .stand { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 1.375rem; font-size: 0.8125rem; font-weight: 400; white-space: nowrap; color: var(--text); }
+  .stand::before { content: ''; width: 8px; height: 8px; border-radius: 999px; background: var(--border-strong); flex: none; }
+  .stand-offen::before { background: transparent; border: 2px solid var(--text-muted); width: 9px; height: 9px; }
+  .stand-ok::before, .stand-info::before { background: var(--petrol); }
+  .stand-leise { color: var(--text-muted); }
+  .stand-leise::before { background: var(--border-strong); }
+  .stand-warn { color: var(--warning); font-weight: 600; }
   .stand-warn::before { background: var(--warning); }
-  .stand-fehl { color: var(--danger); }
+  .stand-fehl { color: var(--danger); font-weight: 600; }
   .stand-fehl::before { background: var(--danger); }
-  .stand-info::before { background: var(--accent-deep); }
-  .stand-leise::before { background: var(--text-placeholder); }
-
-  /* ── Hinweiszeile statt Warnkarte ───────────────────────────────────── */
-  .hinweiszeile { display: flex; gap: 0.625rem; align-items: flex-start; padding: 0.125rem 0.25rem; font-size: 0.84375rem; line-height: 1.1875rem; color: var(--text-muted); }
-  .hinweiszeile svg { width: 1rem; height: 1rem; flex: none; margin-top: 1px; }
+  .hinweiszeile { display: flex; gap: 0.625rem; align-items: flex-start; padding: 0.125rem 0.25rem; font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
+  .hinweiszeile svg { width: 1rem; height: 1rem; flex: none; margin-top: 2px; }
   .hinweiszeile b, .hinweiszeile strong { font-weight: 600; color: var(--ink-deep); }
   .hinweiszeile-warn svg { color: var(--warning); }
   .hinweiszeile-fehl svg { color: var(--danger); }
-  .hinweiszeile a { text-decoration: underline; text-underline-offset: 3px; font-weight: 500; color: var(--ink-deep); }
-
-  /* ── Kennzahlen: EINE Leiste mit Trennlinien ────────────────────────── */
-  .kennzahlen { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden; }
-  /* Jede Kennzahl misst ihre eigene Breite (container): der Wert wird in einer
-     schmalen Zelle kleiner gesetzt, statt mit „…“ zu enden — in der rechten
-     Spalte der Startseite bei 1.150 px stand „€ 29 592,…“ (Nachtest 01.10.). */
-  .kennzahl { padding: 0.75rem 1rem; border-right: 1px solid var(--border); min-width: 0; container-type: inline-size; }
-  .kennzahl:nth-child(2n) { border-right: 0; }
-  .kennzahl:nth-child(n+3) { border-top: 1px solid var(--border); }
-  /* Eine einzelne Kennzahl nimmt die ganze Leiste, statt eine leere Hälfte neben sich zu lassen. */
-  .kennzahl:only-child { grid-column: 1 / -1; border-right: 0; }
-  /* Am Schreibtisch EINE Reihe mit so vielen Spalten, wie es Kennzahlen gibt
-     (in der App höchstens vier) — vier feste Spalten liessen eine Leiste mit
-     zwei Werten zur Hälfte leer stehen. */
-  @media (min-width: 1024px) {
-    .kennzahlen { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
-    .kennzahl:nth-child(2n) { border-right: 1px solid var(--border); }
-    .kennzahl:last-child { border-right: 0; }
-    .kennzahl:nth-child(n+3) { border-top: 0; }
-  }
+  .hinweiszeile a { text-decoration: underline; text-underline-offset: 3px; font-weight: 600; color: var(--ink-deep); }
+  /*
+    KENNZAHLEN OHNE POSITIONSSELEKTOREN. Die Trennlinien zeichnet jede Zahl
+    rechts und unten selbst; der Behälter schneidet die äussersten weg (der
+    negative Rand schiebt sie unter seine Kante). So passt dieselbe Regel auf
+    zwei, drei oder vier Zahlen, und eine einzelne nimmt die ganze Breite.
+  */
+  .kennzahlen { display: flex; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  .kennzahl { padding: 0.875rem 1rem; flex: 1 1 9rem; min-width: 0; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 0 -1px -1px 0; color: inherit; text-decoration: none; }
+  a.kennzahl:hover { background: var(--petrol-hell); }
   .kennzahl-name { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
-  .kennzahl-wert { font-size: clamp(0.9375rem, 15cqi, 1.3125rem); line-height: 1.75rem; font-weight: 600; color: var(--ink-deep); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  @media (min-width: 1024px) { .kennzahl-wert { font-size: clamp(0.9375rem, 15cqi, 1.5rem); line-height: 2rem; } }
-  .kennzahl-zusatz { font-size: 0.78125rem; color: var(--text-muted); margin-top: 2px; }
-  /*
-   * IN EINER KARTE ist die Leiste kein zweiter Kasten (keine Karte in der
-   * Karte), sondern eine Reihe mit Trennstrichen, die von Kante zu Kante
-   * reicht — so fluchten die Beschriftungen mit dem übrigen Karteninhalt.
-   */
-  .karte-koerper > .kennzahlen { margin-inline: -1rem; border: 0; border-radius: 0; box-shadow: none; background: transparent; }
-
-  /* ── Feste Aktionsleiste am Telefon ─────────────────────────────────── */
-  /*
-   * Sitzt über der Reiterleiste; `--reiter-hoehe` setzt Layout.tsx (Höhe
-   * der Reiterleiste, 0 wo es keine gibt). Der negative Rand entspricht
-   * der Seitenpolsterung aus Layout.tsx (`p-4`, ab `md` `p-6`), damit die
-   * Leiste von Rand zu Rand reicht.
-   */
+  /* Ein langer Betrag bricht in die nächste Zeile, statt mit „…“ zu enden. */
+  .kennzahl-wert { font-size: 1.25rem; line-height: 1.625rem; font-weight: 600; color: var(--ink-deep); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  @media (min-width: 1200px) { .kennzahl-wert { font-size: 1.375rem; line-height: 1.75rem; } }
+  .kennzahl-zusatz { font-size: 0.8125rem; color: var(--text-muted); margin-top: 2px; }
+  .karte-koerper > .kennzahlen { margin-inline: -1rem; border: 0; border-radius: 0; background: transparent; }
   .aktionsleiste { position: sticky; bottom: var(--reiter-hoehe, 0px); z-index: 10; background: var(--surface); border-top: 1px solid var(--border); padding: 0.625rem 1rem 0.75rem; margin: 0 -1rem; }
-  @media (min-width: 768px) { .aktionsleiste { margin: 0 -1.5rem; padding-inline: 1.5rem; } }
-  .aktionsleiste-summe { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.84375rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+  @media (min-width: 760px) { .aktionsleiste { margin: 0 -1.5rem; padding-inline: 1.5rem; } }
+  .aktionsleiste-summe { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.5rem; }
   .aktionsleiste-summe b { color: var(--ink-deep); font-size: 0.9375rem; font-weight: 600; }
   .aktionsleiste-knoepfe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 0.5rem; }
   .aktionsleiste-knoepfe > :only-child { grid-column: 1 / -1; }
-  /* In einer Karte reicht die Leiste bis an deren Ränder und schliesst sie unten ab. */
   .karte-koerper .aktionsleiste { margin: 1rem -1rem -1rem; padding-inline: 1rem; }
-  /*
-   * Die Zeiterfassung klebt ihre Leiste erst nach dem Rollen (Runde 3, G22):
-   * beim Öffnen lag sie über dem Datumsfeld. Gesetzt von Aktionsleiste.tsx.
-   */
   .aktionsleiste-frei { position: static; }
-  @media (min-width: 1024px) {
+  @media (min-width: 1200px) {
     .aktionsleiste, .karte-koerper .aktionsleiste { position: static; margin: 0; border-top: 0; padding: 0; background: transparent; }
     .aktionsleiste-summe { justify-content: flex-end; }
     .aktionsleiste-knoepfe { grid-template-columns: auto auto; justify-content: end; }
     .aktionsleiste-knoepfe > :only-child { grid-column: auto; }
   }
-
-  /* ── Schritte (Handwerksschein) ─────────────────────────────────────── */
   .schritte { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.375rem; }
-  .schritt { font-size: 0.75rem; font-weight: 500; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
-  .schritt i { display: block; height: 4px; border-radius: 2px; background: var(--surface-3); margin-bottom: 0.375rem; }
-  .schritt-fertig i { background: var(--text-placeholder); }
-  .schritt-jetzt i { background: var(--brand-fixed); }
-  .schritt-jetzt { color: var(--ink-deep); }
-
-  /* ── Suche, Chips, Segment ──────────────────────────────────────────── */
-  .suche { display: flex; align-items: center; gap: 0.625rem; height: 2.75rem; padding: 0 0.875rem; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); font-size: 0.9375rem; flex: 1; }
-  /*
-   * FILTER SIND TEXTREITER, KEINE PILLEN (Entscheid vom 28.09.2026). Der
-   * Entwurf zeigte die Filter als umrandete Kästchen; das ist die Pillenform,
-   * die schon zweimal als „zu bunt, zu verspielt" abgelehnt wurde. Hier also
-   * Text mit einem Unterstrich unter dem gewählten — dieselbe Sprache wie die
-   * übrigen Reiter der App. 44 px Tastfläche bleiben.
-   */
+  .schritt { font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+  .schritt i { display: block; height: 3px; border-radius: 2px; background: var(--border); margin-bottom: 0.375rem; }
+  .schritt-fertig i { background: var(--border-strong); }
+  .schritt-jetzt i { background: var(--petrol); }
+  .schritt-jetzt { color: var(--ink-deep); font-weight: 600; }
+  .suche { display: flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; padding: 0 0.75rem; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border-strong); font-size: 0.9375rem; flex: 1; }
   .chips { display: flex; flex-wrap: wrap; column-gap: 1rem; }
-  .chip { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.75rem; padding: 0 0.125rem; border-bottom: 2px solid transparent; background: none; font-size: 0.84375rem; font-weight: 500; color: var(--text-muted); white-space: nowrap; }
-  .chip-an { color: var(--ink-deep); font-weight: 600; border-bottom-color: var(--brand-fixed); }
-  .segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); overflow: hidden; }
-  .segment > * { display: flex; align-items: center; justify-content: center; min-height: 2.625rem; font-size: 0.875rem; font-weight: 500; color: var(--text-muted); border-right: 1px solid var(--border); }
+  .chip { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.75rem; padding: 0 0.125rem; border-bottom: 2px solid transparent; background: none; font-size: 0.875rem; font-weight: 400; color: var(--text-muted); white-space: nowrap; }
+  .chip-an { color: var(--ink-deep); font-weight: 600; border-bottom-color: var(--petrol); }
+  /* Auswahl als Segmente (Entwurf: `.wahl`). Die gewählte Stelle ist Petrol. */
+  .segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--surface); overflow: hidden; }
+  .segment > * { display: flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0 0.875rem; font-size: 0.875rem; font-weight: 400; color: var(--text); border-right: 1px solid var(--border-strong); }
   .segment > *:last-child { border-right: 0; }
-  .segment > .segment-an { background: var(--surface-2); color: var(--ink-deep); font-weight: 600; }
-
-  /* ── Tabelle (Schreibtisch) ─────────────────────────────────────────── */
+  .segment > .segment-an { background: var(--petrol); color: #ffffff; font-weight: 600; }
   .tabelle { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-  .tabelle th { font-size: 0.78125rem; font-weight: 600; color: var(--text-muted); text-align: left; padding: 0.625rem 1rem; border-bottom: 1px solid var(--border); background: var(--surface-2); white-space: nowrap; }
-  .tabelle td { padding: 0.6875rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .tabelle th { font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-align: left; padding: 0.625rem 1rem; border-bottom: 1px solid var(--border); background: var(--surface); white-space: nowrap; }
+  .tabelle td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
   .tabelle tr:last-child td { border-bottom: 0; }
   .tabelle .r { text-align: right; }
   .tabelle-eng th, .tabelle-eng td { padding: 0.5rem 0.3125rem; }
-
-  /* ── Zwei Spalten (Akten am Schreibtisch) ───────────────────────────── */
-  .zwei-spalten { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; align-items: start; }
-  @media (min-width: 1024px) { .zwei-spalten { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 1.25rem; } }
-  .spalte { display: flex; flex-direction: column; gap: 0.75rem; }
-  @media (min-width: 1024px) { .spalte { gap: 1.25rem; } }
-
-  /* ── Ruhige Textlinks ───────────────────────────────────────────────── */
-  .link-still { color: var(--ink-deep); font-weight: 500; font-size: 0.875rem; text-decoration: none; }
-  .karte-kopf .link-still, .karte-fuss .link-still, .abschnitt .link-still, .textlinks .link-still { color: var(--text-muted); }
+  .zwei-spalten { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-items: start; }
+  @media (min-width: 1200px) { .zwei-spalten { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 1.5rem; } }
+  .spalte { display: flex; flex-direction: column; gap: 1rem; }
+  @media (min-width: 1200px) { .spalte { gap: 1.5rem; } }
+  .link-still { color: var(--ink-deep); font-weight: 600; font-size: 0.875rem; text-decoration: none; }
+  .karte-kopf .link-still, .karte-fuss .link-still, .abschnitt .link-still, .textlinks .link-still { color: var(--petrol); }
   .link-still-weiter::after { content: '\00a0›'; }
   .link-still:hover { text-decoration: underline; text-underline-offset: 3px; }
   .textlinks { display: flex; gap: 1.125rem; padding: 0.125rem 0.25rem; font-size: 0.875rem; flex-wrap: wrap; }
@@ -852,20 +813,18 @@ textarea {
 
 /* ── Startseite (Nachtest 01.10.2026, Paket B) ──────────────────────────── */
 @layer components {
-  .start-abschnitt { padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 600; color: var(--ink-deep); background: var(--surface-2); border-bottom: 1px solid var(--border); }
-  .start-weiter { display: flex; align-items: center; min-height: 2.75rem; padding: 0.5rem 1rem; border-top: 1px solid var(--border); font-size: 0.875rem; font-weight: 600; color: var(--ink-deep); }
-  .start-weiter:hover { background: var(--surface-2); }
+  .start-abschnitt { padding: 0.75rem 1rem 0.5rem; font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); background: var(--surface); border-bottom: 1px solid var(--border); }
+  .start-weiter { display: flex; align-items: center; min-height: 2.75rem; padding: 0.5rem 1rem; border-top: 1px solid var(--border); font-size: 0.875rem; font-weight: 600; color: var(--petrol); }
+  .start-weiter:hover { background: var(--petrol-hell); }
   /* Status: in schmalen Karten vorn in der Detailzeile, in breiten rechts. */
   .start-status-rechts { display: none; }
-  @media (min-width: 1024px) {
+  @media (min-width: 1200px) {
     .start-breit .start-status-vorn { display: none; }
     .start-breit .start-status-rechts { display: inline-flex; }
   }
   /* Kennzahlen in der schmalen rechten Spalte: immer zwei je Reihe. */
-  @media (min-width: 1024px) {
-    .kennzahlen-raster { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row; }
-    .kennzahlen-raster .kennzahl:nth-child(2n) { border-right: 0; }
-    .kennzahlen-raster .kennzahl:nth-child(n+3) { border-top: 1px solid var(--border); }
+  @media (min-width: 1200px) {
+    .kennzahlen-raster .kennzahl { flex-basis: 40%; }
   }
   /* Keine Silbentrennung in Namen, Nummern und Beträgen (U1, U9). */
   .kein-trennen { hyphens: manual; -webkit-hyphens: manual; }
@@ -893,6 +852,6 @@ textarea {
   eine Fehlermeldung —, rollt der Browser es mit diesem Abstand ins Bild,
   statt es hinter der Leiste stehen zu lassen.
 */
-@media (max-width: 1023px) {
+@media (max-width: 1199px) {
   html { scroll-padding-bottom: 9rem; }
 }

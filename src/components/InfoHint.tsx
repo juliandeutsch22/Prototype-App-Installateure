@@ -1,4 +1,5 @@
 import { useId, useState, type ReactNode } from 'react';
+import { useSeitenHilfe } from './SeitenHilfe';
 
 /**
  * Kleines „i"; der Erklärtext kommt erst auf Tipp.
@@ -49,7 +50,7 @@ export function InfoButton({ about, offen, onToggle, controls }: InfoButtonProps
     >
       <span
         aria-hidden="true"
-        className={`flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold leading-none ${
+        className={`flex h-5 w-5 items-center justify-center rounded-full border text-xs font-semibold leading-none ${
           offen ? 'border-brand bg-brand text-brand-fg' : 'border-current'
         }`}
       >
@@ -95,6 +96,9 @@ export function InfoPanel({
 export default function InfoHint({ about, children }: { about: string; children: ReactNode }) {
   const [offen, setOffen] = useState(false);
   const id = useId();
+  /* Auf einer Seite steht der Text unter „Hilfe zu dieser Seite“ (Regel 11). */
+  const inSeitenhilfe = useSeitenHilfe(about, children);
+  if (inSeitenhilfe) return null;
   return (
     <>
       <InfoButton about={about} offen={offen} onToggle={() => setOffen((o) => !o)} controls={id} />

@@ -1205,7 +1205,7 @@ describe('Zeit beim Kunden eintragen', () => {
  *
  * jsdom kennt keine Medienabfrage — ohne sie steht der Schein als die eine
  * Seite da, und alle Tests oben laufen so. Hier wird die Abfrage gezielt
- * gesetzt: schmal (unter 1024 px) für die Schritte, breit für den
+ * gesetzt: schmal (unter 1200 px) für die Schritte, breit für den
  * Schreibtisch. Abfragen nach Rolle finden nur, was sichtbar ist — ein Test,
  * der einen Knopf aus einem anderen Schritt drückt, fällt also auf, statt
  * durch ausgeblendete Teile hindurchzugreifen.
@@ -1220,7 +1220,7 @@ describe('Schrittfolge', () => {
       removeEventListener: () => undefined,
     })) as unknown as typeof window.matchMedia;
   }
-  /** Das Telefon nachstellen: die Medienabfrage für 1024 px trifft nicht zu. */
+  /** Das Telefon nachstellen: die Medienabfrage für 1200 px trifft nicht zu. */
   beforeEach(() => breite(false));
   /** Den Schreibtisch nachstellen: sie trifft zu. */
   const schreibtisch = () => breite(true);

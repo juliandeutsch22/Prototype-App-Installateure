@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './AuthContext';
 import { beiPasswortRuecksetzung, startpasswortOffen } from '@/lib/auth/sitzung';
 import { istBenutzerkonto } from '@shared/benutzername';
 import { RequireAuth, RequireRole, RequireModul, RequireNav } from './guards';
+import { SeitenHilfeProvider } from '@/components/SeitenHilfe';
 import ErrorBoundary from './ErrorBoundary';
 import Unterreiter from '@/components/Unterreiter';
 import Layout from './Layout';
@@ -47,6 +48,7 @@ import PasswortAendern from '@/features/auth/PasswortAendern';
 import ZweiFaktorSeite from '@/features/auth/ZweiFaktorSeite';
 import { WiederherstellungsCodes } from '@/features/auth/ZweiFaktorEinrichten';
 const PlattformView = lazy(() => import('@/features/plattform/PlattformView'));
+const MusterView = lazy(() => import('@/features/muster/MusterView'));
 const DashboardView = lazy(() => import('@/features/dashboard/DashboardView'));
 const TimeView = lazy(() => import('@/features/time/TimeView'));
 const OrderView = lazy(() => import('@/features/orders/OrderView'));
@@ -125,7 +127,7 @@ function AppInhalt() {
     /plattform ohnehin auf die Startseite.
   */
   useEffect(() => {
-    if (!loading && plattformAdmin && !einblick && ort.pathname !== '/plattform') {
+    if (!loading && plattformAdmin && !einblick && ort.pathname !== '/plattform' && ort.pathname !== '/_muster') {
       navigate('/plattform', { replace: true });
     }
   }, [loading, plattformAdmin, einblick, ort.pathname, navigate]);
@@ -239,6 +241,22 @@ function AppInhalt() {
     Listen ohne Details. Sie beantwortete die Frage nicht, mit der ein Betrieb
     anruft — und wäre jeder Änderung an der App hinterhergelaufen.
   */
+  /*
+    Die Musterseite der Linie „Lot“ auch für den globalen Admin: er hat keine
+    Hülle mit Navigation, die Seite steht deshalb für sich (Protokoll 4.2).
+  */
+  if (!loading && plattformAdmin && !einblick && ort.pathname === '/_muster') {
+    return (
+      <Suspense fallback={<LoadingState label="Wird geladen …" />}>
+        <SeitenHilfeProvider>
+          <main className="inhalt">
+            <MusterView />
+          </main>
+        </SeitenHilfeProvider>
+      </Suspense>
+    );
+  }
+
   if (!loading && plattformAdmin && !einblick) {
     return (
       <Suspense fallback={<LoadingState label="Wird geladen …" />}>
@@ -323,6 +341,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<RequireNav path="/"><DashboardView /></RequireNav>} />
+      {/* Musterseite der Linie „Lot“ — Werkzeug für die Abnahme, kein Menüpunkt. */}
+      <Route path="/_muster" element={<RequireRole roles={['Administrator']}><MusterView /></RequireRole>} />
 
       {/* Außendienst */}
       {/* Die Zeiterfassung steht JEDER Rolle offen (auch der Buchhaltung:

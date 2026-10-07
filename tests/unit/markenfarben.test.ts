@@ -32,13 +32,23 @@ function dateien(ordner: string): string[] {
 }
 
 describe('Belegfarben', () => {
-  it('sind die Tokens der Oberfläche', () => {
-    expect(TINTE).toEqual(token('--text'));
-    expect(GRAU).toEqual(token('--text-muted'));
-    expect(LINIE).toEqual(token('--border'));
-    expect(ROT).toEqual(token('--danger'));
+  /*
+    SEIT DER LINIE „LOT“ GETRENNT. Bis zum Umbau waren die Belegfarben die
+    Tokens der Oberfläche. Das Protokoll verlangt Belege und Exporte
+    prüfsummengleich (docs/ui-umbau/protokoll.md 0.1) — sie bleiben deshalb
+    beim Stand vor Lot, und diese Prüfung hält genau diesen Stand fest
+    (docs/ui-umbau/entscheidungen.md, E11).
+  */
+  it('bleiben beim Stand vor dem Umbau', () => {
+    expect(TINTE).toEqual([10, 32, 48]);
+    expect(GRAU).toEqual([56, 80, 95]);
+    expect(LINIE).toEqual([207, 227, 233]);
+    expect(ROT).toEqual([173, 26, 26]);
+    expect(FLAECHE).toEqual([241, 248, 250]);
+  });
+
+  it('und Petrol ist weiter die Farbe des Produkts', () => {
     expect(PETROL).toEqual(token('--brand-fixed'));
-    expect(FLAECHE).toEqual(token('--surface-2'));
   });
 });
 

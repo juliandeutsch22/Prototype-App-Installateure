@@ -61,7 +61,7 @@ export default function NotzugangPasswort({ kennung, name }: { kennung: string; 
 
   return (
     <div className="space-y-3 rounded-sm border border-line p-3">
-      <p className="text-sm font-medium text-ink">Passwort eines Leitungskontos neu setzen — {name}</p>
+      <p className="text-sm font-normal text-ink">Passwort eines Leitungskontos neu setzen — {name}</p>
       {ergebnis && (
         <Hinweiszeile stufe="warn">
           <p>

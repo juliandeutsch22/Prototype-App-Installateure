@@ -20,7 +20,7 @@ export default function AdressteileFelder({
   const plz = plzFehler(wert.plz, wert.land);
   return (
     <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-6">
-      <legend className="mb-1 text-sm font-medium text-ink">{titel}</legend>
+      <legend className="mb-1 text-sm font-normal text-ink">{titel}</legend>
       <div className="sm:col-span-6">
         <InputField
           id={`${idPrefix}-strasse`}

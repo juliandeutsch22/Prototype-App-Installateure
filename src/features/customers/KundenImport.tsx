@@ -127,7 +127,7 @@ export default function KundenImport({ onUebernommen }: { onUebernommen: () => v
             </p>
           )}
           <div className="flex flex-col gap-1">
-            <label htmlFor="kunden-datei" className="text-sm font-medium">
+            <label htmlFor="kunden-datei" className="text-sm font-normal">
               CSV-Datei
             </label>
             <input
@@ -187,7 +187,7 @@ export default function KundenImport({ onUebernommen }: { onUebernommen: () => v
           <ul className="space-y-3 text-sm">
             {nichtUebernommen.slice(0, ZEIGE_ZEILEN).map((z) => (
               <li key={`${z.zeile}-${z.grund}`} className="border-l-2 border-line pl-3">
-                <p className="font-medium">
+                <p className="font-normal">
                   Zeile {z.zeile}: {z.grund}
                 </p>
                 <p className="mt-1 break-words text-xs text-ink-muted">{z.inhalt}</p>
@@ -210,7 +210,7 @@ export default function KundenImport({ onUebernommen }: { onUebernommen: () => v
           <ul className="space-y-2 text-sm">
             {neu.slice(0, 5).map(({ zeile, kunde }) => (
               <li key={zeile}>
-                <span className="font-medium">{kunde.name}</span>
+                <span className="font-normal">{kunde.name}</span>
                 <span className="text-ink-muted">
                   {[kunde.address, kunde.contactName, kunde.contactPhone, kunde.email]
                     .filter(Boolean)

@@ -40,8 +40,8 @@ import { rolleAnzeige } from '@/lib/rolleAnzeige';
 const sideLink = ({ isActive }: { isActive: boolean }) =>
   `flex min-h-touch min-w-0 items-center gap-3 rounded-sm border-l-[3px] px-3 py-2 text-base transition ${
     isActive
-      ? 'border-l-accent-deep bg-info-bg font-bold text-accent-deep'
-      : 'border-l-transparent font-medium text-ink-muted hover:bg-surface-2 hover:text-ink'
+      ? 'border-l-accent-deep bg-info-bg font-semibold text-accent-deep'
+      : 'border-l-transparent font-normal text-ink-muted hover:bg-surface-2 hover:text-ink'
   }`;
 
 /**
@@ -59,8 +59,8 @@ const sideLink = ({ isActive }: { isActive: boolean }) =>
 const sideLinkDark = ({ isActive }: { isActive: boolean }) =>
   `flex min-h-touch min-w-0 items-center gap-3 rounded-sm border-l-[3px] px-3 py-2 text-base transition ${
     isActive
-      ? 'border-l-white bg-ink-deep font-bold text-white'
-      : 'border-l-transparent font-medium text-white/75 hover:bg-ink-deep hover:text-white'
+      ? 'border-l-white bg-ink-deep font-semibold text-white'
+      : 'border-l-transparent font-normal text-white/75 hover:bg-ink-deep hover:text-white'
   }`;
 
 /**
@@ -538,7 +538,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="flex items-center gap-3 px-1">
           <Avatar name={user.name} size={48} />
           <div className="min-w-0">
-            <p className="truncate text-base font-bold text-ink">{user.name}</p>
+            <p className="truncate text-base font-semibold text-ink">{user.name}</p>
             <p className="truncate text-sm text-ink-muted">{rolleAnzeige(user.role, einblick)}</p>
             <p className="truncate text-sm text-ink-muted">{kontoAnzeige(user.email)}</p>
           </div>

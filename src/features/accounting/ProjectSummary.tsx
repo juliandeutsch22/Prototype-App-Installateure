@@ -208,7 +208,7 @@ export default function ProjectSummary({
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="min-w-0">
-                    <span className="block font-bold text-ink">
+                    <span className="block font-semibold text-ink">
                       {r.project?.customerName ?? nummer}
                     </span>
                     {/* Die Nummer, wie sie an der Baustelle steht — der Schlüssel
@@ -320,10 +320,10 @@ export default function ProjectSummary({
                     <table className="w-full min-w-[28rem] text-sm">
                       <thead>
                         <tr className="border-b border-line text-left text-ink-muted">
-                          <th className="py-1 pr-3 font-medium">Tag</th>
-                          <th className="py-1 pr-3 font-medium">Mitarbeiter</th>
-                          <th className="py-1 pr-3 font-medium">Tätigkeit</th>
-                          <th className="py-1 text-right font-medium">Stunden</th>
+                          <th className="py-1 pr-3 font-normal">Tag</th>
+                          <th className="py-1 pr-3 font-normal">Mitarbeiter</th>
+                          <th className="py-1 pr-3 font-normal">Tätigkeit</th>
+                          <th className="py-1 text-right font-normal">Stunden</th>
                         </tr>
                       </thead>
                       <tbody>

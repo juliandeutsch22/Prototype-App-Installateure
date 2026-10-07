@@ -3220,7 +3220,7 @@ describe('Rechnungsliste am Schreibtisch', () => {
   const vorher = window.matchMedia;
   beforeEach(() => {
     window.matchMedia = ((q: string) => ({
-      matches: q.includes('min-width: 1024px'),
+      matches: q.includes('min-width: 1200px'),
       media: q,
       addEventListener: () => undefined,
       removeEventListener: () => undefined,

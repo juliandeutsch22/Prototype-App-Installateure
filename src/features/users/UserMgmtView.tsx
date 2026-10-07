@@ -553,7 +553,7 @@ export default function UserMgmtView() {
               </div>
 
               <fieldset>
-                <legend className="mb-1 text-sm font-medium text-ink">Arbeitstage</legend>
+                <legend className="mb-1 text-sm font-normal text-ink">Arbeitstage</legend>
                 <div className="flex flex-wrap gap-x-4">
                   {WEEKDAYS.map((d) => (
                     <CheckboxField

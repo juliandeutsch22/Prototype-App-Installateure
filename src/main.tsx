@@ -9,19 +9,19 @@ import Nachsender from './components/Nachsender';
 import { nachladefehlerBeobachten } from './lib/nachladen';
 import { fehlerBeobachten } from './lib/fehlerprotokoll';
 import { schluesselUmziehen, firestoreResteEntfernen } from './lib/speicher';
+import { darstellungAnwenden } from './lib/darstellung';
 // Poppins self-gehostet (kein Google-CDN -> keine IP-Übermittlung an Google, DSGVO).
-// Nur die tatsächlich genutzten Schnitte, damit der Erstaufruf auf der Baustelle
-// (schlechtes Netz) schlank bleibt.
+// Nur die zwei Schnitte der Linie „Lot“ (400 und 600) — der Erstaufruf auf der
+// Baustelle (schlechtes Netz) bleibt damit schlank.
 import '@fontsource/poppins/latin-400.css';
-import '@fontsource/poppins/latin-500.css';
 import '@fontsource/poppins/latin-600.css';
-import '@fontsource/poppins/latin-700.css';
 import './index.css';
 
 // Die Schlüssel im Browser heissen nach dem Produkt, nicht nach dem
 // Pilotbetrieb; Reste der Firestore-Zeit gehen (Testbericht 30.09.2026, M9).
 // Vor allem anderen: die Anmeldung liest ihren Merker gleich beim Start.
 schluesselUmziehen();
+darstellungAnwenden();
 void firestoreResteEntfernen();
 
 // Scheitert nach einem Deploy das Nachladen einer Ansicht, einmal neu laden —

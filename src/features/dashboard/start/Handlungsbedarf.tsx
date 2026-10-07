@@ -22,7 +22,7 @@ function EintragZeile({ z }: { z: Zeile }) {
   const inhalt = (
     <>
       <span className="min-w-0 flex-1">
-        <span className="block font-medium text-ink-deep"><OhneUmbruch text={z.titel} /></span>
+        <span className="block font-normal text-ink-deep"><OhneUmbruch text={z.titel} /></span>
         {(z.detail || z.status) && (
           // Fließtext, nicht Flexbox: bricht das Detail um, bleibt der Punkt
           // beim Status und das Detail läuft in der nächsten Zeile weiter.

@@ -533,7 +533,7 @@ export default function TimeView() {
         )}
         {e.source === 'voice' && <Marke>KI</Marke>}
         <Zeitmarker eintrag={e} nacht={nacht} />
-        <span className="font-medium text-ink">
+        <span className="font-normal text-ink">
           {fmtMin(calcWorkMin(e))}
         </span>
         {/* Verrechnete Einträge sind Grundlage einer
@@ -620,7 +620,7 @@ export default function TimeView() {
           ziel.setAttribute('tabindex', '-1');
           ziel.focus({ preventScroll: true });
         }}
-        className="inline-flex min-h-touch items-center gap-1 text-sm font-medium text-brand sm:hidden"
+        className="inline-flex min-h-touch items-center gap-1 text-sm font-normal text-brand sm:hidden"
       >
         Zu meinen Einträgen
         <Icon name="chevron" size={16} />
@@ -934,7 +934,7 @@ export default function TimeView() {
                   <Abschnitt
                     titel={week}
                     anzahl={rows.length === 1 ? '1 Eintrag' : `${rows.length} Einträge`}
-                    link={<span className="text-sm font-medium text-ink-deep">{fmtMin(weekMin)}</span>}
+                    link={<span className="text-sm font-normal text-ink-deep">{fmtMin(weekMin)}</span>}
                     offen={wocheOffen(week, rows, index)}
                     onUmschalten={() =>
                       setUmgeklappt((u) => ({ ...u, [week]: !wocheOffen(week, rows, index) }))

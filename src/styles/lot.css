@@ -1,0 +1,149 @@
+/*
+ * BAUSTEINE DER LINIE „LOT“, die es vor dem Umbau nicht gab.
+ *
+ * Regeln (Protokoll 0.2): je Element eine Klasse, keine `clamp()`/`calc()`,
+ * keine Container-Abfragen, Media-Queries nur auf die Breite (760 und 1200 px,
+ * wie `src/lib/breiten.ts`), keine Positionsselektoren, keine halbtransparenten
+ * Farbflächen ausser dem neutralen Schleier, keine gestrichelten Linien.
+ *
+ * Die Farben kommen aus den Grundwerten in `index.css`; der dunkle Satz
+ * wirkt deshalb hier ohne eigene Regel.
+ */
+@layer components {
+  /* ── Inhalt ───────────────────────────────────────────────────────────── */
+  .inhalt { padding: 1rem; max-width: 77.5rem; }
+  @media (min-width: 760px) { .inhalt { padding: 1.25rem 1.5rem; } }
+  @media (min-width: 1200px) { .inhalt { padding: 1.5rem 2.5rem; } }
+
+  /* ── Hauptaktion im Daumenbereich (Handy) ────────────────────────────── */
+  /*
+    Am Handy rückt die Hauptaktion des Seitenkopfs nach unten, über die
+    untere Leiste: dorthin reicht der Daumen. Der Platzhalter am Seitenende
+    hält den letzten Inhalt frei, damit die Leiste kein Feld verdeckt.
+  */
+  .daumen { display: contents; }
+  .daumen-platz { display: none; }
+  @media (max-width: 759px) {
+    .daumen { display: flex; gap: 0.5rem; position: fixed; left: 0; right: 0; bottom: var(--reiter-hoehe, 0px); z-index: 20; padding: 0.625rem 1rem; background: var(--surface); border-top: 1px solid var(--border); }
+    .daumen > * { flex: 1; min-height: 3rem; }
+    .daumen-platz { display: block; height: 4.5rem; }
+  }
+
+  /* ── Hilfe zu dieser Seite ────────────────────────────────────────────── */
+  .hilfe-liste { display: flex; flex-direction: column; }
+  .hilfe-eintrag { padding: 0.875rem 0; border-top: 1px solid var(--border); }
+  .hilfe-titel { font-size: 0.9375rem; font-weight: 600; color: var(--ink-deep); margin-bottom: 0.25rem; }
+  .hilfe-text { font-size: 0.875rem; line-height: 1.375rem; color: var(--text-muted); }
+
+  /* ── Schleier, Seitenfenster und Blatt ────────────────────────────────── */
+  /* Der einzige erlaubte Schleier (0.2): neutral, nicht bunt. */
+  .schleier { position: fixed; inset: 0; z-index: 40; background: #00000059; }
+  .schleier-dialog { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; padding: 1rem; background: #00000059; }
+  @media (min-width: 640px) { .schleier-dialog { align-items: center; } }
+  .blatt { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88vh; display: flex; flex-direction: column; background: var(--surface); border-radius: 1rem 1rem 0 0; box-shadow: var(--shadow-lg); padding: 0 1rem 1rem; }
+  .blatt-griff { padding: 0.75rem 1rem 0.5rem; cursor: grab; touch-action: none; }
+  .blatt-griff-strich { width: 2.5rem; height: 4px; margin: 0 auto; border-radius: 999px; background: var(--border-strong); }
+  .blatt-inhalt { overflow-y: auto; max-height: 70vh; }
+  /*
+    AB DEM TABLET STEHT DAS FENSTER RECHTS, die Übersicht bleibt links
+    sichtbar (Regel 8). Am Handy ist dasselbe Fenster ein Blatt von unten.
+  */
+  .fenster { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88vh; display: flex; flex-direction: column; background: var(--surface); border-radius: 1rem 1rem 0 0; box-shadow: var(--shadow-lg); padding: 0 1rem 1rem; }
+  @media (min-width: 760px) {
+    .fenster { left: auto; top: 0; width: 27.5rem; max-width: 100%; max-height: none; border-radius: 0; padding: 0; }
+  }
+  .fenster-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
+  @media (min-width: 760px) { .fenster-kopf { padding: 1rem 1.25rem; } }
+  .fenster-titel { font-size: 1.125rem; line-height: 1.5rem; font-weight: 600; color: var(--ink-deep); }
+  .fenster-inhalt { overflow-y: auto; max-height: 70vh; padding-top: 1rem; }
+  @media (min-width: 760px) { .fenster-inhalt { flex: 1; max-height: none; padding: 1.25rem; } }
+  .fenster-griff { padding: 0.75rem 1rem 0.25rem; cursor: grab; touch-action: none; }
+  @media (min-width: 760px) { .fenster-griff { display: none; } }
+  .dialog { width: 100%; max-width: 26rem; padding: 1.25rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
+
+  /* ── Meldung mit „Rückgängig“ ─────────────────────────────────────────── */
+  /*
+    AM HANDY OBEN, ab dem Tablet unten in der Mitte wie im Entwurf. Unten am
+    Handy lägen Meldungen über der Hauptaktion im Daumenbereich und über der
+    Aktionsleiste — genau das war der Fehler G29 (Testbericht 30.09.2026).
+    Die Meldung selbst lässt Klicks nur dort durch, wo sie keinen Knopf hat.
+  */
+  .meldungen { pointer-events: none; position: fixed; left: 1rem; right: 1rem; top: 1rem; padding-top: env(safe-area-inset-top, 0px); z-index: 60; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+  @media (min-width: 760px) { .meldungen { top: auto; bottom: 1.5rem; padding-top: 0; } }
+  .meldung { pointer-events: none; display: flex; align-items: center; gap: 1.25rem; max-width: 32rem; padding: 0.75rem 1rem; border-radius: 0.625rem; background: #13262c; color: #ffffff; font-size: 0.9375rem; line-height: 1.375rem; box-shadow: var(--shadow-lg); }
+  .meldung-fehler { pointer-events: none; display: flex; align-items: center; gap: 1.25rem; max-width: 32rem; padding: 0.75rem 1rem; border-radius: 0.625rem; background: #13262c; color: #ffffff; font-size: 0.9375rem; line-height: 1.375rem; box-shadow: var(--shadow-lg); border-left: 4px solid #f07a6e; }
+  .meldung-text { flex: 1; }
+  .meldung-knopf { pointer-events: auto; flex: none; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: #9fe3ec; font-weight: 600; cursor: pointer; }
+
+  /* ── Gruppe und Zeilen ────────────────────────────────────────────────── */
+  .gruppe-anzahl { font-size: 0.8125rem; color: var(--text-muted); }
+  .mehr-laden { display: flex; align-items: center; width: 100%; min-height: 3rem; padding: 0.75rem 1rem; background: var(--surface); border: 0; border-top: 1px solid var(--border); text-align: left; color: var(--petrol); font-weight: 600; font-size: 0.9375rem; cursor: pointer; }
+  .mehr-laden:hover { background: var(--petrol-hell); }
+  .leer { padding: 1.25rem 1rem; color: var(--text-muted); font-size: 0.9375rem; }
+
+  /* ── Arbeitszeile und Sammelleiste (Arbeitslisten) ────────────────────── */
+  .arbeitszeile { display: flex; align-items: center; gap: 0.75rem; min-height: 3.75rem; padding: 0.5rem 1rem 0.5rem 0.5rem; border-top: 1px solid var(--border); background: var(--surface); }
+  .arbeitszeile-wahl { display: flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; flex: none; cursor: pointer; }
+  .arbeitszeile-inhalt { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.75rem; padding: 0.375rem 0; background: none; border: 0; text-align: left; color: inherit; cursor: pointer; }
+  .arbeitszeile-inhalt:hover { color: var(--petrol); }
+  @media (max-width: 759px) { .arbeitszeile-inhalt { flex-direction: column; align-items: flex-start; gap: 0.25rem; } }
+  .arbeitszeile-schritt { flex: none; min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); color: var(--petrol); border: 1px solid var(--petrol); border-radius: var(--radius); font-weight: 600; font-size: 0.875rem; white-space: nowrap; cursor: pointer; }
+  .arbeitszeile-schritt:hover { background: var(--petrol-hell); }
+  .arbeitszeile-schritt:disabled { opacity: 0.5; cursor: not-allowed; }
+  .sammelleiste { position: sticky; top: 0; z-index: 12; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--petrol); color: #ffffff; border-radius: var(--radius-lg); }
+  @media (max-width: 759px) {
+    .sammelleiste { position: fixed; left: 0; right: 0; top: auto; bottom: var(--reiter-hoehe, 0px); z-index: 22; border-radius: 0; }
+  }
+  .sammelleiste-knoepfe { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+  .sammel-knopf { min-height: 2.75rem; padding: 0 0.875rem; background: #ffffff; color: #0f4552; border: 0; border-radius: var(--radius); font-weight: 600; cursor: pointer; }
+  .sammel-knopf:disabled { opacity: 0.6; cursor: not-allowed; }
+  .sammel-text { min-height: 2.75rem; background: none; border: 0; color: #ffffff; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+  /* ── Kurzzeile (Akten) ────────────────────────────────────────────────── */
+  .kurz { border-top: 1px solid var(--border); }
+  .kurz-kopf { display: grid; grid-template-columns: 10rem minmax(0, 1fr) auto; gap: 1rem; align-items: baseline; min-height: 3rem; padding: 0.875rem 1rem; cursor: pointer; list-style: none; }
+  .kurz-kopf::-webkit-details-marker { display: none; }
+  .kurz-kopf::marker { content: ''; }
+  @media (max-width: 759px) { .kurz-kopf { grid-template-columns: minmax(0, 1fr) auto; gap: 0.25rem 1rem; } }
+  .kurz-name { font-weight: 600; color: var(--ink-deep); }
+  .kurz-wert { color: var(--text-muted); min-width: 0; }
+  @media (max-width: 759px) { .kurz-wert { grid-column: 1 / 2; grid-row: 2; } }
+  .kurz-zeichen { color: var(--text-muted); }
+  .kurz-inhalt { padding: 0 1rem 1rem; }
+  @media (min-width: 760px) { .kurz-inhalt { padding: 0 1rem 1rem 12rem; } }
+
+  /* ── Lot: der senkrechte Verlauf ──────────────────────────────────────── */
+  .lot { position: relative; margin: 0; padding: 0.25rem 0 0 2rem; list-style: none; }
+  .lot::before { content: ''; position: absolute; left: 0.6875rem; top: 0.625rem; bottom: 0.875rem; width: 2px; background: var(--petrol); }
+  .lot-punkt { position: relative; padding: 0 0 1rem; }
+  .lot-punkt::before { content: ''; position: absolute; left: -1.625rem; top: 0.375rem; width: 10px; height: 10px; border-radius: 999px; background: var(--petrol); }
+  .lot-jetzt { position: relative; padding: 0 0 1rem; }
+  .lot-jetzt::before { content: ''; position: absolute; left: -1.75rem; top: 0.25rem; width: 14px; height: 14px; border-radius: 999px; background: var(--surface); border: 3px solid var(--warning); }
+  .lot-titel { font-weight: 600; color: var(--ink-deep); }
+  .lot-zeit { font-size: 0.8125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+  /* ── Sprungleiste (Akten) ─────────────────────────────────────────────── */
+  .sprungleiste { position: sticky; top: 0; z-index: 5; display: flex; overflow-x: auto; gap: 0; padding: 0.25rem 0; background: var(--bg); scrollbar-width: none; }
+  .sprung-link { flex: none; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.75rem; color: var(--text-muted); text-decoration: none; white-space: nowrap; border-bottom: 2px solid var(--border); font-size: 0.875rem; }
+  .sprung-link:hover { color: var(--text); border-bottom-color: var(--petrol); }
+  @media (min-width: 1200px) {
+    .sprungleiste { flex-direction: column; overflow: visible; top: 1rem; padding: 0; background: transparent; }
+    .sprung-link { min-height: 2.25rem; border-bottom: 0; border-left: 2px solid var(--border); }
+    .sprung-link:hover { border-left-color: var(--petrol); }
+  }
+  .akte { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-items: start; }
+  @media (min-width: 1200px) { .akte { grid-template-columns: 10.5rem minmax(0, 1fr); gap: 2rem; } }
+
+  /* ── Formular ─────────────────────────────────────────────────────────── */
+  .formular { max-width: 35rem; }
+  .weiteres { border-top: 1px solid var(--border); margin: 0.5rem 0 1rem; }
+  .weiteres-kopf { display: flex; align-items: center; min-height: 2.75rem; cursor: pointer; font-weight: 600; color: var(--petrol); list-style: none; }
+  .weiteres-kopf::-webkit-details-marker { display: none; }
+  .weiteres-kopf::marker { content: ''; }
+  .weiteres-inhalt { display: flex; flex-direction: column; gap: 1rem; padding-bottom: 0.5rem; }
+  .fuss-aktionen { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+
+  /* ── Musterseite ─────────────────────────────────────────────────────── */
+  .muster-farbe { display: flex; align-items: center; gap: 0.75rem; min-height: 2.75rem; font-size: 0.875rem; }
+  .muster-feld { width: 2rem; height: 2rem; flex: none; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+}

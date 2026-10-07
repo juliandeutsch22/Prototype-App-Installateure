@@ -417,7 +417,7 @@ export default function OrderView() {
             className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm transition sm:px-4 ${
               tab === t.key
                 ? 'border-b-brand-fixed font-semibold text-ink-deep'
-                : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
+                : 'border-b-transparent font-normal text-ink-muted hover:text-ink'
             }`}
           >
             {t.label}
@@ -921,7 +921,7 @@ function QtyAdder({
   return (
     <div className="flex items-center gap-1">
       {added > 0 && (
-        <span className="mr-1 text-sm font-bold text-brand" aria-live="polite">
+        <span className="mr-1 text-sm font-semibold text-brand" aria-live="polite">
           ×{fmtMenge(added)}
         </span>
       )}

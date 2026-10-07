@@ -100,7 +100,7 @@ export default function PersonPicker({
 
   return (
     <fieldset>
-      <legend className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink">
+      <legend className="flex flex-wrap items-center gap-2 text-sm font-normal text-ink">
         {legend}
         {selected.length > 0 && <Marke>{selected.length} ausgewählt</Marke>}
       </legend>
@@ -234,7 +234,7 @@ export default function PersonPicker({
                   aria-label={`${p.name} entfernen`}
                   // Weiss mit Linie wie ein Nebenknopf, keine getönte Pille
                   // (Designlinie „Fassung 3": keine Pillen, nicht bunt).
-                  className="inline-flex min-h-touch items-center gap-2 rounded-sm border border-line bg-surface px-3 py-1 text-sm font-medium text-ink hover:bg-surface-2"
+                  className="inline-flex min-h-touch items-center gap-2 rounded-sm border border-line bg-surface px-3 py-1 text-sm font-normal text-ink hover:bg-surface-2"
                 >
                   {p.name}
                   <span aria-hidden="true" className="text-base leading-none">

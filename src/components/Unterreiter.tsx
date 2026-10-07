@@ -101,7 +101,7 @@ export default function Unterreiter({
                   // Markierung ist Oberfläche, keine Handlung.
                   isActive
                     ? 'border-b-brand-fixed font-semibold text-ink-deep'
-                    : 'border-b-transparent font-medium text-ink-muted hover:text-ink',
+                    : 'border-b-transparent font-normal text-ink-muted hover:text-ink',
                 ].join(' ')
               }
             >

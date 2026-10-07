@@ -28,7 +28,7 @@ export function AdresseLink({ adresse, variante = 'text', className = '', kuerze
   const gemeinsam = 'inline-flex min-h-touch items-center gap-1.5';
   const stil =
     variante === 'knopf'
-      ? 'rounded-sm border border-line px-3 py-2 font-medium text-ink'
+      ? 'rounded-sm border border-line px-3 py-2 font-normal text-ink'
       : 'link-kontakt';
   return (
     <a
@@ -59,7 +59,7 @@ export function TelefonLink({ nummer, name, variante = 'text', className = '' }:
   const gemeinsam = 'inline-flex min-h-touch items-center gap-1.5';
   const stil =
     variante === 'knopf'
-      ? 'rounded-sm border border-line px-3 py-2 font-medium text-ink'
+      ? 'rounded-sm border border-line px-3 py-2 font-normal text-ink'
       : 'link-kontakt';
   return (
     <a href={telUrl(nummer)} className={`${gemeinsam} ${stil} ${className}`}>
@@ -91,7 +91,7 @@ export function MailLink({ adresse, variante = 'text', className = '' }: MailPro
   const gemeinsam = 'inline-flex min-h-touch items-center gap-1.5';
   const stil =
     variante === 'knopf'
-      ? 'rounded-sm border border-line px-3 py-2 font-medium text-ink'
+      ? 'rounded-sm border border-line px-3 py-2 font-normal text-ink'
       : 'link-kontakt';
   if (!ziel) {
     return (

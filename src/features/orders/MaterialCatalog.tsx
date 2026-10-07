@@ -346,7 +346,7 @@ export default function MaterialCatalog({
           <FormGrid>
             {!form.lagerartikel ? null : editId ? (
               <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-ink">Lagerbestand</span>
+                <span className="text-sm font-normal text-ink">Lagerbestand</span>
                 <p className="text-sm text-ink">
                   {form.stock} {form.unit || 'Stk'}
                 </p>

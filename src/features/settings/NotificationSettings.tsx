@@ -177,7 +177,7 @@ export default function NotificationSettings() {
         <p
           className={
             zustand.ton === 'ok'
-              ? 'font-medium text-success'
+              ? 'font-normal text-success'
               : zustand.ton === 'hinweis'
                 ? 'text-warning'
                 : 'text-ink-muted'

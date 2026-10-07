@@ -247,7 +247,7 @@ export default function ArbeitszeitGrenzenKarte({
     const mitTag = buchungen.some((e) => e.date !== buchungen[0].date);
     return (
       <span className="flex flex-wrap items-center gap-x-3">
-        <span className="font-medium text-ink">Verstoß —</span>
+        <span className="font-normal text-ink">Verstoß —</span>
         {buchungen.length === 0 ? (
           <span className="text-ink-muted">
             {fall.art === 'woche' || fall.art === 'wochenfrei'
@@ -302,7 +302,7 @@ export default function ArbeitszeitGrenzenKarte({
             const { titel: was, gesetz } = grenzText(fall);
             return (
               <li key={schluessel} className="flex flex-col gap-1 py-2 text-sm">
-                <span className="font-medium text-ink-deep">
+                <span className="font-normal text-ink-deep">
                   {person.name}{fall.jugendlich ? ' · unter 18' : ''}
                 </span>
                 <span className="text-ink">

@@ -382,7 +382,7 @@ export default function PlattformView() {
               <li key={f.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 {f.notzugang ? <Warnung>Notzugang</Warnung> : null}
                 {f.stufe === 'mitarbeiten' ? <Warnung>mitarbeiten</Warnung> : <Marke>ansehen</Marke>}
-                <span className="font-medium">{f.name}</span>
+                <span className="font-normal">{f.name}</span>
                 <span className="text-ink-muted">{f.grund}</span>
                 <span className="text-ink-muted">
                   bis {new Date(f.gilt_bis).toLocaleString('de-AT', {
@@ -457,7 +457,7 @@ export default function PlattformView() {
             {betriebe.map((b) => (
               <li key={b.kennung} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <span className="min-w-0">
-                  <span className="block font-medium text-ink">
+                  <span className="block font-normal text-ink">
                     {b.name} <span className="font-normal text-ink-muted">({b.kennung})</span>
                   </span>
                   <span className="block text-ink-muted">
@@ -504,7 +504,7 @@ export default function PlattformView() {
         )}
         {geloescht.length > 0 && (
           <div className="mt-4 border-t border-line pt-3">
-            <p className="text-sm font-medium text-ink">Gelöscht ({geloescht.length})</p>
+            <p className="text-sm font-normal text-ink">Gelöscht ({geloescht.length})</p>
             <p className="text-sm text-ink-muted">
               Das Löschprotokoll, ohne Inhalte. Diese Kennungen werden nie wieder vergeben.
             </p>

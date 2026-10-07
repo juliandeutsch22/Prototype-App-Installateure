@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AB_SCHREIBTISCH } from '@/lib/breiten';
 
 /**
  * Die Schritte des Handwerksscheins und die Frage, ob sie überhaupt als
@@ -15,7 +16,7 @@ export const SCHRITTE: ReadonlyArray<{ nr: Schritt; name: string }> = [
 ];
 
 /** Ab hier eine Seite statt Schritten — dieselbe Grenze wie Tailwinds `lg`. */
-const BREIT = '(min-width: 1024px)';
+const BREIT = AB_SCHREIBTISCH;
 
 /*
   OHNE MEDIENABFRAGE EINE SEITE. Kennt die Umgebung `matchMedia` nicht (jsdom

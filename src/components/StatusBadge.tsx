@@ -16,10 +16,10 @@ import { Zustand, type Stand } from './Badge';
  */
 const STATUS_STAND: Record<string, Stand> = {
   // Bestell-Status
-  Offen: 'achtung',
+  Offen: 'offen',
   'In Bearbeitung': 'laeuft',
   Abholbereit: 'laeuft',
-  Erledigt: 'gut',
+  Erledigt: 'ruht',
   // Rechnungs-Status
   Überfällig: 'schlecht',
   /*
@@ -29,11 +29,11 @@ const STATUS_STAND: Record<string, Stand> = {
     fällt sonst niemandem auf ausser dem Kunden.
   */
   Teilbezahlt: 'laeuft',
-  Bezahlt: 'gut',
+  Bezahlt: 'ruht',
   Überzahlt: 'achtung',
   Storniert: 'ruht',
   // Baustellen-Status
-  Aktiv: 'gut',
+  Aktiv: 'laeuft',
   Pausiert: 'achtung',
   Abgeschlossen: 'ruht',
 };

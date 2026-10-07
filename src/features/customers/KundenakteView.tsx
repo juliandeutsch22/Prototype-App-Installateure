@@ -764,7 +764,7 @@ function StammdatenFormular({
       />
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="k-notiz" className="text-sm font-medium text-ink">Notiz</label>
+        <label htmlFor="k-notiz" className="text-sm font-normal text-ink">Notiz</label>
         <textarea
           id="k-notiz"
           rows={3}

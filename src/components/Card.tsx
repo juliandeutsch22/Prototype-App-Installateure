@@ -1,5 +1,6 @@
 import { useId, useState, type ReactNode } from 'react';
 import { InfoButton, InfoPanel } from './InfoHint';
+import { useSeitenHilfe } from './SeitenHilfe';
 
 interface CardProps {
   children: ReactNode;
@@ -49,6 +50,9 @@ export default function Card({
 }: CardProps) {
   const [hinweisOffen, setHinweisOffen] = useState(false);
   const hinweisId = useId();
+  /* Auf einer Seite wandert die Erklärung in „Hilfe zu dieser Seite“ (Regel 11). */
+  const inSeitenhilfe = useSeitenHilfe(title ?? '', title ? hint : undefined);
+  const eigenesI = !!hint && !inSeitenhilfe;
 
   /*
     DER KÖRPER: gepolstert (`karte-koerper`), oder bündig für Zeilen. Ohne
@@ -78,7 +82,7 @@ export default function Card({
                 steht es in derselben Zeile links. */}
             <h2 className="titel-karte">
               {title}
-              {hint && (
+              {eigenesI && (
                 <InfoButton
                   about={title}
                   offen={hinweisOffen}
@@ -92,7 +96,7 @@ export default function Card({
           {/* Der Text steht UNTER der Kopfzeile, nicht darin: die Kopfzeile
               ist mobil eine Spalte, und in einer Spalten-Flexbox bedeutet
               „volle Basis" volle Höhe statt voller Breite. */}
-          {hint && hinweisOffen && (
+          {eigenesI && hinweisOffen && (
             <InfoPanel id={hinweisId} className="mt-1 w-full">
               {hint}
             </InfoPanel>

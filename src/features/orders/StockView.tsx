@@ -255,7 +255,7 @@ export default function StockView() {
             className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm transition sm:px-4 ${
               tab === t.key
                 ? 'border-b-brand-fixed font-semibold text-ink-deep'
-                : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
+                : 'border-b-transparent font-normal text-ink-muted hover:text-ink'
             }`}
           >
             {t.label}

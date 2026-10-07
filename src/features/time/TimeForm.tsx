@@ -774,7 +774,7 @@ export default function TimeForm({
             mal mit, mal ohne Bindestrich, mal gar nicht. Dieselbe
             Lösung wie im Prototyp (Zeile 940). */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="vehiclePlate" className="text-sm font-medium text-ink">
+          <label htmlFor="vehiclePlate" className="text-sm font-normal text-ink">
             Fahrzeug (Kennzeichen)
           </label>
           <div className="flex">
@@ -788,7 +788,7 @@ export default function TimeForm({
             {kennzeichenVorsatz && (
               <span
                 aria-hidden
-                className="flex min-h-touch shrink-0 items-center rounded-l border border-r-0 border-line bg-surface-2 px-3 font-medium text-ink-muted"
+                className="flex min-h-touch shrink-0 items-center rounded-l border border-r-0 border-line bg-surface-2 px-3 font-normal text-ink-muted"
               >
                 {kennzeichenVorsatz}-
               </span>
@@ -886,7 +886,7 @@ export default function TimeForm({
           }}
           // Weiss mit Haarlinie wie ein Nebenknopf (Designlinie „Fassung 3"):
           // die türkis getönte Fläche war die einzige farbige im Formular.
-          className="flex min-h-touch w-full items-center gap-2 rounded border border-line bg-surface px-3 py-2 text-left text-sm font-medium text-ink-deep shadow-sm transition hover:bg-surface-2 active:scale-[0.99]"
+          className="flex min-h-touch w-full items-center gap-2 rounded border border-line bg-surface px-3 py-2 text-left text-sm font-normal text-ink-deep shadow-sm transition hover:bg-surface-2 active:scale-[0.99]"
         >
           {/* Umbrechen statt abschneiden: der Kundenname ist das, woran man
               den Eintrag wiedererkennt. */}
@@ -1306,7 +1306,7 @@ export default function TimeForm({
                 className="flex min-h-touch w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm"
               >
                 <span className="min-w-0">
-                  <span className="flex flex-wrap items-center gap-x-2 font-medium text-ink-deep">
+                  <span className="flex flex-wrap items-center gap-x-2 font-normal text-ink-deep">
                     Weitere Angaben
                     {/* Leise: niemand muss hier etwas eintragen. */}
                     <span className="stand stand-leise font-normal">optional</span>

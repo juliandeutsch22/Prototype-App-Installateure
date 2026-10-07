@@ -2672,12 +2672,12 @@ export default function InvoicesView() {
             <table className="w-full min-w-[34rem] text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-ink-muted">
-                  <th className="py-1 pr-3 font-medium">Position</th>
-                  <th className="py-1 pr-3 text-right font-medium">Menge</th>
-                  <th className="py-1 pr-3 font-medium">Einheit</th>
-                  <th className="py-1 pr-3 text-right font-medium">EP</th>
-                  <th className="py-1 pr-3 text-right font-medium">Netto</th>
-                  <th className="py-1 text-right font-medium">
+                  <th className="py-1 pr-3 font-normal">Position</th>
+                  <th className="py-1 pr-3 text-right font-normal">Menge</th>
+                  <th className="py-1 pr-3 font-normal">Einheit</th>
+                  <th className="py-1 pr-3 text-right font-normal">EP</th>
+                  <th className="py-1 pr-3 text-right font-normal">Netto</th>
+                  <th className="py-1 text-right font-normal">
                     <span className="sr-only">Entfernen</span>
                   </th>
                 </tr>
@@ -2761,7 +2761,7 @@ export default function InvoicesView() {
                         onWert={(n) => setPos(i, { unitPrice: n })}
                       />
                     </td>
-                    <td className="py-2 pr-3 text-right font-medium">{euro(p.netto)}</td>
+                    <td className="py-2 pr-3 text-right font-normal">{euro(p.netto)}</td>
                     <td className="py-2 text-right">
                       <IconButton
                         label={`Position ${i + 1} entfernen`}
@@ -2805,7 +2805,7 @@ export default function InvoicesView() {
                   </td>
                   <td />
                 </tr>
-                <tr className={abzuege.length > 0 ? '' : 'font-bold'}>
+                <tr className={abzuege.length > 0 ? '' : 'font-semibold'}>
                   <td colSpan={4} className="text-right">
                     {/* Wo abgezogen wird, ist diese Zeile nicht der
                         Rechnungsbetrag, sondern die volle Leistung. */}
@@ -2829,7 +2829,7 @@ export default function InvoicesView() {
                   </tr>
                 ))}
                 {abzuege.length > 0 && summen && (
-                  <tr className="font-bold">
+                  <tr className="font-semibold">
                     <td colSpan={4} className="text-right">Restforderung brutto</td>
                     <td className="pr-3 text-right">{euro(summen.totalBrutto)}</td>
                     <td />
@@ -2910,7 +2910,7 @@ export default function InvoicesView() {
                 </p>
               )}
               {summen?.gutschrift && (
-                <p className="mt-3 text-sm font-medium text-danger" role="alert">
+                <p className="mt-3 text-sm font-normal text-danger" role="alert">
                   Die Abzüge übersteigen die Gesamtleistung um {euro(-summen.totalBrutto)}. Das
                   wäre eine Gutschrift, und die kann diese App noch nicht — sie lässt sich hier
                   nicht anlegen.
@@ -2985,7 +2985,7 @@ export default function InvoicesView() {
               </p>
             )}
             {numberTaken && (
-              <p className="text-sm font-medium text-danger" role="alert">
+              <p className="text-sm font-normal text-danger" role="alert">
                 Diese Rechnungsnummer ist bereits vergeben.
               </p>
             )}
@@ -3404,18 +3404,18 @@ export default function InvoicesView() {
               {liste.map((inv) => (
                 <Fragment key={inv.id}>
                 <tr>
-                  <td className="whitespace-nowrap font-medium text-ink-deep">
+                  <td className="whitespace-nowrap font-normal text-ink-deep">
                     <button type="button" className="link -my-3 inline-block py-3" onClick={() => setDetailFuer(inv)}>
                       {inv.invoiceNumber}
                     </button>
                   </td>
                   <td>
-                    <span className="font-medium text-ink-deep">{inv.customerName}</span>
+                    <span className="font-normal text-ink-deep">{inv.customerName}</span>
                     <span className="block text-meta text-ink-muted">{rechnungNotizen(inv)}</span>
                   </td>
                   <td className="whitespace-nowrap">{datumAT(inv.invoiceDate)}</td>
                   <td className="whitespace-nowrap">{datumAT(inv.dueDate)}</td>
-                  <td className="r whitespace-nowrap font-medium text-ink-deep">{euro(inv.totalBrutto)}</td>
+                  <td className="r whitespace-nowrap font-normal text-ink-deep">{euro(inv.totalBrutto)}</td>
                   <td>
                     <StatusBadge status={inv.paymentStatus} />
                   </td>
@@ -3429,14 +3429,14 @@ export default function InvoicesView() {
                 */}
                 {inv.stornoNummer && (
                   <tr>
-                    <td className="whitespace-nowrap font-medium text-ink-deep">{inv.stornoNummer}</td>
+                    <td className="whitespace-nowrap font-normal text-ink-deep">{inv.stornoNummer}</td>
                     <td>
-                      <span className="font-medium text-ink-deep">{inv.customerName}</span>
+                      <span className="font-normal text-ink-deep">{inv.customerName}</span>
                       <span className="block text-meta text-ink-muted">Stornorechnung zu <span className="nr">{inv.invoiceNumber}</span></span>
                     </td>
                     <td className="whitespace-nowrap">{stornoDatum(inv)}</td>
                     <td className="whitespace-nowrap">—</td>
-                    <td className="r whitespace-nowrap font-medium text-ink-deep">{euro(-inv.totalBrutto)}</td>
+                    <td className="r whitespace-nowrap font-normal text-ink-deep">{euro(-inv.totalBrutto)}</td>
                     <td><Marke>Stornorechnung</Marke></td>
                     <td className="r">
                       {stornoMenue(inv)}

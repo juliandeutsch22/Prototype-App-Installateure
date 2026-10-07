@@ -127,7 +127,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               onClick={() => {
                 window.location.href = '/';
               }}
-              className="min-h-touch rounded-sm border border-line px-4 py-2 font-medium text-ink"
+              className="min-h-touch rounded-sm border border-line px-4 py-2 font-normal text-ink"
             >
               Zur Startseite
             </button>

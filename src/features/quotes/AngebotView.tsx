@@ -487,7 +487,7 @@ function Angabe({ wort, children }: { wort: string; children: React.ReactNode })
 
 function Summe({ wort, fett, children }: { wort: string; fett?: boolean; children: React.ReactNode }) {
   return (
-    <div className={`flex justify-between gap-3 ${fett ? 'font-bold text-ink' : 'text-ink-muted'}`}>
+    <div className={`flex justify-between gap-3 ${fett ? 'font-semibold text-ink' : 'text-ink-muted'}`}>
       <dt>{wort}</dt>
       <dd>{children}</dd>
     </div>

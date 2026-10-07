@@ -518,7 +518,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                   <tr>
                     <th
                       scope="row"
-                      className="sticky left-0 z-10 border-b border-line bg-surface p-2 text-left font-medium text-ink"
+                      className="sticky left-0 z-10 border-b border-line bg-surface p-2 text-left font-normal text-ink"
                     >
                       Termine
                     </th>
@@ -531,7 +531,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                               title={`${terminKopf(t)} · ${bezugText(t)}`}
                               className="block rounded-sm border border-line px-1.5 py-1 text-left text-xs"
                             >
-                              <span className="block truncate font-medium text-ink">{terminKopf(t)}</span>
+                              <span className="block truncate font-normal text-ink">{terminKopf(t)}</span>
                               <span className="block truncate text-ink-muted">{bezugText(t)}</span>
                             </span>
                           ))}
@@ -544,7 +544,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                   <tr key={u.uid}>
                     <th
                       scope="row"
-                      className="sticky left-0 z-10 max-w-[7rem] truncate border-b lg:max-w-[9rem] xl:max-w-[10rem] border-line bg-surface p-2 text-left font-medium text-ink"
+                      className="sticky left-0 z-10 max-w-[7rem] truncate border-b lg:max-w-[9rem] xl:max-w-[10rem] border-line bg-surface p-2 text-left font-normal text-ink"
                     >
                       {u.name}
                     </th>
@@ -623,7 +623,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                                     title={`${b.name} · ${b.nummer}`}
                                     className="block rounded-sm border border-line bg-surface-2 px-1.5 py-1 text-left text-xs"
                                   >
-                                    <span className="block truncate font-medium text-ink">{b.name}</span>
+                                    <span className="block truncate font-normal text-ink">{b.name}</span>
                                     <span className="block truncate text-ink-muted">{b.nummer}</span>
                                     {b.helfer && <span className="block truncate text-ink-muted">als Helfer</span>}
                                   </span>
@@ -641,7 +641,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                                   // jemand als Helfer mitgeht, steht als Wort da, nicht als Farbe.
                                   className="min-h-touch w-full rounded-sm border border-line bg-surface-2 px-1.5 py-1 text-left text-xs"
                                 >
-                                  <span className="block truncate font-medium text-ink">{b.name}</span>
+                                  <span className="block truncate font-normal text-ink">{b.name}</span>
                                   <span className="block truncate text-ink-muted">{b.nummer}</span>
                                   {b.helfer && <span className="block truncate text-ink-muted">als Helfer</span>}
                                 </button>
@@ -705,7 +705,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                       <ul aria-label={`Termine am ${datum}`} className="space-y-1">
                         {termineAm(tag).map((tt) => (
                           <li key={tt.id} className="text-sm">
-                            <span className="font-medium text-ink">{terminKopf(tt)}</span>{' '}
+                            <span className="font-normal text-ink">{terminKopf(tt)}</span>{' '}
                             <span className="text-ink-muted">· {bezugText(tt)}</span>
                           </li>
                         ))}
@@ -718,7 +718,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                             key={b.nummer}
                             className="rounded-sm border border-line bg-surface px-3 py-2"
                           >
-                            <span className="block font-medium text-ink">
+                            <span className="block font-normal text-ink">
                               {b.name} <span className="font-normal text-ink-muted">· {b.nummer}</span>
                             </span>
                             <span className="block text-sm text-ink-muted">
@@ -736,7 +736,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                           aria-label={`${b.name} (${b.nummer}) am ${datum} bearbeiten`}
                           className="min-h-touch w-full rounded-sm border border-line bg-surface px-3 py-2 text-left"
                         >
-                          <span className="block font-medium text-ink">
+                          <span className="block font-normal text-ink">
                             {b.name} <span className="font-normal text-ink-muted">· {b.nummer}</span>
                           </span>
                           <span className="block text-sm text-ink-muted">
@@ -759,12 +759,12 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
 
                     {!nurLesen && !wochenende && !feiertag && t && t.frei.length > 0 && (
                       <p className="text-sm text-ink-muted">
-                        <span className="font-medium text-ink">Frei:</span> {t.frei.join(', ')}
+                        <span className="font-normal text-ink">Frei:</span> {t.frei.join(', ')}
                       </p>
                     )}
                     {t && t.urlaub.length > 0 && (
                       <p className="text-sm text-ink-muted">
-                        <span className="font-medium text-ink">Abwesend:</span>{' '}
+                        <span className="font-normal text-ink">Abwesend:</span>{' '}
                         {t.urlaub.join(', ')}
                       </p>
                     )}
@@ -807,7 +807,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
 function FehltZeile({ namen, fehlen }: { namen: string[]; fehlen: string[] }) {
   if (fehlen.length === 0) return null;
   return (
-    <span className="block text-sm font-medium text-danger">
+    <span className="block text-sm font-normal text-danger">
       {namen.length === 0 ? 'Unbesetzt — ' : ''}fehlt: {fehlen.join(', ')}
     </span>
   );
