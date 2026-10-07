@@ -549,6 +549,7 @@ export default function EinsatzFormular({
               // Stundenweise weg macht niemanden unfrei — vormittags
               // ist er da.
               nichtFrei: imUrlaub.has(u.uid) || !!andere?.length,
+              abwesend: imUrlaub.has(u.uid),
             };
           })}
           selected={staff.filter((u) => picks[u.uid]?.on).map((u) => u.uid)}

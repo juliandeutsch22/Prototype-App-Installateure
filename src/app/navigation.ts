@@ -205,9 +205,14 @@ export const UNTER: Record<string, Unterseite[]> = {
    *
    * Der Tag steht zuerst: er ist der Ort, an dem geschrieben wird.
    */
+  /*
+    DIE WOCHE ZUERST (Linie „Lot“, Protokoll E2): `/assignments` führt auf
+    den Wochenplan, die Planungsseite mit Seitenfenster. „Tag planen“ bleibt
+    unter seiner Adresse erreichbar, für den einzelnen Tag mit Kalender.
+  */
   '/assignments': [
-    { pfad: 'tag', label: 'Tag planen' },
     { pfad: 'woche', label: 'Wochenplan' },
+    { pfad: 'tag', label: 'Tag planen' },
   ],
   /*
    * MEIN EINSATZPLAN — und, wenn der Betrieb es will, die ganze Woche des

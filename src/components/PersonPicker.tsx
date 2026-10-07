@@ -17,6 +17,12 @@ export interface PickablePerson {
    * nicht erst.
    */
   nichtFrei?: boolean;
+  /**
+   * Abwesend (Urlaub, Krankenstand, Zeitausgleich): die Zeile steht grau
+   * (Linie „Lot“, Protokoll E2). Verboten wird auch hier nichts — wer
+   * trotzdem einteilt, bekommt die Warnung des Formulars.
+   */
+  abwesend?: boolean;
 }
 
 interface PersonPickerProps {
@@ -177,7 +183,7 @@ export default function PersonPicker({
                   const an = selected.includes(p.uid);
                   const id = `${idPrefix}-${p.uid}`;
                   return (
-                    <li key={p.uid} className={an ? 'bg-surface-2' : ''}>
+                    <li key={p.uid} className={an ? 'bg-surface-2' : p.abwesend ? 'bg-surface-3' : ''}>
                       {/*
                         DIE ZEILE ÄNDERT BEIM ANHAKEN IHRE HÖHE NICHT (Nachtest
                         01.10.2026, G6). „als Helfer“ erschien erst nach dem
@@ -199,7 +205,7 @@ export default function PersonPicker({
                             className="checkbox"
                           />
                           <span className="min-w-0">
-                            <span className="block truncate text-ink">{p.name}</span>
+                            <span className={`block truncate ${p.abwesend ? 'text-ink-muted' : 'text-ink'}`}>{p.name}</span>
                             {p.hint && (
                               <span className="block truncate text-xs text-ink-muted">{p.hint}</span>
                             )}
