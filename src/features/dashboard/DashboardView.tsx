@@ -51,19 +51,24 @@ import {
  * DIE STARTSEITE (Testbericht 4.2, Nachtest 01.10.2026 Paket B; Skizzen in
  * `docs/design/startseite-skizzen`).
  *
- * Für jede Rolle derselbe Aufbau:
+ * Für jede Rolle derselbe Aufbau (Linie „Lot“, Protokoll E1):
  *   1. Seitenkopf — der Tag als Überschrift, KW, Betrieb, Rolle.
- *   2. Handlungsbedarf — EINE Karte, je Thema ein Abschnitt mit höchstens
+ *   2. Kennzahlen — höchstens vier, jede ein Verweis, als Leiste über allem.
+ *   3. Zu erledigen — EINE Karte, je Thema ein Abschnitt mit höchstens
  *      drei Zeilen und „und N weitere →“ auf die gefilterte Fachseite.
- *   3. Heute — was heute ansteht (Einsatz, Lieferungen, Zahlungseingänge,
+ *   4. Heute — was heute ansteht (Einsatz, Lieferungen, Zahlungseingänge,
  *      wer wo ist).
- *   4. Kennzahlen — höchstens vier, jede ein Verweis.
  *
- * Am Schreibtisch links Handlungsbedarf, rechts Heute und Kennzahlen; am
- * Telefon eine Spalte in dieser Reihenfolge. Ist nichts zu tun: „Heute
- * liegt nichts an“ und darunter, über die ganze Breite, Heute (bei der
- * Leitung, wenn es Einsätze gibt) und die Kennzahlen — keine leere Spalte
- * (G20).
+ * DIE KENNZAHLEN STEHEN OBEN, nicht mehr unter „Heute“ in der rechten
+ * Spalte. Dort rutschten sie am Schreibtisch unter den Rand, sobald der
+ * Monteur zwei Einsätze hatte — die Zahl, die man zuerst überfliegt, stand
+ * zuletzt. Oben sind es höchstens vier Zahlen in einer Zeile (am Telefon
+ * zwei), und darunter beginnt die Arbeit.
+ *
+ * Am Schreibtisch links „Zu erledigen“, rechts „Heute“; am Telefon eine
+ * Spalte in dieser Reihenfolge. Ist nichts zu tun: „Heute liegt nichts an“
+ * und darunter, über die ganze Breite, Heute (bei der Leitung, wenn es
+ * Einsätze gibt) — keine leere Spalte (G20).
  *
  * Was eine Rolle zeigt, steht in `start/aufbau.ts` und `start/regeln.ts`;
  * geladen wird in `start/laden.ts`.
@@ -215,7 +220,6 @@ export default function DashboardView() {
   );
   const hatHeute = eigene.length > 0 || termine.length > 0 || !!seite.heute;
   const hatBedarf = seite.abschnitte.length > 0;
-  const hatRechts = hatHeute || seite.kennzahlen.length > 0;
 
   return (
     <div className="space-y-3 lg:space-y-5" data-geladen={nochAmLaden ? 'nein' : 'ja'}>
@@ -242,7 +246,7 @@ export default function DashboardView() {
       {/* Die Nachtläufe zuerst: ihr Schaden wächst mit der Zeit, statt aufzufallen. */}
       <LaufWarnung />
 
-      {/* Die Verwaltung vereinbart Wartungstermine; bei der Leitung stehen sie im Handlungsbedarf. */}
+      {/* Die Verwaltung vereinbart Wartungstermine; bei der Leitung stehen sie unter „Zu erledigen“. */}
       {rolle === 'verwaltung' && <WartungHinweis />}
 
       {/* Ohne Eintrittsdatum lässt sich nicht sagen, welche Tage fehlen — gesagt, nicht verschwiegen. */}
@@ -256,26 +260,26 @@ export default function DashboardView() {
         </Hinweiszeile>
       )}
 
+      {/* Die Zahlen zuerst, über die ganze Breite (Protokoll E1). */}
+      <Kennzahlen werte={seite.kennzahlen} />
+
       {nochAmLaden && !hatBedarf && !hatHeute ? (
         <Card>
           <LoadingState />
         </Card>
       ) : hatBedarf ? (
-        hatRechts ? (
-          <div className="zwei-spalten">
-            <div className="spalte start-breit">
-              <Handlungsbedarf abschnitte={seite.abschnitte} zaehlwort={seite.zaehlwort} />
-            </div>
-            <div className="spalte">
-              {heuteKarten}
-              <Kennzahlen werte={seite.kennzahlen} raster />
-            </div>
-          </div>
-        ) : (
-          <div className="start-breit">
+        /*
+          EIN BAUM FÜR BEIDE FÄLLE: kommt „Heute“ erst nach „Zu erledigen“,
+          wird nur die rechte Spalte angefügt. Zwei getrennte Zweige hätten
+          die Karte dabei neu aufgebaut — ein schon aufgeklapptes „und N
+          weitere“ wäre wieder zu gewesen.
+        */
+        <div className={hatHeute ? 'zwei-spalten' : undefined}>
+          <div className="spalte start-breit">
             <Handlungsbedarf abschnitte={seite.abschnitte} zaehlwort={seite.zaehlwort} />
           </div>
-        )
+          {hatHeute && <div className="spalte">{heuteKarten}</div>}
+        </div>
       ) : (
         /* Nichts zu tun: EINE Spalte über die ganze Breite (G20). */
         <div className="spalte start-breit">
@@ -289,7 +293,6 @@ export default function DashboardView() {
             </section>
           )}
           {heuteKarten}
-          <Kennzahlen werte={seite.kennzahlen} />
         </div>
       )}
 

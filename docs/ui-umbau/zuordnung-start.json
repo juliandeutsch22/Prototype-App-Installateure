@@ -1,0 +1,549 @@
+{
+ "schritt": "E1 – Startseiten je Rolle; E9 (Teil) – Mitarbeiterübersicht, Nachkalkulation",
+ "eintraege": [
+  {
+   "alt": "start.kopf.titel",
+   "neu": "start.kopf.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Der Tag als Überschrift, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "start.kopf.meta",
+   "neu": "start.kopf.meta",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "KW · Betrieb · Rolle · Feiertag, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "start.laufwarnung",
+   "neu": "start.laufwarnung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "GF/Administrator, nur wenn ein Nachtlauf aussteht; Stelle unverändert (tests/components/LaufWarnung.test.tsx)",
+   "geprueft": true
+  },
+  {
+   "alt": "start.laufwarnung.link",
+   "neu": "start.laufwarnung.link",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Zur Datensicherung“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "start.wartunghinweis",
+   "neu": "start.wartunghinweis",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Verwaltung, unverändert (tests/components/WartungHinweis.test.tsx)",
+   "geprueft": true
+  },
+  {
+   "alt": "start.wartunghinweis.link",
+   "neu": "start.wartunghinweis.link",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Zu den Wartungen“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "start.kein-eintritt",
+   "neu": "start.kein-eintritt",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Hinweis „Kein Eintrittsdatum hinterlegt“, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "start.handlungsbedarf.karte",
+   "neu": "start.zu-erledigen.karte",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Umbenannt in „Zu erledigen“ (Protokoll E1); Inhalt, Zählung und „· N Themen“ gleich (tests/components/DashboardView.test.tsx)",
+   "geprueft": true
+  },
+  {
+   "alt": "start.handlungsbedarf.abschnitt",
+   "neu": "start.zu-erledigen.abschnitt",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Je Thema ein Abschnitt, höchstens drei Zeilen, Dringlichstes zuerst — unverändert (Regeln in start/aufbau.ts unberührt)",
+   "geprueft": true
+  },
+  {
+   "alt": "start.handlungsbedarf.zeile",
+   "neu": "start.zu-erledigen.zeile",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Ganze Zeile ein Verweis auf die gefilterte Fachseite, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "start.handlungsbedarf.weiter",
+   "neu": "start.zu-erledigen.weiter",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„und N weitere →“ auf die gefilterte Fachseite, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "start.handlungsbedarf.aufklappen",
+   "neu": "start.zu-erledigen.aufklappen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "GF/Administrator: „und N weitere →“ klappt an Ort und Stelle auf; bleibt jetzt auch offen, wenn „Heute“ nachlädt (ein Baum für beide Fälle)",
+   "geprueft": true
+  },
+  {
+   "alt": "start.heute.eigene.karte",
+   "neu": "start.heute.eigene.karte",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Heute“ bzw. „Dein Einsatz heute“ mit Adresse, Telefon, Aufgabe, „Danach“ — rechte Spalte am Schreibtisch, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "start.heute.eigene.einsatzplan",
+   "neu": "start.heute.eigene.einsatzplan",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Mein Einsatzplan“, nur wo die Rolle darf",
+   "geprueft": true
+  },
+  {
+   "alt": "start.heute.eigene.wie-zuletzt",
+   "neu": "start.heute.eigene.wie-zuletzt",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Wie zuletzt buchen“ mit Zeiten der letzten Buchung; nur der Schatten entfiel (Linie: keine Schatten)",
+   "geprueft": true
+  },
+  {
+   "alt": "start.heute.eigene.zeit-erfassen",
+   "neu": "start.heute.eigene.zeit-erfassen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Zeit erfassen“ ohne letzte Buchung; ohne Schatten",
+   "geprueft": true
+  },
+  {
+   "alt": "start.heute.eigene.andere-zeit",
+   "neu": "start.heute.eigene.andere-zeit",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Andere Zeit“; ohne Schatten",
+   "geprueft": true
+  },
+  {
+   "alt": "start.heute.eigene.schein",
+   "neu": "start.heute.eigene.schein",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Schein schreiben“, nur mit Modul und Recht; ohne Schatten",
+   "geprueft": true
+  },
+  {
+   "alt": "start.heute.eigene.danach.links",
+   "neu": "start.heute.eigene.danach.links",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Zeit erfassen ›“ und „Schein schreiben ›“ je weiterem Einsatz",
+   "geprueft": true
+  },
+  {
+   "alt": "start.heute.eigene.adresse",
+   "neu": "start.heute.eigene.adresse",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Adresse (Karte) und Telefon (tel:) unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "start.heute.eigene.ruestliste",
+   "neu": "start.heute.eigene.ruestliste",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Rüstliste abhaken, drei Zeilen, Rest klappt auf — unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "start.heute.termine",
+   "neu": "start.heute.termine",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Deine Termine heute“ mit Adresse, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "start.heute.liste",
+   "neu": "start.heute.liste",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Verwaltung: Lieferungen heute, Buchhaltung: Zahlungseingänge — mit Verweis und „und N weitere →“, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "start.heute.leitung",
+   "neu": "start.heute.leitung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Projektleiter/GF/Administrator: Abwesend, Im Einsatz, „Einsatzplanung ›“ — unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "start.kennzahlen.rechts",
+   "neu": "start.kennzahlen.oben",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Höchstens vier, jede antippbar wie bisher; jetzt als Leiste ÜBER „Zu erledigen“ und „Heute“ statt unten in der rechten Spalte. Bei einer oder zwei Kennzahlen so breit wie bei vieren (tests/components/DashboardView.test.tsx: „stellt die Kennzahlen über …“, „hält zwei Kennzahlen …“)",
+   "geprueft": true
+  },
+  {
+   "alt": "start.leer",
+   "neu": "start.leer",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Heute liegt nichts an“ mit dem Satz je Rolle, unverändert; die Kennzahlen stehen jetzt darüber statt darunter",
+   "geprueft": true
+  },
+  {
+   "alt": "start.laedt",
+   "neu": "start.laedt",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Laden, „Wird noch geladen …“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "start.nicht-geladen",
+   "neu": "start.nicht-geladen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Nicht geladen: …“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.kopf",
+   "neu": "accounting.kopf",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Titel und Untertitel unverändert; Ortszeile „Team“ dazu",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.zeitraum.monat",
+   "neu": "accounting.filter.monat",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Auswahl Monat — jetzt als Filter über der Liste statt in einer Karte „Zeitraum“; ?monat= aus der Adresse wirkt wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.zeitraum.jahr",
+   "neu": "accounting.filter.jahr",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Auswahl Jahr, ebenso",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.monat.zeit-erfassen",
+   "neu": "accounting.kopf.hauptaktion",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Zeit erfassen“ ist die Hauptaktion des Seitenkopfs; am Telefon im Daumenbereich (tests/components/AccountingView.test.tsx)",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.monat.monats-csv",
+   "neu": "accounting.kopf.mehr.monats-csv",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Seltene Seitenaktion ins ⋯ der Seite; gleiche Bedingungen (nicht im Supportzugang, nicht ohne Zeile), gleiche Funktion exportMonthCsv (tests/components/AccountingView.test.tsx)",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.formular.erfassen",
+   "neu": "accounting.seitenfenster.erfassen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "TimeForm mit Mitarbeiterauswahl jetzt im Seitenfenster rechts bzw. Blatt von unten (Regel 8) statt als Karte oben (tests/components/AccountingView.test.tsx)",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.formular.korrigieren",
+   "neu": "accounting.seitenfenster.korrigieren",
+   "weg_alt": 4,
+   "weg_neu": 4,
+   "bemerkung": "„Bearbeiten“ im Tagesnachweis öffnet das Seitenfenster; kein Hochrollen mehr, die Zeile bleibt offen (tests/components/AccountingView.test.tsx)",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.krankmeldung.karte",
+   "neu": "accounting.seitenfenster.krankmeldung",
+   "weg_alt": 4,
+   "weg_neu": 4,
+   "bemerkung": "„Krankmeldung“ am Krank-Tag öffnet die Karte der Krankmeldung im Seitenfenster statt oben auf der Seite",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.support.hinweis",
+   "neu": "accounting.support.hinweis",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Supportzugang: Hinweis „nicht einsehbar“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.suche",
+   "neu": "accounting.suche",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Mitarbeiter suchen“ ab acht Zeilen, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.filter.luecken",
+   "neu": "accounting.filter.luecken",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Nur mit fehlenden Tagen (N von M)“, ?filter=luecken wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.liste.karte-je-person",
+   "neu": "accounting.liste.zeile",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Jede Person ist eine Zeile der Gruppe statt einer Karte in der Karte; Kopf (Name, Marken, Ist/Soll, Saldo) und Aufklappen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.zeile.offen.saldo",
+   "neu": "accounting.zeile.offen.saldo",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Saldo im Monat, Ist von Soll, Gesamtsaldo, Nebenzahlen, Tagessoll-Zeile mit „i“ — unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.zeile.offen.kein-eintritt",
+   "neu": "accounting.zeile.offen.kein-eintritt",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Hinweis ohne Eintrittsdatum, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.zeile.offen.fehlende-tage",
+   "neu": "accounting.zeile.offen.fehlende-tage",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "„N Arbeitstage ohne Buchung“ zum Aufklappen, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.zeile.offen.tagesnachweis",
+   "neu": "accounting.zeile.offen.tagesnachweis",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Tabelle (Schreibtisch) bzw. Liste (Telefon); Tabelle trägt jetzt den Namen „Tagesnachweis …“; Linien ohne Transparenz",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.tagesnachweis.bearbeiten",
+   "neu": "accounting.tagesnachweis.bearbeiten",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "„Bearbeiten“ → Seitenfenster (siehe oben)",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.tagesnachweis.loeschen",
+   "neu": "accounting.tagesnachweis.loeschen",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "„Löschen“ mit Bestätigungsdialog „Eintrag löschen?“ — unverändert, nicht lockerer",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.tagesnachweis.krankmeldung",
+   "neu": "accounting.tagesnachweis.krankmeldung",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "„Krankmeldung“ → Seitenfenster",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.tagesnachweis.antrag",
+   "neu": "accounting.tagesnachweis.antrag",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "„Urlaubsantrag“ (AntragKnopf) und Freistellungs-Knopf unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.tagesnachweis.verrechnet",
+   "neu": "accounting.tagesnachweis.verrechnet",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Marke „verrechnet“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.zeile.offen.monat-csv",
+   "neu": "accounting.zeile.offen.monat-csv",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "„Monat als CSV“ je Person, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.zeile.offen.bericht",
+   "neu": "accounting.zeile.offen.bericht",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "„Bericht für Zeitraum“ öffnet den Export-Dialog, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.exportdialog",
+   "neu": "accounting.exportdialog",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "Von, Bis, „Stundennachweis (PDF)“, „Projektauswertung (CSV)“, „Schließen“ — Datei unverändert, Export-Inhalt unberührt",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.leer",
+   "neu": "accounting.leer",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Die drei Texte (keine Benutzer, kein Zeitkonto, Suche ohne Treffer, alle vollständig) unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.teilfehler",
+   "neu": "accounting.teilfehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "TeilFehler unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.grenzen.karte",
+   "neu": "accounting.grenzen.karte",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Karte „Arbeitszeitgrenzen“ unverändert (Begründen, Notiz, „Buchung korrigieren“ → jetzt Seitenfenster statt Formular oben)",
+   "geprueft": true
+  },
+  {
+   "alt": "accounting.projektauswertung.karte-je-baustelle",
+   "neu": "accounting.projektauswertung.zeile",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Jede Baustelle ist eine Zeile der Gruppe statt einer Karte in der Karte; Aufklappen, Balken, Personen, Tabelle unverändert (tests/components/ProjectSummary.test.tsx)",
+   "geprueft": true
+  },
+  {
+   "alt": "—",
+   "neu": "accounting.raster",
+   "weg_alt": null,
+   "weg_neu": 0,
+   "bemerkung": "neu: der Monat als Raster (Personen × Tage, Ist je Tag, Soll im Titel, fehlende Tage mit Bernstein-Rand), ab 760 px, nicht im Supportzugang; der Name springt in die Zeile darunter (tests/components/AccountingView.test.tsx)",
+   "geprueft": true
+  },
+  {
+   "alt": "costing.kopf",
+   "neu": "costing.kopf",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Titel und Untertitel unverändert; Ortszeile „Geld“ dazu",
+   "geprueft": true
+  },
+  {
+   "alt": "costing.katalog-hinweis",
+   "neu": "costing.katalog-hinweis",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Hinweis zur Obergrenze des Materialstamms unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "costing.kostensaetze-fehlen",
+   "neu": "costing.kostensaetze-fehlen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Karte und Weg zu den Kostensätzen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "costing.auswahl.select",
+   "neu": "costing.auswahl.segmente",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Abgeschlossen | Laufend“ als Segmente statt Auswahlliste in einer Karte „Auswahl“; Vorbelegung auf „Laufend“ ohne abgeschlossene Baustelle unverändert (tests/components/NachkalkulationView.test.tsx)",
+   "geprueft": true
+  },
+  {
+   "alt": "costing.auswahl.hinweis",
+   "neu": "costing.auswahl.hinweis",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Erklärung als „i“ neben den Segmenten; erscheint wie jedes „i“ unter „Hilfe zu dieser Seite“",
+   "geprueft": true
+  },
+  {
+   "alt": "costing.zwischenstand",
+   "neu": "costing.zwischenstand",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Zwischenstand — es kommen noch Stunden dazu.“ neben der Auswahl, unverändert sichtbar",
+   "geprueft": true
+  },
+  {
+   "alt": "costing.ergebnis.zeile",
+   "neu": "costing.ergebnis.zeile",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Zeile je Baustelle mit Erlös − Personal − Material = Deckungsbeitrag, Marge als Zustand — unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "costing.ergebnis.luecken",
+   "neu": "costing.ergebnis.luecken",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Artikel ohne Einkaufspreis je Zeile, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "costing.db-nicht-gewinn",
+   "neu": "costing.db-nicht-gewinn",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Deckungsbeitrag, nicht Gewinn.“ mit „i“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "costing.leer-fehler-laden",
+   "neu": "costing.leer-fehler-laden",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Leer, Fehler, Laden unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "—",
+   "neu": "costing.kennzahlen",
+   "weg_alt": null,
+   "weg_neu": 0,
+   "bemerkung": "neu: Baustellen, Mit Verlust, Zu prüfen, Ohne Erlös — gezählt aus margenTon, keine neue Rechnung (tests/components/NachkalkulationView.test.tsx)",
+   "geprueft": true
+  }
+ ]
+}

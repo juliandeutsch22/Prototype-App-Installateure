@@ -284,13 +284,21 @@ describe('Mit Kostensätzen', () => {
     expect(zeilen[0]).toContain('Kunde 2026-002');
   });
 
+  /*
+    SEIT DER LINIE „LOT“ IST DIE AUSWAHL EIN SEGMENT (zwei Knöpfe mit
+    `aria-pressed`) statt einer Auswahlliste. Geprüft wird dasselbe: welche
+    Auswahl gilt und was sie sagt.
+  */
+  const auswahl = (text: 'Abgeschlossen' | 'Laufend') =>
+    within(screen.getByRole('group', { name: 'Baustellen' })).getByRole('button', { name: text });
+
   it('warnt beim Zwischenstand laufender Baustellen', async () => {
     const nutzer = userEvent.setup();
     projekte = [projekt('2026-003', 'Aktiv')];
     zeige();
     await screen.findByText('Ergebnis je Baustelle');
 
-    await nutzer.selectOptions(screen.getByLabelText('Baustellen'), 'Aktiv');
+    await nutzer.click(auswahl('Laufend'));
     expect(
       await screen.findByText(/Zwischenstand — es kommen noch Stunden dazu/),
     ).toBeInTheDocument();
@@ -311,7 +319,7 @@ describe('Mit Kostensätzen', () => {
     // dieser Auswahl", obwohl laufende Baustellen Zahlen hätten.
     projekte = [projekt('2026-003', 'Aktiv')];
     zeige();
-    await waitFor(() => expect(screen.getByLabelText('Baustellen')).toHaveValue('Aktiv'));
+    await waitFor(() => expect(auswahl('Laufend')).toHaveAttribute('aria-pressed', 'true'));
     expect(await screen.findByText(/Zwischenstand — es kommen noch Stunden dazu/)).toBeInTheDocument();
   });
 
@@ -319,7 +327,27 @@ describe('Mit Kostensätzen', () => {
     projekte = [projekt('2026-001'), projekt('2026-003', 'Aktiv')];
     zeige();
     await screen.findByText('Ergebnis je Baustelle');
-    expect(screen.getByLabelText('Baustellen')).toHaveValue('Abgeschlossen');
+    expect(auswahl('Abgeschlossen')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('zählt oben, wie viele Baustellen Verlust machen, zu prüfen sind oder keinen Erlös haben', async () => {
+    // 001: 2.000 € Erlös bei 640 € Kosten (gut) · 002: kein Erlös · 004: 300 € bei 640 € (Verlust).
+    projekte = [projekt('2026-001'), projekt('2026-002'), projekt('2026-004')];
+    eintraege = [...stunden('2026-001', 2), ...stunden('2026-002', 1), ...stunden('2026-004', 2)];
+    rechnungen = [rechnung('2026-001', 2000), rechnung('2026-004', 300)];
+    zeige();
+    await screen.findByText(/Kunde 2026-004/);
+    const zahl = (name: string) => screen.getByText(name).closest('.kennzahl') as HTMLElement;
+    expect(zahl('Baustellen')).toHaveTextContent('3');
+    expect(zahl('Mit Verlust')).toHaveTextContent('1');
+    expect(zahl('Zu prüfen')).toHaveTextContent('0');
+    expect(zahl('Ohne Erlös')).toHaveTextContent('1');
+  });
+
+  it('Gegenprobe: ohne Baustelle keine Kennzahlen', async () => {
+    zeige();
+    await screen.findByText('Keine Baustelle in dieser Auswahl.');
+    expect(screen.queryByText('Mit Verlust')).not.toBeInTheDocument();
   });
 
   it('sagt bei leerer Auswahl, dass nichts da ist', async () => {
