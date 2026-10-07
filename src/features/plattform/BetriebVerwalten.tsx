@@ -3,6 +3,7 @@ import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { InputField } from '@/components/Field';
 import { ErrorState } from '@/components/States';
+import { LotVerlauf } from '@/components/LotBausteine';
 import {
   betriebAktivieren, betriebDeaktivieren, betriebLoeschen, betriebProtokoll, betriebUebergabe,
   loeschungAbbrechen, loeschungPlanen, testbetriebSetzen,
@@ -108,7 +109,8 @@ export default function BetriebVerwalten({
   const exportFehlt = !betrieb.testbetrieb && !betrieb.exportAm;
 
   return (
-    <div className="space-y-3 rounded-sm border border-line p-3" aria-label={`${betrieb.name} verwalten`}>
+    // Ohne eigenen Rahmen: die Schritte stehen seit dem Umbau auf „Lot“ im Seitenfenster.
+    <div className="space-y-3" aria-label={`${betrieb.name} verwalten`}>
       <p className="text-sm text-ink">
         {deaktiviert ? (
           <>
@@ -327,17 +329,23 @@ export default function BetriebVerwalten({
       {fehler && <ErrorState message={fehler} />}
       {meldung && <p className="text-sm text-ink" role="status">{meldung}</p>}
 
+      {/*
+        DAS PROTOKOLL ALS LOT (Linie „Lot“, Regel 7). Die Datenbank liefert die
+        letzten zehn Schritte, den jüngsten zuerst; gezeigt wird von alt nach
+        neu, und der jüngste ist der Stand, an dem der Betrieb gerade steht.
+      */}
       {protokoll && protokoll.length > 0 && (
         <div className="border-t border-line pt-3">
-          <p className="text-sm font-normal text-ink">Protokoll</p>
-          <ul className="mt-1 space-y-1 text-sm text-ink-muted">
-            {protokoll.map((p, i) => (
-              <li key={`${p.am}-${i}`}>
-                {zeit(p.am)} · {AKTION[p.aktion] ?? p.aktion}
-                {p.grund ? ` — ${p.grund}` : ''}
-              </li>
-            ))}
-          </ul>
+          <p className="mb-2 text-sm font-semibold text-ink-deep">Protokoll</p>
+          <LotVerlauf
+            name={`Protokoll ${betrieb.name}`}
+            punkte={[...protokoll].reverse().map((p, i, alle) => ({
+              titel: AKTION[p.aktion] ?? p.aktion,
+              zeit: zeit(p.am),
+              text: p.grund || undefined,
+              jetzt: i === alle.length - 1,
+            }))}
+          />
         </div>
       )}
     </div>

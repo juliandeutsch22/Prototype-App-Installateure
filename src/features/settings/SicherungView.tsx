@@ -168,6 +168,7 @@ export default function SicherungView() {
   return (
     <div className="space-y-6">
       <PageHeader
+        ort="Einstellungen"
         title="Datensicherung"
         subtitle="Der Bestand des Betriebs an einem zweiten Ort — und zum Herunterladen"
       />
@@ -245,7 +246,8 @@ export default function SicherungView() {
         }
       >
         <div className="space-y-3">
-          <Button variant="ghost" onClick={() => void herunterladen()} disabled={laeuft !== null}>
+          {/* Als Knopf mit Rand: ohne Rand stand er da wie ein Satz (Linie „Lot“). */}
+          <Button variant="secondary" onClick={() => void herunterladen()} disabled={laeuft !== null}>
             {laeuft === 'download' ? 'Wird zusammengestellt …' : 'Alle Daten herunterladen'}
           </Button>
         </div>
@@ -276,7 +278,7 @@ export default function SicherungView() {
               <option key={z.wert} value={z.wert}>{z.label}</option>
             ))}
           </SelectField>
-          <Button variant="ghost" onClick={() => void archivErstellen()} disabled={laeuft !== null}>
+          <Button variant="secondary" onClick={() => void archivErstellen()} disabled={laeuft !== null}>
             {laeuft === 'archiv'
               ? archivStand
                 ? `Belege: ${archivStand.fertig} von ${archivStand.gesamt}`

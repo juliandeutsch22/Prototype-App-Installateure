@@ -550,3 +550,27 @@ describe('Auf Standardwerte zurücksetzen', () => {
     expect(await screen.findByText(/Standardwerte eingesetzt — noch nicht gespeichert/)).toBeInTheDocument();
   });
 });
+
+describe('Sätze je Einstufung unter „Weitere Angaben“ (Linie „Lot“)', () => {
+  /** Das aufklappbare <details> um ein Feld. */
+  const aufklapper = (label: string) => feld(label).closest('details') as HTMLDetailsElement;
+
+  it('klappt die Sätze je Einstufung zu, solange keiner eingetragen ist', async () => {
+    firma = { id: 'perl', name: 'Perl Installationen', rates: { fach: 78, helper: 52 } as never };
+    zeige('saetze');
+    await screen.findByLabelText('Monteur / Facharbeiter (€/h)');
+    // Gegenprobe zum Umbau: vorher standen die Felder offen in der Karte.
+    expect(aufklapper('Obermonteur (€/h)')).not.toBeNull();
+    expect(aufklapper('Obermonteur (€/h)').open).toBe(false);
+  });
+
+  it('öffnet sie, sobald ein Satz je Einstufung gespeichert ist — nichts verschwindet', async () => {
+    firma = {
+      id: 'perl', name: 'Perl Installationen',
+      rates: { fach: 78, helper: 52, stufen: { obermonteur: 85 } } as never,
+    };
+    zeige('saetze');
+    await waitFor(() => expect(feld('Obermonteur (€/h)').value).toBe('85'));
+    expect(aufklapper('Obermonteur (€/h)').open).toBe(true);
+  });
+});

@@ -7,6 +7,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { Warnung } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import { List, ListRow } from '@/components/ListRow';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
@@ -90,6 +91,7 @@ export default function ModulesView() {
     <div className="space-y-6">
       {warnung}
       <PageHeader
+        ort="Einstellungen"
         title="Module"
         subtitle="Welche Bereiche dieser Betrieb benutzt"
       />
@@ -117,15 +119,21 @@ export default function ModulesView() {
             ändern darf sie nur die Geschäftsführung.
           </>
         }
+        buendig
       >
-        <ul className="divide-y divide-line">
+        {/*
+          EIN MODUL, EINE ZEILE (Linie „Lot“): bündig in der Gruppe, der
+          Schalter rechts als eigenes Ziel. Inhalt wie zuvor.
+        */}
+        <List>
           {MODULE.map((m) => {
             const an = aktiv.has(m.id);
             const fehlt = m.abhaengigVon?.filter((d) => !aktiv.has(d)) ?? [];
             return (
-              <li key={m.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
-                <div className="min-w-[12rem] flex-1">
-                  <p className="flex flex-wrap items-center gap-2 font-normal text-ink">
+              <ListRow
+                key={m.id}
+                title={
+                  <>
                     {m.name}
                     {/* Eine Aufforderung, keine Eigenschaft: ohne das andere
                         Modul lässt sich dieses gar nicht einschalten. */}
@@ -134,13 +142,15 @@ export default function ModulesView() {
                         braucht {fehlt.map((d) => modul(d)?.name ?? d).join(', ')}
                       </Warnung>
                     )}
-                  </p>
-                  <p className="mt-1 text-sm text-ink-muted">{m.zweck}</p>
-                  <p className="mt-1 text-xs text-ink-muted">
-                    Betrifft: {m.betrifft.join(', ')}
-                  </p>
-                </div>
-
+                  </>
+                }
+                subtitle={
+                  <>
+                    <span className="block">{m.zweck}</span>
+                    <span className="mt-1 block text-xs">Betrifft: {m.betrifft.join(', ')}</span>
+                  </>
+                }
+              >
                 <label className="flex min-h-touch shrink-0 items-center gap-3">
                   <span className="text-sm text-ink-muted">{an ? 'ein' : 'aus'}</span>
                   <input
@@ -152,15 +162,13 @@ export default function ModulesView() {
                     aria-label={`${m.name} ${an ? 'ausschalten' : 'einschalten'}`}
                   />
                 </label>
-              </li>
+              </ListRow>
             );
           })}
-        </ul>
+        </List>
 
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Button onClick={speichern} loading={speichert} disabled={!geaendert}>
-            Module speichern
-          </Button>
+        {/* Fusszeile der Aktionen: Speichern ganz rechts, Verwerfen bzw. der Stand davor. */}
+        <div className="fuss-aktionen items-center px-4 pb-4">
           {geaendert && (
             <Button variant="ghost" onClick={() => setEntwurf(company?.modules ?? {})}>
               Verwerfen
@@ -169,6 +177,9 @@ export default function ModulesView() {
           {!geaendert && (
             <span className="text-sm text-ink-muted">Keine Änderung offen.</span>
           )}
+          <Button onClick={speichern} loading={speichert} disabled={!geaendert}>
+            Module speichern
+          </Button>
         </div>
       </Card>
 

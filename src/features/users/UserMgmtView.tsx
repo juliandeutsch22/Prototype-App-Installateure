@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listUsers } from '@/lib/db/users';
 import { provisionUser } from '@/lib/auth/provisionUser';
@@ -16,6 +16,7 @@ import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import { MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import { anlegeFehler } from './anlegeFehler';
 import TagessollFelder from './TagessollFelder';
 import EinstufungFelder from './EinstufungFelder';
@@ -58,8 +59,31 @@ export default function UserMgmtView() {
     genau das Verhalten von vorher.
   */
   const [eintritt, setEintritt] = useState<Eintrittsart>('bestand');
-  const [suche, setSuche] = useState('');
-  const [status, setStatus] = useState<'aktiv' | 'inaktiv' | 'alle'>('aktiv');
+  /*
+    SUCHE UND FILTER STEHEN IN DER ADRESSE (Linie „Lot“, Regeln für viele
+    Daten): wer aus einer Akte zurückkommt oder ein Lesezeichen setzt, findet
+    die Liste so, wie er sie verlassen hat. Ohne Angabe gilt wie bisher
+    „Aktive“.
+  */
+  const [adresse, setAdresse] = useSearchParams();
+  const suche = adresse.get('suche') ?? '';
+  const statusRoh = adresse.get('status');
+  const status: 'aktiv' | 'inaktiv' | 'alle' =
+    statusRoh === 'inaktiv' || statusRoh === 'alle' ? statusRoh : 'aktiv';
+  const setzeAdresse = (name: string, wert: string, vorgabe: string) =>
+    setAdresse(
+      (alt) => {
+        const neu = new URLSearchParams(alt);
+        if (wert === vorgabe) neu.delete(name);
+        else neu.set(name, wert);
+        return neu;
+      },
+      { replace: true },
+    );
+  const setSuche = (q: string) => setzeAdresse('suche', q, '');
+  const setStatus = (s: typeof status) => setzeAdresse('status', s, 'aktiv');
+  /** Rollen, deren Gruppe ganz gezeigt wird — sonst nach 20 Zeilen „und N weitere“. */
+  const [ganz, setGanz] = useState<string[]>([]);
   /**
    * Der aliquote Vorschlag für einen Neueintritt.
    *
@@ -229,11 +253,14 @@ export default function UserMgmtView() {
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
+        ort="Team"
         title="Benutzerverwaltung"
         subtitle="Benutzer anlegen, Rollen und Zeitkonten pflegen"
         action={
           formOffen ? undefined : (
-            <Button onClick={() => setFormOffen(true)}>Neuer Benutzer</Button>
+            // „Benutzer anlegen“ wie der Knopf am Ende des Formulars: dieselbe
+            // Handlung heisst an beiden Stellen gleich (Linie „Lot“).
+            <Button onClick={() => setFormOffen(true)}>Benutzer anlegen</Button>
           )
         }
       />
@@ -286,7 +313,8 @@ export default function UserMgmtView() {
 
       {formOffen && (
       <Card title="Neuen Benutzer anlegen">
-        <form onSubmit={submit} className="space-y-4">
+        {/* Formular der Linie: einspaltig geführt, höchstens 560 px (Regel 9). */}
+        <form onSubmit={submit} className="formular space-y-4">
           <FormGrid>
             <InputField id="uname" label="Name" value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })} required pflicht />
@@ -443,10 +471,17 @@ export default function UserMgmtView() {
             )}
           </fieldset>
 
+          {/*
+            WIE „WEITERE ANGABEN“, ABER ALS KNOPF: die Felder verschwinden
+            beim Zuklappen aus dem Formular. In einem zugeklappten <details>
+            blieben sie darin, und ein ungültiges verstecktes Feld hielte das
+            Absenden still an.
+          */}
           <button
             type="button"
             onClick={() => setShowDetails((v) => !v)}
-            className="link min-h-touch text-sm"
+            aria-expanded={showDetails}
+            className="weiteres-knopf"
           >
             {showDetails ? 'Zeitkonto-Einstellungen ausblenden' : 'Zeitkonto-Einstellungen anzeigen'}
           </button>
@@ -531,8 +566,13 @@ export default function UserMgmtView() {
               </FormGrid>
               {/* Zwei Urlaubsfelder nebeneinander brauchen einen Satz dazu —
                   „pro Jahr" und „beim Umstieg" sehen sonst aus wie dasselbe. */}
+              {/*
+                Der Satz steht für sich: die Erklärung dahinter wandert in
+                „Hilfe zu dieser Seite“, und ein „Warum …“ ohne Antwort daneben
+                wäre eine Frage ins Leere.
+              */}
               <div className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
-                <span>Warum es zwei Urlaubsfelder gibt</span>
+                <span>Urlaubstage pro Jahr gelten laut Vertrag; der Resturlaub nur im Startjahr.</span>
                 <InfoHint about="Resturlaub beim Umstieg">
                   <p>
                     <strong>Urlaubstage pro Jahr</strong> ist der Anspruch laut Vertrag. Danach
@@ -574,10 +614,7 @@ export default function UserMgmtView() {
           )}
 
           <Pflichthinweis />
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button type="submit" loading={saving} className="w-full sm:w-auto">
-              Benutzer anlegen
-            </Button>
+          <div className="fuss-aktionen">
             {/* Der Weg zurück zur Liste. */}
             <Button
               type="button"
@@ -592,34 +629,22 @@ export default function UserMgmtView() {
             >
               Abbrechen
             </Button>
+            <Button type="submit" loading={saving} className="w-full sm:w-auto">
+              Benutzer anlegen
+            </Button>
           </div>
         </form>
       </Card>
       )}
 
-      <Card
-        title={`Benutzer (${gefiltert.length})`}
-        action={
-          <SelectField
-            id="usrstatus"
-            label=""
-            aria-label="Benutzer nach Status filtern"
-            className="py-1 text-sm"
-            value={status}
-            onChange={(e) => setStatus(e.target.value as typeof status)}
-          >
-            <option value="aktiv">Aktive</option>
-            {/* „Deaktiviert“ wie im Statusfeld der Akte (Runde 3, G5) — für
-                dieselbe Sache standen zwei Wörter auf dem Bildschirm. */}
-            <option value="inaktiv">Deaktivierte ({inaktiv})</option>
-            <option value="alle">Alle</option>
-          </SelectField>
-        }
-        buendig
-      >
-        {/* Bündig: Rollen als getönte Abschnitte, Menschen als Zeilen. */}
-        {users.length >= 8 && (
-          <div className="p-4">
+      <Card title={`Benutzer (${gefiltert.length})`} buendig>
+        {/*
+          SUCHE UND FILTER ÜBER DER LISTE (Linie „Lot“): jede Liste hat eine
+          Suche, der Filter steht als Segmente statt als Auswahlliste — drei
+          Möglichkeiten sieht man lieber, als sie aufzuklappen.
+        */}
+        <div className="listen-werkzeug">
+          <div className="listen-suche">
             <InputField
               id="usrsuche"
               label="Suche"
@@ -629,7 +654,21 @@ export default function UserMgmtView() {
               onChange={(e) => setSuche(e.target.value)}
             />
           </div>
-        )}
+          <div className="listen-filter">
+          <Segmente
+            name="Benutzer nach Status filtern"
+            werte={[
+              { wert: 'aktiv', text: 'Aktive' },
+              /* „Deaktiviert“ wie im Statusfeld der Akte (Runde 3, G5) — für
+                 dieselbe Sache standen zwei Wörter auf dem Bildschirm. */
+              { wert: 'inaktiv', text: `Deaktivierte (${inaktiv})` },
+              { wert: 'alle', text: 'Alle' },
+            ]}
+            wert={status}
+            onChange={setStatus}
+          />
+          </div>
+        </div>
         {loading ? (
           <div className="p-4">
             <SkeletonList rows={4} />
@@ -645,53 +684,49 @@ export default function UserMgmtView() {
           </EmptyState>
         ) : (
           <div>
-            {gruppen.map((g) => (
-              <div key={g.rolle}>
-                <Abschnitt titel={g.rolle} anzahl={g.leute.length} />
-                <List>
-            {g.leute.map((u) => (
-              <ListRow
-                key={u.uid}
-                title={
-                  <span className="flex flex-wrap items-center gap-2">
-                    {u.name}
-                    {/* Die Rolle steht bereits in der Gruppenueberschrift —
-                        sie an jeder Zeile zu wiederholen ist Laerm. */}
-                    {u.active === false && <Marke>deaktiviert</Marke>}
-                  </span>
-                }
-                subtitle={kontoAnzeige(u.email)}
-              >
-                {/* Ein Administrator laesst sich nur von einem Administrator
-                    anfassen — sonst koennte die Geschaeftsfuehrung den letzten
-                    Superuser deaktivieren und sich selbst aussperren. */}
-                {/*
-                  EIN WEG STATT DREI. Hier standen „Bearbeiten" (sprang in das
-                  Anlege-Formular ganz oben, wo die Zeitkonto-Felder erst noch
-                  aufzuklappen waren) und ein Zeilenmenü mit Passwort-Mail und
-                  Sperren. Alles drei steht jetzt in der Akte — und die hat
-                  eine Adresse, auf die sich verweisen lässt.
-
-                  Auch für einen Administrator, den die aufrufende Rolle nicht
-                  ändern darf: ANSEHEN darf sie ihn, und die Akte sagt dort,
-                  warum nichts zu ändern ist. Ein „nur durch Administrator"
-                  ohne Weg dorthin war eine Sackgasse.
-                */}
-                <Link
-                  to={`/user-mgmt/${u.uid}`}
-                  className="link-weiter flex min-h-touch items-center px-2 text-sm"
-                >
-                  Akte
-                </Link>
-              </ListRow>
-            ))}
-                </List>
-              </div>
-            ))}
+            {gruppen.map((g) => {
+              // Gruppen höchstens 20 Zeilen, dann „und N weitere anzeigen“ (Regel 4).
+              const gezeigt = ganz.includes(g.rolle) ? g.leute : g.leute.slice(0, 20);
+              return (
+                <div key={g.rolle}>
+                  <Abschnitt titel={g.rolle} anzahl={g.leute.length} />
+                  <List>
+                    {gezeigt.map((u) => (
+                      /*
+                        DIE GANZE ZEILE FÜHRT IN DIE AKTE (Linie „Lot“, Regel 3).
+                        Bis zum Umbau stand dafür ein eigener Link „Akte“ am
+                        Zeilenende. Passwort-Mail, Sperren und Bearbeiten
+                        stehen in der Akte — auch für einen Administrator, den
+                        die aufrufende Rolle nicht ändern darf: ANSEHEN darf
+                        sie ihn, und die Akte sagt dort, warum nichts zu
+                        ändern ist.
+                      */
+                      <ListRow
+                        key={u.uid}
+                        to={`/user-mgmt/${u.uid}`}
+                        pfeil
+                        title={
+                          <span className="flex flex-wrap items-center gap-2">
+                            {u.name}
+                            {/* Die Rolle steht bereits in der Gruppenueberschrift —
+                                sie an jeder Zeile zu wiederholen ist Laerm. */}
+                            {u.active === false && <Marke>deaktiviert</Marke>}
+                          </span>
+                        }
+                        subtitle={kontoAnzeige(u.email)}
+                      />
+                    ))}
+                  </List>
+                  <MehrAnzeigen
+                    anzahl={g.leute.length - gezeigt.length}
+                    onClick={() => setGanz((x) => [...x, g.rolle])}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
       </Card>
-
     </div>
   );
 }

@@ -837,3 +837,36 @@ describe('Lehrbeginn vor dem Eintritt (Runde 3, G18)', () => {
     expect(screen.queryByText(/Der Lehrbeginn liegt vor dem Eintritt/)).not.toBeInTheDocument();
   });
 });
+
+describe('Zusammenfassung zuerst und Sprungleiste (Linie „Lot“)', () => {
+  it('fasst den gespeicherten Stand oben zusammen, bevor das Formular kommt', async () => {
+    gefunden = person({
+      uid: 'u2', name: 'Erna Beispiel', email: 'erna@perl.at', role: 'Buchhaltung',
+      weeklyTargetHours: 20, yearlyVacationDays: 30, workDays: [1, 2],
+    });
+    zeige();
+    const ueberblick = (await screen.findByRole('heading', { name: 'Überblick' })).closest('section') as HTMLElement;
+    expect(within(ueberblick).getByText('Buchhaltung · aktiv')).toBeInTheDocument();
+    expect(within(ueberblick).getByText(/20 Std\. je Woche · Mo, Di/)).toBeInTheDocument();
+    expect(within(ueberblick).getByText('30 Tage')).toBeInTheDocument();
+    // Der Überblick steht VOR den Stammdaten.
+    const stammdaten = screen.getByRole('heading', { name: 'Stammdaten' });
+    expect(ueberblick.compareDocumentPosition(stammdaten) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('zeigt keinen Überblick, wo die Akte nur zu lesen ist — die Angaben sind dort schon die Zusammenfassung', async () => {
+    gefunden = person({ uid: 'ad1', name: 'Root Person', role: 'Administrator' });
+    zeige('ad1');
+    await screen.findByText(/nur von einem Administrator/);
+    expect(screen.queryByRole('heading', { name: 'Überblick' })).not.toBeInTheDocument();
+  });
+
+  it('springt nur zu Teilen, die diese Rolle sieht', async () => {
+    zeige();
+    const leiste = await screen.findByRole('navigation', { name: 'Auf dieser Seite' });
+    const ziele = within(leiste).getAllByRole('link').map((l) => l.getAttribute('href'));
+    expect(ziele).toContain('#akte-stammdaten');
+    expect(ziele).toContain('#akte-zugang');
+    for (const z of ziele) expect(document.querySelector(z!)).not.toBeNull();
+  });
+});

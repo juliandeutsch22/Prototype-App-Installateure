@@ -14,6 +14,7 @@ import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
+import { LotVerlauf } from '@/components/LotBausteine';
 import { InputField, SelectField } from '@/components/Field';
 import { Marke, Warnung } from '@/components/Badge';
 import { useToast } from '@/components/Toast';
@@ -124,7 +125,7 @@ export default function SupportzugangView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Supportzugang" subtitle="Einblick gewähren — befristet und widerrufbar" />
+      <PageHeader ort="Einstellungen" title="Supportzugang" subtitle="Einblick gewähren — befristet und widerrufbar" />
 
       {fehler && <ErrorState message={fehler} />}
 
@@ -173,7 +174,7 @@ export default function SupportzugangView() {
             </Button>
           </div>
         ) : (
-          <form className="space-y-4" onSubmit={(e) => void gewaehren(e)}>
+          <form className="formular space-y-4" onSubmit={(e) => void gewaehren(e)}>
             <InputField
               id="sup-grund"
               label="Wofür"
@@ -277,15 +278,22 @@ export default function SupportzugangView() {
             Support in diesem Zugang gesehen". Genau das steht jetzt unter dem
             Zugang, zu dem es gehört — gezählt, nicht aufgezählt.
           */
-          <ul className="space-y-4 text-sm">
-            {(liste ?? []).map((f) => {
+          /*
+            ALS LOT (Linie „Lot“, Regel 7): das Protokoll ist ein Verlauf, und
+            ein offener Zugang ist der Punkt, an dem es gerade steht — als Ring.
+            Inhalt und Reihenfolge der Zeilen sind dieselben wie zuvor.
+          */
+          <LotVerlauf
+            name="Bisherige Zugänge"
+            punkte={(liste ?? []).map((f) => {
               const dazu = gesehen
                 .filter((b) => b.freigabe_id === f.id)
                 .sort((a, b) => b.anzahl - a.anzahl);
               const laeuft = istOffen(f);
-              return (
-                <li key={f.id} className="border-t border-line pt-3 first:border-0 first:pt-0">
-                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              return {
+                jetzt: laeuft,
+                titel: (
+                  <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                     {f.notzugang ? <Warnung>Notzugang</Warnung> : null}
                     {f.stufe === 'mitarbeiten' ? (
                       <Warnung>mitarbeiten</Warnung>
@@ -293,23 +301,27 @@ export default function SupportzugangView() {
                       <Marke>ansehen</Marke>
                     )}
                     {laeuft ? <Marke>läuft</Marke> : null}
-                    <span className="font-normal text-ink">{f.grund}</span>
-                  </div>
-                  <p className="mt-1 text-ink-muted">
+                    <span className="font-semibold text-ink">{f.grund}</span>
+                  </span>
+                ),
+                zeit: (
+                  <>
                     {f.createdAt ? `${zeit(f.createdAt)} · ` : ''}
                     {f.widerrufenAm
                       ? `beendet am ${zeit(f.widerrufenAm)}`
                       : laeuft
                         ? `läuft bis ${zeit(f.giltBis)}`
                         : `abgelaufen am ${zeit(f.giltBis)}`}
-                  </p>
-                  {/*
-                    „Nichts angesehen" ist eine eigene Aussage und die
-                    beruhigendste von allen: gewährt, aber nie benutzt. Sie
-                    wegzulassen hiesse, sie mit „noch nicht geladen" zu
-                    verwechseln.
-                  */}
-                  <p className="mt-1 text-ink-muted">
+                  </>
+                ),
+                /*
+                  „Nichts angesehen" ist eine eigene Aussage und die
+                  beruhigendste von allen: gewährt, aber nie benutzt. Sie
+                  wegzulassen hiesse, sie mit „noch nicht geladen" zu
+                  verwechseln.
+                */
+                text: (
+                  <p>
                     {dazu.length === 0
                       ? 'Nichts angesehen.'
                       : `Angesehen: ${dazu
@@ -318,10 +330,10 @@ export default function SupportzugangView() {
                           Math.max(...dazu.map((b) => Date.parse(b.zuletzt))),
                         )}`}
                   </p>
-                </li>
-              );
+                ),
+              };
             })}
-          </ul>
+          />
         )}
       </Card>
     </div>
