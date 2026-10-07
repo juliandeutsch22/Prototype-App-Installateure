@@ -779,6 +779,8 @@ textarea {
   .aktionsleiste-summe b { color: var(--ink-deep); font-size: 0.9375rem; font-weight: 600; }
   .aktionsleiste-knoepfe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 0.5rem; }
   .aktionsleiste-knoepfe > :only-child { grid-column: 1 / -1; }
+  /* „Abbrechen“ brach bei 390 px als „Abbreche|n“ um; ein Knopf trägt ein Wort. */
+  .aktionsleiste-knoepfe > * { white-space: nowrap; }
   .karte-koerper .aktionsleiste { margin: 1rem -1rem -1rem; padding-inline: 1rem; }
   .aktionsleiste-frei { position: static; }
   @media (min-width: 1200px) {
