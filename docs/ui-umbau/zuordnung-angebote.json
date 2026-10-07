@@ -1,0 +1,1005 @@
+{
+ "schritt": "E6–E8 – Paket angebote: Angebote, Angebotsakte, Wartungen",
+ "eintraege": [
+  {
+   "alt": "quotes.kopf.titel",
+   "neu": "quotes.seitenkopf.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Angebote“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.kopf.untertitel",
+   "neu": "quotes.seitenkopf.meta",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Wortlaut unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.kopf.neues-angebot",
+   "neu": "quotes.seitenkopf.hauptaktion",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Hauptaktion; am Handy im Daumenbereich; nur Geschäftsführung/Administrator wie bisher (QuotesView.test)",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.fehlermeldung",
+   "neu": "quotes.fehlermeldung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "ErrorState über der Liste, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.liste.titel-zaehler",
+   "neu": "quotes.liste.abschnitt.anzahl",
+   "weg_alt": 0,
+   "weg_neu": 1,
+   "bemerkung": "„Angebote (N)“: Anzahl je Gruppe; Gesamtzahl in „Alle“ (Abschnitt „Alle Angebote · N“)",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.liste.leer",
+   "neu": "quotes.liste.leer",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Noch kein Angebot erstellt.“ unverändert; dazu Texte für leere Ansicht/Suche",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.liste.skelett",
+   "neu": "quotes.liste.skelett",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.zeile.link-nummer-kunde",
+   "neu": "quotes.zeile (ganze Zeile)",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "ListRow mit to: die ganze Zeile öffnet /quotes/:id (QuotesView.test „verlinkt jedes Angebot“)",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.zeile.wert-brutto",
+   "neu": "quotes.zeile.wert",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.zeile.status",
+   "neu": "quotes.zeile.zustand",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Zustand wie bisher; offene mit abgelaufener Frist zusätzlich „abgelaufen“ (Achtung)",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.zeile.datum-gueltig-stunden-baustelle",
+   "neu": "quotes.zeile.meta",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Untertitel unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.zeile[angenommen|abgelehnt]",
+   "neu": "quotes.ansicht.erledigt.zeile",
+   "weg_alt": 0,
+   "weg_neu": 1,
+   "bemerkung": "Arbeitsstand als Standard: unter „Erledigt“ (oder „Alle“), ein Tipp",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.zeile.bearbeiten",
+   "neu": "quotes.zeile.bearbeiten",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "nur Entwurf, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.zeile.neue-fassung",
+   "neu": "quotes.zeile.neue-fassung",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Versendet: unverändert; Abgelehnt: unter „Erledigt“ (weg 2 → siehe Zeile [abgelehnt])",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.zeile[abgelehnt].neue-fassung",
+   "neu": "quotes.ansicht.erledigt.zeile.neue-fassung",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Segment „Erledigt“ + Knopf",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.zeile.annehmen",
+   "neu": "quotes.zeile.annehmen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, mit Rückfrage",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.zeile.menue",
+   "neu": "quotes.zeile.menue",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "⋯ der Zeile bleibt (nichts verlieren)",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.zeile.menue.als-versendet",
+   "neu": "quotes.zeile.menue.als-versendet",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.zeile.menue.als-abgelehnt",
+   "neu": "quotes.zeile.menue.als-abgelehnt",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.zeile.menue.loeschen",
+   "neu": "quotes.zeile.menue.loeschen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "nur Entwurf, Bestätigung bleibt",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.dialog.annehmen",
+   "neu": "quotes.dialog.annehmen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "ConfirmDialog unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.dialog.annehmen.abrechnung",
+   "neu": "quotes.dialog.annehmen.abrechnung",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "AbrechnungWahl samt Erklärung unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.dialog.loeschen",
+   "neu": "quotes.dialog.loeschen",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.zeile[>100. Angebot]",
+   "neu": "quotes.liste.nachladen",
+   "weg_alt": 0,
+   "weg_neu": 1,
+   "bemerkung": "Vorher endete die Liste still bei 100 (Voreinstellung der Abfrage); jetzt „Weitere Angebote laden“ (Nachladen) — vorher gar nicht erreichbar",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.titel",
+   "neu": "quotes.form.titel",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Neues Angebot“ / „Angebot … bearbeiten“ / „Neue Fassung von …“",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.hinweis-fassung",
+   "neu": "quotes.form.hinweis-fassung",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Hinweiszeile unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.kunde",
+   "neu": "quotes.form.kunde",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "einspaltig, 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.kundengrenze",
+   "neu": "quotes.form.kundengrenze",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.gueltig-bis",
+   "neu": "quotes.form.weitere-angaben.gueltig-bis",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "unter „Weitere Angaben“; die Zeile nennt das Datum zugeklappt; offen bei Entwurf mit abweichender Frist",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.ort-der-leistung",
+   "neu": "quotes.form.ort-der-leistung",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "AdresseFeld mit Vorschlag unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.position.bezeichnung",
+   "neu": "quotes.form.position.bezeichnung",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Linien statt Kästen",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.position.menge",
+   "neu": "quotes.form.position.menge",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "ab Tablet vier Zahlenfelder in einer Reihe",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.position.einheit",
+   "neu": "quotes.form.position.einheit",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.position.einzelpreis",
+   "neu": "quotes.form.position.einzelpreis",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert (Formatierung beim Verlassen)",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.position.rabatt",
+   "neu": "quotes.form.position.rabatt",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.position.arbeitszeit-haken",
+   "neu": "quotes.form.position.arbeitszeit-haken",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.position.netto-katalogvermerk",
+   "neu": "quotes.form.position.netto-katalogvermerk",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.position.nach-oben",
+   "neu": "quotes.form.position.nach-oben",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.position.nach-unten",
+   "neu": "quotes.form.position.nach-unten",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.position.entfernen",
+   "neu": "quotes.form.position.entfernen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.titel-zeile",
+   "neu": "quotes.form.titel-zeile",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Titel mit Summe unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.text-zeile",
+   "neu": "quotes.form.text-zeile",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.position-hinzufuegen",
+   "neu": "quotes.form.position-hinzufuegen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.aus-dem-katalog",
+   "neu": "quotes.form.aus-dem-katalog",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "öffnet jetzt das Seitenfenster „Aus dem Katalog“",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.titel-hinzufuegen",
+   "neu": "quotes.form.titel-hinzufuegen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.text-hinzufuegen",
+   "neu": "quotes.form.text-hinzufuegen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.katalog.suchfeld",
+   "neu": "quotes.katalogfenster.suchfeld",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "im Seitenfenster statt zwischen den Positionen",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.katalog.treffer.uebernehmen",
+   "neu": "quotes.katalogfenster.treffer.uebernehmen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "dazu Rückmeldung „… übernommen.“",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.katalog.fehler",
+   "neu": "quotes.katalogfenster.fehler",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Wortlaut unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.katalog.kein-treffer",
+   "neu": "quotes.katalogfenster.kein-treffer",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Wortlaut unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.katalog.fertig",
+   "neu": "quotes.katalogfenster.fertig",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "schließt das Fenster; zusätzlich „Schließen“ und Esc",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.anmerkungen",
+   "neu": "quotes.form.anmerkungen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "TextareaField, mehrzeilig wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.summen",
+   "neu": "quotes.form.summen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Netto · USt · Brutto unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.kalkulierte-arbeitszeit",
+   "neu": "quotes.form.kalkulierte-arbeitszeit",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.kalkulierte-arbeitszeit.i",
+   "neu": "quotes.seitenhilfe.kalkulierte-arbeitszeit",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Text unter „Hilfe zu dieser Seite“ (Regel 11), solange das Formular offen ist",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.hinweis-haken-abgeleitet",
+   "neu": "quotes.form.hinweis-haken-abgeleitet",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Warnung unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.fehler",
+   "neu": "quotes.form.fehler",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.anlegen-speichern",
+   "neu": "quotes.form.fuss.anlegen-speichern",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Fusszeile der Aktionen, rechts",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.form.abbrechen",
+   "neu": "quotes.form.fuss.abbrechen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Fusszeile, links neben der Hauptaktion",
+   "geprueft": true
+  },
+  {
+   "alt": "quotes.adresse.bearbeiten|neueFassung|kopie",
+   "neu": "quotes.adresse.bearbeiten|neueFassung|kopie",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Einsprung aus der Akte unverändert; die Ansicht der Liste bleibt dabei in der Adresse",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.zurueck",
+   "neu": "akte.seitenkopf.ort.zurueck",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„← Zu den Angeboten“ in der Ortszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.titel",
+   "neu": "akte.seitenkopf.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Angebot AN-…“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.kunde-name",
+   "neu": "akte.seitenkopf.meta.kunde",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.status",
+   "neu": "akte.seitenkopf.meta.zustand",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Zustand unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.bindefrist-abgelaufen",
+   "neu": "akte.seitenkopf.meta.bindefrist",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert; dazu Kennzahl „Gültig bis“ in Bernstein und Satz am Lot-Punkt",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.pdf",
+   "neu": "akte.seitenkopf.hauptaktion.pdf",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert Hauptaktion, wartet auf den Kunden",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.teilfehler-kunde",
+   "neu": "akte.teilfehler-kunde",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "TeilFehler samt Erneut unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.fehler",
+   "neu": "akte.fehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.laden|fehler|leer",
+   "neu": "akte.laden|fehler|leer",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Zustände unverändert, Zurück-Link in der Ortszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.leer.zur-angebotsliste",
+   "neu": "akte.leer.zur-angebotsliste",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.angaben.kunde-link",
+   "neu": "akte.angaben.kunde-link",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, 44 px",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.angaben.ort-der-leistung",
+   "neu": "akte.angaben.ort-der-leistung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.angaben.angebotsdatum",
+   "neu": "akte.angaben.angebotsdatum",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert; zusätzlich Zeit am Lot-Punkt „Angebot erstellt“",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.angaben.gueltig-bis",
+   "neu": "akte.kennzahlen.gueltig-bis",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Kennzahl (Zusammenfassung zuerst)",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.angaben.kalkulierte-arbeitszeit",
+   "neu": "akte.kennzahlen.arbeitszeit",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Kennzahl",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.angaben.neue-fassung-von",
+   "neu": "akte.verlauf.erstellt.vorgaenger-link",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "im Lot: „als neue Fassung von AN-…“",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.angaben.ueberarbeitet-als",
+   "neu": "akte.verlauf.fassung-link",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "je Fassung ein Lot-Punkt „Überarbeitet als AN-… (Status)“",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.angaben.baustelle",
+   "neu": "akte.angaben.baustelle",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Link/Nummer unverändert; im Lot zusätzlich „Baustelle …“ am Punkt „Angenommen“",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.positionen",
+   "neu": "akte.positionen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Karte unverändert (Titel, Text, Rabatt, Summen)",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.anmerkungen",
+   "neu": "akte.anmerkungen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.weiter.bearbeiten",
+   "neu": "akte.verlauf.jetzt.bearbeiten",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Link am Lot-Punkt „Entwurf“",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.weiter.als-versendet",
+   "neu": "akte.verlauf.jetzt.als-versendet",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "am Lot-Punkt „Entwurf“",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.weiter.annehmen",
+   "neu": "akte.verlauf.jetzt.annehmen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "am Lot-Punkt (Entwurf/Versendet), Rückfrage bleibt",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.weiter.als-abgelehnt",
+   "neu": "akte.seitenkopf.mehr.als-abgelehnt",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "⋯ des Seitenkopfs",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.weiter.neue-fassung",
+   "neu": "akte.verlauf.jetzt.neue-fassung",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Link am Lot-Punkt (Versendet/Abgelehnt)",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.weiter.als-kopie",
+   "neu": "akte.seitenkopf.mehr.als-kopie",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "⋯ des Seitenkopfs, führt an /quotes?kopie=… wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.weiter.loeschen",
+   "neu": "akte.seitenkopf.mehr.loeschen",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "⋯ des Seitenkopfs, nur Entwurf",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.dialog.annehmen",
+   "neu": "akte.dialog.annehmen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert, mit Abrechnungswahl",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.dialog.loeschen",
+   "neu": "akte.dialog.loeschen",
+   "weg_alt": 2,
+   "weg_neu": 3,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.kopf.titel",
+   "neu": "wartungen.seitenkopf.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.kopf.untertitel",
+   "neu": "wartungen.seitenkopf.meta",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„fällig gilt ab 30 Tagen im Voraus“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.kopf.neue-wartung",
+   "neu": "wartungen.seitenkopf.hauptaktion",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "öffnet das Seitenfenster „Neue Wartung“",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.fehler",
+   "neu": "wartungen.fehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.adressfilter",
+   "neu": "wartungen.adressfilter",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Gefiltert: fällige Wartungen ohne Baustelle“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.adressfilter.alle-zeigen",
+   "neu": "wartungen.adressfilter.alle-zeigen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.karte.steht-an.titel-zaehler",
+   "neu": "wartungen.segment.steht-an + abschnitt.anzahl",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Standardansicht; Zähler je Gruppe (Ohne Termin, Überfällig, Fällig)",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.karte.faellig-ohne-baustelle.titel",
+   "neu": "wartungen.adressfilter + abschnitt.anzahl",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "der Filter steht im Adressfilter; Zähler je Gruppe",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.karte.steht-an.leer",
+   "neu": "wartungen.liste.leer",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Wortlaut unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.karte.alle.titel-zaehler",
+   "neu": "wartungen.segment.alle + abschnitt „Alle Vereinbarungen · N“",
+   "weg_alt": 0,
+   "weg_neu": 1,
+   "bemerkung": "Segment „Alle“",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.karte.alle.suche",
+   "neu": "wartungen.liste.suche",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Suchfeld über beiden Ansichten; wirkt in der gewählten",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.karte.alle.leer|kein-treffer",
+   "neu": "wartungen.liste.leer",
+   "weg_alt": 0,
+   "weg_neu": 1,
+   "bemerkung": "Wortlaut unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.karte.alle.nachladen",
+   "neu": "wartungen.liste.nachladen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unter der Liste, in beiden Ansichten",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.karte.alle.zeile",
+   "neu": "wartungen.ansicht.alle.zeile",
+   "weg_alt": 0,
+   "weg_neu": 1,
+   "bemerkung": "Segment „Alle“; jede Vereinbarung einmal (D14)",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.zeile.kunde-zustand",
+   "neu": "wartungen.zeile.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert; Titel öffnet jetzt das Seitenfenster „Anlage“",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.zeile.meta",
+   "neu": "wartungen.zeile.meta",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "alle Angaben wie bisher (Anlage, Ort, Intervall, Termin, zuletzt, Hinweis, Anlagendaten, Preis)",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.zeile.eingeplant-link",
+   "neu": "wartungen.zeile.eingeplant-link",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "über der Zeilenfläche treffbar; dazu im Lot",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.zeile.erledigt",
+   "neu": "wartungen.zeile.erledigt",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; zusätzlich im Seitenfenster",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.zeile.baustelle-anlegen",
+   "neu": "wartungen.ansicht.steht-an.zeile.baustelle-anlegen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unter „Steht an“ in der Zeile; zusätzlich im Seitenfenster",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.karte.steht-an.zeile.bearbeiten",
+   "neu": "wartungen.anlagefenster.bearbeiten",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Zeile → Seitenfenster → Bearbeiten (oder „Alle“ → Bearbeiten)",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.karte.alle.zeile.bearbeiten",
+   "neu": "wartungen.ansicht.alle.zeile.bearbeiten",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Segment „Alle“ + Knopf in der Zeile",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.form.kunde|anlage|standort|intervall|zuletzt|termin|hinweis|aktiv",
+   "neu": "wartungen.formfenster.*",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Seitenfenster „Neue Wartung“, einspaltig (Weg über „Neue Wartung“; über Bearbeiten 2 → 2+1, siehe oben)",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.form.termin.hinweis-berechnet",
+   "neu": "wartungen.formfenster.termin.hinweis",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Wortlaut unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.form.hersteller|typ|seriennummer|baujahr|preis",
+   "neu": "wartungen.formfenster.weitere-angaben.*",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "„Anlagendaten und Preis“ — beim Anlegen zugeklappt, beim Ändern offen",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.form.hinweis-gekuendigt",
+   "neu": "wartungen.formfenster.aktiv.i",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Text hinter dem „i“ neben „Vereinbarung läuft“ (im Fenster bleibt das „i“ am Platz)",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.form.pflichthinweis",
+   "neu": "wartungen.formfenster.pflichthinweis",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.form.speichern",
+   "neu": "wartungen.formfenster.fuss.speichern",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.form.abbrechen",
+   "neu": "wartungen.formfenster.fuss.abbrechen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "dazu „Schließen“ und Esc",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.form.loeschen",
+   "neu": "wartungen.formfenster.fuss.loeschen",
+   "weg_alt": 2,
+   "weg_neu": 3,
+   "bemerkung": "nur beim Ändern; Bestätigung unverändert; danach schließt das Fenster",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.dialog.erledigt.felder",
+   "neu": "wartungen.dialog.erledigt.felder",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Gewartet am, Intervall ab jetzt, Baustelle — unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.dialog.erledigt.naechster-termin",
+   "neu": "wartungen.dialog.erledigt.naechster-termin",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Vorschau unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.dialog.erledigt.erklaerung",
+   "neu": "wartungen.dialog.erledigt.i",
+   "weg_alt": 2,
+   "weg_neu": 3,
+   "bemerkung": "„Gerechnet ab dem Tag der Ausführung …“ hinter dem „i“ (Hinweis höchstens eine Zeile)",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.dialog.einplanen.projektnummer",
+   "neu": "wartungen.dialog.einplanen.projektnummer",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.dialog.einplanen.hinweis",
+   "neu": "wartungen.dialog.einplanen.hinweis",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "„Vorgeschlagen nach dem Schema des Betriebs — änderbar.“ sichtbar",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.dialog.einplanen.erklaerung",
+   "neu": "wartungen.dialog.einplanen.i",
+   "weg_alt": 2,
+   "weg_neu": 3,
+   "bemerkung": "Rest hinter dem „i“",
+   "geprueft": true
+  },
+  {
+   "alt": "wartungen.dialog.loeschen",
+   "neu": "wartungen.dialog.loeschen",
+   "weg_alt": 3,
+   "weg_neu": 4,
+   "bemerkung": "Wortlaut unverändert",
+   "geprueft": true
+  }
+ ]
+}
