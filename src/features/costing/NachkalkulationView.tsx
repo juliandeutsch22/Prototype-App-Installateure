@@ -18,7 +18,8 @@ import Hinweiszeile from '@/components/Hinweiszeile';
 import { Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
-import { SelectField } from '@/components/Field';
+import Metric, { MetricRow } from '@/components/Metric';
+import { Segmente } from '@/components/LotBausteine';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import InfoHint from '@/components/InfoHint';
 import { fmtStd } from '@/lib/time';
@@ -197,12 +198,30 @@ export default function NachkalkulationView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, nummern, katalog, kosten?.fach, kosten?.helper]);
 
+  /*
+    DIE KENNZAHLEN ZÄHLEN NUR, WAS DIE ZEILEN SCHON SAGEN: je Baustelle den
+    Zustand aus `margenTon`. Eine Summe der Deckungsbeiträge steht bewusst
+    nicht da — Baustellen ohne Erlös hätten sie mit ihren Personalkosten ins
+    Minus gezogen, und eine solche Zahl wäre eine neue Rechnung, keine
+    Darstellung.
+  */
+  const zaehlung = useMemo(() => {
+    const z = { schlecht: 0, achtung: 0, ruht: 0 };
+    for (const k of ergebnisse ?? []) {
+      const t = margenTon(k);
+      if (t === 'schlecht' || t === 'achtung' || t === 'ruht') z[t] += 1;
+    }
+    return z;
+  }, [ergebnisse]);
+  const inAuswahl = projekte.filter((p) => p.status === status).length;
+
   if (!user) return null;
 
   return (
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
+        ort="Geld"
         title="Nachkalkulation"
         subtitle="Erlös gegen Personal- und Materialkosten — je Baustelle"
       />
@@ -253,39 +272,54 @@ export default function NachkalkulationView() {
       ) : (
         <>
           {/*
-            Der Hinweis zur Auswahl stand hier dauerhaft unter dem Feld. Beim
-            ersten Mal erklärt er etwas, ab dem zweiten Mal steht er im Weg —
-            deshalb hinter dem „i". Was sich MIT der Auswahl ändert (laufend
-            oder abgeschlossen), bleibt sichtbar: das ist keine Erklärung,
-            sondern eine Aussage über das, was gerade auf dem Schirm steht.
+            DIE AUSWAHL ALS SEGMENTE (Linie „Lot“): zwei Werte, ein Tipp —
+            statt einer Auswahlliste in einer eigenen Karte. Die Erklärung
+            dazu steht hinter dem „i“ (und damit in „Hilfe zu dieser Seite“);
+            was sich MIT der Auswahl ändert, bleibt sichtbar: das ist keine
+            Erklärung, sondern eine Aussage über das, was gerade dasteht.
           */}
-          <Card
-            title="Auswahl"
-            hint={
-              <>
-                Ein <strong>laufender</strong> Stand ist ein Zwischenstand: es kommen noch
-                Stunden dazu, und die Marge kann sich noch drehen. Bei{' '}
-                <strong>abgeschlossenen</strong> Baustellen steht das Ergebnis fest. Gerechnet
-                werden jeweils die {BAUSTELLEN_JE_LAUF} jüngsten.
-              </>
-            }
-          >
-            <SelectField
-              id="nkstatus"
-              label="Baustellen"
-              value={status}
-              onChange={(e) => {
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <Segmente
+              name="Baustellen"
+              werte={[
+                { wert: 'Abgeschlossen', text: 'Abgeschlossen' },
+                { wert: 'Aktiv', text: 'Laufend' },
+              ]}
+              wert={status}
+              onChange={(w) => {
                 selbstGewaehlt.current = true;
-                setStatus(e.target.value as 'Aktiv' | 'Abgeschlossen');
+                setStatus(w);
               }}
-            >
-              <option value="Abgeschlossen">Abgeschlossen</option>
-              <option value="Aktiv">Laufend</option>
-            </SelectField>
+            />
+            <InfoHint about="die Auswahl">
+              Ein <strong>laufender</strong> Stand ist ein Zwischenstand: es kommen noch
+              Stunden dazu, und die Marge kann sich noch drehen. Bei{' '}
+              <strong>abgeschlossenen</strong> Baustellen steht das Ergebnis fest. Gerechnet
+              werden jeweils die {BAUSTELLEN_JE_LAUF} jüngsten.
+            </InfoHint>
             {status === 'Aktiv' && (
-              <p className="mt-2 text-sm text-warning">Zwischenstand — es kommen noch Stunden dazu.</p>
+              <p className="text-sm text-warning">Zwischenstand — es kommen noch Stunden dazu.</p>
             )}
-          </Card>
+          </div>
+
+          {/* Höchstens vier Zahlen über der Liste: wie viele, und wie viele davon Aufmerksamkeit brauchen. */}
+          {!loading && ergebnisse && ergebnisse.length > 0 && (
+            <MetricRow>
+              <Metric
+                label="Baustellen"
+                value={ergebnisse.length}
+                hint={inAuswahl > ergebnisse.length ? `die ${ergebnisse.length} jüngsten von ${inAuswahl}` : status === 'Aktiv' ? 'laufend' : 'abgeschlossen'}
+              />
+              <Metric
+                label="Mit Verlust"
+                value={zaehlung.schlecht}
+                tone={zaehlung.schlecht > 0 ? 'danger' : 'default'}
+                hint="Deckungsbeitrag unter null"
+              />
+              <Metric label="Zu prüfen" value={zaehlung.achtung} hint="unter 20 % oder Material ohne Preis" />
+              <Metric label="Ohne Erlös" value={zaehlung.ruht} hint="keine Rechnung, kein Angebot" />
+            </MetricRow>
+          )}
 
           {error && <ErrorState message={error} />}
 

@@ -274,7 +274,7 @@ afterEach(() => {
   rolle.wert = 'Mitarbeiter';
 });
 
-/** Die Karte, in der ein Text steht — Handlungsbedarf, Heute, … */
+/** Die Karte, in der ein Text steht — Zu erledigen, Heute, … */
 const karteMit = async (text: RegExp | string) => (await screen.findByText(text)).closest('section.karte') as HTMLElement;
 
 /** Eine Anforderung für die Lager- und Leitungssicht. */
@@ -338,6 +338,13 @@ describe('Startseite — Monteur', () => {
     expect(knopf).toHaveTextContent('07:00–16:00 · 30 min Pause · 08:30 Std');
   });
 
+  it('hält zwei Kennzahlen so breit wie bei vieren — keine halbe Seite je Zahl', async () => {
+    zeichne();
+    const saldo = await screen.findByRole('link', { name: /Saldo/ });
+    await screen.findByRole('link', { name: /Resturlaub/ });
+    expect(saldo.closest('.start-kennzahlen-zwei')).not.toBeNull();
+  });
+
   it('nennt die fehlenden Tage einzeln, höchstens drei, mit dem Weg zum Nachtragen', async () => {
     zeichne();
     // Gebucht ist nur der 1.9. — vom 2.9. bis gestern (14.9.) fehlen neun Werktage.
@@ -389,6 +396,19 @@ describe('Startseite — Geschäftsführung', () => {
     const zahl = await screen.findByRole('link', { name: /Aktive Baustellen/ });
     expect(zahl).toHaveTextContent(/Aktive Baustellen.*2/);
     expect(zahl).toHaveAttribute('href', '/admin-projects?filter=aktiv');
+  });
+
+  it('stellt die Kennzahlen über „Zu erledigen“ und „Heute“ (Linie „Lot“, E1)', async () => {
+    zeichne();
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    const zahl = await screen.findByRole('link', { name: /Aktive Baustellen/ });
+    const titel = await screen.findByRole('heading', { name: /Zu erledigen/ });
+    const heute = await karteMit(/im Einsatz/);
+    // Die Leiste kommt im Dokument vor beiden Karten — am Telefon also oben.
+    expect(zahl.compareDocumentPosition(titel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(zahl.compareDocumentPosition(heute) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Und sie steht nicht mehr in einer der beiden Spalten, sondern darüber.
+    expect(zahl.closest('.zwei-spalten')).toBeNull();
   });
 
   it('zeigt unter „Heute“, wer wo ist, mit dem Weg in die Tagesplanung', async () => {
@@ -495,7 +515,8 @@ describe('Startseite — Geschäftsführung', () => {
       ist dann nicht mehr im Dokument.
     */
     await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
-    const karte = await karteMit(/Handlungsbedarf/);
+    // Seit der Linie „Lot“ heisst die Karte „Zu erledigen“ (Protokoll E1); geprüft wird dasselbe.
+    const karte = await karteMit(/Zu erledigen/);
     expect(within(karte).getByText(/Themen/)).toBeInTheDocument();
     expect(within(karte).getByRole('region', { name: 'Dringend' })).toBeInTheDocument();
     expect(within(karte).getByRole('link', { name: /1 Eilanforderung offen/ })).toHaveAttribute('href', '/anforderungen?filter=eil');
@@ -792,7 +813,7 @@ describe('Startseite — Termine heute (Plan 10.4)', () => {
 });
 
 describe('Startseite — Lehrling unter 18 (Runde 3, M2)', () => {
-  it('nennt die eigenen Überschreitungen leise im Handlungsbedarf', async () => {
+  it('nennt die eigenen Überschreitungen leise unter „Zu erledigen“', async () => {
     // Am 01.09. 07:00–16:00 mit 30 Min. Pause: 8:30 Std. — für Jugendliche zu viel.
     geburt.wert = '2010-03-15';
     zeichne();

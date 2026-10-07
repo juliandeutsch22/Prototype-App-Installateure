@@ -369,3 +369,28 @@ describe('Projektauswertung — Zeiten und Datum wie überall', () => {
     expect(screen.queryByText('Do., 03.09.26')).not.toBeInTheDocument();
   });
 });
+
+/**
+ * EINE FLÄCHE, LINIEN STATT KARTEN (Linie „Lot“, Regel 1). Jede Baustelle
+ * war eine eigene Karte in der Karte; jetzt ist sie eine Zeile der Gruppe.
+ * Aufklappen bleibt, wie es war.
+ */
+describe('Projektauswertung als Zeilen einer Gruppe', () => {
+  it('trägt keine Karte in der Karte, jede Baustelle ist eine Zeile', async () => {
+    const { container } = render(
+      <ProjectSummary
+        entries={[
+          eintrag({ id: 'a' } as Partial<TimeEntry>),
+          eintrag({ id: 'b', projectNumber: 'B-2026-0002', customerName: 'Zweite Baustelle' } as Partial<TimeEntry>),
+        ]}
+        gesamtEntries={[]}
+        projects={[projekt]}
+        label="September 2026"
+      />,
+    );
+    expect(container.querySelectorAll('.panel')).toHaveLength(1);
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    await aufklappen();
+    expect(screen.getByRole('button', { name: /Max Musterkunde/ })).toHaveAttribute('aria-expanded', 'true');
+  });
+});
