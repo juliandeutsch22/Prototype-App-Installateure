@@ -357,6 +357,16 @@ export default function WartungenView() {
         faelligAm: w.faelligAm,
         aktiv: w.aktiv !== false,
         hinweis: w.hinweis ?? '',
+        /*
+          DIE ANLAGENDATEN KOMMEN MIT (M39). Fehlten sie hier, stünden die
+          Felder leer, und `speichern` schriebe Hersteller, Typ und
+          Seriennummer als leer zurück — eine Änderung am Hinweis löschte sie.
+        */
+        hersteller: w.hersteller ?? '',
+        typ: w.typ ?? '',
+        seriennummer: w.seriennummer ?? '',
+        baujahr: w.baujahr ?? null,
+        preis: w.preis ?? null,
       });
     } else {
       setBearbeitet(null);

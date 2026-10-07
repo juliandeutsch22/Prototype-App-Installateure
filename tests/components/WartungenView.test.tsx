@@ -602,3 +602,35 @@ describe('Wartungen auf der Linie „Lot“', () => {
     expect(within(fenster).queryByRole('button', { name: /Bearbeiten|Erledigt|Baustelle anlegen/ })).toBeNull();
   });
 });
+
+/*
+  GEFUNDEN BEIM UMBAU (Paket angebote, 07.10.2026): „Bearbeiten“ holte die
+  Anlagendaten nicht ins Formular. Die Felder standen leer da, und beim
+  Speichern schrieb die Ansicht Hersteller, Typ und Seriennummer als leer
+  zurück — wer nur den Hinweis änderte, löschte die Anlagendaten.
+*/
+describe('Eine Wartung mit Anlagendaten bearbeiten', () => {
+  it('zeigt die gespeicherten Anlagendaten und behält sie beim Speichern', async () => {
+    const nutzer = userEvent.setup();
+    bestand = [
+      wartung('w1', 'Bäckerei Stein', '2026-04-10', {
+        customerId: 'k1', hersteller: 'Vaillant', typ: 'ecoTEC plus', seriennummer: '21184500', baujahr: 2018, preis: 149,
+      }),
+    ];
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: /Bäckerei Stein/ }));
+    await nutzer.click(within(await screen.findByRole('dialog', { name: 'Wartung' })).getByRole('button', { name: 'Bearbeiten' }));
+
+    expect(screen.getByLabelText('Hersteller')).toHaveValue('Vaillant');
+    expect(screen.getByLabelText('Seriennummer')).toHaveValue('21184500');
+    await nutzer.clear(screen.getByLabelText('Hinweis'));
+    await nutzer.type(screen.getByLabelText('Hinweis'), 'Schlüssel beim Nachbarn');
+    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    await waitFor(() => expect(updateWartung).toHaveBeenCalled());
+    expect((updateWartung.mock.calls[0] as unknown[])[1]).toMatchObject({
+      hinweis: 'Schlüssel beim Nachbarn',
+      hersteller: 'Vaillant', typ: 'ecoTEC plus', seriennummer: '21184500', baujahr: 2018, preis: 149,
+    });
+  });
+});
