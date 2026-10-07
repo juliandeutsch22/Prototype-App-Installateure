@@ -6,4 +6,69 @@
  * gestrichelten Linien. Farben nur aus den Grundwerten (var(--…)).
  */
 @layer components {
+  /* ── Bereichswahl mit Zählern ─────────────────────────────────────────── */
+  /*
+    Vier Segmente mit Zahl („Laufend 12“) brachen am Handy in zwei Zeilen um.
+    Weniger Polsterung je Segment lässt Wort und Zahl nebeneinander stehen.
+  */
+  @media (max-width: 759px) { .bereichswahl .segment > * { padding: 0 0.375rem; } }
+
+  /* ── Anforderungen: Arbeitszeile ──────────────────────────────────────── */
+  /* Eil und Beschaffung rechts im antippbaren Inhalt, am Handy darunter. */
+  .anf-marken { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; flex: none; }
+  /*
+    Am Handy steht die Sammelleiste fest über der unteren Leiste. Der
+    Platzhalter am Ende der Liste hält die letzte Zeile frei, solange etwas
+    gewählt ist.
+  */
+  .sammel-platz { display: none; }
+  @media (max-width: 759px) { .sammel-platz { display: block; height: 5rem; } }
+
+  /* ── Seitenfenster: Angaben, Kennzahlen, Aktionen ─────────────────────── */
+  .angaben { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; margin: 0; }
+  .angabe { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 0.75rem; align-items: baseline; }
+  .angabe dt { font-size: 0.8125rem; color: var(--text-muted); }
+  .angabe dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
+
+  /* Kennzahlen eines Artikels: zwei Spalten, auch im schmalen Fenster. */
+  .fenster-zahlen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem 1.25rem; margin: 0; padding: 1rem 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .fenster-zahl { min-width: 0; }
+  .fenster-zahl dt { font-size: 0.8125rem; color: var(--text-muted); }
+  .fenster-zahl dd { margin: 0.125rem 0 0; font-size: 1.375rem; line-height: 1.75rem; font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; }
+  .fenster-zahl-zusatz { margin-top: 0.125rem; font-size: 0.8125rem; color: var(--text-muted); }
+
+  /* Alle Aktionen eines Seitenfensters untereinander, volle Breite. */
+  .material-aktionen { display: flex; flex-direction: column; gap: 0.5rem; }
+  /* Seltenes kleiner und nebeneinander, das Unumkehrbare abgesetzt darunter. */
+  .material-status { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .material-gefahr { display: flex; flex-direction: column; padding-top: 1rem; border-top: 1px solid var(--border); }
+
+  /* ── Lager: Werkzeugzeile über dem Bestand ────────────────────────────── */
+  .lager-werkzeug { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem 1rem; padding: 1rem; }
+  .lager-suche { flex: 1; min-width: 14rem; }
+
+  /* Artikelwahl für Wareneingang und Inventur aus dem Seitenkopf. */
+  .wahl-liste { margin: 0; padding: 0; list-style: none; border: 1px solid var(--border); border-top: 0; border-radius: var(--radius); overflow: hidden; }
+  .wahl-zeile { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 2.75rem; padding: 0.5rem 0.75rem; background: var(--surface); border: 0; border-top: 1px solid var(--border); color: var(--text); text-align: left; font-size: 0.9375rem; cursor: pointer; }
+  .wahl-zeile:hover { background: var(--petrol-hell); color: var(--petrol); }
+  .wahl-zeile-info { flex: none; font-size: 0.8125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+  /* ── Material anfordern: der Warenkorb im Daumenbereich ───────────────── */
+  /*
+    KLEBEND, NICHT FEST: solange Katalog oder Korb im Bild sind, steht die
+    Leiste unten über der Navigation (`--reiter-hoehe` am body, ab dem
+    Tablet 0). Am Ende ihres Abschnitts rückt sie an ihren Platz — so liegt
+    nie ein Feld dauerhaft unter ihr.
+  */
+  .korb { position: sticky; bottom: var(--reiter-hoehe, 0px); z-index: 10; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.625rem 1rem 0.75rem; margin: 0 -1rem; background: var(--surface); border-top: 1px solid var(--petrol); }
+  @media (min-width: 760px) {
+    .korb { margin: 0; padding: 0.75rem 1.25rem; border: 1px solid var(--petrol); border-radius: var(--radius-lg); }
+  }
+  .korb-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .korb-titel { font-weight: 600; color: var(--ink-deep); text-decoration: none; }
+  .korb-titel:hover { color: var(--petrol); text-decoration: underline; text-underline-offset: 3px; }
+  .korb-info { font-size: 0.8125rem; color: var(--text-muted); }
+  .korb-fehler { flex-basis: 100%; font-size: 0.875rem; color: var(--danger); }
+  .korb-knoepfe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 0.5rem; width: 100%; }
+  @media (min-width: 760px) { .korb-knoepfe { display: flex; width: auto; } }
 }

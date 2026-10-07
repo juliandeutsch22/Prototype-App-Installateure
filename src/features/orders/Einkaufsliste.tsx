@@ -297,7 +297,7 @@ export default function Einkaufsliste({
                       {mail ? (
                         <a
                           href={mail.href}
-                          className="inline-flex min-h-touch items-center rounded border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm hover:bg-surface-2"
+                          className="inline-flex min-h-touch items-center rounded border border-line-strong bg-surface px-4 py-2 text-sm font-normal text-ink hover:border-brand-fixed"
                         >
                           E-Mail an {h?.bestellEmail}
                         </a>

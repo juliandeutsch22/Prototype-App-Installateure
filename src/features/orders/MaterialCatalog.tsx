@@ -17,7 +17,8 @@ import type { Material } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { Marke, Warnung } from '@/components/Badge';
-import IconButton from '@/components/IconButton';
+import BottomSheet from '@/components/BottomSheet';
+import { MehrAnzeigen } from '@/components/LotBausteine';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { CheckboxField, InputField, FormGrid, Pflichthinweis } from '@/components/Field';
@@ -39,6 +40,9 @@ import EinheitFeld from '@/components/EinheitFeld';
   freies Feld. Die Liste steht in `@/lib/einheit`, samt der Regel, welche
   Einheit Nachkommastellen nimmt (M27).
 */
+
+/** Gruppen höchstens 20 Zeilen (Regel 4), dann „und N weitere anzeigen“. */
+const JE_SEITE = 20;
 
 const empty = {
   name: '',
@@ -113,8 +117,18 @@ export default function MaterialCatalog({
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /*
+    DER LADEFEHLER HAT SEINEN EIGENEN PLATZ über der Liste. Bis zum Umbau
+    teilte er sich die Meldung mit dem Formular, das immer sichtbar war; im
+    Seitenfenster sähe ihn sonst niemand.
+  */
+  const [ladeFehler, setLadeFehler] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
   const [editId, setEditId] = useState<string | null>(null);
+  /** Das Seitenfenster mit dem Formular — für einen neuen wie für einen bestehenden Artikel. */
+  const [formOffen, setFormOffen] = useState(false);
+  /** Wie viele Zeilen stehen (Regel 4: höchstens 20, dann „und N weitere“). */
+  const [gezeigt, setGezeigt] = useState(JE_SEITE);
   /*
     DER EINKAUFSPREIS KOMMT NICHT MIT DEM ARTIKEL (offene Punkte B1). Solange
     er nicht geholt ist, geht er beim Speichern NICHT mit: das leere Feld
@@ -141,7 +155,7 @@ export default function MaterialCatalog({
         setLoading(false);
       },
       (e) => {
-        setError(e.message);
+        setLadeFehler(e.message);
         setLoading(false);
       },
       grenze,
@@ -179,6 +193,8 @@ export default function MaterialCatalog({
 
   function startEdit(m: WithId<Material>) {
     setEditId(m.id);
+    setError(null);
+    setFormOffen(true);
     offenerArtikel.current = m.id;
     if (darfKosten && user) {
       setEkStand('laedt');
@@ -208,10 +224,18 @@ export default function MaterialCatalog({
     });
   }
   function reset() {
+    setFormOffen(false);
     setEditId(null);
     offenerArtikel.current = null;
     setEkStand('da');
     setForm(empty);
+  }
+
+  /** Ein neues Material: leeres Formular im Seitenfenster. */
+  function neu() {
+    reset();
+    setError(null);
+    setFormOffen(true);
   }
 
   async function submit(e: FormEvent) {
@@ -289,153 +313,20 @@ export default function MaterialCatalog({
 
   return (
     <div className="space-y-6">
-      <Card title={editId ? 'Material bearbeiten' : 'Neues Material'}>
-        <form onSubmit={submit} className="space-y-4">
-          <FormGrid>
-            <InputField id="mname" label="Bezeichnung" value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })} required pflicht />
-            <InputField id="mcat" label="Kategorie" placeholder="z. B. Sanitär" value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })} />
-            <InputField id="mart" label="Artikelnummer" value={form.articleNumber}
-              onChange={(e) => setForm({ ...form, articleNumber: e.target.value })} />
-            {/*
-              DIE EINHEIT IST DAS WORT HINTER DER ZAHL — mehr nicht.
-              
-              Aus dem Betrieb kam die Frage, wofür das Feld überhaupt da ist,
-              und im Bestand stand daraufhin „100 20cm frei". Das ist die
-              richtige Frage zur falschen Zeit gewesen: das Feld sagte nirgends,
-              was es will, und eine Abmessung ist dort das Naheliegendste.
-              Jetzt schlägt es die üblichen Einheiten vor und erklärt sich.
-            */}
-            <div>
-              <EinheitFeld id="munit" value={form.unit || 'Stk'} onChange={(unit) => setForm({ ...form, unit })} />
-              <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
-                Das Wort hinter der Zahl — „100 Stk“, „30 m“.
-                <InfoHint about="die Einheit">
-                  Sie beschriftet nur die Menge: im Katalog, im Lager und beim Wareneingang.
-                  Auf Rechnungen und Angeboten wirkt sie nicht — dort trägt jede Position ihre
-                  eigene Einheit. <strong>Eine Abmessung gehört nicht hierher</strong>: aus „20cm“
-                  wird im Bestand „100 20cm frei“. Die Größe gehört in die Bezeichnung
-                  („Kupferrohr 20 cm“) oder in die Artikelnummer.
-                </InfoHint>
-              </p>
-            </div>
-            <InputField id="mwg" label="Warengruppe" placeholder="aus DATANORM, z. B. 1201" value={form.warengruppe}
-              onChange={(e) => setForm({ ...form, warengruppe: e.target.value })} />
-          </FormGrid>
-          {/*
-            KATALOG UND LAGER GETRENNT (Testbericht 30.09.2026, M30). Nicht jeder
-            Katalogartikel liegt im Regal; erst dieser Haken führt ihn im Lager.
-            Abschalten geht nur bei Bestand null — sonst stünde ein Bestand in
-            keiner Lagerliste.
-          */}
-          <div className="space-y-1">
-            <CheckboxField
-              id="mlager"
-              label="Im Lager führen"
-              checked={form.lagerartikel}
-              disabled={!!editId && form.lagerartikel && zahlOder(form.stock, 0) !== 0}
-              onChange={(e) => setForm({ ...form, lagerartikel: e.target.checked })}
-            />
-            <p className="text-xs text-ink-muted">
-              {!!editId && form.lagerartikel && zahlOder(form.stock, 0) !== 0
-                ? 'Liegt im Lager — abschalten geht erst, wenn die Inventur den Bestand auf null gesetzt hat.'
-                : 'Ohne Haken steht der Artikel nur im Katalog: anforderbar und verrechenbar, aber in keiner Lagerliste.'}
-            </p>
-          </div>
-          <FormGrid>
-            {!form.lagerartikel ? null : editId ? (
-              <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-normal text-ink">Lagerbestand</span>
-                <p className="text-sm text-ink">
-                  {form.stock} {form.unit || 'Stk'}
-                </p>
-                <p className="text-xs text-ink-muted">
-                  Ändert sich über Wareneingang oder Inventur im Reiter „Bestand“ — mit Grund im
-                  Bewegungsprotokoll.
-                </p>
-              </div>
-            ) : (
-              <ZahlFeld id="mstock" label="Anfangsbestand" value={form.stock}
-                onChange={(t) => setForm({ ...form, stock: t })} required pflicht />
-            )}
-            {form.lagerartikel && (
-              <ZahlFeld id="mmin" label="Mindestmenge" placeholder="leer = knapp ab höchstens 5 frei"
-                value={form.mindestmenge} onChange={(t) => setForm({ ...form, mindestmenge: t })} />
-            )}
-            <div className="flex flex-col gap-1.5">
-              <ZahlFeld
-                id="mpreis"
-                label="Verkaufspreis netto je Einheit (€)"
-                placeholder="leer = nicht gepflegt"
-                value={form.verkaufspreis}
-                onChange={(t) => setForm({ ...form, verkaufspreis: t })}
-              />
-              {/*
-                DER VORSCHLAG AUS EINKAUF PLUS AUFSCHLAG (M31) — nur ein
-                Vorschlag: der Verkaufspreis ist die Kalkulation des Betriebs
-                und bleibt, was hier steht, bis jemand übernimmt.
-              */}
-              {(() => {
-                if (!darfKosten || ekStand !== 'da') return null;
-                const ek = leseZahl(form.einkaufspreis).wert;
-                const vorschlag = verkaufspreisVorschlag(ek, aufschlag, form.warengruppe);
-                if (vorschlag == null) return null;
-                const prozent = aufschlagFuer(aufschlag, form.warengruppe);
-                return (
-                  <p className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
-                    <span>Vorschlag: {euro(vorschlag)} (Einkauf + {fmtMenge(prozent ?? 0)} %)</span>
-                    <Button type="button" variant="ghost" onClick={() => setForm({ ...form, verkaufspreis: preisAlsText(vorschlag) })}>
-                      Übernehmen
-                    </Button>
-                  </p>
-                );
-              })()}
-            </div>
-            {/*
-              Der EINKAUFSPREIS steht nur der Geschäftsführung offen: er ist
-              die Grundlage der Nachkalkulation, also Margendaten. SETZEN kann
-              ihn nur sie — das verweigert die Datenbank allen anderen
-              (Trigger `materials_felder`), und seit dem 29.09.2026 LESEN auch
-              nur sie (`material_einkaufspreise`, offene Punkte B1).
-            */}
-            {darfKosten && (
-              <div className="flex flex-col gap-1.5">
-                <ZahlFeld
-                  id="mek"
-                  label="Einkaufspreis netto je Einheit (€)"
-                  placeholder={ekStand === 'laedt' ? 'wird geladen …' : 'leer = nicht gepflegt'}
-                  disabled={ekStand !== 'da' || !darfEkSetzen}
-                  value={form.einkaufspreis}
-                  onChange={(t) => setForm({ ...form, einkaufspreis: t })}
-                />
-                {ekStand === 'fehlt' && (
-                  <p className="text-sm text-ink-muted">
-                    Der Einkaufspreis konnte nicht geladen werden — er bleibt beim Speichern, wie er ist.
-                  </p>
-                )}
-              </div>
-            )}
-          </FormGrid>
-          <Pflichthinweis />
-          {error && <ErrorState message={error} />}
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button type="submit" loading={saving} className="w-full sm:w-auto">
-              {editId ? 'Änderungen speichern' : 'Material anlegen'}
-            </Button>
-            {editId && (
-              <Button type="button" variant="ghost" onClick={reset} className="w-full sm:w-auto">
-                Abbrechen
-              </Button>
-            )}
-          </div>
-        </form>
-      </Card>
-
+      {/*
+        DIE LISTE ZUERST, DAS FORMULAR IM SEITENFENSTER (Linie „Lot“,
+        Regel 8). Bis zum Umbau stand das Formular als Karte über der Liste:
+        wer weit unten auf „Bearbeiten“ tippte, sah oben das Formular
+        wechseln und musste zurückrollen. Jetzt öffnet die Zeile den Artikel
+        dort, wo man gerade ist.
+      */}
       <Card
         title={`Katalog (${materials.length})`}
         action={
-          lowStock > 0 ? <Warnung>{lowStock} knapp</Warnung> : undefined
+          <>
+            {lowStock > 0 ? <Warnung>{lowStock} knapp</Warnung> : null}
+            <Button variant="secondary" onClick={neu}>Neues Material</Button>
+          </>
         }
       >
         <InputField
@@ -443,16 +334,20 @@ export default function MaterialCatalog({
           label="Suche"
           placeholder="Name, Kategorie oder Art.-Nr."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setGezeigt(JE_SEITE);
+          }}
         />
         <div className="mt-4">
+          {ladeFehler && <ErrorState message={ladeFehler} />}
           {loading ? (
             <SkeletonList rows={4} />
           ) : visible.length === 0 ? (
             <EmptyState
               action={
                 materials.length === 0 ? (
-                  <Button onClick={() => document.getElementById('mname')?.focus()}>
+                  <Button onClick={neu}>
                     Erstes Material anlegen
                   </Button>
                 ) : (
@@ -468,18 +363,20 @@ export default function MaterialCatalog({
             </EmptyState>
           ) : (
             <List>
-              {visible.map((m) => {
+              {visible.slice(0, gezeigt).map((m) => {
                 const lager = imLager(m);
                 const low = lager && istKnapp(m.stock ?? 0, m, LOW_STOCK_THRESHOLD);
                 return (
                   <ListRow
                     key={m.id}
                     title={m.name}
+                    onOeffnen={() => startEdit(m)}
                     subtitle={
                       [m.category, m.articleNumber && `Art.-Nr. ${m.articleNumber}`]
                         .filter(Boolean)
                         .join(' · ') || undefined
                     }
+                    pfeil
                   >
                     {/*
                       „Ausgelaufen" steht VOR dem Bestand: es erklärt, warum
@@ -496,15 +393,12 @@ export default function MaterialCatalog({
                     ) : (
                       <Marke>{m.stock ?? 0} {m.unit ?? 'Stk'}</Marke>
                     )}
-                    <Button variant="ghost" onClick={() => startEdit(m)}>Bearbeiten</Button>
-                    <IconButton label={`${m.name} löschen`} tone="danger" onClick={() => setToDelete(m)}>
-                      ✕
-                    </IconButton>
                   </ListRow>
                 );
               })}
             </List>
           )}
+          <MehrAnzeigen anzahl={Math.max(0, visible.length - gezeigt)} onClick={() => setGezeigt((n) => n + JE_SEITE)} />
           {/*
             Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende
             gescrollt und nichts gefunden hat, braucht die Auskunft.
@@ -518,6 +412,169 @@ export default function MaterialCatalog({
           />
         </div>
       </Card>
+
+      <BottomSheet
+        open={formOffen}
+        onClose={reset}
+        label={editId ? 'Material bearbeiten' : 'Neues Material'}
+        auchBreit
+        titel={editId ? 'Material bearbeiten' : 'Neues Material'}
+      >
+          <form onSubmit={submit} className="formular space-y-4">
+            <FormGrid cols={1}>
+              <InputField id="mname" label="Bezeichnung" value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })} required pflicht />
+              <InputField id="mcat" label="Kategorie" placeholder="z. B. Sanitär" value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })} />
+              <InputField id="mart" label="Artikelnummer" value={form.articleNumber}
+                onChange={(e) => setForm({ ...form, articleNumber: e.target.value })} />
+              {/*
+                DIE EINHEIT IST DAS WORT HINTER DER ZAHL — mehr nicht.
+              
+                Aus dem Betrieb kam die Frage, wofür das Feld überhaupt da ist,
+                und im Bestand stand daraufhin „100 20cm frei". Das ist die
+                richtige Frage zur falschen Zeit gewesen: das Feld sagte nirgends,
+                was es will, und eine Abmessung ist dort das Naheliegendste.
+                Jetzt schlägt es die üblichen Einheiten vor und erklärt sich.
+              */}
+              <div>
+                <EinheitFeld id="munit" value={form.unit || 'Stk'} onChange={(unit) => setForm({ ...form, unit })} />
+                <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
+                  Das Wort hinter der Zahl — „100 Stk“, „30 m“.
+                  <InfoHint about="die Einheit">
+                    Sie beschriftet nur die Menge: im Katalog, im Lager und beim Wareneingang.
+                    Auf Rechnungen und Angeboten wirkt sie nicht — dort trägt jede Position ihre
+                    eigene Einheit. <strong>Eine Abmessung gehört nicht hierher</strong>: aus „20cm“
+                    wird im Bestand „100 20cm frei“. Die Größe gehört in die Bezeichnung
+                    („Kupferrohr 20 cm“) oder in die Artikelnummer.
+                  </InfoHint>
+                </p>
+              </div>
+              <InputField id="mwg" label="Warengruppe" placeholder="aus DATANORM, z. B. 1201" value={form.warengruppe}
+                onChange={(e) => setForm({ ...form, warengruppe: e.target.value })} />
+            </FormGrid>
+            {/*
+              KATALOG UND LAGER GETRENNT (Testbericht 30.09.2026, M30). Nicht jeder
+              Katalogartikel liegt im Regal; erst dieser Haken führt ihn im Lager.
+              Abschalten geht nur bei Bestand null — sonst stünde ein Bestand in
+              keiner Lagerliste.
+            */}
+            <div className="space-y-1">
+              <CheckboxField
+                id="mlager"
+                label="Im Lager führen"
+                checked={form.lagerartikel}
+                disabled={!!editId && form.lagerartikel && zahlOder(form.stock, 0) !== 0}
+                onChange={(e) => setForm({ ...form, lagerartikel: e.target.checked })}
+              />
+              <p className="text-xs text-ink-muted">
+                {!!editId && form.lagerartikel && zahlOder(form.stock, 0) !== 0
+                  ? 'Liegt im Lager — abschalten geht erst, wenn die Inventur den Bestand auf null gesetzt hat.'
+                  : 'Ohne Haken steht der Artikel nur im Katalog: anforderbar und verrechenbar, aber in keiner Lagerliste.'}
+              </p>
+            </div>
+            <FormGrid cols={1}>
+              {!form.lagerartikel ? null : editId ? (
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-sm font-normal text-ink">Lagerbestand</span>
+                  <p className="text-sm text-ink">
+                    {form.stock} {form.unit || 'Stk'}
+                  </p>
+                  <p className="text-xs text-ink-muted">
+                    Ändert sich über Wareneingang oder Inventur im Bereich „Bestand“ — mit Grund im
+                    Bewegungsprotokoll.
+                  </p>
+                </div>
+              ) : (
+                <ZahlFeld id="mstock" label="Anfangsbestand" value={form.stock}
+                  onChange={(t) => setForm({ ...form, stock: t })} required pflicht />
+              )}
+              {form.lagerartikel && (
+                <ZahlFeld id="mmin" label="Mindestmenge" placeholder="leer = knapp ab höchstens 5 frei"
+                  value={form.mindestmenge} onChange={(t) => setForm({ ...form, mindestmenge: t })} />
+              )}
+              <div className="flex flex-col gap-1.5">
+                <ZahlFeld
+                  id="mpreis"
+                  label="Verkaufspreis netto je Einheit (€)"
+                  placeholder="leer = nicht gepflegt"
+                  value={form.verkaufspreis}
+                  onChange={(t) => setForm({ ...form, verkaufspreis: t })}
+                />
+                {/*
+                  DER VORSCHLAG AUS EINKAUF PLUS AUFSCHLAG (M31) — nur ein
+                  Vorschlag: der Verkaufspreis ist die Kalkulation des Betriebs
+                  und bleibt, was hier steht, bis jemand übernimmt.
+                */}
+                {(() => {
+                  if (!darfKosten || ekStand !== 'da') return null;
+                  const ek = leseZahl(form.einkaufspreis).wert;
+                  const vorschlag = verkaufspreisVorschlag(ek, aufschlag, form.warengruppe);
+                  if (vorschlag == null) return null;
+                  const prozent = aufschlagFuer(aufschlag, form.warengruppe);
+                  return (
+                    <p className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
+                      <span>Vorschlag: {euro(vorschlag)} (Einkauf + {fmtMenge(prozent ?? 0)} %)</span>
+                      <Button type="button" variant="ghost" onClick={() => setForm({ ...form, verkaufspreis: preisAlsText(vorschlag) })}>
+                        Übernehmen
+                      </Button>
+                    </p>
+                  );
+                })()}
+              </div>
+              {/*
+                Der EINKAUFSPREIS steht nur der Geschäftsführung offen: er ist
+                die Grundlage der Nachkalkulation, also Margendaten. SETZEN kann
+                ihn nur sie — das verweigert die Datenbank allen anderen
+                (Trigger `materials_felder`), und seit dem 29.09.2026 LESEN auch
+                nur sie (`material_einkaufspreise`, offene Punkte B1).
+              */}
+              {darfKosten && (
+                <div className="flex flex-col gap-1.5">
+                  <ZahlFeld
+                    id="mek"
+                    label="Einkaufspreis netto je Einheit (€)"
+                    placeholder={ekStand === 'laedt' ? 'wird geladen …' : 'leer = nicht gepflegt'}
+                    disabled={ekStand !== 'da' || !darfEkSetzen}
+                    value={form.einkaufspreis}
+                    onChange={(t) => setForm({ ...form, einkaufspreis: t })}
+                  />
+                  {ekStand === 'fehlt' && (
+                    <p className="text-sm text-ink-muted">
+                      Der Einkaufspreis konnte nicht geladen werden — er bleibt beim Speichern, wie er ist.
+                    </p>
+                  )}
+                </div>
+              )}
+            </FormGrid>
+            <Pflichthinweis />
+            {error && <ErrorState message={error} />}
+            <div className="fuss-aktionen">
+              {editId && (
+                <Button
+                  type="button"
+                  variant="danger"
+                  onClick={() => {
+                    const m = materials.find((x) => x.id === editId);
+                    // Die Rückfrage steht allein, nicht hinter dem Fenster.
+                    if (m) {
+                      reset();
+                      setToDelete(m);
+                    }
+                  }}
+                >
+                  Material löschen …
+                </Button>
+              )}
+              <Button type="button" variant="ghost" onClick={reset}>
+                Abbrechen
+              </Button>
+              <Button type="submit" loading={saving}>
+                {editId ? 'Änderungen speichern' : 'Material anlegen'}
+              </Button>
+            </div>
+          </form>
+      </BottomSheet>
 
       <ConfirmDialog
         open={!!toDelete}

@@ -6,11 +6,11 @@ import { listGrosshaendler } from '@/lib/db/einkauf';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ZahlFeld from '@/components/ZahlFeld';
 import { InputField, SelectField } from '@/components/Field';
-import { List, ListRow } from '@/components/ListRow';
+import { LotVerlauf, MehrAnzeigen } from '@/components/LotBausteine';
 import { zahlAlsText, zahlOder } from '@/lib/zahl';
 import { mengeFehler } from '@/lib/einheit';
 import { fmtMenge } from '@/lib/belegLayout';
-import { datumAT, datumAusMs } from '@/lib/datum';
+import { datumAusMs } from '@/lib/datum';
 
 /**
  * Wareneingang mit Lieferant, Lieferschein und Bezug (Testbericht 30.09.2026,
@@ -215,70 +215,69 @@ const ART: Record<Lagerbewegung['art'], string> = {
   abgang: 'Abgang',
 };
 
-/** Das Bewegungsprotokoll eines Artikels (M28). */
-export function BewegungenDialog({
+/** Wie viele Bewegungen zuerst stehen (Regel 4: Gruppen höchstens 20 Zeilen). */
+const BEWEGUNGEN_ZUERST = 20;
+
+/**
+ * Das Bewegungsprotokoll eines Artikels (M28) — als Lot im Seitenfenster
+ * des Artikels (Linie „Lot“, Regel 7). Bis zum Umbau stand es in einem
+ * eigenen Lesedialog hinter dem „⋯“ der Zeile.
+ *
+ * `stand` lädt neu: nach einem Wareneingang oder einer Inventur aus dem
+ * Fenster soll die neue Bewegung gleich oben stehen.
+ */
+export function Bewegungsverlauf({
   artikel,
-  onSchliessen,
+  stand = 0,
 }: {
   artikel: WithId<Material>;
-  onSchliessen: () => void;
+  stand?: number;
 }) {
   const [zeilen, setZeilen] = useState<Lagerbewegung[] | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
+  const [zeigen, setZeigen] = useState(BEWEGUNGEN_ZUERST);
 
   useEffect(() => {
     let weg = false;
+    setFehler(null);
     Promise.resolve()
       .then(() => listLagerbewegungen(artikel.id))
       .then((z) => { if (!weg) setZeilen(z); })
       .catch(() => { if (!weg) setFehler('Das Bewegungsprotokoll konnte nicht geladen werden.'); });
     return () => { weg = true; };
-  }, [artikel.id]);
+  }, [artikel.id, stand]);
 
   const einheit = artikel.unit ?? 'Stk';
+  if (fehler) return <p className="text-sm text-danger">{fehler}</p>;
+  if (zeilen === null) return <p className="text-sm text-ink-muted">Wird geladen …</p>;
+  if (zeilen.length === 0) {
+    return (
+      <p className="text-sm text-ink-muted">
+        Noch keine Bewegung protokolliert. Das Protokoll beginnt mit dem 30.09.2026; was davor
+        geschah, steht nur im Bestand.
+      </p>
+    );
+  }
   return (
-    <ConfirmDialog
-      open
-      title={`Bewegungen: ${artikel.name}`}
-      message={`Jede Änderung des Bestands, jüngste zuerst. Heute: ${fmtMenge(artikel.stock ?? 0)} ${einheit}.`}
-      // Ein Lesedialog: nur „Schließen“, kein „Abbrechen“ daneben (Runde 3, G20).
-      nurSchliessen
-      onConfirm={onSchliessen}
-      onCancel={onSchliessen}
-    >
-      {fehler ? (
-        <p className="text-sm text-danger">{fehler}</p>
-      ) : zeilen === null ? (
-        <p className="text-sm text-ink-muted">Wird geladen …</p>
-      ) : zeilen.length === 0 ? (
-        <p className="text-sm text-ink-muted">
-          Noch keine Bewegung protokolliert. Das Protokoll beginnt mit dem 30.09.2026; was davor
-          geschah, steht nur im Bestand.
-        </p>
-      ) : (
-        <List>
-          {zeilen.map((b) => (
-            <ListRow
-              key={b.id}
-              title={
-                <span>
-                  {ART[b.art]} {b.menge > 0 ? '+' : ''}{fmtMenge(b.menge)} {einheit}
-                </span>
-              }
-              subtitle={
-                <span>
-                  {datumAT(datumAusMs(b.createdAt))} · danach {fmtMenge(b.bestandNachher)} {einheit}
-                  {b.erfasstVonName ? ` · ${b.erfasstVonName}` : ''}
-                  {b.lieferant ? ` · ${b.lieferant}` : ''}
-                  {b.lieferschein ? ` · Lieferschein ${b.lieferschein}` : ''}
-                  {b.bezug ? ` · ${b.bezug}` : ''}
-                  {b.grund ? ` · Grund: ${b.grund}` : ''}
-                </span>
-              }
-            />
-          ))}
-        </List>
-      )}
-    </ConfirmDialog>
+    <>
+      <LotVerlauf
+        name={`Bewegungen: ${artikel.name}`}
+        punkte={zeilen.slice(0, zeigen).map((b) => ({
+          titel: `${ART[b.art]} ${b.menge > 0 ? '+' : ''}${fmtMenge(b.menge)} ${einheit}`,
+          zeit: `${datumAusMs(b.createdAt)} · danach ${fmtMenge(b.bestandNachher)} ${einheit}`,
+          text:
+            [
+              b.erfasstVonName,
+              b.lieferant,
+              b.lieferschein ? `Lieferschein ${b.lieferschein}` : '',
+              b.bezug,
+              b.grund ? `Grund: ${b.grund}` : '',
+            ]
+              .filter(Boolean)
+              .join(' · ') || undefined,
+        }))}
+      />
+      <MehrAnzeigen anzahl={Math.max(0, zeilen.length - zeigen)} onClick={() => setZeigen((n) => n + BEWEGUNGEN_ZUERST)} />
+    </>
   );
 }
