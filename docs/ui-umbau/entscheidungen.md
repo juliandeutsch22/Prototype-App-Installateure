@@ -66,3 +66,15 @@ unlesbar. Im dunklen Modus gelten die Töne der Linie.
 Farben in `src/lib/belegLayout.ts` waren bis zum Umbau dieselben wie die der
 Oberfläche; sie bleiben beim Stand vor Lot, die Prüfung vergleicht sie jetzt
 mit diesem festen Stand.
+
+**E12 — Arbeitsstand als Standard und die Klickwege.** Regel 7.1 verlangt den
+Arbeitsstand als Standardansicht (etwa „Offen“ bei den Scheinen). Was nur in
+„Alle“ steht — ein längst verrechneter Schein, den jemand stornieren will —,
+ist damit einen Wechsel der Ansicht weiter. Gezählt wird der Weg innerhalb
+der Ansicht, in der das Element steht; der Wechsel selbst ist die Vorgabe des
+Protokolls und wird im Abnahmeblatt des Pakets genannt. Die Suche findet
+weiter über alle Einträge, ohne Wechsel.
+
+**E13 — Escape bei gestapelten Fenstern.** Ein Bestätigungsdialog in einem
+Seitenfenster schloss mit Escape beide. Escape schliesst jetzt nur, was
+obenauf liegt (`istOben` in `fokusFalle.ts`).
