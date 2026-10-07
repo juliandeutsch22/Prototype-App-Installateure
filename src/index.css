@@ -1,5 +1,13 @@
 /* Bausteine der Linie „Lot“ — vor den Tailwind-Ebenen, weil `@import` am Anfang stehen muss; ihr `@layer components` ordnet sie trotzdem richtig ein. */
 @import './styles/lot.css';
+@import './styles/lot-start.css';
+@import './styles/lot-planung.css';
+@import './styles/lot-material.css';
+@import './styles/lot-rechnungen.css';
+@import './styles/lot-auftraege.css';
+@import './styles/lot-zeit.css';
+@import './styles/lot-scheine.css';
+@import './styles/lot-verwaltung.css';
 
 @tailwind base;
 @tailwind components;
@@ -283,7 +291,7 @@ input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--brand);
+  border-color: var(--brand-fixed);
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 

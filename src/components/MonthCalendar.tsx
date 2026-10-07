@@ -153,7 +153,7 @@ export default function MonthCalendar({
                 das Kaestchen hoch war, der Punkt wurde also nach unten
                 herausgedrueckt. Gemeldet aus dem Betrieb, mit Bildschirmfoto.
               */
-              className={`flex min-h-[3.625rem] flex-col items-center gap-0.5 border-b border-r border-line/60 py-2 transition-colors${ecke} ${
+              className={`flex min-h-[3.625rem] flex-col items-center gap-0.5 border-b border-r border-line py-2 transition-colors${ecke} ${
                 isSelected
                   ? 'bg-info-bg ring-2 ring-inset ring-accent-deep'
                   : holiday

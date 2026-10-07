@@ -1,0 +1,9 @@
+/*
+ * Seitenbausteine der Linie „Lot“ — Paket „planung“ (docs/ui-umbau/seiten-leitfaden.md).
+ * Regeln wie in lot.css: eine Klasse je Element, keine clamp()/calc(), keine
+ * Container-Abfragen, Media-Queries nur auf die Breite (760/1200 px), keine
+ * Positionsselektoren, keine halbtransparenten Farbflächen, keine
+ * gestrichelten Linien. Farben nur aus den Grundwerten (var(--…)).
+ */
+@layer components {
+}

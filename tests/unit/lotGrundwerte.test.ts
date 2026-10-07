@@ -6,11 +6,15 @@
  * auf Wahl gezeigt und fiele sonst niemandem auf, bis ihn jemand einschaltet.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { kontrast, AA_NORMAL } from '@/lib/kontrast';
 
 const css = readFileSync('src/index.css', 'utf8');
-const lot = readFileSync('src/styles/lot.css', 'utf8');
+/** Alle Bausteine: lot.css und die Seitenbausteine je Paket (lot-*.css). */
+const lot = readdirSync('src/styles')
+  .filter((n) => /^lot(-[a-z]+)?\.css$/.test(n))
+  .map((n) => readFileSync(`src/styles/${n}`, 'utf8'))
+  .join('\n');
 
 function block(start: string): string {
   const i = css.indexOf(start);
@@ -96,7 +100,7 @@ describe('Die Bausteine halten die Regeln der Linie (Protokoll 0.2)', () => {
   });
 
   it('halbtransparent ist nur der neutrale Schleier', () => {
-    const transparent = ohneKommentare.match(/#[0-9a-fA-F]{8}\b|rgba\(/g) ?? [];
-    expect(transparent).toEqual(['#00000059', '#00000059']);
+    const transparent = ohneKommentare.match(/#[0-9a-fA-F]{8}\b|rgba\(|hsla\(|transparent\)/g) ?? [];
+    expect(transparent.filter((t) => t !== '#00000059')).toEqual([]);
   });
 });
