@@ -15,6 +15,9 @@ import Aktenspalten from '@/components/Aktenspalten';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import RowMenu from '@/components/RowMenu';
+import Metric, { MetricRow } from '@/components/Metric';
+import { LotVerlauf, Sprungleiste, type LotPunkt } from '@/components/LotBausteine';
 import { Zustand } from '@/components/Badge';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/States';
@@ -187,14 +190,19 @@ export default function AngebotView() {
 
   if (!user) return null;
 
+  /*
+    DER WEG ZURÜCK STEHT IN DER ORTSZEILE (Linie „Lot“, Seitenkopf): klein
+    über dem Titel, wo „wo bin ich“ steht. Polster und Gegenrand geben dem
+    Link 48 px Tastfläche, ohne die Zeile höher zu machen.
+  */
   const zurueck = (
-    <Link to="/quotes" className="link inline-flex min-h-touch items-center">← Zu den Angeboten</Link>
+    <Link to="/quotes" className="link -my-3 inline-block py-3">← Zu den Angeboten</Link>
   );
 
   if (angebot.zustand === 'laedt') {
     return (
       <div className="space-y-6">
-        <PageHeader title="Angebot" subtitle={zurueck} />
+        <PageHeader title="Angebot" ort={zurueck} />
         <Card><SkeletonList rows={4} /></Card>
       </div>
     );
@@ -202,7 +210,7 @@ export default function AngebotView() {
   if (angebot.zustand === 'fehler') {
     return (
       <div className="space-y-6">
-        <PageHeader title="Angebot" subtitle={zurueck} />
+        <PageHeader title="Angebot" ort={zurueck} />
         <Card>
           <ErrorState
             message="Das Angebot konnte nicht geladen werden."
@@ -216,7 +224,7 @@ export default function AngebotView() {
   if (!q) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Angebot" subtitle={zurueck} />
+        <PageHeader title="Angebot" ort={zurueck} />
         <Card>
           <EmptyState action={<Link to="/quotes" className="link-weiter">Zur Angebotsliste</Link>}>
             Dieses Angebot gibt es nicht (mehr).
@@ -230,13 +238,119 @@ export default function AngebotView() {
   const abgelaufen = offen && q.validUntil < todayStr();
 
   /*
-    DIE KARTEN DES ANGEBOTS — einmal angelegt, von `Aktenspalten` angeordnet:
-    am Telefon in der gewohnten Reihenfolge, am Schreibtisch links, was
-    angeboten wird (Positionen, Anmerkungen), rechts die Angaben und was
-    als Nächstes zu tun ist.
+    DIE ZUSAMMENFASSUNG ZUERST (Linie „Lot“, Regel 6): was das Angebot wert
+    ist, wie viel Arbeit darin steckt und bis wann es gilt. Die kalkulierte
+    Arbeitszeit ist intern — sie steht nicht auf dem PDF, sie wird beim
+    Annehmen zum Budget der Baustelle.
   */
+  const kennzahlen = (
+    <MetricRow>
+      <Metric label="Brutto" value={euro(q.totalBrutto)} />
+      <Metric label="Netto" value={euro(q.totalNetto)} />
+      <Metric label="Kalkulierte Arbeitszeit" value={`${fmtMenge(q.kalkulierteStunden)} h`} />
+      <Metric label="Gültig bis" value={fmtDatum(q.validUntil)} tone={abgelaufen ? 'warning' : 'default'} />
+    </MetricRow>
+  );
+
+  /*
+    DER NÄCHSTE SCHRITT STEHT AM PUNKT, AN DEM DAS ANGEBOT GERADE STEHT
+    (Entwurf der Linie: die Akte trägt den Knopf im Verlauf). Was seltener
+    ist — ablehnen, kopieren, löschen — liegt im „⋯“ des Seitenkopfs.
+  */
+  const schritte = darfAendern && q.status !== 'Angenommen' ? (
+    <span className="mt-2 flex flex-wrap gap-2">
+      {q.status === 'Entwurf' && (
+        <>
+          {/* Nur der Entwurf: was beim Kunden liegt, ändert sich nicht mehr. */}
+          <Link
+            to={`/quotes?bearbeiten=${q.id}`}
+            className="link inline-flex min-h-touch items-center px-4 text-sm"
+          >
+            Bearbeiten
+          </Link>
+          <Button
+            variant="secondary"
+            loading={busy}
+            onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
+          >
+            Als versendet markieren
+          </Button>
+        </>
+      )}
+      {offen && (
+        <Button variant="secondary" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setAnnehmenFragen(true); }}>
+          Annehmen → Baustelle
+        </Button>
+      )}
+      {/*
+        ÜBERARBEITEN, OHNE ZU ÄNDERN (M17). Was beim Kunden liegt, bleibt;
+        die neue Fassung ist ein eigener Entwurf mit eigener Nummer.
+      */}
+      {(q.status === 'Versendet' || q.status === 'Abgelehnt') && (
+        <Link
+          to={`/quotes?neueFassung=${q.id}`}
+          className="link inline-flex min-h-touch items-center px-4 text-sm"
+        >
+          Neue Fassung
+        </Link>
+      )}
+    </span>
+  ) : null;
+
+  /*
+    DER VERLAUF ALS LOT (Regel 7) — nur aus dem, was geladen ist: das
+    Angebotsdatum, der Status, die Fassungen davor und danach (M17). Wann
+    versendet oder angenommen wurde, speichert die App nicht; deshalb steht
+    dort kein Datum, statt eines geratenen.
+
+    Die Links darin fliessen im Text mit (Polster und Gegenrand für die
+    Tastfläche): als eigener Block risse jeder die Zeile auf 44 px auf.
+  */
+  const punkte: LotPunkt[] = [
+    {
+      titel: 'Angebot erstellt',
+      zeit: fmtDatum(q.quoteDate),
+      text: vorgaenger ? (
+        <>
+          als neue Fassung von{' '}
+          <Link to={`/quotes/${vorgaenger.id}`} className="link -my-3 py-3">
+            {vorgaenger.quoteNumber}
+          </Link>
+        </>
+      ) : undefined,
+    },
+    q.status === 'Entwurf'
+      ? { titel: 'Entwurf', text: <>Noch nicht versendet.{schritte}</>, jetzt: true }
+      : q.status === 'Versendet'
+        ? {
+            titel: 'Versendet',
+            zeit: `gültig bis ${fmtDatum(q.validUntil)}`,
+            text: <>{abgelaufen ? 'Die Bindefrist ist abgelaufen.' : 'Wartet auf die Antwort des Kunden.'}{schritte}</>,
+            jetzt: true,
+          }
+        : q.status === 'Angenommen'
+          ? { titel: 'Angenommen', text: q.projectNumber ? `Baustelle ${q.projectNumber}` : undefined }
+          : { titel: 'Abgelehnt', text: schritte },
+    ...fassungen.map((f) => ({
+      titel: (
+        <>
+          Überarbeitet als{' '}
+          <Link to={`/quotes/${f.id}`} className="link -my-3 py-3">
+            {f.quoteNumber} ({f.status})
+          </Link>
+        </>
+      ),
+      zeit: fmtDatum(f.quoteDate),
+    })),
+  ];
+  const verlauf = (
+    <Card title="Verlauf" id="angebot-verlauf">
+      <LotVerlauf name="Verlauf des Angebots" punkte={punkte} />
+    </Card>
+  );
+
   const angaben = (
-    <Card title="Angaben">
+    <Card title="Angaben" id="angebot-angaben">
       <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
         <Angabe wort="Kunde">
           {q.customerId ? (
@@ -249,29 +363,6 @@ export default function AngebotView() {
         </Angabe>
         <Angabe wort="Ort der Leistung">{q.address}</Angabe>
         <Angabe wort="Angebotsdatum">{fmtDatum(q.quoteDate)}</Angabe>
-        <Angabe wort="Gültig bis">{fmtDatum(q.validUntil)}</Angabe>
-        <Angabe wort="Kalkulierte Arbeitszeit">
-          {/* Intern: steht nicht auf dem PDF, wird beim Annehmen zum Budget. */}
-          <span>{fmtMenge(q.kalkulierteStunden)} h</span>
-        </Angabe>
-        {vorgaenger && (
-          <Angabe wort="Neue Fassung von">
-            <Link to={`/quotes/${vorgaenger.id}`} className="link inline-flex min-h-touch items-center">
-              {vorgaenger.quoteNumber}
-            </Link>
-          </Angabe>
-        )}
-        {fassungen.length > 0 && (
-          <Angabe wort="Überarbeitet als">
-            <span className="flex flex-wrap gap-x-3">
-              {fassungen.map((f) => (
-                <Link key={f.id} to={`/quotes/${f.id}`} className="link inline-flex min-h-touch items-center">
-                  {f.quoteNumber} ({f.status})
-                </Link>
-              ))}
-            </span>
-          </Angabe>
-        )}
         <Angabe wort="Baustelle">
           {q.projectNumber ? (
             q.projectId && baustellenSichtbar ? (
@@ -288,7 +379,7 @@ export default function AngebotView() {
   );
   const titel = titelSummen(q.positions);
   const positionen = (
-    <Card title={`Positionen (${q.positions.filter((p) => (p.art ?? 'position') === 'position').length})`}>
+    <Card title={`Positionen (${q.positions.filter((p) => (p.art ?? 'position') === 'position').length})`} id="angebot-positionen">
       <ul className="divide-y divide-line">
         {q.positions.map((p, i) =>
           // Titel mit der Summe seiner Positionen, Text ohne Beträge (M18).
@@ -329,90 +420,45 @@ export default function AngebotView() {
     </Card>
   );
   const anmerkungen = q.notes?.trim() ? (
-    <Card title="Anmerkungen">
+    <Card title="Anmerkungen" id="angebot-anmerkungen">
       <p className="whitespace-pre-line text-sm text-ink">{q.notes}</p>
     </Card>
   ) : null;
-  const weiterKarte = darfAendern ? (
-    <Card title="Weiter">
-      <div className="flex flex-wrap gap-2">
-        {q.status === 'Entwurf' && (
-          <>
-            {/* Nur der Entwurf: was beim Kunden liegt, ändert sich nicht mehr. */}
-            <Link
-              to={`/quotes?bearbeiten=${q.id}`}
-              className="link inline-flex min-h-touch items-center px-4 text-sm"
-            >
-              Bearbeiten
-            </Link>
-            <Button
-              variant="ghost"
-              loading={busy}
-              onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
-            >
-              Als versendet markieren
-            </Button>
-          </>
-        )}
-        {offen && (
-          <>
-            <Button variant="ghost" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setAnnehmenFragen(true); }}>
-              Annehmen → Baustelle
-            </Button>
-            <Button
-              variant="ghost"
-              loading={busy}
-              onClick={() => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt')}
-            >
-              {/* Wortlaut wie im Menü der Angebotsliste (Runde 3, G5): „Abgelehnt“
-                  allein las sich wie der Status, nicht wie der Knopf, der ihn setzt. */}
-              Als abgelehnt markieren
-            </Button>
-          </>
-        )}
-        {/*
-          ÜBERARBEITEN, OHNE ZU ÄNDERN (M17). Was beim Kunden liegt, bleibt;
-          die neue Fassung ist ein eigener Entwurf mit eigener Nummer. Die
-          Kopie ist dasselbe ohne Verweis — etwa als Vorlage für einen
-          ähnlichen Auftrag.
-        */}
-        {(q.status === 'Versendet' || q.status === 'Abgelehnt') && (
-          <Link
-            to={`/quotes?neueFassung=${q.id}`}
-            className="link inline-flex min-h-touch items-center px-4 text-sm"
-          >
-            Neue Fassung
-          </Link>
-        )}
-        <Link
-          to={`/quotes?kopie=${q.id}`}
-          className="link inline-flex min-h-touch items-center px-4 text-sm"
-        >
-          Als Kopie anlegen
-        </Link>
-        {/* Löschen nur im Entwurf: alles Versendete bleibt nachvollziehbar. */}
-        {q.status === 'Entwurf' && (
-          <Button variant="ghost" onClick={() => setLoeschenFragen(true)}>
-            Löschen
-          </Button>
-        )}
-      </div>
-    </Card>
-  ) : null;
+
+  /*
+    SELTENE AKTIONEN IM „⋯“ des Seitenkopfs (Regel 2) — dieselben wie bisher
+    in der Karte „Weiter“, ein Tipp weiter. Löschen nur im Entwurf: alles
+    Versendete bleibt nachvollziehbar.
+  */
+  const mehr = darfAendern ? (
+    <RowMenu
+      about={`Angebot ${q.quoteNumber}`}
+      items={[
+        ...(offen
+          ? [{ label: 'Als abgelehnt markieren', onSelect: () => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt') }]
+          : []),
+        // Dasselbe ohne Verweis — etwa als Vorlage für einen ähnlichen Auftrag (M17).
+        { label: 'Als Kopie anlegen', onSelect: () => navigate(`/quotes?kopie=${q.id}`) },
+        ...(q.status === 'Entwurf'
+          ? [{ label: 'Löschen', danger: true, onSelect: () => setLoeschenFragen(true) }]
+          : []),
+      ]}
+    />
+  ) : undefined;
 
   return (
-    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
-    <div className="space-y-3 lg:space-y-5">
+    <div className="space-y-6">
       <PageHeader
+        ort={zurueck}
         title={`Angebot ${q.quoteNumber}`}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {zurueck}
             <span>{q.customerName}</span>
             <Zustand stand={STAND[q.status]}>{q.status}</Zustand>
             {abgelaufen && <Zustand stand="achtung">Bindefrist abgelaufen</Zustand>}
           </span>
         }
+        mehr={mehr}
         action={
           <Button
             onClick={() => void pdf(q)}
@@ -432,10 +478,36 @@ export default function AngebotView() {
       )}
       {fehler && <ErrorState message={fehler} />}
 
+      {kennzahlen}
+
+      {/*
+        DIE SPRUNGLEISTE NUR AN HANDY UND TABLET, waagrecht mitlaufend: dort
+        steht die Akte in einer Spalte, und nach vielen Positionen liegen die
+        Anmerkungen weit unten. Am Schreibtisch stehen die Karten in zwei
+        Spalten nebeneinander — eine Leiste daneben zeigte nur, was schon zu
+        sehen ist. `contents` lässt sie im Fluss der Seite kleben.
+      */}
+      <div className="contents lg:hidden">
+        <Sprungleiste
+          ziele={[
+            { id: 'angebot-verlauf', text: 'Verlauf' },
+            { id: 'angebot-angaben', text: 'Angaben' },
+            { id: 'angebot-positionen', text: 'Positionen' },
+            ...(anmerkungen ? [{ id: 'angebot-anmerkungen', text: 'Anmerkungen' }] : []),
+          ]}
+        />
+      </div>
+
+      {/*
+        DIE KARTEN DES ANGEBOTS — einmal angelegt, von `Aktenspalten` angeordnet:
+        am Telefon zuerst Verlauf und Angaben (wo es steht, für wen), dann
+        die Positionen; am Schreibtisch links, was angeboten wird, rechts der
+        Verlauf mit dem nächsten Schritt und die Angaben.
+      */}
       <Aktenspalten
-        telefon={[angaben, positionen, anmerkungen, weiterKarte]}
+        telefon={[verlauf, angaben, positionen, anmerkungen]}
         links={[positionen, anmerkungen]}
-        rechts={[angaben, weiterKarte]}
+        rechts={[verlauf, angaben]}
       />
 
       {/* Erst fragen, dann anlegen (Launch-Check, M8) — wie in der Liste. */}

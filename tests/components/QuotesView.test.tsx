@@ -520,10 +520,15 @@ describe('Die Liste führt zum Angebot', () => {
   it('verlinkt jedes Angebot auf seine eigene Seite', async () => {
     versendetesAngebot();
     zeichne();
-    expect(await screen.findByRole('link', { name: /AN-2026-0007/ })).toHaveAttribute(
-      'href',
-      '/quotes/q1',
-    );
+    const link = await screen.findByRole('link', { name: /AN-2026-0007/ });
+    expect(link).toHaveAttribute('href', '/quotes/q1');
+    /*
+      DIE GANZE ZEILE IST DAS ZIEL (Linie „Lot“, Regel 3) — und damit auch die
+      Tastfläche: vorher war es nur die Nummer, gemessen 24 px hoch (Prüflauf
+      25.09.2026). Die Fläche des Links spannt sich über die Zeile.
+    */
+    expect(link).toHaveClass('zeile-ziel');
+    expect(link.closest('li')).toHaveClass('zeile-ganz');
   });
 
   it('meldet, wenn ein Status nicht gespeichert werden kann', async () => {
@@ -882,5 +887,141 @@ describe('Titel, Text, Rabatt und Katalog (M18)', () => {
     await waitFor(() => expect(updateQuote).toHaveBeenCalled());
     const d = updateQuote.mock.calls[0][1] as Quote;
     expect(d.positions.map((p) => [p.art ?? 'position', p.rabattProzent ?? null, p.netto])).toEqual([['titel', null, 0], ['position', 10, 180]]);
+  });
+});
+
+/*
+  LINIE „LOT“ (Protokoll E6/E8): die Liste zeigt den Arbeitsstand nach
+  Dringlichkeit, mit Suche und „Alle“; das Formular bleibt vollständig, die
+  Katalogsuche steht im Seitenfenster.
+*/
+describe('Angebote auf der Linie „Lot“', () => {
+  function angebot(id: string, nr: string, kunde: string, status: Quote['status'], validUntil: string) {
+    angebote.push({
+      id, companyId: 'perl', quoteNumber: nr, customerId: 'k1', customerName: kunde, address: 'Rathausplatz 1',
+      quoteDate: '2026-09-01', validUntil, status, positions: [], subtotalNetto: 100, totalNetto: 100,
+      totalVat: 20, totalBrutto: 120, vatRate: 0.2, kalkulierteStunden: 0,
+    });
+  }
+  function zeichneMit(pfad: string) {
+    return render(
+      <MemoryRouter initialEntries={[pfad]}>
+        <ToastProvider>
+          <QuotesView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+  }
+
+  it('zeigt zuerst die offenen — angenommene und abgelehnte unter „Erledigt“ und „Alle“', async () => {
+    const nutzer = userEvent.setup();
+    angebot('a', 'AN-2026-0010', 'Familie Huber', 'Versendet', '2099-01-01');
+    angebot('b', 'AN-2026-0011', 'Gasthof Post', 'Angenommen', '2099-01-01');
+    angebot('c', 'AN-2026-0012', 'Bäckerei Pichler', 'Abgelehnt', '2099-01-01');
+    zeichne();
+    await screen.findByText('AN-2026-0010');
+    expect(screen.queryByText('AN-2026-0011')).toBeNull();
+    expect(screen.queryByText('AN-2026-0012')).toBeNull();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Erledigt' }));
+    expect(screen.queryByText('AN-2026-0010')).toBeNull();
+    expect(screen.getByText('AN-2026-0011')).toBeInTheDocument();
+    expect(screen.getByText('AN-2026-0012')).toBeInTheDocument();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Alle' }));
+    expect(screen.getAllByRole('link').map((a) => a.textContent)).toEqual([
+      'AN-2026-0010 · Familie Huber', 'AN-2026-0011 · Gasthof Post', 'AN-2026-0012 · Bäckerei Pichler',
+    ]);
+    expect(screen.getByRole('heading', { name: /Alle Angebote/ })).toHaveTextContent('· 3');
+  });
+
+  it('nimmt die Ansicht aus der Adresse — als Lesezeichen', async () => {
+    angebot('b', 'AN-2026-0011', 'Gasthof Post', 'Angenommen', '2099-01-01');
+    zeichneMit('/quotes?ansicht=erledigt');
+    expect(await screen.findByText('AN-2026-0011')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Erledigt' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('stellt abgelaufene Bindefristen nach oben, dann versendete nach Frist, dann Entwürfe', async () => {
+    angebot('e', 'AN-2026-0020', 'Entwurf GmbH', 'Entwurf', '2099-01-01');
+    angebot('v2', 'AN-2026-0021', 'Später KG', 'Versendet', '2099-06-01');
+    angebot('v1', 'AN-2026-0022', 'Bald OG', 'Versendet', '2099-01-01');
+    angebot('x', 'AN-2026-0023', 'Abgelaufen eU', 'Versendet', '2020-01-01');
+    zeichne();
+    await screen.findByText('AN-2026-0020');
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+      'Bindefrist abgelaufen· 1', 'Versendet· 2', 'Entwurf· 1',
+    ]);
+    expect(screen.getAllByRole('link').map((a) => a.textContent?.slice(0, 12))).toEqual([
+      'AN-2026-0023', 'AN-2026-0022', 'AN-2026-0021', 'AN-2026-0020',
+    ]);
+    // Die Zeile sagt es auch selbst — in „Alle“ steht keine Gruppe darüber.
+    const zeile = screen.getByText('AN-2026-0023').closest('li') as HTMLElement;
+    expect(within(zeile).getByText('abgelaufen')).toBeInTheDocument();
+  });
+
+  it('sucht über Nummer, Kunde und Ort', async () => {
+    const nutzer = userEvent.setup();
+    angebot('a', 'AN-2026-0010', 'Familie Huber', 'Versendet', '2099-01-01');
+    angebot('b', 'AN-2026-0011', 'Gasthof Post', 'Entwurf', '2099-01-01');
+    zeichne();
+    await screen.findByText('AN-2026-0010');
+    await nutzer.type(screen.getByLabelText('Suche'), 'post');
+    expect(screen.queryByText('AN-2026-0010')).toBeNull();
+    expect(screen.getByText('AN-2026-0011')).toBeInTheDocument();
+    await nutzer.clear(screen.getByLabelText('Suche'));
+    await nutzer.type(screen.getByLabelText('Suche'), 'gibt es nicht');
+    expect(screen.getByText('Kein Angebot passt zur Suche.')).toBeInTheDocument();
+  });
+
+  it('zeigt je Gruppe höchstens 20 Zeilen, dann „und N weitere anzeigen“', async () => {
+    const nutzer = userEvent.setup();
+    for (let i = 0; i < 23; i++) angebot(`e${i}`, `AN-2026-${String(100 + i)}`, `Kunde ${i}`, 'Entwurf', '2099-01-01');
+    zeichne();
+    await screen.findByText('AN-2026-100');
+    expect(screen.getAllByRole('link')).toHaveLength(20);
+    await nutzer.click(screen.getByRole('button', { name: 'und 3 weitere anzeigen' }));
+    expect(screen.getAllByRole('link')).toHaveLength(23);
+  });
+
+  it('lässt die Bindefrist unter „Weitere Angaben“ ändern — und speichert sie', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    // Zugeklappt nennt die Zeile das Datum schon.
+    expect(screen.getByText(/^Weitere Angaben · gültig bis \d\d\.\d\d\.\d{4}$/)).toBeInTheDocument();
+    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Pauschale');
+    await nutzer.type(screen.getByLabelText('Menge'), '1');
+    await nutzer.type(screen.getByLabelText('Einzelpreis netto'), '100');
+    const frist = screen.getByLabelText('Gültig bis');
+    await nutzer.clear(frist);
+    await nutzer.type(frist, '2026-12-31');
+    expect(screen.getByText('Weitere Angaben · gültig bis 31.12.2026')).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+    await waitFor(() => expect(createQuote).toHaveBeenCalled());
+    expect((createQuote.mock.calls[0][1] as Quote).validUntil).toBe('2026-12-31');
+  });
+
+  it('öffnet die Katalogsuche im Seitenfenster, das Formular bleibt dahinter stehen', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await nutzer.click(screen.getByRole('button', { name: 'Aus dem Katalog …' }));
+    const fenster = screen.getByRole('dialog', { name: 'Katalog' });
+    await nutzer.type(within(fenster).getByLabelText('Artikel aus dem Katalog'), 'therme');
+    await nutzer.click(await within(fenster).findByRole('button', { name: 'Gastherme 24 kW übernehmen' }));
+    // Die Rückmeldung im Fenster — am Handy liegt das Formular ganz dahinter.
+    expect(within(fenster).getByRole('status')).toHaveTextContent('„Gastherme 24 kW“ übernommen.');
+    expect(screen.getByLabelText('Bezeichnung')).toHaveValue('Gastherme 24 kW');
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Fertig' }));
+    expect(screen.queryByRole('dialog', { name: 'Katalog' })).toBeNull();
+  });
+
+  it('lässt die gewählte Ansicht stehen, wenn die Angebotsseite zum Bearbeiten herführt', async () => {
+    angebot('q2', 'AN-2026-0008', 'Gemeinde Neudorf', 'Entwurf', '2099-01-01');
+    zeichneMit('/quotes?ansicht=alle&bearbeiten=q2');
+    expect(await screen.findByText('Angebot AN-2026-0008 bearbeiten')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
   });
 });
