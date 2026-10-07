@@ -134,14 +134,24 @@ vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
 const { default: CustomersView } = await import('@/features/customers/CustomersView');
 
-function zeichne() {
+function zeichne(adresse = '/customers') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[adresse]}>
       <ToastProvider>
         <CustomersView />
       </ToastProvider>
     </MemoryRouter>,
   );
+}
+
+/**
+ * Ein Eintrag aus dem ⋯ des Seitenkopfs. Import und Übernahme standen bis zur
+ * Linie „Lot“ als eigene Karten auf der Seite; jetzt sind sie seltene
+ * Seitenaktionen (Regel 2) — der Eintrag tut, was vorher der Knopf tat.
+ */
+async function ausDemMenue(eintrag: string) {
+  await userEvent.click(screen.getByRole('button', { name: 'Weitere Aktionen für Kunden' }));
+  await userEvent.click(await screen.findByRole('menuitem', { name: eintrag }));
 }
 
 beforeEach(() => {
@@ -167,7 +177,8 @@ describe('Kundenverwaltung', () => {
     await nutzer.type(screen.getByLabelText('Name oder Firma'), '  hausverwaltung NORD ');
     await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
 
-    const dialog = await screen.findByRole('dialog');
+    // Die Rückfrage liegt seit „Lot“ über dem Seitenfenster des Formulars — gemeint ist sie.
+    const dialog = await screen.findByRole('dialog', { name: /Gleicher Name/ });
     expect(dialog).toHaveTextContent(/Es gibt schon „Hausverwaltung Nord“/);
     expect(createCustomer).not.toHaveBeenCalled();
 
@@ -182,7 +193,8 @@ describe('Kundenverwaltung', () => {
     await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
     await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Hausverwaltung Nord');
     await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
-    const dialog = await screen.findByRole('dialog');
+    // Die Rückfrage liegt seit „Lot“ über dem Seitenfenster des Formulars — gemeint ist sie.
+    const dialog = await screen.findByRole('dialog', { name: /Gleicher Name/ });
     await nutzer.click(within(dialog).getByRole('button', { name: 'Abbrechen' }));
     expect(createCustomer).not.toHaveBeenCalled();
   });
@@ -199,11 +211,10 @@ describe('Kundenverwaltung', () => {
   });
 
   it('fasst in der Vorschau gleiche Namen zu EINEM Kunden zusammen', async () => {
-    const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText('Hausverwaltung Nord');
 
-    await nutzer.click(screen.getByRole('button', { name: 'Vorschau erstellen' }));
+    await ausDemMenue('Bestehende Baustellen übernehmen');
 
     /**
      * Drei Baustellen, aber nur zwei Kunden: „Familie Huber" und
@@ -221,7 +232,7 @@ describe('Kundenverwaltung', () => {
     zeichne();
     await screen.findByText('Hausverwaltung Nord');
 
-    await nutzer.click(screen.getByRole('button', { name: 'Vorschau erstellen' }));
+    await ausDemMenue('Bestehende Baustellen übernehmen');
     await screen.findByText(/Kunden entstehen/);
     // Nach der Vorschau allein darf nichts geschrieben sein.
     expect(createCustomer).not.toHaveBeenCalled();
@@ -247,9 +258,11 @@ describe('Kundenverwaltung', () => {
       Notiz standen überhaupt nirgends. Beides liegt jetzt in der Akte —
       geprüft wird sie in `KundenakteView.test.tsx`, hier nur der Weg dorthin.
     */
+    // Seit „Lot“ ist die ganze Zeile der Weg (Regel 3); vorher ein Verweis „Akte“ rechts.
     zeichne();
     const zeile = (await screen.findByText('Hausverwaltung Nord')).closest('li')!;
-    expect(within(zeile).getByRole('link', { name: 'Akte' })).toHaveAttribute(
+    expect(zeile).toHaveClass('zeile-ganz');
+    expect(within(zeile).getByRole('link', { name: /Hausverwaltung Nord/ })).toHaveAttribute(
       'href',
       '/customers/k1',
     );
@@ -475,8 +488,10 @@ describe('Wenn die Kundenliste an ihre Grenze stösst', () => {
 
 describe('Kunden aus einer Datei', () => {
   it('steht für die Leitung da — und für die Buchhaltung ohne Freigabe nicht', async () => {
+    // Seit „Lot“ im ⋯ des Seitenkopfs statt als Karte auf der Seite.
     const { unmount } = zeichne();
-    expect(await screen.findByText('Kunden aus einer Datei')).toBeInTheDocument();
+    await screen.findByText('Hausverwaltung Nord');
+    await ausDemMenue('Kunden aus einer Datei einlesen');
     unmount();
 
     const vorher = authWert.user.role;
@@ -484,7 +499,9 @@ describe('Kunden aus einer Datei', () => {
     try {
       zeichne();
       await screen.findByText('Hausverwaltung Nord');
-      expect(screen.queryByText('Kunden aus einer Datei')).not.toBeInTheDocument();
+      // Die Buchhaltung ohne Freigabe hat gar kein ⋯ — es gäbe nichts darin.
+      expect(screen.queryByRole('button', { name: 'Weitere Aktionen für Kunden' })).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('CSV-Datei')).not.toBeInTheDocument();
     } finally {
       (authWert.user as { role: string }).role = vorher;
     }
@@ -516,20 +533,23 @@ describe('Das Büro mit der Freigabe „Kunden pflegen“', () => {
   it('ohne Freigabe: nur lesen', async () => {
     await alsBuero(false, async () => {
       expect(screen.queryByRole('button', { name: /Neuer Kunde/ })).not.toBeInTheDocument();
-      expect(screen.queryByText('Kunden aus einer Datei')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Weitere Aktionen für Kunden' })).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('CSV-Datei')).not.toBeInTheDocument();
     });
   });
 
   it('mit Freigabe: anlegen und aus einer Datei übernehmen', async () => {
     await alsBuero(true, async () => {
       expect(screen.getByRole('button', { name: /Neuer Kunde/ })).toBeInTheDocument();
-      expect(screen.getByText('Kunden aus einer Datei')).toBeInTheDocument();
+      await ausDemMenue('Kunden aus einer Datei einlesen');
     });
   });
 
   it('aber keine Baustellen übernehmen — die ändert nur die Leitung', async () => {
     await alsBuero(true, async () => {
-      expect(screen.queryByText('Bestehende Baustellen übernehmen')).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Weitere Aktionen für Kunden' }));
+      expect(await screen.findByRole('menuitem', { name: 'Kunden aus einer Datei einlesen' })).toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: 'Bestehende Baustellen übernehmen' })).not.toBeInTheDocument();
     });
   });
 });
@@ -585,7 +605,8 @@ describe('Kundenart prüfen', () => {
     zeichne();
     expect(await screen.findByText('Anna Beispiel')).toBeInTheDocument();
     expect(screen.getAllByText('Kundenart prüfen')).toHaveLength(1);
-    await userEvent.click(screen.getByLabelText(/Nur Kunden ohne Kundenart/));
+    // Seit „Lot“ ein Segment statt eines Kästchens; was es filtert, bleibt.
+    await userEvent.click(screen.getByRole('button', { name: 'Ohne Kundenart' }));
     await waitFor(() => expect(screen.queryByText('Bau GmbH')).toBeNull());
     expect(screen.getByText('Anna Beispiel')).toBeInTheDocument();
   });
@@ -596,5 +617,99 @@ describe('Kundenart prüfen', () => {
     zeichne();
     expect(await screen.findByText('Bau GmbH')).toBeInTheDocument();
     expect(screen.queryByText('Kundenart prüfen')).toBeNull();
+  });
+});
+
+/*
+  LINIE „LOT“ (Schritt E6): Auswahl in der Adresse, höchstens 20 Zeilen,
+  Anlegen im Seitenfenster, seltene Aktionen im ⋯ — und dieselben Wege wie vorher.
+*/
+describe('Kundenliste in der Linie „Lot“', () => {
+  const viele = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `v${i}`,
+      companyId: 'perl',
+      name: `Kunde ${String(i).padStart(3, '0')}`,
+      kundenart: 'privat',
+    })) as typeof kunden;
+
+  it('nimmt die Auswahl aus der Adresse — „Ohne Kundenart“ als Lesezeichen', async () => {
+    artListe = [{ id: 'a', companyId: 'perl', name: 'Anna Beispiel', kundenart: null }];
+    zeichne('/customers?auswahl=ohne-art');
+    expect(await screen.findByText('Anna Beispiel')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ohne Kundenart' })).toHaveAttribute('aria-pressed', 'true');
+    expect(searchCustomers).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: ohne Angabe alle Kunden über die Suche', async () => {
+    zeichne();
+    expect(await screen.findByText('Hausverwaltung Nord')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
+    expect(searchCustomers).toHaveBeenCalled();
+  });
+
+  it('zeigt höchstens 20 Zeilen und dann „und N weitere anzeigen“', async () => {
+    searchCustomers.mockResolvedValue(viele(23));
+    zeichne();
+    await screen.findByText('Kunde 000');
+    expect(screen.queryByText('Kunde 020')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'und 3 weitere anzeigen' }));
+    expect(screen.getByText('Kunde 022')).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: bei 20 Kunden kein „weitere“', async () => {
+    searchCustomers.mockResolvedValue(viele(20));
+    zeichne();
+    await screen.findByText('Kunde 019');
+    expect(screen.queryByRole('button', { name: /weitere anzeigen/ })).toBeNull();
+  });
+
+  it('hebt Adresse und Telefon über die Zeilenfläche — anrufen bleibt ein Tipp', async () => {
+    zeichne();
+    const tel = await screen.findByRole('link', { name: /0664 1234567/ });
+    expect(tel.closest('.zeile-griff')).not.toBeNull();
+    expect(screen.getByRole('link', { name: /Hausverwaltung Nord/ }).closest('.zeile-griff')).toBeNull();
+  });
+
+  it('legt im Seitenfenster an; Wegklicken behält den begonnenen Kunden, „Abbrechen“ verwirft ihn', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText('Hausverwaltung Nord');
+    await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
+    const fenster = screen.getByRole('dialog', { name: 'Neuen Kunden anlegen' });
+    await nutzer.type(within(fenster).getByLabelText('Name oder Firma'), 'Familie Gruber');
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Schließen' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
+    expect(screen.getByLabelText('Name oder Firma')).toHaveValue('Familie Gruber');
+    await nutzer.click(screen.getByRole('button', { name: 'Abbrechen' }));
+    await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
+    expect(screen.getByLabelText('Name oder Firma')).toHaveValue('');
+  });
+
+  it('öffnet aus dem ⋯ gleich die Dateiauswahl — ein Tipp mehr als vorher, nicht zwei', async () => {
+    const klick = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => undefined);
+    try {
+      zeichne();
+      await screen.findByText('Hausverwaltung Nord');
+      await ausDemMenue('Kunden aus einer Datei einlesen');
+      expect(klick).toHaveBeenCalledTimes(1);
+      expect(klick.mock.instances[0]).toBe(screen.getByLabelText('CSV-Datei'));
+    } finally {
+      klick.mockRestore();
+    }
+  });
+
+  it('erstellt aus dem ⋯ gleich die Vorschau der Übernahme — geschrieben wird nichts', async () => {
+    zeichne();
+    await screen.findByText('Hausverwaltung Nord');
+    await ausDemMenue('Bestehende Baustellen übernehmen');
+    const fenster = await screen.findByRole('dialog', { name: 'Bestehende Baustellen übernehmen' });
+    expect(await within(fenster).findByText(/Kunden entstehen/)).toBeInTheDocument();
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Abbrechen' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(createCustomer).not.toHaveBeenCalled();
+    expect(assignProjectToCustomer).not.toHaveBeenCalled();
   });
 });

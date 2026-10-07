@@ -256,3 +256,37 @@ describe('Meine Baustellen bei Abwesenheit', () => {
     expect(await screen.findByText('nächster Einsatz 01.10.2026')).toBeInTheDocument();
   });
 });
+
+/*
+  LINIE „LOT“: höchstens 20 Karten, dann „und N weitere“ — und die Route als
+  Hauptaktion der Karte, bevor Auftragsumfang und Pläne kommen.
+*/
+describe('Meine Baustellen in der Linie „Lot“', () => {
+  const viele = (n: number) =>
+    Array.from({ length: n }, (_, i) =>
+      baustelle({ id: `p${i}`, projectNumber: `2026-${String(i).padStart(3, '0')}`, customerName: `Kunde ${i}` }));
+
+  it('zeigt höchstens 20 Baustellen und dann „und N weitere anzeigen“', async () => {
+    baustellen = viele(22);
+    render(<MyProjectsView />);
+    expect(await screen.findByText('Kunde 0')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /Route:/ })).toHaveLength(20);
+    (await screen.findByRole('button', { name: 'und 2 weitere anzeigen' })).click();
+    expect(await screen.findByText('Kunde 21')).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: bei 20 Baustellen kein „weitere“', async () => {
+    baustellen = viele(20);
+    render(<MyProjectsView />);
+    expect(await screen.findByText('Kunde 19')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /weitere anzeigen/ })).toBeNull();
+  });
+
+  it('stellt die Route vor den Auftragsumfang', async () => {
+    baustellen = [baustelle({ description: 'Bad erneuern' })];
+    render(<MyProjectsView />);
+    const route = await screen.findByRole('link', { name: /Route:/ });
+    const umfang = screen.getByText('Bad erneuern');
+    expect(route.compareDocumentPosition(umfang) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});

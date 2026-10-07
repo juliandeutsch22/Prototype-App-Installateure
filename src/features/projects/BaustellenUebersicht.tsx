@@ -24,10 +24,16 @@ import { datumAT } from '@/lib/datum';
  * Margen — das Budget steht in derselben Liste ohnehin schon als Pille.
  */
 
+/*
+  DIE FÜNF ZUSTÄNDE DER LINIE „LOT“: im Rahmen Petrol, knapp Bernstein, über
+  dem Budget Rot. Bis zum Umbau stand „über Budget“ in der Hausfarbe
+  (`accent`) — und die ist bei den meisten Betrieben dasselbe Petrol wie „im
+  Rahmen“; das Überziehen sah aus wie ein guter Stand.
+*/
 const BAR_TONE = {
   success: 'bg-success',
   warning: 'bg-warning',
-  danger: 'bg-accent',
+  danger: 'bg-danger',
   neutral: 'bg-line',
 } as const;
 
@@ -137,7 +143,7 @@ export default function BaustellenUebersicht({
           </span>
           <span
             className={`shrink-0 text-xs font-semibold ${
-              budget.over ? 'text-accent' : 'text-ink-muted'
+              budget.over ? 'text-danger' : 'text-ink-muted'
             }`}
           >
             {budget.pct} %

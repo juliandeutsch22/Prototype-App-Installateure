@@ -27,7 +27,8 @@ import Aktenspalten from '@/components/Aktenspalten';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { InputField, FormGrid, CheckboxField } from '@/components/Field';
 import Button from '@/components/Button';
-import { Zustand } from '@/components/Badge';
+import { Warnung, Zustand } from '@/components/Badge';
+import { Sprungleiste } from '@/components/LotBausteine';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import { AdresseLink, TelefonLink, MailLink } from '@/components/Kontakt';
@@ -340,7 +341,7 @@ export default function KundenakteView() {
     Seite gibt: E-Mail, UID und Notiz standen bisher in keiner Ansicht.
   */
   const stammdaten = (
-    <Card title="Stammdaten">
+    <Card title="Stammdaten" id="k-daten">
       {darfAendern && entwurf ? (
         <StammdatenFormular
           entwurf={entwurf}
@@ -362,7 +363,7 @@ export default function KundenakteView() {
     </Card>
   );
   const baustellenKarte = (
-    <Card title={`Baustellen${baustellen.zustand === 'bereit' ? ` (${baustellen.daten.length})` : ''}`}>
+    <Card id="k-baustellen" title={`Baustellen${baustellen.zustand === 'bereit' ? ` (${baustellen.daten.length})` : ''}`}>
       {baustellen.zustand === 'laedt' ? (
         <SkeletonList rows={2} />
       ) : baustellen.zustand === 'fehler' ? (
@@ -459,7 +460,7 @@ export default function KundenakteView() {
     </Card>
   );
   const wartungKarte = wartungAn ? (
-    <Card title="Wartungen">
+    <Card title="Wartungen" id="k-wartungen">
       {wartungen.zustand === 'laedt' ? (
         <SkeletonList rows={1} />
       ) : wartungen.zustand === 'fehler' ? (
@@ -497,7 +498,7 @@ export default function KundenakteView() {
     </Card>
   ) : null;
   const rechnungKarte = rechnungenAn && darfRechnungen ? (
-    <Card title="Rechnungen">
+    <Card title="Rechnungen" id="k-rechnungen">
       {rechnungen.zustand === 'laedt' || baustellen.zustand === 'laedt' ? (
         <SkeletonList rows={1} />
       ) : rechnungen.zustand === 'fehler' || baustellen.zustand === 'fehler' ? (
@@ -539,7 +540,7 @@ export default function KundenakteView() {
     </Card>
   ) : null;
   const angebotKarte = angeboteAn && darfAngebote ? (
-    <Card title="Angebote">
+    <Card title="Angebote" id="k-angebote">
       {angebote.zustand === 'laedt' ? (
         <SkeletonList rows={1} />
       ) : angebote.zustand === 'fehler' ? (
@@ -573,25 +574,29 @@ export default function KundenakteView() {
     Baustellen, damit deren Termine nicht einen Augenblick fehlen.
   */
   const terminKarte = einsatzAn && user && darfTermineSchreiben(user.role) && baustellen.zustand !== 'laedt' ? (
-    <TermineKarte
-      titel="Termine"
-      vorgabe={{
-        bezug: 'kunde',
-        customerId: k.id,
-        baustellen: (baustellen.zustand === 'bereit' ? baustellen.daten : []).map((b) => ({
-          projectNumber: b.projectNumber,
-          label: [b.projectNumber, b.address].filter(Boolean).join(' · '),
-        })),
-      }}
-    />
+    <div id="k-termine">
+      <TermineKarte
+        titel="Termine"
+        vorgabe={{
+          bezug: 'kunde',
+          customerId: k.id,
+          baustellen: (baustellen.zustand === 'bereit' ? baustellen.daten : []).map((b) => ({
+            projectNumber: b.projectNumber,
+            label: [b.projectNumber, b.address].filter(Boolean).join(' · '),
+          })),
+        }}
+      />
+    </div>
   ) : null;
   const auskunft = zeigtAuskunft(user?.role, !!einblick) ? (
-    <Datenauskunft
-      art="kunde"
-      id={k.id}
-      // Ging der Kunde ganz, gibt es diese Akte nicht mehr.
-      onGeloescht={(ganz) => (ganz ? navigate('/customers') : setVersuch((v) => v + 1))}
-    />
+    <div id="k-auskunft">
+      <Datenauskunft
+        art="kunde"
+        id={k.id}
+        // Ging der Kunde ganz, gibt es diese Akte nicht mehr.
+        onGeloescht={(ganz) => (ganz ? navigate('/customers') : setVersuch((v) => v + 1))}
+      />
+    </div>
   ) : null;
 
   return (
@@ -599,6 +604,7 @@ export default function KundenakteView() {
     <div className="space-y-3 lg:space-y-5">
       {warnung}
       <PageHeader
+        ort={k.kundennummer ? `Kunde · Nr. ${k.kundennummer}` : 'Kunde'}
         title={k.name}
         subtitle={
           <Link to="/customers" className="link inline-flex min-h-touch items-center">
@@ -613,11 +619,32 @@ export default function KundenakteView() {
         */
       />
 
-      <Aktenspalten
-        telefon={[stammdaten, terminKarte, baustellenKarte, wartungKarte, rechnungKarte, angebotKarte, auskunft]}
-        links={[stammdaten, wartungKarte, auskunft]}
-        rechts={[terminKarte, baustellenKarte, rechnungKarte, angebotKarte]}
-      />
+      {/*
+        DIE AKTE IN DER LINIE „LOT“ (Schritt E7): die Stammdaten zuerst, als
+        Kurzzeilen — ihr Kopf sagt das Wichtigste, aufgeklappt wird zum
+        Nachlesen oder Ändern. Eine Sprungleiste führt zu den übrigen Teilen;
+        am Schreibtisch steht sie links, an Tablet und Handy läuft sie mit.
+      */}
+      <div className="akte">
+        <Sprungleiste
+          ziele={[
+            { id: 'k-daten', text: 'Daten' },
+            ...(terminKarte ? [{ id: 'k-termine', text: 'Termine' }] : []),
+            { id: 'k-baustellen', text: 'Baustellen' },
+            ...(wartungKarte ? [{ id: 'k-wartungen', text: 'Wartungen' }] : []),
+            ...(rechnungKarte ? [{ id: 'k-rechnungen', text: 'Rechnungen' }] : []),
+            ...(angebotKarte ? [{ id: 'k-angebote', text: 'Angebote' }] : []),
+            ...(auskunft ? [{ id: 'k-auskunft', text: 'Datenschutz' }] : []),
+          ]}
+        />
+        <div className="akte-spalte">
+          <Aktenspalten
+            telefon={[stammdaten, terminKarte, baustellenKarte, wartungKarte, rechnungKarte, angebotKarte, auskunft]}
+            links={[stammdaten, wartungKarte, auskunft]}
+            rechts={[terminKarte, baustellenKarte, rechnungKarte, angebotKarte]}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -654,38 +681,97 @@ function gleich(a: NewCustomer, b: NewCustomer): boolean {
   return (Object.keys(a) as (keyof NewCustomer)[]).every((f) => a[f] === b[f]);
 }
 
+/**
+ * Eine Kurzzeile der Stammdaten: Kopf wie `Kurzzeile` (Klassen aus lot.css),
+ * der Inhalt aber in voller Breite — `Kurzzeile` rückt ihn ab dem Tablet um
+ * 12 rem ein, für ein Formular in der halben Spalte des Schreibtischs zu viel.
+ * Dieselbe Form wie in der Baustellenakte.
+ */
+function Gruppe({ name, wert, children }: { name: string; wert: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <details className="kurz">
+      <summary className="kurz-kopf">
+        <span className="kurz-name">{name}</span>
+        <span className="kurz-wert">{wert}</span>
+        <span className="kurz-zeichen" aria-hidden="true">›</span>
+      </summary>
+      <div className="akte-gruppe-inhalt">{children}</div>
+    </details>
+  );
+}
+
+/** Was die Köpfe der Kurzzeilen zusammenfassen — für Lesen und Ändern gleich. */
+function koepfe(k: NewCustomer | Customer) {
+  const art =
+    k.kundenart === 'unternehmen' ? 'Unternehmen' : k.kundenart === 'privat' ? 'Privatperson' : null;
+  return {
+    anschrift: k.address?.trim() || 'nicht hinterlegt',
+    kontakt: [k.contactName, k.contactPhone, k.email].filter((x) => x?.trim()).join(' · ') || 'nicht hinterlegt',
+    // Ohne Kundenart gehen Rechnung und Mahnung nicht (Runde 3, M10) — das steht schon im Kopf.
+    art: (
+      <>
+        {art ?? <Warnung>Kundenart prüfen</Warnung>}
+        {k.vatId?.trim() ? ` · ${k.vatId}` : ''}
+      </>
+    ),
+  };
+}
+
 /** Die Stammdaten für alle, die sie nicht ändern dürfen. */
 function StammdatenLesen({ k }: { k: Customer }) {
+  const kopf = koepfe(k);
   return (
     <>
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-        <Angabe wort="Rechnungsadresse">
-          {k.address ? <AdresseLink adresse={k.address} /> : null}
-        </Angabe>
-        {k.kundennummer && <Angabe wort="Kundennummer">{k.kundennummer}</Angabe>}
-        <Angabe wort="Ansprechpartner">{k.contactName}</Angabe>
-        <Angabe wort="Telefon">
-          {k.contactPhone ? <TelefonLink nummer={k.contactPhone} name={k.contactName} /> : null}
-        </Angabe>
-        <Angabe wort="E-Mail">{k.email ? <MailLink adresse={k.email} /> : null}</Angabe>
+      <div className="-mx-4">
+        {/* Anrufen, hinfahren, schreiben — ohne erst aufzuklappen. */}
+        <div className="akte-griffe">
+          <AdresseLink adresse={k.address} variante="knopf" />
+          <TelefonLink nummer={k.contactPhone} name={k.contactName} variante="knopf" />
+          <MailLink adresse={k.email} variante="knopf" />
+        </div>
+        <Gruppe name="Anschrift" wert={kopf.anschrift}>
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+            <Angabe wort="Rechnungsadresse">
+              {k.address ? <AdresseLink adresse={k.address} /> : null}
+            </Angabe>
+            {k.kundennummer && <Angabe wort="Kundennummer">{k.kundennummer}</Angabe>}
+          </dl>
+        </Gruppe>
+        <Gruppe name="Kontakt" wert={kopf.kontakt}>
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+            <Angabe wort="Ansprechpartner">{k.contactName}</Angabe>
+            <Angabe wort="Telefon">
+              {k.contactPhone ? <TelefonLink nummer={k.contactPhone} name={k.contactName} /> : null}
+            </Angabe>
+            <Angabe wort="E-Mail">{k.email ? <MailLink adresse={k.email} /> : null}</Angabe>
+          </dl>
+        </Gruppe>
         {/*
           Die UID gehört auf jede Rechnung an ein Unternehmen. Sie war bisher
           nur in der Bearbeitungsmaske zu sehen — also genau dort, wo man sie
           versehentlich ändert, während man sie nachsieht.
         */}
-        <Angabe wort="Kundenart">
-          {k.kundenart === 'unternehmen' ? 'Unternehmen' : k.kundenart === 'privat' ? 'Privatperson' : null}
-        </Angabe>
-        <Angabe wort="UID-Nummer">
-          {k.vatId ? <span>{k.vatId}</span> : null}
-        </Angabe>
+        <Gruppe name="Kundenart und UID" wert={kopf.art}>
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+            <Angabe wort="Kundenart">
+              {k.kundenart === 'unternehmen' ? 'Unternehmen' : k.kundenart === 'privat' ? 'Privatperson' : null}
+            </Angabe>
+            <Angabe wort="UID-Nummer">
+              {k.vatId ? <span>{k.vatId}</span> : null}
+            </Angabe>
+          </dl>
+        </Gruppe>
+      </div>
+
+      {/* Zustand und Notiz stehen offen: eine Notiz („Schlüssel im Büro“) ist
+          das, was man vor dem Anruf wissen muss. */}
+      <dl className="mt-0 grid grid-cols-1 gap-y-3 border-t border-line pt-3">
         <Angabe wort="Zustand">
           {k.active === false
             ? <Zustand stand="ruht">inaktiv</Zustand>
             : <Zustand stand="gut">aktiv</Zustand>}
         </Angabe>
       </dl>
-
       {k.notes?.trim() ? (
         <div className="mt-4 border-t border-line pt-3">
           <p className="section-label">Notiz</p>
@@ -710,26 +796,32 @@ interface FormularProps {
 /**
  * Dieselben Stammdaten, bearbeitbar.
  *
- * DIE ANRUF- UND KARTENVERWEISE BLEIBEN. Ein Eingabefeld allein nähme der
- * Akte genau das, wofür das Büro sie aufmacht: die Nummer antippen und
- * anrufen. Sie stehen deshalb als Zeile unter den Feldern und folgen dem, was
- * gerade im Feld steht — wer eine Nummer korrigiert, kann sie sofort wählen,
- * ohne vorher zu speichern.
+ * DIE ANRUF- UND KARTENVERWEISE BLEIBEN — und stehen jetzt oben. Ein
+ * Eingabefeld allein nähme der Akte genau das, wofür das Büro sie aufmacht:
+ * die Nummer antippen und anrufen. Sie folgen dem, was gerade im Feld steht —
+ * wer eine Nummer korrigiert, kann sie sofort wählen, ohne vorher zu
+ * speichern.
  */
 function StammdatenFormular({
   entwurf, setEntwurf, geaendert, speichert, fehler, onSpeichern, onVerwerfen,
 }: FormularProps) {
   const setze = (feld: keyof NewCustomer, wert: string | boolean) =>
     setEntwurf({ ...entwurf, [feld]: wert });
+  const kopf = koepfe(entwurf);
 
   return (
-    <div className="flex flex-col gap-4">
-      <FormGrid>
-        <InputField
-          id="k-name" label="Name" pflicht value={entwurf.name}
-          onChange={(e) => setze('name', e.target.value)}
-        />
-        <div className="sm:col-span-2">
+    <>
+      <div className="-mx-4">
+        <div className="akte-griffe">
+          <AdresseLink adresse={entwurf.address} variante="knopf" />
+          <TelefonLink nummer={entwurf.contactPhone} name={entwurf.contactName} variante="knopf" />
+          <MailLink adresse={entwurf.email} variante="knopf" />
+        </div>
+        <Gruppe name="Anschrift" wert={kopf.anschrift}>
+          <InputField
+            id="k-name" label="Name" pflicht value={entwurf.name}
+            onChange={(e) => setze('name', e.target.value)}
+          />
           <AdressteileFelder
             idPrefix="k-adresse"
             titel="Rechnungsadresse"
@@ -738,86 +830,87 @@ function StammdatenFormular({
               setEntwurf({ ...entwurf, ...teile, land: teile.land ?? 'AT', address: adresseZeile({ ...entwurf, ...teile }) })
             }
           />
-        </div>
-        <InputField
-          id="k-nummer" label="Kundennummer (freiwillig)" value={entwurf.kundennummer ?? ''}
-          onChange={(e) => setze('kundennummer', e.target.value)}
-        />
-        <InputField
-          id="k-ansprech" label="Ansprechpartner" value={entwurf.contactName ?? ''}
-          onChange={(e) => setze('contactName', e.target.value)}
-        />
-        <InputField
-          id="k-telefon" label="Telefon" type="tel" value={entwurf.contactPhone ?? ''}
-          onChange={(e) => setze('contactPhone', e.target.value)}
-        />
-        <InputField
-          id="k-mail" label="E-Mail" type="email" value={entwurf.email ?? ''}
-          onChange={(e) => setze('email', e.target.value)}
-        />
-      </FormGrid>
-      <KundenartUidFelder
-        idPrefix="k"
-        kundenart={entwurf.kundenart}
-        vatId={entwurf.vatId}
-        onChange={({ kundenart, vatId }) => setEntwurf({ ...entwurf, kundenart: kundenart || null, vatId })}
-      />
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="k-notiz" className="text-sm font-normal text-ink">Notiz</label>
-        <textarea
-          id="k-notiz"
-          rows={3}
-          className="min-h-touch rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:ring-1 focus:ring-brand"
-          value={entwurf.notes ?? ''}
-          onChange={(e) => setze('notes', e.target.value)}
-        />
+          <InputField
+            id="k-nummer" label="Kundennummer (freiwillig)" value={entwurf.kundennummer ?? ''}
+            onChange={(e) => setze('kundennummer', e.target.value)}
+          />
+        </Gruppe>
+        <Gruppe name="Kontakt" wert={kopf.kontakt}>
+          <InputField
+            id="k-ansprech" label="Ansprechpartner" value={entwurf.contactName ?? ''}
+            onChange={(e) => setze('contactName', e.target.value)}
+          />
+          <FormGrid>
+            <InputField
+              id="k-telefon" label="Telefon" type="tel" value={entwurf.contactPhone ?? ''}
+              onChange={(e) => setze('contactPhone', e.target.value)}
+            />
+            <InputField
+              id="k-mail" label="E-Mail" type="email" value={entwurf.email ?? ''}
+              onChange={(e) => setze('email', e.target.value)}
+            />
+          </FormGrid>
+        </Gruppe>
+        <Gruppe name="Kundenart und UID" wert={kopf.art}>
+          <KundenartUidFelder
+            idPrefix="k"
+            kundenart={entwurf.kundenart}
+            vatId={entwurf.vatId}
+            onChange={({ kundenart, vatId }) => setEntwurf({ ...entwurf, kundenart: kundenart || null, vatId })}
+          />
+        </Gruppe>
       </div>
 
-      {/*
-        DER ZUSTAND IST EIN KÄSTCHEN UND KEIN LÖSCHEN. Ein Kunde mit
-        Baustellen und Rechnungen verschwindet nicht; er wird stillgelegt.
-      */}
-      <CheckboxField
-        id="k-aktiv"
-        label="Aktiv — erscheint in den Auswahlfeldern"
-        checked={entwurf.active !== false}
-        onChange={(e) => setze('active', e.target.checked)}
-      />
-
-      {(entwurf.address || entwurf.contactPhone || entwurf.email) && (
-        <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
-          <AdresseLink adresse={entwurf.address} variante="knopf" />
-          <TelefonLink nummer={entwurf.contactPhone} name={entwurf.contactName} variante="knopf" />
-          <MailLink adresse={entwurf.email} variante="knopf" />
+      {/* Notiz und Zustand stehen offen: sie sind kurz, und die Notiz ist das,
+          was man vor dem Anruf wissen muss. */}
+      <div className="flex flex-col gap-4 border-t border-line pt-4">
+        <div className="flex flex-col gap-1">
+          <label htmlFor="k-notiz" className="text-sm font-normal text-ink">Notiz</label>
+          <textarea
+            id="k-notiz"
+            rows={3}
+            className="min-h-touch rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:ring-1 focus:ring-brand"
+            value={entwurf.notes ?? ''}
+            onChange={(e) => setze('notes', e.target.value)}
+          />
         </div>
-      )}
 
-      {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
-
-      {/*
-        DER BALKEN ERSCHEINT ERST BEI EINER ÄNDERUNG — als Aktionsleiste
-        (Designlinie „Fassung 3"), wie am Buchungsformular: am Telefon klebt
-        sie ÜBER der Reiterleiste statt darauf, am Schreibtisch steht sie
-        rechtsbündig unter dem Formular. So ist „Speichern" nach einer
-        Änderung weit oben im Formular zu erreichen, ohne ans Ende zu rollen.
-      */}
-      {geaendert && (
-        <Aktionsleiste
-          summe={{ name: 'Es gibt ungespeicherte Änderungen.', wert: null }}
-          links={
-            <Button variant="ghost" onClick={onVerwerfen} disabled={speichert}>
-              Verwerfen
-            </Button>
-          }
-          rechts={
-            <Button onClick={onSpeichern} loading={speichert}>
-              Speichern
-            </Button>
-          }
+        {/*
+          DER ZUSTAND IST EIN KÄSTCHEN UND KEIN LÖSCHEN. Ein Kunde mit
+          Baustellen und Rechnungen verschwindet nicht; er wird stillgelegt.
+        */}
+        <CheckboxField
+          id="k-aktiv"
+          label="Aktiv — erscheint in den Auswahlfeldern"
+          checked={entwurf.active !== false}
+          onChange={(e) => setze('active', e.target.checked)}
         />
-      )}
-    </div>
+
+        {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+
+        {/*
+          DER BALKEN ERSCHEINT ERST BEI EINER ÄNDERUNG — als Aktionsleiste, wie
+          am Buchungsformular: am Telefon klebt sie ÜBER der Reiterleiste, am
+          Schreibtisch steht sie rechtsbündig unter dem Formular. So ist
+          „Speichern" nach einer Änderung zu erreichen, ohne ans Ende zu rollen.
+        */}
+        {geaendert && (
+          <Aktionsleiste
+            summe={{ name: 'Es gibt ungespeicherte Änderungen.', wert: null }}
+            links={
+              <Button variant="ghost" onClick={onVerwerfen} disabled={speichert}>
+                Verwerfen
+              </Button>
+            }
+            rechts={
+              <Button onClick={onSpeichern} loading={speichert}>
+                Speichern
+              </Button>
+            }
+          />
+        )}
+      </div>
+    </>
   );
 }
 

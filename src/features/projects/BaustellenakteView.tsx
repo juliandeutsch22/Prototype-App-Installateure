@@ -15,7 +15,7 @@ import { euro } from '@/lib/betrag';
 import { canAccess } from '@/app/navigation';
 import { isGF } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
-import type { Project, AppUser, Customer, Quote } from '@/types';
+import type { Abrechnungsart, Project, AppUser, Customer, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
@@ -23,7 +23,9 @@ import Hinweiszeile from '@/components/Hinweiszeile';
 import Aktenspalten from '@/components/Aktenspalten';
 import TermineKarte from '@/features/termine/TermineKarte';
 import Button from '@/components/Button';
-import { Marke } from '@/components/Badge';
+import { Marke, Zustand } from '@/components/Badge';
+import { LotVerlauf, Sprungleiste, type LotPunkt } from '@/components/LotBausteine';
+import { endeVorbei } from './baustellenLage';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
 import PersonPicker from '@/components/PersonPicker';
@@ -37,7 +39,7 @@ import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
-import { fmtStunden } from '@/lib/time';
+import { fmtStunden, todayStr } from '@/lib/time';
 import ZahlFeld from '@/components/ZahlFeld';
 
 /**
@@ -338,14 +340,72 @@ export default function BaustellenakteView() {
   }
 
   /*
-    DIE KARTEN DER AKTE — einmal angelegt, von `Aktenspalten` angeordnet:
-    am Telefon in der gewohnten Reihenfolge. Am Schreibtisch links die
-    Stammdaten: sie sind ein Formular, und in der breiten Spalte stehen
-    seine Felder zu zweit nebeneinander statt einzeln untereinander. Rechts
-    Stunden, Pläne und die Wege weiter.
+    DIE AKTE IN DER LINIE „LOT“ (Schritt E7): zuerst die Zusammenfassung —
+    wie die Baustelle steht (Stunden), wo sie zeitlich steht (Verlauf) und
+    die Wege weiter —, dann die Einzelheiten. Die Stammdaten stehen als
+    Kurzzeilen da: ihr Kopf sagt schon das Wichtigste, aufgeklappt wird zum
+    Nachlesen oder Ändern. Hinweise und Warnungen stehen UNTER der jeweiligen
+    Kurzzeile und bleiben damit sichtbar, auch wenn sie zu ist.
+
+    Am Schreibtisch ordnet `Aktenspalten` wie bisher: links die Stammdaten,
+    rechts Termine und Pläne; die Sprungleiste steht links daneben.
   */
+  const verlauf = verlaufPunkte(b, angebote, todayStr());
+  const ueberblick = (
+    <Card title="Überblick" id="b-ueberblick">
+      <div className="flex flex-col gap-4">
+        {/*
+          DIE STUNDEN STEHEN IN DER AKTE, nicht mehr aufgeklappt in der
+          Listenzeile. Dieselbe Auswertung, derselbe Baustein — nur an einem
+          Ort, der eine Adresse hat.
+        */}
+        {user && (
+          <Suspense fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}>
+            <BaustellenUebersicht companyId={user.companyId} projekt={b} />
+          </Suspense>
+        )}
+        {/* Aus dem, was die Akte ohnehin lädt: Angebote, Beginn, heute, Ende. */}
+        {verlauf.length > 1 && (
+          <div className="border-t border-line pt-4">
+            <LotVerlauf name="Verlauf der Baustelle" punkte={verlauf} />
+          </div>
+        )}
+        {/* Die Links tragen ihre 48 px Tastfläche selbst — deshalb kein
+            senkrechter Abstand dazwischen (Prüflauf 25.09.2026, P4-09). */}
+        <div className="flex flex-wrap items-center gap-x-3 border-t border-line pt-1">
+          {b.customerId ? (
+            <Link to={`/customers/${b.customerId}`} className="link inline-flex min-h-touch items-center">
+              Zur Kundenakte
+            </Link>
+          ) : (
+            /*
+              Altbestand: die Baustelle trägt einen Kundennamen, aber keine
+              Verknüpfung. Das stumm zu lassen hiesse, den fehlenden Verweis
+              wie „gibt es nicht" aussehen zu lassen.
+            */
+            <span className="py-3 text-sm text-warning">
+              Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".
+            </span>
+          )}
+          {angebote.map((q) => (
+            <Link key={q.id} to={`/quotes/${q.id}`} className="link inline-flex min-h-touch items-center">
+              Angebot {q.quoteNumber}
+            </Link>
+          ))}
+          {scheineAn && (
+            <Link
+              to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
+              className="link inline-flex min-h-touch items-center"
+            >
+              Handwerksschein schreiben
+            </Link>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
   const stammdaten = (
-    <Card title="Stammdaten">
+    <Card title="Stammdaten" id="b-daten">
       {darfAendern && entwurf ? (
         <StammdatenFormular
           entwurf={entwurf}
@@ -353,6 +413,7 @@ export default function BaustellenakteView() {
           kunden={kunden}
           staff={staff}
           leads={leads}
+          namen={namen}
           geaendert={geaendert}
           speichert={speichert}
           fehler={speicherFehler}
@@ -367,7 +428,7 @@ export default function BaustellenakteView() {
     </Card>
   );
   const plaene = user ? (
-    <Card title="Pläne und Dokumente">
+    <Card title="Pläne und Dokumente" id="b-plaene">
       <BaustellenPlaene
         companyId={user.companyId}
         projectId={b.id}
@@ -377,71 +438,27 @@ export default function BaustellenakteView() {
       />
     </Card>
   ) : null;
-  /*
-    DIE STUNDEN STEHEN IN DER AKTE, nicht mehr aufgeklappt in der
-    Listenzeile. Dieselbe Auswertung, derselbe Baustein — nur an einem
-    Ort, der eine Adresse hat.
-  */
-  const stunden = (
-    <Card title="Stunden auf dieser Baustelle">
-      {user && (
-        <Suspense fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}>
-          <BaustellenUebersicht companyId={user.companyId} projekt={b} />
-        </Suspense>
-      )}
-    </Card>
-  );
   // Termine gehören zur Einsatzplanung: ohne das Modul gibt es sie nicht.
   const termineKarte = einsatzAn ? (
-    <TermineKarte titel="Termine" vorgabe={{ bezug: 'baustelle', projectNumber: b.projectNumber }} />
+    <div id="b-termine">
+      <TermineKarte titel="Termine" vorgabe={{ bezug: 'baustelle', projectNumber: b.projectNumber }} />
+    </div>
   ) : null;
-  const weiterKarte = (
-    <Card title="Weiter">
-      {/* Die Links tragen ihre 48 px Tastfläche selbst — deshalb kein
-          senkrechter Abstand mehr dazwischen, sonst wüchse die Karte um
-          mehr als nötig (Prüflauf 25.09.2026, P4-09). */}
-      <div className="flex flex-wrap items-center gap-x-3">
-        {b.customerId ? (
-          <Link to={`/customers/${b.customerId}`} className="link inline-flex min-h-touch items-center">
-            Zur Kundenakte
-          </Link>
-        ) : (
-          /*
-            Altbestand: die Baustelle trägt einen Kundennamen, aber keine
-            Verknüpfung. Das stumm zu lassen hiesse, den fehlenden Verweis
-            wie „gibt es nicht" aussehen zu lassen.
-          */
-          <span className="text-sm text-warning">
-            Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".
-          </span>
-        )}
-        {angebote.map((q) => (
-          <Link key={q.id} to={`/quotes/${q.id}`} className="link inline-flex min-h-touch items-center">
-            Angebot {q.quoteNumber}
-          </Link>
-        ))}
-        {scheineAn && (
-          <Link
-            to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
-            className="link inline-flex min-h-touch items-center"
-          >
-            Handwerksschein schreiben
-          </Link>
-        )}
-      </div>
-    </Card>
-  );
 
   return (
-    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="space-y-3 lg:space-y-5">
       {warnung}
       <PageHeader
+        ort={
+          <>
+            <span className="nr">{b.projectNumber}</span>
+            {b.billingMode ? ` · ${abrechnungText(b.billingMode)}` : ''}
+          </>
+        }
         title={baustellenTitel(b)}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <Link to="/admin-projects" className="link inline-flex min-h-touch items-center">← Zur Baustellenliste</Link>
-            <span className="nr text-ink-muted">{b.projectNumber}</span>
             <StatusBadge status={b.status} />
             {b.estimatedHours ? <Marke>{fmtStunden(b.estimatedHours)} h Budget</Marke> : null}
           </span>
@@ -450,11 +467,24 @@ export default function BaustellenakteView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <Aktenspalten
-        telefon={[stammdaten, termineKarte, plaene, stunden, weiterKarte]}
-        links={[stammdaten]}
-        rechts={[termineKarte, stunden, plaene, weiterKarte]}
-      />
+      <div className="akte">
+        <Sprungleiste
+          ziele={[
+            { id: 'b-ueberblick', text: 'Überblick' },
+            ...(einsatzAn ? [{ id: 'b-termine', text: 'Termine' }] : []),
+            { id: 'b-daten', text: 'Daten' },
+            ...(plaene ? [{ id: 'b-plaene', text: 'Pläne' }] : []),
+          ]}
+        />
+        <div className="akte-spalte">
+          {ueberblick}
+          <Aktenspalten
+            telefon={[termineKarte, stammdaten, plaene]}
+            links={[stammdaten]}
+            rechts={[termineKarte, plaene]}
+          />
+        </div>
+      </div>
 
       <ConfirmDialog
         open={!!nummerFragen}
@@ -477,38 +507,158 @@ export default function BaustellenakteView() {
   );
 }
 
+/**
+ * DER VERLAUF DER BAUSTELLE als Lot — nur aus dem, was die Akte schon lädt:
+ * die Angebote (sofern die Rolle sie lesen darf), Beginn, heute und das
+ * geplante Ende. Kein Punkt wird erfunden: fehlt ein Datum, fehlt der Punkt.
+ * „Heute“ ist der Ring, solange die Baustelle nicht abgeschlossen ist.
+ */
+function verlaufPunkte(b: Project, angebote: Quote[], heute: string): LotPunkt[] {
+  const punkte: (LotPunkt & { datum: string })[] = [];
+  for (const q of angebote) {
+    punkte.push({
+      titel: `Angebot ${q.quoteNumber}`,
+      zeit: fmtDatum(q.quoteDate) || undefined,
+      text: q.status,
+      datum: q.quoteDate ?? '',
+    });
+  }
+  if (b.startDate) {
+    punkte.push({
+      titel: b.startDate > heute ? 'Beginn geplant' : 'Beginn',
+      zeit: fmtDatum(b.startDate),
+      datum: b.startDate,
+    });
+  }
+  if (b.status !== 'Abgeschlossen') {
+    punkte.push({ titel: `Heute · ${b.status}`, zeit: fmtDatum(heute), jetzt: true, datum: heute });
+  }
+  if (b.endDate) {
+    punkte.push({
+      titel: b.status === 'Abgeschlossen' ? 'Ende' : 'Ende geplant',
+      zeit: fmtDatum(b.endDate),
+      // Dieselbe Regel wie der Filter „Ende überschritten“ der Startseite.
+      text: endeVorbei(b, heute) ? <Zustand stand="achtung">überschritten</Zustand> : undefined,
+      datum: b.endDate,
+    });
+  }
+  // Am selben Tag bleibt die Reihenfolge oben stehen (Angebot, Beginn, heute, Ende).
+  return punkte
+    .map((p, i) => ({ p, i }))
+    .sort((x, y) => x.p.datum.localeCompare(y.p.datum) || x.i - y.i)
+    .map(({ p }) => ({ titel: p.titel, zeit: p.zeit, text: p.text, jetzt: p.jetzt }));
+}
+
+/**
+ * Eine Kurzzeile der Stammdaten: Kopf wie `Kurzzeile` (Klassen aus lot.css),
+ * der Inhalt aber in voller Breite. `Kurzzeile` rückt ihn ab dem Tablet um
+ * 12 rem ein — für ein Formular in der halben Spalte des Schreibtischs blieb
+ * danach kaum Platz (Änderungswunsch an `LotBausteine`: eine Angabe `breit`).
+ */
+function Gruppe({ name, wert, children }: { name: string; wert: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <details className="kurz">
+      <summary className="kurz-kopf">
+        <span className="kurz-name">{name}</span>
+        <span className="kurz-wert">{wert}</span>
+        <span className="kurz-zeichen" aria-hidden="true">›</span>
+      </summary>
+      <div className="akte-gruppe-inhalt">{children}</div>
+    </details>
+  );
+}
+
+/** Was die Köpfe der Kurzzeilen zusammenfassen — für Lesen und Ändern gleich. */
+function koepfe(d: {
+  customerName: string;
+  address?: string;
+  status: string;
+  billingMode?: Abrechnungsart;
+  estimatedHours?: number | string;
+  startDate?: string;
+  endDate?: string;
+  team: string[];
+  leitung: string[];
+}) {
+  const budget = typeof d.estimatedHours === 'string' ? stundenbudgetAus(d.estimatedHours) : d.estimatedHours;
+  return {
+    kundeOrt: [d.customerName, d.address].filter(Boolean).join(' · ') || 'nicht hinterlegt',
+    auftrag: [
+      d.status,
+      d.billingMode ? abrechnungText(d.billingMode) : 'Abrechnung nicht festgelegt',
+      budget ? `${fmtStunden(budget)} h Budget` : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+    zeitraum:
+      d.startDate || d.endDate
+        ? `${fmtDatum(d.startDate) || 'offen'} – ${fmtDatum(d.endDate) || 'offen'}`
+        : 'nicht festgelegt',
+    mannschaft: (
+      <>
+        {d.team.length > 0 ? d.team.join(', ') : 'kein Team'}
+        {' · '}
+        {d.leitung.length > 0 ? (
+          `Leitung: ${d.leitung.join(', ')}`
+        ) : (
+          <span className="text-warning">keine Projektleitung</span>
+        )}
+      </>
+    ),
+  };
+}
+
 /** Die Stammdaten für alle, die sie nicht ändern dürfen. */
 function StammdatenLesen({ b, namen }: { b: Project; namen: Map<string, string> }) {
   const team = (b.assignedEmployees ?? []).map((u) => namen.get(u) ?? u);
   const leitung = (b.projectManagers ?? []).map((u) => namen.get(u) ?? u);
+  const k = koepfe({ ...b, team, leitung });
   return (
-    <>
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-        <Angabe wort="Projektnummer"><span>{b.projectNumber}</span></Angabe>
-        <Angabe wort="Kunde">{b.customerName}</Angabe>
-        {b.bezeichnung?.trim() && <Angabe wort="Bezeichnung">{b.bezeichnung}</Angabe>}
-        <Angabe wort="Baustellenadresse">
-          {b.address ? <AdresseLink adresse={b.address} /> : null}
-        </Angabe>
-        <Angabe wort="Abrechnung">{b.billingMode ? abrechnungText(b.billingMode) : null}</Angabe>
-        <Angabe wort="Ansprechpartner vor Ort">{b.contactName}</Angabe>
-        <Angabe wort="Telefon vor Ort">
-          {b.contactPhone ? <TelefonLink nummer={b.contactPhone} name={b.contactName} /> : null}
-        </Angabe>
-        <Angabe wort="Beginn">{fmtDatum(b.startDate)}</Angabe>
-        <Angabe wort="Ende (geplant)">{fmtDatum(b.endDate)}</Angabe>
-        <Angabe wort="Team">{team.join(', ')}</Angabe>
-        <Angabe wort="Projektleitung">{leitung.join(', ')}</Angabe>
-      </dl>
-
-      {b.description?.trim() ? (
-        <div className="mt-4 border-t border-line pt-3">
-          <p className="section-label">Beschreibung / Auftragsumfang</p>
-          {/* Zeilenumbrüche bleiben: ein Auftragsumfang ist oft eine Liste. */}
-          <p className="mt-1 whitespace-pre-line text-sm text-ink">{b.description}</p>
-        </div>
-      ) : null}
-    </>
+    <div className="-mx-4 -mb-4">
+      {/* Anrufen und hinfahren, ohne erst aufzuklappen. */}
+      <div className="akte-griffe">
+        <AdresseLink adresse={b.address} variante="knopf" />
+        <TelefonLink nummer={b.contactPhone} name={b.contactName} variante="knopf" />
+      </div>
+      <Gruppe name="Kunde und Ort" wert={k.kundeOrt}>
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+          <Angabe wort="Kunde">{b.customerName}</Angabe>
+          {b.bezeichnung?.trim() && <Angabe wort="Bezeichnung">{b.bezeichnung}</Angabe>}
+          <Angabe wort="Baustellenadresse">
+            {b.address ? <AdresseLink adresse={b.address} /> : null}
+          </Angabe>
+          <Angabe wort="Ansprechpartner vor Ort">{b.contactName}</Angabe>
+          <Angabe wort="Telefon vor Ort">
+            {b.contactPhone ? <TelefonLink nummer={b.contactPhone} name={b.contactName} /> : null}
+          </Angabe>
+        </dl>
+      </Gruppe>
+      <Gruppe name="Auftrag" wert={k.auftrag}>
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+          <Angabe wort="Projektnummer"><span>{b.projectNumber}</span></Angabe>
+          <Angabe wort="Abrechnung">{b.billingMode ? abrechnungText(b.billingMode) : null}</Angabe>
+        </dl>
+        {b.description?.trim() ? (
+          <div className="border-t border-line pt-3">
+            <p className="section-label">Beschreibung / Auftragsumfang</p>
+            {/* Zeilenumbrüche bleiben: ein Auftragsumfang ist oft eine Liste. */}
+            <p className="mt-1 whitespace-pre-line text-sm text-ink">{b.description}</p>
+          </div>
+        ) : null}
+      </Gruppe>
+      <Gruppe name="Zeitraum" wert={k.zeitraum}>
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+          <Angabe wort="Beginn">{fmtDatum(b.startDate)}</Angabe>
+          <Angabe wort="Ende (geplant)">{fmtDatum(b.endDate)}</Angabe>
+        </dl>
+      </Gruppe>
+      <Gruppe name="Mannschaft" wert={k.mannschaft}>
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+          <Angabe wort="Team">{team.join(', ')}</Angabe>
+          <Angabe wort="Projektleitung">{leitung.join(', ')}</Angabe>
+        </dl>
+      </Gruppe>
+    </div>
   );
 }
 
@@ -518,6 +668,7 @@ interface FormularProps {
   kunden: (Customer & { id: string })[];
   staff: AppUser[];
   leads: AppUser[];
+  namen: Map<string, string>;
   geaendert: boolean;
   speichert: boolean;
   fehler: string | null;
@@ -531,172 +682,204 @@ interface FormularProps {
 /**
  * Dieselben Stammdaten, bearbeitbar.
  *
- * DIE ANRUF- UND KARTENVERWEISE BLEIBEN. Ein Eingabefeld allein nähme der
- * Akte genau das, wofür die Projektleitung sie aufmacht: die Adresse antippen
- * und hinfahren. Sie folgen dem, was gerade im Feld steht.
+ * DIE ANRUF- UND KARTENVERWEISE BLEIBEN — und stehen jetzt oben. Ein
+ * Eingabefeld allein nähme der Akte genau das, wofür die Projektleitung sie
+ * aufmacht: die Adresse antippen und hinfahren. Sie folgen dem, was gerade
+ * im Feld steht.
  */
 function StammdatenFormular({
-  entwurf, setEntwurf, kunden, staff, leads,
+  entwurf, setEntwurf, kunden, staff, leads, namen,
   geaendert, speichert, fehler, onSpeichern, onVerwerfen, angebote, angeboteSichtbar,
 }: FormularProps) {
   const setze = <F extends keyof BaustellenEntwurf>(feld: F, wert: BaustellenEntwurf[F]) =>
     setEntwurf({ ...entwurf, [feld]: wert });
   const companyId = useAuth().user?.companyId;
+  const k = koepfe({
+    ...entwurf,
+    billingMode: entwurf.billingMode || undefined,
+    team: entwurf.assignedEmployees.map((u) => namen.get(u) ?? u),
+    leitung: entwurf.projectManagers.map((u) => namen.get(u) ?? u),
+  });
+  const pauschal = entwurf.billingMode === 'Pauschal' || entwurf.billingMode === 'Einheitspreis';
 
   return (
-    <div className="flex flex-col gap-4">
-      <FormGrid>
-        <InputField
-          id="b-nummer" label="Projektnummer" pflicht value={entwurf.projectNumber}
-          onChange={(e) => setze('projectNumber', e.target.value)}
-        />
-        {/*
-          Kunde AUSWÄHLEN statt tippen: zwei Schreibweisen ergäben zwei Kunden,
-          beide unvollständig. Der Name wandert als Kopie mit, weil die
-          Baustellenlisten ihn zeigen, ohne den Kundenstamm zu laden.
-        */}
-        <SelectField
-          id="b-kunde" label="Kunde" pflicht value={entwurf.customerId}
-          onChange={(e) => {
-            const k = kunden.find((x) => x.id === e.target.value);
-            const vorher = kunden.find((x) => x.id === entwurf.customerId)?.address;
-            setEntwurf({
-              ...entwurf,
-              customerId: e.target.value,
-              customerName: k?.name ?? entwurf.customerName,
-              // G5: die Anschrift des Kunden als Vorschlag — nur in ein leeres
-              // Feld oder statt des unveränderten Vorschlags des vorigen Kunden.
-              address: !entwurf.address || entwurf.address === vorher ? (k?.address ?? '') : entwurf.address,
-            });
-          }}
-        >
-          <option value="">— wählen —</option>
-          {kunden.map((k) => (
-            <option key={k.id} value={k.id}>{k.name}</option>
-          ))}
-        </SelectField>
-        <KundenGrenze kunden={kunden} />
-        {!entwurf.customerId && entwurf.customerName && (
-          <p className="text-sm text-warning sm:col-span-2">
-            Bisher als Text hinterlegt: „{entwurf.customerName}". Bitte den passenden Kunden
-            wählen — oder in der{' '}
-            <Link to="/customers" className="link-hinweis-weiter">Kundenverwaltung</Link>{' '}
-            anlegen.
-          </p>
-        )}
-        {/* Ausdrücklich die BAUSTELLENadresse: die Rechnungsadresse steht beim
-            Kunden, und eine Hausverwaltung hat zwanzig Baustellen. */}
-        <InputField
-          id="b-bezeichnung" label="Bezeichnung (freiwillig)" placeholder="z. B. Bad 2. OG"
-          maxLength={120} value={entwurf.bezeichnung}
-          onChange={(e) => setze('bezeichnung', e.target.value)}
-        />
-        <AdresseFeld
-          id="b-adresse" label="Baustellenadresse" value={entwurf.address}
-          vorschlag={kunden.find((k) => k.id === entwurf.customerId)?.address}
-          onChange={(t) => setze('address', t)}
-        />
-        <SelectField
-          id="b-status" label="Status" value={entwurf.status}
-          onChange={(e) => setze('status', e.target.value as Project['status'])}
-        >
-          <option>Aktiv</option>
-          <option>Pausiert</option>
-          <option>Abgeschlossen</option>
-        </SelectField>
-        {/*
-          DIE ABRECHNUNGSART WAR NIRGENDS ÄNDERBAR. Der Handwerksschein liest
-          sie (auf einer Regiebaustelle sind die bestätigten Stunden die
-          Rechnungsgrundlage, auf einer Pauschalbaustelle belegt derselbe
-          Schein nur, DASS gearbeitet wurde) — geschrieben wurde sie aber nur
-          beim Umwandeln eines Angebots. Wer sie korrigieren musste, konnte es
-          nicht.
-        */}
-        <SelectField
-          id="b-abrechnung" label="Abrechnung" value={entwurf.billingMode}
-          onChange={(e) => setze('billingMode', e.target.value as BaustellenEntwurf['billingMode'])}
-        >
-          <option value="">— nicht festgelegt (gilt als Regie) —</option>
-          {ABRECHNUNGSARTEN.map((a) => (
-            <option key={a.wert} value={a.wert}>{a.text}</option>
-          ))}
-        </SelectField>
-        {(entwurf.billingMode === 'Pauschal' || entwurf.billingMode === 'Einheitspreis') && (
-          <PauschalHinweis angebote={angebote} sichtbar={angeboteSichtbar} art={entwurf.billingMode} />
-        )}
-        <ZahlFeld
-          id="b-budget" label="Stundenbudget (kalkuliert)"
-          placeholder="z. B. 40" value={entwurf.estimatedHours}
-          onChange={(t) => setze('estimatedHours', t)}
-        />
-        <InputField
-          id="b-beginn" label="Beginn" type="date" value={entwurf.startDate}
-          onChange={(e) => setze('startDate', e.target.value)}
-        />
-        <InputField
-          id="b-ende" label="Ende (geplant)" type="date" value={entwurf.endDate}
-          onChange={(e) => setze('endDate', e.target.value)}
-        />
-        {/* Der Monteur braucht vor Ort vor allem eine Telefonnummer. */}
-        <InputField
-          id="b-ansprech" label="Ansprechpartner vor Ort" value={entwurf.contactName}
-          onChange={(e) => setze('contactName', e.target.value)}
-        />
-        <InputField
-          id="b-telefon" label="Telefon vor Ort" type="tel" value={entwurf.contactPhone}
-          onChange={(e) => setze('contactPhone', e.target.value)}
-        />
-      </FormGrid>
-      <BetriebsurlaubHinweis companyId={companyId} von={entwurf.startDate} bis={entwurf.endDate} />
-
-      <TextareaField
-        id="b-beschreibung" label="Beschreibung / Auftragsumfang"
-        value={entwurf.description}
-        onChange={(e) => setze('description', e.target.value)}
-      />
-
-      <PersonPicker
-        legend="Zugeordnete Mitarbeiter"
-        idPrefix="akte-emp"
-        people={staff.map((u) => ({ uid: u.uid, name: u.name }))}
-        selected={entwurf.assignedEmployees}
-        onChange={(w) => setze('assignedEmployees', w)}
-        emptyHint="Keine aktiven Monteure vorhanden."
-      />
-      <PersonPicker
-        legend="Verantwortliche Projektleitung"
-        idPrefix="akte-lead"
-        people={leads.map((u) => ({ uid: u.uid, name: u.name, hint: u.role }))}
-        selected={entwurf.projectManagers}
-        onChange={(w) => setze('projectManagers', w)}
-        emptyHint="Keine Projektleitung angelegt."
-      />
-      {/* Ohne Zuständige läuft eine Eilbestellung ins Leere — das gehört
-          gesagt, nicht erst, wenn ein Monteur wartet. */}
-      {entwurf.projectManagers.length === 0 && (
-        <Hinweiszeile stufe="warn">
-          <p>
-            Ohne zugeteilte Projektleitung erreicht eine Eilzustellung für diese Baustelle
-            niemanden. Die Verwaltung wird weiterhin verständigt.
-          </p>
-        </Hinweiszeile>
-      )}
-
-      {(entwurf.address || entwurf.contactPhone) && (
-        <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
+    <>
+      <div className="-mx-4">
+        {/* Anrufen und hinfahren, ohne erst aufzuklappen. */}
+        <div className="akte-griffe">
           <AdresseLink adresse={entwurf.address} variante="knopf" />
           <TelefonLink nummer={entwurf.contactPhone} name={entwurf.contactName} variante="knopf" />
         </div>
-      )}
 
-      {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+        <Gruppe name="Kunde und Ort" wert={k.kundeOrt}>
+          {/*
+            Kunde AUSWÄHLEN statt tippen: zwei Schreibweisen ergäben zwei Kunden,
+            beide unvollständig. Der Name wandert als Kopie mit, weil die
+            Baustellenlisten ihn zeigen, ohne den Kundenstamm zu laden.
+          */}
+          <SelectField
+            id="b-kunde" label="Kunde" pflicht value={entwurf.customerId}
+            onChange={(e) => {
+              const kunde = kunden.find((x) => x.id === e.target.value);
+              const vorher = kunden.find((x) => x.id === entwurf.customerId)?.address;
+              setEntwurf({
+                ...entwurf,
+                customerId: e.target.value,
+                customerName: kunde?.name ?? entwurf.customerName,
+                // G5: die Anschrift des Kunden als Vorschlag — nur in ein leeres
+                // Feld oder statt des unveränderten Vorschlags des vorigen Kunden.
+                address: !entwurf.address || entwurf.address === vorher ? (kunde?.address ?? '') : entwurf.address,
+              });
+            }}
+          >
+            <option value="">— wählen —</option>
+            {kunden.map((x) => (
+              <option key={x.id} value={x.id}>{x.name}</option>
+            ))}
+          </SelectField>
+          <KundenGrenze kunden={kunden} />
+          <InputField
+            id="b-bezeichnung" label="Bezeichnung (freiwillig)" placeholder="z. B. Bad 2. OG"
+            maxLength={120} value={entwurf.bezeichnung}
+            onChange={(e) => setze('bezeichnung', e.target.value)}
+          />
+          {/* Ausdrücklich die BAUSTELLENadresse: die Rechnungsadresse steht beim
+              Kunden, und eine Hausverwaltung hat zwanzig Baustellen. */}
+          <AdresseFeld
+            id="b-adresse" label="Baustellenadresse" value={entwurf.address}
+            vorschlag={kunden.find((x) => x.id === entwurf.customerId)?.address}
+            onChange={(t) => setze('address', t)}
+          />
+          {/* Der Monteur braucht vor Ort vor allem eine Telefonnummer. */}
+          <FormGrid>
+            <InputField
+              id="b-ansprech" label="Ansprechpartner vor Ort" value={entwurf.contactName}
+              onChange={(e) => setze('contactName', e.target.value)}
+            />
+            <InputField
+              id="b-telefon" label="Telefon vor Ort" type="tel" value={entwurf.contactPhone}
+              onChange={(e) => setze('contactPhone', e.target.value)}
+            />
+          </FormGrid>
+        </Gruppe>
+        {!entwurf.customerId && entwurf.customerName && (
+          <div className="akte-hinweis">
+            <p className="text-sm text-warning">
+              Bisher als Text hinterlegt: „{entwurf.customerName}". Bitte den passenden Kunden
+              wählen — oder in der{' '}
+              <Link to="/customers" className="link-hinweis-weiter">Kundenverwaltung</Link>{' '}
+              anlegen.
+            </p>
+          </div>
+        )}
+
+        <Gruppe name="Auftrag" wert={k.auftrag}>
+          <FormGrid>
+            <InputField
+              id="b-nummer" label="Projektnummer" pflicht value={entwurf.projectNumber}
+              onChange={(e) => setze('projectNumber', e.target.value)}
+            />
+            <SelectField
+              id="b-status" label="Status" value={entwurf.status}
+              onChange={(e) => setze('status', e.target.value as Project['status'])}
+            >
+              <option>Aktiv</option>
+              <option>Pausiert</option>
+              <option>Abgeschlossen</option>
+            </SelectField>
+            {/*
+              DIE ABRECHNUNGSART WAR NIRGENDS ÄNDERBAR. Der Handwerksschein liest
+              sie (auf einer Regiebaustelle sind die bestätigten Stunden die
+              Rechnungsgrundlage, auf einer Pauschalbaustelle belegt derselbe
+              Schein nur, DASS gearbeitet wurde) — geschrieben wurde sie aber nur
+              beim Umwandeln eines Angebots.
+            */}
+            <SelectField
+              id="b-abrechnung" label="Abrechnung" value={entwurf.billingMode}
+              onChange={(e) => setze('billingMode', e.target.value as BaustellenEntwurf['billingMode'])}
+            >
+              <option value="">— nicht festgelegt (gilt als Regie) —</option>
+              {ABRECHNUNGSARTEN.map((a) => (
+                <option key={a.wert} value={a.wert}>{a.text}</option>
+              ))}
+            </SelectField>
+            <ZahlFeld
+              id="b-budget" label="Stundenbudget (kalkuliert)"
+              placeholder="z. B. 40" value={entwurf.estimatedHours}
+              onChange={(t) => setze('estimatedHours', t)}
+            />
+          </FormGrid>
+          <TextareaField
+            id="b-beschreibung" label="Beschreibung / Auftragsumfang"
+            value={entwurf.description}
+            onChange={(e) => setze('description', e.target.value)}
+          />
+        </Gruppe>
+        {pauschal && (
+          <div className="akte-hinweis">
+            <PauschalHinweis
+              angebote={angebote}
+              sichtbar={angeboteSichtbar}
+              art={entwurf.billingMode as 'Pauschal' | 'Einheitspreis'}
+            />
+          </div>
+        )}
+
+        <Gruppe name="Zeitraum" wert={k.zeitraum}>
+          <FormGrid>
+            <InputField
+              id="b-beginn" label="Beginn" type="date" value={entwurf.startDate}
+              onChange={(e) => setze('startDate', e.target.value)}
+            />
+            <InputField
+              id="b-ende" label="Ende (geplant)" type="date" value={entwurf.endDate}
+              onChange={(e) => setze('endDate', e.target.value)}
+            />
+          </FormGrid>
+        </Gruppe>
+        <div className="akte-hinweis">
+          <BetriebsurlaubHinweis companyId={companyId} von={entwurf.startDate} bis={entwurf.endDate} />
+        </div>
+
+        <Gruppe name="Mannschaft" wert={k.mannschaft}>
+          <PersonPicker
+            legend="Zugeordnete Mitarbeiter"
+            idPrefix="akte-emp"
+            people={staff.map((u) => ({ uid: u.uid, name: u.name }))}
+            selected={entwurf.assignedEmployees}
+            onChange={(w) => setze('assignedEmployees', w)}
+            emptyHint="Keine aktiven Monteure vorhanden."
+          />
+          <PersonPicker
+            legend="Verantwortliche Projektleitung"
+            idPrefix="akte-lead"
+            people={leads.map((u) => ({ uid: u.uid, name: u.name, hint: u.role }))}
+            selected={entwurf.projectManagers}
+            onChange={(w) => setze('projectManagers', w)}
+            emptyHint="Keine Projektleitung angelegt."
+          />
+        </Gruppe>
+        {/* Ohne Zuständige läuft eine Eilbestellung ins Leere — das gehört
+            gesagt, nicht erst, wenn ein Monteur wartet. */}
+        {entwurf.projectManagers.length === 0 && (
+          <div className="akte-hinweis">
+            <Hinweiszeile stufe="warn">
+              <p>
+                Ohne zugeteilte Projektleitung erreicht eine Eilzustellung für diese Baustelle
+                niemanden. Die Verwaltung wird weiterhin verständigt.
+              </p>
+            </Hinweiszeile>
+          </div>
+        )}
+      </div>
+
+      {fehler && <p role="alert" className="mt-4 text-sm text-danger">{fehler}</p>}
 
       {/*
-        DER BALKEN ERSCHEINT ERST BEI EINER ÄNDERUNG — als Aktionsleiste
-        (Designlinie „Fassung 3"), wie am Buchungsformular: am Telefon klebt
-        sie ÜBER der Reiterleiste statt darauf, am Schreibtisch steht sie
-        rechtsbündig unter dem Formular. So ist „Speichern" nach einer
-        Änderung weit oben im Formular zu erreichen, ohne ans Ende zu rollen.
+        DER BALKEN ERSCHEINT ERST BEI EINER ÄNDERUNG — als Aktionsleiste, wie
+        am Buchungsformular: am Telefon klebt sie ÜBER der Reiterleiste, am
+        Schreibtisch steht sie rechtsbündig unter den Daten. So ist
+        „Speichern" nach einer Änderung zu erreichen, ohne ans Ende zu rollen.
       */}
       {geaendert && (
         <Aktionsleiste
@@ -713,7 +896,7 @@ function StammdatenFormular({
           }
         />
       )}
-    </div>
+    </>
   );
 }
 
@@ -768,10 +951,8 @@ function PauschalHinweis({
           ? 'Pauschal ohne angenommenes Angebot: der vereinbarte Preis steht noch nirgends. Die Rechnung setzt eine Zeile „Pauschale gemäß Vereinbarung“ mit 0,00 € an — dort den Betrag eintragen. Oder ein Angebot anlegen und annehmen, dann übernimmt die Rechnung dessen Positionen.'
           : 'Den Pauschalpreis legt das angenommene Angebot fest; ohne Angebot trägt ihn das Büro in der Rechnung ein.';
   return (
-    <div className="sm:col-span-2">
-      <Hinweiszeile stufe={sichtbar && !angebot ? 'warn' : undefined}>
-        <p>{text}</p>
-      </Hinweiszeile>
-    </div>
+    <Hinweiszeile stufe={sichtbar && !angebot ? 'warn' : undefined}>
+      <p>{text}</p>
+    </Hinweiszeile>
   );
 }

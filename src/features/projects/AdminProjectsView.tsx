@@ -1,5 +1,8 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import OhneUmbruch from '@/components/OhneUmbruch';
+import BottomSheet from '@/components/BottomSheet';
+import Abschnitt from '@/components/Abschnitt';
+import { MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Adressfilter from '@/components/Adressfilter';
 import { BAUSTELLEN_FILTER, bekannt as bekannterWert, type BaustellenFilter } from '@/features/dashboard/start/ziele';
@@ -33,7 +36,6 @@ import Card from '@/components/Card';
 import KundenGrenze from '@/components/AuswahlGrenze';
 import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
-import StatusBadge from '@/components/StatusBadge';
 import { Marke } from '@/components/Badge';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import PageHeader from '@/components/PageHeader';
@@ -82,6 +84,23 @@ const empty = {
  */
 const BAUSTELLEN_JE_SEITE = 300;
 
+/** Höchstens so viele Zeilen je Gruppe, dann „und N weitere“ (Linie „Lot“, Regel 4). */
+const JE_GRUPPE = 20;
+
+/**
+ * Die Auswahl über der Liste. Die Werte sind die bisherigen, damit eine
+ * Ansicht als Lesezeichen (`?stand=archiv`) dieselbe bleibt.
+ */
+const STAENDE = ['offen', 'archiv', 'alle'] as const;
+type Stand = (typeof STAENDE)[number];
+
+/**
+ * In dieser Reihenfolge stehen die Gruppen: woran gerade gearbeitet wird
+ * zuerst. Ein Status, den es hier nicht gibt, steht danach unter seinem
+ * eigenen Namen — gezeigt wird jede Baustelle, auch eine unerwartete.
+ */
+const STATUS_REIHE = ['Aktiv', 'Pausiert', 'Abgeschlossen'];
+
 export default function AdminProjectsView() {
   const { user, company } = useAuth();
   const navigate = useNavigate();
@@ -120,8 +139,10 @@ export default function AdminProjectsView() {
     darüber stand eine leere Maske. Diese Ansicht wird zum Nachschlagen
     geöffnet; angelegt wird der seltenere Fall.
 
-    Dasselbe Muster wie in `WartungenView`: Knopf in der Kopfzeile, Formular
-    klappt auf. `PageHeader` trägt den `action`-Platz dafür seit jeher.
+    Knopf in der Kopfzeile, das Formular im Seitenfenster (Linie „Lot“,
+    Regel 8): die Liste bleibt daneben stehen, statt nach unten zu rutschen.
+    Wer das Fenster nur wegklickt, findet seine Eingaben beim nächsten Öffnen
+    wieder; verworfen wird erst mit „Abbrechen“.
   */
   const [formOffen, setFormOffen] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Project> | null>(null);
@@ -133,14 +154,29 @@ export default function AdminProjectsView() {
    * Leere — mit der Suche im Feld und der Meldung, dass nichts passt. Genau
    * die Art von Sackgasse, die wie ein Fehler aussieht.
    */
-  const [suchparameter] = useSearchParams();
+  const [suchparameter, setSuchparameter] = useSearchParams();
   // Der Schein-Verweis verschwindet mit seinem Modul.
   const scheineAn = useModul('scheine');
   const gesuchteBaustelle = suchparameter.get('baustelle') ?? '';
-  const [filter, setFilter] = useState<'offen' | 'alle' | 'archiv'>(
-    gesuchteBaustelle ? 'alle' : 'offen',
-  );
+  /*
+    DIE AUSWAHL STEHT IN DER ADRESSE (Protokoll 7.5): als Lesezeichen
+    gespeichert und beim Zurückkehren aus der Akte wieder da. Ohne Angabe
+    gilt wie bisher „Aktiv & pausiert“, mit einem Tiefenlink „Alle“.
+  */
+  const standInAdresse = suchparameter.get('stand');
+  const filter: Stand = (STAENDE as readonly string[]).includes(standInAdresse ?? '')
+    ? (standInAdresse as Stand)
+    : gesuchteBaustelle
+      ? 'alle'
+      : 'offen';
+  const setFilter = (wert: Stand) => {
+    const neu = new URLSearchParams(suchparameter);
+    neu.set('stand', wert);
+    setSuchparameter(neu, { replace: true });
+  };
   const [suche, setSuche] = useState(gesuchteBaustelle);
+  /** Wie viele Zeilen je Statusgruppe gezeigt sind; ohne Eintrag `JE_GRUPPE`. */
+  const [gezeigt, setGezeigt] = useState<Record<string, number>>({});
   /*
     NUR MEINE BAUSTELLEN (Testbericht 30.09.2026, M38): für die
     Projektleitung die, in deren Leitung oder Team sie steht. Ab Werk aus —
@@ -349,10 +385,6 @@ export default function AdminProjectsView() {
     () => [...projects].sort((a, b) => byNewest(a, b)),
     [projects],
   );
-  const archivCount = useMemo(
-    () => projects.filter((p) => p.status === 'Abgeschlossen').length,
-    [projects],
-  );
   /**
    * Was der Suchbegriff meint. Eine Baustellennummer geht auf den Server und
    * findet damit auch, was ausserhalb der geladenen Liste liegt; alles andere
@@ -500,10 +532,184 @@ export default function AdminProjectsView() {
     return serverTreffer.filter((p) => !geladen.has(p.id)).length;
   }, [serverTreffer, sorted]);
 
+  /*
+    NACH STATUS GRUPPIERT (Linie „Lot“, Regel 4): „Aktiv“ vor „Pausiert“ vor
+    „Abgeschlossen“, innerhalb der Gruppe die neueste zuerst wie bisher. Der
+    Status steht damit einmal über der Gruppe statt in jeder Zeile.
+  */
+  const gruppen = useMemo(() => {
+    const nachStatus = new Map<string, WithId<Project>[]>();
+    for (const p of visible) {
+      const s = p.status || 'Ohne Status';
+      nachStatus.set(s, [...(nachStatus.get(s) ?? []), p]);
+    }
+    const rang = (s: string) => {
+      const i = STATUS_REIHE.indexOf(s);
+      return i === -1 ? STATUS_REIHE.length : i;
+    };
+    return [...nachStatus.entries()]
+      .sort(([a], [b]) => rang(a) - rang(b) || a.localeCompare(b, 'de'))
+      .map(([status, zeilen]) => ({ status, zeilen }));
+  }, [visible]);
+
   if (!user) return null;
 
+  /** Die Namen zu Kennungen — für Team und Projektleitung in der Zeile. */
+  const namen = (uids: string[]) =>
+    uids.map((uid) => users.find((u) => u.uid === uid)?.name).filter(Boolean);
+
+  const formular = (
+    <form onSubmit={submit} className="flex flex-col gap-4">
+      {/* Einspaltig: das Seitenfenster ist am Tablet 440 px breit, zwei
+          Spalten liessen den Kundennamen im Auswahlfeld abschneiden. */}
+      <FormGrid cols={1}>
+        <InputField
+          id="pnr"
+          label="Projektnummer"
+          value={form.projectNumber}
+          onChange={(e) => setForm({ ...form, projectNumber: e.target.value })}
+          required
+          pflicht
+        />
+        {/*
+          Kunde AUSWÄHLEN statt tippen.
+          Vorher war das ein freies Textfeld, und zwei Schreibweisen
+          ergaben zwei Kunden — beide unvollständig. Ist ein Kunde noch
+          nicht angelegt, führt der Hinweis darunter direkt dorthin;
+          ihn hier nebenbei anzulegen würde die Stammdaten wieder
+          verwässern.
+        */}
+        <SelectField
+          id="pcust"
+          label="Kunde"
+          value={form.customerId}
+          onChange={(e) => {
+            const k = kunden.find((x) => x.id === e.target.value);
+            const vorher = kunden.find((x) => x.id === form.customerId)?.address;
+            setForm({
+              ...form,
+              customerId: e.target.value,
+              customerName: k?.name ?? form.customerName,
+              // G5: die Anschrift des Kunden als Vorschlag — nur in ein
+              // leeres Feld oder statt des Vorschlags des vorigen Kunden.
+              address: !form.address || form.address === vorher ? (k?.address ?? '') : form.address,
+            });
+          }}
+          required
+          pflicht
+        >
+          <option value="">— wählen —</option>
+          {kunden.map((k) => (
+            <option key={k.id} value={k.id}>
+              {k.name}
+            </option>
+          ))}
+        </SelectField>
+        <KundenGrenze kunden={kunden} />
+        {/*
+          Altbestand: die Baustelle trägt einen Kundennamen, aber noch
+          keine Verknüpfung. Ohne diesen Hinweis stünde beim Bearbeiten
+          nur „— wählen —", und niemand wüsste, welcher Kunde gemeint war.
+        */}
+        {!form.customerId && form.customerName && (
+          <p className="text-sm text-warning">
+            Bisher als Text hinterlegt: „{form.customerName}". Bitte den passenden Kunden
+            wählen — oder in der{' '}
+            <Link to="/customers" className="link-hinweis-weiter">
+              Kundenverwaltung
+            </Link>{' '}
+            anlegen und die Baustellen übernehmen.
+          </p>
+        )}
+        {kunden.length === 0 && (
+          <p className="text-sm text-ink-muted">
+            Noch keine Kunden angelegt.{' '}
+            <Link to="/customers" className="link-hinweis-weiter">
+              Zur Kundenverwaltung
+            </Link>
+          </p>
+        )}
+        {/* Ausdrücklich die BAUSTELLENadresse: die Rechnungsadresse steht
+            beim Kunden, und eine Hausverwaltung hat zwanzig Baustellen. */}
+        <InputField id="pbez" label="Bezeichnung (freiwillig)" placeholder="z. B. Bad 2. OG"
+          maxLength={120} value={form.bezeichnung}
+          onChange={(e) => setForm({ ...form, bezeichnung: e.target.value })} />
+        <AdresseFeld id="padr" label="Baustellenadresse" value={form.address}
+          vorschlag={kunden.find((k) => k.id === form.customerId)?.address}
+          onChange={(t) => setForm({ ...form, address: t })} />
+        <SelectField id="pstatus" label="Status" value={form.status}
+          onChange={(e) => setForm({ ...form, status: e.target.value as Project['status'] })}>
+          <option>Aktiv</option>
+          <option>Pausiert</option>
+          <option>Abgeschlossen</option>
+        </SelectField>
+        {/* Dieselben Felder wie in der Akte (G5): die Abrechnung gab es nur dort. */}
+        <SelectField id="pabrechnung" label="Abrechnung" value={form.billingMode}
+          onChange={(e) => setForm({ ...form, billingMode: e.target.value as typeof form.billingMode })}>
+          <option value="">— nicht festgelegt (gilt als Regie) —</option>
+          {ABRECHNUNGSARTEN.map((a) => (
+            <option key={a.wert} value={a.wert}>{a.text}</option>
+          ))}
+        </SelectField>
+        <ZahlFeld id="phours" label="Stundenbudget (kalkuliert)"
+          placeholder="z. B. 40" value={form.estimatedHours}
+          onChange={(t) => setForm({ ...form, estimatedHours: t })} />
+        <InputField id="pstart" label="Beginn" type="date" value={form.startDate}
+          onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+        <InputField id="pend" label="Ende (geplant)" type="date" value={form.endDate}
+          onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+        <BetriebsurlaubHinweis companyId={user?.companyId} von={form.startDate} bis={form.endDate} />
+        {/* Der Monteur braucht vor Ort vor allem eine Telefonnummer. */}
+        <InputField id="pcontact" label="Ansprechpartner vor Ort" value={form.contactName}
+          onChange={(e) => setForm({ ...form, contactName: e.target.value })} />
+        <InputField id="pphone" label="Telefon vor Ort" type="tel" value={form.contactPhone}
+          onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} />
+      </FormGrid>
+      <TextareaField id="pdesc" label="Beschreibung / Auftragsumfang" value={form.description}
+        onChange={(e) => setForm({ ...form, description: e.target.value })} />
+      <PersonPicker
+        legend="Zugeordnete Mitarbeiter"
+        idPrefix="proj-emp"
+        people={staff.map((u) => ({ uid: u.uid, name: u.name }))}
+        selected={assigned}
+        onChange={setAssigned}
+        emptyHint="Keine aktiven Monteure vorhanden."
+      />
+      <PersonPicker
+        legend="Verantwortliche Projektleitung"
+        idPrefix="proj-lead"
+        people={leads.map((u) => ({ uid: u.uid, name: u.name, hint: u.role }))}
+        selected={managers}
+        onChange={setManagers}
+        emptyHint="Keine Projektleitung angelegt."
+      />
+      {/* Ohne Zustaendige laeuft eine Eilbestellung ins Leere — das gehoert
+          beim Anlegen gesagt, nicht erst, wenn ein Monteur wartet. */}
+      {managers.length === 0 && (
+        <Hinweiszeile stufe="warn">
+          <p>
+            Ohne zugeteilte Projektleitung erreicht eine Eilzustellung für diese Baustelle
+            niemanden. Die Verwaltung wird weiterhin verständigt.
+          </p>
+        </Hinweiszeile>
+      )}
+      <Pflichthinweis />
+      {error && <ErrorState message={error} />}
+      <div className="fuss-aktionen">
+        {/* Der Weg zurück zur Liste — und der einzige, der das Eingetragene verwirft. */}
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => { setFormOffen(false); reset(); }}
+        >
+          Abbrechen
+        </Button>
+        <Button type="submit" loading={saving}>Anlegen</Button>
+      </div>
+    </form>
+  );
+
   return (
-    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title="Baustellen"
@@ -516,158 +722,6 @@ export default function AdminProjectsView() {
       />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
-
-      {formOffen && (
-      <Card title="Neue Baustelle">
-        <form onSubmit={submit} className="space-y-4">
-          <FormGrid>
-            <InputField
-              id="pnr"
-              label="Projektnummer"
-              value={form.projectNumber}
-              onChange={(e) => setForm({ ...form, projectNumber: e.target.value })}
-              required
-              pflicht
-            />
-            {/*
-              Kunde AUSWÄHLEN statt tippen.
-              Vorher war das ein freies Textfeld, und zwei Schreibweisen
-              ergaben zwei Kunden — beide unvollständig. Ist ein Kunde noch
-              nicht angelegt, führt der Hinweis darunter direkt dorthin;
-              ihn hier nebenbei anzulegen würde die Stammdaten wieder
-              verwässern.
-            */}
-            <SelectField
-              id="pcust"
-              label="Kunde"
-              value={form.customerId}
-              onChange={(e) => {
-                const k = kunden.find((x) => x.id === e.target.value);
-                const vorher = kunden.find((x) => x.id === form.customerId)?.address;
-                setForm({
-                  ...form,
-                  customerId: e.target.value,
-                  customerName: k?.name ?? form.customerName,
-                  // G5: die Anschrift des Kunden als Vorschlag — nur in ein
-                  // leeres Feld oder statt des Vorschlags des vorigen Kunden.
-                  address: !form.address || form.address === vorher ? (k?.address ?? '') : form.address,
-                });
-              }}
-              required
-              pflicht
-            >
-              <option value="">— wählen —</option>
-              {kunden.map((k) => (
-                <option key={k.id} value={k.id}>
-                  {k.name}
-                </option>
-              ))}
-            </SelectField>
-            <KundenGrenze kunden={kunden} />
-            {/*
-              Altbestand: die Baustelle trägt einen Kundennamen, aber noch
-              keine Verknüpfung. Ohne diesen Hinweis stünde beim Bearbeiten
-              nur „— wählen —", und niemand wüsste, welcher Kunde gemeint war.
-            */}
-            {!form.customerId && form.customerName && (
-              <p className="text-sm text-warning sm:col-span-2">
-                Bisher als Text hinterlegt: „{form.customerName}". Bitte den passenden Kunden
-                wählen — oder in der{' '}
-                <Link to="/customers" className="link-hinweis-weiter">
-                  Kundenverwaltung
-                </Link>{' '}
-                anlegen und die Baustellen übernehmen.
-              </p>
-            )}
-            {kunden.length === 0 && (
-              <p className="text-sm text-ink-muted sm:col-span-2">
-                Noch keine Kunden angelegt.{' '}
-                <Link to="/customers" className="link-hinweis-weiter">
-                  Zur Kundenverwaltung
-                </Link>
-              </p>
-            )}
-            {/* Ausdrücklich die BAUSTELLENadresse: die Rechnungsadresse steht
-                beim Kunden, und eine Hausverwaltung hat zwanzig Baustellen. */}
-            <InputField id="pbez" label="Bezeichnung (freiwillig)" placeholder="z. B. Bad 2. OG"
-              maxLength={120} value={form.bezeichnung}
-              onChange={(e) => setForm({ ...form, bezeichnung: e.target.value })} />
-            <AdresseFeld id="padr" label="Baustellenadresse" value={form.address}
-              vorschlag={kunden.find((k) => k.id === form.customerId)?.address}
-              onChange={(t) => setForm({ ...form, address: t })} />
-            <SelectField id="pstatus" label="Status" value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value as Project['status'] })}>
-              <option>Aktiv</option>
-              <option>Pausiert</option>
-              <option>Abgeschlossen</option>
-            </SelectField>
-            {/* Dieselben Felder wie in der Akte (G5): die Abrechnung gab es nur dort. */}
-            <SelectField id="pabrechnung" label="Abrechnung" value={form.billingMode}
-              onChange={(e) => setForm({ ...form, billingMode: e.target.value as typeof form.billingMode })}>
-              <option value="">— nicht festgelegt (gilt als Regie) —</option>
-              {ABRECHNUNGSARTEN.map((a) => (
-                <option key={a.wert} value={a.wert}>{a.text}</option>
-              ))}
-            </SelectField>
-            <ZahlFeld id="phours" label="Stundenbudget (kalkuliert)"
-              placeholder="z. B. 40" value={form.estimatedHours}
-              onChange={(t) => setForm({ ...form, estimatedHours: t })} />
-            <InputField id="pstart" label="Beginn" type="date" value={form.startDate}
-              onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
-            <InputField id="pend" label="Ende (geplant)" type="date" value={form.endDate}
-              onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
-            {/* Der Monteur braucht vor Ort vor allem eine Telefonnummer. */}
-            <InputField id="pcontact" label="Ansprechpartner vor Ort" value={form.contactName}
-              onChange={(e) => setForm({ ...form, contactName: e.target.value })} />
-            <InputField id="pphone" label="Telefon vor Ort" type="tel" value={form.contactPhone}
-              onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} />
-          </FormGrid>
-          <BetriebsurlaubHinweis companyId={user?.companyId} von={form.startDate} bis={form.endDate} />
-          <TextareaField id="pdesc" label="Beschreibung / Auftragsumfang" value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <PersonPicker
-            legend="Zugeordnete Mitarbeiter"
-            idPrefix="proj-emp"
-            people={staff.map((u) => ({ uid: u.uid, name: u.name }))}
-            selected={assigned}
-            onChange={setAssigned}
-            emptyHint="Keine aktiven Monteure vorhanden."
-          />
-          <PersonPicker
-            legend="Verantwortliche Projektleitung"
-            idPrefix="proj-lead"
-            people={leads.map((u) => ({ uid: u.uid, name: u.name, hint: u.role }))}
-            selected={managers}
-            onChange={setManagers}
-            emptyHint="Keine Projektleitung angelegt."
-          />
-          {/* Ohne Zustaendige laeuft eine Eilbestellung ins Leere — das gehoert
-              beim Anlegen gesagt, nicht erst, wenn ein Monteur wartet. */}
-          {managers.length === 0 && (
-            <Hinweiszeile stufe="warn">
-              <p>
-                Ohne zugeteilte Projektleitung erreicht eine Eilzustellung für diese Baustelle
-                niemanden. Die Verwaltung wird weiterhin verständigt.
-              </p>
-            </Hinweiszeile>
-          )}
-          <Pflichthinweis />
-          {error && <ErrorState message={error} />}
-          <div className="flex gap-3">
-            <Button type="submit" loading={saving}>Anlegen</Button>
-            {/* Der Weg zurück zur Liste — vorher gab es ihn nicht, weil das
-                Formular gar nicht zuging. */}
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => { setFormOffen(false); reset(); }}
-            >
-              Abbrechen
-            </Button>
-          </div>
-        </form>
-      </Card>
-      )}
 
       {adressFilter && (
         <Adressfilter
@@ -682,171 +736,178 @@ export default function AdminProjectsView() {
         />
       )}
 
-      <Card
-        title={`Alle Baustellen (${visible.length})`}
-        action={
-          <SelectField id="pfilter" label="" aria-label="Baustellen filtern" className="py-1 text-sm" value={filter}
-            onChange={(e) => setFilter(e.target.value as typeof filter)}>
-            <option value="offen">Aktiv &amp; pausiert</option>
-            <option value="alle">Alle</option>
-            <option value="archiv">Archiv ({archivCount})</option>
-          </SelectField>
-        }
-        buendig
-      >
-        {istProjektleitung && (
-          <div className="px-4 pt-3">
-            <CheckboxField
-              id="pmeine"
-              label="Nur meine Baustellen"
-              checked={nurMeine}
-              onChange={(e) => setNurMeine(e.target.checked)}
-            />
-          </div>
-        )}
-        {/* Bündig: Suche gepolstert, Baustellen als Zeilen von Kante zu Kante. */}
-        {/* G7: die Suche steht immer da, wie im Handbuch — nicht erst ab acht Baustellen. */}
-        {projects.length > 0 && (
-          <div className="p-4">
-            <InputField
-              id="psuche"
-              label="Suche"
-              type="search"
-              placeholder="Suchen …"
-              aria-describedby="psuche-hilfe"
-              value={suche}
-              onChange={(e) => setSuche(e.target.value)}
-            />
-            {/* Der Platzhalter war am Telefon abgeschnitten (U11) — was gesucht wird, steht hier. */}
-            <p id="psuche-hilfe" className="mt-1 text-xs text-ink-muted">
-              Kunde, Bezeichnung, Projektnummer oder Adresse
-            </p>
-            {/*
-              WAS DIE SUCHE ERREICHT, BEVOR SIE ETWAS FINDET.
-
-              Ohne diesen Satz sah eine Suche nach „Huber" ueber die Grenze
-              hinaus genauso aus wie eine, die es wirklich nicht gibt: leer.
-              Der Hinweis steht deshalb waehrend des Tippens da und nicht
-              erst im Leerzustand.
-            */}
-            {nurVomServer > 0 && (
-              <p className="mt-1 text-xs text-ink">
-                {nurVomServer === 1
-                  ? 'Eine Baustelle außerhalb der geladenen Liste gefunden.'
-                  : `${nurVomServer} Baustellen außerhalb der geladenen Liste gefunden.`}
+      {/*
+        EINE GRUPPE: Suche und Auswahl oben, darunter die Baustellen nach
+        Status — Linien statt Karten in der Karte.
+      */}
+      <Card buendig>
+        <div className="listen-werkzeug">
+          {/* G7: die Suche steht immer da, wie im Handbuch — nicht erst ab acht Baustellen. */}
+          {projects.length > 0 && (
+            <div className="listen-suche">
+              <InputField
+                id="psuche"
+                label="Suche"
+                type="search"
+                placeholder="Suchen …"
+                aria-describedby="psuche-hilfe"
+                value={suche}
+                onChange={(e) => setSuche(e.target.value)}
+              />
+              {/* Der Platzhalter war am Telefon abgeschnitten (U11) — was gesucht wird, steht hier. */}
+              <p id="psuche-hilfe" className="mt-1 text-xs text-ink-muted">
+                Kunde, Bezeichnung, Projektnummer oder Adresse
               </p>
+              {/*
+                WAS DIE SUCHE ERREICHT, BEVOR SIE ETWAS FINDET.
+
+                Ohne diesen Satz sah eine Suche nach „Huber" ueber die Grenze
+                hinaus genauso aus wie eine, die es wirklich nicht gibt: leer.
+                Der Hinweis steht deshalb waehrend des Tippens da und nicht
+                erst im Leerzustand.
+              */}
+              {nurVomServer > 0 && (
+                <p className="mt-1 text-xs text-ink">
+                  {nurVomServer === 1
+                    ? 'Eine Baustelle außerhalb der geladenen Liste gefunden.'
+                    : `${nurVomServer} Baustellen außerhalb der geladenen Liste gefunden.`}
+                </p>
+              )}
+            </div>
+          )}
+          <div className="listen-auswahl">
+            {/*
+              ARBEITSSTAND ALS STANDARD (Protokoll 7.1): laufend heisst aktiv
+              und pausiert, wie bisher; „Erledigt“ (die abgeschlossenen, bis
+              zum Umbau „Archiv“) und „Alle“ einen Tipp weiter. Die Zahl der
+              abgeschlossenen steht nicht mehr im Segment — am Handy brach
+              „Abgeschlossen (12)“ mitten im Wort —, sondern über ihrer
+              Gruppe; Zähler zählen sonst nur Handlungsbedarf (7.7).
+            */}
+            <Segmente
+              name="Baustellen filtern"
+              werte={[
+                { wert: 'offen', text: 'Laufend' },
+                { wert: 'archiv', text: 'Erledigt' },
+                { wert: 'alle', text: 'Alle' },
+              ]}
+              wert={filter}
+              onChange={setFilter}
+            />
+            {/*
+              NUR MEINE BAUSTELLEN (Testbericht 30.09.2026, M38): für die
+              Projektleitung die, in deren Leitung oder Team sie steht.
+            */}
+            {istProjektleitung && (
+              <CheckboxField
+                id="pmeine"
+                label="Nur meine Baustellen"
+                checked={nurMeine}
+                onChange={(e) => setNurMeine(e.target.checked)}
+              />
             )}
           </div>
-        )}
+        </div>
+
         {loading || lageFehlt ? (
-          <div className="p-4">
+          <div className="border-t border-line p-4">
             <SkeletonList rows={4} />
           </div>
         ) : visible.length === 0 ? (
-          <EmptyState>
-            {projects.length === 0
-              ? 'Noch keine Baustellen angelegt.'
-              : suche
-                ? `Keine Baustelle passt zu „${suche}“.`
-                : 'Keine Baustelle in dieser Auswahl.'}
-          </EmptyState>
+          <div className="border-t border-line">
+            <EmptyState>
+              {projects.length === 0
+                ? 'Noch keine Baustellen angelegt.'
+                : suche
+                  ? `Keine Baustelle passt zu „${suche}“.`
+                  : 'Keine Baustelle in dieser Auswahl.'}
+            </EmptyState>
+          </div>
         ) : (
-          <List>
-            {visible.map((p) => {
-              const namen = (uids: string[]) =>
-                uids.map((uid) => users.find((u) => u.uid === uid)?.name).filter(Boolean);
-              const team = namen(p.assignedEmployees ?? []);
-              const leitung = namen(p.projectManagers ?? []);
-              return (
-                <ListRow
-                  key={p.id}
-                  title={
-                    <span>
-                      <OhneUmbruch text={baustellenTitel(p)} /> <span className="nr text-ink-muted">({p.projectNumber})</span>
-                    </span>
-                  }
-                  subtitle={
-                    <>
-                      {/* Adresse und Nummer anklickbar: auch die Projektleitung
-                          faehrt raus und ruft an — hier stand beides bisher
-                          als toter Text. */}
-                      <span className="flex flex-wrap items-center gap-x-3">
-                        <AdresseLink adresse={p.address} />
-                        <TelefonLink nummer={p.contactPhone} name={p.contactName} />
-                      </span>
-                      {team.length > 0 && (
-                        <span className="mt-1 block text-xs text-ink-muted">
-                          Team: {team.join(', ')}
-                        </span>
-                      )}
-                      <span className="mt-1 block text-xs text-ink-muted">
-                        {leitung.length > 0 ? (
-                          <>Projektleitung: {leitung.join(', ')}</>
-                        ) : (
-                          <span className="text-warning">Keine Projektleitung zugeteilt</span>
-                        )}
-                      </span>
-                    </>
-                  }
-                >
-                  {p.estimatedHours ? <Marke>{fmtStunden(p.estimatedHours)} h Budget</Marke> : null}
-                  <StatusBadge status={p.status} />
-                  {/*
-                    EIN WEG STATT ZWEI. Hier standen „Übersicht" (klappte eine
-                    Auswertung in die Liste) und „Bearbeiten" (sprang in das
-                    Formular ganz oben). Beides steht jetzt in der Akte, und
-                    die hat eine Adresse: sie lässt sich verlinken, als
-                    Lesezeichen ablegen und kommt zurück, wohin man war.
-                  */}
-                  <Link
-                    to={`/admin-projects/${p.id}`}
-                    className="link-weiter flex min-h-touch items-center px-2 text-sm"
-                  >
-                    Akte
-                  </Link>
-                  {/*
-                    LÖSCHEN STEHT IM MENÜ, NICHT ALS ✕ IN DER ZEILE.
+          gruppen.map(({ status, zeilen }) => {
+            const zeigen = gezeigt[status] ?? JE_GRUPPE;
+            return (
+              <section key={status} aria-label={status}>
+                <Abschnitt titel={status} anzahl={zeilen.length} />
+                <List>
+                  {zeilen.slice(0, zeigen).map((p) => {
+                    const team = namen(p.assignedEmployees ?? []);
+                    const leitung = namen(p.projectManagers ?? []);
+                    return (
+                      <ListRow
+                        key={p.id}
+                        /*
+                          DIE GANZE ZEILE ÖFFNET DIE AKTE (Linie „Lot“, Regel 3).
+                          Bis zum Umbau stand dafür ein eigener Verweis „Akte“
+                          rechts in der Zeile; die Akte hat eine Adresse, sie
+                          lässt sich verlinken und kommt zurück, wohin man war.
+                        */
+                        to={`/admin-projects/${p.id}`}
+                        pfeil
+                        title={
+                          <span>
+                            <OhneUmbruch text={baustellenTitel(p)} /> <span className="nr text-ink-muted">({p.projectNumber})</span>
+                          </span>
+                        }
+                        subtitle={
+                          <>
+                            {/* Adresse und Nummer anklickbar: auch die Projektleitung
+                                faehrt raus und ruft an. Über der Fläche der Zeile,
+                                sonst öffnete der Tipp die Akte statt der Karte. */}
+                            <span className="flex flex-wrap items-center gap-x-3">
+                              <span className="zeile-griff"><AdresseLink adresse={p.address} /></span>
+                              <span className="zeile-griff"><TelefonLink nummer={p.contactPhone} name={p.contactName} /></span>
+                            </span>
+                            {team.length > 0 && (
+                              <span className="mt-1 block text-xs text-ink-muted">
+                                Team: {team.join(', ')}
+                              </span>
+                            )}
+                            <span className="mt-1 block text-xs text-ink-muted">
+                              {leitung.length > 0 ? (
+                                <>Projektleitung: {leitung.join(', ')}</>
+                              ) : (
+                                <span className="text-warning">Keine Projektleitung zugeteilt</span>
+                              )}
+                            </span>
+                          </>
+                        }
+                      >
+                        {p.estimatedHours ? <Marke>{fmtStunden(p.estimatedHours)} h Budget</Marke> : null}
+                        {/*
+                          LÖSCHEN STEHT IM MENÜ, NICHT ALS ✕ IN DER ZEILE.
 
-                    Gemessen auf 375 px (iPhone XS): mit Budget-Marke, Zustand
-                    und zwei Verweisen passte das ✕ nicht mehr in die Zeile und
-                    rutschte ALLEIN in eine zweite — rechtsbündig, unter einer
-                    leeren Lücke. Damit stand ausgerechnet die einzige
-                    unumkehrbare Aktion am auffälligsten da.
-
-                    Die Regel steht schon in `ListRow`: „Wo es mehr als zwei
-                    Aktionen gibt, gehört alles Seltene in ein RowMenu." Hier
-                    war sie nur nicht befolgt.
-
-                    NUR DAS ✕ ZU VERSCHIEBEN REICHTE NICHT — nachgemessen
-                    rutschte danach das Menü selbst in die zweite Zeile. Fünf
-                    Elemente passen auf 375 px nicht, gleich welches zuletzt
-                    kommt. Deshalb geht „Schein nachtragen" mit: übrig bleiben
-                    Budget, Zustand, die Akte und das Menü. Der Umbruch war der
-                    Anlass, die Gewichtung ist der Gewinn.
-                  */}
-                  <RowMenu
-                    about={`Baustelle ${p.projectNumber}`}
-                    items={[
-                      /*
-                        „Schein nachtragen" ist der Ausnahmefall — der
-                        Monteur hat ihn vor Ort vergessen. Als eigener
-                        Verweis in der Zeile stand er gleichauf mit der
-                        Akte, die man täglich braucht.
-                      */
-                      ...(scheineAn
-                        ? [{
-                            label: 'Schein nachtragen',
-                            onSelect: () =>
-                              navigate(`/worksheet?projekt=${encodeURIComponent(p.projectNumber)}`),
-                          }]
-                        : []),
-                      { label: 'Löschen', onSelect: () => setToDelete(p), danger: true },
-                    ]}
-                  />
-                </ListRow>
-              );
-            })}
-          </List>
+                          Gemessen auf 375 px (iPhone XS): mit Budget-Marke, Zustand
+                          und zwei Verweisen passte das ✕ nicht mehr in die Zeile und
+                          rutschte ALLEIN in eine zweite — rechtsbündig, unter einer
+                          leeren Lücke. Damit stand ausgerechnet die einzige
+                          unumkehrbare Aktion am auffälligsten da. „Schein nachtragen"
+                          ist der Ausnahmefall und steht deshalb mit im Menü.
+                        */}
+                        <RowMenu
+                          about={`Baustelle ${p.projectNumber}`}
+                          items={[
+                            ...(scheineAn
+                              ? [{
+                                  label: 'Schein nachtragen',
+                                  onSelect: () =>
+                                    navigate(`/worksheet?projekt=${encodeURIComponent(p.projectNumber)}`),
+                                }]
+                              : []),
+                            { label: 'Löschen', onSelect: () => setToDelete(p), danger: true },
+                          ]}
+                        />
+                      </ListRow>
+                    );
+                  })}
+                </List>
+                <MehrAnzeigen
+                  anzahl={Math.max(0, zeilen.length - zeigen)}
+                  onClick={() => setGezeigt((g) => ({ ...g, [status]: zeilen.length }))}
+                />
+              </section>
+            );
+          })
         )}
         {/*
           Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende gescrollt
@@ -856,8 +917,7 @@ export default function AdminProjectsView() {
           diesen gesucht" — richtig unter Firestore, seit dem Abbau falsch:
           die Datenbank sucht über Nummer, Kunde und Adresse im ganzen
           Bestand. Die Grenze gilt nur noch für das, was OHNE Suchbegriff
-          angezeigt wird. Eine Auskunft, die einmal danebenlag, wird beim
-          nächsten Mal nicht mehr geglaubt.
+          angezeigt wird.
         */}
         <div className="px-4 pb-3 empty:hidden">
           <Nachladen
@@ -869,6 +929,17 @@ export default function AdminProjectsView() {
           />
         </div>
       </Card>
+
+      {/* Anlegen im Seitenfenster (Linie „Lot“, Regel 8); am Handy ein Blatt von unten. */}
+      <BottomSheet
+        open={formOffen}
+        onClose={() => setFormOffen(false)}
+        label="Neue Baustelle"
+        auchBreit
+        titel="Neue Baustelle"
+      >
+        {formular}
+      </BottomSheet>
 
       <ConfirmDialog
         open={!!toDelete}

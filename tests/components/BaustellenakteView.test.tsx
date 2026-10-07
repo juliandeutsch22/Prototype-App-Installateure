@@ -620,3 +620,67 @@ describe('Termine in der Baustellenakte (Plan 10.4)', () => {
     expect(screen.queryByRole('heading', { name: 'Termine' })).not.toBeInTheDocument();
   });
 });
+
+/*
+  LINIE „LOT“ (Schritt E7): Zusammenfassung zuerst, Sprungleiste, Verlauf als
+  Lot, Stammdaten als Kurzzeilen — und Warnungen bleiben sichtbar.
+*/
+describe('Die Baustellenakte in der Linie „Lot“', () => {
+  it('führt mit der Sprungleiste zu jedem Teil, den es gibt', async () => {
+    zeige();
+    const leiste = await screen.findByRole('navigation', { name: 'Auf dieser Seite' });
+    const ziele = within(leiste).getAllByRole('link').map((a) => a.getAttribute('href'));
+    expect(ziele).toEqual(['#b-ueberblick', '#b-termine', '#b-daten', '#b-plaene']);
+    for (const z of ziele) expect(document.getElementById(z!.slice(1))).not.toBeNull();
+  });
+
+  it('Gegenprobe: ohne Einsatzplanung kein Sprung zu den Terminen', async () => {
+    modulAn = false;
+    zeige();
+    const leiste = await screen.findByRole('navigation', { name: 'Auf dieser Seite' });
+    expect(within(leiste).queryByRole('link', { name: 'Termine' })).toBeNull();
+  });
+
+  it('zeigt den Verlauf als Lot: Beginn, heute als Ring, das überschrittene Ende', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 4, 15, 9, 0, 0));
+    try {
+      zeige();
+      const lot = await screen.findByRole('list', { name: 'Verlauf der Baustelle' });
+      const punkte = within(lot).getAllByRole('listitem');
+      expect(punkte.map((p) => p.querySelector('.lot-titel')?.textContent)).toEqual([
+        'Beginn', 'Ende geplant', 'Heute · Aktiv',
+      ]);
+      expect(punkte[2]).toHaveAttribute('aria-current', 'step');
+      expect(within(punkte[1]).getByText('überschritten')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('Gegenprobe: eine abgeschlossene Baustelle hat keinen „heute“-Ring und nichts überschritten', async () => {
+    baustellen = [{ ...BAUSTELLE, status: 'Abgeschlossen' }];
+    zeige();
+    const lot = await screen.findByRole('list', { name: 'Verlauf der Baustelle' });
+    expect(within(lot).queryByText(/Heute/)).toBeNull();
+    expect(within(lot).queryByText('überschritten')).toBeNull();
+    expect(within(lot).getByText('Ende')).toBeInTheDocument();
+  });
+
+  it('fasst die Stammdaten in Kurzzeilen zusammen — die Felder stehen darin', async () => {
+    zeige();
+    const feld = await screen.findByLabelText(/Projektnummer/);
+    const zeile = feld.closest('details')!;
+    expect(within(zeile.querySelector('summary')!).getByText('Auftrag')).toBeInTheDocument();
+    expect(zeile.querySelector('summary')).toHaveTextContent('Aktiv · Pauschal · 40 h Budget');
+  });
+
+  it('lässt die Warnung zur fehlenden Projektleitung sichtbar, auch wenn die Kurzzeile zu ist', async () => {
+    baustellen = [{ ...BAUSTELLE, projectManagers: [] }];
+    zeige();
+    const warnung = await screen.findByText(/Eilzustellung für diese Baustelle/);
+    expect(warnung.closest('details')).toBeNull();
+    // Gegenprobe: die Auswahl der Projektleitung selbst steht in der Kurzzeile.
+    expect(screen.getByText('Verantwortliche Projektleitung').closest('details')).not.toBeNull();
+  });
+});
