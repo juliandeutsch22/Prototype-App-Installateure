@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import OhneUmbruch from '@/components/OhneUmbruch';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   listRecentQuotes,
@@ -29,7 +29,7 @@ import RowMenu from '@/components/RowMenu';
 import PageHeader from '@/components/PageHeader';
 import { praefixeVon } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { InputField, SelectField, FormGrid, TextareaField } from '@/components/Field';
+import { InputField, SelectField, TextareaField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
@@ -41,6 +41,10 @@ import ZahlFeld from '@/components/ZahlFeld';
 import AdresseFeld from '@/components/AdresseFeld';
 import AbrechnungWahl from './AbrechnungWahl';
 import KatalogSuche from './KatalogSuche';
+import Abschnitt from '@/components/Abschnitt';
+import BottomSheet from '@/components/BottomSheet';
+import Nachladen from '@/components/Nachladen';
+import { MehrAnzeigen, Segmente, WeitereAngaben } from '@/components/LotBausteine';
 
 /**
  * Zahl aus einem Eingabefeld — über die zentrale Lesung (M15). „7.500,50“
@@ -135,6 +139,48 @@ function zeilenFehler(zeilen: ZeilenEingabe[]): string | null {
   return null;
 }
 
+/** Die Bindefrist eines neuen Angebots: heute plus dreissig Tage. */
+function standardGueltigkeit(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return localDateStr(d);
+}
+
+/**
+ * Wie viele Angebote auf einmal geholt werden — dieselbe Zahl, die die
+ * Abfrage schon vor dem Umbau als Voreinstellung trug. Wer mehr hat, lädt
+ * nach; vorher endete die Liste dort stillschweigend.
+ */
+const ANGEBOTE_JE_SEITE = 100;
+
+/** Höchstens so viele Zeilen je Gruppe, dann „und N weitere“ (Linie „Lot“, Regel 4). */
+const GRUPPE_HOECHSTENS = 20;
+
+/*
+  DER ARBEITSSTAND IST DER STANDARD (Linie „Lot“, Regel 4): offen heisst
+  Entwurf oder versendet — dort ist noch etwas zu tun. Angenommene und
+  abgelehnte stehen unter „Erledigt“, alles zusammen unter „Alle“. Die Wahl
+  steht in der Adresse, damit sie ein Lesezeichen übersteht.
+*/
+type Ansicht = 'offen' | 'erledigt' | 'alle';
+const ANSICHTEN: readonly { wert: Ansicht; text: string }[] = [
+  { wert: 'offen', text: 'Offen' },
+  { wert: 'erledigt', text: 'Erledigt' },
+  { wert: 'alle', text: 'Alle' },
+];
+
+/** Eine Gruppe der Liste: Abschnittszeile mit Anzahl, höchstens 20 Zeilen, dann „und N weitere“. */
+function Gruppe<T>({ titel, zeilen, zeile }: { titel: string; zeilen: T[]; zeile: (t: T) => ReactNode }) {
+  const [alle, setAlle] = useState(false);
+  const gezeigt = alle ? zeilen : zeilen.slice(0, GRUPPE_HOECHSTENS);
+  return (
+    <Abschnitt titel={titel} anzahl={zeilen.length}>
+      <List>{gezeigt.map(zeile)}</List>
+      <MehrAnzeigen anzahl={zeilen.length - gezeigt.length} onClick={() => setAlle(true)} />
+    </Abschnitt>
+  );
+}
+
 /**
  * Angebote und Vorkalkulation.
  *
@@ -159,8 +205,6 @@ export default function QuotesView() {
     LISTE ZUERST — gemessen: am Telefon begann „Angebote" bei 1332 px, also
     gut zwei Bildschirme unter der Kante. Das Kalkulationsformular ist das
     längste der vier und der seltenste Vorgang; nachgeschlagen wird täglich.
-
-    Dasselbe Muster wie in `WartungenView`, nicht ein neues.
   */
   const [formOffen, setFormOffen] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Quote> | null>(null);
@@ -172,11 +216,7 @@ export default function QuotesView() {
   // Formular
   const [customerId, setCustomerId] = useState('');
   const [address, setAddress] = useState('');
-  const [validUntil, setValidUntil] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 30);
-    return localDateStr(d);
-  });
+  const [validUntil, setValidUntil] = useState(standardGueltigkeit);
   const [notes, setNotes] = useState('');
   const [zeilen, setZeilen] = useState<ZeilenEingabe[]>([{ ...LEERE_ZEILE }]);
   /** Ist die Suche im Katalog offen (M18)? */
@@ -199,6 +239,18 @@ export default function QuotesView() {
   /** Gespeicherte Stunden eines alten Angebots, dessen Haken abgeleitet wurden. */
   const [stundenVorher, setStundenVorher] = useState<number | null>(null);
   const [suchParameter, setSuchParameter] = useSearchParams();
+  /** Wie weit die Liste geladen ist (siehe `ANGEBOTE_JE_SEITE`). */
+  const [grenze, setGrenze] = useState(ANGEBOTE_JE_SEITE);
+  /** Gesucht wird im Geladenen — die Datenschicht kennt für Angebote keine Suche. */
+  const [suche, setSuche] = useState('');
+  const ansichtWert = suchParameter.get('ansicht');
+  const ansicht: Ansicht = ansichtWert === 'erledigt' || ansichtWert === 'alle' ? ansichtWert : 'offen';
+  function ansichtWaehlen(neu: Ansicht) {
+    const p = new URLSearchParams(suchParameter);
+    if (neu === 'offen') p.delete('ansicht');
+    else p.set('ansicht', neu);
+    setSuchParameter(p, { replace: true });
+  }
 
   /*
     DER STEUERSATZ DES ANGEBOTS, nicht der heutige des Betriebs. Ein Entwurf
@@ -213,7 +265,7 @@ export default function QuotesView() {
       setLoading(true);
       try {
         const [q, k] = await Promise.all([
-          listRecentQuotes(user.companyId),
+          listRecentQuotes(user.companyId, grenze),
           listCustomers(user.companyId),
         ]);
         setAngebote(q);
@@ -224,7 +276,7 @@ export default function QuotesView() {
         setLoading(false);
       }
     },
-    [user],
+    [user, grenze],
   );
 
   useEffect(() => {
@@ -422,7 +474,10 @@ export default function QuotesView() {
       else if (zuFassen && q.status !== 'Entwurf') alsVorlage(q, true);
       else if (zuKopieren) alsVorlage(q, false);
     }
-    setSuchParameter({}, { replace: true });
+    // Nur diese drei gehen weg: die gewählte Ansicht der Liste bleibt stehen.
+    const p = new URLSearchParams(suchParameter);
+    for (const name of ['bearbeiten', 'neueFassung', 'kopie']) p.delete(name);
+    setSuchParameter(p, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zuBearbeiten, zuFassen, zuKopieren, loading, angebote]);
 
@@ -539,9 +594,116 @@ export default function QuotesView() {
 
   if (!user) return null;
 
+  /*
+    DIE LISTE NACH DRINGLICHKEIT (Linie „Lot“, Regel 4). Oben, was zuerst
+    jemanden braucht: ein offenes Angebot, dessen Bindefrist abgelaufen ist —
+    der Kunde kann es so nicht mehr annehmen, es muss nachgefasst oder neu
+    gefasst werden. Dann die versendeten nach Frist (die bald ablaufende
+    zuerst), zuletzt die Entwürfe, die noch beim Betrieb liegen.
+  */
+  const heute = todayStr();
+  const istOffen = (q: WithId<Quote>) => q.status === 'Entwurf' || q.status === 'Versendet';
+  const abgelaufen = (q: WithId<Quote>) => istOffen(q) && q.validUntil < heute;
+  const nachFrist = (a: WithId<Quote>, b: WithId<Quote>) => a.validUntil.localeCompare(b.validUntil);
+  const begriff = suche.trim().toLowerCase();
+  const gesucht = begriff
+    ? angebote.filter((q) =>
+        [q.quoteNumber, q.customerName, q.address, q.projectNumber].some((x) => x?.toLowerCase().includes(begriff)),
+      )
+    : angebote;
+  const gruppen: { id: string; titel: string; zeilen: WithId<Quote>[] }[] =
+    ansicht === 'offen'
+      ? [
+          { id: 'abgelaufen', titel: 'Bindefrist abgelaufen', zeilen: gesucht.filter(abgelaufen).sort(nachFrist) },
+          { id: 'versendet', titel: 'Versendet', zeilen: gesucht.filter((q) => q.status === 'Versendet' && !abgelaufen(q)).sort(nachFrist) },
+          { id: 'entwurf', titel: 'Entwurf', zeilen: gesucht.filter((q) => q.status === 'Entwurf' && !abgelaufen(q)) },
+        ]
+      : ansicht === 'erledigt'
+        ? [
+            { id: 'angenommen', titel: 'Angenommen', zeilen: gesucht.filter((q) => q.status === 'Angenommen') },
+            { id: 'abgelehnt', titel: 'Abgelehnt', zeilen: gesucht.filter((q) => q.status === 'Abgelehnt') },
+          ]
+        : [{ id: 'alle', titel: 'Alle Angebote', zeilen: gesucht }];
+  const sichtbar = gruppen.filter((g) => g.zeilen.length > 0);
+  const leer =
+    angebote.length === 0
+      ? 'Noch kein Angebot erstellt.'
+      : begriff
+        ? 'Kein Angebot passt zur Suche.'
+        : ansicht === 'offen'
+          ? 'Kein offenes Angebot.'
+          : 'Noch kein Angebot angenommen oder abgelehnt.';
+
+  const zeile = (q: WithId<Quote>) => (
+    <ListRow
+      key={q.id}
+      // DIE GANZE ZEILE führt zur Angebotsseite — Positionen, Anmerkungen, PDF.
+      to={`/quotes/${q.id}`}
+      title={
+        <>
+          <span className="nr">{q.quoteNumber}</span> · <OhneUmbruch text={q.customerName} />
+        </>
+      }
+      wert={`${euro(q.totalBrutto)} brutto`}
+      zustand={
+        <>
+          <Zustand stand={STAND[q.status]}>{q.status}</Zustand>
+          {abgelaufen(q) && <Zustand stand="achtung">abgelaufen</Zustand>}
+        </>
+      }
+      subtitle={
+        <>
+          {datumAT(q.quoteDate)} · gültig bis {datumAT(q.validUntil)}
+          <span className="mt-1 block text-xs text-ink-muted">
+            {fmtStunden(q.kalkulierteStunden)} h kalkuliert
+            {q.projectNumber ? <> · Baustelle <span className="nr">{q.projectNumber}</span></> : ''}
+          </span>
+        </>
+      }
+    >
+      {/*
+        HÖCHSTENS ZWEI KNÖPFE, DER REST IM „⋯“ (Analyse 03.10.2026,
+        Paket 2). Bis zu fünf Knöpfe je Zeile — wie bei Baustellen
+        und Rechnungen steht das Seltenere jetzt im Menü, mit
+        Namen, die sagen, was passiert.
+      */}
+      {darfAendern && q.status === 'Entwurf' && (
+        <Button variant="ghost" disabled={busy} onClick={() => bearbeiten(q)}>
+          Bearbeiten
+        </Button>
+      )}
+      {/* M17: was beim Kunden liegt, wird als neue Fassung überarbeitet. */}
+      {darfAendern && (q.status === 'Versendet' || q.status === 'Abgelehnt') && (
+        <Button variant="ghost" disabled={busy} onClick={() => alsVorlage(q, true)}>
+          Neue Fassung
+        </Button>
+      )}
+      {darfAendern && (q.status === 'Versendet' || q.status === 'Entwurf') && (
+        <Button variant="ghost" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setAnnehmenFragen(q); }}>
+          Annehmen → Baustelle
+        </Button>
+      )}
+      {darfAendern && (q.status === 'Versendet' || q.status === 'Entwurf') && (
+        <RowMenu
+          about={`Angebot ${q.quoteNumber}`}
+          items={[
+            ...(q.status === 'Entwurf'
+              ? [{ label: 'Als versendet markieren', onSelect: () => void status(q, 'Versendet', 'Als versendet markiert') }]
+              : []),
+            { label: 'Als abgelehnt markieren', onSelect: () => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt') },
+            // Löschen nur im Entwurf: alles Versendete bleibt
+            // nachvollziehbar, auch ein abgelehntes Angebot.
+            ...(q.status === 'Entwurf'
+              ? [{ label: 'Löschen', danger: true, onSelect: () => setToDelete(q) }]
+              : []),
+          ]}
+        />
+      )}
+    </ListRow>
+  );
+
   return (
-    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
-    <div className="space-y-3 lg:space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Angebote"
         subtitle="Kalkulieren, versenden, in einen Auftrag überführen"
@@ -560,6 +722,12 @@ export default function QuotesView() {
       */}
       {error && !formOffen && <ErrorState message={error} />}
 
+      {/*
+        DAS FORMULAR BLEIBT AUF DER SEITE, nicht im Seitenfenster: es ist das
+        längste der App, die Positionen brauchen Breite, und es klappt über
+        der Liste auf, nicht zwischen ihren Zeilen. Kopf und Fuss einspaltig
+        in 560 px (Regel 9), die Positionen dürfen breiter stehen.
+      */}
       {darfAendern && formOffen && (
         <Card
           title={
@@ -570,17 +738,15 @@ export default function QuotesView() {
                 : 'Neues Angebot'
           }
         >
-          {fassungVon && (
-            <div className="mb-4">
+          <div className="formular space-y-4">
+            {fassungVon && (
               <Hinweiszeile>
                 <p>
                   {fassungVon.quoteNumber} bleibt, wie es beim Kunden liegt. Diese Fassung bekommt eine eigene
                   Nummer und verweist darauf.
                 </p>
               </Hinweiszeile>
-            </div>
-          )}
-          <FormGrid>
+            )}
             <SelectField
               id="anqk"
               label="Kunde"
@@ -604,15 +770,6 @@ export default function QuotesView() {
               ))}
             </SelectField>
             <KundenGrenze kunden={kunden} />
-            <InputField
-              id="anqgueltig"
-              label="Gültig bis"
-              type="date"
-              value={validUntil}
-              onChange={(e) => setValidUntil(e.target.value)}
-            />
-          </FormGrid>
-          <div className="mt-4">
             <AdresseFeld
               id="anqadr"
               label="Ort der Leistung"
@@ -620,18 +777,37 @@ export default function QuotesView() {
               onChange={setAddress}
               vorschlag={kunden.find((k) => k.id === customerId)?.address}
             />
+            {/*
+              DIE BINDEFRIST IST SELTEN ZU ÄNDERN — dreissig Tage passen fast
+              immer. Zugeklappt nennt die Zeile trotzdem das Datum, damit
+              niemand aufklappen muss, um es zu lesen. Offen steht sie bei
+              einem Entwurf, dessen Frist schon von der Vorgabe abweicht.
+            */}
+            <WeitereAngaben
+              titel={`Weitere Angaben · gültig bis ${datumAT(validUntil)}`}
+              offen={!!bearbeitet && bearbeitet.validUntil !== standardGueltigkeit()}
+            >
+              <InputField
+                id="anqgueltig"
+                label="Gültig bis"
+                type="date"
+                value={validUntil}
+                onChange={(e) => setValidUntil(e.target.value)}
+              />
+            </WeitereAngaben>
           </div>
 
-          <div className="mt-6">
-            <span className="section-label">Positionen</span>
-            <div className="mt-2 space-y-3">
+          <div className="mt-6 max-w-[48rem]">
+            <h3 className="section-label">Positionen</h3>
+            {/* Linien statt Kästen (Linie „Lot“, Regel 1): keine Karte in der Karte. */}
+            <ul className="mt-2">
               {zeilen.map((z, i) => z.art !== 'position' ? (
                 /*
                   TITEL UND TEXT (M18): nur die Bezeichnung. Der Titel zeigt
                   die Summe der Positionen bis zum nächsten Titel — so steht
                   sie auch auf dem Angebot.
                 */
-                <div key={i} className="rounded border border-line p-3">
+                <li key={i} className="border-t border-line py-3">
                   {z.art === 'titel' ? (
                     <InputField
                       id={`anqlabel${i}`}
@@ -655,9 +831,9 @@ export default function QuotesView() {
                     </span>
                     {zeilenKnoepfe(i)}
                   </div>
-                </div>
+                </li>
               ) : (
-                <div key={i} className="rounded border border-line p-3">
+                <li key={i} className="border-t border-line py-3">
                   <InputField
                     id={`anqlabel${i}`}
                     label="Bezeichnung"
@@ -681,9 +857,10 @@ export default function QuotesView() {
                   {/*
                     ZWEI SPALTEN AUCH AM TELEFON: vier kurze Zahlenfelder
                     untereinander machten die Position doppelt so lang wie
-                    nötig (M18 brachte den Rabatt dazu).
+                    nötig (M18 brachte den Rabatt dazu). Ab dem Tablet stehen
+                    alle vier in einer Reihe — eine Position, eine Zeile.
                   */}
-                  <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-4">
+                  <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-4 md:grid-cols-4">
                     <ZahlFeld
                       id={`anqqty${i}`}
                       label="Menge"
@@ -774,44 +951,19 @@ export default function QuotesView() {
                     </span>
                     {zeilenKnoepfe(i)}
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
-            {katalogOffen && user && (
-              <div className="mt-3">
-                <KatalogSuche
-                  companyId={user.companyId}
-                  onSchliessen={() => setKatalogOffen(false)}
-                  onWahl={(m) =>
-                    setZeilen((v) => [
-                      // Eine leere erste Zeile weicht dem Artikel, statt stehen zu bleiben.
-                      ...v.filter((x) => x.art !== 'position' || x.label.trim() || x.qty.trim() || x.unitPrice.trim()),
-                      {
-                        ...LEERE_ZEILE,
-                        label: m.name,
-                        qty: '1',
-                        unit: m.unit ?? '',
-                        unitPrice: m.verkaufspreis != null ? preisAlsText(m.verkaufspreis) : '',
-                        materialId: m.id,
-                        istArbeitszeit: zaehltAlsArbeitszeit(m.unit ?? '', m.name),
-                      },
-                    ])
-                  }
-                />
-              </div>
-            )}
-            <div className="mt-3 flex flex-wrap gap-2">
+            </ul>
+            <div className="flex flex-wrap gap-2 border-t border-line pt-3">
               <Button
                 variant="ghost"
                 onClick={() => setZeilen((v) => [...v, { ...LEERE_ZEILE }])}
               >
                 Position hinzufügen
               </Button>
-              {!katalogOffen && (
-                <Button variant="ghost" onClick={() => setKatalogOffen(true)}>
-                  Aus dem Katalog …
-                </Button>
-              )}
+              <Button variant="ghost" onClick={() => setKatalogOffen(true)}>
+                Aus dem Katalog …
+              </Button>
               <Button variant="ghost" onClick={() => setZeilen((v) => [...v, ohnePreis('titel')])}>
                 Titel hinzufügen
               </Button>
@@ -821,156 +973,142 @@ export default function QuotesView() {
             </div>
           </div>
 
-          {/*
-            MEHRZEILIG: die Anmerkungen werden beim Annehmen zum Auftragsumfang
-            der Baustelle — und der ist oft eine Liste. Dasselbe Feld wie dort.
-          */}
-          <div className="mt-4 flex flex-col gap-1">
-            <label htmlFor="anqnotes" className="text-sm font-normal text-ink">
-              Anmerkungen
-            </label>
-            <textarea
+          <div className="formular mt-4 space-y-4">
+            {/*
+              MEHRZEILIG: die Anmerkungen werden beim Annehmen zum Auftragsumfang
+              der Baustelle — und der ist oft eine Liste. Dasselbe Feld wie dort.
+            */}
+            <TextareaField
               id="anqnotes"
+              label="Anmerkungen"
               rows={3}
-              className="min-h-touch rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:ring-1 focus:ring-brand"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
-          </div>
 
-          {/* Die Summen mit einer Linie abgesetzt, nicht in einem Kasten. */}
-          <div className="mt-4 border-t border-line pt-3">
-            <p className="text-sm text-ink">
-              Netto {euro(summen.totalNetto)} · USt {euro(summen.totalVat)} ·{' '}
-              <strong>Brutto {euro(summen.totalBrutto)}</strong>
-            </p>
-            {/*
-              Die Zahl bleibt sichtbar, die Erklärung dazu nicht: sie steht
-              beim ersten Angebot im Weg und beim fünfzigsten erst recht.
-            */}
-            <p className="mt-1 flex flex-wrap items-center text-sm text-ink-muted">
-              Kalkulierte Arbeitszeit: <strong className="ml-1">{fmtStunden(kalkulierteStunden)} h</strong>
-              <InfoHint about="kalkulierte Arbeitszeit">
-                Diese Stundenzahl wird beim Annehmen des Angebots zum <strong>Stundenbudget</strong>{' '}
-                der neuen Baustelle. Daran misst die Auswertung später, ob die Baustelle im Rahmen
-                geblieben ist — und die Nachkalkulation, was sie verdient hat. Gemessen wird die
-                Zeit der Facharbeiter; Helferstunden zählen deshalb nicht von selbst mit.
-              </InfoHint>
-            </p>
-          </div>
+            {/* Die Summen mit einer Linie abgesetzt, nicht in einem Kasten. */}
+            <div className="border-t border-line pt-3">
+              <p className="text-sm text-ink">
+                Netto {euro(summen.totalNetto)} · USt {euro(summen.totalVat)} ·{' '}
+                <strong className="font-semibold">Brutto {euro(summen.totalBrutto)}</strong>
+              </p>
+              {/*
+                Die Zahl bleibt sichtbar, die Erklärung dazu nicht: sie steht
+                beim ersten Angebot im Weg und beim fünfzigsten erst recht.
+              */}
+              <p className="mt-1 flex flex-wrap items-center text-sm text-ink-muted">
+                Kalkulierte Arbeitszeit: <strong className="ml-1 font-semibold">{fmtStunden(kalkulierteStunden)} h</strong>
+                <InfoHint about="kalkulierte Arbeitszeit">
+                  Diese Stundenzahl wird beim Annehmen des Angebots zum <strong>Stundenbudget</strong>{' '}
+                  der neuen Baustelle. Daran misst die Auswertung später, ob die Baustelle im Rahmen
+                  geblieben ist — und die Nachkalkulation, was sie verdient hat. Gemessen wird die
+                  Zeit der Facharbeiter; Helferstunden zählen deshalb nicht von selbst mit.
+                </InfoHint>
+              </p>
+            </div>
 
-          {stundenVorher !== null && (
-            <div className="mt-3">
+            {stundenVorher !== null && (
               <Hinweiszeile stufe="warn" role="status">
                 <p>
                   Bei diesem Angebot war nicht gespeichert, welche Positionen als Arbeitszeit
                   zählen. Die Haken sind aus der Einheit abgeleitet — bitte prüfen. Bisher
-                  kalkuliert: <strong>{fmtStunden(stundenVorher)} h</strong>.
+                  kalkuliert: <strong className="font-semibold">{fmtStunden(stundenVorher)} h</strong>.
                 </p>
               </Hinweiszeile>
+            )}
+
+            {error && <ErrorState message={error} />}
+
+            <div className="fuss-aktionen">
+              {/* Der Weg zurück zur Liste. */}
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  // Ein halb bearbeiteter Entwurf bleibt nicht im Formular stehen.
+                  if (bearbeitet) formularLeeren();
+                  setFormOffen(false);
+                }}
+              >
+                Abbrechen
+              </Button>
+              <Button
+                onClick={bearbeitet ? aenderungenSpeichern : anlegen}
+                loading={busy}
+                disabled={!customerId || !preiszeilen}
+              >
+                {bearbeitet ? 'Änderungen speichern' : 'Angebot anlegen'}
+              </Button>
             </div>
-          )}
-
-          {error && <div className="mt-3"><ErrorState message={error} /></div>}
-
-          <div className="mt-4">
-            <Button
-              onClick={bearbeitet ? aenderungenSpeichern : anlegen}
-              loading={busy}
-              disabled={!customerId || !preiszeilen}
-            >
-              {bearbeitet ? 'Änderungen speichern' : 'Angebot anlegen'}
-            </Button>
-            {/* Der Weg zurück zur Liste. */}
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                // Ein halb bearbeiteter Entwurf bleibt nicht im Formular stehen.
-                if (bearbeitet) formularLeeren();
-                setFormOffen(false);
-              }}
-            >
-              Abbrechen
-            </Button>
           </div>
         </Card>
       )}
 
-      {/* Bündig: Angebote als Zeilen von Kante zu Kante (Designlinie „Fassung 3"). */}
-      <Card title={`Angebote (${angebote.length})`} buendig>
+      {/*
+        DIE KATALOGSUCHE IM SEITENFENSTER (Regel 8). Vorher klappte sie
+        zwischen den Positionen und den Knöpfen auf und schob das Formular
+        auseinander; jetzt bleibt das Formular stehen, und es lassen sich
+        mehrere Artikel nacheinander übernehmen.
+      */}
+      <BottomSheet open={katalogOffen} onClose={() => setKatalogOffen(false)} label="Katalog" auchBreit titel="Aus dem Katalog">
+        <KatalogSuche
+          companyId={user.companyId}
+          onSchliessen={() => setKatalogOffen(false)}
+          onWahl={(m) =>
+            setZeilen((v) => [
+              // Eine leere erste Zeile weicht dem Artikel, statt stehen zu bleiben.
+              ...v.filter((x) => x.art !== 'position' || x.label.trim() || x.qty.trim() || x.unitPrice.trim()),
+              {
+                ...LEERE_ZEILE,
+                label: m.name,
+                qty: '1',
+                unit: m.unit ?? '',
+                unitPrice: m.verkaufspreis != null ? preisAlsText(m.verkaufspreis) : '',
+                materialId: m.id,
+                istArbeitszeit: zaehltAlsArbeitszeit(m.unit ?? '', m.name),
+              },
+            ])
+          }
+        />
+      </BottomSheet>
+
+      {/* Bündig: Angebote als Zeilen von Kante zu Kante. */}
+      <Card buendig>
+        <div className="flex flex-wrap items-end gap-3 p-4">
+          <div className="w-full md:w-auto">
+            <Segmente name="Angebote zeigen" werte={ANSICHTEN} wert={ansicht} onChange={ansichtWaehlen} />
+          </div>
+          <div className="min-w-[12rem] flex-1">
+            <InputField
+              id="anq-suche"
+              label="Suche"
+              type="search"
+              placeholder="Nummer, Kunde, Ort oder Baustelle"
+              value={suche}
+              onChange={(e) => setSuche(e.target.value)}
+            />
+          </div>
+        </div>
         {loading ? (
           <div className="p-4">
             <SkeletonList rows={3} />
           </div>
-        ) : angebote.length === 0 ? (
-          <EmptyState>Noch kein Angebot erstellt.</EmptyState>
+        ) : sichtbar.length === 0 ? (
+          <div className="border-t border-line">
+            <EmptyState>{leer}</EmptyState>
+          </div>
         ) : (
-          <List>
-            {angebote.map((q) => (
-              <ListRow
-                key={q.id}
-                title={
-                  // Die Nummer führt zur Angebotsseite — Positionen, Anmerkungen, PDF.
-                  // Tastfläche 48 px, Zeile unverändert: Polster und Gegen-
-                  // rand heben sich im Layout auf (Prüflauf 25.09.2026).
-                  <Link to={`/quotes/${q.id}`} className="link py-3 -my-3">
-                    <span className="nr">{q.quoteNumber}</span> · <OhneUmbruch text={q.customerName} />
-                  </Link>
-                }
-                wert={`${euro(q.totalBrutto)} brutto`}
-                zustand={<Zustand stand={STAND[q.status]}>{q.status}</Zustand>}
-                subtitle={
-                  <>
-                    {datumAT(q.quoteDate)} · gültig bis {datumAT(q.validUntil)}
-                    <span className="mt-1 block text-xs text-ink-muted">
-                      {fmtStunden(q.kalkulierteStunden)} h kalkuliert
-                      {q.projectNumber ? <> · Baustelle <span className="nr">{q.projectNumber}</span></> : ''}
-                    </span>
-                  </>
-                }
-              >
-                {/*
-                  HÖCHSTENS ZWEI KNÖPFE, DER REST IM „⋯“ (Analyse 03.10.2026,
-                  Paket 2). Bis zu fünf Knöpfe je Zeile — wie bei Baustellen
-                  und Rechnungen steht das Seltenere jetzt im Menü, mit
-                  Namen, die sagen, was passiert.
-                */}
-                {darfAendern && q.status === 'Entwurf' && (
-                  <Button variant="ghost" disabled={busy} onClick={() => bearbeiten(q)}>
-                    Bearbeiten
-                  </Button>
-                )}
-                {/* M17: was beim Kunden liegt, wird als neue Fassung überarbeitet. */}
-                {darfAendern && (q.status === 'Versendet' || q.status === 'Abgelehnt') && (
-                  <Button variant="ghost" disabled={busy} onClick={() => alsVorlage(q, true)}>
-                    Neue Fassung
-                  </Button>
-                )}
-                {darfAendern && (q.status === 'Versendet' || q.status === 'Entwurf') && (
-                  <Button variant="ghost" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setAnnehmenFragen(q); }}>
-                    Annehmen → Baustelle
-                  </Button>
-                )}
-                {darfAendern && (q.status === 'Versendet' || q.status === 'Entwurf') && (
-                  <RowMenu
-                    about={`Angebot ${q.quoteNumber}`}
-                    items={[
-                      ...(q.status === 'Entwurf'
-                        ? [{ label: 'Als versendet markieren', onSelect: () => void status(q, 'Versendet', 'Als versendet markiert') }]
-                        : []),
-                      { label: 'Als abgelehnt markieren', onSelect: () => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt') },
-                      // Löschen nur im Entwurf: alles Versendete bleibt
-                      // nachvollziehbar, auch ein abgelehntes Angebot.
-                      ...(q.status === 'Entwurf'
-                        ? [{ label: 'Löschen', danger: true, onSelect: () => setToDelete(q) }]
-                        : []),
-                    ]}
-                  />
-                )}
-              </ListRow>
-            ))}
-          </List>
+          sichtbar.map((g) => <Gruppe key={`${ansicht}-${g.id}`} titel={g.titel} zeilen={g.zeilen} zeile={zeile} />)
+        )}
+        {!loading && (
+          <div className="px-4 pb-3 empty:hidden">
+            <Nachladen
+              geladen={angebote.length}
+              grenze={grenze}
+              einheit="Angebote"
+              onMehr={() => setGrenze((n) => n + ANGEBOTE_JE_SEITE)}
+            />
+          </div>
         )}
       </Card>
 
