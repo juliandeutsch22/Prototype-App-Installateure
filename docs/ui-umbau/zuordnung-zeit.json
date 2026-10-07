@@ -1,0 +1,1077 @@
+{
+ "schritt": "E8 – Formulare: Zeiterfassung, Urlaub und Anträge (Paket „zeit“)",
+ "eintraege": [
+  {
+   "alt": "zeit.kopf.titel",
+   "neu": "zeit.seitenkopf.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Zeiterfassung“, PageHeader unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.kopf.untertitel",
+   "neu": "zeit.seitenkopf.meta",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "mit/ohne „und dein Saldo“ je Zeitkonto wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.kopf.hilfe",
+   "neu": "zeit.seitenkopf.hilfe",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Hilfe zu dieser Seite“ sammelt jetzt auch die neuen „i“ der Formularhinweise",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.sprung.zu-meinen-eintraegen",
+   "neu": "zeit.sprung.zu-meinen-eintraegen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "nur Handy, unverändert, Fokus geht mit",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.teilfehler.stammdatenblatt",
+   "neu": "zeit.teilfehler.stammdatenblatt",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert, mit „Erneut versuchen“",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.hinweis.nachtraege",
+   "neu": "zeit.hinweis.nachtraege",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Hinweiszeile über dem Saldo, unverändert; Erklärung unter „Hilfe zu dieser Seite“ (seit D)",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.hinweis.nachtraege.zeit-nachtragen",
+   "neu": "zeit.hinweis.nachtraege.zeit-nachtragen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "belegt das Formular vor, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.fehlende-tage.karte",
+   "neu": "zeit.fehlende-tage.karte",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "nur mit ?filter=fehlend, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.fehlende-tage.nachtragen",
+   "neu": "zeit.fehlende-tage.nachtragen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.hinweis.doppelt-gebucht",
+   "neu": "zeit.hinweis.doppelt-gebucht",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert über dem Saldo",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.kennzahl.saldo",
+   "neu": "zeit.kennzahl.saldo",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert, nur mit Zeitkonto",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.kennzahl.diese-woche",
+   "neu": "zeit.kennzahl.diese-woche",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.kennzahl.zuschlag",
+   "neu": "zeit.kennzahl.zuschlag",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert, nur wenn Zuschläge anfielen",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.karte",
+   "neu": "zeit.raster.formularkarte",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Titel „Neuen Eintrag erfassen“/„Eintrag bearbeiten“; Karte höchstens 36 rem breit, ab ca. 1.400 px links neben der Liste",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.hinweis.verrechnet",
+   "neu": "zeit.formular.hinweis.verrechnet",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Warnung bleibt ganz (Zustand, nicht Erklärung)",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.hinweis.krankmeldungstag",
+   "neu": "zeit.formular.hinweis.krankmeldungstag",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Warnung bleibt ganz",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.hinweis.antragstag",
+   "neu": "zeit.formular.hinweis.antragstag",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Warnung bleibt ganz",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.wie-zuletzt",
+   "neu": "zeit.formular.wie-zuletzt",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.mitarbeiter",
+   "neu": "zeit.formular.mitarbeiter",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "nur in der Mitarbeiterübersicht (staff), unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.datum",
+   "neu": "zeit.formular.datum",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Beschriftung oben",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.status",
+   "neu": "zeit.formular.status",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Optionen Anwesend/Krank/Urlaub/Zeitausgleich/Berufsschule mit denselben Bedingungen",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.hinweis.konflikt",
+   "neu": "zeit.formular.hinweis.konflikt",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert, erst nach Eingabe",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.hinweis.vor-eintritt",
+   "neu": "zeit.formular.hinweis.vor-eintritt",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.hinweis.feiertag",
+   "neu": "zeit.formular.hinweis.feiertag",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.krank.erklaerung",
+   "neu": "zeit.formular.krank.satz",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "ein Satz statt drei Zeilen; ganzer Text als „i“ → „Hilfe zu dieser Seite“ (Titel „Krankmeldung“), im Seitenfenster am Platz: weg_neu 2 für den Volltext, Satz bei 1",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.krank-bis",
+   "neu": "zeit.formular.krank-bis",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.urlaub.erklaerung",
+   "neu": "zeit.formular.urlaub.satz",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "ein Satz; Volltext hinter „i“ (Titel „Urlaub eintragen“)",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.urlaub-bis",
+   "neu": "zeit.formular.urlaub-bis",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.berufsschule.erklaerung",
+   "neu": "zeit.formular.berufsschule.satz",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "ein Satz; Volltext hinter „i“ (Titel „Berufsschule“)",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.schule-bis",
+   "neu": "zeit.formular.schule-bis",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.unterricht",
+   "neu": "zeit.formular.unterricht",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert, mit „i“",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.ohne-zeit.hinweis",
+   "neu": "zeit.formular.ohne-zeit.hinweis",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "kürzer gefasst, gleicher Inhalt („keine Arbeitszeit — voller Solltag“)",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.za.erklaerung",
+   "neu": "zeit.formular.za.satz",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "ein Satz; Volltext hinter „i“ (Titel „Zeitausgleich“)",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.za.stundenweise",
+   "neu": "zeit.formular.za.stundenweise",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.za.frei-von",
+   "neu": "zeit.formular.za.frei-von",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.za.frei-bis",
+   "neu": "zeit.formular.za.frei-bis",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.von",
+   "neu": "zeit.formular.von",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.bis",
+   "neu": "zeit.formular.bis",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.pause",
+   "neu": "zeit.formular.pause",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.arbeitszeit",
+   "neu": "zeit.formular.arbeitszeit",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Zahl und Befund (zeitPlausibilitaet) unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.nacht.zeile",
+   "neu": "zeit.formular.nacht.zeile",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.nacht.abwahl",
+   "neu": "zeit.formular.nacht.abwahl",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.nacht.grund",
+   "neu": "zeit.formular.nacht.grund",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert, Pflicht bei Abwahl",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.erweitert",
+   "neu": "zeit.formular.erweitert",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "nur GF/PL/Admin, unverändert, mit „i“",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.erweitert.warnung",
+   "neu": "zeit.formular.erweitert.warnung",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.baustelle",
+   "neu": "zeit.formular.baustelle",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Pflicht",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.kommentar",
+   "neu": "zeit.formular.kommentar",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Beschriftung je Status/Modul unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.helfer",
+   "neu": "zeit.formular.helfer",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "bleibt außerhalb von „Weitere Angaben“ (Stundensatz)",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.weitere.zeile",
+   "neu": "zeit.formular.weitere-angaben",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Baustein WeitereAngaben (<details>), offen, wenn der Eintrag oder der letzte solche Angaben trägt; Zeile nennt gesetzte Werte wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.weitere.optional-marke",
+   "neu": "zeit.formular.weitere-angaben.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„optional“ jetzt als Wort in der Zeile („Weitere Angaben (optional) – …“)",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.wegzeit",
+   "neu": "zeit.formular.weitere-angaben.wegzeit",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "hinter „Weitere Angaben“ wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.fahrzeug",
+   "neu": "zeit.formular.weitere-angaben.fahrzeug",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "mit Bezirkskenner des Betriebs wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.helfername",
+   "neu": "zeit.formular.weitere-angaben.helfername",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.notdienst",
+   "neu": "zeit.formular.weitere-angaben.notdienst",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "wie bisher, „i“ → Hilfe zu dieser Seite (seit D)",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.fehler",
+   "neu": "zeit.formular.fehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.abbrechen",
+   "neu": "zeit.formular.aktionsleiste.abbrechen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Aktionsleiste unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.absenden",
+   "neu": "zeit.formular.aktionsleiste.absenden",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Zeit buchen“/„Krank melden“/… klebt am Handy über der unteren Leiste wie bisher (Daumenbereich)",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.formular.rueckfrage-jugendschutz",
+   "neu": "zeit.formular.rueckfrage-jugendschutz",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Bestätigungsdialog unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.karte",
+   "neu": "zeit.raster.liste",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Meine Einträge“; neben dem Formular, wo beide Platz haben",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.kommende-wochen",
+   "neu": "zeit.liste.kommende-wochen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Abschnitt unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.woche",
+   "neu": "zeit.liste.woche",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Abschnitt je KW, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.zeile.titel",
+   "neu": "zeit.liste.zeile.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Datum · Kunde",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.zeile.untertitel",
+   "neu": "zeit.liste.zeile.untertitel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Zeiten/Status · Kommentar, „Bearbeitet von“",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.zeile.doppelt",
+   "neu": "zeit.liste.zeile.zustand.doppelt",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "jetzt im Zustandsplatz der Zeile",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.zeile.ki",
+   "neu": "zeit.liste.zeile.zustand.ki",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Marke im Zustandsplatz",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.zeile.zeitmarker",
+   "neu": "zeit.liste.zeile.zustand.zeitmarker",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Helfer/Notdienst/Nacht im Zustandsplatz",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.zeile.stunden",
+   "neu": "zeit.liste.zeile.wert",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "rechtsbündig als Wert der Zeile",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.zeile.bearbeiten",
+   "neu": "zeit.liste.zeile.ganz",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "die ganze Zeile öffnet den Eintrag im Formular und holt es ins Bild; dieselben Bedingungen wie der frühere Knopf; Vorlesehilfe „… bearbeiten“",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.zeile.loeschen",
+   "neu": "zeit.liste.zeile.loeschen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "eigener Knopf, Rückfrage unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.zeile.loeschen.dialog",
+   "neu": "zeit.liste.zeile.loeschen.dialog",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "„Eintrag löschen?“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.zeile.verrechnet",
+   "neu": "zeit.liste.zeile.verrechnet",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Marke, Zeile nicht antippbar",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.zeile.krankmeldung",
+   "neu": "zeit.liste.zeile.krankmeldung",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "öffnet jetzt das Seitenfenster „Krankmeldung“ statt einer Karte zwischen Formular und Liste",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.krankmeldung.ende-aendern",
+   "neu": "zeit.krankmeldung-fenster.ende-aendern",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "im Seitenfenster",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.krankmeldung.loeschen",
+   "neu": "zeit.krankmeldung-fenster.loeschen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "im Seitenfenster, Rückfrage unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.krankmeldung.schliessen",
+   "neu": "zeit.krankmeldung-fenster.schliessen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "„Schließen“ im Fensterkopf, dazu Esc",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.zeile.antrag",
+   "neu": "zeit.liste.zeile.antrag",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "AntragKnopf/FreistellungKnopf unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.zeile.zuruecknehmen",
+   "neu": "zeit.liste.zeile.zuruecknehmen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "ohne Modul Urlaub, unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.zeile.berufsschule-loeschen",
+   "neu": "zeit.liste.zeile.loeschen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Berufsschultag: nur Löschen, Zeile nicht antippbar",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.zeile.vom-buero",
+   "neu": "zeit.liste.zeile.vom-buero",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Marke (ZA, Jugendschutz) mit „i“ unverändert, Zeile nicht antippbar",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.aeltere-laden",
+   "neu": "zeit.liste.mehr-laden",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "als „mehr-laden“-Zeile am Ende der Liste",
+   "geprueft": true
+  },
+  {
+   "alt": "zeit.liste.angezeigt-monate",
+   "neu": "zeit.liste.angezeigt-monate",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unter dem Knopf",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.kopf.titel",
+   "neu": "urlaub.seitenkopf.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.kopf.untertitel",
+   "neu": "urlaub.seitenkopf.meta",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.kopf.hilfe",
+   "neu": "urlaub.seitenkopf.hilfe",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "sammelt auch das neue „i“ der Krankmeldung",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.reiter.antraege",
+   "neu": "urlaub.reiter.antraege",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "nur Büro; Reiterleiste (role=tab) unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.reiter.krankenstaende",
+   "neu": "urlaub.reiter.krankenstaende",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.reiter.betriebsurlaub",
+   "neu": "urlaub.reiter.betriebsurlaub",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.fehler",
+   "neu": "urlaub.fehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.hinweis.ohne-zeitkonto",
+   "neu": "urlaub.hinweis.ohne-zeitkonto",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.kennzahl.resturlaub",
+   "neu": "urlaub.kennzahl.resturlaub",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.kennzahl.beantragt",
+   "neu": "urlaub.kennzahl.beantragt",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.offene.karte",
+   "neu": "urlaub.offene.karte",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "wartet etwas: oben wie bisher; sonst nach den eigenen Listen (vorher zwischen Formular und „Meine Anträge“)",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.offene.zeile",
+   "neu": "urlaub.offene.zeile",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "mit Resturlaub vorher/nachher, Zeitguthaben, „Gleichzeitig im Urlaub“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.offene.genehmigen",
+   "neu": "urlaub.offene.genehmigen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.offene.ablehnen",
+   "neu": "urlaub.offene.ablehnen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.offene.ablehnen.dialog",
+   "neu": "urlaub.offene.ablehnen.dialog",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Pflichtgrund unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.offene.entscheidet-jemand-anderer",
+   "neu": "urlaub.offene.entscheidet-jemand-anderer",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.sonderurlaub-bestaetigen.karte",
+   "neu": "urlaub.sonderurlaub-bestaetigen.karte",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Inhalt unverändert (Bestätigen, Ablehnen, Nachweis ansehen, Nachweis geprüft, Kürzung, Tage über dem Kontingent, Zurücknehmen); Lage wie die offenen Anträge",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.antrag.karte",
+   "neu": "urlaub.raster.formularkarte",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Antrag stellen“/„Krank melden“, höchstens 36 rem, neben „Meine Anträge“, wo beide Platz haben",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.antrag.art",
+   "neu": "urlaub.antrag.art",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "sechs Arten unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.antrag.betriebsurlaub-hinweis",
+   "neu": "urlaub.antrag.betriebsurlaub-hinweis",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.antrag.za-stundenweise",
+   "neu": "urlaub.antrag.za-stundenweise",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.antrag.von",
+   "neu": "urlaub.antrag.von",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.antrag.bis",
+   "neu": "urlaub.antrag.bis",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.antrag.za-frei-von-bis",
+   "neu": "urlaub.antrag.za-frei-von-bis",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.antrag.anmerkung",
+   "neu": "urlaub.antrag.anmerkung",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.antrag.rechnung",
+   "neu": "urlaub.antrag.rechnung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Arbeitstage, danach bleiben, genehmigt x von y, verfallen, angepasst — alle mit „i“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.antrag.za-rechnung",
+   "neu": "urlaub.antrag.za-rechnung",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Stunden, Guthaben, Überschneidung unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.antrag.ueberschneidung",
+   "neu": "urlaub.antrag.ueberschneidung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.antrag.krank-erklaerung",
+   "neu": "urlaub.antrag.krank-satz",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "ein Satz; Volltext hinter „i“ (Titel „Krankmeldung“)",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.antrag.pflichthinweis",
+   "neu": "urlaub.antrag.pflichthinweis",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.antrag.einreichen",
+   "neu": "urlaub.antrag.fuss.einreichen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "in der Fusszeile der Linie (fuss-aktionen)",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.sonderurlaub-formular.felder",
+   "neu": "urlaub.sonderurlaub-formular.felder",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Anlass, Ereignistag, Stunden, Von/Bis, Zeiten, Kind/zweite Woche, Pflegestand, unbezahlt, Arbeitstage, Anmerkung/Begründung, Nachweis — unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.sonderurlaub-formular.einreichen",
+   "neu": "urlaub.sonderurlaub-formular.fuss.einreichen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "in der Fusszeile der Linie",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.meine-antraege.zeile",
+   "neu": "urlaub.meine-antraege.zeile",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Zeitraum, Umfang, Anmerkung, Entscheidung/Grund, Betriebsurlaub-Vermerk, „Noch nicht entschieden“ unverändert; NEU: Tipp öffnet Seitenfenster mit Verlauf als Lot (Beantragt → Entscheidung → Urlaub)",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.meine-antraege.zustand",
+   "neu": "urlaub.meine-antraege.zustand",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert, auch im Fensterkopf",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.meine-antraege.zurueckziehen",
+   "neu": "urlaub.meine-antraege.zurueckziehen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "in der Zeile wie bisher, zusätzlich im Seitenfenster (schliesst es, Rückfrage unverändert)",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.meine-antraege.zurueckziehen.dialog",
+   "neu": "urlaub.meine-antraege.zurueckziehen.dialog",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.meine-antraege.zuruecknehmen",
+   "neu": "urlaub.meine-antraege.zuruecknehmen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "in der Zeile wie bisher, zusätzlich im Seitenfenster; nie beim Betriebsurlaub",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.meine-antraege.zuruecknehmen.dialog",
+   "neu": "urlaub.meine-antraege.zuruecknehmen.dialog",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Pflichtgrund unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.mein-sonderurlaub.zeile",
+   "neu": "urlaub.mein-sonderurlaub.zeile",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Vermerke unverändert; NEU: Tipp öffnet Seitenfenster mit Verlauf (Beantragt → Nachweis geprüft → Entscheidung → Freistellung)",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.mein-sonderurlaub.nachweis",
+   "neu": "urlaub.mein-sonderurlaub.nachweis",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Nachweis wählen“/„entfernen“ in der Zeile wie bisher, zusätzlich im Seitenfenster",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.mein-sonderurlaub.zurueckziehen",
+   "neu": "urlaub.mein-sonderurlaub.zurueckziehen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "in der Zeile wie bisher, zusätzlich im Seitenfenster; Rückfrage unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.meine-krankmeldungen.zeile",
+   "neu": "urlaub.meine-krankmeldungen.zeile",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert, „läuft“-Marke",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.meine-krankmeldungen.ende-aendern",
+   "neu": "urlaub.meine-krankmeldungen.ende-aendern",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert (Feld in der Zeile)",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.meine-krankmeldungen.loeschen",
+   "neu": "urlaub.meine-krankmeldungen.loeschen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Rückfrage",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.krankenstaende.erfassen-formular",
+   "neu": "urlaub.krankenstaende.formularkarte",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Mitarbeiter, Krank ab, bis, Anmerkung; Hinweis → Hilfe; Knopf in der Fusszeile; neben der Liste, wo beide Platz haben",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.krankenstaende.liste",
+   "neu": "urlaub.krankenstaende.liste",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Ende ändern/Löschen (Weg 2) unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.betriebsurlaub.formular",
+   "neu": "urlaub.betriebsurlaub.formularkarte",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Bezeichnung, Von, Bis, Urlaubskonto belasten (+„i“); Knopf in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.betriebsurlaub.ausnehmen-umschalter",
+   "neu": "urlaub.betriebsurlaub.weitere-angaben",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "„Mitarbeiter ausnehmen“ als WeitereAngaben; Anzahl in der Zeile",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.betriebsurlaub.ausgenommen-zeile",
+   "neu": "urlaub.betriebsurlaub.weitere-angaben.titel",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„arbeiten in dieser Zeit: …“ steht jetzt in der Zeile selbst (zu und offen)",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.betriebsurlaub.ausnahmen",
+   "neu": "urlaub.betriebsurlaub.ausnahmen",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "Haken je aktivem Mitarbeiter unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.betriebsurlaub.anlegen",
+   "neu": "urlaub.betriebsurlaub.anlegen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Rückfrage unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "urlaub.betriebsurlaub.liste",
+   "neu": "urlaub.betriebsurlaub.liste",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Marke, Löschen mit Rückfrage unverändert",
+   "geprueft": true
+  }
+ ]
+}

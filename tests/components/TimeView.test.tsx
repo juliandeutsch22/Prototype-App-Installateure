@@ -129,19 +129,46 @@ let formularAufbauten = 0;
 vi.mock('@/features/time/TimeForm', () => ({
   default: function Zeitformular({
     vorbelegung,
+    entry,
   }: {
     vorbelegung?: Record<string, unknown> | null;
+    entry?: { id: string };
   }) {
     useEffect(() => {
       formularAufbauten += 1;
     }, []);
     return (
       <div data-testid="zeitformular">
-        {vorbelegung ? `vorbelegt: ${JSON.stringify(vorbelegung)}` : 'leer'}
+        {/* Welcher Eintrag bearbeitet wird — für die antippbare Zeile (Linie „Lot“). */}
+        {entry ? `bearbeitet: ${entry.id}` : vorbelegung ? `vorbelegt: ${JSON.stringify(vorbelegung)}` : 'leer'}
       </div>
     );
   },
 }));
+
+/*
+  Die Krankmeldung zu einem Krank-Tag öffnet sich im Seitenfenster und lädt
+  sich dort selbst.
+*/
+vi.mock('@/lib/db/abwesenheiten', () => ({
+  getKrankmeldung: vi.fn(async (_c: string, id: string) => ({
+    id, companyId: 'perl', userId: 'u1', userName: 'Max Mustermann', von: '2026-09-01', bis: '2026-09-03',
+  })),
+  krankmeldungSpeichern: vi.fn(),
+  krankmeldungLoeschen: vi.fn(),
+  listKrankmeldungenAb: vi.fn(async () => []),
+}));
+
+/**
+ * „Bearbeiten“ ist seit der Linie „Lot“ die Zeile selbst (Regel 3): ihr
+ * Titel ist der Knopf, für die Vorlesehilfe „… bearbeiten“. Geprüft wird
+ * deshalb ein Knopf, dessen Name auf „bearbeiten“ endet — was die Tests
+ * schützen (gesperrte Einträge lassen sich nicht öffnen, offene schon),
+ * bleibt dasselbe.
+ */
+const BEARBEITEN = /bearbeiten$/;
+/** Die Zeile zu einem Datum — jedes Mal neu gesucht, weil sie sich beim Nachladen neu aufbaut. */
+const zeileVom = (datum: string) => screen.getByText(datum).closest('li') as HTMLElement;
 
 /*
   Die eigenen Handwerksscheine der letzten zwei Wochen. Daraus entsteht der
@@ -222,13 +249,13 @@ describe('Zeiterfassung — verrechnete Einträge', () => {
 
     const gesperrt = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
     expect(within(gesperrt).getByText('verrechnet')).toBeInTheDocument();
-    expect(within(gesperrt).queryByRole('button', { name: 'Bearbeiten' })).toBeNull();
+    expect(within(gesperrt).queryByRole('button', { name: BEARBEITEN })).toBeNull();
     expect(within(gesperrt).queryByRole('button', { name: 'Löschen' })).toBeNull();
 
     // Der offene daneben bleibt bearbeitbar — sonst prüfte der Test nur, dass
     // es überhaupt keine Knöpfe gibt.
     const offen = screen.getByText('31.08.2026').closest('li') as HTMLElement;
-    expect(within(offen).getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    expect(within(offen).getByRole('button', { name: BEARBEITEN })).toBeInTheDocument();
   });
 });
 
@@ -672,7 +699,7 @@ describe('Zeiterfassung — Abwesenheiten, die noch kommen', () => {
     eintraege = [eintrag({ id: 'u1', status: 'Urlaub', startTime: undefined, endTime: undefined, vacationId: 'v1' })];
     zeigeMitRouter();
     expect(await screen.findByRole('button', { name: 'Urlaubsantrag' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Bearbeiten' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: BEARBEITEN })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Löschen' })).not.toBeInTheDocument();
   });
 });
@@ -698,11 +725,11 @@ describe('Zeiterfassung — vom Büro gebuchter Zeitausgleich (Prüflauf 25.09.2
 
     const za = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
     expect(within(za).getByText('vom Büro gebucht')).toBeInTheDocument();
-    expect(within(za).queryByRole('button', { name: 'Bearbeiten' })).toBeNull();
+    expect(within(za).queryByRole('button', { name: BEARBEITEN })).toBeNull();
     expect(within(za).queryByRole('button', { name: 'Löschen' })).toBeNull();
 
     const offen = screen.getByText('31.08.2026').closest('li') as HTMLElement;
-    expect(within(offen).getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    expect(within(offen).getByRole('button', { name: BEARBEITEN })).toBeInTheDocument();
   });
 
   it('lässt sie der Buchhaltung', async () => {
@@ -714,8 +741,63 @@ describe('Zeiterfassung — vom Büro gebuchter Zeitausgleich (Prüflauf 25.09.2
     zeige();
 
     const za = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
-    expect(within(za).getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    expect(within(za).getByRole('button', { name: BEARBEITEN })).toBeInTheDocument();
     expect(within(za).getByRole('button', { name: 'Löschen' })).toBeInTheDocument();
+  });
+});
+
+/*
+  DIE GANZE ZEILE ÖFFNET DEN EINTRAG (Linie „Lot“, Regel 3). Vorher trug jede
+  Zeile „Bearbeiten“ und „Löschen“ nebeneinander — am Handy zwei kleine
+  Textknöpfe unter den Stunden. Jetzt ist die Zeile das Ziel; Löschen bleibt
+  ein eigener Knopf mit Rückfrage.
+*/
+describe('Zeiterfassung — die Zeile öffnet den Eintrag (Linie „Lot“)', () => {
+  it('ein Tipp auf die Zeile setzt das Formular auf den Eintrag und holt es ins Bild', async () => {
+    const rollen = vi.fn();
+    const vorher = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = rollen;
+    try {
+      eintraege = [eintrag({ id: 'offen', date: '2026-08-31' })];
+      const { container } = zeige();
+      await screen.findByText('31.08.2026');
+      expect(screen.getByTestId('zeitformular')).toHaveTextContent('leer');
+
+      await userEvent.click(within(zeileVom('31.08.2026')).getByRole('button', { name: BEARBEITEN }));
+
+      expect(screen.getByTestId('zeitformular')).toHaveTextContent('bearbeitet: offen');
+      expect(screen.getByRole('heading', { name: 'Eintrag bearbeiten' })).toBeInTheDocument();
+      // Am Handy steht das Formular über der Liste: ohne Sprung täte der Tipp sichtbar nichts.
+      expect(rollen).toHaveBeenCalled();
+      expect(container.querySelector('#zeit-formular')).toHaveFocus();
+    } finally {
+      Element.prototype.scrollIntoView = vorher;
+    }
+  });
+
+  it('Gegenprobe: Löschen bleibt ein eigenes Ziel — mit Rückfrage, ohne das Formular zu öffnen', async () => {
+    eintraege = [eintrag({ id: 'offen', date: '2026-08-31' })];
+    zeige();
+    await screen.findByText('31.08.2026');
+    await userEvent.click(within(zeileVom('31.08.2026')).getByRole('button', { name: 'Löschen' }));
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Eintrag löschen?');
+    expect(screen.getByTestId('zeitformular')).toHaveTextContent('leer');
+  });
+
+  it('die Krankmeldung eines Krank-Tags öffnet sich im Seitenfenster, mit ihren Handgriffen', async () => {
+    eintraege = [
+      eintrag({ id: 'k1', date: '2026-09-01', status: 'Krank', startTime: undefined, endTime: undefined, krankmeldungId: 'm1' }),
+    ];
+    zeige();
+    // Gegenprobe: zu, solange niemand tippt.
+    expect(screen.queryByRole('dialog', { name: 'Krankmeldung' })).toBeNull();
+    await userEvent.click(await screen.findByRole('button', { name: 'Krankmeldung' }));
+    const fenster = await screen.findByRole('dialog', { name: 'Krankmeldung' });
+    expect(await within(fenster).findByText('01.09.2026 – 03.09.2026')).toBeInTheDocument();
+    expect(within(fenster).getByRole('button', { name: 'Ende ändern' })).toBeInTheDocument();
+
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Schließen' }));
+    expect(screen.queryByRole('dialog', { name: 'Krankmeldung' })).toBeNull();
   });
 });
 
@@ -868,9 +950,11 @@ describe('Zeiterfassung — vom Büro gebucht, über der Grenze für Jugendliche
       buero({ id: 'frueh', date: '2026-08-31', startTime: '05:00', endTime: '10:00' }),
     ];
     zeige();
-    const lang = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
-    await waitFor(() => expect(within(lang).getByText('vom Büro gebucht')).toBeInTheDocument());
-    expect(within(lang).queryByRole('button', { name: 'Bearbeiten' })).toBeNull();
+    await screen.findByText('01.09.2026');
+    // Neu gesucht: kommt das Geburtsdatum, baut die Zeile sich ohne Knopf neu auf.
+    await waitFor(() => expect(within(zeileVom('01.09.2026')).getByText('vom Büro gebucht')).toBeInTheDocument());
+    const lang = zeileVom('01.09.2026');
+    expect(within(lang).queryByRole('button', { name: BEARBEITEN })).toBeNull();
     expect(within(lang).queryByRole('button', { name: 'Löschen' })).toBeNull();
     const frueh = screen.getByText('31.08.2026').closest('li') as HTMLElement;
     expect(within(frueh).getByText('vom Büro gebucht')).toBeInTheDocument();
@@ -888,10 +972,11 @@ describe('Zeiterfassung — vom Büro gebucht, über der Grenze für Jugendliche
       buero({ id: 'kurz', date: '2026-08-31', startTime: '07:00', endTime: '15:00' }),
     ];
     zeige();
-    const selbst = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    await screen.findByText('01.09.2026');
     // Erst wenn das Geburtsdatum da ist, könnte etwas verschwinden — also darauf warten.
     await act(async () => { await Promise.resolve(); });
-    expect(within(selbst).getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    const selbst = zeileVom('01.09.2026');
+    expect(within(selbst).getByRole('button', { name: BEARBEITEN })).toBeInTheDocument();
     const kurz = screen.getByText('31.08.2026').closest('li') as HTMLElement;
     expect(within(kurz).getByRole('button', { name: 'Löschen' })).toBeInTheDocument();
   });
@@ -900,9 +985,10 @@ describe('Zeiterfassung — vom Büro gebucht, über der Grenze für Jugendliche
     geburtsdatum = '1990-01-01';
     eintraege = [buero({ id: 'lang', date: '2026-09-01', startTime: '07:00', endTime: '17:00' })];
     zeige();
-    const lang = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    await screen.findByText('01.09.2026');
     await act(async () => { await Promise.resolve(); });
-    expect(within(lang).getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    const lang = zeileVom('01.09.2026');
+    expect(within(lang).getByRole('button', { name: BEARBEITEN })).toBeInTheDocument();
     expect(within(lang).queryByText('vom Büro gebucht')).toBeNull();
   });
 

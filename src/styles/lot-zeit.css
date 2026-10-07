@@ -6,4 +6,42 @@
  * gestrichelten Linien. Farben nur aus den Grundwerten (var(--…)).
  */
 @layer components {
+  /*
+    FORMULAR LINKS, LISTE RECHTS — am Schreibtisch (Zeiterfassung, Urlaub,
+    Krankenstände, Betriebsurlaub). Dort lief das Formular vorher über
+    1.100 px: Von, Bis und Pause standen so weit auseinander, dass man sie
+    nicht mehr zusammen las, und die eigenen Einträge kamen erst nach dem
+    Rollen. Jetzt steht daneben, was man gerade gebucht oder beantragt hat.
+    Am Tablet und am Handy bleibt es eine Spalte, Formular zuerst.
+
+    NEBENEINANDER NUR, WENN BEIDE PLATZ HABEN — nicht ab einer festen Breite.
+    Mit festen Spalten blieben bei 1.200 px für die Liste rund 270 px, und
+    ein Kundenname wie „Wohnungseigentümergemeinschaft“ brach mitten im Wort.
+    Die Liste braucht mindestens 26 rem; reicht die Zeile nicht für Formular
+    und Liste, rutscht die Liste darunter. Ganz ohne Rechnung: die Grundbreite
+    der beiden Teile entscheidet.
+  */
+  .zeit-raster { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.75rem 1.25rem; }
+  @media (min-width: 1200px) { .zeit-raster { row-gap: 1.25rem; } }
+
+  /*
+    DIE KARTE HÄLT DIE BREITE DES FORMULARS (Regel 9, Felder höchstens 560 px).
+    Gekappt wird die Karte, nicht das Formular darin: die Aktionsleiste der
+    Zeiterfassung reicht bis an die Kanten der Karte und klebt beim Rollen —
+    in einer breiteren Karte stünde sie als halbe Leiste da.
+  */
+  .zeit-formularkarte { flex: 0 1 36rem; min-width: 0; }
+  /* Die Liste daneben (eine Karte) oder eine Spalte aus mehreren Karten. */
+  .zeit-liste { flex: 1 1 26rem; min-width: 0; }
+  .zeit-spalte { flex: 1 1 26rem; min-width: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+  @media (min-width: 1200px) { .zeit-spalte { gap: 1.25rem; } }
+
+  /* Der Zusatz unter „Ältere Einträge laden“: was gerade gezeigt wird. */
+  .zeit-fenster-hinweis { padding: 0 1rem 0.875rem; font-size: 0.8125rem; color: var(--text-muted); }
+
+  /* Kopf des Antrags im Seitenfenster: Zeitraum, Umfang, Stand. */
+  .antrag-kopf { display: flex; flex-direction: column; gap: 0.25rem; padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); }
+  .antrag-zeitraum { font-size: 1.0625rem; font-weight: 600; color: var(--ink-deep); }
+  .antrag-umfang { font-size: 0.9375rem; color: var(--text-muted); }
+  .antrag-aktionen { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-top: 1rem; margin-top: 0.25rem; border-top: 1px solid var(--border); }
 }

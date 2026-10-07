@@ -31,6 +31,7 @@ import Aktionsleiste from '@/components/Aktionsleiste';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { ErrorState } from '@/components/States';
 import InfoHint from '@/components/InfoHint';
+import { WeitereAngaben } from '@/components/LotBausteine';
 import { useToast } from '@/components/Toast';
 import { vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
 import type { WithId } from '@/lib/db/core';
@@ -250,7 +251,12 @@ export default function TimeForm({
     Der Helfer-Haken bleibt draussen: er ändert den Stundensatz auf der
     Rechnung und kommt oft aus dem Einsatzplan vorbelegt.
   */
-  const [weitereOffen, setWeitereOffen] = useState(
+  /*
+    NUR DER ANFANGSZUSTAND: danach klappt der Browser selbst (`<details>` in
+    `WeitereAngaben`). Ein neuer Eintrag zum Bearbeiten setzt das Formular
+    ohnehin neu auf (Schlüssel in der Zeiterfassung).
+  */
+  const [weitereOffen] = useState(
     () => hatWeitereAngaben(entry) || (!entry && hatWeitereAngaben(lastEntry)),
   );
   const showWorkFields = status === 'Anwesend';
@@ -964,12 +970,22 @@ export default function TimeForm({
           <p>Hinweis: {holidayName} — gesetzlicher Feiertag.</p>
         </Hinweiszeile>
       )}
+      {/*
+        HINWEISE HÖCHSTENS EINE ZEILE (Linie „Lot“, Regel 9): was der Status
+        bewirkt, steht in einem Satz; die ganze Erklärung hinter dem „i“ — auf
+        der Seite gesammelt unter „Hilfe zu dieser Seite“. Warnungen zum
+        aktuellen Eintrag (verrechnet, Krankmeldung, Antrag, Konflikt) stehen
+        weiter ganz da: die muss man ohne Tipp sehen.
+      */}
       {alsKrankmeldung && (
         <div className="space-y-3 text-sm text-ink-muted">
-          <p>
-            Wird als Krankmeldung erfasst: die Arbeitstage bis zum Ende stehen als „Krank“ im
-            Zeitkonto, das Büro sieht die Meldung. Ist das Ende noch offen, das voraussichtliche
-            eintragen — ändern geht später über die Meldung.
+          <p className="flex flex-wrap items-center gap-x-1">
+            Wird als Krankmeldung erfasst; das Ende lässt sich später ändern.
+            <InfoHint about="Krankmeldung">
+              Die Arbeitstage bis zum Ende stehen als „Krank“ im Zeitkonto, das Büro sieht die
+              Meldung. Ist das Ende noch offen, das voraussichtliche eintragen — ändern geht
+              später über die Meldung.
+            </InfoHint>
           </p>
           <InputField
             id="krankBis"
@@ -985,9 +1001,12 @@ export default function TimeForm({
       )}
       {alsUrlaubEintrag && (
         <div className="space-y-3 text-sm text-ink-muted">
-          <p>
-            Wird als genehmigter Urlaub eingetragen: die freien Arbeitstage bis zum Ende stehen als
-            „Urlaub“ im Zeitkonto und zählen beim Resturlaub. Schon gebuchte Tage bleiben.
+          <p className="flex flex-wrap items-center gap-x-1">
+            Wird als genehmigter Urlaub eingetragen; schon gebuchte Tage bleiben.
+            <InfoHint about="Urlaub eintragen">
+              Die freien Arbeitstage bis zum Ende stehen als „Urlaub“ im Zeitkonto und zählen beim
+              Resturlaub. Schon gebuchte Tage bleiben.
+            </InfoHint>
           </p>
           <InputField
             id="urlaubBis"
@@ -1003,10 +1022,13 @@ export default function TimeForm({
       )}
       {alsBerufsschule && (
         <div className="space-y-3 text-sm text-ink-muted">
-          <p>
-            Die Arbeitstage bis zum Ende stehen als „Berufsschule“ im Zeitkonto: sie erfüllen das
-            Tagessoll und gehen auf keine Rechnung. Für einen Blocklehrgang das letzte Datum
-            eintragen; schon gebuchte Tage bleiben.
+          <p className="flex flex-wrap items-center gap-x-1">
+            Erfüllt das Tagessoll und geht auf keine Rechnung.
+            <InfoHint about="Berufsschule">
+              Die Arbeitstage bis zum Ende stehen als „Berufsschule“ im Zeitkonto: sie erfüllen das
+              Tagessoll und gehen auf keine Rechnung. Für einen Blocklehrgang das letzte Datum
+              eintragen; schon gebuchte Tage bleiben.
+            </InfoHint>
           </p>
           <InputField
             id="schuleBis"
@@ -1047,15 +1069,17 @@ export default function TimeForm({
       )}
       {!showWorkFields && status !== 'Zeitausgleich' && !alsKrankmeldung && !alsUrlaubEintrag && !alsBerufsschule && (
         <p className="text-sm text-ink-muted">
-          {status}: Es werden keine Arbeitszeiten erfasst. Der Tag wird als voller
-          Solltag gutgeschrieben.
+          {status}: keine Arbeitszeit — der Tag wird als voller Solltag gutgeschrieben.
         </p>
       )}
       {status === 'Zeitausgleich' && (
         <div className="space-y-3 text-sm text-ink-muted">
-          <p>
-            Zeitausgleich: Es wird keine Arbeitszeit gutgeschrieben — das Zeitguthaben sinkt um die
-            freie Zeit{zaStundenweise ? '' : ' (einen ganzen Tag: um das Tagessoll)'}.
+          <p className="flex flex-wrap items-center gap-x-1">
+            Das Zeitguthaben sinkt um die freie Zeit{zaStundenweise ? '' : ' — ganzer Tag: um das Tagessoll'}.
+            <InfoHint about="Zeitausgleich">
+              Beim Zeitausgleich wird keine Arbeitszeit gutgeschrieben — das Zeitguthaben sinkt um die
+              freie Zeit, bei einem ganzen Tag um das Tagessoll.
+            </InfoHint>
           </p>
           <CheckboxField
             id="zaStundenweise"
@@ -1297,38 +1321,20 @@ export default function TimeForm({
             />
           )}
           {aussendienst ? (
-            <div className="rounded-sm border border-line">
-              <button
-                type="button"
-                aria-expanded={weitereOffen}
-                aria-controls="weitere-angaben"
-                onClick={() => setWeitereOffen((o) => !o)}
-                className="flex min-h-touch w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm"
-              >
-                <span className="min-w-0">
-                  <span className="flex flex-wrap items-center gap-x-2 font-normal text-ink-deep">
-                    Weitere Angaben
-                    {/* Leise: niemand muss hier etwas eintragen. */}
-                    <span className="stand stand-leise font-normal">optional</span>
-                  </span>
-                  <span className="block text-ink-muted">
-                    {weitereWerte.length > 0
-                      ? weitereWerte.join(' · ')
-                      : 'Wegzeit, Fahrzeug, Helfername, Zuschläge'}
-                  </span>
-                </span>
-                <Icon
-                  name="chevron"
-                  size={18}
-                  className={`shrink-0 text-ink-muted transition-transform ${weitereOffen ? 'rotate-180' : ''}`}
-                />
-              </button>
-              {weitereOffen && (
-                <div id="weitere-angaben" className="space-y-4 border-t border-line p-3">
-                  {weitereFelder}
-                </div>
-              )}
-            </div>
+            /*
+              Der Baustein der Linie (Regel 9). Die Zeile nennt, was darin
+              steht — gesetzte Werte, sonst die Felder —, wie im Entwurf
+              „Weitere Angaben – …“.
+            */
+            <WeitereAngaben
+              offen={weitereOffen}
+              // „optional“ stand vorher als leise Marke daneben; die Zeile der Linie trägt nur Text.
+              titel={`Weitere Angaben (optional) – ${
+                weitereWerte.length > 0 ? weitereWerte.join(' · ') : 'Wegzeit, Fahrzeug, Helfername, Zuschläge'
+              }`}
+            >
+              {weitereFelder}
+            </WeitereAngaben>
           ) : (
             weitereFelder
           )}
