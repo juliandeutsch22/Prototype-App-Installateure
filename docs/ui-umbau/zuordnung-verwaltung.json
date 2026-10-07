@@ -1,0 +1,1445 @@
+{
+ "schritt": "E6/E7/E9 – Paket verwaltung (Einstellungen, Benutzer, Akte, Plattform, Anmeldung)",
+ "eintraege": [
+  {
+   "alt": "einstellungen.unterreiter",
+   "neu": "einstellungen.unterreiter",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert (Unterreiter, Adressen und Rollen je Unterseite aus navigation.ts)",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.*.seitenkopf",
+   "neu": "einstellungen.*.seitenkopf+ort",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Ortszeile „Einstellungen“ über jedem Titel",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.*.card-hint",
+   "neu": "seitenhilfe.eintrag",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„i“-Texte stehen unter „Hilfe zu dieser Seite“ (Linie, Schritt D)",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.saetze.stundensatz.fach",
+   "neu": "einstellungen.saetze.stundensatz.fach",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.saetze.stundensatz.helfer",
+   "neu": "einstellungen.saetze.stundensatz.helfer",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.saetze.zuschlag.nacht",
+   "neu": "einstellungen.saetze.zuschlag.nacht",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.saetze.zuschlag.notdienst",
+   "neu": "einstellungen.saetze.zuschlag.notdienst",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.saetze.rechentabelle",
+   "neu": "einstellungen.saetze.rechentabelle",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.saetze.kosten.fach",
+   "neu": "einstellungen.saetze.kosten.fach",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.saetze.kosten.helfer",
+   "neu": "einstellungen.saetze.kosten.helfer",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.saetze.deckungsbeitrag",
+   "neu": "einstellungen.saetze.deckungsbeitrag",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.saetze.materialaufschlag.felder",
+   "neu": "einstellungen.saetze.materialaufschlag.felder",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.saetze.knopf.verkaufspreise-vorschlagen",
+   "neu": "einstellungen.saetze.knopf.verkaufspreise-vorschlagen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.saetze.stundensatz.je-einstufung (5 Felder)",
+   "neu": "einstellungen.saetze.stundensaetze.weitere-angaben[Je Einstufung]",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "unter „Weitere Angaben“, offen sobald ein Satz belegt ist",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.saetze.kosten.je-einstufung (5 Felder)",
+   "neu": "einstellungen.saetze.kostensaetze.weitere-angaben[Je Einstufung]",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "wie oben, offen sobald belegt",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.saetze.knopf.saetze-speichern",
+   "neu": "einstellungen.saetze.fuss-aktionen.saetze-speichern",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Fusszeile, ganz rechts",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.saetze.knopf.standardwerte",
+   "neu": "einstellungen.saetze.fuss-aktionen.standardwerte",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Fusszeile, Bestätigung unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.rechnung.umsatzsteuer",
+   "neu": "einstellungen.rechnung.umsatzsteuer",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.rechnung.befreiungsgrund",
+   "neu": "einstellungen.rechnung.befreiungsgrund",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.rechnung.zahlungsziel",
+   "neu": "einstellungen.rechnung.zahlungsziel",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.rechnung.skonto",
+   "neu": "einstellungen.rechnung.skonto",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.rechnung.skontofrist",
+   "neu": "einstellungen.rechnung.skontofrist",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.rechnung.pauschale458",
+   "neu": "einstellungen.rechnung.pauschale458",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.rechnung.mahnspesen.firma(3)",
+   "neu": "einstellungen.rechnung.mahnspesen.firma(3)",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.rechnung.mahnspesen.privat(3)",
+   "neu": "einstellungen.rechnung.mahnspesen.privat(3)",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.rechnung.mahnspesen.befund",
+   "neu": "einstellungen.rechnung.mahnspesen.befund",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.rechnung.basiszins-verlauf",
+   "neu": "einstellungen.rechnung.basiszins-verlauf",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.rechnung.hinweis+i",
+   "neu": "einstellungen.rechnung.hinweis+i",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.rechnung.rechnungsarten",
+   "neu": "einstellungen.rechnung.rechnungsarten",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Formularbreite 560 px",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.rechnung.knopf.speichern",
+   "neu": "einstellungen.rechnung.fuss-aktionen.speichern",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.nummern.vorsatz.rechnung",
+   "neu": "einstellungen.nummern.vorsatz.rechnung",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Speichern in der Fusszeile der Karte",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.nummern.vorsatz.angebot",
+   "neu": "einstellungen.nummern.vorsatz.angebot",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Speichern in der Fusszeile der Karte",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.nummern.vorsatz.baustelle",
+   "neu": "einstellungen.nummern.vorsatz.baustelle",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Speichern in der Fusszeile der Karte",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.nummern.vorsatz.kennzeichen",
+   "neu": "einstellungen.nummern.vorsatz.kennzeichen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Speichern in der Fusszeile der Karte",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.nummern.vorschau",
+   "neu": "einstellungen.nummern.vorschau",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Speichern in der Fusszeile der Karte",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.nummern.knopf.speichern",
+   "neu": "einstellungen.nummern.knopf.speichern",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Speichern in der Fusszeile der Karte",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.personal.urlaubsjahr",
+   "neu": "einstellungen.personal.urlaubsjahr",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte; Sonderurlaub einspaltig; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.personal.uebertrag.verjaehrung",
+   "neu": "einstellungen.personal.uebertrag.verjaehrung",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte; Sonderurlaub einspaltig; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.personal.uebertrag.stichtag",
+   "neu": "einstellungen.personal.uebertrag.stichtag",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte; Sonderurlaub einspaltig; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.personal.knopf.urlaubsuebertrag",
+   "neu": "einstellungen.personal.knopf.urlaubsuebertrag",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte; Sonderurlaub einspaltig; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.personal.genehmigende.picker",
+   "neu": "einstellungen.personal.genehmigende.picker",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte; Sonderurlaub einspaltig; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.personal.knopf.genehmigende",
+   "neu": "einstellungen.personal.knopf.genehmigende",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte; Sonderurlaub einspaltig; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.personal.wochenplan.3-haken",
+   "neu": "einstellungen.personal.wochenplan.3-haken",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte; Sonderurlaub einspaltig; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.personal.knopf.wochenplan",
+   "neu": "einstellungen.personal.knopf.wochenplan",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte; Sonderurlaub einspaltig; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.personal.dezember.haken",
+   "neu": "einstellungen.personal.dezember.haken",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte; Sonderurlaub einspaltig; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.personal.knopf.dezember",
+   "neu": "einstellungen.personal.knopf.dezember",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte; Sonderurlaub einspaltig; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.personal.lohnregeln.nachtzeit",
+   "neu": "einstellungen.personal.lohnregeln.nachtzeit",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte; Sonderurlaub einspaltig; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.personal.lohnregeln.ueberstunden",
+   "neu": "einstellungen.personal.lohnregeln.ueberstunden",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte; Sonderurlaub einspaltig; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.personal.knopf.lohnregeln",
+   "neu": "einstellungen.personal.knopf.lohnregeln",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte; Sonderurlaub einspaltig; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.personal.sonderurlaub.8-felder",
+   "neu": "einstellungen.personal.sonderurlaub.8-felder",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte; Sonderurlaub einspaltig; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.personal.knopf.sonderurlaub",
+   "neu": "einstellungen.personal.knopf.sonderurlaub",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Karte; Sonderurlaub einspaltig; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.firma.briefkopf",
+   "neu": "einstellungen.firma.briefkopf",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.firma.logo.vorschau",
+   "neu": "einstellungen.firma.logo.vorschau",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.firma.logo.entfernen",
+   "neu": "einstellungen.firma.logo.entfernen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.firma.logo.datei",
+   "neu": "einstellungen.firma.logo.datei",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.firma.uid",
+   "neu": "einstellungen.firma.uid",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.firma.firmenbuch",
+   "neu": "einstellungen.firma.firmenbuch",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.firma.firmenbuchgericht",
+   "neu": "einstellungen.firma.firmenbuchgericht",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.firma.iban",
+   "neu": "einstellungen.firma.iban",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.firma.bic",
+   "neu": "einstellungen.firma.bic",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.firma.bank",
+   "neu": "einstellungen.firma.bank",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.firma.farben(4)",
+   "neu": "einstellungen.firma.farben(4)",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.firma.farben.pruefung",
+   "neu": "einstellungen.firma.farben.pruefung",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.firma.knopf.speichern",
+   "neu": "einstellungen.firma.knopf.speichern",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.konten.grundkonten",
+   "neu": "einstellungen.konten.grundkonten",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.konten.vorschlag-einsetzen",
+   "neu": "einstellungen.konten.vorschlag-einsetzen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.konten.zahlungen",
+   "neu": "einstellungen.konten.zahlungen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.konten.erloeskonten",
+   "neu": "einstellungen.konten.erloeskonten",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.konten.steuersatz-hinzu",
+   "neu": "einstellungen.konten.steuersatz-hinzu",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.konten.steuersatz-entfernen",
+   "neu": "einstellungen.konten.steuersatz-entfernen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.konten.knopf.speichern",
+   "neu": "einstellungen.konten.knopf.speichern",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Formularbreite; Speichern in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.support.grund",
+   "neu": "einstellungen.support.grund",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.support.stufe",
+   "neu": "einstellungen.support.stufe",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.support.dauer",
+   "neu": "einstellungen.support.dauer",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.support.knopf.gewaehren",
+   "neu": "einstellungen.support.knopf.gewaehren",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.support.knopf.beenden",
+   "neu": "einstellungen.support.knopf.beenden",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.support.bisherige-zugaenge.liste",
+   "neu": "einstellungen.support.bisherige-zugaenge.lot",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "als LotVerlauf; offener Zugang als „jetzt“-Punkt; Inhalt je Zugang gleich",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.module.zeile+schalter",
+   "neu": "einstellungen.module.listrow+schalter",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Zeile der Linie, Schalter rechts; Bestätigung beim Ausschalten unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.module.speichern/verwerfen",
+   "neu": "einstellungen.module.fuss-aktionen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.sicherung.sicherung-jetzt",
+   "neu": "einstellungen.sicherung.sicherung-jetzt",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Herunterladen-Knöpfe mit Rand (vorher wie Text)",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.sicherung.laufstatus",
+   "neu": "einstellungen.sicherung.laufstatus",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Herunterladen-Knöpfe mit Rand (vorher wie Text)",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.sicherung.alle-daten-herunterladen",
+   "neu": "einstellungen.sicherung.alle-daten-herunterladen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Herunterladen-Knöpfe mit Rand (vorher wie Text)",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.sicherung.belegarchiv.zeitraum",
+   "neu": "einstellungen.sicherung.belegarchiv.zeitraum",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Herunterladen-Knöpfe mit Rand (vorher wie Text)",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.sicherung.belegarchiv-herunterladen",
+   "neu": "einstellungen.sicherung.belegarchiv-herunterladen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Herunterladen-Knöpfe mit Rand (vorher wie Text)",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.meldungen.geraet",
+   "neu": "einstellungen.meldungen.geraet",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.meldungen.auswahl.haken",
+   "neu": "einstellungen.meldungen.auswahl.haken",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.meldungen.zwei-faktor",
+   "neu": "einstellungen.meldungen.zwei-faktor",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.meldungen.passwort-aendern",
+   "neu": "einstellungen.meldungen.passwort-aendern",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "einstellungen.meldungen.kommen-meldungen-an",
+   "neu": "einstellungen.meldungen.kommen-meldungen-an",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "(neu) einstellungen.uebersicht",
+   "neu": "einstellungen.uebersicht",
+   "weg_alt": 0,
+   "weg_neu": 1,
+   "bemerkung": "Suche, Einrichtungsstand, alle Unterseiten — liegt bereit, Verdrahtung als Vorschlag (Bericht)",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.kopf.neuer-benutzer",
+   "neu": "benutzer.kopf.benutzer-anlegen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Hauptaktion, heisst wie der Knopf im Formular; am Handy im Daumenbereich",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.filter.status(select)",
+   "neu": "benutzer.filter.segmente",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Segmente „Aktive | Deaktivierte (n) | Alle“, in der Adresse (?status=)",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.suche(ab 8 Benutzern)",
+   "neu": "benutzer.suche",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "immer sichtbar, in der Adresse (?suche=)",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.zeile.link-akte",
+   "neu": "benutzer.zeile(ganz)",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "die ganze Zeile führt in die Akte",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.zeile.marke-deaktiviert",
+   "neu": "benutzer.zeile.marke-deaktiviert",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.gruppe-je-rolle",
+   "neu": "benutzer.gruppe-je-rolle",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "höchstens 20 Zeilen, dann „und N weitere anzeigen“",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.name",
+   "neu": "benutzer.formular.name",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert, Formularbreite; Aktionen in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.anmeldung-mit",
+   "neu": "benutzer.formular.anmeldung-mit",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert, Formularbreite; Aktionen in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.email|benutzername",
+   "neu": "benutzer.formular.email|benutzername",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert, Formularbreite; Aktionen in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.rolle",
+   "neu": "benutzer.formular.rolle",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert, Formularbreite; Aktionen in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.status",
+   "neu": "benutzer.formular.status",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert, Formularbreite; Aktionen in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.einstufung",
+   "neu": "benutzer.formular.einstufung",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert, Formularbreite; Aktionen in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.eintrittsart",
+   "neu": "benutzer.formular.eintrittsart",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert, Formularbreite; Aktionen in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.resturlaub",
+   "neu": "benutzer.formular.resturlaub",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert, Formularbreite; Aktionen in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.pflichthinweis",
+   "neu": "benutzer.formular.pflichthinweis",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert, Formularbreite; Aktionen in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.abbrechen",
+   "neu": "benutzer.formular.abbrechen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert, Formularbreite; Aktionen in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.benutzer-anlegen",
+   "neu": "benutzer.formular.benutzer-anlegen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert, Formularbreite; Aktionen in der Fusszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.zeitkonto-anzeigen(link)",
+   "neu": "benutzer.formular.zeitkonto-anzeigen(weiteres-knopf)",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "als „Weitere Angaben“-Knopf mit aria-expanded",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.zeitkonto.wochenstunden",
+   "neu": "benutzer.formular.zeitkonto.wochenstunden",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.zeitkonto.urlaubstage",
+   "neu": "benutzer.formular.zeitkonto.urlaubstage",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.zeitkonto.eintritt",
+   "neu": "benutzer.formular.zeitkonto.eintritt",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.zeitkonto.saldo-start",
+   "neu": "benutzer.formular.zeitkonto.saldo-start",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.zeitkonto.start-saldo",
+   "neu": "benutzer.formular.zeitkonto.start-saldo",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.zeitkonto.urlaub-erstes-jahr",
+   "neu": "benutzer.formular.zeitkonto.urlaub-erstes-jahr",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.zeitkonto.arbeitstage",
+   "neu": "benutzer.formular.zeitkonto.arbeitstage",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.zeitkonto.tagessoll",
+   "neu": "benutzer.formular.zeitkonto.tagessoll",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.formular.warum-zwei-urlaubsfelder+i",
+   "neu": "benutzer.formular.satz+seitenhilfe[Resturlaub beim Umstieg]",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "Satz steht für sich, Erklärung in der Seitenhilfe",
+   "geprueft": true
+  },
+  {
+   "alt": "benutzer.startpasswort-hinweis",
+   "neu": "benutzer.startpasswort-hinweis",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.kopf.zur-benutzerliste",
+   "neu": "akte.kopf.ort.zur-benutzerliste",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "in der Ortszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.kopf.marken",
+   "neu": "akte.kopf.marken",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Rolle, deaktiviert",
+   "geprueft": true
+  },
+  {
+   "alt": "(neu) akte.ueberblick",
+   "neu": "akte.ueberblick",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Zusammenfassung aus dem gespeicherten Stand, nur wo bearbeitet werden darf",
+   "geprueft": true
+  },
+  {
+   "alt": "(neu) akte.sprungleiste",
+   "neu": "akte.sprungleiste",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Stammdaten, Zugang, Geburtsdatum, Urlaubsanspruch, Datenschutz — je nach Recht",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.stammdaten.alle-felder",
+   "neu": "akte.stammdaten.alle-felder",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Bestätigungen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.stammdaten.lesen",
+   "neu": "akte.stammdaten.lesen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Bestätigungen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.freigaben(kunden,katalog,einkauf,rechnungen)",
+   "neu": "akte.freigaben(kunden,katalog,einkauf,rechnungen)",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Bestätigungen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.zeitkonto-haken",
+   "neu": "akte.zeitkonto-haken",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Bestätigungen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.zeitkonto.felder",
+   "neu": "akte.zeitkonto.felder",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Bestätigungen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.aktionsleiste.speichern/verwerfen",
+   "neu": "akte.aktionsleiste.speichern/verwerfen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Bestätigungen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.zugang.passwort-mail",
+   "neu": "akte.zugang.passwort-mail",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Bestätigungen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.zugang.startpasswort",
+   "neu": "akte.zugang.startpasswort",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Bestätigungen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.zugang.deaktivieren/aktivieren",
+   "neu": "akte.zugang.deaktivieren/aktivieren",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Bestätigungen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.zugang.konto-umstellen",
+   "neu": "akte.zugang.konto-umstellen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Bestätigungen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.geburtsdatum",
+   "neu": "akte.geburtsdatum",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Bestätigungen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.urlaubsanspruch",
+   "neu": "akte.urlaubsanspruch",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Bestätigungen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.datenauskunft",
+   "neu": "akte.datenauskunft",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Bestätigungen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.jugendschutz-dialog",
+   "neu": "akte.jugendschutz-dialog",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Bestätigungen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.ungespeichert-warnung",
+   "neu": "akte.ungespeichert-warnung",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert; Bestätigungen unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "akte.warum-zwei-urlaubsfelder+i",
+   "neu": "akte.satz+seitenhilfe",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "wie in der Anlage",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.kopf",
+   "neu": "plattform.seitenkopf",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "PageHeader „Betriebe anlegen“ mit Ortszeile",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.neuer-betrieb.felder",
+   "neu": "plattform.neuer-betrieb.felder",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Formularbreite",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.testbetrieb",
+   "neu": "plattform.testbetrieb",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Formularbreite",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.warnung-ohne-mail",
+   "neu": "plattform.warnung-ohne-mail",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Formularbreite",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.betrieb-anlegen",
+   "neu": "plattform.betrieb-anlegen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert, Formularbreite",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.in-dieser-sitzung-angelegt",
+   "neu": "plattform.in-dieser-sitzung-angelegt",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "direkt unter dem Formular statt ganz unten",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.einblick.oeffnen",
+   "neu": "plattform.einblick.oeffnen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.einblick.passwort-neu-setzen",
+   "neu": "plattform.einblick.passwort-neu-setzen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.einblick.zwei-faktor-zuruecksetzen",
+   "neu": "plattform.einblick.zwei-faktor-zuruecksetzen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.betriebe.zeile",
+   "neu": "plattform.betriebe.listrow",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Zeile der Linie, Marken als Zustand",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.betriebe.verwalten(aufklappen)",
+   "neu": "plattform.betriebe.verwalten(seitenfenster)",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Seitenfenster bzw. Blatt; auch über die ganze Zeile",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.betriebe.notzugang",
+   "neu": "plattform.betriebe.notzugang",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.verwalten.grund",
+   "neu": "plattform.verwalten.grund",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "im Seitenfenster; Ablauf und Sperren unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.verwalten.deaktivieren/aktivieren",
+   "neu": "plattform.verwalten.deaktivieren/aktivieren",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "im Seitenfenster; Ablauf und Sperren unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.verwalten.testbetrieb",
+   "neu": "plattform.verwalten.testbetrieb",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "im Seitenfenster; Ablauf und Sperren unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.verwalten.uebergabe",
+   "neu": "plattform.verwalten.uebergabe",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "im Seitenfenster; Ablauf und Sperren unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.verwalten.loeschung-planen",
+   "neu": "plattform.verwalten.loeschung-planen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "im Seitenfenster; Ablauf und Sperren unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.verwalten.loeschung-abbrechen",
+   "neu": "plattform.verwalten.loeschung-abbrechen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "im Seitenfenster; Ablauf und Sperren unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.verwalten.endgueltig-loeschen(kennung)",
+   "neu": "plattform.verwalten.endgueltig-loeschen(kennung)",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "im Seitenfenster; Ablauf und Sperren unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.verwalten.protokoll",
+   "neu": "plattform.verwalten.protokoll-lot",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "LotVerlauf, alt nach neu, jüngster Schritt als „jetzt“",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.geloescht",
+   "neu": "plattform.betriebe.abschnitt-geloescht",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Abschnitt in derselben Gruppe",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.basiszins",
+   "neu": "plattform.basiszins",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.fehler.neu-laden",
+   "neu": "plattform.fehler.neu-laden",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.fehlerliste",
+   "neu": "plattform.fehlerliste",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.notzugang.formular",
+   "neu": "plattform.notzugang.formular",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.passwort-aendern",
+   "neu": "plattform.passwort-aendern",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.zwei-faktor",
+   "neu": "plattform.zwei-faktor",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "plattform.abmelden",
+   "neu": "plattform.abmelden",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "anmeldung.karte(schatten)",
+   "neu": "anmeldung.karte(rand)",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "ohne Schatten (Linie)",
+   "geprueft": true
+  },
+  {
+   "alt": "anmeldung.email",
+   "neu": "anmeldung.email",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "anmeldung.passwort",
+   "neu": "anmeldung.passwort",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "anmeldung.angemeldet-bleiben",
+   "neu": "anmeldung.angemeldet-bleiben",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "anmeldung.anmelden",
+   "neu": "anmeldung.anmelden",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "anmeldung.passwort-vergessen",
+   "neu": "anmeldung.passwort-vergessen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "anmeldung.recht-links",
+   "neu": "anmeldung.recht-links",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zwei-faktor.kopf",
+   "neu": "zwei-faktor.seitenkopf",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "PageHeader, Überschrift gleich",
+   "geprueft": true
+  },
+  {
+   "alt": "zwei-faktor.code",
+   "neu": "zwei-faktor.code",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zwei-faktor.einloesen",
+   "neu": "zwei-faktor.einloesen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zwei-faktor.wiederherstellung",
+   "neu": "zwei-faktor.wiederherstellung",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zwei-faktor.einrichten",
+   "neu": "zwei-faktor.einrichten",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "zwei-faktor.abmelden",
+   "neu": "zwei-faktor.abmelden",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "recht.impressum/datenschutz",
+   "neu": "recht.impressum/datenschutz",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  }
+ ]
+}
