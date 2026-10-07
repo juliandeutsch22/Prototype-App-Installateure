@@ -12,7 +12,7 @@ import { TelefonLink } from '@/components/Kontakt';
 import { mapsUrl } from '@/lib/kontakt';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
-import { Marke } from '@/components/Badge';
+import { MehrAnzeigen } from '@/components/LotBausteine';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import PlaeneListe from './PlaeneListe';
 import { planeVon, usePlaene } from './usePlaene';
@@ -37,7 +37,8 @@ function tageSpaeter(iso: string, n: number): string {
 /**
  * Baustellen des Mitarbeiters. Bewusst als Karten statt als Liste: vor Ort
  * zählen Ansprechpartner, Telefonnummer und Route — die müssen groß und mit
- * einem Daumen erreichbar sein.
+ * einem Daumen erreichbar sein. In der Linie „Lot“ ruhiger: eine Zeile für
+ * Nummer und Zeitraum, Linien statt Kästen in der Karte, keine Marken.
  */
 export default function MyProjectsView() {
   const { user } = useAuth();
@@ -52,6 +53,8 @@ export default function MyProjectsView() {
    */
   const [neuZuPlanen, setNeuZuPlanen] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
+  /** Höchstens 20 Baustellen auf einmal (Linie „Lot“, Regel 4). */
+  const [gezeigt, setGezeigt] = useState(20);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -115,7 +118,6 @@ export default function MyProjectsView() {
   );
 
   return (
-    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="space-y-3 lg:space-y-5">
       <PageHeader title="Meine Baustellen" subtitle="Aus deinem Team und aus deiner Einteilung" />
 
@@ -126,52 +128,63 @@ export default function MyProjectsView() {
       ) : active.length === 0 ? (
         <Card><EmptyState>Du bist auf keiner laufenden Baustelle und hast keinen kommenden Einsatz. Die Einteilung macht die Projektleitung.</EmptyState></Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 lg:space-y-5">
           {plaene.zustand === 'fehler' && <TeilFehler was="Die Pläne" onRetry={plaeneNeu} />}
-          {active.map((p) => (
+          {active.slice(0, gezeigt).map((p) => (
             <Card
               key={p.id}
               title={baustellenTitel(p)}
               action={<StatusBadge status={p.status} />}
             >
-              <p className="nr text-sm text-ink-muted">{p.projectNumber}</p>
+              {/*
+                IN DER REIHENFOLGE, IN DER MAN VOR ORT FRAGT (Linie „Lot“):
+                welche Baustelle und wann, wohin und wen anrufen, was zu tun
+                ist, und die Pläne dazu. Nummer, Zeitraum und kalkulierte
+                Stunden stehen als eine ruhige Zeile unter dem Titel.
+              */}
+              <p className="mb-meta">
+                <span className="nr">{p.projectNumber}</span>
+                {(p.startDate || p.endDate) && (
+                  <>
+                    {' · '}
+                    <span>{`${fmt(p.startDate)}${p.endDate ? ` – ${fmt(p.endDate)}` : ''}`}</span>
+                  </>
+                )}
+                {p.estimatedHours ? (
+                  <>
+                    {' · '}
+                    <span>{fmtStunden(p.estimatedHours)} h kalkuliert</span>
+                  </>
+                ) : null}
+              </p>
+              {naechsterEinsatz.has(p.projectNumber) && (
+                <p className="mt-2 text-sm font-semibold text-ink-deep">
+                  nächster Einsatz {fmt(naechsterEinsatz.get(p.projectNumber))}
+                </p>
+              )}
               {neuZuPlanen.has(p.projectNumber) && (
                 <p className="mt-1 text-sm text-ink-muted">
                   Der Einsatz am {fmt(neuZuPlanen.get(p.projectNumber))} liegt an einem Tag, an dem du
                   abwesend bist — das Büro plant ihn neu.
                 </p>
               )}
-              {naechsterEinsatz.has(p.projectNumber) && (
-                <p className="mt-1">
-                  <Marke>nächster Einsatz {fmt(naechsterEinsatz.get(p.projectNumber))}</Marke>
-                </p>
-              )}
-              {/* Zeilenumbrüche bleiben: der Auftragsumfang aus dem Angebot ist oft eine Liste. */}
-              {p.description && <p className="mt-2 whitespace-pre-line text-ink">{p.description}</p>}
 
-              {plaene.zustand === 'bereit' && planeVon(plaene, p.id).length > 0 && (
-                <div className="mt-3">
-                  <p className="section-label">Pläne und Dokumente</p>
-                  <PlaeneListe dokumente={planeVon(plaene, p.id)} adressen={plaene.adressen} />
-                </div>
+              {/* Die Route ist die Hauptaktion der Karte: volle Breite, im Daumenbereich der Karte. */}
+              {p.address && (
+                <a
+                  href={mapsUrl(p.address)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mb-route"
+                >
+                  <Icon name="pin" size={18} aria-hidden />
+                  Route: {p.address}
+                </a>
               )}
-
-              {(p.startDate || p.endDate) && (
-                <p className="mt-2 text-sm text-ink-muted">
-                  {fmt(p.startDate)}
-                  {p.endDate && ` – ${fmt(p.endDate)}`}
-                </p>
-              )}
-              {p.estimatedHours ? (
-                <p className="mt-2">
-                  <Marke>{fmtStunden(p.estimatedHours)} h kalkuliert</Marke>
-                </p>
-              ) : null}
 
               {/* Ansprechpartner: ohne Nummer steht der Monteur vor Ort ohne
                   Kontakt da — deshalb wird ein fehlender Eintrag angemahnt. */}
-              {/* Eine Gruppe mit Linie oben statt eines getönten Kastens in der Karte. */}
-              <div className="mt-4 border-t border-line pt-3">
+              <div className="mb-vorort">
                 <p className="section-label">Ansprechpartner</p>
                 {p.contactName || p.contactPhone ? (
                   <div className="mt-1">
@@ -187,21 +200,23 @@ export default function MyProjectsView() {
                 )}
               </div>
 
-              {/* Die Route bleibt hier die Hauptaktion der Karte und
-                  behaelt deshalb die volle Breite und die Markenfarbe. */}
-              {p.address && (
-                <a
-                  href={mapsUrl(p.address)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 flex min-h-touch items-center justify-center gap-2 rounded-sm bg-brand px-4 py-2 font-semibold text-brand-fg shadow-sm"
-                >
-                  <Icon name="pin" size={18} aria-hidden />
-                  Route: {p.address}
-                </a>
+              {/* Zeilenumbrüche bleiben: der Auftragsumfang aus dem Angebot ist oft eine Liste. */}
+              {p.description && (
+                <div className="mb-vorort">
+                  <p className="whitespace-pre-line text-ink">{p.description}</p>
+                </div>
+              )}
+
+              {plaene.zustand === 'bereit' && planeVon(plaene, p.id).length > 0 && (
+                <div className="mb-vorort">
+                  <p className="section-label">Pläne und Dokumente</p>
+                  <PlaeneListe dokumente={planeVon(plaene, p.id)} adressen={plaene.adressen} />
+                </div>
               )}
             </Card>
           ))}
+          {/* Höchstens 20 Karten, dann „und N weitere“ (Linie „Lot“, Regel 4). */}
+          <MehrAnzeigen anzahl={Math.max(0, active.length - gezeigt)} onClick={() => setGezeigt(active.length)} />
         </div>
       )}
     </div>

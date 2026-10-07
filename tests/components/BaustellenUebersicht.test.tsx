@@ -180,3 +180,27 @@ describe('Baustellenübersicht', () => {
     expect(await summenzeile()).toContain('8,0 h');
   });
 });
+
+/*
+  LINIE „LOT“: über dem Budget ist ein Fehler und steht in Rot. Bis zum Umbau
+  stand es in der Hausfarbe — meist dasselbe Petrol wie „im Rahmen“.
+*/
+describe('Die Farbe des Budgetstands', () => {
+  it('steht über dem Budget in Rot', async () => {
+    // 2 × 8 h auf 10 h Budget: 160 %.
+    bestand = [eintrag({ id: 'a' }), eintrag({ id: 'b', date: '2026-09-04' })];
+    zeige(projekt({ estimatedHours: 10 }));
+    const zahl = await screen.findByText('160 %');
+    expect(zahl).toHaveClass('text-danger');
+    expect(zahl.previousElementSibling?.firstElementChild).toHaveClass('bg-danger');
+  });
+
+  it('Gegenprobe: im Rahmen weder Rot noch Hausfarbe', async () => {
+    bestand = [eintrag({ id: 'a' })];
+    zeige();
+    const zahl = await screen.findByText('20 %');
+    expect(zahl).not.toHaveClass('text-danger');
+    expect(zahl.previousElementSibling?.firstElementChild).toHaveClass('bg-success');
+    expect(zahl.previousElementSibling?.firstElementChild).not.toHaveClass('bg-accent');
+  });
+});
