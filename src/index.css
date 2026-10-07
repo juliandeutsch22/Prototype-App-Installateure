@@ -737,7 +737,7 @@ textarea {
   .zeile:first-child { border-top: 0; }
   .zeile-ganz { position: relative; cursor: pointer; }
   .zeile-ganz:hover { background: var(--petrol-hell); }
-  .zeile-ziel { color: inherit; text-decoration: none; display: inline-flex; flex-wrap: wrap; align-items: center; column-gap: 0.5rem; }
+  .zeile-ziel { color: inherit; text-decoration: none; }
   .zeile-ziel::after { content: ''; position: absolute; inset: 0; }
   .zeile-ziel:focus-visible { outline: none; }
   .zeile-ganz:focus-within { outline: 3px solid var(--brand-fixed); outline-offset: -3px; }

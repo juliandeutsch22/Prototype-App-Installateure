@@ -329,28 +329,25 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <p className="navi-person-rolle truncate">{rolleAnzeige(user.role, einblick)}</p>
               </div>
             </div>
+            {/* Dieselbe Zeile wie die Menüpunkte darüber, nur ohne Symbol. */}
             <ProblemMelden
               ausloeser={(oeffnen) => (
-                <Button variant="ghost-dark" className="w-full justify-start" onClick={oeffnen}>
+                <button type="button" className="navi-punkt w-full" onClick={oeffnen}>
                   Problem melden
-                </Button>
+                </button>
               )}
             />
-            <Button
-              variant="ghost-dark"
-              className="w-full justify-start"
+            <button
+              type="button"
+              className="navi-punkt w-full"
               onClick={() => setDarstellung(darstellung === 'dunkel' ? 'hell' : 'dunkel')}
               aria-pressed={darstellung === 'dunkel'}
             >
               Dunkle Darstellung: {darstellung === 'dunkel' ? 'an' : 'aus'}
-            </Button>
-            <Button
-              variant="ghost-dark"
-              className="w-full justify-start"
-              onClick={() => void abmelden()}
-            >
+            </button>
+            <button type="button" className="navi-punkt w-full" onClick={() => void abmelden()}>
               Abmelden
-            </Button>
+            </button>
 
             {/*
               DIE PRODUKTMARKE, KLEIN UND UNTERGEORDNET. Nicht aus Eitelkeit:
