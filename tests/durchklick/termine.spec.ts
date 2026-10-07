@@ -35,12 +35,14 @@ test('Lieferung in der Tagesplanung — der Eingeteilte sieht sie in seinem Plan
   const karte = chefin.locator('section', { has: chefin.getByRole('heading', { name: /^Termine am/ }) });
   await expect(karte.getByText('Keine Termine an diesem Tag.')).toBeVisible({ timeout: 15_000 });
   await karte.getByRole('button', { name: 'Termin anlegen' }).click();
-  await karte.getByLabel('Art').selectOption('Lieferung');
-  await karte.getByLabel('Zeitfenster von').fill('08:00');
-  await karte.getByLabel('Zeitfenster bis').fill('10:00');
-  await karte.getByRole('combobox', { name: /Baustelle/ }).selectOption(BAUSTELLE.nummer);
-  await karte.getByLabel('Notiz').fill('Wannen, zwei Paletten');
-  await karte.getByRole('button', { name: 'Termin anlegen' }).click();
+  // Seit der Linie „Lot“ steht das Formular im Seitenfenster (Regel 8).
+  const fenster = chefin.getByRole('dialog', { name: 'Termin anlegen' });
+  await fenster.getByLabel('Art').selectOption('Lieferung');
+  await fenster.getByLabel('Zeitfenster von').fill('08:00');
+  await fenster.getByLabel('Zeitfenster bis').fill('10:00');
+  await fenster.getByRole('combobox', { name: /Baustelle/ }).selectOption(BAUSTELLE.nummer);
+  await fenster.getByLabel('Notiz').fill('Wannen, zwei Paletten');
+  await fenster.getByRole('button', { name: 'Termin anlegen' }).click();
   await expect(karte.getByText('Lieferung (Aviso) · 08:00–10:00')).toBeVisible({ timeout: 15_000 });
   await expect(karte.getByText(`${BAUSTELLE.kunde} · ${BAUSTELLE.nummer}`)).toBeVisible();
   await keineFehlermeldung(chefin);
@@ -69,10 +71,11 @@ test('Besichtigung beim Kunden — der Teilnehmer sieht sie auf der Startseite',
   await chefin.goto(`/customers/${k!.id}`);
   const karte = chefin.locator('section', { has: chefin.getByRole('heading', { name: /^Termine/ }) });
   await karte.getByRole('button', { name: 'Termin anlegen' }).click({ timeout: 15_000 });
-  await karte.getByLabel('Art').selectOption('Besichtigung');
-  await karte.getByRole('radio', { name: 'Beim Kunden, ohne Baustelle' }).check();
-  await karte.getByRole('checkbox', { name: new RegExp(MONTEUR.name) }).check();
-  await karte.getByRole('button', { name: 'Termin anlegen' }).click();
+  const fenster = chefin.getByRole('dialog', { name: 'Termin anlegen' });
+  await fenster.getByLabel('Art').selectOption('Besichtigung');
+  await fenster.getByRole('radio', { name: 'Beim Kunden, ohne Baustelle' }).check();
+  await fenster.getByRole('checkbox', { name: new RegExp(MONTEUR.name) }).check();
+  await fenster.getByRole('button', { name: 'Termin anlegen' }).click();
   await expect(karte.getByText('Teilnehmer: Max Monteur')).toBeVisible({ timeout: 15_000 });
   await keineFehlermeldung(chefin);
 

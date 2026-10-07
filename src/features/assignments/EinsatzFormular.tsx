@@ -106,8 +106,11 @@ export default function EinsatzFormular({
   karten?: { titel: string };
   /** Nach vollständigem Speichern (Einsatz und Rüstliste). */
   onGespeichert?: () => void;
-  /** Im Seitenfenster: die gespeicherten Einsätze dieser Baustelle einzeln löschen. */
-  onLoeschen?: (a: WithId<Assignment>) => void;
+  /**
+   * Im Seitenfenster: die gespeicherten Einsätze dieser Baustelle einzeln
+   * löschen. Erst nach der Rückfrage im Fenster; ein Fehlschlag wirft.
+   */
+  onLoeschen?: (a: WithId<Assignment>) => Promise<void>;
 }) {
   const { user } = useAuth();
   const toast = useToast();
@@ -134,6 +137,9 @@ export default function EinsatzFormular({
   const [offeneRuestzeile, setOffeneRuestzeile] = useState<string | null>(null);
   const [ruestFehler, setRuestFehler] = useState<string | null>(null);
   const [anforderungLaeuft, setAnforderungLaeuft] = useState(false);
+  /** Welcher Einsatz gerade gelöscht werden soll — die Rückfrage steht im Fenster. */
+  const [loeschFrage, setLoeschFrage] = useState<WithId<Assignment> | null>(null);
+  const [loeschtGerade, setLoeschtGerade] = useState(false);
 
   /** Mit welcher Person das Fenster geöffnet wurde — sie kommt zur übernommenen Planung dazu. */
   const startPick = useMemo(() => {
@@ -735,8 +741,13 @@ export default function EinsatzFormular({
       {/*
         „EINSATZ LÖSCHEN“ BEIM BEARBEITEN (Linie „Lot“, E2) — je Person, wie
         bisher in der Tagesplanung: gespeichert wird je Paar aus Tag und
-        Baustelle, gelöscht je Eingeteiltem. Die Rückfrage stellt der
-        Aufrufer; sie bleibt, weil ein Wiederherstellen nicht exakt wäre.
+        Baustelle, gelöscht je Eingeteiltem.
+
+        DIE RÜCKFRAGE BLEIBT, und zwar IM FENSTER statt als Dialog darüber.
+        Ein „Rückgängig“ stellte den Einsatz nicht exakt wieder her (neue
+        Kennung, neuer Zeitstempel), also bleibt es bei der Rückfrage. Als
+        zweiter Dialog über dem Fenster schlösse Esc beide zugleich — und
+        nähme ungespeicherte Eingaben im Formular mit.
       */}
       {onLoeschen && existingForProject.length > 0 && (
         <section aria-label="Gespeichert eingeteilt">
@@ -751,13 +762,50 @@ export default function EinsatzFormular({
                 <Button
                   variant="secondary"
                   aria-label={`Einsatz von ${a.userName} löschen`}
-                  onClick={() => onLoeschen(a)}
+                  onClick={() => setLoeschFrage(a)}
+                  disabled={loeschtGerade}
                 >
                   Einsatz löschen
                 </Button>
               </ListRow>
             ))}
           </List>
+          {loeschFrage && (
+            <div className="mt-3" role="alertdialog" aria-label="Einsatz löschen?">
+              <Hinweiszeile stufe="warn">
+                <div className="space-y-3">
+                  <p>
+                    <strong>Einsatz löschen?</strong> Der Einsatz von {loeschFrage.userName} am{' '}
+                    {fmtDay(loeschFrage.date)} wird entfernt.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="danger"
+                      loading={loeschtGerade}
+                      onClick={async () => {
+                        const weg = loeschFrage;
+                        setLoeschtGerade(true);
+                        try {
+                          await onLoeschen(weg);
+                          toast.success('Einsatz gelöscht');
+                        } catch {
+                          toast.error(`Der Einsatz von ${weg.userName} konnte nicht gelöscht werden.`);
+                        } finally {
+                          setLoeschtGerade(false);
+                          setLoeschFrage(null);
+                        }
+                      }}
+                    >
+                      Löschen
+                    </Button>
+                    <Button variant="ghost" onClick={() => setLoeschFrage(null)} disabled={loeschtGerade}>
+                      Abbrechen
+                    </Button>
+                  </div>
+                </div>
+              </Hinweiszeile>
+            </div>
+          )}
         </section>
       )}
     </div>
