@@ -737,7 +737,7 @@ textarea {
   .zeile:first-child { border-top: 0; }
   .zeile-ganz { position: relative; cursor: pointer; }
   .zeile-ganz:hover { background: var(--petrol-hell); }
-  .zeile-ziel { color: inherit; text-decoration: none; }
+  .zeile-ziel { color: inherit; text-decoration: none; display: inline-flex; flex-wrap: wrap; align-items: center; column-gap: 0.5rem; }
   .zeile-ziel::after { content: ''; position: absolute; inset: 0; }
   .zeile-ziel:focus-visible { outline: none; }
   .zeile-ganz:focus-within { outline: 3px solid var(--brand-fixed); outline-offset: -3px; }
@@ -816,6 +816,13 @@ textarea {
   @media (min-width: 760px) { .segment > * { padding: 0 0.875rem; } }
   .segment > *:last-child { border-right: 0; }
   .segment > .segment-an { background: var(--petrol); color: #ffffff; font-weight: 600; }
+  /*
+    EIN ROLLBEHÄLTER IST BEZUGSRAHMEN. Eine `sr-only`-Beschriftung im Kopf
+    einer Tabelle ist absolut gesetzt; ohne Bezugsrahmen im Rollbehälter
+    entkam sie ihm und schob die ganze Seite am Handy um 216 px seitwärts
+    (gefunden im Umbau auf „Lot“, Rechnungen).
+  */
+  .overflow-x-auto { position: relative; }
   .tabelle { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
   .tabelle th { font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-align: left; padding: 0.625rem 1rem; border-bottom: 1px solid var(--border); background: var(--surface); white-space: nowrap; }
   .tabelle td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
