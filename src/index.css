@@ -720,6 +720,8 @@ textarea {
   .abschnitt + ul > .zeile:first-child, .abschnitt + div > ul > .zeile:first-child { border-top: 1px solid var(--border); }
   .karte-koerper > .abschnitt { margin-inline: -1rem; }
   .karte-buendig > .abschnitt:first-child { border-top: 0; }
+  /* Unter dem Kopf einer bündigen Karte zieht schon der Körper die Linie (E7). */
+  .karte-buendig > .kurz:first-child { border-top: 0; }
   .karte { overflow: hidden; overflow: clip; }
   .karte-koerper .zeile { padding-inline: 0; }
   .zeile { display: flex; align-items: center; gap: 0.75rem 1rem; min-height: 3.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); background: var(--surface); }
@@ -801,7 +803,7 @@ textarea {
   .chip-an { color: var(--ink-deep); font-weight: 600; border-bottom-color: var(--petrol); }
   /* Auswahl als Segmente (Entwurf: `.wahl`). Die gewählte Stelle ist Petrol. */
   .segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--surface); overflow: hidden; }
-  .segment > * { display: flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0 0.5rem; font-size: 0.875rem; font-weight: 400; color: var(--text); border-right: 1px solid var(--border-strong); }
+  .segment > * { display: flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0 0.5rem; text-align: center; hyphens: auto; font-size: 0.875rem; font-weight: 400; color: var(--text); border-right: 1px solid var(--border-strong); }
   @media (min-width: 760px) { .segment > * { padding: 0 0.875rem; } }
   .segment > *:last-child { border-right: 0; }
   .segment > .segment-an { background: var(--petrol); color: #ffffff; font-weight: 600; }

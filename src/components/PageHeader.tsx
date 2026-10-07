@@ -11,7 +11,8 @@ import { SeitenHilfeKnopf } from './SeitenHilfe';
  *
  * AM HANDY GEHT DIE HAUPTAKTION IN DEN DAUMENBEREICH: eine feste Leiste über
  * der unteren Navigation (`.daumen`). Oben rechts wäre sie mit einer Hand
- * nicht zu erreichen. Der Platzhalter am Ende hält den letzten Inhalt frei.
+ * nicht zu erreichen. Der Inhalt bekommt dafür unten Platz (`.inhalt:has(.daumen)`),
+ * damit die Leiste kein Feld verdeckt.
  */
 export default function PageHeader({
   title,
@@ -44,7 +45,6 @@ export default function PageHeader({
         {mehr}
         {action && <div className="daumen">{action}</div>}
       </div>
-      {action && <div className="daumen-platz" aria-hidden="true" />}
     </div>
   );
 }

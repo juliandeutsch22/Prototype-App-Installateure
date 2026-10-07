@@ -22,11 +22,11 @@
     hält den letzten Inhalt frei, damit die Leiste kein Feld verdeckt.
   */
   .daumen { display: contents; }
-  .daumen-platz { display: none; }
   @media (max-width: 759px) {
     .daumen { display: flex; gap: 0.5rem; position: fixed; left: 0; right: 0; bottom: var(--reiter-hoehe, 0px); z-index: 20; padding: 0.625rem 1rem; background: var(--surface); border-top: 1px solid var(--border); }
     .daumen > * { flex: 1; min-height: 3rem; }
-    .daumen-platz { display: block; height: 4.5rem; }
+    /* Platz am SEITENENDE, nicht unter dem Kopf: der letzte Inhalt rollt über die Leiste hinaus. */
+    .inhalt:has(.daumen) { padding-bottom: 5.5rem; }
   }
 
   /* ── Hilfe zu dieser Seite ────────────────────────────────────────────── */
@@ -77,6 +77,8 @@
   .meldung-knopf { pointer-events: auto; flex: none; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: #9fe3ec; font-weight: 600; cursor: pointer; }
 
   /* ── Gruppe und Zeilen ────────────────────────────────────────────────── */
+  /* Ein Verweis im Untertitel einer ganz antippbaren Zeile (Telefon, Adresse) bleibt eigenes Ziel. */
+  .zeile-griff { position: relative; z-index: 1; }
   .gruppe-anzahl { font-size: 0.8125rem; color: var(--text-muted); }
   .mehr-laden { display: flex; align-items: center; width: 100%; min-height: 3rem; padding: 0.75rem 1rem; background: var(--surface); border: 0; border-top: 1px solid var(--border); text-align: left; color: var(--petrol); font-weight: 600; font-size: 0.9375rem; cursor: pointer; }
   .mehr-laden:hover { background: var(--petrol-hell); }
@@ -113,6 +115,8 @@
   .kurz-zeichen { color: var(--text-muted); }
   .kurz-inhalt { padding: 0 1rem 1rem; }
   @media (min-width: 760px) { .kurz-inhalt { padding: 0 1rem 1rem 12rem; } }
+  /* Für Formulare in einer schmalen Spalte: ohne die Einrückung unter dem Namen. */
+  .kurz-inhalt-breit { padding: 0 1rem 1rem; }
 
   /* ── Lot: der senkrechte Verlauf ──────────────────────────────────────── */
   .lot { position: relative; margin: 0; padding: 0.25rem 0 0 2rem; list-style: none; }

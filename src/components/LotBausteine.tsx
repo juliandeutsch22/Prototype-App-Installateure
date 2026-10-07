@@ -72,12 +72,15 @@ export function Kurzzeile({
   wert,
   offen = false,
   id,
+  breit = false,
   children,
 }: {
   name: ReactNode;
   wert?: ReactNode;
   offen?: boolean;
   id?: string;
+  /** Inhalt ohne Einrückung — für Formulare in einer schmalen Spalte. */
+  breit?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -87,7 +90,7 @@ export function Kurzzeile({
         <span className="kurz-wert">{wert}</span>
         <span className="kurz-zeichen" aria-hidden="true">›</span>
       </summary>
-      <div className="kurz-inhalt">{children}</div>
+      <div className={breit ? 'kurz-inhalt-breit' : 'kurz-inhalt'}>{children}</div>
     </details>
   );
 }

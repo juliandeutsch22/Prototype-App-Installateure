@@ -6,6 +6,7 @@
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { useState } from 'react';
+import { readFileSync } from 'node:fs';
 import { render, screen, within, act, renderHook } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -111,14 +112,15 @@ describe('Seitenkopf (Regel 2)', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Lager' })).toBeInTheDocument();
     expect(screen.getByText('Material').className).toBe('seitenkopf-ort');
     expect(screen.getByRole('button', { name: 'Wareneingang' }).parentElement!.className).toBe('daumen');
-    // Der Platzhalter hält am Seitenende Platz frei, damit die Leiste nichts verdeckt.
-    expect(container.querySelector('.daumen-platz')).not.toBeNull();
+    // Am Seitenende hält `.inhalt:has(.daumen)` Platz frei, damit die Leiste nichts verdeckt.
+    const css = readFileSync('src/styles/lot.css', 'utf8');
+    expect(css).toMatch(/\.inhalt:has\(\.daumen\) \{ padding-bottom: 5\.5rem; \}/);
+    expect(container.querySelector('.daumen')).not.toBeNull();
   });
 
-  it('Gegenprobe: ohne Hauptaktion weder Leiste noch Platzhalter', () => {
+  it('Gegenprobe: ohne Hauptaktion keine Leiste', () => {
     const { container } = render(<PageHeader title="Lager" />);
     expect(container.querySelector('.daumen')).toBeNull();
-    expect(container.querySelector('.daumen-platz')).toBeNull();
   });
 });
 

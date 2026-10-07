@@ -29,7 +29,6 @@
     Untertitel lägen darunter und wären nicht mehr zu treffen. Diese Klasse
     hebt sie darüber — anrufen und hinfahren bleiben ein Tipp.
   */
-  .zeile-griff { position: relative; z-index: 1; }
 
   /* ── Akten: Daten als Kurzzeilen, die man aufklappt ───────────────────── */
   /*
