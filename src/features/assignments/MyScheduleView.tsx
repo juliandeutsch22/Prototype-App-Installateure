@@ -24,6 +24,7 @@ import Hinweiszeile from '@/components/Hinweiszeile';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import { List, ListRow } from '@/components/ListRow';
 import MonthCalendar from '@/components/MonthCalendar';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { ganztagsWeg } from './besetzung';
@@ -520,42 +521,39 @@ export default function MyScheduleView() {
               schlicht nicht zu sehen, und die Ansicht behauptete damit, es
               stünde nichts an.
             */}
-            <Card title="Nächste Einsätze" className="mt-3 lg:mt-5">
+            {/* Zeilen der Linie „Lot“: bündig, Name oben, Tag und Uhrzeit darunter. */}
+            <Card title="Nächste Einsätze" className="mt-3 lg:mt-5" buendig>
               {kommende.length === 0 ? (
                 <EmptyState>
                   {anstehend.length > 0 ? 'Nach heute ist nichts eingeplant.' : 'Zurzeit ist nichts eingeplant.'}
                 </EmptyState>
               ) : (
-                <ul className="divide-y divide-line">
+                <List>
                   {kommende.slice(0, 15).map((a) => {
                     const proj = projects.find((p) => p.projectNumber === a.projectNumber);
                     return (
-                      <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                        <span className="min-w-0">
-                          <span className="block truncate text-ink">
-                            {proj?.customerName ?? a.projectNumber}
-                          </span>
-                          <span className="block text-xs text-ink-muted">
-                            {fmtDay(a.date)}
-                            {einsatzZeit(a) ? ` · ${einsatzZeit(a)}` : ''}
-                          </span>
-                        </span>
-                        <span className="flex shrink-0 gap-2">
-                          {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
-                          {stufeImEinsatz(a.asHelper, user) === 'Helfer' && <Marke>Helfer</Marke>}
-                        </span>
-                      </li>
+                      <ListRow
+                        key={a.id}
+                        title={proj?.customerName ?? a.projectNumber}
+                        subtitle={`${fmtDay(a.date)}${einsatzZeit(a) ? ` · ${einsatzZeit(a)}` : ''}`}
+                        zustand={
+                          <>
+                            {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
+                            {stufeImEinsatz(a.asHelper, user) === 'Helfer' && <Marke>Helfer</Marke>}
+                          </>
+                        }
+                      />
                     );
                   })}
-                </ul>
+                </List>
               )}
               {anstehend.length > 15 && (
-                <p className="mt-2 text-sm text-ink-muted">
+                <p className="border-t border-line px-4 py-3 text-sm text-ink-muted">
                   und {anstehend.length - 15} weitere — im Kalender links nachschlagen.
                 </p>
               )}
               {ausgeblendet > 0 && (
-                <p className="mt-2 text-sm text-ink-muted">
+                <p className="border-t border-line px-4 py-3 text-sm text-ink-muted">
                   {ausgeblendet === 1
                     ? 'Ein Einsatz liegt an einem Tag, an dem du abwesend bist — das Büro plant ihn neu.'
                     : `${ausgeblendet} Einsätze liegen an Tagen, an denen du abwesend bist — das Büro plant sie neu.`}
@@ -582,6 +580,7 @@ export default function MyScheduleView() {
             {urlaubAn && (
             <Card
               title="Mein Urlaub"
+              buendig
               className="mt-3 lg:mt-5"
               action={
                 <Link to="/vacations" className="link-weiter text-sm">
@@ -592,23 +591,16 @@ export default function MyScheduleView() {
               {kommendeUrlaube.length === 0 ? (
                 <EmptyState>Kein kommender Urlaub beantragt.</EmptyState>
               ) : (
-                <ul className="divide-y divide-line">
+                <List>
                   {kommendeUrlaube.map((v) => (
-                    <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                      <span className="text-ink">
-                        {v.von === v.bis ? fmtDay(v.von) : `${fmtDay(v.von)} – ${fmtDay(v.bis)}`}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <span className="text-xs text-ink-muted">
-                          {tageWort(Number(v.tage))}
-                        </span>
-                        <Zustand stand={v.status === 'Genehmigt' ? 'gut' : 'achtung'}>
-                          {v.status}
-                        </Zustand>
-                      </span>
-                    </li>
+                    <ListRow
+                      key={v.id}
+                      title={v.von === v.bis ? fmtDay(v.von) : `${fmtDay(v.von)} – ${fmtDay(v.bis)}`}
+                      zustand={<Zustand stand={v.status === 'Genehmigt' ? 'gut' : 'achtung'}>{v.status}</Zustand>}
+                      wert={<span className="text-xs text-ink-muted">{tageWort(Number(v.tage))}</span>}
+                    />
                   ))}
-                </ul>
+                </List>
               )}
             </Card>
             )}

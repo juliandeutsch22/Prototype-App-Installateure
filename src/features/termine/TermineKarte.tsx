@@ -7,6 +7,7 @@ import { todayStr } from '@/lib/time';
 import type { AppUser, Termin } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import BottomSheet from '@/components/BottomSheet';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import { useToast } from '@/components/Toast';
@@ -111,8 +112,19 @@ export default function TermineKarte({
       }
       hint="Termine sind Kundentermine, Besichtigungen, Besprechungen, Abnahmen, Lieferungen (Aviso) und Behördenwege — alles, was kein Einsatz ist. Ein Termin bucht keine Arbeitszeit. Teilnehmer sehen ihn auf der Startseite und in „Mein Einsatzplan“, ebenso wer an diesem Tag auf der Baustelle eingeteilt ist."
     >
-      {bearbeite !== null && (
-        <div className="mb-4 border-b border-line pb-4">
+      {/*
+        ANLEGEN UND ÄNDERN IM SEITENFENSTER (Linie „Lot“, Regel 8): vorher
+        klappte das Formular oben in der Karte auf und schob die Liste weg.
+        Jetzt bleibt die Liste stehen — am Handy kommt es als Blatt von unten.
+      */}
+      <BottomSheet
+        open={bearbeite !== null}
+        onClose={() => setBearbeite(null)}
+        label={bearbeite === 'neu' ? 'Termin anlegen' : 'Termin ändern'}
+        auchBreit
+        titel={bearbeite === 'neu' ? 'Termin anlegen' : 'Termin ändern'}
+      >
+        {bearbeite !== null && (
           <TerminFormular
             companyId={companyId}
             vorgabe={vorgabe}
@@ -125,8 +137,8 @@ export default function TermineKarte({
             }}
             onAbbrechen={() => setBearbeite(null)}
           />
-        </div>
-      )}
+        )}
+      </BottomSheet>
 
       {termine === null ? (
         <SkeletonList rows={1} />
