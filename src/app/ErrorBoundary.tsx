@@ -118,7 +118,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             <button
               type="button"
               onClick={() => this.setState({ error: null })}
-              className="min-h-touch rounded-sm bg-brand px-4 py-2 font-semibold text-brand-fg shadow-sm"
+              className="min-h-touch rounded-sm bg-brand px-4 py-2 font-semibold text-brand-fg"
             >
               Erneut versuchen
             </button>
@@ -127,7 +127,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               onClick={() => {
                 window.location.href = '/';
               }}
-              className="min-h-touch rounded-sm border border-line px-4 py-2 font-normal text-ink"
+              className="min-h-touch rounded-sm border border-line-strong px-4 py-2 font-normal text-ink"
             >
               Zur Startseite
             </button>

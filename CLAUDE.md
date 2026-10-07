@@ -20,10 +20,23 @@ Grenze, keine Annahme über „den“ Betrieb.
 
 ## Oberfläche
 
-- Trotz vieler Funktionen nicht überladen oder chaotisch.
-- Lange Texte hinter das „i“ (`InfoHint`).
+- Designlinie **„Lot“** (`docs/design/senklot-designlinie-v2.html`, Leitfaden
+  für Seiten: `docs/ui-umbau/seiten-leitfaden.md`, Entscheidungen:
+  `docs/ui-umbau/entscheidungen.md`). Der Entwurf ist Orientierung, keine
+  1:1-Vorlage. Bausteine stehen in `src/styles/lot.css` und
+  `src/components/LotBausteine.tsx`; alles zum Ansehen auf `/_muster`.
+- Trotz vieler Funktionen nicht überladen oder chaotisch: eine Fläche, Linien
+  statt Karten; jede Seite beginnt mit `PageHeader` (eine Hauptaktion, ⋯ nur
+  im Seitenkopf); ganze Zeilen antippbar; fünf Zustände (offen, läuft,
+  erledigt, Achtung, Fehler).
+- **Eine Hilfe pro Seite:** Erklärungen als `InfoHint` oder `hint` einer
+  `Card` — sie erscheinen gesammelt unter „Hilfe zu dieser Seite“. Lange
+  Texte nie offen auf die Seite.
 - Keine Pillen, nicht bunt, keine Emojis. Symbole sparsam, außer in der Navigation.
-- Keine halbtransparenten Farbflächen, keine gestrichelten Linien. Designlinie „Fassung 3“.
+- Keine halbtransparenten Farbflächen (nur der neutrale Schleier), keine
+  gestrichelten Linien, nur die Tokens der Grundwerte, zwei Schriftstärken
+  (400/600). Hell ist Standard, dunkel nur auf Wahl.
+- Breiten: Handy bis 759 px, Tablet 760–1.199 (`md:`), Schreibtisch ab 1.200 (`lg:`).
 - Markt Österreich. Oberfläche und Code-Kommentare auf Deutsch.
 - **Kommentare erklären das Warum, nicht das Was.**
 
