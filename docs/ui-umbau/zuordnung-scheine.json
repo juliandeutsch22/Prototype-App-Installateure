@@ -1,0 +1,509 @@
+{
+ "schritt": "E6/E8 – Handwerksscheine (Liste und Schein)",
+ "eintraege": [
+  {
+   "alt": "scheine.kopf.titel",
+   "neu": "scheine.seitenkopf.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "PageHeader, Untertitel unverändert (Test)",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.kopf.neuer-schein",
+   "neu": "scheine.seitenkopf.hauptaktion",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Neuer Schein“ als PageHeader-action, am Handy im Daumenbereich; dieselben Rollen (canWriteWorkSheet, Test P4-04)",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.kopf.hilfe",
+   "neu": "scheine.seitenkopf.hilfe",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Hilfe zu dieser Seite“ mit Einleitung; sammelt den langen Text der Karte „Stunden ohne Buchung“",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.ohne-buchung.karte",
+   "neu": "scheine.ohne-buchung.gruppe",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "nur canEditTime wie bisher; Titel mit Zähler unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.ohne-buchung.hinweis",
+   "neu": "scheine.seitenkopf.hilfe:Stunden ohne Buchung",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Text unverändert, in der Seitenhilfe (Regel 11)",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.ohne-buchung.summe",
+   "neu": "scheine.ohne-buchung.summe",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.ohne-buchung.pruefbasis",
+   "neu": "scheine.ohne-buchung.pruefbasis",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Geprüft über …“, Grenze erreicht, zu junge Scheine — unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.ohne-buchung.zeitraum:30",
+   "neu": "scheine.ohne-buchung.zeitraum:30",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.ohne-buchung.zeitraum:90",
+   "neu": "scheine.ohne-buchung.zeitraum:90",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.ohne-buchung.zeitraum:365",
+   "neu": "scheine.ohne-buchung.zeitraum:365",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.ohne-buchung.zeile",
+   "neu": "scheine.ohne-buchung.zeile",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Kunde, Alter (Warnung), Baustelle, Leistungstag, Zeilen je Person — unverändert; höchstens 20, dann „und N weitere“",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.ohne-buchung.zeile.schein-ansehen",
+   "neu": "scheine.ohne-buchung.zeile.ganz",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "ganze Zeile öffnet den Schein im Seitenfenster — jetzt auch einen Schein aus der tiefen Prüfung, der nicht geladen ist",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.ohne-buchung.leer",
+   "neu": "scheine.ohne-buchung.leer",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.adressfilter",
+   "neu": "scheine.adressfilter",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "filter=nicht-verrechnet(-alt) von der Startseite wie bisher; Segmente sind währenddessen ausgeblendet; Reihenfolge jetzt älteste zuerst wie auf der Startseite",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.adressfilter.alle-zeigen",
+   "neu": "scheine.adressfilter.alle-zeigen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "entfernt den Filter; danach Ansicht „Offen“ (für das Büro mit der Gruppe „Nicht verrechnet“)",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.suche",
+   "neu": "scheine.werkzeug.suche",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "über der Liste statt im Kartenkopf; sucht über alle Scheine unabhängig von der Ansicht",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.suche.auskunft",
+   "neu": "scheine.liste.suche.auskunft",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„N von M geladenen Scheinen passen“, Suchhinweis — unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.suche.server",
+   "neu": "scheine.liste.suche.server",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Auf dem Server suchen“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.suche.grenze",
+   "neu": "scheine.liste.suche.grenze",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.suche.zurueck",
+   "neu": "scheine.liste.suche.zurueck",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Zurück zur Liste“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.verworfene-schalter",
+   "neu": "scheine.liste.verworfene-schalter",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "in jeder Ansicht; unter „Offen“ eigene Gruppe „Verworfen“",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.titel-zaehler",
+   "neu": "scheine.liste.titel-zaehler",
+   "weg_alt": 0,
+   "weg_neu": 1,
+   "bemerkung": "Ansicht „Alle“: „Scheine (N)“ ohne Verworfene wie bisher; unter „Offen“ Zähler je Gruppe (Entwürfe, Nicht verrechnet)",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.fehler",
+   "neu": "scheine.liste.fehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.zeile",
+   "neu": "scheine.liste.zeile",
+   "weg_alt": 0,
+   "weg_neu": 1,
+   "bemerkung": "Kunde, Nummer, Tag, Abrechnung, Status, Dauer, Unterschrieben von, Verworfen von, Storno-Grund — unverändert. Entwürfe (fürs Büro auch Unverrechnete) in „Offen“ mit Weg 0; übrige über das Segment „Alle“ (Regel 7.1) oder die Suche",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.zeile.details",
+   "neu": "scheine.liste.zeile.ganz",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "ganze Zeile öffnet das Seitenfenster statt Aufklappen zwischen den Zeilen (Regel 8)",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.zeile.details.zeiten",
+   "neu": "scheine.fenster.zeiten",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "im Seitenfenster, gleiche Reihenfolge",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.zeile.details.material",
+   "neu": "scheine.fenster.material",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "im Seitenfenster, gleiche Reihenfolge",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.zeile.details.anmerkungen",
+   "neu": "scheine.fenster.anmerkungen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "im Seitenfenster, gleiche Reihenfolge",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.zeile.details.fotos",
+   "neu": "scheine.fenster.fotos",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "im Seitenfenster, gleiche Reihenfolge; Fotos werden erst mit dem Fenster geholt",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.zeile.details.pruefsumme",
+   "neu": "scheine.fenster.pruefsumme",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "im Seitenfenster, gleiche Reihenfolge",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.zeile.details.neu-laden",
+   "neu": "scheine.fenster.pruefsumme.neu-laden",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.zeile.pdf",
+   "neu": "scheine.liste.zeile.schritt:pdf",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "in der Zeile, wo nicht Weiterbearbeiten/Wieder aufnehmen der Schritt ist; sonst und immer im Fenster (Weg 2)",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.zeile.weiterbearbeiten",
+   "neu": "scheine.liste.zeile.schritt:weiterbearbeiten",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Link mit Kennung wie bisher (Test P4-12); zusätzlich im Fenster",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.zeile.verwerfen",
+   "neu": "scheine.fenster.verwerfen",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "im Fenster; Rückfrage unverändert (nennt Kunde, Tag, Umfang)",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.verwerfen.dialog",
+   "neu": "scheine.verwerfen.dialog",
+   "weg_alt": 2,
+   "weg_neu": 3,
+   "bemerkung": "ConfirmDialog unverändert; das Fenster schliesst dabei",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.zeile.wieder-aufnehmen",
+   "neu": "scheine.liste.zeile.schritt:wieder-aufnehmen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Schalter „verworfene anzeigen“, dann Knopf in der Zeile; zusätzlich im Fenster",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.zeile.stornieren",
+   "neu": "scheine.fenster.stornieren",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "nur Geschäftsführung/Administrator wie bisher; im Fenster. Für einen schon verrechneten Schein zusätzlich „Alle“ (Regel 7.1) — siehe Abnahmeblatt",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.storno.karte",
+   "neu": "scheine.fenster.storno",
+   "weg_alt": 2,
+   "weg_neu": 3,
+   "bemerkung": "Grund (Pflicht, mind. 3 Zeichen), „Storno bestätigen“, „Abbrechen“ im Fenster statt einer Karte unter der Liste",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.nachladen",
+   "neu": "scheine.liste.nachladen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Weitere Scheine laden“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "scheine.liste.leer",
+   "neu": "scheine.liste.leer",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "alle bisherigen Leertexte; neu „Kein offener Entwurf.“ in „Offen“",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.kopf",
+   "neu": "schein.seitenkopf",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Ortszeile „Handwerksscheine“, Titel/Untertitel unverändert, Hilfe mit Einleitung; keine Hauptaktion im Kopf (die Aktionsleiste bleibt)",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.schrittleiste",
+   "neu": "schein.schrittleiste",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert (Telefon und Tablet)",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.einsaetze",
+   "neu": "schein.einsaetze",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "gleiche Knöpfe, Auswahl jetzt mit aria-pressed und Petrol-Rand statt Vollfläche",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.baustelle",
+   "neu": "schein.baustelle",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.datum",
+   "neu": "schein.datum",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.kontakt",
+   "neu": "schein.kontakt",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Adresse und Telefon als Link unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.abrechnung",
+   "neu": "schein.abrechnung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Marke unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.hinweis.pauschal",
+   "neu": "schein.hinweis.pauschal",
+   "weg_alt": 0,
+   "weg_neu": 1,
+   "bemerkung": "eine Zeile sichtbar, voller Satz hinter dem „i“ bzw. in der Seitenhilfe",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.hinweis.bestehende",
+   "neu": "schein.hinweis.bestehende",
+   "weg_alt": 0,
+   "weg_neu": 1,
+   "bemerkung": "„Für diesen Tag gibt es bereits N Schein(e).“ sichtbar; Erklärung hinter dem „i“ bzw. in der Seitenhilfe",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.zeiten",
+   "neu": "schein.zeiten",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Zeilen der Linie (ListRow): Name, Spanne, Pause, Tätigkeit, Helfer, Dauer",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.zeiten.entfernen",
+   "neu": "schein.zeiten.entfernen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "nur selbst erfasste Zeilen wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.zeiten.erneut",
+   "neu": "schein.zeiten.erneut",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Erneut versuchen“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.leistungszeit",
+   "neu": "schein.leistungszeit",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "alle Felder, Helfer-Haken, Nachfragen und „Zeile hinzufügen“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.material",
+   "neu": "schein.material",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Schritt 2 unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.notizen",
+   "neu": "schein.notizen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Feld unverändert; neu eine Zeile Warnung am Feld (Gesundheitsangaben), lange Erklärung in der Seitenhilfe",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.fotos",
+   "neu": "schein.fotos",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Aufnehmen, Nochmal versuchen, Entfernen unverändert; Kreuz ohne Schatten",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.zusammenfassung",
+   "neu": "schein.zusammenfassung",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Schritt 4, unverändert (Kundenmodus)",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.unterschriften",
+   "neu": "schein.unterschriften",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Namen und SignaturePad unverändert (Kundenmodus)",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.unterschreiben",
+   "neu": "schein.unterschreiben",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Sperren unverändert; am Schreibtisch in der Fusszeile rechts, in der Schrittfolge in der Aktionsleiste",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.entwurf",
+   "neu": "schein.entwurf",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "in jedem Schritt; am Schreibtisch in der Fusszeile links",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.aktionsleiste",
+   "neu": "schein.aktionsleiste",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Zurück/Weiter im Daumenbereich unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.hinweise.offen",
+   "neu": "schein.hinweise.offen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Noch nicht auf dem Schein“, „Zum Abschließen fehlen“, „Ohne Stunden“ unverändert sichtbar (Zustandsmeldungen)",
+   "geprueft": true
+  },
+  {
+   "alt": "schein.formular.entwurf-fehler",
+   "neu": "schein.entwurf-fehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Seite „Konnte nicht geöffnet werden“ mit „Zur Liste der Scheine“ unverändert",
+   "geprueft": true
+  }
+ ]
+}
