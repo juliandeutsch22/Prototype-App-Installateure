@@ -103,8 +103,10 @@ export function SeitenHilfeKnopf({ seite, einleitung }: { seite: string; einleit
 
   return (
     <>
-      <button type="button" className="seitenkopf-hilfe" onClick={() => setOffen(true)}>
-        Hilfe zu dieser Seite
+      {/* Am Handy kurz „Hilfe“, damit es neben dem Titel Platz hat; der Name für die Vorlesehilfe bleibt lang. */}
+      <button type="button" className="seitenkopf-hilfe" onClick={() => setOffen(true)} aria-label="Hilfe zu dieser Seite">
+        <span className="seitenkopf-hilfe-kurz" aria-hidden="true">Hilfe</span>
+        <span className="seitenkopf-hilfe-lang" aria-hidden="true">Hilfe zu dieser Seite</span>
       </button>
       <BottomSheet open={offen} onClose={() => setOffen(false)} label={`Hilfe zu ${seite}`} auchBreit titel={`Hilfe: ${seite}`}>
         <div className="hilfe-liste">
