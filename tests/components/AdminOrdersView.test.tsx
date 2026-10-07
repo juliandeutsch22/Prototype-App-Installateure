@@ -126,13 +126,23 @@ afterEach(() => {
 });
 
 /**
- * Den Status über das „⋯" der Zeile setzen — seit dem Prüflauf (D11) steht
- * dort, was vorher als Auswahl in jeder Zeile stand.
+ * Die Anforderung im Seitenfenster öffnen — die Zeile selbst ist antippbar
+ * (Linie „Lot“, E4). Bis zum Umbau lagen Status und Löschen im „⋯“ der Zeile.
  */
-async function statusWaehlen(status: string) {
-  await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für/ }));
-  await userEvent.click(screen.getByRole('menuitem', { name: `Auf „${status}“ setzen` }));
+async function oeffnen(name: RegExp | string = /^Kupferrohr 15mm/) {
+  const muster = typeof name === 'string' ? new RegExp(`^${name}`) : name;
+  await userEvent.click(await screen.findByRole('button', { name: muster }));
+  return screen.findByRole('dialog', { name: 'Anforderung' });
 }
+
+/** Den Status von Hand setzen — im Seitenfenster, wie vorher im „⋯“ (D11). */
+async function statusWaehlen(status: string) {
+  const fenster = await oeffnen();
+  await userEvent.click(within(fenster).getByRole('button', { name: `Auf „${status}“ setzen` }));
+}
+
+/** Ein Bereich der Seite — seit dem Umbau Segmente statt Reiter. */
+const bereich = (name: RegExp | string) => screen.findByRole('button', { name });
 
 describe('Anforderungen — der Abschluss zieht vom Lager ab', () => {
   it('fragt vor „Erledigt“ nach und bucht erst nach der Bestätigung', async () => {
@@ -196,8 +206,9 @@ describe('Anforderungen — Reiter und Abzeichen widersprechen sich nicht', () =
       anforderung({ id: 'c', status: 'Abholbereit' }),
     ];
     zeige();
-    expect(await screen.findByRole('tab', { name: /^Laufend\s*3$/ })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /^Offen/ })).not.toBeInTheDocument();
+    // Seit dem Umbau ein Segment mit der Zahl im Namen; geschützt bleibt der Name.
+    expect(await bereich(/^Laufend\s*3$/)).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: /^Offen\s*\d/ })).not.toBeInTheDocument();
   });
 });
 
@@ -254,7 +265,7 @@ describe('Anforderungen — die Reihenfolge der Arbeit', () => {
     ];
     zeige();
 
-    await userEvent.click(screen.getByRole('tab', { name: /Retouren/ }));
+    await userEvent.click(await bereich(/^Retouren/));
     expect(await screen.findByText('Neu / OVP', { exact: false })).toBeInTheDocument();
   });
 
@@ -266,9 +277,12 @@ describe('Anforderungen — die Reihenfolge der Arbeit', () => {
     ];
     zeige();
 
-    await userEvent.click(screen.getByRole('tab', { name: /Retouren/ }));
+    await userEvent.click(await bereich(/^Retouren/));
     await screen.findByText('Neu / OVP', { exact: false });
-    expect(screen.queryByRole('option', { name: 'Abholbereit' })).not.toBeInTheDocument();
+    // Im Seitenfenster steht kein Status zur Wahl — nur das Löschen.
+    const fenster = await oeffnen();
+    expect(within(fenster).queryByRole('button', { name: /setzen$/ })).toBeNull();
+    expect(within(fenster).getByRole('button', { name: /Anforderung löschen/ })).toBeInTheDocument();
   });
 });
 
@@ -330,11 +344,11 @@ describe('Anforderungen — löschen', () => {
     anforderungen = [anforderung({ id: 'o1' })];
     zeige();
 
-    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Kupferrohr 15mm/ }));
-    await userEvent.click(screen.getByRole('menuitem', { name: 'Löschen' }));
+    const fenster = await oeffnen();
+    await userEvent.click(within(fenster).getByRole('button', { name: /Anforderung löschen/ }));
     expect(loeschen).not.toHaveBeenCalled();
 
-    const dialog = screen.getByRole('dialog');
+    const dialog = await screen.findByRole('dialog', { name: /Eintrag löschen/ });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Löschen' }));
     await waitFor(() => expect(loeschen).toHaveBeenCalledWith('o1'));
   });
@@ -414,7 +428,8 @@ describe('Anforderungen — Lager oder Einkauf', () => {
   it('„Aus Lager“ bucht die Zeile als Lagerware', async () => {
     anforderungen = [anforderung({ id: 'o1', materialId: 'm1' })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Aus Lager' }));
+    // Der Knopf in der Zeile nennt für die Vorlesehilfe auch die Anforderung.
+    await userEvent.click(await screen.findByRole('button', { name: /^Aus Lager: Kupferrohr 15mm/ }));
     await waitFor(() => expect(ausLager).toHaveBeenCalledWith('o1'));
     expect(aufEinkaufsliste).not.toHaveBeenCalled();
   });
@@ -423,7 +438,8 @@ describe('Anforderungen — Lager oder Einkauf', () => {
     vorschlag = 'gh2';
     anforderungen = [anforderung({ id: 'o1', materialId: 'm1' })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Nicht auf Lager' }));
+    // Seit dem Umbau im Seitenfenster der Anforderung.
+    await userEvent.click(within(await oeffnen()).getByRole('button', { name: 'Nicht auf Lager – auf die Einkaufsliste' }));
 
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByLabelText('Großhändler')).toHaveValue('gh2');
@@ -435,7 +451,7 @@ describe('Anforderungen — Lager oder Einkauf', () => {
   it('lässt den Großhändler offen, wenn „später zuordnen“ gewählt ist', async () => {
     anforderungen = [anforderung({ id: 'o1' })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Nicht auf Lager' }));
+    await userEvent.click(within(await oeffnen()).getByRole('button', { name: 'Nicht auf Lager – auf die Einkaufsliste' }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByLabelText('Großhändler')).toHaveValue('');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Auf die Liste' }));
@@ -450,7 +466,7 @@ describe('Anforderungen — Lager oder Einkauf', () => {
     ];
     zeige();
     await screen.findByText('Aus dem Regal');
-    expect(screen.queryByRole('button', { name: 'Aus Lager' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Aus Lager/ })).not.toBeInTheDocument();
     expect(screen.getByText('aus Lager')).toBeInTheDocument();
     expect(await screen.findByText('bestellt · Holter')).toBeInTheDocument();
   });
@@ -462,8 +478,8 @@ describe('Anforderungen — Lager oder Einkauf', () => {
         bestelltAm: Date.now() as never }),
     ];
     zeige();
-    expect(await screen.findByRole('tab', { name: /Einkauf.*1/ })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: /Einkauf/ }));
+    expect(await bereich(/^Einkauf 1$/)).toBeInTheDocument();
+    await userEvent.click(await bereich(/^Einkauf/));
     expect(await screen.findByText('Zu bestellen')).toBeInTheDocument();
     expect(screen.getByText('Bestellt — noch nicht da')).toBeInTheDocument();
   });
@@ -473,8 +489,8 @@ describe('Anforderungen — Lager oder Einkauf', () => {
       { id: 'p2', companyId: 'perl', materialName: 'Muffe', menge: 5, supplierId: 'gh1', bestelltAm: Date.now() },
     ];
     zeige();
-    expect(await screen.findByRole('tab', { name: /Einkauf.*1/ })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: /Einkauf/ }));
+    expect(await bereich(/^Einkauf 1$/)).toBeInTheDocument();
+    await userEvent.click(await bereich(/^Einkauf/));
     expect(await screen.findByText('25 m × Kupferrohr 15')).toBeInTheDocument();
     expect(screen.getByText(/fürs Lager/)).toBeInTheDocument();
   });
@@ -482,25 +498,149 @@ describe('Anforderungen — Lager oder Einkauf', () => {
   it('sagt, wenn das eigene Material nicht geladen werden konnte', async () => {
     lagerFehler = true;
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: /Einkauf/ }));
+    await userEvent.click(await bereich(/^Einkauf/));
     expect(await screen.findByText(/eigene Material auf der Einkaufsliste konnte nicht geladen werden/)).toBeInTheDocument();
   });
 });
 
-describe('Anforderungen — eine ruhige Zeile (Prüflauf 24.09.2026, D11)', () => {
-  it('zeigt den Zustand einmal und legt Status und Löschen ins Menü', async () => {
+describe('Anforderungen — eine ruhige Zeile (Prüflauf 24.09.2026, D11; Linie „Lot“, E4)', () => {
+  it('trägt genau einen Knopf für den nächsten Schritt und legt alles andere ins Seitenfenster', async () => {
     anforderungen = [anforderung({ id: 'o1', status: 'Offen' })];
     zeige();
-    await screen.findByRole('button', { name: 'Aus Lager' });
-    // Keine Statusauswahl mehr in der Zeile — nur der Filter oben ist eine.
-    expect(screen.queryByRole('button', { name: /Kupferrohr 15mm löschen/ })).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: /Weitere Aktionen für Kupferrohr 15mm/ }));
-    const menue = screen.getByRole('menu');
-    const punkte = within(menue).getAllByRole('menuitem').map((m) => m.textContent);
-    // Der aktuelle Status steht nicht zur Wahl, alle anderen schon.
-    expect(punkte).not.toContain('Auf „Offen“ setzen');
-    expect(punkte).toContain('Auf „Erledigt“ setzen');
-    expect(punkte[punkte.length - 1]).toBe('Löschen');
+    const zeile = (await screen.findByRole('button', { name: /^Aus Lager: Kupferrohr/ })).closest('li')!;
+    // In der Zeile: das Kästchen, der Inhalt, EIN Schritt — kein „⋯“, kein Löschen.
+    expect(within(zeile).getAllByRole('button').map((b) => b.getAttribute('aria-label') ?? 'Inhalt'))
+      .toEqual(['Inhalt', 'Aus Lager: Kupferrohr 15mm ×2']);
+    expect(within(zeile).queryByRole('button', { name: /Weitere Aktionen/ })).toBeNull();
+
+    const fenster = await oeffnen();
+    const knoepfe = within(fenster).getAllByRole('button').map((b) => b.textContent);
+    // Der aktuelle Status steht nicht zur Wahl, alle anderen schon; Löschen zuletzt.
+    expect(knoepfe).not.toContain('Auf „Offen“ setzen');
+    expect(knoepfe).toContain('Auf „Erledigt“ setzen');
+    expect(knoepfe).toContain('Nicht auf Lager – auf die Einkaufsliste');
+    expect(knoepfe[knoepfe.length - 1]).toBe('Anforderung löschen …');
+  });
+
+  it('zeigt im Seitenfenster Notiz und Verlauf aus den Zeitstempeln', async () => {
+    anforderungen = [anforderung({ id: 'o1', status: 'In Bearbeitung', note: 'Kiste im Keller',
+      beschaffung: 'einkauf', supplierId: 'gh1', bestelltAm: new Date(2026, 8, 1, 10, 0).getTime() as never })];
+    zeige();
+    const fenster = await oeffnen();
+    expect(within(fenster).getByText('Kiste im Keller')).toBeInTheDocument();
+    const verlauf = within(fenster).getByRole('list', { name: 'Verlauf der Anforderung' });
+    const punkte = within(verlauf).getAllByRole('listitem').map((l) => l.querySelector('.lot-titel')?.textContent);
+    expect(punkte).toEqual(['Angefordert', 'Auf der Einkaufsliste', 'Beim Großhändler bestellt']);
+    // Der jetzige Stand ist der letzte Punkt.
+    expect(within(verlauf).getAllByRole('listitem')[2]).toHaveAttribute('aria-current', 'step');
+  });
+});
+
+/*
+  DIE SAMMELAKTION (Linie „Lot“, E4): mehrere Anforderungen auf einmal einen
+  Schritt weiter — über DIESELBE Funktion der Datenschicht wie der Knopf in der
+  Zeile, je Anforderung einzeln, Teilfehler je Zeile.
+*/
+describe('Anforderungen — mehrere auf einmal', () => {
+  it('schaltet jede gewählte über dieselbe Funktion wie die Einzelaktion', async () => {
+    anforderungen = [
+      anforderung({ id: 'a', materialName: 'Rohr A', status: 'Offen' }),
+      anforderung({ id: 'b', materialName: 'Rohr B', status: 'Offen' }),
+      anforderung({ id: 'c', materialName: 'Rohr C', status: 'Offen' }),
+    ];
+    zeige();
+    // Gegenprobe: ohne Auswahl keine Sammelleiste.
+    await screen.findByText('Rohr A');
+    expect(screen.queryByRole('button', { name: 'Alle: nächster Schritt' })).toBeNull();
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /Rohr A .* auswählen/ }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /Rohr C .* auswählen/ }));
+    expect(screen.getByText('2 ausgewählt')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Alle: nächster Schritt' }));
+
+    await waitFor(() => expect(ausLager).toHaveBeenCalledTimes(2));
+    expect(ausLager.mock.calls.map((c) => c[0])).toEqual(['a', 'c']);
+    expect(statusSetzen).not.toHaveBeenCalled();
+  });
+
+  it('meldet einen Teilfehler an der Zeile und lässt nur sie gewählt', async () => {
+    ausLager.mockImplementation(async (id: string) => {
+      if (id === 'b') throw new Error('Nur 3 Stk frei.');
+    });
+    anforderungen = [
+      anforderung({ id: 'a', materialName: 'Rohr A', status: 'Offen' }),
+      anforderung({ id: 'b', materialName: 'Rohr B', status: 'Offen' }),
+    ];
+    zeige();
+    await userEvent.click(await screen.findByRole('checkbox', { name: /Rohr A .* auswählen/ }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /Rohr B .* auswählen/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Alle: nächster Schritt' }));
+
+    const fehler = await screen.findByText('Nur 3 Stk frei.', { selector: '[role="alert"]' });
+    expect(fehler.closest('li')).toHaveTextContent('Rohr B');
+    expect(screen.getByText('1 ausgewählt')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Rohr B .* auswählen/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /Rohr A .* auswählen/ })).not.toBeChecked();
+  });
+
+  it('fragt vor gesammelten Abholungen nach, wie die Einzelaktion — und bucht erst danach', async () => {
+    anforderungen = [
+      anforderung({ id: 'a', materialName: 'Rohr A', status: 'Abholbereit' }),
+      anforderung({ id: 'b', materialName: 'Rohr B', status: 'Offen' }),
+    ];
+    zeige();
+    await userEvent.click(await screen.findByRole('checkbox', { name: /Rohr A .* auswählen/ }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /Rohr B .* auswählen/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Alle: nächster Schritt' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/„Rohr A“ ×2 wird als erledigt gebucht und vom Lagerbestand abgezogen/)).toBeInTheDocument();
+    expect(statusSetzen).not.toHaveBeenCalled();
+    expect(ausLager).not.toHaveBeenCalled();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Weiterschalten' }));
+    await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('a', 'Erledigt'));
+    expect(ausLager).toHaveBeenCalledWith('b');
+  });
+
+  it('Gegenprobe: abgebrochen wird nichts gebucht', async () => {
+    anforderungen = [anforderung({ id: 'a', materialName: 'Rohr A', status: 'Abholbereit' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('checkbox', { name: /Rohr A .* auswählen/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Alle: nächster Schritt' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Abbrechen' }));
+    expect(statusSetzen).not.toHaveBeenCalled();
+  });
+
+  it('bietet Zeilen ohne nächsten Schritt kein Kästchen an', async () => {
+    // Was über die Einkaufsliste läuft, wird im Reiter „Einkauf“ weitergeschaltet.
+    anforderungen = [anforderung({ id: 'a', materialName: 'Beim Händler', status: 'In Bearbeitung',
+      beschaffung: 'einkauf', supplierId: 'gh1' })];
+    zeige();
+    await screen.findByText('Beim Händler');
+    expect(screen.queryByRole('checkbox')).toBeNull();
+  });
+});
+
+describe('Anforderungen — der Bereich steht in der Adresse', () => {
+  function zeigeAn(adresse: string) {
+    return render(
+      <MemoryRouter initialEntries={[adresse]}>
+        <ToastProvider>
+          <AdminOrdersView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+  }
+
+  it('öffnet „Retouren“ aus der Adresse', async () => {
+    zeigeAn('/anforderungen?reiter=retouren');
+    expect(await bereich(/^Retouren/)).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('Gegenprobe: Unbekanntes landet bei „Laufend“', async () => {
+    zeigeAn('/anforderungen?reiter=irgendwas');
+    expect(await bereich(/^Laufend/)).toHaveAttribute('aria-pressed', 'true');
   });
 });
 

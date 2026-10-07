@@ -1,0 +1,1101 @@
+{
+ "schritt": "E3–E5 – Material (Lager, Anforderungen, Material anfordern)",
+ "eintraege": [
+  {
+   "alt": "anforderungen.kopf.titel",
+   "neu": "anforderungen.seitenkopf.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "PageHeader wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.kopf.untertitel",
+   "neu": "anforderungen.seitenkopf.meta",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.reiter.laufend",
+   "neu": "anforderungen.bereich.segment:laufend",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Laufend“ als Segment; Zähler im Text („Laufend 3“); steht jetzt in der Adresse (?reiter=…)",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.reiter.einkauf",
+   "neu": "anforderungen.bereich.segment:einkauf",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Einkauf“ als Segment; Zähler im Text („Laufend 3“); steht jetzt in der Adresse (?reiter=…)",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.reiter.retouren",
+   "neu": "anforderungen.bereich.segment:retouren",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Retouren“ als Segment; Zähler im Text („Laufend 3“); steht jetzt in der Adresse (?reiter=…)",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.reiter.erledigt",
+   "neu": "anforderungen.bereich.segment:erledigt",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Erledigt“ als Segment; Zähler im Text („Laufend 3“); steht jetzt in der Adresse (?reiter=…)",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.reiter.zaehler",
+   "neu": "anforderungen.bereich.segment.text",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Laufend, Einkauf, Retouren zählen wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.adressfilter",
+   "neu": "anforderungen.adressfilter",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Hinweiszeile „Gefiltert: …“ mit „Alle zeigen“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.adressfilter.alle-zeigen",
+   "neu": "anforderungen.adressfilter.alle-zeigen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.karte.titel",
+   "neu": "anforderungen.karte.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Offene Bestellungen / Retouren / Erledigt",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.karte.baustellenfilter",
+   "neu": "anforderungen.karte.baustellenfilter",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Auswahl „Bestellungen nach Baustelle filtern“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.suche",
+   "neu": "anforderungen.suche",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "wie bisher ab 10 Anforderungen (Regel aus dem Prüflauf bleibt)",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.gruppe:offen",
+   "neu": "anforderungen.gruppe:offen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Abschnitt mit Anzahl; Eil zuerst, dann die ältesten; höchstens 20 Zeilen, dann „und N weitere anzeigen“",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.gruppe:in-bearbeitung",
+   "neu": "anforderungen.gruppe:in-bearbeitung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Abschnitt mit Anzahl; Eil zuerst, dann die ältesten; höchstens 20 Zeilen, dann „und N weitere anzeigen“",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.gruppe:abholbereit",
+   "neu": "anforderungen.gruppe:abholbereit",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Abschnitt mit Anzahl; Eil zuerst, dann die ältesten; höchstens 20 Zeilen, dann „und N weitere anzeigen“",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.zeile.titel",
+   "neu": "anforderungen.arbeitszeile.inhalt.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Material ×Menge; der Inhalt öffnet das Seitenfenster",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.zeile.meta",
+   "neu": "anforderungen.arbeitszeile.inhalt.meta",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Besteller · Baustelle · Zustand · Liefertermin",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.zeile.notiz",
+   "neu": "anforderungen.arbeitszeile.inhalt.notiz",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "eigene Zeile „Notiz: …“; zusätzlich im Seitenfenster",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.zeile.eil",
+   "neu": "anforderungen.arbeitszeile.marken.eil",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.zeile.marke.aus-lager",
+   "neu": "anforderungen.arbeitszeile.marken.beschaffung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„aus Lager“",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.zeile.marke.einkauf",
+   "neu": "anforderungen.arbeitszeile.marken.beschaffung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Einkaufsliste / bestellt / geliefert · Großhändler“",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.zeile.status",
+   "neu": "anforderungen.gruppe.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Im Reiter „Laufend“ sagt die Gruppe den Status; im Seitenfenster steht er als „Stand“; in Retouren/Erledigt weiter in der Zeile",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.zeile.aktion.aus-lager",
+   "neu": "anforderungen.arbeitszeile.schritt",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "häufigster nächster Schritt als einziger Knopf; zusätzlich im Seitenfenster",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.zeile.aktion.nicht-auf-lager",
+   "neu": "anforderungen.seitenfenster.aktion.einkaufsliste",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "„Nicht auf Lager – auf die Einkaufsliste“; Dialog mit Großhändler unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.zeile.menue.status:offen",
+   "neu": "anforderungen.seitenfenster.status:offen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "„Auf „…“ setzen“; „Auf „Offen“ setzen“ ist das „Zurück auf Offen“; Erledigt weiter mit Rückfrage",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.zeile.menue.status:in-bearbeitung",
+   "neu": "anforderungen.seitenfenster.status:in-bearbeitung",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "„Auf „…“ setzen“; „Auf „Offen“ setzen“ ist das „Zurück auf Offen“; Erledigt weiter mit Rückfrage",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.zeile.menue.status:abholbereit",
+   "neu": "anforderungen.seitenfenster.status:abholbereit",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "„Auf „…“ setzen“; „Auf „Offen“ setzen“ ist das „Zurück auf Offen“; Erledigt weiter mit Rückfrage",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.zeile.menue.status:erledigt",
+   "neu": "anforderungen.seitenfenster.status:erledigt",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "„Auf „…“ setzen“; „Auf „Offen“ setzen“ ist das „Zurück auf Offen“; Erledigt weiter mit Rückfrage",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.zeile.menue.loeschen",
+   "neu": "anforderungen.seitenfenster.loeschen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "„Anforderung löschen …“ mit derselben Rückfrage",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.zeile.menue",
+   "neu": "anforderungen.arbeitszeile.inhalt",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "das „⋯“ je Zeile entfällt; alles steht im Seitenfenster",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.dialog.einkaufsliste",
+   "neu": "anforderungen.dialog.einkaufsliste",
+   "weg_alt": 2,
+   "weg_neu": 3,
+   "bemerkung": "Rückfrage mit Großhändler-Auswahl und Vorschlag unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.dialog.abschluss",
+   "neu": "anforderungen.dialog.abschluss",
+   "weg_alt": 3,
+   "weg_neu": 2,
+   "bemerkung": "jetzt auch direkt über den Schritt „Abgeholt“ der Zeile; Text abschlussText unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.dialog.loeschen",
+   "neu": "anforderungen.dialog.loeschen",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.tagesgruppen",
+   "neu": "anforderungen.tagesgruppen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Retouren und Erledigt nach Tag, neueste zuerst; Zeile öffnet das Seitenfenster",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.retoure.zeile.zustand",
+   "neu": "anforderungen.retoure.zeile.zustand",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Neu / OVP“ usw. in der Zeile und im Fenster",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.retoure.zeile.marke",
+   "neu": "anforderungen.retoure.zeile.zustand",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Retoure“",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.weitere-anzeigen",
+   "neu": "anforderungen.mehr-anzeigen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "„und N weitere anzeigen“ (+50) statt „Weitere anzeigen (N)“",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.nachladen",
+   "neu": "anforderungen.nachladen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Abfragegrenze 200, Hinweis zur Suche unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.leer",
+   "neu": "anforderungen.leer",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "alle Leertexte unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.fehler",
+   "neu": "anforderungen.fehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.einkauf.einkaufsliste",
+   "neu": "anforderungen.einkauf.einkaufsliste",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Einkaufsliste unverändert: je Großhändler zu bestellen, PDF, E-Mail, Als bestellt markieren, Termin, Geliefert, Alles geliefert, Großhändler zuordnen, von der Liste nehmen, Material dazusetzen, Großhändler pflegen",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.einkauf.email",
+   "neu": "anforderungen.einkauf.email",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "E-Mail-Verweis sieht aus wie ein Nebenknopf (ohne Schatten)",
+   "geprueft": true
+  },
+  {
+   "alt": "anforderungen.einkauf.ladefehler",
+   "neu": "anforderungen.einkauf.ladefehler",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.kopf.titel",
+   "neu": "lager.seitenkopf.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.teilfehler",
+   "neu": "lager.teilfehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Die Anforderungen …“",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.reiter.bestand",
+   "neu": "lager.bereich.segment:bestand",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Reiter in der Adresse unverändert (?reiter=…)",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.reiter.katalog",
+   "neu": "lager.bereich.segment:katalog",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.reiter.katalog-einspielen",
+   "neu": "lager.seitenkopf.mehr.katalog-einspielen",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "nur für die, die einspielen dürfen; ?reiter=import gilt weiter",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.kennzahl.im-lager",
+   "neu": "lager.kennzahl.im-lager",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.kennzahl.knapp",
+   "neu": "lager.kennzahl.knapp",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "führt weiter auf ?filter=knapp",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.kennzahl.reserviert",
+   "neu": "lager.kennzahl.reserviert",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.adressfilter.knapp",
+   "neu": "lager.filter.segment:knapp",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Filter „Alle · knapp · fehlt“ als Segmente in der Adresse",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.adressfilter.alle-zeigen",
+   "neu": "lager.filter.segment:alle",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.suche",
+   "neu": "lager.suche",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.zeile.titel",
+   "neu": "lager.zeile.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "ganze Zeile öffnet den Artikel im Seitenfenster",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.zeile.kategorie-mindestmenge",
+   "neu": "lager.zeile.meta",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Kategorie · Art.-Nr. · Mindestmenge",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.zeile.lagerstand-reserviert",
+   "neu": "lager.zeile.wert+seitenfenster.kennzahlen",
+   "weg_alt": 0,
+   "weg_neu": 1,
+   "bemerkung": "„x frei · y reserviert“ in der Zeile; Lagerstand und „davon auf Rüstlisten“ als Kennzahlen im Fenster",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.zeile.frei",
+   "neu": "lager.zeile.wert",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„x Stk frei“",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.zeile.warnung-knapp",
+   "neu": "lager.zeile.zustand",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Zustand „knapp“ (Bernstein) nur bei knapp",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.zeile.warnung-fehlen",
+   "neu": "lager.zeile.zustand",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„n Stk fehlen“ (rot)",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.zeile.wareneingang",
+   "neu": "lager.seitenfenster.wareneingang",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "zusätzlich Hauptaktion „Wareneingang“ im Seitenkopf mit Artikelwahl (1 + Wahl)",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.zeile.menue.inventur",
+   "neu": "lager.seitenfenster.inventur",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "zusätzlich „Inventur …“ im ⋯ des Seitenkopfs mit Artikelwahl",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.zeile.menue.bewegungen",
+   "neu": "lager.seitenfenster.bewegungen",
+   "weg_alt": 2,
+   "weg_neu": 1,
+   "bemerkung": "Bewegungsprotokoll als Lot, jüngste zuerst, 20 und „und N weitere“",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.zeile.menue.bearbeiten",
+   "neu": "lager.seitenfenster.im-katalog-bearbeiten",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "führt in den Katalog, Artikel offen",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.dialog.wareneingang",
+   "neu": "lager.dialog.wareneingang",
+   "weg_alt": 2,
+   "weg_neu": 3,
+   "bemerkung": "Menge, Lieferant (Auswahl/„Anderer …“), Lieferschein, Bestellbezug unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.dialog.inventur",
+   "neu": "lager.dialog.inventur",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "gezählter Bestand und Grund unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.dialog.bewegungen.zeile",
+   "neu": "lager.seitenfenster.bewegungen.punkt",
+   "weg_alt": 3,
+   "weg_neu": 1,
+   "bemerkung": "Art ±Menge, Datum · danach, Person · Lieferant · Lieferschein · Bezug · Grund",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.dialog.bewegungen.leer",
+   "neu": "lager.seitenfenster.bewegungen.leer",
+   "weg_alt": 3,
+   "weg_neu": 1,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.dialog.bewegungen.fehler",
+   "neu": "lager.seitenfenster.bewegungen.fehler",
+   "weg_alt": 3,
+   "weg_neu": 1,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.dialog.bewegungen.schliessen",
+   "neu": "lager.seitenfenster.schliessen",
+   "weg_alt": 3,
+   "weg_neu": 2,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.leer",
+   "neu": "lager.leer",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Leertexte; dazu „Kein Artikel fehlt/ist knapp“ für die Filter",
+   "geprueft": true
+  },
+  {
+   "alt": "lager.nachladen",
+   "neu": "lager.nachladen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.neu.bezeichnung",
+   "neu": "katalog.seitenfenster.neu.bezeichnung",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Formular im Seitenfenster über „Neues Material“ (Regel 8), einspaltig",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.neu.kategorie",
+   "neu": "katalog.seitenfenster.neu.kategorie",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Formular im Seitenfenster über „Neues Material“ (Regel 8), einspaltig",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.neu.artikelnummer",
+   "neu": "katalog.seitenfenster.neu.artikelnummer",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Formular im Seitenfenster über „Neues Material“ (Regel 8), einspaltig",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.neu.einheit",
+   "neu": "katalog.seitenfenster.neu.einheit",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Formular im Seitenfenster über „Neues Material“ (Regel 8), einspaltig",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.neu.einheit.info",
+   "neu": "katalog.seitenfenster.neu.einheit.info",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Formular im Seitenfenster über „Neues Material“ (Regel 8), einspaltig",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.neu.warengruppe",
+   "neu": "katalog.seitenfenster.neu.warengruppe",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Formular im Seitenfenster über „Neues Material“ (Regel 8), einspaltig",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.neu.im-lager-fuehren",
+   "neu": "katalog.seitenfenster.neu.im-lager-fuehren",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Formular im Seitenfenster über „Neues Material“ (Regel 8), einspaltig",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.neu.anfangsbestand",
+   "neu": "katalog.seitenfenster.neu.anfangsbestand",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Formular im Seitenfenster über „Neues Material“ (Regel 8), einspaltig",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.neu.mindestmenge",
+   "neu": "katalog.seitenfenster.neu.mindestmenge",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Formular im Seitenfenster über „Neues Material“ (Regel 8), einspaltig",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.neu.verkaufspreis",
+   "neu": "katalog.seitenfenster.neu.verkaufspreis",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Formular im Seitenfenster über „Neues Material“ (Regel 8), einspaltig",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.neu.vorschlag.uebernehmen",
+   "neu": "katalog.seitenfenster.neu.vorschlag.uebernehmen",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Formular im Seitenfenster über „Neues Material“ (Regel 8), einspaltig",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.neu.einkaufspreis",
+   "neu": "katalog.seitenfenster.neu.einkaufspreis",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Formular im Seitenfenster über „Neues Material“ (Regel 8), einspaltig",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.neu.pflichthinweis",
+   "neu": "katalog.seitenfenster.neu.pflichthinweis",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Formular im Seitenfenster über „Neues Material“ (Regel 8), einspaltig",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.neu.fehler",
+   "neu": "katalog.seitenfenster.neu.fehler",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Formular im Seitenfenster über „Neues Material“ (Regel 8), einspaltig",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.neu.material-anlegen",
+   "neu": "katalog.seitenfenster.neu.material-anlegen",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Formular im Seitenfenster über „Neues Material“ (Regel 8), einspaltig",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.bearbeiten.felder",
+   "neu": "katalog.seitenfenster.bearbeiten.felder",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Zeile antippen statt „Bearbeiten“, dann wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.bearbeiten.lagerbestand-text",
+   "neu": "katalog.seitenfenster.bearbeiten.lagerbestand-text",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Zeile antippen statt „Bearbeiten“, dann wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.bearbeiten.aenderungen-speichern",
+   "neu": "katalog.seitenfenster.bearbeiten.aenderungen-speichern",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Zeile antippen statt „Bearbeiten“, dann wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.formular.bearbeiten.abbrechen",
+   "neu": "katalog.seitenfenster.bearbeiten.abbrechen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Zeile antippen statt „Bearbeiten“, dann wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.liste.titel-zaehler",
+   "neu": "katalog.liste.titel-zaehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Katalog (n)“",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.liste.knapp",
+   "neu": "katalog.liste.knapp",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„n knapp“ im Kartenkopf",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.suche",
+   "neu": "katalog.suche",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.zeile",
+   "neu": "katalog.zeile",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "höchstens 20, dann „und N weitere anzeigen“",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.zeile.ausgelaufen",
+   "neu": "katalog.zeile.ausgelaufen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.zeile.bestand",
+   "neu": "katalog.zeile.bestand",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Bestand / „nur Katalog“ / knapp",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.zeile.bearbeiten",
+   "neu": "katalog.zeile.ganz",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "ganze Zeile antippbar",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.zeile.loeschen",
+   "neu": "katalog.seitenfenster.loeschen",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "„Material löschen …“ mit derselben Rückfrage",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.dialog.loeschen",
+   "neu": "katalog.dialog.loeschen",
+   "weg_alt": 2,
+   "weg_neu": 3,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.leer.erstes-material",
+   "neu": "katalog.leer.erstes-material",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "öffnet das Seitenfenster",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.leer.suche-zuruecksetzen",
+   "neu": "katalog.leer.suche-zuruecksetzen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.nachladen",
+   "neu": "katalog.nachladen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "katalog.einspielen",
+   "neu": "katalog.einspielen",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "KatalogImport unverändert (Probelauf, Übernahme, bisher eingespielt); Weg über ⋯ des Seitenkopfs",
+   "geprueft": true
+  },
+  {
+   "alt": "material.kopf.titel",
+   "neu": "material.seitenkopf.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Material anfordern“ wie in der Navigation (vorher „Material“)",
+   "geprueft": true
+  },
+  {
+   "alt": "material.teilfehler",
+   "neu": "material.teilfehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "material.reiter.bestellen",
+   "neu": "material.seite",
+   "weg_alt": 1,
+   "weg_neu": 0,
+   "bemerkung": "Standardansicht der Seite; Zähler des Korbs steht in der Warenkorb-Leiste",
+   "geprueft": true
+  },
+  {
+   "alt": "material.reiter.meine",
+   "neu": "material.meine-anforderungen",
+   "weg_alt": 1,
+   "weg_neu": 0,
+   "bemerkung": "Abschnitt unter dem Katalog, Zähler im Titel; ?reiter=meine springt hierher",
+   "geprueft": true
+  },
+  {
+   "alt": "material.reiter.retoure",
+   "neu": "material.seitenkopf.mehr.retoure",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "„Retoure erfassen …“ öffnet das Seitenfenster",
+   "geprueft": true
+  },
+  {
+   "alt": "material.baustelle",
+   "neu": "material.baustelle",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "material.eilzustellung",
+   "neu": "material.eilzustellung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Kästchen, Hinweis „Dafür zuerst die Baustelle wählen.“ und Warnung ohne Projektleitung unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "material.eilzustellung.info",
+   "neu": "material.hilfe-zu-dieser-seite",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "InfoHint wandert in „Hilfe zu dieser Seite“",
+   "geprueft": true
+  },
+  {
+   "alt": "material.katalog.suche",
+   "neu": "material.katalog.suche",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "material.katalog.zeile",
+   "neu": "material.katalog.zeile",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "frei/knapp/wird bestellt unverändert; höchstens 20, dann „und N weitere anzeigen“",
+   "geprueft": true
+  },
+  {
+   "alt": "material.katalog.minus-feld-plus",
+   "neu": "material.katalog.minus-feld-plus",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "material.katalog.zur-anforderung",
+   "neu": "material.katalog.zur-anforderung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "material.katalog.nachladen",
+   "neu": "material.katalog.nachladen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "material.frei.bezeichnung-menge-in-die-liste",
+   "neu": "material.frei.bezeichnung-menge-in-die-liste",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Nicht im Katalog?“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "material.korb.karte",
+   "neu": "material.korb.karte",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Anforderung (n) — noch nicht abgeschickt“, Notiz, Zeilen mit ✕ und Eil, Hinweis",
+   "geprueft": true
+  },
+  {
+   "alt": "material.aktionsleiste.liste-leeren",
+   "neu": "material.korb.leiste.liste-leeren",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Warenkorb-Leiste im Daumenbereich",
+   "geprueft": true
+  },
+  {
+   "alt": "material.aktionsleiste.abschicken",
+   "neu": "material.korb.leiste.abschicken",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Anforderung (n) abschicken“; Leiste nennt „n Artikel für …“",
+   "geprueft": true
+  },
+  {
+   "alt": "material.korb.fehler",
+   "neu": "material.korb.leiste.fehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Teilfehler steht jetzt an der Leiste statt oben",
+   "geprueft": true
+  },
+  {
+   "alt": "material.meine.adressfilter",
+   "neu": "material.meine-anforderungen.adressfilter",
+   "weg_alt": 1,
+   "weg_neu": 0,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "material.meine.zeile",
+   "neu": "material.meine-anforderungen.zeile",
+   "weg_alt": 1,
+   "weg_neu": 0,
+   "bemerkung": "Status, Eil, Bestellhinweis; höchstens 20",
+   "geprueft": true
+  },
+  {
+   "alt": "material.meine.abgeholt",
+   "neu": "material.meine-anforderungen.abgeholt",
+   "weg_alt": 1,
+   "weg_neu": 0,
+   "bemerkung": "Rückfrage unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "material.meine.erledigt",
+   "neu": "material.meine-anforderungen.erledigt",
+   "weg_alt": 1,
+   "weg_neu": 0,
+   "bemerkung": "Erledigt und Retouren; höchstens 20",
+   "geprueft": true
+  },
+  {
+   "alt": "material.retoure.hinweis",
+   "neu": "material.seitenfenster.retoure.hinweis",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Retoure im Seitenfenster; Hinweis als „i“ im Fenster",
+   "geprueft": true
+  },
+  {
+   "alt": "material.retoure.material-suche",
+   "neu": "material.seitenfenster.retoure.material-suche",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Retoure im Seitenfenster; Hinweis als „i“ im Fenster",
+   "geprueft": true
+  },
+  {
+   "alt": "material.retoure.waehlen",
+   "neu": "material.seitenfenster.retoure.waehlen",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Retoure im Seitenfenster; Hinweis als „i“ im Fenster",
+   "geprueft": true
+  },
+  {
+   "alt": "material.retoure.aendern",
+   "neu": "material.seitenfenster.retoure.aendern",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Retoure im Seitenfenster; Hinweis als „i“ im Fenster",
+   "geprueft": true
+  },
+  {
+   "alt": "material.retoure.menge",
+   "neu": "material.seitenfenster.retoure.menge",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Retoure im Seitenfenster; Hinweis als „i“ im Fenster",
+   "geprueft": true
+  },
+  {
+   "alt": "material.retoure.zustand",
+   "neu": "material.seitenfenster.retoure.zustand",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Retoure im Seitenfenster; Hinweis als „i“ im Fenster",
+   "geprueft": true
+  },
+  {
+   "alt": "material.retoure.baustelle",
+   "neu": "material.seitenfenster.retoure.baustelle",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Retoure im Seitenfenster; Hinweis als „i“ im Fenster",
+   "geprueft": true
+  },
+  {
+   "alt": "material.retoure.grund",
+   "neu": "material.seitenfenster.retoure.grund",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Retoure im Seitenfenster; Hinweis als „i“ im Fenster",
+   "geprueft": true
+  },
+  {
+   "alt": "material.retoure.erfassen",
+   "neu": "material.seitenfenster.retoure.erfassen",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Retoure im Seitenfenster; Hinweis als „i“ im Fenster",
+   "geprueft": true
+  },
+  {
+   "alt": "material.retoure.fehler",
+   "neu": "material.seitenfenster.retoure.fehler",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Retoure im Seitenfenster; Hinweis als „i“ im Fenster",
+   "geprueft": true
+  },
+  {
+   "alt": "material.dialog.abgeholt",
+   "neu": "material.dialog.abgeholt",
+   "weg_alt": 2,
+   "weg_neu": 1,
+   "bemerkung": "",
+   "geprueft": true
+  }
+ ]
+}

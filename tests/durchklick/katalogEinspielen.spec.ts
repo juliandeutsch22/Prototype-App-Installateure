@@ -34,7 +34,9 @@ test('Katalog einspielen: erst der Probelauf, dann die Übernahme', async ({ pag
   await anmelden(page, CHEFIN.email);
 
   await page.goto('/lager');
-  await page.getByRole('tab', { name: 'Katalog einspielen' }).click();
+  // Seit dem Umbau auf „Lot“ (E3) im „⋯“ des Seitenkopfs statt als Reiter.
+  await page.getByRole('button', { name: 'Weitere Aktionen für Lager' }).first().click();
+  await page.getByRole('menuitem', { name: 'Katalog einspielen' }).click();
 
   await page.getByLabel('Name des Lieferanten').fill('HTI Großhandel');
   await page.getByLabel('DATANORM-Datei').setInputFiles({
