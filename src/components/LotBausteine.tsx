@@ -176,6 +176,8 @@ export function Arbeitszeile({
 }) {
   return (
     <li className="arbeitszeile">
+      {/* Ohne Kästchen bleibt der Platz frei, damit alle Zeilen fluchten. */}
+      {!onWahl && <span className="arbeitszeile-ohne-wahl" aria-hidden="true" />}
       {onWahl && (
         <label className="arbeitszeile-wahl">
           <input

@@ -54,6 +54,7 @@
   }
   .fenster-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
   @media (min-width: 760px) { .fenster-kopf { padding: 1rem 1.25rem; } }
+  .fenster-schliessen { flex: none; white-space: nowrap; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: var(--text-muted); font-size: 0.875rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
   .fenster-titel { font-size: 1.125rem; line-height: 1.5rem; font-weight: 600; color: var(--ink-deep); }
   .fenster-inhalt { overflow-y: auto; max-height: 70vh; padding-top: 1rem; }
   @media (min-width: 760px) { .fenster-inhalt { flex: 1; max-height: none; padding: 1.25rem; } }
@@ -83,6 +84,7 @@
 
   /* ── Arbeitszeile und Sammelleiste (Arbeitslisten) ────────────────────── */
   .arbeitszeile { display: flex; align-items: center; gap: 0.75rem; min-height: 3.75rem; padding: 0.5rem 1rem 0.5rem 0.5rem; border-top: 1px solid var(--border); background: var(--surface); }
+  .arbeitszeile-ohne-wahl { width: 2.75rem; flex: none; }
   .arbeitszeile-wahl { display: flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; flex: none; cursor: pointer; }
   .arbeitszeile-inhalt { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.75rem; padding: 0.375rem 0; background: none; border: 0; text-align: left; color: inherit; cursor: pointer; }
   .arbeitszeile-inhalt:hover { color: var(--petrol); }

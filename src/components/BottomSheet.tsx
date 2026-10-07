@@ -147,7 +147,7 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
         {titel ? (
           <div className="fenster-kopf">
             <h2 className="fenster-titel">{titel}</h2>
-            <button type="button" onClick={schliessen} className="seitenkopf-hilfe">
+            <button type="button" onClick={schliessen} className="fenster-schliessen">
               Schließen
             </button>
           </div>
