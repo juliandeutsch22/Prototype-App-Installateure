@@ -5,7 +5,7 @@ import { ANLAESSE, KUERZUNG_AB_VORGABE } from '@shared/freistellung';
 import { leseZahl } from '@/lib/zahl';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import { InputField, FormGrid } from '@/components/Field';
+import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -73,7 +73,12 @@ export default function SonderurlaubKarte() {
       title="Sonderurlaub"
       hint="Die Tage der Dienstverhinderung je Anlass, ab Werk nach dem Kollektivvertrag (Arbeiter und Angestellte gleich). Vorladung und Musterung bekommen die notwendige Zeit. Beim unbezahlten Urlaub schlägt die App ab der eingestellten Dauer am Stück vor, den Urlaubsanspruch aliquot zu kürzen — übernommen wird erst mit der Entscheidung."
     >
-      <FormGrid>
+      {/*
+        EINSPALTIG (Linie „Lot“, Regel 9): die Anlässe haben lange Namen, die
+        in zwei Spalten auf drei Zeilen brachen und die Felder gegeneinander
+        verschoben.
+      */}
+      <div className="formular flex flex-col gap-4">
         {MIT_TAGEN.map((a) => (
           <InputField
             key={a.schluessel}
@@ -91,10 +96,10 @@ export default function SonderurlaubKarte() {
           value={ab}
           onChange={(e) => setAb(e.target.value)}
         />
-      </FormGrid>
-      {fehler && <div className="mt-3"><ErrorState message={fehler} /></div>}
-      <div className="mt-4">
-        <Button type="button" loading={speichert} onClick={() => void speichern()}>Speichern</Button>
+        {fehler && <ErrorState message={fehler} />}
+        <div className="fuss-aktionen">
+          <Button type="button" loading={speichert} onClick={() => void speichern()}>Speichern</Button>
+        </div>
       </div>
     </Card>
   );

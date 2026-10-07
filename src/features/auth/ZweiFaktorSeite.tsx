@@ -3,6 +3,7 @@ import { codeEinloesen, codePruefen, type ZweiterFaktorBedarf } from '@/lib/auth
 import MarkenBand from '@/components/MarkenBand';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
+import PageHeader from '@/components/PageHeader';
 import { InputField } from '@/components/Field';
 import { ErrorState } from '@/components/States';
 import ZweiFaktorEinrichten from './ZweiFaktorEinrichten';
@@ -44,22 +45,24 @@ export default function ZweiFaktorSeite({
   return (
     <div className="mx-auto max-w-xl space-y-6 p-4 sm:p-6">
       <MarkenBand />
-      <header className="space-y-1">
-        <h1 className="text-xl font-semibold text-ink">Zwei-Faktor-Anmeldung</h1>
-        <p className="text-sm text-ink-muted">
-          {bedarf === 'einrichten'
+      {/* Seitenkopf wie überall (Linie „Lot“) — auch vor der App, ohne Hülle. */}
+      <PageHeader
+        ort="Anmeldung"
+        title="Zwei-Faktor-Anmeldung"
+        subtitle={
+          bedarf === 'einrichten'
             ? 'Für dieses Konto ist ein zweiter Faktor Pflicht. Richte ihn jetzt ein — danach geht es weiter.'
             : mitWiederherstellung
               ? 'Gib einen deiner Wiederherstellungscodes ein. Er gilt einmal; danach richtest du den zweiten Faktor neu ein.'
-              : 'Gib den sechsstelligen Code aus deiner Authenticator-App ein.'}
-        </p>
-      </header>
+              : 'Gib den sechsstelligen Code aus deiner Authenticator-App ein.'
+        }
+      />
 
       <Card>
         {bedarf === 'einrichten' ? (
           <ZweiFaktorEinrichten onCodes={onCodes} />
         ) : (
-          <form onSubmit={pruefen} className="space-y-3">
+          <form onSubmit={pruefen} className="formular space-y-3">
             <InputField
               id="zf-code"
               label={mitWiederherstellung ? 'Wiederherstellungscode' : 'Code aus der App'}

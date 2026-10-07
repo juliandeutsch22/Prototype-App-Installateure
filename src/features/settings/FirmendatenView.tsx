@@ -75,7 +75,7 @@ export default function FirmendatenView() {
   if (!isTopLevel(user.role)) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Firmendaten" subtitle="Was auf den Belegen steht" />
+        <PageHeader ort="Einstellungen" title="Firmendaten" subtitle="Was auf den Belegen steht" />
         <Card>
           <p className="text-sm text-ink-muted">
             Diese Angaben pflegt die Geschäftsführung. Sie stehen auf Rechnungen und Belegen und
@@ -169,6 +169,7 @@ export default function FirmendatenView() {
   return (
     <div className="space-y-6">
       <PageHeader
+        ort="Einstellungen"
         title="Firmendaten"
         subtitle="Briefkopf für Rechnung, Stundenbericht und Handwerksschein"
       />
@@ -178,6 +179,8 @@ export default function FirmendatenView() {
           title="Briefkopf"
           hint="Diese Angaben stehen oben auf jedem Beleg, den der Betrieb ausgibt."
         >
+          {/* Formular der Linie: höchstens 560 px breit (Regel 9). */}
+          <div className="formular">
           <FormGrid>
             <InputField
               id="fd-name"
@@ -201,6 +204,7 @@ export default function FirmendatenView() {
               onChange={(e) => setContactLine(e.target.value)}
             />
           </FormGrid>
+          </div>
         </Card>
 
         <Card
@@ -261,6 +265,7 @@ export default function FirmendatenView() {
           title="Rechnungsangaben"
           hint="UID, Firmenbuchnummer und Firmenbuchgericht (§ 14 UGB) stehen im Fuß jedes Belegs, die Bankverbindung im Zahlungshinweis."
         >
+          <div className="formular">
           <FormGrid>
             <div>
               <InputField
@@ -322,6 +327,7 @@ export default function FirmendatenView() {
               onChange={(e) => setBankName(e.target.value)}
             />
           </FormGrid>
+          </div>
         </Card>
 
         {/*
@@ -344,6 +350,7 @@ export default function FirmendatenView() {
             'App — die Belege bleiben davon unberührt. Leer lassen heißt: die Vorgabe gilt.'
           }
         >
+          <div className="formular">
           <FormGrid>
             <InputField
               id="fd-brand"
@@ -414,15 +421,18 @@ export default function FirmendatenView() {
               );
             })}
           </div>
+          </div>
         </Card>
 
         <Pflichthinweis />
 
         {error && <ErrorState message={error} />}
 
-        <Button type="submit" loading={saving} disabled={logoLaeuft}>
-          Firmendaten speichern
-        </Button>
+        <div className="fuss-aktionen">
+          <Button type="submit" loading={saving} disabled={logoLaeuft}>
+            Firmendaten speichern
+          </Button>
+        </div>
       </form>
     </div>
   );

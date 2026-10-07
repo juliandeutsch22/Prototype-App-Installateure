@@ -157,6 +157,7 @@ export default function NotificationSettings() {
   return (
     <div className="space-y-6">
       <PageHeader
+        ort="Einstellungen"
         title="Mein Konto"
         subtitle="Benachrichtigungen und Passwort — alles, was nur dich betrifft"
       />

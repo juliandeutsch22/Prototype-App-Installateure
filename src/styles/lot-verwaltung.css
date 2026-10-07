@@ -6,4 +6,51 @@
  * gestrichelten Linien. Farben nur aus den Grundwerten (var(--…)).
  */
 @layer components {
+  /* ── Suche und Filter über einer Liste ───────────────────────────────── */
+  /*
+    Suche links, Segmente rechts; am Handy untereinander. Steht im Kopf einer
+    bündigen Gruppe, deshalb mit eigenem Rand.
+  */
+  .listen-werkzeug { display: flex; flex-direction: column; gap: 0.75rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+  @media (min-width: 760px) { .listen-werkzeug { flex-direction: row; align-items: flex-end; justify-content: space-between; } }
+  .listen-suche { flex: 1; max-width: 26rem; }
+  /*
+    Segmente nach ihrem Text breit statt gleich breit: „Deaktivierte (12)“
+    brach am Handy sonst mitten im Wort.
+  */
+  .listen-filter > .segment { grid-auto-columns: auto; }
+
+  /* ── „Weitere Angaben“ als Knopf ─────────────────────────────────────── */
+  /*
+    Wie `.weiteres-kopf`, aber als Knopf mit aria-expanded: dort, wo die
+    Felder beim Zuklappen aus dem Formular verschwinden MÜSSEN (die Prüfung
+    des Browsers sähe sonst versteckte Felder und hielte das Absenden still
+    an — siehe UserMgmtView).
+  */
+  .weiteres-knopf { display: flex; align-items: center; min-height: 2.75rem; width: 100%; padding: 0; background: none; border: 0; border-top: 1px solid var(--border); font-weight: 600; color: var(--petrol); text-align: left; cursor: pointer; }
+
+  /* ── Überblick einer Akte ─────────────────────────────────────────────── */
+  /* Name links, Wert rechts — am Handy untereinander (wie `.kurz-kopf`). */
+  .ueberblick { margin: 0; }
+  .ueberblick-zeile { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.125rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); }
+  @media (min-width: 760px) { .ueberblick-zeile { grid-template-columns: 10rem minmax(0, 1fr); gap: 1rem; } }
+  .ueberblick-name { font-size: 0.875rem; font-weight: 600; color: var(--ink-deep); }
+  .ueberblick-wert { margin: 0; font-size: 0.9375rem; color: var(--text); min-width: 0; }
+
+  /* ── Rechentabelle (Zuschläge) ────────────────────────────────────────── */
+  .rechen-zeile { border-bottom: 1px solid var(--border); }
+
+  /* ── Einrichtungsstand ────────────────────────────────────────────────── */
+  .einrichtung-zahl { font-size: 0.8125rem; color: var(--text-muted); font-weight: 400; }
+
+  /* ── Plattform: eigene Seite ohne Hülle ──────────────────────────────── */
+  .plattform-seite { max-width: 48rem; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; gap: 1.25rem; }
+  @media (min-width: 760px) { .plattform-seite { padding: 1.5rem; } }
+
+  /* ── Anmeldung ────────────────────────────────────────────────────────── */
+  /* Die Karte der Anmeldung — eine Fläche mit Rand, ohne Schatten (Linie „Lot“). */
+  .anmelde-karte { width: 100%; max-width: 24rem; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+
+  /* Sprungziele einer Akte: die mitlaufende Sprungleiste verdeckt sonst den Kartentitel. */
+  .sprung-ziel { scroll-margin-top: 3.5rem; }
 }

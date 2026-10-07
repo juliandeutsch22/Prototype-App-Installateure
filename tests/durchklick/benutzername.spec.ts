@@ -57,7 +57,8 @@ test('Benutzername: anlegen, erstes Anmelden, eigenes Passwort, vergessen, neues
   const buero = await (await browser.newContext()).newPage();
   await anmelden(buero, CHEFIN.email);
   await buero.goto('/user-mgmt');
-  await buero.getByRole('button', { name: 'Neuer Benutzer' }).click();
+  // Die Hauptaktion heisst seit dem Umbau auf „Lot“ wie der Knopf im Formular.
+  await buero.getByRole('button', { name: 'Benutzer anlegen' }).click();
   await buero.getByRole('textbox', { name: /^Name/ }).fill('Nora Neuling');
   await buero.getByLabel('Anmeldung mit').selectOption('benutzername');
   // Grossgeschrieben getippt — gespeichert wird klein.

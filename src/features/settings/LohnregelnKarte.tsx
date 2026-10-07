@@ -74,6 +74,7 @@ export default function LohnregelnKarte() {
         </>
       }
     >
+      <div className="formular">
       <FormGrid>
         <InputField
           id="nachtVon" label="Nachtzeit von" type="time"
@@ -112,12 +113,13 @@ export default function LohnregelnKarte() {
           />
         </div>
       )}
-      <div className="mt-4">
+      {fehler && <p role="alert" className="mt-2 text-sm text-danger">{fehler}</p>}
+      <div className="fuss-aktionen mt-4">
         <Button type="button" loading={speichert} onClick={speichern}>
           Speichern
         </Button>
       </div>
-      {fehler && <p role="alert" className="mt-2 text-sm text-danger">{fehler}</p>}
+      </div>
     </Card>
   );
 }
