@@ -1,0 +1,325 @@
+{
+ "schritt": "D – Hülle und Navigation",
+ "eintraege": [
+  {
+   "alt": "huelle.sprunglink",
+   "neu": "huelle.sprunglink",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert erster Tab-Halt",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.kopfleiste.logo",
+   "neu": "huelle.kopfzeile.logo",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Kopfzeile am Handy bleibt, schmaler, Farbe --navi",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.kopfleiste.profil",
+   "neu": "huelle.kopfzeile.profil",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Initialen öffnen das Profil wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.logo",
+   "neu": "huelle.navi.betrieb",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "nur Schreibtisch; Tablet-Leiste ohne Logo (Platz), Betrieb in der Kopfzeile am Handy",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/",
+   "neu": "huelle.navi.punkt:/",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Start“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/time",
+   "neu": "huelle.navi.punkt:/time",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Zeiterfassung“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/material",
+   "neu": "huelle.navi.punkt:/material",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Material anfordern“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/my-schedule",
+   "neu": "huelle.navi.punkt:/my-schedule",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Mein Einsatzplan“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/my-projects",
+   "neu": "huelle.navi.punkt:/my-projects",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Meine Baustellen“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/vacations",
+   "neu": "huelle.navi.punkt:/vacations",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Urlaub“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/worksheets",
+   "neu": "huelle.navi.punkt:/worksheets",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Handwerksscheine“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/quotes",
+   "neu": "huelle.navi.punkt:/quotes",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Angebote“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/customers",
+   "neu": "huelle.navi.punkt:/customers",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Kunden“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/wartungen",
+   "neu": "huelle.navi.punkt:/wartungen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Wartungen“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/anforderungen",
+   "neu": "huelle.navi.punkt:/anforderungen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Anforderungen“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/lager",
+   "neu": "huelle.navi.punkt:/lager",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Lager“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/admin-projects",
+   "neu": "huelle.navi.punkt:/admin-projects",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Baustellen“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/assignments",
+   "neu": "huelle.navi.punkt:/assignments",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Einsatzplanung“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/user-mgmt",
+   "neu": "huelle.navi.punkt:/user-mgmt",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Benutzerverwaltung“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/costing",
+   "neu": "huelle.navi.punkt:/costing",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Nachkalkulation“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/invoices",
+   "neu": "huelle.navi.punkt:/invoices",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Rechnungen“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/accounting",
+   "neu": "huelle.navi.punkt:/accounting",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Mitarbeiterübersicht“ — gleiche Rollen (tests/unit/navigationLot.test.ts), neue Gruppe; Tablet mit Kurztext",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.punkt:/settings",
+   "neu": "huelle.navi.fuss.punkt:/settings",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Einstellungen unten im Fuss der Leiste",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.zaehler",
+   "neu": "huelle.navi.zahl",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "dieselben Zahlen (Zaehler), Tablet an der Symbolecke",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.person",
+   "neu": "huelle.navi.person",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Schreibtisch; Tablet: Initialen öffnen das Profil",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.problem-melden",
+   "neu": "huelle.navi.problem-melden",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Schreibtisch; Tablet und Handy im Profil (1 Klick mehr am Tablet, vorher dort direkt) — am Tablet 2 statt 1 (zulässig: höchstens ein Klick mehr)",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.abmelden",
+   "neu": "huelle.navi.abmelden",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Schreibtisch; Tablet im Profil — am Tablet 2 statt 1 (zulässig: höchstens ein Klick mehr)",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.produktmarke",
+   "neu": "huelle.navi.produktmarke",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Schreibtisch",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.seitenleiste.recht",
+   "neu": "huelle.navi.recht",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Schreibtisch; Tablet im Profil — am Tablet 2 statt 1 (zulässig: höchstens ein Klick mehr)",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.reiterleiste.punkt",
+   "neu": "huelle.unten.punkt",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "vier Ziele je Rolle wie bisher (LEISTE)",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.reiterleiste.mehr",
+   "neu": "huelle.unten.mehr",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "markiert jetzt auch bei Unterseiten und Akten",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.mehr.punkt",
+   "neu": "huelle.mehr.punkt",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "gleiche Einträge, gleiche Gruppenreihenfolge wie die Leiste",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.profil.mein-konto",
+   "neu": "huelle.profil.mein-konto",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Mein Konto",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.profil.problem-melden",
+   "neu": "huelle.profil.problem-melden",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Problem melden",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.profil.abmelden",
+   "neu": "huelle.profil.abmelden",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Abmelden",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.profil.fassung",
+   "neu": "huelle.profil.fassung",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Fassung",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.profil.app-erneuern",
+   "neu": "huelle.profil.app-erneuern",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "App erneuern",
+   "geprueft": true
+  },
+  {
+   "alt": "huelle.profil.recht",
+   "neu": "huelle.profil.recht",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Impressum/Datenschutz",
+   "geprueft": true
+  },
+  {
+   "alt": "—",
+   "neu": "huelle.suche",
+   "weg_alt": null,
+   "weg_neu": 1,
+   "bemerkung": "neu: Suchen oder springen (Strg + K), zusätzlich",
+   "geprueft": true
+  },
+  {
+   "alt": "—",
+   "neu": "huelle.profil.darstellung",
+   "weg_alt": null,
+   "weg_neu": 2,
+   "bemerkung": "neu: dunkle Darstellung auf Wahl",
+   "geprueft": true
+  }
+ ]
+}

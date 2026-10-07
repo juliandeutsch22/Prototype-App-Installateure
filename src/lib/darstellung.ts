@@ -23,10 +23,18 @@ function lesen(): Darstellung {
   }
 }
 
+/*
+  Der Statusbalken des Telefons trägt die Farbe der Kopfzeile darunter
+  (`--navi`); stünde dort im dunklen Modus noch das helle Petrol, säße ein
+  heller Riegel über der dunklen Leiste.
+*/
+const STATUSBALKEN: Record<Darstellung, string> = { hell: '#0f3c47', dunkel: '#091619' };
+
 function anwenden(d: Darstellung): void {
   if (typeof document === 'undefined') return;
   if (d === 'dunkel') document.documentElement.setAttribute('data-theme', 'dark');
   else document.documentElement.removeAttribute('data-theme');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', STATUSBALKEN[d]);
 }
 
 /** Beim Start, vor dem ersten Zeichnen — sonst blitzt die helle Fläche auf. */

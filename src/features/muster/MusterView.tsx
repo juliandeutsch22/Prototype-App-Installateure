@@ -106,7 +106,7 @@ export default function MusterView() {
         </div>
         <p className="mt-4 text-2xl font-semibold">Seitentitel 26</p>
         <p className="text-lg font-semibold">Abschnitt 18</p>
-        <p className="text-fliess">Fliesstext 15</p>
+        <p className="text-fliess">Fließtext 15</p>
         <p className="text-meta text-ink-muted">Nebeninfo 13</p>
       </Card>
 
@@ -231,7 +231,7 @@ export default function MusterView() {
       </Card>
 
       <BottomSheet open={fenster} onClose={() => setFenster(false)} label="Muster" auchBreit titel="Seitenfenster">
-        <p className="text-fliess">Am Schreibtisch und Tablet rechts, am Handy ein Blatt von unten. Esc schliesst.</p>
+        <p className="text-fliess">Am Schreibtisch und Tablet rechts, am Handy ein Blatt von unten. Esc schließt.</p>
         <div className="mt-4">
           <Button onClick={() => setFenster(false)}>Fertig</Button>
         </div>

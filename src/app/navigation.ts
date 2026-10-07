@@ -14,7 +14,7 @@ export interface NavItem {
   /** Rollen, die diesen Screen sehen dürfen. */
   roles: Role[];
   /** Gruppierung in der Navigation. */
-  group: 'Allgemein' | 'Außendienst' | 'Verwaltung' | 'Buchhaltung' | 'Einstellungen';
+  group: 'Start' | 'Aufträge' | 'Geld' | 'Team' | 'Material' | 'Einstellungen';
   /**
    * Zu welchem abschaltbaren Modul dieser Eintrag gehört.
    *
@@ -91,12 +91,12 @@ const NUR_ADMIN: Role[] = ['Administrator'];
 export const NAV: NavItem[] = [
   // „Start“ wie in der unteren Leiste — zwei Namen für dieselbe Seite waren
   // einer zu viel (Analyse 03.10.2026, Paket 1).
-  { path: '/', label: 'Start', short: 'Start', icon: 'home', roles: ALL, group: 'Allgemein' },
+  { path: '/', label: 'Start', short: 'Start', icon: 'home', roles: ALL, group: 'Start' },
 
   // JEDE Rolle muss die eigene Zeit buchen können (auch die Buchhaltung:
   // Krankenstand und Urlaub). Legacy setzt den Tab unbedingt, ohne
   // Rollenprüfung (perl-installateur-web-app.html:1954).
-  { path: '/time', label: 'Zeiterfassung', short: 'Zeit', icon: 'clock', roles: ALL, group: 'Außendienst' },
+  { path: '/time', label: 'Zeiterfassung', short: 'Zeit', icon: 'clock', roles: ALL, group: 'Team' },
   /*
    * MATERIAL SIND DREI EIGENE BEREICHE, KEIN REITER MIT UNTERREITERN.
    *
@@ -111,37 +111,37 @@ export const NAV: NavItem[] = [
    * Deshalb auch verschiedene Gruppen: Anfordern ist Außendienst, das
    * Abarbeiten und der Bestand sind Verwaltung.
    */
-  { path: '/material', label: 'Material anfordern', short: 'Material', icon: 'package', roles: ['Mitarbeiter', 'Verwaltung', ...LEAD], group: 'Außendienst', modul: 'material' },
+  { path: '/material', label: 'Material anfordern', short: 'Material', icon: 'package', roles: ['Mitarbeiter', 'Verwaltung', ...LEAD], group: 'Material', modul: 'material' },
   // Nur REINE Mitarbeiter — Admin/GF sehen alle Baustellen über die
   // Verwaltungssicht (Legacy:1979 "nicht Admin, der sieht alle in Projekte").
-  { path: '/my-schedule', label: 'Mein Einsatzplan', short: 'Plan', icon: 'calendar', roles: ['Mitarbeiter'], group: 'Außendienst', modul: 'einsatzplanung', zusatz: { rolle: 'Projektleiter', wenn: 'projektleitungImEinsatzplan' } },
-  { path: '/my-projects', label: 'Meine Baustellen', short: 'Baustellen', icon: 'building', roles: ['Mitarbeiter'], group: 'Außendienst' },
+  { path: '/my-schedule', label: 'Mein Einsatzplan', short: 'Plan', icon: 'calendar', roles: ['Mitarbeiter'], group: 'Aufträge', modul: 'einsatzplanung', zusatz: { rolle: 'Projektleiter', wenn: 'projektleitungImEinsatzplan' } },
+  { path: '/my-projects', label: 'Meine Baustellen', short: 'Baustellen', icon: 'building', roles: ['Mitarbeiter'], group: 'Aufträge' },
   // Urlaub sieht JEDE Rolle: auch Buchhaltung und Verwaltung nehmen Urlaub,
   // und beantragen muessen ihn alle. Wer entscheiden darf, sieht in derselben
   // Ansicht zusaetzlich die offenen Antraege.
-  { path: '/vacations', label: 'Urlaub', short: 'Urlaub', icon: 'sun', roles: ALL, group: 'Außendienst', modul: 'urlaub', hinweis: 'urlaub' },
+  { path: '/vacations', label: 'Urlaub', short: 'Urlaub', icon: 'sun', roles: ALL, group: 'Team', modul: 'urlaub', hinweis: 'urlaub' },
   // Der Schein gehoert in den Aussendienst: er entsteht vor Ort beim Kunden,
   // nicht im Buero.
-  { path: '/worksheets', label: 'Handwerksscheine', short: 'Scheine', icon: 'pencil', roles: ['Mitarbeiter', 'Buchhaltung', 'Verwaltung', ...LEAD], group: 'Außendienst', modul: 'scheine' },
+  { path: '/worksheets', label: 'Handwerksscheine', short: 'Scheine', icon: 'pencil', roles: ['Mitarbeiter', 'Buchhaltung', 'Verwaltung', ...LEAD], group: 'Aufträge', modul: 'scheine' },
 
   // Kunden VOR den Baustellen: der Kunde ist der Ausgangspunkt, die Baustelle
   // hängt an ihm. Auch die Buchhaltung braucht ihn — für die Rechnungsadresse.
   // Angebot vor Baustelle: so laeuft der Auftrag auch in Wirklichkeit.
-  { path: '/quotes', label: 'Angebote', short: 'Angebote', icon: 'file', roles: ['Buchhaltung', ...LEAD], group: 'Verwaltung', modul: 'angebote' },
-  { path: '/customers', label: 'Kunden', short: 'Kunden', icon: 'contact', roles: ['Buchhaltung', 'Verwaltung', ...LEAD], group: 'Verwaltung' },
+  { path: '/quotes', label: 'Angebote', short: 'Angebote', icon: 'file', roles: ['Buchhaltung', ...LEAD], group: 'Aufträge', modul: 'angebote' },
+  { path: '/customers', label: 'Kunden', short: 'Kunden', icon: 'contact', roles: ['Buchhaltung', 'Verwaltung', ...LEAD], group: 'Aufträge' },
   // Wartungen bei den Kunden, nicht bei den Baustellen: eine Vereinbarung
   // gehört dem Kunden und überlebt jede einzelne Baustelle. Die Verwaltung
   // sieht sie mit, NUR LESEND — anlegen, ändern und „erledigt“ bleiben bei
   // der Leitung (entschieden vom Betrieb am 24.09.2026, Prüflauf L4). Hier
   // stand vorher, sie „vereinbare den Termin“ — ohne einen einzigen Knopf dafür.
-  { path: '/wartungen', label: 'Wartungen', short: 'Wartung', icon: 'wrench', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'wartung' },
-  { path: '/anforderungen', label: 'Anforderungen', short: 'Anford.', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material', hinweis: 'anforderungen' },
-  { path: '/lager', label: 'Lager', short: 'Lager', icon: 'archive', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material' },
-  { path: '/admin-projects', label: 'Baustellen', short: 'Baustellen', icon: 'building', roles: LEAD, group: 'Verwaltung' },
-  { path: '/assignments', label: 'Einsatzplanung', short: 'Planung', icon: 'calendar', roles: LEAD, group: 'Verwaltung', modul: 'einsatzplanung' },
+  { path: '/wartungen', label: 'Wartungen', short: 'Wartung', icon: 'wrench', roles: ['Verwaltung', ...LEAD], group: 'Aufträge', modul: 'wartung' },
+  { path: '/anforderungen', label: 'Anforderungen', short: 'Anford.', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Material', modul: 'material', hinweis: 'anforderungen' },
+  { path: '/lager', label: 'Lager', short: 'Lager', icon: 'archive', roles: ['Verwaltung', ...LEAD], group: 'Material', modul: 'material' },
+  { path: '/admin-projects', label: 'Baustellen', short: 'Baustellen', icon: 'building', roles: LEAD, group: 'Aufträge' },
+  { path: '/assignments', label: 'Einsatzplanung', short: 'Planung', icon: 'calendar', roles: LEAD, group: 'Aufträge', modul: 'einsatzplanung' },
   // Wer angelegt wird und welche Rolle er bekommt, ist Eigentümersache und
   // nicht Sache der Bauleitung: mit dieser Ansicht vergibt man Rechte.
-  { path: '/user-mgmt', label: 'Benutzerverwaltung', short: 'Benutzer', icon: 'users', roles: TOP, group: 'Verwaltung' },
+  { path: '/user-mgmt', label: 'Benutzerverwaltung', short: 'Benutzer', icon: 'users', roles: TOP, group: 'Team' },
   // Einstellungen: EIN Reiter für alles, was man einmal einstellt und dann
   // lange nicht mehr anfasst — die eigenen Meldungen, die Sätze des Betriebs
   // und die Module. Vorher waren das drei Reiter, zwei davon für Dinge, die
@@ -158,15 +158,15 @@ export const NAV: NavItem[] = [
   { path: '/settings', label: 'Einstellungen', short: 'Einstellungen', icon: 'settings', roles: ALL, group: 'Einstellungen' },
 
   // Margen sind Geschaeftsfuehrungssache — die Projektleitung sieht sie nicht.
-  { path: '/costing', label: 'Nachkalkulation', short: 'Kalkulation', icon: 'calculator', roles: TOP, group: 'Buchhaltung', modul: 'nachkalkulation' },
+  { path: '/costing', label: 'Nachkalkulation', short: 'Kalkulation', icon: 'calculator', roles: TOP, group: 'Geld', modul: 'nachkalkulation' },
   // Rechnungen OHNE Projektleitung — so steht es auch in den Richtlinien, und
   // dort ist es die Wahrheit. Der Eintrag zeigte sie ihr trotzdem an; wer
   // klickte, landete in „Kein Zugriff".
-  { path: '/invoices', label: 'Rechnungen', short: 'Rechnungen', icon: 'receipt', roles: ['Buchhaltung', ...TOP], group: 'Buchhaltung', modul: 'rechnungen', hinweis: 'mahnungen', zusatz: { rolle: 'Projektleiter', wenn: 'rechnungenLesen' } },
+  { path: '/invoices', label: 'Rechnungen', short: 'Rechnungen', icon: 'receipt', roles: ['Buchhaltung', ...TOP], group: 'Geld', modul: 'rechnungen', hinweis: 'mahnungen', zusatz: { rolle: 'Projektleiter', wenn: 'rechnungenLesen' } },
   // Zeitkonten: bewusst OHNE Projektleitung. Ueberstunden, Krankenstaende und
   // Urlaub eines Monteurs gehen sie nichts an — Krankenstaende sind zudem
   // Gesundheitsdaten nach Art. 9 DSGVO.
-  { path: '/accounting', label: 'Mitarbeiterübersicht', short: 'Übersicht', icon: 'chart', roles: ['Buchhaltung', ...TOP], group: 'Buchhaltung', modul: 'zeitkonten' },
+  { path: '/accounting', label: 'Mitarbeiterübersicht', short: 'Übersicht', icon: 'chart', roles: ['Buchhaltung', ...TOP], group: 'Team', modul: 'zeitkonten' },
 
 ];
 
@@ -363,10 +363,31 @@ export function tabBarForRole(
 
 
 /** Reihenfolge der Navigationsgruppen. */
-export const NAV_GROUPS = ['Allgemein', 'Außendienst', 'Verwaltung', 'Buchhaltung', 'Einstellungen'] as const;
+export const NAV_GROUPS = ['Start', 'Aufträge', 'Geld', 'Team', 'Material', 'Einstellungen'] as const;
+
+/*
+  DIE GRUPPEN DER LINIE „LOT“ (Protokoll Abschnitt 5): Start; Aufträge; Geld;
+  Team; Material; Einstellungen unten. Vorher gliederte die Leiste nach
+  Abteilungen (Außendienst, Verwaltung, Buchhaltung) — wer im Büro nach den
+  Rechnungen suchte, musste wissen, dass sie „der Buchhaltung“ gehören. Die
+  neuen Gruppen sagen, WORUM es geht. Die Einträge je Rolle sind exakt
+  dieselben wie vorher, nur anders geordnet.
+
+  Innerhalb einer Gruppe steht das Häufige oben: Baustellen und Planung vor
+  Angeboten und Kunden.
+*/
+const REIHENFOLGE = [
+  '/', '/admin-projects', '/assignments', '/my-schedule', '/my-projects', '/worksheets', '/quotes',
+  '/customers', '/wartungen', '/invoices', '/costing', '/time', '/vacations', '/accounting',
+  '/user-mgmt', '/material', '/anforderungen', '/lager', '/settings',
+];
+const rang = (p: string) => {
+  const i = REIHENFOLGE.indexOf(p);
+  return i < 0 ? REIHENFOLGE.length : i;
+};
 
 /** Gruppen, die in Seitenleiste und Blatt „Mehr“ ohne Überschrift stehen. */
-export const OHNE_UEBERSCHRIFT: ReadonlySet<string> = new Set(['Allgemein', 'Einstellungen']);
+export const OHNE_UEBERSCHRIFT: ReadonlySet<string> = new Set(['Start', 'Einstellungen']);
 
 /** Sichtbare Navigation, nach Gruppen gebündelt (für übersichtliche Sidebar). */
 export function navGroupsForRole(
@@ -377,7 +398,7 @@ export function navGroupsForRole(
   const visible = navForRole(role, module, zusatz);
   return NAV_GROUPS.map((group) => ({
     group,
-    items: visible.filter((i) => i.group === group),
+    items: visible.filter((i) => i.group === group).sort((a, b) => rang(a.path) - rang(b.path)),
   })).filter((g) => g.items.length > 0);
 }
 
