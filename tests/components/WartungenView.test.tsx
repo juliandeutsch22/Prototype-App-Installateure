@@ -493,6 +493,11 @@ describe('Baustelle aus einer Wartung', () => {
     await alleZeigen(nutzer);
     await screen.findAllByText(/Familie Huber/);
     expect(screen.queryByRole('button', { name: 'Baustelle anlegen' })).not.toBeInTheDocument();
+    // Auch nicht im Seitenfenster der Anlage, wo alle Schritte stehen.
+    await nutzer.click(screen.getByRole('button', { name: /Familie Huber/ }));
+    const fenster = await screen.findByRole('dialog', { name: 'Wartung' });
+    expect(within(fenster).getByRole('button', { name: 'Erledigt' })).toBeInTheDocument();
+    expect(within(fenster).queryByRole('button', { name: 'Baustelle anlegen' })).toBeNull();
   });
 });
 
@@ -577,10 +582,29 @@ describe('Wartungen auf der Linie „Lot“', () => {
     expect(within(punkte[0]).getByText('Baustelle B-2025-0031')).toBeInTheDocument();
     expect(punkte[1]).toHaveAttribute('aria-current', 'step');
 
-    // „Bearbeiten“ steht hier, nicht mehr in der Zeile.
+    // Gegenprobe zur Herbst-Wartung: die überfällige ohne Baustelle bietet das Anlegen an.
+    expect(within(fenster).getByRole('button', { name: 'Baustelle anlegen' })).toBeInTheDocument();
+    // „Bearbeiten“ steht unter „Steht an“ hier, nicht in der Zeile.
+    expect(screen.getAllByRole('button', { name: 'Bearbeiten' })).toHaveLength(1);
     await nutzer.click(within(fenster).getByRole('button', { name: 'Bearbeiten' }));
     expect(await screen.findByRole('dialog', { name: 'Wartung ändern' })).toBeInTheDocument();
     expect(screen.getByLabelText('Anlage')).toHaveValue('Therme Vaillant ecoTEC');
+  });
+
+  it('trägt je Ansicht ihren zweiten Schritt: „Baustelle anlegen“ unter „Steht an“, „Bearbeiten“ unter „Alle“', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    const an = await anstehendeZeilen();
+    const zeile = () => screen.getByText(/Bäckerei Stein/).closest('li') as HTMLElement;
+    expect(within(zeile()).getByRole('button', { name: 'Baustelle anlegen' })).toBeInTheDocument();
+    expect(an.queryByRole('button', { name: 'Bearbeiten' })).toBeNull();
+
+    await alleZeigen(nutzer);
+    expect(within(zeile()).getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    expect(within(zeile()).queryByRole('button', { name: 'Baustelle anlegen' })).toBeNull();
+    // Ohne Seitenfenster direkt ins Formular — wie vor dem Umbau aus der Karte „Alle Vereinbarungen“.
+    await nutzer.click(within(zeile()).getByRole('button', { name: 'Bearbeiten' }));
+    expect(await screen.findByRole('dialog', { name: 'Wartung ändern' })).toBeInTheDocument();
   });
 
   it('Gegenprobe: eine ruhende Vereinbarung hat keinen „jetzt“-Punkt', async () => {

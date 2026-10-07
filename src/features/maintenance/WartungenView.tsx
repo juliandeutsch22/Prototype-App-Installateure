@@ -372,8 +372,12 @@ export default function WartungenView() {
       setBearbeitet(null);
       setForm(LEER());
     }
-    // Offen, wenn darin schon etwas steht (Regel 9) — sonst sähe es leer aus.
-    setWeitereOffen(!!w && !!(w.hersteller || w.typ || w.seriennummer || w.baujahr != null || w.preis != null));
+    /*
+      BEIM ÄNDERN OFFEN: „Bearbeiten“ liegt seit der Linie „Lot“ einen Klick
+      tiefer (im Seitenfenster); ein zugeklappter Abschnitt wäre ein zweiter.
+      Beim Anlegen zugeklappt — Anlagendaten und Preis sind dort selten.
+    */
+    setWeitereOffen(!!w);
     setFormOffen(true);
   };
 
@@ -600,10 +604,11 @@ export default function WartungenView() {
     );
 
   /*
-    DIE ZEILE TRÄGT, WAS MAN ZUM ENTSCHEIDEN BRAUCHT — Kunde, Stand, Anlage,
-    Ort, Termin — und die nächsten Schritte. Alles Weitere (Intervall,
-    Anlagendaten, Preis, Hinweis) steht im Seitenfenster, das die ganze Zeile
-    öffnet; dort ist auch „Bearbeiten“.
+    DIE ZEILE TRÄGT ALLES WIE BISHER — Kunde, Stand, Anlage, Ort, Intervall,
+    Termin, Hinweis, Anlagendaten, Preis — und die nächsten Schritte. Die
+    ganze Zeile öffnet die Anlage im Seitenfenster: dieselben Angaben
+    geordnet, die Wartungen als Lot und alle Schritte. Kürzer wäre die Zeile
+    ruhiger, aber unter „Alle“ läge jede Angabe dann zwei Tipps tief.
   */
   const zeile = (w: WithId<Wartung>) => {
     const u = beurteile(w, heute);
@@ -621,8 +626,12 @@ export default function WartungenView() {
         subtitle={
           <>
             {w.anlage}
-            {w.address ? ` · ${w.address}` : ''} · Termin {fmtDatum(w.faelligAm)}
+            {w.address ? ` · ${w.address}` : ''} · alle {w.intervallMonate} Monate · Termin{' '}
+            {fmtDatum(w.faelligAm)}
             {w.zuletztAm ? ` · zuletzt ${fmtDatum(w.zuletztAm)}` : ' · noch nie gewartet'}
+            {w.hinweis ? ` · ${w.hinweis}` : ''}
+            {anlagendaten(w) ? ` · ${anlagendaten(w)}` : ''}
+            {w.preis != null ? ` · ${euro(w.preis)} je Wartung` : ''}
             {/*
               WAS SCHON EINGEPLANT IST, SAGT ES. Ohne diese Zeile hiess
               „fällig" zweierlei — „noch nichts passiert" und „steht längst im
@@ -648,7 +657,19 @@ export default function WartungenView() {
             <Button variant="secondary" onClick={() => erledigtFragen(w)}>
               Erledigt
             </Button>
-            {kannEinplanen(w) && <Button onClick={() => einplanenFragen(w)}>Baustelle anlegen</Button>}
+            {/*
+              JE ANSICHT IHR ZWEITER SCHRITT: unter „Steht an“ die Arbeit
+              (Baustelle anlegen), unter „Alle“ die Pflege des Bestands
+              (Bearbeiten) — dort stand „Bearbeiten“ schon bisher, und ein
+              Klick mehr über das Seitenfenster wären dort zwei.
+            */}
+            {ansicht === 'anstehend'
+              ? kannEinplanen(w) && <Button onClick={() => einplanenFragen(w)}>Baustelle anlegen</Button>
+              : (
+                <Button variant="ghost" onClick={() => formOeffnen(w)}>
+                  Bearbeiten
+                </Button>
+              )}
           </>
         )}
       </ListRow>
