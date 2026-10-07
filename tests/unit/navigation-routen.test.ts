@@ -214,6 +214,8 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
      */
     expect(unterseitenFuer('/settings', 'Mitarbeiter').map((s) => s.pfad)).toEqual(['meldungen']);
     expect(unterseitenFuer('/settings', 'Geschäftsführung').map((s) => s.pfad)).toEqual([
+      // Seit der Linie „Lot“ (E9): Suche und Einrichtungsstand zuerst.
+      'uebersicht',
       'meldungen',
       // Was auf den Belegen steht — Briefkopf, Logo, UID, Bankverbindung.
       'firma',
@@ -251,6 +253,9 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
       ohne die Stunden- und Kostensätze, die daneben stehen.
     */
     expect(unterseitenFuer('/settings', 'Buchhaltung').map((s) => s.pfad)).toEqual([
+      // Die Übersicht (Linie „Lot“) verweist nur auf diese drei; den
+      // Einrichtungsstand der Firmendaten sieht nur die Leitung.
+      'uebersicht',
       'meldungen',
       'rechnung',
       'konten',

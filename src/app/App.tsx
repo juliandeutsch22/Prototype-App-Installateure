@@ -80,6 +80,7 @@ const KontenrahmenView = lazy(() => import('@/features/settings/KontenrahmenView
 const SupportzugangView = lazy(() => import('@/features/settings/SupportzugangView'));
 const FirmendatenView = lazy(() => import('@/features/settings/FirmendatenView'));
 const NotificationSettings = lazy(() => import('@/features/settings/NotificationSettings'));
+const EinstellungenUebersicht = lazy(() => import('@/features/settings/EinstellungenUebersicht'));
 
 /**
  * App-Wurzel: Auth-Provider + Routing. Jede geschützte Route liegt hinter
@@ -521,6 +522,7 @@ function AppRoutes() {
             <Unterreiter
               basis="/settings"
               elemente={{
+                uebersicht: <EinstellungenUebersicht />,
                 meldungen: <NotificationSettings />,
                 firma: <FirmendatenView />,
                 saetze: <SettingsView teil="saetze" />,

@@ -225,6 +225,14 @@ export const UNTER: Record<string, Unterseite[]> = {
     { pfad: 'team', label: 'Team-Woche', nurMitSchalter: 'wochenplanFuerAlle' },
   ],
   '/settings': [
+    /*
+      DIE ÜBERSICHT ZUERST für die, die den Betrieb einrichten (Linie „Lot“,
+      Protokoll E9): Suche über alle Unterseiten und der Einrichtungsstand.
+      Die Unterseiten und ihre Adressen bleiben; wer nur sein Konto hat,
+      landet wie bisher direkt dort (für alle anderen Rollen gilt der
+      folgende Satz weiter).
+    */
+    { pfad: 'uebersicht', label: 'Übersicht', roles: [...TOP, 'Buchhaltung'] },
     // MEIN KONTO ZUERST: das Einzige, was jede Rolle hier hat — das eigene
     // Passwort und die eigenen Meldungen. Der Pfad heißt weiterhin
     // `meldungen`: er steht in Lesezeichen und in verschickten Meldungen,

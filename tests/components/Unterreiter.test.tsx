@@ -27,6 +27,7 @@ vi.mock('@/app/AuthContext', () => ({
 const { default: Unterreiter } = await import('@/components/Unterreiter');
 
 const ELEMENTE = {
+  uebersicht: <p>Uebersicht-Inhalt</p>,
   meldungen: <p>Meldungen-Inhalt</p>,
   saetze: <p>Saetze-Inhalt</p>,
   module: <p>Module-Inhalt</p>,
@@ -50,7 +51,8 @@ describe('Unterreiter', () => {
   it('bringt den nackten Reiterpfad auf die erste erlaubte Unterseite', async () => {
     rolle = 'Geschäftsführung';
     zeige('/settings');
-    expect(await screen.findByText('Meldungen-Inhalt')).toBeInTheDocument();
+    // Die erste erlaubte Unterseite ist für die Leitung seit „Lot“ die Übersicht.
+    expect(await screen.findByText('Uebersicht-Inhalt')).toBeInTheDocument();
   });
 
   it('wechselt ueber die Leiste', async () => {
@@ -169,7 +171,7 @@ describe('Unterreiter', () => {
   it('faengt auch eine Adresse ab, die es gar nicht gibt', async () => {
     rolle = 'Geschäftsführung';
     zeige('/settings/gibtsnicht');
-    expect(await screen.findByText('Meldungen-Inhalt')).toBeInTheDocument();
+    expect(await screen.findByText('Uebersicht-Inhalt')).toBeInTheDocument();
   });
 
   it('kommt auch durch die DREI Ebenen der echten App hindurch', async () => {
