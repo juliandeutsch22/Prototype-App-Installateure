@@ -11,6 +11,7 @@ import { listUsers } from '@/lib/db/users';
 import { localDateStr, todayStr } from '@/lib/time';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import BottomSheet from '@/components/BottomSheet';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Marke } from '@/components/Badge';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
@@ -199,6 +200,80 @@ export function KrankmeldungKarte({
   onGeaendert: () => void;
   onSchliessen: () => void;
 }) {
+  return (
+    <Card
+      title="Krankmeldung"
+      action={<Button variant="ghost" onClick={onSchliessen}>Schließen</Button>}
+    >
+      <KrankmeldungInhalt
+        companyId={companyId}
+        id={id}
+        meinName={meinName}
+        mitNamen={mitNamen}
+        buero={buero}
+        onGeaendert={onGeaendert}
+      />
+    </Card>
+  );
+}
+
+/**
+ * Dieselbe Krankmeldung im Seitenfenster (Linie „Lot“, Regel 8) — für die
+ * Zeiterfassung. Dort schob die Karte sich vorher zwischen Formular und
+ * Liste, am Handy weit über dem Krank-Tag, auf den man getippt hatte; das
+ * Seitenfenster öffnet sich, wo man ist, und die Liste bleibt dahinter.
+ */
+export function KrankmeldungFenster({
+  companyId,
+  id,
+  meinName,
+  mitNamen,
+  buero,
+  onGeaendert,
+  onSchliessen,
+}: {
+  companyId: string;
+  /** Welche Meldung — `null` heisst: das Fenster ist zu. */
+  id: string | null;
+  meinName: string;
+  mitNamen: boolean;
+  buero: boolean;
+  onGeaendert: () => void;
+  onSchliessen: () => void;
+}) {
+  return (
+    <BottomSheet open={!!id} onClose={onSchliessen} label="Krankmeldung" auchBreit titel="Krankmeldung">
+      {id && (
+        <KrankmeldungInhalt
+          key={id}
+          companyId={companyId}
+          id={id}
+          meinName={meinName}
+          mitNamen={mitNamen}
+          buero={buero}
+          onGeaendert={onGeaendert}
+        />
+      )}
+    </BottomSheet>
+  );
+}
+
+/** Lädt die eine Meldung und zeigt sie mit ihren Handgriffen. */
+function KrankmeldungInhalt({
+  companyId,
+  id,
+  meinName,
+  mitNamen,
+  buero,
+  onGeaendert,
+}: {
+  companyId: string;
+  id: string;
+  meinName: string;
+  mitNamen: boolean;
+  buero: boolean;
+  onGeaendert: () => void;
+}) {
   const [meldung, setMeldung] = useState<WithId<Krankmeldung> | null | 'laedt' | 'fehler'>('laedt');
 
   useEffect(() => {
@@ -216,27 +291,20 @@ export function KrankmeldungKarte({
     };
   }, [companyId, id]);
 
-  return (
-    <Card
-      title="Krankmeldung"
-      action={<Button variant="ghost" onClick={onSchliessen}>Schließen</Button>}
-    >
-      {meldung === 'laedt' ? (
-        <SkeletonList rows={1} />
-      ) : meldung === 'fehler' ? (
-        <ErrorState message="Die Krankmeldung konnte nicht geladen werden." />
-      ) : meldung === null ? (
-        <EmptyState>Diese Krankmeldung gibt es nicht mehr.</EmptyState>
-      ) : (
-        <KrankmeldungListe
-          meldungen={[meldung]}
-          mitNamen={mitNamen}
-          meinName={meinName}
-          buero={buero}
-          onGeaendert={onGeaendert}
-        />
-      )}
-    </Card>
+  return meldung === 'laedt' ? (
+    <SkeletonList rows={1} />
+  ) : meldung === 'fehler' ? (
+    <ErrorState message="Die Krankmeldung konnte nicht geladen werden." />
+  ) : meldung === null ? (
+    <EmptyState>Diese Krankmeldung gibt es nicht mehr.</EmptyState>
+  ) : (
+    <KrankmeldungListe
+      meldungen={[meldung]}
+      mitNamen={mitNamen}
+      meinName={meinName}
+      buero={buero}
+      onGeaendert={onGeaendert}
+    />
   );
 }
 
@@ -318,9 +386,12 @@ export function KrankenstaendeReiter({ companyId, meinName }: { companyId: strin
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 lg:space-y-5">
       {fehler && <ErrorState message={fehler} />}
+      {/* Erfassen links, die Krankenstände daneben, wo beide Platz haben (lot-zeit.css). */}
+      <div className="zeit-raster">
       <Card
+        className="zeit-formularkarte"
         title="Krankmeldung erfassen"
         hint={
           <>
@@ -366,11 +437,13 @@ export function KrankenstaendeReiter({ companyId, meinName }: { companyId: strin
             value={notiz}
             onChange={(e) => setNotiz(e.target.value)}
           />
-          <Button type="submit" loading={sendet}>Krankmeldung erfassen</Button>
+          <div className="fuss-aktionen">
+            <Button type="submit" loading={sendet}>Krankmeldung erfassen</Button>
+          </div>
         </form>
       </Card>
 
-      <Card title="Krankenstände">
+      <Card title="Krankenstände" className="zeit-liste">
         {laden ? (
           <SkeletonList rows={2} />
         ) : meldungen.length === 0 ? (
@@ -385,6 +458,7 @@ export function KrankenstaendeReiter({ companyId, meinName }: { companyId: strin
           />
         )}
       </Card>
+      </div>
     </div>
   );
 }

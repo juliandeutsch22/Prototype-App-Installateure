@@ -9,6 +9,7 @@ import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { freistellungWas, freistellungZeitraum, nachweisVermerk, ueberVermerk } from './freistellungText';
 import { NachweisWahl } from './FreistellungFormular';
+import { SonderurlaubFenster } from './AntragFenster';
 
 const STAND: Record<Freistellung['status'], Stand> = {
   Bestätigt: 'gut',
@@ -37,6 +38,46 @@ export default function FreistellungListe({
   const toast = useToast();
   const [arbeitet, setArbeitet] = useState<string | null>(null);
   const [zurueck, setZurueck] = useState<Freistellung | null>(null);
+  /** Der Antrag im Seitenfenster — als Id: nach dem Neuladen zeigt es den frischen Stand. */
+  const [offenId, setOffenId] = useState<string | null>(null);
+  const offen = offenId ? antraege.find((f) => f.id === offenId) ?? null : null;
+
+  /*
+    DIE HANDGRIFFE EINES OFFENEN ANTRAGS — in der Zeile und im Seitenfenster
+    dieselben. Zurückziehen schliesst das Fenster zuerst: die Rückfrage
+    gehört allein in den Vordergrund.
+  */
+  function knoepfe(f: Freistellung, ausFenster: boolean) {
+    if (f.status !== 'Beantragt') return null;
+    const art = ausFenster ? 'secondary' : 'ghost';
+    return (
+      <>
+        {f.art !== 'unbezahlt' && (
+          f.nachweisPfad ? (
+            <Button variant={art} loading={arbeitet === f.id} onClick={() => void entfernen(f)}>
+              Nachweis entfernen
+            </Button>
+          ) : (
+            <NachweisWahl
+              id={ausFenster ? `nachweis-fenster-${f.id}` : `nachweis-${f.id}`}
+              laedt={arbeitet === f.id}
+              onWahl={(d) => void hochladen(f, d)}
+            />
+          )
+        )}
+        <Button
+          variant={art}
+          loading={arbeitet === f.id}
+          onClick={() => {
+            if (ausFenster) setOffenId(null);
+            setZurueck(f);
+          }}
+        >
+          Zurückziehen
+        </Button>
+      </>
+    );
+  }
 
   async function hochladen(f: Freistellung, datei: File) {
     setArbeitet(f.id);
@@ -73,7 +114,14 @@ export default function FreistellungListe({
           return (
             <ListRow
               key={f.id}
-              title={<span>{freistellungZeitraum(f)}</span>}
+              title={
+                <>
+                  <span>{freistellungZeitraum(f)}</span>
+                  {/* Die Zeile öffnet den Antrag mit seinem Verlauf (Seitenfenster). */}
+                  <span className="sr-only"> – Verlauf anzeigen</span>
+                </>
+              }
+              onOeffnen={() => setOffenId(f.id)}
               subtitle={
                 <>
                   <span className="block">
@@ -95,24 +143,20 @@ export default function FreistellungListe({
               }
             >
               <Zustand stand={STAND[f.status]}>{f.status}</Zustand>
-              {f.status === 'Beantragt' && f.art !== 'unbezahlt' && (
-                f.nachweisPfad ? (
-                  <Button variant="ghost" loading={arbeitet === f.id} onClick={() => void entfernen(f)}>
-                    Nachweis entfernen
-                  </Button>
-                ) : (
-                  <NachweisWahl id={`nachweis-${f.id}`} laedt={arbeitet === f.id} onWahl={(d) => void hochladen(f, d)} />
-                )
-              )}
-              {f.status === 'Beantragt' && (
-                <Button variant="ghost" loading={arbeitet === f.id} onClick={() => setZurueck(f)}>
-                  Zurückziehen
-                </Button>
-              )}
+              {knoepfe(f, false)}
             </ListRow>
           );
         })}
       </List>
+
+      <SonderurlaubFenster
+        antrag={offen}
+        anlaesse={anlaesse}
+        stand={offen && <Zustand stand={STAND[offen.status]}>{offen.status}</Zustand>}
+        onClose={() => setOffenId(null)}
+      >
+        {offen ? knoepfe(offen, true) : null}
+      </SonderurlaubFenster>
 
       <ConfirmDialog
         open={!!zurueck}

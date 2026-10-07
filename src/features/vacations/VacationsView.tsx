@@ -58,6 +58,7 @@ import { zeitguthabenLaden } from './zeitguthaben';
 import { KrankmeldungListe, KrankenstaendeReiter } from './Krankmeldungen';
 import { ergebnisText, tageText } from './abwesenheitText';
 import BetriebsurlaubReiter from './BetriebsurlaubReiter';
+import { UrlaubsantragFenster } from './AntragFenster';
 import { grundAus } from '@/lib/fehlerGrund';
 import { useReiterImBild } from '@/components/reiterImBild';
 
@@ -199,6 +200,12 @@ export default function VacationsView() {
   const [arbeitet, setArbeitet] = useState<string | null>(null);
   /** Welcher eigene Antrag zurückgezogen werden soll — null heisst: keiner. */
   const [zurueckzuziehen, setZurueckzuziehen] = useState<WithId<Vacation> | null>(null);
+  /*
+    WELCHER EIGENE ANTRAG IM SEITENFENSTER STEHT — als Id, nicht als Kopie:
+    nach dem Neuladen zeigt das Fenster den frischen Stand, und ein
+    zurückgezogener Antrag schliesst es von selbst.
+  */
+  const [offenerAntragId, setOffenerAntragId] = useState<string | null>(null);
   /** Ablehnen und Zurücknehmen brauchen einen Grund — erfragt im Dialog der App. */
   const [begruenden, setBegruenden] = useState<{
     antrag: WithId<Vacation>;
@@ -948,6 +955,57 @@ export default function VacationsView() {
     </Card>
   );
 
+  /*
+    DIE HANDGRIFFE AN EINEM EIGENEN ANTRAG — in der Zeile und im Seitenfenster
+    dieselben, mit derselben Rückfrage. Aus dem Fenster heraus schliesst es
+    sich zuerst: die Rückfrage gehört allein in den Vordergrund.
+  */
+  function antragsKnoepfe(v: WithId<Vacation>, ausFenster: boolean) {
+    const davor = () => {
+      if (ausFenster) setOffenerAntragId(null);
+    };
+    return (
+      <>
+        {v.status === 'Beantragt' && (
+          <Button
+            variant={ausFenster ? 'secondary' : 'ghost'}
+            loading={arbeitet === v.id}
+            onClick={() => {
+              davor();
+              setZurueckzuziehen(v);
+            }}
+          >
+            Zurückziehen
+          </Button>
+        )}
+        {/*
+          EIN BETRIEBSURLAUB WIRD NICHT FÜR EINE PERSON ZURÜCKGENOMMEN
+          (Rückmeldung vom 29.09.2026). Beantragt hat ihn niemand, und
+          einzeln storniert stünde die Person im Wochenplan weiter als
+          „Betriebsurlaub" da. Wer arbeiten soll, wird beim Anlegen
+          ausgenommen — geändert wird im Reiter „Betriebsurlaub".
+        */}
+        {v.status === 'Genehmigt' && darfEntscheiden && !v.betriebsurlaubId && (
+          <Button
+            variant={ausFenster ? 'secondary' : 'ghost'}
+            loading={arbeitet === v.id}
+            onClick={() => {
+              davor();
+              zuruecknehmen(v);
+            }}
+          >
+            Zurücknehmen
+          </Button>
+        )}
+      </>
+    );
+  }
+  const offenerAntrag = offenerAntragId ? eigene.find((v) => v.id === offenerAntragId) ?? null : null;
+  const fensterKnoepfe =
+    offenerAntrag &&
+    (offenerAntrag.status === 'Beantragt' ||
+      (offenerAntrag.status === 'Genehmigt' && darfEntscheiden && !offenerAntrag.betriebsurlaubId));
+
   const REITER: { key: Reiter; label: string }[] = [
     { key: 'antraege', label: 'Anträge' },
     { key: 'krank', label: 'Krankenstände' },
@@ -1034,7 +1092,13 @@ export default function VacationsView() {
         <FreistellungenBestaetigen user={user} company={company} />
       )}
 
-      <Card title={art === 'Krank' ? 'Krank melden' : 'Antrag stellen'}>
+      {/*
+        ANTRAG LINKS, DIE EIGENEN ANTRÄGE DANEBEN, wo beide Platz haben
+        (lot-zeit.css) — wer gerade beantragt hat, sieht den neuen Antrag
+        gleich neben dem Formular. Am Handy und Tablet untereinander.
+      */}
+      <div className="zeit-raster">
+      <Card className="zeit-formularkarte" title={art === 'Krank' ? 'Krank melden' : 'Antrag stellen'}>
         {/*
           DIE ART STEHT VOR DEM FORMULAR: Sonderurlaub, Pflegefreistellung und
           unbezahlter Urlaub haben ein eigenes (`FreistellungFormular`), mit
@@ -1282,36 +1346,37 @@ export default function VacationsView() {
             </div>
           )}
 
+          {/* Ein Satz; die ganze Erklärung hinter dem „i“ (Regel 9). */}
           {art === 'Krank' && (
-            <p className="text-sm text-ink-muted">
-              Eine Krankmeldung braucht keine Genehmigung: die Tage stehen sofort als „Krank“ im
-              Zeitkonto, und das Büro sieht die Meldung. Ist das Ende noch offen, das
-              voraussichtliche eintragen — ändern geht jederzeit.
+            <p className="flex flex-wrap items-center gap-x-1 text-sm text-ink-muted">
+              Keine Genehmigung nötig — die Tage stehen sofort im Zeitkonto.
+              <InfoHint about="Krankmeldung">
+                Eine Krankmeldung braucht keine Genehmigung: die Tage stehen sofort als „Krank“ im
+                Zeitkonto, und das Büro sieht die Meldung. Ist das Ende noch offen, das
+                voraussichtliche eintragen — ändern geht jederzeit.
+              </InfoHint>
             </p>
           )}
 
           <Pflichthinweis />
 
-          <Button
-            type="submit"
-            className="w-full sm:w-auto"
-            loading={sendet}
-            disabled={
-              art === 'Urlaub' ? tage.length === 0 : art === 'Zeitausgleich' ? zaTage.length === 0 : false
-            }
-          >
-            {art === 'Krank' ? 'Krank melden' : 'Antrag einreichen'}
-          </Button>
+          <div className="fuss-aktionen">
+            <Button
+              type="submit"
+              className="w-full sm:w-auto"
+              loading={sendet}
+              disabled={
+                art === 'Urlaub' ? tage.length === 0 : art === 'Zeitausgleich' ? zaTage.length === 0 : false
+              }
+            >
+              {art === 'Krank' ? 'Krank melden' : 'Antrag einreichen'}
+            </Button>
+          </div>
         </form>
         )}
       </Card>
 
-      {/* Ohne offene Anträge steht die Liste nach dem eigenen Antrag — dort sagt sie „Kein Antrag wartet“. */}
-      {darfEntscheiden && !laden && offene.length === 0 && offeneKarte}
-      {buero && !laden && offeneFrei === 0 && (
-        <FreistellungenBestaetigen user={user} company={company} />
-      )}
-
+      <div className="zeit-spalte">
       {/* Bündig: die Anträge sind Zeilen von Kante zu Kante (Designlinie „Fassung 3"). */}
       <Card title="Meine Anträge" buendig>
         {laden ? (
@@ -1325,7 +1390,14 @@ export default function VacationsView() {
             {eigene.map((v) => (
               <ListRow
                 key={v.id}
-                title={<span>{zeitraum(v)}</span>}
+                title={
+                  <>
+                    <span>{zeitraum(v)}</span>
+                    {/* Die Zeile öffnet den Antrag mit seinem Verlauf (Seitenfenster). */}
+                    <span className="sr-only"> – Verlauf anzeigen</span>
+                  </>
+                }
+                onOeffnen={() => setOffenerAntragId(v.id)}
                 subtitle={
                   <>
                     <span className="block">
@@ -1357,31 +1429,7 @@ export default function VacationsView() {
                 }
               >
                 <Zustand stand={STAND[v.status]}>{v.status}</Zustand>
-                {v.status === 'Beantragt' && (
-                  <Button
-                    variant="ghost"
-                    loading={arbeitet === v.id}
-                    onClick={() => setZurueckzuziehen(v)}
-                  >
-                    Zurückziehen
-                  </Button>
-                )}
-                {/*
-                  EIN BETRIEBSURLAUB WIRD NICHT FÜR EINE PERSON ZURÜCKGENOMMEN
-                  (Rückmeldung vom 29.09.2026). Beantragt hat ihn niemand, und
-                  einzeln storniert stünde die Person im Wochenplan weiter als
-                  „Betriebsurlaub" da. Wer arbeiten soll, wird beim Anlegen
-                  ausgenommen — geändert wird im Reiter „Betriebsurlaub".
-                */}
-                {v.status === 'Genehmigt' && darfEntscheiden && !v.betriebsurlaubId && (
-                  <Button
-                    variant="ghost"
-                    loading={arbeitet === v.id}
-                    onClick={() => zuruecknehmen(v)}
-                  >
-                    Zurücknehmen
-                  </Button>
-                )}
+                {antragsKnoepfe(v, false)}
               </ListRow>
             ))}
           </List>
@@ -1417,6 +1465,29 @@ export default function VacationsView() {
           />
         </Card>
       )}
+      </div>
+      </div>
+
+      {/*
+        OHNE OFFENE ANTRÄGE stehen die Arbeitslisten der Genehmigenden nach den
+        eigenen — dort sagen sie „Kein Antrag wartet“. Vorher standen sie
+        zwischen Formular und „Meine Anträge“; neben dem Formular gehört aber,
+        was man selbst gerade beantragt hat. Wartet etwas, stehen sie oben.
+      */}
+      {darfEntscheiden && !laden && offene.length === 0 && offeneKarte}
+      {buero && !laden && offeneFrei === 0 && (
+        <FreistellungenBestaetigen user={user} company={company} />
+      )}
+
+      <UrlaubsantragFenster
+        antrag={offenerAntrag}
+        // Die Anmerkung steht im Verlauf beim Antrag, nicht doppelt im Kopf.
+        umfang={offenerAntrag ? umfang(offenerAntrag) : ''}
+        stand={offenerAntrag && <Zustand stand={STAND[offenerAntrag.status]}>{offenerAntrag.status}</Zustand>}
+        onClose={() => setOffenerAntragId(null)}
+      >
+        {offenerAntrag && fensterKnoepfe ? antragsKnoepfe(offenerAntrag, true) : null}
+      </UrlaubsantragFenster>
 
       {begruenden && (
         <ConfirmDialog

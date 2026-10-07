@@ -155,12 +155,18 @@ describe('Betriebsurlaub', () => {
 
   it('nimmt einzelne Mitarbeiter aus — Rückfrage und Aufruf nennen sie', async () => {
     zeige(<BetriebsurlaubReiter companyId="perl" meinName="Brigitte" />);
-    // Zugeklappt: meistens hat der ganze Betrieb zu.
-    expect(screen.queryByLabelText('Max Monteur')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: /Mitarbeiter ausnehmen/ }));
+    // Zugeklappt: meistens hat der ganze Betrieb zu. Seit der Linie „Lot“ ein
+    // <details> („Weitere Angaben“) — die Namen stehen darin, aber unsichtbar.
+    expect(await screen.findByLabelText('Max Monteur')).not.toBeVisible();
+    const kopf = () => screen.getByText(/^Mitarbeiter ausnehmen/, { selector: 'summary' });
+    await userEvent.click(kopf());
     // Nur aktive stehen zur Wahl.
     expect(screen.queryByLabelText('Alt Ausgeschieden')).not.toBeInTheDocument();
-    await userEvent.click(await screen.findByLabelText('Max Monteur'));
+    await userEvent.click(screen.getByLabelText('Max Monteur'));
+    // Wieder zugeklappt steht in der Zeile, wer arbeitet — keine Ausnahme geht unbemerkt mit.
+    await userEvent.click(kopf());
+    expect(screen.getByLabelText('Max Monteur')).not.toBeVisible();
+    expect(kopf()).toHaveTextContent('Mitarbeiter ausnehmen (1) – arbeiten in dieser Zeit: Max Monteur');
     await userEvent.click(screen.getByRole('button', { name: 'Betriebsurlaub anlegen' }));
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent(/außer den Ausgenommenen/);
