@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -22,7 +22,7 @@ import {
   OFFEN_AB_TAGEN,
 } from './fehlendeZeitbuchung';
 import { deuteSuche, suchHinweis } from './scheinSuche';
-import { isGF, canWriteWorkSheet, canEditTime } from '@/lib/permissions';
+import { isGF, canWriteWorkSheet, canEditTime, canInvoice } from '@/lib/permissions';
 import { fmtDauer, tageWort, todayStr } from '@/lib/time';
 import type { TimeEntry, WorkSheet } from '@/types';
 import type { WithId } from '@/lib/db/core';
@@ -30,6 +30,9 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { Warnung, Zustand, type Stand } from '@/components/Badge';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import BottomSheet from '@/components/BottomSheet';
+import Abschnitt from '@/components/Abschnitt';
+import { MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField } from '@/components/Field';
@@ -82,10 +85,46 @@ const PRUEF_GRENZE = 150;
 /** Zeiträume, die sich prüfen lassen. */
 const PRUEF_ZEITRAEUME = [30, 90, 365];
 
+/**
+ * Wie viele Zeilen eine Gruppe zeigt, bevor „und N weitere“ kommt (Linie
+ * „Lot“, Regel 4). Fünfzig Scheine untereinander sind am Telefon eine Wand;
+ * zwanzig reichen für den Alltag, der Rest ist einen Tipp entfernt.
+ */
+const GRUPPE_MAX = 20;
+
+/**
+ * Die Ansicht der Liste (Regel 4: Arbeitsstand als Standard).
+ *
+ * „Offen“ ist, woran noch jemand etwas tun muss: Entwürfe, und fürs Büro die
+ * unterschriebenen Scheine, die noch auf keiner Rechnung stehen. „Alle“ ist
+ * der ganze geladene Bestand, wie die Liste bis zum Umbau stand.
+ */
+type Ansicht = 'offen' | 'alle';
+const ANSICHTEN: readonly { wert: Ansicht; text: string }[] = [
+  { wert: 'offen', text: 'Offen' },
+  { wert: 'alle', text: 'Alle' },
+];
+
+/**
+ * Eine Gruppe von Zeilen, nach zwanzig abgeschnitten — sichtbar, mit der Zahl
+ * dessen, was noch kommt. Die Scheine sind schon geladen; „und N weitere“
+ * zeigt sie nur, es holt nichts nach (das tut „Weitere Scheine laden“).
+ */
+function Gruppe<T>({ eintraege, zeile }: { eintraege: T[]; zeile: (e: T) => ReactNode }) {
+  const [alle, setAlle] = useState(false);
+  const gezeigt = alle ? eintraege : eintraege.slice(0, GRUPPE_MAX);
+  return (
+    <>
+      <List>{gezeigt.map(zeile)}</List>
+      <MehrAnzeigen anzahl={eintraege.length - gezeigt.length} onClick={() => setAlle(true)} />
+    </>
+  );
+}
+
 export default function WorkSheetsListView() {
   const { user, company } = useAuth();
   const toast = useToast();
-  const [suchparameter] = useSearchParams();
+  const [suchparameter, setSuchparameter] = useSearchParams();
   const markiert = suchparameter.get('markiert');
   /*
     „Nicht verrechnet“ aus der Adresse (Startseite, Nachtest 01.10.2026):
@@ -94,6 +133,28 @@ export default function WorkSheetsListView() {
     Scheine. „…-alt“: nur die über vier Wochen.
   */
   const nurUnverrechnet = bekannt(SCHEIN_FILTER, suchparameter.get('filter'));
+  /*
+    DIE ANSICHT STEHT IN DER ADRESSE (Protokoll 7.5), damit „Zurück“ und ein
+    Lesezeichen sie wiederherstellen. Kommt jemand mit `markiert` (nach dem
+    Unterschreiben, von der Startseite), steht er in „Alle“: der markierte
+    Schein ist meist unterschrieben und gehörte sonst in keine offene Gruppe.
+  */
+  const ansichtWert = suchparameter.get('ansicht');
+  const ansicht: Ansicht =
+    ansichtWert === 'alle' || ansichtWert === 'offen' ? ansichtWert : markiert ? 'alle' : 'offen';
+  function ansichtSetzen(neu: Ansicht) {
+    const p = new URLSearchParams(suchparameter);
+    p.set('ansicht', neu);
+    setSuchparameter(p, { replace: true });
+  }
+  /*
+    OB EIN SCHEIN VERRECHNET IST, weiss nur, wer Rechnungen lesen darf —
+    dieselben Rollen, denen die Startseite „Nicht verrechnet“ zeigt. Für alle
+    anderen gibt es diese Gruppe nicht; die Abfrage bliebe an den Rechten
+    hängen und ergäbe ein falsches „alles unverrechnet“.
+  */
+  const verrechnungSehen = !!user && canInvoice(user.role);
+  const mitVerrechnung = !!nurUnverrechnet || verrechnungSehen;
 
   const [scheine, setScheine] = useState<WithId<WorkSheet>[]>([]);
   /*
@@ -105,10 +166,12 @@ export default function WorkSheetsListView() {
     decken bei einem Fünf-Mann-Betrieb gut einen Monat ab, und wer weiter
     zurück muss, lädt nach — sichtbar, statt es nie zu erfahren.
   */
-  const [grenze, setGrenze] = useState(nurUnverrechnet ? Math.max(SCHEINE_JE_SEITE, UNVERRECHNET_BASIS) : SCHEINE_JE_SEITE);
+  // Mit der Verrechnung über dieselben jüngsten Scheine wie Startseite und Rechnungen (UNVERRECHNET_BASIS).
+  const [grenze, setGrenze] = useState(mitVerrechnung ? Math.max(SCHEINE_JE_SEITE, UNVERRECHNET_BASIS) : SCHEINE_JE_SEITE);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
+  /** Der Schein im Seitenfenster — seine Kennung, gesucht in allem, was geladen ist. */
   const [offen, setOffen] = useState<string | null>(markiert);
   const [stornoFuer, setStornoFuer] = useState<WithId<WorkSheet> | null>(null);
   const [stornoGrund, setStornoGrund] = useState('');
@@ -328,7 +391,7 @@ export default function WorkSheetsListView() {
   const [verrechnet, setVerrechnet] = useState<string[] | null>(null);
   const scheinSchluessel = useMemo(() => scheine.map((x) => x.id).join('|'), [scheine]);
   useEffect(() => {
-    if (!user || !nurUnverrechnet) {
+    if (!user || !mitVerrechnung) {
       setVerrechnet(null);
       return;
     }
@@ -339,19 +402,32 @@ export default function WorkSheetsListView() {
     return () => {
       weg = true;
     };
-  }, [user, nurUnverrechnet, scheinSchluessel]);
-  const unverrechnet = useMemo(() => {
-    if (!nurUnverrechnet || !verrechnet) return null;
+  }, [user, mitVerrechnung, scheinSchluessel]);
+  /*
+    Die unverrechneten Scheine, ÄLTESTE ZUERST — dieselbe Reihenfolge wie auf
+    der Startseite (Regel 7.3: nach Dringlichkeit). Eine Leistung von
+    vorgestern ist normal, eine von vor drei Monaten ist ein Befund.
+  */
+  const unverrechnetAlle = useMemo(() => {
+    if (!mitVerrechnung || !verrechnet) return null;
     const zeilen = unverrechneteScheine(scheine, [{ linkedWorkSheets: verrechnet, paymentStatus: 'Offen' }], todayStr());
-    return new Set(
-      (nurUnverrechnet === 'nicht-verrechnet-alt' ? zeilen.filter((z) => z.tage >= AUFFAELLIG_AB_TAGEN) : zeilen)
-        .map((z) => z.schein.id),
-    );
-  }, [nurUnverrechnet, verrechnet, scheine]);
+    return (nurUnverrechnet === 'nicht-verrechnet-alt' ? zeilen.filter((z) => z.tage >= AUFFAELLIG_AB_TAGEN) : zeilen)
+      .map((z) => z.schein);
+  }, [mitVerrechnung, nurUnverrechnet, verrechnet, scheine]);
+  /** Nur für den Filter aus der Adresse: welche Scheine er durchlässt. */
+  const unverrechnet = useMemo(
+    () => (nurUnverrechnet && unverrechnetAlle ? new Set(unverrechnetAlle.map((s) => s.id)) : null),
+    [nurUnverrechnet, unverrechnetAlle],
+  );
 
   const sichtbar = useMemo(() => {
     const q = suche.trim().toLowerCase();
-    const grundmenge = trefferGelten ? (treffer as WithId<WorkSheet>[]) : scheine;
+    // Unter dem Filter „nicht verrechnet“ älteste zuerst, sonst wie geladen (jüngste zuerst).
+    const grundmenge = trefferGelten
+      ? (treffer as WithId<WorkSheet>[])
+      : unverrechnet && unverrechnetAlle
+        ? unverrechnetAlle
+        : scheine;
     return grundmenge.filter((s) => {
       if (unverrechnet && !unverrechnet.has(s.id)) return false;
       if (s.status === 'Verworfen' && !zeigeVerworfene) return false;
@@ -363,7 +439,27 @@ export default function WorkSheetsListView() {
         v?.toLowerCase().includes(q),
       );
     });
-  }, [scheine, treffer, trefferGelten, suche, zeigeVerworfene, unverrechnet]);
+  }, [scheine, treffer, trefferGelten, suche, zeigeVerworfene, unverrechnet, unverrechnetAlle]);
+
+  /*
+    DIE OFFENE ANSICHT — nur ohne Suchbegriff und ohne Filter aus der Adresse.
+    Die Suche geht über ALLE Scheine, egal welche Ansicht gewählt ist: wer
+    einen bestimmten Schein sucht, soll ihn nicht deshalb nicht finden, weil
+    er unterschrieben ist. Solange gesucht wird, stehen die Segmente deshalb
+    nicht da — sie würden eine Eingrenzung versprechen, die nicht gilt.
+  */
+  const offeneAnsicht = ansicht === 'offen' && !suche.trim() && !nurUnverrechnet;
+  const entwuerfe = useMemo(() => scheine.filter((s) => s.status === 'Entwurf'), [scheine]);
+  const verworfenListe = useMemo(() => scheine.filter((s) => s.status === 'Verworfen'), [scheine]);
+
+  /** Der Schein im Seitenfenster: aus der Liste, der tiefen Prüfung oder der Suche. */
+  const offenerSchein = useMemo(
+    () =>
+      offen
+        ? [...scheine, ...(tiefeScheine ?? []), ...(treffer ?? [])].find((s) => s.id === offen) ?? null
+        : null,
+    [offen, scheine, tiefeScheine, treffer],
+  );
 
   async function pdfAusgeben(s: WithId<WorkSheet>) {
     setBusy(true);
@@ -388,18 +484,124 @@ export default function WorkSheetsListView() {
     }
   }
 
+  async function wiederAufnehmen(s: WithId<WorkSheet>) {
+    setBusy(true);
+    try {
+      await restoreWorkSheetDraft(s.id);
+      toast.success('Entwurf wieder aufgenommen');
+      await laden();
+    } catch (err) {
+      setError(grundAus(err, 'Der Entwurf ließ sich nicht zurückholen.'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function fensterZu() {
+    setOffen(null);
+    setStornoFuer(null);
+    setStornoGrund('');
+  }
+
   if (!user) return null;
 
+  /*
+    DIE ZEILE EINES SCHEINS (Linie „Lot“, Regel 3): die ganze Zeile öffnet
+    den Schein im Seitenfenster, rechts steht genau EIN Knopf für den
+    häufigsten nächsten Schritt.
+
+    Bis zum Umbau standen hier bis zu vier Knöpfe nebeneinander (Details, PDF,
+    Weiterbearbeiten, Verwerfen) und die Einzelheiten klappten zwischen den
+    Zeilen auf. Jetzt stehen Einzelheiten und ALLE Aktionen im Fenster; in der
+    Zeile bleibt, was man am häufigsten tut: am eigenen Entwurf
+    weiterschreiben, einen verworfenen wieder aufnehmen, sonst das PDF.
+  */
+  const scheinZeile = (s: WithId<WorkSheet>) => {
+    const gesamt = s.zeiten.reduce((n, z) => n + z.minuten, 0);
+    return (
+      <ListRow
+        key={s.id}
+        wert={fmtDauer(gesamt)}
+        zustand={<Zustand stand={STAND[s.status]}>{s.status}</Zustand>}
+        onOeffnen={() => setOffen(s.id)}
+        title={
+          <span>
+            {s.customerName}{' '}
+            <span className="text-sm font-normal text-ink-muted">
+              <span className="nr">({s.projectNumber})</span>
+            </span>
+          </span>
+        }
+        subtitle={
+          <>
+            {datumAT(s.datum)} · {s.abrechnung}
+            {s.unterschriften?.kunde && (
+              <span className="mt-1 block text-xs text-ink-muted">
+                Unterschrieben von {s.unterschriften.kunde.name}
+              </span>
+            )}
+            {s.status === 'Verworfen' && (
+              <span className="mt-1 block text-xs text-ink-muted">
+                Verworfen
+                {s.verworfenVonName ? ` von ${s.verworfenVonName}` : ''} — nicht
+                weiterbearbeitet, nicht gelöscht.
+              </span>
+            )}
+            {s.stornoGrund && (
+              <span className="mt-1 block text-xs text-danger">
+                Storno: {s.stornoGrund}
+                {s.storniertVonName ? ` (${s.storniertVonName})` : ''}
+              </span>
+            )}
+          </>
+        }
+      >
+        {darfDiesen(s) && s.status === 'Entwurf' ? (
+          weiterbearbeitenLink(s)
+        ) : darfDiesen(s) && s.status === 'Verworfen' ? (
+          <Button variant="secondary" loading={busy} onClick={() => void wiederAufnehmen(s)}>
+            Wieder aufnehmen
+          </Button>
+        ) : (
+          <Button variant="ghost" loading={busy} onClick={() => pdfAusgeben(s)}>
+            PDF
+          </Button>
+        )}
+      </ListRow>
+    );
+  };
+
+  /*
+    „Als Entwurf speichern" war bis hierher eine Sackgasse: der Schein landete
+    in dieser Liste, und dort gab es nur Aufklappen, PDF und Storno. Wer ihn
+    anlegte, um ihn später unterschreiben zu lassen, kam nie wieder hinein und
+    musste alles neu tippen — oder legte einen ZWEITEN Beleg über dieselbe
+    Arbeit an.
+
+    Ein Link im Aussehen des Zweitknopfs, KEIN Knopf im Link: das waren zwei
+    Tab-Stopps für eine Aktion, und die Vorlesehilfe meldete einen Knopf in
+    einem Link (Prüflauf 25.09.2026, P4-12). Die Klassen sind die von
+    `Button` mit `variant="secondary"`.
+  */
+  const weiterbearbeitenLink = (s: WithId<WorkSheet>) => (
+    <Link
+      to={`/worksheet?entwurf=${s.id}`}
+      className="inline-flex min-h-touch items-center justify-center gap-2 rounded border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-2 active:scale-[0.98] sm:text-base"
+    >
+      Weiterbearbeiten
+    </Link>
+  );
+
+  /** Steht über der Liste etwas (Fehler, Suchauskunft, verworfene Entwürfe)? */
+  const obenEtwas = !!error || !!suche.trim() || verworfene > 0;
+  const suchend = !!suche.trim();
+
   return (
-    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
-    <div className="space-y-3 lg:space-y-5">
+    <div className="space-y-4 lg:space-y-5">
       {/*
-        DER KNOPF STEHT IM KOPF, wie „Neues Angebot" und „Neue Wartung".
-        Gemeldet: „der Tab sieht vom Aufbau her ganz anders aus — der Button
-        erstreckt sich über die ganze Zeile". Er stand als einzige Anlage-
-        Aktion der App in einer eigenen Karte über volle Breite. Ein Link und
-        kein Knopf, weil er eine andere Seite öffnet; er sieht aus wie der
-        Hauptknopf der anderen Listen.
+        DER KNOPF STEHT IM KOPF, wie „Neues Angebot" und „Neue Wartung" —
+        am Handy im Daumenbereich (PageHeader). Ein Link und kein Knopf, weil
+        er eine andere Seite öffnet.
 
         Und nur für die, die einen Schein auch schreiben dürfen: Buchhaltung
         und Verwaltung sehen die Liste, landeten mit dem Knopf aber auf
@@ -409,14 +611,24 @@ export default function WorkSheetsListView() {
         title="Handwerksscheine"
         // In der Liste stehen auch Entwürfe (Analyse 03.10.2026, Paket 1).
         subtitle="Leistungsnachweise der Baustellen, auch Entwürfe"
+        hilfe={
+          <>
+            Für das Büro der Beleg zur Rechnung, für die Baustelle der Nachweis. Ein
+            unterschriebener Schein lässt sich ansehen und als PDF weitergeben, aber nicht mehr
+            ändern — Korrekturen laufen über einen Storno und einen neuen Schein. „Offen“ zeigt
+            die Entwürfe und, wer Rechnungen schreibt, die unterschriebenen Scheine, die noch auf
+            keiner Rechnung stehen; „Alle“ den ganzen geladenen Bestand. Ein Tipp auf eine Zeile
+            öffnet den Schein mit allen Angaben und Aktionen.
+          </>
+        }
         action={
           darfSchreiben && (
-          <Link
-            to="/worksheet"
-            className="inline-flex min-h-touch items-center justify-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm transition hover:opacity-95 active:scale-[0.98] sm:text-base"
-          >
-            Neuer Schein
-          </Link>
+            <Link
+              to="/worksheet"
+              className="inline-flex min-h-touch items-center justify-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm transition hover:opacity-95 active:scale-[0.98] sm:text-base"
+            >
+              Neuer Schein
+            </Link>
           )
         }
       />
@@ -426,18 +638,14 @@ export default function WorkSheetsListView() {
         lesen UND anlegen darf. Für alle anderen wäre die Karte eine Liste
         ohne Handhabe.
 
-        SIE STEHT AUCH DA, WENN NICHTS OFFEN IST, und das ist eine Abkehr von
-        der ersten Fassung. Damals war sie ein reiner Befund, und ein leerer
-        Kasten „alles gebucht" wäre Rauschen gewesen. Jetzt trägt sie eine
-        HANDLUNG: weiter zurück prüfen. Verschwände sie bei null Befunden,
-        gäbe es keinen Weg mehr zu der Prüfung, die den alten — und damit
-        teuren — Schein überhaupt erst findet. Ohne Befund bleibt sie
-        entsprechend knapp.
+        SIE STEHT AUCH DA, WENN NICHTS OFFEN IST: sie trägt eine HANDLUNG,
+        weiter zurück prüfen. Verschwände sie bei null Befunden, gäbe es keinen
+        Weg mehr zu der Prüfung, die den alten — und damit teuren — Schein
+        überhaupt erst findet.
 
         Sie steht ÜBER der Scheinliste, weil sie eine Frist hat: eine Stunde,
         die niemand bucht, wird nie verrechnet und fehlt zugleich in der
-        Arbeitszeitaufzeichnung nach § 26 AZG. Das ist dringender als das
-        Nachschlagen eines Belegs.
+        Arbeitszeitaufzeichnung nach § 26 AZG.
       */}
       {darfZeitenSehen && (
         <Card
@@ -497,124 +705,112 @@ export default function WorkSheetsListView() {
               da, statt still zu wirken.
             </>
           }
+          buendig
         >
-          {minutenOhneBuchung(ohneBuchung) > 0 && (
-            <p className="mb-3 text-sm text-ink">
-              <strong>{fmtDauer(minutenOhneBuchung(ohneBuchung))}</strong> stehen unterschrieben
-              beim Kunden und in keiner Zeiterfassung.
-            </p>
-          )}
-
-          {/*
-            WORAUF SICH DIE PRÜFUNG STÜTZT, steht sichtbar da — sonst hiesse
-            „nichts offen" mal „im letzten Monat" und mal „im letzten Jahr",
-            ohne dass es jemand unterscheiden könnte.
-          */}
-          <p className="mb-3 text-xs text-ink-muted">
-            {tiefePruefung
-              ? `Geprüft über die letzten ${tiefePruefung} Tage (${pruefBasis.length} unterschriebene Scheine).`
-              : `Geprüft über die ${scheine.length} geladenen Scheine dieser Liste.`}
-            {tiefeScheine && tiefeScheine.length >= PRUEF_GRENZE && (
-              <>
-                {' '}
-                <strong className="text-warning">
-                  Die Grenze von {PRUEF_GRENZE} Scheinen ist erreicht — ältere sind nicht dabei.
-                </strong>
-              </>
+          <div className="px-4 pb-1 pt-3">
+            {minutenOhneBuchung(ohneBuchung) > 0 && (
+              <p className="mb-3 text-sm text-ink">
+                <strong>{fmtDauer(minutenOhneBuchung(ohneBuchung))}</strong> stehen unterschrieben
+                beim Kunden und in keiner Zeiterfassung.
+              </p>
             )}
-            {zuJung > 0 &&
-              ` ${zuJung === 1 ? 'Ein Schein' : `${zuJung} Scheine`} der letzten ${OFFEN_AB_TAGEN} Tage ${
-                zuJung === 1 ? 'ist' : 'sind'
-              } noch nicht dabei — gebucht wird oft erst am Morgen darauf.`}
-          </p>
 
-          {/*
-            DIE BESCHRIFTUNG STEHT ÜBER DER REIHE, nicht davor.
+            {/*
+              WORAUF SICH DIE PRÜFUNG STÜTZT, steht sichtbar da — sonst hiesse
+              „nichts offen" mal „im letzten Monat" und mal „im letzten Jahr",
+              ohne dass es jemand unterscheiden könnte.
+            */}
+            <p className="mb-3 text-xs text-ink-muted">
+              {tiefePruefung
+                ? `Geprüft über die letzten ${tiefePruefung} Tage (${pruefBasis.length} unterschriebene Scheine).`
+                : `Geprüft über die ${scheine.length} geladenen Scheine dieser Liste.`}
+              {tiefeScheine && tiefeScheine.length >= PRUEF_GRENZE && (
+                <>
+                  {' '}
+                  <strong className="text-warning">
+                    Die Grenze von {PRUEF_GRENZE} Scheinen ist erreicht — ältere sind nicht dabei.
+                  </strong>
+                </>
+              )}
+              {zuJung > 0 &&
+                ` ${zuJung === 1 ? 'Ein Schein' : `${zuJung} Scheine`} der letzten ${OFFEN_AB_TAGEN} Tage ${
+                  zuJung === 1 ? 'ist' : 'sind'
+                } noch nicht dabei — gebucht wird oft erst am Morgen darauf.`}
+            </p>
 
-            Davor gesetzt, füllte sie auf einem Telefon die erste Zeile fast
-            allein aus; der erste Schalter rutschte noch daneben, die beiden
-            anderen in die nächste Zeile. Heraus kam ein Umbruch mitten in
-            einer Auswahl, die zusammengehört — und drei fette Blöcke, von
-            denen jeder aussah, als wäre er für sich wichtig.
-
-            Jetzt: eine Zeile Beschriftung, darunter die drei Schalter in
-            einer Reihe. `klein` nimmt ihnen Polsterung und Schriftgrösse,
-            nicht die Höhe — anzutippen bleiben sie mit Arbeitshandschuhen.
-          */}
-          <div className="mb-3">
-            <span className="mb-2 block text-sm text-ink-muted">Weiter zurück prüfen:</span>
-            <div className="flex flex-wrap items-center gap-2">
-              {PRUEF_ZEITRAEUME.map((tage) => (
-                <Button
-                  key={tage}
-                  groesse="klein"
-                  variant={tiefePruefung === tage ? 'primary' : 'secondary'}
-                  disabled={pruefungLaeuft}
-                  onClick={() => void tieferPruefen(tage)}
-                >
-                  {tage === 365 ? '1 Jahr' : `${tage} Tage`}
-                </Button>
-              ))}
-              {pruefungLaeuft && <span className="text-sm text-ink-muted">Wird geprüft …</span>}
+            {/*
+              Die Beschriftung steht ÜBER der Reihe, nicht davor: davor gesetzt
+              brach die Auswahl am Telefon mitten durch. `klein` nimmt den
+              Knöpfen Polsterung und Schriftgrösse, nicht die Höhe.
+            */}
+            <div className="mb-3">
+              <span className="mb-2 block text-sm text-ink-muted">Weiter zurück prüfen:</span>
+              <div className="flex flex-wrap items-center gap-2">
+                {PRUEF_ZEITRAEUME.map((tage) => (
+                  <Button
+                    key={tage}
+                    groesse="klein"
+                    variant={tiefePruefung === tage ? 'primary' : 'secondary'}
+                    disabled={pruefungLaeuft}
+                    onClick={() => void tieferPruefen(tage)}
+                  >
+                    {tage === 365 ? '1 Jahr' : `${tage} Tage`}
+                  </Button>
+                ))}
+                {pruefungLaeuft && <span className="text-sm text-ink-muted">Wird geprüft …</span>}
+              </div>
             </div>
           </div>
 
-          {ohneBuchung.length === 0 && (
+          {ohneBuchung.length === 0 ? (
             <EmptyState>
               Zu jeder Stunde auf den geprüften Scheinen gibt es eine Buchung in der Zeiterfassung.
             </EmptyState>
-          )}
+          ) : (
+            /*
+              Die Zeile führt zum SCHEIN, nicht direkt in ein Zeitformular: wer
+              eine fremde Stunde nachträgt, muss vorher sehen, was auf dem Beleg
+              steht — Spanne, Tätigkeit, Helferhaken. Ein leeres Formular
+              verleitete zum Schätzen.
 
-          <List>
-            {ohneBuchung.map(({ schein, zeilen, tage }) => (
-              <ListRow
-                key={schein.id}
-                title={
-                  <>
-                    <span>{schein.customerName}</span>
-                    <Warnung stufe={tage >= 30 ? 'dringend' : 'achtung'}>{tageWort(tage)}</Warnung>
-                  </>
-                }
-                subtitle={
-                  <>
-                    <span>
-                      Baustelle <span className="nr">{schein.projectNumber}</span> · Leistung vom {datumAT(schein.datum)}
-                    </span>
-                    <span className="mt-1 block">
-                      {zeilen.map((z) => (
-                        <span key={z.name} className="block text-xs text-ink-muted">
-                          {z.name} · {fmtDauer(z.minuten)} ·{' '}
-                          {z.art === 'keine'
-                            ? 'keine Buchung gefunden'
-                            : `gebucht auf ${z.gebuchtAuf?.join(', ')}`}
-                        </span>
-                      ))}
-                    </span>
-                  </>
-                }
-              >
-                {/*
-                  Der Weg führt zum SCHEIN, nicht direkt in ein Zeitformular:
-                  wer eine fremde Stunde nachträgt, muss vorher sehen, was auf
-                  dem Beleg steht — Spanne, Tätigkeit, Helferhaken. Ein Knopf,
-                  der ein leeres Formular öffnet, verleitete zum Schätzen.
-                */}
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    // Die Suche mit aufmachen: steht dort noch ein Filter,
-                    // klappte der Schein unten zwar auf, wäre aber nicht zu
-                    // sehen — ein Knopf, der scheinbar nichts tut.
-                    setSuche('');
-                    setZeigeVerworfene(false);
-                    setOffen(schein.id);
-                  }}
-                >
-                  Schein ansehen
-                </Button>
-              </ListRow>
-            ))}
-          </List>
+              DAS FENSTER ZEIGT AUCH DEN ALTEN SCHEIN. Bis zum Umbau klappte
+              „Schein ansehen“ ihn unten in der Liste auf — einen Schein aus der
+              tiefen Prüfung, der nicht unter den geladenen stand, also gar nicht.
+            */
+            <Gruppe
+              eintraege={ohneBuchung}
+              zeile={({ schein, zeilen, tage }) => (
+                <ListRow
+                  key={schein.id}
+                  onOeffnen={() => setOffen(schein.id)}
+                  pfeil
+                  title={
+                    <>
+                      <span>{schein.customerName}</span>
+                      <Warnung stufe={tage >= 30 ? 'dringend' : 'achtung'}>{tageWort(tage)}</Warnung>
+                    </>
+                  }
+                  subtitle={
+                    <>
+                      <span>
+                        Baustelle <span className="nr">{schein.projectNumber}</span> · Leistung vom {datumAT(schein.datum)}
+                      </span>
+                      <span className="mt-1 block">
+                        {zeilen.map((z) => (
+                          <span key={z.name} className="block text-xs text-ink-muted">
+                            {z.name} · {fmtDauer(z.minuten)} ·{' '}
+                            {z.art === 'keine'
+                              ? 'keine Buchung gefunden'
+                              : `gebucht auf ${z.gebuchtAuf?.join(', ')}`}
+                          </span>
+                        ))}
+                      </span>
+                    </>
+                  }
+                />
+              )}
+            />
+          )}
         </Card>
       )}
 
@@ -625,301 +821,156 @@ export default function WorkSheetsListView() {
         />
       )}
 
+      {/*
+        SUCHE UND ANSICHT ÜBER DER LISTE (Regel 4). Die Suche steht zuerst:
+        verschwinden beim Tippen die Segmente, rutscht das Feld nicht unter
+        dem Finger weg.
+      */}
+      <div className="scheine-werkzeug">
+        <input
+          aria-label="Scheine durchsuchen"
+          placeholder="Suchen …"
+          value={suche}
+          onChange={(e) => setSuche(e.target.value)}
+          className="scheine-suche"
+        />
+        {!suchend && !nurUnverrechnet && (
+          <div className="scheine-ansicht">
+            <Segmente name="Ansicht" werte={ANSICHTEN} wert={ansicht} onChange={ansichtSetzen} />
+          </div>
+        )}
+      </div>
+
       <Card
-        title={unverrechnet ? `Nicht verrechnet (${sichtbar.length})` : `Scheine (${scheine.length - verworfene})`}
-        action={
-          <input
-            aria-label="Scheine durchsuchen"
-            placeholder="Suchen …"
-            value={suche}
-            onChange={(e) => setSuche(e.target.value)}
-            // `w-full sm:w-auto`: der Kartenkopf ist mobil eine SPALTE, und
-            // ein Eingabefeld ohne Breitenangabe nimmt darin seine
-            // Wunschbreite (rund 180 px plus Polsterung) — gemessen 18 px
-            // mehr, als die Karte innen hat. Es ragte damit unter dem Titel
-            // heraus. Volle Breite ist dort ohnehin das Richtige.
-            className="min-h-touch w-full rounded border border-line bg-surface px-3 py-1 text-base text-ink sm:w-auto"
-          />
+        title={
+          offeneAnsicht
+            ? undefined
+            : unverrechnet
+              ? `Nicht verrechnet (${sichtbar.length})`
+              : `Scheine (${scheine.length - verworfene})`
         }
         buendig
       >
-        {/* Bündig: Hinweise gepolstert oben, Scheine als Zeilen von Kante zu
-            Kante (Designlinie „Fassung 3"). Steht oben nichts, fällt der
-            Rahmen dafür weg (`empty:hidden`). */}
-        <div className="p-4 pb-1 empty:hidden">
-        {error && <div className="mb-3"><ErrorState message={error} /></div>}
+        {obenEtwas && (
+          <div className="p-4 pb-1">
+            {error && <div className="mb-3"><ErrorState message={error} /></div>}
 
-        {/*
-          WAS DIE SUCHE GERADE ABDECKT — und was nicht.
-
-          Ohne diese Zeile hiesse „kein Treffer" mal „gibt es nicht" und mal
-          „ist nicht geladen", ohne dass es jemand unterscheiden könnte. Genau
-          daran ist der Buchhaltungs-Export einmal gescheitert.
-        */}
-        {suche.trim() && (
-          <div className="mb-3">
-            {trefferGelten ? (
-              <p className="text-sm text-ink">
-                <strong>{sichtbar.length}</strong>{' '}
-                {sichtbar.length === 1 ? 'Schein' : 'Scheine'} vom Server zu „{trefferZu}".
-                {treffer && treffer.length >= PRUEF_GRENZE && (
-                  <span className="text-warning">
-                    {' '}
-                    Die Grenze von {PRUEF_GRENZE} ist erreicht — ältere sind nicht dabei.
-                  </span>
-                )}{' '}
-                <button
-                  type="button"
-                  className="link-hinweis"
-                  onClick={() => {
-                    setTreffer(null);
-                    setTrefferZu('');
-                  }}
-                >
-                  Zurück zur Liste
-                </button>
-              </p>
-            ) : (
-              <>
-                <p className="text-sm text-ink-muted">
-                  {sichtbar.length} von {scheine.length} geladenen Scheinen passen. Ältere sind
-                  nicht geladen.
-                </p>
-                <p className="mt-1 text-sm text-ink-muted">{suchHinweis(absicht)}</p>
-                {suche.trim() && (
-                  <div className="mt-2">
-                    <Button
-                      variant="secondary"
-                      disabled={sucheLaeuft}
-                      onClick={() => void serverseitigSuchen()}
+            {/*
+              WAS DIE SUCHE GERADE ABDECKT — und was nicht. Ohne diese Zeile
+              hiesse „kein Treffer" mal „gibt es nicht" und mal „ist nicht
+              geladen", ohne dass es jemand unterscheiden könnte.
+            */}
+            {suchend && (
+              <div className="mb-3">
+                {trefferGelten ? (
+                  <p className="text-sm text-ink">
+                    <strong>{sichtbar.length}</strong>{' '}
+                    {sichtbar.length === 1 ? 'Schein' : 'Scheine'} vom Server zu „{trefferZu}".
+                    {treffer && treffer.length >= PRUEF_GRENZE && (
+                      <span className="text-warning">
+                        {' '}
+                        Die Grenze von {PRUEF_GRENZE} ist erreicht — ältere sind nicht dabei.
+                      </span>
+                    )}{' '}
+                    <button
+                      type="button"
+                      className="link-hinweis"
+                      onClick={() => {
+                        setTreffer(null);
+                        setTrefferZu('');
+                      }}
                     >
-                      {sucheLaeuft ? 'Wird gesucht …' : 'Auf dem Server suchen'}
-                    </Button>
-                  </div>
+                      Zurück zur Liste
+                    </button>
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-sm text-ink-muted">
+                      {sichtbar.length} von {scheine.length} geladenen Scheinen passen. Ältere sind
+                      nicht geladen.
+                    </p>
+                    <p className="mt-1 text-sm text-ink-muted">{suchHinweis(absicht)}</p>
+                    <div className="mt-2">
+                      <Button
+                        variant="secondary"
+                        disabled={sucheLaeuft}
+                        onClick={() => void serverseitigSuchen()}
+                      >
+                        {sucheLaeuft ? 'Wird gesucht …' : 'Auf dem Server suchen'}
+                      </Button>
+                    </div>
+                  </>
                 )}
-              </>
+              </div>
+            )}
+            {/*
+              Verworfene bleiben in der Datenbank, aber nicht im Weg. Sie AUCH
+              aus der Ansicht zu nehmen wäre das Löschen durch die Hintertür;
+              der Schalter nennt deshalb ihre Zahl — in jeder Ansicht.
+            */}
+            {verworfene > 0 && (
+              <label className="mb-3 flex min-h-touch items-center gap-2 text-sm text-ink-muted">
+                <input
+                  type="checkbox"
+                  checked={zeigeVerworfene}
+                  onChange={(e) => setZeigeVerworfene(e.target.checked)}
+                  className="checkbox"
+                />
+                {verworfene} verworfene{verworfene === 1 ? 'r Entwurf' : ' Entwürfe'} anzeigen
+              </label>
             )}
           </div>
         )}
-        {verworfene > 0 && (
-          <label className="mb-3 flex min-h-touch items-center gap-2 text-sm text-ink-muted">
-            <input
-              type="checkbox"
-              checked={zeigeVerworfene}
-              onChange={(e) => setZeigeVerworfene(e.target.checked)}
-              className="checkbox"
-            />
-            {verworfene} verworfene{verworfene === 1 ? 'r Entwurf' : ' Entwürfe'} anzeigen
-          </label>
-        )}
-        </div>
+
         {loading || (nurUnverrechnet && !unverrechnet) ? (
-          <div className="px-4 pb-4">
+          <div className="px-4 py-4">
             <SkeletonList rows={4} />
           </div>
+        ) : offeneAnsicht ? (
+          scheine.length === 0 ? (
+            <EmptyState>Noch kein Handwerksschein erstellt.</EmptyState>
+          ) : (
+            <>
+              <Abschnitt titel="Entwürfe" anzahl={entwuerfe.length}>
+                {entwuerfe.length > 0 ? (
+                  <Gruppe key="entwuerfe" eintraege={entwuerfe} zeile={scheinZeile} />
+                ) : (
+                  <p className="leer">Kein offener Entwurf.</p>
+                )}
+              </Abschnitt>
+              {verrechnungSehen && (
+                <Abschnitt titel="Nicht verrechnet" anzahl={unverrechnetAlle ? unverrechnetAlle.length : undefined}>
+                  {!unverrechnetAlle ? (
+                    <div className="px-4 pb-4">
+                      <SkeletonList rows={2} />
+                    </div>
+                  ) : unverrechnetAlle.length > 0 ? (
+                    <Gruppe key="unverrechnet" eintraege={unverrechnetAlle} zeile={scheinZeile} />
+                  ) : (
+                    <p className="leer">Unter den jüngsten Scheinen ist keiner unverrechnet.</p>
+                  )}
+                </Abschnitt>
+              )}
+              {zeigeVerworfene && verworfenListe.length > 0 && (
+                <Abschnitt titel="Verworfen" anzahl={verworfenListe.length}>
+                  <Gruppe key="verworfen" eintraege={verworfenListe} zeile={scheinZeile} />
+                </Abschnitt>
+              )}
+            </>
+          )
         ) : sichtbar.length === 0 ? (
           <EmptyState>
             {unverrechnet
               ? 'Unter den jüngsten Scheinen ist keiner unverrechnet.'
               : scheine.length === 0
               ? 'Noch kein Handwerksschein erstellt.'
-              : suche.trim()
+              : suchend
                 ? `Kein Schein passt zu „${suche}“.`
                 : 'Kein offener Schein — nur verworfene Entwürfe.'}
           </EmptyState>
         ) : (
-          <List>
-            {sichtbar.map((s) => {
-              const gesamt = s.zeiten.reduce((n, z) => n + z.minuten, 0);
-              const auf = offen === s.id;
-              return (
-                <ListRow
-                  key={s.id}
-                  wert={fmtDauer(gesamt)}
-                  zustand={<Zustand stand={STAND[s.status]}>{s.status}</Zustand>}
-                  title={
-                    <span>
-                      {s.customerName}{' '}
-                      <span className="text-sm font-normal text-ink-muted">
-                        <span className="nr">({s.projectNumber})</span>
-                      </span>
-                    </span>
-                  }
-                  subtitle={
-                    <>
-                      {datumAT(s.datum)} · {s.abrechnung}
-                      {s.unterschriften?.kunde && (
-                        <span className="mt-1 block text-xs text-ink-muted">
-                          Unterschrieben von {s.unterschriften.kunde.name}
-                        </span>
-                      )}
-                      {s.status === 'Verworfen' && (
-                        <span className="mt-1 block text-xs text-ink-muted">
-                          Verworfen
-                          {s.verworfenVonName ? ` von ${s.verworfenVonName}` : ''} — nicht
-                          weiterbearbeitet, nicht gelöscht.
-                        </span>
-                      )}
-                      {s.stornoGrund && (
-                        <span className="mt-1 block text-xs text-danger">
-                          Storno: {s.stornoGrund}
-                          {s.storniertVonName ? ` (${s.storniertVonName})` : ''}
-                        </span>
-                      )}
-                      {auf && (
-                        <span className="mt-2 block rounded border border-line p-3">
-                          {s.zeiten.length > 0 && (
-                            <>
-                              <span className="section-label block">Zeiten</span>
-                              <span className="mt-1 block space-y-1">
-                                {s.zeiten.map((z, i) => (
-                                  <span key={i} className="block text-sm text-ink">
-                                    {z.mitarbeiter}
-                                    {z.helfer ? ' (Helfer)' : ''} ·{' '}
-                                    {z.von && z.bis ? `${z.von}–${z.bis}` : '—'} ·{' '}
-                                    {fmtDauer(z.minuten)}
-                                    {z.taetigkeit ? ` · ${z.taetigkeit}` : ''}
-                                  </span>
-                                ))}
-                              </span>
-                            </>
-                          )}
-                          {s.material.length > 0 && (
-                            <>
-                              <span className="section-label mt-3 block">Material</span>
-                              <span className="mt-1 block space-y-1">
-                                {s.material.map((m, i) => (
-                                  <span key={i} className="block text-sm text-ink">
-                                    {m.menge}× {m.name}
-                                  </span>
-                                ))}
-                              </span>
-                            </>
-                          )}
-                          {s.notizen && (
-                            <>
-                              <span className="section-label mt-3 block">Anmerkungen</span>
-                              <span className="mt-1 block text-sm text-ink">{s.notizen}</span>
-                            </>
-                          )}
-                          {/*
-                            DIE FOTOS. Sie liegen in Firebase Storage und
-                            werden erst beim Aufklappen geholt — eine Liste,
-                            die beim Öffnen zwanzig Bilder nachlädt, ist auf
-                            einer Baustelle keine Liste mehr.
-                          */}
-                          {s.fotos && s.fotos.length > 0 && (
-                            <>
-                              <span className="section-label mt-3 block">
-                                Fotos ({s.fotos.length})
-                              </span>
-                              <Fotostreifen fotos={s.fotos} />
-                            </>
-                          )}
-                          {/*
-                            Die Prüfsumme sichtbar machen. Sie ist der
-                            eigentliche Manipulationsschutz: mit ihr lässt
-                            sich belegen, dass ein vorgelegtes PDF genau das
-                            ist, was unterschrieben wurde.
-                          */}
-                          {/*
-                            Die Pruefsumme entsteht serverseitig, kurz NACH
-                            dem Unterschreiben — und offline erst beim
-                            Uebertragen. Statt die Zeile dann einfach
-                            wegzulassen, sagt sie, dass noch etwas aussteht:
-                            eine fehlende Pruefsumme sieht sonst aus wie ein
-                            Fehler, ist aber nur eine Frage von Sekunden.
-                          */}
-                          <span className="section-label mt-3 block">Prüfsumme</span>
-                          {s.inhaltHash ? (
-                            <span className="mt-1 block break-all font-mono text-xs text-ink-muted">
-                              {s.inhaltHash}
-                            </span>
-                          ) : s.status === 'Entwurf' ? (
-                            <span className="mt-1 block text-xs text-ink-muted">
-                              Entsteht mit der Unterschrift.
-                            </span>
-                          ) : (
-                            <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-                              Wird berechnet — bei fehlender Verbindung erst nach der Übertragung.
-                              <Button variant="ghost" onClick={() => void laden()}>
-                                Neu laden
-                              </Button>
-                            </span>
-                          )}
-                        </span>
-                      )}
-                    </>
-                  }
-                >
-                  <Button variant="ghost" onClick={() => setOffen(auf ? null : s.id)}>
-                    {auf ? 'Zuklappen' : 'Details'}
-                  </Button>
-                  <Button variant="ghost" loading={busy} onClick={() => pdfAusgeben(s)}>
-                    PDF
-                  </Button>
-                  {/*
-                    „Als Entwurf speichern" war bis hierher eine Sackgasse: der
-                    Schein landete in dieser Liste, und dort gab es nur
-                    Aufklappen, PDF und Storno. Wer ihn anlegte, um ihn später
-                    unterschreiben zu lassen, kam nie wieder hinein und musste
-                    alles neu tippen — oder legte einen ZWEITEN Beleg über
-                    dieselbe Arbeit an.
-                  */}
-                  {/* Ein Link im Aussehen des Zweitknopfs, KEIN Knopf im Link:
-                      das waren zwei Tab-Stopps für eine Aktion, und die
-                      Vorlesehilfe meldete einen Knopf in einem Link
-                      (Prüflauf 25.09.2026, P4-12). Die Klassen sind die von
-                      `Button` mit `variant="secondary"`. */}
-                  {darfDiesen(s) && s.status === 'Entwurf' && (
-                    <Link
-                      to={`/worksheet?entwurf=${s.id}`}
-                      className="inline-flex min-h-touch items-center justify-center gap-2 rounded border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-2 active:scale-[0.98] sm:text-base"
-                    >
-                      Weiterbearbeiten
-                    </Link>
-                  )}
-                  {/*
-                    Verwerfen darf, wer auch weiterbearbeiten darf — dieselbe
-                    Grenze wie in der Datenbank (`app.schein_schreibt`): die
-                    Führung jeden Entwurf, der Monteur seinen eigenen. Ein
-                    Knopf, den die Datenbank nicht deckt, taeuscht Ordnung nur
-                    vor.
-                  */}
-                  {darfDiesen(s) && s.status === 'Entwurf' && (
-                    <Button variant="ghost" onClick={() => setVerwerfenFuer(s)}>
-                      Verwerfen
-                    </Button>
-                  )}
-                  {darfDiesen(s) && s.status === 'Verworfen' && (
-                    <Button
-                      variant="secondary"
-                      loading={busy}
-                      onClick={async () => {
-                        setBusy(true);
-                        try {
-                          await restoreWorkSheetDraft(s.id);
-                          toast.success('Entwurf wieder aufgenommen');
-                          await laden();
-                        } catch (err) {
-                          setError(grundAus(err, 'Der Entwurf ließ sich nicht zurückholen.'));
-                        } finally {
-                          setBusy(false);
-                        }
-                      }}
-                    >
-                      Wieder aufnehmen
-                    </Button>
-                  )}
-                  {darfStornieren && s.status === 'Unterschrieben' && (
-                    <Button variant="ghost" onClick={() => setStornoFuer(s)}>
-                      Stornieren
-                    </Button>
-                  )}
-                </ListRow>
-              );
-            })}
-          </List>
+          // Der Schlüssel setzt „und N weitere“ zurück, sobald sich die Menge ändert.
+          <Gruppe key={`${ansicht}|${trefferZu}|${suche.trim()}|${nurUnverrechnet ?? ''}`} eintraege={sichtbar} zeile={scheinZeile} />
         )}
         {!loading && (
           <div className="px-4 pb-3 empty:hidden">
@@ -935,15 +986,129 @@ export default function WorkSheetsListView() {
       </Card>
 
       {/*
-        Die Rueckfrage nennt Kunde, Tag und Umfang.
+        DER SCHEIN IM SEITENFENSTER (Regel 8): alle Angaben und alle Aktionen,
+        die bis zum Umbau in und unter der Zeile standen — Details, PDF,
+        Weiterbearbeiten, Verwerfen, Wieder aufnehmen, Stornieren samt Grund.
+        Die Liste bleibt dahinter stehen.
+      */}
+      <BottomSheet
+        open={!!offenerSchein}
+        onClose={fensterZu}
+        label="Handwerksschein"
+        auchBreit
+        titel={offenerSchein?.customerName ?? 'Handwerksschein'}
+      >
+        {offenerSchein && (
+          <ScheinEinzelheiten
+            schein={offenerSchein}
+            onNeuLaden={() => void laden()}
+            aktionen={
+              stornoFuer?.id === offenerSchein.id ? (
+                /*
+                  Storno mit Pflichtgrund. Ein unterschriebener Beleg
+                  verschwindet nicht und wird nicht überschrieben — er bleibt
+                  sichtbar und trägt den Grund. Ein spurlos gelöschter Schein
+                  wäre schlimmer als ein falscher.
+                */
+                <div className="space-y-3 border-t border-line pt-4">
+                  <h3 className="text-base font-semibold text-ink-deep">
+                    Schein stornieren — {stornoFuer.customerName}, {datumAT(stornoFuer.datum)}
+                  </h3>
+                  <p className="text-sm text-ink-muted">
+                    Der Schein bleibt erhalten und sichtbar, wird aber als storniert gekennzeichnet.
+                    Für eine Korrektur ist danach ein neuer Schein zu erstellen.
+                  </p>
+                  <InputField
+                    id="stornogrund"
+                    label="Grund (Pflicht)"
+                    value={stornoGrund}
+                    onChange={(e) => setStornoGrund(e.target.value)}
+                    required
+                    pflicht
+                  />
+                  <div className="fuss-aktionen">
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setStornoFuer(null);
+                        setStornoGrund('');
+                      }}
+                    >
+                      Abbrechen
+                    </Button>
+                    <Button
+                      loading={busy}
+                      disabled={stornoGrund.trim().length < 3}
+                      onClick={async () => {
+                        setBusy(true);
+                        try {
+                          await cancelWorkSheet(stornoFuer.id, stornoGrund.trim(), user.name);
+                          toast.success('Schein storniert');
+                          setStornoFuer(null);
+                          setStornoGrund('');
+                          await laden();
+                        } catch (err) {
+                          setError(grundAus(err, 'Der Storno ist fehlgeschlagen.'));
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                    >
+                      Storno bestätigen
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="fuss-aktionen">
+                  <Button variant="secondary" loading={busy} onClick={() => pdfAusgeben(offenerSchein)}>
+                    PDF
+                  </Button>
+                  {darfDiesen(offenerSchein) && offenerSchein.status === 'Entwurf' && (
+                    <>
+                      {/*
+                        Verwerfen darf, wer auch weiterbearbeiten darf — dieselbe
+                        Grenze wie in der Datenbank (`app.schein_schreibt`): die
+                        Führung jeden Entwurf, der Monteur seinen eigenen.
+                        Das Fenster geht dabei zu: die Rückfrage steht für sich,
+                        nicht über einem zweiten Dialog.
+                      */}
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          setVerwerfenFuer(offenerSchein);
+                          setOffen(null);
+                        }}
+                      >
+                        Verwerfen
+                      </Button>
+                      {weiterbearbeitenLink(offenerSchein)}
+                    </>
+                  )}
+                  {darfDiesen(offenerSchein) && offenerSchein.status === 'Verworfen' && (
+                    <Button variant="secondary" loading={busy} onClick={() => void wiederAufnehmen(offenerSchein)}>
+                      Wieder aufnehmen
+                    </Button>
+                  )}
+                  {darfStornieren && offenerSchein.status === 'Unterschrieben' && (
+                    <Button variant="ghost" onClick={() => setStornoFuer(offenerSchein)}>
+                      Stornieren
+                    </Button>
+                  )}
+                </div>
+              )
+            }
+          />
+        )}
+      </BottomSheet>
 
-        „Wollen Sie wirklich?" allein hilft nicht: in einer Liste
-        gleichaussehender Zeilen ist der Fehlgriff die falsche ZEILE, nicht
-        der falsche Knopf. Was gleich verschwindet, muss dastehen.
+      {/*
+        Die Rückfrage nennt Kunde, Tag und Umfang: in einer Liste
+        gleichaussehender Zeilen ist der Fehlgriff die falsche ZEILE, nicht der
+        falsche Knopf.
 
-        NICHT ROT, anders als beim Loeschen: der Entwurf bleibt unter dem
-        Schalter sichtbar und laesst sich zurueckholen. Wer sich an Rot fuer
-        Umkehrbares gewoehnt, uebersieht es beim Storno.
+        NICHT ROT, anders als beim Löschen: der Entwurf bleibt unter dem
+        Schalter sichtbar und lässt sich zurückholen. Wer sich an Rot für
+        Umkehrbares gewöhnt, übersieht es beim Storno.
       */}
       <ConfirmDialog
         open={!!verwerfenFuer}
@@ -967,61 +1132,120 @@ export default function WorkSheetsListView() {
           await laden();
         }}
       />
+    </div>
+  );
+}
 
-      {/*
-        Storno mit Pflichtgrund. Ein unterschriebener Beleg verschwindet nicht
-        und wird nicht überschrieben — er bleibt sichtbar und trägt den Grund.
-        Ein spurlos gelöschter Schein wäre schlimmer als ein falscher.
-      */}
-      {stornoFuer && (
-        <Card title={`Schein stornieren — ${stornoFuer.customerName}, ${datumAT(stornoFuer.datum)}`}>
+/**
+ * Die Einzelheiten eines Scheins im Seitenfenster — was bis zum Umbau unter
+ * der Zeile aufklappte, in derselben Reihenfolge.
+ */
+function ScheinEinzelheiten({
+  schein: s,
+  aktionen,
+  onNeuLaden,
+}: {
+  schein: WithId<WorkSheet>;
+  aktionen: ReactNode;
+  onNeuLaden: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1">
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <Zustand stand={STAND[s.status]}>{s.status}</Zustand>
+          <span className="text-sm text-ink-muted">
+            {datumAT(s.datum)} · {s.abrechnung}
+          </span>
+        </p>
+        <p className="text-sm text-ink-muted">
+          Baustelle <span className="nr">{s.projectNumber}</span> ·{' '}
+          {fmtDauer(s.zeiten.reduce((n, z) => n + z.minuten, 0))}
+        </p>
+        {s.unterschriften?.kunde && (
+          <p className="text-sm text-ink-muted">Unterschrieben von {s.unterschriften.kunde.name}</p>
+        )}
+        {s.status === 'Verworfen' && (
           <p className="text-sm text-ink-muted">
-            Der Schein bleibt erhalten und sichtbar, wird aber als storniert gekennzeichnet. Für
-            eine Korrektur ist danach ein neuer Schein zu erstellen.
+            Verworfen{s.verworfenVonName ? ` von ${s.verworfenVonName}` : ''} — nicht
+            weiterbearbeitet, nicht gelöscht.
           </p>
-          <div className="mt-3">
-            <InputField
-              id="stornogrund"
-              label="Grund (Pflicht)"
-              value={stornoGrund}
-              onChange={(e) => setStornoGrund(e.target.value)}
-              required
-              pflicht
-            />
-          </div>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <Button
-              loading={busy}
-              disabled={stornoGrund.trim().length < 3}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  await cancelWorkSheet(stornoFuer.id, stornoGrund.trim(), user.name);
-                  toast.success('Schein storniert');
-                  setStornoFuer(null);
-                  setStornoGrund('');
-                  await laden();
-                } catch (err) {
-                  setError(grundAus(err, 'Der Storno ist fehlgeschlagen.'));
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              Storno bestätigen
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setStornoFuer(null);
-                setStornoGrund('');
-              }}
-            >
-              Abbrechen
-            </Button>
-          </div>
-        </Card>
+        )}
+        {s.stornoGrund && (
+          <p className="text-sm text-danger">
+            Storno: {s.stornoGrund}
+            {s.storniertVonName ? ` (${s.storniertVonName})` : ''}
+          </p>
+        )}
+      </div>
+
+      {s.zeiten.length > 0 && (
+        <div>
+          <h3 className="section-label">Zeiten</h3>
+          <ul className="mt-1 space-y-1">
+            {s.zeiten.map((z, i) => (
+              <li key={i} className="text-sm text-ink">
+                {z.mitarbeiter}
+                {z.helfer ? ' (Helfer)' : ''} · {z.von && z.bis ? `${z.von}–${z.bis}` : '—'} ·{' '}
+                {fmtDauer(z.minuten)}
+                {z.taetigkeit ? ` · ${z.taetigkeit}` : ''}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
+      {s.material.length > 0 && (
+        <div>
+          <h3 className="section-label">Material</h3>
+          <ul className="mt-1 space-y-1">
+            {s.material.map((m, i) => (
+              <li key={i} className="text-sm text-ink">
+                {m.menge}× {m.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {s.notizen && (
+        <div>
+          <h3 className="section-label">Anmerkungen</h3>
+          <p className="mt-1 text-sm text-ink">{s.notizen}</p>
+        </div>
+      )}
+      {/*
+        DIE FOTOS werden erst mit dem Fenster geholt — eine Liste, die beim
+        Öffnen zwanzig Bilder nachlädt, ist auf einer Baustelle keine Liste mehr.
+      */}
+      {s.fotos && s.fotos.length > 0 && (
+        <div>
+          <h3 className="section-label">Fotos ({s.fotos.length})</h3>
+          <Fotostreifen fotos={s.fotos} />
+        </div>
+      )}
+      {/*
+        DIE PRÜFSUMME — der eigentliche Manipulationsschutz: mit ihr lässt sich
+        belegen, dass ein vorgelegtes PDF genau das ist, was unterschrieben
+        wurde. Sie entsteht serverseitig kurz NACH dem Unterschreiben, offline
+        erst beim Übertragen; statt die Zeile wegzulassen, sagt sie, dass noch
+        etwas aussteht.
+      */}
+      <div>
+        <h3 className="section-label">Prüfsumme</h3>
+        {s.inhaltHash ? (
+          <p className="mt-1 break-all font-mono text-xs text-ink-muted">{s.inhaltHash}</p>
+        ) : s.status === 'Entwurf' ? (
+          <p className="mt-1 text-xs text-ink-muted">Entsteht mit der Unterschrift.</p>
+        ) : (
+          <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+            Wird berechnet — bei fehlender Verbindung erst nach der Übertragung.
+            <Button variant="ghost" onClick={onNeuLaden}>
+              Neu laden
+            </Button>
+          </p>
+        )}
+      </div>
+
+      {aktionen}
     </div>
   );
 }

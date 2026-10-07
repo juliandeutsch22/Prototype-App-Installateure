@@ -1942,3 +1942,51 @@ describe('Prüflauf 25.09.2026', () => {
     expect(text).toMatch(/Ohne Netz geht weder das Hochladen noch das Unterschreiben/);
   });
 });
+
+/**
+ * Der Schein auf der Linie „Lot“ (Protokoll E8, Regel 9): eine Spalte,
+ * Hinweise höchstens eine Zeile, der Rest in der Hilfe — und die Warnung zur
+ * Gesundheit bleibt dort, wo getippt wird.
+ */
+describe('Linie „Lot“', () => {
+  it('steht in einer Spalte — Baustelle bis Unterschriften', async () => {
+    zeichne();
+    await screen.findByRole('link', { name: /Hauptstraße 12/ });
+    for (const titel of ['Baustelle und Tag', /^Zeiten am /, /^Verbautes Material/, 'Unterschriften']) {
+      expect(screen.getByRole('heading', { name: titel }).closest('.formular')).not.toBeNull();
+    }
+  });
+
+  it('sagt am Notizfeld in einer Zeile, dass Gesundheitsangaben nicht hingehören', async () => {
+    // Die lange Erklärung wandert in „Hilfe zu dieser Seite“; die Warnung
+    // selbst muss ohne Tipp am Feld stehen.
+    zeichne();
+    const feld = await screen.findByRole('textbox', { name: 'Notizen, Regiearbeiten, Mängel' });
+    expect(feld).toHaveAccessibleDescription(/Keine Angaben zur Gesundheit/);
+  });
+
+  it('zeigt den gewählten Einsatz als gewählt', async () => {
+    listAssignmentsForUserInRange.mockResolvedValue([
+      ...einsaetze,
+      { ...einsaetze[0], id: 'a2', projectNumber: 'B-002' },
+    ]);
+    const nutzer = userEvent.setup();
+    zeichne();
+    const knopf = await screen.findByRole('button', { name: /Familie Huber/ });
+    expect(knopf).toHaveAttribute('aria-pressed', 'false');
+    await nutzer.click(knopf);
+    expect(knopf).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('hält den Hinweis auf einen zweiten Schein in einer Zeile — der Rest hinter dem „i“', async () => {
+    bestehendeScheine = [
+      { id: 'x', projectNumber: 'B-001', datum: heute, status: 'Entwurf', zeiten: [], material: [] } as unknown as WorkSheet & { id: string },
+    ];
+    const nutzer = userEvent.setup();
+    zeichne();
+    const satz = await screen.findByText(/Für diesen Tag gibt es bereits/);
+    expect(satz.textContent).not.toMatch(/doppelt bestätigen/);
+    await nutzer.click(screen.getByRole('button', { name: /einen zweiten Schein am selben Tag/ }));
+    expect(screen.getByText(/doppelt bestätigen/)).toBeInTheDocument();
+  });
+});
