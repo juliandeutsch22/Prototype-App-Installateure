@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon } from '@/lib/lohnregeln';
@@ -77,7 +77,16 @@ import Metric, { MetricRow } from '@/components/Metric';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
 import { Marke, Warnung } from '@/components/Badge';
-import RechnungDetail from './RechnungDetail';
+import RechnungDetail, { type RechnungAktion } from './RechnungDetail';
+import {
+  BEREICHE,
+  FILTERSTATI,
+  GekuerzteListe,
+  imArbeitsstand,
+  rechnungsGruppen,
+  RechnungsGruppe,
+  type RechnungsFilter,
+} from './RechnungsListe';
 import ZahlFeld, { ZahlWertFeld, ZahlZelle } from '@/components/ZahlFeld';
 import { leseZahl, unlesbareZahlIn, zahlAlsText, zahlOder } from '@/lib/zahl';
 import PageHeader from '@/components/PageHeader';
@@ -85,10 +94,8 @@ import { praefixeVon } from '@/lib/praefixe';
 import { isTopLevel } from '@/lib/permissions';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import Tabelle from '@/components/Tabelle';
 import Hinweiszeile from '@/components/Hinweiszeile';
-import { useSchreibtisch } from '@/lib/useSchreibtisch';
-import RowMenu from '@/components/RowMenu';
+import { Segmente, WeitereAngaben } from '@/components/LotBausteine';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
 import InfoHint from '@/components/InfoHint';
@@ -108,7 +115,6 @@ import { RECHNUNGS_SICHTEN, bekannt, type RechnungsSicht } from '@/features/dash
 /** Wie viele Rechnungen die Liste zunaechst zeigt. */
 const RECHNUNGEN_JE_SEITE = 50;
 
-/** Die Zahlstände, nach denen die Liste filtert — auch über `?status=`. */
 /** Was eine Sicht aus der Adresse zeigt (Startseite, Nachtest 01.10.2026). */
 const SICHT_TITEL: Record<RechnungsSicht, string> = {
   'mahnung-faellig': 'Mahnung fällig',
@@ -116,7 +122,12 @@ const SICHT_TITEL: Record<RechnungsSicht, string> = {
   'bezahlt-monat': 'Im laufenden Monat bezahlt',
 };
 
-const FILTERSTATI = ['Offen', 'Überfällig', 'Teilbezahlt', 'Bezahlt', 'Überzahlt', 'Storniert'] as const satisfies readonly Invoice['paymentStatus'][];
+/** Die Überschrift der Liste je Ansicht. */
+const LISTEN_TITEL: Record<string, string> = {
+  offen: 'Offene Rechnungen',
+  erledigt: 'Erledigte Rechnungen',
+  alle: 'Alle Rechnungen',
+};
 
 export default function InvoicesView() {
   const { user, company } = useAuth();
@@ -226,23 +237,47 @@ export default function InvoicesView() {
   /** Zu welchem Storno die Stornorechnung erst ausgestellt werden soll — nach der Rückfrage. */
   const [stornoBeleg, setStornoBeleg] = useState<WithId<Invoice> | null>(null);
   const [cancelNote, setCancelNote] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'alle' | Invoice['paymentStatus']>('alle');
-  const schreibtisch = useSchreibtisch();
   /*
-    DER FILTER KANN AUS DER ADRESSE KOMMEN — die Startseite verlinkt ihre
-    Kachel „Überfällig" hierher. Ohne das landete man in der vollen Liste und
-    musste die Rechnungen, deren Summe man eben gesehen hat, selbst suchen.
-    Nur bekannte Werte: ein Tippfehler in der Adresse filtert nicht auf
-    „nichts", sondern zeigt alle.
+    DER FILTER STEHT IN DER ADRESSE (Linie „Lot“, Regel 5) — so lässt sich
+    eine Ansicht als Lesezeichen ablegen, und die Startseite verlinkt ihre
+    Kachel „Überfällig" mit `?status=` hierher. Ohne das landete man in der
+    vollen Liste und musste die Rechnungen, deren Summe man eben gesehen hat,
+    selbst suchen. Nur bekannte Werte: ein Tippfehler in der Adresse filtert
+    nicht auf „nichts", sondern zeigt die Standardansicht.
+
+    STANDARD IST DER ARBEITSSTAND (Regel 4): was noch Geld bringt oder
+    zurückgeht. Kommt ein Suchbegriff aus der Adresse — so verlinkt die
+    Kundenakte eine bestimmte Rechnung —, gilt „Alle“: die gesuchte Rechnung
+    ist oft längst bezahlt.
   */
-  const [suchparameter] = useSearchParams();
-  const statusAusAdresse = suchparameter.get('status');
+  const [suchparameter, setSuchparameter] = useSearchParams();
   const sicht = bekannt(RECHNUNGS_SICHTEN, suchparameter.get('sicht'));
-  useEffect(() => {
-    if (statusAusAdresse && (FILTERSTATI as readonly string[]).includes(statusAusAdresse)) {
-      setStatusFilter(statusAusAdresse as Invoice['paymentStatus']);
-    }
-  }, [statusAusAdresse]);
+  const filter: RechnungsFilter = (() => {
+    const status = suchparameter.get('status');
+    if (status && (FILTERSTATI as readonly string[]).includes(status)) return status as RechnungsFilter;
+    const ansicht = suchparameter.get('ansicht');
+    if (BEREICHE.some((b) => b.wert === ansicht)) return ansicht as RechnungsFilter;
+    return suchparameter.get('suche') ? 'alle' : 'offen';
+  })();
+  const filterSetzen = (f: RechnungsFilter) =>
+    setSuchparameter(
+      (alt) => {
+        const neu = new URLSearchParams(alt);
+        neu.delete('status');
+        neu.delete('ansicht');
+        neu.set((FILTERSTATI as readonly string[]).includes(f) ? 'status' : 'ansicht', f);
+        return neu;
+      },
+      { replace: true },
+    );
+  /**
+   * Die Ansicht vor dem Suchen, wenn die Suche sie auf „Alle“ gestellt hat.
+   * Die Suche geht über alle Rechnungen; aus „Offen“ heraus fände sie eine
+   * bezahlte nicht, und wer eine Nummer sucht, hielte sie für verschwunden.
+   * Ist der Suchbegriff wieder leer, kehrt die Liste in den Arbeitsstand
+   * zurück — wer zwischendurch selbst eine Ansicht wählt, behält seine.
+   */
+  const vorDerSuche = useRef<RechnungsFilter | null>(null);
   /*
     DER ZAHLUNGSDIALOG. Er hängt an EINER Rechnung und lädt deren Eingänge
     beim Öffnen — nicht beim Laden der Liste. Dreihundert Rechnungen mal ihre
@@ -268,6 +303,17 @@ export default function InvoicesView() {
     Rechnung hierher, mit ihrer Nummer als Suchbegriff.
   */
   const [rechnungSuche, setRechnungSuche] = useState(() => suchparameter.get('suche') ?? '');
+  function sucheAendern(text: string) {
+    const vorher = rechnungSuche.trim();
+    if (!vorher && text.trim() && filter === 'offen') {
+      vorDerSuche.current = filter;
+      filterSetzen('alle');
+    } else if (vorher && !text.trim() && vorDerSuche.current) {
+      filterSetzen(vorDerSuche.current);
+      vorDerSuche.current = null;
+    }
+    setRechnungSuche(text);
+  }
   /**
    * Die Treffer der Suche über ALLE Rechnungen — `null`, solange keine läuft
    * oder die Antwort noch aussteht.
@@ -345,6 +391,36 @@ export default function InvoicesView() {
   const [suggestedNumber, setSuggestedNumber] = useState('');
   /** Die Rechnung, deren Detailansicht offen ist (M19). */
   const [detailFuer, setDetailFuer] = useState<WithId<Invoice> | null>(null);
+  /**
+   * Ist „Neue Rechnung“ offen? Die Seite zeigt zuerst den Arbeitsstand
+   * (Linie „Lot“); das Formular kommt über die Hauptaktion im Seitenkopf
+   * oder über „Baustelle wählen“ an einer nicht verrechneten Leistung.
+   */
+  const [erstellen, setErstellen] = useState(false);
+  const erstellenRef = useRef<HTMLDivElement>(null);
+  /** Zählt jedes Öffnen — auch ein zweites bei schon offenem Formular soll dorthin führen. */
+  const [erstellenSprung, setErstellenSprung] = useState(0);
+  const erstellenOeffnen = () => {
+    setErstellen(true);
+    setErstellenSprung((n) => n + 1);
+  };
+  /** Schliessen verwirft eine offene Vorschau — wie „Verwerfen“; angelegt ist bis dahin nichts. */
+  const erstellenSchliessen = () => {
+    setErstellen(false);
+    setPreview(null);
+    setError(null);
+  };
+  /*
+    DAS FORMULAR KOMMT INS BILD, der Fokus auf die Baustelle. Am Handy steht
+    die Hauptaktion unten im Daumenbereich; ohne den Sprung ginge das
+    Formular oben auf, und nichts sähe danach aus.
+  */
+  useEffect(() => {
+    if (!erstellenSprung) return;
+    const ziel = erstellenRef.current;
+    ziel?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    ziel?.querySelector<HTMLSelectElement>('#invproj')?.focus({ preventScroll: true });
+  }, [erstellenSprung]);
   const [appendDetail, setAppendDetail] = useState(true);
   /**
    * Rabatt als Formularzustand: `value` bleibt Text, damit ein halb getipptes
@@ -589,13 +665,18 @@ export default function InvoicesView() {
             v?.toLowerCase().includes(q),
           ),
         );
-    return statusFilter === 'alle'
-      ? grund
-      : grund.filter((i) =>
+    if (filter === 'alle') return grund;
+    return grund.filter((i) =>
+      filter === 'offen'
+        ? imArbeitsstand(i)
+        : filter === 'erledigt'
+          ? !imArbeitsstand(i)
           // „Überfällig" zeigt auch die angezahlten, deren Ziel vorbei ist.
-          statusFilter === 'Überfällig' ? istUeberfaellig(i, heute) : i.paymentStatus === statusFilter,
-        );
-  }, [sorted, statusFilter, suchbegriff, serverTreffer]);
+          : filter === 'Überfällig'
+            ? istUeberfaellig(i, heute)
+            : i.paymentStatus === filter,
+    );
+  }, [sorted, filter, suchbegriff, serverTreffer]);
   /*
     DIE KENNZAHLEN RECHNEN MIT DEM REST, nicht mit dem Rechnungsbetrag.
 
@@ -1818,11 +1899,10 @@ export default function InvoicesView() {
   };
 
   /*
-    ZEILE UND TABELLE AUS DENSELBEN TEILEN. Am Telefon steht eine Rechnung als
-    Zeile, am Schreibtisch als Tabellenzeile (`useSchreibtisch`). Was darunter
-    klein steht — Mahnstand, Teilzahlung, Guthaben, Storno — und das Menü mit
-    den Handlungen gibt es deshalb genau einmal, hier; beide Darstellungen
-    rufen es auf, damit keine Handlung doppelt gepflegt wird.
+    WAS UNTER DER ZEILE KLEIN STEHT — Mahnstand, Teilzahlung, Guthaben,
+    Storno — gibt es genau einmal, hier. Seit der Linie „Lot“ steht die
+    Rechnung auf jeder Breite als Zeile; die Tabelle am Schreibtisch trug
+    dieselben Angaben in Spalten, nur ohne antippbare Zeile.
   */
   const rechnungNotizen = (inv: (typeof visible)[number]) => (
     <>
@@ -1896,180 +1976,209 @@ export default function InvoicesView() {
       )}
     </>
   );
+  /**
+   * Eine Handlung aus dem Seitenfenster heraus, die einen Dialog öffnet.
+   *
+   * ERST SCHLIESST DAS FENSTER, DANN KOMMT DER DIALOG. Das Fenster gibt beim
+   * Schliessen den Fokus an die Zeile zurück, aus der es geöffnet wurde. Gingen
+   * beide im selben Zug, landete der Fokus damit HINTER dem eben geöffneten
+   * Dialog auf der Zeile — die Tastatur stünde in einer Seite, die man nicht
+   * bedienen soll. Einen Schritt später holt sich der Dialog den Fokus selbst.
+   */
+  const ausDemFenster = (oeffnen: () => void) => () => {
+    setDetailFuer(null);
+    queueMicrotask(oeffnen);
+  };
+
   /*
-    DIE ZEILE DER STORNORECHNUNG MIT „⋯“ WIE JEDE ANDERE (Nachtest
-    01.10.2026, U15) — vorher stand dort als einzige ein Knopf „PDF“.
+    DIE HANDLUNGEN AN EINER RECHNUNG — bis zur Linie „Lot“ im ⋯ der Zeile,
+    jetzt im Seitenfenster, das die Zeile öffnet (Regel 3). Dieselben
+    Einträge, dieselben Bedingungen, dieselben Beschriftungen; „Ansehen“ ist
+    das Fenster selbst, „PDF erneut laden“ sein Knopf „PDF laden“.
   */
-  const stornoMenue = (inv: (typeof visible)[number]) => (
-    <RowMenu
-      about={`Stornorechnung ${inv.stornoNummer}`}
-      items={[{ label: 'Stornorechnung als PDF', onSelect: () => void stornorechnungDrucken(inv) }]}
-    />
+  const rechnungAktionen = (inv: WithId<Invoice>): RechnungAktion[] => {
+    const pdf: RechnungAktion = { label: 'PDF laden', onSelect: () => void redownload(inv) };
+    // Beim Lesen bleiben Ansicht und PDF — alles andere schreibt (siehe `nurLesen`).
+    if (nurLesen) return [pdf];
+    const stand = zahlstand(inv);
+    return [
+      /*
+        ZAHLUNG ERFASSEN STATT „AUF BEZAHLT SETZEN".
+
+        Der Haken war eine Behauptung ohne Beleg: kein Datum, kein Betrag,
+        keine Teilzahlung. „Bezahlt" ergibt sich jetzt aus den Eingängen, und
+        die Datenbank weist einen Schreibversuch von Hand ab.
+
+        Er steht AUCH bei einer stornierten Rechnung, und das ist kein
+        Versehen: nach einem Storno kommt manchmal noch Geld an, und irgendwo
+        muss es hin. Es wird dort zum Guthaben des Kunden.
+
+        DIE BESCHRIFTUNG SAGT, WAS PASSIERT (Testbericht 30.09.2026, G15): bei
+        einer bezahlten oder stornierten Rechnung wird aus einer weiteren
+        Zahlung Guthaben des Kunden. Der Dialog sagt es noch einmal, bevor
+        eingetragen wird. Gefüllt ist der Knopf nur, wo Geld fällig ist oder
+        zurückgeht — dort ist er der nächste Schritt.
+      */
+      {
+        label: stand.guthaben > 0
+          ? 'Guthaben zurückzahlen …'
+          : inv.paymentStatus === 'Storniert'
+            ? 'Zahlung erfassen (wird Guthaben) …'
+            : inv.paymentStatus === 'Bezahlt' || inv.paymentStatus === 'Überzahlt'
+              ? 'Weitere Zahlung erfassen …'
+              : 'Zahlung erfassen',
+        onSelect: ausDemFenster(() => void zahlungOeffnen(inv)),
+        haupt: imArbeitsstand(inv),
+      },
+      /*
+        MAHNEN ist die seltenere Handlung — die meisten Rechnungen werden
+        bezahlt. Der Knopf erscheint nur, wenn gemahnt werden DARF: ein
+        Eintrag, der bei jedem Klick erklärt, warum er nicht geht, ist eine
+        Sackgasse mit Beschriftung.
+      */
+      ...(darfMahnen(inv, todayStr()).moeglich
+        ? [{ label: `${TEXTE[naechsteStufe(inv)!].titel} erzeugen`, onSelect: ausDemFenster(() => mahnenOeffnen(inv)) }]
+        : []),
+      pdf,
+      ...(inv.paymentStatus !== 'Storniert'
+        ? [
+            /*
+              KEIN STATUS VON HAND (Testbericht 30.09.2026, H5). Der Stand
+              ergibt sich aus Zahlungsziel und Eingängen; die Datenbank lässt
+              nichts anderes mehr zu. Die Korrektur ist der Storno.
+            */
+            {
+              label: 'Stornieren',
+              danger: true,
+              onSelect: ausDemFenster(() => {
+                setToCancel(inv);
+                setCancelNote('');
+              }),
+            },
+          ]
+        : [
+            /*
+              DIE STORNORECHNUNG (B7): der Beleg für den Kunden. Beim ersten
+              Mal mit Rückfrage — sie bekommt eine Nummer aus dem
+              Rechnungskreis, und danach bleibt der Storno.
+            */
+            inv.stornoNummer
+              ? {
+                  label: 'Stornorechnung (PDF)',
+                  onSelect: () =>
+                    void stornorechnungDrucken(inv).catch((err: unknown) =>
+                      toast.error(grundAus(err, 'Die Stornorechnung konnte nicht erstellt werden.')),
+                    ),
+                }
+              : { label: 'Stornorechnung ausstellen …', onSelect: ausDemFenster(() => setStornoBeleg(inv)) },
+            /*
+              NUR AM TAG DES STORNOS (Launch-Check, K9): für den Fehlgriff,
+              nicht für später. Ab dem Folgetag steht der Storno im
+              Buchungsstapel der Kanzlei — dann ist der Weg eine neue
+              Rechnung. Die Datenbank zieht dieselbe Grenze.
+
+              „Rechnung löschen" stand hier früher ohne Rückfrage und ist
+              ersatzlos gestrichen: § 132 BAO verlangt sieben Jahre
+              Aufbewahrung; auch die Datenbank lässt kein Löschen zu.
+            */
+            ...(!inv.stornoNummer && inv.cancelledAt && localDateStr(new Date(inv.cancelledAt)) === todayStr()
+              ? [{ label: 'Storno aufheben', onSelect: ausDemFenster(() => setAufheben(inv)) }]
+              : []),
+          ]),
+    ];
+  };
+
+  /** Die Zeile einer Rechnung — und, falls es sie gibt, die ihrer Stornorechnung direkt darunter. */
+  const rechnungZeile = (inv: WithId<Invoice>) => (
+    <Fragment key={inv.id}>
+      <ListRow
+        title={<><span className="nr">{inv.invoiceNumber}</span> · {inv.customerName}</>}
+        wert={euro(inv.totalBrutto)}
+        zustand={<StatusBadge status={inv.paymentStatus} />}
+        onOeffnen={() => setDetailFuer(inv)}
+        pfeil
+        subtitle={
+          <>
+            {/*
+              JEDE ANGABE BLEIBT AM STÜCK. Auf 375 px brach die Zeile
+              mitten im Datum — „fällig 2026-" in der einen Zeile,
+              „08-01" in der nächsten. Die Zeile darf weiter umbrechen,
+              aber nur ZWISCHEN den Angaben.
+            */}
+            <span className="whitespace-nowrap">{datumAT(inv.invoiceDate)}</span> ·{' '}
+            <span className="whitespace-nowrap">fällig {datumAT(inv.dueDate)}</span>
+            {rechnungNotizen(inv)}
+          </>
+        }
+      />
+      {/*
+        DIE STORNORECHNUNG ALS EIGENE ZEILE (Testbericht 30.09.2026, G28). Im
+        Ausgangsbuch ist sie ein eigener Beleg; sie folgt der stornierten
+        Rechnung direkt — so bleibt sichtbar, wozu sie gehört. Sie öffnet
+        deren Seitenfenster; dort steht „Stornorechnung (PDF)“.
+      */}
+      {inv.stornoNummer && (
+        <ListRow
+          title={`${inv.stornoNummer} · ${inv.customerName}`}
+          wert={euro(-inv.totalBrutto)}
+          zustand={<Marke>Stornorechnung</Marke>}
+          subtitle={`${stornoDatum(inv)} · zu ${inv.invoiceNumber}`}
+          onOeffnen={() => setDetailFuer(inv)}
+          pfeil
+        />
+      )}
+    </Fragment>
   );
-
-  /** Beim Lesen bleiben Ansicht und PDF — alles andere schreibt (siehe `nurLesen`). */
-  const nurLeseEintraege = <T extends { label: string }>(eintraege: T[]): T[] =>
-    nurLesen ? eintraege.filter((e) => e.label === 'Ansehen' || e.label === 'PDF erneut laden') : eintraege;
-
-  const rechnungMenue = (inv: (typeof visible)[number]) => (
-    <>
-    {/* Der Status stand doppelt in der Zeile: einmal farbig als
-        Abzeichen, einmal als Auswahlfeld daneben. Das Abzeichen
-        bleibt — beim Durchsehen zaehlt die Farbe, nicht die
-        Bedienung. Das Umstellen ist in das Menue gewandert, wo
-        es als benannte Handlung steht statt als Klappliste, die
-        auf dem Telefon ohnehin ein eigenes Rad oeffnet. */}
-    <RowMenu
-      about={`Rechnung ${inv.invoiceNumber}`}
-      items={nurLeseEintraege([
-        // Die Rechnung in der App lesen, ohne Datei (Testbericht 30.09.2026, M19).
-        { label: 'Ansehen', onSelect: () => setDetailFuer(inv) },
-        { label: 'PDF erneut laden', onSelect: () => void redownload(inv) },
-        /*
-          MAHNEN steht im Menü, nicht als Knopf in der Zeile.
-
-          Es ist die seltenere Handlung — die meisten Rechnungen
-          werden bezahlt. Ein eigener Knopf an jeder Zeile machte
-          das Mahnen zur naheliegendsten Sache in einer Liste, in
-          der es die Ausnahme ist.
-
-          Der Punkt erscheint nur, wenn gemahnt werden DARF: ein
-          Eintrag, der bei jedem Klick erklärt, warum er nicht
-          geht, ist eine Sackgasse mit Beschriftung.
-        */
-        ...(darfMahnen(inv, todayStr()).moeglich
-          ? [
-              {
-                label: `${TEXTE[naechsteStufe(inv)!].titel} erzeugen`,
-                onSelect: () => {
-                  const frist = new Date();
-                  frist.setDate(frist.getDate() + FRIST_TAGE);
-                  setMahnFrist(localDateStr(frist));
-                  setMahnFuer(inv);
-                },
-              },
-            ]
-          : []),
-        /*
-          ZAHLUNG ERFASSEN STATT „AUF BEZAHLT SETZEN".
-
-          Der Haken war eine Behauptung ohne Beleg: kein Datum,
-          kein Betrag, keine Teilzahlung. „Bezahlt" ergibt sich
-          jetzt aus den Eingängen, und die Datenbank weist einen
-          Schreibversuch von Hand ab — der Menüpunkt wäre also
-          nicht bloss überflüssig, sondern eine Sackgasse.
-
-          Er steht AUCH bei einer stornierten Rechnung, und das
-          ist kein Versehen: nach einem Storno kommt manchmal noch
-          Geld an, und irgendwo muss es hin. Es wird dort zum
-          Guthaben des Kunden.
-        */
-        {
-          /*
-            DIE BESCHRIFTUNG SAGT, WAS PASSIERT (Testbericht 30.09.2026,
-            G15): bei einer bezahlten oder stornierten Rechnung wird aus einer
-            weiteren Zahlung Guthaben des Kunden. Der Dialog sagt es noch
-            einmal, bevor eingetragen wird.
-          */
-          label: zahlstand(inv).guthaben > 0
-            ? 'Guthaben zurückzahlen …'
-            : inv.paymentStatus === 'Storniert'
-              ? 'Zahlung erfassen (wird Guthaben) …'
-              : inv.paymentStatus === 'Bezahlt' || inv.paymentStatus === 'Überzahlt'
-                ? 'Weitere Zahlung erfassen …'
-                : 'Zahlung erfassen',
-          onSelect: () => void zahlungOeffnen(inv),
-        },
-        ...(inv.paymentStatus !== 'Storniert'
-          ? [
-              /*
-                KEIN STATUS VON HAND (Testbericht 30.09.2026, H5). Hier
-                liess sich „Überfällig" setzen, auch zwei Wochen vor dem
-                Zahlungsziel — und dann mahnen. Der Stand ergibt sich aus
-                Zahlungsziel und Eingängen; die Datenbank lässt nichts
-                anderes mehr zu.
-              */
-              {
-                label: 'Stornieren',
-                danger: true,
-                onSelect: () => {
-                  setToCancel(inv);
-                  setCancelNote('');
-                },
-              },
-            ]
-          : [
-              /*
-                NUR AM TAG DES STORNOS (Launch-Check, K9): für den
-                Fehlgriff, nicht für später. Ab dem Folgetag steht
-                der Storno im Buchungsstapel der Kanzlei — dann ist
-                der Weg eine neue Rechnung. Die Datenbank zieht
-                dieselbe Grenze.
-              */
-              /*
-                DIE STORNORECHNUNG (B7): der Beleg für den Kunden. Beim
-                ersten Mal mit Rückfrage — sie bekommt eine Nummer aus
-                dem Rechnungskreis, und danach bleibt der Storno.
-              */
-              inv.stornoNummer
-                ? {
-                    label: 'Stornorechnung (PDF)',
-                    onSelect: () =>
-                      void stornorechnungDrucken(inv).catch((err: unknown) =>
-                        toast.error(grundAus(err, 'Die Stornorechnung konnte nicht erstellt werden.')),
-                      ),
-                  }
-                : { label: 'Stornorechnung ausstellen …', onSelect: () => setStornoBeleg(inv) },
-              ...(!inv.stornoNummer && inv.cancelledAt && localDateStr(new Date(inv.cancelledAt)) === todayStr()
-                ? [{ label: 'Storno aufheben', onSelect: () => setAufheben(inv) }]
-                : []),
-              /*
-                HIER STAND „RECHNUNG LÖSCHEN", ohne Rückfrage,
-                direkt unter „Storno aufheben". Ein Fehlgriff im
-                Menü, und der Beleg war weg.
-
-                Ersatzlos gestrichen, nicht mit einer Rückfrage
-                versehen: § 132 BAO verlangt sieben Jahre
-                Aufbewahrung, und die gezogene Nummer hinterliesse
-                eine Lücke, die der Buchhaltungs-Export danach zu
-                Recht meldet — ohne dass noch jemand wüsste,
-                warum. Der Storno ist die vorgesehene Korrektur;
-                er bleibt stehen, trägt seinen Grund und lässt
-                sich aufheben. Die Rules sagen dasselbe
-                (`allow delete: if false`).
-              */
-            ]),
-      ])}
-    />
-    </>
-  );
-
   return (
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="space-y-3 lg:space-y-5">
+      {/*
+        DER SEITENKOPF DER LINIE „LOT“ (Regel 2): EINE Hauptaktion. „Neue
+        Rechnung“ öffnet das Formular — bis zum Umbau stand es immer offen
+        zwischen Mahnlauf und Liste, auch an den Tagen, an denen nur Zahlungen
+        hereinkommen. Am Handy steht der Knopf im Daumenbereich.
+      */}
       <PageHeader
+        ort="Geld"
         title="Rechnungen"
         subtitle={nurLesen
           ? 'Die Rechnungen Ihrer Baustellen — zum Lesen'
           : 'Aus einer Baustelle erzeugen, Zahlung verfolgen, stornieren'}
+        hilfe={nurLesen
+          ? 'Eine Zeile antippen öffnet die Rechnung mit Positionen, Summen und Zahlstand.'
+          : 'Eine Zeile antippen öffnet die Rechnung — dort stehen Zahlung erfassen, Mahnen, PDF und Storno.'}
+        action={nurLesen ? undefined : <Button onClick={erstellenOeffnen}>Neue Rechnung</Button>}
       />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
+      {/*
+        Fehler, die nicht zum Formular gehören — die Liste kam nicht, eine
+        Mahnung scheiterte. Bis zum Umbau standen sie in der Karte „Neue
+        Rechnung“, die immer offen war; jetzt ist sie meist zu, und eine
+        Meldung darin sähe niemand.
+      */}
+      {error && !erstellen && <ErrorState message={error} />}
+
+      {/*
+        DIE KENNZAHLEN SIND ANTIPPBAR (Linie „Lot“, Regel 4): eine Zahl, hinter
+        der Arbeit steht, ohne Weg dorthin, lässt einen suchen. Sie setzen den
+        Filter der Liste darunter — in der Adresse, wie die Startseite auch.
+      */}
       <MetricRow>
         {/* Kamen die offenen Forderungen nicht, sagen es die beiden Zahlen dazu —
             sonst stünde eine zu kleine Summe da, die niemand als solche erkennt. */}
-        <Metric label="Offen" value={euro(stats.offen)}
+        <Metric label="Offen" value={euro(stats.offen)} to="/invoices?ansicht=offen"
           hint={forderungenFehler ? 'nur die jüngsten — offene Forderungen nicht geladen' : undefined} />
         <Metric label="Überfällig" tone={stats.ueberfaellig > 0 ? 'danger' : 'default'}
-          value={euro(stats.ueberfaellig)}
+          value={euro(stats.ueberfaellig)} to={`/invoices?status=${encodeURIComponent('Überfällig')}`}
           hint={forderungenFehler ? 'nur die jüngsten — offene Forderungen nicht geladen' : undefined} />
         {bezahltImMonat !== null ? (
           // „im laufenden Monat“ wurde am Telefon gekürzt (U10); was gilt, sagt der Zusatz.
-          <Metric label="Bezahlt im Monat" tone="success" value={euro(bezahltImMonat)}
+          <Metric label="Bezahlt im Monat" tone="success" value={euro(bezahltImMonat)} to="/invoices?sicht=bezahlt-monat"
             hint={`Zahlungseingänge seit ${datumAT(monatsErster)}, ohne Skonto`} />
         ) : (
-          <Metric label="Bezahlt" tone="success" value={euro(stats.bezahlt)}
+          <Metric label="Bezahlt" tone="success" value={euro(stats.bezahlt)} to="/invoices?status=Bezahlt"
             hint={`auf die ${invoices.length} zuletzt geladenen Rechnungen`} />
         )}
       </MetricRow>
@@ -2147,9 +2256,11 @@ export default function InvoicesView() {
             'storniert, tauchen ihre Scheine hier wieder auf: der Storno nimmt die Forderung ' +
             'zurück, also steht die Leistung wieder offen.'
           }
+          buendig
         >
-          <List>
-            {auffaellige(offeneLeistung).map(({ schein, tage }) => (
+          <GekuerzteListe
+            eintraege={auffaellige(offeneLeistung)}
+            zeile={({ schein, tage }) => (
               <ListRow
                 key={schein.id}
                 title={
@@ -2168,22 +2279,23 @@ export default function InvoicesView() {
                 {/*
                   Der Weg zur Rechnung ist die Baustelle: aus ihr wird
                   zusammengestellt, nicht aus dem einzelnen Schein. Der Knopf
-                  setzt deshalb nur die Auswahl oben — von Hand abzutippen war
-                  genau die Reibung, die dazu führt, dass es liegen bleibt.
+                  öffnet deshalb „Neue Rechnung“ mit dieser Baustelle — von
+                  Hand abzutippen war genau die Reibung, die dazu führt, dass
+                  es liegen bleibt.
                 */}
                 <Button
                   variant="secondary"
                   onClick={() => {
                     setProjectNumber(schein.projectNumber);
                     setPreview(null);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    erstellenOeffnen();
                   }}
                 >
                   Baustelle wählen
                 </Button>
               </ListRow>
-            ))}
-          </List>
+            )}
+          />
         </Card>
       )}
 
@@ -2198,20 +2310,24 @@ export default function InvoicesView() {
             'stehen Verzugszinsen und Spesen je Kundenart auf dem Beleg; an Unternehmer nur mit ' +
             'dem Basiszinssatz des laufenden Halbjahres — fehlt er, sagt es der Dialog.'
           }
+          buendig
         >
           {lauf.zeilen.length > 0 ? (
             <>
-              <p className="mb-3 text-sm text-ink">
+              <p className="rechnungen-summe">
                 <strong>{euro(lauf.summeOffen)}</strong> offen
                 {lauf.summeSpesen > 0 ? ` · ${euro(lauf.summeSpesen)} Mahnspesen` : ''}
               </p>
-              <List>
-                {lauf.zeilen.map((z) => (
+              <GekuerzteListe
+                eintraege={lauf.zeilen}
+                zeile={(z) => (
                   <ListRow
                     key={z.rechnung.id}
                     title={
                       <>
-                        <span>{z.rechnung.customerName}</span>
+                        {/* Das Leerzeichen trennt Name und Stufe: im Knopf der
+                            antippbaren Zeile greift der Abstand der Titelzeile nicht. */}
+                        <span>{z.rechnung.customerName}</span>{' '}
                         {/* Die dritte Mahnung ist die letzte, die die App
                             schreibt — danach braucht es eine Entscheidung. */}
                         <Warnung stufe={z.stufe === 3 ? 'dringend' : 'achtung'}>
@@ -2235,16 +2351,18 @@ export default function InvoicesView() {
                           : ''}
                       </span>
                     }
+                    /* Die Zeile öffnet die Rechnung wie in der Liste — wer mahnt, will oft vorher sehen, was drauf steht. */
+                    onOeffnen={() => setDetailFuer(z.rechnung as WithId<Invoice>)}
                   >
-                    <Button variant="secondary" onClick={() => mahnenOeffnen(z.rechnung)}>
+                    <Button variant="secondary" onClick={() => mahnenOeffnen(z.rechnung as WithId<Invoice>)}>
                       Mahnen
                     </Button>
                   </ListRow>
-                ))}
-              </List>
+                )}
+              />
             </>
           ) : (
-            <p className="text-sm text-ink-muted">Heute ist nichts zu mahnen.</p>
+            <p className="leer">Heute ist nichts zu mahnen.</p>
           )}
 
           {/*
@@ -2254,7 +2372,7 @@ export default function InvoicesView() {
             ältesten Forderungen die unsichtbarsten.
           */}
           {lauf.ausgereizt.length > 0 && (
-            <div className="mt-4">
+            <div className="rechnungen-fuss">
               <Hinweiszeile stufe="warn">
                 <p>
                   <strong>
@@ -2271,41 +2389,47 @@ export default function InvoicesView() {
         </Card>
       )}
 
-      {!nurLesen && (
+      {/*
+        NEUE RECHNUNG — auf Abruf über den Seitenkopf (Linie „Lot“, Regeln 2
+        und 9). Bewusst NICHT im Seitenfenster: die Positionen sind eine
+        Tabelle mit sechs Spalten, die in 440 px nur noch seitwärts rollte —
+        und hier entsteht das Geld. Das Formular steht deshalb auf der Seite,
+        die Felder einspaltig (`formular`), die Tabelle in voller Breite.
+        Nach dem Anlegen bleibt es offen: die Schlussrechnung folgt der
+        Anzahlung oft gleich.
+      */}
+      {!nurLesen && erstellen && (
+      <div ref={erstellenRef} className="space-y-3 lg:space-y-5">
       <Card
         title="Neue Rechnung aus Baustelle"
         hint="Zusammengestellt wird, was auf dieser Baustelle als „Anwesend“ gebucht und noch NICHT verrechnet ist — dazu das ausgegebene Material. Eine Position kann deshalb nie zweimal auf eine Rechnung geraten. Gesperrt werden die Belege aber erst beim Anlegen, nicht schon beim Zusammenstellen: bis dahin lässt sich alles gefahrlos ansehen und wieder verwerfen."
+        action={
+          <Button variant="ghost" onClick={erstellenSchliessen}>
+            Schließen
+          </Button>
+        }
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-          {/* Höchstens 20rem wie bisher, aber nachgiebig: erst gibt die
-              Auswahl Platz her, und erst wenn auch das nicht reicht, rückt
-              der Knopf in die nächste Zeile — statt dass seine Beschriftung
-              silbenweise umbricht (P4-18). */}
-          <div className="min-w-0 sm:max-w-80 sm:grow sm:basis-52">
-            <BaustellenSelect
-              id="invproj"
-              companyId={user.companyId}
-              value={projectNumber}
-              onChange={(nr, p) => {
-                setProjectNumber(nr);
-                setPreview(null);
-                setError(null);
-                // Abgerechnet wird typischerweise NACH dem Abschluss der
-                // Baustelle. Sie muss deshalb auch dann auffindbar sein, wenn
-                // sie nicht mehr laeuft — und ihre Stammdaten mit ihr.
-                if (p) setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]));
-              }}
-            />
-          </div>
+        <div className="formular space-y-4">
+          <BaustellenSelect
+            id="invproj"
+            companyId={user.companyId}
+            value={projectNumber}
+            onChange={(nr, p) => {
+              setProjectNumber(nr);
+              setPreview(null);
+              setError(null);
+              // Abgerechnet wird typischerweise NACH dem Abschluss der
+              // Baustelle. Sie muss deshalb auch dann auffindbar sein, wenn
+              // sie nicht mehr laeuft — und ihre Stammdaten mit ihr.
+              if (p) setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]));
+            }}
+          />
           {/*
             DIE ART STEHT VOR DEM ZUSAMMENSTELLEN, nicht danach: sie
             entscheidet, woraus die Positionen entstehen. Eine Anzahlung kommt
             nicht aus Zeiteinträgen — es gibt noch keine.
           */}
           {artWaehlbar && (
-          /* So breit wie die längste Art: mit fester Breite stand am
-             Schreibtisch „Schlussrechnung (zieh…" (Prüflauf, D12). */
-          <div className="sm:w-auto sm:min-w-56">
             <SelectField
               id="inv-art"
               label="Art der Rechnung"
@@ -2322,23 +2446,9 @@ export default function InvoicesView() {
               <option value="teil">Teilrechnung (Bauabschnitt)</option>
               <option value="schluss">Schlussrechnung (zieht Anzahlungen ab)</option>
             </SelectField>
-          </div>
           )}
-          {/* Die Beschriftung bricht nicht um: bei 834 px stand
-              „zusammenstell|en" auf drei Zeilen (Prüflauf 25.09.2026,
-              P4-18). Platz gibt die Baustellenauswahl her. */}
-          <Button
-            onClick={buildPreview}
-            loading={busy && !preview}
-            disabled={!projectNumber}
-            className="shrink-0 whitespace-nowrap"
-          >
-            {art === 'anzahlung' ? 'Anzahlung vorbereiten' : 'Positionen zusammenstellen'}
-          </Button>
-        </div>
-        {art === 'anzahlung' && (
-          <div className="mt-3 space-y-3">
-            <div className="max-w-xs">
+          {art === 'anzahlung' && (
+            <div>
               <ZahlWertFeld
                 id="anzahlung-prozent"
                 label="Anteil vom angenommenen Angebot (%)"
@@ -2349,30 +2459,32 @@ export default function InvoicesView() {
               {anteilFehler(anzahlungProzent) && (
                 <p className="mt-1 text-sm text-danger">{anteilFehler(anzahlungProzent)}</p>
               )}
+              {/* Offen stehen lassen: hinter einem „i“ läge der Hinweis zwei Klicks weiter als vorher. */}
+              <div className="mt-3">
+                <Hinweiszeile>
+                  <p>
+                    Eine Anzahlung verrechnet noch keine Leistung: sie nimmt keine Stunden und kein
+                    Material auf und sperrt deshalb auch keine Belege. Die Schlussrechnung führt später
+                    die ganze Leistung an und zieht diese Anzahlung samt Umsatzsteuer wieder ab.
+                  </p>
+                </Hinweiszeile>
+              </div>
             </div>
-            <Hinweiszeile>
-              <p>
-                Eine Anzahlung verrechnet noch keine Leistung: sie nimmt keine Stunden und kein
-                Material auf und sperrt deshalb auch keine Belege. Die Schlussrechnung führt später
-                die ganze Leistung an und zieht diese Anzahlung samt Umsatzsteuer wieder ab.
-              </p>
-            </Hinweiszeile>
-          </div>
-        )}
+          )}
 
-        <details className="mt-4">
-          <summary className="link min-h-touch cursor-pointer text-sm">
-            Konditionen für diese Rechnung anpassen
-          </summary>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-ink-muted">Nur für diese Rechnung</span>
-            <InfoHint about="die Konditionen dieser Rechnung">
-              Die Änderung gilt nur für diese Rechnung und wirkt erst beim erneuten
-              Zusammenstellen. Die dauerhaften Sätze des Betriebs stehen in den Einstellungen.
-            </InfoHint>
-          </div>
-          <div className="mt-3 border-t border-line pt-4">
-            <FormGrid cols={3}>
+          {/*
+            DIE KONDITIONEN SIND DIE SELTENE AUSNAHME (Regel 9): zugeklappt,
+            wie vorher — jetzt mit demselben Baustein wie jedes Formular.
+          */}
+          <WeitereAngaben titel="Konditionen für diese Rechnung anpassen">
+            <p className="text-sm text-ink-muted">
+              Nur für diese Rechnung{' '}
+              <InfoHint about="die Konditionen dieser Rechnung">
+                Die Änderung gilt nur für diese Rechnung und wirkt erst beim erneuten
+                Zusammenstellen. Die dauerhaften Sätze des Betriebs stehen in den Einstellungen.
+              </InfoHint>
+            </p>
+            <FormGrid>
               <ZahlWertFeld id="r-fach" label="Facharbeiter €/h"
                 wert={rates.fach}
                 onWert={(n) => setRates({ ...rates, fach: n ?? 0 })} />
@@ -2424,13 +2536,26 @@ export default function InvoicesView() {
                 <option value="0">0 %</option>
               </SelectField>
             </FormGrid>
+          </WeitereAngaben>
+
+          {/* Die Beschriftung bricht nicht um: bei 834 px stand
+              „zusammenstell|en" auf drei Zeilen (Prüflauf 25.09.2026,
+              P4-18). Einspaltig hat der Knopf jetzt die volle Breite des
+              Formulars für sich. */}
+          <div>
+            <Button
+              onClick={buildPreview}
+              loading={busy && !preview}
+              disabled={!projectNumber}
+              className="shrink-0 whitespace-nowrap"
+            >
+              {art === 'anzahlung' ? 'Anzahlung vorbereiten' : 'Positionen zusammenstellen'}
+            </Button>
           </div>
-        </details>
 
-        {error && <div className="mt-3"><ErrorState message={error} /></div>}
+          {error && <ErrorState message={error} />}
+        </div>
       </Card>
-      )}
-
       {/* Vorschau vor dem Erzeugen: danach sind die Belege gesperrt und eine
           Korrektur ginge nur noch über Storno. */}
       {preview && (
@@ -2453,7 +2578,8 @@ export default function InvoicesView() {
             soll den Zeitraum nicht verschieben, den der Betrieb dem Kunden
             gegenüber nennen will.
           */}
-          <div className="mb-4 grid gap-3 sm:grid-cols-2">
+          <div className="formular mb-4">
+            <FormGrid>
             <InputField
               id="leistung-von"
               label={art === 'anzahlung' ? 'Leistung voraussichtlich von' : 'Leistung von'}
@@ -2468,6 +2594,7 @@ export default function InvoicesView() {
               value={leistungBis}
               onChange={(e) => setLeistungBis(e.target.value)}
             />
+            </FormGrid>
           </div>
           {/*
             BEI EINER ANZAHLUNG IST DER LEERE ZEITRAUM KEIN MANGEL, sondern
@@ -2668,7 +2795,13 @@ export default function InvoicesView() {
               hier tun kann, tut es danach von Hand in Word — und dann stimmt
               die Rechnung im System nicht mehr mit der ueberein, die der
               Kunde bekommen hat. */}
-          <div className="overflow-x-auto">
+          {/* `relative`: sonst entkommt die unsichtbare Spaltenbeschriftung
+              („Entfernen“, absolut gesetzt) dem Rollbereich, und die ganze
+              Seite liess sich am Handy um 216 px seitwärts schieben.
+              Die Beträge stehen `whitespace-nowrap`: am Handy war die
+              Spalte „Netto“ 24 px schmal, „€ 1 404,00“ brach Zeichen für
+              Zeichen, und jede Zeile wurde 200 px hoch. */}
+          <div className="relative overflow-x-auto">
             <table className="w-full min-w-[34rem] text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-ink-muted">
@@ -2688,11 +2821,11 @@ export default function InvoicesView() {
                     TITEL UND TEXT AUS DEM ANGEBOT (M18): nur die Bezeichnung,
                     keine Menge und kein Preis — sie zählen nie zur Summe.
                   */
-                  <tr key={i} className="border-b border-line/60">
+                  <tr key={i} className="border-b border-line">
                     <td colSpan={5} className="py-2 pr-3">
                       <input
                         aria-label={`${p.art === 'titel' ? 'Titel' : 'Text'} ${i + 1}`}
-                        className={`min-h-touch w-full min-w-[10rem] rounded border border-line bg-surface px-2 py-1 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30 ${p.art === 'titel' ? 'font-semibold text-ink' : 'text-ink-muted'}`}
+                        className={p.art === 'titel' ? 'position-titel' : 'position-textzeile'}
                         value={p.label}
                         onChange={(e) => setPos(i, { label: e.target.value })}
                       />
@@ -2708,11 +2841,11 @@ export default function InvoicesView() {
                     </td>
                   </tr>
                 ) : (
-                  <tr key={i} className="border-b border-line/60">
+                  <tr key={i} className="border-b border-line">
                     <td className="py-2 pr-3">
                       <input
                         aria-label={`Bezeichnung Position ${i + 1}`}
-                        className="min-h-touch w-full min-w-[10rem] rounded border border-line bg-surface px-2 py-1 text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        className="position-bezeichnung"
                         value={p.label}
                         onChange={(e) => setPos(i, { label: e.target.value })}
                       />
@@ -2724,7 +2857,7 @@ export default function InvoicesView() {
                       {/* Über die zentrale Zahlenlesung (M15): „7.500,50“ ist keine 0 mehr. */}
                       <ZahlZelle
                         aria-label={`Menge Position ${i + 1}`}
-                        className="min-h-touch w-24 rounded border border-line bg-surface px-2 py-1 text-right text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        className="position-menge"
                         wert={p.qty}
                         onWert={(n) => setPos(i, { qty: n })}
                       />
@@ -2732,7 +2865,7 @@ export default function InvoicesView() {
                     <td className="py-2 pr-3">
                       <input
                         aria-label={`Einheit Position ${i + 1}`}
-                        className="min-h-touch w-20 rounded border border-line bg-surface px-2 py-1 text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        className="position-einheit"
                         value={p.unit}
                         // Vorbelegt: beim Hineintippen ersetzen statt anhängen (Testbericht 30.09.2026, G2).
                         onFocus={(e) => e.currentTarget.select()}
@@ -2751,17 +2884,12 @@ export default function InvoicesView() {
                           aus wie ein Preis; nur die Farbe sagt, dass hier
                           noch eine Entscheidung fehlt.
                         */
-                        className={
-                          'min-h-touch w-28 rounded border bg-surface px-2 py-1 text-right text-sm text-ink focus:outline-none focus:ring-2 ' +
-                          (p.unitPrice === 0
-                            ? 'border-warning focus:border-warning focus:ring-warning/30'
-                            : 'border-line focus:border-brand focus:ring-brand/30')
-                        }
+                        className={p.unitPrice === 0 ? 'position-preis-fehlt' : 'position-preis'}
                         wert={p.unitPrice}
                         onWert={(n) => setPos(i, { unitPrice: n })}
                       />
                     </td>
-                    <td className="py-2 pr-3 text-right font-normal">{euro(p.netto)}</td>
+                    <td className="whitespace-nowrap py-2 pr-3 text-right font-normal">{euro(p.netto)}</td>
                     <td className="py-2 text-right">
                       <IconButton
                         label={`Position ${i + 1} entfernen`}
@@ -2776,37 +2904,37 @@ export default function InvoicesView() {
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={4} className="pt-2 text-right">
+                  <td colSpan={4} className="pt-2 pr-3 text-right">
                     {preview.discountAmount > 0 ? 'Zwischensumme' : 'Netto'}
                   </td>
-                  <td className="pt-2 pr-3 text-right">{euro(preview.subtotalNetto)}</td>
+                  <td className="whitespace-nowrap pt-2 pr-3 text-right">{euro(preview.subtotalNetto)}</td>
                   <td />
                 </tr>
                 {preview.discountAmount > 0 && preview.discount && (
                   <>
                     <tr className="text-danger">
-                      <td colSpan={4} className="text-right">{discountLabel(preview.discount)}</td>
-                      <td className="pr-3 text-right">−{euro(preview.discountAmount)}</td>
+                      <td colSpan={4} className="pr-3 text-right">{discountLabel(preview.discount)}</td>
+                      <td className="whitespace-nowrap pr-3 text-right">−{euro(preview.discountAmount)}</td>
                       <td />
                     </tr>
                     <tr>
-                      <td colSpan={4} className="text-right">Netto</td>
-                      <td className="pr-3 text-right">{euro(preview.totalNetto)}</td>
+                      <td colSpan={4} className="pr-3 text-right">Netto</td>
+                      <td className="whitespace-nowrap pr-3 text-right">{euro(preview.totalNetto)}</td>
                       <td />
                     </tr>
                   </>
                 )}
                 <tr>
-                  <td colSpan={4} className="text-right">
+                  <td colSpan={4} className="pr-3 text-right">
                     {reverseCharge ? 'Umsatzsteuer' : `USt. ${Math.round(satz * 100)} %`}
                   </td>
-                  <td className="pr-3 text-right">
+                  <td className="whitespace-nowrap pr-3 text-right">
                     {reverseCharge ? 'Übergang der Steuerschuld' : euro(preview.totalVat)}
                   </td>
                   <td />
                 </tr>
                 <tr className={abzuege.length > 0 ? '' : 'font-semibold'}>
-                  <td colSpan={4} className="text-right">
+                  <td colSpan={4} className="pr-3 text-right">
                     {/* Wo abgezogen wird, ist diese Zeile nicht der
                         Rechnungsbetrag, sondern die volle Leistung. */}
                     {abzuege.length > 0
@@ -2815,23 +2943,23 @@ export default function InvoicesView() {
                         ? 'Rechnungsbetrag'
                         : 'Brutto'}
                   </td>
-                  <td className="pr-3 text-right">{euro(preview.totalBrutto)}</td>
+                  <td className="whitespace-nowrap pr-3 text-right">{euro(preview.totalBrutto)}</td>
                   <td />
                 </tr>
                 {abzuege.map((v) => (
                   <tr key={v.invoiceId} className="text-danger">
-                    <td colSpan={4} className="text-right">
+                    <td colSpan={4} className="pr-3 text-right">
                       abzüglich {v.invoiceNumber} vom {datumAT(v.invoiceDate)} (netto {euro(v.netto)} +
                       USt {euro(v.vat)})
                     </td>
-                    <td className="pr-3 text-right">−{euro(v.brutto)}</td>
+                    <td className="whitespace-nowrap pr-3 text-right">−{euro(v.brutto)}</td>
                     <td />
                   </tr>
                 ))}
                 {abzuege.length > 0 && summen && (
                   <tr className="font-semibold">
-                    <td colSpan={4} className="text-right">Restforderung brutto</td>
-                    <td className="pr-3 text-right">{euro(summen.totalBrutto)}</td>
+                    <td colSpan={4} className="pr-3 text-right">Restforderung brutto</td>
+                    <td className="whitespace-nowrap pr-3 text-right">{euro(summen.totalBrutto)}</td>
                     <td />
                   </tr>
                 )}
@@ -2919,46 +3047,7 @@ export default function InvoicesView() {
             </div>
           )}
 
-          {/* Rabatt auf das Netto, nicht auf das Brutto: die Umsatzsteuer
-              bemisst sich am tatsaechlich vereinbarten Entgelt. */}
-          <div className="mt-4 border-t border-line pt-4">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span className="section-label">Rabatt</span>
-              <InfoHint about="den Rabatt">
-                Der Rabatt geht auf das NETTO, nicht auf das Brutto — die Umsatzsteuer bemisst
-                sich am tatsächlich vereinbarten Entgelt. Die Bezeichnung steht auf der
-                Rechnung; bleibt sie leer, erscheint dort nur „Rabatt“.
-              </InfoHint>
-            </div>
-            <FormGrid cols={3}>
-              <InputField
-                id="disc-label"
-                label="Rabatt — Bezeichnung"
-                placeholder="z. B. Stammkundenrabatt"
-                value={discount.label}
-                onChange={(e) => setDiscount({ ...discount, label: e.target.value })}
-              />
-              <SelectField
-                id="disc-mode"
-                label="Art"
-                value={discount.mode}
-                onChange={(e) =>
-                  setDiscount({ ...discount, mode: e.target.value as 'percent' | 'amount' })
-                }
-              >
-                <option value="percent">Prozent</option>
-                <option value="amount">Betrag (€)</option>
-              </SelectField>
-              <ZahlFeld
-                id="disc-value"
-                label={discount.mode === 'percent' ? 'Rabatt %' : 'Rabatt €'}
-                value={discount.value}
-                onChange={(text) => setDiscount({ ...discount, value: text })}
-              />
-            </FormGrid>
-          </div>
-
-          <div className="mt-4 space-y-3">
+          <div className="formular mt-4 space-y-4 border-t border-line pt-4">
             {/*
               LÜCKENLOS (Launch-Check, K8). RE-2026-1500 statt 1002 ging vorher
               ohne Warnung durch, und die 498 Nummern dazwischen fehlen für
@@ -3015,30 +3104,29 @@ export default function InvoicesView() {
               keine Vorgabe: eine ungenutzte Steuerfunktion, die sich
               versehentlich einschaltet, kostet mehr als sie nützt.
             */}
-            <div className="rounded-sm border border-line p-3">
+            {/* Linien statt Kästen (Regel 1): Haken und UID sind Felder des Formulars wie die anderen. */}
+            <div>
               <CheckboxField
                 id="rc"
                 label="Bauleistung — Steuerschuld geht auf den Empfänger über (§ 19 Abs 1a UStG)"
                 checked={reverseCharge}
                 onChange={(e) => setReverseCharge(e.target.checked)}
               />
-              <p className="mt-1 text-sm text-ink-muted">
+              <p className="rechnungen-hinweis">
                 Nur bei Bauleistungen an einen anderen Bauunternehmer — also als Subunternehmer.
                 Bei Privatkunden gilt der Übergang nicht.
               </p>
+              {reverseCharge && !rcPruefung.vollstaendig && (
+                <p className="mt-1 text-sm text-warning" role="alert">
+                  Ohne {rcPruefung.fehlt.join(' und ')} ist der Übergang der Steuerschuld nicht
+                  belegt — die Rechnung lässt sich so nicht anlegen.
+                </p>
+              )}
               {reverseCharge && (
-                <div className="mt-3 space-y-2">
-                  {!rcPruefung.vollstaendig && (
-                    <p className="text-sm text-warning" role="alert">
-                      Ohne {rcPruefung.fehlt.join(' und ')} ist der Übergang der Steuerschuld nicht
-                      belegt — die Rechnung lässt sich so nicht anlegen.
-                    </p>
-                  )}
-                  <p className="text-sm text-ink-muted">
-                    Auf der Rechnung steht dann keine Umsatzsteuer, dafür der vorgeschriebene
-                    Hinweis und beide UID-Nummern.
-                  </p>
-                </div>
+                <p className="rechnungen-hinweis">
+                  Auf der Rechnung steht dann keine Umsatzsteuer, dafür der vorgeschriebene
+                  Hinweis und beide UID-Nummern.
+                </p>
               )}
             </div>
 
@@ -3054,7 +3142,7 @@ export default function InvoicesView() {
 
               Vorausgefüllt aus dem Kundenstamm, wenn dort eine hinterlegt ist.
             */}
-            <div className="rounded-sm border border-line p-3">
+            <div>
               <InputField
                 id="rc-uid"
                 label="UID-Nummer des Kunden"
@@ -3071,7 +3159,6 @@ export default function InvoicesView() {
               {uidWeichtAb && kundeDerVorschau && (
                 <CheckboxField
                   id="uid-in-kunden"
-                  className="mt-2"
                   label={
                     kundeDerVorschau.vatId?.trim()
                       ? `UID auch beim Kunden speichern? (dort steht ${kundeDerVorschau.vatId.trim()})`
@@ -3094,63 +3181,6 @@ export default function InvoicesView() {
               )}
             </div>
 
-            <InputField
-              id="bestellnummer"
-              label="Bestellnummer des Kunden"
-              placeholder="optional"
-              maxLength={60}
-              value={bestellnummer}
-              onChange={(e) => setBestellnummer(e.target.value)}
-            />
-
-            {ruecklassArt && (
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <CheckboxField
-                    id="ruecklass-an"
-                    label={`${RUECKLASS_NAME[ruecklassArt]} einbehalten`}
-                    checked={ruecklassAn}
-                    onChange={(e) => {
-                      setRuecklassAn(e.target.checked);
-                      if (e.target.checked && !ruecklassBis && ruecklassArt === 'haft') {
-                        setRuecklassBis(haftruecklassBisVorschlag(todayStr()));
-                      }
-                    }}
-                  />
-                  <InfoHint about="den Rücklass">
-                    Der Kunde behält einen Teil des Betrags ein: der Haftrücklass bis zum Ende der
-                    Gewährleistung (vorgeschlagen sind drei Jahre), der Deckungsrücklass einer
-                    Teilrechnung, bis abgerechnet ist. Die Umsatzsteuer steht voll auf der Rechnung.
-                    Der Mahnlauf übergeht den Rücklass bis zur Fälligkeit; 30 Tage davor erinnert die
-                    Startseite daran. Skonto entfällt auf einer Rechnung mit Rücklass.
-                  </InfoHint>
-                </div>
-                {ruecklassAn && (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <ZahlWertFeld
-                      id="ruecklass-prozent"
-                      label="Rücklass (%)"
-                      wert={ruecklassProzent}
-                      leerAls={null}
-                      onWert={setRuecklassProzent}
-                    />
-                    <InputField
-                      id="ruecklass-bis"
-                      label="Fällig am"
-                      type="date"
-                      value={ruecklassBis}
-                      onChange={(e) => setRuecklassBis(e.target.value)}
-                    />
-                  </div>
-                )}
-                {ruecklass && summen && (
-                  <p className="text-sm text-ink-muted">
-                    Einbehalten: {euro(ruecklass.betrag)}. Zu zahlen jetzt: {euro(summen.totalBrutto - ruecklass.betrag)}.
-                  </p>
-                )}
-              </div>
-            )}
-
             {brauchtBefreiung && (
               <div>
                 <InputField
@@ -3166,6 +3196,106 @@ export default function InvoicesView() {
                 </p>
               </div>
             )}
+
+            {/*
+              RABATT, BESTELLNUMMER UND RÜCKLASS BLEIBEN OFFEN STEHEN, obwohl
+              Regel 9 Seltenes unter „Weitere Angaben“ legt. Das Formular selbst
+              ist seit der Linie „Lot“ schon einen Klick weiter („Neue
+              Rechnung“); zugeklappt lägen diese Felder zwei Klicks weiter als
+              vorher — mehr, als der Umbau einem Element zumuten darf.
+            */}
+            <div className="rechnung-abschnitt">
+              {/* Rabatt auf das Netto, nicht auf das Brutto: die Umsatzsteuer
+                  bemisst sich am tatsaechlich vereinbarten Entgelt. */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="section-label">Rabatt</span>
+                <InfoHint about="den Rabatt">
+                  Der Rabatt geht auf das NETTO, nicht auf das Brutto — die Umsatzsteuer bemisst
+                  sich am tatsächlich vereinbarten Entgelt. Die Bezeichnung steht auf der
+                  Rechnung; bleibt sie leer, erscheint dort nur „Rabatt“.
+                </InfoHint>
+              </div>
+              <InputField
+                id="disc-label"
+                label="Rabatt — Bezeichnung"
+                placeholder="z. B. Stammkundenrabatt"
+                value={discount.label}
+                onChange={(e) => setDiscount({ ...discount, label: e.target.value })}
+              />
+              <FormGrid>
+                <SelectField
+                  id="disc-mode"
+                  label="Art"
+                  value={discount.mode}
+                  onChange={(e) =>
+                    setDiscount({ ...discount, mode: e.target.value as 'percent' | 'amount' })
+                  }
+                >
+                  <option value="percent">Prozent</option>
+                  <option value="amount">Betrag (€)</option>
+                </SelectField>
+                <ZahlFeld
+                  id="disc-value"
+                  label={discount.mode === 'percent' ? 'Rabatt %' : 'Rabatt €'}
+                  value={discount.value}
+                  onChange={(text) => setDiscount({ ...discount, value: text })}
+                />
+              </FormGrid>
+              <InputField
+                id="bestellnummer"
+                label="Bestellnummer des Kunden"
+                placeholder="optional"
+                maxLength={60}
+                value={bestellnummer}
+                onChange={(e) => setBestellnummer(e.target.value)}
+              />              {ruecklassArt && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CheckboxField
+                      id="ruecklass-an"
+                      label={`${RUECKLASS_NAME[ruecklassArt]} einbehalten`}
+                      checked={ruecklassAn}
+                      onChange={(e) => {
+                        setRuecklassAn(e.target.checked);
+                        if (e.target.checked && !ruecklassBis && ruecklassArt === 'haft') {
+                          setRuecklassBis(haftruecklassBisVorschlag(todayStr()));
+                        }
+                      }}
+                    />
+                    <InfoHint about="den Rücklass">
+                      Der Kunde behält einen Teil des Betrags ein: der Haftrücklass bis zum Ende der
+                      Gewährleistung (vorgeschlagen sind drei Jahre), der Deckungsrücklass einer
+                      Teilrechnung, bis abgerechnet ist. Die Umsatzsteuer steht voll auf der Rechnung.
+                      Der Mahnlauf übergeht den Rücklass bis zur Fälligkeit; 30 Tage davor erinnert die
+                      Startseite daran. Skonto entfällt auf einer Rechnung mit Rücklass.
+                    </InfoHint>
+                  </div>
+                  {ruecklassAn && (
+                    <FormGrid>
+                      <ZahlWertFeld
+                        id="ruecklass-prozent"
+                        label="Rücklass (%)"
+                        wert={ruecklassProzent}
+                        leerAls={null}
+                        onWert={setRuecklassProzent}
+                      />
+                      <InputField
+                        id="ruecklass-bis"
+                        label="Fällig am"
+                        type="date"
+                        value={ruecklassBis}
+                        onChange={(e) => setRuecklassBis(e.target.value)}
+                      />
+                    </FormGrid>
+                  )}
+                  {ruecklass && summen && (
+                    <p className="text-sm text-ink-muted">
+                      Einbehalten: {euro(ruecklass.betrag)}. Zu zahlen jetzt: {euro(summen.totalBrutto - ruecklass.betrag)}.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
 
             <p className="text-sm text-ink-muted">
               {preview.linkedEntries.length}{' '}
@@ -3286,7 +3416,11 @@ export default function InvoicesView() {
                   : 'Eine Rechnung über null Euro wird nicht angelegt — bitte die Preise eintragen.'}
               </p>
             )}
-            <div className="flex flex-col gap-2 sm:flex-row">
+            {/* Die Fusszeile des Formulars (`fuss-aktionen`): verwerfen links, anlegen rechts. */}
+            <div className="fuss-aktionen">
+              <Button variant="ghost" onClick={() => setPreview(null)}>
+                Verwerfen
+              </Button>
               <Button
                 onClick={confirmInvoice}
                 loading={busy}
@@ -3298,19 +3432,18 @@ export default function InvoicesView() {
                   || !!ibanFehler(company?.iban)
                   || !!empfaengerBefund
                 }
-                className="w-full sm:w-auto">
+              >
                 Rechnung erstellen &amp; PDF
-              </Button>
-              <Button variant="ghost" onClick={() => setPreview(null)} className="w-full sm:w-auto">
-                Verwerfen
               </Button>
             </div>
           </div>
         </Card>
       )}
+      </div>
+      )}
 
       <Card
-        title={`${sicht ? SICHT_TITEL[sicht] : 'Alle Rechnungen'} (${liste.length})`}
+        title={`${sicht ? SICHT_TITEL[sicht] : LISTEN_TITEL[filter] ?? `Rechnungen: ${filter}`} (${liste.length})`}
         /*
           DER TEXT SAGT, WAS GILT (Prüflauf 25.09.2026, P2-20). Hier stand,
           „Bezahlt" trage jemand von Hand ein, eine stornierte Rechnung lasse
@@ -3318,9 +3451,12 @@ export default function InvoicesView() {
           stimmt seit den Zahlungseingängen, § 132 BAO und dem Launch-Check.
         */
         hint={
+          'Zuerst steht, was noch offen ist: überfällig, Guthaben zum Zurückzahlen, ' +
+          'dann nach Fälligkeit; „Erledigt“ und „Alle“ zeigen den Rest, die Auswahl daneben ' +
+          'einen einzelnen Stand. Eine Zeile öffnet die Rechnung mit allen Handlungen. ' +
           'Der Status „Überfällig“ wird beim Öffnen dieser Ansicht automatisch gesetzt, ' +
           'sobald das Zahlungsziel überschritten ist. „Teilbezahlt“ und „Bezahlt“ ergeben ' +
-          'sich aus den erfassten Zahlungen (im Menü der Rechnung: „Zahlung erfassen“). ' +
+          'sich aus den erfassten Zahlungen („Zahlung erfassen“ in der Rechnung). ' +
           'Gelöscht wird keine Rechnung — sie bleibt sieben Jahre in den Büchern. Die ' +
           'Korrektur ist der Storno: er behält die Rechnungsnummer (sie darf in der Reihe ' +
           'nicht fehlen) und gibt die verrechneten Stunden und Materialien wieder frei, sodass ' +
@@ -3328,41 +3464,63 @@ export default function InvoicesView() {
           'Die Liste zeigt die jüngsten Rechnungen; die Suche nach Nummer, Kunde oder ' +
           'Baustelle geht über alle.'
         }
-        action={sicht ? undefined : (
-          <SelectField id="invfilter" label="" aria-label="Rechnungen nach Status filtern" className="py-1 text-sm" value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}>
-            <option value="alle">Alle</option>
-            {FILTERSTATI.map((st) => <option key={st} value={st}>{st}</option>)}
-          </SelectField>
-        )}
         buendig
       >
-        {/* Bündig: die Suche gepolstert oben, darunter Zeilen bzw. Tabelle
-            von Kante zu Kante (Designlinie „Fassung 3"). Eine Sicht aus der
-            Adresse ist schon die Auswahl — dort steht statt der Suche, was
-            gefiltert ist. */}
+        {/* Bündig: Auswahl und Suche gepolstert oben, darunter die Zeilen von
+            Kante zu Kante. Eine Sicht aus der Adresse ist schon die Auswahl —
+            dort steht statt der Suche, was gefiltert ist. */}
         {sicht ? (
           <div className="p-4">
             <Adressfilter text={SICHT_TITEL[sicht]} parameter={['sicht']} />
           </div>
         ) : (
-        <div className="p-4">
-          <InputField
-            id="invsuche"
-            label="Suche"
-            type="search"
-            placeholder="Rechnungsnummer, Kunde oder Baustelle"
-            value={rechnungSuche}
-            onChange={(e) => setRechnungSuche(e.target.value)}
+        <div className="rechnungen-filter">
+          {/*
+            DIE ANSICHT ALS SEGMENTE (Linie „Lot“, Regel 4): Arbeitsstand als
+            Standard, „Erledigt“ und „Alle“ einen Tipp entfernt. Die Auswahl
+            nach einem einzelnen Stand bleibt daneben — mit sieben Werten
+            passten Segmente am Handy nicht in eine Zeile.
+          */}
+          <Segmente
+            name="Rechnungen zeigen"
+            werte={BEREICHE}
+            wert={filter as (typeof BEREICHE)[number]['wert']}
+            onChange={(w) => {
+              vorDerSuche.current = null;
+              filterSetzen(w);
+            }}
           />
+          <div className="rechnungen-suchzeile">
+            <div className="rechnungen-suchfeld">
+              <InputField
+                id="invsuche"
+                label="Suche"
+                type="search"
+                placeholder="Rechnungsnummer, Kunde oder Baustelle"
+                value={rechnungSuche}
+                onChange={(e) => sucheAendern(e.target.value)}
+              />
+            </div>
+            <div className="rechnungen-stand">
+              <SelectField id="invfilter" label="" aria-label="Rechnungen nach Status filtern"
+                value={(FILTERSTATI as readonly string[]).includes(filter) ? filter : 'alle'}
+                onChange={(e) => {
+                  vorDerSuche.current = null;
+                  filterSetzen(e.target.value === 'alle' ? 'alle' : (e.target.value as RechnungsFilter));
+                }}>
+                <option value="alle">Jeder Stand</option>
+                {FILTERSTATI.map((st) => <option key={st} value={st}>{st}</option>)}
+              </SelectField>
+            </div>
+          </div>
           {suchbegriff && suchFehler && (
-            <p className="mt-1 text-xs text-warning">
+            <p className="text-xs text-warning">
               Die Suche über alle Rechnungen ist gerade nicht erreichbar — gezeigt werden Treffer unter
               den geladenen.
             </p>
           )}
           {serverTreffer && serverTreffer.length >= RECHNUNG_TREFFER && (
-            <p className="mt-1 text-xs text-ink-muted">
+            <p className="text-xs text-ink-muted">
               Die {RECHNUNG_TREFFER} jüngsten Treffer — für ältere genauer suchen.
             </p>
           )}
@@ -3380,120 +3538,25 @@ export default function InvoicesView() {
                 : `Keine Rechnung passt zu „${suchbegriff}“.`
               : invoices.length === 0
                 ? 'Noch keine Rechnungen.'
-                : 'Keine Rechnung in dieser Auswahl.'}
+                : filter === 'offen' && !sicht
+                  ? 'Keine offene Rechnung — alles bezahlt.'
+                  : 'Keine Rechnung in dieser Auswahl.'}
           </EmptyState>
         ) : (
-          schreibtisch ? (
-            /*
-              AM SCHREIBTISCH EINE TABELLE (Designlinie „Fassung 3"): Nummer,
-              Kunde, Datum, Fällig, Betrag rechtsbündig, Stand. Mahnstand,
-              Teilzahlung und Storno stehen klein unter dem Kunden — dieselben
-              Zeilen wie am Telefon, aus derselben Funktion.
-            */
-            <Tabelle
-              spalten={[
-                { name: 'Nummer' },
-                { name: 'Kunde' },
-                { name: 'Datum' },
-                { name: 'Fällig' },
-                { name: 'Betrag', r: true },
-                { name: 'Stand' },
-                { name: 'Aktionen', versteckt: true },
-              ]}
-            >
-              {liste.map((inv) => (
-                <Fragment key={inv.id}>
-                <tr>
-                  <td className="whitespace-nowrap font-normal text-ink-deep">
-                    <button type="button" className="link -my-3 inline-block py-3" onClick={() => setDetailFuer(inv)}>
-                      {inv.invoiceNumber}
-                    </button>
-                  </td>
-                  <td>
-                    <span className="font-normal text-ink-deep">{inv.customerName}</span>
-                    <span className="block text-meta text-ink-muted">{rechnungNotizen(inv)}</span>
-                  </td>
-                  <td className="whitespace-nowrap">{datumAT(inv.invoiceDate)}</td>
-                  <td className="whitespace-nowrap">{datumAT(inv.dueDate)}</td>
-                  <td className="r whitespace-nowrap font-normal text-ink-deep">{euro(inv.totalBrutto)}</td>
-                  <td>
-                    <StatusBadge status={inv.paymentStatus} />
-                  </td>
-                  <td className="r">{rechnungMenue(inv)}</td>
-                </tr>
-                {/*
-                  DIE STORNORECHNUNG ALS EIGENE ZEILE (Testbericht 30.09.2026,
-                  G28). Im Ausgangsbuch ist sie ein eigener Beleg; hier stand
-                  sie nur als Vermerk unter der stornierten Rechnung. Sie
-                  folgt ihr direkt — so bleibt sichtbar, wozu sie gehört.
-                */}
-                {inv.stornoNummer && (
-                  <tr>
-                    <td className="whitespace-nowrap font-normal text-ink-deep">{inv.stornoNummer}</td>
-                    <td>
-                      <span className="font-normal text-ink-deep">{inv.customerName}</span>
-                      <span className="block text-meta text-ink-muted">Stornorechnung zu <span className="nr">{inv.invoiceNumber}</span></span>
-                    </td>
-                    <td className="whitespace-nowrap">{stornoDatum(inv)}</td>
-                    <td className="whitespace-nowrap">—</td>
-                    <td className="r whitespace-nowrap font-normal text-ink-deep">{euro(-inv.totalBrutto)}</td>
-                    <td><Marke>Stornorechnung</Marke></td>
-                    <td className="r">
-                      {stornoMenue(inv)}
-                    </td>
-                  </tr>
-                )}
-                </Fragment>
-              ))}
-            </Tabelle>
-          ) : (
-            <List>
-              {liste.map((inv) => (
-                <ListRow
-                  key={inv.id}
-                  title={
-                    // Tastfläche 48 px ohne höhere Zeile (U15): senkrechtes Polster, Gegenrand negativ.
-                    <button type="button" className="-my-3 block py-3 text-left" onClick={() => setDetailFuer(inv)}>
-                      <span className="nr">{inv.invoiceNumber}</span> · {inv.customerName}
-                    </button>
-                  }
-                  wert={euro(inv.totalBrutto)}
-                  zustand={<StatusBadge status={inv.paymentStatus} />}
-                  subtitle={
-                    <>
-                      {/*
-                        JEDE ANGABE BLEIBT AM STÜCK. Auf 375 px brach die Zeile
-                        mitten im Datum — „fällig 2026-" in der einen Zeile,
-                        „08-01" in der nächsten. Ein halbes Datum ist keine
-                        Angabe mehr, sondern eine Zahlenfolge. Die Zeile darf
-                        weiter umbrechen, aber nur ZWISCHEN den Angaben.
-                      */}
-                      <span className="whitespace-nowrap">{datumAT(inv.invoiceDate)}</span> ·{' '}
-                      <span className="whitespace-nowrap">fällig {datumAT(inv.dueDate)}</span>
-                      {rechnungNotizen(inv)}
-                    </>
-                  }
-                >
-                  {rechnungMenue(inv)}
-                </ListRow>
-              )).flatMap((zeile, i) => {
-                const inv = liste[i];
-                if (!inv.stornoNummer) return [zeile];
-                return [
-                  zeile,
-                  <ListRow
-                    key={`${inv.id}-storno`}
-                    title={`${inv.stornoNummer} · ${inv.customerName}`}
-                    wert={euro(-inv.totalBrutto)}
-                    zustand={<Marke>Stornorechnung</Marke>}
-                    subtitle={`${stornoDatum(inv)} · zu ${inv.invoiceNumber}`}
-                  >
-                    {stornoMenue(inv)}
-                  </ListRow>,
-                ];
-              })}
-            </List>
-          )
+          /*
+            GRUPPEN NACH DRINGLICHKEIT im Arbeitsstand, sonst eine Liste nach
+            Nummer (siehe `rechnungsGruppen`). Höchstens zwanzig Zeilen je
+            Gruppe, dann „und N weitere anzeigen“ — die Gruppe bricht ab, die
+            Zahl sagt, wie viele noch kommen.
+          */
+          rechnungsGruppen(liste, filter === 'offen' && !sicht, todayStr()).map((g) => (
+            <RechnungsGruppe
+              key={`${sicht ?? filter}-${g.schluessel}`}
+              titel={g.titel}
+              rechnungen={g.rechnungen}
+              zeile={rechnungZeile}
+            />
+          ))
         )}
         {/*
           Nachladen heisst hier: die ABFRAGE ausweiten, nicht nur mehr vom
@@ -3502,13 +3565,12 @@ export default function InvoicesView() {
           Liste freigab — die Datenmenge war dieselbe. Jetzt steuert er, wie
           weit die Liste ueberhaupt zurueckreicht.
 
-          Der Hinweis daneben ist wichtig: Suche und Filter laufen im
-          Browser und damit nur ueber das Geladene. Ohne diesen Satz sucht
-          jemand eine alte Rechnungsnummer, findet nichts und schliesst
-          daraus, es gebe sie nicht.
+          Der Hinweis daneben ist wichtig: Filter laufen im Browser und damit
+          nur ueber das Geladene. Ohne diesen Satz sucht jemand eine alte
+          Rechnung, findet nichts und schliesst daraus, es gebe sie nicht.
         */}
         {!suchbegriff && invoices.length >= grenze && (
-          <div className="flex flex-wrap items-center gap-3 border-t border-line px-4 py-3">
+          <div className="rechnungen-nachladen">
             <Button variant="secondary" onClick={() => setGrenze((n) => n + RECHNUNGEN_JE_SEITE)}>
               Ältere Rechnungen laden
             </Button>
@@ -3516,7 +3578,6 @@ export default function InvoicesView() {
           </div>
         )}
       </Card>
-
       {/*
         Buchhaltungs-Export.
 
@@ -3860,11 +3921,24 @@ export default function InvoicesView() {
         will im selben Moment sehen, was schon da war — sonst bucht er die
         Überweisung vom Dienstag ein zweites Mal ein.
       */}
-      <RechnungDetail
-        inv={detailFuer}
-        onClose={() => setDetailFuer(null)}
-        onPdf={(i) => void redownload(i as WithId<Invoice>)}
-      />
+      {/*
+        DAS SEITENFENSTER ZEIGT DEN STAND VON JETZT, nicht den vom Antippen:
+        nach einer Zahlung oder einem Storno stünden sonst die alten
+        Handlungen da. Gesucht wird in allem, was die Seite gerade kennt.
+      */}
+      {(() => {
+        const inv = detailFuer
+          ? [...invoices, ...(serverTreffer ?? []), ...(zahlSicht?.zeilen ?? []), ...offeneRechnungen]
+            .find((i) => i.id === detailFuer.id) ?? detailFuer
+          : null;
+        return (
+          <RechnungDetail
+            inv={inv}
+            onClose={() => setDetailFuer(null)}
+            aktionen={inv ? rechnungAktionen(inv) : []}
+          />
+        );
+      })()}
       <ConfirmDialog
         open={!!zahlungFuer}
         title={zahlungFuer ? `Zahlungen — ${zahlungFuer.invoiceNumber}` : 'Zahlungen'}

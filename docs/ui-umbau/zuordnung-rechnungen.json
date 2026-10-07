@@ -1,0 +1,965 @@
+{
+ "schritt": "E6/E8 – Rechnungen (Liste, Seitenfenster, Rechnung erstellen, Leseliste)",
+ "eintraege": [
+  {
+   "alt": "rechnungen.kopf.titel",
+   "neu": "rechnungen.seitenkopf.titel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Rechnungen“, Ortszeile „Geld“ neu darüber",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.kopf.untertitel",
+   "neu": "rechnungen.seitenkopf.meta",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Wortlaut unverändert, je Rolle (Projektleitung: „zum Lesen“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.neben-fehler",
+   "neu": "rechnungen.teilfehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "TeilFehler unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.fehler-in-karte-neu",
+   "neu": "rechnungen.fehler-seite",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Fehler ausserhalb des Formulars (Liste, Mahnung) stehen bei geschlossenem Formular über den Kennzahlen; bei offenem wie bisher im Formular (Test „hält NICHTS fest, wenn der Beleg scheitert“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.kennzahl.offen",
+   "neu": "rechnungen.kennzahl.offen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "jetzt antippbar → Ansicht „Offen“; Zusatz bei Ladefehler unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.kennzahl.ueberfaellig",
+   "neu": "rechnungen.kennzahl.ueberfaellig",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "antippbar → ?status=Überfällig; rot wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.kennzahl.bezahlt-im-monat",
+   "neu": "rechnungen.kennzahl.bezahlt-im-monat",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "antippbar → Sicht „Im laufenden Monat bezahlt“; Zusatz unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.kennzahl.bezahlt-ersatz",
+   "neu": "rechnungen.kennzahl.bezahlt-ersatz",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Ersatz, wenn die Monatszahlen nicht kommen; antippbar → ?status=Bezahlt",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.hinweis.forderungen-fehler",
+   "neu": "rechnungen.hinweis.forderungen-fehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Hinweiszeile unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.hinweis.abdeckung-fehler",
+   "neu": "rechnungen.hinweis.abdeckung-fehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Hinweiszeile unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.nicht-verrechnet.karte",
+   "neu": "rechnungen.nicht-verrechnet.gruppe",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Karte bündig, Zeilen von Kante zu Kante; höchstens 20, dann „und N weitere anzeigen“",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.nicht-verrechnet.hint",
+   "neu": "rechnungen.seitenhilfe.nicht-verrechnet",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„i“ → „Hilfe zu dieser Seite“ (Entscheidung E3)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.nicht-verrechnet.zeile",
+   "neu": "rechnungen.nicht-verrechnet.zeile",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Kunde, Warnung Tage, Baustelle, Datum, Abrechnung unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.nicht-verrechnet.baustelle-waehlen",
+   "neu": "rechnungen.nicht-verrechnet.baustelle-waehlen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "öffnet jetzt „Neue Rechnung“ mit der Baustelle und springt dorthin (vorher: Auswahl gesetzt, nach oben gerollt)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.mahnlauf.karte",
+   "neu": "rechnungen.mahnlauf.gruppe",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "bündig; Summe über den Zeilen; höchstens 20 Zeilen, dann „und N weitere anzeigen“",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.mahnlauf.hint",
+   "neu": "rechnungen.seitenhilfe.mahnlauf",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„i“ → „Hilfe zu dieser Seite“",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.mahnlauf.summe",
+   "neu": "rechnungen.mahnlauf.summe",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "offen · Mahnspesen",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.mahnlauf.zeile",
+   "neu": "rechnungen.mahnlauf.zeile",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Angaben unverändert inkl. „Kundenart fehlt“; Zeile öffnet zusätzlich das Seitenfenster der Rechnung",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.mahnlauf.mahnen",
+   "neu": "rechnungen.mahnlauf.mahnen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Knopf in der Zeile, öffnet denselben Mahndialog",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.mahnlauf.leer",
+   "neu": "rechnungen.mahnlauf.leer",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Heute ist nichts zu mahnen.“",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.mahnlauf.ausgereizt",
+   "neu": "rechnungen.mahnlauf.ausgereizt",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Hinweiszeile „braucht eine Entscheidung“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.neu.karte",
+   "neu": "rechnungen.seitenkopf.hauptaktion-neue-rechnung",
+   "weg_alt": 0,
+   "weg_neu": 1,
+   "bemerkung": "Formular auf Abruf: Hauptaktion „Neue Rechnung“ im Seitenkopf (Handy: Daumenbereich); bleibt nach dem Anlegen offen; „Schließen“ in der Karte",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.neu.hint",
+   "neu": "rechnungen.seitenhilfe.neue-rechnung",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "„i“ → „Hilfe zu dieser Seite“ (sobald das Formular offen ist)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.neu.baustelle",
+   "neu": "rechnungen.neu.baustelle",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "#invproj, einspaltig im Formular (max. 560 px)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.neu.art",
+   "neu": "rechnungen.neu.art",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "#inv-art, nur mit Einstellung „Rechnungsarten“; alle vier Einträge",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.neu.anzahlung-prozent",
+   "neu": "rechnungen.neu.anzahlung-prozent",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Feld samt Fehlerzeile",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.neu.anzahlung-hinweis",
+   "neu": "rechnungen.neu.anzahlung-hinweis",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "Hinweiszeile offen wie bisher (hinter einem „i“ wäre sie +2)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.neu.konditionen",
+   "neu": "rechnungen.neu.weitere-angaben-konditionen",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "<details> → WeitereAngaben „Konditionen für diese Rechnung anpassen“; alle acht Felder in derselben Reihenfolge, zwei Spalten",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.neu.konditionen.info",
+   "neu": "rechnungen.seitenhilfe.konditionen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "„i“ → „Hilfe zu dieser Seite“",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.neu.zusammenstellen",
+   "neu": "rechnungen.neu.zusammenstellen",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "„Positionen zusammenstellen“ / „Anzahlung vorbereiten“",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.neu.fehler",
+   "neu": "rechnungen.neu.fehler",
+   "weg_alt": 1,
+   "weg_neu": 2,
+   "bemerkung": "ErrorState im Formular",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.leistung-von-bis",
+   "neu": "rechnungen.vorschau.leistung-von-bis",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Leistungszeitraum, zwei Felder in einer Zeile im Formular (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.warnung-zeitraum-fehlt",
+   "neu": "rechnungen.vorschau.warnung-zeitraum-fehlt",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Hinweiszeile (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.warnung-zeitraum-verdreht",
+   "neu": "rechnungen.vorschau.warnung-zeitraum-verdreht",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Hinweiszeile (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.abgleich-scheine",
+   "neu": "rechnungen.vorschau.abgleich-scheine",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Hinweiszeile samt Liste je Person/Tag/Satz und „ohne Schein“ (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.pauschale-hinweis",
+   "neu": "rechnungen.vorschau.pauschale-hinweis",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "alle Fälle Pauschal/Einheitspreis/Teil (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.anzahlung-ohne-angebot",
+   "neu": "rechnungen.vorschau.anzahlung-ohne-angebot",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Hinweiszeile (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.material-ohne-preis",
+   "neu": "rechnungen.vorschau.material-ohne-preis",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Hinweiszeile samt Obergrenze-Satz (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.positionen-tabelle",
+   "neu": "rechnungen.vorschau.positionen-tabelle",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "alle Spalten, Felder deckend umrandet statt halbtransparentem Ring; Null-Preis bernsteinfarben; Rollbereich am Handy (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.position-entfernen",
+   "neu": "rechnungen.vorschau.position-entfernen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "✕ je Zeile (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.summen",
+   "neu": "rechnungen.vorschau.summen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Zwischensumme, Rabatt, Netto, USt, Brutto/Gesamtleistung, Abzüge, Restforderung (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.position-hinzufuegen",
+   "neu": "rechnungen.vorschau.position-hinzufuegen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Knopf (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.anfahrt",
+   "neu": "rechnungen.vorschau.anfahrt",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Knopf (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.abzug-vorrechnungen",
+   "neu": "rechnungen.vorschau.abzug-vorrechnungen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Abschnitt mit Häkchen, Pflichtabzug gesperrt, Fehler/Hinweise (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.rechnungsnummer",
+   "neu": "rechnungen.vorschau.rechnungsnummer",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Feld bei der ersten Rechnung, sonst Text; „bereits vergeben“ (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.leistungsnachweis",
+   "neu": "rechnungen.vorschau.leistungsnachweis",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Häkchen (nicht bei Anzahlung) (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.bauleistung",
+   "neu": "rechnungen.vorschau.bauleistung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Häkchen + Erklärung + Sperrhinweis + Hinweis bei Haken — ohne Kasten (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.uid",
+   "neu": "rechnungen.vorschau.uid",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Feld, Formfehler, „auch beim Kunden speichern?“, Pflichtwarnung, Privatkunden-Hinweis — ohne Kasten (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.rabatt",
+   "neu": "rechnungen.vorschau.rabatt",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Bezeichnung, Art, Wert — jetzt nach UID im Abschnitt mit Bestellnummer und Rücklass (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.bestellnummer",
+   "neu": "rechnungen.vorschau.bestellnummer",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Feld (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.ruecklass",
+   "neu": "rechnungen.vorschau.ruecklass",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Häkchen, Prozent, Fällig am, Einbehalten-Zeile (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.steuerbefreiung",
+   "neu": "rechnungen.vorschau.steuerbefreiung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Pflichtfeld bei 0 % ohne Übergang (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.gesperrt-zeile",
+   "neu": "rechnungen.vorschau.gesperrt-zeile",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„n Zeiteinträge werden als verrechnet gesperrt.“ (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.firmendaten-warnungen",
+   "neu": "rechnungen.vorschau.firmendaten-warnungen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Anschrift, IBAN fehlt/ungültig, Empfänger, Firmenbuch, UID des Betriebs — mit Links (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.leer-warnung",
+   "neu": "rechnungen.vorschau.leer-warnung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "ohne Positionen / null Euro (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.erstellen",
+   "neu": "rechnungen.vorschau.erstellen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Rechnung erstellen & PDF“ rechts in der Fusszeile, Sperren unverändert (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.verwerfen",
+   "neu": "rechnungen.vorschau.verwerfen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Verwerfen“ links in der Fusszeile (gemessen ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.hint",
+   "neu": "rechnungen.seitenhilfe.hint",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„i“ → „Hilfe zu dieser Seite“ (ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.abzug.info",
+   "neu": "rechnungen.seitenhilfe.abzug.info",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„i“ → „Hilfe zu dieser Seite“ (ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.rechnungsnummer.info",
+   "neu": "rechnungen.seitenhilfe.rechnungsnummer.info",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„i“ → „Hilfe zu dieser Seite“ (ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.rabatt.info",
+   "neu": "rechnungen.seitenhilfe.rabatt.info",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„i“ → „Hilfe zu dieser Seite“ (ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.vorschau.ruecklass.info",
+   "neu": "rechnungen.seitenhilfe.ruecklass.info",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„i“ → „Hilfe zu dieser Seite“ (ab „Vorschau steht“)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.karte",
+   "neu": "rechnungen.liste.karte",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Titel je Ansicht („Offene/Erledigte/Alle Rechnungen“, „Rechnungen: <Stand>“, Sicht) mit Zahl",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.hint",
+   "neu": "rechnungen.seitenhilfe.liste",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„i“ → „Hilfe zu dieser Seite“; Text um Ansichten und Seitenfenster ergänzt, Aussagen P2-20 unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.filter-select",
+   "neu": "rechnungen.liste.segmente-und-stand",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Segmente „Offen · Erledigt · Alle“ (Standard: Arbeitsstand); die Auswahl #invfilter „Rechnungen nach Status filtern“ mit allen sechs Ständen bleibt daneben; Filter in der Adresse (?ansicht=, ?status=)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.filter-select.alle",
+   "neu": "rechnungen.liste.segment-alle",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Alle“ als Segment; „Jeder Stand“ in der Auswahl",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.suche",
+   "neu": "rechnungen.liste.suche",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "#invsuche; aus „Offen“ heraus stellt die Suche auf „Alle“ und kehrt beim Leeren zurück; ?suche= öffnet „Alle“",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.suche-nicht-erreichbar",
+   "neu": "rechnungen.liste.suche-nicht-erreichbar",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Zeile unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.suche-treffergrenze",
+   "neu": "rechnungen.liste.suche-treffergrenze",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Zeile unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.adressfilter-sicht",
+   "neu": "rechnungen.liste.adressfilter-sicht",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "„Gefiltert: …“ mit „Alle zeigen“ unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.leer",
+   "neu": "rechnungen.liste.leer",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Texte unverändert, dazu „Keine offene Rechnung — alles bezahlt.“ im Arbeitsstand",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.zeile",
+   "neu": "rechnungen.liste.zeile",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Nummer · Kunde, Datum, fällig, Mahnstand, Teilzahlung, Guthaben, Storno, Stand, Betrag; ganze Zeile antippbar; Arbeitsstand gruppiert (Überfällig, Guthaben zurückzahlen, Offen, Nur noch Rücklass offen), je Gruppe höchstens 20 + „und N weitere anzeigen“",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.zeile-erledigt",
+   "neu": "rechnungen.liste.segment-erledigt-oder-alle.zeile",
+   "weg_alt": 0,
+   "weg_neu": 1,
+   "bemerkung": "bezahlte und stornierte Rechnungen ohne Guthaben stehen nicht mehr in der Standardansicht, sondern unter „Erledigt“/„Alle“ (Regel 4)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.tabelle-schreibtisch",
+   "neu": "rechnungen.liste.zeile",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Am Schreibtisch dieselbe Zeile statt Tabelle (Spalten Nummer, Kunde, Datum, Fällig, Betrag, Stand stehen in Titel, Meta, Wert, Zustand)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.nummer-knopf",
+   "neu": "rechnungen.liste.zeile-antippen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "die ganze Zeile öffnet das Seitenfenster",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.stornozeile",
+   "neu": "rechnungen.liste.stornozeile",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "eigene Zeile direkt unter der stornierten; öffnet deren Seitenfenster",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.stornozeile.menue.stornorechnung-pdf",
+   "neu": "rechnungen.fenster.stornorechnung-pdf",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "„Stornorechnung (PDF)“ im Seitenfenster",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.aeltere-laden",
+   "neu": "rechnungen.liste.aeltere-laden",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Ältere Rechnungen laden“ mit „n jüngste geladen“",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.menue.ansehen",
+   "neu": "rechnungen.fenster",
+   "weg_alt": 2,
+   "weg_neu": 1,
+   "bemerkung": "„Ansehen“ ist das Seitenfenster selbst (BottomSheet auchBreit, Titel „Rechnung …“, Schließen, Esc)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.menue.pdf-erneut-laden",
+   "neu": "rechnungen.fenster.pdf-laden",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "„PDF laden“ — dieselbe Funktion (redownload)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.menue.mahnung-erzeugen",
+   "neu": "rechnungen.fenster.mahnung-erzeugen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "nur wenn gemahnt werden darf; öffnet denselben Dialog",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.menue.zahlung-erfassen",
+   "neu": "rechnungen.fenster.zahlung-erfassen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "alle vier Beschriftungen; gefüllter Knopf, wo Geld fällig ist oder zurückgeht",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.menue.stornieren",
+   "neu": "rechnungen.fenster.stornieren",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "rot umrandet; Rückfrage mit Grund unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.menue.stornorechnung-ausstellen",
+   "neu": "rechnungen.fenster.stornorechnung-ausstellen",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "Rückfrage unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.menue.stornorechnung-pdf",
+   "neu": "rechnungen.fenster.stornorechnung-pdf",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.liste.menue.storno-aufheben",
+   "neu": "rechnungen.fenster.storno-aufheben",
+   "weg_alt": 2,
+   "weg_neu": 2,
+   "bemerkung": "nur am Tag des Stornos; Rückfrage unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.detail.inhalt",
+   "neu": "rechnungen.fenster.inhalt",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "Kopf, Daten, Positionen, Summen, Rücklass, Zahlstand, Mahnung, Storno — unverändert; zeigt den Stand von jetzt",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.detail.schliessen",
+   "neu": "rechnungen.fenster.schliessen",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„Schließen“ im Kopf des Seitenfensters (vorher unten)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.dialog.zahlung",
+   "neu": "rechnungen.dialog.zahlung",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "ConfirmDialog mit Richtung, Datum, Betrag, Art, Hinweis, Rücklass-, Skonto-, Kassenhinweis, Skonto-Häkchen, Liste mit Löschen in zwei Schritten; aus dem Seitenfenster, das sich dabei schliesst (Fokus im Dialog)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.dialog.mahnen",
+   "neu": "rechnungen.dialog.mahnen",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "Frist, Kundenart-Sperre mit Link, Zinsen/Basiszins-Hinweis; aus dem Seitenfenster, das sich dabei schliesst (Fokus im Dialog)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.dialog.stornieren",
+   "neu": "rechnungen.dialog.stornieren",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "Grund Pflicht; aus dem Seitenfenster, das sich dabei schliesst (Fokus im Dialog)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.dialog.stornorechnung",
+   "neu": "rechnungen.dialog.stornorechnung",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "Rückfrage; aus dem Seitenfenster, das sich dabei schliesst (Fokus im Dialog)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.dialog.storno-aufheben",
+   "neu": "rechnungen.dialog.storno-aufheben",
+   "weg_alt": 3,
+   "weg_neu": 3,
+   "bemerkung": "Rückfrage; aus dem Seitenfenster, das sich dabei schliesst (Fokus im Dialog)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.karte",
+   "neu": "rechnungen.export.karte",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "bleibt als Karte am Seitenende (im ⋯ des Kopfes wäre „Zeitraum zusammenstellen“ zwei Klicks weiter)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.hint",
+   "neu": "rechnungen.seitenhilfe.export",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "„i“ → „Hilfe zu dieser Seite“",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.von",
+   "neu": "rechnungen.export.von",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.bis",
+   "neu": "rechnungen.export.bis",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.zusammenstellen",
+   "neu": "rechnungen.export.zusammenstellen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.von-nach-bis",
+   "neu": "rechnungen.export.von-nach-bis",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.fehler",
+   "neu": "rechnungen.export.fehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.zusammenfassung",
+   "neu": "rechnungen.export.zusammenfassung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.null-rechnungen",
+   "neu": "rechnungen.export.null-rechnungen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.ohne-abzug",
+   "neu": "rechnungen.export.ohne-abzug",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.luecken",
+   "neu": "rechnungen.export.luecken",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.ohne-stornorechnung",
+   "neu": "rechnungen.export.ohne-stornorechnung",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.csv",
+   "neu": "rechnungen.export.csv",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.bmd",
+   "neu": "rechnungen.export.bmd",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.bmd.info",
+   "neu": "rechnungen.export.bmd.info",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert („i“ → Seitenhilfe)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.zahlungsstapel",
+   "neu": "rechnungen.export.zahlungsstapel",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.zahlungsstapel.info",
+   "neu": "rechnungen.export.zahlungsstapel.info",
+   "weg_alt": 1,
+   "weg_neu": 1,
+   "bemerkung": "unverändert („i“ → Seitenhilfe)",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.keine-zahlungen",
+   "neu": "rechnungen.export.keine-zahlungen",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.vorgebaut-hinweis",
+   "neu": "rechnungen.export.vorgebaut-hinweis",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.zahlungsstapel-fehlt",
+   "neu": "rechnungen.export.zahlungsstapel-fehlt",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.export.kontenrahmen-fehlt",
+   "neu": "rechnungen.export.kontenrahmen-fehlt",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.lesen.kopf",
+   "neu": "rechnungen.lesen.seitenkopf",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Ortszeile „Geld“, Untertitel unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.lesen.zeile",
+   "neu": "rechnungen.lesen.zeile",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Nummer · Kunde, Datum, Baustelle, offen, Stand (jetzt als Zustand), Betrag; nicht antippbar wie bisher",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.lesen.zeile-erledigt",
+   "neu": "rechnungen.lesen.segment-erledigt-oder-alle.zeile",
+   "weg_alt": 0,
+   "weg_neu": 1,
+   "bemerkung": "Bezahltes unter „Erledigt“/„Alle“",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.lesen.leer",
+   "neu": "rechnungen.lesen.leer",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Text unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.lesen.fehler",
+   "neu": "rechnungen.lesen.fehler",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "Text unverändert",
+   "geprueft": true
+  },
+  {
+   "alt": "rechnungen.lesen.liste",
+   "neu": "rechnungen.lesen.segmente-suche",
+   "weg_alt": 0,
+   "weg_neu": 0,
+   "bemerkung": "neu nach E6: Segmente Offen/Erledigt/Alle (Standard Arbeitsstand) und Suche über das Geladene; Bezahltes einen Tipp weiter unter „Alle“/„Erledigt“",
+   "geprueft": true
+  }
+ ]
+}
