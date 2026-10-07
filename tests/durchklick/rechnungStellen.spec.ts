@@ -52,6 +52,8 @@ test('Das Büro stellt aus der gebuchten Zeit eine Rechnung', async ({ page, bro
   await anmelden(page, BUERO.email);
 
   await page.getByRole('link', { name: 'Rechnungen' }).first().click();
+  // Seit der Linie „Lot“ öffnet die Hauptaktion im Seitenkopf das Formular.
+  await page.getByRole('button', { name: 'Neue Rechnung' }).click();
   // Zwei Baustellen-Auswahlen auf der Seite: die Rechnung und daneben der
   // Zeitraum-Auszug. Gemeint ist die im Kasten „Neue Rechnung aus Baustelle".
   await page.locator('#invproj').selectOption(BAUSTELLE.nummer);
@@ -106,8 +108,9 @@ test('Das Büro stellt aus der gebuchten Zeit eine Rechnung', async ({ page, bro
     .from('invoices').select('id, total_brutto').eq('company_id', BETRIEB).single();
   const haelfte = Math.round((Number(vorher!.total_brutto) / 2) * 100) / 100;
 
-  await page.getByRole('button', { name: /Weitere Aktionen für Rechnung/ }).first().click();
-  await page.getByRole('menuitem', { name: 'Zahlung erfassen' }).click();
+  // Die Zeile öffnet das Seitenfenster der Rechnung; dort stehen die Handlungen (Linie „Lot“).
+  await page.getByRole('button', { name: /^RE-\d{4}-\d+ · / }).first().click();
+  await page.getByRole('button', { name: 'Zahlung erfassen' }).click();
 
   const betrag = page.getByLabel(/^Betrag/);
   await betrag.fill(String(haelfte));
@@ -128,18 +131,17 @@ test('Das Büro stellt aus der gebuchten Zeit eine Rechnung', async ({ page, bro
   */
   // Der Zahlungsdialog bleibt nach dem Eintragen offen — er zeigt, was eingegangen ist.
   await page.getByRole('button', { name: 'Abbrechen' }).click();
-  await page.getByRole('button', { name: /Weitere Aktionen für Rechnung/ }).first().click();
-  await page.getByRole('menuitem', { name: 'Ansehen' }).click();
+  await page.getByRole('button', { name: /^RE-\d{4}-\d+ · / }).first().click();
   const ansicht = page.getByRole('dialog', { name: /Rechnung RE-/ });
   await expect(ansicht).toBeVisible();
   // Nicht der Zahlungsstand: den zieht die Liste erst kurz nach der Datenbank nach.
   await expect(ansicht.getByRole('button', { name: 'PDF laden' })).toBeVisible();
-  // Der sichtbare Knopf — der erste ist der für die Tastatur, nur bei Fokus zu sehen.
+  // „Schließen“ im Kopf des Seitenfensters.
   await ansicht.getByRole('button', { name: 'Schließen' }).last().click();
   await expect(ansicht).toHaveCount(0);
 
-  // Dasselbe über die Rechnungsnummer in der Liste.
-  await page.getByRole('button', { name: /^RE-\d{4}-\d+$/ }).first().click();
+  // Und wieder auf, diesmal mit Esc zu.
+  await page.getByRole('button', { name: /^RE-\d{4}-\d+ · / }).first().click();
   await expect(ansicht).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(ansicht).toHaveCount(0);
@@ -189,6 +191,7 @@ test('Erst die Anzahlung, dann die Schlussrechnung mit Abzug', async ({ page }) 
 
   await anmelden(page, BUERO.email);
   await page.getByRole('link', { name: 'Rechnungen' }).first().click();
+  await page.getByRole('button', { name: 'Neue Rechnung' }).click();
 
   // --- Die Anzahlung: ein Betrag, keine Stunden.
   await page.locator('#invproj').selectOption(BAUSTELLE.nummer);

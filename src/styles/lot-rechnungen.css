@@ -6,4 +6,59 @@
  * gestrichelten Linien. Farben nur aus den Grundwerten (var(--…)).
  */
 @layer components {
+  /* ── Rechnungsliste ──────────────────────────────────────────────────── */
+  /*
+    Über den Zeilen: Segmente, darunter Suche und Stand. Am Handy steht jedes
+    für sich in voller Breite; ab dem Tablet stehen Suche und Stand in einer
+    Zeile, der Stand so breit wie sein längster Eintrag.
+  */
+  .rechnungen-filter { display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem; }
+  @media (min-width: 760px) { .rechnungen-filter { align-items: flex-start; } }
+  .rechnungen-suchzeile { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem; width: 100%; }
+  .rechnungen-suchfeld { flex: 1 1 16rem; min-width: 0; }
+  .rechnungen-stand { flex: 1 1 10rem; min-width: 0; }
+  @media (min-width: 760px) { .rechnungen-stand { flex: 0 0 12rem; } }
+  /* „Ältere Rechnungen laden“ unter der letzten Gruppe. */
+  .rechnungen-nachladen { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); }
+
+  /* Mahnlauf: die Summe über den Zeilen, der Hinweis darunter. */
+  .rechnungen-summe { padding: 0.75rem 1rem; font-size: 0.875rem; color: var(--text); border-bottom: 1px solid var(--border); }
+  .rechnungen-fuss { padding: 1rem; border-top: 1px solid var(--border); }
+  /* Ein Hinweis unter einem Feld — eine Zeile, der Rest hinter dem „i“. */
+  /* Rabatt, Bestellnummer und Rücklass: ein Abschnitt mit Linie darüber, keine Karte in der Karte. */
+  .rechnung-abschnitt { display: flex; flex-direction: column; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+  .rechnungen-hinweis { margin-top: 0.25rem; font-size: 0.875rem; line-height: 1.375rem; color: var(--text-muted); }
+
+  /* ── Seitenfenster einer Rechnung ─────────────────────────────────────── */
+  .rechnung-detail-aktionen { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .rechnung-detail-zeile { display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.25rem 0; }
+  /* Der Abzug einer Anzahlung — rot wie auf Vorschau und Beleg. */
+  .rechnung-detail-abzug { display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.25rem 0; color: var(--danger); }
+
+  /* ── Positionen der Vorschau ──────────────────────────────────────────── */
+  /*
+    Die Felder in der Tabelle sind kleiner als die des Formulars (14 px,
+    schmale Polsterung), damit sechs Spalten auf ein Tablet passen; die
+    Tasthöhe bleibt bei 44 px. Der Fokus ist ein deckender Rand in Petrol —
+    vorher ein halbtransparenter Ring.
+  */
+  .position-bezeichnung, .position-titel, .position-textzeile, .position-menge, .position-einheit, .position-preis, .position-preis-fehlt {
+    min-height: 2.75rem; padding: 0.25rem 0.5rem; font-size: 0.875rem; color: var(--text);
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  .position-bezeichnung:focus, .position-titel:focus, .position-textzeile:focus, .position-menge:focus, .position-einheit:focus, .position-preis:focus {
+    outline: none; border-color: var(--brand-fixed); box-shadow: 0 0 0 1px var(--brand-fixed);
+  }
+  .position-bezeichnung { width: 100%; min-width: 10rem; }
+  .position-titel { width: 100%; min-width: 10rem; font-weight: 600; }
+  .position-textzeile { width: 100%; min-width: 10rem; color: var(--text-muted); }
+  .position-menge { width: 6rem; text-align: right; }
+  .position-einheit { width: 5rem; }
+  .position-preis { width: 7rem; text-align: right; }
+  /*
+    EINE NULL FÄLLT AUF: der Preis fehlt noch. Bernstein ist der Zustand
+    „Achtung“ der Linie — nicht Rot, denn falsch ist hier noch nichts.
+  */
+  .position-preis-fehlt { width: 7rem; text-align: right; border-color: var(--warning); }
+  .position-preis-fehlt:focus { outline: none; border-color: var(--warning); box-shadow: 0 0 0 1px var(--warning); }
 }
