@@ -31,3 +31,8 @@ nicht selbst erbringen. Die Abnahmeblätter tragen „Freigabe: offen“.
 **E6 — Bildschirmfotos.** Je Seite mit der Rolle, die sie am vollständigsten
 sieht, in drei Breiten, als verkleinerte JPEG — alle Rollen mal alle Seiten
 mal drei Breiten wären über tausend Bilder im Repository.
+
+**Vorgabe des Auftraggebers (07.10.2026):** Der Entwurf muss nicht 1:1
+umgesetzt werden; er dient zur Orientierung. Massgeblich sind die Linie
+(Grundwerte, Bausteine, Regeln) und das Protokoll — angepasst an das, was die
+App tatsächlich kann, ohne dass eine Funktion verloren geht.
