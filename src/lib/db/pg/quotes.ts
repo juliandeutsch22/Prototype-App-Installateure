@@ -11,7 +11,8 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Quote, InvoiceDiscount, Abrechnungsart } from '@/types';
-import { abfragen, derClient, loeschen, type WithId } from './kern';
+import { abfragen, abfragenSeite, derClient, loeschen, type SeitenZeiger, type WithId } from './kern';
+import { oderUeberSpalten } from './suche';
 import { objektAlsZeile } from './felder';
 import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
 
@@ -91,6 +92,16 @@ export async function listRecentQuotes(companyId: string, max = 100) {
     grenze: max,
   });
   return zusammensetzen(koepfe, companyId);
+}
+
+export async function listQuotesPage(companyId: string, suche: string,
+  ansicht: 'offen' | 'erledigt' | 'alle', vor?: SeitenZeiger | null) {
+  const seite = await abfragenSeite<KopfZeile>(ANGEBOTE, companyId, {
+    wo: ansicht === 'alle' ? [] : [{ art: 'in', feld: 'status',
+      werte: ansicht === 'offen' ? ['Entwurf', 'Versendet'] : ['Angenommen', 'Abgelehnt'] }],
+    oder: oderUeberSpalten(['quote_number', 'customer_name', 'address', 'project_number'], suche), vor,
+  });
+  return { ...seite, zeilen: await zusammensetzen(seite.zeilen, companyId) };
 }
 
 /** Archiv: vollständig nach Belegdatum, unabhängig von der Arbeitsliste. */

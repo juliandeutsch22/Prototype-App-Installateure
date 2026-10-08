@@ -33,7 +33,15 @@ const updateQuote = vi.fn<(a0: string, a1: unknown) => Promise<void>>(async () =
 const angebote: (Quote & { id: string })[] = [];
 
 vi.mock('@/lib/db/quotes', () => ({
-  listRecentQuotes: vi.fn(async () => angebote),
+  listRecentQuotes: vi.fn(async () => angebote.slice(0, 100)),
+  listQuotesPage: vi.fn(async (_c: string, suche: string, _ansicht: string, vor?: { id: string }) => {
+    const q = suche.trim().toLowerCase();
+    const treffer = q ? angebote.filter((a) => [a.quoteNumber, a.customerName, a.address, a.projectNumber]
+      .some((s) => s?.toLowerCase().includes(q))) : angebote;
+    const start = vor ? treffer.findIndex((a) => a.id === vor.id) + 1 : 0;
+    const zeilen = treffer.slice(start, start + 50);
+    return { zeilen, naechste: treffer.length > start + 50 ? { id: zeilen[49].id, zeit: '2026-01-01T00:00:00Z' } : null };
+  }),
   acceptQuote: (c: string, id: string, p: string, a: Abrechnungsart) => acceptQuote(c, id, p, a),
   createQuote: (c: string, q: unknown) => createQuote(c, q),
   updateQuote: (id: string, d: unknown) => updateQuote(id, d),
@@ -946,5 +954,21 @@ describe('Angebote auf der Linie „Lot“', () => {
     zeichneMit('/quotes?ansicht=alle&bearbeiten=q2');
     expect(await screen.findByText('Angebot AN-2026-0008 bearbeiten')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
+
+describe('Angebote suchen jenseits der bisherigen Grenze', () => {
+  it('findet ein altes Angebot im ganzen Bestand', async () => {
+    versendetesAngebot();
+    const vorlage = angebote[0];
+    angebote.splice(0, 1, ...Array.from({ length: 151 }, (_, i) => ({ ...vorlage,
+      id: `alt-${i}`, quoteNumber: `AN-2026-${i}`, customerName: i === 150 ? 'Seltenes Altkonto' : `Kunde ${i}`,
+    })));
+    zeichne();
+    const suche = await screen.findByLabelText('Suche');
+    await userEvent.type(suche, 'Seltenes Altkonto');
+    expect(await screen.findByText('AN-2026-150')).toBeInTheDocument();
+    expect(screen.queryByText(/Die Suche geht nur über diese/)).not.toBeInTheDocument();
   });
 });

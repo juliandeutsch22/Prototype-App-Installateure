@@ -8,12 +8,42 @@
  * `supabase/migrations/…_lager.sql`.
  */
 import type { MaterialOrder } from '@/types';
-import { abfragen, abonnieren, anlegenMitKennung, loeschen, derClient, type WithId } from './kern';
+import { abfragen, abfragenSeite, abonnieren, anlegenMitKennung, loeschen, derClient, kanalHalten, type SeitenZeiger, type WithId } from './kern';
+import { oderUeberSpalten } from './suche';
 import { objektAlsZeile } from './felder';
 
 import { anlegenOhneEmpfang as fachAnlegen } from './ohneEmpfang';
 
 const ANFORDERUNGEN = 'material_orders';
+
+export function listOrdersPage(companyId: string, suche: string,
+  ansicht: 'aktiv' | 'archiv' | 'retouren' | 'einkauf', vor?: SeitenZeiger | null,
+  auswahl: { baustelle?: string; filter?: string | null } = {}) {
+  const sucheOder = oderUeberSpalten(['material_name', 'user_name', 'project_number', 'note'], suche);
+  const oder = auswahl.filter && ansicht === 'aktiv'
+    ? (sucheOder ? `and(or(${sucheOder}),${auswahl.filter})` : auswahl.filter) : sucheOder;
+  return abfragenSeite<MaterialOrder>(ANFORDERUNGEN, companyId, {
+    wo: [...(ansicht === 'retouren' ? [{ art: 'gleich' as const, feld: 'transactionType', wert: 'return' }]
+      : [{ art: 'ungleich', feld: 'transactionType', wert: 'return' },
+        { art: ansicht === 'archiv' ? 'gleich' : 'ungleich', feld: 'status', wert: 'Erledigt' }]) as import('./kern').Bedingung[],
+      ...(auswahl.baustelle ? [{ art: 'gleich' as const, feld: 'projectNumber', wert: auswahl.baustelle }] : [])],
+    oder, vor,
+  });
+}
+
+/** Einkaufssummen dürfen nicht aus einer einzelnen Bildschirmseite entstehen. */
+export function listPurchasingOrders(companyId: string) {
+  return abfragen<MaterialOrder>(ANFORDERUNGEN, companyId, {
+    wo: [{ art: 'gleich', feld: 'beschaffung', wert: 'einkauf' },
+      { art: 'ungleich', feld: 'transactionType', wert: 'return' },
+      { art: 'ungleich', feld: 'status', wert: 'Erledigt' }],
+  });
+}
+
+export function subscribeOrderChanges(companyId: string, geaendert: () => void) {
+  return kanalHalten({ tabelle: ANFORDERUNGEN, filter: `company_id=eq.${companyId}`,
+    client: derClient(), beiAenderung: geaendert, beiBereit: geaendert });
+}
 
 export function subscribeOwnOrders(
   companyId: string,

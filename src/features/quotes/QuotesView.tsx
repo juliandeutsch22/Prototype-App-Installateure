@@ -3,7 +3,7 @@ import OhneUmbruch from '@/components/OhneUmbruch';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
-  listRecentQuotes,
+  listQuotesPage,
   createQuote,
   updateQuote,
   deleteQuote,
@@ -44,6 +44,8 @@ import KatalogSuche from './KatalogSuche';
 import Abschnitt from '@/components/Abschnitt';
 import BottomSheet from '@/components/BottomSheet';
 import Nachladen from '@/components/Nachladen';
+import { useSeitenListe } from '@/lib/useSeitenListe';
+import type { SeitenZeiger } from '@/lib/db/pg/kern';
 import { MehrAnzeigen, Segmente, WeitereAngaben } from '@/components/LotBausteine';
 
 /**
@@ -146,13 +148,6 @@ function standardGueltigkeit(): string {
   return localDateStr(d);
 }
 
-/**
- * Wie viele Angebote auf einmal geholt werden — dieselbe Zahl, die die
- * Abfrage schon vor dem Umbau als Voreinstellung trug. Wer mehr hat, lädt
- * nach; vorher endete die Liste dort stillschweigend.
- */
-const ANGEBOTE_JE_SEITE = 100;
-
 /** Höchstens so viele Zeilen je Gruppe, dann „und N weitere“ (Linie „Lot“, Regel 4). */
 const GRUPPE_HOECHSTENS = 20;
 
@@ -193,12 +188,11 @@ function Gruppe<T>({ titel, zeilen, zeile }: { titel: string; zeilen: T[]; zeile
  */
 export default function QuotesView() {
   const { user, company } = useAuth();
+  const betrieb = user?.companyId;
   const vorsaetze = praefixeVon(company);
   const toast = useToast();
 
-  const [angebote, setAngebote] = useState<WithId<Quote>[]>([]);
   const [kunden, setKunden] = useState<WithId<Customer>[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   /*
@@ -239,9 +233,6 @@ export default function QuotesView() {
   /** Gespeicherte Stunden eines alten Angebots, dessen Haken abgeleitet wurden. */
   const [stundenVorher, setStundenVorher] = useState<number | null>(null);
   const [suchParameter, setSuchParameter] = useSearchParams();
-  /** Wie weit die Liste geladen ist (siehe `ANGEBOTE_JE_SEITE`). */
-  const [grenze, setGrenze] = useState(ANGEBOTE_JE_SEITE);
-  /** Gesucht wird im Geladenen — die Datenschicht kennt für Angebote keine Suche. */
   const [suche, setSuche] = useState('');
   const ansichtWert = suchParameter.get('ansicht');
   const ansicht: Ansicht = ansichtWert === 'erledigt' || ansichtWert === 'alle' ? ansichtWert : 'offen';
@@ -259,29 +250,26 @@ export default function QuotesView() {
   const vatRate = bearbeitet?.vatRate ?? company?.rates?.vatRate ?? INVOICE_DEFAULTS.vatRate;
   const darfAendern = user ? isGF(user.role) : false;
 
-  const laden = useMemo(
-    () => async () => {
-      if (!user) return;
-      setLoading(true);
-      try {
-        const [q, k] = await Promise.all([
-          listRecentQuotes(user.companyId, grenze),
-          listCustomers(user.companyId),
-        ]);
-        setAngebote(q);
-        setKunden(k);
-      } catch (e) {
-        setError((e as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [user, grenze],
-  );
-
+  const seiteLaden = useMemo(() => (vor?: SeitenZeiger | null) => betrieb
+    ? listQuotesPage(betrieb, suche, ansicht, vor)
+    : Promise.resolve({ zeilen: [], naechste: null }), [betrieb, suche, ansicht]);
+  const liste = useSeitenListe(seiteLaden);
+  const angebote = liste.zeilen;
+  const loading = liste.laedt;
+  const neuLaden = liste.neuLaden;
+  const laden = useMemo(() => async () => {
+    if (!betrieb) return;
+    await neuLaden();
+    try { setKunden(await listCustomers(betrieb)); }
+    catch (e) { setError((e as Error).message); }
+  }, [betrieb, neuLaden]);
   useEffect(() => {
-    void laden();
-  }, [laden]);
+    if (!betrieb) return;
+    let weg = false;
+    void listCustomers(betrieb).then((k) => { if (!weg) setKunden(k); })
+      .catch((e: Error) => { if (!weg) setError(e.message); });
+    return () => { weg = true; };
+  }, [betrieb]);
 
   /** Positionen und Summen — dieselbe Rechnung wie bei der Rechnung selbst. */
   const positionen: InvoicePosition[] = useMemo(
@@ -626,10 +614,10 @@ export default function QuotesView() {
         : [{ id: 'alle', titel: 'Alle Angebote', zeilen: gesucht }];
   const sichtbar = gruppen.filter((g) => g.zeilen.length > 0);
   const leer =
-    angebote.length === 0
-      ? 'Noch kein Angebot erstellt.'
-      : begriff
-        ? 'Kein Angebot passt zur Suche.'
+    begriff
+      ? 'Kein Angebot passt zur Suche.'
+      : angebote.length === 0
+        ? 'Noch kein Angebot erstellt.'
         : ansicht === 'offen'
           ? 'Kein offenes Angebot.'
           : 'Noch kein Angebot angenommen oder abgelehnt.';
@@ -720,7 +708,7 @@ export default function QuotesView() {
         den Betrachter schlicht nichts. Gefunden beim Probelauf; ein Ladefehler
         der Liste blieb auf dieselbe Weise unsichtbar.
       */}
-      {error && !formOffen && <ErrorState message={error} />}
+      {(error || liste.fehler) && !formOffen && <ErrorState message={error || liste.fehler!} />}
 
       {/*
         DAS FORMULAR BLEIBT AUF DER SEITE, nicht im Seitenfenster: es ist das
@@ -1093,20 +1081,22 @@ export default function QuotesView() {
           <div className="p-4">
             <SkeletonList rows={3} />
           </div>
-        ) : sichtbar.length === 0 ? (
+        ) : liste.fehler ? null : sichtbar.length === 0 ? (
           <div className="border-t border-line">
             <EmptyState>{leer}</EmptyState>
           </div>
         ) : (
           sichtbar.map((g) => <Gruppe key={`${ansicht}-${g.id}`} titel={g.titel} zeilen={g.zeilen} zeile={zeile} />)
         )}
-        {!loading && (
+        {!loading && liste.mehr && (
           <div className="px-4 pb-3 empty:hidden">
             <Nachladen
               geladen={angebote.length}
-              grenze={grenze}
+              grenze={angebote.length}
               einheit="Angebote"
-              onMehr={() => setGrenze((n) => n + ANGEBOTE_JE_SEITE)}
+              laeuft={liste.mehrLaedt}
+              sucheImBrowser={false}
+              onMehr={() => void liste.nachladen()}
             />
           </div>
         )}

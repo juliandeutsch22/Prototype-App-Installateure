@@ -58,7 +58,10 @@ const FEST = {
   materials: 'export const LOW_STOCK_THRESHOLD = 5;\n' +
     'export const lagerFrei = () => A(new Map());\n',
   materialOrders:
-    "export const ORDER_STATUS_FLOW = ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'] as const;\n",
+    "export const ORDER_STATUS_FLOW = ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'] as const;\n" +
+    'export const listOrdersPage = () => A({ zeilen: D.bestellungen, naechste: null });\n' +
+    'export const subscribeOrderChanges = () => () => {};\n',
+  quotes: 'export const listQuotesPage = () => A({ zeilen: D.angebote, naechste: null });\n',
   quelle: 'export const nutztPostgres = () => false;\n',
   // Die Scheinliste fragt fürs Büro, welche Scheine schon verrechnet sind; ohne Antwort
   // bliebe die Gruppe „Nicht verrechnet“ in der Vorschau für immer am Laden.

@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { postenNeuLaden } from '@/app/offenePosten';
 import {
-  subscribeAllOrders,
+  listOrdersPage,
+  listPurchasingOrders,
+  subscribeOrderChanges,
   updateOrderStatus,
   deleteOrder,
   ORDER_STATUS_FLOW,
@@ -22,6 +24,8 @@ import { aufEinkaufsliste as aufDerListe } from './einkauf';
 import type { EinkaufPosten, MaterialOrder } from '@/types';
 import Card from '@/components/Card';
 import Nachladen from '@/components/Nachladen';
+import { useSeitenListe } from '@/lib/useSeitenListe';
+import type { SeitenZeiger } from '@/lib/db/pg/kern';
 import { Marke, Warnung } from '@/components/Badge';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
@@ -48,7 +52,7 @@ import { fmtMenge } from '@/lib/belegLayout';
 import { todayStr } from '@/lib/time';
 import Adressfilter from '@/components/Adressfilter';
 import { ANFORDERUNGS_FILTER, bekannt, type AnforderungsFilter } from '@/features/dashboard/start/ziele';
-import { istAbholbereitAlt, istLieferungHeute, istLieferungUeberfaellig } from './anforderungStand';
+import { istAbholbereitAlt, istLieferungHeute, istLieferungUeberfaellig, anforderungsFilterAmServer } from './anforderungStand';
 import { lieferterminText } from './einkauf';
 
 /** Was ein Filter aus der Adresse zeigt (Startseite, Nachtest 01.10.2026). */
@@ -100,15 +104,6 @@ const CONDITION_LABEL: Record<string, string> = {
   gebraucht: 'Gebraucht',
   defekt: 'Defekt',
 };
-
-/**
- * Wie viele Anforderungen geladen werden.
- *
- * Ohne Grenze wurde jede Anforderung des Betriebs seit jeher abonniert, nur
- * um die aktuellen zu zeigen. Bei zwanzig Monteuren kommen im Jahr mehrere
- * tausend zusammen.
- */
-const ANFORDERUNGEN_JE_SEITE = 200;
 
 /** Gruppen höchstens 20 Zeilen (Regel 4), dann „und N weitere anzeigen“. */
 const JE_GRUPPE = 20;
@@ -213,9 +208,6 @@ export default function AdminOrdersView() {
   const [lagerStand, setLagerStand] = useState(0);
   /** „Nicht auf Lager" — bei welchem Grosshändler eingekauft wird. */
   const [einkaufFragen, setEinkaufFragen] = useState<{ o: WithId<MaterialOrder>; bei: string } | null>(null);
-  const [orders, setOrders] = useState<WithId<MaterialOrder>[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<WithId<MaterialOrder> | null>(null);
   const [adresse, setAdresse] = useSearchParams();
@@ -243,19 +235,6 @@ export default function AdminOrdersView() {
   const [limit, setLimit] = useState(50);
   /** Wie viele Zeilen je Gruppe im Reiter „Laufend“ stehen (Regel 4). */
   const [jeGruppe, setJeGruppe] = useState<Record<string, number>>({});
-  /**
-   * Wie viele Anforderungen ÜBERHAUPT geholt werden.
-   *
-   * Das darüber ist die ANZEIGE-Grenze: sie sagt, wie viele der geholten
-   * Zeilen untereinander stehen, und lässt sich am Knopf erweitern. Diese
-   * hier ist die ABFRAGE-Grenze, und die stand fest bei zweihundert.
-   *
-   * Der Unterschied fällt erst im Archiv auf: es wächst mit jeder erledigten
-   * Anforderung, und ab der zweihundertsten fehlten die ältesten — die Suche
-   * fand sie nicht, und nichts unterschied das von „gibt es nicht". Genau
-   * derselbe Fehler wie bei den Baustellen im September.
-   */
-  const [holgrenze, setHolgrenze] = useState(ANFORDERUNGEN_JE_SEITE);
   /** Bestätigung vor dem Abschluss — dabei wird das Lager reduziert. */
   const [toComplete, setToComplete] = useState<WithId<MaterialOrder> | null>(null);
   /** Welche Anforderung im Seitenfenster steht — die Kennung, damit es live mitgeht. */
@@ -268,22 +247,32 @@ export default function AdminOrdersView() {
   /** Teilfehler der Sammelaktion — je Zeile, damit man sieht, welche hängen blieb. */
   const [zeilenFehler, setZeilenFehler] = useState<Record<string, string>>({});
 
+  const betrieb = user?.companyId;
+  const seiteLaden = useMemo(() => (vor?: SeitenZeiger | null) => betrieb
+    ? listOrdersPage(betrieb, suche, tab, vor, { baustelle: projectFilter,
+      filter: anforderungsFilterAmServer(adressFilter, todayStr(), Date.now()) })
+    : Promise.resolve({ zeilen: [], naechste: null }), [betrieb, suche, tab, projectFilter, adressFilter]);
+  const liste = useSeitenListe(seiteLaden);
+  const orders = liste.zeilen;
+  const loading = liste.laedt;
+  const error = liste.fehler;
+  const [einkaufsOrders, setEinkaufsOrders] = useState<WithId<MaterialOrder>[]>([]);
+  const [einkaufsFehler, setEinkaufsFehler] = useState(false);
+  const [einkaufsStand, setEinkaufsStand] = useState(0);
+  const geaendert = useRef(() => {});
+  geaendert.current = () => { void liste.neuLaden(); setEinkaufsStand((n) => n + 1); };
   useEffect(() => {
-    if (!user) return;
-    const unsub = subscribeAllOrders(
-      user.companyId,
-      holgrenze,
-      (rows) => {
-        setOrders(rows);
-        setLoading(false);
-      },
-      (e) => {
-        setError(e.message);
-        setLoading(false);
-      },
-    );
-    return unsub;
-  }, [user, holgrenze]);
+    if (!betrieb) return;
+    return subscribeOrderChanges(betrieb, () => geaendert.current());
+  }, [betrieb]);
+  useEffect(() => {
+    if (!betrieb) return;
+    let weg = false;
+    void listPurchasingOrders(betrieb).then((rows) => {
+      if (!weg) { setEinkaufsOrders(rows); setEinkaufsFehler(false); }
+    }).catch(() => { if (!weg) setEinkaufsFehler(true); });
+    return () => { weg = true; };
+  }, [betrieb, einkaufsStand]);
 
   useEffect(() => {
     if (!user) return;
@@ -319,9 +308,9 @@ export default function AdminOrdersView() {
   /** Wie viele Anforderungen auf der Einkaufsliste noch nicht bestellt sind. */
   const zuBestellen = useMemo(
     () =>
-      purchases.filter((o) => aufDerListe(o) && !o.bestelltAm).length +
+      einkaufsOrders.filter((o) => aufDerListe(o) && !o.bestelltAm).length +
       lagerPosten.filter((p) => !p.bestelltAm && !p.geliefertAm).length,
-    [purchases, lagerPosten],
+    [einkaufsOrders, lagerPosten],
   );
   const returns = useMemo(() => orders.filter((o) => o.transactionType === 'return'), [orders]);
 
@@ -605,16 +594,16 @@ export default function AdminOrdersView() {
           {lagerFehler && (
             <ErrorState message="Das eigene Material auf der Einkaufsliste konnte nicht geladen werden — die Liste zeigt nur die Anforderungen." />
           )}
-          <Einkaufsliste
+          {einkaufsFehler ? <ErrorState message="Die Anforderungen für den Einkauf konnten nicht vollständig geladen werden." /> : <Einkaufsliste
             company={company}
             meinUid={user.uid}
             meinName={user.name}
-            anforderungen={purchases}
+            anforderungen={einkaufsOrders}
             lagerPosten={lagerPosten}
             grosshaendler={grosshaendler}
             onGrosshaendlerGeaendert={() => setGhStand((n) => n + 1)}
             onLagerGeaendert={() => setLagerStand((n) => n + 1)}
-          />
+          />}
         </>
       ) : (
         <Card
@@ -630,7 +619,7 @@ export default function AdminOrdersView() {
           }
           buendig
         >
-          {orders.length >= 10 && (
+          {(orders.length >= 10 || suche.length > 0) && (
             <div className="p-4">
               <InputField
                 id="osuche"
@@ -723,13 +712,14 @@ export default function AdminOrdersView() {
                 schon geladen ist. Wer sucht und nichts findet, muss den
                 Unterschied erfahren.
               */}
-              <Nachladen
+              {liste.mehr && <Nachladen
                 geladen={orders.length}
-                grenze={holgrenze}
-                onMehr={() => setHolgrenze((g) => g + ANFORDERUNGEN_JE_SEITE)}
+                grenze={orders.length}
+                laeuft={liste.mehrLaedt}
+                onMehr={() => void liste.nachladen()}
                 einheit="Anforderungen"
-                sucheSatz="Nach Artikel, Person, Baustelle und Notiz wird nur in diesen gesucht."
-              />
+                sucheImBrowser={false}
+              />}
               {ausgewaehlteMitSchritt.length > 0 && <div className="sammel-platz" aria-hidden="true" />}
             </div>
           ) : (
@@ -772,13 +762,14 @@ export default function AdminOrdersView() {
                 onClick={() => setLimit((n) => n + 50)}
               />
 
-              <Nachladen
+              {liste.mehr && <Nachladen
                 geladen={orders.length}
-                grenze={holgrenze}
-                onMehr={() => setHolgrenze((g) => g + ANFORDERUNGEN_JE_SEITE)}
+                grenze={orders.length}
+                laeuft={liste.mehrLaedt}
+                onMehr={() => void liste.nachladen()}
                 einheit="Anforderungen"
-                sucheSatz="Nach Artikel, Person, Baustelle und Notiz wird nur in diesen gesucht."
-              />
+                sucheImBrowser={false}
+              />}
             </div>
           )}
         </Card>

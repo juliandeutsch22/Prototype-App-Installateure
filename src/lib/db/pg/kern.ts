@@ -351,6 +351,37 @@ export async function abfragen<T>(
   return gesamt.map((z) => zeileAlsObjekt<WithId<T>>(tabelle, z));
 }
 
+export interface SeitenZeiger { id: string; zeit: string }
+export interface Seite<T> { zeilen: WithId<T>[]; naechste: SeitenZeiger | null }
+
+/** 50 Zeilen plus Vorschau; der Zeiger hält auch bei gleichzeitig neuen Zeilen die Stelle. */
+export async function abfragenSeite<T>(
+  tabelle: string, companyId: string,
+  abfrage: Pick<Abfrage, 'wo' | 'oder'> & { vor?: SeitenZeiger | null } = {},
+): Promise<Seite<T>> {
+  let oder = abfrage.oder;
+  if (abfrage.vor) {
+    const { id, zeit } = abfrage.vor;
+    if (!/^[0-9a-f-]{36}$/i.test(id) || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,6})?(?:Z|[+-]\d\d:\d\d)$/.test(zeit)) {
+      throw new Error('Die Stelle zum Weiterladen ist ungültig. Bitte die Liste neu laden.');
+    }
+    const cursor = `created_at.lt.${zeit},and(created_at.eq.${zeit},id.gt.${id})`;
+    oder = oder ? `and(or(${oder}),or(${cursor}))` : cursor;
+  }
+  const bauer = anwenden(derClient().from(tabelle).select('*').eq('company_id', companyId) as unknown as Filterbar,
+    { ...abfrage, oder, sortiere: { feld: 'createdAt', absteigend: true } }, tabelle)
+    .range(0, 50);
+  const { data, error } = await (bauer as unknown as PromiseLike<{
+    data: Record<string, unknown>[] | null; error: { message: string } | null;
+  }>);
+  if (error) throw new Error(error.message);
+  const roh = data ?? [];
+  const zeilen = roh.slice(0, 50);
+  const letzte = zeilen[zeilen.length - 1];
+  return { zeilen: zeilen.map((z) => zeileAlsObjekt<WithId<T>>(tabelle, z)),
+    naechste: roh.length > 50 ? { id: String(letzte.id), zeit: String(letzte.created_at) } : null };
+}
+
 /** Schreibt ein neues Dokument; companyId kommt aus dem Anmeldekontext. */
 export async function anlegen(
   tabelle: string,

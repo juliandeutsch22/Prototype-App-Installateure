@@ -1,4 +1,5 @@
 import type { MaterialOrder } from '@/types';
+import type { AnforderungsFilter } from '@/features/dashboard/start/ziele';
 
 /**
  * Wann eine Anforderung auffällt (Startseite und Filter der Anforderungen,
@@ -25,6 +26,18 @@ export function istLieferungHeute(
 }
 
 export const ABHOLBEREIT_ALT_TAGE = 3;
+
+/** Dieselben Startseitenfälle vor der Seitengrenze filtern. */
+export function anforderungsFilterAmServer(f: AnforderungsFilter | null, heute: string, jetzt: number): string | null {
+  switch (f) {
+    case 'offen': return 'status.eq.Offen';
+    case 'eil': return 'and(is_urgent.eq.true,status.in.(Offen,"In Bearbeitung"))';
+    case 'abholbereit-alt': return `and(status.eq.Abholbereit,abholbereit_seit.lt.${new Date(jetzt - ABHOLBEREIT_ALT_TAGE * TAG_MS).toISOString()})`;
+    case 'bestellt-ueberfaellig': return `and(bestellt_am.not.is.null,geliefert_am.is.null,liefertermin.lt.${heute},status.neq.Erledigt)`;
+    case 'lieferung-heute': return `and(bestellt_am.not.is.null,geliefert_am.is.null,liefertermin.eq.${heute})`;
+    default: return null;
+  }
+}
 
 /** Seit über drei Tagen abholbereit — gerechnet ab dem Zeitstempel der Datenbank. */
 export function istAbholbereitAlt(o: Pick<MaterialOrder, 'status' | 'abholbereitSeit'>, jetzt: number): boolean {

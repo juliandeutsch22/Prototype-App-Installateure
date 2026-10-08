@@ -7,6 +7,9 @@ import type { WithId } from './core';
 import * as pg from './pg/materialOrders';
 
 export type NewMaterialOrder = Omit<MaterialOrder, 'id' | 'companyId' | 'createdAt'>;
+export const listOrdersPage = pg.listOrdersPage;
+export const listPurchasingOrders = pg.listPurchasingOrders;
+export const subscribeOrderChanges = pg.subscribeOrderChanges;
 
 export function subscribeOwnOrders(
   companyId: string,

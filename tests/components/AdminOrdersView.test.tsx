@@ -51,9 +51,22 @@ vi.mock('@/lib/db/materialOrders', () => ({
   ) => {
     letzteHolgrenze = max;
     if (ladefehler) onError(new Error(ladefehler));
-    else cb(anforderungen);
+    else cb(anforderungen.slice(0, max));
     return () => undefined;
   },
+  listOrdersPage: async (_c: string, suche: string, tab: string, vor?: { id: string }) => {
+    letzteHolgrenze = 50;
+    if (ladefehler) throw new Error(ladefehler);
+    const q = suche.trim().toLowerCase();
+    const treffer = anforderungen.filter((o) => tab === 'retouren' ? o.transactionType === 'return'
+      : o.transactionType !== 'return' && (tab === 'archiv' ? o.status === 'Erledigt' : o.status !== 'Erledigt'))
+      .filter((o) => !q || [o.materialName, o.userName, o.projectNumber, o.note].some((s) => s?.toLowerCase().includes(q)));
+    const start = vor ? treffer.findIndex((o) => o.id === vor.id) + 1 : 0;
+    const zeilen = treffer.slice(start, start + 50);
+    return { zeilen, naechste: treffer.length > start + 50 ? { id: zeilen[49].id, zeit: '2026-01-01T00:00:00Z' } : null };
+  },
+  subscribeOrderChanges: () => () => undefined,
+  listPurchasingOrders: async () => anforderungen.filter((o) => o.beschaffung === 'einkauf' && o.status !== 'Erledigt'),
   updateOrderStatus: (...a: unknown[]) => statusSetzen(...a),
   deleteOrder: (...a: unknown[]) => loeschen(...a),
 }));
@@ -395,7 +408,7 @@ describe('Anforderungen — wie weit die Abfrage reicht', () => {
     anforderungen = viele(3);
     zeige();
     await screen.findByText(/Artikel 0/);
-    expect(letzteHolgrenze).toBe(200);
+    expect(letzteHolgrenze).toBe(50);
   });
 
   it('schweigt, solange die Grenze nicht greift', async () => {
@@ -413,9 +426,9 @@ describe('Anforderungen — wie weit die Abfrage reicht', () => {
     zeige();
     await screen.findByText(/Artikel 0/);
 
-    expect(screen.getByText(/nur in diesen gesucht/)).toBeInTheDocument();
+    expect(screen.queryByText(/nur in diesen gesucht/)).not.toBeInTheDocument();
     await nutzer.click(screen.getByRole('button', { name: /Weitere Anforderungen laden/ }));
-    expect(letzteHolgrenze).toBe(400);
+    expect(letzteHolgrenze).toBe(50);
   });
 });
 
@@ -650,5 +663,18 @@ describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
     anforderungen = [anforderung({ id: 'o1', projectNumber: '2026-042' })];
     zeige();
     expect(await screen.findByRole('combobox', { name: 'Bestellungen nach Baustelle filtern' })).toBeInTheDocument();
+  });
+});
+
+
+describe('Serversuche der Anforderungen', () => {
+  it('findet eine alte Notiz und lässt das Suchfeld beim einzelnen Treffer offen', async () => {
+    anforderungen = Array.from({ length: 251 }, (_, i) => anforderung({ id: `alt-${i}`,
+      materialName: `Material ${i}`, note: i === 250 ? 'Seltene alte Kommission' : undefined }));
+    zeige();
+    const suche = await screen.findByLabelText('Suche');
+    await userEvent.type(suche, 'Seltene alte Kommission');
+    expect(await screen.findByText('Material 250')).toBeInTheDocument();
+    expect(screen.getByLabelText('Suche')).toHaveValue('Seltene alte Kommission');
   });
 });
