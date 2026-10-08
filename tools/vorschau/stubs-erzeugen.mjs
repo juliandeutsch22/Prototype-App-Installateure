@@ -61,6 +61,7 @@ const FEST = {
     "export const ORDER_STATUS_FLOW = ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'] as const;\n" +
     'export const listOrdersPage = () => A({ zeilen: D.bestellungen, naechste: null });\n' +
     'export const subscribeOrderChanges = () => () => {};\n',
+  zeitjournal: 'export const listZeitjournal = () => A({ zeilen: [], naechste: null });\n',
   vacations: 'export const listGenehmigungsAbwesenheiten = () => A([]);\n',
   quotes: 'export const listQuotesPage = () => A({ zeilen: D.angebote, naechste: null });\n',
   quelle: 'export const nutztPostgres = () => false;\n',

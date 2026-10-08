@@ -56,6 +56,9 @@ import { KrankmeldungFenster } from '@/features/vacations/Krankmeldungen';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import AntragKnopf, { FreistellungKnopf } from '@/features/time/AntragKnopf';
 import { datumAT } from '@/lib/datum';
+import RowMenu from '@/components/RowMenu';
+import BottomSheet from '@/components/BottomSheet';
+import Zeitjournal from './Zeitjournal';
 
 /** Wie viele Monate die Liste zunaechst zurueckreicht. */
 const MONATE_JE_SEITE = 3;
@@ -84,6 +87,7 @@ export default function TimeView() {
   const { user, company } = useAuth();
   const halbeTage = dezemberHalbtage(company);
   const toast = useToast();
+  const [journalOffen, setJournalOffen] = useState(false);
   /** Die angezeigte Liste — nur das Fenster, nicht die ganze Geschichte. */
   const [entries, setEntries] = useState<WithId<TimeEntry>[]>([]);
   /*
@@ -632,7 +636,13 @@ export default function TimeView() {
       <PageHeader
         title="Zeiterfassung"
         subtitle={fuehrtZeitkonto(profile ?? user) ? 'Deine gebuchten Zeiten und dein Saldo' : 'Deine gebuchten Zeiten'}
+        mehr={<RowMenu about="Zeiterfassung" items={[{ label: 'Änderungsprotokoll', onSelect: () => setJournalOffen(true) }]} />}
       />
+
+      <BottomSheet open={journalOffen} onClose={() => setJournalOffen(false)} label="Änderungsprotokoll" auchBreit>
+        {journalOffen && user && <Zeitjournal companyId={user.companyId}
+          userId={canEditTime(user.role) ? undefined : user.uid} />}
+      </BottomSheet>
 
       {/*
         AM TELEFON STEHT DIE LISTE WEIT UNTEN — unter Saldo und Maske. Wer nur

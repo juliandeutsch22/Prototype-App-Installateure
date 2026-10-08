@@ -680,3 +680,17 @@ Verkaufspreise und die kalkulierten Stunden. Kostensätze liegen in
 lesen nur Geschäftsführung und Administrator (`app.ist_spitze`), die
 Einkaufspreise dazu die Verwaltung mit Freigabe (M37). Die Projektleitung
 sieht also keine Marge, weder im Angebot noch anderswo.
+
+## Ergänzungen vom 08.10.2026
+
+- Zeitbuchungen: „Änderungsprotokoll“ im Seitenmenü der Zeiterfassung.
+  Seit Einführung erfasste Anlagen, Änderungen mit Vorher/Nachher und
+  Löschungen, tatsächlicher Bearbeiter und Zeitpunkt. Eigene Daten für
+  Mitarbeiter; Betriebsdaten für Buchhaltung, Geschäftsführung, Administration.
+  Unveränderbar für Anwendungskonten, im Personenauszug und Sicherungsrücklauf.
+- Genehmigungen: vollständige Monatsübersicht mit Namen, eindeutiger
+  Personenzahl und ausschließlich den bereits zulässigen Gründen.
+- Anforderungen: Eilmarkierung nachträglich setzen und zurücknehmen.
+  Bestehende Lager-, Beschaffungs- und Statusabläufe bleiben.
+- Angebote und Anforderungen: Serversuche und seitenweises Nachladen in
+  50er-Schritten. Die Einkaufsliste ermittelt ihren vollständigen Bestand separat.

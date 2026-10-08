@@ -7,6 +7,9 @@ import { ToastProvider } from '@/components/Toast';
 import type { AppUser, TimeEntry, Role, WorkSheet } from '@/types';
 import TimeView from '@/features/time/TimeView';
 
+const journalLaden = vi.fn();
+vi.mock('@/lib/db/zeitjournal', () => ({ listZeitjournal: (...a: unknown[]) => journalLaden(...a) }));
+
 /**
  * Der meistbenutzte Bildschirm der App — und bis jetzt ohne eigenen Test.
  *
@@ -207,6 +210,7 @@ function zeige() {
 }
 
 beforeEach(() => {
+  journalLaden.mockReset().mockResolvedValue({ zeilen: [], naechste: null });
   eigeneScheine = [];
   formularAufbauten = 0;
   listOwnWorkSheetsSince.mockClear();
@@ -996,5 +1000,25 @@ describe('Zeiterfassung — vom Büro gebucht, über der Grenze für Jugendliche
     eintraege = [eintrag({ id: 's1', date: '2026-09-01', status: 'Berufsschule', startTime: undefined, endTime: undefined, unterrichtMin: 450 })];
     zeige();
     expect(await screen.findByText(/Berufsschule · Unterricht 07:30 Std/)).toBeInTheDocument();
+  });
+});
+
+
+describe('Zeitbuchungsprotokoll auf Abruf', () => {
+  it('lädt erst beim Öffnen und beschränkt Monteure auf eigene Buchungen', async () => {
+    zeige();
+    await screen.findByRole('heading', { name: 'Zeiterfassung' });
+    expect(journalLaden).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Weitere Aktionen für Zeiterfassung' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Änderungsprotokoll' }));
+    expect(await screen.findByRole('dialog', { name: 'Änderungsprotokoll' })).toBeInTheDocument();
+    await waitFor(() => expect(journalLaden).toHaveBeenCalledWith('perl', 'u1', null));
+  });
+  it('zeigt dem Büro das Betriebsprotokoll', async () => {
+    authWert.user.role = 'Buchhaltung';
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für Zeiterfassung' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Änderungsprotokoll' }));
+    await waitFor(() => expect(journalLaden).toHaveBeenCalledWith('perl', undefined, null));
   });
 });

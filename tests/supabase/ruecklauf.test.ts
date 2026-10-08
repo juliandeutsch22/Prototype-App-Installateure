@@ -71,6 +71,9 @@ beforeAll(async () => {
     { ...buchung(monteur, '2026-09-01'), project_number: 'R-2026-001' },
     { ...buchung(monteur, '2026-09-02'), status: 'Urlaub' },
   ]);
+  const zeitAenderung = await chef.client.from('time_entries').update({ end_time: '17:00' })
+    .eq('company_id', BETRIEB).eq('date', '2026-09-01');
+  if (zeitAenderung.error) throw zeitAenderung.error;
   const rechnung = await admin.from('invoices').insert({ company_id: BETRIEB,
     invoice_number: 'RE-2026-0001', project_number: 'R-2026-001', customer_id: kunde!.id,
     customer_name: 'Familie Huber', invoice_date: '2026-01-01', due_date: '2026-01-15',
@@ -106,6 +109,7 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
       if (count) vorher[t] = count;
     }
     expect(Object.keys(vorher).length).toBeGreaterThan(2);
+    expect(vorher.zeitbuchungs_aenderungen).toBe(1);
 
     /*
       2. Ausleiten — mit dem Token eines Menschen, also der Knopf aus den
@@ -168,6 +172,11 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
 
     // Nicht nur die Anzahl: der Inhalt muss stimmen, sonst hätte auch eine
     // Handvoll leerer Zeilen bestanden.
+    const journal = await admin.from('zeitbuchungs_aenderungen').select('durch,art,vorher,nachher')
+      .eq('company_id', BETRIEB);
+    expect(journal.data).toEqual([expect.objectContaining({ durch: chef.uid, art: 'geaendert',
+      vorher: expect.objectContaining({ end_time: '16:00:00' }),
+      nachher: expect.objectContaining({ end_time: '17:00:00' }) })]);
     const [firma] = (await admin.from('companies').select('name').eq('id', BETRIEB)).data!;
     expect(firma.name).toBe('Rücklauf GmbH');
     const [baustelle] = (await admin.from('projects')
