@@ -140,6 +140,7 @@ export default function StockView() {
         setLoading(false);
       },
       grenze,
+      true,
     );
     /**
      * Der Fehlerweg des Abos war `() => undefined`. Scheitert die Abfrage —
@@ -178,7 +179,7 @@ export default function StockView() {
     if (!user) return;
     let weg = false;
     Promise.resolve()
-      .then(() => lagerFrei())
+      .then(() => lagerFrei(materials.map((m) => m.id)))
       .then((k) => { if (!weg) setStand(k); })
       // Schlägt ein Nachladen fehl, bleibt der letzte Stand — besser als zurück auf die eigene Rechnung.
       .catch(() => undefined);
@@ -344,8 +345,7 @@ export default function StockView() {
             <Metric
               label="Im Lager"
               value={materials.filter(imLager).length}
-              // Katalog und Lager sind getrennt (M30): nicht jeder Katalogartikel liegt im Regal.
-              hint={`von ${materials.length} im Katalog`}
+              hint="im Betrieb geführte Artikel"
             />
             <Metric
               label="Knapp"
@@ -392,7 +392,7 @@ export default function StockView() {
               ) : rows.length === 0 ? (
                 <EmptyState>
                   {materials.length === 0
-                    ? 'Noch kein Material im Katalog. Der Bereich „Katalog“ legt den ersten Eintrag an.'
+                    ? 'Noch kein Artikel im Lager geführt. Im Katalog Material anlegen oder „Im Lager führen“ anhaken.'
                     : !materials.some(imLager)
                       ? 'Noch kein Artikel im Lager geführt. Im Katalog beim Artikel „Im Lager führen“ anhaken.'
                       : search.trim()

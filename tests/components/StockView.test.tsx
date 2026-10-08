@@ -462,7 +462,7 @@ describe('Lager — wenn ein Ladevorgang scheitert', () => {
     zeige();
     expect(await screen.findByText('Kupferrohr 15')).toBeInTheDocument();
     expect(screen.queryByText('Kugelhahn aus dem Katalog')).not.toBeInTheDocument();
-    expect(screen.getByText('von 2 im Katalog')).toBeInTheDocument();
+    expect(screen.getByText('im Betrieb geführte Artikel')).toBeInTheDocument();
   });
 
   it('knapp heißt: unter der Mindestmenge, wo eine steht (M30)', async () => {
@@ -477,7 +477,7 @@ describe('Lager — wenn ein Ladevorgang scheitert', () => {
     expect(knapp).toHaveTextContent('1');
   });
 
-  it('unterscheidet einen leeren Katalog von einer erfolglosen Suche', async () => {
+  it('unterscheidet einen leeren Lagerbestand von einer erfolglosen Suche', async () => {
     materialien = [material({ id: 'm1' })];
     zeige();
 
@@ -486,9 +486,9 @@ describe('Lager — wenn ein Ladevorgang scheitert', () => {
 
     await userEvent.clear(screen.getByRole('textbox', { name: /Suche/ }));
     materialien = [];
-    // Der leere Katalog verweist auf den Reiter, der ihn füllt.
+    // Die Lagerabfrage kennt keine Aussage darüber, ob der Katalog leer ist.
     zeige();
-    expect(await screen.findAllByText(/Noch kein Material im Katalog/)).not.toHaveLength(0);
+    expect(await screen.findAllByText(/Noch kein Artikel im Lager geführt/)).not.toHaveLength(0);
   });
 });
 

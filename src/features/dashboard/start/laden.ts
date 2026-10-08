@@ -28,7 +28,7 @@ import {
 import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
 import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
 import { listLagerPosten } from '@/lib/db/einkauf';
-import { lagerFrei, listMaterials, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
+import { listKnappeLagerArtikel } from '@/lib/db/materials';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
 import { listUnpaidInvoices, listInvoicesByIds, scheineAufRechnung } from '@/lib/db/invoices';
 import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
@@ -56,7 +56,6 @@ import { offeneNachtraege, NACHTRAG_TAGE, type OffenerNachtrag } from '@/feature
 import { unverrechneteScheine, UNVERRECHNET_BASIS } from '@/features/worksheets/unverrechnet';
 import { mahnlauf, type Mahnlauf } from '@/features/invoices/mahnlauf';
 import { basiszinsVerlauf, halbjahresbeginn } from '@/features/invoices/mahnung';
-import { imLager, istKnapp } from '@/features/orders/lagerartikel';
 import { monateDazu } from '@/features/maintenance/wartungsplan';
 import { eigenerResturlaub, eigenerSaldo } from './eigeneKonten';
 import { budgetStand, ohneEinsatzListe, planFenster } from '@/features/projects/baustellenLage';
@@ -328,19 +327,13 @@ export async function lager(
   const [orders, posten, bestand] = await Promise.all([
     listOpenOrders(user.companyId),
     was.posten ? still(() => listLagerPosten(user.companyId), [] as EinkaufPosten[]) : Promise.resolve([]),
-    was.bestand ? knappeArtikel(user.companyId) : Promise.resolve(undefined),
+    was.bestand ? knappeArtikel() : Promise.resolve(undefined),
   ]);
   return { orders, lagerPosten: posten, knapp: bestand };
 }
 
-async function knappeArtikel(companyId: string): Promise<KnapperArtikel[]> {
-  const [artikel, frei] = await Promise.all([listMaterials(companyId), lagerFrei()]);
-  return artikel
-    .filter((m) => imLager(m))
-    .map((m) => ({ m, frei: frei.get(m.id)?.frei ?? m.stock }))
-    // Wie die Lagerliste: unter der Mindestmenge, ohne Mindestmenge ab der Grenze.
-    .filter(({ m, frei: f }) => istKnapp(f, m, LOW_STOCK_THRESHOLD))
-    .map(({ m, frei: f }) => ({ id: m.id, name: m.name, unit: m.unit, frei: f, mindestmenge: m.mindestmenge }));
+async function knappeArtikel(): Promise<KnapperArtikel[]> {
+  return listKnappeLagerArtikel();
 }
 
 // ──────────────────────────────────────────────────────────── Buchhaltung ──

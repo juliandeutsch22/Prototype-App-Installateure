@@ -3,7 +3,7 @@
  */
 import type { Lagerbewegung, Material } from '@/types';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
-import { abfragen, abonnieren, anlegen as kernAnlegen, aendern, loeschen, derClient, type WithId } from './kern';
+import { abfragen, abonnieren, anlegen as kernAnlegen, aendern, loeschen, derClient, SEITE, type WithId } from './kern';
 import { zeileAlsObjekt } from './felder';
 import { oderUeberSpalten } from './suche';
 
@@ -25,8 +25,12 @@ export function subscribeMaterials(
   cb: (rows: WithId<Material>[]) => void,
   onError: (e: Error) => void,
   max = KATALOG_GRENZE,
+  nurLager = false,
 ) {
-  return abonnieren<Material>(MATERIAL, companyId, cb, onError, { grenze: max });
+  return abonnieren<Material>(MATERIAL, companyId, cb, onError, {
+    grenze: max,
+    ...(nurLager ? { wo: [{ art: 'gleich' as const, feld: 'lagerartikel', wert: true }] } : {}),
+  });
 }
 
 export type NewMaterial = Pick<Material, 'name' | 'category' | 'stock' | 'articleNumber' | 'unit'>;
@@ -122,11 +126,29 @@ export interface LagerStand {
   frei: number;
 }
 
-export async function lagerFrei(): Promise<Map<string, LagerStand>> {
-  const { data, error } = await derClient().rpc('lager_frei');
-  if (error) throw new Error(error.message);
+export async function lagerFrei(materialIds?: string[]): Promise<Map<string, LagerStand>> {
+  const client = derClient();
+  const zeilen: Array<Record<string, unknown>> = [];
+  const jeSeite = SEITE;
+  if (materialIds) {
+    // Nur die in der Ansicht benötigten Artikel, unter der API-Zeilengrenze.
+    const ids = [...new Set(materialIds)];
+    for (let i = 0; i < ids.length; i += jeSeite) {
+      const { data, error } = await client.rpc('lager_frei', { p_material_ids: ids.slice(i, i + jeSeite) });
+      if (error) throw new Error(error.message);
+      zeilen.push(...(data ?? []));
+    }
+  } else {
+    // Der bisherige Gesamtaufruf bleibt vollständig, auch nach 1.000 Artikeln.
+    for (let ab = 0; ; ab += jeSeite) {
+      const { data, error } = await client.rpc('lager_frei').order('material_id').range(ab, ab + jeSeite - 1);
+      if (error) throw new Error(error.message);
+      zeilen.push(...(data ?? []));
+      if ((data ?? []).length < jeSeite) break;
+    }
+  }
   const karte = new Map<string, LagerStand>();
-  for (const z of (data ?? []) as Array<Record<string, unknown>>) {
+  for (const z of zeilen) {
     karte.set(String(z.material_id), {
       bestand: Number(z.bestand),
       zugesagt: Number(z.zugesagt),
@@ -137,8 +159,36 @@ export async function lagerFrei(): Promise<Map<string, LagerStand>> {
   return karte;
 }
 
-export function listMaterials(companyId: string, max = KATALOG_GRENZE) {
-  return abfragen<Material>(MATERIAL, companyId, { grenze: max });
+export interface KnapperLagerArtikel {
+  id: string;
+  name: string;
+  unit?: string;
+  frei: number;
+  mindestmenge?: number;
+}
+
+/** Vollständige Knappheitsliste; Katalogartikel und Bildschirmgrenze zählen nicht. */
+export async function listKnappeLagerArtikel(grenze: number): Promise<KnapperLagerArtikel[]> {
+  const ergebnis: KnapperLagerArtikel[] = [];
+  for (let ab = 0; ; ab += SEITE) {
+    const { data, error } = await derClient().rpc('lager_knapp', { p_grenze: grenze })
+      .order('id').range(ab, ab + SEITE - 1);
+    if (error) throw new Error(error.message);
+    const zeilen = (data ?? []) as Array<Record<string, unknown>>;
+    ergebnis.push(...zeilen.map((z) => ({
+      id: String(z.id), name: String(z.name), unit: z.unit == null ? undefined : String(z.unit),
+      frei: Number(z.frei), mindestmenge: z.mindestmenge == null ? undefined : Number(z.mindestmenge),
+    })));
+    if (zeilen.length < SEITE) break;
+  }
+  return ergebnis;
+}
+
+export function listMaterials(companyId: string, max = KATALOG_GRENZE, nurLager = false) {
+  return abfragen<Material>(MATERIAL, companyId, {
+    grenze: max,
+    ...(nurLager ? { wo: [{ art: 'gleich' as const, feld: 'lagerartikel', wert: true }] } : {}),
+  });
 }
 
 /**

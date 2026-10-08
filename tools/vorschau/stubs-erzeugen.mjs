@@ -27,7 +27,10 @@ const DATEN = {
   },
   company: { getCompany: 'D.firma', auszug: 'D.firma' },
   materialOrders: { '*': 'D.bestellungen' },
-  materials: { '*': 'D.materialien' },
+  materials: {
+    '*': 'D.materialien',
+    listKnappeLagerArtikel: 'D.materialien.filter((m) => m.stock <= 5).map((m) => ({ id: m.id, name: m.name, unit: m.unit, frei: m.stock }))',
+  },
   invoices: { '*': 'D.rechnungen' },
   workSheets: { '*': 'D.scheine', getWorkSheet: 'D.scheine[0]' },
   vacations: {
