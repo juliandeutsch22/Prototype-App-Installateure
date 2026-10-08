@@ -50,7 +50,7 @@
   /* Artikelwahl für Wareneingang und Inventur aus dem Seitenkopf. */
   .wahl-liste { margin: 0; padding: 0; list-style: none; border: 1px solid var(--border); border-top: 0; border-radius: var(--radius); overflow: hidden; }
   .wahl-zeile { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 2.75rem; padding: 0.5rem 0.75rem; background: var(--surface); border: 0; border-top: 1px solid var(--border); color: var(--text); text-align: left; font-size: 0.9375rem; cursor: pointer; }
-  .wahl-zeile:hover { background: var(--petrol-hell); color: var(--petrol); }
+  .wahl-zeile:hover { background: var(--petrol-hell); color: var(--accent-deep); }
   .wahl-zeile-info { flex: none; font-size: 0.8125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
   /* ── Material anfordern: der Warenkorb im Daumenbereich ───────────────── */
@@ -66,7 +66,7 @@
   }
   .korb-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
   .korb-titel { font-weight: 600; color: var(--ink-deep); text-decoration: none; }
-  .korb-titel:hover { color: var(--petrol); text-decoration: underline; text-underline-offset: 3px; }
+  .korb-titel:hover { color: var(--accent-deep); text-decoration: underline; text-underline-offset: 3px; }
   .korb-info { font-size: 0.8125rem; color: var(--text-muted); }
   .korb-fehler { flex-basis: 100%; font-size: 0.875rem; color: var(--danger); }
   .korb-knoepfe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 0.5rem; width: 100%; }

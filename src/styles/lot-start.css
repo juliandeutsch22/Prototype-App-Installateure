@@ -35,11 +35,11 @@
   .zeitraster { border-collapse: separate; border-spacing: 0; font-size: 0.75rem; line-height: 1rem; font-variant-numeric: tabular-nums; }
   .zeitraster-ecke { position: sticky; top: 0; left: 0; z-index: 3; min-width: 9rem; max-width: 9rem; padding: 0.375rem 0.75rem; text-align: left; font-weight: 600; color: var(--text-muted); background: var(--surface); border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
   .zeitraster-tag { position: sticky; top: 0; z-index: 2; min-width: 1.875rem; padding: 0.25rem 0; text-align: center; font-weight: 400; color: var(--text-muted); background: var(--surface); border-bottom: 1px solid var(--border); }
-  .zeitraster-tag-heute { position: sticky; top: 0; z-index: 2; min-width: 1.875rem; padding: 0.25rem 0; text-align: center; font-weight: 600; color: var(--petrol); background: var(--petrol-hell); border-bottom: 2px solid var(--petrol); }
+  .zeitraster-tag-heute { position: sticky; top: 0; z-index: 2; min-width: 1.875rem; padding: 0.25rem 0; text-align: center; font-weight: 600; color: var(--accent-deep); background: var(--petrol-hell); border-bottom: 2px solid var(--petrol); }
   .zeitraster-wt { display: block; font-size: 0.6875rem; }
   .zeitraster-name { position: sticky; left: 0; z-index: 1; min-width: 9rem; max-width: 9rem; padding: 0.25rem 0.75rem; text-align: left; font-weight: 400; background: var(--surface); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
   .zeitraster-link { display: flex; align-items: center; min-height: 2.75rem; color: var(--ink-deep); font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
-  .zeitraster-link:hover { color: var(--petrol); text-decoration: underline; text-underline-offset: 3px; }
+  .zeitraster-link:hover { color: var(--accent-deep); text-decoration: underline; text-underline-offset: 3px; }
   /* Die Zellen: eine Klasse je Zustand, damit keine zweite nötig ist. */
   .zeitraster-zelle { min-width: 1.875rem; height: 2.75rem; padding: 0 1px; text-align: center; color: var(--ink-deep); background: var(--surface); border-bottom: 1px solid var(--border); }
   .zeitraster-frei { min-width: 1.875rem; height: 2.75rem; padding: 0 1px; text-align: center; color: var(--ink-deep); background: var(--abwesend); border-bottom: 1px solid var(--border); }

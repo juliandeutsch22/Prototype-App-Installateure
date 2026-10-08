@@ -27,7 +27,7 @@
     des Browsers sähe sonst versteckte Felder und hielte das Absenden still
     an — siehe UserMgmtView).
   */
-  .weiteres-knopf { display: flex; align-items: center; min-height: 2.75rem; width: 100%; padding: 0; background: none; border: 0; border-top: 1px solid var(--border); font-weight: 600; color: var(--petrol); text-align: left; cursor: pointer; }
+  .weiteres-knopf { display: flex; align-items: center; min-height: 2.75rem; width: 100%; padding: 0; background: none; border: 0; border-top: 1px solid var(--border); font-weight: 600; color: var(--accent-deep); text-align: left; cursor: pointer; }
 
   /* ── Überblick einer Akte ─────────────────────────────────────────────── */
   /* Name links, Wert rechts — am Handy untereinander (wie `.kurz-kopf`). */

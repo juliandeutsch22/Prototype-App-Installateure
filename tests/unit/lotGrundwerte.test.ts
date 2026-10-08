@@ -176,3 +176,49 @@ describe('Weiss steht nur auf Flächen, die es in beiden Sätzen tragen', () => 
     expect(kontrast('#ffffff', wert(satz, name))!).toBeGreaterThanOrEqual(MINDESTENS);
   });
 });
+
+/*
+  SCHRIFT IN EINER FARBE DER GRUNDWERTE, auf der Fläche, auf der sie steht.
+  Petrol als Schrift (`--petrol`) hat im dunklen Satz auf der Fläche nur
+  3,7:1 — im dunklen Satz trägt `--accent-deep` die Schrift in Petrol, im
+  hellen ist es derselbe Ton. Geprüft wird jede Regel der Bausteine, die eine
+  Schriftfarbe aus den Grundwerten setzt, gegen ihre eigene Fläche oder,
+  ohne eigene, gegen `--surface`.
+*/
+describe('Schrift aus den Grundwerten trägt auf ihrer Fläche (beide Sätze)', () => {
+  const FLAECHEN = ['--surface', '--surface-2', '--bg', '--petrol-hell'];
+  const quelle = (css.slice(css.indexOf('@layer components')) + lot).replace(/\/\*[\s\S]*?\*\//g, '');
+
+  function regeln(text: string) {
+    const funde: { regel: string; schrift: string; flaeche: string }[] = [];
+    for (const [, sel, rumpf] of text.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const schrift = /(?:^|[;{\s])color:\s*var\((--[a-z-]+)\)/.exec(rumpf)?.[1];
+      if (!schrift) continue;
+      const eigene = /background(?:-color)?:\s*var\((--[a-z0-9-]+)\)/.exec(rumpf)?.[1];
+      // Hat die Regel eine andere eigene Fläche (Navigation, Meldung), gilt sie hier nicht.
+      if (/background(?:-color)?:\s*#/.test(rumpf)) continue;
+      const flaeche = eigene ?? '--surface';
+      if (!FLAECHEN.includes(flaeche)) continue;
+      funde.push({ regel: sel.trim().replace(/\s+/g, ' '), schrift, flaeche });
+    }
+    return funde;
+  }
+
+  it('Gegenprobe: Petrol als Schrift fällt im dunklen Satz durch', () => {
+    const [r] = regeln('.x { color: var(--petrol); }');
+    expect(r).toEqual({ regel: '.x', schrift: '--petrol', flaeche: '--surface' });
+    expect(kontrast(wert(DUNKEL, '--petrol'), wert(DUNKEL, '--surface'))!).toBeLessThan(AA_NORMAL);
+  });
+
+  it.each([
+    ['hell', HELL],
+    ['dunkel', DUNKEL],
+  ])('%s', (_n, satz) => {
+    const zuWenig = regeln(quelle)
+      .filter((r) => !r.schrift.startsWith('--navi'))
+      .map((r) => ({ ...r, k: kontrast(wert(satz, r.schrift), wert(satz, r.flaeche))! }))
+      .filter((r) => r.k < AA_NORMAL)
+      .map((r) => `${r.regel}: ${r.schrift} auf ${r.flaeche} ${r.k.toFixed(2)}:1`);
+    expect(zuWenig).toEqual([]);
+  });
+});
