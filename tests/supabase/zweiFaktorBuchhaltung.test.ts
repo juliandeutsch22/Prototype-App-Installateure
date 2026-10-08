@@ -33,25 +33,25 @@ describe('Buchhaltung: vollständiger Zwei-Faktor-Weg', () => {
     expect(await siehtSich(buch)).toBe(true);
   });
 
-  it('verlangt bei eingeschalteter Betriebspflicht den Faktor, der Monteur bleibt unverändert', async () => {
-    const { error } = await chef.client.from('companies').update({ zwei_faktor_pflicht: true }).eq('id', BETRIEB);
+  it('ignoriert eine historische Betriebspflicht und lässt Buchhaltung und Monteur hinein', async () => {
+    const { error } = await admin.from('companies').update({ zwei_faktor_pflicht: true }).eq('id', BETRIEB);
     expect(error).toBeNull();
-    expect(await siehtSich(buch)).toBe(false);
+    expect(await siehtSich(buch)).toBe(true);
     expect((await buch.client.rpc('mein_zweiter_faktor')).data)
-      .toMatchObject({ angeboten: true, pflicht: true, eingerichtet: false });
+      .toMatchObject({ angeboten: true, pflicht: false, eingerichtet: false, betrieb_pflicht: false });
     expect(await siehtSich(monteur)).toBe(true);
     expect((await monteur.client.rpc('mein_zweiter_faktor')).data)
       .toMatchObject({ angeboten: false, pflicht: false });
   });
 
-  it('kann trotz gesperrter Daten einrichten und danach Daten lesen', async () => {
+  it('kann freiwillig einrichten und danach Daten lesen', async () => {
     await zweitenFaktorEinrichten(buch.client);
     expect(await siehtSich(buch)).toBe(true);
     expect((await buch.client.rpc('mein_zweiter_faktor')).data)
-      .toMatchObject({ pflicht: true, eingerichtet: true });
+      .toMatchObject({ pflicht: false, eingerichtet: true });
   });
 
-  it('stellt mit einem einmaligen Code wieder her und verlangt anschließend neue Einrichtung', async () => {
+  it('stellt mit einem einmaligen Code wieder her; erneute Einrichtung bleibt freiwillig', async () => {
     const { data: codes, error } = await buch.client.rpc('zwei_faktor_codes_erzeugen');
     expect(error).toBeNull();
     const { data: benutzer } = await admin.auth.admin.getUserById(buch.uid);
@@ -63,7 +63,7 @@ describe('Buchhaltung: vollständiger Zwei-Faktor-Weg', () => {
     expect((await c.rpc('zwei_faktor_code_einloesen', { p_code: codes[0] })).data).toBe(true);
     expect((await c.rpc('zwei_faktor_code_einloesen', { p_code: codes[0] })).data).toBe(false);
     await c.auth.refreshSession();
-    expect((await c.rpc('mein_zweiter_faktor')).data).toMatchObject({ pflicht: true, eingerichtet: false });
+    expect((await c.rpc('mein_zweiter_faktor')).data).toMatchObject({ pflicht: false, eingerichtet: false });
     await zweitenFaktorEinrichten(c);
     expect(await siehtSich(neu)).toBe(true);
     buch = neu;

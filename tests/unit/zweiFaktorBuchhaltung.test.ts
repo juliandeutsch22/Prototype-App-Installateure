@@ -20,8 +20,9 @@ beforeEach(() => {
 });
 
 describe('Anmeldung der Buchhaltung', () => {
-  it('führt bei Pflicht vor dem Datenladen zur Einrichtung', async () => {
-    expect(await zweiterFaktorBedarf()).toBe('einrichten');
+  it('verlangt für Buchhaltung keinen Faktor, auch bei veralteter Betriebspflicht', async () => {
+    expect(await zweiterFaktorBedarf()).toBe('keiner');
+    expect(client.rpc).not.toHaveBeenCalled();
   });
   it('lässt ohne Betriebspflicht die bisherige Anmeldung bestehen', async () => {
     client.rpc.mockResolvedValue({ data: { angeboten: true, pflicht: false, eingerichtet: false }, error: null });
@@ -30,5 +31,14 @@ describe('Anmeldung der Buchhaltung', () => {
   it('verlangt bei eingerichtetem Faktor den Code', async () => {
     client.auth.mfa.getAuthenticatorAssuranceLevel.mockResolvedValue({ data: { currentLevel: 'aal1', nextLevel: 'aal2' }, error: null });
     expect(await zweiterFaktorBedarf()).toBe('pruefen');
+  });
+  it('fordert bei bestätigter gespeicherter Sitzung keinen neuen Code und keine neue Einrichtung', async () => {
+    client.auth.mfa.getAuthenticatorAssuranceLevel.mockResolvedValue({ data: { currentLevel: 'aal2', nextLevel: 'aal2' }, error: null });
+    expect(await zweiterFaktorBedarf()).toBe('keiner');
+    expect(client.rpc).not.toHaveBeenCalled();
+  });
+  it('verlangt die einmalige Einrichtung ausschließlich für den globalen Administrator', async () => {
+    client.auth.getSession.mockResolvedValue({ data: { session: { user: { app_metadata: { plattform_admin: true } } } } });
+    expect(await zweiterFaktorBedarf()).toBe('einrichten');
   });
 });

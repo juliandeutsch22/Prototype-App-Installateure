@@ -1,14 +1,9 @@
 /**
  * Die Zwei-Faktor-Anmeldung über Supabase Auth (Testbericht Runde 3, H1).
  *
- * TOTP: die Person scannt einmal einen QR-Code mit einer Authenticator-App
- * und gibt danach bei jeder Anmeldung den sechsstelligen Code ein.
- *
- * WER ES BRAUCHT, entscheidet die Datenbank (`app.zweiter_faktor_verlangt`):
- * das Plattformkonto immer, Leitung und Buchhaltung eines Betriebs mit eingeschalteter
- * Pflicht, und jedes Konto, das einen zweiten Faktor eingerichtet hat. Ohne
- * ihn liefert jede Zeilenregel nichts. Diese Datei sagt der Oberfläche nur,
- * welche Seite sie zeigen muss.
+ * TOTP wird einmal eingerichtet. Gültige aal2-Sitzungen verlangen keinen
+ * weiteren Code; nach Abmelden/Ablauf wird ein eingerichteter Faktor geprüft.
+ * Ausschließlich globale Administratoren müssen einen Faktor einrichten.
  */
 import { supabaseClient } from '@/lib/supabase';
 
@@ -21,14 +16,12 @@ export interface ZweiterFaktorStand {
   /** Muss sie einen haben? */
   pflicht: boolean;
   plattform: boolean;
-  /** Ist im Betrieb die Pflicht für Leitung und Buchhaltung eingeschaltet? */
+  /** Kompatibilität mit älteren Antworten; Betriebspflichten gelten nicht mehr. */
   betriebPflicht: boolean;
   eingerichtet: boolean;
   codesOffen: number;
   codeZuletztVerwendet: string | null;
 }
-
-const FAKTOR_ROLLEN = ['Administrator', 'Geschäftsführung', 'Buchhaltung'];
 
 function fehlerText(e: { message: string } | null | undefined, sonst: string): string {
   return e?.message || sonst;
@@ -52,11 +45,8 @@ export async function zweiterFaktorStand(): Promise<ZweiterFaktorStand> {
 /**
  * Welche Seite nach dem Passwort kommt.
  *
- * MEIST OHNE NETZ: Stufe der Sitzung und eingerichtete Faktoren stehen in der
- * Sitzung selbst. Nur für Leitung und Buchhaltung ohne eingerichteten Faktor
- * braucht es eine Abfrage — ob sein Betrieb ihn verlangt, weiss nur die
- * Datenbank. Scheitert sie (kein Netz), geht es ohne weiter: die Grenze steht
- * ohnehin in der Datenbank, und dort fiele dann jede Abfrage leer aus.
+ * Die Sicherheitsstufe der bestehenden Sitzung gilt weiter. Nur das
+ * Plattformkonto wird ohne eingerichteten Faktor zur Einrichtung geführt.
  */
 export async function zweiterFaktorBedarf(): Promise<ZweiterFaktorBedarf> {
   const c = supabaseClient();
@@ -67,16 +57,7 @@ export async function zweiterFaktorBedarf(): Promise<ZweiterFaktorBedarf> {
   const { data: s } = await c.auth.getSession();
   const meta = (s.session?.user?.app_metadata ?? {}) as Record<string, unknown>;
   if (meta.plattform_admin === true) return 'einrichten';
-  if (!FAKTOR_ROLLEN.includes(String(meta.role ?? ''))) return 'keiner';
-  try {
-    const stand = await Promise.race([
-      zweiterFaktorStand(),
-      new Promise<null>((fertig) => setTimeout(() => fertig(null), 6000)),
-    ]);
-    return stand?.pflicht && !stand.eingerichtet ? 'einrichten' : 'keiner';
-  } catch {
-    return 'keiner';
-  }
+  return 'keiner';
 }
 
 export interface NeuerFaktor {

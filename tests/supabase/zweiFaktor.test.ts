@@ -6,7 +6,7 @@
  *   - Anmeldung ohne zweiten Faktor wird für das Plattformkonto abgewiesen
  *     (Datenbank UND Edge Function);
  *   - ein Wiederherstellungscode funktioniert genau einmal.
- * Dazu die Pflicht je Betrieb für die Leitung, „wer einen hat, braucht ihn“,
+ * Dazu freiwillige Faktoren im Betrieb, „wer einen hat, braucht ihn“,
  * und das Zurücksetzen über den Notzugang mit Rückruf.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -104,7 +104,7 @@ describe('Leitung im Betrieb', () => {
     expect(m).toMatchObject({ angeboten: false, pflicht: false });
   });
 
-  it('die Pflicht einschalten geht nur mit eigenem zweiten Faktor', async () => {
+  it('der Betrieb kann keine Zwei-Faktor-Pflicht einschalten', async () => {
     const ohne = await chefin.client.from('companies').update({ zwei_faktor_pflicht: true }).eq('id', BETRIEB);
     expect(ohne.error?.code).toBe('42501');
   });
@@ -124,16 +124,17 @@ describe('Leitung im Betrieb', () => {
     expect(r.status).toBe(403);
   });
 
-  it('mit zweitem Faktor die Pflicht einschalten: die übrige Leitung braucht ihn dann, der Monteur nicht', async () => {
+  it('auch mit eigenem Faktor keine Betriebspflicht; ein historischer Schalter sperrt niemanden', async () => {
     const r = await chefin.client.from('companies').update({ zwei_faktor_pflicht: true }).eq('id', BETRIEB);
-    expect(r.error).toBeNull();
+    expect(r.error?.code).toBe('42501');
+    expect((await admin.from('companies').update({ zwei_faktor_pflicht: true }).eq('id', BETRIEB)).error).toBeNull();
     const adm = await nurPasswort(administrator.uid);
-    expect(await siehtSichSelbst(adm.client, administrator.uid)).toBe(false);
+    expect(await siehtSichSelbst(adm.client, administrator.uid)).toBe(true);
     const { data } = await adm.client.rpc('mein_zweiter_faktor');
-    expect(data).toMatchObject({ pflicht: true, eingerichtet: false, betrieb_pflicht: true });
+    expect(data).toMatchObject({ pflicht: false, eingerichtet: false, betrieb_pflicht: false });
     const mont = await nurPasswort(monteur.uid);
     expect(await siehtSichSelbst(mont.client, monteur.uid)).toBe(true);
-    // Einrichten geht ohne Zugriff auf die Daten — danach ist er wieder drin.
+    // Freiwillige Einrichtung bleibt möglich.
     await zweitenFaktorEinrichten(adm.client);
     expect(await siehtSichSelbst(adm.client, administrator.uid)).toBe(true);
   });
@@ -171,7 +172,7 @@ describe('Wiederherstellungscodes', () => {
 
   it('ein Code funktioniert genau einmal — und entfernt den zweiten Faktor', async () => {
     const { client } = await nurPasswort(konto2.uid);
-    // Die Pflicht ist im Betrieb an: mit Passwort allein sieht das Konto nichts.
+    // Der freiwillig eingerichtete Faktor schützt das Konto auch ohne Betriebspflicht.
     expect(await siehtSichSelbst(client, konto2.uid)).toBe(false);
     const falsch = await client.rpc('zwei_faktor_code_einloesen', { p_code: 'AAAA-AAAA' });
     expect(falsch.data).toBe(false);
@@ -183,9 +184,10 @@ describe('Wiederherstellungscodes', () => {
     // Derselbe Code ein zweites Mal: abgewiesen. Ein anderer Code dieses Satzes ebenso.
     expect((await client.rpc('zwei_faktor_code_einloesen', { p_code: codes[3] })).data).toBe(false);
     expect((await client.rpc('zwei_faktor_code_einloesen', { p_code: codes[4] })).data).toBe(false);
-    // Bei Pflicht: neu einrichten, dann ist das Konto wieder drin.
+    // Nach Wiederherstellung ist die erneute Einrichtung freiwillig.
     await client.auth.refreshSession();
-    expect((await client.rpc('mein_zweiter_faktor')).data).toMatchObject({ pflicht: true, eingerichtet: false });
+    expect((await client.rpc('mein_zweiter_faktor')).data).toMatchObject({ pflicht: false, eingerichtet: false });
+    expect(await siehtSichSelbst(client, konto2.uid)).toBe(true);
     await zweitenFaktorEinrichten(client);
     expect(await siehtSichSelbst(client, konto2.uid)).toBe(true);
   });

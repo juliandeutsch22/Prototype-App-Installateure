@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { admin, PASSWORT } from './aufbau';
 import { totp } from '../totp';
+import { anmelden } from './helfer';
 
 /**
  * ZWEI-FAKTOR-ANMELDUNG IM ECHTEN BROWSER (Testbericht Runde 3, H1).
@@ -51,7 +52,7 @@ test.beforeAll(async () => {
   if (f) throw new Error(f.message);
 });
 
-test('Plattformkonto: ohne zweiten Faktor kein Zugang, ein Wiederherstellungscode gilt genau einmal', async ({ page }) => {
+test('Plattformkonto: ohne zweiten Faktor kein Zugang, ein Wiederherstellungscode gilt genau einmal', async ({ page, browser }) => {
   test.setTimeout(120_000);
 
   // 1. Nur mit Passwort: die Plattformseite bleibt zu, die Einrichtung ist Pflicht.
@@ -61,6 +62,17 @@ test('Plattformkonto: ohne zweiten Faktor kein Zugang, ein Wiederherstellungscod
 
   const erste = await einrichten(page);
   await expect(page.getByRole('button', { name: 'Betrieb anlegen' })).toBeVisible({ timeout: 20_000 });
+  // Die eingerichtete, gespeicherte Sitzung überlebt Neuladen und einen neuen Browserkontext.
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Betrieb anlegen' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Zwei-Faktor-Anmeldung', level: 1 })).toHaveCount(0);
+  const context = await browser.newContext({ baseURL: new URL(page.url()).origin, storageState: await page.context().storageState() });
+  try {
+    const erneut = await context.newPage();
+    await erneut.goto('/');
+    await expect(erneut.getByRole('button', { name: 'Betrieb anlegen' })).toBeVisible({ timeout: 20_000 });
+    await expect(erneut.getByRole('heading', { name: 'Zwei-Faktor-Anmeldung', level: 1 })).toHaveCount(0);
+  } finally { await context.close(); }
   await abmelden(page);
 
   // 2. Wieder anmelden: ohne Code geht es nicht weiter; ein falscher Code wird abgewiesen.
@@ -87,7 +99,7 @@ test('Plattformkonto: ohne zweiten Faktor kein Zugang, ein Wiederherstellungscod
   await expect(page.getByRole('button', { name: 'Betrieb anlegen' })).toHaveCount(0);
 });
 
-test('Buchhaltung: Betriebspflicht führt zur Einrichtung und danach wieder zur Codeprüfung', async ({ page }) => {
+test('Buchhaltung: auch ein historischer Betriebsschalter erzwingt keine Einrichtung', async ({ page }) => {
   const betrieb = 'durchklick-zf-buch';
   const email = 'buchhaltung-zf@durchklick.test';
   const alt = (await admin.auth.admin.listUsers({ perPage: 1000 })).data.users.find((u) => u.email === email);
@@ -101,26 +113,18 @@ test('Buchhaltung: Betriebspflicht führt zur Einrichtung und danach wieder zur 
   const uid = konto.data.user!.id;
   try {
     expect((await admin.from('users').insert({ id: uid, company_id: betrieb, name: 'Berta Faktor', email, role: 'Buchhaltung', active: true })).error).toBeNull();
-    await anmeldenMitPasswort(page, email);
-    await expect(page.getByText('Für dieses Konto ist ein zweiter Faktor Pflicht')).toBeVisible();
-    const erste = await einrichten(page);
-    // Wie beim normalen Anmelden: die Startrunde darf nicht durch Navigation abbrechen.
-    await expect(page.getByRole('heading', { name: 'Zwei-Faktor-Anmeldung' })).toHaveCount(0, { timeout: 20_000 });
-    await page.waitForLoadState('networkidle');
-    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 20_000 });
+    await anmelden(page, email);
     await page.goto('/invoices');
+    await expect(page.getByRole('heading', { name: 'Rechnungen', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Zwei-Faktor-Anmeldung' })).toHaveCount(0);
+    await page.reload();
     await expect(page.getByRole('heading', { name: 'Rechnungen', exact: true })).toBeVisible();
     await page.goto('/settings/meldungen');
+    await expect(page.getByRole('button', { name: 'Einrichten', exact: true })).toBeVisible();
+    await expect(page.getByLabel(/in diesem Betrieb verpflichtend/)).toHaveCount(0);
     await abmelden(page);
-    await anmeldenMitPasswort(page, email);
-    await page.getByLabel('Code aus der App').fill(totp(erste.geheimnis));
-    await page.getByRole('button', { name: 'Anmelden' }).click();
-    // Wie beim normalen Anmelden: die Startrunde darf nicht durch Navigation abbrechen.
-    await expect(page.getByRole('heading', { name: 'Zwei-Faktor-Anmeldung' })).toHaveCount(0, { timeout: 20_000 });
-    await page.waitForLoadState('networkidle');
-    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 20_000 });
-    await page.goto('/invoices');
-    await expect(page.getByRole('heading', { name: 'Rechnungen', exact: true })).toBeVisible();
+    await anmelden(page, email);
+    await expect(page.getByRole('heading', { name: 'Zwei-Faktor-Anmeldung' })).toHaveCount(0);
   } finally {
     expect((await admin.auth.admin.deleteUser(uid)).error).toBeNull();
     expect((await admin.from('companies').delete().eq('id', betrieb)).error).toBeNull();

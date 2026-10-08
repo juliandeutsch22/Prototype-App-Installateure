@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { getPrefs, savePrefs, PREFS_DEFAULTS } from '@/lib/db/prefs';
 import { getPushState, enablePush, disablePush, type PushState } from '@/lib/push';
-import { canProcessOrders, isGF, isMitarbeiter, isTopLevel } from '@/lib/permissions';
+import { canProcessOrders, isGF, isMitarbeiter } from '@/lib/permissions';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
@@ -52,7 +52,7 @@ const PUSH_TEXT: Record<PushState, { text: string; ton: 'ok' | 'hinweis' | 'aus'
  * Telefon wechselt, verliert sonst unbemerkt seine Meldungen.
  */
 export default function NotificationSettings() {
-  const { user, einblick, reloadCompany } = useAuth();
+  const { user, einblick } = useAuth();
   const toast = useToast();
   const [newOrder, setNewOrder] = useState(PREFS_DEFAULTS.notifyNewOrder ?? true);
   const [orderReady, setOrderReady] = useState(PREFS_DEFAULTS.notifyOrderReady ?? true);
@@ -267,10 +267,7 @@ export default function NotificationSettings() {
         und dessen zweiter Faktor gehört auf die Plattformseite.
       */}
       {!einblick && (
-        <ZweiFaktorKarte
-          betrieb={isTopLevel(user.role) ? user.companyId : undefined}
-          onBetriebGeaendert={reloadCompany}
-        />
+        <ZweiFaktorKarte />
       )}
 
       {passwortOffen ? (

@@ -19,8 +19,6 @@ vi.mock('@/lib/auth/sitzung', () => ({
   einrichtenBeginnen: vi.fn(),
   einrichtenBestaetigen: vi.fn(),
 }));
-const updateCompany = vi.fn(async () => undefined);
-vi.mock('@/lib/db/company', () => ({ updateCompany }));
 
 const { default: ZweiFaktorKarte } = await import('@/features/settings/ZweiFaktorKarte');
 
@@ -29,39 +27,36 @@ const basis: ZweiterFaktorStand = {
   eingerichtet: false, codesOffen: 0, codeZuletztVerwendet: null,
 };
 
-const zeige = (betrieb?: string) =>
-  render(<ToastProvider><ZweiFaktorKarte betrieb={betrieb} /></ToastProvider>);
+const zeige = () => render(<ToastProvider><ZweiFaktorKarte /></ToastProvider>);
 
 beforeEach(() => {
   stand = { ...basis };
-  updateCompany.mockClear();
   ausschalten.mockClear();
 });
 
 describe('Zwei-Faktor unter „Mein Konto“', () => {
-  it('nicht eingerichtet: Einrichten ja, Pflicht erst danach', async () => {
-    zeige('perl');
+  it('nicht eingerichtet: freiwillig einrichten, kein Betriebspflicht-Schalter', async () => {
+    zeige();
     expect(await screen.findByRole('button', { name: 'Einrichten' })).toBeInTheDocument();
-    expect(screen.getByLabelText(/in diesem Betrieb verpflichtend/)).toBeDisabled();
-    expect(screen.getByText(/Zuerst für dich selbst einrichten/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/in diesem Betrieb verpflichtend/)).not.toBeInTheDocument();
   });
 
-  it('eingerichtet: Pflicht einschaltbar, Ausschalten nur ohne Pflicht', async () => {
+  it('freiwillig eingerichtet: lässt den Faktor wieder ausschalten', async () => {
     const nutzer = userEvent.setup();
     stand = { ...basis, eingerichtet: true, codesOffen: 9 };
-    zeige('perl');
+    zeige();
     expect(await screen.findByText(/Noch 9 von 10 Wiederherstellungscodes/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ausschalten' })).toBeInTheDocument();
-    await nutzer.click(screen.getByLabelText(/in diesem Betrieb verpflichtend/));
-    expect(updateCompany).toHaveBeenCalledWith('perl', { zweiFaktorPflicht: true });
+    await nutzer.click(screen.getByRole('button', { name: 'Ausschalten' }));
+    expect(ausschalten).toHaveBeenCalled();
   });
 
   it('Gegenprobe: mit Pflicht kein Ausschalten', async () => {
-    stand = { ...basis, eingerichtet: true, pflicht: true, betriebPflicht: true, codesOffen: 10 };
-    zeige('perl');
+    stand = { ...basis, eingerichtet: true, pflicht: true, plattform: true, codesOffen: 10 };
+    zeige();
     await screen.findByText(/Noch 10 von 10/);
     expect(screen.queryByRole('button', { name: 'Ausschalten' })).not.toBeInTheDocument();
-    expect(screen.getByText(/Pflicht — ausschalten geht deshalb nicht/)).toBeInTheDocument();
+    expect(screen.getByText(/Für den globalen Administrator ist sie Pflicht/)).toBeInTheDocument();
   });
 
   it('wer es nicht angeboten bekommt (Monteur), sieht die Karte nicht', async () => {
