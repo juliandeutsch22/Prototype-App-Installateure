@@ -425,15 +425,19 @@ textarea:focus {
   }
 
   .checkbox:checked {
-    background-color: var(--accent-deep);
-    border-color: var(--accent-deep);
-    /* Weisser Haken, 5,2:1 auf der Fläche darunter. */
+    /*
+      `--petrol` und nicht `--accent-deep`: im hellen Satz derselbe Ton, im
+      dunklen ist `--accent-deep` hell (er trägt dort Text) — der weisse
+      Haken darauf hätte 2:1 und wäre kaum zu sehen.
+    */
+    background-color: var(--petrol);
+    border-color: var(--petrol);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.4l3.4 3.4L13 4.6'/%3E%3C/svg%3E");
   }
 
   .checkbox:indeterminate {
-    background-color: var(--accent-deep);
-    border-color: var(--accent-deep);
+    background-color: var(--petrol);
+    border-color: var(--petrol);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.6' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
   }
 

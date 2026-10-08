@@ -169,7 +169,9 @@ export default function MonthCalendar({
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
                   isSelected
-                    ? 'bg-accent-deep text-white'
+                    ? // Schrift in der Farbe der Fläche: im dunklen Satz ist
+                      // `accent-deep` hell, weiss darauf wäre unlesbar.
+                      'bg-accent-deep text-surface'
                     : isToday
                       ? 'bg-info-bg font-semibold text-info'
                       : // Vergangene Tage ohne Planung treten zurück; wo etwas

@@ -113,3 +113,64 @@ describe('Die schmale Leiste am Tablet', () => {
     expect(regel).toMatch(/clip: rect\(0, 0, 0, 0\)/);
   });
 });
+
+/*
+  WEISS AUF EINER FLÄCHE AUS DEN GRUNDWERTEN. Ein Ton, der im hellen Satz
+  dunkel ist, kann im dunklen Satz hell sein (`--accent-deep` trägt dort
+  Text auf dunklem Grund). Weisse Schrift oder ein weisser Haken darauf
+  verschwindet dann — und weil der dunkle Satz nur auf Wahl gilt, fiele es
+  niemandem auf. 3:1 ist die Grenze für Bedienelemente und Zeichen
+  (WCAG 2.1, 1.4.11); darunter ist es unlesbar.
+*/
+describe('Weiss steht nur auf Flächen, die es in beiden Sätzen tragen', () => {
+  const MINDESTENS = 3;
+  const tsx = (function alle(ordner: string): string[] {
+    return readdirSync(ordner, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? alle(`${ordner}/${e.name}`) : /\.tsx$/.test(e.name) ? [`${ordner}/${e.name}`] : [],
+    );
+  })('src');
+
+  /** `bg-accent-deep` → `--accent-deep`; Tailwinds `ink` heisst in den Grundwerten `--text`. */
+  const variable = (klasse: string) => `--${klasse.replace(/^ink$/, 'text').replace(/^ink-/, 'text-')}`;
+
+  /** Je Zeichenkette mit `text-white` die Flächen (`bg-…`) daneben. */
+  function flaechenMitWeiss(text: string): string[] {
+    const funde: string[] = [];
+    for (const [, , inhalt] of text.matchAll(/(['"`])([^'"`]*?)\1/g)) {
+      if (!/(^|\s|:)text-white\b/.test(inhalt)) continue;
+      for (const [, name] of inhalt.matchAll(/(?:^|\s|:)bg-([a-z][a-z0-9-]*)/g)) {
+        if (!['white', 'black', 'transparent'].includes(name)) funde.push(name);
+      }
+    }
+    return funde;
+  }
+
+  it('Gegenprobe: die Suche findet die Fläche neben weisser Schrift', () => {
+    expect(flaechenMitWeiss(`x ? 'bg-accent-deep text-white' : 'text-ink'`)).toEqual(['accent-deep']);
+    expect(flaechenMitWeiss(`'hover:bg-navi-tief hover:text-white'`)).toEqual(['navi-tief']);
+    // Im dunklen Satz ist `--accent-deep` hell: Weiss darauf fällt durch.
+    expect(kontrast('#ffffff', wert(DUNKEL, '--accent-deep'))!).toBeLessThan(MINDESTENS);
+  });
+
+  it.each([
+    ['hell', HELL],
+    ['dunkel', DUNKEL],
+  ])('in den Seiten (%s)', (_n, satz) => {
+    const zuWenig = tsx.flatMap((p) =>
+      flaechenMitWeiss(readFileSync(p, 'utf8'))
+        .map((name) => [p, name, kontrast('#ffffff', wert(satz, variable(name)))!] as const)
+        .filter(([, , k]) => k < MINDESTENS)
+        .map(([p2, name, k]) => `${p2}: bg-${name} ${k.toFixed(2)}:1`),
+    );
+    expect(zuWenig).toEqual([]);
+  });
+
+  it.each([
+    ['hell', HELL],
+    ['dunkel', DUNKEL],
+  ])('das angehakte Kästchen (%s) — sein Haken ist weiss', (_n, satz) => {
+    const regel = /\.checkbox:checked \{([^}]*)\}/.exec(css)![1];
+    const name = /background-color: var\((--[a-z-]+)\)/.exec(regel)![1];
+    expect(kontrast('#ffffff', wert(satz, name))!).toBeGreaterThanOrEqual(MINDESTENS);
+  });
+});
