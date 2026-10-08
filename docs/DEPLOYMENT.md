@@ -552,3 +552,29 @@ das Büro ist da und erreichbar, falls etwas auffällt.
   in den Einstellungen erklärt.
 - **Die Sicherung meldet „halb eingerichtet“** → eines der fünf
   `SICHERUNG_S3_*`-Geheimnisse fehlt. Die Meldung nennt es beim Namen.
+
+## Sicherheits-Kopfzeilen (08.10.2026)
+
+Firebase Hosting setzt `X-Content-Type-Options: nosniff` und
+`Referrer-Policy: strict-origin-when-cross-origin` für alle Dateien.
+Die bestehenden Cache-Regeln bleiben: allgemeine Dateien ohne Cache,
+versionierte Assets ein Jahr unveränderlich.
+
+Die `Content-Security-Policy-Report-Only` ist ausdrücklich nur meldend.
+Sie blockiert keine Anfragen. Vorgesehen sind die eigene Auslieferung,
+Supabase einschließlich WebSocket, Google-APIs für Firebase-Messaging,
+lokale Schriftdateien sowie Bilddaten und Blob-Dateien für Belege.
+Inline-Stile sind nötig für bestehende Dialoge und die Signaturfläche.
+Ein eigener Supabase-Domainname muss vor einer späteren Durchsetzung
+zusätzlich aufgenommen werden. Die lokalen Prüfports sind absichtlich
+keine Produktionsfreigaben.
+
+Es ist noch kein Berichts-Endpunkt konfiguriert; Verstöße erscheinen im
+Browser, es gibt keine behauptete zentrale Sammlung. Vor Umstellung auf
+eine blockierende Policy müssen die produktiven Ursprünge und echte
+iOS-Geräteabläufe geprüft sein. Diese Änderung führt die meldende Policy ein.
+
+MFA-Pflicht gemäß Nutzerentscheidung: ausschließlich für den globalen
+Administrator. Betriebsrollen können freiwillig TOTP einrichten. Eine
+gültige bestätigte gespeicherte Sitzung wird wiederverwendet; nach
+Abmelden oder Ablauf ist der vorhandene Faktor erneut zu bestätigen.
