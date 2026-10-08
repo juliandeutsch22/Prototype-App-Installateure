@@ -187,7 +187,8 @@ describe('Der Zähler — die Zahl am Menüpunkt', () => {
     const klassen = [...(container.firstElementChild as HTMLElement).classList];
 
     // Petrol der Linie „Lot“ — die Farbe des Produkts, nicht die Hausfarbe.
-    expect(klassen).toContain('bg-brand-fixed');
+    // Der tiefe Ton, weil nur er im dunklen Satz weisse Schrift trägt.
+    expect(klassen).toContain('bg-petrol-tief');
     expect(klassen.join(' ')).not.toMatch(/bg-(warning|danger)/);
   });
 

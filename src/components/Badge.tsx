@@ -200,7 +200,9 @@ export function Zaehler({
 
   const ton = auf === 'dunkel'
     ? 'bg-white text-navi'
-    : 'bg-brand-fixed text-white';
+    // `petrol-tief` und nicht `brand-fixed`: im dunklen Satz trägt nur der
+    // tiefere Ton weisse Schrift mit 4,5:1 (brand-fixed dort 4,3:1).
+    : 'bg-petrol-tief text-white';
   return (
     <span
       className={`inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-pill px-1.5 py-0.5 text-xs font-semibold leading-none ${ton}`}

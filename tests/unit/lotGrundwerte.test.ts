@@ -119,8 +119,8 @@ describe('Die schmale Leiste am Tablet', () => {
   dunkel ist, kann im dunklen Satz hell sein (`--accent-deep` trägt dort
   Text auf dunklem Grund). Weisse Schrift oder ein weisser Haken darauf
   verschwindet dann — und weil der dunkle Satz nur auf Wahl gilt, fiele es
-  niemandem auf. 3:1 ist die Grenze für Bedienelemente und Zeichen
-  (WCAG 2.1, 1.4.11); darunter ist es unlesbar.
+  niemandem auf. Schrift braucht 4,5:1 (WCAG 2.1, 1.4.3), der Haken eines
+  Kästchens als Zeichen 3:1 (1.4.11).
 */
 describe('Weiss steht nur auf Flächen, die es in beiden Sätzen tragen', () => {
   const MINDESTENS = 3;
@@ -150,16 +150,18 @@ describe('Weiss steht nur auf Flächen, die es in beiden Sätzen tragen', () => 
     expect(flaechenMitWeiss(`'hover:bg-navi-tief hover:text-white'`)).toEqual(['navi-tief']);
     // Im dunklen Satz ist `--accent-deep` hell: Weiss darauf fällt durch.
     expect(kontrast('#ffffff', wert(DUNKEL, '--accent-deep'))!).toBeLessThan(MINDESTENS);
+    // Und `--brand-fixed` reicht dort für ein Zeichen, nicht für Schrift.
+    expect(kontrast('#ffffff', wert(DUNKEL, '--brand-fixed'))!).toBeLessThan(AA_NORMAL);
   });
 
   it.each([
     ['hell', HELL],
     ['dunkel', DUNKEL],
-  ])('in den Seiten (%s)', (_n, satz) => {
+  ])('weisse Schrift in den Seiten (%s)', (_n, satz) => {
     const zuWenig = tsx.flatMap((p) =>
       flaechenMitWeiss(readFileSync(p, 'utf8'))
         .map((name) => [p, name, kontrast('#ffffff', wert(satz, variable(name)))!] as const)
-        .filter(([, , k]) => k < MINDESTENS)
+        .filter(([, , k]) => k < AA_NORMAL)
         .map(([p2, name, k]) => `${p2}: bg-${name} ${k.toFixed(2)}:1`),
     );
     expect(zuWenig).toEqual([]);
