@@ -186,7 +186,9 @@ describe('Der Zähler — die Zahl am Menüpunkt', () => {
     const { container } = render(<Zaehler anzahl={3} was="offene Urlaubsanträge" />);
     const klassen = [...(container.firstElementChild as HTMLElement).classList];
 
-    expect(klassen).toContain('bg-accent-deep');
+    // Petrol der Linie „Lot“ — die Farbe des Produkts, nicht die Hausfarbe.
+    // Der tiefe Ton, weil nur er im dunklen Satz weisse Schrift trägt.
+    expect(klassen).toContain('bg-petrol-tief');
     expect(klassen.join(' ')).not.toMatch(/bg-(warning|danger)/);
   });
 
@@ -199,8 +201,11 @@ describe('Der Zähler — die Zahl am Menüpunkt', () => {
     );
     const klassen = [...(container.firstElementChild as HTMLElement).classList];
 
-    expect(klassen).toContain('bg-accent-bright');
-    expect(klassen).toContain('text-ink-deep');
+    // Wie im Entwurf (`.navi-zaehler`): weiss mit der Farbe der Navigation.
+    // `text-navi` und nicht `text-ink-deep`: die Tinte wird im dunklen Modus
+    // hell, und dann stünde helle Schrift auf Weiss.
+    expect(klassen).toContain('bg-white');
+    expect(klassen).toContain('text-navi');
   });
 
   it('sagt dem Vorleser, wovon die Zahl handelt', () => {

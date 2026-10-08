@@ -65,18 +65,18 @@ export default function MonthCalendar({
           type="button"
           onClick={() => onShiftMonth(-1)}
           aria-label="Vorheriger Monat"
-          className="min-h-touch min-w-touch rounded text-lg font-bold text-ink-muted hover:bg-surface-2"
+          className="min-h-touch min-w-touch rounded text-lg font-semibold text-ink-muted hover:bg-surface-2"
         >
           ‹
         </button>
-        <span className="font-bold text-ink">
+        <span className="font-semibold text-ink">
           {MONTHS[month]} {year}
         </span>
         <button
           type="button"
           onClick={() => onShiftMonth(1)}
           aria-label="Nächster Monat"
-          className="min-h-touch min-w-touch rounded text-lg font-bold text-ink-muted hover:bg-surface-2"
+          className="min-h-touch min-w-touch rounded text-lg font-semibold text-ink-muted hover:bg-surface-2"
         >
           ›
         </button>
@@ -86,7 +86,7 @@ export default function MonthCalendar({
         {DOW.map((d, i) => (
           <div
             key={d}
-            className={`py-2 text-center text-xs font-bold ${i > 4 ? 'text-ink-muted/70' : 'text-ink-muted'}`}
+            className={`py-2 text-center text-xs font-semibold ${i > 4 ? 'text-ink-muted/70' : 'text-ink-muted'}`}
           >
             {d}
           </div>
@@ -153,7 +153,7 @@ export default function MonthCalendar({
                 das Kaestchen hoch war, der Punkt wurde also nach unten
                 herausgedrueckt. Gemeldet aus dem Betrieb, mit Bildschirmfoto.
               */
-              className={`flex min-h-[3.625rem] flex-col items-center gap-0.5 border-b border-r border-line/60 py-2 transition-colors${ecke} ${
+              className={`flex min-h-[3.625rem] flex-col items-center gap-0.5 border-b border-r border-line py-2 transition-colors${ecke} ${
                 isSelected
                   ? 'bg-info-bg ring-2 ring-inset ring-accent-deep'
                   : holiday
@@ -169,9 +169,11 @@ export default function MonthCalendar({
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
                   isSelected
-                    ? 'bg-accent-deep text-white'
+                    ? // Schrift in der Farbe der Fläche: im dunklen Satz ist
+                      // `accent-deep` hell, weiss darauf wäre unlesbar.
+                      'bg-accent-deep text-surface'
                     : isToday
-                      ? 'bg-info-bg font-bold text-info'
+                      ? 'bg-info-bg font-semibold text-info'
                       : // Vergangene Tage ohne Planung treten zurück; wo etwas
                         // geplant war, bleibt der Tag lesbar.
                         past && count === 0

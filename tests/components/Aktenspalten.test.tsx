@@ -5,7 +5,7 @@ import Aktenspalten from '@/components/Aktenspalten';
 const vorher = window.matchMedia;
 function breite(schreibtisch: boolean) {
   window.matchMedia = ((q: string) => ({
-    matches: schreibtisch && q.includes('min-width: 1024px'),
+    matches: schreibtisch && q.includes('min-width: 1200px'),
     media: q,
     addEventListener: () => undefined,
     removeEventListener: () => undefined,

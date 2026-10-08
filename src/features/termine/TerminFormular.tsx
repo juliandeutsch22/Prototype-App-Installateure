@@ -148,7 +148,7 @@ export default function TerminFormular({
 
       {vorgabe.bezug === 'baustelle' ? null : (
         <fieldset className="flex flex-col gap-3">
-          <legend className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink">
+          <legend className="flex flex-wrap items-center gap-2 text-sm font-normal text-ink">
             Wo
             <InfoHint about="Wo">
               Ein Termin hängt an einer Baustelle oder — etwa bei der Besichtigung vor dem Angebot — nur am Kunden.

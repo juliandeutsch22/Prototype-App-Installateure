@@ -61,7 +61,7 @@ export default function NotzugangZweiFaktor({ kennung, name }: { kennung: string
 
   return (
     <div className="space-y-3 rounded-sm border border-line p-3">
-      <p className="text-sm font-medium text-ink">Zwei-Faktor-Anmeldung eines Leitungskontos zurücksetzen — {name}</p>
+      <p className="text-sm font-normal text-ink">Zwei-Faktor-Anmeldung eines Leitungskontos zurücksetzen — {name}</p>
       {erledigt !== null && (
         <p className="text-sm text-ink" role="status">
           Zurückgesetzt{erledigt ? ` für ${erledigt}` : ''}. Alle Sitzungen sind beendet, der Vorgang steht im

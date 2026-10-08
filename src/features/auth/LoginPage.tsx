@@ -100,7 +100,8 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center gap-4 bg-bg p-4">
-      <div className="panel w-full max-w-sm overflow-hidden shadow-lg">
+      {/* Linie „Lot“: eine Fläche mit Rand, ohne Schatten. */}
+      <div className="anmelde-karte">
         {/* Markenband: dieselbe dunkle Trägerfläche wie Seitenleiste und
             Tableiste. Die Marke steht ohne weitere Fassung darauf. */}
         <div className="panel-dark px-6 py-6 text-center">
@@ -205,7 +206,7 @@ export default function LoginPage() {
                 setError(null);
                 setNotice(null);
               }}
-              className="min-h-touch text-xs text-ink-muted underline underline-offset-2 hover:text-brand"
+              className="min-h-touch text-xs text-ink-muted underline underline-offset-2 hover:text-accent-deep"
             >
               {resetMode ? 'Zurück zur Anmeldung' : 'Passwort vergessen?'}
             </button>

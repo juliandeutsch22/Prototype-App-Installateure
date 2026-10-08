@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
+import { act, render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
+import { readdirSync, readFileSync } from 'node:fs';
 import { ToastProvider } from '@/components/Toast';
 import type { Invoice, Material, Project, TimeEntry, WorkSheet } from '@/types';
 import InvoicesView from '@/features/invoices/InvoicesView';
@@ -68,6 +69,8 @@ const KATALOG: Material[] = [
 ];
 
 let rechnungen: (Invoice & { id: string })[] = [];
+/** Das Abonnement der Liste — eine Prüfung schickt darüber einen neuen Stand nach. */
+let liveMeldung: ((rows: (Invoice & { id: string })[]) => void) | null = null;
 /** Was die Suche über ALLE Rechnungen auf dem Server findet. */
 let suchTreffer: (Invoice & { id: string })[] = [];
 let sucheWirft = false;
@@ -156,6 +159,7 @@ vi.mock('@/lib/db/invoices', async () => {
       _g: number,
       cb: (rows: (Invoice & { id: string })[]) => void,
     ) => {
+      liveMeldung = cb;
       cb(rechnungen);
       return () => undefined;
     },
@@ -332,9 +336,26 @@ function zeige(adresse = '/invoices') {
   );
 }
 
+/*
+  DIE KLICKWEGE DER LINIE „LOT“. „Neue Rechnung“ steht im Seitenkopf und
+  öffnet das Formular (vorher stand es immer offen); die Handlungen an einer
+  Rechnung stehen im Seitenfenster, das die Zeile öffnet (vorher im ⋯ der
+  Zeile). Gleich viele Schritte bis zur Handlung — die Prüfungen dahinter
+  bleiben dieselben.
+*/
+async function neueRechnung() {
+  await userEvent.click(await screen.findByRole('button', { name: 'Neue Rechnung' }));
+}
+async function rechnungOeffnen(nummer: string) {
+  await userEvent.click(await screen.findByRole('button', { name: new RegExp(`^${nummer} · `) }));
+  return screen.findByRole('dialog', { name: new RegExp(nummer) });
+}
+
 /** Baustelle wählen und die Positionen zusammenstellen lassen. */
 async function bisZurVorschau(art?: string) {
   zeige();
+  await neueRechnung();
+  await neueRechnung();
   const auswahl = await screen.findByRole("combobox", { name: /Baustelle/ });
   await userEvent.selectOptions(auswahl, '2026-042');
   if (art) {
@@ -522,6 +543,7 @@ describe('Rechnungen — der Weg von Zeiten zu einer Rechnung', () => {
     // Handwerksscheinen mitkommt, wäre „keine Stunden" nur die halbe Auskunft.
     zeiten = [];
     zeige();
+    await neueRechnung();
     const auswahl = await screen.findByRole("combobox", { name: /Baustelle/ });
     await userEvent.selectOptions(auswahl, '2026-042');
     await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
@@ -740,6 +762,7 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
     katalog = KATALOG;
     baustellenAbfrageWirft = true;
     zeige();
+    await neueRechnung();
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
     await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
     expect(await screen.findByText(/bisherigen Rechnungen dieser Baustelle konnten nicht geladen/)).toBeInTheDocument();
@@ -859,10 +882,8 @@ describe('Erneute PDF-Ausgabe', () => {
     // („Nummer · Kunde"), deshalb der Ausdruck statt des genauen Texts.
     await screen.findByText(/RE-2026-0007/);
 
-    await userEvent.click(
-      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0007/ }),
-    );
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'PDF erneut laden' }));
+    await rechnungOeffnen('RE-2026-0007');
+    await userEvent.click(await screen.findByRole('button', { name: 'PDF laden' }));
 
     await waitFor(() => expect(pdfAusgabe).toHaveBeenCalled());
     expect(pdfAusgabe.mock.calls[0][0]).toMatchObject({
@@ -903,20 +924,19 @@ describe('Eine überfällige Rechnung mahnen', () => {
   } as unknown as Invoice & { id: string };
 
   async function menue(nummer = 'RE-2026-0009') {
-    zeige();
+    // „Alle“: einige Fälle hier sind bezahlt und stehen nicht im Arbeitsstand.
+    zeige('/invoices?ansicht=alle');
     // `findAll`, weil eine mahnbare Rechnung seit dem Mahnlauf ZWEIMAL auf
     // dem Schirm steht: oben in der Mahnliste und unten im Bestand.
     await screen.findAllByText(new RegExp(nummer));
-    await userEvent.click(
-      await screen.findByRole('button', { name: new RegExp(`Weitere Aktionen für Rechnung ${nummer}`) }),
-    );
+    await rechnungOeffnen(nummer);
   }
 
   it('bietet die Zahlungserinnerung an', async () => {
     rechnungen = [UEBERFAELLIG];
     await menue();
     expect(
-      await screen.findByRole('menuitem', { name: 'Zahlungserinnerung erzeugen' }),
+      await screen.findByRole('button', { name: 'Zahlungserinnerung erzeugen' }),
     ).toBeInTheDocument();
   });
 
@@ -925,13 +945,13 @@ describe('Eine überfällige Rechnung mahnen', () => {
     // Klick erklärt, warum er nicht geht, ist eine Sackgasse mit Beschriftung.
     rechnungen = [{ ...UEBERFAELLIG, dueDate: '2026-12-31' }];
     await menue();
-    expect(screen.queryByRole('menuitem', { name: /erzeugen/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /erzeugen/ })).not.toBeInTheDocument();
   });
 
   it('bietet sie bei einer bezahlten Rechnung nicht an', async () => {
     rechnungen = [{ ...UEBERFAELLIG, paymentStatus: 'Bezahlt' }];
     await menue();
-    expect(screen.queryByRole('menuitem', { name: /erzeugen/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /erzeugen/ })).not.toBeInTheDocument();
   });
 
   it('geht nach der dritten Stufe nicht weiter', async () => {
@@ -939,13 +959,13 @@ describe('Eine überfällige Rechnung mahnen', () => {
     // Inkassobüro.
     rechnungen = [{ ...UEBERFAELLIG, mahnstufe: 3 }];
     await menue();
-    expect(screen.queryByRole('menuitem', { name: /erzeugen/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /erzeugen/ })).not.toBeInTheDocument();
   });
 
   it('nennt beim zweiten Mal die nächste Stufe', async () => {
     rechnungen = [{ ...UEBERFAELLIG, mahnstufe: 1 }];
     await menue();
-    expect(await screen.findByRole('menuitem', { name: 'Mahnung erzeugen' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Mahnung erzeugen' })).toBeInTheDocument();
   });
 
   it('erzeugt den Beleg und hält die Mahnung danach fest', async () => {
@@ -956,7 +976,7 @@ describe('Eine überfällige Rechnung mahnen', () => {
     */
     rechnungen = [UEBERFAELLIG];
     await menue();
-    await userEvent.click(await screen.findByRole('menuitem', { name: /erzeugen/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /erzeugen/ }));
     await userEvent.click(await screen.findByRole('button', { name: 'Erzeugen' }));
 
     await waitFor(() => expect(mahnung).toHaveBeenCalled());
@@ -975,7 +995,7 @@ describe('Eine überfällige Rechnung mahnen', () => {
     await menue();
     // Schon im Mahnlauf steht, was das Mahnen aufhält.
     expect(await screen.findByText(/· Kundenart fehlt/)).toBeInTheDocument();
-    await userEvent.click(await screen.findByRole('menuitem', { name: /erzeugen/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /erzeugen/ }));
     expect(await screen.findByText(/ist keine Kundenart hinterlegt/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /in der Kundenakte festlegen/ })).toHaveAttribute('href', '/customers/k7');
     await userEvent.click(await screen.findByRole('button', { name: 'Erzeugen' }));
@@ -1002,7 +1022,7 @@ describe('Eine überfällige Rechnung mahnen', () => {
     rechnungen = [UEBERFAELLIG];
     mahnungPdf.mockRejectedValueOnce(new Error('Invalid argument passed to jsPDF.text'));
     await menue();
-    await userEvent.click(await screen.findByRole('menuitem', { name: /erzeugen/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /erzeugen/ }));
     await userEvent.click(await screen.findByRole('button', { name: 'Erzeugen' }));
 
     expect(await screen.findByText(/konnte nicht erzeugt werden/)).toBeInTheDocument();
@@ -1014,7 +1034,7 @@ describe('Eine überfällige Rechnung mahnen', () => {
     // vor dem Urlaub sind zwei angemessen.
     rechnungen = [UEBERFAELLIG];
     await menue();
-    await userEvent.click(await screen.findByRole('menuitem', { name: /erzeugen/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /erzeugen/ }));
 
     const frist = await screen.findByLabelText('Neue Frist');
     expect(frist).toHaveValue('2026-09-08'); // heute + 7 (Systemzeit: 01.09.)
@@ -1030,7 +1050,7 @@ describe('Eine überfällige Rechnung mahnen', () => {
     // Verbraucher, 17 Tage seit dem Ziel: 1.200 € × 4 % × 17/365 = 2,24 €.
     rechnungen = [{ ...UEBERFAELLIG, mahnstufe: 1 }];
     await menue();
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mahnung erzeugen' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Mahnung erzeugen' }));
     expect(await screen.findByText(/Verzugszinsen € 2,24/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Erzeugen' }));
     await waitFor(() => expect(mahnungPdf).toHaveBeenCalled());
@@ -1042,7 +1062,7 @@ describe('Eine überfällige Rechnung mahnen', () => {
   it('sagt es, wenn an einen Unternehmer der Basiszinssatz fehlt — statt still ohne Zinsen', async () => {
     rechnungen = [{ ...UEBERFAELLIG, mahnstufe: 1, customerVatId: 'ATU99999999' }];
     await menue();
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mahnung erzeugen' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Mahnung erzeugen' }));
     expect(await screen.findByText(/fehlt der\s+Basiszinssatz/)).toBeInTheDocument();
     expect(screen.queryByText(/stehen auf dem Beleg/)).not.toBeInTheDocument();
   });
@@ -1052,7 +1072,7 @@ describe('Eine überfällige Rechnung mahnen', () => {
     try {
       rechnungen = [{ ...UEBERFAELLIG, mahnstufe: 1, customerVatId: 'ATU99999999' }];
       await menue();
-      await userEvent.click(await screen.findByRole('menuitem', { name: 'Mahnung erzeugen' }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Mahnung erzeugen' }));
       expect(await screen.findByText(/Verzugszinsen .* stehen auf dem/)).toBeInTheDocument();
       expect(screen.queryByText(/fehlt der\s+Basiszinssatz/)).not.toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', { name: 'Erzeugen' }));
@@ -1068,7 +1088,7 @@ describe('Eine überfällige Rechnung mahnen', () => {
   it('die Zahlungserinnerung trägt keine Zinsen', async () => {
     rechnungen = [UEBERFAELLIG];
     await menue();
-    await userEvent.click(await screen.findByRole('menuitem', { name: /erzeugen/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /erzeugen/ }));
     await screen.findByLabelText('Neue Frist');
     expect(screen.queryByText(/Verzugszinsen/)).not.toBeInTheDocument();
   });
@@ -1095,7 +1115,8 @@ describe('Eine überfällige Rechnung mahnen', () => {
         mahnfrist: '2026-09-06',
       },
     ];
-    zeige();
+    // Erledigtes steht seit der Linie „Lot“ unter „Alle“, nicht im Arbeitsstand.
+    zeige('/invoices?ansicht=alle');
     const zeile = await screen.findByText(/Mahnung am 30\.08\.2026/);
     expect(zeile).not.toHaveClass('text-warning');
     expect(screen.queryByText(/Frist 06\.09\.2026/)).not.toBeInTheDocument();
@@ -1134,18 +1155,15 @@ describe('Eine stornierte Rechnung', () => {
 
   async function menueStorno() {
     rechnungen = [STORNIERT];
-    zeige();
+    // Ein Storno ohne Guthaben ist erledigt — er steht unter „Erledigt“.
+    zeige('/invoices?ansicht=erledigt');
     await screen.findByText(/RE-2026-0011/);
-    await userEvent.click(
-      await screen.findByRole('button', {
-        name: /Weitere Aktionen für Rechnung RE-2026-0011/,
-      }),
-    );
+    await rechnungOeffnen('RE-2026-0011');
   }
 
   it('bietet kein Löschen an', async () => {
     await menueStorno();
-    expect(screen.queryByRole('menuitem', { name: /löschen/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /löschen/i })).not.toBeInTheDocument();
   });
 
   it('lässt sich am Tag des Stornos wieder aufheben — nach Rückfrage', async () => {
@@ -1153,7 +1171,7 @@ describe('Eine stornierte Rechnung', () => {
     // lässt sich am selben Tag zurücknehmen. Die Uhr steht auf 01.09. 09:00.
     STORNIERT.cancelledAt = new Date(2026, 8, 1, 8, 0).getTime();
     await menueStorno();
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Storno aufheben' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Storno aufheben' }));
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent(/nur heute, am Tag des Stornos/);
   });
@@ -1161,8 +1179,8 @@ describe('Eine stornierte Rechnung', () => {
   it('ab dem Folgetag nicht mehr — dann steht er in der Buchhaltung (Launch-Check, K9)', async () => {
     STORNIERT.cancelledAt = new Date(2026, 7, 31, 16, 0).getTime();
     await menueStorno();
-    await screen.findByRole('menuitem', { name: /Zahlung erfassen/ });
-    expect(screen.queryByRole('menuitem', { name: 'Storno aufheben' })).not.toBeInTheDocument();
+    await screen.findByRole('button', { name: /Zahlung erfassen/ });
+    expect(screen.queryByRole('button', { name: 'Storno aufheben' })).not.toBeInTheDocument();
   });
 });
 
@@ -1426,7 +1444,8 @@ describe('Der Mahnlauf', () => {
     // Eine dauerhaft sichtbare leere Mahnliste wäre ein Vorwurf ohne Anlass.
     // Die bezahlte Rechnung steht in der Arbeitsliste, nicht bei den offenen.
     rechnungen = [offen('0001', { paymentStatus: 'Bezahlt' })];
-    zeige();
+    // Erledigtes steht seit der Linie „Lot“ unter „Alle“, nicht im Arbeitsstand.
+    zeige('/invoices?ansicht=alle');
     await screen.findByText(/RE-2026-0001/);
     expect(screen.queryByText(/^Mahnlauf/)).not.toBeInTheDocument();
   });
@@ -1491,7 +1510,8 @@ describe('Der Mahnlauf', () => {
       Rechen-Test in `tests/unit/mahnlauf.test.ts` fest.
     */
     rechnungen = [offen('0001', { mahnstufe: 3, paymentStatus: 'Bezahlt' })];
-    zeige();
+    // Erledigtes steht seit der Linie „Lot“ unter „Alle“, nicht im Arbeitsstand.
+    zeige('/invoices?ansicht=alle');
     await screen.findByText(/RE-2026-0001/);
     expect(screen.queryByText(/braucht eine Entscheidung/)).not.toBeInTheDocument();
   });
@@ -2082,10 +2102,8 @@ describe('Zahlungen erfassen', () => {
     zeige();
     await screen.findByText(/RE-2026-0042/);
 
-    await userEvent.click(
-      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }),
-    );
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' }));
+    await rechnungOeffnen('RE-2026-0042');
+    await userEvent.click(await screen.findByRole('button', { name: 'Zahlung erfassen' }));
 
     /*
       DER OFFENE REST STEHT VORAUSGEFÜLLT DA. Er ist in den allermeisten
@@ -2114,10 +2132,8 @@ describe('Zahlungen erfassen', () => {
     rechnungen = [offeneRechnung()];
     zeige();
     await screen.findByText(/RE-2026-0042/);
-    await userEvent.click(
-      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }),
-    );
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' }));
+    await rechnungOeffnen('RE-2026-0042');
+    await userEvent.click(await screen.findByRole('button', { name: 'Zahlung erfassen' }));
     const art = await screen.findByLabelText('Art');
     const satz = /Beleg für Bar- und Kartenzahlungen erteilt die Registrierkasse/;
 
@@ -2138,10 +2154,8 @@ describe('Zahlungen erfassen', () => {
     createZahlung.mockClear();
     zeige();
     await screen.findByText(/RE-2026-0042/);
-    await userEvent.click(
-      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }),
-    );
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' }));
+    await rechnungOeffnen('RE-2026-0042');
+    await userEvent.click(await screen.findByRole('button', { name: 'Zahlung erfassen' }));
     expect(await screen.findByText(/Zugesagt: 2 %\s+Skonto \(€ 24,00\)/)).toBeInTheDocument();
 
     const betrag = await screen.findByLabelText(/^Betrag/);
@@ -2165,10 +2179,8 @@ describe('Zahlungen erfassen', () => {
     createZahlung.mockClear();
     zeige();
     await screen.findByText(/RE-2026-0042/);
-    await userEvent.click(
-      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }),
-    );
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' }));
+    await rechnungOeffnen('RE-2026-0042');
+    await userEvent.click(await screen.findByRole('button', { name: 'Zahlung erfassen' }));
     const betrag = await screen.findByLabelText(/^Betrag/);
     await userEvent.clear(betrag);
     await userEvent.type(betrag, '1176');
@@ -2185,10 +2197,8 @@ describe('Zahlungen erfassen', () => {
       erfassteZahlungen.map((z, i) => ({ id: `z${i}`, ...z })));
     zeige();
     await screen.findByText(/RE-2026-0042/);
-    await userEvent.click(
-      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }),
-    );
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' }));
+    await rechnungOeffnen('RE-2026-0042');
+    await userEvent.click(await screen.findByRole('button', { name: 'Zahlung erfassen' }));
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent(/offen € 1\s200,00/);
 
@@ -2229,8 +2239,8 @@ describe('Zahlungen erfassen', () => {
     await userEvent.selectOptions(document.getElementById('invfilter')!, 'Überfällig');
     expect(screen.getByText(/RE-2026-0042/)).toBeInTheDocument();
     // Und die Zahlungserinnerung steht im Menü.
-    await userEvent.click(screen.getByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }));
-    expect(await screen.findByRole('menuitem', { name: /Zahlungserinnerung erzeugen/ })).toBeInTheDocument();
+    await rechnungOeffnen('RE-2026-0042');
+    expect(await screen.findByRole('button', { name: /Zahlungserinnerung erzeugen/ })).toBeInTheDocument();
   });
 
   /*
@@ -2286,11 +2296,9 @@ describe('Zahlungen erfassen', () => {
     rechnungen = [offeneRechnung()];
     zeige();
     await screen.findByText(/RE-2026-0042/);
-    await userEvent.click(
-      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }),
-    );
-    expect(screen.queryByRole('menuitem', { name: /Auf „Bezahlt“ setzen/ })).toBeNull();
-    expect(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' })).toBeInTheDocument();
+    await rechnungOeffnen('RE-2026-0042');
+    expect(screen.queryByRole('button', { name: /Auf „Bezahlt“ setzen/ })).toBeNull();
+    expect(await screen.findByRole('button', { name: 'Zahlung erfassen' })).toBeInTheDocument();
   });
 });
 
@@ -2301,6 +2309,7 @@ describe('Ohne Anzahlungen bleibt die Maske, wie sie war', () => {
       Rechnungen stellt. Für ihn darf Stufe 10.2 nicht einmal sichtbar sein.
     */
     zeige();
+    await neueRechnung();
     await screen.findByRole('combobox', { name: /Baustelle/ });
     expect(screen.queryByRole('combobox', { name: /Art der Rechnung/ })).toBeNull();
   });
@@ -2393,6 +2402,7 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
       positions: [], discount: null, subtotalNetto: 1000, totalNetto: 1000, totalVat: 200, totalBrutto: 1200,
     }];
     zeige();
+    await neueRechnung();
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
     await userEvent.selectOptions(screen.getByRole('combobox', { name: /Art der Rechnung/ }), 'anzahlung');
     const feld = screen.getByLabelText('Anteil vom angenommenen Angebot (%)');
@@ -2594,10 +2604,8 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     ];
     zeige();
     await screen.findByText(/RE-2026-1050/);
-    await userEvent.click(
-      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-1050/ }),
-    );
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'PDF erneut laden' }));
+    await rechnungOeffnen('RE-2026-1050');
+    await userEvent.click(await screen.findByRole('button', { name: 'PDF laden' }));
 
     await waitFor(() => expect(pdfAusgabe).toHaveBeenCalled());
     const opts = pdfAusgabe.mock.calls[0][0] as {
@@ -2642,6 +2650,7 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
       ABGELEITET und nicht bloss ausgeblendet.
     */
     const { rerender } = zeige();
+    await neueRechnung();
     await userEvent.selectOptions(
       await screen.findByRole('combobox', { name: /Baustelle/ }),
       '2026-042',
@@ -2678,6 +2687,7 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     baustellenAbfrageWirft = true;
     authWert.company.rechnungsarten = true;
     zeige();
+    await neueRechnung();
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
     await userEvent.selectOptions(screen.getByRole('combobox', { name: /Art der Rechnung/ }), 'schluss');
     await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
@@ -2754,6 +2764,7 @@ describe('Pauschalbaustelle', () => {
     angebote = [ANGEBOT];
     derBaustelle = [{ id: 'r1', invoiceNumber: 'RE-2026-1002', projectNumber: '2026-042', paymentStatus: 'Offen' } as Invoice & { id: string }];
     zeige();
+    await neueRechnung();
     const auswahl = await screen.findByRole('combobox', { name: /Baustelle/ });
     await userEvent.selectOptions(auswahl, '2026-042');
     await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
@@ -2958,26 +2969,27 @@ describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
 });
 
 describe('„Positionen zusammenstellen“ bricht nicht um (Prüflauf 25.09.2026, P4-18)', () => {
-  it('hält die Beschriftung in einer Zeile; Platz gibt die Baustellenauswahl her', async () => {
+  it('hält die Beschriftung in einer Zeile; das Formular steht einspaltig', async () => {
     /*
       Bei 834 px stand „zusammenstell|en" auf drei Zeilen, mit Auswahl der
       Rechnungsart war der Knopf 49 px schmal und lief aus der Karte. jsdom
       rechnet kein Layout; im Browser nachgemessen (390/834/1440, mit und
       ohne Rechnungsart). Geprüft wird, was das Umbrechen verhindert.
+
+      Seit der Linie „Lot“ stehen Auswahl und Knopf nicht mehr in einer Reihe
+      nebeneinander, sondern untereinander im einspaltigen Formular
+      (`formular`, höchstens 560 px) — der Knopf hat die Breite für sich.
     */
     zeige();
+    await neueRechnung();
     const knopf = await screen.findByRole('button', { name: 'Positionen zusammenstellen' });
     expect(knopf.className).toMatch(/\bwhitespace-nowrap\b/);
     expect(knopf.className).toMatch(/\bshrink-0\b/);
-    const reihe = knopf.parentElement!;
-    expect(reihe.className).toMatch(/sm:flex-wrap/);
-    // Die Auswahl darf schrumpfen (min-w-0), höchstens 20rem breit wie bisher.
-    const auswahl = reihe.firstElementChild as HTMLElement;
-    expect(auswahl.className).toMatch(/\bmin-w-0\b/);
-    expect(auswahl.className).toMatch(/sm:max-w-80/);
+    const formular = knopf.closest('.formular') as HTMLElement | null;
+    expect(formular).not.toBeNull();
+    expect(within(formular!).getByRole('combobox', { name: /Baustelle/ })).toBeInTheDocument();
   });
 });
-
 
 /*
   PRÜFLAUF 25.09.2026, P2-04 und P2-10. Nummer, Sperre und Rechnung gehen in
@@ -3084,10 +3096,8 @@ describe('Die Rechnung geht an den Kunden, nicht an die Baustelle', () => {
     ];
     zeige();
     await screen.findAllByText(/RE-2026-0009/);
-    await userEvent.click(
-      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0009/ }),
-    );
-    await userEvent.click(await screen.findByRole('menuitem', { name: /erzeugen/ }));
+    await rechnungOeffnen('RE-2026-0009');
+    await userEvent.click(await screen.findByRole('button', { name: /erzeugen/ }));
     await userEvent.click(await screen.findByRole('button', { name: 'Erzeugen' }));
 
     await waitFor(() => expect(mahnungPdf).toHaveBeenCalled());
@@ -3107,11 +3117,10 @@ describe('Die Rechnung geht an den Kunden, nicht an die Baustelle', () => {
         positions: [{ label: 'Arbeit', qty: 1, unit: 'h', unitPrice: 100, netto: 100 }],
       } as unknown as Invoice & { id: string },
     ];
-    zeige();
-    await userEvent.click(
-      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0005/ }),
-    );
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'PDF erneut laden' }));
+    // Erledigtes steht seit der Linie „Lot“ unter „Alle“, nicht im Arbeitsstand.
+    zeige('/invoices?ansicht=alle');
+    await rechnungOeffnen('RE-2026-0005');
+    await userEvent.click(await screen.findByRole('button', { name: 'PDF laden' }));
     await waitFor(() => expect(pdfAusgabe).toHaveBeenCalled());
     expect(pdfAusgabe.mock.calls[0][0]).toMatchObject({ project: { address: 'Bergweg 3' } });
     expect((pdfAusgabe.mock.calls[0][0] as { leistungsort?: string }).leistungsort).toBeUndefined();
@@ -3154,7 +3163,8 @@ describe('Die Kennzahlen „Offen“ und „Überfällig“', () => {
     } as unknown as Invoice & { id: string };
     offene = [r];
     rechnungen = [{ ...r, paymentStatus: 'Bezahlt', bezahltBetrag: 120 }];
-    zeige();
+    // Erledigtes steht seit der Linie „Lot“ unter „Alle“, nicht im Arbeitsstand.
+    zeige('/invoices?ansicht=alle');
     await screen.findByText(/RE-2026-1002/);
     expect(kachel('Offen')).toHaveTextContent('€ 0,00');
   });
@@ -3164,7 +3174,8 @@ describe('Die Kennzahlen „Offen“ und „Überfällig“', () => {
       { id: 'b', invoiceNumber: 'RE-2026-1003', projectNumber: '2026-001', customerName: 'Max',
         paymentStatus: 'Bezahlt', totalBrutto: 100, bezahltBetrag: 100 },
     ] as unknown as (Invoice & { id: string })[];
-    zeige();
+    // Erledigtes steht seit der Linie „Lot“ unter „Alle“, nicht im Arbeitsstand.
+    zeige('/invoices?ansicht=alle');
     await screen.findByText(/RE-2026-1003/);
     // Seit G27: der laufende Monat, mit seinem ersten Tag.
     const erster = new Date();
@@ -3181,7 +3192,7 @@ describe('Die Kennzahlen „Offen“ und „Überfällig“', () => {
 describe('Die Erklärung zur Rechnungsliste', () => {
   it('sagt, was gilt', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Was bedeutet Alle Rechnungen/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /Was bedeutet Offene Rechnungen/ }));
     const text = document.body.textContent ?? '';
     expect(text).toMatch(/ergeben sich aus den erfassten Zahlungen/);
     expect(text).toMatch(/Gelöscht wird keine Rechnung/);
@@ -3192,12 +3203,12 @@ describe('Die Erklärung zur Rechnungsliste', () => {
 });
 
 /*
-  AM SCHREIBTISCH EINE TABELLE (Designlinie „Fassung 3", Schritt 6).
-
-  Zeilen und Tabelle entstehen aus denselben Daten; Menü, Mahnstand und
-  Teilzahlung kommen aus denselben Funktionen. Geprüft wird, dass die Tabelle
-  wirklich dieselben Angaben und dasselbe Menü trägt — und dass es nur EINE
-  Darstellung gibt, nicht beide übereinander.
+  AM SCHREIBTISCH DIESELBE ZEILE (Linie „Lot“). Bis zum Umbau stand die Liste
+  hier als Tabelle (Designlinie „Fassung 3", Schritt 6), mit eigenem ⋯ je
+  Zeile. Jetzt ist die ganze Zeile antippbar und öffnet das Seitenfenster mit
+  den Handlungen — auf jeder Breite gleich. Geprüft wird weiter, was die
+  Tabelle zugesagt hatte: dieselben Angaben, dieselben Handlungen, und nur
+  EINE Darstellung, nicht zwei übereinander.
 */
 describe('Rechnungsliste am Schreibtisch', () => {
   // Dieselbe Rechnung wie unter „Zahlungen erfassen".
@@ -3220,7 +3231,7 @@ describe('Rechnungsliste am Schreibtisch', () => {
   const vorher = window.matchMedia;
   beforeEach(() => {
     window.matchMedia = ((q: string) => ({
-      matches: q.includes('min-width: 1024px'),
+      matches: q.includes('min-width: 1200px'),
       media: q,
       addEventListener: () => undefined,
       removeEventListener: () => undefined,
@@ -3230,19 +3241,19 @@ describe('Rechnungsliste am Schreibtisch', () => {
     window.matchMedia = vorher;
   });
 
-  it('steht als Tabelle mit Betrag, Stand und demselben Menü', async () => {
+  it('steht als Zeile mit Betrag und Stand und öffnet dieselben Handlungen', async () => {
     rechnungen = [offeneRechnung({ paymentStatus: 'Teilbezahlt', bezahltBetrag: 400, dueDate: '2026-07-15' })];
     zeige();
-    const zelle = await screen.findByRole('cell', { name: 'RE-2026-0042' });
-    const zeile = zelle.closest('tr') as HTMLElement;
+    const knopf = await screen.findByRole('button', { name: /^RE-2026-0042 · / });
+    const zeile = knopf.closest('li') as HTMLElement;
     expect(within(zeile).getByText(/800,00 offen/)).toBeInTheDocument();
     expect(within(zeile).getByText('Teilbezahlt')).toBeInTheDocument();
-    // Nur eine Darstellung: keine Listenzeile daneben.
-    expect(zelle.closest('li')).toBeNull();
-    expect(screen.getAllByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ })).toHaveLength(1);
+    // Nur eine Darstellung: keine Tabelle daneben, die Zeile genau einmal.
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.getAllByRole('button', { name: /^RE-2026-0042 · / })).toHaveLength(1);
 
-    await userEvent.click(within(zeile).getByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }));
-    expect(await screen.findByRole('menuitem', { name: /Zahlungserinnerung erzeugen/ })).toBeInTheDocument();
+    const fenster = await rechnungOeffnen('RE-2026-0042');
+    expect(within(fenster).getByRole('button', { name: /Zahlungserinnerung erzeugen/ })).toBeInTheDocument();
   });
 });
 
@@ -3259,6 +3270,7 @@ describe('Rechnung ohne Umsatzsteuer', () => {
 
   async function mitNullProzent() {
     zeige();
+    await neueRechnung();
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
     await userEvent.selectOptions(screen.getByLabelText('USt-Satz'), '0');
     await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
@@ -3451,22 +3463,20 @@ describe('Storno und Zahlungsstand', () => {
     rechnungen = [OFFEN];
     zeige();
     await screen.findAllByText(/RE-2026-0031/);
-    await userEvent.click(
-      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0031/ }),
-    );
+    await rechnungOeffnen('RE-2026-0031');
   }
 
   it('bietet keinen Status von Hand mehr an (H5)', async () => {
     await menue();
-    expect(await screen.findByRole('menuitem', { name: 'Stornieren' })).toBeInTheDocument();
-    expect(screen.queryByRole('menuitem', { name: /Überfällig/ })).toBeNull();
-    expect(screen.queryByRole('menuitem', { name: /Auf „Offen/ })).toBeNull();
+    expect(await screen.findByRole('button', { name: 'Stornieren' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Überfällig/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Auf „Offen/ })).toBeNull();
   });
 
   it('storniert nicht ohne Grund — und sagt es im Dialog (H4)', async () => {
     vi.mocked(cancelInvoice).mockClear();
     await menue();
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Stornieren' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Stornieren' }));
     const dialog = await screen.findByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Stornieren' }));
     expect(await within(dialog).findByText(/Bitte einen Grund angeben/)).toBeInTheDocument();
@@ -3476,7 +3486,7 @@ describe('Storno und Zahlungsstand', () => {
   it('mit Grund geht der Storno hinaus (Gegenprobe)', async () => {
     vi.mocked(cancelInvoice).mockClear();
     await menue();
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Stornieren' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Stornieren' }));
     const dialog = await screen.findByRole('dialog');
     await userEvent.type(within(dialog).getByLabelText(/Grund/), 'Falscher Kunde');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Stornieren' }));
@@ -3512,7 +3522,8 @@ describe('Paket 5a — die Rechnungsliste', () => {
         invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Storniert', totalBrutto: 504,
         stornoNummer: 'RE-2026-1510', stornoAm: Date.UTC(2026, 8, 20, 10) },
     ] as unknown as (Invoice & { id: string })[];
-    zeige();
+    // Erledigtes steht seit der Linie „Lot“ unter „Alle“, nicht im Arbeitsstand.
+    zeige('/invoices?ansicht=alle');
     expect((await screen.findAllByText(/RE-2026-1510/)).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/zu RE-2026-1500/).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Stornorechnung').length).toBeGreaterThan(0);
@@ -3532,8 +3543,8 @@ describe('Paket 5a — die Rechnungsliste', () => {
     ] as unknown as (Invoice & { id: string })[];
     bisherigeZahlungen = [{ id: 'z1', invoiceId: 's', datum: '2026-09-10', betrag: 200, art: 'Überweisung' }];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-1500/ }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Guthaben zurückzahlen …' }));
+    await rechnungOeffnen('RE-2026-1500');
+    await userEvent.click(await screen.findByRole('button', { name: 'Guthaben zurückzahlen …' }));
     expect(await screen.findByLabelText('Richtung')).toHaveValue('rueckzahlung');
     expect(screen.getByLabelText(/^Zurückgezahlt/)).toHaveValue('200');
     expect(screen.queryByText(/Eine Zahlung hierauf wird zum Guthaben/)).toBeNull();
@@ -3554,8 +3565,8 @@ describe('Paket 5a — die Rechnungsliste', () => {
     ] as unknown as (Invoice & { id: string })[];
     bisherigeZahlungen = [{ id: 'z1', invoiceId: 's', datum: '2026-09-10', betrag: 200, art: 'Überweisung' }];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-1500/ }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Guthaben zurückzahlen …' }));
+    await rechnungOeffnen('RE-2026-1500');
+    await userEvent.click(await screen.findByRole('button', { name: 'Guthaben zurückzahlen …' }));
     const feld = await screen.findByLabelText(/^Zurückgezahlt/);
     await userEvent.clear(feld);
     await userEvent.type(feld, '250');
@@ -3569,9 +3580,10 @@ describe('Paket 5a — die Rechnungsliste', () => {
       { id: 'b', invoiceNumber: 'RE-2026-1003', projectNumber: '2026-001', customerName: 'Max',
         invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Bezahlt', totalBrutto: 100, bezahltBetrag: 100 },
     ] as unknown as (Invoice & { id: string })[];
-    zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-1003/ }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Weitere Zahlung erfassen …' }));
+    // Erledigtes steht seit der Linie „Lot“ unter „Alle“, nicht im Arbeitsstand.
+    zeige('/invoices?ansicht=alle');
+    await rechnungOeffnen('RE-2026-1003');
+    await userEvent.click(await screen.findByRole('button', { name: 'Weitere Zahlung erfassen …' }));
     expect(await screen.findByText(/schon bezahlt\. Eine weitere Zahlung wird zum Guthaben/)).toBeInTheDocument();
   });
 
@@ -3582,10 +3594,11 @@ describe('Paket 5a — die Rechnungsliste', () => {
       { id: 'x', invoiceNumber: 'RE-2026-1004', projectNumber: '2026-001', customerName: 'Max',
         invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Storniert', totalBrutto: 100 },
     ] as unknown as (Invoice & { id: string })[];
-    zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-1004/ }));
+    // Erledigtes steht seit der Linie „Lot“ unter „Alle“, nicht im Arbeitsstand.
+    zeige('/invoices?ansicht=alle');
+    await rechnungOeffnen('RE-2026-1004');
     // Schon der Menüpunkt sagt es …
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Zahlung erfassen (wird Guthaben) …' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Zahlung erfassen (wird Guthaben) …' }));
     // … und der Dialog noch einmal, bevor eingetragen wird.
     expect(await screen.findByText(
       'Diese Rechnung ist storniert. Eine Zahlung hierauf wird zum Guthaben des Kunden.',
@@ -3622,9 +3635,11 @@ describe('Die Projektleitung liest nur', () => {
     offene = [offeneRechnung];
     zeige();
     expect(await screen.findByText('Die Rechnungen Ihrer Baustellen — zum Lesen')).toBeInTheDocument();
-    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }));
-    const eintraege = (await screen.findAllByRole('menuitem')).map((e) => e.textContent);
-    expect(eintraege).toEqual(['Ansehen', 'PDF erneut laden']);
+    // „Ansehen“ ist das Seitenfenster selbst; darin nur „PDF laden“ — keine Handlung, die schreibt.
+    const fenster = await rechnungOeffnen('RE-2026-0042');
+    const knoepfe = within(fenster).getAllByRole('button').map((e) => e.textContent);
+    expect(knoepfe).toEqual(['Schließen', 'PDF laden']);
+    expect(screen.queryByRole('button', { name: 'Neue Rechnung' })).toBeNull();
     expect(screen.queryByText('Neue Rechnung aus Baustelle')).toBeNull();
     expect(screen.queryByText('Buchhaltungs-Export')).toBeNull();
     expect(screen.queryByText(/^Mahnlauf/)).toBeNull();
@@ -3638,10 +3653,162 @@ describe('Die Projektleitung liest nur', () => {
     rechnungen = [offeneRechnung];
     offene = [offeneRechnung];
     zeige();
+    await neueRechnung();
     expect(await screen.findByText('Neue Rechnung aus Baustelle')).toBeInTheDocument();
     expect(await screen.findByText(/^Mahnlauf/)).toBeInTheDocument();
-    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }));
-    expect(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Stornieren' })).toBeInTheDocument();
+    const fenster = await rechnungOeffnen('RE-2026-0042');
+    expect(within(fenster).getByRole('button', { name: 'Zahlung erfassen' })).toBeInTheDocument();
+    expect(within(fenster).getByRole('button', { name: 'Stornieren' })).toBeInTheDocument();
+  });
+});
+
+/*
+  DIE LINIE „LOT“ (Protokoll E6/E8). Was neu ist und was es zusagt:
+  Arbeitsstand als Standard und nach Dringlichkeit gruppiert, „Alle“ einen
+  Tipp entfernt, Gruppen höchstens zwanzig Zeilen, antippbare Kennzahlen,
+  „Neue Rechnung“ im Seitenkopf, die Handlungen im Seitenfenster der Zeile.
+  Jede Prüfung hier wäre gegen den Stand vor dem Umbau rot.
+*/
+describe('Linie „Lot“ — die Rechnungsliste', () => {
+  const rechnung = (nr: string, p: Partial<Invoice> = {}): Invoice & { id: string } =>
+    ({
+      id: `id-${nr}`, companyId: 'perl', invoiceNumber: `RE-2026-${nr}`, projectNumber: '2026-042',
+      customerName: `Kunde ${nr}`, invoiceDate: '2026-08-20', dueDate: '2099-01-01', totalNetto: 100,
+      totalVat: 20, totalBrutto: 120, vatRate: 0.2, paymentStatus: 'Offen', ...p,
+    }) as unknown as Invoice & { id: string };
+
+  function Adresse() {
+    const ort = useLocation();
+    return <output data-testid="adresse">{ort.search}</output>;
+  }
+  function zeigeMitAdresse(adresse = '/invoices') {
+    return render(
+      <MemoryRouter initialEntries={[adresse]}>
+        <ToastProvider>
+          <InvoicesView />
+          <Adresse />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+  }
+
+  it('zeigt zuerst den Arbeitsstand — überfällig vor offen, Bezahltes nicht', async () => {
+    rechnungen = [
+      rechnung('0043'),
+      rechnung('0042', { dueDate: '2026-07-15' }),
+      rechnung('0044', { paymentStatus: 'Bezahlt', bezahltBetrag: 120 }),
+    ];
+    zeige();
+    await screen.findByRole('button', { name: /^RE-2026-0042 · / });
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(['Überfällig', 'Offen']);
+    const reihenfolge = screen.getAllByRole('button', { name: /^RE-2026-004\d · / }).map((b) => b.textContent);
+    expect(reihenfolge).toEqual(['RE-2026-0042 · Kunde 0042', 'RE-2026-0043 · Kunde 0043']);
+    expect(screen.queryByRole('button', { name: /^RE-2026-0044 · / })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Offen' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('„Alle“ zeigt auch das Erledigte — und steht danach in der Adresse', async () => {
+    rechnungen = [rechnung('0043'), rechnung('0044', { paymentStatus: 'Bezahlt', bezahltBetrag: 120 })];
+    zeigeMitAdresse();
+    await screen.findByRole('button', { name: /^RE-2026-0043 · / });
+    await userEvent.click(screen.getByRole('button', { name: 'Alle' }));
+    expect(await screen.findByRole('button', { name: /^RE-2026-0044 · / })).toBeInTheDocument();
+    expect(screen.getByTestId('adresse')).toHaveTextContent('ansicht=alle');
+  });
+
+  it('Gegenprobe: „Erledigt“ zeigt nur das Erledigte', async () => {
+    rechnungen = [rechnung('0043'), rechnung('0044', { paymentStatus: 'Bezahlt', bezahltBetrag: 120 })];
+    zeige('/invoices?ansicht=erledigt');
+    expect(await screen.findByRole('button', { name: /^RE-2026-0044 · / })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^RE-2026-0043 · / })).toBeNull();
+  });
+
+  it('bricht eine Gruppe nach zwanzig Zeilen ab und sagt, wie viele noch kommen', async () => {
+    rechnungen = Array.from({ length: 23 }, (_, i) => rechnung(String(1000 + i)));
+    zeige();
+    await screen.findAllByRole('button', { name: /^RE-2026-1\d{3} · / });
+    expect(screen.getAllByRole('button', { name: /^RE-2026-1\d{3} · / })).toHaveLength(20);
+    await userEvent.click(screen.getByRole('button', { name: 'und 3 weitere anzeigen' }));
+    expect(screen.getAllByRole('button', { name: /^RE-2026-1\d{3} · / })).toHaveLength(23);
+  });
+
+  it('die Kennzahlen führen in die passende Ansicht', async () => {
+    zeige();
+    const link = (await screen.findAllByText('Überfällig')).find((e) => e.tagName === 'P')!.closest('a');
+    expect(link).toHaveAttribute('href', `/invoices?status=${encodeURIComponent('Überfällig')}`);
+    const offen = screen.getAllByText('Offen').find((e) => e.tagName === 'P')!.closest('a');
+    expect(offen).toHaveAttribute('href', '/invoices?ansicht=offen');
+  });
+
+  it('die Suche stellt auf „Alle“ und kehrt danach in den Arbeitsstand zurück', async () => {
+    rechnungen = [rechnung('0043')];
+    zeige();
+    const feld = await screen.findByLabelText('Suche');
+    await userEvent.type(feld, 'Kunde');
+    expect(screen.getByRole('button', { name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.clear(feld);
+    expect(screen.getByRole('button', { name: 'Offen' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('„Neue Rechnung“ öffnet das Formular, „Schließen“ nimmt es wieder weg', async () => {
+    zeige();
+    await screen.findByRole('button', { name: 'Neue Rechnung' });
+    expect(screen.queryByRole('combobox', { name: /Baustelle/ })).toBeNull();
+    await neueRechnung();
+    expect(await screen.findByRole('combobox', { name: /Baustelle/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Schließen' }));
+    expect(screen.queryByRole('combobox', { name: /Baustelle/ })).toBeNull();
+  });
+
+  it('eine Handlung schliesst das Seitenfenster und gibt den Fokus dem Dialog', async () => {
+    rechnungen = [rechnung('0042')];
+    zeige();
+    await rechnungOeffnen('RE-2026-0042');
+    await userEvent.click(screen.getByRole('button', { name: 'Zahlung erfassen' }));
+    const dialog = await screen.findByRole('dialog', { name: /Zahlungen — RE-2026-0042/ });
+    expect(screen.queryByRole('dialog', { name: /^Rechnung RE-2026-0042/ })).toBeNull();
+    // Nicht auf der Zeile hinter dem Dialog — dorthin gäbe das Fenster ihn sonst zurück.
+    await waitFor(() => expect(dialog).toContainElement(document.activeElement as HTMLElement));
+  });
+
+  it('das Seitenfenster zeigt den Stand von jetzt — nach einem Storno die Handlungen des Stornos', async () => {
+    rechnungen = [rechnung('0042')];
+    zeige();
+    const fenster = await rechnungOeffnen('RE-2026-0042');
+    expect(within(fenster).getByRole('button', { name: 'Stornieren' })).toBeInTheDocument();
+    act(() => liveMeldung?.([rechnung('0042', { paymentStatus: 'Storniert', cancellationNote: 'Falscher Kunde' })]));
+    expect(within(fenster).queryByRole('button', { name: 'Stornieren' })).toBeNull();
+    expect(within(fenster).getByRole('button', { name: 'Stornorechnung ausstellen …' })).toBeInTheDocument();
+  });
+
+  it('die Zeile im Mahnlauf öffnet die Rechnung, auch wenn sie in der Liste nicht steht', async () => {
+    rechnungen = [];
+    offene = [rechnung('0001', { dueDate: '2024-03-01', customerName: 'Altkunde' })];
+    zeige();
+    const karte = (await screen.findByText(/^Mahnlauf/)).closest('section')!;
+    await userEvent.click(within(karte).getByRole('button', { name: /^Altkunde/ }));
+    expect(await screen.findByRole('dialog', { name: /RE-2026-0001/ })).toBeInTheDocument();
+  });
+});
+
+/*
+  KEINE HALBTRANSPARENTEN FLÄCHEN, KEINE GESTRICHELTEN LINIEN, nur zwei
+  Schriftstärken (Linie „Lot“, Leitfaden „Gestaltung“). In der
+  Rechnungsansicht standen `ring-brand/30`, `border-line/60` und
+  `ring-warning/30`; dieser Abgleich hält fest, dass keine zurückkommt.
+*/
+describe('Linie „Lot“ — deckende Farben in den Rechnungsansichten', () => {
+  const VERBOTEN = /\b(?:bg|border|ring|text|divide|outline|from|to|via)-[a-z-]+\/\d{1,3}\b|\bfont-(?:medium|bold)\b|\bborder-(?:dashed|dotted)\b/;
+  const dateien = readdirSync('src/features/invoices').filter((n) => n.endsWith('.tsx'));
+
+  it('Gegenprobe: das Muster erkennt die alten Klassen', () => {
+    expect('focus:ring-brand/30').toMatch(VERBOTEN);
+    expect('border-b border-line/60').toMatch(VERBOTEN);
+    expect('font-medium').toMatch(VERBOTEN);
+  });
+
+  it.each(dateien)('%s', (datei) => {
+    const quelle = readFileSync(`src/features/invoices/${datei}`, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(quelle).not.toMatch(VERBOTEN);
   });
 });

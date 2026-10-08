@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { AB_SCHREIBTISCH } from './breiten';
 
 /** Ab hier Tabellen statt Zeilen — dieselbe Grenze wie Tailwinds `lg`. */
-const BREIT = '(min-width: 1024px)';
+const BREIT = AB_SCHREIBTISCH;
 
 /*
   OHNE MEDIENABFRAGE DIE ZEILEN. Kennt die Umgebung `matchMedia` nicht (jsdom

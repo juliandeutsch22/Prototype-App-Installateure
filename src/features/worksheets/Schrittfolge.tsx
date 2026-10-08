@@ -108,7 +108,7 @@ export function Zusammenfassung({
             ) : undefined
           }
         >
-          {z.wert && <span className="font-medium text-ink">{z.wert}</span>}
+          {z.wert && <span className="font-normal text-ink">{z.wert}</span>}
           <Button
             variant="secondary"
             groesse="klein"

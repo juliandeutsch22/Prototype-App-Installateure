@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Customer, Quote } from '@/types';
 
@@ -97,13 +97,30 @@ vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
 const { default: AngebotView } = await import('@/features/quotes/AngebotView');
 
+/** Die Angebotsliste als Ziel — mit der Adresse, damit ein Test sieht, WOHIN es ging. */
+function Liste() {
+  const { search } = useLocation();
+  return <p>Angebotsliste{search}</p>;
+}
+
+/**
+ * Seit der Linie „Lot“ liegen die seltenen Aktionen (ablehnen, kopieren,
+ * löschen) im „⋯“ des Seitenkopfs — ein Tipp weiter als in der früheren
+ * Karte „Weiter“. Was die Tests schützen, bleibt: dass es sie gibt und was
+ * sie tun.
+ */
+async function mehrMenue(nutzer: ReturnType<typeof userEvent.setup>, eintrag: string) {
+  await nutzer.click(await screen.findByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
+  await nutzer.click(screen.getByRole('menuitem', { name: eintrag }));
+}
+
 function zeige(id = ANGEBOT.id) {
   return render(
     <MemoryRouter initialEntries={[`/quotes/${id}`]}>
       <ToastProvider>
         <Routes>
           <Route path="/quotes/:id" element={<AngebotView />} />
-          <Route path="/quotes" element={<p>Angebotsliste</p>} />
+          <Route path="/quotes" element={<Liste />} />
         </Routes>
       </ToastProvider>
     </MemoryRouter>,
@@ -221,7 +238,7 @@ describe('Weiter mit dem Angebot', () => {
   it('vermerkt die Ablehnung', async () => {
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click(await screen.findByRole('button', { name: 'Als abgelehnt markieren' }));
+    await mehrMenue(nutzer, 'Als abgelehnt markieren');
     expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, { status: 'Abgelehnt' });
   });
 
@@ -229,7 +246,7 @@ describe('Weiter mit dem Angebot', () => {
     angebot = { ...ANGEBOT, status: 'Entwurf' };
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click(await screen.findByRole('button', { name: 'Löschen' }));
+    await mehrMenue(nutzer, 'Löschen');
     const dialog = await screen.findByRole('dialog');
     await nutzer.click(within(dialog).getByRole('button', { name: /Löschen|Bestätigen|Ja/ }));
     expect(deleteQuote).toHaveBeenCalledWith(ANGEBOT.id);
@@ -252,7 +269,8 @@ describe('Weiter mit dem Angebot', () => {
   it('bietet ein angenommenes Angebot nicht noch einmal zum Annehmen an', async () => {
     angebot = { ...ANGEBOT, status: 'Angenommen', projectNumber: 'B-2026-0007' };
     zeige();
-    await screen.findByText(/Positionen/);
+    // Gewartet wird auf den Kartentitel „Positionen (2)“ — „Positionen“ allein steht auch in der Sprungleiste.
+    await screen.findByText(/Positionen \(/);
     expect(screen.queryByRole('button', { name: /Annehmen/ })).toBeNull();
     // Ansehen und PDF bleiben.
     expect(screen.getByRole('button', { name: /PDF herunterladen/ })).toBeEnabled();
@@ -261,8 +279,10 @@ describe('Weiter mit dem Angebot', () => {
   it('lässt die Buchhaltung ansehen, aber nichts ändern', async () => {
     rolle.wert = 'Buchhaltung';
     zeige();
-    await screen.findByText(/Positionen/);
+    await screen.findByText(/Positionen \(/);
     expect(screen.queryByRole('button', { name: /Annehmen/ })).toBeNull();
+    // Auch das „⋯“ mit Ablehnen, Kopieren und Löschen gibt es für sie nicht.
+    expect(screen.queryByRole('button', { name: /^Weitere Aktionen/ })).toBeNull();
     expect(screen.getByRole('button', { name: /PDF herunterladen/ })).toBeEnabled();
   });
 });
@@ -273,13 +293,14 @@ describe('Weiter mit dem Angebot', () => {
 */
 describe('Fassungen eines Angebots (M17)', () => {
   it('bietet beim versendeten Angebot „Neue Fassung“ und „Als Kopie anlegen“ an', async () => {
+    const nutzer = userEvent.setup();
     zeige();
     expect(await screen.findByRole('link', { name: 'Neue Fassung' })).toHaveAttribute(
       'href', `/quotes?neueFassung=${ANGEBOT.id}`,
     );
-    expect(screen.getByRole('link', { name: 'Als Kopie anlegen' })).toHaveAttribute(
-      'href', `/quotes?kopie=${ANGEBOT.id}`,
-    );
+    // Die Kopie steht seit der Linie „Lot“ im „⋯“ und führt an dieselbe Adresse.
+    await mehrMenue(nutzer, 'Als Kopie anlegen');
+    expect(await screen.findByText(`Angebotsliste?kopie=${ANGEBOT.id}`)).toBeInTheDocument();
   });
 
   it('Gegenprobe: ein Entwurf wird bearbeitet, nicht neu gefasst', async () => {
@@ -295,5 +316,74 @@ describe('Fassungen eines Angebots (M17)', () => {
     zeige();
     expect(await screen.findByRole('link', { name: 'AN-2026-0003' })).toHaveAttribute('href', `/quotes/${VORGAENGER.id}`);
     expect(screen.getByRole('link', { name: 'AN-2026-0009 (Entwurf)' })).toBeInTheDocument();
+  });
+});
+
+/*
+  LINIE „LOT“ (Protokoll E7): die Akte beginnt mit der Zusammenfassung, der
+  Verlauf steht als Lot, und der nächste Schritt hängt am Punkt, an dem das
+  Angebot gerade steht. Seltenes liegt im „⋯“ des Seitenkopfs.
+*/
+describe('Die Akte auf der Linie „Lot“', () => {
+  it('beginnt mit den Kennzahlen — Arbeitszeit und Bindefrist — vor den Positionen', async () => {
+    zeige();
+    const positionen = (await screen.findByText(/Positionen \(2\)/)).closest('section')!;
+    const kennzahl = screen.getByText('Kalkulierte Arbeitszeit');
+    expect(kennzahl.nextSibling).toHaveTextContent('16 h');
+    expect(screen.getByText('Gültig bis').nextSibling).toHaveTextContent('01.10.2099');
+    // Im Dokument vor den Positionen: am Handy steht sie zuerst.
+    expect(kennzahl.compareDocumentPosition(positionen) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('zeigt den Verlauf als Lot: das versendete Angebot steht „jetzt“ beim Versand, mit dem nächsten Schritt', async () => {
+    zeige();
+    const lot = await screen.findByRole('list', { name: 'Verlauf des Angebots' });
+    const punkte = within(lot).getAllByRole('listitem');
+    expect(punkte.map((p) => p.querySelector('.lot-titel')?.textContent)).toEqual(['Angebot erstellt', 'Versendet']);
+    expect(punkte[1]).toHaveAttribute('aria-current', 'step');
+    expect(within(punkte[1]).getByText('Wartet auf die Antwort des Kunden.')).toBeInTheDocument();
+    expect(within(punkte[1]).getByRole('button', { name: 'Annehmen → Baustelle' })).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ein angenommenes Angebot hat keinen „jetzt“-Punkt und keinen Schritt mehr', async () => {
+    angebot = { ...ANGEBOT, status: 'Angenommen', projectNumber: 'B-2026-0007' };
+    zeige();
+    const lot = await screen.findByRole('list', { name: 'Verlauf des Angebots' });
+    expect(within(lot).getByText('Angenommen')).toBeInTheDocument();
+    expect(within(lot).getByText('Baustelle B-2026-0007')).toBeInTheDocument();
+    expect(lot.querySelector('[aria-current]')).toBeNull();
+    expect(within(lot).queryByRole('button')).toBeNull();
+  });
+
+  it('nennt die abgelaufene Bindefrist auch am Punkt im Verlauf', async () => {
+    angebot = { ...ANGEBOT, validUntil: '2020-01-01' };
+    zeige();
+    const lot = await screen.findByRole('list', { name: 'Verlauf des Angebots' });
+    expect(within(lot).getByText(/Die Bindefrist ist abgelaufen\./)).toBeInTheDocument();
+  });
+
+  it('legt die seltenen Aktionen je Status ins „⋯“ — Löschen nur beim Entwurf', async () => {
+    const nutzer = userEvent.setup();
+    angebot = { ...ANGEBOT, status: 'Entwurf' };
+    const { unmount } = zeige();
+    await nutzer.click(await screen.findByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual([
+      'Als abgelehnt markieren', 'Als Kopie anlegen', 'Löschen',
+    ]);
+    unmount();
+
+    // Gegenprobe: angenommen bleibt nur die Kopie.
+    angebot = { ...ANGEBOT, status: 'Angenommen', projectNumber: 'B-2026-0007' };
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Als Kopie anlegen']);
+  });
+
+  it('führt mit der Sprungleiste zu den Abschnitten der Akte', async () => {
+    zeige();
+    const leiste = await screen.findByRole('navigation', { name: 'Auf dieser Seite' });
+    const ziele = within(leiste).getAllByRole('link').map((a) => a.getAttribute('href'));
+    expect(ziele).toEqual(['#angebot-verlauf', '#angebot-angaben', '#angebot-positionen', '#angebot-anmerkungen']);
+    for (const z of ziele) expect(document.querySelector(z!)).not.toBeNull();
   });
 });

@@ -14,6 +14,16 @@ const ARTNAME: Record<string, string> = {
   schluss: 'Schlussrechnung',
 };
 
+/** Eine Handlung an der Rechnung — wie früher ein Eintrag im ⋯ der Zeile. */
+export interface RechnungAktion {
+  label: string;
+  onSelect: () => void;
+  /** Unumkehrbar (Storno) — umrandet in Rot, wie im Menü vorher rot gesetzt. */
+  danger?: boolean;
+  /** Der häufigste nächste Schritt — der eine gefüllte Knopf. */
+  haupt?: boolean;
+}
+
 /**
  * DIE RECHNUNG IN DER APP LESEN (Testbericht 30.09.2026, M19).
  *
@@ -21,35 +31,55 @@ const ARTNAME: Record<string, string> = {
  * drauf, was ist bezahlt“ musste jedes Mal eine Datei her. Hier steht, was
  * die Rechnung festhält: Kopf, Positionen, Summen, Zahlstand, Mahnungen,
  * Storno. Gerechnet wird nichts neu; es ist der gespeicherte Beleg.
+ *
+ * SEIT DER LINIE „LOT“ STEHEN HIER AUCH DIE HANDLUNGEN, die vorher im ⋯ der
+ * Zeile lagen (Regel 3): die Zeile öffnet dieses Seitenfenster, und wer eine
+ * Zahlung erfasst oder mahnt, sieht dabei Betrag, Rest und Mahnstand. Der
+ * Weg ist gleich lang wie vorher — ein Tipp auf die Zeile statt auf das ⋯.
+ * Die Handlungen stehen oben, vor den Einzelheiten: wer zum Zahlen kommt,
+ * soll nicht erst über die Positionen rollen.
  */
 export default function RechnungDetail({
   inv,
   onClose,
-  onPdf,
+  aktionen,
 }: {
   inv: Invoice | null;
   onClose: () => void;
-  onPdf: (inv: Invoice) => void;
+  aktionen: RechnungAktion[];
 }) {
   if (!inv) return null;
   const stand = zahlstand(inv);
+  const name = `${ARTNAME[inv.art ?? 'einzel'] ?? 'Rechnung'} ${inv.invoiceNumber}`;
   const zeile = (wort: string, wert: React.ReactNode) =>
     wert ? (
-      <div className="flex justify-between gap-3 py-1">
-        <dt className="text-ink-muted">{wort}</dt>
+      <div className="rechnung-detail-zeile">
+        {/* Die Bezeichnung bricht nicht: am Handy stand sonst „Gemahn|t“. */}
+        <dt className="shrink-0 text-ink-muted">{wort}</dt>
         <dd className="text-right text-ink">{wert}</dd>
       </div>
     ) : null;
 
   return (
-    <BottomSheet open auchBreit onClose={onClose} label={`${ARTNAME[inv.art ?? 'einzel'] ?? 'Rechnung'} ${inv.invoiceNumber}`}>
-      <div className="space-y-4 px-4 pb-4 text-sm">
-        <div>
-          <p className="text-base font-semibold text-ink-deep">
-            {ARTNAME[inv.art ?? 'einzel'] ?? 'Rechnung'} {inv.invoiceNumber}
-          </p>
-          <p className="text-ink-muted">{inv.customerName}{inv.customerVatId ? ` · UID ${inv.customerVatId}` : ''}</p>
-        </div>
+    <BottomSheet open auchBreit onClose={onClose} label={name} titel={name}>
+      <div className="space-y-4 text-sm">
+        <p className="text-ink-muted">
+          {inv.customerName}{inv.customerVatId ? ` · UID ${inv.customerVatId}` : ''}
+        </p>
+
+        {aktionen.length > 0 && (
+          <div className="rechnung-detail-aktionen">
+            {aktionen.map((a) => (
+              <Button
+                key={a.label}
+                variant={a.haupt ? 'primary' : a.danger ? 'danger' : 'secondary'}
+                onClick={a.onSelect}
+              >
+                {a.label}
+              </Button>
+            ))}
+          </div>
+        )}
 
         <dl className="divide-y divide-line">
           {zeile('Rechnungsdatum', datumAT(inv.invoiceDate))}
@@ -65,9 +95,9 @@ export default function RechnungDetail({
           <table className="w-full text-left">
             <thead>
               <tr className="text-xs text-ink-muted">
-                <th className="py-1 font-medium">Bezeichnung</th>
-                <th className="py-1 text-right font-medium">Menge</th>
-                <th className="py-1 text-right font-medium">Netto</th>
+                <th className="py-1 font-normal">Bezeichnung</th>
+                <th className="py-1 text-right font-normal">Menge</th>
+                <th className="py-1 text-right font-normal">Netto</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -99,7 +129,7 @@ export default function RechnungDetail({
         <dl className="divide-y divide-line">
           {/* Gegliedert wie Vorschau und PDF — mit Abzug der Anzahlung (N2). */}
           {detailSummen(inv).map((z, i) => (
-            <div key={i} className={`flex justify-between gap-3 py-1 ${z.abzug ? 'text-danger' : ''}`}>
+            <div key={i} className={z.abzug ? 'rechnung-detail-abzug' : 'rechnung-detail-zeile'}>
               <dt className={z.abzug ? '' : 'text-ink-muted'}>{z.wort}</dt>
               <dd className="whitespace-nowrap text-right text-ink">
                 {z.betont ? <b>{euro(z.betrag)}</b> : z.abzug ? `−${euro(z.betrag)}` : euro(z.betrag)}
@@ -122,11 +152,6 @@ export default function RechnungDetail({
           {zeile('Storno', inv.cancellationNote)}
           {zeile('Stornorechnung', inv.stornoNummer)}
         </dl>
-
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={() => onPdf(inv)}>PDF laden</Button>
-          <Button variant="ghost" onClick={onClose}>Schließen</Button>
-        </div>
       </div>
     </BottomSheet>
   );

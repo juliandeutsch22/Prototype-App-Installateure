@@ -157,6 +157,7 @@ export default function NotificationSettings() {
   return (
     <div className="space-y-6">
       <PageHeader
+        ort="Einstellungen"
         title="Mein Konto"
         subtitle="Benachrichtigungen und Passwort — alles, was nur dich betrifft"
       />
@@ -177,7 +178,7 @@ export default function NotificationSettings() {
         <p
           className={
             zustand.ton === 'ok'
-              ? 'font-medium text-success'
+              ? 'font-normal text-success'
               : zustand.ton === 'hinweis'
                 ? 'text-warning'
                 : 'text-ink-muted'

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { einplanbar } from '@/lib/permissions';
 import { listActiveProjects } from '@/lib/db/projects';
@@ -15,12 +15,20 @@ import type { Project, AppUser, Assignment, Betriebsurlaub, Termin } from '@/typ
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
+import { List, ListRow } from '@/components/ListRow';
+import { MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import { ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { montagDer, wocheAb, wocheVerschoben } from './wochenplan';
+import { monatsTage, monatsTitel, wochenTitel } from './planungKopf';
+import { einsatzZeit } from './einsatzZeit';
+import { nachEinstufung, tagKurz, type Brett, type TagBaustelle, type TagStand, type Zelle } from './planTypen';
+import { BaustellenRaster, PersonenRaster } from './PlanRaster';
+import MonatsAnsicht from './MonatsAnsicht';
+import EinsatzFenster, { type FensterStart } from './EinsatzFenster';
 import KalenderAboKarte from './KalenderAboKarte';
 
 /**
- * Das Wochenbrett: wer ist diese Woche wo — und wer ist frei.
+ * DIE PLANUNG DER WOCHE: wer ist wo — wer ist frei — und gleich einteilen.
  *
  * WELCHE FRAGE ES BEANTWORTET, und warum die Tagesplanung sie nicht kann.
  * Dort steht ein Tag und eine Baustelle. Wer wissen will, ob Donnerstag noch
@@ -28,34 +36,14 @@ import KalenderAboKarte from './KalenderAboKarte';
  * merken. Bei zwanzig Mitarbeitern behält das niemand im Kopf — und genau
  * daran scheitert die Planung, nicht am Eintragen.
  *
- * ES WIRD HIER NICHTS GESCHRIEBEN, und das ist eine Entscheidung, keine
- * Auslassung. Das Speichern der Einteilung ist ein „alles weg, dann alles
- * neu" für das Paar aus Tag und Baustelle; ein zweiter Schreibweg daneben
- * hieße, denselben gefährlichen Vorgang zweimal richtig hinzubekommen und
- * zweimal richtig zu halten. Ein Tipp auf eine Zelle führt deshalb in die
- * Tagesplanung — mit Tag und Baustelle schon eingestellt.
- *
- * Die Ansicht ersetzt die Tagesplanung also NICHT, sie beantwortet die
- * Frage davor.
+ * SEIT DER LINIE „LOT“ (Protokoll E2) WIRD HIER AUCH EINGETEILT — im
+ * Seitenfenster, mit Tag und Person bzw. Baustelle schon gewählt. Bis dahin
+ * führte jeder Tipp in die Tagesplanung, weil ein zweiter Schreibweg
+ * denselben gefährlichen Vorgang („alles weg, dann alles neu“ für das Paar
+ * aus Tag und Baustelle) zweimal gebraucht hätte. Das bleibt wahr: das
+ * Fenster benutzt DASSELBE Formular wie „Tag planen“ (`EinsatzFormular`),
+ * nicht ein zweites. Der Kopf eines Tages führt weiter in „Tag planen“.
  */
-
-function tagKurz(iso: string): { wochentag: string; datum: string } {
-  const d = new Date(`${iso}T00:00:00`);
-  return {
-    wochentag: d.toLocaleDateString('de-AT', { weekday: 'short' }),
-    datum: d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit' }),
-  };
-}
-
-/** Was in einer Zelle steht. */
-interface Zelle {
-  /** Kundennamen der Baustellen, auf denen diese Person an dem Tag steht. */
-  baustellen: { nummer: string; name: string; helfer: boolean }[];
-  /** Den ganzen Tag weg — Urlaub, ganztägiger ZA, krank. */
-  imUrlaub: boolean;
-  /** Was in der Zelle steht: „Urlaub", „ZA", „Krank" — oder „abwesend". */
-  abwesendText: string | null;
-}
 
 /**
  * „Urlaub", „ZA 13:00–17:00", „abwesend".
@@ -68,6 +56,12 @@ function abwesendText(a: Pick<Abwesenheit, 'grund' | 'zeiten'>): string {
   return [a.grund ?? 'abwesend', a.zeiten].filter(Boolean).join(' ');
 }
 
+/** „Noch einzuplanen“: höchstens so viele, dann „und N weitere“ (Regel 4). */
+const ABLAGE_SEITE = 20;
+
+type Ansicht = 'woche' | 'monat';
+type Sicht = 'personen' | 'baustellen';
+
 /**
  * `nurLesen`: die Team-Woche für alle Mitarbeiter (Betriebseinstellung
  * „Wochenplan für alle"). Dieselbe Rechnung, dieselben Daten — aber nichts zum
@@ -79,8 +73,29 @@ function abwesendText(a: Pick<Abwesenheit, 'grund' | 'zeiten'>): string {
 export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolean }) {
   const { user, company, einblick } = useAuth();
   const navigate = useNavigate();
+  const heute = todayStr();
 
-  const [montag, setMontag] = useState(() => montagDer(todayStr()));
+  /*
+    ANSICHT UND SICHT STEHEN IN DER ADRESSE (Regel 4): die Monatsansicht als
+    Lesezeichen, und der Zurück-Knopf führt dorthin zurück, wo man war. Die
+    Team-Woche der Monteure kennt nur die Woche.
+  */
+  const [adresse, setAdresse] = useSearchParams();
+  const ansicht: Ansicht = !nurLesen && adresse.get('ansicht') === 'monat' ? 'monat' : 'woche';
+  const sicht: Sicht = !nurLesen && adresse.get('sicht') === 'baustellen' ? 'baustellen' : 'personen';
+  const setzeAdresse = (schluessel: string, wert: string | null) =>
+    setAdresse(
+      (alt) => {
+        const neu = new URLSearchParams(alt);
+        if (wert) neu.set(schluessel, wert);
+        else neu.delete(schluessel);
+        return neu;
+      },
+      { replace: true },
+    );
+
+  const [montag, setMontag] = useState(() => montagDer(heute));
+  const [monat, setMonat] = useState(() => ({ jahr: Number(heute.slice(0, 4)), monat: Number(heute.slice(5, 7)) - 1 }));
   const [users, setUsers] = useState<AppUser[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [einsaetze, setEinsaetze] = useState<WithId<Assignment>[]>([]);
@@ -89,9 +104,18 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
   const [termine, setTermine] = useState<Termin[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
+  /** Das Seitenfenster „Einsatz planen“ — offen mit Tag, Person oder Baustelle. */
+  const [fenster, setFenster] = useState<FensterStart | null>(null);
+  /** Eingeklappte Gruppen im Raster. */
+  const [zuGruppen, setZuGruppen] = useState<Set<string>>(new Set());
+  const [ablageGezeigt, setAblageGezeigt] = useState(ABLAGE_SEITE);
 
-  const tage = useMemo(() => wocheAb(montag), [montag]);
-  const bis = tage[6];
+  const tage = useMemo(
+    () => (ansicht === 'monat' ? monatsTage(monat.jahr, monat.monat) : wocheAb(montag)),
+    [ansicht, monat.jahr, monat.monat, montag],
+  );
+  const von = tage[0];
+  const bis = tage[tage.length - 1];
 
   useEffect(() => {
     if (!user) return;
@@ -103,13 +127,13 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
 
   useEffect(() => {
     if (!user) return;
-    return subscribeAssignmentsInRange(user.companyId, montag, bis, setEinsaetze, (e) =>
+    return subscribeAssignmentsInRange(user.companyId, von, bis, setEinsaetze, (e) =>
       setError(e.message),
     );
-  }, [user, montag, bis]);
+  }, [user, von, bis]);
 
   /**
-   * Wer in der Woche fehlt: genehmigter Urlaub und Zeitausgleich,
+   * Wer im Zeitraum fehlt: genehmigter Urlaub und Zeitausgleich,
    * Krankmeldungen.
    *
    * Nur GENEHMIGTES: ein beantragter Urlaub ist noch keiner, und ihn hier als
@@ -122,7 +146,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
   useEffect(() => {
     if (!user) return;
     let verworfen = false;
-    listAbwesendInRange(montag, bis)
+    listAbwesendInRange(von, bis)
       .then((r) => {
         if (!verworfen) setUrlaube(r);
       })
@@ -134,18 +158,18 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
     return () => {
       verworfen = true;
     };
-  }, [user, montag, bis]);
+  }, [user, von, bis]);
 
   /*
-    DIE TERMINE DER WOCHE (Plan 10.4): eine Lieferung am Dienstag 8–10 soll
-    der Planer neben den Leuten sehen. Was jemand sieht, entscheidet der
+    DIE TERMINE DES ZEITRAUMS (Plan 10.4): eine Lieferung am Dienstag 8–10
+    soll der Planer neben den Leuten sehen. Was jemand sieht, entscheidet der
     Zeilenschutz — in der Team-Woche nur die eigenen und die auf Baustellen,
     auf denen man an dem Tag steht.
   */
   useEffect(() => {
     if (!user) return;
     let verworfen = false;
-    listTermineImZeitraum(user.companyId, montag, bis)
+    listTermineImZeitraum(user.companyId, von, bis)
       .then((t) => {
         if (!verworfen) setTermine(t);
       })
@@ -158,14 +182,14 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
     return () => {
       verworfen = true;
     };
-  }, [user, montag, bis]);
-  const termineAm = (tag: string) => termine.filter((t) => t.datum === tag);
+  }, [user, von, bis]);
+  const termineAm = useCallback((tag: string) => termine.filter((t) => t.datum === tag), [termine]);
 
   /** Der Betrieb hat zu — an diesen Tagen ist niemand „frei". */
   useEffect(() => {
     if (!user) return;
     let verworfen = false;
-    listBetriebsurlaubeImZeitraum(user.companyId, montag, bis)
+    listBetriebsurlaubeImZeitraum(user.companyId, von, bis)
       .then((r) => {
         if (!verworfen) setBetriebsurlaube(r);
       })
@@ -175,7 +199,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
     return () => {
       verworfen = true;
     };
-  }, [user, montag, bis]);
+  }, [user, von, bis]);
 
   /** Tag -> Bezeichnung des Betriebsurlaubs, falls einer ist. */
   const zuAm = useMemo(() => {
@@ -210,10 +234,11 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
         .sort((a, b) => a.name.localeCompare(b.name, 'de')),
     [users, company],
   );
+  const gruppen = useMemo(() => nachEinstufung(staff), [staff]);
 
   /** uid -> Tag -> was dort steht. */
   const brett = useMemo(() => {
-    const m = new Map<string, Map<string, Zelle>>();
+    const m: Brett = new Map();
     const hole = (uid: string, tag: string): Zelle => {
       const proTag = m.get(uid) ?? new Map<string, Zelle>();
       m.set(uid, proTag);
@@ -227,6 +252,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
         nummer: a.projectNumber,
         name: proj?.customerName ?? a.projectNumber,
         helfer: !!a.asHelper,
+        zeit: einsatzZeit(a),
       });
     }
     for (const v of urlaube) {
@@ -246,24 +272,19 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
   /**
    * Je Tag zusammengefasst: welche Baustelle mit wem, wer frei, wer im Urlaub.
    *
-   * BEIDE DARSTELLUNGEN RECHNEN DAMIT — die Tabelle am Schreibtisch und die
-   * Tagesliste auf dem Telefon. Zwei getrennte Rechnungen hiessen zwei Orte,
-   * an denen „frei" etwas anderes heissen kann.
+   * ALLE DARSTELLUNGEN RECHNEN DAMIT — das Raster am Schreibtisch, die Sicht
+   * nach Baustellen und die Tagesliste auf dem Telefon. Getrennte Rechnungen
+   * hiessen mehrere Orte, an denen „frei" etwas anderes heissen kann.
    */
   const proTag = useMemo(() => {
-    const m = new Map<
-      string,
-      {
-        baustellen: { nummer: string; name: string; namen: string[]; helfer: string[]; fehlen: string[] }[];
-        frei: string[];
-        urlaub: string[];
-      }
-    >();
+    const m = new Map<string, TagStand>();
     for (const tag of tage) {
-      const nachNummer = new Map<
-        string,
-        { nummer: string; name: string; namen: string[]; helfer: string[]; fehlen: string[] }
-      >();
+      const nachNummer = new Map<string, TagBaustelle>();
+      const eintrag = (b: Zelle['baustellen'][number]) => {
+        const e = nachNummer.get(b.nummer) ?? { nummer: b.nummer, name: b.name, namen: [], helfer: [], fehlen: [], zeit: b.zeit };
+        nachNummer.set(b.nummer, e);
+        return e;
+      };
       const frei: string[] = [];
       const urlaub: string[] = [];
       for (const u of staff) {
@@ -280,9 +301,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
         */
         if (z?.imUrlaub) {
           for (const b of z.baustellen) {
-            const e = nachNummer.get(b.nummer) ?? { nummer: b.nummer, name: b.name, namen: [], helfer: [], fehlen: [] };
-            e.fehlen.push(z.abwesendText && z.abwesendText !== 'abwesend' ? `${u.name} (${z.abwesendText})` : u.name);
-            nachNummer.set(b.nummer, e);
+            eintrag(b).fehlen.push(z.abwesendText && z.abwesendText !== 'abwesend' ? `${u.name} (${z.abwesendText})` : u.name);
           }
           continue;
         }
@@ -292,16 +311,9 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
           continue;
         }
         for (const b of z.baustellen) {
-          const e = nachNummer.get(b.nummer) ?? {
-            nummer: b.nummer,
-            name: b.name,
-            namen: [],
-            helfer: [],
-            fehlen: [],
-          };
+          const e = eintrag(b);
           e.namen.push(u.name);
           if (b.helfer) e.helfer.push(u.name);
-          nachNummer.set(b.nummer, e);
         }
       }
       m.set(tag, {
@@ -320,12 +332,25 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
     return m;
   }, [tage, proTag]);
 
-  function wocheVerschieben(wochen: number) {
-    setMontag(wocheVerschoben(montag, wochen));
-  }
+  /*
+    NOCH EINZUPLANEN (Linie „Lot“, E2): laufende Baustellen ohne einen
+    einzigen Einsatz in dieser Woche — aus den Daten, die die Seite ohnehin
+    hat. Fällige Wartungen kennt der Wochenplan nicht; sie stehen weiter
+    unter „Wartungen“.
+  */
+  const ohneEinsatz = useMemo(() => {
+    if (ansicht !== 'woche') return [];
+    const geplant = new Set(einsaetze.map((a) => a.projectNumber));
+    return projects
+      .filter((p) => !geplant.has(p.projectNumber))
+      .sort((a, b) => (a.customerName ?? '').localeCompare(b.customerName ?? '', 'de'));
+  }, [ansicht, einsaetze, projects]);
+
+  /** Für das Fenster aus dem Kopf: heute, wenn er im Zeitraum liegt, sonst der erste Tag. */
+  const standardTag = tage.includes(heute) ? heute : tage[0];
 
   /**
-   * Von der Zelle in die Tagesplanung — mit Tag und Baustelle eingestellt.
+   * In „Tag planen“ — mit Tag und, wo eindeutig, Baustelle eingestellt.
    *
    * Bei mehreren Baustellen wird nur der Tag mitgegeben: welche gemeint ist,
    * kann das Brett nicht wissen, und eine geratene Vorauswahl wäre schlimmer
@@ -335,27 +360,49 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
     navigate('/assignments/tag', { state: { datum: tag, projectNumber: nummer } });
   }
 
+  function blaettern(schritt: number) {
+    if (ansicht === 'monat') {
+      setMonat((m) => {
+        const d = new Date(m.jahr, m.monat + schritt, 1);
+        return { jahr: d.getFullYear(), monat: d.getMonth() };
+      });
+    } else {
+      setMontag(wocheVerschoben(montag, schritt));
+    }
+  }
+
+  function zeitraumWechseln(neu: Ansicht) {
+    if (neu === 'monat') {
+      // Der Monat, in dem der Donnerstag der gezeigten Woche liegt — wie die KW.
+      const donnerstag = wocheAb(montag)[3];
+      setMonat({ jahr: Number(donnerstag.slice(0, 4)), monat: Number(donnerstag.slice(5, 7)) - 1 });
+    }
+    setzeAdresse('ansicht', neu === 'monat' ? 'monat' : null);
+  }
+
+  /** Vom Monat in die Woche dieses Tages. */
+  function zurWoche(tag: string) {
+    setMontag(montagDer(tag));
+    setzeAdresse('ansicht', null);
+  }
+
   if (!user) return null;
 
-  const heute = todayStr();
+  const kopf =
+    ansicht === 'monat' ? monatsTitel(monat.jahr, monat.monat) : wochenTitel(montag, heute);
+  const jetzt =
+    ansicht === 'monat'
+      ? monat.jahr === Number(heute.slice(0, 4)) && monat.monat === Number(heute.slice(5, 7)) - 1
+      : montag === montagDer(heute);
+  const einheit = ansicht === 'monat' ? 'Monat' : 'Woche';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-5">
       <PageHeader
+        ort={nurLesen ? 'Mein Einsatzplan' : 'Einsatzplanung'}
         title={nurLesen ? 'Team-Woche' : 'Wochenplan'}
-        subtitle={
-          nurLesen
-            ? 'Wer ist diese Woche wo'
-            : 'Wer ist diese Woche wo — und wer ist noch frei'
-        }
-      />
-
-      {nebenFehler && <TeilFehler was={nebenFehler} />}
-      {error && <ErrorState message={error} />}
-
-      <Card
-        title={`${tagKurz(montag).datum} – ${tagKurz(bis).datum}`}
-        hint={
+        subtitle={nurLesen ? 'Wer ist diese Woche wo' : 'Wer ist diese Woche wo — und wer ist noch frei'}
+        hilfe={
           nurLesen ? (
             <>
               Zeigt, wer an welchem Tag auf welcher Baustelle eingeteilt ist. Geplant wird im
@@ -363,430 +410,197 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
               Grund da. Der Plan zeigt Einsätze, nicht gebuchte Zeiten.
             </>
           ) : (
-          <>
-            Der Wochenplan zeigt, was geplant IST. Geändert wird in der Tagesplanung — ein Tipp
-            auf einen Tag oder eine Baustelle führt dorthin, mit beidem schon eingestellt.
-            <br />
-            <br />
-            Gezählt als frei ist, wer an diesem Tag auf keiner Baustelle steht und keinen
-            genehmigten Urlaub hat. Der Wochenplan zeigt Einsätze, nicht gebuchte Zeiten: wer ohne
-            Einsatz Stunden bucht, steht hier trotzdem als frei. Wochenende und Feiertage sind hinterlegt, aber nicht
-            ausgenommen — an einem Notdienst wird auch sonntags gearbeitet.
-          </>
+            <>
+              <p>
+                Ein Tipp auf eine freie Zelle, einen Einsatz oder eine Baustelle unter „Noch
+                einzuplanen“ öffnet das Seitenfenster — Tag, Person und Baustelle sind schon
+                gewählt. Ein Tipp auf den Kopf eines Tages öffnet ihn in „Tag planen“, mit den
+                Terminen und allen Einsätzen des Tages.
+              </p>
+              <p className="mt-2">
+                Gezählt als frei ist, wer an diesem Tag auf keiner Baustelle steht und keinen
+                genehmigten Urlaub hat. Der Wochenplan zeigt Einsätze, nicht gebuchte Zeiten: wer
+                ohne Einsatz Stunden bucht, steht hier trotzdem als frei. Wochenende und Feiertage
+                sind hinterlegt, aber nicht ausgenommen — an einem Notdienst wird auch sonntags
+                gearbeitet. Bernstein heißt: eingeteilt, aber abwesend.
+              </p>
+            </>
           )
         }
         action={
-          /*
-            EINE ZEILE, AUCH AUF 390 px. Mit „‹ Woche / Diese Woche / Woche ›"
-            brach die Leiste auf dem Telefon auf zwei Zeilen um und schob das
-            Brett noch weiter nach unten. Die Pfeile brauchen kein Wort — was
-            sie tun, sagt die Zeitspanne im Kartentitel daneben.
-          */
-          <div className="flex items-center gap-1">
-            {/* So gross wie die übrigen Knöpfe — ein einzelnes Zeichen gab
-                ein Ziel von halber Daumenbreite (Launch-Check 25.09.2026).
-                Das Ziel ist 48 × 48 px (`min-h-touch` aus `Button`,
-                `min-w-touch` hier), wie die Monatspfeile im Kalender.
-
-                `sm:text-xl` steht mit Absicht neben `text-xl`: `Button`
-                bringt `sm:text-base` mit, und das gewann ab 640 px — am
-                Schreibtisch stand das Zeichen dann in Fliesstextgrösse
-                mitten in einem Ziel von 48 px und war kaum zu finden. */}
-            <Button variant="ghost" aria-label="Woche zurück" className="min-w-touch text-xl sm:text-xl" onClick={() => wocheVerschieben(-1)}>
-              ‹
-            </Button>
-            <Button variant="ghost" onClick={() => setMontag(montagDer(todayStr()))}>
-              Diese Woche
-            </Button>
-            <Button variant="ghost" aria-label="Woche vor" className="min-w-touch text-xl sm:text-xl" onClick={() => wocheVerschieben(1)}>
-              ›
-            </Button>
-          </div>
+          nurLesen ? undefined : (
+            <Button onClick={() => setFenster({ datum: standardTag })}>Einsatz planen</Button>
+          )
         }
-      >
-        {staff.length === 0 ? (
+      />
+
+      {nebenFehler && <TeilFehler was={nebenFehler} />}
+      {error && <ErrorState message={error} />}
+
+      <div className="planung-steuerung">
+        {/*
+          EINE ZEILE, AUCH AUF 390 px: Pfeile, dazwischen groß „Diese Woche“
+          und klein die KW. Die Pfeile sind 48 × 48 px (`min-h-touch` aus
+          `Button`, `min-w-touch` hier); `sm:text-xl` neben `text-xl`, weil
+          `Button` ab 640 px `sm:text-base` mitbringt (Launch-Check 25.09.2026).
+        */}
+        <div className="planung-woche">
+          <Button variant="ghost" aria-label={`${einheit} zurück`} className="min-w-touch text-xl sm:text-xl" onClick={() => blaettern(-1)}>
+            ‹
+          </Button>
+          <div className="planung-titelblock">
+            <h2 className="planung-titel">{kopf.titel}</h2>
+            <p className="planung-kw">{kopf.klein}</p>
+          </div>
+          <Button variant="ghost" aria-label={`${einheit} vor`} className="min-w-touch text-xl sm:text-xl" onClick={() => blaettern(1)}>
+            ›
+          </Button>
+          {/* Zurück zu heute — nur, wo man nicht schon dort ist. */}
+          {!jetzt && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setMontag(montagDer(heute));
+                setMonat({ jahr: Number(heute.slice(0, 4)), monat: Number(heute.slice(5, 7)) - 1 });
+              }}
+            >
+              {ansicht === 'monat' ? 'Dieser Monat' : 'Diese Woche'}
+            </Button>
+          )}
+        </div>
+        {!nurLesen && (
+          <div className="planung-wahl">
+            <Segmente
+              name="Zeitraum"
+              werte={[{ wert: 'woche', text: 'Woche' }, { wert: 'monat', text: 'Monat' }]}
+              wert={ansicht}
+              onChange={zeitraumWechseln}
+            />
+            {/* Am Handy steht ohnehin die Tagesliste nach Baustellen — dort kein Umschalter. */}
+            {ansicht === 'woche' && (
+              <div className="hidden md:block">
+              <Segmente
+                name="Sicht"
+                werte={[{ wert: 'personen', text: 'Personen' }, { wert: 'baustellen', text: 'Baustellen' }]}
+                wert={sicht}
+                onChange={(s) => setzeAdresse('sicht', s === 'baustellen' ? 'baustellen' : null)}
+              />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {staff.length === 0 ? (
+        <Card buendig>
           <EmptyState>
             Keine aktiven Mitarbeiter im Außendienst. Ohne sie gibt es nichts einzuteilen.
           </EmptyState>
-        ) : (
-          /*
-            WAAGRECHT ROLLBAR, mit stehender Namensspalte. Sieben Tage passen
-            auf 390 px nicht nebeneinander; ohne die stehende Spalte wüsste
-            beim Rollen niemand mehr, wessen Zeile er liest.
-          */
-          <>
-          {/*
-            DIE TABELLE ERST AB TABLET. Sieben Spalten auf 390 px sind keine
-            Tabelle mehr, sondern ein Guckloch: zwei Tage sichtbar, der Rest
-            hinter einem waagrechten Bildlauf. Auf dem Telefon steht deshalb
-            eine Tagesliste (weiter unten) — dieselben Daten, senkrecht.
+        </Card>
+      ) : ansicht === 'monat' ? (
+        <MonatsAnsicht
+          tage={tage}
+          heute={heute}
+          gruppen={gruppen}
+          zu={zuGruppen}
+          onGruppe={(g) => setZuGruppen((alt) => umschalten(alt, g))}
+          brett={brett}
+          zuFuer={zuFuer}
+          einsaetze={einsaetze}
+          projects={projects}
+          urlaube={urlaube}
+          staff={staff}
+          onTag={zurWoche}
+        />
+      ) : (
+        <div className={nurLesen ? undefined : 'planung-layout'}>
+          <Card buendig>
+            {sicht === 'baustellen' ? (
+              <BaustellenRaster
+                tage={tage}
+                heute={heute}
+                proTag={proTag}
+                freiJeTag={freiJeTag}
+                zuAm={zuAm}
+                termine={termine}
+                termineAm={termineAm}
+                onTag={(tag) => zurTagesplanung(tag)}
+                onZelle={setFenster}
+              />
+            ) : (
+              <PersonenRaster
+                tage={tage}
+                heute={heute}
+                nurLesen={nurLesen}
+                gruppen={gruppen}
+                zu={zuGruppen}
+                onGruppe={(g) => setZuGruppen((alt) => umschalten(alt, g))}
+                brett={brett}
+                freiJeTag={freiJeTag}
+                zuAm={zuAm}
+                zuFuer={zuFuer}
+                termine={termine}
+                termineAm={termineAm}
+                onTag={(tag) => zurTagesplanung(tag)}
+                onZelle={setFenster}
+              />
+            )}
 
-            Die negativen Raender (`-mx-4 px-4`) sind bewusst WEG: zusammen
-            mit `sticky left-0` schob sich der Inhalt der gerollten Spalten
-            in die 16 px Polsterung links neben die Namensspalte. Aus dem
-            Betrieb gemeldet, und im Bildschirmfoto gut zu sehen.
-          */}
-          <div className="hidden overflow-x-auto md:block">
             {/*
-              FESTES TABELLENLAYOUT (`table-fixed`): feste Namensspalte, die
-              sieben Tage teilen sich den Rest zu gleichen Teilen. Im
-              automatischen Layout nahm ein Tag mit langem Kundennamen die
-              ganze Breite, Mo–Do schrumpften bei 834 px auf 17–29 px und
-              brachen je Buchstabe um, Sa/So lagen außer Sicht. Erst mit
-              fester Spaltenbreite greift das `truncate` in den Zellen; was
-              darunter nicht passt, rollt in dieser Hülle, nicht die Seite
-              (Prüflauf 25.09.2026, P4-01).
+              DIE TAGESLISTE — die Telefonansicht.
 
-              ENG GENUG FÜR DIE GANZE WOCHE bei 834 px (Designlinie „Fassung
-              3"): Namensspalte 112 px, Samstag und Sonntag je 48 px, die
-              Werktage teilen den Rest. Ab 1024 px ist die Namensspalte 144 px breit, ab 1280 px
-              160 px, das Wochenende so breit wie die Werktage. Ein langer
-              Kundenname wird gekürzt — die Baustellennummer darunter und
-              der Tipp in die Tagesplanung sagen, welche es ist.
+              Sie beantwortet dieselbe Frage in der Reihenfolge, in der man sie
+              auf dem Telefon stellt: erst der Tag, dann wer dort ist, dann wer
+              noch frei wäre. Kein waagrechter Bildlauf, keine stehende Spalte,
+              nichts, was sich überlagern kann.
+
+              Die freien Namen stehen AUSGESCHRIEBEN, nicht nur als Zahl. Am
+              Schreibtisch liest man sie aus der Spalte ab; hier gäbe es dafür
+              keine Spalte.
             */}
-            <table
-              aria-label="Wochenplan als Tabelle"
-              className="w-full min-w-[30rem] table-fixed border-separate border-spacing-0 text-meta"
-            >
-              <thead>
-                <tr>
-                  <th className="sticky left-0 z-10 w-28 bg-surface p-2 text-left align-bottom lg:w-36 xl:w-40">
-                    <span className="section-label">Mitarbeiter</span>
-                  </th>
-                  {tage.map((tag) => {
-                    const { wochentag, datum } = tagKurz(tag);
-                    const feiertag = getAustrianHolidayName(new Date(`${tag}T00:00:00`));
-                    const wochenende = isWeekend(new Date(`${tag}T00:00:00`));
-                    const frei = freiJeTag.get(tag) ?? 0;
-                    const zu = zuAm.get(tag);
-                    return (
-                      <th
-                        key={tag}
-                        // Samstag und Sonntag schmäler, bis Platz ist: meist leer, und
-                        // so bleiben den Werktagen bei 834 px rund 64 px statt 47.
-                        className={`border-b border-line px-1 py-2 text-center font-normal ${
-                          wochenende ? 'w-12 xl:w-auto' : ''
-                        } ${feiertag ? 'bg-warning-bg' : wochenende || zu ? 'bg-surface-2' : ''}`}
-                      >
-                        {nurLesen ? (
-                          <span className="block px-1 py-1">
-                            <span
-                              className={`block font-semibold ${
-                                tag === heute ? 'text-brand underline' : 'text-ink'
-                              }`}
-                            >
-                              {wochentag}
-                            </span>
-                            <span className="block text-xs text-ink-muted">{datum}</span>
-                            {zu && <span className="mt-1 block text-xs text-ink-muted">{zu}</span>}
-                          </span>
-                        ) : (
-                        <button
-                          type="button"
-                          onClick={() => zurTagesplanung(tag)}
-                          className="w-full rounded px-1 py-1"
-                          aria-label={`${wochentag} ${datum} in der Tagesplanung öffnen`}
-                        >
-                          <span
-                            className={`block font-semibold ${
-                              tag === heute ? 'text-brand underline' : 'text-ink'
-                            }`}
-                          >
-                            {wochentag}
-                          </span>
-                          <span className="block text-xs text-ink-muted">{datum}</span>
-                          {/* Die Zahl, wegen der es dieses Brett gibt — an
-                              Wochenende und Feiertag nicht: dort ist niemand
-                              „frei", sondern keiner im Dienst (Prüflauf
-                              24.09.2026, D15). */}
-                          {(zu || (!wochenende && !feiertag)) && (
-                            <span className="mt-1 block text-xs text-ink-muted">
-                              {/* Mit Ausgenommenen ist auch am Betriebsurlaub
-                                  jemand frei — dann steht beides da. */}
-                              {zu ? (frei > 0 ? `${zu} · ${frei} frei` : zu) : `${frei} frei`}
-                            </span>
-                          )}
-                        </button>
-                        )}
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {termine.length > 0 && (
-                  <tr>
-                    <th
-                      scope="row"
-                      className="sticky left-0 z-10 border-b border-line bg-surface p-2 text-left font-medium text-ink"
-                    >
-                      Termine
-                    </th>
-                    {tage.map((tag) => (
-                      <td key={tag} className="border-b border-line p-1 align-top">
-                        <span className="flex flex-col gap-1">
-                          {termineAm(tag).map((t) => (
-                            <span
-                              key={t.id}
-                              title={`${terminKopf(t)} · ${bezugText(t)}`}
-                              className="block rounded-sm border border-line px-1.5 py-1 text-left text-xs"
-                            >
-                              <span className="block truncate font-medium text-ink">{terminKopf(t)}</span>
-                              <span className="block truncate text-ink-muted">{bezugText(t)}</span>
-                            </span>
-                          ))}
-                        </span>
-                      </td>
-                    ))}
-                  </tr>
-                )}
-                {staff.map((u) => (
-                  <tr key={u.uid}>
-                    <th
-                      scope="row"
-                      className="sticky left-0 z-10 max-w-[7rem] truncate border-b lg:max-w-[9rem] xl:max-w-[10rem] border-line bg-surface p-2 text-left font-medium text-ink"
-                    >
-                      {u.name}
-                    </th>
-                    {tage.map((tag) => {
-                      const z = brett.get(u.uid)?.get(tag);
-                      const feiertag = !!getAustrianHolidayName(new Date(`${tag}T00:00:00`));
-                      const wochenende = isWeekend(new Date(`${tag}T00:00:00`));
-                      const leer = !z || (z.baustellen.length === 0 && !z.imUrlaub);
-                      const zu = zuAm.get(tag);
-                      const zuPerson = zuFuer(u.uid, tag);
-                      return (
-                        <td
-                          key={tag}
-                          className={`border-b border-line p-1 align-top ${
-                            feiertag ? 'bg-warning-bg' : wochenende || zu ? 'bg-surface-2' : ''
-                          }`}
-                        >
-                          {/*
-                            STUNDENWEISE WEG steht über dem, was sonst in der
-                            Zelle steht: vormittags eingeteilt, nachmittags ZA.
-                          */}
-                          {z?.abwesendText && !z.imUrlaub && (
-                            <span className="mb-1 block text-center text-xs text-ink-muted">{z.abwesendText}</span>
-                          )}
-                          {zuPerson && (!z || z.baustellen.length === 0) ? (
-                            /*
-                              DER BETRIEB HAT ZU — für alle derselbe graue
-                              Block, auch für den, der dabei persönlich Urlaub
-                              gebucht bekam. Nicht für Ausgenommene: die
-                              arbeiten und sind einteilbar. Wer trotzdem eingeteilt ist (etwa
-                              ein Notdienst), steht mit seiner Baustelle da.
-                            */
-                            <span className="block rounded-sm bg-surface-2 px-2 py-1 text-center text-xs text-ink-muted">
-                              Betriebsurlaub
-                            </span>
-                          ) : z?.imUrlaub ? (
-                            <span className="flex flex-col gap-1">
-                              <span className="block rounded-sm bg-surface-2 px-2 py-1 text-center text-xs text-ink-muted">
-                                {z.abwesendText}
-                              </span>
-                              {/* M33: der Einsatz, den die Abwesenheit trifft, bleibt sichtbar. */}
-                              {z.baustellen.map((b) => (
-                                <span
-                                  key={b.nummer}
-                                  title={`${b.name} · ${b.nummer} — eingeteilt, fehlt`}
-                                  className="block truncate rounded-sm border border-danger px-1.5 py-1 text-left text-xs text-danger"
-                                >
-                                  fehlt: {b.nummer}
-                                </span>
-                              ))}
-                            </span>
-                          ) : leer && nurLesen ? (
-                            <span className="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">
-                              –
-                            </span>
-                          ) : leer ? (
-                            /*
-                              Eine leere Zelle ist die WICHTIGSTE Information
-                              dieses Bretts. Sie bleibt trotzdem antippbar —
-                              genau von hier aus teilt man jemanden ein.
-                            */
-                            <button
-                              type="button"
-                              onClick={() => zurTagesplanung(tag)}
-                              aria-label={`${u.name} am ${tagKurz(tag).datum} einteilen`}
-                              className="min-h-touch w-full rounded-sm border border-line text-xs text-ink-muted"
-                            >
-                              frei
-                            </button>
-                          ) : (
-                            <span className="flex flex-col gap-1">
-                              {z!.baustellen.map((b) =>
-                                nurLesen ? (
-                                  <span
-                                    key={b.nummer}
-                                    title={`${b.name} · ${b.nummer}`}
-                                    className="block rounded-sm border border-line bg-surface-2 px-1.5 py-1 text-left text-xs"
-                                  >
-                                    <span className="block truncate font-medium text-ink">{b.name}</span>
-                                    <span className="block truncate text-ink-muted">{b.nummer}</span>
-                                    {b.helfer && <span className="block truncate text-ink-muted">als Helfer</span>}
-                                  </span>
-                                ) : (
-                                <button
-                                  key={b.nummer}
-                                  type="button"
-                                  onClick={() => zurTagesplanung(tag, b.nummer)}
-                                  // Mit Nummer: zwei Baustellen desselben Kunden am selben Tag
-                                  // hießen für die Vorlesehilfe sonst gleich.
-                                  aria-label={`${b.name} (${b.nummer}) am ${tagKurz(tag).datum} bearbeiten`}
-                                  // Gekürzt in der engen Zelle — der volle Name beim Überfahren.
-                                  title={`${b.name} · ${b.nummer}`}
-                                  // Neutral wie jede Karte (Designlinie „Fassung 3"): ob
-                                  // jemand als Helfer mitgeht, steht als Wort da, nicht als Farbe.
-                                  className="min-h-touch w-full rounded-sm border border-line bg-surface-2 px-1.5 py-1 text-left text-xs"
-                                >
-                                  <span className="block truncate font-medium text-ink">{b.name}</span>
-                                  <span className="block truncate text-ink-muted">{b.nummer}</span>
-                                  {b.helfer && <span className="block truncate text-ink-muted">als Helfer</span>}
-                                </button>
-                                ),
-                              )}
-                            </span>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/*
-            DIE TAGESLISTE — die Telefonansicht.
-            
-            Sie beantwortet dieselbe Frage in der Reihenfolge, in der man sie
-            auf dem Telefon stellt: erst der Tag, dann wer dort ist, dann wer
-            noch frei wäre. Kein waagrechter Bildlauf, keine stehende Spalte,
-            nichts, was sich überlagern kann.
-
-            Die freien Namen stehen AUSGESCHRIEBEN, nicht nur als Zahl. Am
-            Schreibtisch liest man sie aus der Spalte ab; hier gäbe es dafür
-            keine Spalte, und „2 frei" ohne Namen zwingt zurück in die
-            Tagesplanung, nur um nachzusehen.
-          */}
-          {/* Die Tage stehen durch Linien getrennt von Kante zu Kante, nicht als
-              Kästen in der Karte (Designlinie „Fassung 3": keine Karte in Karte). */}
-          <section aria-label="Wochenplan als Liste" className="-mx-4 -mb-4 md:hidden">
-            {tage.map((tag) => {
-              const { wochentag, datum } = tagKurz(tag);
-              const t = proTag.get(tag);
-              const feiertag = getAustrianHolidayName(new Date(`${tag}T00:00:00`));
-              const wochenende = isWeekend(new Date(`${tag}T00:00:00`));
-              return (
-                <div
+            <section aria-label="Wochenplan als Liste" className="md:hidden">
+              {tage.map((tag) => (
+                <TagesAbschnitt
                   key={tag}
-                  className={`border-t border-line ${
-                    feiertag ? 'bg-warning-bg' : wochenende || zuAm.has(tag) ? 'bg-surface-2' : ''
-                  }`}
-                >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-1 pt-3">
-                    <span className="font-semibold text-ink">
-                      {wochentag}, {datum}
-                      {tag === heute && <span className="ml-2 text-sm text-brand">heute</span>}
-                    </span>
-                    {zuAm.has(tag) ? (
-                      <span className="text-sm text-ink-muted">Betriebsurlaub</span>
-                    ) : !nurLesen && !wochenende && !feiertag && (
-                      <span className="text-sm text-ink-muted">
-                        {(t?.frei.length ?? 0)} frei
-                      </span>
-                    )}
-                  </div>
+                  tag={tag}
+                  heute={heute}
+                  nurLesen={nurLesen}
+                  stand={proTag.get(tag)}
+                  zu={zuAm.get(tag)}
+                  termine={termineAm(tag)}
+                  onFenster={setFenster}
+                />
+              ))}
+            </section>
+          </Card>
 
-                  <div className="space-y-2 px-4 pb-3">
-                    {termineAm(tag).length > 0 && (
-                      <ul aria-label={`Termine am ${datum}`} className="space-y-1">
-                        {termineAm(tag).map((tt) => (
-                          <li key={tt.id} className="text-sm">
-                            <span className="font-medium text-ink">{terminKopf(tt)}</span>{' '}
-                            <span className="text-ink-muted">· {bezugText(tt)}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {t && t.baustellen.length > 0 ? (
-                      t.baustellen.map((b) =>
-                        nurLesen ? (
-                          <div
-                            key={b.nummer}
-                            className="rounded-sm border border-line bg-surface px-3 py-2"
-                          >
-                            <span className="block font-medium text-ink">
-                              {b.name} <span className="font-normal text-ink-muted">· {b.nummer}</span>
-                            </span>
-                            <span className="block text-sm text-ink-muted">
-                              {b.namen
-                                .map((n) => (b.helfer.includes(n) ? `${n} (Helfer)` : n))
-                                .join(', ')}
-                            </span>
-                            <FehltZeile namen={b.namen} fehlen={b.fehlen} />
-                          </div>
-                        ) : (
-                        <button
-                          key={b.nummer}
-                          type="button"
-                          onClick={() => zurTagesplanung(tag, b.nummer)}
-                          aria-label={`${b.name} (${b.nummer}) am ${datum} bearbeiten`}
-                          className="min-h-touch w-full rounded-sm border border-line bg-surface px-3 py-2 text-left"
-                        >
-                          <span className="block font-medium text-ink">
-                            {b.name} <span className="font-normal text-ink-muted">· {b.nummer}</span>
-                          </span>
-                          <span className="block text-sm text-ink-muted">
-                            {b.namen
-                              .map((n) => (b.helfer.includes(n) ? `${n} (Helfer)` : n))
-                              .join(', ')}
-                          </span>
-                          <FehltZeile namen={b.namen} fehlen={b.fehlen} />
-                        </button>
-                        ),
-                      )
-                    ) : zuAm.has(tag) ? (
-                      <p className="text-sm text-ink-muted">Betriebsurlaub — {zuAm.get(tag)}.</p>
-                    ) : (
-                      // Stehen darüber Termine, wäre „Nichts geplant" ein Widerspruch.
-                      <p className="text-sm text-ink-muted">
-                        {termineAm(tag).length > 0 ? 'Kein Einsatz geplant.' : 'Nichts geplant.'}
-                      </p>
-                    )}
-
-                    {!nurLesen && !wochenende && !feiertag && t && t.frei.length > 0 && (
-                      <p className="text-sm text-ink-muted">
-                        <span className="font-medium text-ink">Frei:</span> {t.frei.join(', ')}
-                      </p>
-                    )}
-                    {t && t.urlaub.length > 0 && (
-                      <p className="text-sm text-ink-muted">
-                        <span className="font-medium text-ink">Abwesend:</span>{' '}
-                        {t.urlaub.join(', ')}
-                      </p>
-                    )}
-
-                    {!nurLesen && (
-                      <button
-                        type="button"
-                        onClick={() => zurTagesplanung(tag)}
-                        aria-label={`Am ${datum} einteilen`}
-                        className="min-h-touch w-full rounded-sm border border-line text-sm text-ink-muted"
-                      >
-                        Einteilen
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </section>
-          </>
-        )}
-      </Card>
+          {!nurLesen && (
+            <Card title="Noch einzuplanen" buendig>
+              <p className="zeile-meta px-4 pb-3">Laufende Baustellen ohne Einsatz in dieser Woche</p>
+              {ohneEinsatz.length === 0 ? (
+                <EmptyState>Jede laufende Baustelle hat diese Woche einen Einsatz.</EmptyState>
+              ) : (
+                <>
+                  <List>
+                    {ohneEinsatz.slice(0, ablageGezeigt).map((p) => (
+                      <ListRow
+                        key={p.projectNumber}
+                        title={p.customerName ?? p.projectNumber}
+                        subtitle={p.projectNumber}
+                        onOeffnen={() => setFenster({ datum: standardTag, projectNumber: p.projectNumber })}
+                      />
+                    ))}
+                  </List>
+                  <MehrAnzeigen
+                    anzahl={Math.max(0, ohneEinsatz.length - ablageGezeigt)}
+                    onClick={() => setAblageGezeigt((n) => n + ABLAGE_SEITE)}
+                  />
+                </>
+              )}
+            </Card>
+          )}
+        </div>
+      )}
 
       {/*
         DER GANZE PLAN IM EIGENEN KALENDER (Plan 10.4, PR B) — nur für die,
@@ -796,18 +610,159 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
       {!nurLesen && company?.kalenderAboErlaubt && !einblick && (
         <KalenderAboKarte userId={user.uid} art="gesamt" />
       )}
+
+      {fenster && !nurLesen && (
+        <EinsatzFenster
+          key={`${fenster.datum}|${fenster.projectNumber ?? ''}|${fenster.person ?? ''}`}
+          start={fenster}
+          tage={tage}
+          einsaetze={einsaetze}
+          users={users}
+          staff={staff}
+          projects={projects}
+          onProjekt={(p) =>
+            setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]))
+          }
+          urlaube={urlaube}
+          betriebsurlaube={betriebsurlaube}
+          termine={termine}
+          onClose={() => setFenster(null)}
+          onTagPlanen={zurTagesplanung}
+        />
+      )}
+    </div>
+  );
+}
+
+function umschalten(alt: Set<string>, name: string): Set<string> {
+  const neu = new Set(alt);
+  if (neu.has(name)) neu.delete(name);
+  else neu.add(name);
+  return neu;
+}
+
+/** Ein Tag der Telefonansicht: Termine, Baustellen mit Namen, frei, abwesend. */
+function TagesAbschnitt({
+  tag,
+  heute,
+  nurLesen,
+  stand,
+  zu,
+  termine,
+  onFenster,
+}: {
+  tag: string;
+  heute: string;
+  nurLesen: boolean;
+  stand: TagStand | undefined;
+  zu: string | undefined;
+  termine: Termin[];
+  onFenster: (start: FensterStart) => void;
+}) {
+  const { wochentag, datum } = tagKurz(tag);
+  const feiertag = getAustrianHolidayName(new Date(`${tag}T00:00:00`));
+  const wochenende = isWeekend(new Date(`${tag}T00:00:00`));
+  return (
+    // Die Tage durch Linien getrennt von Kante zu Kante — keine Karte in der Karte.
+    <div className={`border-t border-line ${tag === heute ? 'bg-petrol-hell' : feiertag || wochenende || zu ? 'bg-surface-2' : ''}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-1 pt-3">
+        <span className="font-semibold text-ink">
+          {wochentag}, {datum}
+          {tag === heute && <span className="ml-2 text-sm text-ink-muted">heute</span>}
+          {feiertag && <span className="ml-2 text-sm font-normal text-ink-muted">{feiertag}</span>}
+        </span>
+        {zu ? (
+          <span className="text-sm text-ink-muted">Betriebsurlaub</span>
+        ) : (
+          !nurLesen && !wochenende && !feiertag && (
+            <span className="text-sm text-ink-muted">{stand?.frei.length ?? 0} frei</span>
+          )
+        )}
+      </div>
+
+      <div className="space-y-2 px-4 pb-3">
+        {termine.length > 0 && (
+          <ul aria-label={`Termine am ${datum}`} className="space-y-1">
+            {termine.map((tt) => (
+              <li key={tt.id} className="text-sm">
+                <span className="font-normal text-ink">{terminKopf(tt)}</span>{' '}
+                <span className="text-ink-muted">· {bezugText(tt)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {stand && stand.baustellen.length > 0 ? (
+          stand.baustellen.map((b) => {
+            const konflikt = b.fehlen.length > 0;
+            const inhalt = (
+              <>
+                <span className="block font-normal text-ink">
+                  {b.zeit && <span className="plan-zeit">{b.zeit}</span>}
+                  {b.name} <span className="font-normal text-ink-muted">· {b.nummer}</span>
+                </span>
+                <span className="block text-sm text-ink-muted">
+                  {b.namen.map((n) => (b.helfer.includes(n) ? `${n} (Helfer)` : n)).join(', ')}
+                </span>
+                <FehltZeile namen={b.namen} fehlen={b.fehlen} />
+              </>
+            );
+            return nurLesen ? (
+              <div key={b.nummer} className={konflikt ? 'tag-karte-konflikt-lesen' : 'tag-karte-lesen'}>
+                {inhalt}
+              </div>
+            ) : (
+              <button
+                key={b.nummer}
+                type="button"
+                onClick={() => onFenster({ datum: tag, projectNumber: b.nummer })}
+                aria-label={`${b.name} (${b.nummer}) am ${datum} bearbeiten`}
+                className={konflikt ? 'tag-karte-konflikt' : 'tag-karte'}
+              >
+                {inhalt}
+              </button>
+            );
+          })
+        ) : zu ? (
+          <p className="text-sm text-ink-muted">Betriebsurlaub — {zu}.</p>
+        ) : (
+          // Stehen darüber Termine, wäre „Nichts geplant" ein Widerspruch.
+          <p className="text-sm text-ink-muted">{termine.length > 0 ? 'Kein Einsatz geplant.' : 'Nichts geplant.'}</p>
+        )}
+
+        {!nurLesen && !wochenende && !feiertag && stand && stand.frei.length > 0 && (
+          <p className="text-sm text-ink-muted">
+            <span className="font-normal text-ink">Frei:</span> {stand.frei.join(', ')}
+          </p>
+        )}
+        {stand && stand.urlaub.length > 0 && (
+          <p className="text-sm text-ink-muted">
+            <span className="font-normal text-ink">Abwesend:</span> {stand.urlaub.join(', ')}
+          </p>
+        )}
+
+        {!nurLesen && (
+          <button
+            type="button"
+            onClick={() => onFenster({ datum: tag })}
+            aria-label={`Am ${datum} einteilen`}
+            className="tag-einteilen"
+          >
+            Einteilen
+          </button>
+        )}
+      </div>
     </div>
   );
 }
 
 /**
  * Wer auf dieser Baustelle eingeteilt ist und fehlt — und ob damit niemand
- * mehr da ist (M33).
+ * mehr da ist (M33). Bernstein, nicht Rot: ein Konflikt, kein Fehler.
  */
 function FehltZeile({ namen, fehlen }: { namen: string[]; fehlen: string[] }) {
   if (fehlen.length === 0) return null;
   return (
-    <span className="block text-sm font-medium text-danger">
+    <span className="block text-sm font-semibold text-warning">
       {namen.length === 0 ? 'Unbesetzt — ' : ''}fehlt: {fehlen.join(', ')}
     </span>
   );

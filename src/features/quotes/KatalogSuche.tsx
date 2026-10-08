@@ -28,6 +28,12 @@ export default function KatalogSuche({
   const [begriff, setBegriff] = useState('');
   const [treffer, setTreffer] = useState<WithId<Material>[] | null>(null);
   const [fehler, setFehler] = useState(false);
+  /*
+    WAS ZULETZT ÜBERNOMMEN WURDE. Seit die Suche im Seitenfenster steht, liegt
+    das Formular am Handy ganz dahinter: ohne diese Zeile sähe niemand, dass
+    der Tipp gewirkt hat, und tippte ein zweites Mal.
+  */
+  const [zuletzt, setZuletzt] = useState<string | null>(null);
 
   useEffect(() => {
     const b = begriff.trim();
@@ -54,7 +60,8 @@ export default function KatalogSuche({
   }, [begriff, companyId]);
 
   return (
-    <div className="space-y-2 rounded border border-line p-3">
+    // Ohne eigenen Rahmen: sie steht im Seitenfenster, nicht als Kasten im Formular.
+    <div className="space-y-3">
       <InputField
         id="angebot-katalog"
         label="Artikel aus dem Katalog"
@@ -64,6 +71,11 @@ export default function KatalogSuche({
         value={begriff}
         onChange={(e) => setBegriff(e.target.value)}
       />
+      {zuletzt && (
+        <p role="status" className="text-sm text-ink-muted">
+          „{zuletzt}“ übernommen.
+        </p>
+      )}
       {fehler && <p role="alert" className="text-sm text-danger">Der Katalog ließ sich nicht durchsuchen.</p>}
       {treffer && treffer.length === 0 && !fehler && (
         <p className="text-sm text-ink-muted">Kein Artikel passt zur Suche.</p>
@@ -79,7 +91,7 @@ export default function KatalogSuche({
                 m.verkaufspreis != null ? `${euro(m.verkaufspreis)} je ${m.unit || 'Einheit'}` : 'ohne Verkaufspreis',
               ].filter(Boolean).join(' · ')}
             >
-              <Button variant="secondary" aria-label={`${m.name} übernehmen`} onClick={() => onWahl(m)}>
+              <Button variant="secondary" aria-label={`${m.name} übernehmen`} onClick={() => { onWahl(m); setZuletzt(m.name); }}>
                 Übernehmen
               </Button>
             </ListRow>

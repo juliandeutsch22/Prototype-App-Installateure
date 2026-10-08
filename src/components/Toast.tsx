@@ -1,32 +1,31 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
 type ToastTone = 'success' | 'error' | 'info';
+
+/** Eine Aktion in der Meldung — gedacht für „Rückgängig“ (Linie „Lot“, Regel 10). */
+export interface MeldungAktion {
+  label: string;
+  onClick: () => void;
+}
+
 interface Toast {
   id: number;
   tone: ToastTone;
   message: string;
+  aktion?: MeldungAktion;
 }
 
 interface ToastApi {
-  success: (message: string) => void;
+  success: (message: string, aktion?: MeldungAktion) => void;
   error: (message: string) => void;
-  info: (message: string) => void;
+  info: (message: string, aktion?: MeldungAktion) => void;
 }
 
 const ToastContext = createContext<ToastApi | undefined>(undefined);
 
-/*
-  WEISSE KARTE MIT FARBIGER KANTE, keine gesättigte Fläche. Grün und Rot
-  vollflächig waren die einzigen lauten Farbflächen der ganzen App ausser
-  Petrol — dieselbe Regel, nach der Abzeichen einen Punkt tragen statt einer
-  Pille (Prüflauf 24.09.2026, C14; siehe `Badge.tsx`). Die Kante trägt den
-  Ton, der Text bleibt dunkel und lesbar.
-*/
-const toneClasses: Record<ToastTone, string> = {
-  success: 'border-l-success',
-  error: 'border-l-danger',
-  info: 'border-l-brand-fixed',
-};
+/** Mit „Rückgängig“ bleibt die Meldung länger stehen: man muss sie lesen und dann noch treffen. */
+const DAUER = 3500;
+const DAUER_MIT_AKTION = 7000;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -47,49 +46,48 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const push = useCallback((tone: ToastTone, message: string) => {
+  const weg = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
+
+  const push = useCallback((tone: ToastTone, message: string, aktion?: MeldungAktion) => {
     const id = ++counter.current;
-    setToasts((t) => [...t, { id, tone, message }]);
+    setToasts((t) => [...t, { id, tone, message, aktion }]);
     const uhr = setTimeout(() => {
       uhren.current.delete(uhr);
-      setToasts((t) => t.filter((x) => x.id !== id));
-    }, 3500);
+      weg(id);
+    }, aktion ? DAUER_MIT_AKTION : DAUER);
     uhren.current.add(uhr);
-  }, []);
+  }, [weg]);
 
   const api = useRef<ToastApi>({
-    success: (m) => push('success', m),
+    success: (m, a) => push('success', m, a),
     error: (m) => push('error', m),
-    info: (m) => push('info', m),
+    info: (m, a) => push('info', m, a),
   }).current;
 
   return (
     <ToastContext.Provider value={api}>
       {children}
       {/*
-        OBEN, NICHT UNTEN (Testbericht 30.09.2026, G29). Unten lagen die
-        Meldungen über dem Hauptknopf der Seite und über der Aktionsleiste —
-        „Material anlegen“ im Lager war bis zum Verschwinden nicht zu treffen.
-        Am Telefon oben in der Mitte, am Schreibtisch oben rechts, wo keine
-        Aktion steht. `safe-area` hält sie unter der Kamera-Aussparung.
-
-        NACHGEZOGEN AM 01.10.2026 (Nachtest, G29): oben rechts lag die
-        Meldung am Schreibtisch über dem Hauptknopf des Seitenkopfs („Neue
-        Baustelle“, „Neuer Schein“). Dort steht sie jetzt unten links im
-        Inhalt, neben der Seitenleiste — Aktionsleisten stehen rechts. Und sie
-        lässt Klicks durch: was darunter liegt, bleibt in jedem Fall treffbar.
+        DIE MELDUNG DER LINIE „LOT“: eine dunkle Zeile, keine farbige Fläche.
+        Ob etwas gelungen ist, sagt der Text; nur ein Fehler trägt eine rote
+        Kante. Lage siehe `.meldungen` in src/styles/lot.css.
       */}
-      <div
-        className="pointer-events-none fixed inset-x-0 top-[max(1rem,env(safe-area-inset-top))] z-50 flex flex-col items-center gap-2 px-4 lg:bottom-4 lg:left-[18.5rem] lg:right-auto lg:top-auto lg:items-start lg:px-0"
-        aria-live="polite"
-        role="status"
-      >
+      <div className="meldungen" aria-live="polite" role="status">
         {toasts.map((t) => (
-          <div
-            key={t.id}
-            className={`pointer-events-none w-full max-w-sm rounded border border-l-4 border-line bg-surface px-4 py-3 text-sm font-medium text-ink shadow-lg ${toneClasses[t.tone]}`}
-          >
-            {t.message}
+          <div key={t.id} className={t.tone === 'error' ? 'meldung-fehler' : 'meldung'}>
+            <span className="meldung-text">{t.message}</span>
+            {t.aktion && (
+              <button
+                type="button"
+                className="meldung-knopf"
+                onClick={() => {
+                  weg(t.id);
+                  t.aktion!.onClick();
+                }}
+              >
+                {t.aktion.label}
+              </button>
+            )}
           </div>
         ))}
       </div>

@@ -90,7 +90,9 @@ describe('App-Zeichen und Favicon', () => {
     expect(manifest.background_color.toLowerCase()).toBe('#ffffff');
   });
 
-  it('lässt die Farbe des Statusbalkens beim Petrol der Kopfleiste', () => {
-    expect(manifest.theme_color.toLowerCase()).toBe('#0f4552');
+  it('lässt die Farbe des Statusbalkens bei der Farbe der Kopfleiste', () => {
+    // Seit der Linie „Lot“ trägt die Kopfleiste `--navi` (#0f3c47), eine
+    // Stufe tiefer als das Petrol der Knöpfe.
+    expect(manifest.theme_color.toLowerCase()).toBe('#0f3c47');
   });
 });

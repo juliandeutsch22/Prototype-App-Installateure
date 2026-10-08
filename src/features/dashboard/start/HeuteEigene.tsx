@@ -103,7 +103,7 @@ function Einsatz({
                 endTime: letzteBuchung.endTime,
                 breakDuration: letzteBuchung.breakDuration,
               }}
-              className="col-span-2 flex min-h-touch flex-col items-center justify-center rounded bg-brand px-3 py-2 text-center text-brand-fg shadow-sm sm:px-5"
+              className="col-span-2 flex min-h-touch flex-col items-center justify-center rounded bg-brand px-3 py-2 text-center text-brand-fg sm:px-5"
             >
               <span className="text-fliess font-semibold">Wie zuletzt buchen</span>
               <span className="text-xs">
@@ -114,7 +114,7 @@ function Einsatz({
             <Link
               to="/time"
               state={{ projectNumber: e.projectNumber, asHelper: e.asHelper }}
-              className="flex min-h-touch items-center justify-center rounded bg-brand px-2 py-2 text-center text-fliess font-semibold text-brand-fg shadow-sm sm:px-5"
+              className="flex min-h-touch items-center justify-center rounded bg-brand px-2 py-2 text-center text-fliess font-semibold text-brand-fg sm:px-5"
             >
               Zeit erfassen
             </Link>
@@ -123,7 +123,7 @@ function Einsatz({
             <Link
               to="/time"
               state={{ projectNumber: e.projectNumber, asHelper: e.asHelper }}
-              className="flex min-h-touch items-center justify-center rounded border border-line bg-surface px-2 py-2 text-center text-fliess font-medium text-ink-deep shadow-sm sm:px-5"
+              className="flex min-h-touch items-center justify-center rounded border border-line bg-surface px-2 py-2 text-center text-fliess font-normal text-ink-deep sm:px-5"
             >
               Andere Zeit
             </Link>
@@ -131,7 +131,7 @@ function Einsatz({
           {scheinVerweis && (
             <Link
               to={`/worksheet?projekt=${encodeURIComponent(e.projectNumber)}`}
-              className="flex min-h-touch items-center justify-center rounded border border-line bg-surface px-2 py-2 text-center text-fliess font-medium text-ink-deep shadow-sm sm:px-5"
+              className="flex min-h-touch items-center justify-center rounded border border-line bg-surface px-2 py-2 text-center text-fliess font-normal text-ink-deep sm:px-5"
             >
               Schein schreiben
             </Link>

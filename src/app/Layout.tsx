@@ -23,45 +23,20 @@ import BottomSheet from '@/components/BottomSheet';
 import AppErneuern from '@/components/AppErneuern';
 import ProblemMelden from '@/components/ProblemMelden';
 import RechtLinks from '@/components/RechtLinks';
+import { SeitenHilfeProvider } from '@/components/SeitenHilfe';
+import { useDarstellung } from '@/lib/darstellung';
+import Suchfenster from './Suchfenster';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { offeneVormerkungen } from '@/lib/db/pg/ohneEmpfang';
 import { rolleAnzeige } from '@/lib/rolleAnzeige';
 
 /**
- * Der aktive Eintrag wird über die KANTE markiert, nicht über eine volle
- * Farbfläche: das hält die Navigation ruhig und lässt den leuchtenden Ton als
- * Marker wirken statt als Teppich. Zusätzlich ist der Text fett — Farbe allein
- * trägt nie eine Information, weil sie bei Farbsehschwäche wegfällt.
- *
- * Zwei Fassungen, weil es zwei Träger gibt: die Seitenleiste ist dunkel, die
- * Blätter von unten (Mehr, Profil) stehen auf heller Fläche. Ein gemeinsamer
- * Stil müsste auf einem von beiden falsch aussehen.
+ * Die Einträge der Linie „Lot“: in der dunklen Navigation `navi-punkt`, in
+ * den hellen Blättern (Mehr, Profil) `mehr-punkt`. Der aktive Eintrag trägt
+ * Fläche UND Halbfett — Farbe allein trägt nie eine Information.
  */
-const sideLink = ({ isActive }: { isActive: boolean }) =>
-  `flex min-h-touch min-w-0 items-center gap-3 rounded-sm border-l-[3px] px-3 py-2 text-base transition ${
-    isActive
-      ? 'border-l-accent-deep bg-info-bg font-bold text-accent-deep'
-      : 'border-l-transparent font-medium text-ink-muted hover:bg-surface-2 hover:text-ink'
-  }`;
-
-/**
- * Dieselbe Zeile auf der dunklen Seitenleiste.
- *
- * DIE MARKIERUNG IST WEISS, NICHT CYAN. Auf der Trägerfläche steht nur Weiß —
- * das ist die Farbpaarung des Zeichens, und seit die Fläche flach ist (kein
- * Verlauf mehr), hat Cyan dort auch keinen Ton mehr, an den es anschliesst.
- * Getragen wird der Zustand ohnehin dreifach: Fläche, Fettung, Textfarbe.
- * Der Strich ist der vierte Hinweis und nie der einzige.
- *
- * Die Fläche ist deckendes `--ink-deep`, eine Stufe dunkler als die Leiste —
- * keine halbtransparente Weiß-Tönung. Weiß darauf steht bei über 16:1.
- */
-const sideLinkDark = ({ isActive }: { isActive: boolean }) =>
-  `flex min-h-touch min-w-0 items-center gap-3 rounded-sm border-l-[3px] px-3 py-2 text-base transition ${
-    isActive
-      ? 'border-l-white bg-ink-deep font-bold text-white'
-      : 'border-l-transparent font-medium text-white/75 hover:bg-ink-deep hover:text-white'
-  }`;
+const naviPunkt = ({ isActive }: { isActive: boolean }) => (isActive ? 'navi-punkt-aktiv' : 'navi-punkt');
+const mehrPunkt = ({ isActive }: { isActive: boolean }) => (isActive ? 'mehr-punkt-aktiv' : 'mehr-punkt');
 
 /**
  * Das Abzeichen an einer Menuezeile — rechtsbuendig, oder gar nicht.
@@ -88,7 +63,7 @@ function ZeilenHinweis(
   if (!item.hinweis) return null;
   const n = hinweisZahl(item, posten);
   return (
-    <span className="ml-auto flex items-center">
+    <span className={auf === 'dunkel' ? 'navi-zahl' : 'ml-auto flex items-center'}>
       <Zaehler anzahl={n} was={hinweisWort(item.hinweis, n)} auf={auf} />
     </span>
   );
@@ -99,6 +74,8 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { user, company, signOut, einblick } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
   const [profilOpen, setProfilOpen] = useState(false);
+  const [sucheOffen, setSucheOffen] = useState(false);
+  const [darstellung, setDarstellung] = useDarstellung();
   const ort = useLocation();
   const posten = useOffenePosten();
   const angemeldet = !!user;
@@ -188,6 +165,23 @@ export default function Layout({ children }: { children: ReactNode }) {
     return () => document.removeEventListener('visibilitychange', beiSicht);
   }, [angemeldet, ort.pathname]);
 
+  /*
+    STRG + K (am Mac ⌘ + K) öffnet „Suchen oder springen“ — überall, auch
+    aus einem Eingabefeld heraus: dort hat die Kombination keine eigene
+    Bedeutung, und gerade wer tippt, will nicht zur Maus greifen.
+  */
+  useEffect(() => {
+    if (!angemeldet) return;
+    const taste = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSucheOffen(true);
+      }
+    };
+    window.addEventListener('keydown', taste);
+    return () => window.removeEventListener('keydown', taste);
+  }, [angemeldet]);
+
   if (!user) return <>{children}</>;
 
   /**
@@ -208,7 +202,10 @@ export default function Layout({ children }: { children: ReactNode }) {
     letzten Zeichnen aus anderem Grund gerade war. Aufgefallen ist es erst,
     als der Seitenwechsel für die Abzeichen ohnehin gebraucht wurde.
   */
-  const moreActive = mehr.some((i) => i.path === ort.pathname);
+  /* Auch eine Unterseite oder Akte („/quotes/…“) liegt dort, wo ihre Liste liegt. */
+  const moreActive = mehr.some(
+    (i) => i.path === ort.pathname || (i.path !== '/' && ort.pathname.startsWith(`${i.path}/`)),
+  );
   /*
     IM BLATT „MEHR“ NUR, WAS UNTEN NICHT SCHON STEHT (Analyse 03.10.2026,
     Paket 1). Es zeigte alle Gruppen, also auch die vier Einträge der Leiste
@@ -235,143 +232,146 @@ export default function Layout({ children }: { children: ReactNode }) {
     lesbar, deshalb in der Seitenleiste grösser als in der schmalen mobilen
     Kopfleiste.
   */
-  const BrandMarkMobile = <BrandLogo height={32} className="rounded-sm text-white" />;
+  const BrandMarkMobile = <BrandLogo height={28} className="rounded-sm text-white" />;
   const BrandMarkSidebar = <BrandLogo height={40} className="rounded-sm text-white" />;
 
+  const unterGruppen = groups.filter((g) => g.group !== 'Einstellungen');
+  const einstellungen = groups.find((g) => g.group === 'Einstellungen')?.items ?? [];
+  const darstellungKnopf = (
+    <button
+      type="button"
+      className="mehr-punkt"
+      onClick={() => setDarstellung(darstellung === 'dunkel' ? 'hell' : 'dunkel')}
+      aria-pressed={darstellung === 'dunkel'}
+    >
+      <Icon name="sun" size={20} className="shrink-0" />
+      <span>Dunkle Darstellung</span>
+      <span className="ml-auto text-sm text-ink-muted">{darstellung === 'dunkel' ? 'an' : 'aus'}</span>
+    </button>
+  );
+
+  const naviEintrag = (item: NavItem) => (
+    <NavLink key={item.path} to={item.path} end={item.path === '/'} className={naviPunkt}>
+      <Icon name={item.icon} size={20} className="shrink-0" />
+      <span className="navi-text-lang">{item.label}</span>
+      <span className="navi-text-kurz" aria-hidden="true">{item.short}</span>
+      <ZeilenHinweis item={item} posten={posten} auf="dunkel" />
+    </NavLink>
+  );
+
   return (
-    <div className="flex min-h-full flex-col md:flex-row">
+    <div className="huelle">
       {/* Der erste Tab-Halt: an Kopfleiste und Menü vorbei direkt zum Inhalt. */}
       <a href="#inhalt" className="sprunglink">
         Zum Inhalt
       </a>
-      {/* Mobile Top-Bar — dieselbe dunkle Trägerfläche wie die Seitenleiste
-          am Schreibtisch, abgesetzt durch dieselbe weisse Fuge.
-
-          `pt-[env(safe-area-inset-top)]`: die Kopfzeile im Anzug (`index.html`
-          setzt `viewport-fit=cover`) reicht bis unter die Statusleiste des
-          Telefons. Ohne den Zuschlag stünde das Logo dahinter; mit ihm malt
-          die Leiste diesen Streifen in ihrer eigenen Farbe aus — genau das,
-          was man von einer App vom Startbildschirm erwartet. Auf einem Gerät
-          ohne Aussparung ist der Wert 0 und es ändert sich nichts. */}
-      <header className="panel-dark pt-[env(safe-area-inset-top)] md:hidden">
-        <div className="flex items-center justify-between gap-3 px-4 py-3">
+      {/*
+        KOPFZEILE AM HANDY. Der Entwurf hat am Handy keine; sie bleibt
+        trotzdem, schmal: hier steht der Betrieb (sein Logo ist meist für den
+        dunklen Grund gemacht) und hinter den Initialen das Profil — auf einem
+        Telefon, das mehrere benutzen, ist „wer bin ich hier gerade?“ eine
+        echte Frage. Die Suche (Strg + K) hat am Telefon hier ihren Knopf.
+      */}
+      <header className="kopfzeile">
         {BrandMarkMobile}
-        {/* Der Avatar allein zeigt nur zwei Buchstaben. Auf einem
-            Baustellen-Tablet, an dem mehrere arbeiten, ist die Frage „wer bin
-            ich hier gerade?" real — und Initialen beantworten sie nicht. Ein
-            Tipp oeffnet Name, Rolle und Abmelden. */}
-        <button
-          type="button"
-          onClick={() => setProfilOpen(true)}
-          aria-label={`Angemeldet als ${user.name}, ${rolleAnzeige(user.role, einblick)} — Profil öffnen`}
-          className="flex min-h-touch min-w-touch items-center justify-center rounded-full"
-        >
-          <Avatar name={user.name} size={32} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setSucheOffen(true)}
+            className="min-h-touch px-2 text-sm text-navi-text"
+          >
+            Suchen
+          </button>
+          <button
+            type="button"
+            onClick={() => setProfilOpen(true)}
+            aria-label={`Angemeldet als ${user.name}, ${rolleAnzeige(user.role, einblick)} — Profil öffnen`}
+            className="flex min-h-touch min-w-touch items-center justify-center rounded-full"
+          >
+            <Avatar name={user.name} size={32} />
+          </button>
         </div>
-        {/* Die Fuge zwischen Navigation und Inhalt — dieselbe wie rechts an
-            der Seitenleiste, nur waagrecht. Hier lag zuerst zusätzlich die
-            leuchtende Markenkante darüber; zwei Streifen übereinander waren
-            zwei Trennungen für eine Sache, und am Telefon sah die Leiste
-            damit anders aus als am Schreibtisch. Eine Trennung, überall
-            dieselbe. */}
-        <div className="h-[3px] bg-white" aria-hidden="true" />
       </header>
 
-      {/* Desktop-Sidebar */}
-      <aside className="panel-dark hidden md:flex md:w-64 lg:w-[17.5rem] md:shrink-0 md:flex-col md:border-r-[3px] md:border-r-white md:p-3">
-        <div className="mb-4 px-2 pt-1">{BrandMarkSidebar}</div>
-        <nav className="flex flex-col gap-4 overflow-y-auto" aria-label="Hauptnavigation">
-          {groups.map(({ group, items: groupItems }) => (
-            <div key={group} className="flex flex-col gap-1">
-              {!OHNE_UEBERSCHRIFT.has(group) && (
-                <p className="px-3 pb-1 text-xs font-semibold text-white/60">
-                  {group}
-                </p>
-              )}
-              {groupItems.map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  end={item.path === '/'}
-                  className={sideLinkDark}
-                >
-                  <Icon name={item.icon} size={20} className="shrink-0" />
-                  {/* `-mr-2`: die Beschriftung darf in den rechten Innenabstand
-                      der Zeile. Bei 834 px fehlte dem fetten, aktiven
-                      „Mitarbeiterübersicht" genau 1 px, und es endete mit
-                      Auslassungspunkten (Prüflauf 25.09.2026, P4-13).
-                      Gewicht und Breite der Leiste bleiben, wie sie sind. */}
-                  <span className="-mr-2 truncate">{item.label}</span>
-                  <ZeilenHinweis item={item} posten={posten} auf="dunkel" />
-                </NavLink>
-              ))}
+      {/* Seitenleiste (Schreibtisch) bzw. schmale Leiste (Tablet). */}
+      <aside className="navi">
+        <div className="navi-betrieb">{BrandMarkSidebar}</div>
+        <button type="button" className="navi-suche" onClick={() => setSucheOffen(true)}>
+          <span>Suchen</span>
+          <span className="navi-taste" aria-hidden="true">Strg K</span>
+        </button>
+        <nav className="flex flex-col gap-0.5" aria-label="Hauptnavigation">
+          {unterGruppen.map(({ group, items: groupItems }) => (
+            <div key={group} className="flex flex-col gap-0.5">
+              {!OHNE_UEBERSCHRIFT.has(group) && <p className="navi-gruppe">{group}</p>}
+              {groupItems.map(naviEintrag)}
             </div>
           ))}
         </nav>
-        <div className="mt-auto border-t border-white/15 pt-4">
-          <div className="flex items-center gap-3 px-3">
-            <Avatar name={user.name} />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-white">{user.name}</p>
-              <p className="truncate text-xs text-white/70">{rolleAnzeige(user.role, einblick)}</p>
-            </div>
-          </div>
-          <ProblemMelden
-            ausloeser={(oeffnen) => (
-              <Button variant="ghost-dark" className="mt-2 w-full justify-start" onClick={oeffnen}>
-                Problem melden
-              </Button>
-            )}
-          />
-          <Button
-            variant="ghost-dark"
-            className="w-full justify-start"
-            onClick={() => void abmelden()}
+        <div className="navi-fuss">
+          <nav className="flex flex-col gap-0.5" aria-label="Einstellungen">
+            {einstellungen.map(naviEintrag)}
+          </nav>
+          {/* Am Tablet: die Initialen öffnen das Profil (Name, Abmelden …). */}
+          <button
+            type="button"
+            className="navi-profil"
+            onClick={() => setProfilOpen(true)}
+            aria-label={`Angemeldet als ${user.name}, ${rolleAnzeige(user.role, einblick)} — Profil öffnen`}
           >
-            Abmelden
-          </Button>
+            <Avatar name={user.name} size={36} />
+          </button>
+          <div className="navi-breit">
+            <div className="navi-person">
+              <Avatar name={user.name} />
+              <div className="min-w-0">
+                <p className="navi-person-name truncate">{user.name}</p>
+                <p className="navi-person-rolle truncate">{rolleAnzeige(user.role, einblick)}</p>
+              </div>
+            </div>
+            {/* Dieselbe Zeile wie die Menüpunkte darüber, nur ohne Symbol. */}
+            <ProblemMelden
+              ausloeser={(oeffnen) => (
+                <button type="button" className="navi-punkt w-full" onClick={oeffnen}>
+                  Problem melden
+                </button>
+              )}
+            />
+            <button
+              type="button"
+              className="navi-punkt w-full"
+              onClick={() => setDarstellung(darstellung === 'dunkel' ? 'hell' : 'dunkel')}
+              aria-pressed={darstellung === 'dunkel'}
+            >
+              Dunkle Darstellung: {darstellung === 'dunkel' ? 'an' : 'aus'}
+            </button>
+            <button type="button" className="navi-punkt w-full" onClick={() => void abmelden()}>
+              Abmelden
+            </button>
 
-          {/*
-            DIE PRODUKTMARKE, KLEIN UND UNTERGEORDNET. Nicht aus Eitelkeit:
-            wenn ein Monteur anruft und sagt „die App tut nicht", ist
-            „Senklot" das Wort, mit dem er sucht und mit dem das Büro den
-            Support anspricht. Ganz unten, gedämpft, hinter dem Abmelden —
-            dort konkurriert sie mit nichts, und der Betrieb bleibt oben.
-          */}
-          <p className="mt-4 px-3 text-white/60">
             {/*
-              `white/60` und nicht schwächer: gegen die dunkle Trägerfläche
-              sind das rund 4,9:1, und darunter ist kleiner Text nicht mehr
-              zuverlässig lesbar. „Zurückhaltend" darf nicht „blass" heissen —
-              eine Beschriftung, die man erraten muss, hilft im Supportfall
-              niemandem.
+              DIE PRODUKTMARKE, KLEIN UND UNTERGEORDNET. Nicht aus Eitelkeit:
+              wenn ein Monteur anruft und sagt „die App tut nicht", ist
+              „Senklot" das Wort, mit dem er sucht und mit dem das Büro den
+              Support anspricht. Ganz unten, gedämpft, hinter dem Abmelden —
+              dort konkurriert sie mit nichts, und der Betrieb bleibt oben.
             */}
-            <ProduktMarke hoehe={20} />
-          </p>
-          <RechtLinks className="mt-2 px-3 text-xs text-white/60" />
+            <p className="mt-4 px-2.5 text-navi-text">
+              <ProduktMarke hoehe={20} />
+            </p>
+            <RechtLinks className="mt-2 px-2.5 text-xs text-navi-text" />
+          </div>
         </div>
       </aside>
 
       {/* Inhalt */}
       {/*
-        `min-w-0` IST HIER NICHT KOSMETIK, SONDERN DIE BREMSE.
-
-        `main` ist das Flex-Geschwister der 259 px breiten Seitenleiste
-        (256 + 3 px Fuge). Ein Flex-Element hat von sich aus `min-width: auto`
-        und kann damit NICHT unter die Mindestbreite seines Inhalts
-        schrumpfen — es schiebt stattdessen die ganze Seite auf.
-
-        Auf dem Tablet war das zu sehen: bei 834 px stehen dem Inhalt 575 px
-        zu, sein Mindestmass lag aber bei 592, und das Dokument wurde 848 px
-        breit. Die Seite liess sich also seitwaerts schieben, auf neun der
-        achtundzwanzig Ansichten. Am Telefon faellt es nicht auf (keine
-        Seitenleiste), am Schreibtisch auch nicht (genug Platz) — genau
-        dazwischen bricht es.
-
-        Mit `min-w-0` schrumpft `main` wie vorgesehen, und was wirklich breit
-        ist (Tabellen), scrollt in seinem eigenen Behaelter mit
-        `overflow-x-auto`.
+        `min-w-0` IST HIER NICHT KOSMETIK, SONDERN DIE BREMSE: `main` ist das
+        Flex-Geschwister der Navigation und könnte sonst nicht unter die
+        Mindestbreite seines Inhalts schrumpfen — die ganze Seite liesse sich
+        seitwärts schieben (gemessen bei 834 px, neun von achtundzwanzig
+        Ansichten). Was wirklich breit ist (Tabellen), scrollt in seinem
+        eigenen Behälter.
       */}
       {/* Neue Seiten starten oben, „Zurück“ stellt die Position wieder her (M2). */}
       <Seitenposition />
@@ -399,128 +399,84 @@ export default function Layout({ children }: { children: ReactNode }) {
           arbeitet — die Oberfläche sieht sonst aus wie jede andere.
         */}
         <Supportsitzung />
-        <div className="mx-auto max-w-5xl p-4 md:p-6">{children}</div>
+        <SeitenHilfeProvider>
+          <div className="inhalt">{children}</div>
+        </SeitenHilfeProvider>
       </main>
 
-      {/* Mobile Tab-Bar — dieselbe dunkle Trägerfläche wie die Kopfleiste, so
-          dass der Inhalt oben und unten von der Marke eingefasst wird.
-          Aktiv = helle Pille um das Symbol PLUS volles Weiss statt 70 % —
-          auf 12 px Schrift ist Farbe allein zu wenig. Die Beschriftung ist
-          halbfett für alle, nicht fett (Marke: „Fett wirkt laut";
-          Prüflauf 24.09.2026, C9). */}
-      <nav
-        ref={reiterleiste}
-        className="panel-dark fixed inset-x-0 bottom-0 z-30 md:hidden"
-        aria-label="Hauptnavigation"
-      >
-        {/* Dieselbe Fuge wie an Kopfleiste und Seitenleiste. */}
-        <div className="h-[3px] bg-white" aria-hidden="true" />
-        <div className="flex pb-[env(safe-area-inset-bottom)]">
-          {primary.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/'}
-              className={({ isActive }) =>
-                `flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${
-                  isActive ? 'text-white' : 'text-white/70'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {/*
-                    AM TELEFON HAENGT DIE ZAHL AM SYMBOL, nicht hinter dem
-                    Wort: die Beschriftung darunter ist 12 px hoch und oft
-                    abgeschnitten („Rechnungen"), eine Zahl dahinter waere das
-                    Erste, was wegfaellt. Ueber der rechten oberen Ecke ist sie
-                    die gewohnte Stelle und kostet keinen Platz in der Zeile.
-                  */}
-                  <span
-                    className={`relative flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
-                      isActive ? 'bg-ink-deep' : ''
-                    }`}
-                  >
-                    <Icon name={item.icon} size={20} />
-                    {item.hinweis && (
-                      <span className="absolute -right-1.5 -top-1">
-                        <Zaehler
-                          anzahl={hinweisZahl(item, posten)}
-                          was={hinweisWort(item.hinweis, hinweisZahl(item, posten))}
-                          auf="dunkel"
-                        />
-                      </span>
-                    )}
-                  </span>
-                  <span className="max-w-full truncate px-1">{item.short}</span>
-                </>
-              )}
-            </NavLink>
-          ))}
-          {hasMore && (
-            <button
-              onClick={() => setMoreOpen(true)}
-              /*
-                DER NAME TRÄGT DAS SICHTBARE WORT UND DIE ZAHL. „Weitere
-                Bereiche" überschrieb den Inhalt: die Summe (sr-only im
-                Zaehler) wurde nie vorgelesen, und wer per Sprache „Mehr"
-                sagt, traf den Knopf nicht, weil das Wort im Namen fehlte
-                (Prüflauf 25.09.2026, P4-08).
-              */
-              aria-label={
-                Number.isFinite(mehrSumme) && mehrSumme >= 1
-                  ? `Mehr, ${mehrSumme} ${mehrSumme === 1 ? 'offener Posten' : 'offene Posten'}`
-                  : 'Mehr'
-              }
-              className={`flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${
-                moreActive ? 'text-white' : 'text-white/70'
-              }`}
-            >
-              <span
-                className={`relative flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
-                  moreActive ? 'bg-ink-deep' : ''
-                }`}
-              >
-                <Icon name="more" size={20} />
-                {/*
-                  DIE SUMME DESSEN, WAS DER KNOPF VERDECKT. „Mehr" verbirgt am
-                  Telefon bis zu zwoelf Bereiche; ohne diese Zahl laege eine
-                  Meldung hinter einem Knopf, den man nur oeffnet, wenn man
-                  ohnehin schon etwas sucht — genau der Zustand, den die
-                  Abzeichen beenden sollen.
-                */}
-                <span className="absolute -right-1.5 -top-1">
+      {/*
+        UNTERE LEISTE AM HANDY (Linie „Lot“): hell, vier Ziele je Rolle und
+        „Mehr“. Der aktive Eintrag in Petrol UND halbfett; am Symbol hängt der
+        Zähler, weil die Beschriftung darunter als Erstes gekürzt wird.
+      */}
+      <nav ref={reiterleiste} className="unten" aria-label="Hauptnavigation">
+        {primary.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.path === '/'}
+            className={({ isActive }) => (isActive ? 'unten-punkt-aktiv' : 'unten-punkt')}
+          >
+            <span className="unten-symbol">
+              <Icon name={item.icon} size={22} />
+              {item.hinweis && (
+                <span className="unten-zahl">
                   <Zaehler
-                    anzahl={mehrSumme}
-                    was={mehrSumme === 1 ? 'offener Posten' : 'offene Posten'}
-                    auf="dunkel"
+                    anzahl={hinweisZahl(item, posten)}
+                    was={hinweisWort(item.hinweis, hinweisZahl(item, posten))}
                   />
                 </span>
+              )}
+            </span>
+            <span className="unten-text">{item.short}</span>
+          </NavLink>
+        ))}
+        {hasMore && (
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            /*
+              DER NAME TRÄGT DAS SICHTBARE WORT UND DIE ZAHL. „Weitere
+              Bereiche" überschrieb den Inhalt: die Summe (sr-only im
+              Zaehler) wurde nie vorgelesen, und wer per Sprache „Mehr"
+              sagt, traf den Knopf nicht (Prüflauf 25.09.2026, P4-08).
+            */
+            aria-label={
+              Number.isFinite(mehrSumme) && mehrSumme >= 1
+                ? `Mehr, ${mehrSumme} ${mehrSumme === 1 ? 'offener Posten' : 'offene Posten'}`
+                : 'Mehr'
+            }
+            className={moreActive ? 'unten-punkt-aktiv' : 'unten-punkt'}
+          >
+            <span className="unten-symbol">
+              <Icon name="more" size={22} />
+              {/* Die Summe dessen, was der Knopf verdeckt. */}
+              <span className="unten-zahl">
+                <Zaehler
+                  anzahl={mehrSumme}
+                  was={mehrSumme === 1 ? 'offener Posten' : 'offene Posten'}
+                />
               </span>
-              <span>Mehr</span>
-            </button>
-          )}
-        </div>
+            </span>
+            <span className="unten-text">Mehr</span>
+          </button>
+        )}
       </nav>
 
-      {/* „Mehr"-Drawer (mobil) */}
+      {/* „Mehr"-Blatt (Handy) */}
       <BottomSheet open={moreOpen} onClose={() => setMoreOpen(false)} label="Weitere Bereiche">
-        <nav className="flex flex-col gap-3" aria-label="Weitere Bereiche">
+        <nav className="flex flex-col" aria-label="Weitere Bereiche">
           {mehrGruppen.map(({ group, items: groupItems }) => (
             <div key={group}>
-              {!OHNE_UEBERSCHRIFT.has(group) && (
-                <p className="mb-1 px-1 text-xs font-semibold text-ink-muted">
-                  {group}
-                </p>
-              )}
-              <div className="flex flex-col gap-1">
+              {!OHNE_UEBERSCHRIFT.has(group) && <p className="mehr-gruppe">{group}</p>}
+              <div className="flex flex-col gap-0.5">
                 {groupItems.map((item) => (
                   <NavLink
                     key={item.path}
                     to={item.path}
                     end={item.path === '/'}
                     onClick={() => setMoreOpen(false)}
-                    className={sideLink}
+                    className={mehrPunkt}
                   >
                     <Icon name={item.icon} size={20} className="shrink-0" />
                     <span className="truncate">{item.label}</span>
@@ -533,33 +489,32 @@ export default function Layout({ children }: { children: ReactNode }) {
         </nav>
       </BottomSheet>
 
-      {/* Profil hinter den Initialen (mobil) */}
-      <BottomSheet open={profilOpen} onClose={() => setProfilOpen(false)} label="Profil">
+      {/* Profil hinter den Initialen (Handy und Tablet) */}
+      <BottomSheet open={profilOpen} onClose={() => setProfilOpen(false)} label="Profil" auchBreit>
         <div className="flex items-center gap-3 px-1">
           <Avatar name={user.name} size={48} />
           <div className="min-w-0">
-            <p className="truncate text-base font-bold text-ink">{user.name}</p>
+            <p className="truncate text-base font-semibold text-ink">{user.name}</p>
             <p className="truncate text-sm text-ink-muted">{rolleAnzeige(user.role, einblick)}</p>
             <p className="truncate text-sm text-ink-muted">{kontoAnzeige(user.email)}</p>
           </div>
         </div>
-        <div className="mt-4 flex flex-col gap-1 border-t border-line pt-3">
-          <NavLink to="/settings/meldungen" onClick={() => setProfilOpen(false)} className={sideLink}>
+        <div className="mt-4 flex flex-col gap-0.5 border-t border-line pt-3">
+          <NavLink to="/settings/meldungen" onClick={() => setProfilOpen(false)} className={mehrPunkt}>
             <Icon name="bell" size={20} className="shrink-0" />
             {/* So heißt die Seite, auf der man landet (navigation.ts,
-                Unterseite `meldungen`): Passwort UND Meldungen. Hier stand
-                „Benachrichtigungen", und angekommen war man in „Mein
-                Konto" (Prüflauf 25.09.2026, P4-17). */}
+                Unterseite `meldungen`): Passwort UND Meldungen (P4-17). */}
             <span>Mein Konto</span>
           </NavLink>
           <ProblemMelden
             ausloeser={(oeffnen) => (
-              <button type="button" onClick={oeffnen} className={sideLink({ isActive: false })}>
+              <button type="button" onClick={oeffnen} className="mehr-punkt">
                 <Icon name="mail" size={20} className="shrink-0" />
                 <span>Problem melden</span>
               </button>
             )}
           />
+          {darstellungKnopf}
         </div>
         <Button
           variant="secondary"
@@ -579,16 +534,13 @@ export default function Layout({ children }: { children: ReactNode }) {
         */}
         <div className="mt-4 border-t border-line pt-3">
           <p className="text-center text-xs text-ink-muted">Fassung {FASSUNG}</p>
-          {/*
-            Der Knopf steht GENAU HIER, weil hier die Frage entsteht: wer
-            nachsieht, welche Fassung läuft, tut das, weil eine Änderung
-            fehlt. Die Antwort darauf soll nicht drei Bildschirme entfernt
-            sein.
-          */}
+          {/* Der Knopf steht genau hier, weil hier die Frage entsteht. */}
           <AppErneuern />
           <RechtLinks className="mt-3 text-center text-xs text-ink-muted" />
         </div>
       </BottomSheet>
+
+      <Suchfenster offen={sucheOffen} onSchliessen={() => setSucheOffen(false)} />
 
       <ConfirmDialog
         open={ungesendet > 0}

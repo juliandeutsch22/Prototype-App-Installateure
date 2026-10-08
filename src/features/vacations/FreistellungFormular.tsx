@@ -290,9 +290,12 @@ export default function FreistellungFormular({
 
       {fehler && <ErrorState message={fehler} />}
 
-      <Button type="submit" className="w-full sm:w-auto" loading={sendet}>
-        Antrag einreichen
-      </Button>
+      {/* Die Fusszeile der Linie, wie beim Urlaubsantrag daneben. */}
+      <div className="fuss-aktionen">
+        <Button type="submit" className="w-full sm:w-auto" loading={sendet}>
+          Antrag einreichen
+        </Button>
+      </div>
     </form>
   );
 }

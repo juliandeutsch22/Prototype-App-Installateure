@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import Icon from './Icon';
 
 /**
@@ -12,6 +13,8 @@ export function ListRow({
   zustand,
   wert,
   pfeil = false,
+  to,
+  onOeffnen,
   children,
 }: {
   title: ReactNode;
@@ -26,10 +29,26 @@ export function ListRow({
   zustand?: ReactNode;
   /** Pfeil am Ende: für Zeilen, die als Ganzes eine Akte öffnen. */
   pfeil?: boolean;
+  /**
+   * DIE GANZE ZEILE IST ANTIPPBAR (Linie „Lot“, Regel 3): mit `to` führt sie
+   * an eine Adresse, mit `onOeffnen` öffnet sie etwa ein Seitenfenster. Das
+   * Ziel ist der Titel; seine Fläche spannt sich über die Zeile, die Knöpfe
+   * rechts liegen darüber und bleiben einzeln treffbar.
+   */
+  to?: string;
+  onOeffnen?: () => void;
   children?: ReactNode; // rechte Seite (Aktionen)
 }) {
+  const ganz = !!to || !!onOeffnen;
+  const titelInhalt = to ? (
+    <Link to={to} className="zeile-ziel">{title}</Link>
+  ) : onOeffnen ? (
+    <button type="button" onClick={onOeffnen} className="zeile-ziel text-left">{title}</button>
+  ) : (
+    title
+  );
   return (
-    <li className="zeile flex-wrap gap-y-2">
+    <li className={ganz ? 'zeile zeile-ganz flex-wrap gap-y-2' : 'zeile flex-wrap gap-y-2'}>
       {/*
         Untergrenze statt min-w-0. `flex: 1` allein bedeutet flex-basis:0 — der
         Titel durfte damit auf 33 px schrumpfen, waehrend die Knoepfe den Rest
@@ -46,7 +65,7 @@ export function ListRow({
           Meta Datum und Ort — abgeschnitten wäre genau das weg, wonach jemand
           sucht. Lange Wörter brechen ohnehin (`overflow-wrap` am `body`).
         */}
-        <div className="zeile-titel flex flex-wrap items-center gap-x-2">{title}</div>
+        <div className="zeile-titel flex flex-wrap items-center gap-x-2">{titelInhalt}</div>
         {subtitle && <p className="zeile-meta mt-0.5 block">{subtitle}</p>}
       </div>
       {/* Der Umbruch bleibt als Fangnetz. Er ist aber nicht mehr die Antwort
@@ -60,7 +79,7 @@ export function ListRow({
         // Tasthoehe bleibt bei 44 px, also innerhalb dessen, was die
         // Plattformrichtlinien verlangen. Symbolknoepfe sind ausgenommen,
         // sonst schruempfte das Symbol mit.
-        <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-1 [&>button:not([data-icon])]:min-h-[2.75rem] [&>button:not([data-icon])]:px-3 [&>button:not([data-icon])]:text-sm">
+        <div className="relative z-[1] ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-1 [&>button:not([data-icon])]:min-h-[2.75rem] [&>button:not([data-icon])]:px-3 [&>button:not([data-icon])]:text-sm">
           {zustand}
           {wert != null && <span className="zeile-wert">{wert}</span>}
           {children}

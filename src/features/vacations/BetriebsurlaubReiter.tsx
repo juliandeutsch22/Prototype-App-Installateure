@@ -16,6 +16,7 @@ import { Marke } from '@/components/Badge';
 import { CheckboxField, InputField, FormGrid } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
+import { WeitereAngaben } from '@/components/LotBausteine';
 import { useToast } from '@/components/Toast';
 import { zeitraumText } from './abwesenheitText';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -46,9 +47,6 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
   const [loeschen, setLoeschen] = useState<WithId<Betriebsurlaub> | null>(null);
   const [leute, setLeute] = useState<AppUser[]>([]);
   const [ausgenommen, setAusgenommen] = useState<string[]>([]);
-  // Zugeklappt: meistens hat der ganze Betrieb zu, und die Liste aller
-  // Mitarbeiter wäre dann nur Länge.
-  const [ausnahmenOffen, setAusnahmenOffen] = useState(false);
 
   useEffect(() => {
     let weg = false;
@@ -141,9 +139,12 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 lg:space-y-5">
       {fehler && <ErrorState message={fehler} />}
+      {/* Anlegen links, die Betriebsurlaube daneben, wo beide Platz haben (lot-zeit.css). */}
+      <div className="zeit-raster">
       <Card
+        className="zeit-formularkarte"
         title="Betriebsurlaub anlegen"
         hint={
           <>
@@ -210,58 +211,52 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
               etwa als Zeitausgleich.
             </InfoHint>
           </div>
-          <div>
-            <button
-              type="button"
-              className="flex min-h-touch items-center gap-2 text-sm font-medium text-brand"
-              aria-expanded={ausnahmenOffen}
-              aria-controls="bu-ausnahmen"
-              onClick={() => setAusnahmenOffen((o) => !o)}
-            >
-              <span aria-hidden="true">{ausnahmenOffen ? '▾' : '▸'}</span>
-              Mitarbeiter ausnehmen
-              {ausgenommen.length > 0 && (
-                <span className="font-normal text-ink-muted">({ausgenommen.length})</span>
+          {/*
+            SELTENES UNTER „WEITERE ANGABEN“ (Regel 9): meistens hat der ganze
+            Betrieb zu, und die Liste aller Mitarbeiter wäre dann nur Länge.
+            Zugeklappt steht in der Zeile trotzdem, wer ausgenommen ist — sonst
+            ginge eine Ausnahme unbemerkt mit in den Betriebsurlaub.
+          */}
+          <WeitereAngaben
+            titel={
+              ausgenommen.length > 0
+                ? `Mitarbeiter ausnehmen (${ausgenommen.length}) – arbeiten in dieser Zeit: ${ausgenommenText}`
+                : 'Mitarbeiter ausnehmen'
+            }
+          >
+            <fieldset id="bu-ausnahmen">
+              <legend className="text-sm text-ink-muted">
+                Wer hier angehakt ist, arbeitet in dieser Zeit: kein Urlaub gebucht, in der
+                Planung verfügbar.
+              </legend>
+              {leute.length === 0 ? (
+                <p className="mt-2 text-sm text-ink-muted">Die Mitarbeiter konnten nicht geladen werden.</p>
+              ) : (
+                <div className="mt-1 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                  {leute.map((u) => (
+                    <CheckboxField
+                      key={u.uid}
+                      id={`bu-aus-${u.uid}`}
+                      label={u.name}
+                      checked={ausgenommen.includes(u.uid)}
+                      onChange={(e) =>
+                        setAusgenommen((a) =>
+                          e.target.checked ? [...a, u.uid] : a.filter((x) => x !== u.uid),
+                        )
+                      }
+                    />
+                  ))}
+                </div>
               )}
-            </button>
-            {/* Zugeklappt steht trotzdem da, wer ausgenommen ist — sonst ginge
-                eine Ausnahme unbemerkt mit in den Betriebsurlaub. */}
-            {!ausnahmenOffen && ausgenommen.length > 0 && (
-              <p className="text-sm text-ink-muted">Arbeiten in dieser Zeit: {ausgenommenText}</p>
-            )}
-            {ausnahmenOffen && (
-              <fieldset id="bu-ausnahmen" className="mt-1">
-                <legend className="text-sm text-ink-muted">
-                  Wer hier angehakt ist, arbeitet in dieser Zeit: kein Urlaub gebucht, in der
-                  Planung verfügbar.
-                </legend>
-                {leute.length === 0 ? (
-                  <p className="mt-2 text-sm text-ink-muted">Die Mitarbeiter konnten nicht geladen werden.</p>
-                ) : (
-                  <div className="mt-1 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
-                    {leute.map((u) => (
-                      <CheckboxField
-                        key={u.uid}
-                        id={`bu-aus-${u.uid}`}
-                        label={u.name}
-                        checked={ausgenommen.includes(u.uid)}
-                        onChange={(e) =>
-                          setAusgenommen((a) =>
-                            e.target.checked ? [...a, u.uid] : a.filter((x) => x !== u.uid),
-                          )
-                        }
-                      />
-                    ))}
-                  </div>
-                )}
-              </fieldset>
-            )}
+            </fieldset>
+          </WeitereAngaben>
+          <div className="fuss-aktionen">
+            <Button type="submit">Betriebsurlaub anlegen</Button>
           </div>
-          <Button type="submit">Betriebsurlaub anlegen</Button>
         </form>
       </Card>
 
-      <Card title="Betriebsurlaube">
+      <Card title="Betriebsurlaube" className="zeit-liste">
         {laden ? (
           <SkeletonList rows={2} />
         ) : liste.length === 0 ? (
@@ -291,6 +286,7 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
           </List>
         )}
       </Card>
+      </div>
 
       <ConfirmDialog
         open={fragen}

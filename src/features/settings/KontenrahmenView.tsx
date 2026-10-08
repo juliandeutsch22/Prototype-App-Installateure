@@ -218,7 +218,7 @@ export default function KontenrahmenView() {
   if (geladen === null) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Kontenrahmen" subtitle="Welche Konten die Buchhaltung bebucht" />
+        <PageHeader ort="Einstellungen" title="Kontenrahmen" subtitle="Welche Konten die Buchhaltung bebucht" />
         {fehler ? <ErrorState message={fehler} /> : <SkeletonList rows={4} />}
       </div>
     );
@@ -226,7 +226,7 @@ export default function KontenrahmenView() {
 
   return (
     <form className="space-y-6" onSubmit={(e) => void speichern(e)}>
-      <PageHeader title="Kontenrahmen" subtitle="Welche Konten die Buchhaltung bebucht" />
+      <PageHeader ort="Einstellungen" title="Kontenrahmen" subtitle="Welche Konten die Buchhaltung bebucht" />
 
       <Card
         title="Grundkonten"
@@ -246,7 +246,7 @@ export default function KontenrahmenView() {
           </Button>
         }
       >
-        <div className="space-y-4">
+        <div className="formular space-y-4">
           {/*
             EIN VORSCHLAG IST KEINE FREIGABE (Testbericht 30.09.2026, M26). Die
             Konten kommen aus dem Kontenplan der Kanzlei; eingesetzt und
@@ -346,7 +346,7 @@ export default function KontenrahmenView() {
           </>
         }
       >
-        <div className="space-y-4">
+        <div className="formular space-y-4">
           <div className="flex flex-wrap items-end gap-x-2">
             <div className="min-w-[10rem] grow">
               <InputField
@@ -386,7 +386,7 @@ export default function KontenrahmenView() {
             Buchungsstapel.
           </p>
         ) : (
-          <div className="space-y-4">
+          <div className="formular space-y-4">
             {saetze.map((s, n) => (
               <div key={s.id ?? `neu-${n}`} className="flex flex-wrap items-end gap-2">
                 <div className="w-24">
@@ -449,7 +449,7 @@ export default function KontenrahmenView() {
       {einwand && <ErrorState message={einwand} />}
       {fehler && <ErrorState message={fehler} />}
 
-      <div>
+      <div className="fuss-aktionen">
         <Button type="submit" loading={speichert} disabled={!!einwand}>
           Kontenrahmen speichern
         </Button>

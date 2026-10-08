@@ -71,6 +71,11 @@ function zeige(vorgabe: TerminVorgabe, titel = 'Termine') {
 }
 
 const karte = () => screen.getByRole('heading', { name: /Termine/ }).closest('section') as HTMLElement;
+/*
+  Seit der Linie „Lot“ steht das Formular im Seitenfenster (Regel 8), nicht
+  mehr aufgeklappt in der Karte. Was die Tests schützen, bleibt gleich.
+*/
+const fenster = () => screen.getByRole('dialog');
 
 beforeEach(() => {
   termine = [];
@@ -132,7 +137,7 @@ describe('Anlegen', () => {
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
     await userEvent.click(await screen.findByRole('checkbox', { name: /Anna Monteurin/ }));
     await userEvent.type(screen.getByLabelText('Notiz'), 'Wannen');
-    await userEvent.click(within(karte()).getByRole('button', { name: 'Termin anlegen' }));
+    await userEvent.click(within(fenster()).getByRole('button', { name: 'Termin anlegen' }));
     await waitFor(() => expect(terminAnlegen).toHaveBeenCalledTimes(1));
     expect(terminAnlegen).toHaveBeenCalledWith('perl', {
       art: 'Lieferung', datum: '2026-06-02', zeitVon: '08:00', zeitBis: '10:00',
@@ -143,7 +148,7 @@ describe('Anlegen', () => {
   it('ohne Baustelle wird nicht gespeichert — und es steht da, warum', async () => {
     zeige({ bezug: 'frei', datum: '2026-06-02' });
     await userEvent.click(await screen.findByRole('button', { name: 'Termin anlegen' }));
-    await userEvent.click(within(karte()).getByRole('button', { name: 'Termin anlegen' }));
+    await userEvent.click(within(fenster()).getByRole('button', { name: 'Termin anlegen' }));
     expect(await screen.findByText('Bitte eine Baustelle wählen.')).toBeInTheDocument();
     expect(terminAnlegen).not.toHaveBeenCalled();
   });
@@ -153,7 +158,7 @@ describe('Anlegen', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Termin anlegen' }));
     await userEvent.type(screen.getByLabelText('Von'), '10:00');
     await userEvent.type(screen.getByLabelText('Bis'), '08:00');
-    await userEvent.click(within(karte()).getByRole('button', { name: 'Termin anlegen' }));
+    await userEvent.click(within(fenster()).getByRole('button', { name: 'Termin anlegen' }));
     expect(await screen.findByText('„Bis“ muss nach „Von“ liegen.')).toBeInTheDocument();
     expect(terminAnlegen).not.toHaveBeenCalled();
   });
@@ -181,7 +186,7 @@ describe('Anlegen', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Uhrzeit entfernen' }));
     expect((screen.getByLabelText('Von') as HTMLInputElement).value).toBe('');
     expect((screen.getByLabelText('Bis') as HTMLInputElement).value).toBe('');
-    await userEvent.click(within(karte()).getByRole('button', { name: 'Termin anlegen' }));
+    await userEvent.click(within(fenster()).getByRole('button', { name: 'Termin anlegen' }));
     await waitFor(() => expect(terminAnlegen).toHaveBeenCalledTimes(1));
     expect(terminAnlegen.mock.calls[0][1]).toMatchObject({ zeitVon: '', zeitBis: '' });
   });
@@ -190,7 +195,7 @@ describe('Anlegen', () => {
     zeige({ bezug: 'baustelle', projectNumber: '2026-042' });
     await userEvent.click(await screen.findByRole('button', { name: 'Termin anlegen' }));
     expect(screen.queryByRole('combobox', { name: /Baustelle/ })).not.toBeInTheDocument();
-    await userEvent.click(within(karte()).getByRole('button', { name: 'Termin anlegen' }));
+    await userEvent.click(within(fenster()).getByRole('button', { name: 'Termin anlegen' }));
     await waitFor(() => expect(terminAnlegen).toHaveBeenCalledTimes(1));
     expect(terminAnlegen.mock.calls[0][1]).toMatchObject({ projectNumber: '2026-042', customerId: null, datum: '2026-06-01' });
   });
@@ -200,7 +205,7 @@ describe('Anlegen', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Termin anlegen' }));
     expect(screen.getByRole('radio', { name: 'Beim Kunden, ohne Baustelle' })).toBeChecked();
     await userEvent.selectOptions(screen.getByLabelText('Art'), 'Besichtigung');
-    await userEvent.click(within(karte()).getByRole('button', { name: 'Termin anlegen' }));
+    await userEvent.click(within(fenster()).getByRole('button', { name: 'Termin anlegen' }));
     await waitFor(() => expect(terminAnlegen).toHaveBeenCalledTimes(1));
     expect(terminAnlegen.mock.calls[0][1]).toMatchObject({ art: 'Besichtigung', projectNumber: null, customerId: 'k1' });
   });
@@ -209,7 +214,7 @@ describe('Anlegen', () => {
     zeige({ bezug: 'kunde', customerId: 'k1', baustellen: [{ projectNumber: '2026-042', label: '2026-042 · Ringstraße 3' }] });
     await userEvent.click(await screen.findByRole('button', { name: 'Termin anlegen' }));
     expect(screen.getByRole('combobox', { name: 'Baustelle' })).toHaveValue('2026-042');
-    await userEvent.click(within(karte()).getByRole('button', { name: 'Termin anlegen' }));
+    await userEvent.click(within(fenster()).getByRole('button', { name: 'Termin anlegen' }));
     await waitFor(() => expect(terminAnlegen).toHaveBeenCalledTimes(1));
     expect(terminAnlegen.mock.calls[0][1]).toMatchObject({ projectNumber: '2026-042', customerId: null });
   });
@@ -219,9 +224,30 @@ describe('Anlegen', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Termin anlegen' }));
     await userEvent.click(screen.getByRole('radio', { name: 'Beim Kunden, ohne Baustelle' }));
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Kunde' }), 'k1');
-    await userEvent.click(within(karte()).getByRole('button', { name: 'Termin anlegen' }));
+    await userEvent.click(within(fenster()).getByRole('button', { name: 'Termin anlegen' }));
     await waitFor(() => expect(terminAnlegen).toHaveBeenCalledTimes(1));
     expect(terminAnlegen.mock.calls[0][1]).toMatchObject({ projectNumber: null, customerId: 'k1' });
+  });
+});
+
+describe('Im Seitenfenster (Linie „Lot“, Regel 8)', () => {
+  it('öffnet das Formular im Fenster — die Liste bleibt stehen, Abbrechen schließt', async () => {
+    termine = [LIEFERUNG];
+    zeige({ bezug: 'frei', datum: '2026-06-02' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Termin anlegen' }));
+    const dialog = screen.getByRole('dialog', { name: 'Termin anlegen' });
+    expect(within(dialog).getByLabelText('Art')).toBeInTheDocument();
+    // Die Liste bleibt stehen — sie steht ausserhalb des Fensters.
+    expect(within(karte()).getByText('Lieferung (Aviso) · 08:00–10:00').closest('[role="dialog"]')).toBeNull();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Abbrechen' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('Ändern öffnet das Fenster „Termin ändern“', async () => {
+    termine = [LIEFERUNG];
+    zeige({ bezug: 'frei', datum: '2026-06-02' });
+    await userEvent.click(await screen.findByRole('button', { name: /Lieferung \(Aviso\) · 08:00–10:00 am .* ändern/ }));
+    expect(within(screen.getByRole('dialog', { name: 'Termin ändern' })).getByLabelText('Zeitfenster von')).toHaveValue('08:00');
   });
 });
 

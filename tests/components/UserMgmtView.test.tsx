@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser } from '@/types';
 import UserMgmtView from '@/features/users/UserMgmtView';
@@ -77,12 +77,21 @@ vi.mock('@/app/AuthContext', () => ({
   useAuth: () => ({ user: angemeldet, company: betrieb }),
 }));
 
-function zeige() {
+/** Zeigt die Adresse an, damit Filter in der Adresse prüfbar sind. */
+function Adresse() {
+  const ort = useLocation();
+  return <output data-testid="adresse">{ort.pathname + ort.search}</output>;
+}
+
+function zeige(adresse = '/user-mgmt') {
   return render(
     // Die Liste verweist in die Akte — ohne Router wirft jeder `Link`.
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[adresse]}>
       <ToastProvider>
-        <UserMgmtView />
+        <Routes>
+          <Route path="/user-mgmt" element={<><UserMgmtView /><Adresse /></>} />
+          <Route path="/user-mgmt/:uid" element={<Adresse />} />
+        </Routes>
       </ToastProvider>
     </MemoryRouter>,
   );
@@ -96,7 +105,8 @@ function zeige() {
  * Benutzer wird ein paarmal im Jahr angelegt und dauernd nachgesehen.
  */
 async function formOeffnen(resturlaub: string | null = '25') {
-  await userEvent.click(await screen.findByRole('button', { name: 'Neuer Benutzer' }));
+  // Die Hauptaktion heisst seit dem Umbau auf „Lot“ wie der Knopf im Formular.
+  await userEvent.click(await screen.findByRole('button', { name: 'Benutzer anlegen' }));
   /*
     BEIM UMSTIEG IST DER RESTURLAUB PFLICHT (Testbericht 30.09.2026, M4) —
     die Vorgabe des Formulars ist der Umstieg. Wer das Pflichtfeld selbst
@@ -218,8 +228,10 @@ describe('Benutzerverwaltung — die Rolle Administrator', () => {
     leute = [person({ uid: 'ad1', name: 'Root Person', role: 'Administrator' })];
     zeige();
 
+    // Seit dem Umbau auf „Lot“ ist die ganze Zeile der Weg in die Akte —
+    // geschützt bleibt, dass er auch zu einem Administrator führt.
     const zeile = (await screen.findByText('Root Person')).closest('li') as HTMLElement;
-    expect(within(zeile).getByRole('link', { name: 'Akte' })).toHaveAttribute(
+    expect(within(zeile).getByRole('link', { name: 'Root Person' })).toHaveAttribute(
       'href', '/user-mgmt/ad1',
     );
   });
@@ -325,19 +337,65 @@ describe('Benutzerverwaltung — die Liste', () => {
       person({ uid: 'u3', name: 'Ausgeschieden', active: false }),
     ];
     zeige();
-    const filter = await screen.findByRole('combobox', { name: 'Benutzer nach Status filtern' });
-    expect(within(filter).getByRole('option', { name: 'Deaktivierte (1)' })).toBeInTheDocument();
-    await userEvent.selectOptions(filter, 'alle');
+    // Der Filter steht seit dem Umbau auf „Lot“ als Segmente da; geschützt
+    // bleibt das Wort „Deaktivierte“ mit der Zahl.
+    const filter = await screen.findByRole('group', { name: 'Benutzer nach Status filtern' });
+    expect(within(filter).getByRole('button', { name: 'Deaktivierte (1)' })).toBeInTheDocument();
+    await userEvent.click(within(filter).getByRole('button', { name: 'Alle' }));
     expect(await screen.findByText('Ausgeschieden')).toBeInTheDocument();
     expect(screen.getByText('deaktiviert')).toBeInTheDocument();
     expect(screen.queryByText(/inaktiv/i)).not.toBeInTheDocument();
+  });
+
+  it('führt mit der ganzen Zeile in die Akte (Linie „Lot“)', async () => {
+    leute = [person({ uid: 'u2', name: 'Erna Beispiel' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('link', { name: 'Erna Beispiel' }));
+    expect(screen.getByTestId('adresse')).toHaveTextContent('/user-mgmt/u2');
+  });
+
+  it('zeigt die Suche auch bei wenigen Benutzern', async () => {
+    // Gegenprobe zur früheren Schwelle von acht Benutzern: jede Liste hat eine Suche.
+    leute = [person({ uid: 'u2', name: 'Erna Beispiel' })];
+    zeige();
+    expect(await screen.findByRole('searchbox', { name: /Suche/ })).toBeInTheDocument();
+  });
+
+  it('hält Filter und Suche in der Adresse und liest sie von dort', async () => {
+    leute = [
+      person({ uid: 'u2', name: 'Erna Beispiel' }),
+      person({ uid: 'u3', name: 'Ausgeschieden', active: false }),
+    ];
+    zeige('/user-mgmt?status=inaktiv');
+    expect(await screen.findByText('Ausgeschieden')).toBeInTheDocument();
+    expect(screen.queryByText('Erna Beispiel')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Deaktivierte (1)' })).toHaveAttribute('aria-pressed', 'true');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Aktive' }));
+    // Die Vorgabe steht nicht in der Adresse — ein Lesezeichen bleibt kurz.
+    expect(screen.getByTestId('adresse')).toHaveTextContent(/^\/user-mgmt$/);
+    await userEvent.type(screen.getByRole('searchbox', { name: /Suche/ }), 'Erna');
+    expect(screen.getByTestId('adresse')).toHaveTextContent('/user-mgmt?suche=Erna');
+  });
+
+  it('zeigt je Gruppe höchstens 20 Zeilen, dann „und N weitere anzeigen“', async () => {
+    leute = Array.from({ length: 23 }, (_, i) =>
+      person({ uid: `u${i}`, name: `Person ${String(i).padStart(2, '0')}`, email: `p${i}@perl.at` }),
+    );
+    zeige();
+    await screen.findByText('Person 00');
+    expect(screen.getByText('Person 19')).toBeInTheDocument();
+    expect(screen.queryByText('Person 20')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'und 3 weitere anzeigen' }));
+    expect(screen.getByText('Person 22')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /weitere anzeigen/ })).not.toBeInTheDocument();
   });
 
   it('zeigt die Liste zuerst, nicht die leere Maske', async () => {
     // Gemessen: 932 px bis zur ersten Zeile. Ein Benutzer wird ein paarmal im
     // Jahr angelegt und dauernd nachgesehen.
     zeige();
-    await screen.findByRole('button', { name: 'Neuer Benutzer' });
+    await screen.findByRole('button', { name: 'Benutzer anlegen' });
     expect(screen.queryByRole('textbox', { name: /^Name/ })).not.toBeInTheDocument();
   });
 
@@ -553,7 +611,8 @@ describe('Anlegen mit Benutzername statt E-Mail', () => {
 describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
   it('nennt die Auswahl „Benutzer nach Status filtern“ — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl“', async () => {
     zeige();
-    expect(await screen.findByRole('combobox', { name: 'Benutzer nach Status filtern' })).toBeInTheDocument();
+    // Seit „Lot“ eine Gruppe von Segmenten statt einer Auswahlliste — der Name bleibt.
+    expect(await screen.findByRole('group', { name: 'Benutzer nach Status filtern' })).toBeInTheDocument();
   });
 });
 

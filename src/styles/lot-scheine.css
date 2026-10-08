@@ -1,0 +1,36 @@
+/*
+ * Seitenbausteine der Linie „Lot“ — Paket „scheine“ (docs/ui-umbau/seiten-leitfaden.md).
+ * Regeln wie in lot.css: eine Klasse je Element, keine clamp()/calc(), keine
+ * Container-Abfragen, Media-Queries nur auf die Breite (760/1200 px), keine
+ * Positionsselektoren, keine halbtransparenten Farbflächen, keine
+ * gestrichelten Linien. Farben nur aus den Grundwerten (var(--…)).
+ */
+@layer components {
+  /* ── Liste: Suche und Ansicht über der Liste ──────────────────────────── */
+  /*
+    Am Handy untereinander (Suche zuerst, volle Breite), ab dem Tablet in
+    einer Zeile. Die Suche steht vorne, damit sie beim Tippen nicht springt,
+    wenn die Segmente ausgeblendet werden.
+  */
+  .scheine-werkzeug { display: flex; flex-direction: column; gap: 0.75rem; }
+  @media (min-width: 760px) { .scheine-werkzeug { flex-direction: row; align-items: center; justify-content: space-between; } }
+  .scheine-suche { width: 100%; min-height: 2.75rem; padding: 0.25rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: 1rem; }
+  @media (min-width: 760px) { .scheine-suche { max-width: 22rem; } }
+  .scheine-ansicht { width: 100%; }
+  @media (min-width: 760px) { .scheine-ansicht { width: 14rem; flex: none; } }
+
+  /* ── Schein: die Einsätze des Tages als Auswahl ───────────────────────── */
+  /*
+    Die gewählte Baustelle trägt einen Petrol-Rand und den hellen Petrolgrund
+    der Linie statt einer vollen Fläche: die Auswahl soll erkennbar sein,
+    ohne lauter zu stehen als der Hauptknopf der Seite.
+  */
+  .schein-einsatz { min-height: 2.75rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: 0.875rem; text-align: left; cursor: pointer; }
+  .schein-einsatz:hover { border-color: var(--petrol); }
+  .schein-einsatz-an { min-height: 2.75rem; padding: 0.5rem 0.75rem; border: 2px solid var(--petrol); border-radius: var(--radius); background: var(--petrol-hell); color: var(--ink-deep); font-size: 0.875rem; font-weight: 600; text-align: left; cursor: pointer; }
+
+  /* ── Schein: Foto entfernen (das Kreuz auf dem Bild) ──────────────────── */
+  /* Eigener heller Grund mit Linie statt Schatten — auf einem dunklen Foto
+     wäre ein blosses Zeichen nicht zu sehen. */
+  .schein-foto-weg { display: flex; width: 1.75rem; height: 1.75rem; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--danger); font-size: 0.875rem; }
+}

@@ -22,6 +22,7 @@ import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/F
 import PersonPicker from '@/components/PersonPicker';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
+import { WeitereAngaben } from '@/components/LotBausteine';
 import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { euro, euroBetrag } from '@/lib/betrag';
@@ -527,7 +528,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
 
   return (
     <div className="space-y-6">
-      <PageHeader title={KOPF[teil].titel} subtitle={KOPF[teil].unter} />
+      {/* Die Ortszeile sagt, wo die Unterseite hingehört — die Reiter darüber laufen am Handy seitlich aus dem Bild. */}
+      <PageHeader ort="Einstellungen" title={KOPF[teil].titel} subtitle={KOPF[teil].unter} />
 
       {/*
         EIN REITER FÜR BUCHHALTUNG UND LEITUNG (Analyse 03.10.2026, Paket 2).
@@ -542,6 +544,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             title="Rechnungsvorgaben"
             hint="Diese Werte sind die Vorgabe für neue Rechnungen. Beim Erstellen lassen sie sich für den Einzelfall noch anpassen."
           >
+            {/* Formular der Linie: einspaltig geführt, höchstens 560 px (Regel 9). */}
+            <div className="formular">
             <FormGrid>
               <SelectField
                 id="r-vat"
@@ -617,9 +621,10 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 </InfoHint>
               </p>
             </div>
+            </div>
           </Card>
           {fehlerBei('rechnung')}
-          <div className="flex justify-end">
+          <div className="fuss-aktionen">
             <Button type="submit" loading={saving}>
               Rechnungsvorgaben speichern
             </Button>
@@ -633,13 +638,15 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             title="Rechnungsvorgaben"
             hint="Diese Werte sind die Vorgabe für neue Rechnungen und Mahnungen. Stunden- und Kostensätze pflegt die Leitung unter „Sätze und Kosten“."
           >
-            <FormGrid>
-              <RechnungsvorgabenFelder rates={rates} setRates={setRates} />
-            </FormGrid>
-            <RechnungsvorgabenHinweis />
+            <div className="formular">
+              <FormGrid>
+                <RechnungsvorgabenFelder rates={rates} setRates={setRates} />
+              </FormGrid>
+              <RechnungsvorgabenHinweis />
+            </div>
           </Card>
           {fehlerBei('rechnung')}
-          <div className="flex justify-end">
+          <div className="fuss-aktionen">
             <Button type="submit" loading={saving}>
               Rechnungsvorgaben speichern
             </Button>
@@ -653,6 +660,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           title="Stundensätze"
           hint="Welcher Satz für eine Stunde gilt, folgt aus der Einstufung der Person (Benutzerakte). Der Haken „als Helfer“ an der Buchung bleibt für Ausnahmen und geht vor."
         >
+          <div className="formular">
           <FormGrid>
             <ZahlWertFeld
               id="r-fach"
@@ -673,7 +681,15 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             Helfersatz; 0 heisst „nicht verrechnet“. Welcher Satz gilt, steht
             an der Person (Benutzerakte → Einstufung).
           */}
-          <p className="section-label mb-2 mt-4 border-t border-line pt-4">Je Einstufung</p>
+          {/*
+            JE EINSTUFUNG UNTER „WEITERE ANGABEN“ (Linie „Lot“, Regel 9): fünf
+            Felder, die meist leer bleiben — leer heisst Facharbeiter- bzw.
+            Helfersatz. Offen, sobald eines davon belegt ist.
+          */}
+          <WeitereAngaben
+            titel="Je Einstufung"
+            offen={STUFEN.some((s) => rates.stufen?.[s] != null)}
+          >
           <FormGrid>
             {STUFEN.map((s) => (
               <ZahlWertFeld
@@ -691,13 +707,15 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               />
             ))}
           </FormGrid>
-
+          </WeitereAngaben>
+          </div>
         </Card>
 
         <Card
           title="Zuschläge"
           hint="Zuschläge gelten als Aufschlag auf den Stundensatz. Nacht und Notdienst können zusammentreffen — dann addieren sich beide."
         >
+          <div className="formular">
           <FormGrid>
             <InputField
               id="r-night"
@@ -730,15 +748,15 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 So wird ein Monteur verrechnet
               </caption>
               <tbody>
-                <tr className="border-b border-line/60">
+                <tr className="rechen-zeile">
                   <td className="py-1">Regulär</td>
                   <td className="py-1 text-right">{euroBetrag(rates.fach)} €/h</td>
                 </tr>
-                <tr className="border-b border-line/60">
+                <tr className="rechen-zeile">
                   <td className="py-1">Nachtarbeit</td>
                   <td className="py-1 text-right">{euroBetrag(nightFach)} €/h</td>
                 </tr>
-                <tr className="border-b border-line/60">
+                <tr className="rechen-zeile">
                   <td className="py-1">Notdienst</td>
                   <td className="py-1 text-right">{euroBetrag(emergencyFach)} €/h</td>
                 </tr>
@@ -748,6 +766,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 </tr>
               </tbody>
             </table>
+          </div>
           </div>
         </Card>
 
@@ -770,6 +789,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             </>
           }
         >
+          <div className="formular">
           <FormGrid>
             <ZahlFeld
               id="costfach"
@@ -786,7 +806,10 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               onChange={(t) => setCostRates({ ...costRates, helper: t })}
             />
           </FormGrid>
-          <p className="section-label mb-2 mt-4 border-t border-line pt-4">Je Einstufung</p>
+          <WeitereAngaben
+            titel="Je Einstufung"
+            offen={STUFEN.some((s) => (costStufen[s] ?? '').trim() !== '')}
+          >
           <FormGrid>
             {STUFEN.map((s) => (
               <ZahlFeld
@@ -799,6 +822,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               />
             ))}
           </FormGrid>
+          </WeitereAngaben>
           {costRates.fach.trim() === '' || costRates.helper.trim() === '' ? (
             /*
               Kein Deckungsbeitrag ohne Kostensatz. Vorher stand hier eine
@@ -824,6 +848,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               )}
             </p>
           )}
+          </div>
         </Card>
 
         {/*
@@ -835,6 +860,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           title="Materialaufschlag"
           hint="Prozent auf den Einkaufspreis. Daraus schlägt der Katalog den Verkaufspreis vor; ein eingetragener Verkaufspreis bleibt, wie er ist."
         >
+          <div className="formular">
           <MaterialaufschlagFelder
             key={JSON.stringify(company?.rates?.materialaufschlag ?? null)}
             wert={rates.materialaufschlag}
@@ -848,14 +874,13 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               Setzt den Verkaufspreis nur bei Artikeln ohne Preis — mit dem gespeicherten Aufschlag.
             </p>
           </div>
+          </div>
         </Card>
 
         {fehlerBei('saetze')}
 
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button type="submit" loading={saving} className="w-full sm:w-auto">
-            Sätze speichern
-          </Button>
+        {/* Fusszeile der Aktionen (Linie „Lot“): Speichern ganz rechts, das Zurücksetzen davor. */}
+        <div className="fuss-aktionen">
           {/*
             ERST FRAGEN, DANN SAGEN, WAS PASSIERT IST (Testbericht 30.09.2026,
             G11): der Knopf setzte die Felder still zurück, und niemand sah,
@@ -868,6 +893,9 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             className="w-full sm:w-auto"
           >
             Auf Standardwerte zurücksetzen
+          </Button>
+          <Button type="submit" loading={saving} className="w-full sm:w-auto">
+            Sätze speichern
           </Button>
         </div>
         <ConfirmDialog
@@ -924,6 +952,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             fest am 1. Jänner — für jeden Betrieb mit einem anderen
             Urlaubsjahr rechnete die App still falsch.
           */}
+          <div className="formular">
           <div className="mb-4 flex flex-wrap items-end gap-3 border-b border-line pb-4">
             <SelectField
               id="urlaubsjahr-tag"
@@ -1041,12 +1070,13 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             </div>
           )}
 
-          <div className="mt-4">
+          <div className="fuss-aktionen mt-4">
             <Button type="button" loading={uebertragSpeichert} onClick={uebertragSpeichern}>
               Urlaubsübertrag speichern
             </Button>
           </div>
           {fehlerBei('uebertrag')}
+          </div>
         </Card>
       )}
 
@@ -1075,6 +1105,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             </>
           }
         >
+          <div className="formular">
           <FormGrid>
             {([
               ['rechnung', 'Rechnungen', 'RE', 1001],
@@ -1128,12 +1159,13 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             <span> {belegNummer('', new Date().getFullYear(), 1001)}</span>.
           </p>
 
-          <div className="mt-4">
+          <div className="fuss-aktionen mt-4">
             <Button type="button" loading={vorsaetzeSpeichert} onClick={vorsaetzeSpeichern}>
               Nummernkreise speichern
             </Button>
           </div>
           {fehlerBei('nummern')}
+          </div>
         </Card>
       )}
 
@@ -1160,6 +1192,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           }
         >
           {/* Die Begründungen stehen hinter dem „i“ (Analyse 03.10.2026, Paket 1). */}
+          <div className="formular">
           <p className="text-sm text-ink">
             Immer: <strong>{immerDabei.join(', ') || 'Geschäftsführung und Administrator'}</strong>.
             Hier kommen weitere Personen dazu.
@@ -1176,7 +1209,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             />
           </div>
 
-          <div className="mt-4">
+          <div className="fuss-aktionen mt-4">
             <Button
               type="button"
               loading={genehmigerSpeichert}
@@ -1186,6 +1219,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             </Button>
           </div>
           {fehlerBei('genehmiger')}
+          </div>
         </Card>
       )}
 
@@ -1211,6 +1245,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           </>
         }
       >
+        <div className="formular">
         <CheckboxField
           id="wochenplanFuerAlle"
           label="Alle Mitarbeiter sehen den Wochenplan (nur lesen)"
@@ -1229,12 +1264,13 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           checked={kalenderAbo}
           onChange={(e) => setKalenderAbo(e.target.checked)}
         />
-        <div className="mt-4">
+        <div className="fuss-aktionen mt-4">
           <Button type="button" loading={wochenplanSpeichert} onClick={wochenplanSpeichern}>
             Speichern
           </Button>
         </div>
         {fehlerBei('wochenplan')}
+        </div>
       </Card>
       )}
 
@@ -1257,18 +1293,20 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           </>
         }
       >
+        <div className="formular">
         <CheckboxField
           id="dezemberHalbtage"
           label="24. und 31. Dezember als halbe Tage rechnen (Normalarbeitszeit bis 12 Uhr)"
           checked={dezemberHalbtage}
           onChange={(e) => setDezemberHalbtage(e.target.checked)}
         />
-        <div className="mt-4">
+        <div className="fuss-aktionen mt-4">
           <Button type="button" loading={dezemberSpeichert} onClick={dezemberSpeichern}>
             Speichern
           </Button>
         </div>
         {fehlerBei('dezember')}
+        </div>
       </Card>
       )}
 

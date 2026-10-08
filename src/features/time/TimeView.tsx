@@ -52,7 +52,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import TimeForm from './TimeForm';
-import { KrankmeldungKarte } from '@/features/vacations/Krankmeldungen';
+import { KrankmeldungFenster } from '@/features/vacations/Krankmeldungen';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import AntragKnopf, { FreistellungKnopf } from '@/features/time/AntragKnopf';
 import { datumAT } from '@/lib/datum';
@@ -492,6 +492,23 @@ export default function TimeView() {
 
   if (!user) return null;
 
+  /**
+   * Einen Eintrag zum Bearbeiten öffnen — und das Formular ins Bild holen.
+   *
+   * DIE ZEILE IST JETZT DER WEG DORTHIN (Linie „Lot“, Regel 3). Am Handy
+   * steht das Formular weit über der Liste; ohne den Sprung änderte ein Tipp
+   * auf eine Zeile nur die Überschrift dort oben, und es sähe aus, als täte
+   * er nichts. Der Fokus geht mit, wie beim Sprung zu den Einträgen.
+   */
+  const bearbeiten = (e: WithId<TimeEntry>) => {
+    setEditing(e);
+    const ziel = document.getElementById('zeit-formular');
+    if (!ziel) return;
+    ziel.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    ziel.setAttribute('tabindex', '-1');
+    ziel.focus({ preventScroll: true });
+  };
+
   /** Eine Buchung als Zeile — in den Wochen wie unter „Kommende Wochen". */
   const zeile = (e: WithId<TimeEntry>) => {
     // Sprach-/Stundeneinträge haben keine Start-/Endzeit -> nicht "undefined–undefined" zeigen.
@@ -508,15 +525,34 @@ export default function TimeView() {
             : tagesStatusName(e.status);
     const subtitle = [timeLabel, e.comment].filter(Boolean).join(' · ');
     const vomBueroGesperrt = !canEditTime(user.role) && buerobuchungGesperrt(e, entries, geburtsdatum);
+    /*
+      Bearbeitbar ist genau, was vorher den Knopf „Bearbeiten“ trug: nicht
+      verrechnet, nicht aus einer Krankmeldung, einem Antrag oder der
+      Berufsschule, kein vom Büro gebuchter Zeitausgleich und keine vom Büro
+      gesperrte Zeit — dieselben Bedingungen wie die Knöpfe unten.
+    */
+    const bearbeitbar =
+      !e.isBilled &&
+      !e.krankmeldungId &&
+      !e.freistellungId &&
+      !e.vacationId &&
+      e.status !== 'Berufsschule' &&
+      !(e.status === 'Zeitausgleich' && !canEditTime(user.role)) &&
+      !vomBueroGesperrt;
     return (
       <ListRow
         key={e.id}
         title={
-          <span>
-            {datumAT(e.date)}
-            {e.customerName && ` · ${e.customerName}`}
-          </span>
+          <>
+            <span>
+              {datumAT(e.date)}
+              {e.customerName && ` · ${e.customerName}`}
+            </span>
+            {/* Die Zeile öffnet das Formular — die Vorlesehilfe soll es hören. */}
+            {bearbeitbar && <span className="sr-only"> bearbeiten</span>}
+          </>
         }
+        onOeffnen={bearbeitbar ? () => bearbeiten(e) : undefined}
         subtitle={
           <>
             {subtitle}
@@ -527,15 +563,18 @@ export default function TimeView() {
             )}
           </>
         }
+        zustand={
+          <>
+            {doppelteTage.has(e.date) && (
+              <Warnung stufe="dringend">doppelt gebucht</Warnung>
+            )}
+            {e.source === 'voice' && <Marke>KI</Marke>}
+            <Zeitmarker eintrag={e} nacht={nacht} />
+          </>
+        }
+        // Die Stunden rechtsbündig untereinander, wie in jeder Liste der Linie.
+        wert={fmtMin(calcWorkMin(e))}
       >
-        {doppelteTage.has(e.date) && (
-          <Warnung stufe="dringend">doppelt gebucht</Warnung>
-        )}
-        {e.source === 'voice' && <Marke>KI</Marke>}
-        <Zeitmarker eintrag={e} nacht={nacht} />
-        <span className="font-medium text-ink">
-          {fmtMin(calcWorkMin(e))}
-        </span>
         {/* Verrechnete Einträge sind Grundlage einer
             verschickten Rechnung und bleiben gesperrt. */}
         {e.isBilled ? (
@@ -577,14 +616,10 @@ export default function TimeView() {
             </InfoHint>
           </span>
         ) : (
-          <>
-            <Button variant="ghost" onClick={() => setEditing(e)}>
-              Bearbeiten
-            </Button>
-            <Button variant="ghost" onClick={() => setToDelete(e)}>
-              Löschen
-            </Button>
-          </>
+          // „Bearbeiten“ ist die Zeile selbst; Löschen bleibt ein eigenes Ziel.
+          <Button variant="ghost" onClick={() => setToDelete(e)}>
+            Löschen
+          </Button>
         )}
       </ListRow>
     );
@@ -620,7 +655,7 @@ export default function TimeView() {
           ziel.setAttribute('tabindex', '-1');
           ziel.focus({ preventScroll: true });
         }}
-        className="inline-flex min-h-touch items-center gap-1 text-sm font-medium text-brand sm:hidden"
+        className="inline-flex min-h-touch items-center gap-1 text-sm font-normal text-accent-deep sm:hidden"
       >
         Zu meinen Einträgen
         <Icon name="chevron" size={16} />
@@ -846,7 +881,13 @@ export default function TimeView() {
         )}
       </MetricRow>
 
-      <Card id="zeit-formular" title={editing ? 'Eintrag bearbeiten' : 'Neuen Eintrag erfassen'}>
+      {/* Formular und eigene Einträge nebeneinander, wo beide Platz haben (lot-zeit.css). */}
+      <div className="zeit-raster">
+      <Card
+        id="zeit-formular"
+        className="zeit-formularkarte"
+        title={editing ? 'Eintrag bearbeiten' : 'Neuen Eintrag erfassen'}
+      >
         <TimeForm
           /*
             Der Schlüssel trägt die Vorbelegung mit: die Felder werden mit
@@ -877,24 +918,10 @@ export default function TimeView() {
         />
       </Card>
 
-      {meldung && (
-        <KrankmeldungKarte
-          key={meldung}
-          companyId={user.companyId}
-          id={meldung}
-          meinName={user.name}
-          mitNamen={false}
-          buero={!!user && canEditTime(user.role)}
-          // Die Einträge kommen live nach; die Karte hat ihren Dienst getan.
-          onGeaendert={() => setMeldung(null)}
-          onSchliessen={() => setMeldung(null)}
-        />
-      )}
-
       {/* Bündig: die Wochen sind getönte Abschnitte, die Buchungen Zeilen von
           Kante zu Kante (Designlinie „Fassung 3"). Laden, Fehler und Leere
           stehen gepolstert darin. */}
-      <Card title="Meine Einträge" id="meine-eintraege" buendig>
+      <Card title="Meine Einträge" id="meine-eintraege" className="zeit-liste" buendig>
         {loading ? (
           <div className="p-4">
             <SkeletonList rows={5} />
@@ -934,7 +961,7 @@ export default function TimeView() {
                   <Abschnitt
                     titel={week}
                     anzahl={rows.length === 1 ? '1 Eintrag' : `${rows.length} Einträge`}
-                    link={<span className="text-sm font-medium text-ink-deep">{fmtMin(weekMin)}</span>}
+                    link={<span className="text-sm font-normal text-ink-deep">{fmtMin(weekMin)}</span>}
                     offen={wocheOffen(week, rows, index)}
                     onUmschalten={() =>
                       setUmgeklappt((u) => ({ ...u, [week]: !wocheOffen(week, rows, index) }))
@@ -955,17 +982,36 @@ export default function TimeView() {
           ohnehin vollstaendig geladenen Liste freizugeben. Der Saldo oben
           bleibt davon unberuehrt — er rechnet immer ab Eintritt.
         */}
+        {/* Am Ende der Liste wie „und N weitere anzeigen“ (Regel 4) — die
+            Zahl kennt hier niemand, weil erst die Abfrage sie liefert. */}
         {!loading && !error && (
-          <div className="flex flex-wrap items-center gap-3 border-t border-line px-4 py-3">
-            <Button variant="secondary" onClick={() => setMonate((m) => m + MONATE_JE_SEITE)}>
+          <>
+            <button
+              type="button"
+              className="mehr-laden"
+              onClick={() => setMonate((m) => m + MONATE_JE_SEITE)}
+            >
               Ältere Einträge laden
-            </Button>
-            <span className="text-sm text-ink-muted">
-              Angezeigt werden die letzten {monate} Monate.
-            </span>
-          </div>
+            </button>
+            <p className="zeit-fenster-hinweis">Angezeigt werden die letzten {monate} Monate.</p>
+          </>
         )}
       </Card>
+      </div>
+
+      {/*
+        DIE KRANKMELDUNG IM SEITENFENSTER (Regel 8). Die Einträge kommen live
+        nach einer Änderung; das Fenster hat dann seinen Dienst getan.
+      */}
+      <KrankmeldungFenster
+        companyId={user.companyId}
+        id={meldung}
+        meinName={user.name}
+        mitNamen={false}
+        buero={!!user && canEditTime(user.role)}
+        onGeaendert={() => setMeldung(null)}
+        onSchliessen={() => setMeldung(null)}
+      />
 
       <ConfirmDialog
         open={!!toDelete}

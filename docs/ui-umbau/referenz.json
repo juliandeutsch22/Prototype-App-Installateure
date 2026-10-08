@@ -1,0 +1,45 @@
+{
+  "hinweis": "Erzeugt von tests/unit/belegReferenz.test.ts aus festen Testdaten (Uhr 07.10.2026 10:00, feste Zufallsfolge). Neu schreiben nur bei absichtlicher Änderung eines Belegs: REFERENZ_SCHREIBEN=1.",
+  "dateien": {
+    "rechnung.pdf": {
+      "sha256": "7be65277284fe9a89d7ff323f96b0531122b1387fd04117ca360f49bc7a94c05",
+      "bytes": 13509
+    },
+    "stornorechnung.pdf": {
+      "sha256": "5c488926cf12607a79b137c839afba147d419b8ebbc11d6bd6a102680a8b9dd3",
+      "bytes": 7858
+    },
+    "mahnung.pdf": {
+      "sha256": "f1d061a1d1d1f28cf864220a45245831728d109dfedaa8e1af020c61e92ce05d",
+      "bytes": 8248
+    },
+    "handwerksschein.pdf": {
+      "sha256": "cbf3e024f83906ece61e74dabffc131bf0b98b40051306739d241d067840ea90",
+      "bytes": 11148
+    },
+    "stundennachweis.pdf": {
+      "sha256": "47fce6afe3218769f95b5ab6a237c2d259e0cca5eb118fe267f23c8f0d10954e",
+      "bytes": 16293
+    },
+    "ausgangsbuch.csv": {
+      "sha256": "3978178cc1e42d2440081541a1959ef154d1836f6cf4e002f5f559543ce3f490",
+      "bytes": 1006
+    },
+    "bmd-buchungen.csv": {
+      "sha256": "8e6ed0d2fe209e05bbec27a33198319aaff1405bfdcf9d332e90199b5455a0d9",
+      "bytes": 462
+    },
+    "bmd-zahlungen.csv": {
+      "sha256": "60dcf72f072194c3c86e32dca0321ced6b739f9fd5437a40bb86d99492ead8ff",
+      "bytes": 360
+    },
+    "lohn.csv": {
+      "sha256": "bb62d6a386ddf83dc2ba9ce72afe7b68067f7affa0fbf6ae41f4ed790b5bae4e",
+      "bytes": 1248
+    },
+    "belegarchiv.zip": {
+      "sha256": "4a5b1d227035c30c896515b0a25893c9cb2dc9d8271e95fa799039c71996f018",
+      "bytes": 48491
+    }
+  }
+}

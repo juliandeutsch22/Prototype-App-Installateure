@@ -165,7 +165,8 @@ for (const [breite, hoehe, wo] of [[390, 844, 'am Telefon'], [1150, 800, 'bei 1.
       await anmelden(page, KONTEN.chefin.email);
       const verhaeltnis = await startseitePruefen(page);
       test.info().annotations.push({ type: 'Höhe', description: `${verhaeltnis.toFixed(2)} Bildschirme` });
-      await expect(page.getByText(/Handlungsbedarf/).first()).toBeVisible();
+      // Seit der Linie „Lot“ heisst die Karte „Zu erledigen“ (Protokoll E1).
+      await expect(page.getByText(/Zu erledigen/).first()).toBeVisible();
       await expect(page.getByText(/Themen?$/).first()).toBeVisible();
       await expect(page.getByRole('link', { name: /Aktive Baustellen/ })).toContainText('40');
       // Lagerarbeit gehört der Verwaltung, die es hier gibt.

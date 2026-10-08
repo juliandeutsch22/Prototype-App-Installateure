@@ -69,7 +69,7 @@ export default function ExportDialog({
   return (
     <div
       ref={dialog}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 focus-visible:outline-none sm:items-center sm:p-4"
+      className="schleier-dialog focus-visible:outline-none"
       role="dialog"
       aria-modal="true"
       aria-labelledby="export-title"
@@ -77,7 +77,7 @@ export default function ExportDialog({
       onClick={onClose}
     >
       <div
-        className="max-h-[92vh] w-full overflow-y-auto rounded-t-lg bg-surface p-4 shadow-lg sm:max-w-md sm:rounded-lg"
+        className="dialog max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="export-title" className="titel-karte">
@@ -103,7 +103,7 @@ export default function ExportDialog({
             />
           </FormGrid>
           {invalid && (
-            <p className="mt-2 text-sm font-medium text-danger" role="alert">
+            <p className="mt-2 text-sm font-normal text-danger" role="alert">
               Bitte einen gültigen Zeitraum wählen (Von ≤ Bis).
             </p>
           )}

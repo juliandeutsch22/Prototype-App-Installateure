@@ -17,6 +17,12 @@ export interface PickablePerson {
    * nicht erst.
    */
   nichtFrei?: boolean;
+  /**
+   * Abwesend (Urlaub, Krankenstand, Zeitausgleich): die Zeile steht grau
+   * (Linie „Lot“, Protokoll E2). Verboten wird auch hier nichts — wer
+   * trotzdem einteilt, bekommt die Warnung des Formulars.
+   */
+  abwesend?: boolean;
 }
 
 interface PersonPickerProps {
@@ -100,7 +106,7 @@ export default function PersonPicker({
 
   return (
     <fieldset>
-      <legend className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink">
+      <legend className="flex flex-wrap items-center gap-2 text-sm font-normal text-ink">
         {legend}
         {selected.length > 0 && <Marke>{selected.length} ausgewählt</Marke>}
       </legend>
@@ -155,7 +161,7 @@ export default function PersonPicker({
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Name suchen"
-                className="min-h-touch w-full rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                className="min-h-touch w-full rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:outline-none focus:ring-2 focus:ring-line-strong"
               />
             </div>
           )}
@@ -177,7 +183,7 @@ export default function PersonPicker({
                   const an = selected.includes(p.uid);
                   const id = `${idPrefix}-${p.uid}`;
                   return (
-                    <li key={p.uid} className={an ? 'bg-surface-2' : ''}>
+                    <li key={p.uid} className={an ? 'bg-surface-2' : p.abwesend ? 'bg-surface-3' : ''}>
                       {/*
                         DIE ZEILE ÄNDERT BEIM ANHAKEN IHRE HÖHE NICHT (Nachtest
                         01.10.2026, G6). „als Helfer“ erschien erst nach dem
@@ -199,7 +205,7 @@ export default function PersonPicker({
                             className="checkbox"
                           />
                           <span className="min-w-0">
-                            <span className="block truncate text-ink">{p.name}</span>
+                            <span className={`block truncate ${p.abwesend ? 'text-ink-muted' : 'text-ink'}`}>{p.name}</span>
                             {p.hint && (
                               <span className="block truncate text-xs text-ink-muted">{p.hint}</span>
                             )}
@@ -234,7 +240,7 @@ export default function PersonPicker({
                   aria-label={`${p.name} entfernen`}
                   // Weiss mit Linie wie ein Nebenknopf, keine getönte Pille
                   // (Designlinie „Fassung 3": keine Pillen, nicht bunt).
-                  className="inline-flex min-h-touch items-center gap-2 rounded-sm border border-line bg-surface px-3 py-1 text-sm font-medium text-ink hover:bg-surface-2"
+                  className="inline-flex min-h-touch items-center gap-2 rounded-sm border border-line bg-surface px-3 py-1 text-sm font-normal text-ink hover:bg-surface-2"
                 >
                   {p.name}
                   <span aria-hidden="true" className="text-base leading-none">

@@ -38,10 +38,40 @@ vi.mock('@/lib/db/termine', () => ({
   terminAendern: vi.fn(async () => undefined),
   terminLoeschen: vi.fn(async () => undefined),
 }));
+let leute: AppUser[] = [];
 vi.mock('@/lib/db/users', () => ({
-  listUsers: vi.fn(async () => [mk('u1', 'Max Mustermann'), mk('u2', 'Erna Beispiel')]),
+  listUsers: vi.fn(async () => leute),
 }));
-vi.mock('@/lib/db/projects', () => ({ listActiveProjects: vi.fn(async () => BAUSTELLEN) }));
+vi.mock('@/lib/db/projects', () => ({
+  listActiveProjects: vi.fn(async () => BAUSTELLEN),
+  // Für die Baustellenauswahl im Seitenfenster.
+  listRecentProjects: vi.fn(async () => BAUSTELLEN),
+  listProjectsByNumbers: vi.fn(async () => BAUSTELLEN),
+}));
+/*
+  DAS SEITENFENSTER (Linie „Lot“, E2) benutzt dasselbe Formular wie „Tag
+  planen“ — mit Materialstamm, Rüstliste und Anforderung. Hier ohne Material.
+*/
+vi.mock('@/lib/db/materials', () => ({
+  lagerFrei: async () => new Map(),
+  subscribeMaterials: (_c: string, cb: (r: unknown[]) => void) => {
+    cb([]);
+    return () => undefined;
+  },
+  LOW_STOCK_THRESHOLD: 3,
+}));
+vi.mock('@/lib/db/materialOrders', () => ({ createMaterialOrder: vi.fn(async () => undefined) }));
+vi.mock('@/lib/db/einsatzMaterial', () => ({
+  subscribeEinsatzMaterialForDate: (_c: string, _d: string, cb: (r: unknown[]) => void) => {
+    cb([]);
+    return () => undefined;
+  },
+  saveEinsatzMaterial: vi.fn(async () => undefined),
+}));
+const speichere = vi.fn();
+const loesche = vi.fn();
+/** Welche Zeiträume geladen wurden — Woche oder Monat. */
+const geladen: [string, string][] = [];
 /**
  * Was der Wochenplan über Abwesenheiten erfährt. Den Grund liefert die
  * Datenbank nur dem, der ihn sehen darf — der Monteur bekommt `null`.
@@ -66,12 +96,21 @@ vi.mock('@/lib/db/assignments', () => ({
   kalenderAboBeenden: vi.fn(async () => undefined),
   subscribeAssignmentsInRange: (
     _c: string,
-    _v: string,
-    _b: string,
+    v: string,
+    b: string,
     cb: (r: (Assignment & { id: string })[]) => void,
   ) => {
+    geladen.push([v, b]);
     cb(einsaetze);
     return () => undefined;
+  },
+  saveAssignments: (...a: unknown[]) => {
+    speichere(...a);
+    return Promise.resolve();
+  },
+  deleteAssignment: (id: string) => {
+    loesche(id);
+    return Promise.resolve();
   },
 }));
 
@@ -126,6 +165,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   // Mi, 02.09.2026 — die Woche beginnt also am Mo, 31.08.
   vi.setSystemTime(new Date(2026, 8, 2, 9, 0, 0));
+  leute = [mk('u1', 'Max Mustermann'), mk('u2', 'Erna Beispiel')];
   einsaetze = [];
   urlaube = [];
   termineDerWoche = [];
@@ -134,6 +174,9 @@ beforeEach(() => {
   betriebsurlaube = [];
   gefahren.zu = null;
   gefahren.zustand = null;
+  speichere.mockClear();
+  loesche.mockClear();
+  geladen.length = 0;
 });
 
 afterEach(() => {
@@ -239,8 +282,17 @@ describe('Wochenplan — wer ist wo', () => {
   });
 });
 
-describe('Wochenplan — der Weg in die Tagesplanung', () => {
-  it('gibt Tag UND Baustelle mit, wenn eine dort steht', async () => {
+/*
+  PLANEN IM SEITENFENSTER (Linie „Lot“, E2). Bis dahin führte jeder Tipp
+  in die Tagesplanung; jetzt öffnet er das Fenster mit demselben Formular
+  wie „Tag planen“ — Tag und Baustelle bzw. Person schon gewählt. Geschützt
+  bleibt, was die alten Tests schützten: die Übergabe von Tag und Baustelle
+  (jetzt ins Fenster), und dass eine freie Zelle KEINE Baustelle rät.
+*/
+describe('Wochenplan — planen im Seitenfenster', () => {
+  const fenster = () => within(screen.getByRole('dialog'));
+
+  it('ein Einsatz öffnet sich mit Tag UND Baustelle — zum Bearbeiten', async () => {
     einsaetze = [
       {
         id: 'a1', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042',
@@ -250,18 +302,104 @@ describe('Wochenplan — der Weg in die Tagesplanung', () => {
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
     await userEvent.click(tabelle().getByRole('button', { name: /Familie Huber \(2026-042\) am 02\.09/ }));
+    expect(screen.getByRole('dialog', { name: 'Einsatz bearbeiten' })).toBeInTheDocument();
+    expect(fenster().getByRole('combobox', { name: 'Tag' })).toHaveValue(MITTWOCH);
+    await waitFor(() => expect(fenster().getByRole('combobox', { name: /Baustelle/ })).toHaveValue('2026-042'));
+    await waitFor(() => expect(fenster().getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked());
+    // Im Fenster, nicht mehr woanders hin.
+    expect(gefahren.zu).toBeNull();
+  });
+
+  it('eine freie Zelle öffnet sich mit Tag und Person — ohne eine Baustelle zu raten', async () => {
+    zeige();
+    const zeile = await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(within(zeile).getByRole('button', { name: /am 02\.09\. einteilen/ }));
+    expect(screen.getByRole('dialog', { name: 'Einsatz planen' })).toBeInTheDocument();
+    expect(fenster().getByRole('combobox', { name: 'Tag' })).toHaveValue(MITTWOCH);
+    expect(fenster().getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked();
+    expect(fenster().getByRole('checkbox', { name: /^Erna Beispiel/ })).not.toBeChecked();
+    expect(await fenster().findByRole('combobox', { name: /Baustelle/ })).toHaveValue('');
+  });
+
+  it('speichert über dieselbe Funktion wie „Tag planen“ — mit der vorgewählten Person', async () => {
+    zeige();
+    const zeile = await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(within(zeile).getByRole('button', { name: /am 02\.09\. einteilen/ }));
+    await userEvent.selectOptions(await fenster().findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    await userEvent.click(fenster().getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+    await waitFor(() => expect(speichere).toHaveBeenCalled());
+    const [, datum, baustelle, zeilen] = speichere.mock.calls[0];
+    expect(datum).toBe(MITTWOCH);
+    expect(baustelle).toBe('2026-042');
+    expect(zeilen).toHaveLength(1);
+    expect(zeilen[0]).toMatchObject({ userId: 'u1', projectNumber: '2026-042' });
+    // Gespeichert — das Fenster geht zu, der Plan steht dahinter.
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('übernimmt eine vorhandene Planung, bevor gespeichert werden kann (kein stilles Überschreiben)', async () => {
+    einsaetze = [
+      { id: 'a1', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042', userId: 'u2', userName: 'Erna Beispiel', comment: 'Bad' },
+    ] as (Assignment & { id: string })[];
+    zeige();
+    const zeile = await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(within(zeile).getByRole('button', { name: /am 02\.09\. einteilen/ }));
+    await userEvent.selectOptions(await fenster().findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    // Erna stand schon dort — sie bleibt, Max kommt dazu.
+    await waitFor(() => expect(fenster().getByRole('checkbox', { name: /^Erna Beispiel/ })).toBeChecked());
+    expect(fenster().getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked();
+    expect(fenster().getByLabelText('Kommentar / Aufgabe')).toHaveValue('Bad');
+  });
+
+  it('löscht einen Einsatz im Fenster erst nach der Rückfrage', async () => {
+    einsaetze = [
+      { id: 'a1', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann' } as Assignment & { id: string },
+    ];
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(tabelle().getByRole('button', { name: /Familie Huber \(2026-042\) am 02\.09/ }));
+    await userEvent.click(fenster().getByRole('button', { name: 'Einsatz von Max Mustermann löschen' }));
+    // Gegenprobe: Abbrechen löscht nichts.
+    const frage = fenster().getByRole('alertdialog', { name: 'Einsatz löschen?' });
+    expect(frage).toHaveTextContent('Der Einsatz von Max Mustermann am Mi., 02.09.2026 wird entfernt.');
+    await userEvent.click(within(frage).getByRole('button', { name: 'Abbrechen' }));
+    expect(loesche).not.toHaveBeenCalled();
+    await userEvent.click(fenster().getByRole('button', { name: 'Einsatz von Max Mustermann löschen' }));
+    await userEvent.click(within(fenster().getByRole('alertdialog')).getByRole('button', { name: 'Löschen' }));
+    await waitFor(() => expect(loesche).toHaveBeenCalledWith('a1'));
+  });
+
+  it('der Tag bleibt einen Tipp entfernt: der Kopf führt in „Tag planen“ — mit dem Tag', async () => {
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(tabelle().getByRole('button', { name: /Mi.*02\.09.*Tagesplanung/ }));
+    expect(gefahren.zu).toBe('/assignments/tag');
+    expect(gefahren.zustand).toEqual({ datum: MITTWOCH, projectNumber: undefined });
+  });
+
+  it('… und aus dem Fenster heraus, mit Tag und Baustelle', async () => {
+    einsaetze = [
+      { id: 'a1', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann' } as Assignment & { id: string },
+    ];
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(tabelle().getByRole('button', { name: /Familie Huber \(2026-042\) am 02\.09/ }));
+    await userEvent.click(fenster().getByRole('button', { name: /Ganzen Tag in „Tag planen“ öffnen/ }));
     expect(gefahren.zu).toBe('/assignments/tag');
     expect(gefahren.zustand).toEqual({ datum: MITTWOCH, projectNumber: '2026-042' });
   });
 
-  it('gibt bei einer freien Zelle nur den Tag mit', async () => {
-    // Welche Baustelle gemeint ist, kann das Brett nicht wissen — eine
-    // geratene Vorauswahl fuehrte zum Speichern auf der falschen.
+  it('„Einsatz planen“ im Kopf öffnet das Fenster für heute', async () => {
     zeige();
-    const zeile = await screen.findByRole('row', { name: /Max Mustermann/ });
-    await userEvent.click(within(zeile).getByRole('button', { name: /am 02\.09\. einteilen/ }));
-    expect(gefahren.zu).toBe('/assignments/tag');
-    expect(gefahren.zustand).toEqual({ datum: MITTWOCH, projectNumber: undefined });
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz planen' }));
+    expect(fenster().getByRole('combobox', { name: 'Tag' })).toHaveValue(MITTWOCH);
+  });
+
+  it('die Team-Woche hat kein „Einsatz planen“', async () => {
+    render(<MemoryRouter><WochenplanView nurLesen /></MemoryRouter>);
+    await screen.findByRole('heading', { name: 'Team-Woche' });
+    expect(screen.queryByRole('button', { name: 'Einsatz planen' })).toBeNull();
   });
 });
 
@@ -421,12 +559,13 @@ describe('Wochenplan — die Tagesliste auf dem Telefon', () => {
     expect(liste().getAllByText('Nichts geplant.')).toHaveLength(7);
   });
 
-  it('fuehrt von einem Tag ohne Einteilung in die Tagesplanung', async () => {
+  it('teilt von einem Tag aus ein — im Blatt von unten, mit dem Tag gewählt', async () => {
+    // Bis zur Linie „Lot“ führte das in die Tagesplanung; geschützt bleibt der Tag.
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
     await userEvent.click(liste().getByRole('button', { name: 'Am 02.09. einteilen' }));
-    expect(gefahren.zu).toBe('/assignments/tag');
-    expect(gefahren.zustand).toEqual({ datum: MITTWOCH, projectNumber: undefined });
+    expect(within(screen.getByRole('dialog', { name: 'Einsatz planen' })).getByRole('combobox', { name: 'Tag' })).toHaveValue(MITTWOCH);
+    expect(gefahren.zu).toBeNull();
   });
 });
 
@@ -576,7 +715,8 @@ describe('Wochenplan — eingeteilt und krank (M33)', () => {
 
   it('sagt im Hinweis, dass er Einsätze zeigt, nicht gebuchte Zeiten (G23)', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /^Was bedeutet/ }));
+    // Seit der Linie „Lot“ unter „Hilfe zu dieser Seite“ (Regel 11).
+    await userEvent.click(await screen.findByRole('button', { name: 'Hilfe zu dieser Seite' }));
     expect(await screen.findByText(/zeigt Einsätze, nicht gebuchte Zeiten/)).toBeInTheDocument();
   });
 });
@@ -628,5 +768,149 @@ describe('Der ganze Plan im eigenen Kalender (Plan 10.4, PR B)', () => {
     render(<MemoryRouter><ToastProvider><WochenplanView nurLesen /></ToastProvider></MemoryRouter>);
     await screen.findByRole('table', { name: 'Wochenplan als Tabelle' });
     expect(screen.queryByRole('heading', { name: /Im eigenen Kalender/ })).not.toBeInTheDocument();
+  });
+});
+
+/*
+  DER KOPF DER PLANUNG (Linie „Lot“, E2): groß „Diese Woche“, klein die KW.
+*/
+describe('Planung — Kopf', () => {
+  it('nennt die Woche beim Namen und die Kalenderwoche darunter', async () => {
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(screen.getByRole('heading', { name: 'Diese Woche' })).toBeInTheDocument();
+    expect(screen.getByText('KW 36 · 31.08. – 06.09.')).toBeInTheDocument();
+    // Auf der laufenden Woche gibt es nichts zurückzuspringen.
+    expect(screen.queryByRole('button', { name: 'Diese Woche' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Woche vor' }));
+    expect(screen.getByRole('heading', { name: 'Nächste Woche' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Diese Woche' })).toBeInTheDocument();
+  });
+});
+
+/*
+  KONFLIKTE IN BERNSTEIN (Linie „Lot“, E2): eingeteilt und abwesend ist
+  kein Fehler, sondern ein Konflikt — Bernstein, nicht Rot.
+*/
+describe('Planung — Konflikte', () => {
+  it('ein eingeteilter Abwesender steht als Konflikt da, ein normaler Einsatz nicht (Gegenprobe)', async () => {
+    einsaetze = [
+      { id: 'e1', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042', userId: 'u2', userName: 'Erna Beispiel' },
+      { id: 'e2', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann' },
+    ] as (Assignment & { id: string })[];
+    abwesend = [{ userId: 'u2', von: MITTWOCH, bis: MITTWOCH, grund: 'Krank', zeiten: null }];
+    zeige();
+    await screen.findByRole('row', { name: /Erna Beispiel/ });
+    expect(tabelle().getByText('fehlt: 2026-042').closest('button')!.className).toBe('plan-konflikt');
+    const max = tabelle().getByRole('row', { name: /Max Mustermann/ });
+    expect(within(max).getByRole('button', { name: /Familie Huber \(2026-042\)/ }).className).toBe('plan-block');
+    expect(liste().getByText(/^fehlt: Erna Beispiel/).className).toMatch(/text-warning/);
+  });
+});
+
+/*
+  VIELE DATEN (Linie „Lot“, E2): Personen nach Einstufung gruppiert und
+  einklappbar. Bei einer einzigen Gruppe kein Kopf — das wäre Zierrat.
+*/
+describe('Planung — Personen nach Einstufung', () => {
+  it('gruppiert nach Einstufung — eine Gruppe lässt sich einklappen', async () => {
+    leute = [mk('u1', 'Max Mustermann'), { ...mk('u2', 'Erna Beispiel'), einstufung: 'helfer' } as AppUser];
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    const helfer = tabelle().getByRole('button', { name: 'Helfer · 1' });
+    expect(tabelle().getByRole('button', { name: 'Facharbeiter · 1' })).toHaveAttribute('aria-expanded', 'true');
+    expect(tabelle().getByRole('row', { name: /Erna Beispiel/ })).toBeInTheDocument();
+    await userEvent.click(helfer);
+    expect(helfer).toHaveAttribute('aria-expanded', 'false');
+    expect(tabelle().queryByRole('row', { name: /Erna Beispiel/ })).toBeNull();
+    expect(tabelle().getByRole('row', { name: /Max Mustermann/ })).toBeInTheDocument();
+  });
+
+  it('ohne verschiedene Einstufungen keine Gruppenköpfe', async () => {
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(tabelle().queryByRole('button', { name: /Facharbeiter · / })).toBeNull();
+  });
+});
+
+/*
+  DIE SICHT NACH BAUSTELLEN (Linie „Lot“, E2): nur die Baustellen mit einem
+  Einsatz in der Woche; ein leerer Tag plant genau diese Baustelle ein.
+*/
+describe('Planung — Sicht nach Baustellen', () => {
+  it('zeigt die eingeplanten Baustellen mit ihren Leuten und plant von dort ein', async () => {
+    einsaetze = [
+      { id: 'a1', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann', asHelper: true } as Assignment & { id: string },
+    ];
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(screen.getByRole('button', { name: 'Baustellen' }));
+    const raster = within(screen.getByRole('table', { name: 'Wochenplan nach Baustellen' }));
+    expect(raster.getByRole('button', { name: /Familie Huber \(2026-042\) am 02\.09\. bearbeiten/ })).toHaveTextContent('Max Mustermann (Helfer)');
+    await userEvent.click(raster.getByRole('button', { name: /Familie Huber \(2026-042\) am 03\.09\. einplanen/ }));
+    const fenster = within(screen.getByRole('dialog', { name: 'Einsatz planen' }));
+    expect(fenster.getByRole('combobox', { name: 'Tag' })).toHaveValue('2026-09-03');
+    await waitFor(() => expect(fenster.getByRole('combobox', { name: /Baustelle/ })).toHaveValue('2026-042'));
+  });
+});
+
+/*
+  NOCH EINZUPLANEN (Linie „Lot“, E2): laufende Baustellen ohne Einsatz in
+  der Woche — aus den Daten, die die Seite ohnehin lädt.
+*/
+describe('Planung — Noch einzuplanen', () => {
+  const ablage = () => screen.getByRole('heading', { name: 'Noch einzuplanen' }).closest('section')!;
+
+  it('nennt eine laufende Baustelle ohne Einsatz und plant sie auf Tipp ein', async () => {
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(within(ablage()).getByRole('button', { name: 'Familie Huber' }));
+    const fenster = within(screen.getByRole('dialog', { name: 'Einsatz planen' }));
+    await waitFor(() => expect(fenster.getByRole('combobox', { name: /Baustelle/ })).toHaveValue('2026-042'));
+  });
+
+  it('Gegenprobe: mit einem Einsatz in der Woche steht sie nicht dort', async () => {
+    einsaetze = [
+      { id: 'a1', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann' } as Assignment & { id: string },
+    ];
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(within(ablage()).queryByRole('button', { name: 'Familie Huber' })).toBeNull();
+    expect(within(ablage()).getByText('Jede laufende Baustelle hat diese Woche einen Einsatz.')).toBeInTheDocument();
+  });
+});
+
+/*
+  DER MONAT (Linie „Lot“, E2): dieselben Abfragen über den Monat, je Person
+  und Tag eingeplant, abwesend, frei; ein Tag springt in die Woche.
+*/
+describe('Planung — Monat', () => {
+  it('lädt den Monat, zeigt je Person und Tag den Stand und springt von einem Tag in die Woche', async () => {
+    einsaetze = [
+      { id: 'a1', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann' } as Assignment & { id: string },
+    ];
+    abwesend = [{ userId: 'u2', von: '2026-09-14', bis: '2026-09-18', grund: 'Urlaub', zeiten: null }];
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(screen.getByRole('button', { name: 'Monat' }));
+    const monat = within(await screen.findByRole('table', { name: 'Monatsplan als Tabelle' }));
+    expect(screen.getByRole('heading', { name: 'September' })).toBeInTheDocument();
+    expect(geladen).toContainEqual(['2026-09-01', '2026-09-30']);
+    const max = monat.getByRole('row', { name: /Max Mustermann/ });
+    expect(within(max).getByText('eingeplant: Familie Huber (2026-042)')).toBeInTheDocument();
+    const erna = monat.getByRole('row', { name: /Erna Beispiel/ });
+    expect(within(erna).getAllByText('Urlaub')).toHaveLength(5);
+    // Baustellen des Monats als Zeile mit Zeitraum.
+    expect(screen.getByText('2026-042 · 02.09. · 1 Einsatztag')).toBeInTheDocument();
+    // Ein Tag springt in die Woche.
+    await userEvent.click(monat.getByRole('button', { name: /^Mo\.? 14\.09\. — Woche zeigen/ }));
+    expect(await screen.findByRole('table', { name: 'Wochenplan als Tabelle' })).toBeInTheDocument();
+    expect(screen.getByText(/^KW 38/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: die Team-Woche der Monteure hat keinen Monat', async () => {
+    render(<MemoryRouter><WochenplanView nurLesen /></MemoryRouter>);
+    await screen.findByRole('heading', { name: 'Team-Woche' });
+    expect(screen.queryByRole('group', { name: 'Zeitraum' })).toBeNull();
   });
 });

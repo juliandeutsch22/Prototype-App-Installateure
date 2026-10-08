@@ -128,3 +128,23 @@ describe('PersonPicker — die Zeile behält beim Anhaken ihre Höhe (G6)', () =
     expect(frei).toHaveAttribute('aria-hidden', 'true');
   });
 });
+
+describe('Abwesende (Linie „Lot“, Protokoll E2)', () => {
+  it('stehen grau, bleiben aber wählbar', async () => {
+    const wahl = vi.fn();
+    render(
+      <PersonPicker
+        legend="Wer"
+        idPrefix="ab"
+        people={[{ uid: 'a', name: 'Anna', abwesend: true }, { uid: 'b', name: 'Bernd' }]}
+        selected={[]}
+        onChange={wahl}
+      />,
+    );
+    expect(screen.getByText('Anna').closest('li')!.className).toContain('bg-surface-3');
+    // Gegenprobe: wer da ist, steht nicht grau.
+    expect(screen.getByText('Bernd').closest('li')!.className).not.toContain('bg-surface-3');
+    await userEvent.click(screen.getByRole('checkbox', { name: /Anna/ }));
+    expect(wahl).toHaveBeenCalledWith(['a']);
+  });
+});

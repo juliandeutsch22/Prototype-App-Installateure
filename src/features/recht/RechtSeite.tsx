@@ -16,7 +16,7 @@ export default function RechtSeite({ titel, children }: { titel: string; childre
       <div className="panel-dark px-4 py-4">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
           <ProduktMarke hoehe={28} className="text-white" />
-          <Link to="/" className="min-h-touch py-2 text-sm font-medium text-white underline underline-offset-2">
+          <Link to="/" className="min-h-touch py-2 text-sm font-normal text-white underline underline-offset-2">
             Zur App
           </Link>
         </div>

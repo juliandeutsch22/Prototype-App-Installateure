@@ -37,6 +37,7 @@ import { einstufungText, lehrzeitEnde } from '@/lib/einstufung';
 import Datenauskunft from '@/features/recht/Datenauskunft';
 import { zeigtAuskunft } from '@/features/recht/auskunftDatei';
 import ZahlFeld from '@/components/ZahlFeld';
+import { Sprungleiste } from '@/components/LotBausteine';
 import KontoUmstellen from './KontoUmstellen';
 import UrlaubsanspruchKarte from './UrlaubsanspruchKarte';
 
@@ -237,7 +238,7 @@ export default function BenutzerakteView() {
     die Stammdaten, rechts der Zugang (`Aktenspalten`).
   */
   const stammdaten = (
-    <Card title="Stammdaten">
+    <Card title="Stammdaten" id="akte-stammdaten" className="sprung-ziel">
       {darfAendern && entwurf ? (
         <StammdatenFormular
           entwurf={entwurf}
@@ -264,7 +265,7 @@ export default function BenutzerakteView() {
     </Card>
   );
   const zugang = darfAendern ? (
-    <Card title="Zugang">
+    <Card title="Zugang" id="akte-zugang" className="sprung-ziel">
       {/*
         HIER STANDEN SIE IN EINEM ZEILENMENÜ. Passwort-Mail und Sperren
         sind selten und im Fall des Sperrens folgenreich — in der Liste
@@ -369,43 +370,78 @@ export default function BenutzerakteView() {
     eine Anpassung hätte nichts, woran sie wirkt.
   */
   const anspruch = fuehrtZeitkonto(p) ? (
-    <UrlaubsanspruchKarte person={p} jahresbeginn={uebertragsRegel(company).jahresbeginn ?? '01-01'} />
+    <div id="akte-urlaub" className="sprung-ziel">
+      <UrlaubsanspruchKarte person={p} jahresbeginn={uebertragsRegel(company).jahresbeginn ?? '01-01'} />
+    </div>
   ) : null;
 
   // Wer die Akte ändern darf, pflegt auch das Geburtsdatum; im Support nie.
   const geburtsdatum = darfAendern && user && !einblick ? (
-    <GeburtsdatumKarte companyId={user.companyId} uid={p.uid} onStand={setGeburtsdatumDerPerson} />
+    <div id="akte-geburtsdatum" className="sprung-ziel">
+      <GeburtsdatumKarte companyId={user.companyId} uid={p.uid} onStand={setGeburtsdatumDerPerson} />
+    </div>
   ) : null;
 
   const auskunft = zeigtAuskunft(user?.role, !!einblick) ? (
-    <Datenauskunft
-      art="mitarbeiter"
-      id={p.uid}
-      aktiv={p.active !== false}
-      onGeloescht={() => setVersuch((v) => v + 1)}
-    />
+    <div id="akte-datenschutz" className="sprung-ziel">
+      <Datenauskunft
+        art="mitarbeiter"
+        id={p.uid}
+        aktiv={p.active !== false}
+        onGeloescht={() => setVersuch((v) => v + 1)}
+      />
+    </div>
   ) : null;
+
+  /*
+    DIE SPRUNGLEISTE DER AKTE (Linie „Lot“, Regel 6): am Schreibtisch links
+    stehend, an Tablet und Handy waagrecht mitlaufend. Nur Ziele, die diese
+    Rolle auch sieht — ein Sprung ins Leere wäre schlimmer als keiner.
+  */
+  const sprungziele = [
+    { id: 'akte-stammdaten', text: 'Stammdaten', da: true },
+    { id: 'akte-zugang', text: 'Zugang', da: !!zugang },
+    { id: 'akte-geburtsdatum', text: 'Geburtsdatum', da: !!geburtsdatum },
+    { id: 'akte-urlaub', text: 'Urlaubsanspruch', da: !!anspruch },
+    { id: 'akte-datenschutz', text: 'Datenschutz', da: !!auskunft },
+  ].filter((z) => z.da);
 
   return (
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="space-y-3 lg:space-y-5">
       {warnung}
+      {/*
+        DER WEG ZURÜCK STEHT IN DER ORTSZEILE (Linie „Lot“): dort, wo jede
+        Seite sagt, wohin sie gehört. Er war vorher die erste Angabe unter dem
+        Namen und schob Rolle und Zustand aus dem Blick.
+      */}
       <PageHeader
+        ort={<Link to="/user-mgmt" className="link inline-flex min-h-touch items-center">← Zur Benutzerliste</Link>}
         title={p.name}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Link to="/user-mgmt" className="link inline-flex min-h-touch items-center">← Zur Benutzerliste</Link>
             <Marke>{p.role}</Marke>
             {p.active === false && <Marke>deaktiviert</Marke>}
           </span>
         }
       />
 
-      <Aktenspalten
-        telefon={[stammdaten, zugang, geburtsdatum, anspruch, auskunft]}
-        links={[stammdaten]}
-        rechts={[zugang, geburtsdatum, anspruch, auskunft]}
-      />
+      <div className="akte">
+        <Sprungleiste ziele={sprungziele} />
+        <div className="min-w-0 space-y-3 lg:space-y-5">
+          {/*
+            ZUSAMMENFASSUNG ZUERST (Linie „Lot“, Regel 6) — nur, wo darunter
+            das Formular steht. Wer nur lesen darf, sieht die Stammdaten
+            ohnehin als Angaben; zweimal dasselbe wäre Lärm.
+          */}
+          {darfAendern && <Ueberblick p={p} />}
+          <Aktenspalten
+            telefon={[stammdaten, zugang, geburtsdatum, anspruch, auskunft]}
+            links={[stammdaten]}
+            rechts={[zugang, geburtsdatum, anspruch, auskunft]}
+          />
+        </div>
+      </div>
 
       <ConfirmDialog
         open={!!jugendschutz}
@@ -456,6 +492,42 @@ export default function BenutzerakteView() {
         }}
       />
     </div>
+  );
+}
+
+/**
+ * Der Überblick oben in der Akte: das Wichtigste aus dem GESPEICHERTEN Stand,
+ * in einer Zeile je Angabe. Nur aus dem, was die Akte ohnehin geladen hat —
+ * Saldo und Resturlaub rechnet die Mitarbeiterübersicht und stehen hier nicht.
+ */
+function Ueberblick({ p }: { p: AppUser }) {
+  const zeilen: [string, React.ReactNode][] = [
+    ['Anmeldung mit', istBenutzerkonto(p.email) ? `Benutzername ${kontoAnzeige(p.email)}` : `E-Mail ${p.email}`],
+    ['Rolle und Zustand', `${p.role} · ${p.active === false ? 'deaktiviert' : 'aktiv'}`],
+    [
+      'Einstufung heute',
+      p.einstufung ? einstufungText(p, todayStr()) : 'nicht festgelegt — zählt wie Facharbeiter',
+    ],
+    [
+      'Soll',
+      fuehrtZeitkonto(p)
+        ? `${p.weeklyTargetHours ?? '–'} Std. je Woche · ${tageText(p.workDays ?? []) || 'keine Arbeitstage'}`
+        : 'kein Zeitkonto',
+    ],
+    ['Urlaub im Jahr', p.yearlyVacationDays != null ? `${p.yearlyVacationDays} Tage` : 'nicht hinterlegt'],
+    ['Im Betrieb seit', fmtDatum(p.eintritt ?? p.appStartDate) || 'nicht hinterlegt'],
+  ];
+  return (
+    <Card title="Überblick" buendig>
+      <dl className="ueberblick">
+        {zeilen.map(([name, wert]) => (
+          <div key={name} className="ueberblick-zeile">
+            <dt className="ueberblick-name">{name}</dt>
+            <dd className="ueberblick-wert">{wert}</dd>
+          </div>
+        ))}
+      </dl>
+    </Card>
   );
 }
 
@@ -562,7 +634,7 @@ function StammdatenFormular({
     setEntwurf({ ...entwurf, [feld]: wert });
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="formular flex flex-col gap-4">
       <FormGrid>
         <InputField
           id="b-name" label="Name" pflicht value={entwurf.name}
@@ -736,8 +808,13 @@ function StammdatenFormular({
 
         {/* Zwei Urlaubsfelder nebeneinander brauchen einen Satz dazu — „pro
             Jahr" und „beim Umstieg" sehen sonst aus wie dasselbe. */}
+        {/*
+          Der Satz steht für sich: die Erklärung dahinter wandert in „Hilfe zu
+          dieser Seite“, und ein „Warum …“ ohne Antwort daneben wäre eine
+          Frage ins Leere.
+        */}
         <div className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
-          <span>Warum es zwei Urlaubsfelder gibt</span>
+          <span>Urlaubstage pro Jahr gelten laut Vertrag; der Resturlaub nur im Startjahr.</span>
           <InfoHint about="Resturlaub beim Umstieg">
             <p>
               <strong>Urlaubstage pro Jahr</strong> ist der Anspruch laut Vertrag. Danach rechnet
@@ -756,7 +833,7 @@ function StammdatenFormular({
         </div>
 
         <fieldset>
-          <legend className="mb-1 text-sm font-medium text-ink">Arbeitstage</legend>
+          <legend className="mb-1 text-sm font-normal text-ink">Arbeitstage</legend>
           <div className="flex flex-wrap gap-x-4">
             {WEEKDAYS.map((d) => (
               <CheckboxField

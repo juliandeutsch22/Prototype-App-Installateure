@@ -92,6 +92,20 @@ function zeige() {
   );
 }
 
+/*
+  SEIT DEM UMBAU (Linie „Lot“, Regel 8) steht das Formular im Seitenfenster:
+  „Neues Material“ öffnet es leer, die Zeile eines Artikels öffnet ihn zum
+  Bearbeiten. Geprüft wird weiter dasselbe Formular.
+*/
+async function neuesMaterial(nutzer: ReturnType<typeof userEvent.setup> = userEvent.setup()) {
+  await nutzer.click(await screen.findByRole('button', { name: 'Neues Material' }));
+}
+
+async function ersterArtikel(nutzer: ReturnType<typeof userEvent.setup>) {
+  const zeile = (await screen.findAllByRole('listitem'))[0];
+  await nutzer.click(within(zeile).getAllByRole('button')[0]);
+}
+
 beforeEach(() => {
   materialien = [];
   angemeldet = VERWALTUNG;
@@ -106,11 +120,13 @@ describe('Der Einkaufspreis', () => {
   it('steht der Geschäftsführung offen', async () => {
     angemeldet = CHEF;
     zeige();
+    await neuesMaterial();
     expect(await screen.findByLabelText(/Einkaufspreis/)).toBeInTheDocument();
   });
 
   it('wird der Verwaltung gar nicht angeboten', async () => {
     zeige();
+    await neuesMaterial();
     // Der Verkaufspreis ist da — es fehlt nicht das Formular, sondern das Feld.
     expect(await screen.findByLabelText(/Verkaufspreis/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Einkaufspreis/)).not.toBeInTheDocument();
@@ -121,6 +137,7 @@ describe('Der Einkaufspreis', () => {
     const nutzer = userEvent.setup();
     zeige();
 
+    await neuesMaterial(nutzer);
     await nutzer.type(await screen.findByLabelText(/Bezeichnung/), 'Eckventil');
     await nutzer.type(screen.getByLabelText(/Einkaufspreis/), '3.5');
     await nutzer.click(screen.getByRole('button', { name: 'Material anlegen' }));
@@ -133,6 +150,7 @@ describe('Der Einkaufspreis', () => {
     const nutzer = userEvent.setup();
     zeige();
 
+    await neuesMaterial(nutzer);
     await nutzer.type(await screen.findByLabelText(/Bezeichnung/), 'Eckventil');
     await nutzer.click(screen.getByRole('button', { name: 'Material anlegen' }));
 
@@ -153,7 +171,7 @@ describe('Der Einkaufspreis', () => {
     const nutzer = userEvent.setup();
     zeige();
 
-    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    await ersterArtikel(nutzer);
     await nutzer.type(screen.getByLabelText(/Kategorie/), 'Sanitär');
     await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
 
@@ -176,7 +194,7 @@ describe('Der Einkaufspreis beim Bearbeiten durch die Geschäftsführung (B1)', 
     preisLaden = async () => new Map([['m1', 3.5]]);
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    await ersterArtikel(nutzer);
     await waitFor(() => expect((screen.getByLabelText(/Einkaufspreis/) as HTMLInputElement).value).toBe('3,50'));
     await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
     await waitFor(() => expect(aendern).toHaveBeenCalled());
@@ -189,7 +207,7 @@ describe('Der Einkaufspreis beim Bearbeiten durch die Geschäftsführung (B1)', 
     preisLaden = () => new Promise(() => undefined);
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    await ersterArtikel(nutzer);
     expect(screen.getByLabelText(/Einkaufspreis/)).toBeDisabled();
     await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
     await waitFor(() => expect(aendern).toHaveBeenCalled());
@@ -202,7 +220,7 @@ describe('Der Einkaufspreis beim Bearbeiten durch die Geschäftsführung (B1)', 
     preisLaden = async () => { throw new Error('Keine Verbindung.'); };
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    await ersterArtikel(nutzer);
     expect(await screen.findByText(/konnte nicht geladen werden/)).toBeInTheDocument();
     await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
     await waitFor(() => expect(aendern).toHaveBeenCalled());
@@ -222,7 +240,7 @@ describe('Der Bestand beim Bearbeiten', () => {
     const nutzer = userEvent.setup();
     zeige();
 
-    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    await ersterArtikel(nutzer);
     await nutzer.type(screen.getByLabelText(/Kategorie/), 'Sanitär');
     await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
 
@@ -241,7 +259,7 @@ describe('Der Bestand beim Bearbeiten', () => {
     const nutzer = userEvent.setup();
     zeige();
 
-    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    await ersterArtikel(nutzer);
     expect(screen.queryByRole('textbox', { name: /Lagerbestand|Anfangsbestand/ })).toBeNull();
     expect(screen.getByText(/über Wareneingang oder Inventur/)).toBeInTheDocument();
   });
@@ -249,6 +267,7 @@ describe('Der Bestand beim Bearbeiten', () => {
   it('steht beim Anlegen immer drin — als Anfangsbestand', async () => {
     const nutzer = userEvent.setup();
     zeige();
+    await neuesMaterial(nutzer);
     await nutzer.type(await screen.findByLabelText(/Bezeichnung/), 'Neu');
     await nutzer.click(screen.getByRole('button', { name: 'Material anlegen' }));
     await waitFor(() => expect(anlegen).toHaveBeenCalled());
@@ -340,6 +359,7 @@ describe('Im Lager führen', () => {
   it('ohne Haken nur Katalog: kein Anfangsbestand, keine Mindestmenge', async () => {
     const nutzer = userEvent.setup();
     zeige();
+    await neuesMaterial(nutzer);
     await nutzer.type(await screen.findByLabelText(/Bezeichnung/), 'Kugelhahn');
     await nutzer.click(screen.getByLabelText('Im Lager führen'));
     expect(screen.queryByLabelText(/Anfangsbestand/)).toBeNull();
@@ -352,6 +372,7 @@ describe('Im Lager führen', () => {
   it('mit Haken samt Mindestmenge und Warengruppe', async () => {
     const nutzer = userEvent.setup();
     zeige();
+    await neuesMaterial(nutzer);
     await nutzer.type(await screen.findByLabelText(/Bezeichnung/), 'Fitting');
     await nutzer.clear(screen.getByLabelText(/Anfangsbestand/));
     await nutzer.type(screen.getByLabelText(/Anfangsbestand/), '40');
@@ -368,7 +389,7 @@ describe('Im Lager führen', () => {
     materialien = [{ id: 'm1', companyId: 'perl', name: 'Eckventil', stock: 4, lagerartikel: true } as WithId<Material>];
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    await ersterArtikel(nutzer);
     expect(screen.getByLabelText('Im Lager führen')).toBeDisabled();
     expect(screen.getByText(/erst, wenn die Inventur den Bestand auf null/)).toBeInTheDocument();
   });
@@ -392,7 +413,7 @@ describe('Verkaufspreis aus Einkauf plus Aufschlag (M31)', () => {
     preisLaden = async () => new Map([['m1', 10]]);
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    await ersterArtikel(nutzer);
     expect(await screen.findByText(/Vorschlag: € 14,00 \(Einkauf \+ 40 %\)/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Verkaufspreis/)).toHaveValue('');
     await nutzer.click(screen.getByRole('button', { name: 'Übernehmen' }));
@@ -405,8 +426,38 @@ describe('Verkaufspreis aus Einkauf plus Aufschlag (M31)', () => {
     preisLaden = async () => new Map([['m1', 10]]);
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    await ersterArtikel(nutzer);
     await waitFor(() => expect(screen.getByLabelText(/Einkaufspreis/)).toHaveValue('10,00'));
     expect(screen.queryByText(/Vorschlag:/)).toBeNull();
+  });
+});
+
+describe('Das Formular im Seitenfenster (Linie „Lot“, Regel 8)', () => {
+  it('steht erst nach „Neues Material“ da — und schliesst nach dem Anlegen', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await screen.findByRole('button', { name: 'Neues Material' });
+    // Gegenprobe: ohne Klick kein Formular auf der Seite.
+    expect(screen.queryByLabelText(/Bezeichnung/)).toBeNull();
+    await neuesMaterial(nutzer);
+    const fenster = screen.getByRole('dialog', { name: 'Neues Material' });
+    await nutzer.type(within(fenster).getByLabelText(/Bezeichnung/), 'Muffe');
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Material anlegen' }));
+    await waitFor(() => expect(anlegen).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Neues Material' })).toBeNull());
+  });
+
+  it('löscht aus dem Fenster erst nach der Rückfrage', async () => {
+    const loeschen = vi.mocked((await import('@/lib/db/materials')).deleteMaterial);
+    loeschen.mockClear();
+    materialien = [{ id: 'm1', companyId: 'perl', name: 'Eckventil', stock: 0 } as WithId<Material>];
+    const nutzer = userEvent.setup();
+    zeige();
+    await ersterArtikel(nutzer);
+    await nutzer.click(within(screen.getByRole('dialog', { name: 'Material bearbeiten' })).getByRole('button', { name: /Material löschen/ }));
+    const frage = await screen.findByRole('dialog', { name: 'Material löschen?' });
+    expect(loeschen).not.toHaveBeenCalled();
+    await nutzer.click(within(frage).getByRole('button', { name: 'Löschen' }));
+    await waitFor(() => expect(loeschen).toHaveBeenCalledWith('m1'));
   });
 });

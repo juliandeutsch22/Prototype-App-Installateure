@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { useFokusFalle } from './fokusFalle';
+import { istOben, useFokusFalle } from './fokusFalle';
+import { AB_TABLET } from '@/lib/breiten';
+import { ImFenster } from './imFenster';
 
 /** Ab wie vielen Pixeln nach unten das Blatt losgelassen als „zu" gilt. */
 const SCHWELLE = 90;
@@ -12,10 +14,17 @@ interface BottomSheetProps {
   /** Beschriftung für die Vorlesehilfe. */
   label: string;
   /**
-   * Auch ab Tablet-Breite zeigen — dort als Fenster in der Mitte. Ohne die
-   * Angabe gibt es das Blatt nur am Telefon (das „Mehr“-Menü).
+   * Auch ab Tablet-Breite zeigen — dort als Seitenfenster rechts (Linie
+   * „Lot“, Regel 8). Ohne die Angabe gibt es das Blatt nur am Telefon (das
+   * „Mehr“-Menü).
    */
   auchBreit?: boolean;
+  /**
+   * Sichtbarer Titel mit „Schließen“ im Kopf des Fensters. Ohne ihn bleibt
+   * das Fenster, wie es war: der Aufrufer setzt seinen eigenen Kopf, und
+   * „Schließen“ gibt es für die Tastatur.
+   */
+  titel?: string;
   children: ReactNode;
 }
 
@@ -33,7 +42,7 @@ interface BottomSheetProps {
  * Pointer-Events statt Touch-Events: dieselbe Behandlung für Finger, Stift
  * und Maus, ohne drei Wege zu pflegen.
  */
-export default function BottomSheet({ open, onClose, label, auchBreit = false, children }: BottomSheetProps) {
+export default function BottomSheet({ open, onClose, label, auchBreit = false, titel, children }: BottomSheetProps) {
   const [dy, setDy] = useState(0);
   const [zieht, setZieht] = useState(false);
   const start = useRef<{ y: number; t: number } | null>(null);
@@ -58,7 +67,7 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, c
   useEffect(() => {
     if (!open) return;
     setDy(0);
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && schliessen();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && istOben(blattRef) && schliessen();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, schliessen]);
@@ -71,7 +80,7 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, c
     if (nurWennOben && (scrollRef.current?.scrollTop ?? 0) > 0) return;
     // Als Fenster in der Mitte wird nicht gezogen: wer mit der Maus Text
     // markiert, soll das Fenster dabei nicht nach unten wegschieben.
-    if (auchBreit && window.matchMedia?.('(min-width: 768px)').matches) return;
+    if (auchBreit && window.matchMedia?.(AB_TABLET).matches) return;
     start.current = { y: e.clientY, t: e.timeStamp };
     setZieht(true);
   }
@@ -98,17 +107,15 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, c
 
   return (
     /*
-      AB TABLET-BREITE NUR AUF AUSDRÜCKLICHEN WUNSCH. Das Blatt war fürs
-      Telefon gebaut und dort `md:hidden` — die Rechnung, die es seit dem
-      30.09.2026 zeigt, öffnete sich am Schreibtisch deshalb unsichtbar
-      (gemeldet am 05.10.2026). Mit `auchBreit` steht es dort als Fenster in
-      der Mitte; Wischen braucht es da nicht, Escape und der Rand schliessen.
+      AB DEM TABLET EIN SEITENFENSTER RECHTS, am Handy ein Blatt von unten
+      (Linie „Lot“, Regel 8): die Übersicht bleibt dahinter stehen. Bis zum
+      Umbau stand das breite Fenster in der Mitte; davor (bis 05.10.2026)
+      war es ab Tablet-Breite gar nicht zu sehen. Ohne `auchBreit` gibt es
+      das Blatt weiter nur am Telefon (das „Mehr“-Menü).
     */
     <div
-      className={`fixed inset-0 z-40 bg-ink/40 ${auchBreit ? 'md:flex md:items-center md:justify-center md:p-6' : 'md:hidden'}`}
+      className={auchBreit ? 'schleier' : 'schleier md:hidden'}
       onClick={schliessen}
-      // Der Hintergrund verblasst mit, während das Blatt nach unten geht —
-      // ohne das wirkt die Bewegung, als klebe der Schatten fest.
       style={{ opacity: dy > 0 ? Math.max(0.15, 1 - dy / 320) : 1 }}
     >
       <div
@@ -117,13 +124,9 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, c
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        className={`absolute inset-x-0 bottom-0 rounded-t-lg border border-b-0 border-line bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg focus-visible:outline-none${
-          auchBreit ? ' md:relative md:inset-auto md:w-full md:max-w-xl md:rounded-lg md:border-b' : ''
-        }`}
+        className={`${auchBreit ? 'fenster' : 'blatt'} pb-[max(1rem,env(safe-area-inset-bottom))] focus-visible:outline-none`}
         style={{
           transform: `translateY(${dy}px)`,
-          // Während des Ziehens keine Übergangszeit: sonst hinkt das Blatt
-          // dem Finger sichtbar hinterher.
           transition: zieht ? 'none' : 'transform 180ms ease-out',
         }}
         onClick={(e) => e.stopPropagation()}
@@ -135,27 +138,36 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, c
             Ziel darunter misst die volle Touch-Höhe. */}
         <div
           onPointerDown={(e) => beginn(e, false)}
-          className={`-mt-4 cursor-grab touch-none px-4 pb-2 pt-4 active:cursor-grabbing${auchBreit ? ' md:hidden' : ''}`}
+          className={auchBreit ? 'fenster-griff' : 'blatt-griff'}
           aria-hidden="true"
         >
-          <div className="mx-auto h-1 w-10 rounded-full bg-line" />
+          <div className="blatt-griff-strich" />
         </div>
 
-        {/* Für die Tastatur, die nicht wischen kann. */}
-        <button
-          type="button"
-          onClick={schliessen}
-          className="sr-only focus:not-sr-only focus:mb-2 focus:block focus:min-h-touch focus:w-full focus:rounded focus:border focus:border-line"
-        >
-          Schließen
-        </button>
+        {titel ? (
+          <div className="fenster-kopf">
+            <h2 className="fenster-titel">{titel}</h2>
+            <button type="button" onClick={schliessen} className="fenster-schliessen">
+              Schließen
+            </button>
+          </div>
+        ) : (
+          /* Für die Tastatur, die nicht wischen kann. */
+          <button
+            type="button"
+            onClick={schliessen}
+            className="sr-only focus:not-sr-only focus:mb-2 focus:block focus:min-h-touch focus:w-full focus:rounded focus:border focus:border-line"
+          >
+            Schließen
+          </button>
+        )}
 
         <div
           ref={scrollRef}
           onPointerDown={(e) => beginn(e, true)}
-          className={`max-h-[60vh] overflow-y-auto${auchBreit ? ' md:max-h-[80vh]' : ''}`}
+          className={auchBreit ? 'fenster-inhalt' : 'blatt-inhalt'}
         >
-          {children}
+          <ImFenster>{children}</ImFenster>
         </div>
       </div>
     </div>

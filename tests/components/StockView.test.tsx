@@ -124,6 +124,20 @@ function Adresse() {
   return <output data-testid="adresse">{ort.pathname + ort.search}</output>;
 }
 
+/**
+ * Einen Artikel im Seitenfenster öffnen — die ganze Zeile ist antippbar
+ * (Linie „Lot“, E3). Bis zum Umbau lagen Inventur und Bewegungen im „⋯“.
+ */
+async function artikelOeffnen(name = 'Kupferrohr 15mm') {
+  await userEvent.click(await screen.findByRole('button', { name }));
+  return screen.findByRole('dialog', { name: 'Artikel' });
+}
+
+/** Der Wert unter einer Kennzahl im Seitenfenster. */
+function kennzahl(fenster: HTMLElement, name: string) {
+  return within(fenster).getByText(name).nextElementSibling as HTMLElement;
+}
+
 beforeEach(() => {
   materialien = [];
   anforderungen = [];
@@ -145,7 +159,11 @@ describe('Lager — was ist wirklich frei?', () => {
     zeige();
 
     expect(await screen.findByText('2 m frei')).toBeInTheDocument();
-    expect(screen.getByText('20 im Lager, 18 reserviert')).toBeInTheDocument();
+    // Lagerstand und Reservierung stehen seit dem Umbau als Kennzahlen im Seitenfenster.
+    const fenster = await artikelOeffnen();
+    expect(kennzahl(fenster, 'im Lager')).toHaveTextContent('20 m');
+    expect(kennzahl(fenster, 'reserviert')).toHaveTextContent('18');
+    expect(kennzahl(fenster, 'frei')).toHaveTextContent('2');
   });
 
   it('zählt Erledigtes und Retouren NICHT als reserviert', async () => {
@@ -228,9 +246,14 @@ describe('Lager — Wareneingang', () => {
     seit dem Testbericht vom 30.09.2026 (M29) mit Lieferant, Lieferschein und
     Bestellbezug.
   */
+  /** Der Wareneingang aus dem Seitenfenster des Artikels (Linie „Lot“, E3). */
+  async function eingangOeffnen() {
+    await userEvent.click(within(await artikelOeffnen()).getByRole('button', { name: 'Wareneingang' }));
+    return screen.findByRole('dialog', { name: /^Wareneingang: / });
+  }
+
   async function eingangMit(menge: string, lieferant = 'Frauenthal') {
-    await userEvent.click(await screen.findByRole('button', { name: 'Wareneingang' }));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await eingangOeffnen();
     const feld = within(dialog).getByLabelText(/^Menge/);
     await userEvent.clear(feld);
     if (menge) await userEvent.type(feld, menge);
@@ -249,14 +272,25 @@ describe('Lager — Wareneingang', () => {
     await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith({
       materialId: 'm1', menge: 12, lieferant: 'Frauenthal', lieferschein: 'LS-4711', bezug: undefined,
     }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /^Wareneingang: / })).not.toBeInTheDocument());
+  });
+
+  it('aus dem Seitenkopf: erst den Artikel wählen, dann buchen (Linie „Lot“, E3)', async () => {
+    materialien = [material({ id: 'm1', stock: 20 }), material({ id: 'm2', name: 'Pressfitting', stock: 4 })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Wareneingang' }));
+    const wahl = await screen.findByRole('dialog', { name: 'Artikel wählen' });
+    await userEvent.type(within(wahl).getByRole('searchbox', { name: 'Artikel suchen' }), 'press');
+    // Gegenprobe: die Suche lässt nur den passenden stehen.
+    expect(within(wahl).queryByRole('button', { name: /Kupferrohr/ })).toBeNull();
+    await userEvent.click(within(wahl).getByRole('button', { name: /Pressfitting/ }));
+    expect(await screen.findByRole('dialog', { name: 'Wareneingang: Pressfitting' })).toBeInTheDocument();
   });
 
   it('bietet die angelegten Großhändler zur Wahl an — und „Anderer Lieferant …“ (Runde 3, G19)', async () => {
     materialien = [material({ id: 'm1', stock: 20 })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Wareneingang' }));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await eingangOeffnen();
     const auswahl = await within(dialog).findByRole('combobox', { name: /^Lieferant/ });
     expect(within(auswahl).getAllByRole('option').map((o) => o.textContent))
       .toEqual(['Bitte wählen …', 'Frauenthal', 'Anderer Lieferant …']);
@@ -267,8 +301,7 @@ describe('Lager — Wareneingang', () => {
   it('nimmt einen anderen Lieferanten als Freitext (Runde 3, G19)', async () => {
     materialien = [material({ id: 'm1', stock: 20 })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Wareneingang' }));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await eingangOeffnen();
     const feld = within(dialog).getByLabelText(/^Menge/);
     await userEvent.clear(feld);
     await userEvent.type(feld, '2');
@@ -284,8 +317,7 @@ describe('Lager — Wareneingang', () => {
     vi.mocked(listGrosshaendler).mockResolvedValueOnce([]);
     materialien = [material({ id: 'm1', stock: 20 })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Wareneingang' }));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await eingangOeffnen();
     expect(within(dialog).getByRole('textbox', { name: /^Lieferant/ })).toBeInTheDocument();
     expect(within(dialog).queryByRole('combobox', { name: /^Lieferant/ })).not.toBeInTheDocument();
   });
@@ -317,10 +349,11 @@ describe('Lager — Wareneingang', () => {
   it('bucht nichts, wenn der Dialog abgebrochen wird', async () => {
     materialien = [material({ id: 'm1', stock: 20 })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Wareneingang' }));
-    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Abbrechen' }));
+    await userEvent.click(within(await eingangOeffnen()).getByRole('button', { name: 'Abbrechen' }));
     expect(bestandAendern).not.toHaveBeenCalled();
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: /^Wareneingang: / })).not.toBeInTheDocument();
+    // Das Seitenfenster des Artikels kommt danach wieder.
+    expect(screen.getByRole('dialog', { name: 'Artikel' })).toBeInTheDocument();
   });
 
   it('bleibt bei einem Fehlschlag offen und sagt es — statt „eingebucht“ zu melden', async () => {
@@ -339,10 +372,9 @@ describe('Lager — Inventur und Bewegungen', () => {
     materialien = [material({ id: 'm1', stock: 20 })];
     inventurBuchen.mockResolvedValueOnce(18);
     zeige();
-    // Seit U12 im Zeilenmenü „⋯“.
-    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für/ }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Inventur' }));
-    const dialog = await screen.findByRole('dialog');
+    // Seit dem Umbau im Seitenfenster des Artikels (vorher im Zeilenmenü, U12).
+    await userEvent.click(within(await artikelOeffnen()).getByRole('button', { name: 'Inventur' }));
+    const dialog = await screen.findByRole('dialog', { name: /^Inventur: / });
     const feld = within(dialog).getByLabelText(/^Gezählter Bestand/);
     await userEvent.clear(feld);
     await userEvent.type(feld, '18');
@@ -355,10 +387,11 @@ describe('Lager — Inventur und Bewegungen', () => {
     materialien = [material({ id: 'm1', stock: 20 })];
     inventurBuchen.mockClear();
     zeige();
-    // Seit U12 im Zeilenmenü „⋯“.
-    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für/ }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Inventur' }));
-    const dialog = await screen.findByRole('dialog');
+    // Aus dem „⋯“ des Seitenkopfs: erst den Artikel wählen.
+    await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für Lager' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Inventur …' }));
+    await userEvent.click(within(await screen.findByRole('dialog', { name: 'Artikel wählen' })).getByRole('button', { name: /Kupferrohr/ }));
+    const dialog = await screen.findByRole('dialog', { name: /^Inventur: / });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Bestand buchen' }));
     expect(await within(dialog).findByText(/Ohne Grund keine Korrektur/)).toBeInTheDocument();
     expect(inventurBuchen).not.toHaveBeenCalled();
@@ -371,9 +404,8 @@ describe('Lager — Inventur und Bewegungen', () => {
       { id: 'b2', materialId: 'm1', art: 'einladen_zurueck', menge: 8, bestandNachher: 17, grund: 'Rüstliste 01.10.2026 · eingeladen zurückgenommen', createdAt: Date.UTC(2026, 9, 1, 7) },
     ]);
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für/ }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Bewegungen' }));
-    const dialog = await screen.findByRole('dialog');
+    // Das Protokoll steht als Lot im Seitenfenster (vorher ein eigener Lesedialog).
+    const dialog = await artikelOeffnen();
     expect(await within(dialog).findByText(/Einladen zurückgenommen \+8 m/)).toBeInTheDocument();
     expect(within(dialog).getByText(/^Retoure \+3 m/)).toBeInTheDocument();
   });
@@ -385,16 +417,16 @@ describe('Lager — Inventur und Bewegungen', () => {
       { id: 'b1', materialId: 'm1', art: 'eingang', menge: 12, bestandNachher: 22, lieferant: 'Frauenthal', lieferschein: 'LS-4711', createdAt: Date.UTC(2026, 8, 29, 10) },
     ]);
     zeige();
-    // Seit U12 im Zeilenmenü „⋯“.
-    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für/ }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Bewegungen' }));
-    const dialog = await screen.findByRole('dialog');
-    expect(await within(dialog).findByText(/Inventur -2 m/)).toBeInTheDocument();
-    expect(within(dialog).getByText(/Grund: Bruch/)).toBeInTheDocument();
-    expect(within(dialog).getByText(/Wareneingang \+12 m/)).toBeInTheDocument();
-    expect(within(dialog).getByText(/Frauenthal · Lieferschein LS-4711/)).toBeInTheDocument();
-    // Runde 3, G20: ein Lesedialog — nur „Schließen“.
-    expect(within(dialog).getAllByRole('button').map((b) => b.textContent)).toEqual(['Schließen']);
+    const dialog = await artikelOeffnen();
+    const lot = await within(dialog).findByRole('list', { name: 'Bewegungen: Kupferrohr 15mm' });
+    expect(within(lot).getByText(/Inventur -2 m/)).toBeInTheDocument();
+    expect(within(lot).getByText(/Grund: Bruch/)).toBeInTheDocument();
+    expect(within(lot).getByText(/Wareneingang \+12 m/)).toBeInTheDocument();
+    expect(within(lot).getByText(/Frauenthal · Lieferschein LS-4711/)).toBeInTheDocument();
+    // Jüngste zuerst, wie im Dialog vorher.
+    expect(within(lot).getAllByRole('listitem')[0]).toHaveTextContent(/^Inventur/);
+    // „Schließen“ schliesst das Fenster (Runde 3, G20: Lesen ohne „Abbrechen“).
+    expect(within(dialog).queryByRole('button', { name: 'Abbrechen' })).toBeNull();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Schließen' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -467,17 +499,31 @@ describe('Wer den Katalog einspielen darf', () => {
     wird deshalb nicht bloss deaktiviert, sondern gar nicht angeboten: ein
     Knopf, der zuverlässig abweist, ist schlechter als keiner.
   */
-  it('zeigt der Verwaltung den Reiter nicht', async () => {
+  /** Die Einträge im „⋯“ des Seitenkopfs — seit dem Umbau steht „Katalog einspielen“ dort. */
+  async function seitenMenue() {
+    await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für Lager' }));
+    return within(screen.getByRole('menu')).getAllByRole('menuitem').map((m) => m.textContent);
+  }
+
+  it('zeigt der Verwaltung den Eintrag nicht', async () => {
     zeige();
-    expect(await screen.findByRole('tab', { name: 'Katalog' })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'Katalog einspielen' })).toBeNull();
+    expect(await screen.findByRole('button', { name: 'Katalog' })).toBeInTheDocument();
+    expect(await seitenMenue()).toEqual(['Inventur …']);
   });
 
   it('zeigt ihn der Geschäftsführung und öffnet ihn', async () => {
     authWert = CHEFIN;
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Katalog einspielen' }));
+    expect(await seitenMenue()).toEqual(['Inventur …', 'Katalog einspielen']);
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Katalog einspielen' }));
     expect(await screen.findByText('Katalog einspielen (Inhalt)')).toBeInTheDocument();
+    expect(screen.getByTestId('adresse')).toHaveTextContent('/lager?reiter=import');
+  });
+
+  it('Gegenprobe: die Verwaltung kommt auch über die Adresse nicht hinein', async () => {
+    zeige('/lager?reiter=import');
+    expect(await screen.findByRole('button', { name: 'Bestand' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText('Katalog einspielen (Inhalt)')).toBeNull();
   });
 
   it('zeigt ihn auch der Administration', async () => {
@@ -490,7 +536,7 @@ describe('Wer den Katalog einspielen darf', () => {
     */
     authWert = ADMIN;
     zeige();
-    expect(await screen.findByRole('tab', { name: 'Katalog einspielen' })).toBeInTheDocument();
+    expect(await seitenMenue()).toContain('Katalog einspielen');
   });
 });
 
@@ -498,19 +544,20 @@ describe('Wer den Katalog einspielen darf', () => {
 describe('Reiter in der Adresse', () => {
   it('ein Klick auf „Katalog“ schreibt ?reiter=katalog', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Katalog' }));
+    // Seit dem Umbau Segmente „Bestand | Katalog“ statt Reiter.
+    await userEvent.click(await screen.findByRole('button', { name: 'Katalog' }));
     expect(screen.getByTestId('adresse')).toHaveTextContent('/lager?reiter=katalog');
-    expect(screen.getByRole('tab', { name: 'Katalog' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: 'Katalog' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('die Adresse öffnet den Reiter — und Unbekanntes landet beim Bestand', async () => {
     zeige('/lager?reiter=katalog');
-    expect(await screen.findByRole('tab', { name: 'Katalog' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('button', { name: 'Katalog' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('Gegenprobe: ein unbekannter Reiter gilt als Bestand', async () => {
     zeige('/lager?reiter=irgendwas');
-    expect(await screen.findByRole('tab', { name: 'Bestand' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('button', { name: 'Bestand' })).toHaveAttribute('aria-pressed', 'true');
   });
 });
 
@@ -523,6 +570,60 @@ describe('Lager — Reservierung durch Rüstlisten', () => {
     lagerStand.mockResolvedValue(new Map([['m1', { bestand: 20, zugesagt: 2, geplant: 3, frei: 15 }]]));
     zeige();
     expect(await screen.findByText(/15 m frei/)).toBeInTheDocument();
-    expect(screen.getByText(/5 reserviert \(davon 3 auf Rüstlisten\)/)).toBeInTheDocument();
+    expect(screen.getByText(/5 reserviert/)).toBeInTheDocument();
+    // Was davon auf Rüstlisten liegt, steht bei der Kennzahl im Seitenfenster.
+    const fenster = await artikelOeffnen();
+    expect(within(fenster).getByText('davon 3 auf Rüstlisten')).toBeInTheDocument();
+  });
+});
+
+/*
+  DER FILTER „Alle · knapp · fehlt“ (Linie „Lot“, E3) — in der Adresse, damit
+  der Verweis der Startseite (`/lager?filter=knapp`) weiter trägt.
+*/
+describe('Lager — Filter', () => {
+  function bestand() {
+    materialien = [
+      material({ id: 'a', name: 'Reichlich', stock: 50 }),
+      material({ id: 'b', name: 'Knapper', stock: 4 }),
+      material({ id: 'c', name: 'Fehlender', stock: 2 }),
+    ];
+    anforderungen = [anforderung({ id: 'o1', materialId: 'c', quantity: 5 })];
+  }
+
+  it('„fehlt“ zeigt nur, was unter null frei ist, und steht in der Adresse', async () => {
+    bestand();
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'fehlt' }));
+    expect(screen.getByTestId('adresse')).toHaveTextContent('/lager?filter=fehlt');
+    expect(screen.getByText('Fehlender')).toBeInTheDocument();
+    expect(screen.queryByText('Knapper')).toBeNull();
+    expect(screen.queryByText('Reichlich')).toBeNull();
+  });
+
+  it('„knapp“ aus der Adresse schliesst „fehlt“ ein, wie die Kennzahl', async () => {
+    bestand();
+    zeige('/lager?filter=knapp');
+    expect(await screen.findByRole('button', { name: 'knapp' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Knapper')).toBeInTheDocument();
+    expect(screen.getByText('Fehlender')).toBeInTheDocument();
+    expect(screen.queryByText('Reichlich')).toBeNull();
+  });
+
+  it('Gegenprobe: „Alle“ zeigt alles und nimmt den Filter aus der Adresse', async () => {
+    bestand();
+    zeige('/lager?filter=knapp');
+    await userEvent.click(await screen.findByRole('button', { name: 'Alle' }));
+    expect(screen.getByTestId('adresse')).toHaveTextContent(/^\/lager$/);
+    expect(screen.getByText('Reichlich')).toBeInTheDocument();
+  });
+
+  it('zeigt einen Zustand nur bei „knapp“ oder „fehlen“', async () => {
+    bestand();
+    zeige();
+    const reichlich = (await screen.findByText('Reichlich')).closest('li')!;
+    expect(reichlich.querySelector('.stand')).toBeNull();
+    expect(within(screen.getByText('Knapper').closest('li')!).getByText('knapp')).toBeInTheDocument();
+    expect(within(screen.getByText('Fehlender').closest('li')!).getByText('3 m fehlen')).toBeInTheDocument();
   });
 });

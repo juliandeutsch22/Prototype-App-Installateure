@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import Button from './Button';
 import Hinweiszeile from './Hinweiszeile';
-import { useFokusFalle } from './fokusFalle';
+import { istOben, useFokusFalle } from './fokusFalle';
+import { ImFenster } from './imFenster';
 import { grundAus } from '@/lib/fehlerGrund';
 
 /**
@@ -65,7 +66,7 @@ export default function ConfirmDialog({
   */
   useEffect(() => {
     if (!open || busy) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onCancel();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && istOben(dialog) && onCancel();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, busy, onCancel]);
@@ -89,21 +90,21 @@ export default function ConfirmDialog({
   return (
     <div
       ref={dialog}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center"
+      className="schleier-dialog"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
       onClick={busy ? undefined : onCancel}
     >
       <div
-        className="panel w-full max-w-sm p-4 shadow-lg"
+        className="dialog"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="titel-karte">
           {title}
         </h2>
         {message && <p className="mt-2 text-sm text-ink-muted">{message}</p>}
-        {children && <div className="mt-4">{children}</div>}
+        {children && <div className="mt-4"><ImFenster>{children}</ImFenster></div>}
         {error && (
           <div className="mt-3">
             <Hinweiszeile stufe="fehl" role="alert">

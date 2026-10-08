@@ -253,8 +253,9 @@ describe('Hilfe und Rechtliches in der Hülle', () => {
     // Seitenleiste
     expect(await screen.findByRole('button', { name: 'Problem melden' })).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Impressum' })).toHaveLength(1);
-    // Profilblatt am Telefon
-    await nutzer.click(screen.getByRole('button', { name: /Profil öffnen/ }));
+    // Profilblatt am Telefon (Kopfzeile) — am Tablet öffnet es dieselben Initialen in der Leiste.
+    expect(screen.getAllByRole('button', { name: /Profil öffnen/ })).toHaveLength(2);
+    await nutzer.click(screen.getAllByRole('button', { name: /Profil öffnen/ })[0]);
     expect(screen.getAllByRole('button', { name: 'Problem melden' })).toHaveLength(2);
     expect(screen.getAllByRole('link', { name: 'Datenschutz' })).toHaveLength(2);
   });
@@ -264,7 +265,7 @@ describe('Hilfe und Rechtliches in der Hülle', () => {
     // (navigation.ts, Unterseite `meldungen`).
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click(await screen.findByRole('button', { name: /Profil öffnen/ }));
+    await nutzer.click((await screen.findAllByRole('button', { name: /Profil öffnen/ }))[0]);
     const profil = screen.getByRole('dialog', { name: 'Profil' });
     expect(within(profil).getByRole('link', { name: 'Mein Konto' })).toHaveAttribute(
       'href',
@@ -274,18 +275,21 @@ describe('Hilfe und Rechtliches in der Hülle', () => {
   });
 });
 
-describe('Seitenleiste bei 834 px (Prüflauf 25.09.2026, P4-13)', () => {
-  it('lässt die Beschriftung in den rechten Innenabstand der Zeile reichen', async () => {
+describe('Leiste am Tablet (Linie „Lot“, Protokoll Abschnitt 5)', () => {
+  it('trägt Symbol und Kurztext — der Vorleser hört trotzdem den ganzen Namen', async () => {
     /*
-      Dem fetten, aktiven „Mitarbeiterübersicht" fehlte bei 834 px genau
-      1 px — es endete mit Auslassungspunkten. jsdom rechnet kein Layout;
-      im Browser nachgemessen: 171 px Text, 170 px Platz, mit `-mr-2`
-      178 px. Geprüft wird hier, dass der Platz freigegeben ist.
+      Bei 834 px stand bis zum Umbau die volle Seitenleiste, und lange Namen
+      wie „Mitarbeiterübersicht" kämpften um jeden Pixel (P4-13). Am Tablet
+      steht jetzt die schmale Leiste mit dem Kurztext; der lange Name bleibt
+      für den Schreibtisch und für die Vorlesehilfe.
     */
     zeige();
     const aside = (await screen.findByText('Senklot')).closest('aside')!;
     const zeile = within(aside).getByRole('link', { name: 'Mitarbeiterübersicht' });
-    expect(within(zeile).getByText('Mitarbeiterübersicht').className).toMatch(/(^|\s)-mr-2(\s|$)/);
+    expect(within(zeile).getByText('Mitarbeiterübersicht').className).toBe('navi-text-lang');
+    const kurz = within(zeile).getByText('Übersicht');
+    expect(kurz.className).toBe('navi-text-kurz');
+    expect(kurz).toHaveAttribute('aria-hidden', 'true');
   });
 });
 
@@ -358,8 +362,38 @@ describe('Navigation aufgeräumt (Paket 1)', () => {
     expect(within(aside).queryByRole('link', { name: /Dashboard/ })).toBeNull();
     const nav = within(aside).getByRole('navigation', { name: 'Hauptnavigation' });
     const links = within(nav).getAllByRole('link');
-    expect(links[links.length - 1]).toHaveTextContent('Einstellungen');
+    // Die Einstellungen stehen unten im Fuss der Leiste, nach allen Gruppen.
+    const fuss = within(aside).getByRole('navigation', { name: 'Einstellungen' });
+    expect(within(fuss).getByRole('link', { name: /^Einstellungen/ })).toBeInTheDocument();
+    expect(nav.compareDocumentPosition(fuss) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(nav).queryByRole('link', { name: /^Einstellungen/ })).toBeNull();
     // Gegenprobe: Start bleibt der erste Eintrag.
     expect(links[0]).toHaveTextContent('Start');
+  });
+});
+
+describe('Strg + K (Linie „Lot“)', () => {
+  it('öffnet „Suchen oder springen“ — auch aus einem Feld heraus', async () => {
+    zeige();
+    await screen.findAllByText('Perl Installationen');
+    expect(screen.queryByRole('dialog', { name: 'Suchen oder springen' })).toBeNull();
+    await userEvent.keyboard('{Control>}k{/Control}');
+    expect(screen.getByRole('dialog', { name: 'Suchen oder springen' })).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ein K allein öffnet nichts', async () => {
+    zeige();
+    await screen.findAllByText('Perl Installationen');
+    await userEvent.keyboard('k');
+    expect(screen.queryByRole('dialog', { name: 'Suchen oder springen' })).toBeNull();
+  });
+
+  it('hat in Seitenleiste und Kopfzeile einen Knopf „Suchen“', async () => {
+    zeige();
+    await screen.findAllByText('Perl Installationen');
+    const knoepfe = screen.getAllByRole('button', { name: /^Suchen/ });
+    expect(knoepfe).toHaveLength(2);
+    await userEvent.click(knoepfe[1]);
+    expect(screen.getByRole('dialog', { name: 'Suchen oder springen' })).toBeInTheDocument();
   });
 });

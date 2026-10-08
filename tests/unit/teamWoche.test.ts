@@ -23,6 +23,7 @@ describe('Mein Einsatzplan', () => {
   });
 
   it('lässt die übrigen Reiter unberührt', () => {
-    expect(unterseitenFuer('/assignments', 'Projektleiter').map((s) => s.pfad)).toEqual(['tag', 'woche']);
+    // Seit der Linie „Lot“ (E2) steht die Woche zuerst; beide bleiben, ohne Schalter.
+    expect(unterseitenFuer('/assignments', 'Projektleiter').map((s) => s.pfad)).toEqual(['woche', 'tag']);
   });
 });

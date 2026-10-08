@@ -38,9 +38,12 @@ import { Marke, Warnung, Zustand } from '@/components/Badge';
 import Zeitmarker from '@/features/time/Zeitmarker';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
+import RowMenu from '@/components/RowMenu';
+import BottomSheet from '@/components/BottomSheet';
 import Icon from '@/components/Icon';
 import ExportDialog from './ExportDialog';
 import ProjectSummary from './ProjectSummary';
+import MonatsRaster from './MonatsRaster';
 import Gesamtsaldo from './Gesamtsaldo';
 import ArbeitszeitGrenzenKarte from './ArbeitszeitGrenzenKarte';
 import TimeForm from '@/features/time/TimeForm';
@@ -351,6 +354,12 @@ export default function AccountingView() {
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
 
+  /** Aus dem Raster: die Zeile der Person aufklappen und dorthin springen. */
+  function oeffneZeile(uid: string) {
+    setExpanded(uid);
+    document.getElementById(`ma-${uid}`)?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+  }
+
   function exportMonthCsv() {
     // Bewusst alleRows: der Monatsexport ist ein Abschluss und darf nicht
     // davon abhaengen, was gerade im Suchfeld steht.
@@ -413,106 +422,130 @@ export default function AccountingView() {
   return (
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="space-y-3 lg:space-y-5">
+      {/*
+        DER SEITENKOPF DER LINIE „LOT“ (Regel 2): „Zeit erfassen“ ist die
+        Hauptaktion — am Telefon im Daumenbereich. Die Monats-CSV wird einmal
+        im Monat gezogen und steht deshalb im ⋯ der Seite, nicht als zweiter
+        Knopf daneben. Im Supportzugang gibt es sie nicht (Zeitbuchungen sind
+        dort verschlossen), ebenso wenig ohne eine Zeile.
+      */}
       <PageHeader
+        ort="Team"
         title="Mitarbeiterübersicht"
         subtitle="Monatsauswertung, Vollständigkeit und Salden"
+        action={
+          <Button
+            variant="primary"
+            onClick={() => {
+              setEditing(null);
+              setCreating(true);
+            }}
+          >
+            Zeit erfassen
+          </Button>
+        }
+        mehr={
+          rows.length > 0 && !imSupport ? (
+            <RowMenu about="Mitarbeiterübersicht" items={[{ label: 'Monats-CSV', onSelect: exportMonthCsv }]} />
+          ) : undefined
+        }
       />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <Card title="Zeitraum">
-        <div className="grid grid-cols-2 gap-4">
-          <SelectField id="acc-month" label="Monat" value={String(month)}
-            onChange={(e) => setMonth(Number(e.target.value))}>
-            {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
-          </SelectField>
-          <SelectField id="acc-year" label="Jahr" value={String(year)}
-            onChange={(e) => setYear(Number(e.target.value))}>
-            {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
-          </SelectField>
-        </div>
-      </Card>
+      {/* Der Zeitraum ist ein Filter über der Liste, keine eigene Karte. */}
+      <div className="grid max-w-md grid-cols-2 gap-4">
+        <SelectField id="acc-month" label="Monat" value={String(month)}
+          onChange={(e) => setMonth(Number(e.target.value))}>
+          {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
+        </SelectField>
+        <SelectField id="acc-year" label="Jahr" value={String(year)}
+          onChange={(e) => setYear(Number(e.target.value))}>
+          {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+        </SelectField>
+      </div>
 
-      {/* Zeiten für andere erfassen und korrigieren — z. B. wenn ein Monteur
-          krank ist oder sich vertippt hat. Die Rules erlauben das für
-          Buchhaltung/GF/Administrator. */}
-      {(creating || editing) && (
-        <Card
-          title={
-            editing
-              ? `Eintrag von ${editing.userName ?? 'Mitarbeiter'} korrigieren`
-              : 'Zeit für einen Mitarbeiter erfassen'
-          }
-        >
-          {/* Ohne existingDates: der Zielmitarbeiter steht erst nach der
-              Auswahl fest — die Doppelbuchung fängt createTimeEntry ab. */}
-          <TimeForm
-            key={editing?.id ?? 'new-foreign'}
-            entry={editing ?? undefined}
-            staff={editing ? undefined : relevant}
-            ownerRole={
-              editing ? users.find((u) => u.uid === editing.userId)?.role : undefined
-            }
-            // Für die Rückfrage zum Jugendschutz (Runde 3, M2); beim Erfassen kommt die Person aus `staff`.
-            besitzerProfil={editing ? users.find((u) => u.uid === editing.userId) ?? null : null}
-            onSaved={() => {
-              setCreating(false);
-              setEditing(null);
-            }}
-            onCancel={() => {
-              setCreating(false);
-              setEditing(null);
-            }}
-          />
-        </Card>
-      )}
+      {/*
+        ZEITEN FÜR ANDERE ERFASSEN UND KORRIGIEREN — z. B. wenn ein Monteur
+        krank ist oder sich vertippt hat. Die Rules erlauben das für
+        Buchhaltung/GF/Administrator.
 
-      {meldung && user && (
-        <KrankmeldungKarte
-          key={meldung}
-          companyId={user.companyId}
-          id={meldung}
-          meinName={user.name}
-          mitNamen
-          buero
-          onGeaendert={() => setMeldung(null)}
-          onSchliessen={() => setMeldung(null)}
-        />
-      )}
-
-      <Card
-        title={`${MONTHS[month]} ${year}`}
-        action={
-          <span className="flex flex-wrap gap-2">
-            {!creating && !editing && (
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setEditing(null);
-                  setCreating(true);
-                }}
-              >
-                Zeit erfassen
-              </Button>
-            )}
-            {rows.length > 0 && !imSupport && (
-              <Button variant="secondary" onClick={exportMonthCsv}>
-                Monats-CSV
-              </Button>
-            )}
-          </span>
+        IM SEITENFENSTER (Linie „Lot“, Regel 8), nicht mehr als Karte oben auf
+        der Seite. Wer im Tagesnachweis eines Mitarbeiters auf „Bearbeiten“
+        tippte, wurde bisher an den Seitenanfang gerollt und fand danach
+        seine Zeile nicht wieder; jetzt bleibt die Liste stehen.
+      */}
+      <BottomSheet
+        open={creating || !!editing}
+        onClose={() => {
+          setCreating(false);
+          setEditing(null);
+        }}
+        label={editing ? 'Eintrag korrigieren' : 'Zeit erfassen'}
+        auchBreit
+        titel={
+          editing
+            ? `Eintrag von ${editing.userName ?? 'Mitarbeiter'} korrigieren`
+            : 'Zeit für einen Mitarbeiter erfassen'
         }
       >
+        {/* Ohne existingDates: der Zielmitarbeiter steht erst nach der
+            Auswahl fest — die Doppelbuchung fängt createTimeEntry ab. */}
+        <TimeForm
+          key={editing?.id ?? 'new-foreign'}
+          entry={editing ?? undefined}
+          staff={editing ? undefined : relevant}
+          ownerRole={
+            editing ? users.find((u) => u.uid === editing.userId)?.role : undefined
+          }
+          // Für die Rückfrage zum Jugendschutz (Runde 3, M2); beim Erfassen kommt die Person aus `staff`.
+          besitzerProfil={editing ? users.find((u) => u.uid === editing.userId) ?? null : null}
+          onSaved={() => {
+            setCreating(false);
+            setEditing(null);
+          }}
+          onCancel={() => {
+            setCreating(false);
+            setEditing(null);
+          }}
+        />
+      </BottomSheet>
+
+      {/* Die Krankmeldung eines Tages ebenfalls im Seitenfenster; ihre Karte
+          bringt Titel und „Schließen“ selbst mit. */}
+      <BottomSheet open={!!meldung && !!user} onClose={() => setMeldung(null)} label="Krankmeldung" auchBreit>
+        {meldung && user && (
+          <KrankmeldungKarte
+            key={meldung}
+            companyId={user.companyId}
+            id={meldung}
+            meinName={user.name}
+            mitNamen
+            buero
+            onGeaendert={() => setMeldung(null)}
+            onSchliessen={() => setMeldung(null)}
+          />
+        )}
+      </BottomSheet>
+
+      {/*
+        EINE FLÄCHE, LINIEN STATT KARTEN (Regel 1): jede Person ist eine Zeile
+        dieser Gruppe, nicht mehr eine eigene Karte in der Karte. Jeder Block
+        vor der Liste trägt seine Trennlinie unten; die erste Zeile hat keine.
+      */}
+      <Card title={`${MONTHS[month]} ${year}`} buendig>
         {imSupport && (
-          <Hinweiszeile>
-            <p>
-              Im Supportzugang sind Zeitbuchungen, Urlaube und Krankenstände nicht einsehbar.
-              Soll, Ist, Salden und fehlende Tage stehen deshalb nicht da.
-            </p>
-          </Hinweiszeile>
+          <div className="border-b border-line p-4">
+            <Hinweiszeile>
+              <p>
+                Im Supportzugang sind Zeitbuchungen, Urlaube und Krankenstände nicht einsehbar.
+                Soll, Ist, Salden und fehlende Tage stehen deshalb nicht da.
+              </p>
+            </Hinweiszeile>
+          </div>
         )}
         {!imSupport && alleRows.length >= 8 && (
-          <div className="mb-4 space-y-2">
+          <div className="space-y-2 border-b border-line p-4">
             <InputField
               id="accsuche"
               label="Mitarbeiter suchen"
@@ -533,9 +566,13 @@ export default function AccountingView() {
           </div>
         )}
         {loading ? (
-          <SkeletonList rows={4} />
+          <div className="p-4">
+            <SkeletonList rows={4} />
+          </div>
         ) : error ? (
-          <ErrorState message={error} />
+          <div className="p-4">
+            <ErrorState message={error} />
+          </div>
         ) : rows.length === 0 ? (
           <EmptyState>
             {/*
@@ -561,7 +598,20 @@ export default function AccountingView() {
                 : 'Alle Zeitkonten sind vollständig.'}
           </EmptyState>
         ) : (
-          <div className="space-y-3">
+          <>
+          {/* Der Monat auf einen Blick, ab dem Tablet (Protokoll E9). Im
+              Supportzugang nicht: ohne Buchungen stünde jeder Tag als fehlend da. */}
+          {!imSupport && (
+            <MonatsRaster
+              zeilen={rows.map((r) => ({ user: r.user, monthEntries: r.monthEntries, fehlend: r.completeness.missingDates }))}
+              jahr={year}
+              monat={month}
+              monatsName={`${MONTHS[month]} ${year}`}
+              halbeTage={halbeTage}
+              onOeffnen={oeffneZeile}
+            />
+          )}
+          <ul>
             {rows.map(({ user: u, monthEntries, stats, completeness }) => {
               const open = expanded === u.uid;
               /*
@@ -575,12 +625,7 @@ export default function AccountingView() {
               */
               const zeigtSaldo = stats.hasConfig;
               return (
-                <div
-                  key={u.uid}
-                  className={`panel overflow-hidden transition-colors ${
-                    open ? 'border-brand/40' : ''
-                  }`}
-                >
+                <li key={u.uid} id={`ma-${u.uid}`} className="border-t border-line first:border-t-0">
                   {/* Der Kopf trägt nur noch, was den Mitarbeiter einordnet:
                       Name, Ampel, Saldo. Krankheit, Urlaub und Resturlaub
                       standen hier als vierte, fünfte, sechste Pille und
@@ -589,7 +634,7 @@ export default function AccountingView() {
 
                       Der blaue Block beim Aufklappen ist ebenfalls weg. Er
                       schrie lauter als der Inhalt, den er ankündigte; jetzt
-                      genügt der hellere Grund und die farbige Kante. */}
+                      genügt der hellere Grund des Kopfs. */}
                   <button
                     type="button"
                     onClick={() => setExpanded(open ? null : u.uid)}
@@ -860,7 +905,7 @@ export default function AccountingView() {
                           Titel; die Daten selbst stehen in normaler Schrift.
                         */
                         <details className="group mt-4 rounded border border-line bg-surface-2 text-sm">
-                          <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-medium text-warning [&::-webkit-details-marker]:hidden">
+                          <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-normal text-warning [&::-webkit-details-marker]:hidden">
                             <span>
                               {completeness.missingCount === 1
                                 ? '1 Arbeitstag ohne Buchung'
@@ -978,13 +1023,7 @@ export default function AccountingView() {
                           ) : e.krankmeldungId ? (
                             // Ein Tag einer Krankmeldung wird nur über sie
                             // geändert — Ende ändern oder löschen.
-                            <Button
-                              variant="ghost"
-                              onClick={() => {
-                                setMeldung(e.krankmeldungId!);
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                              }}
-                            >
+                            <Button variant="ghost" onClick={() => setMeldung(e.krankmeldungId!)}>
                               Krankmeldung
                             </Button>
                           ) : e.freistellungId ? (
@@ -1000,7 +1039,6 @@ export default function AccountingView() {
                                 onClick={() => {
                                   setCreating(false);
                                   setEditing(e);
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
                                 }}
                               >
                                 Bearbeiten
@@ -1014,7 +1052,7 @@ export default function AccountingView() {
                         return (
                           <div className="mt-4">
                             <details className="group">
-                              <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm font-medium text-ink [&::-webkit-details-marker]:hidden">
+                              <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm font-normal text-ink [&::-webkit-details-marker]:hidden">
                                 <span>
                                   Tagesnachweis ·{' '}
                                   <span className="whitespace-nowrap">
@@ -1038,15 +1076,15 @@ export default function AccountingView() {
                                   />
                                 </span>
                               </summary>
-                              <table className="mt-1 hidden w-full text-sm sm:table">
+                              <table className="mt-1 hidden w-full text-sm sm:table" aria-label={`Tagesnachweis ${u.name}`}>
                               <thead>
                                 <tr className="border-b border-line text-left text-ink-muted">
-                                  <th className="py-2 pr-3 font-medium">Tag</th>
-                                  <th className="py-2 pr-3 font-medium">Status</th>
-                                  <th className="py-2 pr-3 font-medium">Zeit</th>
-                                  <th className="py-2 pr-3 font-medium">Baustelle</th>
-                                  <th className="py-2 pr-3 text-right font-medium">Stunden</th>
-                                  <th className="py-2 text-right font-medium">
+                                  <th className="py-2 pr-3 font-normal">Tag</th>
+                                  <th className="py-2 pr-3 font-normal">Status</th>
+                                  <th className="py-2 pr-3 font-normal">Zeit</th>
+                                  <th className="py-2 pr-3 font-normal">Baustelle</th>
+                                  <th className="py-2 pr-3 text-right font-normal">Stunden</th>
+                                  <th className="py-2 text-right font-normal">
                                     <span className="sr-only">Aktionen</span>
                                   </th>
                                 </tr>
@@ -1057,8 +1095,8 @@ export default function AccountingView() {
                                   // Buchungen desselben Tages haetten sonst
                                   // denselben, und React zoege die Zeilen
                                   // beim Bearbeiten durcheinander.
-                                  <tr key={x.entry?.id ?? x.d} className="border-b border-line/60">
-                                    <td className="whitespace-nowrap py-2 pr-3 font-medium text-ink">
+                                  <tr key={x.entry?.id ?? x.d} className="border-b border-line">
+                                    <td className="whitespace-nowrap py-2 pr-3 font-normal text-ink">
                                       {dayLabel(x.d)}
                                     </td>
                                     <td className="py-2 pr-3">
@@ -1078,7 +1116,7 @@ export default function AccountingView() {
                                       {x.zeit ?? '—'}
                                     </td>
                                     <td className="py-2 pr-3">{x.entry?.customerName ?? '—'}</td>
-                                    <td className="py-2 pr-3 text-right font-medium">
+                                    <td className="py-2 pr-3 text-right font-normal">
                                       {x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}
                                     </td>
                                     <td className="py-2">
@@ -1129,7 +1167,7 @@ export default function AccountingView() {
                             */}
                               <ul className="sm:hidden">
                               {days.map((x) => (
-                                <li key={x.entry?.id ?? x.d} className="border-b border-line/60 py-2">
+                                <li key={x.entry?.id ?? x.d} className="border-b border-line py-2">
                                   <div className="flex items-baseline justify-between gap-2">
                                     <span className="font-semibold text-ink">
                                       {dayLabel(x.d)}
@@ -1181,10 +1219,11 @@ export default function AccountingView() {
                       </div>
                     </div>
                   )}
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ul>
+          </>
         )}
       </Card>
 
@@ -1200,11 +1239,10 @@ export default function AccountingView() {
           jahr={year}
           monat={month}
           aktualisiert={loading ? undefined : grenzStand}
-          // Verstoß gegen das KJBG: die Buchung gleich im Formular oben öffnen (Runde 3, M3).
+          // Verstoß gegen das KJBG: die Buchung gleich im Seitenfenster öffnen (Runde 3, M3).
           onKorrigieren={(e) => {
             setCreating(false);
             setEditing(e);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
         />
       )}

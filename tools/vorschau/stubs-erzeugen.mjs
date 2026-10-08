@@ -57,6 +57,9 @@ const FEST = {
   materialOrders:
     "export const ORDER_STATUS_FLOW = ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'] as const;\n",
   quelle: 'export const nutztPostgres = () => false;\n',
+  // Die Scheinliste fragt fürs Büro, welche Scheine schon verrechnet sind; ohne Antwort
+  // bliebe die Gruppe „Nicht verrechnet“ in der Vorschau für immer am Laden.
+  invoices: 'export const scheineAufRechnung = () => A([]);\n',
   monatsbilanzen: "export const monatVon = (d: string) => d.slice(0, 7);\n",
   prefs:
     'const P = {} as never;\nexport const getPrefs = () => A(P);\nexport const subscribePrefs = SUB(P);\n',

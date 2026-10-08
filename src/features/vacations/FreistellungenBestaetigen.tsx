@@ -400,7 +400,7 @@ export default function FreistellungenBestaetigen({
           )}
           {laufend.length > 0 && (
             <div className="mt-4 border-t border-line pt-3">
-              <p className="mb-2 text-sm font-medium text-ink">Bestätigt, noch nicht vorbei</p>
+              <p className="mb-2 text-sm font-normal text-ink">Bestätigt, noch nicht vorbei</p>
               <List>
                 {laufend.map((f) => {
                   /*

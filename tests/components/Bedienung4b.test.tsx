@@ -9,6 +9,8 @@
  *   G29  Meldungen stehen oben, nicht über den Knöpfen unten.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Link, MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { useUngespeichertWarnung } from '@/lib/ungespeichert';
@@ -193,38 +195,81 @@ describe('G10 — Fehler ins Blickfeld', () => {
 });
 
 describe('G29 — Meldungen verdecken keinen Knopf', () => {
-  it('am Telefon oben, am Schreibtisch unten links neben der Seitenleiste — nie über dem Seitenkopf rechts', () => {
-    function Knopf() {
-      const toast = useToast();
-      return <button type="button" onClick={() => toast.success('Gespeichert')}>los</button>;
-    }
+  /*
+    SEIT DER LINIE „LOT“ STEHT DIE LAGE IN src/styles/lot.css (`.meldungen`):
+    jsdom kennt kein CSS, deshalb liest die Prüfung die Regel selbst. Am
+    Telefon oben — unten lägen Daumenleiste und Aktionsleiste —, ab dem
+    Tablet unten in der Mitte wie im Entwurf.
+  */
+  const lot = readFileSync(join(process.cwd(), 'src/styles/lot.css'), 'utf8');
+  const regel = (wahl: string, text = lot) => {
+    const m = new RegExp(`\\.${wahl} \\{([^}]*)\\}`).exec(text);
+    if (!m) throw new Error(`.${wahl} fehlt in lot.css`);
+    return m[1];
+  };
+
+  function Knopf({ rueck }: { rueck?: () => void }) {
+    const toast = useToast();
+    return (
+      <button
+        type="button"
+        onClick={() => toast.success('Gespeichert', rueck ? { label: 'Rückgängig', onClick: rueck } : undefined)}
+      >
+        los
+      </button>
+    );
+  }
+
+  it('am Telefon oben, ab dem Tablet unten', () => {
     render(
       <ToastProvider>
         <Knopf />
       </ToastProvider>,
     );
     fireEvent.click(screen.getByText('los'));
-    const bereich = screen.getByText('Gespeichert').parentElement as HTMLElement;
-    expect(bereich.className).toMatch(/(^| )top-/);
-    expect(bereich.className).toMatch(/lg:bottom-4/);
-    expect(bereich.className).toMatch(/lg:top-auto/);
-    // Oben rechts lag sie über „Neue Baustelle“ (Nachtest 01.10.2026).
-    expect(bereich.className).not.toMatch(/lg:right-4/);
+    const meldung = screen.getByText('Gespeichert').parentElement as HTMLElement;
+    expect(meldung.parentElement!.className).toBe('meldungen');
+    expect(regel('meldungen')).toMatch(/top: 1rem/);
+    expect(regel('meldungen')).not.toMatch(/bottom:/);
+    const tablet = /@media \(min-width: 760px\) \{ \.meldungen \{([^}]*)\}/.exec(lot);
+    expect(tablet?.[1]).toMatch(/bottom: 1\.5rem/);
   });
 
   it('lässt Klicks durch — was darunter liegt, bleibt treffbar', () => {
-    function Knopf() {
-      const toast = useToast();
-      return <button type="button" onClick={() => toast.success('Gespeichert')}>los</button>;
-    }
     render(
       <ToastProvider>
         <Knopf />
       </ToastProvider>,
     );
     fireEvent.click(screen.getByText('los'));
-    const meldung = screen.getByText('Gespeichert');
-    expect(meldung.className).toMatch(/pointer-events-none/);
-    expect(meldung.className).not.toMatch(/pointer-events-auto/);
+    expect(screen.getByText('Gespeichert').parentElement!.className).toBe('meldung');
+    expect(regel('meldung')).toMatch(/pointer-events: none/);
+    expect(regel('meldungen')).toMatch(/pointer-events: none/);
+    // Treffbar ist nur der Knopf in der Meldung selbst.
+    expect(regel('meldung-knopf')).toMatch(/pointer-events: auto/);
+  });
+
+  it('„Rückgängig“ ruft die Umkehr auf und nimmt die Meldung weg', () => {
+    const rueck = vi.fn();
+    render(
+      <ToastProvider>
+        <Knopf rueck={rueck} />
+      </ToastProvider>,
+    );
+    fireEvent.click(screen.getByText('los'));
+    fireEvent.click(screen.getByRole('button', { name: 'Rückgängig' }));
+    expect(rueck).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Gespeichert')).toBeNull();
+  });
+
+  it('Gegenprobe: ohne Umkehr hat die Meldung keinen Knopf', () => {
+    render(
+      <ToastProvider>
+        <Knopf />
+      </ToastProvider>,
+    );
+    fireEvent.click(screen.getByText('los'));
+    expect(screen.queryByRole('button', { name: 'Rückgängig' })).toBeNull();
   });
 });
+

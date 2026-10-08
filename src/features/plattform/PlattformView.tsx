@@ -10,6 +10,10 @@ import { betriebFehler, kennungVorschlag, WARNUNG_OHNE_MAIL, type NeuerBetrieb }
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
+import Abschnitt from '@/components/Abschnitt';
+import BottomSheet from '@/components/BottomSheet';
+import PageHeader from '@/components/PageHeader';
+import { List, ListRow } from '@/components/ListRow';
 import { CheckboxField, InputField, SelectField, FormGrid } from '@/components/Field';
 import { ErrorState } from '@/components/States';
 import { Marke, Warnung } from '@/components/Badge';
@@ -225,15 +229,18 @@ export default function PlattformView() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
+    /*
+      Ohne Hülle (siehe oben) und deshalb mit eigenem Rand: eine Spalte von
+      höchstens 768 px, damit die Zeilen der Betriebe Platz für ihre Marken
+      und Knöpfe haben.
+    */
+    <div className="plattform-seite">
       <MarkenBand />
-      <header className="space-y-1">
-        <h1 className="text-xl font-semibold text-ink">Betriebe anlegen</h1>
-        <p className="text-sm text-ink-muted">
-          Dieses Konto kann Betriebe einrichten und sonst nichts. Es gehört zu keinem Betrieb und
-          sieht in keinen hinein — auch nicht in die, die es selbst angelegt hat.
-        </p>
-      </header>
+      <PageHeader
+        ort="Plattform"
+        title="Betriebe anlegen"
+        subtitle="Dieses Konto kann Betriebe einrichten und sonst nichts. Es gehört zu keinem Betrieb und sieht in keinen hinein — auch nicht in die, die es selbst angelegt hat."
+      />
 
       <Card
         title="Neuer Betrieb"
@@ -251,7 +258,8 @@ export default function PlattformView() {
           </>
         }
       >
-        <form onSubmit={anlegen} className="space-y-4">
+        {/* Formular der Linie: höchstens 560 px (Regel 9). */}
+        <form onSubmit={anlegen} className="formular space-y-4">
           <FormGrid>
             <InputField
               id="b-name"
@@ -363,6 +371,64 @@ export default function PlattformView() {
       </Card>
 
       {/*
+        DIREKT UNTER DEM FORMULAR (seit dem Umbau auf „Lot“): Link und
+        Startpasswort stehen nur jetzt hier. Vorher erschienen sie ganz unten,
+        unter dem Notzugang — wer gerade angelegt hatte, sah sie nicht.
+      */}
+      {angelegt.length > 0 && (
+        <Card title={`In dieser Sitzung angelegt (${angelegt.length})`}>
+          {/*
+            DER RÜCKSETZLINK STEHT NUR HIER UND NUR JETZT.
+
+            Er wird nicht gespeichert und nicht versendet — der Betrieb
+            versendet seine Post selbst, und eine Mailanbindung wäre ein
+            weiterer Dienst mit einem weiteren Auftragsverarbeitungsvertrag.
+            Wer die Seite verlässt, muss den nächsten Zugang über
+            „Passwort vergessen?" freischalten lassen. Das steht auch da.
+          */}
+          <ul className="space-y-4">
+            {angelegt.map((b) => (
+              <li key={b.companyId} className="border-t border-line pt-3 first:border-0 first:pt-0">
+                <p className="font-semibold text-ink">
+                  {b.name} <span className="text-ink-muted">({b.companyId})</span>
+                </p>
+                {b.hinweis && <p className="mt-1 text-sm text-warning">{b.hinweis}</p>}
+                {b.startpasswort ? (
+                  <>
+                    <p className="mt-1 text-sm text-ink-muted">
+                      Erster Administrator: Benutzername <strong className="text-ink">{b.benutzername}</strong>
+                    </p>
+                    <p className="mt-2 text-sm">
+                      Startpasswort: <span className="font-mono text-base text-ink">{b.startpasswort}</span>
+                    </p>
+                    <p className="mt-1 text-xs text-warning">
+                      Benutzername und Startpasswort an den Administrator weitergeben. Beim ersten
+                      Anmelden vergibt er ein eigenes. Das Startpasswort steht nur jetzt hier.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-1 text-sm text-ink-muted">
+                      Erster Administrator: {b.adminEmail}
+                    </p>
+                    <p className="mt-2 break-all text-sm">
+                      <a href={b.passwortLink} className="link">
+                        {b.passwortLink}
+                      </a>
+                    </p>
+                    <p className="mt-1 text-xs text-warning">
+                      Diesen Link an den Administrator weitergeben — er setzt damit sein Passwort. Er
+                      steht nur jetzt hier; danach hilft nur noch „Passwort vergessen?“.
+                    </p>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {/*
         EINBLICK GEWÄHREN KANN NUR DER BETRIEB. Was hier steht, hat er
         erlaubt — mit Grund und mit Frist. Wer nichts gewährt, steht nicht in
         der Liste, und wer widerruft, verschwindet daraus.
@@ -382,7 +448,7 @@ export default function PlattformView() {
               <li key={f.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 {f.notzugang ? <Warnung>Notzugang</Warnung> : null}
                 {f.stufe === 'mitarbeiten' ? <Warnung>mitarbeiten</Warnung> : <Marke>ansehen</Marke>}
-                <span className="font-medium">{f.name}</span>
+                <span className="font-normal">{f.name}</span>
                 <span className="text-ink-muted">{f.grund}</span>
                 <span className="text-ink-muted">
                   bis {new Date(f.gilt_bis).toLocaleString('de-AT', {
@@ -445,80 +511,110 @@ export default function PlattformView() {
       <Card
         title={`Betriebe (${betriebe?.length ?? 0})`}
         hint="Name, Kennung und die Konten der Leitung — ohne Einblick in Inhalte. Hat keine Leitung eine E-Mail, gibt es für den Betrieb kein „Passwort vergessen“; dann hilft im Ernstfall nur der Notzugang."
+        buendig
       >
         {betriebeFehler ? (
-          <ErrorState message={betriebeFehler} onRetry={() => void betriebeLaden()} />
+          <div className="p-4"><ErrorState message={betriebeFehler} onRetry={() => void betriebeLaden()} /></div>
         ) : !betriebe ? (
-          <p className="text-sm text-ink-muted">Wird geladen …</p>
+          <p className="leer">Wird geladen …</p>
         ) : betriebe.length === 0 ? (
-          <p className="text-sm text-ink-muted">Noch kein Betrieb angelegt.</p>
+          <p className="leer">Noch kein Betrieb angelegt.</p>
         ) : (
-          <ul className="divide-y divide-line text-sm">
+          /*
+            DIE BETRIEBE ALS LISTE (Linie „Lot“): eine Zeile je Betrieb, die
+            ganze Zeile öffnet „Verwalten“ im Seitenfenster. „Notzugang“ bleibt
+            ein eigener Knopf und wählt den Betrieb im Formular darunter.
+          */
+          <List>
             {betriebe.map((b) => (
-              <li key={b.kennung} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <span className="min-w-0">
-                  <span className="block font-medium text-ink">
+              <ListRow
+                key={b.kennung}
+                onOeffnen={() => setVerwaltet(b.kennung)}
+                title={
+                  <span>
                     {b.name} <span className="font-normal text-ink-muted">({b.kennung})</span>
                   </span>
-                  <span className="block text-ink-muted">
+                }
+                subtitle={
+                  <>
                     angelegt am {datumKurz(b.angelegtAm)} · {b.leitungskonten}{' '}
                     {b.leitungskonten === 1 ? 'Leitungskonto' : 'Leitungskonten'}
                     {b.leitungskonten > 0 && `, ${b.leitungMitMail} mit E-Mail`}
+                  </>
+                }
+                zustand={
+                  <span className="flex flex-wrap items-center gap-2">
+                    {b.testbetrieb && <Marke>Testbetrieb</Marke>}
+                    {b.deaktiviertAm && <Warnung stufe="dringend">deaktiviert</Warnung>}
+                    {b.loeschungGeplantFuer && <Warnung stufe="dringend">Löschung ab {zeitKurz(b.loeschungGeplantFuer)}</Warnung>}
+                    {!b.deaktiviertAm && b.leitungMitMail === 0 && <Warnung>keine Leitung mit E-Mail</Warnung>}
+                    {b.notzugangBis && <Warnung>Notzugang bis {zeitKurz(b.notzugangBis)}</Warnung>}
                   </span>
-                </span>
-                <span className="flex flex-wrap items-center gap-2">
-                  {b.testbetrieb && <Marke>Testbetrieb</Marke>}
-                  {b.deaktiviertAm && <Warnung stufe="dringend">deaktiviert</Warnung>}
-                  {b.loeschungGeplantFuer && <Warnung stufe="dringend">Löschung ab {zeitKurz(b.loeschungGeplantFuer)}</Warnung>}
-                  {!b.deaktiviertAm && b.leitungMitMail === 0 && <Warnung>keine Leitung mit E-Mail</Warnung>}
-                  {b.notzugangBis && <Warnung>Notzugang bis {zeitKurz(b.notzugangBis)}</Warnung>}
-                  <Button
-                    variant="ghost"
-                    groesse="klein"
-                    aria-expanded={verwaltet === b.kennung}
-                    onClick={() => setVerwaltet((x) => (x === b.kennung ? null : b.kennung))}
-                    aria-label={`${b.name} verwalten`}
-                  >
-                    Verwalten
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    groesse="klein"
-                    onClick={() => {
-                      setNotForm((f) => ({ ...f, companyId: b.kennung }));
-                      document.getElementById('n-grund')?.focus();
-                    }}
-                    aria-label={`${b.name} für den Notzugang wählen`}
-                  >
-                    Notzugang
-                  </Button>
-                </span>
-                {verwaltet === b.kennung && (
-                  <div className="basis-full">
-                    <BetriebVerwalten betrieb={b} geaendert={betriebeLaden} />
-                  </div>
-                )}
-              </li>
+                }
+              >
+                <Button
+                  variant="ghost"
+                  groesse="klein"
+                  aria-expanded={verwaltet === b.kennung}
+                  onClick={() => setVerwaltet(b.kennung)}
+                  aria-label={`${b.name} verwalten`}
+                >
+                  Verwalten
+                </Button>
+                <Button
+                  variant="secondary"
+                  groesse="klein"
+                  onClick={() => {
+                    setNotForm((f) => ({ ...f, companyId: b.kennung }));
+                    document.getElementById('n-grund')?.focus();
+                  }}
+                  aria-label={`${b.name} für den Notzugang wählen`}
+                >
+                  Notzugang
+                </Button>
+              </ListRow>
             ))}
-          </ul>
+          </List>
         )}
+        {/* Das Löschprotokoll als eigener Abschnitt derselben Gruppe — gelöschte Betriebe gehören zur Liste, nicht daneben. */}
         {geloescht.length > 0 && (
-          <div className="mt-4 border-t border-line pt-3">
-            <p className="text-sm font-medium text-ink">Gelöscht ({geloescht.length})</p>
-            <p className="text-sm text-ink-muted">
+          <Abschnitt titel="Gelöscht" anzahl={geloescht.length}>
+            <p className="px-4 pt-3 text-sm text-ink-muted">
               Das Löschprotokoll, ohne Inhalte. Diese Kennungen werden nie wieder vergeben.
             </p>
-            <ul className="mt-1 space-y-1 text-sm text-ink-muted">
+            <List>
               {geloescht.map((g) => (
-                <li key={g.kennung}>
-                  {g.name} <span className="nr">({g.kennung})</span> · gelöscht am {datumKurz(g.geloeschtAm)}
-                  {g.testbetrieb ? ' · Testbetrieb' : ''}
-                </li>
+                <ListRow
+                  key={g.kennung}
+                  title={<span>{g.name} <span className="nr font-normal text-ink-muted">({g.kennung})</span></span>}
+                  subtitle={`gelöscht am ${datumKurz(g.geloeschtAm)}${g.testbetrieb ? ' · Testbetrieb' : ''}`}
+                />
               ))}
-            </ul>
-          </div>
+            </List>
+          </Abschnitt>
         )}
       </Card>
+
+      {/*
+        VERWALTEN IM SEITENFENSTER (Linie „Lot“, Regel 8). Vorher klappte die
+        Maske zwischen den Zeilen auf und schob die übrigen Betriebe nach
+        unten. Der Betrieb kommt frisch aus der Liste: nach jedem Schritt lädt
+        sie neu, und das Fenster zeigt den neuen Stand.
+      */}
+      {(() => {
+        const b = betriebe?.find((x) => x.kennung === verwaltet);
+        return (
+          <BottomSheet
+            open={!!b}
+            onClose={() => setVerwaltet(null)}
+            label={b ? `${b.name} verwalten` : 'Betrieb verwalten'}
+            auchBreit
+            titel={b ? b.name : ''}
+          >
+            {b && <BetriebVerwalten betrieb={b} geaendert={betriebeLaden} />}
+          </BottomSheet>
+        );
+      })()}
 
       <BasiszinsZentral />
 
@@ -555,7 +651,7 @@ export default function PlattformView() {
           </>
         }
       >
-        <form onSubmit={notzugangOeffnen} className="space-y-4">
+        <form onSubmit={notzugangOeffnen} className="formular space-y-4">
           <FormGrid>
             {betriebe && betriebe.length > 0 ? (
               <SelectField
@@ -615,59 +711,6 @@ export default function PlattformView() {
           </Button>
         </form>
       </Card>
-
-      {angelegt.length > 0 && (
-        <Card title={`In dieser Sitzung angelegt (${angelegt.length})`}>
-          {/*
-            DER RÜCKSETZLINK STEHT NUR HIER UND NUR JETZT.
-
-            Er wird nicht gespeichert und nicht versendet — der Betrieb
-            versendet seine Post selbst, und eine Mailanbindung wäre ein
-            weiterer Dienst mit einem weiteren Auftragsverarbeitungsvertrag.
-            Wer die Seite verlässt, muss den nächsten Zugang über
-            „Passwort vergessen?" freischalten lassen. Das steht auch da.
-          */}
-          <ul className="space-y-4">
-            {angelegt.map((b) => (
-              <li key={b.companyId} className="border-t border-line pt-3 first:border-0 first:pt-0">
-                <p className="font-semibold text-ink">
-                  {b.name} <span className="text-ink-muted">({b.companyId})</span>
-                </p>
-                {b.hinweis && <p className="mt-1 text-sm text-warning">{b.hinweis}</p>}
-                {b.startpasswort ? (
-                  <>
-                    <p className="mt-1 text-sm text-ink-muted">
-                      Erster Administrator: Benutzername <strong className="text-ink">{b.benutzername}</strong>
-                    </p>
-                    <p className="mt-2 text-sm">
-                      Startpasswort: <span className="font-mono text-base text-ink">{b.startpasswort}</span>
-                    </p>
-                    <p className="mt-1 text-xs text-warning">
-                      Benutzername und Startpasswort an den Administrator weitergeben. Beim ersten
-                      Anmelden vergibt er ein eigenes. Das Startpasswort steht nur jetzt hier.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="mt-1 text-sm text-ink-muted">
-                      Erster Administrator: {b.adminEmail}
-                    </p>
-                    <p className="mt-2 break-all text-sm">
-                      <a href={b.passwortLink} className="link">
-                        {b.passwortLink}
-                      </a>
-                    </p>
-                    <p className="mt-1 text-xs text-warning">
-                      Diesen Link an den Administrator weitergeben — er setzt damit sein Passwort. Er
-                      steht nur jetzt hier; danach hilft nur noch „Passwort vergessen?“.
-                    </p>
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
 
       {/*
         AUCH DIESES KONTO MUSS SEIN PASSWORT ÄNDERN KÖNNEN. Es sieht keine

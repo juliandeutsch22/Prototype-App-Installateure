@@ -108,7 +108,8 @@ export default function PasswortAendern({
         </>
       }
     >
-      <form onSubmit={speichern} className="space-y-4">
+      {/* Formular der Linie: höchstens 560 px (Regel 9). */}
+      <form onSubmit={speichern} className="formular space-y-4">
         {erstmalig && (
           <p className="text-sm text-ink-muted">
             {nachStartpasswort
@@ -168,7 +169,7 @@ export default function PasswortAendern({
         {fehler && <ErrorState message={fehler} />}
 
         {fertig && (
-          <p className="text-sm font-medium text-ink" role="status">
+          <p className="text-sm font-normal text-ink" role="status">
             Das Passwort ist gesetzt.
           </p>
         )}

@@ -1309,3 +1309,105 @@ describe('Sonderurlaub (Plan 10.3)', () => {
     });
   });
 });
+
+/*
+  DER ANTRAG MIT SEINEM VERLAUF (Linie „Lot“, Protokoll E8). Die Zeile in
+  „Meine Anträge“ sagt den Stand; ein Tipp darauf öffnet das Seitenfenster
+  mit dem Verlauf — nur aus dem, was der Antrag trägt — und denselben
+  Handgriffen wie in der Zeile, mit derselben Rückfrage.
+*/
+describe('Antrag mit Verlauf (Linie „Lot“)', () => {
+  const ms = (j: number, m: number, t: number) => new Date(j, m - 1, t, 10).getTime();
+  const verlauf = () => screen.getByRole('list', { name: 'Verlauf des Antrags' });
+
+  it('ein Tipp auf den Antrag zeigt Antrag, Entscheidung und Urlaub als Lot', async () => {
+    const nutzer = userEvent.setup();
+    antraege.push({
+      id: 'v-alt', companyId: 'perl', userId: 'm1', userName: 'Max Mustermann',
+      von: '2025-07-07', bis: '2025-07-11', tage: 5, status: 'Genehmigt', notiz: 'Gardasee',
+      createdAt: ms(2025, 5, 2), entschiedenAm: ms(2025, 5, 5), entschiedenVonName: 'Julian Deutsch',
+    });
+    zeichne();
+    // Gegenprobe: zu, solange niemand tippt.
+    await screen.findByText('Meine Anträge');
+    expect(screen.queryByRole('dialog', { name: 'Urlaubsantrag' })).toBeNull();
+
+    await nutzer.click(await screen.findByRole('button', { name: /07\.07\.2025 – 11\.07\.2025 – Verlauf anzeigen/ }));
+    const fenster = await screen.findByRole('dialog', { name: 'Urlaubsantrag' });
+    const punkte = within(verlauf()).getAllByRole('listitem').map((p) => p.textContent);
+    expect(punkte).toEqual([
+      'Beantragt02.05.2025Gardasee',
+      'Genehmigt05.05.2025von Julian Deutsch',
+      'Urlaub07.07.2025 – 11.07.2025vorbei',
+    ]);
+    // Vorbei ist vorbei: kein Punkt steht auf „jetzt“.
+    expect(within(fenster).queryByRole('listitem', { current: 'step' })).toBeNull();
+    expect(within(fenster).getByText('5 Urlaubstage')).toBeInTheDocument();
+  });
+
+  it('ein offener Antrag steht auf „Entscheidung offen“ — Zurückziehen fragt wie in der Zeile', async () => {
+    const nutzer = userEvent.setup();
+    antraege.push({
+      id: 'v9', companyId: 'perl', userId: 'm1', userName: 'Max Mustermann',
+      von: '2026-07-06', bis: '2026-07-10', tage: 5, status: 'Beantragt', createdAt: ms(2026, 6, 1),
+    });
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: /Verlauf anzeigen/ }));
+    const fenster = await screen.findByRole('dialog', { name: 'Urlaubsantrag' });
+    expect(within(verlauf()).getByRole('listitem', { current: 'step' })).toHaveTextContent('Entscheidung offen');
+
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Zurückziehen' }));
+    // Das Fenster geht zu, die Rückfrage steht allein — geschrieben ist noch nichts.
+    expect(screen.queryByRole('dialog', { name: 'Urlaubsantrag' })).toBeNull();
+    const rueckfrage = await screen.findByRole('dialog');
+    expect(rueckfrage).toHaveTextContent('Antrag zurückziehen?');
+    expect(deleteVacation).not.toHaveBeenCalled();
+    await nutzer.click(within(rueckfrage).getByRole('button', { name: 'Zurückziehen' }));
+    expect(deleteVacation).toHaveBeenCalledWith('v9');
+  });
+
+  it('beim Betriebsurlaub kein Zurücknehmen im Fenster — beim eigenen Urlaub schon', async () => {
+    const nutzer = userEvent.setup();
+    rolle = { ...rolle, uid: 'chef', name: 'Julian Deutsch', role: 'Geschäftsführung', docId: 'chef' };
+    antraege.push(
+      {
+        id: 'v-bu', companyId: 'perl', userId: 'chef', userName: 'Julian Deutsch',
+        von: '2025-12-24', bis: '2026-01-02', tage: 5, status: 'Genehmigt',
+        entschiedenVonName: 'Elias Pierer', entschiedenAm: ms(2025, 11, 3), betriebsurlaubId: 'bu1',
+      },
+      {
+        id: 'v-selbst', companyId: 'perl', userId: 'chef', userName: 'Julian Deutsch',
+        von: '2025-08-04', bis: '2025-08-08', tage: 5, status: 'Genehmigt', entschiedenVonName: 'Herr Bauer',
+      },
+    );
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: /24\.12\.2025 – 02\.01\.2026 – Verlauf/ }));
+    let fenster = await screen.findByRole('dialog', { name: 'Urlaubsantrag' });
+    expect(within(verlauf()).getAllByRole('listitem')[0]).toHaveTextContent('Betriebsurlaub eingetragen03.11.2025von Elias Pierer');
+    expect(within(fenster).queryByRole('button', { name: 'Zurücknehmen' })).toBeNull();
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Schließen' }));
+
+    await nutzer.click(screen.getByRole('button', { name: /04\.08\.2025 – 08\.08\.2025 – Verlauf/ }));
+    fenster = await screen.findByRole('dialog', { name: 'Urlaubsantrag' });
+    expect(within(fenster).getByRole('button', { name: 'Zurücknehmen' })).toBeInTheDocument();
+  });
+
+  it('der Sonderurlaub zeigt Antrag, geprüften Nachweis und Bestätigung als Lot', async () => {
+    const nutzer = userEvent.setup();
+    freistellungen = [{
+      id: 'f1', companyId: 'perl', userId: 'm1', userName: 'Max Mustermann',
+      art: 'dienstverhinderung', anlass: 'tod_eltern', ereignisDatum: '2025-11-10',
+      von: '2025-11-11', bis: '2025-11-13', status: 'Bestätigt', createdAt: ms(2025, 11, 10),
+      entschiedenVonName: 'Frau Wagner', entschiedenAm: ms(2025, 11, 12),
+      nachweisGeprueftVonName: 'Frau Wagner', nachweisGeprueftAm: ms(2025, 11, 12),
+    }];
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: /11\.11\.2025 – 13\.11\.2025 – Verlauf/ }));
+    const fenster = await screen.findByRole('dialog', { name: 'Antrag auf Sonderurlaub' });
+    expect(within(fenster).getByText(/Tod der Eltern oder Schwiegereltern/)).toBeInTheDocument();
+    const titel = within(verlauf()).getAllByRole('listitem').map((p) => p.querySelector('.lot-titel')?.textContent);
+    expect(titel).toEqual(['Beantragt', 'Nachweis geprüft', 'Bestätigt', 'Sonderurlaub']);
+    // Bestätigt ist nichts mehr zu tun: keine Handgriffe im Fenster.
+    expect(within(fenster).queryByRole('button', { name: 'Zurückziehen' })).toBeNull();
+  });
+});

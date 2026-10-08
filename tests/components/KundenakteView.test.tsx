@@ -743,3 +743,54 @@ describe('Termine in der Kundenakte (Plan 10.4)', () => {
     expect(screen.queryByRole('heading', { name: 'Termine' })).not.toBeInTheDocument();
   });
 });
+
+/*
+  LINIE „LOT“ (Schritt E7): Sprungleiste zu den Teilen, die es für die Rolle
+  gibt; Stammdaten als Kurzzeilen; Notiz und Handgriffe ohne Aufklappen.
+*/
+describe('Die Kundenakte in der Linie „Lot“', () => {
+  it('springt zu jedem Teil, den die Rolle sieht', async () => {
+    zeige();
+    const leiste = await screen.findByRole('navigation', { name: 'Auf dieser Seite' });
+    const ziele = within(leiste).getAllByRole('link').map((a) => a.getAttribute('href'));
+    expect(ziele).toEqual(['#k-daten', '#k-termine', '#k-baustellen', '#k-wartungen', '#k-rechnungen', '#k-angebote', '#k-auskunft']);
+    await waitFor(() => {
+      for (const z of ziele) expect(document.getElementById(z!.slice(1))).not.toBeNull();
+    });
+  });
+
+  it('Gegenprobe: die Verwaltung springt nicht zu Rechnungen und Angeboten, die sie nicht sieht', async () => {
+    rolle = 'Verwaltung';
+    nutzer = NUTZER();
+    zeige();
+    const leiste = await screen.findByRole('navigation', { name: 'Auf dieser Seite' });
+    expect(within(leiste).queryByRole('link', { name: 'Rechnungen' })).toBeNull();
+    expect(within(leiste).queryByRole('link', { name: 'Angebote' })).toBeNull();
+  });
+
+  it('lässt die Notiz offen stehen und fasst die UID in einer Kurzzeile zusammen', async () => {
+    rolle = 'Verwaltung';
+    nutzer = NUTZER();
+    zeige();
+    expect((await screen.findByText(/Schlüssel im Büro/)).closest('details')).toBeNull();
+    const uid = angabe('UID-Nummer');
+    expect(uid.closest('details')).not.toBeNull();
+    expect(uid.closest('details')!.querySelector('summary')).toHaveTextContent('ATU12345678');
+  });
+
+  it('nennt eine fehlende Kundenart schon im Kopf der Kurzzeile', async () => {
+    kunden = [{ ...KUNDE, kundenart: null }];
+    zeige();
+    const feld = await screen.findByLabelText('Kundenart');
+    expect(feld.closest('details')!.querySelector('summary')).toHaveTextContent('Kundenart prüfen');
+  });
+
+  it('Gegenprobe: mit Kundenart steht sie im Kopf, keine Mahnung', async () => {
+    kunden = [{ ...KUNDE, kundenart: 'unternehmen' }];
+    zeige();
+    const feld = await screen.findByLabelText('Kundenart');
+    const kopf = feld.closest('details')!.querySelector('summary')!;
+    expect(kopf).toHaveTextContent('Unternehmen');
+    expect(kopf).not.toHaveTextContent('Kundenart prüfen');
+  });
+});

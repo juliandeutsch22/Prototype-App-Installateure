@@ -266,7 +266,7 @@ export default function KatalogImport() {
             )}
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="dn-datei" className="text-sm font-medium">
+              <label htmlFor="dn-datei" className="text-sm font-normal">
                 DATANORM-Datei
               </label>
               <input
@@ -380,7 +380,7 @@ export default function KatalogImport() {
               <ul className="space-y-3 text-sm">
                 {ergebnis.unverstanden.slice(0, ZEIGE_ZEILEN).map((z) => (
                   <li key={z.zeile} className="border-l-2 border-line pl-3">
-                    <p className="font-medium">
+                    <p className="font-normal">
                       Zeile {z.zeile}: {z.grund}
                     </p>
                     <p className="mt-1 break-all font-mono text-xs text-ink-muted">{z.inhalt}</p>
@@ -403,7 +403,7 @@ export default function KatalogImport() {
               <ul className="space-y-2 text-sm">
                 {ergebnis.artikel.slice(0, 5).map((a) => (
                   <li key={`${a.zeile}-${a.artikelnummer}`} className="flex flex-wrap gap-x-2">
-                    <span className="font-medium">{a.name || '(ohne Bezeichnung)'}</span>
+                    <span className="font-normal">{a.name || '(ohne Bezeichnung)'}</span>
                     <span className="text-ink-muted">
                       Art.-Nr. {a.artikelnummer}
                       {a.einheit && ` · ${a.einheit}`}
@@ -455,7 +455,7 @@ function Protokoll({ laeufe }: { laeufe: WithId<dn.Lauf>[] }) {
           const u = (l.bericht as { uebernahme?: dn.UebernahmeBericht } | null)?.uebernahme;
           return (
             <li key={l.id} className="flex flex-wrap items-baseline gap-x-2">
-              <span className="font-medium">{l.dateiname ?? 'ohne Dateiname'}</span>
+              <span className="font-normal">{l.dateiname ?? 'ohne Dateiname'}</span>
               <span className="text-ink-muted">
                 {datumAusMs(l.createdAt)}
                 {l.status === 'uebernommen' && u

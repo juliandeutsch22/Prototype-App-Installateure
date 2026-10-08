@@ -38,26 +38,30 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  */
 const variants: Record<Variant, string> = {
   /*
-    GEWICHT NACH RANG (Designlinie „Fassung 3"): die Hauptaktion halbfett,
-    alles Übrige mittel. Vorher standen alle Knöpfe halbfett, und fünf davon
-    nebeneinander riefen gleich laut.
+    GEWICHT NACH RANG: die Hauptaktion halbfett, alles Übrige normal (Linie
+    „Lot“ kennt zwei Stärken). Vorher standen alle Knöpfe halbfett, und fünf
+    davon nebeneinander riefen gleich laut.
+
+    GEFAHR IST UMRANDET, NICHT GEFÜLLT (Entwurf `.gefahr`). Eine rote Fläche
+    wäre die lauteste Stelle der Seite; das Unumkehrbare soll erkennbar sein,
+    nicht den Blick anziehen.
   */
-  primary: 'bg-brand font-semibold text-brand-fg shadow-sm hover:opacity-95',
-  secondary: 'border border-line bg-surface font-medium text-ink-deep shadow-sm hover:bg-surface-2',
+  primary: 'bg-brand font-semibold text-brand-fg hover:opacity-90',
+  secondary: 'border border-line-strong bg-surface font-normal text-ink hover:border-brand-fixed',
   /*
     „accent" GIBT ES NICHT MEHR. Anmelden, Passwort setzen, Betrieb anlegen
     und die Berichte trugen die Hauptaktion in Türkis, „Zeit buchen" in
     Petrol — zwei Farben für dieselbe Rolle (Prüflauf 24.09.2026, C11). Eine
     Hauptaktion ist `primary`, überall.
   */
-  danger: 'bg-danger font-semibold text-white shadow-sm hover:opacity-90',
-  ghost: 'bg-transparent font-medium text-ink-muted hover:bg-surface-2',
+  danger: 'border border-danger bg-surface font-semibold text-danger hover:bg-danger-bg',
+  ghost: 'bg-transparent font-normal text-ink-muted hover:bg-surface-2',
   // Derselbe zurückhaltende Knopf, aber auf einer dunklen Trägerfläche
   // (Seitenleiste). Eine eigene Spielart statt einer mitgegebenen Klasse:
   // zwei Textfarben in einem class-Attribut entscheidet nicht die
   // Reihenfolge im Attribut, sondern die im erzeugten Stylesheet — das
   // wäre stiller Zufall.
-  'ghost-dark': 'bg-transparent font-medium text-white/80 hover:bg-ink-deep hover:text-white',
+  'ghost-dark': 'bg-transparent font-normal text-navi-text hover:bg-navi-tief hover:text-white',
 };
 
 /**

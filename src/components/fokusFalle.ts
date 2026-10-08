@@ -67,6 +67,16 @@ export function sichtbar(el: HTMLElement): boolean {
   return getComputedStyle(el).display !== 'none';
 }
 
+/**
+ * Liegt diese Falle zuoberst? Für Escape: ein Dialog in einem Seitenfenster
+ * soll mit Escape nur sich selbst schliessen, nicht auch das Fenster darunter
+ * — beide hören auf dieselbe Taste am Fenster. Eine Falle, die gar nicht auf
+ * dem Stapel liegt, gilt als oben (sie sperrt dann nichts).
+ */
+export function istOben(behaelter: RefObject<HTMLElement>): boolean {
+  return stapel.length === 0 || !stapel.includes(behaelter) || stapel[stapel.length - 1] === behaelter;
+}
+
 /** Was im Behälter per Tab erreichbar ist, in Dokumentreihenfolge. */
 export function tabZiele(behaelter: HTMLElement): HTMLElement[] {
   return Array.from(behaelter.querySelectorAll<HTMLElement>(FOKUSSIERBAR)).filter(

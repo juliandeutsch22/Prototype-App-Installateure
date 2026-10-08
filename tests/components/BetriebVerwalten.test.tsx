@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PlattformBetrieb } from '@/lib/db/plattform';
 
@@ -156,5 +156,24 @@ describe('Betrieb verwalten', () => {
     await nutzer.type(screen.getByLabelText(/Grund/), 'x');
     await nutzer.click(screen.getByRole('button', { name: 'Deaktivieren' }));
     expect(await screen.findByText('Das darf nur die Plattform')).toBeInTheDocument();
+  });
+});
+
+describe('Das Protokoll als Lot (Linie „Lot“)', () => {
+  it('zeigt die Schritte von alt nach neu, den jüngsten als „jetzt“', async () => {
+    // Die Datenbank liefert den jüngsten zuerst (`order by am desc`).
+    db.betriebProtokoll.mockResolvedValueOnce([
+      { am: '2026-10-02T08:00:00Z', aktion: 'deaktiviert', grund: 'Kündigung' },
+      { am: '2026-09-20T08:00:00Z', aktion: 'testbetrieb', grund: null },
+    ] as never);
+    zeige({});
+    const lot = await screen.findByRole('list', { name: 'Protokoll Senklot Testbetrieb GmbH' });
+    const punkte = within(lot).getAllByRole('listitem');
+    expect(punkte.map((p) => p.querySelector('.lot-titel')?.textContent)).toEqual([
+      'Testbetrieb geändert', 'Deaktiviert',
+    ]);
+    expect(punkte[1]).toHaveAttribute('aria-current', 'step');
+    expect(punkte[0]).not.toHaveAttribute('aria-current');
+    expect(within(punkte[1]).getByText('Kündigung')).toBeInTheDocument();
   });
 });

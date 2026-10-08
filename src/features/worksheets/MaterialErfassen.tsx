@@ -115,7 +115,7 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
                   onWert={(n) => mengeSetzen(z.id, n)}
                 />
               </div>
-              <p className="min-w-0 flex-1 font-medium text-ink-deep">
+              <p className="min-w-0 flex-1 font-normal text-ink-deep">
                 {z.name}
                 {z.einheit && <span className="ml-2 text-sm text-ink-muted">{z.einheit}</span>}
               </p>

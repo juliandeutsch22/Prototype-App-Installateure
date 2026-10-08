@@ -60,7 +60,7 @@ export default function ProduktMarke({ hoehe = 40, className = '' }: Props) {
         und altert schnell. `leading-none`, damit die Wortmarke auf der Höhe
         des Zeichens sitzt und nicht auf der Zeilenhöhe.
       */}
-      <span className="font-medium leading-none tracking-[0.02em]">Senklot</span>
+      <span className="font-normal leading-none tracking-[0.02em]">Senklot</span>
     </span>
   );
 }

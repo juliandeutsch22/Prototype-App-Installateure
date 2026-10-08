@@ -31,8 +31,8 @@ export default function Supportsitzung() {
         // ruhigeren Ton — sonst stumpft die Warnung ab, die im Ernstfall
         // zählt.
         schreibt
-          ? 'bg-danger-bg font-bold text-danger'
-          : 'bg-warning-bg font-medium text-warning',
+          ? 'bg-danger-bg font-semibold text-danger'
+          : 'bg-warning-bg font-normal text-warning',
       ].join(' ')}
     >
       <span>

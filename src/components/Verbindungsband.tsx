@@ -62,7 +62,7 @@ export default function Verbindungsband() {
   return (
     <div
       role="status"
-      className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 bg-warning-bg px-4 py-2 text-center text-sm font-medium text-warning"
+      className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 bg-warning-bg px-4 py-2 text-center text-sm font-normal text-warning"
     >
       {offline ? (
         <span>

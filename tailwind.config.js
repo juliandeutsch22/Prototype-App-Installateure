@@ -64,6 +64,12 @@ export default {
   // (Baustelle) keine klebrigen Hover-Zustände auslöst.
   future: { hoverOnlyWhenSupported: true },
   theme: {
+    /*
+      DIE BREITEN DER LINIE „LOT“: Handy bis 759, Tablet 760 bis 1.199,
+      Schreibtisch ab 1.200 px (src/lib/breiten.ts). `md` ist damit das
+      Tablet, `lg` der Schreibtisch; `sm` bleibt für das breite Telefon quer.
+    */
+    screens: { sm: '640px', md: '760px', lg: '1200px', xl: '1440px' },
     extend: {
       colors: {
         // Alle Farbrollen lesen Design-Tokens (siehe index.css / applyBranding).
@@ -86,6 +92,8 @@ export default {
         'ink-deep': token('--ink-deep'),
         'accent-deep': token('--accent-deep'),
         'accent-bright': token('--accent-bright'),
+        navi: { DEFAULT: token('--navi'), tief: token('--navi-tief'), text: token('--navi-text'), gruppe: token('--navi-gruppe'), linie: token('--navi-linie') },
+        petrol: { DEFAULT: token('--petrol'), tief: token('--petrol-tief'), hell: token('--petrol-hell') },
       },
       /*
         KEIN `backgroundImage` MEHR. Hier standen vier Verläufe als Rollen.

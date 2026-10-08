@@ -4,11 +4,14 @@ import { resolve } from 'node:path';
 import { kontrast, AA_NORMAL } from '@/lib/kontrast';
 
 /**
- * DIE DUNKLE TRÄGERFLÄCHE — Seitenleiste, Kopfleiste, Tableiste, Anmeldekopf.
+ * DIE DUNKLE TRÄGERFLÄCHE — Seitenleiste, Kopfleiste, Anmeldekopf.
+ *
+ * Seit der Linie „Lot“ ist es `--navi` (#0f3c47), eine Stufe tiefer als das
+ * Petrol der Knöpfe; die untere Leiste am Handy ist hell.
  *
  * WARUM DAS EINE PRÜFUNG BRAUCHT UND KEIN KOMMENTAR. Auf dieser Fläche steht
  * die gesamte Navigation, und zwar in Weiß. Wird `--brand-fixed` irgendwann
- * aufgehellt — weil jemand die Leiste „freundlicher" haben will —, verliert
+ * aufgehellt (heute `--navi`) — weil jemand die Leiste „freundlicher" haben will —, verliert
  * jeder Eintrag darauf Lesbarkeit, und zwar überall gleichzeitig. Auffallen
  * würde es nicht am Schreibtisch, sondern draussen bei Sonne.
  *
@@ -43,7 +46,7 @@ function weissMit(deckkraft: number, grund: string): string {
 
 describe('Die dunkle Trägerfläche', () => {
   it('trägt weissen Text weit über AA', () => {
-    const flaeche = token('--brand-fixed');
+    const flaeche = token('--navi');
     // AAA für Fließtext ist 7:1. Die Navigation steht draussen in der Sonne;
     // hier ist AA die Untergrenze und nicht das Ziel.
     expect(kontrast(flaeche, '#ffffff')!).toBeGreaterThanOrEqual(7);
@@ -56,7 +59,7 @@ describe('Die dunkle Trägerfläche', () => {
       damit unter AA; aufgefallen ist das nie, weil an der Stelle, an der man
       hinsah, der Grund noch dunkel war.
     */
-    const flaeche = token('--brand-fixed');
+    const flaeche = token('--navi');
     expect(kontrast(flaeche, weissMit(0.6, flaeche))!).toBeGreaterThanOrEqual(AA_NORMAL);
   });
 
@@ -69,13 +72,13 @@ describe('Die dunkle Trägerfläche', () => {
     */
     const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
     const balken = html.match(/name="theme-color" content="(#[0-9a-fA-F]{6})"/);
-    expect(balken?.[1]?.toLowerCase()).toBe(token('--brand-fixed').toLowerCase());
+    expect(balken?.[1]?.toLowerCase()).toBe(token('--navi').toLowerCase());
   });
 
   it('steht auch im Manifest, damit die Startbildschirm-App nicht abweicht', () => {
     const manifest = JSON.parse(
       readFileSync(resolve(process.cwd(), 'public/manifest.webmanifest'), 'utf8'),
     ) as { theme_color: string };
-    expect(manifest.theme_color.toLowerCase()).toBe(token('--brand-fixed').toLowerCase());
+    expect(manifest.theme_color.toLowerCase()).toBe(token('--navi').toLowerCase());
   });
 });

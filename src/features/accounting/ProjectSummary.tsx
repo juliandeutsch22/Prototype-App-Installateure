@@ -154,8 +154,12 @@ export default function ProjectSummary({
   }
 
   return (
-    <Card title={`Projektauswertung ${label}`}>
-      <div className="space-y-3">
+    /*
+      EINE FLÄCHE, LINIEN STATT KARTEN (Linie „Lot“, Regel 1): jede Baustelle
+      ist eine Zeile der Gruppe, nicht mehr eine eigene Karte in der Karte.
+    */
+    <Card title={`Projektauswertung ${label}`} buendig>
+      <ul>
         {rows.map((r) => {
           const isOpen = open === r.projectNumber;
           // Mitarbeiter-Zwischensummen, größter Beitrag zuerst.
@@ -184,20 +188,11 @@ export default function ProjectSummary({
           return (
             /*
               KEIN BLAUER BLOCK BEIM AUFKLAPPEN — dieselbe Entscheidung wie in
-              der Mitarbeiterübersicht, hier war sie stehengeblieben. Der
-              farbige Kopf schrie lauter als der Inhalt, den er ankündigte,
-              und zwang zugleich jede Zahl darin in eine zweite Farbfassung.
-              Jetzt genügt der hellere Grund und die farbige Kante.
-
-              `.panel` bringt Fläche, Rundung und Schatten mit; offen wird
-              allein die Rahmenfarbe ausgetauscht.
+              der Mitarbeiterübersicht. Der farbige Kopf schrie lauter als der
+              Inhalt, den er ankündigte, und zwang zugleich jede Zahl darin in
+              eine zweite Farbfassung. Offen genügt der hellere Grund des Kopfs.
             */
-            <div
-              key={r.projectNumber}
-              className={`panel overflow-hidden transition-colors ${
-                isOpen ? 'border-brand/40' : ''
-              }`}
-            >
+            <li key={r.projectNumber} className="border-t border-line first:border-t-0">
               <button
                 type="button"
                 onClick={() => setOpen(isOpen ? null : r.projectNumber)}
@@ -208,7 +203,7 @@ export default function ProjectSummary({
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="min-w-0">
-                    <span className="block font-bold text-ink">
+                    <span className="block font-semibold text-ink">
                       {r.project?.customerName ?? nummer}
                     </span>
                     {/* Die Nummer, wie sie an der Baustelle steht — der Schlüssel
@@ -279,7 +274,7 @@ export default function ProjectSummary({
                       </span>
                       <span
                         className={`shrink-0 text-xs font-semibold ${
-                          r.budget.over ? 'text-accent' : 'text-ink-muted'
+                          r.budget.over ? 'text-accent-deep' : 'text-ink-muted'
                         }`}
                       >
                         {r.budget.pct} %
@@ -320,10 +315,10 @@ export default function ProjectSummary({
                     <table className="w-full min-w-[28rem] text-sm">
                       <thead>
                         <tr className="border-b border-line text-left text-ink-muted">
-                          <th className="py-1 pr-3 font-medium">Tag</th>
-                          <th className="py-1 pr-3 font-medium">Mitarbeiter</th>
-                          <th className="py-1 pr-3 font-medium">Tätigkeit</th>
-                          <th className="py-1 text-right font-medium">Stunden</th>
+                          <th className="py-1 pr-3 font-normal">Tag</th>
+                          <th className="py-1 pr-3 font-normal">Mitarbeiter</th>
+                          <th className="py-1 pr-3 font-normal">Tätigkeit</th>
+                          <th className="py-1 text-right font-normal">Stunden</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -332,7 +327,7 @@ export default function ProjectSummary({
                           .map((e) => (
                             <tr
                               key={e.id}
-                              className={`border-b border-line/60 ${e.isHelper ? 'bg-warning-bg' : ''}`}
+                              className={`border-b border-line ${e.isHelper ? 'bg-warning-bg' : ''}`}
                             >
                               {/* Ohne `nowrap` brach das vierstellige Jahr bei
                                   390 px mitten in der Zahl um („25.09.20|26");
@@ -399,10 +394,10 @@ export default function ProjectSummary({
                   </p>
                 </div>
               )}
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </Card>
   );
 }

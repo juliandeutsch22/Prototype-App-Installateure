@@ -22,7 +22,7 @@ function EintragZeile({ z }: { z: Zeile }) {
   const inhalt = (
     <>
       <span className="min-w-0 flex-1">
-        <span className="block font-medium text-ink-deep"><OhneUmbruch text={z.titel} /></span>
+        <span className="block font-normal text-ink-deep"><OhneUmbruch text={z.titel} /></span>
         {(z.detail || z.status) && (
           // Fließtext, nicht Flexbox: bricht das Detail um, bleibt der Punkt
           // beim Status und das Detail läuft in der nächsten Zeile weiter.
@@ -77,8 +77,11 @@ function AbschnittBlock({ a }: { a: Abschnitt }) {
 }
 
 /**
- * HANDLUNGSBEDARF: EINE Karte, je Thema ein Abschnitt (Designlinie: keine
+ * ZU ERLEDIGEN: EINE Karte, je Thema ein Abschnitt (Designlinie: keine
  * Karte in der Karte). Höchstens drei Zeilen je Abschnitt; leere fallen weg.
+ *
+ * Bis zur Linie „Lot“ hiess die Karte „Handlungsbedarf“. „Zu erledigen“ ist
+ * das Wort des Protokolls (E1) und sagt dasselbe kürzer, ohne Amtsdeutsch.
  */
 export default function Handlungsbedarf({
   abschnitte,
@@ -91,10 +94,10 @@ export default function Handlungsbedarf({
   if (abschnitte.length === 0) return null;
   const zahl = summe(abschnitte);
   return (
-    <section className="panel karte" aria-labelledby="handlungsbedarf-titel">
+    <section className="panel karte" aria-labelledby="zu-erledigen-titel">
       <header className="karte-kopf">
-        <h2 id="handlungsbedarf-titel" className="titel-karte">
-          Handlungsbedarf <span className="font-normal text-ink-muted">· {zahl}{zaehlwort ? ` ${zaehlwort}` : ''}</span>
+        <h2 id="zu-erledigen-titel" className="titel-karte">
+          Zu erledigen <span className="font-normal text-ink-muted">· {zahl}{zaehlwort ? ` ${zaehlwort}` : ''}</span>
         </h2>
       </header>
       <div className="karte-buendig border-t border-line">

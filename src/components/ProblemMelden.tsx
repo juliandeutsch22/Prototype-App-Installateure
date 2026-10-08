@@ -55,7 +55,7 @@ export default function ProblemMelden({
         >
           <div className="space-y-3">
             <div className="flex flex-col gap-1">
-              <label htmlFor="problem-text" className="text-sm font-medium text-ink">
+              <label htmlFor="problem-text" className="text-sm font-normal text-ink">
                 Was ist passiert?
               </label>
               <textarea

@@ -122,14 +122,19 @@ const authWert = {
 };
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
-function zeige() {
+function zeige(adresse = '/admin-projects') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[adresse]}>
       <ToastProvider>
         <AdminProjectsView />
       </ToastProvider>
     </MemoryRouter>,
   );
+}
+
+/** Die Zeilen der Liste — jede ist ein Verweis auf ihre Akte. */
+function zeilen() {
+  return screen.queryAllByRole('link').filter((a) => /^\/admin-projects\/[^/]+$/.test(a.getAttribute('href') ?? ''));
 }
 
 /**
@@ -365,9 +370,15 @@ describe('Baustellen — der Weg in die Akte', () => {
   });
 
   it('führt aus der Zeile in die Akte, nicht in das Formular ganz oben', async () => {
+    /*
+      SEIT DEM UMBAU AUF „LOT“ IST DIE GANZE ZEILE DER WEG (Regel 3): der Titel
+      ist der Verweis, seine Fläche spannt sich über die Zeile. Vorher stand
+      dafür ein eigener Verweis „Akte“ rechts — geschützt bleibt, wohin er führt.
+    */
     zeige();
     const zeile = (await screen.findByText(/2026-042/)).closest('li') as HTMLElement;
-    expect(within(zeile).getByRole('link', { name: 'Akte' })).toHaveAttribute(
+    expect(zeile).toHaveClass('zeile-ganz');
+    expect(within(zeile).getByRole('link', { name: /Familie Huber/ })).toHaveAttribute(
       'href', '/admin-projects/p1',
     );
   });
@@ -528,7 +539,7 @@ describe('Wie weit die Baustellenliste reicht', () => {
   it('schweigt, solange die Grenze nicht greift', async () => {
     baustellen = viele(12);
     zeige();
-    await screen.findByText(/Alle Baustellen/);
+    await screen.findByText('(B-0000)');
     expect(screen.queryByRole('button', { name: /Weitere Baustellen laden/ })).not.toBeInTheDocument();
   });
 
@@ -545,7 +556,7 @@ describe('Wie weit die Baustellenliste reicht', () => {
     */
     baustellen = viele(300);
     zeige();
-    await screen.findByText(/Alle Baustellen/);
+    await screen.findByText('(B-0000)');
     expect(screen.getByRole('button', { name: /Weitere Baustellen laden/ })).toBeInTheDocument();
     expect(screen.queryByText(/nur in diesen gesucht/)).toBeNull();
     expect(screen.queryByText(/Baustellennummer geht auf den Server/)).toBeNull();
@@ -555,7 +566,7 @@ describe('Wie weit die Baustellenliste reicht', () => {
     baustellen = viele(300);
     const nutzer = userEvent.setup();
     zeige();
-    await screen.findByText(/Alle Baustellen/);
+    await screen.findByText('(B-0000)');
     expect(letzteGrenze).toBe(300);
 
     await nutzer.click(screen.getByRole('button', { name: /Weitere Baustellen laden/ }));
@@ -729,8 +740,9 @@ describe('Baustellen — Kundenauswahl an der Grenze', () => {
 
 describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
   it('nennt die Auswahl „Baustellen filtern“ — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl“', async () => {
+    // Seit „Lot“ Segmente statt einer Auswahlliste; der Name gilt für die Gruppe.
     zeige();
-    expect(await screen.findByRole('combobox', { name: 'Baustellen filtern' })).toBeInTheDocument();
+    expect(await screen.findByRole('group', { name: 'Baustellen filtern' })).toBeInTheDocument();
   });
 });
 
@@ -846,26 +858,121 @@ describe('Nur meine Baustellen (M38)', () => {
     nutzer.role = 'Projektleiter';
     nutzer.uid = 'pl';
     zeige();
-    expect(await screen.findByText('Alle Baustellen (3)')).toBeInTheDocument();
+    // Gezählt werden die Zeilen; bis „Lot“ stand die Zahl im Kartentitel „Alle Baustellen (n)“.
+    await screen.findByText('(2026-101)');
+    expect(zeilen()).toHaveLength(3);
     const haken = screen.getByRole('checkbox', { name: 'Nur meine Baustellen' });
     // Ab Werk aus: die Projektleitung sieht zuerst alle Baustellen.
     expect(haken).not.toBeChecked();
 
     await userEvent.click(haken);
-    expect(await screen.findByText('Alle Baustellen (2)')).toBeInTheDocument();
+    await waitFor(() => expect(zeilen()).toHaveLength(2));
     expect(screen.getByText(/2026-101/)).toBeInTheDocument();
     expect(screen.getByText(/2026-102/)).toBeInTheDocument();
     expect(screen.queryByText(/2026-103/)).toBeNull();
 
     // Wieder aus: alle drei.
     await userEvent.click(haken);
-    expect(await screen.findByText('Alle Baustellen (3)')).toBeInTheDocument();
+    await waitFor(() => expect(zeilen()).toHaveLength(3));
     expect(screen.getByText(/2026-103/)).toBeInTheDocument();
   });
 
   it('Gegenprobe: die Geschäftsführung bekommt den Haken gar nicht', async () => {
     zeige();
-    expect(await screen.findByText('Alle Baustellen (3)')).toBeInTheDocument();
+    await screen.findByText('(2026-101)');
+    expect(zeilen()).toHaveLength(3);
     expect(screen.queryByRole('checkbox', { name: 'Nur meine Baustellen' })).toBeNull();
+  });
+});
+
+/*
+  LINIE „LOT“ (Schritt E6): Gruppen nach Status mit höchstens 20 Zeilen, die
+  Auswahl in der Adresse, Anlegen im Seitenfenster — und Adresse und Telefon
+  bleiben in einer ganz antippbaren Zeile ein eigener Tipp.
+*/
+describe('Baustellenliste in der Linie „Lot“', () => {
+  const reihe = (n: number, status: Project['status'], von = 0) =>
+    Array.from({ length: n }, (_, i) =>
+      ({
+        id: `${status}${i + von}`,
+        companyId: 'perl',
+        projectNumber: `L-${String(i + von).padStart(3, '0')}`,
+        customerName: 'Familie Huber',
+        status,
+      }) as Project & { id: string },
+    );
+
+  it('zeigt je Gruppe höchstens 20 Zeilen und dann „und N weitere anzeigen“', async () => {
+    baustellen = reihe(25, 'Aktiv');
+    zeige();
+    await screen.findByText('(L-000)');
+    expect(zeilen()).toHaveLength(20);
+    await userEvent.click(screen.getByRole('button', { name: 'und 5 weitere anzeigen' }));
+    expect(zeilen()).toHaveLength(25);
+    expect(screen.queryByRole('button', { name: /weitere anzeigen/ })).toBeNull();
+  });
+
+  it('Gegenprobe: bei genau 20 Zeilen kein „weitere“', async () => {
+    baustellen = reihe(20, 'Aktiv');
+    zeige();
+    await screen.findByText('(L-000)');
+    expect(zeilen()).toHaveLength(20);
+    expect(screen.queryByRole('button', { name: /weitere anzeigen/ })).toBeNull();
+  });
+
+  it('gruppiert nach Status: Aktiv vor Pausiert, Abgeschlossenes erst auf Wunsch', async () => {
+    baustellen = [...reihe(1, 'Pausiert', 1), ...reihe(1, 'Aktiv', 2), ...reihe(1, 'Abgeschlossen', 3)];
+    zeige();
+    await screen.findByText('(L-002)');
+    const titel = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+    expect(titel).toEqual(['Aktiv· 1', 'Pausiert· 1']);
+    expect(screen.queryByText('(L-003)')).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Erledigt' }));
+    expect(await screen.findByText('(L-003)')).toBeInTheDocument();
+    expect(screen.queryByText('(L-002)')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Erledigt' })).toHaveAttribute('aria-pressed', 'true');
+    // Die Zahl, die bis zum Umbau hinter „Archiv (n)“ stand, steht über der Gruppe.
+    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('Abgeschlossen· 1');
+  });
+
+  it('nimmt die Auswahl aus der Adresse — als Lesezeichen gespeichert bleibt sie', async () => {
+    baustellen = [...reihe(1, 'Aktiv', 2), ...reihe(1, 'Abgeschlossen', 3)];
+    zeige('/admin-projects?stand=archiv');
+    expect(await screen.findByText('(L-003)')).toBeInTheDocument();
+    expect(screen.queryByText('(L-002)')).toBeNull();
+  });
+
+  it('Gegenprobe: ein unbekannter Wert in der Adresse gilt als „Aktiv & pausiert“', async () => {
+    baustellen = [...reihe(1, 'Aktiv', 2), ...reihe(1, 'Abgeschlossen', 3)];
+    zeige('/admin-projects?stand=quatsch');
+    expect(await screen.findByText('(L-002)')).toBeInTheDocument();
+    expect(screen.queryByText('(L-003)')).toBeNull();
+  });
+
+  it('hebt Adresse und Telefon über die Zeilenfläche — anrufen bleibt ein Tipp', async () => {
+    // jsdom rechnet kein Layout; geprüft wird die Klasse, die sie anhebt.
+    baustellen = [{ ...reihe(1, 'Aktiv')[0], address: 'Hauptstraße 1, 8010 Graz', contactPhone: '0664 1234567' }];
+    zeige();
+    const tel = await screen.findByRole('link', { name: /0664 1234567/ });
+    expect(tel.closest('.zeile-griff')).not.toBeNull();
+    expect(screen.getByRole('link', { name: /Hauptstraße 1/ }).closest('.zeile-griff')).not.toBeNull();
+    // Gegenprobe: der Titel ist die Zeilenfläche selbst, nicht angehoben.
+    expect(screen.getByRole('link', { name: /Familie Huber/ }).closest('.zeile-griff')).toBeNull();
+  });
+
+  it('legt im Seitenfenster an; Wegklicken behält die Eingaben, „Abbrechen“ verwirft sie', async () => {
+    zeige();
+    await formOeffnen();
+    const fenster = screen.getByRole('dialog', { name: 'Neue Baustelle' });
+    await userEvent.type(within(fenster).getByLabelText(/Bezeichnung/), 'Bad 2. OG');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Schließen' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    await formOeffnen();
+    expect(screen.getByLabelText(/Bezeichnung/)).toHaveValue('Bad 2. OG');
+    await userEvent.click(screen.getByRole('button', { name: 'Abbrechen' }));
+    await formOeffnen();
+    expect(screen.getByLabelText(/Bezeichnung/)).toHaveValue('');
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 
@@ -247,5 +247,24 @@ describe('Die Plattformseite — erster Administrator mit Benutzername (P1)', ()
     await nutzer.selectOptions(screen.getByLabelText('Anmeldung mit'), 'benutzername');
     await nutzer.type(screen.getByLabelText(/^Benutzername/), 'Petra Perl');
     expect(screen.getByRole('button', { name: 'Betrieb anlegen' })).toBeDisabled();
+  });
+});
+
+describe('Betriebe verwalten im Seitenfenster (Linie „Lot“)', () => {
+  it('öffnet „Verwalten“ über die ganze Zeile und schliesst mit Esc', async () => {
+    const nutzer = userEvent.setup();
+    betriebe = [
+      { kennung: 'perl', name: 'Perl Installationen', angelegtAm: '2026-09-01T08:00:00Z', leitungskonten: 1, leitungMitMail: 1, notzugangBis: null },
+    ];
+    zeige();
+    // Vorher klappte die Maske zwischen den Zeilen auf; jetzt ein Fenster.
+    await nutzer.click(await screen.findByRole('button', { name: /^Perl Installationen \(perl\)$/ }));
+    const fenster = await screen.findByRole('dialog', { name: 'Perl Installationen verwalten' });
+    expect(within(fenster).getByLabelText(/Grund \(steht im Protokoll\)/)).toBeInTheDocument();
+    await nutzer.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // Der eigene Knopf „Verwalten“ bleibt als Weg dorthin.
+    await nutzer.click(screen.getByRole('button', { name: 'Perl Installationen verwalten' }));
+    expect(await screen.findByRole('dialog', { name: 'Perl Installationen verwalten' })).toBeInTheDocument();
   });
 });

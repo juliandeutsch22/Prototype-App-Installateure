@@ -71,7 +71,14 @@ function zeichne(props: { lastEntry?: TimeEntry; entry?: TimeEntry & { id: strin
   );
 }
 
-const zeile = () => screen.getByRole('button', { name: /Weitere Angaben/ });
+/*
+  SEIT DER LINIE „LOT“ EIN <details> (Baustein `WeitereAngaben`): die Zeile ist
+  dessen <summary>, offen heisst `open`, und zugeklappte Felder stehen zwar im
+  Dokument, aber unsichtbar. Was die Tests schützen, bleibt: zugeklappt mit
+  Inhaltsangabe, offen, wo schon etwas steht, gespeichert wird alles.
+*/
+const zeile = () => screen.getByText(/^Weitere Angaben/, { selector: 'summary' });
+const offen = () => (zeile().closest('details') as HTMLDetailsElement).open;
 
 beforeEach(() => {
   rolle = 'Mitarbeiter';
@@ -81,9 +88,9 @@ beforeEach(() => {
 describe('Weitere Angaben', () => {
   it('stehen beim Monteur zugeklappt da und nennen, was darin liegt', () => {
     zeichne();
-    expect(zeile()).toHaveAttribute('aria-expanded', 'false');
+    expect(offen()).toBe(false);
     expect(zeile()).toHaveTextContent('Wegzeit, Fahrzeug, Helfername, Zuschläge');
-    expect(screen.queryByLabelText('Wegzeit (Min.)')).toBeNull();
+    expect(screen.getByLabelText('Wegzeit (Min.)')).not.toBeVisible();
     // Der Helfer-Haken bleibt draussen: er ändert den Stundensatz.
     expect(screen.getByLabelText(/Einsatz als Helfer/)).toBeInTheDocument();
   });
@@ -97,7 +104,7 @@ describe('Weitere Angaben', () => {
     await nutzer.click(screen.getByLabelText('Notdienst / Störungseinsatz'));
     await nutzer.click(zeile());
 
-    expect(screen.queryByLabelText('Fahrzeug (Kennzeichen)')).toBeNull();
+    expect(screen.getByLabelText('Fahrzeug (Kennzeichen)')).not.toBeVisible();
     expect(zeile()).toHaveTextContent('Fahrzeug WZ-123AB · Notdienst');
 
     await nutzer.click(screen.getByRole('button', { name: 'Zeit buchen' }));
@@ -126,8 +133,8 @@ describe('Weitere Angaben', () => {
         vehiclePlate: 'WZ-12345A', userId: 'u1', userName: 'Max Mustermann',
       } as TimeEntry,
     });
-    expect(zeile()).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByLabelText('Wegzeit (Min.)')).toBeInTheDocument();
+    expect(offen()).toBe(true);
+    expect(screen.getByLabelText('Wegzeit (Min.)')).toBeVisible();
   });
 
   it('starten beim Bearbeiten offen, wenn der Eintrag Zuschläge trägt', () => {
@@ -137,7 +144,7 @@ describe('Weitere Angaben', () => {
         isEmergency: true, projectNumber: 'B-1', userId: 'u1', userName: 'Max Mustermann',
       } as TimeEntry & { id: string },
     });
-    expect(zeile()).toHaveAttribute('aria-expanded', 'true');
+    expect(offen()).toBe(true);
     expect(screen.getByLabelText('Notdienst / Störungseinsatz')).toBeChecked();
   });
 
@@ -148,7 +155,7 @@ describe('Weitere Angaben', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await nutzer.click(screen.getByLabelText(/Erweiterte Erfassung/));
-    expect(screen.queryByRole('button', { name: /Weitere Angaben/ })).toBeNull();
-    expect(screen.getByLabelText('Wegzeit (Min.)')).toBeInTheDocument();
+    expect(screen.queryByText(/^Weitere Angaben/, { selector: 'summary' })).toBeNull();
+    expect(screen.getByLabelText('Wegzeit (Min.)')).toBeVisible();
   });
 });
