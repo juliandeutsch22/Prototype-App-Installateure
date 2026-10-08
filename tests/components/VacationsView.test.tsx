@@ -52,6 +52,7 @@ const callUrlaubEntscheiden = vi.fn<(a0: {
     }) => Promise<{ status: string; angelegt: number; uebersprungen: number; entfernt: number }>>(async () => ({ status: 'Genehmigt', angelegt: 5, uebersprungen: 0, entfernt: 0 }));
 
 vi.mock('@/lib/db/vacations', () => ({
+  listGenehmigungsAbwesenheiten: vi.fn(async () => []),
   // Nach der GEFRAGTEN Person — die Genehmigenden laden auch die Urlaube
   // der Antragsteller, für deren Resturlaub.
   listOwnVacations: vi.fn(async (_b: string, uid: string) => antraege.filter((v) => v.userId === uid)),
@@ -1409,5 +1410,19 @@ describe('Antrag mit Verlauf (Linie „Lot“)', () => {
     expect(titel).toEqual(['Beantragt', 'Nachweis geprüft', 'Bestätigt', 'Sonderurlaub']);
     // Bestätigt ist nichts mehr zu tun: keine Handgriffe im Fenster.
     expect(within(fenster).queryByRole('button', { name: 'Zurückziehen' })).toBeNull();
+  });
+});
+
+
+describe('Monatsübersicht für Genehmigende', () => {
+  it('zeigt die Übersicht der Leitung, ohne Genehmigungslisten zu ersetzen', async () => {
+    rolle = { ...rolle, uid: 'chef', name: 'Julian Deutsch', role: 'Geschäftsführung', docId: 'chef' };
+    zeichne();
+    expect(await screen.findByRole('heading', { name: 'Monatsübersicht' })).toBeInTheDocument();
+  });
+  it('zeigt einem normalen Monteur keine Monatsübersicht', async () => {
+    zeichne();
+    await screen.findByRole('heading', { name: 'Antrag stellen' });
+    expect(screen.queryByRole('heading', { name: 'Monatsübersicht' })).not.toBeInTheDocument();
   });
 });

@@ -52,6 +52,8 @@ export function listAbwesendInRange(vonIso: string, bisIso: string): Promise<pg.
 }
 
 export type { Abwesenheit } from './pg/vacations';
+export type { GenehmigungsAbwesenheit } from './pg/vacations';
+export const listGenehmigungsAbwesenheiten = pg.listGenehmigungsAbwesenheiten;
 
 export function createVacation(companyId: string, v: NewVacation): Promise<string> {
   return pg.createVacation(companyId, v);

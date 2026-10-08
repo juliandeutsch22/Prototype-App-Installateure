@@ -61,6 +61,7 @@ const FEST = {
     "export const ORDER_STATUS_FLOW = ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'] as const;\n" +
     'export const listOrdersPage = () => A({ zeilen: D.bestellungen, naechste: null });\n' +
     'export const subscribeOrderChanges = () => () => {};\n',
+  vacations: 'export const listGenehmigungsAbwesenheiten = () => A([]);\n',
   quotes: 'export const listQuotesPage = () => A({ zeilen: D.angebote, naechste: null });\n',
   quelle: 'export const nutztPostgres = () => false;\n',
   // Die Scheinliste fragt fürs Büro, welche Scheine schon verrechnet sind; ohne Antwort

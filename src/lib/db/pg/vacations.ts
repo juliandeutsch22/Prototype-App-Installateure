@@ -152,6 +152,13 @@ export interface Abwesenheit {
   zeiten: string | null;
 }
 
+export type GenehmigungsAbwesenheit = Abwesenheit & { name: string };
+export async function listGenehmigungsAbwesenheiten(von: string, bis: string): Promise<GenehmigungsAbwesenheit[]> {
+  const { data, error } = await derClient().rpc('genehmigung_abwesend', { p_von: von, p_bis: bis });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as GenehmigungsAbwesenheit[];
+}
+
 /**
  * Wer in diesem Zeitraum abwesend ist — für den Wochenplan.
  *

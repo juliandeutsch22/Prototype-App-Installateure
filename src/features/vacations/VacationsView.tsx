@@ -58,6 +58,7 @@ import { zeitguthabenLaden } from './zeitguthaben';
 import { KrankmeldungListe, KrankenstaendeReiter } from './Krankmeldungen';
 import { ergebnisText, tageText } from './abwesenheitText';
 import BetriebsurlaubReiter from './BetriebsurlaubReiter';
+import Monatsabwesenheiten from './Monatsabwesenheiten';
 import { UrlaubsantragFenster } from './AntragFenster';
 import { grundAus } from '@/lib/fehlerGrund';
 import { useReiterImBild } from '@/components/reiterImBild';
@@ -148,6 +149,7 @@ const STAND: Record<Vacation['status'], Stand> = {
  *    selbst — dort, wo er stört, nicht hier.
  */
 export default function VacationsView() {
+  const [kalenderStand, setKalenderStand] = useState(0);
   const { user, company } = useAuth();
   const halbeTage = dezemberHalbtage(company);
   const toast = useToast();
@@ -297,6 +299,7 @@ export default function VacationsView() {
         setError('Die Urlaubsanträge konnten nicht geladen werden.');
       } finally {
         setLaden(false);
+        setKalenderStand((n) => n + 1);
       }
     },
     [user, darfEntscheiden, buero, company?.vacationApprovers],
@@ -1087,6 +1090,7 @@ export default function VacationsView() {
         oben, sobald die Anträge da waren.
       */}
       {darfEntscheiden && !laden && offene.length > 0 && offeneKarte}
+      {darfEntscheiden && <Monatsabwesenheiten stand={kalenderStand} />}
       {/* Dasselbe für den Sonderurlaub: wartet einer, steht die Karte oben. */}
       {buero && !laden && offeneFrei > 0 && (
         <FreistellungenBestaetigen user={user} company={company} />
