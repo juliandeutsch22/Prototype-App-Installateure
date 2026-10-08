@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { canAccess, navForRole, unterseitenFuer, zusatzrechte } from './navigation';
-import { useFokusFalle } from '@/components/fokusFalle';
+import { istOben, useFokusFalle } from '@/components/fokusFalle';
 import { ImFenster } from '@/components/imFenster';
 import { searchCustomers } from '@/lib/db/customers';
 import { searchProjects } from '@/lib/db/projects';
@@ -58,6 +58,24 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
       })),
     ]);
   }, [user, company]);
+
+  /*
+    ESC AM FENSTER, NICHT NUR AM SUCHFELD. Ein Klick neben die Treffer (auf
+    eine Gruppenüberschrift) nimmt dem Feld den Fokus — er liegt dann am
+    Dokument, und eine Taste am Feld käme nie an. Wie bei den Seitenfenstern
+    schliesst Esc nur, was obenauf liegt.
+  */
+  useEffect(() => {
+    if (!offen) return;
+    const taste = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && istOben(fenster)) {
+        e.preventDefault();
+        onSchliessen();
+      }
+    };
+    window.addEventListener('keydown', taste);
+    return () => window.removeEventListener('keydown', taste);
+  }, [offen, onSchliessen]);
 
   useEffect(() => {
     if (!offen) {
@@ -125,10 +143,7 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
   }
 
   function taste(e: React.KeyboardEvent) {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      onSchliessen();
-    } else if (e.key === 'ArrowDown') {
+    if (e.key === 'ArrowDown') {
       e.preventDefault();
       setAn((i) => Math.min(i + 1, treffer.length - 1));
     } else if (e.key === 'ArrowUp') {

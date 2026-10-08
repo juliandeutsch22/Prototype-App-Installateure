@@ -91,4 +91,18 @@ describe('Suchen oder springen', () => {
     await userEvent.keyboard('{Escape}');
     expect(zu).toHaveBeenCalled();
   });
+
+  /*
+    Ein Klick auf eine Gruppenüberschrift (oder sonst neben die Treffer)
+    nimmt dem Suchfeld den Fokus; er liegt dann am Dokument. Esc muss das
+    Fenster trotzdem schliessen — gefunden in der Vorschau: es blieb offen.
+  */
+  it('Esc schliesst auch, wenn das Suchfeld den Fokus verloren hat', async () => {
+    const zu = zeige();
+    await userEvent.click(screen.getAllByText('Seiten')[0]);
+    (document.activeElement as HTMLElement | null)?.blur();
+    expect(document.activeElement).toBe(document.body);
+    await userEvent.keyboard('{Escape}');
+    expect(zu).toHaveBeenCalledTimes(1);
+  });
 });
