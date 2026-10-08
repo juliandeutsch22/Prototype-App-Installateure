@@ -206,7 +206,7 @@ export default function LoginPage() {
                 setError(null);
                 setNotice(null);
               }}
-              className="min-h-touch text-xs text-ink-muted underline underline-offset-2 hover:text-brand"
+              className="min-h-touch text-xs text-ink-muted underline underline-offset-2 hover:text-accent-deep"
             >
               {resetMode ? 'Zurück zur Anmeldung' : 'Passwort vergessen?'}
             </button>

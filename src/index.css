@@ -161,8 +161,10 @@
     --navi-gruppe: #7f9ca2;
     --navi-linie: #1b3238;
     --shadow-lg: 0 16px 40px -24px #000000;
-    --petrol: #2d8597;
-    --petrol-tief: #236c7b;
+    /* Weiss auf Petrol (gewähltes Segment, Einsatzblock, Sammelleiste) braucht
+       4,5:1 — der Ton des Entwurfs (#2d8597) hatte nur 4,3:1. */
+    --petrol: #236c7b;
+    --petrol-tief: #1b5763;
     --petrol-hell: #17343b;
   }
 }

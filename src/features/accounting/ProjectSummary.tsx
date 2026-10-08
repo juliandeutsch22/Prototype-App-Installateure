@@ -274,7 +274,7 @@ export default function ProjectSummary({
                       </span>
                       <span
                         className={`shrink-0 text-xs font-semibold ${
-                          r.budget.over ? 'text-accent' : 'text-ink-muted'
+                          r.budget.over ? 'text-accent-deep' : 'text-ink-muted'
                         }`}
                       >
                         {r.budget.pct} %

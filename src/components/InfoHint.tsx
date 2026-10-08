@@ -46,7 +46,7 @@ export function InfoButton({ about, offen, onToggle, controls }: InfoButtonProps
       aria-label={offen ? `Erklärung zu ${about} schließen` : `Was bedeutet ${about}?`}
       // Das Symbol misst 20 px, die Tastfläche darum 44 px — ohne die
       // negativen Ränder risse das Ziel die Zeilenhöhe auseinander.
-      className="-mx-2 -my-3 inline-flex h-11 w-11 shrink-0 items-center justify-center align-middle text-ink-muted hover:text-brand"
+      className="-mx-2 -my-3 inline-flex h-11 w-11 shrink-0 items-center justify-center align-middle text-ink-muted hover:text-accent-deep"
     >
       <span
         aria-hidden="true"

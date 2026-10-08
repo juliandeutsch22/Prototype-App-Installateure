@@ -655,7 +655,7 @@ export default function TimeView() {
           ziel.setAttribute('tabindex', '-1');
           ziel.focus({ preventScroll: true });
         }}
-        className="inline-flex min-h-touch items-center gap-1 text-sm font-normal text-brand sm:hidden"
+        className="inline-flex min-h-touch items-center gap-1 text-sm font-normal text-accent-deep sm:hidden"
       >
         Zu meinen Einträgen
         <Icon name="chevron" size={16} />

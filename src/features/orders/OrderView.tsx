@@ -984,7 +984,7 @@ function QtyAdder({
   return (
     <div className="flex items-center gap-1">
       {added > 0 && (
-        <span className="mr-1 text-sm font-semibold text-brand" aria-live="polite">
+        <span className="mr-1 text-sm font-semibold text-accent-deep" aria-live="polite">
           ×{fmtMenge(added)}
         </span>
       )}

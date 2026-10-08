@@ -222,3 +222,28 @@ describe('Schrift aus den Grundwerten trägt auf ihrer Fläche (beide Sätze)', 
     expect(zuWenig).toEqual([]);
   });
 });
+
+describe('Weiss auf Petrol', () => {
+  it.each([
+    ['hell', HELL],
+    ['dunkel', DUNKEL],
+  ])('trägt im %sen Satz 4,5:1 (gewähltes Segment, Einsatzblock, Sammelleiste)', (_n, satz) => {
+    expect(kontrast('#ffffff', wert(satz, '--petrol'))!).toBeGreaterThanOrEqual(AA_NORMAL);
+  });
+});
+
+describe('Hausfarbe nie als Schrift', () => {
+  it('Schrift trägt das Petrol der Linie, nicht die Farbe des Betriebs', () => {
+    /*
+      `text-brand` und `text-accent` sind im hellen Modus die Hausfarbe (bei
+      einem roten Betrieb rot — in der Linie heisst Rot „Fehler“) und im
+      dunklen der Ton der Hauptknöpfe, der als Schrift nur 2,6:1 hat.
+      Schrift nimmt deshalb `text-accent-deep`.
+    */
+    const quellen = readdirSync('src', { recursive: true, withFileTypes: true })
+      .filter((d) => d.isFile() && d.name.endsWith('.tsx'))
+      .map((d) => readFileSync(`${d.parentPath}/${d.name}`, 'utf8'));
+    const treffer = quellen.flatMap((q) => q.match(/(?:^|[\s'"`])(?:hover:)?text-(?:brand|accent)(?=[\s'"`])/g) ?? []);
+    expect(treffer).toEqual([]);
+  });
+});
