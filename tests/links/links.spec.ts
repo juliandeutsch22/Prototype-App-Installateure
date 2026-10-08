@@ -120,7 +120,7 @@ test('Schreibweise im Anlegeformular „Tritt neu ein“', async ({ page }) => {
   await page.goto(`./?pfad=${encodeURIComponent('/user-mgmt')}&rolle=Administrator`, {
     waitUntil: 'networkidle',
   });
-  await page.getByRole('button', { name: 'Neuer Benutzer' }).click();
+  await page.getByRole('button', { name: 'Benutzer anlegen' }).click();
   await page.getByLabel(/Tritt neu ein/).check();
   await page.getByRole('button', { name: /Zeitkonto-Einstellungen anzeigen/ }).click();
 

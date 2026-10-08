@@ -104,3 +104,12 @@ describe('Die Bausteine halten die Regeln der Linie (Protokoll 0.2)', () => {
     expect(transparent.filter((t) => t !== '#00000059')).toEqual([]);
   });
 });
+
+describe('Die schmale Leiste am Tablet', () => {
+  it('blendet den langen Namen nur sichtbar aus — die Vorlesehilfe hört ihn weiter', () => {
+    const regel = /\.navi-text-lang \{([^}]*)\}/.exec(lot)![1];
+    // Mit `display: none` hätte der Menüpunkt keinen Namen (der Kurztext ist aria-hidden).
+    expect(regel).not.toMatch(/display:\s*none/);
+    expect(regel).toMatch(/clip: rect\(0, 0, 0, 0\)/);
+  });
+});
