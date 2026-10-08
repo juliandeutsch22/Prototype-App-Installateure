@@ -32,6 +32,7 @@ const BETRIEB = 'ruecklauf';
 
 let chef: Konto;
 let monteur: Konto;
+const originalMahnung = Buffer.from('%PDF-1.4\nRücklauf einer Originalmahnung\n%%EOF').toString('base64');
 
 /**
  * Alles eines Betriebs löschen — in Runden, weil die Fremdschlüssel eine
@@ -70,6 +71,17 @@ beforeAll(async () => {
     { ...buchung(monteur, '2026-09-01'), project_number: 'R-2026-001' },
     { ...buchung(monteur, '2026-09-02'), status: 'Urlaub' },
   ]);
+  const rechnung = await admin.from('invoices').insert({ company_id: BETRIEB,
+    invoice_number: 'RE-2026-0001', project_number: 'R-2026-001', customer_id: kunde!.id,
+    customer_name: 'Familie Huber', invoice_date: '2026-01-01', due_date: '2026-01-15',
+    total_netto: 100, total_vat: 20, total_brutto: 120, vat_rate: 0.2, payment_status: 'Offen',
+  }).select('id').single();
+  if (rechnung.error) throw rechnung.error;
+  const mahnb = await admin.from('mahnbelege').insert({ company_id: BETRIEB,
+    invoice_id: rechnung.data!.id, invoice_number: 'RE-2026-0001', stufe: 1,
+    datum: '2026-02-01', frist: '2026-02-15', spesen: 0, pdf_base64: originalMahnung,
+  });
+  if (mahnb.error) throw mahnb.error;
 }, 180_000);
 
 afterAll(() => clientEinreichen(null));
@@ -165,6 +177,10 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
     const { count: kundeDa } = await admin.from('customers')
       .select('*', { count: 'exact', head: true }).eq('id', baustelle.customer_id);
     expect(kundeDa).toBe(1);
+    const mahnb = await admin.from('mahnbelege').select('pdf_base64,invoice_number')
+      .eq('company_id', BETRIEB).single();
+    expect(mahnb.error).toBeNull();
+    expect(mahnb.data).toMatchObject({ pdf_base64: originalMahnung, invoice_number: 'RE-2026-0001' });
   }, 240_000);
 
   it('legt die Anmeldekonten unter DERSELBEN Kennung wieder an', async () => {

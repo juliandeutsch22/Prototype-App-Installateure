@@ -18,6 +18,8 @@ export function listRecentQuotes(companyId: string, max = 100): Promise<WithId<Q
   return pg.listRecentQuotes(companyId, max);
 }
 
+export const listQuotesInRange = pg.listQuotesInRange;
+
 export function listQuotesForCustomer(
   companyId: string, customerId: string, max = 100,
 ): Promise<WithId<Quote>[]> {

@@ -41,8 +41,14 @@ vi.mock('@/lib/db/company', () => ({
 const rechnungenImZeitraum = vi.fn(async () => [] as unknown[]);
 vi.mock('@/lib/db/invoices', () => ({
   listInvoicesInRange: (...a: unknown[]) => rechnungenImZeitraum(...(a as [])),
+  listInvoicesWithReminderInRange: vi.fn(async () => []),
 }));
 vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => []) }));
+vi.mock('@/lib/db/quotes', () => ({ listQuotesInRange: vi.fn(async () => []) }));
+vi.mock('@/lib/db/workSheets', () => ({ listWorkSheetsForArchive: vi.fn(async () => []) }));
+vi.mock('@/lib/db/mahnbelege', () => ({
+  listMahnbelegeImZeitraum: vi.fn(async () => []), listMahnbelegStufen: vi.fn(async () => []),
+}));
 const archiv = vi.fn();
 vi.mock('@/features/invoices/belegArchiv', () => ({
   belegArchiv: (...a: unknown[]) => archiv(...a),
@@ -207,18 +213,18 @@ describe('Belegarchiv', () => {
   });
 
   it('lädt das gewählte Jahr und sagt, was im Archiv steht', async () => {
-    archiv.mockResolvedValue({ blob: new Blob(), rechnungen: 12, stornos: 1, hinweise: ['x'] });
+    archiv.mockResolvedValue({ blob: new Blob(), rechnungen: 12, stornos: 1, angebote: 4, scheine: 6, mahnungen: 2, hinweise: ['x'] });
     zeige();
     const jahr = String(new Date().getFullYear() - 1);
     await userEvent.selectOptions(screen.getByLabelText('Zeitraum'), jahr);
     await userEvent.click(screen.getByRole('button', { name: 'Belegarchiv herunterladen' }));
-    expect(await screen.findByText(/Im Archiv: 12 Rechnungen, 1 Stornorechnung\. Ein Hinweis steht in „Hinweise\.txt“\./)).toBeInTheDocument();
+    expect(await screen.findByText(/Im Archiv: 12 Rechnungen, 1 Stornorechnung, 4 Angebote, 6 Scheine, 2 Originalmahnungen\. Ein Hinweis steht in „Hinweise\.txt“\./)).toBeInTheDocument();
     expect(rechnungenImZeitraum).toHaveBeenCalledWith('perl', `${jahr}-01-01`, `${jahr}-12-31`);
     expect(archiv.mock.calls[0][0]).toMatchObject({ von: `${jahr}-01-01`, bis: `${jahr}-12-31` });
   });
 
   it('„Alle Belege“ beginnt beim ersten Beleg, nicht am 01.01.2000 (Runde 3, G11)', async () => {
-    archiv.mockResolvedValue({ blob: new Blob(), rechnungen: 3, stornos: 0, hinweise: [] });
+    archiv.mockResolvedValue({ blob: new Blob(), rechnungen: 3, stornos: 0, angebote: 0, scheine: 0, mahnungen: 0, hinweise: [] });
     const klicks: string[] = [];
     const klick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
       klicks.push(this.download);

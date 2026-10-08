@@ -278,6 +278,15 @@ export async function listInvoicesInRange(companyId: string, von: string, bis: s
   return zusammensetzen([...nachDatum, ...dazu], companyId);
 }
 
+/** Alte Rechnungen können im Archivjahr eine Mahnung bekommen haben. */
+export async function listInvoicesWithReminderInRange(companyId: string, von: string, bis: string) {
+  const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+    wo: [{ art: 'ab', feld: 'gemahntAm', wert: von }, { art: 'bis', feld: 'gemahntAm', wert: bis }],
+    sortiere: { feld: 'gemahntAm' },
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
 /**
  * Bestimmte Rechnungen, nach Kennung — für den Zahlungsstapel (Testbericht
  * 30.09.2026, H7 vorgebaut): eine Zahlung im Zeitraum gehört oft zu einer
@@ -661,14 +670,24 @@ export async function schlussrechnungenOhneAbzug(): Promise<SchlussOhneAbzug[]> 
  * als gemahnt da, ohne dass je ein Schreiben entstanden wäre, und die
  * nächste Stufe begänne bei zwei.
  */
-export function mahnungFesthalten(
+export async function mahnungFesthalten(
   id: string,
   daten: {
     stufe: number; gemahntAm: string; frist: string; spesen: number;
     /** Wo die Rechnung gerade steht — entscheidet, ob „Überfällig" mitgeht. */
     standJetzt: Invoice['paymentStatus'];
+    /** Originaldatei gemeinsam mit der Mahnstufe; ältere Aufrufer bleiben unterstützt. */
+    pdfBase64?: string;
   },
 ): Promise<void> {
+  if (daten.pdfBase64 !== undefined) {
+    const { error } = await derClient().rpc('mahnung_mit_beleg_festhalten', {
+      p_id: id, p_stufe: daten.stufe, p_tag: daten.gemahntAm, p_frist: daten.frist,
+      p_spesen: daten.spesen, p_pdf_base64: daten.pdfBase64,
+    });
+    if (error) throw new Error(error.message);
+    return;
+  }
   /*
     „ÜBERFÄLLIG" GEHT NUR MIT, WENN DIE RECHNUNG OFFEN IST.
 

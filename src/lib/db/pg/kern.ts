@@ -71,6 +71,8 @@ export type Bedingung =
   | { art: 'leer'; feld: string };
 
 export interface Abfrage {
+  /** Große Originaldateien werden nur beim Archivabruf mitgelesen. */
+  felder?: readonly string[];
   wo?: readonly Bedingung[];
   sortiere?: { feld: string; absteigend?: boolean };
   grenze?: number;
@@ -320,7 +322,7 @@ export async function abfragen<T>(
     if (rest <= 0) break;
 
     const bauer = anwenden(
-      c.from(tabelle).select('*').eq('company_id', companyId) as unknown as Filterbar,
+      c.from(tabelle).select(abfrage.felder?.map(alsSpalteSicher).join(',') ?? '*').eq('company_id', companyId) as unknown as Filterbar,
       // `grenze` wird HIER nicht mitgegeben: sie steckt schon in `rest`, und
       // ein `limit` neben einem `range` liefert deren Schnittmenge — also
       // beim zweiten Durchgang nichts mehr.

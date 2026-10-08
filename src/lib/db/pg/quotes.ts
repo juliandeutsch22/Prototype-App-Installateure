@@ -33,6 +33,14 @@ async function zusammensetzen(
   client?: SupabaseClient,
 ): Promise<WithId<Quote>[]> {
   if (koepfe.length === 0) return [];
+  // Große Archive dürfen die HTTP-Grenze des UUID-Filters nicht überschreiten.
+  if (koepfe.length > 100) {
+    const ergebnis: WithId<Quote>[] = [];
+    for (let i = 0; i < koepfe.length; i += 100) {
+      ergebnis.push(...await zusammensetzen(koepfe.slice(i, i + 100), companyId, client));
+    }
+    return ergebnis;
+  }
 
   const zeilen = await abfragen<Position & { quoteId: string; position: number }>(
     POSITIONEN,
@@ -81,6 +89,15 @@ export async function listRecentQuotes(companyId: string, max = 100) {
   const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
     sortiere: { feld: 'createdAt', absteigend: true },
     grenze: max,
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
+/** Archiv: vollständig nach Belegdatum, unabhängig von der Arbeitsliste. */
+export async function listQuotesInRange(companyId: string, von: string, bis: string) {
+  const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
+    wo: [{ art: 'ab', feld: 'quoteDate', wert: von }, { art: 'bis', feld: 'quoteDate', wert: bis }],
+    sortiere: { feld: 'quoteDate' },
   });
   return zusammensetzen(koepfe, companyId);
 }

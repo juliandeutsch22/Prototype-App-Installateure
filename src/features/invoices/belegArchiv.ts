@@ -6,6 +6,8 @@ import { stornoBelegTag } from './stornoBelegTag';
 import { zipErstellen, type ZipDatei } from '@/lib/zip';
 import { datumAT } from '@/lib/datum';
 import { todayStr } from '@/lib/time';
+import { pdfBytes } from '@/lib/pdfBytes';
+import { fehlendeMahnungen, weitereAuswahl, weitereBelegeErstellen, type WeitereBelege } from './archivWeitere';
 
 /**
  * Das Belegarchiv: alle Rechnungen und Stornorechnungen eines Zeitraums als
@@ -28,6 +30,9 @@ export interface ArchivErgebnis {
   blob: Blob;
   rechnungen: number;
   stornos: number;
+  angebote: number;
+  scheine: number;
+  mahnungen: number;
   /** Was im Archiv fehlt oder auffällt — auch in „Hinweise.txt“. */
   hinweise: string[];
 }
@@ -44,26 +49,22 @@ const pause = () => new Promise<void>((r) => setTimeout(r, 0));
  * dort der 01.01.2000, in den Hinweisen und im Dateinamen; ein Betrieb, der
  * 2026 begonnen hat, las von Belegen aus 26 Jahren. Ohne Beleg: `bis`.
  */
-export function ersterBelegTag(rechnungen: Invoice[], bis: string): string {
+export function ersterBelegTag(rechnungen: Invoice[], bis: string, weitere: WeitereBelege = {}): string {
   let erster = bis;
   for (const r of rechnungen) {
     if (r.invoiceDate && r.invoiceDate < erster) erster = r.invoiceDate;
     const s = r.paymentStatus === 'Storniert' ? stornoBelegTag(r) : null;
     if (s && s < erster) erster = s;
   }
+  for (const tag of [
+    ...(weitere.angebote ?? []).map((q) => q.quoteDate),
+    ...(weitere.scheine ?? []).map((s) => s.datum),
+    ...(weitere.mahnbelege ?? []).map((m) => m.datum),
+  ]) if (tag && tag < erster) erster = tag;
   return erster;
 }
 
-/** Die Bytes eines Blobs — über `FileReader`, den jeder Browser kennt, auch ältere Safari. */
-function bytes(blob: Blob): Promise<Uint8Array> {
-  return new Promise((fertig, fehler) => {
-    const leser = new FileReader();
-    leser.onload = () => fertig(new Uint8Array(leser.result as ArrayBuffer));
-    leser.onerror = () => fehler(leser.error);
-    leser.readAsArrayBuffer(blob);
-  });
-}
-
+/** Alle ausgewählten Belege und Hinweise in einer eigenständig lesbaren ZIP-Datei. */
 export async function belegArchiv(o: {
   company: Company;
   rechnungen: Invoice[];
@@ -72,7 +73,7 @@ export async function belegArchiv(o: {
   bis: string;
   /** Für die Anzeige „120 von 800“ — die Erzeugung dauert bei vielen Belegen. */
   fortschritt?: (fertig: number, gesamt: number) => void;
-}): Promise<ArchivErgebnis> {
+} & WeitereBelege): Promise<ArchivErgebnis> {
   const { company, von, bis } = o;
   const [{ generateInvoicePdf }, { buildStornoPdf }] = await Promise.all([
     import('./pdf'),
@@ -99,8 +100,9 @@ export async function belegArchiv(o: {
     .sort((a, b) => a.invoiceNumber.localeCompare(b.invoiceNumber, 'de'));
 
   const dateien: ZipDatei[] = [];
-  const hinweise: string[] = [];
-  const gesamt = imZeitraum.length + storniert.length;
+  const hinweise = fehlendeMahnungen(o);
+  const auswahl = weitereAuswahl(o);
+  const gesamt = imZeitraum.length + storniert.length + auswahl.angebote.length + auswahl.scheine.length + auswahl.mahnbelege.length;
   let fertig = 0;
   const weiter = async () => {
     fertig += 1;
@@ -130,7 +132,7 @@ export async function belegArchiv(o: {
       const blob = await buildStornoPdf({ company, invoice: inv, nummer: inv.stornoNummer });
       dateien.push({
         name: `Stornorechnungen/${dateiname(stornoDateiname(inv.stornoNummer))}`,
-        inhalt: await bytes(blob),
+        inhalt: await pdfBytes(blob),
       });
       stornos += 1;
     } else {
@@ -138,6 +140,8 @@ export async function belegArchiv(o: {
     }
     await weiter();
   }
+
+  await weitereBelegeErstellen({ company, kunden: o.kunden, auswahl, dateien, weiter });
 
   const journal = buildInvoiceCsv(o.rechnungen, o.kunden, von, bis);
   if (journal.luecken.length) {
@@ -158,8 +162,10 @@ export async function belegArchiv(o: {
     `Stornorechnungen als PDF: ${stornos}`,
     `Rechnungsausgangsbuch: ${invoiceCsvFilename(von, bis)}`,
     '',
-    'Mahnungen, Angebote, Arbeitsscheine und alle übrigen Daten enthält die Datei',
-    'aus „Alle Daten herunterladen“ (Datensicherung).',
+    `Angebote als PDF: ${auswahl.angebote.length}`,
+    `Unterschriebene und stornierte Scheine als PDF: ${auswahl.scheine.length}`,
+    `Gespeicherte Originalmahnungen als PDF: ${auswahl.mahnbelege.length}`,
+    'Alle übrigen Daten und offene Entwürfe enthält die Datensicherung.',
     '',
     hinweise.length ? 'Hinweise:' : 'Hinweise: keine.',
     ...hinweise.map((h) => `- ${h}`),
@@ -167,5 +173,6 @@ export async function belegArchiv(o: {
   ].join('\r\n');
   dateien.push({ name: 'Hinweise.txt', inhalt: new TextEncoder().encode(`\uFEFF${text}`) });
 
-  return { blob: zipErstellen(dateien), rechnungen, stornos, hinweise };
+  return { blob: zipErstellen(dateien), rechnungen, stornos,
+    angebote: auswahl.angebote.length, scheine: auswahl.scheine.length, mahnungen: auswahl.mahnbelege.length, hinweise };
 }

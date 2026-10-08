@@ -55,6 +55,8 @@ export function listWorkSheetsInRange(
   return pg.listWorkSheetsInRange(companyId, von, bis, max);
 }
 
+export const listWorkSheetsForArchive = pg.listWorkSheetsForArchive;
+
 export function searchWorkSheets(
   companyId: string, begriff: string, max = 150,
 ): Promise<WithId<WorkSheet>[]> {

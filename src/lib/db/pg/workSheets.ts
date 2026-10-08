@@ -51,6 +51,14 @@ async function zusammensetzen(
   client?: SupabaseClient,
 ): Promise<WithId<WorkSheet>[]> {
   if (koepfe.length === 0) return [];
+  // Auch bei mehrjährigen Archiven bleiben die UUID-Filter unter der HTTP-Grenze.
+  if (koepfe.length > 100) {
+    const ergebnis: WithId<WorkSheet>[] = [];
+    for (let i = 0; i < koepfe.length; i += 100) {
+      ergebnis.push(...await zusammensetzen(koepfe.slice(i, i + 100), companyId, client));
+    }
+    return ergebnis;
+  }
   const kennungen = koepfe.map((k) => k.id);
 
   const teile = async <T>(tabelle: string, sortiert: boolean) =>
@@ -239,6 +247,18 @@ export async function listWorkSheetsInRange(
     ],
     sortiere: { feld: 'datum', absteigend: true },
     grenze: max,
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
+/** Archiv: alle eingefrorenen Belege, einschließlich Storno, ohne Arbeitslistengrenze. */
+export async function listWorkSheetsForArchive(companyId: string, von: string, bis: string) {
+  const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
+    wo: [
+      { art: 'ab', feld: 'datum', wert: von }, { art: 'bis', feld: 'datum', wert: bis },
+      { art: 'in', feld: 'status', werte: ['Unterschrieben', 'Storniert'] },
+    ],
+    sortiere: { feld: 'datum' },
   });
   return zusammensetzen(koepfe, companyId);
 }

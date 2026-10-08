@@ -1606,6 +1606,7 @@ export default function InvoicesView() {
 
       await mahnungFesthalten(inv.id, {
         stufe, gemahntAm: heute, frist, spesen, standJetzt: inv.paymentStatus,
+        pdfBase64: await (await import('@/lib/pdfBytes')).pdfBase64(blob),
       });
       // Das Abzeichen im Menü zählt mit: diese Rechnung ist bis zum Ablauf
       // der neuen Frist keine fällige Mahnung mehr.

@@ -988,7 +988,7 @@ describe('Eine überfällige Rechnung mahnen', () => {
     expect(mahnFolge).toEqual(['pdf', 'vermerk']);
     // Über denselben Weg wie der Handwerksschein — auf dem Tablet ein Teilen.
     expect(teilen).toHaveBeenCalled();
-    expect(mahnung.mock.calls[0][1]).toMatchObject({ stufe: 1 });
+    expect(mahnung.mock.calls[0][1]).toMatchObject({ stufe: 1, pdfBase64: btoa('%PDF') });
   });
 
   /* Runde 3, M10: ohne Kundenart keine Mahnung — Zinsen und Spesen hängen an ihr. */

@@ -10,8 +10,11 @@ import { ErrorState } from '@/components/States';
 import LaufStatus from './LaufStatus';
 import { useToast } from '@/components/Toast';
 import { SelectField } from '@/components/Field';
-import { listInvoicesInRange } from '@/lib/db/invoices';
+import { listInvoicesInRange, listInvoicesWithReminderInRange } from '@/lib/db/invoices';
 import { listCustomers } from '@/lib/db/customers';
+import { listQuotesInRange } from '@/lib/db/quotes';
+import { listWorkSheetsForArchive } from '@/lib/db/workSheets';
+import { listMahnbelegeImZeitraum, listMahnbelegStufen } from '@/lib/db/mahnbelege';
 import { todayStr } from '@/lib/time';
 
 /**
@@ -65,7 +68,9 @@ export default function SicherungView() {
   const [laeuft, setLaeuft] = useState<'sicherung' | 'download' | 'archiv' | null>(null);
   const [archivWahl, setArchivWahl] = useState('alle');
   const [archivStand, setArchivStand] = useState<{ fertig: number; gesamt: number } | null>(null);
-  const [archivErgebnis, setArchivErgebnis] = useState<{ rechnungen: number; stornos: number; hinweise: number } | null>(null);
+  const [archivErgebnis, setArchivErgebnis] = useState<{
+    rechnungen: number; stornos: number; angebote: number; scheine: number; mahnungen: number; hinweise: number;
+  } | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const [laufStand, setLaufStand] = useState(0);
   const [letzte, setLetzte] = useState<
@@ -139,15 +144,22 @@ export default function SicherungView() {
     setArchivErgebnis(null);
     setArchivStand(null);
     try {
-      const [rechnungen, kunden] = await Promise.all([
+      const [rechnungsliste, kunden, angebote, scheine, mahnbelege, mahnstufen, gemahnte] = await Promise.all([
         listInvoicesInRange(user.companyId, z.von, z.bis),
-        listCustomers(user.companyId),
+        listCustomers(user.companyId, Number.MAX_SAFE_INTEGER),
+        listQuotesInRange(user.companyId, z.von, z.bis),
+        listWorkSheetsForArchive(user.companyId, z.von, z.bis),
+        listMahnbelegeImZeitraum(user.companyId, z.von, z.bis),
+        listMahnbelegStufen(user.companyId),
+        listInvoicesWithReminderInRange(user.companyId, z.von, z.bis),
       ]);
+      const rechnungen = [...new Map([...rechnungsliste, ...gemahnte].map((i) => [i.id, i])).values()];
       const { belegArchiv, ersterBelegTag } = await import('@/features/invoices/belegArchiv');
       // „Alle Belege“ beginnt beim ersten Beleg, nicht am 01.01.2000 (Runde 3, G11).
-      const von = z.wert === 'alle' ? ersterBelegTag(rechnungen, z.bis) : z.von;
+      const weitere = { angebote, scheine, mahnbelege, mahnstufen };
+      const von = z.wert === 'alle' ? ersterBelegTag(rechnungen, z.bis, weitere) : z.von;
       const e = await belegArchiv({
-        company, rechnungen, kunden, von, bis: z.bis,
+        company, rechnungen, kunden, von, bis: z.bis, ...weitere,
         fortschritt: (fertig, gesamt) => setArchivStand({ fertig, gesamt }),
       });
       const url = URL.createObjectURL(e.blob);
@@ -156,7 +168,8 @@ export default function SicherungView() {
       a.download = `${company.name}-Belegarchiv-${z.wert === 'alle' ? `${von}-bis-${z.bis}` : z.wert}.zip`;
       a.click();
       URL.revokeObjectURL(url);
-      setArchivErgebnis({ rechnungen: e.rechnungen, stornos: e.stornos, hinweise: e.hinweise.length });
+      setArchivErgebnis({ rechnungen: e.rechnungen, stornos: e.stornos, angebote: e.angebote,
+        scheine: e.scheine, mahnungen: e.mahnungen, hinweise: e.hinweise.length });
     } catch (e) {
       setFehler(e instanceof Error ? e.message : 'Das Belegarchiv konnte nicht erstellt werden.');
     } finally {
@@ -257,11 +270,13 @@ export default function SicherungView() {
         title="Belegarchiv"
         hint={
           <>
-            Alle Rechnungen und Stornorechnungen des Zeitraums als PDF, dazu das
+            Rechnungen, Stornorechnungen, Angebote, unterschriebene und stornierte Scheine
+            sowie gespeicherte Originalmahnungen des Zeitraums als PDF, dazu das
             Rechnungsausgangsbuch als CSV, in einer ZIP-Datei. Rechnungen sind sieben Jahre
             aufzubewahren (§ 132 BAO), auch nach dem Ende des Senklot-Vertrags; das Archiv lässt
             sich ohne Senklot öffnen. Die PDFs entstehen aus den gespeicherten Rechnungen, genau wie
-            beim erneuten Laden. Was fehlt, etwa eine nie ausgestellte Stornorechnung, steht in der
+            beim erneuten Laden. Frühere Mahnungen wurden nicht als PDF gespeichert;
+            fehlende Originale werden nicht nachberechnet. Was fehlt, steht in der
             Datei „Hinweise.txt“.
           </>
         }
@@ -290,6 +305,8 @@ export default function SicherungView() {
           <p className="mt-3 text-sm text-ink">
             Im Archiv: {archivErgebnis.rechnungen} {archivErgebnis.rechnungen === 1 ? 'Rechnung' : 'Rechnungen'},{' '}
             {archivErgebnis.stornos} {archivErgebnis.stornos === 1 ? 'Stornorechnung' : 'Stornorechnungen'}
+            , {archivErgebnis.angebote} Angebote, {archivErgebnis.scheine} Scheine,
+            {' '}{archivErgebnis.mahnungen} Originalmahnungen
             {archivErgebnis.hinweise > 0
               ? `. ${archivErgebnis.hinweise === 1 ? 'Ein Hinweis steht' : `${archivErgebnis.hinweise} Hinweise stehen`} in „Hinweise.txt“.`
               : '.'}

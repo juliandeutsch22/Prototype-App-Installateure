@@ -127,9 +127,12 @@ export function mahnungFesthalten(
   daten: {
     stufe: number; gemahntAm: string; frist: string; spesen: number;
     standJetzt: Invoice['paymentStatus'];
+    pdfBase64?: string;
   },
 ): Promise<void> {
   return pg.mahnungFesthalten(id, daten);
 }
+
+export const listInvoicesWithReminderInRange = pg.listInvoicesWithReminderInRange;
 
 export type { WithId };
