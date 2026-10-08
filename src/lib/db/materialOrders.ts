@@ -10,6 +10,7 @@ export type NewMaterialOrder = Omit<MaterialOrder, 'id' | 'companyId' | 'created
 export const listOrdersPage = pg.listOrdersPage;
 export const listPurchasingOrders = pg.listPurchasingOrders;
 export const subscribeOrderChanges = pg.subscribeOrderChanges;
+export const setOrderUrgent = pg.setOrderUrgent;
 
 export function subscribeOwnOrders(
   companyId: string,

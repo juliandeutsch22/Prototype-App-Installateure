@@ -7,6 +7,7 @@ import {
   listPurchasingOrders,
   subscribeOrderChanges,
   updateOrderStatus,
+  setOrderUrgent,
   deleteOrder,
   ORDER_STATUS_FLOW,
 } from '@/lib/db/materialOrders';
@@ -424,6 +425,20 @@ export default function AdminOrdersView() {
     }
   }
 
+  async function prioritaetSetzen(o: WithId<MaterialOrder>) {
+    setBusyId(o.id);
+    try {
+      await setOrderUrgent(o.id, !o.isUrgent);
+      await liste.neuLaden();
+      void postenNeuLaden();
+      toast.success(o.isUrgent ? 'Eilmarkierung entfernt' : 'Als eilig markiert');
+    } catch (err) {
+      toast.error(grundAus(err, 'Die Priorität konnte nicht gespeichert werden.'));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function fragEinkauf(o: WithId<MaterialOrder>) {
     // Vorschlag: bei wem der Artikel zuletzt einen Preis hatte. Ein Vorschlag
     // — der Lagerist sieht ihn und kann ihn ändern.
@@ -834,6 +849,13 @@ export default function AdminOrdersView() {
             )}
 
             <LotVerlauf name="Verlauf der Anforderung" punkte={verlaufVon(offen, haendlerName(offen.supplierId))} />
+
+            {offen.transactionType !== 'return' && offen.status !== 'Erledigt' && (
+              <Button variant="secondary" loading={busyId === offen.id}
+                onClick={() => void prioritaetSetzen(offen)}>
+                {offen.isUrgent ? 'Eilmarkierung entfernen' : 'Als eilig markieren'}
+              </Button>
+            )}
 
             <div className="material-aktionen">
               {(() => {

@@ -37,6 +37,7 @@ let ladefehler: string | null = null;
 
 const statusSetzen = vi.fn();
 const loeschen = vi.fn();
+const eiligSetzen = vi.fn();
 
 /* Mit welcher ABFRAGE-Grenze zuletzt abonniert wurde. */
 let letzteHolgrenze = 0;
@@ -68,6 +69,7 @@ vi.mock('@/lib/db/materialOrders', () => ({
   subscribeOrderChanges: () => () => undefined,
   listPurchasingOrders: async () => anforderungen.filter((o) => o.beschaffung === 'einkauf' && o.status !== 'Erledigt'),
   updateOrderStatus: (...a: unknown[]) => statusSetzen(...a),
+  setOrderUrgent: (...a: unknown[]) => eiligSetzen(...a),
   deleteOrder: (...a: unknown[]) => loeschen(...a),
 }));
 
@@ -125,6 +127,10 @@ beforeEach(() => {
   statusSetzen.mockResolvedValue(undefined);
   loeschen.mockReset();
   loeschen.mockResolvedValue(undefined);
+  eiligSetzen.mockReset();
+  eiligSetzen.mockImplementation(async (id: string, eilig: boolean) => {
+    anforderungen = anforderungen.map((o) => o.id === id ? { ...o, isUrgent: eilig } : o);
+  });
   ausLager.mockReset();
   ausLager.mockResolvedValue(undefined);
   aufEinkaufsliste.mockReset();
@@ -676,5 +682,35 @@ describe('Serversuche der Anforderungen', () => {
     await userEvent.type(suche, 'Seltene alte Kommission');
     expect(await screen.findByText('Material 250')).toBeInTheDocument();
     expect(screen.getByLabelText('Suche')).toHaveValue('Seltene alte Kommission');
+  });
+});
+
+describe('Priorität nachträglich ändern', () => {
+  it('markiert im Seitenfenster eilig und nimmt die Markierung wieder zurück', async () => {
+    anforderungen = [anforderung({ id: 'o1', status: 'Offen' })];
+    zeige();
+    const fenster = await oeffnen();
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Als eilig markieren' }));
+    await waitFor(() => expect(eiligSetzen).toHaveBeenCalledWith('o1', true));
+    await userEvent.click(await within(fenster).findByRole('button', { name: 'Eilmarkierung entfernen' }));
+    await waitFor(() => expect(eiligSetzen).toHaveBeenCalledWith('o1', false));
+    expect(statusSetzen).not.toHaveBeenCalled();
+    expect(ausLager).not.toHaveBeenCalled();
+  });
+  it('meldet einen Fehler und behält die bisherige Markierung', async () => {
+    eiligSetzen.mockRejectedValueOnce(new Error('Nicht gespeichert'));
+    anforderungen = [anforderung({ id: 'o1', status: 'Offen' })];
+    zeige();
+    const fenster = await oeffnen();
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Als eilig markieren' }));
+    expect(await screen.findByText('Nicht gespeichert')).toBeInTheDocument();
+    expect(within(fenster).getByRole('button', { name: 'Als eilig markieren' })).toBeEnabled();
+  });
+  it('bietet Erledigtem keine Prioritätsänderung an', async () => {
+    anforderungen = [anforderung({ id: 'o1', status: 'Erledigt' })];
+    zeige();
+    await userEvent.click(await bereich(/^Erledigt/));
+    const fenster = await oeffnen();
+    expect(within(fenster).queryByRole('button', { name: /Als eilig|Eilmarkierung/ })).toBeNull();
   });
 });

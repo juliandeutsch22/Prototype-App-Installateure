@@ -16,6 +16,11 @@ import { anlegenOhneEmpfang as fachAnlegen } from './ohneEmpfang';
 
 const ANFORDERUNGEN = 'material_orders';
 
+export async function setOrderUrgent(orderId: string, eilig: boolean): Promise<void> {
+  const { error } = await derClient().rpc('anforderung_eilig', { p_id: orderId, p_eilig: eilig });
+  if (error) throw new Error(error.message);
+}
+
 export function listOrdersPage(companyId: string, suche: string,
   ansicht: 'aktiv' | 'archiv' | 'retouren' | 'einkauf', vor?: SeitenZeiger | null,
   auswahl: { baustelle?: string; filter?: string | null } = {}) {
