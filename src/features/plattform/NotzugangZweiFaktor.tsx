@@ -8,7 +8,7 @@ import { ErrorState } from '@/components/States';
 
 /**
  * TELEFON WEG, CODES WEG (Runde 3, H1): der Support entfernt den zweiten
- * Faktor eines Leitungskontos — nur über einen offenen Notzugang, mit Grund
+ * Faktor eines Leitungs- oder Buchhaltungskontos — nur über einen offenen Notzugang, mit Grund
  * und Rückruf an die Nummer aus Firmenbuch oder Gewerberegister, wie beim
  * Passwort. Die Person richtet ihn bei der nächsten Anmeldung neu ein, wenn
  * ihr Betrieb ihn verlangt. Die Grenzen stehen in der Datenbank
@@ -57,11 +57,11 @@ export default function NotzugangZweiFaktor({ kennung, name }: { kennung: string
   }
 
   if (ladeFehler) return <ErrorState message={ladeFehler} />;
-  if (!konten) return <p className="text-sm text-ink-muted">Leitungskonten werden geladen …</p>;
+  if (!konten) return <p className="text-sm text-ink-muted">Konten werden geladen …</p>;
 
   return (
     <div className="space-y-3 rounded-sm border border-line p-3">
-      <p className="text-sm font-normal text-ink">Zwei-Faktor-Anmeldung eines Leitungskontos zurücksetzen — {name}</p>
+      <p className="text-sm font-normal text-ink">Zwei-Faktor-Anmeldung eines Leitungs- oder Buchhaltungskontos zurücksetzen — {name}</p>
       {erledigt !== null && (
         <p className="text-sm text-ink" role="status">
           Zurückgesetzt{erledigt ? ` für ${erledigt}` : ''}. Alle Sitzungen sind beendet, der Vorgang steht im
@@ -69,7 +69,7 @@ export default function NotzugangZweiFaktor({ kennung, name }: { kennung: string
         </p>
       )}
       {konten.length === 0 ? (
-        <p className="text-sm text-ink-muted">Kein aktives Leitungskonto dieses Betriebs hat einen zweiten Faktor.</p>
+        <p className="text-sm text-ink-muted">Kein aktives Leitungs- oder Buchhaltungskonto dieses Betriebs hat einen zweiten Faktor.</p>
       ) : (
         <form onSubmit={zuruecksetzen} className="space-y-3">
           <SelectField id="nz-konto" label="Konto" value={uid} onChange={(e) => setUid(e.target.value)} required pflicht>

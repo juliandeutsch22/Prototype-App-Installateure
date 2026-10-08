@@ -5,7 +5,7 @@
  * und gibt danach bei jeder Anmeldung den sechsstelligen Code ein.
  *
  * WER ES BRAUCHT, entscheidet die Datenbank (`app.zweiter_faktor_verlangt`):
- * das Plattformkonto immer, die Leitung eines Betriebs mit eingeschalteter
+ * das Plattformkonto immer, Leitung und Buchhaltung eines Betriebs mit eingeschalteter
  * Pflicht, und jedes Konto, das einen zweiten Faktor eingerichtet hat. Ohne
  * ihn liefert jede Zeilenregel nichts. Diese Datei sagt der Oberfläche nur,
  * welche Seite sie zeigen muss.
@@ -16,19 +16,19 @@ import { supabaseClient } from '@/lib/supabase';
 export type ZweiterFaktorBedarf = 'keiner' | 'pruefen' | 'einrichten';
 
 export interface ZweiterFaktorStand {
-  /** Wird der Person die Einrichtung angeboten (Leitung, Plattform)? */
+  /** Wird der Person die Einrichtung angeboten (Leitung, Buchhaltung, Plattform)? */
   angeboten: boolean;
   /** Muss sie einen haben? */
   pflicht: boolean;
   plattform: boolean;
-  /** Ist im Betrieb die Pflicht für die Leitung eingeschaltet? */
+  /** Ist im Betrieb die Pflicht für Leitung und Buchhaltung eingeschaltet? */
   betriebPflicht: boolean;
   eingerichtet: boolean;
   codesOffen: number;
   codeZuletztVerwendet: string | null;
 }
 
-const LEITUNG = ['Administrator', 'Geschäftsführung'];
+const FAKTOR_ROLLEN = ['Administrator', 'Geschäftsführung', 'Buchhaltung'];
 
 function fehlerText(e: { message: string } | null | undefined, sonst: string): string {
   return e?.message || sonst;
@@ -53,8 +53,8 @@ export async function zweiterFaktorStand(): Promise<ZweiterFaktorStand> {
  * Welche Seite nach dem Passwort kommt.
  *
  * MEIST OHNE NETZ: Stufe der Sitzung und eingerichtete Faktoren stehen in der
- * Sitzung selbst. Nur wer zur Leitung gehört und noch keinen Faktor hat,
- * kostet eine Abfrage — ob sein Betrieb ihn verlangt, weiss nur die
+ * Sitzung selbst. Nur für Leitung und Buchhaltung ohne eingerichteten Faktor
+ * braucht es eine Abfrage — ob sein Betrieb ihn verlangt, weiss nur die
  * Datenbank. Scheitert sie (kein Netz), geht es ohne weiter: die Grenze steht
  * ohnehin in der Datenbank, und dort fiele dann jede Abfrage leer aus.
  */
@@ -67,7 +67,7 @@ export async function zweiterFaktorBedarf(): Promise<ZweiterFaktorBedarf> {
   const { data: s } = await c.auth.getSession();
   const meta = (s.session?.user?.app_metadata ?? {}) as Record<string, unknown>;
   if (meta.plattform_admin === true) return 'einrichten';
-  if (!LEITUNG.includes(String(meta.role ?? ''))) return 'keiner';
+  if (!FAKTOR_ROLLEN.includes(String(meta.role ?? ''))) return 'keiner';
   try {
     const stand = await Promise.race([
       zweiterFaktorStand(),

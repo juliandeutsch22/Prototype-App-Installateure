@@ -13,9 +13,9 @@ import { totp } from '../totp';
 
 const EMAIL = 'plattform-zf@durchklick.test';
 
-async function anmeldenMitPasswort(page: Page): Promise<void> {
+async function anmeldenMitPasswort(page: Page, email = EMAIL): Promise<void> {
   await page.goto('/');
-  await page.getByLabel('E-Mail').fill(EMAIL);
+  await page.getByLabel('E-Mail').fill(email);
   await page.getByLabel('Passwort').fill(PASSWORT);
   await page.getByRole('button', { name: 'Anmelden' }).click();
   await expect(page.getByRole('heading', { name: 'Zwei-Faktor-Anmeldung' })).toBeVisible({ timeout: 20_000 });
@@ -85,4 +85,44 @@ test('Plattformkonto: ohne zweiten Faktor kein Zugang, ein Wiederherstellungscod
   await page.getByRole('button', { name: 'Code einlösen' }).click();
   await expect(page.getByText('Dieser Wiederherstellungscode gilt nicht (mehr).')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Betrieb anlegen' })).toHaveCount(0);
+});
+
+test('Buchhaltung: Betriebspflicht führt zur Einrichtung und danach wieder zur Codeprüfung', async ({ page }) => {
+  const betrieb = 'durchklick-zf-buch';
+  const email = 'buchhaltung-zf@durchklick.test';
+  const alt = (await admin.auth.admin.listUsers({ perPage: 1000 })).data.users.find((u) => u.email === email);
+  if (alt) expect((await admin.auth.admin.deleteUser(alt.id)).error).toBeNull();
+  expect((await admin.from('companies').upsert({ id: betrieb, name: 'Faktorprüfung', zwei_faktor_pflicht: true })).error).toBeNull();
+  const konto = await admin.auth.admin.createUser({
+    email, password: PASSWORT, email_confirm: true,
+    app_metadata: { company_id: betrieb, role: 'Buchhaltung', active: true },
+  });
+  expect(konto.error).toBeNull();
+  const uid = konto.data.user!.id;
+  try {
+    expect((await admin.from('users').insert({ id: uid, company_id: betrieb, name: 'Berta Faktor', email, role: 'Buchhaltung', active: true })).error).toBeNull();
+    await anmeldenMitPasswort(page, email);
+    await expect(page.getByText('Für dieses Konto ist ein zweiter Faktor Pflicht')).toBeVisible();
+    const erste = await einrichten(page);
+    // Wie beim normalen Anmelden: die Startrunde darf nicht durch Navigation abbrechen.
+    await expect(page.getByRole('heading', { name: 'Zwei-Faktor-Anmeldung' })).toHaveCount(0, { timeout: 20_000 });
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 20_000 });
+    await page.goto('/invoices');
+    await expect(page.getByRole('heading', { name: 'Rechnungen', exact: true })).toBeVisible();
+    await page.goto('/settings/meldungen');
+    await abmelden(page);
+    await anmeldenMitPasswort(page, email);
+    await page.getByLabel('Code aus der App').fill(totp(erste.geheimnis));
+    await page.getByRole('button', { name: 'Anmelden' }).click();
+    // Wie beim normalen Anmelden: die Startrunde darf nicht durch Navigation abbrechen.
+    await expect(page.getByRole('heading', { name: 'Zwei-Faktor-Anmeldung' })).toHaveCount(0, { timeout: 20_000 });
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 20_000 });
+    await page.goto('/invoices');
+    await expect(page.getByRole('heading', { name: 'Rechnungen', exact: true })).toBeVisible();
+  } finally {
+    expect((await admin.auth.admin.deleteUser(uid)).error).toBeNull();
+    expect((await admin.from('companies').delete().eq('id', betrieb)).error).toBeNull();
+  }
 });
