@@ -26,6 +26,7 @@ import RechtLinks from '@/components/RechtLinks';
 import { SeitenHilfeProvider } from '@/components/SeitenHilfe';
 import { useDarstellung } from '@/lib/darstellung';
 import Suchfenster from './Suchfenster';
+import { hatOffenesFenster } from '@/components/fokusFalle';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { offeneVormerkungen } from '@/lib/db/pg/ohneEmpfang';
 import { rolleAnzeige } from '@/lib/rolleAnzeige';
@@ -175,6 +176,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     const taste = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k') {
         e.preventDefault();
+        if (hatOffenesFenster()) return;
         setSucheOffen(true);
       }
     };

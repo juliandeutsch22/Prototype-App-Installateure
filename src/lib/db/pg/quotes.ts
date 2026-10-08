@@ -10,7 +10,7 @@
  * `public.angebot_speichern` zusammen geschrieben.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Quote, InvoiceDiscount } from '@/types';
+import type { Quote, InvoiceDiscount, Abrechnungsart } from '@/types';
 import { abfragen, derClient, loeschen, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
 import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
@@ -164,6 +164,19 @@ export function createQuote(companyId: string, q: NewQuote): Promise<string> {
 
 export async function updateQuote(id: string, data: Partial<NewQuote>): Promise<void> {
   await speichern(id, data);
+}
+
+/** Annahme und Baustelle gemeinsam — gegen den aktuellen Stand des Angebots. */
+export async function acceptQuote(
+  companyId: string, id: string, praefix: string, abrechnung: Abrechnungsart,
+): Promise<{ projectNumber: string }> {
+  void companyId;
+  const { data, error } = await derClient().rpc('angebot_annehmen', {
+    p_id: id, p_praefix: praefix, p_abrechnung: abrechnung,
+  });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error('Die Baustellennummer konnte nicht vergeben werden.');
+  return { projectNumber: String(data) };
 }
 
 /**

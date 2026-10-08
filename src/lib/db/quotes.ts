@@ -8,7 +8,7 @@
  * damit gegen eine Zahl, die niemand nachvollziehen kann und der deshalb auch
  * niemand traut.
  */
-import type { Quote } from '@/types';
+import type { Quote, Abrechnungsart } from '@/types';
 import type { WithId } from './core';
 import * as pg from './pg/quotes';
 
@@ -43,6 +43,12 @@ export function createQuote(companyId: string, q: NewQuote): Promise<string> {
 
 export function updateQuote(id: string, data: Partial<NewQuote>): Promise<void> {
   return pg.updateQuote(id, data);
+}
+
+export function acceptQuote(
+  companyId: string, id: string, praefix: string, abrechnung: Abrechnungsart,
+): Promise<{ projectNumber: string }> {
+  return pg.acceptQuote(companyId, id, praefix, abrechnung);
 }
 
 export function deleteQuote(id: string): Promise<void> {

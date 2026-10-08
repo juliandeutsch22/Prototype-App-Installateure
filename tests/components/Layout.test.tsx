@@ -39,6 +39,7 @@ vi.mock('@/lib/db/offenePosten', () => ({
 }));
 
 const { default: Layout } = await import('@/app/Layout');
+const { default: ConfirmDialog } = await import('@/components/ConfirmDialog');
 const { postenZuruecksetzen } = await import('@/app/offenePosten');
 
 function zeige() {
@@ -56,6 +57,17 @@ beforeEach(() => {
   postenZuruecksetzen();
   ladenMock.mockReset();
   ladenMock.mockResolvedValue(undefined);
+});
+
+it('öffnet mit Strg + K keine Suche hinter einer offenen Rückfrage', async () => {
+  const abbrechen = vi.fn();
+  render(<MemoryRouter><Layout>
+    <ConfirmDialog open title="Baustelle löschen?" onCancel={abbrechen} onConfirm={vi.fn()} />
+  </Layout></MemoryRouter>);
+  await userEvent.keyboard('{Control>}k{/Control}');
+  expect(screen.queryByRole('dialog', { name: 'Suchen oder springen' })).toBeNull();
+  await userEvent.keyboard('{Escape}');
+  expect(abbrechen).toHaveBeenCalledTimes(1);
 });
 
 describe('Wessen Marke in der Hülle steht', () => {

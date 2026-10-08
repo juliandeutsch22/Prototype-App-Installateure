@@ -61,6 +61,15 @@ bewusste Ausnahme, dokumentiert in `docs/design/linie.md`).
 
 ## B. Größerer Umbau, eigener Auftrag
 
+**Abhängigkeitsprüfung 08.10.2026:** Die Nullmeldung vom 30.09. ist inzwischen
+historisch. `npm audit` nennt 18 betroffene Pakete, ohne Entwicklungswerkzeuge
+4. Die vier liegen in der ungenutzten Firestore/gRPC-Kette des Firebase-SDKs;
+im Browser werden nur App-Initialisierung und Messaging ausgeliefert. Die
+übrigen Meldungen betreffen Entwicklungswerkzeuge. Reichweite und die fünf
+Advisories stehen in [der Projektanalyse](projektanalyse-2026-10-08.md).
+Geprüfte Bibliothekswartung bleibt offen; keine pauschalen Hauptversionswechsel
+oder der von npm vorgeschlagene Firebase-Downgrade im Zuge der Funktionskorrekturen.
+
 | # | Punkt | Warum offen | Vorschlag |
 |---|---|---|---|
 | B10 | **„Pro Element genau eine Klasse“** gilt nur für die Bausteine; das übrige Markup ist Tailwind | Umschreiben wäre eine Formatierungswelle über rund 56 000 Zeilen | Ansicht für Ansicht, wenn sie ohnehin angefasst wird |

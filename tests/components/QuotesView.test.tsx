@@ -3,7 +3,7 @@ import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
-import type { Customer, Quote } from '@/types';
+import type { Abrechnungsart, Customer, Quote } from '@/types';
 
 /**
  * Das Angebot schließt die Kette nach vorne — und genau eine Zahl daraus
@@ -28,12 +28,13 @@ const kunden: (Customer & { id: string })[] = [
  * Signatur steht deshalb als Typ da, ohne unbenutzte Bezeichner.
  */
 const createQuote = vi.fn<(a0: string, a1: unknown) => Promise<string>>(async () => 'q1');
-const createProject = vi.fn<(a0: string, a1: unknown) => Promise<string>>(async () => 'p1');
+const acceptQuote = vi.fn<(c: string, id: string, p: string, a: Abrechnungsart) => Promise<{ projectNumber: string }>>(async () => ({ projectNumber: 'B-2026-0012' }));
 const updateQuote = vi.fn<(a0: string, a1: unknown) => Promise<void>>(async () => undefined);
 const angebote: (Quote & { id: string })[] = [];
 
 vi.mock('@/lib/db/quotes', () => ({
   listRecentQuotes: vi.fn(async () => angebote),
+  acceptQuote: (c: string, id: string, p: string, a: Abrechnungsart) => acceptQuote(c, id, p, a),
   createQuote: (c: string, q: unknown) => createQuote(c, q),
   updateQuote: (id: string, d: unknown) => updateQuote(id, d),
   deleteQuote: vi.fn(async () => undefined),
@@ -46,20 +47,6 @@ const sucheKatalog = vi.fn<(c: string, b: string) => Promise<unknown[]>>(async (
   { id: 'm2', companyId: 'perl', name: 'Gastherme alt', unit: 'Stk', verkaufspreis: 1, stock: 0, ausgelaufen: true },
 ]);
 vi.mock('@/lib/db/materials', () => ({ sucheKatalog: (c: string, b: string) => sucheKatalog(c, b) }));
-let aktiveBaustellen: { projectNumber: string }[] = [];
-const reserveProjectNumber = vi.fn<(a0: string, a1: unknown) => Promise<string | null>>(
-  async () => 'B-2026-0012',
-);
-/** Baustellen, die es zu einer Nummer schon gibt — für das zweite Annehmen. */
-let bestehende: { projectNumber: string }[] = [];
-vi.mock('@/lib/db/projects', () => ({
-  createProject: (c: string, p: unknown) => createProject(c, p),
-  listActiveProjects: vi.fn(async () => aktiveBaustellen),
-  listProjectsByNumbers: vi.fn(async (_c: string, nummern: string[]) =>
-    bestehende.filter((b) => nummern.includes(b.projectNumber))),
-  reserveProjectNumber: (c: string, o: unknown) => reserveProjectNumber(c, o),
-}));
-
 const authWert = {
   user: {
     uid: 'chef',
@@ -104,12 +91,8 @@ async function formOeffnen() {
 
 beforeEach(() => {
   createQuote.mockClear();
-  createProject.mockClear();
   updateQuote.mockClear();
-  reserveProjectNumber.mockClear();
-  createProject.mockReset().mockResolvedValue('p1');
-  aktiveBaustellen = [];
-  bestehende = [];
+  acceptQuote.mockReset().mockResolvedValue({ projectNumber: 'B-2026-0012' });
   angebote.length = 0;
   // Bearbeiten scrollt zum Formular hinauf; jsdom kennt das nicht.
   window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
@@ -303,7 +286,7 @@ describe('Angebot kalkulieren', () => {
     expect(createQuote).not.toHaveBeenCalled();
   });
 
-  it('legt beim Annehmen die Baustelle MIT Stundenbudget an', async () => {
+  it('nimmt das bestätigte Angebot über den gemeinsamen Serverablauf an', async () => {
     angebote.push({
       id: 'q1',
       companyId: 'perl',
@@ -328,25 +311,8 @@ describe('Angebot kalkulieren', () => {
 
     await annehmenBestaetigt(nutzer);
 
-    /**
-     * Der eigentliche Zweck des ganzen Schritts: das Stundenbudget stammt aus
-     * der Kalkulation und nicht aus einem zweiten Mal Abtippen. Erst damit
-     * misst die Budget-Ampel gegen eine Zahl mit Herkunft.
-     */
-    const projekt = createProject.mock.calls[0]?.[1] as unknown as {
-      estimatedHours?: number;
-      projectNumber: string;
-      customerId?: string;
-    };
-    expect(projekt.estimatedHours).toBe(20);
-    // Die Nummer kommt aus dem Zähler der Baustellen, nicht aus dem Angebot
-    // (Launch-Check, K6) — zuordenbar bleibt es über die Kennung.
-    expect(projekt.projectNumber).toBe('B-2026-0012');
-    expect(projekt.customerId).toBe('k1');
-    expect(updateQuote).toHaveBeenCalledWith('q1', {
-      status: 'Angenommen',
-      projectNumber: 'B-2026-0012',
-    });
+    expect(acceptQuote).toHaveBeenCalledWith('perl', 'q1', 'B', 'Pauschal');
+    expect(updateQuote).not.toHaveBeenCalled();
   });
 
   /*
@@ -407,8 +373,7 @@ describe('Angebot kalkulieren', () => {
     Baustellen davon nichts wusste. Jetzt vergibt ihn der Zähler — derselbe
     Weg wie bei jeder anderen Baustelle.
   */
-  it('nimmt die Nummer aus dem Zähler der Baustellen', async () => {
-    aktiveBaustellen = [{ projectNumber: 'B-2026-0007' }, { projectNumber: 'B-2026-0011' }];
+  it('zeigt die vom Server vergebene Baustellennummer', async () => {
     versendetesAngebot();
     const nutzer = userEvent.setup();
     zeichne();
@@ -416,11 +381,7 @@ describe('Angebot kalkulieren', () => {
     await annehmenBestaetigt(nutzer);
 
     await screen.findByText('Baustelle B-2026-0012 angelegt');
-    expect(reserveProjectNumber).toHaveBeenCalledWith('perl', { seedFrom: 0, praefix: 'B' });
-    const projekt = createProject.mock.calls[0]?.[1] as { projectNumber: string; estimatedHours?: number };
-    expect(projekt.projectNumber).toBe('B-2026-0012');
-    expect(projekt.estimatedHours).toBe(20);
-    expect(updateQuote).toHaveBeenCalledWith('q1', { status: 'Angenommen', projectNumber: 'B-2026-0012' });
+    expect(acceptQuote).toHaveBeenCalledWith('perl', 'q1', 'B', 'Pauschal');
   });
 
   it('fragt vorher — wer abbricht, legt nichts an (Launch-Check, M8)', async () => {
@@ -432,13 +393,12 @@ describe('Angebot kalkulieren', () => {
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent(/AN-2026-0007 wird angenommen/);
     await nutzer.click(within(dialog).getByRole('button', { name: 'Abbrechen' }));
-    expect(reserveProjectNumber).not.toHaveBeenCalled();
-    expect(createProject).not.toHaveBeenCalled();
+    expect(acceptQuote).not.toHaveBeenCalled();
     expect(updateQuote).not.toHaveBeenCalled();
   });
 
   it('meldet einen Fehler beim Anlegen, und das Angebot bleibt offen', async () => {
-    createProject.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    acceptQuote.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     versendetesAngebot();
     const nutzer = userEvent.setup();
     zeichne();
@@ -446,14 +406,8 @@ describe('Angebot kalkulieren', () => {
     await annehmenBestaetigt(nutzer);
 
     await screen.findByText(/Die Baustelle konnte nicht angelegt werden/);
-    /*
-      ANGENOMMEN IST ES NICHT — festgehalten ist nur die gezogene Nummer
-      (Prüflauf 25.09.2026, P2-19). Bis dahin stand hier „updateQuote nie
-      gerufen"; die Nummer am Angebot ist aber genau das, woran ein zweiter
-      Versuch die Baustelle wiederfindet, falls sie doch entstanden ist.
-    */
-    expect(updateQuote).not.toHaveBeenCalledWith('q1', expect.objectContaining({ status: 'Angenommen' }));
-    expect(updateQuote).toHaveBeenCalledWith('q1', { projectNumber: 'B-2026-0012' });
+    expect(updateQuote).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Annehmen → Baustelle' })).toBeEnabled();
   });
 
   /*
@@ -464,20 +418,18 @@ describe('Angebot kalkulieren', () => {
   it('legt beim zweiten Annehmen keine zweite Baustelle an', async () => {
     versendetesAngebot();
     angebote[0].projectNumber = 'B-2026-0012';
-    bestehende = [{ projectNumber: 'B-2026-0012' }];
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/AN-2026-0007/);
     await annehmenBestaetigt(nutzer);
 
     await screen.findByText(/Baustelle B-2026-0012 angelegt/);
-    expect(createProject).not.toHaveBeenCalled();
-    expect(reserveProjectNumber).not.toHaveBeenCalled();
-    expect(updateQuote).toHaveBeenCalledWith('q1', { status: 'Angenommen', projectNumber: 'B-2026-0012' });
+    expect(acceptQuote).toHaveBeenCalledWith('perl', 'q1', 'B', 'Pauschal');
+    expect(updateQuote).not.toHaveBeenCalled();
   });
 
   it('ohne Zähler keine geratene Nummer', async () => {
-    reserveProjectNumber.mockResolvedValueOnce(null);
+    acceptQuote.mockRejectedValueOnce(new Error('Die Baustellennummer konnte nicht vergeben werden.'));
     versendetesAngebot();
     const nutzer = userEvent.setup();
     zeichne();
@@ -485,34 +437,7 @@ describe('Angebot kalkulieren', () => {
     await annehmenBestaetigt(nutzer);
 
     await screen.findByText(/Baustellennummer konnte nicht vergeben werden/);
-    expect(createProject).not.toHaveBeenCalled();
-  });
-});
-
-describe('Aus dem Angebot wird die Baustelle', () => {
-  it('übernimmt die Anmerkungen als Auftragsumfang, mit Verweis aufs Angebot', async () => {
-    versendetesAngebot();
-    angebote[0].notes = 'Bad komplett erneuern:\n- WC tauschen\n- Dusche bodengleich';
-    const nutzer = userEvent.setup();
-    zeichne();
-    await screen.findByText(/AN-2026-0007/);
-    await annehmenBestaetigt(nutzer);
-
-    const projekt = createProject.mock.calls[0]?.[1] as { description?: string };
-    expect(projekt.description).toBe(
-      'Bad komplett erneuern:\n- WC tauschen\n- Dusche bodengleich\n\nAus Angebot AN-2026-0007',
-    );
-  });
-
-  it('schreibt ohne Anmerkungen nur den Verweis', async () => {
-    versendetesAngebot();
-    const nutzer = userEvent.setup();
-    zeichne();
-    await screen.findByText(/AN-2026-0007/);
-    await annehmenBestaetigt(nutzer);
-
-    const projekt = createProject.mock.calls[0]?.[1] as { description?: string };
-    expect(projekt.description).toBe('Aus Angebot AN-2026-0007');
+    expect(updateQuote).not.toHaveBeenCalled();
   });
 });
 
@@ -756,8 +681,7 @@ describe('Abrechnungsart beim Annehmen (M16)', () => {
     await nutzer.selectOptions(within(dialog).getByLabelText('Abrechnung der Baustelle'), 'Einheitspreis');
     expect(within(dialog).getByText(/Mengen kommen aus dem Aufmaß/)).toBeInTheDocument();
     await nutzer.click(within(dialog).getByRole('button', { name: 'Annehmen' }));
-    await waitFor(() => expect(createProject).toHaveBeenCalled());
-    expect(createProject.mock.calls[0][1]).toMatchObject({ billingMode: 'Einheitspreis' });
+    await waitFor(() => expect(acceptQuote).toHaveBeenCalledWith('perl', 'q1', 'B', 'Einheitspreis'));
   });
 
   it('Gegenprobe: ohne Wahl bleibt es Pauschal, wie bisher', async () => {
@@ -766,8 +690,7 @@ describe('Abrechnungsart beim Annehmen (M16)', () => {
     zeichne();
     await screen.findByRole('button', { name: 'Annehmen → Baustelle' });
     await annehmenBestaetigt(nutzer);
-    await waitFor(() => expect(createProject).toHaveBeenCalled());
-    expect(createProject.mock.calls[0][1]).toMatchObject({ billingMode: 'Pauschal' });
+    await waitFor(() => expect(acceptQuote).toHaveBeenCalledWith('perl', 'q1', 'B', 'Pauschal'));
   });
 });
 

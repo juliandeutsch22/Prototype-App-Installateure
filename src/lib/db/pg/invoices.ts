@@ -402,17 +402,29 @@ export async function listInvoicesForCustomer(
   customerId: string,
   projektIds: string[],
 ): Promise<WithId<Invoice>[]> {
-  // Die Kennungen stehen in einer `or`-Zeichenkette — nur, was wirklich eine
-  // Kennung ist, kommt hinein.
-  const ids = projektIds.filter((id) => KENNUNG.test(id));
+  const ids = [...new Set(projektIds.filter((id) => KENNUNG.test(id)))];
   if (!KENNUNG.test(customerId)) return [];
-  const teile = [`customer_id.eq.${customerId}`];
-  if (ids.length > 0) teile.push(`project_id.in.(${ids.join(',')})`);
-  const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
-    oder: teile.join(','),
+  const auswahl = {
     sortiere: { feld: 'invoiceDate', absteigend: true },
     grenze: RECHNUNGEN_JE_KUNDE,
-  });
+  };
+  // Eine lange OR-Adresse umgeht die Blockbildung im Kern und scheitert am
+  // Gateway. Hundert UUIDs bleiben unter dessen Grenze. Die 500 jüngsten je
+  // Teil enthalten auch die 500 jüngsten der Vereinigung (Datum, dann Kennung).
+  const abfragenTeile = [abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+    ...auswahl, wo: [{ art: 'gleich', feld: 'customerId', wert: customerId }],
+  })];
+  for (let i = 0; i < ids.length; i += 100) {
+    abfragenTeile.push(abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+      ...auswahl, wo: [{ art: 'in', feld: 'projectId', werte: ids.slice(i, i + 100) }],
+    }));
+  }
+  const teile = await Promise.all(abfragenTeile);
+  const eindeutig = new Map(teile.flat().map((r) => [r.id, r]));
+  const koepfe = [...eindeutig.values()].sort((a, b) =>
+    a.invoiceDate === b.invoiceDate ? (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+      : a.invoiceDate > b.invoiceDate ? -1 : 1,
+  ).slice(0, RECHNUNGEN_JE_KUNDE);
   return zusammensetzen(koepfe, companyId);
 }
 

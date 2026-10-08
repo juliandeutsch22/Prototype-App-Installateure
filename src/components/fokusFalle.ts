@@ -41,6 +41,11 @@ interface Optionen {
 /** Die offenen Fallen, die zuletzt geöffnete zuoberst. */
 const stapel: RefObject<HTMLElement>[] = [];
 
+/** Globale Tastenkürzel dürfen keinen zweiten Dialog hinter dem aktiven öffnen. */
+export function hatOffenesFenster(): boolean {
+  return stapel.length > 0;
+}
+
 const FOKUSSIERBAR = [
   'a[href]',
   'button:not([disabled])',

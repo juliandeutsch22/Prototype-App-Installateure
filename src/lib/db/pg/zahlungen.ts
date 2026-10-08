@@ -34,7 +34,7 @@ export function listZahlungen(companyId: string, invoiceId: string, max = 100) {
  * fünfzig zeigt, wäre im Journal ein Fehler und keine Kürzung.
  */
 export function listZahlungenImZeitraum(
-  companyId: string, von: string, bis: string, max = 2000,
+  companyId: string, von: string, bis: string, max?: number,
 ) {
   return abfragen<Zahlungseingang>(ZAHLUNGEN, companyId, {
     wo: [

@@ -105,4 +105,38 @@ describe('Suchen oder springen', () => {
     await userEvent.keyboard('{Escape}');
     expect(zu).toHaveBeenCalledTimes(1);
   });
+
+  it('entfernt alte Datentreffer sofort, wenn der Suchbegriff wechselt', async () => {
+    nutzer = { ...nutzer, role: 'Geschäftsführung' };
+    zeige();
+    const feld = screen.getByRole('combobox');
+    await userEvent.type(feld, 'Huber');
+    await screen.findByRole('option', { name: /Familie Huber Gleisdorf/ });
+    await userEvent.type(feld, 'x');
+    expect(screen.queryByRole('option', { name: /Familie Huber Gleisdorf/ })).toBeNull();
+  });
+
+  it('beendet die Ladeanzeige beim Leeren einer noch laufenden Suche', async () => {
+    nutzer = { ...nutzer, role: 'Geschäftsführung' };
+    let fertig!: (daten: []) => void;
+    kundenSuche.mockImplementationOnce(() => new Promise<[]>((r) => { fertig = r; }));
+    zeige();
+    const feld = screen.getByRole('combobox');
+    await userEvent.type(feld, 'Huber');
+    await screen.findByRole('status');
+    await waitFor(() => expect(kundenSuche).toHaveBeenCalled());
+    await userEvent.clear(feld);
+    expect(screen.queryByRole('status')).toBeNull();
+    fertig([]);
+  });
+
+  it('nennt eine gescheiterte Suche und behält die erfolgreichen Treffer', async () => {
+    nutzer = { ...nutzer, role: 'Geschäftsführung' };
+    kundenSuche.mockRejectedValueOnce(new Error('Verbindung unterbrochen'));
+    zeige();
+    await userEvent.type(screen.getByRole('combobox'), 'Huber');
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Kunden.*nicht.*geladen/);
+    expect(screen.getByRole('option', { name: /2026-014/ })).toBeInTheDocument();
+    expect(screen.queryByText('Nichts gefunden.')).toBeNull();
+  });
 });

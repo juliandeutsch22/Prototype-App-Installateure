@@ -719,11 +719,22 @@ export default function InvoicesView() {
     if (!user || nurLesen) return;
     let weg = false;
     listZahlungenImZeitraum(user.companyId, monatsErster, todayStr())
-      .then((z) => {
+      .then(async (z) => {
         if (weg) return;
         // Zahlungen auf eine stornierte Rechnung sind Guthaben des Kunden, keine
         // beglichene Forderung (Launch-Check, M13) — sie zählen hier nicht.
-        const storniert = new Set(invoices.filter((i) => i.paymentStatus === 'Storniert').map((i) => i.id));
+        const nachId = new Map(invoices.map((i) => [i.id, i]));
+        const fehlend = [...new Set(z.filter((x) => x.art !== 'Skonto')
+          .map((x) => x.invoiceId).filter((id) => !nachId.has(id)))];
+        // Auch eine ältere Rechnung kann heute storniert sein. Die jüngsten
+        // fünfzig allein entscheiden nicht, ob ihr Eingang eine Zahlung ist.
+        if (fehlend.length) {
+          const weitere = await listInvoicesByIds(user.companyId, fehlend);
+          for (const i of weitere) nachId.set(i.id, i);
+          if (fehlend.some((id) => !nachId.has(id))) throw new Error('Rechnungsstand fehlt');
+        }
+        if (weg) return;
+        const storniert = new Set([...nachId.values()].filter((i) => i.paymentStatus === 'Storniert').map((i) => i.id));
         const summe = z
           .filter((x) => x.art !== 'Skonto' && !storniert.has(x.invoiceId))
           .reduce((s, x) => s + (Number(x.betrag) || 0), 0);

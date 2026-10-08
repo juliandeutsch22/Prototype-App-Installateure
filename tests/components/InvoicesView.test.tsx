@@ -93,6 +93,7 @@ const reihenfolge: string[] = [];
 */
 let offene: (Invoice & { id: string })[] = [];
 let imZeitraum: (Invoice & { id: string })[] = [];
+const rechnungenNachId = vi.fn<(...a: unknown[]) => Promise<(Invoice & { id: string })[]>>(async () => []);
 const listUnpaidInvoices = vi.fn(async () => offene);
 /** Was auf dieser Baustelle schon verrechnet ist — Grundlage des Abzugs. */
 let derBaustelle: (Invoice & { id: string })[] = [];
@@ -146,6 +147,7 @@ vi.mock('@/lib/db/invoices', async () => {
       ältesten Forderungen nicht.
     */
     listUnpaidInvoices: () => listUnpaidInvoices(),
+    listInvoicesByIds: (...a: unknown[]) => rechnungenNachId(...a),
     /*
       Und der Buchhaltungs-Export holt seinen Zeitraum selbst, statt die
       geladene Liste zu filtern. Der Doppelgänger gibt zurück, was der Test
@@ -373,6 +375,8 @@ async function bisZurVorschau(art?: string) {
 }
 
 beforeEach(() => {
+  rechnungenNachId.mockReset().mockResolvedValue([]);
+  zahlungenImMonat.mockReset().mockResolvedValue([]);
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
   rechnungen = [];
@@ -2873,6 +2877,32 @@ describe('Der Aussteller auf der Rechnung', () => {
  * zurückgehört.
  */
 describe('Die Kennzahl „Bezahlt“', () => {
+  it('zählt auch auf einer älteren, nicht geladenen Rechnung kein Stornoguthaben', async () => {
+    zahlungenImMonat.mockResolvedValue([
+      { id: 'z-alt', invoiceId: 'alt', datum: '2026-10-08', betrag: 200, art: 'Überweisung' },
+    ]);
+    rechnungenNachId.mockResolvedValue([
+      { id: 'alt', paymentStatus: 'Storniert' } as Invoice & { id: string },
+    ]);
+    zeige();
+    const kachel = (await screen.findByText('Bezahlt im Monat', { selector: 'p, span, div, dt' })).parentElement!;
+    await waitFor(() => expect(kachel).toHaveTextContent('€ 0,00'));
+    expect(kachel).not.toHaveTextContent('€ 200,00');
+    expect(rechnungenNachId).toHaveBeenCalledWith('perl', ['alt']);
+  });
+
+  it('zählt eine Zahlung auf eine ältere gültige Rechnung weiterhin mit', async () => {
+    zahlungenImMonat.mockResolvedValue([
+      { id: 'z-alt', invoiceId: 'alt', datum: '2026-10-08', betrag: 200, art: 'Überweisung' },
+    ]);
+    rechnungenNachId.mockResolvedValue([
+      { id: 'alt', paymentStatus: 'Teilbezahlt' } as Invoice & { id: string },
+    ]);
+    zeige();
+    const kachel = (await screen.findByText('Bezahlt im Monat', { selector: 'p, span, div, dt' })).parentElement!;
+    await waitFor(() => expect(kachel).toHaveTextContent('€ 200,00'));
+  });
+
   it('zählt kein Guthaben — weder auf einem Storno noch als Überzahlung', async () => {
     rechnungen = [
       { id: 's', invoiceNumber: 'RE-2026-1500', projectNumber: '2026-042', customerName: 'Max', paymentStatus: 'Storniert', totalBrutto: 504, bezahltBetrag: 200 },

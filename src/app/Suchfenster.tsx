@@ -39,6 +39,7 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
   const [begriff, setBegriff] = useState('');
   const [daten, setDaten] = useState<Treffer[]>([]);
   const [laedt, setLaedt] = useState(false);
+  const [fehler, setFehler] = useState<string[]>([]);
   const [an, setAn] = useState(0);
   const fenster = useRef<HTMLDivElement>(null);
   useFokusFalle(fenster, offen, { zurueckGeben: true });
@@ -91,16 +92,18 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
     Antwort auf „H“ käme womöglich als letzte und überschriebe die richtige.
   */
   useEffect(() => {
+    // Treffer und Ladezustand gehören nur zu diesem Begriff. Eine verworfene
+    // Antwort darf weder alte Ziele stehen lassen noch „Suche läuft“ festhalten.
+    setDaten([]);
+    setLaedt(false);
+    setFehler([]);
     if (!offen || !user) return;
     const b = begriff.trim();
-    if (b.length < 2) {
-      setDaten([]);
-      return;
-    }
+    if (b.length < 2) return;
+    setLaedt(true);
     let gilt = true;
     const zusatz = zusatzrechte(user, company);
     const uhr = setTimeout(() => {
-      setLaedt(true);
       const kunden = canAccess(user.role, '/customers', company?.modules, zusatz)
         ? searchCustomers(user.companyId, b, HOECHSTENS).then((ks) =>
             ks.map<Treffer>((k) => ({
@@ -116,6 +119,9 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
       void Promise.allSettled([kunden, baustellen]).then((ergebnisse) => {
         if (!gilt) return;
         setDaten(ergebnisse.flatMap((e) => (e.status === 'fulfilled' ? e.value : [])));
+        setFehler(ergebnisse.flatMap((e, i) => e.status === 'rejected'
+          ? [`${i === 0 ? 'Kunden' : 'Baustellen'} konnten nicht geladen werden. Bitte erneut suchen.`]
+          : []));
         setLaedt(false);
       });
     }, 250);
@@ -209,9 +215,10 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
                 })}
               </div>
             ))}
-            {treffer.length === 0 && !laedt && <p className="such-leer">Nichts gefunden.</p>}
+            {treffer.length === 0 && !laedt && fehler.length === 0 && <p className="such-leer">Nichts gefunden.</p>}
             {laedt && <p className="such-leer" role="status">Suche läuft …</p>}
           </div>
+          {fehler.map((text) => <p key={text} className="such-leer" role="alert">{text}</p>)}
         </ImFenster>
       </div>
     </div>
