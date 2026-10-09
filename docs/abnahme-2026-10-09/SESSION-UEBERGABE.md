@@ -95,8 +95,13 @@ Letzte gezielte Ergebnisse vor Integration von #257:
 
 ## Noch zu erledigen — keines davon als bestanden ausgeben
 
-1. Vollständige Nachmessung gegen großen Bestand fertigstellen und auswerten.
-   Aktuell läuft sie lokal unter `/tmp/final-performance-integrated.log`.
+1. Vollständige Nachmessung gegen großen Bestand auswerten.
+   Der integrierte Lauf ist inzwischen mit zwölf Seiten und je drei Läufen
+   ohne erfasste API-/Browserfehler abgeschlossen. Ergebnisse liegen unter
+   `docs/ui-umbau/messung-nachher.{json,md}`. Die Leistungsbudgets sind dennoch
+   nicht überall erreicht: insbesondere Mitarbeiterübersicht 118,1 Sekunden
+   bis Netzruhe / 22,2 MB bei langsamer Mobilverbindung. Das ist kein Nachweis
+   einer schnellen Oberfläche und muss vor Abschluss untersucht werden.
    Vorherige Nachmessung wurde durch die Session-Unterbrechung vor Abschluss
    beendet und ist **kein vollständiger Nachweis**. Der erste Vorherlauf ist
    vollständig unter `docs/ui-umbau/messung-vorher.{json,md}`: acht von zwölf
