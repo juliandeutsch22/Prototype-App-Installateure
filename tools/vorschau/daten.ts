@@ -8,6 +8,32 @@
  */
 export const HEUTE = new Date().toISOString().slice(0, 10);
 
+/*
+  TAGE RELATIV ZUR LAUFENDEN WOCHE (Runde 4). Wochenplan, Monat und
+  Mitarbeiterübersicht zeigen den laufenden Zeitraum; feste Daten stünden
+  nach ein paar Wochen ausserhalb und die Vorschau wäre leer. `tag(0)` ist
+  der Montag dieser Woche, `tag(-7)` der Montag davor.
+*/
+const MONTAG = (() => {
+  const d = new Date(`${HEUTE}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return d;
+})();
+export const tag = (n: number) => {
+  const d = new Date(MONTAG);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+/** Die Werktage des laufenden Monats vor heute — für Buchungen mit Lücken. */
+const WERKTAGE_BIS_GESTERN = (() => {
+  const erster = new Date(`${HEUTE.slice(0, 8)}01T00:00:00Z`);
+  const tage: string[] = [];
+  for (const d = new Date(erster); d.toISOString().slice(0, 10) < HEUTE; d.setUTCDate(d.getUTCDate() + 1)) {
+    if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6) tage.push(d.toISOString().slice(0, 10));
+  }
+  return tage;
+})();
+
 export const firma = {
   id: 'perl', name: 'Perl Installationen GmbH',
   addressLine: 'Musterstrasse 1 · 2700 Wiener Neustadt',
@@ -23,6 +49,10 @@ export const benutzer = [
   { id: 'u2', companyId: 'perl', uid: 'u2', name: 'Anton Berger-Steinmetz', email: 'anton.berger@perl.at', role: 'Mitarbeiter', active: true, weeklyTargetHours: 38.5, yearlyVacationDays: 25, appStartDate: '2025-03-01', workDays: [1, 2, 3, 4, 5] },
   { id: 'u3', companyId: 'perl', uid: 'u3', name: 'Michaela Wagner', email: 'm.wagner@perl.at', role: 'Buchhaltung', active: true, weeklyTargetHours: 30, yearlyVacationDays: 25, appStartDate: '2024-09-01', workDays: [1, 2, 3, 4] },
   { id: 'u4', companyId: 'perl', uid: 'u4', name: 'Franz Hinterleitner', email: 'f.hinterleitner@perl.at', role: 'Projektleiter', active: true, weeklyTargetHours: 38.5, yearlyVacationDays: 25, appStartDate: '2023-05-17', workDays: [1, 2, 3, 4, 5] },
+  // Runde 4: genug Leute für Raster, Gruppen und Lücken.
+  { id: 'u5', companyId: 'perl', uid: 'u5', name: 'Lena Pichler', email: 'l.pichler@perl.at', role: 'Mitarbeiter', einstufung: 'lehrling', lehrbeginn: '2025-09-01', lehrzeitMonate: 36, active: true, weeklyTargetHours: 40, yearlyVacationDays: 25, appStartDate: '2025-09-01', workDays: [1, 2, 3, 4, 5] },
+  { id: 'u6', companyId: 'perl', uid: 'u6', name: 'Stefan Gruber', email: 's.gruber@perl.at', role: 'Mitarbeiter', einstufung: 'obermonteur', active: true, weeklyTargetHours: 38.5, yearlyVacationDays: 25, appStartDate: '2022-02-01', workDays: [1, 2, 3, 4, 5] },
+  { id: 'u7', companyId: 'perl', uid: 'u7', name: 'Jürgen Fasching', email: 'j.fasching@perl.at', role: 'Mitarbeiter', einstufung: 'helfer', active: true, weeklyTargetHours: 38.5, yearlyVacationDays: 25, appStartDate: '2024-04-02', workDays: [1, 2, 3, 4, 5] },
 ];
 
 export const kunden = [
@@ -42,6 +72,23 @@ export const zeiten = [
   { id: 't2', companyId: 'perl', date: '2026-09-17', status: 'Anwesend', startTime: '07:30', endTime: '17:00', breakDuration: 45, projectNumber: 'B-2026-0148', customerName: 'Gemeinde Neudorf bei Wiener Neustadt', userId: 'u1', userName: 'Max Mustermann', helperName: 'Anton Berger-Steinmetz' },
   { id: 't3', companyId: 'perl', date: '2026-09-16', status: 'Krank', userId: 'u1', userName: 'Max Mustermann' },
   { id: 't4', companyId: 'perl', date: '2026-09-15', status: 'Urlaub', userId: 'u1', userName: 'Max Mustermann' },
+  /*
+    RUNDE 4: der laufende Monat bis gestern — vollständig bei Stefan, mit
+    Lücken bei Anton und Jürgen, mit Berufsschule und zwei Buchungen an einem
+    Tag bei Lena, mit Krank und Zeitausgleich bei Stefan.
+  */
+  ...WERKTAGE_BIS_GESTERN.flatMap((d, i) => {
+    const b = (id: string, uid: string, name: string, x: Record<string, unknown>) => ({ id: `${id}-${d}`, companyId: 'perl', date: d, userId: uid, userName: name, ...x });
+    const arbeit = { status: 'Anwesend', startTime: '07:00', endTime: '15:30', breakDuration: 30, projectNumber: 'B-2026-0147', customerName: 'Wohnungseigentümergemeinschaft Hauptstraße 112–118' };
+    const liste = [
+      i === 2 ? b('s', 'u6', 'Stefan Gruber', { status: 'Krank' }) : i === 4 ? b('s', 'u6', 'Stefan Gruber', { status: 'Zeitausgleich' }) : b('s', 'u6', 'Stefan Gruber', arbeit),
+      i % 5 === 0 ? b('l', 'u5', 'Lena Pichler', { status: 'Berufsschule' }) : b('l', 'u5', 'Lena Pichler', { ...arbeit, startTime: '07:00', endTime: '11:30', breakDuration: 0 }),
+    ];
+    if (i % 5 !== 0) liste.push(b('l2', 'u5', 'Lena Pichler', { ...arbeit, startTime: '12:00', endTime: i === 1 ? '17:30' : '15:30', breakDuration: 0, projectNumber: 'B-2026-0148', customerName: 'Gemeinde Neudorf bei Wiener Neustadt' }));
+    if (i !== 1 && i !== 3) liste.push(b('a', 'u2', 'Anton Berger-Steinmetz', { ...arbeit, endTime: '16:00' }));
+    if (i < 2) liste.push(b('j', 'u7', 'Jürgen Fasching', arbeit));
+    return liste;
+  }),
 ];
 
 export const bestellungen = [
@@ -75,6 +122,36 @@ export const urlaube = [
 export const einsaetze = [
   { id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: 'B-2026-0147', userId: 'u1', userName: 'Max Mustermann', comment: 'Verteiler, Vormittag' },
   { id: 'a2', companyId: 'perl', date: HEUTE, projectNumber: 'B-2026-0148', userId: 'u2', userName: 'Anton Berger-Steinmetz', asHelper: true },
+  /*
+    RUNDE 4: eine Woche mit Mehrtageseinsätzen (Balken im Monat), zwei
+    Einsätzen an einem Tag (Stefan am Mittwoch), einem Notdienst am Samstag
+    und einem Eingeteilten, der krank ist (Jürgen am Donnerstag).
+  */
+  ...[0, 1, 2].map((n) => ({ id: `r4-s${n}`, companyId: 'perl', date: tag(n), projectNumber: 'B-2026-0147', userId: 'u6', userName: 'Stefan Gruber', startTime: '07:00', endTime: '15:30', comment: 'Steigleitung Stiege 2' })),
+  { id: 'r4-s2b', companyId: 'perl', date: tag(2), projectNumber: 'B-2026-0148', userId: 'u6', userName: 'Stefan Gruber', startTime: '16:00', endTime: '18:00' },
+  ...[0, 1, 2, 3].map((n) => ({ id: `r4-l${n}`, companyId: 'perl', date: tag(n), projectNumber: 'B-2026-0148', userId: 'u5', userName: 'Lena Pichler', asHelper: true })),
+  ...[1, 2, 3].map((n) => ({ id: `r4-j${n}`, companyId: 'perl', date: tag(n), projectNumber: 'B-2026-0147', userId: 'u7', userName: 'Jürgen Fasching', asHelper: true })),
+  { id: 'r4-not', companyId: 'perl', date: tag(5), projectNumber: 'B-2026-0148', userId: 'u1', userName: 'Max Mustermann', startTime: '08:00', endTime: '12:00', comment: 'Notdienst Rohrbruch' },
+  ...[7, 8, 9, 10].map((n) => ({ id: `r4-n${n}`, companyId: 'perl', date: tag(n), projectNumber: 'B-2026-0147', userId: 'u6', userName: 'Stefan Gruber', startTime: '07:00', endTime: '15:30' })),
+];
+
+/** Wer abwesend ist (`wochenplan_abwesend`): Jürgen krank am Donnerstag, Anton im Urlaub ab nächster Woche. */
+export const abwesend = [
+  { userId: 'u7', von: tag(3), bis: tag(3), grund: 'Krank', zeiten: null },
+  { userId: 'u2', von: tag(7), bis: tag(11), grund: 'Urlaub', zeiten: null },
+  { userId: 'u5', von: tag(4), bis: tag(4), grund: 'Berufsschule', zeiten: null },
+];
+
+/*
+  TERMINE (Runde 4): eine Lieferung an einer Baustelle mit Einsatz, eine
+  Lieferung, bei der niemand dort ist, eine Besichtigung nur am Kunden und
+  eine Abnahme mit der Projektleitung (nicht im Raster).
+*/
+export const termine = [
+  { id: 'tm1', companyId: 'perl', art: 'Lieferung', datum: tag(1), zeitVon: '08:00', zeitBis: '10:00', projectNumber: 'B-2026-0147', teilnehmer: ['u6'], ortName: 'Wohnungseigentümergemeinschaft Hauptstraße 112–118', ortAdresse: 'Hauptstraße 112–118, 2700 Wiener Neustadt', notiz: 'Heizkörper, 2 Paletten' },
+  { id: 'tm2', companyId: 'perl', art: 'Lieferung', datum: tag(4), zeitVon: '07:00', zeitBis: '09:00', projectNumber: 'B-2026-0149', teilnehmer: [], ortName: 'Familie Huber', ortAdresse: 'Ringstraße 3' },
+  { id: 'tm3', companyId: 'perl', art: 'Besichtigung', datum: tag(2), zeitVon: '14:00', zeitBis: '15:00', customerId: 'k3', teilnehmer: ['u1'], ortName: 'Familie Huber', ortAdresse: 'Ringstraße 3' },
+  { id: 'tm4', companyId: 'perl', art: 'Abnahme', datum: tag(3), zeitVon: null, zeitBis: null, projectNumber: 'B-2026-0148', teilnehmer: ['u4'], ortName: 'Gemeinde Neudorf bei Wiener Neustadt', ortAdresse: 'Rathausplatz 1, 2620 Neunkirchen' },
 ];
 
 /** Eine Rüstliste für den Einsatz von heute — halb eingeladen, damit beide Zustände zu sehen sind. */
