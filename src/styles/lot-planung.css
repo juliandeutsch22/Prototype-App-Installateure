@@ -202,7 +202,8 @@
     „Einsatz planen“ sind immer zu sehen, auch bei langen Listen.
   */
   .planung-fuss { position: sticky; bottom: 0; z-index: 2; margin-top: 1rem; padding: 0.75rem 0; background: var(--surface); border-top: 1px solid var(--border); }
-  @media (min-width: 760px) { .planung-fuss { margin: 1rem -1.25rem -1.25rem; padding: 0.75rem 1.25rem; } }
+  /* Ab Tablet hat der Inhalt des Fensters 20 px Rand: die Leiste reicht darüber bis an die Kante. */
+  @media (min-width: 760px) { .planung-fuss { bottom: -1.25rem; margin: 1rem -1.25rem -1.25rem; padding: 0.75rem 1.25rem; } }
   .planung-fuss-knoepfe { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }
 
   /* Termin zum Lesen (ohne Recht, Termine zu schreiben): die Felder als Text. */
