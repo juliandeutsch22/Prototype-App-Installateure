@@ -18,13 +18,24 @@ const VERBINDUNG = process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgre
 
 let db: Client;
 
+// Ganze, klammergenaue Leserichtlinien statt einer Tabellen-Ausnahmeliste.
+// Allein „angemeldet“ oder eine passende Bedingung neben OR true reicht nicht.
+const GEPUFFERTE_LESERECHTE = [
+  '((company_id = ( SELECT app.betrieb() AS betrieb)) AND ( SELECT app.angemeldet() AS angemeldet))',
+  '((company_id = ( SELECT app.betrieb() AS betrieb)) AND ( SELECT app.angemeldet() AS angemeldet) AND ((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)))',
+  '(((company_id = ( SELECT app.betrieb() AS betrieb)) AND ( SELECT app.angemeldet() AS angemeldet)) OR (( SELECT app.ist_plattform() AS ist_plattform) AND app.support_liest(company_id)))',
+  "((((company_id = ( SELECT app.betrieb() AS betrieb)) AND ( SELECT app.angemeldet() AS angemeldet)) OR (( SELECT app.ist_plattform() AS ist_plattform) AND app.support_liest(company_id))) AND ((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT app.hat_rolle(ARRAY['Verwaltung'::text, 'Buchhaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)))",
+].map((s) => s.replace(/\s+/g, ''));
+const GEPUFFERT_GESCHUETZT = `(p.cmd = 'SELECT' and p.with_check is null
+  and regexp_replace(coalesce(p.qual, ''), '\\s+', '', 'g') = any($1::text[]))`;
+
 beforeAll(async () => {
   db = new Client({ connectionString: VERBINDUNG });
   await db.connect();
 }, 30_000);
 
-async function zeilen<T = Record<string, unknown>>(sql: string): Promise<T[]> {
-  const r = await db.query(sql);
+async function zeilen<T = Record<string, unknown>>(sql: string, werte?: unknown[]): Promise<T[]> {
+  const r = await db.query(sql, werte);
   return r.rows as T[];
 }
 
@@ -99,9 +110,30 @@ describe('Zeilenschutz', () => {
          and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) not like '%app.betriebsmitglied%'
          and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) not like '%app.support_liest%'
          and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) not like '%app.freigabe_gilt%'
+         and not ${GEPUFFERT_GESCHUETZT}
        order by 1, 2
-    `);
+    `, [GEPUFFERTE_LESERECHTE]);
     expect(offen.map((r) => `${r.tabelle}.${r.richtlinie}`)).toEqual([]);
+  });
+
+  it('erkennt gepufferte Betriebsrechte, aber weder OR true noch eine bloße Anmeldung', async () => {
+    await db.query('begin');
+    try {
+      const betrieb = 'company_id = (select app.betrieb()) and (select app.angemeldet())';
+      for (const [ausdruck, geschuetzt] of [[betrieb, true],
+        [`(${betrieb}) or true`, false],
+        ['company_id is not null and (select app.angemeldet())', false]] as const) {
+        await db.query(`create policy schema_cache_probe on public.materials
+          for select to authenticated using (${ausdruck})`);
+        const [p] = await zeilen<{ geschuetzt: boolean }>(`select ${GEPUFFERT_GESCHUETZT} as geschuetzt
+          from pg_policies p where p.schemaname = 'public'
+            and p.tablename = 'materials' and p.policyname = 'schema_cache_probe'`, [GEPUFFERTE_LESERECHTE]);
+        expect(p.geschuetzt).toBe(geschuetzt);
+        await db.query('drop policy schema_cache_probe on public.materials');
+      }
+    } finally {
+      await db.query('rollback');
+    }
   });
 
   it('lässt die Monatsbilanz mit den Rechten des Fragenden laufen', async () => {
@@ -362,9 +394,10 @@ describe('Live-Abonnements', () => {
               -- app.darf oder das strengere app.betriebsmitglied (ohne
               -- Supportzugang, etwa bei Zeiten mit Krankenständen).
               and (coalesce(p.qual, '') like '%app.darf%'
-                   or coalesce(p.qual, '') like '%app.betriebsmitglied%'))
+                   or coalesce(p.qual, '') like '%app.betriebsmitglied%'
+                   or ${GEPUFFERT_GESCHUETZT}))
        order by 1
-    `);
+    `, [GEPUFFERTE_LESERECHTE]);
     expect(blind.map((r) => r.tablename)).toEqual([]);
   });
 

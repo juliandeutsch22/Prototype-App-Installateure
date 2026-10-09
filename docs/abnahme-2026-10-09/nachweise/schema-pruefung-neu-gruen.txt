@@ -1,0 +1,9 @@
+
+ RUN  v4.1.11 /workspace/Prototype-App-Installateure
+
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  12:53:41
+   Duration  891ms (transform 33ms, setup 0ms, import 68ms, tests 113ms, environment 0ms)
+

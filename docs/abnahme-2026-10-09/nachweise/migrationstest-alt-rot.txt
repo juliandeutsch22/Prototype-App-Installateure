@@ -1,0 +1,27 @@
+
+ RUN  v4.1.11 /workspace/Prototype-App-Installateure-abnahme-counter
+
+ ❯ tests/supabase/urlaubNurUeberAntrag.test.ts (12 tests | 1 failed) 4506ms
+     × hängt alte Urlaubstage an einen Antrag und gleicht die Tage an 1551ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/supabase/urlaubNurUeberAntrag.test.ts > Übernahme des Altbestands > hängt alte Urlaubstage an einen Antrag und gleicht die Tage an
+error: relation "mahnbelege" already exists
+ ❯ ../Prototype-App-Installateure/node_modules/pg/lib/client.js:694:17
+ ❯ tests/supabase/urlaubNurUeberAntrag.test.ts:242:7
+    240|     const ordner = join(__dirname, '../../supabase/migrations');
+    241|     for (const datei of readdirSync(ordner).filter((d) => d >= '202610…
+    242|       await db.query(readFileSync(join(ordner, datei), 'utf8'));
+       |       ^
+    243|     }
+    244|     await db.query('grant select on public.monthly_stats to authentica…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 11 passed (12)
+   Start at  12:22:27
+   Duration  9.71s (transform 348ms, setup 0ms, import 769ms, tests 4.51s, environment 0ms)
+

@@ -1,0 +1,63 @@
+
+ RUN  v4.1.11 /workspace/Prototype-App-Installateure
+
+ ❯ tests/supabase/materialFremdbestand.test.ts (3 tests | 2 failed) 68632ms
+   × liest ohne Client-Betriebsfilter ausschließlich den eigenen Artikel, innerhalb des SQL-Zeitlimits 8072ms
+   × ein deaktiviertes Konto sieht auch den eigenen Artikel nicht 8048ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/supabase/materialFremdbestand.test.ts > liest ohne Client-Betriebsfilter ausschließlich den eigenen Artikel, innerhalb des SQL-Zeitlimits
+AssertionError: expected { code: '57014', details: null, …(2) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "57014",
+  "details": null,
+  "hint": null,
+  "message": "canceling statement due to statement timeout",
+}
+
+ ❯ tests/supabase/materialFremdbestand.test.ts:44:19
+     42| it('liest ohne Client-Betriebsfilter ausschließlich den eigenen Artike…
+     43|   const r = await monteur.client.from('materials').select('id,name,sto…
+     44|   expect(r.error).toBeNull();
+       |                   ^
+     45|   expect(r.data).toEqual([{ id: eigenerArtikel, name: 'Eigener Artikel…
+     46| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/supabase/materialFremdbestand.test.ts > ein deaktiviertes Konto sieht auch den eigenen Artikel nicht
+AssertionError: expected { code: '57014', details: null, …(2) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "57014",
+  "details": null,
+  "hint": null,
+  "message": "canceling statement due to statement timeout",
+}
+
+ ❯ tests/supabase/materialFremdbestand.test.ts:50:19
+     48| it('ein deaktiviertes Konto sieht auch den eigenen Artikel nicht', asy…
+     49|   const r = await gesperrt.client.from('materials').select('id');
+     50|   expect(r.error).toBeNull();
+       |                   ^
+     51|   expect(r.data).toEqual([]);
+     52| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  12:55:03
+   Duration  69.25s (transform 30ms, setup 0ms, import 115ms, tests 68.63s, environment 0ms)
+

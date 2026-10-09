@@ -1,0 +1,126 @@
+
+> installateur-app@0.1.0 presupabase:test
+> npm run gemeinsames
+
+
+> installateur-app@0.1.0 gemeinsames
+> node scripts/edge-shared-uebernehmen.mjs
+
+shared/ → supabase/functions/_shared (21 Dateien)
+
+> installateur-app@0.1.0 supabase:test
+> vitest run --config vitest.supabase.config.ts
+
+
+ RUN  v4.1.11 /workspace/Prototype-App-Installateure
+
+ ❯ tests/supabase/ausleitung.test.ts (14 tests | 2 failed) 28926ms
+     × nimmt den Dienstschlüssel auch mit Leerraum davor 11269ms
+     × der Dienstschlüssel nimmt ALLE Betriebe 11931ms
+ ❯ tests/supabase/rechte.test.ts (13 tests | 1 failed) 16074ms
+     × in keiner einzigen Tabelle 9247ms
+ ❯ tests/supabase/schema.test.ts (15 tests | 2 failed) 123ms
+     × prüft in JEDER Richtlinie auf einer Betriebstabelle auch wirklich den Betrieb 20ms
+     × veröffentlicht keine Tabelle ohne Leserichtlinie 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/supabase/ausleitung.test.ts > Wer die Ausleitung auslösen darf > nimmt den Dienstschlüssel auch mit Leerraum davor
+AssertionError: expected 546 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 546
+
+ ❯ tests/supabase/ausleitung.test.ts:211:28
+    209|       body: JSON.stringify({ quelle: 'test' }),
+    210|     });
+    211|     expect(antwort.status).toBe(200);
+       |                            ^
+    212|     // Der Dienstweg, nicht der Knopf: er zählt Mandanten statt einen …
+    213|     expect(await antwort.json()).toHaveProperty('mandanten');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/supabase/ausleitung.test.ts > Wer die Ausleitung auslösen darf > der Dienstschlüssel nimmt ALLE Betriebe
+AssertionError: expected 546 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 546
+
+ ❯ tests/supabase/ausleitung.test.ts:234:20
+    232|   it('der Dienstschlüssel nimmt ALLE Betriebe', async () => {
+    233|     const { status, daten } = await rufen(SERVICE);
+    234|     expect(status).toBe(200);
+       |                    ^
+    235|     expect(daten.mandanten).toBeGreaterThanOrEqual(2);
+    236|     expect(daten.gescheitert).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/supabase/rechte.test.ts > Die Betriebe sehen einander nicht > in keiner einzigen Tabelle
+Error: materials: canceling statement due to statement timeout
+ ❯ tests/supabase/rechte.test.ts:77:24
+     75|     for (const tabelle of tabellen) {
+     76|       const { data, error } = await huber.client.from(tabelle).select(…
+     77|       if (error) throw new Error(`${tabelle}: ${error.message}`);
+       |                        ^
+     78|       if ((data ?? []).length > 0) gesehen.push(tabelle);
+     79|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  tests/supabase/schema.test.ts > Zeilenschutz > prüft in JEDER Richtlinie auf einer Betriebstabelle auch wirklich den Betrieb
+AssertionError: expected [ 'time_entries.time_entries_lesen' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "time_entries.time_entries_lesen",
++ ]
+
+ ❯ tests/supabase/schema.test.ts:104:62
+    102|        order by 1, 2
+    103|     `);
+    104|     expect(offen.map((r) => `${r.tabelle}.${r.richtlinie}`)).toEqual([…
+       |                                                              ^
+    105|   });
+    106|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  tests/supabase/schema.test.ts > Live-Abonnements > veröffentlicht keine Tabelle ohne Leserichtlinie
+AssertionError: expected [ 'material_orders', 'time_entries' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "material_orders",
++   "time_entries",
++ ]
+
+ ❯ tests/supabase/schema.test.ts:368:43
+    366|        order by 1
+    367|     `);
+    368|     expect(blind.map((r) => r.tablename)).toEqual([]);
+       |                                           ^
+    369|   });
+    370|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  3 failed | 152 passed (155)
+      Tests  5 failed | 1813 passed (1818)
+   Start at  12:30:22
+   Duration  736.00s (transform 5.32s, setup 0ms, import 22.83s, tests 681.69s, environment 437ms)
+
