@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="de-AT" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Senklot Runde 4 – Übersicht und Planung</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<!--
+  KI-Vorschlag (Fehler möglich): Runde 4 – drei Bereiche neu durchdacht, in der Designlinie „Lot“ v2.
+  1. Mitarbeiterübersicht: Personenzeilen mit Monatsstreifen statt 31-Spalten-Tabelle; Ansicht „Woche“ mit lesbaren Stunden;
+     Klick auf Person oder Tag öffnet das Seitenfenster mit allen bisherigen Inhalten der aufgeklappten Karte.
+  2. Wochenplan: keine eigene Zeile „Termine“ mehr – Termine stehen beim Teilnehmer, am Einsatz der Baustelle und als Zahl im Tageskopf;
+     keine „frei“-Kästen; Raster in voller Breite; Wochenende/Feiertag nur schmal, wenn leer; „Tag“ als dritte Ansicht.
+  3. Monat: zusammenhängende Tage einer Baustelle als Balken mit Namen; Klick zeigt eine Vorschau des Tages mit „Bearbeiten“ und „Zur Woche“.
+  Heller Modus ist Standard. CSS: pro Element eine Klasse; keine clamp()/calc(); Queries nur auf Bildschirmbreite; keine nth-child();
+  keine Emojis; Symbole nur in der Navigation; keine halbtransparenten Farbflächen; keine strichlierten Linien.
+  Breiten: Handy bis 759 px, Tablet 760–1199 px, Schreibtisch ab 1200 px. Testdaten erfunden; „heute“ ist Do 08.10.2026.
+-->
+<style>
+:root {
+  --papier: #F3F6F6;
+  --flaeche: #FFFFFF;
+  --tinte: #13262C;
+  --grau: #5A6D72;
+  --linie: #DFE7E9;
+  --linie-stark: #C2D2D5;
+  --petrol: #0F4552;
+  --petrol-tief: #0A3540;
+  --petrol-hell: #E4EEF0;
+  --navi: #0F3C47;
+  --navi-tief: #0A2F38;
+  --navi-text: #C6DCE0;
+  --achtung: #94570A;
+  --achtung-hell: #FAF1E4;
+  --fehler: #B42318;
+  --abwesend: #E9EEEF;
+  --schatten: 0 16px 40px -24px #0F455299;
+  box-sizing: border-box;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { height: 100%; }
+body { margin: 0; min-height: 100%; background: var(--papier); color: var(--tinte); font-family: "Poppins", "Segoe UI", system-ui, sans-serif; font-size: 15px; line-height: 1.55; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--petrol); outline-offset: 2px; }
+
+/* ===== Schrift ===== */
+.seitentitel { font-size: 26px; font-weight: 600; line-height: 1.25; margin: 0; }
+.abschnitt { font-size: 18px; font-weight: 600; margin: 0; }
+.copy { margin: 0; color: var(--grau); max-width: 68ch; }
+.klein { margin: 0; color: var(--grau); font-size: 13px; }
+.stark { margin: 0; font-weight: 600; }
+
+/* ===== Knöpfe ===== */
+.haupt { background: var(--petrol); color: #FFFFFF; border: 0; border-radius: 8px; padding: 10px 18px; font-weight: 600; cursor: pointer; white-space: nowrap; min-height: 40px; }
+.haupt:hover { background: var(--petrol-tief); }
+.neben { background: var(--flaeche); color: var(--tinte); border: 1px solid var(--linie-stark); border-radius: 8px; padding: 9px 16px; cursor: pointer; white-space: nowrap; min-height: 40px; }
+.neben:hover { border-color: var(--petrol); }
+.textknopf { background: none; border: 0; padding: 6px 0; color: var(--petrol); font-weight: 600; cursor: pointer; text-align: left; }
+.textknopf-gefahr { background: none; border: 0; padding: 6px 0; color: var(--fehler); font-weight: 600; cursor: pointer; }
+.gefahr { background: var(--flaeche); color: var(--fehler); border: 1px solid var(--fehler); border-radius: 8px; padding: 9px 16px; cursor: pointer; font-weight: 600; min-height: 40px; white-space: nowrap; }
+.mehr { background: var(--flaeche); border: 1px solid var(--linie-stark); border-radius: 8px; width: 40px; height: 40px; cursor: pointer; color: var(--grau); font-size: 18px; line-height: 1; }
+.hilfe { background: none; border: 0; padding: 0; color: var(--grau); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-size: 14px; }
+.pfeil { background: var(--flaeche); border: 1px solid var(--linie-stark); border-radius: 8px; width: 40px; height: 40px; cursor: pointer; font-size: 20px; line-height: 1; color: var(--tinte); flex: none; }
+.pfeil:hover { border-color: var(--petrol); }
+.schliessen { background: none; border: 0; width: 40px; height: 40px; cursor: pointer; font-size: 22px; line-height: 1; color: var(--grau); flex: none; }
+
+/* ===== Zustände (vier) und Signalfarben (zwei) ===== */
+.status-offen, .status-laeuft, .status-erledigt, .status-achtung, .status-fehler { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; }
+.status-offen::before, .status-laeuft::before, .status-erledigt::before, .status-achtung::before, .status-fehler::before { content: ""; width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.status-offen::before { border: 2px solid var(--grau); }
+.status-laeuft::before { background: var(--petrol); }
+.status-erledigt { color: var(--grau); }
+.status-erledigt::before { background: var(--linie-stark); }
+.status-achtung { color: var(--achtung); font-weight: 600; }
+.status-achtung::before { background: var(--achtung); }
+.status-fehler { color: var(--fehler); font-weight: 600; }
+.status-fehler::before { background: var(--fehler); }
+
+/* ===== Hülle ===== */
+.huelle { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100vh; }
+.navi { background: var(--navi); color: var(--navi-text); padding: 20px 12px; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.navi-betrieb { color: #FFFFFF; font-weight: 600; margin: 0 10px 12px; }
+.navi-gruppe { margin: 14px 10px 4px; font-size: 12px; color: #8EAFB5; }
+.navi-punkt, .navi-punkt-aktiv { display: flex; align-items: center; gap: 12px; padding: 9px 10px; border-radius: 8px; border: 0; cursor: pointer; text-align: left; width: 100%; background: none; color: var(--navi-text); }
+.navi-punkt:hover { color: #FFFFFF; }
+.navi-punkt-aktiv { background: var(--navi-tief); color: #FFFFFF; font-weight: 600; }
+.navi-symbol { width: 20px; height: 20px; flex: none; }
+.navi-text { flex: 1; }
+.inhaltsbereich { min-width: 0; padding-bottom: 40px; }
+
+/* Entwurfsleiste (nur im Entwurf) */
+.entwurfsleiste { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 40px; background: var(--tinte); color: #FFFFFF; }
+.entwurf-titel { margin: 0 12px 0 0; font-size: 13px; color: #C6DCE0; }
+.entwurf-knopf, .entwurf-knopf-aktiv { border: 1px solid #3B5A62; background: none; color: #FFFFFF; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+.entwurf-knopf-aktiv { background: #FFFFFF; color: var(--tinte); border-color: #FFFFFF; font-weight: 600; }
+
+/* Seitenkopf */
+.seitenkopf { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 28px 40px 20px; background: var(--flaeche); border-bottom: 1px solid var(--linie); }
+.seitenkopf-text { min-width: 0; }
+.seitenkopf-aktionen { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.inhalt { padding: 24px 40px; }
+
+/* Entwurfsnotiz */
+.notiz { background: var(--flaeche); border: 1px solid var(--linie); border-left: 4px solid var(--petrol); border-radius: 8px; margin: 0 0 20px; }
+.notiz-kopf { padding: 12px 16px; cursor: pointer; font-weight: 600; color: var(--petrol); }
+.notiz-text { margin: 0; padding: 0 16px 14px; color: var(--grau); font-size: 14px; max-width: 110ch; }
+
+/* Gruppen, Zeilen, Kennzahlen */
+.gruppe { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 12px; margin: 0 0 24px; overflow: hidden; }
+.gruppe-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--linie); }
+.zeile { display: flex; width: 100%; align-items: center; gap: 16px; padding: 12px 20px; background: var(--flaeche); border: 0; border-bottom: 1px solid var(--linie); text-align: left; cursor: pointer; min-height: 56px; }
+.zeile:hover { background: var(--petrol-hell); }
+.zeile-links { flex: 1; min-width: 0; }
+.zeile-titel { display: block; margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.zeile-info { display: block; margin: 0; color: var(--grau); font-size: 13px; }
+.zeile-wert { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+.arbeitszeile { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 12px 20px; border-bottom: 1px solid var(--linie); min-height: 56px; }
+.arbeitszeile-text { flex: 1; min-width: 220px; }
+.arbeitszeile-schritt { background: var(--flaeche); color: var(--petrol); border: 1px solid var(--petrol); border-radius: 8px; padding: 7px 14px; font-weight: 600; cursor: pointer; white-space: nowrap; min-height: 38px; }
+.arbeitszeile-schritt:hover { background: var(--petrol-hell); }
+.kennzahlen { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--flaeche); border: 1px solid var(--linie); border-radius: 12px; margin: 0 0 20px; overflow: hidden; }
+.kennzahl, .kennzahl-aktiv { padding: 14px 20px; border: 0; border-right: 1px solid var(--linie); background: var(--flaeche); text-align: left; cursor: pointer; }
+.kennzahl:hover { background: var(--petrol-hell); }
+.kennzahl-aktiv { background: var(--petrol-hell); box-shadow: inset 0 -3px 0 var(--petrol); }
+.kennzahl-wert { display: block; margin: 2px 0 0; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kennzahl-zusatz { display: block; font-size: 13px; color: var(--grau); }
+.wahl { display: inline-flex; border: 1px solid var(--linie-stark); border-radius: 8px; overflow: hidden; background: var(--flaeche); flex: none; }
+.wahl-knopf, .wahl-knopf-aktiv { border: 0; padding: 8px 14px; cursor: pointer; background: var(--flaeche); min-height: 38px; white-space: nowrap; }
+.wahl-knopf:hover { background: var(--petrol-hell); }
+.wahl-knopf-aktiv { background: var(--petrol); color: #FFFFFF; font-weight: 600; }
+.auswahl { padding: 8px 12px; border: 1px solid var(--linie-stark); border-radius: 8px; background: var(--flaeche); min-height: 40px; }
+.wahl-nur-gross { display: inline-flex; border: 1px solid var(--linie-stark); border-radius: 8px; overflow: hidden; background: var(--flaeche); flex: none; }
+.auswahl-nur-gross { padding: 8px 12px; border: 1px solid var(--linie-stark); border-radius: 8px; background: var(--flaeche); min-height: 40px; }
+.suche { padding: 8px 12px; border: 1px solid var(--linie-stark); border-radius: 8px; background: var(--flaeche); min-height: 40px; width: 220px; }
+
+/* Steuerung über Listen und Raster */
+.steuerung { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin: 0 0 16px; }
+.steuerung-links { display: flex; align-items: center; gap: 8px; }
+.steuerung-rechts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.titelblock { margin: 0 8px; min-width: 150px; }
+.titel-gross { margin: 0; font-weight: 600; font-size: 18px; line-height: 1.3; }
+.titel-klein { margin: 0; color: var(--grau); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+/* ===== 1. Mitarbeiterübersicht ===== */
+.mue-liste { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 12px; overflow: hidden; margin: 0 0 24px; }
+.mue-kopfzeile { display: grid; grid-template-columns: 230px minmax(0, 1fr) 76px 76px 84px; gap: 16px; align-items: end; padding: 10px 20px 8px; border-bottom: 1px solid var(--linie); position: sticky; top: 0; background: var(--flaeche); z-index: 3; }
+.mue-kopf-text { margin: 0; font-size: 13px; color: var(--grau); text-align: right; }
+.mue-kopf-person { margin: 0; font-size: 13px; color: var(--grau); }
+.mue-gruppe { padding: 10px 20px; background: var(--papier); border-bottom: 1px solid var(--linie); font-size: 13px; font-weight: 600; color: var(--grau); margin: 0; }
+.mue-zeile { display: grid; grid-template-columns: 230px minmax(0, 1fr) 76px 76px 84px; gap: 16px; align-items: center; padding: 10px 20px; border-bottom: 1px solid var(--linie); cursor: pointer; background: var(--flaeche); }
+.mue-zeile:hover { background: var(--petrol-hell); }
+.mue-person { display: block; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; min-width: 0; }
+.mue-name { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mue-status-achtung { display: block; font-size: 13px; color: var(--achtung); font-weight: 600; }
+.mue-status-ok { display: block; font-size: 13px; color: var(--grau); }
+.mue-zahl { margin: 0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mue-zahl-stark { margin: 0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
+.mue-zahl-name { display: none; }
+.streifen { display: grid; gap: 2px; }
+.st-kopf, .st-kopf-mo, .st-kopf-we, .st-kopf-heute { font-size: 12px; text-align: center; color: var(--grau); font-variant-numeric: tabular-nums; line-height: 1.2; white-space: nowrap; }
+.st-kopf-we { color: #93A5A9; }
+.st-kopf-heute { color: var(--petrol); font-weight: 600; box-shadow: inset 0 -2px 0 var(--petrol); }
+.st-ok, .st-fehlt, .st-weg, .st-frei, .st-zukunft, .st-grenze { appearance: none; border: 0; padding: 0; margin: 0; height: 24px; border-radius: 3px; cursor: pointer; min-width: 0; }
+.st-ok { background: var(--petrol); }
+.st-grenze { background: var(--petrol); box-shadow: inset 0 -4px 0 var(--fehler); }
+.st-fehlt { background: var(--achtung); }
+.st-weg { background: var(--linie-stark); }
+.st-frei { background: var(--papier); cursor: default; }
+.st-zukunft { background: var(--flaeche); box-shadow: inset 0 0 0 1px var(--linie); }
+.legende { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 20px; font-size: 13px; color: var(--grau); }
+.lg-ok, .lg-fehlt, .lg-weg, .lg-frei, .lg-grenze, .lg-plan, .lg-termin, .lg-konflikt { display: inline-flex; align-items: center; gap: 6px; }
+.lg-ok::before, .lg-fehlt::before, .lg-weg::before, .lg-frei::before, .lg-grenze::before, .lg-plan::before, .lg-termin::before, .lg-konflikt::before { content: ""; width: 14px; height: 14px; border-radius: 3px; flex: none; }
+.lg-ok::before { background: var(--petrol); }
+.lg-plan::before { background: var(--petrol); }
+.lg-grenze::before { background: var(--petrol); box-shadow: inset 0 -4px 0 var(--fehler); }
+.lg-fehlt::before { background: var(--achtung); }
+.lg-weg::before { background: var(--linie-stark); }
+.lg-frei::before { background: var(--papier); box-shadow: inset 0 0 0 1px var(--linie-stark); }
+.lg-termin::before { background: var(--flaeche); box-shadow: inset 3px 0 0 var(--petrol), inset 0 0 0 1px var(--linie-stark); }
+.lg-konflikt::before { background: var(--achtung-hell); box-shadow: inset 0 0 0 2px var(--achtung); }
+
+/* Woche der Mitarbeiterübersicht */
+.mw-kopfzeile { display: grid; grid-template-columns: 230px repeat(7, minmax(0, 1fr)) 76px 76px 84px; gap: 6px; align-items: end; padding: 10px 20px 8px; border-bottom: 1px solid var(--linie); position: sticky; top: 0; background: var(--flaeche); z-index: 3; }
+.mw-kopf, .mw-kopf-heute { margin: 0; font-size: 13px; color: var(--grau); text-align: center; line-height: 1.3; }
+.mw-kopf-heute { color: var(--petrol); font-weight: 600; box-shadow: inset 0 -2px 0 var(--petrol); }
+.mw-zeile { display: grid; grid-template-columns: 230px repeat(7, minmax(0, 1fr)) 76px 76px 84px; gap: 6px; align-items: stretch; padding: 8px 20px; border-bottom: 1px solid var(--linie); background: var(--flaeche); }
+.mw-zelle, .mw-zelle-fehlt, .mw-zelle-weg, .mw-zelle-frei, .mw-zelle-zukunft, .mw-zelle-grenze { appearance: none; border: 0; border-radius: 6px; padding: 6px 4px; text-align: center; cursor: pointer; min-width: 0; line-height: 1.3; min-height: 48px; }
+.mw-zelle { background: var(--petrol-hell); }
+.mw-zelle:hover { box-shadow: inset 0 0 0 1px var(--petrol); }
+.mw-zelle-grenze { background: var(--petrol-hell); box-shadow: inset 0 -3px 0 var(--fehler); }
+.mw-zelle-fehlt { background: var(--achtung-hell); color: var(--achtung); font-weight: 600; box-shadow: inset 0 0 0 1px var(--achtung); }
+.mw-zelle-weg { background: var(--abwesend); color: var(--grau); font-size: 13px; overflow-wrap: break-word; hyphens: auto; }
+.mw-zelle-frei { background: var(--papier); color: #93A5A9; cursor: default; font-size: 13px; }
+.mw-zelle-zukunft { background: var(--flaeche); box-shadow: inset 0 0 0 1px var(--linie); color: var(--grau); font-size: 13px; }
+.mw-std { display: block; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mw-von { display: block; font-size: 12px; color: var(--grau); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mw-zahl { margin: 0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; align-self: center; }
+.mw-zahl-stark { margin: 0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; align-self: center; font-weight: 600; }
+.mw-person { display: block; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; min-width: 0; align-self: center; }
+
+/* Tooltip am Schreibtisch */
+.tipp { position: fixed; z-index: 45; background: var(--tinte); color: #FFFFFF; border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.4; pointer-events: none; max-width: 280px; }
+.tipp-aus { display: none; }
+
+/* ===== 2. Wochenplan ===== */
+.hinweiszeile { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 10px 16px; background: var(--flaeche); border: 1px solid var(--linie); border-radius: 12px; margin: 0 0 12px; }
+.hinweis-text { margin: 0; font-size: 14px; color: var(--grau); min-width: 0; }
+.wp { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 12px; overflow: auto; max-height: 74vh; }
+.wp-raster { display: grid; min-width: 0; }
+.wp-ecke { position: sticky; top: 0; left: 0; z-index: 6; background: var(--flaeche); border-bottom: 1px solid var(--linie-stark); border-right: 1px solid var(--linie); padding: 10px 14px; display: flex; align-items: flex-end; font-size: 13px; color: var(--grau); }
+.wp-kopf, .wp-kopf-heute, .wp-kopf-schmal, .wp-kopf-markiert { position: sticky; top: 0; z-index: 4; appearance: none; border: 0; border-bottom: 1px solid var(--linie-stark); border-right: 1px solid var(--linie); background: var(--flaeche); padding: 10px 10px 8px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.wp-kopf:hover, .wp-kopf-schmal:hover { background: var(--petrol-hell); }
+.wp-kopf-heute { background: var(--petrol-hell); box-shadow: inset 0 -3px 0 var(--petrol); }
+.wp-kopf-markiert { background: var(--flaeche); box-shadow: inset 0 0 0 2px var(--petrol); }
+.wp-kopf-schmal { background: var(--papier); padding: 10px 4px 8px; align-items: center; text-align: center; }
+.kopf-tag { font-weight: 600; white-space: nowrap; }
+.kopf-info { font-size: 13px; color: var(--grau); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kopf-termine { font-size: 13px; color: var(--petrol); font-weight: 600; white-space: nowrap; text-decoration: underline; text-underline-offset: 3px; }
+.kopf-warnung { font-size: 13px; color: var(--achtung); font-weight: 600; line-height: 1.3; }
+.wp-gruppe { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; background: var(--papier); border: 0; border-bottom: 1px solid var(--linie); padding: 8px 14px; font-size: 13px; font-weight: 600; color: var(--grau); cursor: pointer; text-align: left; }
+.wp-name { position: sticky; left: 0; z-index: 3; background: var(--flaeche); border-bottom: 1px solid var(--linie); border-right: 1px solid var(--linie); padding: 10px 14px; min-width: 0; }
+.wp-na.e-titel { display: block; font-weight: 600; overflow-wrap: break-word; hyphens: auto; }
+.wp-name-info { display: block; font-size: 13px; color: var(--grau); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wp-zelle, .wp-zelle-heute, .wp-zelle-schmal { border-bottom: 1px solid var(--linie); border-right: 1px solid var(--linie); padding: 6px; min-height: 72px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; min-width: 0; background: var(--flaeche); }
+.wp-zelle:hover, .wp-zelle-schmal:hover { background: var(--petrol-hell); }
+.wp-zelle-heute { background: #F4F8F9; }
+.wp-zelle-heute:hover { background: var(--petrol-hell); }
+.wp-zelle-schmal { background: var(--papier); }
+.zelle-plus { display: none; font-size: 13px; color: var(--petrol); font-weight: 600; padding: 4px 4px; }
+.wp-zelle:hover .zelle-plus, .wp-zelle-heute:hover .zelle-plus { display: block; }
+
+.eintrag, .eintrag-konflikt, .eintrag-termin { display: block; width: 100%; text-align: left; border-radius: 6px; padding: 6px 8px; font-size: 13px; line-height: 1.35; cursor: pointer; min-width: 0; }
+.eintrag { background: var(--petrol); color: #FFFFFF; border: 0; }
+.eintrag:hover { background: var(--petrol-tief); }
+.eintrag-konflikt { background: var(--achtung-hell); color: var(--achtung); border: 2px solid var(--achtung); padding: 4px 6px; }
+.eintrag-termin { background: var(--flaeche); color: var(--tinte); border: 1px solid var(--linie-stark); border-left: 3px solid var(--petrol); }
+.eintrag-termin:hover { border-color: var(--petrol); }
+.eintrag-weg { background: var(--abwesend); color: var(--grau); border-radius: 6px; padding: 6px 8px; font-size: 13px; line-height: 1.35; }
+.e-titel { display: block; font-weight: 600; overflow-wrap: break-word; hyphens: auto; }
+.e-zeile { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.e-nr { display: block; color: #C6DCE0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.e-zusatz { display: block; margin: 5px 0 0; padding: 4px 0 0; border-top: 1px solid #3E6C77; overflow-wrap: break-word; hyphens: auto; }
+
+.wp-kalender { margin: 24px 0 0; }
+
+/* Handy: Tagesliste */
+.tagwahl { display: none; }
+.tagliste { display: none; }
+.tag-knopf, .tag-knopf-aktiv { flex: 1; min-width: 48px; border: 0; border-right: 1px solid var(--linie); background: var(--flaeche); padding: 8px 2px; cursor: pointer; line-height: 1.25; text-align: center; }
+.tag-knopf-aktiv { background: var(--petrol); color: #FFFFFF; font-weight: 600; }
+.tag-knopf-wt { display: block; font-size: 13px; }
+.tag-knopf-nr { display: block; font-size: 13px; font-variant-numeric: tabular-nums; }
+.tag-knopf-punkt { display: block; width: 6px; height: 6px; margin: 3px auto 0; border-radius: 50%; background: var(--petrol); }
+.tag-knopf-punkt-achtung { display: block; width: 6px; height: 6px; margin: 3px auto 0; border-radius: 50%; background: var(--achtung); }
+.tag-knopf-ohne { display: block; width: 6px; height: 6px; margin: 3px auto 0; }
+.tl-person { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--linie); align-items: flex-start; }
+.tl-name { width: 116px; flex: none; margin: 0; font-weight: 600; }
+.tl-eintraege { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.tl-frei { background: none; border: 0; padding: 4px 0; color: var(--petrol); font-weight: 600; text-align: left; cursor: pointer; }
+
+/* Tag (frühere Seite „Tag planen“) */
+.tag-abschnitt { margin: 0 0 20px; }
+.tag-baustelle { padding: 14px 20px; border-bottom: 1px solid var(--linie); display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.tag-baustelle-text { flex: 1; min-width: 220px; }
+.tag-zeile { margin: 2px 0 0; font-size: 14px; color: var(--grau); }
+.tag-zeile-achtung { margin: 4px 0 0; font-size: 14px; color: var(--achtung); font-weight: 600; }
+
+/* ===== 3. Monat ===== */
+.mo { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 12px; overflow: hidden; }
+.mo-kopfzeile { display: grid; border-bottom: 1px solid var(--linie-stark); }
+.mo-ecke { padding: 8px 14px; font-size: 13px; color: var(--grau); display: flex; align-items: flex-end; border-right: 1px solid var(--linie); }
+.mo-tagkopf, .mo-tagkopf-we, .mo-tagkopf-heute { padding: 6px 0 5px; text-align: center; line-height: 1.2; font-variant-numeric: tabular-nums; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.mo-tagkopf-we { background: var(--papier); color: #93A5A9; }
+.mo-tagkopf-heute { background: var(--petrol-hell); color: var(--petrol); font-weight: 600; box-shadow: inset 0 -3px 0 var(--petrol); }
+.mo-wt { font-size: 12px; color: var(--grau); }
+.mo-wt-kurz { display: none; font-size: 12px; color: var(--grau); }
+.mo-nr { font-size: 13px; }
+.mo-punkt { width: 6px; height: 6px; border-radius: 50%; background: var(--petrol); }
+.mo-punkt-achtung { width: 6px; height: 6px; border-radius: 50%; background: var(--achtung); }
+.mo-punkt-ohne { width: 6px; height: 6px; }
+.mo-gruppe { display: flex; width: 100%; align-items: center; gap: 8px; background: var(--papier); border: 0; border-bottom: 1px solid var(--linie); padding: 7px 14px; font-size: 13px; font-weight: 600; color: var(--grau); cursor: pointer; text-align: left; }
+.mo-zeile { display: grid; border-bottom: 1px solid var(--linie); row-gap: 3px; }
+.mo-name { padding: 6px 14px; border-right: 1px solid var(--linie); font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; align-self: stretch; display: flex; align-items: center; background: var(--flaeche); z-index: 1; min-width: 0; }
+.mo-hg, .mo-hg-we, .mo-hg-heute { appearance: none; border: 0; border-right: 1px solid #EEF3F4; padding: 0; margin: 0; cursor: pointer; min-height: 34px; background: var(--flaeche); }
+.mo-hg:hover, .mo-hg-we:hover { background: var(--petrol-hell); }
+.mo-hg-we { background: var(--papier); }
+.mo-hg-heute { background: #F4F8F9; box-shadow: inset 1px 0 0 var(--petrol), inset -1px 0 0 var(--petrol); }
+.mo-balken, .mo-balken-weg, .mo-balken-konflikt, .mo-balken-gewaehlt { appearance: none; border: 0; margin: 4px 2px; padding: 0 8px; border-radius: 5px; font-size: 13px; line-height: 24px; height: 26px; text-align: left; cursor: pointer; z-index: 2; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mo-balken { background: var(--petrol); color: #FFFFFF; }
+.mo-balken:hover { background: var(--petrol-tief); }
+.mo-balken-gewaehlt { background: var(--petrol-tief); color: #FFFFFF; box-shadow: 0 0 0 2px var(--flaeche), 0 0 0 4px var(--petrol); }
+.mo-balken-weg { background: var(--linie-stark); color: var(--tinte); }
+.mo-balken-konflikt { background: var(--achtung-hell); color: var(--achtung); box-shadow: inset 0 0 0 2px var(--achtung); font-weight: 600; }
+.mo-legende { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 14px; font-size: 13px; color: var(--grau); border-top: 1px solid var(--linie); }
+
+/* Handy: Monatskalender */
+.kalender { display: none; }
+.kal-raster { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.kal-kopf { text-align: center; font-size: 13px; color: var(--grau); padding: 4px 0; }
+.kal-tag, .kal-tag-we, .kal-tag-heute, .kal-tag-gewaehlt { appearance: none; border: 0; border-radius: 8px; background: var(--flaeche); min-height: 58px; padding: 6px 2px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; box-shadow: inset 0 0 0 1px var(--linie); }
+.kal-tag-we { background: var(--papier); box-shadow: none; }
+.kal-tag-heute { background: var(--petrol-hell); box-shadow: inset 0 0 0 2px var(--petrol); }
+.kal-tag-gewaehlt { background: var(--petrol); color: #FFFFFF; }
+.kal-leer { min-height: 58px; }
+.kal-nr { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.kal-info { font-size: 12px; color: var(--grau); white-space: nowrap; }
+.kal-info-hell { font-size: 12px; color: #C6DCE0; white-space: nowrap; }
+.kal-info-achtung { font-size: 12px; color: var(--achtung); font-weight: 600; white-space: nowrap; }
+.kal-balken { width: 70%; height: 5px; border-radius: 3px; background: var(--petrol); }
+.kal-balken-weg { width: 70%; height: 5px; border-radius: 3px; background: var(--linie-stark); }
+.kal-balken-ohne { width: 70%; height: 5px; }
+
+/* Vorschau (Schreibtisch/Tablet: an der Stelle; Handy: Blatt von unten) */
+.vorschau { position: fixed; z-index: 35; width: 380px; max-height: 80vh; background: var(--flaeche); border: 1px solid var(--linie-stark); border-radius: 12px; box-shadow: 0 24px 48px -20px #0F455280; display: flex; flex-direction: column; }
+.vorschau-blatt { position: fixed; z-index: 35; left: 0; right: 0; bottom: 0; max-height: 82vh; background: var(--flaeche); border-radius: 16px 16px 0 0; box-shadow: var(--schatten); display: flex; flex-direction: column; }
+.vorschau-aus { display: none; }
+.vorschau-kopf { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 14px 12px 10px 18px; border-bottom: 1px solid var(--linie); }
+.vorschau-nav { display: flex; align-items: center; gap: 4px; flex: none; }
+.vorschau-inhalt { padding: 6px 18px 12px; overflow-y: auto; flex: 1; }
+.vorschau-fuss { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; padding: 12px 18px; border-top: 1px solid var(--linie); }
+.v-abschnitt { padding: 12px 0; border-bottom: 1px solid var(--linie); }
+.v-abschnitt-letzt { padding: 12px 0 4px; }
+.v-titel { margin: 0; font-weight: 600; }
+.v-unter { margin: 0 0 6px; font-size: 13px; color: var(--grau); }
+.v-reihe { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px; margin: 3px 0 0; font-size: 14px; }
+.v-label { color: var(--grau); }
+.v-wert { min-width: 0; overflow-wrap: anywhere; }
+.v-hinweis { margin: 8px 0 0; padding: 8px 10px; background: var(--achtung-hell); color: var(--achtung); border-radius: 6px; font-size: 14px; font-weight: 600; }
+.v-info { margin: 8px 0 0; padding: 8px 10px; background: var(--petrol-hell); color: var(--petrol); border-radius: 6px; font-size: 14px; }
+.v-aktion { display: flex; gap: 8px; margin: 10px 0 0; flex-wrap: wrap; }
+
+/* ===== Seitenfenster ===== */
+.schleier { position: fixed; inset: 0; background: #0A1E23; opacity: 0.38; z-index: 30; }
+.schleier-aus { display: none; }
+.fenster { position: fixed; top: 0; right: 0; bottom: 0; width: 480px; max-width: 100%; background: var(--flaeche); z-index: 31; display: flex; flex-direction: column; box-shadow: var(--schatten); }
+.fenster-aus { display: none; }
+.fenster-kopf { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 16px 12px 14px 20px; border-bottom: 1px solid var(--linie); }
+.fenster-inhalt { padding: 16px 20px 20px; overflow-y: auto; flex: 1; }
+.fenster-fuss { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 12px 20px 16px; border-top: 1px solid var(--linie); }
+.f-abschnitt { margin: 18px 0 8px; font-size: 15px; font-weight: 600; }
+.f-kennzahlen { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--linie); border: 1px solid var(--linie); border-radius: 10px; overflow: hidden; }
+.f-kennzahl { background: var(--flaeche); padding: 10px 12px; }
+.f-kennzahl-wert { display: block; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.f-liste { margin: 0; padding: 0; list-style: none; border: 1px solid var(--linie); border-radius: 10px; overflow: hidden; }
+.f-zeile { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--linie); flex-wrap: wrap; }
+.f-zeile-markiert { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--linie); flex-wrap: wrap; background: var(--petrol-hell); box-shadow: inset 3px 0 0 var(--petrol); }
+.f-zeile-text { flex: 1; min-width: 160px; }
+.f-zeile-titel { display: block; font-weight: 600; font-variant-numeric: tabular-nums; }
+.f-zeile-info { display: block; font-size: 13px; color: var(--grau); }
+.f-zeile-wert { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.f-aktionen { display: flex; gap: 12px; }
+.f-text { margin: 4px 0 0; font-size: 14px; color: var(--grau); }
+.feld { display: block; margin: 0 0 14px; }
+.feld-name { display: block; font-size: 13px; font-weight: 600; margin: 0 0 4px; }
+.eingabe { width: 100%; padding: 9px 12px; border: 1px solid var(--linie-stark); border-radius: 8px; background: var(--flaeche); min-height: 42px; }
+.feldpaar { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.wahlliste { margin: 0 0 8px; padding: 0; list-style: none; border: 1px solid var(--linie); border-radius: 8px; overflow: hidden; }
+.wahl-zeile, .wahl-zeile-aus { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--linie); }
+.wahl-zeile-aus { background: var(--abwesend); color: var(--grau); }
+.wahl-haken { width: 20px; height: 20px; accent-color: var(--petrol); flex: none; }
+.wahl-name { flex: 1; min-width: 0; }
+.wahl-status { display: block; font-size: 13px; color: var(--grau); }
+.wahl-status-achtung { display: block; font-size: 13px; color: var(--achtung); font-weight: 600; }
+.wahl-stufe { padding: 4px 6px; border: 1px solid var(--linie-stark); border-radius: 6px; background: var(--flaeche); font-size: 13px; }
+.rueckfrage { padding: 10px 12px; background: var(--achtung-hell); border-radius: 8px; margin: 8px 0; }
+.rueckfrage-text { margin: 0 0 8px; color: var(--achtung); font-weight: 600; font-size: 14px; }
+.warnkasten { margin: 0 0 14px; padding: 10px 12px; background: var(--achtung-hell); color: var(--achtung); border-radius: 8px; font-size: 14px; font-weight: 600; }
+.infokasten { margin: 0 0 14px; padding: 10px 12px; background: var(--petrol-hell); color: var(--petrol); border-radius: 8px; font-size: 14px; }
+
+/* Menü, Meldung */
+.menue { position: fixed; z-index: 40; background: var(--flaeche); border: 1px solid var(--linie-stark); border-radius: 10px; box-shadow: var(--schatten); padding: 6px 0; min-width: 220px; }
+.menue-aus { display: none; }
+.menue-punkt { display: block; width: 100%; background: none; border: 0; padding: 10px 16px; text-align: left; cursor: pointer; }
+.menue-punkt:hover { background: var(--petrol-hell); }
+.meldung { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--tinte); color: #FFFFFF; border-radius: 10px; padding: 12px 16px; z-index: 50; max-width: 92vw; }
+.meldung-aus { display: none; }
+
+.ansicht { display: block; }
+.ansicht-aus { display: none; }
+.teil { display: block; }
+.teil-aus { display: none; }
+.unten { display: none; }
+
+/* ===== Tablet 760–1199 ===== */
+@media (max-width: 1199px) {
+  .huelle { grid-template-columns: 84px minmax(0, 1fr); }
+  .navi { padding: 12px 6px; }
+  .navi-betrieb, .navi-gruppe { display: none; }
+  .navi-punkt, .navi-punkt-aktiv { flex-direction: column; gap: 4px; padding: 10px 4px; font-size: 11px; text-align: center; }
+  .navi-text { flex: none; }
+  .entwurfsleiste { padding: 10px 24px; }
+  .seitenkopf { padding: 22px 24px 16px; }
+  .inhalt { padding: 20px 24px; }
+  .mue-kopfzeile, .mue-zeile { grid-template-columns: 170px minmax(0, 1fr) 62px 62px 70px; gap: 12px; padding-left: 16px; padding-right: 16px; }
+  .st-kopf, .st-kopf-we { color: transparent; }
+  .st-kopf-mo { overflow: visible; text-align: left; }
+  .mw-kopfzeile, .mw-zeile { grid-template-columns: 150px repeat(7, minmax(0, 1fr)) 58px 58px 64px; gap: 4px; padding-left: 16px; padding-right: 16px; }
+  .mw-von { display: none; }
+  .e-nr { display: none; }
+  .wp-name-info { white-space: normal; }
+  .mo-wt { display: none; }
+  .mo-wt-kurz { display: block; }
+  .mo-balken, .mo-balken-weg, .mo-balken-konflikt, .mo-balken-gewaehlt { padding: 0 5px; margin: 4px 1px; }
+  .suche { width: 180px; }
+}
+
+/* ===== Handy bis 759 ===== */
+@media (max-width: 759px) {
+  body { font-size: 16px; }
+  .huelle { grid-template-columns: minmax(0, 1fr); }
+  .navi { display: none; }
+  .inhaltsbereich { padding-bottom: 150px; }
+  .entwurfsleiste { padding: 8px 16px; }
+  .entwurf-titel { display: none; }
+  .seitenkopf { padding: 16px 16px 12px; }
+  .seitentitel { font-size: 22px; }
+  .seitenkopf-aktionen { position: fixed; left: 0; right: 0; bottom: 64px; padding: 10px 16px; background: var(--flaeche); border-top: 1px solid var(--linie); z-index: 20; }
+  .haupt { flex: 1; min-height: 48px; }
+  .hilfe { display: none; }
+  .inhalt { padding: 16px; }
+  .kennzahlen { grid-template-columns: 1fr; }
+  .kennzahl, .kennzahl-aktiv { border-right: 0; border-bottom: 1px solid var(--linie); padding: 10px 16px; }
+  .kennzahl-wert { font-size: 18px; display: inline; margin: 0 0 0 8px; }
+  .steuerung { gap: 10px; }
+  .steuerung-links { width: 100%; justify-content: space-between; }
+  .steuerung-rechts { width: 100%; }
+  .titelblock { flex: 1; min-width: 0; text-align: center; margin: 0; }
+  .suche { width: 100%; }
+  .wahl { flex: 1; }
+  .wahl-knopf, .wahl-knopf-aktiv { flex: 1; padding: 8px 8px; }
+  .mue-kopfzeile, .mw-kopfzeile { display: none; }
+  .mue-zeile { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 12px 16px; }
+  .mue-person { grid-column: 1 / -1; }
+  .streifen { grid-column: 1 / -1; gap: 1px; }
+  .st-ok, .st-fehlt, .st-weg, .st-frei, .st-zukunft, .st-grenze { height: 22px; border-radius: 2px; }
+  .mue-zahl, .mue-zahl-stark { text-align: left; font-size: 14px; }
+  .mue-zahl-name { display: block; font-size: 12px; color: var(--grau); font-weight: 400; }
+  .mw-zeile { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; padding: 12px 12px; }
+  .mw-person { grid-column: 1 / -1; margin: 0 0 4px; }
+  .mw-zahl, .mw-zahl-stark { grid-column: span 2; text-align: left; font-size: 14px; }
+  .mw-zelle, .mw-zelle-fehlt, .mw-zelle-weg, .mw-zelle-frei, .mw-zelle-zukunft, .mw-zelle-grenze { min-height: 44px; padding: 4px 1px; font-size: 12px; }
+  .mw-std { font-size: 13px; }
+  .gruppe-kopf, .zeile, .arbeitszeile { padding-left: 16px; padding-right: 16px; }
+  .wp { display: none; }
+  .tagwahl { display: flex; overflow-x: auto; margin: 0 0 12px; border: 1px solid var(--linie-stark); border-radius: 8px; background: var(--flaeche); }
+  .tagliste { display: block; }
+  .wahl-nur-gross { display: none; }
+  .auswahl-nur-gross { display: none; }
+  .mo { display: none; }
+  .kalender { display: block; }
+  .fenster { top: auto; left: 0; right: 0; width: 100%; height: 90vh; border-radius: 16px 16px 0 0; }
+  .feldpaar { grid-template-columns: 1fr; gap: 0; }
+  .meldung { bottom: 140px; }
+  .unten { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; background: var(--flaeche); border-top: 1px solid var(--linie); z-index: 21; }
+  .unten-punkt, .unten-punkt-aktiv { background: none; border: 0; padding: 8px 0 10px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: var(--grau); cursor: pointer; min-height: 56px; }
+  .unten-punkt-aktiv { color: var(--petrol); font-weight: 600; }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="s-start" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="s-plan" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 10h16M9 3v4M15 3v4" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="s-bau" viewBox="0 0 24 24"><path d="M4 20V9l8-5 8 5v11M9 20v-6h6v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="s-team" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 19c.8-3 3.2-4.5 6-4.5s5.2 1.5 6 4.5M16 6.5a3 3 0 0 1 0 5M18 14.8c1.4.6 2.4 1.9 2.9 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="s-zeit" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v4l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="s-lager" viewBox="0 0 24 24"><path d="M3 8l9-4 9 4v11l-9 4-9-4zM3 8l9 4 9-4M12 12v11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="s-mehr" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="18" cy="12" r="1.6" fill="currentColor"/></symbol>
+</svg>
+
+<div class="huelle">
+  <nav class="navi" aria-label="Hauptnavigation">
+    <p class="navi-betrieb">Perl Installationen GmbH</p>
+    <button class="navi-punkt" type="button"><svg class="navi-symbol"><use href="#s-start"/></svg><span class="navi-text">Start</span></button>
+    <p class="navi-gruppe">Aufträge</p>
+    <button class="navi-punkt" type="button"><svg class="navi-symbol"><use href="#s-bau"/></svg><span class="navi-text">Baustellen</span></button>
+    <button class="navi-punkt" type="button" data-ziel="plan" id="n-plan"><svg class="navi-symbol"><use href="#s-plan"/></svg><span class="navi-text">Einsatzplanung</span></button>
+    <p class="navi-gruppe">Team</p>
+    <button class="navi-punkt" type="button"><svg class="navi-symbol"><use href="#s-zeit"/></svg><span class="navi-text">Zeiterfassung</span></button>
+    <button class="navi-punkt" type="button" data-ziel="mue" id="n-mue"><svg class="navi-symbol"><use href="#s-team"/></svg><span class="navi-text">Mitarbeiterübersicht</span></button>
+    <p class="navi-gruppe">Material</p>
+    <button class="navi-punkt" type="button"><svg class="navi-symbol"><use href="#s-lager"/></svg><span class="navi-text">Lager</span></button>
+  </nav>
+
+  <main class="inhaltsbereich" id="inhalt">
+    <div class="entwurfsleiste">
+      <p class="entwurf-titel">Entwurf Runde 4 · KI-Vorschlag</p>
+      <button class="entwurf-knopf-aktiv" type="button" data-entwurf="mue">1 Mitarbeiterübersicht</button>
+      <button class="entwurf-knopf" type="button" data-entwurf="woche">2 Wochenplan</button>
+      <button class="entwurf-knopf" type="button" data-entwurf="monat">3 Monat</button>
+    </div>
+
+    <!-- ===================== 1. MITARBEITERÜBERSICHT ===================== -->
+    <section class="ansicht" id="seite-mue">
+      <header class="seitenkopf">
+        <div class="seitenkopf-text"><p class="klein">Team</p><h1 class="seitentitel">Mitarbeiterübersicht</h1><p class="copy">Monatsauswertung, Vollständigkeit und Salden</p></div>
+        <div class="seitenkopf-aktionen">
+          <button class="hilfe" type="button">Hilfe zu dieser Seite</button>
+          <button class="mehr" type="button" aria-label="Weitere Handlungen" data-menue="mue">⋯</button>
+          <button class="haupt" type="button" id="mue-zeit">Zeit erfassen</button>
+        </div>
+      </header>
+      <div class="inhalt">
+        <details class="notiz" open>
+          <summary class="notiz-kopf">Was hier anders ist</summary>
+          <p class="notiz-text">Vorher: 31 Spalten mit Stunden, Querscrollen, große leere Bernstein-Kästen, Kürzel mit Legende, die Salden erst in einer zweiten Liste darunter. Jetzt: eine Zeile je Person, die Summen gleich daneben, oben steht, wer Tage ohne Buchung hat. Der Monat ist ein ruhiger Streifen mit einem Feld je Tag: Farbe statt Kürzel, Bernstein nur noch als kleines volles Feld. Die Stunden stehen in der Ansicht „Woche“ in voller Breite („10:45“ statt „10:4 5“). Ein Klick auf die Person oder einen Tag öffnet das Seitenfenster mit allem, was bisher in der aufgeklappten Karte stand. Am Handy passt derselbe Streifen.</p>
+        </details>
+
+        <div class="kennzahlen" id="mue-kennzahlen"></div>
+
+        <div class="steuerung">
+          <div class="steuerung-links">
+            <button class="pfeil" type="button" id="mue-zurueck" aria-label="Zurück">‹</button>
+            <div class="titelblock"><p class="titel-gross" id="mue-titel">Oktober 2026</p><p class="titel-klein" id="mue-untertitel">Dieser Monat</p></div>
+            <button class="pfeil" type="button" id="mue-vor" aria-label="Weiter">›</button>
+          </div>
+          <div class="steuerung-rechts">
+            <input class="suche" type="search" id="mue-suche" placeholder="Person suchen" aria-label="Person suchen">
+            <div class="wahl" role="group" aria-label="Ansicht">
+              <button class="wahl-knopf-aktiv" type="button" data-mue-ansicht="monat">Monat</button>
+              <button class="wahl-knopf" type="button" data-mue-ansicht="woche">Woche</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="mue-liste" id="mue-liste"></div>
+
+        <div class="gruppe" id="mue-grenzen"></div>
+
+        <details class="gruppe">
+          <summary class="gruppe-kopf"><span class="stark">Projektauswertung</span><span class="klein">unverändert</span></summary>
+          <div class="zeile"><span class="zeile-links"><span class="zeile-titel">Max Musterkunde</span><span class="zeile-info">PR-2026-0001 · gesamt 27:55 von 30:00 Std.</span></span><span class="zeile-wert">93 %</span></div>
+          <div class="zeile"><span class="zeile-links"><span class="zeile-titel">CT Bau GmbH</span><span class="zeile-info">PR-2026-0190 · gesamt 10:45 von 08:00 Std.</span></span><span class="status-achtung">134 % über Budget</span></div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ===================== 2./3. EINSATZPLANUNG ===================== -->
+    <section class="ansicht-aus" id="seite-plan">
+      <header class="seitenkopf">
+        <div class="seitenkopf-text"><p class="klein">Aufträge</p><h1 class="seitentitel">Einsatzplanung</h1><p class="copy">Wer ist wann wo – und wer ist noch frei</p></div>
+        <div class="seitenkopf-aktionen">
+          <button class="hilfe" type="button">Hilfe zu dieser Seite</button>
+          <button class="mehr" type="button" aria-label="Weitere Handlungen" data-menue="plan">⋯</button>
+          <button class="haupt" type="button" id="plan-haupt">Einsatz planen</button>
+        </div>
+      </header>
+      <div class="inhalt">
+        <details class="notiz" open id="notiz-woche">
+          <summary class="notiz-kopf">Was hier anders ist – Woche</summary>
+          <p class="notiz-text">Vorher: eigene Zeile „Termine“ mit abgeschnittenen Kärtchen, die man nicht anklicken konnte; ein „frei“-Kasten in jeder leeren Zelle; „Noch einzuplanen“ rechts nimmt dem Raster ein Drittel der Breite, deshalb „Anna B…“ und „PR-202…“; Sa und So schmal, aber trotzdem mit „frei“; Reiter „Wochenplan | Tag planen“ über dem Titel „Wochenplan“. Jetzt: Termine stehen dort, wo sie hingehören – beim Teilnehmer in seiner Zelle, die Lieferung am Einsatz ihrer Baustelle, alles andere als „2 Termine“ im Tageskopf; ein Klick auf den Tageskopf öffnet den ganzen Tag im Seitenfenster. Eine Lieferung, bei der niemand auf der Baustelle ist, ist der einzige Bernstein-Hinweis im Kopf. Leere Zellen sind leer. Das Raster hat die volle Breite, „Noch einzuplanen“ ist eine Zeile darüber. Wochenende und Feiertag sind nur schmal, solange dort nichts steht. „Tag“ ist die dritte Ansicht neben Woche und Monat.</p>
+        </details>
+        <details class="notiz" open id="notiz-monat">
+          <summary class="notiz-kopf">Was hier anders ist – Monat</summary>
+          <p class="notiz-text">Vorher: ein farbiges Feld je Tag, ein Klick springt nur in die Woche. Jetzt: aufeinanderfolgende Tage auf derselben Baustelle sind ein Balken mit dem Namen der Baustelle. Ein Klick auf einen Tag zeigt sofort eine Vorschau genau dieses Tages – Baustelle, Nummer, Adresse, Zeit, wer mit dabei ist, Aufgabe, Rüstliste, Termine – mit „Bearbeiten“ (öffnet dasselbe Seitenfenster wie in der Woche) und „Zur Woche“. Mit ‹ › oder den Pfeiltasten blätterst du in der Vorschau Tag für Tag. Personen | Baustellen gilt auch hier. Am Handy: ein Monatskalender, ein Tipp auf einen Tag öffnet ein Blatt mit allen Einsätzen.</p>
+        </details>
+
+        <div class="steuerung">
+          <div class="steuerung-links">
+            <button class="pfeil" type="button" id="plan-zurueck" aria-label="Zurück">‹</button>
+            <div class="titelblock"><p class="titel-gross" id="plan-titel">Diese Woche</p><p class="titel-klein" id="plan-untertitel">KW 41 · 05.10.–11.10.</p></div>
+            <button class="pfeil" type="button" id="plan-vor" aria-label="Weiter">›</button>
+          </div>
+          <div class="steuerung-rechts">
+            <select class="auswahl-nur-gross" id="plan-zeigen" aria-label="Zeigen">
+              <option value="alle">Alle Personen</option>
+              <option value="einsatz">Nur mit Einsätzen</option>
+              <option value="frei">Nur mit freien Tagen</option>
+            </select>
+            <div class="wahl" role="group" aria-label="Zeitraum">
+              <button class="wahl-knopf-aktiv" type="button" data-plan-ansicht="woche">Woche</button>
+              <button class="wahl-knopf" type="button" data-plan-ansicht="monat">Monat</button>
+              <button class="wahl-knopf" type="button" data-plan-ansicht="tag">Tag</button>
+            </div>
+            <div class="wahl-nur-gross" role="group" aria-label="Sicht" id="plan-sicht">
+              <button class="wahl-knopf-aktiv" type="button" data-plan-sicht="personen">Personen</button>
+              <button class="wahl-knopf" type="button" data-plan-sicht="baustellen">Baustellen</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Woche -->
+        <div class="teil" id="teil-woche">
+          <div class="hinweiszeile" id="noch-zeile"></div>
+          <div class="wp" id="wp"><div class="wp-raster" id="wp-raster"></div></div>
+          <div class="tagwahl" id="tagwahl"></div>
+          <div class="tagliste" id="tagliste"></div>
+          <div class="gruppe wp-kalender">
+            <div class="gruppe-kopf"><span class="stark">Im eigenen Kalender</span><span class="klein">unverändert</span></div>
+            <div class="arbeitszeile"><div class="arbeitszeile-text"><p class="klein">Eingerichtet am 04.10.2026 · zuletzt abgeholt heute 06:02</p></div><button class="textknopf" type="button">Neuen Link erstellen …</button><button class="textknopf" type="button">Abo beenden …</button></div>
+          </div>
+        </div>
+
+        <!-- Monat -->
+        <div class="teil-aus" id="teil-monat">
+          <div class="mo" id="mo"></div>
+          <div class="kalender" id="kalender"></div>
+        </div>
+
+        <!-- Tag -->
+        <div class="teil-aus" id="teil-tag"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<nav class="unten" aria-label="Navigation unten">
+  <button class="unten-punkt" type="button"><svg class="navi-symbol"><use href="#s-start"/></svg>Start</button>
+  <button class="unten-punkt" type="button" data-ziel="plan" id="u-plan"><svg class="navi-symbol"><use href="#s-plan"/></svg>Planung</button>
+  <button class="unten-punkt" type="button" data-ziel="mue" id="u-mue"><svg class="navi-symbol"><use href="#s-team"/></svg>Übersicht</button>
+  <button class="unten-punkt" type="button"><svg class="navi-symbol"><use href="#s-zeit"/></svg>Zeit</button>
+  <button class="unten-punkt" type="button"><svg class="navi-symbol"><use href="#s-mehr"/></svg>Mehr</button>
+</nav>
+
+<div class="schleier-aus" id="schleier"></div>
+<aside class="fenster-aus" id="fenster" role="dialog" aria-modal="true" aria-labelledby="f-titel">
+  <div class="fenster-kopf"><div><p class="klein" id="f-ueber"></p><p class="abschnitt" id="f-titel"></p></div><button class="schliessen" type="button" id="f-zu" aria-label="Schließen">×</button></div>
+  <div class="fenster-inhalt" id="f-inhalt"></div>
+  <div class="fenster-fuss" id="f-fuss"></div>
+</aside>
+<div class="vorschau-aus" id="vorschau" role="dialog" aria-labelledby="v-titel">
+  <div class="vorschau-kopf">
+    <div><p class="klein" id="v-ueber"></p><p class="stark" id="v-titel"></p></div>
+    <div class="vorschau-nav">
+      <button class="pfeil" type="button" id="v-zurueck" aria-label="Vorheriger Tag">‹</button>
+      <button class="pfeil" type="button" id="v-vor" aria-label="Nächster Tag">›</button>
+      <button class="schliessen" type="button" id="v-zu" aria-label="Vorschau schließen">×</button>
+    </div>
+  </div>
+  <div class="vorschau-inhalt" id="v-inhalt"></div>
+  <div class="vorschau-fuss" id="v-fuss"></div>
+</div>
+<div class="tipp-aus" id="tipp"></div>
+<div class="menue-aus" id="menue"></div>
+<div class="meldung-aus" id="meldung" role="status"></div>
+
+<script>
+/* ================= Grundlagen ================= */
+const $ = s => document.querySelector(s);
+function el(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined && txt !== null) e.textContent = txt; return e; }
+function knopf(cls, txt, fn) { const b = el('button', cls, txt); b.type = 'button'; if (fn) b.addEventListener('click', fn); return b; }
+const pad = n => String(n).padStart(2, '0');
+const D = (y, m, t) => new Date(y, m - 1, t);
+const iso = dt => dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate());
+const ausIso = s => { const [y, m, t] = s.split('-').map(Number); return D(y, m, t); };
+const plus = (dt, n) => { const x = new Date(dt); x.setDate(x.getDate() + n); return x; };
+const montag = dt => plus(dt, -((dt.getDay() + 6) % 7));
+const ddmm = dt => pad(dt.getDate()) + '.' + pad(dt.getMonth() + 1) + '.';
+const WT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+const WT1 = ['S', 'M', 'D', 'M', 'D', 'F', 'S'];
+const WTL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+const MONATE = ['Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+function kw(dt) { const x = new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate())); const t = (x.getUTCDay() + 6) % 7; x.setUTCDate(x.getUTCDate() - t + 3); const j = new Date(Date.UTC(x.getUTCFullYear(), 0, 4)); return 1 + Math.round(((x - j) / 86400000 - 3 + ((j.getUTCDay() + 6) % 7)) / 7); }
+const HEUTE = D(2026, 10, 8);
+const HEUTE_ISO = iso(HEUTE);
+const FEIERTAGE = { '2026-10-26': 'Nationalfeiertag', '2026-11-01': 'Allerheiligen', '2026-12-08': 'Mariä Empfängnis', '2026-12-25': 'Christtag', '2026-12-26': 'Stefanitag', '2026-08-15': 'Mariä Himmelfahrt' };
+const istWE = dt => dt.getDay() === 0 || dt.getDay() === 6;
+const frei = dt => istWE(dt) || !!FEIERTAGE[iso(dt)];
+const minuten = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+const hm = min => { const v = min < 0 ? '−' : ''; const a = Math.abs(min); return v + Math.floor(a / 60) + ':' + pad(a % 60); };
+const hmVz = min => (min > 0 ? '+' : '') + hm(min);
+const breit = () => window.innerWidth;
+
+/* ================= Testdaten ================= */
+const PERSONEN = [
+  { id: 'hofer', name: 'Josef Hofer', kurz: 'Josef H.', stufe: 'Obermonteur', plan: true, start: 750, rest: 14, seit: '01.03.2026' },
+  { id: 'muster', name: 'Max Mustermann', kurz: 'Max M.', stufe: 'Facharbeiter', plan: true, start: -90, rest: 21, seit: '01.03.2026' },
+  { id: 'tester', name: 'Max Testermann', kurz: 'Max T.', stufe: 'Facharbeiter', plan: true, start: 150, rest: 17.5, seit: '23.09.2026' },
+  { id: 'pichler', name: 'Lena Pichler', kurz: 'Lena P.', stufe: 'Facharbeiter', plan: true, start: 1230, rest: 9, seit: '01.03.2026' },
+  { id: 'gruber', name: 'Stefan Gruber', kurz: 'Stefan G.', stufe: 'Facharbeiter', plan: true, start: 2460, rest: 12, seit: '01.03.2026' },
+  { id: 'bauer', name: 'Markus Bauer', kurz: 'Markus B.', stufe: 'Helfer', plan: true, start: 0, rest: 18, seit: '01.03.2026' },
+  { id: 'lehner', name: 'Tobias Lehner', kurz: 'Tobias L.', stufe: 'Lehrling', lj: '2. Lehrjahr', jung: true, plan: true, start: 0, rest: 2, seit: '06.10.2026' },
+  { id: 'krenn', name: 'Sabine Krenn', kurz: 'Sabine K.', rolle: 'Buchhaltung', plan: false, start: 420, rest: 16, seit: '01.03.2026' },
+  { id: 'leitner', name: 'Eva Leitner', kurz: 'Eva L.', rolle: 'Verwaltung', plan: false, start: -60, rest: 11, seit: '01.03.2026' },
+  { id: 'wimmer', name: 'Thomas Wimmer', kurz: 'Thomas W.', rolle: 'Projektleiter', plan: false, start: 980, rest: 20, seit: '01.03.2026' }
+];
+const P = {}; PERSONEN.forEach(p => { P[p.id] = p; });
+const PLANER = PERSONEN.filter(p => p.plan).map(p => p.id);
+const STUFEN = ['Obermonteur', 'Facharbeiter', 'Helfer', 'Lehrling'];
+const STUFE_GRUPPE = { Obermonteur: 'Obermonteure', Facharbeiter: 'Facharbeiter', Helfer: 'Helfer', Lehrling: 'Lehrlinge' };
+
+const BAUSTELLEN = [
+  { id: 'b190', kurz: 'CT Bau', nr: 'PR-2026-0190', kunde: 'CT Bau GmbH', titel: 'Badsanierung 2. OG', adr: 'Hauptstraße 12, 4020 Linz', ort: 'Linz', aufgabe: 'Vorwand setzen, Abflüsse anschließen', ruest: [5, 0] },
+  { id: 'b192', kurz: 'Beispiel', nr: 'PR-2026-0192', kunde: 'Anna Beispiel', titel: 'Heizungstausch', adr: 'Am Bach 3, 4040 Linz', ort: 'Linz-Urfahr', aufgabe: 'Altkessel ausbauen, Gastherme setzen', ruest: [8, 1] },
+  { id: 'b187', kurz: 'Huber', nr: 'PR-2026-0187', kunde: 'Familie Huber', titel: 'Wärmepumpe', adr: 'Feldgasse 8, 4050 Traun', ort: 'Traun', aufgabe: 'Außengerät setzen, Leitungen dämmen', ruest: [12, 0] },
+  { id: 'b175', kurz: 'Wohnbau Süd', nr: 'PR-2026-0175', kunde: 'Wohnbau Süd', titel: 'Steigleitungen Haus B', adr: 'Welser Straße 40, 4060 Leonding', ort: 'Leonding', aufgabe: 'Strang 3 und 4 tauschen', ruest: [9, 2] },
+  { id: 'b181', kurz: 'Ansfelden', nr: 'PR-2026-0181', kunde: 'Gemeinde Ansfelden', titel: 'Kindergarten Sanitär', adr: 'Schulweg 2, 4052 Ansfelden', ort: 'Ansfelden', aufgabe: 'WC-Anlagen Gruppe 2 montieren', ruest: [6, 0] },
+  { id: 'b001', kurz: 'Musterkunde', nr: 'PR-2026-0001', kunde: 'Max Musterkunde', titel: 'Therme tauschen', adr: 'Ringstraße 5, 4020 Linz', ort: 'Linz', aufgabe: 'Therme tauschen, Abgas prüfen', ruest: [4, 0] },
+  { id: 'b193', kurz: 'Wagner', nr: 'PR-2026-0193', kunde: 'Doris Wagner', titel: 'Küche anschließen', adr: 'Lindenweg 7, 4020 Linz', ort: 'Linz', aufgabe: 'Spüle und Geschirrspüler anschließen', ruest: [3, 0] },
+  { id: 'b194', kurz: 'Mayr', nr: 'PR-2026-0194', kunde: 'Bäckerei Mayr', titel: 'Fettabscheider', adr: 'Marktplatz 1, 4053 Haid', ort: 'Haid', aufgabe: 'Fettabscheider einbauen', ruest: [7, 0] },
+  { id: 'b195', kurz: 'HV Nord', nr: 'PR-2026-0195', kunde: 'Hausverwaltung Nord', titel: 'Strangsanierung', adr: 'Nordstraße 22, 4040 Linz', ort: 'Linz', aufgabe: 'Bestandsaufnahme Keller', ruest: [0, 0] }
+];
+const B = {}; BAUSTELLEN.forEach(b => { B[b.id] = b; });
+const ROT = ['b190', 'b192', 'b187', 'b175', 'b181', 'b001'];
+
+const ABW = [
+  { p: 'tester', von: '2026-10-01', bis: '2026-10-02', art: 'Krankenstand', konflikt: true },
+  { p: 'tester', von: '2026-10-12', bis: '2026-10-14', art: 'Sonderurlaub' },
+  { p: 'bauer', von: '2026-10-07', bis: '2026-10-08', art: 'Krankenstand', konflikt: true },
+  { p: 'lehner', von: '2026-10-08', bis: '2026-10-09', art: 'Berufsschule' },
+  { p: 'lehner', von: '2026-10-22', bis: '2026-10-23', art: 'Berufsschule' },
+  { p: 'pichler', von: '2026-10-19', bis: '2026-10-23', art: 'Urlaub' },
+  { p: 'gruber', von: '2026-10-16', bis: '2026-10-16', art: 'Zeitausgleich' },
+  { p: 'leitner', von: '2026-09-14', bis: '2026-09-18', art: 'Urlaub' },
+  { p: 'hofer', von: '2026-09-21', bis: '2026-09-25', art: 'Urlaub' },
+  { p: 'krenn', von: '2026-10-28', bis: '2026-10-30', art: 'Urlaub' }
+];
+const abwesenheit = (p, ds) => ABW.find(a => a.p === p && a.von <= ds && ds <= a.bis);
+const ART_KURZ = { Krankenstand: 'Krank', Urlaub: 'Urlaub', Sonderurlaub: 'Sonderurlaub', Berufsschule: 'Berufsschule', Zeitausgleich: 'Zeitausgleich' };
+
+const PLAN_SONDER = { 'tester|2026-10-07': ['b195', 'b192'], 'gruber|2026-10-10': ['b001'] };
+const ZEITEN = { '2026-10-07|b195': ['07:00', '11:30'], '2026-10-07|b192': ['12:00', '15:30'], '2026-10-10|b001': ['09:00', '12:00'], '2026-10-06|b190': ['06:30', '15:00'], '2026-10-09|b181': ['07:00', '12:00'] };
+let TERMINE = [
+  { id: 't1', ds: '2026-10-07', art: 'Lieferung (Aviso)', von: '08:00', bis: '10:00', bau: 'b175', teil: [], notiz: 'Rohre DN 50 kommen' },
+  { id: 't2', ds: '2026-10-07', art: 'Kundentermin', von: '14:00', bis: '15:00', bau: 'b001', teil: ['muster'], notiz: 'Angebot besprechen' },
+  { id: 't3', ds: '2026-10-08', art: 'Besichtigung', von: '10:00', bis: '', bau: '', kunde: 'Familie Ortner', teil: ['wimmer'], notiz: 'Bad vor dem Angebot ansehen' },
+  { id: 't4', ds: '2026-10-09', art: 'Lieferung (Aviso)', von: '07:00', bis: '09:00', bau: 'b193', teil: [], notiz: 'Spüle und Armaturen' },
+  { id: 't5', ds: '2026-10-06', art: 'Abnahme', von: '13:00', bis: '', bau: 'b181', teil: ['hofer', 'wimmer'], notiz: '' },
+  { id: 't6', ds: '2026-10-14', art: 'Besichtigung', von: '09:00', bis: '', bau: 'b194', teil: ['wimmer'], notiz: '' },
+  { id: 't7', ds: '2026-10-21', art: 'Abnahme', von: '11:00', bis: '', bau: 'b175', teil: ['hofer'], notiz: '' },
+  { id: 't8', ds: '2026-10-27', art: 'Lieferung (Aviso)', von: '08:00', bis: '10:00', bau: 'b187', teil: [], notiz: 'Wärmepumpe Außengerät' }
+];
+let terminZaehler = 9;
+const termineAm = ds => TERMINE.filter(t => t.ds === ds).sort((a, b) => (a.von || '99').localeCompare(b.von || '99'));
+const terminZeit = t => t.von ? (t.bis ? t.von + '–' + t.bis : t.von) : 'ganzer Tag';
+const terminOrt = t => t.bau ? B[t.bau].kunde + ' · ' + B[t.bau].nr : (t.kunde || '') + ' (ohne Baustelle)';
+
+/* Planung: Generator + Änderungen */
+const AENDERUNG = {}; let CACHE = {};
+function bausFuer(p, dt) {
+  const ds = iso(dt), k = p + '|' + ds;
+  if (PLAN_SONDER[k]) return PLAN_SONDER[k];
+  if (frei(dt)) return [];
+  if (ds < '2026-08-01' || ds > '2026-12-23') return [];
+  const a = abwesenheit(p, ds); if (a && !a.konflikt) return [];
+  const i = PLANER.indexOf(p), w = kw(dt), wd = (dt.getDay() + 6) % 7;
+  if (wd === 0 && (i * 3 + w) % 7 === 0) return [];
+  if (wd === 4 && (i * 5 + w) % 4 === 0) return [];
+  if (ds > '2026-11-06' && (i + wd + w) % 3 === 0) return [];
+  return [wd <= 2 ? ROT[(i + w) % 6] : ROT[(i + w + 3) % 6]];
+}
+function belegung(ds) {
+  if (CACHE[ds]) return CACHE[ds];
+  const dt = ausIso(ds), m = {};
+  PLANER.forEach(p => bausFuer(p, dt).forEach(b => { (m[b] = m[b] || { personen: [] }).personen.push(p); }));
+  Object.keys(m).forEach(b => { const z = ZEITEN[ds + '|' + b]; if (z) { m[b].von = z[0]; m[b].bis = z[1]; } });
+  Object.keys(AENDERUNG).forEach(k => { const [d, b] = k.split('|'); if (d === ds) { const a = AENDERUNG[k]; if (a.personen.length) m[b] = { personen: a.personen.slice(), von: a.von, bis: a.bis, aufgabe: a.aufgabe, stufen: a.stufen }; else delete m[b]; } });
+  CACHE[ds] = m; return m;
+}
+const einsaetzePerson = (p, ds) => { const m = belegung(ds); return Object.keys(m).filter(b => m[b].personen.includes(p)).map(b => ({ bau: b, von: m[b].von, bis: m[b].bis, konflikt: !!abwesenheit(p, ds) })); };
+const einsatzZeit = e => e.von ? (e.bis ? e.von + '–' + e.bis : 'ab ' + e.von) : '';
+const istLieferungOhneAnnahme = t => t.art.indexOf('Lieferung') === 0 && t.bau && !belegung(t.ds)[t.bau];
+
+/* Zeitbuchungen */
+const FEHLT = new Set(['muster|2026-10-05', 'muster|2026-10-06', 'krenn|2026-10-01', 'krenn|2026-10-02', 'krenn|2026-10-07', 'leitner|2026-10-06', 'leitner|2026-10-07', 'wimmer|2026-10-05']);
+const BUCH_SONDER = {
+  'lehner|2026-10-06': [{ von: '06:30', bis: '17:45', pause: 30, bau: 'b001' }],
+  'gruber|2026-10-05': [{ von: '06:00', bis: '19:00', pause: 30, bau: 'b175' }]
+};
+const GEBUCHT = {};
+const dauer = e => minuten(e.bis) - minuten(e.von) - (e.pause || 0);
+const sollAm = dt => frei(dt) ? 0 : (dt.getDay() === 5 ? 390 : 480);
+function standardBuchung(p, dt) {
+  const ds = iso(dt), fr = dt.getDay() === 5;
+  if (!P[p].plan) return [{ von: '08:00', bis: fr ? '15:00' : '16:30', pause: 30, bau: '', taetigkeit: 'Büro' }];
+  const es = einsaetzePerson(p, ds);
+  if (!es.length) return [{ von: '07:00', bis: fr ? '14:00' : '15:30', pause: 30, bau: '', taetigkeit: 'Lager und Werkstatt' }];
+  if (es.length > 1 && es.every(e => e.von && e.bis)) return es.map(e => ({ von: e.von, bis: e.bis, pause: 0, bau: e.bau }));
+  return [{ von: es[0].von || '07:00', bis: es[0].bis || (fr ? '14:00' : '15:30'), pause: 30, bau: es[0].bau }];
+}
+function grenzeFuer(p, ds, min, eintr) {
+  const dt = ausIso(ds);
+  if (P[p].jung && min > 480) return { text: hm(min) + ' Std. am ' + ddmm(dt) + ' – über der Tagesgrenze für Jugendliche (KJBG)', kjbg: true };
+  if (P[p].jung && eintr.some(e => minuten(e.von) < 360)) return { text: 'Arbeit vor 6 Uhr am ' + ddmm(dt) + ' (KJBG)', kjbg: true };
+  if (min > 720) return { text: hm(min) + ' Std. am ' + ddmm(dt) + ' – höchstens 12 Std. (§ 9 AZG)', kjbg: false };
+  return null;
+}
+function tagStatus(p, dt) {
+  const ds = iso(dt), soll = sollAm(dt), k = p + '|' + ds;
+  const a = abwesenheit(p, ds);
+  if (a && soll > 0) return { typ: 'weg', art: a.art, soll, min: a.art === 'Zeitausgleich' ? 0 : soll, eintraege: [] };
+  const extra = GEBUCHT[k];
+  if (soll === 0 && !extra) return { typ: 'frei', soll: 0, min: 0, eintraege: [], fei: FEIERTAGE[ds] };
+  if (ds >= HEUTE_ISO && !extra) return { typ: 'zukunft', soll, min: 0, eintraege: [] };
+  const eintr = extra || BUCH_SONDER[k] || (FEHLT.has(k) ? null : standardBuchung(p, dt));
+  if (!eintr || !eintr.length) return { typ: 'fehlt', soll, min: 0, eintraege: [] };
+  const min = eintr.reduce((s, e) => s + dauer(e), 0);
+  const g = grenzeFuer(p, ds, min, eintr);
+  return { typ: g ? 'grenze' : 'ok', soll, min, eintraege: eintr, grenze: g };
+}
+function monatsTage(m) { const t = []; const d = new Date(m.getFullYear(), m.getMonth(), 1); while (d.getMonth() === m.getMonth()) { t.push(new Date(d)); d.setDate(d.getDate() + 1); } return t; }
+function auswertung(p, tage) {
+  const r = { ist: 0, soll: 0, fehlt: [], grenzen: [], krank: 0, urlaub: 0, sonder: 0, schule: 0, za: 0, solltage: 0, tage: [] };
+  tage.forEach(dt => {
+    const s = tagStatus(p, dt); r.tage.push({ dt, s });
+    if (iso(dt) < HEUTE_ISO) { r.soll += s.soll; r.ist += s.min; if (s.soll) r.solltage++; }
+    if (s.typ === 'fehlt') r.fehlt.push(dt);
+    if (s.typ === 'grenze') r.grenzen.push({ dt, g: s.grenze });
+    if (s.typ === 'weg') { if (s.art === 'Krankenstand') r.krank++; else if (s.art === 'Urlaub') r.urlaub++; else if (s.art === 'Sonderurlaub') r.sonder++; else if (s.art === 'Berufsschule') r.schule++; else r.za++; }
+  });
+  r.saldo = r.ist - r.soll; return r;
+}
+
+/* ================= Zustand ================= */
+const Z = {
+  seite: 'mue', mueAnsicht: 'monat', mueMonat: D(2026, 10, 1), mueWoche: montag(HEUTE), mueSuche: '', mueNurOffen: false,
+  planAnsicht: 'woche', planSicht: 'personen', woche: montag(HEUTE), monat: D(2026, 10, 1), tag: HEUTE_ISO, zeigen: 'alle',
+  handyTag: HEUTE_ISO, kalPerson: '', zu: {}, markiert: '', moGewaehlt: ''
+};
+
+/* ================= Meldung, Menü, Tooltip ================= */
+let meldungUhr;
+function melde(t) { const m = $('#meldung'); m.textContent = t; m.className = 'meldung'; clearTimeout(meldungUhr); meldungUhr = setTimeout(() => { m.className = 'meldung-aus'; }, 3200); }
+function menueAuf(btn, punkte) {
+  const m = $('#menue'); m.innerHTML = '';
+  punkte.forEach(([t, fn]) => m.appendChild(knopf('menue-punkt', t, () => { menueZu(); fn(); })));
+  m.className = 'menue'; const r = btn.getBoundingClientRect();
+  m.style.top = (r.bottom + 6) + 'px'; m.style.left = Math.max(8, Math.min(r.right - 240, breit() - 248)) + 'px';
+  if (breit() < 760) { m.style.top = Math.max(8, r.top - m.offsetHeight - 6) + 'px'; }
+}
+function menueZu() { $('#menue').className = 'menue-aus'; }
+document.addEventListener('click', e => { if (!e.target.closest('#menue') && !e.target.closest('[data-menue]')) menueZu(); });
+document.querySelectorAll('[data-menue]').forEach(b => b.addEventListener('click', () => {
+  if (b.dataset.menue === 'mue') menueAuf(b, [['Monats-CSV', () => melde('Monats-CSV wird erstellt (wie bisher)')]]);
+  else menueAuf(b, [['Termin anlegen …', () => fensterTermin(null, { ds: Z.planAnsicht === 'tag' ? Z.tag : HEUTE_ISO })], ['Noch einzuplanen …', fensterNoch], ['Im eigenen Kalender …', () => document.querySelector('.wp-kalender').scrollIntoView({ behavior: 'smooth' })]]);
+}));
+const tipp = $('#tipp');
+function tippZeigen(e, text) { if (breit() < 1200) return; tipp.textContent = text; tipp.className = 'tipp'; const x = Math.min(e.clientX + 14, breit() - 290); tipp.style.left = x + 'px'; tipp.style.top = (e.clientY + 16) + 'px'; }
+function tippWeg() { tipp.className = 'tipp-aus'; }
+
+/* ================= Seitenwechsel ================= */
+function zeigeSeite(s) {
+  Z.seite = s;
+  $('#seite-mue').className = s === 'mue' ? 'ansicht' : 'ansicht-aus';
+  $('#seite-plan').className = s === 'plan' ? 'ansicht' : 'ansicht-aus';
+  $('#n-mue').className = s === 'mue' ? 'navi-punkt-aktiv' : 'navi-punkt';
+  $('#n-plan').className = s === 'plan' ? 'navi-punkt-aktiv' : 'navi-punkt';
+  $('#u-mue').className = s === 'mue' ? 'unten-punkt-aktiv' : 'unten-punkt';
+  $('#u-plan').className = s === 'plan' ? 'unten-punkt-aktiv' : 'unten-punkt';
+  document.querySelectorAll('[data-entwurf]').forEach(b => {
+    const an = (b.dataset.entwurf === 'mue' && s === 'mue') || (s === 'plan' && b.dataset.entwurf === Z.planAnsicht);
+    b.className = an ? 'entwurf-knopf-aktiv' : 'entwurf-knopf';
+  });
+  if (s === 'mue') zeichneMue(); else zeichnePlan();
+}
+document.querySelectorAll('[data-ziel]').forEach(b => b.addEventListener('click', () => zeigeSeite(b.dataset.ziel)));
+document.querySelectorAll('[data-entwurf]').forEach(b => b.addEventListener('click', () => {
+  const z = b.dataset.entwurf; vorschauZu();
+  if (z === 'mue') zeigeSeite('mue'); else { Z.planAnsicht = z; zeigeSeite('plan'); }
+  window.scrollTo(0, 0);
+}));
+
+/* ================= 1. MITARBEITERÜBERSICHT ================= */
+function zeichneMue() {
+  const monat = Z.mueAnsicht === 'monat';
+  if (monat) {
+    const m = Z.mueMonat; $('#mue-titel').textContent = MONATE[m.getMonth()] + ' ' + m.getFullYear();
+    const diff = (m.getFullYear() - HEUTE.getFullYear()) * 12 + m.getMonth() - HEUTE.getMonth();
+    $('#mue-untertitel').textContent = diff === 0 ? 'Dieser Monat · Stand ' + WT[HEUTE.getDay()] + ' ' + ddmm(HEUTE) : diff === -1 ? 'Letzter Monat' : diff === 1 ? 'Nächster Monat' : '';
+  } else {
+    const w = Z.mueWoche, d = Math.round((w - montag(HEUTE)) / 604800000);
+    $('#mue-titel').textContent = d === 0 ? 'Diese Woche' : d === -1 ? 'Letzte Woche' : d === 1 ? 'Nächste Woche' : ddmm(w) + '–' + ddmm(plus(w, 6));
+    $('#mue-untertitel').textContent = 'KW ' + kw(w) + (Math.abs(d) <= 1 ? ' · ' + ddmm(w) + '–' + ddmm(plus(w, 6)) : '');
+  }
+  document.querySelectorAll('[data-mue-ansicht]').forEach(b => { b.className = b.dataset.mueAnsicht === Z.mueAnsicht ? 'wahl-knopf-aktiv' : 'wahl-knopf'; });
+
+  const tageMonat = monatsTage(Z.mueMonat);
+  const personen = PERSONEN.filter(p => p.name.toLowerCase().indexOf(Z.mueSuche.toLowerCase()) >= 0);
+  const daten = personen.map(p => ({ p, r: auswertung(p.id, tageMonat) }));
+
+  // Kennzahlen (bezogen auf den gewählten Monat)
+  const fehltTage = daten.reduce((s, d) => s + d.r.fehlt.length, 0), fehltPers = daten.filter(d => d.r.fehlt.length).length;
+  const grenzen = daten.reduce((s, d) => s + d.r.grenzen.length, 0);
+  const ist = daten.reduce((s, d) => s + d.r.ist, 0), soll = daten.reduce((s, d) => s + d.r.soll, 0);
+  const kz = $('#mue-kennzahlen'); kz.innerHTML = '';
+  const k1 = knopf(Z.mueNurOffen ? 'kennzahl-aktiv' : 'kennzahl', null, () => { Z.mueNurOffen = !Z.mueNurOffen; zeichneMue(); });
+  k1.appendChild(el('span', 'klein', 'Tage ohne Buchung')); k1.appendChild(el('span', 'kennzahl-wert', String(fehltTage)));
+  k1.appendChild(el('span', 'kennzahl-zusatz', fehltPers ? 'bei ' + fehltPers + (fehltPers === 1 ? ' Person' : ' Personen') + (Z.mueNurOffen ? ' · gefiltert' : ' · antippen filtert') : 'alle vollständig'));
+  const k2 = knopf('kennzahl', null, () => $('#mue-grenzen').scrollIntoView({ behavior: 'smooth' }));
+  k2.appendChild(el('span', 'klein', 'Arbeitszeitgrenzen')); k2.appendChild(el('span', 'kennzahl-wert', grenzen + (grenzen === 1 ? ' Fall' : ' Fälle'))); k2.appendChild(el('span', 'kennzahl-zusatz', grenzen ? 'zu prüfen' : 'keine Überschreitung'));
+  const k3 = el('div', 'kennzahl'); k3.appendChild(el('span', 'klein', 'Gebucht bisher')); k3.appendChild(el('span', 'kennzahl-wert', hm(ist))); k3.appendChild(el('span', 'kennzahl-zusatz', 'von ' + hm(soll) + ' Soll · alle Personen'));
+  kz.append(k1, k2, k3);
+
+  const liste = $('#mue-liste'); liste.innerHTML = '';
+  let sichtbar = daten; if (Z.mueNurOffen) sichtbar = daten.filter(d => d.r.fehlt.length);
+  const offen = sichtbar.filter(d => d.r.fehlt.length).sort((a, b) => b.r.fehlt.length - a.r.fehlt.length);
+  const voll = sichtbar.filter(d => !d.r.fehlt.length);
+  if (monat) zeichneMueMonat(liste, tageMonat, offen, voll); else zeichneMueWoche(liste, offen, voll);
+  zeichneGrenzen(daten);
+}
+function mueGruppe(liste, text) { liste.appendChild(el('p', 'mue-gruppe', text)); }
+function zeichneMueMonat(liste, tage, offen, voll) {
+  const n = tage.length, cols = 'repeat(' + n + ', minmax(0, 1fr))';
+  const kopf = el('div', 'mue-kopfzeile'); kopf.appendChild(el('p', 'mue-kopf-person', 'Person'));
+  const sk = el('div', 'streifen'); sk.style.gridTemplateColumns = cols;
+  tage.forEach(dt => { const c = iso(dt) === HEUTE_ISO ? 'st-kopf-heute' : dt.getDay() === 1 ? 'st-kopf-mo' : frei(dt) ? 'st-kopf-we' : 'st-kopf'; const s = el('span', c, String(dt.getDate())); s.title = WTL[dt.getDay()] + ', ' + ddmm(dt) + (FEIERTAGE[iso(dt)] ? ' · ' + FEIERTAGE[iso(dt)] : ''); sk.appendChild(s); });
+  kopf.append(sk, el('p', 'mue-kopf-text', 'Gebucht'), el('p', 'mue-kopf-text', 'Soll bisher'), el('p', 'mue-kopf-text', 'Saldo Monat'));
+  liste.appendChild(kopf);
+  const zeile = d => {
+    const z = el('div', 'mue-zeile'); z.addEventListener('click', () => fensterPerson(d.p.id, null));
+    const pb = knopf('mue-person', null); pb.setAttribute('aria-label', d.p.name + ' öffnen');
+    pb.appendChild(el('span', 'mue-name', d.p.name));
+    pb.appendChild(el('span', d.r.fehlt.length ? 'mue-status-achtung' : 'mue-status-ok', d.r.fehlt.length ? (d.r.fehlt.length === 1 ? '1 Tag ohne Buchung' : d.r.fehlt.length + ' Tage ohne Buchung') : (d.p.stufe || d.p.rolle) + ' · vollständig'));
+    const st = el('div', 'streifen'); st.style.gridTemplateColumns = cols;
+    d.r.tage.forEach(({ dt, s }) => {
+      const c = { ok: 'st-ok', grenze: 'st-grenze', fehlt: 'st-fehlt', weg: 'st-weg', frei: 'st-frei', zukunft: 'st-zukunft' }[s.typ];
+      const b = el('button', c); b.type = 'button';
+      const txt = tagText(dt, s); b.setAttribute('aria-label', d.p.name + ', ' + txt);
+      b.addEventListener('mousemove', e => tippZeigen(e, txt)); b.addEventListener('mouseleave', tippWeg);
+      b.addEventListener('click', e => { e.stopPropagation(); tippWeg(); if (s.typ !== 'frei') fensterPerson(d.p.id, iso(dt)); });
+      st.appendChild(b);
+    });
+    const z1 = el('p', 'mue-zahl'), z2 = el('p', 'mue-zahl'), z3 = el('p', 'mue-zahl-stark');
+    z1.append(el('span', 'mue-zahl-name', 'Gebucht'), document.createTextNode(hm(d.r.ist)));
+    z2.append(el('span', 'mue-zahl-name', 'Soll bisher'), document.createTextNode(hm(d.r.soll)));
+    z3.append(el('span', 'mue-zahl-name', 'Saldo Monat'), document.createTextNode(hmVz(d.r.saldo)));
+    z.append(pb, st, z1, z2, z3); return z;
+  };
+  if (offen.length) { mueGruppe(liste, 'Mit Tagen ohne Buchung · ' + offen.length); offen.forEach(d => liste.appendChild(zeile(d))); }
+  if (voll.length) { mueGruppe(liste, 'Vollständig · ' + voll.length); voll.forEach(d => liste.appendChild(zeile(d))); }
+  if (!offen.length && !voll.length) liste.appendChild(el('p', 'mue-gruppe', 'Keine Person gefunden.'));
+  const lg = el('div', 'legende');
+  [['lg-ok', 'gebucht'], ['lg-fehlt', 'Arbeitstag ohne Buchung'], ['lg-weg', 'abwesend (Urlaub, Krank, Schule …)'], ['lg-frei', 'Wochenende, Feiertag'], ['lg-grenze', 'Arbeitszeitgrenze überschritten']].forEach(([c, t]) => lg.appendChild(el('span', c, t)));
+  lg.appendChild(el('span', 'klein', 'Darüberfahren zeigt Stunden und Soll · Tag antippen öffnet ihn'));
+  liste.appendChild(lg);
+}
+function tagText(dt, s) {
+  const k = WT[dt.getDay()] + ' ' + ddmm(dt) + ' · ';
+  if (s.typ === 'frei') return k + (s.fei || 'Wochenende');
+  if (s.typ === 'zukunft') return k + 'Soll ' + hm(s.soll) + (iso(dt) === HEUTE_ISO ? ' · heute' : '');
+  if (s.typ === 'fehlt') return k + 'keine Buchung · Soll ' + hm(s.soll);
+  if (s.typ === 'weg') return k + s.art;
+  return k + s.eintraege.map(e => e.von + '–' + e.bis).join(', ') + ' · ' + hm(s.min) + ' Std. · Soll ' + hm(s.soll) + (s.grenze ? ' · ' + s.grenze.text : '');
+}
+function zeichneMueWoche(liste, offen, voll) {
+  const tage = [0, 1, 2, 3, 4, 5, 6].map(i => plus(Z.mueWoche, i));
+  const kopf = el('div', 'mw-kopfzeile'); kopf.appendChild(el('p', 'mue-kopf-person', 'Person'));
+  tage.forEach(dt => { const k = el('p', iso(dt) === HEUTE_ISO ? 'mw-kopf-heute' : 'mw-kopf'); k.append(document.createTextNode(WT[dt.getDay()]), el('br'), document.createTextNode(ddmm(dt))); kopf.appendChild(k); });
+  kopf.append(el('p', 'mue-kopf-text', 'Gebucht'), el('p', 'mue-kopf-text', 'Soll bisher'), el('p', 'mue-kopf-text', 'Saldo'));
+  liste.appendChild(kopf);
+  const zeile = d => {
+    const r = auswertung(d.p.id, tage);
+    const z = el('div', 'mw-zeile');
+    const pb = knopf('mw-person', null, () => fensterPerson(d.p.id, null));
+    pb.appendChild(el('span', 'mue-name', d.p.name));
+    pb.appendChild(el('span', r.fehlt.length ? 'mue-status-achtung' : 'mue-status-ok', r.fehlt.length ? r.fehlt.length + (r.fehlt.length === 1 ? ' Tag fehlt' : ' Tage fehlen') : (d.p.stufe || d.p.rolle)));
+    z.appendChild(pb);
+    r.tage.forEach(({ dt, s }) => {
+      const c = { ok: 'mw-zelle', grenze: 'mw-zelle-grenze', fehlt: 'mw-zelle-fehlt', weg: 'mw-zelle-weg', frei: 'mw-zelle-frei', zukunft: 'mw-zelle-zukunft' }[s.typ];
+      const b = el('button', c); b.type = 'button'; b.setAttribute('aria-label', d.p.name + ', ' + tagText(dt, s));
+      if (s.typ === 'ok' || s.typ === 'grenze') { b.appendChild(el('span', 'mw-std', hm(s.min))); b.appendChild(el('span', 'mw-von', s.eintraege.length > 1 ? s.eintraege.length + ' Buchungen' : s.eintraege[0].von + '–' + s.eintraege[0].bis)); }
+      else if (s.typ === 'fehlt') b.textContent = 'fehlt';
+      else if (s.typ === 'weg') b.textContent = ART_KURZ[s.art] || s.art;
+      else if (s.typ === 'frei') b.textContent = s.fei ? 'Feiertag' : '–';
+      else b.textContent = iso(dt) === HEUTE_ISO ? 'heute' : '';
+      b.addEventListener('mousemove', e => tippZeigen(e, tagText(dt, s))); b.addEventListener('mouseleave', tippWeg);
+      b.addEventListener('click', () => { tippWeg(); if (s.typ !== 'frei') fensterPerson(d.p.id, iso(dt)); });
+      z.appendChild(b);
+    });
+    const z1 = el('p', 'mw-zahl'), z2 = el('p', 'mw-zahl'), z3 = el('p', 'mw-zahl-stark');
+    z1.append(el('span', 'mue-zahl-name', 'Gebucht'), document.createTextNode(hm(r.ist)));
+    z2.append(el('span', 'mue-zahl-name', 'Soll bisher'), document.createTextNode(hm(r.soll)));
+    z3.append(el('span', 'mue-zahl-name', 'Saldo'), document.createTextNode(hmVz(r.saldo)));
+    z.append(z1, z2, z3); return z;
+  };
+  const alle = offen.concat(voll);
+  const wo = alle.filter(d => auswertung(d.p.id, tage).fehlt.length), rest = alle.filter(d => !auswertung(d.p.id, tage).fehlt.length);
+  if (wo.length) { mueGruppe(liste, 'Mit Tagen ohne Buchung in dieser Woche · ' + wo.length); wo.forEach(d => liste.appendChild(zeile(d))); }
+  if (rest.length) { mueGruppe(liste, 'Vollständig · ' + rest.length); rest.forEach(d => liste.appendChild(zeile(d))); }
+  const lg = el('div', 'legende'); lg.appendChild(el('span', 'klein', 'Stunden je Tag mit Von–Bis · Abwesenheiten als Wort statt Kürzel · Zelle antippen öffnet den Tag'));
+  liste.appendChild(lg);
+}
+function zeichneGrenzen(daten) {
+  const g = $('#mue-grenzen'); g.innerHTML = '';
+  const faelle = []; daten.forEach(d => d.r.grenzen.forEach(x => faelle.push({ p: d.p, dt: x.dt, g: x.g })));
+  const kopf = el('div', 'gruppe-kopf'); kopf.append(el('span', 'stark', 'Arbeitszeitgrenzen'), el('span', 'klein', faelle.length ? faelle.length + (faelle.length === 1 ? ' Fall' : ' Fälle') : '')); g.appendChild(kopf);
+  if (!faelle.length) { const a = el('div', 'arbeitszeile'); a.appendChild(el('p', 'klein', 'In diesem Monat ist keine Grenze überschritten.')); g.appendChild(a); return; }
+  faelle.forEach(f => {
+    const a = el('div', 'arbeitszeile'); const t = el('div', 'arbeitszeile-text');
+    t.appendChild(el('span', 'zeile-titel', f.p.name + (f.p.jung ? ' · unter 18' : ''))); t.appendChild(el('span', 'zeile-info', f.g.text));
+    a.appendChild(t);
+    if (f.g.kjbg) { a.appendChild(el('span', 'status-fehler', 'Verstoß')); a.appendChild(knopf('arbeitszeile-schritt', 'Buchung korrigieren', () => fensterZeit({ p: f.p.id, ds: iso(f.dt), bearbeiten: 0 }))); }
+    else { a.appendChild(el('span', 'status-achtung', 'begründen')); a.appendChild(knopf('arbeitszeile-schritt', 'Begründen', () => melde('Begründung erfassen (wie bisher)'))); }
+    g.appendChild(a);
+  });
+}
+$('#mue-zurueck').addEventListener('click', () => { if (Z.mueAnsicht === 'monat') Z.mueMonat = new Date(Z.mueMonat.getFullYear(), Z.mueMonat.getMonth() - 1, 1); else Z.mueWoche = plus(Z.mueWoche, -7); zeichneMue(); });
+$('#mue-vor').addEventListener('click', () => { if (Z.mueAnsicht === 'monat') Z.mueMonat = new Date(Z.mueMonat.getFullYear(), Z.mueMonat.getMonth() + 1, 1); else Z.mueWoche = plus(Z.mueWoche, 7); zeichneMue(); });
+document.querySelectorAll('[data-mue-ansicht]').forEach(b => b.addEventListener('click', () => {
+  Z.mueAnsicht = b.dataset.mueAnsicht;
+  if (Z.mueAnsicht === 'woche') { const m = Z.mueMonat; Z.mueWoche = (m.getMonth() === HEUTE.getMonth() && m.getFullYear() === HEUTE.getFullYear()) ? montag(HEUTE) : montag(m); }
+  else Z.mueMonat = new Date(Z.mueWoche.getFullYear(), plus(Z.mueWoche, 3).getMonth(), 1);
+  zeichneMue();
+}));
+document.querySelector('#mue-titel').parentElement.addEventListener('click', e => {
+  if (Z.mueAnsicht !== 'monat') return;
+  const blk = e.currentTarget; if (blk.querySelector('select')) return;
+  const ms = el('select', 'auswahl'); MONATE.forEach((m, i) => { const o = el('option', null, m); o.value = i; if (i === Z.mueMonat.getMonth()) o.selected = true; ms.appendChild(o); });
+  const js = el('select', 'auswahl'); [2026, 2025, 2024, 2023, 2022].forEach(j => { const o = el('option', null, String(j)); if (j === Z.mueMonat.getFullYear()) o.selected = true; js.appendChild(o); });
+  const fertig = () => { Z.mueMonat = new Date(Number(js.value), Number(ms.value), 1); blk.querySelectorAll('select').forEach(x => x.remove()); blk.querySelectorAll('p').forEach(x => { x.style.display = ''; }); zeichneMue(); };
+  ms.addEventListener('change', fertig); js.addEventListener('change', fertig);
+  ms.setAttribute('aria-label', 'Monat'); js.setAttribute('aria-label', 'Jahr');
+  blk.querySelectorAll('p').forEach(x => { x.style.display = 'none'; }); blk.append(ms, js); ms.focus();
+});
+document.querySelector('#mue-titel').parentElement.style.cursor = 'pointer';
+document.querySelector('#mue-titel').parentElement.title = 'Monat und Jahr wählen';
+$('#mue-suche').addEventListener('input', e => { Z.mueSuche = e.target.value; zeichneMue(); });
+$('#mue-zeit').addEventListener('click', () => fensterZeit({}));
+
+/* Seitenfenster Person */
+function fensterPerson(pid, ds) {
+  const p = P[pid];
+  const m = ds ? new Date(ausIso(ds).getFullYear(), ausIso(ds).getMonth(), 1) : Z.mueMonat;
+  const tage = monatsTage(m), r = auswertung(pid, tage);
+  fensterAuf((p.stufe || p.rolle) + (p.lj ? ' · ' + p.lj : '') + ' · ' + MONATE[m.getMonth()] + ' ' + m.getFullYear(), p.name);
+  const f = $('#f-inhalt');
+  const kz = el('div', 'f-kennzahlen');
+  [['Saldo im Monat', hmVz(r.saldo)], ['Gebucht von Soll bisher', hm(r.ist) + ' / ' + hm(r.soll)], ['Gesamtsaldo seit ' + p.seit, hmVz(p.start + r.saldo)], ['Resturlaub', String(p.rest).replace('.', ',') + ' Tage']].forEach(([a, b]) => { const k = el('div', 'f-kennzahl'); k.append(el('span', 'klein', a), el('span', 'f-kennzahl-wert', b)); kz.appendChild(k); });
+  f.appendChild(kz);
+  const teile = [r.krank + ' Tage krank', r.urlaub + ' Tage Urlaub']; if (r.sonder) teile.push(r.sonder + ' Tage Sonderurlaub'); if (r.schule) teile.push(r.schule + ' Tage Berufsschule');
+  f.appendChild(el('p', 'f-text', teile.join(' · ')));
+  f.appendChild(el('p', 'f-text', 'Tagessoll Mo–Do 8:00, Fr 6:30 · Wochenstunden 38:30 · ' + r.solltage + ' Solltage bisher'));
+
+  if (r.fehlt.length) {
+    f.appendChild(el('p', 'f-abschnitt', r.fehlt.length === 1 ? '1 Arbeitstag ohne Buchung' : r.fehlt.length + ' Arbeitstage ohne Buchung'));
+    const ul = el('ul', 'f-liste');
+    r.fehlt.forEach(dt => { const li = el('li', iso(dt) === ds ? 'f-zeile-markiert' : 'f-zeile'); const t = el('div', 'f-zeile-text'); t.append(el('span', 'f-zeile-titel', WT[dt.getDay()] + ' ' + ddmm(dt)), el('span', 'f-zeile-info', 'Soll ' + hm(sollAm(dt)))); li.append(t, knopf('arbeitszeile-schritt', 'Zeit erfassen', () => fensterZeit({ p: pid, ds: iso(dt) }))); ul.appendChild(li); });
+    f.appendChild(ul);
+  }
+  if (r.grenzen.length) {
+    f.appendChild(el('p', 'f-abschnitt', 'Arbeitszeitgrenzen'));
+    const ul = el('ul', 'f-liste');
+    r.grenzen.forEach(x => { const li = el('li', 'f-zeile'); const t = el('div', 'f-zeile-text'); t.append(el('span', 'f-zeile-titel', WT[x.dt.getDay()] + ' ' + ddmm(x.dt)), el('span', 'f-zeile-info', x.g.text)); li.append(t, x.g.kjbg ? knopf('arbeitszeile-schritt', 'Buchung korrigieren', () => fensterZeit({ p: pid, ds: iso(x.dt), bearbeiten: 0 })) : knopf('arbeitszeile-schritt', 'Begründen', () => melde('Begründung erfassen (wie bisher)'))); ul.appendChild(li); });
+    f.appendChild(ul);
+  }
+  const eintraege = r.tage.filter(({ s }) => s.typ === 'ok' || s.typ === 'grenze' || s.typ === 'weg' || (s.typ === 'frei' && s.fei));
+  f.appendChild(el('p', 'f-abschnitt', 'Tagesnachweis · ' + eintraege.length + ' Einträge'));
+  const ul = el('ul', 'f-liste'); let markiert = null;
+  eintraege.forEach(({ dt, s }) => {
+    const li = el('li', iso(dt) === ds ? 'f-zeile-markiert' : 'f-zeile'); if (iso(dt) === ds) markiert = li;
+    const t = el('div', 'f-zeile-text');
+    t.appendChild(el('span', 'f-zeile-titel', WT[dt.getDay()] + ' ' + ddmm(dt)));
+    if (s.typ === 'weg') { t.appendChild(el('span', 'f-zeile-info', s.art)); li.append(t, knopf('textknopf', s.art === 'Krankenstand' ? 'Krankmeldung' : s.art === 'Berufsschule' ? 'Bearbeiten' : 'Antrag', () => melde('Öffnet wie bisher'))); }
+    else if (s.typ === 'frei') { t.appendChild(el('span', 'f-zeile-info', s.fei)); li.appendChild(t); }
+    else {
+      t.appendChild(el('span', 'f-zeile-info', s.eintraege.map(e => e.von + '–' + e.bis + ' · ' + (e.bau ? B[e.bau].kunde : e.taetigkeit)).join(' / ') + (s.grenze ? ' · Grenze' : '')));
+      const ak = el('div', 'f-aktionen'); ak.append(knopf('textknopf', 'Bearbeiten', () => fensterZeit({ p: pid, ds: iso(dt), bearbeiten: 0 })), knopf('textknopf-gefahr', 'Löschen', () => melde('Löschen mit Rückfrage (wie bisher)')));
+      li.append(t, el('span', 'f-zeile-wert', hm(s.min)), ak);
+    }
+    ul.appendChild(li);
+  });
+  if (ds && !markiert) {
+    const s = tagStatus(pid, ausIso(ds));
+    if (s.typ === 'zukunft') { const li = el('li', 'f-zeile-markiert'); const t = el('div', 'f-zeile-text'); t.append(el('span', 'f-zeile-titel', WT[ausIso(ds).getDay()] + ' ' + ddmm(ausIso(ds))), el('span', 'f-zeile-info', 'noch nichts gebucht · Soll ' + hm(s.soll))); li.append(t, knopf('arbeitszeile-schritt', 'Zeit erfassen', () => fensterZeit({ p: pid, ds }))); ul.prepend(li); markiert = li; }
+  }
+  f.appendChild(ul);
+  fensterFuss([knopf('neben', 'Monat als CSV', () => melde('CSV dieser Person (wie bisher)')), knopf('neben', 'Bericht für Zeitraum', () => melde('Stundennachweis (wie bisher)')), knopf('haupt', 'Zeit erfassen', () => fensterZeit({ p: pid, ds: ds || '' }))]);
+  if (markiert) setTimeout(() => markiert.scrollIntoView({ block: 'center' }), 30);
+}
+
+/* Seitenfenster Zeit erfassen / bearbeiten */
+function fensterZeit(v) {
+  const p = v.p || 'muster', ds = v.ds || iso(plus(HEUTE, -1));
+  const s = tagStatus(p, ausIso(ds)); const vorhanden = v.bearbeiten !== undefined && s.eintraege[v.bearbeiten];
+  fensterAuf(vorhanden ? 'Buchung bearbeiten' : 'Für eine Person', vorhanden ? 'Zeit bearbeiten' : 'Zeit erfassen');
+  const f = $('#f-inhalt');
+  const feld = (name, input) => { const l = el('label', 'feld'); l.append(el('span', 'feld-name', name), input); return l; };
+  const sel = el('select', 'eingabe'); PERSONEN.forEach(x => { const o = el('option', null, x.name); o.value = x.id; if (x.id === p) o.selected = true; sel.appendChild(o); });
+  const tag = el('input', 'eingabe'); tag.type = 'date'; tag.value = ds;
+  const art = el('select', 'eingabe'); ['Arbeit', 'Urlaub', 'Krank', 'Zeitausgleich', 'Berufsschule', 'Sonderurlaub', 'Pflegefreistellung', 'Unbezahlt'].forEach(x => art.appendChild(el('option', null, x)));
+  const bau = el('select', 'eingabe'); bau.appendChild(el('option', null, '— ohne Baustelle —')); BAUSTELLEN.forEach(b => { const o = el('option', null, b.kunde + ' (' + b.nr + ')'); o.value = b.id; if (vorhanden && vorhanden.bau === b.id) o.selected = true; bau.appendChild(o); });
+  const von = el('input', 'eingabe'); von.type = 'time'; von.value = vorhanden ? vorhanden.von : '07:00';
+  const bis = el('input', 'eingabe'); bis.type = 'time'; bis.value = vorhanden ? vorhanden.bis : (ausIso(ds).getDay() === 5 ? '14:00' : '15:30');
+  const pause = el('input', 'eingabe'); pause.type = 'number'; pause.value = vorhanden ? vorhanden.pause : 30;
+  const warn = el('div', 'warnkasten'); warn.style.display = 'none';
+  f.append(feld('Person', sel), feld('Tag', tag), feld('Art', art), feld('Baustelle', bau));
+  const fp = el('div', 'feldpaar'); fp.append(feld('Von', von), feld('Bis', bis)); f.append(fp, feld('Pause in Minuten', pause), warn);
+  f.appendChild(el('p', 'f-text', 'Dasselbe Formular wie bisher – Anfahrt, Fahrzeug und Zuschläge stehen unter „Weitere Angaben“.'));
+  let trotzdem = false;
+  const speichern = knopf('haupt', 'Speichern', () => {
+    const e = { von: von.value, bis: bis.value, pause: Number(pause.value) || 0, bau: bau.value.indexOf('b') === 0 ? bau.value : '', taetigkeit: 'Arbeit' };
+    const min = dauer(e); const pid = sel.value;
+    if (P[pid].jung && min > 480 && !trotzdem) { warn.textContent = 'Über der Tagesgrenze für Jugendliche (' + hm(min) + ' Std.). Prüf die Buchung – gebucht wird mit „Trotzdem buchen“.'; warn.style.display = 'block'; speichern.textContent = 'Trotzdem buchen'; trotzdem = true; return; }
+    const k = pid + '|' + tag.value; const alt = tagStatus(pid, ausIso(tag.value)).eintraege.slice();
+    if (vorhanden && pid === p && tag.value === ds) alt[v.bearbeiten] = e; else alt.push(e);
+    GEBUCHT[k] = alt; FEHLT.delete(k); delete BUCH_SONDER[k];
+    fensterZu(); zeichneMue(); melde('Gespeichert');
+  });
+  fensterFuss([knopf('neben', 'Abbrechen', fensterZu), speichern]);
+}
+
+/* ================= 2. WOCHENPLAN ================= */
+function wochenTitel(w) {
+  const d = Math.round((w - montag(HEUTE)) / 604800000);
+  const gross = d === 0 ? 'Diese Woche' : d === 1 ? 'Nächste Woche' : d === -1 ? 'Letzte Woche' : ddmm(w) + '–' + ddmm(plus(w, 6));
+  const klein = 'KW ' + kw(w) + (Math.abs(d) <= 1 ? ' · ' + ddmm(w) + '–' + ddmm(plus(w, 6)) : '');
+  return [gross, klein];
+}
+function zeichnePlan() {
+  const a = Z.planAnsicht;
+  document.querySelectorAll('[data-plan-ansicht]').forEach(b => { b.className = b.dataset.planAnsicht === a ? 'wahl-knopf-aktiv' : 'wahl-knopf'; });
+  document.querySelectorAll('[data-plan-sicht]').forEach(b => { b.className = b.dataset.planSicht === Z.planSicht ? 'wahl-knopf-aktiv' : 'wahl-knopf'; });
+  document.querySelectorAll('[data-entwurf]').forEach(b => { b.className = b.dataset.entwurf === a ? 'entwurf-knopf-aktiv' : 'entwurf-knopf'; });
+  $('#teil-woche').className = a === 'woche' ? 'teil' : 'teil-aus';
+  $('#teil-monat').className = a === 'monat' ? 'teil' : 'teil-aus';
+  $('#teil-tag').className = a === 'tag' ? 'teil' : 'teil-aus';
+  $('#notiz-woche').style.display = a === 'monat' ? 'none' : 'block';
+  $('#notiz-monat').style.display = a === 'monat' ? 'block' : 'none';
+  $('#plan-zeigen').style.display = a === 'woche' && Z.planSicht === 'personen' ? '' : 'none';
+  $('#plan-sicht').style.display = a === 'tag' ? 'none' : '';
+  if (a === 'woche') { const [g, k] = wochenTitel(Z.woche); $('#plan-titel').textContent = g; $('#plan-untertitel').textContent = k; zeichneWoche(); }
+  if (a === 'monat') { const m = Z.monat; $('#plan-titel').textContent = MONATE[m.getMonth()] + ' ' + m.getFullYear(); const d = (m.getFullYear() - HEUTE.getFullYear()) * 12 + m.getMonth() - HEUTE.getMonth(); $('#plan-untertitel').textContent = d === 0 ? 'Dieser Monat' : d === 1 ? 'Nächster Monat' : d === -1 ? 'Letzter Monat' : ''; zeichneMonat(); }
+  if (a === 'tag') { const dt = ausIso(Z.tag); const d = Math.round((dt - HEUTE) / 86400000); $('#plan-titel').textContent = d === 0 ? 'Heute' : d === 1 ? 'Morgen' : d === -1 ? 'Gestern' : WTL[dt.getDay()]; $('#plan-untertitel').textContent = WT[dt.getDay()] + ' ' + ddmm(dt) + dt.getFullYear() + ' · KW ' + kw(dt); zeichneTagSeite(); }
+}
+function personenSichtbar(tage) {
+  return PLANER.filter(p => {
+    if (Z.zeigen === 'alle') return true;
+    const hat = tage.some(dt => einsaetzePerson(p, iso(dt)).length);
+    if (Z.zeigen === 'einsatz') return hat;
+    return tage.some(dt => !frei(dt) && !einsaetzePerson(p, iso(dt)).length && !abwesenheit(p, iso(dt)));
+  });
+}
+function freiZahl(ds) { const dt = ausIso(ds); if (frei(dt)) return null; return PLANER.filter(p => !einsaetzePerson(p, ds).length && !abwesenheit(p, ds)).length; }
+function tagHatEtwas(ds) { return Object.keys(belegung(ds)).length > 0 || termineAm(ds).length > 0; }
+
+function zeichneWoche() {
+  const tage = [0, 1, 2, 3, 4, 5, 6].map(i => plus(Z.woche, i)), dss = tage.map(iso);
+  // Noch einzuplanen
+  const verplant = new Set(); dss.forEach(ds => Object.keys(belegung(ds)).forEach(b => verplant.add(b)));
+  const noch = BAUSTELLEN.filter(b => !verplant.has(b.id));
+  const nz = $('#noch-zeile'); nz.innerHTML = '';
+  if (noch.length) { const t = el('p', 'hinweis-text'); t.textContent = noch.length + (noch.length === 1 ? ' laufende Baustelle' : ' laufende Baustellen') + ' ohne Einsatz in dieser Woche: ' + noch.slice(0, 3).map(b => b.kunde).join(', ') + (noch.length > 3 ? ' und ' + (noch.length - 3) + ' weitere' : ''); nz.append(t, knopf('textknopf', 'Noch einzuplanen …', fensterNoch)); nz.style.display = 'flex'; }
+  else nz.style.display = 'none';
+
+  const schmal = tage.map(dt => frei(dt) && !tagHatEtwas(iso(dt)));
+  const w = breit(), nameB = w >= 1200 ? 200 : 132, tagMin = w >= 1200 ? 128 : 96;
+  const cols = [nameB + 'px'].concat(schmal.map(s => s ? (w >= 1200 ? '56px' : '44px') : 'minmax(' + tagMin + 'px, 1fr)')).join(' ');
+  const r = $('#wp-raster'); r.innerHTML = ''; r.style.gridTemplateColumns = cols;
+  r.appendChild(el('div', 'wp-ecke', Z.planSicht === 'personen' ? 'Mitarbeiter' : 'Baustelle'));
+  tage.forEach((dt, i) => {
+    const ds = dss[i];
+    const cls = ds === Z.markiert ? 'wp-kopf-markiert' : ds === HEUTE_ISO ? 'wp-kopf-heute' : schmal[i] ? 'wp-kopf-schmal' : 'wp-kopf';
+    const k = knopf(cls, null, () => fensterTag(ds));
+    k.setAttribute('aria-label', WTL[dt.getDay()] + ' ' + ddmm(dt) + ' – ganzen Tag ansehen');
+    if (schmal[i]) { k.appendChild(el('span', 'kopf-tag', WT[dt.getDay()])); k.appendChild(el('span', 'kopf-info', ddmm(dt).slice(0, 3))); if (FEIERTAGE[ds]) k.title = FEIERTAGE[ds]; }
+    else {
+      k.appendChild(el('span', 'kopf-tag', WT[dt.getDay()] + ' ' + ddmm(dt)));
+      const fz = freiZahl(ds);
+      k.appendChild(el('span', 'kopf-info', FEIERTAGE[ds] ? FEIERTAGE[ds] : fz === null ? 'Wochenende' : fz + ' frei'));
+      const ts = termineAm(ds), ohne = ts.filter(istLieferungOhneAnnahme);
+      if (ohne.length) k.appendChild(el('span', 'kopf-warnung', ohne.length === 1 ? 'Lieferung ohne Annahme' : ohne.length + ' Lieferungen ohne Annahme'));
+      if (ts.length) k.appendChild(el('span', 'kopf-termine', ts.length === 1 ? '1 Termin' : ts.length + ' Termine'));
+    }
+    r.appendChild(k);
+  });
+  if (Z.planSicht === 'personen') zeichneWochePersonen(r, tage, dss, schmal); else zeichneWocheBaustellen(r, tage, dss, schmal);
+  zeichneHandyWoche(tage, dss);
+}
+function einsatzBlock(ds, bau, p, mitNamen) {
+  const m = belegung(ds)[bau], b = B[bau];
+  const konflikt = p && abwesenheit(p, ds);
+  const k = knopf(konflikt ? 'eintrag-konflikt' : 'eintrag', null, ev => { ev.stopPropagation(); fensterEinsatz({ ds, bau }); });
+  k.appendChild(el('span', 'e-titel', b.kunde));
+  if (konflikt) { k.appendChild(el('span', 'e-zeile', 'fehlt: ' + (ART_KURZ[konflikt.art] || konflikt.art))); }
+  else {
+    if (mitNamen) k.appendChild(el('span', 'e-zeile', m.personen.map(x => P[x].kurz).join(', ')));
+    k.appendChild(el('span', 'e-zeile', einsatzZeit(m) || b.ort));
+    k.appendChild(el('span', 'e-nr', b.nr));
+    termineAm(ds).filter(t => t.bau === bau && !(p && t.teil.includes(p))).forEach(t => k.appendChild(el('span', 'e-zusatz', t.art.replace(' (Aviso)', '') + ' ' + terminZeit(t))));
+  }
+  k.title = b.kunde + ' · ' + b.titel + ' · ' + b.nr + (einsatzZeit(m) ? ' · ' + einsatzZeit(m) : '') + ' · ' + m.personen.map(x => P[x].name).join(', ');
+  return k;
+}
+function terminBlock(t) {
+  const k = knopf('eintrag-termin', null, ev => { ev.stopPropagation(); fensterTermin(t); });
+  k.appendChild(el('span', 'e-titel', t.art.replace(' (Aviso)', '')));
+  k.appendChild(el('span', 'e-zeile', terminZeit(t)));
+  k.appendChild(el('span', 'e-zeile', t.bau ? B[t.bau].kunde : t.kunde));
+  k.title = t.art + ' · ' + terminZeit(t) + ' · ' + terminOrt(t);
+  return k;
+}
+function zeichneWochePersonen(r, tage, dss, schmal) {
+  const sicht = personenSichtbar(tage);
+  STUFEN.forEach(st => {
+    const ps = sicht.filter(p => P[p].stufe === st); if (!ps.length) return;
+    const zu = Z.zu[st];
+    r.appendChild(knopf('wp-gruppe', (zu ? '▸ ' : '▾ ') + STUFE_GRUPPE[st] + ' · ' + ps.length, () => { Z.zu[st] = !zu; zeichneWoche(); }));
+    if (zu) return;
+    ps.forEach(p => {
+      const n = el('div', 'wp-name'); n.append(el('span', 'wp-name-titel', P[p].name), el('span', 'wp-name-info', P[p].stufe + (P[p].lj ? ' · ' + P[p].lj : ''))); r.appendChild(n);
+      dss.forEach((ds, i) => {
+        const z = el('div', schmal[i] ? 'wp-zelle-schmal' : ds === HEUTE_ISO ? 'wp-zelle-heute' : 'wp-zelle');
+        z.addEventListener('click', () => fensterEinsatz({ ds, p }));
+        z.setAttribute('aria-label', P[p].name + ', ' + WTL[tage[i].getDay()] + ' ' + ddmm(tage[i]) + ' – Einsatz planen');
+        if (!schmal[i]) {
+          const a = abwesenheit(p, ds); const es = einsaetzePerson(p, ds);
+          if (a && !es.length) z.appendChild(el('div', 'eintrag-weg', a.art));
+          es.forEach(e => z.appendChild(einsatzBlock(ds, e.bau, p, false)));
+          termineAm(ds).filter(t => t.teil.includes(p)).forEach(t => z.appendChild(terminBlock(t)));
+          if (!z.children.length) z.appendChild(el('span', 'zelle-plus', '+ Einsatz planen'));
+        }
+        r.appendChild(z);
+      });
+    });
+  });
+  if (!sicht.length) { const l = el('div', 'wp-gruppe', 'Niemand passt zu dieser Auswahl.'); r.appendChild(l); }
+}
+function zeichneWocheBaustellen(r, tage, dss, schmal) {
+  const ids = BAUSTELLEN.filter(b => dss.some(ds => belegung(ds)[b.id] || termineAm(ds).some(t => t.bau === b.id))).map(b => b.id);
+  r.appendChild(el('div', 'wp-gruppe', 'Baustellen mit Einsatz oder Termin · ' + ids.length));
+  ids.forEach(bid => {
+    const n = el('div', 'wp-name'); n.append(el('span', 'wp-name-titel', B[bid].kunde), el('span', 'wp-name-info', B[bid].nr + ' · ' + B[bid].ort)); r.appendChild(n);
+    dss.forEach((ds, i) => {
+      const z = el('div', schmal[i] ? 'wp-zelle-schmal' : ds === HEUTE_ISO ? 'wp-zelle-heute' : 'wp-zelle');
+      z.addEventListener('click', () => fensterEinsatz({ ds, bau: bid }));
+      if (!schmal[i]) {
+        if (belegung(ds)[bid]) {
+          const m = belegung(ds)[bid]; const fehlt = m.personen.filter(x => abwesenheit(x, ds));
+          const k = knopf(fehlt.length ? 'eintrag-konflikt' : 'eintrag', null, ev => { ev.stopPropagation(); fensterEinsatz({ ds, bau: bid }); });
+          k.appendChild(el('span', 'e-titel', m.personen.map(x => P[x].kurz).join(', ')));
+          if (fehlt.length) k.appendChild(el('span', 'e-zeile', fehlt.map(x => P[x].kurz).join(', ') + ' fehlt'));
+          else k.appendChild(el('span', 'e-zeile', einsatzZeit(m) || 'ganztags'));
+          k.title = m.personen.map(x => P[x].name).join(', ');
+          z.appendChild(k);
+        }
+        termineAm(ds).filter(t => t.bau === bid).forEach(t => z.appendChild(terminBlock(t)));
+        if (!z.children.length) z.appendChild(el('span', 'zelle-plus', '+ Einsatz planen'));
+      }
+      r.appendChild(z);
+    });
+  });
+}
+function zeichneHandyWoche(tage, dss) {
+  if (dss.indexOf(Z.handyTag) < 0) Z.handyTag = dss.indexOf(HEUTE_ISO) >= 0 ? HEUTE_ISO : dss[0];
+  const tw = $('#tagwahl'); tw.innerHTML = '';
+  tage.forEach((dt, i) => {
+    const ds = dss[i]; const b = knopf(ds === Z.handyTag ? 'tag-knopf-aktiv' : 'tag-knopf', null, () => { Z.handyTag = ds; zeichneHandyWoche(tage, dss); });
+    b.append(el('span', 'tag-knopf-wt', WT[dt.getDay()]), el('span', 'tag-knopf-nr', String(dt.getDate())));
+    const ts = termineAm(ds); b.appendChild(el('span', ts.some(istLieferungOhneAnnahme) ? 'tag-knopf-punkt-achtung' : ts.length ? 'tag-knopf-punkt' : 'tag-knopf-ohne'));
+    tw.appendChild(b);
+  });
+  const tl = $('#tagliste'); tl.innerHTML = '';
+  tagInhalt(tl, Z.handyTag, 'handy');
+}
+
+/* Tagesinhalt: Seitenfenster „Tag“, Seite „Tag“ und Handy-Liste */
+function tagInhalt(ziel, ds, art) {
+  const dt = ausIso(ds), ts = termineAm(ds), bel = belegung(ds);
+  const g1 = el('div', 'gruppe');
+  const k1 = el('div', 'gruppe-kopf'); k1.append(el('span', 'stark', 'Termine am ' + WT[dt.getDay()] + ' ' + ddmm(dt)), knopf('textknopf', 'Termin anlegen', () => fensterTermin(null, { ds }))); g1.appendChild(k1);
+  if (!ts.length) g1.appendChild(el('p', 'zeile-info', '')).textContent = '';
+  ts.forEach(t => {
+    const z = knopf('zeile', null, () => fensterTermin(t)); const l = el('span', 'zeile-links');
+    l.append(el('span', 'zeile-titel', t.art + ' · ' + terminZeit(t)), el('span', 'zeile-info', terminOrt(t) + (t.teil.length ? ' · Teilnehmer: ' + t.teil.map(x => P[x].name).join(', ') : '')));
+    z.appendChild(l); if (istLieferungOhneAnnahme(t)) z.appendChild(el('span', 'status-achtung', 'niemand dort'));
+    g1.appendChild(z);
+  });
+  if (!ts.length) { const a = el('div', 'arbeitszeile'); a.appendChild(el('p', 'klein', 'Keine Termine an diesem Tag.')); g1.appendChild(a); }
+  const g2 = el('div', 'gruppe');
+  const k2 = el('div', 'gruppe-kopf'); k2.append(el('span', 'stark', 'Einsätze'), el('span', 'klein', Object.keys(bel).length + ' Baustellen')); g2.appendChild(k2);
+  Object.keys(bel).forEach(bid => {
+    const m = bel[bid], b = B[bid];
+    const z = el('div', 'tag-baustelle'); const t = el('div', 'tag-baustelle-text');
+    t.append(el('p', 'stark', b.kunde + ' · ' + b.titel), el('p', 'tag-zeile', b.nr + ' · ' + (einsatzZeit(m) || 'ganztags') + ' · ' + m.personen.map(x => P[x].name).join(', ')));
+    m.personen.filter(x => abwesenheit(x, ds)).forEach(x => t.appendChild(el('p', 'tag-zeile-achtung', P[x].name + ' fehlt: ' + abwesenheit(x, ds).art)));
+    termineAm(ds).filter(x => x.bau === bid).forEach(x => t.appendChild(el('p', 'tag-zeile', 'Am selben Tag: ' + x.art + ' · ' + terminZeit(x))));
+    z.append(t, knopf('neben', 'Bearbeiten', () => fensterEinsatz({ ds, bau: bid })));
+    g2.appendChild(z);
+  });
+  if (!Object.keys(bel).length) { const a = el('div', 'arbeitszeile'); a.appendChild(el('p', 'klein', 'Noch kein Einsatz an diesem Tag.')); g2.appendChild(a); }
+  const freieP = PLANER.filter(p => !einsaetzePerson(p, ds).length && !abwesenheit(p, ds));
+  const wegP = PLANER.filter(p => abwesenheit(p, ds));
+  const g3 = el('div', 'gruppe');
+  const k3 = el('div', 'gruppe-kopf'); k3.append(el('span', 'stark', frei(dt) ? 'Ohne Einsatz' : 'Frei'), el('span', 'klein', String(freieP.length))); g3.appendChild(k3);
+  freieP.forEach(p => { const z = knopf('zeile', null, () => fensterEinsatz({ ds, p })); const l = el('span', 'zeile-links'); l.append(el('span', 'zeile-titel', P[p].name), el('span', 'zeile-info', P[p].stufe)); z.append(l, el('span', 'textknopf', 'Einsatz planen')); g3.appendChild(z); });
+  wegP.forEach(p => { const a = el('div', 'arbeitszeile'); const t = el('div', 'arbeitszeile-text'); t.append(el('span', 'zeile-titel', P[p].name), el('span', 'zeile-info', 'abwesend: ' + abwesenheit(p, ds).art)); a.appendChild(t); g3.appendChild(a); });
+  if (art === 'handy') {
+    // Handy: Personenliste wie das Raster, Termine oben
+    const g = el('div', 'gruppe');
+    if (ts.length) { const kt = el('div', 'gruppe-kopf'); kt.append(el('span', 'stark', ts.length === 1 ? '1 Termin' : ts.length + ' Termine'), knopf('textknopf', 'Termin anlegen', () => fensterTermin(null, { ds }))); g.appendChild(kt); ts.forEach(t => { const z = knopf('zeile', null, () => fensterTermin(t)); const l = el('span', 'zeile-links'); l.append(el('span', 'zeile-titel', terminZeit(t) + ' ' + t.art), el('span', 'zeile-info', terminOrt(t))); z.appendChild(l); if (istLieferungOhneAnnahme(t)) z.appendChild(el('span', 'status-achtung', 'niemand dort')); g.appendChild(z); }); }
+    STUFEN.forEach(st => {
+      const ps = PLANER.filter(p => P[p].stufe === st); if (!ps.length) return;
+      g.appendChild(el('p', 'mue-gruppe', STUFE_GRUPPE[st] + ' · ' + ps.length));
+      ps.forEach(p => {
+        const z = el('div', 'tl-person'); z.appendChild(el('p', 'tl-name', P[p].name));
+        const e = el('div', 'tl-eintraege'); const a = abwesenheit(p, ds); const es = einsaetzePerson(p, ds);
+        if (a && !es.length) e.appendChild(el('div', 'eintrag-weg', a.art));
+        es.forEach(x => e.appendChild(einsatzBlock(ds, x.bau, p, false)));
+        ts.filter(t => t.teil.includes(p)).forEach(t => e.appendChild(terminBlock(t)));
+        if (!e.children.length) e.appendChild(knopf('tl-frei', 'frei – Einsatz planen', () => fensterEinsatz({ ds, p })));
+        z.appendChild(e); g.appendChild(z);
+      });
+    });
+    ziel.appendChild(g); return;
+  }
+  ziel.append(g1, g2, g3);
+}
+function zeichneTagSeite() { const t = $('#teil-tag'); t.innerHTML = ''; tagInhalt(t, Z.tag, 'seite'); }
+function fensterTag(ds) {
+  const dt = ausIso(ds);
+  fensterAuf('KW ' + kw(dt) + (FEIERTAGE[ds] ? ' · ' + FEIERTAGE[ds] : ''), WTL[dt.getDay()] + ', ' + ddmm(dt));
+  tagInhalt($('#f-inhalt'), ds, 'fenster');
+  fensterFuss([knopf('neben', 'In „Tag“ öffnen', () => { fensterZu(); Z.tag = ds; Z.planAnsicht = 'tag'; zeichnePlan(); }), knopf('haupt', 'Einsatz planen', () => fensterEinsatz({ ds }))]);
+}
+function fensterNoch() {
+  const dss = [0, 1, 2, 3, 4, 5, 6].map(i => iso(plus(Z.woche, i)));
+  const verplant = new Set(); dss.forEach(ds => Object.keys(belegung(ds)).forEach(b => verplant.add(b)));
+  const noch = BAUSTELLEN.filter(b => !verplant.has(b.id));
+  const [g] = wochenTitel(Z.woche);
+  fensterAuf('Laufende Baustellen ohne Einsatz · ' + g, 'Noch einzuplanen');
+  const f = $('#f-inhalt'); const ul = el('div', 'f-liste');
+  const ersterTag = dss.find(ds => ds >= HEUTE_ISO && !frei(ausIso(ds))) || dss[0];
+  noch.forEach(b => { const z = knopf('zeile', null, () => fensterEinsatz({ ds: ersterTag, bau: b.id })); const l = el('span', 'zeile-links'); l.append(el('span', 'zeile-titel', b.kunde + ' · ' + b.titel), el('span', 'zeile-info', b.nr + ' · ' + b.ort)); z.append(l, el('span', 'textknopf', 'Einplanen')); ul.appendChild(z); });
+  f.appendChild(ul);
+  f.appendChild(el('p', 'f-text', 'Ein Tipp öffnet „Einsatz planen“ mit der Baustelle und dem nächsten Arbeitstag. Ziehen auf einen Tag bleibt ein späterer Schritt.'));
+  fensterFuss([knopf('neben', 'Schließen', fensterZu)]);
+}
+
+/* Seitenfenster Einsatz planen / bearbeiten */
+function fensterEinsatz(v) {
+  vorschauZu();
+  let ds = v.ds || HEUTE_ISO, bau = v.bau || '';
+  const vorhanden = bau && belegung(ds)[bau];
+  const m = vorhanden ? belegung(ds)[bau] : { personen: v.p ? [v.p] : [], von: '', bis: '' };
+  fensterAuf(WTL[ausIso(ds).getDay()] + ', ' + ddmm(ausIso(ds)) + ausIso(ds).getFullYear(), vorhanden ? 'Einsatz bearbeiten' : 'Einsatz planen');
+  const f = $('#f-inhalt');
+  const feld = (name, input) => { const l = el('label', 'feld'); l.append(el('span', 'feld-name', name), input); return l; };
+  const tag = el('input', 'eingabe'); tag.type = 'date'; tag.value = ds;
+  const bs = el('select', 'eingabe'); bs.appendChild(el('option', null, '— wählen —')); BAUSTELLEN.forEach(b => { const o = el('option', null, b.kunde + ' (' + b.nr + ')'); o.value = b.id; if (b.id === bau) o.selected = true; bs.appendChild(o); });
+  const hinweis = el('div', 'infokasten');
+  const zeigeHinweis = () => { const ts = termineAm(tag.value).filter(t => t.bau === bs.value); hinweis.style.display = ts.length ? 'block' : 'none'; hinweis.textContent = ts.map(t => 'Am selben Tag auf dieser Baustelle: ' + t.art + ' · ' + terminZeit(t) + '.' + (t.art.indexOf('Lieferung') === 0 ? ' Steht jemand zur Annahme da?' : '')).join(' '); };
+  f.append(feld('Tag', tag), feld('Baustelle', bs), hinweis); zeigeHinweis();
+  // Personen
+  f.appendChild(el('span', 'feld-name', 'Mitarbeiter'));
+  let nurFrei = false; const liste = el('ul', 'wahlliste'); const gewaehlt = new Set(m.personen);
+  const zeichnePersonen = () => {
+    liste.innerHTML = '';
+    PLANER.forEach(p => {
+      const a = abwesenheit(p, tag.value); const anders = einsaetzePerson(p, tag.value).filter(e => e.bau !== bs.value);
+      if (nurFrei && (a || anders.length) && !gewaehlt.has(p)) return;
+      const li = el('li', a ? 'wahl-zeile-aus' : 'wahl-zeile');
+      const cb = el('input', 'wahl-haken'); cb.type = 'checkbox'; cb.checked = gewaehlt.has(p); cb.id = 'w-' + p; cb.addEventListener('change', () => { if (cb.checked) gewaehlt.add(p); else gewaehlt.delete(p); });
+      const lab = el('label', 'wahl-name'); lab.htmlFor = cb.id; lab.appendChild(document.createTextNode(P[p].name));
+      lab.appendChild(el('span', a ? 'wahl-status-achtung' : 'wahl-status', a ? 'abwesend: ' + a.art : anders.length ? 'schon eingeteilt: ' + anders.map(e => B[e.bau].kunde).join(', ') : 'frei'));
+      const st = el('select', 'wahl-stufe'); STUFEN.forEach(s => { const o = el('option', null, 'als ' + s); if (s === P[p].stufe) o.selected = true; st.appendChild(o); }); st.setAttribute('aria-label', 'Einstufung für ' + P[p].name);
+      li.append(cb, lab, st); liste.appendChild(li);
+    });
+  };
+  zeichnePersonen(); f.appendChild(liste);
+  const nf = knopf('textknopf', 'Nur freie anzeigen', () => { nurFrei = !nurFrei; nf.textContent = nurFrei ? 'Alle anzeigen' : 'Nur freie anzeigen'; zeichnePersonen(); }); f.appendChild(nf);
+  tag.addEventListener('change', () => { zeigeHinweis(); zeichnePersonen(); }); bs.addEventListener('change', () => { zeigeHinweis(); zeichnePersonen(); });
+  const auf = el('textarea', 'eingabe'); auf.rows = 3; auf.value = (m.aufgabe || (bau ? B[bau].aufgabe : ''));
+  const von = el('input', 'eingabe'); von.type = 'time'; von.value = m.von || '';
+  const bis = el('input', 'eingabe'); bis.type = 'time'; bis.value = m.bis || '';
+  const fp = el('div', 'feldpaar'); fp.append(feld('Beginn (optional)', von), feld('Ende (optional)', bis));
+  f.append(el('span', 'feld-name', ''), feld('Kommentar / Aufgabe', auf), fp, knopf('textknopf', 'Uhrzeit entfernen', () => { von.value = ''; bis.value = ''; }));
+  f.appendChild(el('p', 'f-abschnitt', 'Material für diesen Einsatz'));
+  const rl = bau ? B[bau].ruest : [0, 0];
+  f.appendChild(el('p', 'f-text', rl[0] ? rl[0] + ' Positionen' + (rl[1] ? ' · ' + rl[1] + ' mit Fehlmenge – „Anforderung über … anlegen“' : '') : 'Noch keine Rüstliste.'));
+  f.appendChild(knopf('textknopf', 'Artikel aus dem Lager oder freie Zeile hinzufügen …', () => melde('Rüstliste wie bisher')));
+  if (vorhanden) {
+    f.appendChild(el('p', 'f-abschnitt', 'Gespeichert eingeteilt'));
+    const ul = el('ul', 'f-liste');
+    m.personen.forEach(p => {
+      const li = el('li', 'f-zeile'); const t = el('div', 'f-zeile-text'); t.append(el('span', 'f-zeile-titel', P[p].name), el('span', 'f-zeile-info', P[p].stufe));
+      const lo = knopf('textknopf-gefahr', 'Einsatz löschen', () => {
+        li.innerHTML = ''; const rf = el('div', 'rueckfrage'); rf.appendChild(el('p', 'rueckfrage-text', P[p].name + ' am ' + ddmm(ausIso(ds)) + ' von ' + B[bau].kunde + ' nehmen?'));
+        const ak = el('div', 'f-aktionen'); ak.append(knopf('gefahr', 'Ja, Einsatz löschen', () => { const neu = m.personen.filter(x => x !== p); AENDERUNG[ds + '|' + bau] = { personen: neu, von: m.von, bis: m.bis, aufgabe: auf.value }; CACHE = {}; fensterZu(); zeichneAlles(); melde('Einsatz gelöscht'); }), knopf('neben', 'Abbrechen', () => fensterEinsatz(v)));
+        rf.appendChild(ak); li.appendChild(rf);
+      });
+      li.append(t, lo); ul.appendChild(li);
+    });
+    f.appendChild(ul);
+  }
+  const fuss = [];
+  fuss.push(knopf('neben', 'Ganzen Tag ansehen', () => fensterTag(tag.value)));
+  fuss.push(knopf('haupt', vorhanden ? 'Speichern' : 'Einsatz speichern', () => {
+    if (!bs.value || bs.value.indexOf('b') !== 0) { melde('Bitte eine Baustelle wählen'); return; }
+    if (!gewaehlt.size) { melde('Bitte mindestens eine Person wählen'); return; }
+    if (vorhanden && (bs.value !== bau || tag.value !== ds)) AENDERUNG[ds + '|' + bau] = { personen: [] };
+    const k = tag.value + '|' + bs.value; const alt = belegung(tag.value)[bs.value];
+    const personen = Array.from(gewaehlt);
+    if (alt && !(vorhanden && bs.value === bau && tag.value === ds)) alt.personen.forEach(x => { if (personen.indexOf(x) < 0) personen.push(x); });
+    AENDERUNG[k] = { personen, von: von.value, bis: bis.value, aufgabe: auf.value };
+    CACHE = {}; fensterZu(); zeichneAlles(); melde(vorhanden ? 'Einsatz gespeichert' : 'Einsatz geplant');
+  }));
+  fensterFuss(fuss);
+}
+
+/* Seitenfenster Termin */
+function fensterTermin(t, preset) {
+  vorschauZu();
+  const neu = !t; t = t || { id: 't' + (terminZaehler++), ds: preset.ds, art: 'Kundentermin', von: '', bis: '', bau: '', teil: [], notiz: '' };
+  fensterAuf(WTL[ausIso(t.ds).getDay()] + ', ' + ddmm(ausIso(t.ds)), neu ? 'Termin anlegen' : 'Termin ändern');
+  const f = $('#f-inhalt');
+  const feld = (name, input) => { const l = el('label', 'feld'); l.append(el('span', 'feld-name', name), input); return l; };
+  const art = el('select', 'eingabe'); ['Kundentermin', 'Besichtigung', 'Baustellenbesprechung', 'Abnahme', 'Lieferung (Aviso)', 'Behörde'].forEach(a => { const o = el('option', null, a); if (a === t.art) o.selected = true; art.appendChild(o); });
+  const tag = el('input', 'eingabe'); tag.type = 'date'; tag.value = t.ds;
+  const von = el('input', 'eingabe'); von.type = 'time'; von.value = t.von;
+  const bis = el('input', 'eingabe'); bis.type = 'time'; bis.value = t.bis;
+  const bs = el('select', 'eingabe'); const o0 = el('option', null, t.kunde ? 'ohne Baustelle – ' + t.kunde : '— ohne Baustelle —'); o0.value = ''; bs.appendChild(o0); BAUSTELLEN.forEach(b => { const o = el('option', null, b.kunde + ' (' + b.nr + ')'); o.value = b.id; if (b.id === t.bau) o.selected = true; bs.appendChild(o); });
+  const fp = el('div', 'feldpaar'); fp.append(feld('Von', von), feld('Bis (bei Lieferung: Zeitfenster)', bis));
+  f.append(feld('Art', art), feld('Tag', tag), fp, knopf('textknopf', 'Uhrzeit entfernen', () => { von.value = ''; bis.value = ''; }), feld('Baustelle oder Kunde', bs));
+  f.appendChild(el('span', 'feld-name', 'Teilnehmer'));
+  const ul = el('ul', 'wahlliste'); const gew = new Set(t.teil);
+  PERSONEN.forEach(p => { const li = el('li', 'wahl-zeile'); const cb = el('input', 'wahl-haken'); cb.type = 'checkbox'; cb.checked = gew.has(p.id); cb.id = 'tt-' + p.id; cb.addEventListener('change', () => { if (cb.checked) gew.add(p.id); else gew.delete(p.id); }); const lab = el('label', 'wahl-name', p.name); lab.htmlFor = cb.id; li.append(cb, lab); ul.appendChild(li); });
+  f.appendChild(ul);
+  const notiz = el('textarea', 'eingabe'); notiz.rows = 2; notiz.value = t.notiz || ''; f.appendChild(feld('Notiz', notiz));
+  const fuss = [];
+  if (!neu) fuss.push(knopf('gefahr', 'Löschen', () => { const fz = $('#f-fuss'); fz.innerHTML = ''; const rf = el('div', 'rueckfrage'); rf.appendChild(el('p', 'rueckfrage-text', 'Termin wirklich löschen?')); const ak = el('div', 'f-aktionen'); ak.append(knopf('gefahr', 'Ja, löschen', () => { TERMINE = TERMINE.filter(x => x.id !== t.id); fensterZu(); zeichneAlles(); melde('Termin gelöscht'); }), knopf('neben', 'Abbrechen', () => fensterTermin(t))); rf.appendChild(ak); fz.appendChild(rf); }));
+  fuss.push(knopf('haupt', 'Speichern', () => {
+    if (von.value && bis.value && bis.value <= von.value) { melde('„Bis“ muss nach „Von“ liegen'); return; }
+    Object.assign(t, { art: art.value, ds: tag.value, von: von.value, bis: bis.value, bau: bs.value, teil: Array.from(gew), notiz: notiz.value });
+    if (neu) TERMINE.push(t); fensterZu(); zeichneAlles(); melde('Termin gespeichert');
+  }));
+  fensterFuss(fuss);
+}
+
+/* ================= 3. MONAT ================= */
+function zeichneMonat() {
+  const tage = monatsTage(Z.monat), n = tage.length;
+  const w = breit(), nameB = w >= 1200 ? 190 : 120;
+  const cols = nameB + 'px repeat(' + n + ', minmax(0, 1fr))';
+  const mo = $('#mo'); mo.innerHTML = '';
+  const kopf = el('div', 'mo-kopfzeile'); kopf.style.gridTemplateColumns = cols;
+  kopf.appendChild(el('div', 'mo-ecke', Z.planSicht === 'personen' ? 'Mitarbeiter' : 'Baustelle'));
+  tage.forEach(dt => {
+    const ds = iso(dt); const k = el('div', ds === HEUTE_ISO ? 'mo-tagkopf-heute' : frei(dt) ? 'mo-tagkopf-we' : 'mo-tagkopf');
+    k.append(el('span', 'mo-wt', WT[dt.getDay()]), el('span', 'mo-wt-kurz', WT1[dt.getDay()]), el('span', 'mo-nr', String(dt.getDate())));
+    const ts = termineAm(ds); k.appendChild(el('span', ts.some(istLieferungOhneAnnahme) ? 'mo-punkt-achtung' : ts.length ? 'mo-punkt' : 'mo-punkt-ohne'));
+    k.title = WTL[dt.getDay()] + ', ' + ddmm(dt) + (FEIERTAGE[ds] ? ' · ' + FEIERTAGE[ds] : '') + (ts.length ? ' · ' + ts.length + (ts.length === 1 ? ' Termin' : ' Termine') : '');
+    kopf.appendChild(k);
+  });
+  mo.appendChild(kopf);
+  if (Z.planSicht === 'personen') {
+    STUFEN.forEach(st => {
+      const ps = PLANER.filter(p => P[p].stufe === st); if (!ps.length) return;
+      const zu = Z.zu['m' + st];
+      mo.appendChild(knopf('mo-gruppe', (zu ? '▸ ' : '▾ ') + STUFE_GRUPPE[st] + ' · ' + ps.length, () => { Z.zu['m' + st] = !zu; zeichneMonat(); }));
+      if (zu) return;
+      ps.forEach(p => mo.appendChild(monatsZeile(breit() >= 1200 ? P[p].name : P[p].kurz, tage, cols, dt => {
+        const ds = iso(dt), out = []; const a = abwesenheit(p, ds); const es = einsaetzePerson(p, ds);
+        es.forEach(e => out.push({ key: (e.konflikt ? 'k:' : 'e:') + e.bau, typ: e.konflikt ? 'konflikt' : 'plan', text: B[e.bau].kurz + (e.konflikt ? ' – fehlt' : ''), lang: B[e.bau].kunde + (e.konflikt ? ' – fehlt' : ''), bau: e.bau }));
+        if (a && !es.length && !frei(dt)) out.push({ key: 'w:' + a.art, typ: 'weg', text: a.art });
+        return out;
+      }, (ds, item) => ({ art: 'person', p, ds, bau: item ? item.bau : '' }))));
+    });
+  } else {
+    const ids = BAUSTELLEN.filter(b => tage.some(dt => belegung(iso(dt))[b.id])).map(b => b.id);
+    mo.appendChild(el('div', 'mo-gruppe', 'Baustellen diesen Monat · ' + ids.length));
+    ids.forEach(bid => mo.appendChild(monatsZeile(breit() >= 1200 ? B[bid].kunde : B[bid].kurz, tage, cols, dt => {
+      const ds = iso(dt), m = belegung(ds)[bid]; if (!m) return [];
+      const fehlt = m.personen.some(x => abwesenheit(x, ds));
+      return [{ key: (fehlt ? 'k:' : 'e:') + bid + ':' + m.personen.slice().sort().join(','), typ: fehlt ? 'konflikt' : 'plan', text: m.personen.length === 1 ? P[m.personen[0]].kurz : m.personen.length + ' Pers.', lang: m.personen.map(x => P[x].name).join(', '), bau: bid }];
+    }, (ds) => ({ art: 'bau', bau: bid, ds }))));
+  }
+  const lg = el('div', 'mo-legende');
+  [['lg-plan', 'eingeplant'], ['lg-konflikt', 'eingeteilt, aber abwesend'], ['lg-weg', 'abwesend'], ['lg-frei', 'Wochenende, Feiertag']].forEach(([c, t]) => lg.appendChild(el('span', c, t)));
+  lg.appendChild(el('span', 'klein', 'Punkt im Kopf: Termine an diesem Tag · Tag antippen zeigt die Vorschau'));
+  mo.appendChild(lg);
+  zeichneKalender(tage);
+}
+function monatsZeile(name, tage, cols, eintraegeAm, vorschauDaten) {
+  const zellB = ($('#mo').clientWidth - (breit() >= 1200 ? 190 : 120)) / tage.length;
+  // Segmente: aufeinanderfolgende Tage mit gleichem Schlüssel werden ein Balken
+  let offen = {}; const segs = [];
+  tage.forEach((dt, k) => {
+    const neu = {};
+    eintraegeAm(dt).forEach(it => { const s = offen[it.key]; if (s && s.ende === k - 1) { s.ende = k; neu[it.key] = s; } else { const x = { key: it.key, typ: it.typ, text: it.text, lang: it.lang || it.text, bau: it.bau, start: k, ende: k }; segs.push(x); neu[it.key] = x; } });
+    offen = neu;
+  });
+  const bahnen = []; segs.sort((a, b) => a.start - b.start).forEach(s => { let l = bahnen.findIndex(e => e < s.start); if (l < 0) { l = bahnen.length; bahnen.push(-1); } bahnen[l] = s.ende; s.bahn = l; });
+  const L = Math.max(1, bahnen.length);
+  const z = el('div', 'mo-zeile'); z.style.gridTemplateColumns = cols;
+  const n = el('div', 'mo-name', name); n.style.gridRow = '1 / span ' + L; n.style.gridColumn = '1'; n.title = name; z.appendChild(n);
+  tage.forEach((dt, k) => {
+    const ds = iso(dt); const b = el('button', ds === HEUTE_ISO ? 'mo-hg-heute' : frei(dt) ? 'mo-hg-we' : 'mo-hg'); b.type = 'button';
+    b.style.gridColumn = String(k + 2); b.style.gridRow = '1 / span ' + L;
+    b.setAttribute('aria-label', name + ', ' + WTL[dt.getDay()] + ' ' + ddmm(dt) + ' – Vorschau');
+    b.addEventListener('click', e => { e.stopPropagation(); oeffneVorschau(vorschauDaten(ds, null), b); });
+    z.appendChild(b);
+  });
+  segs.forEach(s => {
+    const cls = s.typ === 'konflikt' ? 'mo-balken-konflikt' : s.typ === 'weg' ? 'mo-balken-weg' : 'mo-balken';
+    const b = el('button', cls); b.type = 'button';
+    const span = s.ende - s.start + 1; b.style.gridColumn = (s.start + 2) + ' / span ' + span; b.style.gridRow = String(s.bahn + 1);
+    if (span * zellB >= 46) b.textContent = s.text;
+    b.title = s.lang + ' · ' + ddmm(tage[s.start]) + (span > 1 ? '–' + ddmm(tage[s.ende]) : '');
+    b.setAttribute('aria-label', name + ': ' + b.title + ' – Vorschau');
+    b.dataset.seg = s.start + '-' + s.ende;
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      const r = b.getBoundingClientRect(); let k = s.start + Math.floor((e.clientX - r.left) / r.width * span); if (e.clientX === 0 && e.clientY === 0) k = s.start;
+      k = Math.max(s.start, Math.min(s.ende, k));
+      oeffneVorschau(vorschauDaten(iso(tage[k]), s), b, e.clientX);
+    });
+    z.appendChild(b);
+  });
+  return z;
+}
+/* Handy: Monatskalender */
+function zeichneKalender(tage) {
+  const k = $('#kalender'); k.innerHTML = '';
+  const sel = el('select', 'auswahl'); sel.setAttribute('aria-label', 'Für wen'); sel.style.width = '100%'; sel.style.margin = '0 0 12px';
+  const o0 = el('option', null, 'Alle Personen'); o0.value = ''; sel.appendChild(o0);
+  PLANER.forEach(p => { const o = el('option', null, P[p].name); o.value = p; if (p === Z.kalPerson) o.selected = true; sel.appendChild(o); });
+  sel.addEventListener('change', () => { Z.kalPerson = sel.value; zeichneKalender(tage); });
+  k.appendChild(sel);
+  k.appendChild(el('p', 'klein', Z.kalPerson ? 'Balken = eingeplant · grau = abwesend · Tag antippen zeigt die Vorschau' : 'Zahl = Baustellen mit Einsatz · Punkt = Termin · Bernstein = jemand fehlt'));
+  const r = el('div', 'kal-raster'); r.style.marginTop = '8px';
+  ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].forEach(t => r.appendChild(el('div', 'kal-kopf', t)));
+  for (let i = 0; i < (tage[0].getDay() + 6) % 7; i++) r.appendChild(el('div', 'kal-leer'));
+  tage.forEach(dt => {
+    const ds = iso(dt); const p = Z.kalPerson;
+    const b = el('button', ds === Z.moGewaehlt ? 'kal-tag-gewaehlt' : ds === HEUTE_ISO ? 'kal-tag-heute' : frei(dt) ? 'kal-tag-we' : 'kal-tag'); b.type = 'button';
+    b.appendChild(el('span', 'kal-nr', String(dt.getDate())));
+    const hell = ds === Z.moGewaehlt;
+    if (p) {
+      const es = einsaetzePerson(p, ds), a = abwesenheit(p, ds);
+      b.appendChild(el('span', es.length ? 'kal-balken' : a && !frei(dt) ? 'kal-balken-weg' : 'kal-balken-ohne'));
+      b.appendChild(el('span', es.some(e => e.konflikt) ? 'kal-info-achtung' : hell ? 'kal-info-hell' : 'kal-info', es.some(e => e.konflikt) ? 'fehlt' : es.length ? (es.length > 1 ? '2 Bst.' : '') : a && !frei(dt) ? 'weg' : ''));
+    } else {
+      const n = Object.keys(belegung(ds)).length; const kon = PLANER.some(x => einsaetzePerson(x, ds).some(e => e.konflikt));
+      b.appendChild(el('span', kon ? 'kal-info-achtung' : hell ? 'kal-info-hell' : 'kal-info', n ? String(n) : ''));
+      const ts = termineAm(ds); b.appendChild(el('span', ts.some(istLieferungOhneAnnahme) ? 'mo-punkt-achtung' : ts.length ? 'mo-punkt' : 'mo-punkt-ohne'));
+    }
+    b.setAttribute('aria-label', WTL[dt.getDay()] + ' ' + ddmm(dt));
+    b.addEventListener('click', () => { Z.moGewaehlt = ds; zeichneKalender(tage); oeffneVorschau(p ? { art: 'person', p, ds } : { art: 'tag', ds }, b); });
+    r.appendChild(b);
+  });
+  k.appendChild(r);
+  const mA = iso(tage[0]), mE = iso(tage[tage.length - 1]);
+  const weg = ABW.filter(a => P[a.p].plan && a.von <= mE && a.bis >= mA).sort((a, b) => a.von.localeCompare(b.von));
+  const g = el('div', 'gruppe'); g.style.marginTop = '16px';
+  const kk = el('div', 'gruppe-kopf'); kk.appendChild(el('span', 'stark', 'Diesen Monat abwesend')); g.appendChild(kk);
+  weg.forEach(x => { const a = el('div', 'arbeitszeile'); const t = el('div', 'arbeitszeile-text'); t.append(el('span', 'zeile-titel', P[x.p].name), el('span', 'zeile-info', x.art + ' · ' + ddmm(ausIso(x.von)) + (x.bis !== x.von ? '–' + ddmm(ausIso(x.bis)) : ''))); a.appendChild(t); g.appendChild(a); });
+  if (!weg.length) { const a = el('div', 'arbeitszeile'); a.appendChild(el('p', 'klein', 'Niemand.')); g.appendChild(a); }
+  k.appendChild(g);
+}
+
+/* ================= Vorschau ================= */
+let V = null, vAnker = null, vX = null;
+function oeffneVorschau(v, anker, clickX) {
+  menueZu(); V = v; vAnker = anker; vX = clickX || null;
+  document.querySelectorAll('.mo-balken-gewaehlt').forEach(b => { b.className = 'mo-balken'; });
+  if (anker && anker.className === 'mo-balken') anker.className = 'mo-balken-gewaehlt';
+  zeichneVorschau(); positioniere();
+  setTimeout(() => $('#v-zu').focus({ preventScroll: true }), 10);
+}
+function positioniere() {
+  const v = $('#vorschau');
+  if (breit() < 760) { v.className = 'vorschau-blatt'; v.style.left = ''; v.style.top = ''; $('#schleier').className = 'schleier'; return; }
+  v.className = 'vorschau'; $('#schleier').className = 'schleier-aus';
+  const r = vAnker ? vAnker.getBoundingClientRect() : { left: 200, right: 200, top: 200, bottom: 200 };
+  const W = 380, H = v.offsetHeight, vw = breit(), vh = window.innerHeight;
+  const mitte = vX || (r.left + r.right) / 2;
+  let x = Math.max(12, Math.min(mitte - W / 2, vw - W - 12));
+  let y = r.bottom + 8; if (y + H > vh - 12) y = r.top - H - 8; if (y < 12) y = Math.max(12, vh - H - 12);
+  v.style.left = x + 'px'; v.style.top = y + 'px';
+}
+function vorschauZu() {
+  if (!V) return; V = null; $('#vorschau').className = 'vorschau-aus';
+  document.querySelectorAll('.mo-balken-gewaehlt').forEach(b => { b.className = 'mo-balken'; });
+  if ($('#fenster').className === 'fenster-aus') $('#schleier').className = 'schleier-aus';
+}
+function vAbschnittEinsatz(ds, bau, p, ziel, mitBearbeiten) {
+  const m = belegung(ds)[bau], b = B[bau];
+  const a = el('div', 'v-abschnitt');
+  a.append(el('p', 'v-titel', b.kunde + ' · ' + b.titel), el('p', 'v-unter', b.nr));
+  const reihe = (l, w) => { const r = el('div', 'v-reihe'); r.append(el('span', 'v-label', l), el('span', 'v-wert', w)); a.appendChild(r); };
+  reihe('Zeit', einsatzZeit(m) || 'ganzer Tag, ohne Uhrzeit');
+  reihe('Adresse', b.adr);
+  const andere = m.personen.filter(x => x !== p);
+  reihe(p ? 'Mit dabei' : 'Eingeteilt', (p ? andere : m.personen).map(x => P[x].name + (abwesenheit(x, ds) ? ' (fehlt)' : '')).join(', ') || 'allein');
+  reihe('Aufgabe', m.aufgabe || b.aufgabe);
+  reihe('Rüstliste', b.ruest[0] ? b.ruest[0] + ' Positionen' + (b.ruest[1] ? ' · ' + b.ruest[1] + ' mit Fehlmenge' : '') : 'keine');
+  termineAm(ds).filter(t => t.bau === bau).forEach(t => a.appendChild(el('p', 'v-info', 'Am selben Tag: ' + t.art + ' · ' + terminZeit(t))));
+  m.personen.filter(x => abwesenheit(x, ds)).forEach(x => a.appendChild(el('p', 'v-hinweis', P[x].name + ' ist an diesem Tag abwesend (' + abwesenheit(x, ds).art + ') – neu einteilen?')));
+  if (mitBearbeiten) { const ak = el('div', 'v-aktion'); ak.append(knopf('neben', 'Bearbeiten', () => fensterEinsatz({ ds, bau })), knopf('textknopf', 'Baustelle öffnen', () => melde('Öffnet die Baustellenakte'))); a.appendChild(ak); }
+  ziel.appendChild(a);
+}
+function zeichneVorschau() {
+  const ds = V.ds, dt = ausIso(ds), inh = $('#v-inhalt'), fuss = $('#v-fuss'); inh.innerHTML = ''; fuss.innerHTML = '';
+  const zurWoche = knopf('neben', 'Zur Woche', () => { const d = V.ds; vorschauZu(); Z.planAnsicht = 'woche'; Z.woche = montag(ausIso(d)); Z.markiert = d; Z.handyTag = d; zeichnePlan(); window.scrollTo({ top: 0 }); });
+  $('#v-ueber').textContent = WTL[dt.getDay()] + ', ' + ddmm(dt) + dt.getFullYear() + (FEIERTAGE[ds] ? ' · ' + FEIERTAGE[ds] : '');
+  if (V.art === 'person') {
+    const p = V.p; $('#v-titel').textContent = P[p].name;
+    let es = einsaetzePerson(p, ds); if (V.bau) es = es.sort((a, b) => (a.bau === V.bau ? -1 : b.bau === V.bau ? 1 : 0));
+    const a = abwesenheit(p, ds);
+    if (a && !frei(dt)) { const x = el('div', 'v-abschnitt'); x.append(el('p', 'v-titel', a.art), el('p', 'v-unter', ddmm(ausIso(a.von)) + (a.bis !== a.von ? '–' + ddmm(ausIso(a.bis)) : ''))); inh.appendChild(x); }
+    es.forEach(e => vAbschnittEinsatz(ds, e.bau, p, inh, es.length > 1));
+    termineAm(ds).filter(t => t.teil.includes(p)).forEach(t => { const x = el('div', 'v-abschnitt'); x.append(el('p', 'v-titel', t.art + ' · ' + terminZeit(t)), el('p', 'v-unter', terminOrt(t))); const ak = el('div', 'v-aktion'); ak.appendChild(knopf('textknopf', 'Termin ändern', () => fensterTermin(t))); x.appendChild(ak); inh.appendChild(x); });
+    if (!es.length && !(a && !frei(dt))) { const x = el('div', 'v-abschnitt-letzt'); x.appendChild(el('p', 'v-unter', frei(dt) ? (FEIERTAGE[ds] || 'Wochenende') + ' – kein Einsatz.' : 'Frei – noch kein Einsatz an diesem Tag.')); inh.appendChild(x); }
+    if (es.length === 1) fuss.append(zurWoche, knopf('haupt', 'Bearbeiten', () => fensterEinsatz({ ds, bau: es[0].bau })));
+    else if (!es.length) fuss.append(zurWoche, knopf('haupt', 'Einsatz planen', () => fensterEinsatz({ ds, p })));
+    else fuss.append(zurWoche);
+    if (es.length === 1) { const ak = el('div', 'v-aktion'); ak.appendChild(knopf('textknopf', 'Baustelle öffnen', () => melde('Öffnet die Baustellenakte'))); inh.lastChild.appendChild(ak); }
+  } else if (V.art === 'bau') {
+    $('#v-titel').textContent = B[V.bau].kunde;
+    if (belegung(ds)[V.bau]) { vAbschnittEinsatz(ds, V.bau, null, inh, false); fuss.append(zurWoche, knopf('haupt', 'Bearbeiten', () => fensterEinsatz({ ds, bau: V.bau }))); }
+    else { const x = el('div', 'v-abschnitt-letzt'); x.appendChild(el('p', 'v-unter', 'Kein Einsatz an diesem Tag.')); inh.appendChild(x); fuss.append(zurWoche, knopf('haupt', 'Einsatz planen', () => fensterEinsatz({ ds, bau: V.bau }))); }
+  } else {
+    $('#v-titel').textContent = 'Alle Einsätze';
+    const bel = belegung(ds); Object.keys(bel).forEach(b => vAbschnittEinsatz(ds, b, null, inh, true));
+    termineAm(ds).forEach(t => { const x = el('div', 'v-abschnitt'); x.append(el('p', 'v-titel', t.art + ' · ' + terminZeit(t)), el('p', 'v-unter', terminOrt(t))); if (istLieferungOhneAnnahme(t)) x.appendChild(el('p', 'v-hinweis', 'Niemand ist an diesem Tag auf der Baustelle.')); const ak = el('div', 'v-aktion'); ak.appendChild(knopf('textknopf', 'Termin ändern', () => fensterTermin(t))); x.appendChild(ak); inh.appendChild(x); });
+    if (!Object.keys(bel).length && !termineAm(ds).length) { const x = el('div', 'v-abschnitt-letzt'); x.appendChild(el('p', 'v-unter', 'Nichts geplant.')); inh.appendChild(x); }
+    fuss.append(zurWoche, knopf('haupt', 'Einsatz planen', () => fensterEinsatz({ ds })));
+  }
+}
+function vorschauBlaettern(n) {
+  if (!V) return; V.ds = iso(plus(ausIso(V.ds), n)); V.bau = V.art === 'bau' ? V.bau : '';
+  Z.moGewaehlt = V.ds;
+  // Anker auf den neuen Tag setzen, wenn er im Monat sichtbar ist
+  zeichneVorschau(); if (breit() >= 760) positioniere();
+}
+$('#v-zurueck').addEventListener('click', () => vorschauBlaettern(-1));
+$('#v-vor').addEventListener('click', () => vorschauBlaettern(1));
+$('#v-zu').addEventListener('click', vorschauZu);
+document.addEventListener('mousedown', e => { if (V && !e.target.closest('#vorschau') && !e.target.closest('#fenster') && !e.target.closest('.mo-zeile') && !e.target.closest('.kal-raster')) vorschauZu(); });
+
+/* ================= Seitenfenster allgemein ================= */
+let fensterVorher = null;
+function fensterAuf(ueber, titel) {
+  if ($('#fenster').className === 'fenster-aus') fensterVorher = document.activeElement;
+  $('#f-ueber').textContent = ueber; $('#f-titel').textContent = titel; $('#f-inhalt').innerHTML = ''; $('#f-fuss').innerHTML = '';
+  $('#fenster').className = 'fenster'; $('#schleier').className = 'schleier'; $('#vorschau').className = V ? $('#vorschau').className : 'vorschau-aus';
+  if (V) { V = null; $('#vorschau').className = 'vorschau-aus'; }
+  $('#f-inhalt').scrollTop = 0; setTimeout(() => $('#f-zu').focus({ preventScroll: true }), 20);
+}
+function fensterFuss(knoepfe) { const f = $('#f-fuss'); f.innerHTML = ''; knoepfe.forEach(k => f.appendChild(k)); }
+function fensterZu() { $('#fenster').className = 'fenster-aus'; $('#schleier').className = 'schleier-aus'; if (fensterVorher && fensterVorher.focus) fensterVorher.focus({ preventScroll: true }); }
+$('#f-zu').addEventListener('click', fensterZu);
+$('#schleier').addEventListener('click', () => { if ($('#fenster').className === 'fenster') fensterZu(); else vorschauZu(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if (V) vorschauZu(); else if ($('#fenster').className === 'fenster') fensterZu(); menueZu(); }
+  if (V && $('#fenster').className === 'fenster-aus' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); vorschauBlaettern(e.key === 'ArrowLeft' ? -1 : 1); }
+});
+
+/* ================= Steuerung Planung ================= */
+$('#plan-zurueck').addEventListener('click', () => { vorschauZu(); Z.markiert = ''; if (Z.planAnsicht === 'woche') Z.woche = plus(Z.woche, -7); else if (Z.planAnsicht === 'monat') Z.monat = new Date(Z.monat.getFullYear(), Z.monat.getMonth() - 1, 1); else Z.tag = iso(plus(ausIso(Z.tag), -1)); zeichnePlan(); });
+$('#plan-vor').addEventListener('click', () => { vorschauZu(); Z.markiert = ''; if (Z.planAnsicht === 'woche') Z.woche = plus(Z.woche, 7); else if (Z.planAnsicht === 'monat') Z.monat = new Date(Z.monat.getFullYear(), Z.monat.getMonth() + 1, 1); else Z.tag = iso(plus(ausIso(Z.tag), 1)); zeichnePlan(); });
+document.querySelectorAll('[data-plan-ansicht]').forEach(b => b.addEventListener('click', () => {
+  vorschauZu(); const a = b.dataset.planAnsicht; Z.markiert = '';
+  if (a === 'monat') Z.monat = new Date(plus(Z.woche, 3).getFullYear(), plus(Z.woche, 3).getMonth(), 1);
+  if (a === 'woche' && Z.planAnsicht === 'tag') Z.woche = montag(ausIso(Z.tag));
+  if (a === 'tag' && Z.planAnsicht === 'woche') Z.tag = (iso(Z.woche) <= HEUTE_ISO && HEUTE_ISO <= iso(plus(Z.woche, 6))) ? HEUTE_ISO : iso(Z.woche);
+  Z.planAnsicht = a; zeichnePlan();
+}));
+document.querySelectorAll('[data-plan-sicht]').forEach(b => b.addEventListener('click', () => { vorschauZu(); Z.planSicht = b.dataset.planSicht; zeichnePlan(); }));
+$('#plan-zeigen').addEventListener('change', e => { Z.zeigen = e.target.value; zeichneWoche(); });
+$('#plan-haupt').addEventListener('click', () => fensterEinsatz({ ds: Z.planAnsicht === 'tag' ? Z.tag : (breit() < 760 ? Z.handyTag : HEUTE_ISO) }));
+
+function zeichneAlles() { CACHE = {}; if (Z.seite === 'mue') zeichneMue(); else zeichnePlan(); }
+let groesse; window.addEventListener('resize', () => { clearTimeout(groesse); groesse = setTimeout(() => { if (Z.seite === 'plan') zeichnePlan(); if (V) positioniere(); }, 120); });
+zeigeSeite('mue');
+</script>
+</body>
+</html>

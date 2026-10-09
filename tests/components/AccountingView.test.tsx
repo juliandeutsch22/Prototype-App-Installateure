@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, cleanup, render, screen, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import userEvent from '@testing-library/user-event';
 import type { AppUser, TimeEntry } from '@/types';
@@ -152,9 +152,19 @@ vi.mock('@/features/vacations/zeitguthaben', () => ({
   nachbildet.
 */
 vi.mock('@/features/time/TimeForm', () => ({
-  default: ({ entry, onCancel }: { entry?: { id: string }; onCancel?: () => void }) => (
+  default: ({
+    entry,
+    onCancel,
+    vorbelegung,
+  }: {
+    entry?: { id: string };
+    onCancel?: () => void;
+    vorbelegung?: { userId?: string; date?: string } | null;
+  }) => (
     <div>
       <p>Formular für {entry ? entry.id : 'neu'}</p>
+      {/* Runde 4: „Zeit erfassen“ am Tag gibt Person und Tag mit. */}
+      {vorbelegung && <p>Vorbelegt: {vorbelegung.userId ?? '–'} am {vorbelegung.date ?? '–'}</p>}
       <button type="button" onClick={onCancel}>Abbrechen</button>
     </div>
   ),
@@ -178,12 +188,27 @@ afterEach(() => {
 });
 
 /*
-  SEIT DEM RASTER (Linie „Lot“, E9) STEHEN ZWEI TABELLEN AUF DER SEITE: der
-  Monat im Raster und der Tagesnachweis der aufgeklappten Person. Geprüft
-  wird weiter der Tagesnachweis — jetzt beim Namen gesucht statt als einzige
-  Tabelle.
+  SEIT RUNDE 4 (Auftrag 3.5) steht der Tagesnachweis im Seitenfenster der
+  Person, als Liste statt als Tabelle (das Fenster ist 440 px breit). Geprüft
+  wird weiter der Tagesnachweis — beim Namen gesucht.
 */
-const tagesnachweis = () => screen.getByRole('table', { name: /Tagesnachweis/ });
+const tagesnachweis = () => screen.getByRole('list', { name: /Tagesnachweis/ });
+
+/*
+  DER NAME DER PERSON IN DER LISTE. Seit Runde 4 trägt auch jeder Tag im
+  Streifen den Namen im `aria-label` („Neu Eingestellt, Mo 17.08. · …“) —
+  gesucht wird deshalb der Knopf mit dem Namen (`.ue-person`), der das
+  Seitenfenster öffnet wie bisher der Kopf der Karte.
+*/
+async function personKnopf(name: string): Promise<HTMLElement> {
+  const knoepfe = await screen.findAllByRole('button', { name: new RegExp(`^${name}`) });
+  const k = knoepfe.find((b) => b.classList.contains('ue-person'));
+  if (!k) throw new Error(`Kein Namensknopf für ${name}`);
+  return k;
+}
+
+/** Das Seitenfenster der Person („Person im Monat“). */
+const fenster = () => screen.getByRole('dialog', { name: /Neu Eingestellt, August 2026/ });
 
 async function oeffneMitarbeiter() {
   // userEvent wartet intern ueber Zeitgeber. Ohne advanceTimers dreht es sich
@@ -197,7 +222,7 @@ async function oeffneMitarbeiter() {
       </ToastProvider>
     </MemoryRouter>,
   );
-  const kopf = await screen.findByRole('button', { name: /Neu Eingestellt/ });
+  const kopf = await personKnopf('Neu Eingestellt');
   await nutzer.click(kopf);
   return kopf;
 }
@@ -219,9 +244,11 @@ describe('Mitarbeiteruebersicht — Eintritt zur Monatsmitte', () => {
     /*
       Das Soll steht seit dem Umbau nicht mehr als eigene Kennzahl da, sondern
       als Herleitung unter dem Saldo: „80:00 von 80:00 Soll bisher". Geprueft
-      wird unveraendert die ZAHL — nur eben dort, wo sie jetzt steht.
+      wird unveraendert die ZAHL — nur eben dort, wo sie jetzt steht. Seit
+      Runde 4 im Seitenfenster; auf der Seite steht dieselbe Zahl in der
+      Zeile („Soll bisher“) und in der Kennzahl „Gebucht bisher“.
     */
-    expect(screen.getByText(/von 80:00 Soll/)).toBeInTheDocument();
+    expect(within(fenster()).getByText(/von 80:00 Soll/)).toHaveTextContent('80:00 von 80:00 Soll bisher');
   });
 
   it('zeigt keinen Minus-Saldo, wenn ab Eintritt vollstaendig gebucht wurde', async () => {
@@ -421,9 +448,10 @@ describe('Mitarbeiteruebersicht — die leere Liste erklaert sich', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('button', { name: /Paula Leiter/ })).toBeInTheDocument();
+    expect(await personKnopf('Paula Leiter')).toBeInTheDocument();
     expect(screen.queryByText('führt kein Zeitkonto')).not.toBeInTheDocument();
-    expect(screen.queryByText('kein Eintritt hinterlegt')).not.toBeInTheDocument();
+    // Seit Runde 4 Teil der Zeile („Projektleiter · …“) — deshalb als Ausschnitt gesucht.
+    expect(screen.queryByText(/kein Eintritt hinterlegt/)).not.toBeInTheDocument();
     expect(screen.queryByText('Julian Deutsch')).not.toBeInTheDocument();
   });
 
@@ -437,7 +465,7 @@ describe('Mitarbeiteruebersicht — die leere Liste erklaert sich', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('button', { name: /Julian Deutsch/ })).toBeInTheDocument();
+    expect(await personKnopf('Julian Deutsch')).toBeInTheDocument();
   });
 
   it('und die Administration nie — auch nicht mit gesetztem Haken', async () => {
@@ -507,9 +535,9 @@ describe('Mitarbeiteruebersicht — Abwesenheiten im Soll', () => {
         </ToastProvider>
       </MemoryRouter>,
     );
-    await nutzer.click(await screen.findByRole('button', { name: /Neu Eingestellt/ }));
+    await nutzer.click(await personKnopf('Neu Eingestellt'));
 
-    expect(screen.getByText(/von 72:00 Soll/)).toBeInTheDocument();
+    expect(within(fenster()).getByText(/von 72:00 Soll/)).toBeInTheDocument();
     const tabelle = tagesnachweis();
     expect(within(tabelle).getByRole('button', { name: 'Urlaubsantrag' })).toBeInTheDocument();
     expect(within(tabelle).getAllByRole('button', { name: 'Bearbeiten' })).toHaveLength(9);
@@ -525,7 +553,8 @@ describe('Gesamtsaldo neben dem Monatssaldo (Testbericht 30.09.2026, M8)', () =>
     expect(zeitguthabenLaden).toHaveBeenCalledWith(expect.objectContaining({ uid: 'u1' }), expect.any(Boolean));
   });
 
-  it('lädt erst beim Aufklappen', async () => {
+
+  it('lädt erst beim Öffnen des Seitenfensters', async () => {
     zeitguthabenLaden.mockClear();
     render(
       <MemoryRouter>
@@ -534,7 +563,7 @@ describe('Gesamtsaldo neben dem Monatssaldo (Testbericht 30.09.2026, M8)', () =>
         </ToastProvider>
       </MemoryRouter>,
     );
-    await screen.findByRole('button', { name: /Neu Eingestellt/ });
+    await personKnopf('Neu Eingestellt');
     expect(zeitguthabenLaden).not.toHaveBeenCalled();
   });
 });
@@ -553,15 +582,20 @@ describe('Im Supportzugang (Testbericht 30.09.2026, M40)', () => {
           </ToastProvider>
         </MemoryRouter>,
       );
-      const kopf = await screen.findByRole('button', { name: /Neu Eingestellt/ });
+      const kopf = await personKnopf('Neu Eingestellt');
       expect(kopf).toHaveTextContent('nicht einsehbar');
-      expect(kopf).not.toHaveTextContent(/fehlen|−|-\d/);
+      expect(kopf).not.toHaveTextContent(/fehlen|ohne Buchung|−|-\d/);
       expect(screen.getByText(/Im Supportzugang sind Zeitbuchungen/)).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Monats-CSV' })).not.toBeInTheDocument();
+      // Keine Kennzahlen, keine Woche (Auftrag 3.2): alles käme aus verschlossenen Buchungen.
+      expect(screen.queryByText('Tage ohne Buchung')).not.toBeInTheDocument();
+      expect(screen.queryByRole('group', { name: 'Ansicht' })).not.toBeInTheDocument();
       await nutzer.click(kopf);
+      expect(screen.getByRole('dialog')).toHaveTextContent('Zeitbuchungen, Urlaube und Krankenstände sind im Supportzugang nicht einsehbar.');
       expect(screen.queryByText('Saldo im Monat')).not.toBeInTheDocument();
       // Ohne Zeitbuchungen keine Prüfung der Grenzen — sie entwarnte fälschlich.
       expect(screen.queryByText(/Arbeitszeitgrenzen/)).not.toBeInTheDocument();
+      expect(grenzAbfragen).toBe(0);
     } finally {
       delete (authWert as { einblick?: unknown }).einblick;
     }
@@ -620,57 +654,334 @@ describe('Mitarbeiteruebersicht — Arbeitszeitgrenzen nach dem Buchen (Runde 3,
   });
 });
 
-describe('Mitarbeiterübersicht in der Linie „Lot“ (E9)', () => {
-  const zeichneSeite = () => {
-    const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    render(
-      <MemoryRouter>
-        <ToastProvider>
-          <AccountingView />
-        </ToastProvider>
-      </MemoryRouter>,
-    );
-    return nutzer;
-  };
+/** Zeigt die Adresse, damit ein Test sieht, was in ihr steht (Lesezeichen, „Zurück“). */
+function Adresse() {
+  const ort = useLocation();
+  return <p data-testid="adresse">{ort.search}</p>;
+}
 
-  it('zeigt den Monat als Raster: gebuchte Zeit je Tag, der fehlende Tag mit Bernstein-Rand', async () => {
+function zeichneSeite(start = '/accounting') {
+  const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+  render(
+    <MemoryRouter initialEntries={[start]}>
+      <ToastProvider>
+        <AccountingView />
+        <Adresse />
+      </ToastProvider>
+    </MemoryRouter>,
+  );
+  return nutzer;
+}
+
+/** Ein Feld des Streifens bzw. eine Zelle der Woche — beim `aria-label` gesucht (Person, Tag, Zustand). */
+const tagKnopf = (muster: RegExp) => screen.getByRole('button', { name: muster });
+
+describe('Mitarbeiterübersicht: der Monat als Streifen (Runde 4, Auftrag 3.3)', () => {
+  /*
+    BIS RUNDE 4 STAND HIER DAS RASTER (Linie „Lot“, E9) mit Stunden in jeder
+    Zelle und Bernstein-Rand am fehlenden Tag. Geschützt bleibt dasselbe:
+    der fehlende Tag ist erkennbar, Ist und Soll stehen am Tag (jetzt im
+    Tooltip und `aria-label`), Wochenende und die Zeit vor dem Eintritt sind
+    frei, nicht fehlend. Die Stunden selbst stehen in der Woche (unten).
+  */
+  it('der fehlende Tag ist Bernstein, der gebuchte nennt Zeit, Stunden und Soll', async () => {
     // Am 20.08. fehlt die Buchung.
     buchungen = eintraege.filter((e) => e.date !== '2026-08-20');
     zeichneSeite();
-    const raster = await screen.findByRole('table', { name: /Gebuchte Zeit je Tag, August 2026/ });
-    const fehlt = within(raster).getByRole('cell', { name: /Do 20\.08\..*keine Buchung/ });
-    expect(fehlt).toHaveClass('zeitraster-fehlt');
-    // Ist gegen Soll: die Zelle nennt beides, sichtbar steht die gebuchte Zeit.
-    const gebucht = within(raster).getByRole('cell', { name: /Mi 19\.08\..*08:00 gebucht.*Soll 08:00/ });
-    expect(gebucht).toHaveClass('zeitraster-zelle');
-    expect(gebucht).toHaveTextContent('8:00');
-    // Vor dem Eintritt und am Wochenende: frei, nicht fehlend.
-    expect(within(raster).getByRole('cell', { name: /Mo 10\.08\./ })).toHaveClass('zeitraster-frei');
-    expect(within(raster).getByRole('cell', { name: /Sa 22\.08\./ })).toHaveClass('zeitraster-frei');
+    await personKnopf('Neu Eingestellt');
+    expect(tagKnopf(/^Neu Eingestellt, Do 20\.08\. · keine Buchung · Soll 8:00$/)).toHaveClass('st-fehlt');
+    expect(tagKnopf(/^Neu Eingestellt, Mi 19\.08\. · 07:00–15:00 · 8:00 Std\. · Soll 8:00$/)).toHaveClass('st-ok');
+    // Vor dem Eintritt und am Wochenende: frei, kein Knopf — nichts zu tun.
+    expect(screen.queryByRole('button', { name: /Mo 10\.08\./ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Sa 22\.08\./ })).not.toBeInTheDocument();
+    // Heute (31.08.) ist offen, nicht fehlend.
+    expect(tagKnopf(/^Neu Eingestellt, Mo 31\.08\. · noch nichts gebucht$/)).toHaveClass('st-zukunft');
+    // Die Zeile: Stand und die Summen daneben.
+    expect(await personKnopf('Neu Eingestellt')).toHaveTextContent('1 Tag ohne Buchung');
   });
 
-  it('Gegenprobe: alles gebucht — kein Tag mit Bernstein-Rand', async () => {
+  it('Gegenprobe: alles gebucht — kein Feld in Bernstein, die Person „vollständig“', async () => {
     zeichneSeite();
-    const raster = await screen.findByRole('table', { name: /Gebuchte Zeit je Tag/ });
-    expect(raster.querySelector('.zeitraster-fehlt')).toBeNull();
+    expect(await personKnopf('Neu Eingestellt')).toHaveTextContent('Mitarbeiter · heute offen');
+    expect(document.querySelector('.st-fehlt')).toBeNull();
   });
 
-  it('der Name im Raster klappt die Zeile der Person auf', async () => {
+  it('die Gruppen: mit Tagen ohne Buchung zuerst, absteigend; dann vollständig', async () => {
+    const zweite = { ...monteur, id: 'u2', uid: 'u2', name: 'Anna Zweite' } as AppUser;
+    const dritte = { ...monteur, id: 'u3', uid: 'u3', name: 'Bert Dritter' } as AppUser;
+    benutzer = [monteur, zweite, dritte];
+    buchungen = [
+      ...eintraege, // Neu Eingestellt: vollständig
+      ...eintraege.filter((e) => e.date !== '2026-08-20').map((e) => ({ ...e, id: `${e.id}-2`, userId: 'u2' })), // 1 Tag
+      ...eintraege.filter((e) => e.date < '2026-08-25').map((e) => ({ ...e, id: `${e.id}-3`, userId: 'u3' })), // 4 Tage
+    ];
+    zeichneSeite();
+    await personKnopf('Neu Eingestellt');
+    const gruppen = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+    expect(gruppen).toEqual(['Mit Tagen ohne Buchung · 2', 'Vollständig · 1']);
+    const namen = Array.from(document.querySelectorAll('.ue-name')).map((n) => n.textContent);
+    expect(namen).toEqual(['Bert Dritter', 'Anna Zweite', 'Neu Eingestellt']);
+  });
+
+  it('die Zeile öffnet das Seitenfenster, ein Feld öffnet es mit dem Tag markiert', async () => {
+    buchungen = eintraege.filter((e) => e.date !== '2026-08-20');
     const nutzer = zeichneSeite();
-    const kopf = await screen.findByRole('button', { name: /Neu Eingestellt/ });
-    expect(kopf).toHaveAttribute('aria-expanded', 'false');
-    await nutzer.click(screen.getByRole('link', { name: 'Neu Eingestellt' }));
-    expect(kopf).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByText('Saldo im Monat')).toBeInTheDocument();
+    await nutzer.click(await personKnopf('Neu Eingestellt'));
+    expect(within(fenster()).getByText('Saldo im Monat')).toBeInTheDocument();
+    expect(fenster().querySelector('[data-markiert="ja"]')).toBeNull();
+    await nutzer.click(within(fenster()).getByRole('button', { name: 'Schließen' }));
+
+    await nutzer.click(tagKnopf(/Do 20\.08\. · keine Buchung/));
+    const markiert = fenster().querySelector('[data-markiert="ja"]');
+    expect(markiert).toHaveClass('pf-zeile-markiert');
+    expect(markiert).toHaveTextContent('Do 20.08.');
+    expect(markiert).toHaveTextContent('Soll 8:00');
   });
 
-  it('im Supportzugang gibt es kein Raster — ohne Buchungen stünde jeder Tag als fehlend da', async () => {
+  /*
+    „ZEIT ERFASSEN“ AM TAG OHNE BUCHUNG (Entscheidung R4-0, Frage 3): das
+    bisherige Formular, mit Person und Tag vorbelegt — im SELBEN Fenster;
+    danach steht wieder die Person da.
+  */
+  it('„Zeit erfassen“ am fehlenden Tag öffnet das Formular vorbelegt und führt zur Person zurück', async () => {
+    buchungen = eintraege.filter((e) => e.date !== '2026-08-20');
+    const nutzer = zeichneSeite();
+    await personKnopf('Neu Eingestellt');
+    await nutzer.click(tagKnopf(/Do 20\.08\. · keine Buchung/));
+    await nutzer.click(within(fenster()).getByRole('button', { name: 'Zeit erfassen für Do 20.08.' }));
+    const formular = screen.getByRole('dialog', { name: 'Zeit erfassen' });
+    expect(within(formular).getByRole('heading', { name: 'Zeit für Neu Eingestellt erfassen' })).toBeInTheDocument();
+    expect(within(formular).getByText('Vorbelegt: u1 am 2026-08-20')).toBeInTheDocument();
+    // Dasselbe Fenster, kein zweites darüber.
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    await nutzer.click(within(formular).getByRole('button', { name: 'Abbrechen' }));
+    expect(within(fenster()).getByText('Saldo im Monat')).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: die Hauptaktion der Seite erfasst ohne Vorbelegung', async () => {
+    const nutzer = zeichneSeite();
+    await personKnopf('Neu Eingestellt');
+    await nutzer.click(screen.getByRole('button', { name: 'Zeit erfassen' }));
+    expect(screen.queryByText(/Vorbelegt:/)).not.toBeInTheDocument();
+  });
+
+  it('die Legende nennt die Zustände in Wörtern, ohne Kürzel', async () => {
+    zeichneSeite();
+    await personKnopf('Neu Eingestellt');
+    expect(screen.getByText('Arbeitstag ohne Buchung')).toBeInTheDocument();
+    expect(screen.getByText('Darüberfahren zeigt Stunden und Soll · Tag antippen öffnet ihn')).toBeInTheDocument();
+    expect(screen.queryByText(/K Krank|ZA Zeitausgleich/)).not.toBeInTheDocument();
+  });
+
+  it('der Tooltip ist ein eigenes Element, kein `title`', async () => {
+    const nutzer = zeichneSeite();
+    await personKnopf('Neu Eingestellt');
+    const feld = tagKnopf(/Mi 19\.08\./);
+    expect(feld).not.toHaveAttribute('title');
+    await nutzer.hover(feld);
+    expect(document.querySelector('.tipp')).toHaveTextContent('Mi 19.08. · 07:00–15:00 · 8:00 Std. · Soll 8:00');
+    await nutzer.unhover(feld);
+    expect(document.querySelector('.tipp')).toBeNull();
+  });
+});
+
+describe('Mitarbeiterübersicht: Kennzahlen (Runde 4, Auftrag 3.2)', () => {
+  const luecke = () => {
+    const zweite = { ...monteur, id: 'u2', uid: 'u2', name: 'Anna Zweite' } as AppUser;
+    benutzer = [monteur, zweite];
+    buchungen = [
+      ...eintraege,
+      ...eintraege.filter((e) => e.date !== '2026-08-20' && e.date !== '2026-08-21').map((e) => ({ ...e, id: `${e.id}-2`, userId: 'u2' })),
+    ];
+  };
+
+  it('„Tage ohne Buchung“ zählt und filtert mit einem Klick, ein zweiter hebt den Filter auf (?nur=offen)', async () => {
+    luecke();
+    const nutzer = zeichneSeite();
+    await personKnopf('Neu Eingestellt');
+    const kennzahl = screen.getByRole('button', { name: /^Tage ohne Buchung/ });
+    expect(kennzahl).toHaveTextContent('2');
+    expect(kennzahl).toHaveTextContent('bei 1 von 2 Personen');
+    expect(kennzahl).toHaveAttribute('aria-pressed', 'false');
+
+    await nutzer.click(kennzahl);
+    expect(kennzahl).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('adresse')).toHaveTextContent('?nur=offen');
+    expect(document.querySelectorAll('.ue-name')).toHaveLength(1);
+
+    await nutzer.click(kennzahl);
+    expect(screen.getByTestId('adresse')).toHaveTextContent(/^$/);
+    expect(document.querySelectorAll('.ue-name')).toHaveLength(2);
+  });
+
+  it('die Startseite filtert weiter über ?filter=luecken&monat=JJJJ-MM', async () => {
+    luecke();
+    zeichneSeite('/accounting?filter=luecken&monat=2026-08');
+    await personKnopf('Anna Zweite');
+    expect(screen.getByRole('button', { name: /^Tage ohne Buchung/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(Array.from(document.querySelectorAll('.ue-name')).map((n) => n.textContent)).toEqual(['Anna Zweite']);
+    expect(screen.getByRole('button', { name: /August 2026/ })).toBeInTheDocument();
+  });
+
+  it('„Gebucht bisher“ ist die Summe der Zeilen', async () => {
+    luecke();
+    zeichneSeite();
+    await personKnopf('Neu Eingestellt');
+    // 80:00 + 64:00 gebucht; Soll je 80:00.
+    expect(screen.getByText('144:00')).toBeInTheDocument();
+    expect(screen.getByText('von 160:00 Soll · alle Personen')).toBeInTheDocument();
+  });
+
+  it('„Arbeitszeitgrenzen“ zählt die Fälle der Karte, markiert den Tag im Streifen — mit EINER Prüfung', async () => {
+    buchungen = [...eintraege.filter((e) => e.date !== '2026-08-25'), { ...eintrag('2026-08-25'), startTime: '05:00', endTime: '18:00' }];
+    zeichneSeite();
+    expect(await screen.findByText(/13:00 Std\. am 25\.08\. — höchstens 12 Std\./)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Arbeitszeitgrenzen/ })).toHaveTextContent('1 Fall');
+    expect(tagKnopf(/Di 25\.08\. · 05:00–18:00 · 13:00 Std\..*höchstens 12 Std\./)).toHaveClass('st-grenze');
+    // Karte, Kennzahl und Streifen lesen dieselbe Prüfung: eine Abfrage, nicht zwei.
+    expect(grenzAbfragen).toBe(1);
+  });
+
+  it('Gegenprobe: ohne Fall ist der Tag nur gebucht', async () => {
+    zeichneSeite();
+    expect(await screen.findByText('Im August 2026 wurde keine Grenze überschritten.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Arbeitszeitgrenzen/ })).toHaveTextContent('keine');
+    expect(tagKnopf(/Di 25\.08\./)).toHaveClass('st-ok');
+  });
+});
+
+describe('Mitarbeiterübersicht: Monat und Jahr (Runde 4, Auftrag 3.2)', () => {
+  it('ein Klick auf den Titel öffnet die bisherige Auswahl — auch 2022', async () => {
+    const nutzer = zeichneSeite();
+    await personKnopf('Neu Eingestellt');
+    const titel = screen.getByRole('button', { name: /August 2026/ });
+    expect(titel).toHaveTextContent('Dieser Monat · Stand Mo 31.08.');
+    expect(screen.queryByLabelText('Jahr')).not.toBeInTheDocument();
+    await nutzer.click(titel);
+    const jahr = screen.getByLabelText('Jahr');
+    expect(Array.from((jahr as HTMLSelectElement).options).map((o) => o.value)).toEqual(['2026', '2025', '2024', '2023', '2022']);
+    expect(Array.from((screen.getByLabelText('Monat') as HTMLSelectElement).options).map((o) => o.textContent)).toEqual([
+      'Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
+    ]);
+    await nutzer.selectOptions(jahr, '2022');
+    await nutzer.selectOptions(screen.getByLabelText('Monat'), '2');
+    expect(screen.getByRole('button', { name: /März 2022/ })).toBeInTheDocument();
+  });
+
+  it('‹ › blättern monatsweise über den Jahreswechsel und laden das neue Jahr', async () => {
+    const nutzer = zeichneSeite('/accounting?monat=2026-01');
+    await personKnopf('Neu Eingestellt');
+    const abo = vi.mocked((await import('@/lib/db/timeEntries')).subscribeEntriesInRange);
+    abo.mockClear();
+    await nutzer.click(screen.getByRole('button', { name: 'Voriger Monat' }));
+    expect(screen.getByRole('button', { name: /Dezember 2025/ })).toHaveTextContent('Dezember 2025');
+    expect(abo).toHaveBeenCalledWith('perl', '2025-01-01', '2025-12-31', expect.any(Function), expect.any(Function));
+    await nutzer.click(screen.getByRole('button', { name: 'Nächster Monat' }));
+    expect(screen.getByRole('button', { name: /Jänner 2026/ })).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: nicht über die Auswahl hinaus — Jänner 2022 hat kein ‹, Dezember des laufenden Jahres kein ›', async () => {
+    zeichneSeite('/accounting?monat=2022-01');
+    await screen.findByRole('button', { name: /Jänner 2022/ });
+    expect(screen.getByRole('button', { name: 'Voriger Monat' })).toBeDisabled();
+    cleanup();
+    zeichneSeite('/accounting?monat=2026-12');
+    await screen.findByRole('button', { name: /Dezember 2026/ });
+    expect(screen.getByRole('button', { name: 'Nächster Monat' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Voriger Monat' })).toBeEnabled();
+  });
+});
+
+describe('Mitarbeiterübersicht: die Woche (Runde 4, Auftrag 3.4)', () => {
+  it('?ansicht=woche zeigt die laufende Woche mit Stunden, Von–Bis und „fehlt“, darunter die Summen', async () => {
+    // Heute ist Mo 31.08.; die Woche davor (24.–30.08.) über ‹.
+    buchungen = eintraege.filter((e) => e.date !== '2026-08-26');
+    const nutzer = zeichneSeite('/accounting?ansicht=woche');
+    await personKnopf('Neu Eingestellt');
+    expect(screen.getByRole('button', { name: /Diese Woche/ })).toHaveTextContent('KW 36');
+    await nutzer.click(screen.getByRole('button', { name: 'Vorige Woche' }));
+    expect(screen.getByRole('button', { name: /Letzte Woche/ })).toBeInTheDocument();
+    const gebucht = tagKnopf(/^Neu Eingestellt, Di 25\.08\./);
+    expect(gebucht).toHaveClass('mw-zelle');
+    expect(gebucht).toHaveTextContent('8:00');
+    expect(gebucht).toHaveTextContent('07:00–15:00');
+    expect(tagKnopf(/^Neu Eingestellt, Mi 26\.08\. · keine Buchung/)).toHaveTextContent('fehlt');
+    // Gruppe und Stand der Woche, Summen der Woche: 4 × 8 gebucht, 5 × 8 Soll.
+    expect(screen.getByRole('heading', { name: 'Mit Tagen ohne Buchung in dieser Woche · 1' })).toBeInTheDocument();
+    const zeile = (await personKnopf('Neu Eingestellt')).parentElement!;
+    expect(zeile).toHaveTextContent('1 Tag fehlt');
+    expect(zeile).toHaveTextContent('32:00');
+    expect(zeile).toHaveTextContent('40:00');
+    expect(zeile).toHaveTextContent('-08:00');
+  });
+
+  it('die Abwesenheit steht als Wort; der Umschalter setzt ?ansicht=woche und zurück', async () => {
+    buchungen = [...eintraege.filter((e) => e.date !== '2026-08-27'), { ...eintrag('2026-08-27'), status: 'Zeitausgleich', startTime: undefined, endTime: undefined }];
+    const nutzer = zeichneSeite('/accounting?monat=2026-08');
+    await personKnopf('Neu Eingestellt');
+    await nutzer.click(screen.getByRole('button', { name: 'Woche' }));
+    expect(screen.getByTestId('adresse')).toHaveTextContent('ansicht=woche');
+    await nutzer.click(screen.getByRole('button', { name: 'Vorige Woche' }));
+    expect(tagKnopf(/^Neu Eingestellt, Do 27\.08\./)).toHaveTextContent('Zeitausgleich');
+    expect(tagKnopf(/^Neu Eingestellt, Do 27\.08\./)).toHaveClass('mw-zelle-weg');
+    await nutzer.click(screen.getByRole('button', { name: 'Monat' }));
+    expect(screen.getByTestId('adresse')).not.toHaveTextContent('ansicht');
+    expect(document.querySelector('.streifen')).not.toBeNull();
+  });
+});
+
+/*
+  EIN TABULATORSCHRITT JE REIHE (Auftrag 8): die Reihe merkt sich den Tag,
+  auf dem man zuletzt stand. Nach ‹ › steht dieser Tag nicht mehr in der
+  Reihe — dann muss sie wieder auf heute bzw. den ersten Tag zeigen, sonst
+  ist sie mit der Tastatur nicht mehr zu erreichen (Prüfung Runde 4).
+*/
+describe('Mitarbeiterübersicht: Tastatur nach dem Blättern', () => {
+  const tabStopps = (reihe: string) =>
+    within(screen.getByRole('group', { name: reihe }))
+      .getAllByRole('button')
+      .filter((b) => b.tabIndex === 0);
+
+  it('der Streifen bleibt nach ‹ › mit Tab erreichbar', async () => {
+    const nutzer = zeichneSeite();
+    await personKnopf('Neu Eingestellt');
+    tagKnopf(/^Neu Eingestellt, Mi 19\.08\./).focus();
+    await nutzer.keyboard('{ArrowRight}');
+    expect(tabStopps('Neu Eingestellt, Tage des Monats').map((b) => b.getAttribute('aria-label'))).toEqual([
+      expect.stringMatching(/Do 20\.08\./),
+    ]);
+    await nutzer.click(screen.getByRole('button', { name: 'Nächster Monat' }));
+    expect(tabStopps('Neu Eingestellt, Tage des Monats')).toHaveLength(1);
+  });
+
+  it('die Woche bleibt nach ‹ › mit Tab erreichbar', async () => {
+    const nutzer = zeichneSeite('/accounting?ansicht=woche');
+    await personKnopf('Neu Eingestellt');
+    tagKnopf(/^Neu Eingestellt, Mo 31\.08\./).focus();
+    await nutzer.keyboard('{ArrowRight}');
+    await nutzer.click(screen.getByRole('button', { name: 'Vorige Woche' }));
+    expect(tabStopps('Neu Eingestellt, Tage der Woche')).toHaveLength(1);
+  });
+
+  it('Gegenprobe: ohne Blättern bleibt der zuletzt fokussierte Tag der Tabulatorschritt', async () => {
+    const nutzer = zeichneSeite();
+    await personKnopf('Neu Eingestellt');
+    tagKnopf(/^Neu Eingestellt, Mi 19\.08\./).focus();
+    await nutzer.keyboard('{ArrowLeft}');
+    expect(tabStopps('Neu Eingestellt, Tage des Monats').map((b) => b.getAttribute('aria-label'))).toEqual([
+      expect.stringMatching(/Di 18\.08\./),
+    ]);
+  });
+});
+
+describe('Mitarbeiterübersicht in der Linie „Lot“ (E9)', () => {
+  it('im Supportzugang gibt es keinen Streifen — ohne Buchungen stünde jeder Tag als fehlend da', async () => {
     buchungen = [];
     (authWert as { einblick?: unknown }).einblick = { company_id: 'perl', stufe: 'ansehen' };
     try {
       zeichneSeite();
-      await screen.findByRole('button', { name: /Neu Eingestellt/ });
-      expect(screen.queryByRole('table', { name: /Gebuchte Zeit je Tag/ })).not.toBeInTheDocument();
+      await personKnopf('Neu Eingestellt');
+      expect(document.querySelector('.streifen')).toBeNull();
       // Und die Monats-CSV auch nicht im ⋯ der Seite: es gibt das ⋯ gar nicht.
       expect(screen.queryByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ })).not.toBeInTheDocument();
     } finally {
@@ -678,31 +989,60 @@ describe('Mitarbeiterübersicht in der Linie „Lot“ (E9)', () => {
     }
   });
 
+  it('Gegenprobe: ausserhalb des Supportzugangs gibt es den Streifen', async () => {
+    zeichneSeite();
+    await personKnopf('Neu Eingestellt');
+    expect(document.querySelector('.streifen')).not.toBeNull();
+  });
+
   it('die Monats-CSV steht im ⋯ der Seite', async () => {
     const nutzer = zeichneSeite();
-    await screen.findByRole('button', { name: /Neu Eingestellt/ });
+    await personKnopf('Neu Eingestellt');
     await nutzer.click(screen.getByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
     expect(screen.getByRole('menuitem', { name: 'Monats-CSV' })).toBeInTheDocument();
   });
 
   it('„Zeit erfassen“ öffnet das Seitenfenster, die Liste bleibt stehen', async () => {
     const nutzer = zeichneSeite();
-    await screen.findByRole('button', { name: /Neu Eingestellt/ });
+    await personKnopf('Neu Eingestellt');
     await nutzer.click(screen.getByRole('button', { name: 'Zeit erfassen' }));
-    const fenster = screen.getByRole('dialog', { name: 'Zeit erfassen' });
-    expect(within(fenster).getByRole('heading', { name: 'Zeit für einen Mitarbeiter erfassen' })).toBeInTheDocument();
-    expect(within(fenster).getByText('Formular für neu')).toBeInTheDocument();
-    await nutzer.click(within(fenster).getByRole('button', { name: 'Abbrechen' }));
+    const formular = screen.getByRole('dialog', { name: 'Zeit erfassen' });
+    expect(within(formular).getByRole('heading', { name: 'Zeit für einen Mitarbeiter erfassen' })).toBeInTheDocument();
+    expect(within(formular).getByText('Formular für neu')).toBeInTheDocument();
+    await nutzer.click(within(formular).getByRole('button', { name: 'Abbrechen' }));
     expect(screen.queryByRole('dialog', { name: 'Zeit erfassen' })).not.toBeInTheDocument();
   });
 
-  it('„Bearbeiten“ im Tagesnachweis öffnet den Eintrag im Seitenfenster, die Zeile bleibt offen', async () => {
-    const kopf = await oeffneMitarbeiter();
+  /*
+    BEARBEITEN IM SELBEN FENSTER (Auftrag 3.5): vorher öffnete „Bearbeiten“
+    das Seitenfenster neben der aufgeklappten Zeile; jetzt steht das
+    Formular im Fenster der Person, danach wieder die Person.
+  */
+  it('„Bearbeiten“ im Tagesnachweis öffnet den Eintrag im selben Fenster, danach wieder die Person', async () => {
+    await oeffneMitarbeiter();
     const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     await nutzer.click(within(tagesnachweis()).getAllByRole('button', { name: 'Bearbeiten' })[0]);
-    const fenster = screen.getByRole('dialog', { name: 'Eintrag korrigieren' });
-    expect(within(fenster).getByRole('heading', { name: 'Eintrag von Neu Eingestellt korrigieren' })).toBeInTheDocument();
-    expect(within(fenster).getByText(/Formular für e-2026-08-/)).toBeInTheDocument();
-    expect(kopf).toHaveAttribute('aria-expanded', 'true');
+    const formular = screen.getByRole('dialog', { name: 'Eintrag korrigieren' });
+    expect(within(formular).getByRole('heading', { name: 'Eintrag von Neu Eingestellt korrigieren' })).toBeInTheDocument();
+    expect(within(formular).getByText(/Formular für e-2026-08-/)).toBeInTheDocument();
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    await nutzer.click(within(formular).getByRole('button', { name: 'Abbrechen' }));
+    expect(within(fenster()).getByText('Saldo im Monat')).toBeInTheDocument();
+  });
+
+  it('„Löschen“ fragt nach wie bisher', async () => {
+    await oeffneMitarbeiter();
+    const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    await nutzer.click(within(tagesnachweis()).getAllByRole('button', { name: 'Löschen' })[0]);
+    expect(screen.getByText('Eintrag löschen?')).toBeInTheDocument();
+    expect(screen.getByText('Der Eintrag von Neu Eingestellt vom 17.08.2026 wird endgültig entfernt.')).toBeInTheDocument();
+  });
+
+  it('Fussleiste: „Monat als CSV“, „Bericht für Zeitraum“ und „Zeit erfassen“ für die Person', async () => {
+    await oeffneMitarbeiter();
+    const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    expect(within(fenster()).getByRole('button', { name: 'Monat als CSV' })).toBeInTheDocument();
+    await nutzer.click(within(fenster()).getByRole('button', { name: 'Bericht für Zeitraum' }));
+    expect(screen.getByRole('dialog', { name: 'Bericht exportieren' })).toBeInTheDocument();
   });
 });

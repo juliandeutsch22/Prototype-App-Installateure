@@ -1,0 +1,224 @@
+/*
+ * Seitenbausteine der Linie „Lot“ — Runde 4, R4-A Mitarbeiterübersicht (Streifen, Wochenzellen, Tooltip, Seitenfenster Person).
+ * Regeln wie in lot.css: eine Klasse je Element, keine clamp()/calc(), keine
+ * Container-Abfragen, Media-Queries nur auf die Breite (760/1200 px), keine
+ * Positionsselektoren, keine halbtransparenten Farbflächen, keine
+ * gestrichelten Linien. Farben nur aus den Grundwerten (var(--…)).
+ *
+ * Die Zustände eines Feldes sind eigene Klassen (`.st-ok`, `.st-fehlt` …),
+ * keine Kombination: ein Feld kennt genau einen Zustand (Auftrag 3.3.1).
+ */
+@layer components {
+  /* ── Kennzahlen (Auftrag 3.2, Punkt 2) ────────────────────────────────── */
+  .ue-kennzahlen { display: grid; grid-template-columns: minmax(0, 1fr); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  @media (min-width: 760px) { .ue-kennzahlen { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .ue-kennzahl { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 2.75rem; padding: 0.625rem 1rem; border: 0; border-bottom: 1px solid var(--border); background: var(--surface); color: var(--text); text-align: left; cursor: pointer; }
+  .ue-kennzahl:hover { background: var(--petrol-hell); }
+  .ue-kennzahl-an { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 2.75rem; padding: 0.625rem 1rem; border: 0; border-bottom: 1px solid var(--border); background: var(--petrol-hell); color: var(--text); text-align: left; cursor: pointer; box-shadow: inset 0 -3px 0 var(--petrol); }
+  .ue-kennzahl-fest { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 0.625rem 1rem; background: var(--surface); color: var(--text); }
+  @media (min-width: 760px) {
+    .ue-kennzahl { border-bottom: 0; border-right: 1px solid var(--border); padding: 0.875rem 1.25rem; }
+    .ue-kennzahl-an { border-bottom: 0; border-right: 1px solid var(--border); padding: 0.875rem 1.25rem; }
+    .ue-kennzahl-fest { padding: 0.875rem 1.25rem; }
+  }
+  .ue-kennzahl-name { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
+  .ue-kennzahl-wert { font-size: 1.125rem; line-height: 1.5rem; font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  @media (min-width: 1200px) { .ue-kennzahl-wert { font-size: 1.375rem; line-height: 1.75rem; } }
+  .ue-kennzahl-zusatz { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
+
+  /* ── Steuerung: ‹ Titel ›, Suche, Monat | Woche (Auftrag 3.2, Punkt 3) ─ */
+  .ue-steuerung { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
+  .ue-steuerung-links { display: flex; align-items: center; gap: 0.5rem; width: 100%; justify-content: space-between; }
+  .ue-steuerung-rechts { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; width: 100%; }
+  @media (min-width: 760px) {
+    .ue-steuerung-links { width: auto; justify-content: flex-start; }
+    .ue-steuerung-rechts { width: auto; }
+  }
+  .ue-pfeil { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 1.25rem; line-height: 1; cursor: pointer; }
+  .ue-pfeil:hover { border-color: var(--petrol); }
+  .ue-pfeil:disabled { opacity: 0.4; cursor: default; border-color: var(--border-strong); }
+  /* Der Titel ist ein Knopf: ein Klick öffnet die bisherige Auswahl von Monat und Jahr. */
+  .ue-titel { display: flex; flex-direction: column; align-items: center; min-height: 2.75rem; min-width: 10rem; padding: 0.125rem 0.5rem; background: none; border: 0; border-radius: var(--radius); color: var(--text); text-align: center; cursor: pointer; }
+  @media (min-width: 760px) { .ue-titel { align-items: flex-start; text-align: left; } }
+  .ue-titel:hover { background: var(--petrol-hell); }
+  .ue-titel-gross { font-size: 1.125rem; line-height: 1.5rem; font-weight: 600; color: var(--ink-deep); text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 4px; }
+  .ue-titel-klein { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .ue-suche { flex: 1 1 10rem; min-width: 0; min-height: 2.75rem; padding: 0 0.75rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 1rem; }
+  .ue-suche:focus { outline: 2px solid var(--petrol); outline-offset: -1px; border-color: var(--petrol); }
+  @media (min-width: 760px) { .ue-suche { flex: none; width: 15rem; } }
+  .ue-zeitwahl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; max-width: 28rem; padding: 0.75rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+
+  /* ── Die Liste (Auftrag 3.3) ──────────────────────────────────────────── */
+  /*
+    EINE FLÄCHE, LINIEN DAZWISCHEN. Jede Zeile trägt ihre Linie oben; die
+    Kopfzeile steht zuerst und hat keine. Kein `overflow: hidden` am Behälter:
+    sonst bliebe die Kopfzeile beim Rollen nicht oben stehen.
+  */
+  .ue-liste { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  .ue-liste-woche { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  .ue-kopfzeile { display: none; }
+  .mw-kopfzeile { display: none; }
+  @media (min-width: 760px) {
+    .ue-kopfzeile { display: grid; grid-template-columns: 170px minmax(0, 1fr) 62px 62px 70px; gap: 12px; align-items: end; padding: 0.625rem 1rem 0.5rem; position: sticky; top: 0; z-index: 3; background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+    .mw-kopfzeile { display: grid; grid-template-columns: 150px minmax(0, 1fr) 58px 58px 64px; gap: 4px; align-items: end; padding: 0.625rem 1rem 0.5rem; position: sticky; top: 0; z-index: 3; background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  }
+  @media (min-width: 1200px) {
+    .ue-kopfzeile { grid-template-columns: 230px minmax(0, 1fr) 76px 76px 84px; gap: 16px; padding: 0.625rem 1.25rem 0.5rem; }
+    .mw-kopfzeile { grid-template-columns: 210px minmax(0, 1fr) 70px 76px 76px; gap: 12px; padding: 0.625rem 1.25rem 0.5rem; }
+  }
+  .ue-kopf-person { font-size: 0.8125rem; color: var(--text-muted); }
+  .ue-kopf-zahl { font-size: 0.8125rem; color: var(--text-muted); text-align: right; white-space: nowrap; }
+  .ue-gruppe { margin: 0; padding: 0.625rem 1rem; background: var(--bg); color: var(--text-muted); border-top: 1px solid var(--border); font-size: 0.8125rem; line-height: 1.125rem; font-weight: 600; }
+  @media (min-width: 1200px) { .ue-gruppe { padding: 0.625rem 1.25rem; } }
+
+  /* Am Handy eine Karte je Person: Name, darunter der Streifen in voller Breite, darunter drei Zahlen. */
+  .ue-zeile { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; align-items: center; padding: 0.75rem 1rem; border-top: 1px solid var(--border); background: var(--surface); cursor: pointer; }
+  .ue-zeile:hover { background: var(--petrol-hell); }
+  @media (min-width: 760px) { .ue-zeile { grid-template-columns: 170px minmax(0, 1fr) 62px 62px 70px; gap: 12px; padding: 0.625rem 1rem; } }
+  @media (min-width: 1200px) { .ue-zeile { grid-template-columns: 230px minmax(0, 1fr) 76px 76px 84px; gap: 16px; padding: 0.625rem 1.25rem; } }
+  .mw-zeile { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; align-items: center; padding: 0.75rem 0.75rem; border-top: 1px solid var(--border); background: var(--surface); cursor: pointer; }
+  .mw-zeile:hover { background: var(--petrol-hell); }
+  @media (min-width: 760px) { .mw-zeile { grid-template-columns: 150px minmax(0, 1fr) 58px 58px 64px; gap: 4px; padding: 0.5rem 1rem; } }
+  @media (min-width: 1200px) { .mw-zeile { grid-template-columns: 210px minmax(0, 1fr) 70px 76px 76px; gap: 12px; padding: 0.5rem 1.25rem; } }
+  .ue-zeile-einfach { display: flex; align-items: center; padding: 0.625rem 1rem; border-top: 1px solid var(--border); background: var(--surface); cursor: pointer; }
+  .ue-zeile-einfach:hover { background: var(--petrol-hell); }
+
+  .ue-person { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0; background: none; border: 0; color: var(--text); text-align: left; cursor: pointer; }
+  @media (min-width: 760px) { .ue-person { grid-column: auto; } }
+  .ue-name { display: block; max-width: 100%; font-weight: 600; color: var(--ink-deep); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ue-status { display: block; max-width: 100%; font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
+  .ue-status-achtung { display: block; max-width: 100%; font-size: 0.8125rem; line-height: 1.125rem; font-weight: 600; color: var(--warning); }
+  .ue-zahl { margin: 0; font-size: 0.875rem; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ue-zahl-stark { margin: 0; font-size: 0.875rem; font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  @media (min-width: 760px) {
+    .ue-zahl { text-align: right; font-size: 0.9375rem; }
+    .ue-zahl-stark { text-align: right; font-size: 0.9375rem; }
+  }
+  /* Am Handy steht über jeder Zahl ihr Name; ab dem Tablet trägt ihn die Kopfzeile. */
+  .ue-zahl-name { display: block; font-size: 0.75rem; line-height: 1rem; font-weight: 400; color: var(--text-muted); }
+  @media (min-width: 760px) { .ue-zahl-name { display: none; } }
+
+  .ue-legende { padding: 0.75rem 1rem; border-top: 1px solid var(--border); font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
+  @media (min-width: 1200px) { .ue-legende { padding: 0.75rem 1.25rem; } }
+  .ue-legende-liste { display: flex; flex-wrap: wrap; gap: 0.5rem 1.125rem; margin: 0 0 0.25rem; padding: 0; list-style: none; }
+  .ue-legende-punkt { display: inline-flex; align-items: center; gap: 0.375rem; }
+
+  /* ── Streifen (Auftrag 3.3.1, Baustein „Streifen“) ───────────────────── */
+  .streifen { grid-column: 1 / -1; display: grid; gap: 1px; min-width: 0; }
+  @media (min-width: 760px) { .streifen { grid-column: auto; gap: 2px; } }
+  .st-ok { height: 22px; min-width: 0; margin: 0; padding: 0; border: 0; border-radius: 2px; background: var(--petrol); cursor: pointer; }
+  .st-grenze { height: 22px; min-width: 0; margin: 0; padding: 0; border: 0; border-radius: 2px; background: var(--petrol); box-shadow: inset 0 -4px 0 var(--danger); cursor: pointer; }
+  .st-fehlt { height: 22px; min-width: 0; margin: 0; padding: 0; border: 0; border-radius: 2px; background: var(--warning); cursor: pointer; }
+  .st-weg { height: 22px; min-width: 0; margin: 0; padding: 0; border: 0; border-radius: 2px; background: var(--border-strong); cursor: pointer; }
+  .st-frei { display: block; height: 22px; min-width: 0; border-radius: 2px; background: var(--bg); }
+  .st-zukunft { height: 22px; min-width: 0; margin: 0; padding: 0; border: 0; border-radius: 2px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--border-strong); cursor: pointer; }
+  @media (min-width: 760px) {
+    .st-ok { height: 24px; border-radius: 3px; }
+    .st-grenze { height: 24px; border-radius: 3px; }
+    .st-fehlt { height: 24px; border-radius: 3px; }
+    .st-weg { height: 24px; border-radius: 3px; }
+    .st-frei { height: 24px; border-radius: 3px; }
+    .st-zukunft { height: 24px; border-radius: 3px; }
+  }
+  .st-ok:hover { outline: 2px solid var(--ink-deep); outline-offset: 1px; }
+  .st-grenze:hover { outline: 2px solid var(--ink-deep); outline-offset: 1px; }
+  .st-fehlt:hover { outline: 2px solid var(--ink-deep); outline-offset: 1px; }
+  .st-weg:hover { outline: 2px solid var(--ink-deep); outline-offset: 1px; }
+  .st-zukunft:hover { outline: 2px solid var(--ink-deep); outline-offset: 1px; }
+
+  /*
+    Die Tageszahlen darüber nur als Wegmarken (der Erste, die Montage, heute):
+    die übrigen bleiben unsichtbar im DOM, damit jede Marke über ihrem Feld
+    steht. Die Marke steht linksbündig am Anfang ihrer Woche.
+  */
+  .st-kopf { font-size: 0.75rem; line-height: 1rem; color: transparent; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
+  .st-kopf-mo { font-size: 0.75rem; line-height: 1rem; text-align: left; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: visible; }
+  .st-kopf-heute { font-size: 0.75rem; line-height: 1rem; text-align: center; color: var(--accent-deep); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: visible; box-shadow: inset 0 -2px 0 var(--petrol); }
+
+  /* Die Felder der Legende und der Musterseite: dieselben Farben, kein Knopf. */
+  .leg-ok { display: inline-block; flex: none; width: 0.75rem; height: 0.75rem; border-radius: 2px; background: var(--petrol); }
+  .leg-grenze { display: inline-block; flex: none; width: 0.75rem; height: 0.75rem; border-radius: 2px; background: var(--petrol); box-shadow: inset 0 -3px 0 var(--danger); }
+  .leg-fehlt { display: inline-block; flex: none; width: 0.75rem; height: 0.75rem; border-radius: 2px; background: var(--warning); }
+  .leg-weg { display: inline-block; flex: none; width: 0.75rem; height: 0.75rem; border-radius: 2px; background: var(--border-strong); }
+  .leg-frei { display: inline-block; flex: none; width: 0.75rem; height: 0.75rem; border-radius: 2px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--border); }
+  .leg-zukunft { display: inline-block; flex: none; width: 0.75rem; height: 0.75rem; border-radius: 2px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--border-strong); }
+
+  /* ── Woche (Auftrag 3.4, Baustein „Wochenzelle“) ──────────────────────── */
+  .mw-tage { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; min-width: 0; }
+  @media (min-width: 760px) { .mw-tage { grid-column: auto; gap: 4px; } }
+  @media (min-width: 1200px) { .mw-tage { gap: 4px; } }
+  .mw-kopf { font-size: 0.8125rem; line-height: 1.125rem; text-align: center; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .mw-kopf-heute { font-size: 0.8125rem; line-height: 1.125rem; text-align: center; color: var(--accent-deep); font-weight: 600; font-variant-numeric: tabular-nums; box-shadow: inset 0 -2px 0 var(--petrol); }
+  .mw-zelle { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--petrol-hell); color: var(--text); font-size: 0.75rem; line-height: 1.2; text-align: center; cursor: pointer; }
+  .mw-zelle-grenze { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--petrol-hell); color: var(--text); font-size: 0.75rem; line-height: 1.2; text-align: center; cursor: pointer; box-shadow: inset 0 -3px 0 var(--danger); }
+  .mw-zelle-fehlt { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--warning-bg); color: var(--warning); font-size: 0.75rem; line-height: 1.2; font-weight: 600; text-align: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--warning); }
+  .mw-zelle-weg { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--abwesend); color: var(--text-muted); font-size: 0.75rem; line-height: 1.2; text-align: center; overflow-wrap: break-word; hyphens: auto; cursor: pointer; }
+  .mw-zelle-frei { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border-radius: 6px; background: var(--bg); color: var(--text-muted); font-size: 0.75rem; line-height: 1.2; text-align: center; }
+  .mw-zelle-zukunft { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--surface); color: var(--text-muted); font-size: 0.75rem; line-height: 1.2; text-align: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--border); }
+  @media (min-width: 760px) {
+    .mw-zelle { min-height: 3rem; font-size: 0.8125rem; padding: 0.375rem 1px; }
+    .mw-zelle-grenze { min-height: 3rem; font-size: 0.8125rem; padding: 0.375rem 1px; }
+    .mw-zelle-fehlt { min-height: 3rem; font-size: 0.875rem; padding: 0.375rem 0.25rem; }
+    .mw-zelle-weg { min-height: 3rem; font-size: 0.6875rem; padding: 0.375rem 1px; }
+    .mw-zelle-frei { min-height: 3rem; font-size: 0.8125rem; padding: 0.375rem 0.25rem; }
+    .mw-zelle-zukunft { min-height: 3rem; font-size: 0.6875rem; padding: 0.375rem 1px; }
+  }
+  .mw-zelle:hover { box-shadow: inset 0 0 0 1px var(--petrol); }
+  .mw-zelle-zukunft:hover { box-shadow: inset 0 0 0 1px var(--petrol); }
+  .mw-zelle-weg:hover { outline: 1px solid var(--petrol); outline-offset: -1px; }
+  /* Die Stunden umbrechen nie („10:4 / 5“ war der Befund) — `nowrap` und eine Schrift, die passt. */
+  .mw-std { display: block; font-size: 0.8125rem; font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  @media (min-width: 760px) { .mw-std { font-size: 0.9375rem; } }
+  /* Von–Bis nur am Schreibtisch; am Tablet und Handy steht es im Seitenfenster (Auftrag 3.4). */
+  .mw-von { display: none; }
+  @media (min-width: 1200px) { .mw-von { display: block; max-width: 100%; font-size: 0.6875rem; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
+  .mw-art { display: block; max-width: 100%; min-width: 0; color: var(--text-muted); overflow-wrap: break-word; hyphens: auto; }
+
+  /* ── Tooltip (Baustein „Tooltip“): nur ab 1.200 px, sonst öffnet der Tipp das Fenster ─ */
+  .tipp { display: none; }
+  @media (min-width: 1200px) {
+    .tipp { display: block; position: fixed; z-index: 45; max-width: 18rem; padding: 0.5rem 0.625rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); box-shadow: var(--shadow-lg); font-size: 0.8125rem; line-height: 1.25rem; pointer-events: none; }
+  }
+
+  /* ── Arbeitszeitgrenzen als Arbeitsliste (Auftrag 3.2, Punkt 5) ─────── */
+  .grenz-fall { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.75rem 1rem; font-size: 0.875rem; line-height: 1.375rem; }
+  .grenz-inhalt { flex: 1 1 16rem; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+  .grenz-person { font-weight: 600; color: var(--ink-deep); }
+  .grenz-rechts { flex: none; display: flex; align-items: center; }
+  .grenz-verstoss-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
+  .grenz-verstoss { font-weight: 600; color: var(--danger); }
+  .grenz-schritt { flex: none; min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); color: var(--accent-deep); border: 1px solid var(--petrol); border-radius: var(--radius); font-weight: 600; font-size: 0.875rem; white-space: nowrap; cursor: pointer; }
+  .grenz-schritt:hover { background: var(--petrol-hell); }
+
+  /* ── Seitenfenster „Person im Monat“ (Auftrag 3.5) ───────────────────── */
+  .pf { display: flex; flex-direction: column; }
+  .pf-ueber { margin: 0 0 0.75rem; font-size: 0.8125rem; color: var(--text-muted); }
+  .pf-kennzahlen { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin-top: 0.25rem; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .pf-kennzahl { min-width: 0; padding: 0.625rem 0.75rem; background: var(--surface); }
+  .pf-kennzahl-name { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
+  .pf-kennzahl-text { margin-top: 0.375rem; font-size: 0.875rem; line-height: 1.25rem; color: var(--text-muted); }
+  .pf-text { margin-top: 0.75rem; font-size: 0.875rem; line-height: 1.375rem; color: var(--text-muted); }
+  .pf-text-klein { margin-top: 0.5rem; font-size: 0.75rem; line-height: 1.125rem; color: var(--text-muted); }
+  .pf-abschnitt { margin: 1.25rem 0 0.5rem; font-size: 0.9375rem; font-weight: 600; color: var(--ink-deep); }
+  .pf-liste { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--border); }
+  .pf-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; padding: 0.625rem 0.25rem; border-bottom: 1px solid var(--border); }
+  /* Der Tag, über den das Fenster geöffnet wurde: Petrol-hell mit 3 px Petrol links. */
+  .pf-zeile-markiert { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; padding: 0.625rem 0.25rem 0.625rem 0.75rem; border-bottom: 1px solid var(--border); background: var(--petrol-hell); box-shadow: inset 3px 0 0 var(--petrol); }
+  .pf-zeile-text { flex: 1 1 10rem; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem; }
+  .pf-zeile-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; }
+  .pf-zeile-titel { font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pf-zeile-info { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .pf-zeile-wert { flex: none; font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pf-aktionen { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.25rem; margin-left: auto; }
+  .pf-summe { display: flex; justify-content: space-between; gap: 1rem; padding: 0.625rem 0.25rem; font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; }
+  /* Die Fussleiste bleibt beim Rollen unten im Fenster stehen. */
+  .pf-fuss { position: sticky; bottom: 0; z-index: 1; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; padding: 0.75rem 0; background: var(--surface); border-top: 1px solid var(--border); }
+  /*
+    Ab Tablet hat der Inhalt des Fensters 20 px Rand: mit bottom: 0 stünde die
+    Leiste darüber, und der Tagesnachweis schiene beim Rollen unter ihr durch.
+    Dieselbe Regel wie `.planung-fuss` (lot-planung.css).
+  */
+  @media (min-width: 760px) { .pf-fuss { bottom: -1.25rem; margin: 1rem -1.25rem -1.25rem; padding: 0.75rem 1.25rem; } }
+
+  /* ── Musterseite ─────────────────────────────────────────────────────── */
+}

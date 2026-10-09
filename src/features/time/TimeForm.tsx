@@ -90,6 +90,12 @@ interface Props {
     startTime?: string;
     endTime?: string;
     breakDuration?: number;
+    /**
+     * Für wen gebucht wird — nur mit `staff` und nur, wenn die Person dort
+     * steht (Mitarbeiterübersicht, „Zeit erfassen“ an einem Tag ohne
+     * Buchung, Runde 4). Die Auswahl bleibt änderbar.
+     */
+    userId?: string;
   } | null;
   /**
    * Das Stammdatenblatt dessen, dem die Buchung gehört — für die Rückfrage
@@ -204,7 +210,10 @@ export default function TimeForm({
   const [angefasst, setAngefasst] = useState(false);
   const [vehiclePlate, setVehiclePlate] = useState(() => ohneKennzeichenVorsatz(entry?.vehiclePlate ?? '', kennzeichenVorsatz));
   /** Für wen wird gebucht (nur wenn `staff` gesetzt ist). */
-  const [targetUid, setTargetUid] = useState(entry?.userId ?? '');
+  const [targetUid, setTargetUid] = useState(
+    entry?.userId ??
+      (vorbelegung?.userId && staff?.some((u) => u.uid === vorbelegung.userId) ? vorbelegung.userId : ''),
+  );
 
   const target = staff?.find((u) => u.uid === targetUid);
   // Beim Erfassen für jemand anderen zählt DESSEN Rolle für die

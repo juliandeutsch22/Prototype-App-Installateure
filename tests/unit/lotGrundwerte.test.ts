@@ -62,6 +62,18 @@ describe.each([
     expect(kontrast('#ffffff', t('--navi-tief'))!).toBeGreaterThanOrEqual(AA_NORMAL);
   });
 
+  /*
+    RUNDE 4 (Auftrag Abschnitt 8): die Art einer Abwesenheit steht grau auf
+    `--abwesend`, Text in der Spalte „heute“ auf `--heute`. Bernstein auf
+    Bernstein-hell prüft schon „Achtung und Fehler“.
+  */
+  it('Grau auf „abwesend“ und Schrift in der Spalte „heute“ sind lesbar', () => {
+    expect(kontrast(t('--text-muted'), t('--surface-3'))!).toBeGreaterThanOrEqual(AA_NORMAL);
+    for (const text of ['--text', '--text-muted', '--accent-deep', '--warning']) {
+      expect(kontrast(t(text), t('--heute'))!, text).toBeGreaterThanOrEqual(AA_NORMAL);
+    }
+  });
+
   it('der Platzhalter bleibt lesbar', () => {
     expect(kontrast(t('--text-placeholder'), t('--surface'))!).toBeGreaterThanOrEqual(AA_NORMAL);
   });
@@ -102,6 +114,28 @@ describe('Die Bausteine halten die Regeln der Linie (Protokoll 0.2)', () => {
   it('halbtransparent ist nur der neutrale Schleier', () => {
     const transparent = ohneKommentare.match(/#[0-9a-fA-F]{8}\b|rgba\(|hsla\(|transparent\)/g) ?? [];
     expect(transparent.filter((t) => t !== '#00000059')).toEqual([]);
+  });
+});
+
+/*
+  STEHENDE FUSSLEISTEN IN SEITENFENSTERN (Runde 4): ab Tablet hat der Inhalt
+  des Fensters 20 px Rand (`.fenster-inhalt`). Steht die Leiste mit
+  `bottom: 0`, bleibt darunter ein Streifen frei, durch den der rollende
+  Inhalt scheint — sie muss bis an die Kante reichen. Gilt für jede Leiste,
+  die in einem Seitenfenster steht.
+*/
+describe('Stehende Fußleisten der Seitenfenster', () => {
+  const ohneKommentare = lot.replace(/\/\*[\s\S]*?\*\//g, '');
+  const abTablet = (klasse: string) =>
+    new RegExp(`@media \\(min-width: 760px\\) \\{ \\.${klasse} \\{[^}]*bottom: -1\\.25rem;[^}]*margin: 1rem -1\\.25rem -1\\.25rem;`).test(ohneKommentare);
+
+  it.each(['planung-fuss', 'pf-fuss'])('.%s reicht ab Tablet bis an den unteren Rand', (klasse) => {
+    expect(ohneKommentare).toMatch(new RegExp(`\\.${klasse} \\{[^}]*position: sticky;[^}]*bottom: 0;`));
+    expect(abTablet(klasse)).toBe(true);
+  });
+
+  it('Gegenprobe: eine Leiste ohne die Regel ab Tablet fällt auf', () => {
+    expect(abTablet('fuss-aktionen')).toBe(false);
   });
 });
 

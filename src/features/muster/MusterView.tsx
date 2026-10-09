@@ -22,6 +22,9 @@ import {
 } from '@/components/LotBausteine';
 import { useToast } from '@/components/Toast';
 import { useDarstellung } from '@/lib/darstellung';
+import MusterUebersicht from './MusterUebersicht';
+import MusterPlanung from './MusterPlanung';
+import MusterMonat from './MusterMonat';
 
 /**
  * DIE MUSTERSEITE DER LINIE „LOT“ (Protokoll Abschnitt 4.2): jeder Baustein
@@ -229,6 +232,11 @@ export default function MusterView() {
       <Card title="Leerer Zustand" buendig>
         <EmptyState>Heute liegt nichts an.</EmptyState>
       </Card>
+
+      {/* Runde 4: Bausteine der Mitarbeiterübersicht, der Woche und des Monats. */}
+      <MusterUebersicht />
+      <MusterPlanung />
+      <MusterMonat />
 
       <BottomSheet open={fenster} onClose={() => setFenster(false)} label="Muster" auchBreit titel="Seitenfenster">
         <p className="text-fliess">Am Schreibtisch und Tablet rechts, am Handy ein Blatt von unten. Esc schließt.</p>

@@ -34,7 +34,10 @@ const DATEN = {
     listOwnVacations: 'D.urlaube',
     listOpenVacations: 'D.urlaube.filter((v) => v.status === "Beantragt")',
     listApprovedVacationsInRange: 'D.urlaube',
+    listAbwesendInRange: 'D.abwesend',
   },
+  // Runde 4: Termine im Wochenplan, Monat und Tag planen.
+  termine: { listTermineImZeitraum: 'D.termine', listTermineDerBaustelle: 'D.termine', listTermineDesKunden: 'D.termine' },
   assignments: { '*': 'D.einsaetze' },
   einsatzMaterial: { '*': 'D.ruestlisten', getEinsatzMaterial: 'D.ruestlisten[0]' },
   quotes: { '*': 'D.angebote', getQuote: 'D.angebote[0]' },
@@ -70,6 +73,9 @@ const FEST = {
     "export const nextInvoiceNumber = () => 'RE-2026-0234';\n" +
     'export const isInvoiceNumberTaken = () => false;\n',
   konten: 'export const buchungskonten = () => A([]);\n',
+  // Die Grenzprüfung liest die Geburtsdaten als Map je Person; ein Feld liess
+  // die Karte „Arbeitszeitgrenzen“ in der Vorschau mit einem Fehler stehen.
+  arbeitszeitGrenzen: 'export const listGeburtsdaten = () => A(new Map<string, string>());\n',
   // Das Kalender-Abo (02.10.2026): eingerichtet, damit die Karte ihren Normalfall zeigt.
   assignments:
     'export const kalenderAboStand = () => A(D.kalenderAbo);\n' +

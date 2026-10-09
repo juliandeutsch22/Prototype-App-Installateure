@@ -1,20 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useState } from 'react';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { InputField } from '@/components/Field';
 import { ErrorState } from '@/components/States';
 import { useToast } from '@/components/Toast';
-import { listEntriesInRange } from '@/lib/db/timeEntries';
-import {
-  listBegruendungen, listGeburtsdaten, removeBegruendung, setBegruendung, type Begruendung,
-} from '@/lib/db/arbeitszeitGrenzen';
-import { tagessollStunden, todayStr } from '@/lib/time';
+import { removeBegruendung, setBegruendung, type Begruendung } from '@/lib/db/arbeitszeitGrenzen';
 import { datumAT } from '@/lib/datum';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, TimeEntry } from '@/types';
-import {
-  andereVerteilung, fallSchluessel, grenzfaelle, grenzText, kalenderwoche, montagVon, type Grenzfall,
-} from './arbeitszeitGrenzen';
+import { fallSchluessel, grenzText, kalenderwoche, type Grenzfall } from './arbeitszeitGrenzen';
+import { grenzZusatz, useArbeitszeitGrenzen, type GrenzDaten } from './useArbeitszeitGrenzen';
 
 const MONATE = ['Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August',
   'September', 'Oktober', 'November', 'Dezember'];
@@ -27,37 +22,13 @@ function plusTage(iso: string, n: number): string {
 
 const kurz = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
 
-/**
- * Wo im Monat gebuchte Zeiten eine gesetzliche Grenze überschreiten — mit
- * Begründung je Fall (Stand-Datei 11.1, Punkt 4).
- *
- * EINE ZEILE, WENN NICHTS IST. Die Karte steht in jedem Monat da, damit man
- * weiss, dass geprüft wurde; ohne Fall ist sie ein Satz und keine Liste.
- *
- * EIGENE ABFRAGE STATT DER GELADENEN JAHRESZEITEN: die Woche am Monatsrand,
- * die Ruhezeit am Ersten und der Montag nach dem letzten Sonntag liegen
- * ausserhalb des Monats — und um den Jahreswechsel ausserhalb des Jahres.
- *
- * NACH EINER BUCHUNG NEU GEPRÜFT (Runde 3, G12): `aktualisiert` ist der
- * Stand der Buchungen, den die Seite ohnehin live hält. Ändert er sich, prüft
- * die Karte still neu — ohne „Wird geprüft …“ dazwischen. Vorher stand nach
- * dem Buchen bis zum Neuladen „keine Grenze überschritten“.
- *
- * JUGENDSCHUTZ IST KEIN „BEGRÜNDET“ (Runde 3, M3, vorbehaltlich der
- * WKO-Klärung). Beim AZG sind Notdienst und Gefahr in Verzug zulässige,
- * zu begründende Ausnahmen. Die Grenzen des KJBG sind weitgehend zwingend;
- * ein „begründeter“ Fall wirkte wie erlaubt. Dort steht deshalb „Verstoß —
- * Buchung korrigieren“ mit dem Weg zur Buchung, und eine Notiz ist möglich,
- * nimmt den Fall aber nicht aus der Zählung.
- */
-export default function ArbeitszeitGrenzenKarte({
-  companyId,
-  personen,
-  jahr,
-  monat,
-  aktualisiert,
-  onKorrigieren,
-}: {
+/** Die Überschrift der Karte: Zahl der Verstöße und der Fälle ohne Begründung. */
+function grenzTitel(z: GrenzDaten['zaehlung']): string {
+  const zusatz = grenzZusatz(z);
+  return zusatz ? `Arbeitszeitgrenzen · ${zusatz}` : 'Arbeitszeitgrenzen';
+}
+
+interface KarteProps {
   companyId: string;
   personen: AppUser[];
   jahr: number;
@@ -67,84 +38,117 @@ export default function ArbeitszeitGrenzenKarte({
   aktualisiert?: string;
   /** Öffnet eine Buchung zum Korrigieren (bei Verstößen gegen das KJBG). */
   onKorrigieren?: (eintrag: WithId<TimeEntry>) => void;
+  /**
+   * Die Prüfung, wenn die Seite sie schon hält (Runde 4: Streifen, Kennzahl
+   * und Seitenfenster lesen dieselben Fälle). Ohne lädt die Karte selbst —
+   * so wie bis Runde 4, und so prüfen sie ihre Tests.
+   */
+  daten?: GrenzDaten;
+  /** Sprungziel der Kennzahl „Arbeitszeitgrenzen“. */
+  id?: string;
+}
+
+/**
+ * Wo im Monat gebuchte Zeiten eine gesetzliche Grenze überschreiten — mit
+ * Begründung je Fall (Stand-Datei 11.1, Punkt 4).
+ *
+ * EINE ZEILE, WENN NICHTS IST. Die Karte steht in jedem Monat da, damit man
+ * weiss, dass geprüft wurde; ohne Fall ist sie ein Satz und keine Liste.
+ *
+ * DIE LADELOGIK steht seit Runde 4 in `useArbeitszeitGrenzen` — die Seite
+ * hält die Fälle einmal und reicht sie hierher und ins Seitenfenster.
+ *
+ * JUGENDSCHUTZ IST KEIN „BEGRÜNDET“ (Runde 3, M3, vorbehaltlich der
+ * WKO-Klärung). Beim AZG sind Notdienst und Gefahr in Verzug zulässige,
+ * zu begründende Ausnahmen. Die Grenzen des KJBG sind weitgehend zwingend;
+ * ein „begründeter“ Fall wirkte wie erlaubt. Dort steht deshalb „Verstoß —
+ * Buchung korrigieren“ mit dem Weg zur Buchung, und eine Notiz ist möglich,
+ * nimmt den Fall aber nicht aus der Zählung.
+ */
+export default function ArbeitszeitGrenzenKarte(props: KarteProps) {
+  return props.daten ? <KarteInhalt {...props} daten={props.daten} /> : <KarteMitLaden {...props} />;
+}
+
+function KarteMitLaden(props: KarteProps) {
+  const daten = useArbeitszeitGrenzen(props);
+  return <KarteInhalt {...props} daten={daten} />;
+}
+
+function KarteInhalt({
+  companyId,
+  jahr,
+  monat,
+  onKorrigieren,
+  daten,
+  id,
+}: KarteProps & { daten: GrenzDaten }) {
+  const { stand, fehler, laden, zaehlung } = daten;
+  return (
+    <Card
+      id={id}
+      title={grenzTitel(zaehlung)}
+      buendig={!!stand && stand.faelle.length > 0 && !fehler}
+      hint={
+        <>
+          Geprüft wird, was bis heute gebucht ist: höchstens 12 Std. am Tag und 60 in der Woche (§ 9 AZG),
+          11 Std. Ruhezeit (§ 12 AZG), 36 Std. Ruhe je Kalenderwoche (§§ 3, 4 ARG). Für Jugendliche unter
+          18 — dafür braucht es das Geburtsdatum in der Benutzerakte — 8 Std. am Tag und 40 in der Woche
+          samt Berufsschule, 12 Std. Ruhezeit, keine Arbeit zwischen 20 und 6 Uhr und zwei freie Tage am
+          Stück mit dem Sonntag (KJBG). Notdienst und Gefahr in Verzug sind beim AZG zulässig, aber zu
+          begründen. Die Grenzen für Jugendliche sind zwingend: dort steht „Verstoß“, die Buchung ist zu
+          korrigieren, eine Notiz ist möglich. Vorbehaltlich der Klärung mit der WKO: ein Berufsschultag
+          zählt mit der beim Eintragen angegebenen Unterrichtszeit, sonst mit dem Tagessoll; ist die
+          Wochenarbeitszeit anders verteilt (eigenes Tagessoll mit kürzeren Tagen, höchstens 40 Std.),
+          gelten am Tag 9 Std. (§ 11 Abs 2 KJBG). Nicht geprüft: Ruhepausen, Durchrechnung und
+          Gleitzeit, Ausnahmen aus dem Kollektivvertrag.
+        </>
+      }
+    >
+      {fehler ? (
+        <ErrorState message={fehler} onRetry={() => void laden()} />
+      ) : !stand ? (
+        <p className="text-sm text-ink-muted">Wird geprüft …</p>
+      ) : stand.faelle.length === 0 ? (
+        <p className="text-sm text-ink-muted">Im {MONATE[monat]} {jahr} wurde keine Grenze überschritten.</p>
+      ) : (
+        <GrenzListe companyId={companyId} daten={daten} onKorrigieren={onKorrigieren} />
+      )}
+    </Card>
+  );
+}
+
+/**
+ * DIE FÄLLE ALS ARBEITSLISTE (Runde 4, Auftrag 3.2 Punkt 5): eine Zeile je
+ * Fall, rechts der Knopf für den nächsten Schritt („Begründen“ bzw. beim
+ * Jugendschutz „Verstoß — Buchung korrigieren“), die übrigen Handgriffe
+ * (Notiz, Ändern, Entfernen) in der Zeile. Inhalt und Knöpfe wie bisher.
+ *
+ * Dieselbe Liste steht im Seitenfenster der Person (`nurPerson`) — mit
+ * denselben Knöpfen; gespeichert wird über dieselbe Prüfung (`daten.laden`),
+ * damit Karte und Fenster nicht auseinanderlaufen.
+ */
+export function GrenzListe({
+  companyId,
+  daten,
+  onKorrigieren,
+  nurPerson,
+}: {
+  companyId: string;
+  daten: GrenzDaten;
+  onKorrigieren?: (eintrag: WithId<TimeEntry>) => void;
+  /** Nur die Fälle dieser Person — und ohne ihren Namen in jeder Zeile. */
+  nurPerson?: string;
 }) {
   const toast = useToast();
-  const von = `${jahr}-${String(monat + 1).padStart(2, '0')}-01`;
-  const bis = new Date(Date.UTC(jahr, monat + 1, 0)).toISOString().slice(0, 10);
-
-  const [stand, setStand] = useState<{
-    faelle: Array<{ person: AppUser; fall: Grenzfall }>;
-    begruendungen: Map<string, Begruendung>;
-    eintraege: WithId<TimeEntry>[];
-  } | null>(null);
-  const [fehler, setFehler] = useState<string | null>(null);
+  const { stand, laden } = daten;
   const [bearbeitet, setBearbeitet] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [laeuft, setLaeuft] = useState(false);
-  // Eine ältere Antwort darf eine neuere nicht überschreiben (Monat schnell gewechselt).
-  const lauf = useRef(0);
+  const vorsilbe = nurPerson ? 'fenster' : 'karte';
 
-  const laden = useCallback(async () => {
-    const meiner = ++lauf.current;
-    setFehler(null);
-    try {
-      const [eintraege, geburtsdaten, begruendungen] = await Promise.all([
-        listEntriesInRange(companyId, plusTage(von, -7), plusTage(bis, 7)),
-        listGeburtsdaten(companyId),
-        listBegruendungen(companyId, montagVon(von), bis),
-      ]);
-      // Was nach heute liegt, ist noch nicht gearbeitet (Runde 3, M1).
-      const heute = todayStr();
-      const faelle = personen.flatMap((person) =>
-        grenzfaelle(
-          eintraege.filter((e) => e.userId === person.uid),
-          { von, bis },
-          {
-            geburtsdatum: geburtsdaten.get(person.uid) ?? null,
-            schultagMin: (tag) => tagessollStunden(person, tag) * 60,
-            andereVerteilung: andereVerteilung(person),
-          },
-          { stichtag: heute },
-        ).map((fall) => ({ person, fall })),
-      );
-      if (meiner !== lauf.current) return;
-      setStand({
-        faelle,
-        begruendungen: new Map(begruendungen.map((b) => [fallSchluessel(b.userId, b), b])),
-        eintraege,
-      });
-    } catch (e) {
-      if (meiner !== lauf.current) return;
-      setFehler(e instanceof Error ? e.message : String(e));
-    }
-  }, [companyId, personen, von, bis]);
-
-  /*
-    EIN EFFEKT FÜR BEIDE ANLÄSSE. Ein neuer Monat (oder Betrieb, oder eine
-    andere Belegschaft) zeigt „Wird geprüft …“; ein neuer Stand der Buchungen
-    prüft still nach. Der erste Stand nach dem Laden der Seite ist keine
-    Änderung — sonst prüfte die Karte beim Öffnen zweimal.
-  */
-  const vorher = useRef<{ laden: typeof laden; aktualisiert: string | undefined } | null>(null);
-  useEffect(() => {
-    const v = vorher.current;
-    vorher.current = { laden, aktualisiert };
-    if (v && v.laden === laden) {
-      if (v.aktualisiert === undefined || v.aktualisiert === aktualisiert) return;
-    } else {
-      setStand(null);
-    }
-    void laden();
-  }, [laden, aktualisiert]);
-
-  const zaehlung = useMemo(() => {
-    if (!stand) return { kjbg: 0, azg: 0, offen: 0 };
-    const kjbg = stand.faelle.filter(({ fall }) => fall.jugendlich).length;
-    const offen = stand.faelle.filter(
-      ({ person, fall }) => !fall.jugendlich && !stand.begruendungen.has(fallSchluessel(person.uid, fall)),
-    ).length;
-    return { kjbg, azg: stand.faelle.length - kjbg, offen };
-  }, [stand]);
+  if (!stand) return null;
+  const faelle = nurPerson ? stand.faelle.filter(({ person }) => person.uid === nurPerson) : stand.faelle;
+  if (faelle.length === 0) return null;
 
   async function speichern(person: AppUser, fall: Grenzfall) {
     if (!text.trim()) return;
@@ -186,17 +190,11 @@ export default function ArbeitszeitGrenzenKarte({
       .sort((a, b) => a.date.localeCompare(b.date) || (a.startTime ?? '').localeCompare(b.startTime ?? ''));
   }
 
-  const teile = [
-    zaehlung.kjbg > 0 && (zaehlung.kjbg === 1 ? '1 Verstoß Jugendschutz' : `${zaehlung.kjbg} Verstöße Jugendschutz`),
-    zaehlung.azg > 0 && (zaehlung.offen > 0 ? `${zaehlung.offen} ohne Begründung` : 'alle begründet'),
-  ].filter(Boolean);
-  const titel = teile.length > 0 ? `Arbeitszeitgrenzen · ${teile.join(' · ')}` : 'Arbeitszeitgrenzen';
-
   /** Das Eingabefeld für Begründung (AZG) oder Notiz (KJBG). */
   const eingabe = (schluessel: string, person: AppUser, fall: Grenzfall) => (
     <div className="flex flex-col gap-2">
       <InputField
-        id={`begruendung-${schluessel}`}
+        id={`begruendung-${vorsilbe}-${schluessel}`}
         label={fall.jugendlich ? 'Notiz (optional)' : 'Begründung'}
         placeholder={fall.jugendlich ? 'z. B. mit dem Lehrling besprochen' : 'z. B. Notdienst, Rohrbruch'}
         maxLength={500}
@@ -241,13 +239,13 @@ export default function ArbeitszeitGrenzenKarte({
     </span>
   );
 
-  /** Jugendschutz: Verstoß, der Weg zur Buchung, eine Notiz. */
+  /** Jugendschutz: Verstoß und der Weg zur Buchung — der nächste Schritt. */
   const verstoss = (person: AppUser, fall: Grenzfall) => {
     const buchungen = onKorrigieren ? korrigierbar(person, fall) : [];
     const mitTag = buchungen.some((e) => e.date !== buchungen[0].date);
     return (
-      <span className="flex flex-wrap items-center gap-x-3">
-        <span className="font-normal text-ink">Verstoß —</span>
+      <span className="grenz-verstoss-zeile">
+        <span className="grenz-verstoss">Verstoß —</span>
         {buchungen.length === 0 ? (
           <span className="text-ink-muted">
             {fall.art === 'woche' || fall.art === 'wochenfrei'
@@ -255,12 +253,12 @@ export default function ArbeitszeitGrenzenKarte({
               : 'Buchung im Tagesnachweis korrigieren'}
           </span>
         ) : buchungen.length === 1 ? (
-          <button type="button" className="link" onClick={() => onKorrigieren?.(buchungen[0])}>
+          <button type="button" className="grenz-schritt" onClick={() => onKorrigieren?.(buchungen[0])}>
             Buchung korrigieren
           </button>
         ) : (
           buchungen.map((e) => (
-            <button key={e.id} type="button" className="link" onClick={() => onKorrigieren?.(e)}>
+            <button key={e.id} type="button" className="grenz-schritt" onClick={() => onKorrigieren?.(e)}>
               {`Buchung ${mitTag ? `${kurz(e.date)} ` : ''}${e.startTime ?? ''}–${e.endTime ?? ''} korrigieren`}
             </button>
           ))
@@ -270,67 +268,30 @@ export default function ArbeitszeitGrenzenKarte({
   };
 
   return (
-    <Card
-      title={titel}
-      hint={
-        <>
-          Geprüft wird, was bis heute gebucht ist: höchstens 12 Std. am Tag und 60 in der Woche (§ 9 AZG),
-          11 Std. Ruhezeit (§ 12 AZG), 36 Std. Ruhe je Kalenderwoche (§§ 3, 4 ARG). Für Jugendliche unter
-          18 — dafür braucht es das Geburtsdatum in der Benutzerakte — 8 Std. am Tag und 40 in der Woche
-          samt Berufsschule, 12 Std. Ruhezeit, keine Arbeit zwischen 20 und 6 Uhr und zwei freie Tage am
-          Stück mit dem Sonntag (KJBG). Notdienst und Gefahr in Verzug sind beim AZG zulässig, aber zu
-          begründen. Die Grenzen für Jugendliche sind zwingend: dort steht „Verstoß“, die Buchung ist zu
-          korrigieren, eine Notiz ist möglich. Vorbehaltlich der Klärung mit der WKO: ein Berufsschultag
-          zählt mit der beim Eintragen angegebenen Unterrichtszeit, sonst mit dem Tagessoll; ist die
-          Wochenarbeitszeit anders verteilt (eigenes Tagessoll mit kürzeren Tagen, höchstens 40 Std.),
-          gelten am Tag 9 Std. (§ 11 Abs 2 KJBG). Nicht geprüft: Ruhepausen, Durchrechnung und
-          Gleitzeit, Ausnahmen aus dem Kollektivvertrag.
-        </>
-      }
-    >
-      {fehler ? (
-        <ErrorState message={fehler} onRetry={() => void laden()} />
-      ) : !stand ? (
-        <p className="text-sm text-ink-muted">Wird geprüft …</p>
-      ) : stand.faelle.length === 0 ? (
-        <p className="text-sm text-ink-muted">Im {MONATE[monat]} {jahr} wurde keine Grenze überschritten.</p>
-      ) : (
-        <ul className="divide-y divide-line">
-          {stand.faelle.map(({ person, fall }) => {
-            const schluessel = fallSchluessel(person.uid, fall);
-            const b = stand.begruendungen.get(schluessel);
-            const { titel: was, gesetz } = grenzText(fall);
-            return (
-              <li key={schluessel} className="flex flex-col gap-1 py-2 text-sm">
-                <span className="font-normal text-ink-deep">
+    <ul className={nurPerson ? 'divide-y divide-line border-y border-line' : 'divide-y divide-line'}>
+      {faelle.map(({ person, fall }) => {
+        const schluessel = fallSchluessel(person.uid, fall);
+        const b = stand.begruendungen.get(schluessel);
+        const { titel: was, gesetz } = grenzText(fall);
+        const offen = bearbeitet === schluessel;
+        return (
+          <li key={schluessel} className="grenz-fall">
+            <div className="grenz-inhalt">
+              {nurPerson ? (
+                fall.jugendlich && <span className="grenz-person">unter 18</span>
+              ) : (
+                <span className="grenz-person">
                   {person.name}{fall.jugendlich ? ' · unter 18' : ''}
                 </span>
-                <span className="text-ink">
-                  {was} <span className="text-ink-muted">({gesetz})</span>
-                </span>
-                {fall.jugendlich ? (
-                  <>
-                    {verstoss(person, fall)}
-                    {bearbeitet === schluessel ? (
-                      eingabe(schluessel, person, fall)
-                    ) : b ? (
-                      vermerk(schluessel, b, 'Notiz')
-                    ) : (
-                      <span>
-                        <button
-                          type="button"
-                          className="link"
-                          onClick={() => { setBearbeitet(schluessel); setText(''); }}
-                        >
-                          Notiz hinzufügen
-                        </button>
-                      </span>
-                    )}
-                  </>
-                ) : bearbeitet === schluessel ? (
+              )}
+              <span className="text-ink">
+                {was} <span className="text-ink-muted">({gesetz})</span>
+              </span>
+              {fall.jugendlich ? (
+                offen ? (
                   eingabe(schluessel, person, fall)
                 ) : b ? (
-                  vermerk(schluessel, b, 'Begründung')
+                  vermerk(schluessel, b, 'Notiz')
                 ) : (
                   <span>
                     <button
@@ -338,15 +299,34 @@ export default function ArbeitszeitGrenzenKarte({
                       className="link"
                       onClick={() => { setBearbeitet(schluessel); setText(''); }}
                     >
-                      Begründen
+                      Notiz hinzufügen
                     </button>
                   </span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </Card>
+                )
+              ) : offen ? (
+                eingabe(schluessel, person, fall)
+              ) : (
+                b && vermerk(schluessel, b, 'Begründung')
+              )}
+            </div>
+            {fall.jugendlich ? (
+              <div className="grenz-rechts">{verstoss(person, fall)}</div>
+            ) : (
+              !offen && !b && (
+                <div className="grenz-rechts">
+                  <button
+                    type="button"
+                    className="grenz-schritt"
+                    onClick={() => { setBearbeitet(schluessel); setText(''); }}
+                  >
+                    Begründen
+                  </button>
+                </div>
+              )
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

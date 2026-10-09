@@ -73,3 +73,28 @@ export function monatsTage(jahr: number, monat: number): string[] {
   const letzter = new Date(jahr, monat + 1, 0).getDate();
   return Array.from({ length: letzter }, (_, i) => lokalesDatum(new Date(jahr, monat, i + 1)));
 }
+
+/**
+ * „2026-W41“ — die Woche eines Tages als Adresse (`?woche=`, Runde 4). Das
+ * Jahr ist das der Kalenderwoche, nicht des Tages: der 31.12.2024 liegt in
+ * „2025-W01“. Sonst zeigte ein Lesezeichen um den Jahreswechsel die falsche
+ * Woche.
+ */
+export function kwSchluessel(iso: string): string {
+  const donnerstag = wocheAb(montagDer(iso))[3];
+  return `${donnerstag.slice(0, 4)}-W${String(kalenderwoche(iso)).padStart(2, '0')}`;
+}
+
+/** Der Montag zu „2026-W41“ — oder `null`, wenn die Angabe keine Woche ist. */
+export function montagAusKw(schluessel: string | null): string | null {
+  const m = /^(\d{4})-W(\d{2})$/.exec(schluessel ?? '');
+  if (!m) return null;
+  const nr = Number(m[2]);
+  if (nr < 1 || nr > 53) return null;
+  // Die erste Woche ist die mit dem 4. Jänner (ISO 8601).
+  const erste = new Date(`${montagDer(`${m[1]}-01-04`)}T00:00:00`);
+  erste.setDate(erste.getDate() + (nr - 1) * 7);
+  const montag = lokalesDatum(erste);
+  // „2026-W53“ gibt es nicht: die Woche läge schon im nächsten Jahr.
+  return kwSchluessel(montag) === `${m[1]}-W${m[2]}` ? montag : null;
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon, ueberstundenRegelVon } from '@/lib/lohnregeln';
@@ -15,42 +15,46 @@ import {
 import {
   calcMonthStats,
   calcCompleteness,
-  calcWorkMin,
   fmtMin,
-  fmtDauer,
-  getAustrianHolidayName,
   localDateStr,
-  type CompletenessStatus,
+  offeneWerktage,
   uebertragsRegel,
   tageWort,
-  tageZahl,
-  vorzeichenTage,
-  tagesStatusName,
   dezemberHalbtage,
   tagesAnteil,
 } from '@/lib/time';
+import { einstufungText } from '@/lib/einstufung';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, Project, TimeEntry, UrlaubsanspruchAnpassung } from '@/types';
 import { fuehrtZeitkonto } from '@/lib/permissions';
-import Card from '@/components/Card';
 import Hinweiszeile from '@/components/Hinweiszeile';
-import { Marke, Warnung, Zustand } from '@/components/Badge';
-import Zeitmarker from '@/features/time/Zeitmarker';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import RowMenu from '@/components/RowMenu';
 import BottomSheet from '@/components/BottomSheet';
-import Icon from '@/components/Icon';
+import { Segmente } from '@/components/LotBausteine';
 import ExportDialog from './ExportDialog';
 import ProjectSummary from './ProjectSummary';
-import MonatsRaster from './MonatsRaster';
-import Gesamtsaldo from './Gesamtsaldo';
 import ArbeitszeitGrenzenKarte from './ArbeitszeitGrenzenKarte';
+import { grenzZusatz, useArbeitszeitGrenzen } from './useArbeitszeitGrenzen';
+import type { Grenzfall } from './arbeitszeitGrenzen';
+import PersonFenster from './PersonFenster';
+import UebersichtListe, { type UebersichtZeile } from './UebersichtListe';
+import { TippBereich } from './Streifen';
+import {
+  montagDerWoche,
+  plusTage,
+  summeDerTage,
+  tageDerWoche,
+  tageDesMonats,
+  tagesauswertung,
+  tagKurz,
+} from './tagesauswertung';
+import { wochenTitel } from '@/features/assignments/planungKopf';
 import TimeForm from '@/features/time/TimeForm';
 import { KrankmeldungKarte } from '@/features/vacations/Krankmeldungen';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { InputField, SelectField, CheckboxField } from '@/components/Field';
-import InfoHint from '@/components/InfoHint';
+import { SelectField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import {
@@ -64,7 +68,6 @@ import {
   downloadCsv,
   entriesInRange,
 } from './export';
-import AntragKnopf, { FreistellungKnopf } from '@/features/time/AntragKnopf';
 import { datumAT } from '@/lib/datum';
 
 const MONTHS = [
@@ -72,30 +75,36 @@ const MONTHS = [
   'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
 ];
 
-const STATUS_LABEL: Record<CompletenessStatus, string> = {
-  complete: 'vollständig',
-  today_only: 'heute offen',
-  missing: 'fehlt',
-};
+/** Wie viele Jahre die Auswahl zurückreicht — wie bisher: das laufende und vier davor. */
+const JAHRE_ZURUECK = 4;
 
+/** Was im Seitenfenster gerade steht, wenn es nicht die Person ist. */
+type Aufgabe =
+  | { art: 'erfassen'; uid: string | null; tag: string | null }
+  | { art: 'bearbeiten'; eintrag: WithId<TimeEntry> }
+  | { art: 'meldung'; id: string };
 
-/** Alle Kalendertage eines Monats als 'YYYY-MM-DD'. */
-function daysOfMonth(year: number, month: number): string[] {
-  const last = new Date(year, month + 1, 0).getDate();
-  return Array.from({ length: last }, (_, i) => localDateStr(new Date(year, month, i + 1)));
-}
-
-const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-
-/** '2026-08-03' -> 'Mo 03.08.' — der Wochentag macht den Monat lesbar. */
-function dayLabel(iso: string): string {
-  return `${WEEKDAYS[new Date(`${iso}T00:00:00`).getDay()]} ${iso.slice(8)}.${iso.slice(5, 7)}.`;
+/**
+ * Die erste Woche eines Monats: die mit dem ersten Donnerstag (ISO, wie die
+ * Kalenderwoche) — im laufenden Monat die laufende Woche (Auftrag 3.4).
+ */
+function startWoche(jahr: number, monat: number, heute: string): string {
+  if (heute.startsWith(`${jahr}-${String(monat + 1).padStart(2, '0')}`)) return montagDerWoche(heute);
+  const erster = localDateStr(new Date(jahr, monat, 1));
+  const montag = montagDerWoche(erster);
+  return plusTage(montag, 3) < erster ? plusTage(montag, 7) : montag;
 }
 
 /**
  * Mitarbeiterübersicht (Buchhaltung/GF/Admin): Monatsauswertung je Mitarbeiter
  * mit Vollständigkeitskontrolle. Da es keinen Freigabe-Workflow gibt, ist die
  * Ampel die eigentliche Kontrollinstanz der Geschäftsführung.
+ *
+ * SEIT RUNDE 4 (Auftrag 3): eine Zeile je Person mit dem Monat als Streifen
+ * und den Summen daneben, oben wer Tage ohne Buchung hat; die Stunden je Tag
+ * in der Ansicht „Woche“; alles aus der aufgeklappten Karte im Seitenfenster
+ * „Person im Monat“. Gerechnet wird nichts neu — Zahlen aus `calcMonthStats`
+ * und der Vollständigkeit, die Tage aus `tagesauswertung`.
  */
 export default function AccountingView() {
   const { user, company, einblick } = useAuth();
@@ -108,6 +117,8 @@ export default function AccountingView() {
   const imSupport = !!einblick;
   const toast = useToast();
   const [users, setUsers] = useState<AppUser[]>([]);
+  /** Die Belegschaft ist da — erst dann prüft die Seite die Arbeitszeitgrenzen (sonst zweimal: leer, dann voll). */
+  const [belegschaftDa, setBelegschaftDa] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [entries, setEntries] = useState<WithId<TimeEntry>[]>([]);
   /** Alle Stunden der vorkommenden Baustellen; `null` = nicht geladen. */
@@ -116,32 +127,57 @@ export default function AccountingView() {
   const [error, setError] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — die Auswertung steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
   /*
     AUS DER ADRESSE (Startseite, Nachtest 01.10.2026): `?filter=luecken`
-    hakt „Nur mit fehlenden Tagen“ an, `&monat=JJJJ-MM` wählt den Monat mit
+    filtert auf „mit Tagen ohne Buchung“, `&monat=JJJJ-MM` wählt den Monat mit
     dem ältesten fehlenden Tag — am Monatsersten liegen die Lücken im Vormonat.
+    Seit Runde 4 dasselbe mit `?nur=offen` (die Kennzahl „Tage ohne Buchung“
+    setzt es), und `?ansicht=woche` wählt die Woche.
   */
-  const [adresse] = useSearchParams();
-  const [nurLuecken, setNurLuecken] = useState(adresse.get('filter') === 'luecken');
+  const [adresse, setAdresse] = useSearchParams();
+  const [nurLuecken, setNurLuecken] = useState(adresse.get('filter') === 'luecken' || adresse.get('nur') === 'offen');
   /** Offener Zeitraum-Export für einen Mitarbeiter. */
   const [exportFor, setExportFor] = useState<AppUser | null>(null);
-  /** Erfassen fuer einen Mitarbeiter bzw. Korrigieren eines Eintrags. */
-  const [creating, setCreating] = useState(false);
-  const [editing, setEditing] = useState<WithId<TimeEntry> | null>(null);
+  /*
+    DAS SEITENFENSTER. Es zeigt die Person (über die Zeile oder einen Tag
+    geöffnet) oder eine Aufgabe: Zeit erfassen, einen Eintrag korrigieren,
+    eine Krankmeldung. Eine Aufgabe aus dem Fenster der Person heraus steht
+    IM SELBEN Fenster (Auftrag 3.5) und führt danach zur Person zurück.
+  */
+  const [person, setPerson] = useState<{ uid: string; tag: string | null } | null>(null);
+  const [aufgabe, setAufgabe] = useState<Aufgabe | null>(null);
   const [toDelete, setToDelete] = useState<WithId<TimeEntry> | null>(null);
-  /** Die Krankmeldung, die gerade offen ist — von einem Krank-Tag aus. */
-  const [meldung, setMeldung] = useState<string | null>(null);
+  /** Die Auswahl von Monat und Jahr, die ein Klick auf den Titel öffnet. */
+  const [wahlOffen, setWahlOffen] = useState(false);
 
   const now = new Date();
+  const heute = localDateStr(now);
   const monatAusAdresse = /^(\d{4})-(\d{2})$/.exec(adresse.get('monat') ?? '');
   const [year, setYear] = useState(monatAusAdresse ? Number(monatAusAdresse[1]) : now.getFullYear());
   const [month, setMonth] = useState(monatAusAdresse ? Number(monatAusAdresse[2]) - 1 : now.getMonth());
+  /** Der Montag der gezeigten Woche; leer = die Startwoche des Monats. */
+  const [wocheAb, setWocheAb] = useState<string | null>(null);
+  /* Im Supportzugang gibt es keine Woche — wie keinen Streifen (Auftrag 3.2). */
+  const ansicht: 'monat' | 'woche' = !imSupport && adresse.get('ansicht') === 'woche' ? 'woche' : 'monat';
+  const montag = wocheAb ?? startWoche(year, month, heute);
+  const wochenTage = useMemo(() => tageDerWoche(montag), [montag]);
+  /*
+    DIE BUCHUNGEN DES JAHRES — und in der Woche über den Jahreswechsel auch
+    die Tage davor oder danach. Jede Auswertung filtert ohnehin nach Monat
+    bzw. Jahr; die zusätzlichen Tage braucht nur die Woche.
+  */
+  const ladenVon = ansicht === 'woche' && montag < `${year}-01-01` ? montag : `${year}-01-01`;
+  const ladenBis = ansicht === 'woche' && wochenTage[6] > `${year}-12-31` ? wochenTage[6] : `${year}-12-31`;
 
   useEffect(() => {
     if (!user) return;
-    listUsers(user.companyId).then(setUsers).catch((e) => setError(e.message));
+    listUsers(user.companyId)
+      .then((u) => {
+        setUsers(u);
+        setBelegschaftDa(true);
+      })
+      .catch((e) => setError(e.message));
   }, [user]);
 
   /**
@@ -154,8 +190,13 @@ export default function AccountingView() {
    * jetzt am angezeigten Zeitraum, nicht am Alter des Betriebs.
    */
   const projektNummern = useMemo(
-    () => [...new Set(entries.map((e) => e.projectNumber).filter(Boolean) as string[])],
-    [entries],
+    () => [
+      ...new Set(
+        // Nur das Jahr — die Tage der Woche über den Jahreswechsel brauchen keine Baustellendaten.
+        entries.filter((e) => e.date.startsWith(String(year))).map((e) => e.projectNumber).filter(Boolean) as string[],
+      ),
+    ],
+    [entries, year],
   );
   const nummernSchluessel = projektNummern.join('|');
   useEffect(() => {
@@ -212,14 +253,14 @@ export default function AccountingView() {
 
   // Nur das angezeigte Jahr, nicht die gesamte Betriebsgeschichte. Das Jahr
   // (nicht der Monat) deshalb, weil der Resturlaub die Urlaubstage des ganzen
-  // Jahres zählt.
+  // Jahres zählt. In der Woche über den Jahreswechsel reicht es bis an deren Rand.
   useEffect(() => {
     if (!user) return;
     setLoading(true);
     return subscribeEntriesInRange(
       user.companyId,
-      `${year}-01-01`,
-      `${year}-12-31`,
+      ladenVon,
+      ladenBis,
       (rows) => {
         setEntries(rows);
         setLoading(false);
@@ -229,7 +270,7 @@ export default function AccountingView() {
         setLoading(false);
       },
     );
-  }, [user, year]);
+  }, [user, ladenVon, ladenBis]);
 
   /*
     DER URLAUBSVERLAUF — eine eigene, schmale Abfrage neben dem Jahr.
@@ -343,6 +384,101 @@ export default function AccountingView() {
     () => alleRows.filter((r) => r.completeness.missingCount > 0).length,
     [alleRows],
   );
+  const offeneTage = useMemo(() => alleRows.reduce((s, r) => s + r.completeness.missingCount, 0), [alleRows]);
+  /*
+    „GEBUCHT BISHER“ ÜBER ALLE: die Summe derselben Zahlen, die in den Zeilen
+    stehen (`stats.istMin`, `stats.sollMin`) — nichts neu gerechnet.
+  */
+  const summe = useMemo(
+    () => alleRows.reduce((s, r) => ({ ist: s.ist + r.stats.istMin, soll: s.soll + r.stats.sollMin }), { ist: 0, soll: 0 }),
+    [alleRows],
+  );
+
+  /*
+    DIE ARBEITSZEITGRENZEN — EINMAL geprüft für die ganze Seite: die Karte,
+    die Kennzahl, der Streifen (`.st-grenze`) und das Seitenfenster lesen
+    dieselben Fälle. Im Supportzugang gar nicht (Zeitbuchungen verschlossen).
+  */
+  const grenzDaten = useArbeitszeitGrenzen({
+    companyId: user?.companyId ?? '',
+    personen: relevant,
+    jahr: year,
+    monat: month,
+    aktualisiert: loading ? undefined : grenzStand,
+    aus: imSupport || !user || !belegschaftDa,
+  });
+  const grenzenJePerson = useMemo(() => {
+    const m = new Map<string, Grenzfall[]>();
+    for (const { person: p, fall } of grenzDaten.stand?.faelle ?? []) m.set(p.uid, [...(m.get(p.uid) ?? []), fall]);
+    return m;
+  }, [grenzDaten.stand]);
+
+  /** Die eigenen Buchungen je Person — einmal geordnet, nicht je Zeile über alle gefiltert. */
+  const eigene = useMemo(() => {
+    const m = new Map<string, WithId<TimeEntry>[]>();
+    for (const e of entries) {
+      const l = m.get(e.userId);
+      if (l) l.push(e);
+      else m.set(e.userId, [e]);
+    }
+    return m;
+  }, [entries]);
+
+  /** Die Tage des Monats je Person — für den Streifen und das Seitenfenster. */
+  const monatsTage = useMemo(() => tageDesMonats(year, month), [year, month]);
+  const monatsWerte = useMemo(() => {
+    const m = new Map<string, ReturnType<typeof tagesauswertung>>();
+    for (const r of alleRows) {
+      m.set(
+        r.user.uid,
+        tagesauswertung({
+          user: r.user,
+          eintraege: r.monthEntries,
+          tage: monatsTage,
+          fehlend: r.completeness.missingDates,
+          halbeTage,
+          heute,
+          grenzen: grenzenJePerson.get(r.user.uid),
+        }),
+      );
+    }
+    return m;
+  }, [alleRows, monatsTage, halbeTage, heute, grenzenJePerson]);
+
+  /*
+    DIE WOCHE: dieselbe Tagesauswertung über sieben Tage. Die fehlenden Tage
+    kommen aus `offeneWerktage` — derselben Funktion, aus der die
+    Vollständigkeit des Monats ihre Tage hat, nur über die Woche.
+  */
+  const wochenWerte = useMemo(() => {
+    const m = new Map<string, ReturnType<typeof tagesauswertung>>();
+    if (ansicht !== 'woche') return m;
+    const von = new Date(`${wochenTage[0]}T00:00:00`);
+    const bis = new Date(`${wochenTage[6]}T00:00:00`);
+    for (const u of relevant) {
+      const own = (eigene.get(u.uid) ?? []).filter((e) => e.date >= wochenTage[0] && e.date <= wochenTage[6]);
+      m.set(
+        u.uid,
+        tagesauswertung({
+          user: u,
+          eintraege: own,
+          tage: wochenTage,
+          fehlend: offeneWerktage(u, own, von, bis),
+          halbeTage,
+          heute,
+          grenzen: grenzenJePerson.get(u.uid),
+        }),
+      );
+    }
+    return m;
+  }, [ansicht, relevant, eigene, wochenTage, halbeTage, heute, grenzenJePerson]);
+
+  /**
+   * Suche und Filter. Bei zwanzig Monteuren ist die Liste sonst nur noch
+   * scrollbar: wer EINEN Mitarbeiter prüfen will, sucht ihn; wer den Monat
+   * abschliesst, will die mit Luecken sehen und nicht die anderen achtzehn.
+   * Die Suche wirkt über alle Personen, beide Gruppen.
+   */
   const rows = useMemo(() => {
     const q = suche.trim().toLowerCase();
     return alleRows.filter(
@@ -352,13 +488,122 @@ export default function AccountingView() {
     );
   }, [alleRows, suche, nurLuecken]);
 
-  const yearOptions = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
+  const zeilen = useMemo((): UebersichtZeile[] => {
+    const saldoText = (min: number) => `${min > 0 ? '+' : ''}${fmtMin(min)}`;
+    return rows.map(({ user: u, stats, completeness }) => {
+      const rolle = einstufungText(u, heute) || u.role;
+      if (imSupport) {
+        return { user: u, status: 'nicht einsehbar', achtung: false, werte: [], offen: 0, gebucht: '', soll: '', saldo: '' };
+      }
+      if (ansicht === 'woche') {
+        const werte = wochenWerte.get(u.uid) ?? [];
+        const offen = werte.filter((t) => t.zustand === 'fehlt').length;
+        const s = summeDerTage(werte);
+        return {
+          user: u,
+          status: offen > 0 ? `${tageWort(offen)} ${offen === 1 ? 'fehlt' : 'fehlen'}` : rolle,
+          achtung: offen > 0,
+          werte,
+          offen,
+          gebucht: fmtMin(s.istMin),
+          soll: stats.hasConfig ? fmtMin(s.sollMin) : '—',
+          saldo: stats.hasConfig ? saldoText(s.saldoMin) : '—',
+        };
+      }
+      const offen = completeness.missingCount;
+      return {
+        user: u,
+        status:
+          offen > 0
+            ? `${tageWort(offen)} ohne Buchung`
+            : !stats.hasConfig
+              ? `${rolle} · kein Eintritt hinterlegt`
+              : completeness.status === 'today_only'
+                /* „heute offen“ ist keine Lücke, sondern der laufende Tag. */
+                ? `${rolle} · heute offen`
+                : `${rolle} · vollständig`,
+        achtung: offen > 0,
+        werte: monatsWerte.get(u.uid) ?? [],
+        offen,
+        gebucht: fmtMin(stats.istMin),
+        soll: fmtMin(stats.sollMin),
+        /* Ohne Eintrittsdatum ist der Saldo keine Null, sondern gar keine Aussage. */
+        saldo: stats.hasConfig ? saldoText(stats.saldoMin) : '—',
+      };
+    });
+  }, [rows, imSupport, ansicht, wochenWerte, monatsWerte, heute]);
 
-  /** Aus dem Raster: die Zeile der Person aufklappen und dorthin springen. */
-  function oeffneZeile(uid: string) {
-    setExpanded(uid);
-    document.getElementById(`ma-${uid}`)?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+  /* DIE AUSWAHL VON MONAT UND JAHR wie bisher: Jänner bis Dezember, das laufende Jahr und vier davor. */
+  const yearOptions = Array.from({ length: JAHRE_ZURUECK + 1 }, (_, i) => now.getFullYear() - i);
+  const erstesJahr = now.getFullYear() - JAHRE_ZURUECK;
+
+  function waehleMonat(j: number, m: number) {
+    const d = new Date(j, m, 1);
+    setYear(d.getFullYear());
+    setMonth(d.getMonth());
+    setWocheAb(null);
   }
+
+  /*
+    ‹ › BLÄTTERN: im Monat monatsweise, in der Woche wochenweise — über
+    Jahresgrenzen, aber nicht aus der Auswahl hinaus (die Jahre der Auswahl
+    sind die, die es gibt). In der Woche folgt der Monat dem Donnerstag der
+    Woche, wie die Kalenderwoche: die Kennzahlen gehören dann zu ihr.
+  */
+  const zurueckMoeglich =
+    ansicht === 'woche' ? Number(plusTage(montag, -4).slice(0, 4)) >= erstesJahr : year > erstesJahr || month > 0;
+  const vorMoeglich =
+    ansicht === 'woche' ? Number(plusTage(montag, 10).slice(0, 4)) <= now.getFullYear() : year < now.getFullYear() || month < 11;
+  function blaettern(richtung: -1 | 1) {
+    if (ansicht === 'woche') {
+      const neu = plusTage(montag, 7 * richtung);
+      const donnerstag = new Date(`${plusTage(neu, 3)}T00:00:00`);
+      setWocheAb(neu);
+      setYear(donnerstag.getFullYear());
+      setMonth(donnerstag.getMonth());
+      return;
+    }
+    waehleMonat(year, month + richtung);
+  }
+
+  /** Die Kennzahl „Tage ohne Buchung“: ein Klick filtert, ein zweiter hebt den Filter auf. */
+  function filterUmschalten() {
+    const an = !nurLuecken;
+    setNurLuecken(an);
+    const neu = new URLSearchParams(adresse);
+    neu.delete('filter');
+    if (an) neu.set('nur', 'offen');
+    else neu.delete('nur');
+    setAdresse(neu, { replace: true });
+  }
+
+  function ansichtWaehlen(a: 'monat' | 'woche') {
+    const neu = new URLSearchParams(adresse);
+    if (a === 'woche') neu.set('ansicht', 'woche');
+    else neu.delete('ansicht');
+    setAdresse(neu);
+  }
+
+  /*
+    ZURÜCK ZUR PERSON. Nach dem Speichern oder Abbrechen einer Aufgabe steht
+    wieder die Person im Fenster (sofern es von ihr aus geöffnet wurde) — mit
+    den frischen Zahlen, denn die Buchungen kommen live.
+  */
+  const fensterInhalt = useRef<HTMLDivElement>(null);
+  function aufgabeFertig() {
+    setAufgabe(null);
+  }
+  function fensterZu() {
+    setAufgabe(null);
+    setPerson(null);
+  }
+  // Wechselt der Inhalt im offenen Fenster, geht der Fokus auf das Fenster selbst — der Knopf, der ihn hatte, ist weg.
+  const fensterSchluessel = aufgabe ? `${aufgabe.art}` : person ? `person-${person.uid}` : '';
+  useEffect(() => {
+    if (!fensterSchluessel) return;
+    const dialog = fensterInhalt.current?.closest<HTMLElement>('[role="dialog"]');
+    if (dialog && !dialog.contains(document.activeElement)) dialog.focus();
+  }, [fensterSchluessel]);
 
   function exportMonthCsv() {
     // Bewusst alleRows: der Monatsexport ist ein Abschluss und darf nicht
@@ -417,10 +662,52 @@ export default function AccountingView() {
     toast.success('Projektauswertung heruntergeladen');
   }
 
+
   if (!user) return null;
+
+  const personZeile = person ? alleRows.find((r) => r.user.uid === person.uid) ?? null : null;
+  const monatsName = `${MONTHS[month]} ${year}`;
+  const wt = ansicht === 'woche' ? wochenTitel(montag, heute) : null;
+  const monatAbstand = (year - now.getFullYear()) * 12 + month - now.getMonth();
+  const titel = wt ? wt.titel : monatsName;
+  const unterzeile = wt
+    ? wt.klein
+    : monatAbstand === 0
+      ? `Dieser Monat · Stand ${tagKurz(heute)}`
+      : monatAbstand === -1
+        ? 'Letzter Monat'
+        : monatAbstand === 1
+          ? 'Nächster Monat'
+          : '';
+  const grenzFaelle = grenzDaten.stand?.faelle.length ?? 0;
+
+  /* Was das Seitenfenster gerade zeigt — Titel und Name für die Vorlesehilfe. */
+  const fensterOffen = !!aufgabe || !!personZeile;
+  const fensterLabel =
+    aufgabe?.art === 'bearbeiten'
+      ? 'Eintrag korrigieren'
+      : aufgabe?.art === 'erfassen'
+        ? 'Zeit erfassen'
+        : aufgabe?.art === 'meldung'
+          ? 'Krankmeldung'
+          : personZeile
+            ? `${personZeile.user.name}, ${monatsName}`
+            : '';
+  const erfassenFuer = aufgabe?.art === 'erfassen' && aufgabe.uid ? relevant.find((u) => u.uid === aufgabe.uid) ?? null : null;
+  const fensterTitel =
+    aufgabe?.art === 'bearbeiten'
+      ? `Eintrag von ${aufgabe.eintrag.userName ?? 'Mitarbeiter'} korrigieren`
+      : aufgabe?.art === 'erfassen'
+        ? erfassenFuer
+          ? `Zeit für ${erfassenFuer.name} erfassen`
+          : 'Zeit für einen Mitarbeiter erfassen'
+        : aufgabe?.art === 'meldung'
+          ? undefined
+          : personZeile?.user.name;
 
   return (
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <TippBereich>
     <div className="space-y-3 lg:space-y-5">
       {/*
         DER SEITENKOPF DER LINIE „LOT“ (Regel 2): „Zeit erfassen“ ist die
@@ -433,14 +720,16 @@ export default function AccountingView() {
         ort="Team"
         title="Mitarbeiterübersicht"
         subtitle="Monatsauswertung, Vollständigkeit und Salden"
+        hilfe={
+          <>
+            Eine Zeile je Person: der Monat als Streifen, ein Feld je Tag, daneben gebucht, Soll bisher und
+            Saldo. Oben stehen, wer Tage ohne Buchung hat. Ein Klick auf die Zeile oder ein Feld öffnet die
+            Person im Seitenfenster mit allen Zahlen, dem Tagesnachweis und „Zeit erfassen“. Die Stunden je
+            Tag stehen in der Ansicht „Woche“. Ein Klick auf den Monat oben wählt Monat und Jahr.
+          </>
+        }
         action={
-          <Button
-            variant="primary"
-            onClick={() => {
-              setEditing(null);
-              setCreating(true);
-            }}
-          >
+          <Button variant="primary" onClick={() => setAufgabe({ art: 'erfassen', uid: null, tag: null })}>
             Zeit erfassen
           </Button>
         }
@@ -453,127 +742,149 @@ export default function AccountingView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      {/* Der Zeitraum ist ein Filter über der Liste, keine eigene Karte. */}
-      <div className="grid max-w-md grid-cols-2 gap-4">
-        <SelectField id="acc-month" label="Monat" value={String(month)}
-          onChange={(e) => setMonth(Number(e.target.value))}>
-          {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
-        </SelectField>
-        <SelectField id="acc-year" label="Jahr" value={String(year)}
-          onChange={(e) => setYear(Number(e.target.value))}>
-          {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
-        </SelectField>
-      </div>
-
       {/*
-        ZEITEN FÜR ANDERE ERFASSEN UND KORRIGIEREN — z. B. wenn ein Monteur
-        krank ist oder sich vertippt hat. Die Rules erlauben das für
-        Buchhaltung/GF/Administrator.
-
-        IM SEITENFENSTER (Linie „Lot“, Regel 8), nicht mehr als Karte oben auf
-        der Seite. Wer im Tagesnachweis eines Mitarbeiters auf „Bearbeiten“
-        tippte, wurde bisher an den Seitenanfang gerollt und fand danach
-        seine Zeile nicht wieder; jetzt bleibt die Liste stehen.
+        DREI KENNZAHLEN aus vorhandenen Werten (Auftrag 3.2): wer Tage ohne
+        Buchung hat (antippen filtert — das war das Kästchen „Nur mit
+        fehlenden Tagen“), die Fälle der Arbeitszeitgrenzen (antippen springt
+        zur Karte) und die Summe von Ist und Soll aller Personen. Im
+        Supportzugang nicht: alle drei kämen aus verschlossenen Buchungen.
       */}
-      <BottomSheet
-        open={creating || !!editing}
-        onClose={() => {
-          setCreating(false);
-          setEditing(null);
-        }}
-        label={editing ? 'Eintrag korrigieren' : 'Zeit erfassen'}
-        auchBreit
-        titel={
-          editing
-            ? `Eintrag von ${editing.userName ?? 'Mitarbeiter'} korrigieren`
-            : 'Zeit für einen Mitarbeiter erfassen'
-        }
-      >
-        {/* Ohne existingDates: der Zielmitarbeiter steht erst nach der
-            Auswahl fest — die Doppelbuchung fängt createTimeEntry ab. */}
-        <TimeForm
-          key={editing?.id ?? 'new-foreign'}
-          entry={editing ?? undefined}
-          staff={editing ? undefined : relevant}
-          ownerRole={
-            editing ? users.find((u) => u.uid === editing.userId)?.role : undefined
-          }
-          // Für die Rückfrage zum Jugendschutz (Runde 3, M2); beim Erfassen kommt die Person aus `staff`.
-          besitzerProfil={editing ? users.find((u) => u.uid === editing.userId) ?? null : null}
-          onSaved={() => {
-            setCreating(false);
-            setEditing(null);
-          }}
-          onCancel={() => {
-            setCreating(false);
-            setEditing(null);
-          }}
-        />
-      </BottomSheet>
-
-      {/* Die Krankmeldung eines Tages ebenfalls im Seitenfenster; ihre Karte
-          bringt Titel und „Schließen“ selbst mit. */}
-      <BottomSheet open={!!meldung && !!user} onClose={() => setMeldung(null)} label="Krankmeldung" auchBreit>
-        {meldung && user && (
-          <KrankmeldungKarte
-            key={meldung}
-            companyId={user.companyId}
-            id={meldung}
-            meinName={user.name}
-            mitNamen
-            buero
-            onGeaendert={() => setMeldung(null)}
-            onSchliessen={() => setMeldung(null)}
-          />
-        )}
-      </BottomSheet>
-
-      {/*
-        EINE FLÄCHE, LINIEN STATT KARTEN (Regel 1): jede Person ist eine Zeile
-        dieser Gruppe, nicht mehr eine eigene Karte in der Karte. Jeder Block
-        vor der Liste trägt seine Trennlinie unten; die erste Zeile hat keine.
-      */}
-      <Card title={`${MONTHS[month]} ${year}`} buendig>
-        {imSupport && (
-          <div className="border-b border-line p-4">
-            <Hinweiszeile>
-              <p>
-                Im Supportzugang sind Zeitbuchungen, Urlaube und Krankenstände nicht einsehbar.
-                Soll, Ist, Salden und fehlende Tage stehen deshalb nicht da.
-              </p>
-            </Hinweiszeile>
+      {!imSupport && !loading && !error && alleRows.length > 0 && (
+        <div className="ue-kennzahlen">
+          <button
+            type="button"
+            className={nurLuecken ? 'ue-kennzahl-an' : 'ue-kennzahl'}
+            aria-pressed={nurLuecken}
+            onClick={filterUmschalten}
+          >
+            <span className="ue-kennzahl-name">Tage ohne Buchung</span>
+            <span className="ue-kennzahl-wert">{offeneTage}</span>
+            <span className="ue-kennzahl-zusatz">
+              {luecken === 0
+                ? 'alle vollständig'
+                : `bei ${luecken} von ${alleRows.length} ${alleRows.length === 1 ? 'Person' : 'Personen'}`}
+              {nurLuecken ? ' · nur diese gezeigt' : ''}
+            </span>
+          </button>
+          <button
+            type="button"
+            className="ue-kennzahl"
+            onClick={() => document.getElementById('arbeitszeitgrenzen')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })}
+          >
+            <span className="ue-kennzahl-name">Arbeitszeitgrenzen</span>
+            <span className="ue-kennzahl-wert">
+              {grenzDaten.fehler ? '–' : !grenzDaten.stand ? '…' : grenzFaelle === 0 ? 'keine' : grenzFaelle === 1 ? '1 Fall' : `${grenzFaelle} Fälle`}
+            </span>
+            <span className="ue-kennzahl-zusatz">
+              {grenzDaten.fehler
+                ? 'Prüfung fehlgeschlagen'
+                : !grenzDaten.stand
+                  ? 'wird geprüft'
+                  : grenzZusatz(grenzDaten.zaehlung) || 'im Monat geprüft'}
+            </span>
+          </button>
+          <div className="ue-kennzahl-fest">
+            <span className="ue-kennzahl-name">Gebucht bisher</span>
+            <span className="ue-kennzahl-wert">{fmtMin(summe.ist)}</span>
+            <span className="ue-kennzahl-zusatz">von {fmtMin(summe.soll)} Soll · alle Personen</span>
           </div>
-        )}
-        {!imSupport && alleRows.length >= 8 && (
-          <div className="space-y-2 border-b border-line p-4">
-            <InputField
+        </div>
+      )}
+
+      {/* DIE STEUERUNG: links der Zeitraum (Klick auf den Titel wählt Monat und Jahr), rechts Suche und Ansicht. */}
+      <div className="ue-steuerung">
+        <div className="ue-steuerung-links">
+          <button
+            type="button"
+            className="ue-pfeil"
+            onClick={() => blaettern(-1)}
+            disabled={!zurueckMoeglich}
+            aria-label={ansicht === 'woche' ? 'Vorige Woche' : 'Voriger Monat'}
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            className="ue-titel"
+            aria-expanded={wahlOffen}
+            aria-controls="ue-zeitwahl"
+            onClick={() => setWahlOffen((o) => !o)}
+          >
+            <span className="ue-titel-gross">{titel}</span>
+            <span className="ue-titel-klein">{unterzeile || 'Monat und Jahr wählen'}</span>
+          </button>
+          <button
+            type="button"
+            className="ue-pfeil"
+            onClick={() => blaettern(1)}
+            disabled={!vorMoeglich}
+            aria-label={ansicht === 'woche' ? 'Nächste Woche' : 'Nächster Monat'}
+          >
+            ›
+          </button>
+        </div>
+        <div className="ue-steuerung-rechts">
+          {!imSupport && (
+            <input
               id="accsuche"
-              label="Mitarbeiter suchen"
+              className="ue-suche"
               type="search"
-              placeholder="Name"
+              placeholder="Person suchen"
+              aria-label="Person suchen"
               value={suche}
               onChange={(e) => setSuche(e.target.value)}
             />
-            {/* Beim Monatsabschluss zaehlt genau eine Frage: bei wem fehlt
-                noch etwas? Ohne diesen Filter scrollt man durch zwanzig
-                vollstaendige Zeilen, um die zwei offenen zu finden. */}
-            <CheckboxField
-              id="accluecken"
-              label={`Nur mit fehlenden Tagen (${luecken} von ${alleRows.length})`}
-              checked={nurLuecken}
-              onChange={(e) => setNurLuecken(e.target.checked)}
+          )}
+          {!imSupport && (
+            <Segmente
+              name="Ansicht"
+              werte={[
+                { wert: 'monat', text: 'Monat' },
+                { wert: 'woche', text: 'Woche' },
+              ]}
+              wert={ansicht}
+              onChange={ansichtWaehlen}
             />
-          </div>
-        )}
-        {loading ? (
+          )}
+        </div>
+      </div>
+      {wahlOffen && (
+        /* Die bisherige Auswahl — unverändert, nur einen Klick weiter (Auftrag 3.2, Zuordnung). */
+        <div id="ue-zeitwahl" className="ue-zeitwahl">
+          <SelectField id="acc-month" label="Monat" value={String(month)}
+            onChange={(e) => waehleMonat(year, Number(e.target.value))}>
+            {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
+          </SelectField>
+          <SelectField id="acc-year" label="Jahr" value={String(year)}
+            onChange={(e) => waehleMonat(Number(e.target.value), month)}>
+            {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+          </SelectField>
+        </div>
+      )}
+
+      {imSupport && (
+        <Hinweiszeile>
+          <p>
+            Im Supportzugang sind Zeitbuchungen, Urlaube und Krankenstände nicht einsehbar.
+            Soll, Ist, Salden und fehlende Tage stehen deshalb nicht da.
+          </p>
+        </Hinweiszeile>
+      )}
+
+      {loading ? (
+        <div className="ue-liste">
           <div className="p-4">
             <SkeletonList rows={4} />
           </div>
-        ) : error ? (
+        </div>
+      ) : error ? (
+        <div className="ue-liste">
           <div className="p-4">
             <ErrorState message={error} />
           </div>
-        ) : rows.length === 0 ? (
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="ue-liste">
           <EmptyState>
             {/*
               WARUM DIESE UNTERSCHEIDUNG. „Keine aktiven Mitarbeiter mit
@@ -597,635 +908,95 @@ export default function AccountingView() {
                 ? `Kein Mitarbeiter passt zu „${suche}“.`
                 : 'Alle Zeitkonten sind vollständig.'}
           </EmptyState>
-        ) : (
-          <>
-          {/* Der Monat auf einen Blick, ab dem Tablet (Protokoll E9). Im
-              Supportzugang nicht: ohne Buchungen stünde jeder Tag als fehlend da. */}
-          {!imSupport && (
-            <MonatsRaster
-              zeilen={rows.map((r) => ({ user: r.user, monthEntries: r.monthEntries, fehlend: r.completeness.missingDates }))}
+        </div>
+      ) : (
+        <UebersichtListe
+          ansicht={ansicht}
+          tage={ansicht === 'woche' ? wochenTage : monatsTage}
+          heute={heute}
+          zeilen={zeilen}
+          imSupport={imSupport}
+          onOeffnen={(uid, tag) => {
+            setAufgabe(null);
+            setPerson({ uid, tag });
+          }}
+        />
+      )}
+
+      {/*
+        DAS SEITENFENSTER: die Person im Monat (Auftrag 3.5) — oder, im selben
+        Fenster, Zeit erfassen, einen Eintrag korrigieren, eine Krankmeldung.
+        ZEITEN FÜR ANDERE ERFASSEN UND KORRIGIEREN — z. B. wenn ein Monteur
+        krank ist oder sich vertippt hat. Die Rules erlauben das für
+        Buchhaltung/GF/Administrator.
+      */}
+      <BottomSheet open={fensterOffen} onClose={fensterZu} label={fensterLabel} auchBreit breit titel={fensterTitel}>
+        <div ref={fensterInhalt}>
+          {aufgabe?.art === 'erfassen' || aufgabe?.art === 'bearbeiten' ? (
+            /* Beim Erfassen ohne existingDates: der Zielmitarbeiter steht erst nach der
+               Auswahl fest — die Doppelbuchung fängt createTimeEntry ab. */
+            <TimeForm
+              key={aufgabe.art === 'bearbeiten' ? aufgabe.eintrag.id : `neu-${aufgabe.uid ?? ''}-${aufgabe.tag ?? ''}`}
+              entry={aufgabe.art === 'bearbeiten' ? aufgabe.eintrag : undefined}
+              staff={aufgabe.art === 'bearbeiten' ? undefined : relevant}
+              /* „Zeit erfassen“ an einem Tag der Person: Person und Tag vorbelegt (R4-0, Frage 3). */
+              vorbelegung={
+                aufgabe.art === 'erfassen' && aufgabe.uid
+                  ? { userId: aufgabe.uid, ...(aufgabe.tag ? { date: aufgabe.tag } : {}) }
+                  : undefined
+              }
+              ownerRole={
+                aufgabe.art === 'bearbeiten' ? users.find((u) => u.uid === aufgabe.eintrag.userId)?.role : undefined
+              }
+              // Für die Rückfrage zum Jugendschutz (Runde 3, M2); beim Erfassen kommt die Person aus `staff`.
+              besitzerProfil={
+                aufgabe.art === 'bearbeiten' ? users.find((u) => u.uid === aufgabe.eintrag.userId) ?? null : null
+              }
+              onSaved={aufgabeFertig}
+              onCancel={aufgabeFertig}
+            />
+          ) : aufgabe?.art === 'meldung' ? (
+            /* Die Krankmeldung eines Tages; ihre Karte bringt Titel und „Schließen“ selbst mit. */
+            <KrankmeldungKarte
+              key={aufgabe.id}
+              companyId={user.companyId}
+              id={aufgabe.id}
+              meinName={user.name}
+              mitNamen
+              buero
+              onGeaendert={aufgabeFertig}
+              onSchliessen={aufgabeFertig}
+            />
+          ) : personZeile && imSupport ? (
+            <p className="text-sm text-ink-muted">
+              Zeitbuchungen, Urlaube und Krankenstände sind im Supportzugang nicht einsehbar.
+            </p>
+          ) : personZeile ? (
+            <PersonFenster
+              user={personZeile.user}
+              stats={personZeile.stats}
+              completeness={personZeile.completeness}
+              monthEntries={personZeile.monthEntries}
+              monatsWerte={monatsWerte.get(personZeile.user.uid) ?? []}
               jahr={year}
               monat={month}
-              monatsName={`${MONTHS[month]} ${year}`}
+              monatsName={monatsName}
               halbeTage={halbeTage}
-              onOeffnen={oeffneZeile}
+              nacht={nachtzeitVon(company)}
+              markiert={person?.tag && person.tag.startsWith(monthPrefix) ? person.tag : null}
+              grenzDaten={grenzDaten}
+              companyId={user.companyId}
+              onErfassen={(tag) => setAufgabe({ art: 'erfassen', uid: personZeile.user.uid, tag })}
+              onBearbeiten={(e) => setAufgabe({ art: 'bearbeiten', eintrag: e })}
+              onLoeschen={(e) => setToDelete(e)}
+              onMeldung={(id) => setAufgabe({ art: 'meldung', id })}
+              onKorrigieren={(e) => setAufgabe({ art: 'bearbeiten', eintrag: e })}
+              onCsv={() => exportUserCsv(personZeile.user)}
+              onBericht={() => setExportFor(personZeile.user)}
             />
-          )}
-          <ul>
-            {rows.map(({ user: u, monthEntries, stats, completeness }) => {
-              const open = expanded === u.uid;
-              /*
-                Traegt dieser Mitarbeiter ueberhaupt einen Saldo?
-
-                Hier steht nur, wer ein Zeitkonto fuehrt. Ohne hinterlegtes
-                Eintrittsdatum laesst sich trotzdem keines rechnen — das ist
-                unten mit einem eigenen Kasten erklaert. Die Bedingung steht
-                hier einmal, damit die grosse Zahl am Telefon und der Kasten
-                nicht auseinanderlaufen koennen.
-              */
-              const zeigtSaldo = stats.hasConfig;
-              return (
-                <li key={u.uid} id={`ma-${u.uid}`} className="border-t border-line first:border-t-0">
-                  {/* Der Kopf trägt nur noch, was den Mitarbeiter einordnet:
-                      Name, Ampel, Saldo. Krankheit, Urlaub und Resturlaub
-                      standen hier als vierte, fünfte, sechste Pille und
-                      ergaben eine Zeile, die man las statt überflog — sie
-                      stehen jetzt beschriftet im aufgeklappten Bereich.
-
-                      Der blaue Block beim Aufklappen ist ebenfalls weg. Er
-                      schrie lauter als der Inhalt, den er ankündigte; jetzt
-                      genügt der hellere Grund des Kopfs. */}
-                  <button
-                    type="button"
-                    onClick={() => setExpanded(open ? null : u.uid)}
-                    aria-expanded={open}
-                    className={`flex min-h-touch w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${
-                      open ? 'bg-surface-2' : 'bg-surface hover:bg-surface-2'
-                    }`}
-                  >
-                    <span className="flex min-w-0 flex-wrap items-center gap-2">
-                      <span className="font-semibold text-ink">{u.name}</span>
-                      {/* „vollständig" braucht keine Pille — nur die Ausnahme
-                          verdient Aufmerksamkeit. */}
-                      {imSupport ? (
-                        <Marke>nicht einsehbar</Marke>
-                      ) : completeness.status === 'missing' ? (
-                        <Warnung>
-                          {`${tageWort(completeness.missingCount)} ${
-                            completeness.missingCount === 1 ? 'fehlt' : 'fehlen'}`}
-                        </Warnung>
-                      ) : completeness.status !== 'complete' ? (
-                        /* „heute offen" ist keine Lücke, sondern der laufende
-                           Tag — er füllt sich von selbst bis zum Feierabend. */
-                        <Marke>{STATUS_LABEL[completeness.status]}</Marke>
-                      ) : null}
-                      {/*
-                        DIE MARKEN OHNE SALDO STEHEN BEIM NAMEN, nicht rechts.
-                        Rechts sind sie nicht schrumpfbar, und auf 375 px brach
-                        der Name daneben mitten im Wort: „Projektleite|r"
-                        (Prüflauf 24.09.2026, D20). Hier rutschen sie in die
-                        nächste Zeile.
-                      */}
-                      {!imSupport && !stats.hasConfig && <Marke>kein Eintritt hinterlegt</Marke>}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-3">
-                      {!imSupport && (
-                      <span className="hidden text-right sm:block">
-                        <span className="block text-sm font-semibold text-ink">
-                          {fmtMin(stats.istMin)}
-                        </span>
-                        {/*
-                          „von 176:00" im LAUFENDEN Monat las sich wie ein
-                          Monatsergebnis. Das Soll waechst aber mit jedem
-                          vergangenen Tag — deshalb sagt die Zeile jetzt, dass
-                          es ein Zwischenstand ist.
-                        */}
-                        <span className="block text-xs text-ink-muted">
-                          von {fmtMin(stats.sollMin)}
-                          {stats.istLaufend && ' bisher'}
-                        </span>
-                      </span>
-                      )}
-                      {/* Fehlen Buchungen, ist der Saldo eine Datenluecke und
-                          kein Befund ueber den Mitarbeiter. Rot behauptete das
-                          Gegenteil — und bei zwanzig Zeilen ergab das eine Wand
-                          aus Rot, in der die eine echte Unterstunde unterging. */}
-                      {/*
-                        Ohne Eintrittsdatum ist der Saldo keine Null, sondern
-                        gar keine Aussage. Vorher stand dort ein sauberes
-                        00:00 — das sah aus wie ein gepflegter Datensatz und
-                        verbarg, dass die Stammdaten unvollstaendig sind.
-                      */}
-                      {imSupport || !stats.hasConfig ? null : (
-                        /*
-                          DER SALDO IST EINE ZAHL, KEINE AUFFORDERUNG. Er stand
-                          als gefüllte Pille neben der Lückenmeldung, und zwei
-                          Pillen in einer Zeile riefen beide gleich laut —
-                          dabei ist nur die eine etwas zu tun.
-                        */
-                        <Zustand
-                          stand={
-                            completeness.missingCount > 0
-                              ? 'ruht'
-                              : stats.saldoMin >= 0
-                                ? 'gut'
-                                : 'achtung'
-                          }
-                        >
-                          <span>
-                            {stats.saldoMin > 0 ? '+' : ''}
-                            {fmtMin(stats.saldoMin)}
-                          </span>
-                        </Zustand>
-                      )}
-                      <Icon
-                        name="chevron"
-                        size={18}
-                        className={`shrink-0 text-ink-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-                      />
-                    </span>
-                  </button>
-
-                  {open && imSupport && (
-                    <p className="border-t border-line px-4 py-4 text-sm text-ink-muted">
-                      Zeitbuchungen, Urlaube und Krankenstände sind im Supportzugang nicht einsehbar.
-                    </p>
-                  )}
-                  {open && !imSupport && (
-                    <div className="border-t border-line px-4 py-4">
-                      {/* Zuerst die Zahlen des Monats, dann erst die Tage.
-                          Wer eine Zeitkarte öffnet, will meist nur wissen,
-                          wie der Monat steht — nicht jeden einzelnen Tag. */}
-                      {/*
-                        EINE ZAHL BEANTWORTET DIE FRAGE, DER REST ORDNET SICH UNTER.
-
-                        Hier standen sechs gleich grosse Kennzahlen nebeneinander.
-                        Sechs gleich grosse Zahlen beantworten aber keine Frage,
-                        sie stellen sechs — und auf dem Telefon stapelten sie
-                        sich zu zwei Reihen, bevor der Inhalt ueberhaupt begann.
-
-                        Wer eine Zeitkarte oeffnet, will den SALDO. Ist und Soll
-                        sind dessen Herleitung und gehoeren klein darunter;
-                        Krank, Urlaub und Resturlaub sind Nebenzahlen und stehen
-                        als Zeile. Am Schreibtisch ruecken die beiden Bloecke
-                        nebeneinander, damit die Breite nicht leer bleibt.
-
-                        DAS WORT „SALDO" BLEIBT STEHEN. Eine grosse Zahl ohne
-                        Namen ist auf dem Schirm mehrdeutig und fuer einen
-                        Vorleser gar nichts — er laese „minus fuenfundneunzig
-                        dreissig" und sonst nichts.
-                      */}
-                      <div className="sm:flex sm:items-end sm:justify-between sm:gap-6">
-                        <div className="min-w-0">
-                          <p className="section-label">{zeigtSaldo ? 'Saldo im Monat' : 'Gebucht im Monat'}</p>
-                          {zeigtSaldo ? (
-                            <>
-                              {/*
-                                RUHIGER, NICHT KLEINER IN DER AUSSAGE. Hier stand
-                                die Zahl in 32 px, fett und rot — und direkt
-                                darunter die roten „Arbeitstage ohne Buchung".
-                                Aus dem Betrieb (24.09.2026): „überladen, der
-                                Saldo zu fett und gross, Rot auf Rot". Die Farbe
-                                trägt jetzt allein der Punkt in der Kopfzeile,
-                                wie überall in der App (Zustand = Punkt + Wort);
-                                die Zahl steht in Tinte, halbfett, eine Stufe
-                                kleiner.
-                              */}
-                              <p className="mt-1 text-2xl font-semibold leading-none text-ink">
-                                {stats.saldoMin > 0 ? '+' : ''}
-                                {fmtMin(stats.saldoMin)}
-                              </p>
-                              <p className="mt-1.5 text-sm text-ink-muted">
-                                {fmtMin(stats.istMin)} von {fmtMin(stats.sollMin)} Soll
-                                {stats.istLaufend && ' bisher'}
-                              </p>
-                              <Gesamtsaldo profil={u} halbeTage={halbeTage} />
-                            </>
-                          ) : (
-                            /*
-                              OHNE SOLL IST DER SALDO KEINE ZAHL, SONDERN KEINE
-                              AUSSAGE. Ihn trotzdem gross zu setzen, hiesse eine
-                              Luecke in den Stammdaten als Befund ueber den
-                              Mitarbeiter auszugeben. Gross steht dann, was
-                              wirklich gemessen ist: die gebuchte Zeit.
-                            */
-                            <p className="mt-1 text-2xl font-semibold leading-none text-ink">
-                              {fmtMin(stats.istMin)}
-                            </p>
-                          )}
-                        </div>
-                        <p className="mt-3 text-sm text-ink-muted sm:mt-0 sm:shrink-0 sm:text-right">
-                          <b className="font-semibold text-ink">{stats.krankDays}</b> Tage krank ·{' '}
-                          <b className="font-semibold text-ink">{tageZahl(stats.urlaubDays)}</b> Tage Urlaub ·{' '}
-                          {stats.zaMin > 0 && (
-                            <>
-                              <b className="font-semibold text-ink">{fmtDauer(stats.zaMin)}</b> ZA ·{' '}
-                            </>
-                          )}
-                          {stats.berufsschuleDays > 0 && (
-                            <>
-                              <b className="font-semibold text-ink">{stats.berufsschuleDays}</b> Tage Berufsschule ·{' '}
-                            </>
-                          )}
-                          {stats.sonderurlaubDays > 0 && (
-                            <>
-                              <b className="font-semibold text-ink">{stats.sonderurlaubDays}</b> Tage Sonderurlaub ·{' '}
-                            </>
-                          )}
-                          {stats.pflegeDays > 0 && (
-                            <>
-                              <b className="font-semibold text-ink">{stats.pflegeDays}</b> Tage Pflegefreistellung ·{' '}
-                            </>
-                          )}
-                          {stats.freigestelltMin > 0 && (
-                            <>
-                              <b className="font-semibold text-ink">{fmtDauer(stats.freigestelltMin)}</b> freigestellt ·{' '}
-                            </>
-                          )}
-                          {stats.unbezahltDays > 0 && (
-                            <>
-                              <b className="font-semibold text-ink">{stats.unbezahltDays}</b> Tage unbezahlt ·{' '}
-                            </>
-                          )}
-                          <b
-                            className={`font-semibold ${
-                              stats.urlaubRest < 5 ? 'text-warning' : 'text-ink'
-                            }`}
-                          >
-                            {tageZahl(stats.urlaubRest)}
-                          </b>{' '}
-                          Tage Resturlaub
-                          {stats.urlaubAngepasst !== 0 && (
-                            <> (Anspruch angepasst: {vorzeichenTage(stats.urlaubAngepasst)})</>
-                          )}
-                        </p>
-                      </div>
-                      {/*
-                        DIE ZAHLEN BLEIBEN, DER ERKLAERSATZ WANDERT INS „i".
-                        „Der Monat laeuft noch: gezaehlt sind die Solltage bis
-                        gestern …" stand bei JEDEM Mitarbeiter, jeden Monat,
-                        den ganzen Monat lang — dreissig Mal dieselben zwei
-                        Zeilen in einer Liste, durch die man scrollt. Wer es
-                        einmal gelesen hat, blaettert es danach nur noch weg.
-                        Uebrig bleibt das Wort „laufend"; warum das zaehlt,
-                        sagt das „i" auf Wunsch.
-                      */}
-                      <p className="mt-3 text-xs text-ink-muted">
-                        Tagessoll {fmtDauer(Math.round(stats.dailyTargetH * 60))} ·
-                        Wochenstunden {fmtDauer(Math.round(stats.weeklyTarget * 60))} ·{' '}
-                        {stats.requiredDays === 1 ? '1 Solltag' : `${tageZahl(stats.requiredDays)} Solltage`}
-                        {stats.holidaysInMonth > 0 &&
-                          ` · ${stats.holidaysInMonth === 1 ? '1 Feiertag' : `${stats.holidaysInMonth} Feiertage`}`}
-                        {stats.hasConfig && stats.istLaufend && (
-                          <>
-                            {' · laufend'}
-                            <InfoHint about="den laufenden Monat">
-                              Gezählt sind die Solltage bis gestern. Die Zahl wächst mit jedem
-                              Arbeitstag und ist erst nach Monatsende endgültig — ein Rückstand
-                              mitten im Monat ist deshalb noch keine Aussage.
-                            </InfoHint>
-                          </>
-                        )}
-                      </p>
-                      {!stats.hasConfig ? (
-                        <div className="mt-2">
-                          <Hinweiszeile stufe="warn">
-                            <p>
-                              Für diesen Mitarbeiter ist kein Eintrittsdatum hinterlegt. Ohne das
-                              lässt sich kein Soll berechnen — die Zahlen oben sind deshalb kein
-                              Rückstand, sondern keine Aussage. Nachtragen in der
-                              Benutzerverwaltung.
-                            </p>
-                          </Hinweiszeile>
-                        </div>
-                      ) : null}
-
-                      {completeness.missingCount > 0 && (
-                        /*
-                          DAS ZEICHEN ZUM AUFKLAPPEN IST UNSERES, NICHT DAS DES
-                          BROWSERS.
-
-                          Hier stand ein blankes `<summary>`. Ein solches ist
-                          `display: list-item` und bekommt damit das native
-                          Dreieck davor — mitten im roten Text, in einer App,
-                          die sonst ueberall denselben Winkel rechts benutzt
-                          (Mitarbeiterkarte, Baustellenzeile). Aus dem Betrieb:
-                          „macht der Pfeil vor dem roten text hier?"
-
-                          `flex` nimmt dem `<summary>` das Dreieck (es ist dann
-                          kein list-item mehr), `list-none` sagt es zusaetzlich
-                          fuer Browser, die das anders halten. Der Winkel steht
-                          rechts und dreht sich beim Oeffnen — dieselbe
-                          Bewegung wie eine Zeile hoeher.
-                        */
-                        /*
-                          Kein Rot mehr: die fehlenden Tage sind eine Lücke in
-                          den Daten, keine Schuld — die Kopfzeile sagt es schon
-                          mit der Warnpille. Hier genügt die Warnfarbe am
-                          Titel; die Daten selbst stehen in normaler Schrift.
-                        */
-                        <details className="group mt-4 rounded border border-line bg-surface-2 text-sm">
-                          <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-normal text-warning [&::-webkit-details-marker]:hidden">
-                            <span>
-                              {completeness.missingCount === 1
-                                ? '1 Arbeitstag ohne Buchung'
-                                : `${completeness.missingCount} Arbeitstage ohne Buchung`}
-                            </span>
-                            <Icon
-                              name="chevron"
-                              size={18}
-                              className="shrink-0 transition-transform duration-200 group-open:rotate-180"
-                            />
-                          </summary>
-                          <p className="px-3 pb-2 leading-relaxed text-ink">
-                            {completeness.missingDates.map((d) => dayLabel(d)).join(' · ')}
-                          </p>
-                        </details>
-                      )}
-                      {(() => {
-                        // Einmal rechnen, zweimal darstellen: die Tabelle für
-                        // den Schreibtisch, die Liste fürs Telefon. Eine
-                        // sechsspaltige Tabelle war am Handy nicht zu retten —
-                        // entweder man wischte seitwärts oder die Knöpfe
-                        // wurden abgeschnitten.
-                        /*
-                          EINE ZEILE JE EINTRAG, nicht je Tag.
-
-                          AUS DEM BETRIEB GEMELDET: „die zweite Zeitbuchung an
-                          einem Tag erscheint zwar in der Projektauswertung,
-                          aber wird in der Mitarbeiterübersicht nicht
-                          angezeigt."
-
-                          Hier stand `monthEntries.find(...)` — die ERSTE
-                          Buchung des Tages, und der Rest fiel unter den Tisch.
-                          Das war richtig, solange je Tag nur eine Buchung
-                          möglich war; seit ein Monteur mehrere Baustellen an
-                          einem Tag buchen kann, ist es falsch.
-
-                          Besonders unangenehm: der Fuß zählte trotzdem ALLE
-                          Einträge und die volle Summe. „4 Einträge · 31:00"
-                          über drei sichtbaren Zeilen — eine Ansicht, die sich
-                          selbst widerspricht, und die vierte Buchung war
-                          weder zu sehen noch zu bearbeiten oder zu löschen.
-
-                          Innerhalb eines Tages nach Beginn sortiert: so liest
-                          sich der Tag in der Reihenfolge, in der er passiert
-                          ist.
-                        */
-                        type Tageszeile = {
-                          d: string;
-                          entry?: WithId<TimeEntry>;
-                          holiday: string | null;
-                          zeit: string | null;
-                        };
-                        const days = daysOfMonth(year, month).flatMap((d): Tageszeile[] => {
-                          const holiday = getAustrianHolidayName(new Date(`${d}T00:00:00`));
-                          const amTag = monthEntries
-                            .filter((e) => e.date === d)
-                            .sort((a, b) => (a.startTime ?? '').localeCompare(b.startTime ?? ''));
-                          if (amTag.length === 0) {
-                            /*
-                              EIN FEIERTAG VOR DEM EINTRITT GEHOERT NICHT IN
-                              DEN NACHWEIS.
-
-                              Der Nachweis beginnt beim Eintritt — dafuer gibt
-                              es das Datum. Ein Tag ohne Buchung kam bisher
-                              trotzdem herein, wenn er ein Feiertag war: bei
-                              einem Eintritt am 17. August stand dort „Sa
-                              15.08. Mariä Himmelfahrt — — —", ein Tag, an dem
-                              die Person noch gar nicht im Betrieb war.
-
-                              Eine BUCHUNG vor dem Eintritt bleibt dagegen
-                              stehen. Sie waere eine Merkwuerdigkeit in den
-                              Daten, und die soll man sehen statt sie
-                              wegzufiltern.
-                            */
-                            if (u.appStartDate && d < u.appStartDate) return [];
-                            return holiday ? [{ d, entry: undefined, holiday, zeit: null }] : [];
-                          }
-                          return amTag.map((entry) => ({
-                            d,
-                            entry,
-                            holiday,
-                            zeit:
-                              entry.startTime && entry.endTime
-                                ? `${entry.startTime}–${entry.endTime}`
-                                : null,
-                          }));
-                        });
-
-                        /* Abwesenheit und Feiertag als Pille statt als
-                           eingefärbte Zeile: die Tönung allein war für
-                           Farbenblinde kein Signal. */
-                        const status = (x: (typeof days)[number]) =>
-                          !x.entry ? (
-                            <Marke>{x.holiday}</Marke>
-                          ) : x.entry.status === 'Krank' ? (
-                            <Marke>Krank</Marke>
-                          ) : x.entry.status === 'Urlaub' ? (
-                            <Marke>Urlaub</Marke>
-                          ) : x.entry.status === 'Zeitausgleich' ? (
-                            <Marke>ZA</Marke>
-                          ) : x.entry.status === 'Berufsschule' ? (
-                            <Marke>Berufsschule</Marke>
-                          ) : x.entry.status === 'Dienstverhinderung' || x.entry.status === 'Pflegefreistellung'
-                              || x.entry.status === 'Unbezahlt' ? (
-                            <Marke>{tagesStatusName(x.entry.status)}</Marke>
-                          ) : (
-                            <span className="text-ink-muted">Anwesend</span>
-                          );
-
-                        const actions = (e: WithId<TimeEntry>) =>
-                          e.isBilled ? (
-                            // Verrechnete Einträge sind Rechnungsgrundlage
-                            // und bleiben unangetastet.
-                            <Marke>verrechnet</Marke>
-                          ) : e.krankmeldungId ? (
-                            // Ein Tag einer Krankmeldung wird nur über sie
-                            // geändert — Ende ändern oder löschen.
-                            <Button variant="ghost" onClick={() => setMeldung(e.krankmeldungId!)}>
-                              Krankmeldung
-                            </Button>
-                          ) : e.freistellungId ? (
-                            <FreistellungKnopf />
-                          ) : e.vacationId ? (
-                            // Ein Tag aus einem genehmigten Antrag ändert sich
-                            // nur über den Antrag.
-                            <AntragKnopf eintrag={e} />
-                          ) : (
-                            <>
-                              <Button
-                                variant="ghost"
-                                onClick={() => {
-                                  setCreating(false);
-                                  setEditing(e);
-                                }}
-                              >
-                                Bearbeiten
-                              </Button>
-                              <Button variant="ghost" onClick={() => setToDelete(e)}>
-                                Löschen
-                              </Button>
-                            </>
-                          );
-
-                        return (
-                          <div className="mt-4">
-                            <details className="group">
-                              <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm font-normal text-ink [&::-webkit-details-marker]:hidden">
-                                <span>
-                                  Tagesnachweis ·{' '}
-                                  <span className="whitespace-nowrap">
-                                    {monthEntries.length === 1
-                                      ? '1 Eintrag'
-                                      : `${monthEntries.length} Einträge`}
-                                  </span>
-                                </span>
-                                <span className="flex shrink-0 items-center gap-2">
-                                  <span className="font-normal text-ink-muted">
-                                    {fmtMin(stats.istMin)}
-                                  </span>
-                                  {/* Ohne Winkel war ueberhaupt nicht zu sehen,
-                                      dass sich hier etwas oeffnet: `flex` am
-                                      `<summary>` nimmt das native Dreieck weg,
-                                      und ein Ersatz stand nicht da. */}
-                                  <Icon
-                                    name="chevron"
-                                    size={18}
-                                    className="shrink-0 text-ink-muted transition-transform duration-200 group-open:rotate-180"
-                                  />
-                                </span>
-                              </summary>
-                              <table className="mt-1 hidden w-full text-sm sm:table" aria-label={`Tagesnachweis ${u.name}`}>
-                              <thead>
-                                <tr className="border-b border-line text-left text-ink-muted">
-                                  <th className="py-2 pr-3 font-normal">Tag</th>
-                                  <th className="py-2 pr-3 font-normal">Status</th>
-                                  <th className="py-2 pr-3 font-normal">Zeit</th>
-                                  <th className="py-2 pr-3 font-normal">Baustelle</th>
-                                  <th className="py-2 pr-3 text-right font-normal">Stunden</th>
-                                  <th className="py-2 text-right font-normal">
-                                    <span className="sr-only">Aktionen</span>
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {days.map((x) => (
-                                  // Der Schlüssel haengt am EINTRAG: zwei
-                                  // Buchungen desselben Tages haetten sonst
-                                  // denselben, und React zoege die Zeilen
-                                  // beim Bearbeiten durcheinander.
-                                  <tr key={x.entry?.id ?? x.d} className="border-b border-line">
-                                    <td className="whitespace-nowrap py-2 pr-3 font-normal text-ink">
-                                      {dayLabel(x.d)}
-                                    </td>
-                                    <td className="py-2 pr-3">
-                                      {/*
-                                        Notdienst und Nachtarbeit gehören
-                                        NEBEN den Status. Sie hängen an einem
-                                        Zuschlag; wer sie hier nicht sieht,
-                                        schreibt die Stunde ohne ihn in die
-                                        Rechnung.
-                                      */}
-                                      <span className="flex flex-wrap items-center gap-1">
-                                        {status(x)}
-                                        {x.entry && <Zeitmarker eintrag={x.entry} nacht={nachtzeitVon(company)} />}
-                                      </span>
-                                    </td>
-                                    <td className="py-2 pr-3 text-ink-muted">
-                                      {x.zeit ?? '—'}
-                                    </td>
-                                    <td className="py-2 pr-3">{x.entry?.customerName ?? '—'}</td>
-                                    <td className="py-2 pr-3 text-right font-normal">
-                                      {x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}
-                                    </td>
-                                    <td className="py-2">
-                                      {/* Flex statt Inline: sonst sitzen die
-                                          Knöpfe auf der Textgrundlinie und
-                                          hängen sichtbar unter der Zeile. */}
-                                      <div className="flex items-center justify-end gap-1">
-                                        {x.entry && actions(x.entry)}
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                              <tfoot>
-                                <tr className="font-semibold">
-                                  <td className="pt-2" colSpan={4}>
-                                    {monthEntries.length === 1
-                                      ? '1 Eintrag'
-                                      : `${monthEntries.length} Einträge`}
-                                  </td>
-                                  <td className="pt-2 pr-3 text-right">
-                                    {fmtMin(stats.istMin)}
-                                  </td>
-                                  <td className="pt-2" />
-                                </tr>
-                              </tfoot>
-                            </table>
-
-                            {/*
-                              ZUGEKLAPPT — UND NUR AM TELEFON.
-
-                              Der Tagesnachweis ist der laengste Teil der Karte
-                              (bis zu einunddreissig Zeilen mit je zwei
-                              Knoepfen) und der am seltensten gebrauchte: wer
-                              eine Zeitkarte oeffnet, will meist wissen, wie der
-                              Monat steht, nicht was am 14. war. Offen schob er
-                              alles darunter aus dem Bild.
-
-                              Die Zusammenfassung sagt weiterhin, wie viele
-                              Eintraege es sind und wie viel zusammenkommt — man
-                              tippt also nur hinein, wenn man einen bestimmten
-                              Tag sucht.
-
-                              AM SCHREIBTISCH BLEIBT DIE TABELLE OFFEN. Dort ist
-                              der Tagesnachweis das Werkzeug der Buchhaltung und
-                              kein Anhang; ein zusaetzlicher Klick waere dort
-                              keine Ruhe, sondern ein Umweg.
-                            */}
-                              <ul className="sm:hidden">
-                              {days.map((x) => (
-                                <li key={x.entry?.id ?? x.d} className="border-b border-line py-2">
-                                  <div className="flex items-baseline justify-between gap-2">
-                                    <span className="font-semibold text-ink">
-                                      {dayLabel(x.d)}
-                                    </span>
-                                    <span className="font-semibold text-ink">
-                                      {x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}
-                                    </span>
-                                  </div>
-                                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted">
-                                    {status(x)}
-                                    {x.entry && <Zeitmarker eintrag={x.entry} nacht={nachtzeitVon(company)} />}
-                                    {x.zeit && <span>{x.zeit}</span>}
-                                    {x.entry?.customerName && <span>{x.entry.customerName}</span>}
-                                  </div>
-                                  {x.entry && (
-                                    <div className="mt-1 flex flex-wrap items-center gap-1">
-                                      {actions(x.entry)}
-                                    </div>
-                                  )}
-                                </li>
-                              ))}
-                              <li className="flex justify-between py-2 font-semibold">
-                                <span>
-                                  {monthEntries.length === 1
-                                    ? '1 Eintrag'
-                                    : `${monthEntries.length} Einträge`}
-                                </span>
-                                <span>{fmtMin(stats.istMin)}</span>
-                              </li>
-                              </ul>
-                            </details>
-                          </div>
-                        );
-                      })()}
-                      <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-3">
-                        <Button variant="secondary" onClick={() => exportUserCsv(u)}>
-                          Monat als CSV
-                        </Button>
-                        <Button variant="primary" onClick={() => setExportFor(u)}>
-                          Bericht für Zeitraum
-                        </Button>
-                        {/*
-                          „Einklappen" ist entfallen. Der Knopf machte dasselbe
-                          wie der Kartenkopf darueber und war die Antwort auf
-                          eine Karte, die ueber den Bildschirm hinausging —
-                          seit der Tagesnachweis zugeklappt ist, ist sie das
-                          nicht mehr, und der Kopf steht wieder in Reichweite.
-                        */}
-                      </div>
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-          </>
-        )}
-      </Card>
+          ) : null}
+        </div>
+      </BottomSheet>
 
       {/*
         DIE GESETZLICHEN GRENZEN DES MONATS (05.10.2026). Im Supportzugang
@@ -1234,16 +1005,14 @@ export default function AccountingView() {
       */}
       {!imSupport && (
         <ArbeitszeitGrenzenKarte
+          id="arbeitszeitgrenzen"
           companyId={user.companyId}
           personen={relevant}
           jahr={year}
           monat={month}
-          aktualisiert={loading ? undefined : grenzStand}
+          daten={grenzDaten}
           // Verstoß gegen das KJBG: die Buchung gleich im Seitenfenster öffnen (Runde 3, M3).
-          onKorrigieren={(e) => {
-            setCreating(false);
-            setEditing(e);
-          }}
+          onKorrigieren={(e) => setAufgabe({ art: 'bearbeiten', eintrag: e })}
         />
       )}
 
@@ -1252,7 +1021,7 @@ export default function AccountingView() {
         entries={entries.filter((e) => e.date.startsWith(monthPrefix))}
         gesamtEntries={gesamtProjektzeiten}
         projects={projects}
-        label={`${MONTHS[month]} ${year}`}
+        label={monatsName}
         nacht={nachtzeitVon(company)}
       />
 
@@ -1267,7 +1036,7 @@ export default function AccountingView() {
         onCancel={() => setToDelete(null)}
         onConfirm={async () => {
           if (toDelete) {
-            if (editing?.id === toDelete.id) setEditing(null);
+            if (aufgabe?.art === 'bearbeiten' && aufgabe.eintrag.id === toDelete.id) setAufgabe(null);
             await deleteTimeEntry(toDelete.id);
             toast.success('Eintrag gelöscht');
           }
@@ -1286,5 +1055,6 @@ export default function AccountingView() {
         />
       )}
     </div>
+    </TippBereich>
   );
 }

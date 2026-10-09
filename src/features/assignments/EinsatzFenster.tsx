@@ -42,7 +42,7 @@ export default function EinsatzFenster({
   betriebsurlaube,
   termine,
   onClose,
-  onTagPlanen,
+  onTagAnsehen,
 }: {
   start: FensterStart;
   /** Die Tage, deren Einsätze geladen sind. */
@@ -56,8 +56,12 @@ export default function EinsatzFenster({
   betriebsurlaube: Betriebsurlaub[];
   termine: Termin[];
   onClose: () => void;
-  /** Den ganzen Tag in „Tag planen“ öffnen — mit Terminen und allen Einsätzen. */
-  onTagPlanen: (datum: string, projectNumber?: string) => void;
+  /**
+   * „Ganzen Tag ansehen“: das Seitenfenster „Tag“ mit Terminen und allen
+   * Einsätzen (Runde 4). Von dort führt „In ‚Tag‘ öffnen“ nach „Tag planen“ —
+   * mit Tag und Baustelle, wie vorher der Knopf hier.
+   */
+  onTagAnsehen: (datum: string, projectNumber?: string) => void;
 }) {
   const { user } = useAuth();
   const materialAn = useModul('material');
@@ -100,14 +104,16 @@ export default function EinsatzFenster({
           tagesListen={tagesListen}
           onGespeichert={onClose}
           onLoeschen={(a) => deleteAssignment(a.id)}
+          /*
+            DER GANZE TAG BLEIBT EINEN TIPP ENTFERNT: Termine, alle Einsätze
+            des Tages, wer frei ist — und von dort „Tag planen“.
+          */
+          fussNeben={
+            <Button variant="secondary" onClick={() => onTagAnsehen(datum, projectNumber || undefined)}>
+              Ganzen Tag ansehen
+            </Button>
+          }
         />
-        {/*
-          DER GANZE TAG BLEIBT EINEN TIPP ENTFERNT: Termine anlegen, alle
-          Einsätze des Tages untereinander, ein Tag ausserhalb der Woche.
-        */}
-        <Button variant="ghost" onClick={() => onTagPlanen(datum, projectNumber || undefined)}>
-          Ganzen Tag in „Tag planen“ öffnen
-        </Button>
       </div>
     </BottomSheet>
   );

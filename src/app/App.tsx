@@ -472,11 +472,13 @@ function AppRoutes() {
         }
       />
       {/*
-        Einsatzplanung unter EINEM Reiter, zwei Unterseiten: der Wochenplan
-        beantwortet „wer ist frei", die Tagesplanung traegt ein. Der alte
-        Pfad `/assignments` fuehrt weiterhin hierher — `Unterreiter` leitet
-        auf die erste Unterseite weiter, damit bestehende Verweise (z. B.
-        „Zur Einsatzplanung" auf der Startseite) nicht ins Leere gehen.
+        Einsatzplanung unter EINEM Reiter, zwei Unterseiten: die Woche (mit
+        dem Monat, `?ansicht=monat`) beantwortet „wer ist frei", „Tag" traegt
+        den einzelnen Tag ein. Der alte Pfad `/assignments` fuehrt weiterhin
+        hierher — `Unterreiter` leitet auf die erste Unterseite weiter, damit
+        bestehende Verweise (z. B. „Zur Einsatzplanung" auf der Startseite)
+        nicht ins Leere gehen. Seit Runde 4 ohne Reiterleiste: der Umschalter
+        „Woche | Monat | Tag" steht in der Steuerung der Seite.
       */}
       <Route
         path="/assignments/*"
@@ -484,6 +486,7 @@ function AppRoutes() {
           <RequireNav path="/assignments">
             <Unterreiter
               basis="/assignments"
+              ohneLeiste
               elemente={{
                 tag: <AssignmentsView />,
                 woche: <WochenplanView />,
