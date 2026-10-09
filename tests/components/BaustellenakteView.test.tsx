@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within, waitFor } from '@testing-library/react';
+import { render, screen, within, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -118,6 +118,26 @@ const listQuotesForProject = vi.fn<(a0: string, a1: string) => Promise<typeof an
   if (angeboteScheitern) throw new Error('kaputt');
   return angebote;
 });
+/*
+  DIE HANDWERKSSCHEINE DER BAUSTELLE (09.10.2026): über die bestehende Abfrage
+  der Baustelle; „verrechnet“ über die bestehende Abfrage der Rechnungen.
+*/
+const SCHEIN = (id: string, p: Record<string, unknown> = {}) => ({
+  id, companyId: 'perl', projectNumber: '2026-101', customerName: 'Familie Huber', datum: '2026-10-05',
+  status: 'Unterschrieben', abrechnung: 'Regie', zeiten: [{ mitarbeiter: 'Max', minuten: 240 }], material: [],
+  erstelltVonUid: 'm1', erstelltVonName: 'Max Monteur', unterschriften: { kunde: { name: 'Frau Huber' } }, ...p,
+});
+let scheine: ReturnType<typeof SCHEIN>[] = [];
+let aufRechnung: string[] = [];
+const listWorkSheetsForProject = vi.fn(async (_c: string, _p: string, max?: number) => scheine.slice(0, max ?? scheine.length));
+const scheineAufRechnung = vi.fn(async (_c: string, ids: string[]) => ids.filter((i) => aufRechnung.includes(i)));
+vi.mock('@/lib/db/workSheets', () => ({
+  listWorkSheetsForProject: (c: string, p: string, max?: number) => listWorkSheetsForProject(c, p, max),
+}));
+vi.mock('@/lib/db/invoices', () => ({
+  scheineAufRechnung: (c: string, ids: string[]) => scheineAufRechnung(c, ids),
+}));
+
 vi.mock('@/lib/db/quotes', () => ({
   listQuotesForProject: (c: string, p: string) => listQuotesForProject(c, p),
 }));
@@ -170,6 +190,10 @@ beforeEach(() => {
   baustellen = [BAUSTELLE];
   belegschaft = BELEGSCHAFT;
   nebenladenScheitert = false;
+  scheine = [];
+  aufRechnung = [];
+  listWorkSheetsForProject.mockClear();
+  scheineAufRechnung.mockClear();
   modulAn = true;
   rolle = 'Geschäftsführung';
   nutzer = NUTZER();
@@ -461,7 +485,7 @@ describe('Was die Akte sonst noch zeigt', () => {
     zeige();
     expect((await screen.findByRole('link', { name: 'Zur Kundenakte' })).className)
       .toMatch(/\bmin-h-touch\b/);
-    expect(screen.getByRole('link', { name: /Handwerksschein/ }).className).toMatch(/\bmin-h-touch\b/);
+    expect((await screen.findByRole('link', { name: /Handwerksschein/ })).className).toMatch(/\bmin-h-touch\b/);
   });
 
   it('sagt es, wenn kein Kunde verknüpft ist, statt den Verweis wegzulassen', async () => {
@@ -630,7 +654,7 @@ describe('Die Baustellenakte in der Linie „Lot“', () => {
     zeige();
     const leiste = await screen.findByRole('navigation', { name: 'Auf dieser Seite' });
     const ziele = within(leiste).getAllByRole('link').map((a) => a.getAttribute('href'));
-    expect(ziele).toEqual(['#b-ueberblick', '#b-termine', '#b-daten', '#b-plaene']);
+    expect(ziele).toEqual(['#b-ueberblick', '#b-termine', '#b-scheine', '#b-daten', '#b-plaene']);
     for (const z of ziele) expect(document.getElementById(z!.slice(1))).not.toBeNull();
   });
 
@@ -682,5 +706,76 @@ describe('Die Baustellenakte in der Linie „Lot“', () => {
     expect(warnung.closest('details')).toBeNull();
     // Gegenprobe: die Auswahl der Projektleitung selbst steht in der Kurzzeile.
     expect(screen.getByText('Verantwortliche Projektleitung').closest('details')).not.toBeNull();
+  });
+});
+
+/*
+  DIE HANDWERKSSCHEINE IN DER AKTE (Rückmeldung des Betreibers, 09.10.2026):
+  vorher stand dort nur „Handwerksschein schreiben“.
+*/
+/** Die Karte „Handwerksscheine“ (Card trägt keinen Vorlesenamen; gefunden über ihre Überschrift). */
+async function scheinKarte() {
+  await screen.findByRole('heading', { name: 'Handwerksscheine' });
+  return document.getElementById('b-scheine')!;
+}
+
+describe('Die Handwerksscheine der Baustelle', () => {
+  it('stehen in der Akte, neueste zuerst, mit Stand, Dauer und dem Weg zum Schein', async () => {
+    scheine = [
+      SCHEIN('s2', { datum: '2026-10-07', status: 'Entwurf', unterschriften: undefined }),
+      SCHEIN('s1'),
+    ];
+    zeige();
+    const karte = within(await scheinKarte());
+    const zeilen = await karte.findAllByRole('link', { name: /07\.10\.2026|05\.10\.2026/ });
+    expect(zeilen.map((z) => z.getAttribute('href'))).toEqual(['/worksheets?markiert=s2', '/worksheets?markiert=s1']);
+    expect(karte.getByText('Entwurf')).toBeInTheDocument();
+    expect(karte.getByText('Unterschrieben')).toBeInTheDocument();
+    expect(karte.getByText(/unterschrieben von Frau Huber/)).toBeInTheDocument();
+    expect(karte.getAllByText('04:00 Std').length).toBe(2);
+    expect(listWorkSheetsForProject).toHaveBeenCalledWith('perl', '2026-101', 20);
+  });
+
+  it('nennt „verrechnet“, wer Rechnungen sieht — und fragt sonst gar nicht', async () => {
+    scheine = [SCHEIN('s1')];
+    aufRechnung = ['s1'];
+    zeige();
+    const karte = within(await scheinKarte());
+    expect(await karte.findByText('verrechnet')).toBeInTheDocument();
+    cleanup();
+    // Gegenprobe: die Verwaltung liest keine Rechnungen — kein „verrechnet“, keine Abfrage.
+    rolle = 'Verwaltung';
+    nutzer = NUTZER();
+    scheineAufRechnung.mockClear();
+    zeige();
+    const zweite = within(await scheinKarte());
+    expect(await zweite.findByText('Unterschrieben')).toBeInTheDocument();
+    expect(zweite.queryByText('verrechnet')).toBeNull();
+    expect(scheineAufRechnung).not.toHaveBeenCalled();
+  });
+
+  it('sagt, wenn es noch keinen gibt, und bietet „Handwerksschein schreiben“', async () => {
+    zeige();
+    const karte = within(await scheinKarte());
+    expect(await karte.findByText(/noch keinen Handwerksschein/)).toBeInTheDocument();
+    expect(karte.getByRole('link', { name: 'Handwerksschein schreiben' })).toHaveAttribute('href', '/worksheet?projekt=2026-101');
+  });
+
+  it('lädt zwanzig auf einmal und auf Wunsch weitere', async () => {
+    scheine = Array.from({ length: 25 }, (_, i) => SCHEIN(`s${i}`, { datum: `2026-09-${String(30 - i).padStart(2, '0')}` }));
+    zeige();
+    const karte = within(await scheinKarte());
+    expect(await karte.findAllByRole('link', { name: /\.09\.2026/ })).toHaveLength(20);
+    await userEvent.click(karte.getByRole('button', { name: /Weitere/ }));
+    await waitFor(() => expect(karte.getAllByRole('link', { name: /\.09\.2026/ })).toHaveLength(25));
+    expect(listWorkSheetsForProject).toHaveBeenLastCalledWith('perl', '2026-101', 40);
+  });
+
+  it('Gegenprobe: ohne das Modul „Handwerksscheine“ kein Abschnitt und keine Abfrage', async () => {
+    modulAn = false;
+    zeige();
+    await screen.findByLabelText(/Projektnummer/);
+    expect(document.getElementById('b-scheine')).toBeNull();
+    expect(listWorkSheetsForProject).not.toHaveBeenCalled();
   });
 });
