@@ -5,6 +5,7 @@ import { ToastProvider } from '@/components/Toast';
 import userEvent from '@testing-library/user-event';
 import type { AppUser, TimeEntry } from '@/types';
 import AccountingView from '@/features/accounting/AccountingView';
+import { stundenDerBaustellen } from '@/lib/db/timeEntries';
 
 /**
  * Der Fehler, den dieser Test verhindert, ist wirklich passiert: die
@@ -102,7 +103,13 @@ vi.mock('@/lib/db/timeEntries', () => ({
     grenzAbfragen += 1;
     return buchungen;
   }),
-  listEntriesForProjects: vi.fn(async () => buchungen),
+  // Die Summen, wie `baustellen_stunden` sie aus denselben Buchungen bildet.
+  stundenDerBaustellen: vi.fn(async () => {
+    const { groupProjectHours } = await vi.importActual<typeof import('@/lib/time')>('@/lib/time');
+    return groupProjectHours(buchungen).map((g) => ({
+      projectNumber: g.projectNumber, art: 'fach', minuten: g.fachMin, userId: null, userName: '', zuletzt: '',
+    }));
+  }),
   /*
     Der Urlaubsverlauf für den Übertrag — dieselben Buchungen, auf Urlaub
     gefiltert. Die echte Abfrage filtert serverseitig; hier ist das die
@@ -361,6 +368,14 @@ describe('Mitarbeiteruebersicht — mehrere Buchungen an einem Tag', () => {
 
   beforeEach(() => {
     buchungen = [...eintraege, zweiterEinsatz];
+  });
+
+  it('holt die Gesamtstunden der Baustellen als Summen, nicht alle Buchungen aller Jahre', async () => {
+    // Analyse 09.10.2026: dieselbe Abfrage hatte das Budget der Startseite 60 s gekostet.
+    vi.mocked(stundenDerBaustellen).mockClear();
+    await oeffneMitarbeiter();
+    await waitFor(() => expect(stundenDerBaustellen).toHaveBeenCalled());
+    expect(vi.mocked(stundenDerBaustellen).mock.calls[0][0]).toContain('B-2026-0002');
   });
 
   it('zeigt BEIDE Buchungen des Tages, nicht nur die erste', async () => {

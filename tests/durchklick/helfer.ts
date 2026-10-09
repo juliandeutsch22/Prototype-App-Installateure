@@ -41,10 +41,14 @@ export async function anmelden(page: Page, email: string): Promise<void> {
  * einem Bildschirm voller Fehler fröhlich vorbei.
  */
 export async function keineFehlermeldung(page: Page): Promise<void> {
-  const meldungen = page.getByRole('alert');
-  const anzahl = await meldungen.count();
-  for (let i = 0; i < anzahl; i += 1) {
-    const text = (await meldungen.nth(i).textContent()) ?? '';
+  /*
+    ALLE TEXTE AUF EINMAL, nicht erst zählen und dann einzeln lesen: eine
+    Erfolgsmeldung („gebucht“) verschwindet von selbst. Verschwand sie
+    zwischen Zählen und Lesen, wartete `nth(i)` bis zum Zeitlimit auf ein
+    Element, das es nicht mehr gab (10.10.2026, lokal nachgestellt).
+  */
+  const texte = await page.getByRole('alert').allTextContents();
+  for (const text of texte) {
     expect(text, `Fehlermeldung auf dem Bildschirm: ${text}`).not.toMatch(
       /konnte nicht|fehlgeschlagen|Fehler|nicht geladen/i,
     );

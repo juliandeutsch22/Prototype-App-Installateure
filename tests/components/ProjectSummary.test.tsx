@@ -3,6 +3,10 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ProjectSummary from '@/features/accounting/ProjectSummary';
 import type { Project, TimeEntry } from '@/types';
+import { groupProjectHours } from '@/lib/time';
+
+/** Die Fachminuten je Baustelle, wie `fachMinutenJeBaustelle` sie aus `baustellen_stunden` bildet. */
+const fachAus = (alle: TimeEntry[]) => new Map(groupProjectHours(alle).map((g) => [g.projectNumber, g.fachMin]));
 
 /**
  * Was in der Projektauswertung an einem Eintrag DRANSTEHT.
@@ -76,7 +80,7 @@ describe('Projektauswertung — Budget gegen die GANZE Baustelle', () => {
     render(
       <ProjectSummary
         entries={[september]}
-        gesamtEntries={[august, september]}
+        gesamtFach={fachAus([august, september])}
         projects={[{ ...projekt, estimatedHours: 20 }]}
         label="September 2026"
       />,
@@ -91,7 +95,7 @@ describe('Projektauswertung — Budget gegen die GANZE Baustelle', () => {
     render(
       <ProjectSummary
         entries={[september]}
-        gesamtEntries={[august, september]}
+        gesamtFach={fachAus([august, september])}
         projects={[{ ...projekt, estimatedHours: 20 }]}
         label="September 2026"
       />,
@@ -117,7 +121,7 @@ describe('Projektauswertung — Budget gegen die GANZE Baustelle', () => {
     render(
       <ProjectSummary
         entries={[september]}
-        gesamtEntries={null}
+        gesamtFach={null}
         projects={[{ ...projekt, estimatedHours: 20 }]}
         label="September 2026"
       />,
@@ -135,7 +139,7 @@ describe('Projektauswertung — Marker am Eintrag', () => {
       <ProjectSummary
         entries={[eintrag({ id: 'a', isEmergency: true } as Partial<TimeEntry>)]}
         projects={[projekt]}
-        gesamtEntries={[]}
+        gesamtFach={fachAus([])}
         label="September 2026"
       />,
     );
@@ -151,7 +155,7 @@ describe('Projektauswertung — Marker am Eintrag', () => {
         // Seit Runde 3, M4 aus Von und Bis: 20:00–23:30 liegt zum Teil in der Nachtzeit.
         entries={[eintrag({ id: 'a', startTime: '20:00', endTime: '23:30', breakDuration: 0 } as Partial<TimeEntry>)]}
         projects={[projekt]}
-        gesamtEntries={[]}
+        gesamtFach={fachAus([])}
         label="September 2026"
       />,
     );
@@ -166,7 +170,7 @@ describe('Projektauswertung — Marker am Eintrag', () => {
       <ProjectSummary
         entries={[eintrag({ id: 'a', isHelper: true } as Partial<TimeEntry>)]}
         projects={[projekt]}
-        gesamtEntries={[]}
+        gesamtFach={fachAus([])}
         label="September 2026"
       />,
     );
@@ -181,7 +185,7 @@ describe('Projektauswertung — Marker am Eintrag', () => {
       <ProjectSummary
         entries={[eintrag({ id: 'a' } as Partial<TimeEntry>)]}
         projects={[projekt]}
-        gesamtEntries={[]}
+        gesamtFach={fachAus([])}
         label="September 2026"
       />,
     );
@@ -213,7 +217,7 @@ describe('Der Kopf einer Baustelle bleibt ruhig', () => {
       <ProjectSummary
         entries={[eintrag({ id: 'a' } as Partial<TimeEntry>)]}
         projects={[projekt]}
-        gesamtEntries={[]}
+        gesamtFach={fachAus([])}
         label="September 2026"
       />,
     );
@@ -235,7 +239,7 @@ describe('Der Kopf einer Baustelle bleibt ruhig', () => {
       <ProjectSummary
         entries={[helferEintrag]}
         projects={[projekt]}
-        gesamtEntries={[]}
+        gesamtFach={fachAus([])}
         label="September 2026"
       />,
     );
@@ -267,7 +271,7 @@ describe('Der Kopf einer Baustelle bleibt ruhig', () => {
       <ProjectSummary
         entries={viele}
         projects={[projekt]}
-        gesamtEntries={viele}
+        gesamtFach={fachAus(viele)}
         label="September 2026"
       />,
     );
@@ -284,7 +288,7 @@ describe('Projektauswertung — die Nummer, wie sie an der Baustelle steht (Laun
     render(
       <ProjectSummary
         entries={[eintrag({ id: 'x', projectNumber: 'PR-187' } as Partial<TimeEntry>)]}
-        gesamtEntries={[]}
+        gesamtFach={fachAus([])}
         projects={[pr]}
         label="September 2026"
       />,
@@ -306,7 +310,7 @@ describe('Projektauswertung — die Nummer, wie sie an der Baustelle steht (Laun
           eintrag({ id: 'a', projectNumber: '187' } as Partial<TimeEntry>),
           eintrag({ id: 'b', projectNumber: 'PR-187' } as Partial<TimeEntry>),
         ]}
-        gesamtEntries={[]}
+        gesamtFach={fachAus([])}
         projects={[]}
         label="September 2026"
       />,
@@ -329,7 +333,7 @@ describe('Projektauswertung — Zeiten und Datum wie überall', () => {
           eintrag({ id: 'a' } as Partial<TimeEntry>),
           eintrag({ id: 'h', userId: 'u2', userName: 'Erna Helfer', isHelper: true } as Partial<TimeEntry>),
         ]}
-        gesamtEntries={[eintrag({ id: 'a' } as Partial<TimeEntry>)]}
+        gesamtFach={fachAus([eintrag({ id: 'a' } as Partial<TimeEntry>)])}
         projects={[projekt]}
         label="September 2026"
       />,
@@ -359,7 +363,7 @@ describe('Projektauswertung — Zeiten und Datum wie überall', () => {
     render(
       <ProjectSummary
         entries={[eintrag({ id: 'a' } as Partial<TimeEntry>)]}
-        gesamtEntries={[]}
+        gesamtFach={fachAus([])}
         projects={[projekt]}
         label="September 2026"
       />,
@@ -383,7 +387,7 @@ describe('Projektauswertung als Zeilen einer Gruppe', () => {
           eintrag({ id: 'a' } as Partial<TimeEntry>),
           eintrag({ id: 'b', projectNumber: 'B-2026-0002', customerName: 'Zweite Baustelle' } as Partial<TimeEntry>),
         ]}
-        gesamtEntries={[]}
+        gesamtFach={fachAus([])}
         projects={[projekt]}
         label="September 2026"
       />,

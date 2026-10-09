@@ -30,12 +30,7 @@ export function budgetStand(
   projekte: Pick<Project, 'projectNumber' | 'estimatedHours' | 'customerName' | 'bezeichnung'>[],
   stunden: Pick<BaustellenStunden, 'projectNumber' | 'art' | 'minuten'>[],
 ): BudgetZeile[] {
-  const fach = new Map<string, number>();
-  for (const s of stunden) {
-    if (s.art !== 'fach') continue;
-    const nr = normProjectNumber(s.projectNumber);
-    fach.set(nr, (fach.get(nr) ?? 0) + s.minuten);
-  }
+  const fach = fachMinutenJeBaustelle(stunden);
   return projekte
     .filter((pr) => (pr.estimatedHours ?? 0) > 0)
     .map((pr) => {
@@ -48,6 +43,19 @@ export function budgetStand(
         estimatedHours: pr.estimatedHours ?? 0,
       };
     });
+}
+
+/** Fachminuten je Baustelle (Nummer ohne „PR-“) — was gegen das Budget zählt. */
+export function fachMinutenJeBaustelle(
+  stunden: Pick<BaustellenStunden, 'projectNumber' | 'art' | 'minuten'>[],
+): Map<string, number> {
+  const fach = new Map<string, number>();
+  for (const s of stunden) {
+    if (s.art !== 'fach') continue;
+    const nr = normProjectNumber(s.projectNumber);
+    fach.set(nr, (fach.get(nr) ?? 0) + s.minuten);
+  }
+  return fach;
 }
 
 export const OHNE_EINSATZ_TAGE = 14;

@@ -98,13 +98,16 @@ function angezeigteNummer(r: {
  * nachsah, hielt eine ausgereizte Baustelle für halb offen und plante weiter.
  *
  * Beide Ansichten rechnen jetzt aus derselben Quelle
- * (`listEntriesForProjects`) und können nicht mehr auseinanderlaufen.
+ * (`stundenDerBaustellen`, seit 10.10.2026 auch hier) und können nicht mehr
+ * auseinanderlaufen. Die Summen kommen aus der Datenbank: alle Buchungen
+ * aller Jahre einer Baustelle zu laden, nur um ihre Fachminuten zu zählen,
+ * wurde mit den Jahren immer langsamer (Analyse 09.10.2026).
  */
 export default function ProjectSummary({
   entries,
   projects,
   label,
-  gesamtEntries,
+  gesamtFach,
   nacht,
 }: {
   /** Die Nachtzeit des Betriebs — für die Marke „Nacht“ (Runde 3, M4). */
@@ -113,26 +116,25 @@ export default function ProjectSummary({
   projects: Project[];
   label: string;
   /**
-   * ALLE Stunden dieser Baustellen, über den Monat hinaus — Grundlage des
-   * Budgets.
+   * ALLE Fachminuten dieser Baustellen, über den Monat hinaus — Grundlage
+   * des Budgets; je Nummer ohne „PR-“ (`fachMinutenJeBaustelle`).
    *
    * `null` heißt „konnte nicht geladen werden" und ist ausdrücklich NICHT
    * dasselbe wie „keine". Dann entfällt der Balken; ihn aus den Monatsstunden
    * zu rechnen wäre genau die Falschaussage, die es zu beheben galt.
    */
-  gesamtEntries: TimeEntry[] | null;
+  gesamtFach: ReadonlyMap<string, number> | null;
 }) {
   const [open, setOpen] = useState<string | null>(null);
 
   const rows = useMemo(() => {
-    const gesamt = gesamtEntries ? groupProjectHours(gesamtEntries) : null;
     const grouped = groupProjectHours(entries);
     return grouped.map((g) => {
       const project = projects.find(
         (p) => normProjectNumber(p.projectNumber) === g.projectNumber,
       );
-      const gesamtFachMin =
-        gesamt?.find((x) => x.projectNumber === g.projectNumber)?.fachMin ?? null;
+      // Geladen und ohne Fachminuten heißt 0 — nicht „nicht geladen“.
+      const gesamtFachMin = gesamtFach ? (gesamtFach.get(g.projectNumber) ?? 0) : null;
       return {
         ...g,
         project,
@@ -143,7 +145,7 @@ export default function ProjectSummary({
             : calcBudgetState(gesamtFachMin, project?.estimatedHours),
       };
     });
-  }, [entries, projects, gesamtEntries]);
+  }, [entries, projects, gesamtFach]);
 
   if (rows.length === 0) {
     return (
