@@ -1,0 +1,910 @@
+{
+  "art": "axe auf lokaler Vorschau mit synthetischen Daten",
+  "breiten": [
+    390,
+    834,
+    1112,
+    1440
+  ],
+  "anzahl": 128,
+  "verstoesse": 0,
+  "javascriptFehler": 0,
+  "faelle": [
+    {
+      "route": "/",
+      "width": 390,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/time",
+      "width": 390,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/vacations",
+      "width": 390,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/assignments/woche",
+      "width": 390,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/assignments/woche?ansicht=monat",
+      "width": 390,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/material",
+      "width": 390,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/anforderungen",
+      "width": 390,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/lager",
+      "width": 390,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/invoices",
+      "width": 390,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/quotes",
+      "width": 390,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/customers",
+      "width": 390,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/admin-projects",
+      "width": 390,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/accounting",
+      "width": 390,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/accounting?ansicht=woche",
+      "width": 390,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/settings",
+      "width": 390,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/user-mgmt",
+      "width": 390,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/",
+      "width": 834,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/time",
+      "width": 834,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/vacations",
+      "width": 834,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/assignments/woche",
+      "width": 834,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/assignments/woche?ansicht=monat",
+      "width": 834,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/material",
+      "width": 834,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/anforderungen",
+      "width": 834,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/lager",
+      "width": 834,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/invoices",
+      "width": 834,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/quotes",
+      "width": 834,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/customers",
+      "width": 834,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/admin-projects",
+      "width": 834,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/accounting",
+      "width": 834,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/accounting?ansicht=woche",
+      "width": 834,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/settings",
+      "width": 834,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/user-mgmt",
+      "width": 834,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/",
+      "width": 1112,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/time",
+      "width": 1112,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/vacations",
+      "width": 1112,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/assignments/woche",
+      "width": 1112,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/assignments/woche?ansicht=monat",
+      "width": 1112,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/material",
+      "width": 1112,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/anforderungen",
+      "width": 1112,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/lager",
+      "width": 1112,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/invoices",
+      "width": 1112,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/quotes",
+      "width": 1112,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/customers",
+      "width": 1112,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/admin-projects",
+      "width": 1112,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/accounting",
+      "width": 1112,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/accounting?ansicht=woche",
+      "width": 1112,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/settings",
+      "width": 1112,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/user-mgmt",
+      "width": 1112,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/",
+      "width": 1440,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/time",
+      "width": 1440,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/vacations",
+      "width": 1440,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/assignments/woche",
+      "width": 1440,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/assignments/woche?ansicht=monat",
+      "width": 1440,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/material",
+      "width": 1440,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/anforderungen",
+      "width": 1440,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/lager",
+      "width": 1440,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/invoices",
+      "width": 1440,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/quotes",
+      "width": 1440,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/customers",
+      "width": 1440,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/admin-projects",
+      "width": 1440,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/accounting",
+      "width": 1440,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/accounting?ansicht=woche",
+      "width": 1440,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/settings",
+      "width": 1440,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/user-mgmt",
+      "width": 1440,
+      "dark": false,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/",
+      "width": 390,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/time",
+      "width": 390,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/vacations",
+      "width": 390,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/assignments/woche",
+      "width": 390,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/assignments/woche?ansicht=monat",
+      "width": 390,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/material",
+      "width": 390,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/anforderungen",
+      "width": 390,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/lager",
+      "width": 390,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/invoices",
+      "width": 390,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/quotes",
+      "width": 390,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/customers",
+      "width": 390,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/admin-projects",
+      "width": 390,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/accounting",
+      "width": 390,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/accounting?ansicht=woche",
+      "width": 390,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/settings",
+      "width": 390,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/user-mgmt",
+      "width": 390,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/",
+      "width": 834,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/time",
+      "width": 834,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/vacations",
+      "width": 834,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/assignments/woche",
+      "width": 834,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/assignments/woche?ansicht=monat",
+      "width": 834,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/material",
+      "width": 834,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/anforderungen",
+      "width": 834,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/lager",
+      "width": 834,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/invoices",
+      "width": 834,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/quotes",
+      "width": 834,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/customers",
+      "width": 834,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/admin-projects",
+      "width": 834,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/accounting",
+      "width": 834,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/accounting?ansicht=woche",
+      "width": 834,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/settings",
+      "width": 834,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/user-mgmt",
+      "width": 834,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/",
+      "width": 1112,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/time",
+      "width": 1112,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/vacations",
+      "width": 1112,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/assignments/woche",
+      "width": 1112,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/assignments/woche?ansicht=monat",
+      "width": 1112,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/material",
+      "width": 1112,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/anforderungen",
+      "width": 1112,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/lager",
+      "width": 1112,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/invoices",
+      "width": 1112,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/quotes",
+      "width": 1112,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/customers",
+      "width": 1112,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/admin-projects",
+      "width": 1112,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/accounting",
+      "width": 1112,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/accounting?ansicht=woche",
+      "width": 1112,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/settings",
+      "width": 1112,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/user-mgmt",
+      "width": 1112,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/",
+      "width": 1440,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/time",
+      "width": 1440,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/vacations",
+      "width": 1440,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/assignments/woche",
+      "width": 1440,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/assignments/woche?ansicht=monat",
+      "width": 1440,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/material",
+      "width": 1440,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/anforderungen",
+      "width": 1440,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/lager",
+      "width": 1440,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/invoices",
+      "width": 1440,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/quotes",
+      "width": 1440,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/customers",
+      "width": 1440,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/admin-projects",
+      "width": 1440,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/accounting",
+      "width": 1440,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/accounting?ansicht=woche",
+      "width": 1440,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/settings",
+      "width": 1440,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    },
+    {
+      "route": "/user-mgmt",
+      "width": 1440,
+      "dark": true,
+      "result": [],
+      "pageErrors": []
+    }
+  ]
+}

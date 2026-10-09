@@ -24,6 +24,9 @@ beforeAll(async () => {
     select $1, 'Fremdartikel ' || i, 0 from generate_series(1,40000) i`, [FREMD]);
 }, 120_000);
 
+// Für 40.001 synthetische Zeilen dieselbe Aufbau-/Aufräumzeit; die eigentlichen
+// API-Abfragen behalten ihr unverändertes SQL-Zeitlimit. Aufräumen vollständig
+// abwarten, damit keine noch laufende Löschung in den nächsten Prüfbereich ragt.
 afterAll(async () => {
   if (!db) return;
   try {
@@ -31,7 +34,7 @@ afterAll(async () => {
   } finally {
     await db.end();
   }
-});
+}, 120_000);
 
 it('prüft tatsächlich einen Katalog mit 40.000 fremden Artikeln', async () => {
   const r = await admin.from('materials').select('id', { count: 'exact', head: true }).eq('company_id', FREMD);

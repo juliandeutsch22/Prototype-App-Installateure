@@ -24,4 +24,3 @@ error: relation "mahnbelege" already exists
       Tests  1 failed | 11 passed (12)
    Start at  12:22:27
    Duration  9.71s (transform 348ms, setup 0ms, import 769ms, tests 4.51s, environment 0ms)
-

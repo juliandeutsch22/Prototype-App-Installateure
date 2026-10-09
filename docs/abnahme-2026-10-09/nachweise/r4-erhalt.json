@@ -179,7 +179,7 @@
     "tests/unit/wochenTermine.test.ts",
     "tools/vorschau/daten.ts"
   ],
-  "overlap": [
+  "changed_r4_files": [
     "docs/FUNKTIONEN.md",
     "docs/handbuch/handbuch.html",
     "docs/stand-2026-10-03.md",

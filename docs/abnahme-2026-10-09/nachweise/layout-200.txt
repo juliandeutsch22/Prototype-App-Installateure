@@ -1,0 +1,64 @@
+
+### /assignments/woche · Administrator · tablet
+  [laeuft ueber] +5px  span.eintrag-weg "Berufsschule"
+
+### /assignments/woche?ansicht=monat · Administrator · tablet
+  [laeuft ueber] +104px  span.mo-name-lang "Stefan Gruber"
+  [abgeschnitten] +116px  button.mo-balken "WEG Hauptstraße 112–118"
+  [laeuft ueber] +180px  span.mo-name-lang "Anton Berger-Steinmetz"
+  [laeuft ueber] +127px  span.mo-name-lang "Max Mustermann"
+  [laeuft ueber] +120px  span.mo-name-lang "Jürgen Fasching"
+  [laeuft ueber] +87px  span.mo-name-lang "Lena Pichler"
+
+### /assignments/woche?ansicht=monat · Administrator · tablet-quer
+  [laeuft ueber] +104px  span.mo-name-lang "Stefan Gruber"
+  [abgeschnitten] +89px  button.mo-balken "WEG Hauptstraße 112–118"
+  [laeuft ueber] +180px  span.mo-name-lang "Anton Berger-Steinmetz"
+  [laeuft ueber] +127px  span.mo-name-lang "Max Mustermann"
+  [laeuft ueber] +120px  span.mo-name-lang "Jürgen Fasching"
+  [laeuft ueber] +87px  span.mo-name-lang "Lena Pichler"
+
+### /assignments/woche?ansicht=monat · Administrator · desktop
+  [abgeschnitten] +88px  button.mo-balken "WEG Hauptstraße 112–118"
+  [abgeschnitten] +16px  span.mo-name-lang "Anton Berger-Steinmetz"
+
+### /accounting · Administrator · tablet
+  [laeuft ueber] +6px  span.st-kopf "10"
+  [laeuft ueber] +5px  span.st-kopf-mo "12"
+  [laeuft ueber] +5px  span.st-kopf "13"
+  [laeuft ueber] +6px  span.st-kopf "14"
+  [laeuft ueber] +6px  span.st-kopf "15"
+  [laeuft ueber] +6px  span.st-kopf "16"
+  [laeuft ueber] +5px  span.st-kopf "17"
+  [laeuft ueber] +6px  span.st-kopf "18"
+  [laeuft ueber] +6px  span.st-kopf-mo "19"
+  [laeuft ueber] +9px  span.st-kopf "20"
+  [laeuft ueber] +5px  span.st-kopf "21"
+  [laeuft ueber] +8px  span.st-kopf "22"
+  [laeuft ueber] +8px  span.st-kopf "23"
+  [laeuft ueber] +9px  span.st-kopf "24"
+  [laeuft ueber] +9px  span.st-kopf "25"
+  [laeuft ueber] +9px  span.st-kopf-mo "26"
+  [laeuft ueber] +8px  span.st-kopf "27"
+  [laeuft ueber] +9px  span.st-kopf "28"
+  [laeuft ueber] +9px  span.st-kopf "29"
+  [laeuft ueber] +9px  span.st-kopf "30"
+  [laeuft ueber] +5px  span.st-kopf "31"
+  [laeuft ueber] +5px  p.ue-kopf-zahl "Soll bisher"
+  [laeuft ueber] +12px  p.ue-kopf-zahl "Saldo Monat"
+  [abgeschnitten] +30px  span.ue-name "Anton Berger-Steinmetz"
+
+### /accounting · Administrator · tablet-quer
+  [laeuft ueber] +5px  p.ue-kopf-zahl "Soll bisher"
+  [laeuft ueber] +12px  p.ue-kopf-zahl "Saldo Monat"
+  [abgeschnitten] +30px  span.ue-name "Anton Berger-Steinmetz"
+
+### /accounting?ansicht=woche · Administrator · tablet
+  [laeuft ueber] +9px  p.ue-kopf-zahl "Soll bisher"
+  [abgeschnitten] +50px  span.ue-name "Anton Berger-Steinmetz"
+
+### /accounting?ansicht=woche · Administrator · tablet-quer
+  [laeuft ueber] +9px  p.ue-kopf-zahl "Soll bisher"
+  [abgeschnitten] +50px  span.ue-name "Anton Berger-Steinmetz"
+
+8 Ansichten mit Befunden · 0 schwerwiegend

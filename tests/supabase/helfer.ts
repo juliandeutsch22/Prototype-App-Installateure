@@ -42,7 +42,8 @@ export interface Konto {
 const PASSWORT = 'stufe-eins-2026';
 
 export async function betriebAnlegen(id: string, name = id): Promise<void> {
-  await admin.from('companies').upsert({ id, name });
+  const { error } = await admin.from('companies').upsert({ id, name });
+  if (error) throw error;
 }
 
 export async function konto(
@@ -74,9 +75,10 @@ export async function konto(
     — das trägt noch den alten Anspruch — sondern daran, dass `app.aktiv()`
     die Belegschaft fragt und nicht das Token.
   */
-  await admin.from('users').upsert({
+  const { error: personFehler } = await admin.from('users').upsert({
     id: uid, company_id: betrieb, name: email, email, role: rolle, active: true,
   });
+  if (personFehler) throw personFehler;
 
   const client = createClient(API, ANON, { auth: { persistSession: false } });
   const an = await client.auth.signInWithPassword({ email, password: PASSWORT });

@@ -202,8 +202,8 @@ export interface Company {
    */
   kalenderAboErlaubt?: boolean;
   /**
-   * Zwei-Faktor-Anmeldung für Administrator und Geschäftsführung Pflicht
-   * (Runde 3, H1). Einschalten nur mit eigenem zweiten Faktor.
+   * Altbestand des früheren Betriebsschalters. Seit der Nutzerentscheidung
+   * vom 08.10.2026 ohne Wirkung auf die Anmeldung; Pflicht nur global.
    */
   zweiFaktorPflicht?: boolean;
   /** Abweichende Tage je Anlass der Dienstverhinderung (Schlüssel → Arbeitstage), leer = Vorbelegung. */

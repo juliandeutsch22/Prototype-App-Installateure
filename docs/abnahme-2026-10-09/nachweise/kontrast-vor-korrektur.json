@@ -1,0 +1,538 @@
+[
+  {
+    "route": "/",
+    "width": 390,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/time",
+    "width": 390,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/vacations",
+    "width": 390,
+    "dark": false,
+    "result": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".text-ink-muted\\/70.text-center.text-xs:nth-child(6)"
+            ],
+            "html": "<div class=\"py-2 text-center text-xs font-semibold text-ink-muted/70\">Sa</div>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.81 (foreground color: #88969a, background color: #f3f6f6, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".text-ink-muted\\/70.text-center.text-xs:nth-child(7)"
+            ],
+            "html": "<div class=\"py-2 text-center text-xs font-semibold text-ink-muted/70\">So</div>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.81 (foreground color: #88969a, background color: #f3f6f6, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      }
+    ],
+    "pageErrors": []
+  },
+  {
+    "route": "/assignments/woche",
+    "width": 390,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/assignments/woche?ansicht=monat",
+    "width": 390,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/material",
+    "width": 390,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/anforderungen",
+    "width": 390,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/lager",
+    "width": 390,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/invoices",
+    "width": 390,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/quotes",
+    "width": 390,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/customers",
+    "width": 390,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/admin-projects",
+    "width": 390,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/accounting",
+    "width": 390,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/accounting?ansicht=woche",
+    "width": 390,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/settings",
+    "width": 390,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/user-mgmt",
+    "width": 390,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/",
+    "width": 834,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/time",
+    "width": 834,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/vacations",
+    "width": 834,
+    "dark": false,
+    "result": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".text-ink-muted\\/70.text-center.text-xs:nth-child(6)"
+            ],
+            "html": "<div class=\"py-2 text-center text-xs font-semibold text-ink-muted/70\">Sa</div>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.81 (foreground color: #88969a, background color: #f3f6f6, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".text-ink-muted\\/70.text-center.text-xs:nth-child(7)"
+            ],
+            "html": "<div class=\"py-2 text-center text-xs font-semibold text-ink-muted/70\">So</div>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.81 (foreground color: #88969a, background color: #f3f6f6, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      }
+    ],
+    "pageErrors": []
+  },
+  {
+    "route": "/assignments/woche",
+    "width": 834,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/assignments/woche?ansicht=monat",
+    "width": 834,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/material",
+    "width": 834,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/anforderungen",
+    "width": 834,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/lager",
+    "width": 834,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/invoices",
+    "width": 834,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/quotes",
+    "width": 834,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/customers",
+    "width": 834,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/admin-projects",
+    "width": 834,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/accounting",
+    "width": 834,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/accounting?ansicht=woche",
+    "width": 834,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/settings",
+    "width": 834,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/user-mgmt",
+    "width": 834,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/",
+    "width": 1112,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/time",
+    "width": 1112,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/vacations",
+    "width": 1112,
+    "dark": false,
+    "result": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".text-ink-muted\\/70.text-center.text-xs:nth-child(6)"
+            ],
+            "html": "<div class=\"py-2 text-center text-xs font-semibold text-ink-muted/70\">Sa</div>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.81 (foreground color: #88969a, background color: #f3f6f6, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".text-ink-muted\\/70.text-center.text-xs:nth-child(7)"
+            ],
+            "html": "<div class=\"py-2 text-center text-xs font-semibold text-ink-muted/70\">So</div>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.81 (foreground color: #88969a, background color: #f3f6f6, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      }
+    ],
+    "pageErrors": []
+  },
+  {
+    "route": "/assignments/woche",
+    "width": 1112,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/assignments/woche?ansicht=monat",
+    "width": 1112,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/material",
+    "width": 1112,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/anforderungen",
+    "width": 1112,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/lager",
+    "width": 1112,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/invoices",
+    "width": 1112,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/quotes",
+    "width": 1112,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/customers",
+    "width": 1112,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/admin-projects",
+    "width": 1112,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/accounting",
+    "width": 1112,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/accounting?ansicht=woche",
+    "width": 1112,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/settings",
+    "width": 1112,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/user-mgmt",
+    "width": 1112,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/",
+    "width": 1440,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/time",
+    "width": 1440,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/vacations",
+    "width": 1440,
+    "dark": false,
+    "result": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".text-ink-muted\\/70.text-center.text-xs:nth-child(6)"
+            ],
+            "html": "<div class=\"py-2 text-center text-xs font-semibold text-ink-muted/70\">Sa</div>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.81 (foreground color: #88969a, background color: #f3f6f6, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".text-ink-muted\\/70.text-center.text-xs:nth-child(7)"
+            ],
+            "html": "<div class=\"py-2 text-center text-xs font-semibold text-ink-muted/70\">So</div>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.81 (foreground color: #88969a, background color: #f3f6f6, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      }
+    ],
+    "pageErrors": []
+  },
+  {
+    "route": "/assignments/woche",
+    "width": 1440,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/assignments/woche?ansicht=monat",
+    "width": 1440,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/material",
+    "width": 1440,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/anforderungen",
+    "width": 1440,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/lager",
+    "width": 1440,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/invoices",
+    "width": 1440,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/quotes",
+    "width": 1440,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/customers",
+    "width": 1440,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/admin-projects",
+    "width": 1440,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/accounting",
+    "width": 1440,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/accounting?ansicht=woche",
+    "width": 1440,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/settings",
+    "width": 1440,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/user-mgmt",
+    "width": 1440,
+    "dark": false,
+    "result": [],
+    "pageErrors": []
+  }
+]
