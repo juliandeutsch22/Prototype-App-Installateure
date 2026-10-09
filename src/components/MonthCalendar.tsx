@@ -83,10 +83,10 @@ export default function MonthCalendar({
       </div>
 
       <div className="grid grid-cols-7 border-b border-line bg-surface-2">
-        {DOW.map((d, i) => (
+        {DOW.map((d) => (
           <div
             key={d}
-            className={`py-2 text-center text-xs font-semibold ${i > 4 ? 'text-ink-muted/70' : 'text-ink-muted'}`}
+            className="py-2 text-center text-xs font-semibold text-ink-muted"
           >
             {d}
           </div>
