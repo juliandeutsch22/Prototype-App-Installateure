@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import Button from './Button';
 import Hinweiszeile from './Hinweiszeile';
 import { istOben, useFokusFalle } from './fokusFalle';
+import { useHintergrundSperre } from './hintergrundSperre';
 import { ImFenster } from './imFenster';
 import { grundAus } from '@/lib/fehlerGrund';
 
@@ -53,6 +54,8 @@ export default function ConfirmDialog({
   // Tab bleibt im Dialog (Prüflauf 25.09.2026, P4-05). Den Fokus setzt
   // weiterhin `autoFocus` auf „Abbrechen".
   useFokusFalle(dialog, open);
+  // Die Seite dahinter steht still, solange die Rückfrage offen ist.
+  useHintergrundSperre(open);
 
   useEffect(() => {
     if (open) setError(null);

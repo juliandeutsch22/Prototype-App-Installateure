@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { Termin } from '@/types';
 import Button from '@/components/Button';
 import { useFokusFalle, istOben } from '@/components/fokusFalle';
+import { useHintergrundSperre } from '@/components/hintergrundSperre';
 import type { FensterStart } from './EinsatzFenster';
 import type { EinsatzTeil, VorschauInhalt, VorschauZiel } from './monatsVorschau';
 
@@ -69,6 +70,12 @@ export default function MonatsVorschau({
 
   // Am Handy ist sie modal: Tab bleibt im Blatt, wie in jedem anderen Blatt.
   useFokusFalle(ref, handy);
+  /*
+    Am Handy ein Blatt mit Schleier: die Seite dahinter steht still. Am
+    Schreibtisch schwebt die Vorschau ohne Schleier über dem Raster, das
+    weiter rollen darf (sie geht dabei mit).
+  */
+  useHintergrundSperre(handy);
 
   /* Der Fokus geht beim Öffnen auf ×, ohne die Seite zu verschieben. */
   useEffect(() => {

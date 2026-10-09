@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext';
 import { canAccess, navForRole, unterseitenFuer, zusatzrechte } from './navigation';
 import { istOben, useFokusFalle } from '@/components/fokusFalle';
 import { ImFenster } from '@/components/imFenster';
+import { useHintergrundSperre } from '@/components/hintergrundSperre';
 import { searchCustomers } from '@/lib/db/customers';
 import { searchProjects } from '@/lib/db/projects';
 import { baustellenTitel } from '@/lib/baustellenTitel';
@@ -42,6 +43,8 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
   const [an, setAn] = useState(0);
   const fenster = useRef<HTMLDivElement>(null);
   useFokusFalle(fenster, offen, { zurueckGeben: true });
+  // Die Seite dahinter steht still, solange das Suchfenster offen ist.
+  useHintergrundSperre(offen);
 
   const seiten = useMemo<Treffer[]>(() => {
     if (!user) return [];
