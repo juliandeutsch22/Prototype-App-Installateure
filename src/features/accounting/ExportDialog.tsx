@@ -5,6 +5,7 @@ import { InputField, FormGrid } from '@/components/Field';
 import { localDateStr } from '@/lib/time';
 import { grundAus } from '@/lib/fehlerGrund';
 import { useFokusFalle } from '@/components/fokusFalle';
+import { useHintergrundSperre } from '@/components/hintergrundSperre';
 
 interface Props {
   user: AppUser;
@@ -37,6 +38,8 @@ export default function ExportDialog({
   // Modal heisst: der Fokus kommt herein, bleibt drin und geht beim
   // Schliessen an den Auslöser zurück (Prüflauf 25.09.2026, P4-05).
   useFokusFalle(dialog, true, { hineinHolen: 'behaelter', zurueckGeben: true });
+  // Die Seite dahinter steht still, solange der Dialog offen ist.
+  useHintergrundSperre(true);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -77,7 +80,7 @@ export default function ExportDialog({
       onClick={onClose}
     >
       <div
-        className="dialog max-h-[92vh] overflow-y-auto"
+        className="dialog max-h-[92vh] overflow-y-auto overscroll-contain"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="export-title" className="titel-karte">

@@ -10,6 +10,7 @@ import {
 import { createPortal } from 'react-dom';
 import Button from './Button';
 import { sichtbar, useFokusFalle } from './fokusFalle';
+import { useHintergrundSperre } from './hintergrundSperre';
 import { einpassen, type Masse, type Punkt } from './unterschriftEinpassen';
 
 /**
@@ -466,6 +467,13 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
   }, []);
 
   /*
+    Die gemeinsame Sperre statt eines eigenen `overflow` am `body`: liegt das
+    Blatt über einem Seitenfenster, gäbe sonst das zuerst schliessende die
+    Seite frei, während das andere noch offen ist.
+  */
+  useHintergrundSperre(offen);
+
+  /*
     SOLANGE DAS BLATT OFFEN IST, steht die Seite dahinter still (sonst
     scrollte sie auf iOS unter dem Blatt mit), „Fertig" hat den Fokus, und
     Escape schliesst wie bei jedem Dialog. Danach geht der Fokus zurück an
@@ -473,8 +481,6 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
   */
   useEffect(() => {
     if (!offen) return;
-    const vorher = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     blatt.current?.querySelector<HTMLButtonElement>('[data-fertig]')?.focus();
     const taste = (e: KeyboardEvent) => {
       if (e.key === 'Escape') blattSchliessen();
@@ -485,7 +491,6 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
     // Schliessen gesucht — dann steht wieder die im Formular.
     const huelle = wurzel.current;
     return () => {
-      document.body.style.overflow = vorher;
       window.removeEventListener('keydown', taste);
       /*
         IST DER KNOPF WEG, BEKOMMT DAS FELD DEN FOKUS. „Groß unterschreiben"

@@ -120,7 +120,7 @@
   .vorschau-pfeil:hover { border-color: var(--petrol); color: var(--accent-deep); }
   .vorschau-zu { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; background: none; color: var(--text-muted); border: 0; border-radius: var(--radius); font-size: 1.375rem; cursor: pointer; }
   .vorschau-zu:hover { color: var(--text); }
-  .vorschau-inhalt { flex: 1; min-height: 0; overflow-y: auto; padding: 0.25rem 1.125rem 0.75rem; }
+  .vorschau-inhalt { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0.25rem 1.125rem 0.75rem; }
   /* Ohne eigene Linie: der letzte Abschnitt zieht sie schon, zwei Linien übereinander wirkten wie eine dicke. */
   .vorschau-fuss { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; padding: 0.75rem 1.125rem; }
 
