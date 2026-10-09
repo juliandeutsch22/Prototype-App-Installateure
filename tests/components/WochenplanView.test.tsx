@@ -1122,6 +1122,42 @@ describe('Planung — Monat', () => {
     expect(await screen.findByRole('region', { name: 'Monatsplan nach Personen' })).toBeInTheDocument();
   });
 
+  /*
+    „ZURÜCK“ BEI OFFENEM SEITENFENSTER (Prüfung Runde 4). Seit „Zur Woche“
+    einen Eintrag im Verlauf anlegt, bleibt die Seite bei „Zurück“ stehen und
+    wechselt nur den Zeitraum — am Handy ist das die Zurück-Geste, mit der
+    man ein Blatt schließen will. Ein offenes „Einsatz bearbeiten“ für einen
+    Tag ausserhalb des neuen Zeitraums stünde dann ohne dessen Einsätze da,
+    und Speichern überschriebe die vorhandene Planung („alles weg, dann alles
+    neu“). Das Fenster gehört zum Zeitraum, aus dem es kam.
+  */
+  it('„Zurück“ in den Monat schließt ein offenes Seitenfenster der Woche — keine leere Planung für einen Tag außerhalb', async () => {
+    einsaetze = [{ ...EINSATZ_MAX, date: '2026-10-01' }];
+    zeige('/assignments/woche?ansicht=monat');
+    const monat = within(await screen.findByRole('region', { name: 'Monatsplan nach Personen' }));
+    const max = within(monat.getByRole('group', { name: 'Max Mustermann' }));
+    await userEvent.click(max.getByRole('button', { name: /^Max Mustermann, Mi\.? 30\.09\.: / }));
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Zur Woche' }));
+    // Die Woche 28.09.–04.10. reicht in den Oktober; dort steht Max auf der Baustelle.
+    await userEvent.click(await tabelle().findByRole('button', { name: /^Familie Huber \(2026-042\) am 01\.10\. bearbeiten/ }));
+    expect(screen.getByRole('dialog', { name: 'Einsatz bearbeiten' })).toBeInTheDocument();
+    expect(fenster().getByRole('checkbox', { name: /Max Mustermann/ })).toBeChecked();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Browser zurück' }));
+    expect(await screen.findByRole('region', { name: 'Monatsplan nach Personen' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(speichere).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: ohne Wechsel des Zeitraums bleibt das Fenster offen, mit der übernommenen Planung', async () => {
+    einsaetze = [{ ...EINSATZ_MAX, date: '2026-10-01' }];
+    zeige('/assignments/woche?woche=2026-W40&tag=2026-09-30');
+    await screen.findByRole('table', { name: 'Wochenplan als Tabelle' });
+    await userEvent.click(await tabelle().findByRole('button', { name: /^Familie Huber \(2026-042\) am 01\.10\. bearbeiten/ }));
+    await userEvent.click(fenster().getByRole('button', { name: 'Ganzen Tag ansehen' }));
+    expect(screen.getByRole('dialog', { name: /Donnerstag, 01\.10\./ })).toBeInTheDocument();
+  });
+
   it('Gegenprobe: die Team-Woche der Monteure hat keinen Monat', async () => {
     render(<MemoryRouter><WochenplanView nurLesen /></MemoryRouter>);
     await screen.findByRole('heading', { name: 'Team-Woche' });

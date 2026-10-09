@@ -110,6 +110,21 @@ export default function Einsatzplanung() {
   const d = useWochenDaten(tage);
   const darf = !!user && darfTermineSchreiben(user.role);
 
+  /*
+    EIN SEITENFENSTER GEHÖRT ZU SEINEM ZEITRAUM. Seit „Zur Woche“ einen
+    Eintrag im Verlauf anlegt, wechselt „Zurück“ (am Handy die Zurück-Geste,
+    mit der man ein Blatt schließen will) nur den Zeitraum, und ein offenes
+    Fenster bliebe stehen. „Einsatz bearbeiten“ für einen Tag ausserhalb des
+    neuen Zeitraums stünde dann ohne dessen Einsätze da — Speichern
+    überschriebe die vorhandene Planung. Deshalb schließt es. Geöffnet wird
+    jedes Fenster nur bei stehendem Zeitraum; Blättern geht nicht, solange
+    eines offen ist.
+  */
+  const zeitraum = `${tage[0]}|${tage[tage.length - 1]}`;
+  useEffect(() => {
+    setFenster(null);
+  }, [zeitraum]);
+
   const markiert = ansicht === 'woche' && tagAusAdresse && tage.includes(tagAusAdresse) ? tagAusAdresse : null;
   /** Für die Hauptaktion: heute, wenn er im Zeitraum liegt, sonst der erste Tag. */
   const standardTag = tage.includes(heute) ? heute : tage[0];
