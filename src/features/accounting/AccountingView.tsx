@@ -8,7 +8,7 @@ import { listProjectsByNumbers } from '@/lib/db/projects';
 import {
   subscribeEntriesInRange,
   listEntriesInRange,
-  listEntriesForProjects,
+  stundenDerBaustellen,
   deleteTimeEntry,
   listUrlaubstage,
 } from '@/lib/db/timeEntries';
@@ -35,6 +35,7 @@ import BottomSheet from '@/components/BottomSheet';
 import { Segmente } from '@/components/LotBausteine';
 import ExportDialog from './ExportDialog';
 import ProjectSummary from './ProjectSummary';
+import { fachMinutenJeBaustelle } from '@/features/projects/baustellenLage';
 import ArbeitszeitGrenzenKarte from './ArbeitszeitGrenzenKarte';
 import { useArbeitszeitGrenzen } from './useArbeitszeitGrenzen';
 import type { Grenzfall } from './arbeitszeitGrenzen';
@@ -121,8 +122,8 @@ export default function AccountingView() {
   const [belegschaftDa, setBelegschaftDa] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [entries, setEntries] = useState<WithId<TimeEntry>[]>([]);
-  /** Alle Stunden der vorkommenden Baustellen; `null` = nicht geladen. */
-  const [gesamtProjektzeiten, setGesamtProjektzeiten] = useState<WithId<TimeEntry>[] | null>([]);
+  /** Alle Fachminuten der vorkommenden Baustellen; `null` = nicht geladen. */
+  const [gesamtFach, setGesamtFach] = useState<Map<string, number> | null>(() => new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — die Auswertung steht trotzdem. */
@@ -231,17 +232,18 @@ export default function AccountingView() {
    */
   useEffect(() => {
     if (!user || projektNummern.length === 0) {
-      setGesamtProjektzeiten([]);
+      setGesamtFach(new Map());
       return;
     }
     let verworfen = false;
-    listEntriesForProjects(user.companyId, projektNummern)
-      .then((rows) => {
-        if (!verworfen) setGesamtProjektzeiten(rows);
+    // Die Summen aus der Datenbank, nicht alle Buchungen aller Jahre (Analyse 09.10.2026).
+    stundenDerBaustellen(projektNummern)
+      .then((stunden) => {
+        if (!verworfen) setGesamtFach(fachMinutenJeBaustelle(stunden));
       })
       .catch(() => {
         if (verworfen) return;
-        setGesamtProjektzeiten(null);
+        setGesamtFach(null);
         setNebenFehler('Die Gesamtstunden der Baustellen');
       });
     return () => {
@@ -1012,7 +1014,7 @@ export default function AccountingView() {
       {/* Deckungsbeitrags-Sicht: Ist gegen kalkuliertes Budget je Baustelle. */}
       <ProjectSummary
         entries={entries.filter((e) => e.date.startsWith(monthPrefix))}
-        gesamtEntries={gesamtProjektzeiten}
+        gesamtFach={gesamtFach}
         projects={projects}
         label={monatsName}
         nacht={nachtzeitVon(company)}
