@@ -930,7 +930,7 @@ export default function AccountingView() {
         krank ist oder sich vertippt hat. Die Rules erlauben das für
         Buchhaltung/GF/Administrator.
       */}
-      <BottomSheet open={fensterOffen} onClose={fensterZu} label={fensterLabel} auchBreit titel={fensterTitel}>
+      <BottomSheet open={fensterOffen} onClose={fensterZu} label={fensterLabel} auchBreit breit titel={fensterTitel}>
         <div ref={fensterInhalt}>
           {aufgabe?.art === 'erfassen' || aufgabe?.art === 'bearbeiten' ? (
             /* Beim Erfassen ohne existingDates: der Zielmitarbeiter steht erst nach der

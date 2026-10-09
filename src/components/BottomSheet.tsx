@@ -25,6 +25,12 @@ interface BottomSheetProps {
    * „Schließen“ gibt es für die Tastatur.
    */
   titel?: string;
+  /**
+   * Das breitere Seitenfenster (480 statt 440 px) — für Inhalte mit
+   * Kennzahlen nebeneinander und Zeilen mit Knopf, etwa „Person im Monat“
+   * (Runde 4). Am Handy ohne Wirkung.
+   */
+  breit?: boolean;
   children: ReactNode;
 }
 
@@ -42,7 +48,7 @@ interface BottomSheetProps {
  * Pointer-Events statt Touch-Events: dieselbe Behandlung für Finger, Stift
  * und Maus, ohne drei Wege zu pflegen.
  */
-export default function BottomSheet({ open, onClose, label, auchBreit = false, titel, children }: BottomSheetProps) {
+export default function BottomSheet({ open, onClose, label, auchBreit = false, titel, breit = false, children }: BottomSheetProps) {
   const [dy, setDy] = useState(0);
   const [zieht, setZieht] = useState(false);
   const start = useRef<{ y: number; t: number } | null>(null);
@@ -124,7 +130,7 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        className={`${auchBreit ? 'fenster' : 'blatt'} pb-[max(1rem,env(safe-area-inset-bottom))] focus-visible:outline-none`}
+        className={`${auchBreit ? (breit ? 'fenster-breit' : 'fenster') : 'blatt'} pb-[max(1rem,env(safe-area-inset-bottom))] focus-visible:outline-none`}
         style={{
           transform: `translateY(${dy}px)`,
           transition: zieht ? 'none' : 'transform 180ms ease-out',

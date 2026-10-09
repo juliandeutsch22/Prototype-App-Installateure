@@ -54,8 +54,11 @@
     sichtbar (Regel 8). Am Handy ist dasselbe Fenster ein Blatt von unten.
   */
   .fenster { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88vh; display: flex; flex-direction: column; background: var(--surface); border-radius: 1rem 1rem 0 0; box-shadow: var(--shadow-lg); padding: 0 1rem 1rem; }
+  /* Die breitere Fassung (Runde 4, „Person im Monat“): gleich, nur 30rem breit. */
+  .fenster-breit { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88vh; display: flex; flex-direction: column; background: var(--surface); border-radius: 1rem 1rem 0 0; box-shadow: var(--shadow-lg); padding: 0 1rem 1rem; }
   @media (min-width: 760px) {
     .fenster { left: auto; top: 0; width: 27.5rem; max-width: 100%; max-height: none; border-radius: 0; padding: 0; }
+    .fenster-breit { left: auto; top: 0; width: 30rem; max-width: 100%; max-height: none; border-radius: 0; padding: 0; }
   }
   .fenster-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
   @media (min-width: 760px) { .fenster-kopf { padding: 1rem 1.25rem; } }
