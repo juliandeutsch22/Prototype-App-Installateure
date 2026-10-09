@@ -300,7 +300,6 @@ export default function Einsatzplanung() {
           )}
         </div>
         <div className="planung-wahl">
-          <AnsichtWahl ansicht={ansicht} onWocheMonat={zeitraumWechseln} />
           {/* Am Handy steht die Tagesliste — dort kein Umschalter (Auftrag 4.7). */}
           <div className="hidden md:block">
             <Segmente
@@ -310,6 +309,8 @@ export default function Einsatzplanung() {
               onChange={(s) => aendereAdresse({ sicht: s === 'baustellen' ? 'baustellen' : null })}
             />
           </div>
+          {/* Zuletzt, ganz rechts — an derselben Stelle wie in „Tag“ (Runde 5, G9). */}
+          <AnsichtWahl ansicht={ansicht} onWocheMonat={zeitraumWechseln} />
         </div>
       </div>
 
@@ -351,7 +352,7 @@ export default function Einsatzplanung() {
             <div className="planung-hinweiszeile">
               <p className="hinweis-text">
                 {ohneEinsatz.length === 1 ? '1 laufende Baustelle' : `${ohneEinsatz.length} laufende Baustellen`} ohne
-                Einsatz in dieser Woche: {ohneEinsatz.slice(0, 3).map(baustellenName).join(', ')}
+                Einsatz in dieser Woche: {ohneEinsatz.slice(0, 3).map(mitNummer).join(', ')}
                 {ohneEinsatz.length > 3 ? ` und ${ohneEinsatz.length - 3} weitere` : ''}
               </p>
               <button type="button" className="wp-textknopf" onClick={() => setFenster({ art: 'noch' })}>
@@ -488,6 +489,9 @@ export default function Einsatzplanung() {
 }
 
 const baustellenName = (p: Project) => p.customerName ?? p.projectNumber;
+
+/** „CT Bau GmbH (PR-2026-0193)“ — zwei Baustellen desselben Kunden sind sonst nicht zu unterscheiden (Runde 5, G3). */
+const mitNummer = (p: Project) => (p.customerName ? `${p.customerName} (${p.projectNumber})` : p.projectNumber);
 
 function umschalten(alt: Set<string>, name: string): Set<string> {
   const neu = new Set(alt);

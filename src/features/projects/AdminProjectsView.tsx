@@ -14,7 +14,7 @@ import {
   ohneProjektleiter,
   planFenster,
 } from './baustellenLage';
-import { listEntriesForProjects } from '@/lib/db/timeEntries';
+import { stundenDerBaustellen } from '@/lib/db/timeEntries';
 import { listAssignmentsInRange } from '@/lib/db/assignments';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
@@ -458,10 +458,10 @@ export default function AdminProjectsView() {
         let nummern: string[];
         if (adressFilter === 'budget') {
           const mitBudget = aktiv.filter((p) => (p.estimatedHours ?? 0) > 0);
-          const eintraege = mitBudget.length
-            ? await listEntriesForProjects(user.companyId, mitBudget.map((p) => p.projectNumber))
+          const stunden = mitBudget.length
+            ? await stundenDerBaustellen(mitBudget.map((p) => p.projectNumber))
             : [];
-          nummern = budgetStand(mitBudget, eintraege).filter((b) => b.pct >= BUDGET_AB_PROZENT).map((b) => b.projectNumber);
+          nummern = budgetStand(mitBudget, stunden).filter((b) => b.pct >= BUDGET_AB_PROZENT).map((b) => b.projectNumber);
         } else {
           const heute = todayStr();
           const { von, bis } = planFenster(heute);
@@ -714,6 +714,16 @@ export default function AdminProjectsView() {
       <PageHeader
         title="Baustellen"
         subtitle="Baustellen anlegen und suchen — geändert wird in der Akte"
+        // Eine Hilfe je Seite (Testbericht Runde 5, G8) — der Wortlaut aus dem Handbuch.
+        hilfe={
+          <>
+            Eine Zeile öffnet die Akte der Baustelle: Stunden gegen das Budget, Termine,
+            Handwerksscheine, Pläne und Stammdaten — geändert wird dort. Gesucht wird nach
+            Nummer, Bezeichnung, Adresse und Kunde, auch unter den abgeschlossenen. Löschen und
+            „Schein nachtragen“ stehen im „⋯“ der Zeile; eine Baustelle mit Buchungen, Scheinen
+            oder Plänen lässt sich nicht löschen.
+          </>
+        }
         action={
           formOffen ? undefined : (
             <Button onClick={() => setFormOffen(true)}>Neue Baustelle</Button>

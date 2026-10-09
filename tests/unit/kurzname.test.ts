@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { initialsOf } from '@/components/initials';
 import { kurzname, kurzPerson } from '@/features/assignments/kurzname';
 
 /*
@@ -106,5 +107,30 @@ describe('kurzPerson — „Max M.“', () => {
     ['', ''],
   ])('„%s“ → „%s“', (voll, kurz) => {
     expect(kurzPerson(voll)).toBe(kurz);
+  });
+
+  // Testbericht Runde 5, G2: „Test Lehrling (Claude)“ stand als „Test (.“ da.
+  it.each([
+    ['Test Lehrling (Claude)', 'Test L.'],
+    ['Max Mustermann (Lehrling)', 'Max M.'],
+    ['(Claude) Test Lehrling', 'Test L.'],
+    ['Monteur 2', 'Monteur 2'],
+    ['Anna Beispiel 2', 'Anna B.'],
+    ['  Max   Mustermann  ', 'Max M.'],
+    ['Lena (Claude)', 'Lena'],
+  ])('Klammern und Zahlen: „%s“ → „%s“', (voll, kurz) => {
+    expect(kurzPerson(voll)).toBe(kurz);
+  });
+});
+
+describe('initialsOf (Runde 5, G2)', () => {
+  it.each([
+    ['Max Mustermann', 'MM'],
+    ['Petra', 'PE'],
+    ['', '?'],
+    ['Test Lehrling (Claude)', 'TL'],
+    ['Monteur 2', 'M2'],
+  ])('„%s“ → „%s“', (voll, kurz) => {
+    expect(initialsOf(voll)).toBe(kurz);
   });
 });

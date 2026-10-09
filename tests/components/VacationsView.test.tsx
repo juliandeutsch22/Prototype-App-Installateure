@@ -808,6 +808,38 @@ describe('Reiter und Betriebsurlaub', () => {
     expect(await screen.findByText('Weihnachten')).toBeInTheDocument();
     expect(screen.getByText(/wird vom Urlaub abgebucht/)).toBeInTheDocument();
   });
+
+  /*
+    TESTBERICHT RUNDE 5, G12: der Hinweis stand bei jeder Antragsart, auch bei
+    Krankmeldung und Pflegefreistellung. Er gehört zu Urlaub und
+    Zeitausgleich — nur die beiden prüfen gegen den Betriebsurlaub.
+  */
+  it('nennt den Betriebsurlaub nur bei Urlaub und Zeitausgleich', async () => {
+    betriebsurlaube = [{ id: 'b1', companyId: 'perl', von: '2026-12-28', bis: '2026-12-31',
+      bezeichnung: 'Weihnachten', urlaubAbbuchen: true }];
+    const nutzer = userEvent.setup();
+    zeichne();
+    expect(await screen.findByText(/wird vom Urlaub abgebucht/)).toBeInTheDocument();
+    for (const art of ['Krank', 'pflegefreistellung', 'dienstverhinderung', 'unbezahlt']) {
+      await nutzer.selectOptions(screen.getByLabelText('Art'), art);
+      expect(screen.queryByText(/wird vom Urlaub abgebucht/), art).toBeNull();
+    }
+    await nutzer.selectOptions(screen.getByLabelText('Art'), 'Zeitausgleich');
+    expect(screen.getByText(/wird vom Urlaub abgebucht/)).toBeInTheDocument();
+  });
+
+  it('nennt ihn nicht, wer vom Betriebsurlaub ausgenommen ist', async () => {
+    betriebsurlaube = [
+      { id: 'b1', companyId: 'perl', von: '2026-12-28', bis: '2026-12-31',
+        bezeichnung: 'Weihnachten', urlaubAbbuchen: true, ausgenommen: ['m1'] },
+      // Gegenprobe im selben Bild: der Betriebsurlaub, der für ihn gilt, steht da.
+      { id: 'b2', companyId: 'perl', von: '2027-08-02', bis: '2027-08-13',
+        bezeichnung: 'Sommer', urlaubAbbuchen: true },
+    ];
+    zeichne();
+    expect(await screen.findByText('Sommer')).toBeInTheDocument();
+    expect(screen.queryByText('Weihnachten')).toBeNull();
+  });
 });
 
 describe('Resturlaub', () => {

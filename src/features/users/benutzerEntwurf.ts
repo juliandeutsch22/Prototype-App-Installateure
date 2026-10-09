@@ -201,15 +201,16 @@ export function alsEntwurf(u: AppUser): BenutzerEntwurf {
     email: u.email,
     role: u.role,
     active: u.active !== false,
-    weeklyTargetHours: String(u.weeklyTargetHours ?? DEFAULT_WEEKLY_HOURS),
-    yearlyVacationDays: String(u.yearlyVacationDays ?? DEFAULT_VACATION_DAYS),
+    // Mit Komma, wie man es tippt (Runde 5, G7: „5.96“ stand neben „8,5“).
+    weeklyTargetHours: zahlAlsText(u.weeklyTargetHours ?? DEFAULT_WEEKLY_HOURS),
+    yearlyVacationDays: zahlAlsText(u.yearlyVacationDays ?? DEFAULT_VACATION_DAYS),
     appStartDate: u.appStartDate ?? todayStr(),
     eintritt: u.eintritt ?? u.appStartDate ?? todayStr(),
-    initialOvertime: String(u.initialOvertime ?? 0),
+    initialOvertime: zahlAlsText(u.initialOvertime ?? 0),
     initialVacationDays:
       u.initialVacationDays === null || u.initialVacationDays === undefined
         ? ''
-        : String(u.initialVacationDays),
+        : zahlAlsText(u.initialVacationDays),
     workDays: u.workDays ?? DEFAULT_WORK_DAYS,
     tagessoll: Object.fromEntries(
       Object.entries(u.tagessoll ?? {}).map(([tag, h]) => [tag, String(h).replace('.', ',')]),

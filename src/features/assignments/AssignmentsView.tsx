@@ -245,8 +245,15 @@ export default function AssignmentsView() {
         Umschalter statt der Reiter, darunter die Seite wie bisher.
       */}
       <PlanungsSeitenkopf />
-      <div className="planung-steuerung">
-        <AnsichtWahl ansicht="tag" />
+      {/*
+        DIESELBE BREITE UND DIESELBE STELLE WIE IN WOCHE UND MONAT (Testbericht
+        Runde 5, G9): der Umschalter sprang beim Wechsel nach links, und „Tag“
+        endete bei 1.160 px.
+      */}
+      <div className="planung-steuerung-tag">
+        <div className="planung-wahl">
+          <AnsichtWahl ansicht="tag" />
+        </div>
       </div>
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}

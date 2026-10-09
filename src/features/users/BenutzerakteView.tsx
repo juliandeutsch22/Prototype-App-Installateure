@@ -67,6 +67,9 @@ const fmtDatum = (iso?: string | null) =>
 const tageText = (tage: number[]) =>
   WEEKDAYS.filter((d) => tage.includes(d.value)).map((d) => d.label).join(', ');
 
+/** Eine Zahl mit Komma, wie überall in der Oberfläche — „5,96“, nicht „5.96“ (Runde 5, G7). */
+const mitKomma = (n: number) => String(n).replace('.', ',');
+
 export default function BenutzerakteView() {
   const { uid } = useParams<{ uid: string }>();
   const { user, einblick, company } = useAuth();
@@ -575,21 +578,21 @@ function StammdatenLesen({ p }: { p: AppUser }) {
         )}
       </Angabe>
       <Angabe wort="Wochenstunden">
-        {p.weeklyTargetHours != null ? <span>{p.weeklyTargetHours}</span> : null}
+        {p.weeklyTargetHours != null ? <span>{mitKomma(p.weeklyTargetHours)}</span> : null}
       </Angabe>
       <Angabe wort="Urlaubstage pro Jahr">
-        {p.yearlyVacationDays != null ? <span>{p.yearlyVacationDays}</span> : null}
+        {p.yearlyVacationDays != null ? <span>{mitKomma(p.yearlyVacationDays)}</span> : null}
       </Angabe>
       {/* Zwei Daten seit dem 30.09.2026 (M6): wann die Person angefangen hat,
           und ab wann Senklot ihr Zeitkonto rechnet. */}
       <Angabe wort="Eintrittsdatum">{fmtDatum(p.eintritt ?? p.appStartDate)}</Angabe>
       <Angabe wort="Saldo-Startdatum">{fmtDatum(p.appStartDate)}</Angabe>
       <Angabe wort="Start-Saldo (Stunden)">
-        {p.initialOvertime != null ? <span>{p.initialOvertime}</span> : null}
+        {p.initialOvertime != null ? <span>{mitKomma(p.initialOvertime)}</span> : null}
       </Angabe>
       <Angabe wort={urlaubsfeldName(p)}>
         {p.initialVacationDays != null ? (
-          <span>{p.initialVacationDays}</span>
+          <span>{mitKomma(p.initialVacationDays)}</span>
         ) : (
           // Nicht „0": leer heisst hier voller Jahresanspruch, und der
           // Unterschied entscheidet über jeden Urlaubsantrag.

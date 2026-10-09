@@ -1070,7 +1070,8 @@ describe('Planung — Noch einzuplanen', () => {
     ];
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
-    expect(screen.getByText(/23 laufende Baustellen ohne Einsatz in dieser Woche: Familie Huber, Kunde 02, Kunde 03 und 20 weitere/)).toBeInTheDocument();
+    // Mit Nummer: zwei Baustellen desselben Kunden stünden sonst gleich da (Runde 5, G3).
+    expect(screen.getByText(/23 laufende Baustellen ohne Einsatz in dieser Woche: Familie Huber \(2026-042\), Kunde 02 \(X-02\), Kunde 03 \(X-03\) und 20 weitere/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Noch einzuplanen …' }));
     const dialog = within(screen.getByRole('dialog', { name: 'Noch einzuplanen' }));
     expect(dialog.queryByRole('button', { name: 'Kunde 01' })).toBeNull();

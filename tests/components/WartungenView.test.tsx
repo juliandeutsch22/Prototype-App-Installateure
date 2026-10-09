@@ -658,3 +658,12 @@ describe('Eine Wartung mit Anlagendaten bearbeiten', () => {
     });
   });
 });
+
+// Testbericht Runde 5, G8: die Seite hatte keine „Hilfe zu dieser Seite“.
+describe('Hilfe zu dieser Seite (Runde 5, G8)', () => {
+  it('erklärt „Steht an“ und die Handgriffe', async () => {
+    zeichne();
+    await userEvent.click(await screen.findByRole('button', { name: 'Hilfe zu dieser Seite' }));
+    expect(await screen.findByText(/„Erledigt“ rückt den nächsten Termin nach/)).toBeInTheDocument();
+  });
+});

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import userEvent from '@testing-library/user-event';
@@ -548,11 +548,27 @@ describe('Gesamtsaldo neben dem Monatssaldo (Testbericht 30.09.2026, M8)', () =>
   it('zeigt den Stand seit Eintritt und den Start-Saldo darin', async () => {
     benutzer = [{ ...monteur, initialOvertime: 5 }];
     await oeffneMitarbeiter();
-    const zeile = await screen.findByTestId('gesamtsaldo');
-    expect(zeile).toHaveTextContent('Gesamtsaldo seit 17.08.2026: +12:30 · darin Start-Saldo +05:00');
+    // Runde 5, G6: der Wert, darunter klein „seit …“ — das Wort „Gesamtsaldo“ steht nur in der Beschriftung.
+    await waitFor(() =>
+      expect(screen.getByTestId('gesamtsaldo')).toHaveTextContent('+12:30seit 17.08.2026 · darin Start-Saldo +05:00'));
+    expect(screen.getByTestId('gesamtsaldo').closest('.pf-kennzahl')?.textContent?.match(/Gesamtsaldo/g)).toHaveLength(1);
     expect(zeitguthabenLaden).toHaveBeenCalledWith(expect.objectContaining({ uid: 'u1' }), expect.any(Boolean));
   });
 
+
+  // Testbericht Runde 5, G6: „Tagessoll 08:00“ war der Durchschnitt eines eigenen Solls je Wochentag.
+  it('nennt ein eigenes Tagessoll je Wochentag, nicht den Durchschnitt', async () => {
+    benutzer = [{ ...monteur, weeklyTargetHours: 40, tagessoll: { '1': 8.5, '2': 8.5, '3': 8.5, '4': 8.5, '5': 6 } }];
+    await oeffneMitarbeiter();
+    expect(await screen.findByText(/Tagessoll Mo 08:30, Di 08:30, Mi 08:30, Do 08:30, Fr 06:00 Std/)).toBeInTheDocument();
+    expect(screen.queryByText(/Tagessoll 08:00 Std/)).toBeNull();
+  });
+
+  it('Gegenprobe: ohne eigenes Tagessoll bleibt die Zeile, wie sie war', async () => {
+    benutzer = [{ ...monteur, weeklyTargetHours: 40, workDays: [1, 2, 3, 4, 5] }];
+    await oeffneMitarbeiter();
+    expect(await screen.findByText(/Tagessoll 08:00 Std · Wochenstunden 40:00 Std/)).toBeInTheDocument();
+  });
 
   it('lädt erst beim Öffnen des Seitenfensters', async () => {
     zeitguthabenLaden.mockClear();
@@ -605,15 +621,17 @@ describe('Im Supportzugang (Testbericht 30.09.2026, M40)', () => {
 describe('Mitarbeiteruebersicht — angepasster Urlaubsanspruch (Plan 10.3)', () => {
   it('rechnet die Anpassung in den Resturlaub und nennt sie', async () => {
     await oeffneMitarbeiter();
-    const ohne = screen.getByText(/Tage Resturlaub/).textContent ?? '';
+    const ohne = screen.getByTestId('resturlaub').textContent ?? '';
     expect(ohne).not.toMatch(/Anspruch angepasst/);
+    // Runde 5, G6: „Resturlaub“ nur als Beschriftung, nicht noch einmal im Wert.
+    expect(ohne.match(/Resturlaub/g)).toHaveLength(1);
     cleanup();
 
     anpassungen = [{ id: 'a1', userId: 'u1', urlaubsjahr: 2026, tage: -6.25, grund: 'Unbezahlter Urlaub' }];
     await oeffneMitarbeiter();
-    const mit = screen.getByText(/Tage Resturlaub/).textContent ?? '';
+    const mit = screen.getByTestId('resturlaub').textContent ?? '';
     expect(mit).toMatch(/Anspruch angepasst: −6,25 Tage/);
-    const zahl = (t: string) => Number(t.match(/([\d,]+)\s*Tage Resturlaub/)![1].replace(',', '.'));
+    const zahl = (t: string) => Number(t.match(/Resturlaub(-?[\d,]+)\s*Tage?/)![1].replace(',', '.'));
     expect(zahl(mit)).toBeCloseTo(zahl(ohne) - 6.25, 2);
   });
 });
@@ -768,9 +786,21 @@ describe('Mitarbeiterübersicht: der Monat als Streifen (Runde 4, Auftrag 3.3)',
   it('die Legende nennt die Zustände in Wörtern, ohne Kürzel', async () => {
     zeichneSeite();
     await personKnopf('Neu Eingestellt');
-    expect(screen.getByText('Arbeitstag ohne Buchung')).toBeInTheDocument();
-    expect(screen.getByText('Darüberfahren zeigt Stunden und Soll · Tag antippen öffnet ihn')).toBeInTheDocument();
+    // Eine Zeile mit kurzen Wörtern (Wunsch des Betriebs, 09.10.2026) — die Erklärung steht in der Seitenhilfe.
+    const legende = screen.getByRole('list', { name: 'Legende' });
+    expect(within(legende).getAllByRole('listitem').map((l) => l.textContent)).toEqual([
+      'gebucht', 'ohne Buchung', 'abwesend', 'frei', 'Grenze überschritten',
+    ]);
+    expect(screen.queryByText(/Darüberfahren zeigt Stunden und Soll/)).not.toBeInTheDocument();
     expect(screen.queryByText(/K Krank|ZA Zeitausgleich/)).not.toBeInTheDocument();
+  });
+
+  it('erklärt die Felder in „Hilfe zu dieser Seite“', async () => {
+    const nutzer = zeichneSeite();
+    await personKnopf('Neu Eingestellt');
+    await nutzer.click(screen.getByRole('button', { name: 'Hilfe zu dieser Seite' }));
+    expect(await screen.findByText(/„abwesend“ heißt Urlaub, Krankenstand, Berufsschule/)).toBeInTheDocument();
+    expect(screen.getByText(/Darüberfahren zeigt\s+Stunden und Soll des Tages, ein Tipp öffnet ihn/)).toBeInTheDocument();
   });
 
   it('der Tooltip ist ein eigenes Element, kein `title`', async () => {
@@ -832,20 +862,20 @@ describe('Mitarbeiterübersicht: Kennzahlen (Runde 4, Auftrag 3.2)', () => {
     expect(screen.getByText('von 160:00 Soll · alle Personen')).toBeInTheDocument();
   });
 
-  it('„Arbeitszeitgrenzen“ zählt die Fälle der Karte, markiert den Tag im Streifen — mit EINER Prüfung', async () => {
+  it('der Fall steht in der Karte und als Tag im Streifen — mit EINER Prüfung, ohne eigene Kennzahl', async () => {
     buchungen = [...eintraege.filter((e) => e.date !== '2026-08-25'), { ...eintrag('2026-08-25'), startTime: '05:00', endTime: '18:00' }];
     zeichneSeite();
     expect(await screen.findByText(/13:00 Std\. am 25\.08\. — höchstens 12 Std\./)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Arbeitszeitgrenzen/ })).toHaveTextContent('1 Fall');
+    // Die Kennzahl „Arbeitszeitgrenzen“ ist weg (Wunsch des Betriebs, 09.10.2026); Karte und Streifen bleiben.
+    expect(screen.queryByRole('button', { name: /^Arbeitszeitgrenzen/ })).toBeNull();
     expect(tagKnopf(/Di 25\.08\. · 05:00–18:00 · 13:00 Std\..*höchstens 12 Std\./)).toHaveClass('st-grenze');
-    // Karte, Kennzahl und Streifen lesen dieselbe Prüfung: eine Abfrage, nicht zwei.
+    // Karte und Streifen lesen dieselbe Prüfung: eine Abfrage, nicht zwei.
     expect(grenzAbfragen).toBe(1);
   });
 
   it('Gegenprobe: ohne Fall ist der Tag nur gebucht', async () => {
     zeichneSeite();
     expect(await screen.findByText('Im August 2026 wurde keine Grenze überschritten.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Arbeitszeitgrenzen/ })).toHaveTextContent('keine');
     expect(tagKnopf(/Di 25\.08\./)).toHaveClass('st-ok');
   });
 });

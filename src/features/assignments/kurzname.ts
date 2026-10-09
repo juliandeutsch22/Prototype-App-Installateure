@@ -124,10 +124,22 @@ function nachname(name: string): string | null {
  * Die Kurzform einer Person: „Max Mustermann“ → „Max M.“ — für das Tablet,
  * wo die Namensspalte 120 px misst, und für die Sicht nach Baustellen.
  * Ein einzelnes Wort bleibt, wie es ist.
+ *
+ * KLAMMERN UND ZAHLEN SIND KEIN NACHNAME (Testbericht Runde 5, G2): aus
+ * „Test Lehrling (Claude)“ wurde „Test (.“. Ein Zusatz in Klammern fällt weg;
+ * gekürzt wird das letzte Wort, das mit einem Buchstaben beginnt. Gibt es
+ * keins („Monteur 2“), bleibt der Name ganz — sonst wären „Monteur 1“ und
+ * „Monteur 2“ nicht mehr zu unterscheiden.
  */
 export function kurzPerson(name: string | null | undefined): string {
-  const woerter = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  const woerter = ohneKlammerzusatz(name).split(/\s+/).filter(Boolean);
   if (woerter.length < 2) return woerter[0] ?? '';
-  const letztes = woerter[woerter.length - 1];
-  return `${woerter[0]} ${letztes.charAt(0)}.`;
+  const nach = [...woerter.slice(1)].reverse().find((w) => /^\p{L}/u.test(w));
+  if (!nach) return woerter.join(' ');
+  return `${woerter[0]} ${nach.charAt(0)}.`;
+}
+
+/** „Test Lehrling (Claude)“ → „Test Lehrling“ — ein Zusatz in Klammern ist kein Teil des Namens. */
+function ohneKlammerzusatz(name: string | null | undefined): string {
+  return (name ?? '').replace(/\([^)]*\)/g, ' ').trim();
 }

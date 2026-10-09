@@ -5,8 +5,10 @@
  * — und der Lint-Lauf der CI lässt keine Warnung durch.
  */
 export function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+  // Ein Zusatz in Klammern ist kein Name: „Test Lehrling (Claude)“ → „TL“, nicht „T(“ (Runde 5, G2).
+  const parts = name.replace(/\([^)]*\)/g, ' ').trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '?';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  const letztes = [...parts.slice(1)].reverse().find((w) => /^\p{L}/u.test(w)) ?? parts[parts.length - 1];
+  return (parts[0][0] + letztes[0]).toUpperCase();
 }

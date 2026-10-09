@@ -108,6 +108,7 @@ import { ibanFehler } from '@shared/iban';
 import { stornoBelegTag } from './stornoBelegTag';
 import { empfaengerFehler, kundenartFehlt } from './empfaenger';
 import { firmenbuchFehlt } from '@/lib/firmenbuch';
+import { firmaSperrtRechnung } from './firmaSperre';
 import Adressfilter from '@/components/Adressfilter';
 import { RECHNUNGS_SICHTEN, bekannt, type RechnungsSicht } from '@/features/dashboard/start/ziele';
 
@@ -2648,8 +2649,14 @@ export default function InvoicesView() {
             erst, wenn sie schon draussen ist.
 
             GEKAPPT WIRD NICHTS. Die Zahl steht da, entschieden wird im Büro.
+
+            NUR BEI REGIE (Testbericht Runde 5, G11). Bei Pauschale und
+            Einheitspreis kommen die Stunden nicht als Zeilen auf die
+            Rechnung — „verrechnet werden 27:55 Std … mehr, als der Kunde
+            unterschrieben hat“ stand dort über „werden nicht einzeln
+            verrechnet“. Ob mehr gearbeitet wurde, zeigt die Nachkalkulation.
           */}
-          {(abgleich.scheine > 0 || abgleich.ohneSchein.length > 0) && (
+          {pauschalAus === null && (abgleich.scheine > 0 || abgleich.ohneSchein.length > 0) && (
             <div className="mb-3">
               <Hinweiszeile
                 stufe={
@@ -3428,8 +3435,8 @@ export default function InvoicesView() {
                   numberTaken || !invoiceNumber || !rcPruefung.vollstaendig || befreiungFehlt
                   || !!uidFormFehler
                   || !!summen?.gutschrift
-                  || !company?.addressLine?.trim() || leer
-                  || !!ibanFehler(company?.iban)
+                  || leer
+                  || firmaSperrtRechnung(company).length > 0
                   || !!empfaengerBefund
                 }
               >

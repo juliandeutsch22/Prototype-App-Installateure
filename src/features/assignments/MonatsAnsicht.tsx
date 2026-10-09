@@ -18,6 +18,7 @@ import type { FensterStart } from './EinsatzFenster';
 import { lokalesDatum } from './wochenplan';
 import { tagKurz, type Brett, type Gruppe } from './planTypen';
 import { kurzname, kurzPerson } from './kurzname';
+import { ortAus } from './wochenTermine';
 import {
   balkenBilden,
   baustellenDesMonats,
@@ -469,6 +470,7 @@ export default function MonatsAnsicht({
     name,
     kurz,
     titel,
+    info,
     stand,
     ziel,
   }: {
@@ -476,6 +478,8 @@ export default function MonatsAnsicht({
     name: string;
     kurz: string;
     titel: string;
+    /** Zweite Zeile der Namensspalte — in der Sicht „Baustellen“ Nummer · Ort, wie in der Woche. */
+    info?: string;
     stand: { balken: Balken[]; bahnen: number };
     ziel: (tag: string, nummer?: string) => VorschauZiel;
   }) {
@@ -489,6 +493,7 @@ export default function MonatsAnsicht({
           <span className="mo-name-kurz" aria-hidden="true">
             {kurz}
           </span>
+          {info && <span className="mo-name-info">{info}</span>}
         </div>
         {tage.map((t, i) => {
           const d = new Date(`${t}T00:00:00`);
@@ -616,6 +621,8 @@ export default function MonatsAnsicht({
               name: b.name,
               kurz: kurzname(b.name),
               titel: `${b.name} (${b.nummer})`,
+              // Zwei Baustellen desselben Kunden standen sonst gleich da (Testbericht Runde 5, G3).
+              info: [b.nummer, ortAus(projects.find((p) => p.projectNumber === b.nummer)?.address)].filter(Boolean).join(' · '),
               stand: baustellenBalken.get(b.nummer) ?? { balken: [], bahnen: 1 },
               ziel: (t) => ({ art: 'baustelle', nummer: b.nummer, name: b.name, tag: t }),
             }),

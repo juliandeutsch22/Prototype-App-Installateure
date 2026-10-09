@@ -16,6 +16,7 @@ import {
   einzigeLeitungOhneMail,
 } from '@/features/dashboard/start/regeln';
 import { auslastung } from '@/features/dashboard/start/laden';
+import { budgetStand } from '@/features/projects/baustellenLage';
 import { startseite, type Umfeld } from '@/features/dashboard/start/aufbau';
 import { themenAbschnitte } from '@/features/dashboard/start/themen';
 import { ZIEL, ANFORDERUNGS_FILTER, BAUSTELLEN_FILTER, SCHEIN_FILTER, RECHNUNGS_SICHTEN, grundpfad } from '@/features/dashboard/start/ziele';
@@ -231,6 +232,45 @@ describe('Projektleitung', () => {
     expect(a.zeilen.map((z) => z.key)).toEqual(['budget-B', 'budget-C']);
   });
 
+  /*
+    TESTBERICHT RUNDE 5, M1. Die Kennzahl sagt „alle im Budget“ nur, wenn der
+    Budgetstand geladen ist — und rechnet aus Summen aller Buchungen
+    (`budgetStand` aus `stundenDerBaustellen`), nicht aus den eigenen.
+  */
+  describe('Kennzahl „Aktive Baustellen“', () => {
+    const umfeld = (): Umfeld => ({
+      rolle: 'projektleitung', heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false,
+    });
+    const kennzahl = (budget: ReturnType<typeof budgetStand> | undefined) =>
+      startseite({ projekte: [p({ projectNumber: 'A', estimatedHours: 8 })], budget }, umfeld())
+        .kennzahlen.find((k) => k.key === 'baustellen');
+
+    it('zählt die Stunden aller, nicht nur die eigenen', () => {
+      // 18:45 Std bei 8 Std Budget — zwei Personen, die Art entscheidet.
+      const budget = budgetStand([p({ projectNumber: 'PR-A', estimatedHours: 8 })], [
+        { projectNumber: 'A', art: 'fach', minuten: 600 },
+        { projectNumber: 'A', art: 'fach', minuten: 525 },
+        { projectNumber: 'A', art: 'helfer', minuten: 600 },
+        { projectNumber: 'A', art: 'lehrling', minuten: 600 },
+        { projectNumber: 'B', art: 'fach', minuten: 9999 },
+      ]);
+      expect(budget).toEqual([expect.objectContaining({ projectNumber: 'PR-A', usedMin: 1125, pct: 234 })]);
+      expect(kennzahl(budget)?.zusatz).toBe('1 am Budgetlimit');
+    });
+
+    it('Gegenprobe: im Rahmen heißt weiter „alle im Budget“', () => {
+      expect(kennzahl(budgetStand([p({ projectNumber: 'A', estimatedHours: 8 })], [
+        { projectNumber: 'A', art: 'fach', minuten: 60 },
+      ]))?.zusatz).toBe('alle im Budget');
+    });
+
+    it('ohne geladenen Budgetstand keine Entwarnung', () => {
+      const k = kennzahl(undefined);
+      expect(k?.wert).toBe(1);
+      expect(k?.zusatz).toBeUndefined();
+    });
+  });
+
   it('Wartungen: überfällige zuerst und rot, eingeplante gar nicht', () => {
     const w = (teil: Partial<Wartung> & { id: string }) =>
       ({ companyId: 'b', customerId: 'k', customerName: 'Koller', anlage: 'Therme', intervallMonate: 12, faelligAm: HEUTE, aktiv: true, ...teil }) as Wartung;
@@ -290,6 +330,42 @@ describe('Geschäftsführung und Administrator', () => {
     expect(s.abschnitte[0].titel).toBe('Dringend');
     expect(s.abschnitte[0].zeilen[0].titel).toBe('Basiszinssatz ab 01.07. fehlt');
     expect(s.zaehlwort).toBe('Thema');
+  });
+
+  /*
+    TESTBERICHT RUNDE 5, M2 — sperren die Firmendaten jede Rechnung, steht das
+    ganz vorn unter „Dringend“ und in Rot, vor allem anderen.
+  */
+  describe('Firmendaten für Rechnungen (Runde 5, M2)', () => {
+    const viel = {
+      basiszinsFehltAb: '2026-07-01',
+      fehlendeTage: ['2026-09-28'],
+      unbezahlt: [{ id: 'RE-1', invoiceNumber: 'RE-1', customerName: 'K', paymentStatus: 'Offen', totalBrutto: 100,
+        invoiceDate: '2026-07-01', dueDate: '2026-07-15', mahnstufe: 0 } as Invoice & { id: string }],
+    };
+
+    it('sperren sie jede Rechnung: ganz vorn unter „Dringend“, in Rot, mit allem, was fehlt', () => {
+      const s = startseite({ ...viel, firmaFehlt: ['gültige IBAN', 'Firmenbuchgericht'], firmaSperrt: ['gültige IBAN'] }, umfeld());
+      expect(s.abschnitte[0].titel).toBe('Dringend');
+      expect(s.abschnitte[0].zeilen[0]).toMatchObject({
+        key: 'firma',
+        titel: 'Keine Rechnung möglich: Firmendaten unvollständig',
+        detail: 'fehlt: gültige IBAN, Firmenbuchgericht',
+        status: { text: 'ergänzen', ton: 'fehl' },
+        to: ZIEL.einstellungen('firma'),
+      });
+      // Nur einmal, nicht zusätzlich unter „Diese Woche“.
+      const alle = s.abschnitte.flatMap((a) => [...a.zeilen, ...(a.weiter && 'aufklappen' in a.weiter ? a.weiter.aufklappen : [])]);
+      expect(alle.filter((z) => z.key === 'firma')).toHaveLength(1);
+    });
+
+    it('Gegenprobe: was nur warnt, bleibt leise unter „Diese Woche“', () => {
+      const s = startseite({ firmaFehlt: ['Firmenbuchgericht'], firmaSperrt: [] }, umfeld());
+      expect(s.abschnitte.map((a) => a.titel)).toEqual(['Diese Woche']);
+      expect(s.abschnitte[0].zeilen[0]).toMatchObject({
+        key: 'firma', titel: 'Firmendaten für Rechnungen unvollständig', status: { text: 'ergänzen', ton: 'leise' },
+      });
+    });
   });
 
   // Paket 2 (03.10.2026) — ein Reiter für Buchhaltung und Leitung.

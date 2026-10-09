@@ -16,7 +16,7 @@ import type {
   Wartung,
 } from '@/types';
 import { getUserByUid, listUsers } from '@/lib/db/users';
-import { listOwnEntriesSince, listOwnEntriesInRange, listEntriesInRange, listEntriesForProjects } from '@/lib/db/timeEntries';
+import { listOwnEntriesSince, listOwnEntriesInRange, listEntriesInRange, stundenDerBaustellen } from '@/lib/db/timeEntries';
 import { getGeburtsdatum } from '@/lib/db/arbeitszeitGrenzen';
 import { andereVerteilung, grenzfaelle, istJugendlich, type Grenzfall } from '@/features/accounting/arbeitszeitGrenzen';
 import {
@@ -60,6 +60,7 @@ import { imLager, istKnapp } from '@/features/orders/lagerartikel';
 import { monateDazu } from '@/features/maintenance/wartungsplan';
 import { eigenerResturlaub, eigenerSaldo } from './eigeneKonten';
 import { budgetStand, ohneEinsatzListe, planFenster } from '@/features/projects/baustellenLage';
+import { firmaSperrtRechnung } from '@/features/invoices/firmaSperre';
 import {
   type BudgetZeile,
   type KnapperArtikel,
@@ -158,6 +159,8 @@ export interface StartDaten {
   basiszinsFehltAb?: string | null;
   kontenFehlen?: boolean;
   firmaFehlt?: string[];
+  /** Was an den Firmendaten jede neue Rechnung sperrt (`firmaSperrtRechnung`). */
+  firmaSperrt?: string[];
   // Personen
   lehrzeitEnden?: LehrzeitEndeZeile[];
   einzigeLeitungOhneMail?: boolean;
@@ -481,7 +484,7 @@ export async function leitung(
   if (was.budget) {
     const mitBudget = projekte.filter((pr) => (pr.estimatedHours ?? 0) > 0);
     out.budget = mitBudget.length
-      ? budgetStand(mitBudget, await listEntriesForProjects(user.companyId, mitBudget.map((pr) => pr.projectNumber)))
+      ? budgetStand(mitBudget, await stundenDerBaustellen(mitBudget.map((pr) => pr.projectNumber)))
       : [];
   }
 
@@ -550,6 +553,8 @@ export async function einstellungen(
     // Runde 3, M8: § 14 UGB — wer im Firmenbuch steht, nennt Nummer und Gericht.
     fehlt.push(...firmenbuchFehlt(company));
     out.firmaFehlt = fehlt;
+    // Runde 5, M2: was davon jede Rechnung sperrt — dieselbe Prüfung wie am Knopf.
+    out.firmaSperrt = firmaSperrtRechnung(company);
   }
   if (was.konten && k.user.companyId) {
     const konten = await still(() => buchungskonten(k.user.companyId), null);

@@ -39,6 +39,16 @@ function istStundenEinheit(einheit: string | undefined): boolean {
   return /^(h|std\.?|stunden?)$/i.test((einheit ?? '').trim());
 }
 
+/**
+ * Eine Pauschale ist eine Leistung, keine Ware (Testbericht Runde 5, M3):
+ * „Badsanierung, 1 pauschal“ hat keinen Einkaufspreis — ihre Arbeit steht
+ * schon in den Personalkosten aus den Buchungen. „PA“ zählt nicht dazu: es
+ * heißt ebenso oft „Paar“.
+ */
+function istPauschalEinheit(einheit: string | undefined): boolean {
+  return /^(pauschal|pauschale|pausch\.?|psch\.?|pschl\.?)$/i.test((einheit ?? '').trim());
+}
+
 export interface KostenSaetze {
   /** Kosten je Facharbeiterstunde — NICHT der Verrechnungssatz. */
   fach: number;
@@ -203,6 +213,8 @@ export function rechneBaustelle(
       if (p.istArbeitszeit ?? false) continue;
       if (istStundenEinheit(p.unit)) continue;
       const ek = (p.materialId ? ekNachId.get(p.materialId) : undefined) ?? ekNachName.get(normName(p.label));
+      // Eine Pauschale ohne Katalogartikel und ohne Preis ist eine Leistung, keine Lücke.
+      if (ek === undefined && !p.materialId && istPauschalEinheit(p.unit)) continue;
       if (ek === undefined) ausAngebot.push(`${p.label} (aus dem Angebot)`);
       else angebotKosten += (p.qty ?? 0) * ek;
     }

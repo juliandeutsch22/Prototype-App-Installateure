@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, render, screen, waitFor, within, fireEvent } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -1911,6 +1911,29 @@ describe('Rechnung gegen Schein', () => {
     expect(
       screen.getByText(/mehr, als der Kunde unterschrieben hat/),
     ).toBeInTheDocument();
+  });
+
+  /*
+    TESTBERICHT RUNDE 5, G11: bei Pauschale und Einheitspreis kommen die
+    Stunden nicht auf die Rechnung — der Abgleich „verrechnet werden …“
+    stand trotzdem da, direkt über „werden nicht einzeln verrechnet“.
+  */
+  it('vergleicht bei Pauschale und Einheitspreis keine Stunden — die werden dort nicht verrechnet', async () => {
+    for (const art of ['Pauschal', 'Einheitspreis'] as const) {
+      PROJEKT.billingMode = art;
+      angebote = [{
+        id: 'q1', quoteNumber: 'AN-2026-0003', status: 'Angenommen', quoteDate: '2026-08-01',
+        positions: [{ label: 'Heizkörper tauschen', qty: 1, unit: 'Pauschale', unitPrice: 200, netto: 200 }],
+        discount: null, subtotalNetto: 200, totalNetto: 200, totalVat: 40, totalBrutto: 240,
+      }];
+      alleScheine = [mitZeiten([240])];
+      await bisZurVorschau();
+      expect(screen.getByText(/werden nicht einzeln verrechnet/)).toBeInTheDocument();
+      expect(screen.queryByText(/mehr, als der Kunde unterschrieben hat/)).toBeNull();
+      expect(screen.queryByText(/verrechnet werden/)).toBeNull();
+      expect(screen.queryByText(/Gebucht, aber ohne unterschriebenen Schein/)).toBeNull();
+      cleanup();
+    }
   });
 
   /*

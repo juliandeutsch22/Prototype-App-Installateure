@@ -33,19 +33,25 @@ export default function Gesamtsaldo({ profil, halbeTage }: { profil: AppUser; ha
   const start = Number(profil.initialOvertime ?? 0) || 0;
   const zeichen = (min: number) => `${min > 0 ? '+' : ''}${fmtMin(min)}`;
 
+  /*
+    DER WERT GROSS, „SEIT …“ KLEIN DARUNTER (Testbericht Runde 5, G6): die
+    Kennzahl heißt schon „Gesamtsaldo“; „Gesamtsaldo / Gesamtsaldo seit …“
+    nannte es zweimal.
+  */
+  if (stand === 'laedt' || stand === 'fehler') {
+    return (
+      <p className="pf-kennzahl-text" data-testid="gesamtsaldo">
+        {stand === 'laedt' ? 'Gesamtsaldo wird geladen …' : 'Der Gesamtsaldo konnte nicht geladen werden.'}
+      </p>
+    );
+  }
   return (
-    <p className="mt-1.5 text-sm text-ink-muted" data-testid="gesamtsaldo">
-      {stand === 'laedt' ? (
-        'Gesamtsaldo wird geladen …'
-      ) : stand === 'fehler' ? (
-        'Der Gesamtsaldo konnte nicht geladen werden.'
-      ) : (
-        <>
-          Gesamtsaldo seit {datumAT(profil.appStartDate)}:{' '}
-          <b className="font-semibold text-ink">{zeichen(Math.round(stand.saldoH * 60))}</b>
-          {start !== 0 && <> · darin Start-Saldo {zeichen(Math.round(start * 60))}</>}
-        </>
-      )}
-    </p>
+    <div data-testid="gesamtsaldo">
+      <p className="mt-1 text-xl font-semibold leading-none text-ink">{zeichen(Math.round(stand.saldoH * 60))}</p>
+      <p className="pf-kennzahl-text">
+        seit {datumAT(profil.appStartDate)}
+        {start !== 0 && <> · darin Start-Saldo {zeichen(Math.round(start * 60))}</>}
+      </p>
+    </div>
   );
 }

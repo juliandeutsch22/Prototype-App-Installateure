@@ -529,6 +529,11 @@ export default function VacationsView() {
    * auch ohne Abbuchen: dann hat der Betrieb zu, und Urlaub an diesen Tagen
    * verbrauchte Anspruch für nichts.
    */
+  const betriebsurlaubeFuerMich = useMemo(
+    () => (user ? betriebsurlaube.filter((b) => !(b.ausgenommen ?? []).includes(user.uid)) : []),
+    [user, betriebsurlaube],
+  );
+
   const ueberschneidung = useMemo(() => {
     if (!user || art === 'Krank') return null;
     const bisTag = art === 'Zeitausgleich' && zaStundenweise ? von : bis;
@@ -1132,12 +1137,18 @@ export default function VacationsView() {
         {/*
           KOMMENDER BETRIEBSURLAUB steht hier, wo jemand seinen Urlaub plant —
           sonst beantragt er Tage, die ohnehin zu sind.
+
+          NUR BEI URLAUB UND ZEITAUSGLEICH (Testbericht Runde 5, G12): nur
+          diese beiden prüfen gegen den Betriebsurlaub (`ueberschneidung`).
+          Bei Krankmeldung oder Pflegefreistellung führte „wird vom Urlaub
+          abgebucht“ in die Irre. Und nicht für jemanden, der vom
+          Betriebsurlaub ausgenommen ist — bei ihm bucht die Datenbank nichts ab.
         */}
-        {betriebsurlaube.length > 0 && (
+        {(art === 'Urlaub' || art === 'Zeitausgleich') && betriebsurlaubeFuerMich.length > 0 && (
           <div className="mb-4">
             <Hinweiszeile>
               <p>
-                {betriebsurlaube.map((b) => (
+                {betriebsurlaubeFuerMich.map((b) => (
                   <span key={b.id} className="block">
                     <strong>{b.bezeichnung}</strong> {zeitraum(b)}
                     {b.urlaubAbbuchen ? ' — wird vom Urlaub abgebucht' : ''}

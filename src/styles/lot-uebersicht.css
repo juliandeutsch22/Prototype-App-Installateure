@@ -11,7 +11,7 @@
 @layer components {
   /* ── Kennzahlen (Auftrag 3.2, Punkt 2) ────────────────────────────────── */
   .ue-kennzahlen { display: grid; grid-template-columns: minmax(0, 1fr); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
-  @media (min-width: 760px) { .ue-kennzahlen { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 760px) { .ue-kennzahlen { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .ue-kennzahl { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 2.75rem; padding: 0.625rem 1rem; border: 0; border-bottom: 1px solid var(--border); background: var(--surface); color: var(--text); text-align: left; cursor: pointer; }
   .ue-kennzahl:hover { background: var(--petrol-hell); }
   .ue-kennzahl-an { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 2.75rem; padding: 0.625rem 1rem; border: 0; border-bottom: 1px solid var(--border); background: var(--petrol-hell); color: var(--text); text-align: left; cursor: pointer; box-shadow: inset 0 -3px 0 var(--petrol); }
@@ -56,8 +56,16 @@
   */
   .ue-liste { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
   .ue-liste-woche { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
-  .ue-kopfzeile { display: none; }
-  .mw-kopfzeile { display: none; }
+  /*
+    AM HANDY NUR DIE TAGE (Testbericht Runde 5, G5): ohne Kopfzeile standen
+    nur Kästchen da, „fehlt fehlt fehlt heute – –“, ohne Mo–So und ohne die
+    Wegmarken des Monats. Dasselbe Raster wie die Zeilen (`.ue-zeile`,
+    `.mw-zeile`), der Streifen über die ganze Breite — so stehen die Tage
+    genau über ihren Kästchen. „Person“ und die Zahlen tragen am Handy ihren
+    Namen selbst (`.ue-zahl-name`).
+  */
+  .ue-kopfzeile { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; align-items: end; padding: 0.5rem 1rem 0.25rem; position: sticky; top: 0; z-index: 3; background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  .mw-kopfzeile { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; align-items: end; padding: 0.5rem 0.75rem 0.25rem; position: sticky; top: 0; z-index: 3; background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
   @media (min-width: 760px) {
     .ue-kopfzeile { display: grid; grid-template-columns: 170px minmax(0, 1fr) 62px 62px 70px; gap: 12px; align-items: end; padding: 0.625rem 1rem 0.5rem; position: sticky; top: 0; z-index: 3; background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
     .mw-kopfzeile { display: grid; grid-template-columns: 150px minmax(0, 1fr) 58px 58px 64px; gap: 4px; align-items: end; padding: 0.625rem 1rem 0.5rem; position: sticky; top: 0; z-index: 3; background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
@@ -66,8 +74,12 @@
     .ue-kopfzeile { grid-template-columns: 230px minmax(0, 1fr) 76px 76px 84px; gap: 16px; padding: 0.625rem 1.25rem 0.5rem; }
     .mw-kopfzeile { grid-template-columns: 210px minmax(0, 1fr) 70px 76px 76px; gap: 12px; padding: 0.625rem 1.25rem 0.5rem; }
   }
-  .ue-kopf-person { font-size: 0.8125rem; color: var(--text-muted); }
-  .ue-kopf-zahl { font-size: 0.8125rem; color: var(--text-muted); text-align: right; white-space: nowrap; }
+  .ue-kopf-person { display: none; font-size: 0.8125rem; color: var(--text-muted); }
+  .ue-kopf-zahl { display: none; font-size: 0.8125rem; color: var(--text-muted); text-align: right; white-space: nowrap; }
+  @media (min-width: 760px) {
+    .ue-kopf-person { display: block; }
+    .ue-kopf-zahl { display: block; }
+  }
   .ue-gruppe { margin: 0; padding: 0.625rem 1rem; background: var(--bg); color: var(--text-muted); border-top: 1px solid var(--border); font-size: 0.8125rem; line-height: 1.125rem; font-weight: 600; }
   @media (min-width: 1200px) { .ue-gruppe { padding: 0.625rem 1.25rem; } }
 
@@ -98,10 +110,10 @@
   .ue-zahl-name { display: block; font-size: 0.75rem; line-height: 1rem; font-weight: 400; color: var(--text-muted); }
   @media (min-width: 760px) { .ue-zahl-name { display: none; } }
 
-  .ue-legende { padding: 0.75rem 1rem; border-top: 1px solid var(--border); font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
-  @media (min-width: 1200px) { .ue-legende { padding: 0.75rem 1.25rem; } }
-  .ue-legende-liste { display: flex; flex-wrap: wrap; gap: 0.5rem 1.125rem; margin: 0 0 0.25rem; padding: 0; list-style: none; }
-  .ue-legende-punkt { display: inline-flex; align-items: center; gap: 0.375rem; }
+  /* Eine Zeile (am Handy höchstens zwei), die Erklärung steht in der Seitenhilfe. */
+  .ue-legende { display: flex; flex-wrap: wrap; gap: 0.25rem 0.875rem; margin: 0; padding: 0.5rem 1rem; list-style: none; border-top: 1px solid var(--border); font-size: 0.75rem; line-height: 1rem; color: var(--text-muted); }
+  @media (min-width: 1200px) { .ue-legende { padding: 0.5rem 1.25rem; } }
+  .ue-legende-punkt { display: inline-flex; align-items: center; gap: 0.3125rem; white-space: nowrap; }
 
   /* ── Streifen (Auftrag 3.3.1, Baustein „Streifen“) ───────────────────── */
   .streifen { grid-column: 1 / -1; display: grid; gap: 1px; min-width: 0; }

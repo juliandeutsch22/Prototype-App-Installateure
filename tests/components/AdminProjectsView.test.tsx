@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Customer, Project } from '@/types';
+import type { BaustellenStunden } from '@/lib/db/timeEntries';
 import AdminProjectsView from '@/features/projects/AdminProjectsView';
 
 /**
@@ -98,22 +99,11 @@ vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => kundenBe
   `BaustellenUebersicht.test.tsx`), sondern DASS sie überhaupt geöffnet wird —
   und erst dann lädt.
 */
-const listEntriesForProjects = vi.fn(async () => [
-  {
-    id: 'z1',
-    companyId: 'perl',
-    date: '2026-09-01',
-    status: 'Anwesend',
-    startTime: '07:00',
-    endTime: '15:00',
-    breakDuration: 0,
-    userId: 'u1',
-    userName: 'Max Mustermann',
-    projectNumber: '2026-001',
-  },
+const stundenDerBaustellen = vi.fn<(n?: string[]) => Promise<BaustellenStunden[]>>(async () => [
+  { projectNumber: '2026-001', userId: 'u1', userName: 'Max Mustermann', art: 'fach' as const, minuten: 480, zuletzt: '2026-09-01' },
 ]);
 vi.mock('@/lib/db/timeEntries', () => ({
-  listEntriesForProjects: () => listEntriesForProjects(),
+  stundenDerBaustellen: (n: string[]) => stundenDerBaustellen(n),
 }));
 
 const authWert = {
@@ -409,10 +399,10 @@ describe('Baustellen — der Weg in die Akte', () => {
       Baustellen im Voraus auszuwerten hiesse zwanzig Abfragen für die eine,
       die jemanden interessiert. Die Auswertung hängt jetzt an der Akte.
     */
-    listEntriesForProjects.mockClear();
+    stundenDerBaustellen.mockClear();
     zeige();
     await screen.findByText(/2026-042/);
-    expect(listEntriesForProjects).not.toHaveBeenCalled();
+    expect(stundenDerBaustellen).not.toHaveBeenCalled();
   });
 });
 
@@ -974,5 +964,46 @@ describe('Baustellenliste in der Linie „Lot“', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Abbrechen' }));
     await formOeffnen();
     expect(screen.getByLabelText(/Bezeichnung/)).toHaveValue('');
+  });
+});
+
+/*
+  TESTBERICHT RUNDE 5, M1 — „über oder nahe Budget“ rechnet mit den Summen
+  aller Buchungen (`stundenDerBaustellen`). Vorher las die Liste die Buchungen
+  selbst, und die Projektleitung bekam davon nur die eigenen.
+*/
+describe('Filter „über oder nahe Budget“ (Runde 5, M1)', () => {
+  beforeEach(() => {
+    baustellen = [
+      { id: 'p1', companyId: 'perl', projectNumber: 'PR-2026-193', customerName: 'Über Budget', status: 'Aktiv', estimatedHours: 8 },
+      { id: 'p2', companyId: 'perl', projectNumber: 'PR-2026-194', customerName: 'Im Rahmen', status: 'Aktiv', estimatedHours: 8 },
+      { id: 'p3', companyId: 'perl', projectNumber: 'PR-2026-195', customerName: 'Ohne Budget', status: 'Aktiv' },
+    ] as (Project & { id: string })[];
+    stundenDerBaustellen.mockClear();
+    stundenDerBaustellen.mockImplementation(async () => [
+      { projectNumber: '2026-193', userId: 'u1', userName: 'Max', art: 'fach' as const, minuten: 600, zuletzt: '2026-09-01' },
+      { projectNumber: '2026-193', userId: 'u2', userName: 'Anton', art: 'fach' as const, minuten: 525, zuletzt: '2026-09-02' },
+      { projectNumber: '2026-194', userId: 'u1', userName: 'Max', art: 'fach' as const, minuten: 60, zuletzt: '2026-09-01' },
+      // Helferstunden laufen nicht gegen das Budget.
+      { projectNumber: '2026-194', userId: 'u3', userName: 'Hans', art: 'helfer' as const, minuten: 900, zuletzt: '2026-09-01' },
+    ]);
+  });
+
+  it('zeigt nur die Baustelle über 90 % — gefragt wird nur nach Baustellen mit Budget', async () => {
+    zeige('/admin-projects?filter=budget');
+    await screen.findByText('(PR-2026-193)');
+    await waitFor(() => expect(zeilen()).toHaveLength(1));
+    expect(screen.queryByText('(PR-2026-194)')).toBeNull();
+    expect(stundenDerBaustellen).toHaveBeenCalledTimes(1);
+    expect(stundenDerBaustellen.mock.calls[0]).toEqual([['PR-2026-193', 'PR-2026-194']]);
+  });
+});
+
+// Testbericht Runde 5, G8: die Seite hatte keine „Hilfe zu dieser Seite“.
+describe('Hilfe zu dieser Seite (Runde 5, G8)', () => {
+  it('erklärt, was die Zeile öffnet und wonach gesucht wird', async () => {
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Hilfe zu dieser Seite' }));
+    expect(await screen.findByText(/Gesucht wird nach\s+Nummer, Bezeichnung, Adresse und Kunde/)).toBeInTheDocument();
   });
 });

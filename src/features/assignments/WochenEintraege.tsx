@@ -76,12 +76,12 @@ function Einsatzblock({
         <span className="e-zeile">{konflikt === 'abwesend' ? 'fehlt' : `fehlt: ${konflikt}`}</span>
       ) : (
         <>
-          {(b.zeit || ort) && <span className="e-zeile">{b.zeit ?? ort}</span>}
+          {b.zeit ? <span className="e-zeit">{b.zeit}</span> : ort ? <span className="e-zeile">{ort}</span> : null}
           {alsHelfer && <span className="e-zeile">als Helfer</span>}
           <span className="e-nr">{b.nummer}</span>
           {zusatz.map((t) => (
             <span key={t.id} className="e-zusatz">
-              {t.art} {terminZeitKurz(t)}
+              {t.art} <span className="e-zeit">{terminZeitKurz(t)}</span>
             </span>
           ))}
         </>
@@ -116,7 +116,7 @@ export function TerminEintrag({
       onClick={() => onTermin(t)}
     >
       <span className="e-titel">{t.art}</span>
-      <span className="e-zeile">{terminZeitKurz(t)}</span>
+      <span className="e-zeit">{terminZeitKurz(t)}</span>
       <span className="e-zeile">{terminOrtKurz(t)}</span>
     </button>
   );
