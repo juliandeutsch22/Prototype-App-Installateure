@@ -18,7 +18,7 @@ mkdirSync(ziel, { recursive: true });
 /** Welche Beispieldaten ein Modul zurueckgeben soll. `*` gilt fuer alles Uebrige. */
 const DATEN = {
   users: { listUsers: 'D.benutzer', getUserByUid: 'D.benutzer[0]' },
-  timeEntries: { '*': 'D.zeiten', listUrlaubstage: '[]' },
+  timeEntries: { '*': 'D.zeiten', listUrlaubstage: '[]', stundenDerBaustellen: '[]' },
   projects: { '*': 'D.baustellen' },
   customers: {
     listCustomers: 'D.kunden', listCustomersByIds: 'D.kunden', searchCustomers: 'D.kunden',

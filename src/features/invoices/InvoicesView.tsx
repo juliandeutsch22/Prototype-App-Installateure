@@ -108,6 +108,7 @@ import { ibanFehler } from '@shared/iban';
 import { stornoBelegTag } from './stornoBelegTag';
 import { empfaengerFehler, kundenartFehlt } from './empfaenger';
 import { firmenbuchFehlt } from '@/lib/firmenbuch';
+import { firmaSperrtRechnung } from './firmaSperre';
 import Adressfilter from '@/components/Adressfilter';
 import { RECHNUNGS_SICHTEN, bekannt, type RechnungsSicht } from '@/features/dashboard/start/ziele';
 
@@ -3428,8 +3429,8 @@ export default function InvoicesView() {
                   numberTaken || !invoiceNumber || !rcPruefung.vollstaendig || befreiungFehlt
                   || !!uidFormFehler
                   || !!summen?.gutschrift
-                  || !company?.addressLine?.trim() || leer
-                  || !!ibanFehler(company?.iban)
+                  || leer
+                  || firmaSperrtRechnung(company).length > 0
                   || !!empfaengerBefund
                 }
               >

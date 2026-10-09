@@ -3,6 +3,7 @@ import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { Assignment, MaterialOrder, Project, Termin, TimeEntry } from '@/types';
+import type { BaustellenStunden } from '@/lib/db/timeEntries';
 
 /**
  * Die Startseite hatte bis hierher KEINEN Test.
@@ -105,8 +106,8 @@ const buchungen: (TimeEntry & { id: string })[] = [
 
 const rolle = { wert: 'Mitarbeiter' as string };
 
-/** Stunden je Baustelle — nur der Budget-Radar liest sie. */
-let zeitenJeBaustelle: (TimeEntry & { id: string })[] = [];
+/** Stunden je Baustelle als Summen — nur der Budget-Radar liest sie (Runde 5, M1). */
+let zeitenJeBaustelle: BaustellenStunden[] = [];
 
 /** Die Termine von heute, wie die Datenbank sie herausgibt (Plan 10.4). */
 const termine: { wert: Termin[] } = { wert: [] };
@@ -172,7 +173,7 @@ vi.mock('@/lib/db/timeEntries', () => ({
   }),
   listOwnEntriesInRange: vi.fn(async () => buchungen),
   listEntriesInRange: vi.fn(async () => buchungen),
-  listEntriesForProjects: vi.fn(async () => zeitenJeBaustelle),
+  stundenDerBaustellen: vi.fn(async () => zeitenJeBaustelle),
 }));
 /** Offene Anforderungen, wie `listOpenOrders` sie liefert. */
 const anforderungen: { wert: MaterialOrder[] } = { wert: [] };
@@ -424,10 +425,7 @@ describe('Startseite — Geschäftsführung', () => {
     // 8,5 von 9 h = 94 %.
     baustellen[0].estimatedHours = 9;
     zeitenJeBaustelle = [
-      {
-        id: 'b1', companyId: 'perl', date: '2026-06-01', status: 'Anwesend', userId: 'm1', userName: 'Anton Berger',
-        projectNumber: 'B-001', startTime: '07:00', endTime: '16:00', breakDuration: 30,
-      } as TimeEntry & { id: string },
+      { projectNumber: 'B-001', userId: 'm1', userName: 'Anton Berger', art: 'fach', minuten: 510, zuletzt: '2026-06-01' },
     ];
     rolle.wert = 'Projektleiter';
     try {

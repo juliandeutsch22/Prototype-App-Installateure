@@ -83,6 +83,13 @@ export function listEntriesForProjects(
   return pg.listEntriesForProjects(companyId, projectNumbers);
 }
 
+export type { BaustellenStunden } from './pg/timeEntries';
+
+/** Die Stunden der Baustellen als Summen je Person und Art — für Budget und Akte. */
+export function stundenDerBaustellen(projectNumbers: string[]): Promise<pg.BaustellenStunden[]> {
+  return pg.stundenDerBaustellen(projectNumbers);
+}
+
 export function eintraegeAmTag(
   companyId: string, uid: string, date: string, exceptId?: string,
 ): Promise<WithId<TimeEntry>[]> {

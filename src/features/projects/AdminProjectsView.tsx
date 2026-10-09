@@ -14,7 +14,7 @@ import {
   ohneProjektleiter,
   planFenster,
 } from './baustellenLage';
-import { listEntriesForProjects } from '@/lib/db/timeEntries';
+import { stundenDerBaustellen } from '@/lib/db/timeEntries';
 import { listAssignmentsInRange } from '@/lib/db/assignments';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
@@ -458,10 +458,10 @@ export default function AdminProjectsView() {
         let nummern: string[];
         if (adressFilter === 'budget') {
           const mitBudget = aktiv.filter((p) => (p.estimatedHours ?? 0) > 0);
-          const eintraege = mitBudget.length
-            ? await listEntriesForProjects(user.companyId, mitBudget.map((p) => p.projectNumber))
+          const stunden = mitBudget.length
+            ? await stundenDerBaustellen(mitBudget.map((p) => p.projectNumber))
             : [];
-          nummern = budgetStand(mitBudget, eintraege).filter((b) => b.pct >= BUDGET_AB_PROZENT).map((b) => b.projectNumber);
+          nummern = budgetStand(mitBudget, stunden).filter((b) => b.pct >= BUDGET_AB_PROZENT).map((b) => b.projectNumber);
         } else {
           const heute = todayStr();
           const { von, bis } = planFenster(heute);

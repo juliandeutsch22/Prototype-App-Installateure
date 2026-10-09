@@ -6,7 +6,7 @@
  * der Datenbank, und eine Regel in zwei Fassungen läuft auseinander.
  */
 import type { TimeEntry } from '@/types';
-import { abfragen, abonnieren, anlegenMitKennung, aendern as kernAendern, loeschen as kernLoeschen, type WithId } from './kern';
+import { abfragen, abonnieren, anlegenMitKennung, aendern as kernAendern, loeschen as kernLoeschen, derClient, type WithId } from './kern';
 
 import {
   aendernOhneEmpfang as fachAendern, anlegenOhneEmpfang as fachAnlegen,
@@ -127,6 +127,45 @@ export async function listEntriesForProjects(
   return abfragen<TimeEntry>(ZEITEN, companyId, {
     wo: [{ art: 'in', feld: 'projectNumber', werte: [...formen] }],
   });
+}
+
+/** Was eine Person auf einer Baustelle gearbeitet hat — eine Art, eine Summe. */
+export interface BaustellenStunden {
+  /** Die Nummer ohne „PR-“, wie `normProjectNumber`. */
+  projectNumber: string;
+  userId: string | null;
+  userName: string;
+  /** Fach zählt ins Budget, Helfer daneben, Lehrling außerhalb (`budgetArt`). */
+  art: 'fach' | 'helfer' | 'lehrling';
+  minuten: number;
+  /** Der letzte Tag mit Arbeitszeit. */
+  zuletzt: string;
+}
+
+/**
+ * Die Stunden der Baustellen — Summen, keine Buchungen.
+ *
+ * ÜBER EINE EIGENE FUNKTION (Testbericht Runde 5, M1): die Projektleitung
+ * liest von den Buchungen nur die eigenen und rechnete damit ihr Budget
+ * schön. `baustellen_stunden` gibt ihr die Summen aller, ohne Zeitkonto und
+ * Abwesenheiten. Wer sie nicht bekommen darf, bekommt einen Fehler.
+ */
+export async function stundenDerBaustellen(projectNumbers: string[]): Promise<BaustellenStunden[]> {
+  const nummern = projectNumbers.filter((n) => (n ?? '').trim().replace(/^PR-/i, ''));
+  if (nummern.length === 0) return [];
+  const { data, error } = await derClient().rpc('baustellen_stunden', { p_nummern: nummern });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as {
+    projekt: string; user_id: string | null; user_name: string | null;
+    art: BaustellenStunden['art']; minuten: number; zuletzt: string;
+  }[]).map((z) => ({
+    projectNumber: z.projekt,
+    userId: z.user_id,
+    userName: z.user_name ?? '',
+    art: z.art,
+    minuten: Number(z.minuten) || 0,
+    zuletzt: z.zuletzt,
+  }));
 }
 
 export type NewTimeEntry = Omit<TimeEntry, 'id' | 'companyId' | 'createdAt'>;

@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { listEntriesForProjects } from '@/lib/db/timeEntries';
-import { groupProjectHours, calcBudgetState, calcWorkMin, fmtStd, balkenBreite, fmtStunden } from '@/lib/time';
-import { budgetArt } from '@/lib/einstufung';
-import type { Project, TimeEntry } from '@/types';
+import { stundenDerBaustellen, type BaustellenStunden } from '@/lib/db/timeEntries';
+import { calcBudgetState, fmtStd, balkenBreite, fmtStunden } from '@/lib/time';
+import type { Project } from '@/types';
 import { TeilFehler } from '@/components/States';
 import { datumAT } from '@/lib/datum';
 
@@ -81,9 +80,9 @@ export default function BaustellenUebersicht({
     setStand({ art: 'laedt' });
     void (async () => {
       try {
-        const eintraege = await listEntriesForProjects(companyId, [nummer]);
+        const stunden = await stundenDerBaustellen([nummer]);
         if (weg) return;
-        setStand(auswerten(eintraege));
+        setStand(auswerten(stunden));
       } catch {
         if (!weg) setStand({ art: 'fehler' });
       }
@@ -182,49 +181,51 @@ export default function BaustellenUebersicht({
 }
 
 /**
- * Aus den Einträgen die drei Zahlen, auf die es ankommt.
+ * Aus den Summen je Person die drei Zahlen, auf die es ankommt.
  *
- * Ausgelagert, weil sie sich so prüfen lassen, ohne eine Ansicht zu zeichnen —
- * und weil `groupProjectHours` bereits entscheidet, was zählt: nur
- * „Anwesend", nur Einträge mit Baustelle, nur solche mit Arbeitszeit.
+ * Ausgelagert, weil sie sich so prüfen lassen, ohne eine Ansicht zu zeichnen.
+ * Was überhaupt zählt (nur „Anwesend“, nur mit Arbeitszeit) und welche Art
+ * eine Buchung hat, entscheidet schon die Datenbank (`baustellen_stunden`,
+ * dieselbe Aufteilung wie `budgetArt`) — die Projektleitung liest die
+ * einzelnen Buchungen anderer nicht (Runde 5, M1).
  */
-function auswerten(eintraege: TimeEntry[]): Extract<Stand, { art: 'bereit' }> {
-  const gruppe = groupProjectHours(eintraege)[0];
-  if (!gruppe) {
-    return { art: 'bereit', fachMin: 0, helperMin: 0, lehrlingMin: 0, personen: [], zuletzt: null };
-  }
-
+function auswerten(stunden: BaustellenStunden[]): Extract<Stand, { art: 'bereit' }> {
   const nachPerson = new Map<string, Person>();
-  for (const e of gruppe.entries) {
-    const schluessel = e.userId || 'unbekannt';
+  let fachMin = 0;
+  let helperMin = 0;
+  let lehrlingMin = 0;
+  let zuletzt: string | null = null;
+  for (const s of stunden) {
+    const schluessel = s.userId || 'unbekannt';
     const cur = nachPerson.get(schluessel) ?? {
-      name: e.userName || 'Unbekannt',
+      name: s.userName || 'Unbekannt',
       fachMin: 0,
       helperMin: 0,
       lehrlingMin: 0,
     };
-    // Dieselbe Aufteilung wie in `groupProjectHours` — dort steht auch, was
-    // ueberhaupt als Arbeitszeit zaehlt.
-    const min = calcWorkMin(e);
-    const art = budgetArt(e);
-    if (art === 'helfer') cur.helperMin += min;
-    else if (art === 'lehrling') cur.lehrlingMin += min;
-    else cur.fachMin += min;
+    if (s.art === 'helfer') {
+      cur.helperMin += s.minuten;
+      helperMin += s.minuten;
+    } else if (s.art === 'lehrling') {
+      cur.lehrlingMin += s.minuten;
+      lehrlingMin += s.minuten;
+    } else {
+      cur.fachMin += s.minuten;
+      fachMin += s.minuten;
+    }
     nachPerson.set(schluessel, cur);
+    if (zuletzt === null || s.zuletzt > zuletzt) zuletzt = s.zuletzt;
   }
 
   return {
     art: 'bereit',
-    fachMin: gruppe.fachMin,
-    helperMin: gruppe.helperMin,
-    lehrlingMin: gruppe.lehrlingMin,
+    fachMin,
+    helperMin,
+    lehrlingMin,
     // Groesster Beitrag zuerst: wer die Baustelle getragen hat, steht vorn.
     personen: [...nachPerson.values()].sort(
       (a, b) => b.fachMin + b.helperMin + b.lehrlingMin - (a.fachMin + a.helperMin + a.lehrlingMin),
     ),
-    zuletzt: gruppe.entries.reduce<string | null>(
-      (max, e) => (max === null || e.date > max ? e.date : max),
-      null,
-    ),
+    zuletzt,
   };
 }

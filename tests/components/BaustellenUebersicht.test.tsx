@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import type { Project, TimeEntry } from '@/types';
+import type { Project } from '@/types';
+import type { BaustellenStunden } from '@/lib/db/timeEntries';
 
 /**
  * Die Übersicht einer einzelnen Baustelle.
@@ -12,6 +13,11 @@ import type { Project, TimeEntry } from '@/types';
  * auseinandergelaufen — sie verglich Monatsstunden mit einem Budget, das für
  * den ganzen Auftrag kalkuliert war, und meldete eine ausgereizte Baustelle
  * als halb offen.
+ *
+ * SEIT RUNDE 5 (M1) KOMMEN SUMMEN, KEINE BUCHUNGEN: die Projektleitung liest
+ * die Buchungen anderer nicht. Was zählt (nur „Anwesend“, die ganze Laufzeit,
+ * beide Schreibweisen der Nummer) entscheidet `baustellen_stunden` — geprüft
+ * in `tests/supabase/baustellenStunden.test.ts`. Hier: was die Akte daraus macht.
  */
 
 const projekt = (over: Partial<Project> = {}): Project =>
@@ -24,28 +30,24 @@ const projekt = (over: Partial<Project> = {}): Project =>
     ...over,
   }) as Project;
 
-const eintrag = (over: Partial<TimeEntry>): TimeEntry =>
-  ({
-    companyId: 'perl',
-    date: '2026-09-03',
-    status: 'Anwesend',
-    startTime: '07:00',
-    endTime: '15:00',
-    breakDuration: 0,
-    userId: 'u1',
-    userName: 'Max Mustermann',
-    projectNumber: 'B-2026-0001',
-    ...over,
-  }) as TimeEntry;
+const summe = (over: Partial<BaustellenStunden>): BaustellenStunden => ({
+  projectNumber: 'B-2026-0001',
+  userId: 'u1',
+  userName: 'Max Mustermann',
+  art: 'fach',
+  minuten: 480,
+  zuletzt: '2026-09-03',
+  ...over,
+});
 
-let bestand: TimeEntry[] = [];
+let bestand: BaustellenStunden[] = [];
 let faellt = false;
-const listEntriesForProjects = vi.fn(async () => {
+const stundenDerBaustellen = vi.fn(async (_nummern: string[]) => {
   if (faellt) throw new Error('Netz weg');
   return bestand;
 });
 vi.mock('@/lib/db/timeEntries', () => ({
-  listEntriesForProjects: () => listEntriesForProjects(),
+  stundenDerBaustellen: (n: string[]) => stundenDerBaustellen(n),
 }));
 
 const { default: BaustellenUebersicht } = await import(
@@ -72,20 +74,17 @@ async function summenzeile() {
 beforeEach(() => {
   bestand = [];
   faellt = false;
-  listEntriesForProjects.mockClear();
+  stundenDerBaustellen.mockClear();
 });
 
 describe('Baustellenübersicht', () => {
-  it('rechnet über die ganze Laufzeit, nicht über einen Monat', async () => {
-    // Acht Stunden im Juni, acht im September: zusammen 16, nicht 8.
-    bestand = [
-      eintrag({ id: 'a', date: '2026-06-02' }),
-      eintrag({ id: 'b', date: '2026-09-03' }),
-    ];
+  it('zeigt die Summe gegen das Budget und fragt nach genau dieser Baustelle', async () => {
+    bestand = [summe({ minuten: 960 })];
     zeige();
     expect(await summenzeile()).toContain('16,0 h');
     expect(await summenzeile()).toContain('von 40 h Budget');
     expect(screen.getByText('40 %')).toBeInTheDocument();
+    expect(stundenDerBaustellen).toHaveBeenCalledWith(['B-2026-0001']);
   });
 
   /*
@@ -94,10 +93,7 @@ describe('Baustellenübersicht', () => {
     Stellen der App auf zwei verschiedene Prozentwerte.
   */
   it('lässt Helferstunden nicht gegen das Budget laufen', async () => {
-    bestand = [
-      eintrag({ id: 'a' }),
-      eintrag({ id: 'b', isHelper: true } as Partial<TimeEntry>),
-    ];
+    bestand = [summe({}), summe({ art: 'helfer' })];
     zeige();
     const zeile = await summenzeile();
     expect(zeile).toContain('8,0 h');
@@ -108,10 +104,7 @@ describe('Baustellenübersicht', () => {
 
   // Entscheidung 03.10.2026 — Lehrlingsstunden ohne Budget als eigene Summe.
   it('führt Lehrlingsstunden ohne Budget eigens an — nicht als Helfer, nicht gegen das Budget', async () => {
-    bestand = [
-      eintrag({ id: 'a' }),
-      eintrag({ id: 'l', insBudget: false } as Partial<TimeEntry>),
-    ];
+    bestand = [summe({}), summe({ userId: 'l1', userName: 'Lena Lehrling', art: 'lehrling' })];
     zeige();
     const zeile = await summenzeile();
     expect(zeile).toContain('+8,0 h Lehrling, nicht im Budget');
@@ -121,8 +114,8 @@ describe('Baustellenübersicht', () => {
 
   it('nennt die Mitarbeiter, größter Beitrag zuerst', async () => {
     bestand = [
-      eintrag({ id: 'a', userId: 'u1', userName: 'Wenig Arbeiter', endTime: '09:00' }),
-      eintrag({ id: 'b', userId: 'u2', userName: 'Viel Arbeiter' }),
+      summe({ userId: 'u1', userName: 'Wenig Arbeiter', minuten: 120 }),
+      summe({ userId: 'u2', userName: 'Viel Arbeiter' }),
     ];
     zeige();
     await screen.findByText('Viel Arbeiter');
@@ -133,7 +126,7 @@ describe('Baustellenübersicht', () => {
   });
 
   it('sagt ohne Budget, dass es keinen Stand gibt — statt einen zu erfinden', async () => {
-    bestand = [eintrag({ id: 'a' })];
+    bestand = [summe({})];
     zeige(projekt({ estimatedHours: undefined }));
     expect(await screen.findByText(/Kein Stundenbudget hinterlegt/)).toBeInTheDocument();
     expect(screen.queryByText(/%$/)).not.toBeInTheDocument();
@@ -162,22 +155,21 @@ describe('Baustellenübersicht', () => {
   });
 
   it('zeigt, wann zuletzt gebucht wurde', async () => {
+    // Der jüngste Tag über alle Personen und Arten.
     bestand = [
-      eintrag({ id: 'a', date: '2026-06-02' }),
-      eintrag({ id: 'b', date: '2026-09-03' }),
+      summe({ zuletzt: '2026-06-02' }),
+      summe({ userId: 'u2', art: 'helfer', zuletzt: '2026-09-03' }),
     ];
     zeige();
     expect(await screen.findByText('Zuletzt gebucht am 03.09.2026.')).toBeInTheDocument();
   });
 
-  it('zählt abwesende Tage nicht mit', async () => {
-    // Ein Urlaubstag trägt eine Baustellennummer, aber keine Arbeitszeit.
-    bestand = [
-      eintrag({ id: 'a' }),
-      eintrag({ id: 'b', status: 'Urlaub' } as Partial<TimeEntry>),
-    ];
+  it('fasst eine Person mit zwei Arten in einer Zeile zusammen', async () => {
+    // Derselbe Monteur einmal als Fach-, einmal als Helferzeit gebucht.
+    bestand = [summe({}), summe({ art: 'helfer', minuten: 120 })];
     zeige();
-    expect(await summenzeile()).toContain('8,0 h');
+    await screen.findByText('Max Mustermann');
+    expect(screen.getAllByText('Max Mustermann')).toHaveLength(1);
   });
 });
 
@@ -188,7 +180,7 @@ describe('Baustellenübersicht', () => {
 describe('Die Farbe des Budgetstands', () => {
   it('steht über dem Budget in Rot', async () => {
     // 2 × 8 h auf 10 h Budget: 160 %.
-    bestand = [eintrag({ id: 'a' }), eintrag({ id: 'b', date: '2026-09-04' })];
+    bestand = [summe({ minuten: 960 })];
     zeige(projekt({ estimatedHours: 10 }));
     const zahl = await screen.findByText('160 %');
     expect(zahl).toHaveClass('text-danger');
@@ -196,7 +188,7 @@ describe('Die Farbe des Budgetstands', () => {
   });
 
   it('Gegenprobe: im Rahmen weder Rot noch Hausfarbe', async () => {
-    bestand = [eintrag({ id: 'a' })];
+    bestand = [summe({})];
     zeige();
     const zahl = await screen.findByText('20 %');
     expect(zahl).not.toHaveClass('text-danger');

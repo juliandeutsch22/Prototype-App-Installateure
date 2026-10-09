@@ -1,5 +1,6 @@
-import type { Project, TimeEntry } from '@/types';
-import { calcBudgetState, groupProjectHours, localDateStr, normProjectNumber } from '@/lib/time';
+import type { Project } from '@/types';
+import type { BaustellenStunden } from '@/lib/db/timeEntries';
+import { calcBudgetState, localDateStr, normProjectNumber } from '@/lib/time';
 import { baustellenTitel } from '@/lib/baustellenTitel';
 
 /**
@@ -19,17 +20,26 @@ export interface BudgetZeile {
   estimatedHours: number;
 }
 
-/** Verbrauch je Baustelle mit Budget — Fachstunden wie in der Auswertung. */
+/**
+ * Verbrauch je Baustelle mit Budget — Fachstunden wie in der Auswertung.
+ *
+ * Aus den Summen von `stundenDerBaustellen`, nicht aus Buchungen: die
+ * Projektleitung liest von den Buchungen nur die eigenen (Runde 5, M1).
+ */
 export function budgetStand(
   projekte: Pick<Project, 'projectNumber' | 'estimatedHours' | 'customerName' | 'bezeichnung'>[],
-  eintraege: TimeEntry[],
+  stunden: Pick<BaustellenStunden, 'projectNumber' | 'art' | 'minuten'>[],
 ): BudgetZeile[] {
-  const stunden = groupProjectHours(eintraege);
+  const fach = new Map<string, number>();
+  for (const s of stunden) {
+    if (s.art !== 'fach') continue;
+    const nr = normProjectNumber(s.projectNumber);
+    fach.set(nr, (fach.get(nr) ?? 0) + s.minuten);
+  }
   return projekte
     .filter((pr) => (pr.estimatedHours ?? 0) > 0)
     .map((pr) => {
-      const h = stunden.find((x) => x.projectNumber === normProjectNumber(pr.projectNumber));
-      const fachMin = h?.fachMin ?? 0;
+      const fachMin = fach.get(normProjectNumber(pr.projectNumber)) ?? 0;
       return {
         projectNumber: pr.projectNumber,
         titel: baustellenTitel(pr),

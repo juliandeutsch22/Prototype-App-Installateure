@@ -313,7 +313,8 @@ function baustellenKennzahlen(d: StartDaten, u: Umfeld, mitAuslastung: boolean):
       key: 'baustellen',
       label: 'Aktive Baustellen',
       wert: aktiv,
-      zusatz: amLimit ? `${amLimit} am Budgetlimit` : 'alle im Budget',
+      // Ohne Budgetstand kein Satz dazu: „alle im Budget“ wäre eine Entwarnung ohne Grundlage (Runde 5, M1).
+      zusatz: !d.budget ? undefined : amLimit ? `${amLimit} am Budgetlimit` : 'alle im Budget',
       to: ZIEL.baustellen('aktiv'),
     });
   }
@@ -339,6 +340,22 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
   const wenn = (ziel: string, t: Omit<Thema, 'to'>): Thema | null => (u.darf(ziel) ? { ...t, to: ziel } : null);
 
   // ── Überfällig
+  /*
+    SPERREN DIE FIRMENDATEN JEDE RECHNUNG, steht das ganz vorn unter
+    „Dringend“ und in Rot (Testbericht Runde 5, M2) — vorher stand es leise
+    unter „Diese Woche“, oft hinter „und N weitere“. Fehlt nur, was warnt
+    (Firmenbuch, eine IBAN überhaupt), bleibt es dort.
+  */
+  const firmaFehlt = d.firmaFehlt ?? [];
+  const firmaSperrt = (d.firmaSperrt ?? []).length > 0;
+  if (firmaFehlt.length && firmaSperrt) {
+    themen.push(wenn(ZIEL.einstellungen('firma'), {
+      key: 'firma', wann: 'ueberfaellig',
+      titel: 'Keine Rechnung möglich: Firmendaten unvollständig',
+      detail: `fehlt: ${firmaFehlt.join(', ')}`,
+      status: { text: 'ergänzen', ton: 'fehl' },
+    }));
+  }
   const eigene = d.fehlendeTage ?? [];
   if (eigene.length) {
     themen.push(wenn(ZIEL.zeitFehlend, {
@@ -584,11 +601,11 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: 'anlegen', ton: 'leise' },
     }));
   }
-  if ((d.firmaFehlt ?? []).length) {
+  if (firmaFehlt.length && !firmaSperrt) {
     themen.push(wenn(ZIEL.einstellungen('firma'), {
       key: 'firma', wann: 'woche',
       titel: 'Firmendaten für Rechnungen unvollständig',
-      detail: `fehlt: ${d.firmaFehlt!.join(', ')}`,
+      detail: `fehlt: ${firmaFehlt.join(', ')}`,
       status: { text: 'ergänzen', ton: 'leise' },
     }));
   }
