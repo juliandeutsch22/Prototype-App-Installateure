@@ -107,6 +107,9 @@
   --petrol: #0f4552;
   --petrol-tief: #0a3540;
   --petrol-hell: #e4eef0;
+  /* Die Spalte „heute“ in Rastern (Runde 4): ein Hauch Petrol, leiser als
+     --petrol-hell, damit ein Block darin noch hervortritt. */
+  --heute: #f4f8f9;
   --achtung: var(--warning);
   --achtung-hell: var(--warning-bg);
   --fehler: var(--danger);
@@ -166,6 +169,7 @@
     --petrol: #236c7b;
     --petrol-tief: #1b5763;
     --petrol-hell: #17343b;
+    --heute: #132c32;
   }
 }
 

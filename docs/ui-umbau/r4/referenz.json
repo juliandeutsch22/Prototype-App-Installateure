@@ -1,0 +1,29 @@
+{
+  "hinweis": "Runde 4, V4. Erzeugt von tests/unit/r4Referenz.test.ts vor dem Umbau (Uhr 08.10.2026 10:00). Neu schreiben nur bei absichtlicher Änderung eines Exports: REFERENZ_SCHREIBEN=1.",
+  "dateien": {
+    "monats.csv": {
+      "sha256": "4804a706488ca45aa4cabd9347fadada7c7313020184a10912f267e240d8de59",
+      "bytes": 1545
+    },
+    "person-max.csv": {
+      "sha256": "d9449ae376872a0aee37e6af8ec82bbe88874f1949b6c66fabe7f07d17f21b44",
+      "bytes": 773
+    },
+    "person-lena.csv": {
+      "sha256": "8d6fed347d710dd108dc872a218819aeec77419622c6aa7d9b1f0426b17828a0",
+      "bytes": 638
+    },
+    "bericht-projekte.csv": {
+      "sha256": "d88ce67c46b50158205eaee62f37050af8a34ba186c06778d7b8e740b2a891a7",
+      "bytes": 216
+    },
+    "bericht-stundennachweis.pdf": {
+      "sha256": "ded47aa5b809dd4130dc631e4ecf1a3e7675b40be9dd206862d9e1762ea7df43",
+      "bytes": 15954
+    },
+    "gesamtplan.ics": {
+      "sha256": "adae9ae768a151e4184172bbd24198d66343d246631970e95a35de266dc1df4c",
+      "bytes": 1915
+    }
+  }
+}

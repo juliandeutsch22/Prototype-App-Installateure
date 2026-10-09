@@ -62,6 +62,18 @@ describe.each([
     expect(kontrast('#ffffff', t('--navi-tief'))!).toBeGreaterThanOrEqual(AA_NORMAL);
   });
 
+  /*
+    RUNDE 4 (Auftrag Abschnitt 8): die Art einer Abwesenheit steht grau auf
+    `--abwesend`, Text in der Spalte „heute“ auf `--heute`. Bernstein auf
+    Bernstein-hell prüft schon „Achtung und Fehler“.
+  */
+  it('Grau auf „abwesend“ und Schrift in der Spalte „heute“ sind lesbar', () => {
+    expect(kontrast(t('--text-muted'), t('--surface-3'))!).toBeGreaterThanOrEqual(AA_NORMAL);
+    for (const text of ['--text', '--text-muted', '--accent-deep', '--warning']) {
+      expect(kontrast(t(text), t('--heute'))!, text).toBeGreaterThanOrEqual(AA_NORMAL);
+    }
+  });
+
   it('der Platzhalter bleibt lesbar', () => {
     expect(kontrast(t('--text-placeholder'), t('--surface'))!).toBeGreaterThanOrEqual(AA_NORMAL);
   });
