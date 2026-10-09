@@ -3,7 +3,7 @@ import { stufeImEinsatz } from './stufeImEinsatz';
 
 /*
   Was der Wochen- und der Monatsplan je Person, Tag und Baustelle wissen.
-  Nur Typen und die Gruppierung — gerechnet wird in `WochenplanView`, an
+  Nur Typen und die Gruppierung — gerechnet wird in `useWochenDaten`, an
   einer Stelle für alle Darstellungen.
 */
 
@@ -31,6 +31,8 @@ export interface TagBaustelle {
 export interface TagStand {
   baustellen: TagBaustelle[];
   frei: string[];
+  /** Dieselben Freien als Kennung — damit „Einsatz planen“ die Person vorwählen kann. */
+  freiIds: string[];
   urlaub: string[];
 }
 

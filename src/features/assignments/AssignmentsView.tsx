@@ -16,7 +16,6 @@ import type { Project, AppUser, Assignment, Betriebsurlaub, Termin } from '@/typ
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { Marke } from '@/components/Badge';
-import PageHeader from '@/components/PageHeader';
 import MonthCalendar from '@/components/MonthCalendar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
@@ -26,10 +25,12 @@ import { ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { einsatzZeit } from './einsatzZeit';
 import { STUFEN_IM_EINSATZ, stufeAnzahl, stufeImEinsatz } from './stufeImEinsatz';
 import EinsatzFormular from './EinsatzFormular';
+import { AnsichtWahl, PlanungsSeitenkopf } from './PlanungsKopf';
 import { abwesendAm, fmtDay, useMaterialstamm, useRuestlistenDesTages } from './einsatzDaten';
 
 /**
- * „Tag planen“: Kalender + Baustelle + Mitarbeiter -> speichern.
+ * „Tag planen“ (seit Runde 4 die Ansicht „Tag“ der Einsatzplanung):
+ * Kalender + Baustelle + Mitarbeiter -> speichern.
  *
  * Der Kalender ersetzt das Datumsfeld aus der ersten Fassung. Wer plant,
  * fragt nicht „welches Datum hat der Dienstag?", sondern „wo ist noch nichts
@@ -238,11 +239,15 @@ export default function AssignmentsView() {
 
   return (
     <div className="space-y-3 lg:space-y-5">
-      <PageHeader
-        ort="Einsatzplanung"
-        title="Tag planen"
-        subtitle="Mitarbeiter einem Tag und einer Baustelle zuteilen"
-      />
+      {/*
+        RUNDE 4 (Auftrag 4.1): „Tag“ ist die dritte Ansicht der
+        Einsatzplanung neben Woche und Monat — derselbe Seitenkopf, der
+        Umschalter statt der Reiter, darunter die Seite wie bisher.
+      */}
+      <PlanungsSeitenkopf />
+      <div className="planung-steuerung">
+        <AnsichtWahl ansicht="tag" />
+      </div>
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
       {error && <ErrorState message={error} />}
