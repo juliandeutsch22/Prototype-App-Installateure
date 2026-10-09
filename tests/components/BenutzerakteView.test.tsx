@@ -219,6 +219,16 @@ describe('Die Stammdaten in der Akte', () => {
     expect(profilAendern.mock.calls[0][1]).toMatchObject({ initialVacationDays: null });
   });
 
+  // Testbericht Runde 5, G7 — „5.96“ stand mit Punkt neben „8,5“.
+  it('zeigt Dezimalzahlen mit Komma, ohne die Akte als geändert zu melden (G7)', async () => {
+    gefunden = person({ uid: 'u2', name: 'Erna Beispiel', initialVacationDays: 5.96, weeklyTargetHours: 38.5 });
+    zeige();
+    expect(await screen.findByRole('textbox', { name: /Urlaub im ersten Jahr|Resturlaub beim Umstieg/ })).toHaveValue('5,96');
+    expect(screen.getByRole('textbox', { name: /Wochenstunden/ })).toHaveValue('38,5');
+    // Unverändert heißt unverändert: das Komma allein macht die Akte nicht „geändert“.
+    expect(screen.queryByRole('button', { name: 'Speichern' })).toBeNull();
+  });
+
   // Testbericht 30.09.2026, G9 — das leere Feld sagt, was es bedeutet.
   it('sagt im leeren Urlaubsfeld „leer = voller Anspruch“ (G9)', async () => {
     zeige();

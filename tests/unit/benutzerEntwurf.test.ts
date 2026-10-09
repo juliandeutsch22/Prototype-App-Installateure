@@ -59,7 +59,8 @@ describe('Aus einem Benutzer wird ein Entwurf', () => {
   it('nimmt die Felder mit, die es gibt', () => {
     const e = alsEntwurf(PERSON);
     expect(e.name).toBe('Erna Beispiel');
-    expect(e.weeklyTargetHours).toBe('38.5');
+    // Mit Komma, wie man es tippt (Runde 5, G7).
+    expect(e.weeklyTargetHours).toBe('38,5');
     expect(e.initialOvertime).toBe('12');
     expect(e.workDays).toEqual([1, 2, 3, 4, 5]);
   });
@@ -67,6 +68,16 @@ describe('Aus einem Benutzer wird ein Entwurf', () => {
   it('macht aus „kein Resturlaub angegeben“ ein leeres Feld', () => {
     expect(alsEntwurf(PERSON).initialVacationDays).toBe('');
     expect(alsEntwurf({ ...PERSON, initialVacationDays: 7 }).initialVacationDays).toBe('7');
+  });
+
+  // Testbericht Runde 5, G7: „Urlaub im ersten Jahr“ stand als „5.96“ da.
+  it('schreibt Dezimalzahlen mit Komma — und liest sie unverändert zurück', () => {
+    const p = { ...PERSON, initialVacationDays: 5.96, initialOvertime: -6.25, weeklyTargetHours: 38.5, yearlyVacationDays: 25 };
+    const e = alsEntwurf(p);
+    expect([e.initialVacationDays, e.initialOvertime, e.weeklyTargetHours, e.yearlyVacationDays]).toEqual(['5,96', '-6,25', '38,5', '25']);
+    const zurueck = alsProfil(e);
+    expect([zurueck.initialVacationDays, zurueck.initialOvertime, zurueck.weeklyTargetHours, zurueck.yearlyVacationDays])
+      .toEqual([5.96, -6.25, 38.5, 25]);
   });
 
   it('behält einen Resturlaub von wirklich null Tagen', () => {
