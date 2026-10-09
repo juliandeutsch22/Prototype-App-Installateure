@@ -26,11 +26,16 @@ Prüfungen beachten.
 
 ## GitHub und zwischenzeitliche Änderungen
 
-Lesen funktioniert. Letzte tatsächliche Schreibprobe am 09.10.2026:
-`create_branch` weiterhin HTTP 403 `Resource not accessible by integration`.
-Auch vorhandene CLI-Zugangsdaten lieferten zuvor keinen Schreibzugriff.
-Das ist ein technischer Blocker, keine ausstehende Nutzerentscheidung.
+Lesen funktioniert. Frühere Schreibproben lieferten HTTP 403
+`Resource not accessible by integration`. Inzwischen ist am 09.10.2026 ein
+echter CLI-Push des vollständigen Arbeitsbranches erfolgreich gewesen:
+`chore/abnahme-und-belastung-2026-10-08`. Der Arbeitsstand ist damit auch
+auf GitHub gesichert; Main wurde nicht gemergt, nicht deployt.
+Verwendet wurde `git -c credential.helper='!gh auth git-credential' push origin …`.
 In einer neuen Session Zugriff erneut prüfen; Tokens nie im Chat ausgeben.
+Die zuvor angebotenen Chat-Downloadlinks funktionieren beim Nutzer nicht:
+lokale Dateien wurden nicht als Chat-Anhänge registriert. Stattdessen den
+gesicherten GitHub-Branch verwenden; kein Artefakt-Download nötig.
 
 Neuester eingelesener Main-Commit:
 `078429f33f63e29ea1df2a84fb55458fc1956cab` — PR #257, Runde 4 mit neuer
@@ -174,7 +179,16 @@ beenden. Unvollständige oder unterbrochene Läufe nicht zählen.
 
 Das Paket enthält den vollständigen Quellstand, ein zusätzliches Git-Bundle
 mit den unveröffentlichten Topic-Commits und dieses Protokoll. Das Bundle setzt
-den oben genannten Main-Commit voraus. Wiederaufnahme mit Git:
+den oben genannten Main-Commit voraus. Die Topic-Commits sind inzwischen auch
+im GitHub-Arbeitsbranch enthalten. Direkte Wiederaufnahme ohne Download:
+
+```bash
+git clone --branch chore/abnahme-und-belastung-2026-10-08 https://github.com/juliandeutsch22/Prototype-App-Installateure.git
+cd Prototype-App-Installateure
+npm ci
+```
+
+Alternativ Wiederaufnahme mit dem lokalen Git-Bundle:
 
 ```bash
 git clone https://github.com/juliandeutsch22/Prototype-App-Installateure.git
