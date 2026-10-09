@@ -351,24 +351,33 @@ export async function abfragen<T>(
   return gesamt.map((z) => zeileAlsObjekt<WithId<T>>(tabelle, z));
 }
 
-export interface SeitenZeiger { id: string; zeit: string }
+export interface SeitenZeiger { id: string; zeit: string; eilig?: boolean }
 export interface Seite<T> { zeilen: WithId<T>[]; naechste: SeitenZeiger | null }
 
 /** 50 Zeilen plus Vorschau; der Zeiger hält auch bei gleichzeitig neuen Zeilen die Stelle. */
 export async function abfragenSeite<T>(
   tabelle: string, companyId: string,
-  abfrage: Pick<Abfrage, 'wo' | 'oder'> & { vor?: SeitenZeiger | null } = {},
+  abfrage: Pick<Abfrage, 'wo' | 'oder'> & { vor?: SeitenZeiger | null; eiligeZuerst?: boolean } = {},
 ): Promise<Seite<T>> {
   let oder = abfrage.oder;
   if (abfrage.vor) {
     const { id, zeit } = abfrage.vor;
-    if (!/^[0-9a-f-]{36}$/i.test(id) || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,6})?(?:Z|[+-]\d\d:\d\d)$/.test(zeit)) {
+    if (!/^[0-9a-f-]{36}$/i.test(id) || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,6})?(?:Z|[+-]\d\d:\d\d)$/.test(zeit)
+      || (abfrage.eiligeZuerst && typeof abfrage.vor.eilig !== 'boolean')) {
       throw new Error('Die Stelle zum Weiterladen ist ungültig. Bitte die Liste neu laden.');
     }
-    const cursor = `created_at.lt.${zeit},and(created_at.eq.${zeit},id.gt.${id})`;
+    let cursor = `created_at.lt.${zeit},and(created_at.eq.${zeit},id.gt.${id})`;
+    if (abfrage.eiligeZuerst) {
+      cursor = abfrage.vor.eilig
+        ? `is_urgent.eq.false,and(is_urgent.eq.true,or(${cursor}))`
+        : `and(is_urgent.eq.false,or(${cursor}))`;
+    }
     oder = oder ? `and(or(${oder}),or(${cursor}))` : cursor;
   }
-  const bauer = anwenden(derClient().from(tabelle).select('*').eq('company_id', companyId) as unknown as Filterbar,
+  let basis = derClient().from(tabelle).select('*').eq('company_id', companyId) as unknown as Filterbar;
+  // Die Priorität muss vor der Seitengrenze greifen, sonst verschwinden alte Eilfälle hinter normalen Zeilen.
+  if (abfrage.eiligeZuerst) basis = basis.order('is_urgent', { ascending: false });
+  const bauer = anwenden(basis,
     { ...abfrage, oder, sortiere: { feld: 'createdAt', absteigend: true } }, tabelle)
     .range(0, 50);
   const { data, error } = await (bauer as unknown as PromiseLike<{
@@ -379,7 +388,8 @@ export async function abfragenSeite<T>(
   const zeilen = roh.slice(0, 50);
   const letzte = zeilen[zeilen.length - 1];
   return { zeilen: zeilen.map((z) => zeileAlsObjekt<WithId<T>>(tabelle, z)),
-    naechste: roh.length > 50 ? { id: String(letzte.id), zeit: String(letzte.created_at) } : null };
+    naechste: roh.length > 50 ? { id: String(letzte.id), zeit: String(letzte.created_at),
+      ...(abfrage.eiligeZuerst ? { eilig: letzte.is_urgent === true } : {}) } : null };
 }
 
 /** Schreibt ein neues Dokument; companyId kommt aus dem Anmeldekontext. */

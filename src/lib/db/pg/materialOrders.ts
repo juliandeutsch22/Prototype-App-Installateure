@@ -32,7 +32,7 @@ export function listOrdersPage(companyId: string, suche: string,
       : [{ art: 'ungleich', feld: 'transactionType', wert: 'return' },
         { art: ansicht === 'archiv' ? 'gleich' : 'ungleich', feld: 'status', wert: 'Erledigt' }]) as import('./kern').Bedingung[],
       ...(auswahl.baustelle ? [{ art: 'gleich' as const, feld: 'projectNumber', wert: auswahl.baustelle }] : [])],
-    oder, vor,
+    oder, vor, eiligeZuerst: ansicht === 'aktiv',
   });
 }
 

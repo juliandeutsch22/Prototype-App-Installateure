@@ -75,7 +75,7 @@ describe('Serversuche und 50er-Seiten', () => {
     expect(ids).toHaveLength(anzahl);
     expect(new Set(ids).size).toBe(anzahl);
     expect(ids).not.toContain(neu);
-    expect((await listOrdersPage(betrieb, '', 'aktiv')).zeilen[0].id).toBe(neu);
+    expect((await listOrdersPage(betrieb, '', 'aktiv')).zeilen.filter((o) => !o.isUrgent)[0].id).toBe(neu);
   });
   it('wendet Startseitenfilter vor der Seitengrenze an und hält Einkaufssummen vollständig', async () => {
     const s = await listOrdersPage(betrieb, '', 'aktiv', null, {

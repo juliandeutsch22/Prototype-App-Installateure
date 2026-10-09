@@ -26,8 +26,10 @@ test('Serversuche findet alte Belege und der Einkauf zählt alle 251 Anforderung
     })))).error).toBeNull();
     expect((await admin.from('material_orders').insert(Array.from({ length: 251 }, (_, i) => ({
       id: crypto.randomUUID(), company_id: betrieb, user_id: uid, user_name: 'Seitenchef',
-      material_name: 'Archivventil', quantity: 1, status: 'Offen', transaction_type: 'order',
+      material_name: i === 150 ? 'Eilventil hinter Seite eins' : 'Archivventil', quantity: 1, status: 'Offen', transaction_type: 'order',
       beschaffung: 'einkauf', note: i === 250 ? 'Seltene alte Kommission' : null,
+      is_urgent: i === 150,
+      created_at: i === 150 ? '2020-01-01T08:00:00Z' : '2026-01-01T08:00:00Z',
     })))).error).toBeNull();
     await anmelden(page, email);
     await page.goto('/quotes');
@@ -38,11 +40,13 @@ test('Serversuche findet alte Belege und der Einkauf zählt alle 251 Anforderung
     await expect(page.getByText('AN-2026-150', { exact: true })).toBeVisible();
     await page.goto('/anforderungen');
     await expect(page.getByRole('button', { name: 'Weitere Anforderungen laden' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Eilventil hinter Seite eins ×1/ })).toBeVisible();
     await page.getByLabel('Suche', { exact: true }).fill('Seltene alte Kommission');
     await expect(page.getByText('Notiz: Seltene alte Kommission', { exact: true })).toBeVisible();
     await expect(page.getByLabel('Suche', { exact: true })).toHaveValue('Seltene alte Kommission');
     await page.getByRole('button', { name: /^Einkauf/ }).click();
-    await expect(page.getByText(/251 × Archivventil/)).toBeVisible();
+    await expect(page.getByText(/250 × Archivventil/)).toBeVisible();
+    await expect(page.getByText(/1 × Eilventil hinter Seite eins/)).toBeVisible();
     await keineFehlermeldung(page);
   } finally {
     for (const tabelle of ['material_orders', 'quotes']) {
