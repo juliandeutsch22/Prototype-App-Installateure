@@ -30,9 +30,10 @@ test('Akte → Handwerksscheine → Schein öffnen → Zurück in die Akte', asy
   const karte = page.locator('#b-scheine');
   await expect(karte.getByRole('heading', { name: 'Handwerksscheine' })).toBeVisible({ timeout: 20_000 });
   await expect(karte.getByRole('link', { name: 'Handwerksschein schreiben' })).toBeVisible();
-  const zeile = karte.getByRole('link', { name: new RegExp(`geschrieben von ${MONTEUR.name}`) });
+  // Die Zeile: Datum und Abrechnung als Verweis, darunter wer geschrieben hat, daneben der Stand.
+  const zeile = karte.getByRole('listitem').filter({ hasText: `geschrieben von ${MONTEUR.name}` });
   await expect(zeile).toContainText('Entwurf');
-  await zeile.click();
+  await zeile.getByRole('link', { name: /· Regie$/ }).click();
 
   await expect(page).toHaveURL(new RegExp(`/worksheets\\?markiert=${ID}`));
   await expect(page.getByRole('dialog', { name: 'Handwerksschein' })).toBeVisible({ timeout: 15_000 });
