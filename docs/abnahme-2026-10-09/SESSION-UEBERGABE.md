@@ -18,8 +18,12 @@ wiederverwendet, ohne erneute Einrichtung/Prüfung beim Wiederöffnen. Nach
 ausdrücklichem Abmelden oder Ablauf wird der vorhandene Faktor geprüft.
 Diese Interpretation wurde kommuniziert; kein unsicherer MFA-Bypass eingebaut.
 
-Merge und Deployment sind ausdrücklich autorisiert; keine erneute Freigabe
-verlangen. Keine Nachrichten an externe Personen versenden. Keine produktiven
+Neueste Nutzerentscheidung am 09.10.2026: **Merge und Deployment ausgesetzt.**
+Zuerst den neuesten Repository-Stand, bereits eingebrachte Fixes und alle
+Zusammenhänge erneut prüfen. Erst nach Vorlage des Prüfergebnisses und einem
+ausdrücklichen neuen Go des Nutzers mergen; vorher auch keine Auslieferung.
+Die frühere Freigabe ist damit überholt. Keine Nachrichten an externe Personen
+versenden. Keine produktiven
 Daten löschen oder umschreiben. Keine Subagents ohne ausdrücklichen Auftrag.
 `CLAUDE.md` lesen und die Gegenproben, Rechte, Dokumentation und vollständige
 Prüfungen beachten.

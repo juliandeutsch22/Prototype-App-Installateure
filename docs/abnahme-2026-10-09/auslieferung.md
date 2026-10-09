@@ -1,15 +1,19 @@
 # Auslieferungsprotokoll
 
-Auftraggeber hat Merge und Deployment freigegeben. Aktueller Zugang kann
-GitHub lesen, aber keine Branches schreiben: erneut HTTP 403
-`Resource not accessible by integration` bei `POST /git/refs` am 09.10.2026.
-Lokale Commits und Tests sind daher keine veröffentlichte Änderung und kein
-Nachweis grüner GitHub-CI. Anbieterzugänge sind hier nicht konfiguriert.
+**Merge und Deployment sind seit der neuesten Nutzerentscheidung am
+09.10.2026 ausgesetzt.** Erst den neuesten Repository-Stand und bereits
+eingebrachte Fixes abgleichen, alle Zusammenhänge erneut prüfen und das
+Ergebnis vorlegen. Nur nach einem ausdrücklichen neuen Go des Nutzers mergen;
+vorher auch keine Auslieferung.
+
+GitHub-Lesen und CLI-Schreiben funktionieren inzwischen. Der vollständige
+Arbeitsstand und die Themenbranches sind gesichert; frühere 403-Proben sind
+überholt. Ein hochgeladener Arbeitsbranch ist kein Nachweis grüner GitHub-CI.
+Anbieterzugänge sind in dieser Umgebung nicht konfiguriert.
 
 ## Vorbereitung und Reihenfolge
 
-1. GitHub-Schreibzugriff auf genau dieses Repository bereitstellen; die
-   Änderungen nach Themen als prüfbare PRs hochladen. Kein Token in Chat
+1. Die Änderungen nach Themen als prüfbare PRs vorbereiten. Kein Token in Chat
    oder Berichte übernehmen. Aktuellen `main` vor Veröffentlichung erneut
    vergleichen und zwischenzeitliche Änderungen erhalten.
 2. Nur den abschließend korrigierten Gesamtstand ausliefern. Insbesondere
