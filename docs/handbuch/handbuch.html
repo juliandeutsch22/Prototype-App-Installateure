@@ -670,12 +670,15 @@
       wird nichts neu. Alles im Abschnitt „Seit dem 9. Oktober“. Am Abend
       kamen die Korrekturen aus dem Testbericht Runde 5 dazu — darunter der
       Budgetstand der Projektleitung und die Rechnungssperre auf der
-      Startseite (dort unter „Testbericht Runde 5“).
+      Startseite (dort unter „Testbericht Runde 5“). Danach wurde der
+      <strong>Zeilenschutz schneller</strong>: wer was sieht, ist gleich
+      geblieben, große Listen laden aber in Millisekunden statt Sekunden
+      (dort unter „Schneller bei vielen Daten“).
     </p>
     <div class="stempel">
       <span>Stand <b>09.10.2026</b></span>
       <span>Fassung <b>Oberfläche Lot · Runde 5</b></span>
-      <span>Automatische Prüfungen <b>6501</b></span>
+      <span>Automatische Prüfungen <b>6509</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -726,6 +729,13 @@
         <p><strong>Am iPhone</strong> rollte hinter einer Rückfrage mit Feldern (Inventur im Lager) die Seite weiter. Solange ein Overlay offen ist, bricht jetzt ein Wischen ab, unter dem nichts selbst rollen kann; eine hohe Rückfrage rollt in sich.</p>
         <p><strong>Grenzen.</strong> Lange Wörter („Kundentermin“) brechen am Tablet bei 96 px breiten Tagesspalten weiter mitten im Wort um, wo der Browser kein deutsches Trennwörterbuch hat; abgeschnitten wird nichts. Eine Pauschale mit anderer Einheit (etwa „Stk“) gilt weiter als Ware. Zwei Anschriften in einem Feld (PR-2026-0004) sind Altbestand vom 01.10.: die App trennt sie nicht selbst, in der Akte unter „Baustellenadresse“ einmal berichtigen. Die Buchhaltung sieht die Rechnungssperre auf ihrer Startseite nicht — ergänzen kann sie nur die Geschäftsführung; in der Rechnung steht sie für alle.</p>
         <p class="wer">Stand 09.10.2026 · Testbericht Runde 5 vom 09.10.2026</p>
+      </div>
+      <div class="bereich">
+        <h3>Schneller bei vielen Daten<span class="neu">geändert</span></h3>
+        <p>Die Datenbank prüft bei jeder Abfrage, ob man den Betrieb, die Rolle und die Zeile sehen darf. Bisher rechnete sie diese Prüfung <strong>für jede einzelne Zeile neu</strong> — rund eine Millisekunde je Zeile. Mit wenigen Daten merkt man das nicht; bei einem Betrieb mit 30 Personen und fünf Jahren Buchungen dauerte eine Seite der Jahresbuchungen für die Buchhaltung 12 bis 14 Sekunden, die Monatssicht eines Monteurs eine Sekunde. Jetzt rechnet sie die Prüfung <strong>einmal je Abfrage</strong>: dieselben Seiten brauchen 16 bis 21 bzw. 5 bis 17 Millisekunden, und das bleibt so, wenn die Jahre dazukommen.</p>
+        <p><strong>Wer was sieht, ist gleich geblieben.</strong> Geändert ist nur die Schreibweise der Regeln. Eine eigene Prüfung vergleicht jede der 120 umgeschriebenen Regeln mit ihrer alten Fassung, Zeile für Zeile, in 22 Lagen: jede Rolle, Support mit und ohne Einblick, ruhender und fremder Betrieb, deaktiviertes Konto, fehlender zweiter Faktor, nicht angemeldet. Sie findet keinen Unterschied; zwei absichtlich falsche Umschreibungen findet sie.</p>
+        <p><strong>Grenzen.</strong> Fünf Prüfungen hängen wirklich an der einzelnen Zeile (wer einen Urlaub entscheiden, einen Schein bearbeiten oder eine Baustelle einsehen darf, Protokoll eines Einblicks) und bleiben je Zeile; sie stehen auf kleinen Tabellen. Die Regeln für Dateien (Fotos, Belege) sind unverändert. Gemessen ist in der lokalen Datenbank; im gehosteten Projekt kommt die Leitung dazu.</p>
+        <p class="wer">Gilt für alle · nichts einzustellen</p>
       </div>
       <div class="bereich">
         <h3>Was in Runde 4 offen ist<span class="neu">offen</span></h3>

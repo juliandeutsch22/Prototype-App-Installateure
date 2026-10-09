@@ -63,5 +63,6 @@ Grenze, keine Annahme über „den“ Betrieb.
 - In der Produktionsdatenbank wird nichts gelöscht oder umgeschrieben. Testdaten räumt der Betrieb selbst.
 - Geheimnisse (Supabase-Dienstschlüssel u. ä.) nie ins Repository und nie in GitHub-Secrets. Externe Zugangsdaten nur als Secrets der Edge Functions.
 - **Neue Datenbankfunktionen:** `security definer`, `set search_path = ''`, `revoke … from public, anon` und nur den nötigen `grant`.
+- **Neue Zeilenschutz-Regeln** prüfen den Betrieb als `company_id = (select app.lesebetrieb())` (Support dazu: `or company_id = (select app.supportbetrieb())`), Rollen und `auth.uid()` als `(select …)`. Sonst rechnet Postgres sie je Zeile; `leseregelnGleichwertig.test.ts` lässt `app.darf(…)` in Regeln nicht mehr durch.
 - Jede neue Tabelle mit Personenbezug gehört in die Datenauskunft (`person_auskunft`, `auszug_ausgenommen`) und in die Löschung einer Person.
 - Nach Änderungen an `shared/` immer `node scripts/edge-shared-uebernehmen.mjs`. Sonst laufen die Edge Functions mit dem alten Stand.

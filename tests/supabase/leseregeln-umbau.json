@@ -1,0 +1,1091 @@
+[
+ {
+  "tabelle": "arbeitszeit_begruendungen",
+  "regel": "arbeitszeit_begruendungen_aendern",
+  "art": "UPDATE",
+  "alt_using": "(app.betriebsmitglied(company_id) AND app.ist_buch_oder_spitze())",
+  "alt_check": "(app.betriebsmitglied(company_id) AND app.ist_buch_oder_spitze())",
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze))",
+  "neu_check": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze))"
+ },
+ {
+  "tabelle": "arbeitszeit_begruendungen",
+  "regel": "arbeitszeit_begruendungen_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.betriebsmitglied(company_id) AND app.ist_buch_oder_spitze())",
+  "neu_using": null,
+  "neu_check": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze))"
+ },
+ {
+  "tabelle": "arbeitszeit_begruendungen",
+  "regel": "arbeitszeit_begruendungen_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.betriebsmitglied(company_id) AND ((user_id = auth.uid()) OR app.ist_buch_oder_spitze()))",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "arbeitszeit_begruendungen",
+  "regel": "arbeitszeit_begruendungen_loeschen",
+  "art": "DELETE",
+  "alt_using": "(app.betriebsmitglied(company_id) AND app.ist_buch_oder_spitze())",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "assignments",
+  "regel": "assignments_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "assignments",
+  "regel": "assignments_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.darf(company_id) AND app.ist_fuehrung())",
+  "alt_check": "(app.darf(company_id) AND app.ist_fuehrung())",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))"
+ },
+ {
+  "tabelle": "basiszinssaetze",
+  "regel": "basiszinssaetze_lesen",
+  "art": "SELECT",
+  "alt_using": "true",
+  "alt_check": null,
+  "neu_using": "true",
+  "neu_check": null
+ },
+ {
+  "tabelle": "baustelle_alte_nummern",
+  "regel": "baustelle_alte_nummern_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "betrieb_kostensaetze",
+  "regel": "betrieb_kostensaetze_lesen",
+  "art": "SELECT",
+  "alt_using": "((app.betriebsmitglied(company_id) AND app.ist_spitze()) OR app.support_liest(company_id))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ( SELECT app.ist_spitze() AS ist_spitze)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "betrieb_kostensaetze",
+  "regel": "betrieb_kostensaetze_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.darf(company_id) AND app.ist_spitze())",
+  "alt_check": "(app.darf(company_id) AND app.ist_spitze())",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_spitze() AS ist_spitze))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_spitze() AS ist_spitze))"
+ },
+ {
+  "tabelle": "betriebsurlaube",
+  "regel": "betriebsurlaube_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "buchungskonten",
+  "regel": "buchungskonten_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "buchungskonten",
+  "regel": "buchungskonten_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.darf(company_id) AND (app.ist_spitze() OR app.hat_rolle(ARRAY['Buchhaltung'::text])))",
+  "alt_check": "(app.darf(company_id) AND (app.ist_spitze() OR app.hat_rolle(ARRAY['Buchhaltung'::text])))",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.ist_spitze() AS ist_spitze) OR ( SELECT app.hat_rolle(ARRAY['Buchhaltung'::text]) AS hat_rolle)))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.ist_spitze() AS ist_spitze) OR ( SELECT app.hat_rolle(ARRAY['Buchhaltung'::text]) AS hat_rolle)))"
+ },
+ {
+  "tabelle": "companies",
+  "regel": "companies_aendern",
+  "art": "UPDATE",
+  "alt_using": "(app.darf(id) AND app.ist_spitze())",
+  "alt_check": "(app.darf(id) AND app.ist_spitze())",
+  "neu_using": "(((id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_spitze() AS ist_spitze))",
+  "neu_check": "(((id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_spitze() AS ist_spitze))"
+ },
+ {
+  "tabelle": "companies",
+  "regel": "companies_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(id)",
+  "alt_check": null,
+  "neu_using": "((id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "customers",
+  "regel": "customers_aendern",
+  "art": "UPDATE",
+  "alt_using": "(app.darf(company_id) AND app.darf_kunden_pflegen())",
+  "alt_check": "(app.darf(company_id) AND app.darf_kunden_pflegen())",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.darf_kunden_pflegen() AS darf_kunden_pflegen))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.darf_kunden_pflegen() AS darf_kunden_pflegen))"
+ },
+ {
+  "tabelle": "customers",
+  "regel": "customers_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.darf(company_id) AND app.darf_kunden_pflegen())",
+  "neu_using": null,
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.darf_kunden_pflegen() AS darf_kunden_pflegen))"
+ },
+ {
+  "tabelle": "customers",
+  "regel": "customers_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.darf(company_id) AND (app.rolle() IS DISTINCT FROM 'Mitarbeiter'::text))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.rolle() AS rolle) IS DISTINCT FROM 'Mitarbeiter'::text))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "customers",
+  "regel": "customers_loeschen",
+  "art": "DELETE",
+  "alt_using": "(app.darf(company_id) AND app.darf_kunden_pflegen())",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.darf_kunden_pflegen() AS darf_kunden_pflegen))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "datanorm_laeufe",
+  "regel": "datanorm_laeufe_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "datanorm_laeufe",
+  "regel": "datanorm_laeufe_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.darf(company_id) AND app.darf_katalog_einspielen())",
+  "alt_check": "(app.darf(company_id) AND app.darf_katalog_einspielen())",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.darf_katalog_einspielen() AS darf_katalog_einspielen))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.darf_katalog_einspielen() AS darf_katalog_einspielen))"
+ },
+ {
+  "tabelle": "datanorm_zeilen",
+  "regel": "datanorm_zeilen_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "datanorm_zeilen",
+  "regel": "datanorm_zeilen_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.darf(company_id) AND app.darf_katalog_einspielen())",
+  "alt_check": "(app.darf(company_id) AND app.darf_katalog_einspielen())",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.darf_katalog_einspielen() AS darf_katalog_einspielen))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.darf_katalog_einspielen() AS darf_katalog_einspielen))"
+ },
+ {
+  "tabelle": "einkauf_posten",
+  "regel": "einkauf_posten_aendern",
+  "art": "UPDATE",
+  "alt_using": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text]) OR app.ist_fuehrung()) AND (geliefert_am IS NULL))",
+  "alt_check": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text]) OR app.ist_fuehrung()))",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)) AND (geliefert_am IS NULL))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)))"
+ },
+ {
+  "tabelle": "einkauf_posten",
+  "regel": "einkauf_posten_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text]) OR app.ist_fuehrung()) AND (geliefert_am IS NULL))",
+  "neu_using": null,
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)) AND (geliefert_am IS NULL))"
+ },
+ {
+  "tabelle": "einkauf_posten",
+  "regel": "einkauf_posten_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text]) OR app.ist_fuehrung()))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "einkauf_posten",
+  "regel": "einkauf_posten_loeschen",
+  "art": "DELETE",
+  "alt_using": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text]) OR app.ist_fuehrung()) AND (geliefert_am IS NULL))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)) AND (geliefert_am IS NULL))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "einsatz_material",
+  "regel": "einsatz_material_aendern",
+  "art": "UPDATE",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": "app.darf(company_id)",
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))"
+ },
+ {
+  "tabelle": "einsatz_material",
+  "regel": "einsatz_material_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.darf(company_id) AND app.ist_fuehrung())",
+  "neu_using": null,
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))"
+ },
+ {
+  "tabelle": "einsatz_material",
+  "regel": "einsatz_material_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "einsatz_material",
+  "regel": "einsatz_material_loeschen",
+  "art": "DELETE",
+  "alt_using": "(app.darf(company_id) AND app.ist_fuehrung())",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "einsatz_material_positionen",
+  "regel": "einsatz_material_positionen_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "einsatz_material_positionen",
+  "regel": "einsatz_material_positionen_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.darf(company_id) AND app.ist_fuehrung())",
+  "alt_check": "(app.darf(company_id) AND app.ist_fuehrung())",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))"
+ },
+ {
+  "tabelle": "fehlerprotokoll",
+  "regel": "fehlerprotokoll_schreiben",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "app.betriebsmitglied(company_id)",
+  "neu_using": null,
+  "neu_check": "(company_id = ( SELECT app.lesebetrieb() AS lesebetrieb))"
+ },
+ {
+  "tabelle": "freistellungen",
+  "regel": "freistellungen_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.betriebsmitglied(company_id) AND ((user_id = auth.uid()) OR app.ist_buch_oder_spitze()))",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "geburtsdaten",
+  "regel": "geburtsdaten_aendern",
+  "art": "UPDATE",
+  "alt_using": "(app.betriebsmitglied(company_id) AND app.ist_spitze())",
+  "alt_check": "(app.betriebsmitglied(company_id) AND app.ist_spitze())",
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ( SELECT app.ist_spitze() AS ist_spitze))",
+  "neu_check": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ( SELECT app.ist_spitze() AS ist_spitze))"
+ },
+ {
+  "tabelle": "geburtsdaten",
+  "regel": "geburtsdaten_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.betriebsmitglied(company_id) AND app.ist_spitze())",
+  "neu_using": null,
+  "neu_check": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ( SELECT app.ist_spitze() AS ist_spitze))"
+ },
+ {
+  "tabelle": "geburtsdaten",
+  "regel": "geburtsdaten_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.betriebsmitglied(company_id) AND ((user_id = auth.uid()) OR app.ist_buch_oder_spitze()))",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "geburtsdaten",
+  "regel": "geburtsdaten_loeschen",
+  "art": "DELETE",
+  "alt_using": "(app.betriebsmitglied(company_id) AND app.ist_spitze())",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ( SELECT app.ist_spitze() AS ist_spitze))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "invoice_coverage",
+  "regel": "invoice_coverage_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.darf(company_id) AND app.ist_buch_oder_spitze())",
+  "neu_using": null,
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze))"
+ },
+ {
+  "tabelle": "invoice_coverage",
+  "regel": "invoice_coverage_lesen",
+  "art": "SELECT",
+  "alt_using": "((app.darf(company_id) AND app.ist_buch_oder_spitze()) OR app.support_liest(company_id))",
+  "alt_check": null,
+  "neu_using": "((((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "invoice_lines",
+  "regel": "invoice_lines_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.darf(company_id) AND app.ist_buch_oder_spitze())",
+  "neu_using": null,
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze))"
+ },
+ {
+  "tabelle": "invoice_lines",
+  "regel": "invoice_lines_lesen",
+  "art": "SELECT",
+  "alt_using": "((app.darf(company_id) AND app.ist_buch_oder_spitze()) OR app.support_liest(company_id) OR (app.darf_rechnungen_lesen() AND (EXISTS ( SELECT 1\n   FROM invoices i\n  WHERE (i.id = invoice_lines.invoice_id)))))",
+  "alt_check": null,
+  "neu_using": "((((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)) OR (( SELECT app.darf_rechnungen_lesen() AS darf_rechnungen_lesen) AND (EXISTS ( SELECT 1\n   FROM invoices i\n  WHERE (i.id = invoice_lines.invoice_id)))))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "invoices",
+  "regel": "invoices_aendern",
+  "art": "UPDATE",
+  "alt_using": "(app.darf(company_id) AND app.ist_buch_oder_spitze())",
+  "alt_check": "(app.darf(company_id) AND app.ist_buch_oder_spitze())",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze))"
+ },
+ {
+  "tabelle": "invoices",
+  "regel": "invoices_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.darf(company_id) AND app.ist_buch_oder_spitze())",
+  "neu_using": null,
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze))"
+ },
+ {
+  "tabelle": "invoices",
+  "regel": "invoices_lesen",
+  "art": "SELECT",
+  "alt_using": "((app.darf(company_id) AND app.ist_buch_oder_spitze()) OR app.support_liest(company_id) OR (app.betriebsmitglied(company_id) AND app.darf_rechnungen_lesen() AND (EXISTS ( SELECT 1\n   FROM projects p\n  WHERE ((p.id = invoices.project_id) AND (p.company_id = invoices.company_id) AND (auth.uid() = ANY (p.project_managers)))))))",
+  "alt_check": null,
+  "neu_using": "((((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)) OR ((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ( SELECT app.darf_rechnungen_lesen() AS darf_rechnungen_lesen) AND (EXISTS ( SELECT 1\n   FROM projects p\n  WHERE ((p.id = invoices.project_id) AND (p.company_id = invoices.company_id) AND (( SELECT auth.uid() AS uid) = ANY (p.project_managers)))))))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "kalender_abos",
+  "regel": "kalender_abos_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.betriebsmitglied(company_id) AND (user_id = auth.uid()))",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND (user_id = ( SELECT auth.uid() AS uid)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "konto_umstellungen",
+  "regel": "konto_umstellungen_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.darf(company_id) AND app.ist_spitze())",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_spitze() AS ist_spitze))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "krankmeldungen",
+  "regel": "krankmeldungen_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.betriebsmitglied(company_id) AND ((user_id = auth.uid()) OR app.ist_buch_oder_spitze()))",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "lagerbewegungen",
+  "regel": "lagerbewegungen_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text, 'Buchhaltung'::text]) OR app.ist_fuehrung()))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text, 'Buchhaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "material_einkaufspreise",
+  "regel": "material_einkaufspreise_lesen",
+  "art": "SELECT",
+  "alt_using": "((app.betriebsmitglied(company_id) AND app.darf_einkauf_sehen()) OR app.support_liest(company_id))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ( SELECT app.darf_einkauf_sehen() AS darf_einkauf_sehen)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "material_einkaufspreise",
+  "regel": "material_einkaufspreise_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.darf(company_id) AND app.darf_katalog_einspielen())",
+  "alt_check": "(app.darf(company_id) AND app.darf_katalog_einspielen())",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.darf_katalog_einspielen() AS darf_katalog_einspielen))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.darf_katalog_einspielen() AS darf_katalog_einspielen))"
+ },
+ {
+  "tabelle": "material_orders",
+  "regel": "material_orders_aendern",
+  "art": "UPDATE",
+  "alt_using": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text, 'Buchhaltung'::text]) OR app.ist_fuehrung() OR (user_id = auth.uid())))",
+  "alt_check": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text, 'Buchhaltung'::text]) OR app.ist_fuehrung() OR (user_id = auth.uid())))",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text, 'Buchhaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung) OR (user_id = ( SELECT auth.uid() AS uid))))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text, 'Buchhaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung) OR (user_id = ( SELECT auth.uid() AS uid))))"
+ },
+ {
+  "tabelle": "material_orders",
+  "regel": "material_orders_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.darf(company_id) AND ((user_id = auth.uid()) OR (app.ist_fuehrung() AND (EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = material_orders.user_id) AND (u.company_id = material_orders.company_id)))))) AND (is_billed = false) AND (COALESCE(invoice_number, ''::text) = ''::text))",
+  "neu_using": null,
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ((user_id = ( SELECT auth.uid() AS uid)) OR (( SELECT app.ist_fuehrung() AS ist_fuehrung) AND (EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = material_orders.user_id) AND (u.company_id = material_orders.company_id)))))) AND (is_billed = false) AND (COALESCE(invoice_number, ''::text) = ''::text))"
+ },
+ {
+  "tabelle": "material_orders",
+  "regel": "material_orders_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.darf(company_id) AND ((user_id = auth.uid()) OR app.hat_rolle(ARRAY['Verwaltung'::text, 'Buchhaltung'::text]) OR app.ist_fuehrung()))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT app.hat_rolle(ARRAY['Verwaltung'::text, 'Buchhaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "material_orders",
+  "regel": "material_orders_loeschen",
+  "art": "DELETE",
+  "alt_using": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text]) OR app.ist_fuehrung()))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "material_prices",
+  "regel": "material_prices_lesen",
+  "art": "SELECT",
+  "alt_using": "((app.betriebsmitglied(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text]) OR app.ist_fuehrung())) OR app.support_liest(company_id))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung))) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "material_prices",
+  "regel": "material_prices_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text]) OR app.ist_fuehrung()))",
+  "alt_check": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text]) OR app.ist_fuehrung()))",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)))"
+ },
+ {
+  "tabelle": "materials",
+  "regel": "materials_aendern",
+  "art": "UPDATE",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": "app.darf(company_id)",
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))"
+ },
+ {
+  "tabelle": "materials",
+  "regel": "materials_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text]) OR app.ist_fuehrung()))",
+  "neu_using": null,
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)))"
+ },
+ {
+  "tabelle": "materials",
+  "regel": "materials_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "materials",
+  "regel": "materials_loeschen",
+  "art": "DELETE",
+  "alt_using": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text]) OR app.ist_fuehrung()))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "project_documents",
+  "regel": "project_documents_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.betriebsmitglied(company_id) AND app.ist_fuehrung() AND (EXISTS ( SELECT 1\n   FROM projects p\n  WHERE ((p.id = project_documents.project_id) AND (p.company_id = project_documents.company_id)))))",
+  "neu_using": null,
+  "neu_check": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung) AND (EXISTS ( SELECT 1\n   FROM projects p\n  WHERE ((p.id = project_documents.project_id) AND (p.company_id = project_documents.company_id)))))"
+ },
+ {
+  "tabelle": "project_documents",
+  "regel": "project_documents_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.betriebsmitglied(company_id) AND app.baustelle_einsehbar(project_id))",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND app.baustelle_einsehbar(project_id))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "project_documents",
+  "regel": "project_documents_loeschen",
+  "art": "DELETE",
+  "alt_using": "(app.betriebsmitglied(company_id) AND app.ist_fuehrung())",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "projects",
+  "regel": "projects_aendern",
+  "art": "UPDATE",
+  "alt_using": "(app.darf(company_id) AND app.ist_fuehrung())",
+  "alt_check": "(app.darf(company_id) AND app.ist_fuehrung())",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))"
+ },
+ {
+  "tabelle": "projects",
+  "regel": "projects_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.darf(company_id) AND app.ist_fuehrung())",
+  "neu_using": null,
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))"
+ },
+ {
+  "tabelle": "projects",
+  "regel": "projects_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "projects",
+  "regel": "projects_loeschen",
+  "art": "DELETE",
+  "alt_using": "(app.darf(company_id) AND app.ist_fuehrung())",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "quote_lines",
+  "regel": "quote_lines_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.darf(company_id) AND (app.ist_fuehrung() OR app.ist_buch_oder_spitze()))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.ist_fuehrung() AS ist_fuehrung) OR ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "quote_lines",
+  "regel": "quote_lines_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.darf(company_id) AND app.ist_fuehrung())",
+  "alt_check": "(app.darf(company_id) AND app.ist_fuehrung())",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))"
+ },
+ {
+  "tabelle": "quotes",
+  "regel": "quotes_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.darf(company_id) AND (app.ist_fuehrung() OR app.ist_buch_oder_spitze()))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.ist_fuehrung() AS ist_fuehrung) OR ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "quotes",
+  "regel": "quotes_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.darf(company_id) AND app.ist_fuehrung())",
+  "alt_check": "(app.darf(company_id) AND app.ist_fuehrung())",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))"
+ },
+ {
+  "tabelle": "rabattsaetze",
+  "regel": "rabattsaetze_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "rabattsaetze",
+  "regel": "rabattsaetze_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text]) OR app.ist_fuehrung()))",
+  "alt_check": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text]) OR app.ist_fuehrung()))",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)))"
+ },
+ {
+  "tabelle": "suppliers",
+  "regel": "suppliers_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "suppliers",
+  "regel": "suppliers_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text]) OR app.ist_fuehrung()))",
+  "alt_check": "(app.darf(company_id) AND (app.hat_rolle(ARRAY['Verwaltung'::text]) OR app.ist_fuehrung()))",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung)))"
+ },
+ {
+  "tabelle": "support_freigaben",
+  "regel": "support_freigaben_gewaehren",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.betriebsmitglied(company_id) AND app.ist_spitze() AND (gewaehrt_von = auth.uid()) AND (NOT notzugang))",
+  "neu_using": null,
+  "neu_check": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ( SELECT app.ist_spitze() AS ist_spitze) AND (gewaehrt_von = ( SELECT auth.uid() AS uid)) AND (NOT notzugang))"
+ },
+ {
+  "tabelle": "support_freigaben",
+  "regel": "support_freigaben_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.betriebsmitglied(company_id) OR app.support_liest(company_id))",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "support_freigaben",
+  "regel": "support_freigaben_widerrufen",
+  "art": "UPDATE",
+  "alt_using": "(app.betriebsmitglied(company_id) AND app.ist_spitze())",
+  "alt_check": "(app.betriebsmitglied(company_id) AND app.ist_spitze())",
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ( SELECT app.ist_spitze() AS ist_spitze))",
+  "neu_check": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ( SELECT app.ist_spitze() AS ist_spitze))"
+ },
+ {
+  "tabelle": "support_zugriffe",
+  "regel": "support_zugriffe_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.betriebsmitglied(company_id) OR app.support_liest(company_id))",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "support_zugriffe",
+  "regel": "support_zugriffe_melden",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.ist_plattform() AND (admin_uid = auth.uid()) AND app.freigabe_gilt(freigabe_id, company_id))",
+  "neu_using": null,
+  "neu_check": "(( SELECT app.ist_plattform() AS ist_plattform) AND (admin_uid = ( SELECT auth.uid() AS uid)) AND app.freigabe_gilt(freigabe_id, company_id))"
+ },
+ {
+  "tabelle": "system_laeufe",
+  "regel": "system_laeufe_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.darf(company_id) AND app.ist_spitze())",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_spitze() AS ist_spitze))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "termine",
+  "regel": "termine_aendern",
+  "art": "UPDATE",
+  "alt_using": "(app.darf(company_id) AND (app.ist_fuehrung() OR app.hat_rolle(ARRAY['Verwaltung'::text])))",
+  "alt_check": "(app.darf(company_id) AND (app.ist_fuehrung() OR app.hat_rolle(ARRAY['Verwaltung'::text])))",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.ist_fuehrung() AS ist_fuehrung) OR ( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle)))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.ist_fuehrung() AS ist_fuehrung) OR ( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle)))"
+ },
+ {
+  "tabelle": "termine",
+  "regel": "termine_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.darf(company_id) AND (app.ist_fuehrung() OR app.hat_rolle(ARRAY['Verwaltung'::text]) OR (auth.uid() = ANY (teilnehmer)) OR ((project_number IS NOT NULL) AND (EXISTS ( SELECT 1\n   FROM assignments a\n  WHERE ((a.company_id = termine.company_id) AND (a.date = termine.datum) AND (a.project_number = termine.project_number) AND (a.user_id = auth.uid())))))))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.ist_fuehrung() AS ist_fuehrung) OR ( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle) OR (( SELECT auth.uid() AS uid) = ANY (teilnehmer)) OR ((project_number IS NOT NULL) AND (EXISTS ( SELECT 1\n   FROM assignments a\n  WHERE ((a.company_id = termine.company_id) AND (a.date = termine.datum) AND (a.project_number = termine.project_number) AND (a.user_id = ( SELECT auth.uid() AS uid))))))))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "termine",
+  "regel": "termine_loeschen",
+  "art": "DELETE",
+  "alt_using": "(app.darf(company_id) AND (app.ist_fuehrung() OR app.hat_rolle(ARRAY['Verwaltung'::text])))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.ist_fuehrung() AS ist_fuehrung) OR ( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "termine",
+  "regel": "termine_schreiben",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.darf(company_id) AND (app.ist_fuehrung() OR app.hat_rolle(ARRAY['Verwaltung'::text])))",
+  "neu_using": null,
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.ist_fuehrung() AS ist_fuehrung) OR ( SELECT app.hat_rolle(ARRAY['Verwaltung'::text]) AS hat_rolle)))"
+ },
+ {
+  "tabelle": "time_entries",
+  "regel": "time_entries_aendern",
+  "art": "UPDATE",
+  "alt_using": "(app.betriebsmitglied(company_id) AND ((user_id = auth.uid()) OR app.ist_buch_oder_spitze()))",
+  "alt_check": "(app.betriebsmitglied(company_id) AND ((user_id = auth.uid()) OR app.ist_buch_oder_spitze()))",
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)))",
+  "neu_check": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)))"
+ },
+ {
+  "tabelle": "time_entries",
+  "regel": "time_entries_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.betriebsmitglied(company_id) AND (app.ist_buch_oder_spitze() OR ((user_id = auth.uid()) AND (is_billed = false) AND (COALESCE(invoice_number, ''::text) = ''::text))))",
+  "neu_using": null,
+  "neu_check": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND (( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze) OR ((user_id = ( SELECT auth.uid() AS uid)) AND (is_billed = false) AND (COALESCE(invoice_number, ''::text) = ''::text))))"
+ },
+ {
+  "tabelle": "time_entries",
+  "regel": "time_entries_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.betriebsmitglied(company_id) AND ((user_id = auth.uid()) OR app.ist_buch_oder_spitze()))",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "time_entries",
+  "regel": "time_entries_loeschen",
+  "art": "DELETE",
+  "alt_using": "(app.betriebsmitglied(company_id) AND ((user_id = auth.uid()) OR app.ist_buch_oder_spitze()))",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "uid_pruefungen",
+  "regel": "uid_pruefungen_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.darf(company_id) AND (app.rolle() IS DISTINCT FROM 'Mitarbeiter'::text))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (( SELECT app.rolle() AS rolle) IS DISTINCT FROM 'Mitarbeiter'::text))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "urlaubsanspruch_anpassungen",
+  "regel": "urlaubsanspruch_anpassungen_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.betriebsmitglied(company_id) AND ((user_id = auth.uid()) OR app.ist_buch_oder_spitze() OR app.darf_urlaub_entscheiden(company_id)))",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze) OR app.darf_urlaub_entscheiden(company_id)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "user_prefs",
+  "regel": "user_prefs_aendern",
+  "art": "UPDATE",
+  "alt_using": "(app.darf(company_id) AND (user_id = auth.uid()))",
+  "alt_check": "(app.darf(company_id) AND (user_id = auth.uid()))",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (user_id = ( SELECT auth.uid() AS uid)))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (user_id = ( SELECT auth.uid() AS uid)))"
+ },
+ {
+  "tabelle": "user_prefs",
+  "regel": "user_prefs_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.darf(company_id) AND (user_id = auth.uid()))",
+  "neu_using": null,
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (user_id = ( SELECT auth.uid() AS uid)))"
+ },
+ {
+  "tabelle": "user_prefs",
+  "regel": "user_prefs_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.darf(company_id) AND (user_id = auth.uid()))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (user_id = ( SELECT auth.uid() AS uid)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "users",
+  "regel": "users_aendern",
+  "art": "UPDATE",
+  "alt_using": "(app.darf(company_id) AND app.ist_spitze())",
+  "alt_check": "(app.darf(company_id) AND app.ist_spitze())",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_spitze() AS ist_spitze))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_spitze() AS ist_spitze))"
+ },
+ {
+  "tabelle": "users",
+  "regel": "users_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.darf(company_id) AND app.ist_spitze())",
+  "neu_using": null,
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_spitze() AS ist_spitze))"
+ },
+ {
+  "tabelle": "users",
+  "regel": "users_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.darf(company_id) AND ((id = auth.uid()) OR (app.rolle() IS DISTINCT FROM 'Mitarbeiter'::text)))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ((id = ( SELECT auth.uid() AS uid)) OR (( SELECT app.rolle() AS rolle) IS DISTINCT FROM 'Mitarbeiter'::text)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "users",
+  "regel": "users_loeschen",
+  "art": "DELETE",
+  "alt_using": "(app.darf(company_id) AND app.ist_spitze())",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_spitze() AS ist_spitze))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "vacations",
+  "regel": "vacations_aendern",
+  "art": "UPDATE",
+  "alt_using": "(app.betriebsmitglied(company_id) AND ((user_id = auth.uid()) OR app.ist_fuehrung() OR app.ist_buch_oder_spitze()))",
+  "alt_check": "(app.betriebsmitglied(company_id) AND ((user_id = auth.uid()) OR app.ist_fuehrung() OR app.ist_buch_oder_spitze()))",
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung) OR ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)))",
+  "neu_check": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung) OR ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)))"
+ },
+ {
+  "tabelle": "vacations",
+  "regel": "vacations_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.betriebsmitglied(company_id) AND (user_id = auth.uid()) AND (status = 'Beantragt'::text) AND (betriebsurlaub_id IS NULL))",
+  "neu_using": null,
+  "neu_check": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND (user_id = ( SELECT auth.uid() AS uid)) AND (status = 'Beantragt'::text) AND (betriebsurlaub_id IS NULL))"
+ },
+ {
+  "tabelle": "vacations",
+  "regel": "vacations_lesen",
+  "art": "SELECT",
+  "alt_using": "(app.betriebsmitglied(company_id) AND ((user_id = auth.uid()) OR app.ist_fuehrung() OR app.ist_buch_oder_spitze() OR app.darf_urlaub_entscheiden(company_id)))",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung) OR ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze) OR app.darf_urlaub_entscheiden(company_id)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "vacations",
+  "regel": "vacations_loeschen",
+  "art": "DELETE",
+  "alt_using": "(app.betriebsmitglied(company_id) AND (user_id = auth.uid()) AND (status = 'Beantragt'::text))",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND (user_id = ( SELECT auth.uid() AS uid)) AND (status = 'Beantragt'::text))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "wartungen",
+  "regel": "wartungen_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "wartungen",
+  "regel": "wartungen_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.darf(company_id) AND app.ist_fuehrung())",
+  "alt_check": "(app.darf(company_id) AND app.ist_fuehrung())",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_fuehrung() AS ist_fuehrung))"
+ },
+ {
+  "tabelle": "work_sheet_hours",
+  "regel": "work_sheet_hours_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "work_sheet_hours",
+  "regel": "work_sheet_hours_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.darf(company_id) AND app.schein_bearbeitbar(work_sheet_id))",
+  "alt_check": "(app.darf(company_id) AND app.schein_bearbeitbar(work_sheet_id))",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND app.schein_bearbeitbar(work_sheet_id))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND app.schein_bearbeitbar(work_sheet_id))"
+ },
+ {
+  "tabelle": "work_sheet_material",
+  "regel": "work_sheet_material_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "work_sheet_material",
+  "regel": "work_sheet_material_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.darf(company_id) AND app.schein_bearbeitbar(work_sheet_id))",
+  "alt_check": "(app.darf(company_id) AND app.schein_bearbeitbar(work_sheet_id))",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND app.schein_bearbeitbar(work_sheet_id))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND app.schein_bearbeitbar(work_sheet_id))"
+ },
+ {
+  "tabelle": "work_sheet_photos",
+  "regel": "work_sheet_photos_lesen",
+  "art": "SELECT",
+  "alt_using": "app.betriebsmitglied(company_id)",
+  "alt_check": null,
+  "neu_using": "(company_id = ( SELECT app.lesebetrieb() AS lesebetrieb))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "work_sheet_photos",
+  "regel": "work_sheet_photos_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.betriebsmitglied(company_id) AND app.schein_bearbeitbar(work_sheet_id))",
+  "alt_check": "(app.betriebsmitglied(company_id) AND app.schein_bearbeitbar(work_sheet_id))",
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND app.schein_bearbeitbar(work_sheet_id))",
+  "neu_check": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND app.schein_bearbeitbar(work_sheet_id))"
+ },
+ {
+  "tabelle": "work_sheets",
+  "regel": "work_sheets_aendern",
+  "art": "UPDATE",
+  "alt_using": "(app.darf(company_id) AND app.schein_schreibt(erstellt_von_uid))",
+  "alt_check": "(app.darf(company_id) AND app.schein_schreibt(erstellt_von_uid))",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND app.schein_schreibt(erstellt_von_uid))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND app.schein_schreibt(erstellt_von_uid))"
+ },
+ {
+  "tabelle": "work_sheets",
+  "regel": "work_sheets_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.darf(company_id) AND (status = 'Entwurf'::text) AND (erstellt_von_uid = auth.uid()) AND app.schein_schreibt(erstellt_von_uid))",
+  "neu_using": null,
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND (status = 'Entwurf'::text) AND (erstellt_von_uid = ( SELECT auth.uid() AS uid)) AND app.schein_schreibt(erstellt_von_uid))"
+ },
+ {
+  "tabelle": "work_sheets",
+  "regel": "work_sheets_lesen",
+  "art": "SELECT",
+  "alt_using": "app.darf(company_id)",
+  "alt_check": null,
+  "neu_using": "((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "zahlungseingaenge",
+  "regel": "zahlungen_aendern",
+  "art": "UPDATE",
+  "alt_using": "(app.darf(company_id) AND app.ist_buch_oder_spitze())",
+  "alt_check": "(app.darf(company_id) AND app.ist_buch_oder_spitze())",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze))"
+ },
+ {
+  "tabelle": "zahlungseingaenge",
+  "regel": "zahlungen_anlegen",
+  "art": "INSERT",
+  "alt_using": null,
+  "alt_check": "(app.darf(company_id) AND app.ist_buch_oder_spitze())",
+  "neu_using": null,
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze))"
+ },
+ {
+  "tabelle": "zahlungseingaenge",
+  "regel": "zahlungen_lesen",
+  "art": "SELECT",
+  "alt_using": "((app.darf(company_id) AND app.ist_buch_oder_spitze()) OR app.support_liest(company_id))",
+  "alt_check": null,
+  "neu_using": "((((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "zahlungseingaenge",
+  "regel": "zahlungen_loeschen",
+  "art": "DELETE",
+  "alt_using": "(app.darf(company_id) AND app.ist_buch_oder_spitze())",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "zeitkonto_anfang",
+  "regel": "zeitkonto_anfang_lesen",
+  "art": "SELECT",
+  "alt_using": "((app.betriebsmitglied(company_id) AND ((user_id = auth.uid()) OR app.ist_fuehrung() OR app.ist_buch_oder_spitze() OR app.darf_urlaub_entscheiden(company_id))) OR app.support_liest(company_id))",
+  "alt_check": null,
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) AND ((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT app.ist_fuehrung() AS ist_fuehrung) OR ( SELECT app.ist_buch_oder_spitze() AS ist_buch_oder_spitze) OR app.darf_urlaub_entscheiden(company_id))) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb)))",
+  "neu_check": null
+ },
+ {
+  "tabelle": "zeitkonto_anfang",
+  "regel": "zeitkonto_anfang_schreiben",
+  "art": "ALL",
+  "alt_using": "(app.darf(company_id) AND app.ist_spitze())",
+  "alt_check": "(app.darf(company_id) AND app.ist_spitze())",
+  "neu_using": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_spitze() AS ist_spitze))",
+  "neu_check": "(((company_id = ( SELECT app.lesebetrieb() AS lesebetrieb)) OR (company_id = ( SELECT app.supportbetrieb() AS supportbetrieb))) AND ( SELECT app.ist_spitze() AS ist_spitze))"
+ }
+]
