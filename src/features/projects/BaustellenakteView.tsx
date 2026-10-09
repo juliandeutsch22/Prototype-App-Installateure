@@ -6,6 +6,7 @@ import BetriebsurlaubHinweis from './BetriebsurlaubHinweis';
 import { baustelleUmnummern, listProjectsByIds, updateProject } from '@/lib/db/projects';
 import { alsEntwurf, gleich, stammdatenFehler, stundenbudgetAus, type BaustellenEntwurf } from './baustellenEntwurf';
 import BaustellenPlaene from './BaustellenPlaene';
+import BaustellenScheine from './BaustellenScheine';
 import { listUsers } from '@/lib/db/users';
 import { listCustomers } from '@/lib/db/customers';
 import { listQuotesForProject } from '@/lib/db/quotes';
@@ -13,7 +14,7 @@ import { pauschalAngebot } from '@/features/invoices/pauschale';
 import { ABRECHNUNGSARTEN, abrechnungText } from '@/lib/abrechnung';
 import { euro } from '@/lib/betrag';
 import { canAccess } from '@/app/navigation';
-import { isGF } from '@/lib/permissions';
+import { canInvoice, isGF } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
 import type { Abrechnungsart, Project, AppUser, Customer, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
@@ -392,14 +393,7 @@ export default function BaustellenakteView() {
               Angebot {q.quoteNumber}
             </Link>
           ))}
-          {scheineAn && (
-            <Link
-              to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
-              className="link inline-flex min-h-touch items-center"
-            >
-              Handwerksschein schreiben
-            </Link>
-          )}
+          {/* „Handwerksschein schreiben“ steht seit 09.10.2026 bei den Scheinen der Baustelle (b-scheine). */}
         </div>
       </div>
     </Card>
@@ -438,6 +432,33 @@ export default function BaustellenakteView() {
       />
     </Card>
   ) : null;
+  /*
+    DIE HANDWERKSSCHEINE DER BAUSTELLE (09.10.2026): nur mit dem Modul und für
+    die, die die Scheinliste sehen dürfen — dieselbe Regel wie der Menüpunkt.
+  */
+  const scheineSichtbar = !!user && scheineAn && canAccess(user.role, '/worksheets', company?.modules);
+  const scheineKarte = user && scheineSichtbar ? (
+    <Card
+      title="Handwerksscheine"
+      id="b-scheine"
+      buendig
+      // Wie „Termin anlegen“ bei den Terminen: der nächste Schritt im Kopf der Karte.
+      action={
+        <Link
+          to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
+          className="link inline-flex min-h-touch items-center"
+        >
+          Handwerksschein schreiben
+        </Link>
+      }
+    >
+      <BaustellenScheine
+        companyId={user.companyId}
+        projectNumber={b.projectNumber}
+        verrechnungSehen={canInvoice(user.role)}
+      />
+    </Card>
+  ) : null;
   // Termine gehören zur Einsatzplanung: ohne das Modul gibt es sie nicht.
   const termineKarte = einsatzAn ? (
     <div id="b-termine">
@@ -472,6 +493,7 @@ export default function BaustellenakteView() {
           ziele={[
             { id: 'b-ueberblick', text: 'Überblick' },
             ...(einsatzAn ? [{ id: 'b-termine', text: 'Termine' }] : []),
+            ...(scheineKarte ? [{ id: 'b-scheine', text: 'Scheine' }] : []),
             { id: 'b-daten', text: 'Daten' },
             ...(plaene ? [{ id: 'b-plaene', text: 'Pläne' }] : []),
           ]}
@@ -479,9 +501,9 @@ export default function BaustellenakteView() {
         <div className="akte-spalte">
           {ueberblick}
           <Aktenspalten
-            telefon={[termineKarte, stammdaten, plaene]}
+            telefon={[termineKarte, scheineKarte, stammdaten, plaene]}
             links={[stammdaten]}
-            rechts={[termineKarte, plaene]}
+            rechts={[termineKarte, scheineKarte, plaene]}
           />
         </div>
       </div>

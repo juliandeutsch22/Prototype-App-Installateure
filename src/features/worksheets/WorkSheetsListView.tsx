@@ -7,6 +7,7 @@ import {
   listWorkSheetsInRange,
   searchWorkSheets,
   listWorkSheetsForProject,
+  getWorkSheet,
   cancelWorkSheet,
   discardWorkSheetDraft,
   restoreWorkSheetDraft,
@@ -28,7 +29,7 @@ import type { TimeEntry, WorkSheet } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import { Warnung, Zustand, type Stand } from '@/components/Badge';
+import { Warnung, Zustand } from '@/components/Badge';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import BottomSheet from '@/components/BottomSheet';
 import Abschnitt from '@/components/Abschnitt';
@@ -44,16 +45,9 @@ import Adressfilter from '@/components/Adressfilter';
 import { scheineAufRechnung } from '@/lib/db/invoices';
 import { SCHEIN_FILTER, bekannt } from '@/features/dashboard/start/ziele';
 import { AUFFAELLIG_AB_TAGEN, UNVERRECHNET_BASIS, unverrechneteScheine } from './unverrechnet';
+import { SCHEIN_STAND } from './scheinStand';
 
-const STAND: Record<WorkSheet['status'], Stand> = {
-  Unterschrieben: 'gut',
-  Entwurf: 'laeuft',
-  // Kein Rot: weder der Storno noch der aufgegebene Entwurf ist ein
-  // Zwischenfall. Der eine ist die vorgesehene Korrektur, der andere der
-  // Normalfall eines geplatzten Auftrags — beide sind abgeschlossen.
-  Storniert: 'ruht',
-  Verworfen: 'ruht',
-};
+const STAND = SCHEIN_STAND;
 
 /**
  * Die Handwerksscheine des Betriebs.
@@ -452,13 +446,42 @@ export default function WorkSheetsListView() {
   const entwuerfe = useMemo(() => scheine.filter((s) => s.status === 'Entwurf'), [scheine]);
   const verworfenListe = useMemo(() => scheine.filter((s) => s.status === 'Verworfen'), [scheine]);
 
-  /** Der Schein im Seitenfenster: aus der Liste, der tiefen Prüfung oder der Suche. */
+  /*
+    EIN SCHEIN AUS DER ADRESSE, DER NICHT UNTER DEN GELADENEN IST. Die
+    Baustellenakte verweist mit `?markiert=` auf jeden Schein ihrer Baustelle,
+    auch auf einen vom letzten Jahr; die Liste lädt aber nur die jüngsten
+    fünfzig. Ohne das Nachschlagen öffnete der Tipp in der Akte nichts. Geholt
+    wird genau dieser eine, über die bestehende Abfrage — erst, wenn die Liste
+    geladen ist und ihn nicht hat.
+  */
+  const [nachgeschlagen, setNachgeschlagen] = useState<WithId<WorkSheet> | null>(null);
+  const geladenHat = useMemo(
+    () => !!offen && [...scheine, ...(tiefeScheine ?? []), ...(treffer ?? [])].some((s) => s.id === offen),
+    [offen, scheine, tiefeScheine, treffer],
+  );
+  useEffect(() => {
+    if (!offen || loading || geladenHat || nachgeschlagen?.id === offen) return;
+    let weg = false;
+    getWorkSheet(offen)
+      .then((s) => {
+        if (!weg && s) setNachgeschlagen(s);
+      })
+      // Nicht gefunden oder nicht lesbar: die Liste steht trotzdem da.
+      .catch(() => undefined);
+    return () => {
+      weg = true;
+    };
+  }, [offen, loading, geladenHat, nachgeschlagen]);
+
+  /** Der Schein im Seitenfenster: aus der Liste, der tiefen Prüfung, der Suche oder nachgeschlagen. */
   const offenerSchein = useMemo(
     () =>
       offen
-        ? [...scheine, ...(tiefeScheine ?? []), ...(treffer ?? [])].find((s) => s.id === offen) ?? null
+        ? [...scheine, ...(tiefeScheine ?? []), ...(treffer ?? []), ...(nachgeschlagen ? [nachgeschlagen] : [])].find(
+            (s) => s.id === offen,
+          ) ?? null
         : null,
-    [offen, scheine, tiefeScheine, treffer],
+    [offen, scheine, tiefeScheine, treffer, nachgeschlagen],
   );
 
   async function pdfAusgeben(s: WithId<WorkSheet>) {

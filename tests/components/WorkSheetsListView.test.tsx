@@ -91,6 +91,8 @@ const zeitraumSuche = vi.fn(async () => serverTreffer);
 const baustellenSuche = vi.fn(async () => serverTreffer);
 const textSuche = vi.fn(async () => serverTreffer);
 
+/** Ein einzelner Schein nach Kennung — für `?markiert=` aus der Baustellenakte. */
+const einzeln = vi.fn<(id: string) => Promise<(WorkSheet & { id: string }) | undefined>>(async () => undefined);
 vi.mock('@/lib/db/workSheets', () => ({
   listRecentWorkSheets: vi.fn(async () => geladen),
   listSignedWorkSheetsInRange: (...a: unknown[]) => tiefeAbfrage(...(a as [])),
@@ -100,6 +102,7 @@ vi.mock('@/lib/db/workSheets', () => ({
   cancelWorkSheet: (...a: unknown[]) => stornieren(...(a as [])),
   discardWorkSheetDraft: (...a: unknown[]) => verwerfen(...(a as [])),
   restoreWorkSheetDraft: (...a: unknown[]) => zurueckholen(...(a as [])),
+  getWorkSheet: (id: string) => einzeln(id),
 }));
 /*
   Die Adressen der Bilder kommen aus Firebase Storage. Geprüft wird hier
@@ -932,6 +935,27 @@ describe('Ansicht und Seitenfenster', () => {
     const fenster = await screen.findByRole('dialog', { name: 'Handwerksschein' });
     expect(within(fenster).getByRole('heading', { name: 'Familie Berger' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  /*
+    AUS DER BAUSTELLENAKTE (09.10.2026) kommt `markiert` auch für einen alten
+    Schein, der nicht unter den jüngsten fünfzig ist. Dann wird genau dieser
+    eine nachgeschlagen; geladene werden nicht noch einmal geholt.
+  */
+  it('öffnet einen markierten Schein, der nicht geladen ist, über die Einzelabfrage', async () => {
+    einzeln.mockClear();
+    einzeln.mockImplementation(async (id: string) => ({ ...unterschrieben('alt1', '2025-03-04', 'Familie Vorjahr'), id }));
+    zeichne('/worksheets?markiert=alt1');
+    const fenster = await screen.findByRole('dialog', { name: 'Handwerksschein' });
+    expect(within(fenster).getByRole('heading', { name: 'Familie Vorjahr' })).toBeInTheDocument();
+    expect(einzeln).toHaveBeenCalledWith('alt1');
+  });
+
+  it('Gegenprobe: ein geladener markierter Schein braucht keine Einzelabfrage', async () => {
+    einzeln.mockClear();
+    zeichne('/worksheets?markiert=u1');
+    await screen.findByRole('dialog', { name: 'Handwerksschein' });
+    expect(einzeln).not.toHaveBeenCalled();
   });
 
   it('fragt beim Monteur nicht nach Rechnungen — die Gruppe gibt es nur fürs Büro', async () => {
