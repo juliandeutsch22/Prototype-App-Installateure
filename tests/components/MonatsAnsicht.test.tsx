@@ -303,6 +303,27 @@ describe('Monat — Vorschau (Auftrag 5.3)', () => {
     expect(within(vorschau()).getByText('Montag, 05.10.2026')).toBeInTheDocument();
   });
 
+  /*
+    BEIM ROLLEN MITGEHEN (unabhängige Prüfung Runde 4): die Vorschau steht
+    fest im Fenster; ohne Nachführen blieb sie stehen, wenn Seite oder Raster
+    rollten, und hing nicht mehr am Balken.
+  */
+  it('die Vorschau geht beim Rollen mit ihrem Balken mit', () => {
+    zeige();
+    const balken = zeileVon('Max Mustermann').getByRole('button', { name: /05\.10\. – .*: eingeplant, CT Bau GmbH/ });
+    let oben = 100;
+    balken.getBoundingClientRect = () => ({ left: 100, width: 90, right: 190, top: oben, bottom: oben + 26, height: 26, x: 100, y: oben, toJSON: () => ({}) });
+    fireEvent.click(balken, { clientX: 120, detail: 1 });
+    expect(vorschau().style.top).toBe('134px');
+    oben = 300;
+    fireEvent.scroll(window);
+    expect(vorschau().style.top).toBe('334px');
+    // Gegenprobe: Rollen in der Vorschau selbst setzt sie nicht neu.
+    oben = 500;
+    fireEvent.scroll(vorschau());
+    expect(vorschau().style.top).toBe('334px');
+  });
+
   it('Esc schließt und gibt den Fokus an den Balken zurück', async () => {
     zeige();
     const balken = zeileVon('Max Mustermann').getByRole('button', { name: /05\.10\. – .*: eingeplant, CT Bau GmbH/ });

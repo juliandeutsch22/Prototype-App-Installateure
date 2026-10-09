@@ -108,8 +108,22 @@ export default function MonatsVorschau({
       el.style.top = `${Math.round(y)}px`;
     };
     setzen();
+    /*
+      BEIM ROLLEN MITGEHEN (unabhängige Prüfung Runde 4): das Feld steht
+      fest im Fenster; rollte die Seite oder das Raster, blieb es stehen und
+      hing nicht mehr an seinem Balken. Gerollt wird mit `capture`, damit auch
+      das Rollen im Raster ankommt — das Rollen in der Vorschau selbst nicht.
+    */
+    const gerollt = (e: Event) => {
+      if (e.target instanceof Node && ref.current?.contains(e.target)) return;
+      setzen();
+    };
     window.addEventListener('resize', setzen);
-    return () => window.removeEventListener('resize', setzen);
+    window.addEventListener('scroll', gerollt, true);
+    return () => {
+      window.removeEventListener('resize', setzen);
+      window.removeEventListener('scroll', gerollt, true);
+    };
   }, [handy, anker, klickX, inhalt, tag]);
 
   /*

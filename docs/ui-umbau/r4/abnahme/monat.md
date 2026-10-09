@@ -112,3 +112,9 @@ Freigabe Betreiber: offen
    nur „N Positionen“.
 6. **Kurzname nur, wo der Name es sagt** (Rechtsform, Gemeinde, Familie,
    Anrede/Titel, bekannter Vorname); im Zweifel der volle Name.
+
+## Nach dem Zusammenführen (09.10.2026, Hauptsitzung)
+
+- Die Seite übergibt alle Teile der Schnittstelle (`sicht`, `termine`, `zuAm`, `onEinsatz`, `onTermin`, `onZurWoche`); „Bearbeiten“, „Termin ändern“, die Punkte im Tageskopf und die Sicht „Baustellen“ stehen damit auch auf der echten Seite. Die Monatsprüfung in `WochenplanView.test.tsx` deckt Vorschau → „Zur Woche“ → markierter Tag → „Zurück“ ab; der Browser-Weg 6 steht in `tests/durchklick/runde4.spec.ts`.
+- „Lieferung ohne Annahme“ und die Kurzform „Max M.“ haben je eine Stelle (`wochenTermine.ts` bzw. `kurzname.ts`) für Woche und Monat.
+- Unabhängige Prüfung: „Zurück“ bei offenem Seitenfenster schließt es jetzt (sonst hätte es mit leerer Planung gestanden); die Vorschau geht beim Rollen mit ihrem Balken mit; am Tablet stehen die Tageszahlen im Kopf eine Stufe kleiner, damit sie nicht zusammenlaufen.
