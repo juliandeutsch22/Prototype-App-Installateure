@@ -175,33 +175,31 @@ function Zeile({
   );
 }
 
-/** Die Legende in Wörtern — sie ersetzt die Kürzel-Legende des Rasters (Auftrag 3.3.1). */
+/**
+ * Die Legende in Wörtern — sie ersetzt die Kürzel-Legende des Rasters (Auftrag 3.3.1).
+ *
+ * EINE ZEILE, KURZE WÖRTER (Wunsch des Betriebs, 09.10.2026): am Handy nahm
+ * sie mit fünf Zeilen und einem Satz fast einen Bildschirm ein. Was die
+ * Wörter umfassen und wie man den Streifen bedient, steht in „Hilfe zu dieser
+ * Seite“. Die Woche braucht keine: ihre Zellen tragen Stunden und Wörter.
+ */
 function Legende({ woche }: { woche: boolean }) {
-  if (woche) {
-    return (
-      <p className="ue-legende">
-        Stunden je Tag mit Von–Bis · Abwesenheiten als Wort · Zelle antippen öffnet den Tag
-      </p>
-    );
-  }
+  if (woche) return null;
   const eintraege: Array<[Tageswert['zustand'], string]> = [
     ['ok', 'gebucht'],
-    ['fehlt', 'Arbeitstag ohne Buchung'],
-    ['weg', 'abwesend (Urlaub, Krank, Schule …)'],
-    ['frei', 'Wochenende, Feiertag'],
-    ['grenze', 'Arbeitszeitgrenze überschritten'],
+    ['fehlt', 'ohne Buchung'],
+    ['weg', 'abwesend'],
+    ['frei', 'frei'],
+    ['grenze', 'Grenze überschritten'],
   ];
   return (
-    <div className="ue-legende">
-      <ul className="ue-legende-liste">
-        {eintraege.map(([zustand, wort]) => (
-          <li key={zustand} className="ue-legende-punkt">
-            <StreifenFeld zustand={zustand} />
-            {wort}
-          </li>
-        ))}
-      </ul>
-      <p>Darüberfahren zeigt Stunden und Soll · Tag antippen öffnet ihn</p>
-    </div>
+    <ul className="ue-legende" aria-label="Legende">
+      {eintraege.map(([zustand, wort]) => (
+        <li key={zustand} className="ue-legende-punkt">
+          <StreifenFeld zustand={zustand} />
+          {wort}
+        </li>
+      ))}
+    </ul>
   );
 }

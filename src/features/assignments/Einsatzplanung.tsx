@@ -300,7 +300,6 @@ export default function Einsatzplanung() {
           )}
         </div>
         <div className="planung-wahl">
-          <AnsichtWahl ansicht={ansicht} onWocheMonat={zeitraumWechseln} />
           {/* Am Handy steht die Tagesliste — dort kein Umschalter (Auftrag 4.7). */}
           <div className="hidden md:block">
             <Segmente
@@ -310,6 +309,8 @@ export default function Einsatzplanung() {
               onChange={(s) => aendereAdresse({ sicht: s === 'baustellen' ? 'baustellen' : null })}
             />
           </div>
+          {/* Zuletzt, ganz rechts — an derselben Stelle wie in „Tag“ (Runde 5, G9). */}
+          <AnsichtWahl ansicht={ansicht} onWocheMonat={zeitraumWechseln} />
         </div>
       </div>
 

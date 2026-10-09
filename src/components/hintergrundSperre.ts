@@ -29,10 +29,39 @@ import { useEffect } from 'react';
  * AM SCHREIBTISCH verschwindet mit `overflow: hidden` die Bildlaufleiste;
  * die Seite rückte dann um ihre Breite nach rechts. Ihre Breite wird deshalb
  * als Abstand rechts am `body` gehalten. Am Handy ist sie null.
+ *
+ * DAS WISCHEN SELBST WIRD ABGEFANGEN, wo nichts rollen kann (Rückmeldung
+ * 09.10.2026, iPhone, Inventur im Lager): `overflow: hidden` allein hielt die
+ * Seite hinter einer Rückfrage nicht fest — das Blatt hat einen eigenen
+ * Rollbereich, die Rückfrage nicht. Solange ein Overlay offen ist, bricht ein
+ * Wischen ab, das nichts unter dem Finger rollen könnte. Was selbst rollt
+ * (Inhalt eines Blatts, eine hohe Rückfrage, eine breite Tabelle), Felder
+ * (Text markieren) und zwei Finger (zoomen) bleiben, wie sie sind.
  */
 
 let offen = 0;
 let vorher: { html: string; abstand: string } | null = null;
+
+const FELD = 'input, textarea, select, [contenteditable="true"]';
+
+/** Kann unter dem Finger etwas selbst rollen — oder ist es ein Feld? */
+function darfWischen(ziel: EventTarget | null): boolean {
+  let el = ziel instanceof Element ? ziel : null;
+  if (el?.closest(FELD)) return true;
+  while (el && el !== document.body && el !== document.documentElement) {
+    const stil = getComputedStyle(el);
+    const senkrecht = /(auto|scroll)/.test(stil.overflowY) && el.scrollHeight > el.clientHeight + 1;
+    const waagrecht = /(auto|scroll)/.test(stil.overflowX) && el.scrollWidth > el.clientWidth + 1;
+    if (senkrecht || waagrecht) return true;
+    el = el.parentElement;
+  }
+  return false;
+}
+
+function wischen(e: TouchEvent): void {
+  if ((e.touches?.length ?? 1) > 1) return;
+  if (!darfWischen(e.target)) e.preventDefault();
+}
 
 function sperren(): void {
   offen += 1;
@@ -42,6 +71,8 @@ function sperren(): void {
   const leiste = window.innerWidth - html.clientWidth;
   vorher = { html: html.style.overflow, abstand: body.style.paddingRight };
   html.style.overflow = 'hidden';
+  // Nicht passiv: nur so lässt sich das Wischen abbrechen.
+  document.addEventListener('touchmove', wischen, { passive: false });
   // Ohne Layout (Testumgebung) ist `clientWidth` null — dann gibt es keine Leiste auszugleichen.
   if (html.clientWidth > 0 && leiste > 0) {
     const bisher = Number.parseFloat(getComputedStyle(body).paddingRight) || 0;
@@ -57,6 +88,7 @@ function freigeben(): void {
   const body = document.body;
   html.style.overflow = vorher.html;
   body.style.paddingRight = vorher.abstand;
+  document.removeEventListener('touchmove', wischen);
   vorher = null;
 }
 

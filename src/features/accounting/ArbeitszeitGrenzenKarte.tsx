@@ -39,12 +39,12 @@ interface KarteProps {
   /** Öffnet eine Buchung zum Korrigieren (bei Verstößen gegen das KJBG). */
   onKorrigieren?: (eintrag: WithId<TimeEntry>) => void;
   /**
-   * Die Prüfung, wenn die Seite sie schon hält (Runde 4: Streifen, Kennzahl
+   * Die Prüfung, wenn die Seite sie schon hält (Runde 4: Streifen
    * und Seitenfenster lesen dieselben Fälle). Ohne lädt die Karte selbst —
    * so wie bis Runde 4, und so prüfen sie ihre Tests.
    */
   daten?: GrenzDaten;
-  /** Sprungziel der Kennzahl „Arbeitszeitgrenzen“. */
+  /** Sprungziel in der Seite (`#arbeitszeitgrenzen`). */
   id?: string;
 }
 

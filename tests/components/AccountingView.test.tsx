@@ -786,9 +786,21 @@ describe('Mitarbeiterübersicht: der Monat als Streifen (Runde 4, Auftrag 3.3)',
   it('die Legende nennt die Zustände in Wörtern, ohne Kürzel', async () => {
     zeichneSeite();
     await personKnopf('Neu Eingestellt');
-    expect(screen.getByText('Arbeitstag ohne Buchung')).toBeInTheDocument();
-    expect(screen.getByText('Darüberfahren zeigt Stunden und Soll · Tag antippen öffnet ihn')).toBeInTheDocument();
+    // Eine Zeile mit kurzen Wörtern (Wunsch des Betriebs, 09.10.2026) — die Erklärung steht in der Seitenhilfe.
+    const legende = screen.getByRole('list', { name: 'Legende' });
+    expect(within(legende).getAllByRole('listitem').map((l) => l.textContent)).toEqual([
+      'gebucht', 'ohne Buchung', 'abwesend', 'frei', 'Grenze überschritten',
+    ]);
+    expect(screen.queryByText(/Darüberfahren zeigt Stunden und Soll/)).not.toBeInTheDocument();
     expect(screen.queryByText(/K Krank|ZA Zeitausgleich/)).not.toBeInTheDocument();
+  });
+
+  it('erklärt die Felder in „Hilfe zu dieser Seite“', async () => {
+    const nutzer = zeichneSeite();
+    await personKnopf('Neu Eingestellt');
+    await nutzer.click(screen.getByRole('button', { name: 'Hilfe zu dieser Seite' }));
+    expect(await screen.findByText(/„abwesend“ heißt Urlaub, Krankenstand, Berufsschule/)).toBeInTheDocument();
+    expect(screen.getByText(/Darüberfahren zeigt\s+Stunden und Soll des Tages, ein Tipp öffnet ihn/)).toBeInTheDocument();
   });
 
   it('der Tooltip ist ein eigenes Element, kein `title`', async () => {
@@ -850,20 +862,20 @@ describe('Mitarbeiterübersicht: Kennzahlen (Runde 4, Auftrag 3.2)', () => {
     expect(screen.getByText('von 160:00 Soll · alle Personen')).toBeInTheDocument();
   });
 
-  it('„Arbeitszeitgrenzen“ zählt die Fälle der Karte, markiert den Tag im Streifen — mit EINER Prüfung', async () => {
+  it('der Fall steht in der Karte und als Tag im Streifen — mit EINER Prüfung, ohne eigene Kennzahl', async () => {
     buchungen = [...eintraege.filter((e) => e.date !== '2026-08-25'), { ...eintrag('2026-08-25'), startTime: '05:00', endTime: '18:00' }];
     zeichneSeite();
     expect(await screen.findByText(/13:00 Std\. am 25\.08\. — höchstens 12 Std\./)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Arbeitszeitgrenzen/ })).toHaveTextContent('1 Fall');
+    // Die Kennzahl „Arbeitszeitgrenzen“ ist weg (Wunsch des Betriebs, 09.10.2026); Karte und Streifen bleiben.
+    expect(screen.queryByRole('button', { name: /^Arbeitszeitgrenzen/ })).toBeNull();
     expect(tagKnopf(/Di 25\.08\. · 05:00–18:00 · 13:00 Std\..*höchstens 12 Std\./)).toHaveClass('st-grenze');
-    // Karte, Kennzahl und Streifen lesen dieselbe Prüfung: eine Abfrage, nicht zwei.
+    // Karte und Streifen lesen dieselbe Prüfung: eine Abfrage, nicht zwei.
     expect(grenzAbfragen).toBe(1);
   });
 
   it('Gegenprobe: ohne Fall ist der Tag nur gebucht', async () => {
     zeichneSeite();
     expect(await screen.findByText('Im August 2026 wurde keine Grenze überschritten.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Arbeitszeitgrenzen/ })).toHaveTextContent('keine');
     expect(tagKnopf(/Di 25\.08\./)).toHaveClass('st-ok');
   });
 });

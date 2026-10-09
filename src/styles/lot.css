@@ -77,7 +77,8 @@
   @media (min-width: 760px) { .fenster-inhalt { flex: 1; max-height: none; padding: 1.25rem; } }
   .fenster-griff { padding: 0.75rem 1rem 0.25rem; cursor: grab; touch-action: none; }
   @media (min-width: 760px) { .fenster-griff { display: none; } }
-  .dialog { width: 100%; max-width: 26rem; padding: 1.25rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
+  /* Eine hohe Rückfrage (offene Tastatur am Handy) rollt in sich, nicht die Seite dahinter. */
+  .dialog { width: 100%; max-width: 26rem; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 1.25rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
 
   /* ── Meldung mit „Rückgängig“ ─────────────────────────────────────────── */
   /*

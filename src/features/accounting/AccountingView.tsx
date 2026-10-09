@@ -36,7 +36,7 @@ import { Segmente } from '@/components/LotBausteine';
 import ExportDialog from './ExportDialog';
 import ProjectSummary from './ProjectSummary';
 import ArbeitszeitGrenzenKarte from './ArbeitszeitGrenzenKarte';
-import { grenzZusatz, useArbeitszeitGrenzen } from './useArbeitszeitGrenzen';
+import { useArbeitszeitGrenzen } from './useArbeitszeitGrenzen';
 import type { Grenzfall } from './arbeitszeitGrenzen';
 import PersonFenster from './PersonFenster';
 import UebersichtListe, { type UebersichtZeile } from './UebersichtListe';
@@ -396,7 +396,7 @@ export default function AccountingView() {
 
   /*
     DIE ARBEITSZEITGRENZEN — EINMAL geprüft für die ganze Seite: die Karte,
-    die Kennzahl, der Streifen (`.st-grenze`) und das Seitenfenster lesen
+    der Streifen (`.st-grenze`) und das Seitenfenster lesen
     dieselben Fälle. Im Supportzugang gar nicht (Zeitbuchungen verschlossen).
   */
   const grenzDaten = useArbeitszeitGrenzen({
@@ -679,7 +679,6 @@ export default function AccountingView() {
         : monatAbstand === 1
           ? 'Nächster Monat'
           : '';
-  const grenzFaelle = grenzDaten.stand?.faelle.length ?? 0;
 
   /* Was das Seitenfenster gerade zeigt — Titel und Name für die Vorlesehilfe. */
   const fensterOffen = !!aufgabe || !!personZeile;
@@ -726,6 +725,14 @@ export default function AccountingView() {
             Saldo. Oben stehen, wer Tage ohne Buchung hat. Ein Klick auf die Zeile oder ein Feld öffnet die
             Person im Seitenfenster mit allen Zahlen, dem Tagesnachweis und „Zeit erfassen“. Die Stunden je
             Tag stehen in der Ansicht „Woche“. Ein Klick auf den Monat oben wählt Monat und Jahr.
+            <br />
+            <br />
+            Die Felder des Streifens: „abwesend“ heißt Urlaub, Krankenstand, Berufsschule, Zeitausgleich
+            oder Sonderurlaub; „frei“ Wochenende und Feiertag; umrandete Felder liegen noch vor heute. Ein
+            roter Strich unten heißt: an diesem Tag ist eine Arbeitszeitgrenze überschritten — die Fälle
+            stehen mit Begründung in der Karte „Arbeitszeitgrenzen“ unter der Liste. Darüberfahren zeigt
+            Stunden und Soll des Tages, ein Tipp öffnet ihn. In der Ansicht „Woche“ stehen die Stunden je
+            Tag mit Von–Bis, Abwesenheiten als Wort; eine Zelle öffnet den Tag.
           </>
         }
         action={
@@ -743,11 +750,14 @@ export default function AccountingView() {
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
       {/*
-        DREI KENNZAHLEN aus vorhandenen Werten (Auftrag 3.2): wer Tage ohne
+        ZWEI KENNZAHLEN aus vorhandenen Werten (Auftrag 3.2): wer Tage ohne
         Buchung hat (antippen filtert — das war das Kästchen „Nur mit
-        fehlenden Tagen“), die Fälle der Arbeitszeitgrenzen (antippen springt
-        zur Karte) und die Summe von Ist und Soll aller Personen. Im
-        Supportzugang nicht: alle drei kämen aus verschlossenen Buchungen.
+        fehlenden Tagen“) und die Summe von Ist und Soll aller Personen. Im
+        Supportzugang nicht: beide kämen aus verschlossenen Buchungen.
+
+        DIE KENNZAHL „ARBEITSZEITGRENZEN“ IST WEG (Wunsch des Betriebs,
+        09.10.2026): sie sprang nur zur Karte weiter unten, die die Fälle mit
+        Begründung führt; der Tag steht im Streifen mit rotem Strich.
       */}
       {!imSupport && !loading && !error && alleRows.length > 0 && (
         <div className="ue-kennzahlen">
@@ -764,23 +774,6 @@ export default function AccountingView() {
                 ? 'alle vollständig'
                 : `bei ${luecken} von ${alleRows.length} ${alleRows.length === 1 ? 'Person' : 'Personen'}`}
               {nurLuecken ? ' · nur diese gezeigt' : ''}
-            </span>
-          </button>
-          <button
-            type="button"
-            className="ue-kennzahl"
-            onClick={() => document.getElementById('arbeitszeitgrenzen')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })}
-          >
-            <span className="ue-kennzahl-name">Arbeitszeitgrenzen</span>
-            <span className="ue-kennzahl-wert">
-              {grenzDaten.fehler ? '–' : !grenzDaten.stand ? '…' : grenzFaelle === 0 ? 'keine' : grenzFaelle === 1 ? '1 Fall' : `${grenzFaelle} Fälle`}
-            </span>
-            <span className="ue-kennzahl-zusatz">
-              {grenzDaten.fehler
-                ? 'Prüfung fehlgeschlagen'
-                : !grenzDaten.stand
-                  ? 'wird geprüft'
-                  : grenzZusatz(grenzDaten.zaehlung) || 'im Monat geprüft'}
             </span>
           </button>
           <div className="ue-kennzahl-fest">

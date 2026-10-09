@@ -18,7 +18,7 @@ export interface GrenzStand {
   eintraege: WithId<TimeEntry>[];
 }
 
-/** Was die Karte, die Kennzahl, der Streifen und das Seitenfenster aus EINER Prüfung lesen. */
+/** Was die Karte, der Streifen und das Seitenfenster aus EINER Prüfung lesen. */
 export interface GrenzDaten {
   /** `null`, solange geprüft wird. */
   stand: GrenzStand | null;
@@ -30,7 +30,7 @@ export interface GrenzDaten {
 }
 
 /**
- * Die Zählung in Worten — im Kopf der Karte und in der Kennzahl dieselbe:
+ * Die Zählung in Worten — im Kopf der Karte:
  * „1 Verstoß Jugendschutz · 2 ohne Begründung“, „alle begründet“, sonst leer.
  */
 export function grenzZusatz(z: GrenzDaten['zaehlung']): string {
@@ -46,8 +46,8 @@ export function grenzZusatz(z: GrenzDaten['zaehlung']): string {
  * DIE PRÜFUNG DER ARBEITSZEITGRENZEN EINES MONATS — als Hook (Runde 4).
  *
  * Bis Runde 4 lud die Karte „Arbeitszeitgrenzen“ ihre Fälle selbst. Seit der
- * Streifen einen Grenzfall am Tag zeigt (`.st-grenze`), die Kennzahl die
- * Fälle zählt und das Seitenfenster die Fälle der Person nennt, braucht die
+ * Streifen einen Grenzfall am Tag zeigt (`.st-grenze`) und das Seitenfenster
+ * die Fälle der Person nennt, braucht die
  * SEITE dieselben Fälle. Geladen wird trotzdem nur EINMAL: die Seite ruft
  * diesen Hook und reicht das Ergebnis an Karte und Seitenfenster weiter. Die
  * Ladelogik ist unverändert aus der Karte herübergehoben.

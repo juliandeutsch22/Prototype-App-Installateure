@@ -14,6 +14,15 @@
   .planung-titel { font-size: 1.0625rem; line-height: 1.5rem; font-weight: 600; color: var(--ink-deep); }
   .planung-kw { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   .planung-wahl { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+  /*
+    „TAG“ WIE WOCHE UND MONAT (Testbericht Runde 5, G9): volle Breite, und
+    der Umschalter steht ab dem Tablet in allen drei Ansichten ganz rechts.
+    Eine eigene Klasse statt `.planung-steuerung`, weil die Team-Woche jene
+    trägt und schmal bleibt.
+  */
+  .planung-steuerung-tag { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
+  .inhalt:has(.planung-steuerung-tag) { max-width: none; }
+  @media (min-width: 760px) { .planung-wahl { margin-left: auto; } }
 
   /*
     DIE HÜLLE DES RASTERS rollt selbst, waagrecht UND senkrecht: nur so
@@ -46,8 +55,9 @@
   /*
     VOLLE INHALTSBREITE (Auftrag 4.1) — die wichtigste Einzelmaßnahme gegen
     abgeschnittene Einsätze: bei 1.920 px endete der Inhalt bei 1.170 px.
-    Nur für Woche und Monat der Einsatzplanung; die Team-Woche, „Tag“ und
-    jede andere Seite behalten ihre Breite.
+    Für Woche und Monat der Einsatzplanung, seit Runde 5 (G9) auch für „Tag“
+    (`.planung-steuerung-tag`); die Team-Woche und jede andere Seite behalten
+    ihre Breite.
   */
   .inhalt:has(.einsatzplanung) { max-width: none; }
   .einsatzplanung { display: flex; flex-direction: column; gap: 1rem; }

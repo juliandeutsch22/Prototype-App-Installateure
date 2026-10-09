@@ -11,7 +11,7 @@
 @layer components {
   /* ── Kennzahlen (Auftrag 3.2, Punkt 2) ────────────────────────────────── */
   .ue-kennzahlen { display: grid; grid-template-columns: minmax(0, 1fr); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
-  @media (min-width: 760px) { .ue-kennzahlen { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 760px) { .ue-kennzahlen { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .ue-kennzahl { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 2.75rem; padding: 0.625rem 1rem; border: 0; border-bottom: 1px solid var(--border); background: var(--surface); color: var(--text); text-align: left; cursor: pointer; }
   .ue-kennzahl:hover { background: var(--petrol-hell); }
   .ue-kennzahl-an { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 2.75rem; padding: 0.625rem 1rem; border: 0; border-bottom: 1px solid var(--border); background: var(--petrol-hell); color: var(--text); text-align: left; cursor: pointer; box-shadow: inset 0 -3px 0 var(--petrol); }
@@ -110,10 +110,10 @@
   .ue-zahl-name { display: block; font-size: 0.75rem; line-height: 1rem; font-weight: 400; color: var(--text-muted); }
   @media (min-width: 760px) { .ue-zahl-name { display: none; } }
 
-  .ue-legende { padding: 0.75rem 1rem; border-top: 1px solid var(--border); font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
-  @media (min-width: 1200px) { .ue-legende { padding: 0.75rem 1.25rem; } }
-  .ue-legende-liste { display: flex; flex-wrap: wrap; gap: 0.5rem 1.125rem; margin: 0 0 0.25rem; padding: 0; list-style: none; }
-  .ue-legende-punkt { display: inline-flex; align-items: center; gap: 0.375rem; }
+  /* Eine Zeile (am Handy höchstens zwei), die Erklärung steht in der Seitenhilfe. */
+  .ue-legende { display: flex; flex-wrap: wrap; gap: 0.25rem 0.875rem; margin: 0; padding: 0.5rem 1rem; list-style: none; border-top: 1px solid var(--border); font-size: 0.75rem; line-height: 1rem; color: var(--text-muted); }
+  @media (min-width: 1200px) { .ue-legende { padding: 0.5rem 1.25rem; } }
+  .ue-legende-punkt { display: inline-flex; align-items: center; gap: 0.3125rem; white-space: nowrap; }
 
   /* ── Streifen (Auftrag 3.3.1, Baustein „Streifen“) ───────────────────── */
   .streifen { grid-column: 1 / -1; display: grid; gap: 1px; min-width: 0; }

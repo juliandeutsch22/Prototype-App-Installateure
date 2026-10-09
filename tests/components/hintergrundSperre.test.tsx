@@ -114,3 +114,53 @@ describe('Hintergrundsperre', () => {
     expect(readFileSync('src/styles/lot-monat.css', 'utf8')).toMatch(/\.vorschau-inhalt \{[^}]*overscroll-behavior: contain/);
   });
 });
+
+/*
+  RÜCKMELDUNG 09.10.2026, iPhone, Inventur im Lager: hinter der Rückfrage
+  rollte die Seite weiter — `overflow: hidden` allein hält sie dort nicht.
+  Ein Wischen, unter dem nichts selbst rollen kann, bricht ab.
+*/
+describe('Wischen hinter einem Overlay', () => {
+  const wisch = (ziel: Element, finger = 1) => {
+    const e = new Event('touchmove', { bubbles: true, cancelable: true });
+    Object.defineProperty(e, 'touches', { value: Array.from({ length: finger }, () => ({})) });
+    ziel.dispatchEvent(e);
+    return e.defaultPrevented;
+  };
+
+  function Inventur({ offen }: { offen: boolean }) {
+    return (
+      <ConfirmDialog open={offen} title="Inventur: Rohr" onConfirm={() => {}} onCancel={() => {}}>
+        <input aria-label="Gezählter Bestand" />
+        <div data-testid="liste" style={{ overflowY: 'auto' }}>
+          <p>Bewegung</p>
+        </div>
+      </ConfirmDialog>
+    );
+  }
+
+  it('bricht auf der Rückfrage ab, wo nichts rollen kann', () => {
+    render(<Inventur offen />);
+    expect(wisch(screen.getByText('Inventur: Rohr'))).toBe(true);
+    expect(wisch(document.body)).toBe(true);
+  });
+
+  it('lässt rollen, was selbst rollen kann, und lässt Felder und zwei Finger in Ruhe', () => {
+    render(<Inventur offen />);
+    const liste = screen.getByTestId('liste');
+    // Ohne Überlauf rollt die Liste nicht — dann bricht auch sie ab.
+    expect(wisch(screen.getByText('Bewegung'))).toBe(true);
+    Object.defineProperty(liste, 'scrollHeight', { value: 400 });
+    Object.defineProperty(liste, 'clientHeight', { value: 100 });
+    expect(wisch(screen.getByText('Bewegung'))).toBe(false);
+    expect(wisch(screen.getByLabelText('Gezählter Bestand'))).toBe(false);
+    expect(wisch(screen.getByText('Inventur: Rohr'), 2)).toBe(false);
+  });
+
+  it('Gegenprobe: ohne Overlay bleibt jedes Wischen, wie es ist', () => {
+    const { rerender } = render(<Inventur offen />);
+    rerender(<Inventur offen={false} />);
+    expect(offeneSperren()).toBe(0);
+    expect(wisch(document.body)).toBe(false);
+  });
+});
