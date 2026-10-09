@@ -28,7 +28,7 @@ import {
 import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
 import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
 import { listLagerPosten } from '@/lib/db/einkauf';
-import { lagerFrei, listMaterials, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
+import { lagerFrei, listLagerartikel, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
 import { listUnpaidInvoices, listInvoicesByIds, scheineAufRechnung } from '@/lib/db/invoices';
 import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
@@ -337,7 +337,9 @@ export async function lager(
 }
 
 async function knappeArtikel(companyId: string): Promise<KnapperArtikel[]> {
-  const [artikel, frei] = await Promise.all([listMaterials(companyId), lagerFrei()]);
+  // Alle Lagerartikel, nicht die ersten 1.000 des Katalogs — und das Freie genau für sie.
+  const artikel = await listLagerartikel(companyId);
+  const frei = await lagerFrei(artikel.map((m) => m.id));
   return artikel
     .filter((m) => imLager(m))
     .map((m) => ({ m, frei: frei.get(m.id)?.frei ?? m.stock }))
@@ -483,8 +485,17 @@ export async function leitung(
 
   if (was.budget) {
     const mitBudget = projekte.filter((pr) => (pr.estimatedHours ?? 0) > 0);
+    /*
+      Scheitert der Budgetstand, fehlt nur er — nicht der ganze Block mit
+      Baustellen, Einsätzen und Wartungen. So im Support-Einblick: die
+      Stunden der Baustellen bekommt nur die Leitung des Betriebs selbst.
+      Ohne Budgetstand steht auch kein „alle im Budget“ da (`aufbau.ts`).
+    */
     out.budget = mitBudget.length
-      ? budgetStand(mitBudget, await stundenDerBaustellen(mitBudget.map((pr) => pr.projectNumber)))
+      ? await still<BudgetZeile[] | undefined>(
+        async () => budgetStand(mitBudget, await stundenDerBaustellen(mitBudget.map((pr) => pr.projectNumber))),
+        undefined,
+      )
       : [];
   }
 

@@ -205,7 +205,11 @@ export default function EinsatzFormular({
     if (!user) return;
     let weg = false;
     Promise.resolve()
-      .then(() => lagerFrei())
+      .then(() => lagerFrei([
+        ...materials.map((m) => m.id),
+        // Eine Position kann auf einen Artikel zeigen, der nicht im geladenen Katalog steht.
+        ...tagesListen.flatMap((l) => (l.positionen ?? []).map((p) => p.materialId ?? '')),
+      ]))
       .then((k) => { if (!weg) setLagerStand(k); })
       .catch(() => undefined);
     return () => { weg = true; };

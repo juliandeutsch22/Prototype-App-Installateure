@@ -372,7 +372,8 @@ export default function MonatsAnsicht({
     Seitenfenster. Bis dahin „…“.
   */
   const [ruest, setRuest] = useState<{ tag: string; listen: Map<string, RuestPosition[]> | 'fehler' } | null>(null);
-  const [lager, setLager] = useState<Map<string, { frei: number }> | null | undefined>(undefined);
+  /** Das Freie der Artikel auf den Rüstlisten eines Tages; `null` heisst: konnte nicht geladen werden. */
+  const [lager, setLager] = useState<{ tag: string; frei: Map<string, { frei: number }> | null } | undefined>(undefined);
   const offen = !!vorschau;
   useEffect(() => {
     if (!offen) {
@@ -380,21 +381,24 @@ export default function MonatsAnsicht({
       setLager(undefined);
     }
   }, [offen]);
+  // Erst wenn die Listen des Tages da sind: gefragt wird nach ihren Artikeln.
   useEffect(() => {
-    if (!offen || !materialAn || lager !== undefined) return;
+    if (!offen || !materialAn || !ruest || ruest.listen === 'fehler' || lager?.tag === ruest.tag) return;
+    const ids = [...ruest.listen.values()].flatMap((l) => l.map((p) => p.materialId ?? '')).filter(Boolean);
+    const fuer = ruest.tag;
     let weg = false;
     Promise.resolve()
-      .then(() => quelle.lager())
+      .then(() => quelle.lager(ids))
       .then((k) => {
-        if (!weg) setLager(k);
+        if (!weg) setLager({ tag: fuer, frei: k });
       })
       .catch(() => {
-        if (!weg) setLager(null);
+        if (!weg) setLager({ tag: fuer, frei: null });
       });
     return () => {
       weg = true;
     };
-  }, [offen, materialAn, lager, quelle]);
+  }, [offen, materialAn, ruest, lager, quelle]);
   useEffect(() => {
     if (!tag || !materialAn || !betrieb) return;
     let weg = false;
@@ -416,9 +420,10 @@ export default function MonatsAnsicht({
   const ruestText = useMemo(() => {
     if (!materialAn || !tag) return undefined;
     return (nummer: string) => {
-      if (!ruest || ruest.tag !== tag || lager === undefined) return '…';
+      if (!ruest || ruest.tag !== tag) return '…';
       if (ruest.listen === 'fehler') return 'konnte nicht geladen werden';
-      return ruestZeile(ruest.listen.get(nummer), lager, tag, todayStr());
+      if (lager?.tag !== tag) return '…';
+      return ruestZeile(ruest.listen.get(nummer), lager.frei, tag, todayStr());
     };
   }, [materialAn, tag, ruest, lager]);
 

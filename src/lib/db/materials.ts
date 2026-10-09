@@ -67,9 +67,14 @@ export function listLagerbewegungen(materialId: string, max = 200): Promise<Lage
 
 export type { LagerStand } from './pg/materials';
 
-/** Je Artikel Bestand, Zugesagtes, auf Rüstlisten Geplantes und Freies (M32, G19). */
-export function lagerFrei(): Promise<Map<string, pg.LagerStand>> {
-  return pg.lagerFrei();
+/** Je genanntem Artikel Bestand, Zugesagtes, auf Rüstlisten Geplantes und Freies (M32, G19). */
+export function lagerFrei(ids: readonly string[]): Promise<Map<string, pg.LagerStand>> {
+  return pg.lagerFrei(ids);
+}
+
+/** Die im Lager geführten Artikel, ohne die Grenze des Katalogs. */
+export function listLagerartikel(companyId: string): Promise<WithId<Material>[]> {
+  return pg.listLagerartikel(companyId);
 }
 
 export function listMaterials(companyId: string, max = KATALOG_GRENZE): Promise<WithId<Material>[]> {

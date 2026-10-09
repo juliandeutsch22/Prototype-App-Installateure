@@ -115,11 +115,12 @@ const onTermin = vi.fn();
 const onZurWoche = vi.fn();
 const onTag = vi.fn();
 const quelleTag = vi.fn<MonatsQuelle['tag']>(async () => ({ einsaetze: [], urlaube: [], termine: [], zu: null, zuFuer: () => false }));
+const quelleLager = vi.fn<MonatsQuelle['lager']>(async () => new Map([['m1', { frei: 2 }]]));
 const quelle: MonatsQuelle = {
   tag: (...a) => quelleTag(...a),
   projekte: async () => [],
   ruestlisten: async () => ruestlisten,
-  lager: async () => new Map([['m1', { frei: 2 }]]),
+  lager: (ids) => quelleLager(ids),
 };
 
 function zeige(x: { sicht?: 'personen' | 'baustellen'; ohneZurWoche?: boolean; leute?: AppUser[] } = {}) {
@@ -247,6 +248,16 @@ describe('Monat — Vorschau (Auftrag 5.3)', () => {
     expect(await v.findByText('2 Positionen · 1 mit Fehlmenge')).toBeInTheDocument();
     expect(v.getByRole('link', { name: 'Baustelle öffnen' })).toHaveAttribute('href', '/admin-projects/p1');
     expect(document.activeElement).toBe(v.getByRole('button', { name: 'Vorschau schließen' }));
+  });
+
+  it('fragt das Freie nur für die Artikel der Rüstlisten des Tages, nicht für den ganzen Katalog', async () => {
+    // Ohne Liste endete `lager_frei()` bei 1.000 Zeilen — der Artikel konnte fehlen (Analyse 09.10.2026).
+    ruestlisten = [{ date: '2026-10-05', projectNumber: 'B-1', positionen: [{ id: 'r1', materialId: 'm1', name: 'Rohr', menge: 5 }, { id: 'r2', name: 'Leihgerät', menge: 1 }] }];
+    quelleLager.mockClear();
+    zeige();
+    await userEvent.click(zeileVon('Max Mustermann').getByRole('button', { name: /05\.10\. – .*: eingeplant, CT Bau GmbH/ }));
+    expect(await within(vorschau()).findByText('2 Positionen · 1 mit Fehlmenge')).toBeInTheDocument();
+    expect(quelleLager.mock.calls).toEqual([[['m1']]]);
   });
 
   it('„Bearbeiten“ öffnet das Seitenfenster der Seite mit Tag und Baustelle — die Vorschau schließt sich', async () => {

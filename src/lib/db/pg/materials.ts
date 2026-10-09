@@ -3,7 +3,7 @@
  */
 import type { Lagerbewegung, Material } from '@/types';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
-import { abfragen, abonnieren, anlegen as kernAnlegen, aendern, loeschen, derClient, type WithId } from './kern';
+import { abfragen, abonnieren, anlegen as kernAnlegen, aendern, loeschen, derClient, SEITE, type WithId } from './kern';
 import { zeileAlsObjekt } from './felder';
 import { oderUeberSpalten } from './suche';
 
@@ -122,11 +122,31 @@ export interface LagerStand {
   frei: number;
 }
 
-export async function lagerFrei(): Promise<Map<string, LagerStand>> {
-  const { data, error } = await derClient().rpc('lager_frei');
-  if (error) throw new Error(error.message);
+const IST_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Das Freie der genannten Artikel.
+ *
+ * NACH DEN ARTIKELN, DIE DIE ANSICHT ZEIGT, nicht nach allen: PostgREST
+ * deckelt auch die Antwort einer Funktion still bei 1000 Zeilen, und mit
+ * einem eingespielten Großhandelskatalog fehlten sonst beliebige Artikel
+ * (Analyse 09.10.2026). Gefragt wird in Portionen unter der Grenze; jede
+ * Portion antwortet mit höchstens so vielen Zeilen, wie sie Artikel nennt.
+ *
+ * Eine Id, die kein Artikel sein kann (Vorschau, frei getippte Zeile), wird
+ * übergangen — sie liesse sonst die ganze Portion scheitern.
+ */
+export async function lagerFrei(ids: readonly string[], seite = SEITE): Promise<Map<string, LagerStand>> {
+  const gefragt = [...new Set(ids.filter((id) => IST_UUID.test(id)))];
+  const portionen: string[][] = [];
+  for (let von = 0; von < gefragt.length; von += seite) portionen.push(gefragt.slice(von, von + seite));
+  const antworten = await Promise.all(portionen.map(async (p_ids) => {
+    const { data, error } = await derClient().rpc('lager_frei', { p_ids });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Array<Record<string, unknown>>;
+  }));
   const karte = new Map<string, LagerStand>();
-  for (const z of (data ?? []) as Array<Record<string, unknown>>) {
+  for (const z of antworten.flat()) {
     karte.set(String(z.material_id), {
       bestand: Number(z.bestand),
       zugesagt: Number(z.zugesagt),
@@ -135,6 +155,17 @@ export async function lagerFrei(): Promise<Map<string, LagerStand>> {
     });
   }
   return karte;
+}
+
+/**
+ * Alle Artikel, die der Betrieb im Lager führt — ohne die Grenze des
+ * Katalogs. Die Startseite sucht darunter die knappen; mit einem
+ * eingespielten Großhandelskatalog standen sie sonst nicht unter den ersten
+ * 1.000 Artikeln. Ein Katalogimport führt nichts im Lager (`lagerartikel`
+ * entsteht erst mit Bestand), die Menge wächst mit dem Regal.
+ */
+export function listLagerartikel(companyId: string) {
+  return abfragen<Material>(MATERIAL, companyId, { wo: [{ art: 'gleich', feld: 'lagerartikel', wert: true }] });
 }
 
 export function listMaterials(companyId: string, max = KATALOG_GRENZE) {
