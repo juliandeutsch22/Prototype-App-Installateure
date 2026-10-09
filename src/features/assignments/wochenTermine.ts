@@ -40,13 +40,9 @@ export function terminOrtKurz(t: Pick<Termin, 'ortName' | 'projectNumber'>): str
 
 /**
  * „Max M.“ — für die Sicht nach Baustellen, wo mehrere Namen in eine Zelle
- * müssen. Der volle Name steht im `title` und in der Vorlesehilfe.
+ * müssen. EINE Regel für Woche und Monat: sie steht in `kurzname.ts`.
  */
-export function personKurz(name: string): string {
-  const teile = name.trim().split(/\s+/);
-  if (teile.length < 2) return name.trim();
-  return `${teile[0]} ${teile[teile.length - 1].charAt(0)}.`;
-}
+export { kurzPerson as personKurz } from './kurzname';
 
 export const feiertagAm = (tag: string) => getAustrianHolidayName(new Date(`${tag}T00:00:00`));
 export const wochenendeAm = (tag: string) => isWeekend(new Date(`${tag}T00:00:00`));

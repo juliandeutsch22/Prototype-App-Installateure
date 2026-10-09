@@ -522,7 +522,7 @@ describe('Monat — Vorschau und Seitenfenster sagen dasselbe', () => {
             betriebsurlaube={[]}
             termine={termine}
             onClose={() => undefined}
-            onTagPlanen={() => undefined}
+            onTagAnsehen={() => undefined}
           />
         </ToastProvider>
       </MemoryRouter>,

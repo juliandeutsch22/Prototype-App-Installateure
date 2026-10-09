@@ -1,5 +1,5 @@
 import type { Abwesenheit } from '@/lib/db/vacations';
-import type { Assignment, Termin } from '@/types';
+import type { Assignment } from '@/types';
 import { besetzung } from './besetzung';
 import { kurzname, kurzPerson } from './kurzname';
 import type { Zelle } from './planTypen';
@@ -189,16 +189,11 @@ export function baustelleTag(
 }
 
 /**
- * LIEFERUNG OHNE ANNAHME (Auftrag 4.4, Regel 3): eine Lieferung an einer
- * Baustelle, auf der an diesem Tag niemand eingeteilt ist. Dieselbe Frage
- * wie im Einsatzformular („Steht jemand zur Annahme da?“), nur umgekehrt
- * gestellt: dort steht der Hinweis, wenn man die Baustelle einteilt; hier,
- * wenn es niemand tut.
+ * LIEFERUNG OHNE ANNAHME (Auftrag 4.4, Regel 3) — EINE Regel für den
+ * Tageskopf der Woche, den Punkt im Monat und die Vorschau; sie steht in
+ * `wochenTermine.ts`.
  */
-export function lieferungOhneAnnahme(t: Termin, einsaetze: Pick<Assignment, 'date' | 'projectNumber'>[]): boolean {
-  if (t.art !== 'Lieferung' || !t.projectNumber) return false;
-  return !einsaetze.some((a) => a.date === t.datum && a.projectNumber === t.projectNumber);
-}
+export { lieferungOhneAnnahme } from './wochenTermine';
 
 /**
  * Der Tag unter der Klickstelle in einem Balken (Auftrag 5.3):

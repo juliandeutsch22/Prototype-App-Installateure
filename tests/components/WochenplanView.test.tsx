@@ -82,6 +82,8 @@ vi.mock('@/lib/db/einsatzMaterial', () => ({
     return () => undefined;
   },
   saveEinsatzMaterial: vi.fn(async () => undefined),
+  // Die Vorschau im Monat lädt die Rüstliste des Tages beim Öffnen (Runde 4, C).
+  listEinsatzMaterialForDate: vi.fn(async () => []),
 }));
 const speichere = vi.fn();
 const loesche = vi.fn();
@@ -1093,22 +1095,31 @@ describe('Planung — Monat', () => {
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
     await userEvent.click(screen.getByRole('button', { name: 'Monat' }));
-    const monat = within(await screen.findByRole('table', { name: 'Monatsplan als Tabelle' }));
+    /*
+      RUNDE 4 (C): Balken statt Tabelle, ein Tag öffnet die Vorschau, „Zur
+      Woche“ springt. Geschützt bleibt dasselbe: der Monat wird geladen, je
+      Person steht eingeplant und abwesend, und der Sprung führt in die
+      richtige Woche, markiert, mit „Zurück“ in den Monat.
+    */
+    const monat = within(await screen.findByRole('region', { name: 'Monatsplan nach Personen' }));
     expect(screen.getByRole('heading', { name: 'September' })).toBeInTheDocument();
     expect(geladen).toContainEqual(['2026-09-01', '2026-09-30']);
-    const max = monat.getByRole('row', { name: /Max Mustermann/ });
-    expect(within(max).getByText('eingeplant: Familie Huber (2026-042)')).toBeInTheDocument();
-    const erna = monat.getByRole('row', { name: /Erna Beispiel/ });
-    expect(within(erna).getAllByText('Urlaub')).toHaveLength(5);
-    // Ein Tag springt in die Woche — markiert, mit der Woche in der Adresse.
-    await userEvent.click(monat.getByRole('button', { name: /^Mo\.? 14\.09\. — Woche zeigen/ }));
+    const max = within(monat.getByRole('group', { name: 'Max Mustermann' }));
+    expect(max.getByRole('button', { name: /^Max Mustermann, Mi\.? 02\.09\.: eingeplant, Familie Huber \(2026-042\)/ })).toBeInTheDocument();
+    const erna = within(monat.getByRole('group', { name: 'Erna Beispiel' }));
+    expect(erna.getByRole('button', { name: /14\.09\. – .*18\.09\.: abwesend, Urlaub/ })).toBeInTheDocument();
+    // Baustellen des Monats als Zeile mit Zeitraum (am Handy).
+    expect(screen.getByText('2026-042 · 02.09. · 1 Einsatztag')).toBeInTheDocument();
+    // Ein Tag öffnet die Vorschau, „Zur Woche“ springt in seine Woche — markiert, mit der Woche in der Adresse.
+    await userEvent.click(erna.getByRole('button', { name: /^Erna Beispiel, Mo\.? 14\.09\.: / }));
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Zur Woche' }));
     expect(await screen.findByRole('table', { name: 'Wochenplan als Tabelle' })).toBeInTheDocument();
     expect(screen.getByText(/^KW 38/)).toBeInTheDocument();
     expect(screen.getByLabelText('Adresse')).toHaveTextContent('?woche=2026-W38&tag=2026-09-14');
     expect(kopf(/Montag 14\.09\./).closest('th')!.className).toBe('wp-kopf-markiert');
     // „Zurück“ führt in den Monat: der Sprung war ein neuer Eintrag im Verlauf.
     await userEvent.click(screen.getByRole('button', { name: 'Browser zurück' }));
-    expect(await screen.findByRole('table', { name: 'Monatsplan als Tabelle' })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Monatsplan nach Personen' })).toBeInTheDocument();
   });
 
   it('Gegenprobe: die Team-Woche der Monteure hat keinen Monat', async () => {
