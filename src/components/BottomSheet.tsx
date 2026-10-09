@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { istOben, useFokusFalle } from './fokusFalle';
 import { AB_TABLET } from '@/lib/breiten';
 import { ImFenster } from './imFenster';
+import { useHintergrundSperre } from './hintergrundSperre';
 
 /** Ab wie vielen Pixeln nach unten das Blatt losgelassen als „zu" gilt. */
 const SCHWELLE = 90;
@@ -62,6 +63,15 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
     sichtbar, und wer mit dem Finger öffnet, soll davon nichts sehen.
   */
   useFokusFalle(blattRef, open, { hineinHolen: 'behaelter', zurueckGeben: true });
+
+  /*
+    DIE SEITE DAHINTER STEHT STILL, solange das Blatt zu sehen ist
+    (`hintergrundSperre.ts`). Ohne `auchBreit` gibt es das Blatt nur am
+    Handy; dreht jemand das Tablet bei offenem „Mehr“ über 760 px, ist es
+    ausgeblendet — dann darf es die Seite nicht festhalten.
+  */
+  const abTablet = useAbTablet();
+  useHintergrundSperre(open && (auchBreit || !abTablet));
 
   const schliessen = useCallback(() => {
     setDy(0);
@@ -178,4 +188,24 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
       </div>
     </div>
   );
+}
+
+/** Steht die Seite ab Tablet-Breite? Ohne Medienabfrage (Tests): nein. */
+function useAbTablet(): boolean {
+  const frage = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(AB_TABLET).matches;
+  const [ab, setAb] = useState(frage);
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const abfrage = window.matchMedia(AB_TABLET);
+    const neu = () => setAb(abfrage.matches);
+    neu();
+    // Ältere Safari kennen nur addListener.
+    if (abfrage.addEventListener) abfrage.addEventListener('change', neu);
+    else abfrage.addListener?.(neu);
+    return () => {
+      if (abfrage.removeEventListener) abfrage.removeEventListener('change', neu);
+      else abfrage.removeListener?.(neu);
+    };
+  }, []);
+  return ab;
 }
