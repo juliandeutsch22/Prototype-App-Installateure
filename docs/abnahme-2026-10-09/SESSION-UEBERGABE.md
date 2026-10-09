@@ -102,53 +102,56 @@ Letzte gezielte Ergebnisse vor Integration von #257:
   fünf Referenztests danach grün. Details: `belegvergleich.md`.
 - Produktionsbuild am auf #257 übernommenen Stand ist erfolgreich.
 
-## Noch zu erledigen — keines davon als bestanden ausgeben
+## Erneute Prüfung am 09.10. — maßgeblicher aktueller Bericht
 
-1. Vollständige Nachmessung gegen großen Bestand auswerten.
-   Der integrierte Lauf ist inzwischen mit zwölf Seiten und je drei Läufen
-   ohne erfasste API-/Browserfehler abgeschlossen. Ergebnisse liegen unter
-   `docs/ui-umbau/messung-nachher.{json,md}`. Die Leistungsbudgets sind dennoch
-   nicht überall erreicht: insbesondere Mitarbeiterübersicht 118,1 Sekunden
-   bis Netzruhe / 22,2 MB bei langsamer Mobilverbindung. Das ist kein Nachweis
-   einer schnellen Oberfläche und muss vor Abschluss untersucht werden.
-   Vorherige Nachmessung wurde durch die Session-Unterbrechung vor Abschluss
-   beendet und ist **kein vollständiger Nachweis**. Der erste Vorherlauf ist
-   vollständig unter `docs/ui-umbau/messung-vorher.{json,md}`: acht von zwölf
-   Routen mit realen API-Fehlern. Lokales Profil: 390×844, langsames 4G, CPU×4,
-   drei Läufe/Median. Referenzbackend war bereits der damalige aktuelle lokale
-   Schema-/Abhängigkeitsstand; keine exakte historische Produktionsmessung.
-   Gleiche Budgets ehrlich ausweisen; keine korrekten Gesamtsummen für bessere
-   Messwerte abschneiden. CPU-intensive Prüfungen nicht parallel zur Messung.
-2. Ganze Typ-/Lint-/Einheitssuite, ganze Datenbanksuite mit Edge Functions,
-   alle Browserwege in Chromium plus Tablet und WebKit-Telefon, sieben Linkrollen.
-   Datenbanktests leeren die lokale Datenbank global: niemals gleichzeitig mit
-   Browserwegen oder Messung betreiben. Den großen Testbestand bei Bedarf danach
-   erneut erzeugen; nur localhost. Keine Produktionsschlüssel für diese Prüfungen.
-3. Neue #257-Ansichten und alle bisherigen Ansichten prüfen: 37 Seiten × vier
-   Breiten mit `tools/vorschau/messen.mjs`; axe hell/dunkel und Tablet quer.
-   Vorheriger eigener Stand hatte 148 Layoutfälle und 84 axe-Fälle ohne Befund,
-   aber diese Nachweise müssen für den finalen Stand erneuert werden.
-4. UI-Bestandsvergleich: ursprünglicher Vorherbestand hat 29.154 Elemente und
-   39 Rollen/Breiten-Aufnahmen, aber **66 nicht vollständig erfasste Seiten**
-   durch Browserabsturz/Zeitgrenze. Deshalb keinen vollständigen Vergleich
-   behaupten. `playwright.bestand.config.ts` mit `BESTAND_ARBEITER=1` verwenden;
-   `BESTAND_NUR=...` kann einzelne Aufnahmen nachholen. Nachher aufnehmen,
-   tatsächliche Kennungen korrekt zuordnen; `zuordnung.json` ist leer und die
-   Paketzuordnungen sind handerhobene Kennungen. Keine Zuordnung erfinden oder
-   das Prüfsystem abschwächen. MFA-Schalterentfall ist ausdrückliche Nutzerentscheidung.
-5. Abschließende erneute Codeprüfung: alle zusammengeführten Änderungen und
-   relevante unveränderte Aufrufer/Regeln prüfen. Schon gefundene eigene
-   Regressionen sind korrigiert; dennoch alle Zusammenhänge erneut prüfen.
-6. Widersprüchliche alte Dokumentationsstellen nachführen, neue R4-Abschnitte
-   erhalten. Insbesondere einige R4-Stellen nennen den Genehmigungsmonat noch
-   ungebaut; die tatsächlich implementierte Übersicht korrekt beschreiben.
-   Handbuchstempel nur mit tatsächlichen finalen Testergebnissen aktualisieren.
-7. Bericht/PR-Beschreibungen/prüfbare Topic-Patches und finale Übergabeartefakte
-   zusammenstellen. Danach Remote-Main erneut vergleichen, bei Schreibzugriff
-   grüne CI abwarten und nur finalen korrigierten Stand mergen/deployen/live prüfen.
-   Bestehende Kette: Schema → Edge Functions → App. Beim Merge mehrerer Themen
-   automatische Main-Auslieferung bis zum finalen MFA-Stand anhalten; kein
-   überholter Zwischenstand mit Pflicht für Betriebskonten darf live gehen.
+[erneute-pruefung.md](erneute-pruefung.md) enthält den aktuellen Main-Abgleich,
+Gegenproben, korrigierte eigene Regressionen und verlinkte Rohbelege.
+Neu hinzugekommen: gezielte Mahnmetadaten, rückgerollter historischer
+Migrationstest, präzise Schema-Wächter, Materialleserechte für 40.000 fremde
+Artikel und lesbarer Wochenendkontrast. Es wurden keine korrekt arbeitenden
+R4-Ansichten neu geschrieben.
+
+Tatsächlich grün: 185 Migrationen von null, Typen/Lint/Produktionsbuild,
+4.697 Einheitstests, 1.822 lokale Datenbankfälle, 55 Browserwege und sieben
+Rollenlinks. Dazu 200 Layoutfälle (acht Meldungsansichten, null schwerwiegend)
+und 128 axe-Fälle ohne Verstöße/JavaScriptfehler. Neun eigenständige Beleg-
+referenzen sowie fünf PDF-/CSV-Dateien im bisherigen Archiv bleiben bytegleich.
+
+Ein kontrollierter Sicherungslauf enthält 50.001 Zeiten, 15.001 Scheine und
+30.001 Anforderungen vollständig; Firmen- und Dienstweg mit unverändertem
+Sicherungscode grün. Vorheriger synthetischer Datenaufbau erzeugte 30.001
+Push-Aufrufe und störte die Umgebung. Nur dieser direkte Massenaufbau ist jetzt
+transaktional ohne Push, vor jeder eigentlichen Prüfung ist der Auslöser aktiv.
+Keine SQL-/API-Zeitgrenzen erhöht. Die Aufräumfrist des 40.001-Artikel-Testbestands
+entspricht mit 120 Sekunden seiner Aufbaufrist. Testhelfer melden fehlgeschlagene
+Firmen-/Personenanlage sofort. Rote/ungültige Vorläufe sind nicht als bestanden gewertet.
+
+Noch zu klären:
+
+1. Abschließende GitHub-Datenbanksuite des Stands `983a8cb` abwarten; Typen/Lint/
+   Einheiten und Browser/Rollenlinks dieses Stands sind bereits grün. URLs im
+   Bericht. Alle Auslieferungsjobs auf dem Arbeitsbranch bleiben übersprungen.
+2. Leistungsbudget: zwölf lokale Seiten ohne API-/Browserfehler, aber Accounting
+   118,1 Sekunden bis Netzruhe und 22,2 MB bei gedrosseltem langsamen 4G.
+   Der Seitenkopf erscheint nach 2,7 Sekunden; die lokale API ist unkomprimiert.
+   Das ist kein belegter Produktionsfehler. Datenmenge und Komprimierung getrennt
+   beurteilen; keine Jahres-/Baustellensummen durch Abschneiden verfälschen.
+   Messungen in `docs/ui-umbau/messung-nachher.{json,md}` und Nachweis im Bericht.
+3. Vollständiger maschineller UI-Bestandsvergleich fehlt weiterhin: 29.154 alte
+   Elemente / 39 Rollen-Breiten-Aufnahmen, davon 66 unvollständige Seiten durch
+   Absturz/Timeout. `zuordnung.json` leer. Aktuelle Layout-/axe-/Browsernachweise
+   ersetzen keine erfundene Zuordnung. Bei Nachholen `BESTAND_ARBEITER=1`,
+   `BESTAND_NUR=...` und echte Kennungen verwenden, Detektoren nicht abschwächen.
+4. Remote-Main unmittelbar vor einer späteren Freigabe erneut vergleichen.
+   Änderungen weiterhin auf dem Arbeitsbranch halten. **Kein Merge, keine
+   Auslieferung ohne neues ausdrückliches Nutzer-Go.** Danach vorhandene Kette
+   Schema → Edge Functions → App und echte Live-Prüfung. Kein Zwischenstand
+   mit überholter verpflichtender Betriebs-MFA darf ausgeliefert werden.
+
+Die komplette Codeprüfung der zusammengeführten Funktionsänderungen ist im
+Bericht dokumentiert. Bei weiteren funktionalen Änderungen passende Gegenproben
+und betroffene Integrations-/Gesamtprüfungen erneut ausführen, nicht allein auf
+diese Zahlen verlassen.
 
 ## Externe Grenzen
 
@@ -167,7 +170,9 @@ Node/npm-Abhängigkeiten: `npm ci`. Lokaler Supabase-Stack: API 54321, DB 54322,
 Postgres 17, Docker 2 CPU/8 GB. Öffentliche lokale Entwicklungsschlüssel stehen
 bereits im Repository; keine Produktionszugänge mitgegeben.
 
-In derselben Umgebung sind der Stack und der große Testbetrieb `ui-testbestand`
+Die lokale Suite leert die Datenbank vor jedem Lauf. Ein großer Messbetrieb
+`ui-testbestand` muss bei Bedarf mit dem lokalen Testbestandsskript neu aufgebaut
+werden; seine frühere Existenz ist kein aktueller Nachweis. Der Stack ist lokal
 vorhanden. CLI bisher:
 `/home/agent/.npm/_npx/b96a6bd565c470ce/node_modules/@supabase/cli-linux-x64/bin/supabase`.
 Browser liegen in `/home/agent/.cache/ms-playwright`, **nicht** `/opt/pw-browsers`.

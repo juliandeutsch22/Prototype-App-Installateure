@@ -1,0 +1,21 @@
+{
+  "datum": "2026-10-09",
+  "prod": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "gesamt": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 11,
+    "critical": 0,
+    "total": 11
+  },
+  "offenesAdvisory": "GHSA-vfj7-8cjw-p6xm",
+  "umfang": "11 Entwicklungspakete, keine Produktionsabhängigkeit"
+}

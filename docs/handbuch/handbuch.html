@@ -706,7 +706,7 @@
       <div class="bereich">
         <h3>Was in Runde 4 offen ist<span class="neu">offen</span></h3>
         <p>Bewusst nicht gebaut (Entscheidung vom 09.10., nach dem Pilot): der Filter „Zeigen: nur mit Einsätzen / nur freie“ im Wochenplan, Ziehen auf einen Tag, ein eigenes Feld „Kurzname“ an der Baustelle (die Kurzform wird aus dem Namen gebildet, im Zweifel bleibt der volle) und „Lieferung ohne Annahme“ auf der Startseite. Die Monatsansicht für Genehmigende bei den Urlaubsanträgen ist seit 08.10. umgesetzt.</p>
-        <p>Noch nicht gemessen ist das Mengengerüst (25 Personen × 31 Tage) gegen einen echten Bestand; ebenso stehen die Prüfung auf Barrierefreiheit (axe) und das Tablet quer aus. Silbentrennung bei langen Kundennamen hängt am Browser: wo er kein deutsches Wörterbuch hat, bricht er ohne Strich um — abgeschnitten wird nichts. Die Breite der Seitenfenster und der Fokus beim Öffnen (auf das Fenster, nicht auf „Schließen“) folgen der Regel aller Seitenfenster.</p>
+        <p>Noch nicht belegt ist das Reaktionsbudget für 25 Personen × 31 Tage. Die erneute lokale Prüfung umfasst 200 Layoutfälle einschließlich Tablet quer sowie 128 axe-Fälle in hell und dunkel ohne Verstöße; sie ersetzt keinen vollständigen Vorher-/Nachher-Bestandsvergleich. Silbentrennung bei langen Kundennamen hängt am Browser: wo er kein deutsches Wörterbuch hat, bricht er ohne Strich um — abgeschnitten wird nichts. Die Breite der Seitenfenster und der Fokus beim Öffnen (auf das Fenster, nicht auf „Schließen“) folgen der Regel aller Seitenfenster.</p>
         <p class="wer">Stand 09.10.2026 · Einzelheiten in docs/ui-umbau/r4</p>
       </div>
     </div>
@@ -892,7 +892,7 @@
         <p><strong>Anforderungen.</strong> Seit 08.10. kann das Büro oder die Leitung eine laufende Anforderung im Seitenfenster als eilig markieren und die Markierung wieder entfernen. Status, Beschaffung und Lagerbestand bleiben dabei unverändert; erledigte Anforderungen und Retouren bekommen diesen Knopf nicht. Die Notiz im Seitenfenster ist nur zu lesen, der Verlauf stammt aus den gespeicherten Zeitpunkten. Erledigtes steht wie bisher sofort unter „Erledigt“, nicht erst nach 14 Tagen.</p>
         <p><strong>Viele Daten.</strong> Angebote und Anforderungen laden seit 08.10. in Fünfzigerschritten vom Server; die Suche berücksichtigt den gesamten gewählten Arbeitsstand. Die Einkaufsliste bleibt vollständig. Die Messung mit fünf Jahren Testbestand hat Zeitüberschreitungen und abgeschnittene Lagerdaten nachgewiesen; die Korrekturen sind gezielt geprüft, die vollständige Nachmessung steht noch aus.</p>
         <p><strong>Kleineres.</strong> Ein schon verrechneter Schein ist zum Stornieren einen Wechsel weiter („Alle“). Mindestmenge und Materialaufschlag stehen nicht im „⋯“ des Lagers, sondern am Artikel und in den Einstellungen. Die Wartung zeigt nur die letzte Ausführung, keine ganze Geschichte; der Verlauf eines Angebots kennt kein Datum für versendet, angenommen oder abgelehnt. Der Einrichtungsstand prüft Briefkopf, UID und Bank, nicht Kostensätze, Kontenrahmen, Basiszinssatz oder Sicherung. „Ende ändern“ einer Krankmeldung klappt in den Listen weiter in der Zeile auf.</p>
-        <p><strong>Geprüft und noch nicht.</strong> Die Bestandsliste alt gegen neu ist je Bereich von Hand aus dem Code erhoben, nicht mit dem vorgesehenen Skript. Laut Abnahmeblättern stehen noch aus: Bildschirmfotos aller Bereiche (abgelegt sind Rechnungen und Material), die Prüfung auf Barrierefreiheit, das Tablet quer und der Vergleich der Belege mit einer festen Referenz — keine Datei der Belege und Exporte wurde angefasst.</p>
+        <p><strong>Geprüft und noch nicht.</strong> Der vollständige maschinelle Vorher-/Nachher-Bestandsvergleich und Bildschirmfotos aller Bereiche sind weiterhin offen; der alte Vorherbestand enthält 66 unvollständige Seiten. Aktuell sind 200 Layoutfälle und 128 axe-Fälle einschließlich Tablet quer geprüft. Neun eigenständige PDF-/CSV-Referenzen bleiben bytegleich, ebenso die fünf PDF-/CSV-Dateien im bisherigen Archiv; nur dessen Hinweise beschreiben die beauftragte Erweiterung. Das Protokoll zur erneuten Prüfung nennt Ergebnisse und Grenzen.</p>
         <p class="wer">Stand 07.10.2026 · Einzelheiten in docs/ui-umbau/abnahme</p>
       </div>
     </div>
@@ -2381,7 +2381,7 @@
       </div>
       <div class="bereich">
         <h3>Mandantentrennung</h3>
-        <p>Jede Abfrage ist auf den eigenen Betrieb eingegrenzt — seit dem Umzug als <em>Zeilenschutz in der Datenbank</em>. Eine Zeile, die man nicht sehen darf, ist nicht „verboten“, sondern nicht vorhanden: fehlender und fremder Datensatz sehen von außen gleich aus, und das ist die ehrlichere Antwort. <strong>1 760 Prüfungen laufen gegen eine echte Postgres-Datenbank</strong>, darunter zwei Betriebe, die am selben Tag auf derselben Baustellennummer arbeiten.</p>
+        <p>Jede Abfrage ist auf den eigenen Betrieb eingegrenzt — seit dem Umzug als <em>Zeilenschutz in der Datenbank</em>. Eine Zeile, die man nicht sehen darf, ist nicht „verboten“, sondern nicht vorhanden: fehlender und fremder Datensatz sehen von außen gleich aus, und das ist die ehrlichere Antwort. <strong>1 822 Prüfungen liefen am 09.10.2026 lokal gegen eine echte Postgres-Datenbank grün</strong>, darunter zwei Betriebe, die am selben Tag auf derselben Baustellennummer arbeiten.</p>
         <p class="wer">Gilt für alle</p>
       </div>
       <div class="bereich">
@@ -2881,8 +2881,8 @@
 
   <footer class="fuss">
     <span>Senklot · Betriebssoftware für Installationsbetriebe in Österreich</span>
-    <span>6 234 automatische Prüfungen: 4 422 im Kleinen, 1 760 gegen eine echte Datenbank, 45 Läufe im echten Browser, 7 Linkprüfungen je Rolle</span>
-    <span>Stand 08.10.2026</span>
+    <span>6 581 automatische Prüfungen: 4 697 im Kleinen, 1 822 lokal gegen eine echte Datenbank, 55 Läufe im echten Browser, 7 Linkprüfungen je Rolle</span>
+    <span>Arbeitsstand 09.10.2026 · noch nicht ausgeliefert</span>
   </footer>
 
 </div>

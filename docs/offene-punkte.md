@@ -61,14 +61,16 @@ bewusste Ausnahme, dokumentiert in `docs/design/linie.md`).
 
 ## B. Größerer Umbau, eigener Auftrag
 
-**Abhängigkeitsprüfung 08.10.2026:** Die Nullmeldung vom 30.09. ist inzwischen
-historisch. `npm audit` nennt 18 betroffene Pakete, ohne Entwicklungswerkzeuge
-4. Die vier liegen in der ungenutzten Firestore/gRPC-Kette des Firebase-SDKs;
-im Browser werden nur App-Initialisierung und Messaging ausgeliefert. Die
-übrigen Meldungen betreffen Entwicklungswerkzeuge. Reichweite und die fünf
-Advisories stehen in [der Projektanalyse](projektanalyse-2026-10-08.md).
-Geprüfte Bibliothekswartung bleibt offen; keine pauschalen Hauptversionswechsel
-oder der von npm vorgeschlagene Firebase-Downgrade im Zuge der Funktionskorrekturen.
+**Abhängigkeitsprüfung 09.10.2026 im Arbeitsbranch:** Die Eingangsmessung
+vom 08.10. nannte 18 betroffene Pakete, davon vier Produktionsabhängigkeiten.
+Die geprüften Blattaktualisierungen sind im Arbeitsstand umgesetzt; Firebase
+10 und Tailwind 3 bleiben. Die erneute Registry-Prüfung ergibt für
+`npm audit --omit=dev` null Befunde. Das vollständige Audit nennt elf
+Entwicklungspakete wegen desselben noch unbehobenen braces-Advisory
+`GHSA-vfj7-8cjw-p6xm`. Das ist keine Nullmeldung für alle Abhängigkeiten.
+Details und Grenzen stehen in [der Projektanalyse](projektanalyse-2026-10-08.md)
+und [der erneuten Prüfung](abnahme-2026-10-09/erneute-pruefung.md).
+Noch nicht nach Main übernommen oder produktiv ausgeliefert.
 
 | # | Punkt | Warum offen | Vorschlag |
 |---|---|---|---|

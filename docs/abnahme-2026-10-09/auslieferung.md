@@ -65,7 +65,9 @@ Rücklaufzeiten vor dem Launch eintragen.
 ## Tatsächliche Nachweise eintragen
 
 - Finaler Main-Commit und PRs: offen.
-- GitHub-CI-URLs und Ergebnis: offen.
+- GitHub-CI des Arbeitsbranches: [aktuelle Prüfung](erneute-pruefung.md). Typen,
+  Lint, 4.697 Einheiten sowie 55 Browser-/sieben Rollenwege grün. Abschluss
+  der letzten Datenbanksuite noch ausstehend; Auslieferungsjobs übersprungen.
 - Migrationen/Functions/Hosting-Lauf und Zielprojekt: offen.
 - Domain, ausgelieferter Commit, Headerantworten: offen.
 - Live-Prüfperson, Zeitpunkt und Resultate: offen.
