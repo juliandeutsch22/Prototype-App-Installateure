@@ -930,6 +930,50 @@ describe('Mitarbeiterübersicht: die Woche (Runde 4, Auftrag 3.4)', () => {
   });
 });
 
+/*
+  EIN TABULATORSCHRITT JE REIHE (Auftrag 8): die Reihe merkt sich den Tag,
+  auf dem man zuletzt stand. Nach ‹ › steht dieser Tag nicht mehr in der
+  Reihe — dann muss sie wieder auf heute bzw. den ersten Tag zeigen, sonst
+  ist sie mit der Tastatur nicht mehr zu erreichen (Prüfung Runde 4).
+*/
+describe('Mitarbeiterübersicht: Tastatur nach dem Blättern', () => {
+  const tabStopps = (reihe: string) =>
+    within(screen.getByRole('group', { name: reihe }))
+      .getAllByRole('button')
+      .filter((b) => b.tabIndex === 0);
+
+  it('der Streifen bleibt nach ‹ › mit Tab erreichbar', async () => {
+    const nutzer = zeichneSeite();
+    await personKnopf('Neu Eingestellt');
+    tagKnopf(/^Neu Eingestellt, Mi 19\.08\./).focus();
+    await nutzer.keyboard('{ArrowRight}');
+    expect(tabStopps('Neu Eingestellt, Tage des Monats').map((b) => b.getAttribute('aria-label'))).toEqual([
+      expect.stringMatching(/Do 20\.08\./),
+    ]);
+    await nutzer.click(screen.getByRole('button', { name: 'Nächster Monat' }));
+    expect(tabStopps('Neu Eingestellt, Tage des Monats')).toHaveLength(1);
+  });
+
+  it('die Woche bleibt nach ‹ › mit Tab erreichbar', async () => {
+    const nutzer = zeichneSeite('/accounting?ansicht=woche');
+    await personKnopf('Neu Eingestellt');
+    tagKnopf(/^Neu Eingestellt, Mo 31\.08\./).focus();
+    await nutzer.keyboard('{ArrowRight}');
+    await nutzer.click(screen.getByRole('button', { name: 'Vorige Woche' }));
+    expect(tabStopps('Neu Eingestellt, Tage der Woche')).toHaveLength(1);
+  });
+
+  it('Gegenprobe: ohne Blättern bleibt der zuletzt fokussierte Tag der Tabulatorschritt', async () => {
+    const nutzer = zeichneSeite();
+    await personKnopf('Neu Eingestellt');
+    tagKnopf(/^Neu Eingestellt, Mi 19\.08\./).focus();
+    await nutzer.keyboard('{ArrowLeft}');
+    expect(tabStopps('Neu Eingestellt, Tage des Monats').map((b) => b.getAttribute('aria-label'))).toEqual([
+      expect.stringMatching(/Di 18\.08\./),
+    ]);
+  });
+});
+
 describe('Mitarbeiterübersicht in der Linie „Lot“ (E9)', () => {
   it('im Supportzugang gibt es keinen Streifen — ohne Buchungen stünde jeder Tag als fehlend da', async () => {
     buchungen = [];

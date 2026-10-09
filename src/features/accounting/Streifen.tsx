@@ -75,8 +75,23 @@ function pfeilWandern(e: KeyboardEvent<HTMLElement>) {
   knoepfe[ziel]?.focus();
 }
 
-/** Der Tag, auf dem eine Reihe beim ersten Tabulatorschritt steht: heute, sonst der erste anklickbare. */
-function startTag(werte: readonly Tageswert[], heute: string, klickbar: (t: Tageswert) => boolean): string | null {
+/**
+ * Der Tag, auf dem eine Reihe im Tabulatorlauf steht: der zuletzt fokussierte
+ * (`aktiv`), sonst heute, sonst der erste anklickbare.
+ *
+ * DER ZULETZT FOKUSSIERTE NUR, SOLANGE ER IN DER REIHE STEHT. Die Reihe
+ * bleibt beim Blättern dieselbe Komponente; ohne diese Prüfung zeigte
+ * `aktiv` nach ‹ › auf einen Tag des alten Monats bzw. der alten Woche —
+ * kein Feld hätte dann `tabIndex` 0, und die Reihe wäre mit der Tastatur
+ * nicht mehr zu erreichen.
+ */
+function startTag(
+  werte: readonly Tageswert[],
+  heute: string,
+  klickbar: (t: Tageswert) => boolean,
+  aktiv: string | null = null,
+): string | null {
+  if (aktiv && werte.some((t) => t.tag === aktiv && klickbar(t))) return aktiv;
   const heuteWert = werte.find((t) => t.tag === heute && klickbar(t));
   return heuteWert?.tag ?? werte.find(klickbar)?.tag ?? null;
 }
@@ -115,7 +130,7 @@ export function Streifen({
   const { zeige, weg } = useTipp();
   const klickbar = (t: Tageswert) => t.zustand !== 'frei';
   const [aktiv, setAktiv] = useState<string | null>(null);
-  const tabTag = aktiv ?? startTag(werte, heute, klickbar);
+  const tabTag = startTag(werte, heute, klickbar, aktiv);
   return (
     <div className="streifen" style={spalten(werte.length)} role="group" aria-label={`${name}, Tage des Monats`} onKeyDown={pfeilWandern}>
       {werte.map((t) => {
@@ -289,7 +304,7 @@ export function WochenZellen({
 }) {
   const klickbar = (t: Tageswert) => t.zustand !== 'frei';
   const [aktiv, setAktiv] = useState<string | null>(null);
-  const tabTag = aktiv ?? startTag(werte, heute, klickbar);
+  const tabTag = startTag(werte, heute, klickbar, aktiv);
   return (
     <div className="mw-tage" role="group" aria-label={`${name}, Tage der Woche`} onKeyDown={pfeilWandern}>
       {werte.map((t) => (
