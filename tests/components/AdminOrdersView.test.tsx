@@ -68,6 +68,7 @@ vi.mock('@/lib/db/materialOrders', () => ({
   },
   subscribeOrderChanges: () => () => undefined,
   listPurchasingOrders: async () => anforderungen.filter((o) => o.beschaffung === 'einkauf' && o.status !== 'Erledigt'),
+  listOrderProjects: async () => [...new Set(anforderungen.filter((o) => o.transactionType !== 'return').map((o) => o.projectNumber).filter(Boolean))],
   updateOrderStatus: (...a: unknown[]) => statusSetzen(...a),
   setOrderUrgent: (...a: unknown[]) => eiligSetzen(...a),
   deleteOrder: (...a: unknown[]) => loeschen(...a),
@@ -664,6 +665,17 @@ describe('Anforderungen — der Bereich steht in der Adresse', () => {
 });
 
 describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
+  it('bietet Baustellen hinter der ersten Seite an und behält den Filter ohne Suchtreffer', async () => {
+    anforderungen = Array.from({ length: 101 }, (_, i) => anforderung({ id: `projekt-${i}`,
+      materialName: `Material ${i}`, projectNumber: i === 100 ? 'ALT-101' : 'NEU-1' }));
+    zeige();
+    const auswahl = await screen.findByRole('combobox', { name: 'Bestellungen nach Baustelle filtern' });
+    expect(await screen.findByRole('option', { name: 'ALT-101' })).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Suche', { exact: true }), 'Nicht vorhanden');
+    await screen.findByText('Nichts passt zu „Nicht vorhanden“.');
+    expect(auswahl).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'ALT-101' })).toBeInTheDocument();
+  });
   it('nennt die Auswahl „Bestellungen nach Baustelle filtern“ — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl“', async () => {
     // Die Auswahl steht nur, wenn es Baustellen zum Filtern gibt.
     anforderungen = [anforderung({ id: 'o1', projectNumber: '2026-042' })];

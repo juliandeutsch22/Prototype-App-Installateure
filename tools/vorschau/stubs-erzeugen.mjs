@@ -63,6 +63,7 @@ const FEST = {
   materialOrders:
     "export const ORDER_STATUS_FLOW = ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'] as const;\n" +
     'export const listOrdersPage = () => A({ zeilen: D.bestellungen, naechste: null });\n' +
+    'export const listOrderProjects = () => A([...new Set(D.bestellungen.map((o) => o.projectNumber).filter(Boolean))].sort());\n' +
     'export const subscribeOrderChanges = () => () => {};\n',
   zeitjournal: 'export const listZeitjournal = () => A({ zeilen: [], naechste: null });\n',
   vacations: 'export const listGenehmigungsAbwesenheiten = () => A([]);\n',

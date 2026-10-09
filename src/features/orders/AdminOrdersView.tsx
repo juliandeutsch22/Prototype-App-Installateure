@@ -5,6 +5,7 @@ import { postenNeuLaden } from '@/app/offenePosten';
 import {
   listOrdersPage,
   listPurchasingOrders,
+  listOrderProjects,
   subscribeOrderChanges,
   updateOrderStatus,
   setOrderUrgent,
@@ -260,6 +261,8 @@ export default function AdminOrdersView() {
   const [einkaufsOrders, setEinkaufsOrders] = useState<WithId<MaterialOrder>[]>([]);
   const [einkaufsFehler, setEinkaufsFehler] = useState(false);
   const [einkaufsStand, setEinkaufsStand] = useState(0);
+  const [projectOptions, setProjectOptions] = useState<string[]>([]);
+  const [projektFehler, setProjektFehler] = useState(false);
   const geaendert = useRef(() => {});
   geaendert.current = () => { void liste.neuLaden(); setEinkaufsStand((n) => n + 1); };
   useEffect(() => {
@@ -272,6 +275,15 @@ export default function AdminOrdersView() {
     void listPurchasingOrders(betrieb).then((rows) => {
       if (!weg) { setEinkaufsOrders(rows); setEinkaufsFehler(false); }
     }).catch(() => { if (!weg) setEinkaufsFehler(true); });
+    return () => { weg = true; };
+  }, [betrieb, einkaufsStand]);
+
+  useEffect(() => {
+    if (!betrieb) return;
+    let weg = false;
+    void listOrderProjects(betrieb).then((nummern) => {
+      if (!weg) { setProjectOptions(nummern); setProjektFehler(false); }
+    }).catch(() => { if (!weg) setProjektFehler(true); });
     return () => { weg = true; };
   }, [betrieb, einkaufsStand]);
 
@@ -314,11 +326,6 @@ export default function AdminOrdersView() {
     [einkaufsOrders, lagerPosten],
   );
   const returns = useMemo(() => orders.filter((o) => o.transactionType === 'return'), [orders]);
-
-  const projectOptions = useMemo(
-    () => [...new Set(purchases.map((o) => o.projectNumber).filter(Boolean))].sort() as string[],
-    [purchases],
-  );
 
   const rows = useMemo(() => {
     const base =
@@ -624,10 +631,11 @@ export default function AdminOrdersView() {
         <Card
           title={tab === 'retouren' ? 'Retouren' : tab === 'archiv' ? 'Erledigt' : 'Offene Bestellungen'}
           action={
-            tab !== 'retouren' && projectOptions.length > 0 ? (
+            tab !== 'retouren' && (projectOptions.length > 0 || projectFilter) ? (
               <SelectField id="ofilter" label="" aria-label="Bestellungen nach Baustelle filtern" className="py-1 text-sm" value={projectFilter}
                 onChange={(e) => setProjectFilter(e.target.value)}>
                 <option value="">Alle Baustellen</option>
+                {projectFilter && !projectOptions.includes(projectFilter) && <option value={projectFilter}>{projectFilter}</option>}
                 {projectOptions.map((p) => <option key={p} value={p}>{p}</option>)}
               </SelectField>
             ) : undefined
@@ -646,6 +654,7 @@ export default function AdminOrdersView() {
               />
             </div>
           )}
+          {projektFehler && <ErrorState message="Die Baustellenauswahl konnte nicht vollständig geladen werden." />}
           {loading ? (
             <div className="p-4">
               <SkeletonList rows={4} />

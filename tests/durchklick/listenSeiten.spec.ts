@@ -29,6 +29,7 @@ test('Serversuche findet alte Belege und der Einkauf zählt alle 251 Anforderung
       material_name: i === 150 ? 'Eilventil hinter Seite eins' : 'Archivventil', quantity: 1, status: 'Offen', transaction_type: 'order',
       beschaffung: 'einkauf', note: i === 250 ? 'Seltene alte Kommission' : null,
       is_urgent: i === 150,
+      project_number: i === 250 ? 'ALT-251' : 'NEU-1',
       created_at: i === 150 ? '2020-01-01T08:00:00Z' : '2026-01-01T08:00:00Z',
     })))).error).toBeNull();
     await anmelden(page, email);
@@ -41,6 +42,11 @@ test('Serversuche findet alte Belege und der Einkauf zählt alle 251 Anforderung
     await page.goto('/anforderungen');
     await expect(page.getByRole('button', { name: 'Weitere Anforderungen laden' })).toBeVisible();
     await expect(page.getByRole('button', { name: /^Eilventil hinter Seite eins ×1/ })).toBeVisible();
+    const baustellen = page.getByRole('combobox', { name: 'Bestellungen nach Baustelle filtern' });
+    await expect(baustellen.locator('option', { hasText: 'ALT-251' })).toHaveCount(1);
+    await baustellen.selectOption('ALT-251');
+    await expect(page.getByText('Notiz: Seltene alte Kommission', { exact: true })).toBeVisible();
+    await baustellen.selectOption('');
     await page.getByLabel('Suche', { exact: true }).fill('Seltene alte Kommission');
     await expect(page.getByText('Notiz: Seltene alte Kommission', { exact: true })).toBeVisible();
     await expect(page.getByLabel('Suche', { exact: true })).toHaveValue('Seltene alte Kommission');

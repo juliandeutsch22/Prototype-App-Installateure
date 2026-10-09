@@ -9,6 +9,7 @@ import * as pg from './pg/materialOrders';
 export type NewMaterialOrder = Omit<MaterialOrder, 'id' | 'companyId' | 'createdAt'>;
 export const listOrdersPage = pg.listOrdersPage;
 export const listPurchasingOrders = pg.listPurchasingOrders;
+export const listOrderProjects = pg.listOrderProjects;
 export const subscribeOrderChanges = pg.subscribeOrderChanges;
 export const setOrderUrgent = pg.setOrderUrgent;
 

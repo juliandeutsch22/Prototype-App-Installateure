@@ -8,13 +8,26 @@
  * `supabase/migrations/…_lager.sql`.
  */
 import type { MaterialOrder } from '@/types';
-import { abfragen, abfragenSeite, abonnieren, anlegenMitKennung, loeschen, derClient, kanalHalten, type SeitenZeiger, type WithId } from './kern';
+import { abfragen, abfragenSeite, abonnieren, anlegenMitKennung, loeschen, derClient, kanalHalten, SEITE, type SeitenZeiger, type WithId } from './kern';
 import { oderUeberSpalten } from './suche';
 import { objektAlsZeile } from './felder';
 
 import { anlegenOhneEmpfang as fachAnlegen } from './ohneEmpfang';
 
 const ANFORDERUNGEN = 'material_orders';
+
+export async function listOrderProjects(companyId: string): Promise<string[]> {
+  const nummern: string[] = [];
+  for (let ab = 0; ; ab += SEITE) {
+    const { data, error } = await derClient().rpc('anforderungen_baustellen', { p_company: companyId })
+      .order('project_number').range(ab, ab + SEITE - 1);
+    if (error) throw new Error(error.message);
+    const zeilen = (data ?? []) as Array<{ project_number: string }>;
+    nummern.push(...zeilen.map((z) => z.project_number));
+    if (zeilen.length < SEITE) break;
+  }
+  return nummern;
+}
 
 export async function setOrderUrgent(orderId: string, eilig: boolean): Promise<void> {
   const { error } = await derClient().rpc('anforderung_eilig', { p_id: orderId, p_eilig: eilig });
