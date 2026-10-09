@@ -28,6 +28,10 @@
   lesen. Allen anderen antwortet sie mit einem Fehler statt mit einer leeren
   Liste: leer hiesse „nichts gebucht“, und das wäre wieder eine Entwarnung.
 
+  SEITENWEISE. PostgREST gibt auch aus einer Funktion höchstens 1000 Zeilen
+  zurück, ohne Fehler; die App holt deshalb Seiten, und die Reihenfolge ist
+  fest (Baustelle, Person, Art — eindeutig je Zeile).
+
   DIE NUMMERN. Eine Buchung auf „PR-2026-050“ zählt zur Baustelle
   „2026-050“ — wie `listEntriesForProjects`: gesucht wird nach der Nummer,
   wie sie ist, ohne und mit „PR-“; gruppiert nach der Nummer ohne „PR-“
@@ -77,7 +81,9 @@ begin
          sum(z.minuten)::integer, max(z.date)
     from zeilen z
    where z.minuten > 0
-   group by z.projekt, z.user_id, z.art;
+   group by z.projekt, z.user_id, z.art
+   -- Feste Reihenfolge: die App holt seitenweise (PostgREST deckelt bei 1000 Zeilen).
+   order by z.projekt, z.user_id, z.art;
 end;
 $$;
 

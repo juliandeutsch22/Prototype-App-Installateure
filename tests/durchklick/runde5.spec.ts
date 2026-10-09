@@ -23,9 +23,9 @@ async function rechteck(page: Page, selektor: string) {
 
 test('G1: das Seitenfenster beginnt am Rand — oben ist nichts von der Seite antippbar', async ({ page }) => {
   test.setTimeout(120_000);
+  await anmelden(page, CHEFIN.email);
   for (const breite of [1440, 834, 390]) {
     await page.setViewportSize({ width: breite, height: 900 });
-    await anmelden(page, CHEFIN.email);
     await page.goto('/customers');
     await page.getByRole('button', { name: 'Neuer Kunde' }).last().click({ timeout: 20_000 });
     await expect(page.getByRole('dialog')).toBeVisible();

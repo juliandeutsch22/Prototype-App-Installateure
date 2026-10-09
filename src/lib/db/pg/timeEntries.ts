@@ -6,7 +6,7 @@
  * der Datenbank, und eine Regel in zwei Fassungen läuft auseinander.
  */
 import type { TimeEntry } from '@/types';
-import { abfragen, abonnieren, anlegenMitKennung, aendern as kernAendern, loeschen as kernLoeschen, derClient, type WithId } from './kern';
+import { abfragen, abonnieren, anlegenMitKennung, aendern as kernAendern, loeschen as kernLoeschen, derClient, SEITE, type WithId } from './kern';
 
 import {
   aendernOhneEmpfang as fachAendern, anlegenOhneEmpfang as fachAnlegen,
@@ -149,16 +149,30 @@ export interface BaustellenStunden {
  * liest von den Buchungen nur die eigenen und rechnete damit ihr Budget
  * schön. `baustellen_stunden` gibt ihr die Summen aller, ohne Zeitkonto und
  * Abwesenheiten. Wer sie nicht bekommen darf, bekommt einen Fehler.
+ *
+ * SEITENWEISE, wie `abfragen`: PostgREST deckelt auch die Antwort einer
+ * Funktion still bei 1000 Zeilen, und eine Zeile je Baustelle, Person und Art
+ * erreicht das bei vielen Baustellen auf der Startseite. Die Funktion sortiert
+ * fest, damit keine Zeile zwischen zwei Seiten verloren geht.
  */
-export async function stundenDerBaustellen(projectNumbers: string[]): Promise<BaustellenStunden[]> {
+export async function stundenDerBaustellen(projectNumbers: string[], seite = SEITE): Promise<BaustellenStunden[]> {
   const nummern = projectNumbers.filter((n) => (n ?? '').trim().replace(/^PR-/i, ''));
   if (nummern.length === 0) return [];
-  const { data, error } = await derClient().rpc('baustellen_stunden', { p_nummern: nummern });
-  if (error) throw new Error(error.message);
-  return ((data ?? []) as {
+  type Zeile = {
     projekt: string; user_id: string | null; user_name: string | null;
     art: BaustellenStunden['art']; minuten: number; zuletzt: string;
-  }[]).map((z) => ({
+  };
+  const alle: Zeile[] = [];
+  for (let von = 0; ; von += seite) {
+    const { data, error } = await derClient()
+      .rpc('baustellen_stunden', { p_nummern: nummern })
+      .range(von, von + seite - 1);
+    if (error) throw new Error(error.message);
+    const teil = (data ?? []) as Zeile[];
+    alle.push(...teil);
+    if (teil.length < seite) break;
+  }
+  return alle.map((z) => ({
     projectNumber: z.projekt,
     userId: z.user_id,
     userName: z.user_name ?? '',

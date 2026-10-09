@@ -119,6 +119,32 @@ describe('baustellen_stunden', () => {
     }
   });
 
+  it('holt seitenweise dasselbe wie in einem Zug', async () => {
+    clientEinreichen(pl.client);
+    const ganz = await zeiten.stundenDerBaustellen(['2026-050', '2026-051']);
+    const inZweien = await zeiten.stundenDerBaustellen(['2026-050', '2026-051'], 2);
+    expect(inZweien).toEqual(ganz);
+    expect(inZweien).toHaveLength(6);
+  });
+
+  it('bekommt auch mehr als 1000 Zeilen — PostgREST deckelt still (Gegenprobe: ein Zug ohne Seiten)', async () => {
+    // 1100 Baustellen mit je einer Buchung: 1100 Zeilen Antwort.
+    const nummern = Array.from({ length: 1100 }, (_, i) => `V-${String(i).padStart(4, '0')}`);
+    const { error } = await admin.from('time_entries').insert(nummern.map((nr, i) => ({
+      id: crypto.randomUUID(), company_id: A, user_id: max.uid, user_name: 'Max',
+      date: `2027-${String(1 + (i % 12)).padStart(2, '0')}-${String(1 + (i % 28)).padStart(2, '0')}`,
+      status: 'Anwesend', start_time: `${String(6 + Math.floor(i / 336)).padStart(2, '0')}:00`,
+      end_time: `${String(6 + Math.floor(i / 336)).padStart(2, '0')}:10`, break_duration: 0, project_number: nr,
+    })));
+    if (error) throw new Error(error.message);
+    clientEinreichen(gf.client);
+    const alle = await zeiten.stundenDerBaustellen(nummern);
+    expect(alle).toHaveLength(1100);
+    expect(new Set(alle.map((z) => z.projectNumber)).size).toBe(1100);
+    const { data } = await gf.client.rpc('baustellen_stunden', { p_nummern: nummern });
+    expect(data).toHaveLength(1000);
+  });
+
   it('fragt nicht, wenn keine Nummer übrig bleibt', async () => {
     clientEinreichen(pl.client);
     expect(await zeiten.stundenDerBaustellen(['', '  ', 'PR-'])).toEqual([]);
