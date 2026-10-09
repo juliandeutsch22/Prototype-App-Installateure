@@ -1,0 +1,9 @@
+{
+  "old_signatures_assignable": true,
+  "functions": [
+    "listMaterials",
+    "subscribeMaterials",
+    "mahnungFesthalten"
+  ],
+  "diagnostics": []
+}

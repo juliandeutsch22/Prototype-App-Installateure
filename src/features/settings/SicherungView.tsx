@@ -144,15 +144,16 @@ export default function SicherungView() {
     setArchivErgebnis(null);
     setArchivStand(null);
     try {
-      const [rechnungsliste, kunden, angebote, scheine, mahnbelege, mahnstufen, gemahnte] = await Promise.all([
+      const [rechnungsliste, kunden, angebote, scheine, mahnbelege, gemahnte] = await Promise.all([
         listInvoicesInRange(user.companyId, z.von, z.bis),
         listCustomers(user.companyId, Number.MAX_SAFE_INTEGER),
         listQuotesInRange(user.companyId, z.von, z.bis),
         listWorkSheetsForArchive(user.companyId, z.von, z.bis),
         listMahnbelegeImZeitraum(user.companyId, z.von, z.bis),
-        listMahnbelegStufen(user.companyId),
         listInvoicesWithReminderInRange(user.companyId, z.von, z.bis),
       ]);
+      // Nur diese Rechnungen können Hinweise auf fehlende Originalmahnungen erzeugen.
+      const mahnstufen = await listMahnbelegStufen(user.companyId, gemahnte.map((i) => i.id));
       const rechnungen = [...new Map([...rechnungsliste, ...gemahnte].map((i) => [i.id, i])).values()];
       const { belegArchiv, ersterBelegTag } = await import('@/features/invoices/belegArchiv');
       // „Alle Belege“ beginnt beim ersten Beleg, nicht am 01.01.2000 (Runde 3, G11).

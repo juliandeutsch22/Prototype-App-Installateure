@@ -39,15 +39,18 @@ vi.mock('@/lib/db/company', () => ({
 }));
 
 const rechnungenImZeitraum = vi.fn(async () => [] as unknown[]);
+const gemahnteImZeitraum = vi.fn(async () => [] as unknown[]);
+const mahnstufenLaden = vi.fn(async () => [] as unknown[]);
 vi.mock('@/lib/db/invoices', () => ({
   listInvoicesInRange: (...a: unknown[]) => rechnungenImZeitraum(...(a as [])),
-  listInvoicesWithReminderInRange: vi.fn(async () => []),
+  listInvoicesWithReminderInRange: (...a: unknown[]) => gemahnteImZeitraum(...(a as [])),
 }));
 vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => []) }));
 vi.mock('@/lib/db/quotes', () => ({ listQuotesInRange: vi.fn(async () => []) }));
 vi.mock('@/lib/db/workSheets', () => ({ listWorkSheetsForArchive: vi.fn(async () => []) }));
 vi.mock('@/lib/db/mahnbelege', () => ({
-  listMahnbelegeImZeitraum: vi.fn(async () => []), listMahnbelegStufen: vi.fn(async () => []),
+  listMahnbelegeImZeitraum: vi.fn(async () => []),
+  listMahnbelegStufen: (...a: unknown[]) => mahnstufenLaden(...(a as [])),
 }));
 const archiv = vi.fn();
 vi.mock('@/features/invoices/belegArchiv', () => ({
@@ -75,6 +78,8 @@ beforeEach(() => {
   ausleitung.mockReset();
   export_.mockReset();
   rechnungenImZeitraum.mockClear();
+  gemahnteImZeitraum.mockClear();
+  mahnstufenLaden.mockClear();
   archiv.mockReset();
   letzterLauf = undefined;
 });
@@ -250,6 +255,19 @@ describe('Belegarchiv', () => {
     // Gegenprobe: keine Erfolgszeile.
     expect(screen.queryByText(/Im Archiv:/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Belegarchiv herunterladen' })).toBeEnabled();
+  });
+
+  it('prüft frühere Mahnstufen ausschließlich für Rechnungen mit Mahnung im gewählten Zeitraum', async () => {
+    const alt = { id: 'rechnung-alt', invoiceNumber: 'RE-2025-0001', invoiceDate: '2025-01-01' };
+    const stufen = [{ id: 'mahnung-alt', invoiceNumber: alt.invoiceNumber, stufe: 1 }];
+    gemahnteImZeitraum.mockResolvedValueOnce([alt]);
+    mahnstufenLaden.mockResolvedValueOnce(stufen);
+    archiv.mockResolvedValue({ blob: new Blob(), rechnungen: 0, stornos: 0, angebote: 0, scheine: 0, mahnungen: 1, hinweise: [] });
+    zeige();
+    await userEvent.click(screen.getByRole('button', { name: 'Belegarchiv herunterladen' }));
+    await screen.findByText(/Im Archiv:/);
+    expect(mahnstufenLaden).toHaveBeenCalledWith('perl', [alt.id]);
+    expect(archiv.mock.calls[0][0]).toMatchObject({ rechnungen: [alt], mahnstufen: stufen });
   });
 });
 

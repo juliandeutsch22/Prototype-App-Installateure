@@ -185,6 +185,24 @@ describe('Jede Änderung, die dazugehört, kommt an', () => {
     expect(ergebnis.ok).toBe(true);
   }, 30_000);
 
+  it('Änderungssignal für Serverseiten lädt geänderte Anforderungen erneut', async () => {
+    clientEinreichen(chef.client);
+    const ergebnis = await meldetDurch<WithId<unknown>[]>(
+      (melde, fehler) => anforderungen.subscribeOrderChanges(BETRIEB, () => {
+        void anforderungen.listOrdersPage(BETRIEB, 'Signalanker', 'aktiv')
+          .then((s) => melde(s.zeilen)).catch(fehler);
+      }),
+      async () => {
+        await anforderungen.createMaterialOrder(BETRIEB, {
+          materialName: 'Signalanker', quantity: 2, status: 'Offen',
+          transactionType: 'order', userId: anton.uid, userName: 'Anton',
+        } as Parameters<typeof anforderungen.createMaterialOrder>[1]);
+      },
+      (rows) => rows.some((r) => (r as { materialName?: string }).materialName === 'Signalanker'),
+    );
+    expect(ergebnis.ok).toBe(true);
+  }, 30_000);
+
   it('der Materialstamm', async () => {
     clientEinreichen(chef.client);
     const ergebnis = await meldetDurch<WithId<unknown>[]>(
@@ -356,6 +374,27 @@ describe('Was nicht dazugehört, kommt nicht an', () => {
 });
 
 describe('Wer die Mandantengrenze wirklich hält', () => {
+  it('das Änderungssignal für Serverseiten lädt keine fremden Anforderungen', async () => {
+    clientEinreichen(chef.client);
+    const einfuegen = async (betrieb: string, person: Konto, name: string) => {
+      const r = await admin.from('material_orders').insert({ id: crypto.randomUUID(), company_id: betrieb,
+        user_id: person.uid, user_name: 'Signalperson', material_name: name,
+        quantity: 1, status: 'Offen', transaction_type: 'order' });
+      expect(r.error).toBeNull();
+    };
+    const e = await bleibtDraussen<WithId<unknown>[]>(
+      (melde, fehler) => anforderungen.subscribeOrderChanges(BETRIEB, () => {
+        void anforderungen.listOrdersPage(BETRIEB, 'Signalscope', 'aktiv')
+          .then((s) => melde(s.zeilen)).catch(fehler);
+      }),
+      { ausloesen: () => einfuegen(FREMD, fremdChef, 'Signalscope fremd'),
+        erkennen: (rows) => rows.some((r) => (r as { materialName?: string }).materialName === 'Signalscope fremd') },
+      { ausloesen: () => einfuegen(BETRIEB, anton, 'Signalscope eigen'),
+        erkennen: (rows) => rows.some((r) => (r as { materialName?: string }).materialName === 'Signalscope eigen') },
+    );
+    expect(e).toEqual({ falschDa: false, richtigDa: true });
+  }, 40_000);
+
   it('der Zeilenschutz, nicht der Kanalfilter', async () => {
     /*
       GEMESSEN, WEIL EINE MUTATION DURCHKAM.

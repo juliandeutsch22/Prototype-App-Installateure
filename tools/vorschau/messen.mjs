@@ -1,5 +1,5 @@
 /**
- * Geht jede Route auf drei Breiten durch und meldet, was aus seinem Behaelter
+ * Geht jede Route auf fünf Breiten durch und meldet, was aus seinem Behaelter
  * laeuft. Siehe `tools/vorschau/README.md`.
  *
  * Voraussetzung: `npm run vorschau` laeuft in einem zweiten Fenster.
@@ -21,6 +21,7 @@ const ROUTEN = [
   ['/customers/k1', 'Administrator'], ['/admin-projects/p1', 'Administrator'],
   ['/quotes/q1', 'Administrator'], ['/user-mgmt/u1', 'Administrator'],
   ['/assignments/tag', 'Administrator'], ['/assignments/woche', 'Administrator'],
+  ['/assignments/woche?ansicht=monat', 'Administrator'],
   ['/user-mgmt', 'Administrator'],
   ['/settings/meldungen', 'Administrator'], ['/settings/firma', 'Administrator'],
   ['/settings/saetze', 'Administrator'], ['/settings/module', 'Administrator'],
@@ -29,6 +30,7 @@ const ROUTEN = [
   ['/settings/konten', 'Administrator'], ['/settings/support', 'Administrator'],
   ['/impressum', 'Administrator'], ['/datenschutz', 'Administrator'],
   ['/costing', 'Administrator'], ['/invoices', 'Administrator'], ['/accounting', 'Administrator'],
+  ['/accounting?ansicht=woche', 'Administrator'],
 ];
 
 /**
@@ -36,7 +38,7 @@ const ROUTEN = [
  * ist schon da, der Platz aber knapp. Telefon und Schreibtisch sind beide
  * gutmuetig.
  */
-const BREITEN = [['iphone', 375], ['mobil', 390], ['tablet', 834], ['desktop', 1440]];
+const BREITEN = [['iphone', 375], ['mobil', 390], ['tablet', 834], ['tablet-quer', 1112], ['desktop', 1440]];
 
 /** Was die Messung meldet, ohne dass es ein Fehler waere. */
 const HARMLOS = [

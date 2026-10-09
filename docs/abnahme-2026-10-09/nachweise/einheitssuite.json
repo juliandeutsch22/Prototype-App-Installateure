@@ -1,0 +1,12 @@
+{
+  "lokal": true,
+  "datum": "2026-10-09",
+  "main": "078429f33f63e29ea1df2a84fb55458fc1956cab",
+  "tests": 4697,
+  "dateien": 304,
+  "fehlgeschlagen": 0,
+  "dauer_sekunden": 420.6,
+  "typen": "bestanden",
+  "lint": "bestanden",
+  "vollstaendiger_lauf": true
+}

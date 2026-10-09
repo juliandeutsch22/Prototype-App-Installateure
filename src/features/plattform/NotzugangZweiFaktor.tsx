@@ -10,8 +10,8 @@ import { ErrorState } from '@/components/States';
  * TELEFON WEG, CODES WEG (Runde 3, H1): der Support entfernt den zweiten
  * Faktor eines Leitungs- oder Buchhaltungskontos — nur über einen offenen Notzugang, mit Grund
  * und Rückruf an die Nummer aus Firmenbuch oder Gewerberegister, wie beim
- * Passwort. Die Person richtet ihn bei der nächsten Anmeldung neu ein, wenn
- * ihr Betrieb ihn verlangt. Die Grenzen stehen in der Datenbank
+ * Passwort. Das Betriebskonto kann ihn danach freiwillig neu einrichten.
+ * Die Grenzen stehen in der Datenbank
  * (`plattform_zweiter_faktor_zuruecksetzen`).
  */
 export default function NotzugangZweiFaktor({ kennung, name }: { kennung: string; name: string }) {

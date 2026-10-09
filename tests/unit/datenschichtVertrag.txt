@@ -34,7 +34,7 @@ src/lib/db/invoices.ts#invoiceSeqOf: (number: string) => number | null
 src/lib/db/invoices.ts#isInvoiceNumberTaken: (existing: (Pick<Invoice, "invoiceNumber"> & Partial<Pick<Invoice, "stornoNummer">>)[] & { id?: string; }[], number: string, exceptId?: string) => boolean
 src/lib/db/invoices.ts#listInvoicesInRange: (companyId: string, von: string, bis: string) => Promise<WithId<Invoice>[]>
 src/lib/db/invoices.ts#listUnpaidInvoices: (companyId: string) => Promise<WithId<Invoice>[]>
-src/lib/db/invoices.ts#mahnungFesthalten: (id: string, daten: { stufe: number; gemahntAm: string; frist: string; spesen: number; standJetzt: Invoice["paymentStatus"]; }) => Promise<void>
+src/lib/db/invoices.ts#mahnungFesthalten: (id: string, daten: { stufe: number; gemahntAm: string; frist: string; spesen: number; standJetzt: Invoice["paymentStatus"]; pdfBase64?: string; }) => Promise<void>
 src/lib/db/invoices.ts#nextInvoiceNumber: (existing: (Pick<Invoice, "invoiceNumber"> & Partial<Pick<Invoice, "stornoNummer">>)[], praefix?: string) => string
 src/lib/db/invoices.ts#reactivateInvoice: (inv: WithId<Invoice>) => Promise<void>
 src/lib/db/invoices.ts#reserveInvoiceNumber: (companyId: string, opts: { seedFrom: number; desired?: number; praefix?: string; }) => Promise<string>
@@ -59,8 +59,8 @@ src/lib/db/materials.ts#adjustStock: (materialId: string, delta: number) => Prom
 src/lib/db/materials.ts#createMaterial: (companyId: string, m: NewMaterial) => Promise<string>
 src/lib/db/materials.ts#deleteMaterial: (id: string) => Promise<void>
 src/lib/db/materials.ts#katalogAbgeschnitten: (artikel: readonly unknown[], grenze?: number) => boolean
-src/lib/db/materials.ts#listMaterials: (companyId: string, max?: number) => Promise<WithId<Material>[]>
-src/lib/db/materials.ts#subscribeMaterials: (companyId: string, cb: (rows: WithId<Material>[]) => void, onError: (e: Error) => void, max?: number) => () => void
+src/lib/db/materials.ts#listMaterials: (companyId: string, max?: number, nurLager?: boolean) => Promise<WithId<Material>[]>
+src/lib/db/materials.ts#subscribeMaterials: (companyId: string, cb: (rows: WithId<Material>[]) => void, onError: (e: Error) => void, max?: number, nurLager?: boolean) => () => void
 src/lib/db/materials.ts#updateMaterial: (id: string, data: Partial<Material>) => Promise<void>
 src/lib/db/meldungsvorgaben.ts#PREFS_DEFAULTS: NotifyPrefs
 src/lib/db/monatsbilanzen.ts#bilanzMarker: (companyId: string, uid: string) => Promise<{ vollstaendigAb: string; } | null>

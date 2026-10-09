@@ -101,15 +101,16 @@ describe('Originalmahnungen und Mahnstand gehören zusammen', () => {
     }
   });
 
-  it('lädt für die Vollständigkeitsprüfung nur Stufen, keine großen PDF-Inhalte', async () => {
+  it('lädt nur Stufen der ausgewählten Rechnungen, keine übrige Historie oder PDF-Inhalte', async () => {
     const id = await rechnung();
     const r = await buch.client.rpc('mahnung_mit_beleg_festhalten', args(id));
     expect(r.error).toBeNull();
     clientEinreichen(buch.client);
-    const stufen = await listMahnbelegStufen(BETRIEB);
-    expect(stufen.find((m) => m.id === r.data)).toEqual({ id: r.data,
+    const stufen = await listMahnbelegStufen(BETRIEB, [id]);
+    expect(stufen).toEqual([{ id: r.data,
       invoiceNumber: (await buch.client.from('invoices').select('invoice_number').eq('id', id).single()).data!.invoice_number,
-      stufe: 1 });
+      stufe: 1 }]);
+    expect(await listMahnbelegStufen(BETRIEB, [])).toEqual([]);
   });
 
   it('erlaubt keine direkte Anlage, Änderung oder Löschung durch die Buchhaltung', async () => {

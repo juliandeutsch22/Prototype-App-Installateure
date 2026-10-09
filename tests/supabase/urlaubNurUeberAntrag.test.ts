@@ -12,7 +12,7 @@
  * Die Tage liegen im Februar und März 2027 (1. Februar ist ein Montag).
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { readdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Client } from 'pg';
 import { admin, betriebAnlegen, buchung, konto, type Konto } from './helfer';
@@ -214,48 +214,37 @@ describe('Übernahme des Altbestands', () => {
       buchung(alt, '2027-04-20', u),
     ]);
 
-    // Die Migration noch einmal — sie ist darauf gebaut, dass das geht.
-    await db.query(readFileSync(
-      join(__dirname, '../../supabase/migrations/20260924190000_urlaub_nur_ueber_antrag.sql'), 'utf8'));
-    // Sie setzt dabei `urlaub_eintragen` und `urlaub_entscheiden` auf ihre
-    // alte Fassung zurück; die spätere Migration stellt den heutigen Stand
-    // wieder her — sonst rechneten die Prüfungen danach mit ganzen Tagen am
-    // 24./31.12., je nachdem, in welcher Reihenfolge sie laufen.
-    //
-    // Die Monatssicht hat seither Spalten dazubekommen; eine Sicht lässt sich
-    // nicht um Spalten kürzen: deshalb erst weg, dann die Dezember-Fassung,
-    // dann der HEUTIGE Stand — und das Leserecht wie ursprünglich vergeben.
-    //
-    // DER HEUTIGE STAND: die Migration des Sonderurlaubs (die neueste, die
-    // Monatssicht und `urlaub_entscheiden` definiert) UND JEDE DANACH, der
-    // Reihe nach. Nur die des Sonderurlaubs setzte `person_loeschen` auf den
-    // Stand vor den Terminen zurück — die Löschprüfungen danach schlugen fehl,
-    // je nachdem, in welcher Reihenfolge die Dateien liefen (CI zu #239).
-    // Die Lehrlings-Migration vom 30.09. steht hier nicht mehr: sie setzte
-    // `satz_setzen` hinter #230 zurück und scheitert, sobald ein
-    // Sonderurlaubstag im Bestand ist (ihre Statusliste kennt ihn nicht).
-    await db.query('drop view if exists public.monthly_stats');
-    await db.query(readFileSync(
-      join(__dirname, '../../supabase/migrations/20260929200000_dezember_halbtage.sql'), 'utf8'));
-    const ordner = join(__dirname, '../../supabase/migrations');
-    for (const datei of readdirSync(ordner).filter((d) => d >= '20261004200000' && d.endsWith('.sql')).sort()) {
-      await db.query(readFileSync(join(ordner, datei), 'utf8'));
+    // Auch die Funktionsersetzungen der alten Migration gehören in die
+    // Gegenprobe. Ein Rollback stellt den tatsächlichen heutigen Stand her,
+    // ohne additive spätere Migrationen über bestehende Tabellen einzuspielen.
+    const definitionen = `select p.oid::text as kennung, pg_get_functiondef(p.oid) as definition
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname in ('public', 'app') and p.prokind in ('f', 'p') order by p.oid`;
+    const vorher = await db.query(definitionen);
+    await db.query('begin');
+    try {
+      await db.query(readFileSync(
+        join(__dirname, '../../supabase/migrations/20260924190000_urlaub_nur_ueber_antrag.sql'), 'utf8'));
+      // Dieselbe Verbindung sieht die Übernahme vor dem Rollback; ein
+      // separater API-Aufruf sähe noch den nicht übernommenen Altbestand.
+      const { rows: tage } = await db.query(`select vacation_id from public.time_entries
+        where user_id = $1 and date between '2027-04-01' and '2027-04-30'`, [alt.uid]);
+      expect(tage).toHaveLength(6);
+      expect(tage.every((t) => t.vacation_id !== null)).toBe(true);
+      const { rows: antraege } = await db.query(`select von::text, bis::text, tage, status, entschieden_von_name
+        from public.vacations where user_id = $1 order by von`, [alt.uid]);
+      expect(antraege.map((a) => [a.von, a.bis, Number(a.tage), a.status])).toEqual([
+        ['2027-04-05', '2027-04-07', 3, 'Genehmigt'],
+        ['2027-04-09', '2027-04-09', 1, 'Genehmigt'],
+        ['2027-04-19', '2027-04-23', 2, 'Genehmigt'],
+      ]);
+      expect(antraege[0].entschieden_von_name).toBe('Übernahme aus der Zeiterfassung');
+      const { rows } = await db.query(
+        `select tgenabled from pg_trigger where tgname = 'vacations_entscheidung'`);
+      expect(rows[0].tgenabled).toBe('O');
+    } finally {
+      await db.query('rollback');
     }
-    await db.query('grant select on public.monthly_stats to authenticated');
-
-    const tage = await eintraege(alt.uid, '2027-04-01', '2027-04-30');
-    expect(tage.every((t) => t.vacation_id !== null)).toBe(true);
-    const { data: antraege } = await admin.from('vacations')
-      .select('von, bis, tage, status, entschieden_von_name').eq('user_id', alt.uid).order('von');
-    expect(antraege!.map((a) => [a.von, a.bis, Number(a.tage), a.status])).toEqual([
-      ['2027-04-05', '2027-04-07', 3, 'Genehmigt'],
-      ['2027-04-09', '2027-04-09', 1, 'Genehmigt'],
-      ['2027-04-19', '2027-04-23', 2, 'Genehmigt'],
-    ]);
-    expect(antraege![0].entschieden_von_name).toBe('Übernahme aus der Zeiterfassung');
-
-    const { rows } = await db.query(
-      `select tgenabled from pg_trigger where tgname = 'vacations_entscheidung'`);
-    expect(rows[0].tgenabled).toBe('O');
+    expect((await db.query(definitionen)).rows).toEqual(vorher.rows);
   });
 });

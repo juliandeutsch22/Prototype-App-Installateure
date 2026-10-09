@@ -98,7 +98,7 @@ const GRENZ_MUSTER = [
    * am Ende des Umzugs blind, ohne dass es jemand gemerkt hätte.
    */
   /grenze:/,
-  /\{ art: 'in', feld: '(id|projectNumber|status)'/,
+  /\{ art: 'in', feld: '(id|invoiceId|projectNumber|status)'/,
   /*
     DER ZAHLUNGSSTAND IST DIESELBE ART GRENZE WIE DER STATUS, nur heisst das
     Feld an der Rechnung anders. Offene Forderungen sind der Ausnahmezustand
@@ -108,7 +108,10 @@ const GRENZ_MUSTER = [
   */
   /\{ art: 'in', feld: 'paymentStatus'/,
   /\{ art: 'gleich', feld: '(date|datum|customerId|projectNumber|userId)'/,
-  /\{ art: 'ab', feld: '(date|datum|invoiceDate|monat)'/,
+  /\{ art: 'ab', feld: '(date|datum|invoiceDate|quoteDate|gemahntAm|monat)'/,
+  // Nur laufende Vorgänge, wie die bestehenden positiven Statusfilter.
+  // STATUS_REICHT_NICHT nimmt auch dieses Muster für Stammdaten-Auswahlen aus.
+  /\{ art: 'ungleich', feld: 'status', wert: 'Erledigt'/,
   /\{ art: 'enthaelt', feld: 'assignedEmployees'/,
   /where\(\s*'date'\s*,\s*'>=?'/,
   /where\(\s*'date'\s*,\s*'=='/,

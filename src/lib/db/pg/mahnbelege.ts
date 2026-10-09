@@ -19,9 +19,10 @@ export function listMahnbelegeImZeitraum(companyId: string, von: string, bis: st
   });
 }
 
-/** Nur Metadaten: eine frühere Stufe außerhalb des Archivjahrs darf nicht als fehlend gelten. */
-export function listMahnbelegStufen(companyId: string) {
+/** Frühere Stufen der ausgewählten Rechnungen; keine fremden Archivjahre oder PDF-Inhalte laden. */
+export function listMahnbelegStufen(companyId: string, invoiceIds: string[]) {
   return abfragen<Pick<Mahnbeleg, 'id' | 'invoiceNumber' | 'stufe'>>('mahnbelege', companyId, {
     felder: ['id', 'invoiceNumber', 'stufe'],
+    wo: [{ art: 'in', feld: 'invoiceId', werte: invoiceIds }],
   });
 }
