@@ -253,3 +253,22 @@ export function summeDerTage(werte: readonly Tageswert[]): { istMin: number; sol
 export function fehlendeTage(werte: readonly Tageswert[]): Tageswert[] {
   return werte.filter((t) => t.zustand === 'fehlt');
 }
+
+/**
+ * Welche Tage eine sichtbare Zahl bekommen: der Erste und die Montage — aber
+ * keiner direkt neben heute oder direkt vor einem Montag, sonst stießen zwei
+ * Zahlen in den schmalen Feldern des Tablets aneinander.
+ */
+export function streifenMarken(tage: readonly string[], heute: string): Set<string> {
+  const istMontag = (i: number) => i >= 0 && i < tage.length && new Date(`${tage[i]}T00:00:00`).getDay() === 1;
+  const iHeute = tage.indexOf(heute);
+  const marken = new Set<string>();
+  tage.forEach((d, i) => {
+    if (d === heute) return;
+    if (!(i === 0 || istMontag(i))) return;
+    if (iHeute >= 0 && Math.abs(i - iHeute) === 1) return;
+    if (i === 0 && istMontag(1)) return;
+    marken.add(d);
+  });
+  return marken;
+}

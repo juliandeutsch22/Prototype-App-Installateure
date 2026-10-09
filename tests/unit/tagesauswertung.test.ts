@@ -14,6 +14,7 @@ import type { AppUser, TimeEntry } from '@/types';
 import {
   montagDerWoche,
   plusTage,
+  streifenMarken,
   summeDerTage,
   tageDerWoche,
   tageDesMonats,
@@ -243,5 +244,31 @@ describe('Grenzfälle und Tooltip', () => {
     expect(tippText(di)).toBe('Di 06.10. · 07:00–11:30, 12:00–15:30 · 8:00 Std. · Soll 8:00 · 8:00 Std. am 06.10. — höchstens 7 Std.');
     expect(tippText(mi)).toBe('Mi 07.10. · Krank · Soll 8:00');
     expect(tippText(sa)).toBe('Sa 10.10. · frei');
+  });
+});
+
+/*
+  DIE TAGESZAHLEN ÜBER DEM STREIFEN sind nur Wegmarken (Rückmeldung des
+  Betreibers: alle 31 liefen ab dem Zehnten zu einer Ziffernkette zusammen).
+*/
+describe('streifenMarken', () => {
+  const oktober = Array.from({ length: 31 }, (_, i) => `2026-10-${String(i + 1).padStart(2, '0')}`);
+
+  it('der Erste und die Montage, nicht jeder Tag', () => {
+    expect([...streifenMarken(oktober, '2026-11-15')]).toEqual(['2026-10-01', '2026-10-05', '2026-10-12', '2026-10-19', '2026-10-26']);
+  });
+
+  it('heute ist keine Marke, und keine Marke steht direkt daneben', () => {
+    // Heute Dienstag, 13.10.: der Montag davor fällt weg, sonst stießen „12“ und „13“ aneinander.
+    const m = streifenMarken(oktober, '2026-10-13');
+    expect(m.has('2026-10-13')).toBe(false);
+    expect(m.has('2026-10-12')).toBe(false);
+    expect(m.has('2026-10-19')).toBe(true);
+  });
+
+  it('fällt der Erste auf einen Sonntag, zählt der Montag danach', () => {
+    const november = Array.from({ length: 30 }, (_, i) => `2026-11-${String(i + 1).padStart(2, '0')}`);
+    // 01.11.2026 ist ein Sonntag, 02.11. ein Montag.
+    expect([...streifenMarken(november, '2026-12-20')][0]).toBe('2026-11-02');
   });
 });

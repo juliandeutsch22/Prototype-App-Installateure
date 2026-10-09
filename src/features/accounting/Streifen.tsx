@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { getAustrianHolidayName } from '@/lib/time';
-import { artWort, kurzeZeit, tippText, wochentagKurz, type Tageswert } from './tagesauswertung';
+import { artWort, kurzeZeit, streifenMarken, tippText, wochentagKurz, type Tageswert } from './tagesauswertung';
 
 /*
   DIE BAUSTEINE DES MONATS IN DER MITARBEITERÜBERSICHT (Runde 4, Auftrag
@@ -150,24 +149,26 @@ export function Streifen({
 }
 
 /**
- * Die Tageszahlen über dem Streifen. Wochenenden sind heller, heute steht in
- * Petrol mit Unterstrich. Am Tablet bleiben nur Montage und heute sichtbar
- * (die übrigen im DOM, damit die Spalten gleich bleiben — Auftrag 3.3.2).
+ * Die Tageszahlen über dem Streifen — nur als Wegmarken: der Erste, jeder
+ * Montag und heute.
+ *
+ * WARUM NICHT ALLE EINUNDDREISSIG. Ein Feld ist am Schreibtisch rund 16 px
+ * breit; zweistellige Zahlen füllen es ganz aus und liefen ab dem Zehnten
+ * zu einer Ziffernkette ohne Abstand zusammen („10111213…“, Rückmeldung des
+ * Betreibers zu Runde 4). Die Montage gliedern den Monat in Wochen, heute
+ * zeigt, wo man steht; den genauen Tag nennt jedes Feld beim Darüberfahren
+ * und im Seitenfenster. Die übrigen Zahlen bleiben im DOM, nur unsichtbar,
+ * damit jede Marke genau über ihrem Feld steht (Auftrag 3.3.2).
  */
 export function StreifenKopf({ tage, heute }: { tage: readonly string[]; heute: string }) {
+  const marken = streifenMarken(tage, heute);
   return (
     <div className="streifen" style={spalten(tage.length)} aria-hidden="true">
-      {tage.map((d) => {
-        const wt = new Date(`${d}T00:00:00`).getDay();
-        const feiertag = getAustrianHolidayName(new Date(`${d}T00:00:00`));
-        const klasse =
-          d === heute ? 'st-kopf-heute' : wt === 1 ? 'st-kopf-mo' : wt === 0 || wt === 6 || feiertag ? 'st-kopf-we' : 'st-kopf';
-        return (
-          <span key={d} className={klasse}>
-            {Number(d.slice(8))}
-          </span>
-        );
-      })}
+      {tage.map((d) => (
+        <span key={d} className={d === heute ? 'st-kopf-heute' : marken.has(d) ? 'st-kopf-mo' : 'st-kopf'}>
+          {Number(d.slice(8))}
+        </span>
+      ))}
     </div>
   );
 }

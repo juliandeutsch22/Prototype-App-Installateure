@@ -42,6 +42,8 @@ export const firma = {
   vatId: 'ATU12345678', companyRegister: 'FN 123456a',
   rates: { fach: 78, helper: 52, vatRate: 0.2, anfahrt: 45, nacht: 0.5, notdienst: 1 },
   modules: {}, urlaubUebertrag: 'verjaehrung', kalenderAboErlaubt: true,
+  // Runde 4: die Team-Woche der Monteure ist in der Vorschau zu sehen.
+  wochenplanFuerAlle: true,
 };
 
 export const benutzer = [
@@ -127,12 +129,12 @@ export const einsaetze = [
     Einsätzen an einem Tag (Stefan am Mittwoch), einem Notdienst am Samstag
     und einem Eingeteilten, der krank ist (Jürgen am Donnerstag).
   */
-  ...[0, 1, 2].map((n) => ({ id: `r4-s${n}`, companyId: 'perl', date: tag(n), projectNumber: 'B-2026-0147', userId: 'u6', userName: 'Stefan Gruber', startTime: '07:00', endTime: '15:30', comment: 'Steigleitung Stiege 2' })),
-  { id: 'r4-s2b', companyId: 'perl', date: tag(2), projectNumber: 'B-2026-0148', userId: 'u6', userName: 'Stefan Gruber', startTime: '16:00', endTime: '18:00' },
+  ...[0, 1, 2].map((n) => ({ id: `r4-s${n}`, companyId: 'perl', date: tag(n), projectNumber: 'B-2026-0147', userId: 'u6', userName: 'Stefan Gruber', zeitVon: '07:00', zeitBis: '15:30', comment: 'Steigleitung Stiege 2' })),
+  { id: 'r4-s2b', companyId: 'perl', date: tag(2), projectNumber: 'B-2026-0148', userId: 'u6', userName: 'Stefan Gruber', zeitVon: '16:00', zeitBis: '18:00' },
   ...[0, 1, 2, 3].map((n) => ({ id: `r4-l${n}`, companyId: 'perl', date: tag(n), projectNumber: 'B-2026-0148', userId: 'u5', userName: 'Lena Pichler', asHelper: true })),
   ...[1, 2, 3].map((n) => ({ id: `r4-j${n}`, companyId: 'perl', date: tag(n), projectNumber: 'B-2026-0147', userId: 'u7', userName: 'Jürgen Fasching', asHelper: true })),
-  { id: 'r4-not', companyId: 'perl', date: tag(5), projectNumber: 'B-2026-0148', userId: 'u1', userName: 'Max Mustermann', startTime: '08:00', endTime: '12:00', comment: 'Notdienst Rohrbruch' },
-  ...[7, 8, 9, 10].map((n) => ({ id: `r4-n${n}`, companyId: 'perl', date: tag(n), projectNumber: 'B-2026-0147', userId: 'u6', userName: 'Stefan Gruber', startTime: '07:00', endTime: '15:30' })),
+  { id: 'r4-not', companyId: 'perl', date: tag(5), projectNumber: 'B-2026-0148', userId: 'u1', userName: 'Max Mustermann', zeitVon: '08:00', zeitBis: '12:00', comment: 'Notdienst Rohrbruch' },
+  ...[7, 8, 9, 10].map((n) => ({ id: `r4-n${n}`, companyId: 'perl', date: tag(n), projectNumber: 'B-2026-0147', userId: 'u6', userName: 'Stefan Gruber', zeitVon: '07:00', zeitBis: '15:30' })),
 ];
 
 /** Wer abwesend ist (`wochenplan_abwesend`): Jürgen krank am Donnerstag, Anton im Urlaub ab nächster Woche. */
