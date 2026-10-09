@@ -33,7 +33,7 @@
   wie sie ist, ohne und mit „PR-“; gruppiert nach der Nummer ohne „PR-“
   (`normProjectNumber`).
 */
-create function public.baustellen_stunden(p_nummern text[])
+create or replace function public.baustellen_stunden(p_nummern text[])
   returns table (projekt text, user_id uuid, user_name text, art text, minuten integer, zuletzt date)
   language plpgsql stable
   security definer

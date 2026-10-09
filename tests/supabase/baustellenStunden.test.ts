@@ -53,7 +53,7 @@ beforeAll(async () => {
 
   // Baustelle 2026-050, in beiden Schreibweisen gebucht.
   await buche(A, max, '2026-04-01', { project_number: 'PR-2026-050' });                       // 510 Fach
-  await buche(A, anton, '2026-04-02', { project_number: '2026-050', end_time: '12:00' });     // 300 Fach
+  await buche(A, anton, '2026-04-02', { project_number: '2026-050', end_time: '12:00' });     // 270 Fach (30 min Pause)
   await buche(A, anton, '2026-04-03', { project_number: '2026-050', end_time: '08:00', break_duration: 0, is_helper: true }); // 60 Helfer
   await buche(A, max, '2026-04-06', { project_number: '2026-050', end_time: '09:00', break_duration: 0, ins_budget: false }); // 120 Lehrling
   // Zählt nicht: Urlaub auf der Baustelle, eine Buchung ohne Arbeitszeit.
@@ -77,12 +77,12 @@ describe('baustellen_stunden', () => {
     clientEinreichen(pl.client);
 
     const eigene = await zeiten.listEntriesForProjects(A, ['2026-050']);
-    // Der alte Weg: 60 von 1050 Fachminuten — „alle im Budget“.
+    // Der alte Weg: 60 von 840 Fachminuten — „alle im Budget“.
     expect(groupProjectHours(eigene as TimeEntry[])[0].fachMin).toBe(60);
 
     const summen = await zeiten.stundenDerBaustellen(['2026-050']);
     expect(nachPerson(summen)).toEqual([
-      '2026-050 Anton fach 300 2026-04-02',
+      '2026-050 Anton fach 270 2026-04-02',
       '2026-050 Anton helfer 60 2026-04-03',
       '2026-050 Max fach 510 2026-04-01',
       '2026-050 Max lehrling 120 2026-04-06',
