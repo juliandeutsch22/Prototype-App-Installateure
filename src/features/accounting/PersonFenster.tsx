@@ -7,6 +7,7 @@ import {
   fmtDauer,
   fmtMin,
   getAustrianHolidayName,
+  hatTagessoll,
   tagesStatusName,
   tageZahl,
   vorzeichenTage,
@@ -34,7 +35,9 @@ import { kurzeZeit, tageDesMonats, tagKurz, type Tageswert } from './tagesauswer
  * mit „laufend“, der Hinweis ohne Eintrittsdatum, die Tage ohne Buchung, der
  * Tagesnachweis mit seinen Aktionen je Art, „Monat als CSV“ und „Bericht für
  * Zeitraum“. Nur die Anordnung ist neu: Kennzahlen oben, Abschnitte darunter,
- * die Knöpfe in der Fussleiste.
+ * die Knöpfe in der Fussleiste. Seit Runde 5 (G6) tragen Gesamtsaldo und
+ * Resturlaub ihre Beschriftung nur einmal, und ein eigenes Tagessoll steht je
+ * Wochentag da statt als Durchschnitt.
  *
  * NEU, aber keine neue Funktion (Entscheidung R4-0, Frage 3): an jedem Tag
  * ohne Buchung „Zeit erfassen“ — dasselbe Formular wie die Hauptaktion, mit
@@ -232,15 +235,18 @@ export default function PersonFenster({
             <Gesamtsaldo profil={u} halbeTage={halbeTage} />
           </div>
         )}
-        <div className="pf-kennzahl">
+        {/*
+          NUR DER WERT, DIE ERGÄNZUNG KLEIN DARUNTER (Testbericht Runde 5, G6):
+          „Resturlaub / 1,96 Tage Resturlaub“ nannte die Beschriftung zweimal.
+        */}
+        <div className="pf-kennzahl" data-testid="resturlaub">
           <p className="pf-kennzahl-name">Resturlaub</p>
-          <p className="pf-kennzahl-text" data-testid="resturlaub">
-            <b className={stats.urlaubRest < 5 ? 'font-semibold text-warning' : 'font-semibold text-ink'}>
-              {tageZahl(stats.urlaubRest)}
-            </b>{' '}
-            Tage Resturlaub
-            {stats.urlaubAngepasst !== 0 && <> (Anspruch angepasst: {vorzeichenTage(stats.urlaubAngepasst)})</>}
+          <p className={`mt-1 text-xl font-semibold leading-none ${stats.urlaubRest < 5 ? 'text-warning' : 'text-ink'}`}>
+            {tageZahl(stats.urlaubRest)} {Math.abs(stats.urlaubRest) === 1 ? 'Tag' : 'Tage'}
           </p>
+          {stats.urlaubAngepasst !== 0 && (
+            <p className="pf-kennzahl-text">Anspruch angepasst: {vorzeichenTage(stats.urlaubAngepasst)}</p>
+          )}
         </div>
       </div>
 
@@ -257,7 +263,11 @@ export default function PersonFenster({
         an seinem Platz). Übrig bleibt das Wort „laufend“.
       */}
       <p className="pf-text-klein">
-        Tagessoll {fmtDauer(Math.round(stats.dailyTargetH * 60))} ·
+        {/*
+          MIT EIGENEM TAGESSOLL JE WOCHENTAG die einzelnen Tage (Runde 5, G6):
+          „Tagessoll 08:00“ war der Durchschnitt, die Akte führte 8,5 / … / 6.
+        */}
+        Tagessoll {hatTagessoll(u) ? tagessollText(u.tagessoll!) : fmtDauer(Math.round(stats.dailyTargetH * 60))} ·
         Wochenstunden {fmtDauer(Math.round(stats.weeklyTarget * 60))} ·{' '}
         {stats.requiredDays === 1 ? '1 Solltag' : `${tageZahl(stats.requiredDays)} Solltage`}
         {stats.holidaysInMonth > 0 &&
@@ -370,4 +380,14 @@ export default function PersonFenster({
       </div>
     </div>
   );
+}
+
+/** Die Wochentage in der Reihenfolge der Woche, wie in der Benutzerakte. */
+const WOCHENTAGE: [number, string][] = [[1, 'Mo'], [2, 'Di'], [3, 'Mi'], [4, 'Do'], [5, 'Fr'], [6, 'Sa'], [0, 'So']];
+
+/** „Mo 08:30, Di 08:30, … Fr 06:00 Std“ — das eigene Tagessoll je Wochentag. */
+function tagessollText(tagessoll: Record<string, number>): string {
+  const tage = WOCHENTAGE.filter(([n]) => typeof tagessoll[String(n)] === 'number')
+    .map(([n, wort]) => `${wort} ${fmtMin(Math.round(tagessoll[String(n)] * 60))}`);
+  return `${tage.join(', ')} Std`;
 }

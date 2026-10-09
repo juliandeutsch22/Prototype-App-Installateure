@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import userEvent from '@testing-library/user-event';
@@ -548,11 +548,27 @@ describe('Gesamtsaldo neben dem Monatssaldo (Testbericht 30.09.2026, M8)', () =>
   it('zeigt den Stand seit Eintritt und den Start-Saldo darin', async () => {
     benutzer = [{ ...monteur, initialOvertime: 5 }];
     await oeffneMitarbeiter();
-    const zeile = await screen.findByTestId('gesamtsaldo');
-    expect(zeile).toHaveTextContent('Gesamtsaldo seit 17.08.2026: +12:30 · darin Start-Saldo +05:00');
+    // Runde 5, G6: der Wert, darunter klein „seit …“ — das Wort „Gesamtsaldo“ steht nur in der Beschriftung.
+    await waitFor(() =>
+      expect(screen.getByTestId('gesamtsaldo')).toHaveTextContent('+12:30seit 17.08.2026 · darin Start-Saldo +05:00'));
+    expect(screen.getByTestId('gesamtsaldo').closest('.pf-kennzahl')?.textContent?.match(/Gesamtsaldo/g)).toHaveLength(1);
     expect(zeitguthabenLaden).toHaveBeenCalledWith(expect.objectContaining({ uid: 'u1' }), expect.any(Boolean));
   });
 
+
+  // Testbericht Runde 5, G6: „Tagessoll 08:00“ war der Durchschnitt eines eigenen Solls je Wochentag.
+  it('nennt ein eigenes Tagessoll je Wochentag, nicht den Durchschnitt', async () => {
+    benutzer = [{ ...monteur, weeklyTargetHours: 40, tagessoll: { '1': 8.5, '2': 8.5, '3': 8.5, '4': 8.5, '5': 6 } }];
+    await oeffneMitarbeiter();
+    expect(await screen.findByText(/Tagessoll Mo 08:30, Di 08:30, Mi 08:30, Do 08:30, Fr 06:00 Std/)).toBeInTheDocument();
+    expect(screen.queryByText(/Tagessoll 08:00 Std/)).toBeNull();
+  });
+
+  it('Gegenprobe: ohne eigenes Tagessoll bleibt die Zeile, wie sie war', async () => {
+    benutzer = [{ ...monteur, weeklyTargetHours: 40, workDays: [1, 2, 3, 4, 5] }];
+    await oeffneMitarbeiter();
+    expect(await screen.findByText(/Tagessoll 08:00 Std · Wochenstunden 40:00 Std/)).toBeInTheDocument();
+  });
 
   it('lädt erst beim Öffnen des Seitenfensters', async () => {
     zeitguthabenLaden.mockClear();
@@ -605,15 +621,17 @@ describe('Im Supportzugang (Testbericht 30.09.2026, M40)', () => {
 describe('Mitarbeiteruebersicht — angepasster Urlaubsanspruch (Plan 10.3)', () => {
   it('rechnet die Anpassung in den Resturlaub und nennt sie', async () => {
     await oeffneMitarbeiter();
-    const ohne = screen.getByText(/Tage Resturlaub/).textContent ?? '';
+    const ohne = screen.getByTestId('resturlaub').textContent ?? '';
     expect(ohne).not.toMatch(/Anspruch angepasst/);
+    // Runde 5, G6: „Resturlaub“ nur als Beschriftung, nicht noch einmal im Wert.
+    expect(ohne.match(/Resturlaub/g)).toHaveLength(1);
     cleanup();
 
     anpassungen = [{ id: 'a1', userId: 'u1', urlaubsjahr: 2026, tage: -6.25, grund: 'Unbezahlter Urlaub' }];
     await oeffneMitarbeiter();
-    const mit = screen.getByText(/Tage Resturlaub/).textContent ?? '';
+    const mit = screen.getByTestId('resturlaub').textContent ?? '';
     expect(mit).toMatch(/Anspruch angepasst: −6,25 Tage/);
-    const zahl = (t: string) => Number(t.match(/([\d,]+)\s*Tage Resturlaub/)![1].replace(',', '.'));
+    const zahl = (t: string) => Number(t.match(/Resturlaub(-?[\d,]+)\s*Tage?/)![1].replace(',', '.'));
     expect(zahl(mit)).toBeCloseTo(zahl(ohne) - 6.25, 2);
   });
 });
