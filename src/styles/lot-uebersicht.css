@@ -213,6 +213,12 @@
   .pf-summe { display: flex; justify-content: space-between; gap: 1rem; padding: 0.625rem 0.25rem; font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; }
   /* Die Fussleiste bleibt beim Rollen unten im Fenster stehen. */
   .pf-fuss { position: sticky; bottom: 0; z-index: 1; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; padding: 0.75rem 0; background: var(--surface); border-top: 1px solid var(--border); }
+  /*
+    Ab Tablet hat der Inhalt des Fensters 20 px Rand: mit bottom: 0 stünde die
+    Leiste darüber, und der Tagesnachweis schiene beim Rollen unter ihr durch.
+    Dieselbe Regel wie `.planung-fuss` (lot-planung.css).
+  */
+  @media (min-width: 760px) { .pf-fuss { bottom: -1.25rem; margin: 1rem -1.25rem -1.25rem; padding: 0.75rem 1.25rem; } }
 
   /* ── Musterseite ─────────────────────────────────────────────────────── */
 }

@@ -117,6 +117,28 @@ describe('Die Bausteine halten die Regeln der Linie (Protokoll 0.2)', () => {
   });
 });
 
+/*
+  STEHENDE FUSSLEISTEN IN SEITENFENSTERN (Runde 4): ab Tablet hat der Inhalt
+  des Fensters 20 px Rand (`.fenster-inhalt`). Steht die Leiste mit
+  `bottom: 0`, bleibt darunter ein Streifen frei, durch den der rollende
+  Inhalt scheint — sie muss bis an die Kante reichen. Gilt für jede Leiste,
+  die in einem Seitenfenster steht.
+*/
+describe('Stehende Fußleisten der Seitenfenster', () => {
+  const ohneKommentare = lot.replace(/\/\*[\s\S]*?\*\//g, '');
+  const abTablet = (klasse: string) =>
+    new RegExp(`@media \\(min-width: 760px\\) \\{ \\.${klasse} \\{[^}]*bottom: -1\\.25rem;[^}]*margin: 1rem -1\\.25rem -1\\.25rem;`).test(ohneKommentare);
+
+  it.each(['planung-fuss', 'pf-fuss'])('.%s reicht ab Tablet bis an den unteren Rand', (klasse) => {
+    expect(ohneKommentare).toMatch(new RegExp(`\\.${klasse} \\{[^}]*position: sticky;[^}]*bottom: 0;`));
+    expect(abTablet(klasse)).toBe(true);
+  });
+
+  it('Gegenprobe: eine Leiste ohne die Regel ab Tablet fällt auf', () => {
+    expect(abTablet('fuss-aktionen')).toBe(false);
+  });
+});
+
 describe('Die schmale Leiste am Tablet', () => {
   it('blendet den langen Namen nur sichtbar aus — die Vorlesehilfe hört ihn weiter', () => {
     const regel = /\.navi-text-lang \{([^}]*)\}/.exec(lot)![1];
