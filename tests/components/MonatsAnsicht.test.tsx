@@ -468,6 +468,25 @@ describe('Monat — Sicht „Baustellen“ (Auftrag 5.2)', () => {
   });
 });
 
+/*
+  TESTBERICHT RUNDE 5, G3: zwei Baustellen desselben Kunden standen in der
+  Sicht „Baustellen“ gleich da — die Nummer stand nur im `title`.
+*/
+describe('Monat — Sicht „Baustellen“ mit Nummer (Runde 5, G3)', () => {
+  it('nennt unter dem Namen Nummer · Ort, wie die Woche', () => {
+    zeige({ sicht: 'baustellen' });
+    const r = within(screen.getByRole('region', { name: 'Monatsplan nach Baustellen' }));
+    expect(r.getByRole('group', { name: 'CT Bau GmbH' }).querySelector('.mo-name-info')?.textContent).toBe('B-1 · Traun');
+    // Ohne Postleitzahl und Ort in der Adresse bleibt der letzte Teil stehen.
+    expect(r.getByRole('group', { name: 'Familie Huber' }).querySelector('.mo-name-info')?.textContent).toBe('B-2 · Ringstraße 3');
+  });
+
+  it('Gegenprobe: die Sicht „Personen“ bleibt einzeilig', () => {
+    zeige();
+    expect(document.querySelector('.mo-name-info')).toBeNull();
+  });
+});
+
 describe('Monat — Handy (Auftrag 5.4)', () => {
   it('„Diesen Monat abwesend“: je Abwesenheit eine Zeile, nicht über Arten zusammengelegt', () => {
     zeige();
