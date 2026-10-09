@@ -706,6 +706,15 @@ export default function WartungenView() {
       <PageHeader
         title="Wartungen"
         subtitle={`Wiederkehrende Wartungen · fällig gilt ab ${VORLAUF_TAGE} Tagen im Voraus`}
+        // Eine Hilfe je Seite (Testbericht Runde 5, G8) — der Wortlaut aus dem Handbuch.
+        hilfe={
+          <>
+            „Steht an“ zeigt, was als Nächstes fällig wird, „Alle“ jede Vereinbarung. Ein Tipp
+            auf die Zeile öffnet die Anlage mit Anlagendaten, Verlauf und den Handgriffen:
+            „Erledigt“ rückt den nächsten Termin nach, „Baustelle anlegen“ macht aus einer
+            fälligen Wartung eine Baustelle mit Anlagenadresse und Vorschlag für die Nummer.
+          </>
+        }
         action={
           darfAendern ? <Button onClick={() => formOeffnen()}>Neue Wartung</Button> : undefined
         }

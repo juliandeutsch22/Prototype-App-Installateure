@@ -99,7 +99,7 @@ vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => kundenBe
   `BaustellenUebersicht.test.tsx`), sondern DASS sie überhaupt geöffnet wird —
   und erst dann lädt.
 */
-const stundenDerBaustellen = vi.fn(async (_n?: string[]): Promise<BaustellenStunden[]> => [
+const stundenDerBaustellen = vi.fn<(n?: string[]) => Promise<BaustellenStunden[]>>(async () => [
   { projectNumber: '2026-001', userId: 'u1', userName: 'Max Mustermann', art: 'fach' as const, minuten: 480, zuletzt: '2026-09-01' },
 ]);
 vi.mock('@/lib/db/timeEntries', () => ({
@@ -996,5 +996,14 @@ describe('Filter „über oder nahe Budget“ (Runde 5, M1)', () => {
     expect(screen.queryByText('(PR-2026-194)')).toBeNull();
     expect(stundenDerBaustellen).toHaveBeenCalledTimes(1);
     expect(stundenDerBaustellen.mock.calls[0]).toEqual([['PR-2026-193', 'PR-2026-194']]);
+  });
+});
+
+// Testbericht Runde 5, G8: die Seite hatte keine „Hilfe zu dieser Seite“.
+describe('Hilfe zu dieser Seite (Runde 5, G8)', () => {
+  it('erklärt, was die Zeile öffnet und wonach gesucht wird', async () => {
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Hilfe zu dieser Seite' }));
+    expect(await screen.findByText(/Gesucht wird nach\s+Nummer, Bezeichnung, Adresse und Kunde/)).toBeInTheDocument();
   });
 });

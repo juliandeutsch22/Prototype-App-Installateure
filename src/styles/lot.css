@@ -42,8 +42,16 @@
 
   /* ── Schleier, Seitenfenster und Blatt ────────────────────────────────── */
   /* Der einzige erlaubte Schleier (0.2): neutral, nicht bunt. */
-  .schleier { position: fixed; inset: 0; z-index: 40; background: #00000059; }
-  .schleier-dialog { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; padding: 1rem; background: #00000059; }
+  /*
+    `margin: 0 !important` (Testbericht Runde 5, G1, Entscheidung E14): steht
+    ein Schleier in einem `space-y-*`-Behälter, gibt Tailwind ihm einen
+    Abstand oben (`.space-y-6 > :not([hidden]) ~ :not([hidden])`, spezifischer
+    als eine Klasse) — Schleier und Fenster begannen 12 bis 24 px unter dem
+    Rand, und darüber blieb die Seite antippbar. Ein fixes Overlay hat nie
+    einen Außenabstand.
+  */
+  .schleier { position: fixed; inset: 0; z-index: 40; margin: 0 !important; background: #00000059; }
+  .schleier-dialog { position: fixed; inset: 0; z-index: 50; margin: 0 !important; display: flex; align-items: flex-end; justify-content: center; padding: 1rem; background: #00000059; }
   @media (min-width: 640px) { .schleier-dialog { align-items: center; } }
   .blatt { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88vh; display: flex; flex-direction: column; background: var(--surface); border-radius: 1rem 1rem 0 0; box-shadow: var(--shadow-lg); padding: 0 1rem 1rem; }
   .blatt-griff { padding: 0.75rem 1rem 0.5rem; cursor: grab; touch-action: none; }

@@ -42,7 +42,7 @@ const summe = (over: Partial<BaustellenStunden>): BaustellenStunden => ({
 
 let bestand: BaustellenStunden[] = [];
 let faellt = false;
-const stundenDerBaustellen = vi.fn(async (_nummern: string[]) => {
+const stundenDerBaustellen = vi.fn<(nummern: string[]) => Promise<BaustellenStunden[]>>(async () => {
   if (faellt) throw new Error('Netz weg');
   return bestand;
 });

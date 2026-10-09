@@ -78,3 +78,13 @@ weiter über alle Einträge, ohne Wechsel.
 **E13 — Escape bei gestapelten Fenstern.** Ein Bestätigungsdialog in einem
 Seitenfenster schloss mit Escape beide. Escape schliesst jetzt nur, was
 obenauf liegt (`istOben` in `fokusFalle.ts`).
+
+**E14 — Kein Außenabstand am Schleier (Testbericht Runde 5, G1).** Steht ein
+Schleier in einem `space-y-*`-Behälter, gibt Tailwind ihm über
+`.space-y-6 > :not([hidden]) ~ :not([hidden])` einen Abstand oben. Diese Regel
+ist spezifischer als eine einzelne Klasse; Schleier und Fenster begannen
+dadurch 12 bis 24 px unter dem Rand, und die Seite darüber blieb antippbar.
+`.schleier` und `.schleier-dialog` tragen deshalb `margin: 0 !important` —
+neben E10 die zweite Ausnahme. Ein Portal hätte dasselbe gelöst, aber mehr
+verändert: Nachfahrenregeln der Karten und die Lage von Rückfragen in einem
+Fenster.

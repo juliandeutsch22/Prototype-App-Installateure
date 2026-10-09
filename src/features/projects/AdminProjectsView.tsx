@@ -714,6 +714,16 @@ export default function AdminProjectsView() {
       <PageHeader
         title="Baustellen"
         subtitle="Baustellen anlegen und suchen — geändert wird in der Akte"
+        // Eine Hilfe je Seite (Testbericht Runde 5, G8) — der Wortlaut aus dem Handbuch.
+        hilfe={
+          <>
+            Eine Zeile öffnet die Akte der Baustelle: Stunden gegen das Budget, Termine,
+            Handwerksscheine, Pläne und Stammdaten — geändert wird dort. Gesucht wird nach
+            Nummer, Bezeichnung, Adresse und Kunde, auch unter den abgeschlossenen. Löschen und
+            „Schein nachtragen“ stehen im „⋯“ der Zeile; eine Baustelle mit Buchungen, Scheinen
+            oder Plänen lässt sich nicht löschen.
+          </>
+        }
         action={
           formOffen ? undefined : (
             <Button onClick={() => setFormOffen(true)}>Neue Baustelle</Button>

@@ -1025,3 +1025,12 @@ describe('Angebote auf der Linie „Lot“', () => {
     expect(screen.getByRole('button', { name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
   });
 });
+
+// Testbericht Runde 5, G8: die Hilfe kam erst mit dem offenen Formular.
+describe('Hilfe zu dieser Seite (Runde 5, G8)', () => {
+  it('steht schon ohne offenes Formular und erklärt die Liste', async () => {
+    zeichne();
+    await userEvent.click(await screen.findByRole('button', { name: 'Hilfe zu dieser Seite' }));
+    expect(await screen.findByText(/„Erledigt“ die angenommenen und abgelehnten/)).toBeInTheDocument();
+  });
+});

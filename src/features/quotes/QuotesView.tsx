@@ -707,6 +707,15 @@ export default function QuotesView() {
       <PageHeader
         title="Angebote"
         subtitle="Kalkulieren, versenden, in einen Auftrag überführen"
+        // Eine Hilfe je Seite (Testbericht Runde 5, G8) — der Wortlaut aus dem Handbuch.
+        hilfe={
+          <>
+            „Offen“ zeigt die laufenden Angebote, „Erledigt“ die angenommenen und abgelehnten.
+            Eine Zeile öffnet die Angebotsseite mit PDF, Verlauf und den nächsten Schritten.
+            Bearbeiten lässt sich ein Angebot, solange es Entwurf ist; danach eine neue Fassung.
+            Wird es angenommen, entsteht die Baustelle samt Stundenbudget.
+          </>
+        }
         action={
           darfAendern && !formOffen ? (
             <Button onClick={() => setFormOffen(true)}>Neues Angebot</Button>
