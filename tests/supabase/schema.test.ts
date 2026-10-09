@@ -95,10 +95,17 @@ describe('Zeilenschutz', () => {
          -- Was hier NICHT stehen darf, ist app.ist_plattform(): das prueft
          -- das Konto und nicht die Zeile -- und waere damit genau die offene
          -- Richtlinie, die dieser Test sucht.
+         --
+         -- Seit 09.10.2026 (Zeilenschutz einmal je Abfrage) stehen die
+         -- ersten drei als Vergleich der Spalte mit app.lesebetrieb() bzw.
+         -- app.supportbetrieb() -- dieselbe Pruefung, einmal je Abfrage
+         -- gerechnet. Verlangt wird der VERGLEICH MIT DER SPALTE, nicht nur
+         -- der Name: company_id = ( SELECT app.lesebetrieb() …
          and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) not like '%app.darf%'
          and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) not like '%app.betriebsmitglied%'
          and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) not like '%app.support_liest%'
          and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) not like '%app.freigabe_gilt%'
+         and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) !~ 'company_id = \\( SELECT app\\.(lesebetrieb|supportbetrieb)\\(\\)'
        order by 1, 2
     `);
     expect(offen.map((r) => `${r.tabelle}.${r.richtlinie}`)).toEqual([]);
@@ -360,9 +367,12 @@ describe('Live-Abonnements', () => {
             where p.schemaname = 'public' and p.tablename = pt.tablename
               and p.cmd in ('SELECT', 'ALL')
               -- app.darf oder das strengere app.betriebsmitglied (ohne
-              -- Supportzugang, etwa bei Zeiten mit Krankenständen).
+              -- Supportzugang, etwa bei Zeiten mit Krankenständen). Seit
+              -- 09.10.2026 stehen beide als Vergleich der Spalte mit
+              -- app.lesebetrieb(), einmal je Abfrage gerechnet.
               and (coalesce(p.qual, '') like '%app.darf%'
-                   or coalesce(p.qual, '') like '%app.betriebsmitglied%'))
+                   or coalesce(p.qual, '') like '%app.betriebsmitglied%'
+                   or coalesce(p.qual, '') ~ 'company_id = \\( SELECT app\\.lesebetrieb\\(\\)'))
        order by 1
     `);
     expect(blind.map((r) => r.tablename)).toEqual([]);
