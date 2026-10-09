@@ -890,7 +890,7 @@
         <p><strong>Planung.</strong> Ziehen auf einen Tag gibt es nicht, auch nicht am Schreibtisch — geplant wird durch Antippen. „Noch einzuplanen“ kennt nur laufende Baustellen, keine fälligen Wartungen und Termine. Im Raster fehlen die Filter „nur mit Einsätzen“ und „nur freie“ (in der Personenauswahl gibt es „Nur freie anzeigen“). Seit dem 9. Oktober zeigt der Monat Balken statt Feldern.</p>
         <p><strong>Urlaub.</strong> Seit 08.10. steht neben den Anträgen eine Monatsübersicht für Genehmigende: je Tag die Zahl der abwesenden Personen, nach Antippen deren Namen und zulässige Gründe. Urlaub, Zeitausgleich, Krankheit, Berufsschule und bestätigte Freistellungen werden berücksichtigt. Ausdrücklich bestimmte Genehmigende sehen weiterhin nur „abwesend“, wenn ihnen der Grund nicht zusteht. „Gleichzeitig im Urlaub: …“ bleibt je Antrag erhalten. Der Verlauf eines Antrags kennt nur Antrag und letzte Entscheidung.</p>
         <p><strong>Anforderungen.</strong> Seit 08.10. kann das Büro oder die Leitung eine laufende Anforderung im Seitenfenster als eilig markieren und die Markierung wieder entfernen. Status, Beschaffung und Lagerbestand bleiben dabei unverändert; erledigte Anforderungen und Retouren bekommen diesen Knopf nicht. Die Notiz im Seitenfenster ist nur zu lesen, der Verlauf stammt aus den gespeicherten Zeitpunkten. Erledigtes steht wie bisher sofort unter „Erledigt“, nicht erst nach 14 Tagen.</p>
-        <p><strong>Viele Daten.</strong> Die Listen laden wie bisher (etwa die 50 jüngsten Rechnungen, 100 Angebote, alle Benutzer) und erweitern mit „Weitere … laden“; seitenweises Nachladen in Fünfzigerschritten vom Server ist nicht gebaut. Bei Angeboten und Anforderungen sucht die Suche nur im Geladenen. Gemessen mit dem Bestand von fünf Jahren Betrieb ist noch nichts.</p>
+        <p><strong>Viele Daten.</strong> Angebote und Anforderungen laden seit 08.10. in Fünfzigerschritten vom Server; die Suche berücksichtigt den gesamten gewählten Arbeitsstand. Die Einkaufsliste bleibt vollständig. Die Messung mit fünf Jahren Testbestand hat Zeitüberschreitungen und abgeschnittene Lagerdaten nachgewiesen; die Korrekturen sind gezielt geprüft, die vollständige Nachmessung steht noch aus.</p>
         <p><strong>Kleineres.</strong> Ein schon verrechneter Schein ist zum Stornieren einen Wechsel weiter („Alle“). Mindestmenge und Materialaufschlag stehen nicht im „⋯“ des Lagers, sondern am Artikel und in den Einstellungen. Die Wartung zeigt nur die letzte Ausführung, keine ganze Geschichte; der Verlauf eines Angebots kennt kein Datum für versendet, angenommen oder abgelehnt. Der Einrichtungsstand prüft Briefkopf, UID und Bank, nicht Kostensätze, Kontenrahmen, Basiszinssatz oder Sicherung. „Ende ändern“ einer Krankmeldung klappt in den Listen weiter in der Zeile auf.</p>
         <p><strong>Geprüft und noch nicht.</strong> Die Bestandsliste alt gegen neu ist je Bereich von Hand aus dem Code erhoben, nicht mit dem vorgesehenen Skript. Laut Abnahmeblättern stehen noch aus: Bildschirmfotos aller Bereiche (abgelegt sind Rechnungen und Material), die Prüfung auf Barrierefreiheit, das Tablet quer und der Vergleich der Belege mit einer festen Referenz — keine Datei der Belege und Exporte wurde angefasst.</p>
         <p class="wer">Stand 07.10.2026 · Einzelheiten in docs/ui-umbau/abnahme</p>
@@ -1563,7 +1563,7 @@
       </div>
       <div class="bereich">
         <h3>Auskunft und Löschen je Person<span class="neu">dsgvo</span></h3>
-        <p>In der Akte eines Mitarbeiters oder Kunden steht die Karte „Datenschutz“. <strong>Auskunft herunterladen</strong> liefert eine Datei mit allem, was zu dieser Person gespeichert ist — ohne die Daten anderer. <strong>Löschen</strong> zeigt zuerst einen Probelauf: sofort geht, was keiner Aufbewahrung unterliegt; was die BAO sieben Jahre verlangt (Zeiten, Urlaube, Rechnungen, Scheine …), bleibt gesperrt, mit dem Tag, an dem die Frist endet. Ein Mitarbeiter muss zuerst deaktiviert sein.</p>
+        <p>In der Akte eines Mitarbeiters oder Kunden steht die Karte „Datenschutz“. <strong>Auskunft herunterladen</strong> liefert eine Datei mit allem, was zu dieser Person gespeichert ist — ohne die Daten anderer. <strong>Löschen</strong> zeigt zuerst einen Probelauf: sofort geht, was keiner Aufbewahrung unterliegt; was die hinterlegte Aufbewahrungsregel schützt (Zeiten, Urlaube, Rechnungen, Scheine …), bleibt unter den bisherigen Zugriffsrechten erhalten; der Probelauf nennt das Fristende. Eine zusätzliche Sperre oder automatische Löschung nach Fristablauf ist nicht eingerichtet. Ein Mitarbeiter muss zuerst deaktiviert sein.</p>
         <p class="wer">Nur Geschäftsführung und Administrator</p>
       </div>
       <div class="bereich">
@@ -2685,7 +2685,7 @@
           <tr>
             <td>Daten einer Person (DSGVO)</td>
             <td><span class="ja">ja, mit Probelauf</span></td>
-            <td>Nur Geschäftsführung und Administrator; was die BAO sieben Jahre verlangt, bleibt gesperrt und der Probelauf nennt das Fristende; ein Mitarbeiter muss zuerst deaktiviert sein</td>
+            <td>Nur Geschäftsführung und Administrator; aufzubewahrende Daten bleiben unter den bisherigen Zugriffsrechten erhalten und der Probelauf nennt das Fristende; ein Mitarbeiter muss zuerst deaktiviert sein</td>
           </tr>
           <tr>
             <td>Benutzerkonto</td>

@@ -125,7 +125,8 @@ async function anmelden(browser) {
   await seite.getByLabel('Passwort').fill(KONTO.passwort);
   await seite.getByRole('button', { name: 'Anmelden' }).click();
   await seite.getByRole('button', { name: 'Anmelden' }).waitFor({ state: 'detached', timeout: 30_000 });
-  await seite.waitForLoadState('networkidle');
+  // Die Startseite wird danach eigens gemessen. Ihre Hintergrundabfragen
+  // dürfen nicht schon die Anmeldung zur Zeitmessung verhindern.
   await seite.locator('main h1').first().waitFor({ timeout: 30_000 });
   const zustand = await kontext.storageState();
   await kontext.close();
@@ -145,6 +146,8 @@ async function einmalMessen(browser, zustand, pfad) {
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
 
   const anfragen = new Map();
+  const laufzeitFehler = [];
+  seite.on('pageerror', (e) => laufzeitFehler.push(e.message));
   let offen = 0;
   let zuletzt = Date.now();
   cdp.on('Network.requestWillBeSent', (e) => {
@@ -190,8 +193,10 @@ async function einmalMessen(browser, zustand, pfad) {
     if (offen <= 0 && Date.now() - zuletzt >= 1000) break;
     await new Promise((r) => setTimeout(r, 100));
   }
-  const ruhig = Math.max(zuletzt - start, inhalt ?? 0);
+  const netzRuhig = offen <= 0 && Date.now() - zuletzt >= 1000;
+  const ruhig = netzRuhig ? Math.max(zuletzt - start, inhalt ?? 0) : null;
   const fcp = await seite.evaluate(() => performance.getEntriesByName('first-contentful-paint')[0]?.startTime ?? null);
+  const sichtbareFehler = await seite.locator('[role="alert"]').filter({ hasText: 'Das hat nicht geklappt' }).allTextContents();
 
   for (const id of koerper) {
     try {
@@ -208,11 +213,17 @@ async function einmalMessen(browser, zustand, pfad) {
     fcp: fcp == null ? null : Math.round(fcp),
     inhalt,
     bedienbar: ruhig,
+    netzRuhig,
+    laufzeitFehler,
+    sichtbareFehler,
+    fehlerhafteAnfragen: alle.filter((a) => a.status >= 400 || a.fehler).map((a) => ({
+      pfad: new URL(a.url).pathname, status: a.status ?? null, netzFehler: !!a.fehler,
+    })),
     anfragen: alle.length,
     bytes: alle.reduce((s, a) => s + a.bytes, 0),
     dbAnfragen: db.length,
     dbBytes: db.reduce((s, a) => s + a.bytes, 0),
-    db: db.map((a) => ({ ...abfrageVon(a.url), zeilen: a.zeilen, bytes: a.bytes })),
+    db: db.map((a) => ({ ...abfrageVon(a.url), zeilen: a.zeilen, bytes: a.bytes, status: a.status ?? null, netzFehler: !!a.fehler })),
   };
 }
 
@@ -234,6 +245,19 @@ function bericht(ergebnisse) {
     zeilen.push(`- **${e.name}** (\`${e.pfad}\`): ${e.ueberGrenze.map((u) => `${u.tabelle} ${u.zeilen.toLocaleString('de-AT')} Zeilen${u.anfragen > 1 ? ` in ${u.anfragen} Anfragen` : ''}`).join('; ')}`);
   }
   if (!ergebnisse.some((e) => e.ueberGrenze.length)) zeilen.push('- keine');
+  zeilen.push('', '**Fehler und unvollständige Messungen** (eine schnelle Fehlerseite zählt nicht als erfolgreicher Seitenaufruf):', '');
+  for (const e of ergebnisse) {
+    for (const [i, l] of e.laeufe.entries()) {
+      const probleme = [
+        ...l.fehlerhafteAnfragen.map((a) => `${a.pfad}: ${a.status ?? 'keine Antwort'}${a.netzFehler ? ' / Netzfehler' : ''}`),
+        ...l.laufzeitFehler, ...l.sichtbareFehler,
+        ...(!l.netzRuhig ? ['Netz innerhalb von 120 s nicht ruhig'] : []),
+        ...(l.inhalt == null ? ['Seitenüberschrift nicht sichtbar'] : []),
+      ];
+      if (probleme.length) zeilen.push(`- **${e.name}, Lauf ${i + 1}**: ${probleme.join('; ').replace(/\s+/g, ' ')}`);
+    }
+  }
+  if (ergebnisse.every((e) => e.erfolgreich)) zeilen.push('- keine');
   return zeilen.join('\n');
 }
 
@@ -242,14 +266,18 @@ async function main() {
   if (!fs.existsSync('dist/index.html')) throw new Error('dist/ fehlt — ohne --ohne-bauen aufrufen');
   // Eigene Prozessgruppe: so lässt sich der Server am Ende gezielt beenden, ohne nach Namen zu suchen.
   const vorschau = spawn('./node_modules/.bin/vite', ['preview', '--port', String(PORT), '--strictPort', '--host', '127.0.0.1'], { stdio: 'ignore', detached: true });
+  let browser;
   try {
     await warteAuf(`${ORT}/`);
-    const browser = await chromium.launch({ executablePath: CHROMIUM });
+    browser = await chromium.launch({ executablePath: CHROMIUM });
     const zustand = await anmelden(browser);
     const ergebnisse = [];
     for (const [name, pfad] of SEITEN.filter(([, p]) => !NUR || NUR.includes(p))) {
       const laeufe = [];
-      for (let i = 0; i < LAEUFE; i += 1) laeufe.push(await einmalMessen(browser, zustand, pfad));
+      for (let i = 0; i < LAEUFE; i += 1) {
+        console.log(`${name}: Lauf ${i + 1}/${LAEUFE} …`);
+        laeufe.push(await einmalMessen(browser, zustand, pfad));
+      }
       // Je Tabelle: die meisten Zeilen in einer Antwort und wie viele Anfragen sie zusammen holen.
       const letzter = laeufe[laeufe.length - 1];
       const jeTabelle = new Map();
@@ -263,6 +291,7 @@ async function main() {
       const tabellen = [...jeTabelle.values()].sort((a, b) => b.zeilen - a.zeilen);
       const e = {
         name, pfad,
+        erfolgreich: laeufe.every((l) => l.netzRuhig && l.inhalt != null && !l.fehlerhafteAnfragen.length && !l.laufzeitFehler.length && !l.sichtbareFehler.length),
         fcp: median(laeufe.map((l) => l.fcp)),
         inhalt: median(laeufe.map((l) => l.inhalt)),
         bedienbar: median(laeufe.map((l) => l.bedienbar)),
@@ -276,18 +305,25 @@ async function main() {
         laeufe,
       };
       ergebnisse.push(e);
-      console.log(`${name.padEnd(22)} FCP ${e.fcp} ms · h1 ${e.inhalt} ms · ruhig ${e.bedienbar} ms · ${e.anfragen} Anfragen · ${Math.round(e.bytes / 1024)} KB · DB ${e.dbAnfragen} · grösste ${e.groessteListe?.zeilen ?? 0} (${e.groessteListe?.tabelle ?? '–'})`);
+      console.log(`${name.padEnd(22)} ${e.erfolgreich ? 'OK' : 'FEHLER/UNVOLLSTÄNDIG'} · FCP ${e.fcp} ms · h1 ${e.inhalt} ms · ruhig ${e.bedienbar} ms · ${e.anfragen} Anfragen · ${Math.round(e.bytes / 1024)} KB · DB ${e.dbAnfragen} · grösste ${e.groessteListe?.zeilen ?? 0} (${e.groessteListe?.tabelle ?? '–'})`);
     }
     await browser.close();
     if (NUR) return;
 
-    fs.writeFileSync(path.join('docs/ui-umbau', `messung-${QUELLE}.json`), `${JSON.stringify({ quelle: QUELLE, netz: NETZ, cpu: CPU, laeufe: LAEUFE, ergebnisse }, null, 1)}\n`);
+    const stand = {
+      erzeugtAm: new Date().toISOString(),
+      commit: execSync('git rev-parse HEAD').toString().trim(),
+      arbeitskopieGeaendert: !!execSync('git status --porcelain').toString().trim(),
+      migrationenImQuellstand: fs.readdirSync('supabase/migrations').filter((n) => n.endsWith('.sql')).length,
+    };
+    fs.writeFileSync(path.join('docs/ui-umbau', `messung-${QUELLE}.json`), `${JSON.stringify({ quelle: QUELLE, stand, netz: NETZ, cpu: CPU, laeufe: LAEUFE, ergebnisse }, null, 1)}\n`);
     const md = path.join('docs/ui-umbau', `messung-${QUELLE}.md`);
     const block = `<!-- messung:anfang (erzeugt von scripts/ui-umbau/messung.mjs) -->\n${bericht(ergebnisse)}\n<!-- messung:ende -->`;
     const alt = fs.existsSync(md) ? fs.readFileSync(md, 'utf8') : `# Messung ${QUELLE}\n\n<!-- messung:anfang -->\n<!-- messung:ende -->\n`;
     fs.writeFileSync(md, alt.replace(/<!-- messung:anfang[\s\S]*<!-- messung:ende -->/, block));
     console.log(`\n→ ${md}`);
   } finally {
+    await browser?.close();
     try { process.kill(-vorschau.pid, 'SIGTERM'); } catch { /* schon weg */ }
   }
 }

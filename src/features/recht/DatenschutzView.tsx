@@ -52,6 +52,13 @@ export default function DatenschutzView() {
           </li>
           <li>Kunden, Angebote, Rechnungen und Zahlungen des Betriebs.</li>
           <li>
+            Das Änderungsprotokoll der Zeitbuchungen: Buchung, tatsächliche Änderung oder
+            Löschung, Zeitpunkt, Bearbeiter sowie der Stand davor und danach. Auch gelöschte
+            Buchungen bleiben darin für die Aufbewahrung nachvollziehbar. Sehen kannst du
+            deine eigenen Einträge; Buchhaltung, Geschäftsführung und Administration sehen
+            die Einträge des Betriebs. Alte Änderungen werden nicht nachträglich rekonstruiert.
+          </li>
+          <li>
             Prüft das Büro die UID-Nummer eines Kunden, gehen diese Nummer und die UID-Nummer des
             Betriebs an das Abfragesystem VIES der EU-Kommission; Ergebnis, Zeitpunkt und wer
             gefragt hat, stehen danach beim Kunden.
@@ -129,8 +136,10 @@ export default function DatenschutzView() {
         <p>
           Solange der Betrieb die Daten führt und gesetzliche Aufbewahrungsfristen es verlangen
           (etwa sieben Jahre für Buchhaltungsbelege und Arbeitszeitaufzeichnungen nach § 132 BAO).
-          Verlangst du die Löschung, entfernt der Betrieb sofort, was keiner Aufbewahrung
-          unterliegt; der Rest bleibt gesperrt, bis die Frist abgelaufen ist. Sicherungen im eigenen
+          Verlangst du die Löschung, entfernt der Betrieb, was keiner Aufbewahrung
+          unterliegt; aufbewahrte Daten bleiben unter den bestehenden Zugriffsrechten erhalten.
+          Die App zeigt dafür Umfang, Frist und den hinterlegten Rechtsgrund an.
+          Eine automatische Löschung nach Fristablauf ist noch nicht eingerichtet. Sicherungen im eigenen
           Rechenzentrum werden nach 30 Tagen gelöscht, die Kopie außer Haus nach der Ablauffrist beim
           Anbieter der Sicherung (vorgesehen 90 Tage); das Fehlerprotokoll nach 90 Tagen. Endet die Nutzung durch den Betrieb,
           werden seine Daten nach Rückgabe gelöscht, wie im Auftragsverarbeitungsvertrag vereinbart.

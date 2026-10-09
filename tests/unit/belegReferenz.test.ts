@@ -27,7 +27,7 @@
  */
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 vi.mock('jspdf-autotable', async (original) => {
   const m = (await original()) as Record<string, unknown> & { default: unknown };
@@ -257,6 +257,12 @@ describe('Belege und Exporte gleich der Referenz vor dem Umbau', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(UHR);
     erster = await erzeugen();
+    // Dieselben geprüften Beispieldateien für die fachliche Abnahme bereitstellen.
+    const ziel = process.env.BELEG_BEISPIELE_ZIEL;
+    if (ziel) {
+      mkdirSync(ziel, { recursive: true });
+      for (const datei of erster) writeFileSync(`${ziel}/${datei.name}`, datei.bytes);
+    }
   });
   afterAll(() => {
     vi.useRealTimers();
