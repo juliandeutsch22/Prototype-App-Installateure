@@ -31,7 +31,7 @@ Fehlerprotokoll:    keine Laufzeitfehler (nur 403/404 der gestubbten Ressourcen;
 Bildschirmfotos:    docs/ui-umbau/r4/nachher/uebersicht-*.jpg (Buchhaltung, Administrator,
                     Woche, Seitenfenster, dunkel, quer).
 Dokumentation:      Handbuch und stand-Datei: offen (gemeinsame Dateien, Hauptsitzung).
-Freigabe Betreiber: offen
+Freigabe Betreiber: erteilt (09.10.2026)
 ```
 
 ## Abnahme 3.7

@@ -39,7 +39,7 @@ Bildschirmfotos:    docs/ui-umbau/r4/nachher/ – monat-projektleiter-{390,834,1
                     Rand, Tastatur, Sicht „Baustellen“, Handy-Blatt, Person, dunkel).
 Dokumentation:      Handbuch und docs/stand-2026-10-03.md: Textvorschlag im Bericht – offen
                     (gemeinsame Dateien, Hauptsitzung).
-Freigabe Betreiber: offen
+Freigabe Betreiber: erteilt (09.10.2026)
 ```
 
 ## Abnahme 5.5

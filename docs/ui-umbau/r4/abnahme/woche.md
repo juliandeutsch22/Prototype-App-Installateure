@@ -28,7 +28,7 @@ Bedienbarkeit:      jede Zelle, jeder Block, jeder Termin-Eintrag und jeder Tage
 Rückgängig:         keine neuen Umkehrungen; „Einsatz löschen“ und „Termin löschen“ mit Rückfrage.
 Bildschirmfotos:    docs/ui-umbau/r4/nachher/ (siehe unten).
 Dokumentation:      Handbuch nicht nachgezogen (gemeinsame Datei) – Textvorschlag im Bericht.
-Freigabe Betreiber: offen
+Freigabe Betreiber: erteilt (09.10.2026)
 ```
 
 ## Abnahme R4-B (Auftrag 4.9)
