@@ -109,7 +109,7 @@ export default function OrderView() {
     if (!user) return;
     let weg = false;
     Promise.resolve()
-      .then(() => lagerFrei())
+      .then(() => lagerFrei(materials.map((m) => m.id)))
       .then((k) => { if (!weg) setFrei(k); })
       .catch(() => undefined);
     return () => { weg = true; };

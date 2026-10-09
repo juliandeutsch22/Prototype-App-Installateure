@@ -20,8 +20,8 @@ export interface MonatsQuelle {
   projekte: (companyId: string, nummern: string[]) => Promise<(ProjektKurz & { projectNumber: string })[]>;
   /** Die Rüstlisten eines Tages. */
   ruestlisten: (companyId: string, tag: string) => Promise<{ date: string; projectNumber: string; positionen?: RuestPosition[] }[]>;
-  /** Das Freie im Lager (`lager_frei`), wie im Formular. */
-  lager: () => Promise<Map<string, { frei: number }>>;
+  /** Das Freie der genannten Artikel im Lager (`lager_frei`), wie im Formular. */
+  lager: (ids: string[]) => Promise<Map<string, { frei: number }>>;
 }
 
 export const DB_QUELLE: MonatsQuelle = {
@@ -44,5 +44,5 @@ export const DB_QUELLE: MonatsQuelle = {
   },
   projekte: (companyId, nummern) => listProjectsByNumbers(companyId, nummern),
   ruestlisten: (companyId, tag) => listEinsatzMaterialForDate(companyId, tag),
-  lager: () => lagerFrei(),
+  lager: (ids) => lagerFrei(ids),
 };

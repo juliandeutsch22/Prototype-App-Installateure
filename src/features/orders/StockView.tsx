@@ -178,7 +178,7 @@ export default function StockView() {
     if (!user) return;
     let weg = false;
     Promise.resolve()
-      .then(() => lagerFrei())
+      .then(() => lagerFrei(materials.map((m) => m.id)))
       .then((k) => { if (!weg) setStand(k); })
       // Schlägt ein Nachladen fehl, bleibt der letzte Stand — besser als zurück auf die eigene Rechnung.
       .catch(() => undefined);

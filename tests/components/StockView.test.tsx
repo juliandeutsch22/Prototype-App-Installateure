@@ -54,10 +54,10 @@ vi.mock('@/lib/db/materials', () => ({
   lagerEingang: (...a: unknown[]) => bestandAendern(...a),
   lagerInventur: (...a: unknown[]) => inventurBuchen(...a),
   listLagerbewegungen: (...a: unknown[]) => bewegungenLaden(...a),
-  lagerFrei: () => lagerStand(),
+  lagerFrei: (ids: readonly string[]) => lagerStand(ids),
 }));
 // Ohne eigene Vorgabe rechnet die Ansicht selbst — wie wenn die Zahlen ausbleiben.
-const lagerStand = vi.fn<() => Promise<Map<string, unknown>>>(async () => { throw new Error('nicht geladen'); });
+const lagerStand = vi.fn<(ids?: readonly string[]) => Promise<Map<string, unknown>>>(async () => { throw new Error('nicht geladen'); });
 const inventurBuchen = vi.fn();
 const bewegungenLaden = vi.fn<(...a: unknown[]) => Promise<unknown[]>>(async () => []);
 vi.mock('@/lib/db/einkauf', () => ({
@@ -237,6 +237,28 @@ describe('Lager — was ist wirklich frei?', () => {
     const kachel = (await screen.findByText('Knapp')).parentElement!;
     expect(within(kachel).getByText('1')).toBeInTheDocument();
     expect(screen.getByText('2 m frei')).toBeInTheDocument();
+  });
+});
+
+describe('Lager — das Freie aus der Datenbank', () => {
+  it('fragt es für die geladenen Artikel, nicht ohne Liste', async () => {
+    // Ohne Liste endete `lager_frei()` bei 1.000 Zeilen; mit großem Katalog fehlte das Zugesagte still.
+    materialien = [material({ id: 'm1', stock: 20 }), material({ id: 'm2', name: 'Bogen', stock: 4 })];
+    anforderungen = [];
+    const stand = new Map([
+      ['m1', { bestand: 20, zugesagt: 0, geplant: 17, frei: 3 }],
+      ['m2', { bestand: 4, zugesagt: 0, geplant: 0, frei: 4 }],
+    ]);
+    lagerStand.mockClear();
+    lagerStand.mockImplementation(async (ids) => new Map([...stand].filter(([id]) => ids?.includes(id))));
+    try {
+      zeige();
+      expect(await screen.findByText(/3 m frei/)).toBeInTheDocument();
+      expect(lagerStand.mock.calls[lagerStand.mock.calls.length - 1]).toEqual([['m1', 'm2']]);
+      expect(lagerStand.mock.calls.every(([ids]) => Array.isArray(ids))).toBe(true);
+    } finally {
+      lagerStand.mockImplementation(async () => { throw new Error('nicht geladen'); });
+    }
   });
 });
 

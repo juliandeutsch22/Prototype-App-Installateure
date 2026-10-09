@@ -187,7 +187,7 @@ vi.mock('@/lib/db/materialOrders', () => ({
 vi.mock('@/lib/db/einkauf', () => ({ listLagerPosten: vi.fn(async () => []) }));
 vi.mock('@/lib/db/materials', () => ({
   LOW_STOCK_THRESHOLD: 5,
-  listMaterials: vi.fn(async () => []),
+  listLagerartikel: vi.fn(async () => []),
   lagerFrei: vi.fn(async () => new Map()),
 }));
 /** Die offenen Forderungen, wie `listUnpaidInvoices` sie liefert. */

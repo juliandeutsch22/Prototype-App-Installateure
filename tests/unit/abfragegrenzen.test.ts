@@ -58,6 +58,14 @@ const AUSNAHMEN: Record<string, string> = {
   */
   listDokumente: 'Begrenzt durch die Baustellen auf dem Schirm — eine Handvoll je Baustelle',
   /*
+    DIE ARTIKEL IM REGAL, NICHT DER KATALOG (Analyse 09.10.2026). Die
+    Startseite sucht darunter die knappen; mit der Katalog-Grenze fehlten sie
+    still, sobald ein Großhandelskatalog eingespielt ist. Ein Import führt
+    nichts im Lager — `lagerartikel` entsteht erst mit Bestand —, die Menge
+    wächst also mit dem Regal und nicht mit Zeit oder Katalog.
+  */
+  listLagerartikel: 'Die im Lager geführten Artikel — wächst mit dem Regal, nicht mit dem Katalog',
+  /*
     `subscribePrefs` STAND HIER BIS ZUM 19.09. und ist ersatzlos gefallen.
 
     Die Firestore-Fassung hörte mit `onSnapshot` auf ein Dokument — der
