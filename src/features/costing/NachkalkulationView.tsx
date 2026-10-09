@@ -362,8 +362,8 @@ export default function NachkalkulationView() {
                           {k.materialLuecken.length > 0 && (
                             <span className="mt-1 block text-xs text-warning">
                               Ohne Einkaufspreis, deshalb nicht eingerechnet:{' '}
-                              {k.materialLuecken.join(', ')}. Der Deckungsbeitrag ist um diesen
-                              Betrag zu hoch.
+                              {k.materialLuecken.join(', ')}. Der Deckungsbeitrag ist um deren
+                              Einkaufspreis zu hoch; der ist nicht hinterlegt.
                             </span>
                           )}
                           <span className="mt-1 block text-xs text-ink-muted">

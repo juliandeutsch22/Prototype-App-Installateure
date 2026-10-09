@@ -199,6 +199,46 @@ describe('Material aus dem Angebot (Launch-Check 25.09.2026, M9)', () => {
 });
 
 /*
+  TESTBERICHT RUNDE 5, M3: PR-2026-0192 meldete „Ohne Einkaufspreis …:
+  Badsanierung pauschal (aus dem Angebot)“. Eine Pauschale ist eine Leistung;
+  ihre Arbeit steht in den Personalkosten.
+*/
+describe('Pauschale Leistung im Angebot (Runde 5, M3)', () => {
+  const mit = (positions: object[]) => ({ status: 'Angenommen', totalNetto: 3000, positions }) as unknown as Quote;
+
+  it('ist keine Materiallücke — in jeder üblichen Schreibweise', () => {
+    for (const unit of ['pauschal', 'Pauschale', 'PAUSCHAL', 'pausch.', 'psch', 'Psch.', ' pauschal ']) {
+      const k = rechneBaustelle('B-6', 'Huber', [], [], mit([
+        { label: 'Badsanierung pauschal', qty: 1, unit, unitPrice: 3000, netto: 3000 },
+      ]), kosten);
+      expect(k.materialLuecken, unit).toEqual([]);
+      expect(margenTon(k), unit).not.toBe('achtung');
+    }
+  });
+
+  it('Gegenprobe: Ware bleibt eine Lücke — Stück, ohne Einheit, „PA“, und eine Pauschale mit Katalogartikel ohne Preis', () => {
+    const k = rechneBaustelle('B-6', 'Huber', [], [], mit([
+      { label: 'Heizkörper', qty: 1, unit: 'Stk', unitPrice: 250, netto: 250 },
+      { label: 'Kleinteile', qty: 1, unit: '', unitPrice: 40, netto: 40 },
+      { label: 'Handtuchhalter', qty: 1, unit: 'PA', unitPrice: 30, netto: 30 },
+      { label: 'Ventilset', qty: 1, unit: 'pauschal', unitPrice: 80, netto: 80, materialId: 'm-ohne' },
+    ]), kosten, undefined, [{ id: 'm-ohne', companyId: 'perl', name: 'Ventilset', stock: 0 } as Material]);
+    expect(k.materialLuecken).toEqual([
+      'Heizkörper (aus dem Angebot)', 'Kleinteile (aus dem Angebot)',
+      'Handtuchhalter (aus dem Angebot)', 'Ventilset (aus dem Angebot)',
+    ]);
+  });
+
+  it('eine Pauschale mit bekanntem Einkaufspreis zählt weiter als Material', () => {
+    const k = rechneBaustelle('B-6', 'Huber', [], [], mit([
+      { label: 'Kleinmaterial', qty: 1, unit: 'pauschal', unitPrice: 80, netto: 80, materialId: 'm-k' },
+    ]), kosten, undefined, [{ id: 'm-k', companyId: 'perl', name: 'Kleinmaterial', stock: 0, einkaufspreis: 35 } as Material]);
+    expect(k.materialLuecken).toEqual([]);
+    expect(k.materialkosten).toBe(35);
+  });
+});
+
+/*
   Runde 3, M12: PR-2026-0193 meldete „Ohne Einkaufspreis: Pressfitting Bogen
   15 mm (aus dem Angebot)", obwohl der Katalogartikel 2,10 € EK hat. Die
   Angebotszeile trägt den Artikel; die Nachkalkulation sieht ihn jetzt an.

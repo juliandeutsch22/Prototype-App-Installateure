@@ -436,7 +436,7 @@ describe('Material im Ergebnis', () => {
     zeige();
 
     expect(await screen.findByText(/Spezialdichtung/)).toBeInTheDocument();
-    expect(screen.getByText(/Deckungsbeitrag ist um diesen Betrag zu hoch/)).toBeInTheDocument();
+    expect(screen.getByText(/Deckungsbeitrag ist um deren Einkaufspreis zu hoch; der ist nicht hinterlegt/)).toBeInTheDocument();
     // Und keine Materialzeile: es ist nichts eingerechnet worden, ein
     // „− Material 0,00 €" läse sich wie „kein Material verbaut".
     expect(screen.queryByText(/− Material/)).not.toBeInTheDocument();
