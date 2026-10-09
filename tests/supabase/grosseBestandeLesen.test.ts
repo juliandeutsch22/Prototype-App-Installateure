@@ -22,10 +22,25 @@ beforeAll(async () => {
         status,abrechnung,erstellt_von_uid,erstellt_von_name)
       select gen_random_uuid(),$1,'B-1','Testkunde','2026-01-01'::date,'Entwurf','Regie',$2,'Testchef'
         from generate_series(1,15001)`, [betrieb, chef.uid]);
-    await db.query(`insert into public.material_orders(id,company_id,material_name,quantity,status,
-        transaction_type,user_id,processed)
-      select gen_random_uuid(),$1,'Testmaterial',1,'Erledigt','order',$2,true
-        from generate_series(1,30001)`, [betrieb, chef.uid]);
+    // Diese Bestandsprüfung bildet keine 30.001 einzelnen Anforderungsabläufe
+    // nach. Die sonst entstehenden Push-Aufrufe stören andere Serverprüfungen.
+    // Nur während des lokalen Datenaufbaus abschalten; alle Leserechte und
+    // übrigen Auslöser bleiben aktiv. Ein Fehler rollt auch die Abschaltung zurück.
+    await db.query('begin');
+    try {
+      await db.query('alter table public.material_orders disable trigger material_orders_push');
+      await db.query(`insert into public.material_orders(id,company_id,material_name,quantity,status,
+          transaction_type,user_id,processed)
+        select gen_random_uuid(),$1,'Testmaterial',1,'Erledigt','order',$2,true
+          from generate_series(1,30001)`, [betrieb, chef.uid]);
+      await db.query('alter table public.material_orders enable trigger material_orders_push');
+      await db.query('commit');
+    } catch (e) {
+      await db.query('rollback');
+      throw e;
+    }
+    const push = await db.query("select tgenabled from pg_trigger where tgname = 'material_orders_push'");
+    expect(push.rows).toEqual([{ tgenabled: 'O' }]);
   } finally {
     await db.end();
   }

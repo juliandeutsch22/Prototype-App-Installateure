@@ -1,0 +1,43 @@
+{
+  "art": "Lokale Gegenprobe ohne Änderung der Serverfunktion",
+  "tabellen": {
+    "time_entries": 50001,
+    "work_sheets": 15001,
+    "material_orders": 30001
+  },
+  "einzelbetrieb": {
+    "status": 200,
+    "sekunden": 4.995436563999999,
+    "daten": {
+      "companyId": "audit-ausleitung-95003",
+      "zeilen": 95005,
+      "bytes": 72869137,
+      "pfad": "ausleitung/audit-ausleitung-95003/2026-10-09.jsonl",
+      "geraeumt": 0,
+      "ausserHaus": false,
+      "ziel": "ausleitung (Eimer im selben Projekt)",
+      "dateien": 0,
+      "dateienOffen": 0,
+      "zielExtern": false
+    }
+  },
+  "gesicherteZeilen": {
+    "time_entries": 50001,
+    "work_sheets": 15001,
+    "material_orders": 30001
+  },
+  "dienstweg": {
+    "status": 200,
+    "sekunden": 4.528630348999999,
+    "daten": {
+      "mandanten": 1,
+      "ruhend": 0,
+      "zeilen": 95006,
+      "bytes": 72869480,
+      "gescheitert": [],
+      "dateien": 0,
+      "dateienOffen": 0,
+      "zielExtern": false
+    }
+  }
+}
