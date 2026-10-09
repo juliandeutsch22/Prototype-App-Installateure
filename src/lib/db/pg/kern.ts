@@ -84,6 +84,12 @@ export interface Abfrage {
    * verlieren — und genau dort sitzt das Risiko.
    */
   oder?: string | null;
+  /**
+   * Welche Spalten (PostgREST-`select`), ohne Angabe alle. Für Listen, die
+   * schwere Spalten nicht brauchen — etwa die Unterschriftsbilder der
+   * Scheine (Analyse 09.10.2026).
+   */
+  spalten?: string;
 }
 
 /**
@@ -320,7 +326,7 @@ export async function abfragen<T>(
     if (rest <= 0) break;
 
     const bauer = anwenden(
-      c.from(tabelle).select('*').eq('company_id', companyId) as unknown as Filterbar,
+      c.from(tabelle).select(abfrage.spalten ?? '*').eq('company_id', companyId) as unknown as Filterbar,
       // `grenze` wird HIER nicht mitgegeben: sie steckt schon in `rest`, und
       // ein `limit` neben einem `range` liefert deren Schnittmenge — also
       // beim zweiten Durchgang nichts mehr.

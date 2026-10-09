@@ -4,6 +4,7 @@ import { firmenZeilen, logoZeichnen } from '@/lib/pdfBriefkopf';
 import { GRAU, ROT, TABELLENSTIL, TINTE, fmtMenge } from '@/lib/belegLayout';
 import { datumAT } from '@/lib/datum';
 import { abrechnungText } from '@/lib/abrechnung';
+import { unterschriftOhneBild } from './scheinVollstaendig';
 
 /*
   DER SCHEIN GEHT AN DEN KUNDEN — also dieselben Tabellen wie Rechnung und
@@ -52,6 +53,14 @@ const SCHEIN_TABELLE = {
 export type Betrieb = Pick<Company, 'name' | 'addressLine' | 'contactLine' | 'logoUrl'>;
 
 export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Promise<Blob> {
+  /*
+    OHNE BILD KEIN BELEG. Listen holen die Unterschriften ohne Bild; ein PDF
+    daraus sähe vollständig aus und wäre es nicht. Lieber laut scheitern —
+    der Aufrufer holt den ganzen Schein (`getWorkSheet`).
+  */
+  if (unterschriftOhneBild(schein)) {
+    throw new Error('Der Schein ist nicht vollständig geladen: das Unterschriftsbild fehlt.');
+  }
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import('jspdf'),
     import('jspdf-autotable'),
@@ -207,7 +216,7 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
     for (const [sig, rolle, x] of spalten) {
       if (!sig) continue;
       try {
-        doc.addImage(sig.bild, 'PNG', x, y, 70, 25);
+        doc.addImage(sig.bild ?? '', 'PNG', x, y, 70, 25);
       } catch {
         // Ein defektes Bild darf das PDF nicht verhindern — der Name und der
         // Zeitpunkt tragen die Aussage ohnehin mit.

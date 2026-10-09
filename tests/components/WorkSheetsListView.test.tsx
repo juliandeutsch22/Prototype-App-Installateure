@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Role, WorkSheet } from '@/types';
 import { todayStr } from '@/lib/time';
+import { buildWorkSheetPdf } from '@/features/worksheets/worksheetPdf';
 
 /**
  * Der Weg zurück in einen Entwurf.
@@ -381,6 +382,54 @@ describe('Einen Entwurf aufgeben', () => {
     const fenster = await oeffne(/Familie Huber/);
     expect(within(fenster).getByRole('button', { name: 'PDF' })).toBeInTheDocument();
     expect(within(fenster).queryByRole('button', { name: 'Verwerfen' })).not.toBeInTheDocument();
+  });
+});
+
+describe('PDF aus der Liste (Scheinlisten ohne Unterschriftsbilder, 10.10.2026)', () => {
+  const ohneBild = {
+    ...scheine[1],
+    unterschriften: { kunde: { name: 'Berger', geraetZeit: 1 }, monteur: { name: 'Max', geraetZeit: 1 } },
+  } as WorkSheet & { id: string };
+  const mitBild = {
+    ...ohneBild,
+    unterschriften: {
+      kunde: { name: 'Berger', geraetZeit: 1, bild: 'data:image/png;base64,AAA' },
+      monteur: { name: 'Max', geraetZeit: 1, bild: 'data:image/png;base64,BBB' },
+    },
+  } as WorkSheet & { id: string };
+
+  it('holt vor dem Druck den ganzen Schein — die Liste kennt die Unterschrift ohne Bild', async () => {
+    geladen = [ohneBild];
+    einzeln.mockClear();
+    einzeln.mockResolvedValue(mitBild);
+    vi.mocked(buildWorkSheetPdf).mockClear();
+    vi.mocked(buildWorkSheetPdf).mockResolvedValue(new Blob());
+    try {
+      zeichne();
+      await alle();
+      const fenster = await oeffne(/Familie Berger/);
+      expect(within(fenster).getByText('Unterschrieben von Berger')).toBeInTheDocument();
+      await userEvent.click(within(fenster).getByRole('button', { name: 'PDF' }));
+      await waitFor(() => expect(buildWorkSheetPdf).toHaveBeenCalled());
+      expect(einzeln).toHaveBeenCalledWith('u1');
+      expect(vi.mocked(buildWorkSheetPdf).mock.calls[0][0].unterschriften?.kunde?.bild).toBe('data:image/png;base64,AAA');
+    } finally {
+      einzeln.mockReset();
+      einzeln.mockResolvedValue(undefined);
+    }
+  });
+
+  it('ein Schein, der sein Bild schon trägt, wird nicht ein zweites Mal geholt', async () => {
+    geladen = [mitBild];
+    einzeln.mockClear();
+    vi.mocked(buildWorkSheetPdf).mockClear();
+    vi.mocked(buildWorkSheetPdf).mockResolvedValue(new Blob());
+    zeichne();
+    await alle();
+    const fenster = await oeffne(/Familie Berger/);
+    await userEvent.click(within(fenster).getByRole('button', { name: 'PDF' }));
+    await waitFor(() => expect(buildWorkSheetPdf).toHaveBeenCalled());
+    expect(einzeln).not.toHaveBeenCalledWith('u1');
   });
 });
 

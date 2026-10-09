@@ -144,3 +144,19 @@ describe('Prüflauf 25.09.2026', () => {
     expect(material?.[0][1]).toBe('2,5 m');
   });
 });
+
+describe('Unterschrift ohne Bild (aus einer Liste)', () => {
+  const unterschrieben = (bild?: string): WorkSheet => ({
+    ...basis,
+    status: 'Unterschrieben',
+    unterschriften: { kunde: { name: 'Huber', geraetZeit: 1, ...(bild ? { bild } : {}) } },
+  });
+
+  it('druckt nicht — ein Beleg ohne Unterschriftsbild sähe vollständig aus', async () => {
+    await expect(buildWorkSheetPdf(unterschrieben(), betrieb)).rejects.toThrow(/Unterschriftsbild fehlt/);
+  });
+
+  it('mit Bild wie bisher', async () => {
+    await expect(buildWorkSheetPdf(unterschrieben('data:image/png;base64,iVBORw0KGgo='), betrieb)).resolves.toBeInstanceOf(Blob);
+  });
+});
