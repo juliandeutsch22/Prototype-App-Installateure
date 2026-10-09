@@ -8,6 +8,8 @@
 @import './styles/lot-zeit.css';
 @import './styles/lot-scheine.css';
 @import './styles/lot-verwaltung.css';
+@import './styles/lot-uebersicht.css';
+@import './styles/lot-monat.css';
 
 @tailwind base;
 @tailwind components;

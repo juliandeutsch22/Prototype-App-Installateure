@@ -1,7 +1,8 @@
 import { Fragment, useMemo, useState } from 'react';
 import type { Abwesenheit } from '@/lib/db/vacations';
 import type { WithId } from '@/lib/db/core';
-import type { AppUser, Assignment, Project } from '@/types';
+import type { AppUser, Assignment, Project, Termin } from '@/types';
+import type { FensterStart } from './EinsatzFenster';
 import { getAustrianHolidayName, isWeekend } from '@/lib/time';
 import Card from '@/components/Card';
 import { List, ListRow } from '@/components/ListRow';
@@ -22,6 +23,27 @@ const SEITE = 20;
  * mit denselben Abfragen über den Monat — wie es „Tag planen“ für seinen
  * Kalender schon immer tut.
  */
+/**
+ * RUNDE 4, DIE SCHNITTSTELLE DES MONATS (Auftrag 5): was die Seite der
+ * Monatsansicht zusätzlich gibt. Die Seite (`WochenplanView`) hält die
+ * Seitenfenster; der Monat ruft sie nur auf, damit „Bearbeiten“ aus der
+ * Vorschau und der Klick in der Woche dasselbe Fenster öffnen.
+ */
+export interface MonatsSchnittstelle {
+  /** Sicht „Personen“ oder „Baustellen“ (Umschalter ab Tablet). */
+  sicht?: 'personen' | 'baustellen';
+  /** Die Termine des Monats, schon geladen. */
+  termine?: Termin[];
+  /** Betriebsurlaub je Tag (Bezeichnung). */
+  zuAm?: Map<string, string>;
+  /** „Bearbeiten“ bzw. „Einsatz planen“: das Seitenfenster „Einsatz planen“ der Woche. */
+  onEinsatz?: (start: FensterStart) => void;
+  /** Ein Termin: „Termin ändern“ (ohne Recht schreibgeschützt) im Seitenfenster. */
+  onTermin?: (t: Termin) => void;
+  /** „Zur Woche“: Woche dieses Tages, Tageskopf markiert (`?woche=JJJJ-Www&tag=JJJJ-MM-TT`). */
+  onZurWoche?: (tag: string) => void;
+}
+
 export default function MonatsAnsicht({
   tage,
   heute,
@@ -35,7 +57,7 @@ export default function MonatsAnsicht({
   urlaube,
   staff,
   onTag,
-}: {
+}: MonatsSchnittstelle & {
   tage: string[];
   heute: string;
   gruppen: Gruppe[];
