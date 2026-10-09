@@ -25,11 +25,19 @@ import { useReiterImBild } from './reiterImBild';
 export default function Unterreiter({
   basis,
   elemente,
+  ohneLeiste = false,
 }: {
   /** Der Reiterpfad, z. B. `/material`. */
   basis: string;
   /** Was unter welchem Pfadstück gezeigt wird. */
   elemente: Record<string, ReactNode>;
+  /**
+   * Ohne die Reiterleiste — die Seiten wechseln selbst untereinander. So die
+   * Einsatzplanung seit Runde 4: ihr Umschalter „Woche | Monat | Tag“ steht
+   * in der Steuerung; Reiter darüber hießen zwei Wege und ein doppelter
+   * Titel. Routen, Rechte und die Weiterleitung bleiben dieselben.
+   */
+  ohneLeiste?: boolean;
 }) {
   const { user, company } = useAuth();
   const sichtbar = user
@@ -67,7 +75,7 @@ export default function Unterreiter({
         Urlaub tragen am Telefon Reiter, die seitlich laufen. Dasselbe gilt
         jetzt hier; der gewählte Reiter bleibt dabei im Bild.
       */}
-      {sichtbar.length > 1 && (
+      {sichtbar.length > 1 && !ohneLeiste && (
         <nav
           ref={leiste}
           /*

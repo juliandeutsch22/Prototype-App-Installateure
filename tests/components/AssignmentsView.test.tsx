@@ -1055,3 +1055,37 @@ describe('Termine am Einsatz (Runde 3, G23)', () => {
     }
   });
 });
+
+/*
+  RUNDE 4 (Auftrag 4.1): „Tag planen“ ist die Ansicht „Tag“ der
+  Einsatzplanung — derselbe Seitenkopf, der Umschalter statt der Reiter, der
+  Inhalt unverändert.
+*/
+describe('„Tag“ in der Einsatzplanung (Runde 4)', () => {
+  it('trägt den Kopf der Einsatzplanung und den Umschalter — „Tag“ gewählt, kein zweiter Titel', async () => {
+    zeige();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Einsatzplanung' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Tag planen' })).toBeNull();
+    const wahl = within(screen.getByRole('group', { name: 'Zeitraum' }));
+    expect(wahl.getByRole('button', { name: 'Tag' })).toHaveAttribute('aria-pressed', 'true');
+    expect(wahl.getByRole('button', { name: 'Woche' })).toHaveAttribute('aria-pressed', 'false');
+    // Der Inhalt bleibt: Formular, Termine, Einsätze.
+    expect(screen.getByRole('heading', { name: /^Einsatz planen — / })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /^Termine am / })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^Einsätze am / })).toBeInTheDocument();
+  });
+
+  it('der Termin-Hinweis bleibt hier, wo er war — nach dem Hinweis „Wochenende“ (im Seitenfenster steht er davor)', async () => {
+    vi.mocked(listTermineImZeitraum).mockResolvedValue([
+      { id: 't1', companyId: 'perl', art: 'Lieferung', datum: '2026-09-05', zeitVon: '08:00', zeitBis: '10:00', projectNumber: '2026-042', teilnehmer: [] },
+    ] as never);
+    try {
+      zeige({ datum: '2026-09-05', projectNumber: '2026-042' });
+      const termin = await screen.findByText(/Am selben Tag auf dieser Baustelle:/);
+      const wochenende = screen.getByText(/Wochenende\. Einsatz ist/);
+      expect(wochenende.compareDocumentPosition(termin) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    } finally {
+      vi.mocked(listTermineImZeitraum).mockResolvedValue([]);
+    }
+  });
+});

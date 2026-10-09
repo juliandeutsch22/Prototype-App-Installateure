@@ -83,6 +83,7 @@ export default function EinsatzFormular({
   karten,
   onGespeichert,
   onLoeschen,
+  fussNeben,
 }: {
   date: string;
   projectNumber: string;
@@ -111,6 +112,11 @@ export default function EinsatzFormular({
    * löschen. Erst nach der Rückfrage im Fenster; ein Fehlschlag wirft.
    */
   onLoeschen?: (a: WithId<Assignment>) => Promise<void>;
+  /**
+   * Im Seitenfenster: ein Nebenknopf in der Fußleiste neben dem Speichern
+   * (Runde 4: „Ganzen Tag ansehen“).
+   */
+  fussNeben?: ReactNode;
 }) {
   const { user } = useAuth();
   const toast = useToast();
@@ -423,6 +429,22 @@ export default function EinsatzFormular({
 
   if (!user) return null;
 
+  /*
+    IM SEITENFENSTER STEHT DER TERMIN-HINWEIS DIREKT UNTER DER BAUSTELLE
+    (Runde 4, Auftrag 4.6): wer die Baustelle wählt, soll die Lieferung
+    sofort sehen. In „Tag planen“ bleibt er, wo er war.
+  */
+  const terminHinweis = termineHier.length > 0 && (
+    <div className="mt-3">
+      <Hinweiszeile>
+        <p>
+          <strong>Am selben Tag auf dieser Baustelle:</strong> {termineHier.join('; ')}.
+          Steht jemand zur Annahme da?
+        </p>
+      </Hinweiszeile>
+    </div>
+  );
+
   const einteilung = (
     <>
       <BaustellenSelect
@@ -434,6 +456,7 @@ export default function EinsatzFormular({
           if (p) onProjekt(p);
         }}
       />
+      {!karten && terminHinweis}
 
       {(holiday || weekend) && (
         <div className="mt-3">
@@ -496,16 +519,7 @@ export default function EinsatzFormular({
         </div>
       )}
 
-      {termineHier.length > 0 && (
-        <div className="mt-3">
-          <Hinweiszeile>
-            <p>
-              <strong>Am selben Tag auf dieser Baustelle:</strong> {termineHier.join('; ')}.
-              Steht jemand zur Annahme da?
-            </p>
-          </Hinweiszeile>
-        </div>
-      )}
+      {karten && terminHinweis}
 
       {projectNumber && existingForProject.length > 0 && (
         <div className="mt-3">
@@ -679,8 +693,8 @@ export default function EinsatzFormular({
     Er steht UNTER der Ruestliste, nicht darueber: sonst scrollte man beim
     Ausfuellen an ihm vorbei und suchte ihn danach unten.
   */
-  const speichern = (
-    <div>
+  const speicherHinweise = (
+    <>
       {error && <div className="mb-3"><ErrorState message={error} /></div>}
       {/*
         EINGETIPPT, ABER NICHT HINZUGEFÜGT — wie am Handwerksschein. Die
@@ -698,13 +712,21 @@ export default function EinsatzFormular({
           </Hinweiszeile>
         </div>
       )}
-      <Button
-        onClick={save}
-        loading={saving}
-        disabled={!projectNumber || (materialAn && !!offeneRuestzeile)}
-      >
-        {materialAn && projectNumber ? 'Einsatz und Rüstliste speichern' : 'Einsatz speichern'}
-      </Button>
+    </>
+  );
+  const speicherKnopf = (
+    <Button
+      onClick={save}
+      loading={saving}
+      disabled={!projectNumber || (materialAn && !!offeneRuestzeile)}
+    >
+      {materialAn && projectNumber ? 'Einsatz und Rüstliste speichern' : 'Einsatz speichern'}
+    </Button>
+  );
+  const speichern = (
+    <div>
+      {speicherHinweise}
+      {speicherKnopf}
     </div>
   );
 
@@ -738,7 +760,6 @@ export default function EinsatzFormular({
           {material}
         </section>
       )}
-      <div className="fuss-aktionen">{speichern}</div>
       {/*
         „EINSATZ LÖSCHEN“ BEIM BEARBEITEN (Linie „Lot“, E2) — je Person, wie
         bisher in der Tagesplanung: gespeichert wird je Paar aus Tag und
@@ -809,6 +830,18 @@ export default function EinsatzFormular({
           )}
         </section>
       )}
+      {/*
+        DIE FUSSLEISTE BLEIBT STEHEN (Runde 4, Auftrag 4.6): Speichern ist
+        immer zu sehen, auch bei langer Personenliste und Rüstliste. Daneben
+        „Ganzen Tag ansehen“ — der ganze Tag ist einen Tipp entfernt.
+      */}
+      <div className="planung-fuss">
+        {speicherHinweise}
+        <div className="planung-fuss-knoepfe">
+          {fussNeben}
+          {speicherKnopf}
+        </div>
+      </div>
     </div>
   );
 }

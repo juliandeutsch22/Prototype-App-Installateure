@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { kalenderwoche, monatsTage, monatsTitel, wochenTitel } from '@/features/assignments/planungKopf';
+import { kalenderwoche, kwSchluessel, monatsTage, monatsTitel, montagAusKw, wochenTitel } from '@/features/assignments/planungKopf';
 
 /*
   Der Kopf der Planung (Linie „Lot“, E2): groß „Diese Woche“ usw., klein
@@ -52,5 +52,32 @@ describe('Monat', () => {
     expect(monatsTage(2028, 1)).toHaveLength(29);
     expect(monatsTage(2026, 9)[0]).toBe('2026-10-01');
     expect(monatsTage(2026, 9)[30]).toBe('2026-10-31');
+  });
+});
+
+/*
+  DIE WOCHE IN DER ADRESSE (Runde 4): `?woche=2026-W41` aus „Zur Woche“ im
+  Monat. Das Jahr ist das der Kalenderwoche — um den Jahreswechsel sonst die
+  falsche Woche.
+*/
+describe('Woche als Adresse', () => {
+  it('schreibt und liest „JJJJ-Www“', () => {
+    expect(kwSchluessel('2026-10-07')).toBe('2026-W41');
+    expect(montagAusKw('2026-W41')).toBe('2026-10-05');
+    expect(kwSchluessel('2026-01-01')).toBe('2026-W01');
+  });
+
+  it('um den Jahreswechsel gilt das Jahr der Kalenderwoche', () => {
+    expect(kwSchluessel('2024-12-31')).toBe('2025-W01');
+    expect(montagAusKw('2025-W01')).toBe('2024-12-30');
+    expect(kwSchluessel('2027-01-01')).toBe('2026-W53');
+    expect(montagAusKw('2026-W53')).toBe('2026-12-28');
+  });
+
+  it('Gegenprobe: was keine Woche ist, ergibt nichts', () => {
+    expect(montagAusKw(null)).toBeNull();
+    expect(montagAusKw('2026-41')).toBeNull();
+    expect(montagAusKw('2026-W00')).toBeNull();
+    expect(montagAusKw('2025-W53')).toBeNull();
   });
 });

@@ -209,6 +209,8 @@ export const UNTER: Record<string, Unterseite[]> = {
     DIE WOCHE ZUERST (Linie „Lot“, Protokoll E2): `/assignments` führt auf
     den Wochenplan, die Planungsseite mit Seitenfenster. „Tag planen“ bleibt
     unter seiner Adresse erreichbar, für den einzelnen Tag mit Kalender.
+    Seit Runde 4 ohne Reiterleiste (Umschalter „Woche | Monat | Tag“ auf der
+    Seite); die Namen hier bleiben, weil Strg+K die Seiten unter ihnen findet.
   */
   '/assignments': [
     { pfad: 'woche', label: 'Wochenplan' },
