@@ -70,3 +70,23 @@ describe('Die Form', () => {
     expect(error?.message).toMatch(/companies_(nachtzeit|ueberstunden)_form/);
   });
 });
+
+describe('Durchrechnungszeitraum (10.10.2026)', () => {
+  const wochen = async () =>
+    (await admin.from('companies').select('durchrechnung_wochen').eq('id', BETRIEB).single()).data?.durchrechnung_wochen;
+
+  it('ab Werk 17 Wochen; die Geschäftsführung stellt bis 52 ein', async () => {
+    expect(await wochen()).toBe(17);
+    const { error } = await chefin.client.from('companies').update({ durchrechnung_wochen: 52 }).eq('id', BETRIEB);
+    expect(error).toBeNull();
+    expect(await wochen()).toBe(52);
+  });
+
+  it('Gegenprobe: unter 17 oder über 52 weist die Datenbank ab', async () => {
+    for (const w of [16, 53]) {
+      const { error } = await chefin.client.from('companies').update({ durchrechnung_wochen: w }).eq('id', BETRIEB);
+      expect(error?.code).toBe('23514');
+    }
+    expect(await wochen()).toBe(52);
+  });
+});

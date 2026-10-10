@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  grenzfaelle, grenzText, istJugendlich, kalenderwoche, montagVon, type GrenzEintrag,
+  durchrechnungsWochen, grenzfaelle, grenzText, istJugendlich, kalenderwoche, montagVon, type GrenzEintrag,
 } from '@/features/accounting/arbeitszeitGrenzen';
 
 /**
@@ -217,12 +217,13 @@ describe('Durchschnitt von 48 Std. über 17 Wochen (seit 10.10.2026)', () => {
     }
     return raus;
   };
-  const schnitt = (e: GrenzEintrag[], person: object = ERWACHSEN) =>
-    grenzfaelle(e, { von: '2026-10-05', bis: '2026-10-11' }, person).filter((f) => f.art === 'durchschnitt');
+  const schnitt = (e: GrenzEintrag[], person: object = ERWACHSEN, durchrechnungWochen?: number) =>
+    grenzfaelle(e, { von: '2026-10-05', bis: '2026-10-11' }, person, { durchrechnungWochen })
+      .filter((f) => f.art === 'durchschnitt');
 
   it('17 Wochen zu 50 Std. sind ein Fall (§ 9 Abs 4 AZG)', () => {
     const f = schnitt(wochen('2026-10-05', 17, 10));
-    expect(f).toEqual([{ art: 'durchschnitt', bezug: '2026-10-05', jugendlich: false, ist: 50 * 60, grenze: 48 * 60 }]);
+    expect(f).toEqual([{ art: 'durchschnitt', bezug: '2026-10-05', jugendlich: false, ist: 50 * 60, grenze: 48 * 60, wochen: 17 }]);
     expect(grenzText(f[0])).toEqual({
       titel: 'Schnitt der 17 Wochen bis KW 41: 50:00 Std. — höchstens 48 Std.', gesetz: '§ 9 Abs 4 AZG',
     });
@@ -246,6 +247,19 @@ describe('Durchschnitt von 48 Std. über 17 Wochen (seit 10.10.2026)', () => {
 
   it('nicht für Jugendliche — für sie gelten 40 Std. in jeder Woche', () => {
     expect(schnitt(wochen('2026-10-05', 17, 10), JUGENDLICH)).toEqual([]);
+  });
+
+  // Seit 10.10.2026: der Zeitraum je Betrieb, laut Kollektivvertrag bis 52 Wochen.
+  it('mit 26 Wochen des Betriebs: dieselben 17 Wochen zu 50 Std. sind 850 / 26 — kein Fall', () => {
+    expect(schnitt(wochen('2026-10-05', 17, 10), ERWACHSEN, 26)).toEqual([]);
+    const f = schnitt(wochen('2026-10-05', 26, 10), ERWACHSEN, 26);
+    expect(f).toEqual([{ art: 'durchschnitt', bezug: '2026-10-05', jugendlich: false, ist: 50 * 60, grenze: 48 * 60, wochen: 26 }]);
+    expect(grenzText(f[0]).titel).toBe('Schnitt der 26 Wochen bis KW 41: 50:00 Std. — höchstens 48 Std.');
+  });
+
+  it('der Zeitraum bleibt zwischen 17 und 52 Wochen; sonst gilt das Gesetz', () => {
+    expect([undefined, null, 17, 26, 52, 16, 53, 20.5, Number.NaN].map((w) => durchrechnungsWochen(w as number)))
+      .toEqual([17, 17, 17, 26, 52, 17, 17, 17, 17]);
   });
 });
 

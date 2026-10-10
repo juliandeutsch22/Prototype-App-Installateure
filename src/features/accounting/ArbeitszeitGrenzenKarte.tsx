@@ -8,7 +8,7 @@ import { removeBegruendung, setBegruendung, type Begruendung } from '@/lib/db/ar
 import { datumAT } from '@/lib/datum';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, TimeEntry } from '@/types';
-import { fallSchluessel, grenzText, kalenderwoche, type Grenzfall } from './arbeitszeitGrenzen';
+import { durchrechnungsWochen, fallSchluessel, grenzText, kalenderwoche, type Grenzfall } from './arbeitszeitGrenzen';
 import { grenzZusatz, useArbeitszeitGrenzen, type GrenzDaten } from './useArbeitszeitGrenzen';
 import { istTagesfall } from './tagesauswertung';
 
@@ -37,6 +37,8 @@ interface KarteProps {
   monat: number;
   /** Ein Schlüssel für den Stand der Buchungen — ändert er sich, wird neu geprüft. Leer: noch nicht geladen. */
   aktualisiert?: string;
+  /** Durchrechnungszeitraum des Betriebs in Wochen; ohne: 17. */
+  durchrechnungWochen?: number;
   /** Öffnet eine Buchung zum Korrigieren (bei Verstößen gegen das KJBG). */
   onKorrigieren?: (eintrag: WithId<TimeEntry>) => void;
   /**
@@ -82,8 +84,10 @@ function KarteInhalt({
   onKorrigieren,
   daten,
   id,
+  durchrechnungWochen,
 }: KarteProps & { daten: GrenzDaten }) {
   const { stand, fehler, laden, zaehlung } = daten;
+  const wochen = durchrechnungsWochen(durchrechnungWochen);
   return (
     <Card
       id={id}
@@ -103,9 +107,10 @@ function KarteInhalt({
           gelten am Tag 9 Std. (§ 11 Abs 2 KJBG). Ruhepause: ab mehr als 6 Std. Arbeit mindestens
           30 Min. (§ 11 AZG), bei Jugendlichen ab 4,5 Std. (§ 15 KJBG) — als Pause zählt die
           eingetragene und jede Lücke von mindestens 10 Min. zwischen zwei Buchungen; geprüft wird ein
-          Tag erst, wenn er vorbei ist. Im Schnitt von 17 Wochen höchstens 48 Std. je Woche (§ 9 Abs 4
-          AZG); Urlaub und Krankenstand zählen dabei neutral. Nicht geprüft: Durchrechnung und
-          Gleitzeit, Ausnahmen aus dem Kollektivvertrag (etwa ein längerer Zeitraum als 17 Wochen).
+          Tag erst, wenn er vorbei ist. Im Schnitt von {wochen} Wochen höchstens 48 Std. je Woche (§ 9
+          Abs 4 AZG; 17 Wochen nach dem Gesetz, länger nur laut Kollektivvertrag — einzustellen unter
+          Einstellungen › Personal, „Nachtzeit und Überstunden“); Urlaub und Krankenstand zählen dabei neutral.
+          Nicht geprüft: Durchrechnung und Gleitzeit, übrige Ausnahmen aus dem Kollektivvertrag.
         </>
       }
     >

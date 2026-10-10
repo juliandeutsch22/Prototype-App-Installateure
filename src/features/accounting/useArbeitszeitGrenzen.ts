@@ -4,7 +4,7 @@ import { listBegruendungen, listGeburtsdaten, type Begruendung } from '@/lib/db/
 import { tagessollStunden, todayStr } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, TimeEntry } from '@/types';
-import { andereVerteilung, fallSchluessel, GRENZEN, grenzfaelle, montagVon, type Grenzfall } from './arbeitszeitGrenzen';
+import { andereVerteilung, durchrechnungsWochen, fallSchluessel, grenzfaelle, montagVon, type Grenzfall } from './arbeitszeitGrenzen';
 
 function plusTage(iso: string, n: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
@@ -67,6 +67,7 @@ export function useArbeitszeitGrenzen({
   monat,
   aktualisiert,
   aus = false,
+  durchrechnungWochen,
 }: {
   companyId: string;
   personen: AppUser[];
@@ -77,7 +78,10 @@ export function useArbeitszeitGrenzen({
   aktualisiert?: string;
   /** Gar nicht prüfen (Supportzugang: Zeitbuchungen sind dort verschlossen). */
   aus?: boolean;
+  /** Durchrechnungszeitraum des Betriebs in Wochen (`company.durchrechnungWochen`); ohne: 17. */
+  durchrechnungWochen?: number;
 }): GrenzDaten {
+  const wochen = durchrechnungsWochen(durchrechnungWochen);
   const von = `${jahr}-${String(monat + 1).padStart(2, '0')}-01`;
   const bis = new Date(Date.UTC(jahr, monat + 1, 0)).toISOString().slice(0, 10);
 
@@ -91,12 +95,13 @@ export function useArbeitszeitGrenzen({
     setFehler(null);
     try {
       /*
-        DER VORLAUF FÜR DEN DURCHSCHNITT: die 16 Wochen vor der ersten Woche
+        DER VORLAUF FÜR DEN DURCHSCHNITT: die 16 Wochen (oder der längere Zeitraum
+        des Betriebs, bis 51) vor der ersten Woche
         des Monats, nur mit den Spalten der Arbeitszeit. Die Buchungen rund
         um den Monat bleiben die vollen Zeilen — an ihnen hängen
         „Buchung korrigieren“ und der Tagesnachweis.
       */
-      const vorlaufAb = plusTage(montagVon(von), -7 * (GRENZEN.erwachsen.durchschnittWochen - 1));
+      const vorlaufAb = plusTage(montagVon(von), -7 * (wochen - 1));
       const [eintraege, vorlauf, geburtsdaten, begruendungen] = await Promise.all([
         listEntriesInRange(companyId, plusTage(von, -7), plusTage(bis, 7)),
         listArbeitszeitenInRange(companyId, vorlaufAb, plusTage(von, -8)),
@@ -115,7 +120,7 @@ export function useArbeitszeitGrenzen({
             andereVerteilung: andereVerteilung(person),
             arbeitstageJeWoche: person.workDays?.length || undefined,
           },
-          { stichtag: heute },
+          { stichtag: heute, durchrechnungWochen: wochen },
         ).map((fall) => ({ person, fall })),
       );
       if (meiner !== lauf.current) return;
@@ -128,7 +133,7 @@ export function useArbeitszeitGrenzen({
       if (meiner !== lauf.current) return;
       setFehler(e instanceof Error ? e.message : String(e));
     }
-  }, [companyId, personen, von, bis]);
+  }, [companyId, personen, von, bis, wochen]);
 
   /*
     EIN EFFEKT FÜR BEIDE ANLÄSSE. Ein neuer Monat (oder Betrieb, oder eine
