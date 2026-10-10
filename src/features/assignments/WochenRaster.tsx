@@ -48,6 +48,14 @@ interface RasterGrund {
   onTag: (tag: string) => void;
   onEinsatz: (start: FensterStart) => void;
   onTermin: (t: Termin) => void;
+  /**
+   * DIE TEAM-WOCHE DER MONTEURE (10.10.2026): dasselbe Raster, nur zum
+   * Lesen — keine Knöpfe, kein „frei“, keine „Lieferung ohne Annahme“. Das
+   * sind Fragen der Planung, nicht des Teams.
+   */
+  lesen?: boolean;
+  /** Wer schaut — seine Zeile trägt „du“, damit er sich findet. */
+  ich?: string;
 }
 
 /** Die Klasse einer Zelle: heute, Wochenende/Feiertag/Betriebsurlaub, schmal. */
@@ -87,14 +95,16 @@ function TagesKopf({ ecke, g }: { ecke: string; g: RasterGrund }) {
           const zu = g.zuAm.get(tag);
           const frei = g.freiJeTag.get(tag) ?? 0;
           const termine = g.termineAm(tag);
-          const ohneAnnahme = termine.filter((t) => lieferungOhneAnnahme(t, g.einsaetze)).length;
+          const ohneAnnahme = g.lesen ? 0 : termine.filter((t) => lieferungOhneAnnahme(t, g.einsaetze)).length;
           /*
             Die Zahl, wegen der es dieses Brett gibt — an Wochenende und
             Feiertag nicht: dort ist niemand „frei“, sondern keiner im Dienst
             (Prüflauf 24.09.2026, D15). Mit Ausgenommenen ist auch am
             Betriebsurlaub jemand frei — dann steht beides da.
           */
-          const info = feiertag ?? (zu ? (frei > 0 ? `${zu} · ${frei} frei` : zu) : ruhetag(tag) ? null : `${frei} frei`);
+          const info = g.lesen
+            ? (feiertag ?? zu ?? null)
+            : (feiertag ?? (zu ? (frei > 0 ? `${zu} · ${frei} frei` : zu) : ruhetag(tag) ? null : `${frei} frei`));
           const schmal = g.schmal.has(tag);
           const klasse =
             tag === g.markiert
@@ -111,6 +121,32 @@ function TagesKopf({ ecke, g }: { ecke: string; g: RasterGrund }) {
             ohneAnnahme > 0 ? ohneAnnahmeText(ohneAnnahme) : null,
             termine.length > 0 ? termineText(termine.length) : null,
           ].filter(Boolean);
+          if (g.lesen) {
+            return (
+              <th key={tag} className={klasse} aria-current={tag === g.heute ? 'date' : undefined}>
+                <span
+                  className={`${schmal ? 'wp-kopf-knopf-schmal' : 'wp-kopf-knopf'} nur-lesen`}
+                  title={schmal ? (feiertag ?? undefined) : undefined}
+                >
+                  {schmal ? (
+                    <>
+                      <span className="kopf-tag">{wochentag.replace('.', '')}</span>
+                      <span className="kopf-info">{datum.slice(0, 3)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="kopf-tag">
+                        {wochentag.replace('.', '')} {datum}
+                      </span>
+                      {info && <span className="kopf-info">{info}</span>}
+                      {/* Ohne Knopf nicht unterstrichen — sonst sähe es aus wie ein Verweis. */}
+                      {termine.length > 0 && <span className="kopf-info">{termineText(termine.length)}</span>}
+                    </>
+                  )}
+                </span>
+              </th>
+            );
+          }
           return (
             <th key={tag} className={klasse} aria-current={tag === g.heute ? 'date' : undefined}>
               <button
@@ -197,6 +233,7 @@ export function PersonenWoche({
                     <tr key={u.uid}>
                       <th scope="row" className="wp-name">
                         {u.name}
+                        {g.ich === u.uid && <span className="wp-name-ich"> · du</span>}
                       </th>
                       {g.tage.map((tag) => (
                         <PersonenZelle key={tag} u={u} tag={tag} g={g} brett={brett} zuFuer={zuFuer} infoFuer={infoFuer} />
@@ -244,6 +281,31 @@ function PersonenZelle({
         : ruhetag(tag)
           ? (feiertagAm(tag) ?? 'Wochenende')
           : 'frei';
+  if (g.lesen) {
+    return (
+      <td className={zellenKlasse(tag, g)}>
+        {/* Leer heißt leer; die Vorlesehilfe sagt es (in der Team-Woche gibt es kein „frei“). */}
+        {leer && <span className="sr-only">{zustandLesen(zustand)}</span>}
+        {!leer && !schmal && (
+          <div className="zelle-inhalt">
+            <PersonEintraege
+              person={u}
+              tag={tag}
+              datum={datum}
+              zelle={z}
+              zu={zu}
+              termine={termine}
+              infoFuer={(nr) => infoFuer(tag, nr)}
+              darf={false}
+              lesen
+              onEinsatz={g.onEinsatz}
+              onTermin={g.onTermin}
+            />
+          </div>
+        )}
+      </td>
+    );
+  }
   return (
     <td className={zellenKlasse(tag, g)}>
       <button
@@ -274,6 +336,9 @@ function PersonenZelle({
     </td>
   );
 }
+
+/** In der Team-Woche gibt es kein „frei“ — eine leere Zelle heißt dort „nicht eingeteilt“. */
+const zustandLesen = (zustand: string) => (zustand === 'frei' ? 'nicht eingeteilt' : zustand);
 
 /**
  * BAUSTELLEN × TAGE (Auftrag 4.5): die Baustellen mit einem Einsatz oder

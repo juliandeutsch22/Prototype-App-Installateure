@@ -24,31 +24,12 @@
   .inhalt:has(.planung-steuerung-tag) { max-width: none; }
   @media (min-width: 760px) { .planung-wahl { margin-left: auto; } }
 
-  /*
-    DIE HÜLLE DES RASTERS rollt selbst, waagrecht UND senkrecht: nur so
-    stehen die Namensspalte (links) und die Kopfzeile mit den Tagen (oben)
-    beim Rollen fest. Rollte die Seite, klebte die Kopfzeile an nichts.
-  */
-  .planung-huelle { display: none; }
-  @media (min-width: 760px) { .planung-huelle { display: block; overflow: auto; max-height: 70vh; } }
-
   /* Gruppenkopf im Raster (Einstufung) — einklappbar. */
   .planung-gruppe { position: sticky; left: 0; display: flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; padding: 0 0.75rem; background: none; border: 0; font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); cursor: pointer; }
   .planung-gruppe:hover { color: var(--text); }
 
   /* Abschnitt im Seitenfenster (statt einer Karte in der Karte). */
   .planung-abschnitt { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-size: 0.9375rem; font-weight: 600; color: var(--ink-deep); }
-
-  /* ── Team-Woche: Einsätze als Blöcke, nur zum Lesen ───────────────────── */
-  .plan-block-lesen { display: block; width: 100%; padding: 0.375rem 0.5rem; background: var(--petrol-hell); color: var(--text); border-radius: 0.375rem; font-size: 0.8125rem; line-height: 1.125rem; }
-  .plan-konflikt-lesen { display: block; width: 100%; padding: 0.3125rem 0.4375rem; background: var(--warning-bg); color: var(--warning); border: 2px solid var(--warning); border-radius: 0.375rem; font-size: 0.8125rem; line-height: 1.125rem; font-weight: 600; }
-  /* Abwesend und Betriebsurlaub: grau, ohne Urteil. */
-  .plan-weg { display: block; padding: 0.375rem 0.5rem; background: var(--abwesend); color: var(--text-muted); border-radius: 0.375rem; font-size: 0.8125rem; line-height: 1.125rem; text-align: center; }
-  .plan-zeit { display: block; font-variant-numeric: tabular-nums; font-weight: 600; }
-
-  /* ── Team-Woche: Tagesliste (Handy) ───────────────────────────────────── */
-  .tag-karte-lesen { display: block; padding: 0.5rem 0.75rem; background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--petrol); border-radius: 0.375rem; }
-  .tag-karte-konflikt-lesen { display: block; padding: 0.5rem 0.75rem; background: var(--surface); border: 1px solid var(--warning); border-left: 4px solid var(--warning); border-radius: 0.375rem; }
 
   /* ══ Runde 4: die Einsatzplanung (Woche, Seitenfenster „Tag“, Termine) ══ */
 
@@ -238,5 +219,17 @@
   .tl-person { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0.75rem; padding: 0.625rem 1rem; border-bottom: 1px solid var(--border); }
   .tl-name { font-weight: 600; color: var(--text); overflow-wrap: break-word; }
   .tl-eintraege { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+  .tl-leer { display: flex; align-items: center; min-height: 2.75rem; font-size: 0.875rem; color: var(--text-muted); }
+  /*
+    NUR ZUM LESEN (Team-Woche, 10.10.2026): dieselben Einträge und Köpfe wie
+    in der Einsatzplanung, aber ohne Knopf — also ohne Zeiger und ohne
+    Hervorhebung beim Darüberfahren, sonst sähen sie antippbar aus.
+  */
+  .nur-lesen { cursor: default; }
+  .eintrag.nur-lesen:hover { background: var(--petrol); }
+  .eintrag-termin.nur-lesen:hover { border-color: var(--border); border-left-color: var(--petrol); }
+  .wp-kopf-knopf.nur-lesen:hover .kopf-tag, .wp-kopf-knopf-schmal.nur-lesen:hover .kopf-tag { color: var(--ink-deep); text-decoration: none; }
+  /* Die eigene Zeile: „· du“ hinter dem Namen, in der Schrift der übrigen Angaben. */
+  .wp-name-ich { font-weight: 400; color: var(--text-muted); }
   .tl-frei { display: flex; align-items: center; min-height: 2.75rem; padding: 0 0.5rem; background: var(--surface); color: var(--accent-deep); border: 1px solid var(--border); border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600; text-align: left; cursor: pointer; }
 }

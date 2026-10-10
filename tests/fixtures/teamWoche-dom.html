@@ -1,4 +1,4 @@
-<div class="space-y-4 lg:space-y-5">
+<div class="space-y-4 lg:space-y-5" lang="de-AT">
 <div class="seitenkopf">
 <div class="min-w-0">
 <p class="seitenkopf-ort">Mein Einsatzplan</p>
@@ -22,103 +22,68 @@
 <button class="inline-flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 min-h-touch rounded px-4 py-2 text-fliess bg-transparent font-normal text-ink-muted hover:bg-surface-2 min-w-touch text-xl sm:text-xl" aria-label="Woche vor">›</button>
 </div>
 </div>
-<div>
 <section class="panel karte ">
 <div class="karte-buendig ">
-<div class="planung-huelle">
-<table aria-label="Wochenplan als Tabelle" class="w-full min-w-[30rem] table-fixed border-separate border-spacing-0 text-meta">
+<div class="wp-huelle">
+<table aria-label="Wochenplan als Tabelle" class="wp-raster-5">
+<colgroup>
+<col class="wp-spalte-name">
+<col class="wp-spalte-schmal">
+<col class="wp-spalte-tag">
+<col class="wp-spalte-tag">
+<col class="wp-spalte-tag">
+<col class="wp-spalte-tag">
+<col class="wp-spalte-tag">
+<col class="wp-spalte-schmal">
+</colgroup>
 <thead>
 <tr>
-<th class="sticky left-0 top-0 z-30 w-28 border-b border-line bg-surface p-2 text-left align-bottom lg:w-36 xl:w-40">
+<th class="wp-ecke">
 <span class="section-label">Mitarbeiter</span>
 </th>
-<th class="sticky top-0 z-20 border-b border-line px-1 py-2 text-center font-normal  bg-surface-2">
-<span class="block px-1 py-1">
-<span class="block font-semibold text-ink">Mo</span>
-<span class="block text-xs text-ink-muted">26.10.</span>
-<span class="block truncate text-xs text-ink-muted" title="Nationalfeiertag">Nationalfeiertag</span>
+<th class="wp-kopf-schmal">
+<span class="wp-kopf-knopf-schmal nur-lesen" title="Nationalfeiertag">
+<span class="kopf-tag">Mo</span>
+<span class="kopf-info">26.</span>
 </span>
 </th>
-<th class="sticky top-0 z-20 border-b border-line px-1 py-2 text-center font-normal  bg-surface">
-<span class="block px-1 py-1">
-<span class="block font-semibold text-ink">Di</span>
-<span class="block text-xs text-ink-muted">27.10.</span>
+<th class="wp-kopf">
+<span class="wp-kopf-knopf nur-lesen">
+<span class="kopf-tag">Di 27.10.</span>
+<span class="kopf-info">1 Termin</span>
 </span>
 </th>
-<th class="sticky top-0 z-20 border-b border-line px-1 py-2 text-center font-normal  bg-petrol-hell">
-<span class="block px-1 py-1">
-<span class="block font-semibold text-ink-deep">Mi</span>
-<span class="block text-xs text-ink-muted">28.10.</span>
+<th class="wp-kopf-heute" aria-current="date">
+<span class="wp-kopf-knopf nur-lesen">
+<span class="kopf-tag">Mi 28.10.</span>
 </span>
 </th>
-<th class="sticky top-0 z-20 border-b border-line px-1 py-2 text-center font-normal  bg-surface">
-<span class="block px-1 py-1">
-<span class="block font-semibold text-ink">Do</span>
-<span class="block text-xs text-ink-muted">29.10.</span>
+<th class="wp-kopf">
+<span class="wp-kopf-knopf nur-lesen">
+<span class="kopf-tag">Do 29.10.</span>
+<span class="kopf-info">1 Termin</span>
 </span>
 </th>
-<th class="sticky top-0 z-20 border-b border-line px-1 py-2 text-center font-normal  bg-surface-2">
-<span class="block px-1 py-1">
-<span class="block font-semibold text-ink">Fr</span>
-<span class="block text-xs text-ink-muted">30.10.</span>
-<span class="mt-1 block text-xs text-ink-muted">Fenstertag</span>
+<th class="wp-kopf-ruhe">
+<span class="wp-kopf-knopf nur-lesen">
+<span class="kopf-tag">Fr 30.10.</span>
+<span class="kopf-info">Fenstertag</span>
 </span>
 </th>
-<th class="sticky top-0 z-20 border-b border-line px-1 py-2 text-center font-normal w-12 xl:w-auto bg-surface-2">
-<span class="block px-1 py-1">
-<span class="block font-semibold text-ink">Sa</span>
-<span class="block text-xs text-ink-muted">31.10.</span>
+<th class="wp-kopf-ruhe">
+<span class="wp-kopf-knopf nur-lesen">
+<span class="kopf-tag">Sa 31.10.</span>
 </span>
 </th>
-<th class="sticky top-0 z-20 border-b border-line px-1 py-2 text-center font-normal w-12 xl:w-auto bg-surface-2">
-<span class="block px-1 py-1">
-<span class="block font-semibold text-ink">So</span>
-<span class="block text-xs text-ink-muted">01.11.</span>
-<span class="block truncate text-xs text-ink-muted" title="Allerheiligen">Allerheiligen</span>
+<th class="wp-kopf-schmal">
+<span class="wp-kopf-knopf-schmal nur-lesen" title="Allerheiligen">
+<span class="kopf-tag">So</span>
+<span class="kopf-info">01.</span>
 </span>
 </th>
 </tr>
 </thead>
 <tbody>
-<tr>
-<th scope="row" class="sticky left-0 z-10 border-b border-line bg-surface p-2 text-left font-normal text-ink">Termine</th>
-<td class="border-b border-line p-1 align-top">
-<span class="flex flex-col gap-1">
-</span>
-</td>
-<td class="border-b border-line p-1 align-top">
-<span class="flex flex-col gap-1">
-<span title="Lieferung (Aviso) · 08:00–10:00 · Wohnungseigentümergemeinschaft Hauptstraße 112–118 · B-2026-0147" class="block rounded-sm border border-line bg-surface px-1.5 py-1 text-left text-xs">
-<span class="block truncate font-normal text-ink">Lieferung (Aviso) · 08:00–10:00</span>
-<span class="block truncate text-ink-muted">Wohnungseigentümergemeinschaft Hauptstraße 112–118 · B-2026-0147</span>
-</span>
-</span>
-</td>
-<td class="border-b border-line p-1 align-top">
-<span class="flex flex-col gap-1">
-</span>
-</td>
-<td class="border-b border-line p-1 align-top">
-<span class="flex flex-col gap-1">
-<span title="Abnahme · Gemeinde Neudorf · B-2026-0148" class="block rounded-sm border border-line bg-surface px-1.5 py-1 text-left text-xs">
-<span class="block truncate font-normal text-ink">Abnahme</span>
-<span class="block truncate text-ink-muted">Gemeinde Neudorf · B-2026-0148</span>
-</span>
-</span>
-</td>
-<td class="border-b border-line p-1 align-top">
-<span class="flex flex-col gap-1">
-</span>
-</td>
-<td class="border-b border-line p-1 align-top">
-<span class="flex flex-col gap-1">
-</span>
-</td>
-<td class="border-b border-line p-1 align-top">
-<span class="flex flex-col gap-1">
-</span>
-</td>
-</tr>
 <tr>
 <th colspan="8" scope="rowgroup" class="border-b border-line bg-surface-2 p-0 text-left">
 <button type="button" class="planung-gruppe" aria-expanded="true">
@@ -126,37 +91,37 @@
 </th>
 </tr>
 <tr>
-<th scope="row" class="sticky left-0 z-10 max-w-[7rem] truncate border-b border-line bg-surface p-2 text-left font-normal text-ink lg:max-w-[9rem] xl:max-w-[10rem]">Stefan Gruber</th>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<th scope="row" class="wp-name">Stefan Gruber</th>
+<td class="wp-zelle-schmal">
+<span class="sr-only">Nationalfeiertag</span>
 </td>
-<td class="border-b border-line p-1 align-top ">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle">
+<span class="sr-only">nicht eingeteilt</span>
 </td>
-<td class="border-b border-line p-1 align-top bg-petrol-hell">
-<span class="flex flex-col gap-1">
-<span title="Wohnungseigentümergemeinschaft Hauptstraße 112–118 · B-2026-0147" class="plan-block-lesen">
-<span class="block truncate">Wohnungseigentümergemeinschaft Hauptstraße 112–118</span>
-<span class="block truncate">B-2026-0147</span>
+<td class="wp-zelle-heute">
+<div class="zelle-inhalt">
+<span class="eintrag nur-lesen" title="Wohnungseigentümergemeinschaft Hauptstraße 112–118 · B-2026-0147 · Stefan Gruber">
+<span class="e-titel">Wohnungseigentümergemeinschaft Hauptstraße 112–118</span>
+<span class="e-nr">B-2026-0147</span>
 </span>
-<span title="Gemeinde Neudorf · B-2026-0148" class="plan-block-lesen">
-<span class="plan-zeit">ab 16:00</span>
-<span class="block truncate">Gemeinde Neudorf</span>
-<span class="block truncate">B-2026-0148</span>
+<span class="eintrag nur-lesen" title="Gemeinde Neudorf · B-2026-0148 · ab 16:00 · Stefan Gruber">
+<span class="e-titel">Gemeinde Neudorf</span>
+<span class="e-zeit">ab 16:00</span>
+<span class="e-nr">B-2026-0148</span>
 </span>
-</span>
+</div>
 </td>
-<td class="border-b border-line p-1 align-top ">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle">
+<span class="sr-only">nicht eingeteilt</span>
 </td>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle-ruhe">
+<span class="sr-only">nicht eingeteilt</span>
 </td>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle-ruhe">
+<span class="sr-only">Wochenende</span>
 </td>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle-schmal">
+<span class="sr-only">Allerheiligen</span>
 </td>
 </tr>
 <tr>
@@ -166,68 +131,84 @@
 </th>
 </tr>
 <tr>
-<th scope="row" class="sticky left-0 z-10 max-w-[7rem] truncate border-b border-line bg-surface p-2 text-left font-normal text-ink lg:max-w-[9rem] xl:max-w-[10rem]">Erna Beispiel</th>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<th scope="row" class="wp-name">Erna Beispiel</th>
+<td class="wp-zelle-schmal">
+<span class="sr-only">Nationalfeiertag</span>
 </td>
-<td class="border-b border-line p-1 align-top ">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
-</td>
-<td class="border-b border-line p-1 align-top bg-petrol-hell">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
-</td>
-<td class="border-b border-line p-1 align-top ">
-<span class="flex flex-col gap-1">
-<span class="plan-weg">abwesend</span>
-<span title="Gemeinde Neudorf · B-2026-0148 — eingeteilt, fehlt" class="plan-konflikt-lesen">
-<span class="block truncate">fehlt: B-2026-0148</span>
+<td class="wp-zelle">
+<div class="zelle-inhalt">
+<span class="eintrag nur-lesen" title="Gemeinde Neudorf · B-2026-0148 · Erna Beispiel (Helfer)">
+<span class="e-titel">Gemeinde Neudorf</span>
+<span class="e-zeile">als Helfer</span>
+<span class="e-nr">B-2026-0148</span>
 </span>
+</div>
+</td>
+<td class="wp-zelle-heute">
+<span class="sr-only">nicht eingeteilt</span>
+</td>
+<td class="wp-zelle">
+<div class="zelle-inhalt">
+<span class="eintrag-konflikt nur-lesen" title="Gemeinde Neudorf · B-2026-0148 · Lena Pichler (Helfer), Erna Beispiel fehlt — eingeteilt, fehlt">
+<span class="e-titel">Gemeinde Neudorf</span>
+<span class="e-zeile">fehlt</span>
 </span>
+</div>
 </td>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="plan-weg">Betriebsurlaub</span>
+<td class="wp-zelle-ruhe">
+<div class="zelle-inhalt">
+<span class="eintrag-weg">Betriebsurlaub</span>
+</div>
 </td>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle-ruhe">
+<span class="sr-only">Wochenende</span>
 </td>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle-schmal">
+<span class="sr-only">Allerheiligen</span>
 </td>
 </tr>
 <tr>
-<th scope="row" class="sticky left-0 z-10 max-w-[7rem] truncate border-b border-line bg-surface p-2 text-left font-normal text-ink lg:max-w-[9rem] xl:max-w-[10rem]">Max Mustermann</th>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<th scope="row" class="wp-name">Max Mustermann<span class="wp-name-ich"> · du</span>
+</th>
+<td class="wp-zelle-schmal">
+<span class="sr-only">Nationalfeiertag</span>
 </td>
-<td class="border-b border-line p-1 align-top ">
-<span class="flex flex-col gap-1">
-<span title="Wohnungseigentümergemeinschaft Hauptstraße 112–118 · B-2026-0147" class="plan-block-lesen">
-<span class="plan-zeit">07:00–15:30</span>
-<span class="block truncate">Wohnungseigentümergemeinschaft Hauptstraße 112–118</span>
-<span class="block truncate">B-2026-0147</span>
+<td class="wp-zelle">
+<div class="zelle-inhalt">
+<span class="eintrag nur-lesen" title="Wohnungseigentümergemeinschaft Hauptstraße 112–118 · B-2026-0147 · 07:00–15:30 · Jürgen Fasching (Helfer), Max Mustermann">
+<span class="e-titel">Wohnungseigentümergemeinschaft Hauptstraße 112–118</span>
+<span class="e-zeit">07:00–15:30</span>
+<span class="e-nr">B-2026-0147</span>
 </span>
+<span class="eintrag-termin nur-lesen" title="Lieferung (Aviso) · 08:00–10:00 · Wohnungseigentümergemeinschaft Hauptstraße 112–118">
+<span class="e-titel">Lieferung</span>
+<span class="e-zeit">08:00–10:00</span>
+<span class="e-zeile">Wohnungseigentümergemeinschaft Hauptstraße 112–118</span>
 </span>
+</div>
 </td>
-<td class="border-b border-line p-1 align-top bg-petrol-hell">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle-heute">
+<span class="sr-only">nicht eingeteilt</span>
 </td>
-<td class="border-b border-line p-1 align-top ">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle">
+<span class="sr-only">nicht eingeteilt</span>
 </td>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="plan-weg">Betriebsurlaub</span>
+<td class="wp-zelle-ruhe">
+<div class="zelle-inhalt">
+<span class="eintrag-weg">Betriebsurlaub</span>
+</div>
 </td>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="flex flex-col gap-1">
-<span title="Gemeinde Neudorf · B-2026-0148" class="plan-block-lesen">
-<span class="plan-zeit">08:00–12:00</span>
-<span class="block truncate">Gemeinde Neudorf</span>
-<span class="block truncate">B-2026-0148</span>
+<td class="wp-zelle-ruhe">
+<div class="zelle-inhalt">
+<span class="eintrag nur-lesen" title="Gemeinde Neudorf · B-2026-0148 · 08:00–12:00 · Max Mustermann">
+<span class="e-titel">Gemeinde Neudorf</span>
+<span class="e-zeit">08:00–12:00</span>
+<span class="e-nr">B-2026-0148</span>
 </span>
-</span>
+</div>
 </td>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle-schmal">
+<span class="sr-only">Allerheiligen</span>
 </td>
 </tr>
 <tr>
@@ -237,34 +218,38 @@
 </th>
 </tr>
 <tr>
-<th scope="row" class="sticky left-0 z-10 max-w-[7rem] truncate border-b border-line bg-surface p-2 text-left font-normal text-ink lg:max-w-[9rem] xl:max-w-[10rem]">Jürgen Fasching</th>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<th scope="row" class="wp-name">Jürgen Fasching</th>
+<td class="wp-zelle-schmal">
+<span class="sr-only">Nationalfeiertag</span>
 </td>
-<td class="border-b border-line p-1 align-top ">
-<span class="flex flex-col gap-1">
-<span title="Wohnungseigentümergemeinschaft Hauptstraße 112–118 · B-2026-0147" class="plan-block-lesen">
-<span class="block truncate">Wohnungseigentümergemeinschaft Hauptstraße 112–118</span>
-<span class="block truncate">B-2026-0147</span>
-<span class="block truncate">als Helfer</span>
+<td class="wp-zelle">
+<div class="zelle-inhalt">
+<span class="eintrag nur-lesen" title="Wohnungseigentümergemeinschaft Hauptstraße 112–118 · B-2026-0147 · Jürgen Fasching (Helfer), Max Mustermann">
+<span class="e-titel">Wohnungseigentümergemeinschaft Hauptstraße 112–118</span>
+<span class="e-nr">B-2026-0147</span>
+<span class="e-zusatz">Lieferung <span class="e-zeit">08:00–10:00</span>
 </span>
 </span>
+</div>
 </td>
-<td class="border-b border-line p-1 align-top bg-petrol-hell">
-<span class="mb-1 block text-center text-xs text-ink-muted">abwesend 13:00–17:00</span>
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle-heute">
+<div class="zelle-inhalt">
+<span class="e-teilweise">abwesend 13:00–17:00</span>
+</div>
 </td>
-<td class="border-b border-line p-1 align-top ">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle">
+<span class="sr-only">nicht eingeteilt</span>
 </td>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="plan-weg">Betriebsurlaub</span>
+<td class="wp-zelle-ruhe">
+<div class="zelle-inhalt">
+<span class="eintrag-weg">Betriebsurlaub</span>
+</div>
 </td>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle-ruhe">
+<span class="sr-only">Wochenende</span>
 </td>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle-schmal">
+<span class="sr-only">Allerheiligen</span>
 </td>
 </tr>
 <tr>
@@ -274,141 +259,150 @@
 </th>
 </tr>
 <tr>
-<th scope="row" class="sticky left-0 z-10 max-w-[7rem] truncate border-b border-line bg-surface p-2 text-left font-normal text-ink lg:max-w-[9rem] xl:max-w-[10rem]">Lena Pichler</th>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<th scope="row" class="wp-name">Lena Pichler</th>
+<td class="wp-zelle-schmal">
+<span class="sr-only">Nationalfeiertag</span>
 </td>
-<td class="border-b border-line p-1 align-top ">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle">
+<span class="sr-only">nicht eingeteilt</span>
 </td>
-<td class="border-b border-line p-1 align-top bg-petrol-hell">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle-heute">
+<span class="sr-only">nicht eingeteilt</span>
 </td>
-<td class="border-b border-line p-1 align-top ">
-<span class="flex flex-col gap-1">
-<span title="Gemeinde Neudorf · B-2026-0148" class="plan-block-lesen">
-<span class="block truncate">Gemeinde Neudorf</span>
-<span class="block truncate">B-2026-0148</span>
-<span class="block truncate">als Helfer</span>
+<td class="wp-zelle">
+<div class="zelle-inhalt">
+<span class="eintrag nur-lesen" title="Gemeinde Neudorf · B-2026-0148 · Lena Pichler (Helfer), Erna Beispiel fehlt">
+<span class="e-titel">Gemeinde Neudorf</span>
+<span class="e-nr">B-2026-0148</span>
+<span class="e-zusatz">Abnahme <span class="e-zeit">ganzer Tag</span>
 </span>
 </span>
+</div>
 </td>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="plan-weg">Betriebsurlaub</span>
+<td class="wp-zelle-ruhe">
+<div class="zelle-inhalt">
+<span class="eintrag-weg">Betriebsurlaub</span>
+</div>
 </td>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle-ruhe">
+<span class="sr-only">Wochenende</span>
 </td>
-<td class="border-b border-line p-1 align-top bg-surface-2">
-<span class="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">–</span>
+<td class="wp-zelle-schmal">
+<span class="sr-only">Allerheiligen</span>
 </td>
 </tr>
 </tbody>
 </table>
 </div>
-<section aria-label="Wochenplan als Liste" class="md:hidden">
-<div class="border-t border-line bg-surface-2">
-<div class="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-1 pt-3">
-<span class="font-semibold text-ink">Mo, 26.10.<span class="ml-2 text-sm font-normal text-ink-muted">Nationalfeiertag</span>
+<div class="md:hidden">
+<section aria-label="Wochenplan als Liste" class="handy-woche">
+<div class="tagwahl" role="group" aria-label="Tag wählen">
+<button type="button" class="tagwahl-tag" aria-pressed="false" aria-label="Montag 26.10.">
+<span class="tagwahl-wt">Mo</span>
+<span class="tagwahl-nr">26</span>
+<span class="tagwahl-ohne" aria-hidden="true">
+</span>
+</button>
+<button type="button" class="tagwahl-tag" aria-pressed="false" aria-label="Dienstag 27.10., 1 Termin">
+<span class="tagwahl-wt">Di</span>
+<span class="tagwahl-nr">27</span>
+<span class="tagwahl-punkt" aria-hidden="true">
+</span>
+</button>
+<button type="button" class="tagwahl-tag-an" aria-pressed="true" aria-label="Mittwoch 28.10.">
+<span class="tagwahl-wt">Mi</span>
+<span class="tagwahl-nr">28</span>
+<span class="tagwahl-ohne" aria-hidden="true">
+</span>
+</button>
+<button type="button" class="tagwahl-tag" aria-pressed="false" aria-label="Donnerstag 29.10., 1 Termin">
+<span class="tagwahl-wt">Do</span>
+<span class="tagwahl-nr">29</span>
+<span class="tagwahl-punkt" aria-hidden="true">
+</span>
+</button>
+<button type="button" class="tagwahl-tag" aria-pressed="false" aria-label="Freitag 30.10.">
+<span class="tagwahl-wt">Fr</span>
+<span class="tagwahl-nr">30</span>
+<span class="tagwahl-ohne" aria-hidden="true">
+</span>
+</button>
+<button type="button" class="tagwahl-tag" aria-pressed="false" aria-label="Samstag 31.10.">
+<span class="tagwahl-wt">Sa</span>
+<span class="tagwahl-nr">31</span>
+<span class="tagwahl-ohne" aria-hidden="true">
+</span>
+</button>
+<button type="button" class="tagwahl-tag" aria-pressed="false" aria-label="Sonntag 01.11.">
+<span class="tagwahl-wt">So</span>
+<span class="tagwahl-nr">1</span>
+<span class="tagwahl-ohne" aria-hidden="true">
+</span>
+</button>
+</div>
+<div class="tl-kopf">
+<div>
+<p class="tl-tag">Mittwoch 28.10. · heute</p>
+</div>
+</div>
+<div class="tl-gruppe">
+<span>Keine Termine</span>
+</div>
+<div>
+<p class="tl-gruppe">Obermonteure · 1</p>
+<div class="tl-person">
+<p class="tl-name">Stefan Gruber</p>
+<div class="tl-eintraege">
+<span class="eintrag nur-lesen" title="Wohnungseigentümergemeinschaft Hauptstraße 112–118 · B-2026-0147 · Stefan Gruber">
+<span class="e-titel">Wohnungseigentümergemeinschaft Hauptstraße 112–118</span>
+<span class="e-nr">B-2026-0147</span>
+</span>
+<span class="eintrag nur-lesen" title="Gemeinde Neudorf · B-2026-0148 · ab 16:00 · Stefan Gruber">
+<span class="e-titel">Gemeinde Neudorf</span>
+<span class="e-zeit">ab 16:00</span>
+<span class="e-nr">B-2026-0148</span>
 </span>
 </div>
-<div class="space-y-2 px-4 pb-3">
-<p class="text-sm text-ink-muted">Nichts geplant.</p>
 </div>
 </div>
-<div class="border-t border-line ">
-<div class="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-1 pt-3">
-<span class="font-semibold text-ink">Di, 27.10.</span>
+<div>
+<p class="tl-gruppe">Facharbeiter · 2</p>
+<div class="tl-person">
+<p class="tl-name">Erna Beispiel</p>
+<div class="tl-eintraege">
+<p class="tl-leer">nicht eingeteilt</p>
 </div>
-<div class="space-y-2 px-4 pb-3">
-<ul aria-label="Termine am 27.10." class="space-y-1">
-<li class="text-sm">
-<span class="font-normal text-ink">Lieferung (Aviso) · 08:00–10:00</span> <span class="text-ink-muted">· Wohnungseigentümergemeinschaft Hauptstraße 112–118 · B-2026-0147</span>
-</li>
-</ul>
-<div class="tag-karte-lesen">
-<span class="block font-normal text-ink">Wohnungseigentümergemeinschaft Hauptstraße 112–118 <span class="font-normal text-ink-muted">· B-2026-0147</span>
-</span>
-<span class="block text-sm text-ink-muted">Jürgen Fasching (Helfer), Max Mustermann</span>
+</div>
+<div class="tl-person">
+<p class="tl-name">Max Mustermann<span class="wp-name-ich"> · du</span>
+</p>
+<div class="tl-eintraege">
+<p class="tl-leer">nicht eingeteilt</p>
 </div>
 </div>
 </div>
-<div class="border-t border-line bg-petrol-hell">
-<div class="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-1 pt-3">
-<span class="font-semibold text-ink">Mi, 28.10.<span class="ml-2 text-sm text-ink-muted">heute</span>
-</span>
-</div>
-<div class="space-y-2 px-4 pb-3">
-<div class="tag-karte-lesen">
-<span class="block font-normal text-ink">
-<span class="plan-zeit">ab 16:00</span>Gemeinde Neudorf <span class="font-normal text-ink-muted">· B-2026-0148</span>
-</span>
-<span class="block text-sm text-ink-muted">Stefan Gruber</span>
-</div>
-<div class="tag-karte-lesen">
-<span class="block font-normal text-ink">Wohnungseigentümergemeinschaft Hauptstraße 112–118 <span class="font-normal text-ink-muted">· B-2026-0147</span>
-</span>
-<span class="block text-sm text-ink-muted">Stefan Gruber</span>
-</div>
-<p class="text-sm text-ink-muted">
-<span class="font-normal text-ink">Abwesend:</span> Jürgen Fasching (abwesend 13:00–17:00)</p>
-</div>
-</div>
-<div class="border-t border-line ">
-<div class="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-1 pt-3">
-<span class="font-semibold text-ink">Do, 29.10.</span>
-</div>
-<div class="space-y-2 px-4 pb-3">
-<ul aria-label="Termine am 29.10." class="space-y-1">
-<li class="text-sm">
-<span class="font-normal text-ink">Abnahme</span> <span class="text-ink-muted">· Gemeinde Neudorf · B-2026-0148</span>
-</li>
-</ul>
-<div class="tag-karte-konflikt-lesen">
-<span class="block font-normal text-ink">Gemeinde Neudorf <span class="font-normal text-ink-muted">· B-2026-0148</span>
-</span>
-<span class="block text-sm text-ink-muted">Lena Pichler (Helfer)</span>
-<span class="block text-sm font-semibold text-warning">fehlt: Erna Beispiel</span>
-</div>
-<p class="text-sm text-ink-muted">
-<span class="font-normal text-ink">Abwesend:</span> Erna Beispiel</p>
-</div>
-</div>
-<div class="border-t border-line bg-surface-2">
-<div class="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-1 pt-3">
-<span class="font-semibold text-ink">Fr, 30.10.</span>
-<span class="text-sm text-ink-muted">Betriebsurlaub</span>
-</div>
-<div class="space-y-2 px-4 pb-3">
-<p class="text-sm text-ink-muted">Betriebsurlaub — Fenstertag.</p>
-</div>
-</div>
-<div class="border-t border-line bg-surface-2">
-<div class="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-1 pt-3">
-<span class="font-semibold text-ink">Sa, 31.10.</span>
-</div>
-<div class="space-y-2 px-4 pb-3">
-<div class="tag-karte-lesen">
-<span class="block font-normal text-ink">
-<span class="plan-zeit">08:00–12:00</span>Gemeinde Neudorf <span class="font-normal text-ink-muted">· B-2026-0148</span>
-</span>
-<span class="block text-sm text-ink-muted">Max Mustermann</span>
+<div>
+<p class="tl-gruppe">Helfer · 1</p>
+<div class="tl-person">
+<p class="tl-name">Jürgen Fasching</p>
+<div class="tl-eintraege">
+<span class="e-teilweise">abwesend 13:00–17:00</span>
 </div>
 </div>
 </div>
-<div class="border-t border-line bg-surface-2">
-<div class="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-1 pt-3">
-<span class="font-semibold text-ink">So, 01.11.<span class="ml-2 text-sm font-normal text-ink-muted">Allerheiligen</span>
-</span>
+<div>
+<p class="tl-gruppe">Lehrlinge · 1</p>
+<div class="tl-person">
+<p class="tl-name">Lena Pichler</p>
+<div class="tl-eintraege">
+<p class="tl-leer">nicht eingeteilt</p>
 </div>
-<div class="space-y-2 px-4 pb-3">
-<p class="text-sm text-ink-muted">Nichts geplant.</p>
 </div>
 </div>
 </section>
 </div>
-</section>
 </div>
+</section>
 </div>
 <div class="meldungen" aria-live="polite" role="status">
 </div>

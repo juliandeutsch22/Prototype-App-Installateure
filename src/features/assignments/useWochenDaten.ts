@@ -47,12 +47,20 @@ export function useWochenDaten(tage: string[]) {
   const [termine, setTermine] = useState<Termin[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
+  /**
+   * Ist die Belegschaft da? Vorher ist „niemand im Außendienst“ keine
+   * Auskunft, sondern ein Ladezustand (Team-Woche, 10.10.2026).
+   */
+  const [belegschaftGeladen, setBelegschaftGeladen] = useState(false);
   /** Nach dem Anlegen, Ändern oder Löschen eines Termins: dieselbe Abfrage noch einmal. */
   const [termineStand, setTermineStand] = useState(0);
 
   useEffect(() => {
     if (!user) return;
-    listUsers(user.companyId).then(setUsers).catch(() => setNebenFehler('Die Belegschaft'));
+    listUsers(user.companyId)
+      .then(setUsers)
+      .catch(() => setNebenFehler('Die Belegschaft'))
+      .finally(() => setBelegschaftGeladen(true));
     listActiveProjects(user.companyId)
       .then(setProjects)
       .catch(() => setNebenFehler('Die Baustellen'));
@@ -128,7 +136,11 @@ export function useWochenDaten(tage: string[]) {
         if (!verworfen) setBetriebsurlaube(r);
       })
       .catch(() => {
-        if (!verworfen) setBetriebsurlaube([]);
+        if (!verworfen) {
+          setBetriebsurlaube([]);
+          // Ohne Hinweis sähe ein geschlossener Tag aus wie ein gewöhnlicher.
+          setNebenFehler('Der Betriebsurlaub');
+        }
       });
     return () => {
       verworfen = true;
@@ -194,9 +206,15 @@ export function useWochenDaten(tage: string[]) {
         if (v.von <= tag && v.bis >= tag) {
           const z = hole(v.userId, tag);
           // Stundenweise (mit Uhrzeit) ist man nur teilweise weg: die Zelle
-          // nennt es, eingeteilt werden kann trotzdem.
-          if (!v.zeiten) z.imUrlaub = true;
-          z.abwesendText = abwesendText(v);
+          // nennt es, eingeteilt werden kann trotzdem. Ganztags geht vor —
+          // sonst hinge an der Reihenfolge der Zeilen, ob ein grauer Block
+          // „abwesend 13:00–17:00“ hieße.
+          if (!v.zeiten) {
+            z.imUrlaub = true;
+            z.abwesendText = abwesendText(v);
+          } else if (!z.imUrlaub) {
+            z.abwesendText = abwesendText(v);
+          }
         }
       }
     }
@@ -291,6 +309,7 @@ export function useWochenDaten(tage: string[]) {
     termineNeuLaden,
     error,
     nebenFehler,
+    belegschaftGeladen,
     zuAm,
     zuFuer,
     staff,
