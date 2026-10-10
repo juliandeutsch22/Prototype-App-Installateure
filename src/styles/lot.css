@@ -206,6 +206,21 @@
 
   /* Ein Eintrag: am Tablet Symbol über Kurztext, am Schreibtisch eine Zeile. */
   .navi-punkt, .navi-punkt-aktiv { position: relative; display: flex; background: none; border: 0; cursor: pointer; flex-direction: column; align-items: center; gap: 0.25rem; min-height: 2.75rem; padding: 0.625rem 0.25rem; border-radius: var(--radius); color: var(--navi-text); font-size: 0.6875rem; line-height: 0.875rem; text-align: center; text-decoration: none; }
+  /*
+    AM TABLET 2 px SEITLICH STATT 4 (10.10.2026): „Einstellungen“ misst in
+    Poppins 11 px rund 73 px; bei 4 px blieben 72 px, und es brach als
+    „Einstellunge|n“ — ohne Trennwörterbuch mitten im Wort. Mit 2 px bleiben
+    76 px.
+
+    DER AKTIVE KURZTEXT BLEIBT DÜNN. Fett lief er je nach Umgebung bis 84 px
+    breit und ragte aus dem Punkt (gemessen in der CI). Aktiv ist der Punkt an
+    der dunklen Fläche und der weissen Schrift; die Breite springt beim
+    Wechsel so auch nicht mehr.
+  */
+  @media (min-width: 760px) and (max-width: 1199px) {
+    .navi-punkt, .navi-punkt-aktiv { padding-left: 0.125rem; padding-right: 0.125rem; }
+    .navi-punkt-aktiv .navi-text-kurz { font-weight: 400; }
+  }
   .navi-punkt:hover { color: #ffffff; }
   .navi-punkt-aktiv { background: var(--navi-tief); color: #ffffff; font-weight: 600; }
   @media (min-width: 1200px) {
@@ -220,7 +235,14 @@
   */
   .navi-text-lang { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
   /* Lange Kurztexte („Einstellungen“) brechen mit Trennstrich, statt mit „…“ zu enden. */
-  .navi-text-kurz { display: block; max-width: 100%; hyphens: auto; overflow-wrap: anywhere; }
+  /*
+    NIE MITTEN IM WORT (10.10.2026). Jeder Kurztext ist EIN Wort; mit
+    `overflow-wrap: anywhere` brach das längste, „Einstellungen“, als
+    „Einstellunge|n“, sobald es um einen Bruchteil eines Pixels nicht passte —
+    fett als aktiver Punkt in der CI auch bei 2 px Abstand. So bleibt das Wort
+    ganz und ragt im schlimmsten Fall ein, zwei Pixel in den Innenabstand.
+  */
+  .navi-text-kurz { display: block; max-width: 100%; hyphens: manual; -webkit-hyphens: manual; overflow-wrap: normal; word-break: normal; }
   @media (min-width: 1200px) {
     .navi-text-lang { position: static; width: auto; height: auto; margin: 0; clip: auto; display: block; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .navi-text-kurz { display: none; }

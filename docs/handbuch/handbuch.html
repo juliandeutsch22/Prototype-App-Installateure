@@ -678,7 +678,7 @@
     <div class="stempel">
       <span>Stand <b>10.10.2026</b></span>
       <span>Fassung <b>Oberfläche Lot · Runde 5</b></span>
-      <span>Automatische Prüfungen <b>6618</b></span>
+      <span>Automatische Prüfungen <b>6626</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -722,7 +722,7 @@
       <div class="bereich">
         <h3>Testbericht Runde 5: was behoben ist<span class="neu">behoben</span></h3>
         <p><strong>Budget der Projektleitung.</strong> Der Projektleiter las auf der Startseite „alle im Budget“, während die Leitung drei Baustellen über dem Budget sah: gerechnet wurde aus den Zeitbuchungen, und von denen darf die Projektleitung nur die eigenen lesen. Startseite, der Filter „über oder nahe Budget“ und der Überblick der Baustellenakte rechnen jetzt mit den Stunden aller — die Datenbank gibt der Leitung je Baustelle und Person nur die Summen, kein Zeitkonto, keine Abwesenheiten. Ohne geladenen Budgetstand steht kein „alle im Budget“ mehr da.</p>
-        <p><strong>Rechnungssperre auf der Startseite.</strong> Sperren die Firmendaten jede neue Rechnung (Anschrift fehlt, IBAN ungültig), steht „Keine Rechnung möglich: Firmendaten unvollständig“ ganz vorn unter „Dringend“, in Rot. Fehlt nur, was warnt (Firmenbuch, eine IBAN überhaupt), bleibt es leise unter „Diese Woche“. Knopf und Startseite prüfen dasselbe.</p>
+        <p><strong>Rechnungssperre auf der Startseite.</strong> Sperren die Firmendaten jede neue Rechnung (Anschrift fehlt, IBAN ungültig), steht „Keine Rechnung möglich: Firmendaten unvollständig“ ganz vorn unter „Dringend“, in Rot. Fehlt nur, was warnt (Firmenbuch, eine IBAN überhaupt), bleibt es leise unter „Diese Woche“. Knopf und Startseite prüfen dasselbe. Seit 10.10. sieht die Buchhaltung die Sperre ebenfalls ganz vorn auf ihrer Startseite („Keine Rechnung möglich“), mit dem Hinweis, dass die Geschäftsführung die Firmendaten ergänzt.</p>
         <p><strong>Nachkalkulation.</strong> Eine Angebotszeile ohne Katalogartikel mit der Einheit „pauschal“, „Pauschale“, „pausch.“ oder „psch.“ ist eine Leistung und keine Lücke „ohne Einkaufspreis“ mehr; ihre Arbeit steckt in den Personalkosten. Ware (Stück, ohne Einheit) bleibt eine Lücke. Der Satz darunter sagt jetzt „um deren Einkaufspreis zu hoch; der ist nicht hinterlegt“ statt „um diesen Betrag“.</p>
         <p><strong>Rechnung bei Pauschale und Einheitspreis:</strong> kein Abgleich „verrechnet werden … mehr, als der Kunde unterschrieben hat“ mehr — die Stunden kommen dort nicht auf die Rechnung. <strong>Antrag:</strong> der Hinweis zum Betriebsurlaub steht nur bei Urlaub und Zeitausgleich und nicht für jemanden, der vom Betriebsurlaub ausgenommen ist.</p>
         <p><strong>Darstellung.</strong> Seitenfenster und Schleier beginnen am oberen Rand. Kurzformen von Namen lassen Klammerzusätze weg („Test L.“ statt „Test (.“, Initialen „TL“). Im Monat steht in der Sicht „Baustellen“ unter dem Namen Nummer · Ort, und „Noch einzuplanen“ nennt die Nummer. Uhrzeiten in der Woche brechen am Tablet nicht mehr um. Im Seitenfenster der Mitarbeiterübersicht stehen Gesamtsaldo und Resturlaub ohne doppelte Beschriftung, ein eigenes Tagessoll je Wochentag als „Mo 08:30, … Fr 06:00“. Die Benutzerakte schreibt Zahlen mit Komma („5,96“). Baustellen, Wartungen und Angebote haben „Hilfe zu dieser Seite“.</p>
@@ -1785,7 +1785,7 @@
       <div class="bereich">
         <h3>Große Stände in Teilen<span class="neu">neu</span></h3>
         <p>Bis 10.10. ging der Stand eines Betriebs in einem Stück hinaus und musste dafür ganz in den Speicher der Serverfunktion passen; ab 256 MB brach die Sicherung ab. Ein unterschriebener Schein trägt rund 140 KB an Unterschriften — ein Betrieb mit ein paar tausend Scheinen läge darüber. Jetzt geht der Stand in Teilen zu rund 32 MB hinaus. Der erste Teil heißt wie bisher und wird zuletzt geschrieben; er nennt die Zahl der Teile. Scheitert ein Lauf mittendrin, bleibt der vorige Stand vollständig.</p>
-        <p class="wer">Der Rücklauf bekommt alle Teile und spielt nur ein, wenn sie vollständig und aus einem Lauf sind. Ein kleiner Betrieb bleibt bei einer Datei</p>
+        <p class="wer">Der Rücklauf bekommt alle Teile und spielt nur ein, wenn sie vollständig und aus einem Lauf sind. Ein kleiner Betrieb bleibt bei einer Datei. Seit 10.10. spielt er in Blöcken zu höchstens 500 Zeilen und rund 4 MB ein, statt jede Tabelle in einer Anfrage</p>
       </div>
     </div>
 

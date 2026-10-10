@@ -39,3 +39,37 @@ test('Die Seiten des Monteurs laden ohne Fehler und ohne seitliches Überlaufen'
     expect(masse.breite, `seitliches Überlaufen auf ${pfad}`).toBeLessThanOrEqual(masse.sicht);
   }
 });
+
+/*
+  „EINSTELLUNGEN“ IN EINER ZEILE (10.10.2026). In der schmalen Leiste am
+  Tablet brach es als „Einstellunge|n“ — Chromium ohne deutsches
+  Trennwörterbuch bricht mitten im Wort. Gemessen wird die Zahl der Zeilen,
+  auch als aktiver (fetter) Punkt.
+*/
+test('Am Tablet steht „Einstellungen“ in der Seitenleiste in einer Zeile', async ({ page }, info) => {
+  test.skip(info.project.name !== 'tablet-834', 'nur die schmale Leiste am Tablet');
+  await anmelden(page, MONTEUR.email);
+  const kurz = page.locator('.navi .navi-text-kurz', { hasText: 'Einstellungen' });
+  const zeilen = () =>
+    kurz.evaluate((el) => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight)));
+  // Und es ragt höchstens in den Innenabstand (2 px je Seite), nicht über den Punkt hinaus.
+  const ueberstand = () => kurz.evaluate((el) => el.scrollWidth - el.clientWidth);
+  /*
+    GEMESSEN WIRD IN POPPINS, nicht in der Ersatzschrift, die bis zum Laden
+    dasteht. Der aktive Kurztext bleibt am Tablet dünn (siehe `lot.css`) —
+    fett lief er in der CI 8 px über.
+  */
+  const schriftDa = async (gewicht: number) => {
+    const geladen = await page.evaluate((g) => document.fonts.load(`${g} 11px Poppins`).then((f) => f.length), gewicht);
+    expect(geladen).toBeGreaterThan(0);
+  };
+  await schriftDa(400);
+  expect(await zeilen()).toBe(1);
+  expect(await ueberstand()).toBeLessThanOrEqual(2);
+  await kurz.click();
+  await expect(page.locator('.navi .navi-punkt-aktiv', { hasText: 'Einstellungen' })).toBeVisible();
+  await schriftDa(400);
+  expect(await kurz.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('400');
+  expect(await zeilen()).toBe(1);
+  expect(await ueberstand()).toBeLessThanOrEqual(2);
+});

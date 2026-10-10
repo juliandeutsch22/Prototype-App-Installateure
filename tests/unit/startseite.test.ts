@@ -133,6 +133,30 @@ describe('Buchhaltung', () => {
   const schein = (id: string, tage: number) =>
     ({ schein: { id, projectNumber: 'PR-1', customerName: 'Kunde', datum: '2026-08-01' } as WorkSheet & { id: string }, tage });
 
+  /*
+    RESTPUNKT AUS RUNDE 5, M2: sperren die Firmendaten jede Rechnung, sieht
+    das auch die Buchhaltung — sie schreibt die Rechnungen, ergänzen kann sie
+    die Daten nicht. Darum ganz vorn und mit dem Hinweis, wer es tut.
+  */
+  it('nennt eine Rechnungssperre durch Firmendaten ganz vorn — und wer sie aufhebt', () => {
+    const s = startseite({ firmaSperrt: ['gültige IBAN'], basiszinsFehltAb: '2026-07-01' }, umfeld());
+    expect(s.abschnitte[0].titel).toBe('Keine Rechnung möglich');
+    expect(s.abschnitte[0].zeilen[0]).toMatchObject({
+      key: 'firma',
+      titel: 'Firmendaten unvollständig',
+      detail: 'fehlt: gültige IBAN — die Geschäftsführung ergänzt sie in den Firmendaten',
+      status: { text: 'gesperrt', ton: 'fehl' },
+      to: ZIEL.rechnungen,
+    });
+  });
+
+  it('Gegenprobe: was nur warnt oder gar nicht fehlt, steht bei der Buchhaltung nicht', () => {
+    for (const d of [{ firmaFehlt: ['Firmenbuchgericht'], firmaSperrt: [] }, {}]) {
+      const s = startseite(d, umfeld());
+      expect(s.abschnitte.flatMap((a) => a.zeilen).some((z) => z.key === 'firma')).toBe(false);
+    }
+  });
+
   it('zeigt Offen, Überfällig, Nicht verrechnet und Bezahlt im Monat (M24)', () => {
     const s = startseite({
       unbezahlt: [
