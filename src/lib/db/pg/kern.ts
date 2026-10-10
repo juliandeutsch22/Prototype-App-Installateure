@@ -29,6 +29,16 @@ export type { WithId };
 export const NACHFASSEN_MS = 1200;
 
 /**
+ * Wie lange Live-Meldungen gesammelt werden, bevor die Ansicht neu zeichnet.
+ *
+ * Ein DATANORM-Import legt zehntausende Artikel in einem Zug an; jede Zeile
+ * ist eine eigene Meldung. Zeichnete die Ansicht nach jeder neu, stünde ein
+ * offenes Lager minutenlang (Analyse 09.10.2026, Maßnahme 12). Eine einzelne
+ * Änderung erscheint um diese Zeit später — nicht spürbar.
+ */
+export const BUENDELN_MS = 50;
+
+/**
  * Der Client, mit dem diese Schicht arbeitet.
  *
  * Standardmässig der aus `lib/supabase.ts`. Er lässt sich ersetzen, und das
@@ -314,42 +324,78 @@ export async function abfragen<T>(
   const c = derClient(client);
   const gesamt: Record<string, unknown>[] = [];
 
-  for (let von = 0; ; von += SEITE) {
-    /*
-      WIE VIELE ZEILEN DIESE SEITE HOLEN DARF. Mit `grenze` nie mehr als noch
-      fehlen — sonst käme aus einer Abfrage mit `grenze: 10` eine Seite mit
-      500 Zeilen, von denen 490 weggeworfen würden.
-    */
-    const rest = abfrage.grenze === undefined
-      ? SEITE
-      : Math.min(SEITE, abfrage.grenze - gesamt.length);
-    if (rest <= 0) break;
-
+  /** Eine Seite holen; auf Wunsch mit der Gesamtzahl der passenden Zeilen. */
+  const seite = async (von: number, anzahl: number, zaehlen: boolean) => {
     const bauer = anwenden(
-      c.from(tabelle).select(abfrage.spalten ?? '*').eq('company_id', companyId) as unknown as Filterbar,
-      // `grenze` wird HIER nicht mitgegeben: sie steckt schon in `rest`, und
-      // ein `limit` neben einem `range` liefert deren Schnittmenge — also
-      // beim zweiten Durchgang nichts mehr.
+      (zaehlen
+        ? c.from(tabelle).select(abfrage.spalten ?? '*', { count: 'exact' })
+        : c.from(tabelle).select(abfrage.spalten ?? '*')
+      ).eq('company_id', companyId) as unknown as Filterbar,
+      // `grenze` wird HIER nicht mitgegeben: sie steckt schon in `anzahl`,
+      // und ein `limit` neben einem `range` liefert deren Schnittmenge —
+      // also beim zweiten Durchgang nichts mehr.
       { ...abfrage, grenze: undefined },
       tabelle,
-    ).range(von, von + rest - 1);
+    ).range(von, von + anzahl - 1);
 
-    const { data, error } = await (bauer as unknown as PromiseLike<{
+    const { data, error, count } = await (bauer as unknown as PromiseLike<{
       data: Record<string, unknown>[] | null;
       error: { message: string } | null;
+      count?: number | null;
     }>);
     if (error) throw new Error(error.message);
+    return { zeilen: data ?? [], gesamtzahl: typeof count === 'number' ? count : null };
+  };
 
-    const zeilen = data ?? [];
-    gesamt.push(...zeilen);
+  /*
+    WIE VIELE ZEILEN EINE SEITE HOLEN DARF. Mit `grenze` nie mehr als noch
+    fehlen — sonst käme aus einer Abfrage mit `grenze: 10` eine Seite mit
+    500 Zeilen, von denen 490 weggeworfen würden.
+  */
+  const rest = (von: number) => (abfrage.grenze === undefined ? SEITE : Math.min(SEITE, abfrage.grenze - von));
 
+  /*
+    DIE ERSTE SEITE NENNT, WIE VIELE ES SIND, und die übrigen Seiten kommen
+    gleichzeitig statt nacheinander (Analyse 09.10.2026, Maßnahme 5): ein
+    Jahr Buchungen sind sechzehn Seiten, nacheinander sechzehn Wege durchs
+    Netz. Gezählt wird nur, wo mehr als eine Seite möglich ist.
+  */
+  const erste = rest(0);
+  if (erste <= 0) return [];
+  const start = await seite(0, erste, abfrage.grenze === undefined || abfrage.grenze > SEITE);
+  gesamt.push(...start.zeilen);
+
+  /*
+    EINE NICHT VOLLE SEITE IST DIE LETZTE. Genau dafür liegt `SEITE` unter
+    der Serverobergrenze: käme die Deckelung ins Spiel, wäre eine volle
+    Seite nicht mehr von einer gedeckelten zu unterscheiden, und das
+    Blättern hörte an derselben Stelle auf wie vorher.
+  */
+  let weiterAb = start.zeilen.length < erste ? null : SEITE;
+
+  if (weiterAb !== null && start.gesamtzahl !== null) {
+    // Jede Seite fragt so viel wie bisher; nur gleichzeitig.
+    const bereiche: [number, number][] = [];
+    for (let von = SEITE; von < start.gesamtzahl && rest(von) > 0; von += SEITE) bereiche.push([von, rest(von)]);
+    const teile = await Promise.all(bereiche.map(([von, n]) => seite(von, n, false)));
+    for (const t of teile) gesamt.push(...t.zeilen);
     /*
-      EINE NICHT VOLLE SEITE IST DIE LETZTE. Genau dafür liegt `SEITE` unter
-      der Serverobergrenze: käme die Deckelung ins Spiel, wäre eine volle
-      Seite nicht mehr von einer gedeckelten zu unterscheiden, und das
-      Blättern hörte an derselben Stelle auf wie vorher.
+      Ist die letzte dieser Seiten voll — etwa weil zwischen Zählen und
+      Holen etwas dazukam —, geht es wie bisher nacheinander weiter, bis eine
+      Seite nicht voll ist. Sonst ist hier Schluss.
     */
-    if (zeilen.length < rest) break;
+    const letzte = bereiche.length - 1;
+    weiterAb = letzte < 0
+      ? SEITE
+      : teile[letzte].zeilen.length < bereiche[letzte][1] ? null : bereiche[letzte][0] + SEITE;
+  }
+
+  for (let von = weiterAb ?? 0; weiterAb !== null; von += SEITE) {
+    const n = rest(von);
+    if (n <= 0) break;
+    const t = await seite(von, n, false);
+    gesamt.push(...t.zeilen);
+    if (t.zeilen.length < n) break;
   }
 
   return gesamt.map((z) => zeileAlsObjekt<WithId<T>>(tabelle, z));
@@ -781,6 +827,40 @@ export function abonnieren<T>(
     }
   };
 
+  /*
+    DAS ERSTE BILD SOFORT (Analyse 09.10.2026, Maßnahme 6). Bis der Kanal
+    steht, vergehen je nach Netz einige hundert Millisekunden bis Sekunden;
+    so lange stand die Liste leer. Jetzt wird gleich zu Beginn geholt und
+    gezeigt — nur zum Anzeigen: was oben unter 1. bis 3. steht, gilt
+    unverändert, das Laden nach `SUBSCRIBED` und das Nachfassen folgen wie
+    bisher.
+
+    Kommt dieses erste Ergebnis erst, NACHDEM der Kanal steht, wird es
+    verworfen: dann läuft schon das richtige Laden, und ein älterer Stand
+    dürfte es nicht überschreiben. Ein Fehler hier bleibt still — gemeldet
+    wird, wie bisher, was nach dem Aufbau des Kanals scheitert.
+  */
+  let kanalBereit = false;
+  let abgemeldet = false;
+  void abfragen<T>(tabelle, companyId, abfrage, c)
+    .then((zeilen) => {
+      if (kanalBereit || abgemeldet) return;
+      bestand.clear();
+      for (const z of zeilen) bestand.set((z as unknown as { id: string }).id, z);
+      melden();
+    })
+    .catch(() => undefined);
+
+  /** Viele Meldungen kurz hintereinander: einmal zeichnen, nicht je Meldung. */
+  let meldenGeplant: ReturnType<typeof setTimeout> | undefined;
+  const baldMelden = () => {
+    if (meldenGeplant) return;
+    meldenGeplant = setTimeout(() => {
+      meldenGeplant = undefined;
+      if (!abgemeldet) melden();
+    }, BUENDELN_MS);
+  };
+
   const stoppKanal = kanalHalten({
     tabelle,
     filter: `company_id=eq.${companyId}`,
@@ -792,9 +872,10 @@ export function abonnieren<T>(
       };
       if (!bereit) { puffer.push(aenderung); return; }
       anwendenAenderung(aenderung);
-      melden();
+      baldMelden();
     },
     beiBereit: () => {
+      kanalBereit = true;
       void laden().then(() => {
         // Das Nachfassen. Siehe Punkt 4 im Kopf dieser Funktion.
         nachfassen = setTimeout(() => { void laden(); }, NACHFASSEN_MS);
@@ -804,7 +885,9 @@ export function abonnieren<T>(
   });
 
   return () => {
+    abgemeldet = true;
     if (nachfassen) clearTimeout(nachfassen);
+    if (meldenGeplant) clearTimeout(meldenGeplant);
     stoppKanal();
   };
 }

@@ -40,6 +40,16 @@ vi.mock('@/app/AuthContext', () => ({
   sie braucht keine Attrappe und gehört mitgeprüft.
 */
 
+/*
+  Die Startseite wird während der Anmeldung schon geholt (Analyse 09.10.2026,
+  Maßnahme 8). Hier nur eine Attrappe, die meldet, DASS sie geholt wurde.
+*/
+const vorgeladen = vi.hoisted(() => ({ wert: false }));
+vi.mock('@/features/dashboard/DashboardView', () => {
+  vorgeladen.wert = true;
+  return { default: () => null };
+});
+
 const { default: LoginPage } = await import('@/features/auth/LoginPage');
 
 function zeige() {
@@ -215,5 +225,12 @@ describe('Vor der Anmeldung erreichbar', () => {
     zeige();
     expect(screen.getByRole('link', { name: 'Impressum' })).toHaveAttribute('href', '/impressum');
     expect(screen.getByRole('link', { name: 'Datenschutz' })).toHaveAttribute('href', '/datenschutz');
+  });
+});
+
+describe('Die Startseite vorab', () => {
+  it('wird geholt, während die Anmeldemaske steht', async () => {
+    zeige();
+    await waitFor(() => expect(vorgeladen.wert).toBe(true));
   });
 });

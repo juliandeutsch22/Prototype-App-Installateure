@@ -26,7 +26,7 @@ import { einsatzZeit } from './einsatzZeit';
 import { STUFEN_IM_EINSATZ, stufeAnzahl, stufeImEinsatz } from './stufeImEinsatz';
 import EinsatzFormular from './EinsatzFormular';
 import { AnsichtWahl, PlanungsSeitenkopf } from './PlanungsKopf';
-import { abwesendAm, fmtDay, useMaterialstamm, useRuestlistenDesTages } from './einsatzDaten';
+import { abwesendAm, fmtDay, useRuestlistenDesTages } from './einsatzDaten';
 
 /**
  * „Tag planen“ (seit Runde 4 die Ansicht „Tag“ der Einsatzplanung):
@@ -94,7 +94,6 @@ export default function AssignmentsView() {
     Liste, die Übersicht der Einsätze zeigt sie an der Baustelle.
   */
   const materialAn = useModul('material');
-  const materials = useMaterialstamm(user?.companyId, materialAn);
   const tagesListen = useRuestlistenDesTages(user?.companyId, date, materialAn);
   /** Das Formular — „Bearbeiten“ in der Tagesübersicht springt dorthin. */
   const formular = useRef<HTMLDivElement>(null);
@@ -308,7 +307,6 @@ export default function AssignmentsView() {
               urlaube={urlaube}
               betriebsurlaube={betriebsurlaube}
               termineDesTages={termineDesTages}
-              materials={materials}
               tagesListen={tagesListen}
               karten={{ titel: `Einsatz planen — ${fmtDay(date)}` }}
             />

@@ -480,6 +480,16 @@ describe('Startseite — Geschäftsführung', () => {
     }
   });
 
+  it('holt die Belegschaft einmal für alle Blöcke (Analyse 09.10.2026, Maßnahme 7)', async () => {
+    // Mannschaft, Baustellen und Einstellungen brauchen sie; bisher holte jeder Block sie selbst.
+    const { listUsers } = await import('@/lib/db/users');
+    vi.mocked(listUsers).mockClear();
+    zeichne();
+    await screen.findByRole('link', { name: /Aktive Baustellen/ });
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    expect(listUsers).toHaveBeenCalledTimes(1);
+  });
+
   it('Gegenprobe: ohne Lehrling und mit Leitung mit E-Mail — keine solche Zeile', async () => {
     const { listUsers } = await import('@/lib/db/users');
     vi.mocked(listUsers).mockImplementation(async () => [

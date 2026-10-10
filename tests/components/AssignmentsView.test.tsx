@@ -111,11 +111,14 @@ vi.mock('@/lib/db/materials', () => ({
     return lagerStand;
   },
   subscribeMaterials: (_c: string, cb: (r: (Material & { id: string })[]) => void) => {
+    katalogAbonniert.anzahl += 1;
     cb(MATERIAL);
     return () => undefined;
   },
   LOW_STOCK_THRESHOLD: 3,
 }));
+/** Wie oft der Materialstamm abonniert wurde — erst mit der Rüstliste (Analyse 09.10.2026, Maßnahme 9). */
+const katalogAbonniert = vi.hoisted(() => ({ anzahl: 0 }));
 vi.mock('@/lib/db/materialOrders', () => ({
   createMaterialOrder: (...a: unknown[]) => {
     anforderungAnlegen(...a);
@@ -177,6 +180,15 @@ afterEach(() => {
 });
 
 describe('Einsatzplanung — speichern', () => {
+  it('abonniert den Materialstamm erst, wenn eine Baustelle gewählt ist', async () => {
+    katalogAbonniert.anzahl = 0;
+    zeige();
+    const auswahl = await screen.findByRole('combobox', { name: /Baustelle/ });
+    expect(katalogAbonniert.anzahl).toBe(0);
+    await userEvent.selectOptions(auswahl, '2026-042');
+    await waitFor(() => expect(katalogAbonniert.anzahl).toBe(1));
+  });
+
   it('schickt genau die gewählten Leute an den Tag und die Baustelle', async () => {
     zeige();
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');

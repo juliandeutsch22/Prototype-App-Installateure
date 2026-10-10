@@ -172,7 +172,16 @@ export interface Kontext {
   user: Pick<AppUser, 'uid' | 'companyId' | 'role'> & { name?: string };
   company: Company | null | undefined;
   heute: string;
+  /**
+   * Die Belegschaft, einmal je Aufbau der Startseite geholt. Drei Blöcke der
+   * Leitung (Mannschaft, Baustellen, Einstellungen) brauchten sie und holten
+   * sie je selbst (Analyse 09.10.2026, Maßnahme 7). Ohne Angabe holt jeder
+   * Block sie wie bisher.
+   */
+  belegschaft?: () => Promise<AppUser[]>;
 }
+
+const belegschaftVon = (k: Kontext) => (k.belegschaft ? k.belegschaft() : listUsers(k.user.companyId));
 
 const tageZurueck = (n: number) => {
   const d = new Date();
@@ -214,18 +223,30 @@ export async function persoenlich(
   ]);
 
   /*
+    DIE TEILE DANACH LAUFEN GLEICHZEITIG (Analyse 09.10.2026, Maßnahme 7).
+    Bis hierher hingen sie nacheinander — Plan, Abwesenheit, Baustellen,
+    Scheine, Anforderungen, Saldo, Jugendschutz —, obwohl keiner auf den
+    anderen wartet: jeder schreibt sein eigenes Feld. Was einer braucht
+    (Profil, Buchungen, Einsätze), kommt aus dem Schritt darüber.
+  */
+  const teile: Promise<void>[] = [];
+
+  /*
     FEHLENDE TAGE NUR MIT ZEITKONTO — gefragt wird die frische Zeile, nicht
     das gemerkte Profil (Prüflauf F17).
   */
   if (profil && fuehrtZeitkonto(profil)) {
     out.hatEintritt = !!profil.appStartDate;
     out.fehlendeTage = offeneWerktage(profil, eintraege, fenster, new Date());
-    if (out.fehlendeTage.length > 0) {
-      const plan = await still(
-        () => listAssignmentsForUserInRange(user.companyId, user.uid, out.fehlendeTage![0], out.fehlendeTage![out.fehlendeTage!.length - 1]),
-        [],
-      );
-      out.planNachTag = new Map(plan.map((a) => [a.date, a.projectNumber]));
+    const fehlend = out.fehlendeTage;
+    if (fehlend.length > 0) {
+      teile.push((async () => {
+        const plan = await still(
+          () => listAssignmentsForUserInRange(user.companyId, user.uid, fehlend[0], fehlend[fehlend.length - 1]),
+          [],
+        );
+        out.planNachTag = new Map(plan.map((a) => [a.date, a.projectNumber]));
+      })());
     }
   }
 
@@ -237,61 +258,72 @@ export async function persoenlich(
     ? { startTime: letzte.startTime!, endTime: letzte.endTime!, breakDuration: Number(letzte.breakDuration ?? 0) }
     : null;
 
-  // Wer heute ganztags weg ist, hat heute keinen Einsatz (M33).
-  const eigeneAbwesenheit = einsaetze.some((a) => a.date === heute)
-    ? await still(() => listAbwesendInRange(heute, heute), [] as Abwesenheit[])
-    : [];
-  const heuteWeg = !!ganztagsWeg(eigeneAbwesenheit, user.uid, heute);
-  const heutige = heuteWeg ? [] : einsaetze.filter((a) => a.date === heute);
-  if (heutige.length > 0) {
-    const [projekte, listen] = await Promise.all([
-      listProjectsByNumbers(user.companyId, heutige.map((a) => a.projectNumber)),
-      was.material ? still(() => listEinsatzMaterialForDate(user.companyId, heute), []) : Promise.resolve([]),
-    ]);
-    out.heuteEigene = heutige
-      .map((a) => {
-        const pr = projekte.find((x) => x.projectNumber === a.projectNumber);
-        const liste = listen.find((l) => l.projectNumber === a.projectNumber);
-        return {
-          id: a.id,
-          date: a.date,
-          projectNumber: a.projectNumber,
-          customerName: pr ? baustellenTitel(pr) : `Baustelle ${a.projectNumber}`,
-          address: pr?.address,
-          contactName: pr?.contactName,
-          contactPhone: pr?.contactPhone,
-          asHelper: !!a.asHelper,
-          comment: a.comment,
-          zeit: einsatzZeit(a),
-          material: liste?.positionen,
-          geladen: liste?.geladen ?? {},
-        };
-      })
-      // Nach Uhrzeit, ohne Uhrzeit zuletzt: „Danach“ ist dann wirklich danach.
-      .sort((a, b) => (a.zeit ?? '99').localeCompare(b.zeit ?? '99'));
-  } else {
-    out.heuteEigene = [];
-  }
+  teile.push((async () => {
+    // Wer heute ganztags weg ist, hat heute keinen Einsatz (M33).
+    const eigeneAbwesenheit = einsaetze.some((a) => a.date === heute)
+      ? await still(() => listAbwesendInRange(heute, heute), [] as Abwesenheit[])
+      : [];
+    const heuteWeg = !!ganztagsWeg(eigeneAbwesenheit, user.uid, heute);
+    const heutige = heuteWeg ? [] : einsaetze.filter((a) => a.date === heute);
+    if (heutige.length > 0) {
+      const [projekte, listen] = await Promise.all([
+        listProjectsByNumbers(user.companyId, heutige.map((a) => a.projectNumber)),
+        was.material ? still(() => listEinsatzMaterialForDate(user.companyId, heute), []) : Promise.resolve([]),
+      ]);
+      out.heuteEigene = heutige
+        .map((a) => {
+          const pr = projekte.find((x) => x.projectNumber === a.projectNumber);
+          const liste = listen.find((l) => l.projectNumber === a.projectNumber);
+          return {
+            id: a.id,
+            date: a.date,
+            projectNumber: a.projectNumber,
+            customerName: pr ? baustellenTitel(pr) : `Baustelle ${a.projectNumber}`,
+            address: pr?.address,
+            contactName: pr?.contactName,
+            contactPhone: pr?.contactPhone,
+            asHelper: !!a.asHelper,
+            comment: a.comment,
+            zeit: einsatzZeit(a),
+            material: liste?.positionen,
+            geladen: liste?.geladen ?? {},
+          };
+        })
+        // Nach Uhrzeit, ohne Uhrzeit zuletzt: „Danach“ ist dann wirklich danach.
+        .sort((a, b) => (a.zeit ?? '99').localeCompare(b.zeit ?? '99'));
+    } else {
+      out.heuteEigene = [];
+    }
+  })());
 
   if (was.scheine) {
-    const seit = localDateStr(tageZurueck(NACHTRAG_TAGE));
-    const scheine = await still(() => listOwnWorkSheetsSince(user.companyId, user.uid, seit), []);
-    out.nachtraege = offeneNachtraege(scheine, eintraege, heute, user.name ?? '');
+    teile.push((async () => {
+      const seit = localDateStr(tageZurueck(NACHTRAG_TAGE));
+      const scheine = await still(() => listOwnWorkSheetsSince(user.companyId, user.uid, seit), []);
+      out.nachtraege = offeneNachtraege(scheine, eintraege, heute, user.name ?? '');
+    })());
   }
   if (was.material) {
-    out.eigeneOrders = await still(() => listOwnOpenOrders(user.companyId, user.uid), []);
+    teile.push((async () => {
+      out.eigeneOrders = await still(() => listOwnOpenOrders(user.companyId, user.uid), []);
+    })());
   }
   if (was.kennzahlen && profil && fuehrtZeitkonto(profil)) {
-    const [saldo, urlaub] = await Promise.all([
-      still(() => eigenerSaldo(user.companyId, profil, k.company), null),
-      still(() => eigenerResturlaub(user.companyId, profil, k.company), null),
-    ]);
-    out.saldo = saldo;
-    out.resturlaub = urlaub;
+    teile.push((async () => {
+      const [saldo, urlaub] = await Promise.all([
+        still(() => eigenerSaldo(user.companyId, profil, k.company), null),
+        still(() => eigenerResturlaub(user.companyId, profil, k.company), null),
+      ]);
+      out.saldo = saldo;
+      out.resturlaub = urlaub;
+    })());
   }
   if (was.jugendschutz) {
-    out.eigeneGrenzfaelle = await eigeneGrenzfaelle(k, profil);
+    teile.push((async () => {
+      out.eigeneGrenzfaelle = await eigeneGrenzfaelle(k, profil);
+    })());
   }
+  await Promise.all(teile);
   return out;
 }
 
@@ -400,7 +432,7 @@ export async function team(
   if (was.luecken) {
     const fenster = tageZurueck(LUECKEN_TAGE);
     const [alle, eintraege] = await Promise.all([
-      listUsers(user.companyId),
+      belegschaftVon(k),
       listEntriesInRange(user.companyId, localDateStr(fenster), todayStr()),
     ]);
     out.team = alle
@@ -440,7 +472,7 @@ export async function leitung(
   const { von: vorher, bis } = planFenster(heute);
   const [projekte, alle, einsaetzeHeute, abwesend, plan] = await Promise.all([
     listActiveProjects(user.companyId),
-    listUsers(user.companyId),
+    belegschaftVon(k),
     was.einsatzplanung ? listAssignmentsForDate(user.companyId, heute) : Promise.resolve([]),
     was.einsatzplanung
       ? still(() => listAbwesendInRange(woche[0] < heute ? woche[0] : heute, woche[6] > heute ? woche[6] : heute), [] as Abwesenheit[])
@@ -572,7 +604,7 @@ export async function einstellungen(
     out.kontenFehlen = konten !== null && konten.length === 0;
   }
   if (was.personen && k.user.companyId) {
-    const personen = await still(() => listUsers(k.user.companyId), null);
+    const personen = await still(() => belegschaftVon(k), null);
     if (personen) {
       out.lehrzeitEnden = lehrzeitEnden(personen, heute);
       out.einzigeLeitungOhneMail = einzigeLeitungOhneMail(personen);
