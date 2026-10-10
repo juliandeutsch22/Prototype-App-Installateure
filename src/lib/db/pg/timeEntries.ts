@@ -101,6 +101,26 @@ export function listEntriesInRange(companyId: string, from: string, to: string) 
 }
 
 /**
+ * Nur die Spalten, aus denen sich Arbeitszeit rechnen lässt — für den
+ * Durchschnitt der 17 Wochen (Arbeitszeitgrenzen). Vier Monate Vorlauf mit
+ * Kommentar, Kunde und Fahrzeug zu laden, wäre ein Vielfaches dessen, was
+ * die Frage braucht.
+ */
+export function listArbeitszeitenInRange(companyId: string, from: string, to: string) {
+  return abfragen<Pick<TimeEntry, 'userId' | 'date' | 'status' | 'startTime' | 'endTime' | 'breakDuration' | 'hours'>>(
+    ZEITEN,
+    companyId,
+    {
+      wo: [
+        { art: 'ab', feld: 'date', wert: from },
+        { art: 'bis', feld: 'date', wert: to },
+      ],
+      spalten: 'id,user_id,date,status,start_time,end_time,break_duration,hours',
+    },
+  );
+}
+
+/**
  * Einträge zu bestimmten Baustellen — für das Projekt-Radar.
  *
  * EINE Abfrage statt einer je Baustelle: Firestore brauchte je Baustelle eine

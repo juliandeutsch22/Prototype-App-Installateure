@@ -41,8 +41,10 @@ const eintrag = (date: string): TimeEntry & { id: string } => ({
   date,
   status: 'Anwesend',
   startTime: '07:00',
-  endTime: '15:00',
-  breakDuration: 0,
+  // Mit der halben Stunde Pause, die ab 6 Std. Pflicht ist (§ 11 AZG) — sonst
+  // wäre jeder Tag ein Grenzfall.
+  endTime: '15:30',
+  breakDuration: 30,
   userId: 'u1',
   userName: monteur.name,
 });
@@ -103,6 +105,8 @@ vi.mock('@/lib/db/timeEntries', () => ({
     grenzAbfragen += 1;
     return buchungen;
   }),
+  // Der Vorlauf für den Durchschnitt der 17 Wochen — hier ohne Buchungen.
+  listArbeitszeitenInRange: vi.fn(async () => []),
   // Die Summen, wie `baustellen_stunden` sie aus denselben Buchungen bildet.
   stundenDerBaustellen: vi.fn(async () => {
     const { groupProjectHours } = await vi.importActual<typeof import('@/lib/time')>('@/lib/time');
@@ -664,7 +668,7 @@ describe('Mitarbeiteruebersicht — Arbeitszeitgrenzen nach dem Buchen (Runde 3,
     const vorher = grenzAbfragen;
 
     // Das Büro bucht 13 Stunden — die Live-Verbindung meldet den neuen Stand.
-    buchungen = [...eintraege, { ...eintrag('2026-08-31'), id: 'neu', startTime: '05:00', endTime: '18:00' }];
+    buchungen = [...eintraege, { ...eintrag('2026-08-31'), id: 'neu', startTime: '05:00', endTime: '18:30' }];
     act(() => liveSenden!(buchungen));
 
     expect(await screen.findByText(/13:00 Std\. am 31\.08\. — höchstens 12 Std\./)).toBeInTheDocument();
@@ -723,7 +727,7 @@ describe('Mitarbeiterübersicht: der Monat als Streifen (Runde 4, Auftrag 3.3)',
     zeichneSeite();
     await personKnopf('Neu Eingestellt');
     expect(tagKnopf(/^Neu Eingestellt, Do 20\.08\. · keine Buchung · Soll 8:00$/)).toHaveClass('st-fehlt');
-    expect(tagKnopf(/^Neu Eingestellt, Mi 19\.08\. · 07:00–15:00 · 8:00 Std\. · Soll 8:00$/)).toHaveClass('st-ok');
+    expect(tagKnopf(/^Neu Eingestellt, Mi 19\.08\. · 07:00–15:30 · 8:00 Std\. · Soll 8:00$/)).toHaveClass('st-ok');
     // Vor dem Eintritt und am Wochenende: frei, kein Knopf — nichts zu tun.
     expect(screen.queryByRole('button', { name: /Mo 10\.08\./ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Sa 22\.08\./ })).not.toBeInTheDocument();
@@ -824,7 +828,7 @@ describe('Mitarbeiterübersicht: der Monat als Streifen (Runde 4, Auftrag 3.3)',
     const feld = tagKnopf(/Mi 19\.08\./);
     expect(feld).not.toHaveAttribute('title');
     await nutzer.hover(feld);
-    expect(document.querySelector('.tipp')).toHaveTextContent('Mi 19.08. · 07:00–15:00 · 8:00 Std. · Soll 8:00');
+    expect(document.querySelector('.tipp')).toHaveTextContent('Mi 19.08. · 07:00–15:30 · 8:00 Std. · Soll 8:00');
     await nutzer.unhover(feld);
     expect(document.querySelector('.tipp')).toBeNull();
   });
@@ -878,12 +882,12 @@ describe('Mitarbeiterübersicht: Kennzahlen (Runde 4, Auftrag 3.2)', () => {
   });
 
   it('der Fall steht in der Karte und als Tag im Streifen — mit EINER Prüfung, ohne eigene Kennzahl', async () => {
-    buchungen = [...eintraege.filter((e) => e.date !== '2026-08-25'), { ...eintrag('2026-08-25'), startTime: '05:00', endTime: '18:00' }];
+    buchungen = [...eintraege.filter((e) => e.date !== '2026-08-25'), { ...eintrag('2026-08-25'), startTime: '05:00', endTime: '18:30' }];
     zeichneSeite();
     expect(await screen.findByText(/13:00 Std\. am 25\.08\. — höchstens 12 Std\./)).toBeInTheDocument();
     // Die Kennzahl „Arbeitszeitgrenzen“ ist weg (Wunsch des Betriebs, 09.10.2026); Karte und Streifen bleiben.
     expect(screen.queryByRole('button', { name: /^Arbeitszeitgrenzen/ })).toBeNull();
-    expect(tagKnopf(/Di 25\.08\. · 05:00–18:00 · 13:00 Std\..*höchstens 12 Std\./)).toHaveClass('st-grenze');
+    expect(tagKnopf(/Di 25\.08\. · 05:00–18:30 · 13:00 Std\..*höchstens 12 Std\./)).toHaveClass('st-grenze');
     // Karte und Streifen lesen dieselbe Prüfung: eine Abfrage, nicht zwei.
     expect(grenzAbfragen).toBe(1);
   });
@@ -949,7 +953,7 @@ describe('Mitarbeiterübersicht: die Woche (Runde 4, Auftrag 3.4)', () => {
     const gebucht = tagKnopf(/^Neu Eingestellt, Di 25\.08\./);
     expect(gebucht).toHaveClass('mw-zelle');
     expect(gebucht).toHaveTextContent('8:00');
-    expect(gebucht).toHaveTextContent('07:00–15:00');
+    expect(gebucht).toHaveTextContent('07:00–15:30');
     expect(tagKnopf(/^Neu Eingestellt, Mi 26\.08\. · keine Buchung/)).toHaveTextContent('fehlt');
     // Gruppe und Stand der Woche, Summen der Woche: 4 × 8 gebucht, 5 × 8 Soll.
     expect(screen.getByRole('heading', { name: 'Mit Tagen ohne Buchung in dieser Woche · 1' })).toBeInTheDocument();

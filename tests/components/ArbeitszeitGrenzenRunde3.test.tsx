@@ -22,7 +22,11 @@ const setBegruendung = vi.fn(async (_c: string, b: { userId: string; art: string
 });
 const listEntriesInRange = vi.fn(async () => buchungen);
 
-vi.mock('@/lib/db/timeEntries', () => ({ listEntriesInRange: () => listEntriesInRange() }));
+vi.mock('@/lib/db/timeEntries', () => ({
+  listEntriesInRange: () => listEntriesInRange(),
+  // Der Vorlauf für den Durchschnitt der 17 Wochen — hier ohne Buchungen.
+  listArbeitszeitenInRange: async () => [],
+}));
 vi.mock('@/lib/db/arbeitszeitGrenzen', () => ({
   listGeburtsdaten: vi.fn(async () => geburtsdaten),
   listBegruendungen: vi.fn(async () => begruendungen),
@@ -74,13 +78,13 @@ afterEach(() => {
 
 describe('G12 — nach einer Buchung neu geprüft', () => {
   it('ein neuer Stand der Buchungen prüft still neu und zeigt den neuen Fall', async () => {
-    buchungen = [tag('z1', '2026-10-06', '07:00', '15:00')];
+    buchungen = [tag('z1', '2026-10-06', '07:00', '15:30', { breakDuration: 30 })];
     const { neu } = zeichne({ aktualisiert: 'a' });
     expect(await screen.findByText(/keine Grenze überschritten/)).toBeInTheDocument();
     expect(listEntriesInRange).toHaveBeenCalledTimes(1);
 
     // Das Büro bucht auf derselben Seite dazu: der Tag hat jetzt 10 Std.
-    buchungen = [...buchungen, tag('z2', '2026-10-06', '15:30', '17:30')];
+    buchungen = [...buchungen, tag('z2', '2026-10-06', '16:00', '18:00')];
     neu({ aktualisiert: 'b' });
     expect(await screen.findByText(/10:00 Std\. am 06\.10\. — höchstens 8 Std\./)).toBeInTheDocument();
     expect(listEntriesInRange).toHaveBeenCalledTimes(2);
@@ -138,8 +142,8 @@ describe('M3 — Jugendschutz: Verstoß statt Begründung', () => {
   it('Gegenprobe: beim AZG (Erwachsene) bleibt es bei „Begründen“', async () => {
     geburtsdaten = new Map();
     buchungen = [
-      tag('z1', '2026-10-06', '14:00', '23:00', { userId: 'u2' }),
-      tag('z2', '2026-10-07', '07:00', '15:00', { userId: 'u2' }),
+      tag('z1', '2026-10-06', '14:00', '23:00', { userId: 'u2', breakDuration: 30 }),
+      tag('z2', '2026-10-07', '07:00', '15:00', { userId: 'u2', breakDuration: 30 }),
     ];
     zeichne({ personen: [MAX], onKorrigieren: vi.fn() });
     expect(await screen.findByRole('button', { name: 'Begründen' })).toBeInTheDocument();

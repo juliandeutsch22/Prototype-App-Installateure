@@ -96,9 +96,20 @@ describe('Begründung je Fall', () => {
     });
     expect(leer.error).not.toBeNull();
     const art = await buero.client.from('arbeitszeit_begruendungen').insert({
-      company_id: BETRIEB, user_id: monteur.uid, art: 'pause', bezug: '2026-10-09', text: 'x',
+      company_id: BETRIEB, user_id: monteur.uid, art: 'xyz', bezug: '2026-10-09', text: 'x',
     });
     expect(art.error).not.toBeNull();
+  });
+
+  // Am Kollegen und ohne Büro-Konto: Auskunft und Löschung unten zählen die
+  // Begründungen des Monteurs und die des Büros.
+  it('Pause und Durchschnitt lassen sich begründen (seit 10.10.2026)', async () => {
+    for (const [art, bezug] of [['pause', '2026-10-09'], ['durchschnitt', '2026-10-05']]) {
+      const r = await admin.from('arbeitszeit_begruendungen').insert({
+        company_id: BETRIEB, user_id: kollege.uid, art, bezug, text: 'Notdienst',
+      });
+      expect(r.error).toBeNull();
+    }
   });
 });
 

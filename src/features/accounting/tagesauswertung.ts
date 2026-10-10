@@ -122,7 +122,7 @@ export function artWort(status: TimeEntry['status']): string {
 
 /** Fälle, die an EINEM Tag hängen. Wochenfälle hängen am Montag und betreffen die ganze Woche. */
 export function istTagesfall(f: Pick<Grenzfall, 'art'>): boolean {
-  return f.art === 'tag' || f.art === 'nacht' || f.art === 'ruhezeit';
+  return f.art === 'tag' || f.art === 'pause' || f.art === 'nacht' || f.art === 'ruhezeit';
 }
 
 /**
