@@ -55,9 +55,9 @@ test('Am Tablet steht „Einstellungen“ in der Seitenleiste in einer Zeile', a
   // Und es ragt höchstens in den Innenabstand (2 px je Seite), nicht über den Punkt hinaus.
   const ueberstand = () => kurz.evaluate((el) => el.scrollWidth - el.clientWidth);
   /*
-    GEMESSEN WIRD IN POPPINS. Den fetten Schnitt lädt der Browser erst beim
-    ersten fetten Text — gleich nach dem Klick stand in der CI noch die
-    Ersatzschrift da, 8 px breiter.
+    GEMESSEN WIRD IN POPPINS, nicht in der Ersatzschrift, die bis zum Laden
+    dasteht. Der aktive Kurztext bleibt am Tablet dünn (siehe `lot.css`) —
+    fett lief er in der CI 8 px über.
   */
   const schriftDa = async (gewicht: number) => {
     const geladen = await page.evaluate((g) => document.fonts.load(`${g} 11px Poppins`).then((f) => f.length), gewicht);
@@ -68,7 +68,8 @@ test('Am Tablet steht „Einstellungen“ in der Seitenleiste in einer Zeile', a
   expect(await ueberstand()).toBeLessThanOrEqual(2);
   await kurz.click();
   await expect(page.locator('.navi .navi-punkt-aktiv', { hasText: 'Einstellungen' })).toBeVisible();
-  await schriftDa(600);
+  await schriftDa(400);
+  expect(await kurz.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('400');
   expect(await zeilen()).toBe(1);
   expect(await ueberstand()).toBeLessThanOrEqual(2);
 });
