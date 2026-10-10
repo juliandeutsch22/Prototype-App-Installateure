@@ -25,6 +25,8 @@ import {
  * Einstufung die Personen mit denselben Blöcken wie im Raster; wer frei ist,
  * trägt „frei – Einsatz planen“. Die Einsätze je Baustelle und alle Freien
  * stehen im Seitenfenster „Tag“ („Ganzen Tag ansehen“).
+ *
+ * In der Team-Woche (`lesen`) dieselbe Liste ohne Knöpfe und ohne „frei“.
  */
 export default function HandyWoche({
   tage,
@@ -44,6 +46,8 @@ export default function HandyWoche({
   onEinsatz,
   onTermin,
   onTerminNeu,
+  lesen,
+  ich,
 }: {
   tage: string[];
   heute: string;
@@ -62,6 +66,10 @@ export default function HandyWoche({
   onEinsatz: (start: FensterStart) => void;
   onTermin: (t: Termin) => void;
   onTerminNeu: (tag: string) => void;
+  /** Team-Woche: nur zum Lesen (siehe `RasterGrund.lesen`). */
+  lesen?: boolean;
+  /** Wer schaut — sein Name trägt „du“. */
+  ich?: string;
 }) {
   const termine = termineAm(gewaehlt);
   const { datum } = tagKurz(gewaehlt);
@@ -69,7 +77,9 @@ export default function HandyWoche({
   const zu = zuAm.get(gewaehlt);
   const frei = proTag.get(gewaehlt)?.frei.length ?? 0;
   // Wie im Tageskopf: „N frei“, am Betriebsurlaub mit den Ausgenommenen.
-  const info = feiertag ?? (zu ? (frei > 0 ? `${zu} · ${frei} frei` : zu) : ruhetag(gewaehlt) ? 'Wochenende' : `${frei} frei`);
+  const info = lesen
+    ? (feiertag ?? zu ?? (ruhetag(gewaehlt) ? 'Wochenende' : null))
+    : (feiertag ?? (zu ? (frei > 0 ? `${zu} · ${frei} frei` : zu) : ruhetag(gewaehlt) ? 'Wochenende' : `${frei} frei`));
 
   return (
     <section aria-label="Wochenplan als Liste" className="handy-woche">
@@ -77,7 +87,7 @@ export default function HandyWoche({
         {tage.map((tag) => {
           const { wochentag } = tagKurz(tag);
           const ts = termineAm(tag);
-          const ohne = ts.filter((t) => lieferungOhneAnnahme(t, einsaetze)).length;
+          const ohne = lesen ? 0 : ts.filter((t) => lieferungOhneAnnahme(t, einsaetze)).length;
           const an = tag === gewaehlt;
           return (
             <button
@@ -104,22 +114,32 @@ export default function HandyWoche({
             {tagLang(gewaehlt)}
             {gewaehlt === heute ? ' · heute' : ''}
           </p>
-          <p className="tl-info">{info}</p>
+          {info && <p className="tl-info">{info}</p>}
         </div>
-        <button type="button" className="wp-textknopf" onClick={() => onTag(gewaehlt)}>
-          Ganzen Tag ansehen
-        </button>
+        {!lesen && (
+          <button type="button" className="wp-textknopf" onClick={() => onTag(gewaehlt)}>
+            Ganzen Tag ansehen
+          </button>
+        )}
       </div>
 
       <div className="tl-gruppe">
         <span>{termine.length ? termineText(termine.length) : 'Keine Termine'}</span>
-        {darf && (
+        {darf && !lesen && (
           <button type="button" className="wp-textknopf" onClick={() => onTerminNeu(gewaehlt)}>
             Termin anlegen
           </button>
         )}
       </div>
-      {termine.map((t) => (
+      {termine.map((t) =>
+        lesen ? (
+          <div key={t.id} className="tl-termin nur-lesen">
+            <span className="tl-termin-text">
+              <span className="tl-termin-titel">{[terminZeit(t), t.art].filter(Boolean).join(' ')}</span>
+              <span className="tl-termin-ort">{terminOrtKurz(t)}</span>
+            </span>
+          </div>
+        ) : (
         <button key={t.id} type="button" className="tl-termin" onClick={() => onTermin(t)}>
           <span className="tl-termin-text">
             <span className="tl-termin-titel">{[terminZeit(t), t.art].filter(Boolean).join(' ')}</span>
@@ -127,7 +147,8 @@ export default function HandyWoche({
           </span>
           {lieferungOhneAnnahme(t, einsaetze) && <Warnung>niemand dort</Warnung>}
         </button>
-      ))}
+        ),
+      )}
 
       {gruppen.map((g) => (
         <div key={g.name}>
@@ -142,10 +163,12 @@ export default function HandyWoche({
               datum={datum}
               brett={brett}
               zu={zuFuer(u.uid, gewaehlt)}
-              frei={!!proTag.get(gewaehlt)?.freiIds.includes(u.uid)}
+              frei={!lesen && !!proTag.get(gewaehlt)?.freiIds.includes(u.uid)}
               termine={termine}
               infoFuer={infoFuer}
               darf={darf}
+              lesen={lesen}
+              ich={ich === u.uid}
               onEinsatz={onEinsatz}
               onTermin={onTermin}
             />
@@ -166,6 +189,8 @@ function TagesPerson({
   termine,
   infoFuer,
   darf,
+  lesen,
+  ich,
   onEinsatz,
   onTermin,
 }: {
@@ -179,15 +204,23 @@ function TagesPerson({
   termine: Termin[];
   infoFuer: (tag: string, nummer: string) => BaustellenInfo;
   darf: boolean;
+  lesen?: boolean;
+  ich: boolean;
   onEinsatz: (start: FensterStart) => void;
   onTermin: (t: Termin) => void;
 }) {
   const z = brett.get(u.uid)?.get(tag);
+  const leer = zelleLeer(z, zu, termine, u.uid);
   return (
     <div className="tl-person">
-      <p className="tl-name">{u.name}</p>
+      <p className="tl-name">
+        {u.name}
+        {ich && <span className="wp-name-ich"> · du</span>}
+      </p>
       <div className="tl-eintraege">
-        {!zelleLeer(z, zu, termine, u.uid) && (
+        {/* In der Team-Woche gibt es kein „frei“: eine leere Zeile sagt „nicht eingeteilt“. */}
+        {lesen && leer && <p className="tl-leer">nicht eingeteilt</p>}
+        {!leer && (
           <PersonEintraege
             person={u}
             tag={tag}
@@ -197,6 +230,7 @@ function TagesPerson({
             termine={termine}
             infoFuer={(nr) => infoFuer(tag, nr)}
             darf={darf}
+            lesen={lesen}
             onEinsatz={onEinsatz}
             onTermin={onTermin}
           />

@@ -1,16 +1,15 @@
-import { useMemo, useState } from 'react';
-import { bezugText, terminKopf } from '@/features/termine/terminText';
-import { todayStr, getAustrianHolidayName, isWeekend } from '@/lib/time';
-import type { Termin } from '@/types';
+import { useCallback, useMemo, useState } from 'react';
+import { todayStr } from '@/lib/time';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
-import { ErrorState, EmptyState, TeilFehler } from '@/components/States';
+import { ErrorState, EmptyState, LoadingState, TeilFehler } from '@/components/States';
 import { useAuth } from '@/app/AuthContext';
 import { montagDer, wocheAb, wocheVerschoben } from './wochenplan';
 import { wochenTitel } from './planungKopf';
-import { tagKurz, type TagStand } from './planTypen';
-import { PersonenRaster } from './PlanRaster';
+import { PersonenWoche, type RasterGrund } from './WochenRaster';
+import HandyWoche from './HandyWoche';
+import { schmalerTag } from './wochenTermine';
 import { useWochenDaten } from './useWochenDaten';
 
 /**
@@ -21,10 +20,12 @@ import { useWochenDaten } from './useWochenDaten';
  * gibt die Datenbank nur dem heraus, der ihn sehen darf — dem Monteur nie,
  * dort steht „abwesend".
  *
- * SEIT RUNDE 4 EINE EIGENE ANSICHT. Die Einsatzplanung hat ein neues Raster
- * mit Seitenfenstern bekommen; die Team-Woche bleibt genau, wie sie war
- * (Auftrag 4.8). Getrennt ist nur das Zeichnen — gerechnet wird für beide in
- * `useWochenDaten`. Das DOM hält `tests/components/TeamWoche.test.tsx` fest.
+ * SEIT 10.10.2026 MIT DEN BAUSTEINEN DER EINSATZPLANUNG (`PersonenWoche`,
+ * `HandyWoche`, je mit `lesen`). Bis dahin zeichnete sie ihr eigenes, älteres
+ * Raster (Auftrag 4.8 „bleibt, wie sie war“); darin verschwanden Einsätze in
+ * der Spalte von heute (gleiche Farbe wie der Block), am Handy standen
+ * Kästen in der Karte, ein Lehrling hieß „Helfer“, und Namen wurden
+ * abgeschnitten. Jetzt zeigt sie, was die Planung zeigt — und nur das.
  */
 export default function TeamWoche() {
   const { user } = useAuth();
@@ -32,16 +33,50 @@ export default function TeamWoche() {
   const [montag, setMontag] = useState(() => montagDer(heute));
   /** Eingeklappte Gruppen im Raster. */
   const [zuGruppen, setZuGruppen] = useState<Set<string>>(new Set());
+  /** Der Tag am Handy — ohne Wahl heute, in einer anderen Woche ihr Montag. */
+  const [handyWahl, setHandyWahl] = useState<string | null>(null);
   const tage = useMemo(() => wocheAb(montag), [montag]);
   const d = useWochenDaten(tage);
+
+  /** Samstag, Sonntag, Feiertag ohne Einsatz und Termin — schmal, wie in der Planung. */
+  const schmal = useMemo(
+    () => new Set(tage.filter((t) => schmalerTag(t, d.einsaetze, d.termine))),
+    [tage, d.einsaetze, d.termine],
+  );
+  const infoFuer = useCallback(
+    (tag: string, nummer: string) => ({
+      projekt: d.projects.find((p) => p.projectNumber === nummer),
+      stand: d.proTag.get(tag)?.baustellen.find((b) => b.nummer === nummer),
+    }),
+    [d.projects, d.proTag],
+  );
 
   if (!user) return null;
 
   const kopf = wochenTitel(montag, heute);
   const jetzt = montag === montagDer(heute);
+  const handyTag = handyWahl && tage.includes(handyWahl) ? handyWahl : tage.includes(heute) ? heute : tage[0];
+  const nichts = () => undefined;
+  const grund: RasterGrund = {
+    tage,
+    heute,
+    markiert: null,
+    schmal,
+    proTag: d.proTag,
+    freiJeTag: d.freiJeTag,
+    zuAm: d.zuAm,
+    einsaetze: d.einsaetze,
+    termineAm: d.termineAm,
+    darf: false,
+    onTag: nichts,
+    onEinsatz: nichts,
+    onTermin: nichts,
+    lesen: true,
+    ich: user.uid,
+  };
 
   return (
-    <div className="space-y-4 lg:space-y-5">
+    <div className="space-y-4 lg:space-y-5" lang="de-AT">
       <PageHeader
         ort="Mein Einsatzplan"
         title="Team-Woche"
@@ -50,7 +85,8 @@ export default function TeamWoche() {
           <>
             Zeigt, wer an welchem Tag auf welcher Baustelle eingeteilt ist. Geplant wird im
             Büro; bei Fragen zur Einteilung bitte dort melden. Wer abwesend ist, steht ohne
-            Grund da. Der Plan zeigt Einsätze, nicht gebuchte Zeiten.
+            Grund da. Der Plan zeigt Einsätze, nicht gebuchte Zeiten. Termine stehen bei denen,
+            die daran teilnehmen, und am Einsatz auf derselben Baustelle.
           </>
         }
       />
@@ -85,132 +121,57 @@ export default function TeamWoche() {
         </div>
       </div>
 
-      {d.staff.length === 0 ? (
+      {!d.belegschaftGeladen ? (
         <Card buendig>
-          <EmptyState>
-            Keine aktiven Mitarbeiter im Außendienst. Ohne sie gibt es nichts einzuteilen.
-          </EmptyState>
+          <LoadingState />
+        </Card>
+      ) : d.staff.length === 0 ? (
+        <Card buendig>
+          <EmptyState>Im Außendienst ist niemand eingetragen — es gibt keinen Plan zu zeigen.</EmptyState>
         </Card>
       ) : (
-        <div>
-          <Card buendig>
-            <PersonenRaster
+        <Card buendig>
+          <PersonenWoche
+            g={grund}
+            gruppen={d.gruppen}
+            zu={zuGruppen}
+            onGruppe={(g) =>
+              setZuGruppen((alt) => {
+                const neu = new Set(alt);
+                if (neu.has(g)) neu.delete(g);
+                else neu.add(g);
+                return neu;
+              })
+            }
+            brett={d.brett}
+            zuFuer={d.zuFuer}
+            infoFuer={infoFuer}
+          />
+          <div className="md:hidden">
+            <HandyWoche
               tage={tage}
               heute={heute}
+              gewaehlt={handyTag}
+              onWahl={setHandyWahl}
               gruppen={d.gruppen}
-              zu={zuGruppen}
-              onGruppe={(g) =>
-                setZuGruppen((alt) => {
-                  const neu = new Set(alt);
-                  if (neu.has(g)) neu.delete(g);
-                  else neu.add(g);
-                  return neu;
-                })
-              }
               brett={d.brett}
+              proTag={d.proTag}
               zuAm={d.zuAm}
               zuFuer={d.zuFuer}
-              termine={d.termine}
+              einsaetze={d.einsaetze}
               termineAm={d.termineAm}
+              infoFuer={infoFuer}
+              darf={false}
+              onTag={nichts}
+              onEinsatz={nichts}
+              onTermin={nichts}
+              onTerminNeu={nichts}
+              lesen
+              ich={user.uid}
             />
-
-            {/*
-              DIE TAGESLISTE — die Telefonansicht: erst der Tag, dann wer dort
-              ist. Kein waagrechter Bildlauf, keine stehende Spalte.
-            */}
-            <section aria-label="Wochenplan als Liste" className="md:hidden">
-              {tage.map((tag) => (
-                <TagesAbschnitt
-                  key={tag}
-                  tag={tag}
-                  heute={heute}
-                  stand={d.proTag.get(tag)}
-                  zu={d.zuAm.get(tag)}
-                  termine={d.termineAm(tag)}
-                />
-              ))}
-            </section>
-          </Card>
-        </div>
+          </div>
+        </Card>
       )}
-    </div>
-  );
-}
-
-/** Ein Tag der Telefonansicht: Termine, Baustellen mit Namen, abwesend. */
-function TagesAbschnitt({
-  tag,
-  heute,
-  stand,
-  zu,
-  termine,
-}: {
-  tag: string;
-  heute: string;
-  stand: TagStand | undefined;
-  zu: string | undefined;
-  termine: Termin[];
-}) {
-  const { wochentag, datum } = tagKurz(tag);
-  const feiertag = getAustrianHolidayName(new Date(`${tag}T00:00:00`));
-  const wochenende = isWeekend(new Date(`${tag}T00:00:00`));
-  return (
-    // Die Tage durch Linien getrennt von Kante zu Kante — keine Karte in der Karte.
-    <div className={`border-t border-line ${tag === heute ? 'bg-petrol-hell' : feiertag || wochenende || zu ? 'bg-surface-2' : ''}`}>
-      <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-1 pt-3">
-        <span className="font-semibold text-ink">
-          {wochentag}, {datum}
-          {tag === heute && <span className="ml-2 text-sm text-ink-muted">heute</span>}
-          {feiertag && <span className="ml-2 text-sm font-normal text-ink-muted">{feiertag}</span>}
-        </span>
-        {zu && <span className="text-sm text-ink-muted">Betriebsurlaub</span>}
-      </div>
-
-      <div className="space-y-2 px-4 pb-3">
-        {termine.length > 0 && (
-          <ul aria-label={`Termine am ${datum}`} className="space-y-1">
-            {termine.map((tt) => (
-              <li key={tt.id} className="text-sm">
-                <span className="font-normal text-ink">{terminKopf(tt)}</span>{' '}
-                <span className="text-ink-muted">· {bezugText(tt)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {stand && stand.baustellen.length > 0 ? (
-          stand.baustellen.map((b) => (
-            <div key={b.nummer} className={b.fehlen.length > 0 ? 'tag-karte-konflikt-lesen' : 'tag-karte-lesen'}>
-              <span className="block font-normal text-ink">
-                {b.zeit && <span className="plan-zeit">{b.zeit}</span>}
-                {b.name} <span className="font-normal text-ink-muted">· {b.nummer}</span>
-              </span>
-              <span className="block text-sm text-ink-muted">
-                {b.namen.map((n) => (b.helfer.includes(n) ? `${n} (Helfer)` : n)).join(', ')}
-              </span>
-              {/*
-                Wer eingeteilt ist und fehlt — und ob damit niemand mehr da ist
-                (M33). Bernstein, nicht Rot: ein Konflikt, kein Fehler.
-              */}
-              {b.fehlen.length > 0 && (
-                <span className="block text-sm font-semibold text-warning">
-                  {b.namen.length === 0 ? 'Unbesetzt — ' : ''}fehlt: {b.fehlen.join(', ')}
-                </span>
-              )}
-            </div>
-          ))
-        ) : zu ? (
-          <p className="text-sm text-ink-muted">Betriebsurlaub — {zu}.</p>
-        ) : (
-          // Stehen darüber Termine, wäre „Nichts geplant" ein Widerspruch.
-          <p className="text-sm text-ink-muted">{termine.length > 0 ? 'Kein Einsatz geplant.' : 'Nichts geplant.'}</p>
-        )}
-
-        {stand && stand.urlaub.length > 0 && (
-          <p className="text-sm text-ink-muted">
-            <span className="font-normal text-ink">Abwesend:</span> {stand.urlaub.join(', ')}
-          </p>
-        )}
-      </div>
     </div>
   );
 }

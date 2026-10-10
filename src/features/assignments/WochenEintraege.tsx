@@ -37,6 +37,7 @@ function Einsatzblock({
   info,
   konflikt,
   zusatz,
+  lesen,
   onEinsatz,
 }: {
   person: AppUser;
@@ -47,6 +48,8 @@ function Einsatzblock({
   /** Eingeteilt, aber ganztags weg: „Krank“ bzw. „abwesend“. */
   konflikt: string | null;
   zusatz: Termin[];
+  /** Team-Woche: derselbe Block, aber kein Knopf. */
+  lesen?: boolean;
   onEinsatz: (start: FensterStart) => void;
 }) {
   const p = info.projekt;
@@ -59,18 +62,8 @@ function Einsatzblock({
     : person.name;
   const titel = [b.name, p?.bezeichnung?.trim(), b.nummer, b.zeit, eingeteilt].filter(Boolean).join(' · ');
   const alsHelfer = b.helfer && !alsHelferEingestuft(person) && !istLehrling(person);
-  return (
-    <button
-      type="button"
-      className={konflikt ? 'eintrag-konflikt' : 'eintrag'}
-      title={konflikt ? `${titel} — eingeteilt, fehlt` : titel}
-      // Mit Nummer: zwei Baustellen desselben Kunden am selben Tag hießen
-      // für die Vorlesehilfe sonst gleich. Dazu Person und Zustand.
-      aria-label={`${b.name} (${b.nummer}) am ${datum} bearbeiten – ${person.name}${
-        konflikt ? `, eingeteilt, fehlt: ${konflikt}` : b.zeit ? `, ${b.zeit}` : ''
-      }`}
-      onClick={() => onEinsatz({ datum: tag, projectNumber: b.nummer })}
-    >
+  const inhalt = (
+    <>
       <span className="e-titel">{b.name}</span>
       {konflikt ? (
         <span className="e-zeile">{konflikt === 'abwesend' ? 'fehlt' : `fehlt: ${konflikt}`}</span>
@@ -86,6 +79,31 @@ function Einsatzblock({
           ))}
         </>
       )}
+    </>
+  );
+  if (lesen) {
+    return (
+      <span
+        className={`${konflikt ? 'eintrag-konflikt' : 'eintrag'} nur-lesen`}
+        title={konflikt ? `${titel} — eingeteilt, fehlt` : titel}
+      >
+        {inhalt}
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className={konflikt ? 'eintrag-konflikt' : 'eintrag'}
+      title={konflikt ? `${titel} — eingeteilt, fehlt` : titel}
+      // Mit Nummer: zwei Baustellen desselben Kunden am selben Tag hießen
+      // für die Vorlesehilfe sonst gleich. Dazu Person und Zustand.
+      aria-label={`${b.name} (${b.nummer}) am ${datum} bearbeiten – ${person.name}${
+        konflikt ? `, eingeteilt, fehlt: ${konflikt}` : b.zeit ? `, ${b.zeit}` : ''
+      }`}
+      onClick={() => onEinsatz({ datum: tag, projectNumber: b.nummer })}
+    >
+      {inhalt}
     </button>
   );
 }
@@ -96,6 +114,7 @@ export function TerminEintrag({
   datum,
   wer,
   darf,
+  lesen,
   onTermin,
 }: {
   t: Termin;
@@ -103,8 +122,19 @@ export function TerminEintrag({
   /** Für die Vorlesehilfe: in wessen Zelle bzw. an welcher Baustelle. */
   wer: string;
   darf: boolean;
+  /** Team-Woche: derselbe Eintrag, aber kein Knopf. */
+  lesen?: boolean;
   onTermin: (t: Termin) => void;
 }) {
+  if (lesen) {
+    return (
+      <span className="eintrag-termin nur-lesen" title={`${artName(t.art)} · ${terminZeitKurz(t)} · ${terminOrtKurz(t)}`}>
+        <span className="e-titel">{t.art}</span>
+        <span className="e-zeit">{terminZeitKurz(t)}</span>
+        <span className="e-zeile">{terminOrtKurz(t)}</span>
+      </span>
+    );
+  }
   return (
     <button
       type="button"
@@ -135,6 +165,7 @@ export function PersonEintraege({
   termine,
   infoFuer,
   darf,
+  lesen,
   onEinsatz,
   onTermin,
 }: {
@@ -148,6 +179,8 @@ export function PersonEintraege({
   termine: Termin[];
   infoFuer: (nummer: string) => BaustellenInfo;
   darf: boolean;
+  /** Team-Woche: dieselben Einträge, aber keine Knöpfe. */
+  lesen?: boolean;
   onEinsatz: (start: FensterStart) => void;
   onTermin: (t: Termin) => void;
 }) {
@@ -191,12 +224,15 @@ export function PersonEintraege({
         // Termine derselben Baustelle — nicht bei dem, der selbst teilnimmt:
         // bei ihm steht der Termin schon als eigener Eintrag.
         zusatz={termine.filter((t) => t.projectNumber === b.nummer && !t.teilnehmer.includes(person.uid))}
+        lesen={lesen}
         onEinsatz={onEinsatz}
       />,
     );
   }
   for (const t of termine.filter((x) => x.teilnehmer.includes(person.uid))) {
-    teile.push(<TerminEintrag key={t.id} t={t} datum={datum} wer={person.name} darf={darf} onTermin={onTermin} />);
+    teile.push(
+      <TerminEintrag key={t.id} t={t} datum={datum} wer={person.name} darf={darf} lesen={lesen} onTermin={onTermin} />,
+    );
   }
   return <>{teile}</>;
 }

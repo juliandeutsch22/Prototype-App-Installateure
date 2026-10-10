@@ -88,3 +88,13 @@ dadurch 12 bis 24 px unter dem Rand, und die Seite darüber blieb antippbar.
 neben E10 die zweite Ausnahme. Ein Portal hätte dasselbe gelöst, aber mehr
 verändert: Nachfahrenregeln der Karten und die Lage von Rückfragen in einem
 Fenster.
+
+**E15 — Team-Woche mit den Bausteinen der Planung (10.10.2026).** Auftrag 4.8
+hielt die Team-Woche beim älteren Raster fest, damit der Umbau der Planung sie
+nicht verändert. Die Durchsicht vom 10.10. fand darin Fehler, die das ältere
+Raster selbst hatte (Einsätze in der Spalte von heute unsichtbar, Kästen in
+der Karte am Handy, Lehrling als „Helfer“). Statt zwei Raster zu pflegen,
+zeichnet die Team-Woche jetzt mit `PersonenWoche` und `HandyWoche` im Modus
+`lesen`: dieselben Einträge ohne Knopf. Was 4.8 verlangte, gilt weiter —
+ohne Knöpfe, ohne „frei“, ohne Monat, „abwesend“ ohne Grund, nur die Termine
+des Zeilenschutzes; geprüft in `TeamWoche.test.tsx`.
