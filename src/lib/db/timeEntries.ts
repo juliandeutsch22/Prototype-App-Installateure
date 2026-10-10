@@ -95,6 +95,19 @@ export function stundenDerBaustellen(projectNumbers: string[]): Promise<pg.Baust
   return pg.stundenDerBaustellen(projectNumbers);
 }
 
+/**
+ * Eine Buchung auf weitere Baustellen aufteilen. NUR MIT VERBINDUNG: Kürzen
+ * und Anlegen gehen in einer Transaktion, und die lässt sich nicht
+ * vormerken — vorgemerkt hiesse, der Monteur sähe den Tag geteilt, während
+ * die Datenbank ihn später vielleicht abweist.
+ */
+export function zeitAufteilen(id: string, teile: { projectNumber: string; minuten: number }[]): Promise<string[]> {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return Promise.reject(new Error('Aufteilen braucht eine Verbindung — bitte später noch einmal, die Buchung bleibt bis dahin, wie sie ist.'));
+  }
+  return pg.zeitAufteilen(id, teile);
+}
+
 export function eintraegeAmTag(
   companyId: string, uid: string, date: string, exceptId?: string,
 ): Promise<WithId<TimeEntry>[]> {
