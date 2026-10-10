@@ -90,6 +90,8 @@ describe('Weitere Angaben', () => {
     zeichne();
     expect(offen()).toBe(false);
     expect(zeile()).toHaveTextContent('Wegzeit, Fahrzeug, Helfername, Zuschläge');
+    // Die Aufzählung steht leise unter dem Titel, nicht fett im Titel (10.10.2026).
+    expect(zeile().querySelector('.weiteres-zusatz')).toHaveTextContent('Wegzeit, Fahrzeug, Helfername, Zuschläge');
     expect(screen.getByLabelText('Wegzeit (Min.)')).not.toBeVisible();
     // Der Helfer-Haken bleibt draussen: er ändert den Stundensatz.
     expect(screen.getByLabelText(/Einsatz als Helfer/)).toBeInTheDocument();

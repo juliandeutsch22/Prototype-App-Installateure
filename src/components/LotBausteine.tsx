@@ -142,15 +142,25 @@ export function Sprungleiste({ ziele }: { ziele: { id: string; text: string }[] 
 export function WeitereAngaben({
   offen = false,
   titel = 'Weitere Angaben',
+  zusatz,
   children,
 }: {
   offen?: boolean;
   titel?: string;
+  /**
+   * Was darin steht, leise unter dem Titel (10.10.2026). Als Teil des Titels
+   * lief die lange Aufzählung der Zeiterfassung fett über zwei Zeilen und
+   * sah aus wie eine Überschrift ohne Inhalt.
+   */
+  zusatz?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <details className="weiteres" open={offen}>
-      <summary className="weiteres-kopf">{titel}</summary>
+      <summary className="weiteres-kopf">
+        {titel}
+        {zusatz && <span className="weiteres-zusatz">{zusatz}</span>}
+      </summary>
       <div className="weiteres-inhalt">{children}</div>
     </details>
   );
