@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { listEntriesInRange } from '@/lib/db/timeEntries';
+import { listArbeitszeitenInRange, listEntriesInRange } from '@/lib/db/timeEntries';
 import { listBegruendungen, listGeburtsdaten, type Begruendung } from '@/lib/db/arbeitszeitGrenzen';
 import { tagessollStunden, todayStr } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, TimeEntry } from '@/types';
-import { andereVerteilung, fallSchluessel, grenzfaelle, montagVon, type Grenzfall } from './arbeitszeitGrenzen';
+import { andereVerteilung, fallSchluessel, GRENZEN, grenzfaelle, montagVon, type Grenzfall } from './arbeitszeitGrenzen';
 
 function plusTage(iso: string, n: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
@@ -90,8 +90,16 @@ export function useArbeitszeitGrenzen({
     const meiner = ++lauf.current;
     setFehler(null);
     try {
-      const [eintraege, geburtsdaten, begruendungen] = await Promise.all([
+      /*
+        DER VORLAUF FÜR DEN DURCHSCHNITT: die 16 Wochen vor der ersten Woche
+        des Monats, nur mit den Spalten der Arbeitszeit. Die Buchungen rund
+        um den Monat bleiben die vollen Zeilen — an ihnen hängen
+        „Buchung korrigieren“ und der Tagesnachweis.
+      */
+      const vorlaufAb = plusTage(montagVon(von), -7 * (GRENZEN.erwachsen.durchschnittWochen - 1));
+      const [eintraege, vorlauf, geburtsdaten, begruendungen] = await Promise.all([
         listEntriesInRange(companyId, plusTage(von, -7), plusTage(bis, 7)),
+        listArbeitszeitenInRange(companyId, vorlaufAb, plusTage(von, -8)),
         listGeburtsdaten(companyId),
         listBegruendungen(companyId, montagVon(von), bis),
       ]);
@@ -99,12 +107,13 @@ export function useArbeitszeitGrenzen({
       const heute = todayStr();
       const faelle = personen.flatMap((person) =>
         grenzfaelle(
-          eintraege.filter((e) => e.userId === person.uid),
+          [...vorlauf, ...eintraege].filter((e) => e.userId === person.uid),
           { von, bis },
           {
             geburtsdatum: geburtsdaten.get(person.uid) ?? null,
             schultagMin: (tag) => tagessollStunden(person, tag) * 60,
             andereVerteilung: andereVerteilung(person),
+            arbeitstageJeWoche: person.workDays?.length || undefined,
           },
           { stichtag: heute },
         ).map((fall) => ({ person, fall })),

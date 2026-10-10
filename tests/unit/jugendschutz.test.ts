@@ -74,7 +74,8 @@ describe('M1 — andere Verteilung der Wochenarbeitszeit (§ 11 Abs 2 KJBG)', ()
 });
 
 describe('M1 — keine Verstöße in der Zukunft', () => {
-  const lang = [tag('2026-10-06', '07:00', '17:00'), tag('2026-10-22', '07:00', '17:00')];
+  // Mit Pause: hier geht es um den Tag, nicht um die Ruhepause.
+  const lang = [tag('2026-10-06', '07:00', '17:00', 30), tag('2026-10-22', '07:00', '17:00', 30)];
 
   it('mit Stichtag zählt nur, was bis dahin gebucht ist', () => {
     expect(grenzfaelle(lang, OKTOBER, JUGENDLICH, { stichtag: '2026-10-20' }).map((f) => f.bezug)).toEqual(['2026-10-06']);
@@ -87,13 +88,20 @@ describe('M1 — keine Verstöße in der Zukunft', () => {
   it('ein Monat ganz in der Zukunft hat keinen Fall; ein künftiger Tag macht die laufende Woche nicht voll', () => {
     expect(grenzfaelle(lang, { von: '2026-11-01', bis: '2026-11-30' }, JUGENDLICH, { stichtag: '2026-10-20' })).toEqual([]);
     const woche = ['2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24']
-      .map((d) => tag(d, '07:00', '14:00'));
+      .map((d) => tag(d, '07:00', '14:30', 30));
     expect(grenzfaelle(woche, OKTOBER, JUGENDLICH, { stichtag: '2026-10-20' })).toEqual([]);
     expect(grenzfaelle(woche, OKTOBER, JUGENDLICH).some((f) => f.art === 'woche')).toBe(true);
   });
 });
 
 describe('M2 — die Fälle einer Buchung vor dem Speichern', () => {
+  it('die Ruhepause fragt nicht vor dem Speichern — wer vormittags bucht, hat Mittag noch vor sich', () => {
+    const vormittag = [tag('2026-10-06', '07:00', '12:00')];
+    expect(grenzfaelleDerBuchung(vormittag, '2026-10-06', JUGENDLICH)).toEqual([]);
+    // Gegenprobe: die Mitarbeiterübersicht zeigt den Tag, wenn er so vorbei ist.
+    expect(grenzfaelle(vormittag, OKTOBER, JUGENDLICH, { stichtag: '2026-10-07' }).map((f) => f.art)).toEqual(['pause']);
+  });
+
   it('10:45 Std. ab 5 Uhr: Tagesgrenze und Nachtruhe', () => {
     const f = grenzfaelleDerBuchung([tag('2026-10-06', '05:00', '16:15', 30)], '2026-10-06', JUGENDLICH);
     expect(f.map((x) => x.art)).toEqual(['tag', 'nacht']);

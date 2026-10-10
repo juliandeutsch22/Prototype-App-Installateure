@@ -1,4 +1,4 @@
-import { calcWorkMin, wienVersatzMin, type Zeitangaben } from '@shared/arbeitszeit';
+import { calcWorkMin, istGanztagsGutschrift, wienVersatzMin, type Zeitangaben } from '@shared/arbeitszeit';
 import { nachtMinutenIn, type Nachtzeit } from '@/lib/lohnregeln';
 import { leseZahl } from '@/lib/zahl';
 
@@ -24,6 +24,10 @@ import { leseZahl } from '@/lib/zahl';
  *                 6 Uhr (§ 17 KJBG), zwei freie Kalendertage am Stück mit dem
  *                 Sonntag (§ 19 KJBG). Die Berufsschule zählt zur
  *                 Wochenarbeitszeit (§ 11 Abs 6 KJBG).
+ *   Ruhepausen  — mehr als 6 Std. Arbeit am Tag: mindestens 30 Min. Pause
+ *                 (§ 11 AZG), bei Jugendlichen schon ab 4,5 Std. (§ 15 KJBG).
+ *   Durchschnitt — Erwachsene höchstens 48 Std. je Woche im Schnitt von 17
+ *                 Wochen (§ 9 Abs 4 AZG), gleitend: je Woche die 17 bis zu ihr.
  *
  * VORBEHALTLICH DER WKO-KLÄRUNG (Runde 3, M1):
  *   - Ein Berufsschultag zählt mit seiner Unterrichtszeit, wenn sie beim
@@ -34,31 +38,59 @@ import { leseZahl } from '@/lib/zahl';
  *   - Mit `stichtag` zählt nur, was bis dahin gebucht ist: ein Tag in der
  *     Zukunft ist noch nicht gearbeitet und kein Verstoss.
  *
- * NICHT GEPRÜFT: die Ruhepausen, der Durchschnitt von 48 Std. über 17 Wochen
- * (§ 9 Abs 4 AZG), Gleitzeit- und Durchrechnungsmodelle (Stand-Datei 11.2)
+ * WIE DIE PAUSE GEZÄHLT WIRD (seit 10.10.2026). Die eingetragene Pause und
+ * jede Lücke von mindestens 10 Min. zwischen zwei Buchungen desselben Tages —
+ * wer 07:00–12:00 und 12:30–16:00 bucht, hat Mittag gemacht. Kürzere Lücken
+ * zählen nicht: das Gesetz lässt die Pause höchstens in Teile zu 10 Min.
+ * teilen. Eine Lücke, in der tatsächlich gefahren wurde, hält die App für
+ * Pause — dafür fehlt ihr die Angabe. Ein Tag mit einer Buchung ohne
+ * Uhrzeit wird nicht geprüft; dort lässt sich keine Lücke messen. Geprüft
+ * wird nur ein abgeschlossener Tag (vor dem `stichtag`): mittags um zwölf
+ * ist die Mittagspause noch nicht gebucht.
+ *
+ * WIE DER DURCHSCHNITT GEZÄHLT WIRD. Urlaub, Krankenstand und andere ganze
+ * Tage mit Gutschrift zählen neutral — sie verkürzen den Zeitraum, statt ihn
+ * mit null Stunden zu drücken (so die EU-Arbeitszeitrichtlinie, Art. 16).
+ * Feiertage und Zeitausgleich zählen mit null, wie gearbeitet wurde. Vor dem
+ * ersten Tag mit Buchungen in der App zählt jede Woche mit null — der
+ * Schnitt wird dadurch eher zu niedrig, nie zu hoch. Ein Kollektivvertrag
+ * kann den Zeitraum auf bis zu 52 Wochen verlängern; das prüft die App
+ * nicht.
+ *
+ * NICHT GEPRÜFT: Gleitzeit- und Durchrechnungsmodelle (Stand-Datei 11.2)
  * und die Ausnahmen der Kollektivverträge. Gebucht ohne Uhrzeit (alte
  * Einträge mit Stundenzahl) zählt ein Tag voll für die Wochenruhe, aber nicht
- * für Ruhezeit und Nachtarbeit — dafür fehlt die Uhrzeit.
+ * für Ruhezeit, Pause und Nachtarbeit — dafür fehlt die Uhrzeit.
  */
 
-export type GrenzArt = 'tag' | 'woche' | 'ruhezeit' | 'wochenruhe' | 'nacht' | 'wochenfrei';
+export type GrenzArt =
+  | 'tag' | 'woche' | 'ruhezeit' | 'wochenruhe' | 'nacht' | 'wochenfrei' | 'pause' | 'durchschnitt';
 
 export interface Grenzfall {
   art: GrenzArt;
   /** Der Tag (bei Ruhezeit: der Tag nach der zu kurzen Ruhe) oder der Montag der Woche. */
   bezug: string;
   jugendlich: boolean;
-  /** Gemessener Wert in Minuten (bei Wochenfreizeit: 0). */
+  /** Gemessener Wert in Minuten (bei Wochenfreizeit: 0; beim Durchschnitt: Minuten je Woche). */
   ist: number;
   /** Die Grenze in Minuten (bei Nachtarbeit und Wochenfreizeit: 0). */
   grenze: number;
 }
 
 export const GRENZEN = {
-  erwachsen: { tag: 12 * 60, woche: 60 * 60, ruhezeit: 11 * 60, wochenruhe: 36 * 60 },
+  erwachsen: {
+    tag: 12 * 60, woche: 60 * 60, ruhezeit: 11 * 60, wochenruhe: 36 * 60,
+    /** Ab mehr als `pauseAb` Arbeit am Tag mindestens `pause` (§ 11 AZG). */
+    pauseAb: 6 * 60, pause: 30,
+    /** Im Schnitt von `durchschnittWochen` Wochen höchstens `durchschnitt` (§ 9 Abs 4 AZG). */
+    durchschnitt: 48 * 60, durchschnittWochen: 17,
+  },
   /** `tagVerteilt`: bei anderer Verteilung der Wochenarbeitszeit (§ 11 Abs 2 KJBG). */
-  jugendlich: { tag: 8 * 60, tagVerteilt: 9 * 60, woche: 40 * 60, ruhezeit: 12 * 60 },
+  jugendlich: { tag: 8 * 60, tagVerteilt: 9 * 60, woche: 40 * 60, ruhezeit: 12 * 60, pauseAb: 4.5 * 60, pause: 30 },
 } as const;
+
+/** Eine Lücke zwischen zwei Buchungen zählt ab so vielen Minuten als Pause (§ 11 Abs 2 AZG). */
+export const PAUSE_TEIL_MIN = 10;
 
 /** Die Nachtruhe für Jugendliche: 20 bis 6 Uhr (§ 17 KJBG). */
 export const NACHTRUHE_JUGENDLICHE: Nachtzeit = { von: 20 * 60, bis: 6 * 60 };
@@ -76,6 +108,11 @@ export interface GrenzPerson {
   schultagMin?: (tag: string) => number;
   /** Wochenarbeitszeit anders verteilt: am Tag bis 9 Std. (siehe `andereVerteilung`). */
   andereVerteilung?: boolean;
+  /**
+   * Arbeitstage je Woche (Standard 5) — so viele neutrale Tage machen beim
+   * Durchschnitt eine ganze Woche aus.
+   */
+  arbeitstageJeWoche?: number;
 }
 
 const TAG = 24 * 60;
@@ -271,7 +308,55 @@ export function grenzfaelle(
     if (imZeitraum(tag)) faelle.push({ art: 'nacht', bezug: tag, jugendlich: true, ist: min, grenze: 0 });
   }
 
-  const reihenfolge: GrenzArt[] = ['tag', 'nacht', 'ruhezeit', 'woche', 'wochenruhe', 'wochenfrei'];
+  // 7. Ruhepausen — nur abgeschlossene Tage, nur mit Uhrzeit.
+  const tagesBuchungen = new Map<string, GrenzEintrag[]>();
+  for (const e of eintraege) {
+    if (e.status !== 'Anwesend' || calcWorkMin(e) <= 0) continue;
+    tagesBuchungen.set(e.date, [...(tagesBuchungen.get(e.date) ?? []), e]);
+  }
+  for (const [tag, buchungen] of tagesBuchungen) {
+    if (!imZeitraum(tag) || (stichtag && tag >= stichtag)) continue;
+    if (buchungen.some((e) => !e.startTime || !e.endTime)) continue;
+    const jung = jugendlich(tag);
+    const g = jung ? GRENZEN.jugendlich : GRENZEN.erwachsen;
+    const arbeit = buchungen.reduce((s, e) => s + calcWorkMin(e), 0);
+    if (arbeit <= g.pauseAb) continue;
+    let pause = buchungen.reduce((s, e) => s + (Number(e.breakDuration ?? 0) || 0), 0);
+    const spannen = intervalle.filter((i) => i.tag === tag);
+    let ende = spannen.length ? spannen[0].bis : 0;
+    for (const i of spannen.slice(1)) {
+      if (i.von - ende >= PAUSE_TEIL_MIN) pause += i.von - ende;
+      ende = Math.max(ende, i.bis);
+    }
+    if (pause < g.pause) faelle.push({ art: 'pause', bezug: tag, jugendlich: jung, ist: pause, grenze: g.pause });
+  }
+
+  // 8. Durchschnitt von 48 Std. über 17 Wochen — Erwachsene, je Woche gleitend.
+  const neutral = new Set<string>();
+  for (const e of eintraege) {
+    if (istGanztagsGutschrift(e) && !minutenJeTag.has(e.date)) neutral.add(e.date);
+  }
+  const tageJeWoche = person.arbeitstageJeWoche && person.arbeitstageJeWoche > 0 ? person.arbeitstageJeWoche : 5;
+  const { durchschnitt, durchschnittWochen } = GRENZEN.erwachsen;
+  for (const montag of wochen) {
+    if (jugendlich(montag)) continue;
+    let summe = 0;
+    let wochenZahl = 0;
+    for (let w = 0; w < durchschnittWochen; w += 1) {
+      const m = tagNr(montag) - 7 * w;
+      const tage = Array.from({ length: 7 }, (_, i) => isoVon(m + i));
+      summe += tage.reduce((s, t) => s + (minutenJeTag.get(t) ?? 0), 0);
+      // Mehr neutrale Tage als Arbeitstage (Krankenstand auch am Wochenende) sind eine ganze Woche.
+      wochenZahl += 1 - Math.min(1, tage.filter((t) => neutral.has(t)).length / tageJeWoche);
+    }
+    if (wochenZahl <= 0) continue;
+    const schnitt = Math.round(summe / wochenZahl);
+    if (schnitt > durchschnitt) {
+      faelle.push({ art: 'durchschnitt', bezug: montag, jugendlich: false, ist: schnitt, grenze: durchschnitt });
+    }
+  }
+
+  const reihenfolge: GrenzArt[] = ['tag', 'pause', 'nacht', 'ruhezeit', 'woche', 'durchschnitt', 'wochenruhe', 'wochenfrei'];
   return faelle.sort((a, b) => a.bezug.localeCompare(b.bezug) || reihenfolge.indexOf(a.art) - reihenfolge.indexOf(b.art));
 }
 
@@ -322,6 +407,16 @@ export function grenzText(f: Grenzfall): { titel: string; gesetz: string } {
       return {
         titel: `KW ${kalenderwoche(f.bezug)}: keine zwei freien Tage am Stück mit dem Sonntag`,
         gesetz: '§ 19 KJBG',
+      };
+    case 'pause':
+      return {
+        titel: `Pause am ${kurz(f.bezug)}: ${f.ist} Min. — mindestens ${f.grenze} Min. ab ${f.jugendlich ? '4,5' : '6'} Std. Arbeit`,
+        gesetz: f.jugendlich ? '§ 15 KJBG' : '§ 11 AZG',
+      };
+    case 'durchschnitt':
+      return {
+        titel: `Schnitt der 17 Wochen bis KW ${kalenderwoche(f.bezug)}: ${stdMin(f.ist)} Std. — höchstens ${f.grenze / 60} Std.`,
+        gesetz: '§ 9 Abs 4 AZG',
       };
   }
 }
@@ -381,6 +476,13 @@ export function grenzfaelleDerBuchung(eintraege: GrenzEintrag[], tag: string, pe
         return f.bezug === montag;
       case 'wochenfrei':
         return f.bezug === montag || (tag === montag && f.bezug === von);
+      // Nicht vor dem Speichern: die Pause hängt am ganzen Tag, und wer
+      // vormittags bucht, hat die Mittagspause noch vor sich. Den Schnitt
+      // der 17 Wochen gibt es nur für Erwachsene, die Rückfrage nur für
+      // Jugendliche. Beides zeigt die Mitarbeiterübersicht.
+      case 'pause':
+      case 'durchschnitt':
+        return false;
     }
   });
 }

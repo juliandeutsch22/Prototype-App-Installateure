@@ -10,6 +10,7 @@ import type { WithId } from '@/lib/db/core';
 import type { AppUser, TimeEntry } from '@/types';
 import { fallSchluessel, grenzText, kalenderwoche, type Grenzfall } from './arbeitszeitGrenzen';
 import { grenzZusatz, useArbeitszeitGrenzen, type GrenzDaten } from './useArbeitszeitGrenzen';
+import { istTagesfall } from './tagesauswertung';
 
 const MONATE = ['Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August',
   'September', 'Oktober', 'November', 'Dezember'];
@@ -99,8 +100,12 @@ function KarteInhalt({
           korrigieren, eine Notiz ist möglich. Vorbehaltlich der Klärung mit der WKO: ein Berufsschultag
           zählt mit der beim Eintragen angegebenen Unterrichtszeit, sonst mit dem Tagessoll; ist die
           Wochenarbeitszeit anders verteilt (eigenes Tagessoll mit kürzeren Tagen, höchstens 40 Std.),
-          gelten am Tag 9 Std. (§ 11 Abs 2 KJBG). Nicht geprüft: Ruhepausen, Durchrechnung und
-          Gleitzeit, Ausnahmen aus dem Kollektivvertrag.
+          gelten am Tag 9 Std. (§ 11 Abs 2 KJBG). Ruhepause: ab mehr als 6 Std. Arbeit mindestens
+          30 Min. (§ 11 AZG), bei Jugendlichen ab 4,5 Std. (§ 15 KJBG) — als Pause zählt die
+          eingetragene und jede Lücke von mindestens 10 Min. zwischen zwei Buchungen; geprüft wird ein
+          Tag erst, wenn er vorbei ist. Im Schnitt von 17 Wochen höchstens 48 Std. je Woche (§ 9 Abs 4
+          AZG); Urlaub und Krankenstand zählen dabei neutral. Nicht geprüft: Durchrechnung und
+          Gleitzeit, Ausnahmen aus dem Kollektivvertrag (etwa ein längerer Zeitraum als 17 Wochen).
         </>
       }
     >
@@ -179,11 +184,12 @@ export function GrenzListe({
 
   /**
    * Welche Buchungen an einem Fall hängen und sich korrigieren lassen: am Tag
-   * selbst, bei der Ruhezeit auch am Vortag. Woche und Wochenfreizeit hängen
-   * an mehreren Tagen — dort führt der Tagesnachweis hin.
+   * selbst (auch bei der Pause), bei der Ruhezeit auch am Vortag. Woche,
+   * Durchschnitt und Wochenfreizeit hängen an mehreren Tagen — dort führt
+   * der Tagesnachweis hin.
    */
   function korrigierbar(person: AppUser, fall: Grenzfall): WithId<TimeEntry>[] {
-    if (!stand || (fall.art !== 'tag' && fall.art !== 'nacht' && fall.art !== 'ruhezeit')) return [];
+    if (!stand || !istTagesfall(fall)) return [];
     const tage = fall.art === 'ruhezeit' ? [plusTage(fall.bezug, -1), fall.bezug] : [fall.bezug];
     return stand.eintraege
       .filter((e) => e.userId === person.uid && tage.includes(e.date) && e.status === 'Anwesend' && !e.isBilled)

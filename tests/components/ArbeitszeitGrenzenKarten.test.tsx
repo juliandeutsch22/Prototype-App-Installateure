@@ -19,7 +19,13 @@ const setGeburtsdatum = vi.fn(async () => undefined);
 let gespeichertesDatum: string | null = null;
 
 const listEntriesInRange = vi.fn(async () => buchungen);
-vi.mock('@/lib/db/timeEntries', () => ({ listEntriesInRange: () => listEntriesInRange() }));
+/** Der Vorlauf für den Durchschnitt der 17 Wochen — ausser im eigenen Test leer. */
+let vorlauf: Array<Partial<TimeEntry> & { id: string }> = [];
+const listArbeitszeitenInRange = vi.fn<(c: string, von: string, bis: string) => Promise<typeof vorlauf>>(async () => vorlauf);
+vi.mock('@/lib/db/timeEntries', () => ({
+  listEntriesInRange: () => listEntriesInRange(),
+  listArbeitszeitenInRange: (c: string, von: string, bis: string) => listArbeitszeitenInRange(c, von, bis),
+}));
 vi.mock('@/lib/db/arbeitszeitGrenzen', () => ({
   listGeburtsdaten: vi.fn(async () => geburtsdaten),
   listBegruendungen: vi.fn(async () => begruendungen),
@@ -53,6 +59,8 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 9, 31, 12, 0, 0));
   listEntriesInRange.mockClear();
+  listArbeitszeitenInRange.mockClear();
+  vorlauf = [];
   buchungen = [];
   geburtsdaten = new Map();
   begruendungen = [];
@@ -71,8 +79,8 @@ describe('Arbeitszeitgrenzen in der Mitarbeiterübersicht', () => {
   it('nennt den Fall und nimmt eine Begründung auf', async () => {
     const nutzer = userEvent.setup();
     buchungen = [
-      { id: 'z1', userId: 'u1', date: '2026-10-06', status: 'Anwesend', startTime: '14:00', endTime: '23:00', breakDuration: 0 },
-      { id: 'z2', userId: 'u1', date: '2026-10-07', status: 'Anwesend', startTime: '07:00', endTime: '15:00', breakDuration: 0 },
+      { id: 'z1', userId: 'u1', date: '2026-10-06', status: 'Anwesend', startTime: '14:00', endTime: '23:00', breakDuration: 30 },
+      { id: 'z2', userId: 'u1', date: '2026-10-07', status: 'Anwesend', startTime: '07:00', endTime: '15:00', breakDuration: 30 },
     ];
     zeige();
     expect(await screen.findByText(/Ruhezeit vor dem 07\.10\.: 8:00 Std\. — mindestens 11 Std\./)).toBeInTheDocument();
@@ -99,6 +107,27 @@ describe('Arbeitszeitgrenzen in der Mitarbeiterübersicht', () => {
 
   it('Gegenprobe: dieselbe Buchung ohne Geburtsdatum ist kein Fall', async () => {
     buchungen = [{ id: 'z1', userId: 'u1', date: '2026-10-06', status: 'Anwesend', startTime: '07:00', endTime: '16:30', breakDuration: 30 }];
+    zeige();
+    expect(await screen.findByText(/keine Grenze überschritten/)).toBeInTheDocument();
+  });
+  /*
+    DER DURCHSCHNITT BRAUCHT DIE 16 WOCHEN VOR DEM MONAT. Die erste Woche des
+    Oktobers beginnt am 28.09.; ihr Zeitraum reicht zurück bis zum 08.06.
+    Sechzehn Wochen zu 52 Std. davor ergeben für sie 832 / 17 = 48:56 Std.
+  */
+  it('der Schnitt der 17 Wochen rechnet mit dem Vorlauf vor dem Monat', async () => {
+    for (let w = 0; w < 16; w += 1) {
+      for (let i = 0; i < 5; i += 1) {
+        const d = new Date(Date.UTC(2026, 5, 8 + 7 * w + i)).toISOString().slice(0, 10);
+        vorlauf.push({ id: `v${w}-${i}`, userId: 'u1', date: d, status: 'Anwesend', hours: 10.4 });
+      }
+    }
+    zeige();
+    expect(await screen.findByText(/Schnitt der 17 Wochen bis KW 40: 48:56 Std\. — höchstens 48 Std\./)).toBeInTheDocument();
+    expect(listArbeitszeitenInRange).toHaveBeenCalledWith('perl', '2026-06-08', '2026-09-23');
+  });
+
+  it('Gegenprobe: ohne Vorlauf zählen dieselben Wochen nicht', async () => {
     zeige();
     expect(await screen.findByText(/keine Grenze überschritten/)).toBeInTheDocument();
   });
