@@ -303,7 +303,7 @@ describe('Einspielen in Blöcken (10.10.2026)', () => {
     const z = ziel({ quotes: (r, da) => !r.ref || da.has(`quotes:${r.ref}`) });
     await inRundenEinspielen(new Map([['quotes', quotes]]), z.einfuegen);
     expect(z.da.size).toBe(600);
-    expect(z.anfragen.at(-1)).toEqual(['quotes', 600]);
+    expect(z.anfragen[z.anfragen.length - 1]).toEqual(['quotes', 600]);
   });
 
   it('bricht ab, wenn nichts mehr geht — mit dem, was übrig ist, und ohne etwas doppelt zu schreiben', async () => {
