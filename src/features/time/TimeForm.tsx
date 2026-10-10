@@ -1312,11 +1312,13 @@ export default function TimeForm({
               */}
               {isEdit && entry && status === 'Anwesend' && !aufteilenGeht(entry) && (
                 aufteilenUngespeichert ? (
-                  <p className="text-sm text-ink-muted">
+                  <p className="-mt-2 text-sm text-ink-muted">
                     Auf mehrere Baustellen aufteilen geht mit der gespeicherten Buchung — zuerst speichern.
                   </p>
                 ) : (
-                  <button type="button" className="link" onClick={() => setAufteilenOffen(true)}>
+                  // Klein und unter dem Feld: eine Handlung an der Baustelle, keine
+                  // zweite Überschrift neben „Weitere Angaben“.
+                  <button type="button" className="link -mt-2 self-start text-sm" onClick={() => setAufteilenOffen(true)}>
                     Auf mehrere Baustellen aufteilen …
                   </button>
                 )
@@ -1364,9 +1366,8 @@ export default function TimeForm({
             <WeitereAngaben
               offen={weitereOffen}
               // „optional“ stand vorher als leise Marke daneben; die Zeile der Linie trägt nur Text.
-              titel={`Weitere Angaben (optional) – ${
-                weitereWerte.length > 0 ? weitereWerte.join(' · ') : 'Wegzeit, Fahrzeug, Helfername, Zuschläge'
-              }`}
+              titel="Weitere Angaben (optional)"
+              zusatz={weitereWerte.length > 0 ? weitereWerte.join(' · ') : 'Wegzeit, Fahrzeug, Helfername, Zuschläge'}
             >
               {weitereFelder}
             </WeitereAngaben>
