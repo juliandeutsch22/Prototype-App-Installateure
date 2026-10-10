@@ -13,7 +13,7 @@
  * die sich auch nicht mehr wegräumen lässt.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Invoice, InvoiceDiscount } from '@/types';
+import type { Invoice, InvoiceDiscount, Mahnung, MahnungInhalt } from '@/types';
 import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
 import { oderUeberSpalten } from './suche';
@@ -237,7 +237,7 @@ export function subscribeRecentInvoices(
 /** Was das Belegarchiv von einer gemahnten Rechnung festhält. */
 export type GemahnteRechnung = Pick<
   Invoice,
-  'invoiceNumber' | 'customerName' | 'projectNumber' | 'totalBrutto' | 'paymentStatus' | 'mahnstufe' | 'gemahntAm' | 'mahnfrist' | 'mahnspesen'
+  'id' | 'invoiceNumber' | 'customerName' | 'projectNumber' | 'totalBrutto' | 'paymentStatus' | 'mahnstufe' | 'gemahntAm' | 'mahnfrist' | 'mahnspesen'
 >;
 
 /**
@@ -704,38 +704,52 @@ export async function schlussrechnungenOhneAbzug(): Promise<SchlussOhneAbzug[]> 
 }
 
 /**
- * Eine Mahnung festhalten.
+ * Eine Mahnung festhalten — das Schreiben samt Mahnstand der Rechnung, in
+ * einem Zug (`public.mahnung_festhalten`).
  *
  * Geschrieben wird NACH dem Erzeugen des Belegs, nicht davor. Scheitert das
  * PDF, ist schlimmstenfalls nichts geschehen — umgekehrt stünde die Rechnung
  * als gemahnt da, ohne dass je ein Schreiben entstanden wäre, und die
  * nächste Stufe begänne bei zwei.
+ *
+ * „Überfällig“ setzt die Datenbank nur aus „Offen“: bei einer angezahlten
+ * Rechnung sagt „Teilbezahlt“ mehr, und den Stand bestimmen dort die
+ * Zahlungseingänge.
  */
-export function mahnungFesthalten(
+export async function mahnungFesthalten(
   id: string,
-  daten: {
-    stufe: number; gemahntAm: string; frist: string; spesen: number;
-    /** Wo die Rechnung gerade steht — entscheidet, ob „Überfällig" mitgeht. */
-    standJetzt: Invoice['paymentStatus'];
-  },
-): Promise<void> {
-  /*
-    „ÜBERFÄLLIG" GEHT NUR MIT, WENN DIE RECHNUNG OFFEN IST.
-
-    Wer mahnt, hat den Verzug festgestellt — das war und bleibt der Grund für
-    diese Zeile. Bei einer TEILBEZAHLTEN Rechnung wäre sie aber ein
-    Rückschritt: „Teilbezahlt" sagt mehr als „Überfällig" (es ist beides), und
-    die Datenbank weist den Schreibversuch ohnehin ab, weil der Stand sich aus
-    den Zahlungseingängen ergibt. Ohne diese Unterscheidung liefe das Mahnen
-    einer angezahlten Rechnung in einen Fehler — und die Mahnung wäre
-    erzeugt, aber nirgends festgehalten.
-  */
-  const verzug = daten.standJetzt === 'Offen';
-  return aendern(RECHNUNGEN, id, {
-    mahnstufe: daten.stufe,
-    gemahntAm: daten.gemahntAm,
-    mahnfrist: daten.frist,
-    mahnspesen: daten.spesen,
-    ...(verzug ? { paymentStatus: 'Überfällig' as const } : {}),
+  daten: { stufe: number; gemahntAm: string; frist: string; spesen: number; inhalt: MahnungInhalt },
+): Promise<string> {
+  const { data, error } = await derClient().rpc('mahnung_festhalten', {
+    p_invoice: id,
+    p_stufe: daten.stufe,
+    p_datum: daten.gemahntAm,
+    p_frist: daten.frist,
+    p_spesen: daten.spesen,
+    p_inhalt: daten.inhalt,
   });
+  if (error) throw new Error(error.message);
+  return data as string;
+}
+
+const MAHNUNGEN = 'mahnungen';
+
+/** Die Mahnungen eines Zeitraums, nach ihrem Tag — für das Belegarchiv, ohne Grenze. */
+export function listMahnungenInRange(companyId: string, von: string, bis: string) {
+  return abfragen<Mahnung>(MAHNUNGEN, companyId, {
+    wo: [
+      { art: 'ab', feld: 'datum', wert: von },
+      { art: 'bis', feld: 'datum', wert: bis },
+    ],
+    sortiere: { feld: 'datum' },
+  });
+}
+
+/** Die Mahnungen einer Rechnung, älteste zuerst — für das erneute Laden. */
+export async function listMahnungenZurRechnung(companyId: string, invoiceId: string) {
+  const alle = await abfragen<Mahnung>(MAHNUNGEN, companyId, {
+    wo: [{ art: 'gleich', feld: 'invoiceId', wert: invoiceId }],
+    sortiere: { feld: 'datum' },
+  });
+  return alle.sort((x, y) => x.datum.localeCompare(y.datum) || (x.angelegtAm ?? 0) - (y.angelegtAm ?? 0));
 }

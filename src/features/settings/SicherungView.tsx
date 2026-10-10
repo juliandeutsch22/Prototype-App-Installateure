@@ -10,7 +10,7 @@ import { ErrorState } from '@/components/States';
 import LaufStatus from './LaufStatus';
 import { useToast } from '@/components/Toast';
 import { SelectField } from '@/components/Field';
-import { listGemahntInRange, listInvoicesInRange } from '@/lib/db/invoices';
+import { listGemahntInRange, listInvoicesInRange, listMahnungenInRange } from '@/lib/db/invoices';
 import { listQuotesInRange } from '@/lib/db/quotes';
 import { getWorkSheetsVoll, listBelegScheineInRange } from '@/lib/db/workSheets';
 import { listCustomers } from '@/lib/db/customers';
@@ -143,12 +143,13 @@ export default function SicherungView() {
     setArchivErgebnis(null);
     setArchivStand(null);
     try {
-      const [rechnungen, kunden, angebote, scheine, gemahnt] = await Promise.all([
+      const [rechnungen, kunden, angebote, scheine, gemahnt, mahnungen] = await Promise.all([
         listInvoicesInRange(user.companyId, z.von, z.bis),
         listCustomers(user.companyId),
         listQuotesInRange(user.companyId, z.von, z.bis),
         listBelegScheineInRange(user.companyId, z.von, z.bis),
         listGemahntInRange(user.companyId, z.von, z.bis),
+        listMahnungenInRange(user.companyId, z.von, z.bis),
       ]);
       const { belegArchiv, ersterBelegTag } = await import('@/features/invoices/belegArchiv');
       // „Alle Belege“ beginnt beim ersten Beleg, nicht am 01.01.2000 (Runde 3, G11).
@@ -156,7 +157,7 @@ export default function SicherungView() {
         ? ersterBelegTag(rechnungen, z.bis, [...angebote.map((q) => q.quoteDate), ...scheine.map((w) => w.datum)])
         : z.von;
       const e = await belegArchiv({
-        company, rechnungen, kunden, von, bis: z.bis, angebote, scheine, gemahnt,
+        company, rechnungen, kunden, von, bis: z.bis, angebote, scheine, gemahnt, mahnungen,
         scheineVoll: (ids) => getWorkSheetsVoll(user.companyId, ids),
         fortschritt: (fertig, gesamt) => setArchivStand({ fertig, gesamt }),
       });
@@ -272,13 +273,13 @@ export default function SicherungView() {
           <>
             Alle Rechnungen und Stornorechnungen des Zeitraums als PDF, dazu das
             Rechnungsausgangsbuch als CSV, in einer ZIP-Datei; ebenso die Angebote (ohne Entwürfe)
-            und die unterschriebenen oder stornierten Handwerksscheine als PDF und die Mahnungen
-            als Liste. Rechnungen sind sieben Jahre aufzubewahren (§ 132 BAO), auch nach dem Ende
-            des Senklot-Vertrags; das Archiv lässt sich ohne Senklot öffnen. Die PDFs entstehen aus
-            den gespeicherten Belegen, genau wie beim erneuten Laden. Von einer Mahnung ist nur die
-            letzte Stufe mit Tag, Frist und Spesen gespeichert — sie steht in „Mahnungen.csv“, das
-            Schreiben selbst nicht. Was fehlt, etwa eine nie ausgestellte Stornorechnung, steht in
-            der Datei „Hinweise.txt“.
+            die unterschriebenen oder stornierten Handwerksscheine und die Mahnungen als PDF.
+            Rechnungen sind sieben Jahre aufzubewahren (§ 132 BAO), auch nach dem Ende des
+            Senklot-Vertrags; das Archiv lässt sich ohne Senklot öffnen. Die PDFs entstehen aus den
+            gespeicherten Belegen, genau wie beim erneuten Laden; eine Mahnung so, wie sie
+            hinausging. Mahnungen von vor dem 10.10.2026 sind nur mit ihrer letzten Stufe
+            gespeichert — sie stehen in „Mahnungen.csv“, ohne Schreiben. Was fehlt, etwa eine nie
+            ausgestellte Stornorechnung, steht in der Datei „Hinweise.txt“.
           </>
         }
       >

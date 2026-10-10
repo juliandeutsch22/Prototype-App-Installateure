@@ -84,6 +84,8 @@ let reservierungWirft: Error | null = null;
 const reserve = vi.fn();
 const lege = vi.fn();
 const mahnung = vi.fn();
+/** Die gespeicherten Mahnungen einer Rechnung (seit 10.10.2026). */
+const gespeicherteMahnungen = vi.fn<(...a: unknown[]) => Promise<unknown[]>>(async () => []);
 const reihenfolge: string[] = [];
 
 /*
@@ -198,6 +200,7 @@ vi.mock('@/lib/db/invoices', async () => {
       mahnFolge.push('vermerk');
       return mahnung(...a);
     },
+    listMahnungenZurRechnung: (...a: unknown[]) => gespeicherteMahnungen(...a),
     cancelInvoice: vi.fn(async () => undefined),
     reactivateInvoice: vi.fn(async () => undefined),
     deleteInvoice: vi.fn(async () => undefined),
@@ -290,7 +293,14 @@ const mahnungPdf = vi.fn(async () => {
   return new Blob(['%PDF'], { type: 'application/pdf' });
 });
 vi.mock('@/features/invoices/mahnungPdf', () => ({
-  buildMahnungPdf: (...a: unknown[]) => mahnungPdf(...(a as [])),
+  /*
+    DER INHALT TRÄGT HIER DIE OPTIONEN WEITER: so sieht die Prüfung, was beim
+    Beleg ankommt, und dass genau dieser Inhalt gespeichert wird. Gerechnet
+    wird er in `mahnungPdf.test.ts`.
+  */
+  mahnungInhalt: (o: Record<string, unknown>) => ({ ...o, kosten: 7 }),
+  mahnungPdfAusInhalt: (_firma: unknown, inhalt: unknown) => mahnungPdf(...([inhalt] as unknown as [])),
+  istMahnungInhalt: (i: unknown) => !!(i as { titel?: string } | null)?.titel,
   mahnungDateiname: () => 'Mahnung.pdf',
 }));
 // Derselbe Weg wie beim Handwerksschein — jsdom kennt weder das Teilen noch
@@ -410,6 +420,7 @@ beforeEach(() => {
   lege.mockClear();
   pdfAusgabe.mockClear();
   mahnung.mockClear();
+  gespeicherteMahnungen.mockClear().mockImplementation(async () => []);
   mahnungPdf.mockClear().mockImplementation(async () => {
     mahnFolge.push('pdf');
     return new Blob(['%PDF'], { type: 'application/pdf' });
@@ -985,7 +996,9 @@ describe('Eine überfällige Rechnung mahnen', () => {
     expect(mahnFolge).toEqual(['pdf', 'vermerk']);
     // Über denselben Weg wie der Handwerksschein — auf dem Tablet ein Teilen.
     expect(teilen).toHaveBeenCalled();
-    expect(mahnung.mock.calls[0][1]).toMatchObject({ stufe: 1 });
+    expect(mahnung.mock.calls[0][1]).toMatchObject({ stufe: 1, spesen: 7 });
+    // Gespeichert wird genau der Inhalt, aus dem das Schreiben gedruckt wurde (seit 10.10.2026).
+    expect((mahnung.mock.calls[0][1] as { inhalt: unknown }).inhalt).toBe((mahnungPdf.mock.calls[0] as unknown[])[0]);
   });
 
   /* Runde 3, M10: ohne Kundenart keine Mahnung — Zinsen und Spesen hängen an ihr. */
@@ -1106,6 +1119,34 @@ describe('Eine überfällige Rechnung mahnen', () => {
     zeige();
     expect(await screen.findByText(/Mahnung am 30\.08\.2026/)).toBeInTheDocument();
     expect(screen.getByText(/Frist 06\.09\.2026/)).toBeInTheDocument();
+  });
+
+  it('lädt jede gespeicherte Mahnung erneut — gedruckt aus ihrem Inhalt (seit 10.10.2026)', async () => {
+    const inhalt = { titel: 'Mahnung', stufe: 2, rechnung: { nummer: 'RE-2026-0009' }, offen: 1210 };
+    gespeicherteMahnungen.mockImplementation(async () => [
+      { id: 'm1', invoiceId: 'r1', stufe: 1, datum: '2026-08-20', frist: '2026-08-27', spesen: 0,
+        inhalt: { ...inhalt, titel: 'Zahlungserinnerung', stufe: 1 } },
+      { id: 'm2', invoiceId: 'r1', stufe: 2, datum: '2026-08-30', frist: '2026-09-06', spesen: 10, inhalt },
+    ]);
+    rechnungen = [{ ...UEBERFAELLIG, mahnstufe: 2, gemahntAm: '2026-08-30', mahnfrist: '2026-09-06' }];
+    await menue();
+    expect(gespeicherteMahnungen).toHaveBeenCalledWith('perl', 'r1');
+    const zeile = await screen.findByRole('button', { name: 'Mahnung vom 30.08.2026 als PDF laden' });
+    expect(screen.getByRole('button', { name: 'Zahlungserinnerung vom 20.08.2026 als PDF laden' })).toBeInTheDocument();
+    await userEvent.click(zeile);
+    await waitFor(() => expect(teilen).toHaveBeenCalled());
+    expect((mahnungPdf.mock.calls[0] as unknown[])[0]).toBe(inhalt);
+    expect(teilen.mock.calls[0]).toEqual([expect.any(Blob), 'Mahnung.pdf']);
+    // Erneut laden mahnt nicht noch einmal.
+    expect(mahnung).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: eine nie gemahnte Rechnung fragt keine Mahnungen ab und zeigt keine', async () => {
+    rechnungen = [UEBERFAELLIG];
+    await menue();
+    expect(await screen.findByRole('button', { name: /erzeugen/ })).toBeInTheDocument();
+    expect(gespeicherteMahnungen).not.toHaveBeenCalled();
+    expect(screen.queryByRole('region', { name: 'Mahnungen' })).not.toBeInTheDocument();
   });
 
   it('zeigt die Mahnung einer bezahlten Rechnung als Geschichte — ohne Frist, ohne Warnfarbe', async () => {

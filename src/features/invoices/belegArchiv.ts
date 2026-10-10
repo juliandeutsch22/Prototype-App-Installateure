@@ -1,4 +1,4 @@
-import type { Company, Customer, Invoice, Quote, WorkSheet } from '@/types';
+import type { Company, Customer, Invoice, Mahnung, Quote, WorkSheet } from '@/types';
 import type { GemahnteRechnung } from '@/lib/db/invoices';
 import { csvZelle } from '@/lib/csvZelle';
 import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
@@ -13,13 +13,13 @@ import { todayStr } from '@/lib/time';
  * Das Belegarchiv: alle Rechnungen und Stornorechnungen eines Zeitraums als
  * PDF, dazu das Rechnungsausgangsbuch als CSV — in einer ZIP-Datei
  * (Stand-Datei 11.1, Punkt 6). Seit 10.10.2026 auch die Angebote und die
- * unterschriebenen Handwerksscheine als PDF und die Mahnungen als Liste.
+ * unterschriebenen Handwerksscheine als PDF und die Mahnungen.
  *
- * MAHNUNGEN ALS LISTE, NICHT ALS PDF. Gespeichert ist je Rechnung nur die
- * LETZTE Mahnung: Stufe, Tag, Frist und die ausgewiesenen Spesen. Ein PDF
- * daraus neu zu drucken, nähme Verzugszinsen und Mahnkosten von heute — ein
- * Schreiben, das so nie hinausging. Die Liste hält fest, was gespeichert
- * ist; frühere Stufen kennt die App nicht.
+ * MAHNUNGEN ALS PDF AUS IHREM GESPEICHERTEN INHALT (seit 10.10.2026): jede
+ * Mahnung hält fest, was auf ihr stand (`mahnungen.inhalt`); gedruckt wird
+ * genau das, nicht ein Stand von heute. Mahnungen von davor kennt die App nur
+ * als letzte Stufe an der Rechnung — sie stehen weiter in „Mahnungen.csv“
+ * (eine Zeile je Rechnung), und „Hinweise.txt“ nennt sie.
  *
  * WOZU. Rechnungen sind sieben Jahre aufzubewahren (§ 132 BAO), auch wenn
  * der Betrieb Senklot nicht mehr nutzt. Statt eines Kontos „nur lesen“ nach
@@ -117,15 +117,21 @@ export async function belegArchiv(o: {
   scheineVoll?: (ids: string[]) => Promise<WorkSheet[]>;
   /** Rechnungen mit ihrer letzten Mahnung im Zeitraum. */
   gemahnt?: GemahnteRechnung[];
+  /** Die gespeicherten Mahnungen des Zeitraums (nach ihrem Tag). */
+  mahnungen?: Mahnung[];
   /** Für die Anzeige „120 von 800“ — die Erzeugung dauert bei vielen Belegen. */
   fortschritt?: (fertig: number, gesamt: number) => void;
 }): Promise<ArchivErgebnis> {
   const { company, von, bis } = o;
-  const [{ generateInvoicePdf }, { buildStornoPdf }, { buildAngebotPdf, angebotDateiname }, { buildWorkSheetPdf }] = await Promise.all([
+  const [
+    { generateInvoicePdf }, { buildStornoPdf }, { buildAngebotPdf, angebotDateiname }, { buildWorkSheetPdf },
+    { mahnungPdfAusInhalt, mahnungDateiname, istMahnungInhalt },
+  ] = await Promise.all([
     import('./pdf'),
     import('./stornoPdf'),
     import('@/features/quotes/angebotPdf'),
     import('@/features/worksheets/worksheetPdf'),
+    import('./mahnungPdf'),
   ]);
 
   const imZeitraum = o.rechnungen
@@ -156,9 +162,14 @@ export async function belegArchiv(o: {
     .filter((w) => (w.status === 'Unterschrieben' || w.status === 'Storniert') && w.datum >= von && w.datum <= bis)
     .sort((a, b) => a.datum.localeCompare(b.datum) || a.id.localeCompare(b.id));
 
+  const mahnungen = (o.mahnungen ?? [])
+    .filter((m) => m.datum >= von && m.datum <= bis)
+    .sort((a, b) => a.datum.localeCompare(b.datum) || (a.angelegtAm ?? 0) - (b.angelegtAm ?? 0));
+
   const dateien: ZipDatei[] = [];
   const hinweise: string[] = [];
-  const gesamt = imZeitraum.length + storniert.length + versandt.length + (o.scheineVoll ? scheine.length : 0);
+  const gesamt = imZeitraum.length + storniert.length + versandt.length + (o.scheineVoll ? scheine.length : 0)
+    + mahnungen.length;
   let fertig = 0;
   const weiter = async () => {
     fertig += 1;
@@ -241,11 +252,39 @@ export async function belegArchiv(o: {
     }
   }
 
+  let mahnungenZahl = 0;
+  const vergeben = new Set<string>();
+  for (const m of mahnungen) {
+    if (!istMahnungInhalt(m.inhalt)) {
+      hinweise.push(`Mahnung vom ${datumAT(m.datum)} (Stufe ${m.stufe}): Inhalt nicht lesbar, daher kein PDF.`);
+    } else {
+      const grund = dateiname(`${mahnungDateiname({ invoiceNumber: m.inhalt.rechnung.nummer }, m.inhalt.stufe).replace(/\.pdf$/, '')}_${m.datum}`);
+      // Dieselbe Stufe zweimal am selben Tag: beide Schreiben gingen hinaus, beide gehören hinein.
+      const name = vergeben.has(grund) ? `${grund}_${m.id.slice(0, 8)}` : grund;
+      vergeben.add(name);
+      const blob = await mahnungPdfAusInhalt(company, m.inhalt);
+      dateien.push({ name: `Mahnungen/${name}.pdf`, inhalt: await bytes(blob) });
+      mahnungenZahl += 1;
+    }
+    await weiter();
+  }
+
   const gemahnt = (o.gemahnt ?? [])
     .filter((g) => (g.mahnstufe ?? 0) > 0 && g.gemahntAm && g.gemahntAm >= von && g.gemahntAm <= bis)
     .sort((a, b) => (a.gemahntAm ?? '').localeCompare(b.gemahntAm ?? '') || a.invoiceNumber.localeCompare(b.invoiceNumber, 'de'));
   if (gemahnt.length > 0) {
     dateien.push({ name: MAHNUNGEN_CSV, inhalt: new TextEncoder().encode(`\uFEFF${mahnungenCsv(gemahnt)}`) });
+  }
+  /*
+    MAHNUNGEN VON VOR DEM 10.10.2026 haben kein gespeichertes Schreiben.
+    Erkannt an der letzten Stufe der Rechnung, zu der keine Mahnung mit
+    derselben Stufe am selben Tag gespeichert ist.
+  */
+  const gespeichert = new Set((o.mahnungen ?? []).map((m) => `${m.invoiceId}|${m.stufe}|${m.datum}`));
+  for (const g of gemahnt) {
+    if (!gespeichert.has(`${g.id}|${g.mahnstufe}|${g.gemahntAm}`)) {
+      hinweise.push(`${g.invoiceNumber}: ${STUFE[g.mahnstufe ?? 0] ?? 'Mahnung'} vom ${datumAT(g.gemahntAm!)} entstand, bevor Senklot Mahnungen einzeln speicherte — kein PDF, nur die Zeile in ${MAHNUNGEN_CSV}.`);
+    }
   }
 
   const journal = buildInvoiceCsv(o.rechnungen, o.kunden, von, bis);
@@ -268,11 +307,13 @@ export async function belegArchiv(o: {
     `Rechnungsausgangsbuch: ${invoiceCsvFilename(von, bis)}`,
     `Angebote als PDF: ${angeboteZahl}`,
     `Handwerksscheine als PDF (unterschrieben oder storniert): ${scheineZahl}`,
-    `Mahnungen: ${gemahnt.length ? `${gemahnt.length} in ${MAHNUNGEN_CSV}` : 'keine'}`,
+    `Mahnungen als PDF: ${mahnungenZahl}`,
+    `Übersicht der letzten Mahnstufe je Rechnung: ${gemahnt.length ? MAHNUNGEN_CSV : 'keine'}`,
     '',
-    'Von einer Mahnung speichert Senklot die letzte Stufe mit Tag, Frist und',
-    'Spesen — so steht sie in der Liste. Das Schreiben selbst und frühere Stufen',
-    'sind nicht gespeichert.',
+    'Jede Mahnung ab dem 10.10.2026 ist so gedruckt, wie sie hinausging;',
+    'Briefkopf und Bankverbindung stammen aus den heutigen Betriebsdaten.',
+    'Von älteren Mahnungen ist nur die letzte Stufe je Rechnung gespeichert —',
+    'sie stehen in der Übersicht, ohne Schreiben.',
     'Alle übrigen Daten enthält die Datei aus „Alle Daten herunterladen“',
     '(Datensicherung).',
     '',
@@ -284,6 +325,6 @@ export async function belegArchiv(o: {
 
   return {
     blob: zipErstellen(dateien), rechnungen, stornos,
-    angebote: angeboteZahl, scheine: scheineZahl, mahnungen: gemahnt.length, hinweise,
+    angebote: angeboteZahl, scheine: scheineZahl, mahnungen: mahnungenZahl, hinweise,
   };
 }

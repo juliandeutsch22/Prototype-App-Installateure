@@ -12,7 +12,7 @@
  *          inzwischen auf einer anderen Rechnung steht.
  */
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { admin, betriebAnlegen, konto, type Konto } from './helfer';
+import { admin, betriebAnlegen, konto, type Konto, mahnInhalt } from './helfer';
 import * as rechnungen from '@/lib/db/pg/invoices';
 import { clientEinreichen, type WithId } from '@/lib/db/pg/kern';
 import type { Invoice } from '@/types';
@@ -131,7 +131,7 @@ describe('Was auf dem Beleg steht, ist eingefroren', () => {
     const id = await anlegen();
     await rechnungen.updateInvoiceStatus(id, 'Überfällig');
     await rechnungen.mahnungFesthalten(id, {
-      stufe: 1, gemahntAm: '2026-05-20', frist: '2026-05-27', spesen: 10, standJetzt: 'Überfällig',
+      stufe: 1, gemahntAm: '2026-05-20', frist: '2026-05-27', spesen: 10, inhalt: mahnInhalt(1, '2026-05-20', '2026-05-27'),
     });
     const { data } = await admin.from('invoices')
       .select('payment_status, mahnstufe').eq('id', id).single();

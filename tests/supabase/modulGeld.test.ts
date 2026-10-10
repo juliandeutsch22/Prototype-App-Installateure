@@ -8,7 +8,7 @@
  * Storno und Storno-Aufhebung ganz durchgehen oder gar nicht.
  */
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { admin, betriebAnlegen, konto, buchung, type Konto } from './helfer';
+import { admin, betriebAnlegen, konto, buchung, type Konto, mahnInhalt } from './helfer';
 import * as rechnungen from '@/lib/db/pg/invoices';
 import * as zahlungen from '@/lib/db/pg/zahlungen';
 import * as angebote from '@/lib/db/pg/quotes';
@@ -279,7 +279,7 @@ describe('Eine ausgestellte Rechnung ist zu', () => {
     /* Gemahnt wird zuerst — das ist die Reihenfolge des Alltags. */
     await rechnungen.mahnungFesthalten(r.id, {
       stufe: 1, gemahntAm: '2026-05-20', frist: '2026-06-03', spesen: 15,
-      standJetzt: 'Offen',
+      inhalt: mahnInhalt(1, '2026-05-20', '2026-06-03'),
     });
     const [gemahnt] = await rechnungen.listUnpaidInvoices(BETRIEB);
     expect(gemahnt).toMatchObject({
@@ -310,7 +310,7 @@ describe('Eine ausgestellte Rechnung ist zu', () => {
     */
     await rechnungen.mahnungFesthalten(r.id, {
       stufe: 2, gemahntAm: '2026-06-10', frist: '2026-06-20', spesen: 25,
-      standJetzt: 'Teilbezahlt',
+      inhalt: mahnInhalt(2, '2026-06-10', '2026-06-20'),
     });
     const [zweite] = await rechnungen.listUnpaidInvoices(BETRIEB);
     expect(zweite).toMatchObject({ mahnstufe: 2, paymentStatus: 'Teilbezahlt' });

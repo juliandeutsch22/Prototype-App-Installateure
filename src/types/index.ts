@@ -1733,6 +1733,47 @@ export interface Invoice {
  * viel" wäre danach nicht mehr zu beantworten, und genau an ihr hängen
  * Skonto, Verzugszinsen und eine ehrliche Liste offener Posten.
  */
+/**
+ * Was auf einer Mahnung stand (`mahnungen.inhalt`, seit 10.10.2026).
+ *
+ * Die fertigen Zeilen, nicht die Zahlen dahinter: Zinsen, Kosten und
+ * Zahlstand ändern sich nach dem Mahnen, das Schreiben nicht. Gedruckt wird
+ * daraus mit `mahnungPdfAusInhalt`.
+ */
+export interface MahnungInhalt {
+  stufe: 1 | 2 | 3;
+  /** Der Tag der Mahnung, JJJJ-MM-TT. */
+  datum: string;
+  /** Die neue Frist, JJJJ-MM-TT. */
+  frist: string;
+  titel: string;
+  anrede: string;
+  /** Der Satz mit der Frist, wie er auf dem Schreiben stand. */
+  fristSatz: string;
+  empfaenger: { name: string; adresse?: string; uid?: string };
+  rechnung: { nummer: string; baustelle: string };
+  /** Bezeichnung und Betrag je Zeile des Zahlenblocks. */
+  zeilen: [string, string][];
+  /** Der offene Betrag am Ende des Blocks, in Euro. */
+  offen: number;
+  /** Mahnspesen und Pauschale zusammen, in Euro. */
+  kosten: number;
+}
+
+/** Eine erzeugte Mahnung — unveränderlich, an ihrer Rechnung. */
+export interface Mahnung {
+  id: string;
+  companyId: string;
+  invoiceId: string;
+  stufe: number;
+  datum: string;
+  frist: string;
+  /** Die ausgewiesenen Mahnkosten (Spesen bzw. Pauschale), in Euro. */
+  spesen: number;
+  inhalt: MahnungInhalt;
+  angelegtAm?: number;
+}
+
 export interface Zahlungseingang {
   id: string;
   companyId: string;

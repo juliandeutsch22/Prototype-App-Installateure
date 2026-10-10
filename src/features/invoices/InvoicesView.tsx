@@ -18,6 +18,7 @@ import {
   schlussrechnungenOhneAbzug,
   type SchlussOhneAbzug,
   mahnungFesthalten,
+  listMahnungenZurRechnung,
   sucheRechnungen,
   scheineAufRechnung,
   RECHNUNG_TREFFER,
@@ -41,7 +42,6 @@ import { katalogAbgeschnitten } from '@/lib/listengrenzen';
 import { verrechneteScheine } from './materialPositionen';
 import {
   darfMahnen,
-  mahnkosten,
   naechsteStufe,
   TEXTE,
   FRIST_TAGE,
@@ -70,14 +70,14 @@ import { listBasiszinssaetze, type ZentralerBasiszinssatz } from '@/lib/db/basis
 import { discountLabel, istPreiszeile, positionsRabattText, type InvoicePosition } from './totals';
 import { todayStr, localDateStr, fmtDauer, tageWort } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
-import type { Invoice, Project, RechnungsArt, WorkSheet, Zahlungseingang } from '@/types';
+import type { Invoice, Mahnung, Project, RechnungsArt, WorkSheet, Zahlungseingang } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Metric, { MetricRow } from '@/components/Metric';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
 import { Marke, Warnung } from '@/components/Badge';
-import RechnungDetail, { type RechnungAktion } from './RechnungDetail';
+import RechnungDetail, { type MahnungZeile, type RechnungAktion } from './RechnungDetail';
 import BankgarantieDialog from './BankgarantieDialog';
 import {
   BEREICHE,
@@ -395,6 +395,8 @@ export default function InvoicesView() {
   const [suggestedNumber, setSuggestedNumber] = useState('');
   /** Die Rechnung, deren Detailansicht offen ist (M19). */
   const [detailFuer, setDetailFuer] = useState<WithId<Invoice> | null>(null);
+  /** Die gespeicherten Mahnungen der offenen Rechnung — für „erneut laden“. */
+  const [detailMahnungen, setDetailMahnungen] = useState<{ fuer: string; liste: WithId<Mahnung>[] } | null>(null);
   /**
    * Ist „Neue Rechnung“ offen? Die Seite zeigt zuerst den Arbeitsstand
    * (Linie „Lot“); das Formular kommt über die Hauptaktion im Seitenkopf
@@ -1563,10 +1565,7 @@ export default function InvoicesView() {
     try {
       const heute = todayStr();
       const unternehmer = istUnternehmer(inv);
-      const kosten = mahnkosten(stufe, company.rates, unternehmer);
-      // Festgehalten wird, was die Mahnung an Kosten verlangt — Spesen oder Pauschale.
-      const spesen = kosten.spesen + kosten.pauschale;
-      const { buildMahnungPdf, mahnungDateiname } = await import('./mahnungPdf');
+      const { mahnungInhalt, mahnungPdfAusInhalt, mahnungDateiname } = await import('./mahnungPdf');
       /*
         DIE MAHNUNG GEHT AN DIE ANSCHRIFT DES KUNDEN (P2-02) — heute, aus dem
         Stamm. Ältere Rechnungen tragen als Anschrift die der Baustelle; ein
@@ -1574,7 +1573,11 @@ export default function InvoicesView() {
         im Stamm bleibt die Anschrift der Rechnung.
       */
       const kunde = kundeDerRechnung(inv);
-      const blob = await buildMahnungPdf({
+      /*
+        DER INHALT WIRD EINMAL GERECHNET und so gedruckt wie gespeichert —
+        Archiv und erneutes Laden zeigen danach genau dieses Schreiben.
+      */
+      const inhalt = mahnungInhalt({
         company,
         invoice: inv,
         stufe,
@@ -1585,6 +1588,7 @@ export default function InvoicesView() {
         zinsen: zinsenFuer(inv, stufe, heute),
         unternehmer,
       });
+      const blob = await mahnungPdfAusInhalt(company, inhalt);
       /*
         DERSELBE WEG WIE BEIM HANDWERKSSCHEIN, nicht ein zweiter.
 
@@ -1597,8 +1601,9 @@ export default function InvoicesView() {
       const { shareOrDownloadPdf } = await import('@/features/worksheets/worksheetPdf');
       await shareOrDownloadPdf(blob, mahnungDateiname(inv, stufe));
 
+      // Festgehalten wird, was die Mahnung an Kosten verlangt — Spesen oder Pauschale.
       await mahnungFesthalten(inv.id, {
-        stufe, gemahntAm: heute, frist, spesen, standJetzt: inv.paymentStatus,
+        stufe, gemahntAm: heute, frist, spesen: inhalt.kosten, inhalt,
       });
       // Das Abzeichen im Menü zählt mit: diese Rechnung ist bis zum Ablauf
       // der neuen Frist keine fällige Mahnung mehr.
@@ -1609,6 +1614,49 @@ export default function InvoicesView() {
       setError(grundAus(err, 'Die Mahnung konnte nicht erzeugt werden.'));
     } finally {
       setBusy(false);
+    }
+  }
+
+  /*
+    DIE MAHNUNGEN DER OFFENEN RECHNUNG — nur, wenn sie gemahnt ist. Neu
+    geholt, sobald eine weitere Stufe dazukommt (`gemahntAm`, `mahnstufe`):
+    sonst fehlte die gerade erzeugte Mahnung in der Liste.
+  */
+  const detailId = detailFuer?.id;
+  const detailStand = detailId
+    ? [...invoices, ...offeneRechnungen].find((i) => i.id === detailId) ?? detailFuer
+    : null;
+  const detailMahnKey = detailStand?.mahnstufe ? `${detailId}|${detailStand.mahnstufe}|${detailStand.gemahntAm ?? ''}` : null;
+  useEffect(() => {
+    if (!user || !detailId || !detailMahnKey) {
+      setDetailMahnungen(null);
+      return;
+    }
+    let weg = false;
+    listMahnungenZurRechnung(user.companyId, detailId)
+      .then((liste) => { if (!weg) setDetailMahnungen({ fuer: detailId, liste }); })
+      // Ohne Liste bleibt die Zeile „Gemahnt“ — die Rechnung selbst ist lesbar.
+      .catch(() => { if (!weg) setDetailMahnungen(null); });
+    return () => { weg = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- detailMahnKey trägt Rechnung und Stand
+  }, [user?.companyId, detailMahnKey]);
+
+  /** Eine gespeicherte Mahnung erneut als PDF — genau das Schreiben von damals. */
+  async function mahnungErneutLaden(id: string) {
+    if (!company) return;
+    const m = detailMahnungen?.liste.find((x) => x.id === id);
+    if (!m) return;
+    const { istMahnungInhalt, mahnungPdfAusInhalt, mahnungDateiname } = await import('./mahnungPdf');
+    if (!istMahnungInhalt(m.inhalt)) {
+      toast.error('Der gespeicherte Inhalt dieser Mahnung ist nicht lesbar.');
+      return;
+    }
+    try {
+      const blob = await mahnungPdfAusInhalt(company, m.inhalt);
+      const { shareOrDownloadPdf } = await import('@/features/worksheets/worksheetPdf');
+      await shareOrDownloadPdf(blob, mahnungDateiname({ invoiceNumber: m.inhalt.rechnung.nummer }, m.inhalt.stufe));
+    } catch (err) {
+      toast.error(grundAus(err, 'Die Mahnung konnte nicht geladen werden.'));
     }
   }
 
@@ -3958,6 +4006,12 @@ export default function InvoicesView() {
             inv={inv}
             onClose={() => setDetailFuer(null)}
             aktionen={inv ? rechnungAktionen(inv) : []}
+            mahnungen={inv && detailMahnungen?.fuer === inv.id
+              ? detailMahnungen.liste.map((m): MahnungZeile => ({
+                  id: m.id, titel: TEXTE[m.stufe as Mahnstufe]?.titel ?? 'Mahnung', datum: m.datum, frist: m.frist,
+                }))
+              : []}
+            onMahnungLaden={(id) => void mahnungErneutLaden(id)}
           />
         );
       })()}

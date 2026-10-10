@@ -67,6 +67,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
     zeit_bis: 'uhrzeit', zeit_von: 'uhrzeit',
   },
   lagerbewegungen: { created_at: 'zeitpunkt' },
+  mahnungen: { angelegt_am: 'zeitpunkt' },
   invoices: {
     cancelled_at: 'zeitpunkt', storno_am: 'zeitpunkt', created_at: 'zeitpunkt', updated_at: 'zeitpunkt',
   },
