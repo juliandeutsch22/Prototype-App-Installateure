@@ -47,6 +47,13 @@ export function listInvoicesInRange(
 }
 
 /** Bestimmte Rechnungen nach Kennung — für den Zahlungsstapel (H7 vorgebaut). */
+export type { GemahnteRechnung } from './pg/invoices';
+
+/** Rechnungen mit ihrer letzten Mahnung im Zeitraum — für das Belegarchiv. */
+export function listGemahntInRange(companyId: string, von: string, bis: string): Promise<WithId<pg.GemahnteRechnung>[]> {
+  return pg.listGemahntInRange(companyId, von, bis);
+}
+
 export function listInvoicesByIds(companyId: string, ids: string[]): Promise<WithId<Invoice>[]> {
   return pg.listInvoicesByIds(companyId, ids);
 }

@@ -8,9 +8,10 @@ vi.mock('jspdf-autotable', () => ({
   },
 }));
 
-import { ersterBelegTag, belegArchiv } from '@/features/invoices/belegArchiv';
+import { ersterBelegTag, belegArchiv, mahnungenCsv, SCHEIN_BLOCK } from '@/features/invoices/belegArchiv';
 import { druckAngaben } from '@/features/invoices/nachdruck';
-import type { Company, Invoice } from '@/types';
+import type { GemahnteRechnung } from '@/lib/db/invoices';
+import type { Company, Invoice, Quote, WorkSheet } from '@/types';
 
 /**
  * Das Belegarchiv (Stand-Datei 11.1, Punkt 6): Rechnungen und
@@ -157,6 +158,112 @@ describe('Belegarchiv', () => {
       'Hinweise.txt', 'Rechnungsausgangsbuch_2024-01-01_bis_2024-12-31.csv',
     ]);
     expect(e.hinweise).toEqual([]);
+  });
+});
+
+const angebot = (p: Partial<Quote>): Quote => ({
+  id: 'q1', companyId: 'perl', quoteNumber: 'AN-2026-0007', customerName: 'Gemeinde Neudorf',
+  quoteDate: '2026-04-01', validUntil: '2026-05-01', status: 'Versendet',
+  positions: [{ label: 'Facharbeiterstunden', qty: 2, unit: 'h', unitPrice: 78, netto: 156 }],
+  subtotalNetto: 156, totalNetto: 156, totalVat: 31.2, totalBrutto: 187.2, vatRate: 0.2, kalkulierteStunden: 2,
+  ...p,
+});
+
+const schein = (id: string, p: Partial<WorkSheet> = {}): WorkSheet => ({
+  id, companyId: 'perl', projectNumber: 'B-2026-0147', customerName: 'Hausverwaltung Nord',
+  address: 'Ringstraße 1, 1010 Wien', datum: '2026-05-04', status: 'Unterschrieben', abrechnung: 'Regie',
+  zeiten: [{ datum: '2026-05-04', mitarbeiter: 'Max Mustermann', minuten: 240 }], material: [],
+  erstelltVonUid: 'u1', erstelltVonName: 'Max Mustermann',
+  ...p,
+} as unknown as WorkSheet);
+
+describe('Belegarchiv: Angebote, Handwerksscheine, Mahnungen (seit 10.10.2026)', () => {
+  const JAHR = { von: '2026-01-01', bis: '2026-12-31' };
+
+  it('Angebote als PDF — Entwürfe nicht, und das steht in den Hinweisen', async () => {
+    const e = await belegArchiv({
+      company: firma, rechnungen: [], kunden: [], ...JAHR,
+      angebote: [
+        angebot({}),
+        angebot({ id: 'q2', quoteNumber: 'AN-2026-0008', status: 'Angenommen' }),
+        angebot({ id: 'q3', quoteNumber: 'AN-2026-0009', status: 'Entwurf' }),
+        angebot({ id: 'q4', quoteNumber: 'AN-2025-0100', quoteDate: '2025-12-30' }),
+      ],
+    });
+    const d = await entpacken(e.blob);
+    expect([...d.keys()].filter((n) => n.startsWith('Angebote/')).sort()).toEqual([
+      'Angebote/Angebot_AN-2026-0007.pdf', 'Angebote/Angebot_AN-2026-0008.pdf',
+    ]);
+    expect(text(d.get('Angebote/Angebot_AN-2026-0007.pdf'))).toContain('AN-2026-0007');
+    expect(e.angebote).toBe(2);
+    expect(e.hinweise).toContainEqual('1 Angebot ist ein Entwurf und nie hinausgegangen — nicht im Archiv.');
+  });
+
+  it('Handwerksscheine als PDF, die ganzen Scheine in Blöcken geholt', async () => {
+    const koepfe = Array.from({ length: SCHEIN_BLOCK + 3 }, (_, i) => schein(`s${String(i).padStart(3, '0')}-abcdef`));
+    const geholt: string[][] = [];
+    const e = await belegArchiv({
+      company: firma, rechnungen: [], kunden: [], ...JAHR,
+      scheine: [
+        ...koepfe,
+        schein('entwurf-1', { status: 'Entwurf' }),
+        schein('alt-00001', { datum: '2025-12-30' }),
+      ],
+      scheineVoll: async (ids) => {
+        geholt.push(ids);
+        return koepfe.filter((k) => ids.includes(k.id));
+      },
+    });
+    expect(geholt.map((b) => b.length)).toEqual([SCHEIN_BLOCK, 3]);
+    const namen = [...(await entpacken(e.blob)).keys()].filter((n) => n.startsWith('Handwerksscheine/'));
+    expect(namen).toHaveLength(SCHEIN_BLOCK + 3);
+    expect(namen).toContain('Handwerksscheine/B-2026-0147_2026-05-04_s000-abc.pdf');
+    expect(e.scheine).toBe(SCHEIN_BLOCK + 3);
+  });
+
+  it('Gegenprobe: ein Schein, der beim Holen fehlt, wird genannt statt still ausgelassen', async () => {
+    const e = await belegArchiv({
+      company: firma, rechnungen: [], kunden: [], ...JAHR,
+      scheine: [schein('weg-00001', { status: 'Storniert' })],
+      scheineVoll: async () => [],
+    });
+    expect(e.scheine).toBe(0);
+    expect(e.hinweise).toContainEqual('Schein vom 04.05.2026 (Baustelle B-2026-0147): nicht mehr lesbar, daher kein PDF.');
+  });
+
+  it('die Mahnungen als Liste: die letzte Stufe mit Tag, Frist und Spesen', async () => {
+    const gemahnt: GemahnteRechnung[] = [
+      { invoiceNumber: 'RE-2026-0001', customerName: 'Hausverwaltung Nord', projectNumber: 'B-1', totalBrutto: 720,
+        paymentStatus: 'Offen', mahnstufe: 2, gemahntAm: '2026-04-20', mahnfrist: '2026-05-04', mahnspesen: 10 },
+      { invoiceNumber: 'RE-2025-0090', customerName: '=Formel', projectNumber: 'B-9', totalBrutto: 100,
+        paymentStatus: 'Bezahlt', mahnstufe: 1, gemahntAm: '2026-01-10', mahnfrist: '2026-01-24' },
+      // Ausserhalb des Zeitraums gemahnt.
+      { invoiceNumber: 'RE-2025-0091', customerName: 'X', totalBrutto: 1, paymentStatus: 'Offen',
+        mahnstufe: 1, gemahntAm: '2025-12-01', mahnfrist: '2025-12-15' },
+    ] as GemahnteRechnung[];
+    const e = await belegArchiv({ company: firma, rechnungen: [], kunden: [], ...JAHR, gemahnt });
+    const csv = new TextDecoder().decode((await entpacken(e.blob)).get('Mahnungen.csv'));
+    expect(csv.replace(/^\uFEFF/, '').split('\r\n')).toEqual([
+      'Rechnung;Kunde;Baustelle;Rechnungsbetrag brutto;Letzte Stufe;Gemahnt am;Neue Frist;Ausgewiesene Spesen;Zahlstand',
+      "RE-2025-0090;'=Formel;B-9;100,00;Zahlungserinnerung;10.01.2026;24.01.2026;;Bezahlt",
+      'RE-2026-0001;Hausverwaltung Nord;B-1;720,00;Mahnung;20.04.2026;04.05.2026;10,00;Offen',
+    ]);
+    expect(e.mahnungen).toBe(2);
+    const hinweise = new TextDecoder().decode((await entpacken(e.blob)).get('Hinweise.txt'));
+    expect(hinweise).toContain('Mahnungen: 2 in Mahnungen.csv');
+    expect(hinweise).toContain('Das Schreiben selbst und frühere Stufen');
+  });
+
+  it('Gegenprobe: ohne Mahnung im Zeitraum keine Mahnungsliste', async () => {
+    const e = await belegArchiv({ company: firma, rechnungen: [], kunden: [], ...JAHR, gemahnt: [] });
+    expect([...(await entpacken(e.blob)).keys()]).not.toContain('Mahnungen.csv');
+    expect(mahnungenCsv([]).split('\r\n')).toHaveLength(1);
+  });
+
+  it('„Alle Belege“ beginnt auch bei einem Angebot oder Schein vor der ersten Rechnung', () => {
+    const r = rechnung({ invoiceDate: '2026-04-01' });
+    expect(ersterBelegTag([r], '2026-10-06', ['2026-02-01', '2026-03-01'])).toBe('2026-02-01');
+    expect(ersterBelegTag([r], '2026-10-06', ['2026-05-01'])).toBe('2026-04-01');
   });
 });
 

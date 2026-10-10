@@ -85,6 +85,22 @@ export async function listRecentQuotes(companyId: string, max = 100) {
   return zusammensetzen(koepfe, companyId);
 }
 
+/**
+ * Die Angebote eines Zeitraums nach Angebotsdatum, OHNE GRENZE — für das
+ * Belegarchiv. Eine Obergrenze ließe dort still Angebote weg; die Liste
+ * holt `abfragen` seitenweise.
+ */
+export async function listQuotesInRange(companyId: string, von: string, bis: string) {
+  const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
+    wo: [
+      { art: 'ab', feld: 'quoteDate', wert: von },
+      { art: 'bis', feld: 'quoteDate', wert: bis },
+    ],
+    sortiere: { feld: 'quoteDate' },
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
 /** Die Angebote EINES Kunden. */
 export async function listQuotesForCustomer(companyId: string, customerId: string, max = 100) {
   const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {

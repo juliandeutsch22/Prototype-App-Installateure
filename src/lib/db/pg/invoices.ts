@@ -234,6 +234,29 @@ export function subscribeRecentInvoices(
  * diese Funktion behebt: die Lückenprüfung im Nummernkreis meldete sonst
  * Lücken, die keine sind.
  */
+/** Was das Belegarchiv von einer gemahnten Rechnung festhält. */
+export type GemahnteRechnung = Pick<
+  Invoice,
+  'invoiceNumber' | 'customerName' | 'projectNumber' | 'totalBrutto' | 'paymentStatus' | 'mahnstufe' | 'gemahntAm' | 'mahnfrist' | 'mahnspesen'
+>;
+
+/**
+ * Die Rechnungen, deren LETZTE Mahnung in einen Zeitraum fällt — nur der
+ * Kopf, ohne Grenze. Nach dem Tag der Mahnung, nicht der Rechnung: eine
+ * Rechnung vom Dezember, im Januar gemahnt, gehört mit der Mahnung ins neue
+ * Jahr.
+ */
+export function listGemahntInRange(companyId: string, von: string, bis: string) {
+  return abfragen<GemahnteRechnung>(RECHNUNGEN, companyId, {
+    spalten: 'id,invoice_number,customer_name,project_number,total_brutto,payment_status,mahnstufe,gemahnt_am,mahnfrist,mahnspesen',
+    wo: [
+      { art: 'ab', feld: 'gemahntAm', wert: von },
+      { art: 'bis', feld: 'gemahntAm', wert: bis },
+    ],
+    sortiere: { feld: 'gemahntAm' },
+  });
+}
+
 export async function listInvoicesInRange(companyId: string, von: string, bis: string) {
   /*
     DAZU DIE RECHNUNGEN, DIE IN DIESEM ZEITRAUM STORNIERT WURDEN — auch wenn

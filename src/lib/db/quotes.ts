@@ -24,6 +24,11 @@ export function listQuotesForCustomer(
   return pg.listQuotesForCustomer(companyId, customerId, max);
 }
 
+/** Alle Angebote eines Zeitraums — für das Belegarchiv. */
+export function listQuotesInRange(companyId: string, von: string, bis: string): Promise<WithId<Quote>[]> {
+  return pg.listQuotesInRange(companyId, von, bis);
+}
+
 export function getQuote(companyId: string, id: string): Promise<WithId<Quote> | null> {
   return pg.getQuote(companyId, id);
 }
