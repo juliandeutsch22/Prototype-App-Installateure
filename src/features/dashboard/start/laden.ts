@@ -30,7 +30,7 @@ import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
 import { listLagerPosten } from '@/lib/db/einkauf';
 import { lagerFrei, listLagerartikel, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
-import { listUnpaidInvoices, listInvoicesByIds, scheineAufRechnung } from '@/lib/db/invoices';
+import { listGarantienEndenIn, listUnpaidInvoices, listInvoicesByIds, scheineAufRechnung, type GarantieRechnung } from '@/lib/db/invoices';
 import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
 import { listRecentWorkSheets, listOwnWorkSheetsSince } from '@/lib/db/workSheets';
 import { listAbwesendInRange, listOpenVacations, type Abwesenheit } from '@/lib/db/vacations';
@@ -71,6 +71,9 @@ import {
   type LehrzeitEndeZeile,
   lehrzeitEnden,
   einzigeLeitungOhneMail,
+  GARANTIE_NACHLAUF_TAGE,
+  GARANTIE_VORLAUF_TAGE,
+  tageVerschoben,
 } from './regeln';
 
 /**
@@ -137,6 +140,8 @@ export interface StartDaten {
   knapp?: KnapperArtikel[];
   // Buchhaltung
   unbezahlt?: (Invoice & { id: string })[];
+  /** Bankgarantien, die bald enden oder gerade geendet haben (seit 10.10.2026). */
+  garantien?: (GarantieRechnung & { id: string })[];
   lauf?: Mahnlauf;
   unverrechnet?: UnverrechneteZeile[];
   zahlungenHeute?: ZahlungHeute[];
@@ -390,11 +395,14 @@ export async function buchhaltung(
   const out: Partial<StartDaten> = {};
   if (was.rechnungen) {
     const monatsErster = `${heute.slice(0, 7)}-01`;
-    const [unbezahlt, zahlungen] = await Promise.all([
+    const [unbezahlt, zahlungen, garantien] = await Promise.all([
       listUnpaidInvoices(user.companyId),
       still(() => listZahlungenImZeitraum(user.companyId, monatsErster, heute), []),
+      // Still: fehlt die Erinnerung, bleibt der Rest der Startseite.
+      still(() => listGarantienEndenIn(user.companyId, tageVerschoben(heute, -GARANTIE_NACHLAUF_TAGE), tageVerschoben(heute, GARANTIE_VORLAUF_TAGE)), []),
     ]);
     out.unbezahlt = unbezahlt;
+    out.garantien = garantien;
     out.lauf = mahnlauf(unbezahlt, heute, company?.rates);
     // Die Rechnungen hinter den Zahlungen — für Namen, Nummer und den Stand.
     const ids = [...new Set(zahlungen.map((z) => z.invoiceId))];

@@ -29,6 +29,8 @@ import {
   ueberfaelligNichtMahnbar,
   ruecklassWirdFaellig,
   ruecklaesseBald,
+  garantieEndet,
+  garantienBald,
   unbesetzteEinsaetze,
   unterMindestmenge,
   urlaubsantraege,
@@ -204,6 +206,7 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
     d.lauf ? erlaubt(mahnungenFaellig(d.lauf), u) : null,
     d.lauf && d.unbezahlt ? erlaubt(ueberfaelligNichtMahnbar(d.unbezahlt, d.lauf, u.heute), u) : null,
     d.unbezahlt ? erlaubt(ruecklassWirdFaellig(d.unbezahlt, u.heute), u) : null,
+    d.garantien ? erlaubt(garantieEndet(d.garantien, u.heute), u) : null,
     d.unverrechnet ? erlaubt(scheineNichtVerrechnet(auffaellige(d.unverrechnet)), u) : null,
     /*
       DIE EIGENE PERSON NUR EINMAL (Analyse 03.10.2026, Paket 1): ihre Tage
@@ -393,6 +396,19 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
         titel: `${anzahl(bald.length, 'Rücklass wird', 'Rücklässe werden')} fällig`,
         detail: euro(bald.reduce((s, i) => s + offenerRuecklass(i), 0)),
         status: { text: `ab ${tagKurz(ruecklassFaelligAm(bald[0])!)}`, ton: 'warn' },
+      }));
+    }
+  }
+  if (d.garantien) {
+    // Bankgarantien, die bald enden oder geendet haben (seit 10.10.2026).
+    const g = garantienBald(d.garantien, h);
+    if (g.length) {
+      const vorbei = g.filter((x) => x.ruecklassGarantieBis! < h).length;
+      themen.push(wenn(ZIEL.rechnungen, {
+        key: 'garantie', wann: 'woche',
+        titel: `${anzahl(g.length, 'Bankgarantie endet', 'Bankgarantien enden')}`,
+        detail: vorbei ? `${anzahl(vorbei, 'Urkunde', 'Urkunden')} zurückfordern` : `${g[0].customerName} · ${g[0].invoiceNumber}`,
+        status: { text: g[0].ruecklassGarantieBis! < h ? `seit ${tagKurz(g[0].ruecklassGarantieBis!)}` : `ab ${tagKurz(g[0].ruecklassGarantieBis!)}`, ton: 'warn' },
       }));
     }
   }
