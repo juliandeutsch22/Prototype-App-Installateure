@@ -41,6 +41,8 @@ import { grundAus } from '@/lib/fehlerGrund';
 import { zahlAlsText } from '@/lib/zahl';
 import { mitFrist } from '@/lib/frist';
 import { aktiveModule } from '@/lib/module';
+import AufteilenDialog from './AufteilenDialog';
+import { aufteilenGeht } from './aufteilen';
 
 
 interface Props {
@@ -162,6 +164,7 @@ export default function TimeForm({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const isEdit = !!entry;
+  const [aufteilenOffen, setAufteilenOffen] = useState(false);
 
   const [date, setDate] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
   const [status, setStatus] = useState<TimeEntry['status']>(entry?.status ?? 'Anwesend');
@@ -181,6 +184,12 @@ export default function TimeForm({
   const [travelTime, setTravelTime] = useState(String(entry?.travelTime ?? 0));
   const [projectNumber, setProjectNumber] = useState(entry?.projectNumber ?? prefill?.projectNumber ?? '');
   const [comment, setComment] = useState(entry?.comment ?? '');
+  /** Weicht die Maske bei Zeiten, Pause oder Baustelle von der gespeicherten Buchung ab? Dann noch nicht aufteilen. */
+  const aufteilenUngespeichert = !!entry && (
+    startTime !== (entry.startTime ?? '') || endTime !== (entry.endTime ?? '')
+    || (Number(breakDuration) || 0) !== (Number(entry.breakDuration ?? 0) || 0)
+    || projectNumber !== (entry.projectNumber ?? '') || status !== entry.status
+  );
   /** Krank bis (einschließlich) — Krank wird als Krankmeldung erfasst. */
   const [krankBis, setKrankBis] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
   /** Urlaub bis (einschließlich) — das Büro trägt ihn als genehmigten Antrag ein. */
@@ -1295,6 +1304,23 @@ export default function TimeForm({
                 }}
                 required
               />
+              {/*
+                AUFTEILEN (10.10.2026): den Tag am Stück gebucht, danach auf
+                die Baustellen verteilt. Geteilt wird die GESPEICHERTE
+                Buchung — mit ungespeicherten Änderungen in der Maske wäre
+                nicht klar, welcher Stand gilt.
+              */}
+              {isEdit && entry && status === 'Anwesend' && !aufteilenGeht(entry) && (
+                aufteilenUngespeichert ? (
+                  <p className="text-sm text-ink-muted">
+                    Auf mehrere Baustellen aufteilen geht mit der gespeicherten Buchung — zuerst speichern.
+                  </p>
+                ) : (
+                  <button type="button" className="link" onClick={() => setAufteilenOffen(true)}>
+                    Auf mehrere Baustellen aufteilen …
+                  </button>
+                )
+              )}
 
             </>
           )}
@@ -1387,6 +1413,19 @@ export default function TimeForm({
       AUSSERHALB DES FORMULARS: die Knöpfe des Dialogs sind gewöhnliche
       Knöpfe und schickten im Formular dieses gleich noch einmal ab.
     */}
+    {entry && user && aufteilenOffen && (
+      <AufteilenDialog
+        open
+        entry={entry}
+        companyId={user.companyId}
+        onCancel={() => setAufteilenOffen(false)}
+        onDone={(anzahl) => {
+          setAufteilenOffen(false);
+          toast.success(`Aufgeteilt — jetzt ${anzahl + 1} Buchungen an diesem Tag.`);
+          onSaved();
+        }}
+      />
+    )}
     <ConfirmDialog
       open={!!rueckfrage}
       title="Grenze für Jugendliche"

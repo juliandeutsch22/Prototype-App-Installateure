@@ -84,3 +84,57 @@ test('Getippter Text bleibt stehen, auch wenn direkt nach dem Laden getippt wird
   await expect(page.locator('#comment')).toHaveValue('Verteiler gesetzt, Leitung gespült');
   await expect(page.getByText('Anmeldung wird geprüft …')).toHaveCount(0);
 });
+
+/*
+  DEN TAG AUFTEILEN (10.10.2026): am Stück gebucht, danach zwei Stunden auf
+  eine zweite Baustelle. Der ganze Weg — Maske, Dialog, Datenbankfunktion —
+  und das Ergebnis steht in der Datenbank, nicht nur auf dem Schirm.
+*/
+const ZWEITE = { nummer: 'B-2026-0002', kunde: 'Familie Maier' };
+
+test('Ein Monteur teilt seinen Tag auf zwei Baustellen auf', async ({ page }) => {
+  // Der Aufbau legt nur eine Baustelle an; die zweite gehört allein dieser Prüfung.
+  const angelegt = await admin.from('projects').insert({
+    company_id: BETRIEB, project_number: ZWEITE.nummer, description: 'Heizung Maier',
+    customer_name: ZWEITE.kunde, address: 'Gasse 2, 1010 Wien', status: 'Aktiv',
+  });
+  if (angelegt.error && angelegt.error.code !== '23505') throw new Error(angelegt.error.message);
+  try {
+    await anmelden(page, MONTEUR.email);
+    await page.getByRole('link', { name: /Zeit/ }).first().click();
+    await page.getByLabel('Baustelle').selectOption(BAUSTELLE.nummer);
+    await page.getByLabel(/^Von/).fill('07:00');
+    await page.getByLabel(/^Bis/).fill('16:00');
+    await page.getByLabel(/Pause/).fill('30');
+    await page.getByRole('button', { name: /^(Zeit buchen|Speichern|Buchen)$/ }).click();
+    await expect(async () => {
+      const { data } = await admin.from('time_entries').select('id').eq('company_id', BETRIEB);
+      expect(data ?? []).toHaveLength(1);
+    }).toPass({ timeout: 15_000 });
+
+    // Die Zeile in „Meine Einträge“ öffnet die Buchung zum Bearbeiten.
+    await page.locator('#meine-eintraege').getByRole('button', { name: /Familie Huber bearbeiten/ }).first().click();
+    await page.getByRole('button', { name: 'Auf mehrere Baustellen aufteilen …' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('Weitere Baustelle 1').selectOption(ZWEITE.nummer);
+    await dialog.getByLabel('Stunden').fill('2');
+    await expect(dialog.getByText(/14:00–16:00/)).toBeVisible();
+    await dialog.getByRole('button', { name: 'Aufteilen' }).click();
+
+    await expect(async () => {
+      const { data } = await admin
+        .from('time_entries').select('project_number, start_time, end_time, break_duration')
+        .eq('company_id', BETRIEB).order('start_time');
+      expect(data ?? []).toEqual([
+        { project_number: BAUSTELLE.nummer, start_time: '07:00:00', end_time: '14:00:00', break_duration: 30 },
+        { project_number: ZWEITE.nummer, start_time: '14:00:00', end_time: '16:00:00', break_duration: 0 },
+      ]);
+    }).toPass({ timeout: 15_000 });
+    await keineFehlermeldung(page);
+  } finally {
+    // Alle Buchungen, nicht nur die der zweiten Baustelle: der Schein-Weg
+    // danach übernimmt die Zeiten des Tages und zählte die gekürzte mit.
+    await admin.from('time_entries').delete().eq('company_id', BETRIEB);
+    await admin.from('projects').delete().eq('company_id', BETRIEB).eq('project_number', ZWEITE.nummer);
+  }
+});

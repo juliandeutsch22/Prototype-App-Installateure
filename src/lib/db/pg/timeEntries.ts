@@ -121,6 +121,20 @@ export function listArbeitszeitenInRange(companyId: string, from: string, to: st
 }
 
 /**
+ * Eine Buchung auf weitere Baustellen aufteilen — in einer Transaktion
+ * (`public.zeit_aufteilen`): die Buchung wird gekürzt, die Teile schliessen
+ * lückenlos an. Liefert die Kennungen der neuen Buchungen.
+ */
+export async function zeitAufteilen(id: string, teile: { projectNumber: string; minuten: number }[]): Promise<string[]> {
+  const { data, error } = await derClient().rpc('zeit_aufteilen', {
+    p_id: id,
+    p_teile: teile.map((t) => ({ project_number: t.projectNumber, minuten: t.minuten })),
+  });
+  if (error) throw new Error(error.message);
+  return ((data as { neu?: string[] } | null)?.neu) ?? [];
+}
+
+/**
  * Einträge zu bestimmten Baustellen — für das Projekt-Radar.
  *
  * EINE Abfrage statt einer je Baustelle: Firestore brauchte je Baustelle eine
