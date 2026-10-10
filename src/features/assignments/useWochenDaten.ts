@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { einplanbar } from '@/lib/permissions';
-import { listActiveProjects } from '@/lib/db/projects';
+import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
 import { listAbwesendInRange, type Abwesenheit } from '@/lib/db/vacations';
 import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
@@ -30,6 +30,12 @@ import { nachEinstufung, type Brett, type TagBaustelle, type TagStand, type Zell
  * `null` — dann heisst es „abwesend". Die Uhrzeit bekommt jeder: „ab 13 Uhr
  * weg" ist eine Auskunft über die Verfügbarkeit, kein Grund.
  */
+/**
+ * Die Gruppe für Eingeteilte, die nicht (mehr) eingeplant werden können —
+ * deaktiviert, oder Projektleitung bei ausgeschaltetem Schalter (10.10.2026).
+ */
+export const NICHT_EINPLANBAR = 'Nicht mehr einplanbar';
+
 export function abwesendText(a: Pick<Abwesenheit, 'grund' | 'zeiten'>): string {
   return [a.grund ?? 'abwesend', a.zeiten].filter(Boolean).join(' ');
 }
@@ -52,13 +58,18 @@ export function useWochenDaten(tage: string[]) {
    * Auskunft, sondern ein Ladezustand (Team-Woche, 10.10.2026).
    */
   const [belegschaftGeladen, setBelegschaftGeladen] = useState(false);
+  /** Kam die Belegschaft an? Ohne sie lässt sich „nicht einplanbar“ nicht sagen. */
+  const [belegschaftDa, setBelegschaftDa] = useState(false);
   /** Nach dem Anlegen, Ändern oder Löschen eines Termins: dieselbe Abfrage noch einmal. */
   const [termineStand, setTermineStand] = useState(0);
 
   useEffect(() => {
     if (!user) return;
     listUsers(user.companyId)
-      .then(setUsers)
+      .then((u) => {
+        setUsers(u);
+        setBelegschaftDa(true);
+      })
       .catch(() => setNebenFehler('Die Belegschaft'))
       .finally(() => setBelegschaftGeladen(true));
     listActiveProjects(user.companyId)
@@ -180,7 +191,64 @@ export function useWochenDaten(tage: string[]) {
         .sort((a, b) => a.name.localeCompare(b.name, 'de')),
     [users, company],
   );
-  const gruppen = useMemo(() => nachEinstufung(staff), [staff]);
+
+  /*
+    EINGETEILT, ABER NICHT (MEHR) EINPLANBAR (10.10.2026). Wer deaktiviert
+    wird — oder als Projektleitung, wenn der Betrieb den Schalter ausschaltet —,
+    behält seine schon geplanten Einsätze. Bis hierher fielen sie aus dem
+    Raster, aus der Team-Woche und aus dem Tag, weil nur gezeichnet wurde, wer
+    einplanbar ist: die Baustelle sah unbesetzt aus und war es nicht, oder sie
+    war es und niemand sah es. Jetzt stehen diese Personen in einer eigenen
+    Gruppe am Ende — nur mit ihren Einsätzen, nie „frei“.
+  */
+  const ausserhalb = useMemo(() => {
+    // Erst mit der Belegschaft: vorher stünde jeder Eingeteilte kurz in dieser Gruppe.
+    if (!belegschaftDa) return [];
+    const planbar = new Set(staff.map((u) => u.uid));
+    const m = new Map<string, AppUser>();
+    for (const a of einsaetze) {
+      if (planbar.has(a.userId) || m.has(a.userId)) continue;
+      // Wer nicht in der Belegschaftsliste steht, behält den Namen aus dem Einsatz.
+      m.set(
+        a.userId,
+        users.find((u) => u.uid === a.userId) ??
+          ({ id: a.userId, uid: a.userId, companyId: a.companyId, name: a.userName?.trim() || 'Unbekannt', email: '', role: 'Mitarbeiter', active: false } as AppUser),
+      );
+    }
+    return [...m.values()].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  }, [belegschaftDa, einsaetze, staff, users]);
+  const nichtEinplanbar = useMemo(() => new Set(ausserhalb.map((u) => u.uid)), [ausserhalb]);
+  const gruppen = useMemo(() => {
+    const g = nachEinstufung(staff);
+    return ausserhalb.length > 0 ? [...g, { name: NICHT_EINPLANBAR, leute: ausserhalb }] : g;
+  }, [staff, ausserhalb]);
+
+  /*
+    DIE KUNDEN ZU BAUSTELLEN, DIE NICHT MEHR LAUFEN (10.10.2026). Geladen
+    werden die laufenden und pausierten Baustellen; ein Einsatz auf einer
+    abgeschlossenen zeigte deshalb nur die Nummer. Die fehlenden kommen nach.
+  */
+  /** Schon gefragte Nummern — eine, die es nicht (mehr) gibt, wird nicht bei jeder Live-Meldung neu gesucht. */
+  const nachgefragt = useRef(new Set<string>());
+  useEffect(() => {
+    if (!user) return;
+    const bekannt = new Set(projects.map((p) => p.projectNumber));
+    const fehlend = [...new Set(einsaetze.map((a) => a.projectNumber))].filter(
+      (n) => n && !bekannt.has(n) && !nachgefragt.current.has(n),
+    );
+    if (fehlend.length === 0) return;
+    for (const n of fehlend) nachgefragt.current.add(n);
+    // Ohne Abbruch beim nächsten Lauf: die Nummern sind schon als gefragt
+    // vermerkt, ein verworfenes Ergebnis käme nie wieder. Das Zusammenführen
+    // ist ohnehin doppelt sicher.
+    listProjectsByNumbers(user.companyId, fehlend)
+      .then((gefunden) => {
+        if (gefunden.length === 0) return;
+        setProjects((alt) => [...alt, ...gefunden.filter((p) => !alt.some((x) => x.projectNumber === p.projectNumber))]);
+      })
+      // Ohne sie steht die Nummer da — wie bisher; kein eigener Hinweis.
+      .catch(() => undefined);
+  }, [user, einsaetze, projects]);
 
   /** uid -> Tag -> was dort steht. */
   const brett = useMemo(() => {
@@ -241,11 +309,12 @@ export function useWochenDaten(tage: string[]) {
       const frei: string[] = [];
       const freiIds: string[] = [];
       const urlaub: string[] = [];
-      for (const u of staff) {
+      for (const u of [...staff, ...ausserhalb]) {
+        const planbar = !nichtEinplanbar.has(u.uid);
         const z = brett.get(u.uid)?.get(tag);
         // Ohne Grund steht nur der Name da — „Erna (abwesend)" hinter
         // „Abwesend:" wäre doppelt.
-        if (z?.abwesendText) {
+        if (z?.abwesendText && planbar) {
           urlaub.push(z.abwesendText === 'abwesend' ? u.name : `${u.name} (${z.abwesendText})`);
         }
         /*
@@ -261,7 +330,8 @@ export function useWochenDaten(tage: string[]) {
         }
         if (!z || z.baustellen.length === 0) {
           // Am Betriebsurlaub ist niemand „frei" — ausser wer ausgenommen ist.
-          if (!zuFuer(u.uid, tag)) {
+          // Wer nicht einplanbar ist, ist nie „frei".
+          if (planbar && !zuFuer(u.uid, tag)) {
             frei.push(u.name);
             freiIds.push(u.uid);
           }
@@ -281,7 +351,7 @@ export function useWochenDaten(tage: string[]) {
       });
     }
     return m;
-  }, [tage, staff, brett, zuFuer]);
+  }, [tage, staff, ausserhalb, nichtEinplanbar, brett, zuFuer]);
 
   /** Wie viele sind an diesem Tag frei — die Zahl, um die es geht. */
   const freiJeTag = useMemo(() => {
@@ -313,6 +383,7 @@ export function useWochenDaten(tage: string[]) {
     zuAm,
     zuFuer,
     staff,
+    nichtEinplanbar,
     gruppen,
     brett,
     proTag,
