@@ -10,7 +10,8 @@
  */
 import { describe, it, expect } from 'vitest';
 // @ts-expect-error — Werkzeug des Betriebs, bewusst als .mjs ohne Typen.
-import { standLesen, betriebAusStand, kontenAusStand, entfernteAussondern } from '../../scripts/ruecklaufPlan.mjs';
+import { standLesen, staendeLesen, betriebAusStand, kontenAusStand, entfernteAussondern } from '../../scripts/ruecklaufPlan.mjs';
+import { inTeilen } from '@shared/ausleitungPlan';
 
 const zeile = (sammlung: string, daten: Record<string, unknown>) =>
   `${JSON.stringify({ sammlung, daten })}\n`;
@@ -150,5 +151,85 @@ describe('Tabellen, die es nicht mehr gibt', () => {
     const { sammlungen } = standLesen(STAND + zeile('gibt_es_nicht', { id: 'x', company_id: 'perl' }));
     expect(entfernteAussondern(sammlungen)).toEqual([]);
     expect(sammlungen.has('gibt_es_nicht')).toBe(true);
+  });
+});
+
+describe('Ein Stand in Teilen (10.10.2026)', () => {
+  /** STAND so, wie die Ausleitung ihn in Teile schreibt — zu je höchstens `grenze` Zeichen. */
+  async function inTeileGeschrieben(lauf: string, grenze: number) {
+    const teile: Array<{ name: string; text: string }> = [];
+    const stand = inTeilen(lauf, grenze, async (text: string, nr: number) => {
+      teile.push({ name: nr === 1 ? 'stand.jsonl' : `stand.${lauf}.teil-${nr}.jsonl`, text });
+    });
+    for (const z of STAND.split('\n').filter(Boolean)) await stand.anhaengen(`${z}\n`);
+    await stand.abschliessen();
+    return teile;
+  }
+  const alsText = (m: Map<string, unknown[]>) => JSON.stringify([...m].sort());
+
+  it('setzt die Teile in beliebiger Reihenfolge zum selben Stand zusammen wie eine Datei', async () => {
+    const teile = await inTeileGeschrieben('l1', 120);
+    expect(teile.length).toBeGreaterThan(2);
+    const { sammlungen, fehler } = staendeLesen([...teile].reverse());
+    expect(fehler).toEqual([]);
+    expect(alsText(sammlungen)).toBe(alsText(standLesen(STAND).sammlungen));
+    expect(sammlungen.has('_teil')).toBe(false);
+    expect(betriebAusStand(sammlungen)).toBe('perl');
+  });
+
+  it('eine Sicherung von vorher, ohne Kopfzeile, liest sich wie bisher', () => {
+    const { sammlungen, fehler } = staendeLesen([{ name: 'alt.jsonl', text: STAND }]);
+    expect(fehler).toEqual([]);
+    expect(alsText(sammlungen)).toBe(alsText(standLesen(STAND).sammlungen));
+  });
+
+  it('ein Stand in einem Teil, mit Kopfzeile, ebenso', async () => {
+    const teile = await inTeileGeschrieben('l1', 1_000_000);
+    expect(teile).toHaveLength(1);
+    const { sammlungen, fehler } = staendeLesen(teile);
+    expect(fehler).toEqual([]);
+    expect(alsText(sammlungen)).toBe(alsText(standLesen(STAND).sammlungen));
+  });
+
+  it('weist ab, wenn ein Teil fehlt', async () => {
+    const teile = await inTeileGeschrieben('l1', 120);
+    const ohne = teile.filter((t) => !t.name.includes('teil-2'));
+    expect(staendeLesen(ohne).fehler).toEqual([`Es fehlen Teil 2 von ${teile.length}.`]);
+  });
+
+  it('weist ab, wenn der erste Teil fehlt — er trägt die Zahl der Teile', async () => {
+    const teile = await inTeileGeschrieben('l1', 120);
+    expect(staendeLesen(teile.filter((t) => t.name !== 'stand.jsonl')).fehler[0]).toMatch(/erste Teil fehlt/);
+  });
+
+  it('weist einen Teil aus einem anderen Lauf ab, auch wenn die Nummern aufgehen', async () => {
+    const eins = await inTeileGeschrieben('l1', 120);
+    const zwei = await inTeileGeschrieben('l2', 120);
+    const gemischt = [...eins.filter((t) => !t.name.includes('teil-2')), zwei.find((t) => t.name.includes('teil-2'))!];
+    const { fehler } = staendeLesen(gemischt);
+    expect(fehler.join(' ')).toMatch(/anderen Lauf/);
+  });
+
+  it('weist einen doppelten Teil ab', async () => {
+    const teile = await inTeileGeschrieben('l1', 120);
+    const zweiter = teile.find((t) => t.name.includes('teil-2'))!;
+    expect(staendeLesen([...teile, { ...zweiter, name: 'kopie.jsonl' }]).fehler.join(' ')).toMatch(/Teil 2 doppelt/);
+  });
+
+  it('weist mehrere Dateien ohne Kopfzeile ab — das sind keine Teile', () => {
+    const { fehler } = staendeLesen([{ name: 'a.jsonl', text: STAND }, { name: 'b.jsonl', text: STAND }]);
+    expect(fehler[0]).toMatch(/2 Dateien ohne Kopfzeile/);
+  });
+
+  it('weist eine Mischung aus Teilen und einer Datei ohne Kopfzeile ab', async () => {
+    const teile = await inTeileGeschrieben('l1', 1_000_000);
+    expect(staendeLesen([...teile, { name: 'alt.jsonl', text: STAND }]).fehler)
+      .toEqual(['Ohne Kopfzeile, also kein Teil dieses Stands: alt.jsonl']);
+  });
+
+  it('nennt eine kaputte Zeile mit ihrer Datei', async () => {
+    const teile = await inTeileGeschrieben('l1', 120);
+    teile[0] = { ...teile[0], text: `${teile[0].text}{kaputt\n` };
+    expect(staendeLesen(teile).fehler.some((f: string) => f.startsWith(`${teile[0].name}: Zeile`))).toBe(true);
   });
 });

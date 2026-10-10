@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { PlattformBetrieb } from '@/lib/db/plattform';
+import type { PlattformBetrieb, Uebergabe } from '@/lib/db/plattform';
 
 /**
  * Nachtest 01.10.2026, Paket D: die Maske zeigt den Weg — aktiv →
@@ -17,7 +17,7 @@ const db = {
   loeschungPlanen: vi.fn(async () => '2026-11-01T10:00:00Z'),
   loeschungAbbrechen: vi.fn(async () => undefined),
   betriebProtokoll: vi.fn(async () => []),
-  betriebUebergabe: vi.fn(async () => ({ zeilen: 120, dateien: 3, datenLink: 'https://x/daten', dateienLink: 'https://x/dateien', gueltigBis: '2026-10-09T10:00:00Z' })),
+  betriebUebergabe: vi.fn(async (): Promise<Uebergabe> => ({ zeilen: 120, dateien: 3, datenLink: 'https://x/daten', dateienLink: 'https://x/dateien', gueltigBis: '2026-10-09T10:00:00Z' })),
   betriebLoeschen: vi.fn(async () => ({ zeilen: 120, dateien: 3, konten: 2, kontenOffen: [] })),
 };
 vi.mock('@/lib/db/plattform', () => db);
@@ -73,6 +73,35 @@ describe('Betrieb verwalten', () => {
     expect(await screen.findByRole('link', { name: /Daten/ })).toHaveAttribute('href', 'https://x/daten');
     expect(screen.getByRole('link', { name: /Verzeichnis der Dateien/ })).toHaveAttribute('href', 'https://x/dateien');
     expect(screen.getByText(/Gültig bis/)).toBeInTheDocument();
+  });
+
+  it('ein grosser Betrieb: jeder Teil des Stands mit seinem Link, der erste vorn', async () => {
+    db.betriebUebergabe.mockResolvedValueOnce({
+      zeilen: 9000, dateien: 3, datenLink: 'https://x/teil-1', dateienLink: 'https://x/dateien',
+      datenLinks: ['https://x/teil-1', 'https://x/teil-2'], gueltigBis: '2026-10-09T10:00:00Z',
+    });
+    const nutzer = userEvent.setup();
+    zeige({ deaktiviertAm: '2026-10-01T08:00:00Z' });
+    await nutzer.type(screen.getByLabelText(/Grund/), 'Übergabe vor Löschung');
+    await nutzer.click(screen.getByRole('button', { name: 'Übergabe erstellen' }));
+    const teile = await screen.findAllByRole('link', { name: /^Daten/ });
+    expect(teile.map((l) => [l.textContent, l.getAttribute('href')])).toEqual([
+      ['Daten (JSON-Zeilen), Teil 1 von 2', 'https://x/teil-1'],
+      ['Daten (JSON-Zeilen), Teil 2 von 2', 'https://x/teil-2'],
+    ]);
+  });
+
+  it('ein Stand in einem Teil zeigt wie bisher einen Link ohne Teilangabe', async () => {
+    db.betriebUebergabe.mockResolvedValueOnce({
+      zeilen: 120, dateien: 3, datenLink: 'https://x/daten', dateienLink: 'https://x/dateien',
+      datenLinks: ['https://x/daten'], gueltigBis: '2026-10-09T10:00:00Z',
+    });
+    const nutzer = userEvent.setup();
+    zeige({ deaktiviertAm: '2026-10-01T08:00:00Z' });
+    await nutzer.type(screen.getByLabelText(/Grund/), 'Übergabe vor Löschung');
+    await nutzer.click(screen.getByRole('button', { name: 'Übergabe erstellen' }));
+    const teile = await screen.findAllByRole('link', { name: /^Daten/ });
+    expect(teile.map((l) => l.textContent)).toEqual(['Daten (JSON-Zeilen)']);
   });
 
   it('mit Übergabe: planen mit Frist (vorgeschlagen 30 Tage)', async () => {

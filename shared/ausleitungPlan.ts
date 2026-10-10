@@ -40,10 +40,112 @@ export function ausleitungsPfad(companyId: string, datum: Date): string {
   return `${ausleitungsPraefix(companyId)}${datumsStempel(datum)}.jsonl`;
 }
 
-/** Das Datum aus einem Ausleitungspfad, oder null wenn er nicht dazu passt. */
+/**
+ * Das Datum aus einem Ausleitungspfad, oder null wenn er nicht dazu passt.
+ * Die weiteren Teile eines Stands (`…2026-09-02.<lauf>.teil-2.jsonl`)
+ * gehören zu seinem Datum — sie gehen und bleiben mit ihm.
+ */
 export function datumAusPfad(pfad: string): string | null {
-  const treffer = /(\d{4}-\d{2}-\d{2})\.jsonl$/.exec(pfad);
+  const treffer = /(\d{4}-\d{2}-\d{2})(?:\.[0-9a-z]+\.teil-\d+)?\.jsonl$/.exec(pfad);
   return treffer ? treffer[1] : null;
+}
+
+/**
+ * Wie gross ein Teil des Stands ungefähr wird (gezählt in Zeichen).
+ *
+ * BIS 10.10.2026 GING DER STAND IN EINEM STÜCK hinaus und musste dafür ganz
+ * im Speicher der Function liegen; ab 256 MB brach die Ausleitung mit einer
+ * Absage ab. Ein unterschriebener Schein trägt zwei Unterschriften zu je
+ * rund 70 KB — ein Betrieb mit ein paar tausend Scheinen läge darüber. Jetzt
+ * geht der Stand in Teilen hinaus; im Speicher liegen höchstens zwei.
+ */
+export const TEIL_BYTES = 32 * 1024 * 1024;
+
+/**
+ * Der Pfad des Teils `nr` eines Stands.
+ *
+ * DER ERSTE HEISST WIE BISHER, und er wird ZULETZT geschrieben: er trägt die
+ * Zahl der Teile und ist damit die Unterschrift unter den ganzen Stand.
+ * Scheitert ein Lauf mittendrin, bleibt der erste Teil des vorigen Laufs
+ * unberührt — und mit ihm ein vollständiger Stand.
+ *
+ * DIE WEITEREN TRAGEN DEN LAUF IM NAMEN, damit ein zweiter Lauf am selben Tag
+ * die Teile des ersten nicht überschreibt, bevor er selbst fertig ist.
+ */
+export function teilPfad(pfad: string, lauf: string, nr: number): string {
+  return nr <= 1 ? pfad : pfad.replace(/\.jsonl$/, `.${lauf}.teil-${nr}.jsonl`);
+}
+
+/** Ist das ein weiterer Teil (nicht der erste)? Dann mit Lauf und Nummer. */
+export function weitererTeil(pfad: string): { lauf: string; nr: number } | null {
+  const t = /\.([0-9a-z]+)\.teil-(\d+)\.jsonl$/.exec(pfad);
+  return t ? { lauf: t[1], nr: Number(t[2]) } : null;
+}
+
+/**
+ * Die Kopfzeile eines Teils: `{"sammlung":"_teil","daten":{…}}`.
+ *
+ * WOZU. Der Rücklauf muss wissen, ob er ALLE Teile EINES Laufs vor sich hat:
+ * ein fehlender Teil hiesse ein halber Betrieb, ein Teil aus einem anderen
+ * Lauf ein Datensalat. Jeder Teil nennt seinen Lauf und seine Nummer, der
+ * erste dazu die Zahl der Teile.
+ */
+export interface TeilKopf {
+  lauf: string;
+  nr: number;
+  teile?: number;
+}
+export const TEIL_SAMMLUNG = '_teil';
+
+/**
+ * Zeilen in Teile schreiben, jeden mit seiner Kopfzeile.
+ *
+ * `abgeben(text, nr)` bekommt jeden fertigen Teil und legt ihn hinaus, bevor
+ * der nächste entsteht. Der erste bleibt bis zum Schluss im Speicher, weil
+ * erst dann feststeht, wie viele Teile es sind — er geht als letzter.
+ */
+export function inTeilen(
+  lauf: string,
+  grenze: number,
+  abgeben: (text: string, nr: number) => Promise<void>,
+) {
+  let erster: string[] | null = null;
+  let teil: string[] = [];
+  let groesse = 0;
+  let nr = 1;
+  let zeilen = 0;
+  let bytes = 0;
+  const kopf = (k: TeilKopf) => jsonZeile(TEIL_SAMMLUNG, { ...k });
+  const hinaus = async (n: number, inhalt: string[], teile?: number) => {
+    const text = kopf({ lauf, nr: n, ...(teile ? { teile } : {}) }) + inhalt.join('');
+    bytes += text.length;
+    await abgeben(text, n);
+  };
+  return {
+    /** Eine Zeile anhängen; ist der Teil voll, geht er vorher hinaus. */
+    async anhaengen(zeile: string): Promise<void> {
+      if (groesse > 0 && groesse + zeile.length > grenze) {
+        if (nr === 1) erster = teil;
+        else await hinaus(nr, teil);
+        teil = [];
+        groesse = 0;
+        nr += 1;
+      }
+      teil.push(zeile);
+      groesse += zeile.length;
+      zeilen += 1;
+    },
+    /** Den letzten und danach den ersten Teil hinauslegen. */
+    async abschliessen(): Promise<{ teile: number; zeilen: number; bytes: number }> {
+      if (nr === 1) {
+        await hinaus(1, teil, 1);
+      } else {
+        await hinaus(nr, teil);
+        await hinaus(1, erster ?? [], nr);
+      }
+      return { teile: nr, zeilen, bytes };
+    },
+  };
 }
 
 /**
@@ -70,7 +172,15 @@ export function abgelaufeneStaende(
     .filter((e): e is { pfad: string; datum: string } => e.datum !== null);
   if (mitDatum.length <= 1) return [];
 
-  const juengstes = mitDatum.reduce((a, b) => (a.datum >= b.datum ? a : b)).datum;
+  /*
+    DER JÜNGSTE STAND, NICHT DIE JÜNGSTE DATEI. Ein Lauf, der mittendrin
+    scheitert, hinterlässt weitere Teile ohne ersten; sie sind kein Stand.
+    Zählten sie mit, könnte nach Wochen voller Fehlschläge ausgerechnet der
+    letzte vollständige Stand als abgelaufen gelten.
+  */
+  const vollstaendige = mitDatum.filter((e) => weitererTeil(e.pfad) === null);
+  const juengstes = (vollstaendige.length > 0 ? vollstaendige : mitDatum)
+    .reduce((a, b) => (a.datum >= b.datum ? a : b)).datum;
 
   const grenze = new Date(heute);
   grenze.setDate(grenze.getDate() - tage);

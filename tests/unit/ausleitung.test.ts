@@ -7,7 +7,10 @@ import {
   ausleitungsPraefix,
   datumAusPfad,
   datumsStempel,
+  inTeilen,
   jsonZeile,
+  teilPfad,
+  weitererTeil,
 } from '@shared/ausleitungPlan';
 
 /**
@@ -156,5 +159,97 @@ describe('Seitenweise lesen', () => {
     expect(ordnungNachSchluessel(['company_id', 'art', 'jahr'])).toBe('company_id.asc,art.asc,jahr.asc');
     expect(ordnungNachSchluessel(undefined)).toBeNull();
     expect(ordnungNachSchluessel([])).toBeNull();
+  });
+});
+
+describe('Ein Stand in Teilen (10.10.2026)', () => {
+  /*
+    Bis hierher ging der Stand in einem Stück hinaus und brach ab 256 MB ab.
+    Jetzt in Teilen — und an genau diesen Regeln hängt, ob der Rücklauf
+    später ALLE Teile EINES Laufs erkennt und ob das Aufräumen sie mit ihrem
+    Stand behandelt.
+  */
+  const erster = 'ausleitung/firmaA/2026-09-02.jsonl';
+
+  it('der erste Teil heisst wie bisher, die weiteren tragen Lauf und Nummer', () => {
+    expect(teilPfad(erster, 'ab12', 1)).toBe(erster);
+    expect(teilPfad(erster, 'ab12', 3)).toBe('ausleitung/firmaA/2026-09-02.ab12.teil-3.jsonl');
+    expect(weitererTeil(teilPfad(erster, 'ab12', 3))).toEqual({ lauf: 'ab12', nr: 3 });
+    expect(weitererTeil(erster)).toBeNull();
+  });
+
+  it('ein weiterer Teil trägt das Datum seines Stands', () => {
+    expect(datumAusPfad(teilPfad(erster, 'ab12', 2))).toBe('2026-09-02');
+  });
+
+  it('das Aufräumen nimmt die Teile mit ihrem Stand — und lässt fremde Dateien', () => {
+    const alt = 'ausleitung/firmaA/2026-01-01.jsonl';
+    const weg = abgelaufeneStaende(
+      [alt, teilPfad(alt, 'x1', 2), erster, 'ausleitung/firmaA/2026-01-01.teil-2.txt'],
+      heute, 30,
+    );
+    expect(weg.sort()).toEqual([alt, teilPfad(alt, 'x1', 2)].sort());
+  });
+
+  it('übrige Teile eines gescheiterten Laufs machen den letzten vollständigen Stand nicht zum alten', () => {
+    /*
+      Scheitert die Ausleitung wochenlang, bleiben je Nacht vielleicht weitere
+      Teile ohne ersten liegen. Sie sind kein Stand; zählten sie als „der
+      jüngste", ginge der letzte vollständige nach der Frist verloren.
+    */
+    const letzterGanzer = 'ausleitung/firmaA/2026-07-01.jsonl';
+    const reste = [teilPfad('ausleitung/firmaA/2026-08-30.jsonl', 'r1', 2)];
+    expect(abgelaufeneStaende([letzterGanzer, teilPfad(letzterGanzer, 'g1', 2), ...reste], heute, 30))
+      .toEqual([]);
+  });
+
+  async function schreiben(zeilen: string[], grenze: number) {
+    const abgegeben: Array<{ nr: number; text: string }> = [];
+    const stand = inTeilen('lauf1', grenze, async (text, nr) => { abgegeben.push({ nr, text }); });
+    for (const z of zeilen) await stand.anhaengen(z);
+    return { bilanz: await stand.abschliessen(), abgegeben };
+  }
+  const lesen = (text: string) => text.split('\n').filter(Boolean).map((z) => JSON.parse(z));
+
+  it('ein kleiner Stand bleibt ein Teil, mit Kopfzeile', async () => {
+    const zeilen = [jsonZeile('companies', { id: 'a' }), jsonZeile('users', { id: 'u' })];
+    const { bilanz, abgegeben } = await schreiben(zeilen, 1_000_000);
+    expect(abgegeben.map((t) => t.nr)).toEqual([1]);
+    expect(lesen(abgegeben[0].text)[0]).toEqual({ sammlung: '_teil', daten: { lauf: 'lauf1', nr: 1, teile: 1 } });
+    expect(abgegeben[0].text.endsWith(zeilen.join(''))).toBe(true);
+    expect(bilanz).toEqual({ teile: 1, zeilen: 2, bytes: abgegeben[0].text.length });
+  });
+
+  it('ein grosser geht in Teilen, keiner über der Grenze, der erste zuletzt — ohne eine Zeile zu verlieren', async () => {
+    const zeilen = Array.from({ length: 10 }, (_, i) => jsonZeile('t', { i, f: 'x'.repeat(20) }));
+    const grenze = zeilen[0].length * 3;
+    const { bilanz, abgegeben } = await schreiben(zeilen, grenze);
+    expect(abgegeben.map((t) => t.nr)).toEqual([2, 3, 4, 1]);
+    expect(bilanz.teile).toBe(4);
+    expect(bilanz.zeilen).toBe(10);
+    expect(bilanz.bytes).toBe(abgegeben.reduce((s, t) => s + t.text.length, 0));
+
+    const nachNummer = [...abgegeben].sort((a, b) => a.nr - b.nr);
+    const koepfe = nachNummer.map((t) => lesen(t.text)[0]);
+    expect(koepfe).toEqual([
+      { sammlung: '_teil', daten: { lauf: 'lauf1', nr: 1, teile: 4 } },
+      { sammlung: '_teil', daten: { lauf: 'lauf1', nr: 2 } },
+      { sammlung: '_teil', daten: { lauf: 'lauf1', nr: 3 } },
+      { sammlung: '_teil', daten: { lauf: 'lauf1', nr: 4 } },
+    ]);
+    for (const t of nachNummer) {
+      const daten = t.text.slice(t.text.indexOf('\n') + 1);
+      expect(daten.length).toBeLessThanOrEqual(grenze);
+    }
+    const zusammen = nachNummer.map((t) => t.text.slice(t.text.indexOf('\n') + 1)).join('');
+    expect(zusammen).toBe(zeilen.join(''));
+  });
+
+  it('eine Zeile über der Grenze steht allein in ihrem Teil, statt verloren zu gehen', async () => {
+    const klein = jsonZeile('t', { i: 1 });
+    const riesig = jsonZeile('t', { f: 'y'.repeat(500) });
+    const { abgegeben } = await schreiben([klein, riesig, klein], 100);
+    const nachNummer = [...abgegeben].sort((a, b) => a.nr - b.nr);
+    expect(nachNummer.map((t) => t.text.slice(t.text.indexOf('\n') + 1))).toEqual([klein, riesig, klein]);
   });
 });

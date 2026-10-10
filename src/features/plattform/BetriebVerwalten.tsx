@@ -199,7 +199,7 @@ export default function BetriebVerwalten({
         <div className="space-y-2 border-t border-line pt-3">
           <p className="text-sm font-normal text-ink">Übergabe</p>
           <p className="text-sm text-ink-muted">
-            Alle Tabellen als ein Stand und ein Verzeichnis aller Scheinfotos und Baustellendokumente,
+            Alle Tabellen als ein Stand (bei großen Betrieben in mehreren Teilen) und ein Verzeichnis aller Scheinfotos und Baustellendokumente,
             je mit Link, eine Woche gültig — für den Betrieb vor der Löschung. Belege als PDF erzeugt
             die App im Browser; der Stand enthält ihre Daten vollständig.
             {betrieb.exportAm ? ` Zuletzt erstellt am ${zeit(betrieb.exportAm)}.` : ''}
@@ -218,9 +218,17 @@ export default function BetriebVerwalten({
           </Button>
           {uebergabe && (
             <ul className="space-y-1 text-sm">
-              {uebergabe.datenLink && (
-                <li><a className="link" href={uebergabe.datenLink} target="_blank" rel="noreferrer">Daten (JSON-Zeilen)</a></li>
-              )}
+              {(uebergabe.datenLinks?.length ?? 0) > 1
+                ? uebergabe.datenLinks!.map((link, i, alle) => link && (
+                  <li key={link}>
+                    <a className="link" href={link} target="_blank" rel="noreferrer">
+                      Daten (JSON-Zeilen), Teil {i + 1} von {alle.length}
+                    </a>
+                  </li>
+                ))
+                : uebergabe.datenLink && (
+                  <li><a className="link" href={uebergabe.datenLink} target="_blank" rel="noreferrer">Daten (JSON-Zeilen)</a></li>
+                )}
               {uebergabe.dateienLink && (
                 <li><a className="link" href={uebergabe.dateienLink} target="_blank" rel="noreferrer">Verzeichnis der Dateien</a></li>
               )}

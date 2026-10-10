@@ -32,15 +32,15 @@
  * kopieren verdoppelte den Speicher und schützte gegen nichts.
  *
  * FORMAT. Zeilenweises JSON (`.jsonl`), eine Zeile je Datensatz mit ihrer
- * Tabelle. So lässt sich der Stand wieder einlesen, ohne ihn je vollständig
- * im Speicher zu halten — beim LESEN. Beim Schreiben hält diese Function ihn
- * sehr wohl vollständig, weil ein Speicher-Upload ein Vorgang ist und kein
- * Strom; bei einem Betrieb mit Jahren an Historie ist das die Grenze, die
- * zuerst reisst. Sie ist gemessen und steht unten bei `GRENZE_BYTES`.
+ * Tabelle. Ein grosser Stand geht IN TEILEN hinaus (`TEIL_BYTES`), jeder mit
+ * einer Kopfzeile, die seinen Lauf und seine Nummer nennt — so hält diese
+ * Function nie den ganzen Stand im Speicher, und der Rücklauf
+ * (`scripts/ruecklauf.mjs`) erkennt, ob alle Teile beisammen sind. Bis
+ * 10.10.2026 ging er in einem Stück und brach ab 256 MB ab.
  */
 import {
-  abgelaufeneStaende, alleSeitenLesen, ausleitungsPfad, ausleitungsPraefix, jsonZeile,
-  ordnungNachSchluessel,
+  abgelaufeneStaende, alleSeitenLesen, ausleitungsPfad, ausleitungsPraefix, inTeilen,
+  jsonZeile, ordnungNachSchluessel, TEIL_BYTES, teilPfad, weitererTeil,
 } from '../_shared/ausleitungPlan.ts';
 import {
   alleDienstSchluessel, dienstKopfzeilen, rufDerMaschine, SCHLUESSEL_FEHLT,
@@ -117,16 +117,6 @@ const DATEIEN_BYTES_JE_LAUF = Number(
   Deno.env.get('AUSLEITUNG_DATEIEN_BYTES_JE_LAUF') ?? 64 * 1024 * 1024,
 );
 
-/**
- * Bei welcher Grösse ein Stand als zu gross gilt.
- *
- * Kein Schutz der Datenbank, sondern eine ehrliche Absage: ein Lauf, der am
- * Speicher scheitert, bricht ohne verwertbare Meldung ab. Lieber hier
- * abbrechen und es in die Überwachung schreiben — dann steht in der Ansicht,
- * dass die Sicherung NICHT läuft, statt dass sie still ausbleibt.
- */
-const GRENZE_BYTES = 256 * 1024 * 1024;
-
 /*
   Fehlt der Schlüssel, sind diese Kopfzeilen leer — benutzt werden sie dann
   nie, weil die Function vorher mit 503 antwortet. Sie stehen hier, weil sie
@@ -144,7 +134,10 @@ interface Bilanz {
   companyId: string;
   zeilen: number;
   bytes: number;
+  /** Der erste Teil des Stands — bei einem kleinen Betrieb der ganze. */
   pfad: string;
+  /** Alle Teile, der erste vorn. */
+  pfade: string[];
   geraeumt: number;
   /** Ist der Stand ausserhalb dieses Projekts angekommen? */
   ausserHaus: boolean;
@@ -182,46 +175,50 @@ async function seite(
 }
 
 /**
- * Einen Betrieb zusammenschreiben.
+ * Einen Betrieb zusammenschreiben, Teil für Teil.
  *
  * DIE FIRMA ZUERST, weil sie an der Kennung hängt und nicht an einer Spalte
  * `company_id` — sie fiele sonst aus der Katalogliste heraus, und ein
  * Wiederanlauf begänne ohne Stundensätze und Steuersatz.
+ *
+ * Jeder fertige Teil geht an `abgeben`, bevor der nächste entsteht; der erste
+ * kommt zuletzt (siehe `inTeilen`).
  */
 async function standSchreiben(
   betrieb: string, tabellen: string[], schluessel: Record<string, string[]>,
-): Promise<string> {
-  const teile: string[] = [];
-  let bytes = 0;
-
-  const anhaengen = (tabelle: string, zeile: Record<string, unknown>) => {
-    const text = jsonZeile(tabelle, zeile);
-    bytes += text.length;
-    if (bytes > GRENZE_BYTES) {
-      throw new Error(
-        'Der Bestand ist zu groß für einen Lauf in einem Stück. ' +
-        'Die Ausleitung muss auf ein Ziel umgestellt werden, das strömend schreibt.',
-      );
-    }
-    teile.push(text);
-  };
-
+  lauf: string, abgeben: (text: string, nr: number) => Promise<void>,
+): Promise<{ teile: number; zeilen: number; bytes: number }> {
+  const stand = inTeilen(lauf, TEIL_BYTES, abgeben);
   const firma = await fetch(
     `${URL_BASIS}/rest/v1/companies?select=*&id=eq.${encodeURIComponent(betrieb)}`,
     { headers: alsDienst },
   );
-  for (const zeile of firma.ok ? await firma.json() : []) anhaengen('companies', zeile);
+  for (const zeile of firma.ok ? await firma.json() : []) {
+    await stand.anhaengen(jsonZeile('companies', zeile));
+  }
 
   for (const tabelle of tabellen) {
     const ordnung = ordnungNachSchluessel(schluessel[tabelle]);
+    /*
+      ANGEHÄNGT WIRD BEIM HOLEN DER SEITE, nicht je Zeile: `alleSeitenLesen`
+      wartet nicht auf den Rückruf je Zeile, und ein Teil, der hinausgeht,
+      muss fertig sein, bevor der nächste wächst.
+    */
     await alleSeitenLesen(
-      (von, bis) => seite(tabelle, betrieb, von, bis, ordnung),
+      async (von, bis) => {
+        const zeilen = await seite(tabelle, betrieb, von, bis, ordnung);
+        for (const z of zeilen) await stand.anhaengen(jsonZeile(tabelle, entschaerft(tabelle, z)));
+        return zeilen;
+      },
       SEITE,
-      (zeile) => anhaengen(tabelle, entschaerft(tabelle, zeile)),
+      () => undefined,
     );
   }
-  return teile.join('');
+  return await stand.abschliessen();
 }
+
+/** Ein kurzer Name für einen Lauf — er steht in den Pfaden der weiteren Teile. */
+const neuerLauf = () => crypto.randomUUID().replace(/-/g, '').slice(0, 12);
 
 /**
  * Felder, die aus dem Stand herausfallen, mit Grund.
@@ -264,6 +261,32 @@ async function alteStaendeRaeumen(betrieb: string, heute: Date): Promise<number>
   return geloescht.ok ? weg.length : 0;
 }
 
+/**
+ * Die weiteren Teile anderer Läufe von heute räumen — erst, wenn der neue
+ * Stand vollständig liegt. Dann gehören sie zu einem überschriebenen Stand
+ * oder zu einem gescheiterten Lauf und sind nichts mehr wert.
+ */
+async function fremdeTeileRaeumen(betrieb: string, lauf: string, heute: Date): Promise<void> {
+  const r = await fetch(`${URL_BASIS}/storage/v1/object/list/${EIMER}`, {
+    method: 'POST',
+    headers: alsDienst,
+    body: JSON.stringify({ prefix: ausleitungsPraefix(betrieb), limit: 1000 }),
+  });
+  if (!r.ok) return;
+  const weg = ((await r.json()) as Array<{ name: string }>)
+    .map((d) => `${ausleitungsPraefix(betrieb)}${d.name}`)
+    .filter((p) => p.startsWith(ausleitungsPfad(betrieb, heute).replace(/\.jsonl$/, '.')))
+    .filter((p) => {
+      const t = weitererTeil(p);
+      return t !== null && t.lauf !== lauf;
+    });
+  if (weg.length === 0) return;
+  const geloescht = await fetch(`${URL_BASIS}/storage/v1/object/${EIMER}`, {
+    method: 'DELETE', headers: alsDienst, body: JSON.stringify({ prefixes: weg }),
+  });
+  await geloescht.body?.cancel();
+}
+
 async function festhalten(
   betrieb: string, erfolg: boolean, meldung: string | null, zeilen: number | null,
   ausserHaus = false,
@@ -294,9 +317,8 @@ async function festhalten(
  * sie gebaut ist.
  */
 async function ausserHausLegen(
-  ziel: Zielspeicher, betrieb: string, inhalt: string, jetzt: Date,
+  ziel: Zielspeicher, pfad: string, inhalt: string, jetzt: Date,
 ): Promise<string> {
-  const pfad = zielPfad(betrieb, jetzt);
   const { url, kopfzeilen } = await putAnfrage(ziel, pfad, inhalt, jetzt);
 
   const r = await fetch(url, { method: 'PUT', headers: kopfzeilen, body: inhalt });
@@ -421,32 +443,58 @@ async function dateienAusserHaus(
 async function betriebAusleiten(
   betrieb: string, tabellen: string[], schluessel: Record<string, string[]>, heute: Date,
 ): Promise<Bilanz> {
-  const inhalt = await standSchreiben(betrieb, tabellen, schluessel);
   const pfad = ausleitungsPfad(betrieb, heute);
+  const lauf = neuerLauf();
+  const draussenPfad = ZIEL ? zielPfad(betrieb, heute) : null;
+  let draussenFehler: Error | null = null;
+  let ziel = `${EIMER} (Eimer im selben Projekt)`;
+  const pfade: string[] = [];
 
   /*
-    EIN STAND JE TAG. Läuft die Ausleitung an einem Tag zweimal — etwa nach
-    einem Fehlschlag von Hand angestossen —, überschreibt der zweite den
-    ersten, statt eine zweite Datei danebenzulegen. Sonst wüchse der Speicher
-    mit jedem Wiederholungsversuch, und beim Wiederanlauf müsste jemand
-    raten, welche der beiden die vollständige ist. Deshalb `upsert`.
-  */
-  const hoch = await fetch(`${URL_BASIS}/storage/v1/object/${EIMER}/${pfad}`, {
-    method: 'POST',
-    headers: {
-      ...alsDienst,
-      'Content-Type': 'application/x-ndjson',
-      'x-upsert': 'true',
-    },
-    body: inhalt,
-  });
-  if (!hoch.ok) throw new Error(`Speicher: ${await hoch.text()}`);
-
-  /*
-    ERST DER EIGENE SPEICHER, DANN DAS HAUS VERLASSEN — und in dieser
+    ERST DER EIGENE SPEICHER, DANN DAS HAUS VERLASSEN — je Teil, und in dieser
     Reihenfolge aus einem Grund: scheitert der Weg nach draussen, liegt der
     Stand wenigstens drinnen. Andersherum stünde man am Ende mit gar nichts
-    da.
+    da. Deshalb hält ein Fehler nach draussen den eigenen Speicher nicht auf:
+    er wird gemerkt, die übrigen Teile gehen nur noch nach drinnen, und erst
+    danach zählt er.
+  */
+  const { zeilen, bytes } = await standSchreiben(betrieb, tabellen, schluessel, lauf, async (text, nr) => {
+    const eigener = teilPfad(pfad, lauf, nr);
+    /*
+      EIN STAND JE TAG. Läuft die Ausleitung an einem Tag zweimal — etwa nach
+      einem Fehlschlag von Hand angestossen —, überschreibt der zweite den
+      ersten, statt eine zweite Datei danebenzulegen. Sonst wüchse der
+      Speicher mit jedem Wiederholungsversuch, und beim Wiederanlauf müsste
+      jemand raten, welche der beiden die vollständige ist. Deshalb `upsert`
+      — für den ersten Teil, der zuletzt geht; die weiteren tragen ihren Lauf
+      im Namen.
+    */
+    const hoch = await fetch(`${URL_BASIS}/storage/v1/object/${EIMER}/${eigener}`, {
+      method: 'POST',
+      headers: {
+        ...alsDienst,
+        'Content-Type': 'application/x-ndjson',
+        'x-upsert': 'true',
+      },
+      body: text,
+    });
+    if (!hoch.ok) throw new Error(`Speicher: ${await hoch.text()}`);
+    await hoch.body?.cancel();
+    pfade.push(eigener);
+
+    if (ZIEL && draussenPfad && !draussenFehler) {
+      try {
+        const da = await ausserHausLegen(ZIEL, teilPfad(draussenPfad, lauf, nr), text, heute);
+        if (nr === 1) ziel = da;
+      } catch (e) {
+        draussenFehler = e instanceof Error ? e : new Error(String(e));
+      }
+    }
+  });
+  pfade.reverse();
+  await fremdeTeileRaeumen(betrieb, lauf, heute);
+
+  /*
 
     UND DER FEHLSCHLAG NACH DRAUSSEN IST EIN FEHLSCHLAG. Ihn als Erfolg mit
     Fussnote zu melden wäre die bequeme Fassung und die falsche: die
@@ -456,7 +504,6 @@ async function betriebAusleiten(
     benannte Lücke, kein Fehler, und der Lauf gilt als erfolgreich.
   */
   let ausserHaus = false;
-  let ziel = `${EIMER} (Eimer im selben Projekt)`;
   /*
     DIE DATEIEN GEHEN NUR AUSSER HAUS, und ohne Ziel gehen sie gar nicht.
 
@@ -467,8 +514,8 @@ async function betriebAusleiten(
   */
   let dateien = 0;
   let dateienOffen = 0;
+  if (draussenFehler) throw draussenFehler;
   if (ZIEL) {
-    ziel = await ausserHausLegen(ZIEL, betrieb, inhalt, heute);
     ausserHaus = true;
     const bilanz = await dateienAusserHaus(ZIEL, betrieb, heute);
     dateien = bilanz.anzahl;
@@ -476,10 +523,9 @@ async function betriebAusleiten(
   }
 
   const geraeumt = await alteStaendeRaeumen(betrieb, heute);
-  const zeilen = inhalt === '' ? 0 : inhalt.split('\n').length - 1;
   await festhalten(betrieb, true, null, zeilen, ausserHaus);
   return {
-    companyId: betrieb, zeilen, bytes: inhalt.length, pfad, geraeumt, ausserHaus, ziel,
+    companyId: betrieb, zeilen, bytes, pfad, pfade, geraeumt, ausserHaus, ziel,
     dateien, dateienOffen,
   };
 }
@@ -536,10 +582,16 @@ async function uebergabe(
     return fehler(String(d?.message ?? 'Abgewiesen.'), d?.code === '42501' ? 403 : 409);
   }
 
-  const inhalt = await standSchreiben(betrieb, tabellen, schluessel);
   const stempel = new Date().toISOString().replace(/[:.]/g, '-');
   const datenPfad = `uebergabe/${betrieb}/${stempel}-daten.jsonl`;
-  await ablegen(datenPfad, inhalt, 'application/x-ndjson');
+  const lauf = neuerLauf();
+  const datenPfade: string[] = [];
+  const { zeilen, bytes } = await standSchreiben(betrieb, tabellen, schluessel, lauf, async (text, nr) => {
+    const p = teilPfad(datenPfad, lauf, nr);
+    await ablegen(p, text, 'application/x-ndjson');
+    datenPfade.push(p);
+  });
+  datenPfade.reverse();
 
   const jeEimer = new Map<string, string[]>();
   for (const d of (dateien ?? []) as Array<{ eimer: string; pfad: string }>) {
@@ -557,14 +609,13 @@ async function uebergabe(
     JSON.stringify({ betrieb, erstellt: new Date().toISOString(), gueltigBis, dateien: verzeichnis }, null, 2),
     'application/json',
   );
-  const eigene = await signieren(EIMER, [datenPfad, verzeichnisPfad]);
+  const eigene = await signieren(EIMER, [...datenPfade, verzeichnisPfad]);
 
-  const zeilen = inhalt === '' ? 0 : inhalt.split('\n').length - 1;
   const fest = await fetch(`${URL_BASIS}/rest/v1/rpc/betrieb_export_festhalten`, {
     method: 'POST', headers: alsDienst,
     body: JSON.stringify({
       p_admin: admin, p_kennung: betrieb, p_grund: grund,
-      p_angaben: { zeilen, bytes: inhalt.length, dateien: verzeichnis.length, gueltig_bis: gueltigBis },
+      p_angaben: { zeilen, bytes, teile: datenPfade.length, dateien: verzeichnis.length, gueltig_bis: gueltigBis },
     }),
   });
   if (!fest.ok) {
@@ -576,9 +627,11 @@ async function uebergabe(
   return antwort({
     companyId: betrieb,
     zeilen,
-    bytes: inhalt.length,
+    bytes,
     dateien: verzeichnis.length,
     datenLink: eigene.get(datenPfad) ?? null,
+    // Ein grosser Betrieb kommt in mehreren Teilen; alle gehören zusammen.
+    datenLinks: datenPfade.map((p) => eigene.get(p) ?? null),
     dateienLink: eigene.get(verzeichnisPfad) ?? null,
     gueltigBis,
   });
