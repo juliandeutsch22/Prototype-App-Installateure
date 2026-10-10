@@ -52,8 +52,12 @@ test('Am Tablet steht „Einstellungen“ in der Seitenleiste in einer Zeile', a
   const kurz = page.locator('.navi .navi-text-kurz', { hasText: 'Einstellungen' });
   const zeilen = () =>
     kurz.evaluate((el) => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight)));
+  // Und es ragt höchstens in den Innenabstand (2 px je Seite), nicht über den Punkt hinaus.
+  const ueberstand = () => kurz.evaluate((el) => el.scrollWidth - el.clientWidth);
   expect(await zeilen()).toBe(1);
+  expect(await ueberstand()).toBeLessThanOrEqual(2);
   await kurz.click();
   await expect(page.locator('.navi .navi-punkt-aktiv', { hasText: 'Einstellungen' })).toBeVisible();
   expect(await zeilen()).toBe(1);
+  expect(await ueberstand()).toBeLessThanOrEqual(2);
 });

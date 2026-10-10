@@ -229,7 +229,14 @@
   */
   .navi-text-lang { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
   /* Lange Kurztexte („Einstellungen“) brechen mit Trennstrich, statt mit „…“ zu enden. */
-  .navi-text-kurz { display: block; max-width: 100%; hyphens: auto; overflow-wrap: anywhere; }
+  /*
+    NIE MITTEN IM WORT (10.10.2026). Jeder Kurztext ist EIN Wort; mit
+    `overflow-wrap: anywhere` brach das längste, „Einstellungen“, als
+    „Einstellunge|n“, sobald es um einen Bruchteil eines Pixels nicht passte —
+    fett als aktiver Punkt in der CI auch bei 2 px Abstand. So bleibt das Wort
+    ganz und ragt im schlimmsten Fall ein, zwei Pixel in den Innenabstand.
+  */
+  .navi-text-kurz { display: block; max-width: 100%; hyphens: manual; -webkit-hyphens: manual; overflow-wrap: normal; word-break: normal; }
   @media (min-width: 1200px) {
     .navi-text-lang { position: static; width: auto; height: auto; margin: 0; clip: auto; display: block; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .navi-text-kurz { display: none; }
