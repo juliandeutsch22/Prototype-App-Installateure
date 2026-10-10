@@ -66,10 +66,10 @@ describe('Rücklass anlegen', () => {
     await expect(anlegen({ ...haft(), ruecklassBetrag: 600.01 })).resolves.toBeTruthy();
   });
 
-  it('nur vollständig, nur zur passenden Rechnungsart, nicht mit Skonto, fällig nach dem Rechnungsdatum', async () => {
+  it('nur vollständig, nur zur passenden Rechnungsart, fällig nach dem Rechnungsdatum — mit Skonto seit 10.10.2026', async () => {
     await expect(anlegen({ ruecklassArt: 'haft', ruecklassProzent: 5 })).rejects.toThrow(/Art, Prozentsatz und Fälligkeit/);
     await expect(anlegen({ ...haft(), ruecklassArt: 'deckung' })).rejects.toThrow(/Teilrechnung/);
-    await expect(anlegen({ ...haft(), skontoProzent: 2, skontoBis: '2026-08-10' })).rejects.toThrow(/Skonto und Rücklass/);
+    await expect(anlegen({ ...haft(), skontoProzent: 2, skontoBis: '2026-08-10' })).resolves.toBeTruthy();
     await expect(anlegen({ ...haft('2026-07-01') })).rejects.toThrow(/nach dem Rechnungsdatum/);
     await expect(anlegen({ ...haft(), ruecklassProzent: 25, ruecklassBetrag: 3000 })).rejects.toThrow(/zwischen 0 und 20/);
   });
@@ -97,5 +97,62 @@ describe('Die Zahl am Menüpunkt Rechnungen', () => {
     expect(await zaehler('2026-10-05')).toBe(vorher);
     // Nach seiner Fälligkeit zählt sie wieder.
     expect(await zaehler('2026-12-02')).toBe(vorher + 1);
+  });
+});
+
+describe('Skonto auf den Zahlbetrag (10.10.2026)', () => {
+  /*
+    12.000 € mit 600 € Haftrücklass und 2 % Skonto: der Kunde zahlt in der
+    Frist 11.400 € abzüglich 2 % — zugesagt sind 228 €, nicht 240 € auf den
+    ganzen Rechnungsbetrag. Der Rücklass wird später ohne Skonto ausgezahlt.
+  */
+  it('der Skonto ist höchstens 2 % des Zahlbetrags — auf den ganzen Betrag wäre er zu hoch', async () => {
+    const id = await anlegen({ ...haft(), skontoProzent: 2, skontoBis: '2026-08-10' });
+    await createZahlung(BETRIEB, { invoiceId: id, datum: '2026-08-09', betrag: 11172, art: 'Überweisung' });
+    await expect(createZahlung(BETRIEB, { invoiceId: id, datum: '2026-08-09', betrag: 240, art: 'Skonto' }))
+      .rejects.toThrow(/höchstens 228,00/);
+    await expect(createZahlung(BETRIEB, { invoiceId: id, datum: '2026-08-09', betrag: 228, art: 'Skonto' })).resolves.toBeTruthy();
+    // Offen ist danach genau der Rücklass.
+    const { data } = await buch.client.from('invoices').select('total_brutto, bezahlt_betrag').eq('id', id).single();
+    expect(Number(data!.total_brutto) - Number(data!.bezahlt_betrag)).toBe(600);
+  });
+
+  it('Gegenprobe: ohne Rücklass bleibt es der ganze Rechnungsbetrag', async () => {
+    const id = await anlegen({ skontoProzent: 2, skontoBis: '2026-08-10' });
+    await createZahlung(BETRIEB, { invoiceId: id, datum: '2026-08-09', betrag: 11760, art: 'Überweisung' });
+    await expect(createZahlung(BETRIEB, { invoiceId: id, datum: '2026-08-09', betrag: 240, art: 'Skonto' })).resolves.toBeTruthy();
+  });
+});
+
+describe('Rücklass durch Bankgarantie abgelöst (10.10.2026)', () => {
+  const garantie = (id: string, felder: Record<string, unknown>) =>
+    buch.client.from('invoices').update(felder).eq('id', id);
+
+  it('lässt sich nach der Ausstellung erfassen — und macht den Rücklass ab der Ablöse fällig', async () => {
+    const vorher = await zaehler('2026-10-05');
+    const id = await anlegen(haft('2029-08-01'));
+    await createZahlung(BETRIEB, { invoiceId: id, datum: '2026-09-01', betrag: 11400, art: 'Überweisung' });
+    expect(await zaehler('2026-10-05')).toBe(vorher);
+    // Abgelöst am 01.11.: am 05.10. noch nicht fällig.
+    expect((await garantie(id, { ruecklass_garantie_am: '2026-11-01', ruecklass_garantie_bank: 'Raiffeisen', ruecklass_garantie_nr: 'G-1', ruecklass_garantie_bis: '2029-08-01' })).error).toBeNull();
+    expect(await zaehler('2026-10-05')).toBe(vorher);
+    // Abgelöst am 01.10.: seither fällig.
+    expect((await garantie(id, { ruecklass_garantie_am: '2026-10-01' })).error).toBeNull();
+    expect(await zaehler('2026-10-05')).toBe(vorher + 1);
+    // Zurückgenommen: wieder der vereinbarte Tag.
+    expect((await garantie(id, { ruecklass_garantie_am: null, ruecklass_garantie_bank: null, ruecklass_garantie_nr: null, ruecklass_garantie_bis: null })).error).toBeNull();
+    expect(await zaehler('2026-10-05')).toBe(vorher);
+  });
+
+  it('nur an einer Rechnung mit Rücklass, und nie ohne Tag der Ablöse', async () => {
+    const ohne = await anlegen();
+    expect((await garantie(ohne, { ruecklass_garantie_am: '2026-10-01' })).error?.code).toBe('23514');
+    const mit = await anlegen(haft());
+    expect((await garantie(mit, { ruecklass_garantie_bank: 'Raiffeisen' })).error?.code).toBe('23514');
+  });
+
+  it('der vereinbarte Rücklass selbst bleibt eingefroren', async () => {
+    const id = await anlegen(haft());
+    expect((await garantie(id, { ruecklass_garantie_am: '2026-10-01', ruecklass_bis: '2027-01-01' })).error?.code).toBe('42501');
   });
 });

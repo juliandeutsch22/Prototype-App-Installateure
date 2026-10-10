@@ -49,7 +49,19 @@ export function offenerRest(inv: Rechnung): number {
   return zahlstand(inv).rest;
 }
 
-type MitRuecklass = Rechnung & Pick<Invoice, 'dueDate' | 'ruecklassBetrag' | 'ruecklassBis'>;
+type MitRuecklass = Rechnung & Pick<Invoice, 'dueDate' | 'ruecklassBetrag' | 'ruecklassBis' | 'ruecklassGarantieAm'>;
+
+/**
+ * Wann der Rücklass fällig ist: am vereinbarten Tag — oder am Tag der Ablöse
+ * durch Bankgarantie, wenn der früher liegt (seit 10.10.2026). Dieselbe
+ * Regel steht in der Datenbank (`app.mahnbar_ab`).
+ */
+export function ruecklassFaelligAm(inv: Pick<Invoice, 'ruecklassBis' | 'ruecklassGarantieAm'>): string | undefined {
+  const bis = inv.ruecklassBis ?? undefined;
+  const am = inv.ruecklassGarantieAm ?? undefined;
+  if (am && (!bis || am < bis)) return am;
+  return bis;
+}
 
 /**
  * Der noch offene Teil eines Rücklasses (seit 05.10.2026).
@@ -58,7 +70,7 @@ type MitRuecklass = Rechnung & Pick<Invoice, 'dueDate' | 'ruecklassBetrag' | 'ru
  * Rechnung als Zahlbetrag nennt, und behält den Rücklass ein; was danach
  * offen ist, bis zu dessen Höhe, ist der Rücklass.
  */
-export function offenerRuecklass(inv: MitRuecklass): number {
+export function offenerRuecklass(inv: Rechnung & Pick<Invoice, 'ruecklassBetrag'>): number {
   const r = runde(inv.ruecklassBetrag ?? 0);
   if (!(r > 0)) return 0;
   return runde(Math.min(zahlstand(inv).rest, r));
@@ -79,10 +91,11 @@ export function mahnbar(inv: MitRuecklass, heute: string): { rest: number; faell
   const r = offenerRuecklass(inv);
   if (r <= 0) return { rest, faellig: inv.dueDate };
   const haupt = runde(rest - r);
-  const ruecklassFaellig = !!inv.ruecklassBis && inv.ruecklassBis < heute;
+  const faelligAm = ruecklassFaelligAm(inv);
+  const ruecklassFaellig = !!faelligAm && faelligAm < heute;
   if (!ruecklassFaellig) return { rest: haupt, faellig: inv.dueDate };
-  if (haupt <= 0) return { rest, faellig: inv.ruecklassBis ?? undefined };
-  const spaeter = (inv.dueDate ?? '') > (inv.ruecklassBis ?? '') ? inv.dueDate : inv.ruecklassBis ?? undefined;
+  if (haupt <= 0) return { rest, faellig: faelligAm };
+  const spaeter = (inv.dueDate ?? '') > (faelligAm ?? '') ? inv.dueDate : faelligAm;
   return { rest, faellig: spaeter };
 }
 
@@ -102,7 +115,7 @@ export function mahnbar(inv: MitRuecklass, heute: string): { rest: number; faell
  * Startseite sieht ihn womöglich vorher.
  */
 export function istUeberfaellig(
-  inv: Pick<Invoice, 'paymentStatus' | 'dueDate' | 'totalBrutto' | 'bezahltBetrag' | 'ruecklassBetrag' | 'ruecklassBis'>,
+  inv: Pick<Invoice, 'paymentStatus' | 'dueDate' | 'totalBrutto' | 'bezahltBetrag' | 'ruecklassBetrag' | 'ruecklassBis' | 'ruecklassGarantieAm'>,
   heute: string,
 ): boolean {
   // Ein noch nicht fälliger Rücklass ist kein Verzug (seit 05.10.2026).

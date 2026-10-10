@@ -1,5 +1,5 @@
 import type { Invoice, InvoiceRates } from '@/types';
-import { mahnbar, offenerRest } from './zahlstand';
+import { mahnbar, offenerRest, ruecklassFaelligAm } from './zahlstand';
 
 /** TT.MM.JJJJ — hier ohne die Datumsbibliothek, die Datei bleibt ohne Oberflächen-Importe. */
 const datumKurzAT = (iso?: string | null) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}` : '—');
@@ -96,7 +96,7 @@ export function darfMahnen(
   inv: Pick<
     Invoice,
     'paymentStatus' | 'dueDate' | 'mahnstufe' | 'gemahntAm' | 'mahnfrist'
-    | 'totalBrutto' | 'bezahltBetrag' | 'ruecklassBetrag' | 'ruecklassBis'
+    | 'totalBrutto' | 'bezahltBetrag' | 'ruecklassBetrag' | 'ruecklassBis' | 'ruecklassGarantieAm'
   >,
   heute: string,
 ): MahnPruefung {
@@ -127,7 +127,7 @@ export function darfMahnen(
   // Offen ist nur noch ein Rücklass, der nicht fällig ist (seit 05.10.2026).
   const m = mahnbar(inv, heute);
   if (m.rest <= 0) {
-    return { moeglich: false, grund: `Offen ist nur der Rücklass, fällig am ${datumKurzAT(inv.ruecklassBis)}.` };
+    return { moeglich: false, grund: `Offen ist nur der Rücklass, fällig am ${datumKurzAT(ruecklassFaelligAm(inv))}.` };
   }
   if (!m.faellig || m.faellig >= heute) {
     return { moeglich: false, grund: 'Das Zahlungsziel ist noch nicht abgelaufen.' };

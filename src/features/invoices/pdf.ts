@@ -276,7 +276,8 @@ export function generateInvoicePdf(opts: {
       (opts.skonto
         ? ` Bei Zahlung bis ${fmtDatum(opts.skonto.skontoBis)} abzüglich ` +
           `${opts.skonto.skontoProzent.toLocaleString('de-AT', { maximumFractionDigits: 2 })} % Skonto: ` +
-          `${euroBetrag(forderung - zugesagterSkonto({ totalBrutto: forderung, skontoProzent: opts.skonto.skontoProzent }))} €.`
+          // Auf den Zahlbetrag: der Rücklass wird später ausgezahlt, ohne Skonto (seit 10.10.2026).
+          `${euroBetrag(zahlbetrag - zugesagterSkonto({ totalBrutto: forderung, ruecklassBetrag: rueck?.betrag ?? 0, skontoProzent: opts.skonto.skontoProzent }))} €.`
         : ''),
     breite,
   ) as string[];
