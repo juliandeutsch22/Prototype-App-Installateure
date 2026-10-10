@@ -116,7 +116,9 @@ const GRENZ_MUSTER = [
   */
   /\{ art: 'in', feld: 'paymentStatus'/,
   /\{ art: 'gleich', feld: '(date|datum|customerId|projectNumber|userId)'/,
-  /\{ art: 'ab', feld: '(date|datum|invoiceDate|monat)'/,
+  // Angebots- und Mahndatum (Belegarchiv, 10.10.2026): derselbe Zeitraum wie
+  // beim Rechnungsdatum, und ebenso wäre eine Obergrenze dort ein stilles Loch.
+  /\{ art: 'ab', feld: '(date|datum|invoiceDate|monat|quoteDate|gemahntAm)'/,
   /\{ art: 'enthaelt', feld: 'assignedEmployees'/,
   /where\(\s*'date'\s*,\s*'>=?'/,
   /where\(\s*'date'\s*,\s*'=='/,

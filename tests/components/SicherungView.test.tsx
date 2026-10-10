@@ -39,8 +39,20 @@ vi.mock('@/lib/db/company', () => ({
 }));
 
 const rechnungenImZeitraum = vi.fn(async () => [] as unknown[]);
+const gemahntImZeitraum = vi.fn(async () => [] as unknown[]);
 vi.mock('@/lib/db/invoices', () => ({
   listInvoicesInRange: (...a: unknown[]) => rechnungenImZeitraum(...(a as [])),
+  listGemahntInRange: (...a: unknown[]) => gemahntImZeitraum(...(a as [])),
+}));
+const angeboteImZeitraum = vi.fn(async () => [] as unknown[]);
+vi.mock('@/lib/db/quotes', () => ({
+  listQuotesInRange: (...a: unknown[]) => angeboteImZeitraum(...(a as [])),
+}));
+const scheineImZeitraum = vi.fn(async () => [] as unknown[]);
+const scheineVoll = vi.fn(async () => [] as unknown[]);
+vi.mock('@/lib/db/workSheets', () => ({
+  listBelegScheineInRange: (...a: unknown[]) => scheineImZeitraum(...(a as [])),
+  getWorkSheetsVoll: (...a: unknown[]) => scheineVoll(...(a as [])),
 }));
 vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => []) }));
 const archiv = vi.fn();
@@ -69,6 +81,10 @@ beforeEach(() => {
   ausleitung.mockReset();
   export_.mockReset();
   rechnungenImZeitraum.mockClear();
+  gemahntImZeitraum.mockClear();
+  angeboteImZeitraum.mockClear();
+  scheineImZeitraum.mockClear();
+  scheineVoll.mockClear();
   archiv.mockReset();
   letzterLauf = undefined;
 });
@@ -207,18 +223,29 @@ describe('Belegarchiv', () => {
   });
 
   it('lädt das gewählte Jahr und sagt, was im Archiv steht', async () => {
-    archiv.mockResolvedValue({ blob: new Blob(), rechnungen: 12, stornos: 1, hinweise: ['x'] });
+    archiv.mockResolvedValue({
+      blob: new Blob(), rechnungen: 12, stornos: 1, angebote: 4, scheine: 1, mahnungen: 2, hinweise: ['x'],
+    });
     zeige();
     const jahr = String(new Date().getFullYear() - 1);
     await userEvent.selectOptions(screen.getByLabelText('Zeitraum'), jahr);
     await userEvent.click(screen.getByRole('button', { name: 'Belegarchiv herunterladen' }));
-    expect(await screen.findByText(/Im Archiv: 12 Rechnungen, 1 Stornorechnung\. Ein Hinweis steht in „Hinweise\.txt“\./)).toBeInTheDocument();
+    expect(await screen.findByText(
+      /Im Archiv: 12 Rechnungen, 1 Stornorechnung, 4 Angebote, 1 Handwerksschein, 2 Mahnungen\. Ein Hinweis steht in „Hinweise\.txt“\./,
+    )).toBeInTheDocument();
     expect(rechnungenImZeitraum).toHaveBeenCalledWith('perl', `${jahr}-01-01`, `${jahr}-12-31`);
+    // Seit 10.10.2026 auch Angebote, Scheine und Mahnungen — für denselben Zeitraum.
+    expect(angeboteImZeitraum).toHaveBeenCalledWith('perl', `${jahr}-01-01`, `${jahr}-12-31`);
+    expect(scheineImZeitraum).toHaveBeenCalledWith('perl', `${jahr}-01-01`, `${jahr}-12-31`);
+    expect(gemahntImZeitraum).toHaveBeenCalledWith('perl', `${jahr}-01-01`, `${jahr}-12-31`);
+    const o = archiv.mock.calls[0][0] as { scheineVoll: (ids: string[]) => Promise<unknown> };
+    await o.scheineVoll(['s1', 's2']);
+    expect(scheineVoll).toHaveBeenCalledWith('perl', ['s1', 's2']);
     expect(archiv.mock.calls[0][0]).toMatchObject({ von: `${jahr}-01-01`, bis: `${jahr}-12-31` });
   });
 
   it('„Alle Belege“ beginnt beim ersten Beleg, nicht am 01.01.2000 (Runde 3, G11)', async () => {
-    archiv.mockResolvedValue({ blob: new Blob(), rechnungen: 3, stornos: 0, hinweise: [] });
+    archiv.mockResolvedValue({ blob: new Blob(), rechnungen: 3, stornos: 0, angebote: 0, scheine: 0, mahnungen: 0, hinweise: [] });
     const klicks: string[] = [];
     const klick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
       klicks.push(this.download);

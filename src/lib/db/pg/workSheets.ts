@@ -298,6 +298,40 @@ export async function listWorkSheetsInRange(
 }
 
 /**
+ * Die Belege unter den Scheinen eines Zeitraums — unterschrieben oder danach
+ * storniert —, OHNE GRENZE und ohne Unterschriftsbilder: für das
+ * Belegarchiv, das die ganzen Scheine danach blockweise holt
+ * (`getWorkSheetsVoll`). Entwürfe und verworfene Scheine waren nie ein
+ * Beleg beim Kunden.
+ */
+export async function listBelegScheineInRange(companyId: string, von: string, bis: string) {
+  const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
+    spalten: LISTENKOPF,
+    wo: [
+      { art: 'in', feld: 'status', werte: ['Unterschrieben', 'Storniert'] },
+      { art: 'ab', feld: 'datum', wert: von },
+      { art: 'bis', feld: 'datum', wert: bis },
+    ],
+    sortiere: { feld: 'datum' },
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
+/**
+ * Ganze Scheine samt Unterschriftsbildern, mehrere auf einmal — für das
+ * Belegarchiv. Die Aufrufer geben kleine Blöcke (rund 25 Scheine): zwei
+ * Bilder je Schein sind rund 140 KB, und mehr auf einmal hielte der Browser
+ * nur unnötig im Speicher.
+ */
+export async function getWorkSheetsVoll(companyId: string, ids: string[]): Promise<WithId<WorkSheet>[]> {
+  if (ids.length === 0) return [];
+  const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
+    wo: [{ art: 'in', feld: 'id', werte: ids }],
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
+/**
  * Scheine nach Kundenname oder Notiz — über den ganzen Bestand, auch mitten
  * im Wort.
  *

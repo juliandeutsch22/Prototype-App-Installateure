@@ -61,6 +61,16 @@ export function searchWorkSheets(
   return pg.searchWorkSheets(companyId, begriff, max);
 }
 
+/** Unterschriebene und stornierte Scheine eines Zeitraums, ohne Bilder — für das Belegarchiv. */
+export function listBelegScheineInRange(companyId: string, von: string, bis: string): Promise<WithId<WorkSheet>[]> {
+  return pg.listBelegScheineInRange(companyId, von, bis);
+}
+
+/** Ganze Scheine samt Unterschriftsbildern — siehe `pg.getWorkSheetsVoll`. */
+export function getWorkSheetsVoll(companyId: string, ids: string[]): Promise<WithId<WorkSheet>[]> {
+  return pg.getWorkSheetsVoll(companyId, ids);
+}
+
 export function getWorkSheet(id: string): Promise<WithId<WorkSheet> | undefined> {
   return pg.getWorkSheet(id);
 }
