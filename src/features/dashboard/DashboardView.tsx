@@ -46,6 +46,7 @@ import {
   type StartDaten,
   type StartRolle,
 } from './start/laden';
+import { listUsers } from '@/lib/db/users';
 
 /**
  * DIE STARTSEITE (Testbericht 4.2, Nachtest 01.10.2026 Paket B; Skizzen in
@@ -111,7 +112,12 @@ export default function DashboardView() {
   useEffect(() => {
     if (!user) return;
     let weg = false;
-    const k: Kontext = { user, company, heute: todayStr() };
+    // Die Belegschaft einmal für alle Blöcke dieses Aufbaus.
+    let belegschaft: ReturnType<typeof listUsers> | null = null;
+    const k: Kontext = {
+      user, company, heute: todayStr(),
+      belegschaft: () => (belegschaft ??= listUsers(user.companyId)),
+    };
     const r = startRolle(user.role);
     setData({});
     setNichtGeladen([]);

@@ -33,7 +33,12 @@ import { SCHEIN_ROLLEN } from '@/lib/permissions';
  * das Zweite arbeitet der Service Worker, der die Pakete nach dem ersten
  * Besuch vorhaelt.
  */
-const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
+/*
+  FEST EINGEBUNDEN, wie oben gesagt (seit 10.10.2026 auch so umgesetzt —
+  vorher wurde sie doch nachgeladen, ein zusätzlicher Weg durchs Netz vor
+  dem ersten Bild für jeden, der nicht angemeldet ist).
+*/
+import LoginPage from '@/features/auth/LoginPage';
 // Ausserhalb der Anmeldung: das Impressum muss jeder lesen können, auch ohne Konto.
 const ImpressumView = lazy(() => import('@/features/recht/ImpressumView'));
 const DatenschutzView = lazy(() => import('@/features/recht/DatenschutzView'));

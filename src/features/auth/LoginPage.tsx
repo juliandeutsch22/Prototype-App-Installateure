@@ -48,6 +48,15 @@ export default function LoginPage() {
     if (authError) setSubmitting(false);
   }, [authError]);
 
+  /*
+    DIE STARTSEITE SCHON HOLEN, während jemand tippt (Analyse 09.10.2026,
+    Maßnahme 8): nach dem Anmelden steht sie dann ohne Nachladepause da.
+    Scheitert es (kein Netz), lädt sie wie bisher beim Öffnen.
+  */
+  useEffect(() => {
+    void import('@/features/dashboard/DashboardView').catch(() => undefined);
+  }, []);
+
   // Bereits angemeldet -> direkt ins Dashboard (der Auth-Guard übernimmt die
   // Navigation; kein manuelles navigate() mit Timing-Risiko nötig).
   if (user) return <Navigate to="/" replace />;

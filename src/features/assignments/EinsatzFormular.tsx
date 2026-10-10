@@ -12,7 +12,6 @@ import type {
   AppUser,
   Assignment,
   Betriebsurlaub,
-  Material,
   EinsatzMaterial,
   RuestPosition,
   Termin,
@@ -31,7 +30,7 @@ import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { terminKopf } from '@/features/termine/terminText';
 import RuestlistePlanen from './RuestlistePlanen';
-import { abwesendAm, fmtDay } from './einsatzDaten';
+import { abwesendAm, fmtDay, useMaterialstamm } from './einsatzDaten';
 import { alsHelferEingestuft, istLehrling, stufeImEinsatz } from './stufeImEinsatz';
 
 /** Auswahlzustand je Mitarbeiter: eingeteilt und in welcher Rolle. */
@@ -78,7 +77,6 @@ export default function EinsatzFormular({
   urlaube,
   betriebsurlaube,
   termineDesTages,
-  materials,
   tagesListen,
   karten,
   onGespeichert,
@@ -101,7 +99,6 @@ export default function EinsatzFormular({
   urlaube: Abwesenheit[];
   betriebsurlaube: Betriebsurlaub[];
   termineDesTages: Termin[];
-  materials: WithId<Material>[];
   tagesListen: WithId<EinsatzMaterial>[];
   /** In der Tagesplanung als Karten; ohne die Angabe für das Seitenfenster. */
   karten?: { titel: string };
@@ -121,6 +118,13 @@ export default function EinsatzFormular({
   const { user } = useAuth();
   const toast = useToast();
   const materialAn = useModul('material');
+  /*
+    DER MATERIALSTAMM ERST MIT DER RÜSTLISTE (Analyse 09.10.2026, Maßnahme
+    9): bis zu 1.000 Artikel, live — gebraucht nur, sobald eine Baustelle
+    gewählt ist und damit die Rüstliste dasteht. Vorher holte ihn jede
+    Tagesplanung und jedes Seitenfenster beim Öffnen.
+  */
+  const materials = useMaterialstamm(user?.companyId, materialAn && !!projectNumber);
 
   const [picks, setPicks] = useState<Record<string, Pick>>({});
   const [comment, setComment] = useState('');

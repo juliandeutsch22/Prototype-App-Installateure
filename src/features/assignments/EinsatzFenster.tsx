@@ -9,7 +9,7 @@ import Button from '@/components/Button';
 import { SelectField } from '@/components/Field';
 import { useModul } from '@/lib/useModule';
 import EinsatzFormular from './EinsatzFormular';
-import { fmtDay, useMaterialstamm, useRuestlistenDesTages } from './einsatzDaten';
+import { fmtDay, useRuestlistenDesTages } from './einsatzDaten';
 
 /** Womit das Fenster geöffnet wird — aus einer Zelle, einer Baustelle oder dem Kopf. */
 export interface FensterStart {
@@ -68,7 +68,6 @@ export default function EinsatzFenster({
   const [datum, setDatum] = useState(start.datum);
   const [projectNumber, setProjectNumber] = useState(start.projectNumber ?? '');
 
-  const materials = useMaterialstamm(user?.companyId, materialAn);
   const tagesListen = useRuestlistenDesTages(user?.companyId, datum, materialAn);
   // Gleichbleibend, solange sich nichts ändert: daran hängt das Übernehmen ins Formular.
   const tagesEinsaetze = useMemo(() => einsaetze.filter((a) => a.date === datum), [einsaetze, datum]);
@@ -100,7 +99,6 @@ export default function EinsatzFenster({
           urlaube={urlaube}
           betriebsurlaube={betriebsurlaube}
           termineDesTages={termineDesTages}
-          materials={materials}
           tagesListen={tagesListen}
           onGespeichert={onClose}
           onLoeschen={(a) => deleteAssignment(a.id)}

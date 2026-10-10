@@ -64,10 +64,34 @@ function fassungsDatei(kennung: string): Plugin {
   };
 }
 
+/**
+ * `preconnect` zur Datenbank (Analyse 09.10.2026, Maßnahme 8): der Browser
+ * baut die Verbindung zu Supabase auf, während er noch die App lädt — statt
+ * erst bei der ersten Abfrage. Nur, wenn die Adresse beim Bau bekannt ist.
+ */
+function datenbankVorverbinden(): Plugin {
+  let adresse: string | undefined;
+  return {
+    name: 'datenbank-vorverbinden',
+    configResolved(config) {
+      adresse = config.env.VITE_SUPABASE_URL as string | undefined;
+    },
+    transformIndexHtml() {
+      let herkunft: string;
+      try {
+        herkunft = new URL(adresse ?? '').origin;
+      } catch {
+        return [];
+      }
+      return [{ tag: 'link', attrs: { rel: 'preconnect', href: herkunft, crossorigin: '' }, injectTo: 'head' }];
+    },
+  };
+}
+
 const KENNUNG = fassungsKennung();
 
 export default defineConfig({
-  plugins: [react(), fassungsDatei(KENNUNG)],
+  plugins: [react(), fassungsDatei(KENNUNG), datenbankVorverbinden()],
   define: {
     __FASSUNG__: JSON.stringify(KENNUNG),
   },
@@ -111,6 +135,8 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
           if (id.includes('/firebase/') || id.includes('/@firebase/')) return 'firebase';
+          // Seit dem Umzug der größte Brocken beim Start — und fast nie geändert.
+          if (id.includes('/@supabase/')) return 'supabase';
           if (id.includes('/react-dom/') || id.includes('/react-router')) return 'react';
         },
       },

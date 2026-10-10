@@ -271,13 +271,21 @@ describe('Abonnieren', () => {
     const ab = abonnieren('customers', 'kern-a',
       (z) => stände.push(z), (e) => { throw e; }, {}, beobachtet);
 
-    for (let i = 0; i < 80 && stände.length === 0; i += 1) await warte(50);
-    expect(verlauf).toEqual(['abonniert', 'geholt']);
+    for (let i = 0; i < 80 && !verlauf.includes('abonniert'); i += 1) await warte(50);
+    /*
+      SEIT 10.10.2026 DARF EIN ERSTES BILD VORHER KOMMEN (Analyse 09.10.2026,
+      Maßnahme 6): genau ein Holen, nur zum Anzeigen. Maßgeblich bleibt das
+      Holen NACH dem Abonnement — und genau das prüft der Rest.
+    */
+    const ab0 = verlauf.indexOf('abonniert');
+    expect(verlauf.slice(0, ab0)).toEqual(['geholt']);
+    for (let i = 0; i < 80 && verlauf.length < ab0 + 2; i += 1) await warte(50);
+    expect(verlauf.slice(ab0)).toEqual(['abonniert', 'geholt']);
 
     // Und danach GENAU EINMAL nachgefasst — siehe Punkt 3 im Kopf von
     // `abonnieren`. Ohne das fehlte manchmal eine Zeile, und zwar lautlos.
     await warte(NACHFASSEN_MS + 600);
-    expect(verlauf).toEqual(['abonniert', 'geholt', 'geholt']);
+    expect(verlauf.slice(ab0)).toEqual(['abonniert', 'geholt', 'geholt']);
     ab();
   });
 
