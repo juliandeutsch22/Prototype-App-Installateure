@@ -40,7 +40,7 @@ import {
 import { anzahl, themenAbschnitte, type Thema } from './themen';
 import { ZIEL } from './ziele';
 import { auffaellige } from '@/features/worksheets/unverrechnet';
-import { istUeberfaellig, mahnbar, offenerRest, offenerRuecklass } from '@/features/invoices/zahlstand';
+import { istUeberfaellig, mahnbar, offenerRest, offenerRuecklass, ruecklassFaelligAm } from '@/features/invoices/zahlstand';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { euro } from '@/lib/betrag';
 import { fmtMin, getISOWeek, tageWort, tageWortDativ } from '@/lib/time';
@@ -392,7 +392,7 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
         key: 'ruecklass', wann: 'woche',
         titel: `${anzahl(bald.length, 'Rücklass wird', 'Rücklässe werden')} fällig`,
         detail: euro(bald.reduce((s, i) => s + offenerRuecklass(i), 0)),
-        status: { text: `ab ${tagKurz(bald[0].ruecklassBis!)}`, ton: 'warn' },
+        status: { text: `ab ${tagKurz(ruecklassFaelligAm(bald[0])!)}`, ton: 'warn' },
       }));
     }
   }

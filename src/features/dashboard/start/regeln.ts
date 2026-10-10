@@ -5,7 +5,7 @@ import { istBenutzerkonto } from '@shared/benutzername';
 import type { OffenerNachtrag } from '@/features/worksheets/zeitNachtrag';
 import { grenzText, type Grenzfall } from '@/features/accounting/arbeitszeitGrenzen';
 import type { Mahnlauf } from '@/features/invoices/mahnlauf';
-import { istUeberfaellig, mahnbar, offenerRuecklass } from '@/features/invoices/zahlstand';
+import { istUeberfaellig, mahnbar, offenerRuecklass, ruecklassFaelligAm } from '@/features/invoices/zahlstand';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { euro } from '@/lib/betrag';
 import { datumAT } from '@/lib/datum';
@@ -290,9 +290,12 @@ export function ruecklaesseBald(rechnungen: (Invoice & { id: string })[], heute:
   bis.setUTCDate(bis.getUTCDate() + RUECKLASS_VORLAUF_TAGE);
   const grenze = bis.toISOString().slice(0, 10);
   return rechnungen
-    .filter((r) => r.paymentStatus !== 'Storniert' && offenerRuecklass(r) > 0
-      && !!r.ruecklassBis && r.ruecklassBis >= heute && r.ruecklassBis <= grenze)
-    .sort((a, b) => (a.ruecklassBis ?? '').localeCompare(b.ruecklassBis ?? ''));
+    // Fällig ist er am vereinbarten Tag — oder früher, wenn eine Bankgarantie ihn ablöst.
+    .filter((r) => {
+      const am = ruecklassFaelligAm(r);
+      return r.paymentStatus !== 'Storniert' && offenerRuecklass(r) > 0 && !!am && am >= heute && am <= grenze;
+    })
+    .sort((a, b) => (ruecklassFaelligAm(a) ?? '').localeCompare(ruecklassFaelligAm(b) ?? ''));
 }
 
 /**
@@ -306,7 +309,7 @@ export function ruecklassWirdFaellig(rechnungen: (Invoice & { id: string })[], h
     key: `ruecklass-${r.id}`,
     titel: r.customerName,
     detail: `${r.invoiceNumber} · ${r.ruecklassArt === 'deckung' ? 'Deckungsrücklass' : 'Haftrücklass'} ${euro(offenerRuecklass(r))}`,
-    status: { text: `fällig ${tagKurz(r.ruecklassBis!)}`, ton: 'warn' },
+    status: { text: `fällig ${tagKurz(ruecklassFaelligAm(r)!)}`, ton: 'warn' },
     to: ZIEL.rechnung(r.invoiceNumber),
   }));
   return abschnitt('ruecklass', 'Rücklass wird fällig', zeilen, ZIEL.rechnungen);

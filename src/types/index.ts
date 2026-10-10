@@ -1604,6 +1604,15 @@ export interface Invoice {
   ruecklassBetrag?: number | null;
   ruecklassBis?: string | null;
   /**
+   * Abgelöst durch Bankgarantie (seit 10.10.2026): der Tag der Ablöse — ab
+   * dann ist der Rücklass fällig, früher als vereinbart —, Bank, Nummer und
+   * Ablauf der Garantie. Nicht eingefroren: kommt nach der Ausstellung dazu.
+   */
+  ruecklassGarantieAm?: string | null;
+  ruecklassGarantieBank?: string | null;
+  ruecklassGarantieNr?: string | null;
+  ruecklassGarantieBis?: string | null;
+  /**
    * Leistungszeitraum — der Tag oder Zeitraum, über den die Leistung erbracht
    * wurde.
    *

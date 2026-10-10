@@ -565,6 +565,23 @@ export async function rechnungAusstellen(
  */
 export type SetzbarerStand = Extract<Invoice['paymentStatus'], 'Offen' | 'Überfällig'>;
 
+/** Die Ablöse eines Rücklasses durch Bankgarantie — oder `null`, um sie zurückzunehmen. */
+export interface Bankgarantie {
+  am: string;
+  bank: string | null;
+  nummer: string | null;
+  bis: string | null;
+}
+
+export function bankgarantieSetzen(id: string, g: Bankgarantie | null): Promise<void> {
+  return aendern(RECHNUNGEN, id, {
+    ruecklassGarantieAm: g?.am ?? null,
+    ruecklassGarantieBank: g?.bank?.trim() || null,
+    ruecklassGarantieNr: g?.nummer?.trim() || null,
+    ruecklassGarantieBis: g?.bis || null,
+  });
+}
+
 export function updateInvoiceStatus(
   id: string,
   paymentStatus: SetzbarerStand,

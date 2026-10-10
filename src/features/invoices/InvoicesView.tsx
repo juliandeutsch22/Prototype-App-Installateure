@@ -24,7 +24,7 @@ import {
   listInvoicesByIds,
 } from '@/lib/db/invoices';
 import { listZahlungen, listZahlungenImZeitraum, createZahlung, createZahlungMitSkonto, deleteZahlung } from '@/lib/db/zahlungen';
-import { istUeberfaellig, mahnbar, offenerRuecklass, zahlstand } from './zahlstand';
+import { istUeberfaellig, mahnbar, offenerRuecklass, ruecklassFaelligAm, zahlstand } from './zahlstand';
 import { druckAngaben } from './nachdruck';
 import { haftruecklassBisVorschlag, RUECKLASS_NAME, ruecklassArtFuer, ruecklassBetrag } from './ruecklass';
 import { skontoBedingung, skontoZumAusgleich, zugesagterSkonto } from './skonto';
@@ -78,6 +78,7 @@ import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
 import { Marke, Warnung } from '@/components/Badge';
 import RechnungDetail, { type RechnungAktion } from './RechnungDetail';
+import BankgarantieDialog from './BankgarantieDialog';
 import {
   BEREICHE,
   FILTERSTATI,
@@ -286,6 +287,8 @@ export default function InvoicesView() {
     Fällen niemand aufklappt.
   */
   const [zahlungFuer, setZahlungFuer] = useState<(Invoice & { id: string }) | null>(null);
+  /** Rücklass durch Bankgarantie ablösen (seit 10.10.2026). */
+  const [garantieFuer, setGarantieFuer] = useState<(Invoice & { id: string }) | null>(null);
   const [zahlungen, setZahlungen] = useState<WithId<Zahlungseingang>[] | null>(null);
   const [zDatum, setZDatum] = useState(todayStr());
   const [zBetrag, setZBetrag] = useState('');
@@ -1304,8 +1307,8 @@ export default function InvoicesView() {
       const due = new Date();
       due.setDate(due.getDate() + rates.dueDays);
       const dueDate = localDateStr(due);
-      // Mit Rücklass kein Skonto — beides auf einer Rechnung rechnet Senklot noch nicht.
-      const skonto = ruecklass ? null : skontoBedingung({
+      // Mit Rücklass gilt der Skonto auf den Zahlbetrag (seit 10.10.2026, `zugesagterSkonto`).
+      const skonto = skontoBedingung({
         prozent: rates.skontoProzent,
         tage: rates.skontoTage,
         rechnungsdatum: invoiceDate,
@@ -2039,6 +2042,16 @@ export default function InvoicesView() {
       */
       ...(darfMahnen(inv, todayStr()).moeglich
         ? [{ label: `${TEXTE[naechsteStufe(inv)!].titel} erzeugen`, onSelect: ausDemFenster(() => mahnenOeffnen(inv)) }]
+        : []),
+      /*
+        DIE BANKGARANTIE (seit 10.10.2026): nur, wo ein Rücklass offen ist —
+        oder schon abgelöst wurde, dann zum Ändern oder Zurücknehmen.
+      */
+      ...(inv.ruecklassArt && inv.paymentStatus !== 'Storniert' && (offenerRuecklass(inv) > 0 || inv.ruecklassGarantieAm)
+        ? [{
+            label: inv.ruecklassGarantieAm ? 'Bankgarantie ändern …' : 'Rücklass durch Bankgarantie ablösen …',
+            onSelect: ausDemFenster(() => setGarantieFuer(inv)),
+          }]
         : []),
       pdf,
       ...(inv.paymentStatus !== 'Storniert'
@@ -3274,7 +3287,9 @@ export default function InvoicesView() {
                       Gewährleistung (vorgeschlagen sind drei Jahre), der Deckungsrücklass einer
                       Teilrechnung, bis abgerechnet ist. Die Umsatzsteuer steht voll auf der Rechnung.
                       Der Mahnlauf übergeht den Rücklass bis zur Fälligkeit; 30 Tage davor erinnert die
-                      Startseite daran. Skonto entfällt auf einer Rechnung mit Rücklass.
+                      Startseite daran. Ein Skonto gilt auf den Zahlbetrag, also ohne den Rücklass.
+                      Löst eine Bankgarantie den Rücklass ab, wird er an diesem Tag fällig (an der
+                      Rechnung unter „Bankgarantie“).
                     </InfoHint>
                   </div>
                   {ruecklassAn && (
@@ -3946,6 +3961,7 @@ export default function InvoicesView() {
           />
         );
       })()}
+      <BankgarantieDialog inv={garantieFuer} onClose={() => setGarantieFuer(null)} />
       <ConfirmDialog
         open={!!zahlungFuer}
         title={zahlungFuer ? `Zahlungen — ${zahlungFuer.invoiceNumber}` : 'Zahlungen'}
@@ -4045,7 +4061,7 @@ export default function InvoicesView() {
         {zahlungFuer && zRichtung === 'eingang' && offenerRuecklass(zahlungFuer) > 0 && (
           <p className="mt-2 text-sm text-ink-muted">
             Davon {zahlungFuer.ruecklassArt === 'deckung' ? 'Deckungsrücklass' : 'Haftrücklass'}{' '}
-            {euro(offenerRuecklass(zahlungFuer))}, fällig am {datumAT(zahlungFuer.ruecklassBis ?? '')}.
+            {euro(offenerRuecklass(zahlungFuer))}, fällig am {datumAT(ruecklassFaelligAm(zahlungFuer) ?? '')}.
           </p>
         )}
         {zahlungFuer?.skontoProzent && zahlungFuer.skontoBis && (

@@ -142,6 +142,14 @@ export default function RechnungDetail({
               ? `${euro(inv.ruecklassBetrag)} (${(inv.ruecklassProzent ?? 0).toLocaleString('de-AT', { maximumFractionDigits: 2 })} %), fällig am ${datumAT(inv.ruecklassBis)}`
               : null,
           )}
+          {zeile('Bankgarantie', inv.ruecklassGarantieAm
+            ? [
+                `Rücklass abgelöst am ${datumAT(inv.ruecklassGarantieAm)}`,
+                inv.ruecklassGarantieBank,
+                inv.ruecklassGarantieNr ? `Nr. ${inv.ruecklassGarantieNr}` : null,
+                inv.ruecklassGarantieBis ? `gültig bis ${datumAT(inv.ruecklassGarantieBis)}` : null,
+              ].filter(Boolean).join(' · ')
+            : null)}
           {zeile('Bezahlt', stand.bezahlt > 0 ? euro(stand.bezahlt) : null)}
           {zeile('Offen', inv.paymentStatus !== 'Storniert' ? euro(stand.rest) : null)}
           {zeile('Guthaben des Kunden', stand.guthaben > 0 ? euro(stand.guthaben) : null)}

@@ -6,7 +6,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { ToastProvider } from '@/components/Toast';
 import type { Invoice, Material, Project, TimeEntry, WorkSheet } from '@/types';
 import InvoicesView from '@/features/invoices/InvoicesView';
-import { cancelInvoice, updateInvoiceStatus } from '@/lib/db/invoices';
+import { bankgarantieSetzen, cancelInvoice, updateInvoiceStatus } from '@/lib/db/invoices';
 import { updateCustomer } from '@/lib/db/customers';
 
 /**
@@ -193,6 +193,7 @@ vi.mock('@/lib/db/invoices', async () => {
     },
     RECHNUNG_TREFFER: 100,
     updateInvoiceStatus: vi.fn(async () => undefined),
+    bankgarantieSetzen: vi.fn(async () => undefined),
     mahnungFesthalten: (...a: unknown[]) => {
       mahnFolge.push('vermerk');
       return mahnung(...a);
@@ -3389,7 +3390,7 @@ describe('Rücklass beim Anlegen', () => {
     });
   });
 
-  it('mit Rücklass kein Skonto — auch wenn eines eingestellt ist', async () => {
+  it('mit Rücklass auch Skonto — seit 10.10.2026 auf den Zahlbetrag', async () => {
     firma.rates = { fach: 65, helper: 45, nightSurcharge: 0.5, emergencySurcharge: 1, vatRate: 0.2, dueDays: 14,
       skontoProzent: 3, skontoTage: 10 };
     const knopf = await bisZurVorschau();
@@ -3397,7 +3398,8 @@ describe('Rücklass beim Anlegen', () => {
     await userEvent.type(screen.getByLabelText('Rücklass (%)'), '3');
     await userEvent.click(knopf);
     await waitFor(() => expect(lege).toHaveBeenCalled());
-    expect(lege.mock.calls[0][0]).toMatchObject({ ruecklassArt: 'haft', skontoProzent: null, skontoBis: null });
+    expect(lege.mock.calls[0][0]).toMatchObject({ ruecklassArt: 'haft', skontoProzent: 3 });
+    expect(lege.mock.calls[0][0].skontoBis).toBeTruthy();
   });
 
   it('ohne Satz wird nicht ausgestellt — und es steht da, warum', async () => {
@@ -3457,6 +3459,37 @@ describe('Rücklass in der Liste', () => {
     await screen.findByText(/RE-2026-1101/);
     await waitFor(() => expect(updateInvoiceStatus).toHaveBeenCalledWith('ohne', 'Überfällig'));
     expect(updateInvoiceStatus).not.toHaveBeenCalledWith('rl', 'Überfällig');
+  });
+
+  /*
+    ABLÖSE DURCH BANKGARANTIE (10.10.2026): an der Rechnung erfasst, ohne die
+    ausgestellte Rechnung zu ändern.
+  */
+  it('der offene Rücklass lässt sich durch eine Bankgarantie ablösen', async () => {
+    vi.mocked(bankgarantieSetzen).mockClear();
+    rechnungen = [mitRuecklass({})];
+    zeige();
+    await screen.findByText(/RE-2026-1100/);
+    await rechnungOeffnen('RE-2026-1100');
+    await userEvent.click(await screen.findByRole('button', { name: 'Rücklass durch Bankgarantie ablösen …' }));
+    const dialog = within(await screen.findByRole('dialog', { name: /Bankgarantie — RE-2026-1100/ }));
+    await userEvent.clear(dialog.getByLabelText('Abgelöst am'));
+    await userEvent.type(dialog.getByLabelText('Abgelöst am'), '2026-10-01');
+    await userEvent.type(dialog.getByLabelText('Bank'), 'Raiffeisen');
+    await userEvent.type(dialog.getByLabelText('Garantienummer'), 'G-77');
+    await userEvent.click(dialog.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(bankgarantieSetzen).toHaveBeenCalledWith('rl', {
+      am: '2026-10-01', bank: 'Raiffeisen', nummer: 'G-77', bis: '2029-07-01',
+    }));
+  });
+
+  it('Gegenprobe: ohne Rücklass gibt es die Handlung nicht', async () => {
+    rechnungen = [mitRuecklass({ ruecklassArt: null, ruecklassProzent: null, ruecklassBetrag: null, ruecklassBis: null })];
+    zeige();
+    await screen.findByText(/RE-2026-1100/);
+    await rechnungOeffnen('RE-2026-1100');
+    await screen.findByRole('button', { name: /Zahlung erfassen/ });
+    expect(screen.queryByRole('button', { name: /Bankgarantie/ })).toBeNull();
   });
 });
 

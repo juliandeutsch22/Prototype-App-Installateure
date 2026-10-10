@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import type { WithId } from '@/lib/db/core';
 import type { Invoice } from '@/types';
 import { MehrAnzeigen } from '@/components/LotBausteine';
-import { istUeberfaellig, mahnbar, offenerRuecklass, zahlstand } from './zahlstand';
+import { istUeberfaellig, mahnbar, offenerRuecklass, ruecklassFaelligAm, zahlstand } from './zahlstand';
 
 /**
  * DIE RECHNUNGSLISTE NACH DER LINIE „LOT“ (Protokoll E6, Regeln 4 und 7).
@@ -95,7 +95,7 @@ export function rechnungsGruppen(rechnungen: WithId<Invoice>[], gruppiert: boole
     {
       schluessel: 'ruecklass',
       titel: 'Nur noch Rücklass offen',
-      rechnungen: ruecklass.sort(nachDatum((i) => i.ruecklassBis ?? undefined)),
+      rechnungen: ruecklass.sort(nachDatum((i) => ruecklassFaelligAm(i))),
     },
   ].filter((g) => g.rechnungen.length > 0);
 }

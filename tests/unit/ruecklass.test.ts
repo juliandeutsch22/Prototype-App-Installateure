@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { istUeberfaellig, mahnbar, offenerRuecklass, zahlstand } from '@/features/invoices/zahlstand';
+import { istUeberfaellig, mahnbar, offenerRuecklass, ruecklassFaelligAm, zahlstand } from '@/features/invoices/zahlstand';
 import { darfMahnen } from '@/features/invoices/mahnung';
 import { mahnlauf } from '@/features/invoices/mahnlauf';
 import { haftruecklassBisVorschlag, ruecklassArtFuer, ruecklassBetrag } from '@/features/invoices/ruecklass';
 import { ruecklaesseBald, ruecklassWirdFaellig } from '@/features/dashboard/start/regeln';
+import { skontoZumAusgleich, zugesagterSkonto } from '@/features/invoices/skonto';
 import type { Invoice } from '@/types';
 
 /**
@@ -102,5 +103,60 @@ describe('Startseite', () => {
     const storniert = rechnung({ paymentStatus: 'Storniert', ruecklassBis: '2026-10-20' });
     const faellig = rechnung({ bezahltBetrag: 11400, paymentStatus: 'Teilbezahlt', ruecklassBis: '2026-10-01' });
     expect(ruecklaesseBald([bezahlt, storniert, faellig], HEUTE)).toEqual([]);
+  });
+});
+
+describe('Abgelöst durch Bankgarantie (10.10.2026)', () => {
+  const bezahlt = { bezahltBetrag: 11400, paymentStatus: 'Teilbezahlt' as const };
+
+  it('fällig ab der Ablöse, wenn sie vor dem vereinbarten Tag liegt', () => {
+    const r = rechnung({ ...bezahlt, ruecklassGarantieAm: '2026-10-01' });
+    expect(ruecklassFaelligAm(r)).toBe('2026-10-01');
+    expect(mahnbar(r, HEUTE)).toEqual({ rest: 600, faellig: '2026-10-01' });
+    expect(istUeberfaellig(r, HEUTE)).toBe(true);
+    expect(darfMahnen(r, HEUTE).moeglich).toBe(true);
+  });
+
+  it('eine Ablöse in den nächsten 30 Tagen steht auf der Startseite — mit ihrem Tag', () => {
+    const r = rechnung({ ...bezahlt, ruecklassGarantieAm: '2026-10-20' });
+    expect(ruecklaesseBald([r], HEUTE).map((x) => x.id)).toEqual(['r1']);
+    expect(ruecklassWirdFaellig([r], HEUTE)?.zeilen[0].status).toEqual({ text: 'fällig 20.10.', ton: 'warn' });
+  });
+
+  it('Gegenprobe: ohne Ablöse der vereinbarte Tag — der Rücklass ist nicht zu mahnen', () => {
+    const r = rechnung(bezahlt);
+    expect(ruecklassFaelligAm(r)).toBe('2029-08-01');
+    expect(mahnbar(r, HEUTE).rest).toBe(0);
+    expect(darfMahnen(r, HEUTE)).toMatchObject({ moeglich: false, grund: expect.stringContaining('01.08.2029') });
+  });
+});
+
+describe('Skonto auf den Zahlbetrag (10.10.2026)', () => {
+  /* 12.000 € mit 600 € Rücklass und 2 % Skonto: zugesagt sind 2 % von 11.400 € = 228 €. */
+  const mitSkonto = (p: Partial<Invoice> = {}) =>
+    rechnung({ skontoProzent: 2, skontoBis: '2026-08-10', ...p });
+
+  it('zugesagt sind 2 % vom Zahlbetrag, nicht vom Rechnungsbetrag', () => {
+    expect(zugesagterSkonto(mitSkonto())).toBe(228);
+  });
+
+  it('behält der Kunde den Rücklass ein, gleicht der Skonto nur den Teil darüber aus', () => {
+    // 11.400 − 228 = 11.172 gezahlt; offen bleiben 828 = 600 Rücklass + 228 Skonto.
+    expect(skontoZumAusgleich(mitSkonto(), '2026-08-09', 11172)).toBe(228);
+  });
+
+  it('zahlt er den Rücklass gleich mit, ist der ganze Rest der Skonto', () => {
+    expect(skontoZumAusgleich(mitSkonto(), '2026-08-09', 11772)).toBe(228);
+  });
+
+  it('zu wenig gezahlt oder nach der Frist: kein Skonto', () => {
+    expect(skontoZumAusgleich(mitSkonto(), '2026-08-09', 11000)).toBeNull();
+    expect(skontoZumAusgleich(mitSkonto(), '2026-08-11', 11172)).toBeNull();
+  });
+
+  it('Gegenprobe: ohne Rücklass wie bisher — 2 % vom Rechnungsbetrag', () => {
+    const r = mitSkonto({ ruecklassArt: null, ruecklassProzent: null, ruecklassBetrag: null, ruecklassBis: null });
+    expect(zugesagterSkonto(r)).toBe(240);
+    expect(skontoZumAusgleich(r, '2026-08-09', 11760)).toBe(240);
   });
 });

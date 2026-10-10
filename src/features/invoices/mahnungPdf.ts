@@ -12,7 +12,7 @@ import {
 } from '@/lib/belegLayout';
 import { ibanAnzeige } from '@shared/iban';
 import { TEXTE, mahnkosten, type Mahnstufe, type Verzugszinsen } from './mahnung';
-import { mahnbar, zahlstand } from './zahlstand';
+import { mahnbar, ruecklassFaelligAm, zahlstand } from './zahlstand';
 import type { Company, Invoice } from '@/types';
 import { euroBetrag } from '@/lib/betrag';
 
@@ -137,7 +137,7 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
   const nichtFaellig = Math.round((stand.rest - gefordert) * 100) / 100;
   if (nichtFaellig > 0) {
     zeilen.push([
-      `${o.invoice.ruecklassArt === 'deckung' ? 'Deckungsrücklass' : 'Haftrücklass'}, fällig am ${fmtDatum(o.invoice.ruecklassBis ?? undefined)}`,
+      `${o.invoice.ruecklassArt === 'deckung' ? 'Deckungsrücklass' : 'Haftrücklass'}, fällig am ${fmtDatum(ruecklassFaelligAm(o.invoice))}`,
       `- ${euroBetrag(nichtFaellig)} €`,
     ]);
   }

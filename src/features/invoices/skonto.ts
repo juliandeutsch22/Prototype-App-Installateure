@@ -1,5 +1,5 @@
 import type { Invoice, RechnungsArt } from '@/types';
-import { zahlstand } from './zahlstand';
+import { offenerRuecklass, zahlstand } from './zahlstand';
 
 /**
  * Skonto (offene Punkte B7, Teil 2).
@@ -41,9 +41,15 @@ export function skontoBedingung(o: {
   return { skontoProzent: prozent, skontoBis: bis < o.zahlungsziel ? bis : o.zahlungsziel };
 }
 
-/** Der zugesagte Abzug in Euro, vom Rechnungsbetrag (der Forderung dieses Belegs). */
-export function zugesagterSkonto(inv: Pick<Invoice, 'totalBrutto' | 'skontoProzent'>): number {
-  return inv.skontoProzent ? runde((inv.totalBrutto ?? 0) * inv.skontoProzent / 100) : 0;
+/**
+ * Der zugesagte Abzug in Euro, vom ZAHLBETRAG: der Forderung dieses Belegs
+ * ohne einen Rücklass (seit 10.10.2026). Der Rücklass wird Jahre später
+ * ausgezahlt, ohne Skonto; ohne Rücklass ist es der Rechnungsbetrag wie
+ * bisher. Dieselbe Formel prüft die Datenbank (`app.skonto_passt`).
+ */
+export function zugesagterSkonto(inv: Pick<Invoice, 'totalBrutto' | 'skontoProzent' | 'ruecklassBetrag'>): number {
+  const basis = (inv.totalBrutto ?? 0) - (inv.ruecklassBetrag ?? 0);
+  return inv.skontoProzent ? runde(basis * inv.skontoProzent / 100) : 0;
 }
 
 /**
@@ -55,7 +61,8 @@ export function zugesagterSkonto(inv: Pick<Invoice, 'totalBrutto' | 'skontoProze
  * genutzte Skonto. Sonst hat der Kunde schlicht zu wenig gezahlt.
  */
 export function skontoZumAusgleich(
-  inv: Pick<Invoice, 'totalBrutto' | 'bezahltBetrag' | 'paymentStatus' | 'skontoProzent' | 'skontoBis' | 'skontoBetrag'>,
+  inv: Pick<Invoice, 'totalBrutto' | 'bezahltBetrag' | 'paymentStatus' | 'skontoProzent' | 'skontoBis' | 'skontoBetrag'
+    | 'ruecklassBetrag'>,
   datum: string,
   betrag: number,
 ): number | null {
@@ -63,5 +70,17 @@ export function skontoZumAusgleich(
   if (!datum || datum > inv.skontoBis || !(betrag > 0)) return null;
   const bleibt = runde(zahlstand(inv).rest - betrag);
   const frei = runde(zugesagterSkonto(inv) - (inv.skontoBetrag ?? 0));
-  return bleibt > 0 && bleibt <= frei ? bleibt : null;
+  if (!(bleibt > 0)) return null;
+  /*
+    MIT RÜCKLASS (seit 10.10.2026): behält der Kunde ihn ein, bleibt nach der
+    Zahlung Rücklass + Skonto offen — ausgeglichen wird nur der Teil über dem
+    Rücklass, der Rücklass selbst bleibt offen bis zu seiner Fälligkeit.
+    Zahlt er den Rücklass gleich mit, ist der Rest ganz der Skonto.
+  */
+  const ruecklass = offenerRuecklass(inv);
+  if (ruecklass > 0) {
+    const ueber = runde(bleibt - ruecklass);
+    if (ueber > 0 && ueber <= frei) return ueber;
+  }
+  return bleibt <= frei ? bleibt : null;
 }

@@ -98,6 +98,12 @@ export function rechnungAusstellen(
 
 export type { SetzbarerStand } from './pg/invoices';
 
+export type { Bankgarantie } from './pg/invoices';
+
+export function bankgarantieSetzen(id: string, g: pg.Bankgarantie | null): Promise<void> {
+  return pg.bankgarantieSetzen(id, g);
+}
+
 export function updateInvoiceStatus(
   id: string, paymentStatus: pg.SetzbarerStand,
 ): Promise<void> {
