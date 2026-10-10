@@ -7,6 +7,7 @@ import {
   eintraegeAmTag,
   listOwnEntriesInRange,
   DuplicateEntryError,
+  zeitEinfuegen,
 } from '@/lib/db/timeEntries';
 import { getGeburtsdatum } from '@/lib/db/arbeitszeitGrenzen';
 import {
@@ -43,6 +44,7 @@ import { mitFrist } from '@/lib/frist';
 import { aktiveModule } from '@/lib/module';
 import AufteilenDialog from './AufteilenDialog';
 import { aufteilenGeht } from './aufteilen';
+import { einfuegenPlan, einfuegenText } from './einfuegen';
 
 
 interface Props {
@@ -359,6 +361,12 @@ export default function TimeForm({
    * Tages fälschlich als belegt gemeldet.
    */
   const [tagesEintraege, setTagesEintraege] = useState<TimeEntry[] | null>(null);
+  /*
+    NACH JEDEM BUCHEN NEU LADEN. Das Formular bleibt für die nächste Buchung
+    stehen; ohne diesen Zähler prüfte es die nächste gegen den Tag VOR der
+    eben gebuchten — die Überschneidung (und das Einfügen) sähe es nicht.
+  */
+  const [gebucht, setGebucht] = useState(0);
   /**
    * WEM gehört der Eintrag, den dieses Formular schreiben wird?
    *
@@ -409,7 +417,7 @@ export default function TimeForm({
     return () => {
       verworfen = true;
     };
-  }, [user, besitzerUid, date, entry?.id]);
+  }, [user, besitzerUid, date, entry?.id, gebucht]);
 
   /** Der Grund, warum gerade nicht gespeichert werden kann — oder null. */
   const konflikt = useMemo(
@@ -427,6 +435,33 @@ export default function TimeForm({
         : null,
     [tagesEintraege, status, projectNumber, canHaveProject, mitZeiten, startTime, endTime],
   );
+
+  /*
+    EINFÜGEN STATT SPERREN (10.10.2026). Überschneidet sich eine NEUE
+    gearbeitete Zeit nur mit eigenen Buchungen anderer Baustellen, wird sie
+    beim Buchen dazwischen eingefügt — der Fall des nachgetragenen
+    Handwerksscheins mitten im gebuchten Tag. Was dabei aus den anderen wird,
+    steht vorher da. Beim Bearbeiten bleibt es bei der Sperre: dort ändert man
+    die bestehende Buchung selbst.
+
+    ERST, WENN JEMAND ZEITEN EINGEGEBEN ODER ÜBERNOMMEN HAT: die Vorgabe
+    07:00–16:00 einer leeren Maske soll nichts ankündigen, was niemand wollte.
+  */
+  const einfuegen = useMemo(
+    () =>
+      !isEdit && (angefasst || !!vorbelegung) && konflikt && tagesEintraege
+        && status === 'Anwesend' && mitZeiten && canHaveProject
+        ? einfuegenPlan({ status, projectNumber, startTime, endTime }, tagesEintraege)
+        : null,
+    [isEdit, angefasst, vorbelegung, konflikt, tagesEintraege, status, mitZeiten, canHaveProject, projectNumber, startTime, endTime],
+  );
+  const einfuegbar = einfuegen?.art === 'geht' ? einfuegen.aenderungen : null;
+  /** Was das Buchen sperrt — die Überschneidung nicht, wenn sie sich einfügen lässt. */
+  const sperre = einfuegbar
+    ? null
+    : konflikt && einfuegen?.art === 'nicht'
+      ? `${konflikt} ${einfuegen.grund}`
+      : konflikt;
 
   /*
     JUGENDSCHUTZ VOR DEM SPEICHERN (Runde 3, M2). Für eine 17-Jährige nahm die
@@ -525,8 +560,8 @@ export default function TimeForm({
     if (!user) return;
     setError(null);
 
-    if (konflikt) {
-      setError(konflikt);
+    if (sperre) {
+      setError(sperre);
       return;
     }
     if (vorEintritt?.sperrt) {
@@ -741,15 +776,22 @@ export default function TimeForm({
         // Beim Erfassen für jemand anderen gehört der Eintrag DEM Mitarbeiter,
         // nicht dem Erfassenden — sonst stünde er im falschen Zeitkonto.
         const owner = target ?? { uid: user.uid, name: user.name };
-        const stand = await createTimeEntryOhneEmpfang(user.companyId, {
+        const neu = {
           ...payload,
           userId: owner.uid,
           userName: owner.name,
-          source: 'manual',
+          source: 'manual' as const,
           ...(target ? bearbeitungsvermerk(user) : {}),
-        });
-        if (stand === 'queued') toast.info(vorgemerktMeldung('Zeit gebucht'));
-        else toast.success(target ? `Zeit für ${target.name} gebucht` : 'Zeit gebucht');
+        };
+        if (einfuegbar) {
+          // Die anderen Buchungen ändern sich mit — das geht nur am Stück (`zeit_einfuegen`).
+          await zeitEinfuegen(neu);
+          toast.success(target ? `Zeit für ${target.name} eingefügt` : 'Zeit eingefügt');
+        } else {
+          const stand = await createTimeEntryOhneEmpfang(user.companyId, neu);
+          if (stand === 'queued') toast.info(vorgemerktMeldung('Zeit gebucht'));
+          else toast.success(target ? `Zeit für ${target.name} gebucht` : 'Zeit gebucht');
+        }
         setComment('');
         /*
           ZUSCHLÄGE GELTEN FÜR EINEN EINSATZ, nicht für den nächsten
@@ -760,6 +802,7 @@ export default function TimeForm({
         setNachtGrund('');
         setIsEmergency(false);
         setAngefasst(false);
+        setGebucht((n) => n + 1);
       }
       onSaved();
     } catch (err) {
@@ -973,9 +1016,15 @@ export default function TimeForm({
         jetzt gibt es vier verschiedene Fälle mit vier verschiedenen
         Handlungen, und die Meldung nennt jeweils die eigene.
       */}
-      {konflikt && (angefasst || isEdit) && (
+      {sperre && (angefasst || isEdit) && (
         <Hinweiszeile stufe="warn" role="alert">
-          <p>{konflikt}</p>
+          <p>{sperre}</p>
+        </Hinweiszeile>
+      )}
+      {/* Kein Fehler, sondern was beim Buchen geschieht — auch gleich beim Nachtragen eines Scheins. */}
+      {einfuegbar && (
+        <Hinweiszeile>
+          <p>{einfuegenText(einfuegbar)}</p>
         </Hinweiszeile>
       )}
       {vorEintritt && (
@@ -1396,9 +1445,11 @@ export default function TimeForm({
           ) : undefined
         }
         rechts={
-          <Button type="submit" loading={saving} disabled={(!!konflikt && (angefasst || isEdit)) || gesperrt}>
+          <Button type="submit" loading={saving} disabled={(!!sperre && (angefasst || isEdit)) || gesperrt}>
             {isEdit
               ? 'Änderungen speichern'
+              : einfuegbar
+                ? 'Zeit einfügen'
               : alsKrankmeldung
                 ? 'Krank melden'
                 : alsUrlaubEintrag

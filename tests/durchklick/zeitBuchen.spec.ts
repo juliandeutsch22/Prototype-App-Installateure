@@ -138,3 +138,54 @@ test('Ein Monteur teilt seinen Tag auf zwei Baustellen auf', async ({ page }) =>
     await admin.from('projects').delete().eq('company_id', BETRIEB).eq('project_number', ZWEITE.nummer);
   }
 });
+
+/*
+  DEN SCHEIN NACHTRAGEN, WENN DER TAG SCHON GEBUCHT IST (10.10.2026): den Tag
+  am Stück gebucht, gleich danach in derselben Maske zwei Stunden auf einer
+  zweiten Baustelle mittendrin. Die Maske kündigt an, was geschieht, und
+  fügt ein; in der Datenbank und in der Liste stehen danach drei Buchungen.
+*/
+test('Ein Monteur fügt eine Zeit in seinen gebuchten Tag ein', async ({ page }) => {
+  const angelegt = await admin.from('projects').insert({
+    company_id: BETRIEB, project_number: ZWEITE.nummer, description: 'Heizung Maier',
+    customer_name: ZWEITE.kunde, address: 'Gasse 2, 1010 Wien', status: 'Aktiv',
+  });
+  if (angelegt.error && angelegt.error.code !== '23505') throw new Error(angelegt.error.message);
+  try {
+    await anmelden(page, MONTEUR.email);
+    await page.getByRole('link', { name: /Zeit/ }).first().click();
+    await page.getByLabel('Baustelle').selectOption(BAUSTELLE.nummer);
+    await page.getByLabel(/^Von/).fill('07:00');
+    await page.getByLabel(/^Bis/).fill('16:00');
+    await page.getByLabel(/Pause/).fill('30');
+    await page.getByRole('button', { name: /^(Zeit buchen|Speichern|Buchen)$/ }).click();
+    await expect(async () => {
+      const { data } = await admin.from('time_entries').select('id').eq('company_id', BETRIEB);
+      expect(data ?? []).toHaveLength(1);
+    }).toPass({ timeout: 15_000 });
+
+    await page.getByLabel('Baustelle').selectOption(ZWEITE.nummer);
+    await page.getByLabel(/^Von/).fill('10:00');
+    await page.getByLabel(/^Bis/).fill('12:00');
+    await page.getByLabel(/Pause/).fill('0');
+    await expect(page.getByText(/wird zu 07:00–10:00 und 12:00–16:00/)).toBeVisible();
+    await page.getByRole('button', { name: 'Zeit einfügen' }).click();
+
+    await expect(async () => {
+      const { data } = await admin
+        .from('time_entries').select('project_number, start_time, end_time, break_duration')
+        .eq('company_id', BETRIEB).order('start_time');
+      expect(data ?? []).toEqual([
+        { project_number: BAUSTELLE.nummer, start_time: '07:00:00', end_time: '10:00:00', break_duration: 0 },
+        { project_number: ZWEITE.nummer, start_time: '10:00:00', end_time: '12:00:00', break_duration: 0 },
+        { project_number: BAUSTELLE.nummer, start_time: '12:00:00', end_time: '16:00:00', break_duration: 30 },
+      ]);
+    }).toPass({ timeout: 15_000 });
+    // Die Liste folgt ohne Neuladen der Seite.
+    await expect(page.locator('#meine-eintraege').getByRole('button', { name: /bearbeiten/ })).toHaveCount(3, { timeout: 15_000 });
+    await keineFehlermeldung(page);
+  } finally {
+    await admin.from('time_entries').delete().eq('company_id', BETRIEB);
+    await admin.from('projects').delete().eq('company_id', BETRIEB).eq('project_number', ZWEITE.nummer);
+  }
+});

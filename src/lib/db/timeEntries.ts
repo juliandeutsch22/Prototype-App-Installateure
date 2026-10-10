@@ -108,6 +108,18 @@ export function zeitAufteilen(id: string, teile: { projectNumber: string; minute
   return pg.zeitAufteilen(id, teile);
 }
 
+/**
+ * Eine Zeit zwischen bestehende Buchungen einfügen (`einfuegenPlan` sagt
+ * vorher, was geschieht). NUR MIT VERBINDUNG — aus demselben Grund wie das
+ * Aufteilen: Kürzen und Anlegen gehen zusammen oder gar nicht.
+ */
+export function zeitEinfuegen(entry: Omit<TimeEntry, 'id' | 'companyId'>): Promise<string> {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return Promise.reject(new Error('Einfügen braucht eine Verbindung — bitte später noch einmal, die anderen Buchungen bleiben bis dahin, wie sie sind.'));
+  }
+  return pg.zeitEinfuegen(entry);
+}
+
 export function eintraegeAmTag(
   companyId: string, uid: string, date: string, exceptId?: string,
 ): Promise<WithId<TimeEntry>[]> {

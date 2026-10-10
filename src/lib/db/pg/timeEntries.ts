@@ -7,6 +7,7 @@
  */
 import type { TimeEntry } from '@/types';
 import { abfragen, abonnieren, anlegenMitKennung, aendern as kernAendern, loeschen as kernLoeschen, derClient, SEITE, type WithId } from './kern';
+import { objektAlsZeile } from './felder';
 
 import {
   aendernOhneEmpfang as fachAendern, anlegenOhneEmpfang as fachAnlegen,
@@ -132,6 +133,19 @@ export async function zeitAufteilen(id: string, teile: { projectNumber: string; 
   });
   if (error) throw new Error(error.message);
   return ((data as { neu?: string[] } | null)?.neu) ?? [];
+}
+
+/**
+ * Eine gearbeitete Zeit zwischen bestehende Buchungen anderer Baustellen
+ * einfügen — in einer Transaktion (`public.zeit_einfuegen`): die anderen
+ * werden gekürzt oder geteilt, die neue angelegt. Liefert ihre Kennung.
+ */
+export async function zeitEinfuegen(entry: Omit<TimeEntry, 'id' | 'companyId'>): Promise<string> {
+  const { data, error } = await derClient().rpc('zeit_einfuegen', {
+    p_neu: objektAlsZeile(ZEITEN, entry as unknown as Record<string, unknown>),
+  });
+  if (error) throw new Error(error.message);
+  return (data as { neu: string }).neu;
 }
 
 /**
