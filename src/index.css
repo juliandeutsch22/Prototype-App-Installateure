@@ -550,11 +550,18 @@ textarea {
  * leer zu lassen — der Inhalt springt beim Eintreffen nicht mehr.
  *
  * RUHIG UND DECKEND. Hier lief früher ein weisser Lichtstreifen als Verlauf
- * in einer Endlos-Animation über den Balken. Beides ist gestrichen: keine
- * Verläufe, keine halbtransparenten Flächen, keine Dauerbewegung — Bewegung
- * gibt es nur als kurzen Übergang beim Aufklappen, Blättern und bei
- * Dialogen. Der Balken ist deshalb nur noch `--surface-3`, eine Stufe
- * dunkler als `--surface-2`, damit er sich von der Kartenfläche abhebt.
+ * über den Balken — gestrichen: keine Verläufe, keine halbtransparenten
+ * Flächen. Der Balken ist `--surface-3`, eine Stufe dunkler als
+ * `--surface-2`, damit er sich von der Kartenfläche abhebt.
+ *
+ * SEIT 10.10.2026 MIT RUHIGEM PULS (Entscheidung des Auftraggebers nach der
+ * Analyse des Ladeverhaltens): ein stillstehender grauer Balken wirkte bei
+ * längerem Warten wie hängengeblieben. Der Puls wechselt nur die deckende
+ * Farbe zwischen `--surface-3` und `--surface-2`, langsam und für alle
+ * Balken im Gleichtakt; bei „Bewegung reduzieren“ steht er still (Regel
+ * unten). UND ERST NACH 200 MS: ein Laden, das schneller fertig ist, zeigt
+ * gar keinen Platzhalter — die Fläche ist reserviert, aber leer, statt kurz
+ * aufzuflackern.
  *
  * Die FORM: Pille statt `--radius-sm`. Ein Balken von 12 px Höhe mit 10 px
  * Radius ist ohnehin fast rund; ganz rund ist er ruhiger und sagt deutlicher
@@ -563,6 +570,61 @@ textarea {
 .skeleton {
   background-color: var(--surface-3);
   border-radius: var(--radius-pill);
+  animation:
+    platzhalter-erscheinen 160ms ease-out 200ms both,
+    platzhalter-puls 1.8s ease-in-out 200ms infinite;
+}
+
+@keyframes platzhalter-erscheinen {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes platzhalter-puls {
+  0%, 100% { background-color: var(--surface-3); }
+  50% { background-color: var(--surface-2); }
+}
+
+/*
+ * Ein Ladetext („Wird geladen …“) und der Kreisel erscheinen ebenso erst nach
+ * 200 ms — sonst blitzt er bei jedem schnellen Laden kurz auf.
+ */
+.laden-verzoegert {
+  animation: platzhalter-erscheinen 160ms ease-out 200ms both;
+}
+
+/*
+ * Der Balken am oberen Rand, solange ein Seitenwechsel auf seinen Baustein
+ * wartet (`components/Ladebalken.tsx`). Er wächst schnell an und wird dann
+ * immer langsamer, ohne je anzukommen — erst „fertig“ füllt ihn und blendet
+ * ihn aus. Deckend in Petrol, 2 px, über allem, ohne Klicks abzufangen.
+ */
+.ladebalken {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: env(safe-area-inset-top, 0px);
+  height: 2px;
+  z-index: 70;
+  pointer-events: none;
+  background: var(--petrol);
+  transform-origin: left center;
+  animation: ladebalken-lauf 8s cubic-bezier(0.1, 0.7, 0.2, 1) both;
+}
+
+.ladebalken[data-zustand='fertig'] {
+  animation: ladebalken-fertig 300ms ease-out both;
+}
+
+@keyframes ladebalken-lauf {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(0.92); }
+}
+
+@keyframes ladebalken-fertig {
+  from { transform: scaleX(0.92); opacity: 1; }
+  60% { transform: scaleX(1); opacity: 1; }
+  to { transform: scaleX(1); opacity: 0; }
 }
 
 /* Bewegung reduzieren, wenn vom System gewünscht */
