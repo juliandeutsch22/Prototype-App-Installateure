@@ -60,6 +60,19 @@ export default function KatalogImport() {
   const [ergebnis, setErgebnis] = useState<DatanormErgebnis | null>(null);
   const [saetze, setSaetze] = useState<Record<string, string>>({});
   const [fortschritt, setFortschritt] = useState<number | null>(null);
+  /** Was gerade läuft: Zeilen ins Zwischenlager senden, oder sie in den Stamm übernehmen. */
+  const [phase, setPhase] = useState<'senden' | 'uebernehmen'>('senden');
+  /**
+   * Der Lauf, dessen Zeilen schon im Zwischenlager liegen. Bricht die
+   * Übernahme zwischen zwei Blöcken ab, setzt „Weiter übernehmen“ hier fort,
+   * statt den Katalog ein zweites Mal zu senden.
+   */
+  const [laufInArbeit, setLaufInArbeitZustand] = useState<string | null>(null);
+  const laufInArbeitRef = useRef<string | null>(null);
+  const setLaufInArbeit = (l: string | null) => {
+    laufInArbeitRef.current = l;
+    setLaufInArbeitZustand(l);
+  };
   const [bericht, setBericht] = useState<dn.UebernahmeBericht | null>(null);
   const [laeufe, setLaeufe] = useState<WithId<dn.Lauf>[]>([]);
   const dateiFeld = useRef<HTMLInputElement>(null);
@@ -155,19 +168,34 @@ export default function KatalogImport() {
         await dn.rabattsatzSetzen(betrieb, lieferant, gruppe, zahl);
       }
 
-      const lauf = await dn.laufAnlegen(betrieb, lieferant, datei.name, datei.zeichensatz, {
-        ...befunde(ergebnis),
-        artikel: ergebnis.artikel.length,
-      });
+      let lauf = laufInArbeit;
+      if (!lauf) {
+        lauf = await dn.laufAnlegen(betrieb, lieferant, datei.name, datei.zeichensatz, {
+          ...befunde(ergebnis),
+          artikel: ergebnis.artikel.length,
+        });
+        setPhase('senden');
+        setFortschritt(0);
+        await dn.zeilenSchicken(betrieb, lauf, ergebnis.artikel, setFortschritt);
+        setLaufInArbeit(lauf);
+      }
+      // In Blöcken (Migration 20261010300000): ein Zug scheiterte an der Zeitgrenze.
+      const gesamt = ergebnis.artikel.length;
+      setPhase('uebernehmen');
       setFortschritt(0);
-      await dn.zeilenSchicken(betrieb, lauf, ergebnis.artikel, setFortschritt);
+      setBericht(await dn.uebernehmen(lauf, undefined, (offen) => setFortschritt(gesamt - offen)));
+      setLaufInArbeit(null);
       setFortschritt(null);
-      setBericht(await dn.uebernehmen(lauf));
       setLaeufe(await dn.laeufe(betrieb, 10));
       setSchritt('fertig');
       toast.success('Katalog übernommen');
     } catch (e) {
-      setFehler((e as Error).message);
+      const grund = (e as Error).message;
+      setFehler(
+        laufInArbeitRef.current
+          ? `${grund} — Was bis hierher übernommen ist, bleibt im Katalog; „Weiter übernehmen“ setzt beim Rest fort.`
+          : grund,
+      );
       setFortschritt(null);
     } finally {
       setBusy(false);
@@ -175,6 +203,7 @@ export default function KatalogImport() {
   }
 
   function zurueck() {
+    setLaufInArbeit(null);
     setErgebnis(null);
     setDatei(null);
     setBericht(null);
@@ -423,9 +452,11 @@ export default function KatalogImport() {
               disabled={!!warnung || zahlen.artikel === 0}
               className="w-full sm:w-auto"
             >
-              {fortschritt === null
-                ? `${zahlen.artikel} Artikel übernehmen`
-                : `${fortschritt} von ${zahlen.artikel} übertragen …`}
+              {fortschritt !== null
+                ? `${fortschritt} von ${zahlen.artikel} ${phase === 'senden' ? 'übertragen' : 'übernommen'} …`
+                : laufInArbeit
+                  ? 'Weiter übernehmen'
+                  : `${zahlen.artikel} Artikel übernehmen`}
             </Button>
             <Button variant="ghost" onClick={zurueck} disabled={busy} className="w-full sm:w-auto">
               Verwerfen
