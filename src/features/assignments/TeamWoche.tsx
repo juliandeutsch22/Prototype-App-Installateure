@@ -125,7 +125,7 @@ export default function TeamWoche() {
         <Card buendig>
           <LoadingState />
         </Card>
-      ) : d.staff.length === 0 ? (
+      ) : d.gruppen.length === 0 ? (
         <Card buendig>
           <EmptyState>Im Außendienst ist niemand eingetragen — es gibt keinen Plan zu zeigen.</EmptyState>
         </Card>

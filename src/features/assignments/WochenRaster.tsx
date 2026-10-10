@@ -56,6 +56,11 @@ interface RasterGrund {
   lesen?: boolean;
   /** Wer schaut — seine Zeile trägt „du“, damit er sich findet. */
   ich?: string;
+  /**
+   * Eingeteilt, aber nicht (mehr) einplanbar (`useWochenDaten`): ihre
+   * Einsätze lassen sich öffnen, eine leere Zelle plant sie nicht ein.
+   */
+  nichtEinplanbar?: ReadonlySet<string>;
 }
 
 /** Die Klasse einer Zelle: heute, Wochenende/Feiertag/Betriebsurlaub, schmal. */
@@ -281,7 +286,12 @@ function PersonenZelle({
         : ruhetag(tag)
           ? (feiertagAm(tag) ?? 'Wochenende')
           : 'frei';
-  if (g.lesen) {
+  /*
+    Ohne Knopf „Einsatz planen“: in der Team-Woche gar keiner; bei jemandem,
+    der nicht mehr einplanbar ist, nur der in der leeren Zelle — seine
+    vorhandenen Einsätze lassen sich weiter öffnen und umplanen.
+  */
+  if (g.lesen || g.nichtEinplanbar?.has(u.uid)) {
     return (
       <td className={zellenKlasse(tag, g)}>
         {/* Leer heißt leer; die Vorlesehilfe sagt es (in der Team-Woche gibt es kein „frei“). */}
@@ -296,8 +306,8 @@ function PersonenZelle({
               zu={zu}
               termine={termine}
               infoFuer={(nr) => infoFuer(tag, nr)}
-              darf={false}
-              lesen
+              darf={g.lesen ? false : g.darf}
+              lesen={!!g.lesen}
               onEinsatz={g.onEinsatz}
               onTermin={g.onTermin}
             />

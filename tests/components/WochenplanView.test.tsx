@@ -57,11 +57,16 @@ let leute: AppUser[] = [];
 vi.mock('@/lib/db/users', () => ({
   listUsers: vi.fn(async () => leute),
 }));
+/** Abgeschlossene Baustellen: nicht unter den laufenden, nur nach Nummer zu finden. */
+let abgeschlossen: Project[] = [];
 vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(async () => BAUSTELLEN),
   // Für die Baustellenauswahl im Seitenfenster.
   listRecentProjects: vi.fn(async () => BAUSTELLEN),
-  listProjectsByNumbers: vi.fn(async () => BAUSTELLEN),
+  listProjectsByNumbers: vi.fn(async (_c: string, nummern: string[] = []) => [
+    ...BAUSTELLEN,
+    ...abgeschlossen.filter((p) => nummern.includes(p.projectNumber)),
+  ]),
 }));
 /*
   DAS SEITENFENSTER (Linie „Lot“, E2) benutzt dasselbe Formular wie „Tag
@@ -202,6 +207,7 @@ beforeEach(() => {
   // Mi, 02.09.2026 — die Woche beginnt also am Mo, 31.08.
   vi.setSystemTime(new Date(2026, 8, 2, 9, 0, 0));
   leute = [mk('u1', 'Max Mustermann'), mk('u2', 'Erna Beispiel')];
+  abgeschlossen = [];
   einsaetze = [];
   urlaube = [];
   termineDerWoche = [];
@@ -1163,5 +1169,81 @@ describe('Planung — Monat', () => {
     render(<MemoryRouter><WochenplanView nurLesen /></MemoryRouter>);
     await screen.findByRole('heading', { name: 'Team-Woche' });
     expect(screen.queryByRole('group', { name: 'Zeitraum' })).toBeNull();
+  });
+});
+
+/*
+  EINGETEILT, ABER NICHT (MEHR) EINPLANBAR (10.10.2026). Deaktiviert, oder
+  Projektleitung bei ausgeschaltetem Schalter: ihre geplanten Einsätze fielen
+  aus Raster, Team-Woche und Tag — und das Einsatzformular nahm sie beim
+  Speichern still heraus.
+*/
+describe('Wochenplan — eingeteilt, aber nicht mehr einplanbar', () => {
+  const OTTO = { ...mk('u3', 'Otto Alt'), active: false } as AppUser;
+  const EINSATZ_OTTO = { id: 'a3', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042', userId: 'u3', userName: 'Otto Alt' } as Assignment & { id: string };
+
+  it('steht in einer eigenen Gruppe mit seinem Einsatz — nie „frei“, eine leere Zelle plant ihn nicht ein', async () => {
+    leute = [...leute, OTTO];
+    einsaetze = [EINSATZ_OTTO];
+    zeige();
+    const zeile = await screen.findByRole('row', { name: /Otto Alt/ });
+    expect(tabelle().getByRole('button', { name: /Nicht mehr einplanbar · 1/ })).toBeInTheDocument();
+    expect(within(zeile).getByRole('button', { name: /^Familie Huber \(2026-042\) am 02\.09\.? bearbeiten – Otto Alt$/ })).toBeInTheDocument();
+    expect(within(zeile).queryByRole('button', { name: /Einsatz planen/ })).toBeNull();
+    // Gezählt werden die Einplanbaren: Max und Erna sind Mittwoch frei, Otto nicht.
+    expect(kopf(/Mittwoch 02\.09\./)).toHaveTextContent('2 frei');
+  });
+
+  it('auch wer nicht in der Belegschaft steht, mit dem Namen aus dem Einsatz', async () => {
+    einsaetze = [{ ...EINSATZ_OTTO, userId: 'u9', userName: 'Gerhard Weg' }];
+    zeige();
+    const zeile = await screen.findByRole('row', { name: /Gerhard Weg/ });
+    expect(within(zeile).getByText('Familie Huber')).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne solche Einsätze keine zusätzliche Gruppe', async () => {
+    leute = [...leute, OTTO];
+    einsaetze = [EINSATZ_MAX];
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(screen.queryByText(/Nicht mehr einplanbar/)).toBeNull();
+    expect(screen.queryByRole('row', { name: /Otto Alt/ })).toBeNull();
+  });
+
+  it('das Formular behält ihn beim Speichern — bis man ihn ausdrücklich herausnimmt', async () => {
+    leute = [...leute, OTTO];
+    einsaetze = [EINSATZ_MAX, EINSATZ_OTTO];
+    zeige();
+    await screen.findByRole('row', { name: /Otto Alt/ });
+    await userEvent.click(tabelle().getByRole('button', { name: /Familie Huber \(2026-042\) am 02\.09\.? bearbeiten – Max Mustermann/ }));
+    expect(await fenster().findByText(/Außerdem eingeteilt, aber nicht mehr einplanbar: Otto Alt/)).toBeInTheDocument();
+    await userEvent.click(fenster().getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+    await waitFor(() => expect(speichere).toHaveBeenCalled());
+    const zeilen = speichere.mock.calls[0][3] as Array<{ userId: string }>;
+    expect(zeilen.map((z) => z.userId).sort()).toEqual(['u1', 'u3']);
+  });
+
+  it('… und lässt ihn weg, wenn er herausgenommen wurde', async () => {
+    leute = [...leute, OTTO];
+    einsaetze = [EINSATZ_MAX, EINSATZ_OTTO];
+    zeige();
+    await screen.findByRole('row', { name: /Otto Alt/ });
+    await userEvent.click(tabelle().getByRole('button', { name: /Familie Huber \(2026-042\) am 02\.09\.? bearbeiten – Max Mustermann/ }));
+    await userEvent.click(await fenster().findByRole('button', { name: 'Otto Alt aus dem Einsatz nehmen' }));
+    expect(fenster().queryByText(/Außerdem eingeteilt/)).toBeNull();
+    await userEvent.click(fenster().getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+    await waitFor(() => expect(speichere).toHaveBeenCalled());
+    const zeilen = speichere.mock.calls[0][3] as Array<{ userId: string }>;
+    expect(zeilen.map((z) => z.userId)).toEqual(['u1']);
+  });
+});
+
+describe('Wochenplan — Einsatz auf einer abgeschlossenen Baustelle', () => {
+  it('nennt den Kunden, nicht nur die Nummer (die Baustelle wird nachgeladen)', async () => {
+    abgeschlossen = [{ id: 'p9', companyId: 'perl', projectNumber: '2025-900', customerName: 'Altbau Gruber', status: 'Abgeschlossen' } as Project];
+    einsaetze = [{ ...EINSATZ_MAX, projectNumber: '2025-900' }];
+    zeige();
+    const zeile = await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(await within(zeile).findByText('Altbau Gruber')).toBeInTheDocument();
   });
 });

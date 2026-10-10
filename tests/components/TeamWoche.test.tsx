@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Assignment, Project, Termin } from '@/types';
@@ -217,6 +218,19 @@ describe('Team-Woche — die Bausteine der Planung, nur zum Lesen', () => {
     expect(liste.querySelectorAll('.tag-karte-lesen, .tl-frei')).toHaveLength(0);
   });
 
+  it('am Wochenende stehen am Handy nur, die eingeteilt sind — kein „nicht eingeteilt“ für jeden', async () => {
+    await geladen();
+    const liste = screen.getByRole('region', { name: 'Wochenplan als Liste' });
+    await userEvent.click(within(liste).getByRole('button', { name: /^Samstag 31\.10\./ }));
+    expect(within(liste).getByText('Max Mustermann')).toBeInTheDocument();
+    expect(within(liste).queryByText('Erna Beispiel')).toBeNull();
+    expect(within(liste).queryByText('nicht eingeteilt')).toBeNull();
+    // Gegenprobe: an einem Werktag steht weiter jeder, mit „nicht eingeteilt“, wo nichts ist.
+    await userEvent.click(within(liste).getByRole('button', { name: /^Mittwoch 28\.10\./ }));
+    expect(within(liste).getByText('Erna Beispiel')).toBeInTheDocument();
+    expect(within(liste).getAllByText('nicht eingeteilt').length).toBeGreaterThan(0);
+  });
+
   it('zeigt beim Laden „Wird geladen“, nicht „niemand im Außendienst“', async () => {
     users.listUsers.mockImplementation(() => new Promise(() => undefined));
     zeigen();
@@ -230,6 +244,19 @@ describe('Team-Woche — die Bausteine der Planung, nur zum Lesen', () => {
     });
     zeigen();
     expect(await screen.findByText(/Der Betriebsurlaub konnte nicht geladen werden/)).toBeInTheDocument();
+  });
+
+  it('ein Kollege, der nicht mehr einplanbar ist, steht mit seinem Einsatz in eigener Gruppe (10.10.2026)', async () => {
+    EINSAETZE.push(E('a9', '2026-10-27', 'B-2026-0148', 'u1'));
+    EINSAETZE[EINSAETZE.length - 1].userId = 'u9';
+    EINSAETZE[EINSAETZE.length - 1].userName = 'Gerhard Weg';
+    try {
+      const raster = await geladen();
+      expect(within(raster).getByRole('button', { name: /Nicht mehr einplanbar · 1/ })).toBeInTheDocument();
+      expect(within(zelle(raster, /Gerhard Weg/, 1)).getByText('Gemeinde Neudorf')).toBeInTheDocument();
+    } finally {
+      EINSAETZE.pop();
+    }
   });
 
   it('zeichnet mit festen Daten genau das festgehaltene DOM', async () => {

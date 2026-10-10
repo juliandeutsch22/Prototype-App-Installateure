@@ -224,6 +224,7 @@ export default function Einsatzplanung() {
     onTag: (tag) => setFenster({ art: 'tag', datum: tag }),
     onEinsatz: (start) => setFenster({ art: 'einsatz', start }),
     onTermin: (termin) => setFenster({ art: 'termin', termin, datum: termin.datum }),
+    nichtEinplanbar: d.nichtEinplanbar,
   };
   const termineDes = (tag: string) => d.termineAm(tag);
 
@@ -314,7 +315,7 @@ export default function Einsatzplanung() {
         </div>
       </div>
 
-      {d.staff.length === 0 ? (
+      {d.gruppen.length === 0 ? (
         <Card buendig>
           <EmptyState>
             Keine aktiven Mitarbeiter im Außendienst. Ohne sie gibt es nichts einzuteilen.

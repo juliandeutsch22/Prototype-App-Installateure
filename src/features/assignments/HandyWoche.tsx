@@ -72,6 +72,18 @@ export default function HandyWoche({
   ich?: string;
 }) {
   const termine = termineAm(gewaehlt);
+  /** Die Gruppen nur mit denen, die an diesem Tag einen Einsatz oder Termin haben. */
+  const sichtbar = (gs: Gruppe[]) =>
+    gs
+      .map((g) => ({
+        ...g,
+        leute: g.leute.filter(
+          (u) =>
+            (brett.get(u.uid)?.get(gewaehlt)?.baustellen.length ?? 0) > 0 ||
+            termine.some((t) => t.teilnehmer.includes(u.uid)),
+        ),
+      }))
+      .filter((g) => g.leute.length > 0);
   const { datum } = tagKurz(gewaehlt);
   const feiertag = feiertagAm(gewaehlt);
   const zu = zuAm.get(gewaehlt);
@@ -150,7 +162,13 @@ export default function HandyWoche({
         ),
       )}
 
-      {gruppen.map((g) => (
+      {/*
+        AM WOCHENENDE UND FEIERTAG (Team-Woche) stehen nur, die eingeteilt
+        sind: sonst trüge jeder ein „nicht eingeteilt“, das an einem freien
+        Tag niemand wissen muss.
+      */}
+      {lesen && ruhetag(gewaehlt) && sichtbar(gruppen).length === 0 && <p className="tl-person tl-leer">Niemand eingeteilt.</p>}
+      {(lesen && ruhetag(gewaehlt) ? sichtbar(gruppen) : gruppen).map((g) => (
         <div key={g.name}>
           <p className="tl-gruppe">
             {g.name} · {g.leute.length}

@@ -127,6 +127,8 @@ export default function EinsatzFormular({
   const materials = useMaterialstamm(user?.companyId, materialAn && !!projectNumber);
 
   const [picks, setPicks] = useState<Record<string, Pick>>({});
+  /** Nicht mehr Einplanbare, die hier ausdrücklich aus dem Einsatz genommen wurden. */
+  const [herausgenommen, setHerausgenommen] = useState<Set<string>>(new Set());
   const [comment, setComment] = useState('');
   /** Optional die Uhrzeit des Einsatzes (M34). Leer: der ganze Tag. */
   const [zeitVon, setZeitVon] = useState('');
@@ -169,6 +171,7 @@ export default function EinsatzFormular({
    */
   useEffect(() => {
     const dazu = startPick ? { [startPick.uid]: startPick.pick } : {};
+    setHerausgenommen(new Set());
     if (!projectNumber) {
       setPicks(dazu);
       setComment('');
@@ -263,7 +266,17 @@ export default function EinsatzFormular({
   /** Hat der Betrieb am gewählten Tag zu? */
   const betriebsurlaubHeute = betriebsurlaube.find((b) => b.von <= date && b.bis >= date);
 
-  const selectedCount = Object.values(picks).filter((p) => p.on).length;
+  const existingForProject = tagesEinsaetze.filter((a) => a.projectNumber === projectNumber);
+  /*
+    EINGETEILT, ABER NICHT (MEHR) EINPLANBAR (10.10.2026): deaktiviert, oder
+    Projektleitung bei ausgeschaltetem Schalter. Die Auswahl unten kennt nur
+    Einplanbare; gespeichert wurde bisher nur, was dort angehakt war — so fiel
+    ein solcher Einsatz beim Ändern des Kommentars still weg. Jetzt bleibt er,
+    bis ihn jemand ausdrücklich herausnimmt.
+  */
+  const ausserhalb = existingForProject.filter((a) => !staff.some((u) => u.uid === a.userId));
+  const bleiben = ausserhalb.filter((a) => !herausgenommen.has(a.userId));
+  const selectedCount = staff.filter((u) => picks[u.uid]?.on).length + bleiben.length;
   /**
    * Jemanden im Urlaub einzuteilen ist kein Fehler des Programms, sondern
    * fast immer ein Versehen. Verboten wird es nicht — bei einem Notdienst
@@ -276,7 +289,6 @@ export default function EinsatzFormular({
         .map(([uid]) => `${users.find((u) => u.uid === uid)?.name ?? 'Mitarbeiter'} (${imUrlaub.get(uid)})`),
     [picks, imUrlaub, users],
   );
-  const existingForProject = tagesEinsaetze.filter((a) => a.projectNumber === projectNumber);
   const holiday = getAustrianHolidayName(new Date(`${date}T00:00:00`));
   const weekend = isWeekend(new Date(`${date}T00:00:00`));
 
@@ -322,7 +334,20 @@ export default function EinsatzFormular({
           zeitVon: zeitVon || null,
           zeitBis: zeitBis || null,
           createdBy: user.uid,
-        }));
+        }))
+        .concat(
+          bleiben.map((a) => ({
+            date,
+            projectNumber,
+            userId: a.userId,
+            userName: a.userName ?? '',
+            asHelper: !!a.asHelper,
+            comment,
+            zeitVon: zeitVon || null,
+            zeitBis: zeitBis || null,
+            createdBy: user.uid,
+          })),
+        );
       await saveAssignments(user.companyId, date, projectNumber, rows);
 
       /*
@@ -536,6 +561,28 @@ export default function EinsatzFormular({
               Für diese Baustelle ist der Tag bereits geplant. Die Auswahl unten ist
               übernommen — Speichern überschreibt sie.
             </p>
+          </Hinweiszeile>
+        </div>
+      )}
+
+      {bleiben.length > 0 && (
+        <div className="mt-3">
+          <Hinweiszeile stufe="warn">
+            <p>
+              Außerdem eingeteilt, aber nicht mehr einplanbar:{' '}
+              {bleiben.map((a) => a.userName || 'Mitarbeiter').join(', ')}. Bleibt beim Speichern im
+              Einsatz.
+            </p>
+            {bleiben.map((a) => (
+              <button
+                key={a.userId}
+                type="button"
+                className="link-hinweis min-h-touch"
+                onClick={() => setHerausgenommen((alt) => new Set(alt).add(a.userId))}
+              >
+                {a.userName || 'Mitarbeiter'} aus dem Einsatz nehmen
+              </button>
+            ))}
           </Hinweiszeile>
         </div>
       )}
