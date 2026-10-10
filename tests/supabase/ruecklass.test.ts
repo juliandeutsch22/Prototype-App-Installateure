@@ -151,6 +151,19 @@ describe('Rücklass durch Bankgarantie abgelöst (10.10.2026)', () => {
     expect((await garantie(mit, { ruecklass_garantie_bank: 'Raiffeisen' })).error?.code).toBe('23514');
   });
 
+  it('die Startseite findet Garantien nach ihrem Ende — auch an einer bezahlten Rechnung', async () => {
+    const id = await anlegen(haft('2029-08-01'));
+    await createZahlung(BETRIEB, { invoiceId: id, datum: '2026-09-01', betrag: 12000, art: 'Überweisung' });
+    expect((await garantie(id, {
+      ruecklass_garantie_am: '2026-09-01', ruecklass_garantie_bank: 'Erste', ruecklass_garantie_nr: 'G-77', ruecklass_garantie_bis: '2031-03-15',
+    })).error).toBeNull();
+    const treffer = await rechnungen.listGarantienEndenIn(BETRIEB, '2031-03-01', '2031-03-31');
+    expect(treffer.filter((r) => r.id === id).map((r) => [r.ruecklassGarantieBank, r.ruecklassGarantieNr, r.ruecklassGarantieBis]))
+      .toEqual([['Erste', 'G-77', '2031-03-15']]);
+    // Gegenprobe: ausserhalb des Zeitraums nicht.
+    expect((await rechnungen.listGarantienEndenIn(BETRIEB, '2031-04-01', '2031-04-30')).some((r) => r.id === id)).toBe(false);
+  });
+
   it('der vereinbarte Rücklass selbst bleibt eingefroren', async () => {
     const id = await anlegen(haft());
     expect((await garantie(id, { ruecklass_garantie_am: '2026-10-01', ruecklass_bis: '2027-01-01' })).error?.code).toBe('42501');

@@ -48,6 +48,12 @@ export function listInvoicesInRange(
 
 /** Bestimmte Rechnungen nach Kennung — für den Zahlungsstapel (H7 vorgebaut). */
 export type { GemahnteRechnung } from './pg/invoices';
+export type { GarantieRechnung } from './pg/invoices';
+
+/** Rechnungen, deren Bankgarantie im Zeitraum endet — für die Startseite. */
+export function listGarantienEndenIn(companyId: string, von: string, bis: string): Promise<WithId<pg.GarantieRechnung>[]> {
+  return pg.listGarantienEndenIn(companyId, von, bis);
+}
 
 /** Rechnungen mit ihrer letzten Mahnung im Zeitraum — für das Belegarchiv. */
 export function listGemahntInRange(companyId: string, von: string, bis: string): Promise<WithId<pg.GemahnteRechnung>[]> {

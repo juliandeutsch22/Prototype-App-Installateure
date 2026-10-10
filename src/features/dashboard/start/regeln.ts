@@ -315,6 +315,61 @@ export function ruecklassWirdFaellig(rechnungen: (Invoice & { id: string })[], h
   return abschnitt('ruecklass', 'Rücklass wird fällig', zeilen, ZIEL.rechnungen);
 }
 
+/** So viele Tage vor dem Ende einer Bankgarantie erinnert die Startseite. */
+export const GARANTIE_VORLAUF_TAGE = 30;
+/** So viele Tage nach dem Ende steht noch „Urkunde zurückfordern“. */
+export const GARANTIE_NACHLAUF_TAGE = 30;
+
+/** Ein ISO-Tag, um `n` Tage verschoben. */
+export function tageVerschoben(isoTag: string, n: number): string {
+  const d = new Date(`${isoTag}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Was die Startseite von einer Rechnung mit Bankgarantie liest. */
+export type GarantieZeile = Pick<
+  Invoice,
+  'invoiceNumber' | 'customerName' | 'paymentStatus' | 'ruecklassGarantieAm' | 'ruecklassGarantieBank' | 'ruecklassGarantieNr' | 'ruecklassGarantieBis'
+> & { id: string };
+
+/**
+ * Die Bankgarantien, die in 30 Tagen enden oder vor höchstens 30 Tagen
+ * geendet haben — das Älteste zuerst. Nur abgelöste (mit Tag der Ablöse),
+ * nicht stornierte Rechnungen.
+ */
+export function garantienBald(garantien: GarantieZeile[], heute: string): GarantieZeile[] {
+  const von = tageVerschoben(heute, -GARANTIE_NACHLAUF_TAGE);
+  const bis = tageVerschoben(heute, GARANTIE_VORLAUF_TAGE);
+  return garantien
+    .filter((g) => g.paymentStatus !== 'Storniert' && !!g.ruecklassGarantieAm && !!g.ruecklassGarantieBis)
+    .filter((g) => g.ruecklassGarantieBis! >= von && g.ruecklassGarantieBis! <= bis)
+    .sort((a, b) => a.ruecklassGarantieBis!.localeCompare(b.ruecklassGarantieBis!));
+}
+
+/**
+ * DIE BANKGARANTIE, BEVOR UND NACHDEM SIE ENDET (seit 10.10.2026). Endet sie,
+ * gehört die Urkunde zurück — sonst verrechnet die Bank weiter ihre
+ * Avalprovision, und eine Garantie, die niemand zurückfordert, bleibt in
+ * den Büchern des Kunden stehen.
+ */
+export function garantieEndet(garantien: GarantieZeile[], heute: string): Abschnitt | null {
+  const zeilen: Zeile[] = garantienBald(garantien, heute).map((g) => {
+    const bis = g.ruecklassGarantieBis!;
+    const vorbei = bis < heute;
+    return {
+      key: `garantie-${g.id}`,
+      titel: g.customerName,
+      detail: [g.invoiceNumber, 'Bankgarantie', g.ruecklassGarantieBank, g.ruecklassGarantieNr].filter(Boolean).join(' · '),
+      status: vorbei
+        ? { text: `seit ${tagKurz(bis)} — Urkunde zurückfordern`, ton: 'warn' }
+        : { text: `endet ${tagKurz(bis)}`, ton: 'warn' },
+      to: ZIEL.rechnung(g.invoiceNumber),
+    };
+  });
+  return abschnitt('garantie', 'Bankgarantie endet', zeilen, ZIEL.rechnungen);
+}
+
 export interface UnverrechneteZeile {
   schein: WorkSheet & { id: string };
   tage: number;

@@ -14,6 +14,8 @@ import {
   wartungenOhneBaustelle,
   lehrzeitEnden,
   einzigeLeitungOhneMail,
+  garantienBald,
+  type GarantieZeile,
 } from '@/features/dashboard/start/regeln';
 import { auslastung } from '@/features/dashboard/start/laden';
 import { budgetStand } from '@/features/projects/baustellenLage';
@@ -549,5 +551,56 @@ describe('Sonderurlaub auf der Startseite (Plan 10.3)', () => {
     });
     const zeilen = s.abschnitte.flatMap((a) => a.zeilen);
     expect(zeilen.some((z) => z.titel === '2 Anträge auf Sonderurlaub')).toBe(true);
+  });
+});
+
+/*
+  BANKGARANTIE ENDET (10.10.2026). Endet die Garantie, mit der ein Rücklass
+  abgelöst wurde, gehört die Urkunde zurück — sonst verrechnet die Bank
+  weiter. 30 Tage davor „endet“, bis 30 Tage danach „Urkunde zurückfordern“.
+*/
+describe('Bankgarantie endet', () => {
+  const g = (teil: Partial<GarantieZeile> & { id: string }): GarantieZeile => ({
+    invoiceNumber: `RE-${teil.id}`, customerName: `Kunde ${teil.id}`, paymentStatus: 'Bezahlt',
+    ruecklassGarantieAm: '2026-03-01', ruecklassGarantieBank: 'Raiffeisen', ruecklassGarantieNr: 'G-1',
+    ruecklassGarantieBis: '2026-10-15', ...teil,
+  });
+  const umfeldB = (rolle: Umfeld['rolle']): Umfeld => ({
+    rolle, heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false,
+  });
+
+  it('die Buchhaltung sieht, was bald endet, und was zurückzufordern ist — das Älteste zuerst', () => {
+    const s = startseite({
+      garantien: [g({ id: '1', ruecklassGarantieBis: '2026-10-15' }), g({ id: '2', ruecklassGarantieBis: '2026-09-20' })],
+    }, umfeldB('buchhaltung'));
+    const a = s.abschnitte.find((x) => x.titel === 'Bankgarantie endet')!;
+    expect(a.zeilen.map((z) => [z.key, z.detail, z.status])).toEqual([
+      ['garantie-2', 'RE-2 · Bankgarantie · Raiffeisen · G-1', { text: 'seit 20.09. — Urkunde zurückfordern', ton: 'warn' }],
+      ['garantie-1', 'RE-1 · Bankgarantie · Raiffeisen · G-1', { text: 'endet 15.10.', ton: 'warn' }],
+    ]);
+    expect(a.zeilen[0].to).toBe(ZIEL.rechnung('RE-2'));
+  });
+
+  it('Gegenprobe: zu früh, zu lange vorbei, storniert oder nie abgelöst — keine Zeile', () => {
+    const s = startseite({
+      garantien: [
+        g({ id: '3', ruecklassGarantieBis: '2026-11-01' }),
+        g({ id: '4', ruecklassGarantieBis: '2026-08-30' }),
+        g({ id: '5', paymentStatus: 'Storniert' }),
+        g({ id: '6', ruecklassGarantieAm: undefined }),
+      ],
+    }, umfeldB('buchhaltung'));
+    expect(s.abschnitte.some((x) => x.titel === 'Bankgarantie endet')).toBe(false);
+    // Die Grenzen selbst zählen noch: 30 Tage davor und danach.
+    expect(garantienBald([g({ id: '7', ruecklassGarantieBis: '2026-10-30' }), g({ id: '8', ruecklassGarantieBis: '2026-08-31' })], HEUTE)
+      .map((x) => x.id)).toEqual(['8', '7']);
+  });
+
+  it('die Leitung sieht es als Thema der Woche', () => {
+    const s = startseite({ garantien: [g({ id: '2', ruecklassGarantieBis: '2026-09-20' }), g({ id: '1' })] }, umfeldB('leitung'));
+    const alle = s.abschnitte.flatMap((a) => [...a.zeilen, ...(a.weiter && 'aufklappen' in a.weiter ? a.weiter.aufklappen : [])]);
+    expect(alle.find((z) => z.key === 'garantie')).toMatchObject({
+      titel: '2 Bankgarantien enden', detail: '1 Urkunde zurückfordern', status: { text: 'seit 20.09.', ton: 'warn' },
+    });
   });
 });

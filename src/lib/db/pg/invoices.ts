@@ -257,6 +257,28 @@ export function listGemahntInRange(companyId: string, von: string, bis: string) 
   });
 }
 
+/** Was die Startseite von einer Rechnung mit Bankgarantie braucht. */
+export type GarantieRechnung = Pick<
+  Invoice,
+  'invoiceNumber' | 'customerName' | 'paymentStatus' | 'ruecklassGarantieAm' | 'ruecklassGarantieBank' | 'ruecklassGarantieNr' | 'ruecklassGarantieBis'
+>;
+
+/**
+ * Rechnungen, deren Bankgarantie in einem Zeitraum endet — nur der Kopf.
+ * Eigene Abfrage, weil eine abgelöste Rechnung meist bezahlt ist und in den
+ * offenen Posten der Startseite nicht mehr steht.
+ */
+export function listGarantienEndenIn(companyId: string, von: string, bis: string) {
+  return abfragen<GarantieRechnung>(RECHNUNGEN, companyId, {
+    spalten: 'id,invoice_number,customer_name,payment_status,ruecklass_garantie_am,ruecklass_garantie_bank,ruecklass_garantie_nr,ruecklass_garantie_bis',
+    wo: [
+      { art: 'ab', feld: 'ruecklassGarantieBis', wert: von },
+      { art: 'bis', feld: 'ruecklassGarantieBis', wert: bis },
+    ],
+    sortiere: { feld: 'ruecklassGarantieBis' },
+  });
+}
+
 export async function listInvoicesInRange(companyId: string, von: string, bis: string) {
   /*
     DAZU DIE RECHNUNGEN, DIE IN DIESEM ZEITRAUM STORNIERT WURDEN — auch wenn
