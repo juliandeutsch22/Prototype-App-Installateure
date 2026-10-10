@@ -30,7 +30,50 @@ const FOTOS = 'work_sheet_photos';
 type KopfZeile = Omit<WorkSheet, 'zeiten' | 'material' | 'fotos' | 'unterschriften'> & {
   unterschriftMonteur?: WorkSheetUnterschrift | null;
   unterschriftKunde?: WorkSheetUnterschrift | null;
+  /** Nur in Listen (`LISTENKOPF`): Name und Gerätezeit, ohne das Bild. */
+  unterschriftMonteurName?: string;
+  unterschriftMonteurZeit?: number;
+  unterschriftKundeName?: string;
+  unterschriftKundeZeit?: number;
 };
+
+/**
+ * DIE SPALTEN EINES SCHEINS IN LISTEN — alle außer den Unterschriftsbildern.
+ *
+ * Ein unterschriebener Schein trägt zwei PNG-Bilder; hundert Scheine der
+ * Liste waren so mehrere Megabyte bei jedem Besuch von Startseite,
+ * Rechnungen und Scheinliste (Analyse 09.10.2026). Listen zeigen von einer
+ * Unterschrift nur, wer unterschrieben hat. Das Bild braucht allein das PDF;
+ * es holt den ganzen Schein (`getWorkSheet`).
+ *
+ * Die Liste ist ausgeschrieben, weil PostgREST keine Spalte ausnehmen kann.
+ * Damit eine neue Spalte nicht still aus allen Listen fehlt, vergleicht
+ * `scheinListen.test.ts` sie mit der Tabelle.
+ */
+export const LISTENSPALTEN = [
+  'id', 'company_id', 'project_number', 'project_id', 'customer_id', 'customer_name', 'address',
+  'datum', 'status', 'abrechnung', 'notizen', 'erstellt_von_uid', 'erstellt_von_name',
+  'inhalt_hash', 'unterschrieben_am', 'storno_grund', 'storniert_von_name', 'verworfen_von_name',
+  'created_at', 'updated_at',
+] as const;
+const LISTENKOPF = [
+  ...LISTENSPALTEN,
+  'unterschrift_monteur_name:unterschrift_monteur->>name',
+  'unterschrift_monteur_zeit:unterschrift_monteur->geraetZeit',
+  'unterschrift_kunde_name:unterschrift_kunde->>name',
+  'unterschrift_kunde_zeit:unterschrift_kunde->geraetZeit',
+].join(',');
+
+/** Eine Unterschrift aus der Liste: Name und Zeit, ohne Bild — oder die ganze. */
+function unterschrift(
+  ganz: WorkSheetUnterschrift | null | undefined,
+  name: string | undefined,
+  zeit: number | undefined,
+): WorkSheetUnterschrift | undefined {
+  if (ganz) return ganz;
+  if (name === undefined && zeit === undefined) return undefined;
+  return { name: name ?? '', geraetZeit: Number(zeit ?? 0) };
+}
 
 interface MitSchein {
   workSheetId: string;
@@ -103,7 +146,13 @@ async function zusammensetzen(
   const nachFotos = ordnen<WorkSheetFoto>(fotos, ['pfad', 'hash', 'bytes', 'geraetZeit']);
 
   return koepfe.map((k) => {
-    const { unterschriftMonteur, unterschriftKunde, ...rest } = k;
+    const {
+      unterschriftMonteur: monteurGanz, unterschriftKunde: kundeGanz,
+      unterschriftMonteurName, unterschriftMonteurZeit, unterschriftKundeName, unterschriftKundeZeit,
+      ...rest
+    } = k;
+    const unterschriftMonteur = unterschrift(monteurGanz, unterschriftMonteurName, unterschriftMonteurZeit);
+    const unterschriftKunde = unterschrift(kundeGanz, unterschriftKundeName, unterschriftKundeZeit);
     const schein: WithId<WorkSheet> = {
       ...(rest as unknown as WithId<WorkSheet>),
       zeiten: nachZeiten.get(k.id) ?? [],
@@ -130,6 +179,7 @@ async function zusammensetzen(
 /** Die jüngsten Scheine, mit Obergrenze — eine Arbeitsliste, kein Archiv. */
 export async function listRecentWorkSheets(companyId: string, max = 100) {
   const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
+    spalten: LISTENKOPF,
     sortiere: { feld: 'createdAt', absteigend: true },
     grenze: max,
   });
@@ -151,6 +201,7 @@ export async function listOwnWorkSheetsSince(
   max = 20,
 ) {
   const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
+    spalten: LISTENKOPF,
     wo: [
       { art: 'gleich', feld: 'erstelltVonUid', wert: uid },
       { art: 'ab', feld: 'datum', wert: abDatum },
@@ -176,6 +227,7 @@ export async function listSignedWorkSheetsInRange(
   max = 150,
 ) {
   const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
+    spalten: LISTENKOPF,
     wo: [
       { art: 'gleich', feld: 'status', wert: 'Unterschrieben' },
       { art: 'ab', feld: 'datum', wert: von },
@@ -210,6 +262,7 @@ export async function listWorkSheetsForProject(
   if (!blank) return [];
   const formen = [...new Set([projectNumber.trim(), blank, `PR-${blank}`])];
   const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
+    spalten: LISTENKOPF,
     wo: [{ art: 'in', feld: 'projectNumber', werte: formen }],
     sortiere: { feld: 'datum', absteigend: true },
     grenze: max,
@@ -233,6 +286,7 @@ export async function listWorkSheetsInRange(
   max = 150,
 ) {
   const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
+    spalten: LISTENKOPF,
     wo: [
       { art: 'ab', feld: 'datum', wert: von },
       { art: 'bis', feld: 'datum', wert: bis },
@@ -257,6 +311,7 @@ export async function searchWorkSheets(companyId: string, begriff: string, max =
   const oder = oderUeberSpalten(['customer_name', 'notizen'], begriff);
   if (!oder) return [];
   const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
+    spalten: LISTENKOPF,
     oder,
     sortiere: { feld: 'datum', absteigend: true },
     grenze: max,

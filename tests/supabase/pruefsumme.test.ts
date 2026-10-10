@@ -49,7 +49,8 @@ function hashAusJs(s: WorkSheet): string {
     material: s.material,
     fotos: s.fotos,
     notizen: s.notizen,
-    unterschriften: s.unterschriften,
+    // Aus `getWorkSheet`: der ganze Schein, mit Bildern.
+    unterschriften: s.unterschriften as HashbarerSchein['unterschriften'],
   };
   return createHash('sha256').update(kanonischerInhalt(roh), 'utf8').digest('hex');
 }

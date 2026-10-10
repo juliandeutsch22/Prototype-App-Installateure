@@ -13,6 +13,7 @@ import {
   restoreWorkSheetDraft,
 } from '@/lib/db/workSheets';
 import { buildWorkSheetPdf, shareOrDownloadPdf } from './worksheetPdf';
+import { unterschriftOhneBild } from './scheinVollstaendig';
 import Fotostreifen from './Fotostreifen';
 import Nachladen from '@/components/Nachladen';
 import { listEntriesInRange } from '@/lib/db/timeEntries';
@@ -484,9 +485,12 @@ export default function WorkSheetsListView() {
     [offen, scheine, tiefeScheine, treffer, nachgeschlagen],
   );
 
-  async function pdfAusgeben(s: WithId<WorkSheet>) {
+  async function pdfAusgeben(liste: WithId<WorkSheet>) {
     setBusy(true);
     try {
+      // Die Liste kennt die Unterschriften ohne Bild — fürs PDF den ganzen Schein.
+      const s = unterschriftOhneBild(liste) ? await getWorkSheet(liste.id) : liste;
+      if (!s) throw new Error('Schein nicht gefunden');
       // Der ganze Firmensatz, nicht nur der Name: der Beleg soll sagen, an
       // wen der Kunde sich wenden muss.
       const blob = await buildWorkSheetPdf(s, {

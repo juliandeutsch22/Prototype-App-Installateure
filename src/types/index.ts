@@ -684,8 +684,14 @@ export interface WorkSheetFoto {
 export interface WorkSheetUnterschrift {
   /** Name in Druckbuchstaben — ein Strich ohne zuordenbaren Namen ist wenig wert. */
   name: string;
-  /** Das Unterschriftsbild als PNG-Data-URL (~10 KB). */
-  bild: string;
+  /**
+   * Das Unterschriftsbild als PNG-Data-URL (~10 KB).
+   *
+   * FEHLT IN LISTEN (seit 10.10.2026): sie zeigen nur, wer unterschrieben
+   * hat. Wer das Bild braucht — das PDF —, holt den ganzen Schein
+   * (`getWorkSheet`); `buildWorkSheetPdf` druckt ohne Bild nicht.
+   */
+  bild?: string;
   /**
    * Zeit des GERÄTS bei der Unterschrift.
    *
