@@ -40,9 +40,11 @@ vi.mock('@/lib/db/company', () => ({
 
 const rechnungenImZeitraum = vi.fn(async () => [] as unknown[]);
 const gemahntImZeitraum = vi.fn(async () => [] as unknown[]);
+const mahnungenImZeitraum = vi.fn(async () => [{ id: 'm1' }] as unknown[]);
 vi.mock('@/lib/db/invoices', () => ({
   listInvoicesInRange: (...a: unknown[]) => rechnungenImZeitraum(...(a as [])),
   listGemahntInRange: (...a: unknown[]) => gemahntImZeitraum(...(a as [])),
+  listMahnungenInRange: (...a: unknown[]) => mahnungenImZeitraum(...(a as [])),
 }));
 const angeboteImZeitraum = vi.fn(async () => [] as unknown[]);
 vi.mock('@/lib/db/quotes', () => ({
@@ -82,6 +84,7 @@ beforeEach(() => {
   export_.mockReset();
   rechnungenImZeitraum.mockClear();
   gemahntImZeitraum.mockClear();
+  mahnungenImZeitraum.mockClear();
   angeboteImZeitraum.mockClear();
   scheineImZeitraum.mockClear();
   scheineVoll.mockClear();
@@ -238,6 +241,9 @@ describe('Belegarchiv', () => {
     expect(angeboteImZeitraum).toHaveBeenCalledWith('perl', `${jahr}-01-01`, `${jahr}-12-31`);
     expect(scheineImZeitraum).toHaveBeenCalledWith('perl', `${jahr}-01-01`, `${jahr}-12-31`);
     expect(gemahntImZeitraum).toHaveBeenCalledWith('perl', `${jahr}-01-01`, `${jahr}-12-31`);
+    // Seit 10.10.2026 jede gespeicherte Mahnung, damit das Archiv sie als PDF druckt.
+    expect(mahnungenImZeitraum).toHaveBeenCalledWith('perl', `${jahr}-01-01`, `${jahr}-12-31`);
+    expect(archiv.mock.calls[0][0]).toMatchObject({ mahnungen: [{ id: 'm1' }] });
     const o = archiv.mock.calls[0][0] as { scheineVoll: (ids: string[]) => Promise<unknown> };
     await o.scheineVoll(['s1', 's2']);
     expect(scheineVoll).toHaveBeenCalledWith('perl', ['s1', 's2']);

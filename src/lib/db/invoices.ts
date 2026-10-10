@@ -8,7 +8,7 @@
  * mit `reactivateInvoice` wieder aufheben. Beide Datenquellen sagen dasselbe
  * — `allow delete: if false` in den Regeln, keine Löschrichtlinie im Schema.
  */
-import type { Invoice } from '@/types';
+import type { Invoice, Mahnung, MahnungInhalt } from '@/types';
 import type { WithId } from './core';
 import * as pg from './pg/invoices';
 import type { SchlussOhneAbzug } from './pg/invoices';
@@ -143,12 +143,17 @@ export function schlussrechnungenOhneAbzug(): Promise<SchlussOhneAbzug[]> {
 
 export function mahnungFesthalten(
   id: string,
-  daten: {
-    stufe: number; gemahntAm: string; frist: string; spesen: number;
-    standJetzt: Invoice['paymentStatus'];
-  },
-): Promise<void> {
+  daten: { stufe: number; gemahntAm: string; frist: string; spesen: number; inhalt: MahnungInhalt },
+): Promise<string> {
   return pg.mahnungFesthalten(id, daten);
+}
+
+export function listMahnungenInRange(companyId: string, von: string, bis: string): Promise<WithId<Mahnung>[]> {
+  return pg.listMahnungenInRange(companyId, von, bis);
+}
+
+export function listMahnungenZurRechnung(companyId: string, invoiceId: string): Promise<WithId<Mahnung>[]> {
+  return pg.listMahnungenZurRechnung(companyId, invoiceId);
 }
 
 export type { WithId };

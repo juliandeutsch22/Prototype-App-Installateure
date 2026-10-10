@@ -8,7 +8,7 @@
  * kommt nicht mit.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { betriebAnlegen, konto, type Konto } from './helfer';
+import { betriebAnlegen, konto, type Konto, mahnInhalt } from './helfer';
 import * as rechnungen from '@/lib/db/pg/invoices';
 import * as angebote from '@/lib/db/pg/quotes';
 import * as scheine from '@/lib/db/pg/workSheets';
@@ -57,12 +57,12 @@ beforeAll(async () => {
   gemahnt = await rechnung('RE-2025-0900', '2025-12-01');
   await rechnungen.updateInvoiceStatus(gemahnt, 'Überfällig');
   await rechnungen.mahnungFesthalten(gemahnt, {
-    stufe: 2, gemahntAm: '2026-01-12', frist: '2026-01-26', spesen: 10, standJetzt: 'Überfällig',
+    stufe: 2, gemahntAm: '2026-01-12', frist: '2026-01-26', spesen: 10, inhalt: mahnInhalt(2, '2026-01-12', '2026-01-26'),
   });
   const frueh = await rechnung('RE-2025-0901', '2025-11-01');
   await rechnungen.updateInvoiceStatus(frueh, 'Überfällig');
   await rechnungen.mahnungFesthalten(frueh, {
-    stufe: 1, gemahntAm: '2025-12-15', frist: '2025-12-29', spesen: 0, standJetzt: 'Überfällig',
+    stufe: 1, gemahntAm: '2025-12-15', frist: '2025-12-29', spesen: 0, inhalt: mahnInhalt(1, '2025-12-15', '2025-12-29'),
   });
 
   for (const [nr, datum] of [['AN-2026-0100', '2026-03-01'], ['AN-2025-0100', '2025-12-31']]) {

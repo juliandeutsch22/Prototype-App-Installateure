@@ -116,6 +116,8 @@ const GRENZ_MUSTER = [
   */
   /\{ art: 'in', feld: 'paymentStatus'/,
   /\{ art: 'gleich', feld: '(date|datum|customerId|projectNumber|userId)'/,
+  // Die Mahnungen EINER Rechnung (10.10.2026): höchstens drei Stufen.
+  /\{ art: 'gleich', feld: 'invoiceId'/,
   // Angebots- und Mahndatum (Belegarchiv, 10.10.2026): derselbe Zeitraum wie
   // beim Rechnungsdatum, und ebenso wäre eine Obergrenze dort ein stilles Loch.
   // Ebenso das Ende einer Bankgarantie (Startseite, 10.10.2026): ±30 Tage.

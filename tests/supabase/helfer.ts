@@ -189,3 +189,17 @@ export async function nurStatus(antwort: Response): Promise<number> {
   await antwort.body?.cancel().catch(() => undefined);
   return antwort.status;
 }
+
+/**
+ * Ein gültiger Inhalt einer Mahnung, wie ihn `mahnungInhalt` liefert — für
+ * Prüfungen, die nur den Mahnstand brauchen und kein Schreiben.
+ */
+export const mahnInhalt = (stufe: 1 | 2 | 3, datum: string, frist: string, nummer = 'RE-TEST') => ({
+  stufe, datum, frist,
+  titel: ['', 'Zahlungserinnerung', 'Mahnung', 'Letzte Mahnung'][stufe],
+  anrede: 'Testtext', fristSatz: `Bis ${frist}.`,
+  empfaenger: { name: 'Testkunde' },
+  rechnung: { nummer, baustelle: 'B-1' },
+  zeilen: [['Rechnungsbetrag', '100,00 €']] as [string, string][],
+  offen: 100, kosten: 0,
+});

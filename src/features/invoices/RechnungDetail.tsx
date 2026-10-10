@@ -14,6 +14,14 @@ const ARTNAME: Record<string, string> = {
   schluss: 'Schlussrechnung',
 };
 
+/** Eine gespeicherte Mahnung, wie die Detailansicht sie nennt. */
+export interface MahnungZeile {
+  id: string;
+  titel: string;
+  datum: string;
+  frist: string;
+}
+
 /** Eine Handlung an der Rechnung — wie früher ein Eintrag im ⋯ der Zeile. */
 export interface RechnungAktion {
   label: string;
@@ -43,10 +51,16 @@ export default function RechnungDetail({
   inv,
   onClose,
   aktionen,
+  mahnungen = [],
+  onMahnungLaden,
 }: {
   inv: Invoice | null;
   onClose: () => void;
   aktionen: RechnungAktion[];
+  /** Die gespeicherten Mahnungen dieser Rechnung (seit 10.10.2026), älteste zuerst. */
+  mahnungen?: MahnungZeile[];
+  /** Das Schreiben einer Mahnung erneut als PDF — so, wie es hinausging. */
+  onMahnungLaden?: (id: string) => void;
 }) {
   if (!inv) return null;
   const stand = zahlstand(inv);
@@ -160,6 +174,35 @@ export default function RechnungDetail({
           {zeile('Storno', inv.cancellationNote)}
           {zeile('Stornorechnung', inv.stornoNummer)}
         </dl>
+
+        {/*
+          JEDE MAHNUNG ERNEUT LADEN — die ganze Zeile ist der Knopf. Mahnungen
+          von vor dem 10.10.2026 stehen hier nicht: von ihnen ist nur die
+          letzte Stufe gespeichert (Zeile „Gemahnt“ oben), kein Schreiben.
+        */}
+        {onMahnungLaden && mahnungen.length > 0 && (
+          <section aria-label="Mahnungen">
+            <h3 className="text-xs text-ink-muted">Mahnungen</h3>
+            <ul className="divide-y divide-line">
+              {mahnungen.map((m) => (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    className="rechnung-detail-zeile w-full text-left"
+                    onClick={() => onMahnungLaden(m.id)}
+                    aria-label={`${m.titel} vom ${datumAT(m.datum)} als PDF laden`}
+                  >
+                    <span className="text-ink">
+                      {m.titel} vom {datumAT(m.datum)}
+                      <span className="block text-xs text-ink-muted">Frist bis {datumAT(m.frist)}</span>
+                    </span>
+                    <span className="link shrink-0 self-center">PDF</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
     </BottomSheet>
   );

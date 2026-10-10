@@ -41,6 +41,7 @@ const TABELLE_VON: Record<string, string> = {
   Assignment: 'assignments',
   Invoice: 'invoices',
   Zahlungseingang: 'zahlungseingaenge',
+  Mahnung: 'mahnungen',
   Wartung: 'wartungen',
   BaustellenDokument: 'project_documents',
 };

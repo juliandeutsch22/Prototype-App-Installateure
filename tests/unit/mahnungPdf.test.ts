@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { buildMahnungPdf, mahnungDateiname } from '@/features/invoices/mahnungPdf';
+import {
+  buildMahnungPdf, istMahnungInhalt, mahnungDateiname, mahnungInhalt, mahnungPdfAusInhalt,
+} from '@/features/invoices/mahnungPdf';
 import type { Company, Invoice } from '@/types';
 
 /**
@@ -254,5 +256,59 @@ describe('Der Dateiname', () => {
     // Nicht „download.pdf" im Ordner des Kunden.
     expect(mahnungDateiname(rechnung, 1)).toBe('Zahlungserinnerung_RE-2026-0042.pdf');
     expect(mahnungDateiname(rechnung, 3)).toBe('Letzte_Mahnung_RE-2026-0042.pdf');
+  });
+});
+
+describe('Gespeicherter Inhalt (seit 10.10.2026)', () => {
+  const blobText = (blob: Blob) => new Promise<string>((fertig, fehler) => {
+    const leser = new FileReader();
+    leser.onload = () => fertig(String(leser.result));
+    leser.onerror = () => fehler(leser.error);
+    leser.readAsText(blob, 'latin1');
+  });
+  // Ohne Erstellungszeitpunkt und Dokumentkennung: die ändern sich bei jedem Druck.
+  const ohneZeit = (t: string) => t.replace(/\/CreationDate \([^)]*\)/g, '').replace(/\/ID \[[^\]]*\]/g, '');
+  const optionen = {
+    company: firma,
+    invoice: { ...rechnung, bezahltBetrag: 200 } as Invoice,
+    stufe: 2 as const,
+    datum: '2026-09-20',
+    frist: '2026-09-27',
+    adresse: 'Bergweg 3, 2700 Wiener Neustadt',
+    zinsen: { art: 'berechnet' as const, satz: 9.58, tage: 17, betrag: 4.46, ab: '2026-09-04', grundlage: '§ 456 UGB' as const },
+    unternehmer: true,
+  };
+
+  it('aus dem gespeicherten Inhalt entsteht dasselbe Schreiben wie beim Mahnen', async () => {
+    const gespeichert = JSON.parse(JSON.stringify(mahnungInhalt(optionen)));
+    expect(istMahnungInhalt(gespeichert)).toBe(true);
+    const damals = await blobText(await buildMahnungPdf(optionen));
+    const nachdruck = await blobText(await mahnungPdfAusInhalt(firma, gespeichert));
+    expect(ohneZeit(nachdruck)).toBe(ohneZeit(damals));
+    expect(gespeichert).toMatchObject({
+      stufe: 2, titel: 'Mahnung', fristSatz: 'Wir setzen eine Frist bis 27.09.2026.',
+      empfaenger: { name: 'Baumeister Gruber', adresse: 'Bergweg 3, 2700 Wiener Neustadt' },
+      rechnung: { nummer: 'RE-2026-0042', baustelle: 'B-001' },
+    });
+  });
+
+  it('Gegenprobe: neu gerechnet nach einer Zahlung käme ein anderes Schreiben heraus — der Inhalt hält das alte', async () => {
+    const gespeichert = mahnungInhalt(optionen);
+    const spaeter = mahnungInhalt({ ...optionen, invoice: { ...optionen.invoice, bezahltBetrag: 900 } as Invoice });
+    expect(spaeter.offen).not.toBe(gespeichert.offen);
+    const nachdruck = await blobText(await mahnungPdfAusInhalt(firma, gespeichert));
+    expect(nachdruck).toContain('- 200,00');
+    expect(nachdruck).not.toContain('- 900,00');
+  });
+
+  it('Gegenprobe: ein unvollständiger Inhalt gilt nicht als druckbar', () => {
+    const voll = mahnungInhalt(optionen) as unknown as Record<string, unknown>;
+    expect(istMahnungInhalt(null)).toBe(false);
+    for (const feld of ['stufe', 'titel', 'fristSatz', 'empfaenger', 'rechnung', 'zeilen', 'offen']) {
+      const { [feld]: _weg, ...rest } = voll;
+      void _weg;
+      expect(istMahnungInhalt(rest), feld).toBe(false);
+    }
+    expect(istMahnungInhalt({ ...voll, stufe: 4 })).toBe(false);
   });
 });

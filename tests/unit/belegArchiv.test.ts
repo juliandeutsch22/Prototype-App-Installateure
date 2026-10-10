@@ -11,7 +11,7 @@ vi.mock('jspdf-autotable', () => ({
 import { ersterBelegTag, belegArchiv, mahnungenCsv, SCHEIN_BLOCK } from '@/features/invoices/belegArchiv';
 import { druckAngaben } from '@/features/invoices/nachdruck';
 import type { GemahnteRechnung } from '@/lib/db/invoices';
-import type { Company, Invoice, Quote, WorkSheet } from '@/types';
+import type { Company, Invoice, Mahnung, MahnungInhalt, Quote, WorkSheet } from '@/types';
 
 /**
  * Das Belegarchiv (Stand-Datei 11.1, Punkt 6): Rechnungen und
@@ -231,14 +231,14 @@ describe('Belegarchiv: Angebote, Handwerksscheine, Mahnungen (seit 10.10.2026)',
     expect(e.hinweise).toContainEqual('Schein vom 04.05.2026 (Baustelle B-2026-0147): nicht mehr lesbar, daher kein PDF.');
   });
 
-  it('die Mahnungen als Liste: die letzte Stufe mit Tag, Frist und Spesen', async () => {
+  it('die Übersicht der Mahnungen: die letzte Stufe je Rechnung mit Tag, Frist und Spesen', async () => {
     const gemahnt: GemahnteRechnung[] = [
-      { invoiceNumber: 'RE-2026-0001', customerName: 'Hausverwaltung Nord', projectNumber: 'B-1', totalBrutto: 720,
+      { id: 'r1', invoiceNumber: 'RE-2026-0001', customerName: 'Hausverwaltung Nord', projectNumber: 'B-1', totalBrutto: 720,
         paymentStatus: 'Offen', mahnstufe: 2, gemahntAm: '2026-04-20', mahnfrist: '2026-05-04', mahnspesen: 10 },
-      { invoiceNumber: 'RE-2025-0090', customerName: '=Formel', projectNumber: 'B-9', totalBrutto: 100,
+      { id: 'r2', invoiceNumber: 'RE-2025-0090', customerName: '=Formel', projectNumber: 'B-9', totalBrutto: 100,
         paymentStatus: 'Bezahlt', mahnstufe: 1, gemahntAm: '2026-01-10', mahnfrist: '2026-01-24' },
       // Ausserhalb des Zeitraums gemahnt.
-      { invoiceNumber: 'RE-2025-0091', customerName: 'X', totalBrutto: 1, paymentStatus: 'Offen',
+      { id: 'r3', invoiceNumber: 'RE-2025-0091', customerName: 'X', totalBrutto: 1, paymentStatus: 'Offen',
         mahnstufe: 1, gemahntAm: '2025-12-01', mahnfrist: '2025-12-15' },
     ] as GemahnteRechnung[];
     const e = await belegArchiv({ company: firma, rechnungen: [], kunden: [], ...JAHR, gemahnt });
@@ -248,10 +248,74 @@ describe('Belegarchiv: Angebote, Handwerksscheine, Mahnungen (seit 10.10.2026)',
       "RE-2025-0090;'=Formel;B-9;100,00;Zahlungserinnerung;10.01.2026;24.01.2026;;Bezahlt",
       'RE-2026-0001;Hausverwaltung Nord;B-1;720,00;Mahnung;20.04.2026;04.05.2026;10,00;Offen',
     ]);
-    expect(e.mahnungen).toBe(2);
+    // Ohne gespeichertes Schreiben (vor dem 10.10.2026) kein PDF — und das steht in den Hinweisen.
+    expect(e.mahnungen).toBe(0);
+    expect(e.hinweise).toEqual([
+      'RE-2025-0090: Zahlungserinnerung vom 10.01.2026 entstand, bevor Senklot Mahnungen einzeln speicherte — kein PDF, nur die Zeile in Mahnungen.csv.',
+      'RE-2026-0001: Mahnung vom 20.04.2026 entstand, bevor Senklot Mahnungen einzeln speicherte — kein PDF, nur die Zeile in Mahnungen.csv.',
+    ]);
     const hinweise = new TextDecoder().decode((await entpacken(e.blob)).get('Hinweise.txt'));
-    expect(hinweise).toContain('Mahnungen: 2 in Mahnungen.csv');
-    expect(hinweise).toContain('Das Schreiben selbst und frühere Stufen');
+    expect(hinweise).toContain('Mahnungen als PDF: 0');
+    expect(hinweise).toContain('Übersicht der letzten Mahnstufe je Rechnung: Mahnungen.csv');
+  });
+
+  /** Ein gespeicherter Inhalt — so, wie ihn `mahnungInhalt` beim Mahnen festhielt. */
+  const inhalt = (p: Partial<MahnungInhalt> = {}): MahnungInhalt => ({
+    stufe: 2, datum: '2026-04-20', frist: '2026-05-04',
+    titel: 'Mahnung', anrede: 'unsere Rechnung ist trotz Erinnerung offen.', fristSatz: 'Wir setzen eine Frist bis 04.05.2026.',
+    empfaenger: { name: 'Hausverwaltung Nord', adresse: 'Ringstraße 1, 1010 Wien' },
+    rechnung: { nummer: 'RE-2026-0001', baustelle: 'B-1' },
+    zeilen: [['Rechnungsbetrag', '720,00 €'], ['Mahnspesen', '10,00 €'], ['Verzugszinsen 4,58 % p. a., 35 Tage', '3,16 €']],
+    offen: 733.16, kosten: 10,
+    ...p,
+  });
+  const mahnung = (id: string, p: Partial<Mahnung> = {}): Mahnung => ({
+    id, companyId: 'perl', invoiceId: 'r1', stufe: 2, datum: '2026-04-20', frist: '2026-05-04', spesen: 10,
+    inhalt: inhalt(), ...p,
+  });
+  const latin1 = (b: Uint8Array | undefined) => new TextDecoder('latin1').decode(b);
+
+  it('jede gespeicherte Mahnung als PDF — gedruckt aus ihrem Inhalt, nicht neu gerechnet', async () => {
+    const gemahnt = [{
+      id: 'r1', invoiceNumber: 'RE-2026-0001', customerName: 'Hausverwaltung Nord', projectNumber: 'B-1',
+      totalBrutto: 720, paymentStatus: 'Bezahlt', mahnstufe: 2, gemahntAm: '2026-04-20', mahnfrist: '2026-05-04', mahnspesen: 10,
+    }] as GemahnteRechnung[];
+    const e = await belegArchiv({
+      company: firma, rechnungen: [], kunden: [], ...JAHR, gemahnt,
+      mahnungen: [
+        mahnung('m2'),
+        mahnung('m1', { stufe: 1, datum: '2026-04-01', frist: '2026-04-15', spesen: 0,
+          inhalt: inhalt({ stufe: 1, datum: '2026-04-01', titel: 'Zahlungserinnerung', zeilen: [['Rechnungsbetrag', '720,00 €']], offen: 720, kosten: 0 }) }),
+      ],
+    });
+    const dateien = await entpacken(e.blob);
+    const namen = [...dateien.keys()].filter((n) => n.startsWith('Mahnungen/'));
+    expect(namen).toEqual(['Mahnungen/Zahlungserinnerung_RE-2026-0001_2026-04-01.pdf', 'Mahnungen/Mahnung_RE-2026-0001_2026-04-20.pdf']);
+    expect(e.mahnungen).toBe(2);
+    // Die Rechnung ist inzwischen bezahlt — das Schreiben trägt trotzdem, was damals offen war.
+    const pdf = latin1(dateien.get('Mahnungen/Mahnung_RE-2026-0001_2026-04-20.pdf'));
+    expect(pdf).toContain('Verzugszinsen 4,58 % p. a., 35 Tage');
+    expect(pdf).toMatch(/733,16/);
+    expect(pdf).toContain('Wir setzen eine Frist bis 04.05.2026.');
+    // Gespeichert — also kein Hinweis auf ein fehlendes Schreiben.
+    expect(e.hinweise).toEqual([]);
+    expect(new TextDecoder().decode(dateien.get('Hinweise.txt'))).toContain('Mahnungen als PDF: 2');
+  });
+
+  it('Gegenprobe: ausserhalb des Zeitraums nicht dabei, unlesbarer Inhalt genannt, gleicher Name nicht überschrieben', async () => {
+    const e = await belegArchiv({
+      company: firma, rechnungen: [], kunden: [], ...JAHR,
+      mahnungen: [
+        mahnung('aussen00', { datum: '2025-12-30', inhalt: inhalt({ datum: '2025-12-30' }) }),
+        mahnung('kaputt00', { inhalt: { stufe: 2 } as unknown as MahnungInhalt }),
+        mahnung('erste000'),
+        mahnung('zweite00'),
+      ],
+    });
+    const namen = [...(await entpacken(e.blob)).keys()].filter((n) => n.startsWith('Mahnungen/'));
+    expect(namen).toEqual(['Mahnungen/Mahnung_RE-2026-0001_2026-04-20.pdf', 'Mahnungen/Mahnung_RE-2026-0001_2026-04-20_zweite00.pdf']);
+    expect(e.mahnungen).toBe(2);
+    expect(e.hinweise).toEqual(['Mahnung vom 20.04.2026 (Stufe 2): Inhalt nicht lesbar, daher kein PDF.']);
   });
 
   it('Gegenprobe: ohne Mahnung im Zeitraum keine Mahnungsliste', async () => {
