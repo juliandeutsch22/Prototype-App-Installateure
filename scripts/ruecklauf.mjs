@@ -14,8 +14,11 @@
  * Projekt, mit einem Schlüssel, den dieser Mensch in dem Moment in der Hand
  * hat. Genau so ist es gebaut.
  *
- *   node scripts/ruecklauf.mjs <datei.jsonl>              — nur nachsehen
- *   node scripts/ruecklauf.mjs <datei.jsonl> --schreiben  — wirklich einspielen
+ *   node scripts/ruecklauf.mjs <datei.jsonl> …              — nur nachsehen
+ *   node scripts/ruecklauf.mjs <datei.jsonl> … --schreiben  — wirklich einspielen
+ *
+ * Ein grosser Stand liegt in Teilen (`….jsonl`, `….<lauf>.teil-2.jsonl`, …);
+ * dann gehören ALLE Teile in den Aufruf, in beliebiger Reihenfolge.
  *
  *   RUECKLAUF_URL              https://<projekt>.supabase.co
  *   RUECKLAUF_DIENSTSCHLUESSEL der service_role-Schlüssel des ZIELS
@@ -26,10 +29,10 @@
  */
 import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
-import { standLesen, betriebAusStand, kontenAusStand, entfernteAussondern } from './ruecklaufPlan.mjs';
+import { staendeLesen, betriebAusStand, kontenAusStand, entfernteAussondern } from './ruecklaufPlan.mjs';
 
 const args = process.argv.slice(2);
-const datei = args.find((a) => !a.startsWith('--'));
+const dateien = args.filter((a) => !a.startsWith('--'));
 const schreiben = args.includes('--schreiben');
 const auchWennVorhanden = args.includes('--auch-wenn-vorhanden');
 
@@ -41,7 +44,7 @@ function abbruch(text) {
   process.exit(1);
 }
 
-if (!datei) abbruch('Aufruf: node scripts/ruecklauf.mjs <datei.jsonl> [--schreiben]');
+if (dateien.length === 0) abbruch('Aufruf: node scripts/ruecklauf.mjs <datei.jsonl> [<teil-2.jsonl> …] [--schreiben]');
 if (!URL_BASIS || !DIENST) {
   abbruch('RUECKLAUF_URL und RUECKLAUF_DIENSTSCHLUESSEL müssen gesetzt sein.');
 }
@@ -87,9 +90,11 @@ async function inRunden(sammlungen) {
   return geschafft;
 }
 
-const { sammlungen, fehler } = standLesen(readFileSync(datei, 'utf8'));
+const { sammlungen, fehler } = staendeLesen(
+  dateien.map((name) => ({ name, text: readFileSync(name, 'utf8') })),
+);
 if (fehler.length > 0) {
-  console.error('\nDie Datei ist beschädigt:');
+  console.error(dateien.length > 1 ? '\nDie Sicherung ist beschädigt oder unvollständig:' : '\nDie Datei ist beschädigt:');
   for (const f of fehler) console.error(`  ${f}`);
   abbruch('Ein halb eingelesener Stand ist schlimmer als keiner. Nichts eingespielt.');
 }
@@ -105,7 +110,7 @@ const uebergangen = entfernteAussondern(sammlungen);
 const konten = kontenAusStand(sammlungen);
 const zeilenGesamt = [...sammlungen.values()].reduce((s, z) => s + z.length, 0);
 
-console.log(`\nSicherung:  ${datei}`);
+console.log(`\nSicherung:  ${dateien.join(', ')}${dateien.length > 1 ? ` (${dateien.length} Teile)` : ''}`);
 console.log(`Betrieb:    ${betrieb}`);
 console.log(`Ziel:       ${URL_BASIS}`);
 console.log(`Umfang:     ${zeilenGesamt} Zeilen in ${sammlungen.size} Tabellen, ${konten.length} Zugänge\n`);

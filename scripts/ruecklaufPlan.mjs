@@ -47,6 +47,94 @@ export function standLesen(text) {
   return { sammlungen, fehler };
 }
 
+/** Die Kopfzeile eines Teils (`shared/ausleitungPlan.ts`, `TEIL_SAMMLUNG`). */
+export const TEIL_SAMMLUNG = '_teil';
+
+/**
+ * Einen Stand aus einer oder mehreren Dateien lesen.
+ *
+ * SEIT 10.10.2026 KOMMT EIN GROSSER STAND IN TEILEN (`….jsonl`,
+ * `….<lauf>.teil-2.jsonl`, …). Jeder Teil nennt in seiner Kopfzeile Lauf und
+ * Nummer, der erste dazu die Zahl der Teile. Eingespielt wird nur, wenn ALLE
+ * Teile EINES Laufs beisammen sind: ein fehlender Teil hiesse ein halber
+ * Betrieb, einer aus einem anderen Lauf ein Datensalat — beides sähe aus wie
+ * ein Wiederanlauf.
+ *
+ * Eine Sicherung von vorher hat keine Kopfzeile und ist immer eine Datei;
+ * die wird gelesen wie bisher.
+ *
+ * `dateien`: `[{ name, text }]` in beliebiger Reihenfolge.
+ */
+export function staendeLesen(dateien) {
+  const sammlungen = new Map();
+  const fehler = [];
+  const gelesen = dateien.map(({ name, text }) => {
+    const stand = standLesen(text);
+    for (const f of stand.fehler) fehler.push(dateien.length > 1 ? `${name}: ${f}` : f);
+    const kopfzeilen = stand.sammlungen.get(TEIL_SAMMLUNG) ?? [];
+    stand.sammlungen.delete(TEIL_SAMMLUNG);
+    if (kopfzeilen.length > 1) fehler.push(`${name}: mehr als eine Kopfzeile`);
+    return { name, kopf: kopfzeilen[0] ?? null, sammlungen: stand.sammlungen };
+  });
+
+  // In der Reihenfolge der Teile, damit jede Tabelle so dasteht wie geschrieben.
+  const nachNummer = [...gelesen].sort((a, b) => (a.kopf?.nr ?? 0) - (b.kopf?.nr ?? 0));
+  for (const teil of nachNummer) {
+    for (const [tabelle, zeilen] of teil.sammlungen) {
+      if (!sammlungen.has(tabelle)) sammlungen.set(tabelle, []);
+      const ziel = sammlungen.get(tabelle);
+      for (const z of zeilen) ziel.push(z);
+    }
+  }
+
+  fehler.push(...teileFehler(gelesen));
+  return { sammlungen, fehler };
+}
+
+/** Was an den Teilen nicht stimmt — leer, wenn sie zusammen genau einen Stand ergeben. */
+function teileFehler(koepfe) {
+  const ohne = koepfe.filter((k) => k.kopf === null).map((k) => k.name);
+  if (ohne.length === koepfe.length) {
+    return koepfe.length <= 1 ? [] : [
+      `${koepfe.length} Dateien ohne Kopfzeile (${ohne.join(', ')}) — das sind keine Teile eines Stands. ` +
+      'Eine Sicherung ohne Kopfzeile ist immer eine einzige Datei.',
+    ];
+  }
+  if (ohne.length > 0) return [`Ohne Kopfzeile, also kein Teil dieses Stands: ${ohne.join(', ')}`];
+
+  const fehler = [];
+  for (const { name, kopf } of koepfe) {
+    if (typeof kopf.lauf !== 'string' || kopf.lauf === '' || !Number.isInteger(kopf.nr) || kopf.nr < 1) {
+      fehler.push(`${name}: die Kopfzeile ist unvollständig`);
+    }
+  }
+  if (fehler.length > 0) return fehler;
+
+  const erste = koepfe.filter((k) => k.kopf.nr === 1);
+  if (erste.length === 0) {
+    return ['Der erste Teil fehlt (die Datei ohne „.teil-“ im Namen) — er trägt die Zahl der Teile.'];
+  }
+  if (erste.length > 1) return [`Mehr als ein erster Teil: ${erste.map((k) => k.name).join(', ')}`];
+  const { lauf, teile } = erste[0].kopf;
+  if (!Number.isInteger(teile) || teile < 1) return [`${erste[0].name}: die Zahl der Teile fehlt`];
+
+  const fremde = koepfe.filter((k) => k.kopf.lauf !== lauf);
+  if (fremde.length > 0) {
+    fehler.push(`Aus einem anderen Lauf als der erste Teil: ${fremde.map((k) => k.name).join(', ')}`);
+  }
+  const gesehen = new Map();
+  for (const { name, kopf } of koepfe) {
+    if (kopf.lauf !== lauf) continue;
+    if (kopf.nr > teile) fehler.push(`${name}: Teil ${kopf.nr}, der Stand hat aber nur ${teile}`);
+    else if (gesehen.has(kopf.nr)) fehler.push(`Teil ${kopf.nr} doppelt: ${gesehen.get(kopf.nr)}, ${name}`);
+    else gesehen.set(kopf.nr, name);
+  }
+  const fehlend = [];
+  for (let nr = 1; nr <= teile; nr += 1) if (!gesehen.has(nr)) fehlend.push(nr);
+  if (fehlend.length > 0) fehler.push(`Es fehlen Teil ${fehlend.join(', ')} von ${teile}.`);
+  return fehler;
+}
+
 /**
  * Zu welchem Betrieb gehört dieser Stand?
  *

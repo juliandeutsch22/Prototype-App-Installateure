@@ -186,6 +186,11 @@ export interface Uebergabe {
   zeilen: number;
   dateien: number;
   datenLink: string | null;
+  /**
+   * Alle Teile des Stands, der erste vorn — ein grosser Betrieb kommt in
+   * mehreren. Fehlt bei einer Function vor dem 10.10.2026; dann gilt `datenLink`.
+   */
+  datenLinks?: Array<string | null>;
   dateienLink: string | null;
   gueltigBis: string;
 }

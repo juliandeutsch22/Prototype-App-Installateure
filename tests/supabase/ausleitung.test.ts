@@ -47,9 +47,11 @@ async function standLesen(pfad: string): Promise<string> {
   return await data!.text();
 }
 
-const zeilenNach = (inhalt: string) =>
+const alleZeilen = (inhalt: string) =>
   inhalt.split('\n').filter(Boolean).map((z) => JSON.parse(z) as
     { sammlung: string; daten: Record<string, unknown> });
+/** Die Datenzeilen — ohne die Kopfzeile des Teils (seit 10.10.2026, `ausleitungTeile.test.ts`). */
+const zeilenNach = (inhalt: string) => alleZeilen(inhalt).filter((z) => z.sammlung !== '_teil');
 
 beforeAll(async () => {
   db = new Client({ connectionString:
@@ -95,6 +97,11 @@ describe('Der Stand ist vollständig', () => {
 
     // Und die Zeilenzahl in der Antwort stimmt mit der Datei überein.
     expect(daten.zeilen).toBe(zeilen.length);
+
+    // Ein kleiner Betrieb: ein Teil, unter dem bisherigen Namen, mit Kopfzeile.
+    expect(daten.pfade).toEqual([daten.pfad]);
+    const [kopf] = alleZeilen(await standLesen(daten.pfad));
+    expect(kopf).toMatchObject({ sammlung: '_teil', daten: { nr: 1, teile: 1 } });
   }, 180_000);
 
   it('ohne Push-Tokens — ein Gerätekanal ist kein Geschäftsdatum', async () => {
