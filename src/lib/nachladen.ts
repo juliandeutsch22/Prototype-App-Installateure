@@ -10,6 +10,7 @@
  */
 
 import { huelleErneuernUndNeuLaden } from './sw';
+import { nurHintergrundLaedt } from './ansichten';
 
 /** Merker gegen eine Schleife aus Neuladen und Scheitern. */
 const NEULADE_MERKER = 'senklot:nachladefehler';
@@ -109,6 +110,9 @@ export function nachladefehlerBeobachten(): void {
     // zusätzlich aus der Fehlergrenze, und der Schleifenschutz müsste den
     // zweiten abfangen. Einmal reicht.
     e.preventDefault();
+    // Nur das Vorladen betroffen: neu geladen wird erst, wenn jemand die
+    // Ansicht wirklich öffnet (siehe `lib/ansichten.ts`).
+    if (nurHintergrundLaedt()) return;
     if (darfNeuLaden()) void huelleErneuernUndNeuLaden();
   });
 }

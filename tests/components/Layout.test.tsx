@@ -38,6 +38,19 @@ vi.mock('@/lib/db/offenePosten', () => ({
   ladeOffenePosten: (h: string) => ladenMock(h),
 }));
 
+/*
+  Das Vorladen der Ansichten (`lib/ansichten.ts`): hier nur, WAS die Hülle
+  vorlädt — sofort statt im Leerlauf, damit der Test nicht wartet.
+*/
+const vorladenMock = vi.fn<(pfade: readonly string[]) => Promise<void>>(async () => undefined);
+let sparen = false;
+vi.mock('@/lib/ansichten', async (original) => ({
+  ...(await original<typeof import('@/lib/ansichten')>()),
+  vorladen: (p: readonly string[]) => vorladenMock(p),
+  imLeerlauf: (tun: () => void) => { tun(); return () => undefined; },
+  datenSparen: () => sparen,
+}));
+
 const { default: Layout } = await import('@/app/Layout');
 const { postenZuruecksetzen } = await import('@/app/offenePosten');
 
@@ -56,6 +69,27 @@ beforeEach(() => {
   postenZuruecksetzen();
   ladenMock.mockReset();
   ladenMock.mockResolvedValue(undefined);
+  vorladenMock.mockClear();
+  sparen = false;
+});
+
+describe('Ansichten vorab holen (Analyse 10.10.2026)', () => {
+  it('lädt die Ansichten der eigenen Navigation vor, in ihrer Reihenfolge', async () => {
+    zeige();
+    await waitFor(() => expect(vorladenMock).toHaveBeenCalledTimes(1));
+    const pfade = vorladenMock.mock.calls[0][0];
+    expect(pfade[0]).toBe('/');
+    expect(pfade).toEqual(expect.arrayContaining(['/invoices', '/assignments', '/settings']));
+    // Was die Geschäftsführung nicht im Menü hat, wird nicht geholt.
+    expect(pfade).not.toContain('/my-schedule');
+  });
+
+  it('Gegenprobe: im Datensparmodus wird nichts vorab geholt', async () => {
+    sparen = true;
+    zeige();
+    await screen.findByText('Inhalt');
+    expect(vorladenMock).not.toHaveBeenCalled();
+  });
 });
 
 describe('Wessen Marke in der Hülle steht', () => {

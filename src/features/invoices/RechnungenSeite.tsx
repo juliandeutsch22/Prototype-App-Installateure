@@ -1,8 +1,9 @@
-import { lazy } from 'react';
 import { useAuth } from '@/app/AuthContext';
+import { ansicht } from '@/lib/ansichten';
 
-const InvoicesView = lazy(() => import('./InvoicesView'));
-const RechnungenLesen = lazy(() => import('./RechnungenLesen'));
+// Unter „/invoices“ angemeldet: das Vorladen holt auch den eigentlichen Baustein.
+const InvoicesView = ansicht('/invoices', () => import('./InvoicesView'));
+const RechnungenLesen = ansicht('/invoices', () => import('./RechnungenLesen'));
 
 /**
  * Wer unter „Rechnungen“ was bekommt: die Projektleitung (nur mit Freigabe,

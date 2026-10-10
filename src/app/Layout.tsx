@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { kontoAnzeige } from '@shared/benutzername';
 import {
-  navGroupsForRole, OHNE_UEBERSCHRIFT, tabBarForRole, hinweisZahl, hinweisSumme, hinweisWort, zusatzrechte, type NavItem,
+  navGroupsForRole, navForRole, OHNE_UEBERSCHRIFT, tabBarForRole, hinweisZahl, hinweisSumme, hinweisWort, zusatzrechte, type NavItem,
 } from './navigation';
 import Seitenposition from './Seitenposition';
 import FehlerInsBlickfeld from './FehlerInsBlickfeld';
@@ -26,6 +26,8 @@ import RechtLinks from '@/components/RechtLinks';
 import { SeitenHilfeProvider } from '@/components/SeitenHilfe';
 import { useDarstellung } from '@/lib/darstellung';
 import Suchfenster from './Suchfenster';
+import Ladebalken from '@/components/Ladebalken';
+import { datenSparen, imLeerlauf, vorladen } from '@/lib/ansichten';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { offeneVormerkungen } from '@/lib/db/pg/ohneEmpfang';
 import { rolleAnzeige } from '@/lib/rolleAnzeige';
@@ -181,6 +183,39 @@ export default function Layout({ children }: { children: ReactNode }) {
     window.addEventListener('keydown', taste);
     return () => window.removeEventListener('keydown', taste);
   }, [angemeldet]);
+
+  /*
+    DIE NEUE SEITE BLENDET EIN (Analyse 10.10.2026): 160 ms nur über die
+    Deckkraft, ohne Bewegung. Am bestehenden Inhalt abgespielt, nicht über
+    einen neuen `key` — der baute die Seite neu auf und nähme einer Ansicht,
+    die selbst den Pfad wechselt (Angebot nach dem Speichern), ihren Zustand.
+    Vor dem Zeichnen gestartet, sonst stünde die Seite einen Augenblick voll
+    da. Bei „Bewegung reduzieren“ gar nicht.
+  */
+  const seite = useRef<HTMLDivElement>(null);
+  const vorigerPfad = useRef(ort.pathname);
+  useLayoutEffect(() => {
+    if (ort.pathname === vorigerPfad.current) return;
+    vorigerPfad.current = ort.pathname;
+    const el = seite.current;
+    if (!el || typeof el.animate !== 'function') return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: 'ease-out' });
+  }, [ort.pathname]);
+
+  /*
+    DIE ANSICHTEN DER EIGENEN NAVIGATION VORAB HOLEN (Analyse 10.10.2026):
+    im Leerlauf nach dem Anmelden, eine nach der anderen, in der Reihenfolge
+    der Navigation. Danach wechselt eine Seite ohne Nachladepause. Nicht im
+    Datensparmodus des Geräts.
+  */
+  const vorladePfade = user
+    ? navForRole(user.role, company?.modules, zusatzrechte(user, company)).map((i) => i.path).join(' ')
+    : '';
+  useEffect(() => {
+    if (!vorladePfade || datenSparen()) return undefined;
+    return imLeerlauf(() => void vorladen(vorladePfade.split(' ')));
+  }, [vorladePfade]);
 
   if (!user) return <>{children}</>;
 
@@ -375,6 +410,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       */}
       {/* Neue Seiten starten oben, „Zurück“ stellt die Position wieder her (M2). */}
       <Seitenposition />
+      {/* Nur sichtbar, wenn ein Seitenwechsel länger auf seinen Baustein wartet. */}
+      <Ladebalken />
       {/* Eine neue Fehlermeldung ausserhalb des Bildes wird hereingeholt (G10). */}
       <FehlerInsBlickfeld />
       <main
@@ -400,7 +437,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         */}
         <Supportsitzung />
         <SeitenHilfeProvider>
-          <div className="inhalt">{children}</div>
+          <div ref={seite} className="inhalt">{children}</div>
         </SeitenHilfeProvider>
       </main>
 

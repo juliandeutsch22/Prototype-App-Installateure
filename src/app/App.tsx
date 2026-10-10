@@ -10,7 +10,7 @@ import { SeitenHilfeProvider } from '@/components/SeitenHilfe';
 import ErrorBoundary from './ErrorBoundary';
 import Unterreiter from '@/components/Unterreiter';
 import Layout from './Layout';
-import { LoadingState } from '@/components/States';
+import { LoadingState, SeitenPlatzhalter } from '@/components/States';
 import { SCHEIN_ROLLEN } from '@/lib/permissions';
 
 /**
@@ -39,6 +39,7 @@ import { SCHEIN_ROLLEN } from '@/lib/permissions';
   dem ersten Bild für jeden, der nicht angemeldet ist).
 */
 import LoginPage from '@/features/auth/LoginPage';
+import { ansicht } from '@/lib/ansichten';
 // Ausserhalb der Anmeldung: das Impressum muss jeder lesen können, auch ohne Konto.
 const ImpressumView = lazy(() => import('@/features/recht/ImpressumView'));
 const DatenschutzView = lazy(() => import('@/features/recht/DatenschutzView'));
@@ -54,38 +55,38 @@ import ZweiFaktorSeite from '@/features/auth/ZweiFaktorSeite';
 import { WiederherstellungsCodes } from '@/features/auth/ZweiFaktorEinrichten';
 const PlattformView = lazy(() => import('@/features/plattform/PlattformView'));
 const MusterView = lazy(() => import('@/features/muster/MusterView'));
-const DashboardView = lazy(() => import('@/features/dashboard/DashboardView'));
-const TimeView = lazy(() => import('@/features/time/TimeView'));
-const OrderView = lazy(() => import('@/features/orders/OrderView'));
-const AdminOrdersView = lazy(() => import('@/features/orders/AdminOrdersView'));
-const StockView = lazy(() => import('@/features/orders/StockView'));
-const AdminProjectsView = lazy(() => import('@/features/projects/AdminProjectsView'));
-const BaustellenakteView = lazy(() => import('@/features/projects/BaustellenakteView'));
-const CustomersView = lazy(() => import('@/features/customers/CustomersView'));
-const KundenakteView = lazy(() => import('@/features/customers/KundenakteView'));
-const WartungenView = lazy(() => import('@/features/maintenance/WartungenView'));
-const QuotesView = lazy(() => import('@/features/quotes/QuotesView'));
-const AngebotView = lazy(() => import('@/features/quotes/AngebotView'));
-const NachkalkulationView = lazy(() => import('@/features/costing/NachkalkulationView'));
-const WorkSheetView = lazy(() => import('@/features/worksheets/WorkSheetView'));
-const VacationsView = lazy(() => import('@/features/vacations/VacationsView'));
-const ModulesView = lazy(() => import('@/features/modules/ModulesView'));
-const SicherungView = lazy(() => import('@/features/settings/SicherungView'));
-const WorkSheetsListView = lazy(() => import('@/features/worksheets/WorkSheetsListView'));
-const MyProjectsView = lazy(() => import('@/features/projects/MyProjectsView'));
-const AssignmentsView = lazy(() => import('@/features/assignments/AssignmentsView'));
-const MyScheduleView = lazy(() => import('@/features/assignments/MyScheduleView'));
-const WochenplanView = lazy(() => import('@/features/assignments/WochenplanView'));
-const RechnungenSeite = lazy(() => import('@/features/invoices/RechnungenSeite'));
-const AccountingView = lazy(() => import('@/features/accounting/AccountingView'));
-const UserMgmtView = lazy(() => import('@/features/users/UserMgmtView'));
-const BenutzerakteView = lazy(() => import('@/features/users/BenutzerakteView'));
-const SettingsView = lazy(() => import('@/features/settings/SettingsView'));
-const KontenrahmenView = lazy(() => import('@/features/settings/KontenrahmenView'));
-const SupportzugangView = lazy(() => import('@/features/settings/SupportzugangView'));
-const FirmendatenView = lazy(() => import('@/features/settings/FirmendatenView'));
-const NotificationSettings = lazy(() => import('@/features/settings/NotificationSettings'));
-const EinstellungenUebersicht = lazy(() => import('@/features/settings/EinstellungenUebersicht'));
+const DashboardView = ansicht('/', () => import('@/features/dashboard/DashboardView'));
+const TimeView = ansicht('/time', () => import('@/features/time/TimeView'));
+const OrderView = ansicht('/material', () => import('@/features/orders/OrderView'));
+const AdminOrdersView = ansicht('/anforderungen', () => import('@/features/orders/AdminOrdersView'));
+const StockView = ansicht('/lager', () => import('@/features/orders/StockView'));
+const AdminProjectsView = ansicht('/admin-projects', () => import('@/features/projects/AdminProjectsView'));
+const BaustellenakteView = ansicht('/admin-projects', () => import('@/features/projects/BaustellenakteView'));
+const CustomersView = ansicht('/customers', () => import('@/features/customers/CustomersView'));
+const KundenakteView = ansicht('/customers', () => import('@/features/customers/KundenakteView'));
+const WartungenView = ansicht('/wartungen', () => import('@/features/maintenance/WartungenView'));
+const QuotesView = ansicht('/quotes', () => import('@/features/quotes/QuotesView'));
+const AngebotView = ansicht('/quotes', () => import('@/features/quotes/AngebotView'));
+const NachkalkulationView = ansicht('/costing', () => import('@/features/costing/NachkalkulationView'));
+const WorkSheetView = ansicht('/worksheets', () => import('@/features/worksheets/WorkSheetView'));
+const VacationsView = ansicht('/vacations', () => import('@/features/vacations/VacationsView'));
+const ModulesView = ansicht('/settings', () => import('@/features/modules/ModulesView'));
+const SicherungView = ansicht('/settings', () => import('@/features/settings/SicherungView'));
+const WorkSheetsListView = ansicht('/worksheets', () => import('@/features/worksheets/WorkSheetsListView'));
+const MyProjectsView = ansicht('/my-projects', () => import('@/features/projects/MyProjectsView'));
+const AssignmentsView = ansicht('/assignments', () => import('@/features/assignments/AssignmentsView'));
+const MyScheduleView = ansicht('/my-schedule', () => import('@/features/assignments/MyScheduleView'));
+const WochenplanView = ansicht(['/assignments', '/my-schedule'], () => import('@/features/assignments/WochenplanView'));
+const RechnungenSeite = ansicht('/invoices', () => import('@/features/invoices/RechnungenSeite'));
+const AccountingView = ansicht('/accounting', () => import('@/features/accounting/AccountingView'));
+const UserMgmtView = ansicht('/user-mgmt', () => import('@/features/users/UserMgmtView'));
+const BenutzerakteView = ansicht('/user-mgmt', () => import('@/features/users/BenutzerakteView'));
+const SettingsView = ansicht('/settings', () => import('@/features/settings/SettingsView'));
+const KontenrahmenView = ansicht('/settings', () => import('@/features/settings/KontenrahmenView'));
+const SupportzugangView = ansicht('/settings', () => import('@/features/settings/SupportzugangView'));
+const FirmendatenView = ansicht('/settings', () => import('@/features/settings/FirmendatenView'));
+const NotificationSettings = ansicht('/settings', () => import('@/features/settings/NotificationSettings'));
+const EinstellungenUebersicht = ansicht('/settings', () => import('@/features/settings/EinstellungenUebersicht'));
 
 /**
  * App-Wurzel: Auth-Provider + Routing. Jede geschützte Route liegt hinter
@@ -319,7 +320,7 @@ function AppInhalt() {
                     unteren Rand eingeschlossen. Sie soll stehen bleiben,
                     während der Inhalt nachlädt.
                   */}
-                  <Suspense fallback={<LoadingState label="Wird geladen …" />}>
+                  <Suspense fallback={<SeitenPlatzhalter />}>
                     <EinblickProtokoll>
                       <AppRoutes />
                     </EinblickProtokoll>

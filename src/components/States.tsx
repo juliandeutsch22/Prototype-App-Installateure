@@ -2,10 +2,13 @@ import type { ReactNode } from 'react';
 import Button from './Button';
 import Hinweiszeile from './Hinweiszeile';
 
-/** Ladezustand — sichtbar, kein stiller Abbruch. */
+/**
+ * Ladezustand — sichtbar, kein stiller Abbruch. Erst nach 200 ms
+ * (`laden-verzoegert`): ein schnelles Laden blitzt sonst nur kurz auf.
+ */
 export function LoadingState({ label = 'Wird geladen …' }: { label?: string }) {
   return (
-    <div className="flex items-center justify-center gap-3 p-6 text-ink-muted" role="status">
+    <div className="laden-verzoegert flex items-center justify-center gap-3 p-6 text-ink-muted" role="status">
       <span
         className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-accent-deep"
         aria-hidden="true"
@@ -42,6 +45,27 @@ export function SkeletonList({ rows = 3 }: { rows?: number }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Platzhalter in der Form einer Seite: Überschrift und eine Liste.
+ *
+ * Steht, solange eine Ansicht beim allerersten Öffnen noch nicht da ist
+ * (`Suspense` in `App.tsx`). Vorher stand dort ein Kreisel mitten auf der
+ * Fläche, und beim Eintreffen sprang die ganze Seite an ihren Platz.
+ */
+export function SeitenPlatzhalter() {
+  return (
+    <div role="status" aria-busy="true">
+      <span className="sr-only">Wird geladen …</span>
+      <div aria-hidden="true" className="mb-6 space-y-2">
+        <div className="skeleton h-3 w-16" />
+        <div className="skeleton h-7 w-48" />
+        <div className="skeleton h-3 w-64 max-w-full" />
+      </div>
+      <SkeletonList rows={6} />
     </div>
   );
 }
