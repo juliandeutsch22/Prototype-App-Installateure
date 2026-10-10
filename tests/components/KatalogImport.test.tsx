@@ -227,6 +227,36 @@ describe('Rabattsätze', () => {
   });
 });
 
+describe('Übernahme in Blöcken (10.10.2026)', () => {
+  it('zeigt den Fortschritt der Übernahme, Block für Block', async () => {
+    let weiter: () => void = () => undefined;
+    uebernehmen.mockImplementation(async (_lauf: string, _c: unknown, fortschritt?: (offen: number) => void) => {
+      fortschritt?.(3);
+      await new Promise<void>((r) => { weiter = r; });
+      return { angelegt: 5, geaendert: 0, ausgelaufen: 0, loeschungOhneArtikel: 0, preise: 5, ohneRabattsatz: 0 };
+    });
+    await einlesen(SAUBER);
+    await userEvent.click(screen.getByRole('button', { name: /Artikel übernehmen/ }));
+    expect(await screen.findByRole('button', { name: /2 von 5 übernommen/ })).toBeInTheDocument();
+    weiter();
+    expect(await screen.findByText('Übernommen')).toBeInTheDocument();
+  });
+
+  it('nach einem Abbruch setzt „Weiter übernehmen“ beim Rest fort — ohne den Katalog neu zu senden', async () => {
+    uebernehmen.mockRejectedValueOnce(new Error('Failed to fetch'));
+    await einlesen(SAUBER);
+    await userEvent.click(screen.getByRole('button', { name: /Artikel übernehmen/ }));
+    expect(await screen.findByText(/Was bis hierher übernommen ist, bleibt im Katalog/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Weiter übernehmen' }));
+    expect(await screen.findByText('Übernommen')).toBeInTheDocument();
+    expect(laufAnlegen).toHaveBeenCalledTimes(1);
+    expect(zeilenSchicken).toHaveBeenCalledTimes(1);
+    expect(uebernehmen).toHaveBeenCalledTimes(2);
+    expect(uebernehmen.mock.calls[1][0]).toBe('lauf-1');
+  });
+});
+
 describe('Nach der Übernahme', () => {
   it('zeigt, was geschehen ist — und nennt die Artikel ohne Einkaufspreis', async () => {
     uebernehmen.mockResolvedValue({

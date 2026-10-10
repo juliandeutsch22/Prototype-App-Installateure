@@ -180,13 +180,38 @@ export async function zeilenSchicken(
   }
 }
 
+/**
+ * Wie viele Zeilen ein Aufruf der Übernahme abarbeitet.
+ *
+ * Gemessen rund 20 ms je Zeile; angemeldete Konten haben je Abfrage 8
+ * Sekunden. Hundert Zeilen sind gut zwei Sekunden — Luft für ein
+ * langsameres Projekt, und kein Katalog wird dadurch spürbar langsamer als
+ * die Summe seiner Zeilen.
+ */
+export const UEBERNAHME_BLOCK = 100;
+
+/**
+ * Den Lauf in den Stamm übernehmen — Block für Block, bis er fertig ist
+ * (Migration `20261010300000_datanorm_in_bloecken.sql`). In einem Zug brach
+ * jeder Katalog über ein paar hundert Zeilen an der Zeitgrenze ab.
+ *
+ * `fortschritt` bekommt nach jedem Block, wie viele Zeilen noch offen sind.
+ * Bricht es zwischendurch ab, bleibt der Lauf „offen“ mit seinem
+ * Zwischenstand; ein neuer Aufruf setzt fort.
+ */
 export async function uebernehmen(
   laufId: string,
   client?: SupabaseClient,
+  fortschritt?: (offen: number) => void,
 ): Promise<UebernahmeBericht> {
-  const { data, error } = await derClient(client).rpc('datanorm_uebernehmen', { p_lauf: laufId });
-  if (error) throw new Error(error.message);
-  return data as UebernahmeBericht;
+  for (;;) {
+    const { data, error } = await derClient(client)
+      .rpc('datanorm_uebernehmen', { p_lauf: laufId, p_menge: UEBERNAHME_BLOCK });
+    if (error) throw new Error(error.message);
+    const { fertig, offen, ...bericht } = data as UebernahmeBericht & { fertig: boolean; offen: number };
+    if (fertig) return bericht as UebernahmeBericht;
+    fortschritt?.(offen);
+  }
 }
 
 /**

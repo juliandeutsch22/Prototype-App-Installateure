@@ -39,9 +39,16 @@ function indexNamen(knoten: unknown, raus: string[] = []): string[] {
   return raus;
 }
 
-async function plan(sql: string): Promise<string[]> {
+async function plan(sql: string, vorbereitung?: string): Promise<string[]> {
   await db.query('begin');
   try {
+    /*
+      MIT ECHTEM BESTAND, wo es auf ihn ankommt: für einen Betrieb ohne
+      Zeilen ist dem Planer jeder Index gleich recht, und die Prüfung hinge
+      an dem, was andere Prüfungen gerade in der Tabelle liegen haben (so am
+      10.10.2026 geschehen). Die Zeilen verschwinden mit dem Zurückrollen.
+    */
+    if (vorbereitung) await db.query(vorbereitung);
     await db.query('set local enable_seqscan = off');
     const { rows } = await db.query(`explain (format json) ${sql}`);
     return indexNamen(rows[0]['QUERY PLAN']);
@@ -51,9 +58,15 @@ async function plan(sql: string): Promise<string[]> {
 }
 
 describe('Indizes für Wachstum', () => {
-  const faelle: [string, string, string][] = [
+  const katalog = `
+    insert into public.companies (id, name) values ('iw-katalog', 'Katalog') on conflict do nothing;
+    set local session_replication_role = replica;
+    insert into public.materials (company_id, name, article_number, stock)
+      select 'iw-katalog', 'Artikel ' || i, 'K-' || i, 0 from generate_series(1, 2000) i;
+    analyze public.materials;`;
+  const faelle: [string, string, string, string?][] = [
     ['DATANORM: Artikel des Betriebs nach Artikelnummer', 'materials_artikelnummer',
-      `select * from public.materials m where m.company_id = 'x' and m.article_number = 'A-1'`],
+      `select * from public.materials m where m.company_id = 'iw-katalog' and m.article_number = 'K-17'`, katalog],
     ['Frei im Lager: Zusagen eines Artikels', 'material_orders_artikel',
       `select coalesce(sum(o.quantity), 0) from public.material_orders o
         where o.material_id = '${ID}' and o.transaction_type = 'order' and not o.processed`],
@@ -71,9 +84,9 @@ describe('Indizes für Wachstum', () => {
       `select * from public.work_sheets where company_id = 'x' order by created_at desc limit 100`],
   ];
 
-  for (const [was, index, sql] of faelle) {
+  for (const [was, index, sql, vorbereitung] of faelle) {
     it(`${was} nimmt ${index}`, async () => {
-      expect(await plan(sql)).toContain(index);
+      expect(await plan(sql, vorbereitung)).toContain(index);
     });
   }
 });
