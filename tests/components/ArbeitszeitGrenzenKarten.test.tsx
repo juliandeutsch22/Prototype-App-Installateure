@@ -127,6 +127,17 @@ describe('Arbeitszeitgrenzen in der Mitarbeiterübersicht', () => {
     expect(listArbeitszeitenInRange).toHaveBeenCalledWith('perl', '2026-06-08', '2026-09-23');
   });
 
+  it('mit dem Zeitraum des Betriebs (26 Wochen) reicht der Vorlauf weiter zurück', async () => {
+    render(
+      <ToastProvider>
+        <ArbeitszeitGrenzenKarte companyId="perl" personen={[ANNA]} jahr={2026} monat={9} durchrechnungWochen={26} />
+      </ToastProvider>,
+    );
+    expect(await screen.findByText(/keine Grenze überschritten/)).toBeInTheDocument();
+    // 25 Wochen vor dem 28.09.: der 06.04.
+    expect(listArbeitszeitenInRange).toHaveBeenCalledWith('perl', '2026-04-06', '2026-09-23');
+  });
+
   it('Gegenprobe: ohne Vorlauf zählen dieselben Wochen nicht', async () => {
     zeige();
     expect(await screen.findByText(/keine Grenze überschritten/)).toBeInTheDocument();

@@ -193,6 +193,11 @@ export interface Company {
   ueberstundenGrenze?: 'tagessoll' | 'zehn';
   /** Bei `tagesgrenze`: Arbeit an Sonn- und Feiertagen als Überstunden 100 %. */
   ueberstundenHundertSonnFeiertag?: boolean;
+  /**
+   * Über wie viele Wochen der Schnitt von 48 Std. gilt (§ 9 Abs 4 AZG: 17;
+   * ein Kollektivvertrag kann bis 52 zulassen). Ab Werk 17.
+   */
+  durchrechnungWochen?: number;
   /** Die Projektleitung ist im Einsatzplan einteilbar und sieht „Mein Einsatzplan“ (M38). Ab Werk aus. */
   projektleitungImEinsatzplan?: boolean;
   /**

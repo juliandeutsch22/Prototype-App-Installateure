@@ -408,6 +408,7 @@ export default function AccountingView() {
     monat: month,
     aktualisiert: loading ? undefined : grenzStand,
     aus: imSupport || !user || !belegschaftDa,
+    durchrechnungWochen: company?.durchrechnungWochen,
   });
   const grenzenJePerson = useMemo(() => {
     const m = new Map<string, Grenzfall[]>();
@@ -1006,6 +1007,7 @@ export default function AccountingView() {
           jahr={year}
           monat={month}
           daten={grenzDaten}
+          durchrechnungWochen={company?.durchrechnungWochen}
           // Verstoß gegen das KJBG: die Buchung gleich im Seitenfenster öffnen (Runde 3, M3).
           onKorrigieren={(e) => setAufgabe({ art: 'bearbeiten', eintrag: e })}
         />

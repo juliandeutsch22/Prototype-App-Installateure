@@ -7,6 +7,7 @@ import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/F
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { ueberstundenRegelVon } from '@/lib/lohnregeln';
+import { durchrechnungsWochen } from '@/features/accounting/arbeitszeitGrenzen';
 
 /**
  * NACHTZEIT UND ÜBERSTUNDEN (Testbericht 30.09.2026, Paket 2c: M35 und das
@@ -24,6 +25,8 @@ export default function LohnregelnKarte() {
   const [modell, setModell] = useState<'zeitkonto' | 'tagesgrenze'>('zeitkonto');
   const [grenze, setGrenze] = useState<'tagessoll' | 'zehn'>('tagessoll');
   const [hundert, setHundert] = useState(false);
+  /** Als Text — das Feld darf beim Tippen kurz leer oder unfertig sein. */
+  const [durchrechnung, setDurchrechnung] = useState('17');
   const [speichert, setSpeichert] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
 
@@ -34,6 +37,7 @@ export default function LohnregelnKarte() {
     setModell(regel.modell);
     setGrenze(regel.grenze);
     setHundert(regel.hundertSonnFeiertag);
+    setDurchrechnung(String(durchrechnungsWochen(company?.durchrechnungWochen)));
   }, [company]);
 
   async function speichern() {
@@ -41,6 +45,11 @@ export default function LohnregelnKarte() {
     setFehler(null);
     if (!/^\d{2}:\d{2}$/.test(nachtVon) || !/^\d{2}:\d{2}$/.test(nachtBis) || nachtVon === nachtBis) {
       setFehler('Bitte Beginn und Ende der Nachtzeit angeben — zwei verschiedene Uhrzeiten.');
+      return;
+    }
+    const wochen = Number(durchrechnung);
+    if (!/^\d+$/.test(durchrechnung.trim()) || wochen < 17 || wochen > 52) {
+      setFehler('Der Durchrechnungszeitraum liegt zwischen 17 Wochen (Gesetz) und 52 Wochen (höchstens laut Kollektivvertrag).');
       return;
     }
     setSpeichert(true);
@@ -51,6 +60,7 @@ export default function LohnregelnKarte() {
         ueberstundenModell: modell,
         ueberstundenGrenze: grenze,
         ueberstundenHundertSonnFeiertag: hundert,
+        durchrechnungWochen: wochen,
       });
       await reloadCompany();
       toast.success('Nachtzeit und Überstunden gespeichert');
@@ -70,7 +80,9 @@ export default function LohnregelnKarte() {
           Stundennachweis. Beim Zeitkonto (Gleitzeit) sammeln sich Mehrstunden im Saldo. Bei der
           Tagesgrenze stehen die Stunden über der Grenze eines Tages als Überstunden mit 50 % in
           Lohn-CSV und Stundennachweis; an Tagen ohne Soll zählt jede Stunde. Ausgewiesen werden
-          Stunden, nie Beträge.
+          Stunden, nie Beträge. Der Durchrechnungszeitraum gilt für die Arbeitszeitgrenzen: im
+          Schnitt höchstens 48 Std. je Woche, nach dem Gesetz über 17 Wochen (§ 9 Abs 4 AZG); länger,
+          bis 52 Wochen, nur wenn der Kollektivvertrag es zulässt.
         </>
       }
     >
@@ -92,6 +104,11 @@ export default function LohnregelnKarte() {
           <option value="zeitkonto">Zeitkonto (Gleitzeit mit Saldo)</option>
           <option value="tagesgrenze">Tagesgrenze (Überstunden je Tag)</option>
         </SelectField>
+        <InputField
+          id="durchrechnungWochen" label="Durchrechnung für den Schnitt von 48 Std. (Wochen)"
+          type="number" inputMode="numeric" min={17} max={52}
+          value={durchrechnung} onChange={(e) => setDurchrechnung(e.target.value)}
+        />
         {modell === 'tagesgrenze' && (
           <SelectField
             id="ueberstundenGrenze" label="Überstunden ab"

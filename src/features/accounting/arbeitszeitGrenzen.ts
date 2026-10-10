@@ -54,8 +54,8 @@ import { leseZahl } from '@/lib/zahl';
  * Feiertage und Zeitausgleich zählen mit null, wie gearbeitet wurde. Vor dem
  * ersten Tag mit Buchungen in der App zählt jede Woche mit null — der
  * Schnitt wird dadurch eher zu niedrig, nie zu hoch. Ein Kollektivvertrag
- * kann den Zeitraum auf bis zu 52 Wochen verlängern; das prüft die App
- * nicht.
+ * kann den Zeitraum auf bis zu 52 Wochen verlängern; das stellt der Betrieb
+ * ein (seit 10.10.2026, `companies.durchrechnung_wochen`).
  *
  * NICHT GEPRÜFT: Gleitzeit- und Durchrechnungsmodelle (Stand-Datei 11.2)
  * und die Ausnahmen der Kollektivverträge. Gebucht ohne Uhrzeit (alte
@@ -75,6 +75,8 @@ export interface Grenzfall {
   ist: number;
   /** Die Grenze in Minuten (bei Nachtarbeit und Wochenfreizeit: 0). */
   grenze: number;
+  /** Nur beim Durchschnitt: über wie viele Wochen gerechnet wurde. */
+  wochen?: number;
 }
 
 export const GRENZEN = {
@@ -82,12 +84,28 @@ export const GRENZEN = {
     tag: 12 * 60, woche: 60 * 60, ruhezeit: 11 * 60, wochenruhe: 36 * 60,
     /** Ab mehr als `pauseAb` Arbeit am Tag mindestens `pause` (§ 11 AZG). */
     pauseAb: 6 * 60, pause: 30,
-    /** Im Schnitt von `durchschnittWochen` Wochen höchstens `durchschnitt` (§ 9 Abs 4 AZG). */
-    durchschnitt: 48 * 60, durchschnittWochen: 17,
+    /**
+     * Im Schnitt von `durchschnittWochen` Wochen höchstens `durchschnitt`
+     * (§ 9 Abs 4 AZG); ein Kollektivvertrag kann bis `durchschnittWochenKv`
+     * zulassen — je Betrieb eingestellt (`companies.durchrechnung_wochen`).
+     */
+    durchschnitt: 48 * 60, durchschnittWochen: 17, durchschnittWochenKv: 52,
   },
   /** `tagVerteilt`: bei anderer Verteilung der Wochenarbeitszeit (§ 11 Abs 2 KJBG). */
   jugendlich: { tag: 8 * 60, tagVerteilt: 9 * 60, woche: 40 * 60, ruhezeit: 12 * 60, pauseAb: 4.5 * 60, pause: 30 },
 } as const;
+
+/**
+ * Der Durchrechnungszeitraum in Wochen: die Einstellung des Betriebs, sonst
+ * das Gesetz. Werte ausserhalb 17–52 gibt es nicht (die Datenbank lässt sie
+ * nicht zu); kämen sie doch, gilt das Gesetz statt einer erfundenen Grenze.
+ */
+export function durchrechnungsWochen(wert?: number | null): number {
+  const { durchschnittWochen, durchschnittWochenKv } = GRENZEN.erwachsen;
+  return typeof wert === 'number' && Number.isInteger(wert) && wert >= durchschnittWochen && wert <= durchschnittWochenKv
+    ? wert
+    : durchschnittWochen;
+}
 
 /** Eine Lücke zwischen zwei Buchungen zählt ab so vielen Minuten als Pause (§ 11 Abs 2 AZG). */
 export const PAUSE_TEIL_MIN = 10;
@@ -172,7 +190,7 @@ export function grenzfaelle(
   alleEintraege: GrenzEintrag[],
   gesamterZeitraum: { von: string; bis: string },
   person: GrenzPerson,
-  { stichtag }: { stichtag?: string } = {},
+  { stichtag, durchrechnungWochen }: { stichtag?: string; durchrechnungWochen?: number } = {},
 ): Grenzfall[] {
   const faelle: Grenzfall[] = [];
   const zeitraum = stichtag && stichtag < gesamterZeitraum.bis
@@ -331,13 +349,14 @@ export function grenzfaelle(
     if (pause < g.pause) faelle.push({ art: 'pause', bezug: tag, jugendlich: jung, ist: pause, grenze: g.pause });
   }
 
-  // 8. Durchschnitt von 48 Std. über 17 Wochen — Erwachsene, je Woche gleitend.
+  // 8. Durchschnitt von 48 Std. über 17 Wochen (oder dem Zeitraum des Betriebs) — Erwachsene, je Woche gleitend.
   const neutral = new Set<string>();
   for (const e of eintraege) {
     if (istGanztagsGutschrift(e) && !minutenJeTag.has(e.date)) neutral.add(e.date);
   }
   const tageJeWoche = person.arbeitstageJeWoche && person.arbeitstageJeWoche > 0 ? person.arbeitstageJeWoche : 5;
-  const { durchschnitt, durchschnittWochen } = GRENZEN.erwachsen;
+  const { durchschnitt } = GRENZEN.erwachsen;
+  const durchschnittWochen = durchrechnungsWochen(durchrechnungWochen);
   for (const montag of wochen) {
     if (jugendlich(montag)) continue;
     let summe = 0;
@@ -352,7 +371,7 @@ export function grenzfaelle(
     if (wochenZahl <= 0) continue;
     const schnitt = Math.round(summe / wochenZahl);
     if (schnitt > durchschnitt) {
-      faelle.push({ art: 'durchschnitt', bezug: montag, jugendlich: false, ist: schnitt, grenze: durchschnitt });
+      faelle.push({ art: 'durchschnitt', bezug: montag, jugendlich: false, ist: schnitt, grenze: durchschnitt, wochen: durchschnittWochen });
     }
   }
 
@@ -415,7 +434,7 @@ export function grenzText(f: Grenzfall): { titel: string; gesetz: string } {
       };
     case 'durchschnitt':
       return {
-        titel: `Schnitt der 17 Wochen bis KW ${kalenderwoche(f.bezug)}: ${stdMin(f.ist)} Std. — höchstens ${f.grenze / 60} Std.`,
+        titel: `Schnitt der ${f.wochen ?? GRENZEN.erwachsen.durchschnittWochen} Wochen bis KW ${kalenderwoche(f.bezug)}: ${stdMin(f.ist)} Std. — höchstens ${f.grenze / 60} Std.`,
         gesetz: '§ 9 Abs 4 AZG',
       };
   }
@@ -478,7 +497,7 @@ export function grenzfaelleDerBuchung(eintraege: GrenzEintrag[], tag: string, pe
         return f.bezug === montag || (tag === montag && f.bezug === von);
       // Nicht vor dem Speichern: die Pause hängt am ganzen Tag, und wer
       // vormittags bucht, hat die Mittagspause noch vor sich. Den Schnitt
-      // der 17 Wochen gibt es nur für Erwachsene, die Rückfrage nur für
+      // der Durchrechnung gibt es nur für Erwachsene, die Rückfrage nur für
       // Jugendliche. Beides zeigt die Mitarbeiterübersicht.
       case 'pause':
       case 'durchschnitt':

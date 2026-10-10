@@ -12,8 +12,8 @@ import { join, relative } from 'node:path';
  *
  *  1. Niemand ausser `lib/zahl.ts` ersetzt Kommas durch Punkte.
  *  2. Ein Zahlenfeld des Browsers (`type="number"`) bleibt nur, wo ganze
- *     Zahlen ohne Tausender stehen: Tage, Minuten, Prozentstufen und die
- *     Stunden (1–24) eines Notzugangs. Beträge, Mengen, Stunden mit
+ *     Zahlen ohne Tausender stehen: Tage, Wochen, Minuten, Prozentstufen und
+ *     die Stunden (1–24) eines Notzugangs. Beträge, Mengen, Stunden mit
  *     Nachkommastellen und Urlaubstage laufen über `ZahlFeld`.
  */
 
@@ -33,7 +33,7 @@ const QUELLEN = dateien(SRC).map((pfad) => ({
 }));
 
 /** Was in einem ganzzahligen Browserfeld stehen darf — an der Beschriftung erkannt. */
-const GANZZAHLIG = /\((Tage|Min\.|Minuten[^)]*|%|1–24)\)|\s%$/;
+const GANZZAHLIG = /\((Tage|Wochen|Min\.|Minuten[^)]*|%|1–24)\)|\s%$/;
 
 /** Das JSX-Element um eine Fundstelle: vom letzten `<` davor bis zum nächsten `/>`. */
 function elementUm(text: string, stelle: number): string {
@@ -74,5 +74,8 @@ describe('Zahleneingabe (M15)', () => {
     expect(GANZZAHLIG.test(label!)).toBe(false);
     expect(GANZZAHLIG.test('Zahlungsziel (Tage)')).toBe(true);
     expect(GANZZAHLIG.test('Nachtzuschlag %')).toBe(true);
+    // Der Durchrechnungszeitraum (17–52 ganze Wochen) — ein Betrag in Wochen gibt es nicht.
+    expect(GANZZAHLIG.test('Durchrechnung für den Schnitt von 48 Std. (Wochen)')).toBe(true);
+    expect(GANZZAHLIG.test('Stunden je Woche')).toBe(false);
   });
 });
