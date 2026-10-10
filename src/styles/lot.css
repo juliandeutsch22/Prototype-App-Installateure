@@ -206,6 +206,15 @@
 
   /* Ein Eintrag: am Tablet Symbol über Kurztext, am Schreibtisch eine Zeile. */
   .navi-punkt, .navi-punkt-aktiv { position: relative; display: flex; background: none; border: 0; cursor: pointer; flex-direction: column; align-items: center; gap: 0.25rem; min-height: 2.75rem; padding: 0.625rem 0.25rem; border-radius: var(--radius); color: var(--navi-text); font-size: 0.6875rem; line-height: 0.875rem; text-align: center; text-decoration: none; }
+  /*
+    AM TABLET 2 px SEITLICH STATT 4 (10.10.2026): „Einstellungen“ misst in
+    Poppins 11 px 72,8 px (fett, als aktiver Punkt, 75,4 px); bei 4 px blieben
+    72 px, und es brach als „Einstellunge|n“ — ohne Trennwörterbuch mitten
+    im Wort. Mit 2 px bleiben 76 px.
+  */
+  @media (min-width: 760px) and (max-width: 1199px) {
+    .navi-punkt, .navi-punkt-aktiv { padding-left: 0.125rem; padding-right: 0.125rem; }
+  }
   .navi-punkt:hover { color: #ffffff; }
   .navi-punkt-aktiv { background: var(--navi-tief); color: #ffffff; font-weight: 600; }
   @media (min-width: 1200px) {

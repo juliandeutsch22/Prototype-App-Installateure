@@ -243,3 +243,93 @@ export function entfernteAussondern(sammlungen) {
 export function kontenAusStand(sammlungen) {
   return (sammlungen.get('users') ?? []).map((u) => ({ id: u.id, email: u.email }));
 }
+
+/**
+ * Zeilen einer Tabelle in Blöcke: höchstens `maxZeilen` Zeilen und rund
+ * `maxBytes` JSON je Block (ein Block hat mindestens eine Zeile).
+ *
+ * WARUM (10.10.2026). Der Rücklauf schickte jede Tabelle in EINER Anfrage.
+ * Ein Handwerksschein trägt rund 140 KB an Unterschriften; ein Betrieb mit
+ * ein paar tausend Scheinen ergäbe eine Anfrage von Hunderten Megabyte — sie
+ * scheitert an der Grösse oder an der Zeitgrenze, und der Rücklauf bricht ab.
+ */
+export function inBloecke(zeilen, { maxZeilen = 500, maxBytes = 4 * 1024 * 1024 } = {}) {
+  const bloecke = [];
+  let block = [];
+  let bytes = 0;
+  for (const z of zeilen) {
+    const groesse = JSON.stringify(z).length;
+    if (block.length > 0 && (block.length >= maxZeilen || bytes + groesse > maxBytes)) {
+      bloecke.push(block);
+      block = [];
+      bytes = 0;
+    }
+    block.push(z);
+    bytes += groesse;
+  }
+  if (block.length > 0) bloecke.push(block);
+  return bloecke;
+}
+
+/**
+ * Alle Tabellen (ausser `companies`) einspielen — in Runden, je Block.
+ *
+ * IN RUNDEN, weil die Tabellen über Fremdschlüssel aneinanderhängen und eine
+ * fest einprogrammierte Reihenfolge bei der nächsten neuen Tabelle veraltet.
+ * Jede Runde versucht jeden noch offenen Block; was scheitert, kommt in die
+ * nächste. Ein Block, der einmal durchging, wird nie wiederholt — ein
+ * gescheiterter Block hat nichts geschrieben (eine Anfrage ist ein Vorgang).
+ *
+ * DIE BLÖCKE EINER TABELLE KÖNNEN AUFEINANDER ZEIGEN (etwa die Fassungen
+ * eines Angebots, `quotes.vorgaenger_id`). Ein Block, dessen Bezug in einem
+ * späteren Block steht, scheitert in dieser Runde und geht in der nächsten
+ * durch. Schafft eine Runde gar nichts mehr, werden die offenen Blöcke jeder
+ * Tabelle zu einem zusammengelegt und noch einmal versucht — so, wie der
+ * Rücklauf vorher jede Tabelle in einem Zug schrieb. Schafft auch das nichts,
+ * ist Schluss: mit allen offenen Tabellen und ihren Meldungen.
+ *
+ * `einfuegen(tabelle, zeilen)` → `{ error }` wie beim Supabase-Client.
+ * Zurück: je Tabelle die Zahl der Zeilen und die Runde, in der die letzten kamen.
+ */
+export async function inRundenEinspielen(sammlungen, einfuegen, optionen = {}) {
+  let offen = [...sammlungen.entries()]
+    .filter(([t]) => t !== 'companies')
+    .flatMap(([tabelle, zeilen]) => inBloecke(zeilen, optionen).map((block) => ({ tabelle, zeilen: block })));
+  const geschafft = new Map();
+  let runde = 0;
+  let zusammengelegt = false;
+
+  while (offen.length > 0) {
+    runde += 1;
+    const gescheitert = [];
+    for (const block of offen) {
+      const { error } = await einfuegen(block.tabelle, block.zeilen);
+      if (error) {
+        gescheitert.push({ ...block, meldung: error.message });
+        continue;
+      }
+      const bisher = geschafft.get(block.tabelle) ?? { tabelle: block.tabelle, zeilen: 0, runde };
+      geschafft.set(block.tabelle, { tabelle: block.tabelle, zeilen: bisher.zeilen + block.zeilen.length, runde });
+    }
+    if (gescheitert.length < offen.length) {
+      offen = gescheitert;
+      zusammengelegt = false;
+      continue;
+    }
+    if (!zusammengelegt) {
+      const je = new Map();
+      for (const b of gescheitert) je.set(b.tabelle, [...(je.get(b.tabelle) ?? []), ...b.zeilen]);
+      if (je.size < gescheitert.length) {
+        offen = [...je].map(([tabelle, zeilen]) => ({ tabelle, zeilen }));
+        zusammengelegt = true;
+        continue;
+      }
+    }
+    const fehler = new Error('Der Rücklauf ist unvollständig. Nichts weiter eingespielt.');
+    fehler.runde = runde;
+    fehler.uebrig = gescheitert.map((b) => ({ tabelle: b.tabelle, zeilen: b.zeilen.length, meldung: b.meldung }));
+    fehler.geschafft = [...geschafft.values()];
+    throw fehler;
+  }
+  return [...geschafft.values()];
+}

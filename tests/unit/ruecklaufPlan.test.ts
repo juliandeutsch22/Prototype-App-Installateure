@@ -10,7 +10,7 @@
  */
 import { describe, it, expect } from 'vitest';
 // @ts-expect-error — Werkzeug des Betriebs, bewusst als .mjs ohne Typen.
-import { standLesen, staendeLesen, betriebAusStand, kontenAusStand, entfernteAussondern } from '../../scripts/ruecklaufPlan.mjs';
+import { standLesen, staendeLesen, betriebAusStand, kontenAusStand, entfernteAussondern, inBloecke, inRundenEinspielen } from '../../scripts/ruecklaufPlan.mjs';
 import { inTeilen } from '@shared/ausleitungPlan';
 
 const zeile = (sammlung: string, daten: Record<string, unknown>) =>
@@ -231,5 +231,87 @@ describe('Ein Stand in Teilen (10.10.2026)', () => {
     const teile = await inTeileGeschrieben('l1', 120);
     teile[0] = { ...teile[0], text: `${teile[0].text}{kaputt\n` };
     expect(staendeLesen(teile).fehler.some((f: string) => f.startsWith(`${teile[0].name}: Zeile`))).toBe(true);
+  });
+});
+
+describe('Einspielen in Blöcken (10.10.2026)', () => {
+  /*
+    Bis hierher ging jede Tabelle in EINER Anfrage — bei ein paar tausend
+    Scheinen mit Unterschriften Hunderte Megabyte. Jetzt in Blöcken, in
+    Runden; was durchging, wird nie wiederholt.
+  */
+  const zeilen = (n: number, praefix = 'z') => Array.from({ length: n }, (_, i) => ({ id: `${praefix}${i}` }));
+
+  it('teilt nach Zeilen und nach Grösse — jeder Block mit mindestens einer Zeile', () => {
+    expect(inBloecke(zeilen(1200)).map((b: unknown[]) => b.length)).toEqual([500, 500, 200]);
+    const gross = [{ id: 'a', f: 'x'.repeat(60) }, { id: 'b', f: 'x'.repeat(60) }, { id: 'c', f: 'x'.repeat(60) }];
+    expect(inBloecke(gross, { maxBytes: 100 }).map((b: unknown[]) => b.length)).toEqual([1, 1, 1]);
+    expect(inBloecke([{ id: 'riesig', f: 'x'.repeat(500) }], { maxBytes: 100 })).toHaveLength(1);
+    expect(inBloecke([])).toEqual([]);
+  });
+
+  /** Eine Ziel-Datenbank zum Mitschreiben: `abhaengig` nennt je Tabelle, was vorher da sein muss. */
+  function ziel(abhaengig: Record<string, (z: { id: string; ref?: string }, da: Set<string>) => boolean> = {}) {
+    const da = new Set<string>();
+    const anfragen: Array<[string, number]> = [];
+    const einfuegen = async (tabelle: string, z: Array<{ id: string; ref?: string }>) => {
+      anfragen.push([tabelle, z.length]);
+      const pruefe = abhaengig[tabelle];
+      if (pruefe && !z.every((r) => pruefe(r, new Set([...da, ...z.map((x) => `${tabelle}:${x.id}`)])))) {
+        return { error: { message: 'violates foreign key constraint' } };
+      }
+      for (const r of z) {
+        const k = `${tabelle}:${r.id}`;
+        if (da.has(k)) return { error: { message: 'duplicate key' } };
+      }
+      for (const r of z) da.add(`${tabelle}:${r.id}`);
+      return { error: null };
+    };
+    return { da, anfragen, einfuegen };
+  }
+
+  it('spielt alles genau einmal ein — auch wenn eine Tabelle erst nach einer anderen geht', async () => {
+    const z = ziel({ projects: (r, da) => da.has(`customers:${r.ref}`) });
+    const sammlungen = new Map<string, unknown[]>([
+      ['companies', [{ id: 'perl' }]],
+      ['projects', zeilen(700, 'p').map((r) => ({ ...r, ref: 'k1' }))],
+      ['customers', [{ id: 'k1' }]],
+    ]);
+    const geschafft = await inRundenEinspielen(sammlungen, z.einfuegen);
+    expect(z.da.size).toBe(701);
+    expect(geschafft).toEqual(expect.arrayContaining([
+      { tabelle: 'customers', zeilen: 1, runde: 1 },
+      { tabelle: 'projects', zeilen: 700, runde: 2 },
+    ]));
+    // companies spielt der Rücklauf vorher selbst ein.
+    expect(z.anfragen.some(([t]) => t === 'companies')).toBe(false);
+  });
+
+  it('ein Block, dessen Bezug in einem späteren Block derselben Tabelle steht, geht in der nächsten Runde durch', async () => {
+    // Fassungen eines Angebots: q0 zeigt auf q600 — der steht im zweiten Block.
+    const quotes = zeilen(700, 'q').map((r, i) => ({ ...r, ref: i === 0 ? 'q600' : undefined }));
+    const z = ziel({ quotes: (r, da) => !r.ref || da.has(`quotes:${r.ref}`) });
+    const geschafft = await inRundenEinspielen(new Map([['quotes', quotes]]), z.einfuegen);
+    expect(z.da.size).toBe(700);
+    expect(geschafft).toEqual([{ tabelle: 'quotes', zeilen: 700, runde: 2 }]);
+    // Der zweite Block ging in Runde 1 durch und wurde nicht wiederholt (sonst „duplicate key“).
+    expect(z.anfragen).toEqual([['quotes', 500], ['quotes', 200], ['quotes', 500]]);
+  });
+
+  it('zwei Blöcke, die nur zusammen gehen, werden zuletzt zusammengelegt — wie vorher in einem Zug', async () => {
+    const quotes = zeilen(600, 'q').map((r, i) => ({ ...r, ref: i === 0 ? 'q599' : i === 599 ? 'q0' : undefined }));
+    const z = ziel({ quotes: (r, da) => !r.ref || da.has(`quotes:${r.ref}`) });
+    await inRundenEinspielen(new Map([['quotes', quotes]]), z.einfuegen);
+    expect(z.da.size).toBe(600);
+    expect(z.anfragen.at(-1)).toEqual(['quotes', 600]);
+  });
+
+  it('bricht ab, wenn nichts mehr geht — mit dem, was übrig ist, und ohne etwas doppelt zu schreiben', async () => {
+    const z = ziel({ projects: () => false });
+    const sammlungen = new Map<string, unknown[]>([['customers', [{ id: 'k1' }]], ['projects', zeilen(3, 'p')]]);
+    const fehler = await inRundenEinspielen(sammlungen, z.einfuegen).then(() => null, (e: Error & { uebrig: unknown[] }) => e);
+    expect(fehler?.message).toMatch(/unvollständig/);
+    expect(fehler?.uebrig).toEqual([{ tabelle: 'projects', zeilen: 3, meldung: 'violates foreign key constraint' }]);
+    expect(z.da.has('customers:k1')).toBe(true);
   });
 });

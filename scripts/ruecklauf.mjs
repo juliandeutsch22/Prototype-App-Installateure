@@ -29,7 +29,9 @@
  */
 import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
-import { staendeLesen, betriebAusStand, kontenAusStand, entfernteAussondern } from './ruecklaufPlan.mjs';
+import {
+  staendeLesen, betriebAusStand, kontenAusStand, entfernteAussondern, inRundenEinspielen,
+} from './ruecklaufPlan.mjs';
 
 const args = process.argv.slice(2);
 const dateien = args.filter((a) => !a.startsWith('--'));
@@ -52,42 +54,21 @@ if (!URL_BASIS || !DIENST) {
 const ziel = createClient(URL_BASIS, DIENST, { auth: { persistSession: false } });
 
 /**
- * Einfügen in RUNDEN statt in einer festgelegten Reihenfolge.
- *
- * Die Tabellen hängen über Fremdschlüssel aneinander: Baustellen brauchen
- * Kunden, Rechnungspositionen brauchen Rechnungen. Eine fest einprogrammierte
- * Reihenfolge wäre die naheliegende Lösung und die schlechteste — sie veraltet
- * bei der nächsten neuen Tabelle, und zwar unbemerkt, weil sie erst im
- * Ernstfall gebraucht wird.
- *
- * Stattdessen: alles versuchen, was scheitert in die nächste Runde. Solange
- * jede Runde etwas schafft, geht es weiter. Schafft eine Runde nichts mehr,
- * bricht es ab und sagt, was übrig ist und warum — besser ein ehrlicher
- * Abbruch als ein halb eingespielter Betrieb.
+ * Einfügen in RUNDEN und je BLOCK — siehe `inRundenEinspielen`. Der Rest der
+ * Tabellen hängt über Fremdschlüssel aneinander; eine fest einprogrammierte
+ * Reihenfolge veraltete bei der nächsten neuen Tabelle. Besser ein ehrlicher
+ * Abbruch als ein halb eingespielter Betrieb — aber was durchging, bleibt,
+ * und die Meldung sagt, was fehlt.
  */
 async function inRunden(sammlungen) {
-  let offen = [...sammlungen.entries()].filter(([t]) => t !== 'companies');
-  const geschafft = [];
-  let runde = 0;
-
-  while (offen.length > 0) {
-    runde += 1;
-    const gescheitert = [];
-    for (const [tabelle, zeilen] of offen) {
-      const { error } = await ziel.from(tabelle).insert(zeilen);
-      if (error) gescheitert.push([tabelle, zeilen, error.message]);
-      else geschafft.push({ tabelle, zeilen: zeilen.length, runde });
-    }
-    if (gescheitert.length === offen.length) {
-      console.error(`\nRunde ${runde} hat nichts mehr geschafft. Übrig:`);
-      for (const [tabelle, zeilen, meldung] of gescheitert) {
-        console.error(`  ${tabelle} (${zeilen.length} Zeilen): ${meldung}`);
-      }
-      abbruch('Der Rücklauf ist unvollständig. Nichts weiter eingespielt.');
-    }
-    offen = gescheitert.map(([tabelle, zeilen]) => [tabelle, zeilen]);
+  try {
+    return await inRundenEinspielen(sammlungen, (tabelle, zeilen) => ziel.from(tabelle).insert(zeilen));
+  } catch (e) {
+    if (!e.uebrig) throw e;
+    console.error(`\nRunde ${e.runde} hat nichts mehr geschafft. Übrig:`);
+    for (const u of e.uebrig) console.error(`  ${u.tabelle} (${u.zeilen} Zeilen): ${u.meldung}`);
+    abbruch(e.message);
   }
-  return geschafft;
 }
 
 const { sammlungen, fehler } = staendeLesen(

@@ -365,6 +365,23 @@ export function stundenOhneBuchung(team: TeamLuecke[]): Abschnitt | null {
  * ihn unter „Rechnungsvorgaben“ (Analyse 03.10.2026, Paket 2). Ohne ihn
  * rechnet keine Mahnung die gesetzlichen Verzugszinsen richtig.
  */
+/**
+ * DIE RECHNUNGSSPERRE FÜR DIE BUCHHALTUNG (Restpunkt aus Runde 5, M2): sie
+ * schreibt die Rechnungen, ergänzen kann die Firmendaten nur die
+ * Geschäftsführung. Ohne diese Zeile merkte sie die Sperre erst am Knopf.
+ * Der Weg führt zu den Rechnungen, wo die Sperre samt Grund steht.
+ */
+export function rechnungGesperrt(sperrt: string[] | undefined): Abschnitt | null {
+  if (!sperrt || sperrt.length === 0) return null;
+  return abschnitt('firma', 'Keine Rechnung möglich', [{
+    key: 'firma',
+    titel: 'Firmendaten unvollständig',
+    detail: `fehlt: ${sperrt.join(', ')} — die Geschäftsführung ergänzt sie in den Firmendaten`,
+    status: { text: 'gesperrt', ton: 'fehl' },
+    to: ZIEL.rechnungen,
+  }]);
+}
+
 export function basiszinsFehlt(ab: string | null | undefined): Abschnitt | null {
   if (!ab) return null;
   const tag = datumAT(ab);

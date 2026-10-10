@@ -39,3 +39,21 @@ test('Die Seiten des Monteurs laden ohne Fehler und ohne seitliches Überlaufen'
     expect(masse.breite, `seitliches Überlaufen auf ${pfad}`).toBeLessThanOrEqual(masse.sicht);
   }
 });
+
+/*
+  „EINSTELLUNGEN“ IN EINER ZEILE (10.10.2026). In der schmalen Leiste am
+  Tablet brach es als „Einstellunge|n“ — Chromium ohne deutsches
+  Trennwörterbuch bricht mitten im Wort. Gemessen wird die Zahl der Zeilen,
+  auch als aktiver (fetter) Punkt.
+*/
+test('Am Tablet steht „Einstellungen“ in der Seitenleiste in einer Zeile', async ({ page }, info) => {
+  test.skip(info.project.name !== 'tablet-834', 'nur die schmale Leiste am Tablet');
+  await anmelden(page, MONTEUR.email);
+  const kurz = page.locator('.navi .navi-text-kurz', { hasText: 'Einstellungen' });
+  const zeilen = () =>
+    kurz.evaluate((el) => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight)));
+  expect(await zeilen()).toBe(1);
+  await kurz.click();
+  await expect(page.locator('.navi .navi-punkt-aktiv', { hasText: 'Einstellungen' })).toBeVisible();
+  expect(await zeilen()).toBe(1);
+});

@@ -22,6 +22,7 @@ import {
   scheinOhneZeit,
   stundenOhneBuchung,
   basiszinsFehlt,
+  rechnungGesperrt,
   tageOhneBuchung,
   tageZwischen,
   tagKurz,
@@ -197,6 +198,8 @@ function lagerKennzahlen(d: StartDaten, u: Umfeld): Kennzahl[] {
 
 function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
   const abschnitte = mitInhalt([
+    // Zuerst: solange die Firmendaten jede Rechnung sperren, geht hier nichts.
+    erlaubt(rechnungGesperrt(d.firmaSperrt), u),
     eigeneTage(d, u),
     d.lauf ? erlaubt(mahnungenFaellig(d.lauf), u) : null,
     d.lauf && d.unbezahlt ? erlaubt(ueberfaelligNichtMahnbar(d.unbezahlt, d.lauf, u.heute), u) : null,
