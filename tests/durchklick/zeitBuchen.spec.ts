@@ -132,7 +132,9 @@ test('Ein Monteur teilt seinen Tag auf zwei Baustellen auf', async ({ page }) =>
     }).toPass({ timeout: 15_000 });
     await keineFehlermeldung(page);
   } finally {
-    await admin.from('time_entries').delete().eq('company_id', BETRIEB).eq('project_number', ZWEITE.nummer);
+    // Alle Buchungen, nicht nur die der zweiten Baustelle: der Schein-Weg
+    // danach übernimmt die Zeiten des Tages und zählte die gekürzte mit.
+    await admin.from('time_entries').delete().eq('company_id', BETRIEB);
     await admin.from('projects').delete().eq('company_id', BETRIEB).eq('project_number', ZWEITE.nummer);
   }
 });
