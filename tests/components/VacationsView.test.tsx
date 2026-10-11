@@ -4,6 +4,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Vacation } from '@/types';
+import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
 
 /**
  * Urlaub war bisher ein Tagesstatus in der Zeiterfassung: jeder konnte ihn
@@ -362,6 +363,43 @@ describe('Urlaub beim Laden', () => {
     await waitFor(() => expect(createVacation).toHaveBeenCalled());
     expect(screen.getByLabelText('Von')).toBeInTheDocument();
   });
+
+  // Bisher verschwanden beim Nachladen Resturlaub und „Meine Anträge“ hinter einem Platzhalter.
+  it('nach dem Einreichen bleiben auch Resturlaub und „Meine Anträge“ stehen', async () => {
+    const { listOwnVacations } = await import('@/lib/db/vacations');
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByLabelText('Von');
+    await datum('Von', '2026-10-27');
+    await datum('Bis (einschließlich)', '2026-10-28');
+    vi.mocked(listOwnVacations).mockImplementationOnce(() => new Promise(() => undefined) as never);
+    await nutzer.click(screen.getByRole('button', { name: 'Antrag einreichen' }));
+    await waitFor(() => expect(createVacation).toHaveBeenCalled());
+    expect(screen.getByText('Resturlaub')).toBeInTheDocument();
+    const meine = screen.getByRole('heading', { name: 'Meine Anträge' }).closest('section') as HTMLElement;
+    expect(within(meine).queryByRole('status')).toBeNull();
+    expect(within(meine).getByText('Noch kein Antrag gestellt.')).toBeInTheDocument();
+  });
+
+  /*
+    DER ZWEITE BESUCH (Stufe 3, `useGemerkt`): die Seite beginnt mit dem, was
+    sie zuletzt geladen hat — Formular, Resturlaub, eigene Anträge — und lädt
+    im Hintergrund frisch nach.
+  */
+  it('beim zweiten Besuch steht alles sofort da und wird im Hintergrund frisch geladen', async () => {
+    zwischenspeicherFuer('m1', 'perl');
+    const { listOwnVacations } = await import('@/lib/db/vacations');
+    const erster = zeichne();
+    await screen.findByLabelText('Von');
+    erster.unmount();
+
+    const vorher = vi.mocked(listOwnVacations).mock.calls.length;
+    vi.mocked(listOwnVacations).mockImplementationOnce(() => new Promise(() => undefined) as never);
+    zeichne();
+    expect(screen.getByLabelText('Von')).toBeInTheDocument();
+    expect(screen.getByText('Resturlaub')).toBeInTheDocument();
+    await waitFor(() => expect(vi.mocked(listOwnVacations).mock.calls.length).toBeGreaterThan(vorher));
+  });
 });
 
 describe('Urlaub genehmigen', () => {
@@ -492,6 +530,44 @@ describe('Genehmigende aus den Einstellungen', () => {
       tage: 5,
       status: 'Beantragt',
     });
+  });
+
+  // Steht erst nach dem ersten Laden fest, dass man entscheidet, darf die Karte nicht unten mit (0) auftauchen und dann nach oben springen.
+  it('springt nicht von unten nach oben, wenn das Entscheiden erst später feststeht', async () => {
+    rolle = { ...rolle, uid: 'buero', name: 'Frau Wagner', role: 'Verwaltung', docId: 'buero' };
+    genehmiger = [];
+    const { listOpenVacations } = await import('@/lib/db/vacations');
+    const ansicht = zeichne();
+    await screen.findByLabelText('Von');
+    expect(screen.queryByText(/Offene Anträge/)).not.toBeInTheDocument();
+
+    let liefern: (l: Vacation[]) => void = () => undefined;
+    vi.mocked(listOpenVacations).mockImplementationOnce(() => new Promise((ok) => { liefern = ok as (l: Vacation[]) => void; }) as never);
+    genehmiger = ['buero'];
+    ansicht.rerender(
+      <MemoryRouter>
+        <ToastProvider>
+          <VacationsView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(listOpenVacations).toHaveBeenCalled());
+    expect(screen.queryByText(/Offene Anträge/)).not.toBeInTheDocument();
+    await act(async () => liefern(antraege.filter((v) => v.status === 'Beantragt')));
+    expect(await screen.findByText('Offene Anträge (1)')).toBeInTheDocument();
+  });
+
+  // Beide Karten stehen untereinander über dem Formular — kam eine früher, schob sich die andere darüber (Messung 11.10.2026).
+  it('zeigt offene Anträge und Sonderurlaub erst zusammen', async () => {
+    rolle = { ...rolle, uid: 'chef', name: 'Julian Deutsch', role: 'Geschäftsführung', docId: 'chef' };
+    const { listOffeneFreistellungen } = await import('@/lib/db/freistellungen');
+    let liefern: (l: unknown[]) => void = () => undefined;
+    vi.mocked(listOffeneFreistellungen).mockImplementationOnce(() => new Promise((ok) => { liefern = ok as (l: unknown[]) => void; }) as never);
+    zeichne();
+    await screen.findByLabelText('Von');
+    expect(screen.queryByText(/Offene Anträge/)).not.toBeInTheDocument();
+    await act(async () => liefern([]));
+    expect(await screen.findByText(/Offene Anträge \(\d+\)/)).toBeInTheDocument();
   });
 
   it('zeigt die Liste einer eingetragenen Verwaltungskraft', async () => {
@@ -900,6 +976,30 @@ describe('Resturlaub', () => {
     expect(screen.getByText(/danach bleiben 18 Tage/)).toBeInTheDocument();
   });
 
+  // Die Daten je Antragsteller kommen spät; bis dahin hält ein Platzhalter die Zeile, sonst wuchs jede nachträglich.
+  it('hält die Zeile des Resturlaubs frei, bis er gerechnet ist', async () => {
+    rolle = { ...rolle, uid: 'chef', name: 'Chefin', role: 'Geschäftsführung', docId: 'chef' };
+    antraege.push(urlaub('g', '2026-03-02', 20, 'Genehmigt'), urlaub('b', '2026-11-02', 3, 'Beantragt'));
+    const { getUserByUid } = await import('@/lib/db/users');
+    let liefern: () => void = () => undefined;
+    const halten = new Promise<void>((ok) => { liefern = ok; });
+    vi.mocked(getUserByUid).mockImplementation(async (_c: string, uid: string) => {
+      if (uid !== 'chef') await halten;
+      return eigenesProfil as never;
+    });
+    try {
+      zeichne();
+      const zeile = (await screen.findByText('Max Mustermann')).closest('li') as HTMLElement;
+      expect(within(zeile).getByRole('status')).toBeInTheDocument();
+      expect(within(zeile).queryByText(/nach Genehmigung/)).not.toBeInTheDocument();
+      await act(async () => liefern());
+      expect(await within(zeile).findByText(/Resturlaub: 5 Tage — nach Genehmigung 2 Tage/)).toBeInTheDocument();
+      expect(within(zeile).queryByRole('status')).toBeNull();
+    } finally {
+      vi.mocked(getUserByUid).mockImplementation(async () => eigenesProfil as never);
+    }
+  });
+
   it('zeigt dem Genehmigenden den Resturlaub des Antragstellers — vorher und nachher', async () => {
     rolle = { ...rolle, uid: 'chef', name: 'Chefin', role: 'Geschäftsführung', docId: 'chef' };
     antraege.push(urlaub('g', '2026-03-02', 20, 'Genehmigt'), urlaub('b', '2026-11-02', 3, 'Beantragt'));
@@ -1173,6 +1273,43 @@ describe('Sonderurlaub (Plan 10.3)', () => {
       rolle = { ...rolle, uid: 'b1', name: 'Frau Wagner', role: 'Buchhaltung', docId: 'b1' };
       belegschaft = [monteur, { ...monteur, uid: 'b1', id: 'b1', name: 'Frau Wagner', role: 'Buchhaltung' }];
     };
+
+    const karte = () => screen.getByRole('heading', { name: 'Sonderurlaub bestätigen' }).closest('section') as HTMLElement;
+
+    // Stufe 3: beim zweiten Besuch stehen die Anträge sofort da, frisch geholt wird im Hintergrund.
+    it('beim zweiten Besuch stehen die Anträge sofort da', async () => {
+      buero();
+      zwischenspeicherFuer('b1', 'perl');
+      freistellungen = [frei({ art: 'dienstverhinderung', anlass: 'hochzeit', ereignisDatum: '2026-11-13' })];
+      const erster = zeichne();
+      await screen.findByRole('button', { name: 'Bestätigen' });
+      erster.unmount();
+
+      const { listBestaetigteFreistellungenAb } = await import('@/lib/db/freistellungen');
+      const vorher = vi.mocked(listBestaetigteFreistellungenAb).mock.calls.length;
+      vi.mocked(listBestaetigteFreistellungenAb).mockImplementationOnce(() => new Promise(() => undefined) as never);
+      zeichne();
+      await screen.findByRole('heading', { name: 'Sonderurlaub bestätigen' });
+      expect(within(karte()).getByRole('button', { name: 'Bestätigen' })).toBeInTheDocument();
+      expect(within(karte()).queryByRole('status')).toBeNull();
+      await waitFor(() => expect(vi.mocked(listBestaetigteFreistellungenAb).mock.calls.length).toBeGreaterThan(vorher));
+    });
+
+    // Gleichbleiben: nach einer Bestätigung lädt die Karte sichtbar neu — ein eben entschiedener Antrag ist nicht noch einmal antippbar.
+    it('nach dem Bestätigen lädt die Karte wie bisher sichtbar neu', async () => {
+      buero();
+      zwischenspeicherFuer('b1', 'perl');
+      freistellungen = [frei({ art: 'dienstverhinderung', anlass: 'hochzeit', ereignisDatum: '2026-11-13' })];
+      const nutzer = userEvent.setup();
+      zeichne();
+      const knopf = await screen.findByRole('button', { name: 'Bestätigen' });
+      const { listBestaetigteFreistellungenAb } = await import('@/lib/db/freistellungen');
+      vi.mocked(listBestaetigteFreistellungenAb).mockImplementationOnce(() => new Promise(() => undefined) as never);
+      await nutzer.click(knopf);
+      await waitFor(() => expect(freistellungEntscheiden).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(within(karte()).getByRole('status')).toBeInTheDocument());
+      expect(within(karte()).queryByRole('button', { name: 'Bestätigen' })).toBeNull();
+    });
 
     it('mit Nachweis: Bestätigen schickt den Haken mit', async () => {
       buero();

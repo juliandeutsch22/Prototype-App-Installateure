@@ -41,6 +41,8 @@ import {
   type SaldoResult,
 } from '@/lib/time';
 import type { AppUser, Betriebsurlaub, Freistellung, Krankmeldung, UrlaubsanspruchAnpassung, Vacation } from '@/types';
+import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
+import { Wert } from '@/components/Wert';
 import type { WithId } from '@/lib/db/core';
 import InfoHint from '@/components/InfoHint';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -115,6 +117,26 @@ const istFreistellung = (a: Art): a is FreistellungArt =>
   a === 'dienstverhinderung' || a === 'pflegefreistellung' || a === 'unbezahlt';
 type Reiter = 'antraege' | 'krank' | 'betrieb';
 
+/** Was die Seite zuletzt geladen hat — für den zweiten Besuch (`useGemerkt`). */
+interface UrlaubStand {
+  eigene: WithId<Vacation>[];
+  eigeneFrei: Freistellung[];
+  meineAnpassungen: UrlaubsanspruchAnpassung[];
+  profil: AppUser | null;
+  offene: WithId<Vacation>[];
+  offeneFrei: number;
+  andereEntscheiden: boolean | null;
+  belegschaft: AppUser[];
+  eigeneKrank: WithId<Krankmeldung>[];
+  betriebsurlaube: WithId<Betriebsurlaub>[];
+  antragsteller: Record<string, AntragstellerStand>;
+}
+
+/** Was es braucht, um den Resturlaub eines Antragstellers zu rechnen — oder dass es nicht kam. */
+type AntragstellerStand =
+  | { profil: AppUser; genehmigt: WithId<Vacation>[]; anpassungen: UrlaubsanspruchAnpassung[] }
+  | 'fehler';
+
 /*
   „Beantragt" bleibt der einzige Zustand mit Aufmerksamkeit: dort wartet eine
   Entscheidung. „Abgelehnt" war rot und ist es nicht mehr — entschieden ist
@@ -177,31 +199,56 @@ export default function VacationsView() {
   // Am Telefon läuft die Reiterleiste seitlich: der gewählte Reiter bleibt im Bild.
   const reiterleiste = useReiterImBild<HTMLDivElement>(reiter);
 
-  const [eigene, setEigene] = useState<WithId<Vacation>[]>([]);
+  /*
+    DER LETZTE STAND (Stufe 3, `lib/zwischenspeicher.ts`): beim zweiten
+    Besuch beginnt die Seite mit dem, was sie zuletzt geladen hat, und lädt
+    wie bisher frisch nach. Der Schlüssel enthält, was bestimmt, WAS geladen
+    wird — wer entscheidet, bekommt mehr.
+  */
+  const { anfang, merken } = useGemerkt<UrlaubStand>(
+    user ? schluessel('urlaub', user, darfEntscheiden, buero) : null,
+  );
+  const [eigene, setEigene] = useState<WithId<Vacation>[]>(() => anfang?.eigene ?? []);
   /** Die eigenen Anträge auf Sonderurlaub (Plan 10.3). */
-  const [eigeneFrei, setEigeneFrei] = useState<Freistellung[]>([]);
+  const [eigeneFrei, setEigeneFrei] = useState<Freistellung[]>(() => anfang?.eigeneFrei ?? []);
   /** Wie viele Anträge auf Sonderurlaub warten — fürs Büro, entscheidet, wo die Karte steht. */
-  const [offeneFrei, setOffeneFrei] = useState(0);
+  const [offeneFrei, setOffeneFrei] = useState(() => anfang?.offeneFrei ?? 0);
   /** Die eigenen Anpassungen des Anspruchs (Elternkarenz, unbezahlter Urlaub). */
-  const [meineAnpassungen, setMeineAnpassungen] = useState<UrlaubsanspruchAnpassung[]>([]);
-  const [offene, setOffene] = useState<WithId<Vacation>[]>([]);
+  const [meineAnpassungen, setMeineAnpassungen] = useState<UrlaubsanspruchAnpassung[]>(() => anfang?.meineAnpassungen ?? []);
+  const [offene, setOffene] = useState<WithId<Vacation>[]>(() => anfang?.offene ?? []);
+  /*
+    SIND DIE OFFENEN ANTRÄGE DA? Ihre Karte steht oben, wenn welche warten,
+    sonst unten. Stand sie, bevor sie geladen waren, sprang sie von unten
+    („Offene Anträge (0)“) nach oben — etwa wenn erst nach dem ersten Laden
+    feststand, dass man entscheidet. Beim Nachladen nach einer Aktion bleibt
+    sie stehen, wo sie ist.
+  */
+  const [offeneGeladen, setOffeneGeladen] = useState(() => anfang?.offene !== undefined);
+  /** Dasselbe für die Anträge auf Sonderurlaub, die das Büro bestätigt. */
+  const [offeneFreiGeladen, setOffeneFreiGeladen] = useState(() => anfang?.offeneFrei !== undefined);
+  /*
+    BEIDE KARTEN ZUSAMMEN: sie stehen untereinander über dem Formular. Kam
+    die Zahl der Sonderurlaube zuerst, stand ihre Karte schon da, und die
+    offenen Anträge schoben sich darüber (Messung 11.10.2026: 0,16).
+  */
+  const kartenBereit = (!darfEntscheiden || offeneGeladen) && (!buero || offeneFreiGeladen);
   /**
    * Ob im Betrieb noch jemand ANDERER über Urlaub entscheiden darf — dann
    * entscheidet über den eigenen Antrag nicht man selbst (Launch-Check, K4;
    * durchgesetzt in `app.urlaub_vier_augen`). `null`: nicht bekannt, dann
    * bleiben die Knöpfe, und die Datenbank sagt im Zweifel nein.
    */
-  const [andereEntscheiden, setAndereEntscheiden] = useState<boolean | null>(null);
+  const [andereEntscheiden, setAndereEntscheiden] = useState<boolean | null>(() => anfang?.andereEntscheiden ?? null);
   /** Die Belegschaft — für die Entscheidenden geladen, sonst leer. */
-  const [belegschaft, setBelegschaft] = useState<AppUser[]>([]);
-  const [profil, setProfil] = useState<AppUser | null>(null);
+  const [belegschaft, setBelegschaft] = useState<AppUser[]>(() => anfang?.belegschaft ?? []);
+  const [profil, setProfil] = useState<AppUser | null>(() => anfang?.profil ?? null);
   const [laden, setLaden] = useState(true);
   /*
     Der ERSTE Stand. Nach einem Antrag oder einer Entscheidung lädt die
     Seite neu; dabei bleibt stehen, was da ist — nur beim ersten Öffnen
     stehen Platzhalter (siehe unten).
   */
-  const [ersterStand, setErsterStand] = useState(false);
+  const [ersterStand, setErsterStand] = useState(() => anfang?.eigene !== undefined);
   const [error, setError] = useState<string | null>(null);
   const [arbeitet, setArbeitet] = useState<string | null>(null);
   /** Welcher eigene Antrag zurückgezogen werden soll — null heisst: keiner. */
@@ -238,8 +285,8 @@ export default function VacationsView() {
   const [zaBis, setZaBis] = useState('17:00');
   /** Das eigene Zeitguthaben — geladen, sobald Zeitausgleich gewählt ist. */
   const [guthaben, setGuthaben] = useState<SaldoResult | 'laedt' | 'fehler' | null>(null);
-  const [eigeneKrank, setEigeneKrank] = useState<WithId<Krankmeldung>[]>([]);
-  const [betriebsurlaube, setBetriebsurlaube] = useState<WithId<Betriebsurlaub>[]>([]);
+  const [eigeneKrank, setEigeneKrank] = useState<WithId<Krankmeldung>[]>(() => anfang?.eigeneKrank ?? []);
+  const [betriebsurlaube, setBetriebsurlaube] = useState<WithId<Betriebsurlaub>[]>(() => anfang?.betriebsurlaube ?? []);
 
   const laden_ = useMemo(
     () => async () => {
@@ -265,39 +312,44 @@ export default function VacationsView() {
         setEigeneFrei(frei);
         if (buero) {
           listOffeneFreistellungen(user.companyId)
-            .then((o) => setOffeneFrei(o.length))
-            .catch(() => setOffeneFrei(0));
+            .then((o) => { setOffeneFrei(o.length); merken({ offeneFrei: o.length }); })
+            .catch(() => setOffeneFrei(0))
+            .finally(() => setOffeneFreiGeladen(true));
         }
         setMeineAnpassungen(anpassungen);
         setProfil(profilDaten ?? null);
+        merken({ eigene: meine, eigeneFrei: frei, meineAnpassungen: anpassungen, profil: profilDaten ?? null });
         /*
           NEBENBEI, UND STILL BEI EINEM FEHLER: die eigenen Krankmeldungen und
           der kommende Betriebsurlaub sind Zusatzauskünfte. Scheitern sie,
           darf der Antrag trotzdem gehen.
         */
         listEigeneKrankmeldungen(user.companyId, user.uid)
-          .then(setEigeneKrank)
+          .then((k) => { setEigeneKrank(k); merken({ eigeneKrank: k }); })
           .catch(() => setEigeneKrank([]));
         listBetriebsurlaubeAb(user.companyId, todayStr())
-          .then(setBetriebsurlaube)
+          .then((b) => { setBetriebsurlaube(b); merken({ betriebsurlaube: b }); })
           .catch(() => setBetriebsurlaube([]));
         if (darfEntscheiden) {
           listUsers(user.companyId)
             .then((alle) => {
-              setBelegschaft(alle);
-              setAndereEntscheiden(
-                alle.some(
-                  (u) =>
-                    u.uid !== user.uid &&
-                    u.active !== false &&
-                    darfUrlaubEntscheiden(u.role, u.uid, company?.vacationApprovers),
-                ),
+              const andere = alle.some(
+                (u) =>
+                  u.uid !== user.uid &&
+                  u.active !== false &&
+                  darfUrlaubEntscheiden(u.role, u.uid, company?.vacationApprovers),
               );
+              setBelegschaft(alle);
+              setAndereEntscheiden(andere);
+              merken({ belegschaft: alle, andereEntscheiden: andere });
             })
             .catch(() => setAndereEntscheiden(null));
           const warten = await listOpenVacations(user.companyId);
           // Ältester Antrag zuerst: wer am längsten wartet, wartet nicht noch länger.
-          setOffene([...warten].sort((a, b) => a.von.localeCompare(b.von)));
+          const sortiert = [...warten].sort((a, b) => a.von.localeCompare(b.von));
+          setOffene(sortiert);
+          setOffeneGeladen(true);
+          merken({ offene: sortiert });
         }
       } catch {
         setError('Die Urlaubsanträge konnten nicht geladen werden.');
@@ -306,7 +358,7 @@ export default function VacationsView() {
         setErsterStand(true);
       }
     },
-    [user, darfEntscheiden, buero, company?.vacationApprovers],
+    [user, darfEntscheiden, buero, company?.vacationApprovers, merken],
   );
 
   useEffect(() => {
@@ -419,12 +471,9 @@ export default function VacationsView() {
    * Antragsteller selbst (`urlaubsStand`); lesen dürfen es die Genehmigenden
    * ohnehin — Profil und Urlaube der Belegschaft.
    */
-  const [antragsteller, setAntragsteller] = useState<
-    Record<
-      string,
-      { profil: AppUser; genehmigt: WithId<Vacation>[]; anpassungen: UrlaubsanspruchAnpassung[] } | 'fehler'
-    >
-  >({});
+  const [antragsteller, setAntragsteller] = useState<Record<string, AntragstellerStand>>(
+    () => anfang?.antragsteller ?? {},
+  );
   useEffect(() => {
     if (!user || !darfEntscheiden) return;
     const uids = [...new Set(offene.filter((v) => !istZa(v)).map((v) => v.userId))];
@@ -452,17 +501,32 @@ export default function VacationsView() {
         }
       }),
     ).then((paare) => {
-      if (!weg) setAntragsteller(Object.fromEntries(paare));
+      if (weg) return;
+      const neu = Object.fromEntries(paare);
+      setAntragsteller(neu);
+      merken({ antragsteller: neu });
     });
     return () => {
       weg = true;
     };
-  }, [user, darfEntscheiden, offene]);
+  }, [user, darfEntscheiden, offene, merken]);
 
   /** Resturlaub vor und nach diesem Antrag, im Urlaubsjahr seines Beginns. */
   function restZeile(v: WithId<Vacation>) {
     const a = antragsteller[v.userId];
-    if (!a) return null;
+    /*
+      NOCH NICHT GERECHNET: ein Platzhalter in der Form der Zeile. Die Daten
+      je Antragsteller kommen einzeln und spät (mit vielen Anträgen Sekunden
+      nach der Liste); bis dahin wuchs jede Zeile nachträglich um diese eine
+      Zeile, und die Liste darunter rutschte (Messung 11.10.2026).
+    */
+    if (!a) {
+      return (
+        <span className="mt-1 block text-xs text-ink-muted">
+          <Wert bereit={false} muster="Resturlaub: 00 Tage — nach Genehmigung 00 Tage">{null}</Wert>
+        </span>
+      );
+    }
     if (a === 'fehler') {
       return (
         <span className="mt-1 block text-xs text-ink-muted">Resturlaub konnte nicht ermittelt werden.</span>
@@ -1084,12 +1148,12 @@ export default function VacationsView() {
           <SkeletonList rows={6} />
         </>
       ) : (<>
-      {profil && !laden && !fuehrtZeitkonto(profil) && (
+      {profil && !fuehrtZeitkonto(profil) && (
         <Hinweiszeile>
           <p>Für dich führt Senklot kein Zeitkonto — deshalb steht hier kein Resturlaub.</p>
         </Hinweiszeile>
       )}
-      {profil && !laden && fuehrtZeitkonto(profil) && (
+      {profil && fuehrtZeitkonto(profil) && (
         <MetricRow>
           <Metric
             label="Resturlaub"
@@ -1110,9 +1174,9 @@ export default function VacationsView() {
         Erst nach dem Laden gezeigt: sonst sprang die Karte von unten nach
         oben, sobald die Anträge da waren.
       */}
-      {darfEntscheiden && !laden && offene.length > 0 && offeneKarte}
+      {darfEntscheiden && kartenBereit && offene.length > 0 && offeneKarte}
       {/* Dasselbe für den Sonderurlaub: wartet einer, steht die Karte oben. */}
-      {buero && !laden && offeneFrei > 0 && (
+      {buero && kartenBereit && offeneFrei > 0 && (
         <FreistellungenBestaetigen user={user} company={company} />
       )}
 
@@ -1409,11 +1473,8 @@ export default function VacationsView() {
       <div className="zeit-spalte">
       {/* Bündig: die Anträge sind Zeilen von Kante zu Kante (Designlinie „Fassung 3"). */}
       <Card title="Meine Anträge" buendig>
-        {laden ? (
-          <div className="p-4">
-            <SkeletonList rows={3} />
-          </div>
-        ) : eigene.length === 0 ? (
+        {/* Kein Platzhalter beim Nachladen: der Stand davor bleibt stehen, bis der neue da ist. */}
+        {eigene.length === 0 ? (
           <EmptyState>Noch kein Antrag gestellt.</EmptyState>
         ) : (
           <List>
@@ -1505,8 +1566,8 @@ export default function VacationsView() {
         zwischen Formular und „Meine Anträge“; neben dem Formular gehört aber,
         was man selbst gerade beantragt hat. Wartet etwas, stehen sie oben.
       */}
-      {darfEntscheiden && !laden && offene.length === 0 && offeneKarte}
-      {buero && !laden && offeneFrei === 0 && (
+      {darfEntscheiden && kartenBereit && offene.length === 0 && offeneKarte}
+      {buero && kartenBereit && offeneFrei === 0 && (
         <FreistellungenBestaetigen user={user} company={company} />
       )}
 
