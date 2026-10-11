@@ -241,7 +241,10 @@ export async function notzugangPasswort(eingabe: {
   return String((data as { startpasswort?: string })?.startpasswort ?? '');
 }
 
-/** Ein Leitungskonto mit eingerichtetem zweiten Faktor, solange ein Notzugang offen ist (Runde 3, H1). */
+/**
+ * Ein Konto der Leitung oder Buchhaltung mit eingerichtetem zweiten Faktor,
+ * solange ein Notzugang offen ist (Runde 3, H1; Buchhaltung seit 11.10.2026).
+ */
 export interface LeitungMitZweitemFaktor {
   uid: string;
   name: string;
