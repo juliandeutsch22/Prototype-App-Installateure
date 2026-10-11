@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -659,6 +660,44 @@ describe('Stunden ohne Buchung', () => {
     await waitFor(() => expect(zeitenGeholt).toHaveBeenCalledTimes(2));
     expect(screen.getByText('Stunden ohne Buchung')).toBeInTheDocument();
     expect(screen.getByLabelText('Scheine durchsuchen')).toBeInTheDocument();
+  });
+
+  /*
+    DER ZWEITE BESUCH (Stufe 3, `useGemerkt`): Liste und Prüfung stehen
+    sofort da; frisch geholt wird im Hintergrund.
+  */
+  it('beim zweiten Besuch stehen Liste und Prüfung sofort da', async () => {
+    authWert.user.role = 'Buchhaltung';
+    zwischenspeicherFuer('m1', 'perl');
+    geladen = [offenerSchein()];
+    const erster = zeichne();
+    expect(await screen.findByText(/Stunden ohne Buchung \(1\)/)).toBeInTheDocument();
+    erster.unmount();
+
+    const { listRecentWorkSheets } = await import('@/lib/db/workSheets');
+    const vorher = vi.mocked(listRecentWorkSheets).mock.calls.length;
+    vi.mocked(listRecentWorkSheets).mockImplementationOnce(() => new Promise(() => undefined) as never);
+    zeitenGeholt.mockImplementationOnce(() => new Promise(() => undefined));
+    zeichne();
+    expect(screen.getByText(/Stunden ohne Buchung \(1\)/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Scheine durchsuchen')).toBeInTheDocument();
+    await waitFor(() => expect(vi.mocked(listRecentWorkSheets).mock.calls.length).toBeGreaterThan(vorher));
+  });
+
+  // Gleichbleiben: nur der Aufbau beginnt mit dem gemerkten Stand — „Weitere Scheine laden“ lädt sichtbar wie bisher.
+  it('„Weitere Scheine laden“ lädt die Liste weiter sichtbar', async () => {
+    authWert.user.role = 'Mitarbeiter';
+    zwischenspeicherFuer('m1', 'perl');
+    geladen = Array.from({ length: 50 }, (_, i) => offenerSchein({ id: `s${i}`, status: 'Entwurf' }));
+    zeichne();
+    await alle();
+    const knopf = await screen.findByRole('button', { name: 'Weitere Scheine laden' });
+    const { listRecentWorkSheets } = await import('@/lib/db/workSheets');
+    vi.mocked(listRecentWorkSheets).mockImplementationOnce(() => new Promise(() => undefined) as never);
+    expect(screen.getAllByText(/Familie Wagner/).length).toBeGreaterThan(0);
+    await userEvent.click(knopf);
+    // Wie bisher: statt der Liste der Platzhalter, bis die längere Liste da ist.
+    await waitFor(() => expect(screen.queryAllByText(/Familie Wagner/)).toHaveLength(0));
   });
 
   it('sagt es, wenn die Buchungen nicht kamen — statt jeden Schein als ungebucht zu melden', async () => {

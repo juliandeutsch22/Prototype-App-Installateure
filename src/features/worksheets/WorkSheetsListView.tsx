@@ -48,6 +48,7 @@ import { scheineAufRechnung } from '@/lib/db/invoices';
 import { SCHEIN_FILTER, bekannt } from '@/features/dashboard/start/ziele';
 import { AUFFAELLIG_AB_TAGEN, UNVERRECHNET_BASIS, unverrechneteScheine } from './unverrechnet';
 import { SCHEIN_STAND } from './scheinStand';
+import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 
 const STAND = SCHEIN_STAND;
 
@@ -67,6 +68,16 @@ const STAND = SCHEIN_STAND;
  * Übersicht, sondern der Leitung.
  */
 const SCHEINE_JE_SEITE = 50;
+
+/** Eine Zeitbuchung, soweit die Prüfung „Stunden ohne Buchung“ sie braucht. */
+type Buchungszeile = Pick<TimeEntry, 'date' | 'status' | 'projectNumber' | 'userName'>;
+/** Was die Liste zuletzt geladen hat — für den zweiten Besuch (`useGemerkt`). */
+interface ScheinlisteStand {
+  scheine: WithId<WorkSheet>[];
+  buchungen: Buchungszeile[];
+  buchungenStand: { fuer: string; ok: boolean };
+  verrechnet: string[];
+}
 
 /**
  * Wie viele Scheine die tiefe Prüfung höchstens holt.
@@ -152,7 +163,16 @@ export default function WorkSheetsListView() {
   const verrechnungSehen = !!user && canInvoice(user.role);
   const mitVerrechnung = !!nurUnverrechnet || verrechnungSehen;
 
-  const [scheine, setScheine] = useState<WithId<WorkSheet>[]>([]);
+  /*
+    DER LETZTE STAND (Stufe 3, `lib/zwischenspeicher.ts`): Liste, Buchungen
+    des geprüften Zeitraums und Verrechnung stehen beim zweiten Besuch
+    sofort da; frisch geholt wird im Hintergrund. Nur beim Aufbau — nach
+    einer Aktion oder „Weitere laden“ lädt die Liste wie bisher sichtbar.
+  */
+  const { anfang, merken } = useGemerkt<ScheinlisteStand>(
+    user ? schluessel('scheinliste', user, mitVerrechnung, canEditTime(user.role)) : null,
+  );
+  const [scheine, setScheine] = useState<WithId<WorkSheet>[]>(() => anfang?.scheine ?? []);
   /*
     WIE WEIT DIE LISTE ZURÜCKREICHT — und hier wiegt jeder Datensatz schwer.
 
@@ -163,8 +183,9 @@ export default function WorkSheetsListView() {
     zurück muss, lädt nach — sichtbar, statt es nie zu erfahren.
   */
   // Mit der Verrechnung über dieselben jüngsten Scheine wie Startseite und Rechnungen (UNVERRECHNET_BASIS).
-  const [grenze, setGrenze] = useState(mitVerrechnung ? Math.max(SCHEINE_JE_SEITE, UNVERRECHNET_BASIS) : SCHEINE_JE_SEITE);
-  const [loading, setLoading] = useState(true);
+  const grenzeAnfang = mitVerrechnung ? Math.max(SCHEINE_JE_SEITE, UNVERRECHNET_BASIS) : SCHEINE_JE_SEITE;
+  const [grenze, setGrenze] = useState(grenzeAnfang);
+  const [loading, setLoading] = useState(() => anfang?.scheine === undefined);
   const [error, setError] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
   /** Der Schein im Seitenfenster — seine Kennung, gesucht in allem, was geladen ist. */
@@ -195,23 +216,26 @@ export default function WorkSheetsListView() {
     darfSchreiben && !!user && (isGF(user.role) || s.erstelltVonUid === user.uid);
 
   const laden = useMemo(
-    () => async () => {
+    () => async (stehenLassen = false) => {
       if (!user) return;
-      setLoading(true);
+      if (!stehenLassen) setLoading(true);
       try {
-        setScheine(await listRecentWorkSheets(user.companyId, grenze));
+        const neu = await listRecentWorkSheets(user.companyId, grenze);
+        setScheine(neu);
+        if (grenze === grenzeAnfang) merken({ scheine: neu });
       } catch (e) {
         setError((e as Error).message);
       } finally {
         setLoading(false);
       }
     },
-    [user, grenze],
+    [user, grenze, grenzeAnfang, merken],
   );
 
   useEffect(() => {
-    void laden();
-  }, [laden]);
+    // Ein gemerkter Stand bleibt beim Aufbau stehen; mit größerer Grenze lädt die Liste sichtbar.
+    void laden(grenze === grenzeAnfang && anfang?.scheine !== undefined);
+  }, [laden, grenze, grenzeAnfang, anfang?.scheine]);
 
   /*
     DIE KOLLEGENZEILE, AN DIE NIEMAND ERINNERT WIRD — nur fürs Büro.
@@ -233,9 +257,7 @@ export default function WorkSheetsListView() {
     anderen bliebe die Abfrage an den Regeln hängen und produzierte nichts
     als einen Fehler in einer Ansicht, die sie sonst benutzen können.
   */
-  const [buchungen, setBuchungen] = useState<
-    Array<Pick<TimeEntry, 'date' | 'status' | 'projectNumber' | 'userName'>>
-  >([]);
+  const [buchungen, setBuchungen] = useState<Buchungszeile[]>(() => anfang?.buchungen ?? []);
   const darfZeitenSehen = user ? canEditTime(user.role) : false;
   /*
     FÜR WELCHEN ZEITRAUM DIE BUCHUNGEN GELADEN SIND — und ob überhaupt
@@ -245,7 +267,9 @@ export default function WorkSheetsListView() {
     Vorwurf sogar stehen. Jetzt prüft sie erst mit den Buchungen genau
     dieses Zeitraums.
   */
-  const [buchungenStand, setBuchungenStand] = useState<{ fuer: string; ok: boolean } | null>(null);
+  const [buchungenStand, setBuchungenStand] = useState<{ fuer: string; ok: boolean } | null>(
+    () => anfang?.buchungenStand ?? null,
+  );
 
   /*
     WIE WEIT DIE PRÜFUNG ZURÜCKREICHT — und warum das eine Wahl ist.
@@ -292,6 +316,7 @@ export default function WorkSheetsListView() {
         if (!abgemeldet) {
           setBuchungen(rows);
           setBuchungenStand({ fuer, ok: true });
+          merken({ buchungen: rows, buchungenStand: { fuer, ok: true } });
         }
       })
       /*
@@ -306,7 +331,7 @@ export default function WorkSheetsListView() {
     return () => {
       abgemeldet = true;
     };
-  }, [user, darfZeitenSehen, zeitraum]);
+  }, [user, darfZeitenSehen, zeitraum, merken]);
 
   /** Weiter zurück prüfen — auf Anforderung, mit gewähltem Zeitraum. */
   async function tieferPruefen(tage: number) {
@@ -415,7 +440,7 @@ export default function WorkSheetsListView() {
   const trefferGelten = treffer !== null && trefferZu === suche.trim() && trefferZu !== '';
 
   /** Welche der geladenen Scheine auf einer gültigen Rechnung stehen — nur mit dem Filter geholt. */
-  const [verrechnet, setVerrechnet] = useState<string[] | null>(null);
+  const [verrechnet, setVerrechnet] = useState<string[] | null>(() => anfang?.verrechnet ?? null);
   const scheinSchluessel = useMemo(() => scheine.map((x) => x.id).join('|'), [scheine]);
   useEffect(() => {
     if (!user || !mitVerrechnung) {
@@ -424,12 +449,12 @@ export default function WorkSheetsListView() {
     }
     let weg = false;
     scheineAufRechnung(user.companyId, scheinSchluessel ? scheinSchluessel.split('|') : [])
-      .then((ids) => { if (!weg) setVerrechnet(ids); })
+      .then((ids) => { if (!weg) { setVerrechnet(ids); merken({ verrechnet: ids }); } })
       .catch(() => { if (!weg) setVerrechnet([]); });
     return () => {
       weg = true;
     };
-  }, [user, mitVerrechnung, scheinSchluessel]);
+  }, [user, mitVerrechnung, scheinSchluessel, merken]);
   /*
     Die unverrechneten Scheine, ÄLTESTE ZUERST — dieselbe Reihenfolge wie auf
     der Startseite (Regel 7.3: nach Dringlichkeit). Eine Leistung von
