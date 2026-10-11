@@ -36,6 +36,7 @@ import { Warnung } from '@/components/Badge';
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
+import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { freistellungWas, freistellungZeitraum, nachweisVermerk, ueberVermerk } from './freistellungText';
 
 /** Was ein Bestätigen im Zeitkonto bewirkt hat, in einem Satz. */
@@ -75,10 +76,23 @@ export default function FreistellungenBestaetigen({
   company: Company | null | undefined;
 }) {
   const toast = useToast();
-  const [offene, setOffene] = useState<Freistellung[] | 'laedt' | 'fehler'>('laedt');
-  const [laufend, setLaufend] = useState<Freistellung[]>([]);
-  const [verlauf, setVerlauf] = useState<Freistellung[]>([]);
-  const [leute, setLeute] = useState<AppUser[]>([]);
+  /*
+    DER LETZTE STAND (Stufe 3, `lib/zwischenspeicher.ts`): beim zweiten
+    Besuch stehen die Anträge sofort da; frisch geholt wird im Hintergrund.
+    Nur beim Aufbau — nach einer Bestätigung lädt die Karte wie bisher mit
+    „Wird geladen …“, damit niemand einen eben entschiedenen Antrag ein
+    zweites Mal antippt.
+  */
+  const { anfang, merken } = useGemerkt<{
+    offene: Freistellung[];
+    laufend: Freistellung[];
+    verlauf: Freistellung[];
+    leute: AppUser[];
+  }>(schluessel('sonderurlaubBestaetigen', user));
+  const [offene, setOffene] = useState<Freistellung[] | 'laedt' | 'fehler'>(() => anfang?.offene ?? 'laedt');
+  const [laufend, setLaufend] = useState<Freistellung[]>(() => anfang?.laufend ?? []);
+  const [verlauf, setVerlauf] = useState<Freistellung[]>(() => anfang?.verlauf ?? []);
+  const [leute, setLeute] = useState<AppUser[]>(() => anfang?.leute ?? []);
   const [versuch, setVersuch] = useState(0);
   const [geprueft, setGeprueft] = useState<Record<string, boolean>>({});
   const [kuerzung, setKuerzung] = useState<Record<string, Kuerzungszeile[]>>({});
@@ -95,8 +109,8 @@ export default function FreistellungenBestaetigen({
   const urlaubEntscheiden = darfUrlaubEntscheiden(user.role, user.uid, company?.vacationApprovers);
   const regel = uebertragsRegel(company);
 
-  const laden = useCallback(async () => {
-    setOffene('laedt');
+  const laden = useCallback(async (stehenLassen: boolean) => {
+    setOffene((o) => (stehenLassen && Array.isArray(o) ? o : 'laedt'));
     try {
       const [o, l, alle] = await Promise.all([
         listOffeneFreistellungen(user.companyId),
@@ -108,13 +122,15 @@ export default function FreistellungenBestaetigen({
       setLeute(alle);
       setLaufend(l);
       setOffene(o);
+      merken({ offene: o, laufend: l, verlauf: v, leute: alle });
     } catch {
       setOffene('fehler');
     }
-  }, [user.companyId]);
+  }, [user.companyId, merken]);
 
   useEffect(() => {
-    void laden();
+    // Beim Aufbau bleibt ein gemerkter Stand stehen; nach einer Aktion (`versuch`) lädt die Karte sichtbar neu.
+    void laden(versuch === 0);
   }, [laden, versuch]);
 
   // Liegengebliebene Nachweise entschiedener Anträge — einmal beim Öffnen.

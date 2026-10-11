@@ -1,5 +1,6 @@
+import { useCallback, useState } from 'react';
 import { QueryClient, useQuery, type QueryKey, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
-import { AUFBEWAHREN_MS, beimNutzerwechsel, liveLeeren } from './liveSpeicher';
+import { AUFBEWAHREN_MS, beimNutzerwechsel, liveLeeren, speicherNutzer } from './liveSpeicher';
 
 /**
  * Was eine Seite zuletzt geladen hat, über den Seitenwechsel hinweg
@@ -86,4 +87,38 @@ export function useZwischengespeichert<T>(
   optionen: UseQueryOptions<T, Error, T, QueryKey>,
 ): UseQueryResult<T, Error> {
   return useQuery(optionen, abfrageSpeicher);
+}
+
+/**
+ * Der gemerkte Stand einer Seite, die selbst lädt — für Seiten, deren Laden
+ * nicht in eine Abfrage passt.
+ *
+ * WARUM NEBEN `useZwischengespeichert`. Urlaub, Scheine und Rechnungen laden
+ * in einer eigenen Funktion ein Dutzend Teile, setzen sie einzeln und rufen
+ * dieselbe Funktion nach jeder Aktion wieder auf. Das in Abfragen umzubauen
+ * hieße, jede Aktion dieser Seiten anzufassen — und jede könnte danach etwas
+ * anderes tun als vorher. Hier bleibt das Laden, wie es ist: die Seite
+ * beginnt mit dem gemerkten Stand (`anfang`, einmal beim Aufbau gelesen) und
+ * merkt sich, was sie geladen hat (`merken`, Teile werden zusammengelegt).
+ *
+ * Derselbe Speicher, dieselben Regeln: Benutzer und Betrieb im Schlüssel,
+ * beim Wechsel verworfen, zehn Minuten aufbewahrt. Gemerkt wird nur, solange
+ * der Schlüssel dem Angemeldeten gehört — eine Antwort, die nach dem
+ * Abmelden kommt, schreibt nichts mehr.
+ */
+export function useGemerkt<T extends object>(
+  schl: QueryKey | null,
+): { anfang: Partial<T> | undefined; merken: (teil: Partial<T>) => void } {
+  const [anfang] = useState(() => (schl ? abfrageSpeicher.getQueryData<Partial<T>>(schl) : undefined));
+  const text = schl ? JSON.stringify(schl) : null;
+  const merken = useCallback(
+    (teil: Partial<T>) => {
+      if (!text) return;
+      const k = JSON.parse(text) as QueryKey;
+      if (speicherNutzer() !== `${String(k[1])}@${String(k[2])}`) return;
+      abfrageSpeicher.setQueryData<Partial<T>>(k, (alt) => ({ ...alt, ...teil }));
+    },
+    [text],
+  );
+  return { anfang, merken };
 }
