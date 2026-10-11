@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { keepPreviousData } from '@tanstack/react-query';
+import { schluessel, useZwischengespeichert } from '@/lib/zwischenspeicher';
 import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon } from '@/lib/lohnregeln';
 import {
@@ -76,6 +78,16 @@ function wochenende(heute: Date): string {
 /** Schlüssel des Abschnitts „Kommende Wochen" beim Auf- und Zuklappen — keine KW. */
 const KOMMEND = 'kommend';
 
+/** Woraus der Saldo seit Eintritt rechnet (siehe `saldoAbfrage`). */
+interface SaldoGrundlage {
+  bilanzen: Monatsbilanz[] | null;
+  eintrittsEintraege: WithId<TimeEntry>[];
+  saldoEintraege: WithId<TimeEntry>[];
+}
+// Feste leere Werte: ein neues `[]` je Zeichnen rechnete Saldo und Hinweise jedes Mal neu.
+const KEINE_SCHEINE: WithId<WorkSheet>[] = [];
+const KEINE_EINTRAEGE: WithId<TimeEntry>[] = [];
+
 /**
  * Zeiterfassung — der vertikale Schnitt: Mitarbeiter erfasst -> Datenbank ->
  * hier live sichtbar, inkl. portiertem Saldo.
@@ -87,21 +99,17 @@ export default function TimeView() {
   /** Die angezeigte Liste — nur das Fenster, nicht die ganze Geschichte. */
   const [entries, setEntries] = useState<WithId<TimeEntry>[]>([]);
   /*
-    Die eigenen unterschriebenen Scheine der letzten zwei Wochen — für die
-    Frage, wozu noch kein Zeiteintrag existiert. Eng gefasst geholt, weil
-    jeder Schein die beiden Unterschriftsbilder mitträgt und damit rund
-    70 KB wiegt.
-  */
-  const [eigeneScheine, setEigeneScheine] = useState<WithId<WorkSheet>[]>([]);
-  /*
     SIND DIE GRUNDLAGEN DA? (Analyse 10.10.2026) Vorher rechneten Saldo und
     Hinweise aus leeren Listen, solange diese noch luden: ein Monteur sah
     kurz −9.663 Std. und „1.258 Tage ohne Buchung“, weil jeder Werktag seit
-    Eintritt als fehlend zählte. Beide Merker gehen auch bei einem Fehler
-    auf „fertig“ — dann sagt es die Fehlerzeile.
+    Eintritt als fehlend zählte. Beide Merker (`scheineGeladen`,
+    `saldoGeladen` weiter unten) gehen auch bei einem Fehler auf „fertig“ —
+    dann sagt es die Fehlerzeile.
+
+    ZWISCHENGESPEICHERT (Stufe 3, `lib/zwischenspeicher.ts`): Stammdatenblatt,
+    eigene Scheine und die Grundlage des Saldos stehen beim zweiten Besuch
+    sofort da und werden im Hintergrund frisch geholt.
   */
-  const [scheineGeladen, setScheineGeladen] = useState(false);
-  const [saldoGeladen, setSaldoGeladen] = useState(false);
   /*
     AUS DER ADRESSE (Startseite, Nachtest 01.10.2026): `?datum=JJJJ-MM-TT`
     belegt das Formular mit diesem Tag vor, `?filter=fehlend` zeigt oben die
@@ -121,7 +129,6 @@ export default function TimeView() {
     const tag = adresse.get('datum');
     return tag && /^\d{4}-\d{2}-\d{2}$/.test(tag) && tag <= todayStr() ? { date: tag, projectNumber: '' } : null;
   });
-  const [profile, setProfile] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<WithId<TimeEntry> | null>(null);
@@ -141,15 +148,12 @@ export default function TimeView() {
    * Monteur sieht dann eine Aussage über seine Stammdaten, wo eine über die
    * Verbindung stehen müsste.
    */
-  const [profilFehler, setProfilFehler] = useState(false);
-  const profilLaden = useCallback(() => {
-    if (!user) return;
-    setProfilFehler(false);
-    getUserByUid(user.companyId, user.uid)
-      .then(setProfile)
-      .catch(() => setProfilFehler(true));
-  }, [user]);
-  useEffect(profilLaden, [profilLaden]);
+  const profilAbfrage = useZwischengespeichert<AppUser | null>({
+    queryKey: user ? schluessel('stammdatenblatt', user) : ['stammdatenblatt'],
+    enabled: !!user,
+    queryFn: () => getUserByUid(user!.companyId, user!.uid),
+  });
+  const profile = profilAbfrage.data ?? null;
 
   /*
     DAS EIGENE GEBURTSDATUM — nur für eine Frage (Runde 3, M2): Hat das Büro
@@ -233,10 +237,6 @@ export default function TimeView() {
    * der gerade gebucht hat und seinen Saldo unverändert sähe, würde zu Recht
    * an der App zweifeln.
    */
-  const [saldoEintraege, setSaldoEintraege] = useState<WithId<TimeEntry>[]>([]);
-  const [bilanzen, setBilanzen] = useState<Monatsbilanz[] | null>(null);
-  /** Der Eintrittsmonat ab dem Eintritt — siehe `saldoAusBilanzen` (P1-15). */
-  const [eintrittsEintraege, setEintrittsEintraege] = useState<WithId<TimeEntry>[]>([]);
 
   /**
    * Der laufende Monat — aus den Einträgen, die ohnehin schon da sind.
@@ -283,38 +283,49 @@ export default function TimeView() {
    * nicht durchkommt, wäre das Verhältnis zwischen Nutzen und Schaden verkehrt
    * herum — gebucht werden muss auch dann.
    */
-  useEffect(() => {
-    if (!user) return;
-    let verworfen = false;
+  /*
+    Die eigenen unterschriebenen Scheine der letzten zwei Wochen — für die
+    Frage, wozu noch kein Zeiteintrag existiert. Eng gefasst geholt, weil
+    jeder Schein die beiden Unterschriftsbilder mitträgt und damit rund
+    70 KB wiegt.
+  */
+  const scheineAb = (() => {
     const ab = new Date();
     ab.setDate(ab.getDate() - NACHTRAG_TAGE);
-    listOwnWorkSheetsSince(user.companyId, user.uid, localDateStr(ab))
-      .then((rows) => {
-        if (!verworfen) setEigeneScheine(rows);
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        if (!verworfen) setScheineGeladen(true);
-      });
-    return () => {
-      verworfen = true;
-    };
-  }, [user]);
+    return localDateStr(ab);
+  })();
+  const scheineAbfrage = useZwischengespeichert<WithId<WorkSheet>[]>({
+    queryKey: user ? schluessel('eigeneScheine', user, scheineAb) : ['eigeneScheine'],
+    enabled: !!user,
+    queryFn: () => listOwnWorkSheetsSince(user!.companyId, user!.uid, scheineAb),
+  });
+  const eigeneScheine = scheineAbfrage.data ?? KEINE_SCHEINE;
+  // Auch ein Fehler ist „fertig“: dann gibt es eben keinen Hinweis (siehe oben).
+  const scheineGeladen = !scheineAbfrage.isPending || scheineAbfrage.isError;
 
   const eigenesSollSchluessel = hatTagessoll(profile);
-  useEffect(() => {
-    if (!user || !profile?.appStartDate) return;
-    let verworfen = false;
-    const eintritt = profile.appStartDate;
-    const eigenesSoll = eigenesSollSchluessel;
-
-    (async () => {
-      const marker = await bilanzMarker(user.companyId, user.uid).catch(() => null);
+  const eintritt = profile?.appStartDate ?? null;
+  /*
+    Der INHALT der Einträge im Schlüssel, nicht das Array: nach dem Buchen
+    oder Löschen muss der Saldo neu gerechnet werden, nach einem bloßen
+    Schnappschuss ohne Änderung nicht. Bis die neue Grundlage da ist, bleibt
+    die alte stehen (`keepPreviousData`) — wie bisher, ohne Platzhalter
+    zwischen zwei Buchungen. Erst mit den Einträgen: vorher rechnete er
+    einmal umsonst aus der leeren Liste.
+  */
+  const saldoAbfrage = useZwischengespeichert<SaldoGrundlage>({
+    queryKey: user && eintritt
+      ? schluessel('saldoGrundlage', user, eintritt, eigenesSollSchluessel, eintraegeSchluessel)
+      : ['saldoGrundlage'],
+    enabled: !!user && !!eintritt && !loading,
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const marker = await bilanzMarker(user!.companyId, user!.uid).catch(() => null);
       // Der Marker muss den Eintrittsmonat MITABDECKEN. Deckt er erst einen
       // späteren ab, fehlt der Anfang — und damit wäre der Saldo zu niedrig.
       // Mit eigenem Tagessoll je Wochentag (M5) reichen die Bilanzen nicht: sie zählen
       // Krank- und Urlaubstage, sagen aber nicht, auf welchen Wochentag sie fielen.
-      const brauchbar = !!marker && marker.vollstaendigAb <= monatVon(eintritt) && !eigenesSoll;
+      const brauchbar = !!marker && marker.vollstaendigAb <= monatVon(eintritt!) && !eigenesSollSchluessel;
 
       if (brauchbar) {
         /*
@@ -323,34 +334,32 @@ export default function TimeView() {
           P1-15). Ein Monat Einträge — nicht der ganze Bestand.
         */
         const [rows, startRows] = await Promise.all([
-          listBilanzen(user.companyId, user.uid, monatVon(eintritt)),
-          listOwnEntriesInRange(user.companyId, user.uid, eintritt, monatsLetzter(eintritt)),
+          listBilanzen(user!.companyId, user!.uid, monatVon(eintritt!)),
+          listOwnEntriesInRange(user!.companyId, user!.uid, eintritt!, monatsLetzter(eintritt!)),
         ]);
-        if (verworfen) return;
-        setBilanzen(rows);
-        setEintrittsEintraege(startRows);
-        setSaldoEintraege([]);
-      } else {
-        const rows = await listOwnEntriesSince(user.companyId, user.uid, eintritt);
-        if (verworfen) return;
-        setBilanzen(null);
-        setSaldoEintraege(rows);
+        return { bilanzen: rows, eintrittsEintraege: startRows, saldoEintraege: [] };
       }
-      setSaldoGeladen(true);
-      // Auch hier keine Stille: der Saldo ist die Zahl, auf die es dem
-      // Monteur ankommt. Steht sie nicht, muss dastehen, warum.
-    })().catch(() => {
-      setProfilFehler(true);
-      setSaldoGeladen(true);
-    });
+      const rows = await listOwnEntriesSince(user!.companyId, user!.uid, eintritt!);
+      return { bilanzen: null, eintrittsEintraege: [], saldoEintraege: rows };
+    },
+  });
+  const bilanzen = saldoAbfrage.data?.bilanzen ?? null;
+  const saldoEintraege = saldoAbfrage.data?.saldoEintraege ?? KEINE_EINTRAEGE;
+  /** Der Eintrittsmonat ab dem Eintritt — siehe `saldoAusBilanzen` (P1-15). */
+  const eintrittsEintraege = saldoAbfrage.data?.eintrittsEintraege ?? KEINE_EINTRAEGE;
+  const saldoGeladen = saldoAbfrage.data !== undefined || saldoAbfrage.isError;
 
-    return () => {
-      verworfen = true;
-    };
-    // Der INHALT der Einträge als Auslöser, nicht das Array: nach dem Buchen
-    // oder Löschen muss der Saldo neu gerechnet werden, nach einem bloßen
-    // Schnappschuss ohne Änderung nicht.
-  }, [user, profile?.appStartDate, eintraegeSchluessel, eigenesSollSchluessel]);
+  /*
+    Auch die Grundlage des Saldos darf nicht stumm ausbleiben (siehe beim
+    Stammdatenblatt): er ist die Zahl, auf die es dem Monteur ankommt.
+    „Erneut versuchen“ holt beides — vorher nur das Stammdatenblatt, und der
+    Saldo blieb aus.
+  */
+  const profilFehler = profilAbfrage.isError || saldoAbfrage.isError;
+  const profilLaden = () => {
+    void profilAbfrage.refetch();
+    if (eintritt) void saldoAbfrage.refetch();
+  };
 
   const saldo = useMemo(() => {
     if (!profile) return null;
@@ -511,6 +520,16 @@ export default function TimeView() {
   const saldoBereit = profilFehler || (profile !== null && (!profile.appStartDate || (saldoGeladen && !loading)));
   /** Ein Nachtrag ist erst einer, wenn Scheine UND Buchungen geladen sind. */
   const nachtraegeBereit = !loading && scheineGeladen;
+  /*
+    DIE LISTE DER NACHTRÄGE IST ZU (Messung 11.10.2026). Der Hinweis steht
+    über Saldo und Formular und kann erst mit Scheinen und Buchungen
+    erscheinen; mit drei Scheinen samt Knöpfen schob er das Formular um ein
+    halbes Telefon nach unten (Verschiebung 0,30) — genau in dem Augenblick,
+    in dem der Monteur zu tippen beginnt. Eine Zeile verschiebt kaum etwas.
+    Aufgeklappt wird auf Tipp; was der Nutzer selbst auslöst, ist kein
+    Springen.
+  */
+  const [nachtraegeOffen, setNachtraegeOffen] = useState(false);
 
   if (!user) return null;
 
@@ -700,7 +719,7 @@ export default function TimeView() {
         nie gebuchte Stunde wird nie verrechnet.
       */}
       {nachtraegeBereit && nachtraege.length > 0 && (
-        // Eine Hinweiszeile mit der Liste darunter, kein farbiger Kasten.
+        // Eine Hinweiszeile, die Liste darunter auf Tipp — kein farbiger Kasten.
         <Hinweiszeile stufe="warn" role="alert">
           <p className="flex flex-wrap items-center gap-1">
             <strong>
@@ -740,8 +759,18 @@ export default function TimeView() {
               Arbeitstag ist regelmäßig länger als die Zeit beim Kunden, und das ist richtig
               so. Erinnert wird {NACHTRAG_TAGE} Tage lang — was älter ist, klärt das Büro.
             </InfoHint>
+            <button
+              type="button"
+              className="link text-sm"
+              aria-expanded={nachtraegeOffen}
+              aria-controls="offene-nachtraege"
+              onClick={() => setNachtraegeOffen((o) => !o)}
+            >
+              {nachtraegeOffen ? 'Ausblenden' : nachtraege.length === 1 ? 'Anzeigen' : 'Alle anzeigen'}
+            </button>
           </p>
-          <ul className="mt-2 space-y-2">
+          {nachtraegeOffen && (
+          <ul id="offene-nachtraege" className="mt-2 space-y-2">
             {nachtraege.map((n) => (
               <li key={n.schein.id} className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-ink">
@@ -772,6 +801,7 @@ export default function TimeView() {
               </li>
             ))}
           </ul>
+          )}
         </Hinweiszeile>
       )}
 
