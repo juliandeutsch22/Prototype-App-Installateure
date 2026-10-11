@@ -1,11 +1,19 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
+import { zwischenspeicherLeeren } from '@/lib/zwischenspeicher';
 
 // Nach jedem Test das DOM leeren. Ohne das sammeln sich die gerenderten
 // Bäume an und eine Abfrage wie getByRole('button') findet plötzlich
 // Elemente aus einem früheren Test.
 afterEach(cleanup);
+
+/*
+  Der Zwischenspeicher der App (Stufe 3) lebt auf Modulebene. Ohne Leeren sähe
+  ein Test den Stand des vorigen — mit denselben gestellten Benutzern hätte er
+  denselben Schlüssel.
+*/
+afterEach(() => zwischenspeicherLeeren());
 
 /**
  * Kein Komponenten-Test spricht mit Firebase.

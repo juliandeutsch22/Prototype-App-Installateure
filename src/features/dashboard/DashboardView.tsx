@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { useModul } from '@/lib/useModule';
 import { localDateStr, todayStr, getISOWeek } from '@/lib/time';
@@ -47,6 +47,7 @@ import {
   type StartRolle,
 } from './start/laden';
 import { listUsers } from '@/lib/db/users';
+import { schluessel, useZwischengespeichert } from '@/lib/zwischenspeicher';
 
 /**
  * DIE STARTSEITE (Testbericht 4.2, Nachtest 01.10.2026 Paket B; Skizzen in
@@ -74,6 +75,9 @@ import { listUsers } from '@/lib/db/users';
  * Was eine Rolle zeigt, steht in `start/aufbau.ts` und `start/regeln.ts`;
  * geladen wird in `start/laden.ts`.
  */
+const KEINE_DATEN: StartDaten = {};
+const KEINE_NAMEN: string[] = [];
+
 export default function DashboardView() {
   const { user, company, einblick } = useAuth();
   const scheineAn = useModul('scheine');
@@ -82,21 +86,6 @@ export default function DashboardView() {
   const wartungAn = useModul('wartung');
   const urlaubAn = useModul('urlaub');
   const einsatzAn = useModul('einsatzplanung');
-  const [data, setData] = useState<StartDaten>({});
-  /*
-    Wie viele Ladeblöcke noch laufen. Beginnt bei 1, nicht bei 0: bis der
-    Effekt seine Blöcke zählt, ist die Seite noch nicht geladen — sonst stand
-    einen Augenblick „Heute liegt nichts an“ da.
-  */
-  const [laeuft, setLaeuft] = useState(1);
-  /*
-    WELCHER TEIL NICHT KAM — und dass es jemand erfährt. Jeder Block für
-    sich: fällt die Buchhaltung aus, sieht der Monteur trotzdem, wo er heute
-    hin muss, und die Seite sagt, was fehlt. Eine Startseite, die weniger
-    zeigt als sonst, sähe sonst aus wie ein ruhiger Tag.
-  */
-  const [nichtGeladen, setNichtGeladen] = useState<string[]>([]);
-
   const rolle: StartRolle = user ? startRolle(user.role) : 'monteur';
   const mitZeitkonto = user ? fuehrtZeitkonto(user) : false;
   const heute = todayStr();
@@ -109,75 +98,83 @@ export default function DashboardView() {
   // Sonderurlaub bestätigen Büro und Spitze (Plan 10.3) — nur mit dem Modul Urlaub.
   const freistellungBestaetigen = !!user && urlaubAn && canEditTime(user.role);
 
-  useEffect(() => {
-    if (!user) return;
-    let weg = false;
-    // Die Belegschaft einmal für alle Blöcke dieses Aufbaus.
-    let belegschaft: ReturnType<typeof listUsers> | null = null;
-    const k: Kontext = {
-      user, company, heute: todayStr(),
-      belegschaft: () => (belegschaft ??= listUsers(user.companyId)),
-    };
-    const r = startRolle(user.role);
-    setData({});
-    setNichtGeladen([]);
+  /*
+    ALLE LADEBLÖCKE IN EINER ABFRAGE, ZWISCHENGESPEICHERT (Stufe 3,
+    `lib/zwischenspeicher.ts`). Erscheinen tun sie seit Stufe 2 ohnehin
+    zusammen; so steht beim zweiten Besuch sofort der letzte Stand da, und im
+    Hintergrund wird frisch geholt. Der Schlüssel enthält alles, wovon die
+    Blöcke abhängen — ändert sich etwas davon, wird neu geladen wie bisher.
 
-    const bloecke: [string, () => Promise<Partial<StartDaten>>][] = [];
-    if (mitZeitkonto || isMitarbeiter(user.role)) {
-      bloecke.push(['Deine Tage und Einsätze', () => persoenlich(k, {
-        material: materialAn,
-        scheine: scheineAn && r === 'monteur',
-        kennzahlen: r === 'monteur',
-        jugendschutz: r === 'monteur',
-      })]);
-    }
-    if (materialAn && canProcessOrders(user.role)) {
-      const lagerSelbst = r === 'verwaltung' || r === 'leitung';
-      bloecke.push(['Anforderungen und Lager', () => lager(k, {
-        posten: lagerSelbst && darfEinkaufSehen(user),
-        bestand: lagerSelbst,
-      })]);
-    }
-    if (canInvoice(user.role) && (rechnungenAn || scheineAn)) {
-      bloecke.push(['Rechnungen und Scheine', () => buchhaltung(k, { rechnungen: rechnungenAn, scheine: scheineAn })]);
-    }
-    if (canEditTime(user.role) || urlaubEntscheiden) {
-      bloecke.push(['Die Mannschaft', () => team(k, {
-        luecken: canEditTime(user.role), urlaub: urlaubEntscheiden, freistellungen: freistellungBestaetigen,
-      })]);
-    }
-    if (isGF(user.role)) {
-      bloecke.push(['Baustellen und Einsätze', () => leitung(k, { einsatzplanung: einsatzAn, wartung: wartungAn, budget: true })]);
-    }
-    // Termine gehören zur Einsatzplanung (Plan 10.4) — jede Rolle kann Teilnehmer sein.
-    if (einsatzAn) {
-      bloecke.push(['Deine Termine', () => termineHeute(k)]);
-    }
-    if (isTopLevel(user.role)) {
-      bloecke.push(['Einstellungen', () => einstellungen(k, { rechnungen: rechnungenAn, konten: true, personen: true })]);
-    } else if (r === 'buchhaltung' && rechnungenAn) {
-      // Den Basiszinssatz pflegt die Buchhaltung selbst (Paket 2, 03.10.2026).
-      bloecke.push(['Einstellungen', () => einstellungen(k, { rechnungen: true, konten: false, personen: false })]);
-    }
+    WELCHER TEIL NICHT KAM — und dass es jemand erfährt. Jeder Block für
+    sich: fällt die Buchhaltung aus, sieht der Monteur trotzdem, wo er heute
+    hin muss, und die Seite sagt, was fehlt. Eine Startseite, die weniger
+    zeigt als sonst, sähe sonst aus wie ein ruhiger Tag.
+  */
+  const abfrage = useZwischengespeichert<{ data: StartDaten; nichtGeladen: string[] }>({
+    queryKey: user
+      ? schluessel('startseite', user, heute, { user, company, mitZeitkonto, materialAn, scheineAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen })
+      : ['startseite'],
+    enabled: !!user,
+    queryFn: async () => {
+      if (!user) return { data: {}, nichtGeladen: [] };
+      // Die Belegschaft einmal für alle Blöcke dieses Aufbaus.
+      let belegschaft: ReturnType<typeof listUsers> | null = null;
+      const k: Kontext = {
+        user, company, heute: todayStr(),
+        belegschaft: () => (belegschaft ??= listUsers(user.companyId)),
+      };
+      const r = startRolle(user.role);
+      const bloecke: [string, () => Promise<Partial<StartDaten>>][] = [];
+      if (mitZeitkonto || isMitarbeiter(user.role)) {
+        bloecke.push(['Deine Tage und Einsätze', () => persoenlich(k, {
+          material: materialAn,
+          scheine: scheineAn && r === 'monteur',
+          kennzahlen: r === 'monteur',
+          jugendschutz: r === 'monteur',
+        })]);
+      }
+      if (materialAn && canProcessOrders(user.role)) {
+        const lagerSelbst = r === 'verwaltung' || r === 'leitung';
+        bloecke.push(['Anforderungen und Lager', () => lager(k, {
+          posten: lagerSelbst && darfEinkaufSehen(user),
+          bestand: lagerSelbst,
+        })]);
+      }
+      if (canInvoice(user.role) && (rechnungenAn || scheineAn)) {
+        bloecke.push(['Rechnungen und Scheine', () => buchhaltung(k, { rechnungen: rechnungenAn, scheine: scheineAn })]);
+      }
+      if (canEditTime(user.role) || urlaubEntscheiden) {
+        bloecke.push(['Die Mannschaft', () => team(k, {
+          luecken: canEditTime(user.role), urlaub: urlaubEntscheiden, freistellungen: freistellungBestaetigen,
+        })]);
+      }
+      if (isGF(user.role)) {
+        bloecke.push(['Baustellen und Einsätze', () => leitung(k, { einsatzplanung: einsatzAn, wartung: wartungAn, budget: true })]);
+      }
+      // Termine gehören zur Einsatzplanung (Plan 10.4) — jede Rolle kann Teilnehmer sein.
+      if (einsatzAn) {
+        bloecke.push(['Deine Termine', () => termineHeute(k)]);
+      }
+      if (isTopLevel(user.role)) {
+        bloecke.push(['Einstellungen', () => einstellungen(k, { rechnungen: rechnungenAn, konten: true, personen: true })]);
+      } else if (r === 'buchhaltung' && rechnungenAn) {
+        // Den Basiszinssatz pflegt die Buchhaltung selbst (Paket 2, 03.10.2026).
+        bloecke.push(['Einstellungen', () => einstellungen(k, { rechnungen: true, konten: false, personen: false })]);
+      }
 
-    setLaeuft(bloecke.length);
-    for (const [name, lauf] of bloecke) {
-      void Promise.resolve()
-        .then(lauf)
-        .then((teil) => {
-          if (!weg) setData((v) => ({ ...v, ...teil }));
-        })
-        .catch(() => {
-          if (!weg) setNichtGeladen((f) => (f.includes(name) ? f : [...f, name]));
-        })
-        .finally(() => {
-          if (!weg) setLaeuft((n) => n - 1);
-        });
-    }
-    return () => {
-      weg = true;
-    };
-  }, [user, company, mitZeitkonto, materialAn, scheineAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen]);
+      const data: StartDaten = {};
+      const nichtGeladen: string[] = [];
+      const ergebnisse = await Promise.allSettled(bloecke.map(([, lauf]) => Promise.resolve().then(lauf)));
+      ergebnisse.forEach((e, i) => {
+        if (e.status === 'fulfilled') Object.assign(data, e.value);
+        else nichtGeladen.push(bloecke[i][0]);
+      });
+      return { data, nichtGeladen };
+    },
+  });
+  // Feste leere Werte: ein neues `{}` je Zeichnen rechnete die Seite jedes Mal neu.
+  const data = abfrage.data?.data ?? KEINE_DATEN;
+  const nichtGeladen = abfrage.data?.nichtGeladen ?? KEINE_NAMEN;
 
   const seite = useMemo(
     () => startseite(data, { rolle, heute, jetzt: Date.now(), darf, urlaubEntscheiden, freistellungBestaetigen, ich: user?.uid }),
@@ -195,7 +192,8 @@ export default function DashboardView() {
     };
   })();
 
-  const nochAmLaden = laeuft > 0;
+  // Bis zum ersten Stand — beim zweiten Besuch steht der letzte sofort da.
+  const nochAmLaden = abfrage.isPending;
   const eigene = data.heuteEigene ?? [];
   const termine = data.termineHeute ?? [];
   const planVerweis = darf('/my-schedule');

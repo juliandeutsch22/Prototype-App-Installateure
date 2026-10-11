@@ -531,6 +531,34 @@ describe('Startseite — Geschäftsführung', () => {
     expect(screen.getByRole('link', { name: /1 Eilanforderung offen/ })).toBeInTheDocument();
   });
 
+  /*
+    DER ZWEITE BESUCH (Stufe 3, `lib/zwischenspeicher.ts`): sofort der letzte
+    Stand statt der Platzhalter — und im Hintergrund frisch geholt, der dann
+    als Ganzes an seine Stelle tritt.
+  */
+  it('beim zweiten Besuch steht sofort der letzte Stand da, der frische ersetzt ihn', async () => {
+    rolle.wert = 'Geschäftsführung';
+    anforderungen.wert = [anforderung({ id: 'e1', isUrgent: true })];
+    const erster = zeichne();
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    expect(await screen.findByRole('link', { name: /1 Eilanforderung offen/ })).toBeInTheDocument();
+    erster.unmount();
+
+    // Inzwischen kam eine zweite dazu; die Rechnungen antworten diesmal erst später.
+    anforderungen.wert = [anforderung({ id: 'e1', isUrgent: true }), anforderung({ id: 'e2', isUrgent: true })];
+    const { listUnpaidInvoices } = await import('@/lib/db/invoices');
+    let liefern: (r: unknown[]) => void = () => undefined;
+    vi.mocked(listUnpaidInvoices).mockImplementationOnce(() => new Promise((ok) => { liefern = ok as (r: unknown[]) => void; }) as never);
+    zeichne();
+    // Kein Platzhalter: der letzte Stand ist gleich da.
+    expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull();
+    expect(screen.getByRole('link', { name: /1 Eilanforderung offen/ })).toBeInTheDocument();
+    await waitFor(() => expect(listUnpaidInvoices).toHaveBeenCalled());
+
+    await act(async () => liefern([]));
+    expect(await screen.findByRole('link', { name: /2 Eilanforderungen offen/ })).toBeInTheDocument();
+  });
+
   it('fasst nach Themen zusammen und klappt „und N weitere“ an Ort und Stelle auf', async () => {
     rolle.wert = 'Geschäftsführung';
     anforderungen.wert = [
