@@ -42,7 +42,7 @@ Bildschirmfotos:    nicht ins Repository gelegt (Vorschau-Fotos lagen im Arbeits
 Dokumentation:      Handbuch („Bearbeiten“ ist jetzt die Zeile; Antrag mit Verlauf; Krankmeldung
                     im Seitenfenster) und FUNKTIONEN.md: offen — gehören nicht zu den Dateien
                     dieses Pakets
-Freigabe Betreiber: ____________________  Datum: __________   (offen, Entscheidung E5)
+Freigabe Betreiber: erteilt am 11.10.2026 (für alle Schritte der Linie „Lot“)
 ```
 
 ## Was sich geändert hat (Kurzfassung)

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within, waitFor, cleanup } from '@testing-library/react';
+import { act, render, screen, within, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -50,6 +50,8 @@ const KUNDEN: (Customer & { id: string })[] = [
 let baustellen: (Project & { id: string })[] = [BAUSTELLE];
 let belegschaft: AppUser[] = BELEGSCHAFT;
 let nebenladenScheitert = false;
+/** Hält die Belegschaft zurück, bis die Prüfung sie freigibt (11.10.2026). */
+let belegschaftWarten: Promise<void> | null = null;
 
 const listProjectsByIds = vi.fn(async () => baustellen);
 const updateProject = vi.fn(async () => undefined);
@@ -71,6 +73,7 @@ vi.mock('@/lib/db/projects', () => ({
 }));
 vi.mock('@/lib/db/users', () => ({
   listUsers: async () => {
+    if (belegschaftWarten) await belegschaftWarten;
     if (nebenladenScheitert) throw new Error('kaputt');
     return belegschaft;
   },
@@ -167,6 +170,7 @@ vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ user: nutzer }) }));
 
 const { default: BaustellenakteView } = await import('@/features/projects/BaustellenakteView');
 const { listTermineDerBaustelle } = await import('@/lib/db/termine');
+const { zwischenspeicherFuer } = await import('@/lib/liveSpeicher');
 
 function zeige(id = 'b1') {
   return render(
@@ -190,6 +194,7 @@ beforeEach(() => {
   baustellen = [BAUSTELLE];
   belegschaft = BELEGSCHAFT;
   nebenladenScheitert = false;
+  belegschaftWarten = null;
   scheine = [];
   aufRechnung = [];
   listWorkSheetsForProject.mockClear();
@@ -777,5 +782,38 @@ describe('Die Handwerksscheine der Baustelle', () => {
     await screen.findByLabelText(/Projektnummer/);
     expect(document.getElementById('b-scheine')).toBeNull();
     expect(listWorkSheetsForProject).not.toHaveBeenCalled();
+  });
+});
+
+/*
+  TEAM UND LEITUNG ERST MIT DER BELEGSCHAFT (11.10.2026). Bis sie kam,
+  standen in der Zeile „Mannschaft“ anderthalb Sekunden lang die internen
+  Kennungen — gemessen am Bestand „fünf Jahre“, bei jedem Besuch.
+  Gegenprobe: gegen den Stand davor rot.
+*/
+describe('Baustellenakte — Team erst mit der Belegschaft', () => {
+  it('zeigt nie die Kennungen, solange die Belegschaft lädt', async () => {
+    let freigeben: () => void = () => undefined;
+    belegschaftWarten = new Promise((fertig) => { freigeben = fertig; });
+    zeige();
+    // Erst die Leseansicht, dann (Geschäftsführung) die Felder — beide sollen keine Kennung zeigen.
+    await waitFor(() => expect(screen.getAllByText('Mannschaft').length).toBeGreaterThan(0));
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    expect(screen.queryByText(/u1, u2/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Leitung: u9/)).not.toBeInTheDocument();
+    await act(async () => { freigeben(); });
+    expect(await screen.findByText(/Anton Meier, Berta Klein/)).toBeInTheDocument();
+  });
+
+  it('beim zweiten Besuch stehen die Namen sofort da', async () => {
+    zwischenspeicherFuer('chef', 'perl');
+    const erst = zeige();
+    expect(await screen.findByText(/Anton Meier, Berta Klein/)).toBeInTheDocument();
+    erst.unmount();
+
+    // Jetzt antwortet die Belegschaft nicht mehr: die Namen kommen aus dem gemerkten Stand.
+    belegschaftWarten = new Promise(() => undefined);
+    zeige();
+    expect(await screen.findByText(/Anton Meier, Berta Klein/)).toBeInTheDocument();
   });
 });

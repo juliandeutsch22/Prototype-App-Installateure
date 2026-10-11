@@ -76,10 +76,19 @@ export const termineText = (n: number) => (n === 1 ? '1 Termin' : `${n} Termine`
 export const ohneAnnahmeText = (n: number) =>
   n === 1 ? 'Lieferung ohne Annahme' : `${n} Lieferungen ohne Annahme`;
 
+// Die Formatierer einmal, jeder Tag einmal — wie `tagKurz` in `planTypen.ts` (11.10.2026).
+const WOCHENTAG_LANG = new Intl.DateTimeFormat('de-AT', { weekday: 'long' });
+const TAG_MONAT = new Intl.DateTimeFormat('de-AT', { day: '2-digit', month: '2-digit' });
+const schonGeschrieben = new Map<string, string>();
+
 /** „Mittwoch 07.10.“ — für die Vorlesehilfe, ausgeschrieben. */
 export function tagLang(iso: string): string {
+  const da = schonGeschrieben.get(iso);
+  if (da !== undefined) return da;
   const d = new Date(`${iso}T00:00:00`);
-  return `${d.toLocaleDateString('de-AT', { weekday: 'long' })} ${d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit' })}`;
+  const text = `${WOCHENTAG_LANG.format(d)} ${TAG_MONAT.format(d)}`;
+  schonGeschrieben.set(iso, text);
+  return text;
 }
 
 /**

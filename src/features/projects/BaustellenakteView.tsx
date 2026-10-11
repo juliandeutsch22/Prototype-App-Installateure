@@ -8,6 +8,8 @@ import { alsEntwurf, gleich, stammdatenFehler, stundenbudgetAus, type Baustellen
 import BaustellenPlaene from './BaustellenPlaene';
 import BaustellenScheine from './BaustellenScheine';
 import { listUsers } from '@/lib/db/users';
+import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
+import { Wert } from '@/components/Wert';
 import { listCustomers } from '@/lib/db/customers';
 import { listQuotesForProject } from '@/lib/db/quotes';
 import { pauschalAngebot } from '@/features/invoices/pauschale';
@@ -84,7 +86,18 @@ export default function BaustellenakteView() {
   const [angebote, setAngebote] = useState<WithId<Quote>[]>([]);
 
   const [baustelle, setBaustelle] = useState<Teil<WithId<Project> | null>>(LAEDT);
-  const [users, setUsers] = useState<AppUser[]>([]);
+  /*
+    DIE BELEGSCHAFT, gemerkt für den nächsten Besuch (Stufe 3) — derselbe
+    Schlüssel wie Baustellenliste und „Tag planen“. Bis sie da ist (oder ihr
+    Fehler), stehen Team und Leitung als Platzhalter: vorher standen dort
+    anderthalb Sekunden lang die internen Kennungen („ea9573da-…“,
+    Messung 11.10.2026).
+  */
+  const { anfang: belegschaftGemerkt, merken: belegschaftMerken } = useGemerkt<{ users: AppUser[] }>(
+    user ? schluessel('belegschaft', user) : null,
+  );
+  const [users, setUsers] = useState<AppUser[]>(() => belegschaftGemerkt?.users ?? []);
+  const [namenDa, setNamenDa] = useState(() => belegschaftGemerkt?.users !== undefined);
   const [kunden, setKunden] = useState<(Customer & { id: string })[]>([]);
   /** Ein Nebenladevorgang ist ausgefallen — die Stammdaten stehen trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
@@ -139,16 +152,19 @@ export default function BaustellenakteView() {
         if (weg) return;
         setUsers(u);
         setKunden(k);
+        belegschaftMerken({ users: u });
       } catch {
         // Ohne Hinweis blieben Team und Kundenauswahl einfach leer, und es
         // sähe aus, als hätte der Betrieb weder Monteure noch Kunden.
         if (!weg) setNebenFehler(darfAendern ? 'Belegschaft und Kundenstamm' : 'Belegschaft');
+      } finally {
+        if (!weg) setNamenDa(true);
       }
     })();
     return () => {
       weg = true;
     };
-  }, [companyId, darfAendern]);
+  }, [companyId, darfAendern, belegschaftMerken]);
 
   const daten = baustelle.zustand === 'bereit' ? baustelle.daten : null;
 
@@ -408,6 +424,7 @@ export default function BaustellenakteView() {
           staff={staff}
           leads={leads}
           namen={namen}
+          namenDa={namenDa}
           geaendert={geaendert}
           speichert={speichert}
           fehler={speicherFehler}
@@ -417,7 +434,7 @@ export default function BaustellenakteView() {
           angeboteSichtbar={angeboteSichtbar}
         />
       ) : (
-        <StammdatenLesen b={b} namen={namen} />
+        <StammdatenLesen b={b} namen={namen} namenDa={namenDa} />
       )}
     </Card>
   );
@@ -601,6 +618,8 @@ function koepfe(d: {
   endDate?: string;
   team: string[];
   leitung: string[];
+  /** Ist die Belegschaft da? Vorher ein Platzhalter statt Kennungen. */
+  namenDa: boolean;
 }) {
   const budget = typeof d.estimatedHours === 'string' ? stundenbudgetAus(d.estimatedHours) : d.estimatedHours;
   return {
@@ -616,7 +635,9 @@ function koepfe(d: {
       d.startDate || d.endDate
         ? `${fmtDatum(d.startDate) || 'offen'} – ${fmtDatum(d.endDate) || 'offen'}`
         : 'nicht festgelegt',
-    mannschaft: (
+    mannschaft: !d.namenDa ? (
+      <Wert bereit={false} muster="Monteur Muster, Monteur Muster · Leitung: Paul Projektleiter">{null}</Wert>
+    ) : (
       <>
         {d.team.length > 0 ? d.team.join(', ') : 'kein Team'}
         {' · '}
@@ -631,10 +652,10 @@ function koepfe(d: {
 }
 
 /** Die Stammdaten für alle, die sie nicht ändern dürfen. */
-function StammdatenLesen({ b, namen }: { b: Project; namen: Map<string, string> }) {
+function StammdatenLesen({ b, namen, namenDa }: { b: Project; namen: Map<string, string>; namenDa: boolean }) {
   const team = (b.assignedEmployees ?? []).map((u) => namen.get(u) ?? u);
   const leitung = (b.projectManagers ?? []).map((u) => namen.get(u) ?? u);
-  const k = koepfe({ ...b, team, leitung });
+  const k = koepfe({ ...b, team, leitung, namenDa });
   return (
     <div className="-mx-4 -mb-4">
       {/* Anrufen und hinfahren, ohne erst aufzuklappen. */}
@@ -676,8 +697,12 @@ function StammdatenLesen({ b, namen }: { b: Project; namen: Map<string, string> 
       </Gruppe>
       <Gruppe name="Mannschaft" wert={k.mannschaft}>
         <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-          <Angabe wort="Team">{team.join(', ')}</Angabe>
-          <Angabe wort="Projektleitung">{leitung.join(', ')}</Angabe>
+          <Angabe wort="Team">
+            {namenDa ? team.join(', ') : <Wert bereit={false} muster="Monteur Muster, Monteur Muster">{null}</Wert>}
+          </Angabe>
+          <Angabe wort="Projektleitung">
+            {namenDa ? leitung.join(', ') : <Wert bereit={false} muster="Paul Projektleiter">{null}</Wert>}
+          </Angabe>
         </dl>
       </Gruppe>
     </div>
@@ -691,6 +716,7 @@ interface FormularProps {
   staff: AppUser[];
   leads: AppUser[];
   namen: Map<string, string>;
+  namenDa: boolean;
   geaendert: boolean;
   speichert: boolean;
   fehler: string | null;
@@ -710,7 +736,7 @@ interface FormularProps {
  * im Feld steht.
  */
 function StammdatenFormular({
-  entwurf, setEntwurf, kunden, staff, leads, namen,
+  entwurf, setEntwurf, kunden, staff, leads, namen, namenDa,
   geaendert, speichert, fehler, onSpeichern, onVerwerfen, angebote, angeboteSichtbar,
 }: FormularProps) {
   const setze = <F extends keyof BaustellenEntwurf>(feld: F, wert: BaustellenEntwurf[F]) =>
@@ -721,6 +747,7 @@ function StammdatenFormular({
     billingMode: entwurf.billingMode || undefined,
     team: entwurf.assignedEmployees.map((u) => namen.get(u) ?? u),
     leitung: entwurf.projectManagers.map((u) => namen.get(u) ?? u),
+    namenDa,
   });
   const pauschal = entwurf.billingMode === 'Pauschal' || entwurf.billingMode === 'Einheitspreis';
 
@@ -864,22 +891,28 @@ function StammdatenFormular({
         </div>
 
         <Gruppe name="Mannschaft" wert={k.mannschaft}>
-          <PersonPicker
-            legend="Zugeordnete Mitarbeiter"
-            idPrefix="akte-emp"
-            people={staff.map((u) => ({ uid: u.uid, name: u.name }))}
-            selected={entwurf.assignedEmployees}
-            onChange={(w) => setze('assignedEmployees', w)}
-            emptyHint="Keine aktiven Monteure vorhanden."
-          />
-          <PersonPicker
-            legend="Verantwortliche Projektleitung"
-            idPrefix="akte-lead"
-            people={leads.map((u) => ({ uid: u.uid, name: u.name, hint: u.role }))}
-            selected={entwurf.projectManagers}
-            onChange={(w) => setze('projectManagers', w)}
-            emptyHint="Keine Projektleitung angelegt."
-          />
+          {!namenDa ? (
+            <SkeletonList rows={4} />
+          ) : (
+            <>
+              <PersonPicker
+                legend="Zugeordnete Mitarbeiter"
+                idPrefix="akte-emp"
+                people={staff.map((u) => ({ uid: u.uid, name: u.name }))}
+                selected={entwurf.assignedEmployees}
+                onChange={(w) => setze('assignedEmployees', w)}
+                emptyHint="Keine aktiven Monteure vorhanden."
+              />
+              <PersonPicker
+                legend="Verantwortliche Projektleitung"
+                idPrefix="akte-lead"
+                people={leads.map((u) => ({ uid: u.uid, name: u.name, hint: u.role }))}
+                selected={entwurf.projectManagers}
+                onChange={(w) => setze('projectManagers', w)}
+                emptyHint="Keine Projektleitung angelegt."
+              />
+            </>
+          )}
         </Gruppe>
         {/* Ohne Zuständige läuft eine Eilbestellung ins Leere — das gehört
             gesagt, nicht erst, wenn ein Monteur wartet. */}

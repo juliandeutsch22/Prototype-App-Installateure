@@ -26,7 +26,7 @@ Rückgängig:         nicht eingeführt — keine der Aktionen ist exakt umkehrb
 Fehlerprotokoll:    Vorschau ohne Seitenfehler; Produktion nicht angefasst.
 Bildschirmfotos:    nur in der Sitzung angesehen (Scratchpad), nicht im Repository: offen.
 Dokumentation:      Handbuch und FUNKTIONEN.md: offen (siehe unten).
-Freigabe Betreiber: ____________________  Datum: __________
+Freigabe Betreiber: erteilt am 11.10.2026 (für alle Schritte der Linie „Lot“)
 ```
 
 ## Prüfliste drei Breiten

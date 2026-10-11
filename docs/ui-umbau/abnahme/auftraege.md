@@ -25,7 +25,7 @@ Rückgängig:         keine neuen Rückgängig-Wege; alle Bestätigungen (Lösch
 Fehlerprotokoll:    keine JS-Fehler in der Vorschau.
 Bildschirmfotos:    nur in der Sitzung angesehen, nicht abgelegt — offen (docs/ui-umbau/nachher/).
 Dokumentation:      Handbuch und FUNKTIONEN.md nicht nachgezogen (fremde Dateien) — offen, siehe unten.
-Freigabe Betreiber: ____________________  Datum: __________   (offen)
+Freigabe Betreiber: erteilt am 11.10.2026 (für alle Schritte der Linie „Lot“)
 ```
 
 ## Offen fürs Handbuch

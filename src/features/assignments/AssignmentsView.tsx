@@ -5,6 +5,7 @@ import { useAuth } from '@/app/AuthContext';
 import { einplanbar } from '@/lib/permissions';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
+import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { listAbwesendInRange, type Abwesenheit } from '@/lib/db/vacations';
 import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
 import { subscribeAssignmentsForMonth, deleteAssignment } from '@/lib/db/assignments';
@@ -44,7 +45,16 @@ export default function AssignmentsView() {
   const { user, company } = useAuth();
   const toast = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [users, setUsers] = useState<AppUser[]>([]);
+  /*
+    DIE BELEGSCHAFT, gemerkt für den zweiten Besuch (Stufe 3) — derselbe
+    Schlüssel wie Baustellenliste und -akte. Bis sie da ist, steht in der
+    Auswahl ein Platzhalter (`staffGeladen`).
+  */
+  const { anfang: belegschaftGemerkt, merken: belegschaftMerken } = useGemerkt<{ users: AppUser[] }>(
+    user ? schluessel('belegschaft', user) : null,
+  );
+  const [users, setUsers] = useState<AppUser[]>(() => belegschaftGemerkt?.users ?? []);
+  const [belegschaftDa, setBelegschaftDa] = useState(() => belegschaftGemerkt?.users !== undefined);
   /** Die Termine des gewählten Tages — gemeldet von der Terminkarte (G23). */
   const [termineDesTages, setTermineDesTages] = useState<Termin[]>([]);
   /**
@@ -111,8 +121,14 @@ export default function AssignmentsView() {
     listActiveProjects(user.companyId)
       .then(setProjects)
       .catch(() => setNebenFehler('Die Baustellen'));
-    listUsers(user.companyId).then(setUsers).catch(() => setNebenFehler('Die Belegschaft'));
-  }, [user]);
+    listUsers(user.companyId)
+      .then((u) => {
+        setUsers(u);
+        belegschaftMerken({ users: u });
+      })
+      .catch(() => setNebenFehler('Die Belegschaft'))
+      .finally(() => setBelegschaftDa(true));
+  }, [user, belegschaftMerken]);
 
   /**
    * Wer im angezeigten Monat fehlt — genehmigter Urlaub und Zeitausgleich,
@@ -299,6 +315,7 @@ export default function AssignmentsView() {
               onProjectNumber={setProjectNumber}
               users={users}
               staff={staff}
+              staffGeladen={belegschaftDa}
               projects={projects}
               onProjekt={(p) =>
                 setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]))

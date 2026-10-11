@@ -22,7 +22,7 @@ Rückgängig:         keine neue Rückgängig-Meldung; Bestätigungen unverände
 Fehlerprotokoll:    keine Laufzeitfehler in der Vorschau
 Bildschirmfotos:    nur im Arbeitsbereich angesehen, nicht eingecheckt — OFFEN für docs/ui-umbau/nachher/
 Dokumentation:      Handbuch und FUNKTIONEN.md: OFFEN (Hauptsitzung)
-Freigabe Betreiber: offen                 Datum: __________
+Freigabe Betreiber: erteilt am 11.10.2026 (für alle Schritte der Linie „Lot“)
 ```
 
 ## Was sich geändert hat

@@ -27,5 +27,5 @@ Rückgängig:         „Einsatz löschen“ bleibt mit Rückfrage (Umkehr wäre
 Fehlerprotokoll:    keine Laufzeitfehler in der Vorschau (nur 403/404 der gestubbten Ressourcen).
 Bildschirmfotos:    nur im Arbeitsbereich angesehen, nicht abgelegt – offen.
 Dokumentation:      Handbuch und FUNKTIONEN.md noch nicht nachgezogen – offen (Hauptsitzung).
-Freigabe Betreiber: offen
+Freigabe Betreiber: erteilt am 11.10.2026 (für alle Schritte der Linie „Lot“)
 ```

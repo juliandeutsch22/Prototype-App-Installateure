@@ -27,6 +27,7 @@ import {
   reserveProjectNumber,
 } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
+import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { listCustomers } from '@/lib/db/customers';
 import { useModul } from '@/lib/useModule';
 import type { WithId } from '@/lib/db/core';
@@ -123,7 +124,17 @@ export default function AdminProjectsView() {
     Verwaltung — dort, wo jemand gezielt nachschlägt.
   */
   const [grenze, setGrenze] = useState(BAUSTELLEN_JE_SEITE);
-  const [users, setUsers] = useState<AppUser[]>([]);
+  /*
+    DIE BELEGSCHAFT, gemerkt für den zweiten Besuch (Stufe 3). Die Baustellen
+    kommen dann als Live-Liste sofort; ohne Namen stand kurz „Keine
+    Projektleitung zugeteilt“ in der Zeile (Messung 11.10.2026). Die Liste
+    steht deshalb erst mit der Belegschaft (oder ihrem Fehler) da.
+  */
+  const { anfang: belegschaftGemerkt, merken: belegschaftMerken } = useGemerkt<{ users: AppUser[] }>(
+    user ? schluessel('belegschaft', user) : null,
+  );
+  const [users, setUsers] = useState<AppUser[]>(() => belegschaftGemerkt?.users ?? []);
+  const [belegschaftDa, setBelegschaftDa] = useState(() => belegschaftGemerkt?.users !== undefined);
   const [kunden, setKunden] = useState<(Customer & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -239,7 +250,13 @@ export default function AdminProjectsView() {
     if (!user) return;
     // Ohne Hinweis blieben Team- und Kundenauswahl einfach leer, und die
     // Baustelle liesse sich anlegen — ohne Kunden, ohne Mannschaft.
-    listUsers(user.companyId).then(setUsers).catch(() => setNebenFehler('Die Belegschaft'));
+    listUsers(user.companyId)
+      .then((u) => {
+        setUsers(u);
+        belegschaftMerken({ users: u });
+      })
+      .catch(() => setNebenFehler('Die Belegschaft'))
+      .finally(() => setBelegschaftDa(true));
     listCustomers(user.companyId).then(setKunden).catch(() => setNebenFehler('Die Kunden'));
     const unsub = subscribeRecentProjects(
       user.companyId,
@@ -256,6 +273,7 @@ export default function AdminProjectsView() {
     return unsub;
     // Die Grenze gehört in die Abhängigkeiten: ein Abo trägt sie in sich,
     // eine neue Grenze heisst also ein neues Abo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- belegschaftMerken hängt nur am Benutzer
   }, [user, grenze]);
 
   /*
@@ -819,7 +837,7 @@ export default function AdminProjectsView() {
           </div>
         </div>
 
-        {loading || lageFehlt ? (
+        {loading || lageFehlt || !belegschaftDa ? (
           <div className="border-t border-line p-4">
             <SkeletonList rows={4} />
           </div>

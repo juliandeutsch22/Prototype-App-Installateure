@@ -5,6 +5,7 @@ import { nachtzeitVon, ueberstundenRegelVon } from '@/lib/lohnregeln';
 import { listUsers } from '@/lib/db/users';
 import { listAnpassungen } from '@/lib/db/urlaubsanspruch';
 import { listProjectsByNumbers } from '@/lib/db/projects';
+import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import {
   subscribeEntriesInRange,
   listEntriesInRange,
@@ -107,6 +108,17 @@ function startWoche(jahr: number, monat: number, heute: string): string {
  * „Person im Monat“. Gerechnet wird nichts neu — Zahlen aus `calcMonthStats`
  * und der Vollständigkeit, die Tage aus `tagesauswertung`.
  */
+/**
+ * Was die Seite sich für den zweiten Besuch merkt (Stufe 3): Belegschaft,
+ * die Baustellen der gezeigten Buchungen und ihre Gesamtstunden — je mit
+ * dem Schlüssel der Baustellennummern, für die sie gelten.
+ */
+interface UebersichtStand {
+  users: AppUser[];
+  projekte: { fuer: string; liste: Project[] };
+  fach: { fuer: string; minuten: [string, number][] | null };
+}
+
 export default function AccountingView() {
   const { user, company, einblick } = useAuth();
   /*
@@ -117,13 +129,26 @@ export default function AccountingView() {
   */
   const imSupport = !!einblick;
   const toast = useToast();
-  const [users, setUsers] = useState<AppUser[]>([]);
+  /*
+    DER LETZTE STAND (Stufe 3). Die Buchungen kommen beim zweiten Besuch als
+    Live-Liste sofort aus dem Zwischenspeicher; ohne gemerkte Belegschaft und
+    Baustellen stünde die Seite dann kurz mit „Noch keine Benutzer angelegt.“
+    und Baustellennummern statt Kunden da (Messung 11.10.2026).
+  */
+  const { anfang, merken } = useGemerkt<UebersichtStand>(user ? schluessel('mitarbeiteruebersicht', user) : null);
+  const [users, setUsers] = useState<AppUser[]>(() => anfang?.users ?? []);
   /** Die Belegschaft ist da — erst dann prüft die Seite die Arbeitszeitgrenzen (sonst zweimal: leer, dann voll). */
-  const [belegschaftDa, setBelegschaftDa] = useState(false);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [belegschaftDa, setBelegschaftDa] = useState(() => anfang?.users !== undefined);
+  const [projects, setProjects] = useState<Project[]>(() => anfang?.projekte?.liste ?? []);
+  /** Für welche Baustellennummern `projects` geladen ist (oder scheiterte); `null` = noch für keine. */
+  const [projekteFuer, setProjekteFuer] = useState<string | null>(() => anfang?.projekte?.fuer ?? null);
   const [entries, setEntries] = useState<WithId<TimeEntry>[]>([]);
-  /** Alle Fachminuten der vorkommenden Baustellen; `null` = nicht geladen. */
-  const [gesamtFach, setGesamtFach] = useState<Map<string, number> | null>(() => new Map());
+  /** Alle Fachminuten der vorkommenden Baustellen; `null` = konnte nicht geladen werden. */
+  const [gesamtFach, setGesamtFach] = useState<Map<string, number> | null>(() =>
+    anfang?.fach ? (anfang.fach.minuten ? new Map(anfang.fach.minuten) : null) : new Map(),
+  );
+  /** Für welche Baustellennummern `gesamtFach` gilt; `null` = noch für keine. */
+  const [fachFuer, setFachFuer] = useState<string | null>(() => anfang?.fach?.fuer ?? null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — die Auswertung steht trotzdem. */
@@ -177,9 +202,10 @@ export default function AccountingView() {
       .then((u) => {
         setUsers(u);
         setBelegschaftDa(true);
+        merken({ users: u });
       })
       .catch((e) => setError(e.message));
-  }, [user]);
+  }, [user, merken]);
 
   /**
    * Nur die Baustellen, die in den geladenen Buchungen VORKOMMEN.
@@ -201,18 +227,35 @@ export default function AccountingView() {
   );
   const nummernSchluessel = projektNummern.join('|');
   useEffect(() => {
-    if (!user || projektNummern.length === 0) {
+    // Erst mit den Buchungen: der leere Anfang ist keine Aussage über die Baustellen.
+    if (!user || loading) return;
+    if (projektNummern.length === 0) {
       setProjects([]);
+      setProjekteFuer(nummernSchluessel);
       return;
     }
+    // Eine überholte Antwort (die Buchungen haben sich inzwischen geändert) setzt nichts mehr.
+    let weg = false;
     // Ohne die Stammdaten stehen in der Auswertung nur Baustellennummern.
     listProjectsByNumbers(user.companyId, projektNummern)
-      .then(setProjects)
-      .catch(() => setNebenFehler('Die Baustellendaten'));
+      .then((liste) => {
+        if (weg) return;
+        setProjects(liste);
+        setProjekteFuer(nummernSchluessel);
+        merken({ projekte: { fuer: nummernSchluessel, liste } });
+      })
+      .catch(() => {
+        if (weg) return;
+        setNebenFehler('Die Baustellendaten');
+        setProjekteFuer(nummernSchluessel);
+      });
+    return () => {
+      weg = true;
+    };
     // Am Inhalt haengen, nicht an der Array-Identitaet: sonst laedt jeder
     // Renderdurchlauf neu.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, nummernSchluessel]);
+  }, [user, nummernSchluessel, loading]);
 
   /**
    * ALLE Stunden der vorkommenden Baustellen — nur für den Budgetstand.
@@ -231,19 +274,26 @@ export default function AccountingView() {
    * statt auf die Monatszahl zurückzufallen. Das war ja der Fehler.
    */
   useEffect(() => {
-    if (!user || projektNummern.length === 0) {
+    if (!user || loading) return;
+    if (projektNummern.length === 0) {
       setGesamtFach(new Map());
+      setFachFuer(nummernSchluessel);
       return;
     }
     let verworfen = false;
     // Die Summen aus der Datenbank, nicht alle Buchungen aller Jahre (Analyse 09.10.2026).
     stundenDerBaustellen(projektNummern)
       .then((stunden) => {
-        if (!verworfen) setGesamtFach(fachMinutenJeBaustelle(stunden));
+        if (verworfen) return;
+        const fach = fachMinutenJeBaustelle(stunden);
+        setGesamtFach(fach);
+        setFachFuer(nummernSchluessel);
+        merken({ fach: { fuer: nummernSchluessel, minuten: [...fach] } });
       })
       .catch(() => {
         if (verworfen) return;
         setGesamtFach(null);
+        setFachFuer(nummernSchluessel);
         setNebenFehler('Die Gesamtstunden der Baustellen');
       });
     return () => {
@@ -251,7 +301,7 @@ export default function AccountingView() {
     };
     // Am Inhalt haengen, nicht an der Array-Identitaet.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, nummernSchluessel]);
+  }, [user, nummernSchluessel, loading]);
 
   // Nur das angezeigte Jahr, nicht die gesamte Betriebsgeschichte. Das Jahr
   // (nicht der Monat) deshalb, weil der Resturlaub die Urlaubstage des ganzen
@@ -321,6 +371,26 @@ export default function AccountingView() {
       .catch(() => { if (!abgemeldet) setNebenFehler('Die Anpassungen des Urlaubsanspruchs'); });
     return () => { abgemeldet = true; };
   }, [user]);
+
+  /*
+    DIE SEITE STEHT, WENN IHRE GANZE GRUNDLAGE DA IST (Stufe 2): Buchungen,
+    Belegschaft, Baustellen und deren Gesamtstunden für genau diese
+    Buchungen. Bis 11.10.2026 hing das allein an den Buchungen — beim ersten
+    Besuch kamen die anderen zufällig früher, beim zweiten (Buchungen aus dem
+    Zwischenspeicher) nicht.
+
+    STEHT SIE EINMAL, BLEIBT SIE STEHEN: kommt live eine Buchung auf einer
+    neuen Baustelle dazu, lädt deren Name nach, ohne dass die Liste wieder
+    zum Platzhalter wird. Ein anderes Jahr ist eine neue Grundlage.
+  */
+  const grundlage = `${ladenVon}|${ladenBis}`;
+  const vollstaendig =
+    !loading && belegschaftDa && projekteFuer === nummernSchluessel && fachFuer === nummernSchluessel;
+  const [standFuer, setStandFuer] = useState<string | null>(null);
+  useEffect(() => {
+    if (vollstaendig) setStandFuer(grundlage);
+  }, [vollstaendig, grundlage]);
+  const bereit = !loading && (vollstaendig || standFuer === grundlage);
 
   const urlaubsRegel = useMemo(() => uebertragsRegel(company), [company]);
   const halbeTage = dezemberHalbtage(company);
@@ -762,7 +832,7 @@ export default function AccountingView() {
         09.10.2026): sie sprang nur zur Karte weiter unten, die die Fälle mit
         Begründung führt; der Tag steht im Streifen mit rotem Strich.
       */}
-      {!imSupport && !loading && !error && alleRows.length > 0 && (
+      {!imSupport && bereit && !error && alleRows.length > 0 && (
         <div className="ue-kennzahlen">
           <button
             type="button"
@@ -867,16 +937,16 @@ export default function AccountingView() {
         </Hinweiszeile>
       )}
 
-      {loading ? (
-        <div className="ue-liste">
-          <div className="p-4">
-            <SkeletonList rows={4} />
-          </div>
-        </div>
-      ) : error ? (
+      {error ? (
         <div className="ue-liste">
           <div className="p-4">
             <ErrorState message={error} />
+          </div>
+        </div>
+      ) : !bereit ? (
+        <div className="ue-liste">
+          <div className="p-4">
+            <SkeletonList rows={4} />
           </div>
         </div>
       ) : rows.length === 0 ? (
@@ -1015,6 +1085,7 @@ export default function AccountingView() {
 
       {/* Deckungsbeitrags-Sicht: Ist gegen kalkuliertes Budget je Baustelle. */}
       <ProjectSummary
+        bereit={bereit}
         entries={entries.filter((e) => e.date.startsWith(monthPrefix))}
         gesamtFach={gesamtFach}
         projects={projects}

@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Assignment, EinsatzMaterial, Material, Project, Vacation } from '@/types';
 import AssignmentsView from '@/features/assignments/AssignmentsView';
 import { listTermineImZeitraum } from '@/lib/db/termine';
+import { listUsers } from '@/lib/db/users';
+import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
 
 /**
  * Die Einsatzplanung — die Ansicht, die als einzige Daten LÖSCHT, und bis
@@ -1099,5 +1101,37 @@ describe('„Tag“ in der Einsatzplanung (Runde 4)', () => {
     } finally {
       vi.mocked(listTermineImZeitraum).mockResolvedValue([]);
     }
+  });
+});
+
+/*
+  ERST MIT DER BELEGSCHAFT (11.10.2026). Bis sie kam, stand in der Auswahl
+  „Keine aktiven Mitarbeiter vorhanden.“ — bei jedem Besuch, gemessen am
+  Bestand „fünf Jahre“; dann schob sich die Liste darunter (0,07).
+  Gegenprobe: gegen den Stand davor rot.
+*/
+describe('Tag planen — Auswahl erst mit der Belegschaft', () => {
+  afterEach(() => {
+    vi.mocked(listUsers).mockImplementation(async () => personen);
+  });
+
+  it('sagt nie „Keine aktiven Mitarbeiter vorhanden.“, solange die Belegschaft lädt', async () => {
+    let freigeben: () => void = () => undefined;
+    vi.mocked(listUsers).mockImplementation(() => new Promise((fertig) => { freigeben = () => fertig(personen); }));
+    zeige();
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    expect(screen.queryByText('Keine aktiven Mitarbeiter vorhanden.')).not.toBeInTheDocument();
+    await act(async () => { freigeben(); });
+    expect(await screen.findAllByText(MONTEUR.name)).not.toHaveLength(0);
+  });
+
+  it('beim zweiten Besuch steht die Auswahl sofort da', async () => {
+    zwischenspeicherFuer('pl', 'perl');
+    const erst = zeige();
+    expect(await screen.findAllByText(MONTEUR.name)).not.toHaveLength(0);
+    erst.unmount();
+    vi.mocked(listUsers).mockImplementation(() => new Promise(() => undefined));
+    zeige();
+    expect(await screen.findAllByText(MONTEUR.name)).not.toHaveLength(0);
   });
 });

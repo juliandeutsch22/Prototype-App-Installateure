@@ -7,6 +7,7 @@ import { listAbwesendInRange, type Abwesenheit } from '@/lib/db/vacations';
 import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
 import { subscribeAssignmentsInRange } from '@/lib/db/assignments';
 import { listTermineImZeitraum } from '@/lib/db/termine';
+import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import type { WithId } from '@/lib/db/core';
 import type { Project, AppUser, Assignment, Betriebsurlaub, Termin } from '@/types';
 import { einsatzZeit } from './einsatzZeit';
@@ -40,36 +41,67 @@ export function abwesendText(a: Pick<Abwesenheit, 'grund' | 'zeiten'>): string {
   return [a.grund ?? 'abwesend', a.zeiten].filter(Boolean).join(' ');
 }
 
+/**
+ * Was die Woche sich für den zweiten Besuch merkt (Stufe 3), je Zeitraum.
+ * Die Einsätze nicht: sie sind eine Live-Liste und merken sich selbst.
+ */
+interface WochenStand {
+  users: AppUser[];
+  projects: Project[];
+  urlaube: Abwesenheit[];
+  betriebsurlaube: Betriebsurlaub[];
+  termine: Termin[];
+}
+
 export function useWochenDaten(tage: string[]) {
   const { user, company } = useAuth();
   const von = tage[0];
   const bis = tage[tage.length - 1];
+  const zeitraum = `${von}|${bis}`;
 
-  const [users, setUsers] = useState<AppUser[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
+  /*
+    DER LETZTE STAND (Stufe 3). Die Einsätze kommen beim zweiten Besuch als
+    Live-Liste sofort; ohne gemerkte Baustellen standen dann Nummern statt
+    Kunden im Raster, die Sekunden später wechselten (Messung 11.10.2026:
+    100 Wechsel). Gemerkt wird nur ein vollständiger Stand.
+  */
+  const { anfang, merken } = useGemerkt<WochenStand>(user ? schluessel('wochendaten', user, zeitraum) : null);
+  const [gemerkt] = useState(() =>
+    anfang?.users && anfang.projects && anfang.urlaube && anfang.betriebsurlaube && anfang.termine
+      ? (anfang as WochenStand)
+      : undefined,
+  );
+
+  const [users, setUsers] = useState<AppUser[]>(() => gemerkt?.users ?? []);
+  const [projects, setProjects] = useState<Project[]>(() => gemerkt?.projects ?? []);
   const [einsaetze, setEinsaetze] = useState<WithId<Assignment>[]>([]);
-  const [urlaube, setUrlaube] = useState<Abwesenheit[]>([]);
-  const [betriebsurlaube, setBetriebsurlaube] = useState<Betriebsurlaub[]>([]);
-  const [termine, setTermine] = useState<Termin[]>([]);
+  const [urlaube, setUrlaube] = useState<Abwesenheit[]>(() => gemerkt?.urlaube ?? []);
+  const [betriebsurlaube, setBetriebsurlaube] = useState<Betriebsurlaub[]>(() => gemerkt?.betriebsurlaube ?? []);
+  const [termine, setTermine] = useState<Termin[]>(() => gemerkt?.termine ?? []);
   const [error, setError] = useState<string | null>(null);
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   /**
    * Ist die Belegschaft da? Vorher ist „niemand im Außendienst“ keine
    * Auskunft, sondern ein Ladezustand (Team-Woche, 10.10.2026).
    */
-  const [belegschaftGeladen, setBelegschaftGeladen] = useState(false);
+  const [belegschaftGeladen, setBelegschaftGeladen] = useState(() => !!gemerkt);
   /** Kam die Belegschaft an? Ohne sie lässt sich „nicht einplanbar“ nicht sagen. */
-  const [belegschaftDa, setBelegschaftDa] = useState(false);
+  const [belegschaftDa, setBelegschaftDa] = useState(() => !!gemerkt);
+  /** Kamen die laufenden Baustellen an (oder ihr Fehler)? Ohne sie stünden Nummern statt Kunden da. */
+  const [projekteDa, setProjekteDa] = useState(() => !!gemerkt);
   /*
     UND DER ZEITRAUM? (Analyse 10.10.2026) Ohne Einsätze rechnete das Raster
     jeden als „frei“ — „12 frei“, Augenblicke später „0 frei“. Je Abfrage des
-    Zeitraums ein Merker, beim Wechsel der Woche zurückgesetzt: sonst stünden
-    kurz die Einsätze der alten Woche unter den neuen Tagen.
+    Zeitraums steht fest, FÜR WELCHEN Zeitraum ihr Stand gilt: nach einem
+    Wechsel der Woche passt er nicht mehr, und es wird gewartet — sonst
+    stünden kurz die Einsätze der alten Woche unter den neuen Tagen. Seit
+    11.10.2026 ein Schlüssel statt eines Merkers, der beim Wechsel
+    zurückgesetzt wurde: so gilt auch ein gemerkter Stand nur für seine Woche.
   */
-  const [einsaetzeGeladen, setEinsaetzeGeladen] = useState(false);
-  const [abwesendGeladen, setAbwesendGeladen] = useState(false);
-  const [zuGeladen, setZuGeladen] = useState(false);
-  const [termineGeladen, setTermineGeladen] = useState(false);
+  const [einsaetzeFuer, setEinsaetzeFuer] = useState<string | null>(null);
+  const [abwesendFuer, setAbwesendFuer] = useState<string | null>(() => (gemerkt ? zeitraum : null));
+  const [zuStandFuer, setZuStandFuer] = useState<string | null>(() => (gemerkt ? zeitraum : null));
+  const [termineFuer, setTermineFuer] = useState<string | null>(() => (gemerkt ? zeitraum : null));
   /** Nach dem Anlegen, Ändern oder Löschen eines Termins: dieselbe Abfrage noch einmal. */
   const [termineStand, setTermineStand] = useState(0);
 
@@ -83,24 +115,28 @@ export function useWochenDaten(tage: string[]) {
       .catch(() => setNebenFehler('Die Belegschaft'))
       .finally(() => setBelegschaftGeladen(true));
     listActiveProjects(user.companyId)
-      .then(setProjects)
-      .catch(() => setNebenFehler('Die Baustellen'));
+      // Nachgeladene (etwa abgeschlossene) Baustellen bleiben: sonst fiele ihr Kunde kurz auf die Nummer zurück.
+      .then((aktiv) =>
+        setProjects((alt) => [...aktiv, ...alt.filter((p) => !aktiv.some((x) => x.projectNumber === p.projectNumber))]),
+      )
+      .catch(() => setNebenFehler('Die Baustellen'))
+      .finally(() => setProjekteDa(true));
   }, [user]);
 
   useEffect(() => {
     if (!user) return;
-    setEinsaetzeGeladen(false);
+    const fuer = `${von}|${bis}`;
     return subscribeAssignmentsInRange(
       user.companyId,
       von,
       bis,
       (rows) => {
         setEinsaetze(rows);
-        setEinsaetzeGeladen(true);
+        setEinsaetzeFuer(fuer);
       },
       (e) => {
         setError(e.message);
-        setEinsaetzeGeladen(true);
+        setEinsaetzeFuer(fuer);
       },
     );
   }, [user, von, bis]);
@@ -119,7 +155,7 @@ export function useWochenDaten(tage: string[]) {
   useEffect(() => {
     if (!user) return;
     let verworfen = false;
-    setAbwesendGeladen(false);
+    const fuer = `${von}|${bis}`;
     listAbwesendInRange(von, bis)
       .then((r) => {
         if (!verworfen) setUrlaube(r);
@@ -130,7 +166,7 @@ export function useWochenDaten(tage: string[]) {
         if (!verworfen) setNebenFehler('Die Abwesenheiten');
       })
       .finally(() => {
-        if (!verworfen) setAbwesendGeladen(true);
+        if (!verworfen) setAbwesendFuer(fuer);
       });
     return () => {
       verworfen = true;
@@ -146,6 +182,7 @@ export function useWochenDaten(tage: string[]) {
   useEffect(() => {
     if (!user) return;
     let verworfen = false;
+    const fuer = `${von}|${bis}`;
     listTermineImZeitraum(user.companyId, von, bis)
       .then((t) => {
         if (!verworfen) setTermine(t);
@@ -157,19 +194,13 @@ export function useWochenDaten(tage: string[]) {
         }
       })
       .finally(() => {
-        if (!verworfen) setTermineGeladen(true);
+        if (!verworfen) setTermineFuer(fuer);
       });
     return () => {
       verworfen = true;
     };
+    // Beim Nachladen nach einem geänderten Termin bleibt der Plan stehen: der Zeitraum ist derselbe.
   }, [user, von, bis, termineStand]);
-  /*
-    Beim Wechsel des Zeitraums neu warten — nicht beim Nachladen nach einem
-    geänderten Termin: dann bleibt der Plan stehen.
-  */
-  useEffect(() => {
-    setTermineGeladen(false);
-  }, [von, bis]);
   const termineAm = useCallback((tag: string) => termine.filter((t) => t.datum === tag), [termine]);
   const termineNeuLaden = useCallback(() => setTermineStand((n) => n + 1), []);
 
@@ -177,13 +208,13 @@ export function useWochenDaten(tage: string[]) {
   useEffect(() => {
     if (!user) return;
     let verworfen = false;
-    setZuGeladen(false);
+    const fuer = `${von}|${bis}`;
     listBetriebsurlaubeImZeitraum(user.companyId, von, bis)
       .then((r) => {
         if (!verworfen) setBetriebsurlaube(r);
       })
       .finally(() => {
-        if (!verworfen) setZuGeladen(true);
+        if (!verworfen) setZuStandFuer(fuer);
       })
       .catch(() => {
         if (!verworfen) {
@@ -269,8 +300,11 @@ export function useWochenDaten(tage: string[]) {
   */
   /** Schon gefragte Nummern — eine, die es nicht (mehr) gibt, wird nicht bei jeder Live-Meldung neu gesucht. */
   const nachgefragt = useRef(new Set<string>());
+  /** Nummern, deren Nachfrage beantwortet ist (gefunden, nicht gefunden oder gescheitert). */
+  const [beantwortet, setBeantwortet] = useState<ReadonlySet<string>>(() => new Set());
   useEffect(() => {
-    if (!user) return;
+    // Erst mit den laufenden Baustellen: vorher wäre jede Nummer „fehlend“ und würde einzeln gesucht.
+    if (!user || !projekteDa) return;
     const bekannt = new Set(projects.map((p) => p.projectNumber));
     const fehlend = [...new Set(einsaetze.map((a) => a.projectNumber))].filter(
       (n) => n && !bekannt.has(n) && !nachgefragt.current.has(n),
@@ -286,8 +320,9 @@ export function useWochenDaten(tage: string[]) {
         setProjects((alt) => [...alt, ...gefunden.filter((p) => !alt.some((x) => x.projectNumber === p.projectNumber))]);
       })
       // Ohne sie steht die Nummer da — wie bisher; kein eigener Hinweis.
-      .catch(() => undefined);
-  }, [user, einsaetze, projects]);
+      .catch(() => undefined)
+      .finally(() => setBeantwortet((alt) => new Set([...alt, ...fehlend])));
+  }, [user, einsaetze, projects, projekteDa]);
 
   /** uid -> Tag -> was dort steht. */
   const brett = useMemo(() => {
@@ -406,6 +441,39 @@ export function useWochenDaten(tage: string[]) {
     [],
   );
 
+  /*
+    ALLES DA, WORAUS RASTER, „FREI“ UND DIE KUNDEN RECHNEN — für genau diesen
+    Zeitraum. Die Kunden gehören seit 11.10.2026 dazu: beim ersten Besuch
+    kamen die Baustellen zufällig vor den Einsätzen, beim zweiten (Einsätze
+    aus dem Zwischenspeicher) nicht.
+
+    STEHT DIE WOCHE EINMAL, BLEIBT SIE STEHEN: ein live dazugekommener
+    Einsatz auf einer abgeschlossenen Baustelle holt deren Kunden nach, ohne
+    dass das Raster wieder zum Platzhalter wird.
+  */
+  const grundlageDa =
+    belegschaftGeladen &&
+    einsaetzeFuer === zeitraum &&
+    abwesendFuer === zeitraum &&
+    zuStandFuer === zeitraum &&
+    termineFuer === zeitraum;
+  const namenDa = useMemo(() => {
+    if (!projekteDa) return false;
+    const bekannt = new Set(projects.map((p) => p.projectNumber));
+    return einsaetze.every((a) => !a.projectNumber || bekannt.has(a.projectNumber) || beantwortet.has(a.projectNumber));
+  }, [projekteDa, projects, einsaetze, beantwortet]);
+  const vollstaendig = grundlageDa && namenDa;
+  const [standFuer, setStandFuer] = useState<string | null>(null);
+  useEffect(() => {
+    if (vollstaendig) setStandFuer(zeitraum);
+  }, [vollstaendig, zeitraum]);
+  const geladen = grundlageDa && (namenDa || standFuer === zeitraum);
+
+  // Gemerkt wird nur ein vollständiger Stand, und nur unter seinem Zeitraum.
+  useEffect(() => {
+    if (vollstaendig) merken({ users, projects, urlaube, betriebsurlaube, termine });
+  }, [vollstaendig, merken, users, projects, urlaube, betriebsurlaube, termine]);
+
   return {
     users,
     projects,
@@ -419,8 +487,8 @@ export function useWochenDaten(tage: string[]) {
     error,
     nebenFehler,
     belegschaftGeladen,
-    /** Alles da, woraus Raster, „frei“ und „niemand im Außendienst“ rechnen. */
-    geladen: belegschaftGeladen && einsaetzeGeladen && abwesendGeladen && zuGeladen && termineGeladen,
+    /** Alles da, woraus Raster, „frei“, Kunden und „niemand im Außendienst“ rechnen (siehe oben). */
+    geladen,
     zuAm,
     zuFuer,
     staff,

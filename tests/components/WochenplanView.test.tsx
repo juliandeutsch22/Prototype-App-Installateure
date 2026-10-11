@@ -166,6 +166,12 @@ vi.mock('react-router-dom', async () => {
 });
 
 const { default: WochenplanView } = await import('@/features/assignments/WochenplanView');
+const projekte = await import('@/lib/db/projects');
+const benutzerDb = await import('@/lib/db/users');
+const urlaubDb = await import('@/lib/db/vacations');
+const termineDb = await import('@/lib/db/termine');
+const abwesenheitenDb = await import('@/lib/db/abwesenheiten');
+const { zwischenspeicherFuer } = await import('@/lib/liveSpeicher');
 const echt = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
 
 /** Zeigt die Adresse an und kann „Zurück“ — mit dem echten Router, nicht dem abgefangenen. */
@@ -1270,5 +1276,114 @@ describe('Wochenplan — Einsatz auf einer abgeschlossenen Baustelle', () => {
     zeige();
     const zeile = await screen.findByRole('row', { name: /Max Mustermann/ });
     expect(await within(zeile).findByText('Altbau Gruber')).toBeInTheDocument();
+  });
+});
+
+/*
+  KUNDEN ERST MIT DEN BAUSTELLEN (11.10.2026). Bereit war die Woche, sobald
+  Belegschaft, Einsätze, Abwesenheiten, Betriebsurlaub und Termine da waren —
+  die Baustellen zählten nicht. Beim ersten Besuch kamen sie zufällig vor
+  den Einsätzen; beim zweiten (Einsätze aus dem Zwischenspeicher) nicht:
+  gemessen 100 Wechsel von Nummer auf Kunde. Gegenprobe: gegen den Stand
+  davor rot.
+*/
+describe('Einsatzplanung — Kunden erst mit den Baustellen', () => {
+  const nachNummern = vi.mocked(projekte.listProjectsByNumbers).getMockImplementation()!;
+  const nie = () => new Promise<never>(() => undefined);
+  beforeEach(() => {
+    zwischenspeicherFuer('pl', 'perl');
+    einsaetze = [EINSATZ_MAX];
+  });
+  afterEach(() => {
+    vi.mocked(projekte.listActiveProjects).mockImplementation(async () => BAUSTELLEN);
+    vi.mocked(projekte.listProjectsByNumbers).mockImplementation(nachNummern);
+    vi.mocked(benutzerDb.listUsers).mockImplementation(async () => leute);
+    vi.mocked(urlaubDb.listAbwesendInRange).mockImplementation(async () => abwesend as never);
+    vi.mocked(termineDb.listTermineImZeitraum).mockImplementation(async () => termineDerWoche);
+    vi.mocked(abwesenheitenDb.listBetriebsurlaubeImZeitraum).mockImplementation(async () => betriebsurlaube as never);
+    einsaetzeHalten = false;
+  });
+
+  it('kommen die Baustellen nach den Einsätzen, steht nie die Nummer statt des Kunden', async () => {
+    let freigeben: () => void = () => undefined;
+    vi.mocked(projekte.listActiveProjects).mockImplementation(
+      () => new Promise((fertig) => { freigeben = () => fertig(BAUSTELLEN); }),
+    );
+    zeige();
+    await waitFor(() => expect(geladen.length).toBeGreaterThan(0));
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.queryByRole('table', { name: 'Wochenplan als Tabelle' })).not.toBeInTheDocument();
+    await act(async () => { freigeben(); });
+    await screen.findByRole('table', { name: 'Wochenplan als Tabelle' });
+    expect(await tabelle().findAllByText('Familie Huber')).not.toHaveLength(0);
+  });
+
+  it('beim zweiten Besuch steht die Woche sofort da — mit Kunden', async () => {
+    const erst = zeige();
+    await screen.findByRole('table', { name: 'Wochenplan als Tabelle' });
+    expect(await tabelle().findAllByText('Familie Huber')).not.toHaveLength(0);
+    erst.unmount();
+
+    // Jetzt antwortet keine Abfrage mehr: was dasteht, kommt aus dem gemerkten Stand.
+    vi.mocked(projekte.listActiveProjects).mockImplementation(nie);
+    vi.mocked(projekte.listProjectsByNumbers).mockImplementation(nie);
+    vi.mocked(benutzerDb.listUsers).mockImplementation(nie);
+    vi.mocked(urlaubDb.listAbwesendInRange).mockImplementation(nie);
+    vi.mocked(termineDb.listTermineImZeitraum).mockImplementation(nie);
+    vi.mocked(abwesenheitenDb.listBetriebsurlaubeImZeitraum).mockImplementation(nie);
+    zeige();
+    expect(await screen.findByRole('row', { name: /Max Mustermann/ })).toBeInTheDocument();
+    expect(tabelle().getAllByText('Familie Huber')).not.toHaveLength(0);
+  });
+
+  it('Gleichbleiben: ein live dazugekommener Einsatz auf einer abgeschlossenen Baustelle macht das Raster nicht wieder zum Platzhalter', async () => {
+    einsaetzeHalten = true;
+    zeige();
+    await waitFor(() => expect(geladen.length).toBeGreaterThan(0));
+    await act(async () => einsaetzeSenden());
+    await screen.findByRole('table', { name: 'Wochenplan als Tabelle' });
+    expect(await tabelle().findAllByText('Familie Huber')).not.toHaveLength(0);
+
+    vi.mocked(projekte.listProjectsByNumbers).mockImplementation(nie);
+    einsaetze = [
+      EINSATZ_MAX,
+      { ...EINSATZ_MAX, id: 'a-alt', userId: 'u2', userName: 'Erna Beispiel', projectNumber: '2025-007' },
+    ];
+    await act(async () => einsaetzeSenden());
+    expect(screen.getByRole('table', { name: 'Wochenplan als Tabelle' })).toBeInTheDocument();
+    expect(tabelle().getAllByText('Familie Huber')).not.toHaveLength(0);
+  });
+
+  it('Gleichbleiben: eine andere Woche wartet auf ihre Einsätze — die alten stehen nicht unter den neuen Tagen', async () => {
+    einsaetzeHalten = true;
+    zeige();
+    await waitFor(() => expect(geladen.length).toBeGreaterThan(0));
+    await act(async () => einsaetzeSenden());
+    await screen.findByRole('table', { name: 'Wochenplan als Tabelle' });
+    expect(await tabelle().findAllByText('Familie Huber')).not.toHaveLength(0);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Woche vor' }));
+    await waitFor(() => expect(geladen.length).toBeGreaterThan(1));
+    expect(screen.queryByRole('table', { name: 'Wochenplan als Tabelle' })).not.toBeInTheDocument();
+    await act(async () => einsaetzeSenden());
+    expect(await screen.findByRole('table', { name: 'Wochenplan als Tabelle' })).toBeInTheDocument();
+  });
+});
+
+describe('Einsatzplanung — „Im eigenen Kalender“ mit dem Plan (11.10.2026)', () => {
+  it('erscheint erst mit dem Plan — der Plan schiebt ihn sonst beim Laden nach unten', async () => {
+    authWert.company = { id: 'perl', name: 'Perl Installationen', kalenderAboErlaubt: true };
+    einsaetze = [EINSATZ_MAX];
+    einsaetzeHalten = true;
+    try {
+      zeige();
+      await waitFor(() => expect(geladen.length).toBeGreaterThan(0));
+      await act(async () => { await Promise.resolve(); });
+      expect(screen.queryByRole('heading', { name: /Im eigenen Kalender/ })).not.toBeInTheDocument();
+      await act(async () => einsaetzeSenden());
+      expect(await screen.findByRole('heading', { name: /Im eigenen Kalender/ })).toBeInTheDocument();
+    } finally {
+      einsaetzeHalten = false;
+    }
   });
 });
