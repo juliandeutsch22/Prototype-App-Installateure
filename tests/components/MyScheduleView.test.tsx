@@ -3,6 +3,7 @@ import { act, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
+import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
 import type { Assignment, EinsatzMaterial, Project, Termin, Vacation } from '@/types';
 
 /**
@@ -157,6 +158,38 @@ describe('Mein Einsatzplan — beim Laden', () => {
     await act(async () => liefern(BAUSTELLEN));
     const karte = (await screen.findByText(/Einsätze am/)).closest('section')!;
     expect(within(karte).getAllByText(/Familie Huber/).length).toBeGreaterThan(0);
+  });
+
+  // Stufe 3: beim zweiten Besuch steht der Plan sofort da, frisch geholt wird im Hintergrund.
+  it('beim zweiten Besuch steht der Plan sofort da', async () => {
+    zwischenspeicherFuer('m1', 'perl');
+    const erster = zeichne();
+    const karte1 = (await screen.findByText(/Einsätze am/)).closest('section')!;
+    await within(karte1).findByText('Bad');
+    erster.unmount();
+
+    const { listAssignmentsForUserInRange } = await import('@/lib/db/assignments');
+    const { listProjectsByNumbers } = await import('@/lib/db/projects');
+    const vorher = vi.mocked(listAssignmentsForUserInRange).mock.calls.length;
+    vi.mocked(listAssignmentsForUserInRange).mockImplementationOnce(() => new Promise(() => undefined) as never);
+    vi.mocked(listProjectsByNumbers).mockImplementationOnce(() => new Promise(() => undefined) as never);
+    zeichne();
+    const karte = screen.getByText(/Einsätze am/).closest('section')!;
+    expect(within(karte).getByText('Bad')).toBeInTheDocument();
+    expect(within(karte).getAllByText(/Familie Huber/).length).toBeGreaterThan(0);
+    await waitFor(() => expect(vi.mocked(listAssignmentsForUserInRange).mock.calls.length).toBeGreaterThan(vorher));
+  });
+
+  // Gleichbleiben: ein anderer Monat lädt wie bisher sichtbar — der gemerkte gilt nur für den laufenden.
+  it('ein anderer Monat lädt weiter sichtbar', async () => {
+    zwischenspeicherFuer('m1', 'perl');
+    const nutzer = userEvent.setup();
+    zeichne();
+    await within((await screen.findByText(/Einsätze am/)).closest('section')!).findByText('Bad');
+    const { listAssignmentsForUserInRange } = await import('@/lib/db/assignments');
+    vi.mocked(listAssignmentsForUserInRange).mockImplementationOnce(() => new Promise(() => undefined) as never);
+    await nutzer.click(screen.getByRole('button', { name: 'Nächster Monat' }));
+    await waitFor(() => expect(screen.queryByText(/Einsätze am/)).not.toBeInTheDocument());
   });
 });
 

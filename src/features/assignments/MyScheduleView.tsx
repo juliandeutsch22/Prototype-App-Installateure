@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -31,6 +31,22 @@ import { ganztagsWeg } from './besetzung';
 import { einsatzZeit } from './einsatzZeit';
 import { stufeImEinsatz } from './stufeImEinsatz';
 import KalenderAboKarte from './KalenderAboKarte';
+import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
+
+/** Was „Mein Einsatzplan“ zuletzt geladen hat — für den zweiten Besuch (`useGemerkt`). */
+interface EinsatzplanStand {
+  /** Nur der laufende Monat; ein anderer lädt beim Blättern wie bisher. */
+  monat: { fuer: string; rows: Assignment[] };
+  naechste: Assignment[];
+  urlaube: WithId<Vacation>[];
+  projects: Project[];
+  projekteFuer: string;
+  abwesend: Abwesenheit[];
+  termineMonat: { fuer: string; liste: Termin[] };
+  termineKommend: Termin[];
+  ruestlisten: { fuer: string; liste: WithId<EinsatzMaterial>[] };
+  personen: AppUser[];
+}
 
 /** 'YYYY-MM-DD' -> 'Mo., 15.06.2026'. */
 function fmtDay(iso: string): string {
@@ -56,9 +72,19 @@ export default function MyScheduleView() {
   const scheineAn = useModul('scheine');
   const urlaubAn = useModul('urlaub');
   const materialAn = useModul('material');
-  const [rows, setRows] = useState<Assignment[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  /*
+    DER LETZTE STAND (Stufe 3, `lib/zwischenspeicher.ts`): beim zweiten
+    Besuch steht der Plan sofort da; frisch geholt wird im Hintergrund. Der
+    Monat nur für den laufenden — blättert man, lädt er wie bisher.
+  */
+  const { anfang, merken } = useGemerkt<EinsatzplanStand>(user ? schluessel('meinEinsatzplan', user, materialAn) : null);
+  const heuteMonat = todayStr().slice(0, 7);
+  const monatGemerkt = anfang?.monat?.fuer === heuteMonat ? anfang.monat : undefined;
+  const [rows, setRows] = useState<Assignment[]>(() => monatGemerkt?.rows ?? []);
+  const [projects, setProjects] = useState<Project[]>(() => anfang?.projects ?? []);
+  const [loading, setLoading] = useState(() => monatGemerkt === undefined);
+  /** Für welchen Monat `rows` geladen sind — ein anderer lädt sichtbar. */
+  const monatFuer = useRef<string | null>(monatGemerkt?.fuer ?? null);
   const [error, setError] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — der Kalender steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
@@ -71,9 +97,9 @@ export default function MyScheduleView() {
   });
 
   /** Die anstehenden Einsätze — „alle geplanten", unabhängig vom Kalender. */
-  const [naechste, setNaechste] = useState<Assignment[]>([]);
+  const [naechste, setNaechste] = useState<Assignment[]>(() => anfang?.naechste ?? []);
   /** Eigene Abwesenheiten im Zeitraum der nächsten Einsätze — Urlaub, ZA, Krank (M33). */
-  const [abwesend, setAbwesend] = useState<Abwesenheit[]>([]);
+  const [abwesend, setAbwesend] = useState<Abwesenheit[]>(() => anfang?.abwesend ?? []);
 
   /**
    * Die eigenen Urlaubsanträge — beantragte MIT eingeschlossen.
@@ -84,16 +110,16 @@ export default function MyScheduleView() {
    * entschieden?" Ein beantragter Urlaub gehört in diese Antwort, aber sichtbar
    * als das, was er ist.
    */
-  const [urlaube, setUrlaube] = useState<WithId<Vacation>[]>([]);
+  const [urlaube, setUrlaube] = useState<WithId<Vacation>[]>(() => anfang?.urlaube ?? []);
   /*
     WAS SCHON DA IST (Analyse 10.10.2026): ohne diese Merker stand erst die
     Baustellennummer, dann der Kundenname, und „Kein kommender Urlaub
     beantragt“, bevor die Anträge überhaupt da waren.
   */
-  const [naechsteGeladen, setNaechsteGeladen] = useState(false);
-  const [urlaubeGeladen, setUrlaubeGeladen] = useState(false);
+  const [naechsteGeladen, setNaechsteGeladen] = useState(() => anfang?.naechste !== undefined);
+  const [urlaubeGeladen, setUrlaubeGeladen] = useState(() => anfang?.urlaube !== undefined);
   /** Für welche Baustellennummern die Stammdaten geholt sind. */
-  const [projekteFuer, setProjekteFuer] = useState<string | null>(null);
+  const [projekteFuer, setProjekteFuer] = useState<string | null>(() => anfang?.projekteFuer ?? null);
 
   const prefix = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}`;
 
@@ -106,7 +132,8 @@ export default function MyScheduleView() {
    */
   useEffect(() => {
     if (!user) return;
-    setLoading(true);
+    // Steht der Monat schon da (gemerkt), bleibt er stehen; ein anderer lädt sichtbar.
+    if (monatFuer.current !== prefix) setLoading(true);
     const letzter = new Date(cursor.year, cursor.month + 1, 0).getDate();
     listAssignmentsForUserInRange(
       user.companyId,
@@ -114,10 +141,14 @@ export default function MyScheduleView() {
       `${prefix}-01`,
       `${prefix}-${String(letzter).padStart(2, '0')}`,
     )
-      .then(setRows)
+      .then((r) => {
+        setRows(r);
+        monatFuer.current = prefix;
+        if (prefix === heuteMonat) merken({ monat: { fuer: prefix, rows: r } });
+      })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [user, prefix, cursor.year, cursor.month]);
+  }, [user, prefix, cursor.year, cursor.month, heuteMonat, merken]);
 
   /**
    * Die anstehenden Einsätze ab heute — die Frage „wo muss ich als Nächstes
@@ -129,14 +160,14 @@ export default function MyScheduleView() {
     // Ohne Hinweis stuende „keine kommenden Einsaetze" da, wo „nicht
     // geladen" gemeint ist — und der Monteur faehrt morgen nirgendwohin.
     listUpcomingAssignments(user.companyId, user.uid, todayStr())
-      .then(setNaechste)
+      .then((n) => { setNaechste(n); merken({ naechste: n }); })
       .catch(() => setNebenFehler('Die kommenden Einsätze'))
       .finally(() => setNaechsteGeladen(true));
     listOwnVacations(user.companyId, user.uid)
-      .then(setUrlaube)
+      .then((u) => { setUrlaube(u); merken({ urlaube: u }); })
       .catch(() => setUrlaube([]))
       .finally(() => setUrlaubeGeladen(true));
-  }, [user]);
+  }, [user, merken]);
 
   /*
     WER AN DEM TAG GANZTAGS WEG IST, HAT DORT KEINEN „NÄCHSTEN EINSATZ“
@@ -154,7 +185,10 @@ export default function MyScheduleView() {
     Promise.resolve()
       .then(() => listAbwesendInRange(todayStr(), bis))
       .then((l) => {
-        if (!weg) setAbwesend(l.filter((a) => a.userId === user.uid));
+        if (weg) return;
+        const meine = l.filter((a) => a.userId === user.uid);
+        setAbwesend(meine);
+        merken({ abwesend: meine });
       })
       .catch(() => {
         if (!weg) setAbwesend([]);
@@ -162,7 +196,7 @@ export default function MyScheduleView() {
     return () => {
       weg = true;
     };
-  }, [user, naechste]);
+  }, [user, naechste, merken]);
   const anstehend = useMemo(
     () => naechste.filter((a) => !user || !ganztagsWeg(abwesend, user.uid, a.date)),
     [naechste, abwesend, user],
@@ -199,7 +233,7 @@ export default function MyScheduleView() {
     // stumm sieht das aus wie eine Baustelle ohne Kontakt.
     const fuer = nummernSchluessel;
     listProjectsByNumbers(user.companyId, nummern)
-      .then(setProjects)
+      .then((p) => { setProjects(p); merken({ projects: p, projekteFuer: fuer }); })
       .catch(() => setNebenFehler('Die Baustellendaten'))
       .finally(() => setProjekteFuer(fuer));
     // Am Inhalt haengen, nicht an der Array-Identitaet.
@@ -242,7 +276,9 @@ export default function MyScheduleView() {
    * Ein Fehlschlag bleibt folgenlos — die Einteilung ist die Aufgabe dieser
    * Ansicht, das Material die Zugabe.
    */
-  const [ruestlisten, setRuestlisten] = useState<WithId<EinsatzMaterial>[]>([]);
+  const [ruestlisten, setRuestlisten] = useState<WithId<EinsatzMaterial>[]>(
+    () => (anfang?.ruestlisten?.fuer === todayStr() ? anfang.ruestlisten.liste : []),
+  );
   useEffect(() => {
     if (!user || !materialAn) {
       setRuestlisten([]);
@@ -251,7 +287,9 @@ export default function MyScheduleView() {
     let verworfen = false;
     listEinsatzMaterialForDate(user.companyId, selected)
       .then((r) => {
-        if (!verworfen) setRuestlisten(r);
+        if (verworfen) return;
+        setRuestlisten(r);
+        if (selected === todayStr()) merken({ ruestlisten: { fuer: selected, liste: r } });
       })
       .catch(() => {
         if (!verworfen) setRuestlisten([]);
@@ -259,7 +297,7 @@ export default function MyScheduleView() {
     return () => {
       verworfen = true;
     };
-  }, [user, selected, materialAn]);
+  }, [user, selected, materialAn, merken]);
 
   /*
     DIE TERMINE (Plan 10.4): die, an denen ich teilnehme, und die auf einer
@@ -268,16 +306,20 @@ export default function MyScheduleView() {
     für die nächsten acht Wochen (die Liste darunter). Ein Fehlschlag sagt
     es, hält aber den Plan nicht auf.
   */
-  const [termineMonat, setTermineMonat] = useState<Termin[]>([]);
-  const [termineKommend, setTermineKommend] = useState<Termin[]>([]);
-  const [personen, setPersonen] = useState<AppUser[]>([]);
+  const [termineMonat, setTermineMonat] = useState<Termin[]>(
+    () => (anfang?.termineMonat?.fuer === heuteMonat ? anfang.termineMonat.liste : []),
+  );
+  const [termineKommend, setTermineKommend] = useState<Termin[]>(() => anfang?.termineKommend ?? []);
+  const [personen, setPersonen] = useState<AppUser[]>(() => anfang?.personen ?? []);
   useEffect(() => {
     if (!user) return;
     let weg = false;
     const letzter = new Date(cursor.year, cursor.month + 1, 0).getDate();
     listTermineImZeitraum(user.companyId, `${prefix}-01`, `${prefix}-${String(letzter).padStart(2, '0')}`)
       .then((t) => {
-        if (!weg) setTermineMonat(t);
+        if (weg) return;
+        setTermineMonat(t);
+        if (prefix === heuteMonat) merken({ termineMonat: { fuer: prefix, liste: t } });
       })
       .catch(() => {
         if (!weg) setNebenFehler('Die Termine');
@@ -285,7 +327,7 @@ export default function MyScheduleView() {
     return () => {
       weg = true;
     };
-  }, [user, prefix, cursor.year, cursor.month]);
+  }, [user, prefix, cursor.year, cursor.month, heuteMonat, merken]);
   useEffect(() => {
     if (!user) return;
     let weg = false;
@@ -294,7 +336,9 @@ export default function MyScheduleView() {
     ende.setDate(ende.getDate() + 56);
     listTermineImZeitraum(user.companyId, ab, localDateStr(ende))
       .then((t) => {
-        if (!weg) setTermineKommend(t);
+        if (weg) return;
+        setTermineKommend(t);
+        merken({ termineKommend: t });
       })
       .catch(() => {
         if (!weg) setNebenFehler('Die Termine');
@@ -302,7 +346,7 @@ export default function MyScheduleView() {
     return () => {
       weg = true;
     };
-  }, [user]);
+  }, [user, merken]);
   const meineAmTag = useMemo(
     () => (user ? termineMonat.filter((t) => t.datum === selected && betrifftMich(t, user.uid, rows)) : []),
     [termineMonat, selected, rows, user],
@@ -320,8 +364,8 @@ export default function MyScheduleView() {
   const mitTerminen = meineAmTag.length + meineKommend.length > 0;
   useEffect(() => {
     if (!user || !mitTerminen || personen.length > 0) return;
-    listUsers(user.companyId).then(setPersonen).catch(() => undefined);
-  }, [user, mitTerminen, personen.length]);
+    listUsers(user.companyId).then((p) => { setPersonen(p); merken({ personen: p }); }).catch(() => undefined);
+  }, [user, mitTerminen, personen.length, merken]);
 
   /** Fällt der gewählte Tag in einen eigenen Urlaub — und ist er entschieden? */
   const urlaubAmTag = useMemo(
