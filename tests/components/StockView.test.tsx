@@ -288,6 +288,24 @@ describe('Lager — frei und reserviert erst mit der Datenbank', () => {
       lagerStand.mockImplementation(async () => { throw new Error('nicht geladen'); });
     }
   });
+
+  // Unter dem kürzeren Platzhalter schob die eintreffende Liste sie nach unten (Messung 11.10.2026).
+  it('„weitere anzeigen“ steht erst mit der Liste da', async () => {
+    materialien = Array.from({ length: 25 }, (_, i) => material({ id: `m${i}`, name: `Artikel ${i}`, stock: 20 }));
+    anforderungen = [];
+    let liefern: (m: Map<string, unknown>) => void = () => undefined;
+    lagerStand.mockClear();
+    lagerStand.mockImplementation(() => new Promise((ok) => { liefern = ok; }));
+    try {
+      zeige();
+      await waitFor(() => expect(lagerStand).toHaveBeenCalled());
+      expect(screen.queryByRole('button', { name: /weitere anzeigen/ })).not.toBeInTheDocument();
+      await act(async () => liefern(new Map()));
+      expect(await screen.findByRole('button', { name: /5 weitere anzeigen/ })).toBeInTheDocument();
+    } finally {
+      lagerStand.mockImplementation(async () => { throw new Error('nicht geladen'); });
+    }
+  });
 });
 
 describe('Lager — Wareneingang', () => {

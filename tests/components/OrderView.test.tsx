@@ -162,6 +162,8 @@ describe('Meine Anforderungen beim Laden', () => {
       await baustelleFeld();
       expect(screen.queryByText(/Meine Anforderungen \(/)).not.toBeInTheDocument();
       expect(screen.queryByText('Nicht im Katalog?')).not.toBeInTheDocument();
+      // Auch kein Platzhalter darunter: den schöbe der eintreffende Katalog ebenso weg.
+      expect(within(screen.getByRole('region', { name: 'Meine Anforderungen' })).queryByRole('status')).toBeNull();
       await act(async () => katalogSenden());
       expect(await screen.findByText(/Meine Anforderungen \(\d+\)/)).toBeInTheDocument();
       expect(screen.getByText('Nicht im Katalog?')).toBeInTheDocument();
@@ -177,6 +179,8 @@ describe('Meine Anforderungen beim Laden', () => {
       await baustelleFeld();
       expect(screen.queryByText('Keine offenen Bestellungen.')).not.toBeInTheDocument();
       expect(screen.queryByText(/Meine Anforderungen \(0\)/)).not.toBeInTheDocument();
+      // Der Katalog steht schon — dann zeigt ein Platzhalter, dass hier noch etwas kommt.
+      await waitFor(() => expect(within(screen.getByRole('region', { name: 'Meine Anforderungen' })).getByRole('status')).toBeInTheDocument());
       await act(async () => eigeneSenden());
       expect(await screen.findByText(/Meine Anforderungen \(\d+\)/)).toBeInTheDocument();
     } finally {

@@ -459,16 +459,21 @@ export default function StockView() {
                   })}
                 </List>
               )}
-              <MehrAnzeigen anzahl={Math.max(0, rows.length - gezeigt)} onClick={() => setGezeigt((n) => n + JE_SEITE)} />
-              <div className="px-4 pb-3 empty:hidden">
-                <Nachladen
-                  geladen={materials.length}
-                  grenze={grenze}
-                  onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
-                  einheit="Artikel"
-                  sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
-                />
-              </div>
+              {/* Erst mit der Liste: unter dem kürzeren Platzhalter schob die Liste sie beim Eintreffen nach unten (Messung 11.10.2026). */}
+              {bestandBereit && (
+                <>
+                  <MehrAnzeigen anzahl={Math.max(0, rows.length - gezeigt)} onClick={() => setGezeigt((n) => n + JE_SEITE)} />
+                  <div className="px-4 pb-3 empty:hidden">
+                    <Nachladen
+                      geladen={materials.length}
+                      grenze={grenze}
+                      onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
+                      einheit="Artikel"
+                      sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </Card>
         </>

@@ -736,8 +736,10 @@ export default function OrderView() {
       */}
       <section id="meine-anforderungen" ref={meineRef} className="space-y-3 lg:space-y-5" aria-label="Meine Anforderungen">
         {nurAbholbereit && <Adressfilter text="nur abholbereite Anforderungen" parameter={['status']} />}
-        {/* Unter dem Katalog: erst wenn auch er steht, sonst schiebt er sie beim Eintreffen nach unten. */}
-        <Bereit wenn={meineGeladen && !loading} className="space-y-3 lg:space-y-5">
+        {/* Unter dem Katalog: erst wenn auch er steht, sonst schiebt er sie beim Eintreffen nach unten.
+            Solange er lädt, auch kein Platzhalter — den schöbe die lange Liste ebenso weg (Messung
+            11.10.2026: 0,29 am Handy); dass geladen wird, sagt der Katalog selbst. */}
+        <Bereit wenn={meineGeladen && !loading} platzhalter={loading ? <></> : undefined} className="space-y-3 lg:space-y-5">
         <Card title={`${nurAbholbereit ? 'Meine Anforderungen: abholbereit' : 'Meine Anforderungen'} (${activeOrders.length})`} buendig>
           {activeOrders.length === 0 ? (
             <EmptyState>Keine offenen Bestellungen.</EmptyState>
