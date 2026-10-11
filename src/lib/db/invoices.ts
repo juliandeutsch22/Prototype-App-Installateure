@@ -36,8 +36,9 @@ export function subscribeRecentInvoices(
   max: number,
   cb: (rows: WithId<Invoice>[]) => void,
   onError: (e: Error) => void,
+  geaendert?: () => void,
 ): () => void {
-  return pg.subscribeRecentInvoices(companyId, max, cb, onError);
+  return pg.subscribeRecentInvoices(companyId, max, cb, onError, undefined, geaendert);
 }
 
 export function listInvoicesInRange(

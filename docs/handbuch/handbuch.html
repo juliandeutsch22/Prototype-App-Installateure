@@ -677,8 +677,8 @@
     </p>
     <div class="stempel">
       <span>Stand <b>11.10.2026</b></span>
-      <span>Fassung <b>Laden ohne Springen, Stufe 3</b></span>
-      <span>Automatische Prüfungen <b>6828</b></span>
+      <span>Fassung <b>Mahnen am aktuellen Stand</b></span>
+      <span>Automatische Prüfungen <b>6838</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -706,6 +706,13 @@
         <p><strong>Urlaub ohne Springen:</strong> Nach einem Antrag oder einer Entscheidung bleiben Resturlaub, offene Anträge und „Meine Anträge“ stehen, bis der neue Stand da ist — bisher verschwanden sie kurz. „Offene Anträge“ und „Sonderurlaub bestätigen“ erscheinen zusammen. Die Zeile „Resturlaub … nach Genehmigung …“ unter jedem offenen Antrag steht als Platzhalter da, bis sie gerechnet ist; vorher wuchs jede Zeile nach einigen Sekunden.</p>
         <p><strong>Auf geteilten Geräten:</strong> Der Zwischenspeicher gehört dem, der angemeldet ist. Beim Abmelden, bei der Anmeldung eines anderen und beim Einblick des Supports ist er leer — der Monteur sieht nie, was die Geschäftsführung vor ihm auf derselben Tablette offen hatte. Ein Neuladen der App beginnt ebenfalls leer.</p>
         <p class="wer">Jeder</p>
+      </div>
+      <div class="bereich">
+        <h3>Mahnen am aktuellen Stand<span class="neu">behoben</span></h3>
+        <p>Der <strong>Mahnlauf</strong> wurde einmal beim Öffnen der Rechnungen geladen und nie wieder. Nach einer Zahlungserinnerung stand die Rechnung dort weiter mit „Mahnen“, und ein zweiter Klick verschickte dieselbe Stufe noch einmal; eine inzwischen bezahlte Rechnung blieb ebenso stehen. Seit 11.10.2026 folgt der Mahnlauf jeder Änderung an einer Rechnung — einer Mahnung, einer Zahlung, einem Storno, hier oder auf einem anderen Gerät.</p>
+        <p><strong>Vor dem Beleg wird nachgesehen.</strong> Beim Klick auf „Erzeugen“ liest die App die Rechnung frisch, bevor das PDF entsteht. Ist sie inzwischen bezahlt, storniert oder schon gemahnt, steht dort zum Beispiel „Die Rechnung hat sich inzwischen geändert: Die Rechnung ist bezahlt. Es wurde keine Mahnung erzeugt.“ — und es entsteht kein Schreiben. Nach einer Teilzahlung steht der neue Rest auf der Mahnung. Ohne Netz entsteht keine Mahnung mehr; bisher kam das PDF, und nur das Festhalten scheiterte.</p>
+        <p><strong>Die Datenbank prüft selbst:</strong> keine Mahnung für eine bezahlte oder stornierte Rechnung, jede Stufe nur einmal und keine übersprungen — auch wenn zwei Geräte im selben Augenblick mahnen. <strong>Grenze:</strong> Kommt die Zahlung genau in den Sekunden zwischen Nachsehen und Festhalten, liegt das PDF schon vor; dann steht „Die Rechnung ist inzwischen bezahlt — es wurde keine Mahnung festgehalten.“ — das Schreiben bitte nicht versenden.</p>
+        <p class="wer">Buchhaltung · Leitung</p>
       </div>
     </div>
   </section>

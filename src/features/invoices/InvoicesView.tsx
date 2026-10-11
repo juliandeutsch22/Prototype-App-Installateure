@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon } from '@/lib/lohnregeln';
@@ -210,6 +210,51 @@ export default function InvoicesView() {
   */
   const [offeneGeladen, setOffeneGeladen] = useState(false);
   const [scheineFertig, setScheineFertig] = useState(false);
+  /*
+    DER MAHNLAUF FOLGT DEM BESTAND (11.10.2026). Die offenen Forderungen
+    wurden einmal beim Öffnen geladen und nie wieder. Nach einer
+    Zahlungserinnerung stand die Rechnung im Mahnlauf weiter mit „Mahnen“,
+    und ein zweiter Klick hielt dieselbe Stufe noch einmal fest (gemessen am
+    lokalen Stack); eine inzwischen bezahlte Rechnung blieb dort ebenso
+    stehen. Jetzt lädt die Liste nach, sobald sich an einer Rechnung etwas
+    tut — hier oder auf einem anderen Gerät.
+
+    ZUSAMMENGEFASST, NICHT GESTAPELT: beim Öffnen stellt die Seite selbst
+    überfällige Rechnungen um, und jede Umstellung ist eine Meldung. Es läuft
+    höchstens eine Nachladung, dazu eine danach für alles, was währenddessen
+    kam. Es gilt die zuletzt GESTARTETE Abfrage, die geantwortet hat — käme
+    das erste Laden nach einer Nachladung zurück, stünde sonst der ältere
+    Stand da. Scheitert eine, bleibt der letzte Stand; vor jedem Beleg liest
+    `mahnen` die Rechnung ohnehin frisch.
+  */
+  const offeneAbruf = useRef({ gestartet: 0, angewandt: 0, laeuft: false, nochmal: false });
+  const offeneAnwenden = useCallback((nr: number, rows: WithId<Invoice>[]) => {
+    if (nr <= offeneAbruf.current.angewandt) return;
+    offeneAbruf.current.angewandt = nr;
+    setOffeneRechnungen(rows);
+    setForderungenFehler(false);
+  }, []);
+  const offeneNeuLaden = useCallback(() => {
+    if (!user) return;
+    const a = offeneAbruf.current;
+    if (a.laeuft) {
+      a.nochmal = true;
+      return;
+    }
+    a.laeuft = true;
+    void (async () => {
+      do {
+        a.nochmal = false;
+        const nr = ++a.gestartet;
+        try {
+          offeneAnwenden(nr, await listUnpaidInvoices(user.companyId));
+        } catch {
+          // Bleibt der letzte Stand (siehe oben).
+        }
+      } while (a.nochmal);
+      a.laeuft = false;
+    })();
+  }, [user, offeneAnwenden]);
   /*
     War der Materialstamm beim Zusammenstellen abgeschnitten? Ein Artikel
     darüber hinaus findet seinen Preis nicht — er steht dann unten als „ohne
@@ -520,9 +565,10 @@ export default function InvoicesView() {
         setError(e.message);
         setLoading(false);
       },
+      offeneNeuLaden,
     );
     return unsub;
-  }, [user, grenze]);
+  }, [user, grenze, offeneNeuLaden]);
 
   // Mahnwesen: offene Rechnungen mit überschrittener Frist automatisch auf
   // "Überfällig" setzen. Ohne das blieb der Status ungenutzt und der Betrieb
@@ -583,12 +629,10 @@ export default function InvoicesView() {
       Der Kommentar weiter unten rechtfertigt das Schweigen mit
       „Zusatzangabe". Für die SCHEINE stimmt das; für die Forderungen nicht.
     */
+    const nr = ++offeneAbruf.current.gestartet;
     listUnpaidInvoices(user.companyId)
       .then((rows) => {
-        if (!weg) {
-          setOffeneRechnungen(rows);
-          setForderungenFehler(false);
-        }
+        if (!weg) offeneAnwenden(nr, rows);
       })
       .catch(() => {
         if (!weg) setForderungenFehler(true);
@@ -630,7 +674,7 @@ export default function InvoicesView() {
     return () => {
       weg = true;
     };
-  }, [user, nurLesen]);
+  }, [user, nurLesen, offeneAnwenden]);
 
   const sorted = useMemo(
     () => [...invoices].sort((a, b) => b.invoiceNumber.localeCompare(a.invoiceNumber)),
@@ -1577,17 +1621,17 @@ export default function InvoicesView() {
    * Rechnung als gemahnt da, ohne dass je ein Schreiben entstanden wäre, und
    * die nächste Stufe begänne bei zwei.
    */
-  async function mahnen(inv: WithId<Invoice>, frist: string) {
-    if (!company) return;
-    const stufe = naechsteStufe(inv);
+  async function mahnen(gezeigt: WithId<Invoice>, frist: string) {
+    if (!company || !user) return;
+    const stufe = naechsteStufe(gezeigt);
     if (!stufe) return;
     /*
       OHNE KUNDENART KEINE MAHNUNG (Runde 3, M10): Zinsen und Mahnspesen
       hängen an ihr. Die Datenbank weist die Mahnstufe ebenso ab; hier steht
       es, bevor ein Beleg entsteht.
     */
-    const kundeVorher = kundeDerRechnung(inv);
-    if (kundenartFehlt(kundeVorher, inv.customerVatId)) {
+    const kundeVorher = kundeDerRechnung(gezeigt);
+    if (kundenartFehlt(kundeVorher, gezeigt.customerVatId)) {
       setError(`Für ${kundeVorher!.name} ist keine Kundenart hinterlegt (Privatperson oder Unternehmen) — bitte vor dem Mahnen in der Kundenakte festlegen.`);
       return;
     }
@@ -1595,6 +1639,25 @@ export default function InvoicesView() {
     setError(null);
     try {
       const heute = todayStr();
+      /*
+        VOR DEM BELEG DER STAND, DER GILT (11.10.2026). Was die Seite zeigt,
+        kann alt sein: eine Zahlung, ein Storno oder eine Mahnung von einem
+        anderen Gerät, seit sie geladen hat. Der Beleg geht hinaus, BEVOR die
+        Datenbank ihn festhält — sie weist eine überholte Mahnung zwar ab,
+        aber dann hätte man das Schreiben schon in der Hand. Darum hier
+        geprüft und gerechnet an der frisch gelesenen Rechnung; nach einer
+        Teilzahlung steht so auch der richtige Rest auf dem Beleg. Ohne Netz
+        entsteht kein Beleg mehr, den danach niemand festhalten kann.
+      */
+      const [inv] = await listInvoicesByIds(user.companyId, [gezeigt.id]);
+      const pruefung = inv ? darfMahnen(inv, heute) : { moeglich: false, grund: 'Die Rechnung ist nicht mehr da.' };
+      if (!inv || !pruefung.moeglich || naechsteStufe(inv) !== stufe) {
+        const grund = pruefung.moeglich ? `Sie ist schon mit Stufe ${inv!.mahnstufe} gemahnt.` : pruefung.grund;
+        setError(`Die Rechnung hat sich inzwischen geändert: ${grund} Es wurde keine Mahnung erzeugt.`);
+        setMahnFuer(null);
+        offeneNeuLaden();
+        return;
+      }
       const unternehmer = istUnternehmer(inv);
       const { mahnungInhalt, mahnungPdfAusInhalt, mahnungDateiname } = await import('./mahnungPdf');
       /*
@@ -1637,8 +1700,9 @@ export default function InvoicesView() {
         stufe, gemahntAm: heute, frist, spesen: inhalt.kosten, inhalt,
       });
       // Das Abzeichen im Menü zählt mit: diese Rechnung ist bis zum Ablauf
-      // der neuen Frist keine fällige Mahnung mehr.
+      // der neuen Frist keine fällige Mahnung mehr. Ebenso der Mahnlauf.
       void postenNeuLaden();
+      offeneNeuLaden();
       toast.success(`${TEXTE[stufe].titel} erzeugt`);
       setMahnFuer(null);
     } catch (err) {

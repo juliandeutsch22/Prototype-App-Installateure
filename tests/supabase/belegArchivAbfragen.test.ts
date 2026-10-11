@@ -56,6 +56,10 @@ beforeAll(async () => {
   // Rechnung vom Dezember, gemahnt im Jänner; eine zweite im Dezember gemahnt.
   gemahnt = await rechnung('RE-2025-0900', '2025-12-01');
   await rechnungen.updateInvoiceStatus(gemahnt, 'Überfällig');
+  // Stufe 2 nur nach Stufe 1 (seit 11.10.2026) — die erste noch im Dezember.
+  await rechnungen.mahnungFesthalten(gemahnt, {
+    stufe: 1, gemahntAm: '2025-12-16', frist: '2025-12-30', spesen: 0, inhalt: mahnInhalt(1, '2025-12-16', '2025-12-30'),
+  });
   await rechnungen.mahnungFesthalten(gemahnt, {
     stufe: 2, gemahntAm: '2026-01-12', frist: '2026-01-26', spesen: 10, inhalt: mahnInhalt(2, '2026-01-12', '2026-01-26'),
   });

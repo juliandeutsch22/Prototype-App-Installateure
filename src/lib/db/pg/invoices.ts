@@ -167,6 +167,12 @@ export async function listUnpaidInvoices(companyId: string) {
  * Das trägt, weil Positionen und Abdeckung sich nach dem Anlegen nicht mehr
  * ändern — die Richtlinien lassen an `invoice_lines` weder ein Ändern noch
  * ein Löschen zu. Jede Bewegung an einer Rechnung berührt also ihren Kopf.
+ *
+ * `geaendert` meldet, dass sich an IRGENDEINER Rechnung des Betriebs etwas
+ * getan hat — auch an einer, die zu alt für diese Liste ist — und nach
+ * einem Wiederaufbau, weil in der Pause etwas geschehen sein kann. Nicht
+ * beim ersten Aufbau: da lädt die Ansicht ohnehin. Damit hält die Ansicht
+ * ihre offenen Forderungen aktuell (seit 11.10.2026).
  */
 export function subscribeRecentInvoices(
   companyId: string,
@@ -174,9 +180,11 @@ export function subscribeRecentInvoices(
   cb: (rows: WithId<Invoice>[]) => void,
   onError: (e: Error) => void,
   client?: SupabaseClient,
+  geaendert?: () => void,
 ): () => void {
   const c = derClient(client);
   let gestoppt = false;
+  let schonBereit = false;
   let laeuft: Promise<void> | null = null;
   let nochmal = false;
   let nachfassen: ReturnType<typeof setTimeout> | undefined;
@@ -208,9 +216,14 @@ export function subscribeRecentInvoices(
   const stoppKanal = kanalHalten({
     tabelle: RECHNUNGEN,
     filter: `company_id=eq.${companyId}`,
-    beiAenderung: () => anstossen(),
+    beiAenderung: () => {
+      anstossen();
+      geaendert?.();
+    },
     beiBereit: () => {
       anstossen();
+      if (schonBereit) geaendert?.();
+      schonBereit = true;
       nachfassen = setTimeout(anstossen, NACHFASSEN_MS);
     },
     client: c,

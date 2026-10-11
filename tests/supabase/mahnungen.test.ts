@@ -13,6 +13,11 @@
  * Gegenproben: ohne Kundenart entsteht weder Stand noch Zeile (ein Zug);
  * der Monteur mahnt nicht und liest nichts; direkt einfügen, ändern oder
  * löschen kann niemand; ein fremder Betrieb sieht nichts.
+ *
+ * Seit 11.10.2026 fragt die Funktion selbst, ob noch etwas offen ist und ob
+ * die Stufe die nächste ist — eine Seite mit altem Stand mahnte sonst eine
+ * bezahlte Rechnung oder dieselbe Stufe zweimal. Gleich bleibt: eine
+ * teilbezahlte Rechnung ist mahnbar, Stufe 1 und 2 nacheinander gehen.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { admin, betriebAnlegen, konto, type Konto, mahnInhalt } from './helfer';
@@ -186,5 +191,57 @@ describe('Mahnungen einzeln festhalten', () => {
       .daten.rechnungen;
     const r = rs.find((x) => x.invoice_number === 'RE-M-0001')!;
     expect(r.mahnungen.map((m) => [m.stufe, m.inhalt.titel])).toEqual([[1, 'Zahlungserinnerung'], [2, 'Mahnung']]);
+  });
+});
+
+describe('Nur, was noch offen ist — jede Stufe einmal (11.10.2026)', () => {
+  const mahnen = (id: string, stufe: 1 | 2) => rechnungen.mahnungFesthalten(id, {
+    stufe, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 0, inhalt: mahnInhalt(stufe, '2026-02-01', '2026-02-08'),
+  });
+  async function stand(id: string) {
+    const { data } = await admin.from('invoices').select('mahnstufe, payment_status').eq('id', id).single();
+    const { count } = await admin.from('mahnungen').select('id', { count: 'exact', head: true }).eq('invoice_id', id);
+    return { ...data, mahnungen: count };
+  }
+
+  it('eine inzwischen bezahlte Rechnung bekommt keine Mahnung', async () => {
+    const id = await rechnung('RE-M-0101');
+    const { error } = await admin.from('zahlungseingaenge').insert({
+      company_id: BETRIEB, invoice_id: id, datum: '2026-01-20', betrag: 120, art: 'Überweisung',
+    });
+    expect(error).toBeNull();
+    clientEinreichen(buch.client);
+    await expect(mahnen(id, 1)).rejects.toThrow(/inzwischen bezahlt/);
+    expect(await stand(id)).toEqual({ mahnstufe: 0, payment_status: 'Bezahlt', mahnungen: 0 });
+  });
+
+  it('eine inzwischen stornierte auch nicht', async () => {
+    const id = await rechnung('RE-M-0102');
+    const { error } = await chefin.client.rpc('rechnung_stornieren', { p_id: id, p_grund: 'Doppelt erfasst' });
+    expect(error).toBeNull();
+    clientEinreichen(buch.client);
+    await expect(mahnen(id, 1)).rejects.toThrow(/inzwischen storniert/);
+    expect(await stand(id)).toEqual({ mahnstufe: 0, payment_status: 'Storniert', mahnungen: 0 });
+  });
+
+  it('dieselbe Stufe nicht zweimal, und keine übersprungen', async () => {
+    const id = await rechnung('RE-M-0103');
+    clientEinreichen(buch.client);
+    await expect(mahnen(id, 2)).rejects.toThrow(/Vor Stufe 2 muss Stufe 1 gemahnt sein/);
+    await mahnen(id, 1);
+    await expect(mahnen(id, 1)).rejects.toThrow(/schon mit Stufe 1 gemahnt/);
+    expect(await stand(id)).toEqual({ mahnstufe: 1, payment_status: 'Überfällig', mahnungen: 1 });
+  });
+
+  it('zwei Geräte zugleich: genau eine Mahnung', async () => {
+    const id = await rechnung('RE-M-0104');
+    const aufruf = (k: Konto) => k.client.rpc('mahnung_festhalten', {
+      p_invoice: id, p_stufe: 1, p_datum: '2026-02-01', p_frist: '2026-02-08', p_spesen: 0,
+      p_inhalt: mahnInhalt(1, '2026-02-01', '2026-02-08'),
+    });
+    const antworten = await Promise.all([aufruf(buch), aufruf(chefin)]);
+    expect(antworten.filter((a) => a.error === null)).toHaveLength(1);
+    expect(antworten.find((a) => a.error)?.error?.message).toMatch(/schon mit Stufe 1 gemahnt/);
+    expect(await stand(id)).toEqual({ mahnstufe: 1, payment_status: 'Überfällig', mahnungen: 1 });
   });
 });
