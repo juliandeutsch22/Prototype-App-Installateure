@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 /**
  * Welche Fassung laeuft hier eigentlich?
@@ -88,10 +89,99 @@ function datenbankVorverbinden(): Plugin {
   };
 }
 
+interface Kopfzeile {
+  key: string;
+  value: string;
+}
+
+interface Hosting {
+  hosting: { headers?: { source: string; headers: Kopfzeile[] }[] };
+}
+
+/** Die Kopfzeilen, die die Auslieferung für jede Adresse setzt — ohne Zwischenspeicher-Regel. */
+export function auslieferungsKopfzeilen(konfig: Hosting): Record<string, string> {
+  const alle = konfig.hosting.headers?.find((h) => h.source === '**')?.headers ?? [];
+  return Object.fromEntries(
+    // `no-cache` gehört zur Auslieferung, nicht zur Sicherheit; für die
+    // Durchsicht in der Vorschau ist sie ohne Belang.
+    alle.filter((k) => k.key.toLowerCase() !== 'cache-control').map((k) => [k.key, k.value]),
+  );
+}
+
+const ABGEDECKT = /^https:\/\/[a-z0-9-]+\.supabase\.co$/;
+
+/** Wie oben, plus die Datenbank, wenn sie nicht unter `*.supabase.co` liegt. */
+export function vorschauKopfzeilen(konfig: Hosting, datenbank: string | undefined): Record<string, string> {
+  const kopf = auslieferungsKopfzeilen(konfig);
+  let herkunft: string;
+  try {
+    herkunft = new URL(datenbank ?? '').origin;
+  } catch {
+    return kopf;
+  }
+  if (ABGEDECKT.test(herkunft)) return kopf;
+  const ws = herkunft.replace(/^http/, 'ws');
+  for (const name of ['Content-Security-Policy', 'Content-Security-Policy-Report-Only']) {
+    if (!kopf[name]) continue;
+    kopf[name] = kopf[name]
+      .split(';')
+      .map((teil) => {
+        const t = teil.trim();
+        if (t.startsWith('connect-src ')) return `${t} ${herkunft} ${ws}`;
+        if (t.startsWith('img-src ')) return `${t} ${herkunft}`;
+        return t;
+      })
+      .join('; ');
+  }
+  return kopf;
+}
+
+/**
+ * Die Sicherheits-Kopfzeilen der Auslieferung auch in `vite preview`.
+ *
+ * WARUM. Die Kopfzeilen stehen in `firebase.json` und wirken erst live. Eine
+ * Regel, die etwas sperrt, das die App braucht, fiele dort zuerst auf — bei
+ * den Betrieben. Die Vorschau des fertigen Baus (`npm run build`, dann
+ * `vite preview`) soll deshalb dieselben Kopfzeilen schicken, damit man jede
+ * Seite vorher durchgehen kann.
+ *
+ * EINE QUELLE. Gelesen wird `firebase.json`, nicht eine Abschrift: zwei
+ * Fassungen derselben Regeln liefen früher oder später auseinander.
+ *
+ * DER EINZIGE UNTERSCHIED: die Datenbank. Live liegt sie unter
+ * `*.supabase.co`, das deckt die Regel ab. Gegen den lokalen Stapel
+ * (`http://127.0.0.1:54321`) meldete die Vorschau sonst jeden Abruf als
+ * Verstoß, und die echten Verstöße gingen darin unter. Deshalb kommt dessen
+ * Adresse dazu — nur dann, und nur dort, wo die App die Datenbank anspricht.
+ *
+ * NICHT IM ENTWICKLUNGSSERVER. `vite` (dev) spielt eigene Skripte in die
+ * Seite und spricht über einen WebSocket mit sich selbst; jede Regel meldete
+ * dort nur dieses Werkzeug.
+ */
+function vorschauSicherheit(): Plugin {
+  let adresse: string | undefined;
+  return {
+    name: 'vorschau-sicherheit',
+    configResolved(config) {
+      adresse = config.env.VITE_SUPABASE_URL as string | undefined;
+    },
+    configurePreviewServer(server) {
+      const kopf = vorschauKopfzeilen(
+        JSON.parse(readFileSync(path.resolve(__dirname, 'firebase.json'), 'utf8')),
+        adresse,
+      );
+      server.middlewares.use((_req, res, weiter) => {
+        for (const [name, wert] of Object.entries(kopf)) res.setHeader(name, wert);
+        weiter();
+      });
+    },
+  };
+}
+
 const KENNUNG = fassungsKennung();
 
 export default defineConfig({
-  plugins: [react(), fassungsDatei(KENNUNG), datenbankVorverbinden()],
+  plugins: [react(), fassungsDatei(KENNUNG), datenbankVorverbinden(), vorschauSicherheit()],
   define: {
     __FASSUNG__: JSON.stringify(KENNUNG),
   },

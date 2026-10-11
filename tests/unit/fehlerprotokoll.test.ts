@@ -28,6 +28,7 @@ import {
   fehlerBeobachten,
   letzterFehler,
   problemMelden,
+  gesperrtesZiel,
   _zuruecksetzen,
 } from '@/lib/fehlerprotokoll';
 
@@ -140,9 +141,59 @@ describe('Erfassen', () => {
     window.dispatchEvent(ablehnung);
     const ab = vi.spyOn(window, 'removeEventListener');
     weg();
-    expect(ab.mock.calls.map((c) => c[0])).toEqual(['error', 'unhandledrejection']);
+    expect(ab.mock.calls.map((c) => c[0])).toEqual(['error', 'unhandledrejection', 'securitypolicyviolation']);
     await abwarten();
     expect(eintragen.mock.calls.map((c) => c[0].nachricht)).toEqual(['im Klick', 'nicht aufgefangen']);
+  });
+});
+
+describe('Verstöße gegen die Inhaltsregel (seit 11.10.2026)', () => {
+  /** jsdom kennt `SecurityPolicyViolationEvent` nicht — ein Ereignis mit denselben Feldern. */
+  function verstoss(felder: Partial<SecurityPolicyViolationEvent>, ziel: EventTarget = window) {
+    const e = new Event('securitypolicyviolation', { bubbles: true });
+    Object.assign(e, { effectiveDirective: '', blockedURI: '', sourceFile: '', disposition: 'report', ...felder });
+    ziel.dispatchEvent(e);
+  }
+
+  it('schreibt die Regel und die Herkunft — ohne Pfad, Zugangszeichen und Kennung', async () => {
+    const weg = fehlerBeobachten();
+    verstoss({
+      effectiveDirective: 'img-src',
+      blockedURI: 'https://bilder.example.com/kunde/3f1c?token=geheim',
+      sourceFile: 'https://app.example.at/assets/KundenakteView-x.js?v=1',
+    });
+    // Am Element ausgelöst, steigt bis zum Fenster auf.
+    verstoss({ effectiveDirective: 'script-src-elem', blockedURI: 'inline', disposition: 'enforce' }, document.body);
+    weg();
+    await abwarten();
+    expect(eintragen.mock.calls.map((c) => [c[0].nachricht, c[0].stapel])).toEqual([
+      ['Inhaltsregel img-src würde sperren: https://bilder.example.com', 'Quelle: https://app.example.at/assets/KundenakteView-x.js'],
+      ['Inhaltsregel script-src-elem sperrt: inline', null],
+    ]);
+  });
+
+  it('lässt Erweiterungen des Browsers draußen', async () => {
+    const weg = fehlerBeobachten();
+    verstoss({ effectiveDirective: 'script-src-elem', blockedURI: 'chrome-extension://abc/inject.js' });
+    verstoss({ effectiveDirective: 'style-src-elem', blockedURI: 'inline', sourceFile: 'moz-extension://abc/x.js' });
+    weg();
+    await abwarten();
+    expect(eintragen).not.toHaveBeenCalled();
+  });
+
+  it('kürzt jede Adresse auf ihre Herkunft, Schlüsselwörter bleiben', () => {
+    expect(gesperrtesZiel('wss://abc.supabase.co/realtime/v1/websocket?apikey=x')).toBe('wss://abc.supabase.co');
+    expect(gesperrtesZiel('data:image/png;base64,AAAA')).toBe('data');
+    expect(gesperrtesZiel('blob:https://app.example.at/1234-5678')).toBe('https://app.example.at');
+    expect(gesperrtesZiel('eval')).toBe('eval');
+    expect(gesperrtesZiel('')).toBe('unbekannt');
+  });
+
+  it('nach dem Abmelden des Beobachters kommt nichts mehr an', async () => {
+    fehlerBeobachten()();
+    verstoss({ effectiveDirective: 'connect-src', blockedURI: 'https://x.example.com/a' });
+    await abwarten();
+    expect(eintragen).not.toHaveBeenCalled();
   });
 });
 
