@@ -170,10 +170,15 @@ export default function StockView() {
     DIE ZAHLEN DER DATENBANK (Testbericht 30.09.2026, M32, G19): zugesagte
     Anforderungen und Rüstlisten ab heute, nach derselben Regel, mit der
     „Aus Lager“ prüft. Neu geholt, sobald sich Artikel oder Anforderungen
-    bewegen. Bis sie da sind — oder wenn sie ausbleiben —, rechnet die
-    Ansicht wie bisher selbst.
+    bewegen. Bleiben sie aus, rechnet die Ansicht wie bisher selbst.
+
+    SEIT 10.10.2026 NICHT MEHR „BIS SIE DA SIND“ (Analyse des Ladens): dann
+    stand erst die eigene Rechnung, Augenblicke später die der Datenbank —
+    zwei verschiedene Zahlen für „frei“ und „reserviert“. Bis zur ersten
+    Antwort (oder ihrem Fehler) stehen Platzhalter.
   */
   const [stand, setStand] = useState<Map<string, LagerStand> | null>(null);
+  const [standFertig, setStandFertig] = useState(false);
   useEffect(() => {
     if (!user) return;
     let weg = false;
@@ -181,9 +186,13 @@ export default function StockView() {
       .then(() => lagerFrei(materials.map((m) => m.id)))
       .then((k) => { if (!weg) setStand(k); })
       // Schlägt ein Nachladen fehl, bleibt der letzte Stand — besser als zurück auf die eigene Rechnung.
-      .catch(() => undefined);
+      .catch(() => undefined)
+      // Erst wenn die Artikel da sind, ist die Antwort eine über den Bestand.
+      .finally(() => { if (!weg && !loading) setStandFertig(true); });
     return () => { weg = true; };
-  }, [user, materials, orders]);
+  }, [user, materials, orders, loading]);
+  /** Frei und reserviert stehen erst mit der Antwort der Datenbank — oder ihrem Fehler. */
+  const bestandBereit = !loading && standFertig;
 
   const selbstGerechnet = useMemo(() => {
     // Rückfall auf den Namen: nicht jede Anforderung trägt eine materialId.
@@ -344,6 +353,7 @@ export default function StockView() {
             <Metric
               label="Im Lager"
               value={materials.filter(imLager).length}
+              bereit={!loading}
               // Katalog und Lager sind getrennt (M30): nicht jeder Katalogartikel liegt im Regal.
               hint={`von ${materials.length} im Katalog`}
             />
@@ -351,6 +361,7 @@ export default function StockView() {
               label="Knapp"
               tone={lowCount > 0 ? 'warning' : 'success'}
               value={lowCount}
+              bereit={bestandBereit}
               // „ab 5 oder weniger“ war missverständlich (G8): gemeint ist das Freie.
               hint={`unter Mindestmenge, sonst höchstens ${LOW_STOCK_THRESHOLD} frei`}
               to={lowCount > 0 && filter !== 'knapp' ? '/lager?filter=knapp' : undefined}
@@ -358,6 +369,7 @@ export default function StockView() {
             <Metric
               label="Reserviert"
               value={fmtMenge([...reserved.values()].reduce((a, b) => a + b, 0))}
+              bereit={bestandBereit}
               hint="zugesagt und auf Rüstlisten"
             />
           </MetricRow>
@@ -385,7 +397,7 @@ export default function StockView() {
               />
             </div>
             <div>
-              {loading ? (
+              {!bestandBereit ? (
                 <div className="px-4 pb-4">
                   <SkeletonList rows={5} />
                 </div>

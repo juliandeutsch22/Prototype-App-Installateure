@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import Adressfilter from '@/components/Adressfilter';
 import { subscribeMaterials, LOW_STOCK_THRESHOLD, lagerFrei, type LagerStand } from '@/lib/db/materials';
+import { Bereit, Wert } from '@/components/Wert';
 import { imLager, istKnapp } from './lagerartikel';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import {
@@ -101,21 +102,30 @@ export default function OrderView() {
   /*
     WAS FREI IST, NICHT WAS IM REGAL STEHT (Testbericht 30.09.2026, G19):
     „5 Stk (knapp)“, obwohl 3 davon zugesagt oder für einen Einsatz geplant
-    waren. Die Zahl kommt aus der Datenbank; bis sie da ist oder wenn sie
-    ausbleibt, steht der Bestand.
+    waren. Die Zahl kommt aus der Datenbank; bleibt sie aus, steht der
+    Bestand. Bis zur ersten Antwort ein Platzhalter — sonst stand erst der
+    Bestand und Augenblicke später das Freie (Analyse 10.10.2026).
   */
   const [frei, setFrei] = useState<Map<string, LagerStand> | null>(null);
+  const [freiFertig, setFreiFertig] = useState(false);
   useEffect(() => {
     if (!user) return;
     let weg = false;
     Promise.resolve()
       .then(() => lagerFrei(materials.map((m) => m.id)))
       .then((k) => { if (!weg) setFrei(k); })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => { if (!weg && materials.length > 0) setFreiFertig(true); });
     return () => { weg = true; };
   }, [user, materials]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [myOrders, setMyOrders] = useState<WithId<MaterialOrder>[]>([]);
+  /*
+    Kamen die eigenen Anforderungen schon? Vorher stand bis dahin „Meine
+    Anforderungen (0) – Keine offenen Bestellungen“ (gemessen sechs Sekunden
+    im langsamen Netz, Analyse 10.10.2026) — eine Auskunft, die keine war.
+  */
+  const [meineGeladen, setMeineGeladen] = useState(false);
   const [loading, setLoading] = useState(true);
   /* Warum der Katalog eine Grenze braucht: siehe `lib/db/materials.ts`. */
   const [grenze, setGrenze] = useState(KATALOG_GRENZE);
@@ -175,8 +185,14 @@ export default function OrderView() {
       user.companyId,
       user.uid,
       EIGENE_ANFORDERUNGEN,
-      setMyOrders,
-      () => setNebenFehler('Deine Anforderungen'),
+      (rows) => {
+        setMyOrders(rows);
+        setMeineGeladen(true);
+      },
+      () => {
+        setNebenFehler('Deine Anforderungen');
+        setMeineGeladen(true);
+      },
     );
     return () => {
       unsubM();
@@ -538,6 +554,9 @@ export default function OrderView() {
                         {m.category && `${m.category} · `}
                         {/* Knapp: Punkt in Warnfarbe, Wort in Grau — keine farbige
                             Schrift im Fliesstext (Designlinie „Fassung 3"). */}
+                        {lager && !freiFertig ? (
+                          <Wert bereit={false} muster="00 Stk frei">{null}</Wert>
+                        ) : (
                         <span className={low ? 'stand stand-warn h-auto' : undefined}>
                           {!lager
                             ? 'wird bestellt'
@@ -548,6 +567,7 @@ export default function OrderView() {
                             : `Lager: ${fmtMenge(m.stock ?? 0)} ${m.unit ?? 'Stk'}`}
                           {low && verfuegbar > 0 && ' (knapp)'}
                         </span>
+                        )}
                       </>
                     }
                   >
@@ -579,6 +599,8 @@ export default function OrderView() {
             sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
           />
         </div>
+        {/* Erst mit dem Katalog — sonst schob der Katalog die Zeile beim Eintreffen nach unten. */}
+        {!loading && (
         <div className="mt-4 border-t border-line pt-4">
           <p className="section-label">Nicht im Katalog?</p>
           {/* `minmax(0,1fr)` statt `1fr`: sonst gibt die Spalte nicht unter
@@ -610,6 +632,7 @@ export default function OrderView() {
             </Button>
           </div>
         </div>
+        )}
       </Card>
 
       {/*
@@ -713,6 +736,8 @@ export default function OrderView() {
       */}
       <section id="meine-anforderungen" ref={meineRef} className="space-y-3 lg:space-y-5" aria-label="Meine Anforderungen">
         {nurAbholbereit && <Adressfilter text="nur abholbereite Anforderungen" parameter={['status']} />}
+        {/* Unter dem Katalog: erst wenn auch er steht, sonst schiebt er sie beim Eintreffen nach unten. */}
+        <Bereit wenn={meineGeladen && !loading} className="space-y-3 lg:space-y-5">
         <Card title={`${nurAbholbereit ? 'Meine Anforderungen: abholbereit' : 'Meine Anforderungen'} (${activeOrders.length})`} buendig>
           {activeOrders.length === 0 ? (
             <EmptyState>Keine offenen Bestellungen.</EmptyState>
@@ -803,6 +828,7 @@ export default function OrderView() {
             onClick={() => setErledigtGezeigt((n) => n + JE_SEITE)}
           />
         </Card>
+        </Bereit>
       </section>
 
       {/*

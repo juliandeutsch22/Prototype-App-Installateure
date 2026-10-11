@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Vacation } from '@/types';
@@ -327,6 +327,40 @@ describe('Urlaubsantrag', () => {
     // Moeglichkeit erst gar nicht anbieten.
     expect(screen.queryByText(/Offene Anträge/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Genehmigen' })).not.toBeInTheDocument();
+  });
+});
+
+/*
+  ERST MIT SEINEN DATEN (Analyse 10.10.2026): Resturlaub, offene Anträge und
+  Formular erschienen nacheinander, das Formular rutschte nach unten, und
+  darin stand kurz „genehmigt: 0 von 25 Tagen“.
+*/
+describe('Urlaub beim Laden', () => {
+  it('zeigt Formular und Zahlen erst, wenn die eigenen Anträge da sind', async () => {
+    const { listOwnVacations } = await import('@/lib/db/vacations');
+    let liefern: (l: Vacation[]) => void = () => undefined;
+    vi.mocked(listOwnVacations).mockImplementationOnce(() => new Promise((ok) => { liefern = ok as (l: Vacation[]) => void; }) as never);
+    zeichne();
+    await waitFor(() => expect(listOwnVacations).toHaveBeenCalled());
+    expect(screen.queryByLabelText('Von')).not.toBeInTheDocument();
+    expect(screen.queryByText(/genehmigt:/)).not.toBeInTheDocument();
+    await act(async () => liefern([]));
+    expect(await screen.findByLabelText('Von')).toBeInTheDocument();
+    expect(screen.getByText(/genehmigt:/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: nach dem Einreichen bleibt alles stehen, während neu geladen wird', async () => {
+    const { listOwnVacations } = await import('@/lib/db/vacations');
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByLabelText('Von');
+    await datum('Von', '2026-10-27');
+    await datum('Bis (einschließlich)', '2026-10-28');
+    // Das Neuladen nach dem Antrag hängt — das Formular darf dabei nicht verschwinden.
+    vi.mocked(listOwnVacations).mockImplementationOnce(() => new Promise(() => undefined) as never);
+    await nutzer.click(screen.getByRole('button', { name: 'Antrag einreichen' }));
+    await waitFor(() => expect(createVacation).toHaveBeenCalled());
+    expect(screen.getByLabelText('Von')).toBeInTheDocument();
   });
 });
 

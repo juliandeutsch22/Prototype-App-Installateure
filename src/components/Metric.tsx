@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { Wert } from './Wert';
 
 type Tone = 'default' | 'success' | 'danger' | 'warning' | 'brand';
 
@@ -13,6 +14,19 @@ interface MetricProps {
    * („€ 800 überfällig"), ohne Weg dorthin, lässt einen suchen.
    */
   to?: string;
+  /**
+   * Ist die Grundlage der Zahl ganz geladen? Ohne steht ein Platzhalter in
+   * Zeilenhöhe statt eines Werts, der nur so aussieht wie einer (Analyse
+   * 10.10.2026). Fehlt die Angabe, gilt die Zahl als fertig.
+   */
+  bereit?: boolean;
+  /**
+   * Die Form des Zusatzes, solange er lädt. Ein Zusatz, der am Telefon auf
+   * zwei Zeilen bricht, braucht einen Platzhalter, der es auch tut — sonst
+   * schiebt er beim Eintreffen alles darunter um eine Zeile (Zeiterfassung,
+   * Messung 11.10.2026).
+   */
+  zusatzMuster?: string;
 }
 
 /**
@@ -59,7 +73,10 @@ export function MetricRow({ children }: { children: ReactNode }) {
   return <div className="kennzahlen">{children}</div>;
 }
 
-export default function Metric({ label, value, hint, tone = 'default', to }: MetricProps) {
+export default function Metric({ label, value, hint, tone = 'default', to, bereit, zusatzMuster = 'auf die 00 zuletzt' }: MetricProps) {
+  // Ohne Angabe bleibt die Kennzahl, wie sie war — kein Rahmen, kein Einblenden.
+  const mitLaden = bereit !== undefined;
+  const fertig = bereit ?? true;
   const inhalt = (
     <>
       <p className="kennzahl-name truncate">
@@ -69,8 +86,15 @@ export default function Metric({ label, value, hint, tone = 'default', to }: Met
       </p>
       {/* 600 und nie fett: die Zahl steht über allem anderen in der Leiste
           durch ihre Grösse, nicht durch ihr Gewicht (Linie § 5). */}
-      <p className={`kennzahl-wert ${valueTone[tone]}`}>{value}</p>
-      {hint && <p className="kennzahl-zusatz leading-snug">{hint}</p>}
+      <p className={`kennzahl-wert ${fertig ? valueTone[tone] : ''}`}>
+        {mitLaden ? <Wert bereit={fertig} muster="€ 00 000,00">{value}</Wert> : value}
+      </p>
+      {/* Der Zusatz rechnet aus derselben Grundlage — bis dahin ein Platzhalter in seiner Zeile. */}
+      {hint && (
+        <p className="kennzahl-zusatz leading-snug">
+          {mitLaden ? <Wert bereit={fertig} muster={zusatzMuster}>{hint}</Wert> : hint}
+        </p>
+      )}
     </>
   );
   if (to) {

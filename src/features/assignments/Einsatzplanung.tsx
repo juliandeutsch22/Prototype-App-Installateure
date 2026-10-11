@@ -9,7 +9,7 @@ import Button from '@/components/Button';
 import BottomSheet from '@/components/BottomSheet';
 import { List, ListRow } from '@/components/ListRow';
 import { MehrAnzeigen, Segmente } from '@/components/LotBausteine';
-import { ErrorState, EmptyState, TeilFehler } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import TerminFenster from '@/features/termine/TerminFenster';
 import { montagDer, wocheAb, wocheVerschoben } from './wochenplan';
 import { kwSchluessel, monatsTage, monatsTitel, montagAusKw, wochenTitel } from './planungKopf';
@@ -315,7 +315,11 @@ export default function Einsatzplanung() {
         </div>
       </div>
 
-      {d.gruppen.length === 0 ? (
+      {!d.geladen ? (
+        <Card buendig>
+          <SkeletonList rows={6} />
+        </Card>
+      ) : d.gruppen.length === 0 ? (
         <Card buendig>
           <EmptyState>
             Keine aktiven Mitarbeiter im Außendienst. Ohne sie gibt es nichts einzuteilen.

@@ -677,8 +677,8 @@
     </p>
     <div class="stempel">
       <span>Stand <b>10.10.2026</b></span>
-      <span>Fassung <b>Laden ohne Springen, Stufe 1</b></span>
-      <span>Automatische Prüfungen <b>6763</b></span>
+      <span>Fassung <b>Laden ohne Springen, Stufe 2</b></span>
+      <span>Automatische Prüfungen <b>6786</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -693,6 +693,14 @@
         <h3>Seitenwechsel ohne Wartepause<span class="neu">neu</span></h3>
         <p>Jede Seite der App ist ein eigener Baustein und kam bisher erst beim ersten Öffnen übers Netz — so lange blieb die alte Seite ohne Zeichen stehen (im langsamen Netz bis 1,6 s). Jetzt holt die App nach der Anmeldung im Leerlauf die Seiten, die im eigenen Menü stehen, eine nach der anderen; danach wechselt eine Seite ohne Pause. Im Datensparmodus des Telefons wird nichts vorab geholt. Wartet ein Wechsel doch einmal länger als 150 ms, läuft oben ein dünner Balken in Petrol. Ist nach einer neuen Fassung ein Baustein nicht mehr zu haben, lädt die App erst neu, wenn jemand die Seite wirklich öffnet — nie mitten in der Arbeit.</p>
         <p><strong>Platzhalter und Übergänge:</strong> Die grauen Platzhalter erscheinen erst nach 200 ms — was schneller da ist, flackert nicht mehr auf — und pulsieren dann ruhig zwischen zwei Grautönen, ohne Verlauf und ohne Transparenz. Eine neue Seite blendet in 160 ms ein, ohne Bewegung. Beim allerersten Öffnen steht statt des Kreisels ein Platzhalter in Form der Seite. Wer am Gerät „Bewegung reduzieren“ eingestellt hat, sieht weder Puls noch Einblenden.</p>
+        <p class="wer">Jeder</p>
+      </div>
+      <div class="bereich">
+        <h3>Keine falschen Zwischenwerte<span class="neu">neu</span></h3>
+        <p>Eine Zahl, die von Daten abhängt, steht erst da, wenn alles geladen ist, woraus sie gerechnet wird; bis dahin ein grauer Platzhalter in ihrer Größe. Vorher stand kurz, was eine noch leere Liste ergibt — und das sah aus wie ein echter Wert: <strong>Rechnungen</strong> „Offen € 0,00“, dann eine Teilsumme, dann die richtige; der <strong>Saldo</strong> eines Monteurs kurz −9.663 Std.; <strong>Handwerksscheine</strong> „49 Scheine ohne Buchung“ mit Namen, Sekunden später 31; im <strong>Wochenplan</strong> „Keine aktiven Mitarbeiter“, dann „12 frei“ statt „0 frei“; „Meine Anforderungen (0)“, „Benutzer (0)“, „von 0 im Katalog“, „genehmigt: 0 von 25 Tagen“; im Lager und im Material-Katalog erst der Regalbestand, dann das Freie.</p>
+        <p><strong>Blöcke erscheinen als Ganzes.</strong> Was aus mehreren Abfragen besteht oder über späterem Inhalt steht, kommt auf einmal, statt sich dazwischenzuschieben: auf der <strong>Startseite</strong> Kennzahlen, „Zu erledigen“ und „Heute“ zusammen, wenn alle Teile da sind; bei den <strong>Rechnungen</strong> Mahnlauf, „nicht verrechnete Leistung“, Liste und Buchhaltungs-Export; im <strong>Urlaub</strong> Resturlaub, offene Anträge und Formular; in der <strong>Zeiterfassung</strong> der Hinweis auf Scheine ohne Zeitbuchung erst, wenn Scheine und Buchungen geladen sind; bei <strong>Material anfordern</strong> „Meine Anforderungen“ erst mit dem Katalog darüber; bei den <strong>Handwerksscheinen</strong> die Liste beim ersten Öffnen erst mit der Prüfung „Stunden ohne Buchung“ darüber (danach bleibt sie stehen, auch während „Weiter zurück prüfen“ lädt); in <strong>Mein Einsatzplan</strong> gleich der Kundenname, nie zuerst die Baustellennummer. Ein geöffnetes Formular „Neue Rechnung“ bleibt dabei stehen. Eine neue Woche im Plan zeigt kurz den Platzhalter statt der Einsätze der alten Woche. Ein Platzhalter hat die Form seines Textes — bricht der Text am Handy auf zwei Zeilen, hat auch der Platzhalter zwei.</p>
+        <p><strong>Grenze:</strong> Das Formular der Zeiterfassung steht immer sofort da, damit auch ohne Netz gebucht werden kann. Der Hinweis auf unterschriebene Scheine ohne Zeitbuchung steht darüber und erscheint erst mit den Daten — dann rückt das Formular einmal nach unten, mit dem richtigen Inhalt statt mit Zwischenständen. Ebenso einmal: „Sonderurlaub bestätigen“ beim Urlaub, das seine Anträge selbst lädt.</p>
+        <p><strong>Beim Bauen gefunden:</strong> Konnte die Prüfung „Stunden ohne Buchung“ die Zeitbuchungen nicht laden, stand jeder Schein als ungebucht da. Jetzt sagt die Karte, dass nicht geprüft werden konnte.</p>
         <p class="wer">Jeder</p>
       </div>
     </div>

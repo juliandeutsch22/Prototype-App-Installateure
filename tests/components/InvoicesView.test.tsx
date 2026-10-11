@@ -3459,6 +3459,49 @@ describe('Rücklass beim Anlegen', () => {
   });
 });
 
+/**
+ * Laden ohne falsche Zwischenwerte (Analyse 10.10.2026): „Offen“ stand als
+ * € 0,00, dann als Teilsumme, dann richtig da; Mahnlauf und Karten schoben
+ * sich nachträglich über die Liste.
+ */
+describe('Solange die offenen Forderungen laden', () => {
+  const kachel = (name: string) =>
+    screen.getAllByText(name).find((e) => e.tagName === 'P')!.parentElement!;
+
+  it('stehen Platzhalter statt „€ 0,00“, und die Liste erscheint erst mit ihnen', async () => {
+    let liefern: (r: (Invoice & { id: string })[]) => void = () => undefined;
+    listUnpaidInvoices.mockImplementationOnce(() => new Promise((ok) => { liefern = ok; }));
+    rechnungen = [{
+      id: 'j', invoiceNumber: 'RE-2026-1200', projectNumber: '2026-001', customerName: 'Max',
+      invoiceDate: '2026-08-20', dueDate: '2099-01-01', totalNetto: 100, totalVat: 20, totalBrutto: 120,
+      paymentStatus: 'Offen',
+    }] as unknown as (Invoice & { id: string })[];
+    zeige();
+    await waitFor(() => expect(listUnpaidInvoices).toHaveBeenCalled());
+    expect(within(kachel('Offen')).getByRole('status')).toHaveTextContent('wird geladen');
+    expect(kachel('Offen')).not.toHaveTextContent('€ 0,00');
+    expect(kachel('Überfällig')).not.toHaveTextContent('€ 0,00');
+    expect(screen.queryByText(/RE-2026-1200/)).not.toBeInTheDocument();
+
+    await act(async () => liefern([{
+      id: 'alt', invoiceNumber: 'RE-2024-1001', projectNumber: '2024-001', customerName: 'Moritz',
+      invoiceDate: '2024-03-01', dueDate: '2024-03-15', totalNetto: 1000, totalVat: 200, totalBrutto: 1200,
+      paymentStatus: 'Überfällig',
+    }] as unknown as (Invoice & { id: string })[]));
+    // Erst jetzt, und gleich mit der vollen Summe.
+    expect(await screen.findByText(/RE-2026-1200/)).toBeInTheDocument();
+    expect(kachel('Offen')).toHaveTextContent('€ 120,00');
+    expect(kachel('Überfällig')).toHaveTextContent(/€ 1\s200,00/);
+  });
+
+  it('Gegenprobe: scheitert die Abfrage, erscheint die Seite trotzdem — mit dem Hinweis', async () => {
+    listUnpaidInvoices.mockRejectedValueOnce(new Error('kein Netz'));
+    zeige();
+    expect(await screen.findByText(/Die offenen Forderungen konnten nicht geladen werden/)).toBeInTheDocument();
+    expect(within(kachel('Offen')).queryByRole('status')).not.toBeInTheDocument();
+  });
+});
+
 /** Ein offener Rücklass in der Liste: offen, nicht überfällig, solange er nicht fällig ist. */
 describe('Rücklass in der Liste', () => {
   const kachel = (name: string) =>

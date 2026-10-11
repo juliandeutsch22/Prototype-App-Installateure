@@ -133,3 +133,31 @@ describe('Eine Kennzahl mit Ziel', () => {
     expect(screen.queryByRole('link')).toBeNull();
   });
 });
+
+/*
+  Laden ohne Springen (Analyse 10.10.2026): solange die Grundlage fehlt, steht
+  ein Platzhalter in der Form des späteren Werts — nicht ein Wert, der nur so
+  aussieht wie einer.
+*/
+describe('Eine Kennzahl, die lädt', () => {
+  it('zeigt Platzhalter statt Wert und Zusatz', () => {
+    render(<Metric label="Offen" value="€ 0,00" hint="3 Rechnungen" bereit={false} />);
+    expect(screen.getAllByRole('status')).toHaveLength(2);
+    expect(screen.queryByText('€ 0,00')).toBeNull();
+    expect(screen.queryByText('3 Rechnungen')).toBeNull();
+  });
+
+  it('der Platzhalter des Zusatzes hat die Form, die man ihm gibt — bricht der Zusatz um, bricht er mit', () => {
+    const { container } = render(
+      <Metric label="Saldo" value="+1:00" hint="58 Tage ohne Buchung" bereit={false} zusatzMuster="000 Tage ohne Buchung — unvollständig" />,
+    );
+    const zusatz = container.querySelector('.kennzahl-zusatz');
+    expect(zusatz?.querySelector('.skeleton-text')?.getAttribute('data-muster')).toBe('000 Tage ohne Buchung — unvollständig');
+  });
+
+  it('ohne Angabe von „bereit“ bleibt sie, wie sie war', () => {
+    render(<Metric label="Offen" value="€ 0,00" hint="3 Rechnungen" />);
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByText('€ 0,00')).toBeInTheDocument();
+  });
+});

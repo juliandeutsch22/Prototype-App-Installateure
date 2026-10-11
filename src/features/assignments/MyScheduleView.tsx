@@ -85,6 +85,15 @@ export default function MyScheduleView() {
    * als das, was er ist.
    */
   const [urlaube, setUrlaube] = useState<WithId<Vacation>[]>([]);
+  /*
+    WAS SCHON DA IST (Analyse 10.10.2026): ohne diese Merker stand erst die
+    Baustellennummer, dann der Kundenname, und „Kein kommender Urlaub
+    beantragt“, bevor die Anträge überhaupt da waren.
+  */
+  const [naechsteGeladen, setNaechsteGeladen] = useState(false);
+  const [urlaubeGeladen, setUrlaubeGeladen] = useState(false);
+  /** Für welche Baustellennummern die Stammdaten geholt sind. */
+  const [projekteFuer, setProjekteFuer] = useState<string | null>(null);
 
   const prefix = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}`;
 
@@ -121,10 +130,12 @@ export default function MyScheduleView() {
     // geladen" gemeint ist — und der Monteur faehrt morgen nirgendwohin.
     listUpcomingAssignments(user.companyId, user.uid, todayStr())
       .then(setNaechste)
-      .catch(() => setNebenFehler('Die kommenden Einsätze'));
+      .catch(() => setNebenFehler('Die kommenden Einsätze'))
+      .finally(() => setNaechsteGeladen(true));
     listOwnVacations(user.companyId, user.uid)
       .then(setUrlaube)
-      .catch(() => setUrlaube([]));
+      .catch(() => setUrlaube([]))
+      .finally(() => setUrlaubeGeladen(true));
   }, [user]);
 
   /*
@@ -186,9 +197,11 @@ export default function MyScheduleView() {
     if (!user || nummern.length === 0) return;
     // Fehlen die Stammdaten, bleiben Kundenname, Route und Anruf leer —
     // stumm sieht das aus wie eine Baustelle ohne Kontakt.
+    const fuer = nummernSchluessel;
     listProjectsByNumbers(user.companyId, nummern)
       .then(setProjects)
-      .catch(() => setNebenFehler('Die Baustellendaten'));
+      .catch(() => setNebenFehler('Die Baustellendaten'))
+      .finally(() => setProjekteFuer(fuer));
     // Am Inhalt haengen, nicht an der Array-Identitaet.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, nummernSchluessel]);
@@ -341,7 +354,7 @@ export default function MyScheduleView() {
       {nebenFehler && <TeilFehler was={nebenFehler} />}
       {plaene.zustand === 'fehler' && <TeilFehler was="Die Pläne" onRetry={plaeneNeu} />}
 
-      {loading ? (
+      {loading || !naechsteGeladen || !urlaubeGeladen || (nummern.length > 0 && projekteFuer !== nummernSchluessel) ? (
         <LoadingState />
       ) : error ? (
         <ErrorState message={error} />

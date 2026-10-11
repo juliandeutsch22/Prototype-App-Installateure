@@ -21,7 +21,7 @@ import Card from '@/components/Card';
 import Icon from '@/components/Icon';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import PageHeader from '@/components/PageHeader';
-import { LoadingState } from '@/components/States';
+import { SkeletonList, SkeletonMetrics } from '@/components/States';
 import { rolleAnzeige } from '@/lib/rolleAnzeige';
 import LaufWarnung from './LaufWarnung';
 import WartungHinweis from './WartungHinweis';
@@ -266,44 +266,47 @@ export default function DashboardView() {
         </Hinweiszeile>
       )}
 
-      {/* Die Zahlen zuerst, über die ganze Breite (Protokoll E1). */}
-      <Kennzahlen werte={seite.kennzahlen} />
-
-      {nochAmLaden && !hatBedarf && !hatHeute ? (
-        <Card>
-          <LoadingState />
-        </Card>
-      ) : hatBedarf ? (
-        /*
-          EIN BAUM FÜR BEIDE FÄLLE: kommt „Heute“ erst nach „Zu erledigen“,
-          wird nur die rechte Spalte angefügt. Zwei getrennte Zweige hätten
-          die Karte dabei neu aufgebaut — ein schon aufgeklapptes „und N
-          weitere“ wäre wieder zu gewesen.
-        */
-        <div className={hatHeute ? 'zwei-spalten' : undefined}>
-          <div className="spalte start-breit">
-            <Handlungsbedarf abschnitte={seite.abschnitte} zaehlwort={seite.zaehlwort} />
-          </div>
-          {hatHeute && <div className="spalte">{heuteKarten}</div>}
+      {/*
+        ALLES AUF EINMAL, WENN ALLE BLÖCKE DA SIND (Analyse 10.10.2026).
+        Vorher wuchs „Zu erledigen“ Block für Block — gemessen von 4 auf 10
+        Themen, bei der Buchhaltung von 1 auf 66 Zeilen —, neue Punkte
+        schoben sich dazwischen, und die Kennzahlen kamen nachträglich
+        darüber. Jetzt stehen bis dahin Platzhalter in derselben Form;
+        scheitert ein Block, sagt es der Hinweis darunter wie bisher.
+      */}
+      {nochAmLaden ? (
+        <div className="space-y-3 lg:space-y-5">
+          <SkeletonMetrics count={3} />
+          <Card>
+            <SkeletonList rows={5} />
+          </Card>
         </div>
       ) : (
-        /* Nichts zu tun: EINE Spalte über die ganze Breite (G20). */
-        <div className="spalte start-breit">
-          {!nochAmLaden && (
-            <section className="panel karte flex items-start gap-3 p-4" aria-label="Heute liegt nichts an">
-              <Icon name="haken" size={20} className="mt-0.5 shrink-0 text-success" />
-              <div>
-                <h2 className="titel-karte">Heute liegt nichts an</h2>
-                <p className="mt-0.5 text-sm text-ink-muted">{leerText(rolle)}</p>
-              </div>
-            </section>
-          )}
-          {heuteKarten}
-        </div>
-      )}
+        <div className="wert-erscheint space-y-3 lg:space-y-5">
+          {/* Die Zahlen zuerst, über die ganze Breite (Protokoll E1). */}
+          <Kennzahlen werte={seite.kennzahlen} />
 
-      {nochAmLaden && (hatBedarf || hatHeute) && (
-        <p className="text-sm text-ink-muted" role="status">Wird noch geladen …</p>
+          {hatBedarf ? (
+            <div className={hatHeute ? 'zwei-spalten' : undefined}>
+              <div className="spalte start-breit">
+                <Handlungsbedarf abschnitte={seite.abschnitte} zaehlwort={seite.zaehlwort} />
+              </div>
+              {hatHeute && <div className="spalte">{heuteKarten}</div>}
+            </div>
+          ) : (
+            /* Nichts zu tun: EINE Spalte über die ganze Breite (G20). */
+            <div className="spalte start-breit">
+              <section className="panel karte flex items-start gap-3 p-4" aria-label="Heute liegt nichts an">
+                <Icon name="haken" size={20} className="mt-0.5 shrink-0 text-success" />
+                <div>
+                  <h2 className="titel-karte">Heute liegt nichts an</h2>
+                  <p className="mt-0.5 text-sm text-ink-muted">{leerText(rolle)}</p>
+                </div>
+              </section>
+              {heuteKarten}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Was nicht kam — unten, nach allem, was geladen wurde. */}

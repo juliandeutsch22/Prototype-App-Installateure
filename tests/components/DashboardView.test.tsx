@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within, waitFor } from '@testing-library/react';
+import { act, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { Assignment, MaterialOrder, Project, Termin, TimeEntry } from '@/types';
@@ -505,6 +505,30 @@ describe('Startseite — Geschäftsführung', () => {
     } finally {
       vi.mocked(listUsers).mockImplementation(async () => [monteur]);
     }
+  });
+
+  /*
+    ALLES AUF EINMAL (Analyse 10.10.2026): vorher wuchs „Zu erledigen“ Block
+    für Block, und die Kennzahlen kamen nachträglich darüber.
+  */
+  it('zeigt Zu erledigen und Kennzahlen erst, wenn alle Blöcke da sind', async () => {
+    rolle.wert = 'Geschäftsführung';
+    anforderungen.wert = [anforderung({ id: 'e1', isUrgent: true })];
+    const { listUnpaidInvoices } = await import('@/lib/db/invoices');
+    let liefern: (r: unknown[]) => void = () => undefined;
+    vi.mocked(listUnpaidInvoices).mockImplementationOnce(() => new Promise((ok) => { liefern = ok as (r: unknown[]) => void; }) as never);
+    zeichne();
+    await waitFor(() => expect(listUnpaidInvoices).toHaveBeenCalled());
+    // Die Anforderungen sind längst da — gezeigt wird trotzdem noch nichts davon.
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByText(/Zu erledigen/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Eilanforderung/)).not.toBeInTheDocument();
+    expect(document.querySelector('[data-geladen="nein"]')).not.toBeNull();
+
+    await act(async () => liefern([]));
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    expect(await karteMit(/Zu erledigen/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /1 Eilanforderung offen/ })).toBeInTheDocument();
   });
 
   it('fasst nach Themen zusammen und klappt „und N weitere“ an Ort und Stelle auf', async () => {

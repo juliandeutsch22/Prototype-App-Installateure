@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { Material, MaterialOrder, Project } from '@/types';
@@ -46,6 +46,12 @@ const retoure = vi.fn();
 const statusSetzen = vi.fn();
 
 let lagerStand: Map<string, unknown> | null = null;
+/** Hält den Katalog zurück, bis der Test ihn schickt. */
+let katalogHalten = false;
+let katalogSenden: () => void = () => undefined;
+/** Hält die eigenen Anforderungen zurück, bis der Test sie schickt. */
+let eigeneHalten = false;
+let eigeneSenden: () => void = () => undefined;
 vi.mock('@/lib/db/materials', () => ({
   LOW_STOCK_THRESHOLD: 5,
   lagerFrei: async () => {
@@ -58,6 +64,7 @@ vi.mock('@/lib/db/materials', () => ({
     onError: (e: Error) => void,
   ) => {
     if (abosFehler.material) onError(new Error('Katalog nicht lesbar'));
+    else if (katalogHalten) katalogSenden = () => cb(materialien);
     else cb(materialien);
     return () => undefined;
   },
@@ -81,6 +88,7 @@ vi.mock('@/lib/db/materialOrders', () => ({
     onError: (e: Error) => void,
   ) => {
     if (abosFehler.eigene) onError(new Error('nicht lesbar'));
+    else if (eigeneHalten) eigeneSenden = () => cb(eigene);
     else cb(eigene);
     return () => undefined;
   },
@@ -140,6 +148,41 @@ beforeEach(() => {
   retoure.mockResolvedValue('ret1');
   statusSetzen.mockReset();
   statusSetzen.mockResolvedValue(undefined);
+});
+
+/*
+  ERST MIT DEN EIGENEN ANFORDERUNGEN (Analyse 10.10.2026): bis sie da waren,
+  stand „Meine Anforderungen (0) – Keine offenen Bestellungen“.
+*/
+describe('Meine Anforderungen beim Laden', () => {
+  it('stehen erst mit dem Katalog darüber — sonst schöbe er sie beim Eintreffen nach unten', async () => {
+    katalogHalten = true;
+    try {
+      zeige();
+      await baustelleFeld();
+      expect(screen.queryByText(/Meine Anforderungen \(/)).not.toBeInTheDocument();
+      expect(screen.queryByText('Nicht im Katalog?')).not.toBeInTheDocument();
+      await act(async () => katalogSenden());
+      expect(await screen.findByText(/Meine Anforderungen \(\d+\)/)).toBeInTheDocument();
+      expect(screen.getByText('Nicht im Katalog?')).toBeInTheDocument();
+    } finally {
+      katalogHalten = false;
+    }
+  });
+
+  it('sagen nichts, bevor sie geladen sind — danach die richtige Zahl', async () => {
+    eigeneHalten = true;
+    try {
+      zeige();
+      await baustelleFeld();
+      expect(screen.queryByText('Keine offenen Bestellungen.')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Meine Anforderungen \(0\)/)).not.toBeInTheDocument();
+      await act(async () => eigeneSenden());
+      expect(await screen.findByText(/Meine Anforderungen \(\d+\)/)).toBeInTheDocument();
+    } finally {
+      eigeneHalten = false;
+    }
+  });
 });
 
 describe('Material anfordern — der Warenkorb', () => {

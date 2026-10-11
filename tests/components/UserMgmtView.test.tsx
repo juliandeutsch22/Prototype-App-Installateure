@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -129,6 +129,21 @@ beforeEach(() => {
   // Die Ansicht scrollt beim Wechsel in den Bearbeitungsmodus nach oben;
   // jsdom kennt das nicht.
   window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
+});
+
+
+/* „Benutzer (0)“ stand da, solange die Liste lud (Analyse 10.10.2026). */
+describe('Die Zahl der Benutzer', () => {
+  it('steht erst mit der Liste da', async () => {
+    const { listUsers } = await import('@/lib/db/users');
+    let liefern: (l: unknown) => void = () => undefined;
+    vi.mocked(listUsers).mockImplementationOnce(() => new Promise((ok) => { liefern = ok as (l: unknown) => void; }) as never);
+    zeige();
+    expect(await screen.findByText('Benutzer')).toBeInTheDocument();
+    expect(screen.queryByText(/Benutzer \(0\)/)).not.toBeInTheDocument();
+    await act(async () => liefern(leute));
+    expect(await screen.findByText(new RegExp(`Benutzer \\(${leute.length}\\)`))).toBeInTheDocument();
+  });
 });
 
 describe('Benutzerverwaltung — das Zeitkonto', () => {

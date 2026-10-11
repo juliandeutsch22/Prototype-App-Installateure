@@ -202,6 +202,15 @@ export default function InvoicesView() {
   /** Kamen die offenen Forderungen nicht? Dann darf keine Karte so tun, als wüsste sie Bescheid. */
   const [forderungenFehler, setForderungenFehler] = useState(false);
   /*
+    SIND DIE GRUNDLAGEN DA? (Analyse 10.10.2026) Bis hierher rechneten
+    Kennzahlen und Karten aus leeren Listen, solange diese noch luden:
+    „€ 0,00 offen“, dann eine Teilsumme, dann die richtige; und Mahnlauf und
+    „nicht verrechnete Leistung“ schoben sich nachträglich über die Liste.
+    Jede Abfrage meldet hier, dass sie fertig ist — mit Antwort ODER Fehler.
+  */
+  const [offeneGeladen, setOffeneGeladen] = useState(false);
+  const [scheineFertig, setScheineFertig] = useState(false);
+  /*
     War der Materialstamm beim Zusammenstellen abgeschnitten? Ein Artikel
     darüber hinaus findet seinen Preis nicht — er steht dann unten als „ohne
     Preis im Katalog", und das wäre in diesem Fall die falsche Auskunft.
@@ -583,6 +592,9 @@ export default function InvoicesView() {
       })
       .catch(() => {
         if (!weg) setForderungenFehler(true);
+      })
+      .finally(() => {
+        if (!weg) setOffeneGeladen(true);
       });
     // Ohne Zugriff auf die Abdeckung stünde jeder Schein als unverrechnet da.
     if (!nurLesen) listRecentWorkSheets(user.companyId, UNVERRECHNET_BASIS)
@@ -605,13 +617,16 @@ export default function InvoicesView() {
         } catch {
           if (!weg) setAbdeckungFehler(true);
         }
+        if (!weg) setScheineFertig(true);
       })
       /*
         Still: die Liste ist eine ZUSATZangabe. Fiele die ganze
         Rechnungsansicht aus, weil sie nicht kommt, wäre das Verhältnis
         zwischen Nutzen und Schaden verkehrt herum.
       */
-      .catch(() => undefined);
+      .catch(() => {
+        if (!weg) setScheineFertig(true);
+      });
     return () => {
       weg = true;
     };
@@ -719,6 +734,8 @@ export default function InvoicesView() {
     Neu geholt, sobald sich an den Rechnungen etwas bewegt.
   */
   const [bezahltImMonat, setBezahltImMonat] = useState<number | null>(null);
+  /** Kam die Antwort (oder ihr Fehler)? Vorher steht ein Platzhalter, nicht die Ersatzzahl. */
+  const [bezahltGeladen, setBezahltGeladen] = useState(false);
   const monatsErster = `${todayStr().slice(0, 7)}-01`;
   useEffect(() => {
     // Zahlungseingänge liest die Projektleitung nicht; die Kennzahl käme als Null.
@@ -734,10 +751,24 @@ export default function InvoicesView() {
           .filter((x) => x.art !== 'Skonto' && !storniert.has(x.invoiceId))
           .reduce((s, x) => s + (Number(x.betrag) || 0), 0);
         setBezahltImMonat(Math.round(summe * 100) / 100);
+        setBezahltGeladen(true);
       })
-      .catch(() => { if (!weg) setBezahltImMonat(null); });
+      .catch(() => {
+        if (!weg) {
+          setBezahltImMonat(null);
+          setBezahltGeladen(true);
+        }
+      });
     return () => { weg = true; };
   }, [user, nurLesen, monatsErster, invoices]);
+
+  /*
+    DIE LISTE UND IHRE KARTEN ERSCHEINEN ZUSAMMEN, wenn alles da ist, woraus
+    sie rechnen: die jüngsten und die offenen Rechnungen, fürs Büro dazu die
+    Scheine samt Abdeckung. Bis dahin ein Platzhalter an ihrer Stelle.
+  */
+  const zahlenBereit = !loading && offeneGeladen;
+  const basisBereit = zahlenBereit && (nurLesen || scheineFertig);
 
   const stats = useMemo(() => {
     let offen = 0;
@@ -2230,17 +2261,18 @@ export default function InvoicesView() {
       <MetricRow>
         {/* Kamen die offenen Forderungen nicht, sagen es die beiden Zahlen dazu —
             sonst stünde eine zu kleine Summe da, die niemand als solche erkennt. */}
-        <Metric label="Offen" value={euro(stats.offen)} to="/invoices?ansicht=offen"
+        <Metric label="Offen" value={euro(stats.offen)} to="/invoices?ansicht=offen" bereit={zahlenBereit}
           hint={forderungenFehler ? 'nur die jüngsten — offene Forderungen nicht geladen' : undefined} />
-        <Metric label="Überfällig" tone={stats.ueberfaellig > 0 ? 'danger' : 'default'}
+        <Metric label="Überfällig" tone={stats.ueberfaellig > 0 ? 'danger' : 'default'} bereit={zahlenBereit}
           value={euro(stats.ueberfaellig)} to={`/invoices?status=${encodeURIComponent('Überfällig')}`}
           hint={forderungenFehler ? 'nur die jüngsten — offene Forderungen nicht geladen' : undefined} />
-        {bezahltImMonat !== null ? (
+        {bezahltImMonat !== null || (!nurLesen && !bezahltGeladen) ? (
           // „im laufenden Monat“ wurde am Telefon gekürzt (U10); was gilt, sagt der Zusatz.
-          <Metric label="Bezahlt im Monat" tone="success" value={euro(bezahltImMonat)} to="/invoices?sicht=bezahlt-monat"
+          <Metric label="Bezahlt im Monat" tone="success" value={euro(bezahltImMonat ?? 0)} to="/invoices?sicht=bezahlt-monat"
+            bereit={bezahltGeladen}
             hint={`Zahlungseingänge seit ${datumAT(monatsErster)}, ohne Skonto`} />
         ) : (
-          <Metric label="Bezahlt" tone="success" value={euro(stats.bezahlt)} to="/invoices?status=Bezahlt"
+          <Metric label="Bezahlt" tone="success" value={euro(stats.bezahlt)} to="/invoices?status=Bezahlt" bereit={!loading}
             hint={`auf die ${invoices.length} zuletzt geladenen Rechnungen`} />
         )}
       </MetricRow>
@@ -2289,6 +2321,7 @@ export default function InvoicesView() {
         Die Zeile steht über beiden Karten, nicht in ihnen — sie betrifft die
         Grundlage, nicht das Ergebnis.
       */}
+      {basisBereit && (<>
       {!nurLesen && forderungenFehler && (
         <Hinweiszeile stufe="warn" role="status">
           <p>
@@ -2450,6 +2483,7 @@ export default function InvoicesView() {
           )}
         </Card>
       )}
+      </>)}
 
       {/*
         NEUE RECHNUNG — auf Abruf über den Seitenkopf (Linie „Lot“, Regeln 2
@@ -3512,6 +3546,7 @@ export default function InvoicesView() {
       </div>
       )}
 
+      {basisBereit ? (
       <Card
         title={`${sicht ? SICHT_TITEL[sicht] : LISTEN_TITEL[filter] ?? `Rechnungen: ${filter}`} (${liste.length})`}
         /*
@@ -3648,6 +3683,9 @@ export default function InvoicesView() {
           </div>
         )}
       </Card>
+      ) : (
+        <SkeletonList rows={6} />
+      )}
       {/*
         Buchhaltungs-Export.
 
@@ -3659,7 +3697,7 @@ export default function InvoicesView() {
         Zahlendreher, ausgerechnet bei den Zahlen fuer die
         Umsatzsteuervoranmeldung.
       */}
-      {!nurLesen && (
+      {!nurLesen && basisBereit && (
       <Card
         title="Buchhaltungs-Export"
         hint={

@@ -121,7 +121,7 @@ export default function TeamWoche() {
         </div>
       </div>
 
-      {!d.belegschaftGeladen ? (
+      {!d.geladen ? (
         <Card buendig>
           <LoadingState />
         </Card>

@@ -44,6 +44,14 @@ describe('Platzhalter', () => {
     expect(regel).toMatch(/animation-duration: 0\.01ms !important/);
   });
 
+  it('der Platzhalter eines Werts bricht um wie der Wert — ein Balken je Zeile', () => {
+    const b = block('.skeleton-text');
+    expect(b).toMatch(/color: transparent/);
+    expect(b).toMatch(/(?<!-)box-decoration-break: clone/);
+    // Der Mustertext nur im Pseudo-Element — nicht in Seitentext, Suche oder Kopie.
+    expect(css).toMatch(/\.skeleton-text::before \{\s*content: attr\(data-muster\);/);
+  });
+
   it('der Ladetext erscheint ebenso erst nach 200 ms', () => {
     expect(block('.laden-verzoegert')).toMatch(/platzhalter-erscheinen 160ms ease-out 200ms both/);
     const states = readFileSync(join(__dirname, '../../src/components/States.tsx'), 'utf8');

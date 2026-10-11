@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -256,6 +256,34 @@ describe('Lager — das Freie aus der Datenbank', () => {
       expect(await screen.findByText(/3 m frei/)).toBeInTheDocument();
       expect(lagerStand.mock.calls[lagerStand.mock.calls.length - 1]).toEqual([['m1', 'm2']]);
       expect(lagerStand.mock.calls.every(([ids]) => Array.isArray(ids))).toBe(true);
+    } finally {
+      lagerStand.mockImplementation(async () => { throw new Error('nicht geladen'); });
+    }
+  });
+});
+
+/*
+  ERST MIT DER ANTWORT DER DATENBANK (Analyse 10.10.2026): vorher stand das
+  selbst Gerechnete, Augenblicke später das der Datenbank — zwei Zahlen für
+  „frei“ hintereinander.
+*/
+describe('Lager — frei und reserviert erst mit der Datenbank', () => {
+  it('zeigt bis dahin Platzhalter statt der eigenen Rechnung', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    anforderungen = [];
+    let liefern: (m: Map<string, unknown>) => void = () => undefined;
+    lagerStand.mockClear();
+    lagerStand.mockImplementation(() => new Promise((ok) => { liefern = ok; }));
+    try {
+      zeige();
+      await waitFor(() => expect(lagerStand).toHaveBeenCalled());
+      expect(screen.queryByText(/20 m frei/)).not.toBeInTheDocument();
+      const knapp = screen.getAllByText('Knapp').find((e) => e.tagName === 'P')!.parentElement!;
+      expect(within(knapp).getAllByRole('status').length).toBeGreaterThan(0);
+      await act(async () => liefern(new Map([['m1', { bestand: 20, zugesagt: 0, geplant: 17, frei: 3 }]])));
+      // Gleich die Zahl der Datenbank, nie die eigene (20 frei).
+      expect(await screen.findByText(/3 m frei/)).toBeInTheDocument();
+      expect(screen.queryByText(/20 m frei/)).not.toBeInTheDocument();
     } finally {
       lagerStand.mockImplementation(async () => { throw new Error('nicht geladen'); });
     }

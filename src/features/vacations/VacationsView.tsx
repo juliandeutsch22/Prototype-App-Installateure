@@ -53,7 +53,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
-import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList, SkeletonMetrics } from '@/components/States';
 import { zeitguthabenLaden } from './zeitguthaben';
 import { KrankmeldungListe, KrankenstaendeReiter } from './Krankmeldungen';
 import { ergebnisText, tageText } from './abwesenheitText';
@@ -196,6 +196,12 @@ export default function VacationsView() {
   const [belegschaft, setBelegschaft] = useState<AppUser[]>([]);
   const [profil, setProfil] = useState<AppUser | null>(null);
   const [laden, setLaden] = useState(true);
+  /*
+    Der ERSTE Stand. Nach einem Antrag oder einer Entscheidung lädt die
+    Seite neu; dabei bleibt stehen, was da ist — nur beim ersten Öffnen
+    stehen Platzhalter (siehe unten).
+  */
+  const [ersterStand, setErsterStand] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [arbeitet, setArbeitet] = useState<string | null>(null);
   /** Welcher eigene Antrag zurückgezogen werden soll — null heisst: keiner. */
@@ -297,6 +303,7 @@ export default function VacationsView() {
         setError('Die Urlaubsanträge konnten nicht geladen werden.');
       } finally {
         setLaden(false);
+        setErsterStand(true);
       }
     },
     [user, darfEntscheiden, buero, company?.vacationApprovers],
@@ -1065,6 +1072,18 @@ export default function VacationsView() {
         wenn es in ihrer Akte aus ist. Vorher stand bei ihr trotzdem ein
         Resturlaub, gerechnet aus der Vorgabe von 25 Tagen.
       */}
+      {/*
+        ALLES OBEN ERST MIT SEINEN DATEN (Analyse 10.10.2026): Resturlaub,
+        offene Anträge und das Formular erschienen nacheinander — das
+        Formular rutschte nach unten, und darin stand kurz „genehmigt: 0 von
+        25 Tagen“. Ohne Stammdatenblatt zählt es ohnehin keine Arbeitstage.
+      */}
+      {!ersterStand ? (
+        <>
+          <SkeletonMetrics count={1} />
+          <SkeletonList rows={6} />
+        </>
+      ) : (<>
       {profil && !laden && !fuehrtZeitkonto(profil) && (
         <Hinweiszeile>
           <p>Für dich führt Senklot kein Zeitkonto — deshalb steht hier kein Resturlaub.</p>
@@ -1478,6 +1497,7 @@ export default function VacationsView() {
       )}
       </div>
       </div>
+      </>)}
 
       {/*
         OHNE OFFENE ANTRÄGE stehen die Arbeitslisten der Genehmigenden nach den

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within, waitFor } from '@testing-library/react';
+import { act, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -137,6 +137,26 @@ describe('Mein Einsatzplan — der Einsatz selbst', () => {
     zeichne();
     await screen.findByText('Bad');
     expect(screen.getAllByRole('link', { name: 'Zeit erfassen' })[0]).toHaveAttribute('href', '/time');
+  });
+});
+
+/*
+  ERST WENN ALLES DA IST (Analyse 10.10.2026): vorher stand erst die
+  Baustellennummer, dann der Kundenname, und „Kein kommender Urlaub
+  beantragt“, bevor die Anträge da waren.
+*/
+describe('Mein Einsatzplan — beim Laden', () => {
+  it('zeigt gleich den Kundennamen, nie zuerst die Nummer', async () => {
+    const { listProjectsByNumbers } = await import('@/lib/db/projects');
+    let liefern: (p: unknown) => void = () => undefined;
+    vi.mocked(listProjectsByNumbers).mockImplementationOnce(() => new Promise((ok) => { liefern = ok; }) as never);
+    zeichne();
+    await waitFor(() => expect(listProjectsByNumbers).toHaveBeenCalled());
+    expect(screen.queryByText('Bad')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Kein kommender Urlaub/)).not.toBeInTheDocument();
+    await act(async () => liefern(BAUSTELLEN));
+    const karte = (await screen.findByText(/Einsätze am/)).closest('section')!;
+    expect(within(karte).getAllByText(/Familie Huber/).length).toBeGreaterThan(0);
   });
 });
 

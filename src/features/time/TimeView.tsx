@@ -94,6 +94,15 @@ export default function TimeView() {
   */
   const [eigeneScheine, setEigeneScheine] = useState<WithId<WorkSheet>[]>([]);
   /*
+    SIND DIE GRUNDLAGEN DA? (Analyse 10.10.2026) Vorher rechneten Saldo und
+    Hinweise aus leeren Listen, solange diese noch luden: ein Monteur sah
+    kurz −9.663 Std. und „1.258 Tage ohne Buchung“, weil jeder Werktag seit
+    Eintritt als fehlend zählte. Beide Merker gehen auch bei einem Fehler
+    auf „fertig“ — dann sagt es die Fehlerzeile.
+  */
+  const [scheineGeladen, setScheineGeladen] = useState(false);
+  const [saldoGeladen, setSaldoGeladen] = useState(false);
+  /*
     AUS DER ADRESSE (Startseite, Nachtest 01.10.2026): `?datum=JJJJ-MM-TT`
     belegt das Formular mit diesem Tag vor, `?filter=fehlend` zeigt oben die
     Tage ohne Buchung der letzten fünf Wochen — dieselbe Rechnung wie auf
@@ -283,7 +292,10 @@ export default function TimeView() {
       .then((rows) => {
         if (!verworfen) setEigeneScheine(rows);
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (!verworfen) setScheineGeladen(true);
+      });
     return () => {
       verworfen = true;
     };
@@ -324,9 +336,13 @@ export default function TimeView() {
         setBilanzen(null);
         setSaldoEintraege(rows);
       }
+      setSaldoGeladen(true);
       // Auch hier keine Stille: der Saldo ist die Zahl, auf die es dem
       // Monteur ankommt. Steht sie nicht, muss dastehen, warum.
-    })().catch(() => setProfilFehler(true));
+    })().catch(() => {
+      setProfilFehler(true);
+      setSaldoGeladen(true);
+    });
 
     return () => {
       verworfen = true;
@@ -489,6 +505,12 @@ export default function TimeView() {
     () => offeneNachtraege(eigeneScheine, entries, todayStr(), user?.name ?? ''),
     [eigeneScheine, entries, user?.name],
   );
+
+  /** Der Saldo steht erst, wenn alles da ist, woraus er rechnet — oder wenn klar ist, dass nichts kommt. */
+  // Auch das Fenster der letzten Monate: aus ihm rechnen laufender Monat und „Tage ohne Buchung“.
+  const saldoBereit = profilFehler || (profile !== null && (!profile.appStartDate || (saldoGeladen && !loading)));
+  /** Ein Nachtrag ist erst einer, wenn Scheine UND Buchungen geladen sind. */
+  const nachtraegeBereit = !loading && scheineGeladen;
 
   if (!user) return null;
 
@@ -677,7 +699,7 @@ export default function TimeView() {
         rechnet ihre Stunden aus den Zeiteinträgen, nicht vom Schein — eine
         nie gebuchte Stunde wird nie verrechnet.
       */}
-      {nachtraege.length > 0 && (
+      {nachtraegeBereit && nachtraege.length > 0 && (
         // Eine Hinweiszeile mit der Liste darunter, kein farbiger Kasten.
         <Hinweiszeile stufe="warn" role="alert">
           <p className="flex flex-wrap items-center gap-1">
@@ -753,7 +775,7 @@ export default function TimeView() {
         </Hinweiszeile>
       )}
 
-      {zeigeFehlende && profile && (
+      {zeigeFehlende && profile && !loading && (
         <Card title={fehlendeTage.length ? `Tage ohne Buchung (${fehlendeTage.length})` : 'Tage ohne Buchung'} buendig>
           {fehlendeTage.length === 0 ? (
             <EmptyState>In den letzten fünf Wochen ist jeder Arbeitstag gebucht.</EmptyState>
@@ -819,6 +841,9 @@ export default function TimeView() {
         {fuehrtZeitkonto(profile ?? user) && (
         <Metric
           label="Saldo"
+          bereit={saldoBereit}
+          // Der längste Zusatz unten: am Telefon bricht er um, der Platzhalter mit ihm.
+          zusatzMuster="000 Tage ohne Buchung — unvollständig"
           tone={
             !saldo?.hasConfig
               ? 'default'
@@ -855,7 +880,7 @@ export default function TimeView() {
           }
         />
         )}
-        <Metric label="Diese Woche" value={fmtMin(thisWeekMin)} />
+        <Metric label="Diese Woche" value={fmtMin(thisWeekMin)} bereit={!loading} />
         {/*
           NUR WENN ES WELCHE GIBT. Eine Kachel, die bei den allermeisten
           dauerhaft „0:00" zeigt, nimmt auf dem Telefon die Breite weg, die
