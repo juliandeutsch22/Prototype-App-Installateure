@@ -120,3 +120,21 @@ test('Die Seiten des Monteurs springen nicht und zeigen keine vorläufigen Werte
   }
   expect(befunde).toEqual([]);
 });
+
+/*
+  DER ZWEITE BESUCH (Stufe 3, `lib/zwischenspeicher.ts`): wer zur Startseite
+  zurückkehrt, sieht sofort den letzten Stand — keine Platzhalter, kein
+  zweites Warten. Im Hintergrund wird frisch geholt. Jede Antwort der
+  Datenbank ist um 300 ms verzögert; ohne Zwischenspeicher stünde die Seite
+  frühestens danach.
+*/
+test('Zurück zur Startseite: sofort der letzte Stand statt Platzhaltern', async ({ page }) => {
+  await anmelden(page, CHEFIN.email);
+  await expect(page.locator('[data-geladen="ja"]')).toHaveCount(1, { timeout: 30_000 });
+  await verzoegern(page);
+  await page.evaluate(() => { window.history.pushState({}, '', '/settings/meldungen'); window.dispatchEvent(new PopStateEvent('popstate')); });
+  await expect(page.locator('[data-geladen]')).toHaveCount(0);
+  await menue(page, 'Start');
+  await expect(page.locator('[data-geladen="ja"]')).toHaveCount(1, { timeout: 250 });
+  await expect(page.locator('[data-geladen="nein"]')).toHaveCount(0);
+});

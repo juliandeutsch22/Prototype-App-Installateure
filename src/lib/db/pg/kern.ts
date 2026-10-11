@@ -12,6 +12,7 @@ import { supabaseClient } from '@/lib/supabase';
 import type { WithId } from '../core';
 import { zeileAlsObjekt, objektAlsZeile } from './felder';
 import { meldeVerbindung, vergissVerbindung } from '@/lib/liveVerbindung';
+import { liveGeneration, liveLesen, liveMerken } from '@/lib/liveSpeicher';
 
 /*
   DIESELBE KENNUNG WIE AUF DER ANDEREN SEITE. Sie hier ein zweites Mal zu
@@ -708,6 +709,17 @@ export function kanalHalten(a: KanalAuftrag): () => void {
 }
 
 /**
+ * Live-Listen OHNE Zwischenspeicher (Stufe 3).
+ *
+ * Wo eine Ansicht AUS DER LISTE SELBST SCHREIBT, darf sie keinen alten Stand
+ * sehen. Die Rechnungen setzen offene Rechnungen mit überschrittener Frist
+ * von selbst auf „Überfällig“; aus einem zehn Minuten alten Stand hätte das
+ * eine inzwischen bezahlte oder stornierte Rechnung getroffen. Gewonnen wäre
+ * dort ohnehin nichts: die Seite wartet auf ihre offenen Posten.
+ */
+const OHNE_ZWISCHENSPEICHER = new Set(['invoices']);
+
+/**
  * Live-Abonnement innerhalb eines Mandanten.
  *
  * VIER ENTSCHEIDUNGEN, JEDE AUS EINEM FEHLSCHLAG GELERNT.
@@ -754,6 +766,10 @@ export function abonnieren<T>(
 ): () => void {
   const c = derClient(client);
   const bestand = new Map<string, WithId<T>>();
+  // Unter diesem Schlüssel merkt sich die Liste ihren letzten Bestand für den nächsten Besuch (Stufe 3).
+  const speicherSchluessel = `${tabelle}|${companyId}|${JSON.stringify(abfrage)}`;
+  const zwischenspeichern = !OHNE_ZWISCHENSPEICHER.has(tabelle);
+  const generationBeimStart = liveGeneration();
   let bereit = false;
   let nachfassen: ReturnType<typeof setTimeout> | undefined;
   const puffer: Array<{ typ: string; neu?: Record<string, unknown>; alt?: Record<string, unknown> }> = [];
@@ -788,6 +804,7 @@ export function abonnieren<T>(
       });
     }
     if (abfrage.grenze !== undefined) zeilen = zeilen.slice(0, abfrage.grenze);
+    if (zwischenspeichern) liveMerken(speicherSchluessel, zeilen, generationBeimStart);
     cb(zeilen);
   };
 
@@ -842,6 +859,22 @@ export function abonnieren<T>(
   */
   let kanalBereit = false;
   let abgemeldet = false;
+
+  /*
+    NOCH FRÜHER: DER LETZTE STAND (Laden ohne Springen, Stufe 3). War die
+    Liste vor kurzem schon offen, steht ihr Bestand von damals sofort da —
+    statt Platzhaltern, bis die erste Antwort kommt. Was seither geschah,
+    bringen das erste Bild und das Laden nach `SUBSCRIBED` wie bisher; sie
+    ersetzen ihn. Als Mikroaufgabe, nicht im Aufruf selbst: wer abonniert,
+    hat die Abmeldung sonst noch nicht in der Hand, wenn schon gemeldet wird.
+  */
+  const gemerkt = zwischenspeichern ? liveLesen<WithId<T>>(speicherSchluessel) : undefined;
+  if (gemerkt) {
+    queueMicrotask(() => {
+      if (!abgemeldet) cb([...gemerkt]);
+    });
+  }
+
   void abfragen<T>(tabelle, companyId, abfrage, c)
     .then((zeilen) => {
       if (kanalBereit || abgemeldet) return;

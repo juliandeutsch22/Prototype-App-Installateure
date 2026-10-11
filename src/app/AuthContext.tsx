@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   useCallback,
@@ -22,6 +23,7 @@ import {
   type ZweiterFaktorBedarf,
 } from '@/lib/auth/sitzung';
 import { benutzerSpurenLoeschen } from '@/lib/speicher';
+import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
 import { getCompany } from '@/lib/db/company';
 import { applyBranding } from '@/lib/tenant';
 import { mitFristOder } from '@/lib/frist';
@@ -544,10 +546,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     : null;
 
+  /*
+    DER ZWISCHENSPEICHER GEHÖRT DEM, DER ANGEMELDET IST (Stufe 3,
+    `lib/zwischenspeicher.ts`). Wechselt Benutzer oder Betrieb, geht alles
+    andere weg. Als Layout-Effekt: der läuft vor den Effekten der Seiten, in
+    denen der neue Benutzer abonniert.
+  */
+  const wirksam = supportProfil ?? user;
+  useLayoutEffect(() => {
+    zwischenspeicherFuer(wirksam?.uid ?? null, wirksam?.companyId ?? null);
+  }, [wirksam?.uid, wirksam?.companyId]);
+
   return (
     <AuthContext.Provider
       value={{
-        user: supportProfil ?? user,
+        user: wirksam,
         company: einblick ? einblickFirma : company,
         loading,
         error,
