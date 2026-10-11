@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within, waitFor } from '@testing-library/react';
+import { act, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -111,6 +111,8 @@ vi.mock('@/lib/db/vacations', () => ({
   }),
   listAbwesendInRange: vi.fn(async () => abwesend),
 }));
+let einsaetzeHalten = false;
+let einsaetzeSenden: () => void = () => undefined;
 const kalenderAboStand = vi.fn<(...a: unknown[]) => Promise<null>>(async () => null);
 vi.mock('@/lib/db/assignments', () => ({
   kalenderAboStand: (...a: unknown[]) => kalenderAboStand(...a),
@@ -123,7 +125,9 @@ vi.mock('@/lib/db/assignments', () => ({
     cb: (r: (Assignment & { id: string })[]) => void,
   ) => {
     geladen.push([v, b]);
-    cb(einsaetze.filter((a) => a.date >= v && a.date <= b));
+    // Zurückgehalten, bis der Test sie schickt (Laden ohne falsches „frei“).
+    if (einsaetzeHalten) einsaetzeSenden = () => cb(einsaetze.filter((a) => a.date >= v && a.date <= b));
+    else cb(einsaetze.filter((a) => a.date >= v && a.date <= b));
     return () => undefined;
   },
   saveAssignments: (...a: unknown[]) => {
@@ -311,6 +315,27 @@ describe('Wochenplan — wer ist wo', () => {
     const andere = tabelle().getByRole('row', { name: /Erna Beispiel/ });
     expect(within(andere).queryByText('frei')).toBeNull();
     expect(within(andere).getByRole('button', { name: 'Erna Beispiel, Mittwoch 02.09.: frei – Einsatz planen' })).toBeInTheDocument();
+  });
+
+  /*
+    ERST MIT DEN EINSÄTZEN (Analyse 10.10.2026): vorher stand beim Laden
+    „Keine aktiven Mitarbeiter im Außendienst“, dann „2 frei“ an jedem Tag,
+    Augenblicke später die richtige Zahl.
+  */
+  it('rechnet „frei“ erst, wenn die Einsätze der Woche da sind', async () => {
+    einsaetze = [EINSATZ_MAX];
+    einsaetzeHalten = true;
+    try {
+      zeige();
+      await waitFor(() => expect(geladen.length).toBeGreaterThan(0));
+      expect(screen.queryByText(/\d frei/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Keine aktiven Mitarbeiter/)).not.toBeInTheDocument();
+      await act(async () => einsaetzeSenden());
+      await screen.findByRole('row', { name: /Max Mustermann/ });
+      expect(kopf(/Mittwoch 02\.09\./)).toHaveTextContent('1 frei');
+    } finally {
+      einsaetzeHalten = false;
+    }
   });
 
   it('zaehlt, wie viele an einem Tag frei sind', async () => {

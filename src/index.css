@@ -586,6 +586,30 @@ textarea {
 }
 
 /*
+ * Ein Wert oder Block, dessen Daten eben eingetroffen sind
+ * (`components/Wert.tsx`): 160 ms nur über die Deckkraft, ohne Bewegung.
+ */
+.wert-erscheint {
+  animation: platzhalter-erscheinen 160ms ease-out both;
+}
+
+/*
+ * Der Platzhalter eines Werts ist dessen Mustertext selbst, ohne Farbe: er
+ * bricht wie der spätere Text um, und der Grund malt sich je Zeile
+ * (`clone`) — ein Balken pro Zeile statt eines runden Klotzes über zwei.
+ * Der Text steht nur im Pseudo-Element: so findet ihn weder die Suche im
+ * Browser noch das Kopieren, und kein Vorlesen.
+ */
+.skeleton-text {
+  color: transparent;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.skeleton-text::before {
+  content: attr(data-muster);
+}
+
+/*
  * Ein Ladetext („Wird geladen …“) und der Kreisel erscheinen ebenso erst nach
  * 200 ms — sonst blitzt er bei jedem schnellen Laden kurz auf.
  */

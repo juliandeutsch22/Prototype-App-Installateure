@@ -60,6 +60,10 @@ const listeBilanzen = vi.fn();
 
 /** Der Rueckruf des Live-Abos — damit ein Test einen zweiten Schnappschuss
  *  schicken kann, so wie Firestore es nach der Serverbestaetigung tut. */
+/** Hält das Fenster der letzten Monate zurück (das Live-Abo meldet sich nicht). */
+let fensterHalten = false;
+/** Hält die Buchungen seit Eintritt zurück, bis der Test sie freigibt. */
+let seitHalten: Promise<(TimeEntry & { id: string })[]> | null = null;
 let schnappschussSenden: ((rows: (TimeEntry & { id: string })[]) => void) | null = null;
 
 vi.mock('@/lib/db/timeEntries', () => ({
@@ -72,12 +76,12 @@ vi.mock('@/lib/db/timeEntries', () => ({
   ) => {
     abo(von, bis);
     schnappschussSenden = cb;
-    cb(eintraege);
+    if (!fensterHalten) cb(eintraege);
     return () => undefined;
   },
   listOwnEntriesSince: (_company: string, _uid: string, ab: string) => {
     listeSeit(ab);
-    return Promise.resolve(eintraege);
+    return seitHalten ?? Promise.resolve(eintraege);
   },
   // Der Eintrittsmonat für den Saldo aus Bilanzen (Prüflauf 25.09.2026, P1-15).
   listOwnEntriesInRange: (_company: string, _uid: string, von: string, bis: string) => {
@@ -223,6 +227,8 @@ beforeEach(() => {
   rolle = 'Mitarbeiter';
   authWert.user.role = 'Mitarbeiter';
   schnappschussSenden = null;
+  seitHalten = null;
+  fensterHalten = false;
   abo.mockClear();
   listeSeit.mockClear();
   listeBereich.mockClear();
@@ -256,6 +262,53 @@ describe('Zeiterfassung — verrechnete Einträge', () => {
     // es überhaupt keine Knöpfe gibt.
     const offen = screen.getByText('31.08.2026').closest('li') as HTMLElement;
     expect(within(offen).getByRole('button', { name: BEARBEITEN })).toBeInTheDocument();
+  });
+});
+
+/*
+  LADEN OHNE FALSCHEN SALDO (Analyse 10.10.2026): solange die Buchungen seit
+  Eintritt luden, rechnete der Saldo jeden Werktag als fehlend — ein Monteur
+  sah kurz −9.663 Std. und „1.258 Tage ohne Buchung“.
+*/
+describe('Zeiterfassung — der Saldo erst mit seinen Buchungen', () => {
+  const kachel = () => screen.getAllByText('Saldo').find((e) => e.tagName === 'P')!.parentElement!;
+
+  it('steht als Platzhalter da, bis die Buchungen seit Eintritt geladen sind', async () => {
+    let freigeben: (r: (TimeEntry & { id: string })[]) => void = () => undefined;
+    seitHalten = new Promise((ok) => { freigeben = ok; });
+    eintraege = [eintrag({ id: 'e1' })];
+    zeige();
+    await waitFor(() => expect(listeSeit).toHaveBeenCalled());
+    // Wert und Zusatz stehen beide als Platzhalter da.
+    expect(within(kachel()).getAllByRole('status').length).toBeGreaterThan(0);
+    // Auch der Mustertext des Platzhalters ist kein Text der Seite.
+    expect(kachel()).not.toHaveTextContent(/ohne Buchung/);
+    // Am Telefon bricht der längste Zusatz auf zwei Zeilen; der Platzhalter hat seine Form (Messung 11.10.2026).
+    expect(kachel().querySelector('.kennzahl-zusatz .skeleton-text')?.getAttribute('data-muster')).toBe('000 Tage ohne Buchung — unvollständig');
+
+    await act(async () => freigeben(eintraege));
+    await waitFor(() => expect(within(kachel()).queryAllByRole('status')).toHaveLength(0));
+    expect(kachel()).toHaveTextContent(/[+-]?\d+:\d{2}/);
+  });
+
+  it('wartet auch auf das Fenster der letzten Monate — daraus rechnen laufender Monat und fehlende Tage', async () => {
+    fensterHalten = true;
+    eintraege = [eintrag({ id: 'e1' })];
+    zeige();
+    await waitFor(() => expect(listeSeit).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(within(kachel()).getAllByRole('status').length).toBeGreaterThan(0);
+    await act(async () => schnappschussSenden?.(eintraege));
+    await waitFor(() => expect(within(kachel()).queryAllByRole('status')).toHaveLength(0));
+  });
+
+  it('Gegenprobe: ohne Startdatum steht gleich „Kein Startdatum konfiguriert“, kein Platzhalter', async () => {
+    rolle = 'Mitarbeiter';
+    const { getUserByUid } = await import('@/lib/db/users');
+    vi.mocked(getUserByUid).mockResolvedValueOnce({ ...MONTEUR, appStartDate: undefined } as never);
+    zeige();
+    expect(await screen.findByText('Kein Startdatum konfiguriert')).toBeInTheDocument();
+    expect(within(kachel()).queryAllByRole('status')).toHaveLength(0);
   });
 });
 

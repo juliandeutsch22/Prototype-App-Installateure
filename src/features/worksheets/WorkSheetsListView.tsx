@@ -40,6 +40,7 @@ import { List, ListRow } from '@/components/ListRow';
 import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import Adressfilter from '@/components/Adressfilter';
@@ -236,6 +237,15 @@ export default function WorkSheetsListView() {
     Array<Pick<TimeEntry, 'date' | 'status' | 'projectNumber' | 'userName'>>
   >([]);
   const darfZeitenSehen = user ? canEditTime(user.role) : false;
+  /*
+    FÜR WELCHEN ZEITRAUM DIE BUCHUNGEN GELADEN SIND — und ob überhaupt
+    (Analyse 10.10.2026). Vorher prüfte die Karte gegen die noch leere
+    Liste, solange sie lud: zuerst „49 Scheine ohne Buchung“ samt Namen der
+    Monteure, Sekunden später 31. Scheiterte die Abfrage, blieb der falsche
+    Vorwurf sogar stehen. Jetzt prüft sie erst mit den Buchungen genau
+    dieses Zeitraums.
+  */
+  const [buchungenStand, setBuchungenStand] = useState<{ fuer: string; ok: boolean } | null>(null);
 
   /*
     WIE WEIT DIE PRÜFUNG ZURÜCKREICHT — und warum das eine Wahl ist.
@@ -269,23 +279,30 @@ export default function WorkSheetsListView() {
     return { von: tage[0], bis: tage[tage.length - 1] };
   }, [pruefBasis]);
 
+  const zeitraumSchluessel = zeitraum ? `${zeitraum.von}|${zeitraum.bis}` : '';
   useEffect(() => {
     if (!user || !darfZeitenSehen || !zeitraum) {
       setBuchungen([]);
       return;
     }
     let abgemeldet = false;
+    const fuer = `${zeitraum.von}|${zeitraum.bis}`;
     listEntriesInRange(user.companyId, zeitraum.von, zeitraum.bis)
       .then((rows) => {
-        if (!abgemeldet) setBuchungen(rows);
+        if (!abgemeldet) {
+          setBuchungen(rows);
+          setBuchungenStand({ fuer, ok: true });
+        }
       })
       /*
         STILL SCHEITERN, ABER NUR HIER. Die Scheinliste ist das, wofür diese
         Seite da ist; sie darf nicht wegen einer Zusatzauswertung mit einer
-        Fehlermeldung stehenbleiben. Bleibt die Abfrage aus, bleibt die Karte
-        leer — und die Karte sagt selbst, worauf sie sich stützt.
+        Fehlermeldung stehenbleiben. Bleibt die Abfrage aus, sagt die Karte
+        das, statt gegen eine leere Liste zu prüfen.
       */
-      .catch(() => undefined);
+      .catch(() => {
+        if (!abgemeldet) setBuchungenStand({ fuer, ok: false });
+      });
     return () => {
       abgemeldet = true;
     };
@@ -311,6 +328,21 @@ export default function WorkSheetsListView() {
       setPruefungLaeuft(false);
     }
   }
+
+  /** Erst mit den Scheinen UND den Buchungen genau dieses Zeitraums ist ein Befund einer. */
+  const pruefungBereit = !loading && (!zeitraum || buchungenStand?.fuer === zeitraumSchluessel);
+  const pruefungFehler = pruefungBereit && !!zeitraum && buchungenStand?.ok === false;
+  /*
+    DIE LISTE WARTET BEIM ERSTEN ÖFFNEN AUF DIE PRÜFUNG darüber: kam deren
+    Ergebnis später, schob es die ganze Liste nach unten (gemessen 0,5 —
+    fünfmal Googles Grenze). Nur beim ersten Mal: „Weiter zurück prüfen“
+    lässt die Liste stehen.
+  */
+  const [erstePruefungDa, setErstePruefungDa] = useState(false);
+  useEffect(() => {
+    if (pruefungBereit) setErstePruefungDa(true);
+  }, [pruefungBereit]);
+  const listeZeigen = !darfZeitenSehen || pruefungBereit || erstePruefungDa;
 
   const ohneBuchung = useMemo(
     () => (darfZeitenSehen ? scheineOhneBuchung(pruefBasis, buchungen, todayStr()) : []),
@@ -676,7 +708,7 @@ export default function WorkSheetsListView() {
       */}
       {darfZeitenSehen && (
         <Card
-          title={`Stunden ohne Buchung (${ohneBuchung.length})`}
+          title={pruefungBereit && !pruefungFehler ? `Stunden ohne Buchung (${ohneBuchung.length})` : 'Stunden ohne Buchung'}
           hint={
             <>
               <strong>Was hier steht.</strong> Unterschriebene Handwerksscheine, auf denen Zeit
@@ -734,6 +766,21 @@ export default function WorkSheetsListView() {
           }
           buendig
         >
+          {!pruefungBereit ? (
+            <div className="px-4 pb-3">
+              <SkeletonList rows={2} />
+            </div>
+          ) : pruefungFehler ? (
+            <div className="px-4 pb-3 pt-3">
+              <Hinweiszeile stufe="warn" role="status">
+                <p>
+                  <strong>Die Zeitbuchungen dieses Zeitraums konnten nicht geladen werden.</strong>{' '}
+                  Geprüft wird deshalb nicht — sonst stünde jeder Schein als „ohne Buchung“ da. Bitte
+                  die Seite neu laden.
+                </p>
+              </Hinweiszeile>
+            </div>
+          ) : (<>
           <div className="px-4 pb-1 pt-3">
             {minutenOhneBuchung(ohneBuchung) > 0 && (
               <p className="mb-3 text-sm text-ink">
@@ -838,9 +885,13 @@ export default function WorkSheetsListView() {
               )}
             />
           )}
+          </>)}
         </Card>
       )}
 
+      {!listeZeigen ? (
+        <SkeletonList rows={6} />
+      ) : (<>
       {nurUnverrechnet && (
         <Adressfilter
           text={nurUnverrechnet === 'nicht-verrechnet-alt' ? 'nicht verrechnet, älter als 4 Wochen' : 'unterschrieben, nicht verrechnet'}
@@ -1011,6 +1062,7 @@ export default function WorkSheetsListView() {
           </div>
         )}
       </Card>
+      </>)}
 
       {/*
         DER SCHEIN IM SEITENFENSTER (Regel 8): alle Angaben und alle Aktionen,

@@ -637,7 +637,8 @@ export default function UserMgmtView() {
       </Card>
       )}
 
-      <Card title={`Benutzer (${gefiltert.length})`} buendig>
+      {/* Die Zahl erst mit der Liste — vorher stand „Benutzer (0)“ (Analyse 10.10.2026). */}
+      <Card title={loading ? 'Benutzer' : `Benutzer (${gefiltert.length})`} buendig>
         {/*
           SUCHE UND FILTER ÜBER DER LISTE (Linie „Lot“): jede Liste hat eine
           Suche, der Filter steht als Segmente statt als Auswahlliste — drei

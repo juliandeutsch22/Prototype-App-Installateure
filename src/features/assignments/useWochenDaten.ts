@@ -60,6 +60,16 @@ export function useWochenDaten(tage: string[]) {
   const [belegschaftGeladen, setBelegschaftGeladen] = useState(false);
   /** Kam die Belegschaft an? Ohne sie lässt sich „nicht einplanbar“ nicht sagen. */
   const [belegschaftDa, setBelegschaftDa] = useState(false);
+  /*
+    UND DER ZEITRAUM? (Analyse 10.10.2026) Ohne Einsätze rechnete das Raster
+    jeden als „frei“ — „12 frei“, Augenblicke später „0 frei“. Je Abfrage des
+    Zeitraums ein Merker, beim Wechsel der Woche zurückgesetzt: sonst stünden
+    kurz die Einsätze der alten Woche unter den neuen Tagen.
+  */
+  const [einsaetzeGeladen, setEinsaetzeGeladen] = useState(false);
+  const [abwesendGeladen, setAbwesendGeladen] = useState(false);
+  const [zuGeladen, setZuGeladen] = useState(false);
+  const [termineGeladen, setTermineGeladen] = useState(false);
   /** Nach dem Anlegen, Ändern oder Löschen eines Termins: dieselbe Abfrage noch einmal. */
   const [termineStand, setTermineStand] = useState(0);
 
@@ -79,8 +89,19 @@ export function useWochenDaten(tage: string[]) {
 
   useEffect(() => {
     if (!user) return;
-    return subscribeAssignmentsInRange(user.companyId, von, bis, setEinsaetze, (e) =>
-      setError(e.message),
+    setEinsaetzeGeladen(false);
+    return subscribeAssignmentsInRange(
+      user.companyId,
+      von,
+      bis,
+      (rows) => {
+        setEinsaetze(rows);
+        setEinsaetzeGeladen(true);
+      },
+      (e) => {
+        setError(e.message);
+        setEinsaetzeGeladen(true);
+      },
     );
   }, [user, von, bis]);
 
@@ -98,6 +119,7 @@ export function useWochenDaten(tage: string[]) {
   useEffect(() => {
     if (!user) return;
     let verworfen = false;
+    setAbwesendGeladen(false);
     listAbwesendInRange(von, bis)
       .then((r) => {
         if (!verworfen) setUrlaube(r);
@@ -106,6 +128,9 @@ export function useWochenDaten(tage: string[]) {
         if (!verworfen) setUrlaube([]);
         // Ohne Hinweis sähe „niemand abwesend" aus wie eine Auskunft.
         if (!verworfen) setNebenFehler('Die Abwesenheiten');
+      })
+      .finally(() => {
+        if (!verworfen) setAbwesendGeladen(true);
       });
     return () => {
       verworfen = true;
@@ -130,11 +155,21 @@ export function useWochenDaten(tage: string[]) {
           setTermine([]);
           setNebenFehler('Die Termine');
         }
+      })
+      .finally(() => {
+        if (!verworfen) setTermineGeladen(true);
       });
     return () => {
       verworfen = true;
     };
   }, [user, von, bis, termineStand]);
+  /*
+    Beim Wechsel des Zeitraums neu warten — nicht beim Nachladen nach einem
+    geänderten Termin: dann bleibt der Plan stehen.
+  */
+  useEffect(() => {
+    setTermineGeladen(false);
+  }, [von, bis]);
   const termineAm = useCallback((tag: string) => termine.filter((t) => t.datum === tag), [termine]);
   const termineNeuLaden = useCallback(() => setTermineStand((n) => n + 1), []);
 
@@ -142,9 +177,13 @@ export function useWochenDaten(tage: string[]) {
   useEffect(() => {
     if (!user) return;
     let verworfen = false;
+    setZuGeladen(false);
     listBetriebsurlaubeImZeitraum(user.companyId, von, bis)
       .then((r) => {
         if (!verworfen) setBetriebsurlaube(r);
+      })
+      .finally(() => {
+        if (!verworfen) setZuGeladen(true);
       })
       .catch(() => {
         if (!verworfen) {
@@ -380,6 +419,8 @@ export function useWochenDaten(tage: string[]) {
     error,
     nebenFehler,
     belegschaftGeladen,
+    /** Alles da, woraus Raster, „frei“ und „niemand im Außendienst“ rechnen. */
+    geladen: belegschaftGeladen && einsaetzeGeladen && abwesendGeladen && zuGeladen && termineGeladen,
     zuAm,
     zuFuer,
     staff,

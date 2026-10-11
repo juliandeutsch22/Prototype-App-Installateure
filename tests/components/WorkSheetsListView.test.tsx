@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -213,7 +213,9 @@ beforeEach(() => {
   textSuche.mockClear();
   verwerfen.mockClear();
   zurueckholen.mockClear();
-  zeitenGeholt.mockClear();
+  // Zurücksetzen statt nur leeren: ein nicht verbrauchtes „Once“ liefe sonst in den nächsten Test.
+  zeitenGeholt.mockReset();
+  zeitenGeholt.mockImplementation(async () => buchungen);
 });
 
 describe('Liste der Handwerksscheine', () => {
@@ -616,6 +618,57 @@ describe('Stunden ohne Buchung', () => {
       erstelltVonName: 'Max Mustermann',
       ...p,
     }) as WorkSheet & { id: string };
+
+  /*
+    ERST MIT DEN BUCHUNGEN DIESES ZEITRAUMS (Analyse 10.10.2026): vorher
+    prüfte die Karte gegen die noch leere Liste — „49 Scheine ohne Buchung“,
+    Sekunden später 31 —, und scheiterte die Abfrage, blieb der falsche
+    Vorwurf stehen.
+  */
+  it('wirft niemandem etwas vor, solange die Buchungen noch laden', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = [offenerSchein()];
+    let liefern: (r: Array<Record<string, unknown>>) => void = () => undefined;
+    zeitenGeholt.mockImplementationOnce(() => new Promise((ok) => { liefern = ok; }));
+    zeichne();
+    await waitFor(() => expect(zeitenGeholt).toHaveBeenCalled());
+    expect(screen.getByText('Stunden ohne Buchung')).toBeInTheDocument();
+    expect(screen.queryByText(/keine Buchung gefunden/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/stehen unterschrieben beim Kunden/)).not.toBeInTheDocument();
+
+    // Die Buchung ist da — dann gibt es auch keinen Befund.
+    await act(async () => liefern([{ date: vorTagen(10), status: 'Anwesend', projectNumber: 'B-009', userName: 'Franz Huber' }]));
+    expect(await screen.findByText('Stunden ohne Buchung (0)')).toBeInTheDocument();
+    expect(screen.queryByText(/keine Buchung gefunden/)).not.toBeInTheDocument();
+  });
+
+  it('die Liste darunter wartet beim ersten Öffnen auf die Prüfung — und bleibt danach stehen', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = [offenerSchein()];
+    let liefern: (r: Array<Record<string, unknown>>) => void = () => undefined;
+    zeitenGeholt.mockImplementationOnce(() => new Promise((ok) => { liefern = ok; }));
+    zeichne();
+    await waitFor(() => expect(zeitenGeholt).toHaveBeenCalled());
+    expect(screen.queryByLabelText('Scheine durchsuchen')).not.toBeInTheDocument();
+    await act(async () => liefern([]));
+    expect(await screen.findByLabelText('Scheine durchsuchen')).toBeInTheDocument();
+    // „Weiter zurück prüfen“: die Liste bleibt, während die tiefere Prüfung lädt.
+    tiefGeladen = [offenerSchein({ id: 'alt', datum: vorTagen(80) })];
+    zeitenGeholt.mockImplementationOnce(() => new Promise(() => undefined));
+    await userEvent.click(screen.getByRole('button', { name: '90 Tage' }));
+    await waitFor(() => expect(zeitenGeholt).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('Stunden ohne Buchung')).toBeInTheDocument();
+    expect(screen.getByLabelText('Scheine durchsuchen')).toBeInTheDocument();
+  });
+
+  it('sagt es, wenn die Buchungen nicht kamen — statt jeden Schein als ungebucht zu melden', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = [offenerSchein()];
+    zeitenGeholt.mockRejectedValueOnce(new Error('kein Netz'));
+    zeichne();
+    expect(await screen.findByText(/Die Zeitbuchungen dieses Zeitraums konnten nicht geladen werden/)).toBeInTheDocument();
+    expect(screen.queryByText(/keine Buchung gefunden/)).not.toBeInTheDocument();
+  });
 
   it('nennt dem Büro die Zeile, die niemand gebucht hat', async () => {
     authWert.user.role = 'Buchhaltung';
