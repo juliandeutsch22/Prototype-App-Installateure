@@ -171,6 +171,44 @@ export async function problemMelden(beschreibung: string): Promise<void> {
   });
 }
 
+/** Erweiterungen des Browsers bringen eigene Skripte mit — deren Verstöße sind nicht unsere. */
+const ERWEITERUNG = /^(chrome|moz|safari|safari-web|ms-browser)-extension:/;
+
+/**
+ * Nur die Herkunft dessen, was gesperrt würde — oder das Schlüsselwort.
+ *
+ * Die volle Adresse kann ein Zugangszeichen tragen (signierte Adressen von
+ * Dateien) oder eine Kennung. Für die Spur genügt, WOHER es kam.
+ */
+export function gesperrtesZiel(adresse: string): string {
+  try {
+    const u = new URL(adresse);
+    if (u.origin !== 'null') return u.origin;
+    return u.protocol.replace(/:$/, '');
+  } catch {
+    // 'inline', 'eval', 'data', 'blob' … — schon ohne Inhalt.
+    return adresse.slice(0, 40) || 'unbekannt';
+  }
+}
+
+/**
+ * Ein Verstoß gegen die Inhaltsregel (Content-Security-Policy) ins Protokoll.
+ *
+ * WARUM. Die volle Regel gilt zuerst nur MELDEND: sie sperrt nichts, der
+ * Browser sagt nur, was er gesperrt hätte. Erst wenn auf den Geräten der
+ * Betriebe nichts mehr gemeldet wird, darf sie sperren — sonst bliebe eine
+ * Seite leer, die niemand vorher geprüft hat. Ohne diesen Weg landete die
+ * Meldung nur in der Konsole des Geräts.
+ */
+export function regelverstossMelden(
+  e: Pick<SecurityPolicyViolationEvent, 'effectiveDirective' | 'blockedURI' | 'sourceFile' | 'disposition'>,
+): void {
+  if (ERWEITERUNG.test(e.blockedURI) || ERWEITERUNG.test(e.sourceFile)) return;
+  const tut = e.disposition === 'enforce' ? 'sperrt' : 'würde sperren';
+  const quelle = e.sourceFile ? `Quelle: ${e.sourceFile.split(/[?#]/)[0].slice(0, 200)}` : undefined;
+  fehlerErfassen('fehler', `Inhaltsregel ${e.effectiveDirective} ${tut}: ${gesperrtesZiel(e.blockedURI)}`, quelle);
+}
+
 /**
  * Die Fehler, die an React vorbeigehen.
  *
@@ -181,11 +219,16 @@ export async function problemMelden(beschreibung: string): Promise<void> {
 export function fehlerBeobachten(): () => void {
   const beiFehler = (e: ErrorEvent) => fehlerErfassen('fehler', e.error ?? e.message);
   const beiAblehnung = (e: PromiseRejectionEvent) => fehlerErfassen('fehler', e.reason);
+  // Am Fenster: der Verstoß eines Elements steigt bis hierher auf, der eines
+  // Abrufs (`connect-src`) kommt gleich hier an.
+  const beiVerstoss = (e: SecurityPolicyViolationEvent) => regelverstossMelden(e);
   window.addEventListener('error', beiFehler);
   window.addEventListener('unhandledrejection', beiAblehnung);
+  window.addEventListener('securitypolicyviolation', beiVerstoss);
   return () => {
     window.removeEventListener('error', beiFehler);
     window.removeEventListener('unhandledrejection', beiAblehnung);
+    window.removeEventListener('securitypolicyviolation', beiVerstoss);
   };
 }
 

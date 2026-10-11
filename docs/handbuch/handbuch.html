@@ -677,8 +677,8 @@
     </p>
     <div class="stempel">
       <span>Stand <b>11.10.2026</b></span>
-      <span>Fassung <b>Zweiter Besuch ohne Zwischenstände</b></span>
-      <span>Automatische Prüfungen <b>6857</b></span>
+      <span>Fassung <b>Sicherheits-Kopfzeilen</b></span>
+      <span>Automatische Prüfungen <b>6870</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -2668,6 +2668,11 @@
         <h3>Das Fehlerprotokoll<span class="neu">neu</span></h3>
         <p>Abstürze und Fehler, die an der Fehlergrenze vorbeigehen, landen in der <em>eigenen</em> Datenbank — geputzt: keine Formularinhalte, kein Text in Anführungszeichen (dort stehen in dieser App Namen), keine E-Mail-Adressen oder Ziffernfolgen, die Ansicht ohne Kennung und Suchbegriff. Nachladen nach einem Deploy, fehlendes Netz und fremde Skripte gelten als Rauschen.</p>
         <p class="wer">Liest nur der Senklot-Support, nicht der Betrieb · nach 90 Tagen gelöscht · die Unterseite Einstellungen → Fehler gibt es seit 25.09. nicht mehr</p>
+      </div>
+      <div class="bereich">
+        <h3>Sicherheits-Kopfzeilen<span class="neu">neu</span></h3>
+        <p>Seit dem 11.10. schickt die Auslieferung mehr als nur HSTS: der Browser rät keinen Dateityp, fremde Seiten bekommen beim Verlassen nur die Adresse der App, nicht die der Akte, die App lässt sich nicht in eine fremde Seite einbetten, und Mikrofon, Standort, Zahlung und USB sind gesperrt. Eine <strong>Inhaltsregel</strong> (CSP) legt fest, woher Skripte, Bilder und Verbindungen kommen dürfen — zunächst nur <em>meldend</em>: sie sperrt nichts, jeder Verstoß landet als „Inhaltsregel …“ im Fehlerprotokoll, nur mit der Herkunft, ohne Pfad. Beim Durchgang durch jede Seite aller Rollen kam keiner.</p>
+        <p class="wer">Durchgesetzt wird die Regel erst nach der Prüfung am echten Gerät — sonst bliebe eine Seite weiß, die niemand vorher gesehen hat</p>
       </div>
       <div class="bereich">
         <h3>Problem melden<span class="neu">an den support</span></h3>
