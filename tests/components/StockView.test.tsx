@@ -7,6 +7,7 @@ import type { Material, MaterialOrder } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import StockView from '@/features/orders/StockView';
 import { listGrosshaendler } from '@/lib/db/einkauf';
+import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
 
 /**
  * Lager — der dritte Schritt des Materialablaufs.
@@ -37,6 +38,9 @@ let materialien: WithId<Material>[] = [];
 let anforderungen: WithId<MaterialOrder>[] = [];
 let katalogFehler: string | null = null;
 let anforderungsFehler = false;
+/** Hält den Katalog zurück, bis der Test ihn schickt — wie die Live-Liste, die einen Augenblick nach dem Aufbau kommt. */
+let katalogSenden: (() => void) | null = null;
+let katalogHalten = false;
 
 const bestandAendern = vi.fn();
 
@@ -48,6 +52,7 @@ vi.mock('@/lib/db/materials', () => ({
     onError: (e: Error) => void,
   ) => {
     if (katalogFehler) onError(new Error(katalogFehler));
+    else if (katalogHalten) katalogSenden = () => cb(materialien);
     else cb(materialien);
     return () => undefined;
   },
@@ -285,6 +290,57 @@ describe('Lager — frei und reserviert erst mit der Datenbank', () => {
       expect(await screen.findByText(/3 m frei/)).toBeInTheDocument();
       expect(screen.queryByText(/20 m frei/)).not.toBeInTheDocument();
     } finally {
+      lagerStand.mockImplementation(async () => { throw new Error('nicht geladen'); });
+    }
+  });
+
+  // Stufe 3: beim zweiten Besuch stehen frei und reserviert sofort da, frisch geholt wird im Hintergrund.
+  it('beim zweiten Besuch stehen frei und reserviert sofort da', async () => {
+    zwischenspeicherFuer('v1', 'perl');
+    materialien = [material({ id: 'm1', stock: 20 })];
+    anforderungen = [];
+    lagerStand.mockImplementation(async () => new Map([['m1', { bestand: 20, zugesagt: 0, geplant: 17, frei: 3 }]]));
+    try {
+      const erster = zeige();
+      expect(await screen.findByText(/3 m frei/)).toBeInTheDocument();
+      erster.unmount();
+
+      const vorher = lagerStand.mock.calls.length;
+      lagerStand.mockImplementation(() => new Promise(() => undefined));
+      zeige();
+      expect(screen.getByText(/3 m frei/)).toBeInTheDocument();
+      const knapp = screen.getAllByText('Knapp').find((e) => e.tagName === 'P')!.parentElement!;
+      expect(within(knapp).queryByRole('status')).toBeNull();
+      await waitFor(() => expect(lagerStand.mock.calls.length).toBeGreaterThan(vorher));
+    } finally {
+      lagerStand.mockImplementation(async () => { throw new Error('nicht geladen'); });
+    }
+  });
+
+  // Kam der Katalog einen Augenblick nach dem Aufbau, überschrieb eine Antwort über die leere Liste den gemerkten Stand mit Nullen.
+  it('beim zweiten Besuch bleibt der gemerkte Stand, bis der Katalog da ist', async () => {
+    zwischenspeicherFuer('v1', 'perl');
+    materialien = [material({ id: 'm1', stock: 20 })];
+    anforderungen = [];
+    lagerStand.mockImplementation(async () => new Map([['m1', { bestand: 20, zugesagt: 0, geplant: 17, frei: 3 }]]));
+    try {
+      const erster = zeige();
+      expect(await screen.findByText(/3 m frei/)).toBeInTheDocument();
+      erster.unmount();
+
+      const vorher = lagerStand.mock.calls.length;
+      lagerStand.mockImplementation(() => new Promise(() => undefined));
+      katalogHalten = true;
+      zeige();
+      await new Promise((r) => setTimeout(r, 20));
+      // Ohne Katalog keine Frage an die Datenbank — ihre Antwort wäre keine über den Bestand.
+      expect(lagerStand.mock.calls.length).toBe(vorher);
+      await act(async () => katalogSenden?.());
+      expect(await screen.findByText(/3 m frei/)).toBeInTheDocument();
+      expect(screen.getByText(/17 reserviert/)).toBeInTheDocument();
+    } finally {
+      katalogHalten = false;
+      katalogSenden = null;
       lagerStand.mockImplementation(async () => { throw new Error('nicht geladen'); });
     }
   });

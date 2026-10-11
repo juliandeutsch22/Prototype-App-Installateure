@@ -26,6 +26,7 @@ import { List, ListRow } from '@/components/ListRow';
 import { InputField } from '@/components/Field';
 import { MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import { useToast } from '@/components/Toast';
+import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import MaterialCatalog from './MaterialCatalog';
 import { Bewegungsverlauf, InventurDialog, WareneingangDialog } from './LagerDialoge';
@@ -177,20 +178,38 @@ export default function StockView() {
     zwei verschiedene Zahlen für „frei“ und „reserviert“. Bis zur ersten
     Antwort (oder ihrem Fehler) stehen Platzhalter.
   */
-  const [stand, setStand] = useState<Map<string, LagerStand> | null>(null);
-  const [standFertig, setStandFertig] = useState(false);
+  /*
+    DER LETZTE STAND (Stufe 3, `lib/zwischenspeicher.ts`): Artikel und
+    Anforderungen kommen als Live-Listen ohnehin sofort; frei und reserviert
+    stehen beim zweiten Besuch mit ihnen da und werden frisch geholt. Nur
+    zum Anzeigen — „Aus Lager“ prüft die Datenbank beim Zusagen selbst.
+  */
+  const { anfang, merken } = useGemerkt<{ stand: Map<string, LagerStand> }>(
+    user ? schluessel('lagerStand', user) : null,
+  );
+  const [stand, setStand] = useState<Map<string, LagerStand> | null>(() => anfang?.stand ?? null);
+  const [standFertig, setStandFertig] = useState(() => anfang?.stand !== undefined);
   useEffect(() => {
-    if (!user) return;
+    /*
+      ERST MIT DEN ARTIKELN: eine Antwort über einen noch leeren Katalog ist
+      keine über den Bestand. Sie wurde nie gezeigt (Platzhalter), überschrieb
+      beim zweiten Besuch aber den gemerkten Stand mit lauter Nullen —
+      „Reserviert 0“, Sekunden später 6 (Messung 11.10.2026).
+    */
+    if (!user || loading) return;
     let weg = false;
     Promise.resolve()
       .then(() => lagerFrei(materials.map((m) => m.id)))
-      .then((k) => { if (!weg) setStand(k); })
+      .then((k) => {
+        if (weg) return;
+        setStand(k);
+        merken({ stand: k });
+      })
       // Schlägt ein Nachladen fehl, bleibt der letzte Stand — besser als zurück auf die eigene Rechnung.
       .catch(() => undefined)
-      // Erst wenn die Artikel da sind, ist die Antwort eine über den Bestand.
-      .finally(() => { if (!weg && !loading) setStandFertig(true); });
+      .finally(() => { if (!weg) setStandFertig(true); });
     return () => { weg = true; };
-  }, [user, materials, orders, loading]);
+  }, [user, materials, orders, loading, merken]);
   /** Frei und reserviert stehen erst mit der Antwort der Datenbank — oder ihrem Fehler. */
   const bestandBereit = !loading && standFertig;
 
