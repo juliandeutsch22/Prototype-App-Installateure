@@ -58,13 +58,26 @@ export function serviceWorkerAnmelden(beiNeuerFassung: () => void): void {
     if (e.data === 'neueFassung') beiNeuerFassung();
   });
 
-  window.addEventListener('load', () => {
+  const anmelden = () => {
     navigator.serviceWorker.register(workerAdresse()).catch(() => {
       // Privates Fenster, abgeschaltete Website-Daten, unsichere Verbindung:
       // dann läuft die App wie bisher, nur ohne Vorhalten.
     });
     aufraeumenFallsUebernommen();
-  });
+  };
+  /*
+    NACH DEM LADEN, ABER AUCH, WENN ES SCHON VORBEI IST (11.10.2026).
+
+    Gewartet wird, damit der Worker beim ersten Start nicht mit der App um
+    die Leitung konkurriert. Angemeldet wird aber erst im Effekt von
+    `NeueFassung` — und ist `load` dann schon gefeuert (gemessen in der
+    Vorschau: nach 66 ms; mit schnellem Netz oder aus dem Speicher auch
+    live), kommt das Ereignis nie wieder: kein Worker, nichts vorgehalten,
+    kein Aufräumen nach dem Wechsel — und „Meldungen einschalten“ wartet in
+    `lib/push.ts` auf `serviceWorker.ready`, das dann nie eintritt.
+  */
+  if (document.readyState === 'complete') anmelden();
+  else window.addEventListener('load', anmelden, { once: true });
 
   /**
    * BEIM ZURUECKKOMMEN NACHSEHEN — der eigentliche Fix.

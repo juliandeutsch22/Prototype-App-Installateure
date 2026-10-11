@@ -677,8 +677,8 @@
     </p>
     <div class="stempel">
       <span>Stand <b>11.10.2026</b></span>
-      <span>Fassung <b>Sicherheits-Kopfzeilen</b></span>
-      <span>Automatische Prüfungen <b>6870</b></span>
+      <span>Fassung <b>Service Worker bei schnellem Start</b></span>
+      <span>Automatische Prüfungen <b>6874</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -2673,6 +2673,11 @@
         <h3>Sicherheits-Kopfzeilen<span class="neu">neu</span></h3>
         <p>Seit dem 11.10. schickt die Auslieferung mehr als nur HSTS: der Browser rät keinen Dateityp, fremde Seiten bekommen beim Verlassen nur die Adresse der App, nicht die der Akte, die App lässt sich nicht in eine fremde Seite einbetten, und Mikrofon, Standort, Zahlung und USB sind gesperrt. Eine <strong>Inhaltsregel</strong> (CSP) legt fest, woher Skripte, Bilder und Verbindungen kommen dürfen — zunächst nur <em>meldend</em>: sie sperrt nichts, jeder Verstoß landet als „Inhaltsregel …“ im Fehlerprotokoll, nur mit der Herkunft, ohne Pfad. Beim Durchgang durch jede Seite aller Rollen kam keiner.</p>
         <p class="wer">Durchgesetzt wird die Regel erst nach der Prüfung am echten Gerät — sonst bliebe eine Seite weiß, die niemand vorher gesehen hat</p>
+      </div>
+      <div class="bereich">
+        <h3>Vorhalten der App auch bei schnellem Start<span class="neu">behoben</span></h3>
+        <p>Der Service Worker hält die App am Telefon vor, damit sie ohne Empfang startet, und stellt Push zu. Er meldete sich erst an, wenn die Seite fertig geladen war — gefragt wurde aber erst, nachdem die App schon lief. War die Seite da schon fertig (bei schnellem Netz oder aus dem Speicher), meldete er sich nie an: nichts vorgehalten, und „Meldungen einschalten“ wartete ohne Ende. Gefunden beim Durchgang zu den Sicherheits-Kopfzeilen; jetzt meldet er sich in diesem Fall sofort an.</p>
+        <p class="wer">Seit 11.10. · wer bisher keinen Worker hatte, bekommt ihn beim nächsten Öffnen</p>
       </div>
       <div class="bereich">
         <h3>Problem melden<span class="neu">an den support</span></h3>
