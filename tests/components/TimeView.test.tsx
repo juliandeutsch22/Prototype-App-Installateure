@@ -291,14 +291,68 @@ describe('Zeiterfassung — der Saldo erst mit seinen Buchungen', () => {
     expect(kachel()).toHaveTextContent(/[+-]?\d+:\d{2}/);
   });
 
+  /*
+    DER ZWEITE BESUCH (Stufe 3, `lib/zwischenspeicher.ts`): Saldo und
+    Stammdatenblatt stehen sofort da, die Buchungen seit Eintritt werden im
+    Hintergrund frisch geholt.
+  */
+  it('beim zweiten Besuch steht der Saldo sofort da — frisch geholt wird im Hintergrund', async () => {
+    eintraege = [eintrag({ id: 'e1' })];
+    const erster = zeige();
+    await waitFor(() => expect(within(kachel()).queryAllByRole('status')).toHaveLength(0));
+    expect(kachel()).toHaveTextContent(/[+-]?\d+:\d{2}/);
+    erster.unmount();
+
+    const vorher = listeSeit.mock.calls.length;
+    seitHalten = new Promise(() => undefined);
+    zeige();
+    expect(within(kachel()).queryAllByRole('status')).toHaveLength(0);
+    expect(kachel()).toHaveTextContent(/[+-]?\d+:\d{2}/);
+    await waitFor(() => expect(listeSeit.mock.calls.length).toBeGreaterThan(vorher));
+  });
+
+  // Gleichbleiben: nach einer Buchung stand bisher der alte Saldo, bis der neue gerechnet war — kein Platzhalter.
+  it('nach einer neuen Buchung bleibt der Saldo stehen, bis der neue gerechnet ist', async () => {
+    eintraege = [eintrag({ id: 'e1' })];
+    zeige();
+    await waitFor(() => expect(within(kachel()).queryAllByRole('status')).toHaveLength(0));
+
+    seitHalten = new Promise(() => undefined);
+    const vorher = listeSeit.mock.calls.length;
+    await act(async () => schnappschussSenden?.([eintrag({ id: 'e1' }), eintrag({ id: 'e2', date: '2026-09-02' })]));
+    await waitFor(() => expect(listeSeit.mock.calls.length).toBeGreaterThan(vorher));
+    expect(within(kachel()).queryAllByRole('status')).toHaveLength(0);
+    expect(kachel()).toHaveTextContent(/[+-]?\d+:\d{2}/);
+  });
+
+  // Vorher holte „Erneut versuchen“ nur das Stammdatenblatt; der Saldo blieb aus.
+  it('kam die Grundlage des Saldos nicht, holt „Erneut versuchen“ auch sie', async () => {
+    eintraege = [eintrag({ id: 'e1' })];
+    seitHalten = Promise.reject(new Error('kein Netz'));
+    seitHalten.catch(() => undefined);
+    const nutzer = userEvent.setup();
+    zeige();
+    expect(await screen.findByText(/Dein Stammdatenblatt konnte nicht geladen werden/)).toBeInTheDocument();
+
+    seitHalten = null;
+    const vorher = listeSeit.mock.calls.length;
+    await nutzer.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+    await waitFor(() => expect(listeSeit.mock.calls.length).toBeGreaterThan(vorher));
+    await waitFor(() => expect(screen.queryByText(/Dein Stammdatenblatt konnte nicht geladen werden/)).not.toBeInTheDocument());
+    expect(kachel()).toHaveTextContent(/[+-]?\d+:\d{2}/);
+  });
+
   it('wartet auch auf das Fenster der letzten Monate — daraus rechnen laufender Monat und fehlende Tage', async () => {
     fensterHalten = true;
     eintraege = [eintrag({ id: 'e1' })];
     zeige();
-    await waitFor(() => expect(listeSeit).toHaveBeenCalled());
+    await waitFor(() => expect(schnappschussSenden).not.toBeNull());
     await new Promise((r) => setTimeout(r, 20));
     expect(within(kachel()).getAllByRole('status').length).toBeGreaterThan(0);
+    // Die Grundlage des Saldos erst mit dem Fenster — aus der leeren Liste rechnete er umsonst (Stufe 3).
+    expect(listeSeit).not.toHaveBeenCalled();
     await act(async () => schnappschussSenden?.(eintraege));
+    await waitFor(() => expect(listeSeit).toHaveBeenCalled());
     await waitFor(() => expect(within(kachel()).queryAllByRole('status')).toHaveLength(0));
   });
 
@@ -530,6 +584,7 @@ describe('Offene Nachtragungen', () => {
     const nutzer = userEvent.setup();
     zeige();
 
+    await nutzer.click(await screen.findByRole('button', { name: 'Anzeigen' }));
     await screen.findByRole('button', { name: 'Zeit nachtragen' });
     const vorher = formularAufbauten;
     await nutzer.click(screen.getByRole('button', { name: 'Zeit nachtragen' }));
@@ -539,11 +594,13 @@ describe('Offene Nachtragungen', () => {
   it('meldet einen Schein, für den keine Zeit gebucht ist', async () => {
     eintraege = [];
     eigeneScheine = [schein('s1', '2026-08-31')];
+    const nutzer = userEvent.setup();
     zeige();
 
     expect(
       await screen.findByText(/wartet noch auf deine Zeitbuchung/),
     ).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Anzeigen' }));
     expect(screen.getByText(/Familie Huber/)).toBeInTheDocument();
     expect(screen.getByText(/03:00 Std beim Kunden/)).toBeInTheDocument();
   });
@@ -596,6 +653,32 @@ describe('Offene Nachtragungen', () => {
     expect(screen.queryByText(/wartet noch auf deine Zeitbuchung/)).not.toBeInTheDocument();
   });
 
+  /*
+    EINE ZEILE, DIE LISTE AUF TIPP (Messung 11.10.2026): mit drei Scheinen
+    samt Knöpfen schob der Hinweis, der erst mit den Daten erscheinen kann,
+    Saldo und Formular um ein halbes Telefon nach unten.
+  */
+  it('steht als eine Zeile da — die Scheine erst auf Tipp, und wieder zu', async () => {
+    eintraege = [];
+    eigeneScheine = [schein('s1', '2026-08-31'), schein('s2', '2026-09-01', { customerName: 'Familie Gruber' })];
+    const nutzer = userEvent.setup();
+    zeige();
+
+    expect(await screen.findByText(/2 unterschriebene Scheine warten noch auf deine Zeitbuchung/)).toBeInTheDocument();
+    const knopf = screen.getByRole('button', { name: 'Alle anzeigen' });
+    expect(knopf).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText(/Familie Gruber/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Zeit nachtragen' })).not.toBeInTheDocument();
+
+    await nutzer.click(knopf);
+    expect(screen.getByRole('button', { name: 'Ausblenden' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText(/Familie Gruber/)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Zeit nachtragen' })).toHaveLength(2);
+
+    await nutzer.click(screen.getByRole('button', { name: 'Ausblenden' }));
+    expect(screen.queryByText(/Familie Gruber/)).not.toBeInTheDocument();
+  });
+
   it('übernimmt Datum, Baustelle und Zeitspanne ins Formular', async () => {
     // Abtippen ist genau die Reibung, an der das Nachtragen scheitert.
     eintraege = [];
@@ -603,6 +686,7 @@ describe('Offene Nachtragungen', () => {
     const nutzer = userEvent.setup();
     zeige();
 
+    await nutzer.click(await screen.findByRole('button', { name: 'Anzeigen' }));
     await nutzer.click(await screen.findByRole('button', { name: 'Zeit nachtragen' }));
     const formular = await screen.findByTestId('zeitformular');
     expect(formular.textContent).toContain('"date":"2026-08-31"');
