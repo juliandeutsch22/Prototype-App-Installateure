@@ -499,6 +499,38 @@ describe('Rechnungen lesen', () => {
       stopp();
     }
   }, 30_000);
+
+  /*
+    `geaendert` (seit 11.10.2026): damit hält die Rechnungsansicht ihre
+    offenen Forderungen und den Mahnlauf aktuell — auch für eine Rechnung,
+    die zu alt für diese Liste ist. Gezählt wird erst, wenn es ruhig ist: die
+    Live-Verbindung liefert kurz nach dem Aufbau noch Änderungen von kurz
+    davor nach (hier die beiden neuen Rechnungen).
+  */
+  it('meldet auch die Änderung an einer Rechnung, die nicht in der Liste steht', async () => {
+    const alt = await rechnungen.createInvoice(BETRIEB, rechnung({
+      invoiceNumber: `RE-${JAHR}-1005`, invoiceDate: '2026-04-16',
+    }));
+    await rechnungen.createInvoice(BETRIEB, rechnung({
+      invoiceNumber: `RE-${JAHR}-1006`, invoiceDate: '2026-04-17',
+    }));
+    let meldungen = 0;
+    let liste: WithId<Invoice>[] = [];
+    const stopp = rechnungen.subscribeRecentInvoices(
+      BETRIEB, 1, (rows) => { liste = rows; }, (e) => { throw e; }, undefined, () => { meldungen += 1; },
+    );
+    try {
+      await warte(NACHFASSEN_MS + 1800);
+      meldungen = 0;
+      expect(liste.map((r) => r.id)).not.toContain(alt);
+
+      await rechnungen.updateInvoiceStatus(alt, 'Überfällig');
+      for (let i = 0; i < 40 && meldungen === 0; i += 1) await warte(100);
+      expect(meldungen).toBeGreaterThan(0);
+    } finally {
+      stopp();
+    }
+  }, 30_000);
 });
 
 describe('Angebote', () => {

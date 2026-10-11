@@ -71,6 +71,8 @@ const KATALOG: Material[] = [
 let rechnungen: (Invoice & { id: string })[] = [];
 /** Das Abonnement der Liste — eine Prüfung schickt darüber einen neuen Stand nach. */
 let liveMeldung: ((rows: (Invoice & { id: string })[]) => void) | null = null;
+/** Meldet, dass sich an irgendeiner Rechnung etwas getan hat (seit 11.10.2026). */
+let liveGeaendert: (() => void) | undefined;
 /** Was die Suche über ALLE Rechnungen auf dem Server findet. */
 let suchTreffer: (Invoice & { id: string })[] = [];
 let sucheWirft = false;
@@ -96,6 +98,17 @@ const reihenfolge: string[] = [];
 let offene: (Invoice & { id: string })[] = [];
 let imZeitraum: (Invoice & { id: string })[] = [];
 const listUnpaidInvoices = vi.fn(async () => offene);
+/*
+  DER FRISCHE STAND VOR DEM MAHNEN (seit 11.10.2026). Ohne eigenen Eintrag in
+  `frisch` derselbe wie auf der Seite — eine Prüfung legt dort fest, was sich
+  inzwischen in der Datenbank geändert hat.
+*/
+let frisch: Record<string, Invoice & { id: string }> = {};
+const listInvoicesByIds = vi.fn(async (_c: string, ids: string[]) =>
+  ids
+    .map((id) => frisch[id] ?? [...rechnungen, ...offene].find((r) => r.id === id))
+    .filter((r): r is Invoice & { id: string } => !!r),
+);
 /** Was auf dieser Baustelle schon verrechnet ist — Grundlage des Abzugs. */
 let derBaustelle: (Invoice & { id: string })[] = [];
 let baustellenAbfrageWirft = false;
@@ -148,6 +161,7 @@ vi.mock('@/lib/db/invoices', async () => {
       ältesten Forderungen nicht.
     */
     listUnpaidInvoices: () => listUnpaidInvoices(),
+    listInvoicesByIds: (c: string, ids: string[]) => listInvoicesByIds(c, ids),
     /*
       Und der Buchhaltungs-Export holt seinen Zeitraum selbst, statt die
       geladene Liste zu filtern. Der Doppelgänger gibt zurück, was der Test
@@ -160,8 +174,11 @@ vi.mock('@/lib/db/invoices', async () => {
       _c: string,
       _g: number,
       cb: (rows: (Invoice & { id: string })[]) => void,
+      _fehler?: (e: Error) => void,
+      geaendert?: () => void,
     ) => {
       liveMeldung = cb;
+      liveGeaendert = geaendert;
       cb(rechnungen);
       return () => undefined;
     },
@@ -400,6 +417,8 @@ beforeEach(() => {
   authWert.company.rechnungsarten = false;
   listInvoicesForProject.mockClear();
   listUnpaidInvoices.mockClear();
+  frisch = {};
+  listInvoicesByIds.mockClear();
   listInvoicesInRange.mockClear();
   listRecentWorkSheets.mockClear();
   aufRechnung = [];
@@ -1568,6 +1587,85 @@ describe('Der Mahnlauf', () => {
     offene = [offen('0001', { dueDate: '2024-03-01' })];
     zeige();
     expect(await screen.findByText(/^Mahnlauf \(1\)/)).toBeInTheDocument();
+  });
+
+  /*
+    AM STAND, DER GILT (11.10.2026). Die offenen Forderungen wurden einmal
+    beim Öffnen geladen: nach einer Zahlungserinnerung stand die Rechnung im
+    Mahnlauf weiter mit „Mahnen“, ein zweiter Klick hielt dieselbe Stufe noch
+    einmal fest (am lokalen Stack nachgestellt). Gegenprobe je Fall: gegen
+    den Stand davor rot.
+  */
+  async function ausDemLaufMahnen() {
+    const karte = (await screen.findByText(/^Mahnlauf \(1\)/)).closest('section')!;
+    await userEvent.click(within(karte).getByRole('button', { name: 'Mahnen' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Erzeugen' }));
+  }
+
+  it('nach dem Mahnen steht die Rechnung nicht mehr zum Mahnen da', async () => {
+    offene = [offen('0001')];
+    // Was die Datenbank nach dem Festhalten liefert: Stufe 1, die Frist läuft.
+    mahnung.mockImplementation(async () => {
+      offene = [offen('0001', { mahnstufe: 1, gemahntAm: '2026-09-01', mahnfrist: '2026-09-15' })];
+      return 'm1';
+    });
+    zeige();
+    await ausDemLaufMahnen();
+    await waitFor(() => expect(mahnung).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Mahnen' })).not.toBeInTheDocument());
+  });
+
+  it('eine Änderung auf einem anderen Gerät nimmt die Rechnung aus dem Mahnlauf', async () => {
+    offene = [offen('0001')];
+    zeige();
+    await screen.findByText(/^Mahnlauf \(1\)/);
+    // Am Büro-PC wurde die Zahlung erfasst; die Live-Verbindung meldet es.
+    offene = [];
+    await act(async () => { liveGeaendert?.(); });
+    await waitFor(() => expect(screen.queryByText(/^Mahnlauf/)).not.toBeInTheDocument());
+  });
+
+  it('fasst viele Meldungen zusammen: eine Nachladung, dazu eine danach', async () => {
+    // Beim Öffnen stellt die Seite überfällige Rechnungen selbst um — jede Umstellung ist eine Meldung.
+    offene = [offen('0001')];
+    zeige();
+    await screen.findByText(/^Mahnlauf \(1\)/);
+    const vorher = listUnpaidInvoices.mock.calls.length;
+    let freigeben: () => void = () => undefined;
+    listUnpaidInvoices.mockImplementationOnce(() => new Promise((fertig) => { freigeben = () => fertig(offene); }));
+    await act(async () => { for (let i = 0; i < 5; i += 1) liveGeaendert?.(); });
+    expect(listUnpaidInvoices.mock.calls.length - vorher).toBe(1);
+    await act(async () => { freigeben(); });
+    await waitFor(() => expect(listUnpaidInvoices.mock.calls.length - vorher).toBe(2));
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    expect(listUnpaidInvoices.mock.calls.length - vorher).toBe(2);
+  });
+
+  it('mahnt eine inzwischen bezahlte Rechnung nicht — es entsteht kein Beleg', async () => {
+    offene = [offen('0001')];
+    frisch = { '0001': offen('0001', { paymentStatus: 'Bezahlt', bezahltBetrag: 1200 }) };
+    zeige();
+    await screen.findByText(/^Mahnlauf \(1\)/);
+    offene = [];
+    await ausDemLaufMahnen();
+    expect(
+      await screen.findByText('Die Rechnung hat sich inzwischen geändert: Die Rechnung ist bezahlt. Es wurde keine Mahnung erzeugt.'),
+    ).toBeInTheDocument();
+    expect(mahnungPdf).not.toHaveBeenCalled();
+    expect(mahnung).not.toHaveBeenCalled();
+    // Und der Mahnlauf hat den Stand nachgeholt.
+    await waitFor(() => expect(screen.queryByText(/^Mahnlauf/)).not.toBeInTheDocument());
+  });
+
+  it('nach einer Teilzahlung steht der richtige Rest auf dem Beleg', async () => {
+    offene = [offen('0001')];
+    frisch = { '0001': offen('0001', { paymentStatus: 'Teilbezahlt', bezahltBetrag: 400 }) };
+    zeige();
+    await ausDemLaufMahnen();
+    await waitFor(() => expect(mahnung).toHaveBeenCalledTimes(1));
+    // Gerechnet wird aus der frisch gelesenen Rechnung (der Inhalt ist hier ein Doppelgänger).
+    const { inhalt } = mahnung.mock.calls[0][1] as { inhalt: { invoice: Invoice } };
+    expect(inhalt.invoice).toMatchObject({ paymentStatus: 'Teilbezahlt', bezahltBetrag: 400 });
   });
 });
 
