@@ -12,7 +12,7 @@ import { supabaseClient } from '@/lib/supabase';
 import type { WithId } from '../core';
 import { zeileAlsObjekt, objektAlsZeile } from './felder';
 import { meldeVerbindung, vergissVerbindung } from '@/lib/liveVerbindung';
-import { liveGeneration, liveLesen, liveMerken } from '@/lib/liveSpeicher';
+import { liveGeneration, liveLesen, liveMerken, speicherNutzer } from '@/lib/liveSpeicher';
 
 /*
   DIESELBE KENNUNG WIE AUF DER ANDEREN SEITE. Sie hier ein zweites Mal zu
@@ -768,7 +768,8 @@ export function abonnieren<T>(
   const bestand = new Map<string, WithId<T>>();
   // Unter diesem Schlüssel merkt sich die Liste ihren letzten Bestand für den nächsten Besuch (Stufe 3).
   const speicherSchluessel = `${tabelle}|${companyId}|${JSON.stringify(abfrage)}`;
-  const zwischenspeichern = !OHNE_ZWISCHENSPEICHER.has(tabelle);
+  // Nur mit einem Eigentümer: solange niemand angemeldet ist, gehört der Stand keinem.
+  const zwischenspeichern = !OHNE_ZWISCHENSPEICHER.has(tabelle) && speicherNutzer() !== null;
   const generationBeimStart = liveGeneration();
   let bereit = false;
   let nachfassen: ReturnType<typeof setTimeout> | undefined;

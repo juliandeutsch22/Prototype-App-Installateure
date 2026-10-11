@@ -129,6 +129,18 @@ describe('abonnieren: der zweite Besuch', () => {
     stopp();
   });
 
+  // Solange niemand angemeldet ist, gehört ein Stand keinem — auch nicht dem, der gleich kommt.
+  it('ohne Angemeldeten merkt sich keine Liste etwas', async () => {
+    zwischenspeicherFuer(null, null);
+    await ersterBesuch();
+    const { client } = gestellterClient();
+    const gemeldet: string[][] = [];
+    const stopp = abonnieren<{ name: string }>('materials', 'perl', (z) => gemeldet.push(z.map((x) => x.name)), () => {}, {}, client);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(gemeldet).toEqual([]);
+    stopp();
+  });
+
   it('wer sofort wieder abmeldet, bekommt auch den letzten Bestand nicht mehr', async () => {
     await ersterBesuch();
     const { client } = gestellterClient();
