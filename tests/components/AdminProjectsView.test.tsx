@@ -6,6 +6,8 @@ import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Customer, Project } from '@/types';
 import type { BaustellenStunden } from '@/lib/db/timeEntries';
 import AdminProjectsView from '@/features/projects/AdminProjectsView';
+import { listUsers } from '@/lib/db/users';
+import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
 
 /**
  * Die Baustellenverwaltung — die vierte der bisher ungetesteten Kernansichten.
@@ -1005,5 +1007,46 @@ describe('Hilfe zu dieser Seite (Runde 5, G8)', () => {
     zeige();
     await userEvent.click(await screen.findByRole('button', { name: 'Hilfe zu dieser Seite' }));
     expect(await screen.findByText(/Gesucht wird nach\s+Nummer, Bezeichnung, Adresse und Kunde/)).toBeInTheDocument();
+  });
+});
+
+/*
+  ERST MIT DER BELEGSCHAFT (11.10.2026). Beim zweiten Besuch kamen die
+  Baustellen als Live-Liste sofort, die Namen erst danach — dazwischen stand
+  „Keine Projektleitung zugeteilt“ an einer Baustelle mit Projektleitung.
+  Gegenprobe: gegen den Stand davor rot.
+*/
+describe('Baustellen — Zeilen erst mit der Belegschaft', () => {
+  const geleitet = {
+    id: 'p-l', companyId: 'perl', projectNumber: '2026-050', customerName: 'Familie Leitner', status: 'Aktiv',
+    assignedEmployees: [], projectManagers: ['u1'],
+  } as unknown as Project & { id: string };
+  afterEach(() => {
+    vi.mocked(listUsers).mockImplementation(async () => {
+      if (ladefehler) throw new Error('kein Netz');
+      return [MONTEUR];
+    });
+  });
+
+  it('sagt nie „Keine Projektleitung zugeteilt“, solange die Namen laden', async () => {
+    baustellen = [geleitet];
+    let freigeben: () => void = () => undefined;
+    vi.mocked(listUsers).mockImplementation(() => new Promise((fertig) => { freigeben = () => fertig([MONTEUR]); }));
+    zeige();
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    expect(screen.queryByText('Keine Projektleitung zugeteilt')).not.toBeInTheDocument();
+    await act(async () => { freigeben(); });
+    expect(await screen.findByText(/Projektleitung: Max Mustermann/)).toBeInTheDocument();
+  });
+
+  it('beim zweiten Besuch stehen die Namen sofort da', async () => {
+    zwischenspeicherFuer('gf', 'perl');
+    baustellen = [geleitet];
+    const erst = zeige();
+    expect(await screen.findByText(/Projektleitung: Max Mustermann/)).toBeInTheDocument();
+    erst.unmount();
+    vi.mocked(listUsers).mockImplementation(() => new Promise(() => undefined));
+    zeige();
+    expect(await screen.findByText(/Projektleitung: Max Mustermann/)).toBeInTheDocument();
   });
 });

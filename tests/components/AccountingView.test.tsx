@@ -3,9 +3,12 @@ import { act, cleanup, render, screen, waitFor, within } from '@testing-library/
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import userEvent from '@testing-library/user-event';
-import type { AppUser, TimeEntry } from '@/types';
+import type { AppUser, Project, TimeEntry } from '@/types';
 import AccountingView from '@/features/accounting/AccountingView';
 import { stundenDerBaustellen } from '@/lib/db/timeEntries';
+import { listUsers } from '@/lib/db/users';
+import { listProjectsByNumbers } from '@/lib/db/projects';
+import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
 
 /**
  * Der Fehler, den dieser Test verhindert, ist wirklich passiert: die
@@ -1093,5 +1096,92 @@ describe('Mitarbeiterübersicht in der Linie „Lot“ (E9)', () => {
     expect(within(fenster()).getByRole('button', { name: 'Monat als CSV' })).toBeInTheDocument();
     await nutzer.click(within(fenster()).getByRole('button', { name: 'Bericht für Zeitraum' }));
     expect(screen.getByRole('dialog', { name: 'Bericht exportieren' })).toBeInTheDocument();
+  });
+});
+
+/*
+  ERST MIT DER GANZEN GRUNDLAGE (11.10.2026). Die Seite galt als fertig,
+  sobald die Buchungen da waren. Beim ersten Besuch kamen Belegschaft und
+  Baustellen zufällig früher; beim zweiten kamen die Buchungen aus dem
+  Zwischenspeicher sofort — gemessen: „Noch keine Benutzer angelegt.“,
+  „Keine Projektstunden …“ und 25 Baustellennummern, die Sekunden später zu
+  Kundennamen wurden. Die Attrappe der Buchungen antwortet hier sofort, wie
+  der Zwischenspeicher. Gegenprobe: gegen den Stand davor rot.
+*/
+describe('Mitarbeiterübersicht — erst mit der ganzen Grundlage', () => {
+  const baustelle = {
+    id: 'p2', companyId: 'perl', projectNumber: 'B-2026-0002', customerName: 'Familie Huber', estimatedHours: 40,
+  } as unknown as Project & { id: string };
+  const aufBaustelle = (id: string, nummer: string): TimeEntry & { id: string } => ({
+    ...eintrag('2026-08-17'), id, startTime: '16:00', endTime: '18:00', breakDuration: 0, projectNumber: nummer,
+  });
+  const echteStunden = vi.mocked(stundenDerBaustellen).getMockImplementation()!;
+  const nie = () => new Promise<never>(() => undefined);
+
+  beforeEach(() => {
+    buchungen = [...eintraege, aufBaustelle('e-b2', 'B-2026-0002')];
+    vi.mocked(listProjectsByNumbers).mockImplementation(async () => [baustelle]);
+    zwischenspeicherFuer('chefin', 'perl');
+  });
+  afterEach(() => {
+    vi.mocked(listUsers).mockImplementation(async () => benutzer);
+    vi.mocked(listProjectsByNumbers).mockImplementation(async () => []);
+    vi.mocked(stundenDerBaustellen).mockImplementation(echteStunden);
+  });
+
+  const zeige = () => render(
+    <MemoryRouter>
+      <ToastProvider>
+        <AccountingView />
+      </ToastProvider>
+    </MemoryRouter>,
+  );
+
+  it('kommt die Belegschaft nach den Buchungen, steht nie „Noch keine Benutzer angelegt.“', async () => {
+    let freigeben: () => void = () => undefined;
+    vi.mocked(listUsers).mockImplementation(() => new Promise((fertig) => { freigeben = () => fertig(benutzer); }));
+    zeige();
+    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
+    expect(screen.queryByText('Noch keine Benutzer angelegt.')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Keine Projektstunden/)).not.toBeInTheDocument();
+    await act(async () => { freigeben(); });
+    expect(await personKnopf('Neu Eingestellt')).toBeInTheDocument();
+  });
+
+  it('kommen die Baustellen nach den Buchungen, steht nie die Nummer statt des Kunden', async () => {
+    let freigeben: () => void = () => undefined;
+    vi.mocked(listProjectsByNumbers).mockImplementation(() => new Promise((fertig) => { freigeben = () => fertig([baustelle]); }));
+    zeige();
+    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
+    expect(screen.queryByText('B-2026-0002')).not.toBeInTheDocument();
+    await act(async () => { freigeben(); });
+    expect((await screen.findAllByText('Familie Huber')).length).toBeGreaterThan(0);
+  });
+
+  it('beim zweiten Besuch stehen Belegschaft und Kunde sofort da', async () => {
+    zeige();
+    await screen.findAllByText('Familie Huber');
+    await personKnopf('Neu Eingestellt');
+    cleanup();
+
+    // Jetzt antwortet keine der Abfragen mehr: was dasteht, kommt aus dem gemerkten Stand.
+    vi.mocked(listUsers).mockImplementation(nie);
+    vi.mocked(listProjectsByNumbers).mockImplementation(nie);
+    vi.mocked(stundenDerBaustellen).mockImplementation(nie);
+    zeige();
+    expect(await personKnopf('Neu Eingestellt')).toBeInTheDocument();
+    expect(screen.getAllByText('Familie Huber').length).toBeGreaterThan(0);
+  });
+
+  it('Gleichbleiben: eine neue Buchung auf einer neuen Baustelle macht die Liste nicht wieder zum Platzhalter', async () => {
+    zeige();
+    await screen.findAllByText('Familie Huber');
+    vi.mocked(listProjectsByNumbers).mockImplementation(nie);
+    await act(async () => {
+      liveSenden?.([...buchungen, aufBaustelle('e-b3', 'B-2026-0003')]);
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    expect(await personKnopf('Neu Eingestellt')).toBeInTheDocument();
+    expect(screen.getAllByText('Familie Huber').length).toBeGreaterThan(0);
   });
 });

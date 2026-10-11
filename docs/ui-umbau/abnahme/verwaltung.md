@@ -31,7 +31,7 @@ Bildschirmfotos:    im Scratchpad der Sitzung erstellt, nicht ins Repository üb
 Dokumentation:      Handbuch und FUNKTIONEN.md nicht geändert (gemeinsame Dateien) — OFFEN:
                     „Neuer Benutzer“ heisst jetzt „Benutzer anlegen“; Filter als Segmente;
                     Verwalten eines Betriebs im Seitenfenster
-Freigabe Betreiber: offen (entscheidungen.md E5)  Datum: __________
+Freigabe Betreiber: erteilt am 11.10.2026 (für alle Schritte der Linie „Lot“)
 ```
 
 ## Prüfliste „drei Breiten“

@@ -409,7 +409,8 @@ export default function Einsatzplanung() {
         die planen (die Team-Woche der Monteure bekommt ihn nicht), nur wenn
         der Betrieb das Abo erlaubt, und nicht im Supportzugang. Unverändert.
       */}
-      {company?.kalenderAboErlaubt && !einblick && <KalenderAboKarte userId={user.uid} art="gesamt" />}
+      {/* Mit dem Plan, nicht vor ihm: sonst schob ihn der Plan beim Laden nach unten (Messung 11.10.2026). */}
+      {company?.kalenderAboErlaubt && !einblick && d.geladen && <KalenderAboKarte userId={user.uid} art="gesamt" />}
 
       {fenster?.art === 'einsatz' && (
         <EinsatzFenster

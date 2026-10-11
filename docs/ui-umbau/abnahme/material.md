@@ -31,7 +31,7 @@ Rückgängig:         Einzel- und Sammelaktion OHNE „Rückgängig“ — siehe
 Fehlerprotokoll:    Vorschau ohne JavaScript-Fehler (nur 404 einer Ressource der Vorschau).
 Bildschirmfotos:    docs/ui-umbau/nachher/material/ (Vorschau, Beispieldaten)
 Dokumentation:      Handbuch und FUNKTIONEN.md: OFFEN (gemeinsame Dateien, Vorschlag im Bericht)
-Freigabe Betreiber: ____________________  Datum: __________   (offen, E5 der Entscheidungen)
+Freigabe Betreiber: erteilt am 11.10.2026 (für alle Schritte der Linie „Lot“)
 ```
 
 ## Prüfliste „drei Breiten“

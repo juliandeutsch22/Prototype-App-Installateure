@@ -15,7 +15,7 @@ import { Warnung } from '@/components/Badge';
 import Zeitmarker from '@/features/time/Zeitmarker';
 import type { Nachtzeit } from '@/lib/lohnregeln';
 import Icon from '@/components/Icon';
-import { EmptyState } from '@/components/States';
+import { EmptyState, SkeletonList } from '@/components/States';
 
 const BAR_TONE = {
   success: 'bg-success',
@@ -109,7 +109,10 @@ export default function ProjectSummary({
   label,
   gesamtFach,
   nacht,
+  bereit = true,
 }: {
+  /** Ist die Grundlage der Seite da? Bis dahin ein Platzhalter statt „Keine Projektstunden …“. */
+  bereit?: boolean;
   /** Die Nachtzeit des Betriebs — für die Marke „Nacht“ (Runde 3, M4). */
   nacht?: Nachtzeit;
   entries: TimeEntry[];
@@ -146,6 +149,14 @@ export default function ProjectSummary({
       };
     });
   }, [entries, projects, gesamtFach]);
+
+  if (!bereit) {
+    return (
+      <Card title={`Projektauswertung ${label}`}>
+        <SkeletonList rows={2} />
+      </Card>
+    );
+  }
 
   if (rows.length === 0) {
     return (

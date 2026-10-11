@@ -26,7 +26,9 @@ bisherigen Menüpunkte. Der Leitfaden des Entwurfs ist die Gestaltungsvorgabe
 selbst; er liegt unter `docs/design/`, nicht in der App.
 
 **E5 — Freigaben des Betreibers und Pilotwochen (8.12, 10).** Kann der Umbau
-nicht selbst erbringen. Die Abnahmeblätter tragen „Freigabe: offen“.
+nicht selbst erbringen. Die Abnahmeblätter trugen „Freigabe: offen“.
+**Freigabe erteilt am 11.10.2026** für alle Schritte; die Pilotwochen stehen
+weiter aus.
 
 **E6 — Bildschirmfotos.** Je Seite mit der Rolle, die sie am vollständigsten
 sieht, in drei Breiten, als verkleinerte JPEG — alle Rollen mal alle Seiten

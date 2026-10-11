@@ -65,11 +65,23 @@ export function nachEinstufung(staff: AppUser[]): Gruppe[] {
   );
 }
 
+/*
+  DIE FORMATIERER EINMAL, JEDER TAG EINMAL (11.10.2026). `toLocaleDateString`
+  mit Optionen baut bei jedem Aufruf einen neuen Formatierer. Die
+  Monatsansicht fragt je Zelle zweimal — bei 25 Personen und 31 Tagen kostete
+  das im Profil 3,7 s Rechenzeit, bevor die Seite sich zeigte. Dieselben
+  Optionen, also dieselben Texte.
+*/
+const WOCHENTAG = new Intl.DateTimeFormat('de-AT', { weekday: 'short' });
+const TAG_MONAT = new Intl.DateTimeFormat('de-AT', { day: '2-digit', month: '2-digit' });
+const schonGeschrieben = new Map<string, { wochentag: string; datum: string }>();
+
 /** „Mi.“ und „02.09.“ — für Spaltenköpfe und Vorlesetexte. */
 export function tagKurz(iso: string): { wochentag: string; datum: string } {
+  const da = schonGeschrieben.get(iso);
+  if (da) return da;
   const d = new Date(`${iso}T00:00:00`);
-  return {
-    wochentag: d.toLocaleDateString('de-AT', { weekday: 'short' }),
-    datum: d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit' }),
-  };
+  const text = { wochentag: WOCHENTAG.format(d), datum: TAG_MONAT.format(d) };
+  schonGeschrieben.set(iso, text);
+  return text;
 }

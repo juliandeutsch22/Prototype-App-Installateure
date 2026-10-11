@@ -37,7 +37,7 @@ Bildschirmfotos:    docs/ui-umbau/nachher/rechnungen/ (Rolle Buchhaltung bzw. Ge
 Dokumentation:      Handbuch und FUNKTIONEN.md NICHT angepasst (gemeinsame Dateien) — offen,
                     siehe Bericht: „Neue Rechnung“ im Seitenkopf, Handlungen im Seitenfenster
                     statt im ⋯, Ansichten Offen/Erledigt/Alle.
-Freigabe Betreiber: offen (Entscheidung E5)
+Freigabe Betreiber: erteilt am 11.10.2026 (für alle Schritte der Linie „Lot“)
 ```
 
 ## Prüfliste „drei Breiten“

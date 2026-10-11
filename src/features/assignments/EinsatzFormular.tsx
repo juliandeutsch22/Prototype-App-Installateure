@@ -26,7 +26,7 @@ import PersonPicker from '@/components/PersonPicker';
 import { List, ListRow } from '@/components/ListRow';
 import { useModul } from '@/lib/useModule';
 import { useToast } from '@/components/Toast';
-import { ErrorState } from '@/components/States';
+import { ErrorState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { terminKopf } from '@/features/termine/terminText';
 import RuestlistePlanen from './RuestlistePlanen';
@@ -71,6 +71,7 @@ export default function EinsatzFormular({
   startPerson,
   users,
   staff,
+  staffGeladen = true,
   projects,
   onProjekt,
   tagesEinsaetze,
@@ -91,6 +92,13 @@ export default function EinsatzFormular({
   users: AppUser[];
   /** Wer eingeplant werden kann — sortiert. */
   staff: AppUser[];
+  /**
+   * Ist die Belegschaft da (oder ihr Fehler)? Vorher hieße eine leere Auswahl
+   * „Keine aktiven Mitarbeiter vorhanden.“ — eine Auskunft, wo „weiß ich noch
+   * nicht“ gemeint ist (Messung 11.10.2026). Ab Werk da: das Fenster des
+   * Wochenplans öffnet erst, wenn die Woche geladen ist.
+   */
+  staffGeladen?: boolean;
   projects: Project[];
   /** Eine in der Auswahl nachgeladene Baustelle (etwa eine abgeschlossene). */
   onProjekt: (p: WithId<Project>) => void;
@@ -591,72 +599,79 @@ export default function EinsatzFormular({
         {/* Der Helfer-Haken haengt an der EINZELNEN Auswahl, deshalb als
             Zusatz je Zeile: ein vergessener Haken kostet den falschen
             Verrechnungssatz. */}
-        <PersonPicker
-          legend="Mitarbeiter"
-          idPrefix="assign"
-          people={staff.map((u) => {
-            const andere = schonVerplant.get(u.uid);
-            // Der Urlaub zuerst: er ist der Grund, jemanden GAR NICHT
-            // einzuteilen. Eine zweite Baustelle ist nur eine Warnung.
-            const hinweise = [
-              imUrlaub.has(u.uid) ? (imUrlaub.get(u.uid) as string) : null,
-              teilweiseWeg.has(u.uid) ? (teilweiseWeg.get(u.uid) as string) : null,
-              andere?.length ? `schon eingeteilt: ${andere.join(', ')}` : null,
-            ].filter(Boolean);
-            return {
-              uid: u.uid,
-              name: u.name,
-              /*
-                „FREI“ STEHT DA, nicht nur das Gegenteil (Linie „Lot“, E2):
-                wer einteilt, sucht die Freien — bei zwanzig Namen soll er
-                nicht aus dem Fehlen eines Hinweises schliessen müssen.
-              */
-              hint: hinweise.length > 0 ? hinweise.join(' · ') : 'frei',
-              // Genau dieselben zwei Gruende, die schon im Hinweis
-              // stehen — nur maschinenlesbar, damit die Liste sie
-              // sortieren und filtern kann.
-              // Stundenweise weg macht niemanden unfrei — vormittags
-              // ist er da.
-              nichtFrei: imUrlaub.has(u.uid) || !!andere?.length,
-              abwesend: imUrlaub.has(u.uid),
-            };
-          })}
-          selected={staff.filter((u) => picks[u.uid]?.on).map((u) => u.uid)}
-          onChange={(next) =>
-            setPicks(() => {
-              const out: Record<string, Pick> = {};
-              // Neu Gewählte bekommen den Haken aus der Einstufung.
-              for (const uid of next) {
-                out[uid] = {
-                  on: true,
-                  asHelper: picks[uid]
-                    ? !!picks[uid].asHelper
-                    : alsHelferEingestuft(staff.find((u) => u.uid === uid)),
-                };
-              }
-              return out;
-            })
-          }
-          emptyHint="Keine aktiven Mitarbeiter vorhanden."
-          renderExtra={(uid) => {
-            // Helfer und Lehrling: die Einstufung steht fest, ein Haken
-            // hätte keine Wirkung bzw. den falschen Satz.
-            const person = staff.find((u) => u.uid === uid);
-            if (alsHelferEingestuft(person) || istLehrling(person)) {
-              return <span className="text-sm text-ink-muted">{stufeImEinsatz(false, person)}</span>;
-            }
-            return (
-              <CheckboxField
-                id={`helper-${uid}`}
-                label="als Helfer"
-                checked={!!picks[uid]?.asHelper}
-                onChange={(e) =>
-                  setPicks((c) => ({ ...c, [uid]: { on: true, asHelper: e.target.checked } }))
+        {!staffGeladen ? (
+          <fieldset>
+            <legend className="mb-2 text-sm font-semibold">Mitarbeiter</legend>
+            <SkeletonList rows={4} />
+          </fieldset>
+        ) : (
+          <PersonPicker
+            legend="Mitarbeiter"
+            idPrefix="assign"
+            people={staff.map((u) => {
+              const andere = schonVerplant.get(u.uid);
+              // Der Urlaub zuerst: er ist der Grund, jemanden GAR NICHT
+              // einzuteilen. Eine zweite Baustelle ist nur eine Warnung.
+              const hinweise = [
+                imUrlaub.has(u.uid) ? (imUrlaub.get(u.uid) as string) : null,
+                teilweiseWeg.has(u.uid) ? (teilweiseWeg.get(u.uid) as string) : null,
+                andere?.length ? `schon eingeteilt: ${andere.join(', ')}` : null,
+              ].filter(Boolean);
+              return {
+                uid: u.uid,
+                name: u.name,
+                /*
+                  „FREI“ STEHT DA, nicht nur das Gegenteil (Linie „Lot“, E2):
+                  wer einteilt, sucht die Freien — bei zwanzig Namen soll er
+                  nicht aus dem Fehlen eines Hinweises schliessen müssen.
+                */
+                hint: hinweise.length > 0 ? hinweise.join(' · ') : 'frei',
+                // Genau dieselben zwei Gruende, die schon im Hinweis
+                // stehen — nur maschinenlesbar, damit die Liste sie
+                // sortieren und filtern kann.
+                // Stundenweise weg macht niemanden unfrei — vormittags
+                // ist er da.
+                nichtFrei: imUrlaub.has(u.uid) || !!andere?.length,
+                abwesend: imUrlaub.has(u.uid),
+              };
+            })}
+            selected={staff.filter((u) => picks[u.uid]?.on).map((u) => u.uid)}
+            onChange={(next) =>
+              setPicks(() => {
+                const out: Record<string, Pick> = {};
+                // Neu Gewählte bekommen den Haken aus der Einstufung.
+                for (const uid of next) {
+                  out[uid] = {
+                    on: true,
+                    asHelper: picks[uid]
+                      ? !!picks[uid].asHelper
+                      : alsHelferEingestuft(staff.find((u) => u.uid === uid)),
+                  };
                 }
-              />
-            );
-          }}
-        />
+                return out;
+              })
+            }
+            emptyHint="Keine aktiven Mitarbeiter vorhanden."
+            renderExtra={(uid) => {
+              // Helfer und Lehrling: die Einstufung steht fest, ein Haken
+              // hätte keine Wirkung bzw. den falschen Satz.
+              const person = staff.find((u) => u.uid === uid);
+              if (alsHelferEingestuft(person) || istLehrling(person)) {
+                return <span className="text-sm text-ink-muted">{stufeImEinsatz(false, person)}</span>;
+              }
+              return (
+                <CheckboxField
+                  id={`helper-${uid}`}
+                  label="als Helfer"
+                  checked={!!picks[uid]?.asHelper}
+                  onChange={(e) =>
+                    setPicks((c) => ({ ...c, [uid]: { on: true, asHelper: e.target.checked } }))
+                  }
+                />
+              );
+            }}
+          />
+        )}
       </div>
 
       <div className="mt-4">

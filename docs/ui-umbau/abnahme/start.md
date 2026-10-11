@@ -21,7 +21,7 @@ Rückgängig:         keine neue Umkehr; Löschbestätigung „Eintrag löschen?
 Fehlerprotokoll:    in der Vorschau keine Seitenfehler (pageerror) auf den drei Seiten
 Bildschirmfotos:    in der Sitzung angesehen, nicht eingecheckt (docs/ui-umbau/nachher/ offen)
 Dokumentation:      Handbuch und FUNKTIONEN.md offen (nicht Paketdateien) — siehe unten
-Freigabe Betreiber: ____________________  Datum: __________   (offen)
+Freigabe Betreiber: erteilt am 11.10.2026 (für alle Schritte der Linie „Lot“)
 ```
 
 ## Was geprüft ist
@@ -49,4 +49,4 @@ Freigabe Betreiber: ____________________  Datum: __________   (offen)
   (die Vorschau hat immer etwas zu tun).
 - **Handbuch und FUNKTIONEN.md**: nennen noch „Handlungsbedarf“ und die Kennzahlen „rechts“
   (handbuch.html Zeilen 630 und 2118, FUNKTIONEN.md Zeile 97).
-- **Freigabe des Betreibers**.
+- ~~**Freigabe des Betreibers**~~ — erteilt am 11.10.2026.
