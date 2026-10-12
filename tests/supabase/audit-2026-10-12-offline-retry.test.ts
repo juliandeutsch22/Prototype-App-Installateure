@@ -23,7 +23,6 @@ describe('Audit: wiederholte Geräte-Anlage', () => {
     const id = crypto.randomUUID();
     const sender = supabaseSender(monteur.client);
     const anlegen: Sendung = {
-      folge: 1,
       zeile: id,
       tabelle: 'time_entries',
       art: 'anlegen',
