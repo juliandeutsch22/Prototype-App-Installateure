@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { unterseitenFuer } from '@/app/navigation';
 import { isTopLevel } from '@/lib/permissions';
@@ -10,7 +10,8 @@ import PageHeader from '@/components/PageHeader';
 import { InputField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { Zustand, type Stand } from '@/components/Badge';
-import { EmptyState } from '@/components/States';
+import { EmptyState, SkeletonList } from '@/components/States';
+import { einrichtungZusatzLaden, einrichtungZusatzPunkte, type EinrichtungZusatz } from './einrichtungZusatz';
 
 /**
  * DIE ÜBERSICHT DER EINSTELLUNGEN (Protokoll E9: „eine Seite mit Abschnitten,
@@ -27,10 +28,14 @@ import { EmptyState } from '@/components/States';
  * Reiter entstehen. Eine Rolle sieht hier genau die Unterseiten, die sie
  * öffnen darf, nicht mehr.
  *
- * DER EINRICHTUNGSSTAND KOMMT NUR AUS DEM BETRIEB, der ohnehin geladen ist.
- * Kostensätze, Kontenrahmen, Basiszinssatz und Sicherung liegen in eigenen
- * Tabellen; sie hier zu laden hiesse vier Anfragen bei jedem Öffnen — und
- * eine Übersicht, die langsamer ist als die Seiten, die sie zeigt.
+ * DER EINRICHTUNGSSTAND: Briefkopf, UID und Bank aus dem Betrieb, der
+ * ohnehin geladen ist; seit 11.10.2026 dazu Kostensätze, Kontenrahmen und
+ * Sicherung (`einrichtungZusatz.ts`) — drei kleine Abfragen, nur für die
+ * Spitze. Der Basiszinssatz steht zentral und auf der Startseite, nicht hier.
+ *
+ * ERST VOLLSTÄNDIG, DANN SICHTBAR: bis alle drei da sind, stehen Platzhalter
+ * in der Höhe der fertigen Liste. Sonst sprängen Zahl und Liste von drei auf
+ * sechs Punkte, während man liest.
  */
 
 /** Wonach jemand sucht, der die Unterseite meint — die Wörter ihrer Felder. */
@@ -99,6 +104,7 @@ export function einrichtungsstand(c: Company | null | undefined): Einrichtungspu
 export default function EinstellungenUebersicht() {
   const { user, company } = useAuth();
   const [suche, setSuche] = useState('');
+  const [zusatz, setZusatz] = useState<{ fuer: string; daten: EinrichtungZusatz } | null>(null);
 
   const seiten = useMemo(
     () =>
@@ -118,11 +124,27 @@ export default function EinstellungenUebersicht() {
     );
   }, [seiten, suche]);
 
+  // Den Briefkopf pflegt die Spitze; nur sie bekommt den Stand dazu angezeigt.
+  const darfFirma = !!user && isTopLevel(user.role) && seiten.some((s) => s.pfad === 'firma');
+  const betriebId = user?.companyId;
+
+  useEffect(() => {
+    if (!darfFirma || !betriebId) return;
+    let weg = false;
+    void einrichtungZusatzLaden(betriebId).then((daten) => {
+      if (!weg) setZusatz({ fuer: betriebId, daten });
+    });
+    return () => {
+      weg = true;
+    };
+  }, [darfFirma, betriebId]);
+
   if (!user) return null;
 
-  // Den Briefkopf pflegt die Spitze; nur sie bekommt den Stand dazu angezeigt.
-  const darfFirma = isTopLevel(user.role) && seiten.some((s) => s.pfad === 'firma');
-  const stand = darfFirma ? einrichtungsstand(company) : [];
+  const zusatzDa = !!zusatz && zusatz.fuer === betriebId;
+  const stand = darfFirma && zusatzDa
+    ? [...einrichtungsstand(company), ...einrichtungZusatzPunkte(zusatz.daten, Date.now())]
+    : [];
   const erledigt = stand.filter((p) => p.stand === 'ruht').length;
 
   return (
@@ -139,6 +161,12 @@ export default function EinstellungenUebersicht() {
           onChange={(e) => setSuche(e.target.value)}
         />
       </div>
+
+      {darfFirma && !zusatzDa && !suche.trim() && (
+        <Card title="Einrichtungsstand" buendig>
+          <SkeletonList rows={6} />
+        </Card>
+      )}
 
       {stand.length > 0 && !suche.trim() && (
         <Card
