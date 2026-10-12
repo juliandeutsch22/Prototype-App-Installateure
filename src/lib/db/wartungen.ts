@@ -1,7 +1,7 @@
 /**
  * Wiederkehrende Wartungen — nur die Weiche.
  */
-import type { Wartung } from '@/types';
+import type { Wartung, WartungAusfuehrung } from '@/types';
 import type { WithId } from './core';
 import * as pg from './pg/wartungen';
 
@@ -9,6 +9,11 @@ export type NewWartung = Omit<Wartung, 'id' | 'companyId' | 'createdAt' | 'updat
 
 export function listWartungen(companyId: string, max = 500): Promise<WithId<Wartung>[]> {
   return pg.listWartungen(companyId, max);
+}
+
+/** Jede Ausführung einer Wartung, die jüngste zuerst (17 G). */
+export function listAusfuehrungen(companyId: string, wartungId: string): Promise<WithId<WartungAusfuehrung>[]> {
+  return pg.listAusfuehrungen(companyId, wartungId);
 }
 
 export function listFaelligeWartungen(

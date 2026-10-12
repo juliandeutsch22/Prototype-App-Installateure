@@ -26,7 +26,7 @@ import { downloadAngebotPdf } from './angebotPdf';
 import { STAND } from './stand';
 import AbrechnungWahl from './AbrechnungWahl';
 import { grundAus } from '@/lib/fehlerGrund';
-import { datumAT } from '@/lib/datum';
+import { datumAT, datumAusMs } from '@/lib/datum';
 import { euro } from '@/lib/betrag';
 
 /**
@@ -299,9 +299,10 @@ export default function AngebotView() {
 
   /*
     DER VERLAUF ALS LOT (Regel 7) — nur aus dem, was geladen ist: das
-    Angebotsdatum, der Status, die Fassungen davor und danach (M17). Wann
-    versendet oder angenommen wurde, speichert die App nicht; deshalb steht
-    dort kein Datum, statt eines geratenen.
+    Angebotsdatum, der Status, die Fassungen davor und danach (M17). Seit
+    12.10.2026 (17 G) hält die Datenbank fest, wann versendet, angenommen
+    oder abgelehnt wurde; ältere Angebote haben dort kein Datum, und es wird
+    keines geraten.
 
     Die Links darin fliessen im Text mit (Polster und Gegenrand für die
     Tastfläche): als eigener Block risse jeder die Zeile auf 44 px auf.
@@ -319,18 +320,29 @@ export default function AngebotView() {
         </>
       ) : undefined,
     },
+    // Versendet war es auch, wenn es danach angenommen oder abgelehnt wurde —
+    // das steht dann als eigener Punkt davor, sofern sein Tag bekannt ist.
+    ...(q.status !== 'Entwurf' && q.status !== 'Versendet' && q.versendetAm
+      ? [{ titel: 'Versendet', zeit: datumAusMs(q.versendetAm) }]
+      : []),
     q.status === 'Entwurf'
       ? { titel: 'Entwurf', text: <>Noch nicht versendet.{schritte}</>, jetzt: true }
       : q.status === 'Versendet'
         ? {
             titel: 'Versendet',
-            zeit: `gültig bis ${fmtDatum(q.validUntil)}`,
+            zeit: [q.versendetAm ? `am ${datumAusMs(q.versendetAm)}` : '', `gültig bis ${fmtDatum(q.validUntil)}`]
+              .filter(Boolean)
+              .join(' · '),
             text: <>{abgelaufen ? 'Die Bindefrist ist abgelaufen.' : 'Wartet auf die Antwort des Kunden.'}{schritte}</>,
             jetzt: true,
           }
         : q.status === 'Angenommen'
-          ? { titel: 'Angenommen', text: q.projectNumber ? `Baustelle ${q.projectNumber}` : undefined }
-          : { titel: 'Abgelehnt', text: schritte },
+          ? {
+              titel: 'Angenommen',
+              zeit: q.angenommenAm ? datumAusMs(q.angenommenAm) : undefined,
+              text: q.projectNumber ? `Baustelle ${q.projectNumber}` : undefined,
+            }
+          : { titel: 'Abgelehnt', zeit: q.abgelehntAm ? datumAusMs(q.abgelehntAm) : undefined, text: schritte },
     ...fassungen.map((f) => ({
       titel: (
         <>

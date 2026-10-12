@@ -13,6 +13,7 @@ import {
 } from '@/lib/db/wartungen';
 import { wartungEingeplant } from '@/lib/db/wartungen';
 import { listCustomers } from '@/lib/db/customers';
+import WartungVerlauf from './WartungVerlauf';
 import { listRecentProjects, createProject, reserveProjectNumber } from '@/lib/db/projects';
 import { belegNummer, hoechsteLfdImJahr, praefixeVon } from '@/lib/praefixe';
 import { isGF } from '@/lib/permissions';
@@ -39,7 +40,7 @@ import PageHeader from '@/components/PageHeader';
 import Abschnitt from '@/components/Abschnitt';
 import BottomSheet from '@/components/BottomSheet';
 import InfoHint from '@/components/InfoHint';
-import { LotVerlauf, MehrAnzeigen, Segmente, WeitereAngaben, type LotPunkt } from '@/components/LotBausteine';
+import { MehrAnzeigen, Segmente, WeitereAngaben, type LotPunkt } from '@/components/LotBausteine';
 import Nachladen from '@/components/Nachladen';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import {
@@ -772,10 +773,9 @@ export default function WartungenView() {
 
       {/*
         DIE ANLAGE IM SEITENFENSTER (Protokoll E7, „Anlage mit Wartungen als
-        Lot“): was die Zeile kurz sagt, hier ganz — und die Wartungen als Lot.
-        Gezeigt wird nur, was gespeichert ist: die letzte Wartung, eine
-        eingeplante Baustelle, der nächste Termin. Frühere Ausführungen führt
-        die App nicht einzeln; jede rückt nur den Termin weiter.
+        Lot“): was die Zeile kurz sagt, hier ganz — und die Wartungen als Lot:
+        jede Ausführung (seit 12.10.2026 hält die Datenbank sie einzeln fest,
+        17 G), eine eingeplante Baustelle, der nächste Termin.
       */}
       <BottomSheet
         open={!!einzelheiten}
@@ -788,10 +788,8 @@ export default function WartungenView() {
         {einzelheiten && (() => {
           const w = einzelheiten;
           const u = beurteile(w, heute);
-          const punkte: LotPunkt[] = [
-            w.zuletztAm
-              ? { titel: 'Zuletzt gewartet', zeit: fmtDatum(w.zuletztAm), text: w.letzteBaustelle ? `Baustelle ${w.letzteBaustelle}` : undefined }
-              : { titel: 'Noch nie gewartet' },
+          // Nach den Ausführungen: was eingeplant ist und was als Nächstes ansteht.
+          const weiter: LotPunkt[] = [
             ...(w.offeneBaustelle
               ? [{ titel: 'Eingeplant', text: <>auf Baustelle {baustelleVerweis(w.offeneBaustelle)}</> }]
               : []),
@@ -815,7 +813,7 @@ export default function WartungenView() {
               </dl>
               <div>
                 <h3 className="section-label mb-3">Wartungen</h3>
-                <LotVerlauf name="Wartungen dieser Anlage" punkte={punkte} />
+                {companyId && <WartungVerlauf companyId={companyId} wartung={w} weiter={weiter} />}
               </div>
               {darfAendern && (
                 <div className="fuss-aktionen">

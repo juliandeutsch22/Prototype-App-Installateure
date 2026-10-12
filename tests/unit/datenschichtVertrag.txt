@@ -124,6 +124,7 @@ src/lib/db/vacations.ts#listOpenVacations: (companyId: string, max?: number) => 
 src/lib/db/vacations.ts#listOwnVacations: (companyId: string, uid: string, max?: number) => Promise<WithId<Vacation>[]>
 src/lib/db/wartungen.ts#createWartung: (companyId: string, w: NewWartung) => Promise<string>
 src/lib/db/wartungen.ts#deleteWartung: (id: string) => Promise<void>
+src/lib/db/wartungen.ts#listAusfuehrungen: (companyId: string, wartungId: string) => Promise<WithId<WartungAusfuehrung>[]>
 src/lib/db/wartungen.ts#listFaelligeWartungen: (companyId: string, bis: string, max?: number) => Promise<WithId<Wartung>[]>
 src/lib/db/wartungen.ts#listWartungen: (companyId: string, max?: number) => Promise<WithId<Wartung>[]>
 src/lib/db/wartungen.ts#listWartungenForCustomer: (companyId: string, customerId: string, max?: number) => Promise<WithId<Wartung>[]>

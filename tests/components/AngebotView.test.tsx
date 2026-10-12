@@ -355,6 +355,41 @@ describe('Die Akte auf der Linie „Lot“', () => {
     expect(within(lot).queryByRole('button')).toBeNull();
   });
 
+  /*
+    SEIT 12.10.2026 (17 G): die Datenbank hält fest, wann versendet,
+    angenommen oder abgelehnt wurde. Gegenprobe: ein älteres Angebot ohne
+    diese Zeitpunkte zeigt keinen erfundenen Tag (die beiden Prüfungen
+    darüber bleiben wie sie waren).
+  */
+  it('nennt den Tag des Versands und der Annahme — der Versand bleibt als eigener Punkt', async () => {
+    angebot = {
+      ...ANGEBOT, status: 'Angenommen', projectNumber: 'B-2026-0007',
+      versendetAm: Date.UTC(2026, 9, 3, 10), angenommenAm: Date.UTC(2026, 9, 9, 10),
+    };
+    zeige();
+    const lot = await screen.findByRole('list', { name: 'Verlauf des Angebots' });
+    const punkte = within(lot).getAllByRole('listitem');
+    expect(punkte.map((p) => p.querySelector('.lot-titel')?.textContent)).toEqual(['Angebot erstellt', 'Versendet', 'Angenommen']);
+    expect(within(punkte[1]).getByText('03.10.2026')).toBeInTheDocument();
+    expect(within(punkte[2]).getByText('09.10.2026')).toBeInTheDocument();
+  });
+
+  it('beim versendeten Angebot: Tag des Versands und Bindefrist in einer Zeile', async () => {
+    angebot = { ...ANGEBOT, versendetAm: Date.UTC(2026, 9, 3, 10) };
+    zeige();
+    const lot = await screen.findByRole('list', { name: 'Verlauf des Angebots' });
+    expect(within(lot).getByText('am 03.10.2026 · gültig bis 01.10.2099')).toBeInTheDocument();
+  });
+
+  it('ein abgelehntes nennt den Tag der Ablehnung', async () => {
+    angebot = { ...ANGEBOT, status: 'Abgelehnt', abgelehntAm: Date.UTC(2026, 9, 7, 10) };
+    zeige();
+    const lot = await screen.findByRole('list', { name: 'Verlauf des Angebots' });
+    const punkte = within(lot).getAllByRole('listitem');
+    expect(punkte.map((p) => p.querySelector('.lot-titel')?.textContent)).toEqual(['Angebot erstellt', 'Abgelehnt']);
+    expect(within(punkte[1]).getByText('07.10.2026')).toBeInTheDocument();
+  });
+
   it('nennt die abgelaufene Bindefrist auch am Punkt im Verlauf', async () => {
     angebot = { ...ANGEBOT, validUntil: '2020-01-01' };
     zeige();

@@ -15,11 +15,12 @@ import { zeitraumText } from './abwesenheitText';
  * ob der Urlaub gerade läuft.
  *
  * NUR, WAS SCHON GELADEN IST. Ein Antrag trägt den Zeitpunkt des Antrags und
- * den der letzten Entscheidung — nicht jeden Zwischenstand. Wird ein
- * genehmigter Urlaub zurückgenommen, überschreibt die Rücknahme die
- * Genehmigung; der Verlauf zeigt dann „Beantragt“ und „Storniert“, nicht
- * mehr. Eine Geschichte, die die Datenbank nicht führt, wird hier nicht
- * erfunden.
+ * den der letzten Entscheidung — samt wer und warum. Seit 12.10.2026 (17 G)
+ * hält die Datenbank zusätzlich fest, WANN genehmigt bzw. bestätigt wurde;
+ * nimmt jemand den Urlaub danach zurück, steht die Genehmigung mit ihrem
+ * Tag weiter im Verlauf (wer genehmigt hatte, nennt nur die letzte
+ * Entscheidung). Ältere Anträge haben diesen Tag nicht — dann fehlt der
+ * Punkt, statt erfunden zu werden.
  *
  * Die Handgriffe im Fenster sind dieselben wie in der Zeile (Zurückziehen,
  * Zurücknehmen, Nachweis) — der Aufrufer reicht sie als `children` herein.
@@ -101,6 +102,9 @@ export function UrlaubsantragFenster({
           jetzt: true,
         });
       } else {
+        if (v.status === 'Storniert' && v.genehmigtAm) {
+          punkte.push({ titel: 'Genehmigt', zeit: am(v.genehmigtAm) });
+        }
         punkte.push({
           titel: v.status,
           zeit: am(v.entschiedenAm),
@@ -160,6 +164,9 @@ export function SonderurlaubFenster({
         jetzt: true,
       });
     } else {
+      if (f.status === 'Storniert' && f.bestaetigtAm) {
+        punkte.push({ titel: 'Bestätigt', zeit: am(f.bestaetigtAm) });
+      }
       const ueber = f.status === 'Bestätigt' ? ueberVermerk(f) : null;
       punkte.push({
         titel: f.status,

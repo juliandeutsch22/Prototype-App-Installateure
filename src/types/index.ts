@@ -494,6 +494,13 @@ export interface Quote {
   /** Bindefrist. Ein Angebot ohne Ablauf bindet den Betrieb unbegrenzt an seine Preise. */
   validUntil: string;
   status: 'Entwurf' | 'Versendet' | 'Angenommen' | 'Abgelehnt';
+  /**
+   * Wann der Status so gesetzt wurde — hält die Datenbank fest (17 G,
+   * 12.10.2026). Ältere Angebote haben keinen Zeitpunkt.
+   */
+  versendetAm?: number | null;
+  angenommenAm?: number | null;
+  abgelehntAm?: number | null;
   positions: {
     label: string;
     qty: number;
@@ -1265,6 +1272,11 @@ export interface Vacation {
   entschiedenVonName?: string;
   entschiedenAm?: number;
   /**
+   * Wann genehmigt wurde — bleibt, wenn eine Rücknahme danach die
+   * Entscheidung überschreibt (17 G, 12.10.2026).
+   */
+  genehmigtAm?: number | null;
+  /**
    * Begründung bei Ablehnung oder Storno.
    *
    * Pflicht in der Oberfläche: eine Ablehnung ohne Grund ist für den, der sie
@@ -1368,6 +1380,8 @@ export interface Freistellung {
   ueberUrlaubId?: string | null;
   entschiedenVonName?: string | null;
   entschiedenAm?: number | null;
+  /** Wann bestätigt wurde — bleibt nach einer Rücknahme (17 G). */
+  bestaetigtAm?: number | null;
   grund?: string | null;
   createdAt?: number;
 }
@@ -1889,5 +1903,19 @@ export interface Wartung {
   offeneBaustelle?: string;
   createdAt?: number;
   updatedAt?: number;
+}
+
+/**
+ * Eine Ausführung einer Wartung — festgehalten von der Datenbank, sobald
+ * „zuletzt gewartet“ einen neuen Tag bekommt (17 G, 12.10.2026).
+ */
+export interface WartungAusfuehrung {
+  id: string;
+  companyId: string;
+  wartungId: string;
+  /** 'YYYY-MM-DD' */
+  am: string;
+  baustelle?: string | null;
+  createdAt?: number;
 }
 
