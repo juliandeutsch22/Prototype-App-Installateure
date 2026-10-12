@@ -83,6 +83,16 @@ export async function updateOrderStatus(orderId: string, newStatus: MaterialOrde
 }
 
 /**
+ * Nachträglich eilig — oder nicht mehr (17 F). Über eine eigene
+ * Datenbankfunktion: der Besteller darf es auch, wenn das Lager die
+ * Anforderung schon in Arbeit hat, und dann nur dieses eine Feld.
+ */
+export async function anforderungEiligSetzen(orderId: string, eilig: boolean) {
+  const { error } = await derClient().rpc('anforderung_eilig_setzen', { p_id: orderId, p_eilig: eilig });
+  if (error) throw new Error(error.message);
+}
+
+/**
  * Retoure: Beleg und Gutschrift in EINEM Schritt.
  *
  * Vorher wurde erst der Beleg geschrieben und danach der Bestand

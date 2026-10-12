@@ -135,6 +135,18 @@ export function istEilRelevant(order?: OrderDoc): boolean {
   return !!order?.isUrgent && !!order.projectNumber && !!order.companyId;
 }
 
+/**
+ * Eine Anforderung wird NACHTRÄGLICH eilig (17 F, 12.10.2026).
+ *
+ * Nur der Übergang zählt, wie beim Abholbereit: eine schon eilige
+ * Anforderung, die noch einmal gespeichert wird, meldet nichts. Und nur,
+ * was beim Anlegen auch gemeldet würde — mit Baustelle, keine Retoure.
+ */
+export function istUebergangAufEil(before?: OrderDoc, after?: OrderDoc): boolean {
+  if (before?.isUrgent) return false;
+  return istEilRelevant(after) && istMeldepflichtigeAnforderung(after);
+}
+
 function menge(order: OrderDoc): string {
   return `${order.quantity ?? 1}× ${order.materialName ?? 'Material'}`;
 }

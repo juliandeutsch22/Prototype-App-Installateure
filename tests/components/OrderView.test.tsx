@@ -44,6 +44,7 @@ let abosFehler: { material?: boolean; eigene?: boolean; projekte?: boolean } = {
 const anlegen = vi.fn();
 const retoure = vi.fn();
 const statusSetzen = vi.fn();
+const eiligSetzen = vi.fn<(...a: unknown[]) => Promise<undefined>>(async () => undefined);
 
 let lagerStand: Map<string, unknown> | null = null;
 /** Hält den Katalog zurück, bis der Test ihn schickt. */
@@ -97,6 +98,7 @@ vi.mock('@/lib/db/materialOrders', () => ({
   createMaterialOrderOhneEmpfang: (...a: unknown[]) => anlegen(...a),
   createReturn: (...a: unknown[]) => retoure(...a),
   updateOrderStatus: (...a: unknown[]) => statusSetzen(...a),
+  anforderungEiligSetzen: (...a: unknown[]) => eiligSetzen(...a),
 }));
 
 const authWert = {
@@ -137,6 +139,7 @@ async function retoureOeffnen() {
 }
 
 beforeEach(() => {
+  eiligSetzen.mockClear();
   localStorage.clear();
   materialien = [ROHR, DICHTUNG];
   projekte = [MIT_LEITUNG, OHNE_LEITUNG];
@@ -563,6 +566,45 @@ describe('Material anfordern — gescheiterte Ladevorgänge', () => {
     await userEvent.type(await screen.findByRole('textbox', { name: /Suche/ }), 'KR15');
     await waitFor(() => expect(screen.getByText('Kupferrohr 15mm')).toBeInTheDocument());
     expect(screen.queryByText('Dichtung 1/2"')).not.toBeInTheDocument();
+  });
+});
+
+describe('Nachträglich eilig (17 F)', () => {
+  const eigen = (rest: Partial<MaterialOrder>) =>
+    ({ id: 'o1', companyId: 'perl', materialName: 'Kupferrohr 15mm', quantity: 2, status: 'Offen',
+      transactionType: 'order', userId: 'u1', projectNumber: '2026-042', ...rest }) as WithId<MaterialOrder>;
+
+  it('bietet „Eilig“ nur, wo es geht — offen oder in Arbeit, mit Baustelle, noch nicht eilig', async () => {
+    eigene = [
+      eigen({ id: 'a' }),
+      eigen({ id: 'b', status: 'In Bearbeitung', materialName: 'Dichtung' }),
+      eigen({ id: 'c', status: 'Abholbereit', materialName: 'Hanf' }),
+      eigen({ id: 'd', projectNumber: undefined, materialName: 'Fitting' }),
+      eigen({ id: 'e', isUrgent: true, materialName: 'Rohrschelle' }),
+    ];
+    zeige();
+    await screen.findByText('Hanf');
+    expect(screen.getAllByRole('button', { name: 'Eilig' })).toHaveLength(2);
+  });
+
+  it('fragt nach, sagt, wer verständigt wird — und setzt erst nach dem Ja', async () => {
+    projekte = [MIT_LEITUNG];
+    eigene = [eigen({})];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Eilig' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText(/Projektleitung der Baustelle wird verständigt/)).toBeInTheDocument();
+    expect(eiligSetzen).not.toHaveBeenCalled();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Eilig' }));
+    await waitFor(() => expect(eiligSetzen).toHaveBeenCalledWith('o1', true));
+  });
+
+  it('ohne Projektleitung an der Baustelle sagt sie das vorher — wie beim Anlegen', async () => {
+    projekte = [OHNE_LEITUNG];
+    eigene = [eigen({ projectNumber: '2026-099' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Eilig' }));
+    expect(within(screen.getByRole('dialog')).getByText(/keine Projektleitung zugeteilt/)).toBeInTheDocument();
   });
 });
 

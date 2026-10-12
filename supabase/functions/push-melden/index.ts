@@ -34,6 +34,7 @@ import {
   EMPFAENGER_NEUE_ANFORDERUNG,
   empfaengerNeueAnforderung,
   istEilRelevant,
+  istUebergangAufEil,
   istMeldepflichtigeAnforderung,
   istUebergangAufAbholbereit,
   orderAusZeile,
@@ -185,6 +186,8 @@ interface Ereignis {
   vorher?: Record<string, unknown>;
   nachher?: Record<string, unknown>;
   zeile?: Record<string, unknown>;
+  /** Wer es ausgelöst hat — bisher nur beim nachträglichen „eilig“. */
+  von?: string | null;
 }
 
 /** Materialanforderungen: neu, abholbereit, Eilzustellung. */
@@ -228,6 +231,31 @@ async function auftraegeAnforderung(ereignis: Ereignis): Promise<Auftrag[] | nul
       auftraege.push({
         art: 'notifyUrgentDelivery',
         uids: leitung,
+        meldung: textEilAngefordert(nachher, kennung),
+      });
+    }
+  }
+
+  /*
+    NACHTRÄGLICH EILIG (17 F): dieselbe Meldung wie beim Anlegen einer
+    Eilzustellung an die Projektleitung, dazu das Lager, das sie jetzt
+    vorziehen muss. Wer es selbst gesetzt hat, bekommt nichts.
+  */
+  if (ereignis.art === 'eil' && istUebergangAufEil(vorher, nachher)) {
+    const von = typeof ereignis.von === 'string' ? ereignis.von : undefined;
+    auftraege.push({
+      art: 'notifyNewOrder',
+      uids: empfaengerNeueAnforderung(
+        belegschaft.filter((u) => EMPFAENGER_NEUE_ANFORDERUNG.includes(u.role ?? '')),
+        nachher.userId,
+      ).filter((uid) => uid !== von),
+      meldung: textEilAngefordert(nachher, kennung),
+    });
+    const leitungOhne = leitung.filter((uid) => uid !== von);
+    if (leitungOhne.length > 0) {
+      auftraege.push({
+        art: 'notifyUrgentDelivery',
+        uids: leitungOhne,
         meldung: textEilAngefordert(nachher, kennung),
       });
     }

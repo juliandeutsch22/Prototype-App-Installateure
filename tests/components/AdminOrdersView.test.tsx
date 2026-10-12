@@ -37,6 +37,7 @@ let ladefehler: string | null = null;
 
 const statusSetzen = vi.fn();
 const loeschen = vi.fn();
+const eiligSetzen = vi.fn();
 
 /* Mit welcher ABFRAGE-Grenze zuletzt abonniert wurde. */
 let letzteHolgrenze = 0;
@@ -56,6 +57,7 @@ vi.mock('@/lib/db/materialOrders', () => ({
   },
   updateOrderStatus: (...a: unknown[]) => statusSetzen(...a),
   deleteOrder: (...a: unknown[]) => loeschen(...a),
+  anforderungEiligSetzen: (...a: unknown[]) => eiligSetzen(...a),
 }));
 
 const ausLager = vi.fn();
@@ -112,6 +114,8 @@ beforeEach(() => {
   statusSetzen.mockResolvedValue(undefined);
   loeschen.mockReset();
   loeschen.mockResolvedValue(undefined);
+  eiligSetzen.mockReset();
+  eiligSetzen.mockResolvedValue(undefined);
   ausLager.mockReset();
   ausLager.mockResolvedValue(undefined);
   aufEinkaufsliste.mockReset();
@@ -143,6 +147,30 @@ async function statusWaehlen(status: string) {
 
 /** Ein Bereich der Seite — seit dem Umbau Segmente statt Reiter. */
 const bereich = (name: RegExp | string) => screen.findByRole('button', { name });
+
+describe('Nachträglich eilig (17 F)', () => {
+  it('im Seitenfenster: „Als eilig markieren“ — und bei einer eiligen „Nicht mehr eilig“', async () => {
+    anforderungen = [anforderung({ id: 'o1', projectNumber: '2026-042' })];
+    zeige();
+    let fenster = await oeffnen();
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Als eilig markieren' }));
+    await waitFor(() => expect(eiligSetzen).toHaveBeenCalledWith('o1', true));
+
+    anforderungen = [anforderung({ id: 'o2', projectNumber: '2026-042', isUrgent: true, materialName: 'Dichtung' })];
+    eiligSetzen.mockClear();
+    zeige();
+    fenster = await oeffnen('Dichtung');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Nicht mehr eilig' }));
+    await waitFor(() => expect(eiligSetzen).toHaveBeenCalledWith('o2', false));
+  });
+
+  it('ohne Baustelle kein Knopf — die übrigen Grenzen prüft `eiligMoeglich` (Einheit)', async () => {
+    anforderungen = [anforderung({ id: 'o1' })];
+    zeige();
+    const fenster = await oeffnen();
+    expect(within(fenster).queryByRole('button', { name: /eilig/i })).toBeNull();
+  });
+});
 
 describe('Anforderungen — der Abschluss zieht vom Lager ab', () => {
   it('fragt vor „Erledigt“ nach und bucht erst nach der Bestätigung', async () => {

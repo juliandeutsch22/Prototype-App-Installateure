@@ -319,6 +319,67 @@ describe('Der Trigger stösst wirklich an', () => {
 });
 
 /*
+  NACHTRÄGLICH EILIG (17 F, 12.10.2026): dieselbe Eilmeldung wie beim
+  Anlegen an die Projektleitung, dazu das Lager — nicht an den, der es
+  gerade selbst gesetzt hat. Gegenprobe: ohne das Ereignis „eil“ in Trigger
+  und Function plant niemand etwas (rot).
+*/
+describe('Nachträglich eilig', () => {
+  const eil = (von: string, vorher: Record<string, unknown> = {}, nachher: Record<string, unknown> = {}) => {
+    const a = anforderung();
+    return anstossen({
+      art: 'eil', von,
+      vorher: { ...a, ...vorher },
+      nachher: { ...a, is_urgent: true, ...nachher },
+    });
+  };
+
+  it('vom Besteller gesetzt: das Lager und die Projektleitung', async () => {
+    const { daten } = await eil(monteur.uid);
+    expect(daten.geplant).toEqual([
+      { art: 'notifyNewOrder', empfaenger: 1, geraete: 1 },
+      { art: 'notifyUrgentDelivery', empfaenger: 1, geraete: 1 },
+    ]);
+  }, 120_000);
+
+  it('vom Lager gesetzt: nur die Projektleitung — das Lager weiss es schon', async () => {
+    const { daten } = await eil(verwaltung.uid);
+    expect(daten.geplant).toEqual([
+      { art: 'notifyNewOrder', empfaenger: 0, geraete: 0 },
+      { art: 'notifyUrgentDelivery', empfaenger: 1, geraete: 1 },
+    ]);
+  }, 120_000);
+
+  it('war sie schon eilig, oder hat sie keine Baustelle: nichts', async () => {
+    expect((await eil(monteur.uid, { is_urgent: true })).daten.geplant).toEqual([]);
+    expect((await eil(monteur.uid, { project_number: null }, { project_number: null })).daten.geplant).toEqual([]);
+  }, 120_000);
+
+  it('der Trigger stösst an, wenn der Besteller sie über die App eilig macht', async () => {
+    const zeile = anforderung();
+    expect((await admin.from('material_orders').insert(zeile)).error).toBeNull();
+    // Die Meldung zur neuen Anforderung abwarten, damit sie nicht mitgezählt wird.
+    await new Promise((r) => setTimeout(r, 3000));
+    const vorher = (await db.query('select count(*)::int as n from net._http_response')).rows[0].n;
+
+    const { error } = await monteur.client.rpc('anforderung_eilig_setzen', { p_id: zeile.id, p_eilig: true });
+    expect(error).toBeNull();
+
+    let nachher = vorher;
+    for (let i = 0; i < 30 && nachher === vorher; i += 1) {
+      await new Promise((r) => setTimeout(r, 500));
+      nachher = (await db.query('select count(*)::int as n from net._http_response')).rows[0].n;
+    }
+    expect(nachher).toBe(vorher + 1);
+    const letzte = await db.query('select content from net._http_response order by created desc limit 1');
+    expect(JSON.parse(letzte.rows[0].content).geplant).toEqual([
+      { art: 'notifyNewOrder', empfaenger: 1, geraete: 1 },
+      { art: 'notifyUrgentDelivery', empfaenger: 1, geraete: 1 },
+    ]);
+  }, 180_000);
+});
+
+/*
   ABWESENHEITEN: der neue Antrag an die Genehmigenden, die Entscheidung an
   den Antragsteller, die Krankmeldung ans Büro. Im Betrieb dieser Prüfung
   ist niemand als Genehmigender festgelegt — also entscheidet das Büro, hier

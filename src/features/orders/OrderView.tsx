@@ -11,7 +11,9 @@ import {
   subscribeOwnOrders,
   updateOrderStatus,
   createReturn,
+  anforderungEiligSetzen,
 } from '@/lib/db/materialOrders';
+import { eiligMoeglich } from './eilig';
 import { listActiveProjects } from '@/lib/db/projects';
 import type { WithId } from '@/lib/db/core';
 import type { Material, MaterialOrder, Project } from '@/types';
@@ -151,6 +153,8 @@ export default function OrderView() {
   const [freiName, setFreiName] = useState('');
   const [freiMenge, setFreiMenge] = useState('1');
   const [toPickUp, setToPickUp] = useState<WithId<MaterialOrder> | null>(null);
+  /** Nachträglich eilig (17 F) — mit Rückfrage, weil andere davon eine Meldung bekommen. */
+  const [eilFrage, setEilFrage] = useState<WithId<MaterialOrder> | null>(null);
 
   // Retoure
   const [retMaterial, setRetMaterial] = useState('');
@@ -769,6 +773,11 @@ export default function OrderView() {
                   ].filter(Boolean).join(' · ')}
                 >
                   {o.isUrgent && <Warnung stufe="dringend">Eil</Warnung>}
+                  {!o.isUrgent && eiligMoeglich(o) && (
+                    <Button variant="ghost" groesse="klein" onClick={() => setEilFrage(o)}>
+                      Eilig
+                    </Button>
+                  )}
                   <StatusBadge status={o.status} />
                   {/*
                     ABGEHOLT GEHT IMMER, nicht erst ab „Abholbereit".
@@ -969,6 +978,33 @@ export default function OrderView() {
             }
           }
           setToPickUp(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!eilFrage}
+        title="Als eilig markieren?"
+        confirmLabel="Eilig"
+        confirmTone="primary"
+        message={
+          !eilFrage
+            ? ''
+            : // Dieselbe Auskunft wie beim Anlegen („Eilzustellung“): ohne Projektleitung erreicht die Meldung niemanden.
+              (projects.find((p) => p.projectNumber === eilFrage.projectNumber)?.projectManagers ?? []).length > 0
+              ? `${eilFrage.materialName} für ${eilFrage.projectNumber}: das Lager zieht sie vor, und die Projektleitung der Baustelle wird verständigt — sie kann es auf dem Weg mitnehmen.`
+              : `${eilFrage.materialName} für ${eilFrage.projectNumber}: das Lager zieht sie vor. Dieser Baustelle ist keine Projektleitung zugeteilt — eine Eilmeldung erreicht dort niemanden.`
+        }
+        onCancel={() => setEilFrage(null)}
+        onConfirm={async () => {
+          if (eilFrage) {
+            try {
+              await anforderungEiligSetzen(eilFrage.id, true);
+              toast.success('Als eilig markiert');
+            } catch (err) {
+              toast.error(grundAus(err, 'Die Anforderung ließ sich nicht als eilig markieren.'));
+            }
+          }
+          setEilFrage(null);
         }}
       />
     </div>
