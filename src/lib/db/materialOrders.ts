@@ -66,6 +66,10 @@ export function updateOrderStatus(
   return pg.updateOrderStatus(orderId, newStatus);
 }
 
+export function anforderungEiligSetzen(orderId: string, eilig: boolean): Promise<void> {
+  return pg.anforderungEiligSetzen(orderId, eilig);
+}
+
 export function createReturn(
   companyId: string,
   ret: Omit<NewMaterialOrder, 'status' | 'transactionType'> & { condition: string },

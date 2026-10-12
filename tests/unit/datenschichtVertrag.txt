@@ -44,6 +44,7 @@ src/lib/db/invoices.ts#updateInvoiceStatus: (id: string, paymentStatus: pg.Setzb
 src/lib/db/laeufe.ts#ausleitungJetzt: () => Promise<pg.AusleitungsBilanz>
 src/lib/db/laeufe.ts#ladeLauf: <A extends LaufArt>(companyId: string, art: A) => Promise<Lauf<A> | undefined>
 src/lib/db/materialOrders.ts#ORDER_STATUS_FLOW: ("Offen" | "In Bearbeitung" | "Abholbereit" | "Erledigt")[]
+src/lib/db/materialOrders.ts#anforderungEiligSetzen: (orderId: string, eilig: boolean) => Promise<void>
 src/lib/db/materialOrders.ts#createMaterialOrder: (companyId: string, order: NewMaterialOrder) => Promise<string>
 src/lib/db/materialOrders.ts#createMaterialOrderOhneEmpfang: (companyId: string, order: NewMaterialOrder) => Promise<WriteOutcome>
 src/lib/db/materialOrders.ts#createReturn: (companyId: string, ret: Omit<NewMaterialOrder, "status" | "transactionType"> & { condition: string; }) => Promise<string>

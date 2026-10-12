@@ -7,7 +7,9 @@ import {
   updateOrderStatus,
   deleteOrder,
   ORDER_STATUS_FLOW,
+  anforderungEiligSetzen,
 } from '@/lib/db/materialOrders';
+import { eiligMoeglich } from './eilig';
 import type { WithId } from '@/lib/db/core';
 import {
   listGrosshaendler,
@@ -869,6 +871,31 @@ export default function AdminOrdersView() {
                   }}
                 >
                   Nicht auf Lager – auf die Einkaufsliste
+                </Button>
+              )}
+              {/*
+                NACHTRÄGLICH EILIG (17 F) — oder zurück, wenn es sich erledigt
+                hat. Eilig gesetzt, bekommt die Projektleitung der Baustelle
+                eine Meldung (`push-melden`, Ereignis „eil“).
+              */}
+              {eiligMoeglich(offen) && (
+                <Button
+                  variant="secondary"
+                  disabled={busyId === offen.id}
+                  onClick={() => {
+                    const o = offen;
+                    setOffenId(null);
+                    void (async () => {
+                      try {
+                        await anforderungEiligSetzen(o.id, !o.isUrgent);
+                        toast.success(o.isUrgent ? 'Nicht mehr eilig' : 'Als eilig markiert');
+                      } catch (err) {
+                        toast.error(grundAus(err, 'Das ließ sich nicht ändern.'));
+                      }
+                    })();
+                  }}
+                >
+                  {offen.isUrgent ? 'Nicht mehr eilig' : 'Als eilig markieren'}
                 </Button>
               )}
             </div>
