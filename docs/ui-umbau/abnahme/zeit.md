@@ -62,17 +62,12 @@ Freigabe Betreiber: erteilt am 11.10.2026 (für alle Schritte der Linie „Lot�
 
 ## Offene Punkte und Lücken
 
-1. **Monatsansicht für Genehmigende** (Protokoll E8: „Genehmigende sehen die
-   Monatsansicht daneben“) ist nicht gebaut. Die Seite lädt nur die offenen
-   Anträge und die genehmigten Urlaube der Antragsteller selbst, nicht alle
-   genehmigten Abwesenheiten im Monat; eine Monatsansicht daraus wäre
-   unvollständig und damit irreführend. Es gibt `listApprovedVacationsInRange`
-   und `MonthCalendar`, aber die Ansicht wäre eine neue Funktion mit neuer
-   Abfrage — gesondert zu entscheiden. Bis dahin bleibt die Zeile
-   „Gleichzeitig im Urlaub: …“ je Antrag die Auskunft.
-2. **Verlauf nur aus dem, was der Antrag trägt:** Zeitpunkt des Antrags und der
-   letzten Entscheidung. Wird ein genehmigter Urlaub zurückgenommen, ist die
-   Genehmigung im Verlauf nicht mehr zu sehen (die Datenbank überschreibt sie).
+1. **Monatsansicht für Genehmigende** — erledigt am 12.10.2026 (Plan 17 H):
+   „Urlaub im Monat“ neben den offenen Anträgen, aus einer eigenen Abfrage
+   des genehmigten Urlaubs; „Gleichzeitig im Urlaub“ nutzt sie ebenfalls.
+   Krankenstände und Sonderurlaub zeigt sie bewusst nicht.
+2. **Verlauf nur aus dem, was der Antrag trägt** — erledigt am 12.10.2026
+   (Plan 17 G): die Genehmigung bleibt mit ihrem Tag nach einer Rücknahme.
 3. **Krankmeldung „Ende ändern“** klappt in den Listen (eigene Meldungen,
    Krankenstände) weiter ein Feld in der Zeile auf, statt ein Seitenfenster
    zu öffnen (Regel 8). Bewusst so gelassen: in der Zeiterfassung steht die

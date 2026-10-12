@@ -4,6 +4,7 @@ import { useAuth } from '@/app/AuthContext';
 import {
   listOwnVacations,
   listOpenVacations,
+  listApprovedVacationsInRange,
   createVacation,
   deleteVacation,
   entscheiden as urlaubEntscheiden,
@@ -55,7 +56,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
-import { ErrorState, EmptyState, SkeletonList, SkeletonMetrics } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList, SkeletonMetrics, TeilFehler } from '@/components/States';
 import { zeitguthabenLaden } from './zeitguthaben';
 import { KrankmeldungListe, KrankenstaendeReiter } from './Krankmeldungen';
 import { ergebnisText, tageText } from './abwesenheitText';
@@ -63,6 +64,8 @@ import BetriebsurlaubReiter from './BetriebsurlaubReiter';
 import { UrlaubsantragFenster } from './AntragFenster';
 import { grundAus } from '@/lib/fehlerGrund';
 import { useReiterImBild } from '@/components/reiterImBild';
+import UrlaubMonat from './UrlaubMonat';
+import { GENEHMIGT_GRENZE, gleichzeitigMit, zeitspanne } from './urlaubMonat';
 
 /** 'YYYY-MM-DD' -> '15.06.2026'. */
 function fmt(iso: string): string {
@@ -124,6 +127,8 @@ interface UrlaubStand {
   meineAnpassungen: UrlaubsanspruchAnpassung[];
   profil: AppUser | null;
   offene: WithId<Vacation>[];
+  /** Genehmigter Urlaub im Zeitraum der offenen Anträge — für „Gleichzeitig im Urlaub“. */
+  umfeld: WithId<Vacation>[] | 'fehler';
   offeneFrei: number;
   andereEntscheiden: boolean | null;
   belegschaft: AppUser[];
@@ -216,6 +221,14 @@ export default function VacationsView() {
   /** Die eigenen Anpassungen des Anspruchs (Elternkarenz, unbezahlter Urlaub). */
   const [meineAnpassungen, setMeineAnpassungen] = useState<UrlaubsanspruchAnpassung[]>(() => anfang?.meineAnpassungen ?? []);
   const [offene, setOffene] = useState<WithId<Vacation>[]>(() => anfang?.offene ?? []);
+  /*
+    WER SONST IN DIESER ZEIT FREI HAT (17 H). Vorher suchte „Gleichzeitig im
+    Urlaub“ nur in den offenen und den eigenen Anträgen — genehmigter Urlaub
+    der anderen stand dort nie, und die Zeile blieb fast immer weg. Jetzt
+    kommt er aus einer eigenen Abfrage über den Zeitraum aller offenen
+    Anträge; scheitert sie, sagt die Karte das.
+  */
+  const [umfeld, setUmfeld] = useState<WithId<Vacation>[] | 'fehler'>(() => anfang?.umfeld ?? []);
   /*
     SIND DIE OFFENEN ANTRÄGE DA? Ihre Karte steht oben, wenn welche warten,
     sonst unten. Stand sie, bevor sie geladen waren, sprang sie von unten
@@ -347,9 +360,16 @@ export default function VacationsView() {
           const warten = await listOpenVacations(user.companyId);
           // Ältester Antrag zuerst: wer am längsten wartet, wartet nicht noch länger.
           const sortiert = [...warten].sort((a, b) => a.von.localeCompare(b.von));
+          // Mit den Anträgen zusammen: sonst erschiene „Gleichzeitig im Urlaub“ erst nach der Karte.
+          const spanne = zeitspanne(sortiert);
+          const daneben: WithId<Vacation>[] | 'fehler' = spanne
+            ? await listApprovedVacationsInRange(user.companyId, spanne.von, spanne.bis, GENEHMIGT_GRENZE)
+                .catch(() => 'fehler' as const)
+            : [];
           setOffene(sortiert);
+          setUmfeld(daneben);
           setOffeneGeladen(true);
-          merken({ offene: sortiert });
+          merken({ offene: sortiert, umfeld: daneben });
         }
       } catch {
         setError('Die Urlaubsanträge konnten nicht geladen werden.');
@@ -889,16 +909,7 @@ export default function VacationsView() {
 
   /** Genehmigter Urlaub anderer im Zeitraum eines offenen Antrags. */
   function gleichzeitig(antrag: WithId<Vacation>): string[] {
-    return offene
-      .concat(eigene)
-      .filter(
-        (v) =>
-          v.id !== antrag.id &&
-          v.status === 'Genehmigt' &&
-          v.von <= antrag.bis &&
-          v.bis >= antrag.von,
-      )
-      .map((v) => v.userName);
+    return umfeld === 'fehler' ? [] : gleichzeitigMit(antrag, umfeld);
   }
 
   /** Das Zeitguthaben beim ZA-Antrag — Zahl und Einschätzung. */
@@ -946,6 +957,7 @@ export default function VacationsView() {
   const offeneKarte = (
     <Card
       id="offene-antraege"
+      className="zeit-liste"
       title={`Offene Anträge (${offene.length})`}
       hint={
         <>
@@ -958,6 +970,18 @@ export default function VacationsView() {
       }
       buendig
     >
+      {offene.length > 0 && umfeld === 'fehler' && (
+        <div className="px-4 py-3">
+          <TeilFehler was="Der genehmigte Urlaub der anderen" onRetry={() => void laden_()} />
+        </div>
+      )}
+      {offene.length > 0 && Array.isArray(umfeld) && umfeld.length >= GENEHMIGT_GRENZE && (
+        <div className="px-4 py-3">
+          <Hinweiszeile stufe="warn">
+            <p>Mehr als {GENEHMIGT_GRENZE} genehmigte Anträge im Zeitraum — „Gleichzeitig im Urlaub“ kann unvollständig sein.</p>
+          </Hinweiszeile>
+        </div>
+      )}
       {offene.length === 0 ? (
         <EmptyState>Kein Antrag wartet auf eine Entscheidung.</EmptyState>
       ) : (
@@ -1174,7 +1198,12 @@ export default function VacationsView() {
         Erst nach dem Laden gezeigt: sonst sprang die Karte von unten nach
         oben, sobald die Anträge da waren.
       */}
-      {darfEntscheiden && kartenBereit && offene.length > 0 && offeneKarte}
+      {darfEntscheiden && kartenBereit && offene.length > 0 && (
+        <div className="zeit-raster">
+          {offeneKarte}
+          <UrlaubMonat companyId={user.companyId} ersterTag={offene[0]?.von} className="zeit-liste" />
+        </div>
+      )}
       {/* Dasselbe für den Sonderurlaub: wartet einer, steht die Karte oben. */}
       {buero && kartenBereit && offeneFrei > 0 && (
         <FreistellungenBestaetigen user={user} company={company} />
@@ -1566,7 +1595,12 @@ export default function VacationsView() {
         zwischen Formular und „Meine Anträge“; neben dem Formular gehört aber,
         was man selbst gerade beantragt hat. Wartet etwas, stehen sie oben.
       */}
-      {darfEntscheiden && kartenBereit && offene.length === 0 && offeneKarte}
+      {darfEntscheiden && kartenBereit && offene.length === 0 && (
+        <div className="zeit-raster">
+          {offeneKarte}
+          <UrlaubMonat companyId={user.companyId} ersterTag={offene[0]?.von} className="zeit-liste" />
+        </div>
+      )}
       {buero && kartenBereit && offeneFrei === 0 && (
         <FreistellungenBestaetigen user={user} company={company} />
       )}

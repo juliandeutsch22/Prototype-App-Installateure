@@ -25,6 +25,11 @@ interface MonthCalendarProps {
    * „1 Baustelle geplant" nicht als „1 Baustellen geplant" vorgelesen wird.
    */
   markLabel?: (n: number) => string;
+  /**
+   * Ohne eigenen Rahmen — wenn der Kalender schon in einer Karte steht
+   * (Urlaub im Monat, 17 H). Eine Karte in der Karte wäre ein Kasten zu viel.
+   */
+  ohneRahmen?: boolean;
 }
 
 /**
@@ -47,6 +52,7 @@ export default function MonthCalendar({
   onShiftMonth,
   marks,
   markLabel = (n) => `${n} ${n === 1 ? 'Eintrag' : 'Einträge'}`,
+  ohneRahmen = false,
 }: MonthCalendarProps) {
   const today = todayStr();
   const first = new Date(year, month, 1);
@@ -59,7 +65,7 @@ export default function MonthCalendar({
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <div className="panel overflow-hidden">
+    <div className={ohneRahmen ? 'border-b border-line' : 'panel overflow-hidden'}>
       <div className="flex items-center justify-between border-b border-line px-2 py-2">
         <button
           type="button"
@@ -110,8 +116,9 @@ export default function MonthCalendar({
             rundet um genau diese Breite kleiner. Nachgemessen im Browser,
             nicht geschaetzt: mit 7 Pixeln stand die Ecke immer noch ueber.
           */
-          const ecke =
-            i === cells.length - 7
+          const ecke = ohneRahmen
+            ? ''
+            : i === cells.length - 7
               ? ' rounded-bl-[15px]'
               : i === cells.length - 1
                 ? ' rounded-br-[15px]'

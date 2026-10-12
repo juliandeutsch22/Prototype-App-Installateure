@@ -52,7 +52,13 @@ const callUrlaubEntscheiden = vi.fn<(a0: {
       entscheiderName?: string;
     }) => Promise<{ status: string; angelegt: number; uebersprungen: number; entfernt: number }>>(async () => ({ status: 'Genehmigt', angelegt: 5, uebersprungen: 0, entfernt: 0 }));
 
+/** Genehmigter Urlaub im Zeitraum — wie die Datenbank: überlappend, einschliesslich der Ränder (17 H). */
+const listApprovedVacationsInRange = vi.fn<(c: string, von: string, bis: string, max?: number) => Promise<Vacation[]>>(async (_c, von, bis) =>
+  antraege.filter((v) => v.status === 'Genehmigt' && v.bis >= von && v.von <= bis));
+
 vi.mock('@/lib/db/vacations', () => ({
+  listApprovedVacationsInRange: (c: string, von: string, bis: string, max?: number) =>
+    listApprovedVacationsInRange(c, von, bis, max),
   // Nach der GEFRAGTEN Person — die Genehmigenden laden auch die Urlaube
   // der Antragsteller, für deren Resturlaub.
   listOwnVacations: vi.fn(async (_b: string, uid: string) => antraege.filter((v) => v.userId === uid)),
@@ -185,6 +191,7 @@ beforeEach(() => {
     .mockClear()
     .mockResolvedValue({ status: 'Genehmigt', angelegt: 5, uebersprungen: 0, entfernt: 0 });
   antraege.length = 0;
+  listApprovedVacationsInRange.mockClear();
   genehmiger = undefined;
   krankmeldungSpeichern.mockClear();
   eigeneKrank = [];
@@ -328,6 +335,83 @@ describe('Urlaubsantrag', () => {
     // Moeglichkeit erst gar nicht anbieten.
     expect(screen.queryByText(/Offene Anträge/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Genehmigen' })).not.toBeInTheDocument();
+  });
+});
+
+/*
+  WER SONST FREI HAT (Plan 17 H). „Gleichzeitig im Urlaub“ suchte bis
+  12.10.2026 nur in den offenen und den eigenen Anträgen — der genehmigte
+  Urlaub der anderen stand dort nie. Gegenprobe: mit der alten Fassung von
+  `gleichzeitig` und ohne die Monatskarte schlagen die ersten fünf fehl; die
+  letzte prüft, was gleich bleibt.
+*/
+describe('Urlaub im Monat und gleichzeitig', () => {
+  const urlaub = (id: string, userId: string, userName: string, von: string, bis: string, extra: Partial<Vacation> = {}) =>
+    ({ id, companyId: 'perl', userId, userName, von, bis, tage: 1, status: 'Genehmigt', ...extra }) as Vacation & { id: string };
+
+  beforeEach(() => {
+    rolle = { ...rolle, uid: 'chef', name: 'Julian Deutsch', role: 'Geschäftsführung', docId: 'chef' };
+    antraege.push(
+      urlaub('v-offen', 'm1', 'Max Mustermann', '2026-11-16', '2026-11-20', { status: 'Beantragt', tage: 5 }),
+      urlaub('v-anna', 'anna', 'Anna Berger', '2026-11-18', '2026-11-24'),
+      urlaub('v-bruno', 'bruno', 'Bruno Kollege', '2026-11-19', '2026-11-19', { art: 'Zeitausgleich', zaVon: '13:00', zaBis: '17:00' }),
+      urlaub('v-clara', 'clara', 'Clara Fern', '2026-12-01', '2026-12-05'),
+    );
+  });
+
+  it('nennt beim offenen Antrag, wer gleichzeitig genehmigten Urlaub hat — ZA mit Vermerk', async () => {
+    zeichne();
+    expect(await screen.findByText('Gleichzeitig im Urlaub: Anna Berger, Bruno Kollege (ZA)')).toBeInTheDocument();
+    // Gefragt wird der Zeitraum der offenen Anträge, nicht der ganze Bestand.
+    expect(listApprovedVacationsInRange).toHaveBeenCalledWith('perl', '2026-11-16', '2026-11-20', 1000);
+  });
+
+  it('zeigt den Monat des ältesten offenen Antrags — mit der Zahl der Personen je Tag', async () => {
+    zeichne();
+    const karte = (await screen.findByRole('heading', { name: 'Urlaub im Monat' })).closest('section') as HTMLElement;
+    expect(await within(karte).findByText('November 2026')).toBeInTheDocument();
+    expect(within(karte).getByRole('button', { name: /19\. November, 2 Personen frei/ })).toBeInTheDocument();
+    expect(within(karte).getByRole('button', { name: /24\. November, 1 Person frei/ })).toBeInTheDocument();
+  });
+
+  it('nennt am gewählten Tag, wer frei hat, und was', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    const karte = (await screen.findByRole('heading', { name: 'Urlaub im Monat' })).closest('section') as HTMLElement;
+    await nutzer.click(await within(karte).findByRole('button', { name: /19\. November/ }));
+    expect(within(karte).getByText('Am 19.11.2026')).toBeInTheDocument();
+    expect(within(karte).getByText('Urlaub · 18.11.2026 – 24.11.2026')).toBeInTheDocument();
+    expect(within(karte).getByText('Zeitausgleich 13:00–17:00 · 19.11.2026')).toBeInTheDocument();
+
+    await nutzer.click(within(karte).getByRole('button', { name: 'Nächster Monat' }));
+    expect(await within(karte).findByText('Dezember 2026')).toBeInTheDocument();
+    await nutzer.click(await within(karte).findByRole('button', { name: /3\. Dezember, 1 Person frei/ }));
+    expect(within(karte).getByText('Clara Fern')).toBeInTheDocument();
+  });
+
+  it('sagt es, wenn der genehmigte Urlaub nicht geladen werden konnte — statt „niemand“', async () => {
+    listApprovedVacationsInRange.mockRejectedValue(new Error('offline'));
+    zeichne();
+    expect(await screen.findByText(/Der genehmigte Urlaub der anderen konnte nicht geladen werden/)).toBeInTheDocument();
+    expect(await screen.findByText(/Der genehmigte Urlaub dieses Monats konnte nicht geladen werden/)).toBeInTheDocument();
+    expect(screen.queryByText(/Niemand hat an diesem Tag frei/)).not.toBeInTheDocument();
+    listApprovedVacationsInRange.mockReset();
+    listApprovedVacationsInRange.mockImplementation(async (_c: string, von: string, bis: string) =>
+      antraege.filter((v) => v.status === 'Genehmigt' && v.bis >= von && v.von <= bis));
+  });
+
+  it('der eigene genehmigte Urlaub des Antragstellers zählt nicht als „gleichzeitig“', async () => {
+    antraege.push(urlaub('v-max', 'm1', 'Max Mustermann', '2026-11-20', '2026-11-20'));
+    zeichne();
+    expect(await screen.findByText('Gleichzeitig im Urlaub: Anna Berger, Bruno Kollege (ZA)')).toBeInTheDocument();
+  });
+
+  it('gleich geblieben: ein Monteur sieht weder Monat noch fremden Urlaub, und gefragt wird nicht', async () => {
+    rolle = { ...rolle, uid: 'm1', name: 'Max Mustermann', role: 'Mitarbeiter', docId: 'm1' };
+    zeichne();
+    await screen.findByLabelText('Von');
+    expect(screen.queryByText('Urlaub im Monat')).not.toBeInTheDocument();
+    expect(listApprovedVacationsInRange).not.toHaveBeenCalled();
   });
 });
 

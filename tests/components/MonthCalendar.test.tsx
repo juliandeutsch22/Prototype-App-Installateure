@@ -130,3 +130,23 @@ describe('Monatskalender', () => {
     expect(tage).toHaveLength(29);
   });
 });
+
+/*
+  OHNE RAHMEN, WENN ER IN EINER KARTE STEHT (Urlaub im Monat, 17 H). Gegenprobe:
+  ohne den Schalter trägt er seinen Rahmen und die gerundeten Ecken wie bisher.
+*/
+describe('Monatskalender in einer Karte', () => {
+  it('ohne eigenen Rahmen und ohne gerundete Ecken', () => {
+    aufbauen({ ohneRahmen: true });
+    const rahmen = screen.getByText('August 2026').closest('div')!.parentElement!;
+    expect(rahmen).not.toHaveClass('panel');
+    expect(document.querySelector('[class*="rounded-bl-"], [class*="rounded-br-"]')).toBeNull();
+  });
+
+  it('gleich geblieben: ohne den Schalter mit Rahmen und gerundeten Ecken', () => {
+    aufbauen();
+    const rahmen = screen.getByText('August 2026').closest('div')!.parentElement!;
+    expect(rahmen).toHaveClass('panel');
+    expect(document.querySelector('[class*="rounded-bl-"]')).not.toBeNull();
+  });
+});
