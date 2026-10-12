@@ -24,7 +24,8 @@ Bedienbarkeit:      Segmente mit aria-pressed, Lot mit aria-current, Seitenfenst
                     ganze Zeile als Link/Knopf; axe: offen.
 Rückgängig:         nicht eingeführt — keine der Aktionen ist exakt umkehrbar; alle Bestätigungen bleiben.
 Fehlerprotokoll:    Vorschau ohne Seitenfehler; Produktion nicht angefasst.
-Bildschirmfotos:    nur in der Sitzung angesehen (Scratchpad), nicht im Repository: offen.
+Bildschirmfotos:    docs/ui-umbau/nachher/angebote/ — Angebote, Angebotsakte, Wartungen (Geschäftsführung)
+                    (12.10.2026, Stand 18, K6; Vorschau mit dem Testbestand, 390/834/1440 px, Ausschnitt)
 Dokumentation:      Handbuch und FUNKTIONEN.md: offen (siehe unten).
 Freigabe Betreiber: erteilt am 11.10.2026 (für alle Schritte der Linie „Lot“)
 ```

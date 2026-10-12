@@ -19,7 +19,8 @@ Bedienbarkeit:      Raster als Tabelle mit Spalten- und Zeilenköpfen, jede Zell
                     axe offen
 Rückgängig:         keine neue Umkehr; Löschbestätigung „Eintrag löschen?“ unverändert
 Fehlerprotokoll:    in der Vorschau keine Seitenfehler (pageerror) auf den drei Seiten
-Bildschirmfotos:    in der Sitzung angesehen, nicht eingecheckt (docs/ui-umbau/nachher/ offen)
+Bildschirmfotos:    docs/ui-umbau/nachher/start/ — je Rolle (Geschäftsführung, Buchhaltung, Verwaltung,
+                    Projektleiter, Mitarbeiter) (12.10.2026, Stand 18, K6; Vorschau mit dem Testbestand, 390/834/1440 px, Ausschnitt)
 Dokumentation:      Handbuch und FUNKTIONEN.md offen (nicht Paketdateien) — siehe unten
 Freigabe Betreiber: erteilt am 11.10.2026 (für alle Schritte der Linie „Lot“)
 ```
