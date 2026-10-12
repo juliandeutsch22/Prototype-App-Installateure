@@ -57,6 +57,13 @@ describe('Rechnungen lesen', () => {
     expect(knoepfe).toEqual(['Offen', 'Erledigt', 'Alle']);
   });
 
+  it('hält Baustelle und offenen Betrag am Stück — am Handy brach „Baustelle B-“ vom Rest (17 J)', () => {
+    // Gegenprobe: vorher stand die zweite Zeile als ein Text da, umbrechbar an jedem Bindestrich.
+    zeige();
+    expect(screen.getByText('Baustelle PR-2026-0003')).toHaveClass('whitespace-nowrap');
+    expect(screen.getByText(/^offen € 1[.\s]000,00$/)).toHaveClass('whitespace-nowrap');
+  });
+
   it('zeigt zuerst den Arbeitsstand — Bezahltes steht unter „Alle“', async () => {
     zeilen = [TEILBEZAHLT, BEZAHLT];
     zeige();

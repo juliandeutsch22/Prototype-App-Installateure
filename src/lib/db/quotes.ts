@@ -18,6 +18,13 @@ export function listRecentQuotes(companyId: string, max = 100): Promise<WithId<Q
   return pg.listRecentQuotes(companyId, max);
 }
 
+/** Angebote suchen — über alle, auf dem Server (17 I). */
+export function sucheAngebote(companyId: string, begriff: string, max?: number): Promise<WithId<Quote>[]> {
+  return pg.sucheAngebote(companyId, begriff, max);
+}
+
+export { ANGEBOT_TREFFER } from './pg/quotes';
+
 export function listQuotesForCustomer(
   companyId: string, customerId: string, max = 100,
 ): Promise<WithId<Quote>[]> {

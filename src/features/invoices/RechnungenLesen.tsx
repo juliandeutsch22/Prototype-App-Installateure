@@ -68,8 +68,23 @@ export default function RechnungenLesen() {
       <ListRow
         key={r.id}
         title={`${r.invoiceNumber} · ${r.customerName}`}
-        subtitle={`${datumAT(r.invoiceDate)} · Baustelle ${r.projectNumber}${
-          offen > 0 && r.paymentStatus !== 'Storniert' ? ` · offen ${euro(offen)}` : ''}`}
+        subtitle={
+          /*
+            JEDE ANGABE BLEIBT AM STÜCK — wie in der Rechnungsverwaltung (17 J,
+            im Browser gefunden): am Handy brach „Baustelle B-“ vom Rest der
+            Nummer und „offen €“ vom Betrag. Umbrochen wird nur zwischen den
+            Angaben.
+          */
+          <>
+            <span className="whitespace-nowrap">{datumAT(r.invoiceDate)}</span> ·{' '}
+            <span className="whitespace-nowrap">Baustelle {r.projectNumber}</span>
+            {offen > 0 && r.paymentStatus !== 'Storniert' && (
+              <>
+                {' '}· <span className="whitespace-nowrap">offen {euro(offen)}</span>
+              </>
+            )}
+          </>
+        }
         zustand={<StatusBadge status={r.paymentStatus} />}
         wert={euro(r.totalBrutto ?? 0)}
       />

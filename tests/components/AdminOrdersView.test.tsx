@@ -42,8 +42,17 @@ const eiligSetzen = vi.fn();
 /* Mit welcher ABFRAGE-Grenze zuletzt abonniert wurde. */
 let letzteHolgrenze = 0;
 
+/** Ältere Anforderungen, die nur die Suche auf dem Server kennt (17 I). */
+let nurAufDemServer: WithId<MaterialOrder>[] = [];
+/** Wie der Server: dieselben Felder, über alle Anforderungen. */
+const sucheAnforderungen = vi.fn(async (_c: string, begriff: string) =>
+  [...anforderungen, ...nurAufDemServer].filter((o) =>
+    [o.materialName, o.userName, o.projectNumber, o.note].some((v) => v?.toLowerCase().includes(begriff.toLowerCase()))));
+
 vi.mock('@/lib/db/materialOrders', () => ({
   ORDER_STATUS_FLOW: ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'],
+  ANFORDERUNG_TREFFER: 100,
+  sucheAnforderungen: (c: string, b: string) => sucheAnforderungen(c, b),
   subscribeAllOrders: (
     _c: string,
     max: number,
@@ -109,6 +118,8 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 2, 9, 0, 0));
   anforderungen = [];
+  nurAufDemServer = [];
+  sucheAnforderungen.mockClear();
   ladefehler = null;
   statusSetzen.mockReset();
   statusSetzen.mockResolvedValue(undefined);
@@ -357,6 +368,40 @@ describe('Anforderungen — suchen und filtern', () => {
     expect(await screen.findByText(/Nichts passt zu/)).toBeInTheDocument();
   });
 
+  /*
+    SUCHE ÜBER ALLE ANFORDERUNGEN (17 I). Gegenprobe: mit der alten Suche im
+    Geladenen schlagen beide fehl; die beiden Prüfungen darüber bleiben, wie
+    sie waren.
+  */
+  it('findet im Archiv auch eine Anforderung jenseits der geladenen — und öffnet sie im Seitenfenster', async () => {
+    anforderungen = Array.from({ length: 10 }, (_, i) => anforderung({ id: `o${i}`, materialName: `Ding ${i}`, status: 'Erledigt' }));
+    nurAufDemServer = [anforderung({ id: 'alt', materialName: 'Uralt-Ventil', status: 'Erledigt', userName: 'Erna Beispiel' })];
+    render(
+      <MemoryRouter initialEntries={['/anforderungen?reiter=erledigt']}>
+        <ToastProvider>
+          <AdminOrdersView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    await userEvent.type(await screen.findByRole('searchbox', { name: /Suche/ }), 'Uralt');
+    expect(await screen.findByText('Uralt-Ventil')).toBeInTheDocument();
+    expect(sucheAnforderungen).toHaveBeenLastCalledWith('perl', 'Uralt');
+    const fenster = await oeffnen(/^Uralt-Ventil/);
+    expect(within(fenster).getAllByText(/Erna Beispiel/).length).toBeGreaterThan(0);
+    // Während gesucht wird, geht es über alle — kein „Weitere laden“.
+    expect(screen.queryByRole('button', { name: /Weitere Anforderungen laden/ })).toBeNull();
+  });
+
+  it('ist die Suche über alle nicht erreichbar, sagt sie es — und sucht im Geladenen', async () => {
+    sucheAnforderungen.mockRejectedValueOnce(new Error('offline'));
+    anforderungen = Array.from({ length: 10 }, (_, i) =>
+      anforderung({ id: `o${i}`, materialName: `Ding ${i}`, userName: i === 3 ? 'Erna Beispiel' : 'Max' }));
+    zeige();
+    await userEvent.type(await screen.findByRole('searchbox', { name: /Suche/ }), 'E');
+    expect(await screen.findByText(/Die Suche über alle Anforderungen ist gerade nicht erreichbar/)).toBeInTheDocument();
+    expect(screen.getByText('Ding 3')).toBeInTheDocument();
+  });
+
   it('blendet das Suchfeld bei wenigen Zeilen aus', async () => {
     // Ein Suchfeld über drei Zeilen ist Ballast auf einem Telefonschirm.
     anforderungen = [anforderung({ id: 'o1' })];
@@ -441,7 +486,9 @@ describe('Anforderungen — wie weit die Abfrage reicht', () => {
     zeige();
     await screen.findByText(/Artikel 0/);
 
-    expect(screen.getByText(/nur in diesen gesucht/)).toBeInTheDocument();
+    // Seit 12.10.2026 (17 I) sucht die Suche über alle — der frühere Satz „nur in diesen gesucht“ wäre falsch.
+    expect(screen.getByText(/200 von möglicherweise mehr geladen\.$/)).toBeInTheDocument();
+    expect(screen.queryByText(/nur in diesen gesucht/)).toBeNull();
     await nutzer.click(screen.getByRole('button', { name: /Weitere Anforderungen laden/ }));
     expect(letzteHolgrenze).toBe(400);
   });
