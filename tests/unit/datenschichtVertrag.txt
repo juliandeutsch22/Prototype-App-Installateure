@@ -43,6 +43,7 @@ src/lib/db/invoices.ts#subscribeRecentInvoices: (companyId: string, max: number,
 src/lib/db/invoices.ts#updateInvoiceStatus: (id: string, paymentStatus: pg.SetzbarerStand) => Promise<void>
 src/lib/db/laeufe.ts#ausleitungJetzt: () => Promise<pg.AusleitungsBilanz>
 src/lib/db/laeufe.ts#ladeLauf: <A extends LaufArt>(companyId: string, art: A) => Promise<Lauf<A> | undefined>
+src/lib/db/materialOrders.ts#ANFORDERUNG_TREFFER: 100
 src/lib/db/materialOrders.ts#ORDER_STATUS_FLOW: ("Offen" | "In Bearbeitung" | "Abholbereit" | "Erledigt")[]
 src/lib/db/materialOrders.ts#anforderungEiligSetzen: (orderId: string, eilig: boolean) => Promise<void>
 src/lib/db/materialOrders.ts#createMaterialOrder: (companyId: string, order: NewMaterialOrder) => Promise<string>
@@ -53,6 +54,7 @@ src/lib/db/materialOrders.ts#listOpenOrders: (companyId: string) => Promise<With
 src/lib/db/materialOrders.ts#listOwnOpenOrders: (companyId: string, uid: string) => Promise<WithId<MaterialOrder>[]>
 src/lib/db/materialOrders.ts#subscribeAllOrders: (companyId: string, max: number, cb: (rows: WithId<MaterialOrder>[]) => void, onError: (e: Error) => void) => () => void
 src/lib/db/materialOrders.ts#subscribeOwnOrders: (companyId: string, uid: string, max: number, cb: (rows: WithId<MaterialOrder>[]) => void, onError: (e: Error) => void) => () => void
+src/lib/db/materialOrders.ts#sucheAnforderungen: (companyId: string, begriff: string, max?: number) => Promise<WithId<MaterialOrder>[]>
 src/lib/db/materialOrders.ts#updateOrderStatus: (orderId: string, newStatus: MaterialOrder["status"]) => Promise<void>
 src/lib/db/materials.ts#KATALOG_GRENZE: 1000
 src/lib/db/materials.ts#LOW_STOCK_THRESHOLD: 5
@@ -86,11 +88,13 @@ src/lib/db/projects.ts#reserveProjectNumber: (companyId: string, opts: { seedFro
 src/lib/db/projects.ts#searchProjects: (companyId: string, begriff: string, max?: number) => Promise<WithId<Project>[]>
 src/lib/db/projects.ts#subscribeRecentProjects: (companyId: string, max: number, cb: (rows: WithId<Project>[]) => void, onError: (e: Error) => void) => () => void
 src/lib/db/projects.ts#updateProject: (id: string, data: Partial<Project>) => Promise<void>
+src/lib/db/quotes.ts#ANGEBOT_TREFFER: 100
 src/lib/db/quotes.ts#createQuote: (companyId: string, q: NewQuote) => Promise<string>
 src/lib/db/quotes.ts#deleteQuote: (id: string) => Promise<void>
 src/lib/db/quotes.ts#listQuotesForCustomer: (companyId: string, customerId: string, max?: number) => Promise<WithId<Quote>[]>
 src/lib/db/quotes.ts#listRecentQuotes: (companyId: string, max?: number) => Promise<WithId<Quote>[]>
 src/lib/db/quotes.ts#reserveQuoteNumber: (companyId: string, praefix?: string) => Promise<string>
+src/lib/db/quotes.ts#sucheAngebote: (companyId: string, begriff: string, max?: number) => Promise<WithId<Quote>[]>
 src/lib/db/quotes.ts#updateQuote: (id: string, data: Partial<NewQuote>) => Promise<void>
 src/lib/db/scheinFotos.ts#fotoAdresse: (pfad: string) => Promise<string>
 src/lib/db/scheinFotos.ts#fotoEntfernen: (pfad: string) => Promise<void>

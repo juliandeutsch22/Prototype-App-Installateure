@@ -4,6 +4,8 @@ import { useAuth } from '@/app/AuthContext';
 import { postenNeuLaden } from '@/app/offenePosten';
 import {
   subscribeAllOrders,
+  sucheAnforderungen,
+  ANFORDERUNG_TREFFER,
   updateOrderStatus,
   deleteOrder,
   ORDER_STATUS_FLOW,
@@ -235,6 +237,13 @@ export default function AdminOrdersView() {
   const [projectFilter, setProjectFilter] = useState('');
   const [suche, setSuche] = useState('');
   /**
+   * Die Treffer der Suche über ALLE Anforderungen (17 I) — `null`, solange
+   * keine Antwort zum aktuellen Begriff da ist. Bis dahin (und falls sie
+   * ausbleibt) filtert die Liste das Geladene.
+   */
+  const [treffer, setTreffer] = useState<{ begriff: string; zeilen: WithId<MaterialOrder>[] } | null>(null);
+  const [suchFehler, setSuchFehler] = useState(false);
+  /**
    * Wie viele erledigte Anforderungen gezeigt werden.
    *
    * Nach einem Jahr sind das mehrere hundert, und sie standen als eine
@@ -317,6 +326,45 @@ export default function AdminOrdersView() {
     };
   }, [user, lagerStand]);
 
+  /*
+    GESUCHT WIRD ÜBER ALLE ANFORDERUNGEN, auf dem Server — gerade das Archiv
+    wächst über die geladene Grenze hinaus. `orders` als Auslöser: ändert sich
+    eine Anforderung, zeigen die Treffer den neuen Stand.
+  */
+  const suchbegriff = suche.trim();
+  useEffect(() => {
+    if (!user || !suchbegriff) {
+      setSuchFehler(false);
+      return;
+    }
+    let weg = false;
+    const zeit = setTimeout(() => {
+      sucheAnforderungen(user.companyId, suchbegriff)
+        .then((zeilen) => {
+          if (weg) return;
+          setTreffer({ begriff: suchbegriff, zeilen });
+          setSuchFehler(false);
+        })
+        .catch(() => {
+          if (!weg) setSuchFehler(true);
+        });
+    }, 300);
+    return () => {
+      weg = true;
+      clearTimeout(zeit);
+    };
+  }, [user, suchbegriff, orders]);
+  const serverTreffer = useMemo(
+    () => (treffer && suchbegriff && treffer.begriff === suchbegriff ? treffer.zeilen : null),
+    [treffer, suchbegriff],
+  );
+  /** Geladene und gefundene zusammen — das Seitenfenster öffnet auch einen älteren Treffer. */
+  const bekannte = useMemo(() => {
+    if (!serverTreffer) return orders;
+    const ids = new Set(orders.map((o) => o.id));
+    return [...orders, ...serverTreffer.filter((o) => !ids.has(o.id))];
+  }, [orders, serverTreffer]);
+
   const purchases = useMemo(() => orders.filter((o) => o.transactionType !== 'return'), [orders]);
   /** Wie viele Anforderungen auf der Einkaufsliste noch nicht bestellt sind. */
   const zuBestellen = useMemo(
@@ -333,12 +381,15 @@ export default function AdminOrdersView() {
   );
 
   const rows = useMemo(() => {
+    // Mit Treffern vom Server: deren Anforderungen, sonst die geladenen.
+    const kaeufe = serverTreffer ? serverTreffer.filter((o) => o.transactionType !== 'return') : purchases;
+    const rueck = serverTreffer ? serverTreffer.filter((o) => o.transactionType === 'return') : returns;
     const base =
       tab === 'retouren'
-        ? returns
+        ? rueck
         : tab === 'archiv'
-          ? purchases.filter((o) => o.status === 'Erledigt')
-          : purchases.filter((o) => o.status !== 'Erledigt');
+          ? kaeufe.filter((o) => o.status === 'Erledigt')
+          : kaeufe.filter((o) => o.status !== 'Erledigt');
     const heute = todayStr();
     const jetzt = Date.now();
     const gefiltert = adressFilter && tab === 'aktiv'
@@ -347,14 +398,15 @@ export default function AdminOrdersView() {
     const nachProjekt = projectFilter
       ? gefiltert.filter((o) => o.projectNumber === projectFilter)
       : gefiltert;
-    const q = suche.trim().toLowerCase();
-    if (!q) return nachProjekt;
+    const q = suchbegriff.toLowerCase();
+    // Die Treffer vom Server passen schon; im Geladenen wird gesucht, bis sie da sind.
+    if (!q || serverTreffer) return nachProjekt;
     return nachProjekt.filter((o) =>
       [o.materialName, o.userName, o.projectNumber, o.note].some((v) =>
         v?.toLowerCase().includes(q),
       ),
     );
-  }, [tab, purchases, returns, projectFilter, suche, adressFilter]);
+  }, [tab, purchases, returns, projectFilter, suchbegriff, adressFilter, serverTreffer]);
 
   /**
    * Offene Anforderungen nach Arbeitsschritt gruppiert, Eilfälle oben.
@@ -394,7 +446,7 @@ export default function AdminOrdersView() {
 
   const activeCount = purchases.filter((o) => o.status !== 'Erledigt').length;
   const haendlerName = (id?: string | null) => (id ? grosshaendler.find((g) => g.id === id)?.name : undefined);
-  const offen = offenId ? orders.find((o) => o.id === offenId) ?? null : null;
+  const offen = offenId ? bekannte.find((o) => o.id === offenId) ?? null : null;
 
   function fehlerWeg(id: string) {
     setZeilenFehler((f) => {
@@ -499,7 +551,7 @@ export default function AdminOrdersView() {
   }
 
   function sammelStarten() {
-    const liste = orders.filter((o) => gewaehlt.includes(o.id) && schrittFuer(o));
+    const liste = bekannte.filter((o) => gewaehlt.includes(o.id) && schrittFuer(o));
     if (liste.length === 0) return;
     // Wer einzeln abschliesst, wird gefragt — gesammelt also auch.
     if (liste.some((o) => schrittFuer(o)?.art === 'abholung')) setSammelFrage(liste);
@@ -560,7 +612,7 @@ export default function AdminOrdersView() {
     o.transactionType !== 'return' && !o.beschaffung && (o.status === 'Offen' || o.status === 'In Bearbeitung');
 
   const ausgewaehlteMitSchritt = gewaehlt.filter((id) => {
-    const o = orders.find((x) => x.id === id);
+    const o = bekannte.find((x) => x.id === id);
     return !!o && !!schrittFuer(o);
   });
 
@@ -642,6 +694,16 @@ export default function AdminOrdersView() {
                 value={suche}
                 onChange={(e) => setSuche(e.target.value)}
               />
+              {suchbegriff && suchFehler && (
+                <p className="mt-2 text-xs text-warning">
+                  Die Suche über alle Anforderungen ist gerade nicht erreichbar — gezeigt werden Treffer unter den geladenen.
+                </p>
+              )}
+              {serverTreffer && serverTreffer.length >= ANFORDERUNG_TREFFER && (
+                <p className="mt-2 text-xs text-ink-muted">
+                  Die {ANFORDERUNG_TREFFER} jüngsten Treffer — für ältere genauer suchen.
+                </p>
+              )}
             </div>
           )}
           {loading ? (
@@ -725,13 +787,15 @@ export default function AdminOrdersView() {
                 schon geladen ist. Wer sucht und nichts findet, muss den
                 Unterschied erfahren.
               */}
-              <Nachladen
-                geladen={orders.length}
-                grenze={holgrenze}
-                onMehr={() => setHolgrenze((g) => g + ANFORDERUNGEN_JE_SEITE)}
-                einheit="Anforderungen"
-                sucheSatz="Nach Artikel, Person, Baustelle und Notiz wird nur in diesen gesucht."
-              />
+              {!suchbegriff && (
+                <Nachladen
+                  geladen={orders.length}
+                  grenze={holgrenze}
+                  onMehr={() => setHolgrenze((g) => g + ANFORDERUNGEN_JE_SEITE)}
+                  einheit="Anforderungen"
+                  sucheImBrowser={false}
+                />
+              )}
               {ausgewaehlteMitSchritt.length > 0 && <div className="sammel-platz" aria-hidden="true" />}
             </div>
           ) : (
@@ -774,13 +838,15 @@ export default function AdminOrdersView() {
                 onClick={() => setLimit((n) => n + 50)}
               />
 
-              <Nachladen
-                geladen={orders.length}
-                grenze={holgrenze}
-                onMehr={() => setHolgrenze((g) => g + ANFORDERUNGEN_JE_SEITE)}
-                einheit="Anforderungen"
-                sucheSatz="Nach Artikel, Person, Baustelle und Notiz wird nur in diesen gesucht."
-              />
+              {!suchbegriff && (
+                <Nachladen
+                  geladen={orders.length}
+                  grenze={holgrenze}
+                  onMehr={() => setHolgrenze((g) => g + ANFORDERUNGEN_JE_SEITE)}
+                  einheit="Anforderungen"
+                  sucheImBrowser={false}
+                />
+              )}
             </div>
           )}
         </Card>

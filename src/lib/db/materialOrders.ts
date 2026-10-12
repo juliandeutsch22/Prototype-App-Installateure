@@ -18,6 +18,17 @@ export function subscribeOwnOrders(
   return pg.subscribeOwnOrders(companyId, uid, max, cb, onError);
 }
 
+/** Anforderungen suchen — über alle, auf dem Server (17 I). */
+export function sucheAnforderungen(
+  companyId: string,
+  begriff: string,
+  max?: number,
+): Promise<WithId<MaterialOrder>[]> {
+  return pg.sucheAnforderungen(companyId, begriff, max);
+}
+
+export { ANFORDERUNG_TREFFER } from './pg/materialOrders';
+
 export function subscribeAllOrders(
   companyId: string,
   max: number,

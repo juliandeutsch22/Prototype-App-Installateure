@@ -10,6 +10,7 @@
 import type { MaterialOrder } from '@/types';
 import { abfragen, abonnieren, anlegenMitKennung, loeschen, derClient, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
+import { oderUeberSpalten } from './suche';
 
 import { anlegenOhneEmpfang as fachAnlegen } from './ohneEmpfang';
 
@@ -42,6 +43,29 @@ export function subscribeAllOrders(
 }
 
 export type NewMaterialOrder = Omit<MaterialOrder, 'id' | 'companyId' | 'createdAt'>;
+
+/** Wie viele Treffer die Suche zeigt — wer mehr braucht, sucht genauer. */
+export const ANFORDERUNG_TREFFER = 100;
+
+/**
+ * Anforderungen suchen — ÜBER ALLE, auf dem Server (17 I). Die Liste hält die
+ * jüngsten; im Archiv fehlten die älteren, und die Suche fand sie nicht.
+ * Dieselben Felder wie die Suche im Geladenen: Artikel, Person, Baustelle,
+ * Notiz.
+ */
+export function sucheAnforderungen(
+  companyId: string,
+  begriff: string,
+  max = ANFORDERUNG_TREFFER,
+): Promise<WithId<MaterialOrder>[]> {
+  const oder = oderUeberSpalten(['material_name', 'user_name', 'project_number', 'note'], begriff);
+  if (!oder) return Promise.resolve([]);
+  return abfragen<MaterialOrder>(ANFORDERUNGEN, companyId, {
+    oder,
+    sortiere: { feld: 'createdAt', absteigend: true },
+    grenze: max,
+  });
+}
 
 /**
  * Legt an — mit einer Kennung VOM GERÄT.
