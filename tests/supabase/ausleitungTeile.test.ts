@@ -112,7 +112,15 @@ describe('Ein Stand über der Teilgrenze', () => {
 
     const { data } = await admin.storage.from('ausleitung')
       .list(ausleitungsPraefix(BETRIEB).replace(/\/$/, ''), { limit: 1000 });
-    const heute = (data ?? []).map((d) => `${ausleitungsPraefix(BETRIEB)}${d.name}`).sort();
+    /*
+      NUR DIE VON HEUTE. Ältere Stände bleiben absichtlich liegen
+      (`AUFBEWAHRUNG_TAGE`); im lokalen Stapel liegt deshalb ab dem zweiten
+      Tag der Stand von gestern daneben, und die Prüfung schlug bei jedem
+      ersten Lauf eines Tages fehl (gefunden am 12.10.2026).
+    */
+    const tag = ausleitungsPfad(BETRIEB, new Date()).replace(/\.jsonl$/, '');
+    const heute = (data ?? []).map((d) => `${ausleitungsPraefix(BETRIEB)}${d.name}`)
+      .filter((p) => p.startsWith(tag)).sort();
     expect(heute).toEqual([...daten.pfade].sort());
 
     // Der erste Teil gehört jetzt zum zweiten Lauf.
