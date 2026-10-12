@@ -33,6 +33,15 @@ describe('Gestaltungsregeln im Quelltext', () => {
     expect(treffer(/\b(?:bg|border(?:-[trblxy])?|ring|from|to|via|divide|outline)-[a-z][a-z-]*\/\d+\b/)).toEqual([]);
   });
 
+  /*
+    AUCH KEINE BLASSE SCHRIFT (Stand 18, K2): `text-ink-muted/70` im
+    Monatskalender lag bei 2,8 : 1 — axe fand es auf Urlaub und Einsatzplan.
+    Zurücktreten geht über Grau und Schriftstärke, nicht über Durchsicht.
+  */
+  it('keine halbtransparente Schrift', () => {
+    expect(treffer(/\btext-[a-z][a-z-]*\/\d+\b/)).toEqual([]);
+  });
+
   it('keine gestrichelten oder gepunkteten Linien', () => {
     expect(treffer(/\b(?:border|divide|outline)-(?:dashed|dotted)\b/)).toEqual([]);
   });
@@ -53,6 +62,7 @@ describe('Gestaltungsregeln im Quelltext', () => {
 
   it('Gegenprobe: die Muster greifen', () => {
     expect('bg-brand/30').toMatch(/\b(?:bg|border(?:-[trblxy])?|ring)-[a-z][a-z-]*\/\d+\b/);
+    expect('text-ink-muted/70').toMatch(/\btext-[a-z][a-z-]*\/\d+\b/);
     expect('border-dashed').toMatch(/\b(?:border|divide|outline)-(?:dashed|dotted)\b/);
     expect('font-medium').toMatch(/\bfont-(?:thin|extralight|light|medium|bold|extrabold|black)\b/);
     expect('text-gray-500').toMatch(/\b(?:bg|text)-(?:gray)-\d{2,3}\b/);

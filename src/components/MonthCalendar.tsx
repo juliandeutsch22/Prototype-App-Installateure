@@ -92,7 +92,12 @@ export default function MonthCalendar({
         {DOW.map((d, i) => (
           <div
             key={d}
-            className={`py-2 text-center text-xs font-semibold ${i > 4 ? 'text-ink-muted/70' : 'text-ink-muted'}`}
+            /*
+              Das Wochenende tritt über die Schriftstärke zurück, nicht über
+              blassere Schrift: die lag mit 2,8 : 1 unter dem lesbaren
+              Kontrast (axe, Stand 18, K2).
+            */
+            className={`py-2 text-center text-xs text-ink-muted ${i > 4 ? 'font-normal' : 'font-semibold'}`}
           >
             {d}
           </div>
@@ -174,18 +179,19 @@ export default function MonthCalendar({
               }`}
             >
               <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${
                   isSelected
                     ? // Schrift in der Farbe der Fläche: im dunklen Satz ist
                       // `accent-deep` hell, weiss darauf wäre unlesbar.
-                      'bg-accent-deep text-surface'
+                      'bg-accent-deep font-semibold text-surface'
                     : isToday
                       ? 'bg-info-bg font-semibold text-info'
-                      : // Vergangene Tage ohne Planung treten zurück; wo etwas
-                        // geplant war, bleibt der Tag lesbar.
+                      : // Vergangene Tage ohne Planung treten zurück — grau und
+                        // dünn, aber lesbar (blass lag er bei 2,4 : 1, K2); wo
+                        // etwas geplant war, bleibt der Tag kräftig.
                         past && count === 0
-                        ? 'text-ink-muted/60'
-                        : 'text-ink'
+                        ? 'text-ink-muted'
+                        : 'font-semibold text-ink'
                 }`}
               >
                 {day}
