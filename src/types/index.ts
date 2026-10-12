@@ -569,6 +569,11 @@ export interface BaustellenDokument {
   hochgeladenVon?: string;
   hochgeladenVonName?: string;
   createdAt?: number;
+  /**
+   * Nur für das Büro: Monteure sehen weder Eintrag noch Datei — das sagt
+   * die Datenbank, nicht die App (17 D, 11.10.2026).
+   */
+  nurBuero?: boolean;
 }
 
 export interface WorkSheet {

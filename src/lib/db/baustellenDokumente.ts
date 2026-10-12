@@ -9,6 +9,7 @@ export {
   dokumentHochladen,
   dokumentAdressen,
   dokumentLoeschen,
+  dokumentNurBueroSetzen,
   dateiPruefen,
   dateiTyp,
   ERLAUBTE_TYPEN,

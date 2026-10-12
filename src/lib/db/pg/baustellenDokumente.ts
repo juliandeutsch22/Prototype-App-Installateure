@@ -20,8 +20,14 @@ const EIMER = 'baustellendokumente';
  */
 export const GUELTIG_SEKUNDEN = 60 * 60;
 
-/** Was der Eimer annimmt — dieselbe Liste wie in der Migration. */
-export const ERLAUBTE_TYPEN = [
+/**
+ * Was der Eimer annimmt — dieselbe Liste wie in der Migration.
+ *
+ * Seit 11.10.2026 auch Word, Excel und E-Mails: Schriftverkehr und Listen
+ * gehören zur Baustelle, und mit „nur fürs Büro“ sehen sie die Monteure
+ * nicht.
+ */
+export const PDF_UND_BILDER = [
   'application/pdf',
   'image/jpeg',
   'image/png',
@@ -29,16 +35,32 @@ export const ERLAUBTE_TYPEN = [
   'image/heic',
 ] as const;
 
+export const ERLAUBTE_TYPEN = [
+  ...PDF_UND_BILDER,
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'message/rfc822',
+  'application/vnd.ms-outlook',
+] as const;
+
 /** Dieselbe Grenze wie am Eimer. */
 export const HOECHSTENS_BYTES = 25 * 1024 * 1024;
 
-const ENDUNG_ZU_TYP: Record<string, (typeof ERLAUBTE_TYPEN)[number]> = {
+const ENDUNG_ZU_TYP: Record<string, string> = {
   pdf: 'application/pdf',
   jpg: 'image/jpeg',
   jpeg: 'image/jpeg',
   png: 'image/png',
   webp: 'image/webp',
   heic: 'image/heic',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  eml: 'message/rfc822',
+  msg: 'application/vnd.ms-outlook',
 };
 
 /**
@@ -47,12 +69,21 @@ const ENDUNG_ZU_TYP: Record<string, (typeof ERLAUBTE_TYPEN)[number]> = {
  * Manche Geräte melden bei einer Datei aus der Dateien-App gar keinen Typ.
  * Die Endung ist dann der einzige Hinweis; ohne sie hier nachzuschlagen,
  * scheiterte ein gewöhnliches PDF am Eimer.
+ *
+ * `erlaubt`: welche Typen der Aufrufer annimmt. Die Nachweise einer
+ * Freistellung bleiben bei PDF und Bildern (`PDF_UND_BILDER`) — ihr Eimer
+ * nimmt nichts anderes, und ein Arztbrief als Word-Datei ist dort nicht
+ * vorgesehen.
  */
-export function dateiTyp(datei: Pick<File, 'name' | 'type'>): string | null {
+export function dateiTyp(
+  datei: Pick<File, 'name' | 'type'>,
+  erlaubt: readonly string[] = ERLAUBTE_TYPEN,
+): string | null {
   const typ = datei.type?.toLowerCase();
-  if (typ && (ERLAUBTE_TYPEN as readonly string[]).includes(typ)) return typ;
+  if (typ && erlaubt.includes(typ)) return typ;
   const endung = datei.name.split('.').pop()?.toLowerCase() ?? '';
-  return ENDUNG_ZU_TYP[endung] ?? null;
+  const ausEndung = ENDUNG_ZU_TYP[endung];
+  return ausEndung && erlaubt.includes(ausEndung) ? ausEndung : null;
 }
 
 /**
@@ -63,7 +94,7 @@ export function dateiTyp(datei: Pick<File, 'name' | 'type'>): string | null {
  */
 export function dateiPruefen(datei: Pick<File, 'name' | 'type' | 'size'>): string | null {
   if (!dateiTyp(datei)) {
-    return `„${datei.name}“: nur PDF und Bilder (JPEG, PNG, WebP, HEIC). Pläne aus einem CAD-Programm bitte als PDF exportieren.`;
+    return `„${datei.name}“: nur PDF, Bilder (JPEG, PNG, WebP, HEIC), Word, Excel und E-Mails (EML, MSG). Pläne aus einem CAD-Programm bitte als PDF exportieren.`;
   }
   if (datei.size > HOECHSTENS_BYTES) {
     const mb = (datei.size / 1024 / 1024).toFixed(1).replace('.', ',');
@@ -100,6 +131,7 @@ export async function dokumentHochladen(
   projectId: string,
   datei: File,
   hochgeladenVonName: string,
+  nurBuero = false,
 ): Promise<WithId<BaustellenDokument>> {
   const fehler = dateiPruefen(datei);
   if (fehler) throw new Error(fehler);
@@ -113,7 +145,15 @@ export async function dokumentHochladen(
   */
   const pfad = `baustellen/${companyId}/${projectId}/${crypto.randomUUID()}.${endung}`;
   const speicher = derClient().storage.from(EIMER);
-  const { error: hoch } = await speicher.upload(pfad, datei, { contentType: mime, upsert: false });
+  /*
+    ALS BLOB MIT DEM ERMITTELTEN TYP, nicht die Datei selbst. Für eine Datei
+    baut die Speicher-Bibliothek ein Formular und nimmt den Typ der Datei —
+    `contentType` übergeht sie dabei. Meldet das Gerät keinen Typ (Dateien-
+    App am iPhone, fast jede .msg und .eml), käme `application/octet-stream`
+    an, und der Eimer lehnte ab (gefunden am 11.10.2026).
+  */
+  const inhalt = new Blob([datei], { type: mime });
+  const { error: hoch } = await speicher.upload(pfad, inhalt, { contentType: mime, upsert: false });
   if (hoch) throw new Error(hoch.message);
 
   const daten: Omit<BaustellenDokument, 'id' | 'companyId' | 'createdAt' | 'hochgeladenVon'> = {
@@ -123,6 +163,7 @@ export async function dokumentHochladen(
     mime,
     bytes: datei.size,
     hochgeladenVonName,
+    nurBuero,
   };
   try {
     const id = await anlegen(TABELLE, companyId, daten);
@@ -153,6 +194,18 @@ export async function dokumentAdressen(
     if (eintrag.path && eintrag.signedUrl && !eintrag.error) adressen.set(eintrag.path, eintrag.signedUrl);
   }
   return adressen;
+}
+
+/**
+ * Nur fürs Büro oder auch für die Monteure — nachträglich.
+ *
+ * Über eine eigene Datenbankfunktion: die Zeile hat keine Änderungsregel,
+ * Pfad und Baustelle bleiben, wie sie sind. Wer hochladen darf, darf
+ * umschalten; die Datenbank prüft es.
+ */
+export async function dokumentNurBueroSetzen(id: string, nurBuero: boolean): Promise<void> {
+  const { error } = await derClient().rpc('dokument_nur_buero_setzen', { p_id: id, p_nur_buero: nurBuero });
+  if (error) throw new Error(error.message);
 }
 
 /**

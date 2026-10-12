@@ -13,7 +13,7 @@
  */
 import type { Freistellung } from '@/types';
 import { abfragen, derClient } from './kern';
-import { dateiTyp } from './baustellenDokumente';
+import { dateiTyp, PDF_UND_BILDER } from './baustellenDokumente';
 
 const TABELLE = 'freistellungen';
 const EIMER = 'freistellungsnachweise';
@@ -104,7 +104,7 @@ export async function freistellungBeantragen(a: FreistellungAntrag): Promise<str
 
 /** Vorher geprüft, nicht erst am Eimer: dessen Meldung ist englisch. */
 export function nachweisPruefen(datei: Pick<File, 'name' | 'type' | 'size'>): string | null {
-  if (!dateiTyp(datei)) return `„${datei.name}“: nur PDF und Bilder (JPEG, PNG, WebP, HEIC).`;
+  if (!dateiTyp(datei, PDF_UND_BILDER)) return `„${datei.name}“: nur PDF und Bilder (JPEG, PNG, WebP, HEIC).`;
   if (datei.size > NACHWEIS_HOECHSTENS_BYTES) {
     const mb = (datei.size / 1024 / 1024).toFixed(1).replace('.', ',');
     return `„${datei.name}“ ist ${mb} MB groß — höchstens 10 MB.`;
@@ -120,11 +120,12 @@ export function nachweisPruefen(datei: Pick<File, 'name' | 'type' | 'size'>): st
 export async function nachweisHochladen(companyId: string, uid: string, antragId: string, datei: File): Promise<string> {
   const fehler = nachweisPruefen(datei);
   if (fehler) throw new Error(fehler);
-  const mime = dateiTyp(datei)!;
+  const mime = dateiTyp(datei, PDF_UND_BILDER)!;
   const endung = mime === 'application/pdf' ? 'pdf' : mime.split('/')[1] ?? 'bin';
   const pfad = `${companyId}/${uid}/${antragId}/${crypto.randomUUID()}.${endung}`;
   const speicher = derClient().storage.from(EIMER);
-  const { error: hoch } = await speicher.upload(pfad, datei, { contentType: mime, upsert: false });
+  // Als Blob mit dem ermittelten Typ — warum: `dokumentHochladen` in baustellenDokumente.ts.
+  const { error: hoch } = await speicher.upload(pfad, new Blob([datei], { type: mime }), { contentType: mime, upsert: false });
   if (hoch) throw new Error(hoch.message);
   const { error } = await derClient().rpc('freistellung_nachweis_setzen', { p_id: antragId, p_pfad: pfad });
   if (error) {

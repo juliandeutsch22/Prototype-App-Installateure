@@ -12,6 +12,8 @@
  */
 import { describe, it, expect, beforeAll } from 'vitest';
 import { admin, betriebAnlegen, konto, type Konto } from './helfer';
+import { nachweisHochladen } from '@/lib/db/pg/freistellungen';
+import { clientEinreichen } from '@/lib/db/pg/kern';
 
 const BETRIEB = 'frei-a';
 
@@ -228,6 +230,23 @@ describe('Nachweis', () => {
     expect(zeile?.nachweis_geprueft_am).toBeTruthy();
     // Das Büro löscht die Datei danach.
     expect((await buch.client.storage.from(EIMER).remove([pfad])).error).toBeNull();
+  });
+
+  it('ein PDF ohne Typ vom Gerät geht über den Weg der App hoch (11.10.2026)', async () => {
+    /*
+      Die Dateien-App am iPhone meldet oft keinen Typ. Die Speicher-
+      Bibliothek nahm dann den Typ der Datei statt des ermittelten, und der
+      Eimer wies `application/octet-stream` ab. Gegenprobe: mit der Datei
+      selbst statt eines Blobs mit Typ rot.
+    */
+    const id = await neu(anna, { art: 'dienstverhinderung', anlass: 'musterung', ereignis: '2027-03-01', von: '2027-03-01', bis: '2027-03-01' });
+    clientEinreichen(anna.client);
+    try {
+      const pfad = await nachweisHochladen(BETRIEB, anna.uid, id, new File(['%PDF-1.4'], 'Ladung.pdf', { type: '' }));
+      expect((await buch.client.storage.from(EIMER).download(pfad)).error).toBeNull();
+    } finally {
+      clientEinreichen(null);
+    }
   });
 
   it('hochladen nur in den Ordner des eigenen, offenen Antrags', async () => {
