@@ -26,8 +26,8 @@ Rückgängig:         keine neuen Umkehrungen; alle Bestätigungen unverändert 
                     Module ausschalten, Jugendschutz, Startpasswort, Deaktivieren, Datenauskunft,
                     Löschen eines Betriebs mit Kennung)
 Fehlerprotokoll:    Vorschau ohne Ladefehler auf den fotografierten Seiten; Produktion nicht berührt
-Bildschirmfotos:    im Scratchpad der Sitzung erstellt, nicht ins Repository übernommen — OFFEN
-                    (docs/ui-umbau/nachher/ legt die Hauptsitzung an)
+Bildschirmfotos:    docs/ui-umbau/nachher/verwaltung/ — Anmeldung, Einstellungen, Benutzer (Geschäftsführung)
+                    (12.10.2026, Stand 18, K6; Vorschau mit dem Testbestand, 390/834/1440 px, Ausschnitt). Plattform nicht fotografiert (eigenes Konto mit zweitem Faktor).
 Dokumentation:      Handbuch und FUNKTIONEN.md nicht geändert (gemeinsame Dateien) — OFFEN:
                     „Neuer Benutzer“ heisst jetzt „Benutzer anlegen“; Filter als Segmente;
                     Verwalten eines Betriebs im Seitenfenster

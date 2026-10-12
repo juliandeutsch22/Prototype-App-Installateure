@@ -20,7 +20,8 @@ Bedienbarkeit:      Segmente mit aria-pressed, Seitenfenster als Dialog mit Foku
                     Einsatz-Auswahl mit aria-pressed, Warnung am Notizfeld per aria-describedby; axe: OFFEN
 Rückgängig:         keine neue Rückgängig-Meldung; Bestätigungen unverändert (Verwerfen-Rückfrage, Storno mit Pflichtgrund)
 Fehlerprotokoll:    keine Laufzeitfehler in der Vorschau
-Bildschirmfotos:    nur im Arbeitsbereich angesehen, nicht eingecheckt — OFFEN für docs/ui-umbau/nachher/
+Bildschirmfotos:    docs/ui-umbau/nachher/scheine/ — Liste (Geschäftsführung, Mitarbeiter), Seitenfenster eines
+                    Scheins (Geschäftsführung) (12.10.2026, Stand 18, K6; Vorschau mit dem Testbestand, 390/834/1440 px, Ausschnitt)
 Dokumentation:      Handbuch und FUNKTIONEN.md: OFFEN (Hauptsitzung)
 Freigabe Betreiber: erteilt am 11.10.2026 (für alle Schritte der Linie „Lot“)
 ```

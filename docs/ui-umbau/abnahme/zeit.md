@@ -37,8 +37,8 @@ Rückgängig:         keine neue Umkehr; alle Bestätigungsdialoge unverändert 
                     Zurücknehmen, Ablehnen, Jugendschutz, Betriebsurlaub anlegen/löschen,
                     Krankmeldung löschen)
 Fehlerprotokoll:    in der Vorschau keine Fehler der Seite (nur gesperrte Schriftdateien)
-Bildschirmfotos:    nicht ins Repository gelegt (Vorschau-Fotos lagen im Arbeitsverzeichnis);
-                    docs/ui-umbau/nachher/E8/: offen
+Bildschirmfotos:    docs/ui-umbau/nachher/zeit/ — Zeiterfassung und Urlaub (Mitarbeiter), Urlaub
+                    (Geschäftsführung) (12.10.2026, Stand 18, K6; Vorschau mit dem Testbestand, 390/834/1440 px, Ausschnitt)
 Dokumentation:      Handbuch („Bearbeiten“ ist jetzt die Zeile; Antrag mit Verlauf; Krankmeldung
                     im Seitenfenster) und FUNKTIONEN.md: offen — gehören nicht zu den Dateien
                     dieses Pakets

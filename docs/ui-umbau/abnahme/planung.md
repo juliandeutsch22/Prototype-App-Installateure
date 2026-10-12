@@ -25,7 +25,7 @@ Mengengerüst:       nicht gemessen – offen. Raster mit stehender Kopfzeile/Na
 Bedienbarkeit:      Vorlesenamen der Zellen unverändert bzw. erweitert; axe: offen.
 Rückgängig:         „Einsatz löschen“ bleibt mit Rückfrage (Umkehr wäre nicht exakt).
 Fehlerprotokoll:    keine Laufzeitfehler in der Vorschau (nur 403/404 der gestubbten Ressourcen).
-Bildschirmfotos:    nur im Arbeitsbereich angesehen, nicht abgelegt – offen.
+Bildschirmfotos:    docs/ui-umbau/nachher/planung/ — Woche, Monat, Tag (Projektleiter) (12.10.2026, Stand 18, K6; Vorschau mit dem Testbestand, 390/834/1440 px, Ausschnitt)
 Dokumentation:      Handbuch und FUNKTIONEN.md noch nicht nachgezogen – offen (Hauptsitzung).
 Freigabe Betreiber: erteilt am 11.10.2026 (für alle Schritte der Linie „Lot“)
 ```

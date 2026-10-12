@@ -23,7 +23,8 @@ Bedienbarkeit:      Segmente mit aria-pressed, Sprungleiste als nav „Auf diese
 Rückgängig:         keine neuen Rückgängig-Wege; alle Bestätigungen (Löschen Baustelle/Kunde/Plan,
                     Nummer ändern, gleicher Name, Bürobeleg) unverändert.
 Fehlerprotokoll:    keine JS-Fehler in der Vorschau.
-Bildschirmfotos:    nur in der Sitzung angesehen, nicht abgelegt — offen (docs/ui-umbau/nachher/).
+Bildschirmfotos:    docs/ui-umbau/nachher/auftraege/ — Baustellen, Baustellenakte, Kunden, Kundenakte
+                    (Geschäftsführung), Meine Baustellen (Mitarbeiter) (12.10.2026, Stand 18, K6; Vorschau mit dem Testbestand, 390/834/1440 px, Ausschnitt)
 Dokumentation:      Handbuch und FUNKTIONEN.md nicht nachgezogen (fremde Dateien) — offen, siehe unten.
 Freigabe Betreiber: erteilt am 11.10.2026 (für alle Schritte der Linie „Lot“)
 ```
