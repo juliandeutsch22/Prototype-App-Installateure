@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -58,6 +58,7 @@ const createWartung = vi.fn(async () => 'neu');
 const updateWartung = vi.fn(async () => undefined);
 
 const wartungEingeplant = vi.fn(async () => undefined);
+const wartungTagBerichtigen = vi.fn(async () => undefined);
 /* Die festgehaltenen Ausführungen (17 G) — leer wie bei einer Anlage von vor dem 12.10.2026. */
 const listAusfuehrungen = vi.fn(async (): Promise<{ id: string; companyId: string; wartungId: string; am: string; baustelle?: string }[]> => []);
 
@@ -68,6 +69,7 @@ vi.mock('@/lib/db/wartungen', () => ({
   deleteWartung: vi.fn(async () => undefined),
   wartungErledigt: (...a: unknown[]) => wartungErledigt(...(a as [])),
   wartungEingeplant: (...a: unknown[]) => wartungEingeplant(...(a as [])),
+  wartungTagBerichtigen: (...a: unknown[]) => wartungTagBerichtigen(...(a as [])),
   listAusfuehrungen: () => listAusfuehrungen(),
   /* Die Suche des Servers: hier über den Bestand, wie die Datenbank mitten im Wort. */
   searchWartungen: (_c: string, begriff: string) =>
@@ -144,6 +146,7 @@ beforeEach(() => {
   createWartung.mockClear();
   updateWartung.mockClear();
   wartungEingeplant.mockClear();
+  wartungTagBerichtigen.mockClear();
   listAusfuehrungen.mockReset();
   listAusfuehrungen.mockResolvedValue([]);
   createProject.mockClear();
@@ -700,6 +703,59 @@ describe('Eine Wartung mit Anlagendaten bearbeiten', () => {
       hinweis: 'Schlüssel beim Nachbarn',
       hersteller: 'Vaillant', typ: 'ecoTEC plus', seriennummer: '21184500', baujahr: 2018, preis: 149,
     });
+  });
+});
+
+/*
+  DEN TAG DER LETZTEN WARTUNG BERICHTIGEN (Stand 18, G3). Ein falscher Tag in
+  „Zuletzt gewartet“ stand nach dem Ändern als zweite Wartung im Verlauf. Mit
+  dem Haken ersetzt der neue Tag den alten; ohne ihn bleibt es wie bisher.
+  Gegenprobe: ohne die Änderung gibt es den Haken nicht (rot).
+*/
+describe('Den Tag der letzten Wartung berichtigen', () => {
+  async function bearbeiten(nutzer: ReturnType<typeof userEvent.setup>) {
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: /Bäckerei Stein/ }));
+    await nutzer.click(within(await screen.findByRole('dialog', { name: 'Wartung' })).getByRole('button', { name: 'Bearbeiten' }));
+  }
+  const haken = () => screen.queryByRole('checkbox', { name: 'Der 10.04.2025 war falsch — berichtigen' });
+
+  it('mit Haken: erst berichtigen, dann speichern', async () => {
+    const nutzer = userEvent.setup();
+    await bearbeiten(nutzer);
+    expect(haken()).toBeNull();
+    fireEvent.change(screen.getByLabelText('Zuletzt gewartet'), { target: { value: '2025-04-01' } });
+    expect(haken()).not.toBeNull();
+    await nutzer.click(haken()!);
+    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    await waitFor(() => expect(updateWartung).toHaveBeenCalledTimes(1));
+    expect(wartungTagBerichtigen).toHaveBeenCalledWith('w1', '2025-04-01');
+    expect(wartungTagBerichtigen.mock.invocationCallOrder[0]).toBeLessThan(updateWartung.mock.invocationCallOrder[0]);
+  });
+
+  it('gleich geblieben: ohne Haken wird nur gespeichert — eine weitere Wartung', async () => {
+    const nutzer = userEvent.setup();
+    await bearbeiten(nutzer);
+    fireEvent.change(screen.getByLabelText('Zuletzt gewartet'), { target: { value: '2026-04-01' } });
+    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    await waitFor(() => expect(updateWartung).toHaveBeenCalledTimes(1));
+    expect((updateWartung.mock.calls[0] as unknown[])[1]).toMatchObject({ zuletztAm: '2026-04-01' });
+    expect(wartungTagBerichtigen).not.toHaveBeenCalled();
+  });
+
+  it('wer den Tag zurückstellt, berichtigt nichts — auch mit Haken', async () => {
+    const nutzer = userEvent.setup();
+    await bearbeiten(nutzer);
+    fireEvent.change(screen.getByLabelText('Zuletzt gewartet'), { target: { value: '2025-04-01' } });
+    expect(haken()).not.toBeNull();
+    await nutzer.click(haken()!);
+    fireEvent.change(screen.getByLabelText('Zuletzt gewartet'), { target: { value: '2025-04-10' } });
+    expect(haken()).toBeNull();
+    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(updateWartung).toHaveBeenCalledTimes(1));
+    expect(wartungTagBerichtigen).not.toHaveBeenCalled();
   });
 });
 

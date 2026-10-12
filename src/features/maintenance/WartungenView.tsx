@@ -9,6 +9,7 @@ import {
   updateWartung,
   deleteWartung,
   wartungErledigt,
+  wartungTagBerichtigen,
   type NewWartung,
 } from '@/lib/db/wartungen';
 import { wartungEingeplant } from '@/lib/db/wartungen';
@@ -193,6 +194,13 @@ export default function WartungenView() {
   const [form, setForm] = useState<NewWartung>(LEER);
   const [bearbeitet, setBearbeitet] = useState<WithId<Wartung> | null>(null);
   const [formOffen, setFormOffen] = useState(false);
+  /*
+    „ZULETZT GEWARTET“ BERICHTIGEN (Stand 18, G3): ändert jemand den Tag einer
+    schon gewarteten Anlage, war der alte entweder falsch — dann ersetzt der
+    neue ihn im Verlauf — oder es wurde wirklich noch einmal gewartet. Ohne
+    Haken bleibt es wie bisher: eine weitere Ausführung.
+  */
+  const [berichtigen, setBerichtigen] = useState(false);
   const [speichert, setSpeichert] = useState(false);
   const [erledigung, setErledigung] = useState<Erledigung | null>(null);
   const [einplanung, setEinplanung] = useState<Einplanung | null>(null);
@@ -379,6 +387,7 @@ export default function WartungenView() {
       Beim Anlegen zugeklappt — Anlagendaten und Preis sind dort selten.
     */
     setWeitereOffen(!!w);
+    setBerichtigen(false);
     setFormOffen(true);
   };
 
@@ -415,6 +424,9 @@ export default function WartungenView() {
     }
   };
 
+  /** Der Tag einer schon gewarteten Anlage wurde geändert — erst dann gibt es etwas zu berichtigen. */
+  const tagGeaendert = !!bearbeitet?.zuletztAm && !!form.zuletztAm && form.zuletztAm !== bearbeitet.zuletztAm;
+
   const speichern = async (e: FormEvent) => {
     e.preventDefault();
     if (!companyId) return;
@@ -447,6 +459,8 @@ export default function WartungenView() {
         seriennummer: form.seriennummer?.trim() || null,
       };
       if (bearbeitet) {
+        // Erst der Tag, dann der Rest: so gibt es nie einen Augenblick mit beiden Ausführungen.
+        if (berichtigen && tagGeaendert && form.zuletztAm) await wartungTagBerichtigen(bearbeitet.id, form.zuletztAm);
         await updateWartung(bearbeitet.id, daten);
         toast.success('Wartung geändert.');
       } else {
@@ -892,6 +906,20 @@ export default function WartungenView() {
             onChange={(e) => setForm(mitTermin({ ...form, zuletztAm: e.target.value }))}
             onBlur={terminVorschlagen}
           />
+          {tagGeaendert && (
+            <div className="flex flex-wrap items-center">
+              <CheckboxField id="w-berichtigen"
+                label={`Der ${fmtDatum(bearbeitet?.zuletztAm)} war falsch — berichtigen`}
+                checked={berichtigen}
+                onChange={(e) => setBerichtigen(e.target.checked)}
+              />
+              <InfoHint about="Berichtigen">
+                Mit Haken ersetzt der neue Tag den bisherigen im Verlauf der Anlage. Ohne Haken bleibt
+                der bisherige Tag als eigene Wartung stehen — richtig, wenn wirklich noch einmal
+                gewartet wurde.
+              </InfoHint>
+            </div>
+          )}
           <div className="flex flex-col gap-1">
             <InputField id="w-termin"
               label="Nächster Termin"

@@ -11,7 +11,7 @@
  * (Dienst) spielt zurück, was war — kein Trigger setzt dort „jetzt“ ein.
  */
 import { describe, it, expect, beforeAll } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { Client } from 'pg';
 import { admin, betriebAnlegen, konto, type Konto } from './helfer';
@@ -213,7 +213,16 @@ describe('Wartung: jede Ausführung', () => {
     });
     await db.connect();
     try {
-      await db.query(readFileSync(join(__dirname, '../../supabase/migrations/20261012200000_verlaeufe.sql'), 'utf8'));
+      /*
+        EINGESPIELT WIE IM BETRIEB: diese Migration UND alle danach, in ihrer
+        Reihenfolge. Nur diese eine Datei setzte Funktionen, die eine spätere
+        neu fasst (Stand 18, G2), auf den alten Stand zurück — und jede
+        Prüfung danach liefe gegen eine Datenbank, die es so nie gibt.
+      */
+      const ordner = join(__dirname, '../../supabase/migrations');
+      for (const datei of readdirSync(ordner).filter((d) => d >= '20261012200000' && d.endsWith('.sql')).sort()) {
+        await db.query(readFileSync(join(ordner, datei), 'utf8'));
+      }
     } finally {
       await db.end();
     }
