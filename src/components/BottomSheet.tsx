@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { istOben, useFokusFalle } from './fokusFalle';
+import { istOben, tabZiele, useFokusFalle } from './fokusFalle';
 import { AB_TABLET } from '@/lib/breiten';
 import { ImFenster } from './imFenster';
 import { useHintergrundSperre } from './hintergrundSperre';
@@ -87,6 +87,32 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, schliessen]);
+
+  /*
+    DER INHALT IST MIT DER TASTATUR ERREICHBAR (axe, Stand 18, K2): steht im
+    Fenster nur Text — die Hilfe zu einer Seite —, nimmt darin nichts den
+    Fokus, und ein langer Text liesse sich ohne Maus nicht rollen. Dann wird
+    der Inhalt selbst ein Halt. NUR DANN: wo Knöpfe oder Felder darin stehen,
+    rollt der Fokus über sie mit, und ein weiterer Halt vor jedem Formular
+    wäre nur ein Tab mehr. Der Inhalt kann sich nach dem Öffnen ändern (es
+    lädt), deshalb wird bei jeder Änderung neu entschieden.
+  */
+  useEffect(() => {
+    const inhalt = scrollRef.current;
+    if (!open || !inhalt) return;
+    const entscheiden = () => {
+      const nurText = tabZiele(inhalt).length === 0;
+      // Nur bei einem Wechsel schreiben: das Schreiben selbst meldet der Beobachter wieder.
+      if (nurText && inhalt.getAttribute('tabindex') !== '0') inhalt.setAttribute('tabindex', '0');
+      else if (!nurText && inhalt.hasAttribute('tabindex')) inhalt.removeAttribute('tabindex');
+    };
+    entscheiden();
+    const beobachter = new MutationObserver(entscheiden);
+    beobachter.observe(inhalt, {
+      childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'tabindex', 'href', 'hidden'],
+    });
+    return () => beobachter.disconnect();
+  }, [open]);
 
   if (!open) return null;
 
