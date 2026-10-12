@@ -207,6 +207,37 @@ describe('Einteilung', () => {
   });
 });
 
+/**
+ * Audit: Wird nur EIN Einsatz gelöscht, darf die Rüstliste dessen vorherige
+ * Mitgliedschaft nicht mehr zur Autorisierung von Lagerbewegungen verwenden.
+ * `it.fails` = Sollanforderung derzeit verletzt, NICHT repariert.
+ */
+describe('Audit: einzelner Einsatz gelöscht, Abhakrecht muss enden', () => {
+  it.fails('verweigert dem ausgeladenen Monteur das Markieren der alten Rüstliste', async () => {
+    clientEinreichen(planer.client);
+    await leeren();
+    try {
+      await einsaetze.saveAssignments(BETRIEB, TAG, BAU, [zeile(anton)]);
+      await ruest.saveEinsatzMaterial(
+        BETRIEB, TAG, BAU, [position('audit-entzug', 'Rohr')], [anton.uid], 'Planer',
+      );
+      const zuLoeschen = (await einsaetze.listAssignmentsForDate(BETRIEB, TAG))
+        .find((e) => e.userId === anton.uid);
+      expect(zuLoeschen).toBeDefined();
+      await einsaetze.deleteAssignment(zuLoeschen!.id);
+
+      clientEinreichen(anton.client);
+      // Soll: ab hier nicht mehr berechtigt, auch nicht durch direkten RPC-Aufruf.
+      await expect(ruest.ladenUmschalten(
+        BETRIEB, TAG, BAU, 'audit-entzug', true, 'Anton',
+      )).rejects.toThrow();
+    } finally {
+      clientEinreichen(planer.client);
+      await leeren();
+    }
+  });
+});
+
 describe('Einteilung lesen', () => {
   const TAGE = ['2026-06-01', '2026-06-02', '2026-06-03', '2026-06-04'];
 
