@@ -11,6 +11,9 @@
  * (Dienst) spielt zurück, was war — kein Trigger setzt dort „jetzt“ ein.
  */
 import { describe, it, expect, beforeAll } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { Client } from 'pg';
 import { admin, betriebAnlegen, konto, type Konto } from './helfer';
 import * as wartungen from '@/lib/db/pg/wartungen';
 import { clientEinreichen } from '@/lib/db/pg/kern';
@@ -194,6 +197,27 @@ describe('Wartung: jede Ausführung', () => {
     await wartungen.deleteWartung(id);
     expect(await ausfuehrungen(id)).toEqual([]);
     clientEinreichen(null);
+  });
+
+  it('übernimmt beim Einspielen den Bestand: die letzte Wartung einer älteren Anlage', async () => {
+    // Wie eine Anlage von vor dieser Fassung: über den Dienst angelegt, also ohne Ausführung.
+    const { data } = await admin.from('wartungen').insert({
+      company_id: BETRIEB, customer_id: kunde, customer_name: 'Familie Huber', anlage: 'Speicher',
+      intervall_monate: 12, zuletzt_am: '2025-07-07', letzte_baustelle: 'B-2025-0077', faellig_am: '2026-07-07',
+    }).select('id').single();
+    const id = (data as { id: string }).id;
+    expect(await ausfuehrungen(id)).toEqual([]);
+
+    const db = new Client({
+      connectionString: process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
+    });
+    await db.connect();
+    try {
+      await db.query(readFileSync(join(__dirname, '../../supabase/migrations/20261012200000_verlaeufe.sql'), 'utf8'));
+    } finally {
+      await db.end();
+    }
+    expect(await ausfuehrungen(id)).toEqual([{ am: '2025-07-07', baustelle: 'B-2025-0077' }]);
   });
 
   it('gleich geblieben: der Dienst spielt Wartungen ohne erfundene Ausführung zurück', async () => {

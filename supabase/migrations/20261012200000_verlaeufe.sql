@@ -154,6 +154,7 @@ create index if not exists wartung_ausfuehrungen_wartung on public.wartung_ausfu
 alter table public.wartung_ausfuehrungen enable row level security;
 
 -- Lesen wie die Wartungen selbst. Geschrieben wird nur über den Trigger.
+drop policy if exists wartung_ausfuehrungen_lesen on public.wartung_ausfuehrungen;
 create policy wartung_ausfuehrungen_lesen on public.wartung_ausfuehrungen
   for select using (
     (company_id = (select app.lesebetrieb())) or (company_id = (select app.supportbetrieb()))
@@ -201,6 +202,18 @@ drop trigger if exists wartungen_ausfuehrung on public.wartungen;
 create trigger wartungen_ausfuehrung
   after insert or update of zuletzt_am on public.wartungen
   for each row execute function app.wartung_ausfuehrung_festhalten();
+
+/*
+  DER BESTAND: was „zuletzt gewartet“ heute sagt, ist eine Ausführung, die
+  festgehalten ist — sie wird einmal übernommen. Ohne das verschwände sie
+  beim ersten „Erledigt“ nach dieser Fassung aus dem Verlauf. Frühere
+  Ausführungen hat die Datenbank nie gekannt; sie bleiben weg.
+*/
+insert into public.wartung_ausfuehrungen (company_id, wartung_id, am, baustelle)
+select w.company_id, w.id, w.zuletzt_am, nullif(btrim(w.letzte_baustelle), '')
+  from public.wartungen w
+ where w.zuletzt_am is not null
+on conflict (wartung_id, am) do nothing;
 
 -- ---------------------------------------------------------------------------
 -- 4. Datenauskunft eines Kunden — die Ausführungen stehen bei ihrer Wartung
