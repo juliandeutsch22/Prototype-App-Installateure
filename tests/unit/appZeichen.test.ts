@@ -1,10 +1,12 @@
 /**
- * App-Zeichen und Favicon — das Senklot auf Weiß (seit 04.10.2026).
+ * App-Zeichen und Favicon — das Senklot weiss auf der Kachel in Petrol
+ * (seit 12.10.2026, vom Betrieb geliefert; davor auf Weiss).
  *
  * Was hier steht, sieht kein Test der Oberfläche: der Reiter, der
  * Startbildschirm, der Start der App unter Android. Ein falsch
- * zugeschnittenes Bild oder eine durchsichtige Ecke fällt erst am Telefon
- * auf — und iOS behält das Bild, bis die App dort neu hinzugefügt wird.
+ * zugeschnittenes Bild oder eine durchsichtige Ecke am falschen Ort fällt
+ * erst am Telefon auf — und iOS behält das Bild, bis die App dort neu
+ * hinzugefügt wird.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -13,28 +15,49 @@ import { inflateSync } from 'node:zlib';
 
 const lies = (pfad: string) => readFileSync(resolve(process.cwd(), pfad));
 
-/** Breite, Höhe und das Pixel links oben — mehr braucht die Prüfung nicht. */
-function pngKopf(daten: Buffer) {
+/**
+ * Ein PNG ganz gelesen: Breite, Höhe und jedes Pixel als RGBA. Nur was
+ * `rastern.mjs` schreibt — 8 Bit, RGB oder RGBA, ohne Zeilensprung —, dafür
+ * jeder der fünf Zeilenfilter.
+ */
+function pngLesen(daten: Buffer) {
   expect(daten.subarray(1, 4).toString('latin1')).toBe('PNG');
   const breite = daten.readUInt32BE(16);
   const hoehe = daten.readUInt32BE(20);
+  expect(daten[24], 'nur 8 Bit je Kanal').toBe(8);
+  expect(daten[28], 'ohne Zeilensprung').toBe(0);
   const farbtyp = daten[25];
+  const kanaele = farbtyp === 6 ? 4 : farbtyp === 2 ? 3 : 0;
+  expect(kanaele, 'nur RGB oder RGBA').toBeGreaterThan(0);
   const idat: Buffer[] = [];
   for (let i = 8; i < daten.length; ) {
     const laenge = daten.readUInt32BE(i);
     if (daten.subarray(i + 4, i + 8).toString('latin1') === 'IDAT') idat.push(daten.subarray(i + 8, i + 8 + laenge));
     i += 12 + laenge;
   }
-  /*
-    Das erste Pixel der ersten Zeile steht in jedem PNG-Filter unverändert
-    da: es hat weder einen linken noch einen oberen Nachbarn, alle Vorhersagen
-    sind null. Ein ganzer Dekoder wäre hier zu viel.
-  */
   const roh = inflateSync(Buffer.concat(idat));
-  const kanaele = farbtyp === 6 ? 4 : farbtyp === 2 ? 3 : 0;
-  expect(kanaele, 'nur RGB oder RGBA mit 8 Bit').toBeGreaterThan(0);
-  const ecke = [...roh.subarray(1, 1 + kanaele)];
-  return { breite, hoehe, ecke: kanaele === 3 ? [...ecke, 255] : ecke };
+  const zeile = breite * kanaele;
+  const bild = new Uint8Array(zeile * hoehe);
+  for (let y = 0; y < hoehe; y += 1) {
+    const filter = roh[y * (zeile + 1)];
+    const ein = y * (zeile + 1) + 1;
+    for (let x = 0; x < zeile; x += 1) {
+      const a = x >= kanaele ? bild[y * zeile + x - kanaele] : 0;
+      const b = y > 0 ? bild[(y - 1) * zeile + x] : 0;
+      const c = x >= kanaele && y > 0 ? bild[(y - 1) * zeile + x - kanaele] : 0;
+      const p = a + b - c;
+      const pa = Math.abs(p - a);
+      const pb = Math.abs(p - b);
+      const pc = Math.abs(p - c);
+      const vorhersage = [0, a, b, (a + b) >> 1, pa <= pb && pa <= pc ? a : pb <= pc ? b : c][filter];
+      bild[y * zeile + x] = (roh[ein + x] + vorhersage) & 0xff;
+    }
+  }
+  const pixel = (x: number, y: number): [number, number, number, number] => {
+    const i = (y * breite + x) * kanaele;
+    return [bild[i], bild[i + 1], bild[i + 2], kanaele === 4 ? bild[i + 3] : 255];
+  };
+  return { breite, hoehe, pixel };
 }
 
 const manifest = JSON.parse(lies('public/manifest.webmanifest').toString('utf8'));
@@ -68,15 +91,60 @@ describe('App-Zeichen und Favicon', () => {
   });
 
   it.each(ZEICHEN)('$datei ist quadratisch in der angegebenen Größe', ({ datei, groesse }) => {
-    const { breite, hoehe } = pngKopf(lies(`public/${datei}`));
+    const { breite, hoehe } = pngLesen(lies(`public/${datei}`));
     expect([breite, hoehe]).toEqual([groesse, groesse]);
   });
 
-  it.each(ZEICHEN)('$datei hat eine deckend weisse Ecke — keine durchsichtige', ({ datei }) => {
-    // iOS rechnet Durchsichtigkeit gegen Schwarz: eine durchsichtige Ecke
-    // würde dort schwarz. Android schneidet rund zu. Beides geht nur ohne
-    // Bruch, wenn der Grund bis in die Ecke deckend Weiss ist.
-    expect(pngKopf(lies(`public/${datei}`)).ecke).toEqual([255, 255, 255, 255]);
+  /*
+    ZWEI FORMEN. Wo der Browser oder das System das Bild so zeigt, wie es
+    ist (Reiter, Zeichen „any“), steht die Kachel mit ihren runden Ecken —
+    die Ecken sind durchsichtig. Wo das System selbst zuschneidet (iOS,
+    Android maskable), ist das Bild randlos und deckend: iOS rechnet
+    Durchsichtiges gegen Schwarz, und eine Ecke der Kachel innerhalb der
+    Maske von Android stünde als heller Fleck da.
+  */
+  const RANDLOS = ['apple-touch-icon.png', 'icon-maskable-512.png'];
+  const KACHEL = ZEICHEN.filter((z) => !RANDLOS.includes(z.datei));
+
+  it.each(KACHEL)('$datei ist die Kachel: durchsichtige Ecken, deckende Mitte', ({ datei, groesse }) => {
+    const { pixel } = pngLesen(lies(`public/${datei}`));
+    const r = groesse - 1;
+    // Bei 16 px ragt die Rundung knapp in das Eckpixel (Deckkraft 7 von 255) — durchsichtig heisst hier: fast nichts.
+    for (const [x, y] of [[0, 0], [r, 0], [0, r], [r, r]]) expect(pixel(x, y)[3], `Ecke ${x},${y}`).toBeLessThan(16);
+    expect(pixel(groesse >> 1, groesse >> 2)[3], 'oben in der Mitte').toBe(255);
+  });
+
+  it.each(RANDLOS.map((datei) => ({ datei })))('$datei ist randlos und in jedem Pixel deckend', ({ datei }) => {
+    const { breite, hoehe, pixel } = pngLesen(lies(`public/${datei}`));
+    const durchsichtig: string[] = [];
+    for (let y = 0; y < hoehe; y += 1) {
+      for (let x = 0; x < breite; x += 1) if (pixel(x, y)[3] !== 255) durchsichtig.push(`${x},${y}`);
+    }
+    expect(durchsichtig.slice(0, 5)).toEqual([]);
+    // Die Ecke ist der Grund der Kachel (Petrol), nicht Weiss und nicht Schwarz.
+    const [r, g, b] = pixel(0, 0);
+    expect(b, 'Petrol: mehr Blau als Rot').toBeGreaterThan(r + 40);
+    expect(g, 'Petrol: mehr Grün als Rot').toBeGreaterThan(r + 40);
+  });
+
+  it('das maskable Zeichen hält das Senklot im sicheren Kreis', () => {
+    // Android garantiert nur einen Kreis von 80 % der Breite um die Mitte;
+    // was ausserhalb liegt, schneidet eine runde Maske weg — zuerst die Schnur.
+    const { breite, hoehe, pixel } = pngLesen(lies('public/icon-maskable-512.png'));
+    const mitte = breite / 2;
+    let weitester = 0;
+    let gefunden = 0;
+    for (let y = 0; y < hoehe; y += 1) {
+      for (let x = 0; x < breite; x += 1) {
+        const [r, g, b] = pixel(x, y);
+        if (r > 200 && g > 200 && b > 200) {
+          gefunden += 1;
+          weitester = Math.max(weitester, Math.hypot(x + 0.5 - mitte, y + 0.5 - mitte));
+        }
+      }
+    }
+    expect(gefunden, 'das weisse Senklot ist da').toBeGreaterThan(breite * hoehe * 0.05);
+    expect(weitester / breite).toBeLessThanOrEqual(0.4);
   });
 
   it.each(ZEICHEN)('$datei ist dieselbe Datei wie in marke/', ({ datei }) => {
@@ -85,8 +153,10 @@ describe('App-Zeichen und Favicon', () => {
     expect(lies(`public/${datei}`).equals(lies(`marke/${datei}`))).toBe(true);
   });
 
-  it('startet unter Android auf dem Grund des Zeichens', () => {
-    // Auf einer anderen Farbe stünde beim Start ein weisses Quadrat.
+  it('startet unter Android auf Weiss, wie die App', () => {
+    // Der Startbildschirm unter Android zeigt das Zeichen auf dieser Farbe,
+    // gleich danach kommt die helle App. Mit der Kachel steht dort ein
+    // Zeichen in Petrol auf Weiss — so wie im Reiter des Browsers.
     expect(manifest.background_color.toLowerCase()).toBe('#ffffff');
   });
 

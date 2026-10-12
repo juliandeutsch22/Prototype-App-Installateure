@@ -13,7 +13,7 @@ kommt von *plumbum*, Blei — dem Werkstoff des Senklots.
 |---|---|
 | `logo.svg` | Wortmarke, waagrecht. Für Kopfzeilen, Briefpapier, Anmeldebildschirm |
 | `icon.svg` | Das Zeichen als Fläche, 64er-Raster — die Maße für Wortmarke und Produktmarke |
-| `app-zeichen.png` | **Vorlage für App-Zeichen und Favicon**: das Senklot auf Weiß, 1024 × 1536 |
+| `app-zeichen.png` | **Vorlage für App-Zeichen und Favicon**: das Senklot weiß auf der Kachel in Petrol, 1254 × 1254, wie geliefert |
 | `*.png` (übrige) | Aus `app-zeichen.png` erzeugt, siehe unten |
 
 ## Die Form (seit 03.10.2026)
@@ -37,36 +37,41 @@ Die Maße stehen in `icon.svg` (64er-Raster); `logo.svg`, die Produktmarke in
 der App (`src/components/ProduktMarke.tsx`) und der Kopf des Handbuchs tragen
 dieselben Pfade.
 
-## App-Zeichen und Favicon (seit 04.10.2026)
+## App-Zeichen und Favicon (seit 12.10.2026)
 
-Am Startbildschirm und im Browserreiter steht seit dem 04.10.2026 ein Bild
-statt der Fläche: das Senklot in Petrol mit Glanz auf Weiß
-(`app-zeichen.png`), vom Betrieb ausgesucht. **Nur dort.** Wortmarke,
-Produktmarke in der App und Kopf des Handbuchs bleiben die einfarbige Fläche
-aus `icon.svg` — sie stehen klein, weiß auf Petrol oder neben Schrift, und
-dort trägt eine Fläche, ein Glanzbild nicht.
+Am Startbildschirm und im Browserreiter steht seit dem 12.10.2026 das
+Senklot **weiß auf einer Kachel in Petrol**, mit Verlauf und Fase — vom
+Betrieb geliefert und ausgesucht. **Nur dort.** Wortmarke, Produktmarke in
+der App und Kopf des Handbuchs bleiben die einfarbige Fläche aus `icon.svg`
+— sie stehen klein, weiß auf Petrol oder neben Schrift, und dort trägt eine
+Fläche, ein Glanzbild nicht.
 
-Die gelieferte Datei zeigte das Senklot mit Glühen auf Schwarz. Ihr Grund ist
-durchsichtig; das Glühen steht nur in den Farbwerten, die Durchsichtigkeit
-schneidet das Senklot sauber frei. Am selben Tag hat der Betrieb sich für
-Weiß entschieden (zuerst war es kurz das Bild auf Schwarz, #238).
-`app-zeichen.png` ist deshalb die Datei auf Weiß gelegt — das Glühen gehört
-zum schwarzen Grund und fällt dabei weg. Abseits des Senklots lagen noch Reste
-mit höchstens 2 % Deckkraft, auf Weiß als grauer Schleier zu sehen; sie sind
-entfernt, die Kanten des Senklots sind unberührt.
+`app-zeichen.png` ist die gelieferte Datei, unverändert: die Kachel auf
+durchsichtigem Grund. Was an ihr nicht stimmte, bereinigt `rastern.mjs`
+beim Erzeugen, nicht die Vorlage: die Kachel war innen nicht ganz deckend
+(246–253 statt 255) und ringsum lagen Reste mit höchstens 2 % Deckkraft, auf
+Weiß ein grauer Schleier. Die geglättete Kante der Kachel bleibt unberührt.
 
-Wie zugeschnitten wird, steht in `rastern.mjs`:
+Wie zugeschnitten wird, steht in `rastern.mjs`. Es gibt zwei Formen:
 
-* **Hochformat aufs Quadrat.** Die Vorlage kommt mittig auf ein weißes
-  Quadrat; sie ist am ganzen Rand weiß, der Übergang ist unsichtbar.
-* **Das Favicon ist enger zugeschnitten** als das App-Zeichen, damit bei
-  16 px möglichst viel vom Zeichen bleibt. Die Schnur ist dort nur noch ein
-  Hauch; erkennbar bleibt das Lot an Schulter und Spitze.
-* **`icon-maskable-512.png` zeigt das ganze Quadrat**, weil Android bis auf
-  einen Kreis von 80 % wegschneidet. Ohne den Rand köpft das System die
-  Schnur.
-* **Apple-Touch-Icon quadratisch und randlos**, ohne durchsichtige Ecke: iOS
-  rundet selbst ab.
+* **Die Kachel** für den Reiter und die Zeichen `icon-192`/`icon-512`
+  („any“): so, wie geliefert, die runden Ecken durchsichtig.
+* **Randlos** für `apple-touch-icon.png` und `icon-maskable-512.png`: iOS
+  rundet selbst ab und rechnet Durchsichtiges vorher gegen Schwarz, Android
+  schneidet das maskable Zeichen in seine Form. Genommen wird das Innere der
+  Kachel ohne Rand und Fase (112 px vom Rand) und ringsum mit seiner
+  äußersten Zeile und Spalte verlängert, bis das Senklot nur noch bis 38 %
+  der Breite von der Mitte reicht — Android garantiert einen Kreis von
+  40 %. In der Verlängerung läuft der Grund eben; bei starker Vergrößerung
+  sind dort feine Streifen zu erkennen, in Originalgröße und unter der Maske
+  nicht.
+* **Das Favicon ist die Kachel im Kleinen.** Bei 16 px ist das Senklot nur
+  noch angedeutet — Schulter und Spitze als heller Fleck, die Schnur ein
+  Hauch. Ab 32 px ist es klar zu erkennen.
+
+Davor (04.–12.10.2026) war es das Senklot in Petrol mit Glanz auf Weiß, ganz
+am Anfang des 04.10. kurz auf Schwarz (#238, #241); die Vorlagen stehen in
+der Geschichte des Repositorys.
 
 Bis zum 03.10.2026 war das Favicon eine eigene Zeichnung für 16 px
 (`favicon.svg`, ohne Schnur, mit breiteren Fugen). Mit dem Bild als Vorlage
@@ -84,7 +89,7 @@ Zwei, mehr nicht.
 | Grund | `#FFFFFF` |
 
 Das gilt für die Fläche (Wortmarke, Produktmarke). App-Zeichen und Favicon
-sind seit dem 04.10.2026 das Bild auf Weiß, siehe oben — derselbe Grund.
+sind seit dem 12.10.2026 das gelieferte Bild — weiß auf Petrol, siehe oben.
 
 ### Die Platte war weiss, nicht petrol (bis 03.10.2026)
 
@@ -107,6 +112,12 @@ schwarzen Ecken geworden.
 Auf dunklem Grund steht das Zeichen in `#FFFFFF` ohne Platte — so in der
 Seitenleiste und über dem Anmeldeformular.
 
+**Seit dem 12.10.2026 ist das App-Zeichen wieder weiß auf Petrol** — die
+Kachel, die der Betrieb geliefert hat. Die Abwägung oben gilt weiter und
+zeigt sich genau dort, wo sie vorhergesagt war: bei 16 px im Reiter läuft
+das helle Senklot an den Kanten zu. Die Fläche (Wortmarke, Produktmarke)
+bleibt, wie sie ist.
+
 ## PNG neu erzeugen
 
 ```
@@ -128,10 +139,17 @@ macht.
 
 Der Service Worker nimmt `/icon-192.png` als Bild der Push-Meldung und
 `/favicon-64.png` als Abzeichen — beides wechselt damit mit. Android zeichnet
-das Abzeichen in der Statusleiste nur aus der Durchsichtigkeit; ein deckendes
-Bild wird dort ein volles Quadrat. Das war mit der weissen Platte schon so
-(damals mit gerundeten Ecken) und bleibt eine offene Kleinigkeit: ein eigenes
-Abzeichen als weisse Silhouette auf durchsichtigem Grund.
+das Abzeichen in der Statusleiste nur aus der Durchsichtigkeit; mit der Kachel
+wird es dort ein Quadrat mit runden Ecken, wie mit der weissen Platte bis
+03.10.2026. Offen bleibt die Kleinigkeit von damals: ein eigenes Abzeichen
+als weisse Silhouette auf durchsichtigem Grund.
+
+Die Bilder tragen keinen Fingerabdruck im Namen, der Service Worker hält sie
+trotzdem vor (`public/sw.js`, „erst Speicher, dann Netz“). Neu geholt werden
+sie mit der nächsten Fassung: jeder Bau schreibt Commit und Bauzeit in das
+JavaScript, damit ändert sich `index.html`, der Worker erkennt die neue
+Fassung und leert nach der Übernahme seinen Speicher. Ein Wechsel nur der
+Bilder ohne neuen Bau erreichte vorhandene Geräte also nicht.
 
 Am Startbildschirm und im Reiter steht jetzt **Senklot**
 (`manifest.webmanifest`, `<title>`), und über dem Anmeldeformular steht die
