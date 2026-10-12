@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
 import type { Assignment, EinsatzMaterial, Project, Termin, Vacation } from '@/types';
+import { zurueckhalten } from './zurueckhalten';
 
 /**
  * „Mein Einsatzplan" — die Ansicht, in der der Monteur sieht, wo er in den
@@ -149,13 +150,13 @@ describe('Mein Einsatzplan — der Einsatz selbst', () => {
 describe('Mein Einsatzplan — beim Laden', () => {
   it('zeigt gleich den Kundennamen, nie zuerst die Nummer', async () => {
     const { listProjectsByNumbers } = await import('@/lib/db/projects');
-    let liefern: (p: unknown) => void = () => undefined;
-    vi.mocked(listProjectsByNumbers).mockImplementationOnce(() => new Promise((ok) => { liefern = ok; }) as never);
+    const baustellen = zurueckhalten<Project[]>();
+    vi.mocked(listProjectsByNumbers).mockImplementationOnce(baustellen.antwort as never);
     zeichne();
-    await waitFor(() => expect(listProjectsByNumbers).toHaveBeenCalled());
+    await waitFor(() => expect(baustellen.gefragt).toBe(true));
     expect(screen.queryByText('Bad')).not.toBeInTheDocument();
     expect(screen.queryByText(/Kein kommender Urlaub/)).not.toBeInTheDocument();
-    await act(async () => liefern(BAUSTELLEN));
+    await act(async () => baustellen.liefern(BAUSTELLEN));
     const karte = (await screen.findByText(/Einsätze am/)).closest('section')!;
     expect(within(karte).getAllByText(/Familie Huber/).length).toBeGreaterThan(0);
   });

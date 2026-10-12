@@ -7,6 +7,7 @@ import type { AppUser } from '@/types';
 import UserMgmtView from '@/features/users/UserMgmtView';
 import { istBenutzerkonto, kunstadresse } from '@shared/benutzername';
 import { leseZahl } from '@/lib/zahl';
+import { zurueckhalten } from './zurueckhalten';
 
 /**
  * Benutzerverwaltung — wer im Betrieb was darf, und wer noch hinein kommt.
@@ -136,12 +137,13 @@ beforeEach(() => {
 describe('Die Zahl der Benutzer', () => {
   it('steht erst mit der Liste da', async () => {
     const { listUsers } = await import('@/lib/db/users');
-    let liefern: (l: unknown) => void = () => undefined;
-    vi.mocked(listUsers).mockImplementationOnce(() => new Promise((ok) => { liefern = ok as (l: unknown) => void; }) as never);
+    const liste = zurueckhalten<unknown>();
+    vi.mocked(listUsers).mockImplementationOnce(liste.antwort as never);
     zeige();
     expect(await screen.findByText('Benutzer')).toBeInTheDocument();
+    await waitFor(() => expect(liste.gefragt).toBe(true));
     expect(screen.queryByText(/Benutzer \(0\)/)).not.toBeInTheDocument();
-    await act(async () => liefern(leute));
+    await act(async () => liste.liefern(leute));
     expect(await screen.findByText(new RegExp(`Benutzer \\(${leute.length}\\)`))).toBeInTheDocument();
   });
 });

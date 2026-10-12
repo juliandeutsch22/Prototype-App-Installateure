@@ -7,6 +7,7 @@ import { ToastProvider } from '@/components/Toast';
 import type { Role, WorkSheet } from '@/types';
 import { todayStr } from '@/lib/time';
 import { buildWorkSheetPdf } from '@/features/worksheets/worksheetPdf';
+import { zurueckhalten } from './zurueckhalten';
 
 /**
  * Der Weg zurück in einen Entwurf.
@@ -629,16 +630,16 @@ describe('Stunden ohne Buchung', () => {
   it('wirft niemandem etwas vor, solange die Buchungen noch laden', async () => {
     authWert.user.role = 'Buchhaltung';
     geladen = [offenerSchein()];
-    let liefern: (r: Array<Record<string, unknown>>) => void = () => undefined;
-    zeitenGeholt.mockImplementationOnce(() => new Promise((ok) => { liefern = ok; }));
+    const zeiten = zurueckhalten<Array<Record<string, unknown>>>();
+    zeitenGeholt.mockImplementationOnce(zeiten.antwort);
     zeichne();
-    await waitFor(() => expect(zeitenGeholt).toHaveBeenCalled());
+    await waitFor(() => expect(zeiten.gefragt).toBe(true));
     expect(screen.getByText('Stunden ohne Buchung')).toBeInTheDocument();
     expect(screen.queryByText(/keine Buchung gefunden/)).not.toBeInTheDocument();
     expect(screen.queryByText(/stehen unterschrieben beim Kunden/)).not.toBeInTheDocument();
 
     // Die Buchung ist da — dann gibt es auch keinen Befund.
-    await act(async () => liefern([{ date: vorTagen(10), status: 'Anwesend', projectNumber: 'B-009', userName: 'Franz Huber' }]));
+    await act(async () => zeiten.liefern([{ date: vorTagen(10), status: 'Anwesend', projectNumber: 'B-009', userName: 'Franz Huber' }]));
     expect(await screen.findByText('Stunden ohne Buchung (0)')).toBeInTheDocument();
     expect(screen.queryByText(/keine Buchung gefunden/)).not.toBeInTheDocument();
   });
@@ -646,12 +647,12 @@ describe('Stunden ohne Buchung', () => {
   it('die Liste darunter wartet beim ersten Öffnen auf die Prüfung — und bleibt danach stehen', async () => {
     authWert.user.role = 'Buchhaltung';
     geladen = [offenerSchein()];
-    let liefern: (r: Array<Record<string, unknown>>) => void = () => undefined;
-    zeitenGeholt.mockImplementationOnce(() => new Promise((ok) => { liefern = ok; }));
+    const zeiten = zurueckhalten<Array<Record<string, unknown>>>();
+    zeitenGeholt.mockImplementationOnce(zeiten.antwort);
     zeichne();
-    await waitFor(() => expect(zeitenGeholt).toHaveBeenCalled());
+    await waitFor(() => expect(zeiten.gefragt).toBe(true));
     expect(screen.queryByLabelText('Scheine durchsuchen')).not.toBeInTheDocument();
-    await act(async () => liefern([]));
+    await act(async () => zeiten.liefern([]));
     expect(await screen.findByLabelText('Scheine durchsuchen')).toBeInTheDocument();
     // „Weiter zurück prüfen“: die Liste bleibt, während die tiefere Prüfung lädt.
     tiefGeladen = [offenerSchein({ id: 'alt', datum: vorTagen(80) })];

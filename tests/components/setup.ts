@@ -1,21 +1,7 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup, configure } from '@testing-library/react';
+import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 import { zwischenspeicherLeeren } from '@/lib/zwischenspeicher';
-
-/*
-  WARTEZEIT DER ABFRAGEN: 3 STATT 1 SEKUNDE (12.10.2026).
-
-  `findBy…` und `waitFor` warten ab Werk eine Sekunde. Ein Ansichtstest
-  braucht allein etwa 100 ms; in der CI laufen aber viele nachgebaute Browser
-  zugleich auf wenigen Kernen, und einmal brauchte „Mein Einsatzplan“ dort
-  länger als die Sekunde — die Auslieferung von #296 blieb stehen, ohne dass
-  in der App etwas falsch war. Drei Sekunden lassen dem Unterschied Raum und
-  bleiben unter der Grenze eines Tests (5 s): was nie erscheint, scheitert
-  weiter mit der klaren Meldung der Abfrage. Wo ein Test bewusst kürzer
-  wartet, setzt er das selbst.
-*/
-configure({ asyncUtilTimeout: 3000 });
 
 // Nach jedem Test das DOM leeren. Ohne das sammeln sich die gerenderten
 // Bäume an und eine Abfrage wie getByRole('button') findet plötzlich

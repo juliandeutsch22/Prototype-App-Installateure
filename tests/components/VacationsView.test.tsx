@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Vacation } from '@/types';
 import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
+import { zurueckhalten } from './zurueckhalten';
 
 /**
  * Urlaub war bisher ein Tagesstatus in der Zeiterfassung: jeder konnte ihn
@@ -423,13 +424,13 @@ describe('Urlaub im Monat und gleichzeitig', () => {
 describe('Urlaub beim Laden', () => {
   it('zeigt Formular und Zahlen erst, wenn die eigenen Anträge da sind', async () => {
     const { listOwnVacations } = await import('@/lib/db/vacations');
-    let liefern: (l: Vacation[]) => void = () => undefined;
-    vi.mocked(listOwnVacations).mockImplementationOnce(() => new Promise((ok) => { liefern = ok as (l: Vacation[]) => void; }) as never);
+    const eigene = zurueckhalten<Vacation[]>();
+    vi.mocked(listOwnVacations).mockImplementationOnce(eigene.antwort as never);
     zeichne();
-    await waitFor(() => expect(listOwnVacations).toHaveBeenCalled());
+    await waitFor(() => expect(eigene.gefragt).toBe(true));
     expect(screen.queryByLabelText('Von')).not.toBeInTheDocument();
     expect(screen.queryByText(/genehmigt:/)).not.toBeInTheDocument();
-    await act(async () => liefern([]));
+    await act(async () => eigene.liefern([]));
     expect(await screen.findByLabelText('Von')).toBeInTheDocument();
     expect(screen.getByText(/genehmigt:/)).toBeInTheDocument();
   });
@@ -625,8 +626,8 @@ describe('Genehmigende aus den Einstellungen', () => {
     await screen.findByLabelText('Von');
     expect(screen.queryByText(/Offene Anträge/)).not.toBeInTheDocument();
 
-    let liefern: (l: Vacation[]) => void = () => undefined;
-    vi.mocked(listOpenVacations).mockImplementationOnce(() => new Promise((ok) => { liefern = ok as (l: Vacation[]) => void; }) as never);
+    const offene = zurueckhalten<Vacation[]>();
+    vi.mocked(listOpenVacations).mockImplementationOnce(offene.antwort as never);
     genehmiger = ['buero'];
     ansicht.rerender(
       <MemoryRouter>
@@ -635,9 +636,9 @@ describe('Genehmigende aus den Einstellungen', () => {
         </ToastProvider>
       </MemoryRouter>,
     );
-    await waitFor(() => expect(listOpenVacations).toHaveBeenCalled());
+    await waitFor(() => expect(offene.gefragt).toBe(true));
     expect(screen.queryByText(/Offene Anträge/)).not.toBeInTheDocument();
-    await act(async () => liefern(antraege.filter((v) => v.status === 'Beantragt')));
+    await act(async () => offene.liefern(antraege.filter((v) => v.status === 'Beantragt')));
     expect(await screen.findByText('Offene Anträge (1)')).toBeInTheDocument();
   });
 
@@ -645,12 +646,13 @@ describe('Genehmigende aus den Einstellungen', () => {
   it('zeigt offene Anträge und Sonderurlaub erst zusammen', async () => {
     rolle = { ...rolle, uid: 'chef', name: 'Julian Deutsch', role: 'Geschäftsführung', docId: 'chef' };
     const { listOffeneFreistellungen } = await import('@/lib/db/freistellungen');
-    let liefern: (l: unknown[]) => void = () => undefined;
-    vi.mocked(listOffeneFreistellungen).mockImplementationOnce(() => new Promise((ok) => { liefern = ok as (l: unknown[]) => void; }) as never);
+    const sonder = zurueckhalten<unknown[]>();
+    vi.mocked(listOffeneFreistellungen).mockImplementationOnce(sonder.antwort as never);
     zeichne();
     await screen.findByLabelText('Von');
+    await waitFor(() => expect(sonder.gefragt).toBe(true));
     expect(screen.queryByText(/Offene Anträge/)).not.toBeInTheDocument();
-    await act(async () => liefern([]));
+    await act(async () => sonder.liefern([]));
     expect(await screen.findByText(/Offene Anträge \(\d+\)/)).toBeInTheDocument();
   });
 

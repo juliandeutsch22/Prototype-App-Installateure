@@ -8,6 +8,7 @@ import type { Invoice, Material, Project, TimeEntry, WorkSheet } from '@/types';
 import InvoicesView from '@/features/invoices/InvoicesView';
 import { bankgarantieSetzen, cancelInvoice, updateInvoiceStatus } from '@/lib/db/invoices';
 import { updateCustomer } from '@/lib/db/customers';
+import { zurueckhalten } from './zurueckhalten';
 
 /**
  * Die Rechnungsansicht — bis jetzt ohne eigenen Test, und dabei die Ansicht,
@@ -3567,21 +3568,21 @@ describe('Solange die offenen Forderungen laden', () => {
     screen.getAllByText(name).find((e) => e.tagName === 'P')!.parentElement!;
 
   it('stehen Platzhalter statt „€ 0,00“, und die Liste erscheint erst mit ihnen', async () => {
-    let liefern: (r: (Invoice & { id: string })[]) => void = () => undefined;
-    listUnpaidInvoices.mockImplementationOnce(() => new Promise((ok) => { liefern = ok; }));
+    const offene = zurueckhalten<(Invoice & { id: string })[]>();
+    listUnpaidInvoices.mockImplementationOnce(offene.antwort);
     rechnungen = [{
       id: 'j', invoiceNumber: 'RE-2026-1200', projectNumber: '2026-001', customerName: 'Max',
       invoiceDate: '2026-08-20', dueDate: '2099-01-01', totalNetto: 100, totalVat: 20, totalBrutto: 120,
       paymentStatus: 'Offen',
     }] as unknown as (Invoice & { id: string })[];
     zeige();
-    await waitFor(() => expect(listUnpaidInvoices).toHaveBeenCalled());
+    await waitFor(() => expect(offene.gefragt).toBe(true));
     expect(within(kachel('Offen')).getByRole('status')).toHaveTextContent('wird geladen');
     expect(kachel('Offen')).not.toHaveTextContent('€ 0,00');
     expect(kachel('Überfällig')).not.toHaveTextContent('€ 0,00');
     expect(screen.queryByText(/RE-2026-1200/)).not.toBeInTheDocument();
 
-    await act(async () => liefern([{
+    await act(async () => offene.liefern([{
       id: 'alt', invoiceNumber: 'RE-2024-1001', projectNumber: '2024-001', customerName: 'Moritz',
       invoiceDate: '2024-03-01', dueDate: '2024-03-15', totalNetto: 1000, totalVat: 200, totalBrutto: 1200,
       paymentStatus: 'Überfällig',

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { Assignment, MaterialOrder, Project, Termin, TimeEntry } from '@/types';
 import type { BaustellenStunden } from '@/lib/db/timeEntries';
+import { zurueckhalten } from './zurueckhalten';
 
 /**
  * Die Startseite hatte bis hierher KEINEN Test.
@@ -515,17 +516,17 @@ describe('Startseite — Geschäftsführung', () => {
     rolle.wert = 'Geschäftsführung';
     anforderungen.wert = [anforderung({ id: 'e1', isUrgent: true })];
     const { listUnpaidInvoices } = await import('@/lib/db/invoices');
-    let liefern: (r: unknown[]) => void = () => undefined;
-    vi.mocked(listUnpaidInvoices).mockImplementationOnce(() => new Promise((ok) => { liefern = ok as (r: unknown[]) => void; }) as never);
+    const offene = zurueckhalten<unknown[]>();
+    vi.mocked(listUnpaidInvoices).mockImplementationOnce(offene.antwort as never);
     zeichne();
-    await waitFor(() => expect(listUnpaidInvoices).toHaveBeenCalled());
+    await waitFor(() => expect(offene.gefragt).toBe(true));
     // Die Anforderungen sind längst da — gezeigt wird trotzdem noch nichts davon.
     await new Promise((r) => setTimeout(r, 50));
     expect(screen.queryByText(/Zu erledigen/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Eilanforderung/)).not.toBeInTheDocument();
     expect(document.querySelector('[data-geladen="nein"]')).not.toBeNull();
 
-    await act(async () => liefern([]));
+    await act(async () => offene.liefern([]));
     await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
     expect(await karteMit(/Zu erledigen/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /1 Eilanforderung offen/ })).toBeInTheDocument();
@@ -547,15 +548,15 @@ describe('Startseite — Geschäftsführung', () => {
     // Inzwischen kam eine zweite dazu; die Rechnungen antworten diesmal erst später.
     anforderungen.wert = [anforderung({ id: 'e1', isUrgent: true }), anforderung({ id: 'e2', isUrgent: true })];
     const { listUnpaidInvoices } = await import('@/lib/db/invoices');
-    let liefern: (r: unknown[]) => void = () => undefined;
-    vi.mocked(listUnpaidInvoices).mockImplementationOnce(() => new Promise((ok) => { liefern = ok as (r: unknown[]) => void; }) as never);
+    const offene = zurueckhalten<unknown[]>();
+    vi.mocked(listUnpaidInvoices).mockImplementationOnce(offene.antwort as never);
     zeichne();
     // Kein Platzhalter: der letzte Stand ist gleich da.
     expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull();
     expect(screen.getByRole('link', { name: /1 Eilanforderung offen/ })).toBeInTheDocument();
-    await waitFor(() => expect(listUnpaidInvoices).toHaveBeenCalled());
+    await waitFor(() => expect(offene.gefragt).toBe(true));
 
-    await act(async () => liefern([]));
+    await act(async () => offene.liefern([]));
     expect(await screen.findByRole('link', { name: /2 Eilanforderungen offen/ })).toBeInTheDocument();
   });
 
