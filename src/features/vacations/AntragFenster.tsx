@@ -103,7 +103,7 @@ export function UrlaubsantragFenster({
         });
       } else {
         if (v.status === 'Storniert' && v.genehmigtAm) {
-          punkte.push({ titel: 'Genehmigt', zeit: am(v.genehmigtAm) });
+          punkte.push({ titel: 'Genehmigt', zeit: am(v.genehmigtAm), text: vonUndGrund(v.genehmigtVonName) });
         }
         punkte.push({
           titel: v.status,
@@ -165,7 +165,7 @@ export function SonderurlaubFenster({
       });
     } else {
       if (f.status === 'Storniert' && f.bestaetigtAm) {
-        punkte.push({ titel: 'Bestätigt', zeit: am(f.bestaetigtAm) });
+        punkte.push({ titel: 'Bestätigt', zeit: am(f.bestaetigtAm), text: vonUndGrund(f.bestaetigtVonName) });
       }
       const ueber = f.status === 'Bestätigt' ? ueberVermerk(f) : null;
       punkte.push({

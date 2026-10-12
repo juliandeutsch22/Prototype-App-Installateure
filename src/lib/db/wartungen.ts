@@ -47,6 +47,11 @@ export function wartungErledigt(
   return pg.wartungErledigt(id, args);
 }
 
+/** Den bisherigen Tag der letzten Wartung durch den richtigen ersetzen (Stand 18, G3). */
+export function wartungTagBerichtigen(id: string, am: string): Promise<void> {
+  return pg.wartungTagBerichtigen(id, am);
+}
+
 export function wartungEingeplant(id: string, projectNumber: string): Promise<void> {
   return pg.wartungEingeplant(id, projectNumber);
 }

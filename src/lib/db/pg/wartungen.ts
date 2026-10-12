@@ -9,7 +9,7 @@
  */
 import type { Wartung, WartungAusfuehrung } from '@/types';
 import { naechsterTermin } from '@/features/maintenance/wartungsplan';
-import { abfragen, anlegen, aendern, loeschen, type WithId } from './kern';
+import { abfragen, anlegen, aendern, derClient, loeschen, type WithId } from './kern';
 import { oderUeberSpalten } from './suche';
 
 const WARTUNGEN = 'wartungen';
@@ -135,6 +135,18 @@ export async function wartungErledigt(
     */
     offeneBaustelle: null,
   });
+}
+
+/**
+ * Den Tag der letzten Wartung BERICHTIGEN, statt eine weitere einzutragen
+ * (Stand 18, G3). War „zuletzt gewartet“ ein Tippfehler, stünde der falsche
+ * Tag sonst als zweite Ausführung im Verlauf. Die Datenbank ersetzt die
+ * Ausführung am bisherigen Tag durch die am richtigen und setzt den Tag —
+ * in einem Schritt (`wartung_tag_berichtigen`).
+ */
+export async function wartungTagBerichtigen(id: string, am: string): Promise<void> {
+  const { error } = await derClient().rpc('wartung_tag_berichtigen', { p_wartung: id, p_am: am });
+  if (error) throw new Error(error.message);
 }
 
 /**

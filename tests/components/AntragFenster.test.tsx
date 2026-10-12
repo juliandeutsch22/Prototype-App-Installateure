@@ -68,6 +68,16 @@ describe('Urlaubsantrag: die Genehmigung bleibt nach der Rücknahme', () => {
     expect(screen.getByText('von Eva Chef — „Großauftrag“')).toBeInTheDocument();
   });
 
+  // Stand 18, G2: wer genehmigt hatte, steht bei der Genehmigung — nicht nur der, der zurücknahm.
+  it('nennt bei der Genehmigung, wer genehmigt hat', () => {
+    urlaubZeigen(urlaub({
+      status: 'Storniert', genehmigtAm: tag('2026-10-03'), genehmigtVonName: 'Gerda Chefin',
+      entschiedenAm: tag('2026-10-08'), entschiedenVonName: 'Vera Verwaltung', grund: 'Großauftrag',
+    }));
+    expect(screen.getByText('von Gerda Chefin')).toBeInTheDocument();
+    expect(screen.getByText('von Vera Verwaltung — „Großauftrag“')).toBeInTheDocument();
+  });
+
   it('gleich geblieben: ein älterer Antrag ohne Tag der Genehmigung erfindet keinen', () => {
     urlaubZeigen(urlaub({ status: 'Storniert', entschiedenAm: tag('2026-10-08') }));
     expect(verlauf()).toEqual([['Beantragt', '01.10.2026'], ['Storniert', '08.10.2026']]);
@@ -92,6 +102,13 @@ describe('Sonderurlaub: die Bestätigung bleibt nach der Rücknahme', () => {
       ['Bestätigt', '02.10.2026'],
       ['Storniert', '09.10.2026'],
     ]);
+  });
+
+  it('nennt bei der Bestätigung, wer bestätigt hat (Stand 18, G2)', () => {
+    sonderZeigen(sonderurlaub({
+      status: 'Storniert', bestaetigtAm: tag('2026-10-02'), bestaetigtVonName: 'Gerda Chefin', entschiedenAm: tag('2026-10-09'),
+    }));
+    expect(screen.getByText('von Gerda Chefin')).toBeInTheDocument();
   });
 
   it('gleich geblieben: ohne Tag der Bestätigung nur Antrag und Rücknahme', () => {

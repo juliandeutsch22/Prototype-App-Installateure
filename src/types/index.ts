@@ -1276,6 +1276,9 @@ export interface Vacation {
    * Entscheidung überschreibt (17 G, 12.10.2026).
    */
   genehmigtAm?: number | null;
+  /** Wer genehmigt hat — bleibt wie `genehmigtAm` nach einer Rücknahme stehen (Stand 18, G2). */
+  genehmigtVonUid?: string | null;
+  genehmigtVonName?: string | null;
   /**
    * Begründung bei Ablehnung oder Storno.
    *
@@ -1382,6 +1385,9 @@ export interface Freistellung {
   entschiedenAm?: number | null;
   /** Wann bestätigt wurde — bleibt nach einer Rücknahme (17 G). */
   bestaetigtAm?: number | null;
+  /** Wer bestätigt hat — bleibt ebenso (Stand 18, G2). */
+  bestaetigtVonUid?: string | null;
+  bestaetigtVonName?: string | null;
   grund?: string | null;
   createdAt?: number;
 }
