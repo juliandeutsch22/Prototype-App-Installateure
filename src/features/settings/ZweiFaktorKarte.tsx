@@ -16,10 +16,12 @@ const datum = (iso: string) =>
 /**
  * ZWEI-FAKTOR-ANMELDUNG UNTER „MEIN KONTO“ (Runde 3, H1).
  *
- * Für die Leitung angeboten, für das Plattformkonto Pflicht. Wer den Betrieb
- * verwalten darf, schaltet hier auch die Pflicht für Administrator und
- * Geschäftsführung — erst nachdem er selbst einen zweiten Faktor hat, sonst
- * sperrte er sich aus (die Datenbank weist es dann ab).
+ * Für Leitung und Buchhaltung angeboten, für das Plattformkonto Pflicht. Wer
+ * den Betrieb verwalten darf, schaltet hier auch die Pflicht für
+ * Administrator, Geschäftsführung und Buchhaltung — erst nachdem er selbst
+ * einen zweiten Faktor hat, sonst sperrte er sich aus (die Datenbank weist es
+ * dann ab). Die Buchhaltung sieht dasselbe Geld wie die Leitung; seit
+ * 11.10.2026 gehört sie dazu.
  */
 export default function ZweiFaktorKarte({
   betrieb,
@@ -109,7 +111,7 @@ export default function ZweiFaktorKarte({
             <p className="text-sm text-ink-muted">
               {stand.plattform
                 ? 'Für das Plattformkonto ist sie Pflicht.'
-                : 'Im Betrieb ist sie für die Leitung Pflicht — ausschalten geht deshalb nicht.'}
+                : 'Im Betrieb ist sie für Leitung und Buchhaltung Pflicht — ausschalten geht deshalb nicht.'}
             </p>
           )}
         </div>
@@ -134,7 +136,7 @@ export default function ZweiFaktorKarte({
         <div className="mt-4 border-t border-line pt-3">
           <CheckboxField
             id="zf-pflicht"
-            label="Für Administrator und Geschäftsführung in diesem Betrieb verpflichtend"
+            label="Für Administrator, Geschäftsführung und Buchhaltung in diesem Betrieb verpflichtend"
             checked={stand.betriebPflicht}
             disabled={laeuft || (!stand.eingerichtet && !stand.betriebPflicht)}
             onChange={(e) => {
@@ -151,7 +153,7 @@ export default function ZweiFaktorKarte({
           )}
           {stand.betriebPflicht && (
             <p className="text-sm text-ink-muted">
-              Wer zur Leitung gehört und noch keinen zweiten Faktor hat, richtet ihn bei der nächsten Anmeldung ein.
+              Wer zur Leitung oder Buchhaltung gehört und noch keinen zweiten Faktor hat, richtet ihn bei der nächsten Anmeldung ein.
             </p>
           )}
         </div>

@@ -207,8 +207,9 @@ export interface Company {
    */
   kalenderAboErlaubt?: boolean;
   /**
-   * Zwei-Faktor-Anmeldung für Administrator und Geschäftsführung Pflicht
-   * (Runde 3, H1). Einschalten nur mit eigenem zweiten Faktor.
+   * Zwei-Faktor-Anmeldung für Administrator, Geschäftsführung und
+   * Buchhaltung Pflicht (Runde 3, H1; Buchhaltung seit 11.10.2026).
+   * Einschalten nur mit eigenem zweiten Faktor.
    */
   zweiFaktorPflicht?: boolean;
   /** Abweichende Tage je Anlass der Dienstverhinderung (Schlüssel → Arbeitstage), leer = Vorbelegung. */
