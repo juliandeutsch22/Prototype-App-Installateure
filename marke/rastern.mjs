@@ -13,36 +13,53 @@ import { resolve } from 'node:path';
 const HIER = resolve(process.cwd(), 'marke');
 
 /*
-  DIE VORLAGE IST HOCHFORMAT (1024 × 1536), jedes Zeichen quadratisch. Sie
-  kommt deshalb mittig auf ein weisses Quadrat von 1800 Pixeln — die Mitte
-  des Senklots (Oberkante der Schnur bis Spitze: Zeile 108 bis 1340, Spalte
-  284 bis 742) liegt dann genau in dessen Mitte. Die Vorlage ist am ganzen
-  Rand weiss; der Übergang ins Quadrat ist unsichtbar.
+  DIE VORLAGE (seit 12.10.2026) ist das Bild des Betriebs, wie geliefert:
+  1254 × 1254, die Kachel in Petrol mit dem weissen Senklot, der Grund
+  ringsum durchsichtig. Gemessen an der Datei:
+
+  - die Kachel reicht von Spalte 114 bis 1139 und Zeile 93 bis 1131
+    (1025 × 1038 — nicht ganz quadratisch);
+  - ihr Rand ist ein dunkler Umriss mit heller Fase, zusammen rund 40 px;
+    auf den Diagonalen der runden Ecken klingt er 108 px von der Ecke aus;
+  - der weiteste Punkt des Senklots (Oberkante der Schnur, Spitze) liegt
+    355 px von der Mitte der Kachel.
 */
-const QUADRAT = 1800;
-const VERSATZ_X = QUADRAT / 2 - 513;
-const VERSATZ_Y = QUADRAT / 2 - 724;
+const KACHEL = { links: 114, oben: 93, rechts: 1139, unten: 1131 };
+const MITTE_X = (KACHEL.links + KACHEL.rechts) / 2;
+const MITTE_Y = (KACHEL.oben + KACHEL.unten) / 2;
+const SENKLOT_RADIUS = 355;
 
 /*
-  WIE VIEL VOM QUADRAT JEDES ZEICHEN ZEIGT (Seitenlänge des Ausschnitts um
-  die Mitte, in Pixeln der Vorlage). Das Senklot ist 1232 hoch.
+  ZWEI FORMEN DES ZEICHENS.
 
-  - Favicon: knapp, damit bei 16 px vom Zeichen so viel bleibt wie möglich.
-  - App-Zeichen und Apple-Touch-Icon: mit Luft, wie ein Zeichen am
-    Startbildschirm sie braucht. Apple rundet selbst ab; die Datei bleibt
-    quadratisch und randlos, ohne durchsichtige Ecke.
-  - Maskable: Android schneidet bis auf einen Kreis von 80 % weg. Von der
-    Mitte bis zur Schnur sind es 616 Pixel; im ganzen Quadrat bleibt ein
-    Kreis mit 720 — sonst köpft das System die Schnur.
+  - KACHEL: so, wie geliefert — die runden Ecken bleiben durchsichtig. Für
+    den Browserreiter und das Zeichen „any“ (Schreibtisch, Liste der Apps).
+    Ausschnitt: ein Quadrat um die Mitte der Kachel, etwas grösser als ihre
+    längere Seite.
+  - RANDLOS: ein deckendes Quadrat ohne Ecke und ohne Rand. iOS rundet das
+    Apple-Touch-Icon selbst ab und rechnet Durchsichtiges vorher gegen
+    Schwarz; Android schneidet das maskable Zeichen in seine eigene Form.
+    Genommen wird das Innere der Kachel, 112 px von ihrem Rand — dort ist
+    die Fase vorbei, auch in den Ecken. Es ist 801 px breit; damit Android
+    nichts vom Senklot wegschneidet (sicher bleibt nur ein Kreis von 80 %
+    der Breite), wird es auf 935 px verlängert: das Senklot reicht dann bis
+    38 % der Breite von der Mitte. Verlängert wird mit der jeweils
+    äussersten Zeile und Spalte; der Grund läuft dort fast eben, eine Naht
+    ist nicht zu sehen.
 */
+const KACHEL_SEITE = Math.max(KACHEL.rechts - KACHEL.links, KACHEL.unten - KACHEL.oben) + 2;
+const INNEN_RAND = 112;
+const INNEN_SEITE = KACHEL.rechts - KACHEL.links - 2 * INNEN_RAND;
+const RANDLOS_SEITE = Math.ceil(SENKLOT_RADIUS / 0.38);
+
 const AUFTRAEGE = [
-  { ziel: 'icon-192.png', groesse: 192, ausschnitt: 1600 },
-  { ziel: 'icon-512.png', groesse: 512, ausschnitt: 1600 },
-  { ziel: 'apple-touch-icon.png', groesse: 180, ausschnitt: 1600 },
-  { ziel: 'icon-maskable-512.png', groesse: 512, ausschnitt: QUADRAT },
-  { ziel: 'favicon-64.png', groesse: 64, ausschnitt: 1360 },
-  { ziel: 'favicon-32.png', groesse: 32, ausschnitt: 1360 },
-  { ziel: 'favicon-16.png', groesse: 16, ausschnitt: 1360 },
+  { ziel: 'icon-192.png', groesse: 192, form: 'kachel' },
+  { ziel: 'icon-512.png', groesse: 512, form: 'kachel' },
+  { ziel: 'apple-touch-icon.png', groesse: 180, form: 'randlos' },
+  { ziel: 'icon-maskable-512.png', groesse: 512, form: 'randlos' },
+  { ziel: 'favicon-64.png', groesse: 64, form: 'kachel' },
+  { ziel: 'favicon-32.png', groesse: 32, form: 'kachel' },
+  { ziel: 'favicon-16.png', groesse: 16, form: 'kachel' },
 ];
 
 const vorlage = `data:image/png;base64,${readFileSync(resolve(HIER, 'app-zeichen.png')).toString('base64')}`;
@@ -53,21 +70,59 @@ const browser = await chromium.launch({
 const page = await browser.newPage();
 
 const bilder = await page.evaluate(
-  async ({ vorlage, auftraege, QUADRAT, VERSATZ_X, VERSATZ_Y }) => {
+  async ({ vorlage, auftraege, MITTE_X, MITTE_Y, KACHEL_SEITE, INNEN_SEITE, RANDLOS_SEITE }) => {
     const bild = new Image();
     bild.src = vorlage;
     await bild.decode();
 
-    const quadrat = document.createElement('canvas');
-    quadrat.width = quadrat.height = QUADRAT;
-    const q = quadrat.getContext('2d');
-    q.fillStyle = '#fff';
-    q.fillRect(0, 0, QUADRAT, QUADRAT);
-    q.drawImage(bild, VERSATZ_X, VERSATZ_Y);
+    /*
+      DIE DECKKRAFT BEREINIGEN. Die gelieferte Datei ist in der Kachel nicht
+      ganz deckend (246–253 statt 255) — auf hellem Grund schiene sie leicht
+      durch —, und ausserhalb liegen Reste mit höchstens 2 % Deckkraft, auf
+      Weiss ein grauer Schleier. Beides ist weg; die geglättete Kante der
+      Kachel (Deckkraft dazwischen) bleibt, wie sie ist.
+    */
+    const roh = document.createElement('canvas');
+    roh.width = bild.width;
+    roh.height = bild.height;
+    const r = roh.getContext('2d');
+    r.drawImage(bild, 0, 0);
+    const pixel = r.getImageData(0, 0, roh.width, roh.height);
+    for (let i = 3; i < pixel.data.length; i += 4) {
+      if (pixel.data[i] < 8) pixel.data[i] = 0;
+      else if (pixel.data[i] >= 200) pixel.data[i] = 255;
+    }
+    r.putImageData(pixel, 0, 0);
+
+    // Ganze Pixel als Ausschnitt: ein halber verschöbe alles um eine halbe Zeile und machte es weich.
+    const kachel = document.createElement('canvas');
+    kachel.width = kachel.height = KACHEL_SEITE;
+    const kx = Math.round(MITTE_X - KACHEL_SEITE / 2);
+    const ky = Math.round(MITTE_Y - KACHEL_SEITE / 2);
+    kachel.getContext('2d').drawImage(roh, kx, ky, KACHEL_SEITE, KACHEL_SEITE, 0, 0, KACHEL_SEITE, KACHEL_SEITE);
+
+    // Das Innere der Kachel, dann ringsum mit seiner äussersten Zeile und Spalte verlängert.
+    const randlos = document.createElement('canvas');
+    randlos.width = randlos.height = RANDLOS_SEITE;
+    const q = randlos.getContext('2d');
+    const n = INNEN_SEITE;
+    const ix = Math.round(MITTE_X - n / 2);
+    const iy = Math.round(MITTE_Y - n / 2);
+    const vorn = Math.floor((RANDLOS_SEITE - n) / 2);
+    const hinten = RANDLOS_SEITE - vorn - n;
+    q.drawImage(roh, ix, iy, n, n, vorn, vorn, n, n);
+    q.drawImage(roh, ix, iy, n, 1, vorn, 0, n, vorn);
+    q.drawImage(roh, ix, iy + n - 1, n, 1, vorn, vorn + n, n, hinten);
+    q.drawImage(roh, ix, iy, 1, n, 0, vorn, vorn, n);
+    q.drawImage(roh, ix + n - 1, iy, 1, n, vorn + n, vorn, hinten, n);
+    q.drawImage(roh, ix, iy, 1, 1, 0, 0, vorn, vorn);
+    q.drawImage(roh, ix + n - 1, iy, 1, 1, vorn + n, 0, hinten, vorn);
+    q.drawImage(roh, ix, iy + n - 1, 1, 1, 0, vorn + n, vorn, hinten);
+    q.drawImage(roh, ix + n - 1, iy + n - 1, 1, 1, vorn + n, vorn + n, hinten, hinten);
 
     /*
-      IN HALBEN SCHRITTEN VERKLEINERN, nicht in einem Zug: von 1360 auf 16
-      Pixel nähme ein einziger Schritt nur jedes neunzigste Pixel mit, und
+      IN HALBEN SCHRITTEN VERKLEINERN, nicht in einem Zug: von über 1000 auf
+      16 Pixel nähme ein einziger Schritt nur jedes sechzigste Pixel mit, und
       die Kanten flimmerten. Jedes Halbieren mittelt dagegen vier Pixel.
     */
     function verkleinern(quelle, ziel) {
@@ -88,21 +143,15 @@ const bilder = await page.evaluate(
       return fertig;
     }
 
-    return auftraege.map((a) => {
-      const ausschnitt = document.createElement('canvas');
-      ausschnitt.width = ausschnitt.height = a.ausschnitt;
-      const rand = (QUADRAT - a.ausschnitt) / 2;
-      ausschnitt.getContext('2d').drawImage(quadrat, rand, rand, a.ausschnitt, a.ausschnitt, 0, 0, a.ausschnitt, a.ausschnitt);
-      return verkleinern(ausschnitt, a.groesse).toDataURL('image/png').split(',')[1];
-    });
+    return auftraege.map((a) => verkleinern(a.form === 'kachel' ? kachel : randlos, a.groesse).toDataURL('image/png').split(',')[1]);
   },
-  { vorlage, auftraege: AUFTRAEGE, QUADRAT, VERSATZ_X, VERSATZ_Y },
+  { vorlage, auftraege: AUFTRAEGE, MITTE_X, MITTE_Y, KACHEL_SEITE, INNEN_SEITE, RANDLOS_SEITE },
 );
 
 AUFTRAEGE.forEach((a, i) => {
   const daten = Buffer.from(bilder[i], 'base64');
   writeFileSync(resolve(HIER, a.ziel), daten);
-  console.log(`${a.ziel}  ${a.groesse}×${a.groesse}  ${daten.length} Bytes`);
+  console.log(`${a.ziel}  ${a.groesse}×${a.groesse}  ${a.form}  ${daten.length} Bytes`);
 });
 
 await browser.close();
