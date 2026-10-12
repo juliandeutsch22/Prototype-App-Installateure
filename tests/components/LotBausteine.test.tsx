@@ -56,6 +56,40 @@ describe('Hilfe zu dieser Seite (Regel 11)', () => {
     expect(within(hilfe).getByText('Darunter gilt der Artikel als knapp.')).toBeInTheDocument();
   });
 
+  /*
+    OHNE DOPPEL UND OHNE ZÄHLER (17 J). Gegenprobe: mit der alten Hilfe
+    stehen der gleiche Zeilenhinweis dreimal und „Mahnlauf (2)“ samt Zahl da.
+  */
+  it('zeigt dieselbe Erklärung nur einmal und den Kartentitel ohne Zähler', async () => {
+    render(
+      <SeitenHilfeProvider>
+        <PageHeader title="Zeiterfassung" />
+        <Card title="Mahnlauf (2)" hint="Gemahnt wird, was überfällig ist.">Inhalt</Card>
+        {[1, 2, 3].map((i) => (
+          <InfoHint key={i} about="vom Büro gebucht">Ändern kann sie nur das Büro.</InfoHint>
+        ))}
+      </SeitenHilfeProvider>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Hilfe zu dieser Seite' }));
+    const hilfe = screen.getByRole('dialog', { name: 'Hilfe zu Zeiterfassung' });
+    expect(within(hilfe).getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(['Mahnlauf', 'vom Büro gebucht']);
+    expect(within(hilfe).getAllByText('Ändern kann sie nur das Büro.')).toHaveLength(1);
+  });
+
+  it('gleich geblieben: gleicher Titel mit anderem Text bleibt zweimal da', async () => {
+    render(
+      <SeitenHilfeProvider>
+        <PageHeader title="Zeiterfassung" />
+        <InfoHint about="vom Büro gebucht">Über 8 Stunden am Tag.</InfoHint>
+        <InfoHint about="vom Büro gebucht">In der Nachtruhe.</InfoHint>
+      </SeitenHilfeProvider>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Hilfe zu dieser Seite' }));
+    const hilfe = screen.getByRole('dialog', { name: 'Hilfe zu Zeiterfassung' });
+    expect(within(hilfe).getByText('Über 8 Stunden am Tag.')).toBeInTheDocument();
+    expect(within(hilfe).getByText('In der Nachtruhe.')).toBeInTheDocument();
+  });
+
   it('Gegenprobe: ohne Erklärungen gibt es keinen leeren Hilfe-Knopf', () => {
     render(
       <SeitenHilfeProvider>

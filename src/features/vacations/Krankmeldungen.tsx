@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useContext, useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { AppUser, Krankmeldung } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import {
@@ -18,7 +18,8 @@ import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import { useToast } from '@/components/Toast';
-import { ergebnisText, zeitraumText } from './abwesenheitText';
+import { ergebnisText, fmtTag, zeitraumText } from './abwesenheitText';
+import { ImFensterContext } from '@/components/imFenster';
 import { grundAus } from '@/lib/fehlerGrund';
 
 /**
@@ -58,16 +59,28 @@ export function KrankmeldungListe({
   const [neuesEnde, setNeuesEnde] = useState('');
   const [laeuft, setLaeuft] = useState<string | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
+  /*
+    „ENDE ÄNDERN“ IM SEITENFENSTER (Linie „Lot“, Regel 8; 17 J) — wo die
+    Liste frei auf der Seite steht (Urlaub, Krankenstände). Vorher klappte
+    ein Feld in der Zeile auf und schob die Zeile auseinander. Steht die
+    Liste selbst schon in einem Fenster (Zeiterfassung, Mitarbeiterübersicht),
+    bleibt es dort in der Zeile: ein Fenster im Fenster wäre schlechter.
+  */
+  const imFenster = useContext(ImFensterContext);
+  const zuAendern = !imFenster && bearbeitet ? meldungen.find((k) => k.id === bearbeitet) ?? null : null;
+  const [endeFehler, setEndeFehler] = useState<string | null>(null);
   const [loeschen, setLoeschen] = useState<WithId<Krankmeldung> | null>(null);
   const heute = todayStr();
 
   async function endeSpeichern(k: WithId<Krankmeldung>) {
+    // Im Seitenfenster steht die Meldung dort, sonst über der Liste wie bisher.
+    const melden = imFenster ? setFehler : setEndeFehler;
     if (!neuesEnde || neuesEnde < k.von) {
-      setFehler('Das Ende liegt vor dem Beginn.');
+      melden('Das Ende liegt vor dem Beginn.');
       return;
     }
     setLaeuft(k.id);
-    setFehler(null);
+    melden(null);
     try {
       const e = await krankmeldungSpeichern({
         id: k.id, von: k.von, bis: neuesEnde, notiz: k.notiz ?? '', melderName: meinName,
@@ -76,7 +89,7 @@ export function KrankmeldungListe({
       setBearbeitet(null);
       onGeaendert();
     } catch (e) {
-      setFehler(grundAus(e, 'Das Ende konnte nicht geändert werden.'));
+      melden(grundAus(e, 'Das Ende konnte nicht geändert werden.'));
     } finally {
       setLaeuft(null);
     }
@@ -116,7 +129,7 @@ export function KrankmeldungListe({
             ].filter(Boolean).join(' · ') || undefined}
           >
             {k.von <= heute && k.bis >= heute && <Marke>läuft</Marke>}
-            {bearbeitet === k.id ? (
+            {imFenster && bearbeitet === k.id ? (
               <span className="flex flex-wrap items-end gap-2">
                 <InputField
                   id={`ende-${k.id}`}
@@ -139,6 +152,7 @@ export function KrankmeldungListe({
                   onClick={() => {
                     setNeuesEnde(k.bis);
                     setFehler(null);
+                    setEndeFehler(null);
                     setBearbeitet(k.id);
                   }}
                 >
@@ -158,6 +172,40 @@ export function KrankmeldungListe({
           </ListRow>
         ))}
       </List>
+
+      {!imFenster && (
+        <BottomSheet
+          open={!!zuAendern}
+          onClose={() => setBearbeitet(null)}
+          label="Ende der Krankmeldung ändern"
+          auchBreit
+          titel="Ende ändern"
+        >
+          {zuAendern && (
+            <div className="space-y-4">
+              <p>
+                {mitNamen && `${zuAendern.userName}, `}krank seit {fmtTag(zuAendern.von)}, bisher bis {fmtTag(zuAendern.bis)}.
+              </p>
+              {endeFehler && <ErrorState message={endeFehler} />}
+              <InputField
+                id={`ende-${zuAendern.id}`}
+                label="Krank bis"
+                type="date"
+                value={neuesEnde}
+                min={zuAendern.von}
+                onChange={(e) => setNeuesEnde(e.target.value)}
+              />
+              <p className="text-sm text-ink-muted">
+                Die Krank-Tage im Zeitkonto werden nachgerechnet.
+              </p>
+              <div className="fuss-aktionen">
+                <Button variant="ghost" onClick={() => setBearbeitet(null)}>Abbrechen</Button>
+                <Button loading={laeuft === zuAendern.id} onClick={() => void endeSpeichern(zuAendern)}>Speichern</Button>
+              </div>
+            </div>
+          )}
+        </BottomSheet>
+      )}
 
       <ConfirmDialog
         open={!!loeschen}

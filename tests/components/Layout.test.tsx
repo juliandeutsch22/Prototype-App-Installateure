@@ -415,6 +415,22 @@ describe('Strg + K (Linie „Lot“)', () => {
     expect(screen.getByRole('dialog', { name: 'Suchen oder springen' })).toBeInTheDocument();
   });
 
+  it('nicht hinter einem offenen Fenster — dort gehört die Taste ihm (17 J)', async () => {
+    // Gegenprobe: ohne die Prüfung auf ein offenes Fenster ging das Suchfenster dahinter auf.
+    zeige();
+    await screen.findAllByText('Perl Installationen');
+    const rueckfrage = document.createElement('div');
+    rueckfrage.setAttribute('role', 'dialog');
+    rueckfrage.setAttribute('aria-modal', 'true');
+    document.body.appendChild(rueckfrage);
+    await userEvent.keyboard('{Control>}k{/Control}');
+    expect(screen.queryByRole('dialog', { name: 'Suchen oder springen' })).toBeNull();
+    // Ist es zu, geht es wieder.
+    rueckfrage.remove();
+    await userEvent.keyboard('{Control>}k{/Control}');
+    expect(screen.getByRole('dialog', { name: 'Suchen oder springen' })).toBeInTheDocument();
+  });
+
   it('Gegenprobe: ein K allein öffnet nichts', async () => {
     zeige();
     await screen.findAllByText('Perl Installationen');
