@@ -89,9 +89,11 @@ Freigabe Betreiber: erteilt (09.10.2026)
 - [x] Kontrast Bernstein auf Bernstein-hell und Grau auf `--abwesend` ≥ 4,5:1
   (Wächter lotGrundwerte, beide Sätze).
 - [ ] axe ohne neue Fehler: offen (Hauptsitzung).
-- [ ] Browser-Wege 5, 6, 7 (Monat → Balken → Vorschau → „Bearbeiten“ …): offen
-  – brauchen die Verdrahtung durch Paket B; heute benutzt kein Weg in
-  `tests/durchklick/` den Monat.
+- [x] Browser-Wege 5, 6, 7 (Monat → Balken → Vorschau → „Bearbeiten“ …): in
+  `tests/durchklick/runde4.spec.ts` (Weg 6 seit Runde 4, Wege 5 und 7 seit
+  12.10.2026, Stand 18, K5) — Chromium, Weg 7 bei 390 px. **Nicht abgedeckt:**
+  WebKit, die dritte Breite, die Rollen Administrator und Projektleiter
+  (gelaufen als Geschäftsführung).
 
 ## Entscheidungen
 
