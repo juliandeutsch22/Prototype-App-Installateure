@@ -13,8 +13,10 @@ Prüfungen:          tsc grün, lint grün; 26 Testdateien / 309 Prüfungen grü
                     ArbeitszeitGrenzenKarten, ArbeitszeitGrenzenRunde3, TimeForm* (13 Dateien,
                     neu: TimeFormVorbelegungPerson), Fokusfalle, ProjectSummary, LotBausteine,
                     unit: tagesauswertung (neu), r4Referenz, lotGrundwerte, lotRegelnQuelltext,
-                    arbeitszeitGrenzen, export, navigation-routen). Browser-Wege, WebKit: offen
-                    (Hauptsitzung); kein bestehender Browser-Weg benutzt /accounting.
+                    arbeitszeitGrenzen, export, navigation-routen). Browser-Wege: seit
+                    12.10.2026 (Stand 18, K5) Wege 1 und 2 in runde4.spec.ts, dazu
+                    arbeitszeitGrenzen.spec.ts (K3) — Chromium; WebKit und die Rollen
+                    Administrator/Projektleiter: offen.
 Breiten:            390 / 834 / 1112 (quer) / 1440 / 1920 in der Vorschau, hell und dunkel –
                     scrollWidth − innerWidth = 0 überall (Monat, Woche, Seitenfenster, Auswahl).
 Belege/Exporte:     nicht berührt (export.ts, hoursPdf.ts unverändert); r4Referenz grün.

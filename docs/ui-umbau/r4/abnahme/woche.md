@@ -62,9 +62,11 @@ Freigabe Betreiber: erteilt (09.10.2026)
 
 | Weg | Stand |
 |---|---|
-| 3. Woche → Termin-Eintrag → „Termin ändern“ → Zeit ändern → speichern | im Komponententest bis zum Formular und Löschen; Speichern im Browser: offen |
-| 4. Woche → Tageskopf „Lieferung ohne Annahme“ → „Tag“ → „Einsatz planen“ → speichern | Teile im Komponententest (Hinweis, Gegenprobe mit Einsatz, „Einsatz planen“ aus „Tag“); ganzer Weg im Browser: offen |
-| 6. Monat → „Zur Woche“ → richtige Woche, Tag markiert, „Zurück“ in den Monat | Komponententest über `onTag` (heutiger Monat); „Zur Woche“ aus der Vorschau baut Paket C |
+| 3. Woche → Termin-Eintrag → „Termin ändern“ → Zeit ändern → speichern | im Browser: `runde4.spec.ts` (Chromium, Schreibtisch) |
+| 4. Woche → Tageskopf „Lieferung ohne Annahme“ → „Tag“ → „Einsatz planen“ → speichern | im Browser seit 12.10.2026 (Stand 18, K5): `runde4.spec.ts` — Hinweis vorher da, nachher weg, Lieferung als Zusatzzeile im Eintrag (Chromium, Schreibtisch) |
+| 6. Monat → „Zur Woche“ → richtige Woche, Tag markiert, „Zurück“ in den Monat | im Browser: `runde4.spec.ts` (Chromium, Schreibtisch) |
+
+Nicht abgedeckt (12.10.2026): WebKit, weitere Breiten und die Rollen Administrator und Projektleiter — die Wege laufen als Geschäftsführung.
 
 ## Fotos nachher (`docs/ui-umbau/r4/nachher/`)
 
@@ -84,6 +86,6 @@ verlinkt); die Fotos zeigen die Ersatzschrift.
 ## Offen
 
 - Mengengerüst (25 Personen, 120 Einsätze, 60 Termine), Messwerte Abschnitt 7.
-- Browser-Wege 3, 4, 6 in Chromium und WebKit; axe.
+- Browser-Wege 3, 4, 6 in WebKit und als Administrator/Projektleiter (Chromium als Geschäftsführung steht seit 12.10.2026; axe über jede Seite ebenso, Stand 18, K2).
 - Handbuch „Planung: der Wochenplan ist die Planungsseite“, „Termine und Aviso“, „Was noch offen ist“.
 - Freigabe des Betreibers.
