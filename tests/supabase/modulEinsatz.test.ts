@@ -238,6 +238,34 @@ describe('Audit: einzelner Einsatz gelöscht, Abhakrecht muss enden', () => {
   });
 });
 
+/**
+ * Audit: die Anzeige und das Lagerjournal müssen der echten angemeldeten
+ * Person zugeordnet werden, nicht einem vom Browser frei gewählten Namen.
+ */
+describe('Audit: Identität beim Rüstlisten-Abhaken', () => {
+  it.fails('übernimmt nicht einen fremden Namen als tatsächlichen Einlader', async () => {
+    clientEinreichen(planer.client);
+    await leeren();
+    try {
+      await einsaetze.saveAssignments(BETRIEB, TAG, BAU, [zeile(anton)]);
+      await ruest.saveEinsatzMaterial(
+        BETRIEB, TAG, BAU, [position('audit-wer', 'Rohr')], [anton.uid], 'Planer',
+      );
+      clientEinreichen(anton.client);
+      await ruest.ladenUmschalten(
+        BETRIEB, TAG, BAU, 'audit-wer', true, 'Name eines fremden Kollegen',
+      );
+      clientEinreichen(planer.client);
+      const liste = await ruest.getEinsatzMaterial(BETRIEB, TAG, BAU);
+      // Soll: kein unüberprüfter fremder Name im tatsächlichen Einladeprotokoll.
+      expect(liste?.geladen?.['audit-wer']?.von).not.toBe('Name eines fremden Kollegen');
+    } finally {
+      clientEinreichen(planer.client);
+      await leeren();
+    }
+  });
+});
+
 describe('Einteilung lesen', () => {
   const TAGE = ['2026-06-01', '2026-06-02', '2026-06-03', '2026-06-04'];
 
