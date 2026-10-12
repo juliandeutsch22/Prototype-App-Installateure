@@ -1,4 +1,5 @@
 import {
+  isValidElement,
   createContext,
   useCallback,
   useContext,
@@ -91,6 +92,39 @@ export function useSeitenHilfe(titel: string, inhalt: ReactNode | undefined): bo
   return sammelt;
 }
 
+/** Der lesbare Text einer Erklärung — um gleiche nur einmal zu zeigen. */
+function textVon(knoten: ReactNode): string {
+  if (knoten == null || typeof knoten === 'boolean') return '';
+  if (typeof knoten === 'string' || typeof knoten === 'number') return String(knoten);
+  if (Array.isArray(knoten)) return knoten.map(textVon).join('');
+  if (isValidElement(knoten)) return textVon((knoten.props as { children?: ReactNode }).children);
+  return '';
+}
+
+/** „Offene Anträge (20)“ → „Offene Anträge“: die Zahl gehört zur Karte, nicht zur Erklärung. */
+const ohneZaehler = (titel: string) => titel.replace(/\s*\(\d+\)$/, '');
+
+/**
+ * Die Einträge, wie die Hilfe sie zeigt (17 J): ohne Zähler im Titel, und
+ * dieselbe Erklärung nur einmal — eine gesperrte Zeile der Zeiterfassung
+ * meldet ihren Hinweis je Zeile, und er stand so oft da, wie es Zeilen gab.
+ * Gleich ist, was gleichen Titel UND gleichen Text hat; ein Text, der sich
+ * nicht lesen lässt, bleibt für sich.
+ */
+function zuZeigen(eintraege: Eintrag[], inhalte: Map<string, ReactNode>): Eintrag[] {
+  const gesehen = new Set<string>();
+  const raus: Eintrag[] = [];
+  for (const e of eintraege) {
+    const titel = ohneZaehler(e.titel);
+    const text = textVon(inhalte.get(e.id));
+    const schluessel = `${titel}\n${text}`;
+    if (text && gesehen.has(schluessel)) continue;
+    gesehen.add(schluessel);
+    raus.push({ id: e.id, titel });
+  }
+  return raus;
+}
+
 /**
  * Der Zugang im Seitenkopf. Zeigt sich nur, wenn die Seite etwas zu erklären
  * hat — ein Knopf, hinter dem nichts steht, wäre schlimmer als keiner.
@@ -111,7 +145,7 @@ export function SeitenHilfeKnopf({ seite, einleitung }: { seite: string; einleit
       <BottomSheet open={offen} onClose={() => setOffen(false)} label={`Hilfe zu ${seite}`} auchBreit titel={`Hilfe: ${seite}`}>
         <div className="hilfe-liste">
           {einleitung && <div className="hilfe-text pb-3">{einleitung}</div>}
-          {eintraege.map((e) => (
+          {zuZeigen(eintraege, hilfe?.inhalte.current ?? new Map()).map((e) => (
             <section key={e.id} className="hilfe-eintrag">
               <h3 className="hilfe-titel">{e.titel}</h3>
               <div className="hilfe-text">{hilfe?.inhalte.current.get(e.id)}</div>

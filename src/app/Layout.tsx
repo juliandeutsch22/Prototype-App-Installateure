@@ -171,12 +171,18 @@ export default function Layout({ children }: { children: ReactNode }) {
     STRG + K (am Mac ⌘ + K) öffnet „Suchen oder springen“ — überall, auch
     aus einem Eingabefeld heraus: dort hat die Kombination keine eigene
     Bedeutung, und gerade wer tippt, will nicht zur Maus greifen.
+
+    NICHT HINTER EINEM OFFENEN FENSTER (17 J): über einer Rückfrage oder
+    einem Seitenfenster ging das Suchfenster unsichtbar dahinter auf, und Esc
+    schloss zuerst die Rückfrage. Liegt eines offen, gehört die Taste ihm —
+    wie bei den Tasten der Monatsvorschau.
   */
   useEffect(() => {
     if (!angemeldet) return;
     const taste = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k') {
         e.preventDefault();
+        if (document.querySelector('[aria-modal="true"]')) return;
         setSucheOffen(true);
       }
     };

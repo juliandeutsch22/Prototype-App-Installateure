@@ -39,7 +39,8 @@ vi.mock('@/lib/db/users', () => ({
   ] as AppUser[]),
 }));
 
-const { KrankenstaendeReiter } = await import('@/features/vacations/Krankmeldungen');
+const { KrankenstaendeReiter, KrankmeldungListe } = await import('@/features/vacations/Krankmeldungen');
+const { ImFenster } = await import('@/components/imFenster');
 const { default: BetriebsurlaubReiter } = await import('@/features/vacations/BetriebsurlaubReiter');
 
 function zeige(el: JSX.Element) {
@@ -85,6 +86,39 @@ describe('Krankenstände', () => {
     await waitFor(() =>
       expect(speichern).toHaveBeenCalledWith(expect.objectContaining({ id: 'k1', von: '2026-10-27', bis: '2026-10-28' })),
     );
+  });
+
+  /*
+    „ENDE ÄNDERN“ IM SEITENFENSTER (17 J). Gegenprobe: vorher klappte das
+    Feld in der Zeile auf, ein Fenster gab es nicht (rot). Gleich bleibt:
+    steht die Liste schon in einem Fenster, bleibt es dort in der Zeile.
+  */
+  it('öffnet „Ende ändern“ im Seitenfenster — mit Zeitraum, Prüfung und Speichern', async () => {
+    meldungen = [{ id: 'k1', companyId: 'perl', userId: 'm1', userName: 'Max Monteur', von: '2026-10-27', bis: '2026-10-30' }];
+    zeige(<KrankenstaendeReiter companyId="perl" meinName="Brigitte" />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Ende ändern' }));
+    const fenster = await screen.findByRole('dialog', { name: 'Ende der Krankmeldung ändern' });
+    expect(within(fenster).getByText('Max Monteur, krank seit 27.10.2026, bisher bis 30.10.2026.')).toBeInTheDocument();
+    await datum('Krank bis', '2026-10-20');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Speichern' }));
+    expect(within(fenster).getByText('Das Ende liegt vor dem Beginn.')).toBeInTheDocument();
+    expect(speichern).not.toHaveBeenCalled();
+    await datum('Krank bis', '2026-10-29');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(speichern).toHaveBeenCalledWith(expect.objectContaining({ id: 'k1', bis: '2026-10-29' })));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Ende der Krankmeldung ändern' })).toBeNull());
+  });
+
+  it('gleich geblieben: in einem Fenster klappt „Ende ändern“ in der Zeile auf', async () => {
+    const meldung = { id: 'k1', companyId: 'perl', userId: 'm1', userName: 'Max Monteur', von: '2026-10-27', bis: '2026-10-30' };
+    zeige(
+      <ImFenster>
+        <KrankmeldungListe meldungen={[meldung]} mitNamen buero meinName="Brigitte" onGeaendert={() => undefined} />
+      </ImFenster>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Ende ändern' }));
+    expect(screen.getByLabelText('Krank bis')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('löscht erst nach der Rückfrage', async () => {

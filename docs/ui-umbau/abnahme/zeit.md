@@ -68,10 +68,11 @@ Freigabe Betreiber: erteilt am 11.10.2026 (für alle Schritte der Linie „Lot�
    Krankenstände und Sonderurlaub zeigt sie bewusst nicht.
 2. **Verlauf nur aus dem, was der Antrag trägt** — erledigt am 12.10.2026
    (Plan 17 G): die Genehmigung bleibt mit ihrem Tag nach einer Rücknahme.
-3. **Krankmeldung „Ende ändern“** klappt in den Listen (eigene Meldungen,
-   Krankenstände) weiter ein Feld in der Zeile auf, statt ein Seitenfenster
-   zu öffnen (Regel 8). Bewusst so gelassen: in der Zeiterfassung steht die
-   Liste schon im Seitenfenster, ein Fenster im Fenster wäre schlechter.
+3. **Krankmeldung „Ende ändern“** — erledigt am 12.10.2026 (Plan 17 J): in den
+   Listen der Urlaubsseite (eigene Meldungen, Krankenstände) öffnet es ein
+   Seitenfenster (Regel 8). Steht die Liste schon in einem Fenster
+   (Zeiterfassung, Mitarbeiterübersicht), bleibt das Feld in der Zeile — ein
+   Fenster im Fenster wäre schlechter.
 4. Die Krankmeldung im Seitenfenster konnte in der Vorschau nicht angesehen
    werden (die Beispieldaten haben keinen Krank-Tag mit Meldung); geprüft im
    Komponententest.
