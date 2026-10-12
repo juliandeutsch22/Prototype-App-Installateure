@@ -134,6 +134,32 @@ describe('Die Nummer ändern', () => {
     expect(s2.data).toEqual({ project_number: neu, status: 'Verworfen' });
   });
 
+  it('nimmt auch die festgehaltenen Ausführungen der Wartung mit (17 G)', async () => {
+    // Die Gegenprobe ist dieselbe Prüfung ohne die Anweisung in `20261012200000_verlaeufe.sql`.
+    const alt = nummer();
+    const neu = nummer();
+    const id = await baustelle(alt);
+    const { data: kunde } = await admin.from('customers')
+      .insert({ company_id: BETRIEB, name: 'Familie Berger' }).select('id').single();
+    const { data: wartung, error: ew } = await admin.from('wartungen').insert({
+      company_id: BETRIEB, customer_id: kunde!.id, customer_name: 'Familie Berger',
+      anlage: 'Boiler', intervall_monate: 12, faellig_am: '2027-02-01', letzte_baustelle: alt,
+    }).select('id').single();
+    if (ew) throw new Error(ew.message);
+    const { error: ea } = await admin.from('wartung_ausfuehrungen').insert([
+      { company_id: BETRIEB, wartung_id: wartung!.id, am: '2026-02-01', baustelle: alt },
+      { company_id: BETRIEB, wartung_id: wartung!.id, am: '2025-02-01', baustelle: 'B-ANDERE' },
+    ]);
+    if (ea) throw new Error(ea.message);
+
+    const { data, error } = await umnummern(leitung, id, neu);
+    expect(error).toBeNull();
+    expect(data).toMatchObject({ bewegt: { wartungen: 1, ausfuehrungen: 1 } });
+    const { data: liste } = await admin.from('wartung_ausfuehrungen').select('am, baustelle')
+      .eq('wartung_id', wartung!.id).order('am');
+    expect(liste).toEqual([{ am: '2025-02-01', baustelle: 'B-ANDERE' }, { am: '2026-02-01', baustelle: neu }]);
+  });
+
   it('lässt eine vergebene Nummer nicht zu', async () => {
     const a = nummer();
     const b = nummer();

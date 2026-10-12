@@ -3,15 +3,28 @@
  *
  * Die Tabelle bleibt klein: eine Vereinbarung je Anlage, nicht je Termin. Ein
  * Betrieb mit dreihundert gewarteten Thermen hat dreihundert Zeilen, und zwar
- * dauerhaft — die Ausführungen wachsen nicht mit, sie rücken den Termin nur
- * weiter.
+ * dauerhaft — eine Ausführung rückt den Termin weiter. Festgehalten wird sie
+ * seit 12.10.2026 (17 G) zusätzlich in `wartung_ausfuehrungen`, je Anlage
+ * eine Zeile pro Wartung; das schreibt die Datenbank selbst.
  */
-import type { Wartung } from '@/types';
+import type { Wartung, WartungAusfuehrung } from '@/types';
 import { naechsterTermin } from '@/features/maintenance/wartungsplan';
 import { abfragen, anlegen, aendern, loeschen, type WithId } from './kern';
 import { oderUeberSpalten } from './suche';
 
 const WARTUNGEN = 'wartungen';
+const AUSFUEHRUNGEN = 'wartung_ausfuehrungen';
+
+/**
+ * Jede Ausführung einer Wartung, die jüngste zuerst (17 G). Geschrieben
+ * werden sie nur von der Datenbank — hier wird nur gelesen.
+ */
+export function listAusfuehrungen(companyId: string, wartungId: string): Promise<WithId<WartungAusfuehrung>[]> {
+  return abfragen<WartungAusfuehrung>(AUSFUEHRUNGEN, companyId, {
+    wo: [{ art: 'gleich', feld: 'wartungId', wert: wartungId }],
+    sortiere: { feld: 'am', absteigend: true },
+  });
+}
 
 /**
  * Alle Vereinbarungen, nach Termin.

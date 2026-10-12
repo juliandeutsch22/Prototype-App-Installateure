@@ -58,6 +58,8 @@ const createWartung = vi.fn(async () => 'neu');
 const updateWartung = vi.fn(async () => undefined);
 
 const wartungEingeplant = vi.fn(async () => undefined);
+/* Die festgehaltenen Ausführungen (17 G) — leer wie bei einer Anlage von vor dem 12.10.2026. */
+const listAusfuehrungen = vi.fn(async (): Promise<{ id: string; companyId: string; wartungId: string; am: string; baustelle?: string }[]> => []);
 
 vi.mock('@/lib/db/wartungen', () => ({
   listWartungen: () => listWartungen(),
@@ -66,6 +68,7 @@ vi.mock('@/lib/db/wartungen', () => ({
   deleteWartung: vi.fn(async () => undefined),
   wartungErledigt: (...a: unknown[]) => wartungErledigt(...(a as [])),
   wartungEingeplant: (...a: unknown[]) => wartungEingeplant(...(a as [])),
+  listAusfuehrungen: () => listAusfuehrungen(),
   /* Die Suche des Servers: hier über den Bestand, wie die Datenbank mitten im Wort. */
   searchWartungen: (_c: string, begriff: string) =>
     Promise.resolve(bestand.filter((w) => `${w.customerName} ${w.anlage} ${w.address ?? ''}`.toLowerCase().includes(begriff.toLowerCase()))),
@@ -141,6 +144,8 @@ beforeEach(() => {
   createWartung.mockClear();
   updateWartung.mockClear();
   wartungEingeplant.mockClear();
+  listAusfuehrungen.mockReset();
+  listAusfuehrungen.mockResolvedValue([]);
   createProject.mockClear();
   listRecentProjects.mockClear();
   listRecentProjects.mockResolvedValue(baustellen);
@@ -581,6 +586,7 @@ describe('Wartungen auf der Linie „Lot“', () => {
     expect(punkte.map((p) => p.querySelector('.lot-titel')?.textContent)).toEqual(['Zuletzt gewartet', 'Nächste Wartung']);
     expect(within(punkte[0]).getByText('Baustelle B-2025-0031')).toBeInTheDocument();
     expect(punkte[1]).toHaveAttribute('aria-current', 'step');
+    expect(within(punkte[0]).getByText('10.04.2025')).toBeInTheDocument();
 
     // Gegenprobe zur Herbst-Wartung: die überfällige ohne Baustelle bietet das Anlegen an.
     expect(within(fenster).getByRole('button', { name: 'Baustelle anlegen' })).toBeInTheDocument();
@@ -589,6 +595,44 @@ describe('Wartungen auf der Linie „Lot“', () => {
     await nutzer.click(within(fenster).getByRole('button', { name: 'Bearbeiten' }));
     expect(await screen.findByRole('dialog', { name: 'Wartung ändern' })).toBeInTheDocument();
     expect(screen.getByLabelText('Anlage')).toHaveValue('Therme Vaillant ecoTEC');
+  });
+
+  it('zeigt jede festgehaltene Ausführung — die älteste zuerst, die letzte als „Zuletzt gewartet“', async () => {
+    const nutzer = userEvent.setup();
+    bestand = [wartung('w1', 'Bäckerei Stein', '2026-04-10', { zuletztAm: '2025-04-10', letzteBaustelle: 'B-2025-0031' })];
+    listAusfuehrungen.mockResolvedValue([
+      { id: 'a2', companyId: 'perl', wartungId: 'w1', am: '2025-04-10', baustelle: 'B-2025-0031' },
+      { id: 'a1', companyId: 'perl', wartungId: 'w1', am: '2024-04-02', baustelle: 'B-2024-0012' },
+    ]);
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: /Bäckerei Stein/ }));
+    const fenster = await screen.findByRole('dialog', { name: 'Wartung' });
+    const lot = await within(fenster).findByRole('list', { name: 'Wartungen dieser Anlage' });
+    const punkte = within(lot).getAllByRole('listitem');
+    expect(punkte.map((p) => p.querySelector('.lot-titel')?.textContent)).toEqual(['Gewartet', 'Zuletzt gewartet', 'Nächste Wartung']);
+    expect(within(punkte[0]).getByText('02.04.2024')).toBeInTheDocument();
+    expect(within(punkte[0]).getByText('Baustelle B-2024-0012')).toBeInTheDocument();
+    expect(within(punkte[1]).getByText('10.04.2025')).toBeInTheDocument();
+  });
+
+  it('scheitert das Holen der Ausführungen, bleibt die letzte — und es steht da, was fehlt', async () => {
+    const nutzer = userEvent.setup();
+    listAusfuehrungen.mockRejectedValueOnce(new Error('offline'));
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: /Bäckerei Stein/ }));
+    const fenster = await screen.findByRole('dialog', { name: 'Wartung' });
+    const lot = await within(fenster).findByRole('list', { name: 'Wartungen dieser Anlage' });
+    expect(within(lot).getAllByRole('listitem').map((p) => p.querySelector('.lot-titel')?.textContent))
+      .toEqual(['Zuletzt gewartet', 'Nächste Wartung']);
+    expect(within(fenster).getByText(/Die Liste der früheren Ausführungen konnte nicht geladen werden/)).toBeInTheDocument();
+
+    listAusfuehrungen.mockResolvedValueOnce([
+      { id: 'a1', companyId: 'perl', wartungId: 'w1', am: '2024-04-02' },
+      { id: 'a2', companyId: 'perl', wartungId: 'w1', am: '2025-04-10' },
+    ]);
+    await nutzer.click(within(fenster).getByRole('button', { name: /erneut/i }));
+    await waitFor(() => expect(within(fenster).queryByText(/Die Liste der früheren Ausführungen konnte nicht geladen werden/)).toBeNull());
+    expect(within(fenster).getAllByText('Gewartet')).toHaveLength(1);
   });
 
   it('trägt je Ansicht ihren zweiten Schritt: „Baustelle anlegen“ unter „Steht an“, „Bearbeiten“ unter „Alle“', async () => {

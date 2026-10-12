@@ -66,6 +66,13 @@ const AUSNAHMEN: Record<string, string> = {
   */
   listLagerartikel: 'Die im Lager geführten Artikel — wächst mit dem Regal, nicht mit dem Katalog',
   /*
+    DIE AUSFÜHRUNGEN EINER ANLAGE (17 G): gefragt wird nach genau einer
+    Wartung, und die wächst um eine Zeile je Ausführung — eine bis zwölf im
+    Jahr. Eine Grenze schnitte die ältesten still ab, und gerade die will
+    sehen, wer die Geschichte der Anlage aufmacht.
+  */
+  listAusfuehrungen: 'Eine Anlage — eine Zeile je Ausführung, höchstens zwölf im Jahr',
+  /*
     `subscribePrefs` STAND HIER BIS ZUM 19.09. und ist ersatzlos gefallen.
 
     Die Firestore-Fassung hörte mit `onSnapshot` auf ein Dokument — der
