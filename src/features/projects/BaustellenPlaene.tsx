@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
 import Hinweiszeile from '@/components/Hinweiszeile';
-import { dokumentHochladen, dokumentLoeschen, dateiPruefen } from '@/lib/db/baustellenDokumente';
+import { dokumentHochladen, dokumentLoeschen, dokumentNurBueroSetzen, dateiPruefen } from '@/lib/db/baustellenDokumente';
 import type { BaustellenDokument } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
 import InfoHint from '@/components/InfoHint';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { CheckboxField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import PlaeneListe from './PlaeneListe';
@@ -43,13 +44,20 @@ export default function BaustellenPlaene({
   const [weg, setWeg] = useState<WithId<BaustellenDokument> | null>(null);
   /** Dateien, die erst nach einer Rückfrage hochgehen — siehe `klingtNachBueroBeleg`. */
   const [rueckfrage, setRueckfrage] = useState<File[] | null>(null);
+  /**
+   * NUR FÜRS BÜRO (17 D): gilt für die nächste Auswahl. In der Rückfrage
+   * steht es vorab angekreuzt — wer dort weiterklickt, ohne zu lesen, legt
+   * den Beleg so ab, dass die Monteure ihn nicht sehen.
+   */
+  const [nurBuero, setNurBuero] = useState(false);
+  const [rueckfrageNurBuero, setRueckfrageNurBuero] = useState(true);
 
   /*
     EINE NACH DER ANDEREN, und jeder Fehler wird genannt. Zehn Pläne auf
     einmal, von denen einer zu gross ist, sollen neun Pläne ergeben und eine
     Meldung — nicht null Pläne, und nicht neun ohne Wort über den zehnten.
   */
-  async function hochladen(dateien: File[]) {
+  async function hochladen(dateien: File[], nurFuersBuero: boolean) {
     const probleme: string[] = [];
     let geschafft = 0;
     for (const [i, datei] of dateien.entries()) {
@@ -60,7 +68,7 @@ export default function BaustellenPlaene({
         continue;
       }
       try {
-        await dokumentHochladen(companyId, projectId, datei, meinName);
+        await dokumentHochladen(companyId, projectId, datei, meinName, nurFuersBuero);
         geschafft += 1;
       } catch {
         probleme.push(`„${datei.name}“ konnte nicht hochgeladen werden.`);
@@ -69,7 +77,8 @@ export default function BaustellenPlaene({
     setFortschritt(null);
     setFehler(probleme);
     if (geschafft > 0) {
-      toast.success(geschafft === 1 ? 'Plan hinzugefügt' : `${geschafft} Pläne hinzugefügt`);
+      const was = geschafft === 1 ? 'Dokument hinzugefügt' : `${geschafft} Dokumente hinzugefügt`;
+      toast.success(nurFuersBuero ? `${was} — nur fürs Büro` : was);
       neuLaden();
     }
   }
@@ -88,16 +97,28 @@ export default function BaustellenPlaene({
     }
   }
 
+  async function nurBueroSetzen(d: WithId<BaustellenDokument>, wert: boolean) {
+    try {
+      await dokumentNurBueroSetzen(d.id, wert);
+      toast.success(wert ? `${d.dateiname}: nur fürs Büro` : `${d.dateiname}: für die Monteure freigegeben`);
+      neuLaden();
+    } catch {
+      setFehler([`„${d.dateiname}“ ließ sich nicht umstellen.`]);
+    }
+  }
+
   const dokumente = planeVon(stand, projectId);
 
   return (
     <div className="space-y-3">
       <p className="flex flex-wrap items-center text-sm text-ink-muted">
-        Pläne, Fotos und Unterlagen für die Monteure dieser Baustelle
+        Pläne, Fotos und Unterlagen dieser Baustelle
         <InfoHint about="Pläne und Dokumente">
-          PDF und Bilder bis 25 MB. Sichtbar für das Büro und für die Monteure, die im Team
-          dieser Baustelle stehen oder dort eingeteilt sind — sie finden sie unter „Meine
-          Baustellen" und im Einsatzplan. Pläne aus einem CAD-Programm bitte als PDF exportieren.
+          PDF, Bilder, Word, Excel und E-Mails bis 25 MB. Sichtbar für das Büro und für die
+          Monteure, die im Team dieser Baustelle stehen oder dort eingeteilt sind — sie finden
+          sie unter „Meine Baustellen“ und im Einsatzplan. Was „Nur Büro“ trägt, sehen die
+          Monteure nicht; umstellen lässt es sich jederzeit. Pläne aus einem CAD-Programm bitte
+          als PDF exportieren.
         </InfoHint>
       </p>
 
@@ -112,6 +133,7 @@ export default function BaustellenPlaene({
           dokumente={dokumente}
           adressen={stand.adressen}
           onLoeschen={darfAendern ? setWeg : undefined}
+          onNurBuero={darfAendern ? (d, wert) => void nurBueroSetzen(d, wert) : undefined}
         />
       )}
 
@@ -132,17 +154,20 @@ export default function BaustellenPlaene({
             id="plaene-datei"
             type="file"
             multiple
-            accept="application/pdf,image/*"
+            accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx,.eml,.msg"
             className="sr-only"
-            aria-label="Pläne oder Bilder auswählen"
+            aria-label="Dokumente auswählen"
             onChange={(e) => {
               const dateien = Array.from(e.target.files ?? []);
               // Zurücksetzen, damit dieselbe Datei ein zweites Mal gewählt
               // werden kann — sonst feuert das Feld nicht.
               e.target.value = '';
               if (dateien.length === 0) return;
-              if (dateien.some((d) => klingtNachBueroBeleg(d.name, personen))) setRueckfrage(dateien);
-              else void hochladen(dateien);
+              // Fürs Büro abgelegt, sieht es kein Monteur — dann gibt es nichts nachzufragen.
+              if (!nurBuero && dateien.some((d) => klingtNachBueroBeleg(d.name, personen))) {
+                setRueckfrageNurBuero(true);
+                setRueckfrage(dateien);
+              } else void hochladen(dateien, nurBuero);
             }}
           />
           <Button
@@ -150,12 +175,22 @@ export default function BaustellenPlaene({
             loading={!!fortschritt}
             onClick={() => feld.current?.click()}
           >
-            Plan oder Bild hinzufügen
+            Dokument hinzufügen
           </Button>
+          <CheckboxField
+            id="plaene-nur-buero"
+            label="Nur fürs Büro"
+            checked={nurBuero}
+            onChange={(e) => setNurBuero(e.target.checked)}
+          />
           {fortschritt ? (
             <span className="text-sm text-ink-muted" role="status">{fortschritt}</span>
           ) : (
-            <span className="text-xs text-ink-muted">Die Monteure dieser Baustelle sehen alles hier.</span>
+            <span className="text-xs text-ink-muted">
+              {nurBuero
+                ? 'Was jetzt dazukommt, sehen die Monteure nicht.'
+                : 'Die Monteure dieser Baustelle sehen alles ohne „Nur Büro“.'}
+            </span>
           )}
         </div>
       )}
@@ -168,18 +203,25 @@ export default function BaustellenPlaene({
             ? `${rueckfrage
                 .filter((d) => klingtNachBueroBeleg(d.name, personen))
                 .map((d) => d.name)
-                .join(', ')} klingt nach einem Beleg aus dem Büro oder nach Daten einer Person. Alles hier sehen auch die Monteure dieser Baustelle.`
+                .join(', ')} klingt nach einem Beleg aus dem Büro oder nach Daten einer Person. Ohne „Nur fürs Büro“ sehen es auch die Monteure dieser Baustelle.`
             : ''
         }
-        confirmLabel="Trotzdem hinzufügen"
+        confirmLabel="Hinzufügen"
         confirmTone="primary"
         onCancel={() => setRueckfrage(null)}
         onConfirm={() => {
           const dateien = rueckfrage;
           setRueckfrage(null);
-          if (dateien) void hochladen(dateien);
+          if (dateien) void hochladen(dateien, rueckfrageNurBuero);
         }}
-      />
+      >
+        <CheckboxField
+          id="plaene-rueckfrage-nur-buero"
+          label="Nur fürs Büro"
+          checked={rueckfrageNurBuero}
+          onChange={(e) => setRueckfrageNurBuero(e.target.checked)}
+        />
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={!!weg}

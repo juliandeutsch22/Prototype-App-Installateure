@@ -590,7 +590,7 @@ describe('Pläne und Dokumente', () => {
     const nutzer = userEvent.setup();
     zeige();
     await screen.findByText('Noch keine Pläne oder Dokumente.');
-    await nutzer.upload(screen.getByLabelText('Pläne oder Bilder auswählen'), pdf('Grundriss EG.pdf'));
+    await nutzer.upload(screen.getByLabelText('Dokumente auswählen'), pdf('Grundriss EG.pdf'));
     expect(hochgeladen.map((d) => d.name)).toEqual(['Grundriss EG.pdf']);
     expect(await screen.findByRole('link', { name: 'Grundriss EG.pdf' })).toHaveAttribute(
       'href',
@@ -602,13 +602,13 @@ describe('Pläne und Dokumente', () => {
     const nutzer = userEvent.setup({ applyAccept: false });
     zeige();
     await screen.findByText('Noch keine Pläne oder Dokumente.');
-    await nutzer.upload(screen.getByLabelText('Pläne oder Bilder auswählen'), [
+    await nutzer.upload(screen.getByLabelText('Dokumente auswählen'), [
       pdf('Plan 1.pdf'),
       new File([new Uint8Array(10)], 'Zeichnung.dwg', { type: '' }),
       pdf('Plan 2.pdf'),
     ]);
     expect(hochgeladen.map((d) => d.name)).toEqual(['Plan 1.pdf', 'Plan 2.pdf']);
-    expect(await screen.findByText(/Zeichnung.dwg.*nur PDF und Bilder/)).toBeInTheDocument();
+    expect(await screen.findByText(/Zeichnung.dwg.*nur PDF, Bilder/)).toBeInTheDocument();
   });
 
   it('löscht erst nach Rückfrage', async () => {
@@ -629,7 +629,7 @@ describe('Pläne und Dokumente', () => {
     plaene = [{ id: 'd9', projectId: 'b1', pfad: 'baustellen/perl/b1/x.pdf', dateiname: 'Alt.pdf', mime: 'application/pdf', bytes: 500 }];
     zeige();
     expect(await screen.findByRole('link', { name: 'Alt.pdf' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Plan oder Bild hinzufügen/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Dokument hinzufügen/ })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Alt.pdf löschen' })).toBeNull();
   });
 });

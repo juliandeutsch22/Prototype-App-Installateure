@@ -66,7 +66,7 @@ describe('Hochladen', () => {
 
   it('prüft die Datei, bevor irgendetwas hochgeht', async () => {
     await expect(dokumentHochladen('perl', 'p1', datei('plan.dwg', ''), 'Chefin')).rejects.toThrow(
-      /nur PDF und Bilder/,
+      /nur PDF, Bilder/,
     );
     expect(hochgeladen).toEqual([]);
   });
@@ -101,5 +101,47 @@ describe('Der Dateityp', () => {
     expect(dateiTyp({ name: 'Plan.PDF', type: '' })).toBe('application/pdf');
     expect(dateiTyp({ name: 'IMG_0001.HEIC', type: '' })).toBe('image/heic');
     expect(dateiTyp({ name: 'plan.dwg', type: 'application/acad' })).toBeNull();
+  });
+});
+
+describe('Word, Excel und E-Mails an der Baustelle (17 D, 11.10.2026)', () => {
+  it('nimmt sie an — mit Typ vom Browser oder nur aus der Endung', async () => {
+    const { dateiPruefen } = await import('@/lib/db/pg/baustellenDokumente');
+    for (const name of ['Brief.docx', 'Alt.doc', 'Aufmaß.xlsx', 'Alt.xls', 'Hausverwaltung.eml', 'Outlook.msg']) {
+      expect(dateiPruefen({ name, type: '', size: 10 })).toBeNull();
+    }
+    expect(dateiTyp({ name: 'x', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }))
+      .toBe('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    expect(dateiTyp({ name: 'Aufmaß.XLSX', type: '' })).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  });
+
+  it('gibt der Datei die passende Endung im Speicher', async () => {
+    await dokumentHochladen('perl', 'p1', new File(['x'], 'Brief.docx', { type: '' }), 'Chefin', true);
+    expect(hochgeladen[hochgeladen.length - 1]).toMatch(/^baustellen\/perl\/p1\/[0-9a-f-]{36}\.docx$/);
+  });
+
+  it('weiterhin nicht: CAD, Text, ausführbare Dateien', async () => {
+    const { dateiPruefen } = await import('@/lib/db/pg/baustellenDokumente');
+    for (const name of ['Plan.dwg', 'notiz.txt', 'setup.exe', 'makro.xlsm']) {
+      expect(dateiPruefen({ name, type: '', size: 10 })).toMatch(/nur PDF, Bilder/);
+    }
+  });
+
+  it('die Nachweise einer Freistellung bleiben bei PDF und Bildern', async () => {
+    const { nachweisPruefen } = await import('@/lib/db/pg/freistellungen');
+    expect(nachweisPruefen({ name: 'Arztbrief.docx', type: '', size: 10 })).toMatch(/nur PDF und Bilder/);
+    expect(nachweisPruefen({
+      name: 'x', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', size: 10,
+    })).toMatch(/nur PDF und Bilder/);
+    expect(nachweisPruefen({ name: 'Bestaetigung.pdf', type: '', size: 10 })).toBeNull();
+  });
+
+  it('das Kürzel in der Liste folgt dem Typ', async () => {
+    const { kuerzelFuer } = await import('@/features/projects/dokumentKuerzel');
+    expect([
+      'application/pdf', 'image/heic', 'application/msword',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel',
+      'message/rfc822', 'application/vnd.ms-outlook',
+    ].map(kuerzelFuer)).toEqual(['PDF', 'BILD', 'WORD', 'EXCEL', 'EXCEL', 'MAIL', 'MAIL']);
   });
 });

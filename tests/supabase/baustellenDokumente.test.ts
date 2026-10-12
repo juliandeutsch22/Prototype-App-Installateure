@@ -8,6 +8,11 @@
  * Geprüft wird die ganze Matrix, und zwar an BEIDEN Türen: an der Zeile in
  * `project_documents` und an der Datei im Eimer. Eine Regel, die nur an einer
  * der beiden steht, ist keine — das hat die Lücke bei den Scheinfotos gezeigt.
+ *
+ * Seit 11.10.2026 (17 D): „nur fürs Büro“ je Dokument und Word, Excel,
+ * E-Mails. Gegenprobe: ohne `20261011300000_dokumente_nur_buero.sql` sieht
+ * der Monteur ein solches Dokument, das Umschalten fehlt und der Eimer
+ * lehnt Word ab (rot).
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { admin, betriebAnlegen, einblickBeginnen, konto, plattformkonto, type Konto } from './helfer';
@@ -117,8 +122,8 @@ describe('Wer hochlädt', () => {
     expect(liste.data ?? []).toEqual([]);
   });
 
-  it('nimmt nur PDF und Bilder, und höchstens 25 MB', () => {
-    expect(dok.dateiPruefen({ name: 'plan.dwg', type: '', size: 10 })).toMatch(/nur PDF und Bilder/);
+  it('nimmt nur PDF, Bilder, Word, Excel und E-Mails, und höchstens 25 MB', () => {
+    expect(dok.dateiPruefen({ name: 'plan.dwg', type: '', size: 10 })).toMatch(/nur PDF, Bilder/);
     expect(dok.dateiPruefen({ name: 'plan.pdf', type: '', size: 26 * 1024 * 1024 })).toMatch(/höchstens 25 MB/);
     expect(dok.dateiPruefen({ name: 'plan.PDF', type: '', size: 10 })).toBeNull();
     expect(dok.dateiPruefen({ name: 'foto.jpg', type: 'image/jpeg', size: 10 })).toBeNull();
@@ -243,6 +248,74 @@ describe('Löschen', () => {
     */
     const { error } = await chef.client.from('projects').delete().eq('id', baustelle);
     expect(error?.message).toMatch(/project_documents|foreign key/);
+  });
+});
+
+describe('Nur fürs Büro (17 D)', () => {
+  let pfad: string;
+  let id: string;
+  beforeAll(async () => {
+    clientEinreichen(chef.client);
+    const d = await dok.dokumentHochladen(BETRIEB, baustelle, pdf('Angebot Lieferant.pdf'), 'Test', true);
+    pfad = d.pfad;
+    id = d.id;
+  });
+
+  it('das Büro sieht es — Zeile und Datei', async () => {
+    for (const wer of [chef, leitung, buch, verwaltung]) {
+      expect(await sieht(wer, pfad)).toEqual({ zeile: true, datei: true });
+    }
+    const { data } = await chef.client.from('project_documents').select('nur_buero').eq('id', id).single();
+    expect(data).toEqual({ nur_buero: true });
+  });
+
+  it('der Monteur der Baustelle nicht — weder Zeile noch Datei, auch nicht über eine Adresse', async () => {
+    for (const wer of [imTeam, eingeteilt]) {
+      expect(await sieht(wer, pfad)).toEqual({ zeile: false, datei: false });
+      const adresse = await wer.client.storage.from(EIMER).createSignedUrl(pfad, 60);
+      expect(adresse.data?.signedUrl).toBeFalsy();
+    }
+    clientEinreichen(imTeam.client);
+    const liste = await dok.listDokumente(BETRIEB, [baustelle]);
+    expect(liste.map((d) => d.id)).not.toContain(id);
+  });
+
+  it('umschalten darf, wer hochladen darf — Verwaltung, Monteur und Support nicht', async () => {
+    for (const wer of [verwaltung, imTeam, buch, plattform]) {
+      const r = await wer.client.rpc('dokument_nur_buero_setzen', { p_id: id, p_nur_buero: false });
+      expect(r.error?.code).toBe('42501');
+    }
+    expect(await sieht(imTeam, pfad)).toEqual({ zeile: false, datei: false });
+
+    clientEinreichen(leitung.client);
+    await dok.dokumentNurBueroSetzen(id, false);
+    expect(await sieht(imTeam, pfad)).toEqual({ zeile: true, datei: true });
+
+    clientEinreichen(chef.client);
+    await dok.dokumentNurBueroSetzen(id, true);
+    expect(await sieht(imTeam, pfad)).toEqual({ zeile: false, datei: false });
+  });
+
+  it('ein fremder Betrieb kann es nicht umschalten', async () => {
+    const r = await fremd.client.rpc('dokument_nur_buero_setzen', { p_id: id, p_nur_buero: false });
+    expect(r.error?.code).toBe('42501');
+  });
+});
+
+describe('Word, Excel und E-Mails (17 D)', () => {
+  it('gehen durch denselben Weg wie ein Plan — Zeile und Datei', async () => {
+    const dateien = [
+      new File([new Uint8Array([0x50, 0x4b, 3, 4])], 'Aufmaß.xlsx', { type: '' }),
+      new File([new Uint8Array([0x50, 0x4b, 3, 4])], 'Brief.docx', { type: '' }),
+      new File(['From: a@b.at\r\n\r\nHallo'], 'Hausverwaltung.eml', { type: '' }),
+    ];
+    for (const datei of dateien) {
+      clientEinreichen(chef.client);
+      const d = await dok.dokumentHochladen(BETRIEB, baustelle, datei, 'Test');
+      expect(await sieht(chef, d.pfad)).toEqual({ zeile: true, datei: true });
+      // Ohne Häkchen wie jedes Dokument: der Monteur im Team sieht es.
+      expect(await sieht(imTeam, d.pfad)).toEqual({ zeile: true, datei: true });
+    }
   });
 });
 
