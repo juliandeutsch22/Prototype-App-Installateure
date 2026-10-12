@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import OhneUmbruch from '@/components/OhneUmbruch';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   listRecentQuotes,
+  sucheAngebote,
+  ANGEBOT_TREFFER,
   createQuote,
   updateQuote,
   deleteQuote,
@@ -241,8 +243,14 @@ export default function QuotesView() {
   const [suchParameter, setSuchParameter] = useSearchParams();
   /** Wie weit die Liste geladen ist (siehe `ANGEBOTE_JE_SEITE`). */
   const [grenze, setGrenze] = useState(ANGEBOTE_JE_SEITE);
-  /** Gesucht wird im Geladenen — die Datenschicht kennt für Angebote keine Suche. */
   const [suche, setSuche] = useState('');
+  /**
+   * Die Treffer der Suche über ALLE Angebote (17 I) — `null`, solange keine
+   * Antwort zum aktuellen Begriff da ist. Bis dahin (und falls sie ausbleibt)
+   * filtert die Liste das Geladene, so steht beim Tippen sofort etwas da.
+   */
+  const [treffer, setTreffer] = useState<{ begriff: string; zeilen: WithId<Quote>[] } | null>(null);
+  const [suchFehler, setSuchFehler] = useState(false);
   const ansichtWert = suchParameter.get('ansicht');
   const ansicht: Ansicht = ansichtWert === 'erledigt' || ansichtWert === 'alle' ? ansichtWert : 'offen';
   function ansichtWaehlen(neu: Ansicht) {
@@ -250,6 +258,25 @@ export default function QuotesView() {
     if (neu === 'offen') p.delete('ansicht');
     else p.set('ansicht', neu);
     setSuchParameter(p, { replace: true });
+  }
+  /**
+   * Die Ansicht vor dem Suchen, wenn die Suche sie auf „Alle“ gestellt hat —
+   * wie bei den Rechnungen. Die Suche geht über alle Angebote; aus „Offen“
+   * heraus fände sie ein angenommenes nicht, und wer eine Nummer sucht,
+   * hielte es für verschwunden. Ist der Begriff wieder leer, kehrt die Liste
+   * zurück; wer zwischendurch selbst eine Ansicht wählt, behält seine.
+   */
+  const vorDerSuche = useRef<Ansicht | null>(null);
+  function sucheAendern(text: string) {
+    const vorher = suche.trim();
+    if (!vorher && text.trim() && ansicht === 'offen') {
+      vorDerSuche.current = ansicht;
+      ansichtWaehlen('alle');
+    } else if (vorher && !text.trim() && vorDerSuche.current) {
+      ansichtWaehlen(vorDerSuche.current);
+      vorDerSuche.current = null;
+    }
+    setSuche(text);
   }
 
   /*
@@ -592,6 +619,31 @@ export default function QuotesView() {
     }
   }
 
+  const suchbegriff = suche.trim();
+  useEffect(() => {
+    if (!user || !suchbegriff) {
+      setSuchFehler(false);
+      return;
+    }
+    let weg = false;
+    const zeit = setTimeout(() => {
+      sucheAngebote(user.companyId, suchbegriff)
+        .then((zeilen) => {
+          if (weg) return;
+          setTreffer({ begriff: suchbegriff, zeilen });
+          setSuchFehler(false);
+        })
+        .catch(() => {
+          if (!weg) setSuchFehler(true);
+        });
+    }, 300);
+    return () => {
+      weg = true;
+      clearTimeout(zeit);
+    };
+    // `angebote` als Auslöser: nach Annehmen, Versenden oder Löschen zeigen die Treffer den neuen Stand.
+  }, [user, suchbegriff, angebote]);
+
   if (!user) return null;
 
   /*
@@ -605,9 +657,11 @@ export default function QuotesView() {
   const istOffen = (q: WithId<Quote>) => q.status === 'Entwurf' || q.status === 'Versendet';
   const abgelaufen = (q: WithId<Quote>) => istOffen(q) && q.validUntil < heute;
   const nachFrist = (a: WithId<Quote>, b: WithId<Quote>) => a.validUntil.localeCompare(b.validUntil);
-  const begriff = suche.trim().toLowerCase();
+  const begriff = suchbegriff.toLowerCase();
+  const serverTreffer = treffer && suchbegriff && treffer.begriff === suchbegriff ? treffer.zeilen : null;
   const gesucht = begriff
-    ? angebote.filter((q) =>
+    ? serverTreffer ??
+      angebote.filter((q) =>
         [q.quoteNumber, q.customerName, q.address, q.projectNumber].some((x) => x?.toLowerCase().includes(begriff)),
       )
     : angebote;
@@ -1085,7 +1139,15 @@ export default function QuotesView() {
       <Card buendig>
         <div className="flex flex-wrap items-end gap-3 p-4">
           <div className="w-full md:w-auto">
-            <Segmente name="Angebote zeigen" werte={ANSICHTEN} wert={ansicht} onChange={ansichtWaehlen} />
+            <Segmente
+              name="Angebote zeigen"
+              werte={ANSICHTEN}
+              wert={ansicht}
+              onChange={(neu) => {
+                vorDerSuche.current = null;
+                ansichtWaehlen(neu);
+              }}
+            />
           </div>
           <div className="min-w-[12rem] flex-1">
             <InputField
@@ -1094,9 +1156,19 @@ export default function QuotesView() {
               type="search"
               placeholder="Nummer, Kunde, Ort oder Baustelle"
               value={suche}
-              onChange={(e) => setSuche(e.target.value)}
+              onChange={(e) => sucheAendern(e.target.value)}
             />
           </div>
+          {suchbegriff && suchFehler && (
+            <p className="w-full text-xs text-warning">
+              Die Suche über alle Angebote ist gerade nicht erreichbar — gezeigt werden Treffer unter den geladenen.
+            </p>
+          )}
+          {serverTreffer && serverTreffer.length >= ANGEBOT_TREFFER && (
+            <p className="w-full text-xs text-ink-muted">
+              Die {ANGEBOT_TREFFER} jüngsten Treffer — für ältere genauer suchen.
+            </p>
+          )}
         </div>
         {loading ? (
           <div className="p-4">
@@ -1109,13 +1181,15 @@ export default function QuotesView() {
         ) : (
           sichtbar.map((g) => <Gruppe key={`${ansicht}-${g.id}`} titel={g.titel} zeilen={g.zeilen} zeile={zeile} />)
         )}
-        {!loading && (
+        {/* Während gesucht wird, geht die Suche über alle — Nachladen betrifft dann nichts. */}
+        {!loading && !suchbegriff && (
           <div className="px-4 pb-3 empty:hidden">
             <Nachladen
               geladen={angebote.length}
               grenze={grenze}
               einheit="Angebote"
               onMehr={() => setGrenze((n) => n + ANGEBOTE_JE_SEITE)}
+              sucheImBrowser={false}
             />
           </div>
         )}

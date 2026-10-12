@@ -32,7 +32,16 @@ const createProject = vi.fn<(a0: string, a1: unknown) => Promise<string>>(async 
 const updateQuote = vi.fn<(a0: string, a1: unknown) => Promise<void>>(async () => undefined);
 const angebote: (Quote & { id: string })[] = [];
 
+/** Ältere Angebote, die nur die Suche auf dem Server kennt (17 I) — nicht in der geladenen Liste. */
+const nurAufDemServer: (Quote & { id: string })[] = [];
+/** Wie der Server: dieselben Felder, über alle Angebote. */
+const sucheAngebote = vi.fn(async (_c: string, begriff: string) =>
+  [...angebote, ...nurAufDemServer].filter((q) =>
+    [q.quoteNumber, q.customerName, q.address, q.projectNumber].some((x) => x?.toLowerCase().includes(begriff.toLowerCase()))));
+
 vi.mock('@/lib/db/quotes', () => ({
+  ANGEBOT_TREFFER: 100,
+  sucheAngebote: (c: string, b: string) => sucheAngebote(c, b),
   listRecentQuotes: vi.fn(async () => angebote),
   createQuote: (c: string, q: unknown) => createQuote(c, q),
   updateQuote: (id: string, d: unknown) => updateQuote(id, d),
@@ -111,6 +120,8 @@ beforeEach(() => {
   aktiveBaustellen = [];
   bestehende = [];
   angebote.length = 0;
+  nurAufDemServer.length = 0;
+  sucheAngebote.mockClear();
   // Bearbeiten scrollt zum Formular hinauf; jsdom kennt das nicht.
   window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
 });
@@ -972,6 +983,42 @@ describe('Angebote auf der Linie „Lot“', () => {
     await nutzer.clear(screen.getByLabelText('Suche'));
     await nutzer.type(screen.getByLabelText('Suche'), 'gibt es nicht');
     expect(screen.getByText('Kein Angebot passt zur Suche.')).toBeInTheDocument();
+  });
+
+  /*
+    SUCHE ÜBER ALLE ANGEBOTE (17 I). Gegenprobe: mit der alten Suche im
+    Geladenen schlagen die ersten beiden fehl; die Prüfung darüber („sucht
+    über Nummer, Kunde und Ort“) bleibt, wie sie war.
+  */
+  it('findet auf dem Server auch ein Angebot, das die Liste nicht geladen hat — und stellt dafür auf „Alle“', async () => {
+    const nutzer = userEvent.setup();
+    angebot('a', 'AN-2026-0010', 'Familie Huber', 'Versendet', '2099-01-01');
+    nurAufDemServer.push({
+      id: 'alt', companyId: 'perl', quoteNumber: 'AN-2023-0042', customerId: 'k9', customerName: 'Hotel Sonne', address: 'Seeweg 2',
+      quoteDate: '2023-05-01', validUntil: '2023-06-01', status: 'Angenommen', positions: [], subtotalNetto: 100, totalNetto: 100,
+      totalVat: 20, totalBrutto: 120, vatRate: 0.2, kalkulierteStunden: 0,
+    });
+    zeichne();
+    await screen.findByText('AN-2026-0010');
+    await nutzer.type(screen.getByLabelText('Suche'), 'Sonne');
+    expect(await screen.findByText('AN-2023-0042')).toBeInTheDocument();
+    expect(sucheAngebote).toHaveBeenLastCalledWith('perl', 'Sonne');
+    expect(screen.getByRole('button', { name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
+    // Leer gesucht: zurück zu „Offen“, das alte steht nicht mehr da.
+    await nutzer.clear(screen.getByLabelText('Suche'));
+    expect(screen.getByRole('button', { name: 'Offen' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText('AN-2023-0042')).toBeNull();
+  });
+
+  it('ist die Suche über alle nicht erreichbar, sagt sie es — und sucht im Geladenen', async () => {
+    const nutzer = userEvent.setup();
+    sucheAngebote.mockRejectedValueOnce(new Error('offline'));
+    angebot('b', 'AN-2026-0011', 'Gasthof Post', 'Entwurf', '2099-01-01');
+    zeichne();
+    await screen.findByText('AN-2026-0011');
+    await nutzer.type(screen.getByLabelText('Suche'), 'p');
+    expect(await screen.findByText(/Die Suche über alle Angebote ist gerade nicht erreichbar/)).toBeInTheDocument();
+    expect(screen.getByText('AN-2026-0011')).toBeInTheDocument();
   });
 
   it('zeigt je Gruppe höchstens 20 Zeilen, dann „und N weitere anzeigen“', async () => {

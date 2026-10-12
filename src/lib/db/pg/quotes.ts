@@ -13,6 +13,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Quote, InvoiceDiscount } from '@/types';
 import { abfragen, derClient, loeschen, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
+import { oderUeberSpalten } from './suche';
 import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
 
 const ANGEBOTE = 'quotes';
@@ -79,6 +80,30 @@ async function zusammensetzen(
 /** Die jüngsten Angebote, mit Obergrenze — eine Arbeitsliste, kein Archiv. */
 export async function listRecentQuotes(companyId: string, max = 100) {
   const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
+    sortiere: { feld: 'createdAt', absteigend: true },
+    grenze: max,
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
+/** Wie viele Treffer die Suche zeigt — wer mehr braucht, sucht genauer. */
+export const ANGEBOT_TREFFER = 100;
+
+/**
+ * Angebote suchen — ÜBER ALLE, auf dem Server (17 I). Die Liste lädt die
+ * jüngsten; ein älteres Angebot fand die Suche darin nicht, und nichts
+ * unterschied das von „gibt es nicht“. Dieselben Felder wie die Suche im
+ * Geladenen: Nummer, Kunde, Ort, Baustelle.
+ */
+export async function sucheAngebote(
+  companyId: string,
+  begriff: string,
+  max = ANGEBOT_TREFFER,
+): Promise<WithId<Quote>[]> {
+  const oder = oderUeberSpalten(['quote_number', 'customer_name', 'address', 'project_number'], begriff);
+  if (!oder) return [];
+  const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
+    oder,
     sortiere: { feld: 'createdAt', absteigend: true },
     grenze: max,
   });
