@@ -207,6 +207,65 @@ describe('Einteilung', () => {
   });
 });
 
+/**
+ * Audit: Wird nur EIN Einsatz gelöscht, darf die Rüstliste dessen vorherige
+ * Mitgliedschaft nicht mehr zur Autorisierung von Lagerbewegungen verwenden.
+ * `it.fails` = Sollanforderung derzeit verletzt, NICHT repariert.
+ */
+describe('Audit: einzelner Einsatz gelöscht, Abhakrecht muss enden', () => {
+  it.fails('verweigert dem ausgeladenen Monteur das Markieren der alten Rüstliste', async () => {
+    clientEinreichen(planer.client);
+    await leeren();
+    try {
+      await einsaetze.saveAssignments(BETRIEB, TAG, BAU, [zeile(anton)]);
+      await ruest.saveEinsatzMaterial(
+        BETRIEB, TAG, BAU, [position('audit-entzug', 'Rohr')], [anton.uid], 'Planer',
+      );
+      const zuLoeschen = (await einsaetze.listAssignmentsForDate(BETRIEB, TAG))
+        .find((e) => e.userId === anton.uid);
+      expect(zuLoeschen).toBeDefined();
+      await einsaetze.deleteAssignment(zuLoeschen!.id);
+
+      clientEinreichen(anton.client);
+      // Soll: ab hier nicht mehr berechtigt, auch nicht durch direkten RPC-Aufruf.
+      await expect(ruest.ladenUmschalten(
+        BETRIEB, TAG, BAU, 'audit-entzug', true, 'Anton',
+      )).rejects.toThrow();
+    } finally {
+      clientEinreichen(planer.client);
+      await leeren();
+    }
+  });
+});
+
+/**
+ * Audit: die Anzeige und das Lagerjournal müssen der echten angemeldeten
+ * Person zugeordnet werden, nicht einem vom Browser frei gewählten Namen.
+ */
+describe('Audit: Identität beim Rüstlisten-Abhaken', () => {
+  it.fails('übernimmt nicht einen fremden Namen als tatsächlichen Einlader', async () => {
+    clientEinreichen(planer.client);
+    await leeren();
+    try {
+      await einsaetze.saveAssignments(BETRIEB, TAG, BAU, [zeile(anton)]);
+      await ruest.saveEinsatzMaterial(
+        BETRIEB, TAG, BAU, [position('audit-wer', 'Rohr')], [anton.uid], 'Planer',
+      );
+      clientEinreichen(anton.client);
+      await ruest.ladenUmschalten(
+        BETRIEB, TAG, BAU, 'audit-wer', true, 'Name eines fremden Kollegen',
+      );
+      clientEinreichen(planer.client);
+      const liste = await ruest.getEinsatzMaterial(BETRIEB, TAG, BAU);
+      // Soll: kein unüberprüfter fremder Name im tatsächlichen Einladeprotokoll.
+      expect(liste?.geladen?.['audit-wer']?.von).not.toBe('Name eines fremden Kollegen');
+    } finally {
+      clientEinreichen(planer.client);
+      await leeren();
+    }
+  });
+});
+
 describe('Einteilung lesen', () => {
   const TAGE = ['2026-06-01', '2026-06-02', '2026-06-03', '2026-06-04'];
 
