@@ -35,6 +35,7 @@ function person(p: Partial<AppUser> & { uid: string }): AppUser {
 let leute: AppUser[] = [];
 let ladefehler: string | null = null;
 let mailGeht = true;
+let wiederaufnahme = false;
 
 const profilAendern = vi.fn();
 const anlegen = vi.fn();
@@ -57,7 +58,8 @@ vi.mock('@/lib/auth/provisionUser', () => ({
     // Wie das Original: eine Kunstadresse bekommt keine Mail.
     const benutzerkonto = istBenutzerkonto((a[1] as { email?: string })?.email);
     return Promise.resolve({
-      mailSent: mailGeht && !benutzerkonto, tempPassword: 'Kupfer-7742-Rohr', benutzerkonto,
+      mailSent: mailGeht && !benutzerkonto, tempPassword: wiederaufnahme ? '' : 'Kupfer-7742-Rohr', benutzerkonto,
+      uid: 'angefangen', startpasswortNoetig: wiederaufnahme,
     });
   },
   resendPasswordReset: (...a: unknown[]) => {
@@ -122,6 +124,7 @@ beforeEach(() => {
   leute = [];
   ladefehler = null;
   mailGeht = true;
+  wiederaufnahme = false;
   angemeldet = { uid: 'gf1', companyId: 'perl', name: 'Chefin', role: 'Geschäftsführung' };
   betrieb = { id: 'perl', name: 'Perl Installationen' };
   profilAendern.mockReset().mockResolvedValue(undefined);
@@ -293,6 +296,18 @@ describe('Benutzerverwaltung — anlegen und bearbeiten', () => {
 
     const hinweis = await screen.findByRole('alert');
     expect(within(hinweis).getByText('Kupfer-7742-Rohr')).toBeInTheDocument();
+  });
+
+  it('führt nach wiederhergestelltem Profil zur Passwortvergabe statt ein falsches Passwort anzuzeigen', async () => {
+    mailGeht = false;
+    wiederaufnahme = true;
+    zeige();
+    await formOeffnen();
+    await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'Neuling');
+    await userEvent.type(screen.getByRole('textbox', { name: /Mail/ }), 'neuling@perl.at');
+    await userEvent.click(screen.getByRole('button', { name: /Anlegen|Benutzer anlegen/ }));
+    expect(await screen.findByRole('link', { name: 'Zur Mitarbeiterakte' })).toHaveAttribute('href', '/user-mgmt/angefangen');
+    expect(screen.queryByTestId('startpasswort')).not.toBeInTheDocument();
   });
 
   it('zeigt es NICHT, wenn die Mail durchging', async () => {

@@ -177,3 +177,12 @@ export function searchWartungen(
     grenze: max,
   });
 }
+
+/** Baustelle und Zuordnung entstehen in derselben Transaktion. */
+export async function wartungEinplanen(id: string, nummer: string | null, praefix: string, faellig: string): Promise<string> {
+  const { data, error } = await derClient().rpc('wartung_einplanen', {
+    p_wartung: id, p_nummer: nummer, p_praefix: praefix, p_faellig: faellig,
+  });
+  if (error) throw new Error(error.message);
+  return String(data);
+}

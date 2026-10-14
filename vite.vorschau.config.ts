@@ -15,6 +15,9 @@ import path from 'node:path';
  * Reihenfolge zaehlt: die spezifischen Muster VOR dem allgemeinen `@`.
  */
 export default defineConfig({
+  // Vorschau und echter Stapel haben verschiedene Modul-Aliase. Ein gemeinsamer
+  // Optimierungsspeicher lässt beim parallelen Start veraltete URLs zurück.
+  cacheDir: 'node_modules/.vite-vorschau',
   plugins: [
     react(),
     {

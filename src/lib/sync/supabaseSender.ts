@@ -62,14 +62,18 @@ function istNetzfehler(fehler: { code?: string; message?: string }): boolean {
 export function supabaseSender(client: SupabaseClient): Sender {
   return async (v: Sendung): Promise<Sendeergebnis> => {
     try {
+      // Während der Tabsperre kann das Konto gewechselt worden sein. Fremde
+      // Vormerkungen bleiben dann liegen, statt durch RLS endgültig zu scheitern.
+      if (v.uid) {
+        const { data } = await client.auth.getSession();
+        if (data.session?.user.id !== v.uid) return { art: 'kein-netz' };
+      }
       const { error, status, count } =
         v.art === 'anlegen'
-          ? // UPSERT, nicht INSERT: derselbe Vorgang darf zweimal ankommen.
-            // Die Kennung kommt vom Gerät, deshalb trifft der zweite Versuch
-            // dieselbe Zeile statt eine neue anzulegen.
+          ? // Wiederholte Anlagen dürfen spätere Änderungen nicht überschreiben.
             await client
               .from(v.tabelle)
-              .upsert({ ...v.daten, id: v.zeile }, { onConflict: 'id', ignoreDuplicates: false })
+              .upsert({ ...v.daten, id: v.zeile }, { onConflict: 'id', ignoreDuplicates: true })
           : // Mit Trefferzahl — siehe unten.
             await client.from(v.tabelle).update(v.daten, { count: 'exact' }).eq('id', v.zeile);
 

@@ -17,6 +17,9 @@ const VERBINDUNG =
   process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
 
 export async function setup(): Promise<void> {
+  if (!['localhost', '127.0.0.1', '[::1]'].includes(new URL(VERBINDUNG).hostname)) {
+    throw new Error('Der Datenbank-Testreset ist ausschließlich für einen lokalen Teststack erlaubt.');
+  }
   const db = new Client({ connectionString: VERBINDUNG });
   await db.connect();
   try {

@@ -135,3 +135,9 @@ describe('Prüflauf 25.09.2026', () => {
     expect(optionen).toEqual([{ count: 'exact' }]);
   });
 });
+
+it('lässt beim Kontowechsel während des Wartens die fremde Vormerkung liegen', async () => {
+  const c = { auth: { getSession: async () => ({ data: { session: { user: { id: 'kollegin' } } } }) },
+    from: () => { throw new Error('Darf nicht gesendet werden'); } } as unknown as SupabaseClient;
+  expect(await supabaseSender(c)({ ...sendung, uid: 'besitzer' })).toEqual({ art: 'kein-netz' });
+});

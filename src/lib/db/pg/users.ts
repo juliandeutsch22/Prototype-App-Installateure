@@ -174,6 +174,7 @@ export async function createUserDoc(
   companyId: string,
   uid: string,
   p: UserProfileInput,
+  nurNeu = false,
 ): Promise<void> {
   const zeile = {
     ...objektAlsZeile(BELEGSCHAFT, {
@@ -204,7 +205,7 @@ export async function createUserDoc(
     id: uid,
     company_id: companyId,
   };
-  const { error } = await derClient().from(BELEGSCHAFT).upsert(zeile, { onConflict: 'id' });
+  const { error } = await derClient().from(BELEGSCHAFT).upsert(zeile, { onConflict: 'id', ignoreDuplicates: nurNeu });
   if (error) throw new Error(error.message);
 }
 

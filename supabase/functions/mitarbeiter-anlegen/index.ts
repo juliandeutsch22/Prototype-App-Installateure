@@ -24,10 +24,9 @@
  *   der beiden Regeln mehr — aus einer Absicherung würde ein Loch, und zwar
  *   eines, das niemandem auffiele, weil alles weiter funktioniert.
  *
- * Bleibt ein Konto ohne Belegschaftszeile zurück, wenn der Browser danach
- * scheitert. Das ist so wie bisher und in `lib/auth/provisionUser.ts`
- * begründet: der Betroffene kann sich anmelden und sieht nichts — das fällt
- * beim ersten Versuch auf. Eine Zeile ohne Konto fiele niemandem auf.
+ * Der serverseitige Herkunftsnachweis erlaubt demselben Aufrufer die
+ * Wiederaufnahme mit derselben zufälligen Vorgangskennung. Profile werden
+ * weiterhin unter den Rechten des Aufrufers angelegt.
  *
  * OHNE FERNIMPORT, aus demselben Grund wie bei `betrieb-anlegen`: eine
  * Function ohne Fernimport startet auch dann, wenn die Registry gerade nicht
@@ -99,7 +98,7 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     return fehler('Mitarbeiter anlegen darf nur die Geschäftsführung oder die Administration.', 403);
   }
 
-  let eingabe: { email?: unknown; passwort?: unknown };
+  let eingabe: { email?: unknown; passwort?: unknown; vorgang?: unknown };
   try {
     eingabe = await req.json();
   } catch {
@@ -123,6 +122,33 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     if (warum) return fehler(warum, 400);
   }
   if (passwort.length < 8) return fehler('Das Anfangspasswort ist zu kurz.', 400);
+
+  const vorgang = typeof eingabe.vorgang === 'string' ? eingabe.vorgang : null;
+  if (vorgang && !/^[0-9a-f-]{36}$/i.test(vorgang)) return fehler('Unbrauchbare Vorgangskennung.', 400);
+  async function wiederaufnahme(): Promise<{ uid: string; startpasswort_unbekannt?: boolean } | null> {
+    if (!vorgang) return null;
+    const r = await fetch(`${URL_BASIS}/rest/v1/rpc/konto_anlage_finden`, {
+      method: 'POST', headers: alsDienst,
+      body: JSON.stringify({ p_email: email, p_vorgang: vorgang, p_aufrufer: aufrufer, p_betrieb: ich.company_id }),
+    });
+    if (!r.ok) { await r.body?.cancel(); throw new Error('Die Wiederaufnahme konnte nicht geprüft werden.'); }
+    const uid = await r.json() as string | null;
+    if (uid) return { uid };
+    const offen = await fetch(`${URL_BASIS}/rest/v1/rpc/konto_anlage_offen`, {
+      method: 'POST', headers: alsDienst,
+      body: JSON.stringify({ p_email: email, p_aufrufer: aufrufer, p_betrieb: ich.company_id }),
+    });
+    if (!offen.ok) { await offen.body?.cancel(); throw new Error('Die offene Anlage konnte nicht geprüft werden.'); }
+    const angefangen = await offen.json() as string | null;
+    // Kein Passwortwechsel während der Wiederaufnahme: parallele Versuche
+    // könnten sonst widersprüchliche Zugangsdaten anzeigen. Nach dem Profil
+    // führt die Oberfläche zur bereits vorhandenen Startpasswort-Vergabe.
+    return angefangen ? { uid: angefangen, startpasswort_unbekannt: true } : null;
+  }
+  try {
+    const vorhanden = await wiederaufnahme();
+    if (vorhanden) return antwort(vorhanden);
+  } catch { return fehler('Die Mitarbeiteranlage konnte nicht geprüft werden. Bitte erneut versuchen.', 503); }
 
   /*
     `email_confirm: true` — DIE ADRESSE GILT ALS BESTÄTIGT.
@@ -148,11 +174,16 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     body: JSON.stringify({
       email, password: passwort, email_confirm: true,
       user_metadata: { startpasswort: true },
+      ...(vorgang ? { app_metadata: { anlage_vorgang: vorgang, anlage_aufrufer: aufrufer, anlage_betrieb: ich.company_id } } : {}),
     }),
   });
   const konto = await kontoAntwort.json();
 
   if (!kontoAntwort.ok || typeof konto?.id !== 'string') {
+    try {
+      const vorhanden = await wiederaufnahme();
+      if (vorhanden) return antwort(vorhanden);
+    } catch { return fehler('Die Wiederaufnahme konnte nicht geprüft werden. Bitte erneut versuchen.', 503); }
     const text = String(konto?.msg ?? konto?.message ?? konto?.error_description ?? '');
     const schonDa = kontoAntwort.status === 422 || /already|registered|exists/i.test(text);
     return fehler(

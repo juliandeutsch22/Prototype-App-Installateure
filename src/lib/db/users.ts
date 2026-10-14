@@ -38,3 +38,8 @@ export function createUserDoc(
 ): Promise<void> {
   return pg.createUserDoc(companyId, uid, p);
 }
+
+/** Eine wiederaufgenommene Anlage überschreibt kein bereits bestehendes Profil. */
+export function createUserDocEinmalig(companyId: string, uid: string, p: UserProfileInput): Promise<void> {
+  return pg.createUserDoc(companyId, uid, p, true);
+}

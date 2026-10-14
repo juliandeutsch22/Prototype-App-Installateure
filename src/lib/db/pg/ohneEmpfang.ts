@@ -149,8 +149,9 @@ export async function aendernOhneEmpfang(
   if (!fach) {
     await ohneLager(async () => {
       const c = derClient(client);
-      const { error } = await c.from(tabelle).update(zeile).eq('id', id);
+      const { error, count } = await c.from(tabelle).update(zeile, { count: 'exact' }).eq('id', id);
       if (error) throw new Error(error.message);
+      if (count === 0) throw new Error('Kein Datensatz geändert — er fehlt oder darf nicht geändert werden.');
     });
     return 'confirmed';
   }

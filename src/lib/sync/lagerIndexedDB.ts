@@ -15,6 +15,7 @@
  * die Quere kommen.
  */
 import type { Lager, Vormerkung } from './ausgangsfach';
+import { fachSperre } from './fachSperre';
 
 const DATENBANK = 'installateur-ausgangsfach';
 const FACH = 'vormerkungen';
@@ -61,6 +62,7 @@ function abgeschlossen(tx: IDBTransaction): Promise<void> {
 
 export function lagerImBrowser(): Lager {
   return {
+    exklusiv: fachSperre,
     async alle(): Promise<Vormerkung[]> {
       const db = await oeffnen();
       try {

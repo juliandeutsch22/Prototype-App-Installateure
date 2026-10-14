@@ -28,6 +28,8 @@ const kunden: (Customer & { id: string })[] = [
  * Signatur steht deshalb als Typ da, ohne unbenutzte Bezeichner.
  */
 const createQuote = vi.fn<(a0: string, a1: unknown) => Promise<string>>(async () => 'q1');
+const annahmeRpc = vi.fn<(name: string, args: Record<string, unknown>) => Promise<{ data: string | null; error: { message: string } | null }>>(async () => ({ data: 'B-2026-0012', error: null }));
+vi.mock('@/lib/db/pg/kern', () => ({ derClient: () => ({ rpc: annahmeRpc }) }));
 const createProject = vi.fn<(a0: string, a1: unknown) => Promise<string>>(async () => 'p1');
 const updateQuote = vi.fn<(a0: string, a1: unknown) => Promise<void>>(async () => undefined);
 const angebote: (Quote & { id: string })[] = [];
@@ -39,7 +41,8 @@ const sucheAngebote = vi.fn(async (_c: string, begriff: string) =>
   [...angebote, ...nurAufDemServer].filter((q) =>
     [q.quoteNumber, q.customerName, q.address, q.projectNumber].some((x) => x?.toLowerCase().includes(begriff.toLowerCase()))));
 
-vi.mock('@/lib/db/quotes', () => ({
+vi.mock('@/lib/db/quotes', async () => ({
+  ...await vi.importActual<typeof import('@/lib/db/quotes')>('@/lib/db/quotes'),
   ANGEBOT_TREFFER: 100,
   sucheAngebote: (c: string, b: string) => sucheAngebote(c, b),
   listRecentQuotes: vi.fn(async () => angebote),
@@ -112,6 +115,7 @@ async function formOeffnen() {
 }
 
 beforeEach(() => {
+  annahmeRpc.mockReset().mockResolvedValue({ data: 'B-2026-0012', error: null });
   createQuote.mockClear();
   createProject.mockClear();
   updateQuote.mockClear();
@@ -314,7 +318,7 @@ describe('Angebot kalkulieren', () => {
     expect(createQuote).not.toHaveBeenCalled();
   });
 
-  it('legt beim Annehmen die Baustelle MIT Stundenbudget an', async () => {
+  it('nimmt das gespeicherte Angebot in einer Transaktion an', async () => {
     angebote.push({
       id: 'q1',
       companyId: 'perl',
@@ -339,25 +343,11 @@ describe('Angebot kalkulieren', () => {
 
     await annehmenBestaetigt(nutzer);
 
-    /**
-     * Der eigentliche Zweck des ganzen Schritts: das Stundenbudget stammt aus
-     * der Kalkulation und nicht aus einem zweiten Mal Abtippen. Erst damit
-     * misst die Budget-Ampel gegen eine Zahl mit Herkunft.
-     */
-    const projekt = createProject.mock.calls[0]?.[1] as unknown as {
-      estimatedHours?: number;
-      projectNumber: string;
-      customerId?: string;
-    };
-    expect(projekt.estimatedHours).toBe(20);
-    // Die Nummer kommt aus dem Zähler der Baustellen, nicht aus dem Angebot
-    // (Launch-Check, K6) — zuordenbar bleibt es über die Kennung.
-    expect(projekt.projectNumber).toBe('B-2026-0012');
-    expect(projekt.customerId).toBe('k1');
-    expect(updateQuote).toHaveBeenCalledWith('q1', {
-      status: 'Angenommen',
-      projectNumber: 'B-2026-0012',
+    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen', {
+      p_angebot: 'q1', p_praefix: 'B', p_abrechnung: 'Pauschal',
     });
+    expect(createProject).not.toHaveBeenCalled();
+    expect(updateQuote).not.toHaveBeenCalled();
   });
 
   /*
@@ -427,11 +417,8 @@ describe('Angebot kalkulieren', () => {
     await annehmenBestaetigt(nutzer);
 
     await screen.findByText('Baustelle B-2026-0012 angelegt');
-    expect(reserveProjectNumber).toHaveBeenCalledWith('perl', { seedFrom: 0, praefix: 'B' });
-    const projekt = createProject.mock.calls[0]?.[1] as { projectNumber: string; estimatedHours?: number };
-    expect(projekt.projectNumber).toBe('B-2026-0012');
-    expect(projekt.estimatedHours).toBe(20);
-    expect(updateQuote).toHaveBeenCalledWith('q1', { status: 'Angenommen', projectNumber: 'B-2026-0012' });
+    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen', { p_angebot: 'q1', p_praefix: 'B', p_abrechnung: 'Pauschal' });
+    expect(createProject).not.toHaveBeenCalled();
   });
 
   it('fragt vorher — wer abbricht, legt nichts an (Launch-Check, M8)', async () => {
@@ -449,7 +436,7 @@ describe('Angebot kalkulieren', () => {
   });
 
   it('meldet einen Fehler beim Anlegen, und das Angebot bleibt offen', async () => {
-    createProject.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    annahmeRpc.mockResolvedValueOnce({ data: null, error: { message: 'Die Baustelle konnte nicht angelegt werden.' } });
     versendetesAngebot();
     const nutzer = userEvent.setup();
     zeichne();
@@ -457,14 +444,7 @@ describe('Angebot kalkulieren', () => {
     await annehmenBestaetigt(nutzer);
 
     await screen.findByText(/Die Baustelle konnte nicht angelegt werden/);
-    /*
-      ANGENOMMEN IST ES NICHT — festgehalten ist nur die gezogene Nummer
-      (Prüflauf 25.09.2026, P2-19). Bis dahin stand hier „updateQuote nie
-      gerufen"; die Nummer am Angebot ist aber genau das, woran ein zweiter
-      Versuch die Baustelle wiederfindet, falls sie doch entstanden ist.
-    */
-    expect(updateQuote).not.toHaveBeenCalledWith('q1', expect.objectContaining({ status: 'Angenommen' }));
-    expect(updateQuote).toHaveBeenCalledWith('q1', { projectNumber: 'B-2026-0012' });
+    expect(updateQuote).not.toHaveBeenCalled();
   });
 
   /*
@@ -484,11 +464,12 @@ describe('Angebot kalkulieren', () => {
     await screen.findByText(/Baustelle B-2026-0012 angelegt/);
     expect(createProject).not.toHaveBeenCalled();
     expect(reserveProjectNumber).not.toHaveBeenCalled();
-    expect(updateQuote).toHaveBeenCalledWith('q1', { status: 'Angenommen', projectNumber: 'B-2026-0012' });
+    expect(annahmeRpc).toHaveBeenCalledTimes(1);
+    expect(updateQuote).not.toHaveBeenCalled();
   });
 
   it('ohne Zähler keine geratene Nummer', async () => {
-    reserveProjectNumber.mockResolvedValueOnce(null);
+    annahmeRpc.mockResolvedValueOnce({ data: null, error: { message: 'Die Baustellennummer konnte nicht vergeben werden.' } });
     versendetesAngebot();
     const nutzer = userEvent.setup();
     zeichne();
@@ -497,33 +478,6 @@ describe('Angebot kalkulieren', () => {
 
     await screen.findByText(/Baustellennummer konnte nicht vergeben werden/);
     expect(createProject).not.toHaveBeenCalled();
-  });
-});
-
-describe('Aus dem Angebot wird die Baustelle', () => {
-  it('übernimmt die Anmerkungen als Auftragsumfang, mit Verweis aufs Angebot', async () => {
-    versendetesAngebot();
-    angebote[0].notes = 'Bad komplett erneuern:\n- WC tauschen\n- Dusche bodengleich';
-    const nutzer = userEvent.setup();
-    zeichne();
-    await screen.findByText(/AN-2026-0007/);
-    await annehmenBestaetigt(nutzer);
-
-    const projekt = createProject.mock.calls[0]?.[1] as { description?: string };
-    expect(projekt.description).toBe(
-      'Bad komplett erneuern:\n- WC tauschen\n- Dusche bodengleich\n\nAus Angebot AN-2026-0007',
-    );
-  });
-
-  it('schreibt ohne Anmerkungen nur den Verweis', async () => {
-    versendetesAngebot();
-    const nutzer = userEvent.setup();
-    zeichne();
-    await screen.findByText(/AN-2026-0007/);
-    await annehmenBestaetigt(nutzer);
-
-    const projekt = createProject.mock.calls[0]?.[1] as { description?: string };
-    expect(projekt.description).toBe('Aus Angebot AN-2026-0007');
   });
 });
 
@@ -767,8 +721,8 @@ describe('Abrechnungsart beim Annehmen (M16)', () => {
     await nutzer.selectOptions(within(dialog).getByLabelText('Abrechnung der Baustelle'), 'Einheitspreis');
     expect(within(dialog).getByText(/Mengen kommen aus dem Aufmaß/)).toBeInTheDocument();
     await nutzer.click(within(dialog).getByRole('button', { name: 'Annehmen' }));
-    await waitFor(() => expect(createProject).toHaveBeenCalled());
-    expect(createProject.mock.calls[0][1]).toMatchObject({ billingMode: 'Einheitspreis' });
+    await waitFor(() => expect(annahmeRpc).toHaveBeenCalled());
+    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen', expect.objectContaining({ p_abrechnung: 'Einheitspreis' }));
   });
 
   it('Gegenprobe: ohne Wahl bleibt es Pauschal, wie bisher', async () => {
@@ -777,8 +731,8 @@ describe('Abrechnungsart beim Annehmen (M16)', () => {
     zeichne();
     await screen.findByRole('button', { name: 'Annehmen → Baustelle' });
     await annehmenBestaetigt(nutzer);
-    await waitFor(() => expect(createProject).toHaveBeenCalled());
-    expect(createProject.mock.calls[0][1]).toMatchObject({ billingMode: 'Pauschal' });
+    await waitFor(() => expect(annahmeRpc).toHaveBeenCalled());
+    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen', expect.objectContaining({ p_abrechnung: 'Pauschal' }));
   });
 });
 

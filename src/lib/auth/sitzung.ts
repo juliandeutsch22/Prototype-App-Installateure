@@ -61,8 +61,12 @@ export function istPlattformAdmin(): Promise<boolean> {
   return pg.istPlattformAdmin();
 }
 
-export function kontoAnlegen(email: string, passwort: string): Promise<string> {
-  return pg.kontoAnlegen(email, passwort);
+export function kontoAnlegen(email: string, passwort: string, vorgang?: string): Promise<string> {
+  return pg.kontoAnlegen(email, passwort, vorgang);
+}
+
+export function kontoAnlage(email: string, passwort: string, vorgang: string): Promise<{ uid: string; startpasswortNoetig: boolean }> {
+  return pg.kontoAnlage(email, passwort, vorgang);
 }
 
 export function profilSchnell(uid: string, email: string): Promise<CurrentUser | null> {

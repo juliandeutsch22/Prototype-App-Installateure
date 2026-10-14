@@ -58,6 +58,9 @@ const createWartung = vi.fn(async () => 'neu');
 const updateWartung = vi.fn(async () => undefined);
 
 const wartungEingeplant = vi.fn(async () => undefined);
+const wartungEinplanen = vi.fn(async (_id: string, nummer: string | null) => nummer ?? 'B-2026-0015');
+const suchen = vi.fn(async (_c: string, begriff: string) =>
+  bestand.filter((w) => `${w.customerName} ${w.anlage} ${w.address ?? ''}`.toLowerCase().includes(begriff.toLowerCase())));
 const wartungTagBerichtigen = vi.fn(async () => undefined);
 /* Die festgehaltenen Ausführungen (17 G) — leer wie bei einer Anlage von vor dem 12.10.2026. */
 const listAusfuehrungen = vi.fn(async (): Promise<{ id: string; companyId: string; wartungId: string; am: string; baustelle?: string }[]> => []);
@@ -68,12 +71,12 @@ vi.mock('@/lib/db/wartungen', () => ({
   updateWartung: (...a: unknown[]) => updateWartung(...(a as [])),
   deleteWartung: vi.fn(async () => undefined),
   wartungErledigt: (...a: unknown[]) => wartungErledigt(...(a as [])),
+  wartungEinplanen: (...a: Parameters<typeof wartungEinplanen>) => wartungEinplanen(...a),
   wartungEingeplant: (...a: unknown[]) => wartungEingeplant(...(a as [])),
   wartungTagBerichtigen: (...a: unknown[]) => wartungTagBerichtigen(...(a as [])),
   listAusfuehrungen: () => listAusfuehrungen(),
   /* Die Suche des Servers: hier über den Bestand, wie die Datenbank mitten im Wort. */
-  searchWartungen: (_c: string, begriff: string) =>
-    Promise.resolve(bestand.filter((w) => `${w.customerName} ${w.anlage} ${w.address ?? ''}`.toLowerCase().includes(begriff.toLowerCase()))),
+  searchWartungen: (c: string, b: string) => suchen(c, b),
 }));
 
 /*
@@ -146,6 +149,8 @@ beforeEach(() => {
   createWartung.mockClear();
   updateWartung.mockClear();
   wartungEingeplant.mockClear();
+  wartungEinplanen.mockClear();
+  suchen.mockClear();
   wartungTagBerichtigen.mockClear();
   listAusfuehrungen.mockReset();
   listAusfuehrungen.mockResolvedValue([]);
@@ -413,18 +418,9 @@ describe('Baustelle aus einer Wartung', () => {
 
     await nutzer.click(screen.getByRole('button', { name: 'Anlegen' }));
 
-    await vi.waitFor(() => expect(createProject).toHaveBeenCalled());
-    // Den Anfangsstand liest seit dem Launch-Check die Datenbank selbst.
-    expect(reserveProjectNumber).toHaveBeenCalledWith('perl', { seedFrom: 0, praefix: 'B' });
-    expect(createProject.mock.calls[0][1]).toMatchObject({
-      projectNumber: 'B-2026-0015',
-      customerName: 'Bäckerei Stein',
-      address: 'Lindengasse 4/12',
-      status: 'Aktiv',
-    });
-    // Und die Wartung weiss davon — sonst stünde sie morgen wieder als
-    // „nichts passiert" da und die Baustelle entstünde ein zweites Mal.
-    expect(wartungEingeplant).toHaveBeenCalledWith('w1', 'B-2026-0015');
+    await vi.waitFor(() => expect(wartungEinplanen).toHaveBeenCalledWith('w1', null, 'B', '2026-04-10'));
+    expect(createProject).not.toHaveBeenCalled();
+    expect(wartungEingeplant).not.toHaveBeenCalled();
   });
 
   it('lässt eine eigene Nummer stehen und fasst den Zähler nicht an', async () => {
@@ -440,9 +436,9 @@ describe('Baustelle aus einer Wartung', () => {
     await nutzer.type(feld, 'HV-Nord-7');
     await nutzer.click(screen.getByRole('button', { name: 'Anlegen' }));
 
-    await vi.waitFor(() => expect(createProject).toHaveBeenCalled());
+    await vi.waitFor(() => expect(wartungEinplanen).toHaveBeenCalledWith('w1', 'HV-Nord-7', 'B', '2026-04-10'));
     expect(reserveProjectNumber).not.toHaveBeenCalled();
-    expect(createProject.mock.calls[0][1]).toMatchObject({ projectNumber: 'HV-Nord-7' });
+    expect(createProject).not.toHaveBeenCalled();
   });
 
   /*
@@ -560,6 +556,18 @@ describe('Wartungen auf der Linie „Lot“', () => {
     expect(screen.getAllByRole('button', { name: 'Erledigt' })).toHaveLength(20);
     await nutzer.click(screen.getByRole('button', { name: 'und 5 weitere anzeigen' }));
     expect(screen.getAllByRole('button', { name: 'Erledigt' })).toHaveLength(25);
+  });
+
+  it('zeigt einen Suchfehler mit Wiederholen und verwechselt ihn nicht mit fehlenden Treffern', async () => {
+    suchen.mockRejectedValueOnce(new Error('Netz fehlt'));
+    zeichne(); await geladen();
+    fireEvent.change(screen.getByLabelText('Suche'), { target: { value: 'Nord' } });
+    expect(await screen.findByText('Die Wartungssuche konnte nicht geladen werden.')).toBeInTheDocument();
+    expect(screen.queryByText(/Kein Treffer/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
+    expect(await screen.findByText(/Hausverwaltung Nord/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Suche'), { target: { value: '' } });
+    expect(await screen.findAllByText(/Bäckerei Stein/)).not.toHaveLength(0);
   });
 
   it('sucht auch im Arbeitsstand — und nur dort, wo die Wartung ansteht', async () => {

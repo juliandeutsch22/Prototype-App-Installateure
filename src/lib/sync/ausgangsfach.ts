@@ -84,10 +84,8 @@ export type Sendeergebnis =
 /**
  * Was der Sender braucht — ohne die Folge.
  *
- * Der erste, direkte Versuch geschieht, BEVOR etwas im Fach liegt; eine Folge
- * gibt es da noch gar nicht. Sie dem Sender vorzugaukeln (etwa als 0) hiesse,
- * eine Zahl zu erfinden, die niemand braucht: den Server interessiert die
- * Reihenfolge im Fach nicht.
+ * Der Server braucht die lokale Reihenfolge nicht; sie wird vor dem Senden
+ * durch das gemeinsame Lager und dessen Sperre eingehalten.
  */
 export type Sendung = Omit<Vormerkung, 'folge'>;
 
@@ -96,6 +94,7 @@ export type Sender = (v: Sendung) => Promise<Sendeergebnis>;
 /** Das dauerhafte Lager. Im Browser IndexedDB, im Test eine Karte. */
 export interface Lager {
   alle(): Promise<Vormerkung[]>;
+  exklusiv?<T>(tun: () => Promise<T>): Promise<T>;
   /**
    * Legt ab und gibt die vergebene Folge zurück.
    *
@@ -186,39 +185,42 @@ export async function schreiben(
     ...(auftrag.uid ? { uid: auftrag.uid } : {}),
   };
 
-  // Steht schon beim Absenden fest, dass keine Verbindung besteht, gibt es
-  // nichts zu versuchen. Vier Sekunden Kreisel wären hier reine Schikane.
-  if (istOffline()) {
-    await vormerken(v, lager);
-    return 'queued';
-  }
-
-  // Liegt schon etwas im Fach, MUSS der neue Vorgang dahinter — sonst überholt
-  // ein „Ändern" das „Anlegen", auf das es sich bezieht.
-  // Was ein ANDERES Konto hinterlassen hat, hält diesen Vorgang nicht auf:
-  // die beiden betreffen nie dieselbe Zeile im selben Zug.
-  const wartendes = (await lager.alle()).filter((x) => !auftrag.uid || gehoert(x, auftrag.uid));
-  if (wartendes.length > 0) {
-    await vormerken(v, lager);
-    return 'queued';
-  }
-
-  const ergebnis = await sender(v);
-  if (ergebnis.art === 'ok') return 'confirmed';
-  if (ergebnis.art === 'abgelehnt') throw new Error(ergebnis.grund);
-
-  await vormerken(v, lager);
-  return 'queued';
+  // Erst dauerhaft ablegen: auch eine ausbleibende Antwort darf beim Schließen
+  // der App keine Buchung mitnehmen. Die Folge bestimmt auch zwischen Tabs die Reihenfolge.
+  const folge = await lager.ablegen(v);
+  if (istOffline()) return 'queued';
+  return begrenzt(mitSperre(lager, async () => {
+    const wartendes = (await lager.alle())
+      .filter((x) => !auftrag.uid || gehoert(x, auftrag.uid))
+      .sort((a, b) => a.folge - b.folge);
+    if (!wartendes.some((x) => x.folge === folge)) return 'queued';
+    if (wartendes[0]?.folge !== folge) return 'queued';
+    const ergebnis = await sender(v);
+    if (ergebnis.art === 'ok' || ergebnis.art === 'abgelehnt') await lager.entfernen(folge);
+    if (ergebnis.art === 'abgelehnt') throw new Error(ergebnis.grund);
+    return ergebnis.art === 'ok' ? 'confirmed' : 'queued';
+  }), v);
 }
 
-/**
- * Legt ab und gibt erst dann Entwarnung.
- *
- * Scheitert das Lager selbst — kein Platz, privater Modus, gesperrter Speicher
- * —, dann ist der Vorgang weg. Das muss der Aufrufer erfahren.
- */
-async function vormerken(v: Omit<Vormerkung, 'folge'>, lager: Lager): Promise<void> {
-  await lager.ablegen(v);
+const sperren = new WeakMap<Lager, Promise<unknown>>();
+function mitSperre<T>(lager: Lager, tun: () => Promise<T>): Promise<T> {
+  if (lager.exklusiv) return lager.exklusiv(tun);
+  const vorher = sperren.get(lager) ?? Promise.resolve();
+  const jetzt = vorher.catch(() => undefined).then(tun);
+  sperren.set(lager, jetzt);
+  return jetzt;
+}
+
+/** Die Sperre bleibt bis zur Antwort bestehen, auch wenn die Maske schon weitergeht. */
+function begrenzt(lauf: Promise<WriteOutcome>, v: Sendung): Promise<WriteOutcome> {
+  return new Promise((resolve, reject) => {
+    let wartet = true;
+    const timer = setTimeout(() => { wartet = false; resolve('queued'); }, 4000);
+    lauf.then(resolve, (e: unknown) => {
+      if (wartet) reject(e);
+      else melden(v.zeile, v.tabelle, e instanceof Error ? e.message : String(e));
+    }).finally(() => clearTimeout(timer));
+  });
 }
 
 export interface Bericht {
@@ -246,51 +248,53 @@ export async function nachsenden(
    */
   fuer?: string | null,
 ): Promise<Bericht> {
-  if (fuer === null) return { gesendet: 0, abgelehnt: 0, offen: (await lager.alle()).length };
-  const warteschlange = (await lager.alle())
-    .filter((v) => fuer === undefined || gehoert(v, fuer))
-    .sort((a, b) => a.folge - b.folge);
-  let gesendet = 0;
-  let abgelehnt = 0;
+  return mitSperre(lager, async () => {
+    if (fuer === null) return { gesendet: 0, abgelehnt: 0, offen: (await lager.alle()).length };
+    const warteschlange = (await lager.alle())
+      .filter((v) => fuer === undefined || gehoert(v, fuer))
+      .sort((a, b) => a.folge - b.folge);
+    let gesendet = 0;
+    let abgelehnt = 0;
 
-  /**
-   * Was beim Aufgeben mit weggeräumt wurde.
-   *
-   * Die Schleife läuft über einen ABZUG der Warteschlange; eine Ablehnung
-   * entfernt aber auch Nachfolger, die in diesem Abzug noch stehen. Ohne
-   * diese Merkliste würde eine gerade verworfene Zeile gleich darauf doch
-   * gesendet — und der Monteur bekäme eine Buchung, von der er eben die
-   * Meldung erhalten hat, dass sie verloren ist.
-   */
-  const verworfen = new Set<number>();
+    /**
+     * Was beim Aufgeben mit weggeräumt wurde.
+     *
+     * Die Schleife läuft über einen ABZUG der Warteschlange; eine Ablehnung
+     * entfernt aber auch Nachfolger, die in diesem Abzug noch stehen. Ohne
+     * diese Merkliste würde eine gerade verworfene Zeile gleich darauf doch
+     * gesendet — und der Monteur bekäme eine Buchung, von der er eben die
+     * Meldung erhalten hat, dass sie verloren ist.
+     */
+    const verworfen = new Set<number>();
 
-  for (const v of warteschlange) {
-    if (verworfen.has(v.folge)) continue;
-    const ergebnis = await sender(v);
+    for (const v of warteschlange) {
+      if (verworfen.has(v.folge)) continue;
+      const ergebnis = await sender(v);
 
-    if (ergebnis.art === 'ok') {
-      await lager.entfernen(v.folge);
-      gesendet += 1;
-      continue;
-    }
-
-    if (ergebnis.art === 'kein-netz') break;
-
-    if (ergebnis.art === 'unklar') {
-      const versucht = { ...v, versuche: v.versuche + 1 };
-      if (versucht.versuche < VERSUCHE_GRENZE) {
-        await lager.ersetzen(versucht);
-        break;
+      if (ergebnis.art === 'ok') {
+        await lager.entfernen(v.folge);
+        gesendet += 1;
+        continue;
       }
-      abgelehnt += await aufgeben(v, lager, `${ergebnis.grund} (nach ${VERSUCHE_GRENZE} Versuchen)`, verworfen);
-      continue;
+
+      if (ergebnis.art === 'kein-netz') break;
+
+      if (ergebnis.art === 'unklar') {
+        const versucht = { ...v, versuche: v.versuche + 1 };
+        if (versucht.versuche < VERSUCHE_GRENZE) {
+          await lager.ersetzen(versucht);
+          break;
+        }
+        abgelehnt += await aufgeben(v, lager, `${ergebnis.grund} (nach ${VERSUCHE_GRENZE} Versuchen)`, verworfen);
+        continue;
+      }
+
+      abgelehnt += await aufgeben(v, lager, ergebnis.grund, verworfen);
     }
 
-    abgelehnt += await aufgeben(v, lager, ergebnis.grund, verworfen);
-  }
-
-  const offen = (await lager.alle()).length;
-  return { gesendet, abgelehnt, offen };
+    const offen = (await lager.alle()).length;
+    return { gesendet, abgelehnt, offen };
+  });
 }
 
 /**

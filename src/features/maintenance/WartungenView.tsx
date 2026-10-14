@@ -12,10 +12,10 @@ import {
   wartungTagBerichtigen,
   type NewWartung,
 } from '@/lib/db/wartungen';
-import { wartungEingeplant } from '@/lib/db/wartungen';
+import { wartungEinplanen } from '@/lib/db/wartungen';
 import { listCustomers } from '@/lib/db/customers';
 import WartungVerlauf from './WartungVerlauf';
-import { listRecentProjects, createProject, reserveProjectNumber } from '@/lib/db/projects';
+import { listRecentProjects } from '@/lib/db/projects';
 import { belegNummer, hoechsteLfdImJahr, praefixeVon } from '@/lib/praefixe';
 import { isGF } from '@/lib/permissions';
 import { todayStr } from '@/lib/time';
@@ -31,7 +31,6 @@ import {
 } from './wartungsplan';
 import {
   nummerFrei,
-  baustelleAusWartung,
 } from './wartungBaustelle';
 import Card from '@/components/Card';
 import KundenGrenze from '@/components/AuswahlGrenze';
@@ -291,10 +290,13 @@ export default function WartungenView() {
   */
   const [gesucht, setGesucht] = useState<WithId<Wartung>[]>([]);
   const [suchtGerade, setSuchtGerade] = useState(false);
+  const [suchFehler, setSuchFehler] = useState(false);
+  const [suchVersuch, setSuchVersuch] = useState(0);
 
   useEffect(() => {
     if (!companyId) return;
     const begriff = suche.trim();
+    setSuchFehler(false);
     if (!begriff) {
       setGesucht([]);
       setSuchtGerade(false);
@@ -309,10 +311,8 @@ export default function WartungenView() {
         .then((treffer) => {
           if (!weg) setGesucht(treffer);
         })
-        // Ein Fehlschlag lässt die geladene Liste stehen, statt sie zu leeren:
-        // was da ist, ist deshalb nicht falsch.
         .catch(() => {
-          if (!weg) setGesucht([]);
+          if (!weg) { setGesucht([]); setSuchFehler(true); }
         })
         .finally(() => {
           if (!weg) setSuchtGerade(false);
@@ -322,7 +322,7 @@ export default function WartungenView() {
       weg = true;
       clearTimeout(verzoegert);
     };
-  }, [companyId, suche, grenze]);
+  }, [companyId, suche, grenze, suchVersuch]);
 
   const gefiltert = useMemo(
     () => (suche.trim() ? gesucht : wartungen),
@@ -478,22 +478,6 @@ export default function WartungenView() {
     }
   };
 
-  /**
-   * Aus der Wartung eine Baustelle machen — und sie an der Wartung vormerken.
-   *
-   * ZWEI SCHREIBVORGÄNGE, UND DIE REIHENFOLGE IST DIE AUSSAGE. Zuerst
-   * entsteht die Baustelle, dann wird sie vermerkt. Bricht der zweite Schritt
-   * ab, steht eine Baustelle da, die niemand der Wartung zuordnet — ärgerlich,
-   * aber sichtbar und von Hand nachtragbar. Andersherum verwiese die Wartung
-   * auf eine Baustelle, die es nicht gibt, und der Monteur bekäme einen
-   * Einsatz auf eine Nummer, unter der nichts steht.
-   *
-   * Eine Transaktion über beide wäre die saubere Antwort, und seit dem Umzug
-   * wäre sie auch möglich — eine Datenbankfunktion, die Baustelle und Termin
-   * in einem Zug schreibt. Sie ist noch nicht gebaut; bis dahin gilt die
-   * Reihenfolge unten, und der schlimmste Ausgang ist eine Baustelle ohne
-   * nachgerückten Termin, nicht ein Termin ohne Baustelle.
-   */
   const einplanenSpeichern = async () => {
     if (!einplanung || !companyId) return;
     let nummer = einplanung.nummer.trim();
@@ -503,31 +487,13 @@ export default function WartungenView() {
     }
     setSpeichert(true);
     try {
-      /*
-        DERSELBE WEG WIE BEI „NEUE BAUSTELLE". Blieb der Vorschlag stehen,
-        vergibt der Zähler die verbindliche Nummer — mit dem Vorsatz, den der
-        Betrieb eingestellt hat. Vorher schlug diese Stelle „2026-001" vor,
-        während jede andere Anlage „B-2026-0001" schrieb: die eingestellten
-        Vorsätze galten hier nicht, und neben B-2026-0014 stand plötzlich
-        2026-015. Wer eine eigene Nummer tippt, behält sie.
-      */
-      if (nummer === einplanung.vorschlag) {
-        const vergeben = await reserveProjectNumber(companyId, {
-          seedFrom: 0, // Den Anfangsstand liest die Datenbank selbst.
-          praefix: vorsaetze.baustelle,
-        });
-        if (vergeben) nummer = vergeben;
-      }
-      if (!nummerFrei(nummer, nummern)) {
+      const automatisch = nummer === einplanung.vorschlag;
+      if (!automatisch && !nummerFrei(nummer, nummern)) {
         toast.error(`${nummer} ist schon vergeben. Bitte eine andere Nummer.`);
         return;
       }
-      const kunde = kunden.find((k) => k.id === einplanung.wartung.customerId);
-      await createProject(
-        companyId,
-        baustelleAusWartung(einplanung.wartung, kunde, nummer),
-      );
-      await wartungEingeplant(einplanung.wartung.id, nummer);
+      nummer = await wartungEinplanen(einplanung.wartung.id,
+        automatisch ? null : nummer, vorsaetze.baustelle, einplanung.wartung.faelligAm);
       setNummern((n) => [...n, nummer]);
       setEinplanung(null);
       await neuLaden();
@@ -753,7 +719,9 @@ export default function WartungenView() {
             />
           </div>
         </div>
-        {loading || suchtGerade ? (
+        {suchFehler && suche.trim() ? (
+          <ErrorState message="Die Wartungssuche konnte nicht geladen werden." onRetry={() => setSuchVersuch((n) => n + 1)} />
+        ) : loading || suchtGerade ? (
           /*
             WÄHREND DER SUCHE STEHT DAS GERÜST, NICHT DIE LEERE.
 

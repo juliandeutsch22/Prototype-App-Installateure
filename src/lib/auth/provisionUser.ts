@@ -1,6 +1,6 @@
-import { kontoAnlegen, passwortZuruecksetzen } from '@/lib/auth/sitzung';
-import { createUserDoc, type UserProfileInput } from '@/lib/db/users';
-import { istBenutzerkonto, kontoAnzeige } from '@shared/benutzername';
+import { kontoAnlage, passwortZuruecksetzen } from '@/lib/auth/sitzung';
+import { createUserDocEinmalig, type UserProfileInput } from '@/lib/db/users';
+import { istBenutzerkonto } from '@shared/benutzername';
 
 // Seit 30.09.2026 in `shared/startpasswort.ts`: dieselbe Erzeugung im Browser und in der Edge Function (P1, P2).
 import { generatePassword } from '@shared/startpasswort';
@@ -11,6 +11,8 @@ export interface ProvisionResult {
   uid: string;
   /** Initialpasswort — anzeigen, falls die Willkommens-Mail nicht ankommt. */
   tempPassword: string;
+  /** Nach verlorenem Vorgang wird das Passwort ausdrücklich in der Akte gesetzt. */
+  startpasswortNoetig?: boolean;
   /** false = keine Mail ging hinaus, das Passwort muss weitergegeben werden. */
   mailSent: boolean;
   /**
@@ -43,40 +45,30 @@ export async function provisionUser(
   companyId: string,
   profile: UserProfileInput,
 ): Promise<ProvisionResult> {
-  const tempPassword = generatePassword();
-  const newUid = await kontoAnlegen(profile.email, tempPassword);
+  // Der kurzlebige Vorgang überlebt einen Seitenneustart im selben Tab.
+  // Das gleiche Passwort wird erneut angezeigt, niemals das eines fremden Kontos.
+  const schluessel = `senklot-anlage:${companyId}:${profile.email.trim().toLowerCase()}`;
+  let versuch: { vorgang: string; passwort: string; seit: number } | null = null;
+  try { versuch = JSON.parse(sessionStorage.getItem(schluessel) ?? 'null'); } catch { /* Neuer Versuch. */ }
+  if (!versuch || Date.now() - versuch.seit > 86_400_000) {
+    versuch = { vorgang: crypto.randomUUID(), passwort: generatePassword(), seit: Date.now() };
+  }
+  // Ohne haltbaren Wiederanlauf wird auch kein Konto angelegt.
+  sessionStorage.setItem(schluessel, JSON.stringify(versuch));
+  const { uid: newUid, startpasswortNoetig } = await kontoAnlage(profile.email, versuch.passwort, versuch.vorgang);
+  const tempPassword = startpasswortNoetig ? '' : versuch.passwort;
 
   try {
-    await createUserDoc(companyId, newUid, profile);
+    await createUserDocEinmalig(companyId, newUid, profile);
   } catch (e) {
-    /*
-      AUFRÄUMEN GEHT HIER NICHT, UND DAS GEHÖRT GESAGT.
-
-      Das Anmeldekonto steht schon; es wieder zu entfernen bräuchte
-      Dienstrechte, die der Browser nicht hat und nicht haben soll. Zurück
-      bleibt also ein Konto ohne Zeile in der Belegschaft — jemand, der sich
-      anmelden kann und nichts sieht.
-
-      Das ist der ehrlichere der beiden schlechten Ausgänge: die Alternative
-      wäre, die Zeile zuerst zu schreiben und bei einem Fehlschlag am Konto
-      eine Belegschaftszeile ohne Anmeldung zurückzulassen — und die STEHT in
-      der Mitarbeiterliste und sieht richtig aus. Ein Konto ohne Zeile fällt
-      beim ersten Anmeldeversuch auf; eine Zeile ohne Konto fällt niemandem
-      auf.
-
-      Die Meldung nennt deshalb die Adresse: der zweite Versuch mit derselben
-      scheitert an ihr, und ohne diesen Hinweis wüsste niemand, warum.
-    */
     const grund = e instanceof Error ? e.message : 'Unbekannter Fehler';
-    throw new Error(
-      `Das Konto zu ${kontoAnzeige(profile.email)} wurde angelegt, das Profil aber nicht: ${grund}. ` +
-        'Bitte an die Entwicklung wenden — damit lässt sich kein zweites anlegen.',
-    );
+    throw new Error(`Das Mitarbeiterprofil konnte nicht gespeichert werden: ${grund}. Bitte die Anlage in diesem Tab erneut versuchen; das Konto wird dabei wiederverwendet.`);
   }
+  sessionStorage.removeItem(schluessel);
 
   // Eine Kunstadresse bekommt keine Mail — sie käme nie an.
   if (istBenutzerkonto(profile.email)) {
-    return { uid: newUid, tempPassword, mailSent: false, benutzerkonto: true };
+    return { uid: newUid, tempPassword, startpasswortNoetig, mailSent: false, benutzerkonto: true };
   }
 
   let mailSent = true;
@@ -87,7 +79,7 @@ export async function provisionUser(
     // als erfolgt, und die Ansicht zeigt das Anfangspasswort zur Weitergabe.
     mailSent = false;
   }
-  return { uid: newUid, tempPassword, mailSent, benutzerkonto: false };
+  return { uid: newUid, tempPassword, startpasswortNoetig, mailSent, benutzerkonto: false };
 }
 
 /** Die Willkommensmail erneut senden. */
