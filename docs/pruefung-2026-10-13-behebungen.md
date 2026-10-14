@@ -50,8 +50,16 @@ Sicherungen behalten die bereits geltenden Aufbewahrungsregeln.
   sind in diesen 72 enthalten.
 - Linkprüfung der Vorschau: **7 bestanden**.
 - Finaler TypeScript-/Produktionsbuild und ESLint bestanden.
+- Auslieferungsprüfung: alle **191 Migrationen von null an** lokal eingespielt,
+  anschließend erneut **1.895 Datenbanktests bestanden**. PR
+  [#310](https://github.com/juliandeutsch22/Prototype-App-Installateure/pull/310)
+  veröffentlicht. Die erste Remote-CI fand unter Node.js 20 einen
+  ungeschützten Zugriff auf `navigator` in der Fachsperre. Der Zugriff ist
+  jetzt abgesichert; eine zusätzliche Gegenprobe ist vorher rot/nachher
+  grün, und **14 betroffene Tests unter Node.js 20 bestehen**. Der erneute
+  Remote-Lauf prüft den endgültigen Stand vor dem Merge.
 
-Insgesamt **7.059 unterschiedliche bestandene Prüfungen**; Teilläufe und
+Insgesamt **7.060 unterschiedliche bestandene Prüfungen**; Teilläufe und
 Gegenproben sind nicht zusätzlich gezählt.
 
 Die Gegenprobe mit dem alten Anwendungscode ließ sechs der ausgewählten
@@ -103,9 +111,10 @@ mehrfach gezählt.
 
 ## Noch offene Punkte und Grenzen
 
-1. **Review, CI und Auslieferung:** Änderungen liegen im Arbeitszweig.
-   GitHub-GraphQL antwortete in dieser Umgebung mit HTTP 403; eine
-   veröffentlichte PR oder grüne Remote-CI wird hier nicht behauptet.
+1. **Review, CI und Auslieferung:** PR #310 ist veröffentlicht. Der
+   zunächst blockierte GitHub-API-Zugang funktioniert nach der Netzfreigabe.
+   Merge und Auslieferung folgen erst nach erfolgreicher Remote-CI; die
+   Auslieferungsprüfung ist in diesem Bericht ein laufender Nachweis.
 2. **Altbestände:** Frühere doppelte Baustellen, Teilzuordnungen oder
    profillose Auth-Konten ohne Herkunftsnachweis benötigen eine konkrete
    Bestandsprüfung. Automatisches Zusammenführen/Löschen wäre ohne diese

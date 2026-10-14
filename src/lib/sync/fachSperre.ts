@@ -1,7 +1,7 @@
 /** Ein Nachsender je Herkunft; auch neue Schreibvorgänge nehmen diese Sperre. */
 export async function fachSperre<T>(tun: () => Promise<T>): Promise<T> {
   const name = 'installateur-ausgangsfach';
-  if (navigator.locks) return await navigator.locks.request(name, tun);
+  if (typeof navigator !== 'undefined' && navigator.locks) return await navigator.locks.request(name, tun);
 
   // Ältere Browser ohne Web Locks können weiterhin synchronisieren. Die
   // eigene Transaktion sperrt nur den Mutex, niemals das Fach mit den Daten.
