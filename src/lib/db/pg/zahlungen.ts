@@ -18,7 +18,7 @@ const ZAHLUNGEN = 'zahlungseingaenge';
  * Die Reihenfolge ist die des Kontoauszugs und nicht die der Erfassung: so
  * liest sich die Liste wie der Verlauf der Forderung — 400, dann 600.
  */
-export function listZahlungen(companyId: string, invoiceId: string, max = 100) {
+export function listZahlungen(companyId: string, invoiceId: string, max?: number) {
   return abfragen<Zahlungseingang>(ZAHLUNGEN, companyId, {
     wo: [{ art: 'gleich', feld: 'invoiceId', wert: invoiceId }],
     sortiere: { feld: 'datum' },
@@ -34,7 +34,7 @@ export function listZahlungen(companyId: string, invoiceId: string, max = 100) {
  * fünfzig zeigt, wäre im Journal ein Fehler und keine Kürzung.
  */
 export function listZahlungenImZeitraum(
-  companyId: string, von: string, bis: string, max = 2000,
+  companyId: string, von: string, bis: string, max?: number,
 ) {
   return abfragen<Zahlungseingang>(ZAHLUNGEN, companyId, {
     wo: [

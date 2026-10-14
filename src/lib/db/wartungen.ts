@@ -73,3 +73,5 @@ export function searchWartungen(
 ): Promise<WithId<Wartung>[]> {
   return pg.searchWartungen(companyId, begriff, max);
 }
+
+export const wartungEinplanen = pg.wartungEinplanen;

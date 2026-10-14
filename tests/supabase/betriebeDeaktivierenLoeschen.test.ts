@@ -13,6 +13,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 import { Client } from 'pg';
+import { pruefFotosRaeumen } from './pruefdateien';
 import { admin, API, ANON, betriebAnlegen, buchung, konto, plattformkonto, type Konto } from './helfer';
 
 const LOESCHEN = 'pd-loeschen';
@@ -68,6 +69,7 @@ async function emailVon(uid: string): Promise<string> {
 beforeAll(async () => {
   db = new Client({ connectionString: process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres' });
   await db.connect();
+  await pruefFotosRaeumen(db);
 
   for (const b of [LOESCHEN, BLEIBT, RUHT, TEST]) await betriebAnlegen(b);
   plattform = await plattformkonto('pd');
@@ -119,7 +121,7 @@ beforeAll(async () => {
 }, 180_000);
 
 afterAll(async () => {
-  await db?.end();
+  try { if (db) await pruefFotosRaeumen(db); } finally { await db?.end(); }
 });
 
 describe('Deaktivieren', () => {

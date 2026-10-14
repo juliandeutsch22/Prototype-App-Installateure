@@ -112,3 +112,47 @@ test('Benutzername: anlegen, erstes Anmelden, eigenes Passwort, vergessen, neues
   await mitNameAnmelden(danach, name, start2);
   await eigenesVergeben(danach, 'Noras-zweites-2');
 });
+
+test('angefangenes Konto nach Profilfehler und geschlossenem Tab fertigstellen und anmelden', async ({ browser }) => {
+  test.setTimeout(120_000);
+  const name = `wieder.${crypto.randomUUID().slice(0, 6)}`;
+  const ersterKontext = await browser.newContext();
+  const erster = await ersterKontext.newPage();
+  async function ausfuellen(page: Page) {
+    await page.goto('/user-mgmt');
+    await page.getByRole('button', { name: 'Benutzer anlegen' }).click();
+    await page.getByRole('textbox', { name: /^Name/ }).fill('Wieder Aufnahme');
+    await page.getByLabel('Anmeldung mit').selectOption('benutzername');
+    await page.getByRole('textbox', { name: /Benutzername/ }).fill(name);
+    await page.getByLabel(/Resturlaub beim Umstieg/).fill('25');
+    await page.getByRole('button', { name: 'Benutzer anlegen' }).click();
+  }
+  await anmelden(erster, CHEFIN.email);
+  await erster.route('**/rest/v1/users*', (route) => route.request().method() === 'POST'
+    ? route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: 'Profil vorübergehend nicht erreichbar' }) })
+    : route.continue());
+  await ausfuellen(erster);
+  await expect(erster.getByText(/Mitarbeiterprofil konnte nicht gespeichert werden/)).toBeVisible();
+  const { data: fehlt } = await admin.from('users').select('id').eq('email', kunstadresse(name));
+  expect(fehlt).toEqual([]);
+  await ersterKontext.close();
+
+  const zweiterKontext = await browser.newContext();
+  const buero = await zweiterKontext.newPage();
+  await anmelden(buero, CHEFIN.email);
+  await ausfuellen(buero);
+  const weiter = buero.getByRole('link', { name: 'Zur Mitarbeiterakte' });
+  await expect(weiter).toBeVisible();
+  await expect(buero.getByTestId('startpasswort')).toHaveCount(0);
+  await weiter.click();
+  await buero.getByRole('button', { name: 'Neues Startpasswort vergeben' }).click();
+  await buero.getByRole('button', { name: 'Vergeben', exact: true }).click();
+  const passwort = await startpasswortLesen(buero);
+  const dritterKontext = await browser.newContext();
+  const mitarbeiter = await dritterKontext.newPage();
+  await mitNameAnmelden(mitarbeiter, name, passwort);
+  await eigenesVergeben(mitarbeiter, 'Wieder-eigenes-2026!');
+  await keineFehlermeldung(mitarbeiter);
+  await zweiterKontext.close();
+  await dritterKontext.close();
+});

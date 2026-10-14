@@ -271,9 +271,13 @@ export async function istPlattformAdmin(): Promise<boolean> {
  * früher ein Einweg-Client stand, ist damit ganz weggefallen: die Function
  * legt das Konto an, ohne irgendjemanden anzumelden.
  */
-export async function kontoAnlegen(email: string, passwort: string): Promise<string> {
+export async function kontoAnlegen(email: string, passwort: string, vorgang?: string): Promise<string> {
+  return (await kontoAnlage(email, passwort, vorgang)).uid;
+}
+
+export async function kontoAnlage(email: string, passwort: string, vorgang?: string): Promise<{ uid: string; startpasswortNoetig: boolean }> {
   const { data, error } = await supabaseClient().functions.invoke('mitarbeiter-anlegen', {
-    body: { email, passwort },
+    body: { email, passwort, vorgang },
   });
   /*
     DIE MELDUNG DER FUNCTION DURCHREICHEN, nicht den nackten Status — wie bei
@@ -288,7 +292,7 @@ export async function kontoAnlegen(email: string, passwort: string): Promise<str
   }
   const uid = (data as { uid?: unknown } | null)?.uid;
   if (typeof uid !== 'string' || !uid) throw new Error('Das Konto wurde nicht angelegt.');
-  return uid;
+  return { uid, startpasswortNoetig: data.startpasswort_unbekannt === true };
 }
 
 function profilAus(

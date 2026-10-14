@@ -1992,6 +1992,19 @@ describe('Der Buchhaltungs-Export', () => {
     await waitFor(() => expect(screen.queryByText(/1 Rechnung/)).not.toBeInTheDocument());
   });
 
+  it('verwirft eine verspätete Exportantwort nach einem Zeitraumwechsel', async () => {
+    let fertig!: (v: (Invoice & { id: string })[]) => void;
+    listInvoicesInRange.mockImplementationOnce(() => new Promise((r) => { fertig = r; }));
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }));
+    fireEvent.change(screen.getByLabelText('Von'), { target: { value: '2026-09-15' } });
+    await act(async () => { fertig([journal('0001', '2026-09-01')]); });
+    expect(screen.queryByRole('button', { name: 'Als CSV herunterladen' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/im gesamten Bestand/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Zeitraum zusammenstellen' }));
+    await screen.findByText(/im gesamten Bestand/);
+  });
+
   it('sagt es, wenn der Zeitraum nicht geladen werden konnte', async () => {
     // Ohne ihn wäre das Journal unvollständig — und ein unvollständiges
     // Journal, das wie ein vollständiges aussieht, ist der ganze Fehler.

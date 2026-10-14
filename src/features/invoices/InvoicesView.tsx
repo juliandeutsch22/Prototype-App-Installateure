@@ -285,6 +285,7 @@ export default function InvoicesView() {
   */
   const [konten, setKonten] = useState<Buchungskonto[]>([]);
   const [exportLaeuft, setExportLaeuft] = useState(false);
+  const exportAnfrage = useRef(0);
   const [exportFehler, setExportFehler] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [toCancel, setToCancel] = useState<WithId<Invoice> | null>(null);
@@ -1998,7 +1999,10 @@ export default function InvoicesView() {
    */
   async function exportHolen() {
     if (!user) return;
+    const anfrage = ++exportAnfrage.current;
     setExportLaeuft(true);
+    setExportZeilen(null);
+    setExportZahlungen(null);
     setExportFehler(null);
     try {
       /*
@@ -2009,6 +2013,7 @@ export default function InvoicesView() {
         listInvoicesInRange(user.companyId, exportVon, exportBis),
         schlussrechnungenOhneAbzug(),
       ]);
+      if (anfrage !== exportAnfrage.current) return;
       setExportZeilen(zeilen);
       setOhneAbzug(fehlAbzug);
       /*
@@ -2022,18 +2027,21 @@ export default function InvoicesView() {
         const weitere = fehlen.length > 0
           ? await Promise.resolve().then(() => listInvoicesByIds(user.companyId, fehlen))
           : [];
+        if (anfrage !== exportAnfrage.current) return;
         setExportZahlungen({ zahlungen: zahl, rechnungen: [...zeilen, ...weitere] });
       } catch {
+        if (anfrage !== exportAnfrage.current) return;
         setExportZahlungen(null);
       }
     } catch {
+      if (anfrage !== exportAnfrage.current) return;
       setExportZeilen(null);
       setExportFehler(
         'Der Zeitraum konnte nicht geladen werden. Ohne ihn wäre das Journal unvollständig — ' +
           'bitte erneut versuchen.',
       );
     } finally {
-      setExportLaeuft(false);
+      if (anfrage === exportAnfrage.current) setExportLaeuft(false);
     }
   }
 
@@ -3784,6 +3792,9 @@ export default function InvoicesView() {
             type="date"
             value={exportVon}
             onChange={(e) => {
+              ++exportAnfrage.current;
+              setExportLaeuft(false);
+              setExportFehler(null);
               setExportVon(e.target.value);
               // Eine Zusammenstellung, die zu einem anderen Zeitraum gehört als der
               // im Feld, ist die gefährlichste Anzeige von allen.
@@ -3797,6 +3808,9 @@ export default function InvoicesView() {
             type="date"
             value={exportBis}
             onChange={(e) => {
+              ++exportAnfrage.current;
+              setExportLaeuft(false);
+              setExportFehler(null);
               setExportBis(e.target.value);
               // Eine Zusammenstellung, die zu einem anderen Zeitraum gehört als der
               // im Feld, ist die gefährlichste Anzeige von allen.

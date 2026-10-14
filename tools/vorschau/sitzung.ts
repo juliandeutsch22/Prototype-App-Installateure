@@ -30,3 +30,4 @@ export const codePruefen = async () => {};
 export const codeEinloesen = async () => {};
 export const zweitenFaktorAusschalten = async () => {};
 export type { NeuerFaktor, ZweiterFaktorStand } from '../../src/lib/auth/pg/zweiFaktor';
+export const kontoAnlage = async () => ({ uid: 'neu', startpasswortNoetig: false });

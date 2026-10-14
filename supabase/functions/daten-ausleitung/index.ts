@@ -39,8 +39,8 @@
  * 10.10.2026 ging er in einem Stück und brach ab 256 MB ab.
  */
 import {
-  abgelaufeneStaende, alleSeitenLesen, ausleitungsPfad, ausleitungsPraefix, inTeilen,
-  jsonZeile, ordnungNachSchluessel, TEIL_BYTES, teilPfad, weitererTeil,
+  abgelaufeneStaende, ausleitungsPfad, ausleitungsPraefix, inTeilen,
+  jsonZeile, TEIL_BYTES, teilPfad, weitererTeil,
 } from '../_shared/ausleitungPlan.ts';
 import {
   alleDienstSchluessel, dienstKopfzeilen, rufDerMaschine, SCHLUESSEL_FEHLT,
@@ -88,16 +88,6 @@ try {
 } catch (e) {
   ZIEL_FEHLER = e instanceof Error ? e.message : 'Der Zielspeicher ist nicht lesbar.';
 }
-
-/**
- * Wie viele Zeilen je Abfrage. Nicht die Datenbank ist die Grenze, der Speicher.
- *
- * UNTER `max_rows` (1000 in `supabase/config.toml`) und nicht gleich. Das
- * Ende erkennt `alleSeitenLesen` inzwischen an einer LEEREN Seite und nicht
- * mehr an einer kurzen — die Grösse hier ist nur noch die Bitte, nicht die
- * Annahme (Prüflauf 25.09.2026, P3-16).
- */
-const SEITE = 500;
 
 /**
  * Wie viele DATEIEN ein Lauf hinausschiebt — und wie viele Bytes dabei.
@@ -156,25 +146,6 @@ interface OffeneDatei {
 }
 
 /**
- * Eine Seite aus einer Tabelle — PostgREST zählt Zeilen über `Range`.
- *
- * `ordnung` ist der Primärschlüssel der Tabelle (`auszug_schluessel`): ohne
- * feste Reihenfolge wäre „die Zeilen 500 bis 999" bei jeder Abfrage eine
- * andere Auswahl.
- */
-async function seite(
-  tabelle: string, betrieb: string, von: number, bis: number, ordnung: string | null,
-): Promise<Record<string, unknown>[]> {
-  const sortiert = ordnung ? `&order=${ordnung}` : '';
-  const r = await fetch(
-    `${URL_BASIS}/rest/v1/${tabelle}?select=*&company_id=eq.${encodeURIComponent(betrieb)}${sortiert}`,
-    { headers: { ...alsDienst, Range: `${von}-${bis}` } },
-  );
-  if (!r.ok) throw new Error(`${tabelle}: ${await r.text()}`);
-  return await r.json();
-}
-
-/**
  * Einen Betrieb zusammenschreiben, Teil für Teil.
  *
  * DIE FIRMA ZUERST, weil sie an der Kennung hängt und nicht an einer Spalte
@@ -188,54 +159,53 @@ async function standSchreiben(
   betrieb: string, tabellen: string[], schluessel: Record<string, string[]>,
   lauf: string, abgeben: (text: string, nr: number) => Promise<void>,
 ): Promise<{ teile: number; zeilen: number; bytes: number }> {
+  void tabellen;
+  void schluessel;
   const stand = inTeilen(lauf, TEIL_BYTES, abgeben);
-  const firma = await fetch(
-    `${URL_BASIS}/rest/v1/companies?select=*&id=eq.${encodeURIComponent(betrieb)}`,
-    { headers: alsDienst },
-  );
-  for (const zeile of firma.ok ? await firma.json() : []) {
-    await stand.anhaengen(jsonZeile('companies', zeile));
+  const start = await fetch(`${URL_BASIS}/rest/v1/rpc/auszug_snapshot_start`, {
+    method: 'POST', headers: alsDienst, body: JSON.stringify({ p_betrieb: betrieb }),
+  });
+  if (!start.ok) {
+    await start.body?.cancel();
+    throw new Error('Der konsistente Datenstand einschließlich Firmenstammsatz konnte nicht gelesen werden.');
   }
-
-  for (const tabelle of tabellen) {
-    const ordnung = ordnungNachSchluessel(schluessel[tabelle]);
-    /*
-      ANGEHÄNGT WIRD BEIM HOLEN DER SEITE, nicht je Zeile: `alleSeitenLesen`
-      wartet nicht auf den Rückruf je Zeile, und ein Teil, der hinausgeht,
-      muss fertig sein, bevor der nächste wächst.
-    */
-    await alleSeitenLesen(
-      async (von, bis) => {
-        const zeilen = await seite(tabelle, betrieb, von, bis, ordnung);
-        for (const z of zeilen) await stand.anhaengen(jsonZeile(tabelle, entschaerft(tabelle, z)));
-        return zeilen;
-      },
-      SEITE,
-      () => undefined,
-    );
+  const snapshot: string = await start.json();
+  try {
+    const anzahlAntwort = await fetch(`${URL_BASIS}/rest/v1/rpc/auszug_snapshot_anzahl`, {
+      method: 'POST', headers: alsDienst, body: JSON.stringify({ p_lauf: snapshot }),
+    });
+    if (!anzahlAntwort.ok) { await anzahlAntwort.body?.cancel(); throw new Error('Die Vollständigkeit des Datenstands konnte nicht geprüft werden.'); }
+    const erwartet = Number(await anzahlAntwort.json());
+    if (!Number.isSafeInteger(erwartet) || erwartet < 1) throw new Error('Der Datenstand wurde verworfen. Bitte erneut sichern.');
+    let nach = 0;
+    let gelesen = 0;
+    for (;;) {
+      const r = await fetch(`${URL_BASIS}/rest/v1/rpc/auszug_snapshot_seite`, {
+        method: 'POST', headers: alsDienst, body: JSON.stringify({ p_lauf: snapshot, p_nach: nach }),
+      });
+      if (!r.ok) { await r.body?.cancel(); throw new Error('Der Datenstand konnte nicht vollständig gelesen werden.'); }
+      const zeilen = await r.json() as Array<{ nr: number; inhalt: { sammlung: string; daten: Record<string, unknown> } }>;
+      if (!zeilen.length) {
+        if (nach === 0) throw new Error('Der Datenstand enthält keinen Firmenstammsatz.');
+        break;
+      }
+      for (const z of zeilen) await stand.anhaengen(jsonZeile(z.inhalt.sammlung, z.inhalt.daten));
+      gelesen += zeilen.length;
+      nach = zeilen[zeilen.length - 1].nr;
+    }
+    if (gelesen !== erwartet) throw new Error('Der Datenstand wurde während der Übertragung verworfen. Bitte erneut sichern.');
+    return await stand.abschliessen();
+  } finally {
+    // Eine Aufräumpanne macht die fertige Sicherung nicht ungültig. Die
+    // tägliche Obergrenze greift auch nach einem vollständig abgerissenen Lauf.
+    await fetch(`${URL_BASIS}/rest/v1/rpc/auszug_snapshot_ende`, {
+      method: 'POST', headers: alsDienst, body: JSON.stringify({ p_lauf: snapshot }),
+    }).then((r) => r.body?.cancel()).catch(() => undefined);
   }
-  return await stand.abschliessen();
 }
 
 /** Ein kurzer Name für einen Lauf — er steht in den Pfaden der weiteren Teile. */
 const neuerLauf = () => crypto.randomUUID().replace(/-/g, '').slice(0, 12);
-
-/**
- * Felder, die aus dem Stand herausfallen, mit Grund.
- *
- * Push-Tokens sind Kanäle auf die Geräte einzelner Mitarbeiter, kein
- * Geschäftsdatum. Für einen Wiederanlauf taugen sie nichts — beim nächsten
- * Anmelden entstehen sie neu —, in einer abgelegten Datei wären sie nur ein
- * Risiko. Dieselbe Entscheidung wie beim DSGVO-Auszug.
- */
-function entschaerft(
-  tabelle: string, zeile: Record<string, unknown>,
-): Record<string, unknown> {
-  if (tabelle !== 'user_prefs') return zeile;
-  const ohne = { ...zeile };
-  delete ohne.push_tokens;
-  return ohne;
-}
 
 /** Alte Stände wegräumen — was weg darf, entscheidet `ausleitungPlan.ts`. */
 async function alteStaendeRaeumen(betrieb: string, heute: Date): Promise<number> {

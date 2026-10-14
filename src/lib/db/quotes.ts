@@ -66,3 +66,5 @@ export function reserveQuoteNumber(companyId: string, praefix?: string): Promise
 }
 
 export type { WithId };
+
+export const acceptQuote = pg.acceptQuote;

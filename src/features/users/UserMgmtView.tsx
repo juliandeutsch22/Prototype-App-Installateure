@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listUsers } from '@/lib/db/users';
 import { provisionUser } from '@/lib/auth/provisionUser';
@@ -102,7 +102,7 @@ export default function UserMgmtView() {
 
   /** Initialpasswort, falls die Willkommens-Mail nicht zugestellt werden konnte. */
   const [handoverPassword, setHandoverPassword] = useState<
-    { name: string; pw: string; benutzername?: string } | null
+    { name: string; pw: string; benutzername?: string; uid?: string } | null
   >(null);
   /*
     WOMIT SICH DIE PERSON ANMELDET. Neben dem Entwurf und nicht darin: die
@@ -230,6 +230,7 @@ export default function UserMgmtView() {
         setHandoverPassword({
           name: form.name,
           pw: res.tempPassword,
+          uid: res.startpasswortNoetig ? res.uid : undefined,
           benutzername: res.benutzerkonto ? kontoAnzeige(profile.email) : undefined,
         });
       }
@@ -274,24 +275,28 @@ export default function UserMgmtView() {
       {handoverPassword && (
         <Hinweiszeile stufe="warn" role="alert">
           <p className="font-semibold text-ink-deep">
-            {handoverPassword.benutzername
+            {handoverPassword.uid ? `Profil für ${handoverPassword.name} wiederhergestellt` : handoverPassword.benutzername
               ? `Zugangsdaten für ${handoverPassword.name}`
               : 'Willkommens-Mail konnte nicht gesendet werden'}
           </p>
-          <p className="mt-1">
+          {handoverPassword.uid ? (
+            <p className="mt-1">Das frühere Anfangspasswort ist nicht mehr verfügbar. {handoverPassword.benutzername
+              ? 'Bitte in der Mitarbeiterakte ein neues Startpasswort vergeben.'
+              : 'Die Passwort-Mail konnte nicht gesendet werden. Bitte den Versand in der Mitarbeiterakte erneut versuchen.'} <Link className="underline" to={`/user-mgmt/${handoverPassword.uid}`}>Zur Mitarbeiterakte</Link>.</p>
+          ) : <p className="mt-1">
             Bitte {handoverPassword.name} dieses Startpasswort persönlich weitergeben. Es wird
             nur jetzt angezeigt
             {handoverPassword.benutzername
               ? ' — beim ersten Anmelden vergibt die Person ein eigenes:'
               : ':'}
-          </p>
+          </p>}
           {handoverPassword.benutzername && (
             <p className="mt-2 text-sm text-ink">
               Benutzername:{' '}
               <span className="select-all font-semibold">{handoverPassword.benutzername}</span>
             </p>
           )}
-          <p data-testid="startpasswort" className="mt-2 select-all text-lg font-semibold text-ink-deep">{handoverPassword.pw}</p>
+          {!handoverPassword.uid && <p data-testid="startpasswort" className="mt-2 select-all text-lg font-semibold text-ink-deep">{handoverPassword.pw}</p>}
           <Button variant="ghost" className="mt-2" onClick={() => setHandoverPassword(null)}>
             Verstanden
           </Button>

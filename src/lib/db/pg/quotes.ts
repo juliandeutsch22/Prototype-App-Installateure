@@ -10,7 +10,7 @@
  * `public.angebot_speichern` zusammen geschrieben.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Quote, InvoiceDiscount } from '@/types';
+import type { Quote, InvoiceDiscount, Abrechnungsart } from '@/types';
 import { abfragen, derClient, loeschen, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
 import { oderUeberSpalten } from './suche';
@@ -241,4 +241,14 @@ export async function reserveQuoteNumber(companyId: string, praefix?: string): P
   });
   if (error) throw new Error(error.message);
   return belegNummer(praefix ?? PRAEFIX_VORGABE.angebot, jahr, Number(data));
+}
+
+/** Die gesperrte Angebotszeile liefert den aktuellen Auftrag und sein Budget. */
+export async function acceptQuote(id: string, praefix: string, abrechnung: Abrechnungsart): Promise<string> {
+  const { data, error } = await derClient().rpc('angebot_annehmen', {
+    p_angebot: id, p_praefix: praefix, p_abrechnung: abrechnung,
+  });
+  if (error) throw new Error(error.message);
+  if (typeof data !== 'string' || !data) throw new Error('Die Baustelle konnte nicht angelegt werden.');
+  return data;
 }
