@@ -1,0 +1,75 @@
+{
+  "checks": [
+    "Aufgabe öffnet die passende Mahnungsansicht.",
+    "Suche, Filter und Fokus bleiben nach Schließen erhalten.",
+    "Ansicht, Zustandsfilter und leere Suche geprüft.",
+    "Aktenbereiche und verknüpfte Informationen geprüft.",
+    "Zeitvorschau, Demobuchung und ungültige Zeit geprüft.",
+    "Globale Suche führt zur gewählten Ansicht.",
+    "Demo-Export herunterladbar; als Demo-CSV gekennzeichnet.",
+    "Mobile Abschlussaktion und Vollbild-Einzelheiten geprüft."
+  ],
+  "errors": [],
+  "a11y": [
+    {
+      "width": 1440,
+      "view": "heute",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "view": "rechnungen",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "view": "baustelle",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "view": "zeit",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "view": "heute",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "view": "rechnungen",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "view": "baustelle",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "view": "zeit",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "view": "heute",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "view": "rechnungen",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "view": "baustelle",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "view": "zeit",
+      "violations": []
+    }
+  ]
+}
