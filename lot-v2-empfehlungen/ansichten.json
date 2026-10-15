@@ -1,0 +1,38 @@
+[
+  {
+    "id": "start-a",
+    "name": "A · Kalender",
+    "route": "heute-a",
+    "text": "Vorhandene Kalenderachse mit Jetzt-Markierung und hervorgehobenem nächsten Termin. Teamdaten als Textzeilen."
+  },
+  {
+    "id": "start-b",
+    "name": "B · Kalender und Teamband",
+    "route": "heute-b",
+    "text": "Gleicher Inhalt wie A; zusätzlich ein schmales Band für die Einsatzverteilung nach Baustellen."
+  },
+  {
+    "id": "start-c",
+    "name": "C · Empfohlene Balance",
+    "route": "heute-c",
+    "text": "Kalender und Teamband, stärkere Aktionsbeschriftung, keine doppelte Personenkennzahl. Mobil steht der Kalender vor Zuletzt geöffnet."
+  },
+  {
+    "id": "monteur",
+    "name": "Monteur · Arbeitswege erhalten",
+    "route": "monteur-c",
+    "text": "Einsatz, Adresse, Anruf, letzte Zeitvorlage, Schein und Materialübernahme direkt erreichbar. Nur eigene Termine."
+  },
+  {
+    "id": "rechnung",
+    "name": "Rechnung · Aktionen sichtbar",
+    "route": "rechnung-c",
+    "text": "Zahlung und PDF direkt am Beleg. Zustandsabhängige Mahn- und Korrekturaktionen bleiben erreichbar."
+  },
+  {
+    "id": "konto",
+    "name": "Benutzer · Zugang geschützt",
+    "route": "konto-c",
+    "text": "Anmeldekennung als nicht direkt bearbeitbare Angabe; Konto-Umstellung ist ein separater geschützter Ablauf."
+  }
+]

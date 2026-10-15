@@ -1,0 +1,249 @@
+{
+  "version": "07",
+  "produktCommit": "d4b8542821d86c7057761af16de1331d1de87e09",
+  "appVeraendert": false,
+  "ansichten": 6,
+  "breiten": [
+    1440,
+    834,
+    390
+  ],
+  "historischeFunktionszuordnungen": 977,
+  "dateien": [
+    {
+      "pfad": "Empfehlungen.md",
+      "bytes": 4562,
+      "sha256": "b4a59b98513df419792dee0858f8f555c657b0b5c127b7b2788ef6dc05672063"
+    },
+    {
+      "pfad": "Funktionsschutz.json",
+      "bytes": 4274,
+      "sha256": "b50b8b2afc7cab8ba406e6f96da566a539330df1db936b3ca7fda2179cbdc116"
+    },
+    {
+      "pfad": "Lot-v2-arbeitswege.jpg",
+      "bytes": 264117,
+      "sha256": "8ed84ea4bcdc34a89e0c397ac733adfdd9e6bbb8170906f9e80594bb705fed19"
+    },
+    {
+      "pfad": "Lot-v2-empfohlen.jpg",
+      "bytes": 261324,
+      "sha256": "a87c349bdc56ca321041cb67e0db44011cdc98c3e752b48425fe2f908cc9f02f"
+    },
+    {
+      "pfad": "Lot-v2-vergleich.jpg",
+      "bytes": 197896,
+      "sha256": "2f2f9b1012ccaf522c99087bdc85753d2bae3c3afb858913291525789e6b4e00"
+    },
+    {
+      "pfad": "OFL.txt",
+      "bytes": 6175,
+      "sha256": "5c4a92c8f8ce0ab211f4c72889d82383c9644546115d9ba39a4f2d5b8f37014b"
+    },
+    {
+      "pfad": "README.md",
+      "bytes": 1870,
+      "sha256": "fdc5f0b456d2b7f35506b3961241543f1c9b70d3bf1adbe0670302c6b7137d71"
+    },
+    {
+      "pfad": "ansichten.json",
+      "bytes": 1326,
+      "sha256": "c582b33921fc352f41ccb01a62e18d3a5bf829049424dd55603e9a97a2b86d3f"
+    },
+    {
+      "pfad": "arbeitswege.html",
+      "bytes": 1069,
+      "sha256": "27ee7df5ea4c286220c355bb4811ba48060d9a913a45104d61483fe7d32dbe7a"
+    },
+    {
+      "pfad": "bestandsfunktionen.json",
+      "bytes": 439008,
+      "sha256": "14e977ac55af384906c3be6943c87de3713944c6b9686e0e82ba3ce8a4949fd6"
+    },
+    {
+      "pfad": "bilder/konto-desktop.jpg",
+      "bytes": 116617,
+      "sha256": "3427c79973bec7d4762d1434a9c426d74de480b63df470dd267bf76fbe358465"
+    },
+    {
+      "pfad": "bilder/konto-mobil.jpg",
+      "bytes": 65400,
+      "sha256": "14dc83bc1d9a1d1a382e1c7c76a5add02ec5ec0c3cea002fc8a770e2af713f9e"
+    },
+    {
+      "pfad": "bilder/konto-tablet.jpg",
+      "bytes": 105438,
+      "sha256": "1c679f586b255fef25aa26fff3219bd4f3b5bca41354b4fd0c9bcc0f36527478"
+    },
+    {
+      "pfad": "bilder/monteur-desktop-ausschnitt.png",
+      "bytes": 268544,
+      "sha256": "dfec0dfa2da23dc5a4fc495f72e3c5be38b9117c2ce6ced8b8f67f715aefc8ef"
+    },
+    {
+      "pfad": "bilder/monteur-desktop.jpg",
+      "bytes": 108779,
+      "sha256": "ca50f00f78a7efde91af224796e1d76cc28119c02e6912d348d52976f0f9ca91"
+    },
+    {
+      "pfad": "bilder/monteur-mobil-ausschnitt.png",
+      "bytes": 112650,
+      "sha256": "09edeb233d0bcb0e31ab73d0ded05dbc0c37b550a9440e4c2c5b6cb4f6ec534d"
+    },
+    {
+      "pfad": "bilder/monteur-mobil.jpg",
+      "bytes": 72881,
+      "sha256": "83ff78ebe5210ad0808dde796c7e19a2cc2ed933a5c5fd855687c72c3758ed5e"
+    },
+    {
+      "pfad": "bilder/monteur-tablet-ausschnitt.png",
+      "bytes": 206885,
+      "sha256": "be4867137614dfc3ad061796bcb38236fb30fc77ba8c8d391b4a60ddad73aa9d"
+    },
+    {
+      "pfad": "bilder/monteur-tablet.jpg",
+      "bytes": 103248,
+      "sha256": "4aced642fccc01e8473e55491b7e23bea9e84cc50b820cf9a7c90da224d24a86"
+    },
+    {
+      "pfad": "bilder/rechnung-desktop.jpg",
+      "bytes": 95669,
+      "sha256": "7c61e71f9a04465335e929fe754914f3610aedc05ef33bdc4db4e5e57d456915"
+    },
+    {
+      "pfad": "bilder/rechnung-mobil.jpg",
+      "bytes": 53947,
+      "sha256": "d440e0badcc0cd59d559e190b458e9ab923cd3ebde50d7fa725a7040206bca7d"
+    },
+    {
+      "pfad": "bilder/rechnung-tablet.jpg",
+      "bytes": 86736,
+      "sha256": "5a27b50370a2936bc9e2dff5d9be065f8b219867a630ce047092943fb8f9f4f6"
+    },
+    {
+      "pfad": "bilder/start-a-desktop.jpg",
+      "bytes": 131932,
+      "sha256": "aaf0d7cd836e4cacbf1f40b2af7900f5424421504a3d2b5adec5ccf9879c8e64"
+    },
+    {
+      "pfad": "bilder/start-a-mobil.jpg",
+      "bytes": 84544,
+      "sha256": "73b9b94846a1edafe27427811f074486ad1018e10f74374e65b5f22492635c54"
+    },
+    {
+      "pfad": "bilder/start-a-tablet.jpg",
+      "bytes": 123294,
+      "sha256": "886cc3a5e3a57149f2b04a6c358d04e68111a8ef7bf4de92c8485826284f342d"
+    },
+    {
+      "pfad": "bilder/start-b-desktop.jpg",
+      "bytes": 134941,
+      "sha256": "21c8fb5f93bb2f3060801bdb2896d0503e0f702670bf678983cc2c1c26bc5986"
+    },
+    {
+      "pfad": "bilder/start-b-mobil.jpg",
+      "bytes": 85969,
+      "sha256": "9b3c5bb54de4841621bd397c448afd21b795f2959bd41ce609c6713bbc331a81"
+    },
+    {
+      "pfad": "bilder/start-b-tablet.jpg",
+      "bytes": 126870,
+      "sha256": "913ef0881ffd363ba115ef4ac400d18f951bf9e9d556061a88afc4372e3ab426"
+    },
+    {
+      "pfad": "bilder/start-c-desktop-ausschnitt.png",
+      "bytes": 317721,
+      "sha256": "bb8c7085a5a1b95e67c00f19d366e9866034033d524e6dd25c5a00ffb86e4b38"
+    },
+    {
+      "pfad": "bilder/start-c-desktop.jpg",
+      "bytes": 130041,
+      "sha256": "391a4dba4ce4b00b6a2578fe1e0701e2d470a98bc233c073817314e55b7a1d0a"
+    },
+    {
+      "pfad": "bilder/start-c-mobil-ausschnitt.png",
+      "bytes": 120600,
+      "sha256": "cc2f11e40ca1bb3d5c401a77a1fbc52c1788802669152ec270bccaeb82a9130a"
+    },
+    {
+      "pfad": "bilder/start-c-mobil.jpg",
+      "bytes": 82485,
+      "sha256": "51e6afdc7836db462d123eb2f7cea65318af2b02a41658b92a2d4089259a2e35"
+    },
+    {
+      "pfad": "bilder/start-c-tablet-ausschnitt.png",
+      "bytes": 244141,
+      "sha256": "aa67aaf03a86c6018e43432922bd846db09b7343d21101fd77b2ddb5eaee84dc"
+    },
+    {
+      "pfad": "bilder/start-c-tablet.jpg",
+      "bytes": 118778,
+      "sha256": "5f11af827104be4fc3937066181c991d6efaacdfee27ec87e71ccc9170f2136a"
+    },
+    {
+      "pfad": "bildpruefung.json",
+      "bytes": 3971,
+      "sha256": "1cde4682d111c800a9a28e61e1ae1e838087839cb496956c8e968268536dff72"
+    },
+    {
+      "pfad": "empfohlen.html",
+      "bytes": 765,
+      "sha256": "3be7f95fc3bf3747a6fcf29330890d184619e98330db3e6d5a25e9629926a53c"
+    },
+    {
+      "pfad": "galerie.css",
+      "bytes": 1788,
+      "sha256": "204c4ecb3243ad921b8d69213f3c299732d833e1b79d11fb6337d7ce680f4549"
+    },
+    {
+      "pfad": "galerie.html",
+      "bytes": 4890,
+      "sha256": "c1631b08e4929e20a2f79174db758248531c616d7278a2d87afe0af589993a74"
+    },
+    {
+      "pfad": "gestaltung.css",
+      "bytes": 59780,
+      "sha256": "5ee80a9a3033ae0cf36de98098dc8f1081c5e1075a340aaa67f68123a92322f7"
+    },
+    {
+      "pfad": "index.html",
+      "bytes": 700,
+      "sha256": "2147307e1c0b3cc12423ce964b693e9e82bc06087d6568ed8565dfbef61645ae"
+    },
+    {
+      "pfad": "konzept.js",
+      "bytes": 372027,
+      "sha256": "dcdab711a6b932083b36d8188cb7e04d57eae1f403e21646ddd35037f3cd5d03"
+    },
+    {
+      "pfad": "konzept.json",
+      "bytes": 485064,
+      "sha256": "53b5844d8229a73884658c3dbcf7624561c2036972aa57b4e22e76da1c649bd6"
+    },
+    {
+      "pfad": "pruefung.json",
+      "bytes": 2450,
+      "sha256": "446890cceb857304c0d59f4c33ab377dc420f3be0d92b3f374a66ea2754f3d50"
+    },
+    {
+      "pfad": "rollenmatrix.json",
+      "bytes": 14369,
+      "sha256": "78412fd2919222b5d3a207a1d1358b2a1736a8dee3bee3fa3885c3b3fb2eecda"
+    },
+    {
+      "pfad": "vergleich.html",
+      "bytes": 1194,
+      "sha256": "304b4cd06e93b3a4ea3a03710d13f0010d67c3a5195cbe066f515ece0d94e5e9"
+    },
+    {
+      "pfad": "vorschlaege.css",
+      "bytes": 10132,
+      "sha256": "c66f84f5b5375bde90c9d3e50c5e0e469629dcba00f06d87289d21cfd844f173"
+    },
+    {
+      "pfad": "vorschlaege.js",
+      "bytes": 8052,
+      "sha256": "ab7bf44306691083dd9211261a73a5f656383d16bb4faa41701a4678dff0dc75"
+    }
+  ]
+}

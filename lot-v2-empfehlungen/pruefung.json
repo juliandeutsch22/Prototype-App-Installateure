@@ -1,0 +1,105 @@
+{
+  "umfang": "Nur Entwurf 07: sechs neue Varianten, keine Prüfung des Backends oder vollständige Funktionsgleichheit.",
+  "checks": [
+    "A/B enthalten gleichen Text; Band 2/3/1, Jetzt 10:05 und nächster Termin 10:30 / 25 Minuten.",
+    "C: zwei Geldkennzahlen; Zahlengewicht 500; mobil Aufgaben → Kalender → Team → Zuletzt geöffnet.",
+    "Monteur: Kontakt/Adresse, Materialcheckboxen, nur eigener Termin; Zeitvorlage vorausgefüllt ohne Buchung, Alternative mit leeren Zeiten.",
+    "Rechnung: Zahlung/PDF sichtbar, PDF klar als Demo, keine unbedingte Bankgarantie.",
+    "Konto: Kennung nicht direkt editierbar; geschützter Umstellweg; GF-Beispiel ohne Administratorauswahl.",
+    "Alle internen Hauptinhaltslinks der sechs neuen Ansichten führen zu vorhandenen Vorschauansichten.",
+    "Galerie und empfohlene Vorschau über lokalen Server ohne externe Anforderungen geöffnet; file:// ist in dieser Browserumgebung administrativ gesperrt und wurde nicht verifiziert."
+  ],
+  "axe": [
+    {
+      "id": "start-a",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "id": "start-b",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "id": "start-c",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "id": "monteur",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "id": "rechnung",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "id": "konto",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "id": "start-a",
+      "width": 834,
+      "violations": []
+    },
+    {
+      "id": "start-b",
+      "width": 834,
+      "violations": []
+    },
+    {
+      "id": "start-c",
+      "width": 834,
+      "violations": []
+    },
+    {
+      "id": "monteur",
+      "width": 834,
+      "violations": []
+    },
+    {
+      "id": "rechnung",
+      "width": 834,
+      "violations": []
+    },
+    {
+      "id": "konto",
+      "width": 834,
+      "violations": []
+    },
+    {
+      "id": "start-a",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "id": "start-b",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "id": "start-c",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "id": "monteur",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "id": "rechnung",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "id": "konto",
+      "width": 390,
+      "violations": []
+    }
+  ],
+  "passed": true
+}

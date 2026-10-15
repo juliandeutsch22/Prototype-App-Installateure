@@ -1,0 +1,78 @@
+{
+  "basisCommit": "d4b8542821d86c7057761af16de1331d1de87e09",
+  "umfang": "Gezielte Quellcode-Gegenprüfung; keine vollständige Abnahme aller Ansichten",
+  "vertraege": [
+    {
+      "thema": "Eigener Einsatz",
+      "quelle": "src/features/dashboard/start/HeuteEigene.tsx",
+      "beibehalten": "Adresse und Telefon sind direkte Links; Kontakt, Aufgaben, weitere Einsätze bleiben erhalten.",
+      "entwurfsstand": "Im neuen Monteur-Beispiel sichtbar; weitere Einsätze weiterhin bedingt umzusetzen."
+    },
+    {
+      "thema": "Letzte Zeitvorlage",
+      "quelle": "src/features/dashboard/start/HeuteEigene.tsx",
+      "beibehalten": "Wie zuletzt buchen übergibt Projekt, Helferstatus, Von/Bis/Pause an Zeitformular; keine automatische Buchung. Andere Zeit ohne Zeitvorlage.",
+      "entwurfsstand": "Beide Einstiege im Mockup ergänzt und separat prüfbar."
+    },
+    {
+      "thema": "Rüstliste",
+      "quelle": "src/features/assignments/RuestlisteAbhaken.tsx",
+      "beibehalten": "Checkboxen verwenden bestehende Speicherfunktion; Begrenzung/Erweiterung bei mehr Einträgen erhalten.",
+      "entwurfsstand": "3 Demo-Checkboxen sichtbar, kein persistentes Schreiben in der Vorschau."
+    },
+    {
+      "thema": "Eigene Termine",
+      "quelle": "src/features/dashboard/start/TermineHeute.tsx",
+      "beibehalten": "Mitarbeiter sehen nur zulässige eigene Termine; Adresse, Notiz und Planwege behalten.",
+      "entwurfsstand": "Monteur-Beispiel enthält nur eigene Zwischenabnahme."
+    },
+    {
+      "thema": "Team und Abwesenheit",
+      "quelle": "src/features/dashboard/start/HeuteLeitung.tsx",
+      "beibehalten": "Baustellenzuordnung und autorisierte Abwesenheiten erhalten; nicht eingeteilt ist nicht automatisch verfügbar.",
+      "entwurfsstand": "Teamband verwendet 2/3/1 Eingeteilte; keine erfundene Verfügbarkeit."
+    },
+    {
+      "thema": "Handlungsbedarf",
+      "quelle": "src/features/dashboard/start/Handlungsbedarf.tsx",
+      "beibehalten": "Rollen, Modulzustände, Warnungen und weitere Einträge bleiben wirksam.",
+      "entwurfsstand": "Beispiel enthält 3 Aufgaben; bedingte Gesamtmenge ist im Umbau zu erhalten."
+    },
+    {
+      "thema": "Zahlung",
+      "quelle": "src/features/invoices/InvoicesView.tsx",
+      "beibehalten": "Teilzahlung, weitere Zahlung, Rückzahlung und Guthaben abhängig von Belegzustand; auch stornierte Belege gemäß Bestandslogik.",
+      "entwurfsstand": "Direkte Zahlung sichtbar; Zustandsvarianten noch nicht vollständig neu ausgearbeitet."
+    },
+    {
+      "thema": "Mahnung und Garantie",
+      "quelle": "src/features/invoices/InvoicesView.tsx",
+      "beibehalten": "Mahnung nur wenn darfMahnen möglich; Garantie nur mit Rücklass und passendem Zustand.",
+      "entwurfsstand": "Falsch pauschale Garantieaktion im neuen Beispiel entfernt; Mahnprüfung bleibt."
+    },
+    {
+      "thema": "Storno und PDF",
+      "quelle": "src/features/invoices/InvoicesView.tsx",
+      "beibehalten": "Read-only nur PDF; Stornobeleg und Rücknahme abhängig von Zustand, Stornonummer und Datum.",
+      "entwurfsstand": "PDF sichtbar; seltenere Aktionen im Menü, Bedingungen in Umsetzung zwingend übernehmen."
+    },
+    {
+      "thema": "Identität und Rollen",
+      "quelle": "src/features/users/BenutzerakteView.tsx",
+      "beibehalten": "Kennung nicht direkt ändern; separater KontoUmstellen-Ablauf; zulässige Rollen, Selbstdeaktivierung, letzter Admin und Zusatzrechte erhalten.",
+      "entwurfsstand": "Direkt editierbare Anmeldung entfernt; Beispiel Geschäftsführung ohne Administratorauswahl."
+    },
+    {
+      "thema": "Schein-Schritte",
+      "quelle": "src/features/worksheets/Schrittfolge.tsx",
+      "beibehalten": "Schritte behalten Eingaben/Uploads/Signaturen über Wechsel; ausstehende Zeilen/Uploads verhindern Unterschrift.",
+      "entwurfsstand": "Bestehende Komponenten weiterverwenden, nicht aus Screenshot neu bauen."
+    },
+    {
+      "thema": "Navigation und Rechte",
+      "quelle": "src/app/navigation.ts",
+      "beibehalten": "Navigation und Datenzugriff bleiben rollen- und modulabhängig; Zurück bewahrt Filter, Auswahl und Position.",
+      "entwurfsstand": "Grundmatrix übernommen; vollständige Interaktionsprüfung vor Umsetzung offen."
+    }
+  ]
+}

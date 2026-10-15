@@ -1,0 +1,697 @@
+{
+  "Mitarbeiter": {
+    "nav": [
+      {
+        "path": "/",
+        "label": "Start",
+        "group": "Start"
+      },
+      {
+        "path": "/time",
+        "label": "Zeiterfassung",
+        "group": "Team"
+      },
+      {
+        "path": "/material",
+        "label": "Material anfordern",
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/my-schedule",
+        "label": "Mein Einsatzplan",
+        "group": "Aufträge",
+        "modul": "einsatzplanung"
+      },
+      {
+        "path": "/my-projects",
+        "label": "Meine Baustellen",
+        "group": "Aufträge"
+      },
+      {
+        "path": "/vacations",
+        "label": "Urlaub",
+        "group": "Team",
+        "modul": "urlaub"
+      },
+      {
+        "path": "/worksheets",
+        "label": "Handwerksscheine",
+        "group": "Aufträge",
+        "modul": "scheine"
+      },
+      {
+        "path": "/settings",
+        "label": "Einstellungen",
+        "group": "Einstellungen"
+      }
+    ],
+    "sub": [
+      {
+        "pfad": "meldungen",
+        "label": "Mein Konto"
+      }
+    ],
+    "mobile": [
+      "/",
+      "/time",
+      "/my-schedule",
+      "/material"
+    ]
+  },
+  "Verwaltung": {
+    "nav": [
+      {
+        "path": "/",
+        "label": "Start",
+        "group": "Start"
+      },
+      {
+        "path": "/time",
+        "label": "Zeiterfassung",
+        "group": "Team"
+      },
+      {
+        "path": "/material",
+        "label": "Material anfordern",
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/vacations",
+        "label": "Urlaub",
+        "group": "Team",
+        "modul": "urlaub"
+      },
+      {
+        "path": "/worksheets",
+        "label": "Handwerksscheine",
+        "group": "Aufträge",
+        "modul": "scheine"
+      },
+      {
+        "path": "/customers",
+        "label": "Kunden",
+        "group": "Aufträge"
+      },
+      {
+        "path": "/wartungen",
+        "label": "Wartungen",
+        "group": "Aufträge",
+        "modul": "wartung"
+      },
+      {
+        "path": "/anforderungen",
+        "label": "Anforderungen",
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/lager",
+        "label": "Lager",
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/settings",
+        "label": "Einstellungen",
+        "group": "Einstellungen"
+      }
+    ],
+    "sub": [
+      {
+        "pfad": "meldungen",
+        "label": "Mein Konto"
+      }
+    ],
+    "mobile": [
+      "/",
+      "/anforderungen",
+      "/customers",
+      "/time"
+    ]
+  },
+  "Buchhaltung": {
+    "nav": [
+      {
+        "path": "/",
+        "label": "Start",
+        "group": "Start"
+      },
+      {
+        "path": "/time",
+        "label": "Zeiterfassung",
+        "group": "Team"
+      },
+      {
+        "path": "/vacations",
+        "label": "Urlaub",
+        "group": "Team",
+        "modul": "urlaub"
+      },
+      {
+        "path": "/worksheets",
+        "label": "Handwerksscheine",
+        "group": "Aufträge",
+        "modul": "scheine"
+      },
+      {
+        "path": "/quotes",
+        "label": "Angebote",
+        "group": "Aufträge",
+        "modul": "angebote"
+      },
+      {
+        "path": "/customers",
+        "label": "Kunden",
+        "group": "Aufträge"
+      },
+      {
+        "path": "/settings",
+        "label": "Einstellungen",
+        "group": "Einstellungen"
+      },
+      {
+        "path": "/invoices",
+        "label": "Rechnungen",
+        "group": "Geld",
+        "modul": "rechnungen"
+      },
+      {
+        "path": "/accounting",
+        "label": "Mitarbeiterübersicht",
+        "group": "Team",
+        "modul": "zeitkonten"
+      }
+    ],
+    "sub": [
+      {
+        "pfad": "uebersicht",
+        "label": "Übersicht",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator",
+          "Buchhaltung"
+        ]
+      },
+      {
+        "pfad": "meldungen",
+        "label": "Mein Konto"
+      },
+      {
+        "pfad": "rechnung",
+        "label": "Rechnungsvorgaben",
+        "roles": [
+          "Buchhaltung",
+          "Geschäftsführung",
+          "Administrator"
+        ]
+      },
+      {
+        "pfad": "konten",
+        "label": "Kontenrahmen",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator",
+          "Buchhaltung"
+        ]
+      }
+    ],
+    "mobile": [
+      "/",
+      "/invoices",
+      "/accounting",
+      "/time"
+    ]
+  },
+  "Projektleiter": {
+    "nav": [
+      {
+        "path": "/",
+        "label": "Start",
+        "group": "Start"
+      },
+      {
+        "path": "/time",
+        "label": "Zeiterfassung",
+        "group": "Team"
+      },
+      {
+        "path": "/material",
+        "label": "Material anfordern",
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/vacations",
+        "label": "Urlaub",
+        "group": "Team",
+        "modul": "urlaub"
+      },
+      {
+        "path": "/worksheets",
+        "label": "Handwerksscheine",
+        "group": "Aufträge",
+        "modul": "scheine"
+      },
+      {
+        "path": "/quotes",
+        "label": "Angebote",
+        "group": "Aufträge",
+        "modul": "angebote"
+      },
+      {
+        "path": "/customers",
+        "label": "Kunden",
+        "group": "Aufträge"
+      },
+      {
+        "path": "/wartungen",
+        "label": "Wartungen",
+        "group": "Aufträge",
+        "modul": "wartung"
+      },
+      {
+        "path": "/anforderungen",
+        "label": "Anforderungen",
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/lager",
+        "label": "Lager",
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/admin-projects",
+        "label": "Baustellen",
+        "group": "Aufträge"
+      },
+      {
+        "path": "/assignments",
+        "label": "Einsatzplanung",
+        "group": "Aufträge",
+        "modul": "einsatzplanung"
+      },
+      {
+        "path": "/settings",
+        "label": "Einstellungen",
+        "group": "Einstellungen"
+      }
+    ],
+    "sub": [
+      {
+        "pfad": "meldungen",
+        "label": "Mein Konto"
+      }
+    ],
+    "mobile": [
+      "/",
+      "/assignments",
+      "/admin-projects",
+      "/material"
+    ]
+  },
+  "Geschäftsführung": {
+    "nav": [
+      {
+        "path": "/",
+        "label": "Start",
+        "group": "Start"
+      },
+      {
+        "path": "/time",
+        "label": "Zeiterfassung",
+        "group": "Team"
+      },
+      {
+        "path": "/material",
+        "label": "Material anfordern",
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/vacations",
+        "label": "Urlaub",
+        "group": "Team",
+        "modul": "urlaub"
+      },
+      {
+        "path": "/worksheets",
+        "label": "Handwerksscheine",
+        "group": "Aufträge",
+        "modul": "scheine"
+      },
+      {
+        "path": "/quotes",
+        "label": "Angebote",
+        "group": "Aufträge",
+        "modul": "angebote"
+      },
+      {
+        "path": "/customers",
+        "label": "Kunden",
+        "group": "Aufträge"
+      },
+      {
+        "path": "/wartungen",
+        "label": "Wartungen",
+        "group": "Aufträge",
+        "modul": "wartung"
+      },
+      {
+        "path": "/anforderungen",
+        "label": "Anforderungen",
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/lager",
+        "label": "Lager",
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/admin-projects",
+        "label": "Baustellen",
+        "group": "Aufträge"
+      },
+      {
+        "path": "/assignments",
+        "label": "Einsatzplanung",
+        "group": "Aufträge",
+        "modul": "einsatzplanung"
+      },
+      {
+        "path": "/user-mgmt",
+        "label": "Benutzerverwaltung",
+        "group": "Team"
+      },
+      {
+        "path": "/settings",
+        "label": "Einstellungen",
+        "group": "Einstellungen"
+      },
+      {
+        "path": "/costing",
+        "label": "Nachkalkulation",
+        "group": "Geld",
+        "modul": "nachkalkulation"
+      },
+      {
+        "path": "/invoices",
+        "label": "Rechnungen",
+        "group": "Geld",
+        "modul": "rechnungen"
+      },
+      {
+        "path": "/accounting",
+        "label": "Mitarbeiterübersicht",
+        "group": "Team",
+        "modul": "zeitkonten"
+      }
+    ],
+    "sub": [
+      {
+        "pfad": "uebersicht",
+        "label": "Übersicht",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator",
+          "Buchhaltung"
+        ]
+      },
+      {
+        "pfad": "meldungen",
+        "label": "Mein Konto"
+      },
+      {
+        "pfad": "firma",
+        "label": "Firmendaten",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ]
+      },
+      {
+        "pfad": "saetze",
+        "label": "Sätze und Kosten",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ]
+      },
+      {
+        "pfad": "rechnung",
+        "label": "Rechnungsvorgaben",
+        "roles": [
+          "Buchhaltung",
+          "Geschäftsführung",
+          "Administrator"
+        ]
+      },
+      {
+        "pfad": "nummern",
+        "label": "Nummernkreise",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ]
+      },
+      {
+        "pfad": "personal",
+        "label": "Personal",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ]
+      },
+      {
+        "pfad": "konten",
+        "label": "Kontenrahmen",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator",
+          "Buchhaltung"
+        ]
+      },
+      {
+        "pfad": "support",
+        "label": "Supportzugang",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ]
+      },
+      {
+        "pfad": "sicherung",
+        "label": "Datensicherung",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ]
+      }
+    ],
+    "mobile": [
+      "/",
+      "/assignments",
+      "/admin-projects",
+      "/invoices"
+    ]
+  },
+  "Administrator": {
+    "nav": [
+      {
+        "path": "/",
+        "label": "Start",
+        "group": "Start"
+      },
+      {
+        "path": "/time",
+        "label": "Zeiterfassung",
+        "group": "Team"
+      },
+      {
+        "path": "/material",
+        "label": "Material anfordern",
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/vacations",
+        "label": "Urlaub",
+        "group": "Team",
+        "modul": "urlaub"
+      },
+      {
+        "path": "/worksheets",
+        "label": "Handwerksscheine",
+        "group": "Aufträge",
+        "modul": "scheine"
+      },
+      {
+        "path": "/quotes",
+        "label": "Angebote",
+        "group": "Aufträge",
+        "modul": "angebote"
+      },
+      {
+        "path": "/customers",
+        "label": "Kunden",
+        "group": "Aufträge"
+      },
+      {
+        "path": "/wartungen",
+        "label": "Wartungen",
+        "group": "Aufträge",
+        "modul": "wartung"
+      },
+      {
+        "path": "/anforderungen",
+        "label": "Anforderungen",
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/lager",
+        "label": "Lager",
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/admin-projects",
+        "label": "Baustellen",
+        "group": "Aufträge"
+      },
+      {
+        "path": "/assignments",
+        "label": "Einsatzplanung",
+        "group": "Aufträge",
+        "modul": "einsatzplanung"
+      },
+      {
+        "path": "/user-mgmt",
+        "label": "Benutzerverwaltung",
+        "group": "Team"
+      },
+      {
+        "path": "/settings",
+        "label": "Einstellungen",
+        "group": "Einstellungen"
+      },
+      {
+        "path": "/costing",
+        "label": "Nachkalkulation",
+        "group": "Geld",
+        "modul": "nachkalkulation"
+      },
+      {
+        "path": "/invoices",
+        "label": "Rechnungen",
+        "group": "Geld",
+        "modul": "rechnungen"
+      },
+      {
+        "path": "/accounting",
+        "label": "Mitarbeiterübersicht",
+        "group": "Team",
+        "modul": "zeitkonten"
+      }
+    ],
+    "sub": [
+      {
+        "pfad": "uebersicht",
+        "label": "Übersicht",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator",
+          "Buchhaltung"
+        ]
+      },
+      {
+        "pfad": "meldungen",
+        "label": "Mein Konto"
+      },
+      {
+        "pfad": "firma",
+        "label": "Firmendaten",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ]
+      },
+      {
+        "pfad": "saetze",
+        "label": "Sätze und Kosten",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ]
+      },
+      {
+        "pfad": "rechnung",
+        "label": "Rechnungsvorgaben",
+        "roles": [
+          "Buchhaltung",
+          "Geschäftsführung",
+          "Administrator"
+        ]
+      },
+      {
+        "pfad": "nummern",
+        "label": "Nummernkreise",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ]
+      },
+      {
+        "pfad": "personal",
+        "label": "Personal",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ]
+      },
+      {
+        "pfad": "konten",
+        "label": "Kontenrahmen",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator",
+          "Buchhaltung"
+        ]
+      },
+      {
+        "pfad": "support",
+        "label": "Supportzugang",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ]
+      },
+      {
+        "pfad": "module",
+        "label": "Module",
+        "roles": [
+          "Administrator"
+        ]
+      },
+      {
+        "pfad": "sicherung",
+        "label": "Datensicherung",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ]
+      }
+    ],
+    "mobile": [
+      "/",
+      "/assignments",
+      "/admin-projects",
+      "/invoices"
+    ]
+  }
+}

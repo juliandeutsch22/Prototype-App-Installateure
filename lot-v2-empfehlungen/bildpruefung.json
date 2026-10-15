@@ -1,0 +1,200 @@
+[
+  {
+    "id": "start-a",
+    "size": "desktop",
+    "width": 1440,
+    "horizontalOverflow": false,
+    "page": "heute-a",
+    "title": "Heute, Mittwoch",
+    "metrics": 3,
+    "bodyHeight": 1094,
+    "errors": []
+  },
+  {
+    "id": "start-b",
+    "size": "desktop",
+    "width": 1440,
+    "horizontalOverflow": false,
+    "page": "heute-b",
+    "title": "Heute, Mittwoch",
+    "metrics": 3,
+    "bodyHeight": 1124,
+    "errors": []
+  },
+  {
+    "id": "start-c",
+    "size": "desktop",
+    "width": 1440,
+    "horizontalOverflow": false,
+    "page": "heute-c",
+    "title": "Heute, Mittwoch",
+    "metrics": 2,
+    "bodyHeight": 1097,
+    "errors": []
+  },
+  {
+    "id": "monteur",
+    "size": "desktop",
+    "width": 1440,
+    "horizontalOverflow": false,
+    "page": "monteur-c",
+    "title": "Heute, Mittwoch",
+    "metrics": 0,
+    "bodyHeight": 1040,
+    "errors": []
+  },
+  {
+    "id": "rechnung",
+    "size": "desktop",
+    "width": 1440,
+    "horizontalOverflow": false,
+    "page": "rechnung-c",
+    "title": "Rechnung RE-2026-0234",
+    "metrics": 0,
+    "bodyHeight": 1040,
+    "errors": []
+  },
+  {
+    "id": "konto",
+    "size": "desktop",
+    "width": 1440,
+    "horizontalOverflow": false,
+    "page": "konto-c",
+    "title": "Benutzerdaten bearbeiten",
+    "metrics": 0,
+    "bodyHeight": 1530,
+    "errors": []
+  },
+  {
+    "id": "start-a",
+    "size": "tablet",
+    "width": 834,
+    "horizontalOverflow": false,
+    "page": "heute-a",
+    "title": "Heute, Mittwoch",
+    "metrics": 3,
+    "bodyHeight": 1687,
+    "errors": []
+  },
+  {
+    "id": "start-b",
+    "size": "tablet",
+    "width": 834,
+    "horizontalOverflow": false,
+    "page": "heute-b",
+    "title": "Heute, Mittwoch",
+    "metrics": 3,
+    "bodyHeight": 1717,
+    "errors": []
+  },
+  {
+    "id": "start-c",
+    "size": "tablet",
+    "width": 834,
+    "horizontalOverflow": false,
+    "page": "heute-c",
+    "title": "Heute, Mittwoch",
+    "metrics": 2,
+    "bodyHeight": 1603,
+    "errors": []
+  },
+  {
+    "id": "monteur",
+    "size": "tablet",
+    "width": 834,
+    "horizontalOverflow": false,
+    "page": "monteur-c",
+    "title": "Heute, Mittwoch",
+    "metrics": 0,
+    "bodyHeight": 1434,
+    "errors": []
+  },
+  {
+    "id": "rechnung",
+    "size": "tablet",
+    "width": 834,
+    "horizontalOverflow": false,
+    "page": "rechnung-c",
+    "title": "Rechnung RE-2026-0234",
+    "metrics": 0,
+    "bodyHeight": 1146,
+    "errors": []
+  },
+  {
+    "id": "konto",
+    "size": "tablet",
+    "width": 834,
+    "horizontalOverflow": false,
+    "page": "konto-c",
+    "title": "Benutzerdaten bearbeiten",
+    "metrics": 0,
+    "bodyHeight": 1494,
+    "errors": []
+  },
+  {
+    "id": "start-a",
+    "size": "mobil",
+    "width": 390,
+    "horizontalOverflow": false,
+    "page": "heute-a",
+    "title": "Heute, Mittwoch",
+    "metrics": 3,
+    "bodyHeight": 1712,
+    "errors": []
+  },
+  {
+    "id": "start-b",
+    "size": "mobil",
+    "width": 390,
+    "horizontalOverflow": false,
+    "page": "heute-b",
+    "title": "Heute, Mittwoch",
+    "metrics": 3,
+    "bodyHeight": 1744,
+    "errors": []
+  },
+  {
+    "id": "start-c",
+    "size": "mobil",
+    "width": 390,
+    "horizontalOverflow": false,
+    "page": "heute-c",
+    "title": "Heute, Mittwoch",
+    "metrics": 2,
+    "bodyHeight": 1625,
+    "errors": []
+  },
+  {
+    "id": "monteur",
+    "size": "mobil",
+    "width": 390,
+    "horizontalOverflow": false,
+    "page": "monteur-c",
+    "title": "Heute, Mittwoch",
+    "metrics": 0,
+    "bodyHeight": 1461,
+    "errors": []
+  },
+  {
+    "id": "rechnung",
+    "size": "mobil",
+    "width": 390,
+    "horizontalOverflow": false,
+    "page": "rechnung-c",
+    "title": "Rechnung RE-2026-0234",
+    "metrics": 0,
+    "bodyHeight": 1246,
+    "errors": []
+  },
+  {
+    "id": "konto",
+    "size": "mobil",
+    "width": 390,
+    "horizontalOverflow": false,
+    "page": "konto-c",
+    "title": "Benutzerdaten bearbeiten",
+    "metrics": 0,
+    "bodyHeight": 1524,
+    "errors": []
+  }
+]
