@@ -1,0 +1,218 @@
+[
+  {
+    "width": 1440,
+    "onlyMetricWeightChanged": true,
+    "before": {
+      "h1": {
+        "size": "30px",
+        "weight": "600",
+        "x": 264,
+        "y": 137.59375,
+        "width": 229.953125,
+        "height": 37.5
+      },
+      ".stats": {
+        "size": "14px",
+        "weight": "400",
+        "x": 264,
+        "y": 228.234375,
+        "width": 1132,
+        "height": 118.53125
+      },
+      ".stat .value": {
+        "size": "25px",
+        "weight": "600",
+        "x": 264,
+        "y": 267.828125,
+        "width": 233.25,
+        "height": 36.25
+      },
+      ".task-title": {
+        "size": "14px",
+        "weight": "600",
+        "x": 282,
+        "y": 481.15625,
+        "width": 549,
+        "height": 21.6875
+      }
+    },
+    "after": {
+      "h1": {
+        "size": "30px",
+        "weight": "600",
+        "x": 264,
+        "y": 137.59375,
+        "width": 229.953125,
+        "height": 37.5
+      },
+      ".stats": {
+        "size": "14px",
+        "weight": "400",
+        "x": 264,
+        "y": 228.234375,
+        "width": 1132,
+        "height": 118.53125
+      },
+      ".stat .value": {
+        "size": "25px",
+        "weight": "500",
+        "x": 264,
+        "y": 267.828125,
+        "width": 233.25,
+        "height": 36.25
+      },
+      ".task-title": {
+        "size": "14px",
+        "weight": "600",
+        "x": 282,
+        "y": 481.15625,
+        "width": 549,
+        "height": 21.6875
+      }
+    }
+  },
+  {
+    "width": 834,
+    "onlyMetricWeightChanged": true,
+    "before": {
+      "h1": {
+        "size": "26px",
+        "weight": "600",
+        "x": 217,
+        "y": 119.59375,
+        "width": 199.296875,
+        "height": 32.5
+      },
+      ".stats": {
+        "size": "14px",
+        "weight": "400",
+        "x": 217,
+        "y": 205.234375,
+        "width": 590,
+        "height": 112.71875
+      },
+      ".stat .value": {
+        "size": "21px",
+        "weight": "600",
+        "x": 217,
+        "y": 244.828125,
+        "width": 124,
+        "height": 30.4375
+      },
+      ".task-title": {
+        "size": "14px",
+        "weight": "600",
+        "x": 235,
+        "y": 478.6875,
+        "width": 206.578125,
+        "height": 43.375
+      }
+    },
+    "after": {
+      "h1": {
+        "size": "26px",
+        "weight": "600",
+        "x": 217,
+        "y": 119.59375,
+        "width": 199.296875,
+        "height": 32.5
+      },
+      ".stats": {
+        "size": "14px",
+        "weight": "400",
+        "x": 217,
+        "y": 205.234375,
+        "width": 590,
+        "height": 112.71875
+      },
+      ".stat .value": {
+        "size": "21px",
+        "weight": "500",
+        "x": 217,
+        "y": 244.828125,
+        "width": 124,
+        "height": 30.4375
+      },
+      ".task-title": {
+        "size": "14px",
+        "weight": "600",
+        "x": 235,
+        "y": 478.6875,
+        "width": 206.578125,
+        "height": 43.375
+      }
+    }
+  },
+  {
+    "width": 390,
+    "onlyMetricWeightChanged": true,
+    "before": {
+      "h1": {
+        "size": "25px",
+        "weight": "600",
+        "x": 20,
+        "y": 116.046875,
+        "width": 350,
+        "height": 31.25
+      },
+      ".stats": {
+        "size": "14px",
+        "weight": "400",
+        "x": 20,
+        "y": 191.890625,
+        "width": 350,
+        "height": 196.25
+      },
+      ".stat .value": {
+        "size": "22px",
+        "weight": "600",
+        "x": 20,
+        "y": 227.9375,
+        "width": 166,
+        "height": 31.890625
+      },
+      ".task-title": {
+        "size": "13px",
+        "weight": "600",
+        "x": 36,
+        "y": 507.390625,
+        "width": 251,
+        "height": 20.140625
+      }
+    },
+    "after": {
+      "h1": {
+        "size": "25px",
+        "weight": "600",
+        "x": 20,
+        "y": 116.046875,
+        "width": 350,
+        "height": 31.25
+      },
+      ".stats": {
+        "size": "14px",
+        "weight": "400",
+        "x": 20,
+        "y": 191.890625,
+        "width": 350,
+        "height": 196.25
+      },
+      ".stat .value": {
+        "size": "22px",
+        "weight": "500",
+        "x": 20,
+        "y": 227.9375,
+        "width": 166,
+        "height": 31.890625
+      },
+      ".task-title": {
+        "size": "13px",
+        "weight": "600",
+        "x": 36,
+        "y": 507.390625,
+        "width": 251,
+        "height": 20.140625
+      }
+    }
+  }
+]

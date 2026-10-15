@@ -94,3 +94,15 @@ Auf Wunsch vom 15.10.2026 kombiniert diese Fassung die einheitliche Typografie d
 ![Lot v2 – Entwurf 03](lot-v2-entwurf-03/Lot-v2-Uebersicht.jpg)
 
 Die bisherigen Fassungen und die laufende App bleiben unverändert.
+
+
+## Lot v2 – Entwurf 04: Kennzahlen etwas dünner
+
+Die großen Kennzahlen sind auf Wunsch eine Stufe leichter: Poppins Medium (500) statt Semibold (600). Größen, Positionen, Titel und übrige Texte bleiben wie in Entwurf 03.
+
+- [Aktualisierten Entwurf herunterladen](Lot-v2-Entwurf-04-2026-10-15.zip?raw=true) – entpacken, `index.html` öffnen.
+- [Kennzahlen in voller Auflösung](lot-v2-entwurf-04/Kennzahlen.png?raw=true)
+
+![Kennzahlen – Medium statt Semibold](lot-v2-entwurf-04/Kennzahlen.jpg)
+
+Die laufende App bleibt unverändert.
