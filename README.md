@@ -64,3 +64,19 @@ Vier eigenständig entworfene Ansichten: Heute, Rechnungen, Baustellenakte und Z
 ![Lot v2 – mobile Zeiterfassung](lot-v2-entwurf/bilder/04-zeit-handy.jpg)
 
 Dieser Entwurf verwendet fiktive Daten und simulierte Aktionen. Er ist keine bereits ausgeführte Änderung der App.
+
+
+## Lot v2 – Feinschliff / Entwurf 02 (15.10.2026)
+
+Typografie und Positionen verfeinert: größere, leichter gesetzte Kennzahlen, gezielte Betonungen und ein prägnanter Datumsanker. Ergänzt sind beschriftete Forderungsanteile, ein Stundenbudgetkreis und ein dynamisches Arbeitszeit-/Pausenband. Keine zusätzlichen Icons. Die erste Fassung bleibt erhalten.
+
+- [Klickbaren Feinschliff und alle Bilder herunterladen](Lot-v2-Feinschliff-2026-10-15.zip?raw=true) – ZIP entpacken, `index.html` öffnen.
+- [Vorher / Nachher als großes Bild](lot-v2-feinschliff/Lot-v2-Vergleich.png?raw=true)
+- [Vier verfeinerte Ansichten](lot-v2-feinschliff/Lot-v2-Uebersicht.png?raw=true)
+- [Beschreibung und Grenzen](lot-v2-feinschliff/README.md)
+
+![Lot v2 – Vorher und Feinschliff](lot-v2-feinschliff/Lot-v2-Vergleich.jpg)
+
+![Lot v2 – vier Ansichten mit Feinschliff](lot-v2-feinschliff/Lot-v2-Uebersicht.jpg)
+
+Eigenständige Gestaltungsvorschau mit fiktiven Daten; die App wurde nicht verändert.

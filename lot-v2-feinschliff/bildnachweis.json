@@ -1,0 +1,158 @@
+[
+  {
+    "view": "heute",
+    "device": "desktop",
+    "width": 1440,
+    "height": 1040,
+    "dpr": 2,
+    "sizes": {
+      "sw": 1440,
+      "iw": 1440,
+      "sh": 1173
+    },
+    "errors": []
+  },
+  {
+    "view": "rechnungen",
+    "device": "desktop",
+    "width": 1440,
+    "height": 1040,
+    "dpr": 2,
+    "sizes": {
+      "sw": 1440,
+      "iw": 1440,
+      "sh": 1155
+    },
+    "errors": []
+  },
+  {
+    "view": "baustelle",
+    "device": "desktop",
+    "width": 1440,
+    "height": 1040,
+    "dpr": 2,
+    "sizes": {
+      "sw": 1440,
+      "iw": 1440,
+      "sh": 1342
+    },
+    "errors": []
+  },
+  {
+    "view": "zeit",
+    "device": "desktop",
+    "width": 1440,
+    "height": 1040,
+    "dpr": 2,
+    "sizes": {
+      "sw": 1440,
+      "iw": 1440,
+      "sh": 1238
+    },
+    "errors": []
+  },
+  {
+    "view": "heute",
+    "device": "tablet",
+    "width": 834,
+    "height": 1112,
+    "dpr": 2,
+    "sizes": {
+      "sw": 834,
+      "iw": 834,
+      "sh": 1270
+    },
+    "errors": []
+  },
+  {
+    "view": "rechnungen",
+    "device": "tablet",
+    "width": 834,
+    "height": 1112,
+    "dpr": 2,
+    "sizes": {
+      "sw": 834,
+      "iw": 834,
+      "sh": 1112
+    },
+    "errors": []
+  },
+  {
+    "view": "baustelle",
+    "device": "tablet",
+    "width": 834,
+    "height": 1112,
+    "dpr": 2,
+    "sizes": {
+      "sw": 834,
+      "iw": 834,
+      "sh": 1435
+    },
+    "errors": []
+  },
+  {
+    "view": "zeit",
+    "device": "tablet",
+    "width": 834,
+    "height": 1112,
+    "dpr": 2,
+    "sizes": {
+      "sw": 834,
+      "iw": 834,
+      "sh": 1894
+    },
+    "errors": []
+  },
+  {
+    "view": "heute",
+    "device": "handy",
+    "width": 390,
+    "height": 844,
+    "dpr": 2,
+    "sizes": {
+      "sw": 390,
+      "iw": 390,
+      "sh": 1840
+    },
+    "errors": []
+  },
+  {
+    "view": "rechnungen",
+    "device": "handy",
+    "width": 390,
+    "height": 844,
+    "dpr": 2,
+    "sizes": {
+      "sw": 390,
+      "iw": 390,
+      "sh": 1470
+    },
+    "errors": []
+  },
+  {
+    "view": "baustelle",
+    "device": "handy",
+    "width": 390,
+    "height": 844,
+    "dpr": 2,
+    "sizes": {
+      "sw": 390,
+      "iw": 390,
+      "sh": 2206
+    },
+    "errors": []
+  },
+  {
+    "view": "zeit",
+    "device": "handy",
+    "width": 390,
+    "height": 844,
+    "dpr": 2,
+    "sizes": {
+      "sw": 390,
+      "iw": 390,
+      "sh": 1731
+    },
+    "errors": []
+  }
+]
