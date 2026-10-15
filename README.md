@@ -1,6 +1,15 @@
 # Senklot – Bilder für die Landingpage
 
-## Aktuell: Lot v2 · Gesamtkonzept 10
+## Aktuell: Lot v2 · tatsächliche Umsetzung 01
+
+120 Screens der umgesetzten Oberfläche, jeweils Handy, Tablet und Desktop. Gemeinsame Linie, Personenvergleich, optionaler Kalender und erhaltener Wochenplan. Fiktiver Vorschau-Bestand. Der App-Code liegt in [PR #311](https://github.com/juliandeutsch22/Prototype-App-Installateure/pull/311); diese Bilder sind kein Live-Deployment.
+
+- [Umsetzung ansehen und Einzelbilder öffnen](lot-v2-umsetzung-01/README.md)
+- [Galerie herunterladen](Lot-v2-Umsetzung-01-2026-10-15.zip?raw=true) – entpacken, `galerie.html` öffnen.
+- [Prüfstand und offene Abnahme](lot-v2-umsetzung-01/Pruefung.md)
+- [SHA256-Prüfsumme](Lot-v2-Umsetzung-01-SHA256.txt)
+
+## Vorheriger Entwurf: Lot v2 · Gesamtkonzept 10
 
 217 Ansichten für Desktop, Tablet und Handy; 651 Screens und eine durchsuchbare Galerie. Überarbeitete Mitarbeiterübersicht und Wochenplanung, danach Einzelprüfung sämtlicher bisherigen Konzeptansichten. Fiktive Daten; keine Änderung der Live-App.
 

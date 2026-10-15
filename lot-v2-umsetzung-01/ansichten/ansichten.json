@@ -1,0 +1,1142 @@
+[
+  {
+    "number": 1,
+    "route": "/",
+    "role": "Administrator",
+    "width": 390,
+    "file": "01-start-390.jpg",
+    "title": "Donnerstag, 15.10.2026",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 2,
+    "route": "/",
+    "role": "Mitarbeiter",
+    "width": 390,
+    "file": "02-start-390.jpg",
+    "title": "Donnerstag, 15.10.2026",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 3,
+    "route": "/",
+    "role": "Buchhaltung",
+    "width": 390,
+    "file": "03-start-390.jpg",
+    "title": "Donnerstag, 15.10.2026",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 4,
+    "route": "/time",
+    "role": "Mitarbeiter",
+    "width": 390,
+    "file": "04-time-390.jpg",
+    "title": "Zeiterfassung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 5,
+    "route": "/voice",
+    "role": "Mitarbeiter",
+    "width": 390,
+    "file": "05-voice-390.jpg",
+    "title": "Donnerstag, 15.10.2026",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 6,
+    "route": "/material",
+    "role": "Mitarbeiter",
+    "width": 390,
+    "file": "06-material-390.jpg",
+    "title": "Material anfordern",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 7,
+    "route": "/anforderungen",
+    "role": "Administrator",
+    "width": 390,
+    "file": "07-anforderungen-390.jpg",
+    "title": "Anforderungen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 8,
+    "route": "/lager",
+    "role": "Administrator",
+    "width": 390,
+    "file": "08-lager-390.jpg",
+    "title": "Lager",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 9,
+    "route": "/my-schedule",
+    "role": "Mitarbeiter",
+    "width": 390,
+    "file": "09-my-schedule-390.jpg",
+    "title": "Mein Einsatzplan",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 10,
+    "route": "/my-projects",
+    "role": "Mitarbeiter",
+    "width": 390,
+    "file": "10-my-projects-390.jpg",
+    "title": "Meine Baustellen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 11,
+    "route": "/vacations",
+    "role": "Administrator",
+    "width": 390,
+    "file": "11-vacations-390.jpg",
+    "title": "Urlaub",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 12,
+    "route": "/worksheets",
+    "role": "Administrator",
+    "width": 390,
+    "file": "12-worksheets-390.jpg",
+    "title": "Handwerksscheine",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 13,
+    "route": "/worksheet",
+    "role": "Administrator",
+    "width": 390,
+    "file": "13-worksheet-390.jpg",
+    "title": "Handwerksschein",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 14,
+    "route": "/quotes",
+    "role": "Administrator",
+    "width": 390,
+    "file": "14-quotes-390.jpg",
+    "title": "Angebote",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 15,
+    "route": "/customers",
+    "role": "Administrator",
+    "width": 390,
+    "file": "15-customers-390.jpg",
+    "title": "Kunden",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 16,
+    "route": "/wartungen",
+    "role": "Administrator",
+    "width": 390,
+    "file": "16-wartungen-390.jpg",
+    "title": "Wartungen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 17,
+    "route": "/admin-projects",
+    "role": "Administrator",
+    "width": 390,
+    "file": "17-admin-projects-390.jpg",
+    "title": "Baustellen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 18,
+    "route": "/customers/k1",
+    "role": "Administrator",
+    "width": 390,
+    "file": "18-customers-k1-390.jpg",
+    "title": "Wohnungseigentümergemeinschaft Hauptstraße 112–118",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 19,
+    "route": "/admin-projects/p1",
+    "role": "Administrator",
+    "width": 390,
+    "file": "19-admin-projects-p1-390.jpg",
+    "title": "Wohnungseigentümergemeinschaft Hauptstraße 112–118",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 20,
+    "route": "/quotes/q1",
+    "role": "Administrator",
+    "width": 390,
+    "file": "20-quotes-q1-390.jpg",
+    "title": "Angebot A-2026-0088",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 21,
+    "route": "/user-mgmt/u1",
+    "role": "Administrator",
+    "width": 390,
+    "file": "21-user-mgmt-u1-390.jpg",
+    "title": "Max Mustermann",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 22,
+    "route": "/assignments/tag",
+    "role": "Administrator",
+    "width": 390,
+    "file": "22-assignments-tag-390.jpg",
+    "title": "Einsatzplanung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 23,
+    "route": "/assignments/woche",
+    "role": "Administrator",
+    "width": 390,
+    "file": "23-assignments-woche-390.jpg",
+    "title": "Einsatzplanung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 24,
+    "route": "/user-mgmt",
+    "role": "Administrator",
+    "width": 390,
+    "file": "24-user-mgmt-390.jpg",
+    "title": "Benutzerverwaltung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 25,
+    "route": "/settings/meldungen",
+    "role": "Administrator",
+    "width": 390,
+    "file": "25-settings-meldungen-390.jpg",
+    "title": "Mein Konto",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 26,
+    "route": "/settings/firma",
+    "role": "Administrator",
+    "width": 390,
+    "file": "26-settings-firma-390.jpg",
+    "title": "Firmendaten",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 27,
+    "route": "/settings/saetze",
+    "role": "Administrator",
+    "width": 390,
+    "file": "27-settings-saetze-390.jpg",
+    "title": "Sätze und Kosten",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 28,
+    "route": "/settings/module",
+    "role": "Administrator",
+    "width": 390,
+    "file": "28-settings-module-390.jpg",
+    "title": "Module",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 29,
+    "route": "/settings/sicherung",
+    "role": "Administrator",
+    "width": 390,
+    "file": "29-settings-sicherung-390.jpg",
+    "title": "Datensicherung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 30,
+    "route": "/settings/nummern",
+    "role": "Administrator",
+    "width": 390,
+    "file": "30-settings-nummern-390.jpg",
+    "title": "Nummernkreise",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 31,
+    "route": "/settings/personal",
+    "role": "Administrator",
+    "width": 390,
+    "file": "31-settings-personal-390.jpg",
+    "title": "Personal",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 32,
+    "route": "/settings/konten",
+    "role": "Administrator",
+    "width": 390,
+    "file": "32-settings-konten-390.jpg",
+    "title": "Kontenrahmen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 33,
+    "route": "/settings/support",
+    "role": "Administrator",
+    "width": 390,
+    "file": "33-settings-support-390.jpg",
+    "title": "Supportzugang",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 34,
+    "route": "/impressum",
+    "role": "Administrator",
+    "width": 390,
+    "file": "34-impressum-390.jpg",
+    "title": "Impressum",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 35,
+    "route": "/datenschutz",
+    "role": "Administrator",
+    "width": 390,
+    "file": "35-datenschutz-390.jpg",
+    "title": "Datenschutzerklärung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 36,
+    "route": "/costing",
+    "role": "Administrator",
+    "width": 390,
+    "file": "36-costing-390.jpg",
+    "title": "Nachkalkulation",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 37,
+    "route": "/invoices",
+    "role": "Administrator",
+    "width": 390,
+    "file": "37-invoices-390.jpg",
+    "title": "Rechnungen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 38,
+    "route": "/accounting",
+    "role": "Administrator",
+    "width": 390,
+    "file": "38-accounting-390.jpg",
+    "title": "Mitarbeiterübersicht",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 1,
+    "route": "/",
+    "role": "Administrator",
+    "width": 834,
+    "file": "01-start-834.jpg",
+    "title": "Donnerstag, 15.10.2026",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 2,
+    "route": "/",
+    "role": "Mitarbeiter",
+    "width": 834,
+    "file": "02-start-834.jpg",
+    "title": "Donnerstag, 15.10.2026",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 3,
+    "route": "/",
+    "role": "Buchhaltung",
+    "width": 834,
+    "file": "03-start-834.jpg",
+    "title": "Donnerstag, 15.10.2026",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 4,
+    "route": "/time",
+    "role": "Mitarbeiter",
+    "width": 834,
+    "file": "04-time-834.jpg",
+    "title": "Zeiterfassung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 5,
+    "route": "/voice",
+    "role": "Mitarbeiter",
+    "width": 834,
+    "file": "05-voice-834.jpg",
+    "title": "Donnerstag, 15.10.2026",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 6,
+    "route": "/material",
+    "role": "Mitarbeiter",
+    "width": 834,
+    "file": "06-material-834.jpg",
+    "title": "Material anfordern",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 7,
+    "route": "/anforderungen",
+    "role": "Administrator",
+    "width": 834,
+    "file": "07-anforderungen-834.jpg",
+    "title": "Anforderungen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 8,
+    "route": "/lager",
+    "role": "Administrator",
+    "width": 834,
+    "file": "08-lager-834.jpg",
+    "title": "Lager",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 9,
+    "route": "/my-schedule",
+    "role": "Mitarbeiter",
+    "width": 834,
+    "file": "09-my-schedule-834.jpg",
+    "title": "Mein Einsatzplan",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 10,
+    "route": "/my-projects",
+    "role": "Mitarbeiter",
+    "width": 834,
+    "file": "10-my-projects-834.jpg",
+    "title": "Meine Baustellen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 11,
+    "route": "/vacations",
+    "role": "Administrator",
+    "width": 834,
+    "file": "11-vacations-834.jpg",
+    "title": "Urlaub",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 12,
+    "route": "/worksheets",
+    "role": "Administrator",
+    "width": 834,
+    "file": "12-worksheets-834.jpg",
+    "title": "Handwerksscheine",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 13,
+    "route": "/worksheet",
+    "role": "Administrator",
+    "width": 834,
+    "file": "13-worksheet-834.jpg",
+    "title": "Handwerksschein",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 14,
+    "route": "/quotes",
+    "role": "Administrator",
+    "width": 834,
+    "file": "14-quotes-834.jpg",
+    "title": "Angebote",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 15,
+    "route": "/customers",
+    "role": "Administrator",
+    "width": 834,
+    "file": "15-customers-834.jpg",
+    "title": "Kunden",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 16,
+    "route": "/wartungen",
+    "role": "Administrator",
+    "width": 834,
+    "file": "16-wartungen-834.jpg",
+    "title": "Wartungen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 17,
+    "route": "/admin-projects",
+    "role": "Administrator",
+    "width": 834,
+    "file": "17-admin-projects-834.jpg",
+    "title": "Baustellen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 18,
+    "route": "/customers/k1",
+    "role": "Administrator",
+    "width": 834,
+    "file": "18-customers-k1-834.jpg",
+    "title": "Wohnungseigentümergemeinschaft Hauptstraße 112–118",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 19,
+    "route": "/admin-projects/p1",
+    "role": "Administrator",
+    "width": 834,
+    "file": "19-admin-projects-p1-834.jpg",
+    "title": "Wohnungseigentümergemeinschaft Hauptstraße 112–118",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 20,
+    "route": "/quotes/q1",
+    "role": "Administrator",
+    "width": 834,
+    "file": "20-quotes-q1-834.jpg",
+    "title": "Angebot A-2026-0088",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 21,
+    "route": "/user-mgmt/u1",
+    "role": "Administrator",
+    "width": 834,
+    "file": "21-user-mgmt-u1-834.jpg",
+    "title": "Max Mustermann",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 22,
+    "route": "/assignments/tag",
+    "role": "Administrator",
+    "width": 834,
+    "file": "22-assignments-tag-834.jpg",
+    "title": "Einsatzplanung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 23,
+    "route": "/assignments/woche",
+    "role": "Administrator",
+    "width": 834,
+    "file": "23-assignments-woche-834.jpg",
+    "title": "Einsatzplanung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 24,
+    "route": "/user-mgmt",
+    "role": "Administrator",
+    "width": 834,
+    "file": "24-user-mgmt-834.jpg",
+    "title": "Benutzerverwaltung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 25,
+    "route": "/settings/meldungen",
+    "role": "Administrator",
+    "width": 834,
+    "file": "25-settings-meldungen-834.jpg",
+    "title": "Mein Konto",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 26,
+    "route": "/settings/firma",
+    "role": "Administrator",
+    "width": 834,
+    "file": "26-settings-firma-834.jpg",
+    "title": "Firmendaten",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 27,
+    "route": "/settings/saetze",
+    "role": "Administrator",
+    "width": 834,
+    "file": "27-settings-saetze-834.jpg",
+    "title": "Sätze und Kosten",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 28,
+    "route": "/settings/module",
+    "role": "Administrator",
+    "width": 834,
+    "file": "28-settings-module-834.jpg",
+    "title": "Module",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 29,
+    "route": "/settings/sicherung",
+    "role": "Administrator",
+    "width": 834,
+    "file": "29-settings-sicherung-834.jpg",
+    "title": "Datensicherung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 30,
+    "route": "/settings/nummern",
+    "role": "Administrator",
+    "width": 834,
+    "file": "30-settings-nummern-834.jpg",
+    "title": "Nummernkreise",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 31,
+    "route": "/settings/personal",
+    "role": "Administrator",
+    "width": 834,
+    "file": "31-settings-personal-834.jpg",
+    "title": "Personal",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 32,
+    "route": "/settings/konten",
+    "role": "Administrator",
+    "width": 834,
+    "file": "32-settings-konten-834.jpg",
+    "title": "Kontenrahmen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 33,
+    "route": "/settings/support",
+    "role": "Administrator",
+    "width": 834,
+    "file": "33-settings-support-834.jpg",
+    "title": "Supportzugang",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 34,
+    "route": "/impressum",
+    "role": "Administrator",
+    "width": 834,
+    "file": "34-impressum-834.jpg",
+    "title": "Impressum",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 35,
+    "route": "/datenschutz",
+    "role": "Administrator",
+    "width": 834,
+    "file": "35-datenschutz-834.jpg",
+    "title": "Datenschutzerklärung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 36,
+    "route": "/costing",
+    "role": "Administrator",
+    "width": 834,
+    "file": "36-costing-834.jpg",
+    "title": "Nachkalkulation",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 37,
+    "route": "/invoices",
+    "role": "Administrator",
+    "width": 834,
+    "file": "37-invoices-834.jpg",
+    "title": "Rechnungen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 38,
+    "route": "/accounting",
+    "role": "Administrator",
+    "width": 834,
+    "file": "38-accounting-834.jpg",
+    "title": "Mitarbeiterübersicht",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 1,
+    "route": "/",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "01-start-1440.jpg",
+    "title": "Donnerstag, 15.10.2026",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 2,
+    "route": "/",
+    "role": "Mitarbeiter",
+    "width": 1440,
+    "file": "02-start-1440.jpg",
+    "title": "Donnerstag, 15.10.2026",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 3,
+    "route": "/",
+    "role": "Buchhaltung",
+    "width": 1440,
+    "file": "03-start-1440.jpg",
+    "title": "Donnerstag, 15.10.2026",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 4,
+    "route": "/time",
+    "role": "Mitarbeiter",
+    "width": 1440,
+    "file": "04-time-1440.jpg",
+    "title": "Zeiterfassung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 5,
+    "route": "/voice",
+    "role": "Mitarbeiter",
+    "width": 1440,
+    "file": "05-voice-1440.jpg",
+    "title": "Donnerstag, 15.10.2026",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 6,
+    "route": "/material",
+    "role": "Mitarbeiter",
+    "width": 1440,
+    "file": "06-material-1440.jpg",
+    "title": "Material anfordern",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 7,
+    "route": "/anforderungen",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "07-anforderungen-1440.jpg",
+    "title": "Anforderungen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 8,
+    "route": "/lager",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "08-lager-1440.jpg",
+    "title": "Lager",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 9,
+    "route": "/my-schedule",
+    "role": "Mitarbeiter",
+    "width": 1440,
+    "file": "09-my-schedule-1440.jpg",
+    "title": "Mein Einsatzplan",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 10,
+    "route": "/my-projects",
+    "role": "Mitarbeiter",
+    "width": 1440,
+    "file": "10-my-projects-1440.jpg",
+    "title": "Meine Baustellen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 11,
+    "route": "/vacations",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "11-vacations-1440.jpg",
+    "title": "Urlaub",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 12,
+    "route": "/worksheets",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "12-worksheets-1440.jpg",
+    "title": "Handwerksscheine",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 13,
+    "route": "/worksheet",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "13-worksheet-1440.jpg",
+    "title": "Handwerksschein",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 14,
+    "route": "/quotes",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "14-quotes-1440.jpg",
+    "title": "Angebote",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 15,
+    "route": "/customers",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "15-customers-1440.jpg",
+    "title": "Kunden",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 16,
+    "route": "/wartungen",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "16-wartungen-1440.jpg",
+    "title": "Wartungen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 17,
+    "route": "/admin-projects",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "17-admin-projects-1440.jpg",
+    "title": "Baustellen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 18,
+    "route": "/customers/k1",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "18-customers-k1-1440.jpg",
+    "title": "Wohnungseigentümergemeinschaft Hauptstraße 112–118",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 19,
+    "route": "/admin-projects/p1",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "19-admin-projects-p1-1440.jpg",
+    "title": "Wohnungseigentümergemeinschaft Hauptstraße 112–118",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 20,
+    "route": "/quotes/q1",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "20-quotes-q1-1440.jpg",
+    "title": "Angebot A-2026-0088",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 21,
+    "route": "/user-mgmt/u1",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "21-user-mgmt-u1-1440.jpg",
+    "title": "Max Mustermann",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 22,
+    "route": "/assignments/tag",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "22-assignments-tag-1440.jpg",
+    "title": "Einsatzplanung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 23,
+    "route": "/assignments/woche",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "23-assignments-woche-1440.jpg",
+    "title": "Einsatzplanung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 24,
+    "route": "/user-mgmt",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "24-user-mgmt-1440.jpg",
+    "title": "Benutzerverwaltung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 25,
+    "route": "/settings/meldungen",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "25-settings-meldungen-1440.jpg",
+    "title": "Mein Konto",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 26,
+    "route": "/settings/firma",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "26-settings-firma-1440.jpg",
+    "title": "Firmendaten",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 27,
+    "route": "/settings/saetze",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "27-settings-saetze-1440.jpg",
+    "title": "Sätze und Kosten",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 28,
+    "route": "/settings/module",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "28-settings-module-1440.jpg",
+    "title": "Module",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 29,
+    "route": "/settings/sicherung",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "29-settings-sicherung-1440.jpg",
+    "title": "Datensicherung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 30,
+    "route": "/settings/nummern",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "30-settings-nummern-1440.jpg",
+    "title": "Nummernkreise",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 31,
+    "route": "/settings/personal",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "31-settings-personal-1440.jpg",
+    "title": "Personal",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 32,
+    "route": "/settings/konten",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "32-settings-konten-1440.jpg",
+    "title": "Kontenrahmen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 33,
+    "route": "/settings/support",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "33-settings-support-1440.jpg",
+    "title": "Supportzugang",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 34,
+    "route": "/impressum",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "34-impressum-1440.jpg",
+    "title": "Impressum",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 35,
+    "route": "/datenschutz",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "35-datenschutz-1440.jpg",
+    "title": "Datenschutzerklärung",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 36,
+    "route": "/costing",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "36-costing-1440.jpg",
+    "title": "Nachkalkulation",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 37,
+    "route": "/invoices",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "37-invoices-1440.jpg",
+    "title": "Rechnungen",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "number": 38,
+    "route": "/accounting",
+    "role": "Administrator",
+    "width": 1440,
+    "file": "38-accounting-1440.jpg",
+    "title": "Mitarbeiterübersicht",
+    "overflow": false,
+    "errors": []
+  }
+]

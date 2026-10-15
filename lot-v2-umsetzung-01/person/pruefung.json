@@ -1,0 +1,44 @@
+[
+  {
+    "width": 390,
+    "calendarDays": 31,
+    "cell": {
+      "x": 170.28125,
+      "y": 857.5,
+      "width": 49.421875,
+      "height": 60
+    },
+    "keyboard": true,
+    "focus": true,
+    "axe": [],
+    "overflow": false
+  },
+  {
+    "width": 834,
+    "calendarDays": 31,
+    "cell": {
+      "x": 563.421875,
+      "y": 827,
+      "width": 61.140625,
+      "height": 60
+    },
+    "keyboard": true,
+    "focus": true,
+    "axe": [],
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "calendarDays": 31,
+    "cell": {
+      "x": 1169.421875,
+      "y": 827,
+      "width": 61.140625,
+      "height": 60
+    },
+    "keyboard": true,
+    "focus": true,
+    "axe": [],
+    "overflow": false
+  }
+]
