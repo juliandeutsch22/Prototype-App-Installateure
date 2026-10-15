@@ -18,7 +18,8 @@ Firmendaten sind keine Befunde über einen Produktivbetrieb.
 | Layoutdurchgang | 38 Einstiege × drei Breiten; kein schwerwiegender Befund. Zwei Meldungen betreffen bewusst auf 1 px gekürzte Vorlesebeschriftungen an Stundenwerten, keine sichtbaren abgeschnittenen Werte. |
 | Screens der Einstiege | 114 Aufnahmen bei 390/834/1.440 px; korrekte Überschrift, kein Seitenüberlauf oder JavaScript-Seitenfehler |
 | Personenkalender im Browser | bei allen drei Breiten 31 Tage, Pfeiltasten, Fokusrückgabe und axe ohne Befund; Zellen am Handy etwa 49 × 60 px |
-| Vollständige Browserwege gegen den lokalen Stapel | abschließender Lauf läuft; noch keine Gesamtfreigabe |
+| Vollständige Browserwege gegen den lokalen Stapel | Chromium und Tablet: **72 bestanden, ein erwarteter gerätebedingter Skip**, keine fehlgeschlagene Prüfung (8,2 Minuten) |
+| Herunterladbare Galerie | 40 Ansichten × drei Breiten; alle 120 Bilder über HTTP geladen, kein JavaScriptfehler oder seitlicher Seitenüberlauf bei 390 px. Direktes `file://`-Öffnen ist durch die Browserrichtlinie dieser Umgebung gesperrt und deshalb hier nicht verifiziert. Die Galerie verwendet lokale Dateien ohne Fetch/CDN. |
 
 Die Browserausgaben liegen getrennt von der Linkprüfung. Ein anfangs geteilter
 Trace-Ordner und ein nicht mehr laufender Testserver führten zu abgebrochenen
@@ -26,6 +27,12 @@ Durchgängen. Außerdem musste die zuvor angehaltene lokale Edge-Laufzeit für
 Benutzeranlage und Passwortvergabe gestartet werden. Diese Durchgänge sind
 keine bestandenen Prüfungen. Die abschließende Abnahme verwendet einen eigens
 laufenden App-Server und die antwortenden Serverfunktionen.
+
+Der gerätebedingte Skip ist die vorhandene Tablet-Seitenleistenprüfung im
+Desktop-Projekt; dieselbe Prüfung besteht im Tablet-Projekt. Der Lauf umfasst
+unter anderem Anmeldung, Benutzeranlage, Passwortvergabe, Zeitbuchung,
+Fremderfassung, Materialanforderung, Unterschrift, Rechnungsstellung, Termine
+und Sonderurlaub. Er ist eine lokale Abnahme, kein Ersatz für die Remote-CI.
 
 ## Funktionserhalt
 
