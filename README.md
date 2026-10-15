@@ -80,3 +80,17 @@ Typografie und Positionen verfeinert: größere, leichter gesetzte Kennzahlen, g
 ![Lot v2 – vier Ansichten mit Feinschliff](lot-v2-feinschliff/Lot-v2-Uebersicht.jpg)
 
 Eigenständige Gestaltungsvorschau mit fiktiven Daten; die App wurde nicht verändert.
+
+
+## Lot v2 – Entwurf 03: erste Schriftgestaltung, neue Diagramme
+
+Auf Wunsch vom 15.10.2026 kombiniert diese Fassung die einheitliche Typografie der ersten Version mit den inhaltlichen Grafiken der zweiten Version. Große Datumsziffer, wechselnde Titelgewichte und Schmucklinien sind entfernt. Forderungsanteile, Budgetkreis, Zeitband und die feine Kalender-Zeitachse bleiben erhalten.
+
+- [Entwurf 03 und Bilder herunterladen](Lot-v2-Entwurf-03-2026-10-15.zip?raw=true) – entpacken, `index.html` öffnen.
+- [Beschreibung und Umfang](lot-v2-entwurf-03/README.md)
+- [Alle vier Ansichten als großes Bild](lot-v2-entwurf-03/Lot-v2-Uebersicht.png?raw=true)
+- [Vergleich mit der ersten Fassung](lot-v2-entwurf-03/Lot-v2-Vergleich.png?raw=true)
+
+![Lot v2 – Entwurf 03](lot-v2-entwurf-03/Lot-v2-Uebersicht.jpg)
+
+Die bisherigen Fassungen und die laufende App bleiben unverändert.
