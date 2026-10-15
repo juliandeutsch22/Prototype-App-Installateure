@@ -1,0 +1,35 @@
+{
+  "version": 10,
+  "datum": "2026-10-15",
+  "quellcommit": "d4b8542821d86c7057761af16de1331d1de87e09",
+  "typ": "UI/UX-Konzept mit fiktiven Daten, keine Produktimplementierung",
+  "ansichten": 217,
+  "ausgangsansichten": 206,
+  "ergaenzungen": 11,
+  "screens": 651,
+  "uebersichtsboards": 3,
+  "groessen": {
+    "desktop": [
+      1440,
+      1040
+    ],
+    "tablet": [
+      834,
+      1112
+    ],
+    "mobil": [
+      390,
+      844
+    ]
+  },
+  "entscheidungen": {
+    "beibehalten": 116,
+    "präzisiert": 53,
+    "neu geordnet": 22,
+    "Lücke geschlossen": 15,
+    "ergänzt": 11
+  },
+  "start": "galerie.html",
+  "prototyp": "index.html",
+  "offene_abnahmen": "Funktionsschutz.md"
+}

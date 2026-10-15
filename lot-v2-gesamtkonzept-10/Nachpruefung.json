@@ -1,0 +1,32 @@
+[
+  {
+    "id": "baustelle",
+    "size": "desktop",
+    "name": "Kontakt innerhalb der Hauptspalte, keine zusätzliche Grid-Spalte",
+    "passed": true
+  },
+  {
+    "id": "schein-unterschrift",
+    "size": "desktop",
+    "name": "Zusammenfassung vor Signaturen",
+    "passed": true
+  },
+  {
+    "id": "mitarbeiter-person",
+    "size": "desktop",
+    "name": "Gewählte Person im Kontext markiert",
+    "passed": true
+  },
+  {
+    "id": "baustelle",
+    "size": "mobil",
+    "name": "Kontakt innerhalb der Hauptspalte, keine zusätzliche Grid-Spalte",
+    "passed": true
+  },
+  {
+    "id": "schein-unterschrift",
+    "size": "mobil",
+    "name": "Zusammenfassung vor Signaturen",
+    "passed": true
+  }
+]

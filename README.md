@@ -1,5 +1,18 @@
 # Senklot – Bilder für die Landingpage
 
+## Aktuell: Lot v2 · Gesamtkonzept 10
+
+217 Ansichten für Desktop, Tablet und Handy; 651 Screens und eine durchsuchbare Galerie. Überarbeitete Mitarbeiterübersicht und Wochenplanung, danach Einzelprüfung sämtlicher bisherigen Konzeptansichten. Fiktive Daten; keine Änderung der Live-App.
+
+- [Alle Screens ansehen und Änderungen nachvollziehen](lot-v2-gesamtkonzept-10/README.md)
+- [Komplettes Paket herunterladen](Lot-v2-Gesamtkonzept-10-2026-10-15.zip?raw=true) – entpacken, `galerie.html` öffnen.
+- [Alle 217 Einzelentscheidungen](lot-v2-gesamtkonzept-10/UX-Pruefung.md)
+- [Mobile Ansichten als großes Bild](lot-v2-gesamtkonzept-10/bilder/Uebersicht-Mobil.jpg)
+- [Noch notwendige Funktionsabnahmen](lot-v2-gesamtkonzept-10/Funktionsschutz.md)
+
+Die früheren Stände und ursprünglichen Landingpage-Bilder folgen unten.
+
+
 110 Aufnahmen aus 47 Ansichten/Zuständen und fünf fertige Gerätemockups, Stand 14.10.2026. Echte App-Oberflächen mit fiktiven Demodaten.
 
 ## Downloads

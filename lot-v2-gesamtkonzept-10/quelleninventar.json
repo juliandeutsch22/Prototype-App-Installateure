@@ -1,0 +1,4537 @@
+{
+  "commit": "d4b8542821d86c7057761af16de1331d1de87e09",
+  "files": [
+    {
+      "file": "src/features/accounting/AccountingView.tsx",
+      "lines": 1128,
+      "labels": [
+        {
+          "text": "Team",
+          "line": 792
+        },
+        {
+          "text": "Mitarbeiterübersicht",
+          "line": 793
+        },
+        {
+          "text": "Monatsauswertung, Vollständigkeit und Salden",
+          "line": 794
+        },
+        {
+          "text": "Person suchen",
+          "line": 899
+        },
+        {
+          "text": "Monat",
+          "line": 920
+        },
+        {
+          "text": "Jahr",
+          "line": 924
+        },
+        {
+          "text": "Eintrag löschen?",
+          "line": 1098
+        }
+      ],
+      "actions": [
+        {
+          "text": "Monats-CSV",
+          "line": 818
+        }
+      ],
+      "dialogs": 2
+    },
+    {
+      "file": "src/features/accounting/ArbeitszeitGrenzenKarte.tsx",
+      "lines": 343,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/accounting/ExportDialog.tsx",
+      "lines": 147,
+      "labels": [
+        {
+          "text": "Von",
+          "line": 95
+        },
+        {
+          "text": "Bis",
+          "line": 102
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/accounting/Gesamtsaldo.tsx",
+      "lines": 57,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/accounting/PersonFenster.tsx",
+      "lines": 393,
+      "labels": [
+        {
+          "text": "Arbeitstage ohne Buchung",
+          "line": 300
+        },
+        {
+          "text": "Arbeitszeitgrenzen dieser Person",
+          "line": 327
+        },
+        {
+          "text": "Tagesnachweis",
+          "line": 333
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/accounting/ProjectSummary.tsx",
+      "lines": 416,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/accounting/Streifen.tsx",
+      "lines": 338,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/accounting/UebersichtListe.tsx",
+      "lines": 205,
+      "labels": [
+        {
+          "text": "Legende",
+          "line": 196
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/assignments/AssignmentsView.tsx",
+      "lines": 525,
+      "labels": [
+        {
+          "text": "Einsatz löschen?",
+          "line": 503
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/assignments/EinsatzFenster.tsx",
+      "lines": 118,
+      "labels": [
+        {
+          "text": "Tag",
+          "line": 82
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/assignments/EinsatzFormular.tsx",
+      "lines": 917,
+      "labels": [
+        {
+          "text": "als Helfer",
+          "line": 665
+        },
+        {
+          "text": "Kommentar / Aufgabe",
+          "line": 678
+        },
+        {
+          "text": "Beginn (optional)",
+          "line": 683
+        },
+        {
+          "text": "Ende (optional)",
+          "line": 685
+        },
+        {
+          "text": "Material für diesen Einsatz",
+          "line": 808
+        },
+        {
+          "text": "Material für diesen Einsatz",
+          "line": 825
+        },
+        {
+          "text": "Gespeichert eingeteilt",
+          "line": 845
+        },
+        {
+          "text": "Einsatz löschen?",
+          "line": 866
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/assignments/Einsatzplanung.tsx",
+      "lines": 507,
+      "labels": [
+        {
+          "text": "Noch einzuplanen",
+          "line": 463
+        },
+        {
+          "text": "Noch einzuplanen",
+          "line": 463
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/assignments/HandyWoche.tsx",
+      "lines": 273,
+      "labels": [
+        {
+          "text": "Wochenplan als Liste",
+          "line": 97
+        },
+        {
+          "text": "Tag wählen",
+          "line": 98
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/assignments/KalenderAboKarte.tsx",
+      "lines": 194,
+      "labels": [
+        {
+          "text": "Im eigenen Kalender",
+          "line": 111
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/assignments/MonatsAnsicht.tsx",
+      "lines": 790,
+      "labels": [
+        {
+          "text": "Baustellen diesen Monat",
+          "line": 727
+        },
+        {
+          "text": "Diesen Monat abwesend",
+          "line": 750
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/assignments/MonatsKalender.tsx",
+      "lines": 165,
+      "labels": [
+        {
+          "text": "Für wen",
+          "line": 72
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/assignments/MonatsVorschau.tsx",
+      "lines": 375,
+      "labels": [
+        {
+          "text": "Vorheriger Tag",
+          "line": 233
+        },
+        {
+          "text": "Nächster Tag",
+          "line": 236
+        },
+        {
+          "text": "Vorschau schließen",
+          "line": 239
+        },
+        {
+          "text": "Abwesenheit",
+          "line": 251
+        },
+        {
+          "text": "Abwesend",
+          "line": 281
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/assignments/MyScheduleView.tsx",
+      "lines": 676,
+      "labels": [
+        {
+          "text": "Mein Einsatzplan",
+          "line": 396
+        },
+        {
+          "text": "Deine geplanten Einsätze",
+          "line": 396
+        },
+        {
+          "text": "Termine an diesem Tag",
+          "line": 464
+        },
+        {
+          "text": "Nächste Einsätze",
+          "line": 582
+        },
+        {
+          "text": "Nächste Termine",
+          "line": 622
+        },
+        {
+          "text": "Mein Urlaub",
+          "line": 639
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/assignments/PlanRaster.tsx",
+      "lines": 35,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/assignments/PlanungsKopf.tsx",
+      "lines": 63,
+      "labels": [
+        {
+          "text": "Aufträge",
+          "line": 23
+        },
+        {
+          "text": "Einsatzplanung",
+          "line": 24
+        },
+        {
+          "text": "Wer ist wann wo – und wer ist noch frei",
+          "line": 25
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/assignments/RuestlisteAbhaken.tsx",
+      "lines": 177,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/assignments/RuestlistePlanen.tsx",
+      "lines": 319,
+      "labels": [
+        {
+          "text": "Menge",
+          "line": 155
+        },
+        {
+          "text": "Artikel aus dem Lager",
+          "line": 246
+        },
+        {
+          "text": "Freie Zeile (nicht im Lager geführt)",
+          "line": 300
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/assignments/TagFenster.tsx",
+      "lines": 203,
+      "labels": [
+        {
+          "text": "Einsätze",
+          "line": 110
+        },
+        {
+          "text": "Frei",
+          "line": 160
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/assignments/TeamWoche.tsx",
+      "lines": 177,
+      "labels": [
+        {
+          "text": "Mein Einsatzplan",
+          "line": 81
+        },
+        {
+          "text": "Team-Woche",
+          "line": 82
+        },
+        {
+          "text": "Wer ist diese Woche wo",
+          "line": 83
+        },
+        {
+          "text": "Woche zurück",
+          "line": 105
+        },
+        {
+          "text": "Woche vor",
+          "line": 112
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/assignments/WochenEintraege.tsx",
+      "lines": 238,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/assignments/WochenRaster.tsx",
+      "lines": 468,
+      "labels": [
+        {
+          "text": "Wochenplan als Tabelle",
+          "line": 225
+        },
+        {
+          "text": "Wochenplan nach Baustellen",
+          "line": 386
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/assignments/WochenplanView.tsx",
+      "lines": 14,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/auth/LoginPage.tsx",
+      "lines": 229,
+      "labels": [
+        {
+          "text": "Passwort",
+          "line": 172
+        },
+        {
+          "text": "Angemeldet bleiben",
+          "line": 182
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/auth/PasswortAendern.tsx",
+      "lines": 183,
+      "labels": [
+        {
+          "text": "Aktuelles Passwort",
+          "line": 124
+        },
+        {
+          "text": "Neues Passwort",
+          "line": 137
+        },
+        {
+          "text": "Noch einmal",
+          "line": 148
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/auth/ZweiFaktorEinrichten.tsx",
+      "lines": 129,
+      "labels": [
+        {
+          "text": "Code aus der App",
+          "line": 82
+        },
+        {
+          "text": "Wiederherstellungscodes",
+          "line": 111
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/auth/ZweiFaktorSeite.tsx",
+      "lines": 107,
+      "labels": [
+        {
+          "text": "Anmeldung",
+          "line": 50
+        },
+        {
+          "text": "Zwei-Faktor-Anmeldung",
+          "line": 51
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/costing/NachkalkulationView.tsx",
+      "lines": 419,
+      "labels": [
+        {
+          "text": "Geld",
+          "line": 224
+        },
+        {
+          "text": "Nachkalkulation",
+          "line": 225
+        },
+        {
+          "text": "Erlös gegen Personal- und Materialkosten — je Baustelle",
+          "line": 226
+        },
+        {
+          "text": "Kostensätze fehlen",
+          "line": 256
+        },
+        {
+          "text": "Baustellen",
+          "line": 309
+        },
+        {
+          "text": "Mit Verlust",
+          "line": 314
+        },
+        {
+          "text": "Zu prüfen",
+          "line": 319
+        },
+        {
+          "text": "Ohne Erlös",
+          "line": 320
+        },
+        {
+          "text": "Ergebnis je Baustelle",
+          "line": 328
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/customers/CustomersView.tsx",
+      "lines": 814,
+      "labels": [
+        {
+          "text": "Kunden",
+          "line": 424
+        },
+        {
+          "text": "Stammdaten, Ansprechpartner und Baustellenhistorie",
+          "line": 425
+        },
+        {
+          "text": "Kunden durchsuchen",
+          "line": 454
+        },
+        {
+          "text": "Name oder Firma",
+          "line": 617
+        },
+        {
+          "text": "Rechnungsadresse",
+          "line": 627
+        },
+        {
+          "text": "Kundennummer (freiwillig)",
+          "line": 633
+        },
+        {
+          "text": "Ansprechpartner",
+          "line": 642
+        },
+        {
+          "text": "Telefon",
+          "line": 648
+        },
+        {
+          "text": "E-Mail",
+          "line": 654
+        },
+        {
+          "text": "Notiz",
+          "line": 670
+        },
+        {
+          "text": "Bestehende Baustellen übernehmen",
+          "line": 699
+        },
+        {
+          "text": "Bestehende Baustellen übernehmen",
+          "line": 701
+        },
+        {
+          "text": "Vorschau wird erstellt …",
+          "line": 711
+        },
+        {
+          "text": "Gleicher Name — trotzdem anlegen?",
+          "line": 780
+        },
+        {
+          "text": "Kunde löschen?",
+          "line": 793
+        }
+      ],
+      "actions": [
+        {
+          "text": "Kunden aus einer Datei einlesen",
+          "line": 404
+        },
+        {
+          "text": "Vorlage für den Import herunterladen",
+          "line": 405
+        },
+        {
+          "text": "Bestehende Baustellen übernehmen",
+          "line": 411
+        },
+        {
+          "text": "Bearbeiten",
+          "line": 542
+        },
+        {
+          "text": "Löschen",
+          "line": 564
+        }
+      ],
+      "dialogs": 4
+    },
+    {
+      "file": "src/features/customers/KundenImport.tsx",
+      "lines": 283,
+      "labels": [
+        {
+          "text": "CSV-Datei",
+          "line": 161
+        },
+        {
+          "text": "Kunden aus einer Datei",
+          "line": 171
+        },
+        {
+          "text": "Kunden aus einer Datei",
+          "line": 171
+        },
+        {
+          "text": "Datei wird gelesen …",
+          "line": 173
+        },
+        {
+          "text": "Neu",
+          "line": 195
+        },
+        {
+          "text": "Schon vorhanden",
+          "line": 196
+        },
+        {
+          "text": "Fehlerhaft",
+          "line": 198
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/customers/KundenakteView.tsx",
+      "lines": 934,
+      "labels": [
+        {
+          "text": "Kundenakte",
+          "line": 294
+        },
+        {
+          "text": "Kundenakte",
+          "line": 305
+        },
+        {
+          "text": "Kundenakte",
+          "line": 318
+        },
+        {
+          "text": "Stammdaten",
+          "line": 344
+        },
+        {
+          "text": "Wartungen",
+          "line": 463
+        },
+        {
+          "text": "Rechnungen",
+          "line": 501
+        },
+        {
+          "text": "Angebote",
+          "line": 543
+        },
+        {
+          "text": "Termine",
+          "line": 579
+        },
+        {
+          "text": "Rechnungsadresse",
+          "line": 734
+        },
+        {
+          "text": "Kundennummer",
+          "line": 737
+        },
+        {
+          "text": "Ansprechpartner",
+          "line": 742
+        },
+        {
+          "text": "Telefon",
+          "line": 743
+        },
+        {
+          "text": "E-Mail",
+          "line": 746
+        },
+        {
+          "text": "Kundenart",
+          "line": 756
+        },
+        {
+          "text": "UID-Nummer",
+          "line": 759
+        },
+        {
+          "text": "Zustand",
+          "line": 769
+        },
+        {
+          "text": "Name",
+          "line": 822
+        },
+        {
+          "text": "Rechnungsadresse",
+          "line": 827
+        },
+        {
+          "text": "Kundennummer (freiwillig)",
+          "line": 834
+        },
+        {
+          "text": "Ansprechpartner",
+          "line": 840
+        },
+        {
+          "text": "Telefon",
+          "line": 845
+        },
+        {
+          "text": "E-Mail",
+          "line": 849
+        },
+        {
+          "text": "Aktiv — erscheint in den Auswahlfeldern",
+          "line": 884
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/customers/UidVies.tsx",
+      "lines": 186,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/dashboard/DashboardView.tsx",
+      "lines": 337,
+      "labels": [
+        {
+          "text": "Heute liegt nichts an",
+          "line": 297
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/dashboard/LaufWarnung.tsx",
+      "lines": 137,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/dashboard/WartungHinweis.tsx",
+      "lines": 88,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/dashboard/start/Handlungsbedarf.tsx",
+      "lines": 110,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/dashboard/start/HeuteEigene.tsx",
+      "lines": 164,
+      "labels": [
+        {
+          "text": "Danach",
+          "line": 48
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/dashboard/start/HeuteLeitung.tsx",
+      "lines": 70,
+      "labels": [
+        {
+          "text": "Heute",
+          "line": 65
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/dashboard/start/HeuteListe.tsx",
+      "lines": 34,
+      "labels": [
+        {
+          "text": "Heute",
+          "line": 23
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/dashboard/start/Kennzahlen.tsx",
+      "lines": 40,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/dashboard/start/StartKarte.tsx",
+      "lines": 38,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/dashboard/start/TermineHeute.tsx",
+      "lines": 31,
+      "labels": [
+        {
+          "text": "Deine Termine heute",
+          "line": 15
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/invoices/BankgarantieDialog.tsx",
+      "lines": 85,
+      "labels": [
+        {
+          "text": "Abgelöst am",
+          "line": 75
+        },
+        {
+          "text": "Bank",
+          "line": 76
+        },
+        {
+          "text": "Garantienummer",
+          "line": 77
+        },
+        {
+          "text": "Garantie gültig bis",
+          "line": 78
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/invoices/InvoicesView.tsx",
+      "lines": 4394,
+      "labels": [
+        {
+          "text": "Geld",
+          "line": 2307
+        },
+        {
+          "text": "Rechnungen",
+          "line": 2308
+        },
+        {
+          "text": "Offen",
+          "line": 2336
+        },
+        {
+          "text": "Überfällig",
+          "line": 2338
+        },
+        {
+          "text": "Bezahlt im Monat",
+          "line": 2343
+        },
+        {
+          "text": "Bezahlt",
+          "line": 2347
+        },
+        {
+          "text": "Neue Rechnung aus Baustelle",
+          "line": 2572
+        },
+        {
+          "text": "Art der Rechnung",
+          "line": 2603
+        },
+        {
+          "text": "Anteil vom angenommenen Angebot (%)",
+          "line": 2622
+        },
+        {
+          "text": "Konditionen für diese Rechnung anpassen",
+          "line": 2647
+        },
+        {
+          "text": "Facharbeiter €/h",
+          "line": 2656
+        },
+        {
+          "text": "Helfer €/h",
+          "line": 2659
+        },
+        {
+          "text": "Nachtzuschlag %",
+          "line": 2662
+        },
+        {
+          "text": "Notdienstzuschlag %",
+          "line": 2667
+        },
+        {
+          "text": "Zahlungsziel (Tage)",
+          "line": 2672
+        },
+        {
+          "text": "Skonto %",
+          "line": 2675
+        },
+        {
+          "text": "Skontofrist (Tage)",
+          "line": 2679
+        },
+        {
+          "text": "USt-Satz",
+          "line": 2699
+        },
+        {
+          "text": "Vorschau",
+          "line": 2731
+        },
+        {
+          "text": "Rechnungsnummer",
+          "line": 3235
+        },
+        {
+          "text": "Leistungsnachweis anhängen",
+          "line": 3261
+        },
+        {
+          "text": "Bauleistung — Steuerschuld geht auf den Empfänger über (§ 19 Abs 1a UStG)",
+          "line": 3285
+        },
+        {
+          "text": "UID-Nummer des Kunden",
+          "line": 3322
+        },
+        {
+          "text": "Grund der Steuerbefreiung",
+          "line": 3362
+        },
+        {
+          "text": "Rabatt — Bezeichnung",
+          "line": 3394
+        },
+        {
+          "text": "Art",
+          "line": 3402
+        },
+        {
+          "text": "Bestellnummer des Kunden",
+          "line": 3420
+        },
+        {
+          "text": "Rücklass (%)",
+          "line": 3453
+        },
+        {
+          "text": "Fällig am",
+          "line": 3460
+        },
+        {
+          "text": "Suche",
+          "line": 3674
+        },
+        {
+          "text": "Rechnungen nach Status filtern",
+          "line": 3682
+        },
+        {
+          "text": "Buchhaltungs-Export",
+          "line": 3774
+        },
+        {
+          "text": "Von",
+          "line": 3791
+        },
+        {
+          "text": "Bis",
+          "line": 3807
+        },
+        {
+          "text": "Storno aufheben?",
+          "line": 4032
+        },
+        {
+          "text": "Stornorechnung ausstellen?",
+          "line": 4056
+        },
+        {
+          "text": "Rechnung stornieren?",
+          "line": 4074
+        },
+        {
+          "text": "Grund (erscheint in der Liste)",
+          "line": 4099
+        },
+        {
+          "text": "Richtung",
+          "line": 4167
+        },
+        {
+          "text": "Datum",
+          "line": 4185
+        },
+        {
+          "text": "Art",
+          "line": 4203
+        },
+        {
+          "text": "Hinweis",
+          "line": 4213
+        },
+        {
+          "text": "Neue Frist",
+          "line": 4363
+        }
+      ],
+      "actions": [
+        {
+          "text": "PDF laden",
+          "line": 2155
+        },
+        {
+          "text": "Stornieren",
+          "line": 2216
+        },
+        {
+          "text": "Stornorechnung (PDF)",
+          "line": 2232
+        },
+        {
+          "text": "Stornorechnung ausstellen …",
+          "line": 2238
+        },
+        {
+          "text": "Storno aufheben",
+          "line": 2250
+        }
+      ],
+      "dialogs": 5
+    },
+    {
+      "file": "src/features/invoices/RechnungDetail.tsx",
+      "lines": 209,
+      "labels": [
+        {
+          "text": "Mahnungen",
+          "line": 184
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/invoices/RechnungenLesen.tsx",
+      "lines": 142,
+      "labels": [
+        {
+          "text": "Geld",
+          "line": 97
+        },
+        {
+          "text": "Rechnungen",
+          "line": 98
+        },
+        {
+          "text": "Die Rechnungen deiner Baustellen — nur lesen.",
+          "line": 99
+        },
+        {
+          "text": "Suche",
+          "line": 115
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/invoices/RechnungenSeite.tsx",
+      "lines": 16,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/invoices/RechnungsListe.tsx",
+      "lines": 143,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/maintenance/WartungVerlauf.tsx",
+      "lines": 63,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/maintenance/WartungenView.tsx",
+      "lines": 1086,
+      "labels": [
+        {
+          "text": "Wartungen",
+          "line": 688
+        },
+        {
+          "text": "Suche",
+          "line": 714
+        },
+        {
+          "text": "Wartung",
+          "line": 765
+        },
+        {
+          "text": "Anlage",
+          "line": 768
+        },
+        {
+          "text": "Anlage",
+          "line": 789
+        },
+        {
+          "text": "Standort",
+          "line": 790
+        },
+        {
+          "text": "Intervall",
+          "line": 791
+        },
+        {
+          "text": "Anlagendaten",
+          "line": 792
+        },
+        {
+          "text": "Preis je Wartung",
+          "line": 793
+        },
+        {
+          "text": "Hinweis",
+          "line": 794
+        },
+        {
+          "text": "Kunde",
+          "line": 834
+        },
+        {
+          "text": "Anlage",
+          "line": 848
+        },
+        {
+          "text": "Standort (leer = Kundenadresse)",
+          "line": 855
+        },
+        {
+          "text": "Intervall",
+          "line": 860
+        },
+        {
+          "text": "Zuletzt gewartet",
+          "line": 871
+        },
+        {
+          "text": "Nächster Termin",
+          "line": 893
+        },
+        {
+          "text": "Hinweis",
+          "line": 906
+        },
+        {
+          "text": "Vereinbarung läuft",
+          "line": 913
+        },
+        {
+          "text": "Anlagendaten und Preis",
+          "line": 923
+        },
+        {
+          "text": "Hersteller",
+          "line": 925
+        },
+        {
+          "text": "Typ",
+          "line": 931
+        },
+        {
+          "text": "Seriennummer",
+          "line": 937
+        },
+        {
+          "text": "Baujahr",
+          "line": 942
+        },
+        {
+          "text": "Preis je Wartung netto (€)",
+          "line": 948
+        },
+        {
+          "text": "Wartung erledigt eintragen",
+          "line": 974
+        },
+        {
+          "text": "Gewartet am",
+          "line": 985
+        },
+        {
+          "text": "Intervall ab jetzt",
+          "line": 991
+        },
+        {
+          "text": "Baustelle (optional)",
+          "line": 1004
+        },
+        {
+          "text": "Baustelle für diese Wartung anlegen?",
+          "line": 1025
+        },
+        {
+          "text": "Projektnummer",
+          "line": 1037
+        },
+        {
+          "text": "Wartung löschen?",
+          "line": 1064
+        }
+      ],
+      "actions": [],
+      "dialogs": 5
+    },
+    {
+      "file": "src/features/materials/KatalogImport.tsx",
+      "lines": 504,
+      "labels": [
+        {
+          "text": "Übernommen",
+          "line": 217
+        },
+        {
+          "text": "Neu angelegt",
+          "line": 219
+        },
+        {
+          "text": "Aktualisiert",
+          "line": 220
+        },
+        {
+          "text": "Ausgelaufen",
+          "line": 221
+        },
+        {
+          "text": "Ohne Einkaufspreis",
+          "line": 223
+        },
+        {
+          "text": "Katalog einspielen",
+          "line": 250
+        },
+        {
+          "text": "Lieferant",
+          "line": 265
+        },
+        {
+          "text": "Name des Lieferanten",
+          "line": 282
+        },
+        {
+          "text": "Probelauf",
+          "line": 321
+        },
+        {
+          "text": "Artikel erkannt",
+          "line": 334
+        },
+        {
+          "text": "Ohne Preis",
+          "line": 336
+        },
+        {
+          "text": "Nur Listenpreis",
+          "line": 340
+        },
+        {
+          "text": "Nicht verstanden",
+          "line": 342
+        },
+        {
+          "text": "Die Felder stehen anders als erwartet",
+          "line": 355
+        },
+        {
+          "text": "Vorschau",
+          "line": 429
+        },
+        {
+          "text": "Bisher eingespielt",
+          "line": 483
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/modules/ModulesView.tsx",
+      "lines": 209,
+      "labels": [
+        {
+          "text": "Einstellungen",
+          "line": 94
+        },
+        {
+          "text": "Module",
+          "line": 95
+        },
+        {
+          "text": "Welche Bereiche dieser Betrieb benutzt",
+          "line": 96
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/muster/MusterMonat.tsx",
+      "lines": 194,
+      "labels": [
+        {
+          "text": "Runde 4: Monat mit Balken und Vorschau",
+          "line": 144
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/muster/MusterPlanung.tsx",
+      "lines": 164,
+      "labels": [
+        {
+          "text": "Einsatzplanung: Hinweiszeile",
+          "line": 118
+        },
+        {
+          "text": "Einsatzplanung: Raster der Woche",
+          "line": 129
+        },
+        {
+          "text": "Einsatzplanung: Woche am Handy",
+          "line": 141
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/muster/MusterUebersicht.tsx",
+      "lines": 148,
+      "labels": [
+        {
+          "text": "Mitarbeiterübersicht: Streifen und Woche (Runde 4)",
+          "line": 116
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/muster/MusterView.tsx",
+      "lines": 257,
+      "labels": [
+        {
+          "text": "Werkzeug für die Abnahme",
+          "line": 76
+        },
+        {
+          "text": "Musterseite",
+          "line": 77
+        },
+        {
+          "text": "Jeder Baustein der Linie „Lot“ einmal — ohne Wirkung auf den Betrieb",
+          "line": 78
+        },
+        {
+          "text": "Darstellung",
+          "line": 92
+        },
+        {
+          "text": "Grundwerte",
+          "line": 101
+        },
+        {
+          "text": "Offen",
+          "line": 117
+        },
+        {
+          "text": "Überfällig",
+          "line": 118
+        },
+        {
+          "text": "Nicht verrechnet",
+          "line": 119
+        },
+        {
+          "text": "Baustellen",
+          "line": 120
+        },
+        {
+          "text": "Zu erledigen",
+          "line": 123
+        },
+        {
+          "text": "Fünf Zustände",
+          "line": 140
+        },
+        {
+          "text": "Arbeitsliste",
+          "line": 151
+        },
+        {
+          "text": "Auswahl als Segmente",
+          "line": 185
+        },
+        {
+          "text": "Akte: Kurzzeilen und Verlauf",
+          "line": 194
+        },
+        {
+          "text": "Formular",
+          "line": 209
+        },
+        {
+          "text": "Name",
+          "line": 211
+        },
+        {
+          "text": "PLZ",
+          "line": 213
+        },
+        {
+          "text": "Ort",
+          "line": 214
+        },
+        {
+          "text": "Kundenart",
+          "line": 220
+        },
+        {
+          "text": "Leerer Zustand",
+          "line": 232
+        },
+        {
+          "text": "Muster",
+          "line": 241
+        },
+        {
+          "text": "Seitenfenster",
+          "line": 241
+        },
+        {
+          "text": "Unumkehrbar",
+          "line": 250
+        }
+      ],
+      "actions": [
+        {
+          "text": "Beispiel: Exportieren",
+          "line": 84
+        },
+        {
+          "text": "Beispiel: Löschen",
+          "line": 85
+        },
+        {
+          "text": "Rückgängig",
+          "line": 160
+        },
+        {
+          "text": "Rückgängig",
+          "line": 174
+        }
+      ],
+      "dialogs": 2
+    },
+    {
+      "file": "src/features/orders/AdminOrdersView.tsx",
+      "lines": 1121,
+      "labels": [
+        {
+          "text": "Anforderungen",
+          "line": 622
+        },
+        {
+          "text": "Materialanforderungen der Monteure bearbeiten und Rückgaben sichten",
+          "line": 623
+        },
+        {
+          "text": "Bestellungen nach Baustelle filtern",
+          "line": 678
+        },
+        {
+          "text": "Suche",
+          "line": 691
+        },
+        {
+          "text": "Anforderung",
+          "line": 866
+        },
+        {
+          "text": "Auf die Einkaufsliste?",
+          "line": 1012
+        },
+        {
+          "text": "Großhändler",
+          "line": 1038
+        },
+        {
+          "text": "Bestellung abschließen?",
+          "line": 1052
+        },
+        {
+          "text": "Eintrag löschen?",
+          "line": 1105
+        }
+      ],
+      "actions": [
+        {
+          "text": "Laufend",
+          "line": 571
+        },
+        {
+          "text": "Einkauf",
+          "line": 572
+        },
+        {
+          "text": "Retouren",
+          "line": 573
+        },
+        {
+          "text": "Erledigt",
+          "line": 574
+        }
+      ],
+      "dialogs": 5
+    },
+    {
+      "file": "src/features/orders/Einkaufsliste.tsx",
+      "lines": 851,
+      "labels": [
+        {
+          "text": "Einkaufsliste",
+          "line": 171
+        },
+        {
+          "text": "Als bestellt markieren?",
+          "line": 413
+        },
+        {
+          "text": "Erwarteter Liefertermin (freiwillig)",
+          "line": 450
+        },
+        {
+          "text": "Erwarteter Liefertermin",
+          "line": 465
+        },
+        {
+          "text": "Liefertermin (leer lassen, um ihn zu entfernen)",
+          "line": 487
+        },
+        {
+          "text": "Material dazusetzen",
+          "line": 629
+        },
+        {
+          "text": "Artikel",
+          "line": 662
+        },
+        {
+          "text": "Treffer im Katalog",
+          "line": 681
+        },
+        {
+          "text": "Menge",
+          "line": 700
+        },
+        {
+          "text": "Großhändler",
+          "line": 704
+        },
+        {
+          "text": "Anmerkung (freiwillig)",
+          "line": 710
+        },
+        {
+          "text": "Großhändler",
+          "line": 788
+        },
+        {
+          "text": "Name",
+          "line": 826
+        },
+        {
+          "text": "Kundennummer",
+          "line": 828
+        },
+        {
+          "text": "Bestelladresse (E-Mail)",
+          "line": 830
+        },
+        {
+          "text": "Kontakt (Vertreter, Telefon)",
+          "line": 832
+        }
+      ],
+      "actions": [],
+      "dialogs": 2
+    },
+    {
+      "file": "src/features/orders/LagerDialoge.tsx",
+      "lines": 283,
+      "labels": [
+        {
+          "text": "Lieferant",
+          "line": 105
+        },
+        {
+          "text": "Lieferschein-Nr.",
+          "line": 127
+        },
+        {
+          "text": "Bestellbezug (Bestellnummer)",
+          "line": 133
+        },
+        {
+          "text": "Grund",
+          "line": 195
+        }
+      ],
+      "actions": [],
+      "dialogs": 2
+    },
+    {
+      "file": "src/features/orders/MaterialCatalog.tsx",
+      "lines": 599,
+      "labels": [
+        {
+          "text": "Suche",
+          "line": 334
+        },
+        {
+          "text": "Bezeichnung",
+          "line": 425
+        },
+        {
+          "text": "Kategorie",
+          "line": 427
+        },
+        {
+          "text": "Artikelnummer",
+          "line": 429
+        },
+        {
+          "text": "Warengruppe",
+          "line": 453
+        },
+        {
+          "text": "Im Lager führen",
+          "line": 465
+        },
+        {
+          "text": "Anfangsbestand",
+          "line": 489
+        },
+        {
+          "text": "Mindestmenge",
+          "line": 493
+        },
+        {
+          "text": "Verkaufspreis netto je Einheit (€)",
+          "line": 499
+        },
+        {
+          "text": "Einkaufspreis netto je Einheit (€)",
+          "line": 536
+        },
+        {
+          "text": "Material löschen?",
+          "line": 581
+        }
+      ],
+      "actions": [],
+      "dialogs": 2
+    },
+    {
+      "file": "src/features/orders/OrderView.tsx",
+      "lines": 1098,
+      "labels": [
+        {
+          "text": "Material anfordern",
+          "line": 448
+        },
+        {
+          "text": "Von der Baustelle bei der Projektleitung anfordern, Lieferung verfolgen und Rückgaben erfassen",
+          "line": 449
+        },
+        {
+          "text": "Für welche Baustelle?",
+          "line": 477
+        },
+        {
+          "text": "Eilzustellung",
+          "line": 497
+        },
+        {
+          "text": "Katalog",
+          "line": 526
+        },
+        {
+          "text": "Suche",
+          "line": 527
+        },
+        {
+          "text": "Bezeichnung",
+          "line": 617
+        },
+        {
+          "text": "Menge",
+          "line": 624
+        },
+        {
+          "text": "Warenkorb",
+          "line": 652
+        },
+        {
+          "text": "Notiz für die Projektleitung (optional)",
+          "line": 693
+        },
+        {
+          "text": "Meine Anforderungen",
+          "line": 741
+        },
+        {
+          "text": "Material zurückgeben",
+          "line": 853
+        },
+        {
+          "text": "Material zurückgeben",
+          "line": 855
+        },
+        {
+          "text": "Material",
+          "line": 889
+        },
+        {
+          "text": "Menge",
+          "line": 925
+        },
+        {
+          "text": "Zustand",
+          "line": 926
+        },
+        {
+          "text": "Von welcher Baustelle? (optional)",
+          "line": 932
+        },
+        {
+          "text": "Grund / Notiz",
+          "line": 941
+        },
+        {
+          "text": "Material abgeholt?",
+          "line": 958
+        },
+        {
+          "text": "Als eilig markieren?",
+          "line": 986
+        }
+      ],
+      "actions": [
+        {
+          "text": "Retoure erfassen …",
+          "line": 459
+        }
+      ],
+      "dialogs": 3
+    },
+    {
+      "file": "src/features/orders/StockView.tsx",
+      "lines": 651,
+      "labels": [
+        {
+          "text": "Lager",
+          "line": 316
+        },
+        {
+          "text": "Bestände führen und den Materialkatalog pflegen",
+          "line": 317
+        },
+        {
+          "text": "Im Lager",
+          "line": 373
+        },
+        {
+          "text": "Knapp",
+          "line": 380
+        },
+        {
+          "text": "Reserviert",
+          "line": 389
+        },
+        {
+          "text": "Bestände",
+          "line": 396
+        },
+        {
+          "text": "Suche",
+          "line": 401
+        },
+        {
+          "text": "Artikel",
+          "line": 511
+        },
+        {
+          "text": "Artikel wählen",
+          "line": 574
+        },
+        {
+          "text": "Artikel suchen",
+          "line": 581
+        },
+        {
+          "text": "Lagerartikel",
+          "line": 597
+        }
+      ],
+      "actions": [
+        {
+          "text": "Inventur …",
+          "line": 330
+        },
+        {
+          "text": "Katalog einspielen",
+          "line": 337
+        }
+      ],
+      "dialogs": 2
+    },
+    {
+      "file": "src/features/plattform/BasiszinsZentral.tsx",
+      "lines": 139,
+      "labels": [
+        {
+          "text": "Basiszinssatz",
+          "line": 64
+        },
+        {
+          "text": "Halbjahr ab",
+          "line": 105
+        },
+        {
+          "text": "Basiszinssatz (%)",
+          "line": 112
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/plattform/BetriebVerwalten.tsx",
+      "lines": 361,
+      "labels": [
+        {
+          "text": "Grund (steht im Protokoll)",
+          "line": 132
+        },
+        {
+          "text": "Frist (Tage)",
+          "line": 254
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/plattform/FehlerListe.tsx",
+      "lines": 91,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/plattform/NotzugangPasswort.tsx",
+      "lines": 111,
+      "labels": [
+        {
+          "text": "Konto",
+          "line": 81
+        },
+        {
+          "text": "Grund",
+          "line": 89
+        },
+        {
+          "text": "Rückruf an (Nummer laut Firmenbuch oder Gewerberegister)",
+          "line": 91
+        },
+        {
+          "text": "Die Identität ist durch Rückruf an diese Nummer bestätigt — nicht an die Nummer des Anrufers.",
+          "line": 95
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/plattform/NotzugangZweiFaktor.tsx",
+      "lines": 101,
+      "labels": [
+        {
+          "text": "Konto",
+          "line": 75
+        },
+        {
+          "text": "Grund",
+          "line": 83
+        },
+        {
+          "text": "Rückruf an (Nummer laut Firmenbuch oder Gewerberegister)",
+          "line": 85
+        },
+        {
+          "text": "Die Identität ist durch Rückruf an diese Nummer bestätigt — nicht an die Nummer des Anrufers.",
+          "line": 89
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/plattform/PlattformView.tsx",
+      "lines": 733,
+      "labels": [
+        {
+          "text": "Plattform",
+          "line": 240
+        },
+        {
+          "text": "Betriebe anlegen",
+          "line": 241
+        },
+        {
+          "text": "Dieses Konto kann Betriebe einrichten und sonst nichts. Es gehört zu keinem Betrieb und sieht in keinen hinein — auch nicht in die, die es selbst angelegt hat.",
+          "line": 242
+        },
+        {
+          "text": "Neuer Betrieb",
+          "line": 246
+        },
+        {
+          "text": "Name des Betriebs",
+          "line": 266
+        },
+        {
+          "text": "Kennung",
+          "line": 282
+        },
+        {
+          "text": "Erster Administrator",
+          "line": 294
+        },
+        {
+          "text": "Anmeldung mit",
+          "line": 303
+        },
+        {
+          "text": "Benutzername",
+          "line": 313
+        },
+        {
+          "text": "Dessen E-Mail",
+          "line": 324
+        },
+        {
+          "text": "Testbetrieb (lässt sich später ohne Übergabe und ohne Frist löschen)",
+          "line": 336
+        },
+        {
+          "text": "Gelöscht",
+          "line": 581
+        },
+        {
+          "text": "Fehler aus den Betrieben",
+          "line": 626
+        },
+        {
+          "text": "Notzugang",
+          "line": 643
+        },
+        {
+          "text": "Betrieb",
+          "line": 659
+        },
+        {
+          "text": "Kennung des Betriebs",
+          "line": 675
+        },
+        {
+          "text": "Stunden (1–24)",
+          "line": 685
+        },
+        {
+          "text": "Grund",
+          "line": 697
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/projects/AdminProjectsView.tsx",
+      "lines": 1001,
+      "labels": [
+        {
+          "text": "Projektnummer",
+          "line": 586
+        },
+        {
+          "text": "Kunde",
+          "line": 602
+        },
+        {
+          "text": "Bezeichnung (freiwillig)",
+          "line": 652
+        },
+        {
+          "text": "Baustellenadresse",
+          "line": 655
+        },
+        {
+          "text": "Status",
+          "line": 658
+        },
+        {
+          "text": "Abrechnung",
+          "line": 665
+        },
+        {
+          "text": "Stundenbudget (kalkuliert)",
+          "line": 672
+        },
+        {
+          "text": "Beginn",
+          "line": 675
+        },
+        {
+          "text": "Ende (geplant)",
+          "line": 677
+        },
+        {
+          "text": "Ansprechpartner vor Ort",
+          "line": 681
+        },
+        {
+          "text": "Telefon vor Ort",
+          "line": 683
+        },
+        {
+          "text": "Beschreibung / Auftragsumfang",
+          "line": 686
+        },
+        {
+          "text": "Baustellen",
+          "line": 733
+        },
+        {
+          "text": "Baustellen anlegen und suchen — geändert wird in der Akte",
+          "line": 734
+        },
+        {
+          "text": "Suche",
+          "line": 778
+        },
+        {
+          "text": "Nur meine Baustellen",
+          "line": 832
+        },
+        {
+          "text": "Neue Baustelle",
+          "line": 965
+        },
+        {
+          "text": "Neue Baustelle",
+          "line": 967
+        },
+        {
+          "text": "Baustelle löschen?",
+          "line": 974
+        }
+      ],
+      "actions": [
+        {
+          "text": "Schein nachtragen",
+          "line": 920
+        },
+        {
+          "text": "Löschen",
+          "line": 925
+        }
+      ],
+      "dialogs": 2
+    },
+    {
+      "file": "src/features/projects/BaustellenPlaene.tsx",
+      "lines": 239,
+      "labels": [
+        {
+          "text": "Dokumente auswählen",
+          "line": 159
+        },
+        {
+          "text": "Nur fürs Büro",
+          "line": 182
+        },
+        {
+          "text": "Wirklich zu den Plänen?",
+          "line": 200
+        },
+        {
+          "text": "Nur fürs Büro",
+          "line": 220
+        },
+        {
+          "text": "Plan löschen?",
+          "line": 228
+        }
+      ],
+      "actions": [],
+      "dialogs": 2
+    },
+    {
+      "file": "src/features/projects/BaustellenScheine.tsx",
+      "lines": 129,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/projects/BaustellenUebersicht.tsx",
+      "lines": 231,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/projects/BaustellenakteView.tsx",
+      "lines": 1013,
+      "labels": [
+        {
+          "text": "Baustelle",
+          "line": 318
+        },
+        {
+          "text": "Baustelle",
+          "line": 327
+        },
+        {
+          "text": "Baustelle",
+          "line": 342
+        },
+        {
+          "text": "Überblick",
+          "line": 372
+        },
+        {
+          "text": "Stammdaten",
+          "line": 418
+        },
+        {
+          "text": "Pläne und Dokumente",
+          "line": 442
+        },
+        {
+          "text": "Handwerksscheine",
+          "line": 459
+        },
+        {
+          "text": "Termine",
+          "line": 482
+        },
+        {
+          "text": "Projektnummer ändern?",
+          "line": 530
+        },
+        {
+          "text": "Kunde",
+          "line": 668
+        },
+        {
+          "text": "Bezeichnung",
+          "line": 669
+        },
+        {
+          "text": "Baustellenadresse",
+          "line": 670
+        },
+        {
+          "text": "Ansprechpartner vor Ort",
+          "line": 673
+        },
+        {
+          "text": "Telefon vor Ort",
+          "line": 674
+        },
+        {
+          "text": "Projektnummer",
+          "line": 681
+        },
+        {
+          "text": "Abrechnung",
+          "line": 682
+        },
+        {
+          "text": "Beginn",
+          "line": 694
+        },
+        {
+          "text": "Ende (geplant)",
+          "line": 695
+        },
+        {
+          "text": "Team",
+          "line": 700
+        },
+        {
+          "text": "Projektleitung",
+          "line": 703
+        },
+        {
+          "text": "Kunde",
+          "line": 770
+        },
+        {
+          "text": "Bezeichnung (freiwillig)",
+          "line": 791
+        },
+        {
+          "text": "Baustellenadresse",
+          "line": 798
+        },
+        {
+          "text": "Ansprechpartner vor Ort",
+          "line": 805
+        },
+        {
+          "text": "Telefon vor Ort",
+          "line": 809
+        },
+        {
+          "text": "Projektnummer",
+          "line": 828
+        },
+        {
+          "text": "Status",
+          "line": 832
+        },
+        {
+          "text": "Abrechnung",
+          "line": 847
+        },
+        {
+          "text": "Stundenbudget (kalkuliert)",
+          "line": 856
+        },
+        {
+          "text": "Beschreibung / Auftragsumfang",
+          "line": 862
+        },
+        {
+          "text": "Beginn",
+          "line": 880
+        },
+        {
+          "text": "Ende (geplant)",
+          "line": 884
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/projects/BetriebsurlaubHinweis.tsx",
+      "lines": 58,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/projects/MyProjectsView.tsx",
+      "lines": 224,
+      "labels": [
+        {
+          "text": "Meine Baustellen",
+          "line": 122
+        },
+        {
+          "text": "Aus deinem Team und aus deiner Einteilung",
+          "line": 122
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/projects/PlaeneListe.tsx",
+      "lines": 107,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/quotes/AbrechnungWahl.tsx",
+      "lines": 40,
+      "labels": [
+        {
+          "text": "Abrechnung der Baustelle",
+          "line": 21
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/quotes/AngebotView.tsx",
+      "lines": 579,
+      "labels": [
+        {
+          "text": "Angebot",
+          "line": 205
+        },
+        {
+          "text": "Angebot",
+          "line": 213
+        },
+        {
+          "text": "Angebot",
+          "line": 227
+        },
+        {
+          "text": "Brutto",
+          "line": 248
+        },
+        {
+          "text": "Netto",
+          "line": 249
+        },
+        {
+          "text": "Kalkulierte Arbeitszeit",
+          "line": 250
+        },
+        {
+          "text": "Gültig bis",
+          "line": 251
+        },
+        {
+          "text": "Verlauf",
+          "line": 359
+        },
+        {
+          "text": "Angaben",
+          "line": 365
+        },
+        {
+          "text": "Kunde",
+          "line": 367
+        },
+        {
+          "text": "Ort der Leistung",
+          "line": 376
+        },
+        {
+          "text": "Angebotsdatum",
+          "line": 377
+        },
+        {
+          "text": "Baustelle",
+          "line": 378
+        },
+        {
+          "text": "Zwischensumme",
+          "line": 424
+        },
+        {
+          "text": "Netto",
+          "line": 428
+        },
+        {
+          "text": "Brutto",
+          "line": 430
+        },
+        {
+          "text": "Anmerkungen",
+          "line": 435
+        },
+        {
+          "text": "Angebot annehmen?",
+          "line": 528
+        },
+        {
+          "text": "Angebot löschen?",
+          "line": 543
+        }
+      ],
+      "actions": [
+        {
+          "text": "Als abgelehnt markieren",
+          "line": 450
+        },
+        {
+          "text": "Als Kopie anlegen",
+          "line": 453
+        },
+        {
+          "text": "Löschen",
+          "line": 455
+        }
+      ],
+      "dialogs": 2
+    },
+    {
+      "file": "src/features/quotes/KatalogSuche.tsx",
+      "lines": 104,
+      "labels": [
+        {
+          "text": "Artikel aus dem Katalog",
+          "line": 67
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/quotes/QuotesView.tsx",
+      "lines": 1243,
+      "labels": [
+        {
+          "text": "Angebote",
+          "line": 762
+        },
+        {
+          "text": "Kalkulieren, versenden, in einen Auftrag überführen",
+          "line": 763
+        },
+        {
+          "text": "Kunde",
+          "line": 815
+        },
+        {
+          "text": "Ort der Leistung",
+          "line": 838
+        },
+        {
+          "text": "Gültig bis",
+          "line": 855
+        },
+        {
+          "text": "Titel",
+          "line": 877
+        },
+        {
+          "text": "Text",
+          "line": 885
+        },
+        {
+          "text": "Bezeichnung",
+          "line": 902
+        },
+        {
+          "text": "Menge",
+          "line": 929
+        },
+        {
+          "text": "Einheit",
+          "line": 937
+        },
+        {
+          "text": "Einzelpreis netto",
+          "line": 960
+        },
+        {
+          "text": "Rabatt %",
+          "line": 980
+        },
+        {
+          "text": "Anmerkungen",
+          "line": 1046
+        },
+        {
+          "text": "Katalog",
+          "line": 1116
+        },
+        {
+          "text": "Aus dem Katalog",
+          "line": 1116
+        },
+        {
+          "text": "Suche",
+          "line": 1155
+        },
+        {
+          "text": "Angebot annehmen?",
+          "line": 1205
+        },
+        {
+          "text": "Angebot löschen?",
+          "line": 1225
+        }
+      ],
+      "actions": [
+        {
+          "text": "Als versendet markieren",
+          "line": 745
+        },
+        {
+          "text": "Als abgelehnt markieren",
+          "line": 747
+        },
+        {
+          "text": "Löschen",
+          "line": 751
+        }
+      ],
+      "dialogs": 3
+    },
+    {
+      "file": "src/features/recht/Datenauskunft.tsx",
+      "lines": 185,
+      "labels": [
+        {
+          "text": "Datenschutz",
+          "line": 95
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/recht/DatenschutzView.tsx",
+      "lines": 151,
+      "labels": [
+        {
+          "text": "Datenschutzerklärung",
+          "line": 19
+        },
+        {
+          "text": "Wer verantwortlich ist",
+          "line": 20
+        },
+        {
+          "text": "Welche Daten die App verarbeitet",
+          "line": 35
+        },
+        {
+          "text": "Wozu",
+          "line": 89
+        },
+        {
+          "text": "Auf deinem Gerät",
+          "line": 100
+        },
+        {
+          "text": "Wer die Daten technisch verarbeitet",
+          "line": 110
+        },
+        {
+          "text": "Wie lange",
+          "line": 128
+        },
+        {
+          "text": "Deine Rechte",
+          "line": 140
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/recht/ImpressumView.tsx",
+      "lines": 57,
+      "labels": [
+        {
+          "text": "Impressum",
+          "line": 12
+        },
+        {
+          "text": "Medieninhaber und Diensteanbieter",
+          "line": 13
+        },
+        {
+          "text": "Unternehmensangaben",
+          "line": 26
+        },
+        {
+          "text": "Grundlegende Richtung",
+          "line": 40
+        },
+        {
+          "text": "Streitbeilegung",
+          "line": 48
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/recht/RechtSeite.tsx",
+      "lines": 47,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/settings/BasiszinsVerlauf.tsx",
+      "lines": 133,
+      "labels": [
+        {
+          "text": "Halbjahr ab",
+          "line": 104
+        },
+        {
+          "text": "Basiszinssatz (%)",
+          "line": 111
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/settings/EinstellungenUebersicht.tsx",
+      "lines": 205,
+      "labels": [
+        {
+          "text": "Betrieb",
+          "line": 152
+        },
+        {
+          "text": "Einstellungen",
+          "line": 152
+        },
+        {
+          "text": "Was den Betrieb einrichtet — und dein Konto",
+          "line": 152
+        },
+        {
+          "text": "Einstellung suchen",
+          "line": 157
+        },
+        {
+          "text": "Einrichtungsstand",
+          "line": 166
+        },
+        {
+          "text": "Einrichtungsstand",
+          "line": 173
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/settings/FirmendatenView.tsx",
+      "lines": 439,
+      "labels": [
+        {
+          "text": "Einstellungen",
+          "line": 78
+        },
+        {
+          "text": "Firmendaten",
+          "line": 78
+        },
+        {
+          "text": "Was auf den Belegen steht",
+          "line": 78
+        },
+        {
+          "text": "Einstellungen",
+          "line": 172
+        },
+        {
+          "text": "Firmendaten",
+          "line": 173
+        },
+        {
+          "text": "Briefkopf für Rechnung, Stundenbericht und Handwerksschein",
+          "line": 174
+        },
+        {
+          "text": "Briefkopf",
+          "line": 179
+        },
+        {
+          "text": "Firmenname",
+          "line": 187
+        },
+        {
+          "text": "Kontakt (eine Zeile)",
+          "line": 201
+        },
+        {
+          "text": "Logo",
+          "line": 211
+        },
+        {
+          "text": "Rechnungsangaben",
+          "line": 265
+        },
+        {
+          "text": "UID-Nummer",
+          "line": 273
+        },
+        {
+          "text": "Firmenbuchnummer",
+          "line": 283
+        },
+        {
+          "text": "Firmenbuchgericht",
+          "line": 290
+        },
+        {
+          "text": "IBAN",
+          "line": 298
+        },
+        {
+          "text": "BIC",
+          "line": 315
+        },
+        {
+          "text": "Bank",
+          "line": 325
+        },
+        {
+          "text": "Farben",
+          "line": 347
+        },
+        {
+          "text": "Hauptfarbe (#rrggbb)",
+          "line": 357
+        },
+        {
+          "text": "Schrift auf der Hauptfarbe",
+          "line": 371
+        },
+        {
+          "text": "Akzentfarbe (#rrggbb)",
+          "line": 378
+        },
+        {
+          "text": "Schrift auf der Akzentfarbe",
+          "line": 385
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/settings/KontenrahmenView.tsx",
+      "lines": 459,
+      "labels": [
+        {
+          "text": "Einstellungen",
+          "line": 221
+        },
+        {
+          "text": "Kontenrahmen",
+          "line": 221
+        },
+        {
+          "text": "Welche Konten die Buchhaltung bebucht",
+          "line": 221
+        },
+        {
+          "text": "Einstellungen",
+          "line": 229
+        },
+        {
+          "text": "Kontenrahmen",
+          "line": 229
+        },
+        {
+          "text": "Welche Konten die Buchhaltung bebucht",
+          "line": 229
+        },
+        {
+          "text": "Grundkonten",
+          "line": 232
+        },
+        {
+          "text": "Forderungen (Debitorensammelkonto)",
+          "line": 268
+        },
+        {
+          "text": "Erhaltene Anzahlungen",
+          "line": 286
+        },
+        {
+          "text": "Steuercode",
+          "line": 295
+        },
+        {
+          "text": "Bauleistung mit Übergang der Steuerschuld",
+          "line": 314
+        },
+        {
+          "text": "Steuercode",
+          "line": 323
+        },
+        {
+          "text": "Zahlungen (eigener Stapel)",
+          "line": 340
+        },
+        {
+          "text": "Bankkonto",
+          "line": 354
+        },
+        {
+          "text": "Gewährte Skonti (Erlösschmälerung)",
+          "line": 365
+        },
+        {
+          "text": "Satz %",
+          "line": 395
+        },
+        {
+          "text": "Erlöskonto",
+          "line": 406
+        },
+        {
+          "text": "Steuercode",
+          "line": 417
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/settings/LaufStatus.tsx",
+      "lines": 141,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/settings/LohnregelnKarte.tsx",
+      "lines": 142,
+      "labels": [
+        {
+          "text": "Nachtzeit und Überstunden",
+          "line": 76
+        },
+        {
+          "text": "Nachtzeit von",
+          "line": 92
+        },
+        {
+          "text": "Nachtzeit bis",
+          "line": 96
+        },
+        {
+          "text": "Überstunden",
+          "line": 100
+        },
+        {
+          "text": "Durchrechnung für den Schnitt von 48 Std. (Wochen)",
+          "line": 108
+        },
+        {
+          "text": "Überstunden ab",
+          "line": 114
+        },
+        {
+          "text": "Arbeit an Sonn- und Feiertagen als Überstunden mit 100 %",
+          "line": 127
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/settings/MaterialaufschlagFelder.tsx",
+      "lines": 91,
+      "labels": [
+        {
+          "text": "Standard-Aufschlag (%)",
+          "line": 51
+        },
+        {
+          "text": "Warengruppe",
+          "line": 63
+        },
+        {
+          "text": "Aufschlag (%)",
+          "line": 72
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/settings/NotificationSettings.tsx",
+      "lines": 302,
+      "labels": [
+        {
+          "text": "Einstellungen",
+          "line": 160
+        },
+        {
+          "text": "Mein Konto",
+          "line": 161
+        },
+        {
+          "text": "Benachrichtigungen und Passwort — alles, was nur dich betrifft",
+          "line": 162
+        },
+        {
+          "text": "Dieses Gerät",
+          "line": 175
+        },
+        {
+          "text": "Wovon möchtest du erfahren?",
+          "line": 212
+        },
+        {
+          "text": "Eine neue Materialanforderung geht ein",
+          "line": 219
+        },
+        {
+          "text": "Mein angefordertes Material ist abholbereit",
+          "line": 227
+        },
+        {
+          "text": "Eilzustellung für meine Baustellen",
+          "line": 236
+        },
+        {
+          "text": "Urlaub, Zeitausgleich und Krankmeldungen",
+          "line": 253
+        },
+        {
+          "text": "Passwort",
+          "line": 279
+        },
+        {
+          "text": "Kommen die Meldungen an?",
+          "line": 294
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/settings/PushStatus.tsx",
+      "lines": 60,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/settings/SettingsView.tsx",
+      "lines": 1504,
+      "labels": [
+        {
+          "text": "Einstellungen",
+          "line": 532
+        },
+        {
+          "text": "Rechnungsvorgaben",
+          "line": 544
+        },
+        {
+          "text": "Umsatzsteuer",
+          "line": 552
+        },
+        {
+          "text": "Grund der Steuerbefreiung (Vorschlag)",
+          "line": 584
+        },
+        {
+          "text": "Wir stellen Anzahlungs-, Teil- und Schlussrechnungen",
+          "line": 606
+        },
+        {
+          "text": "Rechnungsvorgaben",
+          "line": 638
+        },
+        {
+          "text": "Stundensätze",
+          "line": 660
+        },
+        {
+          "text": "Monteur / Facharbeiter (€/h)",
+          "line": 667
+        },
+        {
+          "text": "Helfer (€/h)",
+          "line": 673
+        },
+        {
+          "text": "Je Einstufung",
+          "line": 690
+        },
+        {
+          "text": "Zuschläge",
+          "line": 715
+        },
+        {
+          "text": "Nachtarbeit (%)",
+          "line": 722
+        },
+        {
+          "text": "Notdienst (%)",
+          "line": 731
+        },
+        {
+          "text": "Interne Kostensätze",
+          "line": 783
+        },
+        {
+          "text": "Kosten Facharbeiterstunde (€)",
+          "line": 796
+        },
+        {
+          "text": "Kosten Helferstunde (€)",
+          "line": 803
+        },
+        {
+          "text": "Je Einstufung",
+          "line": 810
+        },
+        {
+          "text": "Materialaufschlag",
+          "line": 860
+        },
+        {
+          "text": "Auf Standardwerte zurücksetzen?",
+          "line": 903
+        },
+        {
+          "text": "Urlaubsjahr und Übertrag",
+          "line": 925
+        },
+        {
+          "text": "Urlaubsjahr beginnt am",
+          "line": 959
+        },
+        {
+          "text": "Monat",
+          "line": 972
+        },
+        {
+          "text": "Verfällt am",
+          "line": 1041
+        },
+        {
+          "text": "Monat",
+          "line": 1054
+        },
+        {
+          "text": "Nummernkreise und Fuhrpark",
+          "line": 1096
+        },
+        {
+          "text": "Kennzeichen des Fuhrparks",
+          "line": 1141
+        },
+        {
+          "text": "Wer Urlaub genehmigt",
+          "line": 1180
+        },
+        {
+          "text": "Wochenplan und Einsatzplan",
+          "line": 1234
+        },
+        {
+          "text": "Alle Mitarbeiter sehen den Wochenplan (nur lesen)",
+          "line": 1251
+        },
+        {
+          "text": "Projektleiter sind im Einsatzplan einteilbar und sehen „Mein Einsatzplan“",
+          "line": 1257
+        },
+        {
+          "text": "Mitarbeiter dürfen ihren Einsatzplan als Kalender abonnieren",
+          "line": 1263
+        },
+        {
+          "text": "24. und 31. Dezember",
+          "line": 1283
+        },
+        {
+          "text": "24. und 31. Dezember als halbe Tage rechnen (Normalarbeitszeit bis 12 Uhr)",
+          "line": 1299
+        },
+        {
+          "text": "Zahlungsziel (Tage)",
+          "line": 1346
+        },
+        {
+          "text": "Skonto (%)",
+          "line": 1359
+        },
+        {
+          "text": "Skontofrist (Tage)",
+          "line": 1368
+        },
+        {
+          "text": "Firmenkunden: Pauschale 40 € nach § 458 UGB statt Spesen",
+          "line": 1399
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/settings/SicherungView.tsx",
+      "lines": 321,
+      "labels": [
+        {
+          "text": "Einstellungen",
+          "line": 185
+        },
+        {
+          "text": "Datensicherung",
+          "line": 186
+        },
+        {
+          "text": "Der Bestand des Betriebs an einem zweiten Ort — und zum Herunterladen",
+          "line": 187
+        },
+        {
+          "text": "Nächtliche Sicherung",
+          "line": 198
+        },
+        {
+          "text": "Daten herunterladen",
+          "line": 252
+        },
+        {
+          "text": "Belegarchiv",
+          "line": 271
+        },
+        {
+          "text": "Zeitraum",
+          "line": 289
+        }
+      ],
+      "actions": [
+        {
+          "text": "Alle Belege",
+          "line": 47
+        }
+      ],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/settings/SonderurlaubKarte.tsx",
+      "lines": 106,
+      "labels": [
+        {
+          "text": "Sonderurlaub",
+          "line": 73
+        },
+        {
+          "text": "Kürzung vorschlagen ab (Kalendertage unbezahlt am Stück)",
+          "line": 94
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/settings/SupportzugangView.tsx",
+      "lines": 341,
+      "labels": [
+        {
+          "text": "Einstellungen",
+          "line": 128
+        },
+        {
+          "text": "Supportzugang",
+          "line": 128
+        },
+        {
+          "text": "Einblick gewähren — befristet und widerrufbar",
+          "line": 128
+        },
+        {
+          "text": "Wofür",
+          "line": 180
+        },
+        {
+          "text": "Wie lange",
+          "line": 241
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/settings/ZweiFaktorKarte.tsx",
+      "lines": 169,
+      "labels": [
+        {
+          "text": "Zwei-Faktor-Anmeldung",
+          "line": 69
+        },
+        {
+          "text": "Zwei-Faktor-Anmeldung",
+          "line": 78
+        },
+        {
+          "text": "Für Administrator, Geschäftsführung und Buchhaltung in diesem Betrieb verpflichtend",
+          "line": 139
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/termine/TerminFenster.tsx",
+      "lines": 134,
+      "labels": [
+        {
+          "text": "Termin löschen?",
+          "line": 116
+        }
+      ],
+      "actions": [],
+      "dialogs": 2
+    },
+    {
+      "file": "src/features/termine/TerminFormular.tsx",
+      "lines": 213,
+      "labels": [
+        {
+          "text": "Art",
+          "line": 122
+        },
+        {
+          "text": "Tag",
+          "line": 127
+        },
+        {
+          "text": "Baustelle",
+          "line": 176
+        },
+        {
+          "text": "Kunde",
+          "line": 184
+        },
+        {
+          "text": "Notiz",
+          "line": 203
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/termine/TerminListe.tsx",
+      "lines": 67,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/termine/TermineKarte.tsx",
+      "lines": 202,
+      "labels": [
+        {
+          "text": "Termin löschen?",
+          "line": 184
+        }
+      ],
+      "actions": [],
+      "dialogs": 2
+    },
+    {
+      "file": "src/features/time/AntragKnopf.tsx",
+      "lines": 156,
+      "labels": [
+        {
+          "text": "Grund",
+          "line": 147
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/time/AufteilenDialog.tsx",
+      "lines": 172,
+      "labels": [
+        {
+          "text": "Auf mehrere Baustellen aufteilen",
+          "line": 92
+        },
+        {
+          "text": "Stunden",
+          "line": 117
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/time/TimeForm.tsx",
+      "lines": 1515,
+      "labels": [
+        {
+          "text": "Wegzeit (Min.)",
+          "line": 833
+        },
+        {
+          "text": "Name des Helfers (optional)",
+          "line": 878
+        },
+        {
+          "text": "Notdienst / Störungseinsatz",
+          "line": 889
+        },
+        {
+          "text": "Mitarbeiter",
+          "line": 970
+        },
+        {
+          "text": "Datum",
+          "line": 986
+        },
+        {
+          "text": "Status",
+          "line": 1001
+        },
+        {
+          "text": "Krank bis (voraussichtlich)",
+          "line": 1059
+        },
+        {
+          "text": "Urlaub bis",
+          "line": 1080
+        },
+        {
+          "text": "Berufsschule bis",
+          "line": 1102
+        },
+        {
+          "text": "Unterricht je Schultag (Std., optional)",
+          "line": 1120
+        },
+        {
+          "text": "Nur einige Stunden",
+          "line": 1153
+        },
+        {
+          "text": "Frei von",
+          "line": 1161
+        },
+        {
+          "text": "Frei bis",
+          "line": 1170
+        },
+        {
+          "text": "Von",
+          "line": 1191
+        },
+        {
+          "text": "Bis",
+          "line": 1200
+        },
+        {
+          "text": "Pause (Min.)",
+          "line": 1209
+        },
+        {
+          "text": "Nicht als Nachtarbeit zählen",
+          "line": 1265
+        },
+        {
+          "text": "Grund",
+          "line": 1272
+        },
+        {
+          "text": "Erweiterte Erfassung (Baustelle, Wegzeit, Fahrzeug, Zuschläge)",
+          "line": 1307
+        },
+        {
+          "text": "Einsatz als Helfer (zählt nicht zum Projekt-Budget)",
+          "line": 1404
+        },
+        {
+          "text": "Weitere Angaben (optional)",
+          "line": 1418
+        },
+        {
+          "text": "Grenze für Jugendliche",
+          "line": 1483
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/time/TimeView.tsx",
+      "lines": 1087,
+      "labels": [
+        {
+          "text": "Zeiterfassung",
+          "line": 674
+        },
+        {
+          "text": "Saldo",
+          "line": 873
+        },
+        {
+          "text": "Diese Woche",
+          "line": 913
+        },
+        {
+          "text": "Zuschlag",
+          "line": 927
+        },
+        {
+          "text": "Meine Einträge",
+          "line": 979
+        },
+        {
+          "text": "Kommende Wochen",
+          "line": 996
+        },
+        {
+          "text": "Eintrag löschen?",
+          "line": 1073
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/time/Zeitmarker.tsx",
+      "lines": 42,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/users/BenutzerakteView.tsx",
+      "lines": 902,
+      "labels": [
+        {
+          "text": "Benutzer",
+          "line": 197
+        },
+        {
+          "text": "Benutzer",
+          "line": 206
+        },
+        {
+          "text": "Benutzer",
+          "line": 221
+        },
+        {
+          "text": "Stammdaten",
+          "line": 244
+        },
+        {
+          "text": "Zugang",
+          "line": 271
+        },
+        {
+          "text": "Neues Startpasswort vergeben?",
+          "line": 468
+        },
+        {
+          "text": "Überblick",
+          "line": 524
+        },
+        {
+          "text": "Benutzername",
+          "line": 542
+        },
+        {
+          "text": "E-Mail",
+          "line": 544
+        },
+        {
+          "text": "Rolle",
+          "line": 546
+        },
+        {
+          "text": "Kunden pflegen",
+          "line": 548
+        },
+        {
+          "text": "Katalog einspielen",
+          "line": 552
+        },
+        {
+          "text": "Einkaufspreise sehen",
+          "line": 553
+        },
+        {
+          "text": "Rechnungen lesen",
+          "line": 557
+        },
+        {
+          "text": "Zeitkonto",
+          "line": 560
+        },
+        {
+          "text": "Zustand",
+          "line": 562
+        },
+        {
+          "text": "Einstufung",
+          "line": 567
+        },
+        {
+          "text": "Wochenstunden",
+          "line": 580
+        },
+        {
+          "text": "Urlaubstage pro Jahr",
+          "line": 583
+        },
+        {
+          "text": "Eintrittsdatum",
+          "line": 588
+        },
+        {
+          "text": "Saldo-Startdatum",
+          "line": 589
+        },
+        {
+          "text": "Start-Saldo (Stunden)",
+          "line": 590
+        },
+        {
+          "text": "Arbeitstage",
+          "line": 602
+        },
+        {
+          "text": "Tagessoll je Wochentag",
+          "line": 604
+        },
+        {
+          "text": "Name",
+          "line": 643
+        },
+        {
+          "text": "Benutzername",
+          "line": 653
+        },
+        {
+          "text": "Der Benutzername ist das Anmeldekonto und kann hier nicht geändert werden.",
+          "line": 654
+        },
+        {
+          "text": "E-Mail",
+          "line": 659
+        },
+        {
+          "text": "Die E-Mail-Adresse ist das Anmeldekonto und kann hier nicht geändert werden.",
+          "line": 660
+        },
+        {
+          "text": "Rolle",
+          "line": 665
+        },
+        {
+          "text": "Status",
+          "line": 671
+        },
+        {
+          "text": "Darf Kunden anlegen und ändern",
+          "line": 693
+        },
+        {
+          "text": "Darf den Katalog einspielen (DATANORM, mit Einkaufspreisen)",
+          "line": 713
+        },
+        {
+          "text": "Darf Einkaufspreise sehen",
+          "line": 719
+        },
+        {
+          "text": "Darf die Rechnungen seiner Baustellen lesen",
+          "line": 731
+        },
+        {
+          "text": "Führt ein Zeitkonto",
+          "line": 760
+        },
+        {
+          "text": "Wochenstunden",
+          "line": 774
+        },
+        {
+          "text": "Urlaubstage pro Jahr",
+          "line": 781
+        },
+        {
+          "text": "Eintrittsdatum (im Betrieb seit)",
+          "line": 786
+        },
+        {
+          "text": "Saldo-Startdatum (ab hier rechnet das Zeitkonto)",
+          "line": 792
+        },
+        {
+          "text": "Start-Saldo (Stunden)",
+          "line": 797
+        }
+      ],
+      "actions": [],
+      "dialogs": 3
+    },
+    {
+      "file": "src/features/users/EinstufungFelder.tsx",
+      "lines": 173,
+      "labels": [
+        {
+          "text": "Einstufung",
+          "line": 66
+        },
+        {
+          "text": "Lehrbeginn",
+          "line": 87
+        },
+        {
+          "text": "Lehrzeit",
+          "line": 95
+        },
+        {
+          "text": "Stunden zählen ins Projekt-Budget",
+          "line": 128
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/users/GeburtsdatumKarte.tsx",
+      "lines": 94,
+      "labels": [
+        {
+          "text": "Geburtsdatum",
+          "line": 72
+        },
+        {
+          "text": "Geburtsdatum",
+          "line": 78
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/users/KontoUmstellen.tsx",
+      "lines": 171,
+      "labels": [
+        {
+          "text": "Benutzername",
+          "line": 126
+        },
+        {
+          "text": "Grund",
+          "line": 130
+        },
+        {
+          "text": "E-Mail",
+          "line": 142
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/users/TagessollFelder.tsx",
+      "lines": 74,
+      "labels": [
+        {
+          "text": "Tagessoll je Wochentag festlegen (etwa ein kürzerer Freitag)",
+          "line": 37
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/users/UrlaubsanspruchKarte.tsx",
+      "lines": 180,
+      "labels": [
+        {
+          "text": "Urlaubsanspruch",
+          "line": 108
+        },
+        {
+          "text": "Urlaubsjahr",
+          "line": 140
+        },
+        {
+          "text": "Tage (weniger mit Minus)",
+          "line": 144
+        },
+        {
+          "text": "Grund",
+          "line": 149
+        },
+        {
+          "text": "Anpassung entfernen?",
+          "line": 167
+        },
+        {
+          "text": "Grund",
+          "line": 174
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/users/UserMgmtView.tsx",
+      "lines": 738,
+      "labels": [
+        {
+          "text": "Team",
+          "line": 257
+        },
+        {
+          "text": "Benutzerverwaltung",
+          "line": 258
+        },
+        {
+          "text": "Benutzer anlegen, Rollen und Zeitkonten pflegen",
+          "line": 259
+        },
+        {
+          "text": "Neuen Benutzer anlegen",
+          "line": 320
+        },
+        {
+          "text": "Name",
+          "line": 324
+        },
+        {
+          "text": "Anmeldung mit",
+          "line": 326
+        },
+        {
+          "text": "E-Mail",
+          "line": 332
+        },
+        {
+          "text": "Benutzername",
+          "line": 342
+        },
+        {
+          "text": "Rolle",
+          "line": 360
+        },
+        {
+          "text": "Status",
+          "line": 370
+        },
+        {
+          "text": "Resturlaub beim Umstieg (Tage)",
+          "line": 469
+        },
+        {
+          "text": "Wochenstunden",
+          "line": 497
+        },
+        {
+          "text": "Urlaubstage pro Jahr",
+          "line": 501
+        },
+        {
+          "text": "Eintrittsdatum (im Betrieb seit)",
+          "line": 523
+        },
+        {
+          "text": "Start-Saldo (Stunden)",
+          "line": 551
+        },
+        {
+          "text": "Urlaub im ersten Jahr (Tage)",
+          "line": 567
+        },
+        {
+          "text": "Suche",
+          "line": 656
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/vacations/AntragFenster.tsx",
+      "lines": 199,
+      "labels": [
+        {
+          "text": "Antrag auf Sonderurlaub",
+          "line": 189
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/vacations/BetriebsurlaubReiter.tsx",
+      "lines": 324,
+      "labels": [
+        {
+          "text": "Betriebsurlaub anlegen",
+          "line": 148
+        },
+        {
+          "text": "Bezeichnung",
+          "line": 160
+        },
+        {
+          "text": "Von",
+          "line": 170
+        },
+        {
+          "text": "Bis (einschließlich)",
+          "line": 181
+        },
+        {
+          "text": "Urlaubskonto aller aktiven Mitarbeiter belasten",
+          "line": 199
+        },
+        {
+          "text": "Betriebsurlaube",
+          "line": 259
+        },
+        {
+          "text": "Betriebsurlaub anlegen?",
+          "line": 293
+        },
+        {
+          "text": "Betriebsurlaub löschen?",
+          "line": 308
+        }
+      ],
+      "actions": [],
+      "dialogs": 2
+    },
+    {
+      "file": "src/features/vacations/FreistellungFormular.tsx",
+      "lines": 330,
+      "labels": [
+        {
+          "text": "Anlass",
+          "line": 160
+        },
+        {
+          "text": "Tag des Ereignisses",
+          "line": 169
+        },
+        {
+          "text": "Nur einige Stunden (an einem Tag)",
+          "line": 177
+        },
+        {
+          "text": "Bis (einschließlich)",
+          "line": 192
+        },
+        {
+          "text": "Frei von",
+          "line": 204
+        },
+        {
+          "text": "Frei bis",
+          "line": 205
+        },
+        {
+          "text": "Für ein erkranktes Kind unter 12 Jahren",
+          "line": 213
+        },
+        {
+          "text": "Zweite Woche (die erste ist in diesem Arbeitsjahr verbraucht)",
+          "line": 225
+        },
+        {
+          "text": "Nachweis auswählen",
+          "line": 317
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/vacations/FreistellungListe.tsx",
+      "lines": 177,
+      "labels": [
+        {
+          "text": "Antrag zurückziehen?",
+          "line": 163
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/vacations/FreistellungenBestaetigen.tsx",
+      "lines": 475,
+      "labels": [
+        {
+          "text": "um Tage",
+          "line": 326
+        },
+        {
+          "text": "Grund für die Tage darüber",
+          "line": 379
+        },
+        {
+          "text": "Sonderurlaub bestätigen",
+          "line": 403
+        },
+        {
+          "text": "Grund",
+          "line": 471
+        }
+      ],
+      "actions": [],
+      "dialogs": 1
+    },
+    {
+      "file": "src/features/vacations/Krankmeldungen.tsx",
+      "lines": 512,
+      "labels": [
+        {
+          "text": "Krank bis",
+          "line": 136
+        },
+        {
+          "text": "Ende der Krankmeldung ändern",
+          "line": 180
+        },
+        {
+          "text": "Ende ändern",
+          "line": 182
+        },
+        {
+          "text": "Krank bis",
+          "line": 192
+        },
+        {
+          "text": "Krankmeldung löschen?",
+          "line": 212
+        },
+        {
+          "text": "Krankmeldung",
+          "line": 253
+        },
+        {
+          "text": "Krankmeldung",
+          "line": 293
+        },
+        {
+          "text": "Krankmeldung",
+          "line": 293
+        },
+        {
+          "text": "Krankmeldung erfassen",
+          "line": 443
+        },
+        {
+          "text": "Mitarbeiter",
+          "line": 454
+        },
+        {
+          "text": "Krank ab",
+          "line": 463
+        },
+        {
+          "text": "Voraussichtlich bis",
+          "line": 474
+        },
+        {
+          "text": "Anmerkung (freiwillig, keine Diagnose)",
+          "line": 484
+        },
+        {
+          "text": "Krankenstände",
+          "line": 494
+        }
+      ],
+      "actions": [],
+      "dialogs": 3
+    },
+    {
+      "file": "src/features/vacations/UrlaubMonat.tsx",
+      "lines": 130,
+      "labels": [
+        {
+          "text": "Urlaub im Monat",
+          "line": 73
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/vacations/VacationsView.tsx",
+      "lines": 1664,
+      "labels": [
+        {
+          "text": "Urlaub",
+          "line": 1117
+        },
+        {
+          "text": "Urlaub, Zeitausgleich, Sonderurlaub und Krankmeldung",
+          "line": 1117
+        },
+        {
+          "text": "Resturlaub",
+          "line": 1183
+        },
+        {
+          "text": "Beantragt",
+          "line": 1189
+        },
+        {
+          "text": "Art",
+          "line": 1227
+        },
+        {
+          "text": "Nur einige Stunden (an einem Tag)",
+          "line": 1292
+        },
+        {
+          "text": "Frei von",
+          "line": 1334
+        },
+        {
+          "text": "Frei bis",
+          "line": 1343
+        },
+        {
+          "text": "Meine Anträge",
+          "line": 1504
+        },
+        {
+          "text": "Mein Sonderurlaub",
+          "line": 1560
+        },
+        {
+          "text": "Meine Krankmeldungen",
+          "line": 1574
+        },
+        {
+          "text": "Grund",
+          "line": 1637
+        },
+        {
+          "text": "Antrag zurückziehen?",
+          "line": 1648
+        }
+      ],
+      "actions": [
+        {
+          "text": "Anträge",
+          "line": 1110
+        },
+        {
+          "text": "Krankenstände",
+          "line": 1111
+        },
+        {
+          "text": "Betriebsurlaub",
+          "line": 1112
+        }
+      ],
+      "dialogs": 2
+    },
+    {
+      "file": "src/features/worksheets/Fotostreifen.tsx",
+      "lines": 85,
+      "labels": [],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/worksheets/LeistungszeitErfassen.tsx",
+      "lines": 265,
+      "labels": [
+        {
+          "text": "Mitarbeiter",
+          "line": 154
+        },
+        {
+          "text": "Von",
+          "line": 160
+        },
+        {
+          "text": "Bis",
+          "line": 167
+        },
+        {
+          "text": "Pause (Minuten, optional)",
+          "line": 174
+        },
+        {
+          "text": "Tätigkeit (optional)",
+          "line": 185
+        },
+        {
+          "text": "Als Helfer gearbeitet",
+          "line": 195
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/worksheets/MaterialErfassen.tsx",
+      "lines": 233,
+      "labels": [
+        {
+          "text": "Menge",
+          "line": 112
+        },
+        {
+          "text": "Artikel aus dem Lager",
+          "line": 146
+        },
+        {
+          "text": "Freie Zeile (nicht im Lager geführt)",
+          "line": 202
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/worksheets/Schrittfolge.tsx",
+      "lines": 124,
+      "labels": [
+        {
+          "text": "Schritte des Scheins",
+          "line": 45
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/worksheets/WorkSheetView.tsx",
+      "lines": 1817,
+      "labels": [
+        {
+          "text": "Handwerksscheine",
+          "line": 998
+        },
+        {
+          "text": "Handwerksschein — Entwurf",
+          "line": 998
+        },
+        {
+          "text": "Konnte nicht geöffnet werden",
+          "line": 998
+        },
+        {
+          "text": "Handwerksscheine",
+          "line": 1067
+        },
+        {
+          "text": "Baustelle und Tag",
+          "line": 1113
+        },
+        {
+          "text": "Leistungsdatum",
+          "line": 1157
+        },
+        {
+          "text": "Ergänzungen",
+          "line": 1366
+        },
+        {
+          "text": "Notizen, Regiearbeiten, Mängel",
+          "line": 1388
+        },
+        {
+          "text": "Aufnahme vom Einsatz",
+          "line": 1479
+        },
+        {
+          "text": "Foto entfernen",
+          "line": 1497
+        },
+        {
+          "text": "Foto entfernen",
+          "line": 1498
+        },
+        {
+          "text": "Zusammenfassung",
+          "line": 1587
+        },
+        {
+          "text": "Unterschriften",
+          "line": 1642
+        },
+        {
+          "text": "Monteur (Name in Druckbuchstaben)",
+          "line": 1652
+        },
+        {
+          "text": "Unterschrift Monteur",
+          "line": 1661
+        },
+        {
+          "text": "Kunde (Name in Druckbuchstaben)",
+          "line": 1669
+        },
+        {
+          "text": "Unterschrift Kunde",
+          "line": 1678
+        }
+      ],
+      "actions": [],
+      "dialogs": 0
+    },
+    {
+      "file": "src/features/worksheets/WorkSheetsListView.tsx",
+      "lines": 1355,
+      "labels": [
+        {
+          "text": "Handwerksscheine",
+          "line": 695
+        },
+        {
+          "text": "Leistungsnachweise der Baustellen, auch Entwürfe",
+          "line": 697
+        },
+        {
+          "text": "Scheine durchsuchen",
+          "line": 934
+        },
+        {
+          "text": "Entwürfe",
+          "line": 1037
+        },
+        {
+          "text": "Nicht verrechnet",
+          "line": 1045
+        },
+        {
+          "text": "Verworfen",
+          "line": 1058
+        },
+        {
+          "text": "Handwerksschein",
+          "line": 1101
+        },
+        {
+          "text": "Grund (Pflicht)",
+          "line": 1127
+        },
+        {
+          "text": "Entwurf verwerfen",
+          "line": 1219
+        }
+      ],
+      "actions": [],
+      "dialogs": 2
+    }
+  ],
+  "routes": [
+    {
+      "path": "/login",
+      "line": 278,
+      "redirect": null
+    },
+    {
+      "path": "/impressum",
+      "line": 288,
+      "redirect": null
+    },
+    {
+      "path": "/datenschutz",
+      "line": 298,
+      "redirect": null
+    },
+    {
+      "path": "/*",
+      "line": 308,
+      "redirect": null
+    },
+    {
+      "path": "/",
+      "line": 350,
+      "redirect": null
+    },
+    {
+      "path": "/_muster",
+      "line": 352,
+      "redirect": null
+    },
+    {
+      "path": "/time",
+      "line": 358,
+      "redirect": null
+    },
+    {
+      "path": "/material",
+      "line": 364,
+      "redirect": null
+    },
+    {
+      "path": "/anforderungen",
+      "line": 365,
+      "redirect": null
+    },
+    {
+      "path": "/lager",
+      "line": 369,
+      "redirect": null
+    },
+    {
+      "path": "/material/anfordern",
+      "line": 375,
+      "redirect": "/material"
+    },
+    {
+      "path": "/material/anforderungen",
+      "line": 376,
+      "redirect": "/anforderungen"
+    },
+    {
+      "path": "/material/lager",
+      "line": 377,
+      "redirect": "/lager"
+    },
+    {
+      "path": "/my-schedule/*",
+      "line": 380,
+      "redirect": null
+    },
+    {
+      "path": "/vacations",
+      "line": 399,
+      "redirect": null
+    },
+    {
+      "path": "/my-projects",
+      "line": 400,
+      "redirect": null
+    },
+    {
+      "path": "/worksheets",
+      "line": 404,
+      "redirect": null
+    },
+    {
+      "path": "/worksheet",
+      "line": 414,
+      "redirect": null
+    },
+    {
+      "path": "/costing",
+      "line": 435,
+      "redirect": null
+    },
+    {
+      "path": "/quotes",
+      "line": 436,
+      "redirect": null
+    },
+    {
+      "path": "/quotes/:id",
+      "line": 438,
+      "redirect": null
+    },
+    {
+      "path": "/customers",
+      "line": 446,
+      "redirect": null
+    },
+    {
+      "path": "/customers/:id",
+      "line": 453,
+      "redirect": null
+    },
+    {
+      "path": "/wartungen",
+      "line": 461,
+      "redirect": null
+    },
+    {
+      "path": "/admin-projects",
+      "line": 462,
+      "redirect": null
+    },
+    {
+      "path": "/admin-projects/:id",
+      "line": 472,
+      "redirect": null
+    },
+    {
+      "path": "/assignments/*",
+      "line": 489,
+      "redirect": null
+    },
+    {
+      "path": "/user-mgmt",
+      "line": 504,
+      "redirect": null
+    },
+    {
+      "path": "/user-mgmt/:uid",
+      "line": 510,
+      "redirect": null
+    },
+    {
+      "path": "/settings/*",
+      "line": 527,
+      "redirect": null
+    },
+    {
+      "path": "/invoices",
+      "line": 552,
+      "redirect": null
+    },
+    {
+      "path": "/accounting",
+      "line": 553,
+      "redirect": null
+    },
+    {
+      "path": "/order",
+      "line": 566,
+      "redirect": "/material"
+    },
+    {
+      "path": "/admin-orders",
+      "line": 567,
+      "redirect": "/anforderungen"
+    },
+    {
+      "path": "/stock",
+      "line": 568,
+      "redirect": "/lager"
+    },
+    {
+      "path": "/notifications",
+      "line": 569,
+      "redirect": "/settings/meldungen"
+    },
+    {
+      "path": "/modules",
+      "line": 570,
+      "redirect": "/settings/module"
+    },
+    {
+      "path": "*",
+      "line": 572,
+      "redirect": "/"
+    }
+  ]
+}

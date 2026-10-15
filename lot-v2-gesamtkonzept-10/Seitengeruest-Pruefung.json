@@ -1,0 +1,295 @@
+[
+  {
+    "id": "anmelden",
+    "width": 1440,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "heute",
+    "width": 1440,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-monteur",
+    "width": 1440,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-buchhaltung",
+    "width": 1440,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-verwaltung",
+    "width": 1440,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-projektleitung",
+    "width": 1440,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-admin",
+    "width": 1440,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "mitarbeiter-monat",
+    "width": 1440,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "mitarbeiter-person",
+    "width": 1440,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "planung-woche",
+    "width": 1440,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 2
+      },
+      {
+        "id": "th-has-data-cells",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "rechnung-detail-lesen",
+    "width": 1440,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-vorschau",
+    "width": 1440,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "schein-unterschrift",
+    "width": 1440,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "benutzer-daten",
+    "width": 1440,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "plattform",
+    "width": 1440,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "datenschutz",
+    "width": 1440,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "galerie",
+    "width": 1440,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "anmelden",
+    "width": 390,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "heute",
+    "width": 390,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-monteur",
+    "width": 390,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-buchhaltung",
+    "width": 390,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-verwaltung",
+    "width": 390,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-projektleitung",
+    "width": 390,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-admin",
+    "width": 390,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "mitarbeiter-monat",
+    "width": 390,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "mitarbeiter-person",
+    "width": 390,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "planung-woche",
+    "width": 390,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-detail-lesen",
+    "width": 390,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-vorschau",
+    "width": 390,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "schein-unterschrift",
+    "width": 390,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "benutzer-daten",
+    "width": 390,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "plattform",
+    "width": 390,
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "datenschutz",
+    "width": 390,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "galerie",
+    "width": 390,
+    "violations": [],
+    "incomplete": []
+  }
+]

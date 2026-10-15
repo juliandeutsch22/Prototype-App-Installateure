@@ -1,0 +1,3343 @@
+[
+  {
+    "id": "anmelden",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "anmelden",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "passwort-vergessen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "passwort-vergessen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "passwort-setzen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "passwort-setzen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "passwort-aendern",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "passwort-aendern",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zwei-faktor",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zwei-faktor",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zwei-faktor-code",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zwei-faktor-code",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zwei-faktor-einrichten",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zwei-faktor-einrichten",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "wiederherstellungscodes",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "wiederherstellungscodes",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "impressum",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "impressum",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "datenschutz",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "datenschutz",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "heute",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-monteur",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-monteur",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-verwaltung",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-verwaltung",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-buchhaltung",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-buchhaltung",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-projektleitung",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-projektleitung",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-admin",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "heute-admin",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "kunden",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "kunden",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "kunde-neu",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "kunde-neu",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "kundenakte",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 3
+      }
+    ]
+  },
+  {
+    "id": "kundenakte",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "kunde-bearbeiten",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "kunde-bearbeiten",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "kunden-import",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "kunden-import",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "kunden-zuordnen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "kunden-zuordnen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "angebote",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "angebote",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "angebot-neu",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "angebot-neu",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "angebot-katalog",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "angebot-katalog",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "angebot-detail",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "angebot-detail",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "angebot-annehmen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "angebot-annehmen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "baustellen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "baustelle-neu",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "baustellen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "baustelle-neu",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "baustelle",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 4
+      }
+    ]
+  },
+  {
+    "id": "baustelle-daten",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 2
+      }
+    ]
+  },
+  {
+    "id": "baustelle",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 3
+      }
+    ]
+  },
+  {
+    "id": "baustelle-dokumente",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "baustelle-daten",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "baustelle-dokumente",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "dokument-upload",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "dokument-vorschau",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "dokument-upload",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "baustelle-scheine",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "dokument-vorschau",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "meine-baustellen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "meine-plaene",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "baustelle-scheine",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "termine",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "meine-baustellen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "termin",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "meine-plaene",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "planung-woche",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "planung-monat",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 3
+      }
+    ]
+  },
+  {
+    "id": "termine",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "planung-tag",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 3
+      }
+    ]
+  },
+  {
+    "id": "termin",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "planung-einsatz",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "ruestliste-planen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "ruestliste-abhaken",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "planung-woche",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 2
+      },
+      {
+        "id": "th-has-data-cells",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "mein-plan",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      },
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "planung-monat",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 3
+      }
+    ]
+  },
+  {
+    "id": "planung-tag",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 3
+      }
+    ]
+  },
+  {
+    "id": "team-woche",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "kalender-abo",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "planung-einsatz",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "scheine",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "ruestliste-planen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "schein-detail",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "ruestliste-abhaken",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "schein-zeiten",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "mein-plan",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "nodes": 1
+      },
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "schein-material",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "team-woche",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "schein-fotos",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "kalender-abo",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "schein-unterschrift",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "scheine",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "schein-verwerfen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "schein-detail",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "schein-zeit-nachtragen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "schein-zeiten",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "material",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "material-warenkorb",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "schein-material",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "material-meine",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "schein-fotos",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "anforderung-abholen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "material-retoure",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "schein-unterschrift",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "anforderungen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "schein-verwerfen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "anforderung-detail",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "schein-zeit-nachtragen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "einkauf",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "material",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "material-warenkorb",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "einkauf-bestellen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "einkauf-hinzufuegen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "material-meine",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "anforderung-abholen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "grosshaendler",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "retouren",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "material-retoure",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "retoure-pruefen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "anforderungen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "anforderungen-archiv",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "anforderung-detail",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "lager",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "lager-artikel",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "einkauf",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "wareneingang",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "einkauf-bestellen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "einkauf-hinzufuegen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "inventur",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "lager-bewegungen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "grosshaendler",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "katalog",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "retouren",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "katalog-artikel",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "katalog-import",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "retoure-pruefen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "katalog-import-vorschau",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "anforderungen-archiv",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "katalog-import-ergebnis",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "lager",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "lager-artikel",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "rechnungen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "wareneingang",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-detail",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "inventur",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnungen-lesen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "lager-bewegungen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-neu",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "katalog",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "katalog-artikel",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "rechnung-vorschau",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "katalog-import",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-anzahlung",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "katalog-import-vorschau",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-teil",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "katalog-import-ergebnis",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-schluss",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnungen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "zahlung",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-detail",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "mahnungen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnungen-lesen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "mahnen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-neu",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "mahnlauf",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-export",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-vorschau",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-anzahlung",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "bankgarantie",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-teil",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-storno",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-schluss",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-stornobeleg",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zahlung",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-storno-aufheben",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "mahnungen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "mahnen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit-buero",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "mahnlauf",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit-erweitert",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "rechnung-export",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit-eintraege",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "bankgarantie",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit-bearbeiten",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "rechnung-storno",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit-aufteilen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-stornobeleg",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit-gespeichert",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "rechnung-storno-aufheben",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "urlaub",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "urlaub-antrag",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "za-antrag",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "sonderurlaub",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit-buero",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "pflegefreistellung",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit-erweitert",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "unbezahlter-urlaub",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit-eintraege",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "urlaub-detail",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "zeit-bearbeiten",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "urlaub-entscheiden",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit-aufteilen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "urlaub-entscheidung",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "zeit-gespeichert",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "krank-melden",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "urlaub",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "krankenstaende",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "urlaub-antrag",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "krank-buero",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "betriebsurlaub",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "za-antrag",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "betriebsurlaub-neu",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "sonderurlaub",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "mitarbeiter-monat",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "pflegefreistellung",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "unbezahlter-urlaub",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "mitarbeiter-woche",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "urlaub-detail",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "mitarbeiter-person",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "urlaub-entscheiden",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "stunden-export",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "urlaub-entscheidung",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "stunden-baustellen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "krank-melden",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "nachkalkulation",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "krankenstaende",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "nachkalkulation-detail",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "krank-buero",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "benutzer",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "betriebsurlaub",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "benutzer-neu",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "betriebsurlaub-neu",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "mitarbeiter-monat",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "benutzerakte",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "benutzer-daten",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "mitarbeiter-woche",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "benutzer-zugang",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "mitarbeiter-person",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "startpasswort",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "stunden-export",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "konto-umstellen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "stunden-baustellen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "urlaubsanspruch",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "nachkalkulation",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "einstellungen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "nachkalkulation-detail",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "konto",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "benutzer",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "push-einrichten",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "benutzer-neu",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "firma",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "benutzerakte",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "saetze",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "benutzer-daten",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "benutzer-zugang",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "rechnungsvorgaben",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "startpasswort",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "basiszins-verlauf",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "konto-umstellen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "nummern",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "urlaubsanspruch",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "personal",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "einstellungen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "konto",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "personal-urlaub",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "personal-genehmiger",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "push-einrichten",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "personal-planung",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "firma",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "personal-lohn",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "saetze",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "personal-sonder",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "personal-dezember",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnungsvorgaben",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "basiszins-verlauf",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "kontenrahmen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "nummern",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "support",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "support-gewaehren",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "personal",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "module",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "personal-urlaub",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "personal-genehmiger",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "sicherung",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "personal-planung",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "plattform",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "personal-lohn",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "plattform-neu",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "personal-sonder",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "personal-dezember",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "plattform-betrieb",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "plattform-fehler",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "kontenrahmen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "plattform-fehlerdetail",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "support",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "plattform-notzugang",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "support-gewaehren",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "plattform-notpasswort",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "module",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "plattform-notfaktor",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "sicherung",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "plattform-basiszins",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "plattform",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "suche",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "plattform-neu",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "meldungen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "hilfe",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "plattform-betrieb",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "offline",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "plattform-fehler",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "fehler",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "plattform-fehlerdetail",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "leer",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "plattform-notzugang",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "laden",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "plattform-notpasswort",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "gesperrt",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "plattform-notfaktor",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "plattform-basiszins",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "aktualisierung",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "suche",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "kunde-auskunft",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "meldungen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "benutzer-auskunft",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "hilfe",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "bestaetigen-kunde",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "offline",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "bestaetigen-angebot",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "fehler",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "bestaetigen-termin",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "leer",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "bestaetigen-einsatz",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "laden",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "gesperrt",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "bestaetigen-bestellung",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "aktualisierung",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "bestaetigen-material",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "kunde-auskunft",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "bestaetigen-zeit",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "benutzer-auskunft",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "bestaetigen-urlaub",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "bestaetigen-kunde",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "bestaetigen-benutzer",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "bestaetigen-angebot",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "bestaetigen-standard",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "bestaetigen-termin",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "bestaetigen-einsatz",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "muster",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "bestaetigen-bestellung",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "wartungen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "bestaetigen-material",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "wartung-detail",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "bestaetigen-zeit",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "wartung-neu",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "bestaetigen-urlaub",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "bestaetigen-benutzer",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "wartung-erledigt",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "bestaetigen-standard",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "wartung-loeschen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "urlaub-monat",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "muster",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit-abwesenheit",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "wartungen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "benutzer-zusatzrechte",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "wartung-detail",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "benutzer-projektleitung-recht",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "wartung-neu",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "uid-pruefung",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "wartung-erledigt",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "baustelle-loeschen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "wartung-loeschen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "arbeitszeit-grenze",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "lehrling-einstufung",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "urlaub-monat",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "betriebsurlaub-loeschen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit-abwesenheit",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "support-widerrufen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "benutzer-zusatzrechte",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "problem-melden",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "benutzer-projektleitung-recht",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "urlaubsanspruch-entfernen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "uid-pruefung",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "baustelle-loeschen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit-leitung",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "arbeitszeit-grenze",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "angebot-entwurf",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "lehrling-einstufung",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "angebot-versendet",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "betriebsurlaub-loeschen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "angebot-abgelehnt",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "support-widerrufen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-export-ergebnis",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "problem-melden",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-detail-lesen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "urlaubsanspruch-entfernen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-ruecklass",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "zeit-leitung",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "rechnung-guthaben",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "angebot-entwurf",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "dokument-team",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "angebot-versendet",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "katalog-neu",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "angebot-abgelehnt",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "rechnung-export-ergebnis",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "planung-baustellen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "rechnung-detail-lesen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "mitarbeiter-kalender",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "rechnung-ruecklass",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "rechnung-guthaben",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "mitarbeiter-monatsraster",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "dokument-team",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "termin-lesen",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zahlung-rueckzahlung",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "katalog-neu",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit-person",
+    "size": "mobil",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "planung-baustellen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "mitarbeiter-kalender",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "mitarbeiter-monatsraster",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  },
+  {
+    "id": "termin-lesen",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zahlung-rueckzahlung",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "id": "zeit-person",
+    "size": "desktop",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ]
+  }
+]

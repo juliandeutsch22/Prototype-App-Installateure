@@ -1,0 +1,79 @@
+{
+  "scope": "Lokale Entwurfsbedienung; keine API-, Persistenz- oder Produktionsabnahme",
+  "results": [
+    {
+      "name": "Mitarbeitervergleich, Suche, Lückenfilter und Tagesliste",
+      "status": "bestanden"
+    },
+    {
+      "name": "Fremdbuchung behält Zielperson und ausgewählten fehlenden Tag",
+      "status": "bestanden"
+    },
+    {
+      "name": "Wochenplan: Gruppen, Personen/Baustellen, fixierte Kopfzeile",
+      "status": "bestanden"
+    },
+    {
+      "name": "Mobiler Plan: alle Wochentage und tappbare Einsätze",
+      "status": "bestanden"
+    },
+    {
+      "name": "Lesender Teamplan enthält keine Abwesenheitsgründe oder Bearbeitungswege",
+      "status": "bestanden"
+    },
+    {
+      "name": "Termin: alternative Bezüge und Teilnehmer",
+      "status": "bestanden"
+    },
+    {
+      "name": "Benutzer: Rollenbegrenzung, geschützte Anmeldung, E-Mail als Alternative",
+      "status": "bestanden"
+    },
+    {
+      "name": "Rechnungseditor enthält jedes Feld genau einmal und Steuergrund nur bei 0 %",
+      "status": "bestanden"
+    },
+    {
+      "name": "Angebotspositionen: hinzufügen, entfernen, Textposition und Arbeitszeitkennung",
+      "status": "bestanden"
+    },
+    {
+      "name": "Material: Katalogsuche, Menge, freier Artikel und bearbeitbarer Warenkorb",
+      "status": "bestanden"
+    },
+    {
+      "name": "Mahn-/Rechnungsauswahl hat echte auswählbare Zeilen",
+      "status": "bestanden"
+    },
+    {
+      "name": "Schein: Eingaben über Schritte erhalten, echte zeichnbare Signatur mit Leeren",
+      "status": "bestanden"
+    },
+    {
+      "name": "Letzte Zeit ist nur Vorlage; leerer Einstieg bleibt auswählbar",
+      "status": "bestanden"
+    },
+    {
+      "name": "Rechnung: PDF sichtbar, Rücklass bedingt, Lesen ohne Zahlung und Rückzahlung widerspruchsfrei",
+      "status": "bestanden"
+    },
+    {
+      "name": "Löschfolgen: Wartung verliert Historie; verknüpfte Datensätze nicht löschen",
+      "status": "bestanden"
+    },
+    {
+      "name": "Zwei-Faktor-Eingabe ist als numerischer Einmalcode gekennzeichnet",
+      "status": "bestanden"
+    },
+    {
+      "name": "Alle 217 gerenderten Ansichten haben gültige interne Verweise",
+      "status": "bestanden"
+    },
+    {
+      "name": "Galerie: Filter, Originalbild, Rollenfilter und alle drei Größen",
+      "status": "bestanden"
+    }
+  ],
+  "errors": [],
+  "external": []
+}
