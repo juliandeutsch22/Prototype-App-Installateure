@@ -32,7 +32,7 @@ Die Galerie enthält weitere Rollen, Material/Lager, Urlaub, Angebote, Scheine, 
 
 ## Prüfung und Grenzen
 
-5.093 Modulprüfungen, Typen, Lint, Build und sieben Linkprüfungen bestanden. 72 Browserwege gegen den lokalen Supabase-Stapel bestanden; ein gerätebedingter Skip. Remote-CI steht im verlinkten Pull Request. [Prüfbericht und genaue Grenzen](Pruefung.md).
+5.093 Modulprüfungen, Typen, Lint, Build und sieben Linkprüfungen bestanden. 72 Browserwege gegen den lokalen Supabase-Stapel bestanden; ein gerätebedingter Skip. Remote-CI vollständig grün: 5.093 Modulprüfungen, 82 Browserprüfungen einschließlich WebKit (zwei gerätebedingte Skips) und sieben Linkprüfungen bestanden. [Prüfbericht und genaue Grenzen](Pruefung.md).
 
 Die Screens verwenden den vorhandenen fiktiven Vorschau-Bestand. Künstliche Grenzfälle, doppelte Beispielzeilen und Hinweise über nicht verfügbare Vorschaudaten – etwa die Baustellen-Gesamtstunden – sind keine Aussage über einen Produktivbetrieb. Diese Bilder enthalten keine echten Betriebs- oder Zugangsdaten. Sie belegen Darstellung; echte Speicherung wird gesondert in den Browserwegen geprüft.
 

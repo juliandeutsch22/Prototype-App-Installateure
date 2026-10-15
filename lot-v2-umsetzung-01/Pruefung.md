@@ -56,3 +56,14 @@ WebKit/Safari und echte Mobilgeräte sind in diesem lokalen Lauf nicht geprüft;
 die CI besitzt weiterhin ihren WebKit-Auftrag. Pilotwochen und die Sichtprüfung
 mit den Anwendern bleiben offen. Automatisches axe ist keine vollständige
 manuelle WCAG-Zertifizierung. Produktivdaten wurden nicht geändert.
+
+
+## Remote-CI · abgeschlossen am 15.10.2026
+
+Für Quellstand `bc804862318b2b5e94056b2d48aeb86bee7202c1` vollständig grün:
+
+- [Typen, Lint und Tests](https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/38806001798): 332 Dateien, **5.093 Prüfungen bestanden**, Typprüfung und Lint bestanden.
+- [Chromium, mobiles WebKit und Tablet](https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/38806001763): **82 Browserprüfungen bestanden**, zwei gerätebedingte Skips; anschließend **sieben Linkprüfungen bestanden**.
+- Der Deployment-Auftrag wurde im Pull Request erwartungsgemäß übersprungen. Dieser Stand wurde noch nicht nach main gemergt oder produktiv veröffentlicht.
+
+Die lokale Einschränkung zur fehlenden WebKit-Prüfung gilt für den lokalen Lauf; WebKit ist durch diesen Remote-Lauf abgedeckt. Sichtfreigabe, echte Geräte und Pilotbetrieb bleiben offen.
