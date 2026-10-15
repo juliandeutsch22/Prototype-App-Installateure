@@ -1,0 +1,232 @@
+{
+  "sourceCoverage": true,
+  "interactionChecks": [
+    "Rechnungsauswahl aktualisiert das Detail; Suche bleibt erhalten.",
+    "Gezeigte Monteur-/Projektleitungsnavigation und lesende Rechnungsvorschau enthalten keine fremden Zeitkonten oder Schreibaktionen. Kein Nachweis der echten Autorisierung.",
+    "Angebotsaktionen unterscheiden den angenommenen vom versendeten Zustand.",
+    "Zeitdauer und ungültige Zeitspanne werden in der Vorschau erkannt.",
+    "Schein am Desktop auf einer Seite; mobil vier direkt erreichbare Schritte.",
+    "Suche, mobile Navigation und Schließen per Escape funktionieren.",
+    "Galeriesuche nach Feldnamen, Bereichsfilter und Geräteauswahl funktionieren."
+  ],
+  "axe": [
+    {
+      "width": 1440,
+      "id": "anmelden",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "id": "heute",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "id": "rechnungen",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "id": "planung-woche",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "id": "kundenakte",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "id": "angebot-neu",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "id": "rechnung-vorschau",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "id": "schein-unterschrift",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "id": "material",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "id": "zahlung",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "id": "mitarbeiter-monat",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "id": "personal-sonder",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "id": "plattform-notfaktor",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "id": "impressum",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "id": "anmelden",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "id": "heute",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "id": "rechnungen",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "id": "planung-woche",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "id": "kundenakte",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "id": "angebot-neu",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "id": "rechnung-vorschau",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "id": "schein-unterschrift",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "id": "material",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "id": "zahlung",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "id": "mitarbeiter-monat",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "id": "personal-sonder",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "id": "plattform-notfaktor",
+      "violations": []
+    },
+    {
+      "width": 834,
+      "id": "impressum",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "id": "anmelden",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "id": "heute",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "id": "rechnungen",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "id": "planung-woche",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "id": "kundenakte",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "id": "angebot-neu",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "id": "rechnung-vorschau",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "id": "schein-unterschrift",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "id": "material",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "id": "zahlung",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "id": "mitarbeiter-monat",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "id": "personal-sonder",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "id": "plattform-notfaktor",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "id": "impressum",
+      "violations": []
+    }
+  ],
+  "limitations": "Stand-alone Gestaltungsvorschau. Keine App-, Datenbank-, Rollen-RLS-, Beleg- oder Produktivtests.",
+  "offline": true,
+  "offlinePackage": {
+    "gallery": true,
+    "prototype": true,
+    "document": true,
+    "externalRequests": 0
+  }
+}

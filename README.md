@@ -119,3 +119,19 @@ Sechs neue Screens auf Grundlage von Entwurf 04: Heute, Rechnungsliste mit Detai
 ![Lot v2 · Screen-Mockups 05](lot-v2-screen-mockups/Lot-v2-Screen-Mockups-Uebersicht.jpg)
 
 Eigenständige Gestaltungsvorschau mit fiktiven Daten. Die App wurde nicht umgebaut oder neu ausgeliefert. Die vorherigen Entwürfe bleiben erhalten.
+
+
+## Lot v2 · Gesamtkonzept 06: die gesamte App
+
+Alle bestehenden Bereiche mit insgesamt **206 Konzeptansichten und Zuständen**, einschließlich Rollenvarianten, Formularschritten und Dialogen. Grundlage sind sämtliche 38 Routendeklarationen, elf Einstellungs-Unterseiten und 132 Feature-Komponenten. Die ruhige Gestaltung von Entwurf 04 bleibt; wiederholte Prozesshinweise und zusätzliche Grafiken ohne konkreten Nutzen aus Entwurf 05 sind reduziert.
+
+- [Gesamtkonzept, Galerie und alle Bilder herunterladen](Lot-v2-Gesamtkonzept-2026-10-15.zip?raw=true) – vollständig entpacken und `galerie.html` öffnen.
+- [Alle 206 Ansichtsblätter direkt auf GitHub ansehen](lot-v2-gesamtkonzept/README.md)
+- [Vollständiges Konzept lesen](lot-v2-gesamtkonzept/Konzept.md)
+- [Abdeckung der Bestandsseiten](lot-v2-gesamtkonzept/Abdeckung.md)
+
+![Lot v2 · Gesamtkonzept 06](lot-v2-gesamtkonzept/Lot-v2-Gesamtkonzept-Uebersicht.jpg)
+
+618 Darstellungen bei 1440, 834 und 390 px ohne die geprüften Layoutfehler; 42 repräsentative automatisierte WCAG-Prüfungen ohne gemeldete Verstöße. Die Offline-Galerie, der Entwurf und das Konzept benötigen keine Installation oder Netzwerkverbindung.
+
+Dies ist eine Gestaltungsvorlage mit fiktiven Daten. Die App und ihre Produktivdaten wurden nicht geändert oder neu ausgeliefert. Die Umsetzung ist noch nicht begonnen.
