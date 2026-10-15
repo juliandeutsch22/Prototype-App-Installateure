@@ -45,3 +45,12 @@
   .antrag-umfang { font-size: 0.9375rem; color: var(--text-muted); }
   .antrag-aktionen { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-top: 1rem; margin-top: 0.25rem; border-top: 1px solid var(--border); }
 }
+
+/* Das Band erklärt die vorhandene Dauer, ohne eine eigene Zeitberechnung einzuführen. */
+@layer components {
+  .zeitbild { margin: 0.5rem 0 1rem; }
+  .zeitband { display: flex; gap: 0.25rem; height: 0.375rem; }
+  .zeitband-arbeit { flex-basis: 0; background: var(--petrol); }
+  .zeitband-pause { flex-basis: 0; background: var(--border-strong); }
+  .zeitband-legende { display: flex; justify-content: space-between; gap: 1rem; margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted); }
+}

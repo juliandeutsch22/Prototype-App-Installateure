@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, TimeEntry } from '@/types';
 import type { CompletenessResult, MonthStats } from '@/lib/time';
@@ -21,6 +21,7 @@ import InfoHint from '@/components/InfoHint';
 import Zeitmarker from '@/features/time/Zeitmarker';
 import AntragKnopf, { FreistellungKnopf } from '@/features/time/AntragKnopf';
 import Gesamtsaldo from './Gesamtsaldo';
+import PersonKalender from './PersonKalender';
 import { GrenzListe } from './ArbeitszeitGrenzenKarte';
 import type { GrenzDaten } from './useArbeitszeitGrenzen';
 import { kurzeZeit, tageDesMonats, tagKurz, type Tageswert } from './tagesauswertung';
@@ -54,7 +55,7 @@ export default function PersonFenster({
   monatsName,
   halbeTage,
   nacht,
-  markiert,
+  markiert: tagVonAussen,
   grenzDaten,
   companyId,
   onErfassen,
@@ -94,6 +95,12 @@ export default function PersonFenster({
     eigenen Hinweis erklaert.
   */
   const zeigtSaldo = stats.hasConfig;
+  const [kalender, setKalender] = useState(false);
+  const [markiert, setMarkiert] = useState(tagVonAussen);
+  useEffect(() => {
+    setMarkiert(tagVonAussen);
+    setKalender(false);
+  }, [tagVonAussen, u.uid, jahr, monat]);
   const markierterWert = markiert ? monatsWerte.find((t) => t.tag === markiert) : undefined;
   const behaelter = useRef<HTMLDivElement>(null);
 
@@ -216,7 +223,7 @@ export default function PersonFenster({
             „der Saldo zu fett und gross, Rot auf Rot“): Tinte, halbfett, ohne
             Signalfarbe. Ohne Soll steht, was wirklich gemessen ist.
           */}
-          <p className="mt-1 text-xl font-semibold leading-none text-ink">
+          <p className="pf-kennzahl-wert text-ink">
             {zeigtSaldo ? `${stats.saldoMin > 0 ? '+' : ''}${fmtMin(stats.saldoMin)}` : fmtMin(stats.istMin)}
           </p>
         </div>
@@ -241,7 +248,7 @@ export default function PersonFenster({
         */}
         <div className="pf-kennzahl" data-testid="resturlaub">
           <p className="pf-kennzahl-name">Resturlaub</p>
-          <p className={`mt-1 text-xl font-semibold leading-none ${stats.urlaubRest < 5 ? 'text-warning' : 'text-ink'}`}>
+          <p className={`pf-kennzahl-wert ${stats.urlaubRest < 5 ? 'text-warning' : 'text-ink'}`}>
             {tageZahl(stats.urlaubRest)} {Math.abs(stats.urlaubRest) === 1 ? 'Tag' : 'Tage'}
           </p>
           {stats.urlaubAngepasst !== 0 && (
@@ -331,9 +338,13 @@ export default function PersonFenster({
       )}
 
       <section aria-label="Tagesnachweis">
-        <h3 className="pf-abschnitt">
-          Tagesnachweis · <span className="whitespace-nowrap">{eintraegeText}</span>
-        </h3>
+        <div className="pf-nachweis-kopf">
+          <h3 className="pf-abschnitt">Tagesnachweis · <span className="whitespace-nowrap">{eintraegeText}</span></h3>
+          <button type="button" className="link-still" aria-expanded={kalender} onClick={() => setKalender((an) => !an)}>
+            {kalender ? 'Kalender ausblenden' : 'Kalender anzeigen'}
+          </button>
+        </div>
+        {kalender && <PersonKalender name={u.name} werte={monatsWerte} ausgewaehlt={markiert} onTag={setMarkiert} />}
         <ul className="pf-liste" aria-label={`Tagesnachweis ${u.name}`}>
           {days.map((x) => {
             const an = x.d === markiert;

@@ -10,6 +10,8 @@ export interface UebersichtZeile {
   /** „3 Tage ohne Buchung“ (Bernstein) bzw. „Facharbeiter · vollständig“ (grau). */
   status: string;
   achtung: boolean;
+  /** Bereits vorhandene Grenzprüfung, auch wenn keine Buchung fehlt. */
+  grenze?: boolean;
   /** Die Tage des Streifens bzw. der Woche. */
   werte: Tageswert[];
   /** Offene Tage — danach wird gruppiert und sortiert. */
@@ -38,6 +40,7 @@ export default function UebersichtListe({
   heute,
   zeilen,
   imSupport,
+  tageZeigen = false,
   onOeffnen,
 }: {
   ansicht: 'monat' | 'woche';
@@ -45,44 +48,47 @@ export default function UebersichtListe({
   heute: string;
   zeilen: UebersichtZeile[];
   imSupport: boolean;
+  /** Der Vergleich beginnt bei Personen; die einzelnen Monatstage bleiben zuschaltbar. */
+  tageZeigen?: boolean;
   onOeffnen: (uid: string, tag: string | null) => void;
 }) {
   const woche = ansicht === 'woche';
+  const vergleich = !woche && !tageZeigen;
   const mitLuecken = zeilen
     .filter((z) => z.offen > 0)
     .sort((a, b) => b.offen - a.offen || a.user.name.localeCompare(b.user.name, 'de'));
   const vollstaendig = zeilen.filter((z) => z.offen === 0);
 
   return (
-    <div className={woche ? 'ue-liste-woche' : 'ue-liste'}>
+    <div className={woche ? 'ue-liste-woche' : vergleich ? 'ue-vergleich' : 'ue-liste'}>
       {!imSupport && (
-        <div className={woche ? 'mw-kopfzeile' : 'ue-kopfzeile'} aria-hidden="true">
+        <div className={woche ? 'mw-kopfzeile' : vergleich ? 'ue-vergleich-kopf' : 'ue-kopfzeile'} aria-hidden="true">
           <p className="ue-kopf-person">Person</p>
-          {woche ? <WochenKopf tage={tage} heute={heute} /> : <StreifenKopf tage={tage} heute={heute} />}
+          {woche ? <WochenKopf tage={tage} heute={heute} /> : vergleich ? <p className="ue-kopf-person">Zu prüfen / Stand</p> : <StreifenKopf tage={tage} heute={heute} />}
           <p className="ue-kopf-zahl">Gebucht</p>
           <p className="ue-kopf-zahl">Soll bisher</p>
           <p className="ue-kopf-zahl">{woche ? 'Saldo' : 'Saldo Monat'}</p>
         </div>
       )}
       {imSupport ? (
-        <Gruppe titel={null} zeilen={zeilen} {...{ woche, heute, imSupport, onOeffnen }} />
+        <Gruppe titel={null} zeilen={zeilen} {...{ woche, vergleich, heute, imSupport, onOeffnen }} />
       ) : (
         <>
           {mitLuecken.length > 0 && (
             <Gruppe
               titel={`${woche ? 'Mit Tagen ohne Buchung in dieser Woche' : 'Mit Tagen ohne Buchung'} · ${mitLuecken.length}`}
               zeilen={mitLuecken}
-              {...{ woche, heute, imSupport, onOeffnen }}
+              {...{ woche, vergleich, heute, imSupport, onOeffnen }}
             />
           )}
           {vollstaendig.length > 0 && (
             <Gruppe
               titel={`Vollständig · ${vollstaendig.length}`}
               zeilen={vollstaendig}
-              {...{ woche, heute, imSupport, onOeffnen }}
+              {...{ woche, vergleich, heute, imSupport, onOeffnen }}
             />
           )}
-          <Legende woche={woche} />
+          {!vergleich && <Legende woche={woche} />}
         </>
       )}
     </div>
@@ -93,6 +99,7 @@ function Gruppe({
   titel,
   zeilen,
   woche,
+  vergleich,
   heute,
   imSupport,
   onOeffnen,
@@ -100,6 +107,7 @@ function Gruppe({
   titel: string | null;
   zeilen: UebersichtZeile[];
   woche: boolean;
+  vergleich: boolean;
   heute: string;
   imSupport: boolean;
   onOeffnen: (uid: string, tag: string | null) => void;
@@ -118,7 +126,7 @@ function Gruppe({
             </button>
           </div>
         ) : (
-          <Zeile key={z.user.uid} zeile={z} woche={woche} heute={heute} onOeffnen={onOeffnen} />
+          <Zeile key={z.user.uid} zeile={z} woche={woche} vergleich={vergleich} heute={heute} onOeffnen={onOeffnen} />
         ),
       )}
       {zeilen.length > GRUPPE_HOECHSTENS && !alle && (
@@ -131,18 +139,20 @@ function Gruppe({
 function Zeile({
   zeile: z,
   woche,
+  vergleich,
   heute,
   onOeffnen,
 }: {
   zeile: UebersichtZeile;
   woche: boolean;
+  vergleich: boolean;
   heute: string;
   onOeffnen: (uid: string, tag: string | null) => void;
 }) {
   const oeffneTag = (tag: string) => onOeffnen(z.user.uid, tag);
   return (
     // Die Zeile ist für die Maus EIN Ziel; die Tastatur nimmt den Namen (ein Knopf).
-    <div className={woche ? 'mw-zeile' : 'ue-zeile'} onClick={() => onOeffnen(z.user.uid, null)}>
+    <div className={woche ? 'mw-zeile' : vergleich ? 'ue-vergleich-zeile' : 'ue-zeile'} onClick={() => onOeffnen(z.user.uid, null)}>
       <button
         type="button"
         className="ue-person"
@@ -152,10 +162,15 @@ function Zeile({
         }}
       >
         <span className="ue-name">{z.user.name}</span>
-        <span className={z.achtung ? 'ue-status-achtung' : 'ue-status'}>{z.status}</span>
+        {!vergleich && <span className={z.achtung ? 'ue-status-achtung' : 'ue-status'}>{z.status}</span>}
       </button>
       {woche ? (
         <WochenZellen name={z.user.name} werte={z.werte} heute={heute} onTag={oeffneTag} />
+      ) : vergleich ? (
+        <p className={z.achtung ? 'ue-pruefstand-achtung' : 'ue-pruefstand'}>
+          {z.status}
+          {z.grenze && <span className="ue-grenzhinweis">Arbeitszeitgrenze prüfen</span>}
+        </p>
       ) : (
         <Streifen name={z.user.name} werte={z.werte} heute={heute} onTag={oeffneTag} />
       )}

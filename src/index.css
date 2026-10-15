@@ -58,10 +58,11 @@
   /* Der helle Ton auf der dunklen Navigation (Avatar, Zähler). */
   --accent-bright: #c6dce0;
 
-  --bg: #f3f6f6;
+  --bg: #ffffff;
   --surface: #ffffff;
   --surface-2: #f3f6f6;
   --surface-3: #e9eeef;
+  --gewicht-zahl: 500;
   --text: #13262c;
   /* 5,4:1 auf Weiss, 5,0:1 auf Papier — AA für Fliesstext. */
   --text-muted: #5a6d72;
@@ -808,8 +809,8 @@ textarea {
     Meta-Zeile, bei Platzmangel darunter.
   */
   @media (min-width: 760px) { .seitenkopf { align-items: flex-end; flex-wrap: wrap; gap: 0.25rem 1rem; } }
-  .seitenkopf h1 { font-size: 1.375rem; line-height: 1.75rem; font-weight: 600; color: var(--ink-deep); }
-  @media (min-width: 760px) { .seitenkopf h1 { font-size: 1.625rem; line-height: 2rem; } }
+  .seitenkopf h1 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; color: var(--ink-deep); }
+  @media (min-width: 760px) { .seitenkopf h1 { font-size: 1.875rem; line-height: 2.5rem; } }
   .seitenkopf-ort { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); margin-bottom: 0.125rem; }
   .seitenkopf-meta { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); margin-top: 0.25rem; }
   .seitenkopf-rechts { display: flex; gap: 0.25rem 0.5rem; align-items: center; flex: none; flex-wrap: wrap; justify-content: flex-end; }
@@ -829,7 +830,7 @@ textarea {
   .karte-buendig > .abschnitt:first-child { border-top: 0; }
   /* Unter dem Kopf einer bündigen Karte zieht schon der Körper die Linie (E7). */
   .karte-buendig > .kurz:first-child { border-top: 0; }
-  .karte { overflow: hidden; overflow: clip; }
+  .karte { overflow: hidden; overflow: clip; background: var(--surface); border: 0; border-top: 1px solid var(--border); border-radius: 0; }
   .karte-koerper .zeile { padding-inline: 0; }
   .zeile { display: flex; align-items: center; gap: 0.75rem 1rem; min-height: 3.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); background: var(--surface); }
   .zeile:first-child { border-top: 0; }
@@ -842,7 +843,7 @@ textarea {
   .zeile-text { flex: 1; min-width: 0; }
   .zeile-titel { font-size: 0.9375rem; line-height: 1.375rem; font-weight: 600; color: var(--ink-deep); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .zeile-meta { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .zeile-wert { font-size: 0.9375rem; font-weight: 400; white-space: nowrap; text-align: right; color: var(--ink-deep); font-variant-numeric: tabular-nums; }
+  .zeile-wert { font-size: 0.9375rem; font-weight: var(--gewicht-zahl); white-space: nowrap; text-align: right; color: var(--ink-deep); font-variant-numeric: tabular-nums; }
   .zeile-wert small { display: block; font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); }
   .zeile-pfeil { color: var(--text-muted); flex: none; width: 1rem; height: 1rem; }
   /*
@@ -873,12 +874,12 @@ textarea {
     negative Rand schiebt sie unter seine Kante). So passt dieselbe Regel auf
     zwei, drei oder vier Zahlen, und eine einzelne nimmt die ganze Breite.
   */
-  .kennzahlen { display: flex; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  .kennzahlen { display: flex; flex-wrap: wrap; background: var(--surface); border-block: 1px solid var(--border); border-radius: 0; overflow: hidden; }
   .kennzahl { padding: 0.875rem 1rem; flex: 1 1 9rem; min-width: 0; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 0 -1px -1px 0; color: inherit; text-decoration: none; }
   a.kennzahl:hover { background: var(--petrol-hell); }
   .kennzahl-name { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
   /* Ein langer Betrag bricht in die nächste Zeile, statt mit „…“ zu enden. */
-  .kennzahl-wert { font-size: 1.25rem; line-height: 1.625rem; font-weight: 600; color: var(--ink-deep); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .kennzahl-wert { font-size: 1.25rem; line-height: 1.625rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); margin-top: 2px; font-variant-numeric: tabular-nums; }
   @media (min-width: 1200px) { .kennzahl-wert { font-size: 1.375rem; line-height: 1.75rem; } }
   .kennzahl-zusatz { font-size: 0.8125rem; color: var(--text-muted); margin-top: 2px; }
   .karte-koerper > .kennzahlen { margin-inline: -1rem; border: 0; border-radius: 0; background: transparent; }

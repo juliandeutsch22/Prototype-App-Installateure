@@ -184,7 +184,7 @@ describe('Die Farbe des Budgetstands', () => {
     zeige(projekt({ estimatedHours: 10 }));
     const zahl = await screen.findByText('160 %');
     expect(zahl).toHaveClass('text-danger');
-    expect(zahl.previousElementSibling?.firstElementChild).toHaveClass('bg-danger');
+    expect(screen.getByRole('img', { name: '160 % des Stundenbudgets verbraucht' }).querySelector('.budget-anteil')).toHaveClass('text-danger');
   });
 
   it('Gegenprobe: im Rahmen weder Rot noch Hausfarbe', async () => {
@@ -192,7 +192,14 @@ describe('Die Farbe des Budgetstands', () => {
     zeige();
     const zahl = await screen.findByText('20 %');
     expect(zahl).not.toHaveClass('text-danger');
-    expect(zahl.previousElementSibling?.firstElementChild).toHaveClass('bg-success');
-    expect(zahl.previousElementSibling?.firstElementChild).not.toHaveClass('bg-accent');
+    expect(screen.getByRole('img', { name: '20 % des Stundenbudgets verbraucht' }).querySelector('.budget-anteil')).toHaveClass('text-success');
+    expect(screen.getByRole('img', { name: '20 % des Stundenbudgets verbraucht' }).querySelector('.budget-anteil')).not.toHaveClass('text-accent');
   });
+});
+
+it('stellt die tatsächliche Budgetüberschreitung dar, ohne den Wert bei 100 Prozent zu kappen', async () => {
+  bestand = [summe({ minuten: 960 })];
+  zeige(projekt({ estimatedHours: 10 }));
+  expect(await screen.findByRole('img', { name: '160 % des Stundenbudgets verbraucht' })).toBeInTheDocument();
+  expect(screen.getByText('160 %')).toBeInTheDocument();
 });

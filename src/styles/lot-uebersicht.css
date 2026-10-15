@@ -10,20 +10,14 @@
  */
 @layer components {
   /* ── Kennzahlen (Auftrag 3.2, Punkt 2) ────────────────────────────────── */
-  .ue-kennzahlen { display: grid; grid-template-columns: minmax(0, 1fr); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
-  @media (min-width: 760px) { .ue-kennzahlen { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  .ue-kennzahl { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 2.75rem; padding: 0.625rem 1rem; border: 0; border-bottom: 1px solid var(--border); background: var(--surface); color: var(--text); text-align: left; cursor: pointer; }
-  .ue-kennzahl:hover { background: var(--petrol-hell); }
-  .ue-kennzahl-an { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 2.75rem; padding: 0.625rem 1rem; border: 0; border-bottom: 1px solid var(--border); background: var(--petrol-hell); color: var(--text); text-align: left; cursor: pointer; box-shadow: inset 0 -3px 0 var(--petrol); }
-  .ue-kennzahl-fest { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 0.625rem 1rem; background: var(--surface); color: var(--text); }
-  @media (min-width: 760px) {
-    .ue-kennzahl { border-bottom: 0; border-right: 1px solid var(--border); padding: 0.875rem 1.25rem; }
-    .ue-kennzahl-an { border-bottom: 0; border-right: 1px solid var(--border); padding: 0.875rem 1.25rem; }
-    .ue-kennzahl-fest { padding: 0.875rem 1.25rem; }
-  }
+  .ue-kennzahlen { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 1.5rem; border-block: 1px solid var(--border); padding: 0.5rem 0; }
+  .ue-kennzahl, .ue-kennzahl-an, .ue-kennzahl-fest { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.375rem 0.625rem; min-height: 2.75rem; padding: 0.5rem 0; border: 0; background: var(--surface); color: var(--text); text-align: left; }
+  .ue-kennzahl, .ue-kennzahl-an { cursor: pointer; }
+  .ue-kennzahl:hover { text-decoration: underline; text-underline-offset: 4px; }
+  .ue-kennzahl-an { box-shadow: inset 0 -2px 0 var(--petrol); }
   .ue-kennzahl-name { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
-  .ue-kennzahl-wert { font-size: 1.125rem; line-height: 1.5rem; font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  @media (min-width: 1200px) { .ue-kennzahl-wert { font-size: 1.375rem; line-height: 1.75rem; } }
+  .ue-kennzahl-wert { order: -1; font-size: 1.125rem; line-height: 1.5rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  @media (min-width: 1200px) { .ue-kennzahl-wert { order: -1; font-size: 1.375rem; line-height: 1.75rem; } }
   .ue-kennzahl-zusatz { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
 
   /* ── Steuerung: ‹ Titel ›, Suche, Monat | Woche (Auftrag 3.2, Punkt 3) ─ */
@@ -54,8 +48,8 @@
     Kopfzeile steht zuerst und hat keine. Kein `overflow: hidden` am Behälter:
     sonst bliebe die Kopfzeile beim Rollen nicht oben stehen.
   */
-  .ue-liste { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
-  .ue-liste-woche { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  .ue-liste { background: var(--surface); border-block: 1px solid var(--border); }
+  .ue-liste-woche { background: var(--surface); border-block: 1px solid var(--border); }
   /*
     AM HANDY NUR DIE TAGE (Testbericht Runde 5, G5): ohne Kopfzeile standen
     nur Kästchen da, „fehlt fehlt fehlt heute – –“, ohne Mo–So und ohne die
@@ -100,8 +94,8 @@
   .ue-name { display: block; max-width: 100%; font-weight: 600; color: var(--ink-deep); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ue-status { display: block; max-width: 100%; font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
   .ue-status-achtung { display: block; max-width: 100%; font-size: 0.8125rem; line-height: 1.125rem; font-weight: 600; color: var(--warning); }
-  .ue-zahl { margin: 0; font-size: 0.875rem; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .ue-zahl-stark { margin: 0; font-size: 0.875rem; font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ue-zahl { margin: 0; font-weight: var(--gewicht-zahl); font-size: 0.875rem; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ue-zahl-stark { margin: 0; font-size: 0.875rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
   @media (min-width: 760px) {
     .ue-zahl { text-align: right; font-size: 0.9375rem; }
     .ue-zahl-stark { text-align: right; font-size: 0.9375rem; }
@@ -211,8 +205,9 @@
   /* ── Seitenfenster „Person im Monat“ (Auftrag 3.5) ───────────────────── */
   .pf { display: flex; flex-direction: column; }
   .pf-ueber { margin: 0 0 0.75rem; font-size: 0.8125rem; color: var(--text-muted); }
-  .pf-kennzahlen { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin-top: 0.25rem; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-  .pf-kennzahl { min-width: 0; padding: 0.625rem 0.75rem; background: var(--surface); }
+  .pf-kennzahlen { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; margin-top: 0.25rem; padding-block: 1rem; border-block: 1px solid var(--border); }
+  .pf-kennzahl { min-width: 0; background: var(--surface); }
+  .pf-kennzahl-wert { margin-top: 0.375rem; font-size: 1.375rem; line-height: 1.75rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
   .pf-kennzahl-name { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
   .pf-kennzahl-text { margin-top: 0.375rem; font-size: 0.875rem; line-height: 1.25rem; color: var(--text-muted); }
   .pf-text { margin-top: 0.75rem; font-size: 0.875rem; line-height: 1.375rem; color: var(--text-muted); }
@@ -226,9 +221,9 @@
   .pf-zeile-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; }
   .pf-zeile-titel { font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pf-zeile-info { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-  .pf-zeile-wert { flex: none; font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pf-zeile-wert { flex: none; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pf-aktionen { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.25rem; margin-left: auto; }
-  .pf-summe { display: flex; justify-content: space-between; gap: 1rem; padding: 0.625rem 0.25rem; font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; }
+  .pf-summe { display: flex; justify-content: space-between; gap: 1rem; padding: 0.625rem 0.25rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; }
   /* Die Fussleiste bleibt beim Rollen unten im Fenster stehen. */
   .pf-fuss { position: sticky; bottom: 0; z-index: 1; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; padding: 0.75rem 0; background: var(--surface); border-top: 1px solid var(--border); }
   /*
@@ -239,4 +234,50 @@
   @media (min-width: 760px) { .pf-fuss { bottom: -1.25rem; margin: 1rem -1.25rem -1.25rem; padding: 0.75rem 1.25rem; } }
 
   /* ── Musterseite ─────────────────────────────────────────────────────── */
+}
+
+/* Der Einstieg vergleicht Personen; das Tagesraster bleibt ein eigener, gleichwertiger Blick. */
+@layer components {
+  .ue-vergleich { background: var(--surface); border-block: 1px solid var(--border); }
+  .ue-vergleich-kopf { display: none; }
+  .ue-vergleich-zeile { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; align-items: center; padding: 1rem; border-top: 1px solid var(--border); cursor: pointer; }
+  .ue-vergleich-zeile:hover { background: var(--surface-2); }
+  .ue-pruefstand, .ue-pruefstand-achtung { grid-column: 1 / -1; font-size: 0.8125rem; line-height: 1.375rem; color: var(--text-muted); }
+  .ue-pruefstand-achtung { color: var(--warning); }
+  .ue-vergleich-wahl { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; font-size: 0.8125rem; color: var(--text-muted); }
+  .ue-vergleich-wahl button { min-height: 2.75rem; }
+  .ue-vergleich .ue-name { white-space: normal; overflow: visible; }
+  .ue-vergleich .ue-gruppe { background: var(--surface); font-weight: 400; }
+  @media (min-width: 760px) {
+    .ue-vergleich-kopf, .ue-vergleich-zeile { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.6fr) repeat(3, minmax(4.5rem, 0.65fr)); gap: 0.875rem; padding: 1rem; }
+    .ue-vergleich-kopf { font-size: 0.75rem; color: var(--text-muted); }
+    .ue-pruefstand, .ue-pruefstand-achtung { grid-column: auto; }
+    .ue-vergleich .ue-person { grid-column: auto; }
+  }
+}
+
+@layer components {
+  .pf-nachweis-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 1rem; }
+  .pf-nachweis-kopf .pf-abschnitt { margin: 0; }
+  .pf-nachweis-kopf button { min-height: 2.75rem; }
+  .pk-monat { margin: 0.75rem 0 1rem; }
+  .pk-wochentage, .pk-tage { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.125rem; }
+  .pk-wochentage { padding-bottom: 0.5rem; text-align: center; font-size: 0.75rem; color: var(--text-muted); }
+  .pk-tag-ok, .pk-tag-grenze, .pk-tag-fehlt, .pk-tag-weg, .pk-tag-frei, .pk-tag-zukunft { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; min-width: 0; min-height: 3.75rem; padding: 0.375rem 0.125rem; border: 1px solid var(--border); border-radius: 0.25rem; background: var(--surface); color: var(--text); cursor: pointer; }
+  .pk-tag-grenze { border-bottom: 3px solid var(--danger); }
+  .pk-tag-fehlt { background: var(--warning-bg); color: var(--warning); }
+  .pk-tag-weg { background: var(--abwesend); color: var(--text-muted); }
+  .pk-tag-frei { background: var(--surface-2); color: var(--text-muted); }
+  .pk-tage button[aria-pressed='true'] { outline: 2px solid var(--petrol); outline-offset: -2px; }
+  .pk-datum { font-size: 0.875rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
+  .pk-wert { font-size: 0.625rem; line-height: 1rem; font-variant-numeric: tabular-nums; }
+}
+@layer components {
+  .ue-grenzhinweis { display: block; margin-top: 0.25rem; color: var(--warning); }
+}
+@layer components {
+  /* Am breiten Bildschirm ordnen die Spalten; die Vorlesehilfe behält den Namen an jedem Wert. */
+  @media (min-width: 760px) {
+    .ue-vergleich .ue-zahl-name { display: block; position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  }
 }

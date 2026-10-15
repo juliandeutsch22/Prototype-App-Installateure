@@ -47,7 +47,7 @@ export default function Gesamtsaldo({ profil, halbeTage }: { profil: AppUser; ha
   }
   return (
     <div data-testid="gesamtsaldo">
-      <p className="mt-1 text-xl font-semibold leading-none text-ink">{zeichen(Math.round(stand.saldoH * 60))}</p>
+      <p className="pf-kennzahl-wert text-ink">{zeichen(Math.round(stand.saldoH * 60))}</p>
       <p className="pf-kennzahl-text">
         seit {datumAT(profil.appStartDate)}
         {start !== 0 && <> · darin Start-Saldo {zeichen(Math.round(start * 60))}</>}

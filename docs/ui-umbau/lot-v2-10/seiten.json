@@ -1,0 +1,4876 @@
+[
+  {
+    "konzept": "anmelden",
+    "nr": 1,
+    "aufgabe": "Anmelden",
+    "bereich": "Zugang",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/auth/LoginPage.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Benutzername und E-Mail",
+      "Neutrale Fehlermeldung",
+      "Angemeldet bleiben",
+      "Rücksetzweg"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "passwort-vergessen",
+    "nr": 2,
+    "aufgabe": "Passwort zurücksetzen",
+    "bereich": "Zugang",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/auth/LoginPage.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Keine Auskunft, ob ein Konto existiert",
+      "Benutzerkonten erhalten keinen Mail-Link"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "passwort-setzen",
+    "nr": 3,
+    "aufgabe": "Eigenes Passwort vergeben",
+    "bereich": "Zugang",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/auth/PasswortAendern.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Passwortbestätigung",
+      "Bei normaler Änderung aktuelles Passwort",
+      "Kein Überspringen beim Startpasswort"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "passwort-aendern",
+    "nr": 4,
+    "aufgabe": "Passwort ändern",
+    "bereich": "Zugang",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/auth/PasswortAendern.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Passwortbestätigung",
+      "Bei normaler Änderung aktuelles Passwort",
+      "Kein Überspringen beim Startpasswort"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "zwei-faktor",
+    "nr": 5,
+    "aufgabe": "Zwei-Faktor-Anmeldung",
+    "bereich": "Zugang",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/auth/ZweiFaktorSeite.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "zwei-faktor-code",
+    "nr": 6,
+    "aufgabe": "Mit Wiederherstellungscode anmelden",
+    "bereich": "Zugang",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/auth/ZweiFaktorSeite.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "zwei-faktor-einrichten",
+    "nr": 7,
+    "aufgabe": "Zweiten Faktor einrichten",
+    "bereich": "Zugang",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/auth/ZweiFaktorEinrichten.tsx",
+      "src/features/settings/ZweiFaktorKarte.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "QR/Schlüssel nur für die angemeldete Person",
+      "Bestätigung vor Aktivierung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "wiederherstellungscodes",
+    "nr": 8,
+    "aufgabe": "Wiederherstellungscodes sichern",
+    "bereich": "Zugang",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/auth/ZweiFaktorEinrichten.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Codes bleiben bis zur ausdrücklichen Bestätigung sichtbar",
+      "Keine echten Codes im Entwurf"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "impressum",
+    "nr": 9,
+    "aufgabe": "Impressum",
+    "bereich": "Zugang",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/recht/ImpressumView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Öffentlich ohne Anmeldung erreichbar",
+      "Vollständiger Rechtstext aus dem Bestand",
+      "GEPRUEFT=false bleibt sichtbar; neue Gestaltung ersetzt keine rechtliche Freigabe",
+      "Wortlaut aus den bestehenden Abschnitten übernommen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "datenschutz",
+    "nr": 10,
+    "aufgabe": "Datenschutzerklärung",
+    "bereich": "Zugang",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/recht/DatenschutzView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Öffentlich ohne Anmeldung erreichbar",
+      "Vollständiger Rechtstext aus dem Bestand",
+      "GEPRUEFT=false bleibt sichtbar; neue Gestaltung ersetzt keine rechtliche Freigabe",
+      "Wortlaut aus den bestehenden Abschnitten übernommen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "heute",
+    "nr": 11,
+    "aufgabe": "Heute, Mittwoch",
+    "bereich": "Start",
+    "rollen": [
+      "Geschäftsführung"
+    ],
+    "quelle": [
+      "src/features/dashboard/DashboardView.tsx",
+      "src/features/dashboard/start/HeuteEigene.tsx",
+      "src/features/dashboard/start/HeuteLeitung.tsx",
+      "src/features/dashboard/start/Handlungsbedarf.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Rollenabhängiger Handlungsbedarf",
+      "Bestehende Ausfall- und Wartungshinweise",
+      "Keine Margen oder fremden Zeitkonten für Projektleitung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "heute-monteur",
+    "nr": 12,
+    "aufgabe": "Heute, Mittwoch",
+    "bereich": "Start",
+    "rollen": [
+      "Mitarbeiter"
+    ],
+    "quelle": [
+      "src/features/dashboard/DashboardView.tsx",
+      "src/features/dashboard/start/HeuteEigene.tsx",
+      "src/features/dashboard/start/HeuteLeitung.tsx",
+      "src/features/dashboard/start/Handlungsbedarf.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Rollenabhängiger Handlungsbedarf",
+      "Bestehende Ausfall- und Wartungshinweise",
+      "Keine Margen oder fremden Zeitkonten für Projektleitung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "heute-verwaltung",
+    "nr": 13,
+    "aufgabe": "Heute, Mittwoch",
+    "bereich": "Start",
+    "rollen": [
+      "Verwaltung"
+    ],
+    "quelle": [
+      "src/features/dashboard/DashboardView.tsx",
+      "src/features/dashboard/start/HeuteEigene.tsx",
+      "src/features/dashboard/start/HeuteLeitung.tsx",
+      "src/features/dashboard/start/Handlungsbedarf.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Rollenabhängiger Handlungsbedarf",
+      "Bestehende Ausfall- und Wartungshinweise",
+      "Keine Margen oder fremden Zeitkonten für Projektleitung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "heute-buchhaltung",
+    "nr": 14,
+    "aufgabe": "Heute, Mittwoch",
+    "bereich": "Start",
+    "rollen": [
+      "Buchhaltung"
+    ],
+    "quelle": [
+      "src/features/dashboard/DashboardView.tsx",
+      "src/features/dashboard/start/HeuteEigene.tsx",
+      "src/features/dashboard/start/HeuteLeitung.tsx",
+      "src/features/dashboard/start/Handlungsbedarf.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Rollenabhängiger Handlungsbedarf",
+      "Bestehende Ausfall- und Wartungshinweise",
+      "Keine Margen oder fremden Zeitkonten für Projektleitung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "heute-projektleitung",
+    "nr": 15,
+    "aufgabe": "Heute, Mittwoch",
+    "bereich": "Start",
+    "rollen": [
+      "Projektleiter"
+    ],
+    "quelle": [
+      "src/features/dashboard/DashboardView.tsx",
+      "src/features/dashboard/start/HeuteEigene.tsx",
+      "src/features/dashboard/start/HeuteLeitung.tsx",
+      "src/features/dashboard/start/Handlungsbedarf.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Rollenabhängiger Handlungsbedarf",
+      "Bestehende Ausfall- und Wartungshinweise",
+      "Keine Margen oder fremden Zeitkonten für Projektleitung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "heute-admin",
+    "nr": 16,
+    "aufgabe": "Heute, Mittwoch",
+    "bereich": "Start",
+    "rollen": [
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/dashboard/DashboardView.tsx",
+      "src/features/dashboard/start/HeuteEigene.tsx",
+      "src/features/dashboard/start/HeuteLeitung.tsx",
+      "src/features/dashboard/start/Handlungsbedarf.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Rollenabhängiger Handlungsbedarf",
+      "Bestehende Ausfall- und Wartungshinweise",
+      "Keine Margen oder fremden Zeitkonten für Projektleitung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "kunden",
+    "nr": 17,
+    "aufgabe": "Kunden",
+    "bereich": "Kunden",
+    "rollen": [
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/customers/CustomersView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Kundenpflegerecht je Benutzer",
+      "Dublettenprüfung",
+      "Import",
+      "Übernahme bestehender Baustellen",
+      "Verwaltung/Buchhaltung nur mit kundenPflegen; sonst lesend ohne Pflegeaktionen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "kunde-neu",
+    "nr": 18,
+    "aufgabe": "Neuer Kunde",
+    "bereich": "Kunden",
+    "rollen": [
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/customers/CustomersView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Kunden pflegen nur mit Berechtigung",
+      "Gleicher Name erfordert bewusste Bestätigung",
+      "Verwaltung/Buchhaltung nur mit kundenPflegen; sonst lesend ohne Pflegeaktionen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "kundenakte",
+    "nr": 19,
+    "aufgabe": "Hausverwaltung Sonnenhof",
+    "bereich": "Kunden",
+    "rollen": [
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/customers/KundenakteView.tsx",
+      "src/features/customers/UidVies.tsx",
+      "src/features/recht/Datenauskunft.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Rechnungen und Angebote nur nach Recht/Modul",
+      "UID-/VIES-Prüfstatus",
+      "Löschen und Deaktivieren getrennt",
+      "Datenauskunft"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "kunde-bearbeiten",
+    "nr": 20,
+    "aufgabe": "Kundenstammdaten bearbeiten",
+    "bereich": "Kunden",
+    "rollen": [
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/customers/KundenakteView.tsx",
+      "src/features/customers/UidVies.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Ungespeichert-Warnung",
+      "UID-Prüfung separat auslösbar",
+      "Aktive Bezüge verhindern unzulässiges Löschen",
+      "Verwaltung/Buchhaltung nur mit kundenPflegen; sonst lesend ohne Pflegeaktionen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "kunden-import",
+    "nr": 21,
+    "aufgabe": "Kunden aus Datei übernehmen",
+    "bereich": "Kunden",
+    "rollen": [
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/customers/KundenImport.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Vorschau vor Übernahme",
+      "Vorhandene/fehlerhafte Zeilen getrennt",
+      "Teilresultate sichtbar",
+      "Verwaltung/Buchhaltung nur mit kundenPflegen; sonst lesend ohne Pflegeaktionen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "kunden-zuordnen",
+    "nr": 22,
+    "aufgabe": "Bestehende Baustellen zuordnen",
+    "bereich": "Kunden",
+    "rollen": [
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/customers/CustomersView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Erst Vorschau erstellen",
+      "Baustellenänderungsrecht bleibt gesondert"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "angebote",
+    "nr": 23,
+    "aufgabe": "Angebote",
+    "bereich": "Angebote",
+    "rollen": [
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/quotes/QuotesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Gruppen nach Arbeitsstand",
+      "Suche über alle",
+      "Versendet/Ablehnen/Entwurf löschen",
+      "PDF"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "angebot-neu",
+    "nr": 24,
+    "aufgabe": "Angebot erstellen",
+    "bereich": "Angebote",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/quotes/QuotesView.tsx",
+      "src/features/quotes/KatalogSuche.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Text- und Titelpositionen",
+      "Menge/Einheit/Einzelpreis/Rabatt",
+      "Arbeitszeit markierbar",
+      "Katalogartikel",
+      "Belegsumme und Steuer",
+      "Katalog direkt an den Positionen erreichbar"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "angebot-katalog",
+    "nr": 25,
+    "aufgabe": "Artikel ins Angebot übernehmen",
+    "bereich": "Angebote",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/quotes/KatalogSuche.tsx",
+      "src/features/quotes/QuotesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Suche und verfügbare Artikelpreise",
+      "Rückkehr zum unveränderten Entwurf"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "angebot-detail",
+    "nr": 26,
+    "aufgabe": "Angebot A-2026-0088",
+    "bereich": "Angebote",
+    "rollen": [
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/quotes/AngebotView.tsx",
+      "src/features/quotes/AbrechnungWahl.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Angenommenes Angebot nicht als veränderbarer Entwurf darstellen",
+      "PDF",
+      "Bestehende Baustelle verlinken",
+      "Neue Fassung nur für versendet/abgelehnt; Buchhaltung liest nur"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "angebot-annehmen",
+    "nr": 27,
+    "aufgabe": "Angebot annehmen",
+    "bereich": "Angebote",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/quotes/AngebotView.tsx",
+      "src/features/quotes/AbrechnungWahl.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestätigung vor verbindlicher Annahme",
+      "Pauschale oder Regie",
+      "Kein doppeltes Anlegen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "baustellen",
+    "nr": 28,
+    "aufgabe": "Baustellen",
+    "bereich": "Baustellen",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/projects/AdminProjectsView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Suche",
+      "Eigene/alle Baustellen",
+      "Status und Kundenbezug",
+      "Löschen bleibt geschützt"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "baustelle-neu",
+    "nr": 29,
+    "aufgabe": "Neue Baustelle",
+    "bereich": "Baustellen",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/projects/AdminProjectsView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Kunde und eindeutige Nummer",
+      "Abrechnungsart und Budget",
+      "Kontakt und geplante Laufzeit"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "baustelle",
+    "nr": 30,
+    "aufgabe": "Heizungstausch Sonnenhof",
+    "bereich": "Baustellen",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/projects/BaustellenakteView.tsx",
+      "src/features/projects/BaustellenUebersicht.tsx"
+    ],
+    "umsetzung": "gezielt überarbeitet und gemeinsame Bausteine",
+    "erhalten": [
+      "Team und Projektleitung",
+      "Angebot der Baustelle",
+      "Abrechnung/Budget",
+      "Warnungen zum Betriebsurlaub",
+      "Kunde/Rechnungszugriff nach Recht"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "baustelle-daten",
+    "nr": 31,
+    "aufgabe": "Baustellenstammdaten",
+    "bereich": "Baustellen",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/projects/BaustellenakteView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Warnung bei Nummernänderung",
+      "Ungespeicherte Angaben",
+      "Bisher zugeordnete deaktivierte Personen bleiben sichtbar"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "baustelle-dokumente",
+    "nr": 32,
+    "aufgabe": "Pläne und Dokumente",
+    "bereich": "Baustellen",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/projects/BaustellenPlaene.tsx",
+      "src/features/projects/PlaeneListe.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bürodokumente nur für berechtigte Rollen",
+      "Pläne für Monteure",
+      "Löschen mit Bestätigung",
+      "Download/Öffnen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "dokument-upload",
+    "nr": 33,
+    "aufgabe": "Dokument hinzufügen",
+    "bereich": "Baustellen",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/projects/BaustellenPlaene.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Dateiformat/-größe prüfen",
+      "Bürobeleg nicht versehentlich als Plan freigeben",
+      "Uploadfehler je Datei"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "dokument-vorschau",
+    "nr": 34,
+    "aufgabe": "Heizraum · Installationsplan",
+    "bereich": "Baustellen",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/projects/PlaeneListe.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Tatsächlichen Inhalt anzeigen",
+      "Fehler/abgelaufenen Zugriff verständlich melden"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "baustelle-scheine",
+    "nr": 35,
+    "aufgabe": "Handwerksscheine zur Baustelle",
+    "bereich": "Baustellen",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/projects/BaustellenScheine.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Alle Scheine der Baustelle",
+      "Entwurf/Unterschrieben/Verrechnet unterscheidbar"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "meine-baustellen",
+    "nr": 36,
+    "aufgabe": "Meine Baustellen",
+    "bereich": "Baustellen",
+    "rollen": [
+      "Mitarbeiter"
+    ],
+    "quelle": [
+      "src/features/projects/MyProjectsView.tsx",
+      "src/features/projects/PlaeneListe.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Teamzuordnung und Einteilung",
+      "Keine administrativen Stammdaten-/Margenaktionen",
+      "Kontakt vor Ort",
+      "Pläne"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "meine-plaene",
+    "nr": 37,
+    "aufgabe": "Pläne für Sonnenhof",
+    "bereich": "Baustellen",
+    "rollen": [
+      "Mitarbeiter"
+    ],
+    "quelle": [
+      "src/features/projects/MyProjectsView.tsx",
+      "src/features/projects/PlaeneListe.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nur freigegebene Teamdokumente",
+      "Keine Bürodokumente"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "termine",
+    "nr": 38,
+    "aufgabe": "Termine",
+    "bereich": "Planung",
+    "rollen": [
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/termine/TermineKarte.tsx",
+      "src/features/termine/TerminListe.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Schreibrecht nur Verwaltung/Leitung",
+      "Kunden-/Baustellenbezug",
+      "Terminarten"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "termin",
+    "nr": 39,
+    "aufgabe": "Termin planen",
+    "bereich": "Planung",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/termine/TerminFenster.tsx",
+      "src/features/termine/TerminFormular.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Baustellen- oder Kundenbezug",
+      "Teilnehmerauswahl",
+      "Lieferzeitfenster",
+      "Schreibrecht und Validierung aus TerminFormular.tsx"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "planung-woche",
+    "nr": 40,
+    "aufgabe": "Einsatzplanung",
+    "bereich": "Planung",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/assignments/WochenplanView.tsx",
+      "src/features/assignments/MonatsAnsicht.tsx",
+      "src/features/assignments/AssignmentsView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Personen-/Baustellenansicht",
+      "Tag/Woche/Monat",
+      "Abwesenheiten und Verfügbarkeit",
+      "Einteilung bearbeiten/löschen",
+      "Materialbedarf",
+      "Kalender-Abo"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "planung-monat",
+    "nr": 41,
+    "aufgabe": "Einsatzplanung",
+    "bereich": "Planung",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/assignments/WochenplanView.tsx",
+      "src/features/assignments/MonatsAnsicht.tsx",
+      "src/features/assignments/AssignmentsView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Personen-/Baustellenansicht",
+      "Tag/Woche/Monat",
+      "Abwesenheiten und Verfügbarkeit",
+      "Einteilung bearbeiten/löschen",
+      "Materialbedarf",
+      "Kalender-Abo"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "planung-tag",
+    "nr": 42,
+    "aufgabe": "Einsatzplanung",
+    "bereich": "Planung",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/assignments/WochenplanView.tsx",
+      "src/features/assignments/MonatsAnsicht.tsx",
+      "src/features/assignments/AssignmentsView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Personen-/Baustellenansicht",
+      "Tag/Woche/Monat",
+      "Abwesenheiten und Verfügbarkeit",
+      "Einteilung bearbeiten/löschen",
+      "Materialbedarf",
+      "Kalender-Abo"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "planung-einsatz",
+    "nr": 43,
+    "aufgabe": "Einsatz planen",
+    "bereich": "Planung",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/assignments/EinsatzFenster.tsx",
+      "src/features/assignments/EinsatzFormular.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Doppelbelegung",
+      "Lehrlinge korrekt einstufen",
+      "Gespeicherte Einteilung bleibt bei Fehler sichtbar"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "ruestliste-planen",
+    "nr": 44,
+    "aufgabe": "Material für den Einsatz",
+    "bereich": "Planung",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/assignments/RuestlistePlanen.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Lagerreservierung und freie Zeilen getrennt",
+      "Mengenprüfung",
+      "Rüstliste bucht keinen Lagerbestand; Anforderung und Abholung bleiben eigene Vorgänge"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "ruestliste-abhaken",
+    "nr": 45,
+    "aufgabe": "Material zum Einsatz",
+    "bereich": "Planung",
+    "rollen": [
+      "Mitarbeiter",
+      "Projektleiter"
+    ],
+    "quelle": [
+      "src/features/assignments/RuestlisteAbhaken.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nur eigener Einsatz",
+      "Bestandswirkung nicht doppelt auslösen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "mein-plan",
+    "nr": 46,
+    "aufgabe": "Mein Einsatzplan",
+    "bereich": "Planung",
+    "rollen": [
+      "Mitarbeiter",
+      "Projektleiter"
+    ],
+    "quelle": [
+      "src/features/assignments/MyScheduleView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Vergangene/nächste Einsätze und Termine",
+      "Kalender nur nach Betriebsschalter",
+      "Projektleitung nur wenn einplanbar freigegeben"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "team-woche",
+    "nr": 47,
+    "aufgabe": "Team-Woche",
+    "bereich": "Planung",
+    "rollen": [
+      "Mitarbeiter",
+      "Projektleiter"
+    ],
+    "quelle": [
+      "src/features/assignments/TeamWoche.tsx",
+      "src/features/assignments/WochenplanView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nur bei wochenplanFuerAlle",
+      "Abwesend ohne Grund",
+      "Keine Planungsaktionen",
+      "Datenbank-Sichtbarkeit bleibt gleich"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "kalender-abo",
+    "nr": 48,
+    "aufgabe": "Im eigenen Kalender",
+    "bereich": "Planung",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/assignments/KalenderAboKarte.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Betriebsschalter",
+      "Geheimen Link nicht öffentlich zeigen",
+      "Widerruf bleibt erreichbar"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "scheine",
+    "nr": 49,
+    "aufgabe": "Handwerksscheine",
+    "bereich": "Scheine",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/worksheets/WorkSheetsListView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Schreibrolle getrennt von Leserechten",
+      "Entwurf weiterbearbeiten",
+      "PDF",
+      "Verwerfen mit Pflichtgrund",
+      "Zeitnachtrag"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "schein-detail",
+    "nr": 50,
+    "aufgabe": "Handwerksschein 0318",
+    "bereich": "Scheine",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/worksheets/WorkSheetsListView.tsx",
+      "src/features/worksheets/Schrittfolge.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Unterschriebene Scheine unveränderbar",
+      "PDF mit vollständigen Nachweisen",
+      "Abrechnung nur mit Rechnungsrecht"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "schein-zeiten",
+    "nr": 51,
+    "aufgabe": "Handwerksschein – Entwurf",
+    "bereich": "Scheine",
+    "rollen": [
+      "Mitarbeiter",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/worksheets/WorkSheetView.tsx",
+      "src/features/worksheets/LeistungszeitErfassen.tsx",
+      "src/features/worksheets/Schrittfolge.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Entwurf bleibt beim Schrittwechsel erhalten",
+      "Mehrere Leistungszeiten",
+      "Kein doppeltes Buchen ins Zeitkonto"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "schein-material",
+    "nr": 52,
+    "aufgabe": "Material erfassen",
+    "bereich": "Scheine",
+    "rollen": [
+      "Mitarbeiter",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/worksheets/MaterialErfassen.tsx",
+      "src/features/worksheets/WorkSheetView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Lagerartikel/freie Zeilen",
+      "Bestand/Reservierung",
+      "Einheiten und Nachkommastellen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "schein-fotos",
+    "nr": 53,
+    "aufgabe": "Fotos zum Schein",
+    "bereich": "Scheine",
+    "rollen": [
+      "Mitarbeiter",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/worksheets/WorkSheetView.tsx",
+      "src/features/worksheets/Fotostreifen.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Kamera und Dateiauswahl",
+      "Bild entfernen",
+      "Upload läuft/Fehler/offline",
+      "Fotos optional nach bestehender Regel"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "schein-unterschrift",
+    "nr": 54,
+    "aufgabe": "Leistung bestätigen",
+    "bereich": "Scheine",
+    "rollen": [
+      "Mitarbeiter",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/worksheets/WorkSheetView.tsx",
+      "src/features/worksheets/Schrittfolge.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Zusammenfassung vor Unterschriften",
+      "Beide Signaturen",
+      "Danach unveränderbar",
+      "Offene Uploads blockieren Abschluss korrekt"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "schein-verwerfen",
+    "nr": 55,
+    "aufgabe": "Entwurf verwerfen",
+    "bereich": "Scheine",
+    "rollen": [
+      "Mitarbeiter",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/worksheets/WorkSheetsListView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Pflichtgrund",
+      "Kein Löschen unterschriebener Leistung",
+      "Verworfene weiterhin auffindbar"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "schein-zeit-nachtragen",
+    "nr": 56,
+    "aufgabe": "Stunden ohne Zeitbuchung",
+    "bereich": "Scheine",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/worksheets/WorkSheetsListView.tsx",
+      "src/features/worksheets/fehlendeZeitbuchung.ts"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Scheinleistung und Zeitkonto getrennt",
+      "Vor Nachtrag auf vorhandene Buchungen prüfen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "material",
+    "nr": 57,
+    "aufgabe": "Material anfordern",
+    "bereich": "Material",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator",
+      "Mitarbeiter"
+    ],
+    "quelle": [
+      "src/features/orders/OrderView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Katalog und freie Bezeichnung",
+      "Menge/Einheit",
+      "Eilzustellung",
+      "Bestellnotiz",
+      "Retoure"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "material-warenkorb",
+    "nr": 58,
+    "aufgabe": "Anforderung prüfen",
+    "bereich": "Material",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator",
+      "Mitarbeiter"
+    ],
+    "quelle": [
+      "src/features/orders/OrderView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bearbeiten/Entfernen im Warenkorb",
+      "Keine Einkaufspreise ohne Recht",
+      "Fachlicher Status erst nach erfolgreichem Absenden"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "material-meine",
+    "nr": 59,
+    "aufgabe": "Meine Anforderungen",
+    "bereich": "Material",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator",
+      "Mitarbeiter"
+    ],
+    "quelle": [
+      "src/features/orders/OrderView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Abholbereit/Bestellt/Erledigt",
+      "Abholung bestätigen",
+      "Als eilig markieren",
+      "Rückgabe Zustand/Bezug"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "anforderung-abholen",
+    "nr": 60,
+    "aufgabe": "Material abholen",
+    "bereich": "Material",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator",
+      "Mitarbeiter"
+    ],
+    "quelle": [
+      "src/features/orders/OrderView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestätigung und Bestandswirkung bleiben genau einmal"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "material-retoure",
+    "nr": 61,
+    "aufgabe": "Material zurückgeben",
+    "bereich": "Material",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator",
+      "Mitarbeiter"
+    ],
+    "quelle": [
+      "src/features/orders/OrderView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Menge/Zustand",
+      "Keine automatische Lagerfreigabe vor Prüfung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "anforderungen",
+    "nr": 62,
+    "aufgabe": "Anforderungen",
+    "bereich": "Material",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/AdminOrdersView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Baustellenfilter",
+      "Eilige/überfällige/abholbereite Anforderungen",
+      "Sammelaktionen und Teilfehler",
+      "Statusaktionen je Eintrag"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "anforderung-detail",
+    "nr": 63,
+    "aufgabe": "Anforderung bearbeiten",
+    "bereich": "Material",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/AdminOrdersView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestellen/Liefern/Abholbereit/Abschließen nur passend zum Status",
+      "Lagerreservierung bleibt korrekt"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "einkauf",
+    "nr": 64,
+    "aufgabe": "Einkaufsliste",
+    "bereich": "Material",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/Einkaufsliste.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nach Lieferant gruppieren",
+      "Bestell-PDF",
+      "Als bestellt markieren",
+      "Liefertermin ändern",
+      "Freier Zusatzartikel"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "einkauf-bestellen",
+    "nr": 65,
+    "aufgabe": "Bestellung festhalten",
+    "bereich": "Material",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/Einkaufsliste.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bewusste Bestätigung",
+      "Bestellaktion versendet nicht automatisch eine E-Mail",
+      "Liefertermin optional"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "einkauf-hinzufuegen",
+    "nr": 66,
+    "aufgabe": "Material dazusetzen",
+    "bereich": "Material",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/Einkaufsliste.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "grosshaendler",
+    "nr": 67,
+    "aufgabe": "Großhändler",
+    "bereich": "Material",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/Einkaufsliste.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "retouren",
+    "nr": 68,
+    "aufgabe": "Retouren prüfen",
+    "bereich": "Material",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/AdminOrdersView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Einlagern oder ausscheiden",
+      "Keine ungeprüften Retouren im verfügbaren Lager"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "retoure-pruefen",
+    "nr": 69,
+    "aufgabe": "Retoure prüfen",
+    "bereich": "Material",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/AdminOrdersView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Zustand und Bestandsbewegung nachvollziehbar"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "anforderungen-archiv",
+    "nr": 70,
+    "aufgabe": "Erledigte Anforderungen",
+    "bereich": "Material",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/AdminOrdersView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Historie bleibt suchbar",
+      "Löschen mit bestehender Bestätigung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "lager",
+    "nr": 71,
+    "aufgabe": "Lager",
+    "bereich": "Lager",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/StockView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestand/frei/reserviert getrennt",
+      "Knapp-Filter",
+      "Buchungen mit Grund/Bezug",
+      "Einkaufspreise nur mit Recht"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "lager-artikel",
+    "nr": 72,
+    "aufgabe": "Pressfitting Bogen 16 mm",
+    "bereich": "Lager",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/StockView.tsx",
+      "src/features/orders/LagerDialoge.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bewegungstypen nicht als identische Bestandsabgänge darstellen",
+      "Negativer/Reservierter Bestand transparent",
+      "Bestand 8 minus reserviert 6 = frei 2; diese Zahlen gelten für den gezeigten Artikel"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "wareneingang",
+    "nr": 73,
+    "aufgabe": "Wareneingang buchen",
+    "bereich": "Lager",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/LagerDialoge.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Lieferant Pflicht",
+      "Freier Lieferant möglich",
+      "Mengen-/Einheitenprüfung",
+      "Bewegungsprotokoll"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "inventur",
+    "nr": 74,
+    "aufgabe": "Inventur erfassen",
+    "bereich": "Lager",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/LagerDialoge.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Gezählter Bestand statt Zu-/Abgang",
+      "Pflichtgrund",
+      "Reservierungen berücksichtigen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "lager-bewegungen",
+    "nr": 75,
+    "aufgabe": "Lagerbewegungen",
+    "bereich": "Lager",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/LagerDialoge.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Verlauf chronologisch",
+      "Lieferant/Lieferschein/Bestellbezug",
+      "Mehr anzeigen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "katalog",
+    "nr": 76,
+    "aufgabe": "Materialkatalog",
+    "bereich": "Lager",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/MaterialCatalog.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Kategorien/Warengruppen",
+      "Lagerführung",
+      "Verkaufs-/Einkaufspreise getrennt",
+      "Importrecht"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "katalog-artikel",
+    "nr": 77,
+    "aufgabe": "Material bearbeiten",
+    "bereich": "Lager",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/MaterialCatalog.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Anfangsbestand nicht als freie Bestandsänderung missbrauchen",
+      "Einkauf nur für Berechtigte"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "katalog-import",
+    "nr": 78,
+    "aufgabe": "Katalog einspielen",
+    "bereich": "Lager",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator",
+      "Verwaltung"
+    ],
+    "quelle": [
+      "src/features/materials/KatalogImport.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Freigabe katalogEinspielen",
+      "Lieferant wählen",
+      "Mapping abweichender Felder",
+      "Vorschau/Probelauf/Übernahme getrennt",
+      "Resultat neu/aktualisiert/ausgelaufen/ohne Preis"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "katalog-import-vorschau",
+    "nr": 79,
+    "aufgabe": "Katalogimport prüfen",
+    "bereich": "Lager",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator",
+      "Verwaltung"
+    ],
+    "quelle": [
+      "src/features/materials/KatalogImport.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Freigabe katalogEinspielen",
+      "Lieferant wählen",
+      "Mapping abweichender Felder",
+      "Vorschau/Probelauf/Übernahme getrennt",
+      "Resultat neu/aktualisiert/ausgelaufen/ohne Preis"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "katalog-import-ergebnis",
+    "nr": 80,
+    "aufgabe": "Ergebnis des Katalogimports",
+    "bereich": "Lager",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator",
+      "Verwaltung"
+    ],
+    "quelle": [
+      "src/features/materials/KatalogImport.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Freigabe katalogEinspielen",
+      "Lieferant wählen",
+      "Mapping abweichender Felder",
+      "Vorschau/Probelauf/Übernahme getrennt",
+      "Resultat neu/aktualisiert/ausgelaufen/ohne Preis"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnungen",
+    "nr": 81,
+    "aufgabe": "Rechnungen",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/InvoicesView.tsx",
+      "src/features/invoices/RechnungsListe.tsx",
+      "src/features/invoices/RechnungDetail.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Alle bisherigen Filter/Status",
+      "Nicht verrechnete Leistung",
+      "Mahnlauf",
+      "Suche über alle",
+      "Beleg- und Stornoaktionen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnung-detail",
+    "nr": 82,
+    "aufgabe": "Rechnung RE-2026-0234",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/RechnungDetail.tsx",
+      "src/features/invoices/InvoicesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Teilzahlungen/Rückzahlungen",
+      "Guthaben",
+      "Rabatt/Skonto/Rücklass",
+      "Mahnverlauf",
+      "Stornobelege"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnungen-lesen",
+    "nr": 83,
+    "aufgabe": "Rechnungen meiner Baustellen",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Projektleiter"
+    ],
+    "quelle": [
+      "src/features/invoices/RechnungenLesen.tsx",
+      "src/features/invoices/RechnungenSeite.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nur mit rechnungenLesen",
+      "Nur eigene Baustellen",
+      "Keine Erstell-/Zahlungs-/Stornoaktionen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnung-neu",
+    "nr": 84,
+    "aufgabe": "Rechnung vorbereiten",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/InvoicesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Regie/Pauschale/Anzahlung/Teil/Schluss",
+      "Scheinabgleich",
+      "Konditionen aus Bestand",
+      "Keine Nummernvergabe vor Erstellung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnung-vorschau",
+    "nr": 85,
+    "aufgabe": "Rechnung prüfen",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/InvoicesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nummernprüfung und Empfänger-/Firmensperren",
+      "Material-/Leistungspositionen bearbeitbar nach Bestandsregeln",
+      "Reverse Charge nur bei gültigen Voraussetzungen",
+      "Skonto/Rabatt/Rücklass",
+      "Serverwerte maßgeblich"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnung-anzahlung",
+    "nr": 86,
+    "aufgabe": "Anzahlungsrechnung vorbereiten",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/InvoicesView.tsx",
+      "src/features/invoices/anzahlung.ts",
+      "src/features/invoices/vorrechnungen.ts"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Betriebsfreigabe für Teil-/Schlussrechnungen",
+      "Keine doppelte Verrechnung",
+      "Vorbelege und Anzahlungsabzüge",
+      "Kein neuer Berechnungsweg"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnung-teil",
+    "nr": 87,
+    "aufgabe": "Teilrechnung vorbereiten",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/InvoicesView.tsx",
+      "src/features/invoices/anzahlung.ts",
+      "src/features/invoices/vorrechnungen.ts"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Betriebsfreigabe für Teil-/Schlussrechnungen",
+      "Keine doppelte Verrechnung",
+      "Vorbelege und Anzahlungsabzüge",
+      "Kein neuer Berechnungsweg"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnung-schluss",
+    "nr": 88,
+    "aufgabe": "Schlussrechnung vorbereiten",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/InvoicesView.tsx",
+      "src/features/invoices/anzahlung.ts",
+      "src/features/invoices/vorrechnungen.ts"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Betriebsfreigabe für Teil-/Schlussrechnungen",
+      "Keine doppelte Verrechnung",
+      "Vorbelege und Anzahlungsabzüge",
+      "Kein neuer Berechnungsweg"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "zahlung",
+    "nr": 89,
+    "aufgabe": "Zahlung zuordnen",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/InvoicesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Teilzahlung/Rückzahlung",
+      "Überzahlung als Guthaben",
+      "Skontobedingungen",
+      "Protokoll und Korrekturwege"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "mahnungen",
+    "nr": 90,
+    "aufgabe": "Mahnungen",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/InvoicesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Keine automatische Mahnung allein durch Datum",
+      "Zahlung/Frist prüfen",
+      "Nächste Mahnstufe je Rechnung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "mahnen",
+    "nr": 91,
+    "aufgabe": "Mahnung prüfen",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/InvoicesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Mahnspesen/Zinsen/Privatkunde-Firma",
+      "Archiviertes Mahn-PDF",
+      "Bewusste Erzeugung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "mahnlauf",
+    "nr": 92,
+    "aufgabe": "Mahnlauf prüfen",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/InvoicesView.tsx",
+      "src/features/invoices/mahnlauf.ts"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Einzeln auswählbar",
+      "Teilfehler pro Rechnung",
+      "Wiederholung erzeugt keine Doppelmahnung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnung-export",
+    "nr": 93,
+    "aufgabe": "Buchhaltungs-Export",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/InvoicesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende Formate unverändert",
+      "Konten-/Debitoren-/Steuercodeprüfung",
+      "Datumsbereich und Stornos"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "bankgarantie",
+    "nr": 94,
+    "aufgabe": "Rücklass durch Bankgarantie ablösen",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/BankgarantieDialog.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Rücklassberechnung unverändert",
+      "Gültigkeit und Nachweis"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnung-storno",
+    "nr": 95,
+    "aufgabe": "Rechnung stornieren",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/InvoicesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Je Zustand getrennte zulässige Aktion",
+      "BMD-/Belegarchiv bleibt nachvollziehbar",
+      "Bestätigung bleibt verbindlich"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnung-stornobeleg",
+    "nr": 96,
+    "aufgabe": "Stornorechnung ausstellen",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/InvoicesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Je Zustand getrennte zulässige Aktion",
+      "BMD-/Belegarchiv bleibt nachvollziehbar",
+      "Bestätigung bleibt verbindlich"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnung-storno-aufheben",
+    "nr": 97,
+    "aufgabe": "Storno aufheben",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/InvoicesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Je Zustand getrennte zulässige Aktion",
+      "BMD-/Belegarchiv bleibt nachvollziehbar",
+      "Bestätigung bleibt verbindlich"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "zeit",
+    "nr": 98,
+    "aufgabe": "Zeit erfassen",
+    "bereich": "Zeit",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/time/TimeView.tsx",
+      "src/features/time/TimeForm.tsx"
+    ],
+    "umsetzung": "gezielt überarbeitet und gemeinsame Bausteine",
+    "erhalten": [
+      "Alle Rollen eigene Zeit",
+      "Monteur immer volle Erfassung",
+      "Büro keine unnötigen Baustellen-/Zuschlagsfelder",
+      "Leitung kann erweitern",
+      "Jugendliche/Unterricht/Nachtzeitregeln",
+      "Abwesenheiten stunden-/tageweise"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "zeit-buero",
+    "nr": 99,
+    "aufgabe": "Zeit erfassen",
+    "bereich": "Zeit",
+    "rollen": [
+      "Verwaltung",
+      "Buchhaltung"
+    ],
+    "quelle": [
+      "src/features/time/TimeView.tsx",
+      "src/features/time/TimeForm.tsx"
+    ],
+    "umsetzung": "gezielt überarbeitet und gemeinsame Bausteine",
+    "erhalten": [
+      "Alle Rollen eigene Zeit",
+      "Monteur immer volle Erfassung",
+      "Büro keine unnötigen Baustellen-/Zuschlagsfelder",
+      "Leitung kann erweitern",
+      "Jugendliche/Unterricht/Nachtzeitregeln",
+      "Abwesenheiten stunden-/tageweise"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "zeit-erweitert",
+    "nr": 100,
+    "aufgabe": "Erweiterte Zeiterfassung",
+    "bereich": "Zeit",
+    "rollen": [
+      "Geschäftsführung"
+    ],
+    "quelle": [
+      "src/features/time/TimeView.tsx",
+      "src/features/time/TimeForm.tsx"
+    ],
+    "umsetzung": "gezielt überarbeitet und gemeinsame Bausteine",
+    "erhalten": [
+      "Alle Rollen eigene Zeit",
+      "Monteur immer volle Erfassung",
+      "Büro keine unnötigen Baustellen-/Zuschlagsfelder",
+      "Leitung kann erweitern",
+      "Jugendliche/Unterricht/Nachtzeitregeln",
+      "Abwesenheiten stunden-/tageweise"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "zeit-eintraege",
+    "nr": 101,
+    "aufgabe": "Meine Einträge",
+    "bereich": "Zeit",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/time/TimeView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Ändern/Löschen nur im erlaubten Zeitraum",
+      "Zukünftige Einträge",
+      "Fehlende Tage nicht als Nullstunden tarnen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "zeit-bearbeiten",
+    "nr": 102,
+    "aufgabe": "Zeitbuchung bearbeiten",
+    "bereich": "Zeit",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/time/TimeView.tsx",
+      "src/features/time/TimeForm.tsx"
+    ],
+    "umsetzung": "gezielt überarbeitet und gemeinsame Bausteine",
+    "erhalten": [
+      "Bearbeitungsvermerk nach Bestand",
+      "Fremdbuchung nur mit Korrekturrecht",
+      "Löschen bestätigt"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "zeit-aufteilen",
+    "nr": 103,
+    "aufgabe": "Zeit auf Baustellen aufteilen",
+    "bereich": "Zeit",
+    "rollen": [
+      "Mitarbeiter",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/time/AufteilenDialog.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Summe muss ursprünglicher Zeit entsprechen",
+      "Keine doppelten Stunden"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "zeit-gespeichert",
+    "nr": 104,
+    "aufgabe": "Zeit erfassen",
+    "bereich": "Zeit",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/time/TimeView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nur tatsächlichen Servererfolg als gespeichert anzeigen",
+      "Offline separat als wartet kennzeichnen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "urlaub",
+    "nr": 105,
+    "aufgabe": "Urlaub",
+    "bereich": "Urlaub",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/VacationsView.tsx",
+      "src/features/vacations/FreistellungListe.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Jede Rolle eigener Antrag",
+      "Sonderurlaub/Pflege/unbezahlt",
+      "Betriebsurlaub/Übertrag/Verfall",
+      "Eigene Krankmeldungen ändern"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "urlaub-antrag",
+    "nr": 106,
+    "aufgabe": "Urlaub beantragen",
+    "bereich": "Urlaub",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/VacationsView.tsx",
+      "src/features/vacations/FreistellungFormular.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Überschneidungen prüfen",
+      "Teilzeit/halbe Tage",
+      "Resturlaub im richtigen Urlaubsjahr",
+      "Unbezahlter Urlaub nur Spitze entscheidet",
+      "Sonderurlaub bestätigen statt Ermessensurlaub"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "za-antrag",
+    "nr": 107,
+    "aufgabe": "Zeitausgleich beantragen",
+    "bereich": "Urlaub",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/VacationsView.tsx",
+      "src/features/vacations/FreistellungFormular.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Überschneidungen prüfen",
+      "Teilzeit/halbe Tage",
+      "Resturlaub im richtigen Urlaubsjahr",
+      "Unbezahlter Urlaub nur Spitze entscheidet",
+      "Sonderurlaub bestätigen statt Ermessensurlaub"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "sonderurlaub",
+    "nr": 108,
+    "aufgabe": "Sonderurlaub beantragen",
+    "bereich": "Urlaub",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/VacationsView.tsx",
+      "src/features/vacations/FreistellungFormular.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Überschneidungen prüfen",
+      "Teilzeit/halbe Tage",
+      "Resturlaub im richtigen Urlaubsjahr",
+      "Unbezahlter Urlaub nur Spitze entscheidet",
+      "Sonderurlaub bestätigen statt Ermessensurlaub"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "pflegefreistellung",
+    "nr": 109,
+    "aufgabe": "Pflegefreistellung beantragen",
+    "bereich": "Urlaub",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/VacationsView.tsx",
+      "src/features/vacations/FreistellungFormular.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Überschneidungen prüfen",
+      "Teilzeit/halbe Tage",
+      "Resturlaub im richtigen Urlaubsjahr",
+      "Unbezahlter Urlaub nur Spitze entscheidet",
+      "Sonderurlaub bestätigen statt Ermessensurlaub"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "unbezahlter-urlaub",
+    "nr": 110,
+    "aufgabe": "Unbezahlten Urlaub beantragen",
+    "bereich": "Urlaub",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/VacationsView.tsx",
+      "src/features/vacations/FreistellungFormular.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Überschneidungen prüfen",
+      "Teilzeit/halbe Tage",
+      "Resturlaub im richtigen Urlaubsjahr",
+      "Unbezahlter Urlaub nur Spitze entscheidet",
+      "Sonderurlaub bestätigen statt Ermessensurlaub"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "urlaub-detail",
+    "nr": 111,
+    "aufgabe": "Urlaubsantrag",
+    "bereich": "Urlaub",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/AntragFenster.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Zurückziehen nur erlaubt/offen",
+      "Genehmigter Urlaub nur nach Rechten ändern"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "urlaub-entscheiden",
+    "nr": 112,
+    "aufgabe": "Offene Anträge",
+    "bereich": "Urlaub",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/VacationsView.tsx",
+      "src/features/vacations/FreistellungenBestaetigen.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Genehmiger betrieblich konfiguriert",
+      "Eigene Anträge nicht beiläufig selbst genehmigen",
+      "Älteste zuerst",
+      "Sonderurlaub/Pflege separat bestätigen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "urlaub-entscheidung",
+    "nr": 113,
+    "aufgabe": "Antrag entscheiden",
+    "bereich": "Urlaub",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/VacationsView.tsx",
+      "src/features/vacations/FreistellungenBestaetigen.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Entscheidungsrecht geprüft",
+      "Kein neuer Kapazitäts-/Anspruchsalgorithmus",
+      "Fehlende Auskunft als unbekannt anzeigen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "krank-melden",
+    "nr": 114,
+    "aufgabe": "Krank melden",
+    "bereich": "Urlaub",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/Krankmeldungen.tsx",
+      "src/features/vacations/VacationsView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Krankmeldung ist kein Urlaubsantrag",
+      "Keine Diagnose abfragen",
+      "Ende ändern/Löschen nach Recht"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "krankenstaende",
+    "nr": 115,
+    "aufgabe": "Krankenstände",
+    "bereich": "Urlaub",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/Krankmeldungen.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Gesundheitsdaten nicht an Projektleitung/Team",
+      "Ende ändern und Löschen bestätigt"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "krank-buero",
+    "nr": 116,
+    "aufgabe": "Krankmeldung erfassen",
+    "bereich": "Urlaub",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/Krankmeldungen.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "betriebsurlaub",
+    "nr": 117,
+    "aufgabe": "Betriebsurlaub",
+    "bereich": "Urlaub",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/BetriebsurlaubReiter.tsx",
+      "src/features/vacations/UrlaubMonat.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Ausnahmen je Mitarbeiter",
+      "Abbuchung je Urlaubsjahr",
+      "Halbe Feiertage",
+      "Löschen mit Bestätigung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "betriebsurlaub-neu",
+    "nr": 118,
+    "aufgabe": "Betriebsurlaub anlegen",
+    "bereich": "Urlaub",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/BetriebsurlaubReiter.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Ausnahmen sichtbar wählen",
+      "Vor Anlage Auswirkung prüfen",
+      "Bestehende Überschneidungsregeln"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "mitarbeiter-monat",
+    "nr": 119,
+    "aufgabe": "Mitarbeiterübersicht",
+    "bereich": "Auswertung",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/accounting/AccountingView.tsx",
+      "src/features/accounting/UebersichtListe.tsx",
+      "src/features/accounting/Streifen.tsx"
+    ],
+    "umsetzung": "gezielt überarbeitet und gemeinsame Bausteine",
+    "erhalten": [
+      "Ist/Soll/Saldo getrennt",
+      "Fehlende Tage/Arbeitszeitgrenzen",
+      "Zeitkonto nur für berechtigte Personen",
+      "Kein Zeitkonto für Administration",
+      "Support ohne sensible Tagesdetails"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "mitarbeiter-woche",
+    "nr": 120,
+    "aufgabe": "Mitarbeiterübersicht",
+    "bereich": "Auswertung",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/accounting/AccountingView.tsx",
+      "src/features/accounting/UebersichtListe.tsx",
+      "src/features/accounting/Streifen.tsx"
+    ],
+    "umsetzung": "gezielt überarbeitet und gemeinsame Bausteine",
+    "erhalten": [
+      "Ist/Soll/Saldo getrennt",
+      "Fehlende Tage/Arbeitszeitgrenzen",
+      "Zeitkonto nur für berechtigte Personen",
+      "Kein Zeitkonto für Administration",
+      "Support ohne sensible Tagesdetails"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "mitarbeiter-person",
+    "nr": 121,
+    "aufgabe": "Max Mustermann",
+    "bereich": "Auswertung",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/accounting/PersonFenster.tsx",
+      "src/features/accounting/Gesamtsaldo.tsx",
+      "src/features/accounting/ArbeitszeitGrenzenKarte.tsx"
+    ],
+    "umsetzung": "gezielt überarbeitet und gemeinsame Bausteine",
+    "erhalten": [
+      "Gesamtsaldo vs Monatssaldo",
+      "Arbeitszeitgrenzen",
+      "Unterricht/Jugendliche",
+      "Fremdkorrektur mit Vermerk"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "stunden-export",
+    "nr": 122,
+    "aufgabe": "Stundenbericht exportieren",
+    "bereich": "Auswertung",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/accounting/ExportDialog.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende PDF-/CSV-Berechnungen",
+      "Zeitraum und Person",
+      "Personen ohne Zeitkonto korrekt behandeln"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "stunden-baustellen",
+    "nr": 123,
+    "aufgabe": "Stunden je Baustelle",
+    "bereich": "Auswertung",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/accounting/ProjectSummary.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Gewählter Zeitraum",
+      "Gesamtstunden aller berechtigten Buchungen",
+      "Keine Margen offenlegen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "nachkalkulation",
+    "nr": 124,
+    "aufgabe": "Nachkalkulation",
+    "bereich": "Auswertung",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/costing/NachkalkulationView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nur Spitze",
+      "Kostensätze fehlen sichtbar",
+      "Mit Verlust/zu prüfen/ohne Erlös",
+      "Keine erfundenen Margen bei fehlenden Daten"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "nachkalkulation-detail",
+    "nr": 125,
+    "aufgabe": "Ergebnis Sonnenhof",
+    "bereich": "Auswertung",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/costing/NachkalkulationView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Kostenhistorie und Datenqualität",
+      "Keine neue Kalkulation",
+      "Helferstunden/Budget zählen wie bisher"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "benutzer",
+    "nr": 126,
+    "aufgabe": "Benutzerverwaltung",
+    "bereich": "Benutzer",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/users/UserMgmtView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Gruppierung nach Rolle",
+      "Administratoren nur durch Admin ändern",
+      "Zeitkonto nicht allein aus Rolle ableiten"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "benutzer-neu",
+    "nr": 127,
+    "aufgabe": "Benutzer anlegen",
+    "bereich": "Benutzer",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/users/UserMgmtView.tsx",
+      "src/features/users/EinstufungFelder.tsx",
+      "src/features/users/TagessollFelder.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Benutzername benötigt Startpasswort statt Mail",
+      "Neueinstellung vs bestehender Mitarbeiter",
+      "Aliquoter Erstjahresurlaub",
+      "Lehrbeginn/-zeit/Budgetzählung",
+      "Kein neues Adminrecht für GF"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "benutzerakte",
+    "nr": 128,
+    "aufgabe": "Max Mustermann",
+    "bereich": "Benutzer",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/users/BenutzerakteView.tsx",
+      "src/features/users/GeburtsdatumKarte.tsx",
+      "src/features/users/UrlaubsanspruchKarte.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Geburtsdatum vertraulich",
+      "Start-Saldo und Gültigkeit",
+      "Kontoänderung und Zugang getrennt"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "benutzer-daten",
+    "nr": 129,
+    "aufgabe": "Benutzerdaten bearbeiten",
+    "bereich": "Benutzer",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/users/BenutzerakteView.tsx",
+      "src/features/users/EinstufungFelder.tsx",
+      "src/features/users/TagessollFelder.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Zusatzrechte nur für passende Rollen",
+      "Zeitkonto der GF personenspezifisch",
+      "Tagessoll/Wochentage",
+      "Ungespeicherte Änderungen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "benutzer-zugang",
+    "nr": 130,
+    "aufgabe": "Zugang von Max Mustermann",
+    "bereich": "Benutzer",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/users/BenutzerakteView.tsx",
+      "src/features/users/KontoUmstellen.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bei E-Mail Passwort-Mail statt Startpasswort",
+      "Eigener Zugang unter Mein Konto",
+      "Letzter Administrator geschützt"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "startpasswort",
+    "nr": 131,
+    "aufgabe": "Neues Startpasswort vergeben",
+    "bereich": "Benutzer",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/users/BenutzerakteView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestätigung",
+      "Kennwort nur einmal zeigen und nicht loggen",
+      "Kein echter Zugang im Konzept"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "konto-umstellen",
+    "nr": 132,
+    "aufgabe": "Anmeldeart umstellen",
+    "bereich": "Benutzer",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/users/KontoUmstellen.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Identität bleibt bestehen",
+      "Passwortübergabe und Wirkung ausdrücklich zeigen",
+      "Kein stiller Identitätswechsel"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "urlaubsanspruch",
+    "nr": 133,
+    "aufgabe": "Urlaubsanspruch anpassen",
+    "bereich": "Benutzer",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/users/UrlaubsanspruchKarte.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Anpassung entfernen nur mit Bestätigung",
+      "Urlaubsjahr getrennt",
+      "Kein stilles Überschreiben des Grundanspruchs"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "einstellungen",
+    "nr": 134,
+    "aufgabe": "Einstellungen",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/EinstellungenUebersicht.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Unterseiten und Adressen",
+      "Sichtbarkeit je Rolle",
+      "Einrichtungsstand unbekannt nicht als erledigt"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "konto",
+    "nr": 135,
+    "aufgabe": "Mein Konto",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/NotificationSettings.tsx",
+      "src/features/settings/ZweiFaktorKarte.tsx",
+      "src/features/settings/PushStatus.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nur rollenpassende Meldungsthemen",
+      "Push pro Gerät",
+      "Passwort und MFA getrennt",
+      "Zwei-Faktor-Pflicht nur berechtigte Spitze setzt sie"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "push-einrichten",
+    "nr": 136,
+    "aufgabe": "Benachrichtigungen auf diesem Gerät",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/PushStatus.tsx",
+      "src/features/settings/NotificationSettings.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nicht unterstützt/abgelehnt/unbekannt unterscheiden",
+      "iOS Installation berücksichtigen",
+      "Erfolg erst nach echtem Test"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "firma",
+    "nr": 137,
+    "aufgabe": "Firmendaten",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/FirmendatenView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Briefkopf-/Logo-Vorschau",
+      "UID/IBAN-Prüfung",
+      "Kontrastprüfung",
+      "Bestehende PDF-Belegfarben unabhängig vom UI"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "saetze",
+    "nr": 138,
+    "aufgabe": "Sätze und Kosten",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/SettingsView.tsx",
+      "src/features/settings/MaterialaufschlagFelder.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Einstufungen und Lehrjahre",
+      "Interne Kosten nur Spitze",
+      "Historische Belegwerte unverändert",
+      "Warengruppenaufschläge"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnungsvorgaben",
+    "nr": 139,
+    "aufgabe": "Rechnungsvorgaben",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/SettingsView.tsx",
+      "src/features/settings/BasiszinsVerlauf.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Privat-/Firmenkunde getrennt",
+      "Zentrale Basiszinsen nicht lokal erfinden",
+      "Historie/Gültigkeit",
+      "Keine Stundensätze für Buchhaltung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "basiszins-verlauf",
+    "nr": 140,
+    "aufgabe": "Basiszinssatz – Verlauf",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/BasiszinsVerlauf.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Keine erfundenen aktuellen Zinssätze",
+      "Bestehende Historie und Datenquelle"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "nummern",
+    "nr": 141,
+    "aufgabe": "Nummernkreise und Fuhrpark",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/SettingsView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Keine Wiederverwendung vergebener Nummern",
+      "Präfixe und Jahreswechsel nach Bestand",
+      "Fuhrpark für Zeiterfassung",
+      "Nächste laufende Nummer ist eine Vorschau, kein freies Eingabefeld",
+      "Fuhrparkfeld ist der Vorsatz, keine neue Fahrzeugverwaltung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "personal",
+    "nr": 142,
+    "aufgabe": "Personal",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/SettingsView.tsx",
+      "src/features/settings/LohnregelnKarte.tsx",
+      "src/features/settings/SonderurlaubKarte.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Alle bisherigen Untergruppen bleiben höchstens einen Klick weiter",
+      "Keine neuen Backend-Einstellungen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "personal-urlaub",
+    "nr": 143,
+    "aufgabe": "Urlaubsjahr und Übertrag",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/SettingsView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Jahresübergreifende Anträge",
+      "Urlaubsjahr vs Kalenderjahr",
+      "Kein stiller Bestandsumbau",
+      "Verfallstag nur bei gewähltem Stichtagsmodell sichtbar; rechtlicher Hinweis bleibt in der Hilfe"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "personal-genehmiger",
+    "nr": 144,
+    "aufgabe": "Wer Urlaub genehmigt",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/SettingsView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Spitze nicht abwählbar",
+      "Benutzerbezogene Freigaben",
+      "Unbezahlter Urlaub bleibt Spitze"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "personal-planung",
+    "nr": 145,
+    "aufgabe": "Wochenplan und Einsatzplan",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/SettingsView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Team-Woche ohne Gründe und Schreibaktionen",
+      "Zusatznavigation nur bei Freigabe"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "personal-lohn",
+    "nr": 146,
+    "aufgabe": "Nachtzeit und Überstunden",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/LohnregelnKarte.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende Zuschlagsrechnung",
+      "Jugendliche gesondert",
+      "Keine pauschale Gleichsetzung von Soll und Überstunden"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "personal-sonder",
+    "nr": 147,
+    "aufgabe": "Sonderurlaub",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/SonderurlaubKarte.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Vollständige vorhandene Anlassliste",
+      "Gesetzliche/vertragliche Freigrenzen nicht neu definieren",
+      "Grund für Tage darüber"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "personal-dezember",
+    "nr": 148,
+    "aufgabe": "24. und 31. Dezember",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/SettingsView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Zeit- und Urlaubsberechnung verwenden dieselbe Regel"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "kontenrahmen",
+    "nr": 149,
+    "aufgabe": "Kontenrahmen",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/KontenrahmenView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Abstimmung mit Kanzlei",
+      "Steuercodes/Anzahlungen/Bauleistung",
+      "Keine internen Kostensätze öffnen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "support",
+    "nr": 150,
+    "aufgabe": "Supportzugang",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/SupportzugangView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Zweck/Dauer",
+      "Befristung und Widerruf",
+      "Historie",
+      "Einblick im Betrieb sichtbar"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "support-gewaehren",
+    "nr": 151,
+    "aufgabe": "Einblick gewähren",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/SupportzugangView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bewusste Freigabe durch Spitze",
+      "Sichtbarkeit und Widerruf",
+      "Keine dauerhafte Freigabe suggerieren",
+      "Mitarbeiten muss ausdrücklich gewählt werden",
+      "Zeitbuchungen, Urlaub, Krankenstände und Baustellenfotos bleiben ausgenommen wie im Bestand"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "module",
+    "nr": 152,
+    "aufgabe": "Module",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/modules/ModulesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nur Administrator",
+      "Kern nicht abschaltbar",
+      "Abhängige Module vorab nennen",
+      "Kein Ersatz für Rechteverwaltung"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "sicherung",
+    "nr": 153,
+    "aufgabe": "Datensicherung",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/SicherungView.tsx",
+      "src/features/settings/LaufStatus.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Erfolg/unbekannt/überfällig unterscheiden",
+      "Externes Ziel nicht aus erfolgreichem Lauf ableiten",
+      "Fotos/Dateien separat nachweisen",
+      "Kein Restore-Knopf ohne bestehende Funktion",
+      "Exportgrenzen und Teilfehler"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "plattform",
+    "nr": 154,
+    "aufgabe": "Plattformverwaltung",
+    "bereich": "Plattform",
+    "rollen": [
+      "Plattformadministrator"
+    ],
+    "quelle": [
+      "src/features/plattform/PlattformView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Plattformkonto hat keinen Betriebszugriff",
+      "Einblick nur mit Freigabe/Notzugang",
+      "Gelöschte separat",
+      "Eigene MFA/Passwort erreichbar"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "plattform-neu",
+    "nr": 155,
+    "aufgabe": "Neuer Betrieb",
+    "bereich": "Plattform",
+    "rollen": [
+      "Plattformadministrator"
+    ],
+    "quelle": [
+      "src/features/plattform/PlattformView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Einmalige Übergabe Link/Startpasswort",
+      "Betriebskennung eindeutig",
+      "Keine wiederverwendbaren Geheimnisse im Mockup"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "plattform-betrieb",
+    "nr": 156,
+    "aufgabe": "Betrieb verwalten",
+    "bereich": "Plattform",
+    "rollen": [
+      "Plattformadministrator"
+    ],
+    "quelle": [
+      "src/features/plattform/BetriebVerwalten.tsx",
+      "src/features/plattform/PlattformView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Stilllegen→Übergabe→Löschfrist→Löschen",
+      "Testbetrieb-Ausnahme nur wie Bestand",
+      "Kennungsbestätigung",
+      "Kein neuer pauschaler Löschknopf"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "plattform-fehler",
+    "nr": 157,
+    "aufgabe": "Fehler aus den Betrieben",
+    "bereich": "Plattform",
+    "rollen": [
+      "Plattformadministrator"
+    ],
+    "quelle": [
+      "src/features/plattform/FehlerListe.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Gruppierte Meldungen",
+      "Rohdetails nur berechtigter Support",
+      "Keine echten Fehlermeldungen/Personendaten im Entwurf"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "plattform-fehlerdetail",
+    "nr": 158,
+    "aufgabe": "Fehlergruppe ansehen",
+    "bereich": "Plattform",
+    "rollen": [
+      "Plattformadministrator"
+    ],
+    "quelle": [
+      "src/features/plattform/FehlerListe.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Fehlerdetails sensibel",
+      "Erledigen betrifft genau die Gruppe"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "plattform-notzugang",
+    "nr": 159,
+    "aufgabe": "Notzugang öffnen",
+    "bereich": "Plattform",
+    "rollen": [
+      "Plattformadministrator"
+    ],
+    "quelle": [
+      "src/features/plattform/PlattformView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Befristung und Protokoll",
+      "Keine automatische Einsicht nur durch Kenntnis der Kennung",
+      "Kontrollierte Notfallrechte"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "plattform-notpasswort",
+    "nr": 160,
+    "aufgabe": "Notzugang – Startpasswort",
+    "bereich": "Plattform",
+    "rollen": [
+      "Plattformadministrator"
+    ],
+    "quelle": [
+      "src/features/plattform/NotzugangPasswort.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Aktiver Notzugang nötig",
+      "Identitätsprüfung bleibt ausdrücklich",
+      "Kein echtes Kennwort/Code in der Vorschau"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "plattform-notfaktor",
+    "nr": 161,
+    "aufgabe": "Notzugang – zweiter Faktor",
+    "bereich": "Plattform",
+    "rollen": [
+      "Plattformadministrator"
+    ],
+    "quelle": [
+      "src/features/plattform/NotzugangZweiFaktor.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Aktiver Notzugang nötig",
+      "Identitätsprüfung bleibt ausdrücklich",
+      "Kein echtes Kennwort/Code in der Vorschau"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "plattform-basiszins",
+    "nr": 162,
+    "aufgabe": "Basiszinssatz zentral pflegen",
+    "bereich": "Plattform",
+    "rollen": [
+      "Plattformadministrator"
+    ],
+    "quelle": [
+      "src/features/plattform/BasiszinsZentral.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Keine erfundene aktuelle Rate",
+      "Gültigkeitszeitpunkt und Verlauf",
+      "Änderung wirkt nach bestehender Regel"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "suche",
+    "nr": 163,
+    "aufgabe": "Suchen",
+    "bereich": "Querschnitt",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/app/Suchfenster.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nur für Rolle und Modul sichtbare Ziele",
+      "Tastatur und Fokus",
+      "Keine gesperrten Seiten als Treffer"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "meldungen",
+    "nr": 164,
+    "aufgabe": "Meldungen",
+    "bereich": "Querschnitt",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/app/Layout.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Rollen-/Empfängerbezug",
+      "Nur verfügbare Zielroute",
+      "Gelesen-Zustand wie Bestand"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "hilfe",
+    "nr": 165,
+    "aufgabe": "Hilfe zu dieser Seite",
+    "bereich": "Querschnitt",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/components/SeitenHilfe.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Alle vorhandenen Hilfetexte",
+      "Kontextbezogen statt allgemeiner Dauertipps"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "offline",
+    "nr": 166,
+    "aufgabe": "Ohne Verbindung",
+    "bereich": "Querschnitt",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/components/Verbindungsband.tsx",
+      "src/lib/sync/ausgangsfach.ts"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nur bestehende Offline-Funktionen",
+      "Konflikt/Übertragung fehlgeschlagen getrennt",
+      "Keine automatische Zusage für neue Uploads"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "fehler",
+    "nr": 167,
+    "aufgabe": "Daten konnten nicht geladen werden",
+    "bereich": "Querschnitt",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/components/States.tsx",
+      "src/app/ErrorBoundary.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Navigation bleibt nutzbar",
+      "Originale fachliche Fehlermeldung",
+      "Keine leere Liste als Erfolg"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "leer",
+    "nr": 168,
+    "aufgabe": "Keine überfällige Rechnung",
+    "bereich": "Querschnitt",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/components/States.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Leer vs Suche ohne Treffer vs Ladefehler unterscheiden"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "laden",
+    "nr": 169,
+    "aufgabe": "Rechnungen werden geladen",
+    "bereich": "Querschnitt",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/components/States.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Gleiche Inhaltshöhe",
+      "Keine falschen Nullsummen",
+      "Navigation bleibt stehen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "gesperrt",
+    "nr": 170,
+    "aufgabe": "Kein Zugriff auf diese Ansicht",
+    "bereich": "Querschnitt",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/app/guards.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Keine sensiblen Vorschaudaten",
+      "Keine Selbstfreischaltung",
+      "Unbekannte Route führt wie bisher zur Startseite"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "aktualisierung",
+    "nr": 171,
+    "aufgabe": "Neue Fassung verfügbar",
+    "bereich": "Querschnitt",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/components/NeueFassung.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Keine ungespeicherten Eingaben verlieren",
+      "Ausgangsfach beachten",
+      "Keine erzwungene Neuladung während Unterschrift"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "kunde-auskunft",
+    "nr": 172,
+    "aufgabe": "Datenauskunft zum Kunden",
+    "bereich": "Querschnitt",
+    "rollen": [
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/customers/KundenakteView.tsx",
+      "src/features/recht/Datenauskunft.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehender Umfang und Berechtigungen",
+      "Ausgenommene Teile benennen",
+      "Keine echten Personendaten im Konzept"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "benutzer-auskunft",
+    "nr": 173,
+    "aufgabe": "Datenauskunft zur Person",
+    "bereich": "Querschnitt",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/users/BenutzerakteView.tsx",
+      "src/features/recht/Datenauskunft.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehender Umfang und Berechtigungen",
+      "Ausgenommene Teile benennen",
+      "Keine echten Personendaten im Konzept"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "bestaetigen-kunde",
+    "nr": 174,
+    "aufgabe": "Kunde löschen",
+    "bereich": "Bestätigungen",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/customers/CustomersView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende Bestätigung nicht lockern",
+      "Abbrechen mit Fokus-Rückkehr",
+      "Fehlversuch lässt Daten und Kontext stehen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "bestaetigen-angebot",
+    "nr": 175,
+    "aufgabe": "Angebot löschen",
+    "bereich": "Bestätigungen",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/quotes/QuotesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende Bestätigung nicht lockern",
+      "Abbrechen mit Fokus-Rückkehr",
+      "Fehlversuch lässt Daten und Kontext stehen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "bestaetigen-termin",
+    "nr": 176,
+    "aufgabe": "Termin löschen",
+    "bereich": "Bestätigungen",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/termine/TerminFenster.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende Bestätigung nicht lockern",
+      "Abbrechen mit Fokus-Rückkehr",
+      "Fehlversuch lässt Daten und Kontext stehen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "bestaetigen-einsatz",
+    "nr": 177,
+    "aufgabe": "Einsatz löschen",
+    "bereich": "Bestätigungen",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/assignments/EinsatzFenster.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende Bestätigung nicht lockern",
+      "Abbrechen mit Fokus-Rückkehr",
+      "Fehlversuch lässt Daten und Kontext stehen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "bestaetigen-bestellung",
+    "nr": 178,
+    "aufgabe": "Bestellung abschließen",
+    "bereich": "Bestätigungen",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/AdminOrdersView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende Bestätigung nicht lockern",
+      "Abbrechen mit Fokus-Rückkehr",
+      "Fehlversuch lässt Daten und Kontext stehen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "bestaetigen-material",
+    "nr": 179,
+    "aufgabe": "Material löschen",
+    "bereich": "Bestätigungen",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/MaterialCatalog.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende Bestätigung nicht lockern",
+      "Abbrechen mit Fokus-Rückkehr",
+      "Fehlversuch lässt Daten und Kontext stehen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "bestaetigen-zeit",
+    "nr": 180,
+    "aufgabe": "Eintrag löschen",
+    "bereich": "Bestätigungen",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/time/TimeView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende Bestätigung nicht lockern",
+      "Abbrechen mit Fokus-Rückkehr",
+      "Fehlversuch lässt Daten und Kontext stehen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "bestaetigen-urlaub",
+    "nr": 181,
+    "aufgabe": "Antrag zurückziehen",
+    "bereich": "Bestätigungen",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/VacationsView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende Bestätigung nicht lockern",
+      "Abbrechen mit Fokus-Rückkehr",
+      "Fehlversuch lässt Daten und Kontext stehen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "bestaetigen-benutzer",
+    "nr": 182,
+    "aufgabe": "Benutzer deaktivieren",
+    "bereich": "Bestätigungen",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/users/BenutzerakteView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende Bestätigung nicht lockern",
+      "Abbrechen mit Fokus-Rückkehr",
+      "Fehlversuch lässt Daten und Kontext stehen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "bestaetigen-standard",
+    "nr": 183,
+    "aufgabe": "Auf Standardwerte zurücksetzen",
+    "bereich": "Bestätigungen",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/SettingsView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende Bestätigung nicht lockern",
+      "Abbrechen mit Fokus-Rückkehr",
+      "Fehlversuch lässt Daten und Kontext stehen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "muster",
+    "nr": 184,
+    "aufgabe": "Musterseite",
+    "bereich": "Werkzeug",
+    "rollen": [
+      "Administrator",
+      "Plattformadministrator"
+    ],
+    "quelle": [
+      "src/features/muster/MusterView.tsx",
+      "src/features/muster/MusterPlanung.tsx",
+      "src/features/muster/MusterMonat.tsx",
+      "src/features/muster/MusterUebersicht.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Werkzeug ohne betrieblichen Menüpunkt",
+      "Keine Wirkung auf den Betrieb"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "wartungen",
+    "nr": 185,
+    "aufgabe": "Wartungen",
+    "bereich": "Wartungen",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/maintenance/WartungenView.tsx",
+      "src/features/maintenance/WartungVerlauf.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Verwaltung nur lesend",
+      "Kundenbezug unabhängig von Baustellen",
+      "Intervall und Fälligkeit",
+      "Ausführungshistorie",
+      "Das gezeigte Aktionsbeispiel ist Leitung; Verwaltung erhält diese Aktionen nicht"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "wartung-detail",
+    "nr": 186,
+    "aufgabe": "Thermenwartung Sonnenhof",
+    "bereich": "Wartungen",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/maintenance/WartungenView.tsx",
+      "src/features/maintenance/WartungVerlauf.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nicht für Verwaltung schreibbar",
+      "Keine Historie überschreiben",
+      "Baustelle aus Ausführung erreichbar",
+      "Das gezeigte Aktionsbeispiel ist Leitung; Verwaltung erhält diese Aktionen nicht"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "wartung-neu",
+    "nr": 187,
+    "aufgabe": "Wartung bearbeiten",
+    "bereich": "Wartungen",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/maintenance/WartungenView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Fälligkeit aus Intervall wie bisher",
+      "Verwaltung liest nur"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "wartung-erledigt",
+    "nr": 188,
+    "aufgabe": "Wartung erledigt eintragen",
+    "bereich": "Wartungen",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/maintenance/WartungenView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Neue Ausführung statt Datum überschreiben",
+      "Optionale Wartungsbaustelle",
+      "Leistungs-/Rechnungsweg bleibt bestehen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "wartung-loeschen",
+    "nr": 189,
+    "aufgabe": "Wartung löschen",
+    "bereich": "Wartungen",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/maintenance/WartungenView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "urlaub-monat",
+    "nr": 190,
+    "aufgabe": "Urlaub im Monat",
+    "bereich": "Urlaub",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/UrlaubMonat.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nur für berechtigte Büroansicht",
+      "Urlaub/Abwesenheit nicht mit freier Kapazität gleichsetzen"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "zeit-abwesenheit",
+    "nr": 191,
+    "aufgabe": "Abwesenheit erfassen",
+    "bereich": "Zeit",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/time/TimeForm.tsx"
+    ],
+    "umsetzung": "gezielt überarbeitet und gemeinsame Bausteine",
+    "erhalten": [
+      "Kein Umgehen eines Urlaubsantrags durch Zeitstatus",
+      "Jugendliche und Unterricht",
+      "Stundenweise Abwesenheit"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "benutzer-zusatzrechte",
+    "nr": 192,
+    "aufgabe": "Zusatzrechte nach Rolle",
+    "bereich": "Benutzer",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/users/BenutzerakteView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Im echten Formular nur die zur aktuellen Rolle passenden Felder",
+      "Katalogfreigabe umfasst Einkaufspreise",
+      "Kein Rechnungs-Schreibrecht für Projektleitung",
+      "Projektleitung erhält ausschließlich das separate Feld Rechnungen seiner Baustellen lesen, kein Rechnungs-Schreibrecht"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "benutzer-projektleitung-recht",
+    "nr": 193,
+    "aufgabe": "Zusatzrecht der Projektleitung",
+    "bereich": "Benutzer",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/users/BenutzerakteView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Im echten Formular nur die zur aktuellen Rolle passenden Felder",
+      "Katalogfreigabe umfasst Einkaufspreise",
+      "Kein Rechnungs-Schreibrecht für Projektleitung",
+      "Projektleitung erhält ausschließlich das separate Feld Rechnungen seiner Baustellen lesen, kein Rechnungs-Schreibrecht"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "uid-pruefung",
+    "nr": 194,
+    "aufgabe": "UID-Nummer prüfen",
+    "bereich": "Kunden",
+    "rollen": [
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/customers/UidVies.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nur bestehende Prüfrechte",
+      "Firmen-UID erforderlich",
+      "Keine Echtheitszusage bei Netzfehler",
+      "Prüfergebnis mit Zeit und Person"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "baustelle-loeschen",
+    "nr": 195,
+    "aufgabe": "Baustelle löschen",
+    "bereich": "Baustellen",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/projects/AdminProjectsView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende Bestätigung und Löschgrenzen",
+      "Keine produktiven Daten im Entwurf"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "arbeitszeit-grenze",
+    "nr": 196,
+    "aufgabe": "Arbeitszeitgrenze prüfen",
+    "bereich": "Auswertung",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/accounting/ArbeitszeitGrenzenKarte.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bei Jugendlichen Verstoß statt genehmigbarer Ausnahme",
+      "Notiz ersetzt keine Korrektur",
+      "Bestehende Grenzen bleiben unverändert"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "lehrling-einstufung",
+    "nr": 197,
+    "aufgabe": "Einstufung als Lehrling",
+    "bereich": "Benutzer",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/users/EinstufungFelder.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Lehrbeginn kann vor Eintritt liegen",
+      "Budgetzählung je Person",
+      "Historische Stundensätze bleiben",
+      "Keine Rollenrechte aus Einstufung ableiten"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "betriebsurlaub-loeschen",
+    "nr": 198,
+    "aufgabe": "Betriebsurlaub löschen",
+    "bereich": "Urlaub",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/vacations/BetriebsurlaubReiter.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende Bestätigung",
+      "Rücknahme der zugehörigen Buchungen nur nach bestehender Funktion"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "support-widerrufen",
+    "nr": 199,
+    "aufgabe": "Supportzugang beenden",
+    "bereich": "Einstellungen",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/settings/SupportzugangView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Nur bei tatsächlich offenem Zugang anbieten",
+      "Bestehender Widerruf und Protokoll bleiben"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "problem-melden",
+    "nr": 200,
+    "aufgabe": "Problem melden",
+    "bereich": "Querschnitt",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/components/ProblemMelden.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Keine unnötigen neuen Pflichtdaten",
+      "Bestehender Supportweg",
+      "Fehlerdetail und Nutzereingabe getrennt"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "urlaubsanspruch-entfernen",
+    "nr": 201,
+    "aufgabe": "Urlaubsanpassung entfernen",
+    "bereich": "Benutzer",
+    "rollen": [
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/users/UrlaubsanspruchKarte.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende Bestätigung",
+      "Neuberechnung des richtigen Urlaubsjahres"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "zeit-leitung",
+    "nr": 202,
+    "aufgabe": "Zeit erfassen",
+    "bereich": "Zeit",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/time/TimeView.tsx",
+      "src/features/time/TimeForm.tsx"
+    ],
+    "umsetzung": "gezielt überarbeitet und gemeinsame Bausteine",
+    "erhalten": [
+      "Einfache Erfassung als Standard",
+      "Leitung kann volle Erfassung zuschalten",
+      "Administration ohne künstliches Zeitkonto"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "angebot-entwurf",
+    "nr": 203,
+    "aufgabe": "Angebot A-2026-0092",
+    "bereich": "Angebote",
+    "rollen": [
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/quotes/AngebotView.tsx",
+      "src/features/quotes/AbrechnungWahl.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Angenommenes Angebot nicht als veränderbarer Entwurf darstellen",
+      "PDF",
+      "Bestehende Baustelle verlinken",
+      "Neue Fassung nur für versendet/abgelehnt; Buchhaltung liest nur"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "angebot-versendet",
+    "nr": 204,
+    "aufgabe": "Angebot A-2026-0092",
+    "bereich": "Angebote",
+    "rollen": [
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/quotes/AngebotView.tsx",
+      "src/features/quotes/AbrechnungWahl.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Angenommenes Angebot nicht als veränderbarer Entwurf darstellen",
+      "PDF",
+      "Bestehende Baustelle verlinken",
+      "Neue Fassung nur für versendet/abgelehnt; Buchhaltung liest nur"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "angebot-abgelehnt",
+    "nr": 205,
+    "aufgabe": "Angebot A-2026-0092",
+    "bereich": "Angebote",
+    "rollen": [
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/quotes/AngebotView.tsx",
+      "src/features/quotes/AbrechnungWahl.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Angenommenes Angebot nicht als veränderbarer Entwurf darstellen",
+      "PDF",
+      "Bestehende Baustelle verlinken",
+      "Neue Fassung nur für versendet/abgelehnt; Buchhaltung liest nur"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnung-export-ergebnis",
+    "nr": 206,
+    "aufgabe": "Export prüfen und herunterladen",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/InvoicesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Bestehende Formate unverändert",
+      "Konten-/Debitoren-/Steuercodeprüfung",
+      "Datumsbereich und Stornos"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnung-detail-lesen",
+    "nr": 207,
+    "aufgabe": "Rechnung RE-2026-0234",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Projektleiter"
+    ],
+    "quelle": [
+      "src/features/invoices/RechnungDetail.tsx",
+      "src/features/invoices/InvoicesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Teilzahlungen/Rückzahlungen",
+      "Guthaben",
+      "Rabatt/Skonto/Rücklass",
+      "Mahnverlauf",
+      "Stornobelege"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnung-ruecklass",
+    "nr": 208,
+    "aufgabe": "Rechnung mit Rücklass",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/RechnungDetail.tsx",
+      "src/features/invoices/InvoicesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Teilzahlungen/Rückzahlungen",
+      "Guthaben",
+      "Rabatt/Skonto/Rücklass",
+      "Mahnverlauf",
+      "Stornobelege"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "rechnung-guthaben",
+    "nr": 209,
+    "aufgabe": "Rechnung · Kundenguthaben",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/RechnungDetail.tsx",
+      "src/features/invoices/InvoicesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Teilzahlungen/Rückzahlungen",
+      "Guthaben",
+      "Rabatt/Skonto/Rücklass",
+      "Mahnverlauf",
+      "Stornobelege"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "dokument-team",
+    "nr": 210,
+    "aufgabe": "Heizraum · Installationsplan",
+    "bereich": "Baustellen",
+    "rollen": [
+      "Mitarbeiter"
+    ],
+    "quelle": [
+      "src/features/projects/PlaeneListe.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Tatsächlichen Inhalt anzeigen",
+      "Fehler/abgelaufenen Zugriff verständlich melden"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "katalog-neu",
+    "nr": 211,
+    "aufgabe": "Neues Material",
+    "bereich": "Lager",
+    "rollen": [
+      "Verwaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/orders/MaterialCatalog.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Anfangsbestand nicht als freie Bestandsänderung missbrauchen",
+      "Einkauf nur für Berechtigte"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "planung-baustellen",
+    "nr": 212,
+    "aufgabe": "Einsatzplanung · Baustellen",
+    "bereich": "Planung",
+    "rollen": [
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/assignments/WochenplanView.tsx",
+      "src/features/assignments/MonatsAnsicht.tsx",
+      "src/features/assignments/AssignmentsView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Personen-/Baustellenansicht",
+      "Tag/Woche/Monat",
+      "Abwesenheiten und Verfügbarkeit",
+      "Einteilung bearbeiten/löschen",
+      "Materialbedarf",
+      "Kalender-Abo"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "mitarbeiter-kalender",
+    "nr": 213,
+    "aufgabe": "Monatskalender",
+    "bereich": "Auswertung",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/accounting/PersonFenster.tsx",
+      "src/features/accounting/Gesamtsaldo.tsx",
+      "src/features/accounting/ArbeitszeitGrenzenKarte.tsx"
+    ],
+    "umsetzung": "gezielt überarbeitet und gemeinsame Bausteine",
+    "erhalten": [
+      "Gesamtsaldo vs Monatssaldo",
+      "Arbeitszeitgrenzen",
+      "Unterricht/Jugendliche",
+      "Fremdkorrektur mit Vermerk"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "mitarbeiter-monatsraster",
+    "nr": 214,
+    "aufgabe": "Gemeinsamer Monatsvergleich",
+    "bereich": "Auswertung",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/accounting/AccountingView.tsx",
+      "src/features/accounting/UebersichtListe.tsx",
+      "src/features/accounting/Streifen.tsx"
+    ],
+    "umsetzung": "gezielt überarbeitet und gemeinsame Bausteine",
+    "erhalten": [
+      "Ist/Soll/Saldo getrennt",
+      "Fehlende Tage/Arbeitszeitgrenzen",
+      "Zeitkonto nur für berechtigte Personen",
+      "Kein Zeitkonto für Administration",
+      "Support ohne sensible Tagesdetails"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "termin-lesen",
+    "nr": 215,
+    "aufgabe": "Zwischenabnahme",
+    "bereich": "Planung",
+    "rollen": [
+      "Mitarbeiter",
+      "Verwaltung",
+      "Buchhaltung",
+      "Projektleiter",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/termine/TerminFenster.tsx",
+      "src/features/termine/TerminFormular.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Baustellen- oder Kundenbezug",
+      "Teilnehmerauswahl",
+      "Lieferzeitfenster",
+      "Schreibrecht und Validierung aus TerminFormular.tsx"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "zahlung-rueckzahlung",
+    "nr": 216,
+    "aufgabe": "Guthaben zurückzahlen",
+    "bereich": "Rechnungen",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/invoices/InvoicesView.tsx"
+    ],
+    "umsetzung": "gemeinsame Grundwerte und vorhandene Lot-Bausteine",
+    "erhalten": [
+      "Teilzahlung/Rückzahlung",
+      "Überzahlung als Guthaben",
+      "Skontobedingungen",
+      "Protokoll und Korrekturwege"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  },
+  {
+    "konzept": "zeit-person",
+    "nr": 217,
+    "aufgabe": "Zeit für Mitarbeiter erfassen",
+    "bereich": "Zeit",
+    "rollen": [
+      "Buchhaltung",
+      "Geschäftsführung",
+      "Administrator"
+    ],
+    "quelle": [
+      "src/features/accounting/AccountingView.tsx",
+      "src/features/time/TimeForm.tsx"
+    ],
+    "umsetzung": "gezielt überarbeitet und gemeinsame Bausteine",
+    "erhalten": [
+      "Zielperson ausdrücklich wählen",
+      "Aus Personendetail: Person und Tag vorbelegen",
+      "Fremdbuchung nach tatsächlichen Korrekturrechten",
+      "Arbeitszeitgrenzen, Lehrlingsschutz und Doppelbuchung serverseitig erhalten"
+    ],
+    "grenze": "Quellzuordnung; keine Behauptung einer Abnahme aller Daten- und Rollenzustände"
+  }
+]

@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import '@fontsource/poppins/latin-400.css';
+import '@fontsource/poppins/latin-500.css';
 import '@fontsource/poppins/latin-600.css';
 import '@/index.css';
 import { darstellungAnwenden } from '@/lib/darstellung';

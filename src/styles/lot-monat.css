@@ -150,7 +150,7 @@
   .kal-tag-we { background: var(--bg); box-shadow: none; }
   .kal-tag-heute { background: var(--petrol-hell); box-shadow: inset 0 0 0 2px var(--petrol); }
   .kal-tag-gewaehlt { background: var(--petrol); color: #ffffff; box-shadow: none; }
-  .kal-nr { font-size: 0.875rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .kal-nr { font-size: 0.875rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
   .kal-info { font-size: 0.75rem; line-height: 1rem; color: var(--text-muted); white-space: nowrap; }
   .kal-info-achtung { font-size: 0.75rem; line-height: 1rem; color: var(--warning); font-weight: 600; white-space: nowrap; }
   .kal-info-gewaehlt { font-size: 0.75rem; line-height: 1rem; color: #ffffff; white-space: nowrap; }

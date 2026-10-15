@@ -67,6 +67,21 @@ test.describe('Mitarbeiterübersicht', () => {
     test.setTimeout(120_000);
     await anmelden(page, CHEFIN.email);
     await page.goto(`/accounting?monat=${vormonat()}`);
+    // Der neue Einstieg bleibt ein Personenvergleich; der Kalender ergänzt den Nachweis auf dem Telefon.
+    await expect(page.getByRole('group', { name: `${RITA.name}, Tage des Monats` })).toHaveCount(0);
+    await page.locator('.ue-person').filter({ hasText: RITA.name }).click();
+    const person = page.getByRole('dialog', { name: new RegExp(RITA.name) });
+    const urspruenglichesFenster = page.viewportSize()!;
+    await page.setViewportSize({ width: 390, height: 844 });
+    await person.getByRole('button', { name: 'Kalender anzeigen', exact: true }).click();
+    const kalender = person.getByRole('group', { name: `${RITA.name}, Monatskalender` });
+    await expect(kalender.getByRole('button').first()).toBeVisible();
+    const zelle = await kalender.getByRole('button').first().boundingBox();
+    expect(zelle!.height).toBeGreaterThanOrEqual(44);
+    expect(zelle!.width).toBeGreaterThanOrEqual(44);
+    await person.getByRole('button', { name: 'Schließen', exact: true }).click();
+    await page.setViewportSize(urspruenglichesFenster);
+    await page.getByRole('button', { name: 'Alle Tage vergleichen', exact: true }).click();
 
     const streifen = page.getByRole('group', { name: `${RITA.name}, Tage des Monats` });
     const offen = streifen.getByRole('button', { name: /keine Buchung/ });

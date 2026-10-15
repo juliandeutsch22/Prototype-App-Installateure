@@ -22,7 +22,7 @@ export function PlanungsSeitenkopf({ action, hilfe }: { action?: ReactNode; hilf
     <PageHeader
       ort="Aufträge"
       title="Einsatzplanung"
-      subtitle="Wer ist wann wo – und wer ist noch frei"
+      subtitle="Wer ist wann auf welcher Baustelle?"
       hilfe={hilfe}
       action={action}
     />

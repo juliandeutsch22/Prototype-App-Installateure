@@ -244,7 +244,7 @@ describe('Einsatzplanung — Seite (Runde 4, Auftrag 4.1)', () => {
   it('heißt „Einsatzplanung“, mit Umschalter „Woche | Monat | Tag“ statt der Reiter', async () => {
     zeige();
     expect(await screen.findByRole('heading', { level: 1, name: 'Einsatzplanung' })).toBeInTheDocument();
-    expect(screen.getByText('Wer ist wann wo – und wer ist noch frei')).toBeInTheDocument();
+    expect(screen.getByText('Wer ist wann auf welcher Baustelle?')).toBeInTheDocument();
     // Gegenprobe: der alte Titel steht nicht mehr da.
     expect(screen.queryByRole('heading', { name: 'Wochenplan' })).toBeNull();
     const wahl = within(screen.getByRole('group', { name: 'Zeitraum' }));

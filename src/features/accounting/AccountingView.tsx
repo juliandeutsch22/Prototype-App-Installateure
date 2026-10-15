@@ -186,6 +186,7 @@ export default function AccountingView() {
   const [wocheAb, setWocheAb] = useState<string | null>(null);
   /* Im Supportzugang gibt es keine Woche — wie keinen Streifen (Auftrag 3.2). */
   const ansicht: 'monat' | 'woche' = !imSupport && adresse.get('ansicht') === 'woche' ? 'woche' : 'monat';
+  const tageZeigen = !imSupport && adresse.get('tage') === 'alle';
   const montag = wocheAb ?? startWoche(year, month, heute);
   const wochenTage = useMemo(() => tageDerWoche(montag), [montag]);
   /*
@@ -597,6 +598,7 @@ export default function AccountingView() {
                 : `${rolle} · vollständig`,
         achtung: offen > 0,
         werte: monatsWerte.get(u.uid) ?? [],
+        grenze: (grenzenJePerson.get(u.uid)?.length ?? 0) > 0,
         offen,
         gebucht: fmtMin(stats.istMin),
         soll: fmtMin(stats.sollMin),
@@ -604,7 +606,7 @@ export default function AccountingView() {
         saldo: stats.hasConfig ? saldoText(stats.saldoMin) : '—',
       };
     });
-  }, [rows, imSupport, ansicht, wochenWerte, monatsWerte, heute]);
+  }, [rows, imSupport, ansicht, wochenWerte, monatsWerte, heute, grenzenJePerson]);
 
   /* DIE AUSWAHL VON MONAT UND JAHR wie bisher: Jänner bis Dezember, das laufende Jahr und vier davor. */
   const yearOptions = Array.from({ length: JAHRE_ZURUECK + 1 }, (_, i) => now.getFullYear() - i);
@@ -791,11 +793,12 @@ export default function AccountingView() {
       <PageHeader
         ort="Team"
         title="Mitarbeiterübersicht"
-        subtitle="Monatsauswertung, Vollständigkeit und Salden"
+        subtitle="Buchungen prüfen und Zeitkonten vergleichen."
         hilfe={
           <>
-            Eine Zeile je Person: der Monat als Streifen, ein Feld je Tag, daneben gebucht, Soll bisher und
-            Saldo. Oben stehen, wer Tage ohne Buchung hat. Ein Klick auf die Zeile oder ein Feld öffnet die
+            Eine Zeile je Person: Stand, gebucht, Soll bisher und Saldo im direkten Vergleich.
+            „Alle Tage vergleichen“ blendet den Monat als Streifen mit einem Feld je Tag ein.
+            Oben stehen, wer Tage ohne Buchung hat. Ein Klick auf die Zeile oder ein Feld öffnet die
             Person im Seitenfenster mit allen Zahlen, dem Tagesnachweis und „Zeit erfassen“. Die Stunden je
             Tag stehen in der Ansicht „Woche“. Ein Klick auf den Monat oben wählt Monat und Jahr.
             <br />
@@ -928,6 +931,25 @@ export default function AccountingView() {
         </div>
       )}
 
+      {!imSupport && ansicht === 'monat' && (
+        <div className="ue-vergleich-wahl">
+          <span>Stunden im gewählten Monat</span>
+          <button
+            type="button"
+            className="link-still"
+            aria-pressed={tageZeigen}
+            onClick={() => {
+              const neu = new URLSearchParams(adresse);
+              if (tageZeigen) neu.delete('tage');
+              else neu.set('tage', 'alle');
+              setAdresse(neu);
+            }}
+          >
+            {tageZeigen ? 'Personen vergleichen' : 'Alle Tage vergleichen'}
+          </button>
+        </div>
+      )}
+
       {imSupport && (
         <Hinweiszeile>
           <p>
@@ -978,6 +1000,7 @@ export default function AccountingView() {
       ) : (
         <UebersichtListe
           ansicht={ansicht}
+          tageZeigen={tageZeigen}
           tage={ansicht === 'woche' ? wochenTage : monatsTage}
           heute={heute}
           zeilen={zeilen}

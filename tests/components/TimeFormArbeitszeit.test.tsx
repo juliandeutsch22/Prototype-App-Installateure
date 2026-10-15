@@ -177,3 +177,13 @@ describe('Nachtarbeit zählt von selbst (Runde 3, M4)', () => {
     expect(screen.queryByLabelText('Nicht als Nachtarbeit zählen')).not.toBeInTheDocument();
   });
 });
+
+it('ordnet im Zeitband Arbeit und Pause derselben Eingabe zu und blendet es bei ungültiger Dauer aus', () => {
+  zeichne();
+  expect(screen.getByRole('img', { name: 'Zeitverteilung' })).toHaveAccessibleDescription('08:30 Std Arbeit und 00:30 Std Pause');
+  setze('Bis', '15:30');
+  setze('Pause', '60');
+  expect(screen.getByRole('img', { name: 'Zeitverteilung' })).toHaveAccessibleDescription('07:30 Std Arbeit und 01:00 Std Pause');
+  setze('Pause', '600');
+  expect(screen.queryByRole('img', { name: 'Zeitverteilung' })).not.toBeInTheDocument();
+});

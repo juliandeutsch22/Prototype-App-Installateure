@@ -700,7 +700,7 @@ function Adresse() {
   return <p data-testid="adresse">{ort.search}</p>;
 }
 
-function zeichneSeite(start = '/accounting') {
+function zeichneSeite(start = '/accounting?tage=alle') {
   const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
   render(
     <MemoryRouter initialEntries={[start]}>
@@ -849,7 +849,7 @@ describe('Mitarbeiterübersicht: Kennzahlen (Runde 4, Auftrag 3.2)', () => {
 
   it('„Tage ohne Buchung“ zählt und filtert mit einem Klick, ein zweiter hebt den Filter auf (?nur=offen)', async () => {
     luecke();
-    const nutzer = zeichneSeite();
+    const nutzer = zeichneSeite('/accounting');
     await personKnopf('Neu Eingestellt');
     const kennzahl = screen.getByRole('button', { name: /^Tage ohne Buchung/ });
     expect(kennzahl).toHaveTextContent('2');
@@ -978,6 +978,8 @@ describe('Mitarbeiterübersicht: die Woche (Runde 4, Auftrag 3.4)', () => {
     expect(tagKnopf(/^Neu Eingestellt, Do 27\.08\./)).toHaveClass('mw-zelle-weg');
     await nutzer.click(screen.getByRole('button', { name: 'Monat' }));
     expect(screen.getByTestId('adresse')).not.toHaveTextContent('ansicht');
+    expect(document.querySelector('.streifen')).toBeNull();
+    await nutzer.click(screen.getByRole('button', { name: 'Alle Tage vergleichen' }));
     expect(document.querySelector('.streifen')).not.toBeNull();
   });
 });
@@ -1184,4 +1186,63 @@ describe('Mitarbeiterübersicht — erst mit der ganzen Grundlage', () => {
     expect(await personKnopf('Neu Eingestellt')).toBeInTheDocument();
     expect(screen.getAllByText('Familie Huber').length).toBeGreaterThan(0);
   });
+});
+
+/** Der Personenvergleich darf den Tagesvergleich nicht mehr erzwingen. */
+describe('Lot v2: Vergleich zuerst, Tagesraster auf Wunsch', () => {
+  it('zeigt ohne Tagesraster alle Personenwerte und öffnet direkt den Tagesnachweis', async () => {
+    const nutzer = zeichneSeite('/accounting');
+    await personKnopf('Neu Eingestellt');
+    expect(screen.queryByRole('group', { name: 'Neu Eingestellt, Tage des Monats' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Neu Eingestellt, Mo 17\.08\./ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Alle Tage vergleichen' })).toHaveAttribute('aria-pressed', 'false');
+    await nutzer.click(await personKnopf('Neu Eingestellt'));
+    expect(tagesnachweis()).toBeInTheDocument();
+    expect(within(tagesnachweis()).getAllByRole('listitem')).toHaveLength(11);
+    expect(within(fenster()).getByRole('button', { name: 'Monat als CSV' })).toBeInTheDocument();
+  });
+
+  it('behält den Tagesvergleich samt Fremderfassung, Datum und Rückweg', async () => {
+    buchungen = eintraege.filter((e) => e.date !== '2026-08-20');
+    const nutzer = zeichneSeite('/accounting');
+    await personKnopf('Neu Eingestellt');
+    await nutzer.click(screen.getByRole('button', { name: 'Alle Tage vergleichen' }));
+    expect(screen.getByTestId('adresse')).toHaveTextContent('tage=alle');
+    await nutzer.click(tagKnopf(/Do 20\.08\. · keine Buchung/));
+    await nutzer.click(within(fenster()).getByRole('button', { name: 'Zeit erfassen für Do 20.08.' }));
+    const formular = screen.getByRole('dialog', { name: 'Zeit erfassen' });
+    expect(within(formular).getByText('Vorbelegt: u1 am 2026-08-20')).toBeInTheDocument();
+    await nutzer.click(within(formular).getByRole('button', { name: 'Abbrechen' }));
+    await nutzer.click(within(fenster()).getByRole('button', { name: 'Schließen' }));
+    await nutzer.click(screen.getByRole('button', { name: 'Personen vergleichen' }));
+    expect(screen.getByTestId('adresse')).not.toHaveTextContent('tage=alle');
+    expect(screen.queryByRole('button', { name: /Neu Eingestellt, Do 20\.08\./ })).not.toBeInTheDocument();
+  });
+});
+
+describe('Lot v2: optionaler Kalender im Tagesnachweis', () => {
+  it('öffnet den Kalender zusätzlich zur vollständigen Tagesliste und markiert den gewählten Tag', async () => {
+    const nutzer = zeichneSeite('/accounting');
+    await nutzer.click(await personKnopf('Neu Eingestellt'));
+    expect(within(fenster()).queryByRole('group', { name: /Monatskalender/ })).not.toBeInTheDocument();
+    await nutzer.click(within(fenster()).getByRole('button', { name: 'Kalender anzeigen' }));
+    const kalender = within(fenster()).getByRole('group', { name: 'Neu Eingestellt, Monatskalender' });
+    expect(within(kalender).getAllByRole('button')).toHaveLength(31);
+    await nutzer.click(within(kalender).getByRole('button', { name: /Do 20\.08\./ }));
+    await nutzer.keyboard('{ArrowRight}');
+    expect(within(kalender).getByRole('button', { name: /Fr 21\.08\./ })).toHaveFocus();
+    expect(within(tagesnachweis()).getByText('Do 20.08.').closest('li')).toHaveAttribute('data-markiert', 'ja');
+    expect(within(tagesnachweis()).getAllByRole('listitem')).toHaveLength(11);
+    await nutzer.click(within(fenster()).getByRole('button', { name: 'Kalender ausblenden' }));
+    expect(within(fenster()).queryByRole('group', { name: /Monatskalender/ })).not.toBeInTheDocument();
+    expect(tagesnachweis()).toBeInTheDocument();
+  });
+});
+
+it('zeigt im Personenvergleich auch bei vollständigen Buchungen den vorhandenen Arbeitszeit-Grenzfall', async () => {
+  buchungen = [...eintraege.filter((e) => e.date !== '2026-08-25'), { ...eintrag('2026-08-25'), startTime: '05:00', endTime: '18:30' }];
+  zeichneSeite('/accounting');
+  expect(await screen.findByText(/13:00 Std\. am 25\.08\. — höchstens 12 Std\./)).toBeInTheDocument();
+  expect(screen.getByText('Arbeitszeitgrenze prüfen')).toBeInTheDocument();
+  expect(grenzAbfragen).toBe(1);
 });
