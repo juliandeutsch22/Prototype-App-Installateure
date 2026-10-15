@@ -1,0 +1,107 @@
+{
+  "umfang": "Sechs neue Konzeptansichten, 18 automatisierte WCAG-Scans und ausgewählte Demo-Interaktionen. Kein Nachweis vollständiger produktiver Funktionsgleichheit.",
+  "checks": [
+    "Tablet: Plan scrollt innerhalb des Rasters; Namensspalte bleibt stehen; kein Seitenüberlauf.",
+    "Wochenplan: 7 Tage, schmale Wochenendspalten, Konflikttext und ein-/ausklappbare Gruppen.",
+    "Leere Zelle übernimmt Tag und Person in den Entwurf des Einsatzformulars.",
+    "Mobil: Wochentag wählbar; Freitag zeigt nicht eingeteilte Person und Lieferung ohne Annahme.",
+    "Mobil: Monatszustände unterschiedlich sichtbar; Suche und Fehlzeitenfilter filtern die Personen.",
+    "Monatsfeld öffnet Personenfenster mit markiertem konkreten Tag.",
+    "Monatsfelder per Pfeiltaste erreichbar, kein Tab-Schritt je Tagesfeld.",
+    "Galerie schaltet zwischen Desktop-, Tablet- und Mobilbildern um."
+  ],
+  "scans": [
+    {
+      "id": "plan-personen",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "id": "plan-baustellen",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "id": "einsatz-08",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "id": "konten-monat",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "id": "konten-woche",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "id": "person-08",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "id": "plan-personen",
+      "width": 834,
+      "violations": []
+    },
+    {
+      "id": "plan-baustellen",
+      "width": 834,
+      "violations": []
+    },
+    {
+      "id": "einsatz-08",
+      "width": 834,
+      "violations": []
+    },
+    {
+      "id": "konten-monat",
+      "width": 834,
+      "violations": []
+    },
+    {
+      "id": "konten-woche",
+      "width": 834,
+      "violations": []
+    },
+    {
+      "id": "person-08",
+      "width": 834,
+      "violations": []
+    },
+    {
+      "id": "plan-personen",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "id": "plan-baustellen",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "id": "einsatz-08",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "id": "konten-monat",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "id": "konten-woche",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "id": "person-08",
+      "width": 390,
+      "violations": []
+    }
+  ],
+  "badLinks": [],
+  "passed": true
+}

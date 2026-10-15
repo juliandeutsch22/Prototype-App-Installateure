@@ -1,0 +1,26 @@
+[
+  {
+    "id": "plan-personen",
+    "name": "Wochenplan · Personen"
+  },
+  {
+    "id": "plan-baustellen",
+    "name": "Wochenplan · Baustellen"
+  },
+  {
+    "id": "einsatz-08",
+    "name": "Einsatz bearbeiten"
+  },
+  {
+    "id": "konten-monat",
+    "name": "Mitarbeiterübersicht · Monat"
+  },
+  {
+    "id": "konten-woche",
+    "name": "Mitarbeiterübersicht · Woche"
+  },
+  {
+    "id": "person-08",
+    "name": "Person · Tagesnachweis"
+  }
+]

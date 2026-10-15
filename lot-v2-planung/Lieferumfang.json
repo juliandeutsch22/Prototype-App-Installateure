@@ -1,0 +1,183 @@
+{
+  "version": "08",
+  "produktCommit": "d4b8542821d86c7057761af16de1331d1de87e09",
+  "appVeraendert": false,
+  "umfang": "Sechs neue Konzeptansichten in drei Breiten; kein vollständiger Nachweis des Funktionserhalts.",
+  "dateien": [
+    {
+      "pfad": "Empfehlung.md",
+      "bytes": 8042,
+      "sha256": "b730c2702eea1cacb41d9bd94539b895000cd65867c738cbe179b3279b7d5cc8"
+    },
+    {
+      "pfad": "Lot-v2-Mitarbeiter.jpg",
+      "bytes": 262557,
+      "sha256": "0cfd15b83a4bff1fb70b71ea71a9bad001bb4f377bb8b2b1b5ba47c31bb741a6"
+    },
+    {
+      "pfad": "Lot-v2-Wochenplan.jpg",
+      "bytes": 273732,
+      "sha256": "8c7dcac5f1be966b2dabd56b9189ea82c9c609bda89945e8f31d9be2bec03df8"
+    },
+    {
+      "pfad": "Mitarbeiter.html",
+      "bytes": 820,
+      "sha256": "6f4a11855959365383292edf346883ee0b48e9ebece2ea6558f0d293e926f033"
+    },
+    {
+      "pfad": "OFL.txt",
+      "bytes": 6175,
+      "sha256": "5c4a92c8f8ce0ab211f4c72889d82383c9644546115d9ba39a4f2d5b8f37014b"
+    },
+    {
+      "pfad": "README.md",
+      "bytes": 2444,
+      "sha256": "1ed4e4500d2527aecd2cd2ad8d03c2713df7752adebaec007fe8f392e0b8343c"
+    },
+    {
+      "pfad": "Wochenplan.html",
+      "bytes": 774,
+      "sha256": "e9163f6418530f4a3090fe430a959d157cb927dd5fa12c75a058cd905de694cf"
+    },
+    {
+      "pfad": "ansichten.json",
+      "bytes": 448,
+      "sha256": "871577755d5122236fccdae3d5471ffdd332f4ea176b6d88965e0e935b0b3455"
+    },
+    {
+      "pfad": "bilder/einsatz-08-desktop.jpg",
+      "bytes": 137204,
+      "sha256": "d16508fbcdb40ff6896667df4c915cbd9a287ffe9e16329a6c815827d7b4172f"
+    },
+    {
+      "pfad": "bilder/einsatz-08-mobil.jpg",
+      "bytes": 71100,
+      "sha256": "517f063eb6b175e9a66283e6ea79bd32bdf237e375fccadf6cf8dffd892b11f1"
+    },
+    {
+      "pfad": "bilder/einsatz-08-tablet.jpg",
+      "bytes": 102770,
+      "sha256": "7b15402bb2f2c2dab3dc474860169ad55b9933d2e3f444b55c66f209ca785eee"
+    },
+    {
+      "pfad": "bilder/konten-monat-desktop.jpg",
+      "bytes": 136374,
+      "sha256": "3fcc321f794c6a098bcafbc66456218912ec4b4df2c1492be9cfcb8c63fc48b6"
+    },
+    {
+      "pfad": "bilder/konten-monat-mobil.jpg",
+      "bytes": 88891,
+      "sha256": "98a1f266efb48eeb5faacea9a6a9fcb75a2dbdce9b0356b1ec6626158f541f56"
+    },
+    {
+      "pfad": "bilder/konten-monat-tablet.jpg",
+      "bytes": 109996,
+      "sha256": "b04afae0a88848744607986616506c20a658ec636a0d119479e163cc530d9382"
+    },
+    {
+      "pfad": "bilder/konten-woche-desktop.jpg",
+      "bytes": 125572,
+      "sha256": "5bcb03f71ba56c69006488f6ab406dad3235e64eb4c3a6fe1ec069134701bdac"
+    },
+    {
+      "pfad": "bilder/konten-woche-mobil.jpg",
+      "bytes": 82869,
+      "sha256": "a2560750e34987507e5a968853387f61d6be310bb78f3802d2260019965db1a6"
+    },
+    {
+      "pfad": "bilder/konten-woche-tablet.jpg",
+      "bytes": 101758,
+      "sha256": "bd19c3263732baf82b1f1a5ef9af017e1dfb692d0e2dc3bc7a06b143d04e7787"
+    },
+    {
+      "pfad": "bilder/person-08-desktop.jpg",
+      "bytes": 148950,
+      "sha256": "285b8da63ad212f2b3ad87b6330ca44b359f7404128ec79a8ae252a5951074fb"
+    },
+    {
+      "pfad": "bilder/person-08-mobil.jpg",
+      "bytes": 83094,
+      "sha256": "e9f004185c3a180ac1fce45756cec3ef00fae14f233fc99e5dae1ef812165714"
+    },
+    {
+      "pfad": "bilder/person-08-tablet.jpg",
+      "bytes": 118001,
+      "sha256": "09ad71c6ff70489634c386e86d020ba9c8934804060784ab10678bf5f738a9c9"
+    },
+    {
+      "pfad": "bilder/plan-baustellen-desktop.jpg",
+      "bytes": 146690,
+      "sha256": "ad891b54461317d927c047e168d0a4df74d2d71998dd802490c109bb7e96094e"
+    },
+    {
+      "pfad": "bilder/plan-baustellen-mobil.jpg",
+      "bytes": 73451,
+      "sha256": "b643c8cc7db3be647236309e1cc43dba56487d4768a06bd3da2fec606510d0e6"
+    },
+    {
+      "pfad": "bilder/plan-baustellen-tablet.jpg",
+      "bytes": 111622,
+      "sha256": "3b5d20de57b6371dccc68e529b5efdd17ed2c4c08af70b7e37beeb81852a1e56"
+    },
+    {
+      "pfad": "bilder/plan-personen-desktop.jpg",
+      "bytes": 168375,
+      "sha256": "62a68d30bf6be91b18d04154e40389c187aa8968cbe57b3baf76429ab0f4019a"
+    },
+    {
+      "pfad": "bilder/plan-personen-mobil.jpg",
+      "bytes": 73451,
+      "sha256": "b643c8cc7db3be647236309e1cc43dba56487d4768a06bd3da2fec606510d0e6"
+    },
+    {
+      "pfad": "bilder/plan-personen-tablet.jpg",
+      "bytes": 126610,
+      "sha256": "5c1be476d7b6eb505233d294cd90491b0fc692050ce1646ab27d899cf09b4c93"
+    },
+    {
+      "pfad": "bildpruefung.json",
+      "bytes": 3739,
+      "sha256": "baa33ca8fb1b2c91e7d3aac2f5070c494ff7bcf49d6b5ce7f36bd9c58b9f0ad1"
+    },
+    {
+      "pfad": "galerie.css",
+      "bytes": 1788,
+      "sha256": "204c4ecb3243ad921b8d69213f3c299732d833e1b79d11fb6337d7ce680f4549"
+    },
+    {
+      "pfad": "galerie.html",
+      "bytes": 4037,
+      "sha256": "e528743771909c73aeb1343175a831b3cd1043331f861d26d4a234d480c8a237"
+    },
+    {
+      "pfad": "gestaltung.css",
+      "bytes": 59780,
+      "sha256": "5ee80a9a3033ae0cf36de98098dc8f1081c5e1075a340aaa67f68123a92322f7"
+    },
+    {
+      "pfad": "index.html",
+      "bytes": 688,
+      "sha256": "8b41d3c319a3934df1e3bbcf70b5368dd0d058779f4cb03ecb8c8e5d6a9343a4"
+    },
+    {
+      "pfad": "konzept.js",
+      "bytes": 372023,
+      "sha256": "509d49b5a1f35c1fd81286d2bd7d0d37f8b50c78ad038f77240a6d53b9565da3"
+    },
+    {
+      "pfad": "planung.css",
+      "bytes": 14605,
+      "sha256": "b1d5f339e7090439f1d254b2ba81f6a7b56e1911c58a61b42a26a425e418f3e5"
+    },
+    {
+      "pfad": "planung.js",
+      "bytes": 20458,
+      "sha256": "fba1497a5b3f0a83300f0f2bd3325b808d06d9f87acfc1b2c295551db82bc4ff"
+    },
+    {
+      "pfad": "pruefung.json",
+      "bytes": 2468,
+      "sha256": "3a44ddff65d59d58e837bc0f7f9aa8586a54961b9ae2ad4db8af90f5fa151938"
+    }
+  ]
+}

@@ -1,0 +1,200 @@
+[
+  {
+    "id": "plan-personen",
+    "size": "desktop",
+    "width": 1440,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Einsatzplanung",
+    "raster": {
+      "client": 1132,
+      "scroll": 1132
+    }
+  },
+  {
+    "id": "plan-baustellen",
+    "size": "desktop",
+    "width": 1440,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Einsatzplanung",
+    "raster": {
+      "client": 1132,
+      "scroll": 1132
+    }
+  },
+  {
+    "id": "einsatz-08",
+    "size": "desktop",
+    "width": 1440,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Einsatz planen",
+    "raster": null
+  },
+  {
+    "id": "konten-monat",
+    "size": "desktop",
+    "width": 1440,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Mitarbeiterübersicht",
+    "raster": {
+      "client": 1132,
+      "scroll": 1132
+    }
+  },
+  {
+    "id": "konten-woche",
+    "size": "desktop",
+    "width": 1440,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Mitarbeiterübersicht",
+    "raster": {
+      "client": 1132,
+      "scroll": 1132
+    }
+  },
+  {
+    "id": "person-08",
+    "size": "desktop",
+    "width": 1440,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Max Mustermann",
+    "raster": null
+  },
+  {
+    "id": "plan-personen",
+    "size": "tablet",
+    "width": 834,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Einsatzplanung",
+    "raster": {
+      "client": 590,
+      "scroll": 1040
+    }
+  },
+  {
+    "id": "plan-baustellen",
+    "size": "tablet",
+    "width": 834,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Einsatzplanung",
+    "raster": {
+      "client": 590,
+      "scroll": 1040
+    }
+  },
+  {
+    "id": "einsatz-08",
+    "size": "tablet",
+    "width": 834,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Einsatz planen",
+    "raster": null
+  },
+  {
+    "id": "konten-monat",
+    "size": "tablet",
+    "width": 834,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Mitarbeiterübersicht",
+    "raster": {
+      "client": 590,
+      "scroll": 1040
+    }
+  },
+  {
+    "id": "konten-woche",
+    "size": "tablet",
+    "width": 834,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Mitarbeiterübersicht",
+    "raster": {
+      "client": 590,
+      "scroll": 1040
+    }
+  },
+  {
+    "id": "person-08",
+    "size": "tablet",
+    "width": 834,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Max Mustermann",
+    "raster": null
+  },
+  {
+    "id": "plan-personen",
+    "size": "mobil",
+    "width": 390,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Einsatzplanung",
+    "raster": {
+      "client": 0,
+      "scroll": 0
+    }
+  },
+  {
+    "id": "plan-baustellen",
+    "size": "mobil",
+    "width": 390,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Einsatzplanung",
+    "raster": {
+      "client": 0,
+      "scroll": 0
+    }
+  },
+  {
+    "id": "einsatz-08",
+    "size": "mobil",
+    "width": 390,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Einsatz planen",
+    "raster": null
+  },
+  {
+    "id": "konten-monat",
+    "size": "mobil",
+    "width": 390,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Mitarbeiterübersicht",
+    "raster": {
+      "client": 0,
+      "scroll": 0
+    }
+  },
+  {
+    "id": "konten-woche",
+    "size": "mobil",
+    "width": 390,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Mitarbeiterübersicht",
+    "raster": {
+      "client": 0,
+      "scroll": 0
+    }
+  },
+  {
+    "id": "person-08",
+    "size": "mobil",
+    "width": 390,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Max Mustermann",
+    "raster": null
+  }
+]
