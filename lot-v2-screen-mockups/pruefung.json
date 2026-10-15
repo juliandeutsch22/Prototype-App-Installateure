@@ -1,0 +1,111 @@
+[
+  {
+    "interactionChecks": "Liste/Detail, grafische Filter, Suche, Panel-Rückkehr, Baustelle→Schein→Rechnungsauswahl, ungültige/gültige Zeit, kein doppelter Wocheneintrag, mobile Rückkehr und Ansichtswechsel",
+    "passed": true
+  },
+  {
+    "width": 1440,
+    "view": "heute",
+    "violations": []
+  },
+  {
+    "width": 1440,
+    "view": "rechnungen",
+    "violations": []
+  },
+  {
+    "width": 1440,
+    "view": "schein",
+    "violations": []
+  },
+  {
+    "width": 1440,
+    "view": "baustelle",
+    "violations": []
+  },
+  {
+    "width": 1440,
+    "view": "gebucht",
+    "violations": []
+  },
+  {
+    "width": 1440,
+    "view": "erledigt",
+    "violations": []
+  },
+  {
+    "width": 1440,
+    "view": "rechnung",
+    "violations": []
+  },
+  {
+    "width": 834,
+    "view": "heute",
+    "violations": []
+  },
+  {
+    "width": 834,
+    "view": "rechnungen",
+    "violations": []
+  },
+  {
+    "width": 834,
+    "view": "schein",
+    "violations": []
+  },
+  {
+    "width": 834,
+    "view": "baustelle",
+    "violations": []
+  },
+  {
+    "width": 834,
+    "view": "gebucht",
+    "violations": []
+  },
+  {
+    "width": 834,
+    "view": "erledigt",
+    "violations": []
+  },
+  {
+    "width": 834,
+    "view": "rechnung",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "view": "heute",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "view": "rechnungen",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "view": "schein",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "view": "baustelle",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "view": "gebucht",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "view": "erledigt",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "view": "rechnung",
+    "violations": []
+  }
+]

@@ -1,0 +1,164 @@
+[
+  {
+    "view": "heute",
+    "device": "desktop",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "height": 1200,
+    "scrollHeight": 1200,
+    "errors": []
+  },
+  {
+    "view": "rechnungen",
+    "device": "desktop",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "height": 1200,
+    "scrollHeight": 1228,
+    "errors": []
+  },
+  {
+    "view": "schein",
+    "device": "desktop",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "height": 1200,
+    "scrollHeight": 1200,
+    "errors": []
+  },
+  {
+    "view": "baustelle",
+    "device": "desktop",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "height": 1200,
+    "scrollHeight": 1214,
+    "errors": []
+  },
+  {
+    "view": "gebucht",
+    "device": "desktop",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "height": 1200,
+    "scrollHeight": 1316,
+    "errors": []
+  },
+  {
+    "view": "erledigt",
+    "device": "desktop",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "height": 1200,
+    "scrollHeight": 1200,
+    "errors": []
+  },
+  {
+    "view": "heute",
+    "device": "tablet",
+    "width": 834,
+    "scrollWidth": 834,
+    "height": 1112,
+    "scrollHeight": 1242,
+    "errors": []
+  },
+  {
+    "view": "rechnungen",
+    "device": "tablet",
+    "width": 834,
+    "scrollWidth": 834,
+    "height": 1112,
+    "scrollHeight": 1210,
+    "errors": []
+  },
+  {
+    "view": "schein",
+    "device": "tablet",
+    "width": 834,
+    "scrollWidth": 834,
+    "height": 1112,
+    "scrollHeight": 1439,
+    "errors": []
+  },
+  {
+    "view": "baustelle",
+    "device": "tablet",
+    "width": 834,
+    "scrollWidth": 834,
+    "height": 1112,
+    "scrollHeight": 1331,
+    "errors": []
+  },
+  {
+    "view": "gebucht",
+    "device": "tablet",
+    "width": 834,
+    "scrollWidth": 834,
+    "height": 1112,
+    "scrollHeight": 2062,
+    "errors": []
+  },
+  {
+    "view": "erledigt",
+    "device": "tablet",
+    "width": 834,
+    "scrollWidth": 834,
+    "height": 1112,
+    "scrollHeight": 1112,
+    "errors": []
+  },
+  {
+    "view": "heute",
+    "device": "handy",
+    "width": 390,
+    "scrollWidth": 390,
+    "height": 844,
+    "scrollHeight": 1878,
+    "errors": []
+  },
+  {
+    "view": "rechnungen",
+    "device": "handy",
+    "width": 390,
+    "scrollWidth": 390,
+    "height": 844,
+    "scrollHeight": 1512,
+    "errors": []
+  },
+  {
+    "view": "schein",
+    "device": "handy",
+    "width": 390,
+    "scrollWidth": 390,
+    "height": 844,
+    "scrollHeight": 1750,
+    "errors": []
+  },
+  {
+    "view": "baustelle",
+    "device": "handy",
+    "width": 390,
+    "scrollWidth": 390,
+    "height": 844,
+    "scrollHeight": 1992,
+    "errors": []
+  },
+  {
+    "view": "gebucht",
+    "device": "handy",
+    "width": 390,
+    "scrollWidth": 390,
+    "height": 844,
+    "scrollHeight": 1904,
+    "errors": []
+  },
+  {
+    "view": "erledigt",
+    "device": "handy",
+    "width": 390,
+    "scrollWidth": 390,
+    "height": 844,
+    "scrollHeight": 1115,
+    "errors": []
+  }
+]

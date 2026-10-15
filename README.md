@@ -106,3 +106,16 @@ Die großen Kennzahlen sind auf Wunsch eine Stufe leichter: Poppins Medium (500)
 ![Kennzahlen – Medium statt Semibold](lot-v2-entwurf-04/Kennzahlen.jpg)
 
 Die laufende App bleibt unverändert.
+
+
+## Lot v2 · Screen-Mockups 05: zusammenhängende Arbeitswege
+
+Sechs neue Screens auf Grundlage von Entwurf 04: Heute, Rechnungsliste mit Details, unterschriebener Schein, Baustellenakte, Bestätigung einer Zeitbuchung und abgeschlossene Mahnfälle. Die ruhige Typografie mit etwas dünneren Kennzahlen bleibt erhalten.
+
+- [Alle Bilder, Galerie und klickbare Vorschau herunterladen](Lot-v2-Screen-Mockups-2026-10-15.zip?raw=true) – entpacken und `galerie.html` öffnen.
+- [Umfang und Bedienung](lot-v2-screen-mockups/README.md)
+- [Übersicht in voller Auflösung](lot-v2-screen-mockups/Lot-v2-Screen-Mockups-Uebersicht.png?raw=true)
+
+![Lot v2 · Screen-Mockups 05](lot-v2-screen-mockups/Lot-v2-Screen-Mockups-Uebersicht.jpg)
+
+Eigenständige Gestaltungsvorschau mit fiktiven Daten. Die App wurde nicht umgebaut oder neu ausgeliefert. Die vorherigen Entwürfe bleiben erhalten.
