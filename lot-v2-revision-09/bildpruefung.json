@@ -1,0 +1,212 @@
+[
+  {
+    "id": "wochenplan",
+    "route": "woche-09",
+    "size": "desktop",
+    "width": 1440,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Einsatzplanung",
+    "page": "woche-09"
+  },
+  {
+    "id": "baustellen",
+    "route": "baustellen-09",
+    "size": "desktop",
+    "width": 1440,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Einsatzplanung",
+    "page": "baustellen-09"
+  },
+  {
+    "id": "mitarbeiter",
+    "route": "personen-09",
+    "size": "desktop",
+    "width": 1440,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Mitarbeiterübersicht",
+    "page": "personen-09"
+  },
+  {
+    "id": "stunden",
+    "route": "stunden-09",
+    "size": "desktop",
+    "width": 1440,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Mitarbeiterübersicht",
+    "page": "stunden-09"
+  },
+  {
+    "id": "person",
+    "route": "person-09",
+    "size": "desktop",
+    "width": 1440,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Max Mustermann",
+    "page": "person-09"
+  },
+  {
+    "id": "tagesliste",
+    "route": "person-09",
+    "size": "desktop",
+    "width": 1440,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Max Mustermann",
+    "page": "person-09"
+  },
+  {
+    "id": "monatsvergleich",
+    "route": "monatsraster-09",
+    "size": "desktop",
+    "width": 1440,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Mitarbeiterübersicht",
+    "page": "monatsraster-09"
+  },
+  {
+    "id": "wochenplan",
+    "route": "woche-09",
+    "size": "tablet",
+    "width": 834,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Einsatzplanung",
+    "page": "woche-09"
+  },
+  {
+    "id": "baustellen",
+    "route": "baustellen-09",
+    "size": "tablet",
+    "width": 834,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Einsatzplanung",
+    "page": "baustellen-09"
+  },
+  {
+    "id": "mitarbeiter",
+    "route": "personen-09",
+    "size": "tablet",
+    "width": 834,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Mitarbeiterübersicht",
+    "page": "personen-09"
+  },
+  {
+    "id": "stunden",
+    "route": "stunden-09",
+    "size": "tablet",
+    "width": 834,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Mitarbeiterübersicht",
+    "page": "stunden-09"
+  },
+  {
+    "id": "person",
+    "route": "person-09",
+    "size": "tablet",
+    "width": 834,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Max Mustermann",
+    "page": "person-09"
+  },
+  {
+    "id": "tagesliste",
+    "route": "person-09",
+    "size": "tablet",
+    "width": 834,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Max Mustermann",
+    "page": "person-09"
+  },
+  {
+    "id": "monatsvergleich",
+    "route": "monatsraster-09",
+    "size": "tablet",
+    "width": 834,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Mitarbeiterübersicht",
+    "page": "monatsraster-09"
+  },
+  {
+    "id": "wochenplan",
+    "route": "woche-09",
+    "size": "mobil",
+    "width": 390,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Einsatzplanung",
+    "page": "woche-09"
+  },
+  {
+    "id": "baustellen",
+    "route": "baustellen-09",
+    "size": "mobil",
+    "width": 390,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Einsatzplanung",
+    "page": "baustellen-09"
+  },
+  {
+    "id": "mitarbeiter",
+    "route": "personen-09",
+    "size": "mobil",
+    "width": 390,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Mitarbeiterübersicht",
+    "page": "personen-09"
+  },
+  {
+    "id": "stunden",
+    "route": "stunden-09",
+    "size": "mobil",
+    "width": 390,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Mitarbeiterübersicht",
+    "page": "stunden-09"
+  },
+  {
+    "id": "person",
+    "route": "person-09",
+    "size": "mobil",
+    "width": 390,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Max Mustermann",
+    "page": "person-09"
+  },
+  {
+    "id": "tagesliste",
+    "route": "person-09",
+    "size": "mobil",
+    "width": 390,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Max Mustermann",
+    "page": "person-09"
+  },
+  {
+    "id": "monatsvergleich",
+    "route": "monatsraster-09",
+    "size": "mobil",
+    "width": 390,
+    "errors": [],
+    "horizontalOverflow": false,
+    "title": "Mitarbeiterübersicht",
+    "page": "monatsraster-09"
+  }
+]

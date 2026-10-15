@@ -1,0 +1,44 @@
+[
+  {
+    "id": "mitarbeiter",
+    "name": "Mitarbeiterübersicht · neuer Aufbau",
+    "route": "personen-09",
+    "query": ""
+  },
+  {
+    "id": "person",
+    "name": "Person · lesbarer Monatskalender",
+    "route": "person-09",
+    "query": ""
+  },
+  {
+    "id": "tagesliste",
+    "name": "Person · Tagesliste",
+    "route": "person-09",
+    "query": "?nachweis=liste"
+  },
+  {
+    "id": "stunden",
+    "name": "Mitarbeiterübersicht · Woche",
+    "route": "stunden-09",
+    "query": ""
+  },
+  {
+    "id": "monatsvergleich",
+    "name": "Alle Personen · Monatsvergleich",
+    "route": "monatsraster-09",
+    "query": ""
+  },
+  {
+    "id": "wochenplan",
+    "name": "Wochenplan · am aktuellen Stil orientiert",
+    "route": "woche-09",
+    "query": ""
+  },
+  {
+    "id": "baustellen",
+    "name": "Wochenplan · Baustellensicht",
+    "route": "baustellen-09",
+    "query": ""
+  }
+]

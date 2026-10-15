@@ -1,0 +1,128 @@
+[
+  {
+    "id": "woche-09",
+    "query": "",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "id": "baustellen-09",
+    "query": "",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "id": "personen-09",
+    "query": "",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "id": "stunden-09",
+    "query": "",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "id": "person-09",
+    "query": "",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "id": "person-09",
+    "query": "?nachweis=liste",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "id": "monatsraster-09",
+    "query": "",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "id": "woche-09",
+    "query": "",
+    "width": 834,
+    "violations": []
+  },
+  {
+    "id": "baustellen-09",
+    "query": "",
+    "width": 834,
+    "violations": []
+  },
+  {
+    "id": "personen-09",
+    "query": "",
+    "width": 834,
+    "violations": []
+  },
+  {
+    "id": "stunden-09",
+    "query": "",
+    "width": 834,
+    "violations": []
+  },
+  {
+    "id": "person-09",
+    "query": "",
+    "width": 834,
+    "violations": []
+  },
+  {
+    "id": "person-09",
+    "query": "?nachweis=liste",
+    "width": 834,
+    "violations": []
+  },
+  {
+    "id": "monatsraster-09",
+    "query": "",
+    "width": 834,
+    "violations": []
+  },
+  {
+    "id": "woche-09",
+    "query": "",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "id": "baustellen-09",
+    "query": "",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "id": "personen-09",
+    "query": "",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "id": "stunden-09",
+    "query": "",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "id": "person-09",
+    "query": "",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "id": "person-09",
+    "query": "?nachweis=liste",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "id": "monatsraster-09",
+    "query": "",
+    "width": 390,
+    "violations": []
+  }
+]
