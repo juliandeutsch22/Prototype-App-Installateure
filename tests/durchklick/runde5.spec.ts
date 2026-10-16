@@ -103,6 +103,7 @@ test('G5: am Handy steht die Tageszeile über den Kästchen der Mitarbeiterüber
   await page.setViewportSize({ width: 400, height: 860 });
   await anmelden(page, CHEFIN.email);
   await page.goto('/accounting');
+  await page.getByRole('button', { name: 'Alle Tage vergleichen', exact: true }).click();
   // Monat: die Kopfzeile ist sichtbar, ihr Streifen so breit und so weit links wie der der ersten Person.
   const kopf = page.locator('.ue-kopfzeile .streifen');
   await expect(kopf).toBeVisible({ timeout: 20_000 });

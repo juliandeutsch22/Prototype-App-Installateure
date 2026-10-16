@@ -5,7 +5,7 @@ import { SeitenHilfeKnopf } from './SeitenHilfe';
  * DER SEITENKOPF DER LINIE „LOT“ (Regel 2): überall gleich gebaut.
  *
  *   Ortszeile   klein und grau über dem Titel (wo bin ich, welcher Tag)
- *   Titel       26 px am Tablet und Schreibtisch, 22 px am Handy, halbfett
+ *   Titel       30 px am Tablet und Schreibtisch, 24 px am Handy, halbfett
  *   Meta        eine Zeile darunter
  *   rechts      „Hilfe zu dieser Seite“, das ⋯ der Seite, die Hauptaktion
  *

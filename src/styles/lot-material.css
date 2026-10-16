@@ -34,7 +34,7 @@
   .fenster-zahlen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem 1.25rem; margin: 0; padding: 1rem 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
   .fenster-zahl { min-width: 0; }
   .fenster-zahl dt { font-size: 0.8125rem; color: var(--text-muted); }
-  .fenster-zahl dd { margin: 0.125rem 0 0; font-size: 1.375rem; line-height: 1.75rem; font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; }
+  .fenster-zahl dd { margin: 0.125rem 0 0; font-size: 1.375rem; line-height: 1.75rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; }
   .fenster-zahl-zusatz { margin-top: 0.125rem; font-size: 0.8125rem; color: var(--text-muted); }
 
   /* Alle Aktionen eines Seitenfensters untereinander, volle Breite. */

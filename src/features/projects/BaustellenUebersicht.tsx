@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { stundenDerBaustellen, type BaustellenStunden } from '@/lib/db/timeEntries';
-import { calcBudgetState, fmtStd, balkenBreite, fmtStunden } from '@/lib/time';
+import { calcBudgetState, fmtStd, fmtStunden } from '@/lib/time';
 import type { Project } from '@/types';
 import { TeilFehler } from '@/components/States';
 import { datumAT } from '@/lib/datum';
@@ -29,11 +29,11 @@ import { datumAT } from '@/lib/datum';
   (`accent`) — und die ist bei den meisten Betrieben dasselbe Petrol wie „im
   Rahmen“; das Überziehen sah aus wie ein guter Stand.
 */
-const BAR_TONE = {
-  success: 'bg-success',
-  warning: 'bg-warning',
-  danger: 'bg-danger',
-  neutral: 'bg-line',
+const RING_TON = {
+  success: 'text-success',
+  warning: 'text-warning',
+  danger: 'text-danger',
+  neutral: 'text-ink-muted',
 } as const;
 
 interface Person {
@@ -133,20 +133,23 @@ export default function BaustellenUebersicht({
       </p>
 
       {budget.pct !== null ? (
-        <div className="flex items-center gap-2">
-          <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-surface-3">
+        <div className="budget-grafik">
+          <svg className="budget-ring" viewBox="0 0 100 100" role="img" aria-label={`${budget.pct} % des Stundenbudgets verbraucht`}>
+            <circle className="budget-grund" cx="50" cy="50" r="42" />
+            {/* Nur die Zeichnung endet bei einem Vollkreis; die tatsächliche Überschreitung steht unverändert daneben. */}
+            <circle className={`budget-anteil ${RING_TON[budget.tone]}`} cx="50" cy="50" r="42" pathLength="100"
+              strokeDasharray={`${Math.max(0, Math.min(100, budget.pct))} 100`} transform="rotate(-90 50 50)" />
+          </svg>
+          <div>
             <span
-              className={`block h-full ${BAR_TONE[budget.tone]}`}
-              style={{ width: balkenBreite(budget.pct) }}
-            />
-          </span>
-          <span
-            className={`shrink-0 text-xs font-semibold ${
-              budget.over ? 'text-danger' : 'text-ink-muted'
-            }`}
-          >
-            {budget.pct} %
-          </span>
+              className={`budget-prozent ${
+                budget.over ? 'text-danger' : 'text-ink-muted'
+              }`}
+            >
+              {budget.pct} %
+            </span>
+            <p className="text-meta text-ink-muted">des Stundenbudgets</p>
+          </div>
         </div>
       ) : (
         <p className="text-xs text-ink-muted">

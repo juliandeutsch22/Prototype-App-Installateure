@@ -221,7 +221,7 @@ export function PersonenWoche({
 }) {
   const mitKoepfen = gruppen.length > 1;
   return (
-    <div className="wp-huelle">
+    <div className="wp-huelle" role="region" aria-label="Wochenplan seitlich und nach unten scrollen" tabIndex={0}>
       <table aria-label="Wochenplan als Tabelle" className={rasterKlasse(g)}>
         <Spalten g={g} />
         <TagesKopf ecke="Mitarbeiter" g={g} />
@@ -382,7 +382,7 @@ export function BaustellenWoche({
   const nameVon = (uid: string, ersatz: string | undefined) => staff.find((u) => u.uid === uid)?.name ?? ersatz ?? 'Mitarbeiter';
 
   return (
-    <div className="wp-huelle">
+    <div className="wp-huelle" role="region" aria-label="Baustellenplan seitlich und nach unten scrollen" tabIndex={0}>
       <table aria-label="Wochenplan nach Baustellen" className={rasterKlasse(g)}>
         <Spalten g={g} />
         <TagesKopf ecke="Baustelle" g={g} />

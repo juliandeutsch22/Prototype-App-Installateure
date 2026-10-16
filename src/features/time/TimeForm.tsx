@@ -1225,26 +1225,37 @@ export default function TimeForm({
             Faelle einen Satz bekommen, steht in `zeitPlausibilitaet.ts`.
           */}
           {bild && (
-            <p
-              className={
-                bild.befund === 'ok'
-                  ? 'text-sm text-ink-muted'
-                  : // Ein Befund als Hinweiszeile: Dreieck in der Farbe, Satz in Tinte.
-                    'hinweiszeile hinweiszeile-warn'
-              }
-              /*
-                Nur der Befund wird angesagt, die normale Zahl nicht: eine
-                Vorlesehilfe, die bei jedem Tastendruck im Zeitfeld die
-                Arbeitszeit dazwischenruft, macht die Maske unbenutzbar.
-              */
-              role={bild.befund === 'ok' ? undefined : 'alert'}
-            >
-              {bild.befund !== 'ok' && <Icon name="warnung" size={16} />}
-              <span>
-                Arbeitszeit: <strong>{fmtMin(bild.minuten)} Std</strong>
-                {zeitSatz(bild) && <span className="block">{zeitSatz(bild)}</span>}
-              </span>
-            </p>
+            <>
+              <p
+                className={
+                  bild.befund === 'ok'
+                    ? 'text-sm text-ink-muted'
+                    : // Ein Befund als Hinweiszeile: Dreieck in der Farbe, Satz in Tinte.
+                      'hinweiszeile hinweiszeile-warn'
+                }
+                /*
+                  Nur der Befund wird angesagt, die normale Zahl nicht: eine
+                  Vorlesehilfe, die bei jedem Tastendruck im Zeitfeld die
+                  Arbeitszeit dazwischenruft, macht die Maske unbenutzbar.
+                */
+                role={bild.befund === 'ok' ? undefined : 'alert'}
+              >
+                {bild.befund !== 'ok' && <Icon name="warnung" size={16} />}
+                <span>
+                  Arbeitszeit: <strong>{fmtMin(bild.minuten)} Std</strong>
+                  {zeitSatz(bild) && <span className="block">{zeitSatz(bild)}</span>}
+                </span>
+              </p>
+              {bild.befund === 'ok' && Number(breakDuration) >= 0 && (
+                <div className="zeitbild">
+                  <div className="zeitband" role="img" aria-label="Zeitverteilung" aria-description={`${fmtMin(bild.minuten)} Std Arbeit und ${fmtMin(Number(breakDuration))} Std Pause`}>
+                    <span className="zeitband-arbeit" style={{ flexGrow: bild.minuten }} />
+                    {Number(breakDuration) > 0 && <span className="zeitband-pause" style={{ flexGrow: Number(breakDuration) }} />}
+                  </div>
+                  <p className="zeitband-legende" aria-hidden="true"><span>Arbeit</span><span>Pause {fmtMin(Number(breakDuration))} Std</span></p>
+                </div>
+              )}
+            </>
           )}
 
           {/*

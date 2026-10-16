@@ -19,3 +19,10 @@
     .start-kennzahlen-zwei { max-width: 50%; }
   }
 }
+
+/* Die Linie verbindet vorhandene Termine; ihre Abstände behaupten keine maßstäbliche Zeitachse. */
+@layer components {
+  .start-terminfolge { margin: 0 1rem 1rem 1.25rem; padding: 0; list-style: none; }
+  .start-termin { position: relative; padding: 0.875rem 0 0.875rem 1.25rem; border-left: 1px solid var(--border-strong); border-bottom: 1px solid var(--border); }
+  .start-termin::before { content: ''; position: absolute; left: -3px; top: 1.375rem; width: 5px; height: 5px; border-radius: 50%; background: var(--petrol); }
+}

@@ -57,3 +57,11 @@
   .mb-route { display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 3rem; margin-top: 0.75rem; padding: 0.5rem 1rem; border-radius: var(--radius); background: var(--brand); color: var(--brand-fg); font-weight: 600; text-decoration: none; }
   .mb-route:hover { background: var(--petrol-tief); }
 }
+
+@layer components {
+  .budget-grafik { display: flex; align-items: center; gap: 1.25rem; }
+  .budget-ring { flex: none; width: 7rem; height: 7rem; }
+  .budget-grund { fill: none; stroke: var(--border); stroke-width: 4; }
+  .budget-anteil { fill: none; stroke: currentColor; stroke-width: 4; }
+  .budget-prozent { display: block; font-size: 1.5rem; line-height: 2rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
+}

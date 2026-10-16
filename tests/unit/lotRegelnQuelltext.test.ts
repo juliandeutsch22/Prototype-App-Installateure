@@ -46,7 +46,7 @@ describe('Gestaltungsregeln im Quelltext', () => {
     expect(treffer(/\b(?:border|divide|outline)-(?:dashed|dotted)\b/)).toEqual([]);
   });
 
-  it('zwei Schriftstärken: normal und halbfett', () => {
+  it('Text und Titel bleiben normal oder halbfett; Zahlen verwenden ihren semantischen Schnitt', () => {
     expect(treffer(/\bfont-(?:thin|extralight|light|medium|bold|extrabold|black)\b/)).toEqual([]);
   });
 

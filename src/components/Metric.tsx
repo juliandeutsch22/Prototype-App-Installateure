@@ -84,8 +84,7 @@ export default function Metric({ label, value, hint, tone = 'default', to, berei
         {/* Das Zeichen sagt, dass es weitergeht — ohne Rahmen um die Zahl. */}
         {to && <span aria-hidden="true"> ›</span>}
       </p>
-      {/* 600 und nie fett: die Zahl steht über allem anderen in der Leiste
-          durch ihre Grösse, nicht durch ihr Gewicht (Linie § 5). */}
+      {/* Kennzahlen werden durch Größe und Ausrichtung hervorgehoben; der Zahlen-Schnitt bleibt leichter als der Titel. */}
       <p className={`kennzahl-wert ${fertig ? valueTone[tone] : ''}`}>
         {mitLaden ? <Wert bereit={fertig} muster="€ 00 000,00">{value}</Wert> : value}
       </p>

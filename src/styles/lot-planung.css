@@ -150,14 +150,14 @@
 
   /* ── Einsatzblock, Termin-Eintrag, abwesend ───────────────────────────── */
   /* Der Kunde bricht um, statt abgeschnitten zu werden (Silbentrennung bei `lang="de-AT"`). */
-  .eintrag { pointer-events: auto; display: flex; flex-direction: column; width: 100%; min-height: 2.75rem; padding: 0.375rem 0.375rem; background: var(--petrol); color: #ffffff; border: 0; border-radius: 0.375rem; font-size: 0.8125rem; line-height: 1.125rem; text-align: left; cursor: pointer; }
+  .eintrag { pointer-events: auto; display: flex; flex-direction: column; width: 100%; min-height: 2.75rem; padding: 0.375rem 0.375rem; background: var(--petrol); color: #ffffff; border: 0; border-radius: 0.25rem; font-size: 0.8125rem; line-height: 1.125rem; text-align: left; cursor: pointer; }
   .eintrag:hover { background: var(--petrol-tief); }
   /* Eingeteilt, aber abwesend: Bernstein-hell mit 2 px Bernstein-Rand, nie Rot. */
-  .eintrag-konflikt { pointer-events: auto; display: flex; flex-direction: column; width: 100%; min-height: 2.75rem; padding: 0.3125rem 0.3125rem; background: var(--warning-bg); color: var(--warning); border: 2px solid var(--warning); border-radius: 0.375rem; font-size: 0.8125rem; line-height: 1.125rem; text-align: left; cursor: pointer; }
-  .eintrag-termin { pointer-events: auto; display: flex; flex-direction: column; width: 100%; min-height: 2.75rem; padding: 0.3125rem 0.375rem 0.3125rem 0.3125rem; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-left: 3px solid var(--petrol); border-radius: 0.375rem; font-size: 0.8125rem; line-height: 1.125rem; text-align: left; cursor: pointer; }
+  .eintrag-konflikt { pointer-events: auto; display: flex; flex-direction: column; width: 100%; min-height: 2.75rem; padding: 0.3125rem 0.3125rem; background: var(--warning-bg); color: var(--warning); border: 2px solid var(--warning); border-radius: 0.25rem; font-size: 0.8125rem; line-height: 1.125rem; text-align: left; cursor: pointer; }
+  .eintrag-termin { pointer-events: auto; display: flex; flex-direction: column; width: 100%; min-height: 2.75rem; padding: 0.3125rem 0.375rem 0.3125rem 0.3125rem; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-left: 3px solid var(--petrol); border-radius: 0.25rem; font-size: 0.8125rem; line-height: 1.125rem; text-align: left; cursor: pointer; }
   .eintrag-termin:hover { border-color: var(--petrol); }
   /* Abwesend: grau mit der Art als Wort; bricht nur zwischen Wörtern bzw. an Silben. */
-  .eintrag-weg { display: block; padding: 0.375rem 0.5rem; background: var(--abwesend); color: var(--text-muted); border-radius: 0.375rem; font-size: 0.8125rem; line-height: 1.125rem; hyphens: auto; overflow-wrap: normal; word-break: normal; }
+  .eintrag-weg { display: block; padding: 0.375rem 0.5rem; background: var(--abwesend); color: var(--text-muted); border-radius: 0.25rem; font-size: 0.8125rem; line-height: 1.125rem; hyphens: auto; overflow-wrap: normal; word-break: normal; }
   .e-titel { font-weight: 600; overflow-wrap: break-word; hyphens: auto; }
   .e-zeile { overflow-wrap: break-word; font-variant-numeric: tabular-nums; }
   /* Eine Uhrzeit bricht nie („13:00–/16:00“ am Tablet, Testbericht Runde 5, G4). */

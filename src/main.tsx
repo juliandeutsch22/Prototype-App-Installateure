@@ -11,9 +11,9 @@ import { fehlerBeobachten } from './lib/fehlerprotokoll';
 import { schluesselUmziehen, firestoreResteEntfernen } from './lib/speicher';
 import { darstellungAnwenden } from './lib/darstellung';
 // Poppins self-gehostet (kein Google-CDN -> keine IP-Übermittlung an Google, DSGVO).
-// Nur die zwei Schnitte der Linie „Lot“ (400 und 600) — der Erstaufruf auf der
-// Baustelle (schlechtes Netz) bleibt damit schlank.
+// Text und Titel bleiben 400/600; Zahlen erhalten den freigegebenen leichteren Schnitt.
 import '@fontsource/poppins/latin-400.css';
+import '@fontsource/poppins/latin-500.css';
 import '@fontsource/poppins/latin-600.css';
 import './index.css';
 

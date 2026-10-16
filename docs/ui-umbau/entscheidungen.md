@@ -100,3 +100,12 @@ zeichnet die Team-Woche jetzt mit `PersonenWoche` und `HandyWoche` im Modus
 `lesen`: dieselben Einträge ohne Knopf. Was 4.8 verlangte, gilt weiter —
 ohne Knöpfe, ohne „frei“, ohne Monat, „abwesend“ ohne Grund, nur die Termine
 des Zeilenschutzes; geprüft in `TeamWoche.test.tsx`.
+
+**E16 — Gesamtkonzept 10, Startfreigabe 15.10.2026.** Der Auftraggeber hat nach
+Prüfung des Gesamtkonzepts die Umsetzung ausdrücklich gestartet. Die gemeinsame
+Linie trägt eine weiße Grundfläche, größere Seitentitel, Trennlinien statt
+Kartenrahmen und Poppins 500 ausschließlich für Zahlen; Text und Titel bleiben
+400/600. Das präzisiert die frühere Vorgabe von zwei Schriftstärken. Die
+Mitarbeiterübersicht beginnt beim Personenvergleich, der Tagesstreifen bleibt
+zuschaltbar. Bestehende Fachlogik, Berechtigungen und mobile Hauptaktionen
+bleiben verbindlich. [Umsetzung und Zuordnung](lot-v2-10/umsetzung.md).
