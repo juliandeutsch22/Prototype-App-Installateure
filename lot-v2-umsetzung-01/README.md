@@ -1,6 +1,6 @@
 # Lot v2 · tatsächliche Umsetzung 01
 
-Stand 15.10.2026 · [App-Änderung zur Prüfung](https://github.com/juliandeutsch22/Prototype-App-Installateure/pull/311) · Quellstand `bc804862318b2b5e94056b2d48aeb86bee7202c1`.
+Screens vom 15.10.2026 · **App seit 16.10.2026 live, Commit `29bc810`.** [Auslieferungsnachweis](../lot-v2-auslieferung-2026-10-16/README.md) · [App-Änderung zur Prüfung](https://github.com/juliandeutsch22/Prototype-App-Installateure/pull/311) · Quellstand `bc804862318b2b5e94056b2d48aeb86bee7202c1`.
 
 120 Screens aus echten App-Komponenten: 38 Einstiege sowie Tagesliste und Kalender einer Person, jeweils bei 390, 834 und 1.440 px. Zusätzlich 15 vollständige Vorher- und 15 Nachher-Seitenbilder der fünf Referenzeinstiege. Das sind tatsächliche Ansichten der Umsetzung mit fiktiven Daten. Die Live-App wird durch diese Bilddateien nicht geändert.
 

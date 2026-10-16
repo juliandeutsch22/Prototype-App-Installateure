@@ -1,0 +1,26 @@
+{
+  "checkedAtUtc": "2026-10-16T05:35:16.140493+00:00",
+  "baseUrl": "https://installateur-demo.firebaseapp.com/",
+  "version": "29bc810 \u00b7 16.10.2026, 07:32",
+  "bundleHasCommit": true,
+  "cssHasNewStyles": true,
+  "assets": [
+    {
+      "path": "/assets/index-CfagttiL.js",
+      "status": 200,
+      "bytes": 163905,
+      "contentType": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "/assets/index-BoqA2Nst.css",
+      "status": 200,
+      "bytes": 119441,
+      "contentType": "text/css; charset=utf-8"
+    }
+  ],
+  "publicRoutes200": [
+    "/",
+    "/impressum",
+    "/datenschutz"
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "status": "blocked",
+  "reason": "Chromium does not trust the cloud proxy CA. Auto-review rejected a persistent NSS trust-store extension because it would change future TLS trust. No browser trust-store change was made.",
+  "alternative": "Live version, JavaScript, CSS and public route responses verified using HTTPS with the already configured CA trust. Chromium, WebKit and tablet workflows passed in PR CI."
+}

@@ -1,0 +1,18 @@
+{
+  "sourceCommit": "29bc8102c6675f367c242b54de361adf931ef1d6",
+  "testedHead": "bc804862318b2b5e94056b2d48aeb86bee7202c1",
+  "pullRequest": "https://github.com/juliandeutsch22/Prototype-App-Installateure/pull/311",
+  "deploymentRun": "https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/38854626122",
+  "liveUrl": "https://installateur-demo.firebaseapp.com",
+  "releaseVerified": true,
+  "verifiedAtUtc": "2026-10-16T05:35:36.287870+00:00",
+  "liveBrowserVerified": false,
+  "checks": {
+    "modules": 5093,
+    "database": 1895,
+    "browserInPR": 82,
+    "linksInPR": 7,
+    "deviceSkipsInPR": 2
+  },
+  "databaseUnchanged": true
+}

@@ -2,6 +2,8 @@
 
 ## Aktuell: Lot v2 · tatsächliche Umsetzung 01
 
+**Seit 16.10.2026 live:** [App öffnen](https://installateur-demo.firebaseapp.com/) · [Auslieferungsnachweis und Handbuch](lot-v2-auslieferung-2026-10-16/README.md).
+
 120 Screens der umgesetzten Oberfläche, jeweils Handy, Tablet und Desktop. Gemeinsame Linie, Personenvergleich, optionaler Kalender und erhaltener Wochenplan. Fiktiver Vorschau-Bestand. Der App-Code liegt in [PR #311](https://github.com/juliandeutsch22/Prototype-App-Installateure/pull/311); diese Bilder sind kein Live-Deployment.
 
 - [Umsetzung ansehen und Einzelbilder öffnen](lot-v2-umsetzung-01/README.md)

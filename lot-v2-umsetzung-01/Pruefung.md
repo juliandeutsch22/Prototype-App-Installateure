@@ -67,3 +67,8 @@ Für Quellstand `bc804862318b2b5e94056b2d48aeb86bee7202c1` vollständig grün:
 - Der Deployment-Auftrag wurde im Pull Request erwartungsgemäß übersprungen. Dieser Stand wurde noch nicht nach main gemergt oder produktiv veröffentlicht.
 
 Die lokale Einschränkung zur fehlenden WebKit-Prüfung gilt für den lokalen Lauf; WebKit ist durch diesen Remote-Lauf abgedeckt. Sichtfreigabe, echte Geräte und Pilotbetrieb bleiben offen.
+
+
+## Auslieferung · 16.10.2026
+
+PR #311 ist gemergt und der Commit `29bc810` live bestätigt. Die vollständige Deployment-Kette war grün, einschließlich 1.895 Datenbankprüfungen und erneuten 5.093 Modulprüfungen. Die Produktionsdatenbank blieb unverändert. [Auslieferungsnachweis, Grenze des Live-Browsertests und Handbuch](../lot-v2-auslieferung-2026-10-16/README.md).
