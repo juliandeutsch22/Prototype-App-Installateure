@@ -10,7 +10,7 @@ einen Schritt länger, nichts wird schwerer erreichbar.
 |---|---|---|
 | Stand | `vor-ui-lot` (4abb9ca) | `main` nach #311 (29bc810, Lot v2) samt diesem PR |
 | Aufnahme | `bestand-vorher.json` | `bestand-nachher.json` |
-| Elemente | 29.154 | ‹N› |
+| Elemente | 29.154 | 91.417 |
 | Varianten × Breiten | 13 × 3 | 13 × 3 |
 
 Aufgenommen mit `tests/ui-umbau/bestand.spec.ts` in der Vorschau
