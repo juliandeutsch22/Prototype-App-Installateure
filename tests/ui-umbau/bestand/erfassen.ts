@@ -43,7 +43,8 @@ export interface Schnappschuss {
 export const KLASSEN = {
   hinweis: ['.hinweiszeile'],
   abzeichen: ['.stand', '.section-label'],
-  kennzahl: ['.kennzahl'],
+  // Nachher dazu (K4, 12.10.2026): die Kennzahlen im Seitenfenster der Person und die feste der Übersicht.
+  kennzahl: ['.kennzahl', '.pf-kennzahl', '.ue-kennzahl-fest'],
 };
 
 /**

@@ -1,5 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 /**
  * Die handgeschriebenen Ersatzmodule der Vorschau tragen jeden Export ihres
@@ -33,5 +36,54 @@ describe('Ersatzmodule der Vorschau', () => {
 
   it('Gegenprobe: die Suche findet die Exporte überhaupt', () => {
     expect(exporte('src/lib/auth/sitzung.ts')).toEqual(expect.arrayContaining(['anmelden', 'kontoUmstellen', 'InactiveUserError']));
+  });
+});
+
+/**
+ * Die erzeugten Ersatzmodule (`stubs-erzeugen.mjs`) liefern, was DATEN und
+ * FEST für sie vorsehen.
+ *
+ * Bis 13.10.2026 galt ein Eintrag in DATEN nur, wenn der Name mit list, get
+ * usw. begann — `stundenDerBaustellen` und die beiden Kundenlisten blieben
+ * NOOP, und die Kundenseite stürzte bei „Anschrift prüfen“ ab. Und weil
+ * `invoices` in FEST zweimal stand, fehlte `scheineAufRechnung`. Beides fiel
+ * erst in der Bestandsaufnahme (K4) auf, als Fehlerseite im Bestand.
+ */
+describe('Erzeugte Ersatzmodule der Vorschau', () => {
+  let ziel = '';
+  const modul = (name: string) => readFileSync(join(ziel, `${name}.ts`), 'utf8');
+
+  beforeAll(() => {
+    ziel = mkdtempSync(join(tmpdir(), 'vorschau-db-'));
+    execFileSync('node', ['tools/vorschau/stubs-erzeugen.mjs'], { env: { ...process.env, VORSCHAU_ZIEL: ziel } });
+  });
+  afterAll(() => rmSync(ziel, { recursive: true, force: true }));
+
+  it('ein Eintrag in DATEN gilt auch ohne passenden Namensanfang', () => {
+    expect(modul('timeEntries')).toContain('export const stundenDerBaustellen = () => A([]);');
+    expect(modul('customers')).toContain('export const kundenAdressePruefen = () => A(D.kunden.filter(');
+    expect(modul('customers')).toContain('export const kundenOhneKundenart = () => A(D.kunden.filter(');
+    // Auch im Unterordner `pg/`, den einzelne Ansichten direkt einbinden.
+    expect(modul('pg/customers')).toContain('export const kundenAdressePruefen = () => A(');
+    // Ein eigener Eintrag schlägt `*`: Ausführungen sind keine Anlagen.
+    expect(modul('wartungen')).toContain('export const listAusfuehrungen = () => A([]);');
+    expect(modul('wartungen')).toContain('export const listWartungen = () => A(D.wartungen);');
+  });
+
+  it('beide FEST-Einträge für Rechnungen gelten', () => {
+    expect(modul('invoices')).toContain('export const scheineAufRechnung = () => A([]);');
+    expect(modul('invoices')).toContain('export const sucheRechnungen = () => A([]);');
+    expect(modul('invoices')).not.toContain('export const scheineAufRechnung = NOOP;');
+  });
+
+  it('bleibt gleich: Schreibendes ist NOOP, Lesendes nach Namen, Abos über SUB', () => {
+    expect(modul('customers')).toContain('export const createCustomer = NOOP;');
+    expect(modul('customers')).toContain('export const listCustomers = () => A(D.kunden);');
+    expect(modul('invoices')).toMatch(/export const subscribe\w+ = SUB\(/);
+  });
+
+  it('die laufende Vorschau bleibt unberührt: geschrieben wird nur ins Prüfziel', () => {
+    expect(ziel).not.toContain('tools/vorschau');
+    expect(modul('customers')).toContain("import * as D from '../daten';");
   });
 });

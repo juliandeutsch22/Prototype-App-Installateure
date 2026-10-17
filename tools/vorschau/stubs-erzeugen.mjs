@@ -12,7 +12,8 @@ import { fileURLToPath } from 'node:url';
 
 const hier = dirname(fileURLToPath(import.meta.url));
 const wurzel = join(hier, '..', '..');
-const ziel = join(hier, 'db');
+// Ein anderes Ziel nur für die Prüfung (vorschauErsatz.test.ts) — die laufende Vorschau bleibt unberührt.
+const ziel = process.env.VORSCHAU_ZIEL ?? join(hier, 'db');
 mkdirSync(ziel, { recursive: true });
 
 /** Welche Beispieldaten ein Modul zurueckgeben soll. `*` gilt fuer alles Uebrige. */
@@ -24,6 +25,9 @@ const DATEN = {
     listCustomers: 'D.kunden', listCustomersByIds: 'D.kunden', searchCustomers: 'D.kunden',
     listProjectsForCustomer: 'D.baustellen', listUnlinkedProjectsByName: '[]',
     listUidPruefungen: 'D.uidPruefungen',
+    // Die Segmente „Ohne Kundenart“ und „Anschrift prüfen“ (K4, 13.10.2026): ohne Liste stürzte die Ansicht ab.
+    kundenOhneKundenart: 'D.kunden.filter((k) => !k.kundenart)',
+    kundenAdressePruefen: 'D.kunden.filter((k) => k.adressePruefen)',
   },
   company: { getCompany: 'D.firma', auszug: 'D.firma' },
   materialOrders: { '*': 'D.bestellungen' },
@@ -41,7 +45,8 @@ const DATEN = {
   assignments: { '*': 'D.einsaetze' },
   einsatzMaterial: { '*': 'D.ruestlisten', getEinsatzMaterial: 'D.ruestlisten[0]' },
   quotes: { '*': 'D.angebote', getQuote: 'D.angebote[0]', acceptQuote: "'B-2026-0042'" },
-  wartungen: { '*': 'D.wartungen', wartungEinplanen: "'B-2026-0042'" },
+  // Die Ausführungen sind keine Anlagen: mit `*` bekam der Verlauf Anlagen ohne `am` und brach ab (K4, 13.10.2026).
+  wartungen: { '*': 'D.wartungen', wartungEinplanen: "'B-2026-0042'", listAusfuehrungen: '[]' },
   offenePosten: { ladeOffenePosten: '{ urlaub: 1, anforderungen: 2, mahnungen: 1 }' },
   laeufe: { ladeLauf: 'null' },
   monatsbilanzen: { bilanzMarker: 'null' },
@@ -60,15 +65,19 @@ const FEST = {
   materialOrders:
     "export const ORDER_STATUS_FLOW = ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'] as const;\n",
   quelle: 'export const nutztPostgres = () => false;\n',
-  // Die Scheinliste fragt fürs Büro, welche Scheine schon verrechnet sind; ohne Antwort
-  // bliebe die Gruppe „Nicht verrechnet“ in der Vorschau für immer am Laden.
-  invoices: 'export const scheineAufRechnung = () => A([]);\n',
   monatsbilanzen: "export const monatVon = (d: string) => d.slice(0, 7);\n",
   prefs:
     'const P = {} as never;\nexport const getPrefs = () => A(P);\nexport const subscribePrefs = SUB(P);\n',
   // Formen, die die Heuristik falsch raten wuerde (Prueflauf 25.09.2026, C11).
   workSheets: 'export const vorbereiten = () => A({ zeiten: [], material: [] });\n',
+  /*
+    EIN SCHLÜSSEL JE MODUL: stand `invoices` zweimal da, galt nur der zweite —
+    `scheineAufRechnung` fehlte, und Startseite, Scheinliste und Rechnungen
+    bekamen in der Vorschau `undefined` statt einer Liste (K4, 13.10.2026).
+    Die Scheinliste fragt fürs Büro, welche Scheine schon verrechnet sind.
+  */
   invoices:
+    'export const scheineAufRechnung = () => A([]);\n' +
     'export const sucheRechnungen = () => A([]);\n' +
     "export const nextInvoiceNumber = () => 'RE-2026-0234';\n" +
     'export const isInvoiceNumberTaken = () => false;\n',
@@ -142,7 +151,8 @@ for (const unter of ORDNER) {
     if (schon.has(x)) continue;
     const wert = daten[x] ?? daten['*'] ?? '[]';
     if (x.startsWith('subscribe')) rumpf += `export const ${x} = SUB(${wert});\n`;
-    else if (/^(list|get|find|search|lade|auszug|eintraege|bilanz)/.test(x))
+    // Was in DATEN ausdrücklich steht, gilt auch ohne passenden Namensanfang (etwa `stundenDerBaustellen`).
+    else if (Object.hasOwn(daten, x) || /^(list|get|find|search|lade|auszug|eintraege|bilanz)/.test(x))
       rumpf += `export const ${x} = () => A(${wert});\n`;
     else if (x[0] === x[0].toUpperCase()) rumpf += `export class ${x} extends Error {}\n`;
     else rumpf += `export const ${x} = NOOP;\n`;

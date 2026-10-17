@@ -3,7 +3,7 @@
  * Messbasis für den Umbau „Lot“ (Phase B, B2) — vorher und nachher mit
  * demselben Werkzeug (Protokoll 0.1, Punkt 3: „gemessen, nicht vermutet“).
  *
- *   node scripts/ui-umbau/messung.mjs [vorher|nachher] [--ohne-bauen] [--laeufe=3] [--nur=/lager]
+ *   node scripts/ui-umbau/messung.mjs [vorher|nachher] [--ohne-bauen] [--laeufe=3] [--nur=/lager] [--ohne-hintergrund]
  *
  * Voraussetzungen: lokaler Stapel läuft, Testbestand angelegt
  * (`node scripts/ui-umbau/testbestand.mjs`). Das Skript baut die App gegen
@@ -30,6 +30,16 @@
  * Ergebnis: `docs/ui-umbau/messung-<quelle>.json` (Rohwerte) und der
  * erzeugte Abschnitt in `docs/ui-umbau/messung-<quelle>.md` zwischen den
  * Markierungen — der Text drumherum bleibt stehen.
+ *
+ * OHNE HINTERGRUND (`--ohne-hintergrund`, K4, 12.10.2026): „Netz ruhig“
+ * zählt jede Anfrage mit, auch was die App nur im Hintergrund holt. Seit dem
+ * Umbau sind das zwei gewollte Dinge, die es vorher nicht gab: das Vorladen
+ * der Menüseiten im Leerlauf (#280) und der Service Worker, der sich jetzt
+ * auch nach `load` anmeldet und die App-Hülle vorhält. Für den Vergleich
+ * mit vorher misst dieser Durchgang deshalb nur, was die Seite selbst
+ * braucht: Service Worker gesperrt, Datensparmodus des Geräts an (dann lädt
+ * die App nichts vor). Er schreibt `messung-<quelle>-ohne-hintergrund.json`
+ * und einen eigenen Abschnitt in derselben `.md`.
  */
 import { chromium } from 'playwright';
 import { spawn, spawnSync, execSync } from 'node:child_process';
@@ -41,6 +51,8 @@ const BAUEN = !process.argv.includes('--ohne-bauen');
 const LAEUFE = Number(process.argv.find((a) => a.startsWith('--laeufe='))?.split('=')[1] ?? 3);
 /** Nur einzelne Seiten (zum Ausprobieren): --nur=/lager,/invoices — schreibt dann keine Ergebnisdateien. */
 const NUR = process.argv.find((a) => a.startsWith('--nur='))?.split('=')[1].split(',') ?? null;
+const OHNE_HINTERGRUND = process.argv.includes('--ohne-hintergrund');
+const MARKE = OHNE_HINTERGRUND ? 'messung-ohne-hintergrund' : 'messung';
 const PORT = 4320;
 const ORT = `http://127.0.0.1:${PORT}`;
 const API = 'http://127.0.0.1:54321';
@@ -136,7 +148,15 @@ async function einmalMessen(browser, zustand, pfad) {
   const kontext = await browser.newContext({
     storageState: zustand, locale: 'de-AT', timezoneId: 'Europe/Vienna',
     viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true,
+    serviceWorkers: OHNE_HINTERGRUND ? 'block' : 'allow',
   });
+  if (OHNE_HINTERGRUND) {
+    // Datensparmodus des Geräts: `datenSparen()` in lib/ansichten.ts lässt dann das Vorladen aus.
+    await kontext.addInitScript(() => {
+      const n = navigator.connection;
+      if (n) Object.defineProperty(Object.getPrototypeOf(n), 'saveData', { get: () => true, configurable: true });
+    });
+  }
   const seite = await kontext.newPage();
   const cdp = await kontext.newCDPSession(seite);
   await cdp.send('Network.enable');
@@ -220,7 +240,7 @@ function bericht(ergebnisse) {
   const kb = (b) => `${Math.round(b / 1024).toLocaleString('de-AT')} KB`;
   const s = (ms) => (ms == null ? '–' : `${(ms / 1000).toFixed(1).replace('.', ',')} s`);
   const zeilen = [
-    `Gemessen am ${new Date().toLocaleDateString('de-AT')} · ${LAEUFE} Läufe je Seite, Median · Handy 390 × 844, langsames 4G (150 ms, 1,6 Mbit/s), CPU ×${CPU}, ohne Zwischenspeicher · angemeldet als Geschäftsführung des Testbetriebs \`ui-testbestand\`.`,
+    `Gemessen am ${new Date().toLocaleDateString('de-AT')} · ${LAEUFE} Läufe je Seite, Median · Handy 390 × 844, langsames 4G (150 ms, 1,6 Mbit/s), CPU ×${CPU}, ohne Zwischenspeicher · angemeldet als Geschäftsführung des Testbetriebs \`ui-testbestand\`${OHNE_HINTERGRUND ? ' · **ohne Hintergrund:** Service Worker gesperrt, Datensparmodus an (kein Vorladen)' : ''}.`,
     '',
     '| Seite | Pfad | erste Anzeige (FCP) | Inhalt da (h1) | bedienbar (Netz ruhig) | Anfragen | übertragen | DB-Anfragen | DB-Daten | grösste Liste (Zeilen) |',
     '|---|---|---|---|---|---|---|---|---|---|',
@@ -281,11 +301,14 @@ async function main() {
     await browser.close();
     if (NUR) return;
 
-    fs.writeFileSync(path.join('docs/ui-umbau', `messung-${QUELLE}.json`), `${JSON.stringify({ quelle: QUELLE, netz: NETZ, cpu: CPU, laeufe: LAEUFE, ergebnisse }, null, 1)}\n`);
+    const roh = `messung-${QUELLE}${OHNE_HINTERGRUND ? '-ohne-hintergrund' : ''}.json`;
+    fs.writeFileSync(path.join('docs/ui-umbau', roh), `${JSON.stringify({ quelle: QUELLE, ohneHintergrund: OHNE_HINTERGRUND, netz: NETZ, cpu: CPU, laeufe: LAEUFE, ergebnisse }, null, 1)}\n`);
     const md = path.join('docs/ui-umbau', `messung-${QUELLE}.md`);
-    const block = `<!-- messung:anfang (erzeugt von scripts/ui-umbau/messung.mjs) -->\n${bericht(ergebnisse)}\n<!-- messung:ende -->`;
-    const alt = fs.existsSync(md) ? fs.readFileSync(md, 'utf8') : `# Messung ${QUELLE}\n\n<!-- messung:anfang -->\n<!-- messung:ende -->\n`;
-    fs.writeFileSync(md, alt.replace(/<!-- messung:anfang[\s\S]*<!-- messung:ende -->/, block));
+    const block = `<!-- ${MARKE}:anfang (erzeugt von scripts/ui-umbau/messung.mjs) -->\n${bericht(ergebnisse)}\n<!-- ${MARKE}:ende -->`;
+    const alt = fs.existsSync(md) ? fs.readFileSync(md, 'utf8') : `# Messung ${QUELLE}\n`;
+    const bereich = new RegExp(`<!-- ${MARKE}:anfang[\\s\\S]*<!-- ${MARKE}:ende -->`);
+    // Fehlen die Markierungen noch, kommt der Abschnitt ans Ende.
+    fs.writeFileSync(md, bereich.test(alt) ? alt.replace(bereich, () => block) : `${alt.trimEnd()}\n\n${block}\n`);
     console.log(`\n→ ${md}`);
   } finally {
     try { process.kill(-vorschau.pid, 'SIGTERM'); } catch { /* schon weg */ }

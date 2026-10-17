@@ -1,1 +1,4383 @@
-[]
+[
+ {
+  "alt": "accounting.abzeichen.22-30",
+  "neu": "accounting.knopf.anton-berger-steinmetz-2-tage-ohne-buchung",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Saldo der Zeile steht jetzt im Seitenfenster der Person als Kennzahl „Saldo im Monat“ (PersonFenster.tsx); die Aufnahme erfasst Kennzahlzeilen dort nicht als eigenes Element",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.abzeichen.23-00",
+  "neu": "accounting.knopf.anton-berger-steinmetz-2-tage-ohne-buchung",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Saldo der Zeile steht jetzt im Seitenfenster der Person als Kennzahl „Saldo im Monat“ (PersonFenster.tsx); die Aufnahme erfasst Kennzahlzeilen dort nicht als eigenes Element",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.abzeichen.3-tage-fehlen",
+  "neu": "accounting.knopf.anton-berger-steinmetz-2-tage-ohne-buchung",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl der fehlenden Tage steht jetzt in der Zeile selbst („N Tage ohne Buchung“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.abzeichen.30-48",
+  "neu": "accounting.knopf.anton-berger-steinmetz-2-tage-ohne-buchung",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Saldo der Zeile steht jetzt im Seitenfenster der Person als Kennzahl „Saldo im Monat“ (PersonFenster.tsx); die Aufnahme erfasst Kennzahlzeilen dort nicht als eigenes Element",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.abzeichen.4-tage-fehlen",
+  "neu": "accounting.knopf.anton-berger-steinmetz-2-tage-ohne-buchung",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl der fehlenden Tage steht jetzt in der Zeile selbst („N Tage ohne Buchung“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.abzeichen.saldo-im-monat",
+  "neu": "accounting.franz-hinterleitner-oktober-2026.ueberschrift.franz-hinterleitner",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "„Saldo im Monat“ steht im Seitenfenster der Person (PersonFenster.tsx, Kennzahl); als Ort zugeordnet: der Kopf des Fensters",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.aufklapper.3-arbeitstage-ohne-buchung",
+  "neu": "accounting.franz-hinterleitner-oktober-2026.ueberschrift.4-arbeitstage-ohne-buchung",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Aufklapper in der aufgeklappten Karte → Abschnitt „N Arbeitstage ohne Buchung“ im Seitenfenster der Person, offen statt zum Aufklappen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.aufklapper.4-arbeitstage-ohne-buchung",
+  "neu": "accounting.franz-hinterleitner-oktober-2026.ueberschrift.4-arbeitstage-ohne-buchung",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Aufklapper in der aufgeklappten Karte → Abschnitt „N Arbeitstage ohne Buchung“ im Seitenfenster der Person, offen statt zum Aufklappen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.aufklapper.tagesnachweis-0-eintraege-00-00",
+  "neu": "accounting.franz-hinterleitner-oktober-2026.ueberschrift.tagesnachweis-0-eintraege",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Tagesnachweis aus der aufgeklappten Karte steht im Seitenfenster der Person, offen statt zum Aufklappen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.aufklapper.tagesnachweis-1-eintrag-09-00",
+  "neu": "accounting.max-mustermann-oktober-2026.ueberschrift.tagesnachweis-1-eintrag",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Tagesnachweis aus der aufgeklappten Karte steht im Seitenfenster der Person, offen statt zum Aufklappen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.auswahl.mitarbeiter",
+  "neu": "accounting.zeit-erfassen.auswahl.mitarbeiter",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "accounting.auswahl.status",
+  "neu": "accounting.zeit-erfassen.auswahl.status",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "accounting.checkbox.erweiterte-erfassung-baustelle-wegzeit-fahrzeug-zuschlaege",
+  "neu": "accounting.zeit-erfassen.checkbox.erweiterte-erfassung-baustelle-wegzeit-fahrzeug-zuschlaege",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "accounting.feld.bis",
+  "neu": "accounting.zeit-erfassen.feld.bis",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "accounting.feld.datum",
+  "neu": "accounting.zeit-erfassen.feld.datum",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "accounting.feld.kommentar-taetigkeiten-wird-am-schein-vorgeschlagen",
+  "neu": "accounting.zeit-erfassen.feld.kommentar-taetigkeiten-wird-am-schein-vorgeschlagen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "accounting.feld.pause-min",
+  "neu": "accounting.zeit-erfassen.feld.pause-min",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "accounting.feld.von",
+  "neu": "accounting.zeit-erfassen.feld.von",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "accounting.hinweis.das-hat-nicht-geklappt-geburtsdaten-get-is-not-a-function-er",
+  "neu": "accounting.ueberschrift.arbeitszeitgrenzen-11-ohne-begruendung",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Fehleranzeige der ALTEN Vorschau in der Karte „Arbeitszeitgrenzen“ (ihr Ersatzmodul lieferte die Geburtsdaten nicht als Map) — keine Funktion der App; nachher lädt die Karte",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.info.arbeitszeitgrenzen",
+  "neu": "accounting.hilfe-zu-mitarbeiteruebersicht.ueberschrift.arbeitszeitgrenzen-11-ohne-begruendung",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "Erklärung der Karte „Arbeitszeitgrenzen“ steht unter „Hilfe zu dieser Seite“ (eine Hilfe je Seite)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.info.den-laufenden-monat",
+  "neu": "accounting.franz-hinterleitner-oktober-2026.info.den-laufenden-monat",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "accounting.info.erweiterte-erfassung",
+  "neu": "accounting.zeit-erfassen.info.erweiterte-erfassung",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "accounting.knopf.anton-berger-steinmetz-4-tage-fehlen-00-00-von-30-48-bisher",
+  "neu": "accounting.knopf.anton-berger-steinmetz-2-tage-ohne-buchung",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.knopf.anton-berger-steinmetz-4-tage-fehlen-30-48",
+  "neu": "accounting.knopf.anton-berger-steinmetz-2-tage-ohne-buchung",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.knopf.bericht-fuer-zeitraum",
+  "neu": "accounting.franz-hinterleitner-oktober-2026.knopf.bericht-fuer-zeitraum",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "accounting.knopf.erneut-versuchen",
+  "neu": "accounting.ueberschrift.arbeitszeitgrenzen-11-ohne-begruendung",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„Erneut versuchen“ der Fehleranzeige der ALTEN Vorschau (Karte „Arbeitszeitgrenzen“); nachher lädt die Karte, kein Fehler, kein Knopf nötig",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.knopf.franz-hinterleitner-4-tage-fehlen-00-00-von-30-48-bisher-30",
+  "neu": "accounting.knopf.franz-hinterleitner-4-tage-ohne-buchung",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.knopf.franz-hinterleitner-4-tage-fehlen-30-48",
+  "neu": "accounting.knopf.franz-hinterleitner-4-tage-ohne-buchung",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.knopf.max-mustermann-4-tage-fehlen-09-00-von-32-00-bisher-23-00",
+  "neu": "accounting.knopf.max-mustermann-4-tage-ohne-buchung",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.knopf.max-mustermann-4-tage-fehlen-23-00",
+  "neu": "accounting.knopf.max-mustermann-4-tage-ohne-buchung",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.knopf.michaela-wagner-3-tage-fehlen-00-00-von-22-30-bisher-22-30",
+  "neu": "accounting.knopf.michaela-wagner-3-tage-ohne-buchung",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.knopf.michaela-wagner-3-tage-fehlen-22-30",
+  "neu": "accounting.knopf.michaela-wagner-3-tage-ohne-buchung",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.knopf.monat-als-csv",
+  "neu": "accounting.franz-hinterleitner-oktober-2026.knopf.monat-als-csv",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "accounting.knopf.monats-csv",
+  "neu": "accounting.aktionen.menueeintrag.monats-csv",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt menueeintrag",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "accounting.knopf.zeit-buchen",
+  "neu": "accounting.zeit-erfassen.knopf.zeit-buchen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "accounting.ueberschrift.oktober-2026",
+  "neu": "accounting.knopf.oktober-2026-dieser-monat-stand-mi-07-10",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Der Monatstitel ist jetzt der Knopf, der Monat und Jahr wählt (Linie „Lot“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.ueberschrift.zeit-fuer-einen-mitarbeiter-erfassen",
+  "neu": "accounting.zeit-erfassen.ueberschrift.zeit-fuer-einen-mitarbeiter-erfassen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "accounting.ueberschrift.zeitraum",
+  "neu": "accounting.knopf.oktober-2026-dieser-monat-stand-mi-07-10",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Die Wahl von Monat und Jahr („Zeitraum“) öffnet jetzt der Titel",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "admin-projects-id.auswahl.art",
+  "neu": "admin-projects-id.termin-anlegen.auswahl.art",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects-id.checkbox.anton-berger-steinmetz-mitarbeiter",
+  "neu": "admin-projects-id.termin-anlegen.checkbox.anton-berger-steinmetz-mitarbeiter",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects-id.checkbox.max-mustermann-mitarbeiter",
+  "neu": "admin-projects-id.termin-anlegen.checkbox.max-mustermann-mitarbeiter",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects-id.checkbox.michaela-wagner-buchhaltung",
+  "neu": "admin-projects-id.termin-anlegen.checkbox.michaela-wagner-buchhaltung",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects-id.datei.plaene-oder-bilder-auswaehlen",
+  "neu": "admin-projects-id.datei.dokumente-auswaehlen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Pläne und Bilder heissen jetzt Dokumente und nehmen auch Word, Excel und E-Mail an (Paket D)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "admin-projects-id.feld.bis",
+  "neu": "admin-projects-id.termin-anlegen.feld.bis",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects-id.feld.notiz",
+  "neu": "admin-projects-id.termin-anlegen.feld.notiz",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects-id.feld.tag",
+  "neu": "admin-projects-id.termin-anlegen.feld.tag",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects-id.feld.von",
+  "neu": "admin-projects-id.termin-anlegen.feld.von",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects-id.info.plaene-und-dokumente",
+  "neu": "admin-projects-id.hilfe-zu-wohnungseigentuemergemeinschaft.ueberschrift.plaene-und-dokumente",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects-id.info.termine",
+  "neu": "admin-projects-id.hilfe-zu-wohnungseigentuemergemeinschaft.ueberschrift.termine",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects-id.knopf.abbrechen",
+  "neu": "admin-projects-id.termin-anlegen.knopf.abbrechen",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects-id.knopf.plan-oder-bild-hinzufuegen",
+  "neu": "admin-projects-id.knopf.dokument-hinzufuegen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "„Plan oder Bild hinzufügen“ → „Dokument hinzufügen“ (Paket D)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "admin-projects-id.ueberschrift.stunden-auf-dieser-baustelle",
+  "neu": "admin-projects-id.ueberschrift.ueberblick",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Stunden der Baustelle stehen im Abschnitt „Überblick“; in der Vorschau meldet er „konnte nicht geladen werden“ (die Vorschau kennt die Abfrage baustellen_stunden nicht)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "admin-projects-id.ueberschrift.weiter",
+  "neu": "admin-projects-id.link.zur-kundenakte",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Karte „Weiter“ aufgelöst: Kundenakte und Angebote stehen als Verweise in der Akte",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "admin-projects.abzeichen.aktiv",
+  "neu": "admin-projects.ueberschrift.aktiv-2",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Status je Zeile → Gruppenüberschrift „Aktiv · N“ über den Zeilen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "admin-projects.abzeichen.pausiert",
+  "neu": "admin-projects.ueberschrift.pausiert-1",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Status je Zeile → Gruppenüberschrift „Pausiert · N“ über den Zeilen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "admin-projects.auswahl.abrechnung",
+  "neu": "admin-projects.neue-baustelle.auswahl.abrechnung",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.auswahl.baustellen-filtern",
+  "neu": "admin-projects.segment.laufend",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Auswahlfeld → Segmente Laufend · Alle · Erledigt",
+  "geprueft": true,
+  "art": "von Hand",
+  "optionen": {
+   "Aktiv & pausiert": "Laufend",
+   "Archiv (0)": "Erledigt"
+  }
+ },
+ {
+  "alt": "admin-projects.auswahl.kunde",
+  "neu": "admin-projects.neue-baustelle.auswahl.kunde",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.auswahl.status",
+  "neu": "admin-projects.neue-baustelle.auswahl.status",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.checkbox.anton-berger-steinmetz",
+  "neu": "admin-projects.neue-baustelle.checkbox.anton-berger-steinmetz",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.checkbox.franz-hinterleitner-projektleiter",
+  "neu": "admin-projects.neue-baustelle.checkbox.franz-hinterleitner-projektleiter",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.checkbox.max-mustermann",
+  "neu": "admin-projects.neue-baustelle.checkbox.max-mustermann",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.feld.ansprechpartner-vor-ort",
+  "neu": "admin-projects.neue-baustelle.feld.ansprechpartner-vor-ort",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.feld.baustellenadresse",
+  "neu": "admin-projects.neue-baustelle.feld.baustellenadresse",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.feld.beginn",
+  "neu": "admin-projects.neue-baustelle.feld.beginn",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.feld.beschreibung-auftragsumfang",
+  "neu": "admin-projects.neue-baustelle.feld.beschreibung-auftragsumfang",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.feld.bezeichnung-freiwillig",
+  "neu": "admin-projects.neue-baustelle.feld.bezeichnung-freiwillig",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.feld.ende-geplant",
+  "neu": "admin-projects.neue-baustelle.feld.ende-geplant",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.feld.projektnummer",
+  "neu": "admin-projects.neue-baustelle.feld.projektnummer",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.feld.stundenbudget-kalkuliert",
+  "neu": "admin-projects.neue-baustelle.feld.stundenbudget-kalkuliert",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.feld.telefon-vor-ort",
+  "neu": "admin-projects.neue-baustelle.feld.telefon-vor-ort",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.hinweis.ohne-zugeteilte-projektleitung-erreicht-eine-eilzustellung-f",
+  "neu": "admin-projects.neue-baustelle.hinweis.ohne-zugeteilte-projektleitung-erreicht-eine-eilzustellung-f",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.knopf.abbrechen",
+  "neu": "admin-projects.neue-baustelle.knopf.abbrechen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.knopf.anlegen",
+  "neu": "admin-projects.neue-baustelle.knopf.anlegen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "admin-projects.link.akte",
+  "neu": "admin-projects.link.familie-huber-b-2026-0149",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Eigener Verweis „Akte“ → die ganze Zeile öffnet die Akte (Linie „Lot“, Regel 3)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "admin-projects.ueberschrift.alle-baustellen-3",
+  "neu": "admin-projects.segment.alle",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Überschrift mit Zahl → Segment „Alle“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "admin-projects.ueberschrift.neue-baustelle",
+  "neu": "admin-projects.neue-baustelle.ueberschrift.neue-baustelle",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "anforderungen.abzeichen.1",
+  "neu": "anforderungen.segment.retouren-1",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl am Reiter → steht im Segment",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "anforderungen.abzeichen.2",
+  "neu": "anforderungen.segment.laufend-2",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl am Reiter → steht im Segment",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "anforderungen.abzeichen.in-bearbeitung",
+  "neu": "anforderungen.anforderung.abzeichen.in-bearbeitung",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "anforderungen.abzeichen.offen",
+  "neu": "anforderungen.anforderung.abzeichen.offen",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "anforderungen.aktionen.menueeintrag.auf-abholbereit-setzen",
+  "neu": "anforderungen.anforderung.knopf.auf-abholbereit-setzen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt knopf",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "anforderungen.aktionen.menueeintrag.auf-erledigt-setzen",
+  "neu": "anforderungen.anforderung.knopf.auf-erledigt-setzen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt knopf",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "anforderungen.aktionen.menueeintrag.auf-in-bearbeitung-setzen",
+  "neu": "anforderungen.anforderung.knopf.auf-in-bearbeitung-setzen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt knopf",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "anforderungen.aktionen.menueeintrag.loeschen",
+  "neu": "anforderungen.anforderung.knopf.anforderung-loeschen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "⋯ der Zeile → die Zeile öffnet das Seitenfenster, dort „Anforderung löschen …“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "anforderungen.info.grosshaendler",
+  "neu": "anforderungen.hilfe-zu-anforderungen.ueberschrift.grosshaendler",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "anforderungen.info.kontaktzeile",
+  "neu": "anforderungen.knopf.hilfe-zu-dieser-seite",
+  "weg_alt": 2,
+  "weg_neu": 0,
+  "bemerkung": "Erklärung „Kontaktzeile“ steht bei offenem Formular „+ Großhändler“ unter „Hilfe zu dieser Seite“ (InfoHint im Seitenfluss, Einkaufsliste.tsx); die Aufnahme öffnet die Hilfe nur im Grundzustand der Seite",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "anforderungen.info.material-dazusetzen",
+  "neu": "anforderungen.hilfe-zu-anforderungen.ueberschrift.material-dazusetzen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "anforderungen.knopf.nicht-auf-lager",
+  "neu": "anforderungen.anforderung.knopf.nicht-auf-lager-auf-die-einkaufsliste",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "Knopf in der Zeile → im Seitenfenster der Anforderung, „Nicht auf Lager – auf die Einkaufsliste“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "anforderungen.knopf.weitere-aktionen",
+  "neu": "anforderungen.knopf.kupferrohr-22-mm-stange-5-m-hart-12-anton-berger-steinmetz-b",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "⋯ der Zeile → die ganze Zeile öffnet das Seitenfenster mit allen Aktionen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "anforderungen.reiter.einkauf",
+  "neu": "anforderungen.segment.einkauf",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt segment",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "anforderungen.reiter.erledigt",
+  "neu": "anforderungen.segment.erledigt",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt segment",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "anforderungen.reiter.laufend2",
+  "neu": "anforderungen.segment.laufend-2",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Reiter → Segment",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "anforderungen.reiter.retouren1",
+  "neu": "anforderungen.segment.retouren-1",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Reiter → Segment",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-tag.abzeichen.1-ausgewaehlt",
+  "neu": "assignments-tag.termin-aendern.abzeichen.1-ausgewaehlt",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.auswahl.art",
+  "neu": "assignments-tag.termin-anlegen.auswahl.art",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.checkbox.anton-berger-steinmetz",
+  "neu": "assignments-tag.checkbox.anton-berger-steinmetz-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Kästchen der Person im Formular „Tag planen“; die Zeile nennt jetzt ihren Stand („frei“, „schon eingeteilt …“, „Urlaub“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-tag.checkbox.anton-berger-steinmetz-heute-schon-eingeteilt-gemeinde-neudo",
+  "neu": "assignments-tag.checkbox.anton-berger-steinmetz-schon-eingeteilt-gemeinde-neudorf-bei",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Personenauswahl: „heute schon eingeteilt“ → „schon eingeteilt“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-tag.checkbox.anton-berger-steinmetz-mitarbeiter",
+  "neu": "assignments-tag.termin-anlegen.checkbox.anton-berger-steinmetz-mitarbeiter",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.checkbox.franz-hinterleitner",
+  "neu": "assignments-tag.checkbox.franz-hinterleitner-frei",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Kästchen der Person im Formular „Tag planen“; die Zeile nennt jetzt ihren Stand („frei“, „schon eingeteilt …“, „Urlaub“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-tag.checkbox.franz-hinterleitner-projektleiter",
+  "neu": "assignments-tag.termin-anlegen.checkbox.franz-hinterleitner-projektleiter",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.checkbox.max-mustermann",
+  "neu": "assignments-tag.checkbox.max-mustermann-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Kästchen der Person im Formular „Tag planen“; die Zeile nennt jetzt ihren Stand („frei“, „schon eingeteilt …“, „Urlaub“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-tag.checkbox.max-mustermann-heute-schon-eingeteilt-wohnungseigentuemergem",
+  "neu": "assignments-tag.checkbox.max-mustermann-schon-eingeteilt-wohnungseigentuemergemeinsch",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Personenauswahl: „heute schon eingeteilt“ → „schon eingeteilt“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-tag.checkbox.max-mustermann-mitarbeiter",
+  "neu": "assignments-tag.termin-anlegen.checkbox.max-mustermann-mitarbeiter",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.checkbox.michaela-wagner-buchhaltung",
+  "neu": "assignments-tag.termin-anlegen.checkbox.michaela-wagner-buchhaltung",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.einsatz-loeschen.knopf.abbrechen",
+  "neu": "assignments-tag.knopf.loeschen",
+  "weg_alt": 2,
+  "weg_neu": 1,
+  "bemerkung": "Unverändert in der Zeile der Person: Knopf „Löschen“ mit der Vorlesehilfe „Einsatz von … löschen“, danach die Rückfrage „Einsatz löschen?“ (AssignmentsView.tsx, ConfirmDialog). Die Kennung folgt jetzt der sichtbaren Beschriftung „Löschen“; die Aufnahme drückt je Beschriftung einen Knopf — das war der eines Termins, darum fehlt die Rückfrage im Bestand",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-tag.einsatz-loeschen.knopf.loeschen",
+  "neu": "assignments-tag.knopf.loeschen",
+  "weg_alt": 2,
+  "weg_neu": 1,
+  "bemerkung": "Unverändert in der Zeile der Person: Knopf „Löschen“ mit der Vorlesehilfe „Einsatz von … löschen“, danach die Rückfrage „Einsatz löschen?“ (AssignmentsView.tsx, ConfirmDialog). Die Kennung folgt jetzt der sichtbaren Beschriftung „Löschen“; die Aufnahme drückt je Beschriftung einen Knopf — das war der eines Termins, darum fehlt die Rückfrage im Bestand",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-tag.einsatz-loeschen.ueberschrift.einsatz-loeschen",
+  "neu": "assignments-tag.knopf.loeschen",
+  "weg_alt": 2,
+  "weg_neu": 1,
+  "bemerkung": "Unverändert in der Zeile der Person: Knopf „Löschen“ mit der Vorlesehilfe „Einsatz von … löschen“, danach die Rückfrage „Einsatz löschen?“ (AssignmentsView.tsx, ConfirmDialog). Die Kennung folgt jetzt der sichtbaren Beschriftung „Löschen“; die Aufnahme drückt je Beschriftung einen Knopf — das war der eines Termins, darum fehlt die Rückfrage im Bestand",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-tag.feld.bis",
+  "neu": "assignments-tag.termin-anlegen.feld.bis",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.feld.notiz",
+  "neu": "assignments-tag.termin-anlegen.feld.notiz",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.feld.tag",
+  "neu": "assignments-tag.termin-anlegen.feld.tag",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.feld.von",
+  "neu": "assignments-tag.termin-anlegen.feld.von",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.material-fuer-diesen-einsatz",
+  "neu": "assignments-tag.einsatz-bearbeiten.info.material-fuer-diesen-einsatz",
+  "weg_alt": 2,
+  "weg_neu": 3,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-di-06-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-di-06-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-di-13-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-di-13-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-di-20-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-di-20-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-di-27-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-di-27-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-do-01-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-do-01-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-do-08-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-do-08-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-do-15-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-do-15-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-do-22-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-do-22-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-do-29-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-do-29-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-fr-02-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-fr-02-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-fr-09-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-fr-09-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-fr-16-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-fr-16-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-fr-23-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-fr-23-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-fr-30-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-fr-30-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-mi-07-10-2026",
+  "neu": "assignments-tag.hilfe-zu-einsatzplanung.ueberschrift.termine-am-mi-07-10-2026",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-mi-14-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-mi-14-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-mi-21-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-mi-21-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-mi-28-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-mi-28-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-mo-05-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-mo-05-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-mo-12-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-mo-12-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-mo-19-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-mo-19-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-mo-26-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-mo-26-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-sa-03-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-sa-03-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-sa-10-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-sa-10-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-sa-17-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-sa-17-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-sa-24-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-sa-24-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-sa-31-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-sa-31-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-so-04-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-so-04-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-so-11-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-so-11-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-so-18-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-so-18-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.termine-am-so-25-10-2026",
+  "neu": "assignments-tag.ueberschrift.termine-am-so-25-10-2026",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.info.wo",
+  "neu": "assignments-tag.termin-anlegen.info.wo",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.knopf.einsatz-von-anton-berger-steinmetz-loeschen",
+  "neu": "assignments-tag.knopf.loeschen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Unverändert in der Zeile der Person: Knopf „Löschen“ mit der Vorlesehilfe „Einsatz von … löschen“, danach die Rückfrage „Einsatz löschen?“ (AssignmentsView.tsx, ConfirmDialog). Die Kennung folgt jetzt der sichtbaren Beschriftung „Löschen“; die Aufnahme drückt je Beschriftung einen Knopf — das war der eines Termins, darum fehlt die Rückfrage im Bestand",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-tag.knopf.einsatz-von-max-mustermann-loeschen",
+  "neu": "assignments-tag.knopf.loeschen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Unverändert in der Zeile der Person: Knopf „Löschen“ mit der Vorlesehilfe „Einsatz von … löschen“, danach die Rückfrage „Einsatz löschen?“ (AssignmentsView.tsx, ConfirmDialog). Die Kennung folgt jetzt der sichtbaren Beschriftung „Löschen“; die Aufnahme drückt je Beschriftung einen Knopf — das war der eines Termins, darum fehlt die Rückfrage im Bestand",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-tag.radio.auf-einer-baustelle",
+  "neu": "assignments-tag.termin-anlegen.radio.auf-einer-baustelle",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.radio.beim-kunden-ohne-baustelle",
+  "neu": "assignments-tag.termin-anlegen.radio.beim-kunden-ohne-baustelle",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.reiter.tag-planen",
+  "neu": "assignments-tag.segment.tag",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Reiter „Tag planen“ → Segment „Tag“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-tag.reiter.wochenplan",
+  "neu": "assignments-tag.segment.woche",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Reiter → Segment „Woche“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.info.05-10-11-10",
+  "neu": "assignments-woche.segment.woche",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Die Wochenspanne als eigene Überschrift entfällt; welche Woche gezeigt wird, steht im Kopf der Tage, gewählt über „Woche“ und „Woche vor/zurück“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.info.12-10-18-10",
+  "neu": "assignments-woche.segment.woche",
+  "weg_alt": 2,
+  "weg_neu": 1,
+  "bemerkung": "Die Wochenspanne als eigene Überschrift entfällt; welche Woche gezeigt wird, steht im Kopf der Tage, gewählt über „Woche“ und „Woche vor/zurück“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.info.28-09-04-10",
+  "neu": "assignments-woche.segment.woche",
+  "weg_alt": 2,
+  "weg_neu": 1,
+  "bemerkung": "Die Wochenspanne als eigene Überschrift entfällt; welche Woche gezeigt wird, steht im Kopf der Tage, gewählt über „Woche“ und „Woche vor/zurück“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.info.im-eigenen-kalender",
+  "neu": "assignments-woche.hilfe-zu-einsatzplanung.ueberschrift.im-eigenen-kalender",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-woche.knopf.di-06-10-2-frei",
+  "neu": "assignments-woche.knopf.di-06-10-2-frei-1-termin",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.di-06-10-3-frei",
+  "neu": "assignments-woche.knopf.di-06-10-3-frei-1-termin",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.di-13-10-2-frei",
+  "neu": "assignments-woche.knopf.di-13-10-3-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.di-13-10-3-frei",
+  "neu": "assignments-woche.knopf.di-13-10-4-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.di-29-09-2-frei",
+  "neu": "assignments-woche.knopf.di-29-09-5-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.di-29-09-3-frei",
+  "neu": "assignments-woche.knopf.di-29-09-6-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.do-01-10-2-frei",
+  "neu": "assignments-woche.knopf.do-01-10-5-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.do-01-10-3-frei",
+  "neu": "assignments-woche.knopf.do-01-10-6-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.do-08-10-2-frei",
+  "neu": "assignments-woche.knopf.do-08-10-3-frei-1-termin",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.do-08-10-3-frei",
+  "neu": "assignments-woche.knopf.do-08-10-4-frei-1-termin",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.do-15-10-2-frei",
+  "neu": "assignments-woche.knopf.do-15-10-3-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.do-15-10-3-frei",
+  "neu": "assignments-woche.knopf.do-15-10-4-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.einteilen",
+  "neu": "assignments-woche.knopf.frei-einsatz-planen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "„Einteilen“ in der freien Zelle → „frei – Einsatz planen“ (Handy: Zeile „frei – Einsatz planen“; Tablet/Schreibtisch: die leere Zelle selbst, „Name, Tag: frei – Einsatz planen“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.fr-02-10-2-frei",
+  "neu": "assignments-woche.knopf.fr-02-10-5-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.fr-02-10-3-frei",
+  "neu": "assignments-woche.knopf.fr-02-10-6-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.fr-09-10-2-frei",
+  "neu": "assignments-woche.knopf.fr-09-10-4-frei-lieferung-ohne-annahme-1-termin",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.fr-09-10-3-frei",
+  "neu": "assignments-woche.knopf.fr-09-10-5-frei-lieferung-ohne-annahme-1-termin",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.fr-16-10-2-frei",
+  "neu": "assignments-woche.knopf.fr-16-10-4-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.fr-16-10-3-frei",
+  "neu": "assignments-woche.knopf.fr-16-10-5-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.frei",
+  "neu": "assignments-woche.knopf.anton-berger-steinmetz-dienstag-06-10-frei-einsatz-planen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "„frei“ in der Zelle heisst jetzt „frei – Einsatz planen“ (Handy: Zeile „frei – Einsatz planen“; Tablet/Schreibtisch: die leere Zelle selbst, „Name, Tag: frei – Einsatz planen“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.gemeinde-neudorf-bei-wiener-neustadt-b-2026-0148-als-helfer",
+  "neu": "assignments-woche.knopf.gemeinde-neudorf-bei-wiener-neustadt-neunkirchen-als-helfer",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Einsatz in der Zelle: statt der Projektnummer der Ort, „als Helfer“ bleibt",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.gemeinde-neudorf-bei-wiener-neustadt-b-2026-0148-anton-berge",
+  "neu": "assignments-woche.knopf.gemeinde-neudorf-bei-wiener-neustadt-neunkirchen-als-helfer",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Einsatz in der Zelle: statt der Projektnummer der Ort, „als Helfer“ bleibt",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.mi-07-10-0-frei",
+  "neu": "assignments-woche.knopf.mi-07-10-0-frei-1-termin",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.mi-07-10-1-frei",
+  "neu": "assignments-woche.knopf.mi-07-10-1-frei-1-termin",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.mi-14-10-2-frei",
+  "neu": "assignments-woche.knopf.mi-14-10-3-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.mi-14-10-3-frei",
+  "neu": "assignments-woche.knopf.mi-14-10-4-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.mi-30-09-2-frei",
+  "neu": "assignments-woche.knopf.mi-30-09-5-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.mi-30-09-3-frei",
+  "neu": "assignments-woche.knopf.mi-30-09-6-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.mo-05-10-2-frei",
+  "neu": "assignments-woche.knopf.mo-05-10-3-frei",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.mo-05-10-3-frei",
+  "neu": "assignments-woche.knopf.mo-05-10-4-frei",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.mo-12-10-2-frei",
+  "neu": "assignments-woche.knopf.mo-12-10-3-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.mo-12-10-3-frei",
+  "neu": "assignments-woche.knopf.mo-12-10-4-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.mo-28-09-2-frei",
+  "neu": "assignments-woche.knopf.mo-28-09-5-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.mo-28-09-3-frei",
+  "neu": "assignments-woche.knopf.mo-28-09-6-frei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.sa-03-10",
+  "neu": "assignments-woche.knopf.sa-03-10-alle-einsaetze-des-tages",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.sa-17-10",
+  "neu": "assignments-woche.knopf.sa-17-10-alle-einsaetze-des-tages",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.so-04-10",
+  "neu": "assignments-woche.knopf.so-04-10-alle-einsaetze-des-tages",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.so-11-10",
+  "neu": "assignments-woche.knopf.so-11-10-alle-einsaetze-des-tages",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.so-18-10",
+  "neu": "assignments-woche.knopf.so-18-10-alle-einsaetze-des-tages",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.knopf.wohnungseigentuemergemeinschaft-hauptstrasse-112-118-b-2026",
+  "neu": "assignments-woche.knopf.wohnungseigentuemergemeinschaft-hauptstrasse-112-118-wiener",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Einsatz in der Zelle: statt der Projektnummer der Ort, „als Helfer“ bleibt",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.reiter.tag-planen",
+  "neu": "assignments-woche.segment.tag",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Reiter „Tag planen“ → Segment „Tag“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.reiter.wochenplan",
+  "neu": "assignments-woche.segment.woche",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Reiter → Segment „Woche“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.ueberschrift.05-10-11-10",
+  "neu": "assignments-woche.segment.woche",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Die Wochenspanne als eigene Überschrift entfällt; welche Woche gezeigt wird, steht im Kopf der Tage, gewählt über „Woche“ und „Woche vor/zurück“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.ueberschrift.12-10-18-10",
+  "neu": "assignments-woche.segment.woche",
+  "weg_alt": 2,
+  "weg_neu": 1,
+  "bemerkung": "Die Wochenspanne als eigene Überschrift entfällt; welche Woche gezeigt wird, steht im Kopf der Tage, gewählt über „Woche“ und „Woche vor/zurück“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.ueberschrift.28-09-04-10",
+  "neu": "assignments-woche.segment.woche",
+  "weg_alt": 2,
+  "weg_neu": 1,
+  "bemerkung": "Die Wochenspanne als eigene Überschrift entfällt; welche Woche gezeigt wird, steht im Kopf der Tage, gewählt über „Woche“ und „Woche vor/zurück“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "assignments-woche.ueberschrift.wochenplan",
+  "neu": "assignments-woche.segment.woche",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Überschrift „Wochenplan“ → Segment „Woche“ der Einsatzplanung",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "costing.abzeichen.93-5",
+  "neu": "costing.abzeichen.80-1",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Prozentwert je Baustelle; die Zahl hängt an den Sätzen der Beispieldaten",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "costing.abzeichen.97-8",
+  "neu": "costing.abzeichen.80-1",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Prozentwert je Baustelle; die Zahl hängt an den Sätzen der Beispieldaten",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "costing.auswahl.baustellen",
+  "neu": "costing.segment.laufend",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Auswahlfeld „Baustellen“ (Laufend/Abgeschlossen) → Segmente",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "costing.info.auswahl",
+  "neu": "costing.hilfe-zu-nachkalkulation.ueberschrift.die-auswahl",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "Erklärung „Auswahl“ steht unter „Hilfe zu dieser Seite“ („die Auswahl“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "costing.info.deckungsbeitrag",
+  "neu": "costing.hilfe-zu-nachkalkulation.ueberschrift.deckungsbeitrag",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "costing.ueberschrift.auswahl",
+  "neu": "costing.segment.laufend",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Karte „Auswahl“ → Segmente oben auf der Seite",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "customers-id.auswahl.art",
+  "neu": "customers-id.termin-anlegen.auswahl.art",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers-id.auswahl.baustelle",
+  "neu": "customers-id.termin-anlegen.auswahl.baustelle",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers-id.checkbox.anton-berger-steinmetz-mitarbeiter",
+  "neu": "customers-id.termin-anlegen.checkbox.anton-berger-steinmetz-mitarbeiter",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers-id.checkbox.franz-hinterleitner-projektleiter",
+  "neu": "customers-id.termin-anlegen.checkbox.franz-hinterleitner-projektleiter",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers-id.checkbox.max-mustermann-mitarbeiter",
+  "neu": "customers-id.termin-anlegen.checkbox.max-mustermann-mitarbeiter",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers-id.checkbox.michaela-wagner-buchhaltung",
+  "neu": "customers-id.termin-anlegen.checkbox.michaela-wagner-buchhaltung",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers-id.feld.bis",
+  "neu": "customers-id.termin-anlegen.feld.bis",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers-id.feld.notiz",
+  "neu": "customers-id.termin-anlegen.feld.notiz",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers-id.feld.tag",
+  "neu": "customers-id.termin-anlegen.feld.tag",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers-id.feld.von",
+  "neu": "customers-id.termin-anlegen.feld.von",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers-id.info.datenschutz",
+  "neu": "customers-id.hilfe-zu-wohnungseigentuemergemeinschaft.ueberschrift.datenschutz",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers-id.info.termine",
+  "neu": "customers-id.hilfe-zu-wohnungseigentuemergemeinschaft.ueberschrift.termine",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers-id.info.wo",
+  "neu": "customers-id.termin-anlegen.info.wo",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers-id.knopf.abbrechen",
+  "neu": "customers-id.termin-anlegen.knopf.abbrechen",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers-id.radio.auf-einer-baustelle",
+  "neu": "customers-id.termin-anlegen.radio.auf-einer-baustelle",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers-id.radio.beim-kunden-ohne-baustelle",
+  "neu": "customers-id.termin-anlegen.radio.beim-kunden-ohne-baustelle",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.auswahl.kundenart",
+  "neu": "customers.wohnungseigentuemergemeinschaft-hauptstr.auswahl.kundenart",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "Das alte Formular diente für Neu und Bearbeiten (eine Kennung). „Nicht angegeben“ steht nur, solange die Kundenart leer ist — beim Bearbeiten eines Altkunden (KundenartUidFelder.tsx); ein neuer Kunde beginnt seit #205 mit „Privatperson“. Zugeordnet: die Auswahl im Fenster „… bearbeiten“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "customers.auswahl.land",
+  "neu": "customers.neuen-kunden-anlegen.auswahl.land",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.checkbox.nur-anschriften-die-zu-pruefen-sind",
+  "neu": "customers.segment.anschrift-pruefen",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zwei Kästchen, die einander ausschalteten → Segmente Alle · Anschrift prüfen · Ohne Kundenart",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "customers.checkbox.nur-kunden-ohne-kundenart-kundenart-pruefen",
+  "neu": "customers.segment.ohne-kundenart",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zwei Kästchen, die einander ausschalteten → Segmente Alle · Anschrift prüfen · Ohne Kundenart",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "customers.feld.ansprechpartner",
+  "neu": "customers.neuen-kunden-anlegen.feld.ansprechpartner",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.feld.e-mail",
+  "neu": "customers.neuen-kunden-anlegen.feld.e-mail",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.feld.kundennummer-freiwillig",
+  "neu": "customers.neuen-kunden-anlegen.feld.kundennummer-freiwillig",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.feld.name-oder-firma",
+  "neu": "customers.neuen-kunden-anlegen.feld.name-oder-firma",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.feld.notiz",
+  "neu": "customers.neuen-kunden-anlegen.feld.notiz",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.feld.ort",
+  "neu": "customers.neuen-kunden-anlegen.feld.ort",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.feld.plz",
+  "neu": "customers.neuen-kunden-anlegen.feld.plz",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.feld.strasse-und-hausnummer",
+  "neu": "customers.neuen-kunden-anlegen.feld.strasse-und-hausnummer",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.feld.telefon",
+  "neu": "customers.neuen-kunden-anlegen.feld.telefon",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.feld.uid-nummer",
+  "neu": "customers.neuen-kunden-anlegen.feld.uid-nummer",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.info.bestehende-baustellen-uebernehmen",
+  "neu": "customers.hilfe-zu-kunden.ueberschrift.bestehende-baustellen-uebernehmen",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.info.kunden-aus-einer-datei",
+  "neu": "customers.hilfe-zu-kunden.ueberschrift.kunden-aus-einer-datei",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.knopf.abbrechen",
+  "neu": "customers.neuen-kunden-anlegen.knopf.abbrechen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.knopf.aenderungen-speichern",
+  "neu": "customers.wohnungseigentuemergemeinschaft-hauptstr.knopf.aenderungen-speichern",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.knopf.kunde-anlegen",
+  "neu": "customers.neuen-kunden-anlegen.knopf.kunde-anlegen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.knopf.schliessen",
+  "neu": "customers.bestehende-baustellen-uebernehmen.knopf.schliessen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "Die Vorschau steht jetzt in einem Fenster mit „Schließen“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "customers.knopf.vorlage-herunterladen",
+  "neu": "customers.aktionen.menueeintrag.vorlage-fuer-den-import-herunterladen",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "Knopf auf der Seite → Eintrag im ⋯ des Seitenkopfs (CustomersView.tsx: „damit der Weg nur um den Tipp auf ⋯ länger wird“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "customers.knopf.vorschau-erstellen",
+  "neu": "customers.aktionen.menueeintrag.bestehende-baustellen-uebernehmen",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "„Vorschau erstellen“ (Bestehende Baustellen übernehmen) → Eintrag im ⋯; er öffnet das Fenster und erstellt die Vorschau zugleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "customers.link.akte",
+  "neu": "customers.link.familie-huberkundenart-pruefen",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Eigener Verweis „Akte“ → die ganze Zeile führt in die Akte (Linie „Lot“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "customers.ueberschrift.bestehende-baustellen-uebernehmen",
+  "neu": "customers.hilfe-zu-kunden.ueberschrift.bestehende-baustellen-uebernehmen",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.ueberschrift.kunden-3",
+  "neu": "customers.segment.alle",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Überschrift mit Zahl → Segment „Alle“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "customers.ueberschrift.kunden-aus-einer-datei",
+  "neu": "customers.hilfe-zu-kunden.ueberschrift.kunden-aus-einer-datei",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.ueberschrift.neuen-kunden-anlegen",
+  "neu": "customers.neuen-kunden-anlegen.ueberschrift.neuen-kunden-anlegen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "customers.ueberschrift.wohnungseigentuemergemeinschaft-hauptstrasse-112-118-bearbei",
+  "neu": "customers.wohnungseigentuemergemeinschaft-hauptstr.ueberschrift.wohnungseigentuemergemeinschaft-hauptstrasse-112-118-bearbei",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "huelle.knopf.abmelden",
+  "neu": "huelle.profil.knopf.abmelden",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "huelle.knopf.problem-melden",
+  "neu": "huelle.profil.knopf.problem-melden",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "huelle.link.datenschutz",
+  "neu": "huelle.profil.link.datenschutz",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "huelle.link.impressum",
+  "neu": "huelle.profil.link.impressum",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "huelle.menuepunkt.einstellungen",
+  "neu": "huelle.link.einstellungen",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt link",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "invoices.aktionen.menueeintrag.ansehen",
+  "neu": "invoices.knopf.2026-0232-gemeinde-neudorf-bei-wiener-neustadt",
+  "weg_alt": 1,
+  "weg_neu": 0,
+  "bemerkung": "⋯ der Zeile → die ganze Zeile öffnet das Seitenfenster der Rechnung",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "invoices.aktionen.menueeintrag.pdf-erneut-laden",
+  "neu": "invoices.rechnung-2026-0232.knopf.pdf-laden",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "„PDF erneut laden“ aus dem ⋯ → „PDF laden“ im Seitenfenster der Rechnung",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "invoices.aktionen.menueeintrag.stornieren",
+  "neu": "invoices.rechnung-2026-0231.knopf.stornieren",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt knopf",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "invoices.aktionen.menueeintrag.zahlung-erfassen",
+  "neu": "invoices.rechnung-2026-0231.knopf.zahlung-erfassen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt knopf",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "invoices.aktionen.menueeintrag.zahlungserinnerung-erzeugen",
+  "neu": "invoices.rechnung-2026-0232.knopf.zahlungserinnerung-erzeugen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt knopf",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "invoices.auswahl.rechnungen-nach-status-filtern",
+  "neu": "invoices.auswahl.rechnungen-nach-status-filtern",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Dasselbe Auswahlfeld; der Eintrag „Alle“ heisst jetzt „Jeder Stand“ (InvoicesView.tsx)",
+  "geprueft": true,
+  "art": "von Hand",
+  "optionen": {
+   "Alle": "Jeder Stand"
+  }
+ },
+ {
+  "alt": "invoices.info.alle-rechnungen-3",
+  "neu": "invoices.ueberschrift.alle-rechnungen-3",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "invoices.info.buchhaltungs-export",
+  "neu": "invoices.hilfe-zu-rechnungen.ueberschrift.buchhaltungs-export",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "invoices.info.die-konditionen-dieser-rechnung",
+  "neu": "invoices.knopf.hilfe-zu-dieser-seite",
+  "weg_alt": 1,
+  "weg_neu": 0,
+  "bemerkung": "Erklärung steht bei offenem Formular „Neue Rechnung“ unter „Hilfe zu dieser Seite“ (InfoHint im Seitenfluss, InvoicesView.tsx); die Aufnahme öffnet die Hilfe nur im Grundzustand der Seite",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "invoices.info.mahnlauf-2",
+  "neu": "invoices.ueberschrift.mahnlauf-2",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "invoices.info.neue-rechnung-aus-baustelle",
+  "neu": "invoices.ueberschrift.neue-rechnung-aus-baustelle",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "invoices.knopf.2026-0230",
+  "neu": "invoices.knopf.2026-0231-wohnungseigentuemergemeinschaft-hauptstrasse-112-1",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Rechnungsnummer als eigener Knopf → die ganze Zeile „Nummer · Kunde“; erledigte Rechnungen stehen unter dem Segment „Erledigt“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "invoices.knopf.2026-0231",
+  "neu": "invoices.knopf.2026-0231-wohnungseigentuemergemeinschaft-hauptstrasse-112-1",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Rechnungsnummer als eigener Knopf → die ganze Zeile „Nummer · Kunde“; erledigte Rechnungen stehen unter dem Segment „Erledigt“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "invoices.knopf.2026-0232",
+  "neu": "invoices.knopf.2026-0231-wohnungseigentuemergemeinschaft-hauptstrasse-112-1",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Rechnungsnummer als eigener Knopf → die ganze Zeile „Nummer · Kunde“; erledigte Rechnungen stehen unter dem Segment „Erledigt“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "invoices.knopf.weitere-aktionen",
+  "neu": "invoices.knopf.2026-0232-gemeinde-neudorf-bei-wiener-neustadt",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "⋯ der Zeile → die ganze Zeile öffnet das Seitenfenster mit allen Aktionen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "invoices.zahlungen-2026-0232.abzeichen.bisher-eingegangen",
+  "neu": "invoices.zahlungen-2026-0231.abzeichen.bisher-eingegangen",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "invoices.zahlungen-2026-0232.auswahl.art",
+  "neu": "invoices.zahlungen-2026-0231.auswahl.art",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "invoices.zahlungen-2026-0232.feld.betrag",
+  "neu": "invoices.zahlungen-2026-0231.feld.betrag",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "invoices.zahlungen-2026-0232.feld.datum",
+  "neu": "invoices.zahlungen-2026-0231.feld.datum",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "invoices.zahlungen-2026-0232.feld.hinweis",
+  "neu": "invoices.zahlungen-2026-0231.feld.hinweis",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "invoices.zahlungen-2026-0232.info.den-betrag",
+  "neu": "invoices.zahlungen-2026-0231.info.den-betrag",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "invoices.zahlungen-2026-0232.knopf.abbrechen",
+  "neu": "invoices.zahlungen-2026-0231.knopf.abbrechen",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "invoices.zahlungen-2026-0232.knopf.zahlung-eintragen",
+  "neu": "invoices.zahlungen-2026-0231.knopf.zahlung-eintragen",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "invoices.zahlungen-2026-0232.ueberschrift.zahlungen-2026-0232",
+  "neu": "invoices.rechnung-2026-0232.knopf.zahlung-erfassen",
+  "weg_alt": 2,
+  "weg_neu": 1,
+  "bemerkung": "Das Zahlungsfenster öffnet „Zahlung erfassen“ im Seitenfenster der Rechnung (dasselbe Fenster hat die Aufnahme bei 2026-0230/-0231 erfasst)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "lager.abzeichen.0-pkg-frei",
+  "neu": "lager.knopf.dichtungsmaterial-sortiment",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„0 Pkg frei“ steht jetzt rechts in der Zeile des Artikels („0 Pkg frei · 0 reserviert“, StockView.tsx); die Aufnahme erfasst den Wert einer Zeile nicht als eigenes Element",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "lager.abzeichen.120-stk-frei",
+  "neu": "lager.knopf.thermostatventil-heimeier-eclipse-dn15",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„120 Stk frei“ steht jetzt rechts in der Zeile des Artikels (StockView.tsx); die Aufnahme erfasst den Wert einer Zeile nicht als eigenes Element",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "lager.abzeichen.4-stk-frei",
+  "neu": "lager.knopf.kupferrohr-22-mm-stange-5-m-hart",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„4 Stk frei“ steht jetzt rechts in der Zeile des Artikels (StockView.tsx); die Aufnahme erfasst den Wert einer Zeile nicht als eigenes Element",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "lager.aktionen.menueeintrag.bearbeiten",
+  "neu": "lager.artikel.knopf.im-katalog-bearbeiten",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "⋯ der Zeile → die Zeile öffnet das Seitenfenster des Artikels, dort „Im Katalog bearbeiten“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "lager.aktionen.menueeintrag.bewegungen",
+  "neu": "lager.artikel.abzeichen.bewegungen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "⋯ der Zeile → die Zeile öffnet das Seitenfenster des Artikels; die Bewegungen stehen dort offen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "lager.auswahl.einheit",
+  "neu": "lager.neues-material.auswahl.einheit",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "lager.bewegungen-dichtungsmaterial-sortiment.knopf.schliessen",
+  "neu": "lager.artikel.knopf.schliessen",
+  "weg_alt": 2,
+  "weg_neu": 1,
+  "bemerkung": "Eigenes Fenster „Bewegungen“ → Seitenfenster des Artikels",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "lager.bewegungen-dichtungsmaterial-sortiment.ueberschrift.bewegungen-dichtungsmaterial-sortiment",
+  "neu": "lager.artikel.abzeichen.bewegungen",
+  "weg_alt": 2,
+  "weg_neu": 1,
+  "bemerkung": "Eigenes Fenster „Bewegungen“ → Abschnitt „Bewegungen“ im Seitenfenster des Artikels",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "lager.checkbox.im-lager-fuehren",
+  "neu": "lager.neues-material.checkbox.im-lager-fuehren",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "lager.feld.anfangsbestand",
+  "neu": "lager.neues-material.feld.anfangsbestand",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "lager.feld.artikelnummer",
+  "neu": "lager.neues-material.feld.artikelnummer",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "lager.feld.bezeichnung",
+  "neu": "lager.neues-material.feld.bezeichnung",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "lager.feld.einkaufspreis-netto-je-einheit",
+  "neu": "lager.neues-material.feld.einkaufspreis-netto-je-einheit",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "lager.feld.kategorie",
+  "neu": "lager.neues-material.feld.kategorie",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "lager.feld.mindestmenge",
+  "neu": "lager.neues-material.feld.mindestmenge",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "lager.feld.verkaufspreis-netto-je-einheit",
+  "neu": "lager.neues-material.feld.verkaufspreis-netto-je-einheit",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "lager.feld.warengruppe",
+  "neu": "lager.neues-material.feld.warengruppe",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "lager.hinweis.wird-geladen",
+  "neu": "lager.ueberschrift.katalog-einspielen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "Ladeanzeige beim Öffnen von „Katalog einspielen“ (Reiter → Eintrag im ⋯ des Seitenkopfs); kurzlebig, keine eigene Funktion",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "lager.info.die-einheit",
+  "neu": "lager.neues-material.info.die-einheit",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "lager.info.katalog-einspielen",
+  "neu": "lager.ueberschrift.katalog-einspielen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "lager.knopf.abbrechen",
+  "neu": "lager.material-bearbeiten.knopf.abbrechen",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Bearbeiten öffnet jetzt das Fenster „Material bearbeiten“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "lager.knopf.aenderungen-speichern",
+  "neu": "lager.material-bearbeiten.knopf.aenderungen-speichern",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Bearbeiten öffnet jetzt das Fenster „Material bearbeiten“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "lager.knopf.bearbeiten",
+  "neu": "lager.knopf.dichtungsmaterial-sortiment",
+  "weg_alt": 1,
+  "weg_neu": 0,
+  "bemerkung": "Knopf „Bearbeiten“ im Katalog → die ganze Zeile öffnet „Material bearbeiten“ (Linie „Lot“: ganze Zeilen antippbar)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "lager.knopf.dichtungsmaterial-sortiment-loeschen",
+  "neu": "lager.material-bearbeiten.knopf.material-loeschen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "Löschen je Zeile im Katalog → Zeile öffnen, „Material löschen …“, dann wie bisher die Rückfrage",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "lager.knopf.kupferrohr-22-mm-stange-5-m-hart-loeschen",
+  "neu": "lager.material-bearbeiten.knopf.material-loeschen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "Löschen je Zeile im Katalog → Zeile öffnen, „Material löschen …“, dann wie bisher die Rückfrage",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "lager.knopf.material-anlegen",
+  "neu": "lager.neues-material.knopf.material-anlegen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "lager.knopf.thermostatventil-heimeier-eclipse-dn15-loeschen",
+  "neu": "lager.material-bearbeiten.knopf.material-loeschen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "Löschen je Zeile im Katalog → Zeile öffnen, „Material löschen …“, dann wie bisher die Rückfrage",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "lager.reiter.bestand",
+  "neu": "lager.segment.bestand",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt segment",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "lager.reiter.katalog",
+  "neu": "lager.segment.katalog",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt segment",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "lager.reiter.katalog-einspielen",
+  "neu": "lager.aktionen.menueeintrag.katalog-einspielen",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "Reiter „Katalog einspielen“ → Eintrag im ⋯ des Seitenkopfs (selten gebraucht, Linie „Lot“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "lager.ueberschrift.material-bearbeiten",
+  "neu": "lager.material-bearbeiten.ueberschrift.material-bearbeiten",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "lager.ueberschrift.neues-material",
+  "neu": "lager.neues-material.ueberschrift.neues-material",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "material.abzeichen.1",
+  "neu": "material.ueberschrift.anforderung-1-noch-nicht-abgeschickt",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Zahl am Reiter → steht in der Überschrift",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "material.abzeichen.2",
+  "neu": "material.ueberschrift.meine-anforderungen-2",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl am Reiter → steht in der Überschrift",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "material.auswahl.von-welcher-baustelle-optional",
+  "neu": "material.material-zurueckgeben.auswahl.von-welcher-baustelle-optional",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "material.auswahl.zustand",
+  "neu": "material.material-zurueckgeben.auswahl.zustand",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "material.feld.grund-notiz",
+  "neu": "material.material-zurueckgeben.feld.grund-notiz",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "material.feld.material",
+  "neu": "material.material-zurueckgeben.feld.material",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "material.info.eilzustellung",
+  "neu": "material.hilfe-zu-material-anfordern.ueberschrift.eilzustellung",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "material.info.material-zurueckgeben",
+  "neu": "material.material-zurueckgeben.ueberschrift.material-zurueckgeben",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "material.knopf.retoure-erfassen",
+  "neu": "material.material-zurueckgeben.knopf.retoure-erfassen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "material.reiter.bestellen",
+  "neu": "material.ueberschrift.katalog",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Reiter entfallen: Katalog und eigene Anforderungen stehen auf einer Seite („Material anfordern“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "material.reiter.bestellen1",
+  "neu": "material.ueberschrift.anforderung-1-noch-nicht-abgeschickt",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Reiter mit Zahl → Überschrift „Anforderung (1) — noch nicht abgeschickt“ hinter „Zur Anforderung“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "material.reiter.meine-bestellungen2",
+  "neu": "material.ueberschrift.meine-anforderungen-2",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Reiter „Meine Bestellungen“ → Abschnitt „Meine Anforderungen (2)“ auf derselben Seite",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "material.reiter.retoure",
+  "neu": "material.aktionen.menueeintrag.retoure-erfassen",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "Reiter „Retoure“ → „Retoure erfassen …“ im ⋯ des Seitenkopfs; das Fenster hat dieselben Felder",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "material.ueberschrift.material",
+  "neu": "material.ueberschrift.material-anfordern",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Seitentitel heisst jetzt „Material anfordern“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "material.ueberschrift.material-zurueckgeben",
+  "neu": "material.material-zurueckgeben.ueberschrift.material-zurueckgeben",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "material.ueberschrift.offen-2",
+  "neu": "material.ueberschrift.meine-anforderungen-2",
+  "weg_alt": 1,
+  "weg_neu": 0,
+  "bemerkung": "Gruppe „Offen (2)“ → Abschnitt „Meine Anforderungen (2)“, Stand je Zeile („Offen“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "my-projects.abzeichen.240-h-kalkuliert",
+  "neu": "my-projects.ueberschrift.wohnungseigentuemergemeinschaft-hauptstrasse-112-118",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„240 h kalkuliert“ steht in der Karte der Baustelle in der Zeile unter dem Titel (MyProjectsView.tsx); die Aufnahme erfasst Fließtext in einer Karte nicht als eigenes Element",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "my-projects.abzeichen.40-h-kalkuliert",
+  "neu": "my-projects.ueberschrift.familie-huber",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„40 h kalkuliert“ steht in der Karte der Baustelle in der Zeile unter dem Titel (MyProjectsView.tsx); die Aufnahme erfasst Fließtext in einer Karte nicht als eigenes Element",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "my-projects.abzeichen.80-h-kalkuliert",
+  "neu": "my-projects.ueberschrift.gemeinde-neudorf-bei-wiener-neustadt",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„80 h kalkuliert“ steht in der Karte der Baustelle in der Zeile unter dem Titel (MyProjectsView.tsx); die Aufnahme erfasst Fließtext in einer Karte nicht als eigenes Element",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "my-projects.abzeichen.naechster-einsatz-07-10-2026",
+  "neu": "my-projects.ueberschrift.familie-huber",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„nächster Einsatz …“ steht in der Karte der Baustelle als hervorgehobene Zeile (MyProjectsView.tsx); die Aufnahme erfasst Fließtext in einer Karte nicht als eigenes Element",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "my-schedule-mein.info.im-eigenen-kalender",
+  "neu": "my-schedule-mein.hilfe-zu-mein-einsatzplan.ueberschrift.im-eigenen-kalender",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "my-schedule-mein.segment.7-2",
+  "neu": "my-schedule-mein.segment.7-6",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Tages-Segment „7“; die Zahl der Einsätze hängt an den Beispieldaten",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "my-schedule-team.info.05-10-11-10",
+  "neu": "my-schedule-team.knopf.hilfe-zu-dieser-seite",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Erklärung der Woche steht unter „Hilfe zu dieser Seite“ (eine Hilfe je Seite, Regel 11)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "my-schedule-team.info.12-10-18-10",
+  "neu": "my-schedule-team.knopf.hilfe-zu-dieser-seite",
+  "weg_alt": 2,
+  "weg_neu": 1,
+  "bemerkung": "Erklärung der Woche steht unter „Hilfe zu dieser Seite“ (eine Hilfe je Seite, Regel 11)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "my-schedule-team.info.28-09-04-10",
+  "neu": "my-schedule-team.knopf.hilfe-zu-dieser-seite",
+  "weg_alt": 2,
+  "weg_neu": 1,
+  "bemerkung": "Erklärung der Woche steht unter „Hilfe zu dieser Seite“ (eine Hilfe je Seite, Regel 11)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "my-schedule-team.ueberschrift.05-10-11-10",
+  "neu": "my-schedule-team.ueberschrift.diese-woche",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Wochentitel heisst jetzt „Diese Woche“, die Spanne steht klein darunter („KW 41 · 05.10.–11.10.“, planungKopf.ts)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "my-schedule-team.ueberschrift.12-10-18-10",
+  "neu": "my-schedule-team.ueberschrift.naechste-woche",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Wochentitel heisst jetzt „Nächste Woche“, die Spanne steht klein darunter (planungKopf.ts)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "my-schedule-team.ueberschrift.28-09-04-10",
+  "neu": "my-schedule-team.ueberschrift.letzte-woche",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Wochentitel heisst jetzt „Letzte Woche“, die Spanne steht klein darunter (planungKopf.ts)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "quotes-id.abzeichen.gueltig-bis",
+  "neu": "quotes-id.kennzahl.gueltig-bis",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt kennzahl",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "quotes-id.abzeichen.kalkulierte-arbeitszeit",
+  "neu": "quotes-id.kennzahl.kalkulierte-arbeitszeit",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt kennzahl",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "quotes-id.abzeichen.ueberarbeitet-als",
+  "neu": "quotes-id.link.a-2026-0089-entwurf",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "„Überarbeitet als A-2026-0089 (Entwurf)“ steht im Verlauf als Verweis auf die neue Fassung (AngebotView.tsx)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "quotes-id.knopf.als-abgelehnt-markieren",
+  "neu": "quotes-id.aktionen.menueeintrag.als-abgelehnt-markieren",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt menueeintrag",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "quotes-id.link.als-kopie-anlegen",
+  "neu": "quotes-id.aktionen.menueeintrag.als-kopie-anlegen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt menueeintrag",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "quotes-id.ueberschrift.weiter",
+  "neu": "quotes-id.knopf.annehmen-baustelle",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Karte „Weiter“ mit den Aktionen → Hauptaktion im Seitenkopf, der Rest im ⋯; die Aktionen sind einzeln verglichen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "quotes.info.kalkulierte-arbeitszeit",
+  "neu": "quotes.knopf.hilfe-zu-dieser-seite",
+  "weg_alt": 1,
+  "weg_neu": 0,
+  "bemerkung": "Erklärung steht bei offenem Formular „Neues Angebot“ unter „Hilfe zu dieser Seite“ (InfoHint im Seitenfluss, QuotesView.tsx); die Aufnahme öffnet die Hilfe nur im Grundzustand der Seite",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "quotes.ueberschrift.angebote-2",
+  "neu": "quotes.ueberschrift.alle-angebote-2",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "Überschrift mit Zahl → „Alle Angebote · N“ unter dem Segment „Alle“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "settings-firma.info.briefkopf",
+  "neu": "settings-firma.hilfe-zu-firmendaten.ueberschrift.briefkopf",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-firma.info.farben",
+  "neu": "settings-firma.hilfe-zu-firmendaten.ueberschrift.farben",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-firma.info.logo",
+  "neu": "settings-firma.hilfe-zu-firmendaten.ueberschrift.logo",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-firma.info.rechnungsangaben",
+  "neu": "settings-firma.hilfe-zu-firmendaten.ueberschrift.rechnungsangaben",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-konten.info.das-debitorensammelkonto",
+  "neu": "settings-konten.hilfe-zu-kontenrahmen.ueberschrift.das-debitorensammelkonto",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-konten.info.das-skontokonto",
+  "neu": "settings-konten.hilfe-zu-kontenrahmen.ueberschrift.das-skontokonto",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-konten.info.den-uebergang-der-steuerschuld",
+  "neu": "settings-konten.hilfe-zu-kontenrahmen.ueberschrift.den-uebergang-der-steuerschuld",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-konten.info.erhaltene-anzahlungen",
+  "neu": "settings-konten.hilfe-zu-kontenrahmen.ueberschrift.erhaltene-anzahlungen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-konten.info.erloeskonten-je-steuersatz-0",
+  "neu": "settings-konten.ueberschrift.erloeskonten-je-steuersatz-0",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-konten.info.erloeskonten-je-steuersatz-1",
+  "neu": "settings-konten.ueberschrift.erloeskonten-je-steuersatz-1",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-konten.info.erloeskonten-je-steuersatz-2",
+  "neu": "settings-konten.ueberschrift.erloeskonten-je-steuersatz-2",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-konten.info.grundkonten",
+  "neu": "settings-konten.hilfe-zu-kontenrahmen.ueberschrift.grundkonten",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-konten.info.zahlungen-eigener-stapel",
+  "neu": "settings-konten.hilfe-zu-kontenrahmen.ueberschrift.zahlungen-eigener-stapel",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-meldungen.info.abwesenheiten",
+  "neu": "settings-meldungen.hilfe-zu-mein-konto.ueberschrift.abwesenheiten",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-meldungen.info.dieses-geraet",
+  "neu": "settings-meldungen.hilfe-zu-mein-konto.ueberschrift.dieses-geraet",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-meldungen.info.eilzustellungen",
+  "neu": "settings-meldungen.hilfe-zu-mein-konto.ueberschrift.eilzustellungen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-meldungen.info.kommen-die-meldungen-an",
+  "neu": "settings-meldungen.hilfe-zu-mein-konto.ueberschrift.kommen-die-meldungen-an",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-meldungen.info.passwort-aendern",
+  "neu": "settings-meldungen.ueberschrift.passwort-aendern",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-meldungen.info.wovon-moechtest-du-erfahren",
+  "neu": "settings-meldungen.hilfe-zu-mein-konto.ueberschrift.wovon-moechtest-du-erfahren",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-module.info.eingeschaltet-9-von-9",
+  "neu": "settings-module.hilfe-zu-module.ueberschrift.eingeschaltet-9-von-9",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-nummern.info.nummernkreise-und-fuhrpark",
+  "neu": "settings-nummern.hilfe-zu-nummernkreise.ueberschrift.nummernkreise-und-fuhrpark",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-personal.info.24-und-31-dezember",
+  "neu": "settings-personal.hilfe-zu-personal.ueberschrift.24-und-31-dezember",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-personal.info.nachtzeit-und-ueberstunden",
+  "neu": "settings-personal.hilfe-zu-personal.ueberschrift.nachtzeit-und-ueberstunden",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-personal.info.sonderurlaub",
+  "neu": "settings-personal.hilfe-zu-personal.ueberschrift.sonderurlaub",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-personal.info.urlaubsjahr-und-uebertrag",
+  "neu": "settings-personal.hilfe-zu-personal.ueberschrift.urlaubsjahr-und-uebertrag",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-personal.info.wer-urlaub-genehmigt",
+  "neu": "settings-personal.hilfe-zu-personal.ueberschrift.wer-urlaub-genehmigt",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-personal.info.wochenplan-und-einsatzplan",
+  "neu": "settings-personal.hilfe-zu-personal.ueberschrift.wochenplan-und-einsatzplan",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-rechnung.info.anzahlungs-und-schlussrechnungen",
+  "neu": "settings-rechnung.hilfe-zu-rechnungsvorgaben.ueberschrift.anzahlungs-und-schlussrechnungen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-rechnung.info.mahnspesen-skonto-und-verzugszinsen",
+  "neu": "settings-rechnung.hilfe-zu-rechnungsvorgaben.ueberschrift.mahnspesen-skonto-und-verzugszinsen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-rechnung.info.rechnungsvorgaben",
+  "neu": "settings-rechnung.hilfe-zu-rechnungsvorgaben.ueberschrift.rechnungsvorgaben",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-saetze.abzeichen.je-einstufung",
+  "neu": "settings-saetze.aufklapper.je-einstufung",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Abschnitt „Je Einstufung“ ist jetzt ein Aufklapper",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "settings-saetze.info.interne-kostensaetze",
+  "neu": "settings-saetze.hilfe-zu-saetze-und-kosten.ueberschrift.interne-kostensaetze",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-saetze.info.materialaufschlag",
+  "neu": "settings-saetze.hilfe-zu-saetze-und-kosten.ueberschrift.materialaufschlag",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-saetze.info.stundensaetze",
+  "neu": "settings-saetze.hilfe-zu-saetze-und-kosten.ueberschrift.stundensaetze",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-saetze.info.zuschlaege",
+  "neu": "settings-saetze.hilfe-zu-saetze-und-kosten.ueberschrift.zuschlaege",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-sicherung.info.belegarchiv",
+  "neu": "settings-sicherung.hilfe-zu-datensicherung.ueberschrift.belegarchiv",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-sicherung.info.daten-herunterladen",
+  "neu": "settings-sicherung.hilfe-zu-datensicherung.ueberschrift.daten-herunterladen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-sicherung.info.naechtliche-sicherung",
+  "neu": "settings-sicherung.hilfe-zu-datensicherung.ueberschrift.naechtliche-sicherung",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-support.info.bisherige-zugaenge-0",
+  "neu": "settings-support.ueberschrift.bisherige-zugaenge-0",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "settings-support.info.einblick-gewaehren",
+  "neu": "settings-support.hilfe-zu-supportzugang.ueberschrift.einblick-gewaehren",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "start.abzeichen.1-person",
+  "neu": "start.link.gemeinde-neudorf-bei-wiener-neustadt-7-personen-anton-berger",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Personenzahl steht jetzt in der Zeile der Baustelle („7 Personen“), nicht als eigenes Abzeichen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.abzeichen.20-tage",
+  "neu": "start.abzeichen.23-tage",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.knopf.und-1-weitere",
+  "neu": "start.knopf.und-2-weitere",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.knopf.und-3-weitere",
+  "neu": "start.knopf.und-1-weitere",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.knopf.und-3-weitere",
+  "neu": "start.knopf.und-2-weitere",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.link.22-tage-ohne-eigene-buchung-aeltester-02-09-nachtragen",
+  "neu": "start.link.18-tage-ohne-eigene-buchung-aeltester-02-09-nachtragen",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.link.22-tage-ohne-eigene-buchung-nachtragen-aeltester-02-09",
+  "neu": "start.link.18-tage-ohne-eigene-buchung-nachtragen-aeltester-02-09",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.link.3-personen-mit-tagen-ohne-buchung-anton-berger-steinmetz-25",
+  "neu": "start.link.6-personen-mit-tagen-ohne-buchung-franz-hinterleitner-25-ant",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.link.3-personen-mit-tagen-ohne-buchung-nachfragen-anton-berger-st",
+  "neu": "start.link.6-personen-mit-tagen-ohne-buchung-nachfragen-franz-hinterlei",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.link.anton-berger-steinmetz-25-tage-in-den-letzten-wochen-nichts",
+  "neu": "start.link.franz-hinterleitner-25-tage-in-den-letzten-wochen-nichts-geb",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Person mit Tagen ohne Buchung; Name und Text hängen an den Beispieldaten (in der Aufnahme „nachher“ hat Anton Berger-Steinmetz zuletzt am 05.10. gebucht)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.link.anton-berger-steinmetz-in-den-letzten-wochen-nichts-gebucht",
+  "neu": "start.link.franz-hinterleitner-in-den-letzten-wochen-nichts-gebucht-25",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Person mit Tagen ohne Buchung; Name und Text hängen an den Beispieldaten (in der Aufnahme „nachher“ hat Anton Berger-Steinmetz zuletzt am 05.10. gebucht)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.link.firmendaten-fuer-rechnungen-unvollstaendig-ergaenzen-fehlt-a",
+  "neu": "start.link.keine-rechnung-moeglich-firmendaten-unvollstaendig-ergaenzen",
+  "weg_alt": 1,
+  "weg_neu": 0,
+  "bemerkung": "Hinweis heisst jetzt „Keine Rechnung möglich: Firmendaten unvollständig“ und steht oben statt hinter „und 3 weitere“ (Rechnungssperre, Punkt E)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.link.firmendaten-fuer-rechnungen-unvollstaendig-fehlt-anschrift-g",
+  "neu": "start.link.keine-rechnung-moeglich-firmendaten-unvollstaendig-fehlt-ans",
+  "weg_alt": 1,
+  "weg_neu": 0,
+  "bemerkung": "Hinweis heisst jetzt „Keine Rechnung möglich: Firmendaten unvollständig“ und steht oben statt hinter „und 3 weitere“ (Rechnungssperre, Punkt E)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.link.gemeinde-neudorf-bei-wiener-neustadt-1-person-anton-berger-s",
+  "neu": "start.link.gemeinde-neudorf-bei-wiener-neustadt-7-personen-anton-berger",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Baustelle von heute mit ihren Personen; Zahl hängt an den Beispieldaten",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.link.michaela-wagner-20-tage-in-den-letzten-wochen-nichts-gebucht",
+  "neu": "start.link.franz-hinterleitner-25-tage-in-den-letzten-wochen-nichts-geb",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Person mit Tagen ohne Buchung; Name und Text hängen an den Beispieldaten (in der Aufnahme „nachher“ hat Anton Berger-Steinmetz zuletzt am 05.10. gebucht)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.link.michaela-wagner-in-den-letzten-wochen-nichts-gebucht-20-tage",
+  "neu": "start.link.franz-hinterleitner-in-den-letzten-wochen-nichts-gebucht-25",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Person mit Tagen ohne Buchung; Name und Text hängen an den Beispieldaten (in der Aufnahme „nachher“ hat Anton Berger-Steinmetz zuletzt am 05.10. gebucht)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.link.und-19-weitere",
+  "neu": "start.link.und-15-weitere",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.link.wohnungseigentuemergemeinschaft-hauptstrasse-112-118-1-perso",
+  "neu": "start.link.wohnungseigentuemergemeinschaft-hauptstrasse-112-118-11-pers",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Baustelle von heute mit ihren Personen; Zahl hängt an den Beispieldaten",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.ueberschrift.danach",
+  "neu": "start.ueberschrift.danach-ab-16-00",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„Danach“ nennt jetzt die Uhrzeit („Danach · ab 16:00“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.ueberschrift.dein-einsatz-heute-2-einsaetze",
+  "neu": "start.ueberschrift.dein-einsatz-heute-6-einsaetze",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.ueberschrift.deine-tage-ohne-buchung-22",
+  "neu": "start.ueberschrift.deine-tage-ohne-buchung-18",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.ueberschrift.diese-woche-6",
+  "neu": "start.ueberschrift.diese-woche-5",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.ueberschrift.dringend-3",
+  "neu": "start.ueberschrift.dringend-4",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.ueberschrift.dringend-4",
+  "neu": "start.ueberschrift.dringend-5",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.ueberschrift.handlungsbedarf-11-themen",
+  "neu": "start.ueberschrift.zu-erledigen-11-themen",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„Handlungsbedarf“ heisst jetzt „Zu erledigen“ (Linie „Lot“); Zahl hängt an den Beispieldaten",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.ueberschrift.handlungsbedarf-12-themen",
+  "neu": "start.ueberschrift.zu-erledigen-12-themen",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„Handlungsbedarf“ heisst jetzt „Zu erledigen“ (Linie „Lot“); Zahl hängt an den Beispieldaten",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.ueberschrift.handlungsbedarf-22",
+  "neu": "start.ueberschrift.zu-erledigen-18",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„Handlungsbedarf“ heisst jetzt „Zu erledigen“ (Linie „Lot“); Zahl hängt an den Beispieldaten",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.ueberschrift.handlungsbedarf-25",
+  "neu": "start.ueberschrift.zu-erledigen-21",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„Handlungsbedarf“ heisst jetzt „Zu erledigen“ (Linie „Lot“); Zahl hängt an den Beispieldaten",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.ueberschrift.handlungsbedarf-29",
+  "neu": "start.ueberschrift.zu-erledigen-29",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„Handlungsbedarf“ heisst jetzt „Zu erledigen“ (Linie „Lot“); Zahl hängt an den Beispieldaten",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.ueberschrift.heute-2-einsaetze",
+  "neu": "start.ueberschrift.heute-6-einsaetze",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.ueberschrift.heute-2-im-einsatz",
+  "neu": "start.ueberschrift.heute-5-im-einsatz",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.ueberschrift.personen-mit-tagen-ohne-buchung-3",
+  "neu": "start.ueberschrift.personen-mit-tagen-ohne-buchung-6",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "start.ueberschrift.tage-ohne-buchung-22",
+  "neu": "start.ueberschrift.tage-ohne-buchung-18",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "time.abzeichen.optional",
+  "neu": "time.aufklapper.weitere-angaben-optional-wegzeit-fahrzeug-helfername-zuschla",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„optional“ steht jetzt in der Beschriftung des Aufklappers „Weitere Angaben (optional)“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "time.info.erweiterte-erfassung",
+  "neu": "time.hilfe-zu-zeiterfassung.ueberschrift.erweiterte-erfassung",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "time.info.notdienst",
+  "neu": "time.abzeichen.notdienst",
+  "weg_alt": 1,
+  "weg_neu": 0,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt abzeichen",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "time.info.notdienst",
+  "neu": "time.hilfe-zu-zeiterfassung.ueberschrift.notdienst",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "time.knopf.bearbeiten",
+  "neu": "time.knopf.01-10-2026-wohnungseigentuemergemeinschaft-hauptstrasse-112",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Knopf „Bearbeiten“ je Eintrag → die ganze Zeile öffnet den Eintrag (Linie „Lot“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "time.knopf.kw-41-2026-1-eintrag-09-00",
+  "neu": "time.knopf.kw-38-2026-3-eintraege-08-45",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "time.knopf.weitere-angabenoptional-fahrzeug-wn-123xy",
+  "neu": "time.aufklapper.weitere-angaben-optional-fahrzeug-wn-123xy",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Knopf „Weitere Angaben“ → Aufklapper (<details>) mit derselben Beschriftung",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "time.knopf.weitere-angabenoptional-wegzeit-45-min-fahrzeug-wn-123xy-not",
+  "neu": "time.aufklapper.weitere-angaben-optional-wegzeit-45-min-fahrzeug-wn-123xy-no",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Knopf „Weitere Angaben“ → Aufklapper (<details>) mit derselben Beschriftung",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "time.knopf.weitere-angabenoptional-wegzeit-fahrzeug-helfername-zuschlae",
+  "neu": "time.aufklapper.weitere-angaben-optional-wegzeit-fahrzeug-helfername-zuschla",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Knopf „Weitere Angaben“ → Aufklapper (<details>) mit derselben Beschriftung",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "user-mgmt-id.info.datenschutz",
+  "neu": "user-mgmt-id.hilfe-zu-max-mustermann.ueberschrift.datenschutz",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "user-mgmt-id.info.geburtsdatum",
+  "neu": "user-mgmt-id.hilfe-zu-max-mustermann.ueberschrift.geburtsdatum",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "user-mgmt-id.info.resturlaub-beim-umstieg",
+  "neu": "user-mgmt-id.hilfe-zu-max-mustermann.ueberschrift.resturlaub-beim-umstieg",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "user-mgmt-id.info.umstufung",
+  "neu": "user-mgmt-id.hilfe-zu-max-mustermann.ueberschrift.umstufung",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "user-mgmt-id.info.urlaubsanspruch",
+  "neu": "user-mgmt-id.hilfe-zu-max-mustermann.ueberschrift.urlaubsanspruch",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "user-mgmt.auswahl.benutzer-nach-status-filtern",
+  "neu": "user-mgmt.segment.aktive",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Auswahlfeld → Segmente Aktive · Alle · Deaktivierte",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "user-mgmt.info.umstufung",
+  "neu": "user-mgmt.knopf.hilfe-zu-dieser-seite",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Erklärung „Umstufung“ steht bei offenem Formular unter „Hilfe zu dieser Seite“ (InfoHint im Seitenfluss, EinstufungFelder.tsx); der Knopf „Hilfe zu dieser Seite“ erscheint, sobald das Formular offen ist",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "user-mgmt.knopf.neuer-benutzer",
+  "neu": "user-mgmt.knopf.benutzer-anlegen",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„Neuer Benutzer“ heisst jetzt „Benutzer anlegen“",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "user-mgmt.link.akte",
+  "neu": "user-mgmt.link.anton-berger-steinmetz",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Eigener Verweis „Akte“ → die ganze Zeile (Name) führt in die Akte",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "user-mgmt.ueberschrift.benutzer-4",
+  "neu": "user-mgmt.ueberschrift.benutzer-7",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "user-mgmt.ueberschrift.mitarbeiter-2",
+  "neu": "user-mgmt.ueberschrift.mitarbeiter-5",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Zahl hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "vacations.info.betriebsurlaub-anlegen",
+  "neu": "vacations.hilfe-zu-urlaub.ueberschrift.betriebsurlaub-anlegen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "vacations.info.krankmeldung-erfassen",
+  "neu": "vacations.hilfe-zu-urlaub.ueberschrift.krankmeldung-erfassen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "vacations.info.offene-antraege-1",
+  "neu": "vacations.ueberschrift.offene-antraege-1",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "vacations.info.sonderurlaub-bestaetigen",
+  "neu": "vacations.hilfe-zu-urlaub.ueberschrift.sonderurlaub-bestaetigen",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "vacations.info.urlaubskonto-belasten",
+  "neu": "vacations.hilfe-zu-urlaub.ueberschrift.urlaubskonto-belasten",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "vacations.knopf.mitarbeiter-ausnehmen",
+  "neu": "vacations.aufklapper.mitarbeiter-ausnehmen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt aufklapper",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.auswahl.intervall",
+  "neu": "wartungen.neue-wartung.auswahl.intervall",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.auswahl.kunde",
+  "neu": "wartungen.neue-wartung.auswahl.kunde",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.checkbox.vereinbarung-laeuft",
+  "neu": "wartungen.neue-wartung.checkbox.vereinbarung-laeuft",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.feld.anlage",
+  "neu": "wartungen.neue-wartung.feld.anlage",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.feld.baujahr",
+  "neu": "wartungen.neue-wartung.feld.baujahr",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.feld.hersteller",
+  "neu": "wartungen.neue-wartung.feld.hersteller",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.feld.hinweis",
+  "neu": "wartungen.neue-wartung.feld.hinweis",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.feld.naechster-termin",
+  "neu": "wartungen.neue-wartung.feld.naechster-termin",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.feld.preis-je-wartung-netto",
+  "neu": "wartungen.neue-wartung.feld.preis-je-wartung-netto",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.feld.seriennummer",
+  "neu": "wartungen.neue-wartung.feld.seriennummer",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.feld.standort-leer-kundenadresse",
+  "neu": "wartungen.neue-wartung.feld.standort-leer-kundenadresse",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.feld.typ",
+  "neu": "wartungen.neue-wartung.feld.typ",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.feld.zuletzt-gewartet",
+  "neu": "wartungen.neue-wartung.feld.zuletzt-gewartet",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.knopf.abbrechen",
+  "neu": "wartungen.neue-wartung.knopf.abbrechen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.knopf.loeschen",
+  "neu": "wartungen.wartung-aendern.knopf.loeschen",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.knopf.speichern",
+  "neu": "wartungen.neue-wartung.knopf.speichern",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.ueberschrift.neue-wartung",
+  "neu": "wartungen.neue-wartung.ueberschrift.neue-wartung",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "wartungen.ueberschrift.steht-an-1",
+  "neu": "wartungen.segment.steht-an",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Gruppe „Steht an (1)“ → Segment „Steht an“; die Zeilen darunter nach Dringlichkeit („Überfällig · 1“)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "wartungen.ueberschrift.wartung-aendern",
+  "neu": "wartungen.wartung-aendern.ueberschrift.wartung-aendern",
+  "weg_alt": 1,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "worksheet.hinweis.fuer-diesen-tag-gibt-es-bereits-1-schein-ein-zweiter-ist-moe",
+  "neu": "worksheet.hinweis.fuer-diesen-tag-gibt-es-bereits-1-schein",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Hinweis gekürzt auf „Für diesen Tag gibt es bereits 1 Schein.“; die Erklärung zum zweiten Schein steht im „i“ dahinter (WorkSheetView.tsx)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "worksheet.hinweis.pauschalbaustelle-der-schein-dokumentiert-die-geleistete-arb",
+  "neu": "worksheet.hinweis.pauschalbaustelle-stunden-sind-keine-verrechnungsgrundlage",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "Hinweis gekürzt auf „Pauschalbaustelle: Stunden sind keine Verrechnungsgrundlage.“; der volle Satz steht im „i“ dahinter (WorkSheetView.tsx)",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "worksheet.info.den-helfer-haken",
+  "neu": "worksheet.knopf.hilfe-zu-dieser-seite",
+  "weg_alt": 2,
+  "weg_neu": 1,
+  "bemerkung": "Erklärung „den Helfer-Haken“ steht nach der Wahl der Baustelle unter „Hilfe zu dieser Seite“ (InfoHint im Seitenfluss, LeistungszeitErfassen.tsx); die Aufnahme öffnet die Hilfe nur im Grundzustand der Seite",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "worksheet.info.die-leistungszeit",
+  "neu": "worksheet.knopf.hilfe-zu-dieser-seite",
+  "weg_alt": 2,
+  "weg_neu": 1,
+  "bemerkung": "Erklärung „die Leistungszeit“ steht nach der Wahl der Baustelle unter „Hilfe zu dieser Seite“ (InfoHint im Seitenfluss, LeistungszeitErfassen.tsx); die Aufnahme öffnet die Hilfe nur im Grundzustand der Seite",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "worksheet.info.ergaenzungen",
+  "neu": "worksheet.ueberschrift.ergaenzungen",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "worksheet.info.fotos-0-8",
+  "neu": "worksheet.ueberschrift.fotos-0-8",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "worksheet.knopf.gemeinde-neudorf-bei-wiener-neustadt-b-2026-0148",
+  "neu": "worksheet.segment.gemeinde-neudorf-bei-wiener-neustadt-b-2026-0148",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Wahl der Baustelle aus den Einsätzen des Tages: Knöpfe → Segmente mit derselben Beschriftung",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "worksheet.knopf.wohnungseigentuemergemeinschaft-hauptstrasse-112-118-b-2026",
+  "neu": "worksheet.segment.wohnungseigentuemergemeinschaft-hauptstrasse-112-118-b-2026",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Wahl der Baustelle aus den Einsätzen des Tages: Knöpfe → Segmente mit derselben Beschriftung",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "worksheets.abzeichen.material",
+  "neu": "worksheets.handwerksschein.abzeichen.material",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "worksheets.abzeichen.pruefsumme",
+  "neu": "worksheets.handwerksschein.abzeichen.pruefsumme",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "worksheets.abzeichen.zeiten",
+  "neu": "worksheets.handwerksschein.abzeichen.zeiten",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "worksheets.feld.grund-pflicht",
+  "neu": "worksheets.handwerksschein.feld.grund-pflicht",
+  "weg_alt": 1,
+  "weg_neu": 3,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "worksheets.info.stunden-ohne-buchung-0",
+  "neu": "worksheets.ueberschrift.stunden-ohne-buchung-0",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "worksheets.knopf.abbrechen",
+  "neu": "worksheets.handwerksschein.knopf.abbrechen",
+  "weg_alt": 1,
+  "weg_neu": 3,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "worksheets.knopf.details",
+  "neu": "worksheets.knopf.wohnungseigentuemergemeinschaft-hauptstrasse-112-118-b-2026",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„Details“ zum Aufklappen → die ganze Zeile öffnet das Seitenfenster des Scheins mit Zeiten, Material und Prüfsumme",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "worksheets.knopf.stornieren",
+  "neu": "worksheets.handwerksschein.knopf.stornieren",
+  "weg_alt": 0,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "worksheets.knopf.storno-bestaetigen",
+  "neu": "worksheets.handwerksschein.knopf.storno-bestaetigen",
+  "weg_alt": 1,
+  "weg_neu": 3,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "worksheets.knopf.verwerfen",
+  "neu": "worksheets.handwerksschein.knopf.verwerfen",
+  "weg_alt": 0,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "worksheets.knopf.zuklappen",
+  "neu": "worksheets.handwerksschein.knopf.schliessen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "„Zuklappen“ → „Schließen“ des Seitenfensters",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "worksheets.ueberschrift.schein-stornieren-gemeinde-neudorf-bei-wiener-neustadt-16-09",
+  "neu": "worksheets.handwerksschein.ueberschrift.schein-stornieren-gemeinde-neudorf-bei-wiener-neustadt-16-09",
+  "weg_alt": 1,
+  "weg_neu": 3,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ }
+]
