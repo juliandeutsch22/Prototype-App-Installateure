@@ -32,7 +32,8 @@ const DATEN = {
   company: { getCompany: 'D.firma', auszug: 'D.firma' },
   materialOrders: { '*': 'D.bestellungen' },
   materials: { '*': 'D.materialien' },
-  invoices: { '*': 'D.rechnungen' },
+  // „Zeitraum zusammenstellen“ fragt die Schlussrechnungen ohne Abzug mit; ohne Liste brach die Seite ab (K4, 17.10.2026).
+  invoices: { '*': 'D.rechnungen', schlussrechnungenOhneAbzug: '[]' },
   workSheets: { '*': 'D.scheine', getWorkSheet: 'D.scheine[0]' },
   vacations: {
     listOwnVacations: 'D.urlaube',

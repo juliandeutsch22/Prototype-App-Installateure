@@ -67,6 +67,7 @@ describe('Erzeugte Ersatzmodule der Vorschau', () => {
     expect(modul('pg/customers')).toContain('export const kundenAdressePruefen = () => A(');
     // Ein eigener Eintrag schlägt `*`: Ausführungen sind keine Anlagen.
     expect(modul('wartungen')).toContain('export const listAusfuehrungen = () => A([]);');
+    expect(modul('invoices')).toContain('export const schlussrechnungenOhneAbzug = () => A([]);');
     expect(modul('wartungen')).toContain('export const listWartungen = () => A(D.wartungen);');
   });
 
