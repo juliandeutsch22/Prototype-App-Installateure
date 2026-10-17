@@ -661,5 +661,10 @@
   "alt": "customers.auswahl.kundenart",
   "neuRe": "^customers\\.wohnungseigentuemergemeinschaft-hauptstr\\.auswahl\\.kundenart$",
   "bemerkung": "Das alte Formular diente für Neu und Bearbeiten (eine Kennung). „Nicht angegeben“ steht nur, solange die Kundenart leer ist — beim Bearbeiten eines Altkunden (KundenartUidFelder.tsx); ein neuer Kunde beginnt seit #205 mit „Privatperson“. Zugeordnet: die Auswahl im Fenster „… bearbeiten“"
+ },
+ {
+  "alt": "/^accounting\\.bericht-exportieren\\./",
+  "neuRe": "^accounting\\.[a-z-]+-oktober-2026\\.knopf\\.bericht-fuer-zeitraum$",
+  "bemerkung": "Dasselbe Fenster „Bericht exportieren“ (ExportDialog.tsx, Stundennachweis PDF und Projektauswertung CSV für die gewählte Person); es öffnet jetzt „Bericht für Zeitraum“ im Seitenfenster der Person statt in der aufgeklappten Karte — ein Schritt mehr. Die Aufnahme drückt je Fenster nur die ersten Knöpfe, darum fehlt das Fenster selbst im Bestand"
  }
 ]

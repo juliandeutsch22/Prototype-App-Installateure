@@ -3,7 +3,7 @@
   "alt": "accounting.abzeichen.22-30",
   "neu": "accounting.knopf.anton-berger-steinmetz-2-tage-ohne-buchung",
   "weg_alt": 0,
-  "weg_neu": 0,
+  "weg_neu": 1,
   "bemerkung": "Saldo der Zeile steht jetzt im Seitenfenster der Person als Kennzahl „Saldo im Monat“ (PersonFenster.tsx); die Aufnahme erfasst Kennzahlzeilen dort nicht als eigenes Element",
   "geprueft": true,
   "art": "von Hand"
@@ -12,7 +12,7 @@
   "alt": "accounting.abzeichen.23-00",
   "neu": "accounting.knopf.anton-berger-steinmetz-2-tage-ohne-buchung",
   "weg_alt": 0,
-  "weg_neu": 0,
+  "weg_neu": 1,
   "bemerkung": "Saldo der Zeile steht jetzt im Seitenfenster der Person als Kennzahl „Saldo im Monat“ (PersonFenster.tsx); die Aufnahme erfasst Kennzahlzeilen dort nicht als eigenes Element",
   "geprueft": true,
   "art": "von Hand"
@@ -21,7 +21,7 @@
   "alt": "accounting.abzeichen.3-tage-fehlen",
   "neu": "accounting.knopf.anton-berger-steinmetz-2-tage-ohne-buchung",
   "weg_alt": 0,
-  "weg_neu": 0,
+  "weg_neu": 1,
   "bemerkung": "Zahl der fehlenden Tage steht jetzt in der Zeile selbst („N Tage ohne Buchung“)",
   "geprueft": true,
   "art": "von Hand"
@@ -30,7 +30,7 @@
   "alt": "accounting.abzeichen.30-48",
   "neu": "accounting.knopf.anton-berger-steinmetz-2-tage-ohne-buchung",
   "weg_alt": 0,
-  "weg_neu": 0,
+  "weg_neu": 1,
   "bemerkung": "Saldo der Zeile steht jetzt im Seitenfenster der Person als Kennzahl „Saldo im Monat“ (PersonFenster.tsx); die Aufnahme erfasst Kennzahlzeilen dort nicht als eigenes Element",
   "geprueft": true,
   "art": "von Hand"
@@ -39,14 +39,23 @@
   "alt": "accounting.abzeichen.4-tage-fehlen",
   "neu": "accounting.knopf.anton-berger-steinmetz-2-tage-ohne-buchung",
   "weg_alt": 0,
-  "weg_neu": 0,
+  "weg_neu": 1,
   "bemerkung": "Zahl der fehlenden Tage steht jetzt in der Zeile selbst („N Tage ohne Buchung“)",
   "geprueft": true,
   "art": "von Hand"
  },
  {
+  "alt": "accounting.abzeichen.nicht-einsehbar",
+  "neu": "accounting.knopf.anton-berger-steinmetz-nicht-einsehbar",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "Im Supportzugang: „nicht einsehbar“ steht jetzt in der Zeile der Person",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
   "alt": "accounting.abzeichen.saldo-im-monat",
-  "neu": "accounting.franz-hinterleitner-oktober-2026.ueberschrift.franz-hinterleitner",
+  "neu": "accounting.anton-berger-steinmetz-oktober-2026.ueberschrift.anton-berger-steinmetz",
   "weg_alt": 1,
   "weg_neu": 1,
   "bemerkung": "„Saldo im Monat“ steht im Seitenfenster der Person (PersonFenster.tsx, Kennzahl); als Ort zugeordnet: der Kopf des Fensters",
@@ -55,7 +64,7 @@
  },
  {
   "alt": "accounting.aufklapper.3-arbeitstage-ohne-buchung",
-  "neu": "accounting.franz-hinterleitner-oktober-2026.ueberschrift.4-arbeitstage-ohne-buchung",
+  "neu": "accounting.anton-berger-steinmetz-oktober-2026.ueberschrift.2-arbeitstage-ohne-buchung",
   "weg_alt": 1,
   "weg_neu": 1,
   "bemerkung": "Aufklapper in der aufgeklappten Karte → Abschnitt „N Arbeitstage ohne Buchung“ im Seitenfenster der Person, offen statt zum Aufklappen",
@@ -64,7 +73,7 @@
  },
  {
   "alt": "accounting.aufklapper.4-arbeitstage-ohne-buchung",
-  "neu": "accounting.franz-hinterleitner-oktober-2026.ueberschrift.4-arbeitstage-ohne-buchung",
+  "neu": "accounting.anton-berger-steinmetz-oktober-2026.ueberschrift.2-arbeitstage-ohne-buchung",
   "weg_alt": 1,
   "weg_neu": 1,
   "bemerkung": "Aufklapper in der aufgeklappten Karte → Abschnitt „N Arbeitstage ohne Buchung“ im Seitenfenster der Person, offen statt zum Aufklappen",
@@ -73,7 +82,7 @@
  },
  {
   "alt": "accounting.aufklapper.tagesnachweis-0-eintraege-00-00",
-  "neu": "accounting.franz-hinterleitner-oktober-2026.ueberschrift.tagesnachweis-0-eintraege",
+  "neu": "accounting.anton-berger-steinmetz-oktober-2026.ueberschrift.tagesnachweis-2-eintraege",
   "weg_alt": 1,
   "weg_neu": 1,
   "bemerkung": "Tagesnachweis aus der aufgeklappten Karte steht im Seitenfenster der Person, offen statt zum Aufklappen",
@@ -106,6 +115,60 @@
   "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
   "geprueft": true,
   "art": "Regel"
+ },
+ {
+  "alt": "accounting.bericht-exportieren.feld.bis",
+  "neu": "accounting.anton-berger-steinmetz-oktober-2026.knopf.bericht-fuer-zeitraum",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Dasselbe Fenster „Bericht exportieren“ (ExportDialog.tsx, Stundennachweis PDF und Projektauswertung CSV für die gewählte Person); es öffnet jetzt „Bericht für Zeitraum“ im Seitenfenster der Person statt in der aufgeklappten Karte — ein Schritt mehr. Die Aufnahme drückt je Fenster nur die ersten Knöpfe, darum fehlt das Fenster selbst im Bestand",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.bericht-exportieren.feld.von",
+  "neu": "accounting.anton-berger-steinmetz-oktober-2026.knopf.bericht-fuer-zeitraum",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Dasselbe Fenster „Bericht exportieren“ (ExportDialog.tsx, Stundennachweis PDF und Projektauswertung CSV für die gewählte Person); es öffnet jetzt „Bericht für Zeitraum“ im Seitenfenster der Person statt in der aufgeklappten Karte — ein Schritt mehr. Die Aufnahme drückt je Fenster nur die ersten Knöpfe, darum fehlt das Fenster selbst im Bestand",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.bericht-exportieren.knopf.projektauswertung-csv",
+  "neu": "accounting.anton-berger-steinmetz-oktober-2026.knopf.bericht-fuer-zeitraum",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Dasselbe Fenster „Bericht exportieren“ (ExportDialog.tsx, Stundennachweis PDF und Projektauswertung CSV für die gewählte Person); es öffnet jetzt „Bericht für Zeitraum“ im Seitenfenster der Person statt in der aufgeklappten Karte — ein Schritt mehr. Die Aufnahme drückt je Fenster nur die ersten Knöpfe, darum fehlt das Fenster selbst im Bestand",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.bericht-exportieren.knopf.schliessen",
+  "neu": "accounting.anton-berger-steinmetz-oktober-2026.knopf.bericht-fuer-zeitraum",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Dasselbe Fenster „Bericht exportieren“ (ExportDialog.tsx, Stundennachweis PDF und Projektauswertung CSV für die gewählte Person); es öffnet jetzt „Bericht für Zeitraum“ im Seitenfenster der Person statt in der aufgeklappten Karte — ein Schritt mehr. Die Aufnahme drückt je Fenster nur die ersten Knöpfe, darum fehlt das Fenster selbst im Bestand",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.bericht-exportieren.knopf.stundennachweis-pdf",
+  "neu": "accounting.anton-berger-steinmetz-oktober-2026.knopf.bericht-fuer-zeitraum",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Dasselbe Fenster „Bericht exportieren“ (ExportDialog.tsx, Stundennachweis PDF und Projektauswertung CSV für die gewählte Person); es öffnet jetzt „Bericht für Zeitraum“ im Seitenfenster der Person statt in der aufgeklappten Karte — ein Schritt mehr. Die Aufnahme drückt je Fenster nur die ersten Knöpfe, darum fehlt das Fenster selbst im Bestand",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "accounting.bericht-exportieren.ueberschrift.bericht-exportieren",
+  "neu": "accounting.anton-berger-steinmetz-oktober-2026.knopf.bericht-fuer-zeitraum",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "Dasselbe Fenster „Bericht exportieren“ (ExportDialog.tsx, Stundennachweis PDF und Projektauswertung CSV für die gewählte Person); es öffnet jetzt „Bericht für Zeitraum“ im Seitenfenster der Person statt in der aufgeklappten Karte — ein Schritt mehr. Die Aufnahme drückt je Fenster nur die ersten Knöpfe, darum fehlt das Fenster selbst im Bestand",
+  "geprueft": true,
+  "art": "von Hand"
  },
  {
   "alt": "accounting.checkbox.erweiterte-erfassung-baustelle-wegzeit-fahrzeug-zuschlaege",
@@ -181,7 +244,7 @@
  },
  {
   "alt": "accounting.info.den-laufenden-monat",
-  "neu": "accounting.franz-hinterleitner-oktober-2026.info.den-laufenden-monat",
+  "neu": "accounting.anton-berger-steinmetz-oktober-2026.info.den-laufenden-monat",
   "weg_alt": 1,
   "weg_neu": 1,
   "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
@@ -198,10 +261,19 @@
   "art": "Regel"
  },
  {
+  "alt": "accounting.knopf.abbrechen",
+  "neu": "accounting.zeit-erfassen.knopf.abbrechen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
   "alt": "accounting.knopf.anton-berger-steinmetz-4-tage-fehlen-00-00-von-30-48-bisher",
   "neu": "accounting.knopf.anton-berger-steinmetz-2-tage-ohne-buchung",
   "weg_alt": 0,
-  "weg_neu": 0,
+  "weg_neu": 1,
   "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)",
   "geprueft": true,
   "art": "von Hand"
@@ -210,14 +282,14 @@
   "alt": "accounting.knopf.anton-berger-steinmetz-4-tage-fehlen-30-48",
   "neu": "accounting.knopf.anton-berger-steinmetz-2-tage-ohne-buchung",
   "weg_alt": 0,
-  "weg_neu": 0,
+  "weg_neu": 1,
   "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)",
   "geprueft": true,
   "art": "von Hand"
  },
  {
   "alt": "accounting.knopf.bericht-fuer-zeitraum",
-  "neu": "accounting.franz-hinterleitner-oktober-2026.knopf.bericht-fuer-zeitraum",
+  "neu": "accounting.anton-berger-steinmetz-oktober-2026.knopf.bericht-fuer-zeitraum",
   "weg_alt": 1,
   "weg_neu": 1,
   "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
@@ -237,7 +309,7 @@
   "alt": "accounting.knopf.franz-hinterleitner-4-tage-fehlen-00-00-von-30-48-bisher-30",
   "neu": "accounting.knopf.franz-hinterleitner-4-tage-ohne-buchung",
   "weg_alt": 0,
-  "weg_neu": 0,
+  "weg_neu": 1,
   "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)",
   "geprueft": true,
   "art": "von Hand"
@@ -246,7 +318,7 @@
   "alt": "accounting.knopf.franz-hinterleitner-4-tage-fehlen-30-48",
   "neu": "accounting.knopf.franz-hinterleitner-4-tage-ohne-buchung",
   "weg_alt": 0,
-  "weg_neu": 0,
+  "weg_neu": 1,
   "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)",
   "geprueft": true,
   "art": "von Hand"
@@ -255,7 +327,7 @@
   "alt": "accounting.knopf.max-mustermann-4-tage-fehlen-09-00-von-32-00-bisher-23-00",
   "neu": "accounting.knopf.max-mustermann-4-tage-ohne-buchung",
   "weg_alt": 0,
-  "weg_neu": 0,
+  "weg_neu": 1,
   "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)",
   "geprueft": true,
   "art": "von Hand"
@@ -264,7 +336,7 @@
   "alt": "accounting.knopf.max-mustermann-4-tage-fehlen-23-00",
   "neu": "accounting.knopf.max-mustermann-4-tage-ohne-buchung",
   "weg_alt": 0,
-  "weg_neu": 0,
+  "weg_neu": 1,
   "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)",
   "geprueft": true,
   "art": "von Hand"
@@ -273,7 +345,7 @@
   "alt": "accounting.knopf.michaela-wagner-3-tage-fehlen-00-00-von-22-30-bisher-22-30",
   "neu": "accounting.knopf.michaela-wagner-3-tage-ohne-buchung",
   "weg_alt": 0,
-  "weg_neu": 0,
+  "weg_neu": 1,
   "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)",
   "geprueft": true,
   "art": "von Hand"
@@ -282,14 +354,14 @@
   "alt": "accounting.knopf.michaela-wagner-3-tage-fehlen-22-30",
   "neu": "accounting.knopf.michaela-wagner-3-tage-ohne-buchung",
   "weg_alt": 0,
-  "weg_neu": 0,
+  "weg_neu": 1,
   "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)",
   "geprueft": true,
   "art": "von Hand"
  },
  {
   "alt": "accounting.knopf.monat-als-csv",
-  "neu": "accounting.franz-hinterleitner-oktober-2026.knopf.monat-als-csv",
+  "neu": "accounting.anton-berger-steinmetz-oktober-2026.knopf.monat-als-csv",
   "weg_alt": 1,
   "weg_neu": 1,
   "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
@@ -769,10 +841,28 @@
   "art": "von Hand"
  },
  {
+  "alt": "anforderungen.auswahl.grosshaendler",
+  "neu": "anforderungen.auf-die-einkaufsliste.auswahl.grosshaendler",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
   "alt": "anforderungen.info.grosshaendler",
   "neu": "anforderungen.hilfe-zu-anforderungen.ueberschrift.grosshaendler",
   "weg_alt": 1,
   "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "anforderungen.info.grosshaendler",
+  "neu": "anforderungen.ueberschrift.grosshaendler",
+  "weg_alt": 1,
+  "weg_neu": 1,
   "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
   "geprueft": true,
   "art": "Regel"
@@ -791,6 +881,15 @@
   "neu": "anforderungen.hilfe-zu-anforderungen.ueberschrift.material-dazusetzen",
   "weg_alt": 1,
   "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "anforderungen.info.material-dazusetzen",
+  "neu": "anforderungen.ueberschrift.material-dazusetzen",
+  "weg_alt": 1,
+  "weg_neu": 1,
   "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
   "geprueft": true,
   "art": "Regel"
@@ -1302,6 +1401,15 @@
  {
   "alt": "assignments-tag.info.wo",
   "neu": "assignments-tag.termin-anlegen.info.wo",
+  "weg_alt": 2,
+  "weg_neu": 2,
+  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
+  "geprueft": true,
+  "art": "Regel"
+ },
+ {
+  "alt": "assignments-tag.knopf.abbrechen",
+  "neu": "assignments-tag.termin-anlegen.knopf.abbrechen",
   "weg_alt": 2,
   "weg_neu": 2,
   "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
@@ -3067,6 +3175,60 @@
   "art": "von Hand"
  },
  {
+  "alt": "plattform.feld.grund-steht-im-protokoll",
+  "neu": "plattform.altbetrieb-haustechnik-verwalten.feld.grund-steht-im-protokoll",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "„Verwalten“ klappte die Zeile auf → die ganze Zeile öffnet das Seitenfenster „… verwalten“ mit denselben Feldern und Knöpfen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "plattform.knopf.deaktivieren",
+  "neu": "plattform.perl-installationen-gmbh-verwalten.knopf.deaktivieren",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "„Verwalten“ klappte die Zeile auf → die ganze Zeile öffnet das Seitenfenster „… verwalten“ mit denselben Feldern und Knöpfen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "plattform.knopf.kein-testbetrieb",
+  "neu": "plattform.vorfuehrbetrieb-installationen-verwalten.knopf.kein-testbetrieb",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "„Verwalten“ klappte die Zeile auf → die ganze Zeile öffnet das Seitenfenster „… verwalten“ mit denselben Feldern und Knöpfen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "plattform.knopf.loeschung-abbrechen",
+  "neu": "plattform.altbetrieb-haustechnik-verwalten.knopf.loeschung-abbrechen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "„Verwalten“ klappte die Zeile auf → die ganze Zeile öffnet das Seitenfenster „… verwalten“ mit denselben Feldern und Knöpfen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "plattform.knopf.uebergabe-erstellen",
+  "neu": "plattform.altbetrieb-haustechnik-verwalten.knopf.uebergabe-erstellen",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "„Verwalten“ klappte die Zeile auf → die ganze Zeile öffnet das Seitenfenster „… verwalten“ mit denselben Feldern und Knöpfen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
+  "alt": "plattform.knopf.wieder-aktivieren",
+  "neu": "plattform.altbetrieb-haustechnik-verwalten.knopf.wieder-aktivieren",
+  "weg_alt": 1,
+  "weg_neu": 1,
+  "bemerkung": "„Verwalten“ klappte die Zeile auf → die ganze Zeile öffnet das Seitenfenster „… verwalten“ mit denselben Feldern und Knöpfen",
+  "geprueft": true,
+  "art": "von Hand"
+ },
+ {
   "alt": "quotes-id.abzeichen.gueltig-bis",
   "neu": "quotes-id.kennzahl.gueltig-bis",
   "weg_alt": 1,
@@ -4325,6 +4487,15 @@
   "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
   "geprueft": true,
   "art": "Regel"
+ },
+ {
+  "alt": "worksheets.knopf.details",
+  "neu": "worksheets.knopf.gemeinde-neudorf-bei-wiener-neustadt-b-2026-0148",
+  "weg_alt": 0,
+  "weg_neu": 0,
+  "bemerkung": "„Details“ zum Aufklappen → die ganze Zeile öffnet das Seitenfenster des Scheins mit Zeiten, Material und Prüfsumme",
+  "geprueft": true,
+  "art": "von Hand"
  },
  {
   "alt": "worksheets.knopf.details",
