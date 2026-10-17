@@ -841,28 +841,10 @@
   "art": "von Hand"
  },
  {
-  "alt": "anforderungen.auswahl.grosshaendler",
-  "neu": "anforderungen.auf-die-einkaufsliste.auswahl.grosshaendler",
-  "weg_alt": 2,
-  "weg_neu": 2,
-  "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
-  "geprueft": true,
-  "art": "Regel"
- },
- {
   "alt": "anforderungen.info.grosshaendler",
   "neu": "anforderungen.hilfe-zu-anforderungen.ueberschrift.grosshaendler",
   "weg_alt": 1,
   "weg_neu": 2,
-  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
-  "geprueft": true,
-  "art": "Regel"
- },
- {
-  "alt": "anforderungen.info.grosshaendler",
-  "neu": "anforderungen.ueberschrift.grosshaendler",
-  "weg_alt": 1,
-  "weg_neu": 1,
   "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
   "geprueft": true,
   "art": "Regel"
@@ -881,15 +863,6 @@
   "neu": "anforderungen.hilfe-zu-anforderungen.ueberschrift.material-dazusetzen",
   "weg_alt": 1,
   "weg_neu": 2,
-  "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
-  "geprueft": true,
-  "art": "Regel"
- },
- {
-  "alt": "anforderungen.info.material-dazusetzen",
-  "neu": "anforderungen.ueberschrift.material-dazusetzen",
-  "weg_alt": 1,
-  "weg_neu": 1,
   "bemerkung": "gleiche Seite, gleiche Beschriftung, jetzt ueberschrift",
   "geprueft": true,
   "art": "Regel"

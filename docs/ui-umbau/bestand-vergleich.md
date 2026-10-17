@@ -8,9 +8,9 @@ einen Schritt länger, nichts wird schwerer erreichbar.
 
 | | vorher | nachher |
 |---|---|---|
-| Stand | `vor-ui-lot` (4abb9ca) | `main` nach #309 (fb13f7a) samt diesem PR |
+| Stand | `vor-ui-lot` (4abb9ca) | `main` nach #311 (29bc810, Lot v2) samt diesem PR |
 | Aufnahme | `bestand-vorher.json` | `bestand-nachher.json` |
-| Elemente | ‹V› | ‹N› |
+| Elemente | 29.154 | ‹N› |
 | Varianten × Breiten | 13 × 3 | 13 × 3 |
 
 Aufgenommen mit `tests/ui-umbau/bestand.spec.ts` in der Vorschau
@@ -27,14 +27,25 @@ erzeugt `scripts/ui-umbau/zuordnung-erzeugen.mjs` aus den Handregeln
 
 ## Ergebnis
 
-‹ERGEBNIS›
+Aufgenommen am 17.10.2026 auf dem Stand nach #311.
+
+| Prüfung | Ergebnis |
+|---|---|
+| Alte Elemente ohne Gegenstück und ohne Zuordnung | **0** |
+| Zuordnungen ohne `neu` oder mit neuem Element, das fehlt | 0 |
+| Schlechter erreichbar (aktiv → gesperrt oder ausgeblendet) | 0 |
+| Auswahlfelder, denen ein Eintrag fehlt | 0 |
+| Klickweg um mehr als einen Schritt länger | **1 Ablauf**, in 6 von 39 Varianten (Projektleitung mit und ohne Freigaben, alle Breiten) — siehe „Offen“ |
+
+`bestand-vergleich.mjs` endet deshalb mit Code 1: offen ist genau dieser
+eine Ablauf.
 
 ## Wie zugeordnet wurde
 
 Ein altes Element ohne dieselbe Kennung (Seite, Art, Beschriftung) in
 derselben Variante und Breite bekommt seinen neuen Ort auf zwei Wegen:
 
-- **Nach Regel** (‹R› Paare): dieselbe Seite, dieselbe Beschriftung und
+- **Nach Regel** (272 Paare): dieselbe Seite, dieselbe Beschriftung und
   dieselbe Sorte — aus einem Knopf darf ein Menüeintrag werden, aus einem
   Reiter ein Segment, aus einem „i“ der Eintrag unter „Hilfe zu dieser
   Seite“, aus einem Kästchen aber kein Knopf. Allgemeine Wörter
@@ -42,7 +53,7 @@ derselben Variante und Breite bekommt seinen neuen Ort auf zwei Wegen:
   ist. Jedes Paar ist durchgesehen; die Durchsicht fand drei falsche
   (Kästchen einer Person → Knopf mit ihrem Namen) und führte zur Regel
   „gleiche Sorte“.
-- **Von Hand** (‹H› Paare, ‹HR› Regeln): jede mit ihrer Begründung,
+- **Von Hand** (230 Paare aus 132 Regeln): jede mit ihrer Begründung,
   nachgesehen im Code oder in der Vorschau. Die häufigsten Fälle:
   - **Ganze Zeile statt eigener Knopf** (Linie „Lot“): „Akte“, „Details“,
     „Bearbeiten“, das ⋯ einer Zeile — die Zeile öffnet jetzt ihr
@@ -94,11 +105,20 @@ aufgenommen, mit dem alten Stand fehlt das Element.
    die Kundenseite stürzte bei „Anschrift prüfen“ ab („Da ist etwas
    schiefgelaufen“), und `stundenDerBaustellen` meldete „konnte nicht
    geladen werden“. Und weil `invoices` in FEST zweimal stand, fehlte
-   `scheineAufRechnung` (Startseite, Scheine, Rechnungen, Baustelle). In
+   `scheineAufRechnung` (Startseite, Scheine, Rechnungen, Baustelle).
+   Ebenso gab `*` den Wartungen als „Ausführungen“ die Anlagen selbst (ohne
+   Tag — der Verlauf brach ab). In
    der App war nichts davon falsch — sie fragt die Datenbank, nicht die
    Ersatzmodule. Prüfung `vorschauErsatz.test.ts`; Gegenprobe: mit dem
    alten Erzeuger 2 von 7 rot. Der Bestand nachher ist danach ganz neu
    aufgenommen.
+
+8. **Seitenfehler im Protokoll der Aufnahme** (`Seitenfehler: …` je Teil):
+   so fielen die Fälle unter 7 auf. Zwei Varianten (Verwaltung 390 und
+   834) stürzten zweimal genau dann ab, als beide gleichzeitig ein PDF
+   erzeugten; einzeln läuft derselbe Schritt (Download, Speicher
+   gleichbleibend 20 MB), und in allen 37 anderen Varianten auch — die
+   beiden sind nacheinander neu aufgenommen.
 
 Der Vergleich selbst (`bestandVergleich.test.ts`, 7 Prüfungen, mit dem
 alten Skript 3 rot): eine Zuordnung zählt nur in derselben Variante und
@@ -126,4 +146,41 @@ geworden sein.
 
 ## Offen
 
-‹OFFEN›
+### Schein stornieren: zwei Schritte mehr für die Projektleitung (Haltepunkt, 0.3)
+
+Vorher stand „Stornieren“ an jedem unterschriebenen Schein der Liste
+(0 Schritte nach dem Menüpunkt, dann die Rückfrage mit Grund). Seit der
+Linie „Lot“ (#256) zeigt das Segment „Offen“ der Projektleitung nur
+Entwürfe; ein unterschriebener Schein steht unter „Alle“, und „Stornieren“
+steht in seinem Seitenfenster: Segment „Alle“ → Zeile → „Stornieren“
+(2 Schritte). Erlaubt ist einer (Anhang 12.2). Rollen mit Zugriff auf die
+Rechnungen sind nicht betroffen — bei ihnen steht der unterschriebene,
+nicht verrechnete Schein unter „Offen“ in der Gruppe „Nicht verrechnet“,
+und der Weg ist einen Schritt länger als vorher.
+
+Nicht selbst entschieden, weil es die Linie berührt (⋯ nur im Seitenkopf,
+ganze Zeilen antippbar). Möglichkeiten, nach Aufwand:
+
+1. **Für die Projektleitung beginnt die Liste bei „Alle“**, solange „Offen“
+   für sie nur Entwürfe zeigt — ein Schritt mehr als vorher, im Rahmen.
+2. **„Offen“ zeigt auch unterschriebene Scheine der letzten Tage** (für
+   Rollen ohne Rechnungen) — näher am alten Bild, ändert aber, was „offen“
+   heisst.
+3. **So lassen**: Stornieren eines unterschriebenen Scheins ist selten; die
+   Abweichung bleibt hier benannt.
+
+### Was sonst noch fehlt — keine Elemente, sondern Grenzen der Vorschau
+
+- **Einstellungen › Supportzugang im Supportzugang:** in beiden Ständen die
+  Fehleranzeige der Vorschau (die Ersatzmodule `freigaben`, `zugriffe` …
+  liefern keine Liste). Verglichen wird dort Fehlerseite mit Fehlerseite;
+  die App fragt die Datenbank und ist nicht betroffen.
+- **Mahnungen, Lagerbewegungen, Fassungen eines Angebots** liefern in der
+  Vorschau Platzhalter derselben Liste (Rechnungen, Artikel, Angebote) —
+  vorher wie nachher gleich, darum bleibt es so.
+- **„Zeitraum zusammenstellen“ (Rechnungen)** brach in dieser Aufnahme in
+  der Vorschau ab (`schlussrechnungenOhneAbzug` ohne Liste), behoben in den
+  Ersatzmodulen nach der Aufnahme (Gegenprobe in `vorschauErsatz.test.ts`).
+  Kein altes Element fehlt dadurch; nur die Zeilen der Zusammenstellung
+  stehen nicht im Bestand nachher.
+
