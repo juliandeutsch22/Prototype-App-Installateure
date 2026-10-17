@@ -489,9 +489,19 @@ export default function CustomersView() {
                 ersten Fehlversuch „Noch keine Kunden“, und das wäre ein
                 Schrecken ohne Grund.
               */}
+              {/*
+                EINE LEERE AUSWAHL HEISST NICHT „KEINE KUNDEN“: „Anschrift
+                prüfen“ ohne Treffer ist der gute Fall. Vorher stand auch dort
+                „Noch keine Kunden …“ samt dem Rat, Baustellen zu übernehmen —
+                wer dem folgte, legte Doppelte an (K4, 17.10.2026).
+              */}
               {suche.trim()
                 ? `Kein Kunde passt zu „${suche}“.`
-                : 'Noch keine Kunden. Über „Bestehende Baustellen übernehmen“ lassen sich die vorhandenen anlegen.'}
+                : nurPruefen
+                  ? 'Keine Anschrift ist zu prüfen.'
+                  : nurOhneArt
+                    ? 'Jeder Kunde hat eine Kundenart.'
+                    : 'Noch keine Kunden. Über „Bestehende Baustellen übernehmen“ lassen sich die vorhandenen anlegen.'}
             </EmptyState>
           </div>
         ) : (
