@@ -641,6 +641,21 @@ describe('Kundenliste in der Linie „Lot“', () => {
     expect(searchCustomers).not.toHaveBeenCalled();
   });
 
+  it('eine leere Auswahl sagt, was sie heisst — nicht „Noch keine Kunden“', async () => {
+    artListe = [{ id: 'b', companyId: 'perl', name: 'Bau GmbH', kundenart: 'unternehmen' }];
+    zeichne('/customers?auswahl=ohne-art');
+    expect(await screen.findByText('Jeder Kunde hat eine Kundenart.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Anschrift prüfen' }));
+    expect(await screen.findByText('Keine Anschrift ist zu prüfen.')).toBeInTheDocument();
+    expect(screen.queryByText(/Noch keine Kunden/)).toBeNull();
+  });
+
+  it('Gegenprobe: ohne Kunden und ohne Auswahl bleibt der Hinweis zum Übernehmen', async () => {
+    searchCustomers.mockResolvedValue([]);
+    zeichne();
+    expect(await screen.findByText(/Noch keine Kunden\. Über „Bestehende Baustellen übernehmen“/)).toBeInTheDocument();
+  });
+
   it('Gegenprobe: ohne Angabe alle Kunden über die Suche', async () => {
     zeichne();
     expect(await screen.findByText('Hausverwaltung Nord')).toBeInTheDocument();
