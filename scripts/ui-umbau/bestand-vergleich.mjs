@@ -15,10 +15,17 @@
  *   2. Zuordnungen mit `weg_neu − weg_alt > 1` (Anhang 12.2), Zuordnungen
  *      ohne `neu`, und Zuordnungen, deren neues Element im Nachher-Bestand
  *      fehlt;
- *   3. Gegenstücke, deren Klickweg um mehr als einen Schritt länger wurde
- *      (gezählt wie in Anhang 12.1: Schritte nach dem Menüpunkt), die
- *      schlechter erreichbar wurden (aktiv → gesperrt oder ausgeblendet) oder
- *      einer Auswahl, der Einträge fehlen.
+ *   3. Gegenstücke und zugeordnete Elemente, deren Klickweg um mehr als
+ *      einen Schritt länger wurde (gezählt wie in Anhang 12.1: Schritte nach
+ *      dem Menüpunkt), die schlechter erreichbar wurden (aktiv → gesperrt
+ *      oder ausgeblendet) oder einer Auswahl, der Einträge fehlen.
+ *
+ * Eine Zuordnung kann auch ein Gegenstück ersetzen, das dieselbe Kennung
+ * trägt, aber ausgeblendet ist (das Element steht jetzt an anderer Stelle),
+ * und sie kann umbenannte Einträge einer Auswahl nennen:
+ * `{ "alt": …, "neu": …, "optionen": { "Alle": "Jeder Stand" } }`. Ist aus
+ * der Auswahl etwas anderes geworden (Segmente, Reiter), zählt ein Eintrag,
+ * wenn ein Element mit seinem Text auf derselben Seite steht.
  *
  * Endet mit Code 1, sobald etwas offen ist — so taugt es als Abnahmeprüfung.
  */
@@ -55,22 +62,44 @@ const ohne = [];
 const schlechter = [];
 const zuLang = [];
 const auswahl = [];
+
+/** Das neue Element einer Zuordnung in derselben Variante und Breite — das am besten erreichbare. */
+const zugeordnet = (alt) => (zuNach.get(alt.id) ?? [])
+  .filter((z) => z.neu)
+  .map((z) => ({ z, e: neuNach.get(`${wo(alt)}|${z.neu}`) }))
+  .filter((t) => t.e)
+  .sort((a, b) => RANG[a.e.zustand] - RANG[b.e.zustand] || weg(a.e) - weg(b.e))[0];
+
 for (const alt of vorher) {
   if (alt.zustand === 'ausgeblendet') continue;
-  const neu = neuNach.get(schluessel(alt));
-  if (neu) {
-    if (weg(neu) - weg(alt) > 1) zuLang.push(`${alt.id} [${wo(alt)}]: Weg ${weg(alt)} → ${weg(neu)} (${neu.klickweg.join(' › ')})`);
-    if (RANG[neu.zustand] > RANG[alt.zustand]) schlechter.push(`${alt.id} [${wo(alt)}]: ${alt.zustand} → ${neu.zustand}`);
-    if (alt.optionen) {
-      const fehlt = alt.optionen.filter((o) => !(neu.optionen ?? []).includes(o));
-      if (fehlt.length) auswahl.push(`${alt.id} [${wo(alt)}]: fehlt ${fehlt.map((o) => `„${o}“`).join(', ')}`);
-    }
+  const gleich = neuNach.get(schluessel(alt));
+  const t = zugeordnet(alt);
+  /*
+    DIESELBE KENNUNG, ABER SCHLECHTER ERREICHBAR, zählt als zugeordnet, wenn
+    eine Zuordnung auf ein Element zeigt, das so gut erreichbar ist wie das
+    alte — etwa „Impressum“, am Tablet seit „Lot“ im Profil statt offen in
+    der Leiste; die ausgeblendete Fassung derselben Kennung bleibt im DOM.
+  */
+  const ersetzt = gleich && t && RANG[gleich.zustand] > RANG[alt.zustand] && RANG[t.e.zustand] <= RANG[alt.zustand];
+  const neu = gleich && !ersetzt ? gleich : t?.e;
+  if (!neu) {
+    ohne.push(alt);
     continue;
   }
-  const zs = zuNach.get(alt.id) ?? [];
-  // Eine Zuordnung zählt, wenn ihr neues Element in derselben Variante und Breite steht.
-  const treffer = zs.find((z) => z.neu && neuNach.has(`${wo(alt)}|${z.neu}`));
-  if (!treffer) ohne.push(alt);
+  // Auch für Zugeordnetes gilt der Weg aus dem Bestand, nicht nur die Zahl in der Zuordnung.
+  if (weg(neu) - weg(alt) > 1) zuLang.push(`${alt.id}${neu === gleich ? '' : ` → ${neu.id}`} [${wo(alt)}]: Weg ${weg(alt)} → ${weg(neu)} (${neu.klickweg.join(' › ')})`);
+  if (RANG[neu.zustand] > RANG[alt.zustand]) schlechter.push(`${alt.id}${neu === gleich ? '' : ` → ${neu.id}`} [${wo(alt)}]: ${alt.zustand} → ${neu.zustand}`);
+  if (alt.optionen) {
+    // Umbenannte Einträge („Alle“ → „Jeder Stand“) stehen in der Zuordnung unter `optionen`.
+    const umbenannt = Object.assign({}, ...(zuNach.get(alt.id) ?? []).map((z) => z.optionen ?? {}));
+    // Aus einer Auswahl können Segmente oder Reiter derselben Seite geworden sein.
+    const daneben = new Set(nachher.filter((e) => wo(e) === wo(alt) && e.seite === neu.seite && e.zustand !== 'ausgeblendet').map((e) => e.text));
+    const fehlt = alt.optionen.filter((o) => {
+      const soll = umbenannt[o] ?? o;
+      return !(neu.optionen ?? []).includes(soll) && !(neu !== gleich && daneben.has(soll));
+    });
+    if (fehlt.length) auswahl.push(`${alt.id} [${wo(alt)}]: fehlt ${fehlt.map((o) => `„${o}“`).join(', ')}`);
+  }
 }
 
 const zuordnungsfehler = [];

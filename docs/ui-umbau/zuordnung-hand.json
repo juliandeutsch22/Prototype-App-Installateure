@@ -1,0 +1,670 @@
+[
+ {
+  "alt": "/^accounting\\.knopf\\.[a-z-]+-\\d+-tage?-fehl(en|t)-/",
+  "neuRe": "^accounting\\.knopf\\.[a-z-]+-\\d+-tage?-ohne-buchung$",
+  "bemerkung": "Zeile der Person: heisst jetzt „N Tage ohne Buchung“ und öffnet das Seitenfenster der Person; Saldo und Soll stehen dort (Runde 4)"
+ },
+ {
+  "alt": "/^accounting\\.abzeichen\\.\\d\\d-\\d\\d$/",
+  "neuRe": "^accounting\\.knopf\\.[a-z-]+-\\d+-tage?-ohne-buchung$",
+  "bemerkung": "Saldo der Zeile steht jetzt im Seitenfenster der Person als Kennzahl „Saldo im Monat“ (PersonFenster.tsx); die Aufnahme erfasst Kennzahlzeilen dort nicht als eigenes Element"
+ },
+ {
+  "alt": "/^accounting\\.abzeichen\\.\\d-tage-fehlen$/",
+  "neuRe": "^accounting\\.knopf\\.[a-z-]+-\\d+-tage?-ohne-buchung$",
+  "bemerkung": "Zahl der fehlenden Tage steht jetzt in der Zeile selbst („N Tage ohne Buchung“)"
+ },
+ {
+  "alt": "accounting.abzeichen.saldo-im-monat",
+  "neuRe": "^accounting\\.([a-z-]+)-oktober-2026\\.ueberschrift\\.\\1$",
+  "bemerkung": "„Saldo im Monat“ steht im Seitenfenster der Person (PersonFenster.tsx, Kennzahl); als Ort zugeordnet: der Kopf des Fensters"
+ },
+ {
+  "alt": "/^accounting\\.aufklapper\\.tagesnachweis-/",
+  "neuRe": "^accounting\\.[a-z-]+-oktober-2026\\.ueberschrift\\.tagesnachweis-",
+  "bemerkung": "Tagesnachweis aus der aufgeklappten Karte steht im Seitenfenster der Person, offen statt zum Aufklappen"
+ },
+ {
+  "alt": "accounting.abzeichen.nicht-einsehbar",
+  "neuRe": "^accounting\\.knopf\\.[a-z-]+-nicht-einsehbar$",
+  "bemerkung": "Im Supportzugang: „nicht einsehbar“ steht jetzt in der Zeile der Person"
+ },
+ {
+  "alt": "accounting.ueberschrift.oktober-2026",
+  "neuRe": "^accounting\\.knopf\\.oktober-2026-dieser-monat",
+  "bemerkung": "Der Monatstitel ist jetzt der Knopf, der Monat und Jahr wählt (Linie „Lot“)"
+ },
+ {
+  "alt": "accounting.ueberschrift.zeitraum",
+  "neuRe": "^accounting\\.knopf\\.oktober-2026-dieser-monat",
+  "bemerkung": "Die Wahl von Monat und Jahr („Zeitraum“) öffnet jetzt der Titel"
+ },
+ {
+  "alt": "admin-projects.abzeichen.aktiv",
+  "neuRe": "^admin-projects\\.ueberschrift\\.aktiv-\\d+$",
+  "bemerkung": "Status je Zeile → Gruppenüberschrift „Aktiv · N“ über den Zeilen"
+ },
+ {
+  "alt": "admin-projects.abzeichen.pausiert",
+  "neuRe": "^admin-projects\\.ueberschrift\\.pausiert-\\d+$",
+  "bemerkung": "Status je Zeile → Gruppenüberschrift „Pausiert · N“ über den Zeilen"
+ },
+ {
+  "alt": "admin-projects.auswahl.baustellen-filtern",
+  "neu": "admin-projects.segment.laufend",
+  "optionen": {
+   "Aktiv & pausiert": "Laufend",
+   "Archiv (0)": "Erledigt"
+  },
+  "bemerkung": "Auswahlfeld → Segmente Laufend · Alle · Erledigt"
+ },
+ {
+  "alt": "admin-projects.ueberschrift.alle-baustellen-3",
+  "neu": "admin-projects.segment.alle",
+  "bemerkung": "Überschrift mit Zahl → Segment „Alle“"
+ },
+ {
+  "alt": "admin-projects.link.akte",
+  "neuRe": "^admin-projects\\.link\\.[a-z-]+-b-2026-\\d+$",
+  "bemerkung": "Eigener Verweis „Akte“ → die ganze Zeile öffnet die Akte (Linie „Lot“, Regel 3)"
+ },
+ {
+  "alt": "admin-projects-id.datei.plaene-oder-bilder-auswaehlen",
+  "neu": "admin-projects-id.datei.dokumente-auswaehlen",
+  "bemerkung": "Pläne und Bilder heissen jetzt Dokumente und nehmen auch Word, Excel und E-Mail an (Paket D)"
+ },
+ {
+  "alt": "admin-projects-id.knopf.plan-oder-bild-hinzufuegen",
+  "neu": "admin-projects-id.knopf.dokument-hinzufuegen",
+  "bemerkung": "„Plan oder Bild hinzufügen“ → „Dokument hinzufügen“ (Paket D)"
+ },
+ {
+  "alt": "admin-projects-id.ueberschrift.weiter",
+  "neu": "admin-projects-id.link.zur-kundenakte",
+  "bemerkung": "Karte „Weiter“ aufgelöst: Kundenakte und Angebote stehen als Verweise in der Akte"
+ },
+ {
+  "alt": "admin-projects-id.ueberschrift.stunden-auf-dieser-baustelle",
+  "neu": "admin-projects-id.ueberschrift.ueberblick",
+  "bemerkung": "Stunden der Baustelle stehen im Abschnitt „Überblick“; in der Vorschau meldet er „konnte nicht geladen werden“ (die Vorschau kennt die Abfrage baustellen_stunden nicht)"
+ },
+ {
+  "alt": "/^assignments-woche\\.knopf\\.(mo|di|mi|do|fr|sa|so)-\\d\\d-\\d\\d/",
+  "neuRe": "^assignments-woche\\.(segment\\.(mo|di|mi|do|fr|sa|so)-\\d+|knopf\\.(mo|di|mi|do|fr|sa|so)-\\d\\d-\\d\\d.*)$",
+  "gleich": "tag",
+  "bemerkung": "Tageskopf der Woche: am Handy ein Tages-Segment („Di 6“), sonst der Tageskopf mit freien Personen und Terminen; öffnet den Tag"
+ },
+ {
+  "alt": "/^assignments-woche\\.(info|ueberschrift)\\.\\d\\d-\\d\\d-\\d\\d-\\d\\d$/",
+  "neu": "assignments-woche.segment.woche",
+  "bemerkung": "Die Wochenspanne als eigene Überschrift entfällt; welche Woche gezeigt wird, steht im Kopf der Tage, gewählt über „Woche“ und „Woche vor/zurück“"
+ },
+ {
+  "alt": "assignments-woche.ueberschrift.wochenplan",
+  "neu": "assignments-woche.segment.woche",
+  "bemerkung": "Überschrift „Wochenplan“ → Segment „Woche“ der Einsatzplanung"
+ },
+ {
+  "alt": "/^assignments-(woche|tag)\\.reiter\\.wochenplan$/",
+  "neuRe": "^assignments-(woche|tag)\\.segment\\.woche$",
+  "bemerkung": "Reiter → Segment „Woche“"
+ },
+ {
+  "alt": "/^assignments-(woche|tag)\\.reiter\\.tag-planen$/",
+  "neuRe": "^assignments-(woche|tag)\\.segment\\.tag$",
+  "bemerkung": "Reiter „Tag planen“ → Segment „Tag“"
+ },
+ {
+  "alt": "assignments-woche.knopf.frei",
+  "neuRe": "^assignments-woche\\.knopf\\.([a-z0-9-]+-)?frei-einsatz-planen$",
+  "bemerkung": "„frei“ in der Zelle heisst jetzt „frei – Einsatz planen“ (Handy: Zeile „frei – Einsatz planen“; Tablet/Schreibtisch: die leere Zelle selbst, „Name, Tag: frei – Einsatz planen“)"
+ },
+ {
+  "alt": "assignments-woche.knopf.einteilen",
+  "neuRe": "^assignments-woche\\.knopf\\.([a-z0-9-]+-)?frei-einsatz-planen$",
+  "bemerkung": "„Einteilen“ in der freien Zelle → „frei – Einsatz planen“ (Handy: Zeile „frei – Einsatz planen“; Tablet/Schreibtisch: die leere Zelle selbst, „Name, Tag: frei – Einsatz planen“)"
+ },
+ {
+  "alt": "/^assignments-woche\\.knopf\\.(gemeinde|wohnungseigentuemer)/",
+  "neuRe": "^assignments-woche\\.knopf\\.(gemeinde|wohnungseigentuemer)",
+  "bemerkung": "Einsatz in der Zelle: statt der Projektnummer der Ort, „als Helfer“ bleibt"
+ },
+ {
+  "alt": "/^assignments-tag\\.checkbox\\.[a-z-]+-heute-schon-eingeteilt-/",
+  "neuRe": "^assignments-tag\\.(einsatz-planen\\.)?checkbox\\.[a-z-]+-schon-eingeteilt-",
+  "bemerkung": "Personenauswahl: „heute schon eingeteilt“ → „schon eingeteilt“"
+ },
+ {
+  "alt": "/^assignments-tag\\.(einsatz-loeschen\\.|knopf\\.einsatz-von-)/",
+  "neuRe": "^assignments-tag\\.knopf\\.loeschen$",
+  "bemerkung": "Unverändert in der Zeile der Person: Knopf „Löschen“ mit der Vorlesehilfe „Einsatz von … löschen“, danach die Rückfrage „Einsatz löschen?“ (AssignmentsView.tsx, ConfirmDialog). Die Kennung folgt jetzt der sichtbaren Beschriftung „Löschen“; die Aufnahme drückt je Beschriftung einen Knopf — das war der eines Termins, darum fehlt die Rückfrage im Bestand"
+ },
+ {
+  "alt": "/^start\\.link\\.und-\\d+-weitere$/",
+  "neuRe": "^start\\.link\\.und-\\d+-weitere$",
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich"
+ },
+ {
+  "alt": "/^start\\.knopf\\.und-\\d+-weitere$/",
+  "neuRe": "^start\\.knopf\\.und-\\d+-weitere$",
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich"
+ },
+ {
+  "alt": "start.ueberschrift.danach",
+  "neuRe": "^start\\.ueberschrift\\.danach",
+  "bemerkung": "„Danach“ nennt jetzt die Uhrzeit („Danach · ab 16:00“)"
+ },
+ {
+  "alt": "/^start\\.ueberschrift\\.handlungsbedarf-\\d+(-themen)?$/",
+  "neuRe": "^start\\.ueberschrift\\.zu-erledigen-\\d+(-themen)?$",
+  "bemerkung": "„Handlungsbedarf“ heisst jetzt „Zu erledigen“ (Linie „Lot“); Zahl hängt an den Beispieldaten"
+ },
+ {
+  "alt": "/^start\\.ueberschrift\\.heute-\\d+-einsaetze$/",
+  "neuRe": "^start\\.ueberschrift\\.heute-\\d+-einsaetze$",
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich"
+ },
+ {
+  "alt": "/^start\\.ueberschrift\\.heute-\\d+-im-einsatz$/",
+  "neuRe": "^start\\.ueberschrift\\.heute-\\d+-im-einsatz$",
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich"
+ },
+ {
+  "alt": "/^start\\.ueberschrift\\.dein-einsatz-heute-\\d+-einsaetze$/",
+  "neuRe": "^start\\.ueberschrift\\.dein-einsatz-heute-\\d+-einsaetze$",
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich"
+ },
+ {
+  "alt": "/^start\\.ueberschrift\\.(deine-)?tage-ohne-buchung-\\d+$/",
+  "neuRe": "^start\\.ueberschrift\\.(deine-)?tage-ohne-buchung-\\d+$",
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich"
+ },
+ {
+  "alt": "/^start\\.ueberschrift\\.personen-mit-tagen-ohne-buchung-\\d+$/",
+  "neuRe": "^start\\.ueberschrift\\.personen-mit-tagen-ohne-buchung-\\d+$",
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich"
+ },
+ {
+  "alt": "/^start\\.ueberschrift\\.diese-woche-\\d+$/",
+  "neuRe": "^start\\.ueberschrift\\.diese-woche-\\d+$",
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich"
+ },
+ {
+  "alt": "/^start\\.ueberschrift\\.dringend-\\d+$/",
+  "neuRe": "^start\\.ueberschrift\\.dringend-\\d+$",
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich"
+ },
+ {
+  "alt": "/^start\\.abzeichen\\.\\d+-tage$/",
+  "neuRe": "^start\\.abzeichen\\.\\d+-tage$",
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich"
+ },
+ {
+  "alt": "/^start\\.link\\.[a-z-]+(-\\d+-tage)?-in-den-letzten-wochen-nichts/",
+  "neuRe": "^start\\.link\\.[a-z-]+-(\\d+-tage-)?(in-den-letzten-wochen-nichts|zuletzt-gebucht)",
+  "bemerkung": "Person mit Tagen ohne Buchung; Name und Text hängen an den Beispieldaten (in der Aufnahme „nachher“ hat Anton Berger-Steinmetz zuletzt am 05.10. gebucht)"
+ },
+ {
+  "alt": "/^start\\.link\\.\\d+-personen-mit-tagen-ohne-buchung/",
+  "neuRe": "^start\\.link\\.\\d+-personen-mit-tagen-ohne-buchung",
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich"
+ },
+ {
+  "alt": "/^start\\.link\\.firmendaten-fuer-rechnungen-unvollstaendig/",
+  "neuRe": "^start\\.link\\.keine-rechnung-moeglich-firmendaten-unvollstaendig",
+  "bemerkung": "Hinweis heisst jetzt „Keine Rechnung möglich: Firmendaten unvollständig“ und steht oben statt hinter „und 3 weitere“ (Rechnungssperre, Punkt E)"
+ },
+ {
+  "alt": "/^start\\.link\\.\\d+-tage-ohne-eigene-buchung/",
+  "neuRe": "^start\\.link\\.\\d+-tage-ohne-eigene-buchung",
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich"
+ },
+ {
+  "alt": "/^start\\.link\\.[a-z0-9-]+-1-perso/",
+  "neuRe": "^start\\.link\\.[a-z0-9-]+-\\d+-pers",
+  "bemerkung": "Baustelle von heute mit ihren Personen; Zahl hängt an den Beispieldaten"
+ },
+ {
+  "alt": "start.abzeichen.1-person",
+  "neuRe": "^start\\.link\\.[a-z0-9-]+-\\d+-pers",
+  "bemerkung": "Personenzahl steht jetzt in der Zeile der Baustelle („7 Personen“), nicht als eigenes Abzeichen"
+ },
+ {
+  "alt": "lager.abzeichen.0-pkg-frei",
+  "bemerkung": "„0 Pkg frei“ steht jetzt rechts in der Zeile des Artikels („0 Pkg frei · 0 reserviert“, StockView.tsx); die Aufnahme erfasst den Wert einer Zeile nicht als eigenes Element",
+  "neu": "lager.knopf.dichtungsmaterial-sortiment"
+ },
+ {
+  "alt": "lager.abzeichen.120-stk-frei",
+  "bemerkung": "„120 Stk frei“ steht jetzt rechts in der Zeile des Artikels (StockView.tsx); die Aufnahme erfasst den Wert einer Zeile nicht als eigenes Element",
+  "neu": "lager.knopf.thermostatventil-heimeier-eclipse-dn15"
+ },
+ {
+  "alt": "lager.abzeichen.4-stk-frei",
+  "bemerkung": "„4 Stk frei“ steht jetzt rechts in der Zeile des Artikels (StockView.tsx); die Aufnahme erfasst den Wert einer Zeile nicht als eigenes Element",
+  "neu": "lager.knopf.kupferrohr-22-mm-stange-5-m-hart"
+ },
+ {
+  "alt": "lager.aktionen.menueeintrag.bearbeiten",
+  "bemerkung": "⋯ der Zeile → die Zeile öffnet das Seitenfenster des Artikels, dort „Im Katalog bearbeiten“",
+  "neu": "lager.artikel.knopf.im-katalog-bearbeiten"
+ },
+ {
+  "alt": "lager.aktionen.menueeintrag.bewegungen",
+  "bemerkung": "⋯ der Zeile → die Zeile öffnet das Seitenfenster des Artikels; die Bewegungen stehen dort offen",
+  "neu": "lager.artikel.abzeichen.bewegungen"
+ },
+ {
+  "alt": "lager.bewegungen-dichtungsmaterial-sortiment.knopf.schliessen",
+  "bemerkung": "Eigenes Fenster „Bewegungen“ → Seitenfenster des Artikels",
+  "neu": "lager.artikel.knopf.schliessen"
+ },
+ {
+  "alt": "lager.bewegungen-dichtungsmaterial-sortiment.ueberschrift.bewegungen-dichtungsmaterial-sortiment",
+  "bemerkung": "Eigenes Fenster „Bewegungen“ → Abschnitt „Bewegungen“ im Seitenfenster des Artikels",
+  "neu": "lager.artikel.abzeichen.bewegungen"
+ },
+ {
+  "alt": "lager.knopf.abbrechen",
+  "bemerkung": "Bearbeiten öffnet jetzt das Fenster „Material bearbeiten“",
+  "neu": "lager.material-bearbeiten.knopf.abbrechen"
+ },
+ {
+  "alt": "lager.knopf.aenderungen-speichern",
+  "bemerkung": "Bearbeiten öffnet jetzt das Fenster „Material bearbeiten“",
+  "neu": "lager.material-bearbeiten.knopf.aenderungen-speichern"
+ },
+ {
+  "alt": "lager.knopf.bearbeiten",
+  "bemerkung": "Knopf „Bearbeiten“ im Katalog → die ganze Zeile öffnet „Material bearbeiten“ (Linie „Lot“: ganze Zeilen antippbar)",
+  "neuRe": "^lager\\.knopf\\.(dichtungsmaterial-sortiment|kupferrohr-22-mm-stange-5-m-hart|thermostatventil-heimeier-eclipse-dn15)$"
+ },
+ {
+  "alt": "/^lager\\.knopf\\.[a-z0-9-]+-loeschen$/",
+  "bemerkung": "Löschen je Zeile im Katalog → Zeile öffnen, „Material löschen …“, dann wie bisher die Rückfrage",
+  "neu": "lager.material-bearbeiten.knopf.material-loeschen"
+ },
+ {
+  "alt": "lager.hinweis.wird-geladen",
+  "bemerkung": "Ladeanzeige beim Öffnen von „Katalog einspielen“ (Reiter → Eintrag im ⋯ des Seitenkopfs); kurzlebig, keine eigene Funktion",
+  "neu": "lager.ueberschrift.katalog-einspielen"
+ },
+ {
+  "alt": "material.reiter.bestellen",
+  "bemerkung": "Reiter entfallen: Katalog und eigene Anforderungen stehen auf einer Seite („Material anfordern“)",
+  "neu": "material.ueberschrift.katalog"
+ },
+ {
+  "alt": "material.reiter.bestellen1",
+  "bemerkung": "Reiter mit Zahl → Überschrift „Anforderung (1) — noch nicht abgeschickt“ hinter „Zur Anforderung“",
+  "neu": "material.ueberschrift.anforderung-1-noch-nicht-abgeschickt"
+ },
+ {
+  "alt": "material.abzeichen.1",
+  "bemerkung": "Zahl am Reiter → steht in der Überschrift",
+  "neu": "material.ueberschrift.anforderung-1-noch-nicht-abgeschickt"
+ },
+ {
+  "alt": "material.reiter.meine-bestellungen2",
+  "bemerkung": "Reiter „Meine Bestellungen“ → Abschnitt „Meine Anforderungen (2)“ auf derselben Seite",
+  "neu": "material.ueberschrift.meine-anforderungen-2"
+ },
+ {
+  "alt": "material.abzeichen.2",
+  "bemerkung": "Zahl am Reiter → steht in der Überschrift",
+  "neu": "material.ueberschrift.meine-anforderungen-2"
+ },
+ {
+  "alt": "material.ueberschrift.offen-2",
+  "bemerkung": "Gruppe „Offen (2)“ → Abschnitt „Meine Anforderungen (2)“, Stand je Zeile („Offen“)",
+  "neu": "material.ueberschrift.meine-anforderungen-2"
+ },
+ {
+  "alt": "material.reiter.retoure",
+  "bemerkung": "Reiter „Retoure“ → „Retoure erfassen …“ im ⋯ des Seitenkopfs; das Fenster hat dieselben Felder",
+  "neu": "material.aktionen.menueeintrag.retoure-erfassen"
+ },
+ {
+  "alt": "material.ueberschrift.material",
+  "bemerkung": "Seitentitel heisst jetzt „Material anfordern“",
+  "neu": "material.ueberschrift.material-anfordern"
+ },
+ {
+  "alt": "anforderungen.reiter.laufend2",
+  "bemerkung": "Reiter → Segment",
+  "neu": "anforderungen.segment.laufend-2"
+ },
+ {
+  "alt": "anforderungen.reiter.retouren1",
+  "bemerkung": "Reiter → Segment",
+  "neu": "anforderungen.segment.retouren-1"
+ },
+ {
+  "alt": "anforderungen.abzeichen.2",
+  "bemerkung": "Zahl am Reiter → steht im Segment",
+  "neu": "anforderungen.segment.laufend-2"
+ },
+ {
+  "alt": "anforderungen.abzeichen.1",
+  "bemerkung": "Zahl am Reiter → steht im Segment",
+  "neu": "anforderungen.segment.retouren-1"
+ },
+ {
+  "alt": "anforderungen.aktionen.menueeintrag.loeschen",
+  "bemerkung": "⋯ der Zeile → die Zeile öffnet das Seitenfenster, dort „Anforderung löschen …“",
+  "neu": "anforderungen.anforderung.knopf.anforderung-loeschen"
+ },
+ {
+  "alt": "anforderungen.knopf.nicht-auf-lager",
+  "bemerkung": "Knopf in der Zeile → im Seitenfenster der Anforderung, „Nicht auf Lager – auf die Einkaufsliste“",
+  "neu": "anforderungen.anforderung.knopf.nicht-auf-lager-auf-die-einkaufsliste"
+ },
+ {
+  "alt": "anforderungen.knopf.weitere-aktionen",
+  "bemerkung": "⋯ der Zeile → die ganze Zeile öffnet das Seitenfenster mit allen Aktionen",
+  "neuRe": "^anforderungen\\.knopf\\.kupferrohr-22-mm"
+ },
+ {
+  "alt": "anforderungen.info.kontaktzeile",
+  "bemerkung": "Erklärung „Kontaktzeile“ steht bei offenem Formular „+ Großhändler“ unter „Hilfe zu dieser Seite“ (InfoHint im Seitenfluss, Einkaufsliste.tsx); die Aufnahme öffnet die Hilfe nur im Grundzustand der Seite",
+  "neu": "anforderungen.knopf.hilfe-zu-dieser-seite"
+ },
+ {
+  "alt": "invoices.aktionen.menueeintrag.ansehen",
+  "bemerkung": "⋯ der Zeile → die ganze Zeile öffnet das Seitenfenster der Rechnung",
+  "neuRe": "^invoices\\.knopf\\.2026-0232-"
+ },
+ {
+  "alt": "invoices.knopf.weitere-aktionen",
+  "bemerkung": "⋯ der Zeile → die ganze Zeile öffnet das Seitenfenster mit allen Aktionen",
+  "neuRe": "^invoices\\.knopf\\.2026-0232-"
+ },
+ {
+  "alt": "invoices.aktionen.menueeintrag.pdf-erneut-laden",
+  "bemerkung": "„PDF erneut laden“ aus dem ⋯ → „PDF laden“ im Seitenfenster der Rechnung",
+  "neu": "invoices.rechnung-2026-0232.knopf.pdf-laden"
+ },
+ {
+  "alt": "invoices.zahlungen-2026-0232.ueberschrift.zahlungen-2026-0232",
+  "bemerkung": "Das Zahlungsfenster öffnet „Zahlung erfassen“ im Seitenfenster der Rechnung (dasselbe Fenster hat die Aufnahme bei 2026-0230/-0231 erfasst)",
+  "neu": "invoices.rechnung-2026-0232.knopf.zahlung-erfassen"
+ },
+ {
+  "alt": "/^invoices\\.knopf\\.2026-023(\\d)$/",
+  "bemerkung": "Rechnungsnummer als eigener Knopf → die ganze Zeile „Nummer · Kunde“; erledigte Rechnungen stehen unter dem Segment „Erledigt“",
+  "neuRe": "^invoices\\.knopf\\.2026-023\\d-"
+ },
+ {
+  "alt": "invoices.info.die-konditionen-dieser-rechnung",
+  "bemerkung": "Erklärung steht bei offenem Formular „Neue Rechnung“ unter „Hilfe zu dieser Seite“ (InfoHint im Seitenfluss, InvoicesView.tsx); die Aufnahme öffnet die Hilfe nur im Grundzustand der Seite",
+  "neu": "invoices.knopf.hilfe-zu-dieser-seite"
+ },
+ {
+  "alt": "customers.checkbox.nur-anschriften-die-zu-pruefen-sind",
+  "bemerkung": "Zwei Kästchen, die einander ausschalteten → Segmente Alle · Anschrift prüfen · Ohne Kundenart",
+  "neu": "customers.segment.anschrift-pruefen"
+ },
+ {
+  "alt": "customers.checkbox.nur-kunden-ohne-kundenart-kundenart-pruefen",
+  "bemerkung": "Zwei Kästchen, die einander ausschalteten → Segmente Alle · Anschrift prüfen · Ohne Kundenart",
+  "neu": "customers.segment.ohne-kundenart"
+ },
+ {
+  "alt": "customers.link.akte",
+  "bemerkung": "Eigener Verweis „Akte“ → die ganze Zeile führt in die Akte (Linie „Lot“)",
+  "neuRe": "^customers\\.link\\.(familie-huber|gemeinde-neudorf|wohnungseigentuemer)"
+ },
+ {
+  "alt": "customers.ueberschrift.kunden-3",
+  "bemerkung": "Überschrift mit Zahl → Segment „Alle“",
+  "neu": "customers.segment.alle"
+ },
+ {
+  "alt": "customers.knopf.vorlage-herunterladen",
+  "bemerkung": "Knopf auf der Seite → Eintrag im ⋯ des Seitenkopfs (CustomersView.tsx: „damit der Weg nur um den Tipp auf ⋯ länger wird“)",
+  "neu": "customers.aktionen.menueeintrag.vorlage-fuer-den-import-herunterladen"
+ },
+ {
+  "alt": "customers.knopf.vorschau-erstellen",
+  "bemerkung": "„Vorschau erstellen“ (Bestehende Baustellen übernehmen) → Eintrag im ⋯; er öffnet das Fenster und erstellt die Vorschau zugleich",
+  "neu": "customers.aktionen.menueeintrag.bestehende-baustellen-uebernehmen"
+ },
+ {
+  "alt": "customers.knopf.schliessen",
+  "bemerkung": "Die Vorschau steht jetzt in einem Fenster mit „Schließen“",
+  "neu": "customers.bestehende-baustellen-uebernehmen.knopf.schliessen"
+ },
+ {
+  "alt": "user-mgmt.auswahl.benutzer-nach-status-filtern",
+  "bemerkung": "Auswahlfeld → Segmente Aktive · Alle · Deaktivierte",
+  "neu": "user-mgmt.segment.aktive"
+ },
+ {
+  "alt": "user-mgmt.knopf.neuer-benutzer",
+  "bemerkung": "„Neuer Benutzer“ heisst jetzt „Benutzer anlegen“",
+  "neu": "user-mgmt.knopf.benutzer-anlegen"
+ },
+ {
+  "alt": "user-mgmt.link.akte",
+  "bemerkung": "Eigener Verweis „Akte“ → die ganze Zeile (Name) führt in die Akte",
+  "neuRe": "^user-mgmt\\.link\\.[a-z-]+$"
+ },
+ {
+  "alt": "/^user-mgmt\\.ueberschrift\\.benutzer-\\d+$/",
+  "bemerkung": "Zahl hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "neuRe": "^user-mgmt\\.ueberschrift\\.benutzer-\\d+$"
+ },
+ {
+  "alt": "/^user-mgmt\\.ueberschrift\\.mitarbeiter-\\d+$/",
+  "bemerkung": "Zahl hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "neuRe": "^user-mgmt\\.ueberschrift\\.mitarbeiter-\\d+$"
+ },
+ {
+  "alt": "user-mgmt.info.umstufung",
+  "bemerkung": "Erklärung „Umstufung“ steht bei offenem Formular unter „Hilfe zu dieser Seite“ (InfoHint im Seitenfluss, EinstufungFelder.tsx); der Knopf „Hilfe zu dieser Seite“ erscheint, sobald das Formular offen ist",
+  "neu": "user-mgmt.knopf.hilfe-zu-dieser-seite"
+ },
+ {
+  "alt": "time.abzeichen.optional",
+  "bemerkung": "„optional“ steht jetzt in der Beschriftung des Aufklappers „Weitere Angaben (optional)“",
+  "neuRe": "^time\\.aufklapper\\.weitere-angaben-optional"
+ },
+ {
+  "alt": "/^time\\.knopf\\.weitere-angabenoptional/",
+  "bemerkung": "Knopf „Weitere Angaben“ → Aufklapper (<details>) mit derselben Beschriftung",
+  "neuRe": "^time\\.aufklapper\\.weitere-angaben-optional"
+ },
+ {
+  "alt": "time.knopf.bearbeiten",
+  "bemerkung": "Knopf „Bearbeiten“ je Eintrag → die ganze Zeile öffnet den Eintrag (Linie „Lot“)",
+  "neuRe": "^time\\.knopf\\.\\d\\d-\\d\\d-\\d{4}-"
+ },
+ {
+  "alt": "/^time\\.knopf\\.kw-\\d+-\\d{4}-/",
+  "bemerkung": "Zahl im Text hängt an den Beispieldaten (Stand der Aufnahme), Element gleich",
+  "neuRe": "^time\\.knopf\\.kw-\\d+-\\d{4}-"
+ },
+ {
+  "alt": "my-projects.abzeichen.240-h-kalkuliert",
+  "bemerkung": "„240 h kalkuliert“ steht in der Karte der Baustelle in der Zeile unter dem Titel (MyProjectsView.tsx); die Aufnahme erfasst Fließtext in einer Karte nicht als eigenes Element",
+  "neu": "my-projects.ueberschrift.wohnungseigentuemergemeinschaft-hauptstrasse-112-118"
+ },
+ {
+  "alt": "my-projects.abzeichen.80-h-kalkuliert",
+  "bemerkung": "„80 h kalkuliert“ steht in der Karte der Baustelle in der Zeile unter dem Titel (MyProjectsView.tsx); die Aufnahme erfasst Fließtext in einer Karte nicht als eigenes Element",
+  "neu": "my-projects.ueberschrift.gemeinde-neudorf-bei-wiener-neustadt"
+ },
+ {
+  "alt": "my-projects.abzeichen.40-h-kalkuliert",
+  "bemerkung": "„40 h kalkuliert“ steht in der Karte der Baustelle in der Zeile unter dem Titel (MyProjectsView.tsx); die Aufnahme erfasst Fließtext in einer Karte nicht als eigenes Element",
+  "neu": "my-projects.ueberschrift.familie-huber"
+ },
+ {
+  "alt": "/^my-projects\\.abzeichen\\.naechster-einsatz-/",
+  "bemerkung": "„nächster Einsatz …“ steht in der Karte der Baustelle als hervorgehobene Zeile (MyProjectsView.tsx); die Aufnahme erfasst Fließtext in einer Karte nicht als eigenes Element",
+  "neuRe": "^my-projects\\.ueberschrift\\.(wohnungseigentuemer|gemeinde|familie)"
+ },
+ {
+  "alt": "/^my-schedule-mein\\.segment\\.7-\\d+$/",
+  "bemerkung": "Tages-Segment „7“; die Zahl der Einsätze hängt an den Beispieldaten",
+  "neuRe": "^my-schedule-mein\\.segment\\.7-\\d+$"
+ },
+ {
+  "alt": "my-schedule-team.ueberschrift.05-10-11-10",
+  "bemerkung": "Wochentitel heisst jetzt „Diese Woche“, die Spanne steht klein darunter („KW 41 · 05.10.–11.10.“, planungKopf.ts)",
+  "neu": "my-schedule-team.ueberschrift.diese-woche"
+ },
+ {
+  "alt": "my-schedule-team.ueberschrift.12-10-18-10",
+  "bemerkung": "Wochentitel heisst jetzt „Nächste Woche“, die Spanne steht klein darunter (planungKopf.ts)",
+  "neu": "my-schedule-team.ueberschrift.naechste-woche"
+ },
+ {
+  "alt": "my-schedule-team.ueberschrift.28-09-04-10",
+  "bemerkung": "Wochentitel heisst jetzt „Letzte Woche“, die Spanne steht klein darunter (planungKopf.ts)",
+  "neu": "my-schedule-team.ueberschrift.letzte-woche"
+ },
+ {
+  "alt": "/^my-schedule-team\\.info\\.\\d\\d-\\d\\d-\\d\\d-\\d\\d$/",
+  "bemerkung": "Erklärung der Woche steht unter „Hilfe zu dieser Seite“ (eine Hilfe je Seite, Regel 11)",
+  "neu": "my-schedule-team.knopf.hilfe-zu-dieser-seite"
+ },
+ {
+  "alt": "/^quotes\\.ueberschrift\\.angebote-\\d+$/",
+  "bemerkung": "Überschrift mit Zahl → „Alle Angebote · N“ unter dem Segment „Alle“",
+  "neuRe": "^quotes\\.ueberschrift\\.alle-angebote-\\d+$"
+ },
+ {
+  "alt": "quotes.info.kalkulierte-arbeitszeit",
+  "bemerkung": "Erklärung steht bei offenem Formular „Neues Angebot“ unter „Hilfe zu dieser Seite“ (InfoHint im Seitenfluss, QuotesView.tsx); die Aufnahme öffnet die Hilfe nur im Grundzustand der Seite",
+  "neu": "quotes.knopf.hilfe-zu-dieser-seite"
+ },
+ {
+  "alt": "quotes-id.abzeichen.ueberarbeitet-als",
+  "bemerkung": "„Überarbeitet als A-2026-0089 (Entwurf)“ steht im Verlauf als Verweis auf die neue Fassung (AngebotView.tsx)",
+  "neu": "quotes-id.link.a-2026-0089-entwurf"
+ },
+ {
+  "alt": "quotes-id.ueberschrift.weiter",
+  "bemerkung": "Karte „Weiter“ mit den Aktionen → Hauptaktion im Seitenkopf, der Rest im ⋯; die Aktionen sind einzeln verglichen",
+  "neu": "quotes-id.knopf.annehmen-baustelle"
+ },
+ {
+  "alt": "/^costing\\.abzeichen\\.\\d+-\\d$/",
+  "bemerkung": "Prozentwert je Baustelle; die Zahl hängt an den Sätzen der Beispieldaten",
+  "neuRe": "^costing\\.abzeichen\\.\\d+-\\d$"
+ },
+ {
+  "alt": "costing.auswahl.baustellen",
+  "bemerkung": "Auswahlfeld „Baustellen“ (Laufend/Abgeschlossen) → Segmente",
+  "neu": "costing.segment.laufend"
+ },
+ {
+  "alt": "costing.ueberschrift.auswahl",
+  "bemerkung": "Karte „Auswahl“ → Segmente oben auf der Seite",
+  "neu": "costing.segment.laufend"
+ },
+ {
+  "alt": "costing.info.auswahl",
+  "bemerkung": "Erklärung „Auswahl“ steht unter „Hilfe zu dieser Seite“ („die Auswahl“)",
+  "neu": "costing.hilfe-zu-nachkalkulation.ueberschrift.die-auswahl"
+ },
+ {
+  "alt": "settings-saetze.abzeichen.je-einstufung",
+  "bemerkung": "Abschnitt „Je Einstufung“ ist jetzt ein Aufklapper",
+  "neu": "settings-saetze.aufklapper.je-einstufung"
+ },
+ {
+  "alt": "/^accounting\\.aufklapper\\.\\d+-arbeitstage-ohne-buchung$/",
+  "bemerkung": "Aufklapper in der aufgeklappten Karte → Abschnitt „N Arbeitstage ohne Buchung“ im Seitenfenster der Person, offen statt zum Aufklappen",
+  "neuRe": "^accounting\\.[a-z-]+-oktober-2026\\.ueberschrift\\.\\d+-arbeitstage-ohne-buchung$"
+ },
+ {
+  "alt": "accounting.hinweis.das-hat-nicht-geklappt-geburtsdaten-get-is-not-a-function-er",
+  "bemerkung": "Fehleranzeige der ALTEN Vorschau in der Karte „Arbeitszeitgrenzen“ (ihr Ersatzmodul lieferte die Geburtsdaten nicht als Map) — keine Funktion der App; nachher lädt die Karte",
+  "neu": "accounting.ueberschrift.arbeitszeitgrenzen-11-ohne-begruendung"
+ },
+ {
+  "alt": "accounting.knopf.erneut-versuchen",
+  "bemerkung": "„Erneut versuchen“ der Fehleranzeige der ALTEN Vorschau (Karte „Arbeitszeitgrenzen“); nachher lädt die Karte, kein Fehler, kein Knopf nötig",
+  "neu": "accounting.ueberschrift.arbeitszeitgrenzen-11-ohne-begruendung"
+ },
+ {
+  "alt": "wartungen.ueberschrift.steht-an-1",
+  "bemerkung": "Gruppe „Steht an (1)“ → Segment „Steht an“; die Zeilen darunter nach Dringlichkeit („Überfällig · 1“)",
+  "neu": "wartungen.segment.steht-an"
+ },
+ {
+  "alt": "worksheet.hinweis.fuer-diesen-tag-gibt-es-bereits-1-schein-ein-zweiter-ist-moe",
+  "bemerkung": "Hinweis gekürzt auf „Für diesen Tag gibt es bereits 1 Schein.“; die Erklärung zum zweiten Schein steht im „i“ dahinter (WorkSheetView.tsx)",
+  "neu": "worksheet.hinweis.fuer-diesen-tag-gibt-es-bereits-1-schein"
+ },
+ {
+  "alt": "worksheet.hinweis.pauschalbaustelle-der-schein-dokumentiert-die-geleistete-arb",
+  "bemerkung": "Hinweis gekürzt auf „Pauschalbaustelle: Stunden sind keine Verrechnungsgrundlage.“; der volle Satz steht im „i“ dahinter (WorkSheetView.tsx)",
+  "neu": "worksheet.hinweis.pauschalbaustelle-stunden-sind-keine-verrechnungsgrundlage"
+ },
+ {
+  "alt": "worksheet.info.den-helfer-haken",
+  "bemerkung": "Erklärung „den Helfer-Haken“ steht nach der Wahl der Baustelle unter „Hilfe zu dieser Seite“ (InfoHint im Seitenfluss, LeistungszeitErfassen.tsx); die Aufnahme öffnet die Hilfe nur im Grundzustand der Seite",
+  "neu": "worksheet.knopf.hilfe-zu-dieser-seite"
+ },
+ {
+  "alt": "worksheet.info.die-leistungszeit",
+  "bemerkung": "Erklärung „die Leistungszeit“ steht nach der Wahl der Baustelle unter „Hilfe zu dieser Seite“ (InfoHint im Seitenfluss, LeistungszeitErfassen.tsx); die Aufnahme öffnet die Hilfe nur im Grundzustand der Seite",
+  "neu": "worksheet.knopf.hilfe-zu-dieser-seite"
+ },
+ {
+  "alt": "worksheets.knopf.details",
+  "bemerkung": "„Details“ zum Aufklappen → die ganze Zeile öffnet das Seitenfenster des Scheins mit Zeiten, Material und Prüfsumme",
+  "neuRe": "^worksheets\\.knopf\\.(wohnungseigentuemer|gemeinde-neudorf)"
+ },
+ {
+  "alt": "worksheets.knopf.zuklappen",
+  "bemerkung": "„Zuklappen“ → „Schließen“ des Seitenfensters",
+  "neu": "worksheets.handwerksschein.knopf.schliessen"
+ },
+ {
+  "alt": "/^plattform\\.(feld|knopf)\\.(grund-steht-im-protokoll|deaktivieren|kein-testbetrieb|loeschung-abbrechen|uebergabe-erstellen|wieder-aktivieren)$/",
+  "neuRe": "^plattform\\.[a-z-]+-verwalten\\.(feld|knopf)\\.",
+  "bemerkung": "„Verwalten“ klappte die Zeile auf → die ganze Zeile öffnet das Seitenfenster „… verwalten“ mit denselben Feldern und Knöpfen"
+ },
+ {
+  "alt": "/^assignments-tag\\.checkbox\\.(anton-berger-steinmetz|franz-hinterleitner|max-mustermann|juergen-fasching|lena-pichler|stefan-gruber)$/",
+  "neuRe": "^assignments-tag\\.checkbox\\.[a-z-]+-(frei|schon-eingeteilt|urlaub|krank|berufsschule)",
+  "bemerkung": "Kästchen der Person im Formular „Tag planen“; die Zeile nennt jetzt ihren Stand („frei“, „schon eingeteilt …“, „Urlaub“)"
+ },
+ {
+  "alt": "lager.reiter.katalog-einspielen",
+  "neu": "lager.aktionen.menueeintrag.katalog-einspielen",
+  "bemerkung": "Reiter „Katalog einspielen“ → Eintrag im ⋯ des Seitenkopfs (selten gebraucht, Linie „Lot“)"
+ },
+ {
+  "alt": "/^worksheet\\.knopf\\.(gemeinde-neudorf-bei-wiener-neustadt-b-2026-0148|wohnungseigentuemergemeinschaft-hauptstrasse-112-118-b-2026)$/",
+  "neuRe": "^worksheet\\.segment\\.(gemeinde-neudorf|wohnungseigentuemer)",
+  "bemerkung": "Wahl der Baustelle aus den Einsätzen des Tages: Knöpfe → Segmente mit derselben Beschriftung"
+ },
+ {
+  "alt": "accounting.info.arbeitszeitgrenzen",
+  "neuRe": "^accounting\\.hilfe-zu-mitarbeiteruebersicht\\.ueberschrift\\.arbeitszeitgrenzen",
+  "bemerkung": "Erklärung der Karte „Arbeitszeitgrenzen“ steht unter „Hilfe zu dieser Seite“ (eine Hilfe je Seite)"
+ },
+ {
+  "alt": "invoices.auswahl.rechnungen-nach-status-filtern",
+  "neu": "invoices.auswahl.rechnungen-nach-status-filtern",
+  "optionen": {
+   "Alle": "Jeder Stand"
+  },
+  "bemerkung": "Dasselbe Auswahlfeld; der Eintrag „Alle“ heisst jetzt „Jeder Stand“ (InvoicesView.tsx)"
+ },
+ {
+  "alt": "customers.auswahl.kundenart",
+  "neuRe": "^customers\\.wohnungseigentuemergemeinschaft-hauptstr\\.auswahl\\.kundenart$",
+  "bemerkung": "Das alte Formular diente für Neu und Bearbeiten (eine Kennung). „Nicht angegeben“ steht nur, solange die Kundenart leer ist — beim Bearbeiten eines Altkunden (KundenartUidFelder.tsx); ein neuer Kunde beginnt seit #205 mit „Privatperson“. Zugeordnet: die Auswahl im Fenster „… bearbeiten“"
+ },
+ {
+  "alt": "/^accounting\\.bericht-exportieren\\./",
+  "neuRe": "^accounting\\.[a-z-]+-oktober-2026\\.knopf\\.bericht-fuer-zeitraum$",
+  "bemerkung": "Dasselbe Fenster „Bericht exportieren“ (ExportDialog.tsx, Stundennachweis PDF und Projektauswertung CSV für die gewählte Person); es öffnet jetzt „Bericht für Zeitraum“ im Seitenfenster der Person statt in der aufgeklappten Karte — ein Schritt mehr. Die Aufnahme drückt je Fenster nur die ersten Knöpfe, darum fehlt das Fenster selbst im Bestand"
+ }
+]

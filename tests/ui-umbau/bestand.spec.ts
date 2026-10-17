@@ -48,7 +48,13 @@ const HOECHSTENS_SEITEN = 90;
 /** Je Seitenzustand — mehr verschiedene Knöpfe hat keine Seite der App. */
 const HOECHSTENS_KNOEPFE = 60;
 const HOECHSTENS_MENUEEINTRAEGE = 10;
-const ZEITGRENZE_SEITE = 10 * 60 * 1000;
+/** Je Seite so viele Seitenfenster, in denen die Knöpfe einzeln gedrückt werden — und je Fenster so viele Knöpfe. */
+const HOECHSTENS_FENSTER = 3;
+const HOECHSTENS_FENSTERKNOEPFE = 6;
+/** Was im Fenster nur schliesst, öffnet nichts Neues. */
+const NUR_SCHLIESSEN = /^(schließen|abbrechen|zurück)$/i;
+// 20 statt 10 Minuten (K4, 12.10.2026): seit Segmente eigene Zustände sind, geht eine Seite mit drei Segmenten dreimal ganz durch.
+const ZEITGRENZE_SEITE = 20 * 60 * 1000;
 
 /** Was nicht gedrückt wird. Absende-Knöpfe in Formularen fallen schon vorher weg. */
 const AUSLASSEN = /^(abmelden|speichern|senden|absenden)$|abmelden/i;
@@ -125,6 +131,12 @@ function wegAnfang(v: Variante, pfad: string, seite: string): string[] {
 }
 
 const schluessel = (r: Roh) => `${r.bereich}|${r.ebene}|${r.art}|${r.text}|${r.aria}`;
+/** Mit Zustand: ein Feld, das schon ausgeblendet dastand, zählt neu, sobald es sichtbar wird. */
+const mitZustand = (r: Roh) => `${schluessel(r)}|${r.zustand}`;
+const FENSTER = '[role="dialog"],[role="alertdialog"],dialog[open],[aria-modal="true"]';
+/** Die Knöpfe eines Segments (`Segmente` in LotBausteine) und das Kennzeichen eines Segment-Zustands. */
+const SEGMENTE = 'main .segment[role="group"] > button[aria-pressed]';
+const SEGMENT = 'segment:';
 
 interface Ereignisse {
   meldungen: string[];
@@ -166,6 +178,8 @@ class Aufnahme {
       this.ereignisse.meldungen.push(d.message());
       void d.dismiss().catch(() => {});
     });
+    // Ein Fehler im Browser steht im Protokoll: er erklärt ein Fenster, das nicht aufging (K4, 13.10.2026).
+    page.on('pageerror', (e) => this.protokoll(`    Seitenfehler: ${e.message.slice(0, 160)}`));
     page.on('download', (d) => {
       this.ereignisse.downloads.push(d.suggestedFilename());
       void d.cancel().catch(() => {});
@@ -202,7 +216,10 @@ class Aufnahme {
     }
     await this.page.locator('main, body').first().waitFor();
     await this.ruhe(200);
-    if (reiter) {
+    if (reiter?.startsWith(SEGMENT)) {
+      await this.page.locator(SEGMENTE).filter({ hasText: reiter.slice(SEGMENT.length) }).first().click({ timeout: 3000 }).catch(() => {});
+      await this.ruhe(200);
+    } else if (reiter) {
       await this.page.locator('main [role="tab"]').filter({ hasText: reiter }).first().click({ timeout: 3000 }).catch(() => {});
       await this.ruhe(200);
     }
@@ -211,10 +228,28 @@ class Aufnahme {
       for (let i = 0; i < 30; i += 1) {
         const ok = await this.markieren('aufklapper', null);
         if (!ok) break;
-        await this.page.locator('[data-bestand-ziel]').first().click({ timeout: 1500 }).catch(() => {});
-        await this.page.evaluate(() => document.querySelector('[data-bestand-ziel]')?.setAttribute('data-bestand-erledigt', ''));
+        await this.aufklapperDruecken();
       }
       await this.ruhe(150);
+    }
+  }
+
+  /**
+   * Den mit `markieren('aufklapper')` gekennzeichneten Knopf drücken.
+   *
+   * ÖFFNET ER EIN FENSTER, WIRD ES WIEDER GESCHLOSSEN (K4, 13.10.2026).
+   * „Verwalten“ auf der Plattform trägt `aria-expanded`, öffnet aber das
+   * Seitenfenster des Betriebs. Blieb es offen, lag es über der Seite: jeder
+   * weitere Klick lief ins Leere, und vom Fenster selbst kam nichts in den
+   * Bestand. Was darin steht, nimmt `druecken` über die Zeile auf.
+   */
+  async aufklapperDruecken(): Promise<void> {
+    const fenster = await this.page.locator(FENSTER).count();
+    await this.page.locator('[data-bestand-ziel]').first().click({ timeout: 1500 }).catch(() => {});
+    await this.page.evaluate(() => document.querySelector('[data-bestand-ziel]')?.setAttribute('data-bestand-erledigt', ''));
+    if ((await this.page.locator(FENSTER).count()) > fenster) {
+      await this.page.keyboard.press('Escape');
+      await this.page.waitForTimeout(150);
     }
   }
 
@@ -224,15 +259,16 @@ class Aufnahme {
    * noch nicht dran war. `knopf`: der Knopf mit dieser Beschriftung und
    * Position — die Kennzeichnung überlebt kein Neuladen, deshalb jedes Mal neu.
    */
-  async markieren(sorte: 'aufklapper' | 'knopf', was: { label: string; nth: number } | null): Promise<string | null> {
+  async markieren(sorte: 'aufklapper' | 'knopf', was: { label: string; nth: number } | null, wurzel: string | null = null): Promise<string | null> {
     return this.page.evaluate(
-      ({ sorte, was }) => {
+      ({ sorte, was, wurzel }) => {
         document.querySelectorAll('[data-bestand-ziel]').forEach((e) => e.removeAttribute('data-bestand-ziel'));
         const sauber = (s: string | null | undefined) => (s ?? '').replace(/\s+/g, ' ').trim();
         const sichtbar = (el: Element) => (el as HTMLElement & { checkVisibility: () => boolean }).checkVisibility();
         const label = (el: Element) =>
           sauber((el as HTMLElement).innerText || el.textContent) || sauber(el.getAttribute('aria-label')) || sauber(el.getAttribute('title'));
-        const main = document.querySelector('main') ?? document.body;
+        // `wurzel`: das oberste offene Fenster statt der Seite — sonst sucht es nur in `main`.
+        const main = (wurzel ? Array.from(document.querySelectorAll(wurzel)).pop() : null) ?? document.querySelector('main') ?? document.body;
         if (sorte === 'aufklapper') {
           const el = Array.from(main.querySelectorAll('button[aria-expanded="false"]')).find(
             (b) => !b.getAttribute('aria-haspopup') && !b.hasAttribute('data-bestand-erledigt') && sichtbar(b),
@@ -247,14 +283,14 @@ class Aufnahme {
         el.setAttribute('data-bestand-ziel', '');
         return label(el);
       },
-      { sorte, was },
+      { sorte, was, wurzel },
     );
   }
 
   /** Die Knöpfe, die einzeln gedrückt werden — je Beschriftung einer, ⋯-Menüs je Sorte einer. */
-  async kandidaten(bereich: 'inhalt' | 'huelle'): Promise<Array<{ label: string; nth: number; text: string; aria: string; art: string; menue: boolean }>> {
+  async kandidaten(bereich: 'inhalt' | 'huelle' | 'fenster'): Promise<Array<{ label: string; nth: number; text: string; aria: string; art: string; menue: boolean }>> {
     return this.page.evaluate(
-      ({ bereich, auslassen }) => {
+      ({ bereich, auslassen, fensterWahl, nurSchliessen }) => {
         const EBENE = '[role="dialog"],[role="alertdialog"],[role="menu"],[role="listbox"],dialog[open],[aria-modal="true"]';
         const weg = new RegExp(auslassen, 'i');
         const sauber = (s: string | null | undefined) => (s ?? '').replace(/\s+/g, ' ').trim();
@@ -263,11 +299,19 @@ class Aufnahme {
         const main = document.querySelector('main');
         const raus: Array<{ label: string; nth: number; text: string; aria: string; art: string; menue: boolean }> = [];
         const schon = new Set<string>();
-        const alle = Array.from(document.querySelectorAll('button, [role="button"]'));
+        // 'fenster': nur die Knöpfe im obersten offenen Fenster.
+        const fenster = bereich === 'fenster' ? Array.from(document.querySelectorAll(fensterWahl)).pop() ?? null : null;
+        if (bereich === 'fenster' && !fenster) return raus;
+        const zaehlen = Array.from(document.querySelectorAll('button, [role="button"]'));
+        const alle = fenster ? Array.from(fenster.querySelectorAll('button, [role="button"]')) : zaehlen;
         for (const el of alle) {
-          if (el.closest(EBENE)) continue;
-          const drin = !main || main.contains(el);
-          if ((bereich === 'inhalt') !== drin) continue;
+          if (fenster) {
+            if (new RegExp(nurSchliessen, 'i').test(label(el))) continue;
+          } else {
+            if (el.closest(EBENE)) continue;
+            const drin = !main || main.contains(el);
+            if ((bereich === 'inhalt') !== drin) continue;
+          }
           if (el.getAttribute('role') === 'tab' || el.getAttribute('aria-hidden') === 'true') continue;
           if ((el as HTMLButtonElement).disabled || el.getAttribute('aria-disabled') === 'true') continue;
           if (!(el as HTMLElement & { checkVisibility: () => boolean }).checkVisibility()) continue;
@@ -276,12 +320,20 @@ class Aufnahme {
           if (el.hasAttribute('aria-expanded') && !menue) continue;
           const l = label(el);
           if (!l || weg.test(l)) continue;
-          const sorte = menue ? `menue|${l.replace(/ für .*$/, '')}` : l;
+          /*
+            DAS ⋯ IM SEITENKOPF IST EINE EIGENE SORTE (K4, 12.10.2026). Seit der
+            Linie „Lot“ hat der Kopf vieler Seiten ein ⋯ („Weitere Aktionen für
+            Kunden“) neben dem ⋯ jeder Zeile („… für Kunde Huber“). Ohne „für …“
+            hiessen beide gleich, und nur das erste wurde geöffnet — die
+            Einträge der Zeilen fehlten in der Aufnahme, obwohl es sie gab.
+          */
+          const imKopf = !!el.closest('.seitenkopf');
+          const sorte = menue ? `menue|${imKopf ? 'kopf|' : ''}${l.replace(/ für .*$/, '')}` : l;
           if (schon.has(sorte)) continue;
           schon.add(sorte);
           raus.push({
             label: l,
-            nth: alle.filter((b) => label(b) === l).indexOf(el),
+            nth: zaehlen.filter((b) => label(b) === l).indexOf(el),
             text: sauber((el as HTMLElement).innerText || el.textContent) || sauber(el.getAttribute('aria-label')),
             aria: sauber(el.getAttribute('aria-label')) || sauber(el.getAttribute('title')),
             art: el.hasAttribute('aria-pressed') ? 'segment' : 'knopf',
@@ -290,8 +342,73 @@ class Aufnahme {
         }
         return raus;
       },
-      { bereich, auslassen: AUSLASSEN.source },
+      { bereich, auslassen: AUSLASSEN.source, fensterWahl: FENSTER, nurSchliessen: NUR_SCHLIESSEN.source },
     );
+  }
+
+  /*
+    KNÖPFE IM SEITENFENSTER (K4, 12.10.2026). Seit der Linie „Lot“ öffnet eine
+    Zeile ihr Seitenfenster, und was vorher als Knopf an der Zeile stand
+    („Stornieren“, „Zahlung erfassen“), steht jetzt darin. Ohne diesen
+    Schritt kannte die Aufnahme den Knopf, aber nicht den Dialog dahinter.
+    Begrenzt: je Seite die ersten Fenster, je Beschriftung ein Knopf.
+  */
+  private fensterSeite = '';
+  private fensterOffen = 0;
+  private readonly fensterKnoepfe = new Set<string>();
+
+  async imFenster(
+    seite: string, pfad: string, reiter: string | null, k: { label: string; nth: number; text: string; aria: string; art: string; menue: boolean },
+    weg: string[], bereiche: Array<Roh['bereich']>,
+  ): Promise<boolean> {
+    if (this.fensterSeite !== seite) {
+      this.fensterSeite = seite;
+      this.fensterOffen = 0;
+      this.fensterKnoepfe.clear();
+    }
+    if (this.fensterOffen >= HOECHSTENS_FENSTER) return false;
+    // Eine Rückfrage („Kunde löschen?“) öffnet nichts weiter; dort wird nichts bestätigt.
+    const rueckfrage = await this.page.evaluate((wahl) => !!Array.from(document.querySelectorAll(wahl)).pop()?.matches('.schleier-dialog'), FENSTER);
+    if (rueckfrage) return false;
+    const sorte = (l: string) => l.replace(/ für .*$/, '');
+    const innen = (await this.kandidaten('fenster')).filter((i) => !this.fensterKnoepfe.has(sorte(i.label))).slice(0, HOECHSTENS_FENSTERKNOEPFE);
+    if (!innen.length) return false;
+    this.fensterOffen += 1;
+    for (const i of innen) {
+      this.fensterKnoepfe.add(sorte(i.label));
+      this.protokoll(`    im Fenster ${i.label}`);
+      // Ohne Aufklappen: das Fenster einer Zeile braucht es nicht, und jedes Aufklappen kostet Zeit je Knopf.
+      await this.herstellen(pfad, reiter, false);
+      if (!(await this.markieren('knopf', k))) continue;
+      if (!(await this.page.locator('[data-bestand-ziel]').first().click({ timeout: 2000 }).then(() => true, () => false))) continue;
+      await this.ruhe(350);
+      const offen = await this.blick();
+      if (!(await this.markieren('knopf', i))) continue;
+      const ich = (await this.page.evaluate(schnappschuss, { klassen: KLASSEN, nur: '[data-bestand-ziel]' })).elemente[0];
+      this.ereignisse.meldungen.length = 0;
+      this.ereignisse.downloads.length = 0;
+      if (!(await this.page.locator('[data-bestand-ziel]').first().click({ timeout: 2000 }).then(() => true, () => false))) continue;
+      await this.ruhe(350);
+      const danach = await this.blick();
+      const weg2 = [...weg, i.text || i.aria || i.label];
+      for (const m of this.ereignisse.meldungen) {
+        this.sammler.aufnehmen(seite, [{ art: 'bestaetigung', text: m, aria: m, ziel: '', zustand: 'aktiv', bereich: 'ebene', ebene: 'Browser-Rückfrage' }], weg2);
+      }
+      if (danach.titel !== offen.titel) {
+        if (ich) this.sammler.zielSetzen(seite, ich, `navigation:${danach.titel}`);
+        continue;
+      }
+      const da = new Set(offen.elemente.map(mitZustand));
+      const dazu = danach.elemente.filter((r) => !da.has(mitZustand(r)) && [...bereiche, 'ebene'].includes(r.bereich));
+      if (dazu.length) this.merken(seite, dazu, weg2, [...bereiche, 'ebene']);
+      const eb = dazu.find((r) => r.bereich === 'ebene' && r.ebene !== ich?.ebene)?.ebene;
+      if (ich) {
+        this.sammler.zielSetzen(seite, ich, this.ereignisse.meldungen.length ? 'bestaetigung'
+          : this.ereignisse.downloads.length ? `download:${this.ereignisse.downloads[0]}`
+          : eb ? `ebene:${eb}` : dazu.length ? 'zeigt' : 'aktion');
+      }
+    }
+    return true;
   }
 
   merken(seite: string, roh: Roh[], klickweg: string[], bereiche: Array<Roh['bereich']>): void {
@@ -386,23 +503,48 @@ class Aufnahme {
     /*
       Ein Formular, das der Knopf aufgeklappt hat, trägt oft selbst noch
       Aufklappbares („Zeitkonto-Einstellungen anzeigen“) — eine Ebene tiefer,
-      aber ohne Schreiben erreichbar. Nur hier, im Inhalt: Dialoge liegen
-      ausserhalb von `main`.
+      aber ohne Schreiben erreichbar.
+
+      AUCH `<details>` UND AUCH IM SEITENFENSTER (K4, 12.10.2026). Bis zur
+      Linie „Lot“ standen viele Formulare offen auf der Seite; dort klappte
+      die Aufnahme ihre `<details>` ohnehin auf. Seither stehen sie hinter
+      der Hauptaktion („Neue Rechnung“) oder im Seitenfenster — und was
+      darin zugeklappt war („Konditionen für diese Rechnung anpassen“), galt
+      als ausgeblendet, obwohl es einen Klick entfernt ist.
     */
-    if (neu.length && !ebene) {
-      let bisher = new Set(nachher.elemente.map(schluessel));
+    if (neu.length) {
+      const wurzel = ebene ? FENSTER : null;
+      const tiefBereiche: Array<Roh['bereich']> = ebene ? [...bereiche, 'ebene'] : bereiche;
+      let bisher = new Set(nachher.elemente.map(mitZustand));
       for (let i = 0; i < 10; i += 1) {
-        const label = await this.markieren('aufklapper', null);
-        if (label === null) break;
-        await this.page.locator('[data-bestand-ziel]').first().click({ timeout: 1500 }).catch(() => {});
-        await this.page.evaluate(() => document.querySelector('[data-bestand-ziel]')?.setAttribute('data-bestand-erledigt', ''));
+        const summary = await this.page.evaluate((wurzel) => {
+          const raum = (wurzel ? Array.from(document.querySelectorAll(wurzel)).pop() : null) ?? document.querySelector('main') ?? document.body;
+          const d = Array.from(raum.querySelectorAll('details')).find((x) => !x.open && !x.hasAttribute('data-bestand-erledigt'));
+          if (!d) return null;
+          d.setAttribute('data-bestand-erledigt', '');
+          d.open = true;
+          return (d.querySelector('summary')?.textContent ?? '').replace(/\s+/g, ' ').trim();
+        }, wurzel);
+        if (summary === null) break;
         await this.ruhe(120);
         const tiefer = await this.blick();
-        const dazu = tiefer.elemente.filter((r) => !bisher.has(schluessel(r)));
-        if (dazu.length) this.merken(seite, dazu, [...weg, label || 'Aufklappen'], bereiche);
-        bisher = new Set(tiefer.elemente.map(schluessel));
+        const dazu = tiefer.elemente.filter((r) => !bisher.has(mitZustand(r)));
+        if (dazu.length) this.merken(seite, dazu, [...weg, summary || 'Aufklappen'], tiefBereiche);
+        bisher = new Set(tiefer.elemente.map(mitZustand));
+      }
+      for (let i = 0; i < 10; i += 1) {
+        const label = await this.markieren('aufklapper', null, wurzel);
+        if (label === null) break;
+        await this.aufklapperDruecken();
+        await this.ruhe(120);
+        const tiefer = await this.blick();
+        const dazu = tiefer.elemente.filter((r) => !bisher.has(mitZustand(r)));
+        if (dazu.length) this.merken(seite, dazu, [...weg, label || 'Aufklappen'], tiefBereiche);
+        bisher = new Set(tiefer.elemente.map(mitZustand));
       }
     }
+
+    if (ebene && !k.menue && (await this.imFenster(seite, pfad, reiter, k, weg, bereiche))) return true;
 
     if (!neu.length && !fort) return false;
     await this.page.keyboard.press('Escape');
@@ -436,8 +578,7 @@ class Aufnahme {
     for (let i = 0; i < 40; i += 1) {
       const label = await this.markieren('aufklapper', null);
       if (label === null) break;
-      await this.page.locator('[data-bestand-ziel]').first().click({ timeout: 1500 }).catch(() => {});
-      await this.page.evaluate(() => document.querySelector('[data-bestand-ziel]')?.setAttribute('data-bestand-erledigt', ''));
+      await this.aufklapperDruecken();
       await this.ruhe(120);
       this.merken(seite, (await this.blick()).elemente, [...klickweg, label || 'Aufklappen'], ['inhalt']);
     }
@@ -460,6 +601,15 @@ class Aufnahme {
     }
     const reiter = await this.page.locator('main [role="tab"]').evaluateAll((alle) =>
       alle.map((t) => ({ text: (t as HTMLElement).innerText, gewaehlt: t.getAttribute('aria-selected') === 'true' })));
+    /*
+      SEGMENTE WIE REITER (K4, 12.10.2026). Die Linie „Lot“ hat viele Reiter
+      durch Segmente ersetzt („Einkauf“ bei den Anforderungen, „Katalog“ im
+      Lager). Ein Reiter war für die Aufnahme ein eigener Zustand, dessen
+      Knöpfe sie einzeln drückt; ein Segment nur ein Knopf. Was dahinter lag
+      („+ Material“ samt Formular), fehlte deshalb.
+    */
+    const segmente = await this.page.locator(SEGMENTE).evaluateAll((alle) =>
+      alle.filter((t) => t.getAttribute('aria-pressed') !== 'true').map((t) => (t as HTMLElement).innerText));
     const gewaehlt = reiter.findIndex((r) => r.gewaehlt);
     await this.zustand(seite, pfad, null, weg);
     // Der gewählte Reiter ist schon erfasst; die übrigen je für sich.
@@ -467,6 +617,9 @@ class Aufnahme {
     for (const r of reiter.filter((_, i) => i !== (gewaehlt < 0 ? 0 : gewaehlt))
       .map((t) => t.text.replace(/\s+/g, ' ').trim().replace(/\s*\d+$/, ''))) {
       await this.zustand(seite, pfad, r, [...weg, r]);
+    }
+    for (const t of [...new Set(segmente.map((t) => t.replace(/\s+/g, ' ').trim().replace(/\s*\d+$/, '')))].filter(Boolean)) {
+      await this.zustand(seite, pfad, `${SEGMENT}${t}`, [...weg, t]);
     }
     this.seiten.push({ seite, pfad, elemente: this.sammler.alle().length - vorher });
   }
