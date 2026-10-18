@@ -11,7 +11,7 @@ import {
   listEntriesInRange,
   stundenDerBaustellen,
   deleteTimeEntry,
-  listUrlaubstage,
+  subscribeUrlaubstage,
 } from '@/lib/db/timeEntries';
 import {
   calcMonthStats,
@@ -190,12 +190,20 @@ export default function AccountingView() {
   const montag = wocheAb ?? startWoche(year, month, heute);
   const wochenTage = useMemo(() => tageDerWoche(montag), [montag]);
   /*
-    DIE BUCHUNGEN DES JAHRES — und in der Woche über den Jahreswechsel auch
-    die Tage davor oder danach. Jede Auswertung filtert ohnehin nach Monat
-    bzw. Jahr; die zusätzlichen Tage braucht nur die Woche.
+    NUR DER GEZEIGTE ZEITRAUM (Mengengerüst, 18.10.2026): der Monat mit einer
+    Woche davor und danach — so weit schaut die Karte „Arbeitszeitgrenzen“,
+    ob sich etwas geändert hat — und in der Ansicht „Woche“ auch deren Tage.
+
+    Bis dahin lud die Seite jede Buchung des Jahres (im Testbestand 35.100
+    Zeilen, 22 MB, fast zwei Minuten bis zur Ruhe). Gebraucht wurde das Jahr
+    nur für die Urlaubstage; die kommen jetzt aus einer eigenen, schmalen
+    Live-Abfrage (`urlaubAlle` unten).
   */
-  const ladenVon = ansicht === 'woche' && montag < `${year}-01-01` ? montag : `${year}-01-01`;
-  const ladenBis = ansicht === 'woche' && wochenTage[6] > `${year}-12-31` ? wochenTage[6] : `${year}-12-31`;
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+  const monatsAnfang = `${monthPrefix}-01`;
+  const monatsLetzter = localDateStr(new Date(year, month + 1, 0));
+  const ladenVon = [plusTage(monatsAnfang, -7), ...(ansicht === 'woche' ? [montag] : [])].sort()[0];
+  const ladenBis = [plusTage(monatsLetzter, 7), ...(ansicht === 'woche' ? [wochenTage[6]] : [])].sort().reverse()[0];
 
   useEffect(() => {
     if (!user) return;
@@ -220,11 +228,11 @@ export default function AccountingView() {
   const projektNummern = useMemo(
     () => [
       ...new Set(
-        // Nur das Jahr — die Tage der Woche über den Jahreswechsel brauchen keine Baustellendaten.
-        entries.filter((e) => e.date.startsWith(String(year))).map((e) => e.projectNumber).filter(Boolean) as string[],
+        // Nur der Monat — die Auswertung je Baustelle zeigt ihn; die Tage drumherum brauchen keine Baustellendaten.
+        entries.filter((e) => e.date.startsWith(monthPrefix)).map((e) => e.projectNumber).filter(Boolean) as string[],
       ),
     ],
-    [entries, year],
+    [entries, monthPrefix],
   );
   const nummernSchluessel = projektNummern.join('|');
   useEffect(() => {
@@ -304,9 +312,6 @@ export default function AccountingView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, nummernSchluessel, loading]);
 
-  // Nur das angezeigte Jahr, nicht die gesamte Betriebsgeschichte. Das Jahr
-  // (nicht der Monat) deshalb, weil der Resturlaub die Urlaubstage des ganzen
-  // Jahres zählt. In der Woche über den Jahreswechsel reicht es bis an deren Rand.
   useEffect(() => {
     if (!user) return;
     setLoading(true);
@@ -326,37 +331,60 @@ export default function AccountingView() {
   }, [user, ladenVon, ladenBis]);
 
   /*
-    DER URLAUBSVERLAUF — eine eigene, schmale Abfrage neben dem Jahr.
+    DIE URLAUBSTAGE — eine eigene, schmale Live-Abfrage neben dem Zeitraum.
 
-    Der Resturlaub hängt seit dem Übertrag nicht mehr nur am angezeigten Jahr:
-    was 2026 offen blieb, steht 2027 zur Verfügung. Ohne den Verlauf wäre der
-    Übertrag hier immer null — die Mitarbeiteransicht zeigte den richtigen
-    Stand und die Lohn-CSV den alten.
+    Zwei Zahlen brauchen mehr als den Monat: „Urlaub im Jahr“ zählt jeden
+    Urlaubstag des Jahres, und der Resturlaub hängt seit dem Übertrag am
+    ganzen Verlauf — was 2026 offen blieb, steht 2027 zur Verfügung. Ohne den
+    Verlauf wäre der Übertrag hier immer null; die Mitarbeiteransicht zeigte
+    den richtigen Stand und die Lohn-CSV den alten.
 
-    Geholt werden NUR Urlaubstage, serverseitig gefiltert. Den kompletten
-    Zeitbestand mehrerer Jahre zu laden wäre um Grössenordnungen mehr, als die
-    Frage braucht. Der Zeitraum beginnt am frühesten Startdatum der
-    Belegschaft; früher gibt es nichts zu rechnen.
+    Geholt werden NUR Urlaubstage, serverseitig gefiltert: ab dem frühesten
+    Startdatum der Belegschaft (früher gibt es für den Verlauf nichts zu
+    rechnen), mindestens aber ab Jahresbeginn (für „Urlaub im Jahr“). Erst
+    mit der Belegschaft, sonst begänne die Abfrage zweimal.
   */
-  const [urlaubVerlauf, setUrlaubVerlauf] = useState<WithId<TimeEntry>[]>([]);
+  const [urlaubAlle, setUrlaubAlle] = useState<WithId<TimeEntry>[]>([]);
+  /** Für welchen Zeitraum `urlaubAlle` steht (oder scheiterte); `null` = noch für keinen. */
+  const [urlaubFuer, setUrlaubFuer] = useState<string | null>(null);
   const fruehesterStart = useMemo(
     () => users.map((u) => u.appStartDate).filter((d): d is string => !!d).sort()[0] ?? null,
     [users],
   );
+  const urlaubVon = fruehesterStart && fruehesterStart < `${year}-01-01` ? fruehesterStart : `${year}-01-01`;
+  const urlaubSchluessel = `${urlaubVon}|${year}`;
 
   useEffect(() => {
-    if (!user || !fruehesterStart) {
-      setUrlaubVerlauf([]);
-      return;
+    if (!user || !belegschaftDa) return;
+    return subscribeUrlaubstage(
+      user.companyId,
+      urlaubVon,
+      `${year}-12-31`,
+      (rows) => {
+        setUrlaubAlle(rows);
+        setUrlaubFuer(urlaubSchluessel);
+      },
+      // Fehlen die Urlaubstage, darf die Ansicht nicht kippen: dann rechnet
+      // sie ohne sie weiter — zu wenig, aber nicht gar nichts.
+      () => {
+        setUrlaubAlle([]);
+        setUrlaubFuer(urlaubSchluessel);
+      },
+    );
+  }, [user, belegschaftDa, urlaubVon, year, urlaubSchluessel]);
+
+  /** Je Person die Urlaubstage: des Jahres (für „Urlaub im Jahr“) und seit dem frühesten Start (der Verlauf). */
+  const urlaubJePerson = useMemo(() => {
+    const m = new Map<string, { jahr: WithId<TimeEntry>[]; verlauf: WithId<TimeEntry>[] }>();
+    for (const e of urlaubAlle) {
+      const p = m.get(e.userId) ?? { jahr: [], verlauf: [] };
+      if (e.date.startsWith(String(year))) p.jahr.push(e);
+      // Wie bisher: ohne ein Startdatum in der Belegschaft gibt es keinen Verlauf.
+      if (fruehesterStart && e.date >= fruehesterStart) p.verlauf.push(e);
+      m.set(e.userId, p);
     }
-    let abgemeldet = false;
-    listUrlaubstage(user.companyId, fruehesterStart, `${year}-12-31`)
-      .then((rows) => { if (!abgemeldet) setUrlaubVerlauf(rows); })
-      // Ein fehlender Verlauf darf die Ansicht nicht kippen: dann rechnet sie
-      // ohne Übertrag weiter — zu wenig, aber nicht gar nichts.
-      .catch(() => { if (!abgemeldet) setUrlaubVerlauf([]); });
-    return () => { abgemeldet = true; };
-  }, [user, fruehesterStart, year]);
+    return m;
+  }, [urlaubAlle, year, fruehesterStart]);
 
   /*
     DIE ANPASSUNGEN DES URLAUBSANSPRUCHS (Elternkarenz, unbezahlter Urlaub).
@@ -386,7 +414,11 @@ export default function AccountingView() {
   */
   const grundlage = `${ladenVon}|${ladenBis}`;
   const vollstaendig =
-    !loading && belegschaftDa && projekteFuer === nummernSchluessel && fachFuer === nummernSchluessel;
+    !loading &&
+    belegschaftDa &&
+    projekteFuer === nummernSchluessel &&
+    fachFuer === nummernSchluessel &&
+    urlaubFuer === urlaubSchluessel;
   const [standFuer, setStandFuer] = useState<string | null>(null);
   useEffect(() => {
     if (vollstaendig) setStandFuer(grundlage);
@@ -406,8 +438,6 @@ export default function AccountingView() {
         .sort((a, b) => a.name.localeCompare(b.name, 'de')),
     [users],
   );
-
-  const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
 
   /*
     DER STAND DER BUCHUNGEN FÜR DIE ARBEITSZEITGRENZEN (Runde 3, G12). Die
@@ -429,23 +459,21 @@ export default function AccountingView() {
   const alleRows = useMemo(
     () =>
       relevant.map((u) => {
-        const own = entries.filter((e) => e.userId === u.uid);
-        const monthEntries = own.filter((e) => e.date.startsWith(monthPrefix));
-        const yearEntries = own.filter((e) => e.date.startsWith(String(year)));
+        const monthEntries = entries.filter((e) => e.userId === u.uid && e.date.startsWith(monthPrefix));
+        const urlaub = urlaubJePerson.get(u.uid);
         return {
           user: u,
           monthEntries,
-          stats: calcMonthStats(u, monthEntries, yearEntries, year, month, halbeTage, {
-            verlauf: urlaubVerlauf
-              .filter((e) => e.userId === u.uid)
-              .map((e) => ({ von: e.date, tage: tagesAnteil(e.date, halbeTage) })),
+          // Vom Jahr zählt hier nur der Urlaub (`yearlyUrlaubDays`) — die übrigen Buchungen des Jahres braucht die Rechnung nicht.
+          stats: calcMonthStats(u, monthEntries, urlaub?.jahr ?? [], year, month, halbeTage, {
+            verlauf: (urlaub?.verlauf ?? []).map((e) => ({ von: e.date, tage: tagesAnteil(e.date, halbeTage) })),
             regel: urlaubsRegel,
             anpassungen: anpassungen.filter((a) => a.userId === u.uid),
           }),
           completeness: calcCompleteness(u, monthEntries, year, month),
         };
       }),
-    [relevant, entries, monthPrefix, year, month, urlaubVerlauf, urlaubsRegel, halbeTage, anpassungen],
+    [relevant, entries, monthPrefix, year, month, urlaubJePerson, urlaubsRegel, halbeTage, anpassungen],
   );
 
   /**

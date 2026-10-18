@@ -92,6 +92,31 @@ export function listUrlaubstage(companyId: string, from: string, to: string) {
   });
 }
 
+/**
+ * Dieselben Urlaubstage als Live-Liste — für die Mitarbeiterübersicht.
+ *
+ * Dort zählen „Urlaub im Jahr“ und der Resturlaub die Urlaubstage über den
+ * gezeigten Monat hinaus. Bis 18.10.2026 lud die Seite dafür jede Buchung des
+ * Jahres (im Testbestand 35.100 Zeilen, 22 MB); jetzt nur die Urlaubstage,
+ * und wer einen bucht oder storniert, sieht es hier gleich.
+ */
+export function subscribeUrlaubstage(
+  companyId: string,
+  from: string,
+  to: string,
+  cb: (rows: WithId<TimeEntry>[]) => void,
+  onError: (e: Error) => void,
+) {
+  return abonnieren<TimeEntry>(ZEITEN, companyId, cb, onError, {
+    wo: [
+      { art: 'gleich', feld: 'status', wert: 'Urlaub' },
+      { art: 'ab', feld: 'date', wert: from },
+      { art: 'bis', feld: 'date', wert: to },
+    ],
+    sortiere: { feld: 'date' },
+  });
+}
+
 export function listEntriesInRange(companyId: string, from: string, to: string) {
   return abfragen<TimeEntry>(ZEITEN, companyId, {
     wo: [

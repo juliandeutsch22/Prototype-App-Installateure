@@ -151,6 +151,23 @@ Das Budget „erste Anzeige ≤ 1,5 s“ ist damit auf diesen Seiten eingehalten
 die übrigen Werte der Zeilen sind unverändert. Die ganze Tabelle wird nach
 den Empfehlungen 2 und 3 neu gemessen.
 
+**Umgesetzt am 18.10.2026 — Empfehlung 3, Mitarbeiterübersicht.** Sie holt
+nur noch den gezeigten Monat (± 7 Tage) bzw. die Woche; die Urlaubstage
+des Jahres kommen aus einer eigenen Abfrage nur der Urlaubstage. Ohne
+Hintergrund, Median aus drei Läufen (Testbestand am 18.10. mit demselben
+Skript neu angelegt):
+
+| Mitarbeiterübersicht | vorher (17.10.) | nachher (18.10.) |
+|---|---|---|
+| übertragen | 22.336 KB | 6.203 KB |
+| DB-Anfragen | 137 | 51 |
+| bedienbar (Netz ruhig) | 116,9 s | 33,7 s |
+| grösste Liste | 35.100 Zeilen | 13.680 Zeilen |
+
+Was bleibt: die Buchungen des Monats kommen weiter dreimal (Live-Liste,
+Empfehlung 2) und der Vorlauf der Arbeitszeitgrenzen (17 Wochen, nur die
+Spalten der Arbeitszeit, rund 2 MB).
+
 ## Gewöhnlicher erster Besuch (mit Vorladen und Service Worker)
 
 <!-- messung:anfang (erzeugt von scripts/ui-umbau/messung.mjs) -->

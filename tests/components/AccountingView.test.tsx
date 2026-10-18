@@ -92,15 +92,16 @@ let liveSenden: ((rows: (TimeEntry & { id: string })[]) => void) | null = null;
 let grenzAbfragen = 0;
 
 vi.mock('@/lib/db/timeEntries', () => ({
+  // Wie die Datenbank: nur die Buchungen im verlangten Zeitraum (18.10.2026: die Seite lädt nicht mehr das Jahr).
   subscribeEntriesInRange: vi.fn(
     (
       _company: string,
-      _from: string,
-      _to: string,
+      from: string,
+      to: string,
       cb: (rows: (TimeEntry & { id: string })[]) => void,
     ) => {
-      liveSenden = cb;
-      cb(buchungen);
+      liveSenden = (rows) => cb(rows.filter((b) => b.date >= from && b.date <= to));
+      liveSenden(buchungen);
       return () => undefined;
     },
   ),
@@ -123,7 +124,12 @@ vi.mock('@/lib/db/timeEntries', () => ({
     ehrlichste Attrappe, weil sie liefert, was die Datenbank auch liefern
     würde, statt einer leeren Liste, die jeden Übertrag unsichtbar machte.
   */
-  listUrlaubstage: vi.fn(async () => buchungen.filter((b) => b.status === 'Urlaub')),
+  subscribeUrlaubstage: vi.fn(
+    (_company: string, from: string, to: string, cb: (rows: (TimeEntry & { id: string })[]) => void) => {
+      cb(buchungen.filter((b) => b.status === 'Urlaub' && b.date >= from && b.date <= to));
+      return () => undefined;
+    },
+  ),
   deleteTimeEntry: vi.fn(),
 }));
 /**
@@ -152,6 +158,13 @@ const authWert = {
   reloadCompany: vi.fn(),
 };
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
+
+/** Die heruntergeladene CSV — nur ihr Inhalt; die Datei selbst legt der Browser an. */
+const csvGeladen = vi.fn();
+vi.mock('@/features/accounting/export', async (original) => ({
+  ...(await original<typeof import('@/features/accounting/export')>()),
+  downloadCsv: (inhalt: string, datei: string) => csvGeladen(inhalt, datei),
+}));
 
 /** Der Gesamtsaldo seit Eintritt — dieselbe Ladefunktion wie in der Zeiterfassung. */
 const zeitguthabenLaden = vi.fn(async () => ({ saldoH: 12.5, hasConfig: true, daysWithoutEntry: 0 }));
@@ -640,6 +653,51 @@ describe('Im Supportzugang (Testbericht 30.09.2026, M40)', () => {
   });
 });
 
+/*
+  NUR DER GEZEIGTE ZEITRAUM (Mengengerüst, 18.10.2026). Die Seite lud jede
+  Buchung des Jahres — im Testbestand 35.100 Zeilen, 22 MB. Gebraucht wurde
+  das Jahr nur für die Urlaubstage; die kommen aus der eigenen Abfrage.
+*/
+describe('Mitarbeiterübersicht: was sie lädt', () => {
+  it('holt die Buchungen des Monats mit einer Woche davor und danach — nicht das Jahr', async () => {
+    const abo = vi.mocked((await import('@/lib/db/timeEntries')).subscribeEntriesInRange);
+    abo.mockClear();
+    await oeffneMitarbeiter();
+    expect(abo).toHaveBeenCalledWith('perl', '2026-07-25', '2026-09-07', expect.any(Function), expect.any(Function));
+    expect(abo).not.toHaveBeenCalledWith('perl', '2026-01-01', '2026-12-31', expect.any(Function), expect.any(Function));
+  });
+
+  it('in der Woche auch deren Tage, wenn sie vor dem Monat liegt', async () => {
+    const nutzer = zeichneSeite('/accounting?ansicht=woche');
+    await personKnopf('Neu Eingestellt');
+    const abo = vi.mocked((await import('@/lib/db/timeEntries')).subscribeEntriesInRange);
+    // Sechs Wochen zurück: Mo 20.07. — vor dem 25.07., bis wohin der August sonst lädt.
+    for (let i = 0; i < 6; i++) await nutzer.click(screen.getByRole('button', { name: 'Vorige Woche' }));
+    const [, von] = abo.mock.calls[abo.mock.calls.length - 1];
+    expect(von <= '2026-07-20').toBe(true);
+  });
+
+  it('Gegenprobe: Urlaub im Jahr und Resturlaub zählen auch die Urlaubstage außerhalb des Monats', async () => {
+    const urlaub = (date: string) => ({ ...eintrag(date), id: `u-${date}`, status: 'Urlaub' as const, startTime: undefined, endTime: undefined });
+    await oeffneMitarbeiter();
+    const zahl = () => Number((screen.getByTestId('resturlaub').textContent ?? '').match(/Resturlaub(-?[\d,]+)/)![1].replace(',', '.'));
+    const ohne = zahl();
+    cleanup();
+
+    // März (vor dem Eintritt am 17.08.) und Oktober — beide nicht im geladenen August.
+    buchungen = [...eintraege, urlaub('2026-03-10'), urlaub('2026-10-05')];
+    await oeffneMitarbeiter();
+    const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    // Der Verlauf beginnt mit dem Eintritt: der Oktober zählt, der März nicht — wie bisher.
+    expect(zahl()).toBeCloseTo(ohne - 1, 2);
+    csvGeladen.mockClear();
+    await nutzer.click(within(fenster()).getByRole('button', { name: 'Monat als CSV' }));
+    expect(csvGeladen).toHaveBeenCalledTimes(1);
+    // „Urlaub im Jahr“ zählt jeden Urlaubstag des Jahres — wie bisher aus dem Jahresbestand.
+    expect(csvGeladen.mock.calls[0][0]).toMatch(/Urlaub 2026 gesamt;2 Tage/);
+  });
+});
+
 describe('Mitarbeiteruebersicht — angepasster Urlaubsanspruch (Plan 10.3)', () => {
   it('rechnet die Anpassung in den Resturlaub und nennt sie', async () => {
     await oeffneMitarbeiter();
@@ -927,7 +985,8 @@ describe('Mitarbeiterübersicht: Monat und Jahr (Runde 4, Auftrag 3.2)', () => {
     abo.mockClear();
     await nutzer.click(screen.getByRole('button', { name: 'Voriger Monat' }));
     expect(screen.getByRole('button', { name: /Dezember 2025/ })).toHaveTextContent('Dezember 2025');
-    expect(abo).toHaveBeenCalledWith('perl', '2025-01-01', '2025-12-31', expect.any(Function), expect.any(Function));
+    // Der Dezember mit einer Woche davor und danach — nicht mehr das ganze Jahr.
+    expect(abo).toHaveBeenCalledWith('perl', '2025-11-24', '2026-01-07', expect.any(Function), expect.any(Function));
     await nutzer.click(screen.getByRole('button', { name: 'Nächster Monat' }));
     expect(screen.getByRole('button', { name: /Jänner 2026/ })).toBeInTheDocument();
   });
