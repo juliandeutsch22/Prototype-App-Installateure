@@ -93,11 +93,13 @@ export default function UserMgmtView() {
    * der Zustand von React ist im selben Durchlauf noch der alte.
    */
   const jahresbeginn = company?.urlaubJahresbeginn ?? JAHRESBEGINN_VORGABE;
+  const aliquotArt = company?.urlaubEintrittAliquot === 'zwoelftel' ? 'zwoelftel' : 'taggenau';
   const vorschlag = (datum: string, jahresTage: string) =>
     aliquoterAnspruch(
       zahlOderVorgabe(jahresTage, DEFAULT_VACATION_DAYS),
       datum,
       jahresbeginn,
+      aliquotArt,
     );
 
   /** Initialpasswort, falls die Willkommens-Mail nicht zugestellt werden konnte. */
@@ -454,10 +456,22 @@ export default function UserMgmtView() {
                 <strong className="text-ink">
                   {tageZahl(vorschlag(form.appStartDate, form.yearlyVacationDays).tage)}
                 </strong>{' '}
-                Tage — taggenau: {tageZahl(zahlOderVorgabe(form.yearlyVacationDays, DEFAULT_VACATION_DAYS))}{' '}
-                Tage Jahresanspruch × {vorschlag(form.appStartDate, form.yearlyVacationDays).restTage}{' '}
-                Kalendertage ab dem Eintritt ÷ {vorschlag(form.appStartDate, form.yearlyVacationDays).jahresTage}{' '}
-                Tage des Urlaubsjahres.{' '}
+                Tage —{' '}
+                {aliquotArt === 'zwoelftel' ? (
+                  <>
+                    je begonnenem Monat ein Zwölftel:{' '}
+                    {tageZahl(zahlOderVorgabe(form.yearlyVacationDays, DEFAULT_VACATION_DAYS))} Tage
+                    Jahresanspruch × {vorschlag(form.appStartDate, form.yearlyVacationDays).monate} ÷ 12
+                    (§ 2 Abs 4 Z 1 UrlG).{' '}
+                  </>
+                ) : (
+                  <>
+                    taggenau: {tageZahl(zahlOderVorgabe(form.yearlyVacationDays, DEFAULT_VACATION_DAYS))}{' '}
+                    Tage Jahresanspruch × {vorschlag(form.appStartDate, form.yearlyVacationDays).restTage}{' '}
+                    Kalendertage ab dem Eintritt ÷ {vorschlag(form.appStartDate, form.yearlyVacationDays).jahresTage}{' '}
+                    Tage des Urlaubsjahres.{' '}
+                  </>
+                )}
                 <strong className="text-ink">Änderbar:</strong> gilt im Betrieb eine andere Regel,
                 etwa laut Kollektivvertrag, hier die Zahl anpassen.
               </p>

@@ -352,6 +352,27 @@ describe('Wochenplan für alle', () => {
   });
 });
 
+describe('Anspruch im Eintrittsjahr (18.10.2026)', () => {
+  it('ab Werk taggenau; die Wahl wird mit dem Urlaubsjahr gespeichert', async () => {
+    const nutzer = userEvent.setup();
+    zeige('personal');
+    const wahl = screen.getByLabelText('Anspruch im Eintrittsjahr') as HTMLSelectElement;
+    expect(wahl.value).toBe('taggenau');
+    await nutzer.selectOptions(wahl, 'zwoelftel');
+    await nutzer.click(screen.getByRole('button', { name: 'Urlaubsjahr speichern' }));
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledTimes(1));
+    expect(updateCompany.mock.calls[0]).toEqual(['perl', {
+      urlaubJahresbeginn: '01-01', urlaubUebertrag: 'verjaehrung', urlaubEintrittAliquot: 'zwoelftel', urlaubStichtag: null,
+    }]);
+  });
+
+  it('zeigt die gespeicherte Wahl', () => {
+    firma = { id: 'perl', name: 'Perl Installationen', urlaubEintrittAliquot: 'zwoelftel' };
+    zeige('personal');
+    expect((screen.getByLabelText('Anspruch im Eintrittsjahr') as HTMLSelectElement).value).toBe('zwoelftel');
+  });
+});
+
 describe('24. und 31. Dezember', () => {
   const HALB = '24. und 31. Dezember als halbe Tage rechnen (Normalarbeitszeit bis 12 Uhr)';
 

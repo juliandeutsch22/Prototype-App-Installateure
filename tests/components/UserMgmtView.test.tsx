@@ -576,6 +576,26 @@ describe('Neueintritt oder Bestand', () => {
       .toBe('17,74');
   });
 
+  it('rechnet je begonnenem Monat ein Zwölftel, wenn der Betrieb es so eingestellt hat (18.10.2026)', async () => {
+    betrieb = { id: 'perl', name: 'Perl Installationen', urlaubEintrittAliquot: 'zwoelftel' };
+    zeige();
+    await formOeffnen();
+    await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'Nico Neu');
+    await userEvent.type(screen.getByRole('textbox', { name: /Mail/ }), 'nico@perl.at');
+    await userEvent.click(screen.getByLabelText(/Tritt neu ein/));
+    await userEvent.click(screen.getByRole('button', { name: /Zeitkonto-Einstellungen/ }));
+
+    const eintritt = await screen.findByLabelText('Eintrittsdatum');
+    await userEvent.clear(eintritt);
+    await userEvent.type(eintritt, '2026-09-30');
+    // September bis Dezember: vier begonnene Monate, 25 × 4 ÷ 12.
+    expect((screen.getByLabelText(/Urlaub im ersten Jahr/) as HTMLInputElement).value).toBe('8,33');
+    expect(screen.getByText(/je begonnenem Monat ein Zwölftel: 25 Tage Jahresanspruch × 4 ÷ 12/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Anlegen|Benutzer anlegen/ }));
+    await waitFor(() => expect(anlegen).toHaveBeenCalled());
+    expect(anlegen.mock.calls[0][1]).toMatchObject({ initialVacationDays: 8.33, appStartDate: '2026-09-30' });
+  });
+
   it('schreibt den Vorschlag auch wirklich in die Anlage', async () => {
     zeige();
     await formOeffnen();

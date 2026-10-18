@@ -43,7 +43,12 @@ export interface AliquoterAnspruch {
   restTage: number;
   /** Wie viele Tage das Urlaubsjahr hat (365 oder 366). */
   jahresTage: number;
+  /** Nur bei `zwoelftel`: die begonnenen Monate des Urlaubsjahres ab dem Eintritt. */
+  monate?: number;
 }
+
+/** Wie der Anspruch im Eintrittsjahr gerechnet wird (`companies.urlaub_eintritt_aliquot`). */
+export type EintrittAliquot = 'taggenau' | 'zwoelftel';
 
 /**
  * Der aliquote Urlaubsanspruch für ein angebrochenes erstes Urlaubsjahr.
@@ -55,27 +60,58 @@ export interface AliquoterAnspruch {
  * angebrochenen Jahres. Welche Variante im Einzelfall gilt, entscheidet der
  * Kollektivvertrag und nicht die Software — die Zahl bleibt änderbar.
  *
- * TAGGENAU SEIT DEM 30.09.2026 (Testbericht M3): Jahresanspruch ×
+ * TAGGENAU SEIT DEM 30.09.2026 (Testbericht M3, Vorgabe): Jahresanspruch ×
  * Kalendertage ab dem Eintritt (mitgezählt) ÷ Tage des Urlaubsjahres. Vorher
  * zählte der Eintrittsmonat voll: ein Eintritt am 30.09. ergab 8,33 Tage, am
- * 01.10. 6,25 — zwei Tage Unterschied für einen Kalendertag. Die Lesart ist
- * noch mit der WKO abzugleichen (siehe PLAN-TESTBERICHT).
+ * 01.10. 6,25 — zwei Tage Unterschied für einen Kalendertag.
+ *
+ * JE BEGONNENEM MONAT EIN ZWÖLFTEL (seit 18.10.2026, Wahl je Betrieb): so
+ * lässt § 2 Abs 4 Z 1 UrlG es einer Vereinbarung, die das Urlaubsjahr auf das
+ * Kalenderjahr umstellt (`docs/recherche-fragenkataloge.md`). Taggenau sieht
+ * das Gesetz nicht vor; was im Betrieb gilt, steht in seiner Vereinbarung —
+ * deshalb eine Wahl und keine neue Vorgabe. Die Monate zählen ab dem Beginn
+ * des Urlaubsjahres, also beim Kalenderjahr die Kalendermonate.
  */
 export function aliquoterAnspruch(
   jahresanspruch: number,
   eintritt: string,
   jahresbeginn: string = JAHRESBEGINN_VORGABE,
+  art: EintrittAliquot = 'taggenau',
 ): AliquoterAnspruch {
   const jahr = urlaubsJahrVon(eintritt, jahresbeginn);
   const beginn = `${jahr}-${jahresbeginn}`;
   const naechster = `${jahr + 1}-${jahresbeginn}`;
   const jahresTage = tageZwischen(beginn, naechster);
   const restTage = Math.max(0, Math.min(jahresTage, tageZwischen(eintritt, naechster)));
+  // Während das Datum getippt wird, ist es oft noch keines; dann wie bisher.
+  if (art === 'zwoelftel' && /^\d{4}-\d{2}-\d{2}$/.test(eintritt) && !Number.isNaN(Date.parse(eintritt))) {
+    const monate = begonneneMonate(beginn, eintritt);
+    return { restTage, jahresTage, monate, tage: aliquot(jahresanspruch, monate, 12) };
+  }
   return {
     restTage,
     jahresTage,
     tage: aliquot(jahresanspruch, restTage, jahresTage),
   };
+}
+
+/** Ein ISO-Datum plus `n` Monate; ein Tag über dem Monatsende wird der letzte. */
+function plusMonate(iso: string, n: number): string {
+  const j = Number(iso.slice(0, 4));
+  const m = Number(iso.slice(5, 7)) - 1 + n;
+  const t = Number(iso.slice(8, 10));
+  const letzter = new Date(Date.UTC(j, m + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(j, m, Math.min(t, letzter))).toISOString().slice(0, 10);
+}
+
+/**
+ * Wie viele der zwölf Monate des Urlaubsjahres ab `beginn` am Eintritt oder
+ * danach enden — der Monat des Eintritts zählt voll, denn er ist begonnen.
+ */
+function begonneneMonate(beginn: string, eintritt: string): number {
+  let anzahl = 0;
+  for (let k = 0; k < 12; k += 1) if (plusMonate(beginn, k + 1) > eintritt) anzahl += 1;
+  return anzahl;
 }
 
 /**

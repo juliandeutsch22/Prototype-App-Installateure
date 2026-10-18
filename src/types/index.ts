@@ -219,6 +219,13 @@ export interface Company {
   /** Vorschlag für den Grund der Steuerbefreiung auf Rechnungen mit 0 % (A2). */
   steuerbefreiungVorgabe?: string;
   urlaubUebertrag?: 'verjaehrung' | 'stichtag';
+  /**
+   * Wie der Vorschlag für das angebrochene erste Urlaubsjahr rechnet:
+   * `taggenau` (Vorgabe, Kalendertage) oder `zwoelftel` — je begonnenem
+   * Monat ein Zwölftel, wie § 2 Abs 4 Z 1 UrlG es einer Umstellung auf das
+   * Kalenderjahr erlaubt. Was gilt, steht in der Vereinbarung des Betriebs.
+   */
+  urlaubEintrittAliquot?: 'taggenau' | 'zwoelftel';
   /** 'MM-DD'. Nur bei `urlaubUebertrag === 'stichtag'` gesetzt. */
   urlaubStichtag?: string | null;
   /**
