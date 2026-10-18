@@ -15,7 +15,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { abonnieren, NACHFASSEN_MS } from '@/lib/db/pg/kern';
 import { verbindungZuruecksetzen } from '@/lib/liveVerbindung';
 
-interface Abruf { antworte: (zeilen: Record<string, unknown>[]) => void }
+interface Abruf { antworte: (zeilen: Record<string, unknown>[]) => void; scheitere: () => void }
 
 /** Ein Client, dessen Abfragen die Prüfung einzeln beantwortet. */
 function gestellterClient() {
@@ -37,7 +37,10 @@ function gestellterClient() {
         then: (aufl: (w: { data: unknown[]; error: null }) => unknown, abl?: (e: unknown) => unknown) => {
           if (!antwort) {
             antwort = new Promise((fertig) => {
-              abrufe.push({ antworte: (zeilen) => fertig({ data: zeilen, error: null }) });
+              abrufe.push({
+                antworte: (zeilen) => fertig({ data: zeilen, error: null }),
+                scheitere: () => fertig({ data: null, error: { message: 'kein Netz' } } as never),
+              });
             });
           }
           return antwort.then(aufl, abl);
@@ -68,7 +71,13 @@ describe('abonnieren: das erste Bild', () => {
     stopp();
   });
 
-  it('nach SUBSCRIBED wird wie bisher geholt und nachgefasst — der neuere Stand gilt', async () => {
+  /*
+    SEIT 18.10.2026 zählt das erste Bild auch dann als Laden nach dem Aufbau,
+    wenn der Kanal vor ihm steht (im langsamen Netz der Normalfall): kein
+    zweites Holen, das Nachfassen bleibt — es allein ist sicher nach dem
+    Moment geholt, in dem der Server hört.
+  */
+  it('steht der Kanal vor dem ersten Bild, gilt das erste Bild — nachgefasst wird wie bisher', async () => {
     const { client, status, abrufe } = gestellterClient();
     const gemeldet: string[][] = [];
     const stopp = abonnieren<{ name: string }>('materials', 'perl', (z) => gemeldet.push(z.map((x) => x.name)), () => {}, {}, client);
@@ -76,16 +85,16 @@ describe('abonnieren: das erste Bild', () => {
     await vi.advanceTimersByTimeAsync(0);
     status[0]('SUBSCRIBED');
     await vi.advanceTimersByTimeAsync(0);
-    expect(abrufe).toHaveLength(2);
-    // Das Laden nach dem Aufbau antwortet zuerst, das erste Laden danach — es wird verworfen.
-    abrufe[1].antworte([zeile('a', 'Rohr'), zeile('b', 'Bogen')]);
-    await vi.advanceTimersByTimeAsync(0);
+    expect(abrufe).toHaveLength(1);
     abrufe[0].antworte([zeile('a', 'Rohr')]);
     await vi.advanceTimersByTimeAsync(0);
-    expect(gemeldet).toEqual([['Rohr', 'Bogen']]);
+    expect(gemeldet).toEqual([['Rohr']]);
 
     await vi.advanceTimersByTimeAsync(NACHFASSEN_MS);
-    expect(abrufe).toHaveLength(3);
+    expect(abrufe).toHaveLength(2);
+    abrufe[1].antworte([zeile('a', 'Rohr'), zeile('b', 'Bogen')]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(gemeldet[gemeldet.length - 1]).toEqual(['Rohr', 'Bogen']);
     stopp();
   });
 
@@ -98,6 +107,161 @@ describe('abonnieren: das erste Bild', () => {
     abrufe[0].antworte([zeile('a', 'Rohr')]);
     await vi.advanceTimersByTimeAsync(0);
     expect(gemeldet).toEqual([]);
+  });
+});
+
+/*
+  KEIN DRITTES LADEN (Mengengerüst, 18.10.2026). Kam das erste Bild vor dem
+  Kanal, holte das Laden nach SUBSCRIBED denselben Bestand ein zweites Mal —
+  vor dem Nachfassen, das ihn ohnehin ein drittes Mal holt. Gemessen bei den
+  Artikeln: drei volle Durchgänge, die Datenmenge doppelt so groß wie vor #265.
+*/
+describe('abonnieren: kein doppeltes Laden nach dem ersten Bild', () => {
+  /** Ein gestellter Client, dessen Kanal auch Meldungen schicken kann. */
+  function mitMeldungen() {
+    const g = gestellterClient();
+    let melde: ((n: unknown) => void) | undefined;
+    const kanalVorher = (g.client as unknown as { channel: () => unknown }).channel;
+    (g.client as unknown as { channel: () => unknown }).channel = () => {
+      const kanal = kanalVorher() as { on: (e: unknown, o: unknown, cb: (n: unknown) => void) => unknown };
+      kanal.on = (_e, _o, cb) => { melde = cb; return kanal; };
+      return kanal;
+    };
+    return { ...g, melde: (n: unknown) => melde!(n) };
+  }
+
+  it('holt nach SUBSCRIBED nicht noch einmal, wenn das erste Bild schon steht — das Nachfassen bleibt', async () => {
+    const { client, status, abrufe } = gestellterClient();
+    const gemeldet: string[][] = [];
+    const stopp = abonnieren<{ name: string }>('materials', 'perl', (z) => gemeldet.push(z.map((x) => x.name)), () => {}, {}, client);
+    await vi.advanceTimersByTimeAsync(0);
+    abrufe[0].antworte([zeile('a', 'Rohr')]);
+    await vi.advanceTimersByTimeAsync(0);
+
+    status[0]('SUBSCRIBED');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(abrufe).toHaveLength(1);
+
+    await vi.advanceTimersByTimeAsync(NACHFASSEN_MS);
+    expect(abrufe).toHaveLength(2);
+    // Das Nachfassen ersetzt den Bestand wie bisher.
+    abrufe[1].antworte([zeile('a', 'Rohr'), zeile('b', 'Bogen')]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(gemeldet[gemeldet.length - 1]).toEqual(['Rohr', 'Bogen']);
+    stopp();
+  });
+
+  it('eine Meldung zwischen Aufbau und Nachfassen gilt sofort — und bleibt nach dem Nachfassen', async () => {
+    const { client, status, abrufe, melde } = mitMeldungen();
+    const gemeldet: string[][] = [];
+    const stopp = abonnieren<{ name: string }>('materials', 'perl', (z) => gemeldet.push(z.map((x) => x.name)), () => {}, {}, client);
+    await vi.advanceTimersByTimeAsync(0);
+    abrufe[0].antworte([zeile('a', 'Rohr')]);
+    await vi.advanceTimersByTimeAsync(0);
+    status[0]('SUBSCRIBED');
+    await vi.advanceTimersByTimeAsync(0);
+
+    melde({ eventType: 'INSERT', new: zeile('n', 'Muffe'), old: {} });
+    await vi.advanceTimersByTimeAsync(60);
+    expect(gemeldet[gemeldet.length - 1]).toEqual(['Rohr', 'Muffe']);
+
+    // Während das Nachfassen holt, kommt noch eine — sie geht nicht verloren.
+    await vi.advanceTimersByTimeAsync(NACHFASSEN_MS);
+    melde({ eventType: 'INSERT', new: zeile('k', 'Kappe'), old: {} });
+    abrufe[1].antworte([zeile('a', 'Rohr'), zeile('n', 'Muffe')]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(gemeldet[gemeldet.length - 1]).toEqual(['Rohr', 'Muffe', 'Kappe']);
+    stopp();
+  });
+
+  it('Gegenprobe: nach einem Abriss lädt der neue Kanal gleich — nicht erst mit dem Nachfassen', async () => {
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    const { client, status, abrufe } = gestellterClient();
+    const stopp = abonnieren<{ name: string }>('materials', 'perl', () => {}, () => {}, {}, client);
+    await vi.advanceTimersByTimeAsync(0);
+    abrufe[0].antworte([zeile('a', 'Rohr')]);
+    await vi.advanceTimersByTimeAsync(0);
+    status[0]('SUBSCRIBED');
+    await vi.advanceTimersByTimeAsync(NACHFASSEN_MS);
+    abrufe[1].antworte([zeile('a', 'Rohr')]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(abrufe).toHaveLength(2);
+
+    status[0]('CHANNEL_ERROR');
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(status).toHaveLength(2);
+    status[1]('SUBSCRIBED');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(abrufe).toHaveLength(3);
+    stopp();
+  });
+
+  it('fasst so spät nach wie bisher: Aufbau + Dauer eines Ladens + NACHFASSEN_MS', async () => {
+    const { client, status, abrufe } = gestellterClient();
+    const stopp = abonnieren<{ name: string }>('materials', 'perl', () => {}, () => {}, {}, client);
+    // Das erste Bild braucht 500 ms; der Kanal steht danach.
+    await vi.advanceTimersByTimeAsync(500);
+    abrufe[0].antworte([zeile('a', 'Rohr')]);
+    await vi.advanceTimersByTimeAsync(0);
+    status[0]('SUBSCRIBED');
+    await vi.advanceTimersByTimeAsync(NACHFASSEN_MS);
+    // Bisher lud der Aufbau (500 ms) und fasste dann nach — nicht früher als das.
+    expect(abrufe).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(abrufe).toHaveLength(2);
+    stopp();
+  });
+
+  it('eine Meldung, die vor dem ersten Bild ankommt, wartet — und gilt danach', async () => {
+    const { client, status, abrufe, melde } = mitMeldungen();
+    const gemeldet: string[][] = [];
+    const stopp = abonnieren<{ name: string }>('materials', 'perl', (z) => gemeldet.push(z.map((x) => x.name)), () => {}, {}, client);
+    await vi.advanceTimersByTimeAsync(0);
+    status[0]('SUBSCRIBED');
+    await vi.advanceTimersByTimeAsync(0);
+    melde({ eventType: 'INSERT', new: zeile('n', 'Muffe'), old: {} });
+    await vi.advanceTimersByTimeAsync(60);
+    expect(gemeldet).toEqual([]);
+    abrufe[0].antworte([zeile('a', 'Rohr')]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(gemeldet[gemeldet.length - 1]).toEqual(['Rohr', 'Muffe']);
+    stopp();
+  });
+
+  it('Gegenprobe: scheiterte das erste Bild, wird nach SUBSCRIBED geladen wie bisher', async () => {
+    const { client, status, abrufe } = gestellterClient();
+    const gemeldet: string[][] = [];
+    const stopp = abonnieren<{ name: string }>('materials', 'perl', (z) => gemeldet.push(z.map((x) => x.name)), () => {}, {}, client);
+    await vi.advanceTimersByTimeAsync(0);
+    abrufe[0].scheitere();
+    await vi.advanceTimersByTimeAsync(0);
+    status[0]('SUBSCRIBED');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(abrufe).toHaveLength(2);
+    abrufe[1].antworte([zeile('a', 'Rohr')]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(gemeldet).toEqual([['Rohr']]);
+    stopp();
+  });
+
+  it('Gegenprobe: ein erstes Bild, das erst nach einem Wiederaufbau kommt, gilt nicht mehr', async () => {
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    const { client, status, abrufe } = gestellterClient();
+    const gemeldet: string[][] = [];
+    const stopp = abonnieren<{ name: string }>('materials', 'perl', (z) => gemeldet.push(z.map((x) => x.name)), () => {}, {}, client);
+    await vi.advanceTimersByTimeAsync(0);
+    status[0]('SUBSCRIBED');
+    status[0]('CHANNEL_ERROR');
+    await vi.advanceTimersByTimeAsync(1100);
+    status[1]('SUBSCRIBED');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(abrufe).toHaveLength(2);
+    abrufe[1].antworte([zeile('a', 'Rohr'), zeile('b', 'Bogen')]);
+    await vi.advanceTimersByTimeAsync(0);
+    abrufe[0].antworte([zeile('a', 'Rohr')]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(gemeldet[gemeldet.length - 1]).toEqual(['Rohr', 'Bogen']);
+    stopp();
   });
 });
 

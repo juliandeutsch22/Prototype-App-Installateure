@@ -687,7 +687,7 @@
     <div class="stempel">
       <span>Stand <b>18.10.2026</b></span>
       <span>Fassung <b>Lot v2 · Arbeitsstand</b></span>
-      <span>Automatische Prüfungen <b>5.118 Modulprüfungen · 72 Browserwege · 7 Linkprüfungen</b></span>
+      <span>Automatische Prüfungen <b>5.125 Modulprüfungen · 72 Browserwege · 7 Linkprüfungen</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -714,6 +714,12 @@
         <p>Die Mitarbeiterübersicht holt nur noch die Buchungen des gezeigten Monats (mit einer Woche davor und danach, für die Arbeitszeitgrenzen) bzw. der gezeigten Woche. Bisher holte sie jede Buchung des ganzen Jahres — im Testbestand von fünf Jahren 35.100 Zeilen und 22 MB, fast zwei Minuten bis zur Ruhe am Handy. Gebraucht wurde das Jahr nur für die Urlaubstage; die kommen jetzt aus einer eigenen, schmalen Abfrage, die nur Urlaubstage holt. Gemessen: 6,2 statt 22,3 MB, 51 statt 137 Abfragen, 34 statt 117 s bis zur Ruhe.</p>
         <p><strong>Was gleich bleibt:</strong> Saldo, Soll, Resturlaub, „Urlaub im Jahr“ in der Lohn-CSV, Vollständigkeit, Wochenansicht und Projektauswertung rechnen wie bisher. <strong>Neu dabei:</strong> Resturlaub und Urlaubstage sind jetzt live — ein gebuchter oder stornierter Urlaubstag erscheint ohne Neuladen.</p>
         <p class="wer">Buchhaltung, Geschäftsführung, Administrator · nichts einzustellen</p>
+      </div>
+      <div class="bereich">
+        <h3>Live-Listen holen ihren Bestand zweimal statt dreimal<span class="neu">geändert</span></h3>
+        <p>Jede Liste, die sich von selbst aktualisiert (Einsätze, Buchungen, Anforderungen, Lager …), holte beim Öffnen denselben Bestand dreimal kurz hintereinander: sofort für die Anzeige, noch einmal, sobald die Live-Verbindung stand, und ein drittes Mal zur Sicherheit kurz danach. Das mittlere Holen entfällt — das erste gilt —, das Sichernde bleibt und kommt zur selben Zeit wie bisher. Gemessen im langsamen Netz: Startseite 4,0 → 3,7 MB, Tagesplanung 766 → 575 KB, Wochenplan 534 → 442 KB, Lager 2,3 → 1,7 MB.</p>
+        <p><strong>Was gleich bleibt:</strong> keine Zeile fehlt, was während des Ladens geändert wird, kommt mit; reißt die Verbindung ab, wird beim Wiederaufbau wie bisher gleich neu geholt.</p>
+        <p class="wer">Gilt für alle · nichts einzustellen</p>
       </div>
     </div>
   </section>
