@@ -5,10 +5,18 @@ import Hinweiszeile from './Hinweiszeile';
 /**
  * Ladezustand — sichtbar, kein stiller Abbruch. Erst nach 200 ms
  * (`laden-verzoegert`): ein schnelles Laden blitzt sonst nur kurz auf.
+ *
+ * `sofort` nur für den ersten Bildschirm beim App-Start: dort ist er das
+ * erste, was überhaupt erscheint. Verzögert zählte der Browser ihn nicht
+ * als erste Anzeige, und die Seite blieb eine halbe Sekunde länger weiß
+ * (Messung 17.10.2026, `docs/ui-umbau/messung-nachher.md`).
  */
-export function LoadingState({ label = 'Wird geladen …' }: { label?: string }) {
+export function LoadingState({ label = 'Wird geladen …', sofort = false }: { label?: string; sofort?: boolean }) {
   return (
-    <div className="laden-verzoegert flex items-center justify-center gap-3 p-6 text-ink-muted" role="status">
+    <div
+      className={`${sofort ? '' : 'laden-verzoegert '}flex items-center justify-center gap-3 p-6 text-ink-muted`}
+      role="status"
+    >
       <span
         className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-accent-deep"
         aria-hidden="true"

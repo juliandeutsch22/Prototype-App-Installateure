@@ -11,7 +11,8 @@ import type { Role } from '@/types';
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
-  if (loading) return <LoadingState label="Anmeldung wird geprüft …" />;
+  // Der erste Bildschirm der App erscheint sofort — er ist die erste Anzeige.
+  if (loading) return <LoadingState label="Anmeldung wird geprüft …" sofort />;
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
   return <>{children}</>;
 }
