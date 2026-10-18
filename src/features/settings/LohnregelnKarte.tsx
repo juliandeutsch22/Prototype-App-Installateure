@@ -16,8 +16,8 @@ import { durchrechnungsWochen } from '@/features/accounting/arbeitszeitGrenzen';
  * Beides je Betrieb, ab Werk wie bisher: Nachtzeit 22–6 Uhr, Überstunden
  * über das Zeitkonto. Ausgewiesen werden Stunden, nie Geld. Am
  * Kollektivvertrag Metallgewerbe 2026 nachgeprüft (18.10.2026,
- * `docs/recherche-fragenkataloge.md`): die Nachtzeit stimmt; die übrigen
- * 100-%-Fälle des KV trennt die App nicht — der Hinweis sagt es.
+ * `docs/recherche-fragenkataloge.md`): die Nachtzeit stimmt, und bei der
+ * Tagesgrenze teilt die App 50 und 100 % nach dem KV (ab Werk an).
  */
 export default function LohnregelnKarte() {
   const { user, company, reloadCompany } = useAuth();
@@ -27,6 +27,7 @@ export default function LohnregelnKarte() {
   const [modell, setModell] = useState<'zeitkonto' | 'tagesgrenze'>('zeitkonto');
   const [grenze, setGrenze] = useState<'tagessoll' | 'zehn'>('tagessoll');
   const [hundert, setHundert] = useState(false);
+  const [kvMetall, setKvMetall] = useState(true);
   /** Als Text — das Feld darf beim Tippen kurz leer oder unfertig sein. */
   const [durchrechnung, setDurchrechnung] = useState('17');
   const [speichert, setSpeichert] = useState(false);
@@ -39,6 +40,7 @@ export default function LohnregelnKarte() {
     setModell(regel.modell);
     setGrenze(regel.grenze);
     setHundert(regel.hundertSonnFeiertag);
+    setKvMetall(regel.kvMetall);
     setDurchrechnung(String(durchrechnungsWochen(company?.durchrechnungWochen)));
   }, [company]);
 
@@ -62,6 +64,7 @@ export default function LohnregelnKarte() {
         ueberstundenModell: modell,
         ueberstundenGrenze: grenze,
         ueberstundenHundertSonnFeiertag: hundert,
+        ueberstundenKvMetall: kvMetall,
         durchrechnungWochen: wochen,
       });
       await reloadCompany();
@@ -84,10 +87,15 @@ export default function LohnregelnKarte() {
           Lohn-CSV und Stundennachweis; an Tagen ohne Soll zählt jede Stunde. Ausgewiesen werden
           Stunden, nie Beträge. Nach dem Kollektivvertrag Metallgewerbe gilt die Nachtarbeitszulage
           für jede Arbeitsstunde zwischen 22 und 6 Uhr, ohne Mindestdauer (Abschnitt XIV Punkt 5) — so
-          rechnet die Vorgabe. Weitere Fälle mit 100 % trennt die App nicht: ab der dritten Überstunde
-          am Tag, Überstunden zwischen 20 und 6 Uhr, ab der 51. Stunde der Woche und am sonst
-          arbeitsfreien Tag ab der 11. Stunde (Abschnitt XIV Punkt 8). Sie stehen bei 50 %; die
-          Lohnverrechnung teilt sie zu. Der Durchrechnungszeitraum gilt für die Arbeitszeitgrenzen: im
+          rechnet die Vorgabe. Mit „Zuschläge nach dem KV Metallgewerbe“ (ab Werk an) stehen bei
+          Arbeitern und Lehrlingen — wer eine Einstufung hat — mit 100 %: ab der dritten Überstunde am
+          Tag, Überstunden zwischen 20 und 6 Uhr, ab der 51. Stunde der Woche (nicht bei Gleitzeit), am
+          sonst arbeitsfreien Tag ab der 11. Stunde, jede Stunde an Sonn- und Feiertagen und am 24. und
+          31.12. jede Überstunde (Abschnitt XIV Punkt 8–11). Wann am Tag die Überstunden lagen, steht in
+          keiner Buchung; Stunden zwischen 20 und 6 Uhr gelten zuerst als Überstunden. Was am 24./31.12.
+          nach 12 Uhr liegt, steht nur in der eigenen Spalte. Für Angestellte gilt ein anderer
+          Kollektivvertrag: bei ihnen bleibt es bei 50 % und dem Schalter für Sonn- und Feiertage. Der
+          Durchrechnungszeitraum gilt für die Arbeitszeitgrenzen: im
           Schnitt höchstens 48 Std. je Woche, nach dem Gesetz über 17 Wochen (§ 9 Abs 4 AZG); länger,
           bis 52 Wochen, nur wenn der Kollektivvertrag es zulässt.
         </>
@@ -128,10 +136,16 @@ export default function LohnregelnKarte() {
         )}
       </FormGrid>
       {modell === 'tagesgrenze' && (
-        <div className="mt-3">
+        <div className="mt-3 flex flex-col gap-2">
+          <CheckboxField
+            id="ueberstundenKvMetall"
+            label="Zuschläge nach dem KV Metallgewerbe (Arbeiter und Lehrlinge)"
+            checked={kvMetall}
+            onChange={(e) => setKvMetall(e.target.checked)}
+          />
           <CheckboxField
             id="ueberstundenHundert"
-            label="Arbeit an Sonn- und Feiertagen als Überstunden mit 100 %"
+            label={kvMetall ? 'Arbeit an Sonn- und Feiertagen als Überstunden mit 100 % — für Angestellte' : 'Arbeit an Sonn- und Feiertagen als Überstunden mit 100 %'}
             checked={hundert}
             onChange={(e) => setHundert(e.target.checked)}
           />

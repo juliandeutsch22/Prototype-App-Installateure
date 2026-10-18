@@ -69,15 +69,22 @@ export interface UeberstundenRegel {
   modell: 'zeitkonto' | 'tagesgrenze';
   grenze: 'tagessoll' | 'zehn';
   hundertSonnFeiertag: boolean;
+  /**
+   * Die Zuschläge des Kollektivvertrags Metallgewerbe für Arbeiter
+   * (Abschnitt XIV Pkt 8–11) — ab Werk an, wie die Regel für den 24./31.12.
+   * Siehe `features/accounting/ueberstunden.ts`.
+   */
+  kvMetall: boolean;
 }
 
 export function ueberstundenRegelVon(
-  company: Pick<Company, 'ueberstundenModell' | 'ueberstundenGrenze' | 'ueberstundenHundertSonnFeiertag'> | null | undefined,
+  company: Pick<Company, 'ueberstundenModell' | 'ueberstundenGrenze' | 'ueberstundenHundertSonnFeiertag' | 'ueberstundenKvMetall'> | null | undefined,
 ): UeberstundenRegel {
   return {
     modell: company?.ueberstundenModell === 'tagesgrenze' ? 'tagesgrenze' : 'zeitkonto',
     grenze: company?.ueberstundenGrenze === 'zehn' ? 'zehn' : 'tagessoll',
     hundertSonnFeiertag: company?.ueberstundenHundertSonnFeiertag === true,
+    kvMetall: company?.ueberstundenKvMetall !== false,
   };
 }
 
@@ -107,12 +114,24 @@ export function nachtArbeitMin(e: TimeEntry, nacht: Nachtzeit = NACHTZEIT_VORGAB
   if (!e.startTime || !e.endTime) return e.isNightWork ? gesamt : 0;
   if (e.nachtAbgewaehlt?.trim()) return 0;
   if (e.isBilled && !e.isNightWork) return 0;
-  const imNacht = nachtMinutenIn(e.startTime, e.endTime, nacht);
+  return arbeitMinImFenster(e, nacht);
+}
+
+/**
+ * Die Arbeitsminuten eines Eintrags mit Von und Bis, die in ein Zeitfenster
+ * fallen — die Pause geht zuerst von der Zeit ausserhalb ab, wie bei den
+ * Nachtstunden. Ohne Von/Bis null: wann gearbeitet wurde, ist nicht bekannt.
+ */
+export function arbeitMinImFenster(e: TimeEntry, fenster: Nachtzeit): number {
+  if (e.status !== 'Anwesend' || !e.startTime || !e.endTime) return 0;
+  const gesamt = calcWorkMin(e);
+  if (gesamt <= 0) return 0;
+  const imFenster = nachtMinutenIn(e.startTime, e.endTime, fenster);
   const spanne = spanneMin(e.startTime, e.endTime);
   const pause = Number(e.breakDuration ?? 0) || 0;
-  const ausserhalb = Math.max(0, spanne - imNacht);
-  const pauseInDerNacht = Math.max(0, pause - ausserhalb);
-  return Math.max(0, Math.min(gesamt, imNacht - pauseInDerNacht));
+  const ausserhalb = Math.max(0, spanne - imFenster);
+  const pauseImFenster = Math.max(0, pause - ausserhalb);
+  return Math.max(0, Math.min(gesamt, imFenster - pauseImFenster));
 }
 
 function spanneMin(startTime: string, endTime: string): number {

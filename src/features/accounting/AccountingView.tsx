@@ -39,7 +39,7 @@ import ProjectSummary from './ProjectSummary';
 import { fachMinutenJeBaustelle } from '@/features/projects/baustellenLage';
 import ArbeitszeitGrenzenKarte from './ArbeitszeitGrenzenKarte';
 import { useArbeitszeitGrenzen } from './useArbeitszeitGrenzen';
-import type { Grenzfall } from './arbeitszeitGrenzen';
+import { montagVon, type Grenzfall } from './arbeitszeitGrenzen';
 import PersonFenster from './PersonFenster';
 import UebersichtListe, { type UebersichtZeile } from './UebersichtListe';
 import { TippBereich } from './Streifen';
@@ -457,13 +457,17 @@ export default function AccountingView() {
   }, [entries, year, month]);
 
   const alleRows = useMemo(
-    () =>
-      relevant.map((u) => {
+    () => {
+      // Die Woche vor dem Ersten zählt für die 51. Wochenstunde (KV); geladen ist sie mit dem Monat.
+      const erster = `${monthPrefix}-01`;
+      const wochenbeginn = montagVon(erster);
+      return relevant.map((u) => {
         const monthEntries = entries.filter((e) => e.userId === u.uid && e.date.startsWith(monthPrefix));
         const urlaub = urlaubJePerson.get(u.uid);
         return {
           user: u,
           monthEntries,
+          vorlauf: entries.filter((e) => e.userId === u.uid && e.date >= wochenbeginn && e.date < erster),
           // Vom Jahr zählt hier nur der Urlaub (`yearlyUrlaubDays`) — die übrigen Buchungen des Jahres braucht die Rechnung nicht.
           stats: calcMonthStats(u, monthEntries, urlaub?.jahr ?? [], year, month, halbeTage, {
             verlauf: (urlaub?.verlauf ?? []).map((e) => ({ von: e.date, tage: tagesAnteil(e.date, halbeTage) })),
@@ -472,7 +476,8 @@ export default function AccountingView() {
           }),
           completeness: calcCompleteness(u, monthEntries, year, month),
         };
-      }),
+      });
+    },
     [relevant, entries, monthPrefix, year, month, urlaubJePerson, urlaubsRegel, halbeTage, anpassungen],
   );
 
@@ -722,7 +727,7 @@ export default function AccountingView() {
       return;
     }
     downloadCsv(
-      buildUserCsv(u, r.monthEntries, r.stats, year, month, halbeTage, lohn),
+      buildUserCsv(u, r.monthEntries, r.stats, year, month, halbeTage, lohn, r.vorlauf),
       userCsvFilename(u, year, month),
     );
     toast.success(`CSV für ${u.name} heruntergeladen`);
@@ -731,13 +736,12 @@ export default function AccountingView() {
   async function exportPdf(u: AppUser, from: string, to: string) {
     // Frisch aus der Datenbank statt aus der Ansicht: der gewählte Zeitraum
     // kann über das geladene Jahr hinausreichen.
-    const range = entriesInRange(
-      await listEntriesInRange(user!.companyId, from, to),
-      u.uid,
-      from,
-      to,
-    );
+    // Ab dem Montag davor: die Tage vor `from` in derselben Woche zählen für die 51. Wochenstunde (KV).
+    const wochenbeginn = montagVon(from);
+    const geladen = await listEntriesInRange(user!.companyId, wochenbeginn, to);
+    const range = entriesInRange(geladen, u.uid, from, to);
     if (range.length === 0) throw new Error('Keine Einträge im gewählten Zeitraum.');
+    const vorlauf = geladen.filter((e) => e.userId === u.uid && e.date >= wochenbeginn && e.date < from);
     // Erst hier nachladen: jsPDF wiegt mehrere hundert Kilobyte und wird nur
     // gebraucht, wenn wirklich jemand einen Nachweis erzeugt.
     const { generateHoursPdf } = await import('./hoursPdf');
@@ -745,6 +749,7 @@ export default function AccountingView() {
       company: company ?? ({ id: '', name: 'Firma' } as NonNullable<typeof company>),
       user: u,
       entries: range,
+      vorlauf,
       from,
       to,
     });
