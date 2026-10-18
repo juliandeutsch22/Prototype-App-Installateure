@@ -50,6 +50,10 @@ let lagerStand: Map<string, unknown> | null = null;
 /** Hält den Katalog zurück, bis der Test ihn schickt. */
 let katalogHalten = false;
 let katalogSenden: () => void = () => undefined;
+/** Was die Ansicht beim Server angefragt hat — Suchbegriff und Länge der Seite. */
+let katalogAbfragen: { begriff: string; anzahl: number }[] = [];
+/** Meldet der Ansicht eine Änderung im Katalog, wie es der Live-Kanal täte. */
+let katalogGeaendert: () => void = () => undefined;
 /** Hält die eigenen Anforderungen zurück, bis der Test sie schickt. */
 let eigeneHalten = false;
 let eigeneSenden: () => void = () => undefined;
@@ -59,17 +63,33 @@ vi.mock('@/lib/db/materials', () => ({
     if (!lagerStand) throw new Error('nicht geladen');
     return lagerStand;
   },
-  subscribeMaterials: (
-    _c: string,
-    cb: (rows: WithId<Material>[]) => void,
-    onError: (e: Error) => void,
-  ) => {
-    if (abosFehler.material) onError(new Error('Katalog nicht lesbar'));
-    else if (katalogHalten) katalogSenden = () => cb(materialien);
-    else cb(materialien);
+  /*
+    Wie der Server (18.10.2026): nach Namen, gesucht in Bezeichnung,
+    Kategorie und Artikelnummer, die ersten `anzahl` und die Zahl aller Treffer.
+  */
+  katalogSeite: (_c: string, begriff: string, anzahl: number) => {
+    katalogAbfragen.push({ begriff, anzahl });
+    const ergebnis = () => {
+      const treffer = katalogTreffer(begriff);
+      return { zeilen: treffer.slice(0, anzahl), gesamt: treffer.length };
+    };
+    if (abosFehler.material) return Promise.reject(new Error('Katalog nicht lesbar'));
+    if (katalogHalten) return new Promise((fertig) => { katalogSenden = () => fertig(ergebnis()); });
+    return Promise.resolve(ergebnis());
+  },
+  sucheKatalog: async (_c: string, begriff: string, max = 20) => katalogTreffer(begriff).slice(0, max),
+  katalogBeobachten: (_c: string, melde: () => void) => {
+    katalogGeaendert = melde;
     return () => undefined;
   },
 }));
+
+function katalogTreffer(begriff: string): WithId<Material>[] {
+  const q = begriff.trim().toLowerCase();
+  return [...materialien]
+    .filter((m) => !q || [m.name, m.category, m.articleNumber].some((v) => v?.toLowerCase().includes(q)))
+    .sort((x, y) => x.name.localeCompare(y.name, 'de'));
+}
 
 vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(async () => {
@@ -142,6 +162,8 @@ beforeEach(() => {
   eiligSetzen.mockClear();
   localStorage.clear();
   materialien = [ROHR, DICHTUNG];
+  katalogAbfragen = [];
+  katalogGeaendert = () => undefined;
   projekte = [MIT_LEITUNG, OHNE_LEITUNG];
   eigene = [];
   abosFehler = {};
@@ -248,7 +270,8 @@ describe('Material anfordern — der Warenkorb', () => {
       vorlage, die das Schrumpfen erlaubt (im Browser nachgemessen).
     */
     zeige();
-    const raster = screen.getByLabelText('Bezeichnung').closest('.grid') as HTMLElement;
+    // Die Zeile steht mit dem Katalog, und der kommt seit dem 18.10.2026 als Antwort des Servers.
+    const raster = (await screen.findByLabelText('Bezeichnung')).closest('.grid') as HTMLElement;
     expect(raster.className).toContain('grid-cols-[minmax(0,1fr)_5rem]');
     expect(raster.className).toContain('sm:grid-cols-[minmax(0,1fr)_6rem_auto]');
     expect(raster.className).not.toMatch(/grid-cols-\[1fr/);
@@ -564,8 +587,80 @@ describe('Material anfordern — gescheiterte Ladevorgänge', () => {
   it('sucht auch über Kategorie und Artikelnummer', async () => {
     zeige();
     await userEvent.type(await screen.findByRole('textbox', { name: /Suche/ }), 'KR15');
-    await waitFor(() => expect(screen.getByText('Kupferrohr 15mm')).toBeInTheDocument());
-    expect(screen.queryByText('Dichtung 1/2"')).not.toBeInTheDocument();
+    // Gesucht wird auf dem Server, kurz nach dem letzten Tastendruck.
+    await waitFor(() => expect(screen.queryByText('Dichtung 1/2"')).not.toBeInTheDocument());
+    expect(screen.getByText('Kupferrohr 15mm')).toBeInTheDocument();
+    expect(katalogAbfragen[katalogAbfragen.length - 1].begriff).toBe('KR15');
+  });
+});
+
+/*
+  DER KATALOG SEITENWEISE VOM SERVER (Mengengerüst, 18.10.2026). Bis dahin
+  lud die Seite bis zu tausend Artikel und suchte nur in diesen — aus einem
+  eingespielten Großhandelskatalog fand der Monteur nur, was zufällig unter
+  den ersten tausend lag.
+*/
+describe('Material anfordern — der Katalog vom Server', () => {
+  const artikel = (i: number, name = `Artikel ${String(i).padStart(4, '0')}`) =>
+    ({ id: `a${i}`, companyId: 'perl', name, category: 'Fittings', unit: 'Stk', stock: 0, articleNumber: `F${i}` }) as WithId<Material>;
+
+  it('holt die ersten zwanzig nach Namen — „und N weitere“ holt die nächsten', async () => {
+    materialien = Array.from({ length: 45 }, (_, i) => artikel(i));
+    zeige();
+    expect(await screen.findByText('Artikel 0019')).toBeInTheDocument();
+    expect(screen.queryByText('Artikel 0020')).not.toBeInTheDocument();
+    expect(katalogAbfragen[0]).toEqual({ begriff: '', anzahl: 20 });
+
+    await userEvent.click(screen.getByRole('button', { name: 'und 25 weitere anzeigen' }));
+    expect(await screen.findByText('Artikel 0039')).toBeInTheDocument();
+    expect(katalogAbfragen[katalogAbfragen.length - 1]).toEqual({ begriff: '', anzahl: 40 });
+    expect(screen.getByRole('button', { name: 'und 5 weitere anzeigen' })).toBeInTheDocument();
+  });
+
+  it('findet auch, was hinter den ersten tausend Artikeln liegt', async () => {
+    materialien = [...Array.from({ length: 1200 }, (_, i) => artikel(i)), artikel(9999, 'Zylinderkopf Pressfitting 22')];
+    zeige();
+    await screen.findByText('Artikel 0000');
+    await userEvent.type(screen.getByRole('textbox', { name: /Suche/ }), 'Pressfitting');
+    expect(await screen.findByText('Zylinderkopf Pressfitting 22')).toBeInTheDocument();
+    expect(screen.queryByText('Artikel 0000')).not.toBeInTheDocument();
+  });
+
+  it('eine Änderung im Katalog holt die Seite neu — die Liste bleibt live', async () => {
+    zeige();
+    await screen.findByText('Kupferrohr 15mm');
+    materialien = [...materialien, artikel(1, 'Eckventil 1/2"')];
+    await act(async () => katalogGeaendert());
+    expect(await screen.findByText('Eckventil 1/2"')).toBeInTheDocument();
+  });
+
+  it('die Retoure sucht auf dem Server — auch einen Artikel, der oben nicht geladen ist', async () => {
+    materialien = [...Array.from({ length: 30 }, (_, i) => artikel(i)), { ...artikel(500, 'Zinkwanne'), unit: 'Stk' }];
+    zeige();
+    await screen.findByText('Artikel 0000');
+    expect(screen.queryByText('Zinkwanne')).not.toBeInTheDocument();
+    const fenster = await retoureOeffnen();
+    await userEvent.type(within(fenster).getByRole('searchbox', { name: 'Material' }), 'Zink');
+    await userEvent.click(await within(fenster).findByRole('button', { name: /Zinkwanne zurückgeben/ }));
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await waitFor(() => expect(retoure).toHaveBeenCalled());
+    expect(retoure.mock.calls[0][1]).toMatchObject({ materialId: 'a500', materialName: 'Zinkwanne', quantity: 1 });
+  });
+
+  it('Gegenprobe: ein Neuladen des Katalogs wischt den Fehler einer Retoure nicht weg', async () => {
+    zeige();
+    await screen.findByText('Kupferrohr 15mm');
+    const fenster = await retoureOeffnen();
+    await userEvent.type(within(fenster).getByRole('searchbox', { name: 'Material' }), 'Kupfer');
+    await userEvent.click(await within(fenster).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
+    const menge = within(fenster).getByLabelText('Menge');
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '-3');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    const meldung = (await within(fenster).findByRole('alert')).textContent;
+    await act(async () => katalogGeaendert());
+    await waitFor(() => expect(katalogAbfragen.length).toBeGreaterThan(1));
+    expect(within(fenster).getByRole('alert')).toHaveTextContent(meldung ?? '');
   });
 });
 

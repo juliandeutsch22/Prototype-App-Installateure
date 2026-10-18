@@ -62,7 +62,17 @@ const FEST = {
   meldungsvorgaben: 'export const PREFS_DEFAULTS = {} as never;\n',
   // `lagerFrei` liefert eine Map je Artikel — ein Feld hätte die Startseite als „nicht geladen“ gemeldet.
   materials: 'export const LOW_STOCK_THRESHOLD = 5;\n' +
-    'export const lagerFrei = () => A(new Map());\n',
+    'export const lagerFrei = () => A(new Map());\n' +
+    /*
+      SEIT 18.10.2026 holen Lager und „Material anfordern“ vom Server: eine
+      Seite mit Gesamtzahl, die Zahl des Katalogs, eine Suche und ein Kanal,
+      der Änderungen meldet. Als Liste oder NOOP geraten, stürzte die Seite
+      ab (`zeilen` von einer Liste, ein Versprechen als Aufräumfunktion).
+    */
+    'export const katalogSeite = () => A({ zeilen: D.materialien, gesamt: D.materialien.length });\n' +
+    'export const katalogAnzahl = () => A(D.materialien.length);\n' +
+    'export const sucheKatalog = () => A(D.materialien);\n' +
+    'export const katalogBeobachten = () => () => {};\n',
   materialOrders:
     "export const ORDER_STATUS_FLOW = ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'] as const;\n",
   quelle: 'export const nutztPostgres = () => false;\n',

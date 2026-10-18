@@ -306,6 +306,34 @@ describe('Was nicht dazugehört, kommt nicht an', () => {
     expect(e).toEqual({ falschDa: false, richtigDa: true });
   }, 40_000);
 
+  it('das Lager: ein Lagerartikel kommt an, ein reiner Katalogartikel nicht', async () => {
+    /*
+      Das Lager abonniert seit 18.10.2026 nur noch `lagerartikel = true`
+      (`subscribeLagerartikel`). Der Kanal filtert nur nach dem Betrieb;
+      ein eingespielter Katalogartikel darf nicht in die Lagerliste rutschen.
+    */
+    clientEinreichen(chef.client);
+    const e = await bleibtDraussen<WithId<unknown>[]>(
+      (melde, fehler) => material.subscribeLagerartikel(BETRIEB, melde, fehler),
+      {
+        ausloesen: async () => {
+          const { error } = await admin.from('materials').insert({ company_id: BETRIEB, name: 'Nur im Katalog 4711' });
+          if (error) throw new Error(error.message);
+        },
+        erkennen: (rows) => rows.some((r) => (r as { name?: string }).name === 'Nur im Katalog 4711'),
+      },
+      {
+        ausloesen: async () => {
+          const { error } = await admin.from('materials')
+            .insert({ company_id: BETRIEB, name: 'Im Lager 4712', stock: 3, lagerartikel: true });
+          if (error) throw new Error(error.message);
+        },
+        erkennen: (rows) => rows.some((r) => (r as { name?: string }).name === 'Im Lager 4712'),
+      },
+    );
+    expect(e).toEqual({ falschDa: false, richtigDa: true });
+  }, 40_000);
+
   it('eine Buchung ausserhalb des Zeitraums bleibt draussen', async () => {
     /*
       Der Kanal filtert nur nach dem Betrieb — Supabase kann je Kanal genau

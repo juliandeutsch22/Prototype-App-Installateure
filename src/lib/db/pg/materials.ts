@@ -3,7 +3,7 @@
  */
 import type { Lagerbewegung, Material } from '@/types';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
-import { abfragen, abonnieren, anlegen as kernAnlegen, aendern, loeschen, derClient, SEITE, type WithId } from './kern';
+import { abfragen, abonnieren, anlegen as kernAnlegen, aendern, loeschen, derClient, kanalHalten, SEITE, type WithId } from './kern';
 import { zeileAlsObjekt } from './felder';
 import { oderUeberSpalten } from './suche';
 
@@ -27,6 +27,92 @@ export function subscribeMaterials(
   max = KATALOG_GRENZE,
 ) {
   return abonnieren<Material>(MATERIAL, companyId, cb, onError, { grenze: max });
+}
+
+/**
+ * Nur die im Lager geführten Artikel, live — für die Lagerliste.
+ *
+ * Bis 18.10.2026 holte das Lager den ganzen Katalog (bis zur Grenze) und
+ * filterte im Browser. Nach einem DATANORM-Import fehlten dadurch die
+ * Lagerartikel, die nicht unter den ersten tausend Katalogzeilen lagen —
+ * und es kamen tausend Zeilen für ein paar Dutzend Regalplätze.
+ */
+export function subscribeLagerartikel(
+  companyId: string,
+  cb: (rows: WithId<Material>[]) => void,
+  onError: (e: Error) => void,
+  max = KATALOG_GRENZE,
+) {
+  return abonnieren<Material>(MATERIAL, companyId, cb, onError, {
+    wo: [{ art: 'gleich', feld: 'lagerartikel', wert: true }],
+    grenze: max,
+  });
+}
+
+/** Wie viele Artikel der Katalog hat — gezählt, nicht geholt. */
+export async function katalogAnzahl(companyId: string): Promise<number> {
+  const { count, error } = await derClient()
+    .from(MATERIAL)
+    .select('id', { count: 'exact', head: true })
+    .eq('company_id', companyId);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+/**
+ * Der Anfang des Katalogs nach Namen, auf Wunsch gesucht — mit der Zahl
+ * aller Treffer (Material anfordern, 18.10.2026).
+ *
+ * Geholt wird immer ab dem ersten Artikel bis `anzahl`: „und N weitere“
+ * vergrössert die Seite, statt Stücke anzuhängen. So bleibt die Liste nach
+ * jedem Neuladen (eine Änderung im Katalog, ein Wiederaufbau) in sich
+ * stimmig, ohne Lücken und Doppel an einer Stückgrenze. Nach der Kennung
+ * als zweitem Schlüssel, damit gleichnamige Artikel nicht springen.
+ */
+export async function katalogSeite(
+  companyId: string,
+  begriff: string,
+  anzahl: number,
+): Promise<{ zeilen: WithId<Material>[]; gesamt: number }> {
+  let abfrage = derClient()
+    .from(MATERIAL)
+    .select('*', { count: 'exact' })
+    .eq('company_id', companyId);
+  const oder = oderUeberSpalten(['name', 'article_number', 'category'], begriff);
+  if (oder) abfrage = abfrage.or(oder);
+  const { data, error, count } = await abfrage.order('name').order('id').range(0, Math.max(0, anzahl - 1));
+  if (error) throw new Error(error.message);
+  const zeilen = (data ?? []).map((z) => zeileAlsObjekt<WithId<Material>>(MATERIAL, z));
+  return { zeilen, gesamt: count ?? zeilen.length };
+}
+
+/**
+ * Meldet, dass sich im Katalog etwas geändert hat — und wenn der Kanal
+ * (wieder) steht. Für Listen, die ihre Zeilen selbst holen: sie holen dann
+ * neu, statt den ganzen Katalog live mitzuführen. Gebündelt auf höchstens
+ * eine Meldung je Sekunde: ein Import schickt zehntausende Änderungen, und
+ * jede offene Seite holte sonst bei jeder neu.
+ */
+export function katalogBeobachten(companyId: string, beiAenderung: () => void): () => void {
+  let geplant: ReturnType<typeof setTimeout> | undefined;
+  const bald = () => {
+    if (geplant) return;
+    geplant = setTimeout(() => {
+      geplant = undefined;
+      beiAenderung();
+    }, 1000);
+  };
+  const stopp = kanalHalten({
+    tabelle: MATERIAL,
+    filter: `company_id=eq.${companyId}`,
+    beiAenderung: bald,
+    beiBereit: bald,
+    client: derClient(),
+  });
+  return () => {
+    if (geplant) clearTimeout(geplant);
+    stopp();
+  };
 }
 
 export type NewMaterial = Pick<Material, 'name' | 'category' | 'stock' | 'articleNumber' | 'unit'>;

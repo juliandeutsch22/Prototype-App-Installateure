@@ -687,7 +687,7 @@
     <div class="stempel">
       <span>Stand <b>18.10.2026</b></span>
       <span>Fassung <b>Lot v2 · Arbeitsstand</b></span>
-      <span>Automatische Prüfungen <b>5.125 Modulprüfungen · 72 Browserwege · 7 Linkprüfungen</b></span>
+      <span>Automatische Prüfungen <b>5.133 Modulprüfungen · 72 Browserwege · 7 Linkprüfungen</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -720,6 +720,12 @@
         <p>Jede Liste, die sich von selbst aktualisiert (Einsätze, Buchungen, Anforderungen, Lager …), holte beim Öffnen denselben Bestand dreimal kurz hintereinander: sofort für die Anzeige, noch einmal, sobald die Live-Verbindung stand, und ein drittes Mal zur Sicherheit kurz danach. Das mittlere Holen entfällt — das erste gilt —, das Sichernde bleibt und kommt zur selben Zeit wie bisher. Gemessen im langsamen Netz: Startseite 4,0 → 3,7 MB, Tagesplanung 766 → 575 KB, Wochenplan 534 → 442 KB, Lager 2,3 → 1,7 MB.</p>
         <p><strong>Was gleich bleibt:</strong> keine Zeile fehlt, was während des Ladens geändert wird, kommt mit; reißt die Verbindung ab, wird beim Wiederaufbau wie bisher gleich neu geholt.</p>
         <p class="wer">Gilt für alle · nichts einzustellen</p>
+      </div>
+      <div class="bereich">
+        <h3>Lager und Material anfordern: der Katalog vom Server<span class="neu">geändert</span></h3>
+        <p><strong>Lager:</strong> Die Liste holt nur noch die Artikel, die im Lager geführt werden — gefiltert in der Datenbank. Bisher kamen bis zu 1.000 Artikel des ganzen Katalogs und wurden erst im Browser gefiltert; nach einem DATANORM-Import fehlten dadurch Lagerartikel, die nicht unter den ersten tausend Katalogzeilen lagen. „von N im Katalog“ wird gezählt, nicht geholt.</p>
+        <p><strong>Material anfordern:</strong> Der Katalog kommt zu zwanzig nach Namen, „und N weitere“ holt die nächsten, und die Suche geht über den ganzen Katalog (Bezeichnung, Kategorie, Artikelnummer) — auch einen eingespielten mit zehntausenden Artikeln. Bisher suchte sie nur in den ersten tausend; was dahinter lag, tippte der Monteur von Hand ein. Auch die Retoure sucht so. Ändert sich im Katalog etwas, holt die Seite ihre Zeilen neu.</p>
+        <p class="wer">Monteur · Verwaltung · Leitung · nichts einzustellen</p>
       </div>
     </div>
   </section>

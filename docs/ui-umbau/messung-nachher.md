@@ -186,6 +186,21 @@ Hintergrund, Median aus drei Läufen:
 Gemessen vor dem Umbau der Mitarbeiterübersicht (Empfehlung 3, oben): ihre
 Datenmenge hing am Jahr, nicht an den Durchgängen.
 
+**Umgesetzt am 18.10.2026 — Empfehlung 3, Lager und Material anfordern.**
+Das Lager holt nur die im Lager geführten Artikel; „Material anfordern“
+holt den Katalog seitenweise und sucht auf dem Server. Ohne Hintergrund,
+Median aus drei Läufen (Testbestand am 18.10. neu angelegt):
+
+| Seite | übertragen vorher → nachher | ruhig vorher → nachher | Artikel-Zeilen |
+|---|---|---|---|
+| Material anfordern | 1.807 → 379 KB | 12,1 → 4,8 s | 3.000 → 20 je Seite |
+| Lager | 2.293 → 1.518 KB | 14,5 → 11,2 s | 3.000 → 1.600 (800 Lagerartikel, zweimal) |
+
+Gemessen auf dem Stand mit Empfehlung 2 (zwei statt drei Durchgänge).
+
+Berichtigt im Werkzeug: eine Zählung (HEAD) bringt keine Zeilen, auch wenn
+PostgREST „0-999/…“ als Bereich meldet.
+
 ## Gewöhnlicher erster Besuch (mit Vorladen und Service Worker)
 
 <!-- messung:anfang (erzeugt von scripts/ui-umbau/messung.mjs) -->

@@ -41,19 +41,35 @@ let anforderungsFehler = false;
 /** Hält den Katalog zurück, bis der Test ihn schickt — wie die Live-Liste, die einen Augenblick nach dem Aufbau kommt. */
 let katalogSenden: (() => void) | null = null;
 let katalogHalten = false;
+/** Wie oft die Ansicht die Lagerartikel abonniert hat. */
+let lagerAbos = 0;
+/** Meldet eine Änderung im Katalog, wie es der Live-Kanal täte. */
+let katalogGeaendert: () => void = () => undefined;
 
 const bestandAendern = vi.fn();
 
 vi.mock('@/lib/db/materials', () => ({
   LOW_STOCK_THRESHOLD: 5,
-  subscribeMaterials: (
+  /*
+    Wie der Server seit dem 18.10.2026: nur die im Lager geführten Artikel.
+    Ein Datensatz ohne Angabe gilt als geführt (`imLager`) — die Muster
+    hier tragen das Feld meist nicht.
+  */
+  subscribeLagerartikel: (
     _c: string,
     cb: (rows: WithId<Material>[]) => void,
     onError: (e: Error) => void,
   ) => {
+    lagerAbos += 1;
+    const geführt = () => materialien.filter((m) => m.lagerartikel !== false);
     if (katalogFehler) onError(new Error(katalogFehler));
-    else if (katalogHalten) katalogSenden = () => cb(materialien);
-    else cb(materialien);
+    else if (katalogHalten) katalogSenden = () => cb(geführt());
+    else cb(geführt());
+    return () => undefined;
+  },
+  katalogAnzahl: async () => materialien.length,
+  katalogBeobachten: (_c: string, melde: () => void) => {
+    katalogGeaendert = melde;
     return () => undefined;
   },
   lagerEingang: (...a: unknown[]) => bestandAendern(...a),
@@ -587,6 +603,27 @@ describe('Lager — wenn ein Ladevorgang scheitert', () => {
     expect(await screen.findByText('Kupferrohr 15')).toBeInTheDocument();
     expect(screen.queryByText('Kugelhahn aus dem Katalog')).not.toBeInTheDocument();
     expect(screen.getByText('von 2 im Katalog')).toBeInTheDocument();
+  });
+
+  /*
+    NUR DIE LAGERARTIKEL VOM SERVER (18.10.2026): vorher kam der ganze Katalog
+    bis zur Grenze, gefiltert im Browser — nach einem DATANORM-Import fehlten
+    die Lagerartikel hinter den ersten tausend Zeilen. Die Grösse des
+    Katalogs wird gezählt, nicht geholt, und neu gezählt, wenn er sich ändert.
+  */
+  it('fragt den Server nur nach den Lagerartikeln und zählt den Katalog neu, wenn er sich ändert', async () => {
+    lagerAbos = 0;
+    materialien = [
+      material({ id: 'l1', name: 'Kupferrohr 15', lagerartikel: true }),
+      material({ id: 'k1', name: 'Kugelhahn aus dem Katalog', stock: 0, lagerartikel: false }),
+    ];
+    zeige();
+    expect(await screen.findByText('von 2 im Katalog')).toBeInTheDocument();
+    expect(lagerAbos).toBe(1);
+
+    materialien = [...materialien, material({ id: 'k2', name: 'Eckventil', stock: 0, lagerartikel: false })];
+    await act(async () => katalogGeaendert());
+    expect(await screen.findByText('von 3 im Katalog')).toBeInTheDocument();
   });
 
   it('knapp heißt: unter der Mindestmenge, wo eine steht (M30)', async () => {

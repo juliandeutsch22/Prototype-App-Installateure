@@ -71,6 +71,15 @@ describe('Erzeugte Ersatzmodule der Vorschau', () => {
     expect(modul('wartungen')).toContain('export const listWartungen = () => A(D.wartungen);');
   });
 
+  it('der Katalog vom Server hat in der Vorschau seine Form (18.10.2026)', () => {
+    expect(modul('materials')).toContain('export const katalogSeite = () => A({ zeilen: D.materialien, gesamt: D.materialien.length });');
+    expect(modul('materials')).toContain('export const katalogAnzahl = () => A(D.materialien.length);');
+    expect(modul('materials')).toContain('export const sucheKatalog = () => A(D.materialien);');
+    // Eine Aufräumfunktion, kein Versprechen — sonst wirft React beim Verlassen der Seite.
+    expect(modul('materials')).toContain('export const katalogBeobachten = () => () => {};');
+    expect(modul('materials')).toMatch(/export const subscribeLagerartikel = SUB\(/);
+  });
+
   it('beide FEST-Einträge für Rechnungen gelten', () => {
     expect(modul('invoices')).toContain('export const scheineAufRechnung = () => A([]);');
     expect(modul('invoices')).toContain('export const sucheRechnungen = () => A([]);');
