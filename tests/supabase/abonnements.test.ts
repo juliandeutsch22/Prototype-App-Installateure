@@ -276,6 +276,36 @@ describe('Jede Änderung, die dazugehört, kommt an', () => {
 });
 
 describe('Was nicht dazugehört, kommt nicht an', () => {
+  it('die Urlaubstage: ein Urlaubstag kommt an, eine Anwesenheit nicht', async () => {
+    /*
+      Die Mitarbeiterübersicht holt seit 18.10.2026 nur noch die Urlaubstage
+      über den Monat hinaus (`subscribeUrlaubstage`) — gefiltert wird im Kanal
+      nur nach dem Betrieb, der Status prüft der Client an der eingehenden
+      Zeile. Eine Anwesenheit im selben Zeitraum darf nicht hineinrutschen.
+    */
+    const buch = await konto(BETRIEB, 'Buchhaltung', 'buch-urlaub');
+    clientEinreichen(buch.client);
+    const e = await bleibtDraussen<WithId<unknown>[]>(
+      (melde, fehler) => zeiten.subscribeUrlaubstage(BETRIEB, '2026-07-01', '2026-07-31', melde, fehler),
+      {
+        ausloesen: async () => { await admin.from('time_entries').insert(buchung(
+          { ...berta, betrieb: BETRIEB } as Konto, '2026-07-13', { travel_time: 97 })); },
+        erkennen: (rows) => rows.some((r) => (r as { travelTime?: number }).travelTime === 97),
+      },
+      {
+        ausloesen: async () => {
+          const { error } = await admin.from('time_entries').insert(buchung(
+            { ...berta, betrieb: BETRIEB } as Konto, '2026-07-14',
+            { status: 'Urlaub', start_time: null, end_time: null, break_duration: 0 }));
+          if (error) throw new Error(error.message);
+        },
+        erkennen: (rows) => rows.some((r) => (r as { date?: string; status?: string }).date === '2026-07-14'
+          && (r as { status?: string }).status === 'Urlaub'),
+      },
+    );
+    expect(e).toEqual({ falschDa: false, richtigDa: true });
+  }, 40_000);
+
   it('eine Buchung ausserhalb des Zeitraums bleibt draussen', async () => {
     /*
       Der Kanal filtert nur nach dem Betrieb — Supabase kann je Kanal genau

@@ -946,6 +946,8 @@ describe('Mitarbeiterübersicht: Kennzahlen (Runde 4, Auftrag 3.2)', () => {
     buchungen = [...eintraege.filter((e) => e.date !== '2026-08-25'), { ...eintrag('2026-08-25'), startTime: '05:00', endTime: '18:30' }];
     zeichneSeite();
     expect(await screen.findByText(/13:00 Std\. am 25\.08\. — höchstens 12 Std\./)).toBeInTheDocument();
+    // Die Liste steht erst mit ihrer ganzen Grundlage (seit 18.10. auch den Urlaubstagen) — auf sie warten, nicht nur auf die Karte.
+    await personKnopf('Neu Eingestellt');
     // Die Kennzahl „Arbeitszeitgrenzen“ ist weg (Wunsch des Betriebs, 09.10.2026); Karte und Streifen bleiben.
     expect(screen.queryByRole('button', { name: /^Arbeitszeitgrenzen/ })).toBeNull();
     expect(tagKnopf(/Di 25\.08\. · 05:00–18:30 · 13:00 Std\..*höchstens 12 Std\./)).toHaveClass('st-grenze');
@@ -956,6 +958,7 @@ describe('Mitarbeiterübersicht: Kennzahlen (Runde 4, Auftrag 3.2)', () => {
   it('Gegenprobe: ohne Fall ist der Tag nur gebucht', async () => {
     zeichneSeite();
     expect(await screen.findByText('Im August 2026 wurde keine Grenze überschritten.')).toBeInTheDocument();
+    await personKnopf('Neu Eingestellt');
     expect(tagKnopf(/Di 25\.08\./)).toHaveClass('st-ok');
   });
 });
