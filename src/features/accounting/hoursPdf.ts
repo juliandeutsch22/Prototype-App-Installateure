@@ -51,10 +51,12 @@ export function generateHoursPdf(opts: {
   company: Company;
   user: AppUser;
   entries: TimeEntry[];
+  /** Buchungen derselben Woche vor `from` — nur für die 51. Wochenstunde (KV). */
+  vorlauf?: TimeEntry[];
   from: string;
   to: string;
 }): jsPDF {
-  const { company, user, entries, from, to } = opts;
+  const { company, user, entries, from, to, vorlauf = [] } = opts;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const margin = 15;
   const rightX = 195;
@@ -202,7 +204,7 @@ export function generateHoursPdf(opts: {
     ÜBERSTUNDEN NUR BEIM MODELL „TAGESGRENZE“ (Paket 2c) — und nur, wenn es
     welche gibt, wie bei den Zuschlägen. Stunden, kein Geld.
   */
-  const ue = ueberstundenNachTagesgrenze(user, sorted, ueberstundenRegelVon(company), halbeTage);
+  const ue = ueberstundenNachTagesgrenze(user, sorted, ueberstundenRegelVon(company), halbeTage, vorlauf);
   if (ue.fuenfzigMin > 0 || ue.hundertMin > 0) {
     doc.text(
       `Überstunden — 50 %: ${hours(ue.fuenfzigMin)} h · 100 %: ${hours(ue.hundertMin)} h`,

@@ -112,6 +112,11 @@ export interface UserWithEntries {
   user: AppUser;
   monthEntries: TimeEntry[];
   stats: MonthStats;
+  /**
+   * Buchungen der Person in der Kalenderwoche vor dem Monatsersten — nur für
+   * die Überstunden ab der 51. Wochenstunde (KV Metallgewerbe).
+   */
+  vorlauf?: TimeEntry[];
 }
 
 /* ------------------------------------------------------------------ */
@@ -210,13 +215,13 @@ export function buildMonthCsv(
   );
   // Das Lehrjahr am letzten Tag des Monats: wechselt es mittendrin, gilt für die Abrechnung der neue Stand.
   const monatsletzter = `${year}-${String(month + 1).padStart(2, '0')}-${String(new Date(year, month + 1, 0).getDate()).padStart(2, '0')}`;
-  for (const { user, monthEntries, stats } of [...rows].sort((a, b) => a.user.name.localeCompare(b.user.name, 'de'))) {
+  for (const { user, monthEntries, stats, vorlauf } of [...rows].sort((a, b) => a.user.name.localeCompare(b.user.name, 'de'))) {
     // „davon beides" ist keine Zierde: der Rohrbruch um zwei Uhr früh trägt
     // beide Kennzeichen. Wer Nacht und Notdienst addiert, zählt diese
     // Stunden doppelt — und sähe es der Datei nicht an.
     const z = zuschlagszeit(monthEntries, halbeTage, lohn.nacht);
     const ue = lohn.ueberstunden
-      ? ueberstundenNachTagesgrenze(user, monthEntries, lohn.ueberstunden, halbeTage)
+      ? ueberstundenNachTagesgrenze(user, monthEntries, lohn.ueberstunden, halbeTage, vorlauf)
       : null;
     lines.push(
       row([
@@ -329,6 +334,8 @@ export function buildUserCsv(
   month: number,
   halbeTage: boolean,
   lohn: Lohnregeln = {},
+  /** Wie `UserWithEntries.vorlauf`: die Woche vor dem Monatsersten. */
+  vorlauf: TimeEntry[] = [],
 ): string {
   const lines: string[] = [];
   lines.push(row([`Zeiterfassung: ${user.name}`]));
@@ -393,7 +400,7 @@ export function buildUserCsv(
   lines.push(row(['davon beides', `${hours(z.beidesMin)} h`]));
   lines.push(row(['24./31.12. ab 12 Uhr', `${hours(z.dezemberMin)} h`]));
   if (lohn.ueberstunden && mitTagesgrenze(lohn)) {
-    const ue = ueberstundenNachTagesgrenze(user, monthEntries, lohn.ueberstunden, halbeTage);
+    const ue = ueberstundenNachTagesgrenze(user, monthEntries, lohn.ueberstunden, halbeTage, vorlauf);
     lines.push(row(['Überstunden 50 %', `${hours(ue.fuenfzigMin)} h`]));
     lines.push(row(['Überstunden 100 %', `${hours(ue.hundertMin)} h`]));
   }
