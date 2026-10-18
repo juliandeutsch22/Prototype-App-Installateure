@@ -172,11 +172,24 @@ describe('M1 — Tage in der Zukunft, Berufsschule, andere Verteilung', () => {
     expect(await screen.findByText(/keine Grenze überschritten/)).toBeInTheDocument();
   });
 
-  it('Gegenprobe: ohne Unterrichtszeit und gleichmässig verteilt bleibt der Fall von 8:30 Std.', async () => {
+  it('Gegenprobe: ohne Unterrichtszeit, gleichmässig verteilt und mit Arbeit danach bleibt der Fall von 9 Std.', async () => {
     const lena = { ...LENA, workDays: [1, 2, 3, 4, 5], tagessoll: { 1: 8.5, 2: 8.5, 3: 8.5, 4: 8.5, 5: 8.5 } } as AppUser;
-    buchungen = [tag('s1', '2026-10-08', '', '', { status: 'Berufsschule', startTime: undefined, endTime: undefined })];
+    buchungen = [
+      tag('s1', '2026-10-08', '', '', { status: 'Berufsschule', startTime: undefined, endTime: undefined }),
+      tag('a1', '2026-10-08', '15:00', '15:30'),
+    ];
     zeichne({ personen: [lena] });
-    expect(await screen.findByText(/8:30 Std\. am 08\.10\. — höchstens 8 Std\./)).toBeInTheDocument();
+    expect(await screen.findByText(/9:00 Std\. am 08\.10\. — höchstens 8 Std\./)).toBeInTheDocument();
+  });
+
+  it('nach 8 Std. Unterricht steht Arbeit als Verstoß nach § 11 Abs 7 da', async () => {
+    const lena = { ...LENA, workDays: [1, 2, 3, 4, 5], tagessoll: { 1: 8, 2: 8, 3: 8, 4: 8.5, 5: 6 } } as AppUser;
+    buchungen = [
+      tag('s1', '2026-10-08', '', '', { status: 'Berufsschule', startTime: undefined, endTime: undefined, unterrichtMin: 480 }),
+      tag('a1', '2026-10-08', '16:00', '16:30'),
+    ];
+    zeichne({ personen: [lena] });
+    expect(await screen.findByText(/Arbeit nach 8:00 Std\. Berufsschule am 08\.10\.: 0:30 Std\./)).toBeInTheDocument();
   });
 
   it('anders verteilt (Do 8,5, Fr 6 Std.): bis 9 Std. am Tag ist kein Verstoß', async () => {

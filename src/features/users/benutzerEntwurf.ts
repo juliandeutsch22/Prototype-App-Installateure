@@ -381,9 +381,10 @@ const stunden = (h: number) => zahlAlsText(Math.round(h * 100) / 100);
  * (Runde 3, M2). Ein Tagessoll von 8,5 Std. für eine 17-Jährige ging ohne
  * ein Wort durch; der Verstoss zeigte sich erst an den Buchungen.
  *
- * Ein Hinweis, keine Sperre: ob ein längerer Tag bei anderer Verteilung der
- * Wochenarbeitszeit zulässig ist (§ 11 Abs 2 KJBG, bis 9 Std.), ist mit der
- * WKO noch zu klären — die Akte sagt es dazu und speichert nach Rückfrage.
+ * Ein Hinweis, keine Sperre: ein längerer Tag ist bei anderer Verteilung der
+ * Wochenarbeitszeit bis 9 Std. zulässig (§ 11 Abs 2 und 3 KJBG) — ob sie der
+ * längeren Freizeit an der Wochenfreizeit dient, weiss nur der Betrieb. Die
+ * Akte sagt es dazu und speichert nach Rückfrage.
  * Ohne Geburtsdatum und ab 18 kommt nichts (Gegenprobe in den Tests).
  */
 export function jugendschutzHinweise(
@@ -401,7 +402,7 @@ export function jugendschutzHinweise(
   if (wochenStd > woche) {
     out.push(`Wochensoll ${stunden(wochenStd)} Std. — für Jugendliche höchstens ${woche} Std. in der Woche (§ 11 KJBG).`);
   }
-  const ausnahme = `bei anderer Verteilung der Wochenarbeitszeit bis ${GRENZEN.jugendlich.tagVerteilt / 60} Std. (§ 11 Abs 2 KJBG, vorbehaltlich der WKO-Klärung)`;
+  const ausnahme = `bei anderer Verteilung der Wochenarbeitszeit für eine längere Freizeit an der Wochenfreizeit bis ${GRENZEN.jugendlich.tagVerteilt / 60} Std. (§ 11 Abs 2 und 3 KJBG)`;
   if (p.tagessoll) {
     const lang = tage.filter((d) => (p.tagessoll?.[String(d.value)] ?? 0) > tag);
     if (lang.length > 0) {
