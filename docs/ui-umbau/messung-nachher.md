@@ -168,6 +168,24 @@ Was bleibt: die Buchungen des Monats kommen weiter dreimal (Live-Liste,
 Empfehlung 2) und der Vorlauf der Arbeitszeitgrenzen (17 Wochen, nur die
 Spalten der Arbeitszeit, rund 2 MB).
 
+**Umgesetzt am 18.10.2026 — Empfehlung 2.** Das erste Bild einer
+Live-Liste zählt beim ersten Aufbau als Laden nach `SUBSCRIBED`; es bleibt
+beim ersten Bild und dem Nachfassen (zwei statt drei Durchgänge). Anders
+als vorgeschlagen bleibt das erste Bild auch mit gemerktem Stand: wo
+Websockets gesperrt sind, ist es die einzige frische Abfrage. Ohne
+Hintergrund, Median aus drei Läufen:
+
+| Seite | übertragen vorher → nachher | DB-Anfragen |
+|---|---|---|
+| Start | 4.008 → 3.671 KB | 46 → 46 |
+| Planung (Tag) | 766 → 575 KB | 23 → 22 |
+| Planung (Woche) | 534 → 442 KB | 20 → 18 |
+| Lager | 2.293 → 1.741 KB | 25 → 22 |
+| Mitarbeiterübersicht | 22.336 → 22.459 KB | 137 → 87 |
+
+Gemessen vor dem Umbau der Mitarbeiterübersicht (Empfehlung 3, oben): ihre
+Datenmenge hing am Jahr, nicht an den Durchgängen.
+
 ## Gewöhnlicher erster Besuch (mit Vorladen und Service Worker)
 
 <!-- messung:anfang (erzeugt von scripts/ui-umbau/messung.mjs) -->

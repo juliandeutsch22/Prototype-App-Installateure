@@ -830,6 +830,7 @@ export function abonnieren<T>(
    * verschwinden. Ein reines Zusammenlegen liesse sie stehen.
    */
   const laden = async (): Promise<void> => {
+    geladenSeitdem = true;
     bereit = false;
     try {
       const zeilen = await abfragen<T>(tabelle, companyId, abfrage, c);
@@ -853,13 +854,30 @@ export function abonnieren<T>(
     unverändert, das Laden nach `SUBSCRIBED` und das Nachfassen folgen wie
     bisher.
 
-    Kommt dieses erste Ergebnis erst, NACHDEM der Kanal steht, wird es
-    verworfen: dann läuft schon das richtige Laden, und ein älterer Stand
-    dürfte es nicht überschreiben. Ein Fehler hier bleibt still — gemeldet
-    wird, wie bisher, was nach dem Aufbau des Kanals scheitert.
+    Ein Fehler hier bleibt still — gemeldet wird, wie bisher, was nach dem
+    Aufbau des Kanals scheitert.
   */
   let kanalBereit = false;
   let abgemeldet = false;
+  /*
+    DAS ERSTE BILD ZÄHLT ALS LADEN NACH `SUBSCRIBED` (Mengengerüst,
+    18.10.2026). Gemessen holte jede Live-Liste ihren Bestand dreimal kurz
+    hintereinander — erstes Bild, Laden nach dem Aufbau, Nachfassen —, bei
+    den grossen Listen (Artikel, Einsätze) das Doppelte der Datenmenge von
+    vorher. Das Laden nach dem Aufbau bringt nichts, was das Nachfassen nicht
+    ohnehin bringt: erst dieses ist sicher nach dem Moment geholt, in dem der
+    Server hört (Punkt 3 oben). Beim ersten Aufbau wird deshalb nicht noch
+    einmal geholt: das erste Bild gilt — ob es schon da ist oder noch kommt —,
+    und was bis dahin hereinkommt, wartet im Puffer und wird danach
+    angewandt, genau wie nach `laden`. Nur wenn es scheiterte, wird wie
+    bisher gleich geladen.
+
+    Das erste Bild selbst bleibt, auch mit gemerktem Stand: ohne Kanal —
+    etwa wo ein Netz Websockets sperrt — ist es die einzige frische Abfrage.
+    Beim Wiederaufbau nach einem Abriss wird wie bisher gleich geladen; ein
+    erstes Bild, das erst danach ankommt, ist älter und gilt nicht mehr.
+  */
+  let geladenSeitdem = false;
 
   /*
     NOCH FRÜHER: DER LETZTE STAND (Laden ohne Springen, Stufe 3). War die
@@ -876,14 +894,26 @@ export function abonnieren<T>(
     });
   }
 
-  void abfragen<T>(tabelle, companyId, abfrage, c)
+  /** Wie lange das erste Bild unterwegs war — so lange hätte das Laden nach dem Aufbau gedauert. */
+  const erstesBildAb = Date.now();
+  let erstesBildDauer = 0;
+  /** `true`, wenn das erste Bild ankam; `false`, wenn es scheiterte. */
+  const erstesBild: Promise<boolean> = abfragen<T>(tabelle, companyId, abfrage, c)
     .then((zeilen) => {
-      if (kanalBereit || abgemeldet) return;
+      erstesBildDauer = Date.now() - erstesBildAb;
+      if (abgemeldet || geladenSeitdem) return true;
       bestand.clear();
       for (const z of zeilen) bestand.set((z as unknown as { id: string }).id, z);
+      // Steht der Kanal schon, gilt es als Laden: was seither hereinkam, gleich mit — nicht erst ein Bild ohne.
+      if (kanalBereit) {
+        for (const n of puffer) anwendenAenderung(n);
+        puffer.length = 0;
+        bereit = true;
+      }
       melden();
+      return true;
     })
-    .catch(() => undefined);
+    .catch(() => false);
 
   /** Viele Meldungen kurz hintereinander: einmal zeichnen, nicht je Meldung. */
   let meldenGeplant: ReturnType<typeof setTimeout> | undefined;
@@ -909,7 +939,34 @@ export function abonnieren<T>(
       baldMelden();
     },
     beiBereit: () => {
+      const ersterAufbau = !kanalBereit;
       kanalBereit = true;
+      const bereitUm = Date.now();
+      if (ersterAufbau) {
+        void erstesBild.then((angekommen) => {
+          if (abgemeldet) return;
+          if (!angekommen || geladenSeitdem) {
+            if (!geladenSeitdem) void laden().then(() => { nachfassen = setTimeout(() => { void laden(); }, NACHFASSEN_MS); });
+            return;
+          }
+          // Was seit dem Aufbau hereinkam, auf das erste Bild — wie nach `laden`.
+          const warteten = puffer.length > 0;
+          for (const n of puffer) anwendenAenderung(n);
+          puffer.length = 0;
+          bereit = true;
+          if (warteten) melden();
+          /*
+            DAS NACHFASSEN ZUR SELBEN ZEIT WIE BISHER: Aufbau + Dauer eines
+            Ladens + NACHFASSEN_MS. Gleich nach dem Aufbau angesetzt, käme es um
+            diese Dauer früher — unter Last früher, als der Server zu hören
+            beginnt (so in der Prüfung gegen die lokale Datenbank gesehen),
+            und eine Meldung aus dieser Zeit holte niemand mehr nach.
+          */
+          const faellig = bereitUm + erstesBildDauer + NACHFASSEN_MS;
+          nachfassen = setTimeout(() => { void laden(); }, Math.max(0, faellig - Date.now()));
+        });
+        return;
+      }
       void laden().then(() => {
         // Das Nachfassen. Siehe Punkt 4 im Kopf dieser Funktion.
         nachfassen = setTimeout(() => { void laden(); }, NACHFASSEN_MS);
