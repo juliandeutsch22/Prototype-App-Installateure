@@ -211,6 +211,10 @@ export function buildMonthCsv(
       // Seit 04.10.2026 (Plan 10.3), wieder ganz hinten. Der unbezahlte Urlaub
       // steht eigens: ihn zieht die Lohnverrechnung ab, das Zeitkonto nicht.
       'Sonderurlaub-Tage', 'Pflegefreistellung-Tage', 'Freigestellt stundenweise(Std)', 'Unbezahlt-Tage',
+      // Seit 18.10.2026, nur beim Modell „Tagesgrenze“ und ganz hinten: die
+      // Nachtstunden, die Überstunden sind — für sie gilt der Zuschlag statt
+      // der Nachtarbeitszulage (KV Metallgewerbe, Abschnitt XIV Pkt 5).
+      ...(mitTagesgrenze(lohn) ? ['davon Nacht als Überstunde(Std)'] : []),
     ]),
   );
   // Das Lehrjahr am letzten Tag des Monats: wechselt es mittendrin, gilt für die Abrechnung der neue Stand.
@@ -221,7 +225,7 @@ export function buildMonthCsv(
     // Stunden doppelt — und sähe es der Datei nicht an.
     const z = zuschlagszeit(monthEntries, halbeTage, lohn.nacht);
     const ue = lohn.ueberstunden
-      ? ueberstundenNachTagesgrenze(user, monthEntries, lohn.ueberstunden, halbeTage, vorlauf)
+      ? ueberstundenNachTagesgrenze(user, monthEntries, lohn.ueberstunden, halbeTage, vorlauf, lohn.nacht)
       : null;
     lines.push(
       row([
@@ -246,6 +250,7 @@ export function buildMonthCsv(
         stats.pflegeDays,
         hours(stats.freigestelltMin),
         stats.unbezahltDays,
+        ...(mitTagesgrenze(lohn) && ue ? [hours(ue.nachtAlsUeberstundeMin ?? 0)] : []),
       ]),
     );
   }
@@ -400,9 +405,12 @@ export function buildUserCsv(
   lines.push(row(['davon beides', `${hours(z.beidesMin)} h`]));
   lines.push(row(['24./31.12. ab 12 Uhr', `${hours(z.dezemberMin)} h`]));
   if (lohn.ueberstunden && mitTagesgrenze(lohn)) {
-    const ue = ueberstundenNachTagesgrenze(user, monthEntries, lohn.ueberstunden, halbeTage, vorlauf);
+    const ue = ueberstundenNachTagesgrenze(user, monthEntries, lohn.ueberstunden, halbeTage, vorlauf, lohn.nacht);
     lines.push(row(['Überstunden 50 %', `${hours(ue.fuenfzigMin)} h`]));
     lines.push(row(['Überstunden 100 %', `${hours(ue.hundertMin)} h`]));
+    if (ue.nachtAlsUeberstundeMin !== undefined) {
+      lines.push(row(['davon Nacht als Überstunde', `${hours(ue.nachtAlsUeberstundeMin)} h`]));
+    }
   }
 
   return lines.join('\n');

@@ -6,7 +6,8 @@ import Button from '@/components/Button';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
-import { ueberstundenRegelVon } from '@/lib/lohnregeln';
+import { decktKvNacht, nachtzeitVon, ueberstundenRegelVon } from '@/lib/lohnregeln';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import { durchrechnungsWochen } from '@/features/accounting/arbeitszeitGrenzen';
 
 /**
@@ -93,7 +94,8 @@ export default function LohnregelnKarte() {
           sonst arbeitsfreien Tag ab der 11. Stunde, jede Stunde an Sonn- und Feiertagen und am 24. und
           31.12. jede Überstunde (Abschnitt XIV Punkt 8–11). Wann am Tag die Überstunden lagen, steht in
           keiner Buchung; Stunden zwischen 20 und 6 Uhr gelten zuerst als Überstunden. Was am 24./31.12.
-          nach 12 Uhr liegt, steht nur in der eigenen Spalte. Für Angestellte gilt ein anderer
+          nach 12 Uhr liegt, steht nur in der eigenen Spalte. Für Überstunden gilt der Zuschlag statt der
+          Nachtarbeitszulage: „davon Nacht als Überstunde“ sagt, wie viele Nachtstunden das sind. Für Angestellte gilt ein anderer
           Kollektivvertrag: bei ihnen bleibt es bei 50 % und dem Schalter für Sonn- und Feiertage. Der
           Durchrechnungszeitraum gilt für die Arbeitszeitgrenzen: im
           Schnitt höchstens 48 Std. je Woche, nach dem Gesetz über 17 Wochen (§ 9 Abs 4 AZG); länger,
@@ -135,6 +137,23 @@ export default function LohnregelnKarte() {
           </SelectField>
         )}
       </FormGrid>
+      {/*
+        KÜRZER ALS 22–6 UHR (18.10.2026). Unter dem KV Metallgewerbe steht die
+        Zulage für 22 bis 6 Uhr zu, und abweichen darf ein Betrieb nur zu
+        Gunsten der Arbeitnehmer. Ein Hinweis, keine Sperre: ein Betrieb mit
+        anderem Kollektivvertrag stellt ein, was dort gilt, und schaltet den
+        KV unten ab.
+      */}
+      {kvMetall && !decktKvNacht(nachtzeitVon({ nachtVon, nachtBis })) && (
+        <div className="mt-3">
+          <Hinweiszeile stufe="warn">
+            <b>Kürzer als 22 bis 6 Uhr.</b> Gilt der Kollektivvertrag Metallgewerbe, steht die
+            Nachtarbeitszulage für jede Stunde zwischen 22 und 6 Uhr zu (Abschnitt XIV Punkt 5); eine
+            kürzere Nachtzeit darf der Betrieb nicht vereinbaren, abweichen nur zugunsten der
+            Arbeitnehmer (§ 3 Abs 1 ArbVG).
+          </Hinweiszeile>
+        </div>
+      )}
       {modell === 'tagesgrenze' && (
         <div className="mt-3 flex flex-col gap-2">
           <CheckboxField

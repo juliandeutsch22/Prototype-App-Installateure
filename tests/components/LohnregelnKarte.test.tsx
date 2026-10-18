@@ -90,3 +90,29 @@ describe('Zuschläge nach dem KV Metallgewerbe (18.10.2026)', () => {
     expect(screen.getByLabelText('Zuschläge nach dem KV Metallgewerbe (Arbeiter und Lehrlinge)')).not.toBeChecked();
   });
 });
+
+describe('Nachtzeit kürzer als 22 bis 6 Uhr (18.10.2026)', () => {
+  const hinweis = () => screen.queryByText(/Kürzer als 22 bis 6 Uhr\./);
+
+  it('zeigt beim Eintragen von 23–5 Uhr den Hinweis, gespeichert wird trotzdem', async () => {
+    zeige();
+    expect(hinweis()).toBeNull();
+    fireEvent.change(screen.getByLabelText('Nachtzeit von'), { target: { value: '23:00' } });
+    fireEvent.change(screen.getByLabelText('Nachtzeit bis'), { target: { value: '05:00' } });
+    expect(hinweis()?.closest('.hinweiszeile')).toHaveTextContent(/abweichen nur zugunsten der Arbeitnehmer \(§ 3 Abs 1 ArbVG\)/);
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', expect.objectContaining({ nachtVon: '23:00', nachtBis: '05:00' })));
+  });
+
+  it('Gegenprobe: eine längere Nachtzeit (21–6 Uhr) braucht keinen Hinweis', () => {
+    zeige();
+    fireEvent.change(screen.getByLabelText('Nachtzeit von'), { target: { value: '21:00' } });
+    expect(hinweis()).toBeNull();
+  });
+
+  it('Gegenprobe: ein Betrieb, der den KV Metallgewerbe abgeschaltet hat, sieht ihn nicht', () => {
+    firma = { ...firma, ueberstundenModell: 'tagesgrenze', ueberstundenKvMetall: false, nachtVon: '23:00', nachtBis: '05:00' };
+    zeige();
+    expect(hinweis()).toBeNull();
+  });
+});

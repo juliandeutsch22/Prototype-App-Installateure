@@ -43,7 +43,7 @@ describe('ab der dritten Überstunde am Tag', () => {
   const langerTag = [tag('2026-06-02', '06:00', '18:00')];
 
   it('zwei Stunden mit 50 %, der Rest mit 100 %', () => {
-    expect(ueberstundenNachTagesgrenze(ARBEITER, langerTag, kv(), true)).toEqual({ fuenfzigMin: 120, hundertMin: 90 });
+    expect(ueberstundenNachTagesgrenze(ARBEITER, langerTag, kv(), true)).toEqual({ fuenfzigMin: 120, hundertMin: 90, nachtAlsUeberstundeMin: 0 });
   });
 
   it('bleibt gleich: ohne Einstufung (Angestellte) und mit abgeschaltetem KV alles 50 %', () => {
@@ -53,7 +53,7 @@ describe('ab der dritten Überstunde am Tag', () => {
 
   it('Gegenprobe: bis zwei Überstunden bleibt alles bei 50 %', () => {
     expect(ueberstundenNachTagesgrenze(ARBEITER, [tag('2026-06-02', '07:00', '17:30')], kv(), true))
-      .toEqual({ fuenfzigMin: 120, hundertMin: 0 });
+      .toEqual({ fuenfzigMin: 120, hundertMin: 0, nachtAlsUeberstundeMin: 0 });
   });
 });
 
@@ -61,30 +61,30 @@ describe('Überstunden zwischen 20 und 6 Uhr', () => {
   it('am Abend: die Überstunde liegt in der Nacht und trägt 100 %', () => {
     // 14:00–23:30 mit Pause: 9 Std., eine über dem Soll; 3,5 Std. ab 20 Uhr.
     expect(ueberstundenNachTagesgrenze(ARBEITER, [tag('2026-06-02', '14:00', '23:30')], kv(), true))
-      .toEqual({ fuenfzigMin: 0, hundertMin: 60 });
+      .toEqual({ fuenfzigMin: 0, hundertMin: 60, nachtAlsUeberstundeMin: 0 });
   });
 
   it('am frühen Morgen: zugunsten des Arbeitnehmers zählen die Stunden vor 6 zuerst', () => {
     // 04:00–14:00 mit Pause: 9,5 Std., 1,5 über dem Soll; zwei Stunden vor 6 Uhr.
     expect(ueberstundenNachTagesgrenze(ARBEITER, [tag('2026-06-02', '04:00', '14:00')], kv(), true))
-      .toEqual({ fuenfzigMin: 0, hundertMin: 90 });
+      .toEqual({ fuenfzigMin: 0, hundertMin: 90, nachtAlsUeberstundeMin: 90 });
   });
 
   it('Gegenprobe: Überstunden am Tag bleiben bei 50 %', () => {
     expect(ueberstundenNachTagesgrenze(ARBEITER, [tag('2026-06-02', '07:00', '17:00')], kv(), true))
-      .toEqual({ fuenfzigMin: 90, hundertMin: 0 });
+      .toEqual({ fuenfzigMin: 90, hundertMin: 0, nachtAlsUeberstundeMin: 0 });
   });
 });
 
 describe('am sonst arbeitsfreien Tag erst ab der 11. Stunde', () => {
   it('Samstag 08:00–20:00 mit Pause: zehn Stunden 50 %, anderthalb 100 %', () => {
     expect(ueberstundenNachTagesgrenze(ARBEITER, [tag('2026-06-06', '08:00', '20:00')], kv(), true))
-      .toEqual({ fuenfzigMin: 600, hundertMin: 90 });
+      .toEqual({ fuenfzigMin: 600, hundertMin: 90, nachtAlsUeberstundeMin: 0 });
   });
 
   it('Gegenprobe: vier Stunden am Samstag sind alle 50 % — nicht ab der dritten', () => {
     expect(ueberstundenNachTagesgrenze(ARBEITER, [tag('2026-06-06', '08:00', '12:00', 0)], kv(), true))
-      .toEqual({ fuenfzigMin: 240, hundertMin: 0 });
+      .toEqual({ fuenfzigMin: 240, hundertMin: 0, nachtAlsUeberstundeMin: 0 });
   });
 });
 
@@ -93,7 +93,7 @@ describe('Sonn- und Feiertage', () => {
   const fronleichnam = tag('2026-06-04', '08:00', '10:00', 0);
 
   it('jede Stunde 100 %, auch ohne den Schalter für Sonn- und Feiertage', () => {
-    expect(ueberstundenNachTagesgrenze(ARBEITER, [sonntag, fronleichnam], kv(), true)).toEqual({ fuenfzigMin: 0, hundertMin: 360 });
+    expect(ueberstundenNachTagesgrenze(ARBEITER, [sonntag, fronleichnam], kv(), true)).toEqual({ fuenfzigMin: 0, hundertMin: 360, nachtAlsUeberstundeMin: 0 });
   });
 
   it('bleibt gleich: ohne Einstufung entscheidet weiter der Schalter', () => {
@@ -111,13 +111,13 @@ describe('ab der 51. Stunde der Woche', () => {
   it('am Freitag liegt jede Überstunde über der 50. Stunde: alle vier mit 100 %', () => {
     // Mo–Do je 2 × 50 % + 2 × 100 %, Freitag 4 × 100 %.
     expect(ueberstundenNachTagesgrenze(ARBEITER, [...montagBisDonnerstag, freitag], kv(), true))
-      .toEqual({ fuenfzigMin: 4 * 120, hundertMin: 4 * 120 + 240 });
+      .toEqual({ fuenfzigMin: 4 * 120, hundertMin: 4 * 120 + 240, nachtAlsUeberstundeMin: 0 });
   });
 
   it('Gegenprobe: bei Gleitzeit (Grenze zehn Stunden) gilt die Wochenregel nicht', () => {
     // Je Tag zwei Stunden über zehn — beide 50 %, auch am Freitag.
     expect(ueberstundenNachTagesgrenze(ARBEITER, [...montagBisDonnerstag, freitag], kv({ grenze: 'zehn' }), true))
-      .toEqual({ fuenfzigMin: 5 * 120, hundertMin: 0 });
+      .toEqual({ fuenfzigMin: 5 * 120, hundertMin: 0, nachtAlsUeberstundeMin: 0 });
   });
 
   it('die Tage vor dem Monatsersten in derselben Woche zählen mit (Vorlauf)', () => {
@@ -125,10 +125,10 @@ describe('ab der 51. Stunde der Woche', () => {
     const vorlauf = ['2026-09-28', '2026-09-29', '2026-09-30'].map((d) => tag(d, '06:00', '18:30'));
     const monat = [tag('2026-10-01', '06:00', '18:30'), tag('2026-10-02', '06:00', '18:30')];
     expect(ueberstundenNachTagesgrenze(ARBEITER, monat, kv(), true, vorlauf))
-      .toEqual({ fuenfzigMin: 120, hundertMin: 120 + 240 });
+      .toEqual({ fuenfzigMin: 120, hundertMin: 120 + 240, nachtAlsUeberstundeMin: 0 });
     // Gegenprobe ohne Vorlauf: die Woche begänne am Ersten bei null.
     expect(ueberstundenNachTagesgrenze(ARBEITER, monat, kv(), true))
-      .toEqual({ fuenfzigMin: 240, hundertMin: 240 });
+      .toEqual({ fuenfzigMin: 240, hundertMin: 240, nachtAlsUeberstundeMin: 0 });
   });
 });
 
@@ -138,7 +138,7 @@ describe('24. und 31. Dezember', () => {
   const heiligAbend = [tag('2026-12-24', '07:00', '16:00')];
 
   it('jede Überstunde 100 % — ohne den Nachmittag, der in „ab 12 Uhr“ schon zählt', () => {
-    expect(ueberstundenNachTagesgrenze(ARBEITER, heiligAbend, kv(), true)).toEqual({ fuenfzigMin: 0, hundertMin: 60 });
+    expect(ueberstundenNachTagesgrenze(ARBEITER, heiligAbend, kv(), true)).toEqual({ fuenfzigMin: 0, hundertMin: 60, nachtAlsUeberstundeMin: 0 });
   });
 
   it('bleibt gleich: ohne Einstufung wie bisher 50 %', () => {
@@ -168,5 +168,51 @@ describe('in der Lohn-CSV', () => {
     const einzeln = buildUserCsv(mitarbeiter, monat, stats, 2026, 9, true, lohn, vorlauf);
     expect(einzeln).toContain('Überstunden 50 %;2,00 h');
     expect(einzeln).toContain('Überstunden 100 %;6,00 h');
+  });
+});
+
+describe('Nachtstunden, die Überstunden sind (Abschnitt XIV Pkt 5)', () => {
+  it('14:00–02:00: von 3,5 Überstunden liegen zwei vor 22 Uhr, anderthalb in der Nachtzeit', () => {
+    // 11,5 Std. Arbeit, 3,5 über dem Soll; 20–2 Uhr sind 6 Std., davon 22–2 Uhr vier in der Nachtzeit.
+    expect(ueberstundenNachTagesgrenze(ARBEITER, [tag('2026-06-02', '14:00', '02:00')], kv(), true).nachtAlsUeberstundeMin).toBe(90);
+  });
+
+  it('folgt der Nachtzeit des Betriebs: ab 21 Uhr sind es zweieinhalb Stunden', () => {
+    expect(ueberstundenNachTagesgrenze(ARBEITER, [tag('2026-06-02', '14:00', '02:00')], kv(), true, [], { von: 21 * 60, bis: 6 * 60 })
+      .nachtAlsUeberstundeMin).toBe(150);
+  });
+
+  it('am arbeitsfreien Samstag ist jede Nachtstunde eine Überstunde', () => {
+    // 20:00–02:00 ohne Pause: alles Überstunde, 22–2 Uhr in der Nachtzeit.
+    expect(ueberstundenNachTagesgrenze(ARBEITER, [tag('2026-06-06', '20:00', '02:00', 0)], kv(), true).nachtAlsUeberstundeMin).toBe(240);
+  });
+
+  it('Gegenprobe: Überstunden am Tag nehmen keiner Nachtstunde die Zulage', () => {
+    expect(ueberstundenNachTagesgrenze(ARBEITER, [tag('2026-06-02', '06:00', '18:00')], kv(), true).nachtAlsUeberstundeMin).toBe(0);
+  });
+
+  it('bleibt gleich: ohne Einstufung oder ohne KV gibt es die Zahl nicht', () => {
+    expect(ueberstundenNachTagesgrenze(ANGESTELLT, [tag('2026-06-02', '14:00', '02:00')], kv(), true)).not.toHaveProperty('nachtAlsUeberstundeMin');
+    expect(ueberstundenNachTagesgrenze(ARBEITER, [tag('2026-06-02', '14:00', '02:00')], kv({ kvMetall: false }), true))
+      .not.toHaveProperty('nachtAlsUeberstundeMin');
+  });
+
+  it('steht in der Lohn-CSV ganz hinten und beim einzelnen Mitarbeiter', async () => {
+    const { buildMonthCsv, buildUserCsv } = await import('@/features/accounting/export');
+    const { calcMonthStats } = await import('@/lib/time');
+    const mitarbeiter = {
+      id: 'u1', uid: 'u1', companyId: 'c', name: 'Max', email: 'm@x.at', role: 'Mitarbeiter',
+      weeklyTargetHours: 40, workDays: [1, 2, 3, 4, 5], appStartDate: '2026-01-01', einstufung: 'facharbeiter',
+    } as AppUser;
+    const monat = [tag('2026-06-02', '14:00', '02:00')];
+    const stats = calcMonthStats(mitarbeiter, monat, monat, 2026, 5, true);
+    const lohn = { ueberstunden: ueberstundenRegelVon({ ueberstundenModell: 'tagesgrenze' }) };
+    const zeilen = buildMonthCsv([{ user: mitarbeiter, monthEntries: monat, stats }], 2026, 5, true, lohn).split('\n');
+    const ab = zeilen.indexOf('Mitarbeiter-Zusammenfassung');
+    expect(zeilen[ab + 1].endsWith(';Unbezahlt-Tage;davon Nacht als Überstunde(Std)')).toBe(true);
+    expect(zeilen[ab + 2].endsWith(';1,50')).toBe(true);
+    expect(buildUserCsv(mitarbeiter, monat, stats, 2026, 5, true, lohn)).toContain('davon Nacht als Überstunde;1,50 h');
+    // Gegenprobe: beim Zeitkonto gibt es die Spalte nicht.
+    expect(buildMonthCsv([{ user: mitarbeiter, monthEntries: monat, stats }], 2026, 5, true)).not.toContain('Nacht als Überstunde');
   });
 });

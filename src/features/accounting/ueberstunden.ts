@@ -1,7 +1,9 @@
 import type { AppUser, TimeEntry } from '@/types';
 import { calcWorkMin, tagesAnteil, tagessollStunden } from '@/lib/time';
 import { isAustrianHoliday } from '@shared/feiertage';
-import { arbeitMinImFenster, type Nachtzeit, type UeberstundenRegel } from '@/lib/lohnregeln';
+import {
+  arbeitMinImFenster, fensterSchnitt, NACHTZEIT_VORGABE, type Nachtzeit, type UeberstundenRegel,
+} from '@/lib/lohnregeln';
 import { dezemberNachmittagMin } from './zuschlaege';
 import { montagVon } from './arbeitszeitGrenzen';
 
@@ -43,6 +45,15 @@ import { montagVon } from './arbeitszeitGrenzen';
  * gelten zuerst als Überstunden, und die Zählregeln (dritte Überstunde,
  * 51. Wochenstunde, 11. Stunde) treffen die übrigen.
  *
+ * NACHTSTUNDEN, DIE ÜBERSTUNDEN SIND (seit 18.10.2026): die Nachtarbeitszulage
+ * gilt nach dem KV nur für Stunden, die keine Überstunden sind (Abschnitt XIV
+ * Pkt 5). „Nacht(Std)“ zählt weiter jede Stunde in der Nachtzeit des
+ * Betriebs; `nachtAlsUeberstundeMin` sagt, wie viele davon Überstunden sind —
+ * für sie zahlt die Lohnverrechnung den Zuschlag statt der Zulage. Auch hier
+ * zugunsten des Arbeitnehmers: die Überstunden zwischen 20 und 6 Uhr liegen
+ * zuerst ausserhalb der Nachtzeit des Betriebs (20–22 Uhr bei der Vorgabe),
+ * erst der Rest nimmt Nachtstunden die Zulage.
+ *
  * Gezählt wird nur `Anwesend`; Wegzeit zählt nicht (wie im Zeitkonto).
  */
 export interface Ueberstunden {
@@ -50,6 +61,11 @@ export interface Ueberstunden {
   fuenfzigMin: number;
   /** Überstunden mit 100 % Zuschlag, in Minuten. */
   hundertMin: number;
+  /**
+   * Nur nach dem KV: Minuten in der Nachtzeit des Betriebs, die Überstunden
+   * sind — sie tragen keine Nachtarbeitszulage (Abschnitt XIV Pkt 5).
+   */
+  nachtAlsUeberstundeMin?: number;
 }
 
 export const KEINE_UEBERSTUNDEN: Ueberstunden = { fuenfzigMin: 0, hundertMin: 0 };
@@ -77,12 +93,17 @@ export function ueberstundenNachTagesgrenze(
   regel: UeberstundenRegel,
   halbeTage: boolean,
   vorlauf: TimeEntry[] = [],
+  /** Die Nachtzeit des Betriebs — für die Nachtstunden, die Überstunden sind. */
+  nacht: Nachtzeit = NACHTZEIT_VORGABE,
 ): Ueberstunden {
   if (regel.modell !== 'tagesgrenze') return KEINE_UEBERSTUNDEN;
   const kv = regel.kvMetall && !!user.einstufung;
+  const nachtImUeberstundenFenster = fensterSchnitt(nacht, UEBERSTUNDEN_NACHT);
 
   const jeTag = new Map<string, number>();
   const nachtJeTag = new Map<string, number>();
+  /** Davon in der Nachtzeit des Betriebs. */
+  const betriebsNachtJeTag = new Map<string, number>();
   const mittagJeTag = new Map<string, number>();
   for (const e of eintraege) {
     if (e.status !== 'Anwesend') continue;
@@ -91,6 +112,8 @@ export function ueberstundenNachTagesgrenze(
     jeTag.set(e.date, (jeTag.get(e.date) ?? 0) + min);
     if (kv) {
       nachtJeTag.set(e.date, (nachtJeTag.get(e.date) ?? 0) + arbeitMinImFenster(e, UEBERSTUNDEN_NACHT));
+      const imBetrieb = nachtImUeberstundenFenster.reduce((sum, f) => sum + arbeitMinImFenster(e, f), 0);
+      betriebsNachtJeTag.set(e.date, (betriebsNachtJeTag.get(e.date) ?? 0) + imBetrieb);
       mittagJeTag.set(e.date, (mittagJeTag.get(e.date) ?? 0) + dezemberNachmittagMin(e, halbeTage));
     }
   }
@@ -114,14 +137,11 @@ export function ueberstundenNachTagesgrenze(
   const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
   let fuenfzigMin = 0;
   let hundertMin = 0;
+  let nachtAlsUeberstundeMin = 0;
   for (const [iso, min] of jeTag) {
     const tag = new Date(`${iso}T00:00:00`);
     const feiertag = isAustrianHoliday(tag);
     const sonnFeiertag = tag.getDay() === 0 || feiertag;
-    if (sonnFeiertag && (kv || regel.hundertSonnFeiertag)) {
-      hundertMin += min;
-      continue;
-    }
     const arbeitstag = workDays.includes(tag.getDay()) && !feiertag;
     const grenze = !arbeitstag
       ? 0
@@ -129,6 +149,15 @@ export function ueberstundenNachTagesgrenze(
         ? 10 * 60
         : Math.round(tagessollStunden(user, iso) * tagesAnteil(iso, halbeTage) * 60);
     const ueber = Math.max(0, min - grenze);
+    if (kv) {
+      const nacht2006 = nachtJeTag.get(iso) ?? 0;
+      const ausserhalbBetriebsNacht = nacht2006 - (betriebsNachtJeTag.get(iso) ?? 0);
+      nachtAlsUeberstundeMin += Math.max(0, Math.min(ueber, nacht2006) - ausserhalbBetriebsNacht);
+    }
+    if (sonnFeiertag && (kv || regel.hundertSonnFeiertag)) {
+      hundertMin += min;
+      continue;
+    }
     if (!kv) {
       fuenfzigMin += ueber;
       continue;
@@ -149,5 +178,5 @@ export function ueberstundenNachTagesgrenze(
     hundertMin += hundert;
     fuenfzigMin += ueber - hundert;
   }
-  return { fuenfzigMin, hundertMin };
+  return kv ? { fuenfzigMin, hundertMin, nachtAlsUeberstundeMin } : { fuenfzigMin, hundertMin };
 }
