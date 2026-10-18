@@ -83,9 +83,9 @@ Anpassung, kein Umbau.
 
 | # | Bei wem | Punkt | Stand im Code |
 |---|---|---|---|
-| D1 | WKO | **M3** aliquoter Urlaub taggenau, **M35** Nachtzuschlag nur für die Minuten in der Nachtzeit | umgesetzt nach Lesart, Urlaub bleibt änderbarer Vorschlag |
+| D1 | WKO | **M3** aliquoter Urlaub taggenau, **M35** Nachtzuschlag nur für die Minuten in der Nachtzeit | umgesetzt nach Lesart, Urlaub bleibt änderbarer Vorschlag. Am 18.10.2026 nachgeprüft: die Nachtzeit 22–6 Uhr je Stunde steht so im KV (Abschnitt XIV Pkt 5); beim Urlaub lässt § 2 Abs 4 Z 1 UrlG der Vereinbarung „je begonnenem Monat ein Zwölftel“ — offen, Empfehlung in `recherche-fragenkataloge.md` |
 | D2 | WKO | **M22** Mahnspesen an Privatkunden: Warnung ab 40 € (§ 1333 Abs 2 ABGB) | an Unternehmer hart 40 € (§ 458 UGB), an Private nur Warnung |
-| D3 | WKO | **KJBG** — Schutzregeln für Jugendliche (Lehrlinge) | seit 05.10.2026 geprüft in der Mitarbeiterübersicht (8/40 Std., 12 Std. Ruhezeit, Nachtruhe 20–6 Uhr, zwei freie Tage mit Sonntag; Geburtsdatum in der Benutzerakte). Die WKO bestätigt die Werte |
+| D3 | WKO | **KJBG** — Schutzregeln für Jugendliche (Lehrlinge) | seit 05.10.2026 geprüft in der Mitarbeiterübersicht (8/40 Std., 12 Std. Ruhezeit, Nachtruhe 20–6 Uhr, zwei freie Tage mit Sonntag; Geburtsdatum in der Benutzerakte). Am 18.10.2026 am Gesetz nachgeprüft, der Berufsschultag nach § 11 Abs 7 berichtigt (`recherche-fragenkataloge.md`); eine Bestätigung der WKO braucht es dafür nicht mehr |
 | D4 | Steuerberatung | **H6** Buchung des Stornos: die Stornorechnung trägt das Ausstellungsdatum, gebucht wird der Storno weiter am Stornotag | wandert die Buchung mit, ist es eine Zeile im BMD-Stapel |
 | D5 | Steuerberatung | **M26** der vorgeschlagene Kontenrahmen | Hinweis „Vorschlag – mit der Kanzlei abstimmen“ steht |
 | D6 | Steuerberatung | **K3** die Lücke im Rechnungskreis des Pilotbetriebs aus der Zeit vor dem 25.09. festhalten | der Kreis läuft seit 25.09. lückenlos |

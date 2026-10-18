@@ -1108,7 +1108,7 @@ export default function TimeForm({
             pflicht
           />
           {/*
-            DIE UNTERRICHTSZEIT (Runde 3, M1, vorbehaltlich der WKO-Klärung).
+            DIE UNTERRICHTSZEIT (Runde 3, M1; § 11 Abs 5–7 KJBG).
             Die Prüfung der Grenzen für Jugendliche setzte den Schultag mit dem
             Tagessoll an — an einem langen Donnerstag ein Verstoss, den es nicht
             gab. Leer bleibt es dabei.
@@ -1128,8 +1128,10 @@ export default function TimeForm({
             </div>
             <InfoHint about="Unterricht je Schultag">
               Zählt in der Prüfung der Arbeitszeitgrenzen für Jugendliche statt des Tagessolls — etwa
-              „7,5“ oder „7:30“. Leer zählt der Schultag mit dem Tagessoll. Das Zeitkonto rechnet den
-              Schultag weiter mit dem Tagessoll. Die Regel ist mit der WKO noch zu klären.
+              „7,5“ oder „7:30“, samt den Pausen in der Schule, ohne Mittagspause (§ 11 Abs 6 KJBG). Nach
+              acht Stunden Unterricht darf an dem Tag nicht mehr gearbeitet werden, darunter nur bis zur
+              Tagesgrenze (§ 11 Abs 7 KJBG). Leer zählt der Schultag mit dem Tagessoll. Das Zeitkonto
+              rechnet den Schultag weiter mit dem Tagessoll.
             </InfoHint>
           </div>
         </div>

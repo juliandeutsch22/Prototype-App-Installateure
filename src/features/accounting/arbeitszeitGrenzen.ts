@@ -23,18 +23,30 @@ import { leseZahl } from '@/lib/zahl';
  *   (unter 18)    12 Std. Ruhezeit (§ 16 KJBG), keine Arbeit zwischen 20 und
  *                 6 Uhr (§ 17 KJBG), zwei freie Kalendertage am Stück mit dem
  *                 Sonntag (§ 19 KJBG). Die Berufsschule zählt zur
- *                 Wochenarbeitszeit (§ 11 Abs 6 KJBG).
+ *                 Wochenarbeitszeit (§ 11 Abs 5 KJBG); nach mindestens acht
+ *                 Stunden Unterricht keine Arbeit mehr (§ 11 Abs 7 KJBG).
  *   Ruhepausen  — mehr als 6 Std. Arbeit am Tag: mindestens 30 Min. Pause
  *                 (§ 11 AZG), bei Jugendlichen schon ab 4,5 Std. (§ 15 KJBG).
  *   Durchschnitt — Erwachsene höchstens 48 Std. je Woche im Schnitt von 17
  *                 Wochen (§ 9 Abs 4 AZG), gleitend: je Woche die 17 bis zu ihr.
  *
- * VORBEHALTLICH DER WKO-KLÄRUNG (Runde 3, M1):
- *   - Ein Berufsschultag zählt mit seiner Unterrichtszeit, wenn sie beim
- *     Eintragen angegeben wurde; sonst mit dem Tagessoll.
+ * DER BERUFSSCHULTAG (Runde 3, M1; am Gesetz nachgeprüft am 18.10.2026,
+ * `docs/recherche-fragenkataloge.md`):
+ *   - Er zählt mit seiner Unterrichtszeit, wenn sie beim Eintragen angegeben
+ *     wurde, sonst mit dem Tagessoll (§ 11 Abs 5 und 6 KJBG).
+ *   - Der Unterricht allein ist nie ein Verstoss am Tag: er ist keine
+ *     Beschäftigung im Betrieb. Gezählt wird, sobald am selben Tag gearbeitet
+ *     wurde — Unterricht und Arbeit zusammen gegen die Tagesgrenze, und nach
+ *     angegebenen acht Stunden Unterricht ist jede Arbeit einer (§ 11 Abs 7
+ *     KJBG). Das Tagessoll als Ersatz ist nur eine Schätzung; an ihm hängt
+ *     die Acht-Stunden-Regel deshalb nicht.
+ *   - Die Wegzeit zwischen Schule und Betrieb zählt nach § 11 Abs 7 mit; die
+ *     App kennt sie nicht (benannte Grenze).
  *   - Ist die Wochenarbeitszeit anders verteilt (eigenes Tagessoll mit
  *     kürzeren und längeren Tagen, zusammen höchstens 40 Std.), gilt am Tag
- *     bis 9 Std. (§ 11 Abs 2 KJBG).
+ *     bis 9 Std. (§ 11 Abs 2 und 3 KJBG). Ob die kürzeren Tage an der
+ *     Wochenfreizeit liegen, wie Abs 2 es verlangt, oder der
+ *     Kollektivvertrag die Verteilung zulässt, prüft die App nicht.
  *   - Mit `stichtag` zählt nur, was bis dahin gebucht ist: ein Tag in der
  *     Zukunft ist noch nicht gearbeitet und kein Verstoss.
  *
@@ -77,6 +89,11 @@ export interface Grenzfall {
   grenze: number;
   /** Nur beim Durchschnitt: über wie viele Wochen gerechnet wurde. */
   wochen?: number;
+  /**
+   * Nur am Tag nach angegebenen acht oder mehr Stunden Unterricht: so viele
+   * Minuten Unterricht (§ 11 Abs 7 KJBG). `ist` ist Unterricht plus Arbeit.
+   */
+  schuleMin?: number;
 }
 
 export const GRENZEN = {
@@ -203,16 +220,19 @@ export function grenzfaelle(
 
   // Minuten je Tag, belegte Tage, Intervalle mit Uhrzeit.
   const minutenJeTag = new Map<string, number>();
+  /** Der Unterricht je Tag eines Jugendlichen, und ob er angegeben oder nur das Tagessoll ist. */
+  const schuleJeTag = new Map<string, { min: number; angegeben: boolean }>();
   const belegt = new Set<string>();
   const intervalle: Intervall[] = [];
   for (const e of eintraege) {
     if (e.status === 'Berufsschule') {
       belegt.add(e.date);
       if (jugendlich(e.date)) {
-        const schule = e.unterrichtMin != null && e.unterrichtMin > 0
-          ? e.unterrichtMin
-          : person.schultagMin?.(e.date) ?? 0;
+        const angegeben = e.unterrichtMin != null && e.unterrichtMin > 0;
+        const schule = angegeben ? e.unterrichtMin! : person.schultagMin?.(e.date) ?? 0;
         minutenJeTag.set(e.date, (minutenJeTag.get(e.date) ?? 0) + schule);
+        const vorher = schuleJeTag.get(e.date);
+        schuleJeTag.set(e.date, { min: (vorher?.min ?? 0) + schule, angegeben: angegeben || !!vorher?.angegeben });
       }
       continue;
     }
@@ -236,6 +256,15 @@ export function grenzfaelle(
     const grenze = !jung
       ? GRENZEN.erwachsen.tag
       : person.andereVerteilung ? GRENZEN.jugendlich.tagVerteilt : GRENZEN.jugendlich.tag;
+    const schule = jung ? schuleJeTag.get(tag) : undefined;
+    if (schule) {
+      // Ohne Arbeit im Betrieb ist ein langer Schultag kein Verstoss.
+      if (min - schule.min <= 0) continue;
+      if (schule.angegeben && schule.min >= GRENZEN.jugendlich.tag) {
+        faelle.push({ art: 'tag', bezug: tag, jugendlich: true, ist: min, grenze: schule.min, schuleMin: schule.min });
+        continue;
+      }
+    }
     if (min > grenze) faelle.push({ art: 'tag', bezug: tag, jugendlich: jung, ist: min, grenze });
   }
 
@@ -398,6 +427,12 @@ const kurz = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
 export function grenzText(f: Grenzfall): { titel: string; gesetz: string } {
   switch (f.art) {
     case 'tag':
+      if (f.schuleMin !== undefined) {
+        return {
+          titel: `Arbeit nach ${stdMin(f.schuleMin)} Std. Berufsschule am ${kurz(f.bezug)}: ${stdMin(f.ist - f.schuleMin)} Std.`,
+          gesetz: '§ 11 Abs 7 KJBG',
+        };
+      }
       return {
         titel: `${stdMin(f.ist)} Std. am ${kurz(f.bezug)} — höchstens ${f.grenze / 60} Std.`,
         gesetz: !f.jugendlich ? '§ 9 AZG' : f.grenze > GRENZEN.jugendlich.tag ? '§ 11 Abs 2 KJBG' : '§ 11 KJBG',
@@ -447,9 +482,9 @@ export function fallSchluessel(userId: string, f: { art: string; bezug: string }
 
 /**
  * Ist die Wochenarbeitszeit ANDERS VERTEILT? Dann darf ein Jugendlicher am Tag
- * bis 9 Std. arbeiten (§ 11 Abs 2 KJBG; Runde 3, M1, vorbehaltlich der
- * WKO-Klärung). Gelesen aus dem eigenen Tagessoll: kürzere und längere Tage
- * nebeneinander, zusammen höchstens 40 Std. Gleichmässig verteilt — auch
+ * bis 9 Std. arbeiten (§ 11 Abs 2 und 3 KJBG; Runde 3, M1). Gelesen aus dem
+ * eigenen Tagessoll: kürzere und längere Tage nebeneinander, zusammen
+ * höchstens 40 Std. Gleichmässig verteilt — auch
  * ohne eigenes Tagessoll — bleibt es bei 8 Std.
  */
 export function andereVerteilung(

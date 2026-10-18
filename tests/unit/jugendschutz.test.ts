@@ -30,9 +30,9 @@ describe('M1 — Berufsschultag mit Unterrichtszeit', () => {
     expect(grenzfaelle([schule('2026-10-08', 420)], OKTOBER, tagessoll85)).toEqual([]);
   });
 
-  it('bleibt gleich: ohne Unterrichtszeit zählt das Tagessoll — 8:30 Std. sind ein Fall', () => {
-    expect(grenzfaelle([schule('2026-10-08')], OKTOBER, tagessoll85)).toEqual([
-      { art: 'tag', bezug: '2026-10-08', jugendlich: true, ist: 510, grenze: 480 },
+  it('ohne Unterrichtszeit zählt das Tagessoll — mit Arbeit danach sind 8:30 Std. ein Fall', () => {
+    expect(grenzfaelle([schule('2026-10-08'), tag('2026-10-08', '15:00', '15:30')], OKTOBER, tagessoll85)).toEqual([
+      { art: 'tag', bezug: '2026-10-08', jugendlich: true, ist: 540, grenze: 480 },
     ]);
   });
 
@@ -43,6 +43,49 @@ describe('M1 — Berufsschultag mit Unterrichtszeit', () => {
       .toEqual([{ art: 'woche', bezug: '2026-10-05', jugendlich: true, ist: 41 * 60, grenze: 40 * 60 }]);
     const kurz = [...woche, schule('2026-10-08', 8 * 60)];
     expect(grenzfaelle(kurz, OKTOBER, tagessoll85).filter((f) => f.art === 'woche')).toEqual([]);
+  });
+});
+
+describe('Berufsschultag nach § 11 Abs 5–7 KJBG (nachgeprüft am 18.10.2026)', () => {
+  const tagessoll85 = { ...JUGENDLICH, schultagMin: () => 510 };
+  const verteilt = { ...JUGENDLICH, andereVerteilung: true, schultagMin: () => 480 };
+
+  it('der Unterricht allein ist kein Verstoß am Tag, auch über 8 Std.', () => {
+    expect(grenzfaelle([schule('2026-10-08')], OKTOBER, tagessoll85)).toEqual([]);
+    expect(grenzfaelle([schule('2026-10-08', 9 * 60)], OKTOBER, tagessoll85)).toEqual([]);
+  });
+
+  it('bleibt gleich: der Schultag ohne Arbeit zählt weiter in die Woche', () => {
+    const woche = ['2026-10-05', '2026-10-06', '2026-10-07', '2026-10-09'].map((d) => tag(d, '07:00', '15:30', 30));
+    expect(grenzfaelle([...woche, schule('2026-10-08')], OKTOBER, tagessoll85).map((f) => [f.art, f.ist]))
+      .toEqual([['woche', 2430]]);
+  });
+
+  it('nach angegebenen 8 Std. Unterricht ist jede Arbeit ein Verstoß — auch wenn am Tag 9 Std. gelten', () => {
+    const f = grenzfaelle([schule('2026-10-08', 8 * 60), tag('2026-10-08', '16:00', '16:30')], OKTOBER, verteilt);
+    expect(f).toEqual([{ art: 'tag', bezug: '2026-10-08', jugendlich: true, ist: 510, grenze: 480, schuleMin: 480 }]);
+    expect(grenzText(f[0])).toEqual({ titel: 'Arbeit nach 8:00 Std. Berufsschule am 08.10.: 0:30 Std.', gesetz: '§ 11 Abs 7 KJBG' });
+  });
+
+  it('Gegenprobe: unter 8 Std. Unterricht zählt die Summe gegen die Tagesgrenze', () => {
+    expect(grenzfaelle([schule('2026-10-08', 7 * 60), tag('2026-10-08', '15:00', '17:00')], OKTOBER, verteilt)).toEqual([]);
+    expect(grenzfaelle([schule('2026-10-08', 7 * 60), tag('2026-10-08', '15:00', '16:00')], OKTOBER, JUGENDLICH)).toEqual([]);
+    expect(grenzfaelle([schule('2026-10-08', 7 * 60), tag('2026-10-08', '15:00', '16:30')], OKTOBER, JUGENDLICH)).toEqual([
+      { art: 'tag', bezug: '2026-10-08', jugendlich: true, ist: 510, grenze: 480 },
+    ]);
+  });
+
+  it('bleibt gleich: am nur geschätzten Schultag (Tagessoll) gilt die Acht-Stunden-Regel nicht', () => {
+    expect(grenzfaelle([schule('2026-10-08'), tag('2026-10-08', '16:00', '16:30')], OKTOBER, verteilt)).toEqual([]);
+  });
+
+  it('die Rückfrage vor dem Buchen kennt die Regel ebenso', () => {
+    const f = grenzfaelleDerBuchung([schule('2026-10-08', 8 * 60), tag('2026-10-08', '16:00', '17:00')], '2026-10-08', verteilt);
+    expect(f.map((x) => grenzText(x).gesetz)).toEqual(['§ 11 Abs 7 KJBG']);
+  });
+
+  it('bei Erwachsenen bleibt die Berufsschule draussen', () => {
+    expect(grenzfaelle([schule('2026-10-08', 8 * 60), tag('2026-10-08', '16:00', '17:00')], OKTOBER, { geburtsdatum: '1990-05-01' })).toEqual([]);
   });
 });
 
@@ -196,7 +239,7 @@ describe('M2 — Hinweis in der Akte', () => {
   it('unter 18: Tagessoll über 8 Std. und Wochensoll über 40 Std. werden genannt', () => {
     const lang = alsEntwurf(person({ tagessoll: { 1: 8, 2: 8, 3: 8, 4: 8.5, 5: 6 } }));
     expect(jugendschutzHinweise(lang, '2010-03-15', HEUTE)).toEqual([
-      'Tagessoll Do 8,5 Std. — für Jugendliche höchstens 8 Std. am Tag, bei anderer Verteilung der Wochenarbeitszeit bis 9 Std. (§ 11 Abs 2 KJBG, vorbehaltlich der WKO-Klärung).',
+      'Tagessoll Do 8,5 Std. — für Jugendliche höchstens 8 Std. am Tag, bei anderer Verteilung der Wochenarbeitszeit für eine längere Freizeit an der Wochenfreizeit bis 9 Std. (§ 11 Abs 2 und 3 KJBG).',
     ]);
     const woche = alsEntwurf(person({ weeklyTargetHours: 42 }));
     expect(jugendschutzHinweise(woche, '2010-03-15', HEUTE)).toEqual([

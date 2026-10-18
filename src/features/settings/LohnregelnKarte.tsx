@@ -14,8 +14,10 @@ import { durchrechnungsWochen } from '@/features/accounting/arbeitszeitGrenzen';
  * Überstundenmodell).
  *
  * Beides je Betrieb, ab Werk wie bisher: Nachtzeit 22–6 Uhr, Überstunden
- * über das Zeitkonto. Ausgewiesen werden Stunden, nie Geld. Nach der Lesart
- * des Kollektivvertrags Metallgewerbe; mit der WKO noch abzugleichen.
+ * über das Zeitkonto. Ausgewiesen werden Stunden, nie Geld. Am
+ * Kollektivvertrag Metallgewerbe 2026 nachgeprüft (18.10.2026,
+ * `docs/recherche-fragenkataloge.md`): die Nachtzeit stimmt; die übrigen
+ * 100-%-Fälle des KV trennt die App nicht — der Hinweis sagt es.
  */
 export default function LohnregelnKarte() {
   const { user, company, reloadCompany } = useAuth();
@@ -80,7 +82,12 @@ export default function LohnregelnKarte() {
           Stundennachweis. Beim Zeitkonto (Gleitzeit) sammeln sich Mehrstunden im Saldo. Bei der
           Tagesgrenze stehen die Stunden über der Grenze eines Tages als Überstunden mit 50 % in
           Lohn-CSV und Stundennachweis; an Tagen ohne Soll zählt jede Stunde. Ausgewiesen werden
-          Stunden, nie Beträge. Der Durchrechnungszeitraum gilt für die Arbeitszeitgrenzen: im
+          Stunden, nie Beträge. Nach dem Kollektivvertrag Metallgewerbe gilt die Nachtarbeitszulage
+          für jede Arbeitsstunde zwischen 22 und 6 Uhr, ohne Mindestdauer (Abschnitt XIV Punkt 5) — so
+          rechnet die Vorgabe. Weitere Fälle mit 100 % trennt die App nicht: ab der dritten Überstunde
+          am Tag, Überstunden zwischen 20 und 6 Uhr, ab der 51. Stunde der Woche und am sonst
+          arbeitsfreien Tag ab der 11. Stunde (Abschnitt XIV Punkt 8). Sie stehen bei 50 %; die
+          Lohnverrechnung teilt sie zu. Der Durchrechnungszeitraum gilt für die Arbeitszeitgrenzen: im
           Schnitt höchstens 48 Std. je Woche, nach dem Gesetz über 17 Wochen (§ 9 Abs 4 AZG); länger,
           bis 52 Wochen, nur wenn der Kollektivvertrag es zulässt.
         </>

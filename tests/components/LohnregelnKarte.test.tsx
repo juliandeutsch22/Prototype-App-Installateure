@@ -57,3 +57,14 @@ describe('Durchrechnungszeitraum', () => {
     expect(updateCompany).not.toHaveBeenCalled();
   });
 });
+
+describe('Was der Kollektivvertrag Metallgewerbe sagt (nachgeprüft am 18.10.2026)', () => {
+  it('der Hinweis bestätigt die Nachtzeit und nennt die 100-%-Fälle, die die App nicht trennt', () => {
+    zeige();
+    fireEvent.click(screen.getByRole('button', { name: 'Was bedeutet Nachtzeit und Überstunden?' }));
+    const hinweis = screen.getByText(/Nachtarbeitszulage/);
+    expect(hinweis).toHaveTextContent(/jede Arbeitsstunde zwischen 22 und 6 Uhr, ohne Mindestdauer \(Abschnitt XIV Punkt 5\)/);
+    expect(hinweis).toHaveTextContent(/ab der dritten Überstunde am Tag, Überstunden zwischen 20 und 6 Uhr, ab der 51\. Stunde der Woche/);
+    expect(hinweis).toHaveTextContent(/Sie stehen bei 50 %; die Lohnverrechnung teilt sie zu\./);
+  });
+});

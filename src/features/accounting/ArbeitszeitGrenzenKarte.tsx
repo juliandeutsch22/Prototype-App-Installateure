@@ -61,12 +61,14 @@ interface KarteProps {
  * DIE LADELOGIK steht seit Runde 4 in `useArbeitszeitGrenzen` — die Seite
  * hält die Fälle einmal und reicht sie hierher und ins Seitenfenster.
  *
- * JUGENDSCHUTZ IST KEIN „BEGRÜNDET“ (Runde 3, M3, vorbehaltlich der
- * WKO-Klärung). Beim AZG sind Notdienst und Gefahr in Verzug zulässige,
- * zu begründende Ausnahmen. Die Grenzen des KJBG sind weitgehend zwingend;
- * ein „begründeter“ Fall wirkte wie erlaubt. Dort steht deshalb „Verstoß —
- * Buchung korrigieren“ mit dem Weg zur Buchung, und eine Notiz ist möglich,
- * nimmt den Fall aber nicht aus der Zählung.
+ * JUGENDSCHUTZ IST KEIN „BEGRÜNDET“ (Runde 3, M3; am Gesetz nachgeprüft am
+ * 18.10.2026). Beim AZG sind Notdienst und Gefahr in Verzug zulässige,
+ * zu begründende Ausnahmen. Das KJBG kennt nur enge, eigens geregelte:
+ * Vor- und Abschlussarbeiten ab 16 (§ 12), Reisezeit ab 16 (§ 11 Abs 3a)
+ * und den Notstand, der dem Arbeitsinspektorat zu melden ist (§ 20). Ein
+ * „begründeter“ Fall wirkte wie erlaubt. Dort steht deshalb „Verstoß —
+ * Buchung korrigieren“ mit dem Weg zur Buchung; eine dieser Ausnahmen hält
+ * die Notiz fest, nimmt den Fall aber nicht aus der Zählung.
  */
 export default function ArbeitszeitGrenzenKarte(props: KarteProps) {
   return props.daten ? <KarteInhalt {...props} daten={props.daten} /> : <KarteMitLaden {...props} />;
@@ -101,16 +103,20 @@ function KarteInhalt({
           samt Berufsschule, 12 Std. Ruhezeit, keine Arbeit zwischen 20 und 6 Uhr und zwei freie Tage am
           Stück mit dem Sonntag (KJBG). Notdienst und Gefahr in Verzug sind beim AZG zulässig, aber zu
           begründen. Die Grenzen für Jugendliche sind zwingend: dort steht „Verstoß“, die Buchung ist zu
-          korrigieren, eine Notiz ist möglich. Vorbehaltlich der Klärung mit der WKO: ein Berufsschultag
-          zählt mit der beim Eintragen angegebenen Unterrichtszeit, sonst mit dem Tagessoll; ist die
-          Wochenarbeitszeit anders verteilt (eigenes Tagessoll mit kürzeren Tagen, höchstens 40 Std.),
-          gelten am Tag 9 Std. (§ 11 Abs 2 KJBG). Ruhepause: ab mehr als 6 Std. Arbeit mindestens
+          korrigieren. Ausnahmen kennt das KJBG nur wenige — Vor- und Abschlussarbeiten ab 16 (§ 12),
+          Reisezeit ab 16 (§ 11 Abs 3a), Notstand mit Meldung ans Arbeitsinspektorat (§ 20); dafür ist
+          die Notiz. Ein Berufsschultag zählt mit der beim Eintragen angegebenen Unterrichtszeit, sonst
+          mit dem Tagessoll (§ 11 Abs 5 KJBG); der Unterricht allein ist kein Verstoß, nach acht Stunden
+          Unterricht ist aber jede Arbeit einer (§ 11 Abs 7 KJBG). Ist die Wochenarbeitszeit anders
+          verteilt (eigenes Tagessoll mit kürzeren Tagen, höchstens 40 Std.), gelten am Tag 9 Std.
+          (§ 11 Abs 2 und 3 KJBG). Ruhepause: ab mehr als 6 Std. Arbeit mindestens
           30 Min. (§ 11 AZG), bei Jugendlichen ab 4,5 Std. (§ 15 KJBG) — als Pause zählt die
           eingetragene und jede Lücke von mindestens 10 Min. zwischen zwei Buchungen; geprüft wird ein
           Tag erst, wenn er vorbei ist. Im Schnitt von {wochen} Wochen höchstens 48 Std. je Woche (§ 9
           Abs 4 AZG; 17 Wochen nach dem Gesetz, länger nur laut Kollektivvertrag — einzustellen unter
           Einstellungen › Personal, „Nachtzeit und Überstunden“); Urlaub und Krankenstand zählen dabei neutral.
-          Nicht geprüft: Durchrechnung und Gleitzeit, übrige Ausnahmen aus dem Kollektivvertrag.
+          Nicht geprüft: Durchrechnung und Gleitzeit, übrige Ausnahmen aus dem Kollektivvertrag, die
+          Wegzeit zwischen Berufsschule und Betrieb und ob kürzere Tage an der Wochenfreizeit liegen.
         </>
       }
     >

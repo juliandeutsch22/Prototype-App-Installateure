@@ -7,8 +7,8 @@ import { calcWorkMin } from '@shared/arbeitszeit';
  *
  * Nur Einstellungen und Uhrzeitrechnung; ausgewiesen werden Stunden, nie
  * Geld. Die Bewertung macht die Lohnverrechnung, die den Vertrag kennt.
- * Nach der Lesart des Kollektivvertrags Metallgewerbe, später mit der WKO
- * abzugleichen.
+ * Nach dem Kollektivvertrag Metallgewerbe, am Text 2026 nachgeprüft
+ * (18.10.2026, `docs/recherche-fragenkataloge.md`).
  */
 
 /** Die Nachtzeit in Minuten ab Mitternacht; `von > bis` heisst: über Mitternacht. */
