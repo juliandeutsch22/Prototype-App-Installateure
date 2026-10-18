@@ -35,10 +35,12 @@ Aufgenommen am 17.10.2026 auf dem Stand nach #311.
 | Zuordnungen ohne `neu` oder mit neuem Element, das fehlt | 0 |
 | Schlechter erreichbar (aktiv → gesperrt oder ausgeblendet) | 0 |
 | Auswahlfelder, denen ein Eintrag fehlt | 0 |
-| Klickweg um mehr als einen Schritt länger | **1 Ablauf**, in 6 von 39 Varianten (Projektleitung mit und ohne Freigaben, alle Breiten) — siehe „Offen“ |
+| Klickweg um mehr als einen Schritt länger | **0** — am 17.10. 1 Ablauf in 6 von 39 Varianten (Schein stornieren, Projektleitung); entschieden und behoben am 18.10., siehe unten |
 
-`bestand-vergleich.mjs` endet deshalb mit Code 1: offen ist genau dieser
-eine Ablauf.
+`bestand-vergleich.mjs` endet mit Code 0. Die sechs Varianten der
+Projektleitung (mit und ohne Freigaben, je drei Breiten) sind am 18.10.2026
+nach der Änderung neu aufgenommen und in `bestand-nachher.json` eingesetzt;
+die übrigen 33 sind die vom 17.10.
 
 ## Wie zugeordnet wurde
 
@@ -146,7 +148,15 @@ geworden sein.
 
 ## Offen
 
-### Schein stornieren: zwei Schritte mehr für die Projektleitung (Haltepunkt, 0.3)
+### Schein stornieren: zwei Schritte mehr für die Projektleitung (Haltepunkt, 0.3) — entschieden: Möglichkeit 1
+
+**Umgesetzt am 18.10.2026.** Für die Projektleitung beginnt die Scheinliste
+bei „Alle“ (`WorkSheetsListView`: wer stornieren darf und keine Rechnungen
+sieht); Zeile → „Stornieren“ ist wieder ein Schritt. Alle anderen Rollen
+beginnen weiter bei „Offen“; eine Ansicht in der Adresse gilt für alle.
+Neu aufgenommen: kein Gegenstück mehr als einen Schritt weiter.
+
+Die Abwägung, wie sie dem Betreiber vorlag:
 
 Vorher stand „Stornieren“ an jedem unterschriebenen Schein der Liste
 (0 Schritte nach dem Menüpunkt, dann die Rückfrage mit Grund). Seit der

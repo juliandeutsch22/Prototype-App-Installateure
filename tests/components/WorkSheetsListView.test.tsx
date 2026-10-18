@@ -1177,6 +1177,43 @@ describe('Ansicht und Seitenfenster', () => {
     await waitFor(() => expect(stornieren).toHaveBeenCalledWith('u1', 'Falscher Tag', 'Max Mustermann'));
   });
 
+  /*
+    K4, ENTSCHEIDUNG 18.10.2026: Die Projektleitung darf stornieren, sieht
+    aber keine Rechnungen — ihr „Offen“ hat nur Entwürfe. Sie beginnt
+    deshalb bei „Alle“: Zeile → „Stornieren“, ein Schritt wie vor dem Umbau.
+  */
+  it('lässt die Projektleitung bei „Alle“ beginnen — Stornieren ist eine Zeile entfernt', async () => {
+    authWert.user.role = 'Projektleiter';
+    const nutzer = userEvent.setup();
+    zeichne();
+    expect(await screen.findByRole('button', { name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
+    const fenster = await oeffne(/Familie Berger/);
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Stornieren' }));
+    expect(within(fenster).getByRole('button', { name: 'Storno bestätigen' })).toBeInTheDocument();
+    // Die Entwürfe stehen in „Alle“ mit dabei.
+    expect(screen.getByText(/Familie Huber/)).toBeInTheDocument();
+    // Ohne Rechnungsrecht fragt die Liste auch hier nicht nach der Verrechnung.
+    expect(verrechnungGeholt).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['Geschäftsführung', 'darf stornieren, hat aber „Nicht verrechnet“ unter „Offen“'],
+    ['Buchhaltung', 'hat „Nicht verrechnet“ unter „Offen“'],
+    ['Verwaltung', 'darf nicht stornieren'],
+    ['Mitarbeiter', 'darf nicht stornieren'],
+  ] as [Role, string][])('Gegenprobe: %s beginnt weiter bei „Offen“ (%s)', async (rolle) => {
+    authWert.user.role = rolle;
+    zeichne();
+    expect(await screen.findByRole('button', { name: 'Offen' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('Gegenprobe: eine Ansicht in der Adresse gilt auch für die Projektleitung', async () => {
+    authWert.user.role = 'Projektleiter';
+    zeichne('/worksheets?ansicht=offen');
+    expect(await screen.findByRole('button', { name: 'Offen' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText(/Familie Berger/)).not.toBeInTheDocument();
+  });
+
   it('bietet den Storno dem Monteur nicht an', async () => {
     zeichne('/worksheets?ansicht=alle');
     const fenster = await oeffne(/Familie Berger/);
