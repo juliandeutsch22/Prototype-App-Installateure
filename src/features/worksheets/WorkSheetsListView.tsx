@@ -146,14 +146,6 @@ export default function WorkSheetsListView() {
     Unterschreiben, von der Startseite), steht er in „Alle“: der markierte
     Schein ist meist unterschrieben und gehörte sonst in keine offene Gruppe.
   */
-  const ansichtWert = suchparameter.get('ansicht');
-  const ansicht: Ansicht =
-    ansichtWert === 'alle' || ansichtWert === 'offen' ? ansichtWert : markiert ? 'alle' : 'offen';
-  function ansichtSetzen(neu: Ansicht) {
-    const p = new URLSearchParams(suchparameter);
-    p.set('ansicht', neu);
-    setSuchparameter(p, { replace: true });
-  }
   /*
     OB EIN SCHEIN VERRECHNET IST, weiss nur, wer Rechnungen lesen darf —
     dieselben Rollen, denen die Startseite „Nicht verrechnet“ zeigt. Für alle
@@ -162,6 +154,23 @@ export default function WorkSheetsListView() {
   */
   const verrechnungSehen = !!user && canInvoice(user.role);
   const mitVerrechnung = !!nurUnverrechnet || verrechnungSehen;
+  const darfStornieren = user ? isGF(user.role) : false;
+  /*
+    DIE PROJEKTLEITUNG BEGINNT BEI „ALLE“ (K4, Entscheidung 18.10.2026):
+    sie darf stornieren, sieht aber keine Rechnungen — ihr „Offen“ zeigt nur
+    Entwürfe, der unterschriebene Schein stünde zwei Schritte entfernt
+    (Segment, Zeile). Aus „Alle“ ist es wieder einer, wie vor dem Umbau.
+    Wer nicht stornieren darf oder „Nicht verrechnet“ unter „Offen“ hat,
+    bleibt bei „Offen“.
+  */
+  const startAnsicht: Ansicht = markiert || (darfStornieren && !verrechnungSehen) ? 'alle' : 'offen';
+  const ansichtWert = suchparameter.get('ansicht');
+  const ansicht: Ansicht = ansichtWert === 'alle' || ansichtWert === 'offen' ? ansichtWert : startAnsicht;
+  function ansichtSetzen(neu: Ansicht) {
+    const p = new URLSearchParams(suchparameter);
+    p.set('ansicht', neu);
+    setSuchparameter(p, { replace: true });
+  }
 
   /*
     DER LETZTE STAND (Stufe 3, `lib/zwischenspeicher.ts`): Liste, Buchungen
@@ -196,7 +205,6 @@ export default function WorkSheetsListView() {
   const [zeigeVerworfene, setZeigeVerworfene] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const darfStornieren = user ? isGF(user.role) : false;
   /**
    * Wer darf einen Entwurf weiterbearbeiten?
    *

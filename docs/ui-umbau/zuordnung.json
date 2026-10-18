@@ -4438,7 +4438,7 @@
   "alt": "worksheets.feld.grund-pflicht",
   "neu": "worksheets.handwerksschein.feld.grund-pflicht",
   "weg_alt": 1,
-  "weg_neu": 3,
+  "weg_neu": 2,
   "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
   "geprueft": true,
   "art": "Regel"
@@ -4456,7 +4456,7 @@
   "alt": "worksheets.knopf.abbrechen",
   "neu": "worksheets.handwerksschein.knopf.abbrechen",
   "weg_alt": 1,
-  "weg_neu": 3,
+  "weg_neu": 2,
   "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
   "geprueft": true,
   "art": "Regel"
@@ -4483,7 +4483,7 @@
   "alt": "worksheets.knopf.stornieren",
   "neu": "worksheets.handwerksschein.knopf.stornieren",
   "weg_alt": 0,
-  "weg_neu": 2,
+  "weg_neu": 1,
   "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
   "geprueft": true,
   "art": "Regel"
@@ -4492,7 +4492,7 @@
   "alt": "worksheets.knopf.storno-bestaetigen",
   "neu": "worksheets.handwerksschein.knopf.storno-bestaetigen",
   "weg_alt": 1,
-  "weg_neu": 3,
+  "weg_neu": 2,
   "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
   "geprueft": true,
   "art": "Regel"
@@ -4519,7 +4519,7 @@
   "alt": "worksheets.ueberschrift.schein-stornieren-gemeinde-neudorf-bei-wiener-neustadt-16-09",
   "neu": "worksheets.handwerksschein.ueberschrift.schein-stornieren-gemeinde-neudorf-bei-wiener-neustadt-16-09",
   "weg_alt": 1,
-  "weg_neu": 3,
+  "weg_neu": 2,
   "bemerkung": "gleiche Seite, gleiche Beschriftung, neuer Ort",
   "geprueft": true,
   "art": "Regel"
