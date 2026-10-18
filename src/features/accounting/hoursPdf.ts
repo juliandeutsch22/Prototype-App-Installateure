@@ -204,10 +204,12 @@ export function generateHoursPdf(opts: {
     ÜBERSTUNDEN NUR BEIM MODELL „TAGESGRENZE“ (Paket 2c) — und nur, wenn es
     welche gibt, wie bei den Zuschlägen. Stunden, kein Geld.
   */
-  const ue = ueberstundenNachTagesgrenze(user, sorted, ueberstundenRegelVon(company), halbeTage, vorlauf);
+  const ue = ueberstundenNachTagesgrenze(user, sorted, ueberstundenRegelVon(company), halbeTage, vorlauf, nacht);
   if (ue.fuenfzigMin > 0 || ue.hundertMin > 0) {
+    // Nachtstunden, die Überstunden sind, tragen nach dem KV keine Nachtzulage — der Nachweis sagt, wie viele.
+    const nachtAlsUe = ue.nachtAlsUeberstundeMin ? ` · davon Nacht als Überstunde: ${hours(ue.nachtAlsUeberstundeMin)} h` : '';
     doc.text(
-      `Überstunden — 50 %: ${hours(ue.fuenfzigMin)} h · 100 %: ${hours(ue.hundertMin)} h`,
+      `Überstunden — 50 %: ${hours(ue.fuenfzigMin)} h · 100 %: ${hours(ue.hundertMin)} h${nachtAlsUe}`,
       margin,
       y + (abwesend.length ? 18 : 12) + (hatZuschlaege(z) ? 6 : 0),
     );
