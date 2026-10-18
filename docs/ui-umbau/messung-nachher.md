@@ -136,6 +136,21 @@ und vorgelegt, nicht selbst entschieden. Empfehlung, nach Nutzen je Aufwand:
 Bis dahin gilt das Mengengerüst-Budget als **nicht bestanden**, vorher wie
 nachher.
 
+**Umgesetzt am 18.10.2026 — Empfehlung 1.** „Anmeldung wird geprüft …“
+erscheint beim Start sofort; die übrigen Ladeanzeigen bleiben verzögert.
+Nachgemessen ohne Hintergrund, je drei Läufe, Median:
+
+| Seite | erste Anzeige vorher (17.10.) | nachher (18.10.) |
+|---|---|---|
+| Start | 1,8 s | 1,46 s |
+| Angebote | 1,8 s | 1,44 s |
+| Kunden | 1,8 s | 1,43 s |
+| Einstellungen | 1,9 s | 1,46 s |
+
+Das Budget „erste Anzeige ≤ 1,5 s“ ist damit auf diesen Seiten eingehalten;
+die übrigen Werte der Zeilen sind unverändert. Die ganze Tabelle wird nach
+den Empfehlungen 2 und 3 neu gemessen.
+
 ## Gewöhnlicher erster Besuch (mit Vorladen und Service Worker)
 
 <!-- messung:anfang (erzeugt von scripts/ui-umbau/messung.mjs) -->

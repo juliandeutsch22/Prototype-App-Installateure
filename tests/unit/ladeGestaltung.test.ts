@@ -55,7 +55,8 @@ describe('Platzhalter', () => {
   it('der Ladetext erscheint ebenso erst nach 200 ms', () => {
     expect(block('.laden-verzoegert')).toMatch(/platzhalter-erscheinen 160ms ease-out 200ms both/);
     const states = readFileSync(join(__dirname, '../../src/components/States.tsx'), 'utf8');
-    expect(states).toMatch(/className="laden-verzoegert /);
+    // Ohne `sofort` verzögert — sofort steht nur der erste Bildschirm beim Start (LadenStart.test.tsx).
+    expect(states).toMatch(/\$\{sofort \? '' : 'laden-verzoegert '\}/);
   });
 });
 
