@@ -194,6 +194,11 @@ export interface Company {
   /** Bei `tagesgrenze`: Arbeit an Sonn- und Feiertagen als Überstunden 100 %. */
   ueberstundenHundertSonnFeiertag?: boolean;
   /**
+   * Bei `tagesgrenze`: 50 und 100 % nach dem Kollektivvertrag Metallgewerbe
+   * für Personen mit Einstufung (Arbeiter). Ab Werk an; nur `false` schaltet ab.
+   */
+  ueberstundenKvMetall?: boolean;
+  /**
    * Über wie viele Wochen der Schnitt von 48 Std. gilt (§ 9 Abs 4 AZG: 17;
    * ein Kollektivvertrag kann bis 52 zulassen). Ab Werk 17.
    */

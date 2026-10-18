@@ -90,3 +90,23 @@ describe('Durchrechnungszeitraum (10.10.2026)', () => {
     expect(await wochen()).toBe(52);
   });
 });
+
+describe('Zuschläge nach dem KV Metallgewerbe (18.10.2026)', () => {
+  const kv = async () =>
+    (await admin.from('companies').select('ueberstunden_kv_metall').eq('id', BETRIEB).single()).data?.ueberstunden_kv_metall;
+
+  it('ab Werk an; die Geschäftsführung schaltet ab', async () => {
+    expect(await kv()).toBe(true);
+    const { error } = await chefin.client.from('companies').update({ ueberstunden_kv_metall: false }).eq('id', BETRIEB);
+    expect(error).toBeNull();
+    expect(await kv()).toBe(false);
+  });
+
+  it('Gegenprobe: ein Monteur nicht', async () => {
+    const { count } = await monteur.client.from('companies')
+      .update({ ueberstunden_kv_metall: true }, { count: 'exact' })
+      .eq('id', BETRIEB);
+    expect(count ?? 0).toBe(0);
+    expect(await kv()).toBe(false);
+  });
+});

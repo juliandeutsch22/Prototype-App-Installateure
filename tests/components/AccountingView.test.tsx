@@ -1308,3 +1308,28 @@ it('zeigt im Personenvergleich auch bei vollständigen Buchungen den vorhandenen
   expect(screen.getByText('Arbeitszeitgrenze prüfen')).toBeInTheDocument();
   expect(grenzAbfragen).toBe(1);
 });
+
+describe('Überstunden nach dem KV: die Woche vor dem Monatsersten zählt mit (18.10.2026)', () => {
+  it('der Samstag 01.08. liegt nach 60 Std. in der Vorwoche: seine vier Überstunden tragen 100 %', async () => {
+    const vorher = authWert.company;
+    authWert.company = { ...vorher, ueberstundenModell: 'tagesgrenze' } as typeof vorher;
+    try {
+      benutzer = [{ ...monteur, einstufung: 'facharbeiter' }];
+      const lang = (date: string) => ({ ...eintrag(date), id: `l-${date}`, startTime: '06:00', endTime: '18:30' });
+      buchungen = [
+        ...['2026-07-27', '2026-07-28', '2026-07-29', '2026-07-30', '2026-07-31'].map(lang),
+        { ...eintrag('2026-08-01'), id: 'sa', startTime: '08:00', endTime: '12:00', breakDuration: 0 },
+        ...eintraege,
+      ];
+      await oeffneMitarbeiter();
+      const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      csvGeladen.mockClear();
+      await nutzer.click(within(fenster()).getByRole('button', { name: 'Monat als CSV' }));
+      expect(csvGeladen).toHaveBeenCalledTimes(1);
+      expect(csvGeladen.mock.calls[0][0]).toMatch(/Überstunden 50 %;0,00 h/);
+      expect(csvGeladen.mock.calls[0][0]).toMatch(/Überstunden 100 %;4,00 h/);
+    } finally {
+      authWert.company = vorher;
+    }
+  });
+});

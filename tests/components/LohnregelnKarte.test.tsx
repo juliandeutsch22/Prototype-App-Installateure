@@ -36,7 +36,7 @@ describe('Durchrechnungszeitraum', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', {
       nachtVon: '22:00', nachtBis: '06:00', ueberstundenModell: 'zeitkonto', ueberstundenGrenze: 'tagessoll',
-      ueberstundenHundertSonnFeiertag: false, durchrechnungWochen: 26,
+      ueberstundenHundertSonnFeiertag: false, ueberstundenKvMetall: true, durchrechnungWochen: 26,
     }));
   });
 
@@ -58,13 +58,35 @@ describe('Durchrechnungszeitraum', () => {
   });
 });
 
-describe('Was der Kollektivvertrag Metallgewerbe sagt (nachgeprüft am 18.10.2026)', () => {
-  it('der Hinweis bestätigt die Nachtzeit und nennt die 100-%-Fälle, die die App nicht trennt', () => {
+describe('Zuschläge nach dem KV Metallgewerbe (18.10.2026)', () => {
+  it('der Hinweis bestätigt die Nachtzeit und nennt die 100-%-Fälle', () => {
     zeige();
     fireEvent.click(screen.getByRole('button', { name: 'Was bedeutet Nachtzeit und Überstunden?' }));
     const hinweis = screen.getByText(/Nachtarbeitszulage/);
     expect(hinweis).toHaveTextContent(/jede Arbeitsstunde zwischen 22 und 6 Uhr, ohne Mindestdauer \(Abschnitt XIV Punkt 5\)/);
     expect(hinweis).toHaveTextContent(/ab der dritten Überstunde am Tag, Überstunden zwischen 20 und 6 Uhr, ab der 51\. Stunde der Woche/);
-    expect(hinweis).toHaveTextContent(/Sie stehen bei 50 %; die Lohnverrechnung teilt sie zu\./);
+    expect(hinweis).toHaveTextContent(/Für Angestellte gilt ein anderer Kollektivvertrag/);
+  });
+
+  it('der Schalter steht bei der Tagesgrenze, ab Werk an, und wird gespeichert', async () => {
+    firma = { ...firma, ueberstundenModell: 'tagesgrenze' };
+    zeige();
+    const schalter = screen.getByLabelText('Zuschläge nach dem KV Metallgewerbe (Arbeiter und Lehrlinge)');
+    expect(schalter).toBeChecked();
+    expect(screen.getByLabelText(/Sonn- und Feiertagen als Überstunden mit 100 % — für Angestellte/)).toBeInTheDocument();
+    fireEvent.click(schalter);
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', expect.objectContaining({ ueberstundenKvMetall: false })));
+  });
+
+  it('bleibt gleich: beim Zeitkonto steht kein Schalter', () => {
+    zeige();
+    expect(screen.queryByLabelText(/Zuschläge nach dem KV Metallgewerbe/)).not.toBeInTheDocument();
+  });
+
+  it('ein abgeschalteter Betrieb sieht den Schalter aus', () => {
+    firma = { ...firma, ueberstundenModell: 'tagesgrenze', ueberstundenKvMetall: false };
+    zeige();
+    expect(screen.getByLabelText('Zuschläge nach dem KV Metallgewerbe (Arbeiter und Lehrlinge)')).not.toBeChecked();
   });
 });
