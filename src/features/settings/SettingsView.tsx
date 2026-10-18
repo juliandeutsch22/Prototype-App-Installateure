@@ -137,6 +137,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   const [dezemberHalbtage, setDezemberHalbtage] = useState(true);
   const [dezemberSpeichert, setDezemberSpeichert] = useState(false);
   const [uebertrag, setUebertrag] = useState<'verjaehrung' | 'stichtag'>('verjaehrung');
+  const [eintrittAliquot, setEintrittAliquot] = useState<'taggenau' | 'zwoelftel'>('taggenau');
   const [stichtagMonat, setStichtagMonat] = useState('03');
   const [stichtagTag, setStichtagTag] = useState('31');
   const [beginnMonat, setBeginnMonat] = useState('01');
@@ -173,6 +174,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
     setBeginnMonat(beginn.slice(0, 2));
     setBeginnTag(beginn.slice(3, 5));
     setUebertrag(company?.urlaubUebertrag ?? 'verjaehrung');
+    setEintrittAliquot(company?.urlaubEintrittAliquot === 'zwoelftel' ? 'zwoelftel' : 'taggenau');
     if (company?.urlaubStichtag) {
       const [m, d] = company.urlaubStichtag.split('-');
       setStichtagMonat(m);
@@ -336,15 +338,16 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
       await updateCompany(user.companyId, {
         urlaubJahresbeginn: `${beginnMonat}-${beginnTag}`,
         urlaubUebertrag: uebertrag,
+        urlaubEintrittAliquot: eintrittAliquot,
         // `null` und nicht weglassen: wer von Stichtag auf Verjährung
         // zurückstellt, muss das alte Datum LOS werden. Ein weggelassenes
         // Feld liesse es stehen, und die Datenbank wiese den Zustand ab.
         urlaubStichtag: uebertrag === 'stichtag' ? `${stichtagMonat}-${stichtagTag}` : null,
       });
       await reloadCompany();
-      toast.success('Urlaubsübertrag gespeichert');
+      toast.success('Urlaubsjahr gespeichert');
     } catch (e) {
-      setError({ wo: 'uebertrag', text: grundAus(e, 'Der Urlaubsübertrag konnte nicht gespeichert werden.') });
+      setError({ wo: 'uebertrag', text: grundAus(e, 'Urlaubsjahr und Übertrag konnten nicht gespeichert werden.') });
     } finally {
       setUebertragSpeichert(false);
     }
@@ -1070,9 +1073,31 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             </div>
           )}
 
+          {/*
+            DER ANSPRUCH IM EINTRITTSJAHR (18.10.2026). Er hängt an derselben
+            Vereinbarung, die das Urlaubsjahr umstellt — deshalb hier und
+            nicht bei den Benutzern. Er ändert nur den Vorschlag bei der
+            Anlage, nie einen gespeicherten Anspruch.
+          */}
+          <div className="mt-4 border-t border-line pt-4">
+            <SelectField
+              id="urlaub-eintritt-aliquot"
+              label="Anspruch im Eintrittsjahr"
+              value={eintrittAliquot}
+              onChange={(e) => setEintrittAliquot(e.target.value === 'zwoelftel' ? 'zwoelftel' : 'taggenau')}
+            >
+              <option value="taggenau">taggenau nach Kalendertagen</option>
+              <option value="zwoelftel">je begonnenem Monat ein Zwölftel (§ 2 Abs 4 Z 1 UrlG)</option>
+            </SelectField>
+            <p className="mt-1 text-sm text-ink-muted">
+              So rechnet der Vorschlag beim Anlegen einer Person, die mitten im Urlaubsjahr eintritt.
+              Was gilt, steht in der Vereinbarung, die das Urlaubsjahr umstellt.
+            </p>
+          </div>
+
           <div className="fuss-aktionen mt-4">
             <Button type="button" loading={uebertragSpeichert} onClick={uebertragSpeichern}>
-              Urlaubsübertrag speichern
+              Urlaubsjahr speichern
             </Button>
           </div>
           {fehlerBei('uebertrag')}

@@ -11,9 +11,14 @@ Antwort von einer Vereinbarung, einem Einzelfall oder einer Einschätzung
 abhängt, steht „offen“ — diese Fragen bleiben bei WKO, Steuerberatung,
 Anwalt und Kanzlei.
 
-**Umgesetzt** wurde nur, was eindeutig ist und eine Änderung verlangt: der
-Berufsschultag nach § 11 Abs 7 KJBG (unten, WKO Frage 5). Alles andere hat
-die App schon so, wie die Quelle es sagt, oder es bleibt offen.
+**Umgesetzt** wurde, was eindeutig ist und eine Änderung verlangt: der
+Berufsschultag nach § 11 Abs 7 KJBG (WKO Frage 5, #320), auf Ansage des
+Betreibers danach die Überstunden mit 50 und 100 % nach dem KV (WKO
+Frage 4, #321) und die Wahl für den Urlaub im Eintrittsjahr (WKO Frage 1).
+Alles andere hat die App schon so, wie die Quelle es sagt, oder es bleibt
+offen. Die geteilten Kataloge tragen seit 18.10.2026 bei jeder Frage einen
+Vermerk „Stand 18.10.2026“ mit dem Nachgeschlagenen und dem, was offen
+bleibt.
 
 ## Quellen
 
@@ -28,7 +33,7 @@ die App schon so, wie die Quelle es sagt, oder es bleibt offen.
 
 | Frage | Antwort | Fundstelle | In der App |
 |---|---|---|---|
-| 1 Aliquoter Urlaub im Eintrittsjahr | **offen.** Stellt eine Vereinbarung das Urlaubsjahr auf das Kalenderjahr um, *kann* sie vorsehen, dass Eintretende je begonnenem Monat ein Zwölftel bekommen. Die taggenaue Rechnung der App sieht das Gesetz nicht vor; was gilt, steht in der Vereinbarung des Betriebs. Der KV Metallgewerbe regelt das nicht selbst (Abschnitt XVII verweist aufs UrlG) | § 2 Abs 4 Z 1 UrlG | unverändert: der Wert ist ein änderbarer Vorschlag. Empfehlung: als Wahl je Betrieb „je begonnenem Monat ein Zwölftel“ anbieten, sobald der Betrieb seine Vereinbarung kennt |
+| 1 Aliquoter Urlaub im Eintrittsjahr | **Rechenweg eindeutig, die Regel je Betrieb.** Stellt eine Vereinbarung das Urlaubsjahr auf das Kalenderjahr um, *kann* sie vorsehen, dass Eintretende je begonnenem Monat ein Zwölftel bekommen. Die taggenaue Rechnung der App sieht das Gesetz nicht vor; was gilt, steht in der Vereinbarung des Betriebs. Der KV Metallgewerbe regelt das nicht selbst (Abschnitt XVII verweist aufs UrlG) | § 2 Abs 4 Z 1 UrlG | **Umgesetzt am 18.10.2026:** Wahl je Betrieb — taggenau (ab Werk, wie bisher) oder je begonnenem Monat ein Zwölftel; der Vorschlag bleibt änderbar (Stand, Abschnitt 22, R-U1) |
 | 2 Nachtzuschlag | **eindeutig.** Die Nachtarbeitszulage gilt für jede Arbeitsstunde zwischen 22 und 6 Uhr, die keine Überstunde ist; eine Mindestdauer gibt es nicht | KV Abschnitt XIV Pkt 5 | stimmt: Vorgabe 22–6 Uhr, je Minute in der Nachtzeit. Ob die Pause zuerst ausserhalb der Nacht abgeht, sagt der KV nicht (offen) |
 | 3 Mahnspesen an Private | **offen.** Das Gesetz nennt keine Zahl, nur „angemessen“ und „notwendig“ | § 1333 Abs 2 ABGB | unverändert (Warnung ab 40 €) |
 | 4 Überstunden, 24./31.12. | **teils eindeutig.** 24./31.12.: Ende der Normalarbeitszeit um 12 Uhr bei vollem Lohn, danach je Normalarbeitsstunde 100 %, Überstunden 100 % — so rechnet die App. Überstunde ist, was über der vereinbarten täglichen Arbeitszeit samt Mehrarbeit liegt; Mehrarbeit (Unterschied 38,5 zu 40 Std.) mit 50 %. **100 %** zudem ab der dritten Überstunde am Tag, für Überstunden zwischen 20 und 6 Uhr, ab der 51. Wochenstunde (nicht bei Gleitzeit), am sonst arbeitsfreien Tag ab der 11. Stunde, an Feiertagen ab der ersten; Sonntag 100 %; beim Zusammentreffen nur der höchste Zuschlag. Ob das Zeitkonto ohne Durchrechnungsvereinbarung reicht und wie Teilzeit am 24./31.12. rechnet: offen | KV Abschnitt VI Pkt 1 und 23, VIa, VII Pkt 1, XIV Pkt 8–11 | 24./31.12. stimmt. **Umgesetzt am 18.10.2026:** beim Modell „Tagesgrenze“ teilt die App 50 und 100 % nach diesen Regeln, für Personen mit Einstufung (Angestellte: anderer KV, bisherige Regel); Stunden zwischen 20 und 6 Uhr gelten zuerst als Überstunden, weil die Lage der Arbeitszeit in keiner Buchung steht (Stand, Abschnitt 22, R-L1) |

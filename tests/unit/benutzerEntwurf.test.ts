@@ -201,6 +201,36 @@ describe('Der aliquote Anspruch im angebrochenen ersten Urlaubsjahr', () => {
     expect(aliquoterAnspruch(25, '2027-03-01', '07-01').restTage).toBe(122);
   });
 
+  describe('je begonnenem Monat ein Zwölftel (§ 2 Abs 4 Z 1 UrlG, Wahl seit 18.10.2026)', () => {
+    it('der Eintrittsmonat zählt voll: 30.09. vier Monate, 01.10. drei', () => {
+      expect(aliquoterAnspruch(25, '2026-09-30', '01-01', 'zwoelftel')).toEqual({ restTage: 93, jahresTage: 365, monate: 4, tage: 8.33 });
+      expect(aliquoterAnspruch(25, '2026-10-01', '01-01', 'zwoelftel')).toEqual({ restTage: 92, jahresTage: 365, monate: 3, tage: 6.25 });
+    });
+
+    it('am ersten Tag des Urlaubsjahres zwölf Monate, am letzten einer', () => {
+      expect(aliquoterAnspruch(25, '2026-01-01', '01-01', 'zwoelftel').tage).toBe(25);
+      expect(aliquoterAnspruch(25, '2026-12-31', '01-01', 'zwoelftel')).toMatchObject({ monate: 1, tage: 2.08 });
+    });
+
+    it('zählt die Monate ab dem Beginn des Urlaubsjahres des Betriebs', () => {
+      // Urlaubsjahr ab 1. Juli: Oktober 2026 bis Juni 2027 sind neun Monate.
+      expect(aliquoterAnspruch(25, '2026-10-15', '07-01', 'zwoelftel')).toMatchObject({ monate: 9, tage: 18.75 });
+      // Beginn mitten im Monat (15. März): der Eintritt am 14.04. liegt im ersten Monat — zwölf.
+      expect(aliquoterAnspruch(24, '2027-04-14', '03-15', 'zwoelftel')).toMatchObject({ monate: 12, tage: 24 });
+      expect(aliquoterAnspruch(24, '2027-04-15', '03-15', 'zwoelftel')).toMatchObject({ monate: 11, tage: 22 });
+    });
+
+    it('stürzt bei einem halb getippten Datum nicht ab', () => {
+      expect(() => aliquoterAnspruch(25, '', '01-01', 'zwoelftel')).not.toThrow();
+      expect(() => aliquoterAnspruch(25, '2026-1', '01-01', 'zwoelftel')).not.toThrow();
+    });
+
+    it('bleibt gleich: ohne Wahl rechnet der Vorschlag taggenau', () => {
+      expect(aliquoterAnspruch(25, '2026-09-30')).toEqual({ restTage: 93, jahresTage: 365, tage: 6.37 });
+      expect(aliquoterAnspruch(25, '2026-09-30', '01-01', 'taggenau')).toEqual({ restTage: 93, jahresTage: 365, tage: 6.37 });
+    });
+  });
+
   it('rundet auf zwei Stellen und erfindet nichts dazu', () => {
     // 10.08. bis 31.12.: 22 + 30 + 31 + 30 + 31 = 144 Tage, 25 × 144 ÷ 365 = 9,863…
     expect(aliquoterAnspruch(25, '2026-08-10').tage).toBe(9.86);
