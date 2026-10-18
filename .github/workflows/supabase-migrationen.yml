@@ -68,9 +68,12 @@ jobs:
 
       - run: npm ci
 
+      # Feste Fassung statt `latest`: `latest` fragt die GitHub-API ohne
+      # Schlüssel, und deren Ratenlimit liess am 18.10.2026 das Einspielen
+      # zweimal scheitern, bevor es begann. Dieselbe Fassung wie lokal.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.119.0
 
       # Die gemeinsamen Regeln müssen VOR dem Start dort liegen: `supabase
       # start` kopiert die Functions in den Container, es bindet sie nicht ein.
@@ -94,9 +97,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Feste Fassung statt `latest`: `latest` fragt die GitHub-API ohne
+      # Schlüssel, und deren Ratenlimit liess am 18.10.2026 das Einspielen
+      # zweimal scheitern, bevor es begann. Dieselbe Fassung wie lokal.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.119.0
 
       - name: Mit dem Projekt verbinden
         env:
