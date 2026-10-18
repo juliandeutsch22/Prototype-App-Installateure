@@ -687,7 +687,7 @@
     <div class="stempel">
       <span>Stand <b>18.10.2026</b></span>
       <span>Fassung <b>Lot v2 · Arbeitsstand</b></span>
-      <span>Automatische Prüfungen <b>5.114 Modulprüfungen · 72 Browserwege · 7 Linkprüfungen</b></span>
+      <span>Automatische Prüfungen <b>5.118 Modulprüfungen · 72 Browserwege · 7 Linkprüfungen</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -708,6 +708,12 @@
         <h3>Scheine: die Projektleitung beginnt bei „Alle“<span class="neu">geändert</span></h3>
         <p>Die Projektleitung darf einen unterschriebenen Schein stornieren, sieht aber keine Rechnungen — ihr „Offen“ zeigte deshalb nur Entwürfe, und ein unterschriebener Schein lag zwei Schritte entfernt. Jetzt öffnet die Scheinliste für sie gleich „Alle“: Zeile antippen, „Stornieren“. Alle anderen Rollen beginnen weiter bei „Offen“; „Offen“ ist für die Projektleitung einen Tipp entfernt.</p>
         <p class="wer">Projektleitung · nichts einzustellen</p>
+      </div>
+      <div class="bereich">
+        <h3>Mitarbeiterübersicht: nur der gezeigte Monat<span class="neu">geändert</span></h3>
+        <p>Die Mitarbeiterübersicht holt nur noch die Buchungen des gezeigten Monats (mit einer Woche davor und danach, für die Arbeitszeitgrenzen) bzw. der gezeigten Woche. Bisher holte sie jede Buchung des ganzen Jahres — im Testbestand von fünf Jahren 35.100 Zeilen und 22 MB, fast zwei Minuten bis zur Ruhe am Handy. Gebraucht wurde das Jahr nur für die Urlaubstage; die kommen jetzt aus einer eigenen, schmalen Abfrage, die nur Urlaubstage holt. Gemessen: 6,2 statt 22,3 MB, 51 statt 137 Abfragen, 34 statt 117 s bis zur Ruhe.</p>
+        <p><strong>Was gleich bleibt:</strong> Saldo, Soll, Resturlaub, „Urlaub im Jahr“ in der Lohn-CSV, Vollständigkeit, Wochenansicht und Projektauswertung rechnen wie bisher. <strong>Neu dabei:</strong> Resturlaub und Urlaubstage sind jetzt live — ein gebuchter oder stornierter Urlaubstag erscheint ohne Neuladen.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung, Administrator · nichts einzustellen</p>
       </div>
     </div>
   </section>
@@ -859,7 +865,7 @@
       <div class="bereich">
         <h3>Was in Runde 4 offen ist<span class="neu">offen</span></h3>
         <p>Bewusst nicht gebaut (Entscheidung vom 09.10., nach dem Pilot): der Filter „Zeigen: nur mit Einsätzen / nur freie“ im Wochenplan, Ziehen auf einen Tag, ein eigenes Feld „Kurzname“ an der Baustelle (die Kurzform wird aus dem Namen gebildet, im Zweifel bleibt der volle), die Monatsansicht für Genehmigende und „Lieferung ohne Annahme“ auf der Startseite.</p>
-        <p>Gemessen ist das Mengengerüst am 17.10.2026 gegen den Testbestand (Handy-Profil, langsames 4G): die erste Anzeige kam nach 1,8–1,9 s statt der vorgesehenen 1,5 s — <strong>seit 18.10.</strong> erscheint „Anmeldung wird geprüft …“ beim Start sofort statt nach 200 ms, und die erste Anzeige kommt nach 1,43–1,46 s —, und die Mitarbeiterübersicht holt weiter das ganze Jahr — das liegt zur Entscheidung vor; schneller als vor dem Umbau sind Start und Tagesplanung. Jedes Element der alten Oberfläche hat seinen Platz in der neuen (91.417 Elemente in 13 Rollen und Freigaben × 3 Breiten verglichen); die eine Abweichung — für die Projektleitung war ein unterschriebener Schein zwei Schritte weiter zu stornieren als vorher — ist seit 18.10. behoben: ihre Scheinliste beginnt bei „Alle“. Das Tablet quer (1.194 × 834) ist am 12.10.2026 über jede Seite aller sieben Rollen durchgesehen: ein Befund — abgeschnittene Korrigieren-Knöpfe der Arbeitszeitgrenzen, und zwar bei jeder Breite —, behoben und dauerhaft geprüft. Die Barrierefreiheit prüft axe (WCAG 2.1 AA) seit dem 12.10.2026 bei jeder Änderung auf jeder Seite von drei Rollen, hell und dunkel; der erste Lauf über alle Rollen, Breiten, Fenster und Formulare fand zwei Stellen — blasse Schrift im Monatskalender und Hilfetexte, die sich ohne Maus nicht rollen ließen —, beide sind behoben. Silbentrennung bei langen Kundennamen hängt am Browser: wo er kein deutsches Wörterbuch hat, bricht er ohne Strich um — abgeschnitten wird nichts. Die Breite der Seitenfenster und der Fokus beim Öffnen (auf das Fenster, nicht auf „Schließen“) folgen der Regel aller Seitenfenster.</p>
+        <p>Gemessen ist das Mengengerüst am 17.10.2026 gegen den Testbestand (Handy-Profil, langsames 4G): die erste Anzeige kam nach 1,8–1,9 s statt der vorgesehenen 1,5 s — <strong>seit 18.10.</strong> erscheint „Anmeldung wird geprüft …“ beim Start sofort statt nach 200 ms, und die erste Anzeige kommt nach 1,43–1,46 s —, und die Mitarbeiterübersicht holte das ganze Jahr — <strong>seit 18.10.</strong> nur noch den gezeigten Monat (6,2 statt 22,3 MB); schneller als vor dem Umbau sind Start und Tagesplanung. Jedes Element der alten Oberfläche hat seinen Platz in der neuen (91.417 Elemente in 13 Rollen und Freigaben × 3 Breiten verglichen); die eine Abweichung — für die Projektleitung war ein unterschriebener Schein zwei Schritte weiter zu stornieren als vorher — ist seit 18.10. behoben: ihre Scheinliste beginnt bei „Alle“. Das Tablet quer (1.194 × 834) ist am 12.10.2026 über jede Seite aller sieben Rollen durchgesehen: ein Befund — abgeschnittene Korrigieren-Knöpfe der Arbeitszeitgrenzen, und zwar bei jeder Breite —, behoben und dauerhaft geprüft. Die Barrierefreiheit prüft axe (WCAG 2.1 AA) seit dem 12.10.2026 bei jeder Änderung auf jeder Seite von drei Rollen, hell und dunkel; der erste Lauf über alle Rollen, Breiten, Fenster und Formulare fand zwei Stellen — blasse Schrift im Monatskalender und Hilfetexte, die sich ohne Maus nicht rollen ließen —, beide sind behoben. Silbentrennung bei langen Kundennamen hängt am Browser: wo er kein deutsches Wörterbuch hat, bricht er ohne Strich um — abgeschnitten wird nichts. Die Breite der Seitenfenster und der Fokus beim Öffnen (auf das Fenster, nicht auf „Schließen“) folgen der Regel aller Seitenfenster.</p>
         <p class="wer">Stand 09.10.2026 · Runde 4 vom Betreiber freigegeben (09.10.2026) · Einzelheiten in docs/ui-umbau/r4</p>
       </div>
     </div>
