@@ -177,7 +177,8 @@ async function einmalMessen(browser, zustand, pfad) {
     const a = anfragen.get(e.requestId);
     if (!a) return;
     const kopf = Object.fromEntries(Object.entries(e.response.headers).map(([k, v]) => [k.toLowerCase(), v]));
-    a.zeilen = zeilenAus(kopf['content-range']);
+    // Eine Zählung (HEAD) bringt keine Zeilen, auch wenn ihr Bereich „0-999/…“ lautet.
+    a.zeilen = a.methode === 'HEAD' ? 0 : zeilenAus(kopf['content-range']);
     a.status = e.response.status;
   });
   const abschliessen = (e, fehler) => {

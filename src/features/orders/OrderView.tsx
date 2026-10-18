@@ -2,10 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import Adressfilter from '@/components/Adressfilter';
-import { subscribeMaterials, LOW_STOCK_THRESHOLD, lagerFrei, type LagerStand } from '@/lib/db/materials';
+import { katalogSeite, katalogBeobachten, sucheKatalog, LOW_STOCK_THRESHOLD, lagerFrei, type LagerStand } from '@/lib/db/materials';
 import { Bereit, Wert } from '@/components/Wert';
 import { imLager, istKnapp } from './lagerartikel';
-import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import {
   createMaterialOrderOhneEmpfang,
   subscribeOwnOrders,
@@ -18,7 +17,6 @@ import { listActiveProjects } from '@/lib/db/projects';
 import type { WithId } from '@/lib/db/core';
 import type { Material, MaterialOrder, Project } from '@/types';
 import Card from '@/components/Card';
-import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
 import BottomSheet from '@/components/BottomSheet';
 import RowMenu from '@/components/RowMenu';
@@ -100,7 +98,19 @@ export default function OrderView() {
   const [erledigtGezeigt, setErledigtGezeigt] = useState(JE_SEITE);
   /** Die Retoure steht im Seitenfenster. */
   const [retoureOffen, setRetoureOffen] = useState(false);
-  const [materials, setMaterials] = useState<WithId<Material>[]>([]);
+  /*
+    DER KATALOG KOMMT SEITENWEISE VOM SERVER (Mengengerüst, 18.10.2026):
+    die ersten zwanzig nach Namen, „und N weitere“ holt die nächsten, und
+    gesucht wird auf dem Server — in Bezeichnung, Kategorie und
+    Artikelnummer wie bisher. Bis dahin lud die Seite bis zu tausend Artikel
+    (gemessen dreimal, 1,8 MB) und suchte nur in diesen; aus einem
+    eingespielten Großhandelskatalog fand der Monteur so nur, was zufällig
+    unter den ersten tausend lag.
+  */
+  const [seite, setSeite] = useState<{ zeilen: WithId<Material>[]; gesamt: number } | null>(null);
+  /** Der Katalog liess sich nicht holen — eigen, damit ein Neuladen nicht den Fehler einer Retoure wegwischt. */
+  const [katalogFehler, setKatalogFehler] = useState<string | null>(null);
+  const materials = useMemo(() => seite?.zeilen ?? [], [seite]);
   /*
     WAS FREI IST, NICHT WAS IM REGAL STEHT (Testbericht 30.09.2026, G19):
     „5 Stk (knapp)“, obwohl 3 davon zugesagt oder für einen Einsatz geplant
@@ -129,8 +139,6 @@ export default function OrderView() {
   */
   const [meineGeladen, setMeineGeladen] = useState(false);
   const [loading, setLoading] = useState(true);
-  /* Warum der Katalog eine Grenze braucht: siehe `lib/db/materials.ts`. */
-  const [grenze, setGrenze] = useState(KATALOG_GRENZE);
   const [error, setError] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — der Katalog steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
@@ -157,7 +165,8 @@ export default function OrderView() {
   const [eilFrage, setEilFrage] = useState<WithId<MaterialOrder> | null>(null);
 
   // Retoure
-  const [retMaterial, setRetMaterial] = useState('');
+  /** Das gewählte Material der Retoure — der Datensatz selbst; die Suche liefert ihn vom Server. */
+  const [retGewaehlt, setRetGewaehlt] = useState<WithId<Material> | null>(null);
   /** Suchtext für die Artikelauswahl der Retoure. */
   const [retSuche, setRetSuche] = useState('');
   const [retQty, setRetQty] = useState('1');
@@ -172,18 +181,6 @@ export default function OrderView() {
     listActiveProjects(user.companyId)
       .then(setProjects)
       .catch(() => setNebenFehler('Die Baustellen'));
-    const unsubM = subscribeMaterials(
-      user.companyId,
-      (rows) => {
-        setMaterials(rows);
-        setLoading(false);
-      },
-      (e) => {
-        setError(e.message);
-        setLoading(false);
-      },
-      grenze,
-    );
     // Siehe StockView: ein stumm gescheitertes Abo sieht aus wie „nichts da".
     const unsubO = subscribeOwnOrders(
       user.companyId,
@@ -198,11 +195,35 @@ export default function OrderView() {
         setMeineGeladen(true);
       },
     );
-    return () => {
-      unsubM();
-      unsubO();
-    };
-  }, [user, grenze]);
+    return unsubO;
+  }, [user]);
+
+  /** Der Suchbegriff, wie er an den Server geht — kurz nach dem letzten Tastendruck, nicht je Taste. */
+  const [begriff, setBegriff] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setBegriff(search.trim()), 250);
+    return () => clearTimeout(t);
+  }, [search]);
+  /** Ändert sich im Katalog etwas (oder steht der Kanal wieder), wird die Seite neu geholt. */
+  const [katalogStand, setKatalogStand] = useState(0);
+  useEffect(() => {
+    if (!user) return;
+    return katalogBeobachten(user.companyId, () => setKatalogStand((n) => n + 1));
+  }, [user]);
+  useEffect(() => {
+    if (!user) return;
+    // Eine überholte Antwort (inzwischen anders gesucht oder mehr verlangt) setzt nichts mehr.
+    let weg = false;
+    katalogSeite(user.companyId, begriff, artikelGezeigt)
+      .then((s) => {
+        if (weg) return;
+        setSeite(s);
+        setKatalogFehler(null);
+      })
+      .catch((e: Error) => { if (!weg) setKatalogFehler(e.message); })
+      .finally(() => { if (!weg) setLoading(false); });
+    return () => { weg = true; };
+  }, [user, begriff, artikelGezeigt, katalogStand]);
 
   // Korb des angemeldeten Nutzers laden, sobald er feststeht.
   useEffect(() => {
@@ -224,19 +245,6 @@ export default function OrderView() {
     }
   }, [cart, user]);
 
-  const sortedMaterials = useMemo(
-    () => [...materials].sort((a, b) => a.name.localeCompare(b.name, 'de')),
-    [materials],
-  );
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return sortedMaterials;
-    // Auch Kategorie und Artikelnummer durchsuchen — danach wird real gesucht.
-    return sortedMaterials.filter((m) =>
-      [m.name, m.category, m.articleNumber].some((v) => v?.toLowerCase().includes(q)),
-    );
-  }, [sortedMaterials, search]);
-
   /**
    * Hat die gewaehlte Baustelle ueberhaupt jemanden, den eine Eilmeldung
    * erreicht? Wenn nicht, sagt die Oberflaeche das VOR dem Absenden — sonst
@@ -257,18 +265,25 @@ export default function OrderView() {
    * Felder wie im Katalog — Bezeichnung, Kategorie, Artikelnummer —, damit
    * man nicht zwei verschiedene Suchen lernen muss.
    */
-  const retTreffer = useMemo(() => {
-    const q = retSuche.trim().toLowerCase();
-    if (!q) return [];
-    return sortedMaterials
-      .filter((m) => [m.name, m.category, m.articleNumber].some((v) => v?.toLowerCase().includes(q)))
-      .slice(0, 8);
-  }, [sortedMaterials, retSuche]);
-
-  const retGewaehlt = useMemo(
-    () => materials.find((m) => m.id === retMaterial) ?? null,
-    [materials, retMaterial],
-  );
+  const [retTreffer, setRetTreffer] = useState<WithId<Material>[]>([]);
+  useEffect(() => {
+    const q = retSuche.trim();
+    if (!user || !q) {
+      setRetTreffer([]);
+      return;
+    }
+    // Auf dem Server wie der Katalog — sonst fände die Retoure nur, was oben gerade geladen ist.
+    let weg = false;
+    const t = setTimeout(() => {
+      sucheKatalog(user.companyId, q, 8)
+        .then((treffer) => { if (!weg) setRetTreffer(treffer); })
+        .catch(() => { if (!weg) setRetTreffer([]); });
+    }, 250);
+    return () => {
+      weg = true;
+      clearTimeout(t);
+    };
+  }, [user, retSuche]);
 
   const activeOrders = useMemo(
     () => myOrders.filter((o) => o.status !== 'Erledigt' && o.transactionType !== 'return'
@@ -383,13 +398,13 @@ export default function OrderView() {
   }
 
   async function submitReturn() {
-    if (!user || !retMaterial) return;
+    if (!user || !retGewaehlt) return;
     // Ohne diese Prüfung ginge eine negative Menge als increment(-n) durch und
     // eine Retoure würde den Lagerbestand VERRINGERN.
     // Zentral gelesen (M15); „1,5“ wird nicht still zu 1.
     const qty = zahlOder(retQty, NaN, { negativ: true });
     // Je Einheit (M27): Rohr in Metern mit Komma, Stück ganz.
-    const einheit = materials.find((m) => m.id === retMaterial)?.unit;
+    const einheit = retGewaehlt.unit;
     const falsch = mengeFehler(qty, einheit);
     if (falsch) {
       setError(falsch);
@@ -398,10 +413,9 @@ export default function OrderView() {
     setSaving(true);
     setError(null);
     try {
-      const mat = materials.find((m) => m.id === retMaterial);
       await createReturn(user.companyId, {
-        materialId: retMaterial,
-        materialName: mat?.name ?? '',
+        materialId: retGewaehlt.id,
+        materialName: retGewaehlt.name,
         quantity: qty,
         condition: retCondition,
         note: retReason,
@@ -409,7 +423,7 @@ export default function OrderView() {
         userId: user.uid,
         userName: user.name,
       });
-      setRetMaterial('');
+      setRetGewaehlt(null);
       setRetSuche('');
       setRetQty('1');
       setRetReason('');
@@ -464,6 +478,7 @@ export default function OrderView() {
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
       {error && !retoureOffen && <ErrorState message={error} />}
+      {katalogFehler && <ErrorState message={katalogFehler} />}
 
       {/* Eine Zeile statt einer eigenen Karte: vorher stand die
           Baustellenauswahl wie eine Hürde vor dem Katalog und schob ihn
@@ -533,15 +548,15 @@ export default function OrderView() {
         <div className="mt-4">
           {loading ? (
             <LoadingState />
-          ) : filtered.length === 0 ? (
+          ) : materials.length === 0 ? (
             <EmptyState>
-              {materials.length === 0
+              {!begriff
                 ? 'Der Materialkatalog ist noch leer. Die Verwaltung pflegt ihn im Material-Dashboard.'
                 : 'Kein Material passt zur Suche.'}
             </EmptyState>
           ) : (
             <List>
-              {filtered.slice(0, artikelGezeigt).map((m) => {
+              {materials.map((m) => {
                 const verfuegbar = frei?.get(m.id)?.frei ?? m.stock ?? 0;
                 // Nur im Katalog (M30): kein Regalbestand — das Büro bestellt ihn.
                 const lager = imLager(m);
@@ -582,26 +597,15 @@ export default function OrderView() {
             </List>
           )}
           {/* Gruppen höchstens 20 Zeilen (Regel 4): sonst stünden „Meine
-              Anforderungen“ unter dem ganzen Katalog. Die Suche findet
-              weiter in allem, was geladen ist. */}
-          <MehrAnzeigen
-            anzahl={Math.max(0, filtered.length - artikelGezeigt)}
-            onClick={() => setArtikelGezeigt((n) => n + JE_SEITE)}
-          />
-          {/*
-            Der Monteur sucht hier den Artikel, den er braucht. Findet er
-            ihn nicht, muss dastehen, ob es ihn nicht gibt oder ob die
-            Liste nur nicht so weit reicht — sonst tippt er ihn von Hand
-            ein, und der Katalogeintrag mit Preis und Bestand bleibt
-            ungenutzt.
-          */}
-          <Nachladen
-            geladen={materials.length}
-            grenze={grenze}
-            onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
-            einheit="Artikel"
-            sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
-          />
+              Anforderungen“ unter dem ganzen Katalog. Die Zahl der übrigen
+              kommt vom Server — gesucht wird im ganzen Katalog, es gibt
+              keine Grenze des Geladenen mehr, die jemand kennen müsste. */}
+          {!loading && (
+            <MehrAnzeigen
+              anzahl={Math.max(0, (seite?.gesamt ?? 0) - materials.length)}
+              onClick={() => setArtikelGezeigt((n) => n + JE_SEITE)}
+            />
+          )}
         </div>
         {/* Erst mit dem Katalog — sonst schob der Katalog die Zeile beim Eintreffen nach unten. */}
         {!loading && (
@@ -875,7 +879,7 @@ export default function OrderView() {
               <Button
                 variant="ghost"
                 onClick={() => {
-                  setRetMaterial('');
+                  setRetGewaehlt(null);
                   setRetSuche('');
                 }}
               >
@@ -908,7 +912,7 @@ export default function OrderView() {
                             variant="secondary"
                             aria-label={`${m.name} zurückgeben`}
                             onClick={() => {
-                              setRetMaterial(m.id);
+                              setRetGewaehlt(m);
                               setRetSuche('');
                             }}
                           >
@@ -946,7 +950,7 @@ export default function OrderView() {
             <Button variant="ghost" onClick={retoureSchliessen}>
               Abbrechen
             </Button>
-            <Button onClick={submitReturn} loading={saving} disabled={!retMaterial}>
+            <Button onClick={submitReturn} loading={saving} disabled={!retGewaehlt}>
               Retoure erfassen
             </Button>
           </div>

@@ -27,6 +27,35 @@ export function subscribeMaterials(
   return pg.subscribeMaterials(companyId, cb, onError, max);
 }
 
+/** Nur die Lagerartikel, live — siehe `pg.subscribeLagerartikel`. */
+export function subscribeLagerartikel(
+  companyId: string,
+  cb: (rows: WithId<Material>[]) => void,
+  onError: (e: Error) => void,
+  max = KATALOG_GRENZE,
+): () => void {
+  return pg.subscribeLagerartikel(companyId, cb, onError, max);
+}
+
+/** Wie viele Artikel der Katalog hat. */
+export function katalogAnzahl(companyId: string): Promise<number> {
+  return pg.katalogAnzahl(companyId);
+}
+
+/** Der Anfang des Katalogs nach Namen, auf Wunsch gesucht, mit der Zahl aller Treffer. */
+export function katalogSeite(
+  companyId: string,
+  begriff: string,
+  anzahl: number,
+): Promise<{ zeilen: WithId<Material>[]; gesamt: number }> {
+  return pg.katalogSeite(companyId, begriff, anzahl);
+}
+
+/** Meldet Änderungen am Katalog — siehe `pg.katalogBeobachten`. */
+export function katalogBeobachten(companyId: string, beiAenderung: () => void): () => void {
+  return pg.katalogBeobachten(companyId, beiAenderung);
+}
+
 export function createMaterial(companyId: string, m: NewMaterial): Promise<string> {
   return pg.createMaterial(companyId, m);
 }

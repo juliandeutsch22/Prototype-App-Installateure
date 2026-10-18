@@ -5,7 +5,9 @@ import RowMenu from '@/components/RowMenu';
 import { useAuth } from '@/app/AuthContext';
 import { darfKatalogEinspielen } from '@/lib/permissions';
 import {
-  subscribeMaterials,
+  subscribeLagerartikel,
+  katalogAnzahl,
+  katalogBeobachten,
   LOW_STOCK_THRESHOLD,
   lagerFrei,
   type LagerStand,
@@ -93,6 +95,7 @@ export default function StockView() {
   };
   // Die Leitung — oder die Verwaltung mit Freigabe „Katalog einspielen“ (M37).
   const darfEinspielen = user ? darfKatalogEinspielen(user) : false;
+  /** Die im Lager geführten Artikel — nur sie, vom Server gefiltert. */
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
   const [orders, setOrders] = useState<WithId<MaterialOrder>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,7 +133,7 @@ export default function StockView() {
 
   useEffect(() => {
     if (!user) return;
-    const unsubM = subscribeMaterials(
+    const unsubM = subscribeLagerartikel(
       user.companyId,
       (rows) => {
         setMaterials(rows);
@@ -184,7 +187,7 @@ export default function StockView() {
     stehen beim zweiten Besuch mit ihnen da und werden frisch geholt. Nur
     zum Anzeigen — „Aus Lager“ prüft die Datenbank beim Zusagen selbst.
   */
-  const { anfang, merken } = useGemerkt<{ stand: Map<string, LagerStand> }>(
+  const { anfang, merken } = useGemerkt<{ stand: Map<string, LagerStand>; imKatalog: number }>(
     user ? schluessel('lagerStand', user) : null,
   );
   const [stand, setStand] = useState<Map<string, LagerStand> | null>(() => anfang?.stand ?? null);
@@ -210,6 +213,38 @@ export default function StockView() {
       .finally(() => { if (!weg) setStandFertig(true); });
     return () => { weg = true; };
   }, [user, materials, orders, loading, merken]);
+  /*
+    DIE GRÖSSE DES KATALOGS — gezählt, nicht geholt (18.10.2026). Sie steht
+    nur im Hinweis „von N im Katalog“ und unterscheidet „Katalog leer“ von
+    „nichts im Lager geführt“. Neu gezählt, sobald sich im Katalog etwas
+    ändert; gemerkt wie frei und reserviert, damit sie beim zweiten Besuch
+    gleich dasteht.
+  */
+  /** Wie viele Artikel der Katalog hat; `null` = nicht bekannt. */
+  const [imKatalog, setImKatalog] = useState<number | null>(() => anfang?.imKatalog ?? null);
+  /** Die Zahl ist da (gemerkt oder frisch gezählt) oder die Zählung scheiterte — erst dann steht die Kennzahl samt Hinweis. */
+  const [gezaehlt, setGezaehlt] = useState(() => anfang?.imKatalog !== undefined);
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    const zaehlen = () => {
+      katalogAnzahl(user.companyId)
+        .then((n) => {
+          if (weg) return;
+          setImKatalog(n);
+          merken({ imKatalog: n });
+        })
+        // Ohne die Zahl fehlt nur der Hinweis; der Bestand steht.
+        .catch(() => undefined)
+        .finally(() => { if (!weg) setGezaehlt(true); });
+    };
+    zaehlen();
+    const stopp = katalogBeobachten(user.companyId, zaehlen);
+    return () => {
+      weg = true;
+      stopp();
+    };
+  }, [user, merken]);
   /** Frei und reserviert stehen erst mit der Antwort der Datenbank — oder ihrem Fehler. */
   const bestandBereit = !loading && standFertig;
 
@@ -372,9 +407,10 @@ export default function StockView() {
             <Metric
               label="Im Lager"
               value={materials.filter(imLager).length}
-              bereit={!loading}
+              // Mit dem Hinweis zusammen — käme er später, rückte die Zeile darunter nach.
+              bereit={!loading && gezaehlt}
               // Katalog und Lager sind getrennt (M30): nicht jeder Katalogartikel liegt im Regal.
-              hint={`von ${materials.length} im Katalog`}
+              hint={imKatalog === null ? undefined : `von ${imKatalog} im Katalog`}
             />
             <Metric
               label="Knapp"
@@ -416,13 +452,14 @@ export default function StockView() {
               />
             </div>
             <div>
-              {!bestandBereit ? (
+              {/* Ein leeres Lager wartet auf die Zahl des Katalogs: sie wählt den Hinweis. */}
+              {!bestandBereit || (materials.length === 0 && !gezaehlt) ? (
                 <div className="px-4 pb-4">
                   <SkeletonList rows={5} />
                 </div>
               ) : rows.length === 0 ? (
                 <EmptyState>
-                  {materials.length === 0
+                  {imKatalog === 0
                     ? 'Noch kein Material im Katalog. Der Bereich „Katalog“ legt den ersten Eintrag an.'
                     : !materials.some(imLager)
                       ? 'Noch kein Artikel im Lager geführt. Im Katalog beim Artikel „Im Lager führen“ anhaken.'
