@@ -8,13 +8,11 @@ import { listQuotesForProject } from '@/lib/db/quotes';
 import { rechneBaustelle, margenTon, type Nachkalkulation } from './nachkalkulation';
 import { materialkosten, KEINE_MATERIALKOSTEN } from './materialkosten';
 import { listWorkSheetsForProject } from '@/lib/db/workSheets';
-import { listMaterials } from '@/lib/db/materials';
+import { katalogNachIds, katalogNachNamen } from '@/lib/db/materials';
 import { einkaufspreise, kostensaetze, type Kostensaetze } from '@/lib/db/kosten';
-import { katalogAbgeschnitten } from '@/lib/listengrenzen';
 import type { Material, Project, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
-import Hinweiszeile from '@/components/Hinweiszeile';
 import { Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
@@ -55,12 +53,6 @@ function angebotDerBaustelle(angebote: WithId<Quote>[]): WithId<Quote> | undefin
 export default function NachkalkulationView() {
   const { user } = useAuth();
   const [projekte, setProjekte] = useState<WithId<Project>[]>([]);
-  /*
-    Der Materialstamm, einmal geladen: er trägt die Einkaufspreise. Ohne ihn
-    stünde jede Baustelle als „Material ohne Preis" da — und das wäre eine
-    Aussage über den Katalog, nicht über die Baustelle.
-  */
-  const [katalog, setKatalog] = useState<Material[]>([]);
   const [ergebnisse, setErgebnisse] = useState<Nachkalkulation[] | null>(null);
   const [status, setStatus] = useState<'Aktiv' | 'Abgeschlossen'>('Abgeschlossen');
   /*
@@ -85,13 +77,9 @@ export default function NachkalkulationView() {
     setLoading(true);
     Promise.all([
       listRecentProjects(user.companyId, 300),
-      listMaterials(user.companyId).then(async (m) => {
-        const preise = await einkaufspreise(user.companyId, m.map((x) => x.id));
-        return m.map((x) => ({ ...x, einkaufspreis: preise.get(x.id) }));
-      }),
       kostensaetze(user.companyId),
     ])
-      .then(([p, m, k]) => {
+      .then(([p, k]) => {
         setKosten(k);
         setProjekte(p);
         if (
@@ -101,7 +89,6 @@ export default function NachkalkulationView() {
         ) {
           setStatus('Aktiv');
         }
-        setKatalog(m);
       })
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
@@ -162,8 +149,28 @@ export default function NachkalkulationView() {
         gefiltert.map((p) => (p.id ? listQuotesForProject(companyId, p.id) : Promise.resolve([]))),
       ),
     ])
-      .then(([eintraege, scheineJeBaustelle, rechnungenJeBaustelle, angeboteJeBaustelle]) => {
+      .then(async ([eintraege, scheineJeBaustelle, rechnungenJeBaustelle, angeboteJeBaustelle]) => {
         if (verworfen) return;
+        /*
+          DER MATERIALSTAMM NUR FÜR DIESE BAUSTELLEN (19.10.2026): die Artikel,
+          deren Namen auf ihren Scheinen und angenommenen Angeboten stehen,
+          dazu die Artikel, auf die eine Angebotszeile zeigt — aus dem ganzen
+          Katalog. Vorher kamen die ersten tausend Artikel; ein Artikel
+          dahinter stand als „ohne Einkaufspreis“ da, und der Deckungsbeitrag
+          war zu hoch. Die Einkaufspreise liest nur die Spitze (offene Punkte B1).
+        */
+        const zeilen = angeboteJeBaustelle.flatMap((liste) => angebotDerBaustelle(liste)?.positions ?? []);
+        const [nachName, nachId] = await Promise.all([
+          katalogNachNamen(companyId, [
+            ...scheineJeBaustelle.flatMap((sch) => (sch ?? []).flatMap((s) => (s.material ?? []).map((z) => z.name ?? ''))),
+            ...zeilen.map((z) => z.label ?? ''),
+          ]),
+          katalogNachIds(companyId, zeilen.map((z) => z.materialId ?? '')),
+        ]);
+        const artikel = [...new Map([...nachName, ...nachId].map((m) => [m.id, m])).values()];
+        const preise = await einkaufspreise(companyId, artikel.map((m) => m.id));
+        if (verworfen) return;
+        const katalog: Material[] = artikel.map((m) => ({ ...m, einkaufspreis: preise.get(m.id) }));
         setErgebnisse(
           gefiltert
             .map((p, i) => {
@@ -190,13 +197,13 @@ export default function NachkalkulationView() {
             .sort((a, b) => (a.margeProzent ?? 999) - (b.margeProzent ?? 999)),
         );
       })
-      .catch(() => setError('Zeiten, Rechnungen oder Angebote der Baustellen konnten nicht geladen werden.'));
+      .catch(() => setError('Zeiten, Rechnungen, Angebote oder Materialpreise der Baustellen konnten nicht geladen werden.'));
     return () => {
       verworfen = true;
     };
     // Am Inhalt haengen, nicht an der Array-Identitaet.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, nummern, katalog, kosten?.fach, kosten?.helper]);
+  }, [user, nummern, kosten?.fach, kosten?.helper]);
 
   /*
     DIE KENNZAHLEN ZÄHLEN NUR, WAS DIE ZEILEN SCHON SAGEN: je Baustelle den
@@ -226,26 +233,6 @@ export default function NachkalkulationView() {
         subtitle="Erlös gegen Personal- und Materialkosten — je Baustelle"
       />
 
-      {/*
-        WENN DER KATALOG NICHT GANZ GELADEN WURDE, MUSS DAS HIER STEHEN.
-
-        Material wird über den NAMEN zugeordnet, nicht über eine Kennung — ein
-        Artikel, der wegen der Obergrenze fehlt, findet seinen Einkaufspreis
-        also nicht. Falsch wird die Zahl dadurch nicht: der Artikel landet in
-        „ohne Einkaufspreis" und steht sichtbar bei der Baustelle. Aber der
-        GRUND wäre ein anderer als sonst — dort heisst es „im Materialstamm
-        nicht gepflegt", und hier stimmt das nicht. Wer dem nachginge, suchte
-        an der falschen Stelle.
-      */}
-      {katalogAbgeschnitten(katalog) && (
-        <Hinweiszeile stufe="warn">
-          <p>
-            Der Materialstamm wurde nur bis zur Obergrenze geladen ({katalog.length} Artikel).
-            Artikel darüber hinaus erscheinen unten als „ohne Einkaufspreis“, obwohl einer
-            hinterlegt sein kann — der Deckungsbeitrag ist dann zu hoch ausgewiesen.
-          </p>
-        </Hinweiszeile>
-      )}
 
       {/*
         Ohne interne Kostensaetze laesst sich nichts rechnen. Das ausdruecklich

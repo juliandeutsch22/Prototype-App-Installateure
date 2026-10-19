@@ -24,10 +24,14 @@
  * gesetzt hat.
  */
 export function ilikeMuster(begriff: string): string {
-  const entschaerft = begriff
+  return `%${ohneJoker(begriff)}%`;
+}
+
+/** Der Begriff mit entschärften Jokerzeichen, ohne die umgebenden `%`. */
+export function ohneJoker(begriff: string): string {
+  return begriff
     .replace(/\\/g, '\\\\')
     .replace(/[%_]/g, '\\$&');
-  return `%${entschaerft}%`;
 }
 
 /**

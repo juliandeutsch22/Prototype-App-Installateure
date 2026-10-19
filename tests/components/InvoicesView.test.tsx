@@ -293,7 +293,17 @@ vi.mock('@/lib/db/workSheets', () => ({
   listRecentWorkSheets: () => listRecentWorkSheets(),
   listWorkSheetsForProject: vi.fn(async () => scheine),
 }));
-vi.mock('@/lib/db/materials', () => ({ listMaterials: vi.fn(async () => katalog) }));
+/*
+  Der Katalog wie auf dem Server (19.10.2026): es kommen die Artikel, deren
+  Namen genannt werden — derselbe Vergleich wie in der Ansicht.
+*/
+const katalogNachNamen = vi.fn(async (_c: string, namen: readonly string[]) => {
+  const gesucht = new Set(namen.map((n) => n.trim().toLowerCase().replace(/\s+/g, ' ')));
+  return katalog.filter((m) => gesucht.has(m.name.trim().toLowerCase().replace(/\s+/g, ' ')));
+});
+vi.mock('@/lib/db/materials', () => ({
+  katalogNachNamen: (...a: [string, readonly string[]]) => katalogNachNamen(...a),
+}));
 /** Die Angebote der Baustelle — für die Pauschale (Launch-Check, K3). */
 let angebote: Array<Record<string, unknown>> = [];
 vi.mock('@/lib/db/quotes', () => ({ listQuotesForProject: vi.fn(async () => angebote) }));
@@ -404,6 +414,7 @@ async function bisZurVorschau(art?: string) {
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
+  katalogNachNamen.mockClear();
   rechnungen = [];
   suchTreffer = [];
   sucheWirft = false;
@@ -731,30 +742,28 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
     expect(screen.queryByText(/liegt vor „Leistung von“/)).not.toBeInTheDocument();
   });
 
-  it('warnt bei abgeschnittenem Materialstamm gegen den falschen Rat', async () => {
+  it('fragt den Katalog nach den Namen auf den Scheinen, nicht den ganzen Stamm (19.10.2026)', async () => {
     /*
-      Der übliche Rat lautet „im Lager gepflegt, kommt er beim nächsten Mal
-      von selbst". Der wäre falsch, wenn der Katalog gar nicht vollständig
-      geladen wurde — dann liegt es nicht an der Pflege, und wer ihr nachginge,
-      suchte an der falschen Stelle.
+      Bis hierher kamen die ersten tausend Artikel des Katalogs; ein Artikel
+      dahinter (nach einem DATANORM-Import) fand seinen Preis nicht und kam
+      mit 0,00 € auf die Rechnung. Jetzt fragt die Rechnung genau nach dem
+      Material ihrer Scheine — der ganze Katalog ist der Suchraum.
     */
     scheine = [SCHEIN];
-    katalog = Array.from({ length: 3 }, (_, i) =>
-      ({ id: `m${i}`, companyId: 'perl', name: `Artikel ${i}` }) as Material & { id: string },
-    );
+    katalog = KATALOG;
     await bisZurVorschau();
-
-    expect(await screen.findByText(/Ohne Preis im Katalog/)).toBeInTheDocument();
-    expect(screen.getByText(/nur bis zur Obergrenze geladen/)).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('Eckventil 1/2 Zoll')).toBeInTheDocument();
+    expect(katalogNachNamen).toHaveBeenCalledWith('perl', expect.arrayContaining(['Eckventil 1/2 Zoll']));
+    expect(screen.queryByText(/Ohne Preis im Katalog/)).not.toBeInTheDocument();
   });
 
-  it('warnt NICHT, solange der Materialstamm vollständig ist', async () => {
+  it('kommt der Katalog nicht, sagt es die Seite und setzt kein erfundenes Material an', async () => {
     scheine = [SCHEIN];
-    katalog = [];
+    katalog = KATALOG;
+    katalogNachNamen.mockRejectedValueOnce(new Error('weg'));
     await bisZurVorschau();
-
+    expect(await screen.findByText(/Der Materialkatalog/)).toBeInTheDocument();
     expect(await screen.findByText(/Ohne Preis im Katalog/)).toBeInTheDocument();
-    expect(screen.queryByText(/nur bis zur Obergrenze geladen/)).not.toBeInTheDocument();
   });
 
   it('weist auf Material ohne Preis hin', async () => {

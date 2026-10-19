@@ -37,8 +37,7 @@ import { buchungskonten, type Buchungskonto } from '@/lib/db/konten';
 import { downloadCsv } from '@/features/accounting/export';
 import { listEntriesForProjects } from '@/lib/db/timeEntries';
 import { listWorkSheetsForProject, listRecentWorkSheets } from '@/lib/db/workSheets';
-import { listMaterials } from '@/lib/db/materials';
-import { katalogAbgeschnitten } from '@/lib/listengrenzen';
+import { katalogNachNamen } from '@/lib/db/materials';
 import { verrechneteScheine } from './materialPositionen';
 import {
   darfMahnen,
@@ -255,12 +254,6 @@ export default function InvoicesView() {
       a.laeuft = false;
     })();
   }, [user, offeneAnwenden]);
-  /*
-    War der Materialstamm beim Zusammenstellen abgeschnitten? Ein Artikel
-    darüber hinaus findet seinen Preis nicht — er steht dann unten als „ohne
-    Preis im Katalog", und das wäre in diesem Fall die falsche Auskunft.
-  */
-  const [katalogUnvollstaendig, setKatalogUnvollstaendig] = useState(false);
   /*
     Der Export holt seinen Zeitraum SELBST. Vorher filterte er die geladene
     Liste nach Datum — ein Export für einen älteren Monat lieferte damit eine
@@ -1176,18 +1169,27 @@ export default function InvoicesView() {
         Abfrage nicht, entsteht keine Vorschau: eine, die doppelt verrechnen
         könnte, ist schlechter als keine.
       */
-      const [entries, scheine, katalog, derBaustelle] = await Promise.all([
+      const [entries, scheine, derBaustelle] = await Promise.all([
         listEntriesForProjects(user.companyId, [projectNumber]),
         listWorkSheetsForProject(user.companyId, projectNumber).catch(() => {
           setNebenFehler('Die Handwerksscheine');
           return [];
         }),
-        listMaterials(user.companyId).catch(() => {
-          setNebenFehler('Der Materialkatalog');
-          return [];
-        }),
         listInvoicesForProject(user.companyId, projectNumber).catch(() => null),
       ]);
+      /*
+        PREISE NUR FÜR DAS MATERIAL AUF DEN SCHEINEN (19.10.2026) — aus dem
+        ganzen Katalog, nicht aus den ersten tausend Artikeln. Vorher fand
+        ein Artikel hinter dieser Grenze (nach einem DATANORM-Import) seinen
+        Preis nicht und kam mit 0,00 € auf die Rechnung.
+      */
+      const katalog = await katalogNachNamen(
+        user.companyId,
+        scheine.flatMap((s) => (s.material ?? []).map((z) => z.name ?? '')),
+      ).catch(() => {
+        setNebenFehler('Der Materialkatalog');
+        return [];
+      });
       if (!derBaustelle) {
         setPreview(null);
         setError(
@@ -1197,7 +1199,6 @@ export default function InvoicesView() {
         );
         return;
       }
-      setKatalogUnvollstaendig(katalogAbgeschnitten(katalog));
       const assembled = assembleInvoice(projectNumber, entries, rates, {
         scheine,
         katalog,
@@ -2946,18 +2947,6 @@ export default function InvoicesView() {
                   Ohne Preis im Katalog und deshalb mit 0,00 € eingesetzt:{' '}
                   {preview.materialOhnePreis.join(', ')}. Preis hier eintragen oder die Zeile
                   entfernen — im Lager gepflegt, kommt er beim nächsten Mal von selbst.
-                  {/*
-                    „Im Lager gepflegt, kommt er beim nächsten Mal von selbst" ist
-                    der übliche Rat — und er wäre falsch, wenn der Katalog gar
-                    nicht vollständig geladen wurde. Dann liegt es nicht an der
-                    Pflege, und wer ihr nachginge, suchte an der falschen Stelle.
-                  */}
-                  {katalogUnvollstaendig && (
-                    <strong className="mt-1 block">
-                      Achtung: der Materialstamm wurde nur bis zur Obergrenze geladen. Für diese
-                      Artikel kann sehr wohl ein Preis hinterlegt sein.
-                    </strong>
-                  )}
                 </p>
               </Hinweiszeile>
             </div>

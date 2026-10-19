@@ -124,8 +124,18 @@ vi.mock('@/lib/db/quotes', () => ({
 let katalog: Material[] = [];
 let scheine: Array<WorkSheet & { id: string }> = [];
 const listWorkSheetsForProject = vi.fn(async () => scheine);
+/*
+  Der Katalog wie auf dem Server (19.10.2026): nach Namen oder Kennungen,
+  ohne Einkaufspreis — den liest nur die Spitze aus der eigenen Tabelle.
+*/
+const nameNorm = (n: string) => n.trim().toLowerCase().replace(/\s+/g, ' ');
+const katalogNachNamen = vi.fn(async (_c: string, namen: readonly string[]) =>
+  katalog.filter((m) => namen.map(nameNorm).includes(nameNorm(m.name))).map((m) => ({ ...m, einkaufspreis: undefined })));
+const katalogNachIds = vi.fn(async (_c: string, ids: readonly string[]) =>
+  katalog.filter((m) => ids.includes(m.id!)).map((m) => ({ ...m, einkaufspreis: undefined })));
 vi.mock('@/lib/db/materials', () => ({
-  listMaterials: vi.fn(async () => katalog.map((m) => ({ ...m, einkaufspreis: undefined }))),
+  katalogNachNamen: (...a: [string, readonly string[]]) => katalogNachNamen(...a),
+  katalogNachIds: (...a: [string, readonly string[]]) => katalogNachIds(...a),
 }));
 vi.mock('@/lib/db/kosten', () => ({
   kostensaetze: vi.fn(async () => kosten),
@@ -182,6 +192,8 @@ beforeEach(() => {
   kosten = { fach: 40, helper: 25 };
   projekte = [];
   katalog = [];
+  katalogNachNamen.mockClear();
+  katalogNachIds.mockClear();
   scheine = [];
   eintraege = [];
   rechnungen = [];
@@ -389,39 +401,28 @@ describe('Material im Ergebnis', () => {
     expect(zeile.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('1650,00');
   });
 
-  it('sagt es, wenn der Materialstamm nur bis zur Grenze geladen wurde', async () => {
+  it('fragt den Katalog nach den Namen der Scheine und des Angebots, nicht den ganzen Stamm (19.10.2026)', async () => {
     /*
-      Material wird über den NAMEN zugeordnet, nicht über eine Kennung — ein
-      Artikel, der wegen der Obergrenze fehlt, findet seinen Einkaufspreis
-      nicht. Falsch wird die Zahl dadurch nicht: der Artikel landet in „ohne
-      Einkaufspreis" und steht sichtbar da. Aber der GRUND wäre ein anderer
-      als sonst, und wer ihm nachginge, suchte im Materialstamm nach einer
-      Pflege, die längst da ist.
+      Bis hierher kamen die ersten tausend Artikel; ein Artikel dahinter stand
+      als „ohne Einkaufspreis“ da, und der Deckungsbeitrag war zu hoch. Jetzt
+      fragt die Ansicht genau nach dem Material der gezeigten Baustellen.
     */
     projekte = [projekt('2026-001')];
     rechnungen = [rechnung('2026-001', 2000)];
-    katalog = Array.from({ length: 3 }, (_, i) =>
-      ({ id: `m${i}`, companyId: 'perl', name: `Artikel ${i}`, stock: 0 }) as Material,
-    );
-    zeige();
-
-    expect(await screen.findByText(/nur bis zur Obergrenze geladen/)).toBeInTheDocument();
-  });
-
-  it('schweigt dazu, solange der Stamm vollständig ist', async () => {
-    // Ein Hinweis, der bei jedem gewöhnlichen Katalog erschiene, wäre Lärm.
-    projekte = [projekt('2026-001')];
-    rechnungen = [rechnung('2026-001', 2000)];
     katalog = [{ id: 'm1', companyId: 'perl', name: 'Eckventil', stock: 0 } as Material];
+    scheine = [
+      {
+        id: 's1', companyId: 'perl', projectNumber: '2026-001', status: 'Unterschrieben',
+        material: [{ name: 'Eckventil', menge: 1 }],
+      } as unknown as WorkSheet & { id: string },
+    ];
     zeige();
-
-    // Auf das Ende des Ladens warten, sonst prüft die Zusicherung eine Seite,
-    // die noch gar nichts behauptet.
     await screen.findByText(/Nachkalkulation/);
-    await waitFor(() =>
-      expect(screen.queryByText(/nur bis zur Obergrenze geladen/)).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(katalogNachNamen).toHaveBeenCalledWith('perl', ['Eckventil']));
+    expect(katalogNachIds).toHaveBeenCalledWith('perl', []);
+    expect(screen.queryByText(/nur bis zur Obergrenze geladen/)).not.toBeInTheDocument();
   });
+
 
   it('nennt Artikel ohne Einkaufspreis, statt sie mit null anzusetzen', async () => {
     projekte = [projekt('2026-001')];
