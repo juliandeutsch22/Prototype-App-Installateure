@@ -687,7 +687,7 @@
     <div class="stempel">
       <span>Stand <b>19.10.2026</b></span>
       <span>Fassung <b>Lot v2 · Arbeitsstand</b></span>
-      <span>Automatische Prüfungen <b>5.251 Modulprüfungen · 73 Browserwege · 7 Linkprüfungen</b></span>
+      <span>Automatische Prüfungen <b>5.269 Modulprüfungen · 73 Browserwege · 7 Linkprüfungen</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -709,6 +709,14 @@
         <p><strong>Auch hinter den ersten 500:</strong> Rechnungen (UID-Vorschlag, Kundenart beim Mahnen, UID im Ausgangsbuch) und das Belegarchiv holen jetzt genau die Kunden ihrer Baustellen und Belege, über den ganzen Stamm. Bisher fehlten dort still alle Kunden hinter den ersten 500: Im Ausgangsbuch fehlte ihre UID, beim Mahnen galten sie als Verbraucher.</p>
         <p><strong>Grenzen:</strong> Die Suche braucht Verbindung; ohne sie sagt das Feld es. Neue Kunden legt weiter die Kundenverwaltung an.</p>
         <p class="wer">Büro, Projektleitung, Geschäftsführung · Buchhaltung (Rechnungen, Archiv)</p>
+      </div>
+      <div class="bereich">
+        <h3>Startseite und App-Start schneller<span class="neu">geändert</span></h3>
+        <p>Die Startseite holte für ihre Hinweise die Rohdaten in den Browser: alle Lagerartikel, um die knappen zu finden, jede Buchung der letzten fünf Wochen, um „Tage ohne Buchung“ zu zählen, jeden Einsatz von 90 Tagen zurück bis 14 Tage voraus, um „Baustellen ohne Einsatz“ zu finden. Mit jedem Mitarbeiter und jedem Monat wurde das mehr. Jetzt rechnet die <strong>Datenbank</strong> und schickt nur die Antwort: die knappen Artikel, je Person die Tage mit Buchung, je Baustelle den letzten und den nächsten Einsatz. Die Regeln sind dieselben wie bisher, ebenso wer was sehen darf. Die Abfragen eines Blocks laufen jetzt gleichzeitig statt nacheinander.</p>
+        <p><strong>Beim Start der App</strong> wurden Profil, Betrieb und der zweite Faktor doppelt geholt; jetzt einmal, und Profil und Betrieb schon, während der zweite Faktor geprüft wird. Wer angemeldet ist, bekommt den Programmteil der geöffneten Seite schon in dieser Zeit.</p>
+        <p><strong>Gemessen</strong> (Startseite der Geschäftsführung, Telefon mit langsamem Netz): bei der Rückkehr bereit nach 1,7 statt 3,0 Sekunden, beim ersten Besuch nach 3,2–3,5 statt 4,8–6,6 Sekunden.</p>
+        <p><strong>Nebenbei richtig gestellt:</strong> Bei sehr großer Belegschaft fehlten Einsätze jenseits der ersten 3.000. Eine Baustelle konnte dann fälschlich als „ohne Einsatz“ dastehen.</p>
+        <p class="wer">Alle, die die Startseite öffnen</p>
       </div>
     </div>
   </section>
