@@ -1321,6 +1321,7 @@ export default function WorkSheetView() {
               */}
               <Card title={`Verbautes Material (${material.length})`}>
                 <MaterialErfassen
+                  companyId={user?.companyId}
                   materials={materials}
                   zeilen={material}
                   onChange={setMaterial}

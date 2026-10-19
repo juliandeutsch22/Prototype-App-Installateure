@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Material } from '@/types';
-import { katalogAbgeschnitten } from '@/lib/listengrenzen';
 import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
@@ -9,6 +8,7 @@ import { InputField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { EmptyState } from '@/components/States';
 import { neueKennung, type MaterialZeile } from './materialZeilen';
+import { useKatalogSuche } from '@/features/orders/useKatalogSuche';
 import { ZahlWertFeld } from '@/components/ZahlFeld';
 
 /**
@@ -40,6 +40,9 @@ import { ZahlWertFeld } from '@/components/ZahlFeld';
  */
 
 interface Props {
+  /** Für die Suche auf dem Server über den ganzen Katalog. */
+  companyId?: string;
+  /** Die beim Öffnen geladenen Artikel — die Reserve, solange der Server nicht antwortet. */
   materials: WithId<Material>[];
   zeilen: MaterialZeile[];
   onChange: (next: MaterialZeile[]) => void;
@@ -50,7 +53,7 @@ interface Props {
   onOffen?: (offen: string | null) => void;
 }
 
-export default function MaterialErfassen({ materials, zeilen, onChange, onOffen }: Props) {
+export default function MaterialErfassen({ companyId, materials, zeilen, onChange, onOffen }: Props) {
   const [suche, setSuche] = useState('');
   const [freierName, setFreierName] = useState('');
 
@@ -65,22 +68,19 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
 
   /**
    * Dieselbe Suche wie bei der Retoure und der Rüstliste — Bezeichnung,
-   * Kategorie und Artikelnummer. Wer drei Stellen im Programm bedient, soll
-   * nicht drei verschiedene Suchen lernen müssen.
+   * Kategorie und Artikelnummer, seit 19.10.2026 auf dem Server über den
+   * ganzen Katalog (`useKatalogSuche`). Wer drei Stellen im Programm bedient,
+   * soll nicht drei verschiedene Suchen lernen müssen.
    */
-  const treffer = useMemo(() => {
-    const q = suche.trim().toLowerCase();
-    if (!q) return [];
-    return materials
-      /*
-        Ausgelaufene Artikel bleiben im Katalog, werden hier aber nicht mehr
-        vorgeschlagen: was der Grosshändler nicht mehr führt, kann heute
-        niemand mehr verbauen. Auf alten Scheinen steht er weiterhin.
-      */
-      .filter((m) => !m.ausgelaufen)
-      .filter((m) => [m.name, m.category, m.articleNumber].some((v) => v?.toLowerCase().includes(q)))
-      .slice(0, 8);
-  }, [materials, suche]);
+  const suchStand = useKatalogSuche(companyId, suche, materials);
+  const treffer = suchStand.treffer
+    /*
+      Ausgelaufene Artikel bleiben im Katalog, werden hier aber nicht mehr
+      vorgeschlagen: was der Grosshändler nicht mehr führt, kann heute
+      niemand mehr verbauen. Auf alten Scheinen steht er weiterhin.
+    */
+    .filter((m) => !m.ausgelaufen)
+    .slice(0, 8);
 
   function hinzufuegen(name: string, einheit?: string) {
     onChange([...zeilen, { id: neueKennung(), name, menge: 1, einheit }]);
@@ -151,23 +151,23 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
         />
         {suche.trim() !== '' && (
           <div className="mt-2">
+            {/*
+              OHNE VERBINDUNG ZUM KATALOG sucht das Feld nur in den beim
+              Öffnen geladenen Artikeln. „Wird nicht im Lager geführt“ wäre
+              dann die falsche Erklärung: der Monteur tippte den Artikel von
+              Hand ein, und auf der Rechnung stünde er später ohne Preis.
+            */}
+            {suchStand.ohneNetz && (
+              <p className="mb-2 text-sm text-ink-deep">
+                Keine Verbindung zum Katalog — gesucht nur in den beim Öffnen geladenen Artikeln.
+                Den Artikel kann es trotzdem geben.
+              </p>
+            )}
             {treffer.length === 0 ? (
               <p className="text-sm text-ink-muted">
-                Kein Artikel passt zur Suche. Was nicht im Lager geführt wird, kann unten als
-                freie Zeile dazu.
-                {/*
-                  „Wird nicht im Lager geführt" ist die übliche Erklärung —
-                  und sie wäre falsch, wenn der Katalog nur bis zur
-                  Obergrenze geladen wurde. Der Monteur tippt den Artikel dann
-                  von Hand ein, und der Eintrag mit Preis und Einheit bleibt
-                  ungenutzt; auf der Rechnung steht er später ohne Preis.
-                */}
-                {katalogAbgeschnitten(materials) && (
-                  <strong className="mt-1 block text-ink-deep">
-                    Der Katalog wurde nur bis zur Obergrenze geladen — den Artikel kann es
-                    trotzdem geben.
-                  </strong>
-                )}
+                {suchStand.laeuft
+                  ? 'Sucht im Katalog …'
+                  : 'Kein Artikel passt zur Suche. Was nicht im Lager geführt wird, kann unten als freie Zeile dazu.'}
               </p>
             ) : (
               <List>
