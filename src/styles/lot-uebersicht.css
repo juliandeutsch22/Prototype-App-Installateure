@@ -240,7 +240,7 @@
 @layer components {
   .ue-vergleich { background: var(--surface); border-block: 1px solid var(--border); }
   .ue-vergleich-kopf { display: none; }
-  .ue-vergleich-zeile { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; align-items: center; padding: 1rem; border-top: 1px solid var(--border); cursor: pointer; }
+  .ue-vergleich-zeile { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; align-items: center; padding: 1rem; border-top: 1px solid var(--border); cursor: pointer; }
   .ue-vergleich-zeile:hover { background: var(--surface-2); }
   .ue-pruefstand, .ue-pruefstand-achtung { grid-column: 1 / -1; font-size: 0.8125rem; line-height: 1.375rem; color: var(--text-muted); }
   .ue-pruefstand-achtung { color: var(--warning); }
@@ -249,7 +249,7 @@
   .ue-vergleich .ue-name { white-space: normal; overflow: visible; }
   .ue-vergleich .ue-gruppe { background: var(--surface); font-weight: 400; }
   @media (min-width: 760px) {
-    .ue-vergleich-kopf, .ue-vergleich-zeile { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.6fr) repeat(3, minmax(4.5rem, 0.65fr)); gap: 0.875rem; padding: 1rem; }
+    .ue-vergleich-kopf, .ue-vergleich-zeile { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.6fr) repeat(4, minmax(4.5rem, 0.65fr)); gap: 0.875rem; padding: 1rem; }
     .ue-vergleich-kopf { font-size: 0.75rem; color: var(--text-muted); }
     .ue-pruefstand, .ue-pruefstand-achtung { grid-column: auto; }
     .ue-vergleich .ue-person { grid-column: auto; }

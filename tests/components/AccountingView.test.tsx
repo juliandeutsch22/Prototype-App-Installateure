@@ -168,8 +168,12 @@ vi.mock('@/features/accounting/export', async (original) => ({
 
 /** Der Gesamtsaldo seit Eintritt — dieselbe Ladefunktion wie in der Zeiterfassung. */
 const zeitguthabenLaden = vi.fn(async () => ({ saldoH: 12.5, hasConfig: true, daysWithoutEntry: 0 }));
+/** Der Gesamtsaldo aller Konten für die Liste (19.10.2026) — dieselbe Rechnung, gebündelt geholt. */
+const gesamtsaldenLaden = vi.fn(async (_betrieb: string, personen: AppUser[]) =>
+  new Map(personen.filter((p) => p.appStartDate).map((p) => [p.uid, -3.25])));
 vi.mock('@/features/vacations/zeitguthaben', () => ({
   zeitguthabenLaden: (...a: unknown[]) => zeitguthabenLaden(...(a as [])),
+  gesamtsaldenLaden: (...a: unknown[]) => gesamtsaldenLaden(...(a as [string, AppUser[]])),
 }));
 
 /*
@@ -204,6 +208,8 @@ beforeEach(() => {
   buchungen = eintraege;
   liveSenden = null;
   grenzAbfragen = 0;
+  zeitguthabenLaden.mockClear();
+  gesamtsaldenLaden.mockClear();
   // Fest auf den 31.08.2026, damit "heute" den Test nicht mit der Zeit
   // verschiebt. shouldAdvanceTime, weil userEvent intern Zeitgeber braucht.
   vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -590,6 +596,43 @@ describe('Gesamtsaldo neben dem Monatssaldo (Testbericht 30.09.2026, M8)', () =>
     expect(zeitguthabenLaden).toHaveBeenCalledWith(expect.objectContaining({ uid: 'u1' }), expect.any(Boolean));
   });
 
+
+  const zeigeListe = () => render(<MemoryRouter><ToastProvider><AccountingView /></ToastProvider></MemoryRouter>);
+
+  it('steht im Personenvergleich als eigene Spalte — für alle Personen auf einmal geholt', async () => {
+    benutzer = [monteur];
+    zeigeListe();
+    const zeile = await screen.findByText('Gesamtsaldo', { selector: '.ue-zahl-name' });
+    await waitFor(() => expect(zeile.parentElement).toHaveTextContent('Gesamtsaldo-03:15'));
+    expect(screen.getByText('Gesamtsaldo', { selector: '.ue-kopf-zahl' })).toBeInTheDocument();
+    expect(gesamtsaldenLaden).toHaveBeenCalledWith('perl', [expect.objectContaining({ uid: 'u1' })], expect.any(Boolean));
+    // Die Liste holt nicht je Person einzeln.
+    expect(zeitguthabenLaden).not.toHaveBeenCalled();
+  });
+
+  it('ohne Eintrittsdatum steht ein Strich, kein Saldo von null', async () => {
+    benutzer = [{ ...monteur, appStartDate: undefined }];
+    zeigeListe();
+    const zeile = await screen.findByText('Gesamtsaldo', { selector: '.ue-zahl-name' });
+    await waitFor(() => expect(gesamtsaldenLaden).toHaveBeenCalled());
+    await waitFor(() => expect(zeile.parentElement).toHaveTextContent('Gesamtsaldo—'));
+  });
+
+  it('kommt der Gesamtsaldo nicht, sagt es die Seite, und die Liste bleibt', async () => {
+    gesamtsaldenLaden.mockRejectedValueOnce(new Error('weg'));
+    zeigeListe();
+    expect(await screen.findByText(/Der Gesamtsaldo/)).toBeInTheDocument();
+    expect(screen.getByText('Gesamtsaldo', { selector: '.ue-zahl-name' }).parentElement).toHaveTextContent('Gesamtsaldo—');
+    expect(screen.getByText('Saldo Monat', { selector: '.ue-zahl-name' })).toBeInTheDocument();
+  });
+
+  it('bleibt gleich: im Tagesstreifen und in der Woche keine vierte Zahl', async () => {
+    zeigeListe();
+    await screen.findByText('Gesamtsaldo', { selector: '.ue-zahl-name' });
+    await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).click(screen.getByRole('button', { name: 'Alle Tage vergleichen' }));
+    await waitFor(() => expect(screen.queryByText('Gesamtsaldo', { selector: '.ue-zahl-name' })).toBeNull());
+    expect(screen.getByText('Saldo Monat', { selector: '.ue-zahl-name' })).toBeInTheDocument();
+  });
 
   // Testbericht Runde 5, G6: „Tagessoll 08:00“ war der Durchschnitt eines eigenen Solls je Wochentag.
   it('nennt ein eigenes Tagessoll je Wochentag, nicht den Durchschnitt', async () => {

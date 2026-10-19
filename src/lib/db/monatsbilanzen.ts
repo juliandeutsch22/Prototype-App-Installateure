@@ -32,3 +32,10 @@ export function listBilanzen(
 ): Promise<Monatsbilanz[]> {
   return pg.listBilanzen(companyId, uid, abMonat);
 }
+
+/** Die Bilanzen aller Personen ab einem Monat — siehe `pg.listBilanzenAlle`. */
+export function listBilanzenAlle(
+  companyId: string, abMonat: string,
+): Promise<Array<Monatsbilanz & { userId: string }>> {
+  return pg.listBilanzenAlle(companyId, abMonat);
+}

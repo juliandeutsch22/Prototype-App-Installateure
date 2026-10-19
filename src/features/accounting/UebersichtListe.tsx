@@ -19,6 +19,8 @@ export interface UebersichtZeile {
   gebucht: string;
   soll: string;
   saldo: string;
+  /** Der Saldo seit dem Eintritt — nur im Personenvergleich, wo Zeitkonten nebeneinander stehen. */
+  gesamt?: string;
 }
 
 /** Je Gruppe höchstens so viele Zeilen, dann „und N weitere anzeigen“ (Protokoll Regel 4). */
@@ -68,6 +70,7 @@ export default function UebersichtListe({
           <p className="ue-kopf-zahl">Gebucht</p>
           <p className="ue-kopf-zahl">Soll bisher</p>
           <p className="ue-kopf-zahl">{woche ? 'Saldo' : 'Saldo Monat'}</p>
+          {vergleich && <p className="ue-kopf-zahl">Gesamtsaldo</p>}
         </div>
       )}
       {imSupport ? (
@@ -186,6 +189,17 @@ function Zeile({
         <span className="ue-zahl-name">{woche ? 'Saldo' : 'Saldo Monat'}</span>
         {z.saldo}
       </p>
+      {/*
+        DER GESAMTSALDO NUR IM VERGLEICH (19.10.2026): dort stehen die
+        Zeitkonten nebeneinander. Im Tagesstreifen und in der Woche nähme
+        eine vierte Zahl den Tagen den Platz.
+      */}
+      {vergleich && (
+        <p className="ue-zahl-stark">
+          <span className="ue-zahl-name">Gesamtsaldo</span>
+          {z.gesamt ?? '—'}
+        </p>
+      )}
     </div>
   );
 }
