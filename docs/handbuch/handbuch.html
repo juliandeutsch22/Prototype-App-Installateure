@@ -687,7 +687,7 @@
     <div class="stempel">
       <span>Stand <b>19.10.2026</b></span>
       <span>Fassung <b>Lot v2 · Arbeitsstand</b></span>
-      <span>Automatische Prüfungen <b>5.217 Modulprüfungen · 72 Browserwege · 7 Linkprüfungen</b></span>
+      <span>Automatische Prüfungen <b>5.224 Modulprüfungen · 72 Browserwege · 7 Linkprüfungen</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -710,6 +710,17 @@
         <p>Der Saldo seit dem Eintritt stand bisher erst im Seitenfenster einer Person. Jetzt steht er im <strong>Personenvergleich</strong> als eigene Spalte „Gesamtsaldo“ neben „Saldo Monat“ — wer Zeitausgleich plant oder Überstunden abbauen lässt, sieht die Konten nebeneinander. Es ist dieselbe Zahl wie im Fenster der Person, samt Start-Saldo; geholt wird sie für alle auf einmal (die Monatsbilanzen in einer Abfrage, nicht drei Abfragen je Person) und erst, wenn die Liste steht. Ändert sich eine Buchung im gezeigten Zeitraum, rechnet die Spalte nach.</p>
         <p><strong>Grenzen:</strong> Im Tagesstreifen und in der Woche steht die Spalte nicht — dort nähme eine vierte Zahl den Tagen den Platz. Ohne Eintrittsdatum steht ein Strich. Wer ein eigenes Tagessoll je Wochentag hat, wird wie im Fenster über alle Buchungen seit dem Eintritt gerechnet (eine Abfrage je solcher Person). Eine Buchung außerhalb des gezeigten Zeitraums, die ein anderes Gerät ändert, zeigt die Spalte erst nach dem nächsten Laden der Seite.</p>
         <p class="wer">Geschäftsführung, Buchhaltung, wer die Mitarbeiterübersicht sieht</p>
+      </div>
+      <div class="bereich">
+        <h3>Der ganze Katalog in Schein, Einsatz, Rechnung, Nachkalkulation und Katalogpflege<span class="neu">geändert</span></h3>
+        <p>Diese fünf Stellen arbeiteten mit den ersten tausend Artikeln des Katalogs. Nach einem DATANORM-Import fand ein Artikel dahinter keinen Preis und keinen Treffer: der Monteur schrieb ihn als freie Zeile, und auf der Rechnung stand er mit 0,00 €. Jetzt gilt überall der ganze Katalog:</p>
+        <ul>
+          <li><strong>Material am Schein und Rüstliste am Einsatz:</strong> „Artikel aus dem Lager“ sucht auf dem Server in Bezeichnung, Kategorie und Artikelnummer. Bis die Antwort da ist, steht „Sucht im Katalog …“ bzw. was unter den geladenen Artikeln passt. <strong>Ohne Verbindung</strong> (Keller) sucht das Feld wie bisher in den beim Öffnen geladenen Artikeln und sagt es: „Keine Verbindung zum Katalog — den Artikel kann es trotzdem geben.“ Die Rüstliste zeigt Lagerstand und Fehlmenge auch für Artikel außerhalb der geladenen.</li>
+          <li><strong>Rechnung und Nachkalkulation:</strong> Preise kommen für genau die Artikel, deren Namen auf den Scheinen (und beim Angebot) stehen — gesucht über den ganzen Katalog, ohne Rücksicht auf Groß- und Kleinschreibung. Der Hinweis „nur bis zur Obergrenze geladen“ entfällt, weil es die Grenze hier nicht mehr gibt.</li>
+          <li><strong>Katalogpflege (Lager › Katalog):</strong> seitenweise vom Server wie bei „Material anfordern“ — die ersten zwanzig nach Namen, „und N weitere“ holt mehr, die Suche geht über den ganzen Katalog. Der Titel nennt die Zahl aller Artikel, „knapp“ kommt aus den Lagerartikeln.</li>
+        </ul>
+        <p><strong>Grenzen:</strong> Ohne Verbindung findet die Suche am Schein und in der Rüstliste nur unter den beim Öffnen geladenen Artikeln (wie bisher bis tausend). Die Rechnung fragt die Preise nach dem Holen der Scheine — eine Anfrage später als zuvor.</p>
+        <p class="wer">Monteure (Schein) · Projektleitung (Einsatz) · Büro und Buchhaltung (Rechnung, Katalog) · Geschäftsführung (Nachkalkulation)</p>
       </div>
     </div>
   </section>
