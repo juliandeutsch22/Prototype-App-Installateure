@@ -3,7 +3,7 @@
  * Messbasis für den Umbau „Lot“ (Phase B, B2) — vorher und nachher mit
  * demselben Werkzeug (Protokoll 0.1, Punkt 3: „gemessen, nicht vermutet“).
  *
- *   node scripts/ui-umbau/messung.mjs [vorher|nachher] [--ohne-bauen] [--laeufe=3] [--nur=/lager] [--ohne-hintergrund]
+ *   node scripts/ui-umbau/messung.mjs [vorher|nachher|--quelle=name] [--ohne-bauen] [--laeufe=3] [--nur=/lager] [--ohne-hintergrund] [--wiederkehr]
  *
  * Voraussetzungen: lokaler Stapel läuft, Testbestand angelegt
  * (`node scripts/ui-umbau/testbestand.mjs`). Das Skript baut die App gegen
@@ -32,6 +32,22 @@
  *     Abschnitt 3, B3: „höchstens 50 Einträge je Anfrage, kein ganzer
  *     Bestand im Browser“.
  *
+ * WIE DRAUSSEN AUSGELIEFERT (seit 19.10.2026): gemessen wird nicht mehr gegen
+ * `vite preview` und den rohen Stapel, sondern gegen den Nachbau der echten
+ * Auslieferung in `auslieferung.mjs` — HTTP/2, gepackte Antworten der
+ * Datenbank wie bei Supabase, Kopfzeilen aus `firebase.json`. Vorher war jede
+ * Antwort der Datenbank ungepackt (eine Monatsliste Buchungen 432 statt
+ * 24 KB) und jede Programmdatei ging über eine von sechs HTTP/1.1-Leitungen;
+ * die Zahlen bis 19.10.2026 überzeichnen deshalb Datenmenge und Ladezeit.
+ * Die Drosselung bleibt, wie sie war.
+ *
+ * WIEDERKEHR (`--wiederkehr`): der Alltag — die App war auf dem Gerät schon
+ * offen, ihre Programmdateien liegen im Zwischenspeicher des Browsers (sie
+ * sind `immutable`), angemeldet ist man auch. Die Seite wird dafür einmal
+ * ungedrosselt geöffnet und dann gemessen. Ohne den Schalter misst jeder
+ * Lauf einen ERSTEN Besuch mit leerem Zwischenspeicher — so wie nach einer
+ * neuen Fassung der App.
+ *
  * Ergebnis: `docs/ui-umbau/messung-<quelle>.json` (Rohwerte) und der
  * erzeugte Abschnitt in `docs/ui-umbau/messung-<quelle>.md` zwischen den
  * Markierungen — der Text drumherum bleibt stehen.
@@ -47,20 +63,23 @@
  * und einen eigenen Abschnitt in derselben `.md`.
  */
 import { chromium } from 'playwright';
-import { spawn, spawnSync, execSync } from 'node:child_process';
+import { spawnSync, execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { auslieferungStarten, APP_PORT, API_PORT } from './auslieferung.mjs';
 
-const QUELLE = process.argv.find((a) => a === 'vorher' || a === 'nachher') ?? 'vorher';
+const QUELLE = process.argv.find((a) => a.startsWith('--quelle='))?.split('=')[1]
+  ?? process.argv.find((a) => a === 'vorher' || a === 'nachher') ?? 'vorher';
 const BAUEN = !process.argv.includes('--ohne-bauen');
 const LAEUFE = Number(process.argv.find((a) => a.startsWith('--laeufe='))?.split('=')[1] ?? 3);
 /** Nur einzelne Seiten (zum Ausprobieren): --nur=/lager,/invoices — schreibt dann keine Ergebnisdateien. */
 const NUR = process.argv.find((a) => a.startsWith('--nur='))?.split('=')[1].split(',') ?? null;
 const OHNE_HINTERGRUND = process.argv.includes('--ohne-hintergrund');
-const MARKE = OHNE_HINTERGRUND ? 'messung-ohne-hintergrund' : 'messung';
-const PORT = 4320;
-const ORT = `http://127.0.0.1:${PORT}`;
-const API = 'http://127.0.0.1:54321';
+const WIEDERKEHR = process.argv.includes('--wiederkehr');
+const ZUSATZ = `${OHNE_HINTERGRUND ? '-ohne-hintergrund' : ''}${WIEDERKEHR ? '-wiederkehr' : ''}`;
+const MARKE = `messung${ZUSATZ}`;
+const ORT = `https://127.0.0.1:${APP_PORT}`;
+const API = `https://127.0.0.1:${API_PORT}`;
 // Öffentlicher Anon-Schlüssel der Supabase-CLI (wie playwright.config.ts) — kein Geheimnis.
 const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
 const KONTO = { email: 'gf@ui-testbestand.test', passwort: 'Testbestand-2026!' };
@@ -97,18 +116,6 @@ function bauen() {
     env: { ...process.env, VITE_SUPABASE_URL: API, VITE_SUPABASE_ANON_KEY: ANON },
   });
   if (r.status !== 0) throw new Error('Bauen fehlgeschlagen');
-}
-
-async function warteAuf(url, ms = 30_000) {
-  const ende = Date.now() + ms;
-  while (Date.now() < ende) {
-    try {
-      const a = await fetch(url);
-      if (a.ok) return;
-    } catch { /* noch nicht da */ }
-    await new Promise((r) => setTimeout(r, 300));
-  }
-  throw new Error(`${url} antwortet nicht`);
 }
 
 const median = (xs) => {
@@ -165,7 +172,14 @@ async function einmalMessen(browser, zustand, pfad) {
   const seite = await kontext.newPage();
   const cdp = await kontext.newCDPSession(seite);
   await cdp.send('Network.enable');
-  await cdp.send('Network.setCacheDisabled', { cacheDisabled: true });
+  if (WIEDERKEHR) {
+    // Einmal offen gewesen: Programmdateien im Zwischenspeicher, wie am Gerät, das die App täglich nutzt.
+    await seite.goto(`${ORT}${pfad}`, { timeout: 120_000 });
+    await seite.locator('main h1').first().waitFor({ timeout: 90_000 });
+    await seite.waitForLoadState('networkidle');
+    await seite.goto('about:blank');
+  }
+  await cdp.send('Network.setCacheDisabled', { cacheDisabled: !WIEDERKEHR });
   await cdp.send('Network.emulateNetworkConditions', NETZ);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
 
@@ -263,7 +277,7 @@ function bericht(ergebnisse) {
   const kb = (b) => `${Math.round(b / 1024).toLocaleString('de-AT')} KB`;
   const s = (ms) => (ms == null ? '–' : `${(ms / 1000).toFixed(1).replace('.', ',')} s`);
   const zeilen = [
-    `Gemessen am ${new Date().toLocaleDateString('de-AT')} · ${LAEUFE} Läufe je Seite, Median · Handy 390 × 844, langsames 4G (150 ms, 1,6 Mbit/s), CPU ×${CPU}, ohne Zwischenspeicher · angemeldet als Geschäftsführung des Testbetriebs \`ui-testbestand\`${OHNE_HINTERGRUND ? ' · **ohne Hintergrund:** Service Worker gesperrt, Datensparmodus an (kein Vorladen)' : ''}.`,
+    `Gemessen am ${new Date().toLocaleDateString('de-AT')} · ${LAEUFE} Läufe je Seite, Median · Handy 390 × 844, langsames 4G (150 ms, 1,6 Mbit/s), CPU ×${CPU}, ${WIEDERKEHR ? '**Wiederkehr:** Programmdateien im Zwischenspeicher' : 'erster Besuch ohne Zwischenspeicher'} · ausgeliefert wie draussen (HTTP/2, gepackt, \`auslieferung.mjs\`) · angemeldet als Geschäftsführung des Testbetriebs \`ui-testbestand\`${OHNE_HINTERGRUND ? ' · **ohne Hintergrund:** Service Worker gesperrt, Datensparmodus an (kein Vorladen)' : ''}.`,
     '',
     '| Seite | Pfad | erste Anzeige (FCP) | Inhalt da (h1) | bereit (ohne Platzhalter) | Netz ruhig | Anfragen | übertragen | DB-Anfragen | DB-Daten | grösste Liste (Zeilen) |',
     '|---|---|---|---|---|---|---|---|---|---|---|',
@@ -283,11 +297,10 @@ function bericht(ergebnisse) {
 async function main() {
   if (BAUEN) bauen();
   if (!fs.existsSync('dist/index.html')) throw new Error('dist/ fehlt — ohne --ohne-bauen aufrufen');
-  // Eigene Prozessgruppe: so lässt sich der Server am Ende gezielt beenden, ohne nach Namen zu suchen.
-  const vorschau = spawn('./node_modules/.bin/vite', ['preview', '--port', String(PORT), '--strictPort', '--host', '127.0.0.1'], { stdio: 'ignore', detached: true });
+  const beenden = await auslieferungStarten(path.resolve('dist'));
   try {
-    await warteAuf(`${ORT}/`);
-    const browser = await chromium.launch({ executablePath: CHROMIUM });
+    // Das Zertifikat des Nachbaus ist selbst ausgestellt.
+    const browser = await chromium.launch({ executablePath: CHROMIUM, args: ['--ignore-certificate-errors'] });
     const zustand = await anmelden(browser);
     const ergebnisse = [];
     for (const [name, pfad] of SEITEN.filter(([, p]) => !NUR || NUR.includes(p))) {
@@ -325,8 +338,8 @@ async function main() {
     await browser.close();
     if (NUR) return;
 
-    const roh = `messung-${QUELLE}${OHNE_HINTERGRUND ? '-ohne-hintergrund' : ''}.json`;
-    fs.writeFileSync(path.join('docs/ui-umbau', roh), `${JSON.stringify({ quelle: QUELLE, ohneHintergrund: OHNE_HINTERGRUND, netz: NETZ, cpu: CPU, laeufe: LAEUFE, ergebnisse }, null, 1)}\n`);
+    const roh = `messung-${QUELLE}${ZUSATZ}.json`;
+    fs.writeFileSync(path.join('docs/ui-umbau', roh), `${JSON.stringify({ quelle: QUELLE, ohneHintergrund: OHNE_HINTERGRUND, wiederkehr: WIEDERKEHR, ausgeliefert: 'http2-gepackt', netz: NETZ, cpu: CPU, laeufe: LAEUFE, ergebnisse }, null, 1)}\n`);
     const md = path.join('docs/ui-umbau', `messung-${QUELLE}.md`);
     const block = `<!-- ${MARKE}:anfang (erzeugt von scripts/ui-umbau/messung.mjs) -->\n${bericht(ergebnisse)}\n<!-- ${MARKE}:ende -->`;
     const alt = fs.existsSync(md) ? fs.readFileSync(md, 'utf8') : `# Messung ${QUELLE}\n`;
@@ -335,7 +348,7 @@ async function main() {
     fs.writeFileSync(md, bereich.test(alt) ? alt.replace(bereich, () => block) : `${alt.trimEnd()}\n\n${block}\n`);
     console.log(`\n→ ${md}`);
   } finally {
-    try { process.kill(-vorschau.pid, 'SIGTERM'); } catch { /* schon weg */ }
+    await beenden();
   }
 }
 
