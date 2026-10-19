@@ -110,3 +110,30 @@ describe('Zuschlagsstunden im Stundennachweis', () => {
     expect(text).not.toContain('Zuschlagsstunden');
   });
 });
+
+/* 19.10.2026: Mehrarbeit in Teilzeit (§ 19d AZG) steht eigens, nicht bei den Überstunden. */
+describe('Mehrarbeit in Teilzeit im Stundennachweis', () => {
+  const tagesgrenze = { ...firma, ueberstundenModell: 'tagesgrenze' } as Company;
+  const achtStunden = eintrag({ date: '2026-09-01', startTime: '07:00', endTime: '15:30', breakDuration: 30 });
+  const pdf = (wochenstunden: number) =>
+    befehle(generateHoursPdf({
+      company: tagesgrenze,
+      user: { ...mann, weeklyTargetHours: wochenstunden, workDays: [1, 2, 3, 4, 5] } as AppUser,
+      entries: [achtStunden],
+      from: '2026-09-01',
+      to: '2026-09-30',
+    }));
+
+  it('bei 20 Wochenstunden: 3,70 h Mehrarbeit neben 0,30 h Überstunden', () => {
+    // Nur ASCII-Stücke: Umlaute und Punkte schreibt jsPDF kodiert in die Befehle.
+    const text = pdf(20);
+    expect(text).toContain('50 %: 0,30 h');
+    expect(text).toContain('Mehrarbeit Teilzeit: 3,70 h');
+  });
+
+  it('Gegenprobe: bei Vollzeit keine Mehrarbeit', () => {
+    const text = pdf(38.5);
+    expect(text).toContain('50 %: 0,30 h');
+    expect(text).not.toContain('Mehrarbeit');
+  });
+});

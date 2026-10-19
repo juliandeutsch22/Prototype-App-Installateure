@@ -118,16 +118,34 @@ export interface UeberstundenRegel {
    * Siehe `features/accounting/ueberstunden.ts`.
    */
   kvMetall: boolean;
+  /**
+   * Die Wochenstunden einer Vollzeit im Betrieb. Wer weniger vereinbart hat,
+   * leistet darüber zuerst Mehrarbeit nach § 19d AZG, keine Überstunden.
+   */
+  vollzeitStunden: number;
+}
+
+/** Ab Werk: die Normalarbeitszeit des KV Metallgewerbe (Abschnitt VI Pkt 1). */
+export const VOLLZEIT_VORGABE = 38.5;
+
+/** Eine Vollzeit über 40 Std. kennt das AZG nicht (§ 3 Abs 1); alles andere fällt auf die Vorgabe. */
+export function vollzeitVon(wert: unknown): number {
+  const n = Number(wert);
+  return wert != null && Number.isFinite(n) && n > 0 && n <= 40 ? n : VOLLZEIT_VORGABE;
 }
 
 export function ueberstundenRegelVon(
-  company: Pick<Company, 'ueberstundenModell' | 'ueberstundenGrenze' | 'ueberstundenHundertSonnFeiertag' | 'ueberstundenKvMetall'> | null | undefined,
+  company: Pick<
+    Company,
+    'ueberstundenModell' | 'ueberstundenGrenze' | 'ueberstundenHundertSonnFeiertag' | 'ueberstundenKvMetall' | 'vollzeitWochenstunden'
+  > | null | undefined,
 ): UeberstundenRegel {
   return {
     modell: company?.ueberstundenModell === 'tagesgrenze' ? 'tagesgrenze' : 'zeitkonto',
     grenze: company?.ueberstundenGrenze === 'zehn' ? 'zehn' : 'tagessoll',
     hundertSonnFeiertag: company?.ueberstundenHundertSonnFeiertag === true,
     kvMetall: company?.ueberstundenKvMetall !== false,
+    vollzeitStunden: vollzeitVon(company?.vollzeitWochenstunden),
   };
 }
 

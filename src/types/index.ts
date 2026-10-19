@@ -199,6 +199,12 @@ export interface Company {
    */
   ueberstundenKvMetall?: boolean;
   /**
+   * Bei `tagesgrenze`: die Wochenstunden einer Vollzeit (ab Werk 38,5 wie im
+   * KV Metallgewerbe). Darunter ist Teilzeit; Stunden über dem eigenen Soll
+   * bis dahin sind Mehrarbeit nach § 19d AZG.
+   */
+  vollzeitWochenstunden?: number;
+  /**
    * Über wie viele Wochen der Schnitt von 48 Std. gilt (§ 9 Abs 4 AZG: 17;
    * ein Kollektivvertrag kann bis 52 zulassen). Ab Werk 17.
    */

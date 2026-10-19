@@ -209,8 +209,8 @@ describe('Nachtstunden, die Überstunden sind (Abschnitt XIV Pkt 5)', () => {
     const lohn = { ueberstunden: ueberstundenRegelVon({ ueberstundenModell: 'tagesgrenze' }) };
     const zeilen = buildMonthCsv([{ user: mitarbeiter, monthEntries: monat, stats }], 2026, 5, true, lohn).split('\n');
     const ab = zeilen.indexOf('Mitarbeiter-Zusammenfassung');
-    expect(zeilen[ab + 1].endsWith(';Unbezahlt-Tage;davon Nacht als Überstunde(Std)')).toBe(true);
-    expect(zeilen[ab + 2].endsWith(';1,50')).toBe(true);
+    expect(zeilen[ab + 1].endsWith(';Unbezahlt-Tage;davon Nacht als Überstunde(Std);Mehrarbeit Teilzeit(Std)')).toBe(true);
+    expect(zeilen[ab + 2].endsWith(';1,50;0,00')).toBe(true);
     expect(buildUserCsv(mitarbeiter, monat, stats, 2026, 5, true, lohn)).toContain('davon Nacht als Überstunde;1,50 h');
     // Gegenprobe: beim Zeitkonto gibt es die Spalte nicht.
     expect(buildMonthCsv([{ user: mitarbeiter, monthEntries: monat, stats }], 2026, 5, true)).not.toContain('Nacht als Überstunde');

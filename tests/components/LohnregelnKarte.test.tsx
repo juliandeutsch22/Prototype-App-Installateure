@@ -116,3 +116,44 @@ describe('Nachtzeit kürzer als 22 bis 6 Uhr (18.10.2026)', () => {
     expect(hinweis()).toBeNull();
   });
 });
+
+describe('Vollzeit je Woche für die Mehrarbeit in Teilzeit (19.10.2026)', () => {
+  it('steht bei der Tagesgrenze über dem Tagessoll, ab Werk 38,5, und wird gespeichert', async () => {
+    firma = { ...firma, ueberstundenModell: 'tagesgrenze' };
+    zeige();
+    const feld = screen.getByLabelText('Vollzeit je Woche (Std.)');
+    expect(feld).toHaveValue('38,5');
+    fireEvent.change(feld, { target: { value: '40' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', expect.objectContaining({ vollzeitWochenstunden: 40 })));
+  });
+
+  it('zeigt den gespeicherten Wert mit Komma und nennt die Mehrarbeit in der Hilfe', () => {
+    firma = { ...firma, ueberstundenModell: 'tagesgrenze', vollzeitWochenstunden: 38 };
+    zeige();
+    expect(screen.getByLabelText('Vollzeit je Woche (Std.)')).toHaveValue('38');
+    fireEvent.click(screen.getByRole('button', { name: 'Was bedeutet Nachtzeit und Überstunden?' }));
+    expect(screen.getByText(/Nachtarbeitszulage/)).toHaveTextContent(/zuerst Mehrarbeit \(§ 19d AZG\)/);
+  });
+
+  it('Gegenprobe: über 40 Std., null oder leer wird nicht gespeichert', async () => {
+    firma = { ...firma, ueberstundenModell: 'tagesgrenze' };
+    zeige();
+    const feld = screen.getByLabelText('Vollzeit je Woche (Std.)');
+    for (const wert of ['40,5', '0', '']) {
+      fireEvent.change(feld, { target: { value: wert } });
+      fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(/höchstens bei 40 Stunden/);
+    }
+    expect(updateCompany).not.toHaveBeenCalled();
+  });
+
+  it('bleibt gleich: beim Zeitkonto und bei „über 10 Stunden“ steht kein Feld, und es geht nichts mit', async () => {
+    firma = { ...firma, ueberstundenModell: 'tagesgrenze', ueberstundenGrenze: 'zehn' };
+    zeige();
+    expect(screen.queryByLabelText('Vollzeit je Woche (Std.)')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(updateCompany).toHaveBeenCalled());
+    expect(updateCompany.mock.calls[0]).not.toContainEqual(expect.objectContaining({ vollzeitWochenstunden: expect.anything() }));
+  });
+});
