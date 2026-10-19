@@ -79,6 +79,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { Marke, Warnung } from '@/components/Badge';
 import RechnungDetail, { type MahnungZeile, type RechnungAktion } from './RechnungDetail';
 import BankgarantieDialog from './BankgarantieDialog';
+import EbInterfaceDialog from './EbInterfaceDialog';
 import {
   BEREICHE,
   FILTERSTATI,
@@ -92,7 +93,7 @@ import ZahlFeld, { ZahlWertFeld, ZahlZelle } from '@/components/ZahlFeld';
 import { leseZahl, unlesbareZahlIn, zahlAlsText, zahlOder } from '@/lib/zahl';
 import PageHeader from '@/components/PageHeader';
 import { praefixeVon } from '@/lib/praefixe';
-import { isTopLevel } from '@/lib/permissions';
+import { darfKundenPflegen, isTopLevel } from '@/lib/permissions';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import Hinweiszeile from '@/components/Hinweiszeile';
@@ -338,6 +339,8 @@ export default function InvoicesView() {
   const [zahlungFuer, setZahlungFuer] = useState<(Invoice & { id: string }) | null>(null);
   /** Rücklass durch Bankgarantie ablösen (seit 10.10.2026). */
   const [garantieFuer, setGarantieFuer] = useState<(Invoice & { id: string }) | null>(null);
+  // Die E-Rechnung (ebInterface) — zur Rechnung oder zu ihrer Stornorechnung.
+  const [eRechnungFuer, setERechnungFuer] = useState<{ inv: WithId<Invoice>; storno: boolean } | null>(null);
   const [zahlungen, setZahlungen] = useState<WithId<Zahlungseingang>[] | null>(null);
   const [zDatum, setZDatum] = useState(todayStr());
   const [zBetrag, setZBetrag] = useState('');
@@ -2175,7 +2178,19 @@ export default function InvoicesView() {
   */
   const rechnungAktionen = (inv: WithId<Invoice>): RechnungAktion[] => {
     const pdf: RechnungAktion = { label: 'PDF laden', onSelect: () => void redownload(inv) };
+    /*
+      DIE E-RECHNUNG (ebInterface 6.1) neben dem PDF: derselbe Beleg als Datei
+      für den Bund, Länder, Gemeinden und Unternehmen, die sie verlangen. Auch
+      nach einem Storno — dann zusätzlich die der Stornorechnung.
+    */
+    const eRechnung: RechnungAktion[] = [
+      { label: 'E-Rechnung (ebInterface) …', onSelect: ausDemFenster(() => setERechnungFuer({ inv, storno: false })) },
+      ...(inv.stornoNummer
+        ? [{ label: 'Stornorechnung als E-Rechnung …', onSelect: ausDemFenster(() => setERechnungFuer({ inv, storno: true })) }]
+        : []),
+    ];
     // Beim Lesen bleiben Ansicht und PDF — alles andere schreibt (siehe `nurLesen`).
+    // Die E-Rechnung verschickt, wer verrechnet; die Projektleitung liest nur.
     if (nurLesen) return [pdf];
     const stand = zahlstand(inv);
     return [
@@ -2227,6 +2242,7 @@ export default function InvoicesView() {
           }]
         : []),
       pdf,
+      ...eRechnung,
       ...(inv.paymentStatus !== 'Storniert'
         ? [
             /*
@@ -4142,6 +4158,13 @@ export default function InvoicesView() {
         );
       })()}
       <BankgarantieDialog inv={garantieFuer} onClose={() => setGarantieFuer(null)} />
+      <EbInterfaceDialog
+        inv={eRechnungFuer?.inv ?? null}
+        storno={eRechnungFuer?.storno ?? false}
+        company={company}
+        darfKundenPflegen={!!user && darfKundenPflegen(user)}
+        onClose={() => setERechnungFuer(null)}
+      />
       <ConfirmDialog
         open={!!zahlungFuer}
         title={zahlungFuer ? `Zahlungen — ${zahlungFuer.invoiceNumber}` : 'Zahlungen'}

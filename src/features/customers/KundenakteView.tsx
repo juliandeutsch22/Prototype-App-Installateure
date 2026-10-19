@@ -659,6 +659,7 @@ function alsEntwurf(k: Customer): NewCustomer {
     ort: k.ort ?? '',
     land: k.land ?? 'AT',
     kundennummer: k.kundennummer ?? '',
+    lieferantennummer: k.lieferantennummer ?? '',
     contactName: k.contactName ?? '',
     contactPhone: k.contactPhone ?? '',
     email: k.email ?? '',
@@ -735,6 +736,7 @@ function StammdatenLesen({ k }: { k: Customer }) {
               {k.address ? <AdresseLink adresse={k.address} /> : null}
             </Angabe>
             {k.kundennummer && <Angabe wort="Kundennummer">{k.kundennummer}</Angabe>}
+            {k.lieferantennummer && <Angabe wort="Unsere Lieferantennummer">{k.lieferantennummer}</Angabe>}
           </dl>
         </Gruppe>
         <Gruppe name="Kontakt" wert={kopf.kontakt}>
@@ -833,6 +835,12 @@ function StammdatenFormular({
           <InputField
             id="k-nummer" label="Kundennummer (freiwillig)" value={entwurf.kundennummer ?? ''}
             onChange={(e) => setze('kundennummer', e.target.value)}
+          />
+          <InputField
+            id="k-lieferant" label="Unsere Lieferantennummer bei diesem Kunden (freiwillig)"
+            placeholder="für die E-Rechnung, z. B. 50012345"
+            value={entwurf.lieferantennummer ?? ''}
+            onChange={(e) => setze('lieferantennummer', e.target.value)}
           />
         </Gruppe>
         <Gruppe name="Kontakt" wert={kopf.kontakt}>

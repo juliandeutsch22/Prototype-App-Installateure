@@ -759,6 +759,12 @@ export interface Customer {
   adressePruefen?: boolean;
   /** Kunden- bzw. Debitorennummer (M12, für den Export an die Kanzlei). */
   kundennummer?: string | null;
+  /**
+   * Die Lieferantennummer, unter der DIESER KUNDE den Betrieb führt — für die
+   * E-Rechnung (ebInterface). Der Bund vergibt sie achtstellig, andere
+   * Auftraggeber nach eigenem Muster; sie gilt für alle Rechnungen an ihn.
+   */
+  lieferantennummer?: string | null;
   contactName?: string;
   contactPhone?: string;
   /** Für den späteren Versand von Handwerksscheinen und Rechnungen. */
