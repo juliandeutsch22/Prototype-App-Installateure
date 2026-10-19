@@ -323,6 +323,7 @@ export async function katalogNachIds(companyId: string, ids: readonly string[]):
 function eindeutig(zeilen: WithId<Material>[]): WithId<Material>[] {
   const nachId = new Map(zeilen.map((m) => [m.id, m]));
   return [...nachId.values()].sort((a, b) => a.id.localeCompare(b.id));
+}
 
 /**
  * Die Lagerartikel mit nur dem, was „knapp“ braucht — für die Startseite
