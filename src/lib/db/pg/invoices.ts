@@ -13,7 +13,7 @@
  * die sich auch nicht mehr wegräumen lässt.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Invoice, InvoiceDiscount, Mahnung, MahnungInhalt } from '@/types';
+import type { Invoice, InvoiceDiscount, Mahnung, MahnungInhalt, RechnungsKopf } from '@/types';
 import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
 import { oderUeberSpalten } from './suche';
@@ -62,6 +62,23 @@ interface Abdeckungszeile {
  * holt sonst je Rechnung zwei — und der Buchhaltungs-Export läuft über
  * Hunderte.
  */
+/** Der Kopf als Rechnung, ohne Positionen und Abdeckung. */
+function kopfAlsRechnung(k: WithId<KopfZeile>): WithId<RechnungsKopf> {
+  const { discountMode, discountValue, discountLabel, ...rest } = k;
+  const kopf = rest as WithId<RechnungsKopf>;
+  /*
+    Drei Spalten, ein Feld. Ein Rabatt ist entweder ein Anteil oder ein
+    fester Betrag — beides zusammen gibt es bewusst nicht. Fehlt der Modus,
+    gab es keinen Rabatt; ein leeres Objekt sähe aus wie einer über null.
+  */
+  if (discountMode) {
+    const rabatt: InvoiceDiscount = { mode: discountMode, value: discountValue ?? 0 };
+    if (discountLabel) rabatt.label = discountLabel;
+    kopf.discount = rabatt;
+  }
+  return kopf;
+}
+
 async function zusammensetzen(
   koepfe: WithId<KopfZeile>[],
   companyId: string,
@@ -110,21 +127,7 @@ async function zusammensetzen(
   }
 
   return koepfe.map((k) => {
-    const { discountMode, discountValue, discountLabel, ...rest } = k;
-    const rechnung: WithId<Invoice> = {
-      ...(rest as unknown as WithId<Invoice>),
-      positions: nachRechnung.get(k.id) ?? [],
-    };
-    /*
-      Drei Spalten, ein Feld. Ein Rabatt ist entweder ein Anteil oder ein
-      fester Betrag — beides zusammen gibt es bewusst nicht. Fehlt der Modus,
-      gab es keinen Rabatt; ein leeres Objekt sähe aus wie einer über null.
-    */
-    if (discountMode) {
-      const rabatt: InvoiceDiscount = { mode: discountMode, value: discountValue ?? 0 };
-      if (discountLabel) rabatt.label = discountLabel;
-      rechnung.discount = rabatt;
-    }
+    const rechnung: WithId<Invoice> = { ...kopfAlsRechnung(k), positions: nachRechnung.get(k.id) ?? [] };
     const proRechnung = belege.get(k.id);
     for (const [art, feld] of ABDECKUNGSARTEN) {
       const liste = proRechnung?.get(art);
@@ -144,7 +147,11 @@ async function zusammensetzen(
  * ausgerechnet die Forderungen NICHT, die am längsten offen sind.
  */
 export async function listUnpaidInvoices(companyId: string) {
-  const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+  return zusammensetzen(await unbezahlteKoepfe(companyId), companyId);
+}
+
+function unbezahlteKoepfe(companyId: string) {
+  return abfragen<KopfZeile>(RECHNUNGEN, companyId, {
     /*
       „Teilbezahlt" GEHÖRT HIERHER. Eine Rechnung, auf die 400 von 1.000 €
       gekommen sind, ist unbezahlt — nur eben nicht ganz. Ohne sie fehlten
@@ -153,7 +160,17 @@ export async function listUnpaidInvoices(companyId: string) {
     */
     wo: [{ art: 'in', feld: 'paymentStatus', werte: ['Offen', 'Überfällig', 'Teilbezahlt'] }],
   });
-  return zusammensetzen(koepfe, companyId);
+}
+
+/**
+ * Dieselben unbezahlten Rechnungen, nur die Köpfe — für die Startseite
+ * (Nachweis mit dreifachem Bestand, 19.10.2026). Ihre Hinweise und der
+ * Mahnlauf lesen Beträge, Fristen und Mahnstand, nie Positionen oder
+ * Abdeckung; die kamen bis hierher mit — eine Anfrage später und bei 300
+ * offenen Rechnungen rund 40 KB, auf dem Weg, an dem die Seite steht.
+ */
+export async function listUnpaidInvoiceKoepfe(companyId: string): Promise<WithId<RechnungsKopf>[]> {
+  return (await unbezahlteKoepfe(companyId)).map(kopfAlsRechnung);
 }
 
 /**

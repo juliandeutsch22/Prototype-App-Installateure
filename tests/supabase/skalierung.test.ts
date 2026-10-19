@@ -11,7 +11,12 @@
  *   wie mit jeder Buchung;
  * - `buchungstage_je_person`: dieselben Tage wie `buchungstage`;
  * - `lager_frei`: mit einer Liste von Kennungen über den Schlüssel, und
- *   dieselbe Antwort wie ohne Liste.
+ *   dieselbe Antwort wie ohne Liste;
+ * - die Köpfe der unbezahlten Rechnungen (Startseite): dieselben Rechnungen
+ *   wie die ganzen, ohne Positionen und Abdeckung, samt Rabatt;
+ * - `monthly_stats` rechnet die Minuten in der Abfrage — dieselben wie
+ *   `app.arbeitsminuten`; `monatsbilanzen_alle` gibt dieselben Bilanzen wie
+ *   die Sicht je Person.
  */
 import { randomUUID } from 'node:crypto';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -20,6 +25,8 @@ import { admin, betriebAnlegen, konto, type Konto } from './helfer';
 import { clientEinreichen, derClient } from '@/lib/db/pg/kern';
 import { arbeitszeitVorlauf, buchungstage, listEntriesInRange } from '@/lib/db/pg/timeEntries';
 import { lagerFrei } from '@/lib/db/pg/materials';
+import { createInvoice, listUnpaidInvoiceKoepfe, listUnpaidInvoices } from '@/lib/db/pg/invoices';
+import { listBilanzen, listBilanzenAlle } from '@/lib/db/pg/monatsbilanzen';
 import { calcWorkMin, istGanztagsGutschrift } from '@shared/arbeitszeit';
 import { grenzfaelle, montagVon, type GrenzPerson } from '@/features/accounting/arbeitszeitGrenzen';
 
@@ -340,6 +347,82 @@ describe('lager_frei mit einer Liste von Kennungen', () => {
       expect(knoten).toMatch(/"Index Name":"materials_pkey"/);
     } finally {
       await db.query('rollback');
+    }
+  });
+});
+
+describe('unbezahlte Rechnungen: nur die Köpfe', () => {
+  it('Gleichbleiben: dieselben Rechnungen und Felder wie die ganzen, ohne Positionen und Abdeckung — der Rabatt bleibt', async () => {
+    const rechnung = (nr: string, rabatt?: { mode: 'percent'; value: number; label: string }) => createInvoice(BETRIEB, {
+      invoiceNumber: nr, projectNumber: 'B-1', customerName: 'Familie Huber', address: 'Hauptplatz 1, 8200 Gleisdorf',
+      invoiceDate: '2026-09-30', dueDate: '2026-10-14', totalNetto: 900, totalVat: 180, totalBrutto: 1080, vatRate: 0.2,
+      paymentStatus: 'Offen',
+      positions: [{ label: 'Leistung', qty: 1, unit: 'Pauschale', unitPrice: 1000, netto: 1000 }],
+      ...(rabatt ? { discount: rabatt } : {}),
+    });
+    await rechnung('RE-2026-9001', { mode: 'percent', value: 10, label: 'Treue' });
+    await rechnung('RE-2026-9002');
+    const ganz = await listUnpaidInvoices(BETRIEB);
+    const koepfe = await listUnpaidInvoiceKoepfe(BETRIEB);
+    const ohne = ganz.map(({ positions: _p, linkedEntries: _e, linkedOrders: _o, linkedWorkSheets: _w, ...kopf }) => kopf);
+    const nachId = <T extends { id: string }>(xs: T[]) => [...xs].sort((a, b) => a.id.localeCompare(b.id));
+    expect(nachId(koepfe)).toEqual(nachId(ohne));
+    expect(koepfe.find((r) => r.invoiceNumber === 'RE-2026-9001')?.discount).toEqual({ mode: 'percent', value: 10, label: 'Treue' });
+    // Gegenprobe: die ganzen tragen ihre Positionen, die Köpfe nicht.
+    expect(ganz.every((r) => (r.positions ?? []).length === 1)).toBe(true);
+    expect(koepfe.every((r) => !('positions' in r))).toBe(true);
+  });
+});
+
+describe('Monatsbilanzen: die Minuten in der Abfrage', () => {
+  it('Gleichbleiben: dieselben Minuten je Monat wie über `app.arbeitsminuten` — samt Zeitumstellung, Mitternacht, Stunden ohne Uhrzeit', async () => {
+    const { rows: sicht } = await db.query(
+      `select user_id, monat, anwesend_min from public.monthly_stats where company_id = $1 order by user_id, monat`, [BETRIEB]);
+    const { rows: funktion } = await db.query(
+      `select user_id, to_char(date, 'YYYY-MM') as monat,
+              sum(app.arbeitsminuten(status, start_time, end_time, break_duration, hours, date)) as anwesend_min
+         from public.time_entries where company_id = $1 group by 1, 2 order by 1, 2`, [BETRIEB]);
+    expect(sicht).toEqual(funktion);
+    // Die Fälle der Zeitumstellung liegen darin: März 2026 und Oktober 2025.
+    expect(sicht.some((z) => z.user_id === faelle.uid && z.monat === '2026-03')).toBe(true);
+    expect(sicht.some((z) => z.user_id === faelle.uid && z.monat === '2025-10')).toBe(true);
+  });
+
+  /*
+    Langsamkeit misst hier niemand; geprüft wird die Ursache. Mit dem Stand
+    davor ruft der Plan der Sicht `app.arbeitsminuten` je Buchung (rot).
+  */
+  it('der Plan der Sicht ruft keine Funktion je Buchung', async () => {
+    const { rows } = await db.query(`explain (verbose, format json) select * from public.monthly_stats where company_id = '${BETRIEB}'`);
+    expect(JSON.stringify(rows[0]['QUERY PLAN'])).not.toMatch(/arbeitsminuten/);
+  });
+
+  it('monatsbilanzen_alle: dieselben Bilanzen wie die Sicht je Person, in einer Anfrage', async () => {
+    const alle = await listBilanzenAlle(BETRIEB, '2025-10');
+    for (const wer of [dauer, faelle]) {
+      expect(alle.filter((b) => b.userId === wer.uid).map(({ userId: _u, ...b }) => b)).toEqual(await listBilanzen(BETRIEB, wer.uid, '2025-10'));
+    }
+    expect(new Set(alle.map((b) => b.userId))).toEqual(new Set([dauer.uid, faelle.uid]));
+    // Ab einem späteren Monat nur die späteren Monate; seitenweise je Person dasselbe.
+    expect((await listBilanzenAlle(BETRIEB, '2026-09')).every((b) => b.monat >= '2026-09')).toBe(true);
+    expect(await listBilanzenAlle(BETRIEB, '2025-10', 1)).toEqual(alle);
+  });
+
+  it('monatsbilanzen_alle: ohne Buchhaltung oder Spitze nur die eigenen; nie ein fremder Betrieb', async () => {
+    clientEinreichen(faelle.client);
+    try {
+      const eigene = await listBilanzenAlle(BETRIEB, '2025-10');
+      expect(eigene.length).toBeGreaterThan(0);
+      expect(eigene.every((b) => b.userId === faelle.uid)).toBe(true);
+    } finally {
+      clientEinreichen(chefin.client);
+    }
+    clientEinreichen(fremd.client);
+    try {
+      expect((await listBilanzenAlle(FREMD, '2025-10')).every((b) => b.userId === fremd.uid)).toBe(true);
+      expect((await listBilanzenAlle(BETRIEB, '2025-10')).some((b) => b.userId === dauer.uid)).toBe(false);
+    } finally {
+      clientEinreichen(chefin.client);
     }
   });
 });

@@ -1,4 +1,4 @@
-import type { AppUser, EinkaufPosten, Freistellung, Invoice, MaterialOrder, Project, Vacation, Wartung, WorkSheet } from '@/types';
+import type { AppUser, EinkaufPosten, Freistellung, Invoice, MaterialOrder, Project, RechnungsKopf, Vacation, Wartung, WorkSheet } from '@/types';
 import { ART_NAME } from '@shared/freistellung';
 import { lehrzeitEnde } from '@/lib/einstufung';
 import { istBenutzerkonto } from '@shared/benutzername';
@@ -256,7 +256,7 @@ export function mahnungenFaellig(lauf: Mahnlauf): Abschnitt | null {
 
 /** Überfällig, aber (noch) nicht zu mahnen — sonst stünde dieselbe Rechnung zweimal da. */
 export function ueberfaelligNichtMahnbar(
-  rechnungen: (Invoice & { id: string })[],
+  rechnungen: (RechnungsKopf & { id: string })[],
   lauf: Mahnlauf,
   heute: string,
 ): Abschnitt | null {
@@ -285,7 +285,7 @@ export function ueberfaelligNichtMahnbar(
 export const RUECKLASS_VORLAUF_TAGE = 30;
 
 /** Die Rücklässe, die in den nächsten 30 Tagen fällig werden — offen, nicht schon überfällig. */
-export function ruecklaesseBald(rechnungen: (Invoice & { id: string })[], heute: string): (Invoice & { id: string })[] {
+export function ruecklaesseBald(rechnungen: (RechnungsKopf & { id: string })[], heute: string): (RechnungsKopf & { id: string })[] {
   const bis = new Date(`${heute}T00:00:00Z`);
   bis.setUTCDate(bis.getUTCDate() + RUECKLASS_VORLAUF_TAGE);
   const grenze = bis.toISOString().slice(0, 10);
@@ -304,7 +304,7 @@ export function ruecklaesseBald(rechnungen: (Invoice & { id: string })[], heute:
  * liegen. Ab der Fälligkeit steht er unter „überfällig“ und im Mahnlauf —
  * hier nur davor, damit dieselbe Rechnung nicht zweimal dasteht.
  */
-export function ruecklassWirdFaellig(rechnungen: (Invoice & { id: string })[], heute: string): Abschnitt | null {
+export function ruecklassWirdFaellig(rechnungen: (RechnungsKopf & { id: string })[], heute: string): Abschnitt | null {
   const zeilen: Zeile[] = ruecklaesseBald(rechnungen, heute).map((r) => ({
     key: `ruecklass-${r.id}`,
     titel: r.customerName,

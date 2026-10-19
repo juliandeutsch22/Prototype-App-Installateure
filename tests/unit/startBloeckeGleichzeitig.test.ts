@@ -36,7 +36,8 @@ vi.mock('@/lib/db/vacations', () => ({
 }));
 vi.mock('@/lib/db/freistellungen', () => ({ listOffeneFreistellungen: vi.fn(spaeter('freistellungen')) }));
 vi.mock('@/lib/db/invoices', () => ({
-  listUnpaidInvoices: vi.fn(spaeter('unbezahlt')),
+  listUnpaidInvoiceKoepfe: vi.fn(spaeter('unbezahlt')),
+  listUnpaidInvoices: vi.fn(spaeter('ganzeRechnungen')),
   listInvoicesByIds: vi.fn(spaeter('rechnungenDerZahlungen')),
   listGarantienEndenIn: vi.fn(async () => []),
   scheineAufRechnung: vi.fn(async () => []),
@@ -105,6 +106,23 @@ describe('Startseite: Blöcke fragen gleichzeitig', () => {
     offen.scheine([]);
     await lauf;
     expect(gefragt).not.toContain('ganzeScheine');
+  });
+
+  /*
+    Nachweis mit dreifachem Bestand (19.10.2026): die offenen Rechnungen
+    kamen mit Positionen und Abdeckung — eine Anfrage später, auf dem Weg,
+    an dem die Startseite steht. Gegenprobe: gegen den Stand davor fragt sie
+    die ganzen Rechnungen (rot).
+  */
+  it('Buchhaltung: für Summen und Mahnlauf nur die Köpfe der offenen Rechnungen — ohne Positionen und Abdeckung', async () => {
+    const lauf = buchhaltung(k, { rechnungen: true, scheine: false });
+    await vi.waitFor(() => expect(gefragt).toEqual(expect.arrayContaining(['unbezahlt', 'rechnungenDerZahlungen'])));
+    offen.unbezahlt([{ id: 'r9', invoiceNumber: 'RE-9', paymentStatus: 'Offen', totalBrutto: 100, dueDate: '2026-09-01', invoiceDate: '2026-08-01' }]);
+    offen.rechnungenDerZahlungen([]);
+    const d = await lauf;
+    expect(d.unbezahlt).toHaveLength(1);
+    expect(d.lauf).toBeDefined();
+    expect(gefragt).not.toContain('ganzeRechnungen');
   });
 
   it('Leitung: die Wartungen gehen mit den Baustellen los, nicht nach dem Budget', async () => {

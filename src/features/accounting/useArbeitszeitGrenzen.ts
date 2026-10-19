@@ -4,7 +4,7 @@ import { listBegruendungen, listGeburtsdaten, type Begruendung } from '@/lib/db/
 import { tagessollStunden, todayStr } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, TimeEntry } from '@/types';
-import { andereVerteilung, durchrechnungsWochen, fallSchluessel, grenzfaelle, montagVon, type Grenzfall } from './arbeitszeitGrenzen';
+import { andereVerteilung, durchrechnungsWochen, fallSchluessel, grenzfaelle, montagVon, type GrenzEintrag, type Grenzfall } from './arbeitszeitGrenzen';
 
 function plusTage(iso: string, n: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
@@ -127,9 +127,16 @@ export function useArbeitszeitGrenzen({
       ]);
       // Was nach heute liegt, ist noch nicht gearbeitet (Runde 3, M1).
       const heute = todayStr();
+      // Einmal nach Person geordnet: je Person über alle gefiltert wuchs mit Belegschaft MAL Buchungen (Ladezeit, 19.10.2026).
+      const jePerson = new Map<string, GrenzEintrag[]>();
+      for (const e of [...vorlauf, ...eintraege]) {
+        const l = jePerson.get(e.userId);
+        if (l) l.push(e);
+        else jePerson.set(e.userId, [e]);
+      }
       const faelle = personen.flatMap((person) =>
         grenzfaelle(
-          [...vorlauf, ...eintraege].filter((e) => e.userId === person.uid),
+          jePerson.get(person.uid) ?? [],
           { von, bis },
           {
             geburtsdatum: geburtsdaten.get(person.uid) ?? null,

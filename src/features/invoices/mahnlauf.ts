@@ -1,4 +1,4 @@
-import type { Invoice } from '@/types';
+import type { RechnungsKopf } from '@/types';
 import { darfMahnen, mahnkosten, naechsteStufe, type Mahnstufe, type MahnkostenSaetze } from './mahnung';
 import { mahnbar, offenerRest } from './zahlstand';
 
@@ -21,8 +21,13 @@ import { mahnbar, offenerRest } from './zahlstand';
  * Lauf nimmt das Suchen ab, nicht die Entscheidung.
  */
 
-export interface MahnZeile {
-  rechnung: Invoice & { id: string };
+/*
+  Über die Art der Rechnung allgemein: die Rechnungsseite gibt ganze
+  Rechnungen hinein und bekommt sie zurück, die Startseite nur die Köpfe
+  (`listUnpaidInvoiceKoepfe`). Gelesen wird beides gleich.
+*/
+export interface MahnZeile<R extends RechnungsKopf = RechnungsKopf> {
+  rechnung: R & { id: string };
   /** Die Stufe, die als Nächstes fällig wäre. */
   stufe: Mahnstufe;
   /** Wie viele Tage die Zahlungsfrist überschritten ist. */
@@ -41,9 +46,9 @@ export interface MahnZeile {
   spesen: number;
 }
 
-export interface Mahnlauf {
+export interface Mahnlauf<R extends RechnungsKopf = RechnungsKopf> {
   /** Was gemahnt werden kann, dringlichstes zuerst. */
-  zeilen: MahnZeile[];
+  zeilen: MahnZeile<R>[];
   /**
    * Überfällige Rechnungen, bei denen die dritte Mahnung heraus ist.
    *
@@ -52,7 +57,7 @@ export interface Mahnlauf {
    * abschreiben. Fielen sie stillschweigend aus dem Lauf, wären ausgerechnet
    * die ältesten Forderungen die unsichtbarsten.
    */
-  ausgereizt: Array<Invoice & { id: string }>;
+  ausgereizt: Array<R & { id: string }>;
   /** Summe dessen, was dieser Lauf einfordert — Restbeträge, nicht Brutto. */
   summeOffen: number;
   /** Summe der Spesen, die dieser Lauf verrechnen würde. */
@@ -82,15 +87,15 @@ function tageZwischen(vonIso: string, bisIso: string): number {
  * Rechners: sonst hinge das Ergebnis daran, wann jemand die Seite geöffnet
  * hat, und wäre nicht prüfbar.
  */
-export function mahnlauf(
-  invoices: Array<Invoice & { id: string }>,
+export function mahnlauf<R extends RechnungsKopf>(
+  invoices: Array<R & { id: string }>,
   heute: string,
   saetze: MahnkostenSaetze | undefined,
   /** Wer als Unternehmer gilt — ohne Angabe: wer auf der Rechnung eine UID trägt. */
-  istUnternehmer: (inv: Invoice) => boolean = (inv) => !!inv.customerVatId?.trim(),
-): Mahnlauf {
-  const zeilen: MahnZeile[] = [];
-  const ausgereizt: Array<Invoice & { id: string }> = [];
+  istUnternehmer: (inv: R) => boolean = (inv) => !!inv.customerVatId?.trim(),
+): Mahnlauf<R> {
+  const zeilen: MahnZeile<R>[] = [];
+  const ausgereizt: Array<R & { id: string }> = [];
 
   for (const inv of invoices) {
     const stufe = naechsteStufe(inv);

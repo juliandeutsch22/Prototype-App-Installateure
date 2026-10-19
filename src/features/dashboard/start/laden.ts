@@ -6,9 +6,9 @@ import type {
   EinkaufPosten,
   EinsatzMaterial,
   Freistellung,
-  Invoice,
   MaterialOrder,
   Project,
+  RechnungsKopf,
   RuestPosition,
   Role,
   Termin,
@@ -31,7 +31,7 @@ import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
 import { listLagerPosten } from '@/lib/db/einkauf';
 import { lagerKnapp, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
-import { listGarantienEndenIn, listUnpaidInvoices, listInvoicesByIds, scheineAufRechnung, type GarantieRechnung } from '@/lib/db/invoices';
+import { listGarantienEndenIn, listUnpaidInvoiceKoepfe, listInvoicesByIds, scheineAufRechnung, type GarantieRechnung } from '@/lib/db/invoices';
 import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
 import { listRecentWorkSheetKoepfe, listOwnWorkSheetsSince } from '@/lib/db/workSheets';
 import { listAbwesendInRange, listOpenVacations, type Abwesenheit } from '@/lib/db/vacations';
@@ -139,7 +139,8 @@ export interface StartDaten {
   lagerPosten?: EinkaufPosten[];
   knapp?: KnapperArtikel[];
   // Buchhaltung
-  unbezahlt?: (Invoice & { id: string })[];
+  /** Nur die Köpfe: Hinweise und Mahnlauf lesen keine Positionen (Nachweis mit dreifachem Bestand, 19.10.2026). */
+  unbezahlt?: (RechnungsKopf & { id: string })[];
   /** Bankgarantien, die bald enden oder gerade geendet haben (seit 10.10.2026). */
   garantien?: (GarantieRechnung & { id: string })[];
   lauf?: Mahnlauf;
@@ -396,7 +397,7 @@ export async function buchhaltung(
     was.rechnungen ? (async () => {
       const monatsErster = `${heute.slice(0, 7)}-01`;
       const [unbezahlt, [zahlungen, rechnungen], garantien] = await Promise.all([
-        listUnpaidInvoices(user.companyId),
+        listUnpaidInvoiceKoepfe(user.companyId),
         // Die Rechnungen hinter den Zahlungen — für Namen, Nummer und den Stand —, sobald die Zahlungen da sind.
         still(() => listZahlungenImZeitraum(user.companyId, monatsErster, heute), []).then(async (zahlungen) => {
           const ids = [...new Set(zahlungen.map((z) => z.invoiceId))];

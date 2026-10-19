@@ -27,9 +27,13 @@ describe('app.arbeitsminuten über die Zeitumstellung', () => {
   });
 
   it('die Monatssicht zählt mit dem Tag', async () => {
-    // Die Sicht ruft die Fassung mit Tag — sonst hülfe die Funktion der
-    // Lohnverrechnung nichts.
+    // Die Sicht rechnet mit dem Tag in Wiener Zeit — sonst hülfe die Funktion
+    // der Lohnverrechnung nichts. Seit 19.10.2026 eingebettet statt über
+    // `app.arbeitsminuten` (Ladezeit); dass sie dieselben Minuten ergibt wie
+    // die Funktion, prüft `skalierung.test.ts` an Buchungen über die
+    // Zeitumstellung.
     const { rows } = await db.query<{ def: string }>("select pg_get_viewdef('public.monthly_stats') as def");
-    expect(rows[0].def).toMatch(/arbeitsminuten\([^)]*,\s*(t\.)?date\)/);
+    expect(rows[0].def).toMatch(/AT TIME ZONE 'Europe\/Vienna'/i);
+    expect(rows[0].def).not.toMatch(/arbeitsminuten\([^)]*hours\)/);
   });
 });

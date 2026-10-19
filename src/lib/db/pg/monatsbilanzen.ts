@@ -17,7 +17,7 @@
  * Der Zeilenschutz greift durch: die Sicht trägt `security_invoker = on`,
  * also sieht ein Monteur seine eigenen Buchungen und die Buchhaltung alle.
  */
-import { abfragen } from './kern';
+import { abfragen, derClient, SEITE } from './kern';
 
 const BILANZEN = 'monthly_stats';
 
@@ -99,16 +99,40 @@ function alsBilanz(r: Monatsbilanz): Monatsbilanz {
  * Die Bilanzen ALLER Personen ab einem Monat, in einer Abfrage — für den
  * Gesamtsaldo in der Mitarbeiterübersicht (19.10.2026). Je Person einzeln
  * wären das bei zwanzig Konten zwanzig Abfragen für eine Spalte. Es kommt
- * nur, was der Zeilenschutz der Sicht zeigt: wer die Übersicht sieht, sieht
- * alle Buchungen.
+ * nur, was `time_entries_lesen` zeigt: wer die Übersicht sieht, sieht alle
+ * Buchungen.
+ *
+ * ÜBER `monatsbilanzen_alle`, JE PERSON EINE ZEILE (Nachweis mit dreifachem
+ * Bestand, 19.10.2026): seitenweise über die Sicht rechnete jede Seite die
+ * Bilanzen aller Buchungen neu — acht Seiten zu je fünf Sekunden.
  */
 export async function listBilanzenAlle(
   companyId: string,
   abMonat: string,
+  seite = SEITE,
 ): Promise<Array<Monatsbilanz & { userId: string }>> {
-  const rows = await abfragen<Monatsbilanz & { userId: string }>(BILANZEN, companyId, {
-    wo: [{ art: 'ab', feld: 'monat', wert: abMonat }],
-    sortiere: { feld: 'monat' },
-  });
-  return rows.map((r) => ({ ...alsBilanz(r), userId: r.userId }));
+  void companyId;
+  type Zeile = { user_id: string; bilanzen: Array<Record<string, unknown>> | null };
+  const personen: Zeile[] = [];
+  for (let ab = 0; ; ab += seite) {
+    const { data, error } = await derClient().rpc('monatsbilanzen_alle', { p_ab_monat: abMonat }).range(ab, ab + seite - 1);
+    if (error) throw new Error(error.message);
+    const teil = (data ?? []) as Zeile[];
+    personen.push(...teil);
+    if (teil.length < seite) break;
+  }
+  return personen.flatMap((p) => (p.bilanzen ?? []).map((b) => ({
+    ...alsBilanz({
+      monat: String(b.monat),
+      anwesendMin: b.anwesend_min,
+      krankTage: b.krank_tage,
+      urlaubTage: b.urlaub_tage,
+      abwesendHalbtage: b.abwesend_halbtage,
+      berufsschuleTage: b.berufsschule_tage,
+      freistellungTage: b.freistellung_tage,
+      freigestelltMin: b.freigestellt_min,
+      tage: b.tage,
+    } as Monatsbilanz),
+    userId: p.user_id,
+  })));
 }

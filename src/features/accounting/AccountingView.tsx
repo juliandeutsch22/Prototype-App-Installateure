@@ -494,18 +494,31 @@ export default function AccountingView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, imSupport, bereit, personenStand, halbeTage, grenzStand]);
 
+  /** Die eigenen Buchungen je Person — einmal geordnet, nicht je Zeile über alle gefiltert. */
+  const eigene = useMemo(() => {
+    const m = new Map<string, WithId<TimeEntry>[]>();
+    for (const e of entries) {
+      const l = m.get(e.userId);
+      if (l) l.push(e);
+      else m.set(e.userId, [e]);
+    }
+    return m;
+  }, [entries]);
+
   const alleRows = useMemo(
     () => {
       // Die Woche vor dem Ersten zählt für die 51. Wochenstunde (KV); geladen ist sie mit dem Monat.
       const erster = `${monthPrefix}-01`;
       const wochenbeginn = montagVon(erster);
       return relevant.map((u) => {
-        const monthEntries = entries.filter((e) => e.userId === u.uid && e.date.startsWith(monthPrefix));
+        // Über `eigene`: je Person über alle Buchungen gefiltert wuchs mit Belegschaft MAL Buchungen (Ladezeit, 19.10.2026).
+        const ihre = eigene.get(u.uid) ?? [];
+        const monthEntries = ihre.filter((e) => e.date.startsWith(monthPrefix));
         const urlaub = urlaubJePerson.get(u.uid);
         return {
           user: u,
           monthEntries,
-          vorlauf: entries.filter((e) => e.userId === u.uid && e.date >= wochenbeginn && e.date < erster),
+          vorlauf: ihre.filter((e) => e.date >= wochenbeginn && e.date < erster),
           // Vom Jahr zählt hier nur der Urlaub (`yearlyUrlaubDays`) — die übrigen Buchungen des Jahres braucht die Rechnung nicht.
           stats: calcMonthStats(u, monthEntries, urlaub?.jahr ?? [], year, month, halbeTage, {
             verlauf: (urlaub?.verlauf ?? []).map((e) => ({ von: e.date, tage: tagesAnteil(e.date, halbeTage) })),
@@ -516,7 +529,7 @@ export default function AccountingView() {
         };
       });
     },
-    [relevant, entries, monthPrefix, year, month, urlaubJePerson, urlaubsRegel, halbeTage, anpassungen],
+    [relevant, eigene, monthPrefix, year, month, urlaubJePerson, urlaubsRegel, halbeTage, anpassungen],
   );
 
   /**
@@ -564,17 +577,6 @@ export default function AccountingView() {
     for (const { person: p, fall } of grenzDaten.stand?.faelle ?? []) m.set(p.uid, [...(m.get(p.uid) ?? []), fall]);
     return m;
   }, [grenzDaten.stand]);
-
-  /** Die eigenen Buchungen je Person — einmal geordnet, nicht je Zeile über alle gefiltert. */
-  const eigene = useMemo(() => {
-    const m = new Map<string, WithId<TimeEntry>[]>();
-    for (const e of entries) {
-      const l = m.get(e.userId);
-      if (l) l.push(e);
-      else m.set(e.userId, [e]);
-    }
-    return m;
-  }, [entries]);
 
   /** Die Tage des Monats je Person — für den Streifen und das Seitenfenster. */
   const monatsTage = useMemo(() => tageDesMonats(year, month), [year, month]);
