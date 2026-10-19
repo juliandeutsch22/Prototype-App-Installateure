@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Customer, Role, Wartung } from '@/types';
+import { kundeWaehlen } from './kundenAuswahl';
 
 /**
  * Die Wartungsansicht — geprüft wird der ABLAUF, nicht die Liste.
@@ -100,7 +101,7 @@ vi.mock('@/lib/db/projects', () => ({
 const kunden: (Customer & { id: string })[] = [
   { id: 'k1', companyId: 'perl', name: 'Hausverwaltung Nord' },
 ];
-vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => kunden) }));
+vi.mock('@/lib/db/customers', async () => (await import('./kundenAuswahl')).kundenAttrappe(() => kunden));
 
 let rolle: Role = 'Geschäftsführung';
 vi.mock('@/app/AuthContext', () => ({
@@ -321,7 +322,7 @@ describe('Wartungen', () => {
     await geladen();
 
     await nutzer.click(screen.getByRole('button', { name: 'Neue Wartung' }));
-    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(nutzer, 'Hausverwaltung Nord');
     await nutzer.type(screen.getByLabelText('Anlage'), 'Therme im Stiegenhaus');
     await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
 
@@ -361,7 +362,7 @@ describe('Wartungen', () => {
     await geladen();
 
     await nutzer.click(screen.getByRole('button', { name: 'Neue Wartung' }));
-    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(nutzer, 'Hausverwaltung Nord');
     await nutzer.type(screen.getByLabelText('Anlage'), 'Therme');
     await nutzer.type(screen.getByLabelText('Zuletzt gewartet'), '2026-03-15');
     await nutzer.type(screen.getByLabelText('Hersteller'), 'Vaillant');

@@ -66,6 +66,12 @@ export function katalogAbgeschnitten(artikel: readonly unknown[], grenze = KATAL
  * Angebot, Rechnung, Wartung. Fehlt einer davon, legt jemand die Baustelle
  * ohne Kunden an oder tippt den Namen von Hand. Genau die Dublette, gegen
  * die die Kundenstammdaten eingeführt wurden.
+ *
+ * SEIT 19.10.2026 (Ladezeit) laden diese Masken keine Kundenliste mehr: die
+ * Auswahl sucht auf dem Server (`KundenAuswahl`), und was Rechnungen und
+ * Archiv über den Kunden wissen müssen, holen sie nach Kennung oder Namen
+ * (`useKundenFuer`, `kundenNachNamen`). Die Grenze bleibt für die Suche in
+ * der Kundenverwaltung und die beiden Prüflisten dort.
  */
 export const KUNDEN_GRENZE = 500;
 

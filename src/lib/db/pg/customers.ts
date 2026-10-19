@@ -8,7 +8,7 @@ import type { Customer, Project, UidPruefung } from '@/types';
 import { KUNDEN_GRENZE } from '@/lib/listengrenzen';
 import { abfragen, anlegen, aendern, loeschen, derClient, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
-import { oderUeberSpalten } from './suche';
+import { alsOderWert, oderUeberSpalten, ohneJoker } from './suche';
 
 const KUNDEN = 'customers';
 const BAUSTELLEN = 'projects';
@@ -35,6 +35,40 @@ export async function listCustomersByIds(companyId: string, ids: string[]) {
   return abfragen<Customer>(KUNDEN, companyId, {
     wo: [{ art: 'in', feld: 'id', werte: eindeutig }],
   });
+}
+
+/** So viele Namen je Anfrage — die `or`-Bedingung steht in der Adresse. */
+const NAMEN_JE_ANFRAGE = 20;
+
+/**
+ * DIE KUNDEN ZU GENANNTEN NAMEN (Ladezeit, 19.10.2026) — für Rechnungen und
+ * Baustellen aus der Zeit vor der Verknüpfung, die ihren Kunden nur beim
+ * Namen kennen.
+ *
+ * Bis hierher holten die Rechnungen und die Sicherung dafür die ersten 500
+ * Kunden und suchten darin: was dahinter lag, fand die UID für den Export
+ * nicht und galt beim Mahnen als Verbraucher. Jetzt kommen genau die Kunden,
+ * deren Namen passen — wie bei den Katalogartikeln (`katalogNachNamen`):
+ * ohne Rücksicht auf Gross- und Kleinschreibung, Leerräume als beliebige
+ * Zeichen. Genau verglichen wird danach in der Ansicht.
+ */
+export async function kundenNachNamen(companyId: string, namen: readonly string[]): Promise<WithId<Customer>[]> {
+  const muster = [...new Set(
+    namen
+      .map((n) => n.trim())
+      .filter(Boolean)
+      .map((n) => n.split(/\s+/).map(ohneJoker).join('%')),
+  )];
+  const teile: string[][] = [];
+  for (let i = 0; i < muster.length; i += NAMEN_JE_ANFRAGE) teile.push(muster.slice(i, i + NAMEN_JE_ANFRAGE));
+  const treffer = await Promise.all(
+    teile.map((teil) =>
+      abfragen<Customer>(KUNDEN, companyId, {
+        oder: teil.map((m) => `name.ilike.${alsOderWert(m)}`).join(','),
+      }),
+    ),
+  );
+  return [...new Map(treffer.flat().map((k) => [k.id, k])).values()];
 }
 
 export function listProjectsForCustomer(companyId: string, customerId: string, max = 300) {

@@ -13,7 +13,7 @@ import { SelectField } from '@/components/Field';
 import { listGemahntInRange, listInvoicesInRange, listMahnungenInRange } from '@/lib/db/invoices';
 import { listQuotesInRange } from '@/lib/db/quotes';
 import { getWorkSheetsVoll, listBelegScheineInRange } from '@/lib/db/workSheets';
-import { listCustomers } from '@/lib/db/customers';
+import { kundenNachNamen, listCustomersByIds } from '@/lib/db/customers';
 import { todayStr } from '@/lib/time';
 
 /**
@@ -143,14 +143,24 @@ export default function SicherungView() {
     setArchivErgebnis(null);
     setArchivStand(null);
     try {
-      const [rechnungen, kunden, angebote, scheine, gemahnt, mahnungen] = await Promise.all([
+      const [rechnungen, angebote, scheine, gemahnt, mahnungen] = await Promise.all([
         listInvoicesInRange(user.companyId, z.von, z.bis),
-        listCustomers(user.companyId),
         listQuotesInRange(user.companyId, z.von, z.bis),
         listBelegScheineInRange(user.companyId, z.von, z.bis),
         listGemahntInRange(user.companyId, z.von, z.bis),
         listMahnungenInRange(user.companyId, z.von, z.bis),
       ]);
+      /*
+        DIE KUNDEN DER BELEGE, nicht die ersten 500 des Betriebs (Ladezeit,
+        19.10.2026): die Angebote nennen ihren Kunden mit Kennung, das
+        Ausgangsbuch sucht die UID über den Namen. Was hinter der Grenze lag,
+        stand sonst im Archiv ohne Anschrift und ohne UID.
+      */
+      const [nachId, nachName] = await Promise.all([
+        listCustomersByIds(user.companyId, angebote.map((q) => q.customerId).filter((x): x is string => !!x)),
+        kundenNachNamen(user.companyId, rechnungen.map((r) => r.customerName)),
+      ]);
+      const kunden = [...new Map([...nachId, ...nachName].map((k) => [k.id, k])).values()];
       const { belegArchiv, ersterBelegTag } = await import('@/features/invoices/belegArchiv');
       // „Alle Belege“ beginnt beim ersten Beleg, nicht am 01.01.2000 (Runde 3, G11).
       const von = z.wert === 'alle'

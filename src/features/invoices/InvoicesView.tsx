@@ -30,7 +30,8 @@ import { druckAngaben } from './nachdruck';
 import { haftruecklassBisVorschlag, RUECKLASS_NAME, ruecklassArtFuer, ruecklassBetrag } from './ruecklass';
 import { skontoBedingung, skontoZumAusgleich, zugesagterSkonto } from './skonto';
 import { listActiveProjects } from '@/lib/db/projects';
-import { listCustomers, updateCustomer } from '@/lib/db/customers';
+import { kundenNachNamen, updateCustomer } from '@/lib/db/customers';
+import { useKundenFuer } from '@/features/customers/useKundenFuer';
 import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
 import { buildBmdCsv, bmdCsvFilename, buildBmdZahlungenCsv, bmdZahlungenFilename } from './bmdExport';
 import { buchungskonten, type Buchungskonto } from '@/lib/db/konten';
@@ -499,8 +500,23 @@ export default function InvoicesView() {
    * Wer weiter zurueck muss, laedt nach.
    */
   const [grenze, setGrenze] = useState(RECHNUNGEN_JE_SEITE);
-  /** Buchhaltungs-Export: Zeitraum und Kundenstammdaten fuer die UID. */
-  const [kunden, setKunden] = useState<Awaited<ReturnType<typeof listCustomers>>>([]);
+  /*
+    DIE KUNDEN DER ANSICHT (Ladezeit, 19.10.2026): die der laufenden
+    Baustellen (nach Kennung) und der Belege, die ihren Kunden nur beim Namen
+    kennen — für die UID-Vorbelegung, die Anschrift, den Mahnlauf und den
+    Export. Bis hierher die ersten 500 Kunden des Betriebs; was dahinter lag,
+    fehlte still.
+  */
+  const [kunden, setKunden] = useKundenFuer(
+    user?.companyId,
+    projects.map((p) => p.customerId),
+    [
+      ...projects.filter((p) => !p.customerId).map((p) => p.customerName),
+      ...invoices.map((i) => i.customerName),
+      ...offeneRechnungen.map((i) => i.customerName),
+    ],
+    () => setNebenFehler('Die Kunden'),
+  );
   /**
    * Der Kunde zu einer Baustelle — über die Verknüpfung, sonst über den
    * Namen, aber nur, wenn der Name eindeutig ist. Zwei „Familie Huber" im
@@ -540,8 +556,6 @@ export default function InvoicesView() {
     listActiveProjects(user.companyId)
       .then(setProjects)
       .catch(() => setNebenFehler('Die Baustellen'));
-    // Fuer die UID-Nummer im Buchhaltungs-Export.
-    listCustomers(user.companyId).then(setKunden).catch(() => setNebenFehler('Die Kunden'));
     /*
       Der Kontenrahmen entscheidet, ob es den Buchungsstapel überhaupt gibt.
       Scheitert er, bleibt die Liste leer — dann wird der Knopf nicht
@@ -2014,7 +2028,14 @@ export default function InvoicesView() {
         listInvoicesInRange(user.companyId, exportVon, exportBis),
         schlussrechnungenOhneAbzug(),
       ]);
+      /*
+        DIE KUNDEN DIESER RECHNUNGEN, bevor das Ausgangsbuch steht: die UID
+        einer Rechnung, die sie nicht selbst trägt, kommt über den Namen aus
+        dem Kundenstamm (`buildInvoiceCsv`) — ohne sie stünde die Spalte leer.
+      */
+      const kundenDerZeilen = await kundenNachNamen(user.companyId, zeilen.map((r) => r.customerName));
       if (anfrage !== exportAnfrage.current) return;
+      setKunden((alt) => [...new Map([...alt, ...kundenDerZeilen].map((k) => [k.id, k])).values()]);
       setExportZeilen(zeilen);
       setOhneAbzug(fehlAbzug);
       /*

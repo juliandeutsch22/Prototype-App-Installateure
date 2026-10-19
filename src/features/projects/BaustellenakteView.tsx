@@ -10,7 +10,6 @@ import BaustellenScheine from './BaustellenScheine';
 import { listUsers } from '@/lib/db/users';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { Wert } from '@/components/Wert';
-import { listCustomers } from '@/lib/db/customers';
 import { listQuotesForProject } from '@/lib/db/quotes';
 import { pauschalAngebot } from '@/features/invoices/pauschale';
 import { ABRECHNUNGSARTEN, abrechnungText } from '@/lib/abrechnung';
@@ -18,7 +17,7 @@ import { euro } from '@/lib/betrag';
 import { canAccess } from '@/app/navigation';
 import { canInvoice, isGF } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
-import type { Abrechnungsart, Project, AppUser, Customer, Quote } from '@/types';
+import type { Abrechnungsart, Project, AppUser, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
@@ -33,7 +32,8 @@ import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
 import PersonPicker from '@/components/PersonPicker';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import KundenGrenze from '@/components/AuswahlGrenze';
+import KundenAuswahl from '@/components/KundenAuswahl';
+import { useKunde } from '@/features/customers/useKundenFuer';
 import { InputField, SelectField, TextareaField, FormGrid } from '@/components/Field';
 import AdresseFeld from '@/components/AdresseFeld';
 import { baustellenTitel } from '@/lib/baustellenTitel';
@@ -98,7 +98,6 @@ export default function BaustellenakteView() {
   );
   const [users, setUsers] = useState<AppUser[]>(() => belegschaftGemerkt?.users ?? []);
   const [namenDa, setNamenDa] = useState(() => belegschaftGemerkt?.users !== undefined);
-  const [kunden, setKunden] = useState<(Customer & { id: string })[]>([]);
   /** Ein Nebenladevorgang ist ausgefallen — die Stammdaten stehen trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [versuch, setVersuch] = useState(0);
@@ -137,26 +136,23 @@ export default function BaustellenakteView() {
     der Baustelle steht, WER dort arbeitet; eine Kennung beantwortet das
     nicht. Gefunden hat das die Prüfung, nicht der Kopf.
 
-    Der Kundenstamm bleibt dagegen den Ändernden vorbehalten: er füllt nur
-    das Auswahlfeld, und der Kundenname steht ohnehin auf der Baustelle.
+    Den Kundenstamm lädt die Akte nicht mehr (Ladezeit, 19.10.2026): die
+    Auswahl sucht auf dem Server, und der Kundenname steht ohnehin auf der
+    Baustelle.
   */
   useEffect(() => {
     if (!companyId) return;
     let weg = false;
     void (async () => {
       try {
-        const [u, k] = await Promise.all([
-          listUsers(companyId),
-          darfAendern ? listCustomers(companyId) : Promise.resolve([]),
-        ]);
+        const u = await listUsers(companyId);
         if (weg) return;
         setUsers(u);
-        setKunden(k);
         belegschaftMerken({ users: u });
       } catch {
-        // Ohne Hinweis blieben Team und Kundenauswahl einfach leer, und es
-        // sähe aus, als hätte der Betrieb weder Monteure noch Kunden.
-        if (!weg) setNebenFehler(darfAendern ? 'Belegschaft und Kundenstamm' : 'Belegschaft');
+        // Ohne Hinweis bliebe das Team einfach leer, und es sähe aus, als
+        // hätte der Betrieb keine Monteure.
+        if (!weg) setNebenFehler('Belegschaft');
       } finally {
         if (!weg) setNamenDa(true);
       }
@@ -420,7 +416,6 @@ export default function BaustellenakteView() {
         <StammdatenFormular
           entwurf={entwurf}
           setEntwurf={setEntwurf}
-          kunden={kunden}
           staff={staff}
           leads={leads}
           namen={namen}
@@ -712,7 +707,6 @@ function StammdatenLesen({ b, namen, namenDa }: { b: Project; namen: Map<string,
 interface FormularProps {
   entwurf: BaustellenEntwurf;
   setEntwurf: (e: BaustellenEntwurf) => void;
-  kunden: (Customer & { id: string })[];
   staff: AppUser[];
   leads: AppUser[];
   namen: Map<string, string>;
@@ -736,12 +730,14 @@ interface FormularProps {
  * im Feld steht.
  */
 function StammdatenFormular({
-  entwurf, setEntwurf, kunden, staff, leads, namen, namenDa,
+  entwurf, setEntwurf, staff, leads, namen, namenDa,
   geaendert, speichert, fehler, onSpeichern, onVerwerfen, angebote, angeboteSichtbar,
 }: FormularProps) {
   const setze = <F extends keyof BaustellenEntwurf>(feld: F, wert: BaustellenEntwurf[F]) =>
     setEntwurf({ ...entwurf, [feld]: wert });
   const companyId = useAuth().user?.companyId;
+  /** Der Kunde der Baustelle — einzeln geholt, nicht der ganze Kundenstamm (Ladezeit, 19.10.2026). */
+  const [kunde, setKunde] = useKunde(companyId, entwurf.customerId);
   const k = koepfe({
     ...entwurf,
     billingMode: entwurf.billingMode || undefined,
@@ -766,27 +762,27 @@ function StammdatenFormular({
             beide unvollständig. Der Name wandert als Kopie mit, weil die
             Baustellenlisten ihn zeigen, ohne den Kundenstamm zu laden.
           */}
-          <SelectField
-            id="b-kunde" label="Kunde" pflicht value={entwurf.customerId}
-            onChange={(e) => {
-              const kunde = kunden.find((x) => x.id === e.target.value);
-              const vorher = kunden.find((x) => x.id === entwurf.customerId)?.address;
-              setEntwurf({
-                ...entwurf,
-                customerId: e.target.value,
-                customerName: kunde?.name ?? entwurf.customerName,
-                // G5: die Anschrift des Kunden als Vorschlag — nur in ein leeres
-                // Feld oder statt des unveränderten Vorschlags des vorigen Kunden.
-                address: !entwurf.address || entwurf.address === vorher ? (kunde?.address ?? '') : entwurf.address,
-              });
-            }}
-          >
-            <option value="">— wählen —</option>
-            {kunden.map((x) => (
-              <option key={x.id} value={x.id}>{x.name}</option>
-            ))}
-          </SelectField>
-          <KundenGrenze kunden={kunden} />
+          {companyId && (
+            <KundenAuswahl
+              companyId={companyId}
+              id="b-kunde"
+              pflicht
+              value={entwurf.customerId}
+              kunde={kunde}
+              onChange={(id, gewaehlt) => {
+                const vorher = kunde?.address;
+                setKunde(gewaehlt);
+                setEntwurf({
+                  ...entwurf,
+                  customerId: id,
+                  customerName: gewaehlt?.name ?? entwurf.customerName,
+                  // G5: die Anschrift des Kunden als Vorschlag — nur in ein leeres
+                  // Feld oder statt des unveränderten Vorschlags des vorigen Kunden.
+                  address: !entwurf.address || entwurf.address === vorher ? (gewaehlt?.address ?? '') : entwurf.address,
+                });
+              }}
+            />
+          )}
           <InputField
             id="b-bezeichnung" label="Bezeichnung (freiwillig)" placeholder="z. B. Bad 2. OG"
             maxLength={120} value={entwurf.bezeichnung}
@@ -796,7 +792,7 @@ function StammdatenFormular({
               Kunden, und eine Hausverwaltung hat zwanzig Baustellen. */}
           <AdresseFeld
             id="b-adresse" label="Baustellenadresse" value={entwurf.address}
-            vorschlag={kunden.find((x) => x.id === entwurf.customerId)?.address}
+            vorschlag={kunde?.address}
             onChange={(t) => setze('address', t)}
           />
           {/* Der Monteur braucht vor Ort vor allem eine Telefonnummer. */}

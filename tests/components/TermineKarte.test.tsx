@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Termin } from '@/types';
 import type { TerminVorgabe } from '@/features/termine/TerminFormular';
+import { kundeWaehlen } from './kundenAuswahl';
 
 /**
  * Die Termine an einer Stelle (Plan 10.4): Tagesplanung, Baustellenakte,
@@ -45,9 +46,7 @@ vi.mock('@/lib/db/projects', () => ({
   listProjectsByNumbers: vi.fn(async () => [PROJEKT]),
 }));
 vi.mock('@/lib/db/users', () => ({ listUsers: vi.fn(async () => [ANNA, BERT]) }));
-vi.mock('@/lib/db/customers', () => ({
-  listCustomers: vi.fn(async () => [{ id: 'k1', name: 'Hausverwaltung Nord', active: true }]),
-}));
+vi.mock('@/lib/db/customers', async () => (await import('./kundenAuswahl')).kundenAttrappe(() => [{ id: 'k1', name: 'Hausverwaltung Nord', active: true }]));
 vi.mock('@/lib/time', async () => {
   const echt = await vi.importActual<typeof import('@/lib/time')>('@/lib/time');
   return { ...echt, todayStr: () => '2026-06-01' };
@@ -223,7 +222,7 @@ describe('Anlegen', () => {
     zeige({ bezug: 'frei', datum: '2026-06-02' });
     await userEvent.click(await screen.findByRole('button', { name: 'Termin anlegen' }));
     await userEvent.click(screen.getByRole('radio', { name: 'Beim Kunden, ohne Baustelle' }));
-    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Kunde' }), 'k1');
+    await kundeWaehlen(userEvent.setup(), 'Hausverwaltung Nord');
     await userEvent.click(within(fenster()).getByRole('button', { name: 'Termin anlegen' }));
     await waitFor(() => expect(terminAnlegen).toHaveBeenCalledTimes(1));
     expect(terminAnlegen.mock.calls[0][1]).toMatchObject({ projectNumber: null, customerId: 'k1' });

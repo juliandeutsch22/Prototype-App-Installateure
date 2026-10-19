@@ -13,13 +13,12 @@ import {
   type NewWartung,
 } from '@/lib/db/wartungen';
 import { wartungEinplanen } from '@/lib/db/wartungen';
-import { listCustomers } from '@/lib/db/customers';
 import WartungVerlauf from './WartungVerlauf';
 import { listRecentProjects } from '@/lib/db/projects';
 import { belegNummer, hoechsteLfdImJahr, praefixeVon } from '@/lib/praefixe';
 import { isGF } from '@/lib/permissions';
 import { todayStr } from '@/lib/time';
-import type { Customer, Wartung } from '@/types';
+import type { Wartung } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import {
   beurteile,
@@ -33,7 +32,7 @@ import {
   nummerFrei,
 } from './wartungBaustelle';
 import Card from '@/components/Card';
-import KundenGrenze from '@/components/AuswahlGrenze';
+import KundenAuswahl from '@/components/KundenAuswahl';
 import Button from '@/components/Button';
 import { Zustand, type Stand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
@@ -186,7 +185,6 @@ export default function WartungenView() {
   const vorsaetze = praefixeVon(company);
   const toast = useToast();
   const [wartungen, setWartungen] = useState<WithId<Wartung>[]>([]);
-  const [kunden, setKunden] = useState<WithId<Customer>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
@@ -245,9 +243,8 @@ export default function WartungenView() {
     setLoading(true);
     void (async () => {
       try {
-        const [w, k, p] = await Promise.all([
+        const [w, p] = await Promise.all([
           listWartungen(companyId, grenze),
-          listCustomers(companyId),
           /*
             Nur für den Nummernvorschlag. Scheitert es — etwa weil eine Rolle
             die Baustellen nicht lesen darf —, bleibt die Liste leer und der
@@ -258,7 +255,6 @@ export default function WartungenView() {
         ]);
         if (weg) return;
         setWartungen(w);
-        setKunden(k);
         setNummern(p.map((x) => x.projectNumber));
         setError(null);
       } catch (e) {
@@ -402,8 +398,7 @@ export default function WartungenView() {
    * Dieselbe Überlegung wie bei den Baustellen: die Liste zeigt ihn und soll
    * dafür nicht die Kundensammlung nachladen müssen.
    */
-  const kundeWaehlen = (id: string) => {
-    const k = kunden.find((x) => x.id === id);
+  const kundeWaehlen = (id: string, k: { name: string } | null) => {
     setForm((f) => ({ ...f, customerId: id, customerName: k?.name ?? '' }));
   };
 
@@ -830,20 +825,15 @@ export default function WartungenView() {
         titel={bearbeitet ? 'Wartung ändern' : 'Neue Wartung'}
       >
         <form onSubmit={speichern} className="formular space-y-4">
-          <SelectField id="w-kunde"
-            label="Kunde"
-            pflicht
-            value={form.customerId}
-            onChange={(e) => kundeWaehlen(e.target.value)}
-          >
-            <option value="">— wählen —</option>
-            {kunden.map((k) => (
-              <option key={k.id} value={k.id}>
-                {k.name}
-              </option>
-            ))}
-          </SelectField>
-          <KundenGrenze kunden={kunden} />
+          {companyId && (
+            <KundenAuswahl
+              companyId={companyId}
+              id="w-kunde"
+              pflicht
+              value={form.customerId}
+              onChange={kundeWaehlen}
+            />
+          )}
           <InputField id="w-anlage"
             label="Anlage"
             pflicht

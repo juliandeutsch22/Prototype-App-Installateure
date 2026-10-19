@@ -28,6 +28,11 @@ export function listCustomersByIds(companyId: string, ids: string[]): Promise<Wi
   return pg.listCustomersByIds(companyId, ids);
 }
 
+/** Die Kunden zu Namen — für Belege, die ihren Kunden nur beim Namen kennen (siehe `pg/customers.ts`). */
+export function kundenNachNamen(companyId: string, namen: readonly string[]): Promise<WithId<Customer>[]> {
+  return pg.kundenNachNamen(companyId, namen);
+}
+
 export function listProjectsForCustomer(
   companyId: string, customerId: string, max = 300,
 ): Promise<WithId<Project>[]> {

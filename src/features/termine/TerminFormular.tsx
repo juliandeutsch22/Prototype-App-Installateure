@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { TERMIN_ARTEN, type AppUser, type Customer, type Termin, type TerminArt } from '@/types';
+import { useMemo, useState, type FormEvent } from 'react';
+import { TERMIN_ARTEN, type AppUser, type Termin, type TerminArt } from '@/types';
 import { terminAendern, terminAnlegen } from '@/lib/db/termine';
-import { listCustomers } from '@/lib/db/customers';
-import type { WithId } from '@/lib/db/core';
+import KundenAuswahl from '@/components/KundenAuswahl';
 import BaustellenSelect from '@/components/BaustellenSelect';
 import PersonPicker from '@/components/PersonPicker';
 import Button from '@/components/Button';
@@ -62,17 +61,8 @@ export default function TerminFormular({
   const [customerId, setCustomerId] = useState(termin?.customerId ?? (vorgabe.bezug === 'kunde' ? vorgabe.customerId : ''));
   const [teilnehmer, setTeilnehmer] = useState<string[]>(termin?.teilnehmer ?? []);
   const [notiz, setNotiz] = useState(termin?.notiz ?? '');
-  const [kunden, setKunden] = useState<WithId<Customer>[] | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const [speichert, setSpeichert] = useState(false);
-
-  // Die Kundenliste nur, wo sie gebraucht wird: in der Tagesplanung bei „beim Kunden".
-  useEffect(() => {
-    if (vorgabe.bezug !== 'frei' || wo !== 'kunde' || kunden) return;
-    listCustomers(companyId)
-      .then((ks) => setKunden(ks.filter((k) => k.active !== false || k.id === customerId).sort((a, b) => a.name.localeCompare(b.name, 'de'))))
-      .catch(() => setFehler('Die Kunden konnten nicht geladen werden.'));
-  }, [vorgabe.bezug, wo, kunden, companyId, customerId]);
 
   const leute = useMemo(
     () =>
@@ -181,12 +171,8 @@ export default function TerminFormular({
             )
           )}
           {wo === 'kunde' && vorgabe.bezug === 'frei' && (
-            <SelectField id="termin-kunde" label="Kunde" value={customerId} onChange={(e) => setCustomerId(e.target.value)} disabled={!kunden}>
-              <option value="">{kunden ? 'Bitte wählen' : 'Wird geladen …'}</option>
-              {(kunden ?? []).map((k) => (
-                <option key={k.id} value={k.id}>{k.name}</option>
-              ))}
-            </SelectField>
+            // Gesucht auf dem Server, nur aktive Kunden (Ladezeit, 19.10.2026).
+            <KundenAuswahl companyId={companyId} id="termin-kunde" value={customerId} onChange={(id) => setCustomerId(id)} nurAktive />
           )}
         </fieldset>
       )}
