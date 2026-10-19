@@ -131,7 +131,7 @@ export type VorlaufEintrag = Pick<TimeEntry, 'userId' | 'date' | 'status' | 'sta
 
 /**
  * DER VORLAUF FÜR DEN DURCHSCHNITT DER 17 WOCHEN (Arbeitszeitgrenzen), je
- * Person und Tag verdichtet (Ladezeit, 19.10.2026).
+ * Person und Tag verdichtet, eine Zeile je Person (Ladezeit, 19.10.2026).
  *
  * Bis hierher kam jede Buchung der 16 Wochen vor dem Monat — beim dreifachen
  * Testbestand 42.000 Zeilen, 1,5 MB. Der Durchschnitt braucht davon je Tag
@@ -140,11 +140,13 @@ export type VorlaufEintrag = Pick<TimeEntry, 'userId' | 'date' | 'status' | 'sta
  * Einträge, die `grenzfaelle` genauso zählt: die Minuten als Stunden einer
  * „Anwesend“-Buchung, ein ganztags gutgeschriebener Tag als Urlaubstag.
  * Berufsschultage kommen weiter einzeln — für Jugendliche zählt jeder
- * Eintrag mit dem Tagessoll.
+ * Eintrag mit dem Tagessoll. Die Minuten sind ganz, weil die App Uhrzeiten
+ * ohne Sekunden und Pausen in ganzen Minuten schreibt; nur so ergeben die
+ * Stunden über `calcWorkMin` wieder genau sie.
  */
 export async function arbeitszeitVorlauf(companyId: string, from: string, to: string, seite = SEITE): Promise<VorlaufEintrag[]> {
-  type Zeile = { user_id: string; date: string; minuten: number | string | null; ganztags: boolean | null };
-  const tage: Zeile[] = [];
+  type Zeile = { user_id: string; tage: string[]; minuten: Array<number | string | null>; ganztags: Array<boolean | null> };
+  const personen: Zeile[] = [];
   const schule = abfragen<VorlaufEintrag>(ZEITEN, companyId, {
     wo: [
       { art: 'ab', feld: 'date', wert: from },
@@ -157,14 +159,16 @@ export async function arbeitszeitVorlauf(companyId: string, from: string, to: st
     const { data, error } = await derClient().rpc('arbeitszeit_vorlauf', { p_von: from, p_bis: to }).range(ab, ab + seite - 1);
     if (error) throw new Error(error.message);
     const teil = (data ?? []) as Zeile[];
-    tage.push(...teil);
+    personen.push(...teil);
     if (teil.length < seite) break;
   }
   const eintraege: VorlaufEintrag[] = [];
-  for (const z of tage) {
-    const minuten = z.minuten == null ? 0 : Number(z.minuten);
-    if (minuten > 0) eintraege.push({ userId: z.user_id, date: z.date, status: 'Anwesend', hours: minuten / 60 });
-    if (z.ganztags) eintraege.push({ userId: z.user_id, date: z.date, status: 'Urlaub' });
+  for (const p of personen) {
+    (p.tage ?? []).forEach((date, i) => {
+      const minuten = p.minuten?.[i] == null ? 0 : Number(p.minuten[i]);
+      if (minuten > 0) eintraege.push({ userId: p.user_id, date, status: 'Anwesend', hours: minuten / 60 });
+      if (p.ganztags?.[i]) eintraege.push({ userId: p.user_id, date, status: 'Urlaub' });
+    });
   }
   return [...eintraege, ...(await schule)];
 }

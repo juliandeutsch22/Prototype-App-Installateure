@@ -155,8 +155,11 @@ describe('arbeitszeit_vorlauf: je Person und Tag verdichtet', () => {
     const roh = (await listEntriesInRange(BETRIEB, '2025-10-01', '2026-03-31')).filter((e) => e.userId === faelle.uid);
     const { data, error } = await derClient().rpc('arbeitszeit_vorlauf', { p_von: '2025-10-01', p_bis: '2026-03-31' });
     if (error) throw new Error(error.message);
-    const tage = (data as Array<{ user_id: string; date: string; minuten: number | null; ganztags: boolean }>)
-      .filter((z) => z.user_id === faelle.uid);
+    // Je Person EINE Zeile mit ihren Tagen.
+    const zeilen = data as Array<{ user_id: string; tage: string[]; minuten: Array<number | null>; ganztags: boolean[] }>;
+    expect(zeilen.map((z) => z.user_id).sort()).toEqual([dauer.uid, faelle.uid].sort());
+    const meine = zeilen.find((z) => z.user_id === faelle.uid)!;
+    const tage = meine.tage.map((date, i) => ({ date, minuten: meine.minuten[i], ganztags: meine.ganztags[i] }));
 
     const erwartet = new Map<string, { minuten: number | null; ganztags: boolean }>();
     for (const e of roh) {
@@ -200,9 +203,10 @@ describe('arbeitszeit_vorlauf: je Person und Tag verdichtet', () => {
 
   it('blättert vollständig', async () => {
     const ganz = await arbeitszeitVorlauf(BETRIEB, '2025-10-01', '2026-03-31');
-    const seitenweise = await arbeitszeitVorlauf(BETRIEB, '2025-10-01', '2026-03-31', 7);
+    // Je Person eine Zeile: Seiten zu einer Person reichen für beide.
+    const seitenweise = await arbeitszeitVorlauf(BETRIEB, '2025-10-01', '2026-03-31', 1);
     expect(seitenweise).toEqual(ganz);
-    expect(ganz.length).toBeGreaterThan(7);
+    expect(new Set(ganz.map((e) => e.userId)).size).toBe(2);
   });
 
   it('ohne Buchhaltung oder Spitze nur die eigenen Tage — wie `time_entries_lesen`; nie ein fremder Betrieb', async () => {

@@ -16,11 +16,10 @@
   3. `buchungstage_je_person`: je Person EINE Zeile mit ihren Tagen, statt je
      Person und Tag einer — eine Anfrage statt mehrerer Seiten hintereinander.
   4. `arbeitszeit_vorlauf`: der Vorlauf für den Durchschnitt nach § 9 Abs 4
-     AZG (16 Wochen vor dem Monat) je Person und Tag verdichtet, statt jeder
-     Buchung. Mehr braucht der Durchschnitt nicht: die Arbeitsminuten des
-     Tages und ob er ganztags gutgeschrieben ist. Die Minuten rechnet
-     `app.arbeitsminuten` wie `calcWorkMin` (`shared/arbeitszeit.ts`), samt
-     Nacht der Zeitumstellung (`app.wien_versatz_min` wie `wienVersatzMin`).
+     AZG (16 Wochen vor dem Monat) je Person und Tag verdichtet, eine Zeile
+     je Person, statt jeder Buchung. Mehr braucht der Durchschnitt nicht: die Arbeitsminuten des
+     Tages und ob er ganztags gutgeschrieben ist, gerechnet wie `calcWorkMin`
+     (`shared/arbeitszeit.ts`) samt Nacht der Zeitumstellung.
 */
 
 -- 1. lager_frei: zwei Äste statt eines Vergleichs, der den Schlüssel nicht nutzen kann.
@@ -132,87 +131,93 @@ grant execute on function public.buchungstage_je_person(date, date) to authentic
 -- 4. Der Vorlauf für den Durchschnitt nach § 9 Abs 4 AZG.
 
 /*
-  Der Abstand der Wiener Ortszeit zu UTC in Minuten — Wort für Wort wie
-  `wienVersatzMin` in `shared/arbeitszeit.ts`: 60 im Winter, 120 im Sommer,
-  umgestellt am letzten Sonntag im März um 02:00 und im Oktober um 03:00.
-*/
-create or replace function app.wien_versatz_min(p_tag date, p_zeit time)
-  returns integer
-  language sql
-  immutable
-  set search_path = ''
-as $$
-  select case
-    when m < 3 or m > 10 then 60
-    when m > 3 and m < 10 then 120
-    when m = 3 then case when t > so or (t = so and p_zeit >= time '03:00') then 120 else 60 end
-    else case when t < so or (t = so and p_zeit < time '02:00') then 120 else 60 end
-  end
-  from (select extract(month from p_tag)::int as m,
-               extract(day from p_tag)::int as t,
-               -- Der letzte Sonntag des Monats: sein letzter Tag minus dessen Wochentag (So = 0).
-               extract(day from ende)::int - extract(dow from ende)::int as so
-          from (select (date_trunc('month', p_tag) + interval '1 month - 1 day')::date as ende) e) x
-$$;
-
-/*
-  Die Arbeitsminuten einer Buchung — Wort für Wort wie `calcWorkMin`: nur
-  „Anwesend“; mit Beginn und Ende die Spanne (über Mitternacht in den
-  Folgetag) abzüglich des Sprungs der Uhr und der Pause; sonst die Stunden.
-*/
-create or replace function app.arbeitsminuten(
-  p_status text, p_tag date, p_beginn time, p_ende time, p_pause numeric, p_stunden numeric
-)
-  returns numeric
-  language sql
-  immutable
-  set search_path = ''
-as $$
-  select case
-    when p_status is distinct from 'Anwesend' then 0
-    when p_beginn is not null and p_ende is not null then greatest(0,
-      extract(epoch from (p_ende - p_beginn)) / 60
-      + case when p_ende < p_beginn then 1440 else 0 end
-      - (app.wien_versatz_min(case when p_ende < p_beginn then p_tag + 1 else p_tag end, p_ende)
-         - app.wien_versatz_min(p_tag, p_beginn))
-      - coalesce(p_pause, 0))
-    when p_stunden is not null then greatest(0, round(p_stunden * 60))
-    else 0
-  end
-$$;
-
-revoke all on function app.wien_versatz_min(date, time) from public, anon;
-revoke all on function app.arbeitsminuten(text, date, time, time, numeric, numeric) from public, anon;
-grant execute on function app.wien_versatz_min(date, time) to authenticated;
-grant execute on function app.arbeitsminuten(text, date, time, time, numeric, numeric) to authenticated;
-
-/*
-  Je Person und Tag: die Arbeitsminuten (nur Buchungen über null, wie
+  Je Person EINE Zeile (wie `buchungstage_je_person`: eine Anfrage statt
+  Seiten hintereinander), darin je Tag: die Arbeitsminuten (nur Buchungen über null, wie
   `grenzfaelle` sie zählt) und ob der Tag ganztags gutgeschrieben ist — wie
   `istGanztagsGutschrift`, ohne die Berufsschule: deren Tage holt die App
   weiter einzeln, weil sie für Jugendliche je Eintrag zählen. Gelesen wird,
   was `time_entries_lesen` erlaubt.
+
+  Die Minuten rechnet sie Wort für Wort wie `calcWorkMin`
+  (`shared/arbeitszeit.ts`): nur „Anwesend“; mit Beginn und Ende die Spanne
+  (über Mitternacht in den Folgetag) abzüglich des Sprungs der Uhr und der
+  Pause; sonst die Stunden. Der Sprung wie `wienVersatzMin`: 60 Minuten
+  Abstand zu UTC im Winter, 120 im Sommer, umgestellt am letzten Sonntag im
+  März um 02:00 und im Oktober um 03:00.
+
+  BEWUSST IN DER ABFRAGE, NICHT ALS EIGENE FUNKTION: eine Hilfsfunktion mit
+  `set search_path` kann Postgres nicht in die Abfrage einbetten und ruft sie
+  für jede Buchung einzeln — beim Testbestand sechs Sekunden für 16 Wochen
+  statt Millisekunden (gemessen 19.10.2026).
 */
 create or replace function public.arbeitszeit_vorlauf(p_von date, p_bis date)
-  returns table (user_id uuid, date date, minuten numeric, ganztags boolean)
+  returns table (user_id uuid, tage date[], minuten numeric[], ganztags boolean[])
   language sql
   stable
   security definer
   set search_path = ''
 as $$
+  select j.user_id,
+         array_agg(j.date order by j.date),
+         array_agg(j.minuten order by j.date),
+         array_agg(j.ganztags order by j.date)
+    from (
   select t.user_id, t.date,
-         sum(x.min) filter (where x.min > 0),
+         sum(m.min) filter (where m.min > 0) as minuten,
          bool_or(t.status in ('Krank', 'Urlaub', 'Unbezahlt')
                  or (t.status in ('Dienstverhinderung', 'Pflegefreistellung')
-                     and not (t.start_time is not null and t.end_time is not null)))
+                     and not (t.start_time is not null and t.end_time is not null))) as ganztags
     from public.time_entries t
-    cross join lateral (select app.arbeitsminuten(t.status, t.date, t.start_time, t.end_time, t.break_duration, t.hours) as min) x
+    -- Der Tag des Endes: über Mitternacht der Folgetag.
+    cross join lateral (
+      select t.end_time < t.start_time as ueber_nacht,
+             case when t.end_time < t.start_time then t.date + 1 else t.date end as ende_tag
+    ) n
+    -- Monat, Tag und letzter Sonntag des Monats für Beginn und Ende (letzter Tag minus dessen Wochentag, So = 0).
+    cross join lateral (
+      select extract(month from t.date)::int as m_b,
+             extract(day from t.date)::int as t_b,
+             extract(day from (date_trunc('month', t.date) + interval '1 month - 1 day'))::int
+               - extract(dow from (date_trunc('month', t.date) + interval '1 month - 1 day'))::int as so_b,
+             extract(month from n.ende_tag)::int as m_e,
+             extract(day from n.ende_tag)::int as t_e,
+             extract(day from (date_trunc('month', n.ende_tag) + interval '1 month - 1 day'))::int
+               - extract(dow from (date_trunc('month', n.ende_tag) + interval '1 month - 1 day'))::int as so_e
+    ) k
+    cross join lateral (
+      select case
+               when k.m_b < 3 or k.m_b > 10 then 60
+               when k.m_b > 3 and k.m_b < 10 then 120
+               when k.m_b = 3 then case when k.t_b > k.so_b or (k.t_b = k.so_b and t.start_time >= time '03:00') then 120 else 60 end
+               else case when k.t_b < k.so_b or (k.t_b = k.so_b and t.start_time < time '02:00') then 120 else 60 end
+             end as v_beginn,
+             case
+               when k.m_e < 3 or k.m_e > 10 then 60
+               when k.m_e > 3 and k.m_e < 10 then 120
+               when k.m_e = 3 then case when k.t_e > k.so_e or (k.t_e = k.so_e and t.end_time >= time '03:00') then 120 else 60 end
+               else case when k.t_e < k.so_e or (k.t_e = k.so_e and t.end_time < time '02:00') then 120 else 60 end
+             end as v_ende
+    ) v
+    cross join lateral (
+      select case
+               when t.status is distinct from 'Anwesend' then 0
+               when t.start_time is not null and t.end_time is not null then greatest(0,
+                 extract(epoch from (t.end_time - t.start_time)) / 60
+                 + case when n.ueber_nacht then 1440 else 0 end
+                 - (v.v_ende - v.v_beginn)
+                 - coalesce(t.break_duration, 0))
+               when t.hours is not null then greatest(0, round(t.hours * 60))
+               else 0
+             end as min
+    ) m
    where t.company_id = (select app.lesebetrieb())
      and (t.user_id = (select auth.uid()) or (select app.ist_buch_oder_spitze()))
      and t.date between p_von and p_bis
      and t.status <> 'Berufsschule'
    group by t.user_id, t.date
-   order by t.user_id, t.date
+    ) j
+   group by j.user_id
+   order by j.user_id
 $$;
 
 revoke all on function public.arbeitszeit_vorlauf(date, date) from public, anon;
