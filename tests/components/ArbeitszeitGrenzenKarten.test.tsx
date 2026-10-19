@@ -21,10 +21,10 @@ let gespeichertesDatum: string | null = null;
 const listEntriesInRange = vi.fn(async () => buchungen);
 /** Der Vorlauf für den Durchschnitt der 17 Wochen — ausser im eigenen Test leer. */
 let vorlauf: Array<Partial<TimeEntry> & { id: string }> = [];
-const listArbeitszeitenInRange = vi.fn<(c: string, von: string, bis: string) => Promise<typeof vorlauf>>(async () => vorlauf);
+const arbeitszeitVorlauf = vi.fn<(c: string, von: string, bis: string) => Promise<typeof vorlauf>>(async () => vorlauf);
 vi.mock('@/lib/db/timeEntries', () => ({
   listEntriesInRange: () => listEntriesInRange(),
-  listArbeitszeitenInRange: (c: string, von: string, bis: string) => listArbeitszeitenInRange(c, von, bis),
+  arbeitszeitVorlauf: (c: string, von: string, bis: string) => arbeitszeitVorlauf(c, von, bis),
 }));
 vi.mock('@/lib/db/arbeitszeitGrenzen', () => ({
   listGeburtsdaten: vi.fn(async () => geburtsdaten),
@@ -59,7 +59,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 9, 31, 12, 0, 0));
   listEntriesInRange.mockClear();
-  listArbeitszeitenInRange.mockClear();
+  arbeitszeitVorlauf.mockClear();
   vorlauf = [];
   buchungen = [];
   geburtsdaten = new Map();
@@ -124,7 +124,7 @@ describe('Arbeitszeitgrenzen in der Mitarbeiterübersicht', () => {
     }
     zeige();
     expect(await screen.findByText(/Schnitt der 17 Wochen bis KW 40: 48:56 Std\. — höchstens 48 Std\./)).toBeInTheDocument();
-    expect(listArbeitszeitenInRange).toHaveBeenCalledWith('perl', '2026-06-08', '2026-09-23');
+    expect(arbeitszeitVorlauf).toHaveBeenCalledWith('perl', '2026-06-08', '2026-09-23');
   });
 
   it('mit dem Zeitraum des Betriebs (26 Wochen) reicht der Vorlauf weiter zurück', async () => {
@@ -135,7 +135,7 @@ describe('Arbeitszeitgrenzen in der Mitarbeiterübersicht', () => {
     );
     expect(await screen.findByText(/keine Grenze überschritten/)).toBeInTheDocument();
     // 25 Wochen vor dem 28.09.: der 06.04.
-    expect(listArbeitszeitenInRange).toHaveBeenCalledWith('perl', '2026-04-06', '2026-09-23');
+    expect(arbeitszeitVorlauf).toHaveBeenCalledWith('perl', '2026-04-06', '2026-09-23');
   });
 
   it('Gegenprobe: ohne Vorlauf zählen dieselben Wochen nicht', async () => {

@@ -11,6 +11,13 @@
  *
  *   node scripts/ui-umbau/testbestand.mjs
  *
+ * MIT `TESTBESTAND_FAKTOR=3` ein Betrieb, der in denselben fünf Jahren
+ * dreimal so groß ist: dreimal so viele Leute im Außendienst, Kunden,
+ * Baustellen (davon dreimal so viele laufend), Belege und Artikel. Damit
+ * wird geprüft, ob eine Seite mit dem Betrieb mitwächst, wo sie es nicht
+ * soll (Ladezeit, 19.10.2026). Ohne Faktor ist der Bestand derselbe wie
+ * bisher, Zeile für Zeile.
+ *
  * NUR GEGEN DEN LOKALEN STAPEL. Die Adressen von Schnittstelle und Datenbank
  * werden vor jedem Schritt geprüft; alles ausser 127.0.0.1 und localhost
  * bricht ab — auch wenn jemand die Umgebungsvariablen umbiegt. In der
@@ -47,6 +54,14 @@ const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 export const BETRIEB = 'ui-testbestand';
 export const PASSWORT = 'Testbestand-2026!';
+/** Wie viel größer der Betrieb ist als der Grundbestand — ganzzahlig, 1 bis 5. */
+const F = Number(process.env.TESTBESTAND_FAKTOR ?? 1);
+if (!Number.isInteger(F) || F < 1 || F > 5) throw new Error(`TESTBESTAND_FAKTOR muss eine ganze Zahl von 1 bis 5 sein, nicht ${process.env.TESTBESTAND_FAKTOR}`);
+/** Eine Menge des Grundbestands, auf den Faktor hochgerechnet. */
+const n = (x) => x * F;
+/** Nummern mit genug Stellen, damit auch der größere Bestand eindeutig bleibt. */
+const stellen = (grund) => (F > 2 ? grund + 1 : grund);
+
 /** Stichtag des Bestands: „heute“ für den Generator, damit zwei Läufe dasselbe ergeben. */
 const HEUTE = process.env.TESTBESTAND_HEUTE ?? '2026-10-07';
 
@@ -79,9 +94,10 @@ export const BELEGSCHAFT = [
   { kurz: 'pl1', name: 'Paul Projektleiter', role: 'Projektleiter', rechnungenLesen: true },
   { kurz: 'pl2', name: 'Petra Projektleiterin', role: 'Projektleiter' },
   { kurz: 'pl3', name: 'Peter Projektleiter', role: 'Projektleiter' },
-  ...Array.from({ length: 14 }, (_, i) => ({
+  // Mit Faktor kommen die übrigen Leute als Monteure dazu: 25 je Faktor, wie im Grundbestand.
+  ...Array.from({ length: 14 + 25 * (F - 1) }, (_, i) => ({
     kurz: `monteur${i + 1}`,
-    name: `Monteur ${String(i + 1).padStart(2, '0')} ${['Huber', 'Gruber', 'Bauer', 'Wagner', 'Müller', 'Pichler', 'Steiner', 'Moser', 'Mayer', 'Hofer', 'Leitner', 'Berger', 'Fuchs', 'Eder'][i]}`,
+    name: `Monteur ${String(i + 1).padStart(2, '0')} ${['Huber', 'Gruber', 'Bauer', 'Wagner', 'Müller', 'Pichler', 'Steiner', 'Moser', 'Mayer', 'Hofer', 'Leitner', 'Berger', 'Fuchs', 'Eder'][i % 14]}`,
     role: 'Mitarbeiter',
     einstufung: i < 3 ? 'obermonteur' : i < 11 ? 'facharbeiter' : 'helfer',
   })),
@@ -144,7 +160,7 @@ async function main() {
 
   await db.query('select setseed(0.20261007)');
 
-  console.log(`Betrieb ${BETRIEB} anlegen (Stichtag ${HEUTE}) …`);
+  console.log(`Betrieb ${BETRIEB} anlegen (Stichtag ${HEUTE}${F > 1 ? `, Faktor ${F}` : ''}) …`);
   await sql('Betrieb', `
     insert into public.companies (id, name, address_line, contact_line, iban, bic, bank_name, vat_id, company_register,
       strasse, plz, ort, rates, modules, kalender_abo_erlaubt)
@@ -201,25 +217,25 @@ async function main() {
       'Ansprechperson ' || g, '0664 ' || lpad(g::text, 7, '0'), 'kunde' || g || '@beispiel.test', (10000 + g)::text,
       case when g % 5 = 0 then 'unternehmen' else 'privat' end,
       case when g % 5 = 0 then 'ATU' || lpad((10000000 + g)::text, 8, '0') else null end,
-      timestamptz '2021-10-01' + (g * interval '1 day' * 1.2)
-    from generate_series(1, 1500) g`, [BETRIEB]);
+      timestamptz '2021-10-01' + (g * interval '1 day' * 1.2 / ${F})
+    from generate_series(1, ${n(1500)}) g`, [BETRIEB]);
   await db.query(`create temp table tb_kunde as select row_number() over (order by created_at, name) - 1 as nr, id, name, address from public.customers where company_id = $1`, [BETRIEB]);
 
   // 3.000 Baustellen über fünf Jahre; die letzten 40 laufen, ein paar ruhen.
   await sql('Baustellen', `
     insert into public.projects (id, company_id, project_number, customer_id, customer_name, address, description, status, billing_mode,
       estimated_hours, start_date, end_date, assigned_employees, project_managers, created_at)
-    select gen_random_uuid(), $1, 'B-' || (2021 + (g - 1) / 600) || '-' || lpad(g::text, 4, '0'), k.id, k.name, k.address,
+    select gen_random_uuid(), $1, 'B-' || (2021 + (g - 1) / ${n(600)}) || '-' || lpad(g::text, 4, '0'), k.id, k.name, k.address,
       (array['Heizungstausch','Badsanierung','Wartung Therme','Rohrbruch','Fußbodenheizung','Wärmepumpe'])[1 + g % 6] || ' ' || g,
-      case when g > 2960 then 'Aktiv' when g > 2940 then 'Pausiert' else 'Abgeschlossen' end,
+      case when g > ${n(2960)} then 'Aktiv' when g > ${n(2940)} then 'Pausiert' else 'Abgeschlossen' end,
       (array['Regie','Pauschal','Einheitspreis'])[1 + g % 3],
       20 + (g % 12) * 10,
-      date '2021-10-01' + (g * 0.6)::int,
-      case when g > 2940 then null else date '2021-10-01' + (g * 0.6)::int + 14 + g % 30 end,
+      date '2021-10-01' + (g * 0.6 / ${F})::int,
+      case when g > ${n(2940)} then null else date '2021-10-01' + (g * 0.6 / ${F})::int + 14 + g % 30 end,
       array[(select id from tb_person where nr = g % $2), (select id from tb_person where nr = (g + 3) % $2)],
       array[(select id from tb_person where nr = ${P - 3} + g % 3)],
-      timestamptz '2021-10-01' + (g * interval '14 hours' * 1.2)
-    from generate_series(1, 3000) g join tb_kunde k on k.nr = g % 1500`, [BETRIEB, P - 3]);
+      timestamptz '2021-10-01' + (g * interval '14 hours' * 1.2 / ${F})
+    from generate_series(1, ${n(3000)}) g join tb_kunde k on k.nr = g % ${n(1500)}`, [BETRIEB, P - 3]);
   await db.query(`create temp table tb_baustelle as select row_number() over (order by project_number) - 1 as nr, id, project_number, customer_id, customer_name, address, status, start_date from public.projects where company_id = $1`, [BETRIEB]);
   await db.query('create index on tb_baustelle (nr)');
 
@@ -227,15 +243,15 @@ async function main() {
   await sql('Angebote', `
     insert into public.quotes (id, company_id, quote_number, customer_id, customer_name, address, quote_date, valid_until, status,
       subtotal_netto, total_netto, total_vat, total_brutto, vat_rate, kalkulierte_stunden, project_number, project_id, created_at)
-    select gen_random_uuid(), $1, 'A-' || (2021 + (g - 1) / 800) || '-' || lpad(g::text, 4, '0'), b.customer_id, b.customer_name, b.address,
+    select gen_random_uuid(), $1, 'A-' || (2021 + (g - 1) / ${n(800)}) || '-' || lpad(g::text, ${stellen(4)}, '0'), b.customer_id, b.customer_name, b.address,
       d, d + 30,
-      case when g > 3980 then 'Entwurf' when g > 3950 then 'Versendet' when g % 3 = 0 then 'Abgelehnt' else 'Angenommen' end,
+      case when g > ${n(3980)} then 'Entwurf' when g > ${n(3950)} then 'Versendet' when g % 3 = 0 then 'Abgelehnt' else 'Angenommen' end,
       n, n, round(n * 0.2, 2), round(n * 1.2, 2), 0.2, 8 + g % 40,
       case when g % 3 = 0 then null else b.project_number end, case when g % 3 = 0 then null else b.id end,
       d::timestamptz
-    from generate_series(1, 4000) g
-    join tb_baustelle b on b.nr = (g * 3 / 4) % 3000
-    cross join lateral (select date '2021-10-01' + (g * 0.45)::int as d, (500 + (g % 40) * 125)::numeric as n) x`, [BETRIEB]);
+    from generate_series(1, ${n(4000)}) g
+    join tb_baustelle b on b.nr = (g * 3 / 4) % ${n(3000)}
+    cross join lateral (select date '2021-10-01' + (g * 0.45 / ${F})::int as d, (500 + (g % 40) * 125)::numeric as n) x`, [BETRIEB]);
   await sql('Angebotspositionen', `
     insert into public.quote_lines (company_id, quote_id, position, label, qty, unit, unit_price, netto)
     select $1, q.id, p, case p when 1 then 'Facharbeiter' else 'Material pauschal' end,
@@ -255,10 +271,10 @@ async function main() {
     select $1, t.tag, b.project_number, b.id, p.id, p.name, g % 7 = 0,
       case when g % 4 = 0 then 'Material vorher im Lager holen' end, 'Testbestand',
       case when g % 3 = 0 then time '07:00' end, case when g % 3 = 0 then time '15:30' end
-    from generate_series(0, 19999) g
+    from generate_series(0, ${n(20000) - 1}) g
     join tage t on t.nr = g / ${P}
     join tb_person p on p.nr = g % ${P}
-    join tb_baustelle b on b.nr = case when t.tag >= $2::date - 30 then 2960 + g % 40 else (g * 7) % 2940 end`, [BETRIEB, HEUTE]);
+    join tb_baustelle b on b.nr = case when t.tag >= $2::date - 30 then ${n(2960)} + g % ${n(40)} else (g * 7) % ${n(2940)} end`, [BETRIEB, HEUTE]);
 
   /* ---------------- Zeitbuchungen ---------------- */
   // 150.000: je Person und Werktag sechs aufeinanderfolgende Buchungen à 80 min, ohne Überschneidung.
@@ -278,9 +294,9 @@ async function main() {
     from tage t
     cross join tb_person p
     cross join generate_series(0, 5) s
-    join tb_baustelle b on b.nr = case when t.tag >= $2::date - 30 then 2960 + (p.nr + s) % 40 else (t.nr * 3 + p.nr + s) % 2940 end
-    where t.nr <= ceil(150000.0 / (6 * ${P}))
-    limit 150000`, [BETRIEB, HEUTE]);
+    join tb_baustelle b on b.nr = case when t.tag >= $2::date - 30 then ${n(2960)} + (p.nr + s) % ${n(40)} else (t.nr * 3 + p.nr + s) % ${n(2940)} end
+    where t.nr <= ceil(${n(150000)}.0 / (6 * ${P}))
+    limit ${n(150000)}`, [BETRIEB, HEUTE]);
 
   /* ---------------- Scheine ---------------- */
   await sql('Scheine', `
@@ -289,10 +305,10 @@ async function main() {
     select gen_random_uuid(), $1, b.project_number, b.id, b.customer_id, b.customer_name, b.address, d,
       'Entwurf', (array['Regie','Pauschal','Einheitspreis'])[1 + g % 3], 'Arbeiten laut Auftrag ' || g,
       p.id, p.name, null, d + time '16:00'
-    from generate_series(1, 15000) g
-    join tb_baustelle b on b.nr = case when g > 14900 then 2960 + g % 40 else (g / 5) % 2940 end
+    from generate_series(1, ${n(15000)}) g
+    join tb_baustelle b on b.nr = case when g > ${n(14900)} then ${n(2960)} + g % ${n(40)} else (g / 5) % ${n(2940)} end
     join tb_person p on p.nr = g % ${P}
-    cross join lateral (select $2::date - 1 - ((15000 - g) * 0.12)::int as d) x`, [BETRIEB, HEUTE]);
+    cross join lateral (select $2::date - 1 - ((${n(15000)} - g) * 0.12 / ${F})::int as d) x`, [BETRIEB, HEUTE]);
   await sql('Scheinzeiten', `
     insert into public.work_sheet_hours (company_id, work_sheet_id, position, datum, mitarbeiter, von, bis, pause_min, minuten, helfer)
     select $1, w.id, 1, w.datum, w.erstellt_von_name, time '07:00', time '15:30', 30, 480, false
@@ -304,10 +320,10 @@ async function main() {
   // Erst mit Positionen unterschreiben: danach sind sie eingefroren (wie in der App).
   await sql('Scheine unterschreiben', `
     update public.work_sheets set status = 'Unterschrieben', unterschrieben_am = datum + time '16:30'
-    where company_id = $1 and split_part(notizen, ' ', 4)::int <= 14990`, [BETRIEB]);
+    where company_id = $1 and split_part(notizen, ' ', 4)::int <= ${n(14990)}`, [BETRIEB]);
   await sql('Scheine stornieren', `
     update public.work_sheets set status = 'Storniert', storno_grund = 'Falsche Baustelle', storniert_von_name = 'Gerda Geschäftsführerin'
-    where company_id = $1 and split_part(notizen, ' ', 4)::int % 97 = 0 and split_part(notizen, ' ', 4)::int <= 14990`, [BETRIEB]);
+    where company_id = $1 and split_part(notizen, ' ', 4)::int % 97 = 0 and split_part(notizen, ' ', 4)::int <= ${n(14990)}`, [BETRIEB]);
 
   /* ---------------- Rechnungen und Zahlungen ---------------- */
   // 12.000 Rechnungen: Einzel-, Anzahlungs- und Schlussrechnungen, 120 storniert, die jüngsten offen oder überfällig.
@@ -315,7 +331,7 @@ async function main() {
     insert into public.invoices (id, company_id, invoice_number, project_number, project_id, customer_id, customer_name, address,
       invoice_date, due_date, subtotal_netto, total_netto, total_vat, total_brutto, vat_rate, payment_status,
       art, bezahlt_betrag, cancellation_note, cancelled_at, storno_nummer, storno_am, mahnstufe, gemahnt_am, mahnfrist, created_at)
-    select gen_random_uuid(), $1, (2021 + (g - 1) / 2400) || '-' || lpad(g::text, 5, '0'), b.project_number, b.id, b.customer_id, b.customer_name, b.address,
+    select gen_random_uuid(), $1, (2021 + (g - 1) / ${n(2400)}) || '-' || lpad(g::text, 5, '0'), b.project_number, b.id, b.customer_id, b.customer_name, b.address,
       d, d + 14, n, n, round(n * 0.2, 2), round(n * 1.2, 2), 0.2,
       st, case when g % 10 = 0 then 'anzahlung' when g % 10 = 1 then 'schluss' else 'einzel' end,
       case st when 'Bezahlt' then round(n * 1.2, 2) when 'Teilbezahlt' then round(n * 0.6, 2) else 0 end,
@@ -326,12 +342,12 @@ async function main() {
       case when st = 'Überfällig' then 1 else 0 end,
       case when st = 'Überfällig' then d + 20 end, case when st = 'Überfällig' then d + 34 end,
       d::timestamptz
-    from generate_series(1, 12000) g
-    join tb_baustelle b on b.nr = (g / 4) % 3000
-    cross join lateral (select $2::date - 1 - ((12000 - g) * 0.15)::int as d, (300 + (g % 60) * 85)::numeric as n) x
+    from generate_series(1, ${n(12000)}) g
+    join tb_baustelle b on b.nr = (g / 4) % ${n(3000)}
+    cross join lateral (select $2::date - 1 - ((${n(12000)} - g) * 0.15 / ${F})::int as d, (300 + (g % 60) * 85)::numeric as n) x
     cross join lateral (select case
       when g % 100 = 0 then 'Storniert'
-      when g > 11900 then (array['Offen','Überfällig','Teilbezahlt'])[1 + g % 3]
+      when g > ${n(11900)} then (array['Offen','Überfällig','Teilbezahlt'])[1 + g % 3]
       else 'Bezahlt' end as st) s`, [BETRIEB, HEUTE]);
   await sql('Rechnungspositionen', `
     insert into public.invoice_lines (company_id, invoice_id, position, label, qty, unit, unit_price, netto)
@@ -348,34 +364,34 @@ async function main() {
           where i.company_id = $1 and i.payment_status in ('Bezahlt','Teilbezahlt')) i
     cross join lateral (select i.nr % 5 = 0 and i.payment_status = 'Bezahlt' as zwei) z
     cross join lateral generate_series(0, case when z.zwei then 1 else 0 end) teil
-    limit 14000`, [BETRIEB]);
+    limit ${n(14000)}`, [BETRIEB]);
 
   /* ---------------- Material ---------------- */
   await sql('Großhändler', `
     insert into public.suppliers (company_id, name, customer_number, bestell_email)
     select $1, n, 'K-' || i, lower(n) || '@grosshandel.test'
     from unnest(array['Frauenthal','Holter','Würth','Hornbach','Bauhaus']) with ordinality as t(n, i)`, [BETRIEB]);
-  await sql('Katalog (40.000)', `
+  await sql(`Katalog (${n(40000)})`, `
     insert into public.materials (company_id, name, category, article_number, unit, verkaufspreis, einkaufspreis, lagerartikel, warengruppe)
     select $1, (array['Kupferrohr','Pressfitting','Kugelhahn','Thermostatventil','Siphon','Dichtung','Rohrschelle','Flexschlauch'])[1 + g % 8] || ' ' || (10 + g % 40) || ' mm Typ ' || g,
       (array['Rohrleitungen','Armaturen','Kleinmaterial','Sanitär'])[1 + g % 4], 'KAT-' || lpad(g::text, 6, '0'),
       'Stk', round((2 + (g % 200) * 0.75)::numeric, 2), round((1 + (g % 200) * 0.45)::numeric, 2), false, 'WG' || (g % 30)
-    from generate_series(1, 40000) g`, [BETRIEB]);
-  await sql('Lagerartikel (800)', `
+    from generate_series(1, ${n(40000)}) g`, [BETRIEB]);
+  await sql(`Lagerartikel (${n(800)})`, `
     insert into public.materials (company_id, name, category, article_number, unit, verkaufspreis, einkaufspreis, lagerartikel, stock, mindestmenge)
     select $1, 'Lagerartikel ' || (array['Kupferrohr 22 mm','Pressfitting 15 mm','Kugelhahn ½"','Teflonband','Silikon','Hanf'])[1 + g % 6] || ' Nr. ' || g,
       (array['Rohrleitungen','Armaturen','Kleinmaterial'])[1 + g % 3], 'LAG-' || lpad(g::text, 4, '0'), 'Stk',
       round((3 + g % 50)::numeric, 2), round((2 + g % 30)::numeric, 2), true,
       case when g % 25 = 0 then 0 when g % 10 = 0 then 2 else 20 + g % 80 end, case when g % 2 = 0 then 5 end
-    from generate_series(1, 800) g`, [BETRIEB]);
+    from generate_series(1, ${n(800)}) g`, [BETRIEB]);
   await db.query(`create temp table tb_lager as select row_number() over (order by article_number) - 1 as nr, id, name, stock from public.materials where company_id = $1 and lagerartikel`, [BETRIEB]);
   const schon = await db.query('select count(*)::int n from public.lagerbewegungen where company_id = $1', [BETRIEB]);
   await sql('Lagerbewegungen', `
     insert into public.lagerbewegungen (company_id, material_id, art, menge, bestand_nachher, grund, erfasst_von_name, created_at)
     select $1, l.id, (array['eingang','entnahme','entnahme','retoure','inventur'])[1 + g % 5],
       case when g % 5 in (1, 2) then -2 else 4 end, l.stock, 'Testbestand', 'Viktor Verwaltung',
-      timestamptz '2021-10-01' + (g * interval '43 minutes')
-    from generate_series(1, $2::int) g join tb_lager l on l.nr = g % 800`, [BETRIEB, 60000 - schon.rows[0].n]);
+      timestamptz '2021-10-01' + (g * interval '43 minutes' / ${F})
+    from generate_series(1, $2::int) g join tb_lager l on l.nr = g % ${n(800)}`, [BETRIEB, n(60000) - schon.rows[0].n]);
 
   // 30.000 Anforderungen: 40 offen (Offen, In Bearbeitung, Abholbereit), der Rest erledigt.
   await sql('Anforderungen', `
@@ -387,12 +403,12 @@ async function main() {
       case when g % 20 = 0 then 'unbenutzt' end, p.id, p.name, st = 'Erledigt',
       case when g % 3 = 0 then 'einkauf' else 'lager' end,
       c, case when st = 'Abholbereit' then c + interval '2 hours' end
-    from generate_series(1, 30000) g
-    join tb_lager l on l.nr = g % 800
+    from generate_series(1, ${n(30000)}) g
+    join tb_lager l on l.nr = g % ${n(800)}
     join tb_person p on p.nr = g % ${P}
-    join tb_baustelle b on b.nr = case when g > 29960 then 2960 + g % 40 else (g / 10) % 2940 end
-    cross join lateral (select case when g <= 29960 then 'Erledigt' else (array['Offen','In Bearbeitung','Abholbereit'])[1 + g % 3] end as st,
-      timestamptz '2021-10-01' + (g * interval '87 minutes') as c) x`, [BETRIEB]);
+    join tb_baustelle b on b.nr = case when g > ${n(29960)} then ${n(2960)} + g % ${n(40)} else (g / 10) % ${n(2940)} end
+    cross join lateral (select case when g <= ${n(29960)} then 'Erledigt' else (array['Offen','In Bearbeitung','Abholbereit'])[1 + g % 3] end as st,
+      timestamptz '2021-10-01' + (g * interval '87 minutes' / ${F}) as c) x`, [BETRIEB]);
 
   /* ---------------- Wartungen und Abwesenheiten ---------------- */
   await sql('Wartungen', `
@@ -400,15 +416,15 @@ async function main() {
     select $1, k.id, k.name, (array['Gasbrennwertkessel','Wärmepumpe','Pelletkessel','Solaranlage'])[1 + g % 4], k.address,
       case when g % 4 = 0 then 24 else 12 end, $2::date - (g % 365), $2::date - (g % 365) + (case when g % 4 = 0 then 730 else 365 end),
       g % 50 <> 0, (array['Vaillant','Viessmann','Buderus','Ochsner'])[1 + g % 4], 'Typ ' || (g % 9), 2005 + g % 20
-    from generate_series(1, 1200) g join tb_kunde k on k.nr = (g * 7) % 1500`, [BETRIEB, HEUTE]);
+    from generate_series(1, ${n(1200)}) g join tb_kunde k on k.nr = (g * 7) % ${n(1500)}`, [BETRIEB, HEUTE]);
   await sql('Urlaube und Zeitausgleich', `
     insert into public.vacations (company_id, user_id, user_name, von, bis, tage, status, notiz, art, entschieden_von_name, entschieden_am, created_at)
     select $1, p.id, p.name, v, v + (g % 5), 1 + g % 5,
-      case when g > 2980 then 'Beantragt' when g % 17 = 0 then 'Abgelehnt' else 'Genehmigt' end,
+      case when g > ${n(2980)} then 'Beantragt' when g % 17 = 0 then 'Abgelehnt' else 'Genehmigt' end,
       case when g % 6 = 0 then 'Familienurlaub' end, case when g % 8 = 0 then 'Zeitausgleich' else 'Urlaub' end,
-      case when g <= 2980 then 'Gerda Geschäftsführerin' end, case when g <= 2980 then (v - 10)::timestamptz end, (v - 14)::timestamptz
-    from generate_series(1, 3000) g join tb_person p on p.nr = g % ${P}
-    cross join lateral (select $2::date + 20 - ((3000 - g) * 0.6)::int as v) x`, [BETRIEB, HEUTE]);
+      case when g <= ${n(2980)} then 'Gerda Geschäftsführerin' end, case when g <= ${n(2980)} then (v - 10)::timestamptz end, (v - 14)::timestamptz
+    from generate_series(1, ${n(3000)}) g join tb_person p on p.nr = g % ${P}
+    cross join lateral (select $2::date + 20 - ((${n(3000)} - g) * 0.6 / ${F})::int as v) x`, [BETRIEB, HEUTE]);
 
   const zaehlen = await db.query(`
     select 'Mitarbeiter' as was, (select count(*) from public.users where company_id = $1) n union all

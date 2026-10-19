@@ -118,4 +118,47 @@ describe('Startseite: Blöcke fragen gleichzeitig', () => {
     expect(d.wartungen).toEqual([{ id: 'w1' }]);
     expect(d.budget).toHaveLength(1);
   });
+
+  /*
+    Nachweis mit dreifachem Bestand (19.10.2026): der Budgetstand wartete auf
+    den ganzen Block — Belegschaft, Einsätze, Abwesenheiten —, obwohl er nur
+    die Baustellen braucht. Gegenprobe: gegen den Stand davor fragt er die
+    Stunden erst nach der Belegschaft (`vi.waitFor` läuft ab, rot).
+  */
+  it('Leitung: der Budgetstand fragt, sobald die Baustellen da sind — ohne auf die Belegschaft zu warten', async () => {
+    const lauf = leitung({ ...k, belegschaft: spaeter('belegschaft') }, { einsatzplanung: false, wartung: false, budget: true });
+    await vi.waitFor(() => expect(gefragt).toEqual(expect.arrayContaining(['projekte', 'belegschaft'])));
+    offen.projekte([{ id: 'p1', projectNumber: 'B-1', estimatedHours: 10 }]);
+    await vi.waitFor(() => expect(gefragt).toContain('stunden'));
+    offen.stunden([]);
+    offen.belegschaft([]);
+    const d = await lauf;
+    expect(d.budget).toHaveLength(1);
+  });
+
+  it('Leitung: scheitert der Budgetstand, fehlt nur er; scheitern die Baustellen, scheitert der Block wie bisher', async () => {
+    const budgetFehlt = leitung(k, { einsatzplanung: false, wartung: false, budget: true });
+    await vi.waitFor(() => expect(gefragt).toContain('projekte'));
+    offen.projekte([{ id: 'p1', projectNumber: 'B-1', estimatedHours: 10 }]);
+    await vi.waitFor(() => expect(gefragt).toContain('stunden'));
+    offen.stunden(Promise.reject(new Error('kein Zugriff')));
+    const d = await budgetFehlt;
+    expect(d.budget).toBeUndefined();
+    expect(d.projekte).toHaveLength(1);
+
+    gefragt.length = 0;
+    const projekte = await import('@/lib/db/projects');
+    vi.mocked(projekte.listActiveProjects).mockRejectedValueOnce(new Error('kein Netz'));
+    await expect(leitung(k, { einsatzplanung: false, wartung: false, budget: true })).rejects.toThrow('kein Netz');
+    // Ohne Baustellen kein Budgetstand — und keine offene Frage dahinter.
+    expect(gefragt).not.toContain('stunden');
+  });
+
+  it('Leitung: ohne Baustelle mit Budget ein leerer Budgetstand, ohne nach Stunden zu fragen', async () => {
+    const lauf = leitung(k, { einsatzplanung: false, wartung: false, budget: true });
+    await vi.waitFor(() => expect(gefragt).toContain('projekte'));
+    offen.projekte([{ id: 'p1', projectNumber: 'B-1', estimatedHours: 0 }]);
+    expect((await lauf).budget).toEqual([]);
+    expect(gefragt).not.toContain('stunden');
+  });
 });

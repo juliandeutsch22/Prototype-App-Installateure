@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { listArbeitszeitenInRange, listEntriesInRange } from '@/lib/db/timeEntries';
+import { arbeitszeitVorlauf, listEntriesInRange } from '@/lib/db/timeEntries';
 import { listBegruendungen, listGeburtsdaten, type Begruendung } from '@/lib/db/arbeitszeitGrenzen';
 import { tagessollStunden, todayStr } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
@@ -107,7 +107,9 @@ export function useArbeitszeitGrenzen({
       /*
         DER VORLAUF FÜR DEN DURCHSCHNITT: die 16 Wochen (oder der längere Zeitraum
         des Betriebs, bis 51) vor der ersten Woche
-        des Monats, nur mit den Spalten der Arbeitszeit. Die Buchungen rund
+        des Monats, je Person und Tag verdichtet (`arbeitszeitVorlauf`). Er
+        zählt nur in den Durchschnitt: Tag, Woche und Ruhezeit des Monats
+        rechnen mit den Buchungen ab einer Woche davor. Die Buchungen rund
         um den Monat bleiben die vollen Zeilen — an ihnen hängen
         „Buchung korrigieren“ und der Tagesnachweis.
       */
@@ -119,7 +121,7 @@ export function useArbeitszeitGrenzen({
         vonDerSeite
           ? Promise.resolve(vonDerSeite.filter((e) => e.date >= ab && e.date <= bisMit))
           : listEntriesInRange(companyId, ab, bisMit),
-        listArbeitszeitenInRange(companyId, vorlaufAb, plusTage(von, -8)),
+        arbeitszeitVorlauf(companyId, vorlaufAb, plusTage(von, -8)),
         listGeburtsdaten(companyId),
         listBegruendungen(companyId, montagVon(von), bis),
       ]);

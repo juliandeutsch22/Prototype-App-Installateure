@@ -111,7 +111,7 @@ vi.mock('@/lib/db/timeEntries', () => ({
     Jede Prüfung der Karte holt ihn einmal; daran wird sie gezählt. Die
     Buchungen um den Monat nimmt sie seit 19.10.2026 von der Seite.
   */
-  listArbeitszeitenInRange: vi.fn(async () => {
+  arbeitszeitVorlauf: vi.fn(async () => {
     grenzAbfragen += 1;
     return [];
   }),
