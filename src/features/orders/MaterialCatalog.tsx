@@ -4,13 +4,14 @@ import { aufschlagFuer, verkaufspreisVorschlag } from '@/lib/aufschlag';
 import { useAuth } from '@/app/AuthContext';
 import { darfEinkaufSehen, darfKatalogEinspielen } from '@/lib/permissions';
 import {
-  subscribeMaterials,
+  katalogAnzahl,
+  katalogBeobachten,
+  katalogSeite,
   createMaterial,
   updateMaterial,
   deleteMaterial,
   LOW_STOCK_THRESHOLD,
 } from '@/lib/db/materials';
-import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import { einkaufspreise } from '@/lib/db/kosten';
 import type { WithId } from '@/lib/db/core';
 import type { Material } from '@/types';
@@ -25,7 +26,6 @@ import { CheckboxField, InputField, FormGrid, Pflichthinweis } from '@/component
 import { euro } from '@/lib/betrag';
 import { fmtMenge } from '@/lib/belegLayout';
 import InfoHint from '@/components/InfoHint';
-import Nachladen from '@/components/Nachladen';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { leseZahl, preisAlsText, zahlOder } from '@/lib/zahl';
@@ -99,9 +99,12 @@ const empty = {
 export default function MaterialCatalog({
   zuBearbeiten,
   onUebernommen,
+  lagerartikel = [],
 }: {
   zuBearbeiten?: WithId<Material> | null;
   onUebernommen?: () => void;
+  /** Die im Lager geführten Artikel (aus dem Lager) — für „N knapp“ im Kopf. */
+  lagerartikel?: readonly WithId<Material>[];
 } = {}) {
   const { user, company } = useAuth();
   const aufschlag = company?.rates?.materialaufschlag;
@@ -114,7 +117,16 @@ export default function MaterialCatalog({
   const darfKosten = user ? darfEinkaufSehen(user) : false;
   const darfEkSetzen = user ? darfKatalogEinspielen(user) : false;
   const toast = useToast();
-  const [materials, setMaterials] = useState<WithId<Material>[]>([]);
+  /*
+    DER KATALOG SEITENWEISE VOM SERVER (19.10.2026), wie bei „Material
+    anfordern“: die ersten Artikel nach Namen, gesucht über den ganzen
+    Katalog, „und N weitere“ holt mehr. Bis hierher kam er bis zur Grenze von
+    tausend Artikeln, und gesucht wurde nur darin — nach einem DATANORM-Import
+    liess sich ein Artikel dahinter hier weder finden noch bearbeiten.
+  */
+  const [seite, setSeite] = useState<{ zeilen: WithId<Material>[]; gesamt: number }>({ zeilen: [], gesamt: 0 });
+  /** Wie viele Artikel der ganze Katalog hat — unabhängig von der Suche. */
+  const [imKatalog, setImKatalog] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   /*
@@ -136,45 +148,50 @@ export default function MaterialCatalog({
   */
   const [ekStand, setEkStand] = useState<'da' | 'laedt' | 'fehlt'>('da');
   const offenerArtikel = useRef<string | null>(null);
+  /*
+    DER GEÖFFNETE ARTIKEL SELBST, nicht nur seine Kennung: „Material löschen“
+    braucht ihn, und auf der gezeigten Seite muss er nicht stehen — etwa wenn
+    er aus der Bestandsliste hereingereicht wurde.
+  */
+  const [offenesMaterial, setOffenesMaterial] = useState<WithId<Material> | null>(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [toDelete, setToDelete] = useState<WithId<Material> | null>(null);
-  /*
-    Wie viele Artikel geholt werden. Der Katalog lief bis hierher ohne jede
-    Grenze — warum das eine Sicherung braucht und warum sie heute nirgends
-    greift, steht in `lib/db/materials.ts`.
-  */
-  const [grenze, setGrenze] = useState(KATALOG_GRENZE);
-
+  /** Der Suchbegriff, wie er an den Server geht — kurz nach dem letzten Tastendruck. */
+  const [begriff, setBegriff] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setBegriff(search.trim()), 250);
+    return () => clearTimeout(t);
+  }, [search]);
+  /** Ändert sich im Katalog etwas (oder steht der Kanal wieder), wird die Seite neu geholt. */
+  const [katalogStand, setKatalogStand] = useState(0);
   useEffect(() => {
     if (!user) return;
-    const unsub = subscribeMaterials(
-      user.companyId,
-      (rows) => {
-        setMaterials(rows);
-        setLoading(false);
-      },
-      (e) => {
-        setLadeFehler(e.message);
-        setLoading(false);
-      },
-      grenze,
-    );
-    return unsub;
-  }, [user, grenze]);
+    return katalogBeobachten(user.companyId, () => setKatalogStand((n) => n + 1));
+  }, [user]);
+  useEffect(() => {
+    if (!user) return;
+    // Eine überholte Antwort (inzwischen anders gesucht oder mehr verlangt) setzt nichts mehr.
+    let weg = false;
+    Promise.all([katalogSeite(user.companyId, begriff, gezeigt), katalogAnzahl(user.companyId)])
+      .then(([s, anzahl]) => {
+        if (weg) return;
+        setSeite(s);
+        setImKatalog(anzahl);
+        setLadeFehler(null);
+      })
+      .catch((e: Error) => { if (!weg) setLadeFehler(e.message); })
+      .finally(() => { if (!weg) setLoading(false); });
+    return () => { weg = true; };
+  }, [user, begriff, gezeigt, katalogStand]);
 
-  const visible = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const rows = [...materials].sort((a, b) => a.name.localeCompare(b.name, 'de'));
-    if (!q) return rows;
-    return rows.filter((m) =>
-      [m.name, m.category, m.articleNumber].some((v) => v?.toLowerCase().includes(q)),
-    );
-  }, [materials, search]);
+  const visible = seite.zeilen;
+  const leererKatalog = imKatalog === 0;
 
+  // Knapp aus den Lagerartikeln, nicht aus der gezeigten Seite: die kennt nur zwanzig.
   const lowStock = useMemo(
-    () => materials.filter((m) => imLager(m) && istKnapp(m.stock ?? 0, m, LOW_STOCK_THRESHOLD)).length,
-    [materials],
+    () => lagerartikel.filter((m) => imLager(m) && istKnapp(m.stock ?? 0, m, LOW_STOCK_THRESHOLD)).length,
+    [lagerartikel],
   );
 
   /**
@@ -193,6 +210,7 @@ export default function MaterialCatalog({
 
   function startEdit(m: WithId<Material>) {
     setEditId(m.id);
+    setOffenesMaterial(m);
     setError(null);
     setFormOffen(true);
     offenerArtikel.current = m.id;
@@ -226,6 +244,7 @@ export default function MaterialCatalog({
   function reset() {
     setFormOffen(false);
     setEditId(null);
+    setOffenesMaterial(null);
     offenerArtikel.current = null;
     setEkStand('da');
     setForm(empty);
@@ -321,7 +340,7 @@ export default function MaterialCatalog({
         dort, wo man gerade ist.
       */}
       <Card
-        title={`Katalog (${materials.length})`}
+        title={imKatalog === null ? 'Katalog' : `Katalog (${imKatalog})`}
         action={
           <>
             {lowStock > 0 ? <Warnung>{lowStock} knapp</Warnung> : null}
@@ -346,7 +365,7 @@ export default function MaterialCatalog({
           ) : visible.length === 0 ? (
             <EmptyState
               action={
-                materials.length === 0 ? (
+                leererKatalog ? (
                   <Button onClick={neu}>
                     Erstes Material anlegen
                   </Button>
@@ -357,13 +376,13 @@ export default function MaterialCatalog({
                 )
               }
             >
-              {materials.length === 0
+              {leererKatalog
                 ? 'Noch kein Material im Katalog. Was der Monteur anfordern kann, muss hier stehen.'
                 : `Kein Material passt zu „${search}“.`}
             </EmptyState>
           ) : (
             <List>
-              {visible.slice(0, gezeigt).map((m) => {
+              {visible.map((m) => {
                 const lager = imLager(m);
                 const low = lager && istKnapp(m.stock ?? 0, m, LOW_STOCK_THRESHOLD);
                 return (
@@ -398,18 +417,7 @@ export default function MaterialCatalog({
               })}
             </List>
           )}
-          <MehrAnzeigen anzahl={Math.max(0, visible.length - gezeigt)} onClick={() => setGezeigt((n) => n + JE_SEITE)} />
-          {/*
-            Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende
-            gescrollt und nichts gefunden hat, braucht die Auskunft.
-          */}
-          <Nachladen
-            geladen={materials.length}
-            grenze={grenze}
-            onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
-            einheit="Artikel"
-            sucheSatz="Nach Name, Kategorie und Artikelnummer wird nur in diesen gesucht."
-          />
+          <MehrAnzeigen anzahl={Math.max(0, seite.gesamt - visible.length)} onClick={() => setGezeigt((n) => n + JE_SEITE)} />
         </div>
       </Card>
 
@@ -555,7 +563,7 @@ export default function MaterialCatalog({
                   type="button"
                   variant="danger"
                   onClick={() => {
-                    const m = materials.find((x) => x.id === editId);
+                    const m = offenesMaterial;
                     // Die Rückfrage steht allein, nicht hinter dem Fenster.
                     if (m) {
                       reset();

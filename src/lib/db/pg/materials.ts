@@ -5,7 +5,7 @@ import type { Lagerbewegung, Material } from '@/types';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import { abfragen, abonnieren, anlegen as kernAnlegen, aendern, loeschen, derClient, kanalHalten, SEITE, type WithId } from './kern';
 import { zeileAlsObjekt } from './felder';
-import { oderUeberSpalten } from './suche';
+import { alsOderWert, ohneJoker, oderUeberSpalten } from './suche';
 
 const MATERIAL = 'materials';
 
@@ -269,4 +269,58 @@ export function sucheKatalog(companyId: string, begriff: string, max = 20) {
     sortiere: { feld: 'name' },
     grenze: max,
   });
+}
+
+/** So viele Namen je Anfrage — die `or`-Bedingung steht in der Adresse. */
+const NAMEN_JE_ANFRAGE = 20;
+
+/**
+ * DIE KATALOGARTIKEL ZU GENANNTEN NAMEN (19.10.2026) — für die Preise auf
+ * der Rechnung und in der Nachkalkulation.
+ *
+ * Material steht auf dem Schein mit seinem NAMEN, nicht mit einer Kennung;
+ * Preis und Einheit schlägt die App über den Namen nach. Bis hierher holte
+ * sie dafür den Katalog bis zur Grenze von tausend Artikeln: nach einem
+ * DATANORM-Import fand ein Artikel dahinter seinen Preis nicht und stand
+ * als „ohne Preis“ da. Jetzt kommen genau die Artikel, deren Namen passen.
+ *
+ * DAS MUSTER IST WEITER ALS DER VERGLEICH: ohne Rücksicht auf Gross- und
+ * Kleinschreibung, Leerräume im Namen als beliebige Zeichen. Die Ansicht
+ * vergleicht danach genau, wie bisher (`normName`); hier darf nur nichts
+ * fehlen, was dort passen würde.
+ */
+export async function katalogNachNamen(companyId: string, namen: readonly string[]): Promise<WithId<Material>[]> {
+  const muster = [...new Set(
+    namen
+      .map((n) => n.trim())
+      .filter(Boolean)
+      .map((n) => n.split(/\s+/).map(ohneJoker).join('%')),
+  )];
+  const teile: string[][] = [];
+  for (let i = 0; i < muster.length; i += NAMEN_JE_ANFRAGE) teile.push(muster.slice(i, i + NAMEN_JE_ANFRAGE));
+  const treffer = await Promise.all(
+    teile.map((teil) =>
+      abfragen<Material>(MATERIAL, companyId, {
+        oder: teil.map((m) => `name.ilike.${alsOderWert(m)}`).join(','),
+      }),
+    ),
+  );
+  return eindeutig(treffer.flat());
+}
+
+/** Die Katalogartikel zu Kennungen — für Angebotszeilen, die ihren Artikel kennen. */
+export async function katalogNachIds(companyId: string, ids: readonly string[]): Promise<WithId<Material>[]> {
+  const eindeutigeIds = [...new Set(ids.filter(Boolean))];
+  if (eindeutigeIds.length === 0) return [];
+  return eindeutig(await abfragen<Material>(MATERIAL, companyId, { wo: [{ art: 'in', feld: 'id', werte: eindeutigeIds }] }));
+}
+
+/**
+ * Jeder Artikel einmal, nach Kennung geordnet. Heissen zwei Artikel gleich,
+ * gewinnt beim Nachschlagen der letzte — mit fester Ordnung bei jedem Laden
+ * derselbe, nicht der, den die Datenbank zufällig zuletzt liefert.
+ */
+function eindeutig(zeilen: WithId<Material>[]): WithId<Material>[] {
+  const nachId = new Map(zeilen.map((m) => [m.id, m]));
+  return [...nachId.values()].sort((a, b) => a.id.localeCompare(b.id));
 }

@@ -400,6 +400,7 @@ export default function StockView() {
         <MaterialCatalog
           zuBearbeiten={zuBearbeiten}
           onUebernommen={() => setZuBearbeiten(null)}
+          lagerartikel={materials}
         />
       ) : (
         <>

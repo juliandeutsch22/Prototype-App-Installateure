@@ -149,6 +149,8 @@ export default function EinsatzFormular({
     Person — deshalb ein eigener Zustand neben `picks`.
   */
   const [ruestliste, setRuestliste] = useState<RuestPosition[]>([]);
+  // Am Inhalt, nicht an der Array-Identität: jede Mengenänderung wäre sonst eine neue Abfrage.
+  const ruestIds = [...new Set(ruestliste.map((p) => p.materialId ?? '').filter(Boolean))].sort().join('|');
   /** Rüstpositionen, für die in dieser Sitzung eine Anforderung angelegt wurde (G14). */
   const [angefordert, setAngefordert] = useState<Set<string>>(new Set());
   /** Frei je Artikel laut Datenbank (M32) — `null`, solange unbekannt. */
@@ -224,11 +226,13 @@ export default function EinsatzFormular({
         ...materials.map((m) => m.id),
         // Eine Position kann auf einen Artikel zeigen, der nicht im geladenen Katalog steht.
         ...tagesListen.flatMap((l) => (l.positionen ?? []).map((p) => p.materialId ?? '')),
+        // Ebenso ein Artikel, den die Suche gerade vom Server geholt hat (19.10.2026).
+        ...ruestIds.split('|'),
       ]))
       .then((k) => { if (!weg) setLagerStand(k); })
       .catch(() => undefined);
     return () => { weg = true; };
-  }, [user, materials, tagesListen]);
+  }, [user, materials, tagesListen, ruestIds]);
 
   const ruestVerfuegbar = useMemo(() => {
     if (!lagerStand) return undefined;
@@ -733,6 +737,7 @@ export default function EinsatzFormular({
     materialAn && projectNumber ? (
       <>
         <RuestlistePlanen
+          companyId={user?.companyId}
           materials={materials}
           positionen={ruestliste}
           onChange={setRuestliste}

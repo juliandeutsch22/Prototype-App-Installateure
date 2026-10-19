@@ -114,3 +114,13 @@ export function listMaterials(companyId: string, max = KATALOG_GRENZE): Promise<
 export function sucheKatalog(companyId: string, begriff: string, max?: number): Promise<WithId<Material>[]> {
   return pg.sucheKatalog(companyId, begriff, max);
 }
+
+/** Die Katalogartikel zu Namen auf Scheinen — siehe `pg.katalogNachNamen`. */
+export function katalogNachNamen(companyId: string, namen: readonly string[]): Promise<WithId<Material>[]> {
+  return pg.katalogNachNamen(companyId, namen);
+}
+
+/** Die Katalogartikel zu Kennungen — siehe `pg.katalogNachIds`. */
+export function katalogNachIds(companyId: string, ids: readonly string[]): Promise<WithId<Material>[]> {
+  return pg.katalogNachIds(companyId, ids);
+}
