@@ -78,7 +78,11 @@ export async function listBilanzen(
     ],
     sortiere: { feld: 'monat' },
   });
-  return rows.map((r) => ({
+  return rows.map(alsBilanz);
+}
+
+function alsBilanz(r: Monatsbilanz): Monatsbilanz {
+  return {
     monat: r.monat,
     anwesendMin: Number(r.anwesendMin ?? 0),
     krankTage: Number(r.krankTage ?? 0),
@@ -88,5 +92,23 @@ export async function listBilanzen(
     freistellungTage: Number(r.freistellungTage ?? 0),
     freigestelltMin: Number(r.freigestelltMin ?? 0),
     tage: r.tage ?? [],
-  }));
+  };
+}
+
+/**
+ * Die Bilanzen ALLER Personen ab einem Monat, in einer Abfrage — für den
+ * Gesamtsaldo in der Mitarbeiterübersicht (19.10.2026). Je Person einzeln
+ * wären das bei zwanzig Konten zwanzig Abfragen für eine Spalte. Es kommt
+ * nur, was der Zeilenschutz der Sicht zeigt: wer die Übersicht sieht, sieht
+ * alle Buchungen.
+ */
+export async function listBilanzenAlle(
+  companyId: string,
+  abMonat: string,
+): Promise<Array<Monatsbilanz & { userId: string }>> {
+  const rows = await abfragen<Monatsbilanz & { userId: string }>(BILANZEN, companyId, {
+    wo: [{ art: 'ab', feld: 'monat', wert: abMonat }],
+    sortiere: { feld: 'monat' },
+  });
+  return rows.map((r) => ({ ...alsBilanz(r), userId: r.userId }));
 }

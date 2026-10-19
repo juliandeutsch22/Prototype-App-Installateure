@@ -43,6 +43,7 @@ import { montagVon, type Grenzfall } from './arbeitszeitGrenzen';
 import PersonFenster from './PersonFenster';
 import UebersichtListe, { type UebersichtZeile } from './UebersichtListe';
 import { TippBereich } from './Streifen';
+import { gesamtsaldenLaden } from '@/features/vacations/zeitguthaben';
 import {
   montagDerWoche,
   plusTage,
@@ -456,6 +457,43 @@ export default function AccountingView() {
       .join('|');
   }, [entries, year, month]);
 
+  /*
+    DER GESAMTSALDO JE PERSON (19.10.2026) — dieselbe Zahl wie im Fenster der
+    Person, für alle auf einmal geholt (`gesamtsaldenLaden`). Erst wenn die
+    Liste steht: die Spalte soll die Seite nicht aufhalten. Neu geholt, wenn
+    sich die Personen oder die Buchungen im Blick ändern — gebündelt nach
+    anderthalb Sekunden, damit ein Speichern mit mehreren Meldungen nicht
+    mehrmals holt. Bis die neue Zahl da ist, bleibt die alte stehen.
+  */
+  const [gesamt, setGesamt] = useState<Map<string, number> | 'laedt' | 'fehler'>('laedt');
+  const gesamtGeholt = useRef(false);
+  const personenStand = relevant
+    .map((u) => [u.uid, u.appStartDate, u.weeklyTargetHours, u.initialOvertime, u.workDays?.join(','), JSON.stringify(u.tagessoll ?? null)].join(':'))
+    .join('|');
+  useEffect(() => {
+    if (!user || imSupport || !bereit) return;
+    let weg = false;
+    const t = setTimeout(() => {
+      gesamtsaldenLaden(user.companyId, relevant, halbeTage)
+        .then((m) => {
+          if (weg) return;
+          gesamtGeholt.current = true;
+          setGesamt(m);
+        })
+        .catch(() => {
+          if (weg) return;
+          setGesamt('fehler');
+          setNebenFehler('Der Gesamtsaldo');
+        });
+    }, gesamtGeholt.current ? 1500 : 0);
+    return () => {
+      weg = true;
+      clearTimeout(t);
+    };
+    // Am Inhalt, nicht an der Identität der Arrays (siehe `grenzStand`).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, imSupport, bereit, personenStand, halbeTage, grenzStand]);
+
   const alleRows = useMemo(
     () => {
       // Die Woche vor dem Ersten zählt für die 51. Wochenstunde (KV); geladen ist sie mit dem Monat.
@@ -637,9 +675,15 @@ export default function AccountingView() {
         soll: fmtMin(stats.sollMin),
         /* Ohne Eintrittsdatum ist der Saldo keine Null, sondern gar keine Aussage. */
         saldo: stats.hasConfig ? saldoText(stats.saldoMin) : '—',
+        gesamt:
+          gesamt === 'laedt'
+            ? '…'
+            : gesamt === 'fehler' || !gesamt.has(u.uid)
+              ? '—'
+              : saldoText(Math.round(gesamt.get(u.uid)! * 60)),
       };
     });
-  }, [rows, imSupport, ansicht, wochenWerte, monatsWerte, heute, grenzenJePerson]);
+  }, [rows, imSupport, ansicht, wochenWerte, monatsWerte, heute, grenzenJePerson, gesamt]);
 
   /* DIE AUSWAHL VON MONAT UND JAHR wie bisher: Jänner bis Dezember, das laufende Jahr und vier davor. */
   const yearOptions = Array.from({ length: JAHRE_ZURUECK + 1 }, (_, i) => now.getFullYear() - i);
@@ -829,7 +873,7 @@ export default function AccountingView() {
         subtitle="Buchungen prüfen und Zeitkonten vergleichen."
         hilfe={
           <>
-            Eine Zeile je Person: Stand, gebucht, Soll bisher und Saldo im direkten Vergleich.
+            Eine Zeile je Person: Stand, gebucht, Soll bisher, Saldo des Monats und Gesamtsaldo seit dem Eintritt im direkten Vergleich.
             „Alle Tage vergleichen“ blendet den Monat als Streifen mit einem Feld je Tag ein.
             Oben stehen, wer Tage ohne Buchung hat. Ein Klick auf die Zeile oder ein Feld öffnet die
             Person im Seitenfenster mit allen Zahlen, dem Tagesnachweis und „Zeit erfassen“. Die Stunden je
