@@ -15,7 +15,13 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { abonnieren, NACHFASSEN_MS } from '@/lib/db/pg/kern';
 import { verbindungZuruecksetzen } from '@/lib/liveVerbindung';
 
-interface Abruf { antworte: (zeilen: Record<string, unknown>[]) => void; scheitere: () => void }
+interface Abruf {
+  antworte: (zeilen: Record<string, unknown>[]) => void;
+  scheitere: () => void;
+  /** Was gefragt wurde: die Spalten (`*` ohne Angabe) und eine Einschränkung auf Kennungen. */
+  spalten: string;
+  ids: string[] | null;
+}
 
 /** Ein Client, dessen Abfragen die Prüfung einzeln beantwortet. */
 function gestellterClient() {
@@ -32,14 +38,20 @@ function gestellterClient() {
     removeChannel: () => Promise.resolve('ok'),
     from: () => {
       let antwort: Promise<{ data: unknown[]; error: null }> | null = null;
+      let spalten = '*';
+      let ids: string[] | null = null;
       const bauer = {
-        select: () => bauer, eq: () => bauer, order: () => bauer, range: () => bauer, limit: () => bauer,
+        select: (s?: string) => { spalten = s ?? '*'; return bauer; },
+        in: (feld: string, werte: string[]) => { if (feld === 'id') ids = werte; return bauer; },
+        eq: () => bauer, order: () => bauer, range: () => bauer, limit: () => bauer,
         then: (aufl: (w: { data: unknown[]; error: null }) => unknown, abl?: (e: unknown) => unknown) => {
           if (!antwort) {
             antwort = new Promise((fertig) => {
               abrufe.push({
                 antworte: (zeilen) => fertig({ data: zeilen, error: null }),
                 scheitere: () => fertig({ data: null, error: { message: 'kein Netz' } } as never),
+                spalten,
+                ids,
               });
             });
           }
@@ -52,7 +64,10 @@ function gestellterClient() {
   return { client, status, abrufe };
 }
 
-const zeile = (id: string, name: string) => ({ id, company_id: 'perl', name });
+const zeile = (id: string, name: string, stand = '2026-10-19T08:00:00+00:00') =>
+  ({ id, company_id: 'perl', name, updated_at: stand });
+/** Was der Abgleich holt: Kennung und Änderungszeit. */
+const stand = (id: string, s = '2026-10-19T08:00:00+00:00') => ({ id, updated_at: s });
 
 beforeEach(() => { vi.useFakeTimers(); verbindungZuruecksetzen(); });
 afterEach(() => { vi.useRealTimers(); });
@@ -92,7 +107,11 @@ describe('abonnieren: das erste Bild', () => {
 
     await vi.advanceTimersByTimeAsync(NACHFASSEN_MS);
     expect(abrufe).toHaveLength(2);
-    abrufe[1].antworte([zeile('a', 'Rohr'), zeile('b', 'Bogen')]);
+    // Das Nachfassen gleicht ab (seit 19.10.2026): erst die Stände, dann nur, was neu ist.
+    abrufe[1].antworte([stand('a'), stand('b')]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(abrufe).toHaveLength(3);
+    abrufe[2].antworte([zeile('b', 'Bogen')]);
     await vi.advanceTimersByTimeAsync(0);
     expect(gemeldet[gemeldet.length - 1]).toEqual(['Rohr', 'Bogen']);
     stopp();
@@ -144,8 +163,10 @@ describe('abonnieren: kein doppeltes Laden nach dem ersten Bild', () => {
 
     await vi.advanceTimersByTimeAsync(NACHFASSEN_MS);
     expect(abrufe).toHaveLength(2);
-    // Das Nachfassen ersetzt den Bestand wie bisher.
-    abrufe[1].antworte([zeile('a', 'Rohr'), zeile('b', 'Bogen')]);
+    // Das Nachfassen gleicht den Bestand ab: was neu ist, kommt dazu.
+    abrufe[1].antworte([stand('a'), stand('b')]);
+    await vi.advanceTimersByTimeAsync(0);
+    abrufe[2].antworte([zeile('b', 'Bogen')]);
     await vi.advanceTimersByTimeAsync(0);
     expect(gemeldet[gemeldet.length - 1]).toEqual(['Rohr', 'Bogen']);
     stopp();
@@ -168,7 +189,7 @@ describe('abonnieren: kein doppeltes Laden nach dem ersten Bild', () => {
     // Während das Nachfassen holt, kommt noch eine — sie geht nicht verloren.
     await vi.advanceTimersByTimeAsync(NACHFASSEN_MS);
     melde({ eventType: 'INSERT', new: zeile('k', 'Kappe'), old: {} });
-    abrufe[1].antworte([zeile('a', 'Rohr'), zeile('n', 'Muffe')]);
+    abrufe[1].antworte([stand('a'), stand('n')]);
     await vi.advanceTimersByTimeAsync(0);
     expect(gemeldet[gemeldet.length - 1]).toEqual(['Rohr', 'Muffe', 'Kappe']);
     stopp();
@@ -183,7 +204,7 @@ describe('abonnieren: kein doppeltes Laden nach dem ersten Bild', () => {
     await vi.advanceTimersByTimeAsync(0);
     status[0]('SUBSCRIBED');
     await vi.advanceTimersByTimeAsync(NACHFASSEN_MS);
-    abrufe[1].antworte([zeile('a', 'Rohr')]);
+    abrufe[1].antworte([stand('a')]);
     await vi.advanceTimersByTimeAsync(0);
     expect(abrufe).toHaveLength(2);
 
@@ -299,6 +320,103 @@ describe('abonnieren: viele Meldungen auf einmal (Analyse 09.10.2026, Maßnahme 
     expect(gemeldet.length).toBe(vorher);
     await vi.advanceTimersByTimeAsync(60);
     expect(gemeldet.slice(vorher)).toEqual([500]);
+    stopp();
+  });
+});
+
+/*
+  DAS NACHFASSEN ALS ABGLEICH (Ladezeit, 19.10.2026). Bis hierher holte es den
+  ganzen Bestand ein zweites Mal — in der Mitarbeiterübersicht 12.000
+  Buchungen. Jetzt fragt es Kennung und Änderungszeit und holt ganz nur, was
+  neu oder geändert ist. Gegenprobe: gegen den Stand davor fragt das
+  Nachfassen alle Spalten, und es kommt kein dritter Abruf.
+*/
+describe('abonnieren: das Nachfassen gleicht ab', () => {
+  async function mitBestand(zeilen: Record<string, unknown>[]) {
+    const g = gestellterClient();
+    const gemeldet: string[][] = [];
+    const stopp = abonnieren<{ name: string }>('materials', 'perl', (z) => gemeldet.push(z.map((x) => x.name)), () => {}, {}, g.client);
+    await vi.advanceTimersByTimeAsync(0);
+    g.abrufe[0].antworte(zeilen);
+    await vi.advanceTimersByTimeAsync(0);
+    g.status[0]('SUBSCRIBED');
+    await vi.advanceTimersByTimeAsync(NACHFASSEN_MS);
+    return { ...g, gemeldet, stopp };
+  }
+
+  it('fragt nur Kennung und Änderungszeit — und holt nichts, wenn alles gleich ist', async () => {
+    const { abrufe, gemeldet, stopp } = await mitBestand([zeile('a', 'Rohr'), zeile('b', 'Bogen')]);
+    expect(abrufe).toHaveLength(2);
+    expect(abrufe[1].spalten).toBe('id,updated_at');
+    abrufe[1].antworte([stand('a'), stand('b')]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(abrufe).toHaveLength(2);
+    // Kein neues Bild, wenn sich nichts geändert hat.
+    expect(gemeldet).toEqual([['Rohr', 'Bogen']]);
+    stopp();
+  });
+
+  it('holt eine geänderte Zeile ganz — und nur sie', async () => {
+    const { abrufe, gemeldet, stopp } = await mitBestand([zeile('a', 'Rohr'), zeile('b', 'Bogen')]);
+    abrufe[1].antworte([stand('a'), stand('b', '2026-10-19T08:00:01+00:00')]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(abrufe).toHaveLength(3);
+    expect(abrufe[2].ids).toEqual(['b']);
+    expect(abrufe[2].spalten).toBe('*');
+    abrufe[2].antworte([zeile('b', 'Bogen 90°', '2026-10-19T08:00:01+00:00')]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(gemeldet[gemeldet.length - 1]).toEqual(['Rohr', 'Bogen 90°']);
+    stopp();
+  });
+
+  it('nimmt eine Zeile heraus, die nicht mehr kommt', async () => {
+    const { abrufe, gemeldet, stopp } = await mitBestand([zeile('a', 'Rohr'), zeile('b', 'Bogen')]);
+    abrufe[1].antworte([stand('a')]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(abrufe).toHaveLength(2);
+    expect(gemeldet[gemeldet.length - 1]).toEqual(['Rohr']);
+    stopp();
+  });
+
+  it('eine Zeile, die zwischen Abgleich und Holen verschwindet, fällt heraus', async () => {
+    const { abrufe, gemeldet, stopp } = await mitBestand([zeile('a', 'Rohr'), zeile('b', 'Bogen')]);
+    abrufe[1].antworte([stand('a'), stand('b', '2026-10-19T08:00:01+00:00')]);
+    await vi.advanceTimersByTimeAsync(0);
+    abrufe[2].antworte([]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(gemeldet[gemeldet.length - 1]).toEqual(['Rohr']);
+    stopp();
+  });
+
+  it('nach einem Abriss gleicht der neue Kanal ab, statt alles zu holen', async () => {
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    const { abrufe, status, gemeldet, stopp } = await mitBestand([zeile('a', 'Rohr')]);
+    abrufe[1].antworte([stand('a')]);
+    await vi.advanceTimersByTimeAsync(0);
+    status[0]('CHANNEL_ERROR');
+    await vi.advanceTimersByTimeAsync(1100);
+    status[1]('SUBSCRIBED');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(abrufe).toHaveLength(3);
+    expect(abrufe[2].spalten).toBe('id,updated_at');
+    abrufe[2].antworte([stand('a'), stand('c')]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(abrufe[3].ids).toEqual(['c']);
+    abrufe[3].antworte([zeile('c', 'Kappe')]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(gemeldet[gemeldet.length - 1]).toEqual(['Rohr', 'Kappe']);
+    stopp();
+  });
+
+  it('Gleichbleiben: scheiterte das erste Bild, holt das Laden nach dem Aufbau alles', async () => {
+    const { client, status, abrufe } = gestellterClient();
+    const stopp = abonnieren<{ name: string }>('materials', 'perl', () => {}, () => {}, {}, client);
+    await vi.advanceTimersByTimeAsync(0);
+    abrufe[0].scheitere();
+    await vi.advanceTimersByTimeAsync(0);
+    status[0]('SUBSCRIBED');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(abrufe[1].spalten).toBe('*');
     stopp();
   });
 });
