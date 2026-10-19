@@ -31,6 +31,14 @@ Anfragen und 4,6 → 3,1 s, die Datenbankanfragen gleich.
 
 ## Ladezeit gezielt (19.10.2026)
 
+> **Berichtigt am 19.10.2026 (am selben Tag):** Diese und alle früheren Zahlen
+> in dieser Datei stammen aus einer Messung gegen `vite preview` und den
+> lokalen Stapel — ohne Packen der Datenbankantworten, über HTTP/1.1 und ohne
+> die Zwischenspeicher-Regeln von `firebase.json`. Draussen ist das anders;
+> die Zahlen überzeichnen Datenmenge und Ladezeit deutlich. Der Vergleich
+> vorher/nachher innerhalb dieser Messung bleibt gültig, die absoluten Zahlen
+> nicht. Gemessen wie ausgeliefert: `messung-ladezeit-vorher.md`.
+
 Entschieden am 19.10.2026 (Rückfrage, „gezielt“): die schweren Seiten
 entlasten statt alle Listen in Seiten zu 50 umzubauen, und „bedienbar“ als
 **„bereit“** messen — Überschrift sichtbar und auf der Seite kein
