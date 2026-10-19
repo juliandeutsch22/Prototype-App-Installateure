@@ -45,21 +45,23 @@ vi.mock('@/lib/listengrenzen', () => ({
   baustellenAuswahlAbgeschnitten: (z: readonly unknown[], g = 500) => z.length >= g,
 }));
 
-/* Mit welcher Grenze zuletzt abonniert wurde — der Nachladeknopf hebt sie an. */
-let letzteGrenze = 0;
 
+/*
+  Der Katalog wie auf dem Server (19.10.2026): nach Namen geordnet, gesucht in
+  Name, Kategorie und Artikelnummer, die ersten `anzahl` samt Zahl aller Treffer.
+*/
+const katalogSeite = vi.fn(async (_c: string, begriff: string, anzahl: number) => {
+  const q = begriff.trim().toLowerCase();
+  const treffer = materialien
+    .filter((m) => !q || [m.name, m.category, m.articleNumber].some((v) => v?.toLowerCase().includes(q)))
+    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  return { zeilen: treffer.slice(0, anzahl), gesamt: treffer.length };
+});
 vi.mock('@/lib/db/materials', () => ({
   LOW_STOCK_THRESHOLD: 5,
-  subscribeMaterials: (
-    _c: string,
-    cb: (rows: WithId<Material>[]) => void,
-    _onError: (e: Error) => void,
-    grenze: number,
-  ) => {
-    letzteGrenze = grenze;
-    cb(materialien);
-    return () => undefined;
-  },
+  katalogSeite: (...a: [string, string, number]) => katalogSeite(...a),
+  katalogAnzahl: async () => materialien.length,
+  katalogBeobachten: () => () => undefined,
   createMaterial: (...a: unknown[]) => anlegen(...a),
   updateMaterial: (...a: unknown[]) => aendern(...a),
   deleteMaterial: vi.fn(),
@@ -283,50 +285,78 @@ describe('Der Bestand beim Bearbeiten', () => {
  * nur ohne jedes Signal, und bemerkt würde es an dem Tag, an dem die
  * Anwendung stehen bleibt.
  */
-describe('Materialkatalog — wie weit die Liste reicht', () => {
+describe('Materialkatalog — seitenweise vom Server (19.10.2026)', () => {
   const viele = (n: number) =>
     Array.from({ length: n }, (_, i) =>
       ({
         id: `m${i}`,
         companyId: 'perl',
-        name: `Artikel ${i}`,
+        name: `Artikel ${String(i).padStart(2, '0')}`,
         stock: 10,
       }) as WithId<Material>,
     );
-
-  it('holt mit der Grenze, nicht unbegrenzt', async () => {
-    materialien = viele(2);
-    zeige();
-    await screen.findByText(/Artikel 0/);
-    expect(letzteGrenze).toBe(3);
+  beforeEach(() => {
+    katalogSeite.mockClear();
   });
 
-  it('schweigt, solange die Grenze nicht greift', async () => {
-    materialien = viele(2);
+  it('zeigt die ersten zwanzig nach Namen; „und N weitere“ holt mehr vom Server', async () => {
+    materialien = viele(25);
+    const nutzer = userEvent.setup();
     zeige();
-    await screen.findByText(/Artikel 0/);
-    expect(screen.queryByRole('button', { name: /Weitere Artikel laden/ })).not.toBeInTheDocument();
+    await screen.findByText('Artikel 00');
+    expect(screen.queryByText('Artikel 20')).not.toBeInTheDocument();
+    expect(katalogSeite).toHaveBeenLastCalledWith('perl', '', 20);
+    await nutzer.click(screen.getByRole('button', { name: 'und 5 weitere anzeigen' }));
+    expect(await screen.findByText('Artikel 24')).toBeInTheDocument();
+    expect(katalogSeite).toHaveBeenLastCalledWith('perl', '', 40);
   });
 
-  it('sagt es, sobald die Grenze erreicht ist — samt Reichweite der Suche', async () => {
-    materialien = viele(3);
+  it('sucht über den ganzen Katalog auf dem Server — der Titel nennt weiter den ganzen Katalog', async () => {
+    materialien = viele(25);
+    const nutzer = userEvent.setup();
     zeige();
-    await screen.findByText(/Artikel 0/);
-    expect(screen.getByRole('button', { name: /Weitere Artikel laden/ })).toBeInTheDocument();
-    // Der zweite Satz ist der wichtigere: wer einen Artikel sucht und nichts
-    // findet, soll nicht schliessen, es gebe ihn nicht.
-    expect(screen.getByText(/nur in diesen gesucht/)).toBeInTheDocument();
+    await screen.findByText('Artikel 00');
+    expect(screen.getByText('Katalog (25)')).toBeInTheDocument();
+    await nutzer.type(screen.getByLabelText('Suche'), 'Artikel 24');
+    expect(await screen.findByText('Artikel 24')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('Artikel 00')).not.toBeInTheDocument());
+    expect(katalogSeite).toHaveBeenLastCalledWith('perl', 'Artikel 24', 20);
+    expect(screen.getByText('Katalog (25)')).toBeInTheDocument();
   });
 
-  it('holt beim Nachladen tatsächlich mehr', async () => {
+  it('Gegenprobe: ohne Treffer kein „weitere“ und die Auskunft, dass nichts passt', async () => {
     materialien = viele(3);
     const nutzer = userEvent.setup();
     zeige();
-    await screen.findByText(/Artikel 0/);
-    expect(letzteGrenze).toBe(3);
+    await screen.findByText('Artikel 00');
+    expect(screen.queryByRole('button', { name: /weitere anzeigen/ })).not.toBeInTheDocument();
+    await nutzer.type(screen.getByLabelText('Suche'), 'Heizkessel');
+    expect(await screen.findByText(/Kein Material passt zu „Heizkessel“/)).toBeInTheDocument();
+  });
 
-    await nutzer.click(screen.getByRole('button', { name: /Weitere Artikel laden/ }));
-    expect(letzteGrenze).toBe(6);
+  it('„knapp“ im Kopf kommt aus den Lagerartikeln, nicht aus der gezeigten Seite', async () => {
+    materialien = viele(25);
+    const knapp = { id: 'k1', companyId: 'perl', name: 'Zylinder knapp', stock: 1, lagerartikel: true } as WithId<Material>;
+    render(
+      <ToastProvider>
+        <MaterialCatalog lagerartikel={[knapp]} />
+      </ToastProvider>,
+    );
+    await screen.findByText('Artikel 00');
+    expect(screen.getByText('1 knapp')).toBeInTheDocument();
+  });
+
+  it('löscht auch einen hereingereichten Artikel, der nicht auf der gezeigten Seite steht', async () => {
+    materialien = viele(25);
+    const fern = { id: 'fern', companyId: 'perl', name: 'Zylinder fern', stock: 0, lagerartikel: false } as WithId<Material>;
+    const nutzer = userEvent.setup();
+    render(
+      <ToastProvider>
+        <MaterialCatalog zuBearbeiten={fern} />
+      </ToastProvider>,
+    );
+    await nutzer.click(await screen.findByRole('button', { name: 'Material löschen …' }));
+    expect(await screen.findByText(/Zylinder fern/)).toBeInTheDocument();
   });
 });
 

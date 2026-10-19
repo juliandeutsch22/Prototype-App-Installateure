@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Material, RuestPosition } from '@/types';
-import { katalogAbgeschnitten } from '@/lib/listengrenzen';
+import { katalogNachIds } from '@/lib/db/materials';
+import { useKatalogSuche } from '@/features/orders/useKatalogSuche';
 import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
@@ -42,6 +43,9 @@ function neueKennung(): string {
 }
 
 interface Props {
+  /** Für die Suche auf dem Server über den ganzen Katalog. */
+  companyId?: string;
+  /** Die beim Öffnen geladenen Artikel — die Reserve, solange der Server nicht antwortet. */
   materials: WithId<Material>[];
   positionen: RuestPosition[];
   onChange: (next: RuestPosition[]) => void;
@@ -65,6 +69,7 @@ interface Props {
 }
 
 export default function RuestlistePlanen({
+  companyId,
   materials,
   positionen,
   onChange,
@@ -84,29 +89,53 @@ export default function RuestlistePlanen({
   // Verschwindet das Feld (andere Baustelle, Modul aus), ist auch nichts offen.
   useEffect(() => () => onOffen?.(null), [onOffen]);
 
-  const nachId = useMemo(() => new Map(materials.map((m) => [m.id, m])), [materials]);
+  /*
+    ARTIKEL AUSSERHALB DER GELADENEN (19.10.2026): was die Suche vom Server
+    bringt oder eine gespeicherte Zeile nennt, aber nicht unter den beim
+    Öffnen geladenen Artikeln steht. Ohne sie fehlte einer solchen Zeile der
+    Lagerstand — und mit ihm die Warnung, dass der Bestand nicht reicht.
+  */
+  const [dazu, setDazu] = useState<Map<string, WithId<Material>>>(new Map());
+  const nachId = useMemo(
+    () => new Map([...materials.map((m) => [m.id, m] as const), ...dazu]),
+    [materials, dazu],
+  );
+  const fehlendeIds = positionen
+    .map((p) => p.materialId)
+    .filter((id): id is string => !!id && !nachId.has(id))
+    .sort()
+    .join('|');
+  useEffect(() => {
+    if (!companyId || !fehlendeIds) return;
+    let weg = false;
+    katalogNachIds(companyId, fehlendeIds.split('|'))
+      .then((artikel) => {
+        if (weg || artikel.length === 0) return;
+        setDazu((alt) => new Map([...alt, ...artikel.map((m) => [m.id, m] as const)]));
+      })
+      .catch(() => undefined);
+    return () => {
+      weg = true;
+    };
+  }, [companyId, fehlendeIds]);
 
   /**
    * Dieselbe Suche wie bei der Retoure — Bezeichnung, Kategorie und
-   * Artikelnummer. Wer zwei Stellen im Programm bedient, soll nicht zwei
-   * verschiedene Suchen lernen müssen.
+   * Artikelnummer, seit 19.10.2026 auf dem Server über den ganzen Katalog
+   * (`useKatalogSuche`). Wer zwei Stellen im Programm bedient, soll nicht
+   * zwei verschiedene Suchen lernen müssen.
    */
-  const treffer = useMemo(() => {
-    const q = suche.trim().toLowerCase();
-    if (!q) return [];
-    const drin = new Set(positionen.map((p) => p.materialId).filter(Boolean));
-    return materials
-      // Was der Grosshändler nicht mehr führt, packt heute niemand mehr auf
-      // den Wagen. Im Katalog bleibt der Artikel, hier verschwindet er.
-      .filter((m) => !m.ausgelaufen)
-      .filter((m) => !drin.has(m.id))
-      .filter((m) =>
-        [m.name, m.category, m.articleNumber].some((v) => v?.toLowerCase().includes(q)),
-      )
-      .slice(0, 8);
-  }, [materials, suche, positionen]);
+  const suchStand = useKatalogSuche(companyId, suche, materials);
+  const drin = new Set(positionen.map((p) => p.materialId).filter(Boolean));
+  const treffer = suchStand.treffer
+    // Was der Grosshändler nicht mehr führt, packt heute niemand mehr auf
+    // den Wagen. Im Katalog bleibt der Artikel, hier verschwindet er.
+    .filter((m) => !m.ausgelaufen)
+    .filter((m) => !drin.has(m.id))
+    .slice(0, 8);
 
   function hinzufuegen(m: WithId<Material>) {
+    if (!nachId.has(m.id)) setDazu((alt) => new Map(alt).set(m.id, m));
     onChange([
       ...positionen,
       { id: neueKennung(), materialId: m.id, name: m.name, menge: 1, einheit: m.unit },
@@ -251,18 +280,18 @@ export default function RuestlistePlanen({
         />
         {suche.trim() !== '' && (
           <div className="mt-2">
+            {/* Wie am Schein: „gibt es nicht" und „nicht erreicht" sind zwei verschiedene Auskünfte. */}
+            {suchStand.ohneNetz && (
+              <p className="mb-2 text-sm text-warning">
+                Keine Verbindung zum Katalog — gesucht nur in den beim Öffnen geladenen Artikeln.
+                Den Artikel kann es trotzdem geben.
+              </p>
+            )}
             {treffer.length === 0 ? (
               <p className="text-sm text-ink-muted">
-                Kein Artikel passt zur Suche. Was nicht im Lager geführt wird, kann unten als
-                freie Zeile dazu.
-                {/* Wie am Schein: „gibt es nicht" und „nicht geladen" sind
-                    zwei verschiedene Auskünfte. */}
-                {katalogAbgeschnitten(materials) && (
-                  <strong className="mt-1 block text-warning">
-                    Der Katalog wurde nur bis zur Obergrenze geladen — den Artikel kann es
-                    trotzdem geben.
-                  </strong>
-                )}
+                {suchStand.laeuft
+                  ? 'Sucht im Katalog …'
+                  : 'Kein Artikel passt zur Suche. Was nicht im Lager geführt wird, kann unten als freie Zeile dazu.'}
               </p>
             ) : (
               <List>
