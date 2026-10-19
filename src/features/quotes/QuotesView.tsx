@@ -11,16 +11,16 @@ import {
   deleteQuote,
   reserveQuoteNumber,
 } from '@/lib/db/quotes';
-import { listCustomers } from '@/lib/db/customers';
 import { angebotAnnehmen, annahmeMeldung } from './angebotAnnehmen';
 import { calcTotals, cent, positionNetto, rabattAnteil, titelSummen, type InvoicePosition, type PositionsArt } from '@/features/invoices/totals';
 import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { todayStr, localDateStr, fmtStunden } from '@/lib/time';
 import { isGF } from '@/lib/permissions';
-import type { Abrechnungsart, Customer, InvoiceDiscount, Quote } from '@/types';
+import type { Abrechnungsart, InvoiceDiscount, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import InfoHint from '@/components/InfoHint';
-import KundenGrenze from '@/components/AuswahlGrenze';
+import KundenAuswahl from '@/components/KundenAuswahl';
+import { useKunde } from '@/features/customers/useKundenFuer';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
@@ -31,7 +31,7 @@ import RowMenu from '@/components/RowMenu';
 import PageHeader from '@/components/PageHeader';
 import { praefixeVon } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { InputField, SelectField, TextareaField } from '@/components/Field';
+import { InputField, TextareaField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
@@ -199,7 +199,6 @@ export default function QuotesView() {
   const toast = useToast();
 
   const [angebote, setAngebote] = useState<WithId<Quote>[]>([]);
-  const [kunden, setKunden] = useState<WithId<Customer>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -217,6 +216,8 @@ export default function QuotesView() {
 
   // Formular
   const [customerId, setCustomerId] = useState('');
+  /** Der gewählte Kunde — aus der Suche, beim Bearbeiten einzeln nachgeladen (Ladezeit, 19.10.2026). */
+  const [kunde, setKunde] = useKunde(user?.companyId, customerId);
   const [address, setAddress] = useState('');
   const [validUntil, setValidUntil] = useState(standardGueltigkeit);
   const [notes, setNotes] = useState('');
@@ -291,12 +292,7 @@ export default function QuotesView() {
       if (!user) return;
       setLoading(true);
       try {
-        const [q, k] = await Promise.all([
-          listRecentQuotes(user.companyId, grenze),
-          listCustomers(user.companyId),
-        ]);
-        setAngebote(q);
-        setKunden(k);
+        setAngebote(await listRecentQuotes(user.companyId, grenze));
       } catch (e) {
         setError((e as Error).message);
       } finally {
@@ -364,7 +360,6 @@ export default function QuotesView() {
     [zeilen],
   );
 
-  const kunde = kunden.find((k) => k.id === customerId);
   /** Ein Angebot nur aus Titeln und Texten bietet nichts an. */
   const preiszeilen = positionen.some((p) => (p.art ?? 'position') === 'position');
   /** Die Summe je Titel, an der Stelle der Eingabezeile (nicht der gespeicherten). */
@@ -810,35 +805,28 @@ export default function QuotesView() {
                 </p>
               </Hinweiszeile>
             )}
-            <SelectField
+            <KundenAuswahl
+              companyId={user?.companyId ?? ''}
               id="anqk"
-              label="Kunde"
               value={customerId}
-              onChange={(e) => {
-                const vorher = kunden.find((x) => x.id === customerId)?.address;
-                setCustomerId(e.target.value);
-                const k = kunden.find((x) => x.id === e.target.value);
+              kunde={kunde}
+              onChange={(id, k) => {
+                const vorher = kunde?.address;
+                setCustomerId(id);
+                setKunde(k);
                 // Vorschlag, nicht Überschreiben: nur ein leeres Feld oder der
                 // unveränderte Vorschlag des vorigen Kunden wird ersetzt (G3).
                 if (!address || address === vorher) setAddress(k?.address ?? '');
               }}
-              required
               pflicht
-            >
-              <option value="">— wählen —</option>
-              {kunden.map((k) => (
-                <option key={k.id} value={k.id}>
-                  {k.name}
-                </option>
-              ))}
-            </SelectField>
-            <KundenGrenze kunden={kunden} />
+              required
+            />
             <AdresseFeld
               id="anqadr"
               label="Ort der Leistung"
               value={address}
               onChange={setAddress}
-              vorschlag={kunden.find((k) => k.id === customerId)?.address}
+              vorschlag={kunde?.address}
             />
             {/*
               DIE BINDEFRIST IST SELTEN ZU ÄNDERN — dreissig Tage passen fast

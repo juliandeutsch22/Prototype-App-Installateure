@@ -52,7 +52,7 @@ vi.mock('@/lib/db/termine', () => ({
     terminGeloescht(id);
   }),
 }));
-vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => []) }));
+vi.mock('@/lib/db/customers', async () => (await import('./kundenAuswahl')).kundenAttrappe(() => []));
 let leute: AppUser[] = [];
 vi.mock('@/lib/db/users', () => ({
   listUsers: vi.fn(async () => leute),

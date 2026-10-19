@@ -28,13 +28,13 @@ import {
 } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
-import { listCustomers } from '@/lib/db/customers';
 import { useModul } from '@/lib/useModule';
 import type { WithId } from '@/lib/db/core';
 import { byNewest } from '@/lib/timestamps';
-import type { Abrechnungsart, Project, AppUser, Customer } from '@/types';
+import type { Abrechnungsart, Project, AppUser } from '@/types';
 import Card from '@/components/Card';
-import KundenGrenze from '@/components/AuswahlGrenze';
+import KundenAuswahl from '@/components/KundenAuswahl';
+import { useKunde } from '@/features/customers/useKundenFuer';
 import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
 import { Marke } from '@/components/Badge';
@@ -135,12 +135,13 @@ export default function AdminProjectsView() {
   );
   const [users, setUsers] = useState<AppUser[]>(() => belegschaftGemerkt?.users ?? []);
   const [belegschaftDa, setBelegschaftDa] = useState(() => belegschaftGemerkt?.users !== undefined);
-  const [kunden, setKunden] = useState<(Customer & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — die Baustellenliste steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
+  /** Der gewählte Kunde — aus der Suche, beim Bearbeiten einzeln nachgeladen (Ladezeit, 19.10.2026). */
+  const [kunde, setKunde] = useKunde(user?.companyId, form.customerId);
   const [assigned, setAssigned] = useState<string[]>([]);
   const [managers, setManagers] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -257,7 +258,6 @@ export default function AdminProjectsView() {
       })
       .catch(() => setNebenFehler('Die Belegschaft'))
       .finally(() => setBelegschaftDa(true));
-    listCustomers(user.companyId).then(setKunden).catch(() => setNebenFehler('Die Kunden'));
     const unsub = subscribeRecentProjects(
       user.companyId,
       grenze,
@@ -597,33 +597,26 @@ export default function AdminProjectsView() {
           ihn hier nebenbei anzulegen würde die Stammdaten wieder
           verwässern.
         */}
-        <SelectField
+        <KundenAuswahl
+          companyId={user?.companyId ?? ''}
           id="pcust"
-          label="Kunde"
           value={form.customerId}
-          onChange={(e) => {
-            const k = kunden.find((x) => x.id === e.target.value);
-            const vorher = kunden.find((x) => x.id === form.customerId)?.address;
+          kunde={kunde}
+          onChange={(id, k) => {
+            const vorher = kunde?.address;
+            setKunde(k);
             setForm({
               ...form,
-              customerId: e.target.value,
+              customerId: id,
               customerName: k?.name ?? form.customerName,
               // G5: die Anschrift des Kunden als Vorschlag — nur in ein
               // leeres Feld oder statt des Vorschlags des vorigen Kunden.
               address: !form.address || form.address === vorher ? (k?.address ?? '') : form.address,
             });
           }}
-          required
           pflicht
-        >
-          <option value="">— wählen —</option>
-          {kunden.map((k) => (
-            <option key={k.id} value={k.id}>
-              {k.name}
-            </option>
-          ))}
-        </SelectField>
-        <KundenGrenze kunden={kunden} />
+          required
+        />
         {/*
           Altbestand: die Baustelle trägt einen Kundennamen, aber noch
           keine Verknüpfung. Ohne diesen Hinweis stünde beim Bearbeiten
@@ -639,21 +632,13 @@ export default function AdminProjectsView() {
             anlegen und die Baustellen übernehmen.
           </p>
         )}
-        {kunden.length === 0 && (
-          <p className="text-sm text-ink-muted">
-            Noch keine Kunden angelegt.{' '}
-            <Link to="/customers" className="link-hinweis-weiter">
-              Zur Kundenverwaltung
-            </Link>
-          </p>
-        )}
         {/* Ausdrücklich die BAUSTELLENadresse: die Rechnungsadresse steht
             beim Kunden, und eine Hausverwaltung hat zwanzig Baustellen. */}
         <InputField id="pbez" label="Bezeichnung (freiwillig)" placeholder="z. B. Bad 2. OG"
           maxLength={120} value={form.bezeichnung}
           onChange={(e) => setForm({ ...form, bezeichnung: e.target.value })} />
         <AdresseFeld id="padr" label="Baustellenadresse" value={form.address}
-          vorschlag={kunden.find((k) => k.id === form.customerId)?.address}
+          vorschlag={kunde?.address}
           onChange={(t) => setForm({ ...form, address: t })} />
         <SelectField id="pstatus" label="Status" value={form.status}
           onChange={(e) => setForm({ ...form, status: e.target.value as Project['status'] })}>

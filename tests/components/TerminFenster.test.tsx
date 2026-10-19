@@ -16,7 +16,7 @@ vi.mock('@/lib/db/termine', () => ({
   terminAendern: vi.fn(async () => undefined),
   terminLoeschen: vi.fn(async () => undefined),
 }));
-vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => []) }));
+vi.mock('@/lib/db/customers', async () => (await import('./kundenAuswahl')).kundenAttrappe(() => []));
 vi.mock('@/lib/db/projects', () => ({
   listRecentProjects: vi.fn(async () => []),
   listProjectsByNumbers: vi.fn(async () => []),

@@ -265,8 +265,8 @@ let kunden: Array<{
 const mitStamm = (k: (typeof kunden)[number]) => ({
   plz: '2700', ort: 'Wiener Neustadt', kundenart: k.vatId ? 'unternehmen' : 'privat', ...k,
 });
-vi.mock('@/lib/db/customers', () => ({
-  listCustomers: vi.fn(async () => kunden.map(mitStamm)),
+vi.mock('@/lib/db/customers', async () => ({
+  ...(await import('./kundenAuswahl')).kundenAttrappe(() => kunden.map(mitStamm)),
   updateCustomer: vi.fn(async () => 0),
 }));
 /*
@@ -868,6 +868,17 @@ describe('Reverse Charge in der Rechnungsmaske', () => {
     await bisZurVorschau();
     await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
     expect(screen.getByLabelText(/UID-Nummer des Kunden/)).toHaveValue('ATU55556666');
+  });
+
+  it('holt für die Vorbelegung genau die Kunden der Baustellen und Belege — nicht den Kundenstamm (Ladezeit, 19.10.2026)', async () => {
+    // Bis hierher die ersten 500 Kunden des Betriebs; was dahinter lag, fand keine UID.
+    const db = await import('@/lib/db/customers');
+    vi.mocked(db.kundenNachNamen).mockClear();
+    kunden = [{ name: 'Familie Huber', vatId: 'ATU55556666' }];
+    await bisZurVorschau();
+    const gefragt = vi.mocked(db.kundenNachNamen).mock.calls.flatMap((c) => [...c[1]]);
+    expect(gefragt).toContain('familie huber');
+    expect('listCustomers' in db).toBe(false);
   });
 
   it('weist auf eine UID hin, die keine sein kann', async () => {
@@ -1887,6 +1898,19 @@ describe('Der Buchhaltungs-Export', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }));
     expect(await screen.findByText(/Storniert wurde in dieser Zeit eine frühere Rechnung/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Als CSV herunterladen' })).toBeEnabled();
+  });
+
+  it('holt für das Ausgangsbuch die Kunden seiner Rechnungen, bevor es dasteht (Ladezeit, 19.10.2026)', async () => {
+    // Die UID einer Rechnung, die sie nicht selbst trägt, kommt über den Namen —
+    // auch für eine Baustelle, die nicht mehr läuft.
+    const db = await import('@/lib/db/customers');
+    vi.mocked(db.kundenNachNamen).mockClear();
+    konten = [];
+    imZeitraum = [{ ...journal('0001', '2026-09-01'), customerName: 'Bäckerei Süd' }];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }));
+    await screen.findByRole('button', { name: 'Als CSV herunterladen' });
+    expect(db.kundenNachNamen).toHaveBeenCalledWith('perl', ['Bäckerei Süd']);
   });
 
   it('bietet ihn an, sobald die Konten stehen', async () => {

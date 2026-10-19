@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Customer, Quote } from '@/types';
+import { kundeWaehlen } from './kundenAuswahl';
 
 /**
  * Das Angebot schließt die Kette nach vorne — und genau eine Zahl daraus
@@ -51,7 +52,7 @@ vi.mock('@/lib/db/quotes', async () => ({
   deleteQuote: vi.fn(async () => undefined),
   reserveQuoteNumber: vi.fn(async () => 'AN-2026-0001'),
 }));
-vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => kunden) }));
+vi.mock('@/lib/db/customers', async () => (await import('./kundenAuswahl')).kundenAttrappe(() => kunden));
 /** Der Katalog für „Aus dem Katalog …“ (M18) — gesucht wird auf dem Server. */
 const sucheKatalog = vi.fn<(c: string, b: string) => Promise<unknown[]>>(async () => [
   { id: 'm1', companyId: 'perl', name: 'Gastherme 24 kW', articleNumber: 'GT-24', unit: 'Stk', verkaufspreis: 2500, stock: 0 },
@@ -184,7 +185,7 @@ describe('Angebot kalkulieren', () => {
     zeichne();
     await formOeffnen();
 
-    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(nutzer, 'Gemeinde Neudorf');
 
     // Zeile 1: 20 Stunden Montage — echte Arbeitszeit.
     await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Montage Heizung');
@@ -258,7 +259,7 @@ describe('Angebot kalkulieren', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await formOeffnen();
-    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(nutzer, 'Gemeinde Neudorf');
     await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Pauschale');
     await nutzer.type(screen.getByLabelText('Menge'), '1');
     await nutzer.type(screen.getByLabelText('Einzelpreis netto'), '1000');
@@ -274,7 +275,7 @@ describe('Angebot kalkulieren', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await formOeffnen();
-    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(nutzer, 'Gemeinde Neudorf');
     const ort = screen.getByLabelText('Ort der Leistung');
     expect(ort).toHaveValue('Rathausplatz 1');
     await nutzer.type(ort, 'Schulgasse 4');
@@ -285,7 +286,7 @@ describe('Angebot kalkulieren', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await formOeffnen();
-    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(nutzer, 'Gemeinde Neudorf');
     const ort = screen.getByLabelText('Ort der Leistung');
     await nutzer.type(ort, 'Schulgasse 4');
     await nutzer.type(ort, ', Turnsaal');
@@ -296,7 +297,7 @@ describe('Angebot kalkulieren', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await formOeffnen();
-    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(nutzer, 'Gemeinde Neudorf');
     await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Heizung');
     await nutzer.type(screen.getByLabelText('Menge'), '1');
     await nutzer.type(screen.getByLabelText('Einzelpreis netto'), '7.500,50');
@@ -309,7 +310,7 @@ describe('Angebot kalkulieren', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await formOeffnen();
-    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(nutzer, 'Gemeinde Neudorf');
     await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Heizung');
     await nutzer.type(screen.getByLabelText('Menge'), '1');
     await nutzer.type(screen.getByLabelText('Einzelpreis netto'), '7.500');
@@ -359,7 +360,7 @@ describe('Angebot kalkulieren', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await formOeffnen();
-    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(nutzer, 'Gemeinde Neudorf');
     await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Montage');
     await nutzer.type(screen.getByLabelText('Menge'), '16');
     await nutzer.type(screen.getByLabelText('Einheit'), 'h');
@@ -636,7 +637,7 @@ describe('Einen Entwurf bearbeiten', () => {
   it('speichert jedes neue Angebot mit dem Haken an der Position', async () => {
     zeichne();
     await formOeffnen();
-    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(userEvent.setup(), 'Gemeinde Neudorf');
     await userEvent.type(screen.getByLabelText('Bezeichnung'), 'Montage');
     await userEvent.type(screen.getByLabelText('Menge'), '8');
     await userEvent.type(screen.getByLabelText('Einheit'), 'h');
@@ -687,7 +688,7 @@ describe('Neue Fassung eines versendeten Angebots (M17)', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await formOeffnen();
-    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(nutzer, 'Gemeinde Neudorf');
     await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Pauschale');
     await nutzer.type(screen.getByLabelText('Menge'), '1');
     await nutzer.type(screen.getByLabelText('Einzelpreis netto'), '100');
@@ -743,7 +744,7 @@ describe('Abrechnungsart beim Annehmen (M16)', () => {
  */
 describe('Titel, Text, Rabatt und Katalog (M18)', () => {
   async function erstePosition(nutzer: ReturnType<typeof userEvent.setup>, label: string, menge: string, preis: string) {
-    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(nutzer, 'Gemeinde Neudorf');
     await nutzer.type(screen.getByLabelText('Bezeichnung'), label);
     await nutzer.type(screen.getByLabelText('Menge'), menge);
     await nutzer.type(screen.getByLabelText('Einheit'), 'Stk');
@@ -803,7 +804,7 @@ describe('Titel, Text, Rabatt und Katalog (M18)', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await formOeffnen();
-    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(nutzer, 'Gemeinde Neudorf');
     await nutzer.click(screen.getByRole('button', { name: 'Titel hinzufügen' }));
     await nutzer.type(screen.getByLabelText('Titel'), 'Bad');
     // Die leere Position weg: es bleibt nur der Titel.
@@ -816,7 +817,7 @@ describe('Titel, Text, Rabatt und Katalog (M18)', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await formOeffnen();
-    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(nutzer, 'Gemeinde Neudorf');
     await nutzer.click(screen.getByRole('button', { name: 'Aus dem Katalog …' }));
     await nutzer.type(screen.getByLabelText('Artikel aus dem Katalog'), 'therme');
     await nutzer.click(await screen.findByRole('button', { name: 'Gastherme 24 kW übernehmen' }));
@@ -991,7 +992,7 @@ describe('Angebote auf der Linie „Lot“', () => {
     await formOeffnen();
     // Zugeklappt nennt die Zeile das Datum schon.
     expect(screen.getByText(/^Weitere Angaben · gültig bis \d\d\.\d\d\.\d{4}$/)).toBeInTheDocument();
-    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(nutzer, 'Gemeinde Neudorf');
     await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Pauschale');
     await nutzer.type(screen.getByLabelText('Menge'), '1');
     await nutzer.type(screen.getByLabelText('Einzelpreis netto'), '100');

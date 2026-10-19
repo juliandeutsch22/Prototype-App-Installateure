@@ -56,7 +56,13 @@ vi.mock('@/lib/db/workSheets', () => ({
   listBelegScheineInRange: (...a: unknown[]) => scheineImZeitraum(...(a as [])),
   getWorkSheetsVoll: (...a: unknown[]) => scheineVoll(...(a as [])),
 }));
-vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => []) }));
+/** Der Kundenstamm — das Archiv soll genau die Kunden seiner Belege holen (Ladezeit, 19.10.2026). */
+const stamm = [
+  { id: 'k1', name: 'Familie Huber', vatId: 'ATU55556666' },
+  { id: 'k2', name: 'Gemeinde Neudorf' },
+  { id: 'k3', name: 'Niemand im Archiv' },
+];
+vi.mock('@/lib/db/customers', async () => (await import('./kundenAuswahl')).kundenAttrappe(() => stamm));
 const archiv = vi.fn();
 vi.mock('@/features/invoices/belegArchiv', () => ({
   belegArchiv: (...a: unknown[]) => archiv(...a),
@@ -248,6 +254,18 @@ describe('Belegarchiv', () => {
     await o.scheineVoll(['s1', 's2']);
     expect(scheineVoll).toHaveBeenCalledWith('perl', ['s1', 's2']);
     expect(archiv.mock.calls[0][0]).toMatchObject({ von: `${jahr}-01-01`, bis: `${jahr}-12-31` });
+  });
+
+  it('holt genau die Kunden seiner Belege — nicht die ersten 500 des Stamms (Ladezeit, 19.10.2026)', async () => {
+    // Die Angebote nennen ihren Kunden mit Kennung, das Ausgangsbuch sucht die UID über den Namen.
+    archiv.mockResolvedValue({ blob: new Blob(), rechnungen: 1, stornos: 0, angebote: 1, scheine: 0, mahnungen: 0, hinweise: [] });
+    rechnungenImZeitraum.mockResolvedValueOnce([{ id: 'r1', customerName: 'Familie Huber', invoiceDate: '2025-03-01' }]);
+    angeboteImZeitraum.mockResolvedValueOnce([{ id: 'q1', customerId: 'k2', quoteDate: '2025-02-01' }]);
+    zeige();
+    await userEvent.click(screen.getByRole('button', { name: 'Belegarchiv herunterladen' }));
+    await screen.findByText(/Im Archiv:/);
+    const kunden = (archiv.mock.calls[archiv.mock.calls.length - 1][0] as { kunden: Array<{ id: string }> }).kunden.map((k) => k.id).sort();
+    expect(kunden).toEqual(['k1', 'k2']);
   });
 
   it('„Alle Belege“ beginnt beim ersten Beleg, nicht am 01.01.2000 (Runde 3, G11)', async () => {

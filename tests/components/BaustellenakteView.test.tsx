@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Project, AppUser, Customer } from '@/types';
+import { kundeWaehlen } from './kundenAuswahl';
 
 /**
  * Die Baustellenakte.
@@ -78,12 +79,7 @@ vi.mock('@/lib/db/users', () => ({
     return belegschaft;
   },
 }));
-vi.mock('@/lib/db/customers', () => ({
-  listCustomers: async () => {
-    if (nebenladenScheitert) throw new Error('kaputt');
-    return KUNDEN;
-  },
-}));
+vi.mock('@/lib/db/customers', async () => (await import('./kundenAuswahl')).kundenAttrappe(() => KUNDEN));
 
 /** Pläne an der Baustelle. */
 type Plan = { id: string; projectId: string; pfad: string; dateiname: string; mime: string; bytes: number };
@@ -333,12 +329,12 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
     zeige();
     const adresse = await screen.findByLabelText(/Baustellenadresse/);
     // Gegenprobe zuerst: eine eigene Baustellenadresse bleibt stehen.
-    await userEvent.selectOptions(screen.getByLabelText(/^Kunde/), 'k2');
+    await kundeWaehlen(userEvent.setup(), KUNDEN.find((k) => k.id === 'k2')!.name);
     expect(adresse).toHaveValue('Ringstraße 3, 2700 Wiener Neustadt');
     // Geleert und neu gewählt: jetzt kommt der Vorschlag.
     await userEvent.clear(adresse);
-    await userEvent.selectOptions(screen.getByLabelText(/^Kunde/), 'k1');
-    await userEvent.selectOptions(screen.getByLabelText(/^Kunde/), 'k2');
+    await kundeWaehlen(userEvent.setup(), KUNDEN.find((k) => k.id === 'k1')!.name);
+    await kundeWaehlen(userEvent.setup(), KUNDEN.find((k) => k.id === 'k2')!.name);
     expect(adresse).toHaveValue('Marktplatz 7, 2700 Wiener Neustadt');
     expect(screen.getByText(/Vom Kunden übernommen/)).toBeInTheDocument();
   });
@@ -380,7 +376,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
     // können, ohne den Kundenstamm zu laden. Bliebe er stehen, zeigte die
     // Liste den alten Kunden zu einer Baustelle, die einem anderen gehört.
     zeige();
-    await userEvent.selectOptions(await screen.findByLabelText(/Kunde/), 'k2');
+    await kundeWaehlen(userEvent.setup(), KUNDEN.find((k) => k.id === 'k2')!.name);
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
 
     expect(updateProject).toHaveBeenCalledWith(
@@ -462,12 +458,14 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
     expect(await screen.findByText(/Eilzustellung für diese Baustelle/)).toBeInTheDocument();
   });
 
-  it('sagt es, wenn Belegschaft und Kundenstamm nicht laden', async () => {
-    // Sonst blieben beide Auswahlfelder leer, und es sähe aus, als hätte der
-    // Betrieb weder Monteure noch Kunden.
+  it('sagt es, wenn die Belegschaft nicht lädt', async () => {
+    // Sonst bliebe das Team leer, und es sähe aus, als hätte der Betrieb
+    // keine Monteure. Den Kundenstamm lädt die Akte seit 19.10.2026 nicht
+    // mehr — die Auswahl sucht auf dem Server.
     nebenladenScheitert = true;
     zeige();
-    expect(await screen.findByText(/Belegschaft und Kundenstamm/)).toBeInTheDocument();
+    expect(await screen.findByText(/Belegschaft/)).toBeInTheDocument();
+    expect(screen.queryByText(/Kundenstamm/)).toBeNull();
   });
 });
 

@@ -8,6 +8,7 @@ import type { BaustellenStunden } from '@/lib/db/timeEntries';
 import AdminProjectsView from '@/features/projects/AdminProjectsView';
 import { listUsers } from '@/lib/db/users';
 import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
+import { kundeWaehlen } from './kundenAuswahl';
 
 /**
  * Die Baustellenverwaltung — die vierte der bisher ungetesteten Kernansichten.
@@ -93,7 +94,7 @@ vi.mock('@/lib/db/users', () => ({
   }),
 }));
 let kundenBestand: (Customer & { id: string })[] = [KUNDE];
-vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => kundenBestand) }));
+vi.mock('@/lib/db/customers', async () => (await import('./kundenAuswahl')).kundenAttrappe(() => kundenBestand));
 
 /*
   Die Stunden der Übersicht. Sie hängen an einer eigenen Abfrage, und diese
@@ -206,7 +207,7 @@ describe('Baustellen — anlegen', () => {
     const feld = await screen.findByLabelText('Projektnummer');
     await userEvent.clear(feld);
     await userEvent.type(feld, '2026-042');
-    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(userEvent.setup(), KUNDE.name);
     await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
 
     await waitFor(() => expect(lege).toHaveBeenCalled());
@@ -245,7 +246,7 @@ describe('Baustellen — anlegen', () => {
     act(() => liefern());
     await waitFor(() => expect(feld.value).toBe('B-2026-0002'));
 
-    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(userEvent.setup(), KUNDE.name);
     await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
     // Stehengelassen heisst: der Zähler vergibt, nicht der Vorschlag.
     await waitFor(() => expect(lege).toHaveBeenCalled());
@@ -268,7 +269,7 @@ describe('Baustellen — anlegen', () => {
     expect((await screen.findAllByText(/B-2026-0001/)).length).toBeGreaterThan(0);
     expect(feld.value).toBe('BT-77');
 
-    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(userEvent.setup(), KUNDE.name);
     await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
     await waitFor(() => expect(lege).toHaveBeenCalled());
     expect(reserviere).not.toHaveBeenCalled();
@@ -282,7 +283,7 @@ describe('Baustellen — anlegen', () => {
     const feld = await screen.findByLabelText('Projektnummer');
     await userEvent.clear(feld);
     await userEvent.type(feld, 'BT-77');
-    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(userEvent.setup(), KUNDE.name);
     await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
     expect(
       await screen.findByText('Die Nummer BT-77 ist schon vergeben — bitte eine andere eintragen.'),
@@ -298,7 +299,7 @@ describe('Baustellen — anlegen', () => {
     zeige();
     await formOeffnen();
     await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-043');
-    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(userEvent.setup(), KUNDE.name);
     await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
 
     await waitFor(() => expect(lege).toHaveBeenCalled());
@@ -309,7 +310,7 @@ describe('Baustellen — anlegen', () => {
     zeige();
     await formOeffnen();
     await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-044');
-    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(userEvent.setup(), KUNDE.name);
     await userEvent.type(screen.getByLabelText(/Stundenbudget/), '40');
     await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
 
@@ -321,7 +322,7 @@ describe('Baustellen — anlegen', () => {
     zeige();
     await formOeffnen();
     await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-045');
-    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(userEvent.setup(), KUNDE.name);
     await userEvent.type(screen.getByLabelText('Beginn'), '2026-10-05');
     await userEvent.type(screen.getByLabelText('Ende (geplant)'), '2026-10-01');
     await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
@@ -334,7 +335,7 @@ describe('Baustellen — anlegen', () => {
     zeige();
     await formOeffnen();
     await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-046');
-    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(userEvent.setup(), KUNDE.name);
     await userEvent.type(screen.getByLabelText('Beginn'), '2026-10-05');
     await userEvent.type(screen.getByLabelText('Ende (geplant)'), '2026-10-05');
     await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
@@ -388,7 +389,7 @@ describe('Baustellen — der Weg in die Akte', () => {
     expect(screen.queryByRole('button', { name: /^bearbeiten$/i })).not.toBeInTheDocument();
 
     await userEvent.type(screen.getByLabelText(/Projektnummer/), '2026-999');
-    await userEvent.selectOptions(screen.getByLabelText(/^Kunde/), 'k1');
+    await kundeWaehlen(userEvent.setup(), KUNDE.name);
     await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
 
     await waitFor(() => expect(lege).toHaveBeenCalled());
@@ -699,34 +700,45 @@ describe('Baustellen — Suche über die Liste hinaus', () => {
 });
 
 /**
- * WENN DIE KUNDENAUSWAHL AN IHRER GRENZE ENDET.
+ * DIE KUNDENAUSWAHL ÜBER DEN GANZEN BESTAND (Ladezeit, 19.10.2026).
  *
- * `listCustomers` hatte schon immer eine Grenze — einen Standardwert von 500,
- * der nirgends stand. Damit war sie die einzige Liste, die noch
- * stillschweigend abschnitt: der Wächter `abfragegrenzen` liess sie durch,
- * weil sie eine Grenze HAT.
- *
- * Der Schaden wäre nicht die Kundenliste, sondern dieses Auswahlfeld: fehlt
- * ein Kunde, legt jemand die Baustelle ohne Kunden an oder tippt den Namen
- * von Hand — genau die Dublette, gegen die die Kundenstammdaten eingeführt
- * wurden.
+ * Bis hierher füllten die ersten 500 Kunden ein Auswahlfeld, und darunter
+ * stand „nur die ersten 500 Kunden“. Wer seinen Kunden dahinter nicht fand,
+ * legte die Baustelle ohne ihn an oder tippte den Namen von Hand — genau die
+ * Dublette, gegen die die Kundenstammdaten eingeführt wurden. Jetzt sucht die
+ * Auswahl auf dem Server. Gegenprobe: gegen den Stand davor stand der
+ * 600. Kunde nicht im Feld, und eine Suche gab es nicht.
  */
-describe('Baustellen — Kundenauswahl an der Grenze', () => {
-  it('sagt es, sobald die Grenze erreicht ist', async () => {
-    kundenBestand = Array.from({ length: 500 }, (_, i) =>
-      ({ id: `k${i}`, companyId: 'perl', name: `Kunde ${i}` }) as Customer & { id: string },
+describe('Baustellen — Kundenauswahl über den ganzen Bestand', () => {
+  it('findet auch den 600. Kunden und übernimmt ihn', async () => {
+    kundenBestand = Array.from({ length: 600 }, (_, i) =>
+      ({ id: `k${i}`, companyId: 'perl', name: `Kunde ${String(i).padStart(3, '0')}` }) as Customer & { id: string },
     );
     zeige();
     await formOeffnen();
-
-    expect(await screen.findByText(/nur die ersten 500 Kunden/)).toBeInTheDocument();
+    await kundeWaehlen(userEvent.setup(), 'Kunde 599');
+    expect(screen.getByText('Kunde 599')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Anderen Kunden wählen' })).toBeInTheDocument();
   });
 
-  it('schweigt bei einem gewöhnlichen Kundenstamm', async () => {
+  it('lädt beim Öffnen keine Kundenliste — gesucht wird erst, wenn jemand tippt', async () => {
+    const { searchCustomers, listCustomersByIds } = await import('@/lib/db/customers');
+    vi.mocked(searchCustomers).mockClear();
+    vi.mocked(listCustomersByIds).mockClear();
     zeige();
     await formOeffnen();
     await screen.findByLabelText('Kunde');
-    expect(screen.queryByText(/nur die ersten/)).not.toBeInTheDocument();
+    expect(searchCustomers).not.toHaveBeenCalled();
+    expect(listCustomersByIds).not.toHaveBeenCalled();
+  });
+
+  it('ohne gewählten Kunden lässt sich nicht anlegen — ein getippter Name ist kein Kunde', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await formOeffnen();
+    await nutzer.type(await screen.findByLabelText('Projektnummer'), '2026-051');
+    await nutzer.type(screen.getByLabelText('Kunde'), 'Irgendwer');
+    expect((screen.getByLabelText('Kunde') as HTMLInputElement).validationMessage).toBe('Bitte einen Kunden wählen.');
   });
 });
 
@@ -749,7 +761,7 @@ describe('Baustelle anlegen wie in der Akte (G3, G4, G5)', () => {
     kundenBestand = [MIT_ADRESSE];
     zeige();
     await formOeffnen();
-    await userEvent.selectOptions(await screen.findByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(userEvent.setup(), KUNDE.name);
     const adresse = screen.getByLabelText('Baustellenadresse');
     expect(adresse).toHaveValue('Hauptstraße 1, 8010 Graz');
     expect(screen.getByText(/Vom Kunden übernommen/)).toBeInTheDocument();
@@ -764,7 +776,7 @@ describe('Baustelle anlegen wie in der Akte (G3, G4, G5)', () => {
     zeige();
     await formOeffnen();
     await userEvent.type(await screen.findByLabelText('Baustellenadresse'), 'Am Bach 3');
-    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(userEvent.setup(), KUNDE.name);
     expect(screen.getByLabelText('Baustellenadresse')).toHaveValue('Am Bach 3');
   });
 
@@ -772,7 +784,7 @@ describe('Baustelle anlegen wie in der Akte (G3, G4, G5)', () => {
     zeige();
     await formOeffnen();
     await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-050');
-    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(userEvent.setup(), KUNDE.name);
     await userEvent.type(screen.getByLabelText(/Bezeichnung/), 'Bad 2. OG');
     await userEvent.selectOptions(screen.getByLabelText('Abrechnung'), 'Pauschal');
     expect(screen.getByLabelText('Beschreibung / Auftragsumfang').tagName).toBe('TEXTAREA');
@@ -786,7 +798,7 @@ describe('Baustelle anlegen wie in der Akte (G3, G4, G5)', () => {
     zeige();
     await formOeffnen();
     await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-051');
-    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await kundeWaehlen(userEvent.setup(), KUNDE.name);
     await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
 
     await waitFor(() => expect(lege).toHaveBeenCalled());
