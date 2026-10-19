@@ -1,45 +1,29 @@
 /**
- * DIE KNAPPEN ARTIKEL DER STARTSEITE UNTER ALLEN LAGERARTIKELN (Analyse
- * 09.10.2026, „Nebenbei gefundene Lücken“).
+ * DIE KNAPPEN ARTIKEL DER STARTSEITE.
  *
- * Bisher suchte die Startseite unter den ersten 1.000 Artikeln des Katalogs
- * (`listMaterials`) und fragte `lager_frei()` ohne Liste, das ebenfalls bei
- * 1.000 Zeilen endete. Mit einem eingespielten Großhandelskatalog fehlte ein
- * knapper Lagerartikel still. Jetzt: alle im Lager geführten Artikel
- * (`listLagerartikel`) und das Freie genau für sie.
+ * Analyse 09.10.2026: die Startseite suchte unter den ersten 1.000 Artikeln
+ * des Katalogs; mit einem eingespielten Großhandelskatalog fehlte ein knapper
+ * Lagerartikel still. Danach holte sie alle Lagerartikel und ihr Freies.
  *
- * Gegenprobe: `listMaterials` liefert hier, wie die Datenbank, nur die ersten
- * 1.000 — der alte Weg fand den Artikel Nr. 1.100 nicht.
+ * Ladezeit 19.10.2026: die Datenbank rechnet die Regel (`lager_knapp`, siehe
+ * `tests/supabase/schmaleAbfragen.test.ts` — dort auch, dass sie dieselbe
+ * Antwort gibt wie der Weg im Browser). Hier: die Startseite fragt genau
+ * danach, mit der Grenze der Lagerliste, und holt dafür keinen Artikel mehr.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Material } from '@/types';
 
-const LAGER: Array<Material & { id: string }> = Array.from({ length: 1200 }, (_, i) => ({
-  id: `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
-  name: `Artikel ${i}`,
-  stock: 50,
-  unit: 'Stk',
-  lagerartikel: true,
-})) as Array<Material & { id: string }>;
-LAGER[1100] = { ...LAGER[1100], name: 'Knapp hinten', stock: 2 };
-// Im Regal genug, aber fast alles zugesagt: knapp ist, was FREI ist.
-LAGER[10] = { ...LAGER[10], name: 'Zugesagt', stock: 20 };
-
-const gefragt: string[][] = [];
+const KNAPP = [
+  { id: 'a', name: 'Knapp hinten', unit: 'Stk', mindestmenge: null, frei: 2 },
+  { id: 'b', name: 'Zugesagt', unit: 'Stk', mindestmenge: null, frei: 3 },
+];
+const lagerKnapp = vi.fn(async (grenze: number) => (grenze >= 0 ? KNAPP : []));
+const listLagerartikel = vi.fn(async () => []);
+const lagerFrei = vi.fn(async () => new Map());
 vi.mock('@/lib/db/materials', () => ({
   LOW_STOCK_THRESHOLD: 5,
-  listMaterials: vi.fn(async () => LAGER.slice(0, 1000)),
-  listLagerartikel: vi.fn(async () => LAGER),
-  // Die Startseite fragt seit 19.10.2026 nur die Spalten für „knapp“ — dieselben Zeilen.
-  listLagerartikelKurz: vi.fn(async () => LAGER),
-  lagerFrei: vi.fn(async (ids?: readonly string[]) => {
-    gefragt.push([...(ids ?? [])]);
-    const liste = ids ? LAGER.filter((m) => ids.includes(m.id)) : LAGER.slice(0, 1000);
-    return new Map(liste.map((m) => {
-      const zugesagt = m.name === 'Zugesagt' ? 17 : 0;
-      return [m.id, { bestand: m.stock, zugesagt, geplant: 0, frei: m.stock - zugesagt }];
-    }));
-  }),
+  lagerKnapp: (g: number) => lagerKnapp(g),
+  listLagerartikel: () => listLagerartikel(),
+  lagerFrei: () => lagerFrei(),
 }));
 vi.mock('@/lib/db/materialOrders', () => ({ listOpenOrders: vi.fn(async () => []) }));
 vi.mock('@/lib/db/einkauf', () => ({ listLagerPosten: vi.fn(async () => []) }));
@@ -47,29 +31,28 @@ vi.mock('@/lib/db/einkauf', () => ({ listLagerPosten: vi.fn(async () => []) }));
 const { lager } = await import('@/features/dashboard/start/laden');
 const k = { user: { uid: 'u1', companyId: 'c1', role: 'Verwaltung' as const }, company: null, heute: '2026-10-10' };
 
-beforeEach(() => { gefragt.length = 0; });
+beforeEach(() => {
+  lagerKnapp.mockClear();
+  listLagerartikel.mockClear();
+  lagerFrei.mockClear();
+});
 
 describe('knappe Artikel der Startseite', () => {
-  it('findet einen knappen Artikel hinter den ersten 1.000 des Katalogs', async () => {
+  it('fragt die Datenbank nach den knappen, mit der Grenze der Lagerliste', async () => {
     const d = await lager(k, { posten: false, bestand: true });
-    expect(d.knapp?.map((a) => a.name)).toContain('Knapp hinten');
+    expect(lagerKnapp).toHaveBeenCalledWith(5);
+    expect(d.knapp).toEqual(KNAPP);
   });
 
-  it('rechnet mit dem Freien, nicht mit dem Regal — wie bisher', async () => {
-    const d = await lager(k, { posten: false, bestand: true });
-    expect(d.knapp?.find((a) => a.name === 'Zugesagt')?.frei).toBe(3);
-    expect(d.knapp?.some((a) => a.name === 'Artikel 0')).toBe(false);
-  });
-
-  it('fragt das Freie genau für die Lagerartikel', async () => {
+  it('holt dafür weder die Lagerartikel noch ihr Freies in den Browser', async () => {
     await lager(k, { posten: false, bestand: true });
-    expect(gefragt).toHaveLength(1);
-    expect(gefragt[0]).toEqual(LAGER.map((m) => m.id));
+    expect(listLagerartikel).not.toHaveBeenCalled();
+    expect(lagerFrei).not.toHaveBeenCalled();
   });
 
   it('fragt ohne Bestand nichts', async () => {
     const d = await lager(k, { posten: false, bestand: false });
     expect(d.knapp).toBeUndefined();
-    expect(gefragt).toHaveLength(0);
+    expect(lagerKnapp).not.toHaveBeenCalled();
   });
 });

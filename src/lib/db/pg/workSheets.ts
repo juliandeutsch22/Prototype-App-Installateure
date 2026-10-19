@@ -187,6 +187,21 @@ export async function listRecentWorkSheets(companyId: string, max = 100) {
 }
 
 /**
+ * Dieselben Scheine wie `listRecentWorkSheets`, nur der Kopf, den „nicht
+ * verrechnet“ auf der Startseite zeigt (Ladezeit, 19.10.2026). Stunden,
+ * Material und Fotos waren drei Abfragen mehr, bevor gefragt werden konnte,
+ * was davon schon auf einer Rechnung steht. Gleiche Sortierung und Grenze:
+ * sonst gälten auf der Startseite andere Scheine als unter Rechnungen.
+ */
+export function listRecentWorkSheetKoepfe(companyId: string, max = 100) {
+  return abfragen<Pick<WorkSheet, 'projectNumber' | 'customerName' | 'datum' | 'status'>>(SCHEINE, companyId, {
+    spalten: 'id,project_number,customer_name,datum,status',
+    sortiere: { feld: 'createdAt', absteigend: true },
+    grenze: max,
+  });
+}
+
+/**
  * Die EIGENEN Scheine ab einem Tag — für die offenen Zeit-Nachtragungen.
  *
  * Eng gefasst, und zwar aus Gewicht: ein unterschriebener Schein trägt zwei

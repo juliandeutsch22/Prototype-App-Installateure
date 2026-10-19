@@ -326,13 +326,32 @@ function eindeutig(zeilen: WithId<Material>[]): WithId<Material>[] {
 }
 
 /**
- * Die Lagerartikel mit nur dem, was „knapp“ braucht — für die Startseite
- * (Ladezeit, 19.10.2026). Preise, Warengruppe und Beschreibung gehören
- * nicht zur Frage, welche Fächer leer werden.
+ * DIE KNAPPEN LAGERARTIKEL, AUS DER DATENBANK (Ladezeit, 19.10.2026).
+ *
+ * Bis hierher holte die Startseite alle Lagerartikel und danach ihr Freies,
+ * um darunter die knappen zu finden — vier Wege durchs Netz hintereinander,
+ * mit jedem Artikel mehr länger. `lager_knapp` rechnet dieselbe Regel wie die
+ * Lagerliste (`istKnapp`) in der Datenbank und gibt nur die knappen zurück.
+ * Seitenweise, weil auch die Antwort einer Funktion bei 1.000 Zeilen endet.
  */
-export function listLagerartikelKurz(companyId: string) {
-  return abfragen<Pick<Material, 'name' | 'unit' | 'stock' | 'mindestmenge' | 'lagerartikel'>>(MATERIAL, companyId, {
-    wo: [{ art: 'gleich', feld: 'lagerartikel', wert: true }],
-    spalten: 'id,name,unit,stock,mindestmenge,lagerartikel',
-  });
+export async function lagerKnapp(
+  grenze: number,
+  seite = SEITE,
+): Promise<{ id: string; name: string; unit?: string; mindestmenge: number | null; frei: number }[]> {
+  type Zeile = { id: string; name: string; unit: string | null; mindestmenge: number | string | null; frei: number | string };
+  const alle: Zeile[] = [];
+  for (let von = 0; ; von += seite) {
+    const { data, error } = await derClient().rpc('lager_knapp', { p_grenze: grenze }).range(von, von + seite - 1);
+    if (error) throw new Error(error.message);
+    const teil = (data ?? []) as Zeile[];
+    alle.push(...teil);
+    if (teil.length < seite) break;
+  }
+  return alle.map((z) => ({
+    id: z.id,
+    name: z.name,
+    ...(z.unit ? { unit: z.unit } : {}),
+    mindestmenge: z.mindestmenge == null ? null : Number(z.mindestmenge),
+    frei: Number(z.frei),
+  }));
 }

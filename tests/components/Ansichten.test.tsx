@@ -197,3 +197,58 @@ describe('Der Ladebalken', () => {
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
 });
+
+/*
+  DEN BAUSTEIN DER GEÖFFNETEN SEITE SCHON BEIM START (Ladezeit, 19.10.2026).
+  Gegenprobe: ohne `startansichtVorladen` fragt erst React nach ihm — nach
+  der Anmeldung; hier gibt es die Funktion dann gar nicht (rot).
+*/
+describe('Startansicht vorladen', () => {
+  it('holt die Ansicht des geöffneten Pfades sofort — und das Öffnen übernimmt sie', async () => {
+    const start = steuerbar('Start');
+    const zeit = steuerbar('Zeiterfassung');
+    A.ansicht('/', start.laden);
+    const Zeit = A.ansicht('/time', zeit.laden);
+    A.startansichtVorladen('/time');
+    expect(zeit.laden).toHaveBeenCalledTimes(1);
+    expect(start.laden).not.toHaveBeenCalled();
+    await zeit.kommt();
+    render(<Suspense fallback={<p>wartet</p>}><Zeit /></Suspense>);
+    expect(await screen.findByText('Zeiterfassung')).toBeInTheDocument();
+    expect(zeit.laden).toHaveBeenCalledTimes(1);
+  });
+
+  it('eine Akte gehört zum längsten passenden Menüpfad; Liste und Akte kommen zugleich', async () => {
+    const start = steuerbar('Start');
+    const liste = steuerbar('Kunden');
+    const akte = steuerbar('Kundenakte');
+    A.ansicht('/', start.laden);
+    A.ansicht('/customers', liste.laden);
+    A.ansicht('/customers', akte.laden);
+    A.startansichtVorladen('/customers/k-17');
+    expect(liste.laden).toHaveBeenCalledTimes(1);
+    expect(akte.laden).toHaveBeenCalledTimes(1);
+    expect(start.laden).not.toHaveBeenCalled();
+  });
+
+  it('auch im Datensparmodus — es ist die Seite, die ohnehin aufgeht', async () => {
+    const zeit = steuerbar('Zeiterfassung');
+    A.ansicht('/time', zeit.laden);
+    A.vorladenAbschalten();
+    A.startansichtVorladen('/time');
+    expect(zeit.laden).toHaveBeenCalledTimes(1);
+  });
+
+  it('ein unbekannter Pfad holt nichts; ein Fehler bleibt still und das Öffnen holt neu', async () => {
+    const zeit = steuerbar('Zeiterfassung');
+    const Zeit = A.ansicht('/time', zeit.laden);
+    A.startansichtVorladen('/gibt-es-nicht');
+    expect(zeit.laden).not.toHaveBeenCalled();
+    A.startansichtVorladen('/time');
+    expect(A.nurHintergrundLaedt()).toBe(true);
+    await zeit.scheitert();
+    expect(A.nurHintergrundLaedt()).toBe(false);
+    render(<Suspense fallback={<p>wartet</p>}><Zeit /></Suspense>);
+    expect(zeit.laden).toHaveBeenCalledTimes(2);
+  });
+});

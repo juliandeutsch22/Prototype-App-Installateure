@@ -16,7 +16,7 @@ import type {
   Wartung,
 } from '@/types';
 import { getUserByUid, listUsers } from '@/lib/db/users';
-import { listOwnEntriesSince, listOwnEntriesInRange, listBuchungstageInRange, stundenDerBaustellen } from '@/lib/db/timeEntries';
+import { listOwnEntriesSince, listOwnEntriesInRange, buchungstage, stundenDerBaustellen } from '@/lib/db/timeEntries';
 import { getGeburtsdatum } from '@/lib/db/arbeitszeitGrenzen';
 import { andereVerteilung, grenzfaelle, istJugendlich, type Grenzfall } from '@/features/accounting/arbeitszeitGrenzen';
 import {
@@ -28,11 +28,11 @@ import {
 import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
 import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
 import { listLagerPosten } from '@/lib/db/einkauf';
-import { lagerFrei, listLagerartikelKurz, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
+import { lagerKnapp, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
 import { listGarantienEndenIn, listUnpaidInvoices, listInvoicesByIds, scheineAufRechnung, type GarantieRechnung } from '@/lib/db/invoices';
 import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
-import { listRecentWorkSheets, listOwnWorkSheetsSince } from '@/lib/db/workSheets';
+import { listRecentWorkSheetKoepfe, listOwnWorkSheetsSince } from '@/lib/db/workSheets';
 import { listAbwesendInRange, listOpenVacations, type Abwesenheit } from '@/lib/db/vacations';
 import { listOffeneFreistellungen } from '@/lib/db/freistellungen';
 import { listTermineImZeitraum } from '@/lib/db/termine';
@@ -56,7 +56,6 @@ import { offeneNachtraege, NACHTRAG_TAGE, type OffenerNachtrag } from '@/feature
 import { unverrechneteScheine, UNVERRECHNET_BASIS } from '@/features/worksheets/unverrechnet';
 import { mahnlauf, type Mahnlauf } from '@/features/invoices/mahnlauf';
 import { basiszinsVerlauf, halbjahresbeginn } from '@/features/invoices/mahnung';
-import { imLager, istKnapp } from '@/features/orders/lagerartikel';
 import { monateDazu } from '@/features/maintenance/wartungsplan';
 import { eigenerResturlaub, eigenerSaldo } from './eigeneKonten';
 import { budgetStand, ohneEinsatzListe, planFenster } from '@/features/projects/baustellenLage';
@@ -368,21 +367,19 @@ export async function lager(
   const [orders, posten, bestand] = await Promise.all([
     listOpenOrders(user.companyId),
     was.posten ? still(() => listLagerPosten(user.companyId), [] as EinkaufPosten[]) : Promise.resolve([]),
-    was.bestand ? knappeArtikel(user.companyId) : Promise.resolve(undefined),
+    was.bestand ? knappeArtikel() : Promise.resolve(undefined),
   ]);
   return { orders, lagerPosten: posten, knapp: bestand };
 }
 
-async function knappeArtikel(companyId: string): Promise<KnapperArtikel[]> {
-  // Alle Lagerartikel, nicht die ersten 1.000 des Katalogs — und das Freie genau für sie.
-  const artikel = await listLagerartikelKurz(companyId);
-  const frei = await lagerFrei(artikel.map((m) => m.id));
-  return artikel
-    .filter((m) => imLager(m))
-    .map((m) => ({ m, frei: frei.get(m.id)?.frei ?? m.stock }))
-    // Wie die Lagerliste: unter der Mindestmenge, ohne Mindestmenge ab der Grenze.
-    .filter(({ m, frei: f }) => istKnapp(f, m, LOW_STOCK_THRESHOLD))
-    .map(({ m, frei: f }) => ({ id: m.id, name: m.name, unit: m.unit, frei: f, mindestmenge: m.mindestmenge }));
+async function knappeArtikel(): Promise<KnapperArtikel[]> {
+  /*
+    Gerechnet in der Datenbank (`lager_knapp`, Ladezeit 19.10.2026): dieselbe
+    Regel wie die Lagerliste (`istKnapp` — unter der Mindestmenge, ohne
+    Mindestmenge ab der Grenze), über alle Lagerartikel. Bis hierher kamen
+    dafür jeder Lagerartikel und sein Freies in den Browser.
+  */
+  return lagerKnapp(LOW_STOCK_THRESHOLD);
 }
 
 // ──────────────────────────────────────────────────────────── Buchhaltung ──
@@ -393,39 +390,43 @@ export async function buchhaltung(
 ): Promise<Partial<StartDaten>> {
   const { user, heute, company } = k;
   const out: Partial<StartDaten> = {};
-  if (was.rechnungen) {
-    const monatsErster = `${heute.slice(0, 7)}-01`;
-    const [unbezahlt, zahlungen, garantien] = await Promise.all([
-      listUnpaidInvoices(user.companyId),
-      still(() => listZahlungenImZeitraum(user.companyId, monatsErster, heute), []),
-      // Still: fehlt die Erinnerung, bleibt der Rest der Startseite.
-      still(() => listGarantienEndenIn(user.companyId, tageVerschoben(heute, -GARANTIE_NACHLAUF_TAGE), tageVerschoben(heute, GARANTIE_VORLAUF_TAGE)), []),
-    ]);
-    out.unbezahlt = unbezahlt;
-    out.garantien = garantien;
-    out.lauf = mahnlauf(unbezahlt, heute, company?.rates);
-    // Die Rechnungen hinter den Zahlungen — für Namen, Nummer und den Stand.
-    const ids = [...new Set(zahlungen.map((z) => z.invoiceId))];
-    const rechnungen = ids.length ? await still(() => listInvoicesByIds(user.companyId, ids), []) : [];
-    const nachId = new Map(rechnungen.map((r) => [r.id, r]));
-    // Zahlungen auf eine stornierte Rechnung sind Guthaben, keine beglichene Forderung (M13).
-    const zaehlt = zahlungen.filter((z) => z.art !== 'Skonto' && nachId.get(z.invoiceId)?.paymentStatus !== 'Storniert');
-    out.bezahltImMonat = {
-      summe: Math.round(zaehlt.reduce((s, z) => s + (Number(z.betrag) || 0), 0) * 100) / 100,
-      anzahl: new Set(zaehlt.map((z) => z.invoiceId)).size,
-    };
-    out.zahlungenHeute = zahlungen
-      .filter((z) => z.datum === heute)
-      .map((z) => ({ id: z.id, betrag: Number(z.betrag) || 0, art: z.art, rechnung: nachId.get(z.invoiceId) ?? null }));
-  }
-  if (was.scheine) {
-    out.unverrechnet = await still(async () => {
-      const scheine = await listRecentWorkSheets(user.companyId, UNVERRECHNET_BASIS);
-      // Ob verrechnet, sagt die Abdeckung über ALLE Rechnungen (P2-03) — wie unter Rechnungen.
-      const verrechnet = await scheineAufRechnung(user.companyId, scheine.map((s) => s.id));
-      return unverrechneteScheine(scheine, [{ linkedWorkSheets: verrechnet, paymentStatus: 'Offen' }], heute);
-    }, undefined);
-  }
+  // Rechnungen und Scheine hängen nicht voneinander ab: gleichzeitig (Ladezeit, 19.10.2026).
+  await Promise.all([
+    was.rechnungen ? (async () => {
+      const monatsErster = `${heute.slice(0, 7)}-01`;
+      const [unbezahlt, [zahlungen, rechnungen], garantien] = await Promise.all([
+        listUnpaidInvoices(user.companyId),
+        // Die Rechnungen hinter den Zahlungen — für Namen, Nummer und den Stand —, sobald die Zahlungen da sind.
+        still(() => listZahlungenImZeitraum(user.companyId, monatsErster, heute), []).then(async (zahlungen) => {
+          const ids = [...new Set(zahlungen.map((z) => z.invoiceId))];
+          return [zahlungen, ids.length ? await still(() => listInvoicesByIds(user.companyId, ids), []) : []] as const;
+        }),
+        // Still: fehlt die Erinnerung, bleibt der Rest der Startseite.
+        still(() => listGarantienEndenIn(user.companyId, tageVerschoben(heute, -GARANTIE_NACHLAUF_TAGE), tageVerschoben(heute, GARANTIE_VORLAUF_TAGE)), []),
+      ]);
+      out.unbezahlt = unbezahlt;
+      out.garantien = garantien;
+      out.lauf = mahnlauf(unbezahlt, heute, company?.rates);
+      const nachId = new Map(rechnungen.map((r) => [r.id, r]));
+      // Zahlungen auf eine stornierte Rechnung sind Guthaben, keine beglichene Forderung (M13).
+      const zaehlt = zahlungen.filter((z) => z.art !== 'Skonto' && nachId.get(z.invoiceId)?.paymentStatus !== 'Storniert');
+      out.bezahltImMonat = {
+        summe: Math.round(zaehlt.reduce((s, z) => s + (Number(z.betrag) || 0), 0) * 100) / 100,
+        anzahl: new Set(zaehlt.map((z) => z.invoiceId)).size,
+      };
+      out.zahlungenHeute = zahlungen
+        .filter((z) => z.datum === heute)
+        .map((z) => ({ id: z.id, betrag: Number(z.betrag) || 0, art: z.art, rechnung: nachId.get(z.invoiceId) ?? null }));
+    })() : undefined,
+    was.scheine ? (async () => {
+      out.unverrechnet = await still(async () => {
+        const scheine = await listRecentWorkSheetKoepfe(user.companyId, UNVERRECHNET_BASIS);
+        // Ob verrechnet, sagt die Abdeckung über ALLE Rechnungen (P2-03) — wie unter Rechnungen.
+        const verrechnet = await scheineAufRechnung(user.companyId, scheine.map((s) => s.id));
+        return unverrechneteScheine(scheine, [{ linkedWorkSheets: verrechnet, paymentStatus: 'Offen' }], heute);
+      }, undefined);
+    })() : undefined,
+  ]);
   return out;
 }
 
@@ -437,34 +438,37 @@ export async function team(
 ): Promise<Partial<StartDaten>> {
   const { user } = k;
   const out: Partial<StartDaten> = {};
-  if (was.luecken) {
-    const fenster = tageZurueck(LUECKEN_TAGE);
-    const [alle, eintraege] = await Promise.all([
-      belegschaftVon(k),
-      // Nur Person und Tag: mehr braucht „Tage ohne Buchung“ nicht (Ladezeit, 19.10.2026).
-      listBuchungstageInRange(user.companyId, localDateStr(fenster), todayStr()),
-    ]);
-    out.team = alle
-      .filter((u) => fuehrtZeitkonto(u) && u.active !== false && !!u.appStartDate)
-      .map((u) => {
-        const eigene = eintraege.filter((e) => e.userId === u.uid);
-        const zuletzt = eigene.map((e) => e.date).filter((d) => d <= k.heute).sort().pop();
-        const fehlend = offeneWerktage(u, eigene, fenster, new Date());
-        return {
-          uid: u.uid,
-          name: u.name,
-          fehlendeTage: fehlend.length,
-          aeltesterTag: fehlend[0],
-          zuletztGebucht: zuletzt,
-        };
-      });
-  }
-  if (was.urlaub) {
-    out.antraege = await listOpenVacations(user.companyId, 100);
-  }
-  if (was.freistellungen) {
-    out.freistellungen = await listOffeneFreistellungen(user.companyId);
-  }
+  /*
+    Die drei Fragen hängen nicht voneinander ab und laufen gleichzeitig
+    (Ladezeit, 19.10.2026) — hintereinander addierten sich ihre Wege durchs
+    Netz. Scheitert eine, scheitert der Block wie bisher.
+  */
+  await Promise.all([
+    was.luecken ? (async () => {
+      const fenster = tageZurueck(LUECKEN_TAGE);
+      const [alle, eintraege] = await Promise.all([
+        belegschaftVon(k),
+        // Jeder Tag je Person einmal: mehr braucht „Tage ohne Buchung“ nicht (Ladezeit, 19.10.2026).
+        buchungstage(localDateStr(fenster), todayStr()),
+      ]);
+      out.team = alle
+        .filter((u) => fuehrtZeitkonto(u) && u.active !== false && !!u.appStartDate)
+        .map((u) => {
+          const eigene = eintraege.filter((e) => e.userId === u.uid);
+          const zuletzt = eigene.map((e) => e.date).filter((d) => d <= k.heute).sort().pop();
+          const fehlend = offeneWerktage(u, eigene, fenster, new Date());
+          return {
+            uid: u.uid,
+            name: u.name,
+            fehlendeTage: fehlend.length,
+            aeltesterTag: fehlend[0],
+            zuletztGebucht: zuletzt,
+          };
+        });
+    })() : undefined,
+    was.urlaub ? listOpenVacations(user.companyId, 100).then((a) => { out.antraege = a; }) : undefined,
+    was.freistellungen ? listOffeneFreistellungen(user.companyId).then((f) => { out.freistellungen = f; }) : undefined,
+  ]);
   return out;
 }
 
@@ -479,6 +483,8 @@ export async function leitung(
   const montag = montagDer(heute);
   const woche = wocheAb(montag);
   const { von: vorher, bis } = planFenster(heute);
+  // Die fälligen Wartungen hängen an nichts hier: gleich mit losschicken (Ladezeit, 19.10.2026).
+  const wartungen = was.wartung ? still(() => listFaelligeWartungen(user.companyId, monateDazu(heute, 1)), []) : undefined;
   const [projekte, alle, einsaetzeHeute, abwesend, plan] = await Promise.all([
     listActiveProjects(user.companyId),
     belegschaftVon(k),
@@ -541,9 +547,7 @@ export async function leitung(
       : [];
   }
 
-  if (was.wartung) {
-    out.wartungen = await still(() => listFaelligeWartungen(user.companyId, monateDazu(heute, 1)), []);
-  }
+  if (wartungen) out.wartungen = await wartungen;
   return out;
 }
 

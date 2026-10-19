@@ -30,6 +30,11 @@ export function listRecentWorkSheets(
   return pg.listRecentWorkSheets(companyId, max);
 }
 
+/** Nur die Köpfe der jüngsten Scheine — siehe `pg.listRecentWorkSheetKoepfe`. */
+export function listRecentWorkSheetKoepfe(companyId: string, max = 100) {
+  return pg.listRecentWorkSheetKoepfe(companyId, max);
+}
+
 export function listOwnWorkSheetsSince(
   companyId: string, uid: string, abDatum: string, max = 20,
 ): Promise<WithId<WorkSheet>[]> {

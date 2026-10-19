@@ -102,6 +102,28 @@ export async function vorladen(pfade: readonly string[]): Promise<void> {
 }
 
 /**
+ * DEN BAUSTEIN DER SEITE, DIE GERADE AUFGEHT, SCHON BEIM START HOLEN
+ * (Ladezeit, 19.10.2026).
+ *
+ * Bis hierher fragte React nach ihm erst, wenn die Anmeldung geprüft war —
+ * Zweitfaktor, Profil, Firma —, und erst dann ging er übers Netz. Er wird
+ * aber auf jeden Fall gebraucht; geholt wird er jetzt währenddessen. Kein
+ * Vorgriff auf andere Seiten, deshalb auch im Datensparmodus. Zu einem Pfad
+ * gehört die Ansicht mit dem längsten passenden Menüpfad (die Akte unter
+ * `/customers/…` gehört zu `/customers`); mehrere dort gleichzeitig.
+ */
+export function startansichtVorladen(pfad: string): void {
+  const menuepfad = [...LADER.keys()]
+    .filter((p) => p === pfad || (p !== '/' && pfad.startsWith(`${p}/`)))
+    .sort((a, b) => b.length - a.length)[0];
+  for (const holen of menuepfad ? LADER.get(menuepfad) ?? [] : []) {
+    hintergrund += 1;
+    // Scheitert es, kommt die Ansicht wie bisher beim Öffnen — mit dem Neuladen, das dort hingehört.
+    holen().catch(() => undefined).finally(() => { hintergrund -= 1; });
+  }
+}
+
+/**
  * Lädt gerade NUR das Vorladen? Dann ist ein gescheitertes Nachladen kein
  * Grund, die App neu zu laden (`lib/nachladen.ts`): niemand wartet darauf,
  * und ein Neuladen nähme womöglich eine halb ausgefüllte Maske mit.

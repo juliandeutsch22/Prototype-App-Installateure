@@ -10,6 +10,8 @@
 export interface Angemeldet {
   uid: string;
   email: string;
+  /** Das Zugangstoken der Sitzung — woran zwei Meldungen derselben Sitzung zu erkennen sind. */
+  sitzung?: string;
 }
 
 /**

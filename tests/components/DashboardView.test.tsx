@@ -175,7 +175,7 @@ vi.mock('@/lib/db/timeEntries', () => ({
   }),
   listOwnEntriesInRange: vi.fn(async () => buchungen),
   listEntriesInRange: vi.fn(async () => buchungen),
-  listBuchungstageInRange: vi.fn(async () => buchungen),
+  buchungstage: vi.fn(async () => buchungen.map((b) => ({ userId: b.userId, date: b.date }))),
   stundenDerBaustellen: vi.fn(async () => zeitenJeBaustelle),
 }));
 /** Offene Anforderungen, wie `listOpenOrders` sie liefert. */
@@ -191,7 +191,7 @@ vi.mock('@/lib/db/einkauf', () => ({ listLagerPosten: vi.fn(async () => []) }));
 vi.mock('@/lib/db/materials', () => ({
   LOW_STOCK_THRESHOLD: 5,
   listLagerartikel: vi.fn(async () => []),
-  listLagerartikelKurz: vi.fn(async () => []),
+  lagerKnapp: vi.fn(async () => []),
   lagerFrei: vi.fn(async () => new Map()),
 }));
 /** Die offenen Forderungen, wie `listUnpaidInvoices` sie liefert. */
@@ -204,6 +204,7 @@ vi.mock('@/lib/db/invoices', () => ({
 vi.mock('@/lib/db/zahlungen', () => ({ listZahlungenImZeitraum: vi.fn(async () => []) }));
 vi.mock('@/lib/db/workSheets', () => ({
   listRecentWorkSheets: vi.fn(async () => []),
+  listRecentWorkSheetKoepfe: vi.fn(async () => []),
   listOwnWorkSheetsSince: vi.fn(async () => []),
 }));
 vi.mock('@/lib/db/wartungen', () => ({ listFaelligeWartungen: vi.fn(async () => []) }));
