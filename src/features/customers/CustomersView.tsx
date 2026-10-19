@@ -45,6 +45,7 @@ const LEER: NewCustomer = {
   ort: '',
   land: 'AT',
   kundennummer: '',
+  lieferantennummer: '',
   contactName: '',
   contactPhone: '',
   email: '',
@@ -561,6 +562,7 @@ export default function CustomersView() {
                                 ort: k.ort ?? '',
                                 land: k.land ?? 'AT',
                                 kundennummer: k.kundennummer ?? '',
+                                lieferantennummer: k.lieferantennummer ?? '',
                                 contactName: k.contactName ?? '',
                                 contactPhone: k.contactPhone ?? '',
                                 email: k.email ?? '',
@@ -644,6 +646,13 @@ export default function CustomersView() {
             placeholder="z. B. 10001"
             value={form.kundennummer ?? ''}
             onChange={(e) => setForm({ ...form, kundennummer: e.target.value })}
+          />
+          <InputField
+            id="klief"
+            label="Unsere Lieferantennummer bei diesem Kunden (freiwillig)"
+            placeholder="für die E-Rechnung, z. B. 50012345"
+            value={form.lieferantennummer ?? ''}
+            onChange={(e) => setForm({ ...form, lieferantennummer: e.target.value })}
           />
           {/* Einspaltig: das Seitenfenster ist am Tablet 440 px breit. */}
           <FormGrid cols={1}>

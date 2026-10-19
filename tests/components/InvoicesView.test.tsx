@@ -3814,6 +3814,19 @@ describe('Paket 5a — die Rechnungsliste', () => {
     expect(screen.getAllByText('Stornorechnung').length).toBeGreaterThan(0);
   });
 
+  it('E-Rechnung (ebInterface): an der Rechnung und, nach dem Storno, auch für die Stornorechnung', async () => {
+    rechnungen = [
+      { id: 's', invoiceNumber: 'RE-2026-1500', projectNumber: '2026-042', customerName: 'Max',
+        invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Storniert', totalBrutto: 504,
+        stornoNummer: 'RE-2026-1510', stornoAm: Date.UTC(2026, 8, 20, 10) },
+    ] as unknown as (Invoice & { id: string })[];
+    zeige('/invoices?ansicht=alle');
+    const fenster = await rechnungOeffnen('RE-2026-1500');
+    expect(within(fenster).getByRole('button', { name: 'E-Rechnung (ebInterface) …' })).toBeInTheDocument();
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Stornorechnung als E-Rechnung …' }));
+    expect(await screen.findByRole('dialog', { name: 'E-Rechnung — Stornorechnung RE-2026-1510' })).toBeInTheDocument();
+  });
+
   /*
     TESTBERICHT 30.09.2026, M21 — „200 € zurückzuzahlen“ bei RE-2026-1500
     liess sich nicht als Rückzahlung buchen.
