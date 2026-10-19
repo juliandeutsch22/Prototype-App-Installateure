@@ -549,8 +549,15 @@ export default function AccountingView() {
     jahr: year,
     monat: month,
     aktualisiert: loading ? undefined : grenzStand,
-    aus: imSupport || !user || !belegschaftDa,
+    /*
+      ERST WENN DIE LISTE STEHT (Ladezeit, 19.10.2026): die Karte prüft mit
+      den Buchungen der Seite und holt selbst nur den Vorlauf für den
+      Durchschnitt — der teilte sich sonst die Leitung mit der Liste, und
+      die stand gemessen Sekunden später da.
+    */
+    aus: imSupport || !user || !belegschaftDa || loading,
     durchrechnungWochen: company?.durchrechnungWochen,
+    eintraegeDerSeite: entries,
   });
   const grenzenJePerson = useMemo(() => {
     const m = new Map<string, Grenzfall[]>();

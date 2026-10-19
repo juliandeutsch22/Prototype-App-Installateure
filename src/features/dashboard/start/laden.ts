@@ -16,19 +16,19 @@ import type {
   Wartung,
 } from '@/types';
 import { getUserByUid, listUsers } from '@/lib/db/users';
-import { listOwnEntriesSince, listOwnEntriesInRange, listEntriesInRange, stundenDerBaustellen } from '@/lib/db/timeEntries';
+import { listOwnEntriesSince, listOwnEntriesInRange, listBuchungstageInRange, stundenDerBaustellen } from '@/lib/db/timeEntries';
 import { getGeburtsdatum } from '@/lib/db/arbeitszeitGrenzen';
 import { andereVerteilung, grenzfaelle, istJugendlich, type Grenzfall } from '@/features/accounting/arbeitszeitGrenzen';
 import {
   listUpcomingAssignments,
   listAssignmentsForDate,
   listAssignmentsForUserInRange,
-  listAssignmentsInRange,
+  listEinsatztageInRange,
 } from '@/lib/db/assignments';
 import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
 import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
 import { listLagerPosten } from '@/lib/db/einkauf';
-import { lagerFrei, listLagerartikel, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
+import { lagerFrei, listLagerartikelKurz, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
 import { listGarantienEndenIn, listUnpaidInvoices, listInvoicesByIds, scheineAufRechnung, type GarantieRechnung } from '@/lib/db/invoices';
 import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
@@ -375,7 +375,7 @@ export async function lager(
 
 async function knappeArtikel(companyId: string): Promise<KnapperArtikel[]> {
   // Alle Lagerartikel, nicht die ersten 1.000 des Katalogs — und das Freie genau für sie.
-  const artikel = await listLagerartikel(companyId);
+  const artikel = await listLagerartikelKurz(companyId);
   const frei = await lagerFrei(artikel.map((m) => m.id));
   return artikel
     .filter((m) => imLager(m))
@@ -441,7 +441,8 @@ export async function team(
     const fenster = tageZurueck(LUECKEN_TAGE);
     const [alle, eintraege] = await Promise.all([
       belegschaftVon(k),
-      listEntriesInRange(user.companyId, localDateStr(fenster), todayStr()),
+      // Nur Person und Tag: mehr braucht „Tage ohne Buchung“ nicht (Ladezeit, 19.10.2026).
+      listBuchungstageInRange(user.companyId, localDateStr(fenster), todayStr()),
     ]);
     out.team = alle
       .filter((u) => fuehrtZeitkonto(u) && u.active !== false && !!u.appStartDate)
@@ -486,7 +487,8 @@ export async function leitung(
       ? still(() => listAbwesendInRange(woche[0] < heute ? woche[0] : heute, woche[6] > heute ? woche[6] : heute), [] as Abwesenheit[])
       : Promise.resolve([] as Abwesenheit[]),
     was.einsatzplanung
-      ? still(() => listAssignmentsInRange(user.companyId, vorher < montag ? vorher : montag, bis > woche[6] ? bis : woche[6]), [])
+      // Nur Person, Tag und Baustelle — siehe `listEinsatztageInRange` (Ladezeit, 19.10.2026).
+      ? still(() => listEinsatztageInRange(user.companyId, vorher < montag ? vorher : montag, bis > woche[6] ? bis : woche[6]), [])
       : Promise.resolve([]),
   ]);
   out.projekte = projekte;

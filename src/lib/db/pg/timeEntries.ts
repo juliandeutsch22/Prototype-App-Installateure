@@ -306,3 +306,19 @@ export function aendernOhneEmpfang(id: string, data: Partial<TimeEntry>) {
 export function loeschen(id: string) {
   return kernLoeschen(ZEITEN, id);
 }
+
+/**
+ * Nur wer an welchem Tag gebucht hat — für „Tage ohne Buchung“ auf der
+ * Startseite (Ladezeit, 19.10.2026). Fünf Wochen ganzer Buchungen aller
+ * Personen waren das grösste Stück der Startseite; die Frage braucht davon
+ * zwei Spalten.
+ */
+export function listBuchungstageInRange(companyId: string, from: string, to: string) {
+  return abfragen<Pick<TimeEntry, 'userId' | 'date'>>(ZEITEN, companyId, {
+    wo: [
+      { art: 'ab', feld: 'date', wert: from },
+      { art: 'bis', feld: 'date', wert: to },
+    ],
+    spalten: 'id,user_id,date',
+  });
+}
