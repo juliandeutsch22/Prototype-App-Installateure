@@ -32,3 +32,36 @@ Gemessen am 19.10.2026 · 3 Läufe je Seite, Median · Handy 390 × 844, langsam
 - **Kunden** (`/customers`): customers 200 Zeilen
 - **Mitarbeiterübersicht** (`/accounting`): time_entries 2 640 Zeilen in 12 Anfragen; monthly_stats 1 180 Zeilen in 3 Anfragen; rpc/baustellen_stunden 120 Zeilen
 <!-- messung-wiederkehr:ende -->
+
+<!-- messung:anfang (erzeugt von scripts/ui-umbau/messung.mjs) -->
+Gemessen am 19.10.2026 · 3 Läufe je Seite, Median · Handy 390 × 844, langsames 4G (150 ms, 1,6 Mbit/s), CPU ×4, erster Besuch ohne Zwischenspeicher · ausgeliefert wie draussen (HTTP/2, gepackt, `auslieferung.mjs`) · angemeldet als Geschäftsführung des Testbetriebs `ui-testbestand`.
+
+| Seite | Pfad | erste Anzeige (FCP) | Inhalt da (h1) | bereit (ohne Platzhalter) | Netz ruhig | Anfragen | übertragen | DB-Anfragen | DB-Daten | grösste Liste (Zeilen) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Start | `/` | 1,4 s | 2,2 s | 3,1 s | 3,4 s | 188 | 306 KB | 31 | 63 KB | 198 (invoice_lines) |
+| Planung (Tag) | `/assignments/tag` | 1,4 s | 2,7 s | 3,0 s | 4,5 s | 174 | 287 KB | 18 | 38 KB | 600 (assignments) |
+| Planung (Woche) | `/assignments/woche` | 1,4 s | 2,6 s | 2,6 s | 4,0 s | 170 | 265 KB | 14 | 17 KB | 120 (assignments) |
+| Lager | `/lager` | 1,4 s | 2,1 s | 3,3 s | 4,5 s | 172 | 297 KB | 15 | 89 KB | 1 600 (materials) |
+| Anforderungen | `/anforderungen` | 1,3 s | 2,1 s | 2,3 s | 3,8 s | 165 | 230 KB | 9 | 23 KB | 400 (material_orders) |
+| Material anfordern | `/material` | 1,3 s | 2,1 s | 2,2 s | 3,7 s | 169 | 220 KB | 13 | 17 KB | 120 (projects) |
+| Rechnungen | `/invoices` | 1,3 s | 2,2 s | 3,2 s | 4,2 s | 185 | 279 KB | 28 | 94 KB | 398 (invoice_lines) |
+| Angebote | `/quotes` | 1,5 s | 2,7 s | 2,7 s | 3,1 s | 164 | 239 KB | 7 | 23 KB | 200 (quote_lines) |
+| Baustellen | `/admin-projects` | 1,4 s | 2,7 s | 2,9 s | 4,2 s | 165 | 278 KB | 9 | 37 KB | 600 (projects) |
+| Kunden | `/customers` | 1,4 s | 2,1 s | 2,3 s | 2,9 s | 162 | 231 KB | 6 | 13 KB | 200 (customers) |
+| Mitarbeiterübersicht | `/accounting` | 1,3 s | 2,6 s | 3,6 s | 7,2 s | 184 | 379 KB | 27 | 132 KB | 2 640 (time_entries) |
+| Einstellungen | `/settings/meldungen` | 1,3 s | 2,6 s | 2,6 s | 2,8 s | 164 | 254 KB | 8 | 2 KB | 2 (rpc/mein_zweiter_faktor) |
+
+**Antworten mit mehr als 50 Zeilen** (Budget B3: höchstens 50 je Anfrage, kein ganzer Bestand):
+
+- **Start** (`/`): invoice_lines 198 Zeilen; rpc/baustellen_stunden 120 Zeilen; invoices 99 Zeilen in 2 Anfragen; rpc/lager_knapp 96 Zeilen; wartungen 95 Zeilen; assignments 80 Zeilen in 2 Anfragen; projects 60 Zeilen; work_sheets 60 Zeilen
+- **Planung (Tag)** (`/assignments/tag`): assignments 600 Zeilen in 2 Anfragen; projects 120 Zeilen in 2 Anfragen
+- **Planung (Woche)** (`/assignments/woche`): assignments 120 Zeilen in 2 Anfragen; projects 60 Zeilen
+- **Lager** (`/lager`): materials 1 600 Zeilen in 6 Anfragen; rpc/lager_frei 800 Zeilen in 2 Anfragen; material_orders 400 Zeilen in 2 Anfragen
+- **Anforderungen** (`/anforderungen`): material_orders 400 Zeilen in 2 Anfragen
+- **Material anfordern** (`/material`): projects 120 Zeilen in 2 Anfragen
+- **Rechnungen** (`/invoices`): invoice_lines 398 Zeilen in 3 Anfragen; invoices 199 Zeilen in 3 Anfragen; customers 184 Zeilen in 3 Anfragen; projects 60 Zeilen; work_sheets 60 Zeilen; work_sheet_hours 60 Zeilen; work_sheet_material 60 Zeilen
+- **Angebote** (`/quotes`): quote_lines 200 Zeilen; quotes 100 Zeilen
+- **Baustellen** (`/admin-projects`): projects 600 Zeilen in 2 Anfragen
+- **Kunden** (`/customers`): customers 200 Zeilen
+- **Mitarbeiterübersicht** (`/accounting`): time_entries 2 640 Zeilen in 11 Anfragen; monthly_stats 1 180 Zeilen in 3 Anfragen; rpc/baustellen_stunden 120 Zeilen
+<!-- messung:ende -->
