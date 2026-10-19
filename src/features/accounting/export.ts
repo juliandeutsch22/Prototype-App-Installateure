@@ -215,6 +215,10 @@ export function buildMonthCsv(
       // Nachtstunden, die Überstunden sind — für sie gilt der Zuschlag statt
       // der Nachtarbeitszulage (KV Metallgewerbe, Abschnitt XIV Pkt 5).
       ...(mitTagesgrenze(lohn) ? ['davon Nacht als Überstunde(Std)'] : []),
+      // Seit 19.10.2026, wieder ganz hinten: Mehrarbeit in Teilzeit (§ 19d
+      // AZG) steht in keiner der Überstundenspalten — ob sie 25 % trägt oder
+      // im Quartal ausgeglichen wird, entscheidet die Lohnverrechnung.
+      ...(mitTagesgrenze(lohn) ? ['Mehrarbeit Teilzeit(Std)'] : []),
     ]),
   );
   // Das Lehrjahr am letzten Tag des Monats: wechselt es mittendrin, gilt für die Abrechnung der neue Stand.
@@ -251,6 +255,7 @@ export function buildMonthCsv(
         hours(stats.freigestelltMin),
         stats.unbezahltDays,
         ...(mitTagesgrenze(lohn) && ue ? [hours(ue.nachtAlsUeberstundeMin ?? 0)] : []),
+        ...(mitTagesgrenze(lohn) && ue ? [hours(ue.mehrarbeitTeilzeitMin ?? 0)] : []),
       ]),
     );
   }
@@ -410,6 +415,9 @@ export function buildUserCsv(
     lines.push(row(['Überstunden 100 %', `${hours(ue.hundertMin)} h`]));
     if (ue.nachtAlsUeberstundeMin !== undefined) {
       lines.push(row(['davon Nacht als Überstunde', `${hours(ue.nachtAlsUeberstundeMin)} h`]));
+    }
+    if (ue.mehrarbeitTeilzeitMin !== undefined) {
+      lines.push(row(['Mehrarbeit Teilzeit', `${hours(ue.mehrarbeitTeilzeitMin)} h`]));
     }
   }
 

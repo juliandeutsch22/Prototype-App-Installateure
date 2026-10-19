@@ -7,6 +7,7 @@ import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/F
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { decktKvNacht, nachtzeitVon, ueberstundenRegelVon } from '@/lib/lohnregeln';
+import { leseZahl } from '@/lib/zahl';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { durchrechnungsWochen } from '@/features/accounting/arbeitszeitGrenzen';
 
@@ -29,6 +30,8 @@ export default function LohnregelnKarte() {
   const [grenze, setGrenze] = useState<'tagessoll' | 'zehn'>('tagessoll');
   const [hundert, setHundert] = useState(false);
   const [kvMetall, setKvMetall] = useState(true);
+  /** Als Text wie die Durchrechnung — „38,5“ mit Komma. */
+  const [vollzeit, setVollzeit] = useState('38,5');
   /** Als Text — das Feld darf beim Tippen kurz leer oder unfertig sein. */
   const [durchrechnung, setDurchrechnung] = useState('17');
   const [speichert, setSpeichert] = useState(false);
@@ -42,8 +45,11 @@ export default function LohnregelnKarte() {
     setGrenze(regel.grenze);
     setHundert(regel.hundertSonnFeiertag);
     setKvMetall(regel.kvMetall);
+    setVollzeit(String(regel.vollzeitStunden).replace('.', ','));
     setDurchrechnung(String(durchrechnungsWochen(company?.durchrechnungWochen)));
   }, [company]);
+
+  const vollzeitSichtbar = modell === 'tagesgrenze' && grenze === 'tagessoll';
 
   async function speichern() {
     if (!user) return;
@@ -57,6 +63,12 @@ export default function LohnregelnKarte() {
       setFehler('Der Durchrechnungszeitraum liegt zwischen 17 Wochen (Gesetz) und 52 Wochen (höchstens laut Kollektivvertrag).');
       return;
     }
+    // Ausgeblendet bleibt der gespeicherte Wert, wie er ist — eine Prüfung ohne sichtbares Feld verwirrte nur.
+    const vollzeitStunden = vollzeitSichtbar ? leseZahl(vollzeit).wert : undefined;
+    if (vollzeitStunden !== undefined && (vollzeitStunden === null || vollzeitStunden <= 0 || vollzeitStunden > 40)) {
+      setFehler('Die Vollzeit liegt über 0 und höchstens bei 40 Stunden je Woche (§ 3 AZG).');
+      return;
+    }
     setSpeichert(true);
     try {
       await updateCompany(user.companyId, {
@@ -67,6 +79,7 @@ export default function LohnregelnKarte() {
         ueberstundenHundertSonnFeiertag: hundert,
         ueberstundenKvMetall: kvMetall,
         durchrechnungWochen: wochen,
+        ...(vollzeitStunden !== undefined ? { vollzeitWochenstunden: vollzeitStunden } : {}),
       });
       await reloadCompany();
       toast.success('Nachtzeit und Überstunden gespeichert');
@@ -96,7 +109,12 @@ export default function LohnregelnKarte() {
           keiner Buchung; Stunden zwischen 20 und 6 Uhr gelten zuerst als Überstunden. Was am 24./31.12.
           nach 12 Uhr liegt, steht nur in der eigenen Spalte. Für Überstunden gilt der Zuschlag statt der
           Nachtarbeitszulage: „davon Nacht als Überstunde“ sagt, wie viele Nachtstunden das sind. Für Angestellte gilt ein anderer
-          Kollektivvertrag: bei ihnen bleibt es bei 50 % und dem Schalter für Sonn- und Feiertage. Der
+          Kollektivvertrag: bei ihnen bleibt es bei 50 % und dem Schalter für Sonn- und Feiertage. Wer
+          weniger als die Vollzeit vereinbart hat, leistet über dem eigenen Soll zuerst Mehrarbeit (§ 19d
+          AZG): bis zur Vollzeit eines Tages (ein Fünftel der Woche) und der Woche. Sie steht als
+          „Mehrarbeit Teilzeit“ eigens in Lohn-CSV und Stundennachweis, nicht bei den Überstunden — sie
+          trägt 25 % oder nichts, wenn sie im Quartal 1:1 ausgeglichen wird; das entscheidet die
+          Lohnverrechnung. Erst darüber beginnen die Überstunden. Der
           Durchrechnungszeitraum gilt für die Arbeitszeitgrenzen: im
           Schnitt höchstens 48 Std. je Woche, nach dem Gesetz über 17 Wochen (§ 9 Abs 4 AZG); länger,
           bis 52 Wochen, nur wenn der Kollektivvertrag es zulässt.
@@ -135,6 +153,13 @@ export default function LohnregelnKarte() {
             <option value="tagessoll">über dem Tagessoll der Person</option>
             <option value="zehn">über 10 Stunden (bei Gleitzeit)</option>
           </SelectField>
+        )}
+        {vollzeitSichtbar && (
+          <InputField
+            id="vollzeitWochenstunden" label="Vollzeit je Woche (Std.)"
+            inputMode="decimal"
+            value={vollzeit} onChange={(e) => setVollzeit(e.target.value)}
+          />
         )}
       </FormGrid>
       {/*

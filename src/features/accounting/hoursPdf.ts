@@ -205,11 +205,13 @@ export function generateHoursPdf(opts: {
     welche gibt, wie bei den Zuschlägen. Stunden, kein Geld.
   */
   const ue = ueberstundenNachTagesgrenze(user, sorted, ueberstundenRegelVon(company), halbeTage, vorlauf, nacht);
-  if (ue.fuenfzigMin > 0 || ue.hundertMin > 0) {
+  if (ue.fuenfzigMin > 0 || ue.hundertMin > 0 || (ue.mehrarbeitTeilzeitMin ?? 0) > 0) {
     // Nachtstunden, die Überstunden sind, tragen nach dem KV keine Nachtzulage — der Nachweis sagt, wie viele.
     const nachtAlsUe = ue.nachtAlsUeberstundeMin ? ` · davon Nacht als Überstunde: ${hours(ue.nachtAlsUeberstundeMin)} h` : '';
+    // Mehrarbeit in Teilzeit ist keine Überstunde (§ 19d AZG) und steht deshalb eigens.
+    const mehrarbeit = ue.mehrarbeitTeilzeitMin ? ` · Mehrarbeit Teilzeit: ${hours(ue.mehrarbeitTeilzeitMin)} h` : '';
     doc.text(
-      `Überstunden — 50 %: ${hours(ue.fuenfzigMin)} h · 100 %: ${hours(ue.hundertMin)} h${nachtAlsUe}`,
+      `Überstunden — 50 %: ${hours(ue.fuenfzigMin)} h · 100 %: ${hours(ue.hundertMin)} h${nachtAlsUe}${mehrarbeit}`,
       margin,
       y + (abwesend.length ? 18 : 12) + (hatZuschlaege(z) ? 6 : 0),
     );

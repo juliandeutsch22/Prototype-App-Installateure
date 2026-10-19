@@ -167,12 +167,13 @@ describe('Überstunden in der Lohn-CSV', () => {
       '24./31.12. ab 12 Uhr(Std);Überstunden 50 %(Std);Überstunden 100 %(Std);Einstufung;Lehrjahr;Berufsschule-Tage;Berufsschule(Std)',
     );
     // Seit 04.10.2026 hängt der Sonderurlaub (Plan 10.3) ganz hinten an, seit
-    // 18.10.2026 dahinter die Nachtstunden, die Überstunden sind (nur Tagesgrenze).
+    // 18.10.2026 dahinter die Nachtstunden, die Überstunden sind, seit
+    // 19.10.2026 die Mehrarbeit in Teilzeit (beide nur Tagesgrenze).
     expect(zeilenDanach[ab + 1].endsWith(
-      'Berufsschule(Std);Sonderurlaub-Tage;Pflegefreistellung-Tage;Freigestellt stundenweise(Std);Unbezahlt-Tage;davon Nacht als Überstunde(Std)',
+      'Berufsschule(Std);Sonderurlaub-Tage;Pflegefreistellung-Tage;Freigestellt stundenweise(Std);Unbezahlt-Tage;davon Nacht als Überstunde(Std);Mehrarbeit Teilzeit(Std)',
     )).toBe(true);
     // 06:00–18:00 mit Pause sind 11,5 Stunden, 3,5 über dem Tagessoll von 8.
-    expect(zeilenDanach[ab + 2].endsWith(';3,50;0,00;;;0;0,00;0;0;0,00;0;0,00')).toBe(true);
+    expect(zeilenDanach[ab + 2].endsWith(';3,50;0,00;;;0;0,00;0;0;0,00;0;0,00;0,00')).toBe(true);
   });
 });
 
