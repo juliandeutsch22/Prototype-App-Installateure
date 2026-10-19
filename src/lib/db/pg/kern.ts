@@ -839,7 +839,78 @@ export function abonnieren<T>(
       for (const n of puffer) anwendenAenderung(n);
       puffer.length = 0;
       bereit = true;
+      bestandGilt = true;
       melden();
+    } catch (e) {
+      bereit = true;
+      onError(e as Error);
+    }
+  };
+
+  /**
+   * DAS NACHFASSEN ALS ABGLEICH (Ladezeit, 19.10.2026).
+   *
+   * Bis hierher holte das Nachfassen den ganzen Bestand ein zweites Mal — in
+   * der Mitarbeiterübersicht 12.000 Buchungen, im Lager jeden Artikel
+   * doppelt. Gesucht ist aber nur, was sich in der Lücke zwischen dem ersten
+   * Holen und dem Moment geändert hat, in dem der Server zu hören beginnt
+   * (Punkt 3 oben). Dafür reichen Kennung und Änderungszeit jeder Zeile:
+   *
+   *   - eine Kennung, die nicht mehr kommt, ist gelöscht oder passt nicht
+   *     mehr zur Abfrage — sie fällt weg;
+   *   - eine neue Kennung oder eine andere Änderungszeit wird ganz geholt,
+   *     mit derselben Abfrage, eingeschränkt auf diese Kennungen.
+   *
+   * Die Änderungszeit setzt der Auslöser `app.updated_at_setzen` bei jedem
+   * Schreiben; ihn haben alle Tabellen mit Live-Listen (assignments,
+   * material_orders, materials, projects, time_entries). Verglichen wird auf
+   * die Millisekunde, so wie die App Zeitpunkte führt: zwei Änderungen
+   * derselben Zeile, deren Transaktionen in derselben Millisekunde begannen,
+   * sähen gleich aus — draußen kommt das nicht vor.
+   *
+   * Ohne gültigen Bestand (das erste Holen scheiterte) wird ganz geladen.
+   */
+  const abgleichen = async (): Promise<void> => {
+    if (!bestandGilt) return laden();
+    geladenSeitdem = true;
+    bereit = false;
+    try {
+      const staende = await abfragen<{ updatedAt?: unknown }>(tabelle, companyId, { ...abfrage, spalten: 'id,updated_at' }, c);
+      const da = new Set<string>();
+      const holen: string[] = [];
+      let geaendert = false;
+      for (const z of staende) {
+        da.add(z.id);
+        const alt = bestand.get(z.id) as unknown as { updatedAt?: unknown } | undefined;
+        if (!alt || alt.updatedAt !== z.updatedAt) holen.push(z.id);
+      }
+      for (const id of [...bestand.keys()]) {
+        if (!da.has(id)) { bestand.delete(id); geaendert = true; }
+      }
+      if (holen.length) {
+        // Ohne Grenze und Reihenfolge: gefragt sind genau diese Kennungen; ordnen tut `melden`.
+        const zeilen = await abfragen<T>(tabelle, companyId, {
+          ...abfrage,
+          grenze: undefined,
+          sortiere: undefined,
+          wo: [...(abfrage.wo ?? []), { art: 'in', feld: 'id', werte: holen }],
+        }, c);
+        const geholt = new Set<string>();
+        for (const z of zeilen) {
+          const id = (z as unknown as { id: string }).id;
+          bestand.set(id, z);
+          geholt.add(id);
+        }
+        // Zwischen den beiden Abfragen gelöscht oder aus der Abfrage gefallen.
+        for (const id of holen) if (!geholt.has(id)) bestand.delete(id);
+        geaendert = true;
+      }
+      if (puffer.length) geaendert = true;
+      for (const n of puffer) anwendenAenderung(n);
+      puffer.length = 0;
+      bereit = true;
+      // Nichts geändert: kein neues Bild — die Seiten zeichneten sonst umsonst.
+      if (geaendert) melden();
     } catch (e) {
       bereit = true;
       onError(e as Error);
@@ -878,6 +949,8 @@ export function abonnieren<T>(
     erstes Bild, das erst danach ankommt, ist älter und gilt nicht mehr.
   */
   let geladenSeitdem = false;
+  /** Der Bestand stammt aus einem vollständigen Holen — erst dann reicht ein Abgleich. */
+  let bestandGilt = false;
 
   /*
     NOCH FRÜHER: DER LETZTE STAND (Laden ohne Springen, Stufe 3). War die
@@ -904,6 +977,7 @@ export function abonnieren<T>(
       if (abgemeldet || geladenSeitdem) return true;
       bestand.clear();
       for (const z of zeilen) bestand.set((z as unknown as { id: string }).id, z);
+      bestandGilt = true;
       // Steht der Kanal schon, gilt es als Laden: was seither hereinkam, gleich mit — nicht erst ein Bild ohne.
       if (kanalBereit) {
         for (const n of puffer) anwendenAenderung(n);
@@ -946,7 +1020,7 @@ export function abonnieren<T>(
         void erstesBild.then((angekommen) => {
           if (abgemeldet) return;
           if (!angekommen || geladenSeitdem) {
-            if (!geladenSeitdem) void laden().then(() => { nachfassen = setTimeout(() => { void laden(); }, NACHFASSEN_MS); });
+            if (!geladenSeitdem) void laden().then(() => { nachfassen = setTimeout(() => { void abgleichen(); }, NACHFASSEN_MS); });
             return;
           }
           // Was seit dem Aufbau hereinkam, auf das erste Bild — wie nach `laden`.
@@ -963,13 +1037,14 @@ export function abonnieren<T>(
             und eine Meldung aus dieser Zeit holte niemand mehr nach.
           */
           const faellig = bereitUm + erstesBildDauer + NACHFASSEN_MS;
-          nachfassen = setTimeout(() => { void laden(); }, Math.max(0, faellig - Date.now()));
+          nachfassen = setTimeout(() => { void abgleichen(); }, Math.max(0, faellig - Date.now()));
         });
         return;
       }
-      void laden().then(() => {
+      // Nach einem Abriss genügt der Abgleich mit dem Bestand, der noch dasteht.
+      void abgleichen().then(() => {
         // Das Nachfassen. Siehe Punkt 4 im Kopf dieser Funktion.
-        nachfassen = setTimeout(() => { void laden(); }, NACHFASSEN_MS);
+        nachfassen = setTimeout(() => { void abgleichen(); }, NACHFASSEN_MS);
       });
     },
     client: c,
