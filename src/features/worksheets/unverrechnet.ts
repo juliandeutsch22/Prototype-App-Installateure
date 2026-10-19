@@ -63,11 +63,11 @@ export const UNVERRECHNET_BASIS = 60;
  * offen. Zählte der Storno mit, verschwände genau die Arbeit aus der Liste,
  * die am ehesten vergessen wird.
  */
-export function unverrechneteScheine(
-  scheine: Array<WorkSheet & { id: string }>,
+export function unverrechneteScheine<S extends Pick<WorkSheet, 'status' | 'datum'> & { id: string }>(
+  scheine: S[],
   rechnungen: Array<Pick<Invoice, 'linkedWorkSheets' | 'paymentStatus'>>,
   heute: string,
-): UnverrechneterSchein[] {
+): Array<{ schein: S; tage: number }> {
   const verrechnet = new Set<string>();
   for (const r of rechnungen) {
     if (r.paymentStatus === 'Storniert') continue;
@@ -81,6 +81,6 @@ export function unverrechneteScheine(
 }
 
 /** Wie viele davon schon auffällig lange offen sind. */
-export function auffaellige(zeilen: UnverrechneterSchein[]): UnverrechneterSchein[] {
+export function auffaellige<Z extends { tage: number }>(zeilen: Z[]): Z[] {
   return zeilen.filter((z) => z.tage >= AUFFAELLIG_AB_TAGEN);
 }

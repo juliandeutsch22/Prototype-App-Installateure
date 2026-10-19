@@ -371,7 +371,8 @@ export function garantieEndet(garantien: GarantieZeile[], heute: string): Abschn
 }
 
 export interface UnverrechneteZeile {
-  schein: WorkSheet & { id: string };
+  // Nur der Kopf: die Startseite zeigt Kunde, Baustelle und Tag (Ladezeit, 19.10.2026).
+  schein: Pick<WorkSheet, 'customerName' | 'projectNumber' | 'datum'> & { id: string };
   tage: number;
 }
 

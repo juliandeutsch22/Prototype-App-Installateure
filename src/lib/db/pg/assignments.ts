@@ -7,7 +7,7 @@
  */
 import type { Assignment, KalenderAbo, KalenderAboArt } from '@/types';
 import { monatsEnde } from '@shared/feiertage';
-import { abfragen, abonnieren, derClient, loeschen, type WithId } from './kern';
+import { abfragen, abonnieren, derClient, loeschen, SEITE, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
 
 const EINSAETZE = 'assignments';
@@ -222,6 +222,29 @@ export async function kalenderAboBeenden(art: KalenderAboArt = 'eigen'): Promise
  * Auslastung der Woche fragen nichts anderes. Ganze Einsätze über das
  * Planfenster waren nach den Buchungen das grösste Stück der Startseite.
  */
+/**
+ * Je Baustelle der letzte Einsatz vor `heute` und der nächste ab `heute`,
+ * im Fenster `von`–`bis` — für „Baustellen ohne Einsatz“ (Ladezeit,
+ * 19.10.2026). Eine Zeile je Baustelle statt jedes Einsatzes; seitenweise,
+ * weil auch die Antwort einer Funktion bei 1.000 Zeilen endet.
+ */
+export async function baustellenEinsatzlage(
+  companyId: string, von: string, heute: string, bis: string, seite = SEITE,
+): Promise<{ projectNumber: string; zuletzt: string | null; naechster: string | null }[]> {
+  type Zeile = { project_number: string; zuletzt: string | null; naechster: string | null };
+  const alle: Zeile[] = [];
+  for (let ab = 0; ; ab += seite) {
+    const { data, error } = await derClient()
+      .rpc('baustellen_einsatzlage', { p_company: companyId, p_von: von, p_heute: heute, p_bis: bis })
+      .range(ab, ab + seite - 1);
+    if (error) throw new Error(error.message);
+    const teil = (data ?? []) as Zeile[];
+    alle.push(...teil);
+    if (teil.length < seite) break;
+  }
+  return alle.map((z) => ({ projectNumber: z.project_number, zuletzt: z.zuletzt, naechster: z.naechster }));
+}
+
 export function listEinsatztageInRange(companyId: string, from: string, to: string, max = 3000) {
   return abfragen<Pick<Assignment, 'userId' | 'date' | 'projectNumber'>>(EINSAETZE, companyId, {
     wo: [

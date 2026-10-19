@@ -125,7 +125,7 @@ export function katalogNachIds(companyId: string, ids: readonly string[]): Promi
   return pg.katalogNachIds(companyId, ids);
 }
 
-/** Die Lagerartikel nur mit dem, was „knapp“ braucht — siehe `pg.listLagerartikelKurz`. */
-export function listLagerartikelKurz(companyId: string) {
-  return pg.listLagerartikelKurz(companyId);
+/** Die knappen Lagerartikel samt Freiem, aus der Datenbank — siehe `pg.lagerKnapp`. */
+export function lagerKnapp(grenze: number) {
+  return pg.lagerKnapp(grenze);
 }

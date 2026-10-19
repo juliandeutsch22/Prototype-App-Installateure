@@ -309,16 +309,20 @@ export function loeschen(id: string) {
 
 /**
  * Nur wer an welchem Tag gebucht hat — für „Tage ohne Buchung“ auf der
- * Startseite (Ladezeit, 19.10.2026). Fünf Wochen ganzer Buchungen aller
- * Personen waren das grösste Stück der Startseite; die Frage braucht davon
- * zwei Spalten.
+ * Startseite. Bis 19.10.2026 jede Buchung der fünf Wochen mit Person und Tag
+ * (2.040 Zeilen im Testbestand, mit der Belegschaft mehr); jetzt jeder Tag
+ * je Person einmal, aus der Datenbank (`buchungstage`). Gelesen wird, was
+ * `time_entries_lesen` erlaubt. Seitenweise, weil auch die Antwort einer
+ * Funktion bei 1.000 Zeilen endet.
  */
-export function listBuchungstageInRange(companyId: string, from: string, to: string) {
-  return abfragen<Pick<TimeEntry, 'userId' | 'date'>>(ZEITEN, companyId, {
-    wo: [
-      { art: 'ab', feld: 'date', wert: from },
-      { art: 'bis', feld: 'date', wert: to },
-    ],
-    spalten: 'id,user_id,date',
-  });
+export async function buchungstage(from: string, to: string, seite = SEITE): Promise<{ userId: string; date: string }[]> {
+  const alle: { user_id: string; date: string }[] = [];
+  for (let von = 0; ; von += seite) {
+    const { data, error } = await derClient().rpc('buchungstage', { p_von: from, p_bis: to }).range(von, von + seite - 1);
+    if (error) throw new Error(error.message);
+    const teil = (data ?? []) as { user_id: string; date: string }[];
+    alle.push(...teil);
+    if (teil.length < seite) break;
+  }
+  return alle.map((z) => ({ userId: z.user_id, date: z.date }));
 }

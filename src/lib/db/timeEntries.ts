@@ -290,7 +290,7 @@ export function deleteTimeEntry(id: string): Promise<void> {
   return pg.loeschen(id);
 }
 
-/** Nur Person und Tag der Buchungen — siehe `pg.listBuchungstageInRange`. */
-export function listBuchungstageInRange(companyId: string, from: string, to: string) {
-  return pg.listBuchungstageInRange(companyId, from, to);
+/** Jeder Tag je Person einmal, an dem gebucht wurde — siehe `pg.buchungstage`. */
+export function buchungstage(from: string, to: string): Promise<{ userId: string; date: string }[]> {
+  return pg.buchungstage(from, to);
 }

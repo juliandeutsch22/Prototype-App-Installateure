@@ -52,14 +52,17 @@ afterEach(async () => {
 describe('Anmelden und abmelden', () => {
   it('meldet an und liefert Kennung und Adresse', async () => {
     const k = await kontoMit('an-monteur', 'Mitarbeiter');
-    const gesehen: Array<{ uid: string; email: string } | null> = [];
+    const gesehen: Array<{ uid: string; email: string; sitzung?: string } | null> = [];
     const ab = sitzung.beiAenderung((wer) => gesehen.push(wer));
 
     await sitzung.anmelden(k.email, PASSWORT);
     await new Promise((r) => setTimeout(r, 300));
     ab();
 
-    expect(gesehen[gesehen.length - 1]).toEqual({ uid: k.uid, email: k.email });
+    // Mit dem Token der Sitzung — daran erkennt der App-Start zwei Meldungen derselben Sitzung (Ladezeit, 19.10.2026).
+    const { data } = await (await import('@/lib/supabase')).supabaseClient().auth.getSession();
+    expect(gesehen[gesehen.length - 1]).toEqual({ uid: k.uid, email: k.email, sitzung: data.session?.access_token });
+    expect(data.session?.access_token).toBeTruthy();
   }, 120_000);
 
   it('ein falsches Passwort wirft — mit einer Meldung', async () => {

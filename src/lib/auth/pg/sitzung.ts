@@ -55,7 +55,7 @@ export function beiAenderung(ruf: (wer: Angemeldet | null) => void): () => void 
   */
   const { data } = c.auth.onAuthStateChange((_ereignis, sitzung) => {
     const nutzer = sitzung?.user;
-    ruf(nutzer ? { uid: nutzer.id, email: nutzer.email ?? '' } : null);
+    ruf(nutzer ? { uid: nutzer.id, email: nutzer.email ?? '', sitzung: sitzung.access_token } : null);
   });
   return () => data.subscription.unsubscribe();
 }

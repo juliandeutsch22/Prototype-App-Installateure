@@ -21,6 +21,7 @@ import {
   InactiveUserError,
   zweiterFaktorBedarf,
   type ZweiterFaktorBedarf,
+  type Angemeldet,
 } from '@/lib/auth/sitzung';
 import { benutzerSpurenLoeschen } from '@/lib/speicher';
 import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
@@ -182,6 +183,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * beim Zurückkehren in den Tab —, wird still nachgezogen statt neu geladen.
    */
   const geladenFuer = useRef<string | null>(null);
+  /*
+    DIESELBE SITZUNG ZWEIMAL ZUGLEICH (Ladezeit, 19.10.2026). Beim Start meldet
+    Supabase dieselbe Sitzung zweimal kurz hintereinander (`INITIAL_SESSION`,
+    dann `SIGNED_IN` beim Wiederherstellen). Beide Läufe fragten Zweitfaktor,
+    Profil und Firma — doppelt und um die Wette. Läuft für dieselbe Sitzung
+    schon einer, brächte der zweite nichts Neues. Ein neues Token (Erneuerung,
+    bestätigter zweiter Faktor) und jede spätere Meldung laufen wie bisher.
+  */
+  const laeuftFuer = useRef<string | null>(null);
 
   // Damit eine abgewiesene Änderung im Einblick als solche benannt wird und
   // nicht als fehlendes Recht (siehe `lib/fehlerGrund.ts`).
@@ -191,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsub = beiAenderung(async (wer) => {
+    const verarbeiten = async (wer: Angemeldet | null) => {
       // Vormerkungen ohne Empfang gehören dem, der gerade angemeldet ist
       // (Prüflauf 25.09.2026, P1-05) — siehe `ohneEmpfang.ts`.
       ausgangsfachKonto(wer?.uid ?? null);
@@ -213,6 +223,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         „deaktiviert“, und beides wäre falsch. Meist ohne Netz entschieden
         (siehe `zweiterFaktorBedarf`).
       */
+      /*
+        PROFIL UND FIRMA SCHON UNTERWEGS, WÄHREND DER ZWEITE FAKTOR GEFRAGT
+        WIRD (Ladezeit, 19.10.2026). Für Leitung und Buchhaltung ohne Faktor
+        kostet die Frage einen Weg durchs Netz, und beides wartete dahinter.
+        Gelesen wird es erst nach den Weichen unten; fehlt der Faktor, wird es
+        verworfen — die Datenbank hat dann ohnehin nichts herausgegeben. Für
+        das Plattformkonto wird gar nicht erst gelesen (siehe unten); die
+        Marke steht im Token und kostet kein Netz.
+      */
+      const plattformMarke = await istPlattformAdmin();
+      const serverStand = () => Promise.all([profilVomServer(wer.uid, wer.email), gemerktesFirmenDokument(wer.uid)]);
+      const vomServer = plattformMarke ? null : serverStand();
+      // Verworfen darf es scheitern, ohne als unbehandelter Fehler aufzufallen.
+      vomServer?.catch(() => undefined);
       const bedarf = await zweiterFaktorBedarf().catch((): ZweiterFaktorBedarf => 'keiner');
       if (bedarf !== 'keiner') {
         geladenFuer.current = null;
@@ -265,7 +289,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
        * gefälschte Marke brächte hier nur eine Seite zum Vorschein, auf der
        * jeder Knopf serverseitig abgewiesen würde.
        */
-      const plattformMarke = await istPlattformAdmin();
       if (plattformMarke) {
         setPlattformAdmin(true);
         setPlattformKonto({ uid: wer.uid, email: wer.email });
@@ -364,11 +387,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          * irgendetwas erschien. Auf dem Telefon im Keller ist das der
          * Unterschied zwischen „kurz" und „lange".
          */
-        const gemerkt = gemerktesFirmenDokument(wer.uid);
-        const [profile, firmaVorab] = await Promise.all([
-          profilVomServer(wer.uid, wer.email),
-          gemerkt,
-        ]);
+        const [profile, firmaVorab] = await (vomServer ?? serverStand());
 
         if (!profile) {
           /*
@@ -436,6 +455,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } finally {
         setLoading(false);
+      }
+    };
+    const unsub = beiAenderung(async (wer) => {
+      const sitzung = wer?.sitzung ?? null;
+      if (sitzung && laeuftFuer.current === sitzung) return;
+      laeuftFuer.current = sitzung;
+      try {
+        await verarbeiten(wer);
+      } finally {
+        if (laeuftFuer.current === sitzung) laeuftFuer.current = null;
       }
     });
     return unsub;

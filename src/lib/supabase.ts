@@ -64,6 +64,24 @@ const sitzungsSpeicher = {
   },
 };
 
+/**
+ * Liegt auf diesem Gerät eine Sitzung? Ohne Netz und ohne den Client zu
+ * bauen — für Vorgriffe beim Start, die ohne Anmeldung nur Daten kosteten.
+ * Den Schlüssel bildet supabase-js als `sb-<Projekt>-auth-token`.
+ */
+export function sitzungVermutlich(): boolean {
+  try {
+    const s = zielSpeicher();
+    for (let i = 0; i < s.length; i += 1) {
+      const k = s.key(i);
+      if (k?.startsWith('sb-') && k.endsWith('-auth-token')) return true;
+    }
+  } catch {
+    /* Blockierte Website-Daten: dann eben kein Vorgriff. */
+  }
+  return false;
+}
+
 export function supabaseClient(): SupabaseClient {
   if (gemerkt) return gemerkt;
 

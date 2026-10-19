@@ -161,6 +161,17 @@ vi.mock('@/lib/db/assignments', () => ({
   listAssignmentsForUserInRange: vi.fn(async () => []),
   listAssignmentsInRange: vi.fn(async () => einsaetze),
   listEinsatztageInRange: vi.fn(async () => einsaetze),
+  // Wie `baustellen_einsatzlage`: je Baustelle der letzte Einsatz vor heute und der nächste ab heute.
+  baustellenEinsatzlage: vi.fn(async (_c: string, von: string, heute: string, bis: string) => {
+    const lage = new Map<string, { projectNumber: string; zuletzt: string | null; naechster: string | null }>();
+    for (const e of einsaetze.filter((x) => x.date >= von && x.date <= bis)) {
+      const l = lage.get(e.projectNumber) ?? { projectNumber: e.projectNumber, zuletzt: null, naechster: null };
+      if (e.date < heute) l.zuletzt = !l.zuletzt || e.date > l.zuletzt ? e.date : l.zuletzt;
+      else l.naechster = !l.naechster || e.date < l.naechster ? e.date : l.naechster;
+      lage.set(e.projectNumber, l);
+    }
+    return [...lage.values()];
+  }),
 }));
 /*
   Welche Abfrage scheitern soll. Die Startseite lädt in Blöcken; jeder muss
@@ -175,7 +186,7 @@ vi.mock('@/lib/db/timeEntries', () => ({
   }),
   listOwnEntriesInRange: vi.fn(async () => buchungen),
   listEntriesInRange: vi.fn(async () => buchungen),
-  listBuchungstageInRange: vi.fn(async () => buchungen),
+  buchungstage: vi.fn(async () => buchungen.map((b) => ({ userId: b.userId, date: b.date }))),
   stundenDerBaustellen: vi.fn(async () => zeitenJeBaustelle),
 }));
 /** Offene Anforderungen, wie `listOpenOrders` sie liefert. */
@@ -191,7 +202,7 @@ vi.mock('@/lib/db/einkauf', () => ({ listLagerPosten: vi.fn(async () => []) }));
 vi.mock('@/lib/db/materials', () => ({
   LOW_STOCK_THRESHOLD: 5,
   listLagerartikel: vi.fn(async () => []),
-  listLagerartikelKurz: vi.fn(async () => []),
+  lagerKnapp: vi.fn(async () => []),
   lagerFrei: vi.fn(async () => new Map()),
 }));
 /** Die offenen Forderungen, wie `listUnpaidInvoices` sie liefert. */
@@ -204,6 +215,7 @@ vi.mock('@/lib/db/invoices', () => ({
 vi.mock('@/lib/db/zahlungen', () => ({ listZahlungenImZeitraum: vi.fn(async () => []) }));
 vi.mock('@/lib/db/workSheets', () => ({
   listRecentWorkSheets: vi.fn(async () => []),
+  listRecentWorkSheetKoepfe: vi.fn(async () => []),
   listOwnWorkSheetsSince: vi.fn(async () => []),
 }));
 vi.mock('@/lib/db/wartungen', () => ({ listFaelligeWartungen: vi.fn(async () => []) }));

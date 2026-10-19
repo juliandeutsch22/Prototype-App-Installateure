@@ -35,6 +35,7 @@ vi.mock('@/lib/db/assignments', async (orig) => ({
 vi.mock('@/lib/db/workSheets', () => ({
   listOwnWorkSheetsSince: vi.fn(spaeter('scheine')),
   listRecentWorkSheets: vi.fn(async () => []),
+  listRecentWorkSheetKoepfe: vi.fn(async () => []),
 }));
 vi.mock('@/lib/db/materialOrders', () => ({
   listOwnOpenOrders: vi.fn(spaeter('anforderungen')),

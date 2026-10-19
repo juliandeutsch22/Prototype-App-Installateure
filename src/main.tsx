@@ -10,6 +10,8 @@ import { nachladefehlerBeobachten } from './lib/nachladen';
 import { fehlerBeobachten } from './lib/fehlerprotokoll';
 import { schluesselUmziehen, firestoreResteEntfernen } from './lib/speicher';
 import { darstellungAnwenden } from './lib/darstellung';
+import { startansichtVorladen } from './lib/ansichten';
+import { sitzungVermutlich } from './lib/supabase';
 // Poppins self-gehostet (kein Google-CDN -> keine IP-Übermittlung an Google, DSGVO).
 // Text und Titel bleiben 400/600; Zahlen erhalten den freigegebenen leichteren Schnitt.
 import '@fontsource/poppins/latin-400.css';
@@ -31,6 +33,9 @@ nachladefehlerBeobachten();
 // Was an der Fehlergrenze vorbeigeht — ein Fehler in einem Klick, ein
 // unbehandeltes Versprechen — ins eigene Protokoll. Siehe lib/fehlerprotokoll.ts.
 fehlerBeobachten();
+
+// Wer angemeldet ist, bekommt den Baustein seiner Seite schon, während die Anmeldung geprüft wird.
+if (sitzungVermutlich()) startansichtVorladen(window.location.pathname);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
