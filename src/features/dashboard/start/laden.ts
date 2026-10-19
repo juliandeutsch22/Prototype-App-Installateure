@@ -24,6 +24,7 @@ import {
   listAssignmentsForDate,
   listAssignmentsForUserInRange,
   listEinsatztageInRange,
+  baustellenEinsatzlage,
 } from '@/lib/db/assignments';
 import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
 import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
@@ -493,9 +494,25 @@ export async function leitung(
       ? still(() => listAbwesendInRange(woche[0] < heute ? woche[0] : heute, woche[6] > heute ? woche[6] : heute), [] as Abwesenheit[])
       : Promise.resolve([] as Abwesenheit[]),
     was.einsatzplanung
-      // Nur Person, Tag und Baustelle — siehe `listEinsatztageInRange` (Ladezeit, 19.10.2026).
-      ? still(() => listEinsatztageInRange(user.companyId, vorher < montag ? vorher : montag, bis > woche[6] ? bis : woche[6]), [])
-      : Promise.resolve([]),
+      ? still(async () => {
+        /*
+          FÜR „OHNE EINSATZ“ JE BAUSTELLE DER LETZTE UND DER NÄCHSTE EINSATZ,
+          für die Auslastung die Einsatztage dieser Woche (Ladezeit,
+          19.10.2026). Bis hierher kam jeder Einsatz der 15 Wochen dazwischen
+          — mit der Belegschaft mehr, und ab 3.000 still abgeschnitten.
+        */
+        const [lage, woche7] = await Promise.all([
+          baustellenEinsatzlage(user.companyId, vorher, heute, bis),
+          listEinsatztageInRange(user.companyId, woche[0], woche[6]),
+        ]);
+        return {
+          lage: lage.flatMap((l) => [l.zuletzt, l.naechster]
+            .filter((d): d is string => !!d)
+            .map((date) => ({ projectNumber: l.projectNumber, date }))),
+          woche: woche7,
+        };
+      }, { lage: [], woche: [] })
+      : Promise.resolve({ lage: [], woche: [] }),
   ]);
   out.projekte = projekte;
   out.hatVerwaltung = alle.some((u) => u.role === 'Verwaltung' && u.active !== false);
@@ -527,8 +544,8 @@ export async function leitung(
       .map((a) => ({ uid: a.userId, name: nameVon.get(a.userId)!, grund: a.grund, bis: a.bis, zeiten: a.zeiten }))
       .sort((a, b) => a.name.localeCompare(b.name, 'de'));
 
-    out.ohneEinsatz = ohneEinsatzListe(projekte, plan, heute);
-    out.auslastung = auslastung(alle, company, plan, abwesend, woche);
+    out.ohneEinsatz = ohneEinsatzListe(projekte, plan.lage, heute);
+    out.auslastung = auslastung(alle, company, plan.woche, abwesend, woche);
   }
 
   if (was.budget) {

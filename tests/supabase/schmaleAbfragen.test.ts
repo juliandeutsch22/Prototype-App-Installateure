@@ -14,7 +14,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { admin, betriebAnlegen, konto, type Konto } from './helfer';
 import { clientEinreichen } from '@/lib/db/pg/kern';
 import { buchungstage, listEntriesInRange } from '@/lib/db/pg/timeEntries';
-import { listAssignmentsInRange, listEinsatztageInRange } from '@/lib/db/pg/assignments';
+import { baustellenEinsatzlage, listAssignmentsInRange, listEinsatztageInRange } from '@/lib/db/pg/assignments';
+import { ohneEinsatzListe, planFenster } from '@/features/projects/baustellenLage';
 import { lagerFrei, lagerKnapp, listLagerartikel } from '@/lib/db/pg/materials';
 import { listRecentWorkSheetKoepfe, listRecentWorkSheets } from '@/lib/db/pg/workSheets';
 import { istKnapp } from '@/features/orders/lagerartikel';
@@ -53,7 +54,13 @@ beforeAll(async () => {
     (await admin.from('assignments').insert([
       { company_id: BETRIEB, date: '2026-09-01', project_number: 'B-1', user_id: monteur.uid, comment: 'Schlüssel beim Nachbarn' },
       { company_id: BETRIEB, date: '2026-09-03', project_number: 'B-2', user_id: monteur.uid },
+      // Für die Einsatzlage, vom 15.09. aus gesehen: B-1 kommt wieder, B-2 nicht, B-3 erst nach dem Fenster.
+      { company_id: BETRIEB, date: '2026-09-20', project_number: 'B-1', user_id: kollege.uid },
+      { company_id: BETRIEB, date: '2026-09-25', project_number: 'B-1', user_id: monteur.uid },
+      { company_id: BETRIEB, date: '2026-08-01', project_number: 'B-2', user_id: kollege.uid },
+      { company_id: BETRIEB, date: '2026-12-01', project_number: 'B-3', user_id: monteur.uid },
     ])).error,
+    (await admin.from('assignments').insert({ company_id: FREMD, date: '2026-09-16', project_number: 'B-2', user_id: fremd.uid })).error,
     (await admin.from('materials').insert([
       // Mit Mindestmenge: knapp darunter, nicht darauf.
       { id: randomUUID(), company_id: BETRIEB, name: 'Kupferrohr 15', unit: 'm', stock: 3, lagerartikel: true, mindestmenge: 10, verkaufspreis: 9.5 },
@@ -124,6 +131,41 @@ describe('Baustellen ohne Einsatz: Einsatztage', () => {
     const voll = await listAssignmentsInRange(BETRIEB, '2026-09-01', '2026-09-30');
     expect(schmal.map((a) => `${a.userId}|${a.date}|${a.projectNumber}`)).toEqual(voll.map((a) => `${a.userId}|${a.date}|${a.projectNumber}`));
     expect(Object.keys(schmal[0]).sort()).toEqual(['date', 'id', 'projectNumber', 'userId']);
+  });
+});
+
+describe('Baustellen ohne Einsatz: baustellen_einsatzlage', () => {
+  const HEUTE = '2026-09-15';
+  const { von, bis } = planFenster(HEUTE);
+  const projekte = ['B-1', 'B-2', 'B-3', 'B-4'].map((projectNumber) => ({ projectNumber, status: 'Aktiv' as const }));
+  const zuZeilen = (lage: Awaited<ReturnType<typeof baustellenEinsatzlage>>) =>
+    lage.flatMap((l) => [l.zuletzt, l.naechster].filter((d): d is string => !!d).map((date) => ({ projectNumber: l.projectNumber, date })));
+
+  it('je Baustelle der letzte Einsatz davor und der nächste ab heute, im Fenster', async () => {
+    expect(await baustellenEinsatzlage(BETRIEB, von, HEUTE, bis)).toEqual([
+      { projectNumber: 'B-1', zuletzt: '2026-09-01', naechster: '2026-09-20' },
+      { projectNumber: 'B-2', zuletzt: '2026-09-03', naechster: null },
+    ]);
+  });
+
+  it('Gleichbleiben: dieselben Baustellen ohne Einsatz wie aus allen Einsätzen', async () => {
+    const alle = await listAssignmentsInRange(BETRIEB, von, bis);
+    const alt = ohneEinsatzListe(projekte, alle, HEUTE);
+    const neu = ohneEinsatzListe(projekte, zuZeilen(await baustellenEinsatzlage(BETRIEB, von, HEUTE, bis)), HEUTE);
+    expect(neu).toEqual(alt);
+    expect(neu.map((p) => p.projectNumber)).toEqual(['B-2', 'B-3', 'B-4']);
+    // Gegenprobe: alle Einsätze sind mehr Zeilen als die Lage.
+    expect(alle.length).toBeGreaterThan(zuZeilen(await baustellenEinsatzlage(BETRIEB, von, HEUTE, bis)).length);
+  });
+
+  it('blättert vollständig', async () => {
+    expect(await baustellenEinsatzlage(BETRIEB, von, HEUTE, bis, 1)).toHaveLength(2);
+  });
+
+  it('nicht für Fremde: kein Einsatz eines anderen Betriebs, auch nicht über dessen Kennung', async () => {
+    const lage = await baustellenEinsatzlage(BETRIEB, von, HEUTE, bis);
+    expect(lage.find((l) => l.projectNumber === 'B-2')?.naechster).toBeNull();
+    expect(await baustellenEinsatzlage(FREMD, von, HEUTE, bis)).toEqual([]);
   });
 });
 

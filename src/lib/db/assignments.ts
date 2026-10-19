@@ -90,6 +90,11 @@ export function kalenderAboBeenden(art: KalenderAboArt = 'eigen'): Promise<void>
 
 export type { WithId };
 
+/** Je Baustelle der letzte und der nächste Einsatz — siehe `pg.baustellenEinsatzlage`. */
+export function baustellenEinsatzlage(companyId: string, von: string, heute: string, bis: string) {
+  return pg.baustellenEinsatzlage(companyId, von, heute, bis);
+}
+
 /** Nur Person, Tag und Baustelle — siehe `pg.listEinsatztageInRange`. */
 export function listEinsatztageInRange(companyId: string, from: string, to: string, max = 3000) {
   return pg.listEinsatztageInRange(companyId, from, to, max);

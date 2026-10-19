@@ -161,6 +161,17 @@ vi.mock('@/lib/db/assignments', () => ({
   listAssignmentsForUserInRange: vi.fn(async () => []),
   listAssignmentsInRange: vi.fn(async () => einsaetze),
   listEinsatztageInRange: vi.fn(async () => einsaetze),
+  // Wie `baustellen_einsatzlage`: je Baustelle der letzte Einsatz vor heute und der nächste ab heute.
+  baustellenEinsatzlage: vi.fn(async (_c: string, von: string, heute: string, bis: string) => {
+    const lage = new Map<string, { projectNumber: string; zuletzt: string | null; naechster: string | null }>();
+    for (const e of einsaetze.filter((x) => x.date >= von && x.date <= bis)) {
+      const l = lage.get(e.projectNumber) ?? { projectNumber: e.projectNumber, zuletzt: null, naechster: null };
+      if (e.date < heute) l.zuletzt = !l.zuletzt || e.date > l.zuletzt ? e.date : l.zuletzt;
+      else l.naechster = !l.naechster || e.date < l.naechster ? e.date : l.naechster;
+      lage.set(e.projectNumber, l);
+    }
+    return [...lage.values()];
+  }),
 }));
 /*
   Welche Abfrage scheitern soll. Die Startseite lädt in Blöcken; jeder muss

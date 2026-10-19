@@ -63,3 +63,32 @@ $$;
 
 revoke all on function public.buchungstage(date, date) from public, anon;
 grant execute on function public.buchungstage(date, date) to authenticated;
+
+/*
+  „Baustellen ohne Einsatz“ holte jeden Einsatz der letzten 90 und der
+  nächsten 14 Tage (1.500 Zeilen im Testbestand, drei Seiten; mit der
+  Belegschaft mehr — und ab 3.000 still abgeschnitten). Gebraucht wird je
+  Baustelle der letzte Einsatz davor und der nächste ab heute.
+  `baustellen_einsatzlage` gibt genau das. Gelesen wird, was
+  `assignments_lesen` erlaubt, im genannten Betrieb — wie die Abfrage davor.
+*/
+create or replace function public.baustellen_einsatzlage(p_company text, p_von date, p_heute date, p_bis date)
+  returns table (project_number text, zuletzt date, naechster date)
+  language sql
+  stable
+  security definer
+  set search_path = ''
+as $$
+  select a.project_number,
+         max(a.date) filter (where a.date < p_heute),
+         min(a.date) filter (where a.date >= p_heute)
+    from public.assignments a
+   where a.company_id = p_company
+     and (a.company_id = (select app.lesebetrieb()) or a.company_id = (select app.supportbetrieb()))
+     and a.date between p_von and p_bis
+   group by a.project_number
+   order by a.project_number
+$$;
+
+revoke all on function public.baustellen_einsatzlage(text, date, date, date) from public, anon;
+grant execute on function public.baustellen_einsatzlage(text, date, date, date) to authenticated;
