@@ -324,3 +324,15 @@ function eindeutig(zeilen: WithId<Material>[]): WithId<Material>[] {
   const nachId = new Map(zeilen.map((m) => [m.id, m]));
   return [...nachId.values()].sort((a, b) => a.id.localeCompare(b.id));
 }
+
+/**
+ * Die Lagerartikel mit nur dem, was „knapp“ braucht — für die Startseite
+ * (Ladezeit, 19.10.2026). Preise, Warengruppe und Beschreibung gehören
+ * nicht zur Frage, welche Fächer leer werden.
+ */
+export function listLagerartikelKurz(companyId: string) {
+  return abfragen<Pick<Material, 'name' | 'unit' | 'stock' | 'mindestmenge' | 'lagerartikel'>>(MATERIAL, companyId, {
+    wo: [{ art: 'gleich', feld: 'lagerartikel', wert: true }],
+    spalten: 'id,name,unit,stock,mindestmenge,lagerartikel',
+  });
+}

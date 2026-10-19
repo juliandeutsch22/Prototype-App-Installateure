@@ -289,3 +289,8 @@ export async function updateTimeEntry(
 export function deleteTimeEntry(id: string): Promise<void> {
   return pg.loeschen(id);
 }
+
+/** Nur Person und Tag der Buchungen — siehe `pg.listBuchungstageInRange`. */
+export function listBuchungstageInRange(companyId: string, from: string, to: string) {
+  return pg.listBuchungstageInRange(companyId, from, to);
+}

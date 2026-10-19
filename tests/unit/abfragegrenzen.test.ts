@@ -65,6 +65,8 @@ const AUSNAHMEN: Record<string, string> = {
     wächst also mit dem Regal und nicht mit Zeit oder Katalog.
   */
   listLagerartikel: 'Die im Lager geführten Artikel — wächst mit dem Regal, nicht mit dem Katalog',
+  // Dieselben Zeilen, nur mit den Spalten für „knapp“ auf der Startseite (Ladezeit, 19.10.2026).
+  listLagerartikelKurz: 'Die im Lager geführten Artikel — wächst mit dem Regal, nicht mit dem Katalog',
   /*
     DIE AUSFÜHRUNGEN EINER ANLAGE (17 G): gefragt wird nach genau einer
     Wartung, und die wächst um eine Zeile je Ausführung — eine bis zwölf im

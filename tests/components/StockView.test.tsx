@@ -788,3 +788,28 @@ describe('Lager — Filter', () => {
     expect(within(screen.getByText('Fehlender').closest('li')!).getByText('3 m fehlen')).toBeInTheDocument();
   });
 });
+
+/*
+  LADEZEIT (19.10.2026): die Frei-Mengen hingen an der Identität der
+  Live-Listen. Jede Meldung — auch das Nachfassen mit denselben Zeilen —
+  holte sie für alle Lagerartikel neu; gemessen dreimal beim Öffnen.
+*/
+describe('Frei und reserviert: neu geholt, wenn sich etwas ändert — nicht bei jeder Meldung', () => {
+  it('dieselben Zeilen ein zweites Mal holen nichts neu; ein geänderter Bestand schon', async () => {
+    materialien = [{ id: 'm1', companyId: 'perl', name: 'Kupferrohr 15mm', stock: 40, unit: 'm' } as WithId<Material>];
+    katalogHalten = true;
+    lagerStand.mockClear();
+    zeige();
+    act(() => katalogSenden!());
+    await waitFor(() => expect(lagerStand).toHaveBeenCalledTimes(1));
+    // Das Nachfassen: dieselben Zeilen, ein neues Array.
+    act(() => katalogSenden!());
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    expect(lagerStand).toHaveBeenCalledTimes(1);
+    // Gegenprobe: ein Abgang ändert den Bestand — dann wird neu geholt.
+    materialien = [{ ...materialien[0], stock: 38 }];
+    act(() => katalogSenden!());
+    await waitFor(() => expect(lagerStand).toHaveBeenCalledTimes(2));
+    katalogHalten = false;
+  });
+});

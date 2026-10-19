@@ -89,3 +89,8 @@ export function kalenderAboBeenden(art: KalenderAboArt = 'eigen'): Promise<void>
 }
 
 export type { WithId };
+
+/** Nur Person, Tag und Baustelle — siehe `pg.listEinsatztageInRange`. */
+export function listEinsatztageInRange(companyId: string, from: string, to: string, max = 3000) {
+  return pg.listEinsatztageInRange(companyId, from, to, max);
+}

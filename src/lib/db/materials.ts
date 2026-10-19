@@ -124,3 +124,8 @@ export function katalogNachNamen(companyId: string, namen: readonly string[]): P
 export function katalogNachIds(companyId: string, ids: readonly string[]): Promise<WithId<Material>[]> {
   return pg.katalogNachIds(companyId, ids);
 }
+
+/** Die Lagerartikel nur mit dem, was „knapp“ braucht — siehe `pg.listLagerartikelKurz`. */
+export function listLagerartikelKurz(companyId: string) {
+  return pg.listLagerartikelKurz(companyId);
+}

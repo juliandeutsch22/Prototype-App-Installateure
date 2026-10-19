@@ -18,8 +18,13 @@
  * GEMESSEN WIRD je Seite (Median aus mehreren Läufen):
  *   - erste Anzeige: First Contentful Paint des Browsers;
  *   - Inhalt da: die Überschrift der Seite (`main h1`) ist sichtbar;
- *   - bedienbar: das Netz ruht (keine offene Anfrage für 1 s) — als Annäherung,
- *     weil „Time to Interactive“ im Browser nicht direkt messbar ist;
+ *   - bereit (seit 19.10.2026): Überschrift sichtbar und auf der Seite kein
+ *     Platzhalter mehr (`aria-busy`, Skelett, verzögerte Ladeanzeige), 300 ms
+ *     lang — „Inhalt und Hauptaktion stehen“. Das ist die Messgrösse für das
+ *     Budget „bedienbar ≤ 2,5 s“, wie am 19.10.2026 entschieden: „Netz ruhig“
+ *     wartet auch auf Live-Listen und ihr Nachfassen, die niemanden aufhalten;
+ *   - Netz ruhig: keine offene Anfrage für 1 s — bis 18.10.2026 die Messgrösse
+ *     für „bedienbar“, weiter mitgeführt für den Vergleich;
  *   - Anfragen und übertragene Datenmenge bis dahin;
  *   - Anfragen an die Datenbank (`/rest/v1/`) mit der Zahl der Zeilen je
  *     Antwort (aus `Content-Range`, sonst aus dem Inhalt): die grösste Liste
@@ -206,7 +211,23 @@ async function einmalMessen(browser, zustand, pfad) {
     await seite.locator('main h1').first().waitFor({ state: 'visible', timeout: 90_000 });
     inhalt = Date.now() - start;
   } catch { /* bleibt null */ }
-  // Bedienbar: keine offene Anfrage für eine Sekunde.
+  // Bereit: kein Platzhalter mehr auf der Seite, 300 ms lang (nach der Überschrift).
+  let bereit = null;
+  if (inhalt != null) {
+    let ruhigSeit = null;
+    while (Date.now() - start < 120_000) {
+      const laedt = await seite.evaluate(() => [...document.querySelectorAll('main [aria-busy="true"], main .skeleton, main .laden-verzoegert')]
+        .some((el) => el.getClientRects().length > 0));
+      if (laedt) ruhigSeit = null;
+      else if (ruhigSeit == null) ruhigSeit = Date.now();
+      else if (Date.now() - ruhigSeit >= 300) {
+        bereit = ruhigSeit - start;
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 50));
+    }
+  }
+  // Netz ruhig: keine offene Anfrage für eine Sekunde.
   while (Date.now() - start < 120_000) {
     if (offen <= 0 && Date.now() - zuletzt >= 1000) break;
     await new Promise((r) => setTimeout(r, 100));
@@ -228,6 +249,7 @@ async function einmalMessen(browser, zustand, pfad) {
   return {
     fcp: fcp == null ? null : Math.round(fcp),
     inhalt,
+    bereit,
     bedienbar: ruhig,
     anfragen: alle.length,
     bytes: alle.reduce((s, a) => s + a.bytes, 0),
@@ -243,11 +265,11 @@ function bericht(ergebnisse) {
   const zeilen = [
     `Gemessen am ${new Date().toLocaleDateString('de-AT')} · ${LAEUFE} Läufe je Seite, Median · Handy 390 × 844, langsames 4G (150 ms, 1,6 Mbit/s), CPU ×${CPU}, ohne Zwischenspeicher · angemeldet als Geschäftsführung des Testbetriebs \`ui-testbestand\`${OHNE_HINTERGRUND ? ' · **ohne Hintergrund:** Service Worker gesperrt, Datensparmodus an (kein Vorladen)' : ''}.`,
     '',
-    '| Seite | Pfad | erste Anzeige (FCP) | Inhalt da (h1) | bedienbar (Netz ruhig) | Anfragen | übertragen | DB-Anfragen | DB-Daten | grösste Liste (Zeilen) |',
-    '|---|---|---|---|---|---|---|---|---|---|',
+    '| Seite | Pfad | erste Anzeige (FCP) | Inhalt da (h1) | bereit (ohne Platzhalter) | Netz ruhig | Anfragen | übertragen | DB-Anfragen | DB-Daten | grösste Liste (Zeilen) |',
+    '|---|---|---|---|---|---|---|---|---|---|---|',
   ];
   for (const e of ergebnisse) {
-    zeilen.push(`| ${e.name} | \`${e.pfad}\` | ${s(e.fcp)} | ${s(e.inhalt)} | ${s(e.bedienbar)} | ${e.anfragen} | ${kb(e.bytes)} | ${e.dbAnfragen} | ${kb(e.dbBytes)} | ${e.groessteListe ? `${e.groessteListe.zeilen.toLocaleString('de-AT')} (${e.groessteListe.tabelle})` : '–'} |`);
+    zeilen.push(`| ${e.name} | \`${e.pfad}\` | ${s(e.fcp)} | ${s(e.inhalt)} | ${s(e.bereit)} | ${s(e.bedienbar)} | ${e.anfragen} | ${kb(e.bytes)} | ${e.dbAnfragen} | ${kb(e.dbBytes)} | ${e.groessteListe ? `${e.groessteListe.zeilen.toLocaleString('de-AT')} (${e.groessteListe.tabelle})` : '–'} |`);
   }
   zeilen.push('', `**Antworten mit mehr als ${GRENZE} Zeilen** (Budget B3: höchstens ${GRENZE} je Anfrage, kein ganzer Bestand):`, '');
   for (const e of ergebnisse) {
@@ -286,6 +308,7 @@ async function main() {
         name, pfad,
         fcp: median(laeufe.map((l) => l.fcp)),
         inhalt: median(laeufe.map((l) => l.inhalt)),
+        bereit: median(laeufe.map((l) => l.bereit)),
         bedienbar: median(laeufe.map((l) => l.bedienbar)),
         anfragen: median(laeufe.map((l) => l.anfragen)),
         bytes: median(laeufe.map((l) => l.bytes)),
@@ -297,7 +320,7 @@ async function main() {
         laeufe,
       };
       ergebnisse.push(e);
-      console.log(`${name.padEnd(22)} FCP ${e.fcp} ms · h1 ${e.inhalt} ms · ruhig ${e.bedienbar} ms · ${e.anfragen} Anfragen · ${Math.round(e.bytes / 1024)} KB · DB ${e.dbAnfragen} · grösste ${e.groessteListe?.zeilen ?? 0} (${e.groessteListe?.tabelle ?? '–'})`);
+      console.log(`${name.padEnd(22)} FCP ${e.fcp} ms · h1 ${e.inhalt} ms · bereit ${e.bereit} ms · ruhig ${e.bedienbar} ms · ${e.anfragen} Anfragen · ${Math.round(e.bytes / 1024)} KB · DB ${e.dbAnfragen} · grösste ${e.groessteListe?.zeilen ?? 0} (${e.groessteListe?.tabelle ?? '–'})`);
     }
     await browser.close();
     if (NUR) return;

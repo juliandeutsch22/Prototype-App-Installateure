@@ -160,6 +160,7 @@ vi.mock('@/lib/db/assignments', () => ({
   listAssignmentsForDate: vi.fn(async () => einsaetze),
   listAssignmentsForUserInRange: vi.fn(async () => []),
   listAssignmentsInRange: vi.fn(async () => einsaetze),
+  listEinsatztageInRange: vi.fn(async () => einsaetze),
 }));
 /*
   Welche Abfrage scheitern soll. Die Startseite lädt in Blöcken; jeder muss
@@ -174,6 +175,7 @@ vi.mock('@/lib/db/timeEntries', () => ({
   }),
   listOwnEntriesInRange: vi.fn(async () => buchungen),
   listEntriesInRange: vi.fn(async () => buchungen),
+  listBuchungstageInRange: vi.fn(async () => buchungen),
   stundenDerBaustellen: vi.fn(async () => zeitenJeBaustelle),
 }));
 /** Offene Anforderungen, wie `listOpenOrders` sie liefert. */
@@ -189,6 +191,7 @@ vi.mock('@/lib/db/einkauf', () => ({ listLagerPosten: vi.fn(async () => []) }));
 vi.mock('@/lib/db/materials', () => ({
   LOW_STOCK_THRESHOLD: 5,
   listLagerartikel: vi.fn(async () => []),
+  listLagerartikelKurz: vi.fn(async () => []),
   lagerFrei: vi.fn(async () => new Map()),
 }));
 /** Die offenen Forderungen, wie `listUnpaidInvoices` sie liefert. */

@@ -68,6 +68,7 @@ export function useArbeitszeitGrenzen({
   aktualisiert,
   aus = false,
   durchrechnungWochen,
+  eintraegeDerSeite,
 }: {
   companyId: string;
   personen: AppUser[];
@@ -80,6 +81,12 @@ export function useArbeitszeitGrenzen({
   aus?: boolean;
   /** Durchrechnungszeitraum des Betriebs in Wochen (`company.durchrechnungWochen`); ohne: 17. */
   durchrechnungWochen?: number;
+  /**
+   * Die Buchungen, die die Seite ohnehin live hält — mindestens der Monat
+   * samt einer Woche davor und danach (Ladezeit, 19.10.2026). Dann holt die
+   * Karte sie nicht ein zweites Mal; ohne Angabe wie bisher selbst.
+   */
+  eintraegeDerSeite?: WithId<TimeEntry>[];
 }): GrenzDaten {
   const wochen = durchrechnungsWochen(durchrechnungWochen);
   const von = `${jahr}-${String(monat + 1).padStart(2, '0')}-01`;
@@ -89,6 +96,9 @@ export function useArbeitszeitGrenzen({
   const [fehler, setFehler] = useState<string | null>(null);
   // Eine ältere Antwort darf eine neuere nicht überschreiben (Monat schnell gewechselt).
   const lauf = useRef(0);
+  // Über eine Referenz: der Stand der Buchungen löst das Prüfen schon über `aktualisiert` aus.
+  const seitenEintraege = useRef(eintraegeDerSeite);
+  seitenEintraege.current = eintraegeDerSeite;
 
   const laden = useCallback(async () => {
     const meiner = ++lauf.current;
@@ -102,8 +112,13 @@ export function useArbeitszeitGrenzen({
         „Buchung korrigieren“ und der Tagesnachweis.
       */
       const vorlaufAb = plusTage(montagVon(von), -7 * (wochen - 1));
+      const ab = plusTage(von, -7);
+      const bisMit = plusTage(bis, 7);
+      const vonDerSeite = seitenEintraege.current;
       const [eintraege, vorlauf, geburtsdaten, begruendungen] = await Promise.all([
-        listEntriesInRange(companyId, plusTage(von, -7), plusTage(bis, 7)),
+        vonDerSeite
+          ? Promise.resolve(vonDerSeite.filter((e) => e.date >= ab && e.date <= bisMit))
+          : listEntriesInRange(companyId, ab, bisMit),
         listArbeitszeitenInRange(companyId, vorlaufAb, plusTage(von, -8)),
         listGeburtsdaten(companyId),
         listBegruendungen(companyId, montagVon(von), bis),

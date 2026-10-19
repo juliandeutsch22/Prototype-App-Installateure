@@ -105,12 +105,16 @@ vi.mock('@/lib/db/timeEntries', () => ({
       return () => undefined;
     },
   ),
-  listEntriesInRange: vi.fn(async () => {
+  listEntriesInRange: vi.fn(async () => buchungen),
+  /*
+    Der Vorlauf für den Durchschnitt der 17 Wochen — hier ohne Buchungen.
+    Jede Prüfung der Karte holt ihn einmal; daran wird sie gezählt. Die
+    Buchungen um den Monat nimmt sie seit 19.10.2026 von der Seite.
+  */
+  listArbeitszeitenInRange: vi.fn(async () => {
     grenzAbfragen += 1;
-    return buchungen;
+    return [];
   }),
-  // Der Vorlauf für den Durchschnitt der 17 Wochen — hier ohne Buchungen.
-  listArbeitszeitenInRange: vi.fn(async () => []),
   // Die Summen, wie `baustellen_stunden` sie aus denselben Buchungen bildet.
   stundenDerBaustellen: vi.fn(async () => {
     const { groupProjectHours } = await vi.importActual<typeof import('@/lib/time')>('@/lib/time');
@@ -777,6 +781,21 @@ describe('Mitarbeiteruebersicht — Arbeitszeitgrenzen nach dem Buchen (Runde 3,
 
     expect(await screen.findByText(/13:00 Std\. am 31\.08\. — höchstens 12 Std\./)).toBeInTheDocument();
     expect(grenzAbfragen).toBe(vorher + 1);
+  });
+
+  it('holt die Buchungen um den Monat nicht noch einmal — sie kommen von der Seite (Ladezeit, 19.10.2026)', async () => {
+    const { listEntriesInRange } = await import('@/lib/db/timeEntries');
+    vi.mocked(listEntriesInRange).mockClear();
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <AccountingView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('Im August 2026 wurde keine Grenze überschritten.')).toBeInTheDocument();
+    expect(grenzAbfragen).toBe(1);
+    expect(listEntriesInRange).not.toHaveBeenCalled();
   });
 
   it('Gegenprobe: ein Schnappschuss ohne Änderung prüft nicht neu', async () => {

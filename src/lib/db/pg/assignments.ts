@@ -215,3 +215,21 @@ export async function kalenderAboBeenden(art: KalenderAboArt = 'eigen'): Promise
   const { error } = await derClient().rpc('kalender_abo_beenden', { p_art: art });
   if (error) throw new Error(error.message);
 }
+
+/**
+ * Nur Person, Tag und Baustelle der Einsätze — für die Startseite der
+ * Leitung (Ladezeit, 19.10.2026): „Baustellen ohne Einsatz“ und die
+ * Auslastung der Woche fragen nichts anderes. Ganze Einsätze über das
+ * Planfenster waren nach den Buchungen das grösste Stück der Startseite.
+ */
+export function listEinsatztageInRange(companyId: string, from: string, to: string, max = 3000) {
+  return abfragen<Pick<Assignment, 'userId' | 'date' | 'projectNumber'>>(EINSAETZE, companyId, {
+    wo: [
+      { art: 'ab', feld: 'date', wert: from },
+      { art: 'bis', feld: 'date', wert: to },
+    ],
+    sortiere: { feld: 'date' },
+    grenze: max,
+    spalten: 'id,user_id,date,project_number',
+  });
+}

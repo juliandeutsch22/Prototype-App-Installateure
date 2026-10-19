@@ -192,6 +192,16 @@ export default function StockView() {
   );
   const [stand, setStand] = useState<Map<string, LagerStand> | null>(() => anfang?.stand ?? null);
   const [standFertig, setStandFertig] = useState(() => anfang?.stand !== undefined);
+  /*
+    AM INHALT, NICHT AN DER IDENTITÄT DER LISTEN (Ladezeit, 19.10.2026): jede
+    Meldung der Live-Listen ist ein neues Array — auch das Nachfassen, das
+    dieselben Zeilen bringt. Gemessen holte das Lager die Frei-Mengen aller
+    800 Lagerartikel dreimal, wo sich nichts geändert hatte.
+  */
+  const artikelStand = materials.map((m) => `${m.id}:${m.stock ?? 0}`).join('|');
+  const anforderungsStand = orders
+    .map((o) => [o.id, o.status, o.quantity, o.materialId, o.beschaffung, o.processed, o.updatedAt].join(':'))
+    .join('|');
   useEffect(() => {
     /*
       ERST MIT DEN ARTIKELN: eine Antwort über einen noch leeren Katalog ist
@@ -212,7 +222,8 @@ export default function StockView() {
       .catch(() => undefined)
       .finally(() => { if (!weg) setStandFertig(true); });
     return () => { weg = true; };
-  }, [user, materials, orders, loading, merken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, artikelStand, anforderungsStand, loading, merken]);
   /*
     DIE GRÖSSE DES KATALOGS — gezählt, nicht geholt (18.10.2026). Sie steht
     nur im Hinweis „von N im Katalog“ und unterscheidet „Katalog leer“ von

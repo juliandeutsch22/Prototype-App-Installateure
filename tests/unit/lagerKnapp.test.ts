@@ -30,6 +30,8 @@ vi.mock('@/lib/db/materials', () => ({
   LOW_STOCK_THRESHOLD: 5,
   listMaterials: vi.fn(async () => LAGER.slice(0, 1000)),
   listLagerartikel: vi.fn(async () => LAGER),
+  // Die Startseite fragt seit 19.10.2026 nur die Spalten für „knapp“ — dieselben Zeilen.
+  listLagerartikelKurz: vi.fn(async () => LAGER),
   lagerFrei: vi.fn(async (ids?: readonly string[]) => {
     gefragt.push([...(ids ?? [])]);
     const liste = ids ? LAGER.filter((m) => ids.includes(m.id)) : LAGER.slice(0, 1000);
