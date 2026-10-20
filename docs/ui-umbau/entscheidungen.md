@@ -109,3 +109,7 @@ Kartenrahmen und Poppins 500 ausschließlich für Zahlen; Text und Titel bleiben
 Mitarbeiterübersicht beginnt beim Personenvergleich, der Tagesstreifen bleibt
 zuschaltbar. Bestehende Fachlogik, Berechtigungen und mobile Hauptaktionen
 bleiben verbindlich. [Umsetzung und Zuordnung](lot-v2-10/umsetzung.md).
+
+**E17 — Lot v2 bestätigt (20.10.2026).** Der Auftraggeber hat die Designlinie
+Lot v2, wie seit E16 umgesetzt, bestätigt. Sie gilt damit als festgelegte
+Linie, nicht mehr als Arbeitsstand; Handbuch und Stand führen sie so.
