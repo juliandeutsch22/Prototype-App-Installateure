@@ -353,7 +353,7 @@ export default function KundenakteView() {
                     to={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
                     className="link inline-flex min-h-touch min-w-0 items-center text-sm"
                   >
-                    <span><span className="block font-semibold">{p.projectNumber}</span><span className="block text-ink-muted">{p.bezeichnung || p.address || 'ohne Adresse'}</span></span>
+                    <span><span className="block font-semibold">{p.projectNumber}</span><span className="block text-ink-muted">{[p.bezeichnung, p.address].filter(Boolean).join(' · ') || 'ohne Adresse'}</span></span>
                   </Link>
                 ) : (
                   <span className="truncate py-1 text-sm text-ink">
@@ -581,8 +581,8 @@ export default function KundenakteView() {
                 ? <TeilFehler was="die Baustellen" onRetry={() => setVersuch((v) => v + 1)} />
                 : baustellen.daten.filter((p) => p.status !== 'Abgeschlossen').length === 0 ? <EmptyState>Keine aktive Baustelle.</EmptyState>
                 : <ul className="divide-y divide-line">{baustellen.daten.filter((p) => p.status !== 'Abgeschlossen').slice(0, 3).map((p) => <li key={p.id} className="py-3 text-sm">
-                    {baustellenSichtbar ? <Link to={`/admin-projects/${p.id}`} className="link"><span className="block font-semibold">{p.projectNumber}</span>{p.bezeichnung || p.address || 'ohne Adresse'}</Link>
-                    : <><span className="block font-semibold">{p.projectNumber}</span>{p.bezeichnung || p.address || 'ohne Adresse'}</>}
+                    {baustellenSichtbar ? <Link to={`/admin-projects/${p.id}`} className="link"><span className="block font-semibold">{p.projectNumber}</span>{[p.bezeichnung, p.address].filter(Boolean).join(' · ') || 'ohne Adresse'}</Link>
+                    : <><span className="block font-semibold">{p.projectNumber}</span>{[p.bezeichnung, p.address].filter(Boolean).join(' · ') || 'ohne Adresse'}</>}
                     <div><StatusBadge status={p.status} /></div>
                   </li>)}</ul>}
             </Card>{auskunft}

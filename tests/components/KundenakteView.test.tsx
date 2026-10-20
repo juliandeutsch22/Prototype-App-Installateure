@@ -854,3 +854,12 @@ describe('Aktenlinie 03 · Kunde', () => {
     expect(screen.getByLabelText(/^Name/)).toHaveValue(KUNDE.name);
   });
 });
+
+it('Aktenlinie 03 · behält bei benannten Baustellen die vollständige Baustellenadresse sichtbar', async () => {
+  zugeordnet = [{ id: 'p-ort', companyId: 'perl', projectNumber: 'B-ORT', customerId: 'k1', customerName: KUNDE.name,
+    bezeichnung: 'Wärmepumpe Werkstatt', address: 'Industriestraße 17, 8200 Gleisdorf', status: 'Aktiv' }];
+  zeige();
+  expect(await screen.findByRole('link', { name: /B-ORT.*Wärmepumpe Werkstatt.*Industriestraße 17, 8200 Gleisdorf/ })).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('tab', { name: 'Baustellen und Belege' }));
+  expect(within(document.getElementById('k-baustellen')!).getByRole('link', { name: /B-ORT.*Wärmepumpe Werkstatt.*Industriestraße 17, 8200 Gleisdorf/ })).toBeInTheDocument();
+});

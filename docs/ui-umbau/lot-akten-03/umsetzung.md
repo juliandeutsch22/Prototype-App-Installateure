@@ -77,3 +77,8 @@ Die Terminvorschau überspringt heute bereits beendete Zeitfenster. Laufende
 Termine und Termine ohne bekannte Endzeit bleiben erhalten; die vollständige
 Terminkarte bleibt unverändert. Prüfung mit festem Zeitpunkt und drei Terminen,
 vor der Korrektur rot.
+
+Bei einer Baustelle mit eigener Bezeichnung bleiben Name und vollständige
+Baustellenadresse gemeinsam sichtbar, sowohl in der aktiven Vorschau als auch
+in der vollständigen Kunden-Baustellenliste. Sonst hätte der Name die Adresse
+ersetzt. Eigene Gegenprobe rot, korrigiert grün.
