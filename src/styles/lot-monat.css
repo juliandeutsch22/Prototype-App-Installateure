@@ -75,8 +75,15 @@
   /* Hintergrund: je Tag eine Schaltfläche über die ganze Zeilenhöhe — auch an freien Tagen. */
   .mo-hg, .mo-hg-we, .mo-hg-heute, .mo-hg-gewaehlt { min-width: 0; min-height: 2.125rem; margin: 0; padding: 0; border: 0; border-right: 1px solid var(--bg); background: var(--surface); cursor: pointer; }
   .mo-hg-we { background: var(--bg); }
-  /* Heute: ein Hauch Petrol und zwei feine Petrol-Linien über die ganze Höhe. */
-  .mo-hg-heute { background: var(--heute); box-shadow: inset 1px 0 0 var(--petrol), inset -1px 0 0 var(--petrol); }
+  /*
+    HEUTE OHNE LINIEN (20.10.2026): Die zwei Petrol-Linien liefen durch jede
+    Zeile und brachen an jeder Zeilengrenze ab — das las sich als Rahmen um
+    viele kleine Kästchen und wirkte billig. Die eine deutliche Markierung ist
+    der Kopf (`.mo-kopf-heute`); die Spalte trägt nur den leisen Ton, wie
+    `.wp-zelle-heute` in der Woche. Einen Rahmen hat allein der gewählte Tag,
+    sonst wären „heute“ und „gewählt“ nicht mehr auseinanderzuhalten.
+  */
+  .mo-hg-heute { background: var(--heute); }
   .mo-hg-gewaehlt { background: var(--petrol-hell); box-shadow: inset 0 0 0 2px var(--petrol); }
   .mo-hg:hover, .mo-hg-we:hover, .mo-hg-heute:hover { background: var(--petrol-hell); }
 
