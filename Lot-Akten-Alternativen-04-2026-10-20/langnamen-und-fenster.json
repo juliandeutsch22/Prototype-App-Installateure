@@ -1,0 +1,74 @@
+[
+  {
+    "name": "a-kunde",
+    "width": 390,
+    "overflow": false,
+    "kopfUeberlappt": false,
+    "editorOeffnet": true,
+    "escapeSchliesst": true
+  },
+  {
+    "name": "a-kunde",
+    "width": 834,
+    "overflow": false,
+    "kopfUeberlappt": false,
+    "editorOeffnet": true,
+    "escapeSchliesst": true
+  },
+  {
+    "name": "a-kunde",
+    "width": 1440,
+    "overflow": false,
+    "kopfUeberlappt": false,
+    "editorOeffnet": true,
+    "escapeSchliesst": true
+  },
+  {
+    "name": "a-baustelle",
+    "width": 390,
+    "overflow": false,
+    "kopfUeberlappt": false,
+    "editorOeffnet": true,
+    "escapeSchliesst": true
+  },
+  {
+    "name": "a-baustelle",
+    "width": 834,
+    "overflow": false,
+    "kopfUeberlappt": false,
+    "editorOeffnet": true,
+    "escapeSchliesst": true
+  },
+  {
+    "name": "a-baustelle",
+    "width": 1440,
+    "overflow": false,
+    "kopfUeberlappt": false,
+    "editorOeffnet": true,
+    "escapeSchliesst": true
+  },
+  {
+    "name": "a-benutzer",
+    "width": 390,
+    "overflow": false,
+    "kopfUeberlappt": false,
+    "editorOeffnet": true,
+    "escapeSchliesst": true
+  },
+  {
+    "name": "a-benutzer",
+    "width": 834,
+    "overflow": false,
+    "kopfUeberlappt": false,
+    "editorOeffnet": true,
+    "escapeSchliesst": true
+  },
+  {
+    "name": "a-benutzer",
+    "width": 1440,
+    "overflow": false,
+    "kopfUeberlappt": false,
+    "editorOeffnet": true,
+    "escapeSchliesst": true
+  }
+]
