@@ -2,7 +2,7 @@
   WAS BEIM DREIFACHEN BESTAND NOCH MITWUCHS (Ladezeit, Nachweis 19.10.2026).
 
   Gemessen mit einem Testbestand, der in denselben fünf Jahren dreimal so groß
-  ist (75 Leute, 120.000 Katalogartikel, 450.000 Buchungen). Vier Stellen
+  ist (75 Leute, 120.000 Katalogartikel, 450.000 Buchungen). Diese Stellen
   wurden mit dem Betrieb langsamer, ohne dass die Seite mehr zeigt:
 
   1. `lager_frei` mit einer Liste von Kennungen verglich jeden Artikel des
@@ -17,9 +17,15 @@
      Person und Tag einer — eine Anfrage statt mehrerer Seiten hintereinander.
   4. `arbeitszeit_vorlauf`: der Vorlauf für den Durchschnitt nach § 9 Abs 4
      AZG (16 Wochen vor dem Monat) je Person und Tag verdichtet, eine Zeile
-     je Person, statt jeder Buchung. Mehr braucht der Durchschnitt nicht: die Arbeitsminuten des
-     Tages und ob er ganztags gutgeschrieben ist, gerechnet wie `calcWorkMin`
-     (`shared/arbeitszeit.ts`) samt Nacht der Zeitumstellung.
+     je Person, statt jeder Buchung. Mehr braucht der Durchschnitt nicht:
+     die Arbeitsminuten des Tages und ob er ganztags gutgeschrieben ist,
+     gerechnet wie `calcWorkMin` (`shared/arbeitszeit.ts`) samt Nacht der
+     Zeitumstellung.
+  5. `monthly_stats` rief je Buchung eine Funktion, die Postgres nicht
+     einbetten kann — fünf Sekunden für die Bilanzen aller Personen. Jetzt
+     dieselbe Rechnung in der Abfrage.
+  6. `monatsbilanzen_alle`: die Bilanzen aller Personen in einer Anfrage,
+     statt seitenweise über die Sicht, die je Seite alles neu rechnete.
 */
 
 -- 1. lager_frei: zwei Äste statt eines Vergleichs, der den Schlüssel nicht nutzen kann.
