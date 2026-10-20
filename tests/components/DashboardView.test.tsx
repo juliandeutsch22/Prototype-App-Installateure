@@ -205,10 +205,10 @@ vi.mock('@/lib/db/materials', () => ({
   lagerKnapp: vi.fn(async () => []),
   lagerFrei: vi.fn(async () => new Map()),
 }));
-/** Die offenen Forderungen, wie `listUnpaidInvoices` sie liefert. */
+/** Die offenen Forderungen, wie `listUnpaidInvoiceKoepfe` sie liefert. */
 const offeneRechnungen: { wert: unknown[] } = { wert: [] };
 vi.mock('@/lib/db/invoices', () => ({
-  listUnpaidInvoices: vi.fn(async () => offeneRechnungen.wert),
+  listUnpaidInvoiceKoepfe: vi.fn(async () => offeneRechnungen.wert),
   listInvoicesByIds: vi.fn(async () => []),
   scheineAufRechnung: vi.fn(async () => []),
 }));
@@ -530,9 +530,9 @@ describe('Startseite — Geschäftsführung', () => {
   it('zeigt Zu erledigen und Kennzahlen erst, wenn alle Blöcke da sind', async () => {
     rolle.wert = 'Geschäftsführung';
     anforderungen.wert = [anforderung({ id: 'e1', isUrgent: true })];
-    const { listUnpaidInvoices } = await import('@/lib/db/invoices');
+    const { listUnpaidInvoiceKoepfe } = await import('@/lib/db/invoices');
     const offene = zurueckhalten<unknown[]>();
-    vi.mocked(listUnpaidInvoices).mockImplementationOnce(offene.antwort as never);
+    vi.mocked(listUnpaidInvoiceKoepfe).mockImplementationOnce(offene.antwort as never);
     zeichne();
     await waitFor(() => expect(offene.gefragt).toBe(true));
     // Die Anforderungen sind längst da — gezeigt wird trotzdem noch nichts davon.
@@ -562,9 +562,9 @@ describe('Startseite — Geschäftsführung', () => {
 
     // Inzwischen kam eine zweite dazu; die Rechnungen antworten diesmal erst später.
     anforderungen.wert = [anforderung({ id: 'e1', isUrgent: true }), anforderung({ id: 'e2', isUrgent: true })];
-    const { listUnpaidInvoices } = await import('@/lib/db/invoices');
+    const { listUnpaidInvoiceKoepfe } = await import('@/lib/db/invoices');
     const offene = zurueckhalten<unknown[]>();
-    vi.mocked(listUnpaidInvoices).mockImplementationOnce(offene.antwort as never);
+    vi.mocked(listUnpaidInvoiceKoepfe).mockImplementationOnce(offene.antwort as never);
     zeichne();
     // Kein Platzhalter: der letzte Stand ist gleich da.
     expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull();

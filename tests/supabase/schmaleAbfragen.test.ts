@@ -59,6 +59,14 @@ beforeAll(async () => {
       { company_id: BETRIEB, date: '2026-09-25', project_number: 'B-1', user_id: monteur.uid },
       { company_id: BETRIEB, date: '2026-08-01', project_number: 'B-2', user_id: kollege.uid },
       { company_id: BETRIEB, date: '2026-12-01', project_number: 'B-3', user_id: monteur.uid },
+      // Abgeschlossen: hat Einsätze im Fenster, gehört aber nicht in „ohne Einsatz“ (19.10.2026).
+      { company_id: BETRIEB, date: '2026-09-10', project_number: 'B-9', user_id: kollege.uid },
+    ])).error,
+    (await admin.from('projects').insert([
+      ...['B-1', 'B-2', 'B-3', 'B-4'].map((n) => ({ company_id: BETRIEB, project_number: n, customer_name: 'Huber', status: 'Aktiv' })),
+      { company_id: BETRIEB, project_number: 'B-9', customer_name: 'Huber', status: 'Abgeschlossen' },
+      // Laufend im fremden Betrieb: dort bliebe sein Einsatz am 16.09. sichtbar, würde der Betrieb nicht geprüft.
+      { company_id: FREMD, project_number: 'B-2', customer_name: 'Fremd', status: 'Aktiv' },
     ])).error,
     (await admin.from('assignments').insert({ company_id: FREMD, date: '2026-09-16', project_number: 'B-2', user_id: fremd.uid })).error,
     (await admin.from('materials').insert([
@@ -160,6 +168,13 @@ describe('Baustellen ohne Einsatz: baustellen_einsatzlage', () => {
 
   it('blättert vollständig', async () => {
     expect(await baustellenEinsatzlage(BETRIEB, von, HEUTE, bis, 1)).toHaveLength(2);
+  });
+
+  it('nur laufende Baustellen: eine abgeschlossene mit Einsatz im Fenster fehlt', async () => {
+    const lage = await baustellenEinsatzlage(BETRIEB, von, HEUTE, bis);
+    expect(lage.map((l) => l.projectNumber)).not.toContain('B-9');
+    // Gegenprobe: ihr Einsatz liegt im Fenster und ist lesbar — es ist der Status, der sie ausnimmt.
+    expect((await listAssignmentsInRange(BETRIEB, von, bis)).map((a) => a.projectNumber)).toContain('B-9');
   });
 
   it('nicht für Fremde: kein Einsatz eines anderen Betriebs, auch nicht über dessen Kennung', async () => {

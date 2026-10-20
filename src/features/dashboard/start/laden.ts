@@ -6,9 +6,9 @@ import type {
   EinkaufPosten,
   EinsatzMaterial,
   Freistellung,
-  Invoice,
   MaterialOrder,
   Project,
+  RechnungsKopf,
   RuestPosition,
   Role,
   Termin,
@@ -31,7 +31,7 @@ import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
 import { listLagerPosten } from '@/lib/db/einkauf';
 import { lagerKnapp, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
-import { listGarantienEndenIn, listUnpaidInvoices, listInvoicesByIds, scheineAufRechnung, type GarantieRechnung } from '@/lib/db/invoices';
+import { listGarantienEndenIn, listUnpaidInvoiceKoepfe, listInvoicesByIds, scheineAufRechnung, type GarantieRechnung } from '@/lib/db/invoices';
 import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
 import { listRecentWorkSheetKoepfe, listOwnWorkSheetsSince } from '@/lib/db/workSheets';
 import { listAbwesendInRange, listOpenVacations, type Abwesenheit } from '@/lib/db/vacations';
@@ -139,7 +139,8 @@ export interface StartDaten {
   lagerPosten?: EinkaufPosten[];
   knapp?: KnapperArtikel[];
   // Buchhaltung
-  unbezahlt?: (Invoice & { id: string })[];
+  /** Nur die Köpfe: Hinweise und Mahnlauf lesen keine Positionen (Nachweis mit dreifachem Bestand, 19.10.2026). */
+  unbezahlt?: (RechnungsKopf & { id: string })[];
   /** Bankgarantien, die bald enden oder gerade geendet haben (seit 10.10.2026). */
   garantien?: (GarantieRechnung & { id: string })[];
   lauf?: Mahnlauf;
@@ -396,7 +397,7 @@ export async function buchhaltung(
     was.rechnungen ? (async () => {
       const monatsErster = `${heute.slice(0, 7)}-01`;
       const [unbezahlt, [zahlungen, rechnungen], garantien] = await Promise.all([
-        listUnpaidInvoices(user.companyId),
+        listUnpaidInvoiceKoepfe(user.companyId),
         // Die Rechnungen hinter den Zahlungen — für Namen, Nummer und den Stand —, sobald die Zahlungen da sind.
         still(() => listZahlungenImZeitraum(user.companyId, monatsErster, heute), []).then(async (zahlungen) => {
           const ids = [...new Set(zahlungen.map((z) => z.invoiceId))];
@@ -486,8 +487,26 @@ export async function leitung(
   const { von: vorher, bis } = planFenster(heute);
   // Die fälligen Wartungen hängen an nichts hier: gleich mit losschicken (Ladezeit, 19.10.2026).
   const wartungen = was.wartung ? still(() => listFaelligeWartungen(user.companyId, monateDazu(heute, 1)), []) : undefined;
+  const projekteZusage = listActiveProjects(user.companyId);
+  /*
+    Der Budgetstand braucht nur die Baustellen, nicht Belegschaft und
+    Einsätze: er startet, sobald sie da sind (Nachweis mit dreifachem
+    Bestand, 19.10.2026) — vorher wartete er auf den ganzen Block.
+
+    Scheitert er, fehlt nur er — nicht der ganze Block mit Baustellen,
+    Einsätzen und Wartungen. So im Support-Einblick: die Stunden der
+    Baustellen bekommt nur die Leitung des Betriebs selbst. Ohne
+    Budgetstand steht auch kein „alle im Budget“ da (`aufbau.ts`).
+    Scheitern die Baustellen selbst, scheitert der Block wie bisher.
+  */
+  const budget = was.budget
+    ? still<BudgetZeile[] | undefined>(async () => {
+      const mitBudget = (await projekteZusage).filter((pr) => (pr.estimatedHours ?? 0) > 0);
+      return mitBudget.length ? budgetStand(mitBudget, await stundenDerBaustellen(mitBudget.map((pr) => pr.projectNumber))) : [];
+    }, undefined)
+    : undefined;
   const [projekte, alle, einsaetzeHeute, abwesend, plan] = await Promise.all([
-    listActiveProjects(user.companyId),
+    projekteZusage,
     belegschaftVon(k),
     was.einsatzplanung ? listAssignmentsForDate(user.companyId, heute) : Promise.resolve([]),
     was.einsatzplanung
@@ -548,21 +567,7 @@ export async function leitung(
     out.auslastung = auslastung(alle, company, plan.woche, abwesend, woche);
   }
 
-  if (was.budget) {
-    const mitBudget = projekte.filter((pr) => (pr.estimatedHours ?? 0) > 0);
-    /*
-      Scheitert der Budgetstand, fehlt nur er — nicht der ganze Block mit
-      Baustellen, Einsätzen und Wartungen. So im Support-Einblick: die
-      Stunden der Baustellen bekommt nur die Leitung des Betriebs selbst.
-      Ohne Budgetstand steht auch kein „alle im Budget“ da (`aufbau.ts`).
-    */
-    out.budget = mitBudget.length
-      ? await still<BudgetZeile[] | undefined>(
-        async () => budgetStand(mitBudget, await stundenDerBaustellen(mitBudget.map((pr) => pr.projectNumber))),
-        undefined,
-      )
-      : [];
-  }
+  if (budget) out.budget = await budget;
 
   if (wartungen) out.wartungen = await wartungen;
   return out;

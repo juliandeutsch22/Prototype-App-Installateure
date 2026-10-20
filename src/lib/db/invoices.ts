@@ -8,7 +8,7 @@
  * mit `reactivateInvoice` wieder aufheben. Beide Datenquellen sagen dasselbe
  * — `allow delete: if false` in den Regeln, keine Löschrichtlinie im Schema.
  */
-import type { Invoice, Mahnung, MahnungInhalt } from '@/types';
+import type { Invoice, Mahnung, MahnungInhalt, RechnungsKopf } from '@/types';
 import type { WithId } from './core';
 import * as pg from './pg/invoices';
 import type { SchlussOhneAbzug } from './pg/invoices';
@@ -29,6 +29,11 @@ export type NewInvoice = Omit<Invoice, 'id' | 'companyId' | 'createdAt'>;
 
 export function listUnpaidInvoices(companyId: string): Promise<WithId<Invoice>[]> {
   return pg.listUnpaidInvoices(companyId);
+}
+
+/** Nur die Köpfe der unbezahlten Rechnungen — siehe `pg.listUnpaidInvoiceKoepfe`. */
+export function listUnpaidInvoiceKoepfe(companyId: string): Promise<WithId<RechnungsKopf>[]> {
+  return pg.listUnpaidInvoiceKoepfe(companyId);
 }
 
 export function subscribeRecentInvoices(

@@ -62,9 +62,9 @@ export function listEntriesInRange(
   return pg.listEntriesInRange(companyId, from, to);
 }
 
-/** Nur die Spalten für die Arbeitszeit — siehe `pg.listArbeitszeitenInRange`. */
-export function listArbeitszeitenInRange(companyId: string, from: string, to: string) {
-  return pg.listArbeitszeitenInRange(companyId, from, to);
+/** Der Vorlauf für den Durchschnitt, je Person und Tag verdichtet — siehe `pg.arbeitszeitVorlauf`. */
+export function arbeitszeitVorlauf(companyId: string, from: string, to: string) {
+  return pg.arbeitszeitVorlauf(companyId, from, to);
 }
 
 /**

@@ -25,7 +25,7 @@ const listEntriesInRange = vi.fn(async () => buchungen);
 vi.mock('@/lib/db/timeEntries', () => ({
   listEntriesInRange: () => listEntriesInRange(),
   // Der Vorlauf für den Durchschnitt der 17 Wochen — hier ohne Buchungen.
-  listArbeitszeitenInRange: async () => [],
+  arbeitszeitVorlauf: async () => [],
 }));
 vi.mock('@/lib/db/arbeitszeitGrenzen', () => ({
   listGeburtsdaten: vi.fn(async () => geburtsdaten),

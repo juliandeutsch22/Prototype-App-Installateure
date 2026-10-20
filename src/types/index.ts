@@ -1767,6 +1767,14 @@ export interface Invoice {
 }
 
 /**
+ * Eine Rechnung ohne Positionen und ohne Abdeckung — der Kopf samt Rabatt.
+ * Was nur Beträge, Fristen und Mahnstand liest (Startseite, Mahnlauf),
+ * braucht nicht mehr; ein eigener Typ statt leerer Positionen, damit keine
+ * Stelle eine Rechnung über nichts für die ganze hält.
+ */
+export type RechnungsKopf = Omit<Invoice, 'positions' | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets'>;
+
+/**
  * Rabatt auf eine Rechnung.
  *
  * Entweder ein Anteil ('percent', 5 = 5 %) oder ein fester Betrag in Euro.

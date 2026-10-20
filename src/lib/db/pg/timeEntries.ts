@@ -126,24 +126,51 @@ export function listEntriesInRange(companyId: string, from: string, to: string) 
   });
 }
 
+/** Was der Vorlauf für den Durchschnitt liefert — Einträge, wie `grenzfaelle` sie liest. */
+export type VorlaufEintrag = Pick<TimeEntry, 'userId' | 'date' | 'status' | 'startTime' | 'endTime' | 'breakDuration' | 'hours'>;
+
 /**
- * Nur die Spalten, aus denen sich Arbeitszeit rechnen lässt — für den
- * Durchschnitt der 17 Wochen (Arbeitszeitgrenzen). Vier Monate Vorlauf mit
- * Kommentar, Kunde und Fahrzeug zu laden, wäre ein Vielfaches dessen, was
- * die Frage braucht.
+ * DER VORLAUF FÜR DEN DURCHSCHNITT DER 17 WOCHEN (Arbeitszeitgrenzen), je
+ * Person und Tag verdichtet, eine Zeile je Person (Ladezeit, 19.10.2026).
+ *
+ * Bis hierher kam jede Buchung der 16 Wochen vor dem Monat — beim dreifachen
+ * Testbestand 42.000 Zeilen, 1,5 MB. Der Durchschnitt braucht davon je Tag
+ * nur die Arbeitsminuten und ob der Tag ganztags gutgeschrieben ist
+ * (`arbeitszeit_vorlauf`, gerechnet wie `calcWorkMin`). Daraus werden hier
+ * Einträge, die `grenzfaelle` genauso zählt: die Minuten als Stunden einer
+ * „Anwesend“-Buchung, ein ganztags gutgeschriebener Tag als Urlaubstag.
+ * Berufsschultage kommen weiter einzeln — für Jugendliche zählt jeder
+ * Eintrag mit dem Tagessoll. Die Minuten sind ganz, weil die App Uhrzeiten
+ * ohne Sekunden und Pausen in ganzen Minuten schreibt; nur so ergeben die
+ * Stunden über `calcWorkMin` wieder genau sie.
  */
-export function listArbeitszeitenInRange(companyId: string, from: string, to: string) {
-  return abfragen<Pick<TimeEntry, 'userId' | 'date' | 'status' | 'startTime' | 'endTime' | 'breakDuration' | 'hours'>>(
-    ZEITEN,
-    companyId,
-    {
-      wo: [
-        { art: 'ab', feld: 'date', wert: from },
-        { art: 'bis', feld: 'date', wert: to },
-      ],
-      spalten: 'id,user_id,date,status,start_time,end_time,break_duration,hours',
-    },
-  );
+export async function arbeitszeitVorlauf(companyId: string, from: string, to: string, seite = SEITE): Promise<VorlaufEintrag[]> {
+  type Zeile = { user_id: string; tage: string[]; minuten: Array<number | string | null>; ganztags: Array<boolean | null> };
+  const personen: Zeile[] = [];
+  const schule = abfragen<VorlaufEintrag>(ZEITEN, companyId, {
+    wo: [
+      { art: 'ab', feld: 'date', wert: from },
+      { art: 'bis', feld: 'date', wert: to },
+      { art: 'gleich', feld: 'status', wert: 'Berufsschule' },
+    ],
+    spalten: 'id,user_id,date,status,start_time,end_time,break_duration,hours',
+  });
+  for (let ab = 0; ; ab += seite) {
+    const { data, error } = await derClient().rpc('arbeitszeit_vorlauf', { p_von: from, p_bis: to }).range(ab, ab + seite - 1);
+    if (error) throw new Error(error.message);
+    const teil = (data ?? []) as Zeile[];
+    personen.push(...teil);
+    if (teil.length < seite) break;
+  }
+  const eintraege: VorlaufEintrag[] = [];
+  for (const p of personen) {
+    (p.tage ?? []).forEach((date, i) => {
+      const minuten = p.minuten?.[i] == null ? 0 : Number(p.minuten[i]);
+      if (minuten > 0) eintraege.push({ userId: p.user_id, date, status: 'Anwesend', hours: minuten / 60 });
+      if (p.ganztags?.[i]) eintraege.push({ userId: p.user_id, date, status: 'Urlaub' });
+    });
+  }
+  return [...eintraege, ...(await schule)];
 }
 
 /**
@@ -316,13 +343,18 @@ export function loeschen(id: string) {
  * Funktion bei 1.000 Zeilen endet.
  */
 export async function buchungstage(from: string, to: string, seite = SEITE): Promise<{ userId: string; date: string }[]> {
-  const alle: { user_id: string; date: string }[] = [];
+  /*
+    JE PERSON EINE ZEILE MIT IHREN TAGEN (`buchungstage_je_person`, Nachweis
+    mit dreifachem Bestand, 19.10.2026): bei 75 Leuten eine Anfrage statt
+    vier Seiten hintereinander.
+  */
+  const alle: { user_id: string; tage: string[] }[] = [];
   for (let von = 0; ; von += seite) {
-    const { data, error } = await derClient().rpc('buchungstage', { p_von: from, p_bis: to }).range(von, von + seite - 1);
+    const { data, error } = await derClient().rpc('buchungstage_je_person', { p_von: from, p_bis: to }).range(von, von + seite - 1);
     if (error) throw new Error(error.message);
-    const teil = (data ?? []) as { user_id: string; date: string }[];
+    const teil = (data ?? []) as { user_id: string; tage: string[] }[];
     alle.push(...teil);
     if (teil.length < seite) break;
   }
-  return alle.map((z) => ({ userId: z.user_id, date: z.date }));
+  return alle.flatMap((z) => (z.tage ?? []).map((date) => ({ userId: z.user_id, date })));
 }
