@@ -114,7 +114,7 @@ export default function BaustellenUebersicht({
   if (kompakt) return <div className="akten-stunden">
     <p><span className="akten-stunden-zahl">{fmtStd(stand.fachMin)} h</span> Fachzeit
       {projekt.estimatedHours ? <> von {fmtStunden(projekt.estimatedHours)} h Budget</> : ' · kein Stundenbudget hinterlegt'}</p>
-    {projekt.estimatedHours ? <p className={budget.over ? 'text-danger' : 'text-ink-muted'}>
+    {projekt.estimatedHours ? <p className={budget.over ? 'text-danger' : budget.tone === 'warning' ? 'text-warning' : 'text-ink-muted'}>
       <span className="akten-stunden-zahl">{fmtStd(Math.abs(projekt.estimatedHours * 60 - stand.fachMin))} h</span>{' '}{budget.over ? 'über Budget' : 'verbleibend'}
     </p> : null}
     {stand.helperMin > 0 && <p className="text-sm text-ink-muted">zusätzlich {fmtStd(stand.helperMin)} h Helfer · separat vom Budget</p>}

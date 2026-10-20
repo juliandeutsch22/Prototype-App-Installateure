@@ -45,6 +45,7 @@ import { adresseZeile } from '@/lib/adresse';
 import KundenartUidFelder from '@/components/KundenartUidFelder';
 import { uidNormalisieren, uidSperrt } from '@/lib/uid';
 import UidVies from './UidVies';
+import useUidVies from './useUidVies';
 
 /**
  * Die Akte eines Kunden — alles, was der Betrieb über ihn weiss.
@@ -148,6 +149,7 @@ export default function KundenakteView() {
   */
   const kundeDaten = kunde.zustand === 'bereit' ? kunde.daten : null;
   const kundeName = kundeDaten?.name;
+  const uidPruefungStand = useUidVies(kundeDaten);
 
   /*
     Der Entwurf folgt dem geladenen Kunden — aber NUR, wenn dieser sich
@@ -323,7 +325,7 @@ export default function KundenakteView() {
     );
   }
 
-  const vies = <UidVies kunde={k} uidGeaendert={!!entwurf && uidNormalisieren(entwurf.vatId) !== uidNormalisieren(k.vatId)} darfPruefen={!einblick} />;
+  const vies = <UidVies stand={uidPruefungStand} kunde={k} uidGeaendert={!!entwurf && uidNormalisieren(entwurf.vatId) !== uidNormalisieren(k.vatId)} darfPruefen={!einblick} />;
   const stammdaten = <Card title="Kundendaten" id="k-daten">
     <StammdatenLesen k={k} />
   </Card>;

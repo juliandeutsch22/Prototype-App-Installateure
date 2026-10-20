@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within, waitFor } from '@testing-library/react';
+import { act, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -654,6 +654,21 @@ describe('Prüfung bei VIES (offene Punkte E2)', () => {
     adresse: 'Ringstraße 3\nAT-2700 Wiener Neustadt', abfrageId: 'WAPIAAAAZ1', eigeneUid: 'ATU99999999',
     abgefragtAm: Date.parse('2026-10-02T08:15:00Z'), durch: 'buch', durchName: 'Erna Buch', am: Date.parse('2026-10-02T08:15:01Z'),
   };
+
+  it('Aktenlinie 03 · behält eine laufende UID-Prüfung beim Öffnen und Schließen des Editors', async () => {
+    let beenden!: (r: { pruefung: UidPruefung }) => void;
+    uidBeiViesPruefen.mockImplementation(() => new Promise((resolve) => { beenden = resolve; }));
+    zeige();
+    await screen.findByText('Noch nicht bei VIES geprüft.');
+    await userEvent.click(screen.getByRole('button', { name: 'Bei VIES prüfen' }));
+    await bearbeite();
+    expect(within(screen.getByRole('dialog', { name: 'Kunde bearbeiten' })).getByRole('button', { name: 'Bei VIES prüfen' })).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Schließen' }));
+    await act(async () => { beenden({ pruefung: PRUEFUNG }); });
+    expect(await screen.findByText(/Abfrage-ID/)).toHaveTextContent('WAPIAAAAZ1');
+    expect(uidBeiViesPruefen).toHaveBeenCalledTimes(1);
+    expect(listUidPruefungen).toHaveBeenCalledTimes(1);
+  });
 
   it('fragt die gespeicherte UID ab und zeigt Ergebnis, Zeitpunkt und Abfrage-ID', async () => {
     uidBeiViesPruefen.mockResolvedValue({ pruefung: PRUEFUNG });

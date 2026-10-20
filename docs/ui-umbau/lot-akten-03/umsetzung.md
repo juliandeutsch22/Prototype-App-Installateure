@@ -67,3 +67,8 @@ im obersten Feld des Kundenformulars im sichtbaren Fenster liegt. Der
 Speichern-Balken steht dafür außerhalb der Notizgruppe am Formularende;
 sonst hätte deren Beginn die klebende Leiste unter den sichtbaren Ausschnitt
 geschoben. Auf allen drei Breiten mit erhaltenem Entwurf nach Abbrechen geprüft.
+
+Beim Gegenlesen zusätzlich abgesichert: die Budgetwarnung ab 80 Prozent bleibt
+auch ohne Ring erhalten. Eine laufende VIES-Prüfung gehört zur Kundenakte und
+überlebt den Wechsel zwischen Lesen und Bearbeiten ohne erneute Abfrage oder
+verlorenes Ergebnis (`useUidVies`); je eine rote Gegenprobe vor der Korrektur.

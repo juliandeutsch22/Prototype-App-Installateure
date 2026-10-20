@@ -214,3 +214,10 @@ it('Aktenlinie 03 · zeigt den Stundenstand kompakt und hält Helfer sowie Perso
   expect(stundenDerBaustellen).toHaveBeenCalledTimes(1);
   expect(screen.getByText('Stunden nach Person')).toBeInTheDocument();
 });
+
+it('Aktenlinie 03 · hält die Budgetwarnung ab 80 Prozent auch ohne Ring sichtbar', async () => {
+  bestand = [summe({ minuten: 1920 })];
+  render(<BaustellenUebersicht companyId="perl" projekt={projekt()} kompakt />);
+  expect(await screen.findByText(/verbleibend/)).toHaveClass('text-warning');
+  expect(screen.queryByRole('img')).toBeNull();
+});

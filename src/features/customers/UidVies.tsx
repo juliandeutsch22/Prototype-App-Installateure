@@ -1,11 +1,9 @@
-import { useEffect, useState } from 'react';
 import type { Customer, UidPruefung } from '@/types';
-import { listUidPruefungen, uidBeiViesPruefen } from '@/lib/db/customers';
 import { beiViesPruefbar } from '@shared/vies';
 import { uidFehler, uidNormalisieren } from '@/lib/uid';
 import Button from '@/components/Button';
 import { Zustand } from '@/components/Badge';
-import { grundAus } from '@/lib/fehlerGrund';
+import useUidVies, { type UidViesStand } from './useUidVies';
 
 /** „02.10.2026, 22:15“ in Wiener Zeit. */
 function zeitpunkt(ms: number): string {
@@ -40,33 +38,18 @@ function ohneIdGrund(p: Pick<UidPruefung, 'ohneIdGrund' | 'eigeneUid'>): string 
  * dort.
  */
 export default function UidVies({
-  kunde, uidGeaendert, darfPruefen,
+  kunde, uidGeaendert, darfPruefen, stand,
 }: {
   kunde: Customer & { id: string };
+  stand?: UidViesStand;
   /** Im Formular steht eine andere UID als gespeichert. */
   uidGeaendert: boolean;
   /** Der Supportzugang liest mit, prüft aber nicht — die Abfrage schreibt in den Betrieb. */
   darfPruefen: boolean;
 }) {
   const uid = uidNormalisieren(kunde.vatId);
-  const [liste, setListe] = useState<UidPruefung[] | null>(null);
-  const [laeuft, setLaeuft] = useState(false);
-  const [fehler, setFehler] = useState<string | null>(null);
-  const [hinweis, setHinweis] = useState<string | null>(null);
-
-  const pruefbar = !!uid && !uidFehler(uid) && beiViesPruefbar(uid);
-
-  useEffect(() => {
-    if (!pruefbar) return;
-    let weg = false;
-    listUidPruefungen(kunde.companyId, kunde.id)
-      .then((z) => { if (!weg) setListe(z); })
-      // Ohne Liste bleibt die Prüfung möglich; es fehlt nur der letzte Stand.
-      .catch(() => { if (!weg) setListe([]); });
-    return () => {
-      weg = true;
-    };
-  }, [kunde.companyId, kunde.id, pruefbar]);
+  const eigenerStand = useUidVies(kunde, !stand);
+  const { liste, laeuft, fehler, hinweis, pruefen } = stand ?? eigenerStand;
 
   /*
     OHNE PRÜFBARE UID BLEIBT DER BEREICH MEIST WEG — eine Privatperson hat
@@ -103,21 +86,6 @@ export default function UidVies({
   const zurUid = (liste ?? []).filter((p) => p.uid === uid);
   const letzte = zurUid[0];
   const fruehere = zurUid.slice(1);
-
-  async function pruefen() {
-    setLaeuft(true);
-    setFehler(null);
-    setHinweis(null);
-    try {
-      const { pruefung, hinweis: h } = await uidBeiViesPruefen(kunde.id);
-      setListe((l) => [pruefung, ...(l ?? [])]);
-      setHinweis(h ?? null);
-    } catch (e) {
-      setFehler(grundAus(e, 'VIES ließ sich nicht fragen.'));
-    } finally {
-      setLaeuft(false);
-    }
-  }
 
   return (
     <Rahmen>
