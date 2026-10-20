@@ -1,0 +1,272 @@
+[
+  {
+    "kind": "baustelle",
+    "width": 1440,
+    "format": "desktop",
+    "tab": "uebersicht",
+    "file": "baustelle-desktop.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "baustelle",
+    "width": 1440,
+    "format": "desktop",
+    "tab": "planung",
+    "file": "baustelle-planung-desktop.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "baustelle",
+    "width": 1440,
+    "format": "desktop",
+    "tab": "dokumente",
+    "file": "baustelle-dokumente-desktop.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "kunde",
+    "width": 1440,
+    "format": "desktop",
+    "tab": "uebersicht",
+    "file": "kunde-desktop.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "kunde",
+    "width": 1440,
+    "format": "desktop",
+    "tab": "vorgaenge",
+    "file": "kunde-vorgaenge-desktop.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "kunde",
+    "width": 1440,
+    "format": "desktop",
+    "tab": "wartungen",
+    "file": "kunde-wartungen-desktop.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "benutzer",
+    "width": 1440,
+    "format": "desktop",
+    "tab": "profil",
+    "file": "benutzer-desktop.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "benutzer",
+    "width": 1440,
+    "format": "desktop",
+    "tab": "arbeitszeit",
+    "file": "benutzer-arbeitszeit-desktop.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "benutzer",
+    "width": 1440,
+    "format": "desktop",
+    "tab": "zugang",
+    "file": "benutzer-zugang-desktop.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "baustelle",
+    "width": 834,
+    "format": "tablet",
+    "tab": "uebersicht",
+    "file": "baustelle-tablet.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "baustelle",
+    "width": 834,
+    "format": "tablet",
+    "tab": "planung",
+    "file": "baustelle-planung-tablet.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "baustelle",
+    "width": 834,
+    "format": "tablet",
+    "tab": "dokumente",
+    "file": "baustelle-dokumente-tablet.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "kunde",
+    "width": 834,
+    "format": "tablet",
+    "tab": "uebersicht",
+    "file": "kunde-tablet.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "kunde",
+    "width": 834,
+    "format": "tablet",
+    "tab": "vorgaenge",
+    "file": "kunde-vorgaenge-tablet.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "kunde",
+    "width": 834,
+    "format": "tablet",
+    "tab": "wartungen",
+    "file": "kunde-wartungen-tablet.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "benutzer",
+    "width": 834,
+    "format": "tablet",
+    "tab": "profil",
+    "file": "benutzer-tablet.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "benutzer",
+    "width": 834,
+    "format": "tablet",
+    "tab": "arbeitszeit",
+    "file": "benutzer-arbeitszeit-tablet.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "benutzer",
+    "width": 834,
+    "format": "tablet",
+    "tab": "zugang",
+    "file": "benutzer-zugang-tablet.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "baustelle",
+    "width": 390,
+    "format": "mobil",
+    "tab": "uebersicht",
+    "file": "baustelle-mobil.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "baustelle",
+    "width": 390,
+    "format": "mobil",
+    "tab": "planung",
+    "file": "baustelle-planung-mobil.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "baustelle",
+    "width": 390,
+    "format": "mobil",
+    "tab": "dokumente",
+    "file": "baustelle-dokumente-mobil.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "kunde",
+    "width": 390,
+    "format": "mobil",
+    "tab": "uebersicht",
+    "file": "kunde-mobil.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "kunde",
+    "width": 390,
+    "format": "mobil",
+    "tab": "vorgaenge",
+    "file": "kunde-vorgaenge-mobil.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "kunde",
+    "width": 390,
+    "format": "mobil",
+    "tab": "wartungen",
+    "file": "kunde-wartungen-mobil.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "benutzer",
+    "width": 390,
+    "format": "mobil",
+    "tab": "profil",
+    "file": "benutzer-mobil.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "benutzer",
+    "width": 390,
+    "format": "mobil",
+    "tab": "arbeitszeit",
+    "file": "benutzer-arbeitszeit-mobil.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  },
+  {
+    "kind": "benutzer",
+    "width": 390,
+    "format": "mobil",
+    "tab": "zugang",
+    "file": "benutzer-zugang-mobil.png",
+    "overflow": false,
+    "axe": [],
+    "errors": []
+  }
+]

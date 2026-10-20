@@ -1,6 +1,6 @@
 # Senklot – Bilder für die Landingpage
 
-**Neue Aktenentwürfe vom 20.10.2026:** [Baustelle, Kunde und Benutzer ansehen](lot-v2-akten-entwurf-02/README.md) · [Screens und klickbare Vorschau herunterladen](Lot-Akten-Entwurf-02-2026-10-20.zip?raw=true). Jeweils Desktop und Handy, zusätzlich Tablet, weitere Bereiche und Bearbeitungsfenster. Gestaltungsentwürfe; die Live-App ist unverändert.
+**Neue Aktenentwürfe vom 20.10.2026:** [Baustelle, Kunde und Benutzer ansehen](lot-v2-akten-entwurf-03/README.md) · [Screens und klickbare Vorschau herunterladen](Lot-Akten-Entwurf-03-2026-10-20.zip?raw=true). Jeweils Desktop und Handy, zusätzlich Tablet, weitere Bereiche und Bearbeitungsfenster. Die Baustelle beginnt jetzt direkt mit den Auftragsangaben; Preis und Stunden stehen kleiner im Auftrag. Gestaltungsentwürfe; die Live-App ist unverändert.
 
 ## Aktuell: Lot v2 · tatsächliche Umsetzung 01
 

@@ -1,0 +1,26 @@
+
+(()=>{const tabs=[...document.querySelectorAll('[role=tab]')];function activate(id,focus=false){const chosen=tabs.find(t=>t.dataset.tab===id)||tabs[0];for(const t of tabs){const on=t===chosen;t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;document.getElementById(t.getAttribute('aria-controls')).hidden=!on;}if(focus)chosen.focus();if(location.hash!=='#'+chosen.dataset.tab)location.hash=chosen.dataset.tab;}
+for(const t of tabs){t.addEventListener('click',()=>activate(t.dataset.tab));t.addEventListener('keydown',e=>{let i=tabs.indexOf(t);if(e.key==='ArrowRight')i=(i+1)%tabs.length;else if(e.key==='ArrowLeft')i=(i+tabs.length-1)%tabs.length;else if(e.key==='Home')i=0;else if(e.key==='End')i=tabs.length-1;else return;e.preventDefault();activate(tabs[i].dataset.tab,true);});}
+document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{activate(b.dataset.go,true);document.querySelector('.tabs').scrollIntoView({block:'start'});});
+addEventListener('hashchange',()=>activate(location.hash.slice(1)));activate(location.hash.slice(1));
+const dialog=document.querySelector('dialog'),head=document.querySelector('#dialog-title'),body=document.querySelector('#dialog-body'),save=document.querySelector('#dialog-save');let before=null;
+const field=(label,value,type='text')=>'<label class="form-field">'+label+'<input type="'+type+'" value="'+value+'"></label>';
+const kind=document.body.dataset.kind;const title={baustelle:'Baustelle bearbeiten',kunde:'Kunde bearbeiten',benutzer:'Profil bearbeiten'};
+function open(button){before=button;const a=button.dataset.action;head.textContent=title[kind];save.hidden=false;
+if(a==='edit')body.innerHTML=kind==='baustelle'?field('Bezeichnung','Heizungstausch Hauptplatz')+field('Abrechnung','Pauschal')+field('Stundenbudget','80','number')+'<label class="form-field">Auftragsumfang<textarea>Heizungstausch mit Verteiler und hydraulischem Abgleich</textarea></label>':kind==='kunde'?field('Name','CT Bau GmbH')+field('Straße','Industriestraße 5')+field('PLZ','8200')+field('Ort','Gleisdorf')+field('Ansprechpartner','Anna Beispiel')+field('Telefon','0664 1234567')+field('UID-Nummer','ATU12345678'):field('Name','Franz Hinterleitner')+field('Rolle','Projektleiter')+field('Einstufung','Facharbeiter');
+else if(a==='appointment'){head.textContent='Termin anlegen';body.innerHTML=field('Bezeichnung','Abnahme')+field('Datum','2026-10-21','date')+field('Beginn','14:00','time')+field('Ende','15:00','time');}
+else if(a==='birth'){head.textContent='Geburtsdatum';body.innerHTML=field('Geburtsdatum','','date');}
+else if(a==='leave'){head.textContent='Urlaubsanspruch anpassen';body.innerHTML=field('Jahr','2026','number')+field('Anspruch in Tagen','25','number');}
+else if(a==='upload'){head.textContent='Dokument hinzufügen';body.innerHTML='<label class="form-field">Datei<input type="file"></label><label class="checkbox"><input type="checkbox">Nur fürs Büro</label>';}
+else{head.textContent='Gestaltungsvorschau';save.hidden=true;body.innerHTML='<p>Hier wird in der echten App die bestehende Funktion geöffnet.</p><p class="note">Dieser Entwurf zeigt Aufbau und Bedienwege mit fiktiven Daten. Er sendet keine Daten und führt keine Konto-, Beleg- oder Löschaktionen aus.</p>';}
+if(a==='edit'){
+ const section=button.closest('.section')?.querySelector('h2')?.textContent||'';
+ if(kind==='benutzer'&&/Arbeitszeit/.test(section)){head.textContent='Arbeitszeit bearbeiten';body.innerHTML=field('Wochenstunden','38,5')+'<p class="section-caption">Arbeitstage</p>'+['Mo','Di','Mi','Do','Fr'].map(d=>'<label class="checkbox"><input type="checkbox" checked>'+d+'</label>').join('');}
+ if(kind==='benutzer'&&/Beginn/.test(section)){head.textContent='Zeitkonto bearbeiten';body.innerHTML=field('Eintrittsdatum','2023-05-17','date')+field('Saldo-Startdatum','2023-05-17','date')+field('Start-Saldo in Stunden','0','number');}
+ if(kind==='benutzer'&&/Rolle/.test(section)){head.textContent='Rolle und Berechtigungen';body.innerHTML=field('Rolle','Projektleiter')+'<label class="checkbox"><input type="checkbox" checked>Rechnungen lesen</label>';}
+ if(kind==='kunde'&&section==='Notiz'){head.textContent='Notiz bearbeiten';body.innerHTML='<label class="form-field">Notiz<textarea>Zutritt zum Technikraum über Anna Beispiel.\nArbeiten bitte vorab telefonisch abstimmen.</textarea></label>';}
+ if(kind==='baustelle'&&/Team/.test(section)){head.textContent='Team und Zuständigkeit';body.innerHTML=field('Projektleitung','Martin Perl')+'<p class="section-caption">Zugeordnetes Team</p><label class="checkbox"><input type="checkbox" checked>Franz Hinterleitner</label><label class="checkbox"><input type="checkbox" checked>Lena Pichler</label>';}
+}
+dialog.showModal();}
+document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{if(b.dataset.action==='project')location.href='baustelle.html';else if(b.dataset.action==='customer')location.href='kunde.html';else open(b);});
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>dialog.close());dialog.addEventListener('close',()=>before?.focus());save.onclick=()=>{dialog.close();const toast=document.querySelector('.toast');toast.hidden=false;clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>toast.hidden=true,4000);};})();
