@@ -68,6 +68,8 @@ export interface MonatsSchnittstelle {
   onEinsatz?: (start: FensterStart) => void;
   /** Ein Termin: „Termin ändern“ (ohne Recht schreibgeschützt) im Seitenfenster. */
   onTermin?: (t: Termin) => void;
+  /** „Termin anlegen“ in der Vorschau eines Tages — nur, wer Termine schreiben darf. */
+  onTerminNeu?: (tag: string) => void;
   /** „Zur Woche“: Woche dieses Tages, Tageskopf markiert (`?woche=JJJJ-Www&tag=JJJJ-MM-TT`). */
   onZurWoche?: (tag: string) => void;
 }
@@ -134,6 +136,7 @@ export default function MonatsAnsicht({
   zuAm,
   onEinsatz,
   onTermin,
+  onTerminNeu,
   onZurWoche,
   quelle = DB_QUELLE,
 }: MonatsSchnittstelle & {
@@ -781,6 +784,7 @@ export default function MonatsAnsicht({
             onBlaettern={blaettern}
             onEinsatz={onEinsatz}
             onTermin={onTermin}
+            onTerminNeu={onTerminNeu}
             onZurWoche={zurWoche}
           />,
           document.body,

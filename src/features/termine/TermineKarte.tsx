@@ -27,6 +27,7 @@ export default function TermineKarte({
   titel,
   vorgabe,
   onTermine,
+  anlegen = 0,
 }: {
   titel: string;
   vorgabe: TerminVorgabe;
@@ -36,6 +37,12 @@ export default function TermineKarte({
    * Baustelle ansteht (Runde 3, G23), ohne ein zweites Mal zu laden.
    */
   onTermine?: (termine: Termin[]) => void;
+  /**
+   * Steigt der Zähler, öffnet die Karte „Termin anlegen“ — für das ⋯ im
+   * Seitenkopf der Tagesplanung (20.10.2026). So bleibt es bei einem
+   * Fenster und einem Schreibweg, und die Liste lädt nach dem Speichern neu.
+   */
+  anlegen?: number;
 }) {
   const { user } = useAuth();
   const toast = useToast();
@@ -87,6 +94,12 @@ export default function TermineKarte({
     // Nur bei neuen Terminen melden — ein neuer Rückruf allein ist keine Änderung.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [termine]);
+
+  useEffect(() => {
+    if (anlegen > 0 && darf) setBearbeite('neu');
+    // Nur der neue Zählerstand öffnet — nicht ein Wechsel der Rechte.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anlegen]);
 
   // Die Namen der Teilnehmer — und die Auswahl im Formular.
   useEffect(() => {

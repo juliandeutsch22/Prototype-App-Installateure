@@ -1014,6 +1014,32 @@ describe('Termine in der Tagesplanung (Plan 10.4)', () => {
     expect(within(titel.closest('section')!).getByRole('button', { name: 'Termin anlegen' })).toBeInTheDocument();
     await waitFor(() => expect(listTermineImZeitraum).toHaveBeenCalledWith('perl', '2026-09-03', '2026-09-03'));
   });
+
+  /*
+    DASSELBE ⋯ WIE IN WOCHE UND MONAT (20.10.2026): hier öffnet es das
+    Fenster der Karte „Termine“ — ein Fenster, ein Schreibweg, und die Liste
+    lädt nach dem Speichern neu.
+  */
+  it('„Termin anlegen“ im ⋯ des Seitenkopfs öffnet das Fenster der Karte mit dem gewählten Tag', async () => {
+    zeige({ datum: '2026-09-03' });
+    await screen.findByRole('heading', { name: /^Termine am / });
+    await userEvent.click(screen.getByRole('button', { name: 'Weitere Aktionen für Einsatzplanung' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Termin anlegen' }));
+    expect(within(screen.getByRole('dialog', { name: 'Termin anlegen' })).getByLabelText('Tag')).toHaveValue('2026-09-03');
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+  });
+
+  it('Gegenprobe: wer Termine nicht schreiben darf, hat kein ⋯', async () => {
+    const vorher = authWert.user.role;
+    (authWert.user as { role: string }).role = 'Buchhaltung';
+    try {
+      zeige({ datum: '2026-09-03' });
+      await screen.findByRole('heading', { name: /^Termine am / });
+      expect(screen.queryByRole('button', { name: 'Weitere Aktionen für Einsatzplanung' })).toBeNull();
+    } finally {
+      (authWert.user as { role: string }).role = vorher;
+    }
+  });
 });
 
 /*

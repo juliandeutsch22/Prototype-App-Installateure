@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import Adressfilter from '@/components/Adressfilter';
 import { useAuth } from '@/app/AuthContext';
-import { einplanbar } from '@/lib/permissions';
+import { darfTermineSchreiben, einplanbar } from '@/lib/permissions';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
@@ -19,6 +19,7 @@ import Button from '@/components/Button';
 import { Marke } from '@/components/Badge';
 import MonthCalendar from '@/components/MonthCalendar';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import RowMenu from '@/components/RowMenu';
 import { List, ListRow } from '@/components/ListRow';
 import { useModul } from '@/lib/useModule';
 import { useToast } from '@/components/Toast';
@@ -98,6 +99,8 @@ export default function AssignmentsView() {
   /** Ein Nebenladevorgang ist ausgefallen — der Kalender steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<WithId<Assignment> | null>(null);
+  /** „Termin anlegen“ im ⋯: zählt hoch, die Karte „Termine“ öffnet ihr Fenster. */
+  const [terminAnlegen, setTerminAnlegen] = useState(0);
 
   /*
     Die Rüstlisten des Tages: das Formular übernimmt daraus die vorhandene
@@ -259,7 +262,14 @@ export default function AssignmentsView() {
         Einsatzplanung neben Woche und Monat — derselbe Seitenkopf, der
         Umschalter statt der Reiter, darunter die Seite wie bisher.
       */}
-      <PlanungsSeitenkopf />
+      <PlanungsSeitenkopf
+        mehr={
+          // Dasselbe ⋯ wie in Woche und Monat; hier öffnet es das Fenster der Karte „Termine“ für den gewählten Tag.
+          user && darfTermineSchreiben(user.role) ? (
+            <RowMenu about="Einsatzplanung" items={[{ label: 'Termin anlegen', onSelect: () => setTerminAnlegen((n) => n + 1) }]} />
+          ) : undefined
+        }
+      />
       {/*
         DIESELBE BREITE UND DIESELBE STELLE WIE IN WOCHE UND MONAT (Testbericht
         Runde 5, G9): der Umschalter sprang beim Wechsel nach links, und „Tag“
@@ -338,6 +348,7 @@ export default function AssignmentsView() {
             titel={`Termine am ${fmtDay(date)}`}
             vorgabe={{ bezug: 'frei', datum: date }}
             onTermine={setTermineDesTages}
+            anlegen={terminAnlegen}
           />
 
           {/* Bündig: jede Baustelle ein Abschnitt mit ihren Leuten darunter,

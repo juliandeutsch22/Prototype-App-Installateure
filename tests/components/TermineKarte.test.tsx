@@ -274,3 +274,37 @@ describe('Ändern und Löschen', () => {
     await waitFor(() => expect(terminLoeschen).toHaveBeenCalledWith('t1'));
   });
 });
+
+/*
+  „TERMIN ANLEGEN“ VON AUSSEN (20.10.2026): das ⋯ im Seitenkopf der
+  Tagesplanung zählt hoch, die Karte öffnet ihr eigenes Fenster.
+*/
+describe('Anlegen über den Zähler `anlegen`', () => {
+  function mitZaehler(anlegen: number) {
+    return (
+      <MemoryRouter>
+        <ToastProvider>
+          <TermineKarte titel="Termine" vorgabe={{ bezug: 'frei', datum: '2026-06-02' }} anlegen={anlegen} />
+        </ToastProvider>
+      </MemoryRouter>
+    );
+  }
+
+  it('öffnet beim Hochzählen „Termin anlegen“ mit dem Tag der Karte — nicht schon beim ersten Zeichnen', async () => {
+    const { rerender } = render(mitZaehler(0));
+    await screen.findByText('Keine Termine an diesem Tag.');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    rerender(mitZaehler(1));
+    expect(await screen.findByRole('dialog', { name: 'Termin anlegen' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Tag')).toHaveValue('2026-06-02');
+  });
+
+  it('Gegenprobe: wer nur liest, bekommt kein Fenster', async () => {
+    rolle = 'Mitarbeiter';
+    const { rerender } = render(mitZaehler(0));
+    await screen.findByText('Keine Termine an diesem Tag.');
+    rerender(mitZaehler(1));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});

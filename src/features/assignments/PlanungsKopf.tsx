@@ -16,14 +16,22 @@ import { Segmente } from '@/components/LotBausteine';
 
 export type PlanAnsicht = 'woche' | 'monat' | 'tag';
 
-/** Der Seitenkopf — Ortszeile ist die Gruppe der Navigation, wie auf den übrigen Seiten. */
-export function PlanungsSeitenkopf({ action, hilfe }: { action?: ReactNode; hilfe?: ReactNode }) {
+/**
+ * Der Seitenkopf — Ortszeile ist die Gruppe der Navigation, wie auf den übrigen Seiten.
+ *
+ * `mehr`: das ⋯ der Seite. Dort steht „Termin anlegen“ (20.10.2026) — in
+ * allen drei Ansichten an derselben Stelle, neben der einen Hauptaktion
+ * „Einsatz planen“. Vorher fand man den Weg am Schreibtisch nur über den
+ * Kopf eines Tages und im Monat gar nicht.
+ */
+export function PlanungsSeitenkopf({ action, hilfe, mehr }: { action?: ReactNode; hilfe?: ReactNode; mehr?: ReactNode }) {
   return (
     <PageHeader
       ort="Aufträge"
       title="Einsatzplanung"
       subtitle="Wer ist wann auf welcher Baustelle?"
       hilfe={hilfe}
+      mehr={mehr}
       action={action}
     />
   );

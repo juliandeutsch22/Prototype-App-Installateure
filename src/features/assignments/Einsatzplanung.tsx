@@ -7,6 +7,7 @@ import type { Project, Termin } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import BottomSheet from '@/components/BottomSheet';
+import RowMenu from '@/components/RowMenu';
 import { List, ListRow } from '@/components/ListRow';
 import { MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
@@ -129,6 +130,8 @@ export default function Einsatzplanung() {
   /** Für die Hauptaktion: heute, wenn er im Zeitraum liegt, sonst der erste Tag. */
   const standardTag = tage.includes(heute) ? heute : tage[0];
   const handyTag = handyWahl && tage.includes(handyWahl) ? handyWahl : (markiert ?? standardTag);
+  /** Der Tag, mit dem „Einsatz planen“ und „Termin anlegen“ im Seitenkopf öffnen. */
+  const kopfTag = ansicht === 'woche' ? handyTag : standardTag;
 
   /*
     NOCH EINZUPLANEN (Linie „Lot“, E2): laufende Baustellen ohne einen
@@ -249,6 +252,11 @@ export default function Einsatzplanung() {
               Tag niemand eingeteilt ist.
             </p>
             <p className="mt-2">
+              Einen Termin legt „Termin anlegen“ im ⋯ oben an — vorbelegt mit heute bzw. dem
+              gewählten Tag, der Tag lässt sich im Formular ändern. Für einen bestimmten Tag geht
+              es auch über das Seitenfenster „Tag“ und im Monat über die Vorschau eines Tages.
+            </p>
+            <p className="mt-2">
               Gezählt als frei ist, wer an diesem Tag auf keiner Baustelle steht und keinen
               genehmigten Urlaub hat. Der Wochenplan zeigt Einsätze, nicht gebuchte Zeiten: wer
               ohne Einsatz Stunden bucht, steht hier trotzdem als frei. Samstag, Sonntag und
@@ -259,9 +267,18 @@ export default function Einsatzplanung() {
           </>
         }
         action={
-          <Button onClick={() => setFenster({ art: 'einsatz', start: { datum: ansicht === 'woche' ? handyTag : standardTag } })}>
+          <Button onClick={() => setFenster({ art: 'einsatz', start: { datum: kopfTag } })}>
             Einsatz planen
           </Button>
+        }
+        mehr={
+          // Nur wer Termine schreiben darf — wie „Termin anlegen“ im Seitenfenster „Tag“.
+          darf ? (
+            <RowMenu
+              about="Einsatzplanung"
+              items={[{ label: 'Termin anlegen', onSelect: () => setFenster({ art: 'termin', termin: null, datum: kopfTag }) }]}
+            />
+          ) : undefined
         }
       />
 
@@ -344,6 +361,7 @@ export default function Einsatzplanung() {
           zuAm={d.zuAm}
           onEinsatz={grund.onEinsatz}
           onTermin={grund.onTermin}
+          onTerminNeu={darf ? (tag) => setFenster({ art: 'termin', termin: null, datum: tag }) : undefined}
           onZurWoche={zurWoche}
         />
       ) : (
