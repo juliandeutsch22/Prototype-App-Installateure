@@ -330,11 +330,11 @@ describe('lager_frei mit einer Liste von Kennungen', () => {
     (Stand davor) geht das nicht — die Prüfung ist dann rot (Gegenprobe:
     gegen den alten Text gelaufen).
 
-    OHNE DEN INDEX DES BETRIEBS, in der Transaktion weggenommen und
-    zurückgerollt: ob Postgres ihn vorzieht, hängt daran, wie viele Betriebe
-    gerade Artikel in der Tabelle haben — im vollen Lauf viele andere
-    Prüfungen (so am 20.10.2026 geschehen). Die Frage hier ist nur, ob der
-    Schlüssel überhaupt nutzbar ist.
+    NUR DER SCHLÜSSEL BLEIBT ALS INDEX, die übrigen in der Transaktion
+    weggenommen und zurückgerollt: welchen Postgres sonst vorzieht, hängt an
+    Statistik und Datenmenge — im vollen Lauf an den Artikeln anderer
+    Prüfungen, in der CI an der leeren Tabelle (beides am 20.10.2026
+    geschehen). Die Frage hier ist nur, ob der Schlüssel überhaupt nutzbar ist.
   */
   it('der allgemeine Plan kann die Artikel über den Schlüssel finden', async () => {
     const { rows } = await db.query(`select prosrc from pg_proc where oid = 'public.lager_frei(uuid[])'::regprocedure`);
@@ -342,7 +342,10 @@ describe('lager_frei mit einer Liste von Kennungen', () => {
     await db.query('begin');
     try {
       await db.query("set local lock_timeout = '5s'");
-      await db.query('drop index public.materials_betrieb');
+      const { rows: indizes } = await db.query(
+        `select indexrelid::regclass::text as name from pg_index
+          where indrelid = 'public.materials'::regclass and not indisprimary`);
+      for (const { name } of indizes) await db.query(`drop index ${name}`);
       await db.query('set local plan_cache_mode = force_generic_plan');
       await db.query('set local enable_seqscan = off');
       await db.query(`prepare lager_frei_plan(uuid[]) as ${text}`);
