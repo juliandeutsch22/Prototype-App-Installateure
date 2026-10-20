@@ -1,0 +1,128 @@
+{
+  "baustelle": {
+    "quelle": "src/features/projects/BaustellenakteView.tsx",
+    "kopf": [
+      "Bezeichnung/Kunde",
+      "Projektnummer",
+      "Status",
+      "Kontakt"
+    ],
+    "uebersicht": [
+      "Auftragsumfang",
+      "Abrechnungsart",
+      "Budget/Fachzeit",
+      "Angebot",
+      "Beginn/Ende",
+      "Kundenverweis"
+    ],
+    "planung": [
+      "Termine anlegen/ändern/löschen",
+      "vergangene Termine",
+      "Team",
+      "Projektleitung"
+    ],
+    "dokumente": [
+      "Handwerksscheine schreiben/öffnen/nachladen",
+      "Pläne/Dokumente hochladen/ansehen/löschen",
+      "Nur fürs Büro"
+    ],
+    "bei_umsetzung_zu_erhalten": [
+      "Umnummerierung mit Bestätigung und Mitziehen",
+      "ausgeschiedene Teammitglieder",
+      "fehlende Kundenverknüpfung",
+      "fehlendes Budget/Überschreitung",
+      "Helfer/ausgenommene Lehrlingsstunden",
+      "Pauschalangebotsregeln",
+      "Teilladefehler",
+      "Speichern/Verwerfen und Schutz ungespeicherter Änderungen"
+    ]
+  },
+  "kunde": {
+    "quelle": "src/features/customers/KundenakteView.tsx",
+    "kopf": [
+      "Name",
+      "Kundennummer",
+      "Status",
+      "Adresse",
+      "Ansprechpartner",
+      "Telefon",
+      "E-Mail"
+    ],
+    "uebersicht": [
+      "Kundenart/UID",
+      "VIES-Prüfung und Details",
+      "Notiz",
+      "Lieferantennummer unter Weitere Angaben",
+      "aktive Baustellen",
+      "nächster Termin/Wartung",
+      "Datenauskunft/Löschung"
+    ],
+    "vorgaenge": [
+      "alle Baustellen",
+      "Namenszuordnung/Übernahme",
+      "Rechnungen und Weitere anzeigen",
+      "Angebote"
+    ],
+    "wartungen": [
+      "Wartungsvereinbarungen und Fälligkeiten",
+      "Kunden-/Baustellentermine"
+    ],
+    "bei_umsetzung_zu_erhalten": [
+      "getrennte Lade-/Fehlerzustände",
+      "Kundenpflege-Freigabe",
+      "Zuordnung nur für berechtigte Rolle",
+      "UID-Validierung und Änderungen während VIES-Prüfung",
+      "Aktiv/Inaktiv",
+      "strukturierte und alte Adressen",
+      "Speichern/Verwerfen und Schutz ungespeicherter Änderungen"
+    ]
+  },
+  "benutzer": {
+    "quelle": "src/features/users/BenutzerakteView.tsx",
+    "profil": [
+      "Name",
+      "Rolle",
+      "Status",
+      "Anmeldekonto",
+      "Einstufung/Lehrbeginn/Lehrzeit/Verlauf",
+      "Geburtsdatum",
+      "Eintritt"
+    ],
+    "arbeitszeit": [
+      "Wochenstunden",
+      "Arbeitstage/Tagessoll",
+      "Saldo-Start",
+      "Start-Saldo",
+      "Jahresurlaub",
+      "Urlaub im Startjahr",
+      "jährliche Anspruchsanpassung"
+    ],
+    "zugang": [
+      "E-Mail-/Benutzernamenkonto",
+      "Passwort-Mail/neues Startpasswort",
+      "Kontoumstellung",
+      "Aktivieren/Deaktivieren",
+      "rollenabhängige Zusatzfreigaben",
+      "Datenauskunft/Löschung"
+    ],
+    "bei_umsetzung_zu_erhalten": [
+      "Administratorgrenzen",
+      "Schutz des eigenen Kontos",
+      "Support-Leserechte",
+      "Warnung Jugendschutz",
+      "leerer Urlaub ist nicht Null",
+      "Eintritt ist nicht Saldo-Start",
+      "Einstufung ist nicht Berechtigung",
+      "Lehrlingsstunden im Budget",
+      "Anmeldekonto nicht als gewöhnliches Mailfeld ändern",
+      "Speichern/Verwerfen und Schutz ungespeicherter Änderungen"
+    ]
+  },
+  "grenzen": [
+    "Vorschau mit fiktiven Daten",
+    "keine neue Datenbank-/Berechtigungs-/Rechenlogik",
+    "keine zusätzliche Materialhistorie oder Einsatzabfrage",
+    "nicht jede Rollen-/Fehler-/Formularvariante gezeichnet",
+    "spätere Funktionsabnahme weiterhin erforderlich"
+  ]
+}

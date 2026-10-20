@@ -1,6 +1,6 @@
 # Senklot – Bilder für die Landingpage
 
-**Neuer Gestaltungsentwurf vom 20.10.2026:** [Baustellenakte ansehen](lot-v2-akten-entwurf-2026-10-20/README.md). Dieser Vorschlag ist noch nicht in der Live-App umgesetzt.
+**Neue Aktenentwürfe vom 20.10.2026:** [Baustelle, Kunde und Benutzer ansehen](lot-v2-akten-entwurf-02/README.md) · [Screens und klickbare Vorschau herunterladen](Lot-Akten-Entwurf-02-2026-10-20.zip?raw=true). Jeweils Desktop und Handy, zusätzlich Tablet, weitere Bereiche und Bearbeitungsfenster. Gestaltungsentwürfe; die Live-App ist unverändert.
 
 ## Aktuell: Lot v2 · tatsächliche Umsetzung 01
 

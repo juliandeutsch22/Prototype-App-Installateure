@@ -1,0 +1,53 @@
+{
+  "baustelle": {
+    "title": "Heizungstausch Hauptplatz",
+    "tabs": [
+      [
+        "uebersicht",
+        "Übersicht"
+      ],
+      [
+        "planung",
+        "Termine und Team"
+      ],
+      [
+        "dokumente",
+        "Scheine und Pläne"
+      ]
+    ]
+  },
+  "kunde": {
+    "title": "CT Bau GmbH",
+    "tabs": [
+      [
+        "uebersicht",
+        "Übersicht"
+      ],
+      [
+        "vorgaenge",
+        "Baustellen und Belege"
+      ],
+      [
+        "wartungen",
+        "Wartungen"
+      ]
+    ]
+  },
+  "benutzer": {
+    "title": "Franz Hinterleitner",
+    "tabs": [
+      [
+        "profil",
+        "Profil"
+      ],
+      [
+        "arbeitszeit",
+        "Arbeitszeit und Urlaub"
+      ],
+      [
+        "zugang",
+        "Zugang und Rechte"
+      ]
+    ]
+  }
+}
