@@ -1,0 +1,290 @@
+[
+  {
+    "typ": "baustelle",
+    "width": 390,
+    "tab": "Übersicht",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 390,
+    "tab": "Termine und Team",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 390,
+    "tab": "Scheine und Pläne",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 390,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 834,
+    "tab": "Übersicht",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 834,
+    "tab": "Termine und Team",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 834,
+    "tab": "Scheine und Pläne",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 834,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 1440,
+    "tab": "Übersicht",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 1440,
+    "tab": "Termine und Team",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 1440,
+    "tab": "Scheine und Pläne",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 1440,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 390,
+    "tab": "Übersicht",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 390,
+    "tab": "Baustellen und Belege",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 390,
+    "tab": "Wartungen",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 390,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 834,
+    "tab": "Übersicht",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 834,
+    "tab": "Baustellen und Belege",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 834,
+    "tab": "Wartungen",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 834,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 1440,
+    "tab": "Übersicht",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 1440,
+    "tab": "Baustellen und Belege",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 1440,
+    "tab": "Wartungen",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 1440,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 390,
+    "tab": "Profil",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 390,
+    "tab": "Arbeitszeit und Urlaub",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 390,
+    "tab": "Zugang und Rechte",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 390,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 834,
+    "tab": "Profil",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 834,
+    "tab": "Arbeitszeit und Urlaub",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 834,
+    "tab": "Zugang und Rechte",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 834,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 1440,
+    "tab": "Profil",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 1440,
+    "tab": "Arbeitszeit und Urlaub",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 1440,
+    "tab": "Zugang und Rechte",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 1440,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  }
+]
