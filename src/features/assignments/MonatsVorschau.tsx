@@ -38,6 +38,7 @@ export default function MonatsVorschau({
   onBlaettern,
   onEinsatz,
   onTermin,
+  onTerminNeu,
   onZurWoche,
 }: {
   ziel: VorschauZiel;
@@ -61,6 +62,12 @@ export default function MonatsVorschau({
   onBlaettern: (schritt: -1 | 1) => void;
   onEinsatz?: (start: FensterStart) => void;
   onTermin?: (t: Termin) => void;
+  /**
+   * „Termin anlegen“ für diesen Tag (20.10.2026) — im Monat gab es keinen
+   * Weg dazu. Öffnet das Seitenfenster der Seite wie „Termin ändern“; die
+   * Seite gibt es nur, wer Termine schreiben darf.
+   */
+  onTerminNeu?: (tag: string) => void;
   onZurWoche?: (tag: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -194,6 +201,10 @@ export default function MonatsVorschau({
     onSchliessen(false);
     onZurWoche?.(tag);
   };
+  const terminNeu = () => {
+    onSchliessen(true);
+    onTerminNeu?.(tag);
+  };
 
   const einsaetze = inhalt?.einsaetze ?? [];
   const planen = imMonat && !!onEinsatz;
@@ -290,8 +301,14 @@ export default function MonatsVorschau({
         )}
       </div>
 
-      {(onZurWoche || haupt) && (
+      {(onZurWoche || haupt || (onTerminNeu && darfTermine)) && (
       <div className="vorschau-fuss">
+        {/* Links, als Textknopf: rechts stehen „Zur Woche“ und die Hauptaktion des Tages. */}
+        {onTerminNeu && darfTermine && (
+          <Button variant="ghost" groesse="klein" className="mr-auto" onClick={terminNeu}>
+            Termin anlegen
+          </Button>
+        )}
         {onZurWoche && (
           <Button variant="secondary" groesse="klein" onClick={zurWoche}>
             Zur Woche

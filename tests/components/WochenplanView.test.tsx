@@ -935,6 +935,84 @@ describe('Termine in der Einsatzplanung (Runde 4)', () => {
   });
 });
 
+/*
+  TERMIN ANLEGEN IM SEITENKOPF (20.10.2026). Vorher fand man den Weg am
+  Schreibtisch nur über den Kopf eines Tages, im Monat gar nicht. Jetzt
+  steht „Termin anlegen“ im ⋯ des Seitenkopfs — mit dem Tag vorbelegt wie
+  „Einsatz planen“, mit demselben Fenster und Formular wie „Termin ändern“.
+*/
+describe('Termin anlegen aus dem Seitenkopf (20.10.2026)', () => {
+  const termine = termineDb;
+  const menue = () => screen.getByRole('button', { name: 'Weitere Aktionen für Einsatzplanung' });
+
+  beforeEach(() => vi.mocked(termine.terminAnlegen).mockClear());
+
+  it('Woche: ⋯ → „Termin anlegen“ mit heute vorbelegt, Tag änderbar, gespeichert und neu geladen', async () => {
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(menue());
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Termin anlegen' }));
+    const dialog = within(screen.getByRole('dialog', { name: 'Termin anlegen' }));
+    expect(dialog.getByLabelText('Tag')).toHaveValue(MITTWOCH);
+    await userEvent.clear(dialog.getByLabelText('Tag'));
+    await userEvent.type(dialog.getByLabelText('Tag'), '2026-09-04');
+    await userEvent.selectOptions(await dialog.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    termineGeladen.mockClear();
+    await userEvent.click(dialog.getByRole('button', { name: 'Termin anlegen' }));
+    await waitFor(() => expect(termine.terminAnlegen).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(termine.terminAnlegen).mock.calls[0][1]).toEqual(expect.objectContaining({ datum: '2026-09-04', projectNumber: '2026-042' }));
+    // Danach lädt die Seite die Termine mit derselben Abfrage neu — und das Fenster ist zu.
+    await waitFor(() => expect(termineGeladen).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Termin anlegen' })).toBeNull());
+  });
+
+  it('Woche: in einer anderen Woche ist der markierte Tag vorbelegt — wie bei „Einsatz planen“', async () => {
+    zeige('/assignments/woche?woche=2026-W38&tag=2026-09-16');
+    await screen.findByRole('table', { name: 'Wochenplan als Tabelle' });
+    await userEvent.click(menue());
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Termin anlegen' }));
+    expect(within(screen.getByRole('dialog', { name: 'Termin anlegen' })).getByLabelText('Tag')).toHaveValue('2026-09-16');
+  });
+
+  it('Monat: ⋯ → „Termin anlegen“ mit heute; die Vorschau eines Tages legt für genau diesen Tag an', async () => {
+    zeige('/assignments/woche?ansicht=monat');
+    const monat = within(await screen.findByRole('region', { name: 'Monatsplan nach Personen' }));
+    await userEvent.click(menue());
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Termin anlegen' }));
+    expect(within(screen.getByRole('dialog', { name: 'Termin anlegen' })).getByLabelText('Tag')).toHaveValue(MITTWOCH);
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Termin anlegen' })).getByRole('button', { name: 'Abbrechen' }));
+
+    const erna = within(monat.getByRole('group', { name: 'Erna Beispiel' }));
+    await userEvent.click(erna.getByRole('button', { name: /^Erna Beispiel, Mo\.? 14\.09\.: / }));
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Termin anlegen' }));
+    // Die Vorschau ist zu, das Fenster „Termin anlegen“ steht mit dem Tag der Vorschau da.
+    const dialog = within(screen.getByRole('dialog', { name: 'Termin anlegen' }));
+    expect(dialog.getByLabelText('Tag')).toHaveValue('2026-09-14');
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+  });
+
+  it('Gleichbleiben: die Hauptaktion bleibt „Einsatz planen“, der Weg über den Tageskopf bleibt', async () => {
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz planen' }));
+    expect(screen.getByRole('dialog', { name: 'Einsatz planen' })).toBeInTheDocument();
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Einsatz planen' })).getByRole('button', { name: 'Schließen' }));
+    await userEvent.click(kopf(/Mittwoch 02\.09\./));
+    await userEvent.click(within(screen.getByRole('region', { name: /^Termine am / })).getByRole('button', { name: 'Termin anlegen' }));
+    expect(within(screen.getByRole('dialog', { name: 'Termin anlegen' })).getByLabelText('Tag')).toHaveValue(MITTWOCH);
+  });
+
+  it('Gegenprobe: wer Termine nicht schreiben darf, hat kein ⋯ — und in der Vorschau keinen Eintrag', async () => {
+    authWert.user.role = 'Buchhaltung';
+    zeige('/assignments/woche?ansicht=monat');
+    const monat = within(await screen.findByRole('region', { name: 'Monatsplan nach Personen' }));
+    expect(screen.queryByRole('button', { name: 'Weitere Aktionen für Einsatzplanung' })).toBeNull();
+    const erna = within(monat.getByRole('group', { name: 'Erna Beispiel' }));
+    await userEvent.click(erna.getByRole('button', { name: /^Erna Beispiel, Mo\.? 14\.09\.: / }));
+    expect(within(screen.getByRole('dialog')).queryByRole('button', { name: 'Termin anlegen' })).toBeNull();
+  });
+});
+
 describe('Der ganze Plan im eigenen Kalender (Plan 10.4, PR B)', () => {
   it('steht unter dem Wochenplan, wenn der Betrieb das Abo erlaubt — mit der Art „gesamt"', async () => {
     authWert.company = { id: 'perl', name: 'Perl Installationen', kalenderAboErlaubt: true };

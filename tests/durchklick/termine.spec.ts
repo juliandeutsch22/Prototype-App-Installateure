@@ -88,3 +88,43 @@ test('Besichtigung beim Kunden — der Teilnehmer sieht sie auf der Startseite',
   await expect(start.getByRole('link', { name: /Hauptstrasse 1, 1010 Wien/ })).toBeVisible();
   await keineFehlermeldung(monteur);
 });
+
+/*
+  TERMIN ANLEGEN AUS WOCHE UND MONAT (20.10.2026): im ⋯ des Seitenkopfs,
+  mit heute vorbelegt; im Monat zusätzlich in der Vorschau eines Tages.
+  Vorher ging das am Schreibtisch nur über den Kopf eines Tages, im Monat
+  gar nicht.
+*/
+test('Termin aus der Woche über das ⋯ des Seitenkopfs — und im Monat aus der Vorschau eines Tages', async ({ page }) => {
+  test.setTimeout(120_000);
+  await anmelden(page, CHEFIN.email);
+  await page.goto('/assignments/woche');
+  const raster = page.getByRole('table', { name: 'Wochenplan als Tabelle' });
+  await expect(raster).toBeVisible({ timeout: 15_000 });
+
+  await page.getByRole('button', { name: 'Weitere Aktionen für Einsatzplanung' }).click();
+  await page.getByRole('menuitem', { name: 'Termin anlegen' }).click();
+  const fenster = page.getByRole('dialog', { name: 'Termin anlegen' });
+  await expect(fenster.getByLabel('Tag')).toHaveValue(heute());
+  await fenster.getByLabel('Art').selectOption('Lieferung');
+  await fenster.getByRole('combobox', { name: /Baustelle/ }).selectOption(BAUSTELLE.nummer);
+  await fenster.getByRole('button', { name: 'Termin anlegen' }).click();
+  await expect(fenster).toBeHidden({ timeout: 15_000 });
+  // Der Kopf des Tages zählt ihn — die Woche hat neu geladen.
+  await expect(raster.getByRole('button', { name: /1 Termin/ })).toBeVisible({ timeout: 15_000 });
+  await expect(async () => {
+    const { data } = await admin.from('termine').select('art, datum, project_number').eq('company_id', BETRIEB);
+    expect(data).toEqual([{ art: 'Lieferung', datum: heute(), project_number: BAUSTELLE.nummer }]);
+  }).toPass({ timeout: 15_000 });
+  await keineFehlermeldung(page);
+
+  // Im Monat: der Kopf von heute öffnet die Vorschau, dort „Termin anlegen“ für genau diesen Tag.
+  await page.getByRole('group', { name: 'Zeitraum' }).getByRole('button', { name: 'Monat' }).click();
+  await page.getByRole('button', { name: /heute, 1 Termin.*alle Einsätze des Tages/ }).click({ timeout: 15_000 });
+  await page.getByRole('dialog').getByRole('button', { name: 'Termin anlegen' }).click();
+  const imMonat = page.getByRole('dialog', { name: 'Termin anlegen' });
+  await expect(imMonat.getByLabel('Tag')).toHaveValue(heute());
+  await imMonat.getByRole('button', { name: 'Abbrechen' }).click();
+  await expect(imMonat).toBeHidden();
+  await keineFehlermeldung(page);
+});
