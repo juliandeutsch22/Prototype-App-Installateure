@@ -1,6 +1,6 @@
 # Die drei Akten · tatsächliche Umsetzung
 
-Diese Bilder zeigen die echten Ansichten der App mit fiktiven Vorschau-Daten, keine Bildentwürfe. Stand 20.10.2026, Quellstand [95e4e6f](https://github.com/juliandeutsch22/Prototype-App-Installateure/commit/95e4e6f).
+Diese Bilder zeigen die echten Ansichten der App mit fiktiven Vorschau-Daten, keine Bildentwürfe. Stand 20.10.2026, Quellstand [c748266](https://github.com/juliandeutsch22/Prototype-App-Installateure/commit/c748266).
 
 Die große Kennzahlenleiste der Baustelle entfällt. Bearbeiten öffnet das vollständige Formular.
 
