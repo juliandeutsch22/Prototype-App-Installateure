@@ -105,6 +105,26 @@ describe('Arbeitszeitgrenzen in der Mitarbeiterübersicht', () => {
     expect(screen.getByText(/Anna Monteurin · unter 18/)).toBeInTheDocument();
   });
 
+  /*
+    In Häppchen zu zehn Personen geprüft (Ladezeit, 19.10.2026): auch die
+    Personen hinter dem ersten Häppchen kommen dran, in ihrer Reihenfolge.
+  */
+  it('prüft alle Personen, auch hinter den ersten zehn', async () => {
+    const personen = Array.from({ length: 12 }, (_, i) => ({ ...ANNA, uid: `p${i + 1}`, name: `Person ${String(i + 1).padStart(2, '0')}` }));
+    buchungen = ['p1', 'p11', 'p12'].map((uid, i) => (
+      { id: `z${i}`, userId: uid, date: '2026-10-06', status: 'Anwesend', startTime: '05:00', endTime: '19:00', breakDuration: 30 }
+    ));
+    render(
+      <ToastProvider>
+        <ArbeitszeitGrenzenKarte companyId="perl" personen={personen} jahr={2026} monat={9} />
+      </ToastProvider>,
+    );
+    expect(await screen.findByText(/Person 12/)).toBeInTheDocument();
+    expect(screen.getByText(/Person 01/)).toBeInTheDocument();
+    expect(screen.getByText(/Person 11/)).toBeInTheDocument();
+    expect(screen.queryByText(/Person 02/)).toBeNull();
+  });
+
   it('Gegenprobe: dieselbe Buchung ohne Geburtsdatum ist kein Fall', async () => {
     buchungen = [{ id: 'z1', userId: 'u1', date: '2026-10-06', status: 'Anwesend', startTime: '07:00', endTime: '16:30', breakDuration: 30 }];
     zeige();

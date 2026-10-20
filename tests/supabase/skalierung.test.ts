@@ -364,7 +364,11 @@ describe('unbezahlte Rechnungen: nur die Köpfe', () => {
     await rechnung('RE-2026-9002');
     const ganz = await listUnpaidInvoices(BETRIEB);
     const koepfe = await listUnpaidInvoiceKoepfe(BETRIEB);
-    const ohne = ganz.map(({ positions: _p, linkedEntries: _e, linkedOrders: _o, linkedWorkSheets: _w, ...kopf }) => kopf);
+    const ohne = ganz.map((r) => {
+      const kopf: Record<string, unknown> = { ...r };
+      for (const feld of ['positions', 'linkedEntries', 'linkedOrders', 'linkedWorkSheets']) delete kopf[feld];
+      return kopf as typeof koepfe[number];
+    });
     const nachId = <T extends { id: string }>(xs: T[]) => [...xs].sort((a, b) => a.id.localeCompare(b.id));
     expect(nachId(koepfe)).toEqual(nachId(ohne));
     expect(koepfe.find((r) => r.invoiceNumber === 'RE-2026-9001')?.discount).toEqual({ mode: 'percent', value: 10, label: 'Treue' });
@@ -400,7 +404,12 @@ describe('Monatsbilanzen: die Minuten in der Abfrage', () => {
   it('monatsbilanzen_alle: dieselben Bilanzen wie die Sicht je Person, in einer Anfrage', async () => {
     const alle = await listBilanzenAlle(BETRIEB, '2025-10');
     for (const wer of [dauer, faelle]) {
-      expect(alle.filter((b) => b.userId === wer.uid).map(({ userId: _u, ...b }) => b)).toEqual(await listBilanzen(BETRIEB, wer.uid, '2025-10'));
+      const ihre = alle.filter((b) => b.userId === wer.uid).map((b) => {
+        const ohneId: Record<string, unknown> = { ...b };
+        delete ohneId.userId;
+        return ohneId;
+      });
+      expect(ihre).toEqual(await listBilanzen(BETRIEB, wer.uid, '2025-10'));
     }
     expect(new Set(alle.map((b) => b.userId))).toEqual(new Set([dauer.uid, faelle.uid]));
     // Ab einem späteren Monat nur die späteren Monate; seitenweise je Person dasselbe.

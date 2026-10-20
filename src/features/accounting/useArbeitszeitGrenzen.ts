@@ -6,6 +6,9 @@ import type { WithId } from '@/lib/db/core';
 import type { AppUser, TimeEntry } from '@/types';
 import { andereVerteilung, durchrechnungsWochen, fallSchluessel, grenzfaelle, montagVon, type GrenzEintrag, type Grenzfall } from './arbeitszeitGrenzen';
 
+/** So viele Personen prüft die Karte, bevor sie den Browser zeichnen lässt. */
+const HAEPPCHEN = 10;
+
 function plusTage(iso: string, n: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
@@ -134,19 +137,32 @@ export function useArbeitszeitGrenzen({
         if (l) l.push(e);
         else jePerson.set(e.userId, [e]);
       }
-      const faelle = personen.flatMap((person) =>
-        grenzfaelle(
-          jePerson.get(person.uid) ?? [],
-          { von, bis },
-          {
-            geburtsdatum: geburtsdaten.get(person.uid) ?? null,
-            schultagMin: (tag) => tagessollStunden(person, tag) * 60,
-            andereVerteilung: andereVerteilung(person),
-            arbeitstageJeWoche: person.workDays?.length || undefined,
-          },
-          { stichtag: heute, durchrechnungWochen: wochen },
-        ).map((fall) => ({ person, fall })),
-      );
+      /*
+        IN HÄPPCHEN ZU ZEHN PERSONEN (Nachweis mit dreifachem Bestand,
+        19.10.2026): bei 75 Leuten rechnete die Prüfung am Stück eine halbe
+        Sekunde auf dem Handy, und so lange konnte die Liste nicht zeichnen.
+        Dazwischen kommt der Browser zum Zug; das Ergebnis ist dasselbe.
+      */
+      const faelle: GrenzStand['faelle'] = [];
+      for (let i = 0; i < personen.length; i += HAEPPCHEN) {
+        if (i > 0) {
+          await new Promise((weiter) => setTimeout(weiter, 0));
+          if (meiner !== lauf.current) return;
+        }
+        for (const person of personen.slice(i, i + HAEPPCHEN)) {
+          for (const fall of grenzfaelle(
+            jePerson.get(person.uid) ?? [],
+            { von, bis },
+            {
+              geburtsdatum: geburtsdaten.get(person.uid) ?? null,
+              schultagMin: (tag) => tagessollStunden(person, tag) * 60,
+              andereVerteilung: andereVerteilung(person),
+              arbeitstageJeWoche: person.workDays?.length || undefined,
+            },
+            { stichtag: heute, durchrechnungWochen: wochen },
+          )) faelle.push({ person, fall });
+        }
+      }
       if (meiner !== lauf.current) return;
       setStand({
         faelle,
