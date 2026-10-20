@@ -229,6 +229,14 @@ describe('Monat — Balken statt Felder (Auftrag 5.1)', () => {
     expect(tage).toHaveLength(31);
     expect(tage.filter((b) => b.tabIndex === 0).map((b) => b.getAttribute('aria-label'))).toEqual([expect.stringMatching(/07\.10\./)]);
   });
+
+  it('heute ist in jeder Zeile genau eine Zelle mit eigener Klasse — die Spalte läuft durch (gleich geblieben)', () => {
+    zeige();
+    for (const name of ['Max Mustermann', 'Lena Pichler', 'Erna Beispiel']) {
+      const heute = zeileVon(name).getAllByRole('button').filter((b) => b.className === 'mo-hg-heute');
+      expect(heute.map((b) => b.getAttribute('aria-label'))).toEqual([expect.stringMatching(/ 07\.10\.: /)]);
+    }
+  });
 });
 
 describe('Monat — Vorschau (Auftrag 5.3)', () => {
