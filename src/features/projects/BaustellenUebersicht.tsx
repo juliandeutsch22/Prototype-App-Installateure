@@ -117,6 +117,11 @@ export default function BaustellenUebersicht({
     {projekt.estimatedHours ? <p className={budget.over ? 'text-danger' : budget.tone === 'warning' ? 'text-warning' : 'text-ink-muted'}>
       <span className="akten-stunden-zahl">{fmtStd(Math.abs(projekt.estimatedHours * 60 - stand.fachMin))} h</span>{' '}{budget.over ? 'über Budget' : 'verbleibend'}
     </p> : null}
+    {budget.pct !== null && <svg className="akten-budgetlinie" viewBox="0 0 100 2" preserveAspectRatio="none"
+      role="img" aria-label={`${budget.pct} % des Stundenbudgets verbraucht`}>
+      <rect width="100" height="2" className="akten-budgetgrund" />
+      <rect width={Math.max(0, Math.min(100, budget.pct))} height="2" className={RING_TON[budget.tone]} />
+    </svg>}
     {stand.helperMin > 0 && <p className="text-sm text-ink-muted">zusätzlich {fmtStd(stand.helperMin)} h Helfer · separat vom Budget</p>}
     {stand.lehrlingMin > 0 && <p className="text-sm text-ink-muted">+{fmtStd(stand.lehrlingMin)} h Lehrling, nicht im Budget</p>}
     <details><summary>Stunden nach Person</summary><ul className="divide-y divide-line">

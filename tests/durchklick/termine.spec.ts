@@ -69,7 +69,7 @@ test('Besichtigung beim Kunden — der Teilnehmer sieht sie auf der Startseite',
   const chefin = await (await browser.newContext()).newPage();
   await anmelden(chefin, CHEFIN.email);
   await chefin.goto(`/customers/${k!.id}`);
-  await chefin.getByRole('tab', { name: 'Wartungen', exact: true }).click();
+  await chefin.getByRole('tab', { name: 'Termine und Wartungen', exact: true }).click();
   const karte = chefin.locator('section', { has: chefin.getByRole('heading', { name: /^Termine/ }) });
   await karte.getByRole('button', { name: 'Termin anlegen' }).click({ timeout: 15_000 });
   const fenster = chefin.getByRole('dialog', { name: 'Termin anlegen' });

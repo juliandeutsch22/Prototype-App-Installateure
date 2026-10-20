@@ -25,6 +25,7 @@ import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import AktenBereiche, { AktenAngaben, AktenAngabe, AktenVerweis } from '@/components/AktenBereiche';
 import AktenBearbeiten from '@/components/AktenBearbeiten';
+import AktenKopf from '@/components/AktenKopf';
 import AktenTerminVorschau, { type AktenTerminStand } from '@/components/AktenTerminVorschau';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { InputField, FormGrid, CheckboxField } from '@/components/Field';
@@ -338,32 +339,7 @@ export default function KundenakteView() {
       ) : baustellen.daten.length === 0 ? (
         <EmptyState>Noch keine Baustelle zugeordnet.</EmptyState>
       ) : (
-        <ul className="divide-y divide-line">
-          {baustellen.daten
-            .slice()
-            .sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))
-            .map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
-                {baustellenSichtbar ? (
-                  /* 44 px Tastfläche; dafür die Zeile mit weniger Polster,
-                     damit die Liste kaum wächst (P4-09). Das `truncate`
-                     sitzt innen — an einem Flex-Behälter greifen die
-                     Auslassungspunkte nicht. */
-                  <Link
-                    to={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
-                    className="link inline-flex min-h-touch min-w-0 items-center text-sm"
-                  >
-                    <span><span className="block font-semibold">{p.projectNumber}</span><span className="block text-ink-muted">{[p.bezeichnung, p.address].filter(Boolean).join(' · ') || 'ohne Adresse'}</span></span>
-                  </Link>
-                ) : (
-                  <span className="truncate py-1 text-sm text-ink">
-                    {p.projectNumber} · {p.address ?? 'ohne Adresse'}
-                  </span>
-                )}
-                <StatusBadge status={p.status} />
-              </li>
-            ))}
-        </ul>
+        <BaustellenZeilen daten={baustellen.daten.slice().sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))} sichtbar={baustellenSichtbar} />
       )}
 
       {/*
@@ -538,7 +514,8 @@ export default function KundenakteView() {
     Karte zeigte ihr sonst „Keine Termine". Gewartet wird auf die
     Baustellen, damit deren Termine nicht einen Augenblick fehlen.
   */
-  const terminKarte = einsatzAn && user && darfTermineSchreiben(user.role) && baustellen.zustand !== 'laedt' ? (
+  const termineSichtbar = einsatzAn && darfTermineSchreiben(user.role);
+  const terminKarte = termineSichtbar && baustellen.zustand !== 'laedt' ? (
     <div id="k-termine">
       <TermineKarte
         titel="Termine"
@@ -568,32 +545,43 @@ export default function KundenakteView() {
   return (
     <div className="akten-seite">
       {warnung}
-      <PageHeader ort={k.kundennummer ? `Kunde · Nr. ${k.kundennummer}` : 'Kunde'} title={k.name}
-        subtitle={<span className="flex flex-wrap items-center gap-x-3"><Link to="/customers" className="link inline-flex min-h-touch items-center">← Zur Kundenliste</Link>
+      <AktenKopf art="Kunde" title={k.name} zurueck="/customers" zurueckText="Zur Kundenliste"
+        meta={<span className="akten-identitaet">{k.kundennummer && <span>Nr. {k.kundennummer}</span>}
           <Zustand stand={k.active === false ? 'ruht' : 'gut'}>{k.active === false ? 'inaktiv' : 'aktiv'}</Zustand></span>}
+        kontakt={<><TelefonLink nummer={k.contactPhone} name={k.contactName} /><MailLink adresse={k.email} /><a className="akten-verweis" href="#kunde-kontext">Kontakt</a></>}
         action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>} />
-      <div className="akten-kontakt"><AdresseLink adresse={k.address} /><TelefonLink nummer={k.contactPhone} name={k.contactName} /><MailLink adresse={k.email} /></div>
-      <AktenBereiche kennung="kunde" bereiche={[
-        { id: 'uebersicht', titel: 'Übersicht', sprungziele: ['k-daten', 'k-auskunft'], inhalt:
-          <div className="akten-spalten"><div className="akten-spalte">{stammdaten}
-            <Card title="Aktive Baustellen" action={<AktenVerweis bereich="belege">Alle Baustellen →</AktenVerweis>}>
-              {baustellen.zustand === 'laedt' ? <SkeletonList rows={2} /> : baustellen.zustand === 'fehler'
-                ? <TeilFehler was="die Baustellen" onRetry={() => setVersuch((v) => v + 1)} />
-                : baustellen.daten.filter((p) => p.status !== 'Abgeschlossen').length === 0 ? <EmptyState>Keine aktive Baustelle.</EmptyState>
-                : <ul className="divide-y divide-line">{baustellen.daten.filter((p) => p.status !== 'Abgeschlossen').slice(0, 3).map((p) => <li key={p.id} className="py-3 text-sm">
-                    {baustellenSichtbar ? <Link to={`/admin-projects/${p.id}`} className="link"><span className="block font-semibold">{p.projectNumber}</span>{[p.bezeichnung, p.address].filter(Boolean).join(' · ') || 'ohne Adresse'}</Link>
-                    : <><span className="block font-semibold">{p.projectNumber}</span>{[p.bezeichnung, p.address].filter(Boolean).join(' · ') || 'ohne Adresse'}</>}
-                    <div><StatusBadge status={p.status} /></div>
-                  </li>)}</ul>}
-            </Card>{auskunft}
-          </div><div className="akten-spalte">
-            {terminKarte && <AktenTerminVorschau stand={terminStand} bereich="wartung" />}
-            {!bearbeitet && (k.vatId?.trim() || k.kundenart === 'unternehmen') && <Card>{vies}</Card>}
-          </div></div> },
-        { id: 'belege', titel: 'Baustellen und Belege', sprungziele: ['k-baustellen', 'k-rechnungen', 'k-angebote'], inhalt:
-          <div className="akten-spalten"><div className="akten-spalte">{baustellenKarte}</div><div className="akten-spalte">{rechnungKarte}{angebotKarte}</div></div> },
-        ...((wartungKarte || terminKarte) ? [{ id: 'wartung', titel: wartungKarte ? 'Wartungen' : 'Termine', sprungziele: ['k-wartungen', 'k-termine'], inhalt:
-          <div className="akten-spalten"><div className="akten-spalte">{wartungKarte}</div><div className="akten-spalte">{terminKarte}</div></div> }] : []),
+      <AktenBereiche kennung="kunde" kontext={<>
+        <Card title="Kontakt"><AktenAngaben>
+          <AktenAngabe wort="Ansprechpartner">{k.contactName}</AktenAngabe>
+          <AktenAngabe wort="Telefon">{k.contactPhone?.trim() ? <TelefonLink nummer={k.contactPhone} name={k.contactName} /> : null}</AktenAngabe>
+          <AktenAngabe wort="E-Mail">{k.email?.trim() ? <MailLink adresse={k.email} /> : null}</AktenAngabe>
+        </AktenAngaben></Card>
+        <Card title="Rechnungsanschrift"><AktenAngaben><AktenAngabe wort="Rechnungsadresse">{k.address?.trim() ? <AdresseLink adresse={k.address} /> : null}</AktenAngabe></AktenAngaben></Card>
+        {k.notes?.trim() && <Card title="Notiz"><p className="akten-notiz whitespace-pre-line">{k.notes}</p></Card>}
+        {wartungAn && <Card title="Wartungen" action={<AktenVerweis bereich="wartung">Wartungen öffnen →</AktenVerweis>}>
+          {wartungen.zustand === 'laedt' ? <SkeletonList rows={1} /> : wartungen.zustand === 'fehler' ? <TeilFehler was="die Wartungen" onRetry={() => setVersuch((v) => v + 1)} />
+            : <p className="text-sm text-ink-muted">{wartungen.daten.length} {wartungen.daten.length === 1 ? 'Wartungsvereinbarung' : 'Wartungsvereinbarungen'}</p>}
+        </Card>}
+      </>} bereiche={[
+        { id: 'uebersicht', titel: 'Übersicht', inhalt: <div className="akten-spalte">
+          <Card title="Aktive Baustellen" action={<AktenVerweis bereich="baustellen">Alle Baustellen →</AktenVerweis>}>
+            {baustellen.zustand === 'laedt' ? <SkeletonList rows={2} /> : baustellen.zustand === 'fehler'
+              ? <TeilFehler was="die Baustellen" onRetry={() => setVersuch((v) => v + 1)} />
+              : baustellen.daten.filter((p) => p.status !== 'Abgeschlossen').length === 0 ? <EmptyState>Keine aktive Baustelle.</EmptyState>
+              : <BaustellenZeilen daten={baustellen.daten.filter((p) => p.status !== 'Abgeschlossen').slice(0, 3)} sichtbar={baustellenSichtbar} />}
+          </Card>
+          {terminKarte && <AktenTerminVorschau stand={terminStand} bereich="wartung" />}
+          {(rechnungKarte || angebotKarte) && <Card title="Jüngste Belege" action={<AktenVerweis bereich="belege">Alle Belege →</AktenVerweis>}>
+            <BelegeVorschau rechnungen={rechnungenAn && darfRechnungen ? rechnungen : null} angebote={angeboteAn && darfAngebote ? angebote : null} />
+          </Card>}
+        </div> },
+        { id: 'baustellen', titel: 'Baustellen', sprungziele: ['k-baustellen'], inhalt: baustellenKarte },
+        ...((rechnungKarte || angebotKarte) ? [{ id: 'belege', titel: 'Belege', sprungziele: ['k-rechnungen', 'k-angebote'], inhalt:
+          <div className="akten-spalte">{rechnungKarte}{angebotKarte}</div> }] : []),
+        ...((wartungKarte || termineSichtbar) ? [{ id: 'wartung', titel: wartungKarte && termineSichtbar ? 'Termine und Wartungen' : wartungKarte ? 'Wartungen' : 'Termine', sprungziele: ['k-wartungen', 'k-termine'], inhalt:
+          <div className="akten-spalte">{terminKarte || (termineSichtbar && <Card title="Termine"><SkeletonList rows={2} /></Card>)}{wartungKarte}</div> }] : []),
+        { id: 'daten', titel: 'Stammdaten', sprungziele: ['k-daten', 'k-auskunft'], inhalt: <div className="akten-spalte">{stammdaten}
+          {!bearbeitet && (k.vatId?.trim() || k.kundenart === 'unternehmen') && <Card>{vies}</Card>}{auskunft}</div> },
       ]} />
       {darfAendern && entwurf && <AktenBearbeiten offen={bearbeitet} titel="Kunde bearbeiten" geaendert={geaendert} speichert={speichert}
         onSchliessen={() => setBearbeitet(false)} onVerwerfen={() => { setEntwurf(alsEntwurf(k)); setSpeicherFehler(null); }}>
@@ -602,6 +590,37 @@ export default function KundenakteView() {
       </AktenBearbeiten>}
     </div>
   );
+}
+
+function BaustellenZeilen({ daten, sichtbar }: { daten: WithId<Project>[]; sichtbar: boolean }) {
+  return <ul className="akten-baustellen">{daten.map((p) => {
+    const inhalt = <><span className="akten-zeile-nummer nr">{p.projectNumber}</span>
+      <span className="akten-zeile-inhalt"><strong>{p.bezeichnung || p.address || 'ohne Adresse'}</strong>
+        {p.bezeichnung && <span>{p.address || 'ohne Adresse'}</span>}</span>
+      <StatusBadge status={p.status} />{sichtbar && <span className="akten-zeile-pfeil" aria-hidden="true">→</span>}</>;
+    return <li key={p.id}>{sichtbar ? <Link to={`/admin-projects/${p.id}`} className="akten-baustellenzeile min-h-touch">{inhalt}</Link>
+      : <div className="akten-baustellenzeile min-h-touch">{inhalt}</div>}</li>;
+  })}</ul>;
+}
+
+/** Beide Vorschauen lesen die bereits geladenen Bestände; Netto und Brutto bleiben ausdrücklich getrennt. */
+function BelegeVorschau({ rechnungen, angebote }: { rechnungen: Teil<WithId<Invoice>[]> | null; angebote: Teil<WithId<Quote>[]> | null }) {
+  const zeilen = [
+    ...(rechnungen?.zustand === 'bereit' ? rechnungen.daten.map((r) => ({ key: `r-${r.id}`, nummer: r.invoiceNumber, datum: r.invoiceDate ?? '',
+      art: 'Rechnung', betrag: r.totalBrutto, einheit: 'brutto', stand: r.paymentStatus, to: `/invoices?suche=${encodeURIComponent(r.invoiceNumber)}` })) : []),
+    ...(angebote?.zustand === 'bereit' ? angebote.daten.map((q) => ({ key: `a-${q.id}`, nummer: q.quoteNumber, datum: q.quoteDate ?? '',
+      art: 'Angebot', betrag: q.totalNetto, einheit: 'netto', stand: q.status, to: `/quotes/${q.id}` })) : []),
+  ].sort((a, b) => b.datum.localeCompare(a.datum)).slice(0, 3);
+  const laedt = rechnungen?.zustand === 'laedt' || angebote?.zustand === 'laedt';
+  const fehler = rechnungen?.zustand === 'fehler' || angebote?.zustand === 'fehler';
+  return <>{laedt && <SkeletonList rows={1} />}
+    {rechnungen?.zustand === 'fehler' && <TeilFehler was="die Rechnungen" />}
+    {angebote?.zustand === 'fehler' && <TeilFehler was="die Angebote" />}
+    {!laedt && !fehler && zeilen.length === 0 && <EmptyState>Noch keine Belege.</EmptyState>}
+    <ul className="akten-belege">{zeilen.map((z) => <li key={z.key}><Link className="akten-belegzeile" to={z.to}>
+      <span className="akten-zeile-inhalt"><span>{z.art} · {fmtDatum(z.datum)}</span><strong>{z.nummer}</strong></span>
+      <span className="akten-belegstand">{z.stand}</span><span className="akten-belegbetrag">{euro(z.betrag)} <small>{z.einheit}</small></span>
+    </Link></li>)}</ul></>;
 }
 
 /** Die Felder, die die Akte bearbeitet — dieselben, die das Anlegen kennt. */
@@ -647,12 +666,8 @@ function StammdatenLesen({ k }: { k: Customer }) {
   return <><AktenAngaben>
     <AktenAngabe wort="Kundenart">{k.kundenart === 'unternehmen' ? 'Unternehmen' : k.kundenart === 'privat' ? 'Privatperson' : <Warnung>Kundenart prüfen</Warnung>}</AktenAngabe>
     <AktenAngabe wort="UID-Nummer">{k.vatId}</AktenAngabe>
-    <AktenAngabe wort="Ansprechpartner">{k.contactName}</AktenAngabe>
-    {!k.address?.trim() && <AktenAngabe wort="Rechnungsadresse">{null}</AktenAngabe>}
-    {!k.contactPhone?.trim() && <AktenAngabe wort="Telefon">{null}</AktenAngabe>}
-    {!k.email?.trim() && <AktenAngabe wort="E-Mail">{null}</AktenAngabe>}
     {k.lieferantennummer && <AktenAngabe wort="Unsere Lieferantennummer">{k.lieferantennummer}</AktenAngabe>}
-  </AktenAngaben>{k.notes?.trim() && <><h3 className="section-label">Notiz</h3><p className="akten-notiz whitespace-pre-line">{k.notes}</p></>}</>;
+  </AktenAngaben></>;
 }
 
 interface FormularProps {

@@ -17,6 +17,16 @@ function zeige(adresse = '/akte', ohnePlanung = false) {
 }
 
 describe('Aktenlinie 03 · Bereiche', () => {
+  it('Aktenkontext 04 · hält Kontakt und dessen Zustand beim Bereichswechsel sichtbar', async () => {
+    render(<MemoryRouter><AktenBereiche kennung="probe" kontext={<input aria-label="Kontaktnotiz" defaultValue="Schlüssel" />}
+      bereiche={[{ id: 'profil', titel: 'Profil', inhalt: <p>Beschäftigung</p> }, { id: 'zugang', titel: 'Zugang', inhalt: <p>Kontostatus</p> }]} /></MemoryRouter>);
+    const kontakt = screen.getByRole('complementary', { name: 'Kontext der Akte' });
+    await userEvent.type(screen.getByLabelText('Kontaktnotiz'), '!');
+    await userEvent.click(screen.getByRole('tab', { name: 'Zugang' }));
+    expect(kontakt).toBeVisible();
+    expect(screen.getByLabelText('Kontaktnotiz')).toHaveValue('Schlüssel!');
+    expect(screen.getByText('Kontostatus')).toBeVisible();
+  });
   it('behält Entwürfe beim Wechsel und andere Adressparameter', async () => {
     zeige('/akte?suche=Anna');
     await userEvent.type(screen.getByLabelText('Entwurf'), '!');

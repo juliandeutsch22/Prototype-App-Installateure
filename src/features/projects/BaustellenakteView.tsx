@@ -6,7 +6,7 @@ import BetriebsurlaubHinweis from './BetriebsurlaubHinweis';
 import { baustelleUmnummern, listProjectsByIds, updateProject } from '@/lib/db/projects';
 import { alsEntwurf, gleich, stammdatenFehler, stundenbudgetAus, type BaustellenEntwurf } from './baustellenEntwurf';
 import BaustellenPlaene from './BaustellenPlaene';
-import BaustellenScheine from './BaustellenScheine';
+import BaustellenScheine, { ScheinZeilen, type AktenScheineStand } from './BaustellenScheine';
 import { listUsers } from '@/lib/db/users';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { Wert } from '@/components/Wert';
@@ -22,7 +22,9 @@ import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import Hinweiszeile from '@/components/Hinweiszeile';
-import AktenBereiche, { AktenAngaben, AktenAngabe } from '@/components/AktenBereiche';
+import AktenBereiche, { AktenAngaben, AktenAngabe, AktenVerweis } from '@/components/AktenBereiche';
+import AktenKopf from '@/components/AktenKopf';
+import { List } from '@/components/ListRow';
 import AktenBearbeiten from '@/components/AktenBearbeiten';
 import AktenTerminVorschau, { type AktenTerminStand } from '@/components/AktenTerminVorschau';
 import TermineKarte from '@/features/termine/TermineKarte';
@@ -108,6 +110,7 @@ export default function BaustellenakteView() {
   const [speichert, setSpeichert] = useState(false);
   const [bearbeitet, setBearbeitet] = useState(false);
   const [terminStand, setTerminStand] = useState<AktenTerminStand>({ termine: null, fehler: false });
+  const [scheinStand, setScheinStand] = useState<AktenScheineStand>({ scheine: null, verrechnet: new Set(), fehler: false });
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
   /** Eine geänderte Nummer wird erst nach Rückfrage gespeichert. */
   const [nummerFragen, setNummerFragen] = useState<{ alt: string; neu: string } | null>(null);
@@ -386,12 +389,12 @@ export default function BaustellenakteView() {
         ? <Link to={`/customers/${b.customerId}`} className="link inline-flex min-h-touch items-center">{b.customerName} · Zur Kundenakte</Link>
         : <span className="text-warning">Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".</span>}</AktenAngabe>
       <AktenAngabe wort="Ansprechpartner vor Ort">{b.contactName}</AktenAngabe>
-      {!b.address?.trim() && <AktenAngabe wort="Baustellenadresse">{null}</AktenAngabe>}
-      {!b.contactPhone?.trim() && <AktenAngabe wort="Telefon vor Ort">{null}</AktenAngabe>}
+      <AktenAngabe wort="Baustellenadresse" breit>{b.address?.trim() ? <AdresseLink adresse={b.address} /> : null}</AktenAngabe>
+      <AktenAngabe wort="Telefon vor Ort" breit>{b.contactPhone?.trim() ? <TelefonLink nummer={b.contactPhone} name={b.contactName} /> : null}</AktenAngabe>
       {b.bezeichnung?.trim() && <AktenAngabe wort="Bezeichnung">{b.bezeichnung}</AktenAngabe>}
     </AktenAngaben>
   </Card>;
-  const team = <Card title="Team und Leitung">
+  const team = <Card title="Team und Leitung" id="b-team">
     <AktenAngaben>
       <AktenAngabe wort="Team" breit>{namenDa ? (b.assignedEmployees ?? []).map((u) => namen.get(u) ?? u).join(', ') || 'kein Team'
         : <Wert bereit={false} muster="Monteur Muster, Monteur Muster">{null}</Wert>}</AktenAngabe>
@@ -436,6 +439,7 @@ export default function BaustellenakteView() {
         companyId={user.companyId}
         projectNumber={b.projectNumber}
         verrechnungSehen={canInvoice(user.role)}
+        onStand={setScheinStand}
       />
     </Card>
   ) : null;
@@ -449,44 +453,36 @@ export default function BaustellenakteView() {
   return (
     <div className="akten-seite">
       {warnung}
-      <PageHeader
-        ort={
-          <>
+      <AktenKopf art="Baustelle" zurueck="/admin-projects" zurueckText="Zur Baustellenliste"
+        meta={<span className="akten-identitaet">
             <span className="nr">{b.projectNumber}</span>
             {b.billingMode ? ` · ${abrechnungText(b.billingMode)}` : ''}
-          </>
-        }
-        title={baustellenTitel(b)}
-        subtitle={
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Link to="/admin-projects" className="link inline-flex min-h-touch items-center">← Zur Baustellenliste</Link>
             <StatusBadge status={b.status} />
-
-          </span>
-        }
+          </span>}
+        title={baustellenTitel(b)}
+        kontakt={<><TelefonLink nummer={b.contactPhone} name={b.contactName} /><a className="akten-verweis" href="#baustelle-kontext">Adresse und Kontakt</a></>}
         action={(scheineSichtbar || darfAendern) && <div className="akten-aktionen">
           {scheineSichtbar && <Link to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`} className="inline-flex min-h-touch items-center justify-center rounded bg-brand px-4 py-2 text-fliess font-semibold text-brand-fg">Schein schreiben</Link>}
           {darfAendern && <Button variant={scheineSichtbar ? 'secondary' : 'primary'} onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
         </div>}
       />
-      <div className="akten-kontakt"><AdresseLink adresse={b.address} /><TelefonLink nummer={b.contactPhone} name={b.contactName} /></div>
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <AktenBereiche kennung="baustelle" bereiche={[
+      <AktenBereiche kennung="baustelle" kontext={<>{kundeOrt}{team}</>} bereiche={[
         { id: 'uebersicht', titel: 'Übersicht', sprungziele: ['b-ueberblick', 'b-daten'], inhalt:
-          <div className="akten-spalten"><div className="akten-spalte">{auftrag}{kundeOrt}</div><div className="akten-spalte">
-            {einsatzAn && <AktenTerminVorschau stand={terminStand} bereich="planung" />}{team}
-          </div></div> },
-        { id: 'planung', titel: 'Termine und Team', sprungziele: ['b-termine', 'b-team'], inhalt:
-          <div className="akten-spalten"><div className="akten-spalte">{termineKarte || <Card title="Termine"><p className="text-sm text-ink-muted">Die Einsatzplanung ist für diesen Betrieb nicht aktiviert.</p></Card>}</div><div className="akten-spalte">
-            <Card title="Team und Leitung" id="b-team"><AktenAngaben>
-              <AktenAngabe wort="Team" breit>{namenDa ? (b.assignedEmployees ?? []).map((u) => namen.get(u) ?? u).join(', ') || 'kein Team' : 'Namen werden geladen …'}</AktenAngabe>
-              <AktenAngabe wort="Projektleitung" breit>{namenDa ? (b.projectManagers ?? []).map((u) => namen.get(u) ?? u).join(', ') || 'keine Projektleitung' : 'Namen werden geladen …'}</AktenAngabe>
-            </AktenAngaben></Card>
-          </div></div> },
-        { id: 'dokumente', titel: 'Scheine und Pläne', sprungziele: ['b-scheine', 'b-plaene'], inhalt:
-          <div className="akten-spalten"><div className="akten-spalte">{scheineKarte}{plaene}</div></div> },
+          <div className="akten-spalte">{auftrag}
+            {einsatzAn && <AktenTerminVorschau stand={terminStand} bereich="planung" />}
+            {scheineSichtbar && <Card title="Jüngste Handwerksscheine" action={<AktenVerweis bereich="dokumente">Alle Scheine →</AktenVerweis>}>
+              {scheinStand.fehler ? <TeilFehler was="die Handwerksscheine" /> : scheinStand.scheine === null ? <SkeletonList rows={2} />
+                : scheinStand.scheine.length === 0 ? <EmptyState>Zu dieser Baustelle gibt es noch keinen Handwerksschein.</EmptyState>
+                : <List><ScheinZeilen scheine={scheinStand.scheine.slice(0, 3)} verrechnet={user && canInvoice(user.role) ? scheinStand.verrechnet : new Set()} /></List>}
+            </Card>}
+          </div> },
+        ...(scheineKarte ? [{ id: 'dokumente', titel: 'Scheine', sprungziele: ['b-scheine'], inhalt: scheineKarte }] : []),
+        { id: 'planung', titel: 'Termine', sprungziele: ['b-termine', 'b-team'], inhalt:
+          termineKarte || <Card title="Termine"><p className="text-sm text-ink-muted">Die Einsatzplanung ist für diesen Betrieb nicht aktiviert.</p></Card> },
+        { id: 'plaene', titel: 'Pläne', sprungziele: ['b-plaene'], inhalt: plaene },
       ]} />
       {darfAendern && entwurf && <AktenBearbeiten offen={bearbeitet} titel="Baustelle bearbeiten"
         geaendert={geaendert} speichert={speichert} onSchliessen={() => setBearbeitet(false)} onVerwerfen={() => { setEntwurf(alsEntwurf(b)); setSpeicherFehler(null); }}>

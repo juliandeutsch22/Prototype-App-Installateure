@@ -30,15 +30,23 @@ import { fmtDauer } from '@/lib/time';
  */
 const SCHEINE_JE_SEITE = 20;
 
+export interface AktenScheineStand {
+  scheine: WithId<WorkSheet>[] | null;
+  verrechnet: Set<string>;
+  fehler: boolean;
+}
+
 export default function BaustellenScheine({
   companyId,
   projectNumber,
   verrechnungSehen,
+  onStand,
 }: {
   companyId: string;
   projectNumber: string;
   /** Ob „verrechnet“ gezeigt wird — nur wer Rechnungen lesen darf, wie in der Scheinliste. */
   verrechnungSehen: boolean;
+  onStand?: (stand: AktenScheineStand) => void;
 }) {
   const [grenze, setGrenze] = useState(SCHEINE_JE_SEITE);
   const [scheine, setScheine] = useState<WithId<WorkSheet>[] | null>(null);
@@ -46,6 +54,9 @@ export default function BaustellenScheine({
   const [fehler, setFehler] = useState(false);
   const [laeuft, setLaeuft] = useState(false);
   const [versuch, setVersuch] = useState(0);
+
+  // Übersicht und vollständige Liste verwenden denselben Bestand, auch beim Nachladen.
+  useEffect(() => { onStand?.({ scheine, verrechnet, fehler }); }, [onStand, scheine, verrechnet, fehler]);
 
   useEffect(() => {
     let weg = false;
@@ -87,33 +98,7 @@ export default function BaustellenScheine({
         <EmptyState>Zu dieser Baustelle gibt es noch keinen Handwerksschein.</EmptyState>
       ) : (
         <List>
-          {scheine.map((s) => {
-            const minuten = s.zeiten.reduce((n, z) => n + z.minuten, 0);
-            const istVerrechnet = verrechnet.has(s.id);
-            return (
-              <ListRow
-                key={s.id}
-                to={`/worksheets?markiert=${encodeURIComponent(s.id)}`}
-                wert={minuten > 0 ? fmtDauer(minuten) : undefined}
-                zustand={
-                  <Zustand stand={istVerrechnet ? 'ruht' : SCHEIN_STAND[s.status]}>
-                    {istVerrechnet ? 'verrechnet' : s.status}
-                  </Zustand>
-                }
-                title={
-                  <span>
-                    {datumAT(s.datum)} · {s.abrechnung}
-                  </span>
-                }
-                subtitle={
-                  <>
-                    {s.erstelltVonName ? `geschrieben von ${s.erstelltVonName}` : null}
-                    {s.unterschriften?.kunde?.name ? ` · unterschrieben von ${s.unterschriften.kunde.name}` : null}
-                  </>
-                }
-              />
-            );
-          })}
+          <ScheinZeilen scheine={scheine} verrechnet={verrechnungSehen ? verrechnet : new Set()} />
         </List>
       )}
       <Nachladen
@@ -126,4 +111,34 @@ export default function BaustellenScheine({
       />
     </div>
   );
+}
+
+export function ScheinZeilen({ scheine, verrechnet }: { scheine: WithId<WorkSheet>[]; verrechnet: Set<string> }) {
+  return <>{scheine.map((s) => {
+    const minuten = s.zeiten.reduce((n, z) => n + z.minuten, 0);
+    const istVerrechnet = verrechnet.has(s.id);
+    return (
+      <ListRow
+        key={s.id}
+        to={`/worksheets?markiert=${encodeURIComponent(s.id)}`}
+        wert={minuten > 0 ? fmtDauer(minuten) : undefined}
+        zustand={
+          <Zustand stand={istVerrechnet ? 'ruht' : SCHEIN_STAND[s.status]}>
+            {istVerrechnet ? 'verrechnet' : s.status}
+          </Zustand>
+        }
+        title={
+          <span>
+            {datumAT(s.datum)} · {s.abrechnung}
+          </span>
+        }
+        subtitle={
+          <>
+            {s.erstelltVonName ? `geschrieben von ${s.erstelltVonName}` : null}
+            {s.unterschriften?.kunde?.name ? ` · unterschrieben von ${s.unterschriften.kunde.name}` : null}
+          </>
+        }
+      />
+    );
+  })}</>;
 }

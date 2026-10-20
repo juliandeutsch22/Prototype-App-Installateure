@@ -102,9 +102,20 @@ async function bearbeite() {
 
 /** Der Wert zu einer Beschriftung in den Stammdaten. */
 function angabe(wort: string) {
-  const dt = screen.getByText(wort);
+  const dt = screen.getAllByText(wort).find((e) => e.tagName === 'DT' && !e.closest('[hidden]'))!;
   return dt.nextElementSibling as HTMLElement;
 }
+
+it('Aktenkontext 04 · hält das Anmeldekonto neben der Arbeitszeit und zeigt Startwerte ausdrücklich als Einstellungen', async () => {
+  zeige();
+  const kontext = await screen.findByRole('complementary', { name: 'Kontext der Akte' });
+  expect(within(kontext).getByText('erna@perl.at')).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Startwerte des Zeitkontos' })).toBeVisible();
+  await userEvent.click(screen.getByRole('tab', { name: 'Arbeitszeit und Urlaub' }));
+  expect(kontext).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Zeitkonto-Einstellungen' })).toBeVisible();
+  expect(profilAendern).not.toHaveBeenCalled();
+});
 
 beforeEach(() => {
   gefunden = person({ uid: 'u2', name: 'Erna Beispiel', email: 'erna@perl.at' });

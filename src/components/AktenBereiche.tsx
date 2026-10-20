@@ -9,7 +9,7 @@ export interface AktenBereich {
   sprungziele?: string[];
 }
 
-export default function AktenBereiche({ kennung, bereiche }: { kennung: string; bereiche: AktenBereich[] }) {
+export default function AktenBereiche({ kennung, bereiche, kontext }: { kennung: string; bereiche: AktenBereich[]; kontext?: ReactNode }) {
   const [adresse, setAdresse] = useSearchParams();
   const { hash } = useLocation();
   const knoepfe = useRef<(HTMLButtonElement | null)[]>([]);
@@ -51,9 +51,14 @@ export default function AktenBereiche({ kennung, bereiche }: { kennung: string; 
         tabIndex={b === aktiv ? 0 : -1} ref={(el) => { knoepfe.current[i] = el; }}
         onClick={() => waehlen(i)} onKeyDown={(e) => tastatur(e, i)}>{b.titel}</button>)}
     </div>
+    <div className={kontext ? 'akten-rahmen' : undefined}>
+    <div className="akten-hauptteil">
     {/* Die Abschnitte bleiben montiert: Aufklappzustände und eigene Formulare gehen beim Wechsel nicht verloren. */}
     {bereiche.map((b) => <div key={b.id} role="tabpanel" className="akten-bereich" hidden={b !== aktiv}
       id={`${kennung}-bereich-${b.id}`} aria-labelledby={`${kennung}-reiter-${b.id}`} tabIndex={0}>{b.inhalt}</div>)}
+    </div>
+    {kontext && <aside className="akten-kontext" aria-label="Kontext der Akte" id={`${kennung}-kontext`}>{kontext}</aside>}
+    </div>
   </>;
 }
 
