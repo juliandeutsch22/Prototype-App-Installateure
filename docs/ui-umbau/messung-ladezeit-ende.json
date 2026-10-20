@@ -16,24 +16,18 @@
    "name": "Start",
    "pfad": "/",
    "fcp": 1356,
-   "inhalt": 2184,
-   "bereit": 3062,
-   "bedienbar": 3368,
-   "anfragen": 188,
-   "bytes": 313804,
-   "dbAnfragen": 31,
-   "dbBytes": 64593,
+   "inhalt": 2673,
+   "bereit": 3011,
+   "bedienbar": 3364,
+   "anfragen": 186,
+   "bytes": 300357,
+   "dbAnfragen": 29,
+   "dbBytes": 50804,
    "groessteListe": {
-    "tabelle": "invoice_lines",
-    "zeilen": 198
+    "tabelle": "rpc/baustellen_stunden",
+    "zeilen": 120
    },
    "ueberGrenze": [
-    {
-     "tabelle": "invoice_lines",
-     "zeilen": 198,
-     "anfragen": 1,
-     "groesste": 198
-    },
     {
      "tabelle": "rpc/baustellen_stunden",
      "zeilen": 120,
@@ -47,16 +41,16 @@
      "groesste": 99
     },
     {
+     "tabelle": "wartungen",
+     "zeilen": 98,
+     "anfragen": 1,
+     "groesste": 98
+    },
+    {
      "tabelle": "rpc/lager_knapp",
      "zeilen": 96,
      "anfragen": 1,
      "groesste": 96
-    },
-    {
-     "tabelle": "wartungen",
-     "zeilen": 95,
-     "anfragen": 1,
-     "groesste": 95
     },
     {
      "tabelle": "assignments",
@@ -79,12 +73,6 @@
    ],
    "tabellen": [
     {
-     "tabelle": "invoice_lines",
-     "zeilen": 198,
-     "anfragen": 1,
-     "groesste": 198
-    },
-    {
      "tabelle": "rpc/baustellen_stunden",
      "zeilen": 120,
      "anfragen": 1,
@@ -97,16 +85,16 @@
      "groesste": 99
     },
     {
+     "tabelle": "wartungen",
+     "zeilen": 98,
+     "anfragen": 1,
+     "groesste": 98
+    },
+    {
      "tabelle": "rpc/lager_knapp",
      "zeilen": 96,
      "anfragen": 1,
      "groesste": 96
-    },
-    {
-     "tabelle": "wartungen",
-     "zeilen": 95,
-     "anfragen": 1,
-     "groesste": 95
     },
     {
      "tabelle": "assignments",
@@ -223,13 +211,13 @@
      "groesste": 0
     },
     {
-     "tabelle": "zeitkonto_anfang",
+     "tabelle": "buchungskonten",
      "zeilen": 0,
      "anfragen": 1,
      "groesste": 0
     },
     {
-     "tabelle": "buchungskonten",
+     "tabelle": "zeitkonto_anfang",
      "zeilen": 0,
      "anfragen": 1,
      "groesste": 0
@@ -237,44 +225,44 @@
     {
      "tabelle": "invoice_coverage",
      "zeilen": 0,
-     "anfragen": 2,
+     "anfragen": 1,
      "groesste": 0
     }
    ],
    "laeufe": [
     {
      "fcp": 1356,
-     "inhalt": 2184,
-     "bereit": 3076,
-     "bedienbar": 3418,
-     "anfragen": 188,
-     "bytes": 313852,
-     "dbAnfragen": 31,
-     "dbBytes": 64641,
+     "inhalt": 2650,
+     "bereit": 2947,
+     "bedienbar": 3236,
+     "anfragen": 186,
+     "bytes": 300349,
+     "dbAnfragen": 29,
+     "dbBytes": 50784,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 518
+       "bytes": 750
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 1128
+       "bytes": 893
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 175
+       "bytes": 173
       },
       {
        "tabelle": "support_freigaben",
        "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
        "zeilen": 0,
-       "bytes": 153
+       "bytes": 159
       },
       {
        "tabelle": "rpc/offene_posten",
@@ -298,13 +286,13 @@
        "tabelle": "rpc/lager_knapp",
        "merkmale": "limit=500&offset=0",
        "zeilen": 96,
-       "bytes": 2777
+       "bytes": 2783
       },
       {
        "tabelle": "invoices",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 99,
-       "bytes": 10089
+       "bytes": 10394
       },
       {
        "tabelle": "users",
@@ -316,13 +304,13 @@
        "tabelle": "rpc/buchungstage_je_person",
        "merkmale": "limit=500&offset=0",
        "zeilen": 20,
-       "bytes": 613
+       "bytes": 615
       },
       {
        "tabelle": "vacations",
        "merkmale": "limit=100&offset=0&order=id.asc",
        "zeilen": 20,
-       "bytes": 1808
+       "bytes": 1793
       },
       {
        "tabelle": "freistellungen",
@@ -334,49 +322,49 @@
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 6032
+       "bytes": 6091
       },
       {
        "tabelle": "assignments",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 20,
-       "bytes": 2245
+       "bytes": 2092
       },
       {
        "tabelle": "termine",
        "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
        "zeilen": 0,
-       "bytes": 167
+       "bytes": 165
       },
       {
        "tabelle": "einkauf_posten",
        "merkmale": "limit=500&offset=0&order=created_at.asc,id.asc",
        "zeilen": 0,
-       "bytes": 166
+       "bytes": 189
       },
       {
        "tabelle": "zahlungseingaenge",
        "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
        "zeilen": 0,
-       "bytes": 180
+       "bytes": 179
       },
       {
        "tabelle": "invoices",
        "merkmale": "limit=500&offset=0&order=ruecklass_garantie_bis.asc,id.asc",
        "zeilen": 0,
-       "bytes": 324
+       "bytes": 309
       },
       {
        "tabelle": "work_sheets",
        "merkmale": "limit=60&offset=0&order=created_at.desc,id.asc",
        "zeilen": 60,
-       "bytes": 2256
+       "bytes": 2252
       },
       {
        "tabelle": "wartungen",
        "merkmale": "limit=200&offset=0&order=faellig_am.asc,id.asc",
-       "zeilen": 95,
-       "bytes": 7155
+       "zeilen": 98,
+       "bytes": 7379
       },
       {
        "tabelle": "rpc/wochenplan_abwesend",
@@ -388,19 +376,25 @@
        "tabelle": "rpc/baustellen_einsatzlage",
        "merkmale": "limit=500&offset=0",
        "zeilen": 40,
-       "bytes": 292
+       "bytes": 293
       },
       {
        "tabelle": "assignments",
        "merkmale": "limit=500&offset=0&order=date.asc,id.asc",
        "zeilen": 60,
-       "bytes": 2308
+       "bytes": 2312
       },
       {
        "tabelle": "basiszinssaetze",
        "merkmale": "limit=200&order=ab.asc",
        "zeilen": 0,
-       "bytes": 139
+       "bytes": 291
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 847
       },
       {
        "tabelle": "buchungskonten",
@@ -409,64 +403,46 @@
        "bytes": 152
       },
       {
-       "tabelle": "zeitkonto_anfang",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 848
-      },
-      {
        "tabelle": "invoice_coverage",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 2084
+       "bytes": 2072
       },
       {
        "tabelle": "rpc/baustellen_stunden",
        "merkmale": "limit=500&offset=0",
        "zeilen": 120,
-       "bytes": 1213
-      },
-      {
-       "tabelle": "invoice_lines",
-       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
-       "zeilen": 198,
-       "bytes": 11485
-      },
-      {
-       "tabelle": "invoice_coverage",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 2920
+       "bytes": 1187
       }
      ]
     },
     {
-     "fcp": 1304,
-     "inhalt": 2129,
-     "bereit": 2967,
-     "bedienbar": 3213,
-     "anfragen": 188,
-     "bytes": 313804,
-     "dbAnfragen": 31,
-     "dbBytes": 64593,
+     "fcp": 1384,
+     "inhalt": 2673,
+     "bereit": 3011,
+     "bedienbar": 3364,
+     "anfragen": 186,
+     "bytes": 300357,
+     "dbAnfragen": 29,
+     "dbBytes": 50815,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 521
+       "bytes": 522
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 1128
+       "bytes": 1127
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 170
+       "bytes": 173
       },
       {
        "tabelle": "support_freigaben",
@@ -490,115 +466,115 @@
        "tabelle": "material_orders",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 40,
-       "bytes": 4972
+       "bytes": 4995
       },
       {
        "tabelle": "rpc/lager_knapp",
        "merkmale": "limit=500&offset=0",
        "zeilen": 96,
-       "bytes": 2777
+       "bytes": 2783
       },
       {
        "tabelle": "invoices",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 99,
-       "bytes": 10072
+       "bytes": 10390
       },
       {
        "tabelle": "users",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 25,
-       "bytes": 2134
+       "bytes": 1945
       },
       {
        "tabelle": "rpc/buchungstage_je_person",
        "merkmale": "limit=500&offset=0",
        "zeilen": 20,
-       "bytes": 617
+       "bytes": 612
       },
       {
        "tabelle": "vacations",
        "merkmale": "limit=100&offset=0&order=id.asc",
        "zeilen": 20,
-       "bytes": 1808
+       "bytes": 1797
       },
       {
        "tabelle": "freistellungen",
        "merkmale": "limit=300&offset=0&order=von.asc,id.asc",
        "zeilen": 0,
-       "bytes": 160
+       "bytes": 183
       },
       {
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 6032
+       "bytes": 6089
       },
       {
        "tabelle": "assignments",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 20,
-       "bytes": 2074
+       "bytes": 2072
       },
       {
        "tabelle": "termine",
        "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
        "zeilen": 0,
-       "bytes": 195
+       "bytes": 173
       },
       {
        "tabelle": "einkauf_posten",
        "merkmale": "limit=500&offset=0&order=created_at.asc,id.asc",
        "zeilen": 0,
-       "bytes": 166
+       "bytes": 165
       },
       {
        "tabelle": "zahlungseingaenge",
        "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
        "zeilen": 0,
-       "bytes": 176
+       "bytes": 367
       },
       {
        "tabelle": "invoices",
        "merkmale": "limit=500&offset=0&order=ruecklass_garantie_bis.asc,id.asc",
        "zeilen": 0,
-       "bytes": 321
+       "bytes": 323
       },
       {
        "tabelle": "work_sheets",
        "merkmale": "limit=60&offset=0&order=created_at.desc,id.asc",
        "zeilen": 60,
-       "bytes": 2238
+       "bytes": 2249
       },
       {
        "tabelle": "wartungen",
        "merkmale": "limit=200&offset=0&order=faellig_am.asc,id.asc",
-       "zeilen": 95,
-       "bytes": 7155
+       "zeilen": 98,
+       "bytes": 7379
       },
       {
        "tabelle": "rpc/wochenplan_abwesend",
        "merkmale": "",
        "zeilen": 0,
-       "bytes": 78
+       "bytes": 79
       },
       {
        "tabelle": "rpc/baustellen_einsatzlage",
        "merkmale": "limit=500&offset=0",
        "zeilen": 40,
-       "bytes": 289
+       "bytes": 292
       },
       {
        "tabelle": "assignments",
        "merkmale": "limit=500&offset=0&order=date.asc,id.asc",
        "zeilen": 60,
-       "bytes": 2311
+       "bytes": 2330
       },
       {
        "tabelle": "basiszinssaetze",
        "merkmale": "limit=200&order=ab.asc",
        "zeilen": 0,
-       "bytes": 144
+       "bytes": 113
       },
       {
        "tabelle": "buchungskonten",
@@ -607,58 +583,46 @@
        "bytes": 148
       },
       {
-       "tabelle": "invoice_coverage",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 2012
-      },
-      {
        "tabelle": "zeitkonto_anfang",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 907
+       "bytes": 851
+      },
+      {
+       "tabelle": "invoice_coverage",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 2072
       },
       {
        "tabelle": "rpc/baustellen_stunden",
        "merkmale": "limit=500&offset=0",
        "zeilen": 120,
        "bytes": 1190
-      },
-      {
-       "tabelle": "invoice_lines",
-       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
-       "zeilen": 198,
-       "bytes": 11486
-      },
-      {
-       "tabelle": "invoice_coverage",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 2916
       }
      ]
     },
     {
-     "fcp": 1368,
-     "inhalt": 2694,
-     "bereit": 3062,
-     "bedienbar": 3368,
-     "anfragen": 188,
-     "bytes": 313795,
-     "dbAnfragen": 31,
-     "dbBytes": 64561,
+     "fcp": 1352,
+     "inhalt": 2690,
+     "bereit": 3223,
+     "bedienbar": 3568,
+     "anfragen": 186,
+     "bytes": 300369,
+     "dbAnfragen": 29,
+     "dbBytes": 50804,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 518
+       "bytes": 519
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 1128
+       "bytes": 1127
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
@@ -670,7 +634,7 @@
        "tabelle": "support_freigaben",
        "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
        "zeilen": 0,
-       "bytes": 159
+       "bytes": 153
       },
       {
        "tabelle": "rpc/offene_posten",
@@ -688,19 +652,19 @@
        "tabelle": "material_orders",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 40,
-       "bytes": 4994
+       "bytes": 4975
       },
       {
        "tabelle": "rpc/lager_knapp",
        "merkmale": "limit=500&offset=0",
        "zeilen": 96,
-       "bytes": 2777
+       "bytes": 2783
       },
       {
        "tabelle": "invoices",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 99,
-       "bytes": 10075
+       "bytes": 10417
       },
       {
        "tabelle": "users",
@@ -712,97 +676,91 @@
        "tabelle": "rpc/buchungstage_je_person",
        "merkmale": "limit=500&offset=0",
        "zeilen": 20,
-       "bytes": 617
+       "bytes": 635
       },
       {
        "tabelle": "vacations",
        "merkmale": "limit=100&offset=0&order=id.asc",
        "zeilen": 20,
-       "bytes": 1804
+       "bytes": 1797
       },
       {
        "tabelle": "freistellungen",
        "merkmale": "limit=300&offset=0&order=von.asc,id.asc",
        "zeilen": 0,
-       "bytes": 159
+       "bytes": 160
       },
       {
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 6026
+       "bytes": 6089
       },
       {
        "tabelle": "assignments",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 20,
-       "bytes": 2261
+       "bytes": 2091
       },
       {
        "tabelle": "termine",
        "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
        "zeilen": 0,
-       "bytes": 192
+       "bytes": 169
       },
       {
        "tabelle": "einkauf_posten",
        "merkmale": "limit=500&offset=0&order=created_at.asc,id.asc",
        "zeilen": 0,
-       "bytes": 162
+       "bytes": 166
       },
       {
        "tabelle": "zahlungseingaenge",
        "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
        "zeilen": 0,
-       "bytes": 172
+       "bytes": 179
       },
       {
        "tabelle": "invoices",
        "merkmale": "limit=500&offset=0&order=ruecklass_garantie_bis.asc,id.asc",
        "zeilen": 0,
-       "bytes": 298
+       "bytes": 491
       },
       {
        "tabelle": "work_sheets",
        "merkmale": "limit=60&offset=0&order=created_at.desc,id.asc",
        "zeilen": 60,
-       "bytes": 2242
+       "bytes": 2247
       },
       {
        "tabelle": "wartungen",
        "merkmale": "limit=200&offset=0&order=faellig_am.asc,id.asc",
-       "zeilen": 95,
-       "bytes": 7158
+       "zeilen": 98,
+       "bytes": 7380
       },
       {
        "tabelle": "rpc/wochenplan_abwesend",
        "merkmale": "",
        "zeilen": 0,
-       "bytes": 82
+       "bytes": 74
       },
       {
        "tabelle": "rpc/baustellen_einsatzlage",
        "merkmale": "limit=500&offset=0",
        "zeilen": 40,
-       "bytes": 292
+       "bytes": 289
       },
       {
        "tabelle": "assignments",
        "merkmale": "limit=500&offset=0&order=date.asc,id.asc",
        "zeilen": 60,
-       "bytes": 2327
+       "bytes": 2312
       },
       {
        "tabelle": "basiszinssaetze",
        "merkmale": "limit=200&order=ab.asc",
        "zeilen": 0,
-       "bytes": 113
-      },
-      {
-       "tabelle": "zeitkonto_anfang",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 854
+       "bytes": 121
       },
       {
        "tabelle": "buchungskonten",
@@ -811,28 +769,22 @@
        "bytes": 152
       },
       {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 844
+      },
+      {
        "tabelle": "invoice_coverage",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 2052
+       "bytes": 2089
       },
       {
        "tabelle": "rpc/baustellen_stunden",
        "merkmale": "limit=500&offset=0",
        "zeilen": 120,
        "bytes": 1190
-      },
-      {
-       "tabelle": "invoice_lines",
-       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
-       "zeilen": 198,
-       "bytes": 11483
-      },
-      {
-       "tabelle": "invoice_coverage",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 2919
       }
      ]
     }
@@ -841,14 +793,14 @@
   {
    "name": "Planung (Tag)",
    "pfad": "/assignments/tag",
-   "fcp": 1352,
-   "inhalt": 2744,
-   "bereit": 3036,
-   "bedienbar": 4467,
+   "fcp": 1348,
+   "inhalt": 2688,
+   "bereit": 3030,
+   "bedienbar": 4466,
    "anfragen": 174,
-   "bytes": 293816,
+   "bytes": 293941,
    "dbAnfragen": 18,
-   "dbBytes": 39235,
+   "dbBytes": 39280,
    "groessteListe": {
     "tabelle": "assignments",
     "zeilen": 600
@@ -943,68 +895,56 @@
    ],
    "laeufe": [
     {
-     "fcp": 1436,
-     "inhalt": 2682,
-     "bereit": 3237,
-     "bedienbar": 4646,
+     "fcp": 1512,
+     "inhalt": 2688,
+     "bereit": 3089,
+     "bedienbar": 4582,
      "anfragen": 174,
-     "bytes": 293816,
+     "bytes": 293954,
      "dbAnfragen": 18,
-     "dbBytes": 39235,
+     "dbBytes": 39293,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 518
+       "bytes": 750
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 1128
+       "bytes": 896
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 172
+       "bytes": 173
       },
       {
        "tabelle": "support_freigaben",
        "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
        "zeilen": 0,
-       "bytes": 159
+       "bytes": 156
       },
       {
        "tabelle": "rpc/offene_posten",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 116
+       "bytes": 115
       },
       {
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 6032
+       "bytes": 6088
       },
       {
        "tabelle": "termine",
        "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
        "zeilen": 0,
-       "bytes": 196
-      },
-      {
-       "tabelle": "users",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 25,
-       "bytes": 1876
-      },
-      {
-       "tabelle": "projects",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 60,
-       "bytes": 5944
+       "bytes": 195
       },
       {
        "tabelle": "users",
@@ -1013,10 +953,22 @@
        "bytes": 1943
       },
       {
+       "tabelle": "projects",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 60,
+       "bytes": 6000
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 25,
+       "bytes": 1876
+      },
+      {
        "tabelle": "rpc/wochenplan_abwesend",
        "merkmale": "",
        "zeilen": 25,
-       "bytes": 728
+       "bytes": 726
       },
       {
        "tabelle": "betriebsurlaube",
@@ -1028,7 +980,7 @@
        "tabelle": "assignments",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 300,
-       "bytes": 12199
+       "bytes": 12158
       },
       {
        "tabelle": "einsatz_material",
@@ -1040,13 +992,133 @@
        "tabelle": "zeitkonto_anfang",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 848
+       "bytes": 844
       },
       {
        "tabelle": "zeitkonto_anfang",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 270
+       "bytes": 264
+      },
+      {
+       "tabelle": "einsatz_material",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 91
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 300,
+       "bytes": 6698
+      }
+     ]
+    },
+    {
+     "fcp": 1308,
+     "inhalt": 2711,
+     "bereit": 2969,
+     "bedienbar": 4417,
+     "anfragen": 174,
+     "bytes": 293941,
+     "dbAnfragen": 18,
+     "dbBytes": 39280,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 522
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1127
+      },
+      {
+       "tabelle": "rpc/mein_zweiter_faktor",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 173
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 115
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 60,
+       "bytes": 6088
+      },
+      {
+       "tabelle": "termine",
+       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 192
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 25,
+       "bytes": 1939
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 60,
+       "bytes": 6000
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 25,
+       "bytes": 1878
+      },
+      {
+       "tabelle": "rpc/wochenplan_abwesend",
+       "merkmale": "",
+       "zeilen": 25,
+       "bytes": 730
+      },
+      {
+       "tabelle": "betriebsurlaube",
+       "merkmale": "limit=50&offset=0&order=von.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 169
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 300,
+       "bytes": 12158
+      },
+      {
+       "tabelle": "einsatz_material",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 151
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 844
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 267
       },
       {
        "tabelle": "einsatz_material",
@@ -1058,55 +1130,55 @@
        "tabelle": "assignments",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 300,
-       "bytes": 6710
+       "bytes": 6695
       }
      ]
     },
     {
-     "fcp": 1292,
-     "inhalt": 2744,
-     "bereit": 3036,
-     "bedienbar": 4467,
+     "fcp": 1348,
+     "inhalt": 2659,
+     "bereit": 3030,
+     "bedienbar": 4466,
      "anfragen": 174,
-     "bytes": 293814,
+     "bytes": 293932,
      "dbAnfragen": 18,
-     "dbBytes": 39233,
+     "dbBytes": 39271,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 749
+       "bytes": 522
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 900
+       "bytes": 1127
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 170
+       "bytes": 173
       },
       {
        "tabelle": "support_freigaben",
        "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
        "zeilen": 0,
-       "bytes": 156
+       "bytes": 153
       },
       {
        "tabelle": "rpc/offene_posten",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 115
+       "bytes": 116
       },
       {
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 6032
+       "bytes": 6085
       },
       {
        "tabelle": "termine",
@@ -1118,13 +1190,13 @@
        "tabelle": "users",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 25,
-       "bytes": 1943
+       "bytes": 1939
       },
       {
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 5940
+       "bytes": 5997
       },
       {
        "tabelle": "users",
@@ -1136,127 +1208,7 @@
        "tabelle": "rpc/wochenplan_abwesend",
        "merkmale": "",
        "zeilen": 25,
-       "bytes": 725
-      },
-      {
-       "tabelle": "betriebsurlaube",
-       "merkmale": "limit=50&offset=0&order=von.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 172
-      },
-      {
-       "tabelle": "assignments",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 300,
-       "bytes": 12202
-      },
-      {
-       "tabelle": "einsatz_material",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 151
-      },
-      {
-       "tabelle": "zeitkonto_anfang",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 848
-      },
-      {
-       "tabelle": "zeitkonto_anfang",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 264
-      },
-      {
-       "tabelle": "einsatz_material",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 91
-      },
-      {
-       "tabelle": "assignments",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 300,
-       "bytes": 6704
-      }
-     ]
-    },
-    {
-     "fcp": 1352,
-     "inhalt": 2746,
-     "bereit": 2884,
-     "bedienbar": 4336,
-     "anfragen": 174,
-     "bytes": 293846,
-     "dbAnfragen": 18,
-     "dbBytes": 39242,
-     "db": [
-      {
-       "tabelle": "users",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 515
-      },
-      {
-       "tabelle": "companies",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 1128
-      },
-      {
-       "tabelle": "rpc/mein_zweiter_faktor",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 176
-      },
-      {
-       "tabelle": "support_freigaben",
-       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 0,
-       "bytes": 156
-      },
-      {
-       "tabelle": "rpc/offene_posten",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 115
-      },
-      {
-       "tabelle": "projects",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 60,
-       "bytes": 6031
-      },
-      {
-       "tabelle": "termine",
-       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 195
-      },
-      {
-       "tabelle": "users",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 25,
-       "bytes": 1943
-      },
-      {
-       "tabelle": "projects",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 60,
-       "bytes": 5940
-      },
-      {
-       "tabelle": "users",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 25,
-       "bytes": 1879
-      },
-      {
-       "tabelle": "rpc/wochenplan_abwesend",
-       "merkmale": "",
-       "zeilen": 25,
-       "bytes": 728
+       "bytes": 726
       },
       {
        "tabelle": "betriebsurlaube",
@@ -1268,7 +1220,7 @@
        "tabelle": "assignments",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 300,
-       "bytes": 12203
+       "bytes": 12157
       },
       {
        "tabelle": "einsatz_material",
@@ -1280,25 +1232,25 @@
        "tabelle": "zeitkonto_anfang",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 848
+       "bytes": 844
       },
       {
        "tabelle": "zeitkonto_anfang",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 264
+       "bytes": 251
       },
       {
        "tabelle": "einsatz_material",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 91
+       "bytes": 92
       },
       {
        "tabelle": "assignments",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 300,
-       "bytes": 6710
+       "bytes": 6698
       }
      ]
     }
@@ -1307,14 +1259,14 @@
   {
    "name": "Planung (Woche)",
    "pfad": "/assignments/woche",
-   "fcp": 1360,
-   "inhalt": 2616,
-   "bereit": 2629,
-   "bedienbar": 4033,
+   "fcp": 1332,
+   "inhalt": 2604,
+   "bereit": 2744,
+   "bedienbar": 4188,
    "anfragen": 170,
-   "bytes": 271620,
+   "bytes": 271724,
    "dbAnfragen": 14,
-   "dbBytes": 17039,
+   "dbBytes": 17063,
    "groessteListe": {
     "tabelle": "assignments",
     "zeilen": 120
@@ -1409,218 +1361,26 @@
    ],
    "laeufe": [
     {
-     "fcp": 1360,
-     "inhalt": 2616,
-     "bereit": 2629,
-     "bedienbar": 3983,
+     "fcp": 1320,
+     "inhalt": 2635,
+     "bereit": 2744,
+     "bedienbar": 4188,
      "anfragen": 170,
-     "bytes": 271600,
+     "bytes": 271718,
      "dbAnfragen": 14,
-     "dbBytes": 17019,
+     "dbBytes": 17057,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 518
+       "bytes": 519
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 1128
-      },
-      {
-       "tabelle": "rpc/mein_zweiter_faktor",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 173
-      },
-      {
-       "tabelle": "support_freigaben",
-       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 0,
-       "bytes": 153
-      },
-      {
-       "tabelle": "rpc/offene_posten",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 116
-      },
-      {
-       "tabelle": "users",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 25,
-       "bytes": 1965
-      },
-      {
-       "tabelle": "projects",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 60,
-       "bytes": 6028
-      },
-      {
-       "tabelle": "assignments",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 60,
-       "bytes": 3817
-      },
-      {
-       "tabelle": "rpc/wochenplan_abwesend",
-       "merkmale": "",
-       "zeilen": 0,
-       "bytes": 75
-      },
-      {
-       "tabelle": "termine",
-       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 169
-      },
-      {
-       "tabelle": "betriebsurlaube",
-       "merkmale": "limit=50&offset=0&order=von.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 169
-      },
-      {
-       "tabelle": "zeitkonto_anfang",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 848
-      },
-      {
-       "tabelle": "kalender_abos",
-       "merkmale": "",
-       "zeilen": 0,
-       "bytes": 353
-      },
-      {
-       "tabelle": "assignments",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 60,
-       "bytes": 1507
-      }
-     ]
-    },
-    {
-     "fcp": 1444,
-     "inhalt": 2684,
-     "bereit": 3051,
-     "bedienbar": 4438,
-     "anfragen": 170,
-     "bytes": 271643,
-     "dbAnfragen": 14,
-     "dbBytes": 17039,
-     "db": [
-      {
-       "tabelle": "users",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 521
-      },
-      {
-       "tabelle": "companies",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 1128
-      },
-      {
-       "tabelle": "rpc/mein_zweiter_faktor",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 173
-      },
-      {
-       "tabelle": "support_freigaben",
-       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 0,
-       "bytes": 153
-      },
-      {
-       "tabelle": "rpc/offene_posten",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 116
-      },
-      {
-       "tabelle": "users",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 25,
-       "bytes": 1965
-      },
-      {
-       "tabelle": "projects",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 60,
-       "bytes": 6031
-      },
-      {
-       "tabelle": "assignments",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 60,
-       "bytes": 3818
-      },
-      {
-       "tabelle": "rpc/wochenplan_abwesend",
-       "merkmale": "",
-       "zeilen": 0,
-       "bytes": 73
-      },
-      {
-       "tabelle": "termine",
-       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 169
-      },
-      {
-       "tabelle": "betriebsurlaube",
-       "merkmale": "limit=50&offset=0&order=von.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 172
-      },
-      {
-       "tabelle": "zeitkonto_anfang",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 848
-      },
-      {
-       "tabelle": "kalender_abos",
-       "merkmale": "",
-       "zeilen": 0,
-       "bytes": 347
-      },
-      {
-       "tabelle": "assignments",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 60,
-       "bytes": 1525
-      }
-     ]
-    },
-    {
-     "fcp": 1352,
-     "inhalt": 2149,
-     "bereit": 2575,
-     "bedienbar": 4033,
-     "anfragen": 170,
-     "bytes": 271620,
-     "dbAnfragen": 14,
-     "dbBytes": 17039,
-     "db": [
-      {
-       "tabelle": "users",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 515
-      },
-      {
-       "tabelle": "companies",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 1128
+       "bytes": 1127
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
@@ -1638,25 +1398,25 @@
        "tabelle": "rpc/offene_posten",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 116
+       "bytes": 115
       },
       {
        "tabelle": "users",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 25,
-       "bytes": 1943
+       "bytes": 1965
       },
       {
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 6031
+       "bytes": 6088
       },
       {
        "tabelle": "assignments",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 3818
+       "bytes": 3807
       },
       {
        "tabelle": "rpc/wochenplan_abwesend",
@@ -1668,19 +1428,19 @@
        "tabelle": "termine",
        "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
        "zeilen": 0,
-       "bytes": 192
+       "bytes": 169
       },
       {
        "tabelle": "betriebsurlaube",
        "merkmale": "limit=50&offset=0&order=von.asc,id.asc",
        "zeilen": 0,
-       "bytes": 173
+       "bytes": 169
       },
       {
        "tabelle": "zeitkonto_anfang",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 848
+       "bytes": 844
       },
       {
        "tabelle": "kalender_abos",
@@ -1692,7 +1452,199 @@
        "tabelle": "assignments",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 1525
+       "bytes": 1504
+      }
+     ]
+    },
+    {
+     "fcp": 1332,
+     "inhalt": 2604,
+     "bereit": 2839,
+     "bedienbar": 4220,
+     "anfragen": 170,
+     "bytes": 271739,
+     "dbAnfragen": 14,
+     "dbBytes": 17078,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 519
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 899
+      },
+      {
+       "tabelle": "rpc/mein_zweiter_faktor",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 404
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 115
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 25,
+       "bytes": 1965
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 60,
+       "bytes": 6085
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 60,
+       "bytes": 3808
+      },
+      {
+       "tabelle": "rpc/wochenplan_abwesend",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 73
+      },
+      {
+       "tabelle": "termine",
+       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 169
+      },
+      {
+       "tabelle": "betriebsurlaube",
+       "merkmale": "limit=50&offset=0&order=von.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 169
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 844
+      },
+      {
+       "tabelle": "kalender_abos",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 365
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 60,
+       "bytes": 1507
+      }
+     ]
+    },
+    {
+     "fcp": 1360,
+     "inhalt": 2106,
+     "bereit": 2498,
+     "bedienbar": 3944,
+     "anfragen": 170,
+     "bytes": 271724,
+     "dbAnfragen": 14,
+     "dbBytes": 17063,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 519
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1127
+      },
+      {
+       "tabelle": "rpc/mein_zweiter_faktor",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 172
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 116
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 25,
+       "bytes": 1965
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 60,
+       "bytes": 6088
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 60,
+       "bytes": 3808
+      },
+      {
+       "tabelle": "rpc/wochenplan_abwesend",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 73
+      },
+      {
+       "tabelle": "termine",
+       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 169
+      },
+      {
+       "tabelle": "betriebsurlaube",
+       "merkmale": "limit=50&offset=0&order=von.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 169
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 844
+      },
+      {
+       "tabelle": "kalender_abos",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 353
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 60,
+       "bytes": 1504
       }
      ]
     }
@@ -1701,14 +1653,14 @@
   {
    "name": "Lager",
    "pfad": "/lager",
-   "fcp": 1356,
-   "inhalt": 2147,
-   "bereit": 3263,
-   "bedienbar": 4464,
+   "fcp": 1344,
+   "inhalt": 2104,
+   "bereit": 3317,
+   "bedienbar": 4502,
    "anfragen": 172,
-   "bytes": 303648,
+   "bytes": 311823,
    "dbAnfragen": 15,
-   "dbBytes": 90736,
+   "dbBytes": 90787,
    "groessteListe": {
     "tabelle": "materials",
     "zeilen": 1600
@@ -1785,32 +1737,32 @@
    ],
    "laeufe": [
     {
-     "fcp": 1292,
-     "inhalt": 2147,
-     "bereit": 3263,
-     "bedienbar": 4464,
+     "fcp": 1340,
+     "inhalt": 2104,
+     "bereit": 3296,
+     "bedienbar": 4454,
      "anfragen": 172,
-     "bytes": 303622,
+     "bytes": 303787,
      "dbAnfragen": 15,
-     "dbBytes": 90710,
+     "dbBytes": 90783,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 749
+       "bytes": 750
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 897
+       "bytes": 899
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 172
+       "bytes": 173
       },
       {
        "tabelle": "support_freigaben",
@@ -1828,13 +1780,13 @@
        "tabelle": "materials",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 500,
-       "bytes": 18610
+       "bytes": 18624
       },
       {
        "tabelle": "material_orders",
        "merkmale": "limit=200&offset=0&order=created_at.desc,id.asc",
        "zeilen": 200,
-       "bytes": 16043
+       "bytes": 16072
       },
       {
        "tabelle": "materials",
@@ -1846,19 +1798,19 @@
        "tabelle": "materials",
        "merkmale": "limit=500&offset=500&order=id.asc",
        "zeilen": 300,
-       "bytes": 11406
+       "bytes": 11438
       },
       {
        "tabelle": "rpc/lager_frei",
        "merkmale": "",
        "zeilen": 500,
-       "bytes": 12650
+       "bytes": 12651
       },
       {
        "tabelle": "rpc/lager_frei",
        "merkmale": "",
        "zeilen": 300,
-       "bytes": 7729
+       "bytes": 7691
       },
       {
        "tabelle": "materials",
@@ -1870,49 +1822,49 @@
        "tabelle": "material_orders",
        "merkmale": "limit=200&offset=0&order=created_at.desc,id.asc",
        "zeilen": 200,
-       "bytes": 4516
+       "bytes": 4521
       },
       {
        "tabelle": "materials",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 500,
-       "bytes": 11034
+       "bytes": 11042
       },
       {
        "tabelle": "materials",
        "merkmale": "limit=500&offset=500&order=id.asc",
        "zeilen": 300,
-       "bytes": 6635
+       "bytes": 6653
       }
      ]
     },
     {
-     "fcp": 1356,
-     "inhalt": 2132,
-     "bereit": 3146,
-     "bedienbar": 4345,
+     "fcp": 1344,
+     "inhalt": 2096,
+     "bereit": 3368,
+     "bedienbar": 4507,
      "anfragen": 172,
-     "bytes": 303648,
+     "bytes": 311852,
      "dbAnfragen": 15,
-     "dbBytes": 90736,
+     "dbBytes": 90793,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 749
+       "bytes": 750
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 897
+       "bytes": 899
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 173
+       "bytes": 170
       },
       {
        "tabelle": "support_freigaben",
@@ -1930,13 +1882,13 @@
        "tabelle": "materials",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 500,
-       "bytes": 18610
+       "bytes": 18624
       },
       {
        "tabelle": "material_orders",
        "merkmale": "limit=200&offset=0&order=created_at.desc,id.asc",
        "zeilen": 200,
-       "bytes": 16043
+       "bytes": 16072
       },
       {
        "tabelle": "materials",
@@ -1948,19 +1900,19 @@
        "tabelle": "materials",
        "merkmale": "limit=500&offset=500&order=id.asc",
        "zeilen": 300,
-       "bytes": 11402
+       "bytes": 11442
       },
       {
        "tabelle": "rpc/lager_frei",
        "merkmale": "",
        "zeilen": 500,
-       "bytes": 12654
+       "bytes": 12651
       },
       {
        "tabelle": "rpc/lager_frei",
        "merkmale": "",
        "zeilen": 300,
-       "bytes": 7756
+       "bytes": 7691
       },
       {
        "tabelle": "materials",
@@ -1972,49 +1924,49 @@
        "tabelle": "material_orders",
        "merkmale": "limit=200&offset=0&order=created_at.desc,id.asc",
        "zeilen": 200,
-       "bytes": 4512
+       "bytes": 4525
       },
       {
        "tabelle": "materials",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 500,
-       "bytes": 11034
+       "bytes": 11046
       },
       {
        "tabelle": "materials",
        "merkmale": "limit=500&offset=500&order=id.asc",
        "zeilen": 300,
-       "bytes": 6635
+       "bytes": 6652
       }
      ]
     },
     {
-     "fcp": 1528,
-     "inhalt": 2194,
-     "bereit": 3576,
-     "bedienbar": 4767,
+     "fcp": 1376,
+     "inhalt": 2112,
+     "bereit": 3317,
+     "bedienbar": 4502,
      "anfragen": 172,
-     "bytes": 311729,
+     "bytes": 311823,
      "dbAnfragen": 15,
-     "dbBytes": 90739,
+     "dbBytes": 90787,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 749
+       "bytes": 750
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 897
+       "bytes": 899
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 172
+       "bytes": 170
       },
       {
        "tabelle": "support_freigaben",
@@ -2032,13 +1984,13 @@
        "tabelle": "materials",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 500,
-       "bytes": 18633
+       "bytes": 18624
       },
       {
        "tabelle": "material_orders",
        "merkmale": "limit=200&offset=0&order=created_at.desc,id.asc",
        "zeilen": 200,
-       "bytes": 16043
+       "bytes": 16072
       },
       {
        "tabelle": "materials",
@@ -2050,19 +2002,19 @@
        "tabelle": "materials",
        "merkmale": "limit=500&offset=500&order=id.asc",
        "zeilen": 300,
-       "bytes": 11406
+       "bytes": 11438
       },
       {
        "tabelle": "rpc/lager_frei",
        "merkmale": "",
        "zeilen": 500,
-       "bytes": 12650
+       "bytes": 12651
       },
       {
        "tabelle": "rpc/lager_frei",
        "merkmale": "",
        "zeilen": 300,
-       "bytes": 7733
+       "bytes": 7687
       },
       {
        "tabelle": "materials",
@@ -2074,19 +2026,19 @@
        "tabelle": "material_orders",
        "merkmale": "limit=200&offset=0&order=created_at.desc,id.asc",
        "zeilen": 200,
-       "bytes": 4512
+       "bytes": 4525
       },
       {
        "tabelle": "materials",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 500,
-       "bytes": 11038
+       "bytes": 11046
       },
       {
        "tabelle": "materials",
        "merkmale": "limit=500&offset=500&order=id.asc",
        "zeilen": 300,
-       "bytes": 6634
+       "bytes": 6653
       }
      ]
     }
@@ -2096,13 +2048,13 @@
    "name": "Anforderungen",
    "pfad": "/anforderungen",
    "fcp": 1324,
-   "inhalt": 2145,
-   "bereit": 2298,
-   "bedienbar": 3806,
+   "inhalt": 2108,
+   "bereit": 2252,
+   "bedienbar": 3731,
    "anfragen": 165,
-   "bytes": 235187,
+   "bytes": 227245,
    "dbAnfragen": 9,
-   "dbBytes": 23342,
+   "dbBytes": 23374,
    "groessteListe": {
     "tabelle": "material_orders",
     "zeilen": 400
@@ -2167,32 +2119,32 @@
    ],
    "laeufe": [
     {
-     "fcp": 1332,
-     "inhalt": 2222,
-     "bereit": 2361,
-     "bedienbar": 3863,
+     "fcp": 1280,
+     "inhalt": 2108,
+     "bereit": 2404,
+     "bedienbar": 3881,
      "anfragen": 165,
-     "bytes": 235205,
+     "bytes": 235301,
      "dbAnfragen": 9,
-     "dbBytes": 23342,
+     "dbBytes": 23375,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 749
+       "bytes": 750
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 897
+       "bytes": 896
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 176
+       "bytes": 172
       },
       {
        "tabelle": "support_freigaben",
@@ -2204,85 +2156,19 @@
        "tabelle": "rpc/offene_posten",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 115
+       "bytes": 116
       },
       {
        "tabelle": "material_orders",
        "merkmale": "limit=200&offset=0&order=created_at.desc,id.asc",
        "zeilen": 200,
-       "bytes": 16043
+       "bytes": 16072
       },
       {
        "tabelle": "suppliers",
        "merkmale": "limit=200&offset=0&order=name.asc,id.asc",
        "zeilen": 5,
-       "bytes": 528
-      },
-      {
-       "tabelle": "einkauf_posten",
-       "merkmale": "limit=500&offset=0&order=created_at.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 162
-      },
-      {
-       "tabelle": "material_orders",
-       "merkmale": "limit=200&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 200,
-       "bytes": 4516
-      }
-     ]
-    },
-    {
-     "fcp": 1300,
-     "inhalt": 2145,
-     "bereit": 2298,
-     "bedienbar": 3788,
-     "anfragen": 165,
-     "bytes": 235187,
-     "dbAnfragen": 9,
-     "dbBytes": 23347,
-     "db": [
-      {
-       "tabelle": "users",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 749
-      },
-      {
-       "tabelle": "companies",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 897
-      },
-      {
-       "tabelle": "rpc/mein_zweiter_faktor",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 175
-      },
-      {
-       "tabelle": "support_freigaben",
-       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 0,
-       "bytes": 156
-      },
-      {
-       "tabelle": "rpc/offene_posten",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 115
-      },
-      {
-       "tabelle": "material_orders",
-       "merkmale": "limit=200&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 200,
-       "bytes": 16046
-      },
-      {
-       "tabelle": "suppliers",
-       "merkmale": "limit=200&offset=0&order=name.asc,id.asc",
-       "zeilen": 5,
-       "bytes": 528
+       "bytes": 523
       },
       {
        "tabelle": "einkauf_posten",
@@ -2294,31 +2180,31 @@
        "tabelle": "material_orders",
        "merkmale": "limit=200&offset=0&order=created_at.desc,id.asc",
        "zeilen": 200,
-       "bytes": 4516
+       "bytes": 4525
       }
      ]
     },
     {
      "fcp": 1324,
-     "inhalt": 2118,
-     "bereit": 2288,
-     "bedienbar": 3806,
+     "inhalt": 2095,
+     "bereit": 2252,
+     "bedienbar": 3730,
      "anfragen": 165,
-     "bytes": 235178,
+     "bytes": 227245,
      "dbAnfragen": 9,
-     "dbBytes": 23338,
+     "dbBytes": 23374,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 521
+       "bytes": 522
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 1128
+       "bytes": 1127
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
@@ -2342,25 +2228,91 @@
        "tabelle": "material_orders",
        "merkmale": "limit=200&offset=0&order=created_at.desc,id.asc",
        "zeilen": 200,
-       "bytes": 16043
+       "bytes": 16068
       },
       {
        "tabelle": "suppliers",
        "merkmale": "limit=200&offset=0&order=name.asc,id.asc",
        "zeilen": 5,
-       "bytes": 525
+       "bytes": 526
       },
       {
        "tabelle": "einkauf_posten",
        "merkmale": "limit=500&offset=0&order=created_at.asc,id.asc",
        "zeilen": 0,
-       "bytes": 165
+       "bytes": 162
       },
       {
        "tabelle": "material_orders",
        "merkmale": "limit=200&offset=0&order=created_at.desc,id.asc",
        "zeilen": 200,
-       "bytes": 4512
+       "bytes": 4525
+      }
+     ]
+    },
+    {
+     "fcp": 1324,
+     "inhalt": 2108,
+     "bereit": 2178,
+     "bedienbar": 3731,
+     "anfragen": 165,
+     "bytes": 227241,
+     "dbAnfragen": 9,
+     "dbBytes": 23370,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 516
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1127
+      },
+      {
+       "tabelle": "rpc/mein_zweiter_faktor",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 173
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 153
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 116
+      },
+      {
+       "tabelle": "material_orders",
+       "merkmale": "limit=200&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 200,
+       "bytes": 16072
+      },
+      {
+       "tabelle": "suppliers",
+       "merkmale": "limit=200&offset=0&order=name.asc,id.asc",
+       "zeilen": 5,
+       "bytes": 526
+      },
+      {
+       "tabelle": "einkauf_posten",
+       "merkmale": "limit=500&offset=0&order=created_at.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 162
+      },
+      {
+       "tabelle": "material_orders",
+       "merkmale": "limit=200&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 200,
+       "bytes": 4525
       }
      ]
     }
@@ -2369,14 +2321,14 @@
   {
    "name": "Material anfordern",
    "pfad": "/material",
-   "fcp": 1304,
-   "inhalt": 2130,
-   "bereit": 2223,
-   "bedienbar": 3682,
+   "fcp": 1328,
+   "inhalt": 2135,
+   "bereit": 2318,
+   "bedienbar": 3847,
    "anfragen": 169,
-   "bytes": 225784,
+   "bytes": 225982,
    "dbAnfragen": 13,
-   "dbBytes": 17713,
+   "dbBytes": 17833,
    "groessteListe": {
     "tabelle": "projects",
     "zeilen": 120
@@ -2447,62 +2399,62 @@
    ],
    "laeufe": [
     {
-     "fcp": 1384,
-     "inhalt": 2171,
-     "bereit": 2207,
-     "bedienbar": 3682,
+     "fcp": 1328,
+     "inhalt": 2135,
+     "bereit": 2288,
+     "bedienbar": 3847,
      "anfragen": 169,
-     "bytes": 225784,
+     "bytes": 225984,
      "dbAnfragen": 13,
-     "dbBytes": 17713,
+     "dbBytes": 17833,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 749
+       "bytes": 750
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 900
+       "bytes": 896
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 170
+       "bytes": 175
       },
       {
        "tabelle": "support_freigaben",
        "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
        "zeilen": 0,
-       "bytes": 156
+       "bytes": 153
       },
       {
        "tabelle": "rpc/offene_posten",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 115
+       "bytes": 116
       },
       {
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 5943
+       "bytes": 6088
       },
       {
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 6028
+       "bytes": 6001
       },
       {
        "tabelle": "material_orders",
        "merkmale": "limit=100&offset=0&order=created_at.desc,id.asc",
        "zeilen": 0,
-       "bytes": 182
+       "bytes": 186
       },
       {
        "tabelle": "materials",
@@ -2514,7 +2466,7 @@
        "tabelle": "rpc/lager_frei",
        "merkmale": "",
        "zeilen": 20,
-       "bytes": 602
+       "bytes": 601
       },
       {
        "tabelle": "materials",
@@ -2526,37 +2478,37 @@
        "tabelle": "rpc/lager_frei",
        "merkmale": "",
        "zeilen": 20,
-       "bytes": 595
+       "bytes": 597
       },
       {
        "tabelle": "material_orders",
        "merkmale": "limit=100&offset=0&order=created_at.desc,id.asc",
        "zeilen": 0,
-       "bytes": 194
+       "bytes": 191
       }
      ]
     },
     {
-     "fcp": 1300,
-     "inhalt": 2130,
-     "bereit": 2241,
-     "bedienbar": 3676,
+     "fcp": 1296,
+     "inhalt": 2227,
+     "bereit": 2318,
+     "bedienbar": 3633,
      "anfragen": 169,
-     "bytes": 225776,
+     "bytes": 225982,
      "dbAnfragen": 13,
-     "dbBytes": 17705,
+     "dbBytes": 17831,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 749
+       "bytes": 750
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 900
+       "bytes": 896
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
@@ -2580,19 +2532,19 @@
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 6028
+       "bytes": 6088
       },
       {
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 5940
+       "bytes": 5999
       },
       {
        "tabelle": "material_orders",
        "merkmale": "limit=100&offset=0&order=created_at.desc,id.asc",
        "zeilen": 0,
-       "bytes": 182
+       "bytes": 183
       },
       {
        "tabelle": "materials",
@@ -2604,7 +2556,7 @@
        "tabelle": "rpc/lager_frei",
        "merkmale": "",
        "zeilen": 20,
-       "bytes": 602
+       "bytes": 605
       },
       {
        "tabelle": "materials",
@@ -2616,7 +2568,7 @@
        "tabelle": "rpc/lager_frei",
        "merkmale": "",
        "zeilen": 20,
-       "bytes": 592
+       "bytes": 598
       },
       {
        "tabelle": "material_orders",
@@ -2627,62 +2579,62 @@
      ]
     },
     {
-     "fcp": 1304,
-     "inhalt": 2118,
-     "bereit": 2223,
-     "bedienbar": 3732,
+     "fcp": 1568,
+     "inhalt": 2098,
+     "bereit": 2434,
+     "bedienbar": 4012,
      "anfragen": 169,
-     "bytes": 225819,
+     "bytes": 217929,
      "dbAnfragen": 13,
-     "dbBytes": 17725,
+     "dbBytes": 17833,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 772
+       "bytes": 522
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 897
+       "bytes": 1127
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 170
+       "bytes": 173
       },
       {
        "tabelle": "support_freigaben",
        "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
        "zeilen": 0,
-       "bytes": 153
+       "bytes": 156
       },
       {
        "tabelle": "rpc/offene_posten",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 116
+       "bytes": 115
       },
       {
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 6031
+       "bytes": 6085
       },
       {
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 5940
+       "bytes": 6000
       },
       {
        "tabelle": "material_orders",
        "merkmale": "limit=100&offset=0&order=created_at.desc,id.asc",
        "zeilen": 0,
-       "bytes": 182
+       "bytes": 183
       },
       {
        "tabelle": "materials",
@@ -2694,7 +2646,7 @@
        "tabelle": "rpc/lager_frei",
        "merkmale": "",
        "zeilen": 20,
-       "bytes": 602
+       "bytes": 605
       },
       {
        "tabelle": "materials",
@@ -2706,7 +2658,7 @@
        "tabelle": "rpc/lager_frei",
        "merkmale": "",
        "zeilen": 20,
-       "bytes": 592
+       "bytes": 597
       },
       {
        "tabelle": "material_orders",
@@ -2721,14 +2673,14 @@
   {
    "name": "Rechnungen",
    "pfad": "/invoices",
-   "fcp": 1340,
-   "inhalt": 2241,
-   "bereit": 3153,
-   "bedienbar": 4212,
+   "fcp": 1348,
+   "inhalt": 2633,
+   "bereit": 3285,
+   "bedienbar": 4251,
    "anfragen": 185,
-   "bytes": 285629,
+   "bytes": 286290,
    "dbAnfragen": 28,
-   "dbBytes": 96721,
+   "dbBytes": 97277,
    "groessteListe": {
     "tabelle": "invoice_lines",
     "zeilen": 398
@@ -2750,7 +2702,7 @@
      "tabelle": "customers",
      "zeilen": 184,
      "anfragen": 3,
-     "groesste": 112
+     "groesste": 69
     },
     {
      "tabelle": "projects",
@@ -2794,7 +2746,7 @@
      "tabelle": "customers",
      "zeilen": 184,
      "anfragen": 3,
-     "groesste": 112
+     "groesste": 69
     },
     {
      "tabelle": "projects",
@@ -2869,226 +2821,40 @@
      "groesste": 0
     },
     {
-     "tabelle": "work_sheet_photos",
-     "zeilen": 0,
-     "anfragen": 1,
-     "groesste": 0
-    },
-    {
      "tabelle": "invoice_coverage",
      "zeilen": 0,
      "anfragen": 4,
+     "groesste": 0
+    },
+    {
+     "tabelle": "work_sheet_photos",
+     "zeilen": 0,
+     "anfragen": 1,
      "groesste": 0
     }
    ],
    "laeufe": [
     {
-     "fcp": 1308,
-     "inhalt": 2241,
-     "bereit": 3126,
-     "bedienbar": 4161,
+     "fcp": 1348,
+     "inhalt": 2717,
+     "bereit": 3372,
+     "bedienbar": 4355,
      "anfragen": 186,
-     "bytes": 285968,
+     "bytes": 286629,
      "dbAnfragen": 29,
-     "dbBytes": 97037,
+     "dbBytes": 97616,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 518
+       "bytes": 750
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 1128
-      },
-      {
-       "tabelle": "rpc/mein_zweiter_faktor",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 172
-      },
-      {
-       "tabelle": "support_freigaben",
-       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 0,
-       "bytes": 159
-      },
-      {
-       "tabelle": "rpc/offene_posten",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 116
-      },
-      {
-       "tabelle": "basiszinssaetze",
-       "merkmale": "limit=200&order=ab.asc",
-       "zeilen": 0,
-       "bytes": 116
-      },
-      {
-       "tabelle": "projects",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 60,
-       "bytes": 6031
-      },
-      {
-       "tabelle": "buchungskonten",
-       "merkmale": "limit=500&offset=0&order=zweck.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 172
-      },
-      {
-       "tabelle": "invoices",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 99,
-       "bytes": 10075
-      },
-      {
-       "tabelle": "work_sheets",
-       "merkmale": "limit=60&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 60,
-       "bytes": 9258
-      },
-      {
-       "tabelle": "zahlungseingaenge",
-       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 172
-      },
-      {
-       "tabelle": "invoices",
-       "merkmale": "limit=50&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 50,
-       "bytes": 4900
-      },
-      {
-       "tabelle": "customers",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 60,
-       "bytes": 6096
-      },
-      {
-       "tabelle": "work_sheet_hours",
-       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
-       "zeilen": 60,
-       "bytes": 5213
-      },
-      {
-       "tabelle": "work_sheet_material",
-       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
-       "zeilen": 60,
-       "bytes": 4796
-      },
-      {
-       "tabelle": "work_sheet_photos",
-       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 1894
-      },
-      {
-       "tabelle": "invoice_lines",
-       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
-       "zeilen": 198,
-       "bytes": 11483
-      },
-      {
-       "tabelle": "invoice_coverage",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 2920
-      },
-      {
-       "tabelle": "invoice_lines",
-       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
-       "zeilen": 100,
-       "bytes": 5871
-      },
-      {
-       "tabelle": "invoice_coverage",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 1734
-      },
-      {
-       "tabelle": "invoice_coverage",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 2022
-      },
-      {
-       "tabelle": "customers",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 69,
-       "bytes": 5154
-      },
-      {
-       "tabelle": "customers",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 5,
-       "bytes": 960
-      },
-      {
-       "tabelle": "customers",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 50,
-       "bytes": 3255
-      },
-      {
-       "tabelle": "zahlungseingaenge",
-       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 179
-      },
-      {
-       "tabelle": "invoices",
-       "merkmale": "limit=50&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 50,
-       "bytes": 4898
-      },
-      {
-       "tabelle": "invoice_lines",
-       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
-       "zeilen": 100,
-       "bytes": 5828
-      },
-      {
-       "tabelle": "invoice_coverage",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 1735
-      },
-      {
-       "tabelle": "zahlungseingaenge",
-       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 182
-      }
-     ]
-    },
-    {
-     "fcp": 1356,
-     "inhalt": 2278,
-     "bereit": 3153,
-     "bedienbar": 4213,
-     "anfragen": 185,
-     "bytes": 285581,
-     "dbAnfragen": 28,
-     "dbBytes": 96673,
-     "db": [
-      {
-       "tabelle": "users",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 749
-      },
-      {
-       "tabelle": "companies",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 894
+       "bytes": 899
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
@@ -3100,25 +2866,25 @@
        "tabelle": "support_freigaben",
        "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
        "zeilen": 0,
-       "bytes": 156
+       "bytes": 153
       },
       {
        "tabelle": "rpc/offene_posten",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 115
+       "bytes": 116
       },
       {
        "tabelle": "basiszinssaetze",
        "merkmale": "limit=200&order=ab.asc",
        "zeilen": 0,
-       "bytes": 119
+       "bytes": 113
       },
       {
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 6031
+       "bytes": 6088
       },
       {
        "tabelle": "buchungskonten",
@@ -3130,145 +2896,151 @@
        "tabelle": "invoices",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 99,
-       "bytes": 10072
+       "bytes": 10393
       },
       {
        "tabelle": "work_sheets",
        "merkmale": "limit=60&offset=0&order=created_at.desc,id.asc",
        "zeilen": 60,
-       "bytes": 9261
+       "bytes": 9228
       },
       {
        "tabelle": "zahlungseingaenge",
        "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
        "zeilen": 0,
-       "bytes": 175
+       "bytes": 172
       },
       {
        "tabelle": "invoices",
        "merkmale": "limit=50&offset=0&order=created_at.desc,id.asc",
        "zeilen": 50,
-       "bytes": 4897
+       "bytes": 4932
       },
       {
        "tabelle": "customers",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 6096
-      },
-      {
-       "tabelle": "work_sheet_hours",
-       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
-       "zeilen": 60,
-       "bytes": 5349
-      },
-      {
-       "tabelle": "work_sheet_material",
-       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
-       "zeilen": 60,
-       "bytes": 4672
-      },
-      {
-       "tabelle": "work_sheet_photos",
-       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 1895
+       "bytes": 6088
       },
       {
        "tabelle": "invoice_lines",
        "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
        "zeilen": 198,
-       "bytes": 11483
+       "bytes": 11639
       },
       {
        "tabelle": "invoice_coverage",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 2916
+       "bytes": 2915
+      },
+      {
+       "tabelle": "work_sheet_hours",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 60,
+       "bytes": 5239
+      },
+      {
+       "tabelle": "work_sheet_material",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 60,
+       "bytes": 4805
+      },
+      {
+       "tabelle": "work_sheet_photos",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 1847
       },
       {
        "tabelle": "invoice_lines",
        "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
        "zeilen": 100,
-       "bytes": 5856
+       "bytes": 5976
       },
       {
        "tabelle": "invoice_coverage",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 1748
-      },
-      {
-       "tabelle": "invoice_coverage",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 2019
+       "bytes": 1612
       },
       {
        "tabelle": "customers",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 69,
-       "bytes": 5167
+       "bytes": 5156
       },
       {
        "tabelle": "customers",
        "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 55,
-       "bytes": 3753
-      },
-      {
-       "tabelle": "zahlungseingaenge",
-       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 232
-      },
-      {
-       "tabelle": "invoices",
-       "merkmale": "limit=50&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 50,
-       "bytes": 4898
-      },
-      {
-       "tabelle": "invoice_lines",
-       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
-       "zeilen": 100,
-       "bytes": 5831
+       "zeilen": 5,
+       "bytes": 1002
       },
       {
        "tabelle": "invoice_coverage",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 1739
+       "bytes": 2024
+      },
+      {
+       "tabelle": "customers",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 50,
+       "bytes": 3252
       },
       {
        "tabelle": "zahlungseingaenge",
        "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
        "zeilen": 0,
-       "bytes": 202
+       "bytes": 182
+      },
+      {
+       "tabelle": "invoices",
+       "merkmale": "limit=50&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 50,
+       "bytes": 4930
+      },
+      {
+       "tabelle": "invoice_lines",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 100,
+       "bytes": 5826
+      },
+      {
+       "tabelle": "invoice_coverage",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 1749
+      },
+      {
+       "tabelle": "zahlungseingaenge",
+       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 182
       }
      ]
     },
     {
-     "fcp": 1340,
-     "inhalt": 2240,
-     "bereit": 3209,
-     "bedienbar": 4212,
+     "fcp": 1392,
+     "inhalt": 2633,
+     "bereit": 3285,
+     "bedienbar": 4251,
      "anfragen": 185,
-     "bytes": 285629,
+     "bytes": 286290,
      "dbAnfragen": 28,
-     "dbBytes": 96721,
+     "dbBytes": 97277,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 749
+       "bytes": 519
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 894
+       "bytes": 1127
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
@@ -3298,7 +3070,7 @@
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 60,
-       "bytes": 6031
+       "bytes": 6088
       },
       {
        "tabelle": "buchungskonten",
@@ -3310,13 +3082,13 @@
        "tabelle": "invoices",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 99,
-       "bytes": 10076
+       "bytes": 10394
       },
       {
        "tabelle": "work_sheets",
        "merkmale": "limit=60&offset=0&order=created_at.desc,id.asc",
        "zeilen": 60,
-       "bytes": 9262
+       "bytes": 9232
       },
       {
        "tabelle": "zahlungseingaenge",
@@ -3328,61 +3100,61 @@
        "tabelle": "invoices",
        "merkmale": "limit=50&offset=0&order=created_at.desc,id.asc",
        "zeilen": 50,
-       "bytes": 4897
-      },
-      {
-       "tabelle": "customers",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 60,
-       "bytes": 6099
+       "bytes": 4929
       },
       {
        "tabelle": "work_sheet_hours",
        "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
        "zeilen": 60,
-       "bytes": 5237
+       "bytes": 5235
       },
       {
        "tabelle": "work_sheet_material",
        "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
        "zeilen": 60,
-       "bytes": 4797
+       "bytes": 4804
       },
       {
        "tabelle": "work_sheet_photos",
        "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
        "zeilen": 0,
-       "bytes": 1880
+       "bytes": 2040
       },
       {
        "tabelle": "invoice_lines",
        "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
        "zeilen": 198,
-       "bytes": 11483
+       "bytes": 11582
       },
       {
        "tabelle": "invoice_coverage",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 2917
+       "bytes": 2955
+      },
+      {
+       "tabelle": "customers",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 60,
+       "bytes": 5893
       },
       {
        "tabelle": "invoice_lines",
        "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
        "zeilen": 100,
-       "bytes": 5856
+       "bytes": 5852
       },
       {
        "tabelle": "invoice_coverage",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 1734
+       "bytes": 1747
       },
       {
        "tabelle": "invoice_coverage",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 2022
+       "bytes": 2042
       },
       {
        "tabelle": "customers",
@@ -3394,19 +3166,199 @@
        "tabelle": "zahlungseingaenge",
        "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
        "zeilen": 0,
-       "bytes": 214
+       "bytes": 232
       },
       {
        "tabelle": "customers",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 12,
-       "bytes": 1616
+       "bytes": 1598
       },
       {
        "tabelle": "invoices",
        "merkmale": "limit=50&offset=0&order=created_at.desc,id.asc",
        "zeilen": 50,
-       "bytes": 4898
+       "bytes": 4930
+      },
+      {
+       "tabelle": "invoice_lines",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 100,
+       "bytes": 5850
+      },
+      {
+       "tabelle": "invoice_coverage",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 1753
+      },
+      {
+       "tabelle": "zahlungseingaenge",
+       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 179
+      }
+     ]
+    },
+    {
+     "fcp": 1264,
+     "inhalt": 2210,
+     "bereit": 3046,
+     "bedienbar": 4081,
+     "anfragen": 185,
+     "bytes": 286208,
+     "dbAnfragen": 28,
+     "dbBytes": 97195,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 519
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1127
+      },
+      {
+       "tabelle": "rpc/mein_zweiter_faktor",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 173
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 115
+      },
+      {
+       "tabelle": "basiszinssaetze",
+       "merkmale": "limit=200&order=ab.asc",
+       "zeilen": 0,
+       "bytes": 116
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 60,
+       "bytes": 6088
+      },
+      {
+       "tabelle": "buchungskonten",
+       "merkmale": "limit=500&offset=0&order=zweck.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 172
+      },
+      {
+       "tabelle": "invoices",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 99,
+       "bytes": 10394
+      },
+      {
+       "tabelle": "work_sheets",
+       "merkmale": "limit=60&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 60,
+       "bytes": 9228
+      },
+      {
+       "tabelle": "zahlungseingaenge",
+       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 172
+      },
+      {
+       "tabelle": "invoices",
+       "merkmale": "limit=50&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 50,
+       "bytes": 4933
+      },
+      {
+       "tabelle": "customers",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 60,
+       "bytes": 6089
+      },
+      {
+       "tabelle": "invoice_lines",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 198,
+       "bytes": 11584
+      },
+      {
+       "tabelle": "invoice_coverage",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 2952
+      },
+      {
+       "tabelle": "work_sheet_hours",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 60,
+       "bytes": 5236
+      },
+      {
+       "tabelle": "work_sheet_material",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 60,
+       "bytes": 4804
+      },
+      {
+       "tabelle": "work_sheet_photos",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 1841
+      },
+      {
+       "tabelle": "invoice_lines",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 100,
+       "bytes": 5852
+      },
+      {
+       "tabelle": "invoice_coverage",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 1764
+      },
+      {
+       "tabelle": "invoice_coverage",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 2042
+      },
+      {
+       "tabelle": "customers",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 69,
+       "bytes": 5177
+      },
+      {
+       "tabelle": "customers",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 55,
+       "bytes": 3729
+      },
+      {
+       "tabelle": "zahlungseingaenge",
+       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 232
+      },
+      {
+       "tabelle": "invoices",
+       "merkmale": "limit=50&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 50,
+       "bytes": 4930
       },
       {
        "tabelle": "invoice_lines",
@@ -3418,13 +3370,13 @@
        "tabelle": "invoice_coverage",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 1754
+       "bytes": 1738
       },
       {
        "tabelle": "zahlungseingaenge",
        "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
        "zeilen": 0,
-       "bytes": 179
+       "bytes": 202
       }
      ]
     }
@@ -3433,14 +3385,14 @@
   {
    "name": "Angebote",
    "pfad": "/quotes",
-   "fcp": 1544,
-   "inhalt": 2678,
-   "bereit": 2746,
-   "bedienbar": 3112,
+   "fcp": 1336,
+   "inhalt": 2136,
+   "bereit": 2444,
+   "bedienbar": 2833,
    "anfragen": 164,
-   "bytes": 244994,
+   "bytes": 237061,
    "dbAnfragen": 7,
-   "dbBytes": 23533,
+   "dbBytes": 23527,
    "groessteListe": {
     "tabelle": "quote_lines",
     "zeilen": 200
@@ -3505,26 +3457,26 @@
    ],
    "laeufe": [
     {
-     "fcp": 1752,
-     "inhalt": 2776,
-     "bereit": 2918,
-     "bedienbar": 3306,
+     "fcp": 1336,
+     "inhalt": 2109,
+     "bereit": 2444,
+     "bedienbar": 2757,
      "anfragen": 164,
-     "bytes": 236945,
+     "bytes": 237062,
      "dbAnfragen": 7,
-     "dbBytes": 23539,
+     "dbBytes": 23528,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 749
+       "bytes": 522
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 900
+       "bytes": 1127
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
@@ -3548,43 +3500,43 @@
        "tabelle": "quotes",
        "merkmale": "limit=100&offset=0&order=created_at.desc,id.asc",
        "zeilen": 100,
-       "bytes": 9744
+       "bytes": 9757
       },
       {
        "tabelle": "quote_lines",
        "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
        "zeilen": 200,
-       "bytes": 11702
+       "bytes": 11678
       }
      ]
     },
     {
-     "fcp": 1344,
-     "inhalt": 2148,
-     "bereit": 2510,
-     "bedienbar": 3012,
+     "fcp": 1328,
+     "inhalt": 2136,
+     "bereit": 2514,
+     "bedienbar": 2916,
      "anfragen": 164,
-     "bytes": 245016,
+     "bytes": 237059,
      "dbAnfragen": 7,
-     "dbBytes": 23532,
+     "dbBytes": 23525,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 518
+       "bytes": 519
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 1128
+       "bytes": 1127
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 173
+       "bytes": 172
       },
       {
        "tabelle": "support_freigaben",
@@ -3596,49 +3548,49 @@
        "tabelle": "rpc/offene_posten",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 115
+       "bytes": 116
       },
       {
        "tabelle": "quotes",
        "merkmale": "limit=100&offset=0&order=created_at.desc,id.asc",
        "zeilen": 100,
-       "bytes": 9744
+       "bytes": 9757
       },
       {
        "tabelle": "quote_lines",
        "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
        "zeilen": 200,
-       "bytes": 11698
+       "bytes": 11678
       }
      ]
     },
     {
-     "fcp": 1544,
-     "inhalt": 2678,
-     "bereit": 2746,
-     "bedienbar": 3112,
+     "fcp": 1376,
+     "inhalt": 2138,
+     "bereit": 2444,
+     "bedienbar": 2833,
      "anfragen": 164,
-     "bytes": 244994,
+     "bytes": 237061,
      "dbAnfragen": 7,
-     "dbBytes": 23533,
+     "dbBytes": 23527,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 518
+       "bytes": 750
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 1128
+       "bytes": 896
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 173
+       "bytes": 172
       },
       {
        "tabelle": "support_freigaben",
@@ -3656,13 +3608,13 @@
        "tabelle": "quotes",
        "merkmale": "limit=100&offset=0&order=created_at.desc,id.asc",
        "zeilen": 100,
-       "bytes": 9743
+       "bytes": 9761
       },
       {
        "tabelle": "quote_lines",
        "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
        "zeilen": 200,
-       "bytes": 11702
+       "bytes": 11679
       }
      ]
     }
@@ -3671,14 +3623,14 @@
   {
    "name": "Baustellen",
    "pfad": "/admin-projects",
-   "fcp": 1384,
-   "inhalt": 2661,
-   "bereit": 2929,
-   "bedienbar": 4244,
+   "fcp": 1336,
+   "inhalt": 2738,
+   "bereit": 2821,
+   "bedienbar": 4189,
    "anfragen": 165,
-   "bytes": 284269,
+   "bytes": 284426,
    "dbAnfragen": 9,
-   "dbBytes": 37937,
+   "dbBytes": 37992,
    "groessteListe": {
     "tabelle": "projects",
     "zeilen": 600
@@ -3737,32 +3689,32 @@
    ],
    "laeufe": [
     {
-     "fcp": 1584,
-     "inhalt": 2618,
-     "bereit": 2996,
-     "bedienbar": 4481,
+     "fcp": 1320,
+     "inhalt": 2738,
+     "bereit": 2745,
+     "bedienbar": 4079,
      "anfragen": 165,
-     "bytes": 284267,
+     "bytes": 292483,
      "dbAnfragen": 9,
-     "dbBytes": 37935,
+     "dbBytes": 37994,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 749
+       "bytes": 750
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 894
+       "bytes": 896
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 173
+       "bytes": 175
       },
       {
        "tabelle": "support_freigaben",
@@ -3774,7 +3726,7 @@
        "tabelle": "rpc/offene_posten",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 118
+       "bytes": 115
       },
       {
        "tabelle": "users",
@@ -3786,115 +3738,49 @@
        "tabelle": "projects",
        "merkmale": "limit=300&offset=0&order=created_at.desc,id.asc",
        "zeilen": 300,
-       "bytes": 26322
+       "bytes": 26379
       },
       {
        "tabelle": "zeitkonto_anfang",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 850
+       "bytes": 846
       },
       {
        "tabelle": "projects",
        "merkmale": "limit=300&offset=0&order=created_at.desc,id.asc",
        "zeilen": 300,
-       "bytes": 6708
+       "bytes": 6712
       }
      ]
     },
     {
-     "fcp": 1384,
-     "inhalt": 2661,
-     "bereit": 2747,
-     "bedienbar": 4244,
+     "fcp": 1520,
+     "inhalt": 2704,
+     "bereit": 2824,
+     "bedienbar": 4246,
      "anfragen": 165,
-     "bytes": 284272,
+     "bytes": 284401,
      "dbAnfragen": 9,
-     "dbBytes": 37940,
+     "dbBytes": 37990,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 749
+       "bytes": 750
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 900
+       "bytes": 893
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 173
-      },
-      {
-       "tabelle": "support_freigaben",
-       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 0,
-       "bytes": 156
-      },
-      {
-       "tabelle": "rpc/offene_posten",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 118
-      },
-      {
-       "tabelle": "users",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 25,
-       "bytes": 1965
-      },
-      {
-       "tabelle": "projects",
-       "merkmale": "limit=300&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 300,
-       "bytes": 26322
-      },
-      {
-       "tabelle": "zeitkonto_anfang",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 850
-      },
-      {
-       "tabelle": "projects",
-       "merkmale": "limit=300&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 300,
-       "bytes": 6707
-      }
-     ]
-    },
-    {
-     "fcp": 1352,
-     "inhalt": 2902,
-     "bereit": 2929,
-     "bedienbar": 4209,
-     "anfragen": 165,
-     "bytes": 284269,
-     "dbAnfragen": 9,
-     "dbBytes": 37937,
-     "db": [
-      {
-       "tabelle": "users",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 749
-      },
-      {
-       "tabelle": "companies",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 900
-      },
-      {
-       "tabelle": "rpc/mein_zweiter_faktor",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 170
+       "bytes": 176
       },
       {
        "tabelle": "support_freigaben",
@@ -3912,25 +3798,91 @@
        "tabelle": "users",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 25,
-       "bytes": 1965
+       "bytes": 1962
       },
       {
        "tabelle": "projects",
        "merkmale": "limit=300&offset=0&order=created_at.desc,id.asc",
        "zeilen": 300,
-       "bytes": 26323
+       "bytes": 26379
       },
       {
        "tabelle": "zeitkonto_anfang",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 853
+       "bytes": 849
       },
       {
        "tabelle": "projects",
        "merkmale": "limit=300&offset=0&order=created_at.desc,id.asc",
        "zeilen": 300,
-       "bytes": 6708
+       "bytes": 6712
+      }
+     ]
+    },
+    {
+     "fcp": 1336,
+     "inhalt": 2812,
+     "bereit": 2821,
+     "bedienbar": 4189,
+     "anfragen": 165,
+     "bytes": 284426,
+     "dbAnfragen": 9,
+     "dbBytes": 37992,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 750
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 899
+      },
+      {
+       "tabelle": "rpc/mein_zweiter_faktor",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 173
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 115
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 25,
+       "bytes": 1962
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=300&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 300,
+       "bytes": 26379
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 846
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=300&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 300,
+       "bytes": 6712
       }
      ]
     }
@@ -3939,14 +3891,14 @@
   {
    "name": "Kunden",
    "pfad": "/customers",
-   "fcp": 1388,
-   "inhalt": 2113,
-   "bereit": 2327,
-   "bedienbar": 2883,
+   "fcp": 1324,
+   "inhalt": 2082,
+   "bereit": 2366,
+   "bedienbar": 2860,
    "anfragen": 162,
-   "bytes": 236296,
+   "bytes": 236453,
    "dbAnfragen": 6,
-   "dbBytes": 13329,
+   "dbBytes": 13361,
    "groessteListe": {
     "tabelle": "customers",
     "zeilen": 200
@@ -3999,122 +3951,26 @@
    ],
    "laeufe": [
     {
-     "fcp": 1388,
-     "inhalt": 2113,
-     "bereit": 2327,
-     "bedienbar": 2883,
+     "fcp": 1312,
+     "inhalt": 2122,
+     "bereit": 2366,
+     "bedienbar": 2858,
      "anfragen": 162,
-     "bytes": 236296,
+     "bytes": 236455,
      "dbAnfragen": 6,
-     "dbBytes": 13329,
+     "dbBytes": 13363,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 749
+       "bytes": 750
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 900
-      },
-      {
-       "tabelle": "rpc/mein_zweiter_faktor",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 173
-      },
-      {
-       "tabelle": "support_freigaben",
-       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 0,
-       "bytes": 153
-      },
-      {
-       "tabelle": "rpc/offene_posten",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 116
-      },
-      {
-       "tabelle": "customers",
-       "merkmale": "limit=200&offset=0&order=name.asc,id.asc",
-       "zeilen": 200,
-       "bytes": 11238
-      }
-     ]
-    },
-    {
-     "fcp": 1300,
-     "inhalt": 2092,
-     "bereit": 2266,
-     "bedienbar": 2698,
-     "anfragen": 162,
-     "bytes": 236295,
-     "dbAnfragen": 6,
-     "dbBytes": 13328,
-     "db": [
-      {
-       "tabelle": "users",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 749
-      },
-      {
-       "tabelle": "companies",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 897
-      },
-      {
-       "tabelle": "rpc/mein_zweiter_faktor",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 173
-      },
-      {
-       "tabelle": "support_freigaben",
-       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 0,
-       "bytes": 156
-      },
-      {
-       "tabelle": "rpc/offene_posten",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 115
-      },
-      {
-       "tabelle": "customers",
-       "merkmale": "limit=200&offset=0&order=name.asc,id.asc",
-       "zeilen": 200,
-       "bytes": 11238
-      }
-     ]
-    },
-    {
-     "fcp": 1392,
-     "inhalt": 2205,
-     "bereit": 2389,
-     "bedienbar": 2991,
-     "anfragen": 162,
-     "bytes": 236298,
-     "dbAnfragen": 6,
-     "dbBytes": 13331,
-     "db": [
-      {
-       "tabelle": "users",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 749
-      },
-      {
-       "tabelle": "companies",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 897
+       "bytes": 896
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
@@ -4138,7 +3994,103 @@
        "tabelle": "customers",
        "merkmale": "limit=200&offset=0&order=name.asc,id.asc",
        "zeilen": 200,
-       "bytes": 11239
+       "bytes": 11271
+      }
+     ]
+    },
+    {
+     "fcp": 1324,
+     "inhalt": 2082,
+     "bereit": 2390,
+     "bedienbar": 3013,
+     "anfragen": 162,
+     "bytes": 236453,
+     "dbAnfragen": 6,
+     "dbBytes": 13361,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 519
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1127
+      },
+      {
+       "tabelle": "rpc/mein_zweiter_faktor",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 173
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 115
+      },
+      {
+       "tabelle": "customers",
+       "merkmale": "limit=200&offset=0&order=name.asc,id.asc",
+       "zeilen": 200,
+       "bytes": 11271
+      }
+     ]
+    },
+    {
+     "fcp": 1344,
+     "inhalt": 2052,
+     "bereit": 2337,
+     "bedienbar": 2860,
+     "anfragen": 162,
+     "bytes": 236451,
+     "dbAnfragen": 6,
+     "dbBytes": 13359,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 750
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 899
+      },
+      {
+       "tabelle": "rpc/mein_zweiter_faktor",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 170
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 153
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 116
+      },
+      {
+       "tabelle": "customers",
+       "merkmale": "limit=200&offset=0&order=name.asc,id.asc",
+       "zeilen": 200,
+       "bytes": 11271
       }
      ]
     }
@@ -4147,14 +4099,14 @@
   {
    "name": "Mitarbeiterübersicht",
    "pfad": "/accounting",
-   "fcp": 1348,
-   "inhalt": 2588,
-   "bereit": 3607,
-   "bedienbar": 7235,
-   "anfragen": 184,
-   "bytes": 387976,
-   "dbAnfragen": 27,
-   "dbBytes": 134834,
+   "fcp": 1352,
+   "inhalt": 2635,
+   "bereit": 3579,
+   "bedienbar": 5326,
+   "anfragen": 182,
+   "bytes": 385956,
+   "dbAnfragen": 25,
+   "dbBytes": 132456,
    "groessteListe": {
     "tabelle": "time_entries",
     "zeilen": 2640
@@ -4164,12 +4116,6 @@
      "tabelle": "time_entries",
      "zeilen": 2640,
      "anfragen": 11,
-     "groesste": 500
-    },
-    {
-     "tabelle": "monthly_stats",
-     "zeilen": 1180,
-     "anfragen": 3,
      "groesste": 500
     },
     {
@@ -4184,12 +4130,6 @@
      "tabelle": "time_entries",
      "zeilen": 2640,
      "anfragen": 11,
-     "groesste": 500
-    },
-    {
-     "tabelle": "monthly_stats",
-     "zeilen": 1180,
-     "anfragen": 3,
      "groesste": 500
     },
     {
@@ -4212,6 +4152,12 @@
     },
     {
      "tabelle": "rpc/arbeitszeit_vorlauf",
+     "zeilen": 20,
+     "anfragen": 1,
+     "groesste": 20
+    },
+    {
+     "tabelle": "rpc/monatsbilanzen_alle",
      "zeilen": 20,
      "anfragen": 1,
      "groesste": 20
@@ -4267,200 +4213,26 @@
    ],
    "laeufe": [
     {
-     "fcp": 1348,
-     "inhalt": 2588,
-     "bereit": 3586,
-     "bedienbar": 6987,
-     "anfragen": 184,
-     "bytes": 396051,
-     "dbAnfragen": 27,
-     "dbBytes": 134834,
+     "fcp": 1356,
+     "inhalt": 2607,
+     "bereit": 3481,
+     "bedienbar": 5239,
+     "anfragen": 182,
+     "bytes": 385956,
+     "dbAnfragen": 25,
+     "dbBytes": 132456,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 521
+       "bytes": 750
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 897
-      },
-      {
-       "tabelle": "rpc/mein_zweiter_faktor",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 404
-      },
-      {
-       "tabelle": "support_freigaben",
-       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 0,
-       "bytes": 153
-      },
-      {
-       "tabelle": "rpc/offene_posten",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 116
-      },
-      {
-       "tabelle": "users",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 25,
-       "bytes": 1939
-      },
-      {
-       "tabelle": "time_entries",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 500,
-       "bytes": 27275
-      },
-      {
-       "tabelle": "urlaubsanspruch_anpassungen",
-       "merkmale": "limit=500&offset=0&order=urlaubsjahr.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 203
-      },
-      {
-       "tabelle": "zeitkonto_anfang",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 846
-      },
-      {
-       "tabelle": "time_entries",
-       "merkmale": "limit=500&offset=500&order=id.asc",
-       "zeilen": 500,
-       "bytes": 26720
-      },
-      {
-       "tabelle": "time_entries",
-       "merkmale": "limit=500&offset=1000&order=id.asc",
-       "zeilen": 80,
-       "bytes": 5513
-      },
-      {
-       "tabelle": "time_entries",
-       "merkmale": "limit=500&offset=0&order=date.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 391
-      },
-      {
-       "tabelle": "projects",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 25,
-       "bytes": 3465
-      },
-      {
-       "tabelle": "rpc/baustellen_stunden",
-       "merkmale": "limit=500&offset=0",
-       "zeilen": 120,
-       "bytes": 1190
-      },
-      {
-       "tabelle": "time_entries",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 236
-      },
-      {
-       "tabelle": "rpc/arbeitszeit_vorlauf",
-       "merkmale": "limit=500&offset=0",
-       "zeilen": 20,
-       "bytes": 1250
-      },
-      {
-       "tabelle": "geburtsdaten",
-       "merkmale": "limit=2000",
-       "zeilen": 3,
-       "bytes": 285
-      },
-      {
-       "tabelle": "arbeitszeit_begruendungen",
-       "merkmale": "limit=2000",
-       "zeilen": 0,
-       "bytes": 194
-      },
-      {
-       "tabelle": "monthly_stats",
-       "merkmale": "limit=500&offset=0&order=monat.asc,user_id.asc,monat.asc",
-       "zeilen": 500,
-       "bytes": 5499
-      },
-      {
-       "tabelle": "time_entries",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 480,
-       "bytes": 25286
-      },
-      {
-       "tabelle": "time_entries",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 0,
-       "bytes": 161
-      },
-      {
-       "tabelle": "time_entries",
-       "merkmale": "limit=500&offset=0&order=date.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 191
-      },
-      {
-       "tabelle": "time_entries",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 500,
-       "bytes": 11028
-      },
-      {
-       "tabelle": "time_entries",
-       "merkmale": "limit=500&offset=500&order=id.asc",
-       "zeilen": 500,
-       "bytes": 11061
-      },
-      {
-       "tabelle": "time_entries",
-       "merkmale": "limit=500&offset=1000&order=id.asc",
-       "zeilen": 80,
-       "bytes": 2101
-      },
-      {
-       "tabelle": "monthly_stats",
-       "merkmale": "limit=500&offset=500&order=monat.asc,user_id.asc,monat.asc",
-       "zeilen": 500,
-       "bytes": 5471
-      },
-      {
-       "tabelle": "monthly_stats",
-       "merkmale": "limit=500&offset=1000&order=monat.asc,user_id.asc,monat.asc",
-       "zeilen": 180,
-       "bytes": 2438
-      }
-     ]
-    },
-    {
-     "fcp": 1308,
-     "inhalt": 2124,
-     "bereit": 3740,
-     "bedienbar": 7438,
-     "anfragen": 184,
-     "bytes": 387931,
-     "dbAnfragen": 27,
-     "dbBytes": 134792,
-     "db": [
-      {
-       "tabelle": "users",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 518
-      },
-      {
-       "tabelle": "companies",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 1128
+       "bytes": 896
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
@@ -4484,37 +4256,37 @@
        "tabelle": "users",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 25,
-       "bytes": 1942
+       "bytes": 1965
       },
       {
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 500,
-       "bytes": 27275
+       "bytes": 26894
       },
       {
        "tabelle": "urlaubsanspruch_anpassungen",
        "merkmale": "limit=500&offset=0&order=urlaubsjahr.asc,id.asc",
        "zeilen": 0,
-       "bytes": 200
+       "bytes": 177
       },
       {
        "tabelle": "zeitkonto_anfang",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 846
+       "bytes": 842
       },
       {
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=500&order=id.asc",
        "zeilen": 500,
-       "bytes": 26720
+       "bytes": 27038
       },
       {
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=1000&order=id.asc",
        "zeilen": 80,
-       "bytes": 5510
+       "bytes": 5663
       },
       {
        "tabelle": "time_entries",
@@ -4526,49 +4298,49 @@
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 25,
-       "bytes": 3449
+       "bytes": 3487
       },
       {
        "tabelle": "rpc/baustellen_stunden",
        "merkmale": "limit=500&offset=0",
        "zeilen": 120,
-       "bytes": 1190
+       "bytes": 1187
       },
       {
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 232
+       "bytes": 236
       },
       {
        "tabelle": "rpc/arbeitszeit_vorlauf",
        "merkmale": "limit=500&offset=0",
        "zeilen": 20,
-       "bytes": 1250
+       "bytes": 1254
       },
       {
        "tabelle": "geburtsdaten",
        "merkmale": "limit=2000",
        "zeilen": 3,
-       "bytes": 305
+       "bytes": 284
       },
       {
        "tabelle": "arbeitszeit_begruendungen",
        "merkmale": "limit=2000",
        "zeilen": 0,
-       "bytes": 195
+       "bytes": 217
       },
       {
-       "tabelle": "monthly_stats",
-       "merkmale": "limit=500&offset=0&order=monat.asc,user_id.asc,monat.asc",
-       "zeilen": 500,
-       "bytes": 5476
+       "tabelle": "rpc/monatsbilanzen_alle",
+       "merkmale": "limit=500&offset=0",
+       "zeilen": 20,
+       "bytes": 11197
       },
       {
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 480,
-       "bytes": 25286
+       "bytes": 24990
       },
       {
        "tabelle": "time_entries",
@@ -4578,63 +4350,213 @@
       },
       {
        "tabelle": "time_entries",
-       "merkmale": "limit=500&offset=0&order=id.asc",
-       "zeilen": 500,
-       "bytes": 11028
+       "merkmale": "limit=500&offset=0&order=date.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 191
       },
       {
        "tabelle": "time_entries",
-       "merkmale": "limit=500&offset=0&order=date.asc,id.asc",
-       "zeilen": 0,
-       "bytes": 194
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 500,
+       "bytes": 11253
       },
       {
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=500&order=id.asc",
        "zeilen": 500,
-       "bytes": 11060
+       "bytes": 11043
       },
       {
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=1000&order=id.asc",
        "zeilen": 80,
-       "bytes": 2098
-      },
-      {
-       "tabelle": "monthly_stats",
-       "merkmale": "limit=500&offset=500&order=monat.asc,user_id.asc,monat.asc",
-       "zeilen": 500,
-       "bytes": 5471
-      },
-      {
-       "tabelle": "monthly_stats",
-       "merkmale": "limit=500&offset=1000&order=monat.asc,user_id.asc,monat.asc",
-       "zeilen": 180,
-       "bytes": 2438
+       "bytes": 1911
       }
      ]
     },
     {
-     "fcp": 1400,
-     "inhalt": 2707,
-     "bereit": 3607,
-     "bedienbar": 7235,
-     "anfragen": 184,
-     "bytes": 387976,
-     "dbAnfragen": 27,
-     "dbBytes": 134837,
+     "fcp": 1336,
+     "inhalt": 2635,
+     "bereit": 3579,
+     "bedienbar": 5326,
+     "anfragen": 182,
+     "bytes": 385956,
+     "dbAnfragen": 25,
+     "dbBytes": 132456,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 749
+       "bytes": 522
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 900
+       "bytes": 1127
+      },
+      {
+       "tabelle": "rpc/mein_zweiter_faktor",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 173
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 115
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 25,
+       "bytes": 1965
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 500,
+       "bytes": 26894
+      },
+      {
+       "tabelle": "urlaubsanspruch_anpassungen",
+       "merkmale": "limit=500&offset=0&order=urlaubsjahr.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 177
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 842
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=500&order=id.asc",
+       "zeilen": 500,
+       "bytes": 27040
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=1000&order=id.asc",
+       "zeilen": 80,
+       "bytes": 5658
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=0&order=date.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 373
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 25,
+       "bytes": 3498
+      },
+      {
+       "tabelle": "rpc/baustellen_stunden",
+       "merkmale": "limit=500&offset=0",
+       "zeilen": 120,
+       "bytes": 1187
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 236
+      },
+      {
+       "tabelle": "rpc/arbeitszeit_vorlauf",
+       "merkmale": "limit=500&offset=0",
+       "zeilen": 20,
+       "bytes": 1247
+      },
+      {
+       "tabelle": "geburtsdaten",
+       "merkmale": "limit=2000",
+       "zeilen": 3,
+       "bytes": 286
+      },
+      {
+       "tabelle": "arbeitszeit_begruendungen",
+       "merkmale": "limit=2000",
+       "zeilen": 0,
+       "bytes": 217
+      },
+      {
+       "tabelle": "rpc/monatsbilanzen_alle",
+       "merkmale": "limit=500&offset=0",
+       "zeilen": 20,
+       "bytes": 11198
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 480,
+       "bytes": 24990
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 161
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=0&order=date.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 191
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 500,
+       "bytes": 11249
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=500&order=id.asc",
+       "zeilen": 500,
+       "bytes": 11043
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=1000&order=id.asc",
+       "zeilen": 80,
+       "bytes": 1911
+      }
+     ]
+    },
+    {
+     "fcp": 1352,
+     "inhalt": 2650,
+     "bereit": 3628,
+     "bedienbar": 5402,
+     "anfragen": 182,
+     "bytes": 385959,
+     "dbAnfragen": 25,
+     "dbBytes": 132459,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 750
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 899
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
@@ -4664,7 +4586,7 @@
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 500,
-       "bytes": 27275
+       "bytes": 26894
       },
       {
        "tabelle": "urlaubsanspruch_anpassungen",
@@ -4676,37 +4598,37 @@
        "tabelle": "zeitkonto_anfang",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 846
+       "bytes": 844
       },
       {
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=500&order=id.asc",
        "zeilen": 500,
-       "bytes": 26724
+       "bytes": 27038
       },
       {
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=1000&order=id.asc",
        "zeilen": 80,
-       "bytes": 5514
+       "bytes": 5662
       },
       {
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=0&order=date.asc,id.asc",
        "zeilen": 0,
-       "bytes": 376
+       "bytes": 391
       },
       {
        "tabelle": "projects",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 25,
-       "bytes": 3465
+       "bytes": 3489
       },
       {
        "tabelle": "rpc/baustellen_stunden",
        "merkmale": "limit=500&offset=0",
        "zeilen": 120,
-       "bytes": 1190
+       "bytes": 1187
       },
       {
        "tabelle": "time_entries",
@@ -4718,73 +4640,61 @@
        "tabelle": "rpc/arbeitszeit_vorlauf",
        "merkmale": "limit=500&offset=0",
        "zeilen": 20,
-       "bytes": 1250
+       "bytes": 1251
       },
       {
        "tabelle": "geburtsdaten",
        "merkmale": "limit=2000",
        "zeilen": 3,
-       "bytes": 282
+       "bytes": 307
       },
       {
        "tabelle": "arbeitszeit_begruendungen",
        "merkmale": "limit=2000",
        "zeilen": 0,
-       "bytes": 197
+       "bytes": 191
       },
       {
-       "tabelle": "monthly_stats",
-       "merkmale": "limit=500&offset=0&order=monat.asc,user_id.asc,monat.asc",
-       "zeilen": 500,
-       "bytes": 5499
+       "tabelle": "rpc/monatsbilanzen_alle",
+       "merkmale": "limit=500&offset=0",
+       "zeilen": 20,
+       "bytes": 11199
       },
       {
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 480,
-       "bytes": 25282
+       "bytes": 24984
       },
       {
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 0,
-       "bytes": 158
+       "bytes": 163
       },
       {
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=0&order=date.asc,id.asc",
        "zeilen": 0,
-       "bytes": 191
+       "bytes": 187
       },
       {
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=0&order=id.asc",
        "zeilen": 500,
-       "bytes": 11218
+       "bytes": 11055
       },
       {
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=500&order=id.asc",
        "zeilen": 500,
-       "bytes": 11081
+       "bytes": 11237
       },
       {
        "tabelle": "time_entries",
        "merkmale": "limit=500&offset=1000&order=id.asc",
        "zeilen": 80,
        "bytes": 1908
-      },
-      {
-       "tabelle": "monthly_stats",
-       "merkmale": "limit=500&offset=500&order=monat.asc,user_id.asc,monat.asc",
-       "zeilen": 500,
-       "bytes": 5494
-      },
-      {
-       "tabelle": "monthly_stats",
-       "merkmale": "limit=500&offset=1000&order=monat.asc,user_id.asc,monat.asc",
-       "zeilen": 180,
-       "bytes": 2415
       }
      ]
     }
@@ -4793,14 +4703,14 @@
   {
    "name": "Einstellungen",
    "pfad": "/settings/meldungen",
-   "fcp": 1344,
-   "inhalt": 2606,
-   "bereit": 2615,
-   "bedienbar": 2803,
+   "fcp": 1376,
+   "inhalt": 2604,
+   "bereit": 2609,
+   "bedienbar": 2895,
    "anfragen": 164,
-   "bytes": 259852,
+   "bytes": 259923,
    "dbAnfragen": 8,
-   "dbBytes": 2512,
+   "dbBytes": 2509,
    "groessteListe": {
     "tabelle": "rpc/mein_zweiter_faktor",
     "zeilen": 2
@@ -4852,32 +4762,32 @@
    ],
    "laeufe": [
     {
-     "fcp": 1316,
-     "inhalt": 2606,
-     "bereit": 2615,
-     "bedienbar": 2803,
+     "fcp": 1344,
+     "inhalt": 2604,
+     "bereit": 2609,
+     "bedienbar": 2820,
      "anfragen": 164,
-     "bytes": 259852,
+     "bytes": 259923,
      "dbAnfragen": 8,
-     "dbBytes": 2512,
+     "dbBytes": 2509,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 749
+       "bytes": 750
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 900
+       "bytes": 899
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 173
+       "bytes": 170
       },
       {
        "tabelle": "support_freigaben",
@@ -4912,104 +4822,44 @@
      ]
     },
     {
-     "fcp": 1344,
-     "inhalt": 2565,
-     "bereit": 2574,
-     "bedienbar": 2780,
+     "fcp": 1376,
+     "inhalt": 2138,
+     "bereit": 2177,
+     "bedienbar": 2895,
      "anfragen": 164,
-     "bytes": 259843,
+     "bytes": 259924,
      "dbAnfragen": 8,
-     "dbBytes": 2526,
+     "dbBytes": 2510,
      "db": [
       {
        "tabelle": "users",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 541
+       "bytes": 519
       },
       {
        "tabelle": "companies",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 1128
+       "bytes": 1127
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 170
+       "bytes": 175
       },
       {
        "tabelle": "support_freigaben",
        "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
        "zeilen": 0,
-       "bytes": 153
+       "bytes": 156
       },
       {
        "tabelle": "rpc/offene_posten",
        "merkmale": "",
        "zeilen": 1,
-       "bytes": 116
-      },
-      {
-       "tabelle": "rpc/mein_zweiter_faktor",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 170
-      },
-      {
-       "tabelle": "system_laeufe",
-       "merkmale": "",
-       "zeilen": 0,
-       "bytes": 124
-      },
-      {
-       "tabelle": "user_prefs",
-       "merkmale": "",
-       "zeilen": 0,
-       "bytes": 124
-      }
-     ]
-    },
-    {
-     "fcp": 1356,
-     "inhalt": 2623,
-     "bereit": 2631,
-     "bedienbar": 2813,
-     "anfragen": 164,
-     "bytes": 267904,
-     "dbAnfragen": 8,
-     "dbBytes": 2509,
-     "db": [
-      {
-       "tabelle": "users",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 521
-      },
-      {
-       "tabelle": "companies",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 1128
-      },
-      {
-       "tabelle": "rpc/mein_zweiter_faktor",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 173
-      },
-      {
-       "tabelle": "support_freigaben",
-       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
-       "zeilen": 0,
-       "bytes": 153
-      },
-      {
-       "tabelle": "rpc/offene_posten",
-       "merkmale": "",
-       "zeilen": 1,
-       "bytes": 116
+       "bytes": 115
       },
       {
        "tabelle": "rpc/mein_zweiter_faktor",
@@ -5028,6 +4878,66 @@
        "merkmale": "",
        "zeilen": 0,
        "bytes": 127
+      }
+     ]
+    },
+    {
+     "fcp": 1436,
+     "inhalt": 2627,
+     "bereit": 2635,
+     "bedienbar": 2950,
+     "anfragen": 164,
+     "bytes": 259918,
+     "dbAnfragen": 8,
+     "dbBytes": 2504,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 750
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 896
+      },
+      {
+       "tabelle": "rpc/mein_zweiter_faktor",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 172
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 115
+      },
+      {
+       "tabelle": "rpc/mein_zweiter_faktor",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 170
+      },
+      {
+       "tabelle": "system_laeufe",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 121
+      },
+      {
+       "tabelle": "user_prefs",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 124
       }
      ]
     }

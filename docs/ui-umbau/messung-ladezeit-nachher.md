@@ -1,4 +1,6 @@
-# Messung ladezeit-nachher
+# Ladezeit: Zwischenstand nach L-D, Bestand ×1 (19.10.2026)
+
+Gemessen nach `#331`, vor dem Nachweis mit dreifachem Bestand — Vergleichsgrundlage für `messung-ladezeit-ende.md`.
 
 <!-- messung-wiederkehr:anfang (erzeugt von scripts/ui-umbau/messung.mjs) -->
 Gemessen am 19.10.2026 · 3 Läufe je Seite, Median · Handy 390 × 844, langsames 4G (150 ms, 1,6 Mbit/s), CPU ×4, **Wiederkehr:** Programmdateien im Zwischenspeicher · ausgeliefert wie draussen (HTTP/2, gepackt, `auslieferung.mjs`) · angemeldet als Geschäftsführung des Testbetriebs `ui-testbestand`.
