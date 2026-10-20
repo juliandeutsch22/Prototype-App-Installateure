@@ -1,0 +1,362 @@
+[
+  {
+    "typ": "baustelle",
+    "width": 390,
+    "tab": "Übersicht",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 390,
+    "tab": "Scheine",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 390,
+    "tab": "Termine",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 390,
+    "tab": "Pläne",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 390,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 834,
+    "tab": "Übersicht",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 834,
+    "tab": "Scheine",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 834,
+    "tab": "Termine",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 834,
+    "tab": "Pläne",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 834,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 1440,
+    "tab": "Übersicht",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 1440,
+    "tab": "Scheine",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 1440,
+    "tab": "Termine",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 1440,
+    "tab": "Pläne",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "baustelle",
+    "width": 1440,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 390,
+    "tab": "Übersicht",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 390,
+    "tab": "Baustellen",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 390,
+    "tab": "Belege",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 390,
+    "tab": "Termine und Wartungen",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 390,
+    "tab": "Stammdaten",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 390,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 834,
+    "tab": "Übersicht",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 834,
+    "tab": "Baustellen",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 834,
+    "tab": "Belege",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 834,
+    "tab": "Termine und Wartungen",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 834,
+    "tab": "Stammdaten",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 834,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 1440,
+    "tab": "Übersicht",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 1440,
+    "tab": "Baustellen",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 1440,
+    "tab": "Belege",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 1440,
+    "tab": "Termine und Wartungen",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 1440,
+    "tab": "Stammdaten",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "kunde",
+    "width": 1440,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 390,
+    "tab": "Profil",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 390,
+    "tab": "Arbeitszeit und Urlaub",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 390,
+    "tab": "Zugang und Rechte",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 390,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 834,
+    "tab": "Profil",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 834,
+    "tab": "Arbeitszeit und Urlaub",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 834,
+    "tab": "Zugang und Rechte",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 834,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 1440,
+    "tab": "Profil",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 1440,
+    "tab": "Arbeitszeit und Urlaub",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 1440,
+    "tab": "Zugang und Rechte",
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "typ": "benutzer",
+    "width": 1440,
+    "edit": true,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  }
+]
