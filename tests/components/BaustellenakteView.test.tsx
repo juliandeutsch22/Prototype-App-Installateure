@@ -186,7 +186,7 @@ async function bearbeite() {
 
 /** Der Wert zu einer Beschriftung in den Stammdaten. */
 function angabe(wort: string) {
-  const dt = within(screen.getByRole('tabpanel')).getByText(wort);
+  const dt = screen.getAllByText(wort).find((e) => e.tagName === 'DT')!;
   return dt.nextElementSibling as HTMLElement;
 }
 
@@ -606,7 +606,7 @@ describe('Pläne und Dokumente', () => {
   it('lädt hoch und zeigt den Plan sofort', async () => {
     const nutzer = userEvent.setup();
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Scheine und Pläne' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Pläne' }));
     await bearbeite();
     await screen.findByText('Noch keine Pläne oder Dokumente.');
     await nutzer.upload(screen.getByLabelText('Dokumente auswählen'), pdf('Grundriss EG.pdf'));
@@ -620,7 +620,7 @@ describe('Pläne und Dokumente', () => {
   it('lädt von mehreren Dateien die guten hoch und nennt die schlechte', async () => {
     const nutzer = userEvent.setup({ applyAccept: false });
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Scheine und Pläne' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Pläne' }));
     await bearbeite();
     await screen.findByText('Noch keine Pläne oder Dokumente.');
     await nutzer.upload(screen.getByLabelText('Dokumente auswählen'), [
@@ -636,7 +636,7 @@ describe('Pläne und Dokumente', () => {
     plaene = [{ id: 'd9', projectId: 'b1', pfad: 'baustellen/perl/b1/x.pdf', dateiname: 'Alt.pdf', mime: 'application/pdf', bytes: 500 }];
     const nutzer = userEvent.setup();
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Scheine und Pläne' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Pläne' }));
     await nutzer.click(await screen.findByRole('button', { name: 'Alt.pdf löschen' }));
     expect(geloescht).toEqual([]);
     const dialog = await screen.findByRole('dialog');
@@ -650,7 +650,7 @@ describe('Pläne und Dokumente', () => {
     nutzer = NUTZER();
     plaene = [{ id: 'd9', projectId: 'b1', pfad: 'baustellen/perl/b1/x.pdf', dateiname: 'Alt.pdf', mime: 'application/pdf', bytes: 500 }];
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Scheine und Pläne' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Pläne' }));
     expect(await screen.findByRole('link', { name: 'Alt.pdf' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Dokument hinzufügen/ })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Alt.pdf löschen' })).toBeNull();
@@ -660,7 +660,7 @@ describe('Pläne und Dokumente', () => {
 describe('Termine in der Baustellenakte (Plan 10.4)', () => {
   it('zeigt die Termine dieser Baustelle, mit „Termin anlegen" für die Leitung', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Termine und Team' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Termine' }));
     const titel = await screen.findByRole('heading', { name: 'Termine' });
     expect(within(titel.closest('section')!).getByRole('button', { name: 'Termin anlegen' })).toBeInTheDocument();
     await waitFor(() => expect(listTermineDerBaustelle).toHaveBeenCalledWith('perl', '2026-101'));
@@ -682,13 +682,13 @@ describe('Die Baustellenakte in der Linie „Lot“', () => {
   it('ordnet alle bisherigen Teile den drei Bereichen zu', async () => {
     zeige();
     const leiste = await screen.findByRole('tablist');
-    expect(within(leiste).getAllByRole('tab').map((a) => a.textContent)).toEqual(['Übersicht', 'Termine und Team', 'Scheine und Pläne']);
+    expect(within(leiste).getAllByRole('tab').map((a) => a.textContent)).toEqual(['Übersicht', 'Scheine', 'Termine', 'Pläne']);
     for (const id of ['b-ueberblick', 'b-termine', 'b-scheine', 'b-daten', 'b-plaene']) expect(document.getElementById(id)).not.toBeNull();
   });
   it('Gegenprobe: ohne Einsatzplanung kein Sprung zu den Terminen', async () => {
     modulAn = false;
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Termine und Team' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Termine' }));
     expect(document.getElementById('b-termine')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Termin anlegen' })).toBeNull();
   });
@@ -745,10 +745,24 @@ describe('Die Baustellenakte in der Linie „Lot“', () => {
 */
 /** Die Karte „Handwerksscheine“ (Card trägt keinen Vorlesenamen; gefunden über ihre Überschrift). */
 async function scheinKarte() {
-  await userEvent.click(await screen.findByRole('tab', { name: 'Scheine und Pläne' }));
+  await userEvent.click(await screen.findByRole('tab', { name: 'Scheine' }));
   await screen.findByRole('heading', { name: 'Handwerksscheine' });
   return document.getElementById('b-scheine')!;
 }
+
+it('Aktenkontext 04 · behält Kunde und Team neben den Plänen und teilt die Scheinabfrage mit der Vorschau', async () => {
+  scheine = [SCHEIN('s1')];
+  zeige();
+  const kontext = await screen.findByRole('complementary', { name: 'Kontext der Akte' });
+  expect(within(kontext).getByRole('link', { name: /Hausverwaltung Nord/ })).toHaveAttribute('href', '/customers/k1');
+  const vorschau = await screen.findByRole('heading', { name: 'Jüngste Handwerksscheine' });
+  expect(await within(vorschau.closest('section')!).findByRole('link', { name: /05\.10\.2026/ })).toHaveAttribute('href', '/worksheets?markiert=s1');
+  await userEvent.click(screen.getByRole('tab', { name: 'Pläne' }));
+  expect(kontext).toBeVisible();
+  expect(within(kontext).getByText('Anton Meier, Berta Klein')).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Pläne und Dokumente' })).toBeVisible();
+  expect(listWorkSheetsForProject).toHaveBeenCalledTimes(1);
+});
 
 describe('Die Handwerksscheine der Baustelle', () => {
   it('stehen in der Akte, neueste zuerst, mit Stand, Dauer und dem Weg zum Schein', async () => {
@@ -828,19 +842,19 @@ describe('Baustellenakte — Team erst mit der Belegschaft', () => {
     expect(screen.queryByText(/u1, u2/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Leitung: u9/)).not.toBeInTheDocument();
     await act(async () => { freigeben(); });
-    expect(await within(await screen.findByRole('tabpanel')).findByText(/Anton Meier, Berta Klein/)).toBeInTheDocument();
+    expect(await within(await screen.findByRole('complementary')).findByText(/Anton Meier, Berta Klein/)).toBeInTheDocument();
   });
 
   it('beim zweiten Besuch stehen die Namen sofort da', async () => {
     zwischenspeicherFuer('chef', 'perl');
     const erst = zeige();
-    expect(await within(await screen.findByRole('tabpanel')).findByText(/Anton Meier, Berta Klein/)).toBeInTheDocument();
+    expect(await within(await screen.findByRole('complementary')).findByText(/Anton Meier, Berta Klein/)).toBeInTheDocument();
     erst.unmount();
 
     // Jetzt antwortet die Belegschaft nicht mehr: die Namen kommen aus dem gemerkten Stand.
     belegschaftWarten = new Promise(() => undefined);
     zeige();
-    expect(await within(await screen.findByRole('tabpanel')).findByText(/Anton Meier, Berta Klein/)).toBeInTheDocument();
+    expect(await within(await screen.findByRole('complementary')).findByText(/Anton Meier, Berta Klein/)).toBeInTheDocument();
   });
 });
 
@@ -850,7 +864,7 @@ describe('Aktenlinie 03 · Baustelle', () => {
     zeige();
     await screen.findByRole('heading', { name: 'Hausverwaltung Nord' });
     expect(screen.queryByLabelText(/Projektnummer/)).toBeNull();
-    expect(screen.getAllByRole('tab').map((x) => x.textContent)).toEqual(['Übersicht', 'Termine und Team', 'Scheine und Pläne']);
+    expect(screen.getAllByRole('tab').map((x) => x.textContent)).toEqual(['Übersicht', 'Scheine', 'Termine', 'Pläne']);
     await userEvent.click(screen.getByRole('button', { name: 'Bearbeiten' }));
     expect(await screen.findByRole('dialog', { name: 'Baustelle bearbeiten' })).toBeInTheDocument();
     expect(screen.getByLabelText(/Projektnummer/)).toHaveValue('2026-101');

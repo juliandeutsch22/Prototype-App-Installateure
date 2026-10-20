@@ -22,10 +22,14 @@ export default function AktenTerminVorschau({ stand, bereich }: { stand: AktenTe
     {stand.fehler ? <TeilFehler was="die Termine" /> : stand.termine === null ? (
       <p className="text-sm text-ink-muted">Termine werden geladen …</p>
     ) : !termin ? <p className="text-sm text-ink-muted">Kein kommender Termin geplant.</p> : <div className="akten-termin">
-      <p>{datumAT(termin.datum)}</p>
+      <time className="akten-termin-datum" dateTime={termin.datum}>
+        <span aria-hidden="true" className="akten-termin-monat">{new Date(`${termin.datum}T12:00:00`).toLocaleDateString('de-AT', { month: 'short' })} {termin.datum.slice(0, 4)}</span>
+        <strong aria-hidden="true" className="akten-termin-tag">{termin.datum.slice(8, 10)}</strong>
+        <span className="sr-only">{datumAT(termin.datum)}</span>
+      </time>
+      <div className="akten-termin-inhalt"><p className="akten-termin-art">{artName(termin.art)}</p>
+        {termin.notiz && <p className="text-sm text-ink-muted whitespace-pre-line">{termin.notiz}</p>}</div>
       {terminZeit(termin) && <p className="akten-termin-zeit">{terminZeit(termin)}</p>}
-      <p className="akten-termin-art">{artName(termin.art)}</p>
-      {termin.notiz && <p className="text-sm text-ink-muted whitespace-pre-line">{termin.notiz}</p>}
     </div>}
   </Card>;
 }

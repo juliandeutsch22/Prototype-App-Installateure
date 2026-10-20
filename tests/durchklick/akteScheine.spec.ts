@@ -27,7 +27,7 @@ test('Akte → Handwerksscheine → Schein öffnen → Zurück in die Akte', asy
 
   await anmelden(page, CHEFIN.email);
   await page.goto(`/admin-projects/${p!.id}`);
-  await page.getByRole('tab', { name: 'Scheine und Pläne' }).click();
+  await page.getByRole('tab', { name: 'Scheine' }).click();
   const karte = page.locator('#b-scheine');
   await expect(karte.getByRole('heading', { name: 'Handwerksscheine' })).toBeVisible({ timeout: 20_000 });
   await expect(karte.getByRole('link', { name: 'Handwerksschein schreiben' })).toBeVisible();

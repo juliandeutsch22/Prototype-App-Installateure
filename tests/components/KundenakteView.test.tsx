@@ -131,7 +131,7 @@ async function bearbeite() {
 
 /** Der Wert zu einer Beschriftung in den Stammdaten. */
 function angabe(wort: string) {
-  const dt = screen.getByText(wort);
+  const dt = screen.getAllByText(wort).find((e) => e.tagName === 'DT')!;
   return dt.nextElementSibling as HTMLElement;
 }
 
@@ -168,6 +168,51 @@ beforeEach(() => {
  * beiden zu prüfen hiesse, die Hälfte der Belegschaft ungeprüft zu lassen —
  * und zwar die grössere.
  */
+it('Aktenkontext 04 · hält den Bereichsnamen bei verzögert geladenen Baustellen stabil und wartet mit der Terminabfrage', async () => {
+  let laden!: (p: (Project & { id: string })[]) => void;
+  listProjectsForCustomer.mockImplementationOnce(() => new Promise((resolve) => { laden = resolve; }));
+  zeige();
+  await userEvent.click(await screen.findByRole('tab', { name: 'Termine und Wartungen' }));
+  expect(screen.queryByRole('button', { name: 'Termin anlegen' })).toBeNull();
+  await act(async () => { laden([]); });
+  expect(await screen.findByRole('button', { name: 'Termin anlegen' })).toBeVisible();
+  expect(screen.getByRole('tab', { name: 'Termine und Wartungen' })).toHaveAttribute('aria-selected', 'true');
+});
+
+it('Aktenkontext 04 · ordnet die jüngsten Belege nach Datum und erhält Netto-/Bruttokennzeichnung und alle älteren Belege', async () => {
+  rechnungen = [
+    { id: 'r1', invoiceNumber: 'RE-neu', invoiceDate: '2026-09-12', projectNumber: '2026-001', totalBrutto: 1200, paymentStatus: 'Offen' },
+    { id: 'r2', invoiceNumber: 'RE-alt', invoiceDate: '2026-09-01', projectNumber: '2026-001', totalBrutto: 600, paymentStatus: 'Bezahlt' },
+  ];
+  angebote = [
+    { id: 'a1', quoteNumber: 'AN-neu', quoteDate: '2026-09-13', totalNetto: 100, status: 'Versendet' },
+    { id: 'a2', quoteNumber: 'AN-mitte', quoteDate: '2026-09-10', totalNetto: 200, status: 'Angenommen' },
+  ] as unknown as (Quote & { id: string })[];
+  zeige();
+  const titel = await screen.findByRole('heading', { name: 'Jüngste Belege' });
+  const vorschau = within(titel.closest('section')!);
+  await waitFor(() => expect(vorschau.getAllByRole('listitem')).toHaveLength(3));
+  expect(vorschau.getAllByRole('link').filter((a) => !a.textContent?.includes('Alle Belege')).map((a) => a.querySelector('strong')?.textContent))
+    .toEqual(['AN-neu', 'RE-neu', 'AN-mitte']);
+  expect(vorschau.getByRole('link', { name: /AN-neu/ })).toHaveTextContent('netto');
+  expect(vorschau.getByRole('link', { name: /RE-neu/ })).toHaveTextContent('brutto');
+  expect(vorschau.queryByText('RE-alt')).toBeNull();
+  await userEvent.click(screen.getByRole('tab', { name: 'Belege' }));
+  expect(screen.getByRole('link', { name: 'RE-alt' })).toBeVisible();
+});
+
+it('Aktenkontext 04 · hält Kontakt und Notiz neben den Belegen und nutzt nur die vorhandene Rechnungsabfrage', async () => {
+  rechnungen = [{ id: 'r1', invoiceNumber: 'RE-2026-1001', invoiceDate: '2026-09-10', projectNumber: '2026-001', totalBrutto: 1200, paymentStatus: 'Offen' }];
+  zeige();
+  const kontext = await screen.findByRole('complementary', { name: 'Kontext der Akte' });
+  expect(within(kontext).getByText(/Schlüssel im Büro/).textContent).toBe(KUNDE.notes);
+  const vorschau = await screen.findByRole('heading', { name: 'Jüngste Belege' });
+  expect(await within(vorschau.closest('section')!).findByRole('link', { name: /RE-2026-1001/ })).toHaveAttribute('href', '/invoices?suche=RE-2026-1001');
+  await userEvent.click(screen.getByRole('tab', { name: 'Belege' }));
+  expect(kontext).toBeVisible();
+  expect(listInvoicesForCustomer).toHaveBeenCalledTimes(1);
+});
+
 describe('Die Stammdaten für alle, die nur lesen', () => {
   beforeEach(() => {
     rolle = 'Verwaltung';
@@ -178,7 +223,7 @@ describe('Die Stammdaten für alle, die nur lesen', () => {
     zeige();
     await screen.findByText('Kundendaten');
 
-    expect(screen.getByRole('link', { name: /office@hv-nord\.at/ }))
+    expect(within(screen.getByRole('complementary')).getByRole('link', { name: /office@hv-nord\.at/ }))
       .toHaveAttribute('href', 'mailto:office@hv-nord.at');
     expect(angabe('UID-Nummer').textContent).toBe('ATU12345678');
     expect(screen.getByText(/Schlüssel im Büro/)).toBeInTheDocument();
@@ -209,7 +254,7 @@ describe('Die Stammdaten für alle, die nur lesen', () => {
       'href',
       expect.stringContaining('google.com/maps'),
     );
-    expect(screen.getByRole('link', { name: /anrufen/ })).toHaveAttribute(
+    expect(within(screen.getByRole('complementary')).getByRole('link', { name: /anrufen/ })).toHaveAttribute(
       'href',
       'tel:+436641234567',
     );
@@ -243,7 +288,7 @@ describe('Baustellen', () => {
       { id: 'p9', companyId: 'perl', projectNumber: 'B-042', customerName: KUNDE.name, status: 'Aktiv' } as Project & { id: string },
     ];
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen und Belege' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen' }));
     expect(await screen.findByText(/keinem Kunden zugeordnet/)).toBeInTheDocument();
     expect(screen.getByText(/B-042/)).toBeInTheDocument();
   });
@@ -254,7 +299,7 @@ describe('Baustellen', () => {
       { id: 'p9', companyId: 'perl', projectNumber: 'B-042', customerName: KUNDE.name, status: 'Aktiv' } as Project & { id: string },
     ];
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen und Belege' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen' }));
     await screen.findByText(/keinem Kunden zugeordnet/);
     await bediener.click(screen.getByRole('button', { name: 'Zuordnen' }));
 
@@ -270,7 +315,7 @@ describe('Baustellen', () => {
       { id: 'p9', companyId: 'perl', projectNumber: 'B-042', customerName: KUNDE.name, status: 'Aktiv' } as Project & { id: string },
     ];
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen und Belege' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen' }));
     await screen.findByText(/keinem Kunden zugeordnet/);
     expect(screen.queryByRole('button', { name: 'Zuordnen' })).toBeNull();
   });
@@ -281,14 +326,14 @@ describe('Baustellen', () => {
     // warum der Fehler so lange unbemerkt blieb.
     listUnlinkedProjectsByName.mockRejectedValueOnce(new Error('offline'));
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen und Belege' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen' }));
     expect((await screen.findAllByText(/nicht geladen werden/)).length).toBeGreaterThan(0);
     expect(screen.queryByText('Noch keine Baustelle zugeordnet.')).not.toBeInTheDocument();
   });
 
   it('sagt bei leerer Akte, dass exakt gesucht wurde', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen und Belege' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen' }));
     expect(await screen.findByText(/Gesucht wurde nach exakt/)).toBeInTheDocument();
   });
 });
@@ -482,10 +527,11 @@ describe('Nur, was die Rolle öffnen darf (Prüflauf 25.09.2026, P4-03)', () => 
 
   it('verlinkt Baustelle und Angebot für die Leitung — mit 48 px Tastfläche (P4-09)', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen und Belege' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen' }));
     const baustelle = await screen.findByRole('link', { name: /2026-042.*Ringstraße 3/ });
-    expect(baustelle).toHaveAttribute('href', '/admin-projects?baustelle=2026-042');
+    expect(baustelle).toHaveAttribute('href', '/admin-projects/p1');
     expect(baustelle.className).toMatch(/\bmin-h-touch\b/);
+    await userEvent.click(screen.getByRole('tab', { name: 'Belege' }));
     const angebot = await screen.findByRole('link', { name: 'A-2026-0007' });
     expect(angebot.className).toMatch(/\bmin-h-touch\b/);
   });
@@ -499,8 +545,9 @@ describe('Nur, was die Rolle öffnen darf (Prüflauf 25.09.2026, P4-03)', () => 
     rolle = 'Verwaltung';
     nutzer = NUTZER();
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen und Belege' }));
-    expect(await screen.findByText(/2026-042 · Ringstraße 3/)).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen' }));
+    expect(document.getElementById('k-baustellen')).toHaveTextContent('2026-042');
+    expect(document.getElementById('k-baustellen')).toHaveTextContent('Ringstraße 3');
     expect(screen.queryByRole('link', { name: /2026-042/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Angebote' })).not.toBeInTheDocument();
     expect(screen.queryByText('Noch kein Angebot.')).not.toBeInTheDocument();
@@ -511,9 +558,10 @@ describe('Nur, was die Rolle öffnen darf (Prüflauf 25.09.2026, P4-03)', () => 
     rolle = 'Buchhaltung';
     nutzer = NUTZER();
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen und Belege' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Belege' }));
     expect(await screen.findByRole('link', { name: 'A-2026-0007' })).toHaveAttribute('href', '/quotes/q1');
-    expect(screen.getByText(/2026-042 · Ringstraße 3/)).toBeInTheDocument();
+    expect(document.getElementById('k-baustellen')).toHaveTextContent('2026-042');
+    expect(document.getElementById('k-baustellen')).toHaveTextContent('Ringstraße 3');
     expect(screen.queryByRole('link', { name: /2026-042/ })).not.toBeInTheDocument();
   });
 });
@@ -526,7 +574,7 @@ describe('Die Rechnungen der Akte', () => {
       totalBrutto: 1200, paymentStatus: 'Teilbezahlt',
     }];
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen und Belege' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Belege' }));
     const link = await screen.findByRole('link', { name: 'RE-2026-1001' });
     expect(link).toHaveAttribute('href', '/invoices?suche=RE-2026-1001');
     expect(screen.getByText(/1.200,00 brutto · Teilbezahlt/)).toBeInTheDocument();
@@ -540,7 +588,7 @@ describe('Die Rechnungen der Akte', () => {
       totalBrutto: 1200, paymentStatus: 'Offen',
     }];
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen und Belege' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Belege' }));
     const link = await screen.findByRole('link', { name: 'RE-2026-1001' });
     expect(link.parentElement!.textContent).toMatch(/^RE-2026-1001 10\.09\.2026 · 2026-001$/);
   });
@@ -551,7 +599,7 @@ describe('Die Rechnungen der Akte', () => {
       totalBrutto: 100, paymentStatus: 'Bezahlt',
     }));
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen und Belege' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Belege' }));
     await screen.findByRole('link', { name: 'RE-2026-100' });
     expect(screen.getAllByRole('link', { name: /^RE-2026-10/ })).toHaveLength(5);
     await userEvent.click(screen.getByRole('button', { name: 'Alle 7 zeigen' }));
@@ -560,22 +608,22 @@ describe('Die Rechnungen der Akte', () => {
 
   it('sagt, wenn es noch keine gibt — und wenn sie nicht geladen werden konnten', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen und Belege' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Belege' }));
     expect(await screen.findByText('Noch keine Rechnung.')).toBeInTheDocument();
   });
 
   it('meldet einen Ladefehler, statt eine leere Liste vorzutäuschen', async () => {
     rechnungenWirft = true;
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen und Belege' }));
-    expect(await screen.findByText(/die Rechnungen/)).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Belege' }));
+    expect(await within(await screen.findByRole('tabpanel')).findByText(/die Rechnungen/)).toBeInTheDocument();
   });
 
   it('zeigt sie nur, wer Rechnungen stellt — die Verwaltung nicht', async () => {
     rolle = 'Verwaltung';
     nutzer = NUTZER();
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen und Belege' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen' }));
     // Gewartet wird auf die Stammdaten, nicht mehr auf die Karte „Angebote":
     // die sieht die Verwaltung seit P4-03 (Prüflauf 25.09.2026) nicht mehr —
     // sie liest per Zeilenschutz keine Angebote.
@@ -659,6 +707,7 @@ describe('Prüfung bei VIES (offene Punkte E2)', () => {
     let beenden!: (r: { pruefung: UidPruefung }) => void;
     uidBeiViesPruefen.mockImplementation(() => new Promise((resolve) => { beenden = resolve; }));
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Stammdaten' }));
     await screen.findByText('Noch nicht bei VIES geprüft.');
     await userEvent.click(screen.getByRole('button', { name: 'Bei VIES prüfen' }));
     await bearbeite();
@@ -674,6 +723,7 @@ describe('Prüfung bei VIES (offene Punkte E2)', () => {
     uidBeiViesPruefen.mockResolvedValue({ pruefung: PRUEFUNG });
     const u = userEvent.setup();
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Stammdaten' }));
     expect(await screen.findByText('Noch nicht bei VIES geprüft.')).toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Bei VIES prüfen' }));
     expect(uidBeiViesPruefen).toHaveBeenCalledWith('k1');
@@ -687,6 +737,7 @@ describe('Prüfung bei VIES (offene Punkte E2)', () => {
     uidBeiViesPruefen.mockRejectedValue(new Error('Der Dienst dieses Landes antwortet gerade nicht. Bitte später noch einmal prüfen.'));
     const u = userEvent.setup();
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Stammdaten' }));
     await u.click(await screen.findByRole('button', { name: 'Bei VIES prüfen' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/antwortet gerade nicht/);
     expect(screen.getByText('Noch nicht bei VIES geprüft.')).toBeInTheDocument();
@@ -699,6 +750,7 @@ describe('Prüfung bei VIES (offene Punkte E2)', () => {
     unmount();
     pruefungen = [PRUEFUNG, { ...PRUEFUNG, id: '0', gueltig: false, abfrageId: null }];
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Stammdaten' }));
     expect(await screen.findByText('gültig')).toBeInTheDocument();
     expect(screen.getByText('Frühere Abfragen (1)')).toBeInTheDocument();
   });
@@ -706,6 +758,7 @@ describe('Prüfung bei VIES (offene Punkte E2)', () => {
   it('eine geänderte, noch nicht gespeicherte UID wird nicht geprüft', async () => {
     const u = userEvent.setup();
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Stammdaten' }));
     await bearbeite();
     const feld = await screen.findByLabelText('UID-Nummer');
     await u.clear(feld);
@@ -717,6 +770,7 @@ describe('Prüfung bei VIES (offene Punkte E2)', () => {
   it('eine Schweizer UID: VIES kennt sie nicht, kein Knopf', async () => {
     kunden = [{ ...KUNDE, vatId: 'CHE123456789' }];
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Stammdaten' }));
     expect(await screen.findByText(/außerhalb der EU lässt sich bei VIES nicht prüfen/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /VIES prüfen/ })).toBeNull();
   });
@@ -726,6 +780,7 @@ describe('Prüfung bei VIES (offene Punkte E2)', () => {
     pruefungen = [{ ...PRUEFUNG, abfrageId: null, eigeneUid: null,
       ohneIdGrund: 'VIES erkennt die eigene UID-Nummer aus den Firmendaten nicht an.' }];
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Stammdaten' }));
     expect(await screen.findByText(
       /^ohne Abfrage-ID: VIES erkennt die eigene UID-Nummer aus den Firmendaten nicht an\./,
     )).toBeInTheDocument();
@@ -734,18 +789,21 @@ describe('Prüfung bei VIES (offene Punkte E2)', () => {
   it('bei einer älteren Abfrage ohne gespeicherten Grund: aus der fehlenden eigenen UID', async () => {
     pruefungen = [{ ...PRUEFUNG, abfrageId: null, eigeneUid: null }];
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Stammdaten' }));
     expect(await screen.findByText(/ohne Abfrage-ID: Die eigene UID-Nummer ging nicht mit/)).toBeInTheDocument();
   });
 
   it('ein Unternehmen ohne UID: der Abschnitt sagt, wann geprüft werden kann', async () => {
     kunden = [{ ...KUNDE, vatId: '', kundenart: 'unternehmen' }];
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Stammdaten' }));
     expect(await screen.findByText('Mit einer gespeicherten UID-Nummer lässt sie sich hier bei VIES prüfen.')).toBeInTheDocument();
   });
 
   it('eine gespeicherte UID in falscher Form: der Abschnitt nennt den Fehler', async () => {
     kunden = [{ ...KUNDE, vatId: 'ATU1234' }];
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Stammdaten' }));
     expect(await screen.findByText(/hat nicht die richtige Form: Eine österreichische UID-Nummer/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /VIES prüfen/ })).toBeNull();
   });
@@ -760,6 +818,7 @@ describe('Prüfung bei VIES (offene Punkte E2)', () => {
     einblick = { betrieb: 'perl' };
     pruefungen = [PRUEFUNG];
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Stammdaten' }));
     expect(await screen.findByText('gültig')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /VIES prüfen/ })).toBeNull();
   });
@@ -770,7 +829,7 @@ describe('Termine in der Kundenakte (Plan 10.4)', () => {
     rolle = 'Verwaltung';
     nutzer = NUTZER();
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Wartungen' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Termine und Wartungen' }));
     const titel = await screen.findByRole('heading', { name: 'Termine' });
     expect(within(titel.closest('section')!).getByRole('button', { name: 'Termin anlegen' })).toBeInTheDocument();
   });
@@ -779,14 +838,14 @@ describe('Termine in der Kundenakte (Plan 10.4)', () => {
     rolle = 'Buchhaltung';
     nutzer = NUTZER();
     zeige();
-    await screen.findByRole('heading', { name: 'Kundendaten' });
+    await screen.findByRole('tab', { name: 'Stammdaten' });
     expect(screen.queryByRole('heading', { name: 'Termine' })).not.toBeInTheDocument();
   });
 
   it('nicht ohne das Modul Einsatzplanung', async () => {
     modulAn = false;
     zeige();
-    await screen.findByRole('heading', { name: 'Kundendaten' });
+    await screen.findByRole('tab', { name: 'Stammdaten' });
     expect(screen.queryByRole('heading', { name: 'Termine' })).not.toBeInTheDocument();
   });
 });
@@ -799,13 +858,13 @@ describe('Die Kundenakte in der Linie „Lot“', () => {
   it('ordnet alle zulässigen Teile den Bereichen zu', async () => {
     zeige();
     const leiste = await screen.findByRole('tablist');
-    expect(within(leiste).getAllByRole('tab').map((a) => a.textContent)).toEqual(['Übersicht', 'Baustellen und Belege', 'Wartungen']);
+    expect(within(leiste).getAllByRole('tab').map((a) => a.textContent)).toEqual(['Übersicht', 'Baustellen', 'Belege', 'Termine und Wartungen', 'Stammdaten']);
     await waitFor(() => { for (const id of ['k-daten', 'k-termine', 'k-baustellen', 'k-wartungen', 'k-rechnungen', 'k-angebote', 'k-auskunft']) expect(document.getElementById(id)).not.toBeNull(); });
   });
   it('Gegenprobe: die Verwaltung springt nicht zu Rechnungen und Angeboten, die sie nicht sieht', async () => {
     rolle = 'Verwaltung'; nutzer = NUTZER();
     zeige();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen und Belege' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen' }));
     expect(document.getElementById('k-rechnungen')).toBeNull();
     expect(document.getElementById('k-angebote')).toBeNull();
   });
@@ -837,7 +896,7 @@ describe('Aktenlinie 03 · Kunde', () => {
     zeige();
     await screen.findByRole('heading', { name: KUNDE.name });
     expect(screen.queryByLabelText('UID-Nummer')).toBeNull();
-    expect(screen.getAllByRole('tab').map((x) => x.textContent)).toEqual(['Übersicht', 'Baustellen und Belege', 'Wartungen']);
+    expect(screen.getAllByRole('tab').map((x) => x.textContent)).toEqual(['Übersicht', 'Baustellen', 'Belege', 'Termine und Wartungen', 'Stammdaten']);
     expect(screen.getByText(/Schlüssel im Büro/)).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Bearbeiten' }));
     expect(await screen.findByRole('dialog', { name: 'Kunde bearbeiten' })).toBeInTheDocument();
@@ -847,7 +906,7 @@ describe('Aktenlinie 03 · Kunde', () => {
     rolle = 'Verwaltung'; freigabe = true; nutzer = NUTZER();
     zeige();
     await screen.findByRole('heading', { name: KUNDE.name });
-    await userEvent.click(screen.getByRole('tab', { name: 'Baustellen und Belege' }));
+    expect(screen.queryByRole('tab', { name: 'Belege' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Rechnungen' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Angebote' })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Bearbeiten' }));
@@ -860,6 +919,6 @@ it('Aktenlinie 03 · behält bei benannten Baustellen die vollständige Baustell
     bezeichnung: 'Wärmepumpe Werkstatt', address: 'Industriestraße 17, 8200 Gleisdorf', status: 'Aktiv' }];
   zeige();
   expect(await screen.findByRole('link', { name: /B-ORT.*Wärmepumpe Werkstatt.*Industriestraße 17, 8200 Gleisdorf/ })).toBeInTheDocument();
-  await userEvent.click(screen.getByRole('tab', { name: 'Baustellen und Belege' }));
+  await userEvent.click(screen.getByRole('tab', { name: 'Baustellen' }));
   expect(within(document.getElementById('k-baustellen')!).getByRole('link', { name: /B-ORT.*Wärmepumpe Werkstatt.*Industriestraße 17, 8200 Gleisdorf/ })).toBeInTheDocument();
 });

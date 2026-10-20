@@ -124,3 +124,20 @@ Das ersetzt E7s Aktenaufbau für diese drei Seiten. Die große Kennzahlenleiste
 der Baustelle entfällt auf Wunsch des Auftraggebers; Stunden und Budget
 stehen kompakt beim Auftrag. Bestehende Schreibwege, Rollen, Module,
 Berechnungen und Exporte bleiben erhalten. [Zuordnung und Prüfung](lot-akten-03/umsetzung.md).
+
+
+**E19 — Akte mit Kontext nach Variante A (20.10.2026).** Der Auftraggeber hat
+nach Ablehnung der ersten Umsetzung drei neue Anordnungen verglichen und A
+ausdrücklich zur Umsetzung freigegeben („ja finde ich gut. Setze das um“).
+Ein kompakter Aktenkopf trennt Rückweg, Identität und Aktionen. Die Hauptspalte
+trägt den Arbeitsinhalt; eine durchgehende Kontextspalte sammelt Kontakt, Ort
+und Zuständigkeit und bleibt bei Bereichswechseln montiert. Am Handy folgen
+die Kontextangaben dem Hauptinhalt, Anruf und E-Mail sind oben direkt erreichbar.
+Baustellen, Belege, Scheine und Pläne erhalten getrennte vollständige Bereiche;
+Vorschauen lesen dieselben bereits geladenen Bestände. Die Baustelle behält
+Stammdaten und Auftrag direkt in der Übersicht und im vorhandenen Bearbeiten,
+statt dafür einen weitgehend doppelten Reiter anzulegen. Termine und Wartungen
+beim Kunden teilen ihren Bereich, damit beide Module vollständig bedienbar
+bleiben. Die kompakte Budgetlinie verwendet unverändert den bestehenden
+Prozentwert und dessen Warnstufen. Dies präzisiert E18s Seitenaufbau; seine
+Speicher-, Rechte- und Entwurfsregeln bleiben bestehen. [Zuordnung](lot-akten-04/umsetzung.md).

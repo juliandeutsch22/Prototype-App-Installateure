@@ -16,7 +16,7 @@ test('Die drei Akten behalten ihre Schreibwege und geschützten Entwürfe', asyn
   await anmelden(page, CHEFIN.email);
   try {
     await page.goto(`/admin-projects/${baustelle!.id}`);
-    await expect(page.getByRole('tab')).toHaveText(['Übersicht', 'Termine und Team', 'Scheine und Pläne']);
+    await expect(page.getByRole('tab')).toHaveText(['Übersicht', 'Scheine', 'Termine', 'Pläne']);
     await expect(page.getByLabel(/Projektnummer/)).toHaveCount(0);
     await page.getByRole('button', { name: 'Bearbeiten', exact: true }).click();
     const bFenster = page.getByRole('dialog', { name: 'Baustelle bearbeiten' });
@@ -30,14 +30,14 @@ test('Die drei Akten behalten ihre Schreibwege und geschützten Entwürfe', asyn
     await expect(page.getByText('Aktenprüfung · Auftrag bleibt vollständig')).toBeVisible();
     const bStand = await admin.from('projects').select('description, project_number').eq('id', baustelle!.id).single();
     expect(bStand.data).toEqual({ description: 'Aktenprüfung · Auftrag bleibt vollständig', project_number: baustelle!.project_number });
-    await page.getByRole('tab', { name: 'Termine und Team' }).click();
+    await page.getByRole('tab', { name: 'Termine' }).click();
     await expect(page.getByRole('button', { name: 'Termin anlegen', exact: true })).toBeVisible();
-    await page.getByRole('tab', { name: 'Scheine und Pläne' }).click();
+    await page.getByRole('tab', { name: 'Pläne' }).click();
     await expect(page.getByRole('heading', { name: 'Pläne und Dokumente' })).toBeVisible();
     await keineFehlermeldung(page);
 
     await page.goto(`/customers/${kunde!.id}`);
-    await expect(page.getByRole('tab')).toHaveText(['Übersicht', 'Baustellen und Belege', 'Wartungen']);
+    await expect(page.getByRole('tab')).toHaveText(['Übersicht', 'Baustellen', 'Belege', 'Termine und Wartungen', 'Stammdaten']);
     await page.getByRole('button', { name: 'Bearbeiten', exact: true }).click();
     const kFenster = page.getByRole('dialog', { name: 'Kunde bearbeiten' });
     const kundenname = kFenster.getByLabel('Name', { exact: false }).first();
@@ -51,7 +51,7 @@ test('Die drei Akten behalten ihre Schreibwege und geschützten Entwürfe', asyn
     await expect(kFenster).toBeHidden();
     await expect(page.getByText('Aktenprüfung · Schlüssel im Büro')).toBeVisible();
     expect((await admin.from('customers').select('notes').eq('id', kunde!.id).single()).data?.notes).toBe('Aktenprüfung · Schlüssel im Büro');
-    await page.getByRole('tab', { name: 'Baustellen und Belege' }).click();
+    await page.getByRole('tab', { name: 'Belege' }).click();
     await expect(page.getByRole('heading', { name: 'Rechnungen', exact: true })).toBeVisible();
     await keineFehlermeldung(page);
 

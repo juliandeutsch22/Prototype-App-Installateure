@@ -10,12 +10,14 @@ import { canManageAdmins, fuehrtZeitkonto } from '@/lib/permissions';
 import { ROLES, type AppUser, type Role } from '@/types';
 import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
-import AktenBereiche, { AktenAngaben } from '@/components/AktenBereiche';
+import AktenBereiche, { AktenAngaben, AktenVerweis } from '@/components/AktenBereiche';
 import AktenBearbeiten from '@/components/AktenBearbeiten';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
 import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import AktenKopf from '@/components/AktenKopf';
+import { canAccess } from '@/app/navigation';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import InfoHint from '@/components/InfoHint';
 import { InputField, SelectField, FormGrid, CheckboxField } from '@/components/Field';
@@ -238,7 +240,7 @@ export default function BenutzerakteView() {
 
   const eigenesKonto = p.uid === user.uid;
 
-  const stammdaten = <Card title="Profil" id="akte-stammdaten"><StammdatenLesen p={p} teil="profil" />
+  const stammdaten = <Card title="Beschäftigung" id="akte-stammdaten"><StammdatenLesen p={p} teil="profil" />
     {!darfAendern && <p className="text-sm text-ink-muted">Ein Administrator lässt sich nur von einem Administrator ändern.</p>}
   </Card>;
   const zugang = darfAendern ? (
@@ -374,32 +376,33 @@ export default function BenutzerakteView() {
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="akten-seite">
       {warnung}
-      {/*
-        DER WEG ZURÜCK STEHT IN DER ORTSZEILE (Linie „Lot“): dort, wo jede
-        Seite sagt, wohin sie gehört. Er war vorher die erste Angabe unter dem
-        Namen und schob Rolle und Zustand aus dem Blick.
-      */}
-      <PageHeader
-        ort={<Link to="/user-mgmt" className="link inline-flex min-h-touch items-center">← Zur Benutzerliste</Link>}
-        title={p.name}
-        subtitle={
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Marke>{p.role}</Marke>
-            {p.active === false && <Marke>deaktiviert</Marke>}
-          </span>
-        }
-        action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
-      />
-
-      <AktenBereiche kennung="benutzer" bereiche={[
+      <AktenKopf art="Benutzer" zurueck="/user-mgmt" zurueckText="Zur Benutzerliste" title={p.name}
+        meta={<span className="akten-identitaet"><Marke>{p.role}</Marke>
+          {p.active === false && <Marke>deaktiviert</Marke>}</span>}
+        action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>} />
+      <AktenBereiche kennung="benutzer" kontext={<>
+        <Card title="Anmeldekonto"><StammdatenLesen p={p} teil="konto" /></Card>
+        <Card title="Rolle und Freigaben"><StammdatenLesen p={p} teil="rechte" /></Card>
+        {canAccess(user.role, '/accounting', company?.modules) && <Card title="Mitarbeiterübersicht">
+          <p className="text-sm text-ink-muted">Aktuelle Stunden, Urlaubssalden und Tagesbuchungen stehen in der Mitarbeiterübersicht.</p>
+          <Link to="/accounting" className="link akten-verweis">Mitarbeiterübersicht öffnen →</Link>
+        </Card>}
+      </>} bereiche={[
         { id: 'profil', titel: 'Profil', sprungziele: ['akte-stammdaten', 'akte-geburtsdatum'], inhalt:
-          <div className="akten-spalten"><div className="akten-spalte">{stammdaten}</div><div className="akten-spalte">{geburtsdatum}</div></div> },
+          <div className="akten-spalte">{stammdaten}{geburtsdatum}
+            <Card title="Arbeitszeit und Urlaub" action={<AktenVerweis bereich="arbeitszeit">Alle Einstellungen →</AktenVerweis>}>
+              <StammdatenLesen p={p} teil="arbeitsregel" />
+            </Card>
+            <Card title="Startwerte des Zeitkontos" hint="Das sind Einstellungen und Startwerte. Aktuelle Salden stehen in der Mitarbeiterübersicht.">
+              <StammdatenLesen p={p} teil="startwerte" />
+            </Card>
+          </div> },
         { id: 'arbeitszeit', titel: 'Arbeitszeit und Urlaub', sprungziele: ['akte-zeitkonto', 'akte-urlaub'], inhalt:
-          <div className="akten-spalten"><div className="akten-spalte"><Card title="Zeitkonto-Einstellungen" id="akte-zeitkonto"
+          <div className="akten-spalte"><Card title="Zeitkonto-Einstellungen" id="akte-zeitkonto"
             hint="Hier stehen die Einstellungen und Startwerte des Zeitkontos. Die aktuellen Salden und Buchungen stehen in der Mitarbeiterübersicht.">
-            <StammdatenLesen p={p} teil="arbeitszeit" /></Card></div><div className="akten-spalte">{anspruch}</div></div> },
+            <StammdatenLesen p={p} teil="arbeitszeit" /></Card>{anspruch}</div> },
         ...((zugang || auskunft) ? [{ id: 'zugang', titel: zugang ? 'Zugang und Rechte' : 'Datenschutz', sprungziele: ['akte-zugang', 'akte-datenschutz'], inhalt:
-          <div className="akten-spalten"><div className="akten-spalte">{zugang}</div><div className="akten-spalte"><Card title="Rolle und Freigaben"><StammdatenLesen p={p} teil="rechte" /></Card>{auskunft}</div></div> }] : []),
+          <div className="akten-spalte">{zugang}{auskunft}</div> }] : []),
       ]} />
       {darfAendern && entwurf && <AktenBearbeiten offen={bearbeitet} titel="Benutzer bearbeiten" geaendert={geaendert} speichert={speichert}
         onSchliessen={() => setBearbeitet(false)} onVerwerfen={() => { setEntwurf(alsEntwurf(p)); setSpeicherFehler(null); }}>
@@ -472,14 +475,16 @@ export default function BenutzerakteView() {
 }
 
 /** Die Stammdaten für alle, die sie nicht ändern dürfen. */
-function StammdatenLesen({ p, teil }: { p: AppUser; teil: 'profil' | 'arbeitszeit' | 'rechte' }) {
+function StammdatenLesen({ p, teil }: { p: AppUser; teil: 'profil' | 'arbeitszeit' | 'arbeitsregel' | 'startwerte' | 'rechte' | 'konto' }) {
   return <AktenAngaben>
-    {teil === 'profil' && <>
+    {teil === 'konto' && <>
       {istBenutzerkonto(p.email) ? (
         <Angabe wort="Benutzername">{kontoAnzeige(p.email)}</Angabe>
       ) : (
         <Angabe wort="E-Mail"><MailLink adresse={p.email} /></Angabe>
       )}
+    </>}
+    {teil === 'profil' && <>
       <Angabe wort="Einstufung">
         {p.einstufung ? (
           <span>
@@ -518,7 +523,7 @@ function StammdatenLesen({ p, teil }: { p: AppUser; teil: 'profil' | 'arbeitszei
           : <Zustand stand="gut">aktiv</Zustand>}
       </Angabe>
     </>}
-    {teil === 'arbeitszeit' && <>
+    {(teil === 'arbeitszeit' || teil === 'arbeitsregel') && <>
       <Angabe wort="Zeitkonto">{fuehrtZeitkonto(p) ? 'wird geführt' : 'kein Zeitkonto'}</Angabe>
       <Angabe wort="Wochenstunden">
         {p.weeklyTargetHours != null ? <span>{mitKomma(p.weeklyTargetHours)}</span> : null}
@@ -526,8 +531,16 @@ function StammdatenLesen({ p, teil }: { p: AppUser; teil: 'profil' | 'arbeitszei
       <Angabe wort="Urlaubstage pro Jahr">
         {p.yearlyVacationDays != null ? <span>{mitKomma(p.yearlyVacationDays)}</span> : null}
       </Angabe>
-      {/* Zwei Daten seit dem 30.09.2026 (M6): wann die Person angefangen hat,
-          und ab wann Senklot ihr Zeitkonto rechnet. */}
+      <Angabe wort="Arbeitstage">{tageText(p.workDays ?? [])}</Angabe>
+      {p.tagessoll && Object.keys(p.tagessoll).length > 0 && (
+        <Angabe wort="Tagessoll je Wochentag">
+          {WEEKDAYS.filter((d) => p.tagessoll?.[String(d.value)] != null)
+            .map((d) => `${d.label} ${String(p.tagessoll?.[String(d.value)]).replace('.', ',')} Std.`)
+            .join(' · ')}
+        </Angabe>
+      )}
+    </>}
+    {(teil === 'arbeitszeit' || teil === 'startwerte') && <>
       <Angabe wort="Saldo-Startdatum">{fmtDatum(p.appStartDate)}</Angabe>
       <Angabe wort="Start-Saldo (Stunden)">
         {p.initialOvertime != null ? <span>{mitKomma(p.initialOvertime)}</span> : null}
@@ -541,14 +554,6 @@ function StammdatenLesen({ p, teil }: { p: AppUser; teil: 'profil' | 'arbeitszei
           <span className="text-ink-muted">nicht angegeben — voller Jahresanspruch</span>
         )}
       </Angabe>
-      <Angabe wort="Arbeitstage">{tageText(p.workDays ?? [])}</Angabe>
-      {p.tagessoll && Object.keys(p.tagessoll).length > 0 && (
-        <Angabe wort="Tagessoll je Wochentag">
-          {WEEKDAYS.filter((d) => p.tagessoll?.[String(d.value)] != null)
-            .map((d) => `${d.label} ${String(p.tagessoll?.[String(d.value)]).replace('.', ',')} Std.`)
-            .join(' · ')}
-        </Angabe>
-      )}
     </>}
   </AktenAngaben>;
 }

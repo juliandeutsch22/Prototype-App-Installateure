@@ -77,6 +77,14 @@ beforeEach(() => {
   stundenDerBaustellen.mockClear();
 });
 
+it('Aktenkontext 04 · erklärt das Fachzeitbudget kompakt als Linie mit dem unveränderten Prozentwert', async () => {
+  bestand = [summe({ minuten: 480 })];
+  render(<BaustellenUebersicht companyId="perl" projekt={projekt()} kompakt />);
+  const grafik = await screen.findByRole('img', { name: '20 % des Stundenbudgets verbraucht' });
+  expect(grafik.tagName.toLowerCase()).toBe('svg');
+  expect(grafik).toHaveAttribute('viewBox', '0 0 100 2');
+});
+
 describe('Baustellenübersicht', () => {
   it('zeigt die Summe gegen das Budget und fragt nach genau dieser Baustelle', async () => {
     bestand = [summe({ minuten: 960 })];
@@ -209,7 +217,7 @@ it('Aktenlinie 03 · zeigt den Stundenstand kompakt und hält Helfer sowie Perso
   bestand = [summe({ minuten: 1800 }), summe({ userId: 'u2', userName: 'Helfer', art: 'helfer', minuten: 600 })];
   render(<BaustellenUebersicht companyId="perl" projekt={projekt()} kompakt />);
   expect(await screen.findByText(/verbleibend/)).toHaveTextContent('10,0 h');
-  expect(screen.queryByRole('img')).toBeNull();
+  expect(screen.queryByText('75 %')).toBeNull();
   expect(screen.getByText(/zusätzlich.*Helfer/i)).toHaveTextContent('10,0 h');
   expect(stundenDerBaustellen).toHaveBeenCalledTimes(1);
   expect(screen.getByText('Stunden nach Person')).toBeInTheDocument();
@@ -219,5 +227,5 @@ it('Aktenlinie 03 · hält die Budgetwarnung ab 80 Prozent auch ohne Ring sichtb
   bestand = [summe({ minuten: 1920 })];
   render(<BaustellenUebersicht companyId="perl" projekt={projekt()} kompakt />);
   expect(await screen.findByText(/verbleibend/)).toHaveClass('text-warning');
-  expect(screen.queryByRole('img')).toBeNull();
+  expect(screen.queryByText('75 %')).toBeNull();
 });
