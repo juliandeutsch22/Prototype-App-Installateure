@@ -1,0 +1,52 @@
+/* Die Akten teilen dieselbe Lesefläche; andere Seiten behalten ihre bisherigen Gruppen. */
+@layer components {
+  .akten-seite { display: flex; flex-direction: column; gap: 1.25rem; }
+  .akten-seite .karte { overflow: visible; }
+  .akten-seite .karte-kopf { padding: 0.75rem 0; }
+  .akten-seite .karte-koerper { padding-inline: 0; }
+  .akten-seite .karte-buendig { border-top: 0; }
+  .akten-seite .zeile { padding-inline: 0; }
+  .akten-seite .zeile-meta { display: block; overflow: visible; -webkit-line-clamp: unset; }
+  .akten-bereiche { display: flex; align-items: stretch; gap: 1.5rem; border-bottom: 1px solid var(--border); }
+  .akten-reiter { min-height: 3rem; padding: 0.625rem 0; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-muted); font-size: 0.875rem; text-align: left; cursor: pointer; }
+  .akten-reiter[aria-selected='true'] { border-bottom-color: var(--petrol); color: var(--ink-deep); font-weight: 600; }
+  .akten-bereich { min-width: 0; }
+  .akten-bereich[hidden] { display: none; }
+  .akten-spalten { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem 2rem; align-items: start; }
+  .akten-spalte { min-width: 0; display: flex; flex-direction: column; gap: 1.5rem; }
+  .akten-angaben { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem 1.5rem; padding: 0.5rem 0 1rem; }
+  .akten-angabe, .akten-angabe-breit { min-width: 0; }
+  .akten-angabe-breit { grid-column: 1 / -1; }
+  .akten-angaben dt { font-size: 0.75rem; line-height: 1.125rem; color: var(--text-muted); margin-bottom: 0.375rem; }
+  .akten-angaben dd { margin: 0; font-size: 0.875rem; line-height: 1.5rem; overflow-wrap: anywhere; color: var(--text); }
+  .akten-kontakt { display: flex; align-items: center; flex-wrap: wrap; gap: 0 1.25rem; font-size: 0.8125rem; }
+  .akten-kontakt > span { min-height: 2.75rem; display: inline-flex; align-items: center; }
+  .akten-kontakt a { overflow-wrap: anywhere; }
+  .akten-kontakt svg { display: none; }
+  .akten-aktionen { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+  .akten-verweis { display: inline-flex; align-items: center; min-height: 2.75rem; font-size: 0.8125rem; }
+  .akten-termin { display: flex; flex-direction: column; gap: 0.375rem; padding: 0.5rem 0 1rem; font-size: 0.8125rem; }
+  .akten-termin-zeit { font-size: 1.125rem; line-height: 1.5rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
+  .akten-termin-art { font-size: 0.875rem; font-weight: 600; }
+  .akten-stunden { border-top: 1px solid var(--border); margin-top: 0.5rem; padding: 0.875rem 0; font-size: 0.875rem; line-height: 1.5rem; }
+  .akten-stunden-zahl { font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
+  .akten-stunden details { margin-top: 0.75rem; }
+  .akten-stunden summary { cursor: pointer; min-height: 2.75rem; padding-block: 0.625rem; color: var(--accent-deep); font-size: 0.8125rem; }
+  .akten-notiz { padding: 0.5rem 0 1rem; font-size: 0.875rem; line-height: 1.75rem; white-space: pre-line; }
+  .akten-weitere { border-top: 1px solid var(--border); padding: 0.5rem 0; }
+  .akten-weitere > summary { min-height: 2.75rem; padding-block: 0.625rem; cursor: pointer; color: var(--accent-deep); font-size: 0.8125rem; }
+  .akten-editor { min-width: 0; }
+  .akten-editor .aktionsleiste { position: sticky; bottom: 0; margin: 1rem 0 0; padding: 0.75rem 0; border-top: 1px solid var(--border); background: var(--surface); }
+  @media (min-width: 760px) { .akten-editor .aktionsleiste { bottom: -1.25rem; margin: 1rem -1.25rem -1.25rem; padding-inline: 1.25rem; } }
+  .akten-editor-gruppe { border-top: 1px solid var(--border); padding: 1rem 0; }
+  .akten-editor-gruppe h3 { margin-bottom: 1rem; font-size: 0.875rem; line-height: 1.25rem; font-weight: 600; color: var(--ink-deep); }
+  .akten-editor .akte-griffe { padding-inline: 0; }
+  @media (min-width: 1200px) { .akten-spalten { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); } }
+  @media (max-width: 759px) {
+    .akten-bereiche { gap: 0.75rem; }
+    .akten-reiter { flex: 1; min-width: 0; font-size: 0.75rem; line-height: 1.125rem; min-height: 3.5rem; }
+    .akten-aktionen { width: 100%; }
+    .akten-aktionen > * { flex: 1; }
+    .akten-angaben { gap: 1rem 1.25rem; }
+  }
+}

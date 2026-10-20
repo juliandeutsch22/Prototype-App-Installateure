@@ -17,16 +17,18 @@ import { euro } from '@/lib/betrag';
 import { canAccess } from '@/app/navigation';
 import { canInvoice, isGF } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
-import type { Abrechnungsart, Project, AppUser, Quote } from '@/types';
+import type { Project, AppUser, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import Hinweiszeile from '@/components/Hinweiszeile';
-import Aktenspalten from '@/components/Aktenspalten';
+import AktenBereiche, { AktenAngaben, AktenAngabe } from '@/components/AktenBereiche';
+import AktenBearbeiten from '@/components/AktenBearbeiten';
+import AktenTerminVorschau, { type AktenTerminStand } from '@/components/AktenTerminVorschau';
 import TermineKarte from '@/features/termine/TermineKarte';
 import Button from '@/components/Button';
-import { Marke, Zustand } from '@/components/Badge';
-import { LotVerlauf, Sprungleiste, type LotPunkt } from '@/components/LotBausteine';
+import { Zustand } from '@/components/Badge';
+import { LotVerlauf, type LotPunkt } from '@/components/LotBausteine';
 import { endeVorbei } from './baustellenLage';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
@@ -104,6 +106,8 @@ export default function BaustellenakteView() {
 
   const [entwurf, setEntwurf] = useState<BaustellenEntwurf | null>(null);
   const [speichert, setSpeichert] = useState(false);
+  const [bearbeitet, setBearbeitet] = useState(false);
+  const [terminStand, setTerminStand] = useState<AktenTerminStand>({ termine: null, fehler: false });
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
   /** Eine geänderte Nummer wird erst nach Rückfrage gespeichert. */
   const [nummerFragen, setNummerFragen] = useState<{ alt: string; neu: string } | null>(null);
@@ -293,6 +297,7 @@ export default function BaustellenakteView() {
         assignedEmployees: entwurf.assignedEmployees,
         projectManagers: entwurf.projectManagers,
       });
+      setBearbeitet(false);
       toast.success(nummerNeu ? `Baustelle gespeichert — jetzt ${neueNummer}` : 'Baustelle gespeichert');
       setVersuch((v) => v + 1);
     } catch {
@@ -352,87 +357,50 @@ export default function BaustellenakteView() {
     );
   }
 
-  /*
-    DIE AKTE IN DER LINIE „LOT“ (Schritt E7): zuerst die Zusammenfassung —
-    wie die Baustelle steht (Stunden), wo sie zeitlich steht (Verlauf) und
-    die Wege weiter —, dann die Einzelheiten. Die Stammdaten stehen als
-    Kurzzeilen da: ihr Kopf sagt schon das Wichtigste, aufgeklappt wird zum
-    Nachlesen oder Ändern. Hinweise und Warnungen stehen UNTER der jeweiligen
-    Kurzzeile und bleiben damit sichtbar, auch wenn sie zu ist.
-
-    Am Schreibtisch ordnet `Aktenspalten` wie bisher: links die Stammdaten,
-    rechts Termine und Pläne; die Sprungleiste steht links daneben.
-  */
   const verlauf = verlaufPunkte(b, angebote, todayStr());
-  const ueberblick = (
-    <Card title="Überblick" id="b-ueberblick">
-      <div className="flex flex-col gap-4">
-        {/*
-          DIE STUNDEN STEHEN IN DER AKTE, nicht mehr aufgeklappt in der
-          Listenzeile. Dieselbe Auswertung, derselbe Baustein — nur an einem
-          Ort, der eine Adresse hat.
-        */}
-        {user && (
-          <Suspense fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}>
-            <BaustellenUebersicht companyId={user.companyId} projekt={b} />
-          </Suspense>
-        )}
-        {/* Aus dem, was die Akte ohnehin lädt: Angebote, Beginn, heute, Ende. */}
-        {verlauf.length > 1 && (
-          <div className="border-t border-line pt-4">
-            <LotVerlauf name="Verlauf der Baustelle" punkte={verlauf} />
-          </div>
-        )}
-        {/* Die Links tragen ihre 48 px Tastfläche selbst — deshalb kein
-            senkrechter Abstand dazwischen (Prüflauf 25.09.2026, P4-09). */}
-        <div className="flex flex-wrap items-center gap-x-3 border-t border-line pt-1">
-          {b.customerId ? (
-            <Link to={`/customers/${b.customerId}`} className="link inline-flex min-h-touch items-center">
-              Zur Kundenakte
-            </Link>
-          ) : (
-            /*
-              Altbestand: die Baustelle trägt einen Kundennamen, aber keine
-              Verknüpfung. Das stumm zu lassen hiesse, den fehlenden Verweis
-              wie „gibt es nicht" aussehen zu lassen.
-            */
-            <span className="py-3 text-sm text-warning">
-              Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".
-            </span>
-          )}
-          {angebote.map((q) => (
-            <Link key={q.id} to={`/quotes/${q.id}`} className="link inline-flex min-h-touch items-center">
-              Angebot {q.quoteNumber}
-            </Link>
-          ))}
-          {/* „Handwerksschein schreiben“ steht seit 09.10.2026 bei den Scheinen der Baustelle (b-scheine). */}
-        </div>
+  const auftrag = (
+    <Card title="Auftrag" id="b-ueberblick">
+      <AktenAngaben>
+        <AktenAngabe wort="Auftragsumfang" breit><span className="whitespace-pre-line">{b.description?.trim() || 'nicht hinterlegt'}</span></AktenAngabe>
+        <AktenAngabe wort="Abrechnung">{b.billingMode ? abrechnungText(b.billingMode) : 'nicht festgelegt'}</AktenAngabe>
+        <AktenAngabe wort="Stundenbudget">{b.estimatedHours ? `${fmtStunden(b.estimatedHours)} h` : 'nicht festgelegt'}</AktenAngabe>
+        <AktenAngabe wort="Beginn">{fmtDatum(b.startDate)}</AktenAngabe>
+        <AktenAngabe wort="Ende (geplant)">{fmtDatum(b.endDate)}</AktenAngabe>
+      </AktenAngaben>
+      {(b.billingMode === 'Pauschal' || b.billingMode === 'Einheitspreis') &&
+        <PauschalHinweis angebote={angebote} sichtbar={angeboteSichtbar} art={b.billingMode} />}
+      {user && <Suspense fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}>
+        <BaustellenUebersicht companyId={user.companyId} projekt={b} kompakt />
+      </Suspense>}
+      <div className="flex flex-wrap items-center gap-x-4">
+        {angebote.map((q) => <Link key={q.id} to={`/quotes/${q.id}`} className="link akten-verweis">Angebot {q.quoteNumber}</Link>)}
       </div>
+      {verlauf.length > 1 && <details className="akten-weitere"><summary>Verlauf der Baustelle</summary>
+        <LotVerlauf name="Verlauf der Baustelle" punkte={verlauf} />
+      </details>}
     </Card>
   );
-  const stammdaten = (
-    <Card title="Stammdaten" id="b-daten">
-      {darfAendern && entwurf ? (
-        <StammdatenFormular
-          entwurf={entwurf}
-          setEntwurf={setEntwurf}
-          staff={staff}
-          leads={leads}
-          namen={namen}
-          namenDa={namenDa}
-          geaendert={geaendert}
-          speichert={speichert}
-          fehler={speicherFehler}
-          onSpeichern={() => void stammdatenSpeichern()}
-          onVerwerfen={() => setEntwurf(alsEntwurf(b))}
-          angebote={angebote}
-          angeboteSichtbar={angeboteSichtbar}
-        />
-      ) : (
-        <StammdatenLesen b={b} namen={namen} namenDa={namenDa} />
-      )}
-    </Card>
-  );
+  const kundeOrt = <Card title="Kunde und Ort" id="b-daten">
+    <AktenAngaben>
+      <AktenAngabe wort="Kunde" breit>{b.customerId
+        ? <Link to={`/customers/${b.customerId}`} className="link inline-flex min-h-touch items-center">{b.customerName} · Zur Kundenakte</Link>
+        : <span className="text-warning">Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".</span>}</AktenAngabe>
+      <AktenAngabe wort="Ansprechpartner vor Ort">{b.contactName}</AktenAngabe>
+      {!b.address?.trim() && <AktenAngabe wort="Baustellenadresse">{null}</AktenAngabe>}
+      {!b.contactPhone?.trim() && <AktenAngabe wort="Telefon vor Ort">{null}</AktenAngabe>}
+      {b.bezeichnung?.trim() && <AktenAngabe wort="Bezeichnung">{b.bezeichnung}</AktenAngabe>}
+    </AktenAngaben>
+  </Card>;
+  const team = <Card title="Team und Leitung">
+    <AktenAngaben>
+      <AktenAngabe wort="Team" breit>{namenDa ? (b.assignedEmployees ?? []).map((u) => namen.get(u) ?? u).join(', ') || 'kein Team'
+        : <Wert bereit={false} muster="Monteur Muster, Monteur Muster">{null}</Wert>}</AktenAngabe>
+      <AktenAngabe wort="Projektleitung" breit>{namenDa ? (b.projectManagers?.length
+        ? b.projectManagers.map((u) => namen.get(u) ?? u).join(', ') : <span className="text-warning">keine Projektleitung</span>)
+        : <Wert bereit={false} muster="Paul Projektleiter">{null}</Wert>}</AktenAngabe>
+    </AktenAngaben>
+    {namenDa && !b.projectManagers?.length && <Hinweiszeile stufe="warn"><p>Ohne zugeteilte Projektleitung erreicht eine Eilzustellung für diese Baustelle niemanden. Die Verwaltung wird weiterhin verständigt.</p></Hinweiszeile>}
+  </Card>;
   const plaene = user ? (
     <Card title="Pläne und Dokumente" id="b-plaene">
       <BaustellenPlaene
@@ -474,12 +442,12 @@ export default function BaustellenakteView() {
   // Termine gehören zur Einsatzplanung: ohne das Modul gibt es sie nicht.
   const termineKarte = einsatzAn ? (
     <div id="b-termine">
-      <TermineKarte titel="Termine" vorgabe={{ bezug: 'baustelle', projectNumber: b.projectNumber }} />
+      <TermineKarte titel="Termine" onStand={setTerminStand} vorgabe={{ bezug: 'baustelle', projectNumber: b.projectNumber }} />
     </div>
   ) : null;
 
   return (
-    <div className="space-y-3 lg:space-y-5">
+    <div className="akten-seite">
       {warnung}
       <PageHeader
         ort={
@@ -493,32 +461,39 @@ export default function BaustellenakteView() {
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <Link to="/admin-projects" className="link inline-flex min-h-touch items-center">← Zur Baustellenliste</Link>
             <StatusBadge status={b.status} />
-            {b.estimatedHours ? <Marke>{fmtStunden(b.estimatedHours)} h Budget</Marke> : null}
+
           </span>
         }
+        action={(scheineSichtbar || darfAendern) && <div className="akten-aktionen">
+          {scheineSichtbar && <Link to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`} className="inline-flex min-h-touch items-center justify-center rounded bg-brand px-4 py-2 text-fliess font-semibold text-brand-fg">Schein schreiben</Link>}
+          {darfAendern && <Button variant={scheineSichtbar ? 'secondary' : 'primary'} onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
+        </div>}
       />
+      <div className="akten-kontakt"><AdresseLink adresse={b.address} /><TelefonLink nummer={b.contactPhone} name={b.contactName} /></div>
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <div className="akte">
-        <Sprungleiste
-          ziele={[
-            { id: 'b-ueberblick', text: 'Überblick' },
-            ...(einsatzAn ? [{ id: 'b-termine', text: 'Termine' }] : []),
-            ...(scheineKarte ? [{ id: 'b-scheine', text: 'Scheine' }] : []),
-            { id: 'b-daten', text: 'Daten' },
-            ...(plaene ? [{ id: 'b-plaene', text: 'Pläne' }] : []),
-          ]}
-        />
-        <div className="akte-spalte">
-          {ueberblick}
-          <Aktenspalten
-            telefon={[termineKarte, scheineKarte, stammdaten, plaene]}
-            links={[stammdaten]}
-            rechts={[termineKarte, scheineKarte, plaene]}
-          />
-        </div>
-      </div>
+      <AktenBereiche kennung="baustelle" bereiche={[
+        { id: 'uebersicht', titel: 'Übersicht', sprungziele: ['b-ueberblick', 'b-daten'], inhalt:
+          <div className="akten-spalten"><div className="akten-spalte">{auftrag}{kundeOrt}</div><div className="akten-spalte">
+            {einsatzAn && <AktenTerminVorschau stand={terminStand} bereich="planung" />}{team}
+          </div></div> },
+        { id: 'planung', titel: 'Termine und Team', sprungziele: ['b-termine', 'b-team'], inhalt:
+          <div className="akten-spalten"><div className="akten-spalte">{termineKarte || <Card title="Termine"><p className="text-sm text-ink-muted">Die Einsatzplanung ist für diesen Betrieb nicht aktiviert.</p></Card>}</div><div className="akten-spalte">
+            <Card title="Team und Leitung" id="b-team"><AktenAngaben>
+              <AktenAngabe wort="Team" breit>{namenDa ? (b.assignedEmployees ?? []).map((u) => namen.get(u) ?? u).join(', ') || 'kein Team' : 'Namen werden geladen …'}</AktenAngabe>
+              <AktenAngabe wort="Projektleitung" breit>{namenDa ? (b.projectManagers ?? []).map((u) => namen.get(u) ?? u).join(', ') || 'keine Projektleitung' : 'Namen werden geladen …'}</AktenAngabe>
+            </AktenAngaben></Card>
+          </div></div> },
+        { id: 'dokumente', titel: 'Scheine und Pläne', sprungziele: ['b-scheine', 'b-plaene'], inhalt:
+          <div className="akten-spalten"><div className="akten-spalte">{scheineKarte}{plaene}</div></div> },
+      ]} />
+      {darfAendern && entwurf && <AktenBearbeiten offen={bearbeitet} titel="Baustelle bearbeiten"
+        geaendert={geaendert} speichert={speichert} onSchliessen={() => setBearbeitet(false)} onVerwerfen={() => { setEntwurf(alsEntwurf(b)); setSpeicherFehler(null); }}>
+        <StammdatenFormular entwurf={entwurf} setEntwurf={setEntwurf} staff={staff} leads={leads} namenDa={namenDa}
+          geaendert={geaendert} speichert={speichert} fehler={speicherFehler} onSpeichern={() => void stammdatenSpeichern()}
+          onVerwerfen={() => setEntwurf(alsEntwurf(b))} angebote={angebote} angeboteSichtbar={angeboteSichtbar} />
+      </AktenBearbeiten>}
 
       <ConfirmDialog
         open={!!nummerFragen}
@@ -584,124 +559,11 @@ function verlaufPunkte(b: Project, angebote: Quote[], heute: string): LotPunkt[]
 }
 
 /**
- * Eine Kurzzeile der Stammdaten: Kopf wie `Kurzzeile` (Klassen aus lot.css),
- * der Inhalt aber in voller Breite. `Kurzzeile` rückt ihn ab dem Tablet um
- * 12 rem ein — für ein Formular in der halben Spalte des Schreibtischs blieb
- * danach kaum Platz (Änderungswunsch an `LotBausteine`: eine Angabe `breit`).
+ * Im Bearbeitungsfenster bleiben alle Felder offen. Die Orientierung kommt
+ * aus den Überschriften; zusätzliche Aufklappzustände würden Felder verstecken.
  */
-function Gruppe({ name, wert, children }: { name: string; wert: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <details className="kurz">
-      <summary className="kurz-kopf">
-        <span className="kurz-name">{name}</span>
-        <span className="kurz-wert">{wert}</span>
-        <span className="kurz-zeichen" aria-hidden="true">›</span>
-      </summary>
-      <div className="akte-gruppe-inhalt">{children}</div>
-    </details>
-  );
-}
-
-/** Was die Köpfe der Kurzzeilen zusammenfassen — für Lesen und Ändern gleich. */
-function koepfe(d: {
-  customerName: string;
-  address?: string;
-  status: string;
-  billingMode?: Abrechnungsart;
-  estimatedHours?: number | string;
-  startDate?: string;
-  endDate?: string;
-  team: string[];
-  leitung: string[];
-  /** Ist die Belegschaft da? Vorher ein Platzhalter statt Kennungen. */
-  namenDa: boolean;
-}) {
-  const budget = typeof d.estimatedHours === 'string' ? stundenbudgetAus(d.estimatedHours) : d.estimatedHours;
-  return {
-    kundeOrt: [d.customerName, d.address].filter(Boolean).join(' · ') || 'nicht hinterlegt',
-    auftrag: [
-      d.status,
-      d.billingMode ? abrechnungText(d.billingMode) : 'Abrechnung nicht festgelegt',
-      budget ? `${fmtStunden(budget)} h Budget` : null,
-    ]
-      .filter(Boolean)
-      .join(' · '),
-    zeitraum:
-      d.startDate || d.endDate
-        ? `${fmtDatum(d.startDate) || 'offen'} – ${fmtDatum(d.endDate) || 'offen'}`
-        : 'nicht festgelegt',
-    mannschaft: !d.namenDa ? (
-      <Wert bereit={false} muster="Monteur Muster, Monteur Muster · Leitung: Paul Projektleiter">{null}</Wert>
-    ) : (
-      <>
-        {d.team.length > 0 ? d.team.join(', ') : 'kein Team'}
-        {' · '}
-        {d.leitung.length > 0 ? (
-          `Leitung: ${d.leitung.join(', ')}`
-        ) : (
-          <span className="text-warning">keine Projektleitung</span>
-        )}
-      </>
-    ),
-  };
-}
-
-/** Die Stammdaten für alle, die sie nicht ändern dürfen. */
-function StammdatenLesen({ b, namen, namenDa }: { b: Project; namen: Map<string, string>; namenDa: boolean }) {
-  const team = (b.assignedEmployees ?? []).map((u) => namen.get(u) ?? u);
-  const leitung = (b.projectManagers ?? []).map((u) => namen.get(u) ?? u);
-  const k = koepfe({ ...b, team, leitung, namenDa });
-  return (
-    <div className="-mx-4 -mb-4">
-      {/* Anrufen und hinfahren, ohne erst aufzuklappen. */}
-      <div className="akte-griffe">
-        <AdresseLink adresse={b.address} variante="knopf" />
-        <TelefonLink nummer={b.contactPhone} name={b.contactName} variante="knopf" />
-      </div>
-      <Gruppe name="Kunde und Ort" wert={k.kundeOrt}>
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-          <Angabe wort="Kunde">{b.customerName}</Angabe>
-          {b.bezeichnung?.trim() && <Angabe wort="Bezeichnung">{b.bezeichnung}</Angabe>}
-          <Angabe wort="Baustellenadresse">
-            {b.address ? <AdresseLink adresse={b.address} /> : null}
-          </Angabe>
-          <Angabe wort="Ansprechpartner vor Ort">{b.contactName}</Angabe>
-          <Angabe wort="Telefon vor Ort">
-            {b.contactPhone ? <TelefonLink nummer={b.contactPhone} name={b.contactName} /> : null}
-          </Angabe>
-        </dl>
-      </Gruppe>
-      <Gruppe name="Auftrag" wert={k.auftrag}>
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-          <Angabe wort="Projektnummer"><span>{b.projectNumber}</span></Angabe>
-          <Angabe wort="Abrechnung">{b.billingMode ? abrechnungText(b.billingMode) : null}</Angabe>
-        </dl>
-        {b.description?.trim() ? (
-          <div className="border-t border-line pt-3">
-            <p className="section-label">Beschreibung / Auftragsumfang</p>
-            {/* Zeilenumbrüche bleiben: ein Auftragsumfang ist oft eine Liste. */}
-            <p className="mt-1 whitespace-pre-line text-sm text-ink">{b.description}</p>
-          </div>
-        ) : null}
-      </Gruppe>
-      <Gruppe name="Zeitraum" wert={k.zeitraum}>
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-          <Angabe wort="Beginn">{fmtDatum(b.startDate)}</Angabe>
-          <Angabe wort="Ende (geplant)">{fmtDatum(b.endDate)}</Angabe>
-        </dl>
-      </Gruppe>
-      <Gruppe name="Mannschaft" wert={k.mannschaft}>
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-          <Angabe wort="Team">
-            {namenDa ? team.join(', ') : <Wert bereit={false} muster="Monteur Muster, Monteur Muster">{null}</Wert>}
-          </Angabe>
-          <Angabe wort="Projektleitung">
-            {namenDa ? leitung.join(', ') : <Wert bereit={false} muster="Paul Projektleiter">{null}</Wert>}
-          </Angabe>
-        </dl>
-      </Gruppe>
-    </div>
-  );
+function Gruppe({ name, children }: { name: string; children: React.ReactNode }) {
+  return <section className="akten-editor-gruppe"><h3>{name}</h3>{children}</section>;
 }
 
 interface FormularProps {
@@ -709,7 +571,6 @@ interface FormularProps {
   setEntwurf: (e: BaustellenEntwurf) => void;
   staff: AppUser[];
   leads: AppUser[];
-  namen: Map<string, string>;
   namenDa: boolean;
   geaendert: boolean;
   speichert: boolean;
@@ -730,7 +591,7 @@ interface FormularProps {
  * im Feld steht.
  */
 function StammdatenFormular({
-  entwurf, setEntwurf, staff, leads, namen, namenDa,
+  entwurf, setEntwurf, staff, leads, namenDa,
   geaendert, speichert, fehler, onSpeichern, onVerwerfen, angebote, angeboteSichtbar,
 }: FormularProps) {
   const setze = <F extends keyof BaustellenEntwurf>(feld: F, wert: BaustellenEntwurf[F]) =>
@@ -738,25 +599,18 @@ function StammdatenFormular({
   const companyId = useAuth().user?.companyId;
   /** Der Kunde der Baustelle — einzeln geholt, nicht der ganze Kundenstamm (Ladezeit, 19.10.2026). */
   const [kunde, setKunde] = useKunde(companyId, entwurf.customerId);
-  const k = koepfe({
-    ...entwurf,
-    billingMode: entwurf.billingMode || undefined,
-    team: entwurf.assignedEmployees.map((u) => namen.get(u) ?? u),
-    leitung: entwurf.projectManagers.map((u) => namen.get(u) ?? u),
-    namenDa,
-  });
   const pauschal = entwurf.billingMode === 'Pauschal' || entwurf.billingMode === 'Einheitspreis';
 
   return (
     <>
-      <div className="-mx-4">
+      <div className="min-w-0">
         {/* Anrufen und hinfahren, ohne erst aufzuklappen. */}
         <div className="akte-griffe">
           <AdresseLink adresse={entwurf.address} variante="knopf" />
           <TelefonLink nummer={entwurf.contactPhone} name={entwurf.contactName} variante="knopf" />
         </div>
 
-        <Gruppe name="Kunde und Ort" wert={k.kundeOrt}>
+        <Gruppe name="Kunde und Ort">
           {/*
             Kunde AUSWÄHLEN statt tippen: zwei Schreibweisen ergäben zwei Kunden,
             beide unvollständig. Der Name wandert als Kopie mit, weil die
@@ -818,7 +672,7 @@ function StammdatenFormular({
           </div>
         )}
 
-        <Gruppe name="Auftrag" wert={k.auftrag}>
+        <Gruppe name="Auftrag">
           <FormGrid>
             <InputField
               id="b-nummer" label="Projektnummer" pflicht value={entwurf.projectNumber}
@@ -870,7 +724,7 @@ function StammdatenFormular({
           </div>
         )}
 
-        <Gruppe name="Zeitraum" wert={k.zeitraum}>
+        <Gruppe name="Zeitraum">
           <FormGrid>
             <InputField
               id="b-beginn" label="Beginn" type="date" value={entwurf.startDate}
@@ -886,7 +740,7 @@ function StammdatenFormular({
           <BetriebsurlaubHinweis companyId={companyId} von={entwurf.startDate} bis={entwurf.endDate} />
         </div>
 
-        <Gruppe name="Mannschaft" wert={k.mannschaft}>
+        <Gruppe name="Mannschaft">
           {!namenDa ? (
             <SkeletonList rows={4} />
           ) : (
@@ -948,25 +802,6 @@ function StammdatenFormular({
         />
       )}
     </>
-  );
-}
-
-/**
- * Eine Angabe der Stammdaten.
- *
- * LEER HEISST „NICHT HINTERLEGT", und das steht auch da. Die Zeile
- * wegzulassen wäre bequemer und falsch: dann sähe eine Akte ohne
- * Ansprechpartner genauso aus wie eine, in der das Feld gar nicht vorgesehen
- * ist — und niemand käme auf die Idee, ihn nachzutragen.
- */
-function Angabe({ wort, children }: { wort: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <dt className="section-label">{wort}</dt>
-      <dd className="mt-0.5 text-sm text-ink">
-        {children || <span className="text-ink-muted">nicht hinterlegt</span>}
-      </dd>
-    </div>
   );
 }
 

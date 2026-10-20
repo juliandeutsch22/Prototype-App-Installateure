@@ -10,7 +10,8 @@ import { canManageAdmins, fuehrtZeitkonto } from '@/lib/permissions';
 import { ROLES, type AppUser, type Role } from '@/types';
 import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
-import Aktenspalten from '@/components/Aktenspalten';
+import AktenBereiche, { AktenAngaben } from '@/components/AktenBereiche';
+import AktenBearbeiten from '@/components/AktenBearbeiten';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
 import { Marke, Zustand } from '@/components/Badge';
@@ -37,7 +38,6 @@ import { einstufungText, lehrzeitEnde } from '@/lib/einstufung';
 import Datenauskunft from '@/features/recht/Datenauskunft';
 import { zeigtAuskunft } from '@/features/recht/auskunftDatei';
 import ZahlFeld from '@/components/ZahlFeld';
-import { Sprungleiste } from '@/components/LotBausteine';
 import KontoUmstellen from './KontoUmstellen';
 import UrlaubsanspruchKarte from './UrlaubsanspruchKarte';
 
@@ -78,6 +78,7 @@ export default function BenutzerakteView() {
   const [person, setPerson] = useState<Teil<AppUser | null>>(LAEDT);
   const [entwurf, setEntwurf] = useState<BenutzerEntwurf | null>(null);
   const [speichert, setSpeichert] = useState(false);
+  const [bearbeitet, setBearbeitet] = useState(false);
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
   const [umschalten, setUmschalten] = useState(false);
   const [neuesPasswortFragen, setNeuesPasswortFragen] = useState(false);
@@ -157,6 +158,7 @@ export default function BenutzerakteView() {
     setSpeicherFehler(null);
     try {
       await updateUserProfile(uid, alsProfil(entwurf));
+      setBearbeitet(false);
       toast.success(`${entwurf.name} aktualisiert`);
       setVersuch((v) => v + 1);
     } catch {
@@ -236,37 +238,9 @@ export default function BenutzerakteView() {
 
   const eigenesKonto = p.uid === user.uid;
 
-  /*
-    DIE KARTEN DER AKTE — am Telefon untereinander, am Schreibtisch links
-    die Stammdaten, rechts der Zugang (`Aktenspalten`).
-  */
-  const stammdaten = (
-    <Card title="Stammdaten" id="akte-stammdaten" className="sprung-ziel">
-      {darfAendern && entwurf ? (
-        <StammdatenFormular
-          entwurf={entwurf}
-          setEntwurf={setEntwurf}
-          rollen={ROLES.filter((r) => r !== 'Administrator' || canManageAdmins(user.role))}
-          eigenesKonto={eigenesKonto}
-          onTag={tagUmschalten}
-          geaendert={geaendert}
-          speichert={speichert}
-          fehler={speicherFehler}
-          onSpeichern={() => void speichern()}
-          eintritt={entwurf.eintritt}
-          onVerwerfen={() => setEntwurf(alsEntwurf(p))}
-          gespeichert={p}
-        />
-      ) : (
-        <>
-          <StammdatenLesen p={p} />
-          <p className="mt-4 border-t border-line pt-3 text-sm text-ink-muted">
-            Ein Administrator lässt sich nur von einem Administrator ändern.
-          </p>
-        </>
-      )}
-    </Card>
-  );
+  const stammdaten = <Card title="Profil" id="akte-stammdaten"><StammdatenLesen p={p} teil="profil" />
+    {!darfAendern && <p className="text-sm text-ink-muted">Ein Administrator lässt sich nur von einem Administrator ändern.</p>}
+  </Card>;
   const zugang = darfAendern ? (
     <Card title="Zugang" id="akte-zugang" className="sprung-ziel">
       {/*
@@ -381,7 +355,7 @@ export default function BenutzerakteView() {
   // Wer die Akte ändern darf, pflegt auch das Geburtsdatum; im Support nie.
   const geburtsdatum = darfAendern && user && !einblick ? (
     <div id="akte-geburtsdatum" className="sprung-ziel">
-      <GeburtsdatumKarte companyId={user.companyId} uid={p.uid} onStand={setGeburtsdatumDerPerson} />
+      <GeburtsdatumKarte companyId={user.companyId} uid={p.uid} onStand={setGeburtsdatumDerPerson} alsAngabe />
     </div>
   ) : null;
 
@@ -396,22 +370,9 @@ export default function BenutzerakteView() {
     </div>
   ) : null;
 
-  /*
-    DIE SPRUNGLEISTE DER AKTE (Linie „Lot“, Regel 6): am Schreibtisch links
-    stehend, an Tablet und Handy waagrecht mitlaufend. Nur Ziele, die diese
-    Rolle auch sieht — ein Sprung ins Leere wäre schlimmer als keiner.
-  */
-  const sprungziele = [
-    { id: 'akte-stammdaten', text: 'Stammdaten', da: true },
-    { id: 'akte-zugang', text: 'Zugang', da: !!zugang },
-    { id: 'akte-geburtsdatum', text: 'Geburtsdatum', da: !!geburtsdatum },
-    { id: 'akte-urlaub', text: 'Urlaubsanspruch', da: !!anspruch },
-    { id: 'akte-datenschutz', text: 'Datenschutz', da: !!auskunft },
-  ].filter((z) => z.da);
-
   return (
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
-    <div className="space-y-3 lg:space-y-5">
+    <div className="akten-seite">
       {warnung}
       {/*
         DER WEG ZURÜCK STEHT IN DER ORTSZEILE (Linie „Lot“): dort, wo jede
@@ -427,24 +388,36 @@ export default function BenutzerakteView() {
             {p.active === false && <Marke>deaktiviert</Marke>}
           </span>
         }
+        action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
       />
 
-      <div className="akte">
-        <Sprungleiste ziele={sprungziele} />
-        <div className="min-w-0 space-y-3 lg:space-y-5">
-          {/*
-            ZUSAMMENFASSUNG ZUERST (Linie „Lot“, Regel 6) — nur, wo darunter
-            das Formular steht. Wer nur lesen darf, sieht die Stammdaten
-            ohnehin als Angaben; zweimal dasselbe wäre Lärm.
-          */}
-          {darfAendern && <Ueberblick p={p} />}
-          <Aktenspalten
-            telefon={[stammdaten, zugang, geburtsdatum, anspruch, auskunft]}
-            links={[stammdaten]}
-            rechts={[zugang, geburtsdatum, anspruch, auskunft]}
-          />
-        </div>
-      </div>
+      <AktenBereiche kennung="benutzer" bereiche={[
+        { id: 'profil', titel: 'Profil', sprungziele: ['akte-stammdaten', 'akte-geburtsdatum'], inhalt:
+          <div className="akten-spalten"><div className="akten-spalte">{stammdaten}</div><div className="akten-spalte">{geburtsdatum}</div></div> },
+        { id: 'arbeitszeit', titel: 'Arbeitszeit und Urlaub', sprungziele: ['akte-zeitkonto', 'akte-urlaub'], inhalt:
+          <div className="akten-spalten"><div className="akten-spalte"><Card title="Zeitkonto-Einstellungen" id="akte-zeitkonto"
+            hint="Hier stehen die Einstellungen und Startwerte des Zeitkontos. Die aktuellen Salden und Buchungen stehen in der Mitarbeiterübersicht.">
+            <StammdatenLesen p={p} teil="arbeitszeit" /></Card></div><div className="akten-spalte">{anspruch}</div></div> },
+        ...((zugang || auskunft) ? [{ id: 'zugang', titel: zugang ? 'Zugang und Rechte' : 'Datenschutz', sprungziele: ['akte-zugang', 'akte-datenschutz'], inhalt:
+          <div className="akten-spalten"><div className="akten-spalte">{zugang}</div><div className="akten-spalte"><Card title="Rolle und Freigaben"><StammdatenLesen p={p} teil="rechte" /></Card>{auskunft}</div></div> }] : []),
+      ]} />
+      {darfAendern && entwurf && <AktenBearbeiten offen={bearbeitet} titel="Benutzer bearbeiten" geaendert={geaendert} speichert={speichert}
+        onSchliessen={() => setBearbeitet(false)} onVerwerfen={() => { setEntwurf(alsEntwurf(p)); setSpeicherFehler(null); }}>
+        <StammdatenFormular
+          entwurf={entwurf}
+          setEntwurf={setEntwurf}
+          rollen={ROLES.filter((r) => r !== 'Administrator' || canManageAdmins(user.role))}
+          eigenesKonto={eigenesKonto}
+          onTag={tagUmschalten}
+          geaendert={geaendert}
+          speichert={speichert}
+          fehler={speicherFehler}
+          onSpeichern={() => void speichern()}
+          eintritt={entwurf.eintritt}
+          onVerwerfen={() => setEntwurf(alsEntwurf(p))}
+          gespeichert={p}
+        />
+      </AktenBearbeiten>}
 
       <ConfirmDialog
         open={!!jugendschutz}
@@ -498,51 +471,31 @@ export default function BenutzerakteView() {
   );
 }
 
-/**
- * Der Überblick oben in der Akte: das Wichtigste aus dem GESPEICHERTEN Stand,
- * in einer Zeile je Angabe. Nur aus dem, was die Akte ohnehin geladen hat —
- * Saldo und Resturlaub rechnet die Mitarbeiterübersicht und stehen hier nicht.
- */
-function Ueberblick({ p }: { p: AppUser }) {
-  const zeilen: [string, React.ReactNode][] = [
-    ['Anmeldung mit', istBenutzerkonto(p.email) ? `Benutzername ${kontoAnzeige(p.email)}` : `E-Mail ${p.email}`],
-    ['Rolle und Zustand', `${p.role} · ${p.active === false ? 'deaktiviert' : 'aktiv'}`],
-    [
-      'Einstufung heute',
-      p.einstufung ? einstufungText(p, todayStr()) : 'nicht festgelegt — zählt wie Facharbeiter',
-    ],
-    [
-      'Soll',
-      fuehrtZeitkonto(p)
-        ? `${p.weeklyTargetHours ?? '–'} Std. je Woche · ${tageText(p.workDays ?? []) || 'keine Arbeitstage'}`
-        : 'kein Zeitkonto',
-    ],
-    ['Urlaub im Jahr', p.yearlyVacationDays != null ? `${p.yearlyVacationDays} Tage` : 'nicht hinterlegt'],
-    ['Im Betrieb seit', fmtDatum(p.eintritt ?? p.appStartDate) || 'nicht hinterlegt'],
-  ];
-  return (
-    <Card title="Überblick" buendig>
-      <dl className="ueberblick">
-        {zeilen.map(([name, wert]) => (
-          <div key={name} className="ueberblick-zeile">
-            <dt className="ueberblick-name">{name}</dt>
-            <dd className="ueberblick-wert">{wert}</dd>
-          </div>
-        ))}
-      </dl>
-    </Card>
-  );
-}
-
 /** Die Stammdaten für alle, die sie nicht ändern dürfen. */
-function StammdatenLesen({ p }: { p: AppUser }) {
-  return (
-    <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+function StammdatenLesen({ p, teil }: { p: AppUser; teil: 'profil' | 'arbeitszeit' | 'rechte' }) {
+  return <AktenAngaben>
+    {teil === 'profil' && <>
       {istBenutzerkonto(p.email) ? (
         <Angabe wort="Benutzername">{kontoAnzeige(p.email)}</Angabe>
       ) : (
         <Angabe wort="E-Mail"><MailLink adresse={p.email} /></Angabe>
       )}
+      <Angabe wort="Einstufung">
+        {p.einstufung ? (
+          <span>
+            {einstufungText(p, todayStr())}
+            {p.einstufung === 'lehrling' && p.lehrbeginn && p.lehrzeitMonate
+              ? ` · Lehrbeginn ${fmtDatum(p.lehrbeginn)}, Lehrzeit bis ${fmtDatum(lehrzeitEnde(p.lehrbeginn, p.lehrzeitMonate))}`
+              : ''}
+            {p.einstufung === 'lehrling' && p.stundenInsBudget === false ? ' · Stunden nicht im Projekt-Budget' : ''}
+          </span>
+        ) : (
+          <span className="text-ink-muted">nicht festgelegt — zählt wie Facharbeiter</span>
+        )}
+      </Angabe>
+      <Angabe wort="Eintrittsdatum">{fmtDatum(p.eintritt ?? p.appStartDate)}</Angabe>
+    </>}
+    {teil === 'rechte' && <>
       <Angabe wort="Rolle">{p.role}</Angabe>
       {mitKundenFreigabe(p.role) && (
         <Angabe wort="Kunden pflegen">{p.kundenPflegen ? 'ja' : 'nein'}</Angabe>
@@ -564,19 +517,9 @@ function StammdatenLesen({ p }: { p: AppUser }) {
           ? <Zustand stand="ruht">deaktiviert</Zustand>
           : <Zustand stand="gut">aktiv</Zustand>}
       </Angabe>
-      <Angabe wort="Einstufung">
-        {p.einstufung ? (
-          <span>
-            {einstufungText(p, todayStr())}
-            {p.einstufung === 'lehrling' && p.lehrbeginn && p.lehrzeitMonate
-              ? ` · Lehrbeginn ${fmtDatum(p.lehrbeginn)}, Lehrzeit bis ${fmtDatum(lehrzeitEnde(p.lehrbeginn, p.lehrzeitMonate))}`
-              : ''}
-            {p.einstufung === 'lehrling' && p.stundenInsBudget === false ? ' · Stunden nicht im Projekt-Budget' : ''}
-          </span>
-        ) : (
-          <span className="text-ink-muted">nicht festgelegt — zählt wie Facharbeiter</span>
-        )}
-      </Angabe>
+    </>}
+    {teil === 'arbeitszeit' && <>
+      <Angabe wort="Zeitkonto">{fuehrtZeitkonto(p) ? 'wird geführt' : 'kein Zeitkonto'}</Angabe>
       <Angabe wort="Wochenstunden">
         {p.weeklyTargetHours != null ? <span>{mitKomma(p.weeklyTargetHours)}</span> : null}
       </Angabe>
@@ -585,7 +528,6 @@ function StammdatenLesen({ p }: { p: AppUser }) {
       </Angabe>
       {/* Zwei Daten seit dem 30.09.2026 (M6): wann die Person angefangen hat,
           und ab wann Senklot ihr Zeitkonto rechnet. */}
-      <Angabe wort="Eintrittsdatum">{fmtDatum(p.eintritt ?? p.appStartDate)}</Angabe>
       <Angabe wort="Saldo-Startdatum">{fmtDatum(p.appStartDate)}</Angabe>
       <Angabe wort="Start-Saldo (Stunden)">
         {p.initialOvertime != null ? <span>{mitKomma(p.initialOvertime)}</span> : null}
@@ -607,8 +549,8 @@ function StammdatenLesen({ p }: { p: AppUser }) {
             .join(' · ')}
         </Angabe>
       )}
-    </dl>
-  );
+    </>}
+  </AktenAngaben>;
 }
 
 interface FormularProps {
@@ -893,8 +835,8 @@ function StammdatenFormular({
 function Angabe({ wort, children }: { wort: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="section-label">{wort}</dt>
-      <dd className="mt-0.5 text-sm text-ink">
+      <dt>{wort}</dt>
+      <dd>
         {children || <span className="text-ink-muted">nicht hinterlegt</span>}
       </dd>
     </div>

@@ -58,8 +58,11 @@ Die Musterseite `/_muster` (`src/features/muster/MusterView.tsx`) zeigt alles.
    Datenschicht es heute schon kann — **die Datenschicht wird nicht
    geändert**; wo sie es nicht kann, im Bericht als Lücke nennen.
 5. **Fünf Zustände**, sonst keine Farbe. Achtung = Bernstein, Fehler = Rot.
-6. **Akten**: zuerst die Zusammenfassung (Kurzzeilen, Kennzahlen), dann die
-   Einzelheiten; bei langen Akten eine Sprungleiste.
+6. **Akten**: Baustelle, Kunde und Benutzer folgen seit E18 der klaren
+   Leseansicht mit horizontalen Bereichen (`AktenBereiche`), beschrifteten
+   Angaben (`AktenAngaben`) und vollständigem Bearbeitungsfenster
+   (`AktenBearbeiten`). Bei der Baustelle Stunden kompakt beim Auftrag.
+   Andere Akten behalten ihre bestehenden Bausteine.
 7. **Verläufe** (Bewegungen, Statuswechsel, Protokolle) als `LotVerlauf`.
 8. **Planen und Bearbeiten im Seitenfenster**, wo heute ein Formular
    zwischen den Zeilen aufklappt oder ein Dialog in der Mitte steht.

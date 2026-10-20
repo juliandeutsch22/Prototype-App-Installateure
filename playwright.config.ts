@@ -53,7 +53,7 @@ const ORT = 'http://127.0.0.1:5173';
   und jede seiner Seiten einmal. Seit Runde 3: die Leiste der Zeiterfassung
   am Handy (G22) und der Nachweis zum Sonderurlaub (G26).
 */
-const MONTEUR_WEGE = /(zeitBuchen|materialAnfordern|scheinUnterschreiben|monteurSeiten|fokusRahmen|aktionsleisteTelefon|sonderurlaubNachweis)\.spec\.ts$/;
+const MONTEUR_WEGE = /(zeitBuchen|materialAnfordern|scheinUnterschreiben|monteurSeiten|fokusRahmen|aktionsleisteTelefon|sonderurlaubNachweis|akten)\.spec\.ts$/;
 const CHROMIUM_START = process.env.CHROMIUM_PFAD ? { executablePath: process.env.CHROMIUM_PFAD } : {};
 
 const STAPEL = {

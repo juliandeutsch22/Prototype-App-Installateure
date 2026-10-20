@@ -10,6 +10,7 @@
 @import './styles/lot-verwaltung.css';
 @import './styles/lot-uebersicht.css';
 @import './styles/lot-monat.css';
+@import './styles/lot-akten.css';
 
 @tailwind base;
 @tailwind components;

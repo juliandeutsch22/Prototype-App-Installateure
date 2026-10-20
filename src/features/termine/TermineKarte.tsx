@@ -14,6 +14,7 @@ import { useToast } from '@/components/Toast';
 import TerminFormular, { type TerminVorgabe } from './TerminFormular';
 import TerminListe from './TerminListe';
 import { datumKurz, terminKopf } from './terminText';
+import type { AktenTerminStand } from '@/components/AktenTerminVorschau';
 
 /**
  * DIE TERMINE AN EINER STELLE — Tagesplanung, Baustellenakte, Kundenakte
@@ -27,6 +28,7 @@ export default function TermineKarte({
   titel,
   vorgabe,
   onTermine,
+  onStand,
   anlegen = 0,
 }: {
   titel: string;
@@ -37,6 +39,8 @@ export default function TermineKarte({
    * Baustelle ansteht (Runde 3, G23), ohne ein zweites Mal zu laden.
    */
   onTermine?: (termine: Termin[]) => void;
+  /** Eine Aktenvorschau unterscheidet Ladefehler von tatsächlich fehlenden Terminen. */
+  onStand?: (stand: AktenTerminStand) => void;
   /**
    * Steigt der Zähler, öffnet die Karte „Termin anlegen“ — für das ⋯ im
    * Seitenkopf der Tagesplanung (20.10.2026). So bleibt es bei einem
@@ -94,6 +98,8 @@ export default function TermineKarte({
     // Nur bei neuen Terminen melden — ein neuer Rückruf allein ist keine Änderung.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [termine]);
+
+  useEffect(() => { onStand?.({ termine, fehler }); }, [termine, fehler, onStand]);
 
   useEffect(() => {
     if (anlegen > 0 && darf) setBearbeite('neu');

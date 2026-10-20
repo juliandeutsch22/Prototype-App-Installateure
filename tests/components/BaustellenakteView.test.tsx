@@ -180,9 +180,13 @@ function zeige(id = 'b1') {
   );
 }
 
+async function bearbeite() {
+  await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+}
+
 /** Der Wert zu einer Beschriftung in den Stammdaten. */
 function angabe(wort: string) {
-  const dt = screen.getByText(wort);
+  const dt = within(screen.getByRole('tabpanel')).getByText(wort);
   return dt.nextElementSibling as HTMLElement;
 }
 
@@ -217,12 +221,10 @@ describe('Die Stammdaten für alle, die nur lesen', () => {
 
   it('zeigt die Angaben, ohne ein einziges Eingabefeld', async () => {
     zeige();
-    expect(await screen.findByText('Projektnummer')).toBeInTheDocument();
-    expect(angabe('Projektnummer')).toHaveTextContent('2026-101');
+    expect(await screen.findByText('2026-101')).toBeInTheDocument();
     expect(angabe('Abrechnung')).toHaveTextContent('Pauschal');
     expect(screen.queryByLabelText(/Projektnummer/)).not.toBeInTheDocument();
   });
-
   it('sagt bei einer leeren Angabe, dass sie nicht hinterlegt ist', async () => {
     /*
       Die Zeile wegzulassen wäre bequemer und falsch: eine Akte ohne
@@ -250,7 +252,7 @@ describe('Die Stammdaten für alle, die nur lesen', () => {
       nicht.
     */
     zeige();
-    expect(await screen.findByText('Team')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Team und Leitung' })).toBeInTheDocument();
     expect(angabe('Team')).toHaveTextContent('Anton Meier, Berta Klein');
     expect(angabe('Projektleitung')).toHaveTextContent('Clara Leiter');
   });
@@ -265,6 +267,7 @@ describe('Die Stammdaten für alle, die nur lesen', () => {
 describe('Die Stammdaten für alle, die ändern dürfen', () => {
   it('zeigt dieselben Angaben als Felder', async () => {
     zeige();
+    await bearbeite();
     expect(await screen.findByLabelText(/Projektnummer/)).toHaveValue('2026-101');
     expect(screen.getByLabelText(/Baustellenadresse/)).toHaveValue(
       'Ringstraße 3, 2700 Wiener Neustadt',
@@ -280,6 +283,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
       und die Einsatzplanung hängt daran.
     */
     zeige();
+    await bearbeite();
     await screen.findByLabelText(/Projektnummer/);
     expect(screen.queryByText(/ungespeicherte Änderungen/)).not.toBeInTheDocument();
 
@@ -289,6 +293,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
 
   it('nimmt die Änderung mit, nicht nur die Anzeige', async () => {
     zeige();
+    await bearbeite();
     const feld = await screen.findByLabelText(/Ansprechpartner vor Ort/);
     await userEvent.clear(feld);
     await userEvent.type(feld, 'Herr Huber');
@@ -307,6 +312,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
       etwas anderes.
     */
     zeige();
+    await bearbeite();
     await userEvent.clear(await screen.findByLabelText(/Stundenbudget/));
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
 
@@ -318,6 +324,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
 
   it('speichert die Bezeichnung (G4)', async () => {
     zeige();
+    await bearbeite();
     await userEvent.type(await screen.findByLabelText(/Bezeichnung/), 'Bad 2. OG');
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
     await waitFor(() =>
@@ -327,6 +334,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
 
   it('schlägt beim Kundenwechsel dessen Anschrift nur vor, wenn das Feld leer ist (G5)', async () => {
     zeige();
+    await bearbeite();
     const adresse = await screen.findByLabelText(/Baustellenadresse/);
     // Gegenprobe zuerst: eine eigene Baustellenadresse bleibt stehen.
     await kundeWaehlen(userEvent.setup(), KUNDEN.find((k) => k.id === 'k2')!.name);
@@ -341,6 +349,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
 
   it('speichert kein Ende vor dem Beginn (Testbericht 30.09.2026, M13)', async () => {
     zeige();
+    await bearbeite();
     const beginn = await screen.findByLabelText('Beginn');
     await userEvent.clear(beginn);
     await userEvent.type(beginn, '2026-10-05');
@@ -362,6 +371,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
       wer sie korrigieren musste, konnte es nicht.
     */
     zeige();
+    await bearbeite();
     await userEvent.selectOptions(await screen.findByLabelText(/Abrechnung/), 'Regie');
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
 
@@ -376,6 +386,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
     // können, ohne den Kundenstamm zu laden. Bliebe er stehen, zeigte die
     // Liste den alten Kunden zu einer Baustelle, die einem anderen gehört.
     zeige();
+    await bearbeite();
     await kundeWaehlen(userEvent.setup(), KUNDEN.find((k) => k.id === 'k2')!.name);
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
 
@@ -387,6 +398,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
 
   it('speichert nicht ohne Projektnummer', async () => {
     zeige();
+    await bearbeite();
     await userEvent.clear(await screen.findByLabelText(/Projektnummer/));
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
 
@@ -401,6 +413,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
       Baustelle zeigte danach null Stunden. So war es bis zum 23.09.
     */
     zeige();
+    await bearbeite();
     const feld = await screen.findByLabelText(/Projektnummer/);
     await userEvent.clear(feld);
     await userEvent.type(feld, '2026-110');
@@ -421,6 +434,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
       new Error('Die Nummer steht schon auf Belegen und bleibt: 1 Rechnung(en)'),
     );
     zeige();
+    await bearbeite();
     const feld = await screen.findByLabelText(/Projektnummer/);
     await userEvent.clear(feld);
     await userEvent.type(feld, '2026-110');
@@ -433,6 +447,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
 
   it('fragt bei unveränderter Nummer nicht nach', async () => {
     zeige();
+    await bearbeite();
     await userEvent.type(await screen.findByLabelText(/Baustellenadresse/), '!');
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
     await vi.waitFor(() => expect(updateProject).toHaveBeenCalled());
@@ -442,6 +457,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
 
   it('verwirft die Änderung auf Wunsch wieder', async () => {
     zeige();
+    await bearbeite();
     const feld = await screen.findByLabelText(/Baustellenadresse/);
     await userEvent.type(feld, '!');
     await userEvent.click(screen.getByRole('button', { name: 'Verwerfen' }));
@@ -477,7 +493,7 @@ describe('Was die Akte sonst noch zeigt', () => {
 
   it('verweist auf die Kundenakte', async () => {
     zeige();
-    expect(await screen.findByRole('link', { name: 'Zur Kundenakte' })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: /Zur Kundenakte/ })).toHaveAttribute(
       'href',
       '/customers/k1',
     );
@@ -486,9 +502,9 @@ describe('Was die Akte sonst noch zeigt', () => {
   it('gibt den Links unter „Weiter“ die volle Tastfläche (Prüflauf 25.09.2026, P4-09)', async () => {
     // Alleinstehende Links waren nur so hoch wie ihre Zeile (24 px).
     zeige();
-    expect((await screen.findByRole('link', { name: 'Zur Kundenakte' })).className)
+    expect((await screen.findByRole('link', { name: /Zur Kundenakte/ })).className)
       .toMatch(/\bmin-h-touch\b/);
-    expect((await screen.findByRole('link', { name: /Handwerksschein/ })).className).toMatch(/\bmin-h-touch\b/);
+    expect((await screen.findByRole('link', { name: 'Schein schreiben' })).className).toMatch(/\bmin-h-touch\b/);
   });
 
   it('sagt es, wenn kein Kunde verknüpft ist, statt den Verweis wegzulassen', async () => {
@@ -501,7 +517,7 @@ describe('Was die Akte sonst noch zeigt', () => {
 
   it('führt zum Handwerksschein dieser Baustelle', async () => {
     zeige();
-    expect(await screen.findByRole('link', { name: /Handwerksschein/ })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: 'Schein schreiben' })).toHaveAttribute(
       'href',
       '/worksheet?projekt=2026-101',
     );
@@ -510,8 +526,8 @@ describe('Was die Akte sonst noch zeigt', () => {
   it('zeigt den Schein-Verweis nicht, wenn das Modul aus ist', async () => {
     modulAn = false;
     zeige();
-    await screen.findByLabelText(/Projektnummer/);
-    expect(screen.queryByRole('link', { name: /Handwerksschein/ })).not.toBeInTheDocument();
+    await screen.findByRole('heading', { name: 'Hausverwaltung Nord' });
+    expect(screen.queryByRole('link', { name: 'Schein schreiben' })).not.toBeInTheDocument();
   });
 
   it('unterscheidet „gibt es nicht“ von „konnte nicht laden“', async () => {
@@ -552,21 +568,24 @@ describe('Das Angebot hinter der Baustelle', () => {
   it('sagt bei Pauschal, woher der Preis kommt: aus dem angenommenen Angebot (M14)', async () => {
     angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007', status: 'Angenommen', totalNetto: 7500.5, quoteDate: '2026-09-01' }];
     zeige();
+    await bearbeite();
     await userEvent.selectOptions(await screen.findByLabelText(/Abrechnung/), 'Pauschal');
-    expect(await screen.findByText(/legt das angenommene Angebot AN-2026-0007 fest/)).toBeInTheDocument();
+    expect(await within(screen.getByRole('dialog', { name: 'Baustelle bearbeiten' })).findByText(/legt das angenommene Angebot AN-2026-0007 fest/)).toBeInTheDocument();
   });
 
   it('ohne angenommenes Angebot: sagt, dass der Preis in der Rechnung eingetragen wird (M14)', async () => {
     angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007', status: 'Versendet', totalNetto: 100 }];
     zeige();
+    await bearbeite();
     await userEvent.selectOptions(await screen.findByLabelText(/Abrechnung/), 'Pauschal');
-    expect(await screen.findByText(/Pauschal ohne angenommenes Angebot/)).toBeInTheDocument();
+    expect(await within(screen.getByRole('dialog', { name: 'Baustelle bearbeiten' })).findByText(/Pauschal ohne angenommenes Angebot/)).toBeInTheDocument();
   });
 
   it('Gegenprobe: bei Regie kein Hinweis zum Pauschalpreis', async () => {
     zeige();
+    await bearbeite();
     await userEvent.selectOptions(await screen.findByLabelText(/Abrechnung/), 'Regie');
-    expect(screen.queryByText(/Pauschalpreis|Pauschal ohne/)).toBeNull();
+    expect(within(screen.getByRole('dialog', { name: 'Baustelle bearbeiten' })).queryByText(/Pauschalpreis|Pauschal ohne/)).toBeNull();
   });
 
   it('sagt es, wenn das Angebot nicht geladen werden konnte', async () => {
@@ -587,6 +606,8 @@ describe('Pläne und Dokumente', () => {
   it('lädt hoch und zeigt den Plan sofort', async () => {
     const nutzer = userEvent.setup();
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Scheine und Pläne' }));
+    await bearbeite();
     await screen.findByText('Noch keine Pläne oder Dokumente.');
     await nutzer.upload(screen.getByLabelText('Dokumente auswählen'), pdf('Grundriss EG.pdf'));
     expect(hochgeladen.map((d) => d.name)).toEqual(['Grundriss EG.pdf']);
@@ -599,6 +620,8 @@ describe('Pläne und Dokumente', () => {
   it('lädt von mehreren Dateien die guten hoch und nennt die schlechte', async () => {
     const nutzer = userEvent.setup({ applyAccept: false });
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Scheine und Pläne' }));
+    await bearbeite();
     await screen.findByText('Noch keine Pläne oder Dokumente.');
     await nutzer.upload(screen.getByLabelText('Dokumente auswählen'), [
       pdf('Plan 1.pdf'),
@@ -613,6 +636,7 @@ describe('Pläne und Dokumente', () => {
     plaene = [{ id: 'd9', projectId: 'b1', pfad: 'baustellen/perl/b1/x.pdf', dateiname: 'Alt.pdf', mime: 'application/pdf', bytes: 500 }];
     const nutzer = userEvent.setup();
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Scheine und Pläne' }));
     await nutzer.click(await screen.findByRole('button', { name: 'Alt.pdf löschen' }));
     expect(geloescht).toEqual([]);
     const dialog = await screen.findByRole('dialog');
@@ -626,6 +650,7 @@ describe('Pläne und Dokumente', () => {
     nutzer = NUTZER();
     plaene = [{ id: 'd9', projectId: 'b1', pfad: 'baustellen/perl/b1/x.pdf', dateiname: 'Alt.pdf', mime: 'application/pdf', bytes: 500 }];
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Scheine und Pläne' }));
     expect(await screen.findByRole('link', { name: 'Alt.pdf' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Dokument hinzufügen/ })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Alt.pdf löschen' })).toBeNull();
@@ -635,6 +660,7 @@ describe('Pläne und Dokumente', () => {
 describe('Termine in der Baustellenakte (Plan 10.4)', () => {
   it('zeigt die Termine dieser Baustelle, mit „Termin anlegen" für die Leitung', async () => {
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Termine und Team' }));
     const titel = await screen.findByRole('heading', { name: 'Termine' });
     expect(within(titel.closest('section')!).getByRole('button', { name: 'Termin anlegen' })).toBeInTheDocument();
     await waitFor(() => expect(listTermineDerBaustelle).toHaveBeenCalledWith('perl', '2026-101'));
@@ -643,7 +669,7 @@ describe('Termine in der Baustellenakte (Plan 10.4)', () => {
   it('nicht ohne das Modul Einsatzplanung', async () => {
     modulAn = false;
     zeige();
-    await screen.findByText('Projektnummer');
+    await screen.findByRole('heading', { name: 'Hausverwaltung Nord' });
     expect(screen.queryByRole('heading', { name: 'Termine' })).not.toBeInTheDocument();
   });
 });
@@ -653,27 +679,26 @@ describe('Termine in der Baustellenakte (Plan 10.4)', () => {
   Lot, Stammdaten als Kurzzeilen — und Warnungen bleiben sichtbar.
 */
 describe('Die Baustellenakte in der Linie „Lot“', () => {
-  it('führt mit der Sprungleiste zu jedem Teil, den es gibt', async () => {
+  it('ordnet alle bisherigen Teile den drei Bereichen zu', async () => {
     zeige();
-    const leiste = await screen.findByRole('navigation', { name: 'Auf dieser Seite' });
-    const ziele = within(leiste).getAllByRole('link').map((a) => a.getAttribute('href'));
-    expect(ziele).toEqual(['#b-ueberblick', '#b-termine', '#b-scheine', '#b-daten', '#b-plaene']);
-    for (const z of ziele) expect(document.getElementById(z!.slice(1))).not.toBeNull();
+    const leiste = await screen.findByRole('tablist');
+    expect(within(leiste).getAllByRole('tab').map((a) => a.textContent)).toEqual(['Übersicht', 'Termine und Team', 'Scheine und Pläne']);
+    for (const id of ['b-ueberblick', 'b-termine', 'b-scheine', 'b-daten', 'b-plaene']) expect(document.getElementById(id)).not.toBeNull();
   });
-
   it('Gegenprobe: ohne Einsatzplanung kein Sprung zu den Terminen', async () => {
     modulAn = false;
     zeige();
-    const leiste = await screen.findByRole('navigation', { name: 'Auf dieser Seite' });
-    expect(within(leiste).queryByRole('link', { name: 'Termine' })).toBeNull();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Termine und Team' }));
+    expect(document.getElementById('b-termine')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Termin anlegen' })).toBeNull();
   });
-
   it('zeigt den Verlauf als Lot: Beginn, heute als Ring, das überschrittene Ende', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 4, 15, 9, 0, 0));
     try {
       zeige();
-      const lot = await screen.findByRole('list', { name: 'Verlauf der Baustelle' });
+      await userEvent.click(await screen.findByText('Verlauf der Baustelle', { selector: 'summary' }));
+    const lot = await screen.findByRole('list', { name: 'Verlauf der Baustelle' });
       const punkte = within(lot).getAllByRole('listitem');
       expect(punkte.map((p) => p.querySelector('.lot-titel')?.textContent)).toEqual([
         'Beginn', 'Ende geplant', 'Heute · Aktiv',
@@ -688,27 +713,29 @@ describe('Die Baustellenakte in der Linie „Lot“', () => {
   it('Gegenprobe: eine abgeschlossene Baustelle hat keinen „heute“-Ring und nichts überschritten', async () => {
     baustellen = [{ ...BAUSTELLE, status: 'Abgeschlossen' }];
     zeige();
+    await userEvent.click(await screen.findByText('Verlauf der Baustelle', { selector: 'summary' }));
     const lot = await screen.findByRole('list', { name: 'Verlauf der Baustelle' });
     expect(within(lot).queryByText(/Heute/)).toBeNull();
     expect(within(lot).queryByText('überschritten')).toBeNull();
     expect(within(lot).getByText('Ende')).toBeInTheDocument();
   });
 
-  it('fasst die Stammdaten in Kurzzeilen zusammen — die Felder stehen darin', async () => {
+  it('zeigt die bisherigen Formularfelder im Bearbeitungsfenster offen', async () => {
     zeige();
+    await bearbeite();
     const feld = await screen.findByLabelText(/Projektnummer/);
-    const zeile = feld.closest('details')!;
-    expect(within(zeile.querySelector('summary')!).getByText('Auftrag')).toBeInTheDocument();
-    expect(zeile.querySelector('summary')).toHaveTextContent('Aktiv · Pauschal · 40 h Budget');
+    expect(feld.closest('details')).toBeNull();
+    expect(within(feld.closest('section')!).getByRole('heading', { name: 'Auftrag' })).toBeInTheDocument();
+    expect(feld).toHaveValue('2026-101');
   });
-
-  it('lässt die Warnung zur fehlenden Projektleitung sichtbar, auch wenn die Kurzzeile zu ist', async () => {
+  it('zeigt die Warnung zur fehlenden Projektleitung bereits beim Lesen', async () => {
     baustellen = [{ ...BAUSTELLE, projectManagers: [] }];
     zeige();
     const warnung = await screen.findByText(/Eilzustellung für diese Baustelle/);
     expect(warnung.closest('details')).toBeNull();
     // Gegenprobe: die Auswahl der Projektleitung selbst steht in der Kurzzeile.
-    expect(screen.getByText('Verantwortliche Projektleitung').closest('details')).not.toBeNull();
+    await bearbeite();
+    expect(screen.getByText('Verantwortliche Projektleitung').closest('section')).not.toBeNull();
   });
 });
 
@@ -718,6 +745,7 @@ describe('Die Baustellenakte in der Linie „Lot“', () => {
 */
 /** Die Karte „Handwerksscheine“ (Card trägt keinen Vorlesenamen; gefunden über ihre Überschrift). */
 async function scheinKarte() {
+  await userEvent.click(await screen.findByRole('tab', { name: 'Scheine und Pläne' }));
   await screen.findByRole('heading', { name: 'Handwerksscheine' });
   return document.getElementById('b-scheine')!;
 }
@@ -777,7 +805,7 @@ describe('Die Handwerksscheine der Baustelle', () => {
   it('Gegenprobe: ohne das Modul „Handwerksscheine“ kein Abschnitt und keine Abfrage', async () => {
     modulAn = false;
     zeige();
-    await screen.findByLabelText(/Projektnummer/);
+    await screen.findByRole('heading', { name: 'Hausverwaltung Nord' });
     expect(document.getElementById('b-scheine')).toBeNull();
     expect(listWorkSheetsForProject).not.toHaveBeenCalled();
   });
@@ -795,23 +823,45 @@ describe('Baustellenakte — Team erst mit der Belegschaft', () => {
     belegschaftWarten = new Promise((fertig) => { freigeben = fertig; });
     zeige();
     // Erst die Leseansicht, dann (Geschäftsführung) die Felder — beide sollen keine Kennung zeigen.
-    await waitFor(() => expect(screen.getAllByText('Mannschaft').length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText('Team').length).toBeGreaterThan(0));
     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
     expect(screen.queryByText(/u1, u2/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Leitung: u9/)).not.toBeInTheDocument();
     await act(async () => { freigeben(); });
-    expect(await screen.findByText(/Anton Meier, Berta Klein/)).toBeInTheDocument();
+    expect(await within(await screen.findByRole('tabpanel')).findByText(/Anton Meier, Berta Klein/)).toBeInTheDocument();
   });
 
   it('beim zweiten Besuch stehen die Namen sofort da', async () => {
     zwischenspeicherFuer('chef', 'perl');
     const erst = zeige();
-    expect(await screen.findByText(/Anton Meier, Berta Klein/)).toBeInTheDocument();
+    expect(await within(await screen.findByRole('tabpanel')).findByText(/Anton Meier, Berta Klein/)).toBeInTheDocument();
     erst.unmount();
 
     // Jetzt antwortet die Belegschaft nicht mehr: die Namen kommen aus dem gemerkten Stand.
     belegschaftWarten = new Promise(() => undefined);
     zeige();
-    expect(await screen.findByText(/Anton Meier, Berta Klein/)).toBeInTheDocument();
+    expect(await within(await screen.findByRole('tabpanel')).findByText(/Anton Meier, Berta Klein/)).toBeInTheDocument();
+  });
+});
+
+
+describe('Aktenlinie 03 · Baustelle', () => {
+  it('beginnt lesbar, ordnet die bestehenden Teile ein und bearbeitet erst auf Wunsch', async () => {
+    zeige();
+    await screen.findByRole('heading', { name: 'Hausverwaltung Nord' });
+    expect(screen.queryByLabelText(/Projektnummer/)).toBeNull();
+    expect(screen.getAllByRole('tab').map((x) => x.textContent)).toEqual(['Übersicht', 'Termine und Team', 'Scheine und Pläne']);
+    await userEvent.click(screen.getByRole('button', { name: 'Bearbeiten' }));
+    expect(await screen.findByRole('dialog', { name: 'Baustelle bearbeiten' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Projektnummer/)).toHaveValue('2026-101');
+  });
+  it('verliert eine Änderung beim Schließen nicht stillschweigend', async () => {
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+    await userEvent.type(screen.getByLabelText(/Baustellenadresse/), '!');
+    await userEvent.click(screen.getByRole('button', { name: 'Schließen' }));
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Ungespeicherte Änderungen verwerfen?' })).getByRole('button', { name: 'Abbrechen' }));
+    expect(screen.getByLabelText(/Baustellenadresse/)).toHaveValue(BAUSTELLE.address+'!');
+    expect(updateProject).not.toHaveBeenCalled();
   });
 });

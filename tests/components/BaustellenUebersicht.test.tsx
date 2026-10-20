@@ -203,3 +203,21 @@ it('stellt die tatsächliche Budgetüberschreitung dar, ohne den Wert bei 100 Pr
   expect(await screen.findByRole('img', { name: '160 % des Stundenbudgets verbraucht' })).toBeInTheDocument();
   expect(screen.getByText('160 %')).toBeInTheDocument();
 });
+
+
+it('Aktenlinie 03 · zeigt den Stundenstand kompakt und hält Helfer sowie Personendetails getrennt', async () => {
+  bestand = [summe({ minuten: 1800 }), summe({ userId: 'u2', userName: 'Helfer', art: 'helfer', minuten: 600 })];
+  render(<BaustellenUebersicht companyId="perl" projekt={projekt()} kompakt />);
+  expect(await screen.findByText(/verbleibend/)).toHaveTextContent('10,0 h');
+  expect(screen.queryByRole('img')).toBeNull();
+  expect(screen.getByText(/zusätzlich.*Helfer/i)).toHaveTextContent('10,0 h');
+  expect(stundenDerBaustellen).toHaveBeenCalledTimes(1);
+  expect(screen.getByText('Stunden nach Person')).toBeInTheDocument();
+});
+
+it('Aktenlinie 03 · hält die Budgetwarnung ab 80 Prozent auch ohne Ring sichtbar', async () => {
+  bestand = [summe({ minuten: 1920 })];
+  render(<BaustellenUebersicht companyId="perl" projekt={projekt()} kompakt />);
+  expect(await screen.findByText(/verbleibend/)).toHaveClass('text-warning');
+  expect(screen.queryByRole('img')).toBeNull();
+});
