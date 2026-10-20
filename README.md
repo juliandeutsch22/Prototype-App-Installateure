@@ -1,5 +1,7 @@
 # Senklot – Bilder für die Landingpage
 
+**Neuer Gestaltungsentwurf vom 20.10.2026:** [Baustellenakte ansehen](lot-v2-akten-entwurf-2026-10-20/README.md). Dieser Vorschlag ist noch nicht in der Live-App umgesetzt.
+
 ## Aktuell: Lot v2 · tatsächliche Umsetzung 01
 
 **Seit 16.10.2026 live:** [App öffnen](https://installateur-demo.firebaseapp.com/) · [Auslieferungsnachweis und Handbuch](lot-v2-auslieferung-2026-10-16/README.md).
