@@ -113,3 +113,14 @@ bleiben verbindlich. [Umsetzung und Zuordnung](lot-v2-10/umsetzung.md).
 **E17 — Lot v2 bestätigt (20.10.2026).** Der Auftraggeber hat die Designlinie
 Lot v2, wie seit E16 umgesetzt, bestätigt. Sie gilt damit als festgelegte
 Linie, nicht mehr als Arbeitsstand; Handbuch und Stand führen sie so.
+
+
+**E18 — Drei Akten mit klarer Leseansicht (20.10.2026).** Nach Freigabe von
+Aktenentwurf 03 werden Baustelle, Kunde und Benutzer in derselben bestätigten
+Lot-Linie gegliedert: horizontale Bereiche statt der zusätzlichen Sprungleiste,
+Angaben mit Beschriftung über dem Wert statt komprimierter Kurzzeilen, ein
+explizites Bearbeitungsfenster mit den bisherigen vollständigen Formularen.
+Das ersetzt E7s Aktenaufbau für diese drei Seiten. Die große Kennzahlenleiste
+der Baustelle entfällt auf Wunsch des Auftraggebers; Stunden und Budget
+stehen kompakt beim Auftrag. Bestehende Schreibwege, Rollen, Module,
+Berechnungen und Exporte bleiben erhalten. [Zuordnung und Prüfung](lot-akten-03/umsetzung.md).

@@ -61,9 +61,11 @@ const fmtDatum = (iso: string) => datumAT(iso);
 export default function BaustellenUebersicht({
   companyId,
   projekt,
+  kompakt = false,
 }: {
   companyId: string;
   projekt: Project;
+  kompakt?: boolean;
 }) {
   const [stand, setStand] = useState<Stand>({ art: 'laedt' });
   const [versuch, setVersuch] = useState(0);
@@ -108,6 +110,22 @@ export default function BaustellenUebersicht({
       </p>
     );
   }
+
+  if (kompakt) return <div className="akten-stunden">
+    <p><span className="akten-stunden-zahl">{fmtStd(stand.fachMin)} h</span> Fachzeit
+      {projekt.estimatedHours ? <> von {fmtStunden(projekt.estimatedHours)} h Budget</> : ' · kein Stundenbudget hinterlegt'}</p>
+    {projekt.estimatedHours ? <p className={budget.over ? 'text-danger' : 'text-ink-muted'}>
+      <span className="akten-stunden-zahl">{fmtStd(Math.abs(projekt.estimatedHours * 60 - stand.fachMin))} h</span>{' '}{budget.over ? 'über Budget' : 'verbleibend'}
+    </p> : null}
+    {stand.helperMin > 0 && <p className="text-sm text-ink-muted">zusätzlich {fmtStd(stand.helperMin)} h Helfer · separat vom Budget</p>}
+    {stand.lehrlingMin > 0 && <p className="text-sm text-ink-muted">+{fmtStd(stand.lehrlingMin)} h Lehrling, nicht im Budget</p>}
+    <details><summary>Stunden nach Person</summary><ul className="divide-y divide-line">
+      {stand.personen.map((p) => <li key={p.name} className="py-2 text-sm"><span className="font-semibold">{p.name}</span><br />
+        {fmtStd(p.fachMin)} h Fachzeit{p.helperMin > 0 && <> · +{fmtStd(p.helperMin)} h Helfer</>}
+        {p.lehrlingMin > 0 && <> · +{fmtStd(p.lehrlingMin)} h nicht im Budget</>}
+      </li>)}
+    </ul>{stand.zuletzt && <p className="text-xs text-ink-muted">Zuletzt gebucht am {fmtDatum(stand.zuletzt)}.</p>}</details>
+  </div>;
 
   return (
     <div className="space-y-3">

@@ -92,6 +92,7 @@ test('Benutzername: anlegen, erstes Anmelden, eigenes Passwort, vergessen, neues
   // 5. Die Chefin vergibt in der Akte ein neues Startpasswort.
   const { data } = await admin.from('users').select('id').eq('email', kunstadresse(name)).single();
   await buero.goto(`/user-mgmt/${data!.id}`);
+  await buero.getByRole('tab', { name: 'Zugang und Rechte' }).click();
   await expect(buero.getByRole('button', { name: /Passwort-Mail/ })).toHaveCount(0);
   await buero.getByRole('button', { name: 'Neues Startpasswort vergeben' }).click();
   await buero.getByRole('button', { name: 'Vergeben', exact: true }).click();
@@ -145,6 +146,7 @@ test('angefangenes Konto nach Profilfehler und geschlossenem Tab fertigstellen u
   await expect(weiter).toBeVisible();
   await expect(buero.getByTestId('startpasswort')).toHaveCount(0);
   await weiter.click();
+  await buero.getByRole('tab', { name: 'Zugang und Rechte' }).click();
   await buero.getByRole('button', { name: 'Neues Startpasswort vergeben' }).click();
   await buero.getByRole('button', { name: 'Vergeben', exact: true }).click();
   const passwort = await startpasswortLesen(buero);

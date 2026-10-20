@@ -23,12 +23,13 @@ import type { Customer, Invoice, Project, Quote, Wartung } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
-import Aktenspalten from '@/components/Aktenspalten';
+import AktenBereiche, { AktenAngaben, AktenAngabe, AktenVerweis } from '@/components/AktenBereiche';
+import AktenBearbeiten from '@/components/AktenBearbeiten';
+import AktenTerminVorschau, { type AktenTerminStand } from '@/components/AktenTerminVorschau';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { InputField, FormGrid, CheckboxField } from '@/components/Field';
 import Button from '@/components/Button';
 import { Warnung, Zustand } from '@/components/Badge';
-import { Sprungleiste } from '@/components/LotBausteine';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import { AdresseLink, TelefonLink, MailLink } from '@/components/Kontakt';
@@ -98,21 +99,12 @@ export default function KundenakteView() {
   const [zuordnenLaeuft, setZuordnenLaeuft] = useState<string | null>(null);
   const [versuch, setVersuch] = useState(0);
 
-  /**
-   * DER ENTWURF DER STAMMDATEN — und warum es keinen Bearbeitungsmodus gibt.
-   *
-   * Zwei Zustände derselben Seite („ansehen" und „bearbeiten") sind die Sorte
-   * Oberfläche, bei der man ständig im falschen steht: man tippt in ein Feld,
-   * das keines ist, oder liest in einer Maske, in der man versehentlich etwas
-   * verstellt. Genau das ist bei der UID-Nummer schon passiert — sie war nur
-   * in der Bearbeitungsmaske zu sehen.
-   *
-   * Stattdessen: die Felder sind bearbeitbar, und ein Speichern-Balken
-   * erscheint erst, wenn sich wirklich etwas geändert hat. Wer nur nachsieht,
-   * merkt vom Bearbeiten nichts.
-   */
+  // Lesen zeigt den gespeicherten Stand. Erst „Bearbeiten“ öffnet den
+  // vollständigen Entwurf; die bisherigen Speicherregeln bleiben dieselben.
   const [entwurf, setEntwurf] = useState<NewCustomer | null>(null);
   const [speichert, setSpeichert] = useState(false);
+  const [bearbeitet, setBearbeitet] = useState(false);
+  const [terminStand, setTerminStand] = useState<AktenTerminStand>({ termine: null, fehler: false });
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
 
   const companyId = user?.companyId;
@@ -193,6 +185,7 @@ export default function KundenakteView() {
         Das lautlos zu tun hiesse, eine Änderung an fremden Datensätzen zu
         verschweigen — dieselbe Meldung gab schon die Kundenliste.
       */
+      setBearbeitet(false);
       toast.success(
         nachgezogen > 0
           ? `Gespeichert, ${nachgezogen} ${nachgezogen === 1 ? 'Baustelle' : 'Baustellen'} nachgezogen`
@@ -330,38 +323,10 @@ export default function KundenakteView() {
     );
   }
 
-  /*
-    DIE KARTEN DER AKTE — einmal angelegt, von `Aktenspalten` angeordnet:
-    am Telefon in der gewohnten Reihenfolge. Am Schreibtisch links die
-    Stammdaten und die Wartungen — die Stammdaten sind ein Formular, und in
-    der breiten Spalte stehen seine Felder zu zweit nebeneinander. Rechts,
-    was sich um den Kunden sammelt: Baustellen, Rechnungen, Angebote.
-
-    Am Telefon DIE STAMMDATEN ZUERST. Sie sind der Grund, warum es diese
-    Seite gibt: E-Mail, UID und Notiz standen bisher in keiner Ansicht.
-  */
-  const stammdaten = (
-    <Card title="Stammdaten" id="k-daten">
-      {darfAendern && entwurf ? (
-        <StammdatenFormular
-          entwurf={entwurf}
-          setEntwurf={setEntwurf}
-          geaendert={geaendert}
-          speichert={speichert}
-          fehler={speicherFehler}
-          onSpeichern={() => void stammdatenSpeichern()}
-          onVerwerfen={() => setEntwurf(alsEntwurf(k))}
-        />
-      ) : (
-        <StammdatenLesen k={k} />
-      )}
-      <UidVies
-        kunde={k}
-        uidGeaendert={!!entwurf && uidNormalisieren(entwurf.vatId) !== uidNormalisieren(k.vatId)}
-        darfPruefen={!einblick}
-      />
-    </Card>
-  );
+  const vies = <UidVies kunde={k} uidGeaendert={!!entwurf && uidNormalisieren(entwurf.vatId) !== uidNormalisieren(k.vatId)} darfPruefen={!einblick} />;
+  const stammdaten = <Card title="Kundendaten" id="k-daten">
+    <StammdatenLesen k={k} />
+  </Card>;
   const baustellenKarte = (
     <Card id="k-baustellen" title={`Baustellen${baustellen.zustand === 'bereit' ? ` (${baustellen.daten.length})` : ''}`}>
       {baustellen.zustand === 'laedt' ? (
@@ -384,11 +349,9 @@ export default function KundenakteView() {
                      Auslassungspunkte nicht. */
                   <Link
                     to={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
-                    className="link inline-flex min-h-touch min-w-0 items-center overflow-hidden text-sm"
+                    className="link inline-flex min-h-touch min-w-0 items-center text-sm"
                   >
-                    <span className="truncate">
-                      {p.projectNumber} · {p.address ?? 'ohne Adresse'}
-                    </span>
+                    <span><span className="block font-semibold">{p.projectNumber}</span><span className="block text-ink-muted">{p.bezeichnung || p.address || 'ohne Adresse'}</span></span>
                   </Link>
                 ) : (
                   <span className="truncate py-1 text-sm text-ink">
@@ -553,7 +516,7 @@ export default function KundenakteView() {
             <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
               <Link
                 to={`/quotes/${q.id}`}
-                className="link inline-flex min-h-touch min-w-0 items-center overflow-hidden text-sm"
+                className="link inline-flex min-h-touch min-w-0 items-center text-sm"
               >
                 <span className="truncate">{q.quoteNumber}</span>
               </Link>
@@ -577,6 +540,7 @@ export default function KundenakteView() {
     <div id="k-termine">
       <TermineKarte
         titel="Termine"
+        onStand={setTerminStand}
         vorgabe={{
           bezug: 'kunde',
           customerId: k.id,
@@ -600,51 +564,40 @@ export default function KundenakteView() {
   ) : null;
 
   return (
-    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
-    <div className="space-y-3 lg:space-y-5">
+    <div className="akten-seite">
       {warnung}
-      <PageHeader
-        ort={k.kundennummer ? `Kunde · Nr. ${k.kundennummer}` : 'Kunde'}
-        title={k.name}
-        subtitle={
-          <Link to="/customers" className="link inline-flex min-h-touch items-center">
-            ← Zur Kundenliste
-          </Link>
-        }
-        /*
-          KEIN „BEARBEITEN"-KNOPF MEHR. Er führte in das Formular der
-          Kundenliste — also aus der Akte heraus, um etwas zu ändern, das in
-          der Akte steht. Wer zurückkam, stand wieder in der Liste und musste
-          den Kunden erneut suchen. Geändert wird jetzt dort, wo es steht.
-        */
-      />
-
-      {/*
-        DIE AKTE IN DER LINIE „LOT“ (Schritt E7): die Stammdaten zuerst, als
-        Kurzzeilen — ihr Kopf sagt das Wichtigste, aufgeklappt wird zum
-        Nachlesen oder Ändern. Eine Sprungleiste führt zu den übrigen Teilen;
-        am Schreibtisch steht sie links, an Tablet und Handy läuft sie mit.
-      */}
-      <div className="akte">
-        <Sprungleiste
-          ziele={[
-            { id: 'k-daten', text: 'Daten' },
-            ...(terminKarte ? [{ id: 'k-termine', text: 'Termine' }] : []),
-            { id: 'k-baustellen', text: 'Baustellen' },
-            ...(wartungKarte ? [{ id: 'k-wartungen', text: 'Wartungen' }] : []),
-            ...(rechnungKarte ? [{ id: 'k-rechnungen', text: 'Rechnungen' }] : []),
-            ...(angebotKarte ? [{ id: 'k-angebote', text: 'Angebote' }] : []),
-            ...(auskunft ? [{ id: 'k-auskunft', text: 'Datenschutz' }] : []),
-          ]}
-        />
-        <div className="akte-spalte">
-          <Aktenspalten
-            telefon={[stammdaten, terminKarte, baustellenKarte, wartungKarte, rechnungKarte, angebotKarte, auskunft]}
-            links={[stammdaten, wartungKarte, auskunft]}
-            rechts={[terminKarte, baustellenKarte, rechnungKarte, angebotKarte]}
-          />
-        </div>
-      </div>
+      <PageHeader ort={k.kundennummer ? `Kunde · Nr. ${k.kundennummer}` : 'Kunde'} title={k.name}
+        subtitle={<span className="flex flex-wrap items-center gap-x-3"><Link to="/customers" className="link inline-flex min-h-touch items-center">← Zur Kundenliste</Link>
+          <Zustand stand={k.active === false ? 'ruht' : 'gut'}>{k.active === false ? 'inaktiv' : 'aktiv'}</Zustand></span>}
+        action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>} />
+      <div className="akten-kontakt"><AdresseLink adresse={k.address} /><TelefonLink nummer={k.contactPhone} name={k.contactName} /><MailLink adresse={k.email} /></div>
+      <AktenBereiche kennung="kunde" bereiche={[
+        { id: 'uebersicht', titel: 'Übersicht', sprungziele: ['k-daten', 'k-auskunft'], inhalt:
+          <div className="akten-spalten"><div className="akten-spalte">{stammdaten}
+            <Card title="Aktive Baustellen" action={<AktenVerweis bereich="belege">Alle Baustellen →</AktenVerweis>}>
+              {baustellen.zustand === 'laedt' ? <SkeletonList rows={2} /> : baustellen.zustand === 'fehler'
+                ? <TeilFehler was="die Baustellen" onRetry={() => setVersuch((v) => v + 1)} />
+                : baustellen.daten.filter((p) => p.status !== 'Abgeschlossen').length === 0 ? <EmptyState>Keine aktive Baustelle.</EmptyState>
+                : <ul className="divide-y divide-line">{baustellen.daten.filter((p) => p.status !== 'Abgeschlossen').slice(0, 3).map((p) => <li key={p.id} className="py-3 text-sm">
+                    {baustellenSichtbar ? <Link to={`/admin-projects/${p.id}`} className="link"><span className="block font-semibold">{p.projectNumber}</span>{p.bezeichnung || p.address || 'ohne Adresse'}</Link>
+                    : <><span className="block font-semibold">{p.projectNumber}</span>{p.bezeichnung || p.address || 'ohne Adresse'}</>}
+                    <div><StatusBadge status={p.status} /></div>
+                  </li>)}</ul>}
+            </Card>{auskunft}
+          </div><div className="akten-spalte">
+            {terminKarte && <AktenTerminVorschau stand={terminStand} bereich="wartung" />}
+            {!bearbeitet && (k.vatId?.trim() || k.kundenart === 'unternehmen') && <Card>{vies}</Card>}
+          </div></div> },
+        { id: 'belege', titel: 'Baustellen und Belege', sprungziele: ['k-baustellen', 'k-rechnungen', 'k-angebote'], inhalt:
+          <div className="akten-spalten"><div className="akten-spalte">{baustellenKarte}</div><div className="akten-spalte">{rechnungKarte}{angebotKarte}</div></div> },
+        ...((wartungKarte || terminKarte) ? [{ id: 'wartung', titel: wartungKarte ? 'Wartungen' : 'Termine', sprungziele: ['k-wartungen', 'k-termine'], inhalt:
+          <div className="akten-spalten"><div className="akten-spalte">{wartungKarte}</div><div className="akten-spalte">{terminKarte}</div></div> }] : []),
+      ]} />
+      {darfAendern && entwurf && <AktenBearbeiten offen={bearbeitet} titel="Kunde bearbeiten" geaendert={geaendert} speichert={speichert}
+        onSchliessen={() => setBearbeitet(false)} onVerwerfen={() => { setEntwurf(alsEntwurf(k)); setSpeicherFehler(null); }}>
+        <StammdatenFormular entwurf={entwurf} setEntwurf={setEntwurf} geaendert={geaendert} speichert={speichert} fehler={speicherFehler}
+          onSpeichern={() => void stammdatenSpeichern()} onVerwerfen={() => setEntwurf(alsEntwurf(k))} uidPruefung={bearbeitet ? vies : null} />
+      </AktenBearbeiten>}
     </div>
   );
 }
@@ -682,107 +635,22 @@ function gleich(a: NewCustomer, b: NewCustomer): boolean {
   return (Object.keys(a) as (keyof NewCustomer)[]).every((f) => a[f] === b[f]);
 }
 
-/**
- * Eine Kurzzeile der Stammdaten: Kopf wie `Kurzzeile` (Klassen aus lot.css),
- * der Inhalt aber in voller Breite — `Kurzzeile` rückt ihn ab dem Tablet um
- * 12 rem ein, für ein Formular in der halben Spalte des Schreibtischs zu viel.
- * Dieselbe Form wie in der Baustellenakte.
- */
-function Gruppe({ name, wert, children }: { name: string; wert: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <details className="kurz">
-      <summary className="kurz-kopf">
-        <span className="kurz-name">{name}</span>
-        <span className="kurz-wert">{wert}</span>
-        <span className="kurz-zeichen" aria-hidden="true">›</span>
-      </summary>
-      <div className="akte-gruppe-inhalt">{children}</div>
-    </details>
-  );
-}
-
-/** Was die Köpfe der Kurzzeilen zusammenfassen — für Lesen und Ändern gleich. */
-function koepfe(k: NewCustomer | Customer) {
-  const art =
-    k.kundenart === 'unternehmen' ? 'Unternehmen' : k.kundenart === 'privat' ? 'Privatperson' : null;
-  return {
-    anschrift: k.address?.trim() || 'nicht hinterlegt',
-    kontakt: [k.contactName, k.contactPhone, k.email].filter((x) => x?.trim()).join(' · ') || 'nicht hinterlegt',
-    // Ohne Kundenart gehen Rechnung und Mahnung nicht (Runde 3, M10) — das steht schon im Kopf.
-    art: (
-      <>
-        {art ?? <Warnung>Kundenart prüfen</Warnung>}
-        {k.vatId?.trim() ? ` · ${k.vatId}` : ''}
-      </>
-    ),
-  };
+/** Im Bearbeitungsfenster sind die Gruppen ohne weiteren Klick offen. */
+function Gruppe({ name, children }: { name: string; children: React.ReactNode }) {
+  return <section className="akten-editor-gruppe"><h3>{name}</h3>{children}</section>;
 }
 
 /** Die Stammdaten für alle, die sie nicht ändern dürfen. */
 function StammdatenLesen({ k }: { k: Customer }) {
-  const kopf = koepfe(k);
-  return (
-    <>
-      <div className="-mx-4">
-        {/* Anrufen, hinfahren, schreiben — ohne erst aufzuklappen. */}
-        <div className="akte-griffe">
-          <AdresseLink adresse={k.address} variante="knopf" />
-          <TelefonLink nummer={k.contactPhone} name={k.contactName} variante="knopf" />
-          <MailLink adresse={k.email} variante="knopf" />
-        </div>
-        <Gruppe name="Anschrift" wert={kopf.anschrift}>
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-            <Angabe wort="Rechnungsadresse">
-              {k.address ? <AdresseLink adresse={k.address} /> : null}
-            </Angabe>
-            {k.kundennummer && <Angabe wort="Kundennummer">{k.kundennummer}</Angabe>}
-            {k.lieferantennummer && <Angabe wort="Unsere Lieferantennummer">{k.lieferantennummer}</Angabe>}
-          </dl>
-        </Gruppe>
-        <Gruppe name="Kontakt" wert={kopf.kontakt}>
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-            <Angabe wort="Ansprechpartner">{k.contactName}</Angabe>
-            <Angabe wort="Telefon">
-              {k.contactPhone ? <TelefonLink nummer={k.contactPhone} name={k.contactName} /> : null}
-            </Angabe>
-            <Angabe wort="E-Mail">{k.email ? <MailLink adresse={k.email} /> : null}</Angabe>
-          </dl>
-        </Gruppe>
-        {/*
-          Die UID gehört auf jede Rechnung an ein Unternehmen. Sie war bisher
-          nur in der Bearbeitungsmaske zu sehen — also genau dort, wo man sie
-          versehentlich ändert, während man sie nachsieht.
-        */}
-        <Gruppe name="Kundenart und UID" wert={kopf.art}>
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-            <Angabe wort="Kundenart">
-              {k.kundenart === 'unternehmen' ? 'Unternehmen' : k.kundenart === 'privat' ? 'Privatperson' : null}
-            </Angabe>
-            <Angabe wort="UID-Nummer">
-              {k.vatId ? <span>{k.vatId}</span> : null}
-            </Angabe>
-          </dl>
-        </Gruppe>
-      </div>
-
-      {/* Zustand und Notiz stehen offen: eine Notiz („Schlüssel im Büro“) ist
-          das, was man vor dem Anruf wissen muss. */}
-      <dl className="mt-0 grid grid-cols-1 gap-y-3 border-t border-line pt-3">
-        <Angabe wort="Zustand">
-          {k.active === false
-            ? <Zustand stand="ruht">inaktiv</Zustand>
-            : <Zustand stand="gut">aktiv</Zustand>}
-        </Angabe>
-      </dl>
-      {k.notes?.trim() ? (
-        <div className="mt-4 border-t border-line pt-3">
-          <p className="section-label">Notiz</p>
-          {/* Zeilenumbrüche bleiben: eine Notiz ist oft eine Liste. */}
-          <p className="mt-1 whitespace-pre-line text-sm text-ink">{k.notes}</p>
-        </div>
-      ) : null}
-    </>
-  );
+  return <><AktenAngaben>
+    <AktenAngabe wort="Kundenart">{k.kundenart === 'unternehmen' ? 'Unternehmen' : k.kundenart === 'privat' ? 'Privatperson' : <Warnung>Kundenart prüfen</Warnung>}</AktenAngabe>
+    <AktenAngabe wort="UID-Nummer">{k.vatId}</AktenAngabe>
+    <AktenAngabe wort="Ansprechpartner">{k.contactName}</AktenAngabe>
+    {!k.address?.trim() && <AktenAngabe wort="Rechnungsadresse">{null}</AktenAngabe>}
+    {!k.contactPhone?.trim() && <AktenAngabe wort="Telefon">{null}</AktenAngabe>}
+    {!k.email?.trim() && <AktenAngabe wort="E-Mail">{null}</AktenAngabe>}
+    {k.lieferantennummer && <AktenAngabe wort="Unsere Lieferantennummer">{k.lieferantennummer}</AktenAngabe>}
+  </AktenAngaben>{k.notes?.trim() && <><h3 className="section-label">Notiz</h3><p className="akten-notiz whitespace-pre-line">{k.notes}</p></>}</>;
 }
 
 interface FormularProps {
@@ -793,6 +661,7 @@ interface FormularProps {
   fehler: string | null;
   onSpeichern: () => void;
   onVerwerfen: () => void;
+  uidPruefung?: React.ReactNode;
 }
 
 /**
@@ -805,21 +674,20 @@ interface FormularProps {
  * speichern.
  */
 function StammdatenFormular({
-  entwurf, setEntwurf, geaendert, speichert, fehler, onSpeichern, onVerwerfen,
+  entwurf, setEntwurf, geaendert, speichert, fehler, onSpeichern, onVerwerfen, uidPruefung,
 }: FormularProps) {
   const setze = (feld: keyof NewCustomer, wert: string | boolean) =>
     setEntwurf({ ...entwurf, [feld]: wert });
-  const kopf = koepfe(entwurf);
 
   return (
     <>
-      <div className="-mx-4">
+      <div className="min-w-0">
         <div className="akte-griffe">
           <AdresseLink adresse={entwurf.address} variante="knopf" />
           <TelefonLink nummer={entwurf.contactPhone} name={entwurf.contactName} variante="knopf" />
           <MailLink adresse={entwurf.email} variante="knopf" />
         </div>
-        <Gruppe name="Anschrift" wert={kopf.anschrift}>
+        <Gruppe name="Anschrift">
           <InputField
             id="k-name" label="Name" pflicht value={entwurf.name}
             onChange={(e) => setze('name', e.target.value)}
@@ -843,7 +711,7 @@ function StammdatenFormular({
             onChange={(e) => setze('lieferantennummer', e.target.value)}
           />
         </Gruppe>
-        <Gruppe name="Kontakt" wert={kopf.kontakt}>
+        <Gruppe name="Kontakt">
           <InputField
             id="k-ansprech" label="Ansprechpartner" value={entwurf.contactName ?? ''}
             onChange={(e) => setze('contactName', e.target.value)}
@@ -859,7 +727,7 @@ function StammdatenFormular({
             />
           </FormGrid>
         </Gruppe>
-        <Gruppe name="Kundenart und UID" wert={kopf.art}>
+        <Gruppe name="Kundenart und UID">
           <KundenartUidFelder
             idPrefix="k"
             kundenart={entwurf.kundenart}
@@ -894,7 +762,9 @@ function StammdatenFormular({
           onChange={(e) => setze('active', e.target.checked)}
         />
 
-        {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+      </div>
+      {uidPruefung}
+      {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
 
         {/*
           DER BALKEN ERSCHEINT ERST BEI EINER ÄNDERUNG — als Aktionsleiste, wie
@@ -917,26 +787,6 @@ function StammdatenFormular({
             }
           />
         )}
-      </div>
     </>
-  );
-}
-
-/**
- * Eine Angabe der Stammdaten.
- *
- * LEER HEISST „NICHT HINTERLEGT", und das steht auch da. Die Zeile ganz
- * wegzulassen wäre bequemer und falsch: dann sähe eine Akte ohne UID genauso
- * aus wie eine, in der das Feld gar nicht vorgesehen ist — und niemand käme
- * auf die Idee, sie nachzutragen.
- */
-function Angabe({ wort, children }: { wort: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <dt className="section-label">{wort}</dt>
-      <dd className="mt-0.5 text-sm text-ink">
-        {children || <span className="text-ink-muted">nicht hinterlegt</span>}
-      </dd>
-    </div>
   );
 }

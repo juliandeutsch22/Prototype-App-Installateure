@@ -96,6 +96,10 @@ function zeige(uid = 'u2') {
   );
 }
 
+async function bearbeite() {
+  await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+}
+
 /** Der Wert zu einer Beschriftung in den Stammdaten. */
 function angabe(wort: string) {
   const dt = screen.getByText(wort);
@@ -128,6 +132,7 @@ describe('Die Stammdaten in der Akte', () => {
       role: 'Buchhaltung', weeklyTargetHours: 20, yearlyVacationDays: 30,
     });
     zeige();
+    await bearbeite();
 
     expect(await screen.findByRole('textbox', { name: /^Name/ })).toHaveValue('Erna Beispiel');
     expect(screen.getByRole('combobox', { name: /Rolle/ })).toHaveValue('Buchhaltung');
@@ -139,6 +144,7 @@ describe('Die Stammdaten in der Akte', () => {
     // Im Anlege-Formular sind sie zu Recht eingeklappt: dort stimmen die
     // Vorgaben meistens. Hier sind sie der Grund, warum jemand kommt.
     zeige();
+    await bearbeite();
     await screen.findByRole('textbox', { name: /^Name/ });
     expect(
       screen.queryByRole('button', { name: /Zeitkonto-Einstellungen anzeigen/ }),
@@ -150,6 +156,7 @@ describe('Die Stammdaten in der Akte', () => {
   it('zeigt Eintritt und Saldo-Start getrennt und benennt den Urlaub wie die Anlage (M6)', async () => {
     gefunden = person({ uid: 'u2', name: 'Erna Beispiel', eintritt: '2015-03-01', appStartDate: '2026-10-01' });
     zeige();
+    await bearbeite();
     await screen.findByRole('textbox', { name: /^Name/ });
     expect(screen.getByLabelText(/Eintrittsdatum/)).toHaveValue('2015-03-01');
     expect(screen.getByLabelText(/Saldo-Startdatum/)).toHaveValue('2026-10-01');
@@ -159,6 +166,7 @@ describe('Die Stammdaten in der Akte', () => {
   it('speichert keinen Eintritt nach dem Saldo-Start (M6)', async () => {
     gefunden = person({ uid: 'u2', name: 'Erna Beispiel', eintritt: '2026-01-01', appStartDate: '2026-01-01' });
     zeige();
+    await bearbeite();
     const eintritt = await screen.findByLabelText(/Eintrittsdatum/);
     await userEvent.clear(eintritt);
     await userEvent.type(eintritt, '2026-02-01');
@@ -170,6 +178,7 @@ describe('Die Stammdaten in der Akte', () => {
 
   it('zeigt die Speicherleiste erst bei einer echten Änderung', async () => {
     zeige();
+    await bearbeite();
     await screen.findByRole('textbox', { name: /^Name/ });
     expect(screen.queryByText(/ungespeicherte Änderungen/)).not.toBeInTheDocument();
 
@@ -180,6 +189,7 @@ describe('Die Stammdaten in der Akte', () => {
   it('ändert das Profil, statt einen zweiten Zugang anzulegen', async () => {
     // AUS DER LISTENPRÜFUNG ÜBERNOMMEN.
     zeige();
+    await bearbeite();
     await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'x');
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
 
@@ -196,6 +206,7 @@ describe('Die Stammdaten in der Akte', () => {
       stehen.
     */
     zeige();
+    await bearbeite();
     const feld = await screen.findByRole('textbox', { name: /Wochenstunden/ });
     await userEvent.clear(feld);
     await userEvent.type(feld, '0');
@@ -212,6 +223,7 @@ describe('Die Stammdaten in der Akte', () => {
       uid: 'u2', name: 'Erna Beispiel', initialVacationDays: 7, eintritt: '2015-03-01',
     });
     zeige();
+    await bearbeite();
     await userEvent.clear(await screen.findByRole('textbox', { name: /Resturlaub beim Umstieg/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
 
@@ -223,6 +235,7 @@ describe('Die Stammdaten in der Akte', () => {
   it('zeigt Dezimalzahlen mit Komma, ohne die Akte als geändert zu melden (G7)', async () => {
     gefunden = person({ uid: 'u2', name: 'Erna Beispiel', initialVacationDays: 5.96, weeklyTargetHours: 38.5 });
     zeige();
+    await bearbeite();
     expect(await screen.findByRole('textbox', { name: /Urlaub im ersten Jahr|Resturlaub beim Umstieg/ })).toHaveValue('5,96');
     expect(screen.getByRole('textbox', { name: /Wochenstunden/ })).toHaveValue('38,5');
     // Unverändert heißt unverändert: das Komma allein macht die Akte nicht „geändert“.
@@ -232,6 +245,7 @@ describe('Die Stammdaten in der Akte', () => {
   // Testbericht 30.09.2026, G9 — das leere Feld sagt, was es bedeutet.
   it('sagt im leeren Urlaubsfeld „leer = voller Anspruch“ (G9)', async () => {
     zeige();
+    await bearbeite();
     const feld = await screen.findByRole('textbox', { name: /Urlaub im ersten Jahr/ });
     expect(feld).toHaveValue('');
     expect(feld).toHaveAttribute('placeholder', 'leer = voller Anspruch');
@@ -239,6 +253,7 @@ describe('Die Stammdaten in der Akte', () => {
 
   it('speichert nicht ohne Namen', async () => {
     zeige();
+    await bearbeite();
     await userEvent.clear(await screen.findByRole('textbox', { name: /^Name/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
 
@@ -248,6 +263,7 @@ describe('Die Stammdaten in der Akte', () => {
 
   it('lässt die E-Mail-Adresse nicht ändern — sie ist das Anmeldekonto', async () => {
     zeige();
+    await bearbeite();
     expect(await screen.findByRole('textbox', { name: /E-Mail/ })).toBeDisabled();
   });
 });
@@ -255,6 +271,7 @@ describe('Die Stammdaten in der Akte', () => {
 describe('Die Einstufung (Testbericht 4.1)', () => {
   it('legt einen Lehrling mit Lehrbeginn und Lehrzeit an und zeigt das Lehrjahr', async () => {
     zeige();
+    await bearbeite();
     await userEvent.selectOptions(await screen.findByLabelText('Einstufung'), 'lehrling');
     // Die Lehrzeit ist mit dem Üblichen vorbelegt, der Lehrbeginn nicht.
     expect(screen.getByLabelText('Lehrzeit')).toHaveValue('36');
@@ -276,6 +293,7 @@ describe('Die Einstufung (Testbericht 4.1)', () => {
       uid: 'u2', name: 'Erna Beispiel', einstufung: 'lehrling', lehrbeginn: '2023-09-01', lehrzeitMonate: 36,
     });
     zeige();
+    await bearbeite();
     await userEvent.selectOptions(await screen.findByLabelText('Einstufung'), 'facharbeiter');
     expect(screen.queryByLabelText(/^Lehrbeginn/)).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
@@ -291,6 +309,7 @@ describe('Die Einstufung (Testbericht 4.1)', () => {
       uid: 'u2', name: 'Erna Beispiel', einstufung: 'lehrling', lehrbeginn: '2023-09-01', lehrzeitMonate: 36,
     });
     zeige();
+    await bearbeite();
     const schalter = await screen.findByRole('checkbox', { name: 'Stunden zählen ins Projekt-Budget' });
     expect(schalter).toBeChecked(); // ab Werk wie bisher
     await userEvent.click(schalter);
@@ -305,6 +324,7 @@ describe('Die Einstufung (Testbericht 4.1)', () => {
       stundenInsBudget: false,
     });
     zeige();
+    await bearbeite();
     await userEvent.selectOptions(await screen.findByLabelText('Einstufung'), 'facharbeiter');
     expect(screen.queryByRole('checkbox', { name: 'Stunden zählen ins Projekt-Budget' })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
@@ -318,6 +338,7 @@ describe('Die Einstufung (Testbericht 4.1)', () => {
       uid: 'u2', name: 'Erna Beispiel', einstufung: 'lehrling', lehrbeginn: '2023-09-01', lehrzeitMonate: 36,
     });
     zeige();
+    await bearbeite();
     await userEvent.selectOptions(await screen.findByLabelText('Einstufung'), 'facharbeiter');
     expect(screen.getByText(/Umstufung von Lehrling auf Facharbeiter: gilt ab heute/)).toBeInTheDocument();
     expect(screen.getByText(/bleiben beim Satz Lehrling\./)).toBeInTheDocument();
@@ -326,6 +347,7 @@ describe('Die Einstufung (Testbericht 4.1)', () => {
 
   it('Gegenprobe: die erste Einstufung ist keine Umstufung', async () => {
     zeige();
+    await bearbeite();
     await userEvent.selectOptions(await screen.findByLabelText('Einstufung'), 'helfer');
     expect(screen.queryByText(/Umstufung von/)).toBeNull();
   });
@@ -336,11 +358,13 @@ describe('Die Einstufung (Testbericht 4.1)', () => {
       einstufungVerlauf: [{ einstufung: 'lehrling', lehrbeginn: '2023-09-01', lehrzeit_monate: 36, bis: '2026-10-06' }],
     });
     zeige();
+    await bearbeite();
     expect(await screen.findByText(/Frühere Einstufung: Lehrling bis 05\.10\.2026\./)).toBeInTheDocument();
   });
 
   it('zeigt „nicht festgelegt“, solange keine Einstufung gesetzt ist', async () => {
     zeige();
+    await bearbeite();
     await screen.findByRole('textbox', { name: /^Name/ });
     expect(screen.getByLabelText('Einstufung')).toHaveValue('');
     expect(screen.getAllByText(/zählt wie Facharbeiter/).length).toBeGreaterThan(0);
@@ -371,6 +395,7 @@ describe('Wen die Akte nicht ändern lässt', () => {
     gefunden = person({ uid: 'ad1', name: 'Root Person', role: 'Administrator' });
     angemeldet = { uid: 'ad9', companyId: 'perl', name: 'Admin', role: 'Administrator' };
     zeige('ad1');
+    await bearbeite();
 
     expect(await screen.findByRole('textbox', { name: /^Name/ })).toHaveValue('Root Person');
   });
@@ -379,6 +404,7 @@ describe('Wen die Akte nicht ändern lässt', () => {
     // Sonst könnte sie sich selbst zum Superuser machen. Dieselbe Grenze
     // steht im Zeilenschutz — hier wird sie nur sichtbar gemacht.
     zeige();
+    await bearbeite();
     const rolle = await screen.findByRole('combobox', { name: /Rolle/ });
     expect(within(rolle).queryByRole('option', { name: 'Administrator' })).not.toBeInTheDocument();
   });
@@ -388,6 +414,7 @@ describe('Wen die Akte nicht ändern lässt', () => {
     // Administrator mehr ernennen, und die Prüfung darüber bliebe grün.
     angemeldet = { uid: 'ad9', companyId: 'perl', name: 'Admin', role: 'Administrator' };
     zeige();
+    await bearbeite();
     const rolle = await screen.findByRole('combobox', { name: /Rolle/ });
     expect(within(rolle).getByRole('option', { name: 'Administrator' })).toBeInTheDocument();
   });
@@ -396,6 +423,7 @@ describe('Wen die Akte nicht ändern lässt', () => {
 describe('Der Zugang', () => {
   it('sendet die Passwort-Mail an die Adresse dieser Person', async () => {
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Passwort-Mail senden' }));
     await waitFor(() => expect(passwortMail).toHaveBeenCalledWith('erna@perl.at'));
   });
@@ -408,10 +436,11 @@ describe('Der Zugang', () => {
       weil sonst Zeiteinträge verwaisen.
     */
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Konto deaktivieren' }));
     expect(profilAendern).not.toHaveBeenCalled();
 
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('dialog', {});
     await userEvent.click(within(dialog).getByRole('button', { name: 'Deaktivieren' }));
 
     await waitFor(() => expect(profilAendern).toHaveBeenCalledWith('u2', { active: false }));
@@ -420,9 +449,10 @@ describe('Der Zugang', () => {
   it('dreht die Richtung bei einem bereits deaktivierten Konto um', async () => {
     gefunden = person({ uid: 'u3', name: 'Ausgeschieden', active: false });
     zeige('u3');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
 
     await userEvent.click(await screen.findByRole('button', { name: 'Konto aktivieren' }));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('dialog', {});
     await userEvent.click(within(dialog).getByRole('button', { name: 'Aktivieren' }));
 
     await waitFor(() => expect(profilAendern).toHaveBeenCalledWith('u3', { active: true }));
@@ -431,6 +461,7 @@ describe('Der Zugang', () => {
   it('nennt ein deaktiviertes Konto „deaktiviert“, nicht „inaktiv“ (Runde 3, G5)', async () => {
     gefunden = person({ uid: 'u3', name: 'Ausgeschieden', active: false });
     zeige('u3');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
     await screen.findByRole('button', { name: 'Konto aktivieren' });
     expect(screen.getAllByText('deaktiviert').length).toBeGreaterThan(0);
     expect(screen.queryByText(/inaktiv/i)).not.toBeInTheDocument();
@@ -444,6 +475,7 @@ describe('Der Zugang', () => {
     */
     gefunden = person({ uid: 'gf1', name: 'Chefin', role: 'Geschäftsführung' });
     zeige('gf1');
+    await bearbeite();
 
     /*
       GEWARTET WIRD AUF DAS FORMULAR, NICHT AUF DEN SATZ. Der Hinweis steht im
@@ -456,10 +488,10 @@ describe('Der Zugang', () => {
     expect(await screen.findByRole('textbox', { name: /^Name/ })).toBeInTheDocument();
     expect(screen.getByText(/eigene Konto lässt sich nicht sperren/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Konto deaktivieren/ })).not.toBeInTheDocument();
-    // Die Passwort-Mail an sich selbst bleibt erlaubt.
-    expect(screen.getByRole('button', { name: 'Passwort-Mail senden' })).toBeInTheDocument();
-    // Und auch über das Statusfeld geht es nicht.
     expect(screen.getByRole('combobox', { name: /Status/ })).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Schließen' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Zugang und Rechte' }));
+    expect(screen.getByRole('button', { name: 'Passwort-Mail senden' })).toBeInTheDocument();
   });
 });
 
@@ -484,12 +516,14 @@ describe('Ein Konto mit Benutzername', () => {
 
   it('zeigt den Benutzernamen, nicht die Kunstadresse', async () => {
     zeige('u3');
+    await bearbeite();
     expect(await screen.findByRole('textbox', { name: /Benutzername/ })).toHaveValue('hans');
     expect(screen.queryByDisplayValue(/senklot\.invalid/)).not.toBeInTheDocument();
   });
 
   it('bietet keine Passwort-Mail an — es gibt kein Postfach', async () => {
     zeige('u3');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
     await screen.findByRole('button', { name: 'Neues Startpasswort vergeben' });
     expect(screen.queryByRole('button', { name: /Passwort-Mail/ })).not.toBeInTheDocument();
   });
@@ -497,6 +531,7 @@ describe('Ein Konto mit Benutzername', () => {
   it('vergibt nach Rückfrage ein Startpasswort und zeigt es genau einmal', async () => {
     const nutzer = userEvent.setup();
     zeige('u3');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
     await nutzer.click(await screen.findByRole('button', { name: 'Neues Startpasswort vergeben' }));
     // Erst die Rückfrage — das alte Passwort gilt danach nicht mehr.
     expect(vergeben).not.toHaveBeenCalled();
@@ -515,6 +550,7 @@ describe('Ein Konto mit Benutzername', () => {
     vergeben.mockRejectedValue(new Error('Das Passwort eines Administrators vergibt nur ein Administrator.'));
     const nutzer = userEvent.setup();
     zeige('u3');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
     await nutzer.click(await screen.findByRole('button', { name: 'Neues Startpasswort vergeben' }));
     await nutzer.click(screen.getByRole('button', { name: 'Vergeben' }));
 
@@ -525,6 +561,7 @@ describe('Ein Konto mit Benutzername', () => {
   it('beim eigenen Konto: kein Knopf, sondern der Weg zu „Mein Konto“', async () => {
     angemeldet = { ...angemeldet, uid: 'u3' };
     zeige('u3');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
     expect(await screen.findByText(/Das eigene Passwort unter „Mein Konto“ ändern/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Neues Startpasswort vergeben' })).not.toBeInTheDocument();
   });
@@ -542,6 +579,7 @@ describe('Kunden pflegen und Zeitkonto', () => {
   it('bietet der Verwaltung die Kundenfreigabe an — und speichert sie', async () => {
     gefunden = person({ uid: 'u2', name: 'Vera Büro', role: 'Verwaltung' });
     zeige();
+    await bearbeite();
     const haken = await screen.findByRole('checkbox', { name: 'Darf Kunden anlegen und ändern' });
     expect(haken).not.toBeChecked();
     expect(screen.queryByRole('checkbox', { name: 'Führt ein Zeitkonto' })).not.toBeInTheDocument();
@@ -555,6 +593,7 @@ describe('Kunden pflegen und Zeitkonto', () => {
   it('bietet sie dem Monteur nicht an', async () => {
     gefunden = person({ uid: 'u2', role: 'Mitarbeiter' });
     zeige();
+    await bearbeite();
     await screen.findByRole('textbox', { name: /^Name/ });
     expect(screen.queryByRole('checkbox', { name: 'Darf Kunden anlegen und ändern' })).not.toBeInTheDocument();
   });
@@ -562,6 +601,7 @@ describe('Kunden pflegen und Zeitkonto', () => {
   it('lässt die Geschäftsführung ihr Zeitkonto wählen', async () => {
     gefunden = person({ uid: 'u2', name: 'Gabi Chef', role: 'Geschäftsführung' });
     zeige();
+    await bearbeite();
     await userEvent.click(await screen.findByRole('checkbox', { name: 'Führt ein Zeitkonto' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(profilAendern).toHaveBeenCalled());
@@ -571,6 +611,7 @@ describe('Kunden pflegen und Zeitkonto', () => {
   it('nimmt die Freigabe beim Wechsel zum Monteur mit weg', async () => {
     gefunden = person({ uid: 'u2', role: 'Verwaltung', kundenPflegen: true });
     zeige();
+    await bearbeite();
     await screen.findByRole('checkbox', { name: 'Darf Kunden anlegen und ändern' });
     await userEvent.selectOptions(screen.getByRole('combobox', { name: /Rolle/ }), 'Mitarbeiter');
     await userEvent.click(await screen.findByRole('button', { name: 'Speichern' }));
@@ -596,6 +637,7 @@ describe('Konto umstellen', () => {
     gefunden = person({ uid: 'u3', name: 'Hans Helfer', email: kunstadresse('hans') });
     const nutzer = userEvent.setup();
     zeige('u3');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
     await nutzer.click(await screen.findByRole('button', { name: 'Auf E-Mail umstellen …' }));
     expect(screen.getByText(/das Passwort bleibt/)).toBeInTheDocument();
     await nutzer.type(screen.getByRole('textbox', { name: /E-Mail/ }), 'hans@perl.at');
@@ -610,6 +652,7 @@ describe('Konto umstellen', () => {
     gefunden = person({ uid: 'u3', name: 'Hans Helfer', email: kunstadresse('hans') });
     const nutzer = userEvent.setup();
     zeige('u3');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
     await nutzer.click(await screen.findByRole('button', { name: 'Auf E-Mail umstellen …' }));
     await nutzer.type(screen.getByRole('textbox', { name: /E-Mail/ }), 'hans@perl');
     await nutzer.click(screen.getByRole('button', { name: 'Umstellen' }));
@@ -625,6 +668,7 @@ describe('Konto umstellen', () => {
     });
     const nutzer = userEvent.setup();
     zeige('u2');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
     await nutzer.click(await screen.findByRole('button', { name: 'Auf Benutzername umstellen …' }));
     expect(screen.getByText(/überall abgemeldet/)).toBeInTheDocument();
     await nutzer.type(screen.getByRole('textbox', { name: /^Benutzername/ }), 'erna');
@@ -648,6 +692,7 @@ describe('Konto umstellen', () => {
     umstellen.mockRejectedValueOnce(new Error('Diesen Benutzernamen kann Senklot nicht vergeben — bitte einen anderen wählen.'));
     const nutzer = userEvent.setup();
     zeige('u2');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
     await nutzer.click(await screen.findByRole('button', { name: 'Auf Benutzername umstellen …' }));
     await nutzer.type(screen.getByRole('textbox', { name: /^Benutzername/ }), 'erna');
     await nutzer.type(screen.getByRole('textbox', { name: /Grund/ }), 'Kein Postfach');
@@ -660,12 +705,14 @@ describe('Konto umstellen', () => {
     angemeldet = { ...angemeldet, uid: 'u3' };
     gefunden = person({ uid: 'u3', name: 'Hans Helfer', email: kunstadresse('hans') });
     const erst = zeige('u3');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
     expect(await screen.findByRole('button', { name: 'Auf E-Mail umstellen …' })).toBeInTheDocument();
     erst.unmount();
 
     angemeldet = { ...angemeldet, uid: 'u2' };
     gefunden = person({ uid: 'u2', name: 'Erna Beispiel', email: 'erna@perl.at' });
     zeige('u2');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
     await screen.findByText(/Das eigene Konto lässt sich nicht sperren/);
     expect(screen.queryByRole('button', { name: /Auf Benutzername umstellen/ })).not.toBeInTheDocument();
   });
@@ -681,6 +728,7 @@ describe('Konto umstellen', () => {
     gefunden = person({ uid: 'u3', name: 'Hans Helfer', email: kunstadresse('hans') });
     const nutzer = userEvent.setup();
     zeige('u3');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
     await nutzer.click(await screen.findByRole('button', { name: 'Auf E-Mail umstellen …' }));
     expect(screen.getByText(/Danach meldet sich dein Konto mit dieser Adresse an/)).toBeInTheDocument();
     await nutzer.type(screen.getByRole('textbox', { name: /E-Mail/ }), 'hans@perl.at');
@@ -696,6 +744,7 @@ describe('Konto umstellen', () => {
       am: Date.parse('2026-10-02T09:30:00+02:00'),
     }];
     zeige('u3');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
     expect(await screen.findByText('Anmeldung umgestellt')).toBeInTheDocument();
     expect(screen.getByText(/02\.10\.2026 · auf Benutzername · durch Chefin · Kein Postfach/)).toBeInTheDocument();
   });
@@ -705,6 +754,7 @@ describe('Urlaubsanspruch anpassen (Plan 10.3)', () => {
   it('legt eine Anpassung mit Jahr, Tagen und Grund an', async () => {
     const nutzer = userEvent.setup();
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Arbeitszeit und Urlaub' }));
     await nutzer.click(await screen.findByRole('button', { name: 'Anspruch anpassen' }));
     const jahr = screen.getByRole('textbox', { name: /^Urlaubsjahr/ });
     await nutzer.clear(jahr);
@@ -721,6 +771,7 @@ describe('Urlaubsanspruch anpassen (Plan 10.3)', () => {
   it('speichert ohne Grund nicht', async () => {
     const nutzer = userEvent.setup();
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Arbeitszeit und Urlaub' }));
     await nutzer.click(await screen.findByRole('button', { name: 'Anspruch anpassen' }));
     await nutzer.type(screen.getByRole('textbox', { name: /^Tage/ }), '-2');
     await nutzer.click(screen.getByRole('button', { name: 'Anpassung speichern' }));
@@ -735,9 +786,10 @@ describe('Urlaubsanspruch anpassen (Plan 10.3)', () => {
     }];
     const nutzer = userEvent.setup();
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Arbeitszeit und Urlaub' }));
     expect(await screen.findByText('Urlaubsjahr 2026: −6,25 Tage')).toBeInTheDocument();
     await nutzer.click(screen.getByRole('button', { name: 'Entfernen' }));
-    const dialog = screen.getByRole('dialog');
+    const dialog = screen.getByRole('dialog', {});
     await nutzer.click(within(dialog).getByRole('button', { name: 'Entfernen' }));
     expect(await within(dialog).findByText(/Bitte einen Grund angeben/)).toBeInTheDocument();
     expect(entfernen).not.toHaveBeenCalled();
@@ -750,6 +802,7 @@ describe('Urlaubsanspruch anpassen (Plan 10.3)', () => {
     gefunden = person({ uid: 'u2', name: 'Ada Admin', email: 'ada@perl.at', role: 'Administrator' });
     angemeldet = { uid: 'ad1', companyId: 'perl', name: 'Chef-Admin', role: 'Administrator' };
     zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Arbeitszeit und Urlaub' }));
     await screen.findByText('Ada Admin', { selector: 'h1' });
     expect(screen.queryByRole('button', { name: 'Anspruch anpassen' })).not.toBeInTheDocument();
   });
@@ -771,10 +824,11 @@ describe('Jugendschutz in der Akte (Runde 3, M2)', () => {
   it('unter 18 und 42 Wochenstunden: Rückfrage, gespeichert erst nach „Trotzdem speichern“', async () => {
     geburtsdatum = '2010-03-15';
     zeige();
+    await bearbeite();
     expect(await screen.findByText(/Unter 18 — es gelten die Grenzen des KJBG/)).toBeInTheDocument();
     await wochenstunden('42');
 
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('dialog', { name: /ist unter 18/ });
     expect(dialog).toHaveTextContent('Erna Beispiel ist unter 18');
     expect(dialog).toHaveTextContent('Wochensoll 42 Std. — für Jugendliche höchstens 40 Std. in der Woche');
     expect(profilAendern).not.toHaveBeenCalled();
@@ -787,39 +841,43 @@ describe('Jugendschutz in der Akte (Runde 3, M2)', () => {
   it('„Abbrechen“ speichert nicht', async () => {
     geburtsdatum = '2010-03-15';
     zeige();
+    await bearbeite();
     expect(await screen.findByText(/Unter 18/)).toBeInTheDocument();
     await wochenstunden('42');
-    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Abbrechen' }));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await userEvent.click(within(await screen.findByRole('dialog', { name: /ist unter 18/ })).getByRole('button', { name: 'Abbrechen' }));
+    expect(screen.queryByRole('dialog', { name: /ist unter 18/ })).not.toBeInTheDocument();
     expect(profilAendern).not.toHaveBeenCalled();
   });
 
   it('Gegenprobe: ab 18 keine Rückfrage', async () => {
     geburtsdatum = '1990-01-01';
     zeige();
-    expect(await screen.findByLabelText('Geburtsdatum')).toHaveValue('1990-01-01');
+    await bearbeite();
+    expect(await screen.findByText('01.01.1990')).toBeInTheDocument();
     await wochenstunden('42');
     await waitFor(() => expect(profilAendern).toHaveBeenCalledTimes(1));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: /ist unter 18/ })).not.toBeInTheDocument();
   });
 
   it('Gegenprobe: ohne Geburtsdatum keine Rückfrage', async () => {
     zeige();
-    expect(await screen.findByLabelText('Geburtsdatum')).toHaveValue('');
+    await bearbeite();
+    expect(screen.getByRole('button', { name: 'Geburtsdatum bearbeiten', hidden: true })).toBeInTheDocument();
     await wochenstunden('42');
     await waitFor(() => expect(profilAendern).toHaveBeenCalledTimes(1));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: /ist unter 18/ })).not.toBeInTheDocument();
   });
 
   it('Gegenprobe: unter 18 mit 40 Wochenstunden keine Rückfrage', async () => {
     geburtsdatum = '2010-03-15';
     zeige();
+    await bearbeite();
     expect(await screen.findByText(/Unter 18/)).toBeInTheDocument();
     await userEvent.clear(await screen.findByRole('textbox', { name: /^Name/ }));
     await userEvent.type(screen.getByRole('textbox', { name: /^Name/ }), 'Erna B.');
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(profilAendern).toHaveBeenCalledTimes(1));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: /ist unter 18/ })).not.toBeInTheDocument();
   });
 });
 
@@ -830,6 +888,7 @@ describe('Lehrbeginn vor dem Eintritt (Runde 3, G18)', () => {
       eintritt: '2026-01-01',
     });
     zeige();
+    await bearbeite();
     expect(await screen.findByText(/Der Lehrbeginn liegt vor dem Eintritt \(01\.01\.2026\)\. Wird Lehrzeit angerechnet\?/)).toBeInTheDocument();
     await userEvent.clear(screen.getByRole('textbox', { name: /^Name/ }));
     await userEvent.type(screen.getByRole('textbox', { name: /^Name/ }), 'Erna B.');
@@ -843,27 +902,25 @@ describe('Lehrbeginn vor dem Eintritt (Runde 3, G18)', () => {
       eintritt: '2026-01-01',
     });
     zeige();
+    await bearbeite();
     expect(await screen.findByLabelText(/^Lehrbeginn/)).toHaveValue('2026-01-01');
     expect(screen.queryByText(/Der Lehrbeginn liegt vor dem Eintritt/)).not.toBeInTheDocument();
   });
 });
 
 describe('Zusammenfassung zuerst und Sprungleiste (Linie „Lot“)', () => {
-  it('fasst den gespeicherten Stand oben zusammen, bevor das Formular kommt', async () => {
-    gefunden = person({
-      uid: 'u2', name: 'Erna Beispiel', email: 'erna@perl.at', role: 'Buchhaltung',
-      weeklyTargetHours: 20, yearlyVacationDays: 30, workDays: [1, 2],
-    });
+  it('zeigt gespeicherte Profil- und Zeitkontowerte ohne ein offenes Formular', async () => {
+    gefunden = person({ uid: 'u2', name: 'Erna Beispiel', email: 'erna@perl.at', role: 'Buchhaltung', weeklyTargetHours: 20, yearlyVacationDays: 30, workDays: [1, 2] });
     zeige();
-    const ueberblick = (await screen.findByRole('heading', { name: 'Überblick' })).closest('section') as HTMLElement;
-    expect(within(ueberblick).getByText('Buchhaltung · aktiv')).toBeInTheDocument();
-    expect(within(ueberblick).getByText(/20 Std\. je Woche · Mo, Di/)).toBeInTheDocument();
-    expect(within(ueberblick).getByText('30 Tage')).toBeInTheDocument();
-    // Der Überblick steht VOR den Stammdaten.
-    const stammdaten = screen.getByRole('heading', { name: 'Stammdaten' });
-    expect(ueberblick.compareDocumentPosition(stammdaten) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await screen.findByRole('heading', { name: 'Erna Beispiel' });
+    expect(within(screen.getByRole('heading', { name: 'Erna Beispiel' }).closest('.seitenkopf')!).getByText('Buchhaltung')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /^Name/ })).toBeNull();
+    await userEvent.click(screen.getByRole('tab', { name: 'Arbeitszeit und Urlaub' }));
+    const abschnitt = within(screen.getByRole('tabpanel'));
+    expect(abschnitt.getByText('20')).toBeInTheDocument();
+    expect(abschnitt.getByText('30')).toBeInTheDocument();
+    expect(abschnitt.getByText('Mo, Di')).toBeInTheDocument();
   });
-
   it('zeigt keinen Überblick, wo die Akte nur zu lesen ist — die Angaben sind dort schon die Zusammenfassung', async () => {
     gefunden = person({ uid: 'ad1', name: 'Root Person', role: 'Administrator' });
     zeige('ad1');
@@ -871,12 +928,62 @@ describe('Zusammenfassung zuerst und Sprungleiste (Linie „Lot“)', () => {
     expect(screen.queryByRole('heading', { name: 'Überblick' })).not.toBeInTheDocument();
   });
 
-  it('springt nur zu Teilen, die diese Rolle sieht', async () => {
+  it('ordnet die zulässigen Teile den Bereichen zu', async () => {
     zeige();
-    const leiste = await screen.findByRole('navigation', { name: 'Auf dieser Seite' });
-    const ziele = within(leiste).getAllByRole('link').map((l) => l.getAttribute('href'));
-    expect(ziele).toContain('#akte-stammdaten');
-    expect(ziele).toContain('#akte-zugang');
-    for (const z of ziele) expect(document.querySelector(z!)).not.toBeNull();
+    const leiste = await screen.findByRole('tablist');
+    expect(within(leiste).getAllByRole('tab').map((a) => a.textContent)).toEqual(['Profil', 'Arbeitszeit und Urlaub', 'Zugang und Rechte']);
+    for (const id of ['akte-stammdaten', 'akte-zugang', 'akte-urlaub', 'akte-datenschutz']) expect(document.getElementById(id)).not.toBeNull();
+  });});
+
+
+describe('Aktenlinie 03 · Benutzer', () => {
+  it('trennt Profil, Kontoeinstellungen und Zugang und öffnet das vollständige Formular bewusst', async () => {
+    zeige();
+    await screen.findByRole('heading', { name: 'Erna Beispiel' });
+    expect(screen.queryByLabelText(/^Name/)).toBeNull();
+    expect(screen.getAllByRole('tab').map((x) => x.textContent)).toEqual(['Profil', 'Arbeitszeit und Urlaub', 'Zugang und Rechte']);
+    await userEvent.click(screen.getByRole('tab', { name: 'Zugang und Rechte' }));
+    expect(screen.getByRole('button', { name: 'Passwort-Mail senden' })).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Bearbeiten' }));
+    expect(await screen.findByRole('dialog', { name: 'Benutzer bearbeiten' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Name/)).toHaveValue('Erna Beispiel');
+    expect(screen.getByLabelText(/Wochenstunden/)).toHaveValue('40');
   });
+  it('gibt der Geschäftsführung durch den Umbau keine Bearbeitung eines Administrators frei', async () => {
+    gefunden = person({ uid: 'a1', name: 'Admin', role: 'Administrator' });
+    zeige('a1');
+    await screen.findByRole('heading', { name: 'Admin' });
+    expect(screen.queryByRole('button', { name: 'Bearbeiten' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: 'Zugang und Rechte' })).toBeNull();
+  });
+});
+
+it('Aktenlinie 03 · schützt den eigenen Geburtsdatumsentwurf und verwendet den gespeicherten Stand für KJBG', async () => {
+  const { setGeburtsdatum } = await import('@/lib/db/arbeitszeitGrenzen');
+  vi.mocked(setGeburtsdatum).mockClear();
+  geburtsdatum = '1990-01-01';
+  zeige();
+  expect(await screen.findByText('01.01.1990')).toBeInTheDocument();
+  expect(screen.queryByLabelText('Geburtsdatum')).toBeNull();
+  await userEvent.click(screen.getByRole('button', { name: 'Geburtsdatum bearbeiten' }));
+  const fenster = screen.getByRole('dialog', { name: 'Geburtsdatum bearbeiten' });
+  const feld = within(fenster).getByLabelText('Geburtsdatum');
+  await userEvent.clear(feld);
+  await userEvent.type(feld, '2010-03-15');
+  await userEvent.keyboard('{Escape}');
+  await userEvent.click(within(screen.getByRole('dialog', { name: 'Ungespeicherte Änderungen verwerfen?' })).getByRole('button', { name: 'Abbrechen' }));
+  expect(feld).toHaveValue('2010-03-15');
+  expect(setGeburtsdatum).not.toHaveBeenCalled();
+  await userEvent.click(within(fenster).getByRole('button', { name: 'Speichern' }));
+  expect(setGeburtsdatum).toHaveBeenCalledWith('perl', 'u2', '2010-03-15');
+  expect(await screen.findByText('15.03.2010')).toBeInTheDocument();
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(profilAendern).not.toHaveBeenCalled();
+  await bearbeite();
+  const wochenstunden = screen.getByRole('textbox', { name: /Wochenstunden/ });
+  await userEvent.clear(wochenstunden);
+  await userEvent.type(wochenstunden, '42');
+  await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+  expect(screen.getByRole('dialog', { name: /ist unter 18/ })).toBeInTheDocument();
+  expect(profilAendern).not.toHaveBeenCalled();
 });

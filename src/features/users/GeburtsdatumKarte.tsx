@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import AktenBearbeiten from '@/components/AktenBearbeiten';
+import { datumAT } from '@/lib/datum';
 import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { getGeburtsdatum, setGeburtsdatum } from '@/lib/db/arbeitszeitGrenzen';
@@ -20,7 +22,9 @@ export default function GeburtsdatumKarte({
   companyId,
   uid,
   onStand,
+  alsAngabe = false,
 }: {
+  alsAngabe?: boolean;
   companyId: string;
   uid: string;
   /**
@@ -34,6 +38,7 @@ export default function GeburtsdatumKarte({
   const [gespeichert, setGespeichert] = useState<string | null | undefined>(undefined);
   const [wert, setWert] = useState('');
   const [laeuft, setLaeuft] = useState(false);
+  const [bearbeitet, setBearbeitet] = useState(false);
 
   useEffect(() => {
     let weg = false;
@@ -58,6 +63,7 @@ export default function GeburtsdatumKarte({
     try {
       await setGeburtsdatum(companyId, uid, wert || null);
       setGespeichert(wert || null);
+      setBearbeitet(false);
       onStand?.(wert || null);
       toast.success(wert ? 'Geburtsdatum gespeichert' : 'Geburtsdatum entfernt');
     } catch (e) {
@@ -67,11 +73,7 @@ export default function GeburtsdatumKarte({
     }
   }
 
-  return (
-    <Card
-      title="Geburtsdatum"
-      hint="Nur für die Schutzregeln für Jugendliche unter 18 (KJBG): Die Mitarbeiterübersicht prüft damit Tages- und Wochenarbeitszeit, Ruhezeit, Nachtruhe und Wochenfreizeit. Sehen können es die Person selbst sowie Büro und Leitung. Bei einer Löschung nach DSGVO wird es entfernt."
-    >
+  const formular = (
       <div className="flex flex-wrap items-end gap-3">
         <InputField
           id="geburtsdatum"
@@ -86,6 +88,23 @@ export default function GeburtsdatumKarte({
           </Button>
         )}
       </div>
+  );
+
+  return (
+    <Card
+      title="Geburtsdatum"
+      hint="Nur für die Schutzregeln für Jugendliche unter 18 (KJBG): Die Mitarbeiterübersicht prüft damit Tages- und Wochenarbeitszeit, Ruhezeit, Nachtruhe und Wochenfreizeit. Sehen können es die Person selbst sowie Büro und Leitung. Bei einer Löschung nach DSGVO wird es entfernt."
+    >
+      {alsAngabe ? <>
+        <p className="text-sm">{gespeichert ? datumAT(gespeichert) : 'nicht hinterlegt'}</p>
+        <Button variant="ghost" onClick={() => setBearbeitet(true)}>Geburtsdatum bearbeiten</Button>
+        <AktenBearbeiten offen={bearbeitet} titel="Geburtsdatum bearbeiten" geaendert={geaendert} speichert={laeuft}
+          onSchliessen={() => setBearbeitet(false)} onVerwerfen={() => setWert(gespeichert ?? '')}>
+          {formular}
+        </AktenBearbeiten>
+      </> : <>
+        {formular}
+      </>}
       {gespeichert && istJugendlich(gespeichert, todayStr()) && (
         <p className="mt-2 text-sm text-ink-muted">Unter 18 — es gelten die Grenzen des KJBG.</p>
       )}
