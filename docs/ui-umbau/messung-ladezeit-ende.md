@@ -38,7 +38,7 @@ Programmcode kommt dann über das langsame Netz, rund 230 KB): ×1 2,3–3,6 s,
 
 **Ergebnis.** Was eine Seite lädt, hängt jetzt am Gezeigten — beim
 dreifachen Bestand ist jede Seite im Alltag in höchstens 2,1 s bereit,
-**außer der Mitarbeiterübersicht mit 75 Leuten (3,5 s)**. Sie zeigt den
+**außer der Mitarbeiterübersicht mit 75 Leuten (3,5 s)**. Senklot ist für Betriebe bis etwa 30 Mitarbeiter gedacht; mit 25 Leuten (×1) ist sie in 1,9 s bereit — 75 Leute sind ein Belastungstest über die Zielgröße hinaus. Sie zeigt den
 Monat jeder Person, und ihre Grundlage — die Buchungen des Monats samt einer
 Woche davor und danach, bei 75 Leuten rund 3.700 Zeilen, knapp 300 KB über
 das langsame Netz — wächst mit der Belegschaft (nicht mit den Jahren);

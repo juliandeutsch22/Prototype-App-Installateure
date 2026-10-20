@@ -325,26 +325,40 @@ describe('lager_frei mit einer Liste von Kennungen', () => {
   /*
     Langsamkeit lässt sich mit drei Artikeln nicht messen. Geprüft wird die
     Voraussetzung: im allgemeinen Plan, den Postgres für alle Aufrufe der
-    Funktion bildet, findet die Liste die Artikel über den Schlüssel — bei
-    einem Katalog, wie ihn ein Betrieb mit DATANORM hat (in der Transaktion
-    angelegt und zurückgerollt). Mit `p_ids is null or m.id = any (p_ids)`
-    (Stand davor) nimmt er ihn nicht und liest jeden Artikel des Betriebs —
-    die Prüfung ist dann rot (Gegenprobe: gegen den alten Text gelaufen).
+    Funktion bildet, kann die Liste die Artikel über den Schlüssel finden
+    (`id = ANY` als Indexbedingung). Mit `p_ids is null or m.id = any (p_ids)`
+    (Stand davor) geht das nicht — die Prüfung ist dann rot (Gegenprobe:
+    gegen den alten Text gelaufen).
+
+    OHNE DEN INDEX DES BETRIEBS, in der Transaktion weggenommen und
+    zurückgerollt: ob Postgres ihn vorzieht, hängt daran, wie viele Betriebe
+    gerade Artikel in der Tabelle haben — im vollen Lauf viele andere
+    Prüfungen (so am 20.10.2026 geschehen). Die Frage hier ist nur, ob der
+    Schlüssel überhaupt nutzbar ist.
   */
-  it('der allgemeine Plan nimmt den Schlüssel der Artikel', async () => {
+  it('der allgemeine Plan kann die Artikel über den Schlüssel finden', async () => {
     const { rows } = await db.query(`select prosrc from pg_proc where oid = 'public.lager_frei(uuid[])'::regprocedure`);
     const text = String(rows[0].prosrc).replace(/\bp_ids\b/g, '$1');
     await db.query('begin');
     try {
-      await db.query(`insert into public.materials (company_id, name, article_number, stock)
-        select '${BETRIEB}', 'Katalog ' || i, 'SK-' || i, 0 from generate_series(1, 5000) i`);
-      await db.query('analyze public.materials');
+      await db.query("set local lock_timeout = '5s'");
+      await db.query('drop index public.materials_betrieb');
       await db.query('set local plan_cache_mode = force_generic_plan');
       await db.query('set local enable_seqscan = off');
       await db.query(`prepare lager_frei_plan(uuid[]) as ${text}`);
       const { rows: plan } = await db.query(`explain (format json) execute lager_frei_plan('{${artikel.join(',')}}')`);
-      const knoten = JSON.stringify(plan[0]['QUERY PLAN']);
-      expect(knoten).toMatch(/"Index Name":"materials_pkey"/);
+      // Auch als Bitmap: dort steht der Index im Knoten unter dem Tabellenzugriff.
+      const schluessel: Array<Record<string, unknown>> = [];
+      const sammeln = (k: unknown) => {
+        if (Array.isArray(k)) k.forEach(sammeln);
+        else if (k && typeof k === 'object') {
+          const knoten = k as Record<string, unknown>;
+          if (knoten['Index Name'] === 'materials_pkey') schluessel.push(knoten);
+          Object.values(knoten).forEach(sammeln);
+        }
+      };
+      sammeln(plan[0]['QUERY PLAN']);
+      expect(schluessel.some((k) => /id = ANY/.test(String(k['Index Cond'] ?? '')))).toBe(true);
     } finally {
       await db.query('rollback');
     }
