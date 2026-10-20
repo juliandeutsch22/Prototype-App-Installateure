@@ -11,7 +11,12 @@ export interface AktenTerminStand { termine: Termin[] | null; fehler: boolean }
 /** Die Kurzansicht liest den schon geladenen Terminbestand; sie stellt keine zweite Abfrage. */
 export default function AktenTerminVorschau({ stand, bereich }: { stand: AktenTerminStand; bereich: string }) {
   const heute = todayStr();
-  const termin = stand.termine?.filter((t) => t.datum >= heute)
+  const jetzt = new Date();
+  const uhrzeit = `${String(jetzt.getHours()).padStart(2, '0')}:${String(jetzt.getMinutes()).padStart(2, '0')}`;
+  // Ein bekanntes, schon beendetes Zeitfenster ist kein nächster Termin.
+  // Ohne Endzeit bleibt der heutige Termin erhalten: sein Ende ist unbekannt.
+  const termin = stand.termine?.filter((t) => t.datum > heute ||
+    (t.datum === heute && (!t.zeitBis || t.zeitBis.slice(0, 5) > uhrzeit)))
     .slice().sort((a, b) => a.datum.localeCompare(b.datum) || (a.zeitVon ?? '').localeCompare(b.zeitVon ?? ''))[0];
   return <Card title="Nächster Termin" action={<AktenVerweis bereich={bereich}>Alle Termine →</AktenVerweis>}>
     {stand.fehler ? <TeilFehler was="die Termine" /> : stand.termine === null ? (

@@ -72,3 +72,8 @@ Beim Gegenlesen zusätzlich abgesichert: die Budgetwarnung ab 80 Prozent bleibt
 auch ohne Ring erhalten. Eine laufende VIES-Prüfung gehört zur Kundenakte und
 überlebt den Wechsel zwischen Lesen und Bearbeiten ohne erneute Abfrage oder
 verlorenes Ergebnis (`useUidVies`); je eine rote Gegenprobe vor der Korrektur.
+
+Die Terminvorschau überspringt heute bereits beendete Zeitfenster. Laufende
+Termine und Termine ohne bekannte Endzeit bleiben erhalten; die vollständige
+Terminkarte bleibt unverändert. Prüfung mit festem Zeitpunkt und drei Terminen,
+vor der Korrektur rot.
