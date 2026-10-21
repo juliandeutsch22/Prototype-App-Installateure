@@ -836,6 +836,35 @@ function zeichneSeite(start = '/accounting?tage=alle') {
 /** Ein Feld des Streifens bzw. eine Zelle der Woche — beim `aria-label` gesucht (Person, Tag, Zustand). */
 const tagKnopf = (muster: RegExp) => screen.getByRole('button', { name: muster });
 
+describe('Mitarbeiterübersicht: mobile Tage ohne Buchung', () => {
+  it('beginnt eingeklappt und behält den offenen Zustand beim Rückweg aus der Zeiterfassung', async () => {
+    buchungen = eintraege.filter((e) => e.date !== '2026-08-20');
+    const nutzer = zeichneSeite('/accounting');
+    await nutzer.click(await personKnopf('Neu Eingestellt'));
+    let schalter = within(fenster()).getByRole('button', { name: /1 Arbeitstag ohne Buchung/ });
+    expect(schalter).toHaveAttribute('aria-expanded', 'false');
+    await nutzer.click(schalter);
+    expect(schalter).toHaveAttribute('aria-expanded', 'true');
+    await nutzer.click(within(fenster()).getByRole('button', { name: 'Zeit erfassen für Do 20.08.' }));
+    const formular = screen.getByRole('dialog', { name: 'Zeit erfassen' });
+    expect(within(formular).getByText('Vorbelegt: u1 am 2026-08-20')).toBeInTheDocument();
+    await nutzer.click(within(formular).getByRole('button', { name: 'Abbrechen' }));
+    schalter = within(fenster()).getByRole('button', { name: /1 Arbeitstag ohne Buchung/ });
+    expect(schalter).toHaveAttribute('aria-expanded', 'true');
+    await nutzer.click(schalter);
+    expect(schalter).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('öffnet die fehlenden Tage bei gezielter Auswahl im Monatsstreifen', async () => {
+    buchungen = eintraege.filter((e) => e.date !== '2026-08-20');
+    const nutzer = zeichneSeite();
+    await personKnopf('Neu Eingestellt');
+    await nutzer.click(tagKnopf(/Do 20\.08\. · keine Buchung/));
+    expect(within(fenster()).getByRole('button', { name: /1 Arbeitstag ohne Buchung/ })).toHaveAttribute('aria-expanded', 'true');
+    expect(fenster().querySelector('[data-markiert="ja"]')).toHaveTextContent('Do 20.08.');
+  });
+});
+
 describe('Mitarbeiterübersicht: der Monat als Streifen (Runde 4, Auftrag 3.3)', () => {
   /*
     BIS RUNDE 4 STAND HIER DAS RASTER (Linie „Lot“, E9) mit Stunden in jeder
@@ -957,7 +986,7 @@ describe('Mitarbeiterübersicht: der Monat als Streifen (Runde 4, Auftrag 3.3)',
   });
 });
 
-describe('Mitarbeiterübersicht: Kennzahlen (Runde 4, Auftrag 3.2)', () => {
+describe('Mitarbeiterübersicht: kompakter Prüfbereich', () => {
   const luecke = () => {
     const zweite = { ...monteur, id: 'u2', uid: 'u2', name: 'Anna Zweite' } as AppUser;
     benutzer = [monteur, zweite];
@@ -971,13 +1000,12 @@ describe('Mitarbeiterübersicht: Kennzahlen (Runde 4, Auftrag 3.2)', () => {
     luecke();
     const nutzer = zeichneSeite('/accounting');
     await personKnopf('Neu Eingestellt');
-    const kennzahl = screen.getByRole('button', { name: /^Tage ohne Buchung/ });
-    expect(kennzahl).toHaveTextContent('2');
-    expect(kennzahl).toHaveTextContent('bei 1 von 2 Personen');
-    expect(kennzahl).toHaveAttribute('aria-pressed', 'false');
+    const kennzahl = screen.getByRole('checkbox', { name: /Nur Tage ohne Buchung/ });
+    expect(screen.getByText('2 Tage ohne Buchung bei 1 von 2 Personen')).toBeInTheDocument();
+    expect(kennzahl).not.toBeChecked();
 
     await nutzer.click(kennzahl);
-    expect(kennzahl).toHaveAttribute('aria-pressed', 'true');
+    expect(kennzahl).toBeChecked();
     expect(screen.getByTestId('adresse')).toHaveTextContent('?nur=offen');
     expect(document.querySelectorAll('.ue-name')).toHaveLength(1);
 
@@ -990,7 +1018,7 @@ describe('Mitarbeiterübersicht: Kennzahlen (Runde 4, Auftrag 3.2)', () => {
     luecke();
     zeichneSeite('/accounting?filter=luecken&monat=2026-08');
     await personKnopf('Anna Zweite');
-    expect(screen.getByRole('button', { name: /^Tage ohne Buchung/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('checkbox', { name: /Nur Tage ohne Buchung/ })).toBeChecked();
     expect(Array.from(document.querySelectorAll('.ue-name')).map((n) => n.textContent)).toEqual(['Anna Zweite']);
     expect(screen.getByRole('button', { name: /August 2026/ })).toBeInTheDocument();
   });
@@ -1002,6 +1030,19 @@ describe('Mitarbeiterübersicht: Kennzahlen (Runde 4, Auftrag 3.2)', () => {
     // 80:00 + 64:00 gebucht; Soll je 80:00.
     expect(screen.getByText('144:00')).toBeInTheDocument();
     expect(screen.getByText('von 160:00 Soll · alle Personen')).toBeInTheDocument();
+  });
+
+  it('die ruhige Gesamtsumme steht hinter der Liste und bleibt beim Filtern unverändert', async () => {
+    luecke();
+    const nutzer = zeichneSeite('/accounting');
+    const person = await personKnopf('Neu Eingestellt');
+    const summe = screen.getByRole('region', { name: 'Gesamt aller Personen' });
+    expect(person.compareDocumentPosition(summe) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(summe).toHaveTextContent('144:00');
+    await nutzer.click(screen.getByRole('checkbox', { name: /Nur Tage ohne Buchung/ }));
+    expect(document.querySelectorAll('.ue-name')).toHaveLength(1);
+    expect(summe).toHaveTextContent('144:00');
+    expect(summe).toHaveTextContent('von 160:00 Soll · alle Personen');
   });
 
   it('der Fall steht in der Karte und als Tag im Streifen — mit EINER Prüfung, ohne eigene Kennzahl', async () => {
@@ -1069,6 +1110,17 @@ describe('Mitarbeiterübersicht: Monat und Jahr (Runde 4, Auftrag 3.2)', () => {
 });
 
 describe('Mitarbeiterübersicht: die Woche (Runde 4, Auftrag 3.4)', () => {
+  it('summiert im Fuß die gewählte Woche statt weiterhin den ganzen Monat', async () => {
+    buchungen = eintraege.filter((e) => e.date !== '2026-08-26');
+    const nutzer = zeichneSeite('/accounting?ansicht=woche');
+    await personKnopf('Neu Eingestellt');
+    await nutzer.click(screen.getByRole('button', { name: 'Vorige Woche' }));
+    const summe = screen.getByRole('region', { name: 'Gesamt aller Personen' });
+    expect(summe).toHaveTextContent('Gebucht in dieser Woche');
+    expect(summe).toHaveTextContent('32:00');
+    expect(summe).toHaveTextContent('von 40:00 Soll · alle Personen');
+  });
+
   it('?ansicht=woche zeigt die laufende Woche mit Stunden, Von–Bis und „fehlt“, darunter die Summen', async () => {
     // Heute ist Mo 31.08.; die Woche davor (24.–30.08.) über ‹.
     buchungen = eintraege.filter((e) => e.date !== '2026-08-26');

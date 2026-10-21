@@ -80,6 +80,13 @@ describe('Erzeugte Ersatzmodule der Vorschau', () => {
     expect(modul('materials')).toMatch(/export const subscribeLagerartikel = SUB\(/);
   });
 
+  it('Kundennamensuche und Arbeitszeit-Vorlauf liefern Listen für die echten Ansichten', () => {
+    expect(modul('customers')).toContain('export const kundenNachNamen = () => A(D.kunden);');
+    expect(modul('timeEntries')).toContain('export const arbeitszeitVorlauf = () => A([]);');
+    expect(modul('pg/customers')).toContain('export const kundenNachNamen = () => A(D.kunden);');
+    expect(modul('pg/timeEntries')).toContain('export const arbeitszeitVorlauf = () => A([]);');
+  });
+
   it('beide FEST-Einträge für Rechnungen gelten', () => {
     expect(modul('invoices')).toContain('export const scheineAufRechnung = () => A([]);');
     expect(modul('invoices')).toContain('export const sucheRechnungen = () => A([]);');

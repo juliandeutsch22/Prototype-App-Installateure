@@ -19,10 +19,11 @@ mkdirSync(ziel, { recursive: true });
 /** Welche Beispieldaten ein Modul zurueckgeben soll. `*` gilt fuer alles Uebrige. */
 const DATEN = {
   users: { listUsers: 'D.benutzer', getUserByUid: 'D.benutzer[0]' },
-  timeEntries: { '*': 'D.zeiten', listUrlaubstage: '[]', subscribeUrlaubstage: '[]', stundenDerBaustellen: '[]' },
+  timeEntries: { '*': 'D.zeiten', arbeitszeitVorlauf: '[]', listUrlaubstage: '[]', subscribeUrlaubstage: '[]', stundenDerBaustellen: '[]' },
   projects: { '*': 'D.baustellen' },
   customers: {
     listCustomers: 'D.kunden', listCustomersByIds: 'D.kunden', searchCustomers: 'D.kunden',
+    kundenNachNamen: 'D.kunden',
     listProjectsForCustomer: 'D.baustellen', listUnlinkedProjectsByName: '[]',
     listUidPruefungen: 'D.uidPruefungen',
     // Die Segmente „Ohne Kundenart“ und „Anschrift prüfen“ (K4, 13.10.2026): ohne Liste stürzte die Ansicht ab.

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, TimeEntry } from '@/types';
 import type { CompletenessResult, MonthStats } from '@/lib/time';
@@ -27,22 +27,9 @@ import type { GrenzDaten } from './useArbeitszeitGrenzen';
 import { kurzeZeit, tageDesMonats, tagKurz, type Tageswert } from './tagesauswertung';
 
 /**
- * DAS SEITENFENSTER „PERSON IM MONAT“ (Runde 4, Auftrag 3.5) — es ersetzt die
- * aufgeklappte Karte der Liste.
- *
- * DER INHALT IST DER DER KARTE, Wortlaut und Zahlen zeichengleich: Saldo,
- * „hh:mm von hh:mm Soll bisher“, Gesamtsaldo, Resturlaub mit „Anspruch
- * angepasst“, die Zeile Krank/Urlaub/…, die Zeile Tagessoll/Wochenstunden/…
- * mit „laufend“, der Hinweis ohne Eintrittsdatum, die Tage ohne Buchung, der
- * Tagesnachweis mit seinen Aktionen je Art, „Monat als CSV“ und „Bericht für
- * Zeitraum“. Nur die Anordnung ist neu: Kennzahlen oben, Abschnitte darunter,
- * die Knöpfe in der Fussleiste. Seit Runde 5 (G6) tragen Gesamtsaldo und
- * Resturlaub ihre Beschriftung nur einmal, und ein eigenes Tagessoll steht je
- * Wochentag da statt als Durchschnitt.
- *
- * NEU, aber keine neue Funktion (Entscheidung R4-0, Frage 3): an jedem Tag
- * ohne Buchung „Zeit erfassen“ — dasselbe Formular wie die Hauptaktion, mit
- * Person und Tag vorbelegt.
+ * Person im Monat: Kontostand, fehlende Tage und vollständiger Tagesnachweis.
+ * Formulare öffnen im selben Fenster und führen zur Person zurück.
+ * Der Einklappzustand liegt deshalb bei der Seite und bleibt dabei erhalten.
  */
 export default function PersonFenster({
   user: u,
@@ -56,6 +43,8 @@ export default function PersonFenster({
   halbeTage,
   nacht,
   markiert: tagVonAussen,
+  fehlendeOffen,
+  onFehlendeOffen,
   grenzDaten,
   companyId,
   onErfassen,
@@ -79,6 +68,8 @@ export default function PersonFenster({
   nacht: Nachtzeit;
   /** Der Tag, über den das Fenster geöffnet wurde. */
   markiert: string | null;
+  fehlendeOffen: boolean;
+  onFehlendeOffen: (offen: boolean) => void;
   grenzDaten: GrenzDaten;
   companyId: string;
   onErfassen: (tag: string | null) => void;
@@ -95,6 +86,14 @@ export default function PersonFenster({
     eigenen Hinweis erklaert.
   */
   const zeigtSaldo = stats.hasConfig;
+  const fehlendeId = useId();
+  const gezieltFehlend = !!tagVonAussen && completeness.missingDates.includes(tagVonAussen);
+  // Eine gezielte Tagesauswahl muss auch am Handy sofort sichtbar sein.
+  useEffect(() => {
+    if (gezieltFehlend) onFehlendeOffen(true);
+    // Der Callback speichert in der Seite; seine Identität ändert sich beim Rendern.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gezieltFehlend, tagVonAussen, u.uid, jahr, monat]);
   const [kalender, setKalender] = useState(false);
   const [markiert, setMarkiert] = useState(tagVonAussen);
   useEffect(() => {
@@ -111,7 +110,7 @@ export default function PersonFenster({
   useEffect(() => {
     if (!markiert) return;
     behaelter.current?.querySelector('[data-markiert="ja"]')?.scrollIntoView?.({ block: 'center' });
-  }, [markiert]);
+  }, [markiert, fehlendeOffen]);
 
   const ueber = [einstufungText(u, markiert ?? `${jahr}-${String(monat + 1).padStart(2, '0')}-01`) || u.role, monatsName]
     .filter(Boolean)
@@ -227,15 +226,6 @@ export default function PersonFenster({
             {zeigtSaldo ? `${stats.saldoMin > 0 ? '+' : ''}${fmtMin(stats.saldoMin)}` : fmtMin(stats.istMin)}
           </p>
         </div>
-        {zeigtSaldo && (
-          <div className="pf-kennzahl">
-            <p className="pf-kennzahl-name">Gebucht</p>
-            <p className="pf-kennzahl-text">
-              {fmtMin(stats.istMin)} von {fmtMin(stats.sollMin)} Soll
-              {stats.istLaufend && ' bisher'}
-            </p>
-          </div>
-        )}
         {zeigtSaldo && u.appStartDate && (
           <div className="pf-kennzahl">
             <p className="pf-kennzahl-name">Gesamtsaldo</p>
@@ -257,39 +247,13 @@ export default function PersonFenster({
         </div>
       </div>
 
-      <p className="pf-text">
-        {teile.map((t, i) => (
-          <span key={i}>
-            {i > 0 && ' · '}
-            {t}
-          </span>
-        ))}
-      </p>
-      {/*
-        DIE ZAHLEN BLEIBEN, DER ERKLAERSATZ STEHT IM „i“ (im Fenster bleibt es
-        an seinem Platz). Übrig bleibt das Wort „laufend“.
-      */}
-      <p className="pf-text-klein">
-        {/*
-          MIT EIGENEM TAGESSOLL JE WOCHENTAG die einzelnen Tage (Runde 5, G6):
-          „Tagessoll 08:00“ war der Durchschnitt, die Akte führte 8,5 / … / 6.
-        */}
-        Tagessoll {hatTagessoll(u) ? tagessollText(u.tagessoll!) : fmtDauer(Math.round(stats.dailyTargetH * 60))} ·
-        Wochenstunden {fmtDauer(Math.round(stats.weeklyTarget * 60))} ·{' '}
-        {stats.requiredDays === 1 ? '1 Solltag' : `${tageZahl(stats.requiredDays)} Solltage`}
-        {stats.holidaysInMonth > 0 &&
-          ` · ${stats.holidaysInMonth === 1 ? '1 Feiertag' : `${stats.holidaysInMonth} Feiertage`}`}
-        {stats.hasConfig && stats.istLaufend && (
-          <>
-            {' · laufend'}
-            <InfoHint about="den laufenden Monat">
-              Gezählt sind die Solltage bis gestern. Die Zahl wächst mit jedem
-              Arbeitstag und ist erst nach Monatsende endgültig — ein Rückstand
-              mitten im Monat ist deshalb noch keine Aussage.
-            </InfoHint>
-          </>
-        )}
-      </p>
+      {zeigtSaldo && (
+        <p className="pf-gebucht">
+          {fmtMin(stats.istMin)} von {fmtMin(stats.sollMin)} Soll
+          {stats.istLaufend && ' bisher'} · gebucht
+        </p>
+      )}
+
       {!stats.hasConfig && (
         <div className="mt-2">
           <Hinweiszeile stufe="warn">
@@ -304,13 +268,23 @@ export default function PersonFenster({
       )}
 
       {completeness.missingCount > 0 && (
-        <section aria-label="Arbeitstage ohne Buchung">
-          <h3 className="pf-abschnitt">
+        <section className={fehlendeOffen ? 'pf-fehltage-offen' : 'pf-fehltage'} aria-label="Arbeitstage ohne Buchung">
+          <h3 className="pf-fehltage-titel">
             {completeness.missingCount === 1
               ? '1 Arbeitstag ohne Buchung'
               : `${completeness.missingCount} Arbeitstage ohne Buchung`}
           </h3>
-          <ul className="pf-liste">
+          <button
+            type="button"
+            className="pf-fehltage-schalter"
+            aria-expanded={fehlendeOffen}
+            aria-controls={fehlendeId}
+            onClick={() => onFehlendeOffen(!fehlendeOffen)}
+          >
+            <span>{completeness.missingCount} {completeness.missingCount === 1 ? 'Arbeitstag' : 'Arbeitstage'} ohne Buchung</span>
+            <span className="pf-fehltage-aktion">{fehlendeOffen ? 'Ausblenden' : 'Anzeigen'}</span>
+          </button>
+          <ul id={fehlendeId} className="pf-fehltage-liste">
             {completeness.missingDates.map((d) => {
               const soll = monatsWerte.find((t) => t.tag === d)?.sollMin ?? null;
               const an = d === markiert;
@@ -344,7 +318,10 @@ export default function PersonFenster({
             {kalender ? 'Kalender ausblenden' : 'Kalender anzeigen'}
           </button>
         </div>
-        {kalender && <PersonKalender name={u.name} werte={monatsWerte} ausgewaehlt={markiert} onTag={setMarkiert} />}
+        {kalender && <PersonKalender name={u.name} werte={monatsWerte} ausgewaehlt={markiert} onTag={(tag) => {
+          if (completeness.missingDates.includes(tag)) onFehlendeOffen(true);
+          setMarkiert(tag);
+        }} />}
         <ul className="pf-liste" aria-label={`Tagesnachweis ${u.name}`}>
           {days.map((x) => {
             const an = x.d === markiert;
@@ -377,6 +354,43 @@ export default function PersonFenster({
           </li>
         </ul>
       </section>
+
+      <details className="pf-kontodetails">
+        <summary>Abwesenheiten und Zeitkonto</summary>
+        <p className="pf-text">
+          {teile.map((t, i) => (
+            <span key={i}>
+              {i > 0 && ' · '}
+              {t}
+            </span>
+          ))}
+        </p>
+        {/*
+          DIE ZAHLEN BLEIBEN, DER ERKLAERSATZ STEHT IM „i“ (im Fenster bleibt es
+          an seinem Platz). Übrig bleibt das Wort „laufend“.
+        */}
+        <p className="pf-text-klein">
+          {/*
+            MIT EIGENEM TAGESSOLL JE WOCHENTAG die einzelnen Tage (Runde 5, G6):
+            „Tagessoll 08:00“ war der Durchschnitt, die Akte führte 8,5 / … / 6.
+          */}
+          Tagessoll {hatTagessoll(u) ? tagessollText(u.tagessoll!) : fmtDauer(Math.round(stats.dailyTargetH * 60))} ·
+          Wochenstunden {fmtDauer(Math.round(stats.weeklyTarget * 60))} ·{' '}
+          {stats.requiredDays === 1 ? '1 Solltag' : `${tageZahl(stats.requiredDays)} Solltage`}
+          {stats.holidaysInMonth > 0 &&
+            ` · ${stats.holidaysInMonth === 1 ? '1 Feiertag' : `${stats.holidaysInMonth} Feiertage`}`}
+          {stats.hasConfig && stats.istLaufend && (
+            <>
+              {' · laufend'}
+              <InfoHint about="den laufenden Monat">
+                Gezählt sind die Solltage bis gestern. Die Zahl wächst mit jedem
+                Arbeitstag und ist erst nach Monatsende endgültig — ein Rückstand
+                mitten im Monat ist deshalb noch keine Aussage.
+              </InfoHint>
+            </>
+          )}
+        </p>
+      </details>
 
       <div className="pf-fuss">
         <Button variant="secondary" onClick={onCsv}>

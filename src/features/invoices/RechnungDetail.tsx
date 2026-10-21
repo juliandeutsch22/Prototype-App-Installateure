@@ -75,8 +75,8 @@ export default function RechnungDetail({
     ) : null;
 
   return (
-    <BottomSheet open auchBreit onClose={onClose} label={name} titel={name}>
-      <div className="space-y-4 text-sm">
+    <BottomSheet open auchBreit breit onClose={onClose} label={name} titel={name}>
+      <div className="rechnung-leseansicht text-sm">
         <p className="text-ink-muted">
           {inv.customerName}{inv.customerVatId ? ` · UID ${inv.customerVatId}` : ''}
         </p>
@@ -95,85 +95,100 @@ export default function RechnungDetail({
           </div>
         )}
 
-        <dl className="divide-y divide-line">
-          {zeile('Rechnungsdatum', datumAT(inv.invoiceDate))}
-          {zeile('Fällig', datumAT(inv.dueDate))}
-          {zeile('Baustelle', inv.projectNumber)}
-          {zeile('Leistungszeitraum', inv.leistungVon && inv.leistungBis
-            ? `${datumAT(inv.leistungVon)} – ${datumAT(inv.leistungBis)}` : null)}
-          {zeile('Leistungsort', inv.leistungsort)}
-          {zeile('Bestellnummer des Kunden', inv.bestellnummer)}
-        </dl>
+        <section className="rechnung-lesegruppe" aria-label="Rechnungsangaben">
+          <h3 className="rechnung-lesetitel">Rechnungsangaben</h3>
+          <dl className="divide-y divide-line">
+            {zeile('Rechnungsdatum', datumAT(inv.invoiceDate))}
+            {zeile('Fällig', datumAT(inv.dueDate))}
+            {zeile('Baustelle', inv.projectNumber)}
+            {zeile('Leistungszeitraum', inv.leistungVon && inv.leistungBis
+              ? `${datumAT(inv.leistungVon)} – ${datumAT(inv.leistungBis)}` : null)}
+            {zeile('Leistungsort', inv.leistungsort)}
+            {zeile('Bestellnummer des Kunden', inv.bestellnummer)}
+          </dl>
+        </section>
 
         {inv.positions && inv.positions.length > 0 && (
-          <table className="w-full text-left">
-            <thead>
-              <tr className="text-xs text-ink-muted">
-                <th className="py-1 font-normal">Bezeichnung</th>
-                <th className="py-1 text-right font-normal">Menge</th>
-                <th className="py-1 text-right font-normal">Netto</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {inv.positions.map((p, i) =>
-                // Titel und Text ohne Beträge, wie auf dem PDF (M18).
-                p.art === 'titel' || p.art === 'text' ? (
-                  <tr key={i}>
-                    <td colSpan={3} className={`py-1 pr-2 ${p.art === 'titel' ? 'font-semibold' : 'text-ink-muted'}`}>{p.label}</td>
-                  </tr>
-                ) : (
-                  <tr key={i}>
-                    <td className="py-1 pr-2">
-                      {p.label}
-                      {positionsRabattText(p.rabattProzent) && (
-                        <span className="block text-xs text-ink-muted">{positionsRabattText(p.rabattProzent)}</span>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap py-1 text-right">
-                      {String(p.qty).replace('.', ',')} {p.unit}
-                    </td>
-                    <td className="whitespace-nowrap py-1 text-right">{euroBetrag(p.netto)}</td>
-                  </tr>
-                ),
-              )}
-            </tbody>
-          </table>
+          <section className="rechnung-lesegruppe" aria-label="Leistungen">
+            <h3 className="rechnung-lesetitel">Leistungen</h3>
+            <table className="w-full text-left">
+              <thead>
+                <tr className="text-xs text-ink-muted">
+                  <th className="py-1 font-normal">Bezeichnung</th>
+                  <th className="py-1 text-right font-normal">Menge</th>
+                  <th className="py-1 text-right font-normal">Netto</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {inv.positions.map((p, i) =>
+                  // Titel und Text ohne Beträge, wie auf dem PDF (M18).
+                  p.art === 'titel' || p.art === 'text' ? (
+                    <tr key={i}>
+                      <td colSpan={3} className={`py-1 pr-2 ${p.art === 'titel' ? 'font-semibold' : 'text-ink-muted'}`}>{p.label}</td>
+                    </tr>
+                  ) : (
+                    <tr key={i}>
+                      <td className="py-1 pr-2">
+                        {p.label}
+                        {positionsRabattText(p.rabattProzent) && (
+                          <span className="block text-xs text-ink-muted">{positionsRabattText(p.rabattProzent)}</span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap py-1 text-right">
+                        {String(p.qty).replace('.', ',')} {p.unit}
+                      </td>
+                      <td className="whitespace-nowrap py-1 text-right">{euroBetrag(p.netto)}</td>
+                    </tr>
+                  ),
+                )}
+              </tbody>
+            </table>
+          </section>
         )}
 
-        <dl className="divide-y divide-line">
-          {/* Gegliedert wie Vorschau und PDF — mit Abzug der Anzahlung (N2). */}
-          {detailSummen(inv).map((z, i) => (
-            <div key={i} className={z.abzug ? 'rechnung-detail-abzug' : 'rechnung-detail-zeile'}>
-              <dt className={z.abzug ? '' : 'text-ink-muted'}>{z.wort}</dt>
-              <dd className="whitespace-nowrap text-right text-ink">
-                {z.betont ? <b>{euro(z.betrag)}</b> : z.abzug ? `−${euro(z.betrag)}` : euro(z.betrag)}
-              </dd>
-            </div>
-          ))}
-          {zeile(
-            inv.ruecklassArt === 'deckung' ? 'Deckungsrücklass' : 'Haftrücklass',
-            inv.ruecklassBetrag != null && inv.ruecklassBis
-              ? `${euro(inv.ruecklassBetrag)} (${(inv.ruecklassProzent ?? 0).toLocaleString('de-AT', { maximumFractionDigits: 2 })} %), fällig am ${datumAT(inv.ruecklassBis)}`
-              : null,
-          )}
-          {zeile('Bankgarantie', inv.ruecklassGarantieAm
-            ? [
-                `Rücklass abgelöst am ${datumAT(inv.ruecklassGarantieAm)}`,
-                inv.ruecklassGarantieBank,
-                inv.ruecklassGarantieNr ? `Nr. ${inv.ruecklassGarantieNr}` : null,
-                inv.ruecklassGarantieBis ? `gültig bis ${datumAT(inv.ruecklassGarantieBis)}` : null,
-              ].filter(Boolean).join(' · ')
-            : null)}
-          {zeile('Bezahlt', stand.bezahlt > 0 ? euro(stand.bezahlt) : null)}
-          {zeile('Offen', inv.paymentStatus !== 'Storniert' ? euro(stand.rest) : null)}
-          {zeile('Guthaben des Kunden', stand.guthaben > 0 ? euro(stand.guthaben) : null)}
-          {zeile('Stand', inv.paymentStatus)}
-          {zeile('Gemahnt', inv.mahnstufe
-            ? `Stufe ${inv.mahnstufe}${inv.gemahntAm ? ` am ${datumAT(inv.gemahntAm)}` : ''}${inv.mahnfrist ? `, Frist bis ${datumAT(inv.mahnfrist)}` : ''}`
-            : null)}
-          {zeile('Storno', inv.cancellationNote)}
-          {zeile('Stornorechnung', inv.stornoNummer)}
-        </dl>
+        <section className="rechnung-lesegruppe" aria-label="Belegsumme">
+          <h3 className="rechnung-lesetitel">Belegsumme</h3>
+          <dl className="divide-y divide-line">
+            {/* Gegliedert wie Vorschau und PDF — mit Abzug der Anzahlung (N2). */}
+            {detailSummen(inv).map((z, i) => (
+              <div key={i} className={z.abzug ? 'rechnung-detail-abzug' : 'rechnung-detail-zeile'}>
+                <dt className={z.abzug ? '' : 'text-ink-muted'}>{z.wort}</dt>
+                <dd className="whitespace-nowrap text-right text-ink">
+                  {z.betont ? <b>{euro(z.betrag)}</b> : z.abzug ? `−${euro(z.betrag)}` : euro(z.betrag)}
+                </dd>
+              </div>
+            ))}
+            {zeile(
+              inv.ruecklassArt === 'deckung' ? 'Deckungsrücklass' : 'Haftrücklass',
+              inv.ruecklassBetrag != null && inv.ruecklassBis
+                ? `${euro(inv.ruecklassBetrag)} (${(inv.ruecklassProzent ?? 0).toLocaleString('de-AT', { maximumFractionDigits: 2 })} %), fällig am ${datumAT(inv.ruecklassBis)}`
+                : null,
+            )}
+            {zeile('Bankgarantie', inv.ruecklassGarantieAm
+              ? [
+                  `Rücklass abgelöst am ${datumAT(inv.ruecklassGarantieAm)}`,
+                  inv.ruecklassGarantieBank,
+                  inv.ruecklassGarantieNr ? `Nr. ${inv.ruecklassGarantieNr}` : null,
+                  inv.ruecklassGarantieBis ? `gültig bis ${datumAT(inv.ruecklassGarantieBis)}` : null,
+                ].filter(Boolean).join(' · ')
+              : null)}
+          </dl>
+        </section>
+
+        <section className="rechnung-lesegruppe" aria-label="Zahlstand">
+          <h3 className="rechnung-lesetitel">Zahlstand</h3>
+          <dl className="divide-y divide-line">
+            {zeile('Bezahlt', stand.bezahlt > 0 ? euro(stand.bezahlt) : null)}
+            {zeile('Offen', inv.paymentStatus !== 'Storniert' ? euro(stand.rest) : null)}
+            {zeile('Guthaben des Kunden', stand.guthaben > 0 ? euro(stand.guthaben) : null)}
+            {zeile('Stand', inv.paymentStatus)}
+            {zeile('Gemahnt', inv.mahnstufe
+              ? `Stufe ${inv.mahnstufe}${inv.gemahntAm ? ` am ${datumAT(inv.gemahntAm)}` : ''}${inv.mahnfrist ? `, Frist bis ${datumAT(inv.mahnfrist)}` : ''}`
+              : null)}
+            {zeile('Storno', inv.cancellationNote)}
+            {zeile('Stornorechnung', inv.stornoNummer)}
+          </dl>
+        </section>
 
         {/*
           JEDE MAHNUNG ERNEUT LADEN — die ganze Zeile ist der Knopf. Mahnungen
@@ -181,8 +196,8 @@ export default function RechnungDetail({
           letzte Stufe gespeichert (Zeile „Gemahnt“ oben), kein Schreiben.
         */}
         {onMahnungLaden && mahnungen.length > 0 && (
-          <section aria-label="Mahnungen">
-            <h3 className="text-xs text-ink-muted">Mahnungen</h3>
+          <section className="rechnung-lesegruppe" aria-label="Mahnungen">
+            <h3 className="rechnung-lesetitel">Mahnungen</h3>
             <ul className="divide-y divide-line">
               {mahnungen.map((m) => (
                 <li key={m.id}>

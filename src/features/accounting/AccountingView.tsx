@@ -174,6 +174,8 @@ export default function AccountingView() {
   */
   const [person, setPerson] = useState<{ uid: string; tag: string | null } | null>(null);
   const [aufgabe, setAufgabe] = useState<Aufgabe | null>(null);
+  // Der Rückweg aus einem Formular behält den Prüfstand je Person und Monat.
+  const [offeneFehltage, setOffeneFehltage] = useState<Record<string, boolean>>({});
   const [toDelete, setToDelete] = useState<WithId<TimeEntry> | null>(null);
   /** Die Auswahl von Monat und Jahr, die ein Klick auf den Titel öffnet. */
   const [wahlOffen, setWahlOffen] = useState(false);
@@ -627,6 +629,14 @@ export default function AccountingView() {
     return m;
   }, [ansicht, relevant, eigene, wochenTage, halbeTage, heute, grenzenJePerson]);
 
+  const angezeigteSumme = useMemo(() => {
+    if (ansicht !== 'woche') return summe;
+    return alleRows.reduce((s, r) => {
+      const woche = summeDerTage(wochenWerte.get(r.user.uid) ?? []);
+      return { ist: s.ist + woche.istMin, soll: s.soll + woche.sollMin };
+    }, { ist: 0, soll: 0 });
+  }, [ansicht, summe, alleRows, wochenWerte]);
+
   /**
    * Suche und Filter. Bei zwanzig Monteuren ist die Liste sonst nur noch
    * scrollbar: wer EINEN Mitarbeiter prüfen will, sucht ihn; wer den Monat
@@ -911,130 +921,112 @@ export default function AccountingView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      {/*
-        ZWEI KENNZAHLEN aus vorhandenen Werten (Auftrag 3.2): wer Tage ohne
-        Buchung hat (antippen filtert — das war das Kästchen „Nur mit
-        fehlenden Tagen“) und die Summe von Ist und Soll aller Personen. Im
-        Supportzugang nicht: beide kämen aus verschlossenen Buchungen.
-
-        DIE KENNZAHL „ARBEITSZEITGRENZEN“ IST WEG (Wunsch des Betriebs,
-        09.10.2026): sie sprang nur zur Karte weiter unten, die die Fälle mit
-        Begründung führt; der Tag steht im Streifen mit rotem Strich.
-      */}
-      {!imSupport && bereit && !error && alleRows.length > 0 && (
-        <div className="ue-kennzahlen">
-          <button
-            type="button"
-            className={nurLuecken ? 'ue-kennzahl-an' : 'ue-kennzahl'}
-            aria-pressed={nurLuecken}
-            onClick={filterUmschalten}
-          >
-            <span className="ue-kennzahl-name">Tage ohne Buchung</span>
-            <span className="ue-kennzahl-wert">{offeneTage}</span>
-            <span className="ue-kennzahl-zusatz">
-              {luecken === 0
-                ? 'alle vollständig'
-                : `bei ${luecken} von ${alleRows.length} ${alleRows.length === 1 ? 'Person' : 'Personen'}`}
-              {nurLuecken ? ' · nur diese gezeigt' : ''}
-            </span>
-          </button>
-          <div className="ue-kennzahl-fest">
-            <span className="ue-kennzahl-name">Gebucht bisher</span>
-            <span className="ue-kennzahl-wert">{fmtMin(summe.ist)}</span>
-            <span className="ue-kennzahl-zusatz">von {fmtMin(summe.soll)} Soll · alle Personen</span>
+      <div className="ue-bedienung">
+        {/* Der Zeitraum bleibt mit beiden Ansichten und der Personensuche zusammen. */}
+        <div className="ue-steuerung">
+          <div className="ue-steuerung-links">
+            <button
+              type="button"
+              className="ue-pfeil"
+              onClick={() => blaettern(-1)}
+              disabled={!zurueckMoeglich}
+              aria-label={ansicht === 'woche' ? 'Vorige Woche' : 'Voriger Monat'}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="ue-titel"
+              aria-expanded={wahlOffen}
+              aria-controls="ue-zeitwahl"
+              onClick={() => setWahlOffen((o) => !o)}
+            >
+              <span className="ue-titel-gross">{titel}</span>
+              <span className="ue-titel-klein">{unterzeile || 'Monat und Jahr wählen'}</span>
+            </button>
+            <button
+              type="button"
+              className="ue-pfeil"
+              onClick={() => blaettern(1)}
+              disabled={!vorMoeglich}
+              aria-label={ansicht === 'woche' ? 'Nächste Woche' : 'Nächster Monat'}
+            >
+              ›
+            </button>
+          </div>
+          <div className="ue-steuerung-rechts">
+            {!imSupport && (
+              <input
+                id="accsuche"
+                className="ue-suche"
+                type="search"
+                placeholder="Person suchen"
+                aria-label="Person suchen"
+                value={suche}
+                onChange={(e) => setSuche(e.target.value)}
+              />
+            )}
+            {!imSupport && (
+              <Segmente
+                name="Ansicht"
+                werte={[
+                  { wert: 'monat', text: 'Monat' },
+                  { wert: 'woche', text: 'Woche' },
+                ]}
+                wert={ansicht}
+                onChange={ansichtWaehlen}
+              />
+            )}
           </div>
         </div>
-      )}
+        {wahlOffen && (
+          /* Die bisherige Auswahl — unverändert, nur einen Klick weiter (Auftrag 3.2, Zuordnung). */
+          <div id="ue-zeitwahl" className="ue-zeitwahl">
+            <SelectField id="acc-month" label="Monat" value={String(month)}
+              onChange={(e) => waehleMonat(year, Number(e.target.value))}>
+              {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
+            </SelectField>
+            <SelectField id="acc-year" label="Jahr" value={String(year)}
+              onChange={(e) => waehleMonat(Number(e.target.value), month)}>
+              {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+            </SelectField>
+          </div>
+        )}
 
-      {/* DIE STEUERUNG: links der Zeitraum (Klick auf den Titel wählt Monat und Jahr), rechts Suche und Ansicht. */}
-      <div className="ue-steuerung">
-        <div className="ue-steuerung-links">
-          <button
-            type="button"
-            className="ue-pfeil"
-            onClick={() => blaettern(-1)}
-            disabled={!zurueckMoeglich}
-            aria-label={ansicht === 'woche' ? 'Vorige Woche' : 'Voriger Monat'}
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            className="ue-titel"
-            aria-expanded={wahlOffen}
-            aria-controls="ue-zeitwahl"
-            onClick={() => setWahlOffen((o) => !o)}
-          >
-            <span className="ue-titel-gross">{titel}</span>
-            <span className="ue-titel-klein">{unterzeile || 'Monat und Jahr wählen'}</span>
-          </button>
-          <button
-            type="button"
-            className="ue-pfeil"
-            onClick={() => blaettern(1)}
-            disabled={!vorMoeglich}
-            aria-label={ansicht === 'woche' ? 'Nächste Woche' : 'Nächster Monat'}
-          >
-            ›
-          </button>
-        </div>
-        <div className="ue-steuerung-rechts">
-          {!imSupport && (
-            <input
-              id="accsuche"
-              className="ue-suche"
-              type="search"
-              placeholder="Person suchen"
-              aria-label="Person suchen"
-              value={suche}
-              onChange={(e) => setSuche(e.target.value)}
-            />
-          )}
-          {!imSupport && (
-            <Segmente
-              name="Ansicht"
-              werte={[
-                { wert: 'monat', text: 'Monat' },
-                { wert: 'woche', text: 'Woche' },
-              ]}
-              wert={ansicht}
-              onChange={ansichtWaehlen}
-            />
-          )}
-        </div>
+        {!imSupport && bereit && !error && alleRows.length > 0 && (
+          <div className="ue-pruefung">
+            <label className="ue-fehlfilter">
+              <input type="checkbox" checked={nurLuecken} onChange={filterUmschalten} />
+              Nur Tage ohne Buchung{ansicht === 'woche' ? ' (im Monat)' : ''}
+            </label>
+            <p className="ue-pruefung-stand">
+              {luecken === 0
+                ? 'Alle Zeitkonten vollständig'
+                : `${offeneTage} ${offeneTage === 1 ? 'Tag' : 'Tage'} ohne Buchung bei ${luecken} von ${alleRows.length} ${alleRows.length === 1 ? 'Person' : 'Personen'}`}
+            </p>
+          </div>
+        )}
+
+        {!imSupport && ansicht === 'monat' && (
+          <div className="ue-vergleich-wahl">
+            <span className="sr-only">Stunden im gewählten Monat</span>
+            <button
+              type="button"
+              className="link-still"
+              aria-pressed={tageZeigen}
+              onClick={() => {
+                const neu = new URLSearchParams(adresse);
+                if (tageZeigen) neu.delete('tage');
+                else neu.set('tage', 'alle');
+                setAdresse(neu);
+              }}
+            >
+              {tageZeigen ? 'Personen vergleichen' : 'Alle Tage vergleichen'}
+            </button>
+          </div>
+        )}
+
       </div>
-      {wahlOffen && (
-        /* Die bisherige Auswahl — unverändert, nur einen Klick weiter (Auftrag 3.2, Zuordnung). */
-        <div id="ue-zeitwahl" className="ue-zeitwahl">
-          <SelectField id="acc-month" label="Monat" value={String(month)}
-            onChange={(e) => waehleMonat(year, Number(e.target.value))}>
-            {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
-          </SelectField>
-          <SelectField id="acc-year" label="Jahr" value={String(year)}
-            onChange={(e) => waehleMonat(Number(e.target.value), month)}>
-            {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
-          </SelectField>
-        </div>
-      )}
-
-      {!imSupport && ansicht === 'monat' && (
-        <div className="ue-vergleich-wahl">
-          <span>Stunden im gewählten Monat</span>
-          <button
-            type="button"
-            className="link-still"
-            aria-pressed={tageZeigen}
-            onClick={() => {
-              const neu = new URLSearchParams(adresse);
-              if (tageZeigen) neu.delete('tage');
-              else neu.set('tage', 'alle');
-              setAdresse(neu);
-            }}
-          >
-            {tageZeigen ? 'Personen vergleichen' : 'Alle Tage vergleichen'}
-          </button>
-        </div>
-      )}
 
       {imSupport && (
         <Hinweiszeile>
@@ -1098,6 +1090,14 @@ export default function AccountingView() {
         />
       )}
 
+      {!imSupport && bereit && !error && alleRows.length > 0 && (
+        <section className="ue-gesamt" aria-label="Gesamt aller Personen">
+          <span>Gebucht {ansicht === 'woche' ? 'in dieser Woche' : 'bisher'}</span>
+          <span className="ue-gesamt-wert">{fmtMin(angezeigteSumme.ist)}</span>
+          <span>von {fmtMin(angezeigteSumme.soll)} Soll · alle Personen</span>
+        </section>
+      )}
+
       {/*
         DAS SEITENFENSTER: die Person im Monat (Auftrag 3.5) — oder, im selben
         Fenster, Zeit erfassen, einen Eintrag korrigieren, eine Krankmeldung.
@@ -1159,6 +1159,10 @@ export default function AccountingView() {
               halbeTage={halbeTage}
               nacht={nachtzeitVon(company)}
               markiert={person?.tag && person.tag.startsWith(monthPrefix) ? person.tag : null}
+              fehlendeOffen={offeneFehltage[`${personZeile.user.uid}:${monthPrefix}`] ?? false}
+              onFehlendeOffen={(offen) => setOffeneFehltage((bisher) => ({
+                ...bisher, [`${personZeile.user.uid}:${monthPrefix}`]: offen,
+              }))}
               grenzDaten={grenzDaten}
               companyId={user.companyId}
               onErfassen={(tag) => setAufgabe({ art: 'erfassen', uid: personZeile.user.uid, tag })}

@@ -28,23 +28,24 @@ describe('Aktenspalten', () => {
     breite(false);
     render(<Aktenspalten telefon={[a, b, c]} links={[b, c]} rechts={[a]} />);
     expect(reihenfolge()).toEqual(['A', 'B', 'C']);
-    expect(document.querySelector('.zwei-spalten')).toBeNull();
+    expect(document.querySelector('.beleg-spalten')).toBeNull();
   });
 
   it('ordnet am Schreibtisch links und rechts — jede Karte genau einmal', () => {
     breite(true);
     render(<Aktenspalten telefon={[a, b, c]} links={[b, c]} rechts={[a]} />);
-    const spalten = document.querySelectorAll('.zwei-spalten > .spalte');
+    const spalten = document.querySelectorAll('.beleg-spalten > *');
     expect(spalten).toHaveLength(2);
     expect(spalten[0].textContent).toBe('BC');
     expect(spalten[1].textContent).toBe('A');
+    expect(screen.getByRole('complementary', { name: 'Angaben und Verlauf' })).toBe(spalten[1]);
     expect(screen.getAllByText('A')).toHaveLength(1);
   });
 
   it('bleibt einspaltig, wenn eine Seite leer bliebe', () => {
     breite(true);
     render(<Aktenspalten telefon={[a, null]} links={[a]} rechts={[null]} />);
-    expect(document.querySelector('.zwei-spalten')).toBeNull();
+    expect(document.querySelector('.beleg-spalten')).toBeNull();
     expect(reihenfolge()).toEqual(['A']);
   });
 
@@ -53,6 +54,6 @@ describe('Aktenspalten', () => {
   it('bleibt zweispaltig, wenn auf einer Seite nur eine von zwei Karten fehlt', () => {
     breite(true);
     render(<Aktenspalten telefon={[a, b, null]} links={[b]} rechts={[a, null]} />);
-    expect(document.querySelector('.zwei-spalten')).not.toBeNull();
+    expect(document.querySelector('.beleg-spalten')).not.toBeNull();
   });
 });

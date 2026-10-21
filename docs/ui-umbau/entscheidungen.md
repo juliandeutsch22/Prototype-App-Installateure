@@ -141,3 +141,17 @@ beim Kunden teilen ihren Bereich, damit beide Module vollständig bedienbar
 bleiben. Die kompakte Budgetlinie verwendet unverändert den bestehenden
 Prozentwert und dessen Warnstufen. Dies präzisiert E18s Seitenaufbau; seine
 Speicher-, Rechte- und Entwurfsregeln bleiben bestehen. [Zuordnung](lot-akten-04/umsetzung.md).
+
+
+**E20 — Gesamtentwurf und Mitarbeiterübersicht (21.10.2026).** Nach Freigabe
+aller übrigen Entwürfe und der überarbeiteten Mitarbeiterübersicht lautet der
+Startauftrag „top wenn alle screens nun stehen kannst du mit der Umsetzung
+beginnen“. Bestehende passende Arbeitsstrukturen bleiben erhalten; gemeinsame
+Formularbeschriftungen und Auswahlbausteine führen die Linie fort.
+Angebote erhalten einen begrenzten ruhigen Kontext, Rechnungen benannte
+Leseabschnitte. Mitarbeiter: kompakte Steuerung statt großer Kennzahlen,
+Monats-/Gesamtsaldo mobil gleichwertig, Summe aller Personen unter der Liste.
+Fehlende Tage sind ausschließlich am Handy einklappbar; Anzahl, gezielte
+Tagesauswahl und Rückweg aus der Zeiterfassung bleiben verlässlich.
+Die bestehenden Berechnungen, Rollen und mobile Navigation bleiben.
+[Umfang, Zuordnung und Abnahme](lot-gesamt-2026-10-21.md).
