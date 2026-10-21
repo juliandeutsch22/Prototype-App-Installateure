@@ -1,0 +1,242 @@
+[
+  {
+    "id": "vergleich",
+    "format": "desktop",
+    "path": "bilder/vergleich-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "a43eb480b24d7054e9a3dcbe8f488637b17bccf21fa646c48d50f9afee8231a0"
+  },
+  {
+    "id": "vergleich",
+    "format": "tablet",
+    "path": "bilder/vergleich-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "2fc09e19e44583f3206543f16e797b601175f4db52bab38d9c93b9f1e1e2df04"
+  },
+  {
+    "id": "vergleich",
+    "format": "mobil",
+    "path": "bilder/vergleich-mobil.jpg",
+    "width": 390,
+    "height": 1786,
+    "sha256": "5de08428d3083d476265e50692308fe23bd4a5d91447b60e313040dac5177b78"
+  },
+  {
+    "id": "fehlende-tage",
+    "format": "desktop",
+    "path": "bilder/fehlende-tage-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "89a1fea513fd367c97954c719d4ddc34c13bea5ccf8c3ec0294addff6dacd086"
+  },
+  {
+    "id": "fehlende-tage",
+    "format": "tablet",
+    "path": "bilder/fehlende-tage-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "2f2e186d2398b1921186fc06bb0f5a1ddd1f6cb3fba469994267ccc835188406"
+  },
+  {
+    "id": "fehlende-tage",
+    "format": "mobil",
+    "path": "bilder/fehlende-tage-mobil.jpg",
+    "width": 390,
+    "height": 935,
+    "sha256": "0a3f451d19f176558997d3c6c7ab66d9b4b2aa934429accfe71bc64f353cedcf"
+  },
+  {
+    "id": "woche",
+    "format": "desktop",
+    "path": "bilder/woche-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "b8ff6a1999b178bd9d01f09723fba95396f774595aff7aa81530e213e80113ec"
+  },
+  {
+    "id": "woche",
+    "format": "tablet",
+    "path": "bilder/woche-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "0c0ba2f0067fc84c82d7bacbf9e5e95d6c155d8eb51d3f29e4cb9fc3116f2efa"
+  },
+  {
+    "id": "woche",
+    "format": "mobil",
+    "path": "bilder/woche-mobil.jpg",
+    "width": 390,
+    "height": 1790,
+    "sha256": "ce699f5e6f713a42a4e54f9327b5754e0e8f00ae3c736658c4f6d3311f118262"
+  },
+  {
+    "id": "tagesraster",
+    "format": "desktop",
+    "path": "bilder/tagesraster-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "dc4bc8a396e76868dd4dacf51d048309a297b22ca859bf50c3228408f6bf1f02"
+  },
+  {
+    "id": "tagesraster",
+    "format": "tablet",
+    "path": "bilder/tagesraster-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "3f8e3b835b0a3a2ebdae984a7ab40698c81a8bf3e961ace05e41977fef7060a7"
+  },
+  {
+    "id": "tagesraster",
+    "format": "mobil",
+    "path": "bilder/tagesraster-mobil.jpg",
+    "width": 390,
+    "height": 1268,
+    "sha256": "e4b8060f26e90afccaf29b902b474ecb7fd7da7e9a69357f54663927b0688864"
+  },
+  {
+    "id": "person",
+    "format": "desktop",
+    "path": "bilder/person-desktop.jpg",
+    "width": 1440,
+    "height": 1527,
+    "sha256": "49a74aabc3eac8b207637e4f9cc0eaf25c27b4012d2bdae06dd1400be0411a30"
+  },
+  {
+    "id": "person",
+    "format": "tablet",
+    "path": "bilder/person-tablet.jpg",
+    "width": 834,
+    "height": 1514,
+    "sha256": "d799ef398dfe68b0758d0b5ea0d82848df7960524b45f99da5edfd5b0a1f5946"
+  },
+  {
+    "id": "person",
+    "format": "mobil",
+    "path": "bilder/person-mobil.jpg",
+    "width": 390,
+    "height": 1949,
+    "sha256": "e0bb85b8b2fcd42f6df1d4f42e788f6de885360e79661aac9406d846c968259c"
+  },
+  {
+    "id": "person-kalender",
+    "format": "desktop",
+    "path": "bilder/person-kalender-desktop.jpg",
+    "width": 1440,
+    "height": 1893,
+    "sha256": "a5bb5871af57af1665601c7499cd89cfebf0cf106c7d3a1067adb034a9b545f1"
+  },
+  {
+    "id": "person-kalender",
+    "format": "tablet",
+    "path": "bilder/person-kalender-tablet.jpg",
+    "width": 834,
+    "height": 1880,
+    "sha256": "75a933f926f53f55481b312e7b8978bb7b071cd203ff8c7f245e847d6a6c1d79"
+  },
+  {
+    "id": "person-kalender",
+    "format": "mobil",
+    "path": "bilder/person-kalender-mobil.jpg",
+    "width": 390,
+    "height": 2301,
+    "sha256": "f590457cab3e45acbd8bb999791805ee5b82e67b38f54c863f0c505f86f7eabd"
+  },
+  {
+    "id": "grenzpruefung",
+    "format": "desktop",
+    "path": "bilder/grenzpruefung-desktop.jpg",
+    "width": 1440,
+    "height": 1571,
+    "sha256": "eca628de108ebd74aad33e96561dd559d953eb63b42445a6a18290efdababce5"
+  },
+  {
+    "id": "grenzpruefung",
+    "format": "tablet",
+    "path": "bilder/grenzpruefung-tablet.jpg",
+    "width": 834,
+    "height": 1557,
+    "sha256": "979dcecf8e6736b809e04ff1f8c13f480c8440921ae14c8717b1ccb98cf0794e"
+  },
+  {
+    "id": "grenzpruefung",
+    "format": "mobil",
+    "path": "bilder/grenzpruefung-mobil.jpg",
+    "width": 390,
+    "height": 2051,
+    "sha256": "22cef41066c2c4c61f9807cffde32c0877a15d7d6fd28fb5b531060f823ffd21"
+  },
+  {
+    "id": "zeit-erfassen",
+    "format": "desktop",
+    "path": "bilder/zeit-erfassen-desktop.jpg",
+    "width": 1440,
+    "height": 2131,
+    "sha256": "ecb25072081bf7f98ba2db53ebcbcb3c4884a95dbbe4d82ea838349b4dabfa0d"
+  },
+  {
+    "id": "zeit-erfassen",
+    "format": "tablet",
+    "path": "bilder/zeit-erfassen-tablet.jpg",
+    "width": 834,
+    "height": 2114,
+    "sha256": "c943b77628debc8b5b2e79a2f3dc52507c1e1652cc052f890da67a2a84797b14"
+  },
+  {
+    "id": "zeit-erfassen",
+    "format": "mobil",
+    "path": "bilder/zeit-erfassen-mobil.jpg",
+    "width": 390,
+    "height": 2478,
+    "sha256": "4847d2a06d52a8862c87b04098b006b6ac20ba6132b19eb2a87b69d7654c8af6"
+  },
+  {
+    "id": "monatswahl",
+    "format": "desktop",
+    "path": "bilder/monatswahl-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "046ff01999134cccbd96acf4b01b3d30de06defedfa0916cf782b5e8035be0f1"
+  },
+  {
+    "id": "monatswahl",
+    "format": "tablet",
+    "path": "bilder/monatswahl-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "05a8a41c79136e77c12928538c57f60f9abd0dd314921c97911a8f9ac64d1db6"
+  },
+  {
+    "id": "monatswahl",
+    "format": "mobil",
+    "path": "bilder/monatswahl-mobil.jpg",
+    "width": 390,
+    "height": 1786,
+    "sha256": "026be8fe77c0ec9a82799af9be444f8205277925c1ae44dd047ae177476aa59c"
+  },
+  {
+    "id": "suche",
+    "format": "desktop",
+    "path": "bilder/suche-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "619d69c88788afe841b30c16c745b1e1298ed1fd4ff121aa819437a2bf3f842c"
+  },
+  {
+    "id": "suche",
+    "format": "tablet",
+    "path": "bilder/suche-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "8c37548f3f3a82513c58ea24c832c50ff0941d2d748d382bd342cc2c0ea0518a"
+  },
+  {
+    "id": "suche",
+    "format": "mobil",
+    "path": "bilder/suche-mobil.jpg",
+    "width": 390,
+    "height": 969,
+    "sha256": "d30cec3d706a624eafef77d58555a80bd7e3537202d7b28276cdfadcfedde0c9"
+  }
+]

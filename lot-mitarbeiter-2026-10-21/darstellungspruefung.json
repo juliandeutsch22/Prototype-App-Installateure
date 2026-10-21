@@ -1,0 +1,302 @@
+[
+  {
+    "id": "vergleich",
+    "format": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "firstPerson": 302.421875,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "vergleich",
+    "format": "tablet",
+    "width": 834,
+    "overflow": false,
+    "firstPerson": 349.375,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "vergleich",
+    "format": "mobil",
+    "width": 390,
+    "overflow": false,
+    "firstPerson": 404.59375,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "fehlende-tage",
+    "format": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "firstPerson": 302.421875,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "fehlende-tage",
+    "format": "tablet",
+    "width": 834,
+    "overflow": false,
+    "firstPerson": 349.375,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "fehlende-tage",
+    "format": "mobil",
+    "width": 390,
+    "overflow": false,
+    "firstPerson": 404.59375,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "tagesraster",
+    "format": "tablet",
+    "width": 834,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "tagesraster",
+    "format": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "tagesraster",
+    "format": "mobil",
+    "width": 390,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "person",
+    "format": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "person",
+    "format": "tablet",
+    "width": 834,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "person",
+    "format": "mobil",
+    "width": 390,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "person-kalender",
+    "format": "tablet",
+    "width": 834,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "person-kalender",
+    "format": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "person-kalender",
+    "format": "mobil",
+    "width": 390,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "grenzpruefung",
+    "format": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "grenzpruefung",
+    "format": "tablet",
+    "width": 834,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "grenzpruefung",
+    "format": "mobil",
+    "width": 390,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "zeit-erfassen",
+    "format": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "zeit-erfassen",
+    "format": "mobil",
+    "width": 390,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "zeit-erfassen",
+    "format": "tablet",
+    "width": 834,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "monatswahl",
+    "format": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "firstPerson": 302.421875,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "monatswahl",
+    "format": "mobil",
+    "width": 390,
+    "overflow": false,
+    "firstPerson": 404.59375,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "monatswahl",
+    "format": "tablet",
+    "width": 834,
+    "overflow": false,
+    "firstPerson": 349.375,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "suche",
+    "format": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "suche",
+    "format": "tablet",
+    "width": 834,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "suche",
+    "format": "mobil",
+    "width": 390,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "woche",
+    "format": "mobil",
+    "width": 390,
+    "overflow": false,
+    "firstPerson": null,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "woche",
+    "format": "tablet",
+    "width": 834,
+    "overflow": false,
+    "firstPerson": 349.375,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "id": "woche",
+    "format": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "firstPerson": 302.421875,
+    "unlabeled": 0,
+    "errors": [],
+    "axe": []
+  }
+]

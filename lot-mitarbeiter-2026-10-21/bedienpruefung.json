@@ -1,0 +1,213 @@
+[
+  {
+    "name": "Fiktive Monats- und Wochensummen konsistent",
+    "ok": true,
+    "details": {
+      "ist": 24180,
+      "soll": 24840,
+      "weekIst": 5580,
+      "weekSoll": 5760,
+      "saldo": -960,
+      "gesamt": 1470
+    }
+  },
+  {
+    "name": "Monats- und Gesamtsaldo mobil beide sichtbar",
+    "ok": true
+  },
+  {
+    "name": "Filter nur fehlende Tage",
+    "ok": true
+  },
+  {
+    "name": "Gesamtsumme klar als alle Personen beschriftet",
+    "ok": true
+  },
+  {
+    "name": "Suche und Lückenfilter kombinierbar",
+    "ok": true
+  },
+  {
+    "name": "Suche und Filter zurücksetzbar",
+    "ok": true
+  },
+  {
+    "name": "Personendetail öffnet richtige Person",
+    "ok": true
+  },
+  {
+    "name": "Zwei Buchungen am 13.10. bleiben getrennt",
+    "ok": true
+  },
+  {
+    "name": "Erfassen: Mitarbeiter vorbelegt",
+    "ok": true
+  },
+  {
+    "name": "Erfassen: fehlender Tag vorbelegt",
+    "ok": true
+  },
+  {
+    "name": "Lückenfilter bei Rückkehr erhalten",
+    "ok": true
+  },
+  {
+    "name": "Zweite Buchung: eigene Anfangszeit",
+    "ok": true
+  },
+  {
+    "name": "Zweite Buchung: eigene Endzeit und Pause",
+    "ok": true
+  },
+  {
+    "name": "31 Monatstage vollständig",
+    "ok": true
+  },
+  {
+    "name": "Zukunft ist keine fehlende Buchung",
+    "ok": true
+  },
+  {
+    "name": "Name bleibt beim Verschieben stehen",
+    "ok": true,
+    "details": {
+      "before": 20,
+      "after": 20
+    }
+  },
+  {
+    "name": "Tag öffnet Person mit Kalender",
+    "ok": true
+  },
+  {
+    "name": "Kalender ausblendbar",
+    "ok": true
+  },
+  {
+    "name": "Tagesnachweis bleibt beim Ausblenden vorhanden",
+    "ok": true
+  },
+  {
+    "name": "Sieben Tage je Person in mobiler Woche",
+    "ok": true
+  },
+  {
+    "name": "Wochensumme statt Monatssumme",
+    "ok": true
+  },
+  {
+    "name": "Monat und Jahr direkt erreichbar",
+    "ok": true
+  },
+  {
+    "name": "Periodendialog schließbar",
+    "ok": true
+  },
+  {
+    "name": "Erste Person früher sichtbar",
+    "ok": true,
+    "details": {
+      "vorher": 584.875,
+      "nachher": 404.59375,
+      "gewonnenerPlatz": 180.28125
+    }
+  },
+  {
+    "name": "Galerie: zehn Ansichten 1440",
+    "ok": true
+  },
+  {
+    "name": "Galerie: mobile Bildziele 1440",
+    "ok": true
+  },
+  {
+    "name": "Galerie: kein Überlauf 1440",
+    "ok": true
+  },
+  {
+    "name": "Galerie: Axe 1440",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Galerie: zehn Ansichten 834",
+    "ok": true
+  },
+  {
+    "name": "Galerie: mobile Bildziele 834",
+    "ok": true
+  },
+  {
+    "name": "Galerie: kein Überlauf 834",
+    "ok": true
+  },
+  {
+    "name": "Galerie: Axe 834",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Galerie: zehn Ansichten 390",
+    "ok": true
+  },
+  {
+    "name": "Galerie: mobile Bildziele 390",
+    "ok": true
+  },
+  {
+    "name": "Galerie: kein Überlauf 390",
+    "ok": true
+  },
+  {
+    "name": "Galerie: Axe 390",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Akzeptierte Ansicht unverändert kundenakte 1440",
+    "ok": true
+  },
+  {
+    "name": "Akzeptierte Ansicht unverändert kundenakte 834",
+    "ok": true
+  },
+  {
+    "name": "Akzeptierte Ansicht unverändert kundenakte 390",
+    "ok": true
+  },
+  {
+    "name": "Akzeptierte Ansicht unverändert angebot-neu 1440",
+    "ok": true
+  },
+  {
+    "name": "Akzeptierte Ansicht unverändert angebot-neu 834",
+    "ok": true
+  },
+  {
+    "name": "Akzeptierte Ansicht unverändert angebot-neu 390",
+    "ok": true,
+    "details": {
+      "vergleich": "Dekodierte Bilddaten, Standardtoleranz für Kantenglättung",
+      "threshold": 0.1,
+      "includeAA": false,
+      "abweichendePixel": 0
+    }
+  },
+  {
+    "name": "Akzeptierte Ansicht unverändert planung-woche 1440",
+    "ok": true
+  },
+  {
+    "name": "Akzeptierte Ansicht unverändert planung-woche 834",
+    "ok": true
+  },
+  {
+    "name": "Akzeptierte Ansicht unverändert planung-woche 390",
+    "ok": true
+  },
+  {
+    "name": "Bedienwege ohne JavaScriptfehler",
+    "ok": true,
+    "details": []
+  }
+]
