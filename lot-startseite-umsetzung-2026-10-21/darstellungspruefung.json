@@ -1,0 +1,326 @@
+[
+  {
+    "dark": false,
+    "role": "Geschäftsführung",
+    "width": 1440,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Geschäftsführung",
+    "width": 834,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Geschäftsführung",
+    "width": 390,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Mitarbeiter",
+    "width": 1440,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Mitarbeiter",
+    "width": 834,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Mitarbeiter",
+    "width": 390,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Verwaltung",
+    "width": 1440,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Verwaltung",
+    "width": 834,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Verwaltung",
+    "width": 390,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Buchhaltung",
+    "width": 1440,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Buchhaltung",
+    "width": 834,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Buchhaltung",
+    "width": 390,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Projektleiter",
+    "width": 1440,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Projektleiter",
+    "width": 834,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Projektleiter",
+    "width": 390,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Administrator",
+    "width": 1440,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Administrator",
+    "width": 834,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": false,
+    "role": "Administrator",
+    "width": 390,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Geschäftsführung",
+    "width": 1440,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Geschäftsführung",
+    "width": 834,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Geschäftsführung",
+    "width": 390,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Mitarbeiter",
+    "width": 1440,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Mitarbeiter",
+    "width": 834,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Mitarbeiter",
+    "width": 390,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Verwaltung",
+    "width": 1440,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Verwaltung",
+    "width": 834,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Verwaltung",
+    "width": 390,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Buchhaltung",
+    "width": 1440,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Buchhaltung",
+    "width": 834,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Buchhaltung",
+    "width": 390,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Projektleiter",
+    "width": 1440,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Projektleiter",
+    "width": 834,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Projektleiter",
+    "width": 390,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Administrator",
+    "width": 1440,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Administrator",
+    "width": 834,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  },
+  {
+    "dark": true,
+    "role": "Administrator",
+    "width": 390,
+    "overflow": false,
+    "metrics": [],
+    "errors": [],
+    "axe": []
+  }
+]
