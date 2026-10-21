@@ -1,0 +1,38 @@
+[
+  {
+    "width": 390,
+    "axe": [],
+    "sections": [
+      "Rechnungsangaben",
+      "Leistungen",
+      "Belegsumme",
+      "Zahlstand",
+      "Mahnungen"
+    ],
+    "overflow": false
+  },
+  {
+    "width": 834,
+    "axe": [],
+    "sections": [
+      "Rechnungsangaben",
+      "Leistungen",
+      "Belegsumme",
+      "Zahlstand",
+      "Mahnungen"
+    ],
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "axe": [],
+    "sections": [
+      "Rechnungsangaben",
+      "Leistungen",
+      "Belegsumme",
+      "Zahlstand",
+      "Mahnungen"
+    ],
+    "overflow": false
+  }
+]
