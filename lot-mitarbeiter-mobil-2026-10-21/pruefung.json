@@ -1,0 +1,191 @@
+[
+  {
+    "name": "Mobil 320: anfangs eingeklappt",
+    "ok": true
+  },
+  {
+    "name": "Mobil 320: Anzahl bleibt sichtbar",
+    "ok": true
+  },
+  {
+    "name": "Mobil 320: Axe eingeklappt",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Mobil 320: per Tastatur geöffnet",
+    "ok": true
+  },
+  {
+    "name": "Mobil 320: Axe geöffnet",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Mobil 320: offener Zustand bleibt beim Kalenderwechsel",
+    "ok": true
+  },
+  {
+    "name": "Mobil 320: wieder einklappbar",
+    "ok": true
+  },
+  {
+    "name": "Mobil 320: geschlossener Zustand bleibt erhalten",
+    "ok": true
+  },
+  {
+    "name": "Mobil 320: richtige Person und Datum vorbelegt",
+    "ok": true
+  },
+  {
+    "name": "Mobil 320: gezielter fehlender Tag öffnet Abschnitt automatisch",
+    "ok": true
+  },
+  {
+    "name": "Mobil 320: kein Seitenüberlauf",
+    "ok": true
+  },
+  {
+    "name": "Mobil 320: keine JS-Fehler",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Mobil 390: anfangs eingeklappt",
+    "ok": true
+  },
+  {
+    "name": "Mobil 390: Anzahl bleibt sichtbar",
+    "ok": true
+  },
+  {
+    "name": "Mobil 390: Axe eingeklappt",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Mobil 390: per Tastatur geöffnet",
+    "ok": true
+  },
+  {
+    "name": "Mobil 390: Axe geöffnet",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Mobil 390: offener Zustand bleibt beim Kalenderwechsel",
+    "ok": true
+  },
+  {
+    "name": "Mobil 390: wieder einklappbar",
+    "ok": true
+  },
+  {
+    "name": "Mobil 390: geschlossener Zustand bleibt erhalten",
+    "ok": true
+  },
+  {
+    "name": "Mobil 390: richtige Person und Datum vorbelegt",
+    "ok": true
+  },
+  {
+    "name": "Mobil 390: gezielter fehlender Tag öffnet Abschnitt automatisch",
+    "ok": true
+  },
+  {
+    "name": "Mobil 390: kein Seitenüberlauf",
+    "ok": true
+  },
+  {
+    "name": "Mobil 390: keine JS-Fehler",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Mobil 430: anfangs eingeklappt",
+    "ok": true
+  },
+  {
+    "name": "Mobil 430: Anzahl bleibt sichtbar",
+    "ok": true
+  },
+  {
+    "name": "Mobil 430: Axe eingeklappt",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Mobil 430: per Tastatur geöffnet",
+    "ok": true
+  },
+  {
+    "name": "Mobil 430: Axe geöffnet",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Mobil 430: offener Zustand bleibt beim Kalenderwechsel",
+    "ok": true
+  },
+  {
+    "name": "Mobil 430: wieder einklappbar",
+    "ok": true
+  },
+  {
+    "name": "Mobil 430: geschlossener Zustand bleibt erhalten",
+    "ok": true
+  },
+  {
+    "name": "Mobil 430: richtige Person und Datum vorbelegt",
+    "ok": true
+  },
+  {
+    "name": "Mobil 430: gezielter fehlender Tag öffnet Abschnitt automatisch",
+    "ok": true
+  },
+  {
+    "name": "Mobil 430: kein Seitenüberlauf",
+    "ok": true
+  },
+  {
+    "name": "Mobil 430: keine JS-Fehler",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Breite 834: Einzeltage wie bisher sichtbar",
+    "ok": true
+  },
+  {
+    "name": "Breite 834: Personendetail visuell unverändert",
+    "ok": true
+  },
+  {
+    "name": "Breite 1440: Einzeltage wie bisher sichtbar",
+    "ok": true
+  },
+  {
+    "name": "Breite 1440: Personendetail visuell unverändert",
+    "ok": true
+  },
+  {
+    "name": "Mobile Hauptübersicht unverändert",
+    "ok": true
+  },
+  {
+    "name": "Gegenprobe: bisheriger Entwurf zeigt die Tage immer offen",
+    "ok": true
+  },
+  {
+    "name": "Frischstart 320: expliziter Rastertag öffnet zuvor geschlossenen Abschnitt",
+    "ok": true
+  },
+  {
+    "name": "Frischstart 390: expliziter Rastertag öffnet zuvor geschlossenen Abschnitt",
+    "ok": true
+  },
+  {
+    "name": "Frischstart 430: expliziter Rastertag öffnet zuvor geschlossenen Abschnitt",
+    "ok": true
+  }
+]
