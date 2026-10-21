@@ -9,30 +9,35 @@ export default function StartKarte({
   titel,
   zusatz,
   verweis,
+  verweisUnten = false,
   children,
 }: {
   titel: string;
   zusatz?: string;
   verweis?: { to: string; text: string };
+  verweisUnten?: boolean;
   children: ReactNode;
 }) {
   const id = useId();
   return (
-    <section className="panel karte" aria-labelledby={id}>
-      <header className="karte-kopf">
+    <section className="panel karte start-karte" aria-labelledby={id}>
+      <header className="karte-kopf start-karte-kopf">
         <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <h2 id={id} className="titel-karte">
             {titel}
-            {zusatz && <span className="font-normal text-ink-muted"> · {zusatz}</span>}
+            {zusatz && <span className="start-karte-zusatz font-normal text-ink-muted"> · {zusatz}</span>}
           </h2>
-          {verweis && (
+          {verweis && !verweisUnten && (
             <Link to={verweis.to} className="link-weiter inline-flex min-h-touch items-center text-sm">
               {verweis.text}
             </Link>
           )}
         </div>
       </header>
-      <div className="karte-buendig border-t border-line">{children}</div>
+      <div className="karte-buendig start-karte-inhalt">{children}</div>
+      {verweis && verweisUnten && (
+        <Link to={verweis.to} className="start-karte-verweis link-weiter">{verweis.text}<span aria-hidden="true"> ›</span></Link>
+      )}
     </section>
   );
 }

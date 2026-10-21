@@ -169,6 +169,12 @@ for (const [breite, hoehe, wo] of [[390, 844, 'am Telefon'], [1150, 800, 'bei 1.
       await expect(page.getByText(/Zu erledigen/).first()).toBeVisible();
       await expect(page.getByText(/Themen?$/).first()).toBeVisible();
       await expect(page.getByRole('link', { name: /Aktive Baustellen/ })).toContainText('40');
+      const arbeit = await page.locator('.start-arbeit').boundingBox();
+      const kontext = await page.getByRole('complementary', { name: 'Dein Tagesüberblick' }).boundingBox();
+      expect(arbeit).not.toBeNull();
+      expect(kontext).not.toBeNull();
+      if (breite >= 760) expect(kontext!.x).toBeGreaterThanOrEqual(arbeit!.x + arbeit!.width);
+      else expect(kontext!.y).toBeGreaterThanOrEqual(arbeit!.y + arbeit!.height);
       // Lagerarbeit gehört der Verwaltung, die es hier gibt.
       await expect(page.getByText(/Anforderungen offen/)).toHaveCount(0);
     });
@@ -192,6 +198,22 @@ for (const [breite, hoehe, wo] of [[390, 844, 'am Telefon'], [1150, 800, 'bei 1.
       await anmelden(page, KONTEN.monteur.email);
       await startseitePruefen(page);
       await expect(page.getByText('2 Einsätze')).toBeVisible();
+      const einsatz = await page.getByRole('region', { name: /Dein Einsatz heute/ }).boundingBox();
+      const aufgaben = await page.getByRole('region', { name: /Zu erledigen/ }).boundingBox();
+      expect(einsatz!.y + einsatz!.height).toBeLessThanOrEqual(aufgaben!.y);
+      if (breite < 760) {
+        // Das bisherige Menü bleibt erhalten; die Zeitaktion sitzt darüber.
+        const menue = page.locator('nav.unten');
+        await expect(menue).toBeVisible();
+        await expect(menue.locator('.unten-text')).toHaveText(['Start', 'Zeit', 'Plan', 'Material', 'Mehr']);
+        const zeit = await page.locator('.seitenkopf').getByRole('link', { name: 'Zeit erfassen' }).boundingBox();
+        const navigation = await menue.boundingBox();
+        expect(zeit!.y + zeit!.height).toBeLessThanOrEqual(navigation!.y);
+        await menue.getByRole('button', { name: /^Mehr/ }).click();
+        await expect(page.getByRole('navigation', { name: 'Weitere Bereiche' })).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(page.getByRole('dialog', { name: 'Weitere Bereiche' })).toHaveCount(0);
+      }
       await expect(page.getByRole('heading', { name: /Danach/ })).toBeVisible();
       await expect(page.getByRole('region', { name: 'Tage ohne Buchung' })).toBeVisible();
     });

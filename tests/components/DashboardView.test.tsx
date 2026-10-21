@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { Assignment, MaterialOrder, Project, Termin, TimeEntry } from '@/types';
 import type { BaustellenStunden } from '@/lib/db/timeEntries';
 import { zurueckhalten } from './zurueckhalten';
@@ -425,7 +425,7 @@ describe('Startseite — Geschäftsführung', () => {
     expect(zahl.compareDocumentPosition(titel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(zahl.compareDocumentPosition(heute) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // Und sie steht nicht mehr in einer der beiden Spalten, sondern darüber.
-    expect(zahl.closest('.zwei-spalten')).toBeNull();
+    expect(zahl.closest('.start-rahmen')).toBeNull();
   });
 
   it('zeigt unter „Heute“, wer wo ist, mit dem Weg in die Tagesplanung', async () => {
@@ -641,7 +641,7 @@ describe('Startseite — Verwaltung', () => {
     expect(within(abschnitt).queryByText(/Frisch/)).not.toBeInTheDocument();
   });
 
-  it('nichts zu tun: „Heute liegt nichts an“ und die Kennzahlen, eine Spalte', async () => {
+  it('nichts zu tun: Leermeldung und Kennzahlen, eigener Tageskontext bleibt erreichbar', async () => {
     // Ohne Eintritt keine fehlenden Tage — sonst stünde „Deine Tage ohne Buchung“ da.
     const eintritt = monteur.appStartDate;
     (monteur as { appStartDate?: string }).appStartDate = undefined;
@@ -649,7 +649,7 @@ describe('Startseite — Verwaltung', () => {
       zeichne();
       expect(await screen.findByText('Heute liegt nichts an')).toBeInTheDocument();
       expect(await screen.findByRole('link', { name: /^Anforderungen/ })).toHaveTextContent(/0/);
-      expect(document.querySelector('.zwei-spalten')).toBeNull();
+      expect(within(screen.getByRole('complementary', { name: 'Dein Tagesüberblick' })).getByRole('heading', { name: /Dein Einsatz heute/ })).toBeInTheDocument();
     } finally {
       (monteur as { appStartDate?: string }).appStartDate = eintritt;
     }
@@ -903,5 +903,59 @@ describe('Startseite — Lehrling unter 18 (Runde 3, M2)', () => {
     zeichne();
     await screen.findByText('Tage ohne Buchung');
     expect(screen.queryByText('Grenzen für Jugendliche')).not.toBeInTheDocument();
+  });
+});
+
+function BuchungsZiel() {
+  return <output data-testid="buchungsziel">{JSON.stringify(useLocation().state)}</output>;
+}
+
+/** Die neue Ordnung darf dieselben Aufgaben und Einstiege nicht duplizieren oder verbergen. */
+describe('Startseite — Lot mit Tageskontext', () => {
+  it('bündelt Termine und Mannschaft in einem gemeinsamen Kontext neben der Arbeit', async () => {
+    rolle.wert = 'Geschäftsführung';
+    termine.wert = [{
+      id: 't-kontext', companyId: 'perl', art: 'Besichtigung', datum: HEUTE,
+      zeitVon: '14:00', zeitBis: '15:00', projectNumber: 'B-001', customerId: null,
+      teilnehmer: ['m1'], notiz: 'Schlüssel beim Nachbarn',
+      ortName: 'Familie Huber', ortAdresse: 'Hauptstraße 12, 2700 Wiener Neustadt',
+    }];
+    zeichne();
+    const kontext = await screen.findByRole('complementary', { name: 'Dein Tagesüberblick' });
+    expect(within(kontext).getByRole('heading', { name: /Deine Termine heute/ })).toBeInTheDocument();
+    expect(within(kontext).getByRole('region', { name: 'Im Einsatz' })).toBeInTheDocument();
+    expect(within(kontext).queryByRole('heading', { name: /Zu erledigen/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Heute im Überblick');
+    expect(screen.getByText(/Dienstag, 15.09.2026/)).toBeInTheDocument();
+    expect(screen.getAllByRole('region', { name: 'Im Einsatz' })).toHaveLength(1);
+  });
+
+  it('stellt beim Monteur den eigenen Einsatz vor die Nachträge und lässt die Kennzahlen oben', async () => {
+    zeichne();
+    const einsatz = await karteMit(/2 Einsätze/);
+    const nachtragen = await screen.findByRole('heading', { name: /Zu erledigen/ });
+    const saldo = screen.getByRole('link', { name: /Saldo/ });
+    expect(einsatz.compareDocumentPosition(nachtragen) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(saldo.compareDocumentPosition(einsatz) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(einsatz.closest('aside')).toBeNull();
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+    expect(within(einsatz).getByRole('link', { name: /Wie zuletzt buchen/ })).toHaveAttribute('href', '/time');
+    expect(within(einsatz).getAllByRole('link', { name: 'Schein schreiben' })).toHaveLength(2);
+  });
+
+  it('bietet die direkte Zeitbuchung für den ersten Einsatz im bestehenden Seitenkopf an', async () => {
+    const klick = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<MemoryRouter><DashboardView /><BuchungsZiel /></MemoryRouter>);
+    await screen.findByText(/2 Einsätze/);
+    const kopf = document.querySelector('.seitenkopf') as HTMLElement;
+    expect(within(kopf).getByRole('link', { name: 'Zeit erfassen' })).toHaveAttribute('href', '/time');
+    // Der zweite Einsatz behält seinen eigenen Zeit-Einstieg; „Wie zuletzt“ bleibt am ersten.
+    const danach = screen.getByRole('region', { name: 'Danach' });
+    expect(within(danach).getByRole('link', { name: 'Zeit erfassen' })).toBeInTheDocument();
+    await klick.click(within(kopf).getByRole('link', { name: 'Zeit erfassen' }));
+    const ziel = JSON.parse(screen.getByTestId('buchungsziel').textContent!);
+    expect(ziel).toMatchObject({ projectNumber: 'B-001' });
+    expect(ziel.startTime).toBeUndefined();
+    expect(ziel.endTime).toBeUndefined();
   });
 });
