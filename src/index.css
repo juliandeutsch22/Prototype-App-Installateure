@@ -910,12 +910,12 @@ textarea {
   .chips { display: flex; flex-wrap: wrap; column-gap: 1rem; }
   .chip { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.75rem; padding: 0 0.125rem; border-bottom: 2px solid transparent; background: none; font-size: 0.875rem; font-weight: 400; color: var(--text-muted); white-space: nowrap; }
   .chip-an { color: var(--ink-deep); font-weight: 600; border-bottom-color: var(--petrol); }
-  /* Auswahl als Segmente (Entwurf: `.wahl`). Die gewählte Stelle ist Petrol. */
-  .segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--surface); overflow: hidden; }
-  .segment > * { display: flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0 0.5rem; text-align: center; hyphens: auto; font-size: 0.875rem; font-weight: 400; color: var(--text); border-right: 1px solid var(--border-strong); }
-  @media (min-width: 760px) { .segment > * { padding: 0 0.875rem; } }
-  .segment > *:last-child { border-right: 0; }
-  .segment > .segment-an { background: var(--petrol); color: #ffffff; font-weight: 600; }
+  /* Ansichten und Filter tragen dieselbe ruhige Unterstreichung wie die Register. */
+  .segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0.75rem; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .segment > * { display: flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0 0.375rem; text-align: center; hyphens: auto; font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); border-bottom: 2px solid transparent; }
+  @media (min-width: 760px) { .segment > * { padding: 0 0.625rem; } }
+  .segment > .segment-an { color: var(--ink-deep); border-bottom-color: var(--petrol); font-weight: 600; }
+
   /*
     EIN ROLLBEHÄLTER IST BEZUGSRAHMEN. Eine `sr-only`-Beschriftung im Kopf
     einer Tabelle ist absolut gesetzt; ohne Bezugsrahmen im Rollbehälter

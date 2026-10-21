@@ -1,0 +1,155 @@
+[
+  {
+    "alt": "Gemeinsame Auswahl: gefüllte Segmente",
+    "neu": "Gleiche Auswahl mit Unterstreichung",
+    "weg_alt": 0,
+    "weg_neu": 0,
+    "bemerkung": "Werte, aria-pressed und Handler unverändert; responsive Messung und Browserwege.",
+    "geprueft": true,
+    "art": "von Hand"
+  },
+  {
+    "alt": "Formularfeld: halbfette Beschriftung",
+    "neu": "Formularfeld: ruhige Beschriftung",
+    "weg_alt": 0,
+    "weg_neu": 0,
+    "bemerkung": "Felder, Label-Zuordnung, Pflichtstern und Validierung unverändert.",
+    "geprueft": true,
+    "art": "von Hand"
+  },
+  {
+    "alt": "Mitarbeiter: große Fehlzeiten-Kennzahl",
+    "neu": "Mitarbeiter: direkte Filter-Checkbox und Anzahl",
+    "weg_alt": 0,
+    "weg_neu": 0,
+    "bemerkung": "Monatlicher Filter und bestehende URL-Parameter bleiben; AccountingView.test.tsx.",
+    "geprueft": true,
+    "art": "von Hand"
+  },
+  {
+    "alt": "Mitarbeiter: Gebucht-bisher-Kennzahl oben",
+    "neu": "Mitarbeiter: Summe aller Personen unter der Liste",
+    "weg_alt": 0,
+    "weg_neu": 0,
+    "bemerkung": "Suche/Filter verändern die Summe nicht. In der Woche vorhandene Wochenwerte; vier neue Verhaltensprüfungen im Paket.",
+    "geprueft": true,
+    "art": "von Hand"
+  },
+  {
+    "alt": "Mitarbeiter: Monat/Jahr, Suche, Monat/Woche",
+    "neu": "Mitarbeiter: kompakter gemeinsamer Bedienbereich",
+    "weg_alt": 0,
+    "weg_neu": 0,
+    "bemerkung": "Alle Monats-/Jahresoptionen und Grenzen bleiben; vorhandene Prüfungen unverändert.",
+    "geprueft": true,
+    "art": "von Hand"
+  },
+  {
+    "alt": "Mobil: vier Zahlen je Person",
+    "neu": "Mobil: Monats-/Gesamtsaldo und kleine Gebucht-/Sollzeile",
+    "weg_alt": 0,
+    "weg_neu": 0,
+    "bemerkung": "Dieselben Werte, einmal im DOM; Desktop weiterhin sechs Vergleichsspalten.",
+    "geprueft": true,
+    "art": "von Hand"
+  },
+  {
+    "alt": "Person: Saldo, Gebucht, Gesamt, Resturlaub",
+    "neu": "Person: drei kompakte Kontowerte und Buchungszeile",
+    "weg_alt": 0,
+    "weg_neu": 0,
+    "bemerkung": "Keine neue Berechnung; ohne Eintritt bleiben die bestehenden Grenzen und Hinweise.",
+    "geprueft": true,
+    "art": "von Hand"
+  },
+  {
+    "alt": "Person: Abwesenheiten und Kontogrundlagen offen",
+    "neu": "Person: benannter Aufklappbereich unter dem Nachweis",
+    "weg_alt": 0,
+    "weg_neu": 1,
+    "bemerkung": "Alle Abwesenheitsarten, Sollverteilung, Feiertage und Erklärung erhalten.",
+    "geprueft": true,
+    "art": "von Hand"
+  },
+  {
+    "alt": "Person mobil: Tage ohne Buchung offen",
+    "neu": "Person mobil: Anzahl sichtbar, Liste aufklappbar",
+    "weg_alt": 0,
+    "weg_neu": 1,
+    "bemerkung": "Enter/Leertaste, kontrollierter Zustand und CSS bei 320/390/430 px geprüft.",
+    "geprueft": true,
+    "art": "von Hand"
+  },
+  {
+    "alt": "Person Tablet/Desktop: Tage ohne Buchung offen",
+    "neu": "Person Tablet/Desktop: Tage ohne Buchung offen",
+    "weg_alt": 0,
+    "weg_neu": 0,
+    "bemerkung": "Ab 760 px unabhängig vom mobilen Einklappzustand sichtbar.",
+    "geprueft": true,
+    "art": "von Hand"
+  },
+  {
+    "alt": "Fehlenden Tag im Monatsstreifen/Kalender wählen",
+    "neu": "Fehlenden Tag wählen und automatisch öffnen",
+    "weg_alt": 0,
+    "weg_neu": 0,
+    "bemerkung": "Browserweg mit Speichern und DB-Kontrolle; rote Gegenprobe am alten Stand.",
+    "geprueft": true,
+    "art": "von Hand"
+  },
+  {
+    "alt": "Person: fehlenden Tag erfassen, Rückweg",
+    "neu": "Person: gleicher Rückweg mit erhaltenem offenen Abschnitt",
+    "weg_alt": 1,
+    "weg_neu": 1,
+    "bemerkung": "Person und Datum vorbelegt, eine Fensterebene; Komponenten- und Browserprüfung.",
+    "geprueft": true,
+    "art": "von Hand"
+  },
+  {
+    "alt": "Person: vollständiger Tagesnachweis und optionaler Kalender",
+    "neu": "Person: vollständiger Tagesnachweis und optionaler Kalender",
+    "weg_alt": 0,
+    "weg_neu": 0,
+    "bemerkung": "Mehrfachbuchungen, verrechnete/abwesende Tage und alle bisherigen Aktionen erhalten.",
+    "geprueft": true,
+    "art": "von Hand"
+  },
+  {
+    "alt": "Person: CSV und Zeitraum-Bericht",
+    "neu": "Person: CSV und Zeitraum-Bericht in derselben Fußleiste",
+    "weg_alt": 0,
+    "weg_neu": 0,
+    "bemerkung": "Vorhandene Exportprüfungen bleiben, Exportmodule unberührt.",
+    "geprueft": true,
+    "art": "von Hand"
+  },
+  {
+    "alt": "Angebotsakte: zwei breite Spalten",
+    "neu": "Angebotsakte: breite Leistungen und begrenzter Kontext",
+    "weg_alt": 0,
+    "weg_neu": 0,
+    "bemerkung": "Verlauf/Angaben unverändert, Angaben im schmalen Kontext einspaltig; Telefonreihenfolge bleibt.",
+    "geprueft": true,
+    "art": "von Hand"
+  },
+  {
+    "alt": "Rechnung: ungetrennte Angabeblöcke",
+    "neu": "Rechnung: benannte Leseabschnitte",
+    "weg_alt": 1,
+    "weg_neu": 1,
+    "bemerkung": "Angaben, Leistungen, Belegsumme, Zahlstand, Mahnungen; Summen-/Aktionslogik unverändert; axe auf drei Breiten.",
+    "geprueft": true,
+    "art": "von Hand"
+  },
+  {
+    "alt": "Mobile Navigation mit Mehr",
+    "neu": "Dieselbe mobile Navigation mit Mehr",
+    "weg_alt": 0,
+    "weg_neu": 0,
+    "bemerkung": "Navigationskomponenten und Rollenmatrix nicht geändert; vorhandene Browserwege grün.",
+    "geprueft": true,
+    "art": "von Hand"
+  }
+]

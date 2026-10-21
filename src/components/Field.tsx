@@ -46,9 +46,8 @@ const fieldBase =
 function Beschriftung({ label, pflicht, id }: { label: string; pflicht?: boolean; id: string }) {
   return (
     <span className="flex items-baseline gap-1">
-      {/* 13 px, halbfett, Tinte (Designlinie „Fassung 3"): die Beschriftung
-          steht klein über dem Feld und bleibt trotzdem als Name lesbar. */}
-      <label htmlFor={id} className="text-meta font-semibold text-ink-deep">
+      {/* Beschriftungen begleiten den Wert; Überschriften gliedern das Formular. */}
+      <label htmlFor={id} className="text-meta font-normal text-ink-muted">
         {label}
       </label>
       {/*

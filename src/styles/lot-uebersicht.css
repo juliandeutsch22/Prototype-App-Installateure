@@ -9,16 +9,13 @@
  * keine Kombination: ein Feld kennt genau einen Zustand (Auftrag 3.3.1).
  */
 @layer components {
-  /* ── Kennzahlen (Auftrag 3.2, Punkt 2) ────────────────────────────────── */
-  .ue-kennzahlen { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 1.5rem; border-block: 1px solid var(--border); padding: 0.5rem 0; }
-  .ue-kennzahl, .ue-kennzahl-an, .ue-kennzahl-fest { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.375rem 0.625rem; min-height: 2.75rem; padding: 0.5rem 0; border: 0; background: var(--surface); color: var(--text); text-align: left; }
-  .ue-kennzahl, .ue-kennzahl-an { cursor: pointer; }
-  .ue-kennzahl:hover { text-decoration: underline; text-underline-offset: 4px; }
-  .ue-kennzahl-an { box-shadow: inset 0 -2px 0 var(--petrol); }
-  .ue-kennzahl-name { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
-  .ue-kennzahl-wert { order: -1; font-size: 1.125rem; line-height: 1.5rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  @media (min-width: 1200px) { .ue-kennzahl-wert { order: -1; font-size: 1.375rem; line-height: 1.75rem; } }
-  .ue-kennzahl-zusatz { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
+  .ue-bedienung { display: flex; flex-direction: column; gap: 0.75rem; }
+  .ue-pruefung { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 1.5rem; }
+  .ue-fehlfilter { display: inline-flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; cursor: pointer; font-size: 0.8125rem; }
+  .ue-fehlfilter input { width: 1.125rem; height: 1.125rem; accent-color: var(--petrol); }
+  .ue-pruefung-stand { font-size: 0.75rem; color: var(--text-muted); }
+  .ue-gesamt { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.5rem; padding-block: 0.75rem; font-size: 0.75rem; color: var(--text-muted); }
+  .ue-gesamt-wert { color: var(--ink-deep); font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
 
   /* ── Steuerung: ‹ Titel ›, Suche, Monat | Woche (Auftrag 3.2, Punkt 3) ─ */
   .ue-steuerung { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
@@ -28,15 +25,15 @@
     .ue-steuerung-links { width: auto; justify-content: flex-start; }
     .ue-steuerung-rechts { width: auto; }
   }
-  .ue-pfeil { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 1.25rem; line-height: 1; cursor: pointer; }
+  .ue-pfeil { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; background: var(--surface); color: var(--text); border: 0; border-radius: var(--radius); font-size: 1.25rem; line-height: 1; cursor: pointer; }
   .ue-pfeil:hover { border-color: var(--petrol); }
   .ue-pfeil:disabled { opacity: 0.4; cursor: default; border-color: var(--border-strong); }
   /* Der Titel ist ein Knopf: ein Klick öffnet die bisherige Auswahl von Monat und Jahr. */
   .ue-titel { display: flex; flex-direction: column; align-items: center; min-height: 2.75rem; min-width: 10rem; padding: 0.125rem 0.5rem; background: none; border: 0; border-radius: var(--radius); color: var(--text); text-align: center; cursor: pointer; }
   @media (min-width: 760px) { .ue-titel { align-items: flex-start; text-align: left; } }
   .ue-titel:hover { background: var(--petrol-hell); }
-  .ue-titel-gross { font-size: 1.125rem; line-height: 1.5rem; font-weight: 600; color: var(--ink-deep); text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 4px; }
-  .ue-titel-klein { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .ue-titel-gross { font-size: 1rem; line-height: 1.5rem; font-weight: 600; color: var(--ink-deep); }
+  .ue-titel-klein { font-size: 0.75rem; line-height: 1.125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   .ue-suche { flex: 1 1 10rem; min-width: 0; min-height: 2.75rem; padding: 0 0.75rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 1rem; }
   .ue-suche:focus { outline: 2px solid var(--petrol); outline-offset: -1px; border-color: var(--petrol); }
   @media (min-width: 760px) { .ue-suche { flex: none; width: 15rem; } }
@@ -94,6 +91,7 @@
   .ue-name { display: block; max-width: 100%; font-weight: 600; color: var(--ink-deep); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ue-status { display: block; max-width: 100%; font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
   .ue-status-achtung { display: block; max-width: 100%; font-size: 0.8125rem; line-height: 1.125rem; font-weight: 600; color: var(--warning); }
+  .ue-buchungen { display: contents; }
   .ue-zahl { margin: 0; font-weight: var(--gewicht-zahl); font-size: 0.875rem; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .ue-zahl-stark { margin: 0; font-size: 0.875rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
   @media (min-width: 760px) {
@@ -205,11 +203,25 @@
   /* ── Seitenfenster „Person im Monat“ (Auftrag 3.5) ───────────────────── */
   .pf { display: flex; flex-direction: column; }
   .pf-ueber { margin: 0 0 0.75rem; font-size: 0.8125rem; color: var(--text-muted); }
-  .pf-kennzahlen { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; margin-top: 0.25rem; padding-block: 1rem; border-block: 1px solid var(--border); }
+  .pf-kennzahlen { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0.75rem; margin-top: 0.25rem; padding-block: 1rem; border-block: 1px solid var(--border); }
   .pf-kennzahl { min-width: 0; background: var(--surface); }
-  .pf-kennzahl-wert { margin-top: 0.375rem; font-size: 1.375rem; line-height: 1.75rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
+  .pf-kennzahl-wert { margin-top: 0.375rem; font-size: 1.125rem; line-height: 1.5rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
   .pf-kennzahl-name { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
   .pf-kennzahl-text { margin-top: 0.375rem; font-size: 0.875rem; line-height: 1.25rem; color: var(--text-muted); }
+  .pf-gebucht { margin-top: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .pf-kontodetails { margin-top: 1rem; border-top: 1px solid var(--border); padding-bottom: 0.5rem; }
+  .pf-kontodetails summary { min-height: 2.75rem; padding-block: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); cursor: pointer; }
+  .pf-fehltage, .pf-fehltage-offen { margin-top: 1rem; }
+  .pf-fehltage-titel { display: none; margin: 1.25rem 0 0.5rem; font-size: 0.9375rem; font-weight: 600; color: var(--ink-deep); }
+  .pf-fehltage-schalter { background: var(--surface); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 3.25rem; border-block: 1px solid var(--border); text-align: left; font-size: 0.8125rem; font-weight: 600; color: var(--ink-deep); }
+  .pf-fehltage-aktion { flex: none; font-size: 0.75rem; font-weight: 400; color: var(--accent-deep); }
+  .pf-fehltage-liste { margin: 0; padding: 0; list-style: none; }
+  .pf-fehltage .pf-fehltage-liste { display: none; }
+  @media (min-width: 760px) {
+    .pf-fehltage-titel { display: block; }
+    .pf-fehltage-schalter { display: none; }
+    .pf-fehltage .pf-fehltage-liste { display: block; }
+  }
   .pf-text { margin-top: 0.75rem; font-size: 0.875rem; line-height: 1.375rem; color: var(--text-muted); }
   .pf-text-klein { margin-top: 0.5rem; font-size: 0.75rem; line-height: 1.125rem; color: var(--text-muted); }
   .pf-abschnitt { margin: 1.25rem 0 0.5rem; font-size: 0.9375rem; font-weight: 600; color: var(--ink-deep); }
@@ -240,7 +252,7 @@
 @layer components {
   .ue-vergleich { background: var(--surface); border-block: 1px solid var(--border); }
   .ue-vergleich-kopf { display: none; }
-  .ue-vergleich-zeile { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; align-items: center; padding: 1rem; border-top: 1px solid var(--border); cursor: pointer; }
+  .ue-vergleich-zeile { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem 1rem; align-items: center; padding: 1rem 0; border-top: 1px solid var(--border); cursor: pointer; }
   .ue-vergleich-zeile:hover { background: var(--surface-2); }
   .ue-pruefstand, .ue-pruefstand-achtung { grid-column: 1 / -1; font-size: 0.8125rem; line-height: 1.375rem; color: var(--text-muted); }
   .ue-pruefstand-achtung { color: var(--warning); }
@@ -248,7 +260,17 @@
   .ue-vergleich-wahl button { min-height: 2.75rem; }
   .ue-vergleich .ue-name { white-space: normal; overflow: visible; }
   .ue-vergleich .ue-gruppe { background: var(--surface); font-weight: 400; }
+  .ue-vergleich .ue-buchungen { display: flex; flex-wrap: wrap; grid-column: 1 / -1; grid-row: 4; gap: 0.375rem 1rem; }
+  .ue-vergleich .ue-buchungen .ue-zahl { display: flex; flex-direction: row-reverse; gap: 0.375rem; font-size: 0.75rem; color: var(--text-muted); }
+  .ue-vergleich .ue-zahl-stark { padding-block: 0.25rem; font-size: 1.125rem; }
+  .ue-vergleich .ue-zahl-name { margin-bottom: 0.25rem; }
+  .ue-vergleich .ue-person { min-height: 2rem; }
+  .ue-vergleich .ue-gruppe { padding-inline: 0; }
   @media (min-width: 760px) {
+    .ue-vergleich .ue-buchungen { display: contents; }
+    .ue-vergleich .ue-buchungen .ue-zahl { display: block; font-size: 0.9375rem; color: var(--text); }
+    .ue-vergleich .ue-zahl-stark { font-size: 0.9375rem; }
+    .ue-vergleich .ue-gruppe { padding-inline: 1rem; }
     .ue-vergleich-kopf, .ue-vergleich-zeile { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.6fr) repeat(4, minmax(4.5rem, 0.65fr)); gap: 0.875rem; padding: 1rem; }
     .ue-vergleich-kopf { font-size: 0.75rem; color: var(--text-muted); }
     .ue-pruefstand, .ue-pruefstand-achtung { grid-column: auto; }

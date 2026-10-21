@@ -363,7 +363,7 @@ export default function AngebotView() {
 
   const angaben = (
     <Card title="Angaben" id="angebot-angaben">
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+      <dl className="beleg-angaben grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
         <Angabe wort="Kunde">
           {q.customerId ? (
             <Link to={`/customers/${q.customerId}`} className="link inline-flex min-h-touch items-center">

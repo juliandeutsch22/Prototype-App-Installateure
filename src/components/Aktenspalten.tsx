@@ -2,8 +2,8 @@ import { Fragment, type ReactNode } from 'react';
 import { useSchreibtisch } from '@/lib/useSchreibtisch';
 
 /**
- * Die Karten einer Akte — am Telefon untereinander, am Schreibtisch in zwei
- * Spalten (Designlinie „Fassung 3", Seitentyp C: links 7, rechts 5).
+ * Die Karten einer Akte — am Telefon untereinander, am Schreibtisch mit
+ * Arbeitsinhalt und begrenzter Kontextspalte wie in den freigegebenen Akten.
  *
  * AM TELEFON BLEIBT DIE REIHENFOLGE, die die Akte immer hatte (`telefon`).
  * Zwei Spalten in einem Raster hätten auf dem Telefon erst die ganze linke,
@@ -29,9 +29,9 @@ export default function Aktenspalten({
   // eine leere Spalte. Dann lieber einspaltig in der Telefon-Reihenfolge.
   if (!breit || !links.some(Boolean) || !rechts.some(Boolean)) return <>{reihe(telefon)}</>;
   return (
-    <div className="zwei-spalten">
-      <div className="spalte">{reihe(links)}</div>
-      <div className="spalte">{reihe(rechts)}</div>
+    <div className="beleg-spalten">
+      <div className="beleg-inhalt">{reihe(links)}</div>
+      <aside className="beleg-kontext" aria-label="Angaben und Verlauf">{reihe(rechts)}</aside>
     </div>
   );
 }

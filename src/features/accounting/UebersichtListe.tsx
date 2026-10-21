@@ -177,14 +177,16 @@ function Zeile({
       ) : (
         <Streifen name={z.user.name} werte={z.werte} heute={heute} onTag={oeffneTag} />
       )}
-      <p className="ue-zahl">
-        <span className="ue-zahl-name">Gebucht</span>
-        {z.gebucht}
-      </p>
-      <p className="ue-zahl">
-        <span className="ue-zahl-name">Soll bisher</span>
-        {z.soll}
-      </p>
+      <div className="ue-buchungen">
+        <p className="ue-zahl">
+          <span className="ue-zahl-name">Gebucht</span>
+          {z.gebucht}
+        </p>
+        <p className="ue-zahl">
+          <span className="ue-zahl-name">Soll bisher</span>
+          {z.soll}
+        </p>
+      </div>
       <p className="ue-zahl-stark">
         <span className="ue-zahl-name">{woche ? 'Saldo' : 'Saldo Monat'}</span>
         {z.saldo}
