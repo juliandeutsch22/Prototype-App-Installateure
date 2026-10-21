@@ -1,0 +1,101 @@
+[
+  {
+    "name": "leitung",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "name": "leitung",
+    "width": 1440,
+    "expanded": true,
+    "extraTasksVisible": true,
+    "overflow": false
+  },
+  {
+    "name": "leitung",
+    "width": 1440,
+    "dialog": true
+  },
+  {
+    "name": "leitung",
+    "width": 834,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "name": "leitung",
+    "width": 834,
+    "expanded": true,
+    "extraTasksVisible": true,
+    "overflow": false
+  },
+  {
+    "name": "leitung",
+    "width": 834,
+    "dialog": true
+  },
+  {
+    "name": "leitung",
+    "width": 390,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "name": "leitung",
+    "width": 390,
+    "expanded": true,
+    "extraTasksVisible": true,
+    "overflow": false
+  },
+  {
+    "name": "leitung",
+    "width": 390,
+    "dialog": true
+  },
+  {
+    "name": "monteur",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "name": "monteur",
+    "width": 834,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "name": "monteur",
+    "width": 390,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "name": "ruhiger-tag",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "name": "ruhiger-tag",
+    "width": 834,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  },
+  {
+    "name": "ruhiger-tag",
+    "width": 390,
+    "overflow": false,
+    "errors": [],
+    "axe": []
+  }
+]
