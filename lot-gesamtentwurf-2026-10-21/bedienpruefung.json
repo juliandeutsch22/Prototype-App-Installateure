@@ -1,0 +1,382 @@
+[
+  {
+    "name": "Galerie lokal 1440",
+    "ok": true
+  },
+  {
+    "name": "Schriftdateien lokal 1440",
+    "ok": true
+  },
+  {
+    "name": "Galerie ohne Seitenüberlauf 1440",
+    "ok": true
+  },
+  {
+    "name": "Suche findet IBAN 1440",
+    "ok": true
+  },
+  {
+    "name": "Bereichfilter 1440",
+    "ok": true
+  },
+  {
+    "name": "Formatwechsel 1440",
+    "ok": true
+  },
+  {
+    "name": "Rollenfilter 1440",
+    "ok": true
+  },
+  {
+    "name": "Galerie Axe 1440",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Galerie ohne JS-Fehler 1440",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Galerie lokal 834",
+    "ok": true
+  },
+  {
+    "name": "Schriftdateien lokal 834",
+    "ok": true
+  },
+  {
+    "name": "Galerie ohne Seitenüberlauf 834",
+    "ok": true
+  },
+  {
+    "name": "Suche findet IBAN 834",
+    "ok": true
+  },
+  {
+    "name": "Bereichfilter 834",
+    "ok": true
+  },
+  {
+    "name": "Formatwechsel 834",
+    "ok": true
+  },
+  {
+    "name": "Rollenfilter 834",
+    "ok": true
+  },
+  {
+    "name": "Galerie Axe 834",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Galerie ohne JS-Fehler 834",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Galerie lokal 390",
+    "ok": true
+  },
+  {
+    "name": "Schriftdateien lokal 390",
+    "ok": true
+  },
+  {
+    "name": "Galerie ohne Seitenüberlauf 390",
+    "ok": true
+  },
+  {
+    "name": "Suche findet IBAN 390",
+    "ok": true
+  },
+  {
+    "name": "Bereichfilter 390",
+    "ok": true
+  },
+  {
+    "name": "Formatwechsel 390",
+    "ok": true
+  },
+  {
+    "name": "Rollenfilter 390",
+    "ok": true
+  },
+  {
+    "name": "Galerie Axe 390",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Galerie ohne JS-Fehler 390",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Mobile Axe kundenakte",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Mobile Axe angebot-neu",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Mobile Axe planung-woche",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Mobile Axe mitarbeiter-monat",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Mobile Axe e-rechnung-bund",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Mobile Axe konto",
+    "ok": true,
+    "details": []
+  },
+  {
+    "name": "Mobiles Mehr: Mitarbeiter",
+    "ok": true,
+    "details": {
+      "labels": [
+        "Meine Baustellen",
+        "Handwerksscheine",
+        "Urlaub",
+        "Einstellungen"
+      ],
+      "expected": [
+        "Meine Baustellen",
+        "Handwerksscheine",
+        "Urlaub",
+        "Einstellungen"
+      ]
+    }
+  },
+  {
+    "name": "Mobiles Mehr: Verwaltung",
+    "ok": true,
+    "details": {
+      "labels": [
+        "Handwerksscheine",
+        "Wartungen",
+        "Urlaub",
+        "Material anfordern",
+        "Lager",
+        "Einstellungen"
+      ],
+      "expected": [
+        "Handwerksscheine",
+        "Wartungen",
+        "Urlaub",
+        "Material anfordern",
+        "Lager",
+        "Einstellungen"
+      ]
+    }
+  },
+  {
+    "name": "Mobiles Mehr: Buchhaltung",
+    "ok": true,
+    "details": {
+      "labels": [
+        "Handwerksscheine",
+        "Angebote",
+        "Kunden",
+        "Urlaub",
+        "Einstellungen"
+      ],
+      "expected": [
+        "Handwerksscheine",
+        "Angebote",
+        "Kunden",
+        "Urlaub",
+        "Einstellungen"
+      ]
+    }
+  },
+  {
+    "name": "Mobiles Mehr: Projektleiter",
+    "ok": true,
+    "details": {
+      "labels": [
+        "Handwerksscheine",
+        "Angebote",
+        "Kunden",
+        "Wartungen",
+        "Zeiterfassung",
+        "Urlaub",
+        "Anforderungen",
+        "Lager",
+        "Einstellungen"
+      ],
+      "expected": [
+        "Handwerksscheine",
+        "Angebote",
+        "Kunden",
+        "Wartungen",
+        "Zeiterfassung",
+        "Urlaub",
+        "Anforderungen",
+        "Lager",
+        "Einstellungen"
+      ]
+    }
+  },
+  {
+    "name": "Mobiles Mehr: Geschäftsführung",
+    "ok": true,
+    "details": {
+      "labels": [
+        "Handwerksscheine",
+        "Angebote",
+        "Kunden",
+        "Wartungen",
+        "Nachkalkulation",
+        "Zeiterfassung",
+        "Urlaub",
+        "Mitarbeiterübersicht",
+        "Benutzerverwaltung",
+        "Material anfordern",
+        "Anforderungen",
+        "Lager",
+        "Einstellungen"
+      ],
+      "expected": [
+        "Handwerksscheine",
+        "Angebote",
+        "Kunden",
+        "Wartungen",
+        "Nachkalkulation",
+        "Zeiterfassung",
+        "Urlaub",
+        "Mitarbeiterübersicht",
+        "Benutzerverwaltung",
+        "Material anfordern",
+        "Anforderungen",
+        "Lager",
+        "Einstellungen"
+      ]
+    }
+  },
+  {
+    "name": "Mobiles Mehr: Administrator",
+    "ok": true,
+    "details": {
+      "labels": [
+        "Handwerksscheine",
+        "Angebote",
+        "Kunden",
+        "Wartungen",
+        "Nachkalkulation",
+        "Zeiterfassung",
+        "Urlaub",
+        "Mitarbeiterübersicht",
+        "Benutzerverwaltung",
+        "Material anfordern",
+        "Anforderungen",
+        "Lager",
+        "Einstellungen"
+      ],
+      "expected": [
+        "Handwerksscheine",
+        "Angebote",
+        "Kunden",
+        "Wartungen",
+        "Nachkalkulation",
+        "Zeiterfassung",
+        "Urlaub",
+        "Mitarbeiterübersicht",
+        "Benutzerverwaltung",
+        "Material anfordern",
+        "Anforderungen",
+        "Lager",
+        "Einstellungen"
+      ]
+    }
+  },
+  {
+    "name": "Register erreichbar #kundenakte",
+    "ok": true
+  },
+  {
+    "name": "Register erreichbar #kundenakte-baustellen",
+    "ok": true
+  },
+  {
+    "name": "Register erreichbar #kundenakte-belege",
+    "ok": true
+  },
+  {
+    "name": "Register erreichbar #kundenakte-termine",
+    "ok": true
+  },
+  {
+    "name": "Register erreichbar #kundenakte-stammdaten",
+    "ok": true
+  },
+  {
+    "name": "Register erreichbar #baustelle",
+    "ok": true
+  },
+  {
+    "name": "Register erreichbar #baustelle-scheine",
+    "ok": true
+  },
+  {
+    "name": "Register erreichbar #baustelle-termine",
+    "ok": true
+  },
+  {
+    "name": "Register erreichbar #baustelle-dokumente",
+    "ok": true
+  },
+  {
+    "name": "Register erreichbar #benutzerakte",
+    "ok": true
+  },
+  {
+    "name": "Register erreichbar #benutzer-arbeitszeit",
+    "ok": true
+  },
+  {
+    "name": "Register erreichbar #benutzer-zugang",
+    "ok": true
+  },
+  {
+    "name": "Register erreichbar #einstellungen",
+    "ok": true
+  },
+  {
+    "name": "Register erreichbar #konto",
+    "ok": true
+  },
+  {
+    "name": "Register erreichbar #rechnungsvorgaben",
+    "ok": true
+  },
+  {
+    "name": "Register erreichbar #kontenrahmen",
+    "ok": true
+  },
+  {
+    "name": "Deutsches Datum im Angebotsentwurf",
+    "ok": true,
+    "details": [
+      "31.10.2026"
+    ]
+  },
+  {
+    "name": "Prototyp ohne JS-Fehler",
+    "ok": true,
+    "details": []
+  }
+]

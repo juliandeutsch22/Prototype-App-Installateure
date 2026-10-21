@@ -1,0 +1,1516 @@
+{
+  "Mitarbeiter": {
+    "nav": [
+      {
+        "path": "/",
+        "label": "Start",
+        "short": "Start",
+        "icon": "home",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Start"
+      },
+      {
+        "path": "/my-schedule",
+        "label": "Mein Einsatzplan",
+        "short": "Plan",
+        "icon": "calendar",
+        "roles": [
+          "Mitarbeiter"
+        ],
+        "group": "Aufträge",
+        "modul": "einsatzplanung",
+        "zusatz": {
+          "rolle": "Projektleiter",
+          "wenn": "projektleitungImEinsatzplan"
+        }
+      },
+      {
+        "path": "/my-projects",
+        "label": "Meine Baustellen",
+        "short": "Baustellen",
+        "icon": "building",
+        "roles": [
+          "Mitarbeiter"
+        ],
+        "group": "Aufträge"
+      },
+      {
+        "path": "/worksheets",
+        "label": "Handwerksscheine",
+        "short": "Scheine",
+        "icon": "pencil",
+        "roles": [
+          "Mitarbeiter",
+          "Buchhaltung",
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "scheine"
+      },
+      {
+        "path": "/time",
+        "label": "Zeiterfassung",
+        "short": "Zeit",
+        "icon": "clock",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team"
+      },
+      {
+        "path": "/vacations",
+        "label": "Urlaub",
+        "short": "Urlaub",
+        "icon": "sun",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team",
+        "modul": "urlaub",
+        "hinweis": "urlaub"
+      },
+      {
+        "path": "/material",
+        "label": "Material anfordern",
+        "short": "Material",
+        "icon": "package",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/settings",
+        "label": "Einstellungen",
+        "short": "Einstellungen",
+        "icon": "settings",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Einstellungen"
+      }
+    ],
+    "mobile": [
+      "/",
+      "/time",
+      "/my-schedule",
+      "/material"
+    ],
+    "sub": [
+      {
+        "pfad": "woche",
+        "label": "Wochenplan",
+        "base": "/assignments"
+      },
+      {
+        "pfad": "tag",
+        "label": "Tag planen",
+        "base": "/assignments"
+      },
+      {
+        "pfad": "mein",
+        "label": "Meine Einsätze",
+        "base": "/my-schedule"
+      },
+      {
+        "pfad": "team",
+        "label": "Team-Woche",
+        "nurMitSchalter": "wochenplanFuerAlle",
+        "base": "/my-schedule"
+      },
+      {
+        "pfad": "meldungen",
+        "label": "Mein Konto",
+        "base": "/settings"
+      }
+    ]
+  },
+  "Verwaltung": {
+    "nav": [
+      {
+        "path": "/",
+        "label": "Start",
+        "short": "Start",
+        "icon": "home",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Start"
+      },
+      {
+        "path": "/worksheets",
+        "label": "Handwerksscheine",
+        "short": "Scheine",
+        "icon": "pencil",
+        "roles": [
+          "Mitarbeiter",
+          "Buchhaltung",
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "scheine"
+      },
+      {
+        "path": "/customers",
+        "label": "Kunden",
+        "short": "Kunden",
+        "icon": "contact",
+        "roles": [
+          "Buchhaltung",
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge"
+      },
+      {
+        "path": "/wartungen",
+        "label": "Wartungen",
+        "short": "Wartung",
+        "icon": "wrench",
+        "roles": [
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "wartung"
+      },
+      {
+        "path": "/time",
+        "label": "Zeiterfassung",
+        "short": "Zeit",
+        "icon": "clock",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team"
+      },
+      {
+        "path": "/vacations",
+        "label": "Urlaub",
+        "short": "Urlaub",
+        "icon": "sun",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team",
+        "modul": "urlaub",
+        "hinweis": "urlaub"
+      },
+      {
+        "path": "/material",
+        "label": "Material anfordern",
+        "short": "Material",
+        "icon": "package",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/anforderungen",
+        "label": "Anforderungen",
+        "short": "Anford.",
+        "icon": "clipboard",
+        "roles": [
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Material",
+        "modul": "material",
+        "hinweis": "anforderungen"
+      },
+      {
+        "path": "/lager",
+        "label": "Lager",
+        "short": "Lager",
+        "icon": "archive",
+        "roles": [
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/settings",
+        "label": "Einstellungen",
+        "short": "Einstellungen",
+        "icon": "settings",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Einstellungen"
+      }
+    ],
+    "mobile": [
+      "/",
+      "/anforderungen",
+      "/customers",
+      "/time"
+    ],
+    "sub": [
+      {
+        "pfad": "woche",
+        "label": "Wochenplan",
+        "base": "/assignments"
+      },
+      {
+        "pfad": "tag",
+        "label": "Tag planen",
+        "base": "/assignments"
+      },
+      {
+        "pfad": "mein",
+        "label": "Meine Einsätze",
+        "base": "/my-schedule"
+      },
+      {
+        "pfad": "team",
+        "label": "Team-Woche",
+        "nurMitSchalter": "wochenplanFuerAlle",
+        "base": "/my-schedule"
+      },
+      {
+        "pfad": "meldungen",
+        "label": "Mein Konto",
+        "base": "/settings"
+      }
+    ]
+  },
+  "Buchhaltung": {
+    "nav": [
+      {
+        "path": "/",
+        "label": "Start",
+        "short": "Start",
+        "icon": "home",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Start"
+      },
+      {
+        "path": "/worksheets",
+        "label": "Handwerksscheine",
+        "short": "Scheine",
+        "icon": "pencil",
+        "roles": [
+          "Mitarbeiter",
+          "Buchhaltung",
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "scheine"
+      },
+      {
+        "path": "/quotes",
+        "label": "Angebote",
+        "short": "Angebote",
+        "icon": "file",
+        "roles": [
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "angebote"
+      },
+      {
+        "path": "/customers",
+        "label": "Kunden",
+        "short": "Kunden",
+        "icon": "contact",
+        "roles": [
+          "Buchhaltung",
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge"
+      },
+      {
+        "path": "/invoices",
+        "label": "Rechnungen",
+        "short": "Rechnungen",
+        "icon": "receipt",
+        "roles": [
+          "Buchhaltung",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Geld",
+        "modul": "rechnungen",
+        "hinweis": "mahnungen",
+        "zusatz": {
+          "rolle": "Projektleiter",
+          "wenn": "rechnungenLesen"
+        }
+      },
+      {
+        "path": "/time",
+        "label": "Zeiterfassung",
+        "short": "Zeit",
+        "icon": "clock",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team"
+      },
+      {
+        "path": "/vacations",
+        "label": "Urlaub",
+        "short": "Urlaub",
+        "icon": "sun",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team",
+        "modul": "urlaub",
+        "hinweis": "urlaub"
+      },
+      {
+        "path": "/accounting",
+        "label": "Mitarbeiterübersicht",
+        "short": "Übersicht",
+        "icon": "chart",
+        "roles": [
+          "Buchhaltung",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team",
+        "modul": "zeitkonten"
+      },
+      {
+        "path": "/settings",
+        "label": "Einstellungen",
+        "short": "Einstellungen",
+        "icon": "settings",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Einstellungen"
+      }
+    ],
+    "mobile": [
+      "/",
+      "/invoices",
+      "/accounting",
+      "/time"
+    ],
+    "sub": [
+      {
+        "pfad": "woche",
+        "label": "Wochenplan",
+        "base": "/assignments"
+      },
+      {
+        "pfad": "tag",
+        "label": "Tag planen",
+        "base": "/assignments"
+      },
+      {
+        "pfad": "mein",
+        "label": "Meine Einsätze",
+        "base": "/my-schedule"
+      },
+      {
+        "pfad": "team",
+        "label": "Team-Woche",
+        "nurMitSchalter": "wochenplanFuerAlle",
+        "base": "/my-schedule"
+      },
+      {
+        "pfad": "uebersicht",
+        "label": "Übersicht",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator",
+          "Buchhaltung"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "meldungen",
+        "label": "Mein Konto",
+        "base": "/settings"
+      },
+      {
+        "pfad": "rechnung",
+        "label": "Rechnungsvorgaben",
+        "roles": [
+          "Buchhaltung",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "konten",
+        "label": "Kontenrahmen",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator",
+          "Buchhaltung"
+        ],
+        "base": "/settings"
+      }
+    ]
+  },
+  "Projektleiter": {
+    "nav": [
+      {
+        "path": "/",
+        "label": "Start",
+        "short": "Start",
+        "icon": "home",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Start"
+      },
+      {
+        "path": "/admin-projects",
+        "label": "Baustellen",
+        "short": "Baustellen",
+        "icon": "building",
+        "roles": [
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge"
+      },
+      {
+        "path": "/assignments",
+        "label": "Einsatzplanung",
+        "short": "Planung",
+        "icon": "calendar",
+        "roles": [
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "einsatzplanung"
+      },
+      {
+        "path": "/worksheets",
+        "label": "Handwerksscheine",
+        "short": "Scheine",
+        "icon": "pencil",
+        "roles": [
+          "Mitarbeiter",
+          "Buchhaltung",
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "scheine"
+      },
+      {
+        "path": "/quotes",
+        "label": "Angebote",
+        "short": "Angebote",
+        "icon": "file",
+        "roles": [
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "angebote"
+      },
+      {
+        "path": "/customers",
+        "label": "Kunden",
+        "short": "Kunden",
+        "icon": "contact",
+        "roles": [
+          "Buchhaltung",
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge"
+      },
+      {
+        "path": "/wartungen",
+        "label": "Wartungen",
+        "short": "Wartung",
+        "icon": "wrench",
+        "roles": [
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "wartung"
+      },
+      {
+        "path": "/time",
+        "label": "Zeiterfassung",
+        "short": "Zeit",
+        "icon": "clock",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team"
+      },
+      {
+        "path": "/vacations",
+        "label": "Urlaub",
+        "short": "Urlaub",
+        "icon": "sun",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team",
+        "modul": "urlaub",
+        "hinweis": "urlaub"
+      },
+      {
+        "path": "/material",
+        "label": "Material anfordern",
+        "short": "Material",
+        "icon": "package",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/anforderungen",
+        "label": "Anforderungen",
+        "short": "Anford.",
+        "icon": "clipboard",
+        "roles": [
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Material",
+        "modul": "material",
+        "hinweis": "anforderungen"
+      },
+      {
+        "path": "/lager",
+        "label": "Lager",
+        "short": "Lager",
+        "icon": "archive",
+        "roles": [
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/settings",
+        "label": "Einstellungen",
+        "short": "Einstellungen",
+        "icon": "settings",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Einstellungen"
+      }
+    ],
+    "mobile": [
+      "/",
+      "/assignments",
+      "/admin-projects",
+      "/material"
+    ],
+    "sub": [
+      {
+        "pfad": "woche",
+        "label": "Wochenplan",
+        "base": "/assignments"
+      },
+      {
+        "pfad": "tag",
+        "label": "Tag planen",
+        "base": "/assignments"
+      },
+      {
+        "pfad": "mein",
+        "label": "Meine Einsätze",
+        "base": "/my-schedule"
+      },
+      {
+        "pfad": "team",
+        "label": "Team-Woche",
+        "nurMitSchalter": "wochenplanFuerAlle",
+        "base": "/my-schedule"
+      },
+      {
+        "pfad": "meldungen",
+        "label": "Mein Konto",
+        "base": "/settings"
+      }
+    ]
+  },
+  "Geschäftsführung": {
+    "nav": [
+      {
+        "path": "/",
+        "label": "Start",
+        "short": "Start",
+        "icon": "home",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Start"
+      },
+      {
+        "path": "/admin-projects",
+        "label": "Baustellen",
+        "short": "Baustellen",
+        "icon": "building",
+        "roles": [
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge"
+      },
+      {
+        "path": "/assignments",
+        "label": "Einsatzplanung",
+        "short": "Planung",
+        "icon": "calendar",
+        "roles": [
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "einsatzplanung"
+      },
+      {
+        "path": "/worksheets",
+        "label": "Handwerksscheine",
+        "short": "Scheine",
+        "icon": "pencil",
+        "roles": [
+          "Mitarbeiter",
+          "Buchhaltung",
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "scheine"
+      },
+      {
+        "path": "/quotes",
+        "label": "Angebote",
+        "short": "Angebote",
+        "icon": "file",
+        "roles": [
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "angebote"
+      },
+      {
+        "path": "/customers",
+        "label": "Kunden",
+        "short": "Kunden",
+        "icon": "contact",
+        "roles": [
+          "Buchhaltung",
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge"
+      },
+      {
+        "path": "/wartungen",
+        "label": "Wartungen",
+        "short": "Wartung",
+        "icon": "wrench",
+        "roles": [
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "wartung"
+      },
+      {
+        "path": "/invoices",
+        "label": "Rechnungen",
+        "short": "Rechnungen",
+        "icon": "receipt",
+        "roles": [
+          "Buchhaltung",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Geld",
+        "modul": "rechnungen",
+        "hinweis": "mahnungen",
+        "zusatz": {
+          "rolle": "Projektleiter",
+          "wenn": "rechnungenLesen"
+        }
+      },
+      {
+        "path": "/costing",
+        "label": "Nachkalkulation",
+        "short": "Kalkulation",
+        "icon": "calculator",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Geld",
+        "modul": "nachkalkulation"
+      },
+      {
+        "path": "/time",
+        "label": "Zeiterfassung",
+        "short": "Zeit",
+        "icon": "clock",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team"
+      },
+      {
+        "path": "/vacations",
+        "label": "Urlaub",
+        "short": "Urlaub",
+        "icon": "sun",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team",
+        "modul": "urlaub",
+        "hinweis": "urlaub"
+      },
+      {
+        "path": "/accounting",
+        "label": "Mitarbeiterübersicht",
+        "short": "Übersicht",
+        "icon": "chart",
+        "roles": [
+          "Buchhaltung",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team",
+        "modul": "zeitkonten"
+      },
+      {
+        "path": "/user-mgmt",
+        "label": "Benutzerverwaltung",
+        "short": "Benutzer",
+        "icon": "users",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team"
+      },
+      {
+        "path": "/material",
+        "label": "Material anfordern",
+        "short": "Material",
+        "icon": "package",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/anforderungen",
+        "label": "Anforderungen",
+        "short": "Anford.",
+        "icon": "clipboard",
+        "roles": [
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Material",
+        "modul": "material",
+        "hinweis": "anforderungen"
+      },
+      {
+        "path": "/lager",
+        "label": "Lager",
+        "short": "Lager",
+        "icon": "archive",
+        "roles": [
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/settings",
+        "label": "Einstellungen",
+        "short": "Einstellungen",
+        "icon": "settings",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Einstellungen"
+      }
+    ],
+    "mobile": [
+      "/",
+      "/assignments",
+      "/admin-projects",
+      "/invoices"
+    ],
+    "sub": [
+      {
+        "pfad": "woche",
+        "label": "Wochenplan",
+        "base": "/assignments"
+      },
+      {
+        "pfad": "tag",
+        "label": "Tag planen",
+        "base": "/assignments"
+      },
+      {
+        "pfad": "mein",
+        "label": "Meine Einsätze",
+        "base": "/my-schedule"
+      },
+      {
+        "pfad": "team",
+        "label": "Team-Woche",
+        "nurMitSchalter": "wochenplanFuerAlle",
+        "base": "/my-schedule"
+      },
+      {
+        "pfad": "uebersicht",
+        "label": "Übersicht",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator",
+          "Buchhaltung"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "meldungen",
+        "label": "Mein Konto",
+        "base": "/settings"
+      },
+      {
+        "pfad": "firma",
+        "label": "Firmendaten",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "saetze",
+        "label": "Sätze und Kosten",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "rechnung",
+        "label": "Rechnungsvorgaben",
+        "roles": [
+          "Buchhaltung",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "nummern",
+        "label": "Nummernkreise",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "personal",
+        "label": "Personal",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "konten",
+        "label": "Kontenrahmen",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator",
+          "Buchhaltung"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "support",
+        "label": "Supportzugang",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "sicherung",
+        "label": "Datensicherung",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "base": "/settings"
+      }
+    ]
+  },
+  "Administrator": {
+    "nav": [
+      {
+        "path": "/",
+        "label": "Start",
+        "short": "Start",
+        "icon": "home",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Start"
+      },
+      {
+        "path": "/admin-projects",
+        "label": "Baustellen",
+        "short": "Baustellen",
+        "icon": "building",
+        "roles": [
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge"
+      },
+      {
+        "path": "/assignments",
+        "label": "Einsatzplanung",
+        "short": "Planung",
+        "icon": "calendar",
+        "roles": [
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "einsatzplanung"
+      },
+      {
+        "path": "/worksheets",
+        "label": "Handwerksscheine",
+        "short": "Scheine",
+        "icon": "pencil",
+        "roles": [
+          "Mitarbeiter",
+          "Buchhaltung",
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "scheine"
+      },
+      {
+        "path": "/quotes",
+        "label": "Angebote",
+        "short": "Angebote",
+        "icon": "file",
+        "roles": [
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "angebote"
+      },
+      {
+        "path": "/customers",
+        "label": "Kunden",
+        "short": "Kunden",
+        "icon": "contact",
+        "roles": [
+          "Buchhaltung",
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge"
+      },
+      {
+        "path": "/wartungen",
+        "label": "Wartungen",
+        "short": "Wartung",
+        "icon": "wrench",
+        "roles": [
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Aufträge",
+        "modul": "wartung"
+      },
+      {
+        "path": "/invoices",
+        "label": "Rechnungen",
+        "short": "Rechnungen",
+        "icon": "receipt",
+        "roles": [
+          "Buchhaltung",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Geld",
+        "modul": "rechnungen",
+        "hinweis": "mahnungen",
+        "zusatz": {
+          "rolle": "Projektleiter",
+          "wenn": "rechnungenLesen"
+        }
+      },
+      {
+        "path": "/costing",
+        "label": "Nachkalkulation",
+        "short": "Kalkulation",
+        "icon": "calculator",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Geld",
+        "modul": "nachkalkulation"
+      },
+      {
+        "path": "/time",
+        "label": "Zeiterfassung",
+        "short": "Zeit",
+        "icon": "clock",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team"
+      },
+      {
+        "path": "/vacations",
+        "label": "Urlaub",
+        "short": "Urlaub",
+        "icon": "sun",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team",
+        "modul": "urlaub",
+        "hinweis": "urlaub"
+      },
+      {
+        "path": "/accounting",
+        "label": "Mitarbeiterübersicht",
+        "short": "Übersicht",
+        "icon": "chart",
+        "roles": [
+          "Buchhaltung",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team",
+        "modul": "zeitkonten"
+      },
+      {
+        "path": "/user-mgmt",
+        "label": "Benutzerverwaltung",
+        "short": "Benutzer",
+        "icon": "users",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Team"
+      },
+      {
+        "path": "/material",
+        "label": "Material anfordern",
+        "short": "Material",
+        "icon": "package",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/anforderungen",
+        "label": "Anforderungen",
+        "short": "Anford.",
+        "icon": "clipboard",
+        "roles": [
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Material",
+        "modul": "material",
+        "hinweis": "anforderungen"
+      },
+      {
+        "path": "/lager",
+        "label": "Lager",
+        "short": "Lager",
+        "icon": "archive",
+        "roles": [
+          "Verwaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Material",
+        "modul": "material"
+      },
+      {
+        "path": "/settings",
+        "label": "Einstellungen",
+        "short": "Einstellungen",
+        "icon": "settings",
+        "roles": [
+          "Mitarbeiter",
+          "Verwaltung",
+          "Buchhaltung",
+          "Projektleiter",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "group": "Einstellungen"
+      }
+    ],
+    "mobile": [
+      "/",
+      "/assignments",
+      "/admin-projects",
+      "/invoices"
+    ],
+    "sub": [
+      {
+        "pfad": "woche",
+        "label": "Wochenplan",
+        "base": "/assignments"
+      },
+      {
+        "pfad": "tag",
+        "label": "Tag planen",
+        "base": "/assignments"
+      },
+      {
+        "pfad": "mein",
+        "label": "Meine Einsätze",
+        "base": "/my-schedule"
+      },
+      {
+        "pfad": "team",
+        "label": "Team-Woche",
+        "nurMitSchalter": "wochenplanFuerAlle",
+        "base": "/my-schedule"
+      },
+      {
+        "pfad": "uebersicht",
+        "label": "Übersicht",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator",
+          "Buchhaltung"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "meldungen",
+        "label": "Mein Konto",
+        "base": "/settings"
+      },
+      {
+        "pfad": "firma",
+        "label": "Firmendaten",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "saetze",
+        "label": "Sätze und Kosten",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "rechnung",
+        "label": "Rechnungsvorgaben",
+        "roles": [
+          "Buchhaltung",
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "nummern",
+        "label": "Nummernkreise",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "personal",
+        "label": "Personal",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "konten",
+        "label": "Kontenrahmen",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator",
+          "Buchhaltung"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "support",
+        "label": "Supportzugang",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "module",
+        "label": "Module",
+        "roles": [
+          "Administrator"
+        ],
+        "base": "/settings"
+      },
+      {
+        "pfad": "sicherung",
+        "label": "Datensicherung",
+        "roles": [
+          "Geschäftsführung",
+          "Administrator"
+        ],
+        "base": "/settings"
+      }
+    ]
+  }
+}

@@ -1,0 +1,6314 @@
+[
+  {
+    "id": "anmelden",
+    "format": "desktop",
+    "file": "bilder/001-anmelden-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "a9a974735569f97ea28c69859654ba2072fe3ecafd2f5ab8f81c05f3e93244dc"
+  },
+  {
+    "id": "anmelden",
+    "format": "tablet",
+    "file": "bilder/001-anmelden-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "9a526943d378064caf3e342935874ee849e55039a012fa23ba8ab854944dee48"
+  },
+  {
+    "id": "anmelden",
+    "format": "mobil",
+    "file": "bilder/001-anmelden-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "eec74cb2a7119a8ab09731a038827824ab26fe3a0d9a1246471df31722963548"
+  },
+  {
+    "id": "passwort-vergessen",
+    "format": "desktop",
+    "file": "bilder/002-passwort-vergessen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "9c3028604ba9202f63d7e3c1ca9bbe3ce52791c3bfef0973266fcc3bcadea7c8"
+  },
+  {
+    "id": "passwort-vergessen",
+    "format": "tablet",
+    "file": "bilder/002-passwort-vergessen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "ac557524e02fa046b05db06ba6b56429d48a2ca9b8296682425f154b51924d6c"
+  },
+  {
+    "id": "passwort-vergessen",
+    "format": "mobil",
+    "file": "bilder/002-passwort-vergessen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "5372c2b3fe506c6928345f0e940d46934ff171c34924ecf0ac61050aaf196c8b"
+  },
+  {
+    "id": "passwort-setzen",
+    "format": "desktop",
+    "file": "bilder/003-passwort-setzen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "eb1b76f6747ea92ce11c0862bb5151b0d6dacfd9b25b3cedf44ebface670dcd5"
+  },
+  {
+    "id": "passwort-setzen",
+    "format": "tablet",
+    "file": "bilder/003-passwort-setzen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "78d11fe2d6c590768401fb556d352f704f3401e33459741494577f353560cdd4"
+  },
+  {
+    "id": "passwort-setzen",
+    "format": "mobil",
+    "file": "bilder/003-passwort-setzen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "35c99d72df55022f08c536553b0a53e554c0e397b78c199978a39602f332f8d3"
+  },
+  {
+    "id": "passwort-aendern",
+    "format": "desktop",
+    "file": "bilder/004-passwort-aendern-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "d60565a9e5e42bc23556166acddff4a542a5cdf62d5d27430846251cefa0b302"
+  },
+  {
+    "id": "passwort-aendern",
+    "format": "tablet",
+    "file": "bilder/004-passwort-aendern-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "3ea1f24a8264eb09900de9b85e5c071f789e4a63aac0c07b0794d3643d368ad8"
+  },
+  {
+    "id": "passwort-aendern",
+    "format": "mobil",
+    "file": "bilder/004-passwort-aendern-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "040e94b56af806a1fc524e5a8c3d722beb881b61fb3a8a0baab8bcae5050ddc7"
+  },
+  {
+    "id": "zwei-faktor",
+    "format": "desktop",
+    "file": "bilder/005-zwei-faktor-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "25d36de8f508dac21c8b45251451373121fe8854cb5cfe2b9202db271f0f0a44"
+  },
+  {
+    "id": "zwei-faktor",
+    "format": "tablet",
+    "file": "bilder/005-zwei-faktor-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "66f86583d8a041772b13796c2f0373698291c321df2bdf70c70b9361d06d3787"
+  },
+  {
+    "id": "zwei-faktor",
+    "format": "mobil",
+    "file": "bilder/005-zwei-faktor-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "7234bd0194af2daa74ab3ed77d30521156265779927134073bb51acfcb53b91f"
+  },
+  {
+    "id": "zwei-faktor-code",
+    "format": "desktop",
+    "file": "bilder/006-zwei-faktor-code-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "afd23a3c8d5496111f9d46e8b1a2487623b78fa5c418c2ffba0be508cb78afbd"
+  },
+  {
+    "id": "zwei-faktor-code",
+    "format": "tablet",
+    "file": "bilder/006-zwei-faktor-code-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "87b394522b04294c2cf5ec1d9f12c3e6b193101cdda927a4fd89a60fc294ac9f"
+  },
+  {
+    "id": "zwei-faktor-code",
+    "format": "mobil",
+    "file": "bilder/006-zwei-faktor-code-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "6ea87ebe27671ad0f646491abf4d86899e330fc18f0959611080ea98f13d9aa8"
+  },
+  {
+    "id": "zwei-faktor-einrichten",
+    "format": "desktop",
+    "file": "bilder/007-zwei-faktor-einrichten-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "8b1e7d9e9dec7b89b93a3df67bf12752cbde78da71eaddf5268aac87ce650548"
+  },
+  {
+    "id": "zwei-faktor-einrichten",
+    "format": "tablet",
+    "file": "bilder/007-zwei-faktor-einrichten-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "5d76682b8cf50e4c9b8deb405dc3d8fda2db69c69b7b32e38638dcfab8dede92"
+  },
+  {
+    "id": "zwei-faktor-einrichten",
+    "format": "mobil",
+    "file": "bilder/007-zwei-faktor-einrichten-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "420ac2cb578255d89ebba9406e992af67cd2161ba03731ee60ea056d30069307"
+  },
+  {
+    "id": "wiederherstellungscodes",
+    "format": "desktop",
+    "file": "bilder/008-wiederherstellungscodes-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "cecccae9f8631011307101026dfe031023a7fdc1b7c00422bb34fb235a786123"
+  },
+  {
+    "id": "wiederherstellungscodes",
+    "format": "tablet",
+    "file": "bilder/008-wiederherstellungscodes-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "418da8d96f0420c420673a06d3de71ed52e2b4444a0fea874d5cbbc6d2a8a587"
+  },
+  {
+    "id": "wiederherstellungscodes",
+    "format": "mobil",
+    "file": "bilder/008-wiederherstellungscodes-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "86dad876649c6befbd93bf961c8fca70a26139810d57b18376dc59dd60a525be"
+  },
+  {
+    "id": "impressum",
+    "format": "desktop",
+    "file": "bilder/009-impressum-desktop.jpg",
+    "width": 1440,
+    "height": 1495,
+    "sha256": "57d18c48cd9b4b091d426a05ab657a0eec6b532d02b73f1dacca9789c64e7295"
+  },
+  {
+    "id": "impressum",
+    "format": "tablet",
+    "file": "bilder/009-impressum-tablet.jpg",
+    "width": 834,
+    "height": 1495,
+    "sha256": "073f6d7c0dec9cb3e0a0c8963f419e78bcffe7b21676ae6bfdcb3612e9ddcee9"
+  },
+  {
+    "id": "impressum",
+    "format": "mobil",
+    "file": "bilder/009-impressum-mobil.jpg",
+    "width": 390,
+    "height": 1560,
+    "sha256": "7538af781eed1a33c59505aabaeafda1c59d2b2b92b68353c840dd040e9c0b23"
+  },
+  {
+    "id": "datenschutz",
+    "format": "desktop",
+    "file": "bilder/010-datenschutz-desktop.jpg",
+    "width": 1440,
+    "height": 4981,
+    "sha256": "f5e0e9560308a563acbc8130057e3707cc6fde4c000b03e1aaf65a64f0ad4d3a"
+  },
+  {
+    "id": "datenschutz",
+    "format": "tablet",
+    "file": "bilder/010-datenschutz-tablet.jpg",
+    "width": 834,
+    "height": 4981,
+    "sha256": "4c8bc7d9521ddd9852de47fff95847f33f73d5835920b6c7abef3a0e78d06999"
+  },
+  {
+    "id": "datenschutz",
+    "format": "mobil",
+    "file": "bilder/010-datenschutz-mobil.jpg",
+    "width": 390,
+    "height": 6047,
+    "sha256": "a4092369f57aac8d90a46bb170f07890bb30f4ec64497fc82c7b035f2ab7a627"
+  },
+  {
+    "id": "heute",
+    "format": "desktop",
+    "file": "referenzen/heute-desktop.png",
+    "width": 1440,
+    "height": 1236,
+    "sha256": "293dc0a3c9f1a986fa9525aa2b5c811b0355223192e3fbee325ed4eb8312bcc1"
+  },
+  {
+    "id": "heute",
+    "format": "tablet",
+    "file": "referenzen/heute-tablet.png",
+    "width": 834,
+    "height": 1222,
+    "sha256": "d68e235fa31dd1eba3b9fac51ce0eddd587b89eb841bfc9a50a16c74c6ecd331"
+  },
+  {
+    "id": "heute",
+    "format": "mobil",
+    "file": "referenzen/heute-mobil.png",
+    "width": 390,
+    "height": 2245,
+    "sha256": "57feee4af012f1ef7f9637b66a458db760e5ee464a649a2341432e9c255a7181"
+  },
+  {
+    "id": "heute-monteur",
+    "format": "desktop",
+    "file": "referenzen/heute-monteur-desktop.png",
+    "width": 1440,
+    "height": 2527,
+    "sha256": "afb179d6d60d67704831dcf2822124e2ae2f54962e5318410507a071cae36ba0"
+  },
+  {
+    "id": "heute-monteur",
+    "format": "tablet",
+    "file": "referenzen/heute-monteur-tablet.png",
+    "width": 834,
+    "height": 2713,
+    "sha256": "95a475ea37e01c833856819b35cfa6f1ccab3b8c9c51d6d05ba01be1cc0c5651"
+  },
+  {
+    "id": "heute-monteur",
+    "format": "mobil",
+    "file": "referenzen/heute-monteur-mobil.png",
+    "width": 390,
+    "height": 3579,
+    "sha256": "0b4e19cadd9bebd2c33620fd88d310211bb65b0cdc14015a2c5cd2caf68d3186"
+  },
+  {
+    "id": "heute-verwaltung",
+    "format": "desktop",
+    "file": "referenzen/heute-verwaltung-desktop.png",
+    "width": 1440,
+    "height": 3336,
+    "sha256": "97d8982fb107086d86d4c621d8e5a4ecd36e1cab8f943197cac578a666e77577"
+  },
+  {
+    "id": "heute-verwaltung",
+    "format": "tablet",
+    "file": "referenzen/heute-verwaltung-tablet.png",
+    "width": 834,
+    "height": 3563,
+    "sha256": "f0919e6cb3f6c3a003c627afdcd3f0054a670b265715a34d8576fa2f999b65a6"
+  },
+  {
+    "id": "heute-verwaltung",
+    "format": "mobil",
+    "file": "referenzen/heute-verwaltung-mobil.png",
+    "width": 390,
+    "height": 3736,
+    "sha256": "7d28ed245789798ab68626e20049edf526706f203b3f29811505a1dc48aa6364"
+  },
+  {
+    "id": "heute-buchhaltung",
+    "format": "desktop",
+    "file": "referenzen/heute-buchhaltung-desktop.png",
+    "width": 1440,
+    "height": 3336,
+    "sha256": "3c7b7009bba2b900072c64dd47293b7c913b102698c895a4c2a7816c3ef55155"
+  },
+  {
+    "id": "heute-buchhaltung",
+    "format": "tablet",
+    "file": "referenzen/heute-buchhaltung-tablet.png",
+    "width": 834,
+    "height": 3583,
+    "sha256": "1474c12fbbb0ab62172885edf28283a29159b9601c4c5701287b0aaff83bd753"
+  },
+  {
+    "id": "heute-buchhaltung",
+    "format": "mobil",
+    "file": "referenzen/heute-buchhaltung-mobil.png",
+    "width": 390,
+    "height": 4371,
+    "sha256": "d3e6eab73ae1a70a084e269f39a87fc5ccbef48027123ee3ddd346845a0344a9"
+  },
+  {
+    "id": "heute-projektleitung",
+    "format": "desktop",
+    "file": "referenzen/heute-projektleitung-desktop.png",
+    "width": 1440,
+    "height": 3835,
+    "sha256": "5a458ad93778f1cf34005b82c6c70239f83f55265bce39e733e197fadbe3de02"
+  },
+  {
+    "id": "heute-projektleitung",
+    "format": "tablet",
+    "file": "referenzen/heute-projektleitung-tablet.png",
+    "width": 834,
+    "height": 4430,
+    "sha256": "a91370c14ce11ea382d49daad213faf34e21085c691030980cccec088326bea9"
+  },
+  {
+    "id": "heute-projektleitung",
+    "format": "mobil",
+    "file": "referenzen/heute-projektleitung-mobil.png",
+    "width": 390,
+    "height": 4623,
+    "sha256": "3f0b76bcb36183479121139b36d7fb485ac9615a28d853dca5e0f153af12fbdb"
+  },
+  {
+    "id": "heute-admin",
+    "format": "desktop",
+    "file": "referenzen/heute-admin-desktop.png",
+    "width": 1440,
+    "height": 3945,
+    "sha256": "ec0c02ae804aaf53a69599507409337cc42b732fa1e9b001a754f715d7c111a5"
+  },
+  {
+    "id": "heute-admin",
+    "format": "tablet",
+    "file": "referenzen/heute-admin-tablet.png",
+    "width": 834,
+    "height": 4526,
+    "sha256": "2773ac70b9634e5f0d04bb5280e477100d89644c09ef817ac44ba8734a711bff"
+  },
+  {
+    "id": "heute-admin",
+    "format": "mobil",
+    "file": "referenzen/heute-admin-mobil.png",
+    "width": 390,
+    "height": 4763,
+    "sha256": "57badf084b6b31e49c1969638e512521bc916bb59688a78d8b0a14fafadab6ce"
+  },
+  {
+    "id": "kunden",
+    "format": "desktop",
+    "file": "bilder/017-kunden-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "2b8ada00d755e4913c11e9d4a91db1b272b0190d0dae6bc29aec2cf2c6936ec8"
+  },
+  {
+    "id": "kunden",
+    "format": "tablet",
+    "file": "bilder/017-kunden-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "eeac02d8f3da69762de99d4de13bcda9bf544e8c0acad6560146bd6b25fe287a"
+  },
+  {
+    "id": "kunden",
+    "format": "mobil",
+    "file": "bilder/017-kunden-mobil.jpg",
+    "width": 390,
+    "height": 883,
+    "sha256": "2189765fcdcda5a7c8b05c3962b756a11434066778bc9cfd9252894b05099401"
+  },
+  {
+    "id": "kunde-neu",
+    "format": "desktop",
+    "file": "bilder/018-kunde-neu-desktop.jpg",
+    "width": 1440,
+    "height": 1331,
+    "sha256": "cc7e83e0db2a295e1781f8e3d7591b9806298d5801e657d7c5c05f0c17a20bb5"
+  },
+  {
+    "id": "kunde-neu",
+    "format": "tablet",
+    "file": "bilder/018-kunde-neu-tablet.jpg",
+    "width": 834,
+    "height": 1318,
+    "sha256": "a53b9783000c68433407e1d2ee10376245189b28b01672fa3aa784cf03c0c687"
+  },
+  {
+    "id": "kunde-neu",
+    "format": "mobil",
+    "file": "bilder/018-kunde-neu-mobil.jpg",
+    "width": 390,
+    "height": 1650,
+    "sha256": "e44391192fa5c3380277f11e080a49ed07947a552c1c0a1355f07b6220c252bb"
+  },
+  {
+    "id": "kundenakte",
+    "format": "desktop",
+    "file": "bilder/019-kundenakte-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "7f0fe86ed343027bcd3dad9a7598ab8ed62f67a8aacd6cf4f1698b1f13a6bfa6"
+  },
+  {
+    "id": "kundenakte",
+    "format": "tablet",
+    "file": "bilder/019-kundenakte-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "419f3debbf8fd525e1b068e89b8d4ac42d78a4e71a61abff56a3ed93b27d2964"
+  },
+  {
+    "id": "kundenakte",
+    "format": "mobil",
+    "file": "bilder/019-kundenakte-mobil.jpg",
+    "width": 390,
+    "height": 1361,
+    "sha256": "a869b71bd5acf310e74a2144ba562d324c5136d00aa90faafab716f09b6e57a4"
+  },
+  {
+    "id": "kunde-bearbeiten",
+    "format": "desktop",
+    "file": "bilder/020-kunde-bearbeiten-desktop.jpg",
+    "width": 1440,
+    "height": 1419,
+    "sha256": "b9371a6fa728ce4f44f1062354fd277994ef6105995c4ee096ffe4281c5fe9ac"
+  },
+  {
+    "id": "kunde-bearbeiten",
+    "format": "tablet",
+    "file": "bilder/020-kunde-bearbeiten-tablet.jpg",
+    "width": 834,
+    "height": 1406,
+    "sha256": "f1b733ad743bffe9dd53db43c4e7f083b5a1791540c2f33a79bf321daab326fb"
+  },
+  {
+    "id": "kunde-bearbeiten",
+    "format": "mobil",
+    "file": "bilder/020-kunde-bearbeiten-mobil.jpg",
+    "width": 390,
+    "height": 1602,
+    "sha256": "be32ff1dace594c968a176714f8d536834f968a52ea9a4a00f2a1ce517d4d7b3"
+  },
+  {
+    "id": "kunden-import",
+    "format": "desktop",
+    "file": "bilder/021-kunden-import-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "3c1bbdd01b1cacdb3c05cc94aecee56a5deb41d85ca5197eb7059db480fa4c1c"
+  },
+  {
+    "id": "kunden-import",
+    "format": "tablet",
+    "file": "bilder/021-kunden-import-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "99ac7b35f8f812d27c3f90f1cfbdc657140ed7c7af9f7c04b8e1cdb248ab1091"
+  },
+  {
+    "id": "kunden-import",
+    "format": "mobil",
+    "file": "bilder/021-kunden-import-mobil.jpg",
+    "width": 390,
+    "height": 883,
+    "sha256": "6d93fd9f94e2388319cc5312d45718c14583b1eeaced68f317702bd3f67cc0fb"
+  },
+  {
+    "id": "kunden-zuordnen",
+    "format": "desktop",
+    "file": "bilder/022-kunden-zuordnen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "d61ddf5fd933412adb021445729a194972e1a3ce25e7e7abd88a91b5e78d18ee"
+  },
+  {
+    "id": "kunden-zuordnen",
+    "format": "tablet",
+    "file": "bilder/022-kunden-zuordnen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "222514fafde0f0abda792e4870e0a6b2a8e8f850bb94921154500bcac2128f87"
+  },
+  {
+    "id": "kunden-zuordnen",
+    "format": "mobil",
+    "file": "bilder/022-kunden-zuordnen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "e7224a9f3f12dfad51f714a5ba8bb4caa8e7d226c78187da1d1019db9bc721c9"
+  },
+  {
+    "id": "angebote",
+    "format": "desktop",
+    "file": "bilder/023-angebote-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "4ea89e5fd8c5402020263969892ca47e19a2ca62f4a7ab7d6acc184e3a167798"
+  },
+  {
+    "id": "angebote",
+    "format": "tablet",
+    "file": "bilder/023-angebote-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "45f1db2ef2b5905eb9a754a2b4ffc6457cc1956685e39d3046e113034f36b73f"
+  },
+  {
+    "id": "angebote",
+    "format": "mobil",
+    "file": "bilder/023-angebote-mobil.jpg",
+    "width": 390,
+    "height": 883,
+    "sha256": "382530338ff7d1f1b219ac361f562d05e8ab33630289c01c762cadb86182b351"
+  },
+  {
+    "id": "angebot-neu",
+    "format": "desktop",
+    "file": "bilder/024-angebot-neu-desktop.jpg",
+    "width": 1440,
+    "height": 1444,
+    "sha256": "f7d59367c8bf2ca5c03049cd9fbe0f53e2e8754dfcde0b6c11867920eec9d5f0"
+  },
+  {
+    "id": "angebot-neu",
+    "format": "tablet",
+    "file": "bilder/024-angebot-neu-tablet.jpg",
+    "width": 834,
+    "height": 1431,
+    "sha256": "194344f998d40693c8660ddf013caf31192b9a3bc544c925669d8daa1966a9bf"
+  },
+  {
+    "id": "angebot-neu",
+    "format": "mobil",
+    "file": "bilder/024-angebot-neu-mobil.jpg",
+    "width": 390,
+    "height": 1987,
+    "sha256": "edf0f26e6496530a0c6bfac33a15cc375c1fe609053d211c1f3d414a45e4100c"
+  },
+  {
+    "id": "angebot-katalog",
+    "format": "desktop",
+    "file": "bilder/025-angebot-katalog-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "e6a925ae69bd27108c3f171fd8c64b9b1c3d9c9b717ada6687ad97f1278ca1d6"
+  },
+  {
+    "id": "angebot-katalog",
+    "format": "tablet",
+    "file": "bilder/025-angebot-katalog-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "788d79e2b4ac487965c21d6f5d34b550cb19e47000dfa15489fd36f48c0f7920"
+  },
+  {
+    "id": "angebot-katalog",
+    "format": "mobil",
+    "file": "bilder/025-angebot-katalog-mobil.jpg",
+    "width": 390,
+    "height": 1104,
+    "sha256": "1135a9cacda43e88c52019c26fe4b984f69c4ce8c9eb277e069f5e81ebd29e1f"
+  },
+  {
+    "id": "angebot-detail",
+    "format": "desktop",
+    "file": "bilder/026-angebot-detail-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "a73fe256a268684fc4fbc2d9c556f25862ed75c0c791314c9d77ce6ad881117a"
+  },
+  {
+    "id": "angebot-detail",
+    "format": "tablet",
+    "file": "bilder/026-angebot-detail-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "7de5ccbd009d592342d9bf4fe5489357f627036957ee41531d137415c6c870bf"
+  },
+  {
+    "id": "angebot-detail",
+    "format": "mobil",
+    "file": "bilder/026-angebot-detail-mobil.jpg",
+    "width": 390,
+    "height": 1287,
+    "sha256": "310540ac6523204970f73c130730f5ca5ec415c4cdc785553dfb4f54184dc543"
+  },
+  {
+    "id": "angebot-annehmen",
+    "format": "desktop",
+    "file": "bilder/027-angebot-annehmen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "0d39d70be581d74ad7ce9fa738d4854be1fc07d54693654a1fda2ec93dc9a710"
+  },
+  {
+    "id": "angebot-annehmen",
+    "format": "tablet",
+    "file": "bilder/027-angebot-annehmen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "1398d6027b73407423fed625a9136420366e7ffb39f52b0aed72ac409f059f49"
+  },
+  {
+    "id": "angebot-annehmen",
+    "format": "mobil",
+    "file": "bilder/027-angebot-annehmen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "fa6c51a87b7cfbf7bc6cc018bc1957cf9e8e83dc0bdd2ce41bad6a2c7819be18"
+  },
+  {
+    "id": "baustellen",
+    "format": "desktop",
+    "file": "bilder/028-baustellen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "98bbe3025b71fa085749a69843a4d232268b083970e3c5ce46f068f823ec4d61"
+  },
+  {
+    "id": "baustellen",
+    "format": "tablet",
+    "file": "bilder/028-baustellen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "62076e55ccc154745bf20fd4d401fcb4d2f701fc39b4d6d5a51940fb1dc5582c"
+  },
+  {
+    "id": "baustellen",
+    "format": "mobil",
+    "file": "bilder/028-baustellen-mobil.jpg",
+    "width": 390,
+    "height": 937,
+    "sha256": "ef68bc240e41a6583fbd71f06baac1f5279650adf03d3c472508c876f45727aa"
+  },
+  {
+    "id": "baustelle-neu",
+    "format": "desktop",
+    "file": "bilder/029-baustelle-neu-desktop.jpg",
+    "width": 1440,
+    "height": 1541,
+    "sha256": "36227fbf7cb6e28a297b8437308396b39827f60a3f83570ddfb890743e338e63"
+  },
+  {
+    "id": "baustelle-neu",
+    "format": "tablet",
+    "file": "bilder/029-baustelle-neu-tablet.jpg",
+    "width": 834,
+    "height": 1528,
+    "sha256": "44b0d55e3d2aa4dc7664955e3f68c0a4d06ce038b657d5fb9d8dc6c587f8ca56"
+  },
+  {
+    "id": "baustelle-neu",
+    "format": "mobil",
+    "file": "bilder/029-baustelle-neu-mobil.jpg",
+    "width": 390,
+    "height": 1860,
+    "sha256": "9e007d8742d76d210c8f2d79b48af2121f752b28277bc123a1bef585b2211fe8"
+  },
+  {
+    "id": "baustelle",
+    "format": "desktop",
+    "file": "bilder/030-baustelle-desktop.jpg",
+    "width": 1440,
+    "height": 1109,
+    "sha256": "11b31dc217d8857a45fc52635530b15d80467f64c70e442165220b6c55cf6560"
+  },
+  {
+    "id": "baustelle",
+    "format": "tablet",
+    "file": "bilder/030-baustelle-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "b01054fef9b3b5c31ad7bf1f3f44975b1c78cbc6b96df096861682a0ee709bbc"
+  },
+  {
+    "id": "baustelle",
+    "format": "mobil",
+    "file": "bilder/030-baustelle-mobil.jpg",
+    "width": 390,
+    "height": 1748,
+    "sha256": "cf329683ed6c47d6a2c2523d298639c86deb0ed0d0e8f757e8b1005311a7a968"
+  },
+  {
+    "id": "baustelle-daten",
+    "format": "desktop",
+    "file": "bilder/031-baustelle-daten-desktop.jpg",
+    "width": 1440,
+    "height": 1683,
+    "sha256": "69110c9b3fa7e7207e37b7e115aefb14f2034c75837e0832ff472d3aea5aa4d8"
+  },
+  {
+    "id": "baustelle-daten",
+    "format": "tablet",
+    "file": "bilder/031-baustelle-daten-tablet.jpg",
+    "width": 834,
+    "height": 1670,
+    "sha256": "1a7aa7086025be51897f573693316bb4a273fae65f0caf0be149d7f90621d39d"
+  },
+  {
+    "id": "baustelle-daten",
+    "format": "mobil",
+    "file": "bilder/031-baustelle-daten-mobil.jpg",
+    "width": 390,
+    "height": 1831,
+    "sha256": "7c5e5ccaab511d938c33d47f6d5969a196525224aa308dffa4c3cbb48db711ff"
+  },
+  {
+    "id": "baustelle-dokumente",
+    "format": "desktop",
+    "file": "bilder/032-baustelle-dokumente-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "bbbff771e368529918d80ca81102188cb7b1dc9b8478b9c240ad4b96446ec50b"
+  },
+  {
+    "id": "baustelle-dokumente",
+    "format": "tablet",
+    "file": "bilder/032-baustelle-dokumente-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "febff595570de54b24cda5bc0751057452134e2e700a6839bb594a7bf4b1f84c"
+  },
+  {
+    "id": "baustelle-dokumente",
+    "format": "mobil",
+    "file": "bilder/032-baustelle-dokumente-mobil.jpg",
+    "width": 390,
+    "height": 913,
+    "sha256": "3158ff4f6226831d7d99a3a3dbfb2c4735f3b2cc0bac2cdf96cd95de3d05b471"
+  },
+  {
+    "id": "dokument-upload",
+    "format": "desktop",
+    "file": "bilder/033-dokument-upload-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "bdd4320caf0d936004d7213f42e7954db25699cbe4605ba1a9aba66dfea01b9d"
+  },
+  {
+    "id": "dokument-upload",
+    "format": "tablet",
+    "file": "bilder/033-dokument-upload-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "3dbe08163daef4f95e46d749a16724b1d130066e84a3e70e990e374468b68d74"
+  },
+  {
+    "id": "dokument-upload",
+    "format": "mobil",
+    "file": "bilder/033-dokument-upload-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "7ee824b9d584e1b0d75a813cf06186afb2793a5f8e4e78ffb2806e5e58e10201"
+  },
+  {
+    "id": "dokument-vorschau",
+    "format": "desktop",
+    "file": "bilder/034-dokument-vorschau-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "1486f3dcb7e7a77958132d76324f8c75850c2ca146a64925e2e0d2b754939f39"
+  },
+  {
+    "id": "dokument-vorschau",
+    "format": "tablet",
+    "file": "bilder/034-dokument-vorschau-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "89fadfa7994538a203b8ff2e20af73e9251160c2e4deb200bfcd3e9daf16a36d"
+  },
+  {
+    "id": "dokument-vorschau",
+    "format": "mobil",
+    "file": "bilder/034-dokument-vorschau-mobil.jpg",
+    "width": 390,
+    "height": 899,
+    "sha256": "da274da989ee6d42a8a2fa3ac3168df47bd7a5239895eb42d49c6bda67f172cd"
+  },
+  {
+    "id": "baustelle-scheine",
+    "format": "desktop",
+    "file": "bilder/035-baustelle-scheine-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "47424ce962b445fff2840a44c2a3062db5d3bfd2c77dd7cae3af7cfdd46dc960"
+  },
+  {
+    "id": "baustelle-scheine",
+    "format": "tablet",
+    "file": "bilder/035-baustelle-scheine-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "2c481becd7f554f73cab473bd7997ec2b364cd40ee5310ed4499401f1f66a1c3"
+  },
+  {
+    "id": "baustelle-scheine",
+    "format": "mobil",
+    "file": "bilder/035-baustelle-scheine-mobil.jpg",
+    "width": 390,
+    "height": 948,
+    "sha256": "fefd1a7be328352e26371b76a23cacf2fca89a21c9d7cad9c62b7f6e1c1017f6"
+  },
+  {
+    "id": "meine-baustellen",
+    "format": "desktop",
+    "file": "bilder/036-meine-baustellen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "242acd11bc0222aff3c7da81b6eed9bcbed6c92b9658b83a0b2715830233c4a7"
+  },
+  {
+    "id": "meine-baustellen",
+    "format": "tablet",
+    "file": "bilder/036-meine-baustellen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "aef75f310cb3e1c01e8112d07a9bf16e2e36d177c355a8f131abc08d5f2d951b"
+  },
+  {
+    "id": "meine-baustellen",
+    "format": "mobil",
+    "file": "bilder/036-meine-baustellen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "8c219c33338e130f8bab5c757a12aadd4c2d0ae63201d3dd698db82a70e497a5"
+  },
+  {
+    "id": "meine-plaene",
+    "format": "desktop",
+    "file": "bilder/037-meine-plaene-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "7ecf640dfa9f645689baee793ea83c517217b0dcd4b01de4a145dfe2f3b6677e"
+  },
+  {
+    "id": "meine-plaene",
+    "format": "tablet",
+    "file": "bilder/037-meine-plaene-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "bb077c0766df705c21a81e788c68171e8437ba083c08a3ec4651a23d297b4ff9"
+  },
+  {
+    "id": "meine-plaene",
+    "format": "mobil",
+    "file": "bilder/037-meine-plaene-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "0cfe21f02487142f9581accf0169c96b07a8e19c017b3130d6ec334573e9cc2d"
+  },
+  {
+    "id": "termine",
+    "format": "desktop",
+    "file": "bilder/038-termine-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "3b8a368e2a92d68bd6fa6fbabc0ed3fd07684b9ece1337f572f3e74a196a1286"
+  },
+  {
+    "id": "termine",
+    "format": "tablet",
+    "file": "bilder/038-termine-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "e8e7857a4ae6a6b9b9d5171486ee13942ee6fdad37be66457d512837bd13c258"
+  },
+  {
+    "id": "termine",
+    "format": "mobil",
+    "file": "bilder/038-termine-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "6ea2d2a03d98e25492fcfcbfac6a085b902fbf145916657f4219d7c6431486c9"
+  },
+  {
+    "id": "termin",
+    "format": "desktop",
+    "file": "bilder/039-termin-desktop.jpg",
+    "width": 1440,
+    "height": 1213,
+    "sha256": "7196c55c579b94626c2de0c7b7561cccfd029752cb33dd02e95eb816ae0dc218"
+  },
+  {
+    "id": "termin",
+    "format": "tablet",
+    "file": "bilder/039-termin-tablet.jpg",
+    "width": 834,
+    "height": 1201,
+    "sha256": "122b0301eceac0dbf6c51639aa68554a04ddb30693fd7fce81a039bf84683940"
+  },
+  {
+    "id": "termin",
+    "format": "mobil",
+    "file": "bilder/039-termin-mobil.jpg",
+    "width": 390,
+    "height": 1365,
+    "sha256": "3640bd43f9569957a6bd321f652b167dae3f38c2fa553fedeaa69f349e3c8f23"
+  },
+  {
+    "id": "planung-woche",
+    "format": "desktop",
+    "file": "bilder/040-planung-woche-desktop.jpg",
+    "width": 1440,
+    "height": 1220,
+    "sha256": "99dff1d8b5c87ba9c731bc1ac4b7959a520d669dd41741dd4e08dc29e707a051"
+  },
+  {
+    "id": "planung-woche",
+    "format": "tablet",
+    "file": "bilder/040-planung-woche-tablet.jpg",
+    "width": 834,
+    "height": 1259,
+    "sha256": "4124a5ece3cabb1b68bf36e5bbb111877e63b4c13e250d9b4bbbe08b02e4fdc2"
+  },
+  {
+    "id": "planung-woche",
+    "format": "mobil",
+    "file": "bilder/040-planung-woche-mobil.jpg",
+    "width": 390,
+    "height": 2141,
+    "sha256": "18248ea2830f21d83bcd1491bfb2a72763c9de3dfe6a2f30d893b7704193cc37"
+  },
+  {
+    "id": "planung-monat",
+    "format": "desktop",
+    "file": "bilder/041-planung-monat-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "5ec996b574cbd7c24d1cfb2c0f92b1c99b81a981b984f22094f80f808e8b6b4f"
+  },
+  {
+    "id": "planung-monat",
+    "format": "tablet",
+    "file": "bilder/041-planung-monat-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "a0a4afde445a6b6bde4c0fd8ef95d6c6958b1eb280a0d9c2b7c286711b637862"
+  },
+  {
+    "id": "planung-monat",
+    "format": "mobil",
+    "file": "bilder/041-planung-monat-mobil.jpg",
+    "width": 390,
+    "height": 969,
+    "sha256": "dff68507eb334bfba61702d82969b8299d52ee0de82488b2a21bcc6b854d1f9e"
+  },
+  {
+    "id": "planung-tag",
+    "format": "desktop",
+    "file": "bilder/042-planung-tag-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "a1fc1ab6c9c021fba387142930ef569aa8492d09a647fdd1244891f4a22abdae"
+  },
+  {
+    "id": "planung-tag",
+    "format": "tablet",
+    "file": "bilder/042-planung-tag-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "762c2f0ae9eee10ad5d3216beaa558ec6270bc0c54ee4474b5949df77abe74a4"
+  },
+  {
+    "id": "planung-tag",
+    "format": "mobil",
+    "file": "bilder/042-planung-tag-mobil.jpg",
+    "width": 390,
+    "height": 909,
+    "sha256": "64f6837f71fed5e3b2718a3b8552eb24a986ea5ca4a04f7e3b325271cca9b037"
+  },
+  {
+    "id": "planung-einsatz",
+    "format": "desktop",
+    "file": "bilder/043-planung-einsatz-desktop.jpg",
+    "width": 1440,
+    "height": 1255,
+    "sha256": "54c6bf72fc2ba5c0ce8731b41ee9bac6337893126b8cea6cfe168ae24be33259"
+  },
+  {
+    "id": "planung-einsatz",
+    "format": "tablet",
+    "file": "bilder/043-planung-einsatz-tablet.jpg",
+    "width": 834,
+    "height": 1244,
+    "sha256": "db4726204615e006c24bd0cc758fc141d4cc2435756edbe17da05a07653f845c"
+  },
+  {
+    "id": "planung-einsatz",
+    "format": "mobil",
+    "file": "bilder/043-planung-einsatz-mobil.jpg",
+    "width": 390,
+    "height": 1412,
+    "sha256": "cf6d3df22a0f93fe87bae954a4b182889fe4470754b26473afa1816377ef8944"
+  },
+  {
+    "id": "ruestliste-planen",
+    "format": "desktop",
+    "file": "bilder/044-ruestliste-planen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "c7e680f9ed50aca1c53682ed966442c3c0fa9c0f05c7120f621a893941f5fd5b"
+  },
+  {
+    "id": "ruestliste-planen",
+    "format": "tablet",
+    "file": "bilder/044-ruestliste-planen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "4d0fe6a912bbc24e01f03c9311eb7a8290d2b8383a4277c63958dee95e1cde1d"
+  },
+  {
+    "id": "ruestliste-planen",
+    "format": "mobil",
+    "file": "bilder/044-ruestliste-planen-mobil.jpg",
+    "width": 390,
+    "height": 1021,
+    "sha256": "c656e49799c079a9a00e2db73f480b4a45664615f07e5786251afb88675ff40c"
+  },
+  {
+    "id": "ruestliste-abhaken",
+    "format": "desktop",
+    "file": "bilder/045-ruestliste-abhaken-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "350ff4928b5ca0eb6ef7976055a5e2314cffd2b8e68fbf107e547b5fd7ae8f44"
+  },
+  {
+    "id": "ruestliste-abhaken",
+    "format": "tablet",
+    "file": "bilder/045-ruestliste-abhaken-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "3236c990d48304da107d49fcdec4a77407dc2e790f0edb63fb9049a7d5e4664d"
+  },
+  {
+    "id": "ruestliste-abhaken",
+    "format": "mobil",
+    "file": "bilder/045-ruestliste-abhaken-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "59b5939fb104521a25001de1dad7e63e135b225b39542473c9e6fb38d675a063"
+  },
+  {
+    "id": "mein-plan",
+    "format": "desktop",
+    "file": "bilder/046-mein-plan-desktop.jpg",
+    "width": 1440,
+    "height": 1122,
+    "sha256": "d6069e55accf17d9d56ba539a2fe603faed1d62eeec984cd1f275497fed735b7"
+  },
+  {
+    "id": "mein-plan",
+    "format": "tablet",
+    "file": "bilder/046-mein-plan-tablet.jpg",
+    "width": 834,
+    "height": 1543,
+    "sha256": "18aa3589d63809c69e0fb0d228022f9708c1ccd68f39aed94c081b9749d70578"
+  },
+  {
+    "id": "mein-plan",
+    "format": "mobil",
+    "file": "bilder/046-mein-plan-mobil.jpg",
+    "width": 390,
+    "height": 1692,
+    "sha256": "f9b1af112435b3bf4ff0a7cecaee164d4326c2240cbe215d13f386c2549279d3"
+  },
+  {
+    "id": "team-woche",
+    "format": "desktop",
+    "file": "bilder/047-team-woche-desktop.jpg",
+    "width": 1440,
+    "height": 1057,
+    "sha256": "a48ef06e4164d32e792ee0031e3c8e55d35fc0ba922ecbac0b3cf24e965cbf57"
+  },
+  {
+    "id": "team-woche",
+    "format": "tablet",
+    "file": "bilder/047-team-woche-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "26da9f9474b85a1c778364ceb5116efbdd61fe329bdba77659dae991da76179e"
+  },
+  {
+    "id": "team-woche",
+    "format": "mobil",
+    "file": "bilder/047-team-woche-mobil.jpg",
+    "width": 390,
+    "height": 4479,
+    "sha256": "c5f50fe6270f914410ee6c27c70610083d7cb1976a4bfbd11d97c4e4bb0225d7"
+  },
+  {
+    "id": "kalender-abo",
+    "format": "desktop",
+    "file": "bilder/048-kalender-abo-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "069fba4059a1e7161c141f506a0598b4f1e3caf18d9c15d0286d100afaa00576"
+  },
+  {
+    "id": "kalender-abo",
+    "format": "tablet",
+    "file": "bilder/048-kalender-abo-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "bbaa90b52c8532a176bb1309afaf3f07d2ef5e6b1c9f0ae32169b22262b7cb35"
+  },
+  {
+    "id": "kalender-abo",
+    "format": "mobil",
+    "file": "bilder/048-kalender-abo-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "0e9cb6047499c9e0744518c969b0190039b9e801b8e9580d41bf18ff907064ec"
+  },
+  {
+    "id": "scheine",
+    "format": "desktop",
+    "file": "bilder/049-scheine-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "167b04550bf168e05431f3aa93a6ff5a958d3b443c0f201f516af94777f3bc30"
+  },
+  {
+    "id": "scheine",
+    "format": "tablet",
+    "file": "bilder/049-scheine-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "600734d491ee451bd7d67639dbaecac34ab5979ec4813883b22599c3d1d2cab8"
+  },
+  {
+    "id": "scheine",
+    "format": "mobil",
+    "file": "bilder/049-scheine-mobil.jpg",
+    "width": 390,
+    "height": 883,
+    "sha256": "2b669baee2da128c8f833713e764f8451836fbf10faafa00eb370ab335297942"
+  },
+  {
+    "id": "schein-detail",
+    "format": "desktop",
+    "file": "bilder/050-schein-detail-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "377764e74c21eb1799582077c28992f18770d346747fc83a45efbbfb306d72f9"
+  },
+  {
+    "id": "schein-detail",
+    "format": "tablet",
+    "file": "bilder/050-schein-detail-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "b85006354669872483ffea1d8701e5bb290556e8312eb16489058160067461d0"
+  },
+  {
+    "id": "schein-detail",
+    "format": "mobil",
+    "file": "bilder/050-schein-detail-mobil.jpg",
+    "width": 390,
+    "height": 1163,
+    "sha256": "70ec1a7b9a518d4af1e6ab0cc2da052e8d794454c6e89965db4d7bc2491a3266"
+  },
+  {
+    "id": "schein-zeiten",
+    "format": "desktop",
+    "file": "bilder/051-schein-zeiten-desktop.jpg",
+    "width": 1440,
+    "height": 2629,
+    "sha256": "9eb710ef73564cd2285ba79263ed8f5c9065742777320c88281959b8f6ca060a"
+  },
+  {
+    "id": "schein-zeiten",
+    "format": "tablet",
+    "file": "bilder/051-schein-zeiten-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "638606639a19bd041c8c812105b684eb5a5e4437d937984d83dae2a9d4329a71"
+  },
+  {
+    "id": "schein-zeiten",
+    "format": "mobil",
+    "file": "bilder/051-schein-zeiten-mobil.jpg",
+    "width": 390,
+    "height": 1155,
+    "sha256": "8a7018343c6d6858bb5fc5110edcb18e0ff0a40e40ad8b02180bf40310051b37"
+  },
+  {
+    "id": "schein-material",
+    "format": "desktop",
+    "file": "bilder/052-schein-material-desktop.jpg",
+    "width": 1440,
+    "height": 2833,
+    "sha256": "407e01763102707b7b1a98cfcda53c5254cf18450b228e9bcdbc3acae112be84"
+  },
+  {
+    "id": "schein-material",
+    "format": "tablet",
+    "file": "bilder/052-schein-material-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "bbd34c15c55342e4db2f2a583acdc356178d1f18e8f134027c30e3f4807eaff6"
+  },
+  {
+    "id": "schein-material",
+    "format": "mobil",
+    "file": "bilder/052-schein-material-mobil.jpg",
+    "width": 390,
+    "height": 974,
+    "sha256": "c7eba7cbf97589660032fd64aa15302f869ad6dfbdf17f80b423e7c12bd933a3"
+  },
+  {
+    "id": "schein-fotos",
+    "format": "desktop",
+    "file": "bilder/053-schein-fotos-desktop.jpg",
+    "width": 1440,
+    "height": 2631,
+    "sha256": "469288442d5fa2f195a5a51baf74ee1f6d3e424ff2114a777e428f72baf9dee4"
+  },
+  {
+    "id": "schein-fotos",
+    "format": "tablet",
+    "file": "bilder/053-schein-fotos-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "5af53e1096f345c7e4b30ab0d0d488eb2a2348bf4bdb886a220f5968965e6ab6"
+  },
+  {
+    "id": "schein-fotos",
+    "format": "mobil",
+    "file": "bilder/053-schein-fotos-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "0c4de0066554aaa808ea8bacfeb1807286dab4ddf73f2323312e4f4bc63a66a6"
+  },
+  {
+    "id": "schein-unterschrift",
+    "format": "desktop",
+    "file": "bilder/054-schein-unterschrift-desktop.jpg",
+    "width": 1440,
+    "height": 2631,
+    "sha256": "30308de797422cf7faaac1a8a4818e668089a68cf0a0c6b919eab861bcbfcca5"
+  },
+  {
+    "id": "schein-unterschrift",
+    "format": "tablet",
+    "file": "bilder/054-schein-unterschrift-tablet.jpg",
+    "width": 834,
+    "height": 1234,
+    "sha256": "3881ae984be8ccb8fbbf86b920013c20760c2fd9934f51c3c48b73365ab8c3bb"
+  },
+  {
+    "id": "schein-unterschrift",
+    "format": "mobil",
+    "file": "bilder/054-schein-unterschrift-mobil.jpg",
+    "width": 390,
+    "height": 1334,
+    "sha256": "2eb6ae1ffc2a26290de61ccd36b9b37d3262d233b6be2f064ba946e7b3b2d0ae"
+  },
+  {
+    "id": "schein-verwerfen",
+    "format": "desktop",
+    "file": "bilder/055-schein-verwerfen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "b7639f353c2fdcc9a6dcfed24285002cfda430159f37d51110935877dbc4e56c"
+  },
+  {
+    "id": "schein-verwerfen",
+    "format": "tablet",
+    "file": "bilder/055-schein-verwerfen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "757051118c05119db1789d8b8992e1e6e243abbf7850d43387bb8c40c70cc9dc"
+  },
+  {
+    "id": "schein-verwerfen",
+    "format": "mobil",
+    "file": "bilder/055-schein-verwerfen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "1b20b77cee052836f93eb41baaf3cad18984a648e2851cf485575c1632f1dbeb"
+  },
+  {
+    "id": "schein-zeit-nachtragen",
+    "format": "desktop",
+    "file": "bilder/056-schein-zeit-nachtragen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "965dc084321a412646c2bbb4207d257348df996ed97e26b51a624c21646c8392"
+  },
+  {
+    "id": "schein-zeit-nachtragen",
+    "format": "tablet",
+    "file": "bilder/056-schein-zeit-nachtragen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "8a10435412b7bed6b2d7b9635b48c668e8cdb3b38cb726143ef57ed728a1c0cc"
+  },
+  {
+    "id": "schein-zeit-nachtragen",
+    "format": "mobil",
+    "file": "bilder/056-schein-zeit-nachtragen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "9e2e647c7663141e5fbb9ac6ee31c762c7b54a474b0b424ffd91fbcf8803a506"
+  },
+  {
+    "id": "material",
+    "format": "desktop",
+    "file": "bilder/057-material-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "973067a2625a047e39d9ac29571caaa3b7a00f7376436d0bb83e3911e34ae015"
+  },
+  {
+    "id": "material",
+    "format": "tablet",
+    "file": "bilder/057-material-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "a62f463dfb175c36c43a9c479b589e70c307229362336c1622b860efdabdf961"
+  },
+  {
+    "id": "material",
+    "format": "mobil",
+    "file": "bilder/057-material-mobil.jpg",
+    "width": 390,
+    "height": 1283,
+    "sha256": "139754aaed3ade4e675204043fbab2b1154fe5c073179ad4d6bf6893d7b74c12"
+  },
+  {
+    "id": "material-warenkorb",
+    "format": "desktop",
+    "file": "bilder/058-material-warenkorb-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "2fe51f346ba4900f41aa1d940140d5e1356f82e39ed401a42071cbf27fdb6e2b"
+  },
+  {
+    "id": "material-warenkorb",
+    "format": "tablet",
+    "file": "bilder/058-material-warenkorb-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "2bb5110b81173db9b15772b2320cc245d30b1a3e90fef459cbe3ce7ca114059a"
+  },
+  {
+    "id": "material-warenkorb",
+    "format": "mobil",
+    "file": "bilder/058-material-warenkorb-mobil.jpg",
+    "width": 390,
+    "height": 993,
+    "sha256": "8ed18ed597cf8c207568d2bdd17ea4c470703e56a27aa08e567602f842403ec7"
+  },
+  {
+    "id": "material-meine",
+    "format": "desktop",
+    "file": "bilder/059-material-meine-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "c4f41829ed1dd2c26fe109d1a785c22f1ecd8ce5f2c90b68fc21c0ab58b1fff1"
+  },
+  {
+    "id": "material-meine",
+    "format": "tablet",
+    "file": "bilder/059-material-meine-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "8a763cc87b238c845bf2aac807e645ba96f931e6108e18325de3ab1880a6ccee"
+  },
+  {
+    "id": "material-meine",
+    "format": "mobil",
+    "file": "bilder/059-material-meine-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "32995263f9bcdefdbd150f4296f232742b8ad2d8464af2ea716b6c052288867e"
+  },
+  {
+    "id": "anforderung-abholen",
+    "format": "desktop",
+    "file": "bilder/060-anforderung-abholen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "eb240ec9cf0935989b36a9fc66cb62ed13f93ab0da8cb8b949a0753c11bbadaf"
+  },
+  {
+    "id": "anforderung-abholen",
+    "format": "tablet",
+    "file": "bilder/060-anforderung-abholen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "7d8909b9ec3964542d6c34cc842cc9e09a8d5bfbafaa1eba6e222efc76a09e65"
+  },
+  {
+    "id": "anforderung-abholen",
+    "format": "mobil",
+    "file": "bilder/060-anforderung-abholen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "48a0e4acf0d751b0b641bd5d174a50b48c785d6acbfeb07dc2e0abe0dacdbd2f"
+  },
+  {
+    "id": "material-retoure",
+    "format": "desktop",
+    "file": "bilder/061-material-retoure-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "0c757c276d1ef8791ce50d2c8ebca2e6e74ab8e84125b06e211a47e9838b0b3e"
+  },
+  {
+    "id": "material-retoure",
+    "format": "tablet",
+    "file": "bilder/061-material-retoure-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "e902676a5a3cfce7acee2a746be39be5f436c812b68739317240a54860acf099"
+  },
+  {
+    "id": "material-retoure",
+    "format": "mobil",
+    "file": "bilder/061-material-retoure-mobil.jpg",
+    "width": 390,
+    "height": 880,
+    "sha256": "30c724e1a61971e702fc6d256ad157ab3e2a63b667494264e9b5d70992c1fa88"
+  },
+  {
+    "id": "anforderungen",
+    "format": "desktop",
+    "file": "bilder/062-anforderungen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "0dba3d1afa858a666a8e0f18b5579c6fe5fd8505c60f28793490ff2838995fee"
+  },
+  {
+    "id": "anforderungen",
+    "format": "tablet",
+    "file": "bilder/062-anforderungen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "a06022eab7548e99815c48c30376eebdb0fdb0c5794d33ffc2fbf6ccbf8b4c3d"
+  },
+  {
+    "id": "anforderungen",
+    "format": "mobil",
+    "file": "bilder/062-anforderungen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "5763ce7fcc109529f3f9f11fdc130ff1b50bb11229889bd2ff463b8af3e5d477"
+  },
+  {
+    "id": "anforderung-detail",
+    "format": "desktop",
+    "file": "bilder/063-anforderung-detail-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "6a9b77d238acbce21d595381f0473fa4a145ed0670cc42ecf485300f52ae00be"
+  },
+  {
+    "id": "anforderung-detail",
+    "format": "tablet",
+    "file": "bilder/063-anforderung-detail-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "3fc8d07ac344e321ce6d180dd345fc8584766d58fa06e3fe8bae5ece951cc34d"
+  },
+  {
+    "id": "anforderung-detail",
+    "format": "mobil",
+    "file": "bilder/063-anforderung-detail-mobil.jpg",
+    "width": 390,
+    "height": 989,
+    "sha256": "a1e2dfb5eda684c078f3bcbc60552615df3788cd76c34bf3d8349157758f2f03"
+  },
+  {
+    "id": "einkauf",
+    "format": "desktop",
+    "file": "bilder/064-einkauf-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "ad3e3a735d1740edefc6085f770d9e321b61c52724c7f4bd2191e5a31ae29a74"
+  },
+  {
+    "id": "einkauf",
+    "format": "tablet",
+    "file": "bilder/064-einkauf-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "1edcd9c6ad7b93f0e5f4ca53bb0919c7e6120f33f0d5dd05de3669be1ff86b9a"
+  },
+  {
+    "id": "einkauf",
+    "format": "mobil",
+    "file": "bilder/064-einkauf-mobil.jpg",
+    "width": 390,
+    "height": 883,
+    "sha256": "68d5862581a45fe97c312cce9755113c4717c8de2eb4ff53488b14212a64258f"
+  },
+  {
+    "id": "einkauf-bestellen",
+    "format": "desktop",
+    "file": "bilder/065-einkauf-bestellen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "5b97a3b6f64bf404b34fe37ff9cc9aad747f9e0b578bf39987909e5c0a09336c"
+  },
+  {
+    "id": "einkauf-bestellen",
+    "format": "tablet",
+    "file": "bilder/065-einkauf-bestellen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "6949c6c5b416d4219b42044b937a31f22f22bdc4fe9a388ffb2812e6745f60ce"
+  },
+  {
+    "id": "einkauf-bestellen",
+    "format": "mobil",
+    "file": "bilder/065-einkauf-bestellen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "fc15c9e7cbf26ee9213ac417482e43e79af672e4d704583175c7572043f3e0d3"
+  },
+  {
+    "id": "einkauf-hinzufuegen",
+    "format": "desktop",
+    "file": "bilder/066-einkauf-hinzufuegen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "5db767ae2e69037600a737dbe8cc72471ff13e75736c69a1e6d76aef0451d662"
+  },
+  {
+    "id": "einkauf-hinzufuegen",
+    "format": "tablet",
+    "file": "bilder/066-einkauf-hinzufuegen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "9ffbe031ab01a9fa1f9802b78dc59db54bea89261824bcaba9d23dc660ecfcd8"
+  },
+  {
+    "id": "einkauf-hinzufuegen",
+    "format": "mobil",
+    "file": "bilder/066-einkauf-hinzufuegen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "27c4988e5520a6d55244f29784ab31382e368458b74f95b6ebee5301f335628f"
+  },
+  {
+    "id": "grosshaendler",
+    "format": "desktop",
+    "file": "bilder/067-grosshaendler-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "3c1b3509cee5a894a32f751c23c1b3c79843080f8168ba8e2c1cda7f5267ba40"
+  },
+  {
+    "id": "grosshaendler",
+    "format": "tablet",
+    "file": "bilder/067-grosshaendler-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "82fce5ec80c389812e332991d67d88b3cc4633b2854543deabd64eb0adacd3bc"
+  },
+  {
+    "id": "grosshaendler",
+    "format": "mobil",
+    "file": "bilder/067-grosshaendler-mobil.jpg",
+    "width": 390,
+    "height": 866,
+    "sha256": "c0d07ed7ca0dda9bf5be0deeb2a4796acbd8768cdf7a2b2bb90c69e8049b6768"
+  },
+  {
+    "id": "retouren",
+    "format": "desktop",
+    "file": "bilder/068-retouren-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "3794aed4fd9f86bea8aa58a3cc9de270df315810fd44703315e749a435a40211"
+  },
+  {
+    "id": "retouren",
+    "format": "tablet",
+    "file": "bilder/068-retouren-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "c06de75e686286163c338662ba63881a68cc8b5b966d9722e4b1e48bc2a64a6e"
+  },
+  {
+    "id": "retouren",
+    "format": "mobil",
+    "file": "bilder/068-retouren-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "25037afae902d01c04db4ed849c6c69ce41422a7e59c14d187dbec257c89f783"
+  },
+  {
+    "id": "retoure-pruefen",
+    "format": "desktop",
+    "file": "bilder/069-retoure-pruefen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "c1c649d70b8b1d75c92db88b7dbfbff008437a559b12feee03f5b5fc09b458fa"
+  },
+  {
+    "id": "retoure-pruefen",
+    "format": "tablet",
+    "file": "bilder/069-retoure-pruefen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "d1d06cb779aab5a8fd6bae2c2ed3a9d11c4b8bbc169a5ced634d00fd9129e410"
+  },
+  {
+    "id": "retoure-pruefen",
+    "format": "mobil",
+    "file": "bilder/069-retoure-pruefen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "7c7e015b70ba17ed2fa6370ff5861ca08c545ad6f69cf001727235f63edce902"
+  },
+  {
+    "id": "anforderungen-archiv",
+    "format": "desktop",
+    "file": "bilder/070-anforderungen-archiv-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "8bdc180d046191bfb6e8e43858ea1c7c2a7358e1e18c76d1f4bf3ad36b3c64c5"
+  },
+  {
+    "id": "anforderungen-archiv",
+    "format": "tablet",
+    "file": "bilder/070-anforderungen-archiv-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "41d89472530c6b687ada0178d8421bb71bd17bb2b21c0f6a9a78eda4dbb60545"
+  },
+  {
+    "id": "anforderungen-archiv",
+    "format": "mobil",
+    "file": "bilder/070-anforderungen-archiv-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "9f312a0cd674a206c1527b9b3ebc4df8cd07b17169cec370d15c301058c61329"
+  },
+  {
+    "id": "lager",
+    "format": "desktop",
+    "file": "bilder/071-lager-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "4a0c39018a5dd94123c136dad870932c8502ea99affe43e724ea3583f8ac4adc"
+  },
+  {
+    "id": "lager",
+    "format": "tablet",
+    "file": "bilder/071-lager-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "6b741008c611d661d8a1fe600f0ddafa41416e4c4dcb6ee78ee13539a7aa5ab6"
+  },
+  {
+    "id": "lager",
+    "format": "mobil",
+    "file": "bilder/071-lager-mobil.jpg",
+    "width": 390,
+    "height": 1122,
+    "sha256": "dc55f12e775f56b742451b2d7295a2ab7d9ee7b1396cc95b26e93bdf19b0c9ae"
+  },
+  {
+    "id": "lager-artikel",
+    "format": "desktop",
+    "file": "bilder/072-lager-artikel-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "ae9627ece8c4d00911d8b2aefbda31133a0bff4e6c3f8975cf05fecf16b402f0"
+  },
+  {
+    "id": "lager-artikel",
+    "format": "tablet",
+    "file": "bilder/072-lager-artikel-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "0641838cde3da51c6cc1fee05883e35ea0cf094b040d266f2ca943c5f6a0753a"
+  },
+  {
+    "id": "lager-artikel",
+    "format": "mobil",
+    "file": "bilder/072-lager-artikel-mobil.jpg",
+    "width": 390,
+    "height": 1043,
+    "sha256": "a16dc2459e146351f2ea93ab2f0719ea470e845cd6525bb2e0a2550d72b9b1d3"
+  },
+  {
+    "id": "wareneingang",
+    "format": "desktop",
+    "file": "bilder/073-wareneingang-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "12d6aff93442d7ab001cfe3b3a2dbe8fb97c77ca83a9769464894ded8ebcd971"
+  },
+  {
+    "id": "wareneingang",
+    "format": "tablet",
+    "file": "bilder/073-wareneingang-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "e931988de6c5202619c18c4cae98e884a181ffb91a4d6c3060811ecce79aea26"
+  },
+  {
+    "id": "wareneingang",
+    "format": "mobil",
+    "file": "bilder/073-wareneingang-mobil.jpg",
+    "width": 390,
+    "height": 851,
+    "sha256": "2b686833d7fb6c4022603c5997379a7557ca31cd14c6aeb16a26e889de3ed4f6"
+  },
+  {
+    "id": "inventur",
+    "format": "desktop",
+    "file": "bilder/074-inventur-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "926830c0d25c58de8c26b8b69564a833027ff76a69f42df0af3b10362e125690"
+  },
+  {
+    "id": "inventur",
+    "format": "tablet",
+    "file": "bilder/074-inventur-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "639b505183d0231bacbde96377f504a2c8df4169daa4ead21f54adcb82430bc5"
+  },
+  {
+    "id": "inventur",
+    "format": "mobil",
+    "file": "bilder/074-inventur-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "ec1ae9c88ced360449e11b0df29c5ceb65096f5c4256809ba97a4b0d6670472c"
+  },
+  {
+    "id": "lager-bewegungen",
+    "format": "desktop",
+    "file": "bilder/075-lager-bewegungen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "16a3ea9d53e91683096f877c8d88638a09865098edea68f4816f532e0bac5569"
+  },
+  {
+    "id": "lager-bewegungen",
+    "format": "tablet",
+    "file": "bilder/075-lager-bewegungen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "819982aa163764d328026f41bf020104414c083f3747e812470b142922b28bb5"
+  },
+  {
+    "id": "lager-bewegungen",
+    "format": "mobil",
+    "file": "bilder/075-lager-bewegungen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "57172470cb71a8e39e1b092f2812fb45f4cc10ceedbff031caeb861141626ba2"
+  },
+  {
+    "id": "katalog",
+    "format": "desktop",
+    "file": "bilder/076-katalog-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "d0bded6c1f6fd94f2ddf00e045ed028c892f1524304d9f72218fbff3b7a1d7e3"
+  },
+  {
+    "id": "katalog",
+    "format": "tablet",
+    "file": "bilder/076-katalog-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "07a18d7fece10608f8d635bc105d0e207a4eea05eaee4e8bbc87ae5825e3ebce"
+  },
+  {
+    "id": "katalog",
+    "format": "mobil",
+    "file": "bilder/076-katalog-mobil.jpg",
+    "width": 390,
+    "height": 883,
+    "sha256": "588101920305fe7ed74ac35bb6ea946003799c14f1ffca5a99e92272da353333"
+  },
+  {
+    "id": "katalog-artikel",
+    "format": "desktop",
+    "file": "bilder/077-katalog-artikel-desktop.jpg",
+    "width": 1440,
+    "height": 1247,
+    "sha256": "79ed7c7b08cc0535bbb701fade35754146a5af145bc04660d85a560c9906c68c"
+  },
+  {
+    "id": "katalog-artikel",
+    "format": "tablet",
+    "file": "bilder/077-katalog-artikel-tablet.jpg",
+    "width": 834,
+    "height": 1234,
+    "sha256": "a5d48976620704ea2049d113055c9ce40931f467a3eab0d765230d5e48f9c27b"
+  },
+  {
+    "id": "katalog-artikel",
+    "format": "mobil",
+    "file": "bilder/077-katalog-artikel-mobil.jpg",
+    "width": 390,
+    "height": 1395,
+    "sha256": "12d874c8d12ad60847afa706e8341e22a8453e7316334c31441277b43e220e62"
+  },
+  {
+    "id": "katalog-import",
+    "format": "desktop",
+    "file": "bilder/078-katalog-import-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "7952a67a1784957f35a913cabc37723c44d2f307a528dbd19d5c24e532463af9"
+  },
+  {
+    "id": "katalog-import",
+    "format": "tablet",
+    "file": "bilder/078-katalog-import-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "e412f1f1c4ce43f422cb197b6c948b7d60e7391c858c48ef49075fc8db90fd0e"
+  },
+  {
+    "id": "katalog-import",
+    "format": "mobil",
+    "file": "bilder/078-katalog-import-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "865ced3d0ea043d74e5c65bf3da3f26453510ab3cb69562a7496b73e4dcb4bd8"
+  },
+  {
+    "id": "katalog-import-vorschau",
+    "format": "desktop",
+    "file": "bilder/079-katalog-import-vorschau-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "06bf1bc27fbfe64e295baa32dc66fb0dd02cc056eb0f1e9444b4fe3f28ef711d"
+  },
+  {
+    "id": "katalog-import-vorschau",
+    "format": "tablet",
+    "file": "bilder/079-katalog-import-vorschau-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "5fd2696709020d2a81573509af16571b0aa79cab4731a2e741e47a481d6c0eba"
+  },
+  {
+    "id": "katalog-import-vorschau",
+    "format": "mobil",
+    "file": "bilder/079-katalog-import-vorschau-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "c2f6bef6e46eba0a7e6d2fa3834f8a0dcb2f35a2d86cf4510ed22fab6af4d143"
+  },
+  {
+    "id": "katalog-import-ergebnis",
+    "format": "desktop",
+    "file": "bilder/080-katalog-import-ergebnis-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "40dae8f50881fde6e9407a2c3a57f9184467bb42b055a7be5a480dcd8cbec61c"
+  },
+  {
+    "id": "katalog-import-ergebnis",
+    "format": "tablet",
+    "file": "bilder/080-katalog-import-ergebnis-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "637ea16f3d360181cc95727907f1135605fb4a240fa0fca87eb253eed22adf8e"
+  },
+  {
+    "id": "katalog-import-ergebnis",
+    "format": "mobil",
+    "file": "bilder/080-katalog-import-ergebnis-mobil.jpg",
+    "width": 390,
+    "height": 892,
+    "sha256": "f5197a9f0cb56718d425c5bcbff6158c96b9779d35bcb2d6e28c378989b527b4"
+  },
+  {
+    "id": "rechnungen",
+    "format": "desktop",
+    "file": "bilder/081-rechnungen-desktop.jpg",
+    "width": 1440,
+    "height": 1041,
+    "sha256": "e73bda4b74a83c4c009fcd3ac3a56d989a2c39c0a48558521c428ca166eb5718"
+  },
+  {
+    "id": "rechnungen",
+    "format": "tablet",
+    "file": "bilder/081-rechnungen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "0f5abba4af439d54a6fa80549b423610b7967a12d365cc64074a98349a743ad8"
+  },
+  {
+    "id": "rechnungen",
+    "format": "mobil",
+    "file": "bilder/081-rechnungen-mobil.jpg",
+    "width": 390,
+    "height": 1252,
+    "sha256": "2124eace20843458c28e875a72d7f38040ffcc166c8047c08b40c92d050ed8b4"
+  },
+  {
+    "id": "rechnung-detail",
+    "format": "desktop",
+    "file": "bilder/082-rechnung-detail-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "4188582ff9b5a4d70c047a0dae02e2afbb7904ea95ecb835781166b2ccedb4b7"
+  },
+  {
+    "id": "rechnung-detail",
+    "format": "tablet",
+    "file": "bilder/082-rechnung-detail-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "7ba8fe0806f85a164c879cca36b527b99180b120a6e26b6191bf4c99d55975b4"
+  },
+  {
+    "id": "rechnung-detail",
+    "format": "mobil",
+    "file": "bilder/082-rechnung-detail-mobil.jpg",
+    "width": 390,
+    "height": 1450,
+    "sha256": "c634a7c1b8b504b0d7ac990b6643cab2792641e316fac3bfb78fb1e94aef335a"
+  },
+  {
+    "id": "rechnungen-lesen",
+    "format": "desktop",
+    "file": "bilder/083-rechnungen-lesen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "c53ce24c69cdbc8bddcece81a442f612809ed2d2994b7ac61ce3bb082117084d"
+  },
+  {
+    "id": "rechnungen-lesen",
+    "format": "tablet",
+    "file": "bilder/083-rechnungen-lesen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "e3da36b2d3e715eefad980d060913b4d5bdaa81be4be00533bd6b87dcaec5468"
+  },
+  {
+    "id": "rechnungen-lesen",
+    "format": "mobil",
+    "file": "bilder/083-rechnungen-lesen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "5e0894a303c25e3ea2b001cb990c907fc99a7fd3fd85855cad608514d1f2918b"
+  },
+  {
+    "id": "rechnung-neu",
+    "format": "desktop",
+    "file": "bilder/084-rechnung-neu-desktop.jpg",
+    "width": 1440,
+    "height": 1614,
+    "sha256": "936f78c1a6883d9ef02b5703832b1760543466218c0189c54b4258f436a8b59f"
+  },
+  {
+    "id": "rechnung-neu",
+    "format": "tablet",
+    "file": "bilder/084-rechnung-neu-tablet.jpg",
+    "width": 834,
+    "height": 1601,
+    "sha256": "99e63a19e11b2e63b70e8c007e6b5701854bb77e798323f9a64ac4980af079b0"
+  },
+  {
+    "id": "rechnung-neu",
+    "format": "mobil",
+    "file": "bilder/084-rechnung-neu-mobil.jpg",
+    "width": 390,
+    "height": 1925,
+    "sha256": "b5a943fd69a5a3da04ca61b2ece0ecd6a1cf228b7d687fa1f531bcc4a502ed8f"
+  },
+  {
+    "id": "rechnung-vorschau",
+    "format": "desktop",
+    "file": "bilder/085-rechnung-vorschau-desktop.jpg",
+    "width": 1440,
+    "height": 1811,
+    "sha256": "a5583cc1969aa3963a34a6b72f1b561586daf1c93c4daddef57da5de6dc73186"
+  },
+  {
+    "id": "rechnung-vorschau",
+    "format": "tablet",
+    "file": "bilder/085-rechnung-vorschau-tablet.jpg",
+    "width": 834,
+    "height": 1798,
+    "sha256": "58a7a837f00bb80ad7fb8e36d91a36154d3b09714534b6e056188e38d9150bcd"
+  },
+  {
+    "id": "rechnung-vorschau",
+    "format": "mobil",
+    "file": "bilder/085-rechnung-vorschau-mobil.jpg",
+    "width": 390,
+    "height": 2343,
+    "sha256": "934a5e441b95154d8fe8f5845705d57c27c92f86d5ed3fd852a03201382a475e"
+  },
+  {
+    "id": "rechnung-anzahlung",
+    "format": "desktop",
+    "file": "bilder/086-rechnung-anzahlung-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "56208ed190d8759ef022988673f894f9249d29451cdca42d0b16c5ff37776a8d"
+  },
+  {
+    "id": "rechnung-anzahlung",
+    "format": "tablet",
+    "file": "bilder/086-rechnung-anzahlung-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "7e3631df9789009b2f7c9a656756746b1ebf8694dcce2084dd1b8f16281eb9b5"
+  },
+  {
+    "id": "rechnung-anzahlung",
+    "format": "mobil",
+    "file": "bilder/086-rechnung-anzahlung-mobil.jpg",
+    "width": 390,
+    "height": 1257,
+    "sha256": "55105ad1bcde69827e1faed815856a8bb26bafab4bd78462f5631ee139886133"
+  },
+  {
+    "id": "rechnung-teil",
+    "format": "desktop",
+    "file": "bilder/087-rechnung-teil-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "4f21bcc326d4d8ce61ccc9cdef8444a39f07b1ebff51601da73c67d0f66b2997"
+  },
+  {
+    "id": "rechnung-teil",
+    "format": "tablet",
+    "file": "bilder/087-rechnung-teil-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "bafc88bb760729ca8417129aca49abb984c092a490085d6e4b3b06ba193119fe"
+  },
+  {
+    "id": "rechnung-teil",
+    "format": "mobil",
+    "file": "bilder/087-rechnung-teil-mobil.jpg",
+    "width": 390,
+    "height": 1222,
+    "sha256": "8c2b629fc54295a4f187dfb7dbaa066edd115157ba82eb2dfa753439143a62e9"
+  },
+  {
+    "id": "rechnung-schluss",
+    "format": "desktop",
+    "file": "bilder/088-rechnung-schluss-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "f49110fbe892e620faa655d6f8b9bbe0e331af470a3809c158bb49f70b203644"
+  },
+  {
+    "id": "rechnung-schluss",
+    "format": "tablet",
+    "file": "bilder/088-rechnung-schluss-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "561c8ff048340e8f744c4878248e3497e01d59ff2f65193872b784fa8f1d2ed9"
+  },
+  {
+    "id": "rechnung-schluss",
+    "format": "mobil",
+    "file": "bilder/088-rechnung-schluss-mobil.jpg",
+    "width": 390,
+    "height": 1257,
+    "sha256": "442534e016814957aa75738c12e8171d98c56d34b0abe02edc0ca770eb7a8ab7"
+  },
+  {
+    "id": "zahlung",
+    "format": "desktop",
+    "file": "bilder/089-zahlung-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "379dd535a61099e11e60641f63c11cfd2d1bf6b5d382df815ac0a796fb1963aa"
+  },
+  {
+    "id": "zahlung",
+    "format": "tablet",
+    "file": "bilder/089-zahlung-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "16003ca016b9b0da01dc0e24509985ac55884702ea3e587c9512a0d0af19eb8f"
+  },
+  {
+    "id": "zahlung",
+    "format": "mobil",
+    "file": "bilder/089-zahlung-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "302e311a7433eedf798c8a23a727644107ca51ffe03526739a2b586bf6471247"
+  },
+  {
+    "id": "mahnungen",
+    "format": "desktop",
+    "file": "bilder/090-mahnungen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "823bca8ee3c000072a144cc01e1e471382d6ab37385938151f37c4b3ab2cbba6"
+  },
+  {
+    "id": "mahnungen",
+    "format": "tablet",
+    "file": "bilder/090-mahnungen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "8575b1f72b5ff35196b5fe791dddbb8adae00c1da883567badeaab2d675155c3"
+  },
+  {
+    "id": "mahnungen",
+    "format": "mobil",
+    "file": "bilder/090-mahnungen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "5d3cc136e94e8bccfdaac16a4ad5647300481d03ad8ece8a2590831c40ebffa3"
+  },
+  {
+    "id": "mahnen",
+    "format": "desktop",
+    "file": "bilder/091-mahnen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "dc7e7f9ef0eced9237e81b9c662238e283a92da464fbf1db145c2e6509689930"
+  },
+  {
+    "id": "mahnen",
+    "format": "tablet",
+    "file": "bilder/091-mahnen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "2eebef87ccec740b8fa726bbf56228092913fecc2289b8644555cc82da48f0d6"
+  },
+  {
+    "id": "mahnen",
+    "format": "mobil",
+    "file": "bilder/091-mahnen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "a802fc8225e7c2dc7307ad543554ab515372c6fcb514cb0a16d8fd7a81405d90"
+  },
+  {
+    "id": "mahnlauf",
+    "format": "desktop",
+    "file": "bilder/092-mahnlauf-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "032ba5d497d60a5562afac309223041ad5ed524c3ac7f84eb6a90c31d265a639"
+  },
+  {
+    "id": "mahnlauf",
+    "format": "tablet",
+    "file": "bilder/092-mahnlauf-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "e2710d6e5fa3bbe62c720653f986f3d957311b4884d594b7aa39d7488b2be100"
+  },
+  {
+    "id": "mahnlauf",
+    "format": "mobil",
+    "file": "bilder/092-mahnlauf-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "48d8816c06dfd4d54b8721bf17c28912da329d8e613535e344c36e2c6c078d69"
+  },
+  {
+    "id": "rechnung-export",
+    "format": "desktop",
+    "file": "bilder/093-rechnung-export-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "e0a15144948922dd436810b871f2133882bb7c9aeb5c885ba9524c5396e9899b"
+  },
+  {
+    "id": "rechnung-export",
+    "format": "tablet",
+    "file": "bilder/093-rechnung-export-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "24219675090261ad410b03f74ea1047daadc2b2c25ba3fe69f9f7253b95f139a"
+  },
+  {
+    "id": "rechnung-export",
+    "format": "mobil",
+    "file": "bilder/093-rechnung-export-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "9112ae6c46dea9063955d92bc4daa0ff39e57325f38c711c437f6ff2816da6e1"
+  },
+  {
+    "id": "bankgarantie",
+    "format": "desktop",
+    "file": "bilder/094-bankgarantie-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "02622de1d55bbe51fda1a8bec1af1e03f1dd836ee7afb25967fc7b5a7e8d63d3"
+  },
+  {
+    "id": "bankgarantie",
+    "format": "tablet",
+    "file": "bilder/094-bankgarantie-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "4538398902e49df927602e0c093279c55055dcc5690098ca6e27683410e4f00d"
+  },
+  {
+    "id": "bankgarantie",
+    "format": "mobil",
+    "file": "bilder/094-bankgarantie-mobil.jpg",
+    "width": 390,
+    "height": 934,
+    "sha256": "f4cc2bcc7eb915792d5b2e0df180b79b7b8b8ac74606ea7ab0f1bcf86951ef03"
+  },
+  {
+    "id": "rechnung-storno",
+    "format": "desktop",
+    "file": "bilder/095-rechnung-storno-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "6df1fc275e31ed7174564b99cc3ecb7c3231c3cc098c063c600a2c1175de9fd3"
+  },
+  {
+    "id": "rechnung-storno",
+    "format": "tablet",
+    "file": "bilder/095-rechnung-storno-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "c0ec61a87fa1d859df4b2a40bad8570740fc18a260c2d2193ae0b9f8dd5c32fa"
+  },
+  {
+    "id": "rechnung-storno",
+    "format": "mobil",
+    "file": "bilder/095-rechnung-storno-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "51fc03a77027ab618db2c75548381f74971904541d4eb2e6c6feb394d2401e2f"
+  },
+  {
+    "id": "rechnung-stornobeleg",
+    "format": "desktop",
+    "file": "bilder/096-rechnung-stornobeleg-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "fdfd9afcbfb717d4751af69b0aa6e70f00eea35a2508f633b6e0b25677c5569c"
+  },
+  {
+    "id": "rechnung-stornobeleg",
+    "format": "tablet",
+    "file": "bilder/096-rechnung-stornobeleg-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "142525b7eef5f6f866f76dde548ddcb485d5205b277d8371d5cb55cbb2a68740"
+  },
+  {
+    "id": "rechnung-stornobeleg",
+    "format": "mobil",
+    "file": "bilder/096-rechnung-stornobeleg-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "faa987ba6f62e8f7f2adebd92a2a47685808c8084d6e5e50a259f70fc3f65203"
+  },
+  {
+    "id": "rechnung-storno-aufheben",
+    "format": "desktop",
+    "file": "bilder/097-rechnung-storno-aufheben-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "5c13474634a123fc4f40ed4e879f18647667f2e092bc3a6c32c1fe6e44eeb702"
+  },
+  {
+    "id": "rechnung-storno-aufheben",
+    "format": "tablet",
+    "file": "bilder/097-rechnung-storno-aufheben-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "4e5a22e1b6d3a4c1139b876addfde6a70f5a05f9e0b9c0de91ffaac6ef60844d"
+  },
+  {
+    "id": "rechnung-storno-aufheben",
+    "format": "mobil",
+    "file": "bilder/097-rechnung-storno-aufheben-mobil.jpg",
+    "width": 390,
+    "height": 862,
+    "sha256": "66b7bb71db242ec577af6c84eec9c8443a40ec51d321b00922c8a4b0ac3aef55"
+  },
+  {
+    "id": "zeit",
+    "format": "desktop",
+    "file": "bilder/098-zeit-desktop.jpg",
+    "width": 1440,
+    "height": 1907,
+    "sha256": "410359fb00c975040ccc2e35d894ff4d927b80271f0c2ec372aaba75d8670d82"
+  },
+  {
+    "id": "zeit",
+    "format": "tablet",
+    "file": "bilder/098-zeit-tablet.jpg",
+    "width": 834,
+    "height": 1890,
+    "sha256": "98b77656a9d86325647c37a8336a8e7a7ae82565d5ba8aca365c48226b406599"
+  },
+  {
+    "id": "zeit",
+    "format": "mobil",
+    "file": "bilder/098-zeit-mobil.jpg",
+    "width": 390,
+    "height": 2254,
+    "sha256": "9ed390a4c21e54127a3a4d542edeb9ac09640eab8eb84a59de2e4354a04fec70"
+  },
+  {
+    "id": "zeit-buero",
+    "format": "desktop",
+    "file": "bilder/099-zeit-buero-desktop.jpg",
+    "width": 1440,
+    "height": 1151,
+    "sha256": "e15d25a56ca480c42d7093be9afb7ef35bc1e7d53fb4d5c15a57a307d8e91418"
+  },
+  {
+    "id": "zeit-buero",
+    "format": "tablet",
+    "file": "bilder/099-zeit-buero-tablet.jpg",
+    "width": 834,
+    "height": 1134,
+    "sha256": "23196bcab2efcfa7203847a4263cc5b8528059574969c93ebd9f2c5a393feab6"
+  },
+  {
+    "id": "zeit-buero",
+    "format": "mobil",
+    "file": "bilder/099-zeit-buero-mobil.jpg",
+    "width": 390,
+    "height": 1498,
+    "sha256": "82854523a46baca02e358a9646841dc27499d716b7064ce158919e8e24bbe08f"
+  },
+  {
+    "id": "zeit-erweitert",
+    "format": "desktop",
+    "file": "bilder/100-zeit-erweitert-desktop.jpg",
+    "width": 1440,
+    "height": 1885,
+    "sha256": "646a86e459b74608f793d0f85651a7d231fc62271020f456e0685dbdde9b86f6"
+  },
+  {
+    "id": "zeit-erweitert",
+    "format": "tablet",
+    "file": "bilder/100-zeit-erweitert-tablet.jpg",
+    "width": 834,
+    "height": 1868,
+    "sha256": "c4b089314e0e25961cad2acddf75d5b70fbd2e0d38643792aa2a64beb3828518"
+  },
+  {
+    "id": "zeit-erweitert",
+    "format": "mobil",
+    "file": "bilder/100-zeit-erweitert-mobil.jpg",
+    "width": 390,
+    "height": 2016,
+    "sha256": "7eb0832afdc93cf603e8551fc7de1c270bd8ee7c30d813cc3bf6b2aa530705ca"
+  },
+  {
+    "id": "zeit-eintraege",
+    "format": "desktop",
+    "file": "bilder/101-zeit-eintraege-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "118654482a06d82e8af3cc3959c5d73804e838cc25884a0904f661ec21433c08"
+  },
+  {
+    "id": "zeit-eintraege",
+    "format": "tablet",
+    "file": "bilder/101-zeit-eintraege-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "73382bcadf7eb52e08e0cf2baf27d0c8f6b3b09227bacb1f3fade0478d65c85f"
+  },
+  {
+    "id": "zeit-eintraege",
+    "format": "mobil",
+    "file": "bilder/101-zeit-eintraege-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "0ee9fbcf37762af30fa91487aac7b57fcba52469bc2c55452e9371e249e5f09d"
+  },
+  {
+    "id": "zeit-bearbeiten",
+    "format": "desktop",
+    "file": "bilder/102-zeit-bearbeiten-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "5e4db46e613060ae69759287f05605a80c1eba40a514208b38c547a9808df785"
+  },
+  {
+    "id": "zeit-bearbeiten",
+    "format": "tablet",
+    "file": "bilder/102-zeit-bearbeiten-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "2e614edf8094b7bf50c80fd88f0c5efb463f228fd83e51aaa54b893fe2464ef2"
+  },
+  {
+    "id": "zeit-bearbeiten",
+    "format": "mobil",
+    "file": "bilder/102-zeit-bearbeiten-mobil.jpg",
+    "width": 390,
+    "height": 928,
+    "sha256": "cec578c450709d21f7af23ca914de84122e5e1495fc5b8be341869028e3f264e"
+  },
+  {
+    "id": "zeit-aufteilen",
+    "format": "desktop",
+    "file": "bilder/103-zeit-aufteilen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "e0d8b44a968136830d4c97f717319e77bb0257cc75293e0c6d1af379e8262a17"
+  },
+  {
+    "id": "zeit-aufteilen",
+    "format": "tablet",
+    "file": "bilder/103-zeit-aufteilen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "3e7f5da2b589a2d6f1890765466369d7b7840dc9bd3fffa2f357865f5b6649f0"
+  },
+  {
+    "id": "zeit-aufteilen",
+    "format": "mobil",
+    "file": "bilder/103-zeit-aufteilen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "3233b7bd76e94729665320a0647cd1dffb74e7d4db085983175f341513e47e12"
+  },
+  {
+    "id": "zeit-gespeichert",
+    "format": "desktop",
+    "file": "bilder/104-zeit-gespeichert-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "05775873262ea3bf2d131064c4ff526c141e2cedf7008187bcdea11cb90e6e61"
+  },
+  {
+    "id": "zeit-gespeichert",
+    "format": "tablet",
+    "file": "bilder/104-zeit-gespeichert-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "baf8656e7d52fc9b020ef5895ff49364e935f000ef15a6845b43120ea617b0fb"
+  },
+  {
+    "id": "zeit-gespeichert",
+    "format": "mobil",
+    "file": "bilder/104-zeit-gespeichert-mobil.jpg",
+    "width": 390,
+    "height": 861,
+    "sha256": "ddce1d4ef4f1977efda1e639f52cf837be885917bc90d60e833b11027d3bcaae"
+  },
+  {
+    "id": "urlaub",
+    "format": "desktop",
+    "file": "bilder/105-urlaub-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "53f478d6500b7169e48f8c7c81df79f175ecbe3855c80d6886085bea2af66f88"
+  },
+  {
+    "id": "urlaub",
+    "format": "tablet",
+    "file": "bilder/105-urlaub-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "e148e427a54d859b9dee5f09415e3c417151a088adb9105dad773aee0462e078"
+  },
+  {
+    "id": "urlaub",
+    "format": "mobil",
+    "file": "bilder/105-urlaub-mobil.jpg",
+    "width": 390,
+    "height": 920,
+    "sha256": "22fd05a2bfe1c79040625c20ec9701dcb8030c9983df50407cb931d01fdbb976"
+  },
+  {
+    "id": "urlaub-antrag",
+    "format": "desktop",
+    "file": "bilder/106-urlaub-antrag-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "73719cfae1f9a9faf1988d3ec93e13b267d9518f8b49dc0fdbea75203043fc5e"
+  },
+  {
+    "id": "urlaub-antrag",
+    "format": "tablet",
+    "file": "bilder/106-urlaub-antrag-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "f3bdd6a871fad56c042862d06e88d86c3ae4fd1c39d0e89c5b7eb3a462000ce1"
+  },
+  {
+    "id": "urlaub-antrag",
+    "format": "mobil",
+    "file": "bilder/106-urlaub-antrag-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "6e0112011c60ef1b0d9ce125b8a34d6585af17801808b96b9f77bf1cadf0f9c6"
+  },
+  {
+    "id": "za-antrag",
+    "format": "desktop",
+    "file": "bilder/107-za-antrag-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "0d858d869e82e07d58060f8b1774b95713a531960f1f15abfcb14cb2eace55ec"
+  },
+  {
+    "id": "za-antrag",
+    "format": "tablet",
+    "file": "bilder/107-za-antrag-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "c7d25afe47233d8d27c807a1cb698e8e0d95b089aec3c4de909b7737b7a0d029"
+  },
+  {
+    "id": "za-antrag",
+    "format": "mobil",
+    "file": "bilder/107-za-antrag-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "db49b17a24bc3138a37c20690f8aeeb28af102c8377393fca0692be4d57cafbb"
+  },
+  {
+    "id": "sonderurlaub",
+    "format": "desktop",
+    "file": "bilder/108-sonderurlaub-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "c7ca8d2dc98c6c2b19d9b61645ada2169888e9e17b51a11e7b9c985eae500578"
+  },
+  {
+    "id": "sonderurlaub",
+    "format": "tablet",
+    "file": "bilder/108-sonderurlaub-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "fcdcbd52310881c77d2fdf5ff14f6cabb7e5472abc3efdbe6d77125d6a522eb3"
+  },
+  {
+    "id": "sonderurlaub",
+    "format": "mobil",
+    "file": "bilder/108-sonderurlaub-mobil.jpg",
+    "width": 390,
+    "height": 1062,
+    "sha256": "fc47412e439f529719af986cc23ab7ec6391c8127759d0ec3376d834f61fa2f0"
+  },
+  {
+    "id": "pflegefreistellung",
+    "format": "desktop",
+    "file": "bilder/109-pflegefreistellung-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "43ed833a93cd608a8531e0bc60517bb4721f128e6c0e3094d21cf3418bd235ca"
+  },
+  {
+    "id": "pflegefreistellung",
+    "format": "tablet",
+    "file": "bilder/109-pflegefreistellung-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "426e9def13707321c21216625529d0506a7a1d3c379ee648765dd5bff667cc06"
+  },
+  {
+    "id": "pflegefreistellung",
+    "format": "mobil",
+    "file": "bilder/109-pflegefreistellung-mobil.jpg",
+    "width": 390,
+    "height": 1020,
+    "sha256": "d286385f57e02c8b9a1e251acfa96e646fbe5e6693f30cb9ff94cf9dc1a4bbf8"
+  },
+  {
+    "id": "unbezahlter-urlaub",
+    "format": "desktop",
+    "file": "bilder/110-unbezahlter-urlaub-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "48955ce9de7d1a3b74139ca762ff396169299971ce9e499e96255a1b13326512"
+  },
+  {
+    "id": "unbezahlter-urlaub",
+    "format": "tablet",
+    "file": "bilder/110-unbezahlter-urlaub-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "e9650cf6eb77f699dd6371edbc60ee63bd08b90195ab41a87cf408c2ebad3cf4"
+  },
+  {
+    "id": "unbezahlter-urlaub",
+    "format": "mobil",
+    "file": "bilder/110-unbezahlter-urlaub-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "892d5a8aec4423fcca8138e49b77a1aaa53b8eee96d9565938ba7c1a82702d15"
+  },
+  {
+    "id": "urlaub-detail",
+    "format": "desktop",
+    "file": "bilder/111-urlaub-detail-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "9e61d9ce671a0cb2eb2a28cd94384bc44ccfff43443469e86b8c9e3490b58a11"
+  },
+  {
+    "id": "urlaub-detail",
+    "format": "tablet",
+    "file": "bilder/111-urlaub-detail-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "49ef312916352a157c8adcd8f8b064bb447449daad3a88589ff10502d845d76f"
+  },
+  {
+    "id": "urlaub-detail",
+    "format": "mobil",
+    "file": "bilder/111-urlaub-detail-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "8777ecabd851b999ead5b50aec81e65c7db29031c046b9359cbf1df2eb7480ce"
+  },
+  {
+    "id": "urlaub-entscheiden",
+    "format": "desktop",
+    "file": "bilder/112-urlaub-entscheiden-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "dffe72783a52474bb17f5ace009b05ed75cc1e4553f01d591e03fe6336984ee3"
+  },
+  {
+    "id": "urlaub-entscheiden",
+    "format": "tablet",
+    "file": "bilder/112-urlaub-entscheiden-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "5a364e9312651b1b0b4297c2f18b608ae9e0c785f4aea3c163d298fac20515a3"
+  },
+  {
+    "id": "urlaub-entscheiden",
+    "format": "mobil",
+    "file": "bilder/112-urlaub-entscheiden-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "f93c85e208a869e4ae1050138393666fea3b051326c46547e8faa45ee6fa7787"
+  },
+  {
+    "id": "urlaub-entscheidung",
+    "format": "desktop",
+    "file": "bilder/113-urlaub-entscheidung-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "11efb687cbc4efa8b72bdc94114934342184edba8474c2d9402189facdfefffe"
+  },
+  {
+    "id": "urlaub-entscheidung",
+    "format": "tablet",
+    "file": "bilder/113-urlaub-entscheidung-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "0dd6f073840178c4ddbb05c28c9bf9b44342cb5c8f5136fd276593965e7ffb20"
+  },
+  {
+    "id": "urlaub-entscheidung",
+    "format": "mobil",
+    "file": "bilder/113-urlaub-entscheidung-mobil.jpg",
+    "width": 390,
+    "height": 868,
+    "sha256": "8229b9e0640ea35eba7ef6cf5c2719550f6d5675b87446bb3c17902ae308f3db"
+  },
+  {
+    "id": "krank-melden",
+    "format": "desktop",
+    "file": "bilder/114-krank-melden-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "02ae944f150c9e58aad1f8a5dc7fbfc18ce523e7d415e1bd30bb3abf70b65e5e"
+  },
+  {
+    "id": "krank-melden",
+    "format": "tablet",
+    "file": "bilder/114-krank-melden-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "e790ac61928d4d7462f510a7a04204d45a1fd038d24f9c8a3ccb9c5e285fc39f"
+  },
+  {
+    "id": "krank-melden",
+    "format": "mobil",
+    "file": "bilder/114-krank-melden-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "6ab8b5d04fb56d30516a4d90b873e2c4eaa3135f408bcc361439132eea727828"
+  },
+  {
+    "id": "krankenstaende",
+    "format": "desktop",
+    "file": "bilder/115-krankenstaende-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "f95eba3334dcadd06d8056b39599b2664e2831cff5f9f126e678e53922ba63ea"
+  },
+  {
+    "id": "krankenstaende",
+    "format": "tablet",
+    "file": "bilder/115-krankenstaende-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "bab95931ea76f6141b2e23ecfaf5a1058a15d358f78a4e0d344c2e1d3e5dd607"
+  },
+  {
+    "id": "krankenstaende",
+    "format": "mobil",
+    "file": "bilder/115-krankenstaende-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "8eaa7f75cd09e7c0cb5908af8cb063d83099c414070c4609f550662ed52372be"
+  },
+  {
+    "id": "krank-buero",
+    "format": "desktop",
+    "file": "bilder/116-krank-buero-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "6af80519da750db74a363a1845b9772bee0b0e78417bc8f42766baf0ac678571"
+  },
+  {
+    "id": "krank-buero",
+    "format": "tablet",
+    "file": "bilder/116-krank-buero-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "24e7363c8209d63195adf2dff60dededb6ea6444edfc62dbbfee03abe594114e"
+  },
+  {
+    "id": "krank-buero",
+    "format": "mobil",
+    "file": "bilder/116-krank-buero-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "264013a0c350857fd07a5e483558c236bad763f0fface28597f4e9a2198d5c25"
+  },
+  {
+    "id": "betriebsurlaub",
+    "format": "desktop",
+    "file": "bilder/117-betriebsurlaub-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "9b4db15d60a45772678cc04c54ddeb1cfd4f23723287a10f27f536c50f2a823e"
+  },
+  {
+    "id": "betriebsurlaub",
+    "format": "tablet",
+    "file": "bilder/117-betriebsurlaub-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "89be34720c1065b2d40c00ce0b6984d6e7807d5d891293dfc3ea451a3ddb8222"
+  },
+  {
+    "id": "betriebsurlaub",
+    "format": "mobil",
+    "file": "bilder/117-betriebsurlaub-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "e30ee4db6f92667d923237e0c8ef79e3ff78875e99b2446ad23c54636eb5f81f"
+  },
+  {
+    "id": "betriebsurlaub-neu",
+    "format": "desktop",
+    "file": "bilder/118-betriebsurlaub-neu-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "031e3dedfe86e40735d21a9ae0c0688009ccacf3b20c81d2fe1b168f9bc50029"
+  },
+  {
+    "id": "betriebsurlaub-neu",
+    "format": "tablet",
+    "file": "bilder/118-betriebsurlaub-neu-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "dea345991c056e03659a71a035e84843dd90d313fc5823a75b17cbe6f14932de"
+  },
+  {
+    "id": "betriebsurlaub-neu",
+    "format": "mobil",
+    "file": "bilder/118-betriebsurlaub-neu-mobil.jpg",
+    "width": 390,
+    "height": 939,
+    "sha256": "aca76778b2e85bf63ff1e2aed379dc5a7f482db2148e5c5c362b5af3489d539b"
+  },
+  {
+    "id": "mitarbeiter-monat",
+    "format": "desktop",
+    "file": "bilder/119-mitarbeiter-monat-desktop.jpg",
+    "width": 1440,
+    "height": 1146,
+    "sha256": "46ed1e08e484d434dd38abb6244bd38a1799ec1073f9eecccf82fa178c10a84f"
+  },
+  {
+    "id": "mitarbeiter-monat",
+    "format": "tablet",
+    "file": "bilder/119-mitarbeiter-monat-tablet.jpg",
+    "width": 834,
+    "height": 1198,
+    "sha256": "9d6f67b8b93bc83f4c169b70b291aadb86572bf81bc2f0bcccb9ca4c5dc78a21"
+  },
+  {
+    "id": "mitarbeiter-monat",
+    "format": "mobil",
+    "file": "bilder/119-mitarbeiter-monat-mobil.jpg",
+    "width": 390,
+    "height": 1504,
+    "sha256": "6c9fc8221953a7654b3224f34141d67c529af10c0ff5b1adb74477c83260fdc4"
+  },
+  {
+    "id": "mitarbeiter-woche",
+    "format": "desktop",
+    "file": "bilder/120-mitarbeiter-woche-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "accb4ed0576ee3d4e42b50f755d9a9a987a7cd1cf97403381bc31935f63fc633"
+  },
+  {
+    "id": "mitarbeiter-woche",
+    "format": "tablet",
+    "file": "bilder/120-mitarbeiter-woche-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "c109cb73601c090abff1b449665541eceb46e0e5126b7e03d204a5cfea53ccbc"
+  },
+  {
+    "id": "mitarbeiter-woche",
+    "format": "mobil",
+    "file": "bilder/120-mitarbeiter-woche-mobil.jpg",
+    "width": 390,
+    "height": 1749,
+    "sha256": "05063efa1ec96dc9b08d17631c33f4d9f8ad7b053b9d0c7e55aaffddc707f4f2"
+  },
+  {
+    "id": "mitarbeiter-person",
+    "format": "desktop",
+    "file": "bilder/121-mitarbeiter-person-desktop.jpg",
+    "width": 1440,
+    "height": 1669,
+    "sha256": "f136001535be1f0af8c5d3a1c9a9bbed7d95227858c42193937a1ee0cb4e1e07"
+  },
+  {
+    "id": "mitarbeiter-person",
+    "format": "tablet",
+    "file": "bilder/121-mitarbeiter-person-tablet.jpg",
+    "width": 834,
+    "height": 1660,
+    "sha256": "a169f976e1e04ad6f08371408f0019e47c96d18b0ee23e9f31c677491eeb6c7f"
+  },
+  {
+    "id": "mitarbeiter-person",
+    "format": "mobil",
+    "file": "bilder/121-mitarbeiter-person-mobil.jpg",
+    "width": 390,
+    "height": 1882,
+    "sha256": "8cb80183dadba631db1270e6d9c50c901974937506d0b7369752802f446bc47d"
+  },
+  {
+    "id": "stunden-export",
+    "format": "desktop",
+    "file": "bilder/122-stunden-export-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "8592cc05fcb5708cf326920665ff1ce9ff8044300d6351dd13aa13a4989280d1"
+  },
+  {
+    "id": "stunden-export",
+    "format": "tablet",
+    "file": "bilder/122-stunden-export-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "281ecca1eae54edf757460e3316921fb42db46e348e72f06e88bbd6263fdc39a"
+  },
+  {
+    "id": "stunden-export",
+    "format": "mobil",
+    "file": "bilder/122-stunden-export-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "f4387ab82e8a4a21d4f23004067ba75293bf28f11a776a104dd3e4505deb39e6"
+  },
+  {
+    "id": "stunden-baustellen",
+    "format": "desktop",
+    "file": "bilder/123-stunden-baustellen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "a575cec2bdc213aca1e57013aab99176d077d61c98c7416c24bd3f6de5824533"
+  },
+  {
+    "id": "stunden-baustellen",
+    "format": "tablet",
+    "file": "bilder/123-stunden-baustellen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "1a5760697bf0848af057b309893cf5f5472da4582bf34892fee690b64a18682e"
+  },
+  {
+    "id": "stunden-baustellen",
+    "format": "mobil",
+    "file": "bilder/123-stunden-baustellen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "46c886f337f4f3e460c67099101279bbdaca95a38f7c3af4205ca9062e795101"
+  },
+  {
+    "id": "nachkalkulation",
+    "format": "desktop",
+    "file": "bilder/124-nachkalkulation-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "2ea81b9cacfe8ce17cd2ddfb0986ec958f6c3de12d8e005855ffe43708002bda"
+  },
+  {
+    "id": "nachkalkulation",
+    "format": "tablet",
+    "file": "bilder/124-nachkalkulation-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "a45829406e2408701b4717f87e600a95581e9e0d85961b9093181c55e06e0033"
+  },
+  {
+    "id": "nachkalkulation",
+    "format": "mobil",
+    "file": "bilder/124-nachkalkulation-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "84909b54c24135764195f8be6a91da7a0180e634d48941adc3cfce6da65fd51a"
+  },
+  {
+    "id": "nachkalkulation-detail",
+    "format": "desktop",
+    "file": "bilder/125-nachkalkulation-detail-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "0a522d4c05570d7aaa3c04fd62e2e5e0d1d90c14291bd145af5a9d5b9d7ed5f7"
+  },
+  {
+    "id": "nachkalkulation-detail",
+    "format": "tablet",
+    "file": "bilder/125-nachkalkulation-detail-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "47640e958383978db949461115b4899a156476533fb4e9c2dc5337da4cb25bf5"
+  },
+  {
+    "id": "nachkalkulation-detail",
+    "format": "mobil",
+    "file": "bilder/125-nachkalkulation-detail-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "6487d9ef4af857890625d2a542bbf6d8ae5efe5b6c8cd868e8d15b0a1bafc467"
+  },
+  {
+    "id": "benutzer",
+    "format": "desktop",
+    "file": "bilder/126-benutzer-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "2f80c247ceef54738c02a2ee51fc10b1936512620fe86a5fef68b0238e0ab114"
+  },
+  {
+    "id": "benutzer",
+    "format": "tablet",
+    "file": "bilder/126-benutzer-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "a140bb13da6bd9cc25a72b4cb757b187c5f3331b343cc8d16eb8bbfcbca8146e"
+  },
+  {
+    "id": "benutzer",
+    "format": "mobil",
+    "file": "bilder/126-benutzer-mobil.jpg",
+    "width": 390,
+    "height": 883,
+    "sha256": "03dc1cb19f9d12e0595ba058ae9285a0b8c5873d213487f99f8be7ddcf119ad6"
+  },
+  {
+    "id": "benutzer-neu",
+    "format": "desktop",
+    "file": "bilder/127-benutzer-neu-desktop.jpg",
+    "width": 1440,
+    "height": 2027,
+    "sha256": "beda654c0b74e8dad969ac31388ee891a74e7c38113ee5b95220b77f3ea34d56"
+  },
+  {
+    "id": "benutzer-neu",
+    "format": "tablet",
+    "file": "bilder/127-benutzer-neu-tablet.jpg",
+    "width": 834,
+    "height": 2014,
+    "sha256": "65eaa0f9dc857b03563ed9b9f21bca2c712159a1a01f79e2c92971c965407047"
+  },
+  {
+    "id": "benutzer-neu",
+    "format": "mobil",
+    "file": "bilder/127-benutzer-neu-mobil.jpg",
+    "width": 390,
+    "height": 2129,
+    "sha256": "4501201a09dfb77584b6b4f56f02946aa8e7e56d1e074af9185ca20b4adefb37"
+  },
+  {
+    "id": "benutzerakte",
+    "format": "desktop",
+    "file": "bilder/128-benutzerakte-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "8066448c901cddfffe35d3676857d2b896930325ca6370fac27f2a8dd9c30127"
+  },
+  {
+    "id": "benutzerakte",
+    "format": "tablet",
+    "file": "bilder/128-benutzerakte-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "633f64d13cc148d153bb8de6ed0384833a2a412c1c63daaaf5baa1a42f3c61e3"
+  },
+  {
+    "id": "benutzerakte",
+    "format": "mobil",
+    "file": "bilder/128-benutzerakte-mobil.jpg",
+    "width": 390,
+    "height": 1724,
+    "sha256": "2d706358c6a98d031a3ec08e983dcc0646733362151a5041cf18f115ef6f81e6"
+  },
+  {
+    "id": "benutzer-daten",
+    "format": "desktop",
+    "file": "bilder/129-benutzer-daten-desktop.jpg",
+    "width": 1440,
+    "height": 2096,
+    "sha256": "a03084aace248e7d8d4a9a6271784680f010a6207d1dbe19803d97713528a46a"
+  },
+  {
+    "id": "benutzer-daten",
+    "format": "tablet",
+    "file": "bilder/129-benutzer-daten-tablet.jpg",
+    "width": 834,
+    "height": 2083,
+    "sha256": "ca039f8e54c2b1ea3ff1ff9998faa0c86b8684d7f69e7bf30fb2444b7d4755c1"
+  },
+  {
+    "id": "benutzer-daten",
+    "format": "mobil",
+    "file": "bilder/129-benutzer-daten-mobil.jpg",
+    "width": 390,
+    "height": 2198,
+    "sha256": "2673186146442935bd8703af5c939b52bdf620b7026a53e7423dd8b33c15d4b1"
+  },
+  {
+    "id": "benutzer-zugang",
+    "format": "desktop",
+    "file": "bilder/130-benutzer-zugang-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "e7b29feb57bd756209adf239c43d85b1c2219ee16927d4e32fec5c796f669ef9"
+  },
+  {
+    "id": "benutzer-zugang",
+    "format": "tablet",
+    "file": "bilder/130-benutzer-zugang-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "4db52881009645b6e6ce78b88b64396165f5671d79490f1c2e2ae1b84edb308b"
+  },
+  {
+    "id": "benutzer-zugang",
+    "format": "mobil",
+    "file": "bilder/130-benutzer-zugang-mobil.jpg",
+    "width": 390,
+    "height": 1178,
+    "sha256": "5c68906a60a31c99d826d26b5d06c8bdf6e747d808e2fa10b9323709f9ed3f3f"
+  },
+  {
+    "id": "startpasswort",
+    "format": "desktop",
+    "file": "bilder/131-startpasswort-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "30f008398fd922277731c9f95c516db91d4b58520fdb608f80a4f62c91b60596"
+  },
+  {
+    "id": "startpasswort",
+    "format": "tablet",
+    "file": "bilder/131-startpasswort-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "ffc0e73e43adeeb6bbad64a494b985fcf0279e1d151d89876177692c1f98cd72"
+  },
+  {
+    "id": "startpasswort",
+    "format": "mobil",
+    "file": "bilder/131-startpasswort-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "473068e1caff14eb464bfc2da6bb6ada989cc625b0ea36040750ec90e08c4fd4"
+  },
+  {
+    "id": "konto-umstellen",
+    "format": "desktop",
+    "file": "bilder/132-konto-umstellen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "6e84b9698087c2f79823cdae293171a6f4f09dacb7be62a12ccfbfdc23d6849c"
+  },
+  {
+    "id": "konto-umstellen",
+    "format": "tablet",
+    "file": "bilder/132-konto-umstellen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "506d099c80cd1b147e377007b19f041834abe81cd2ada3b51810ff5902da6045"
+  },
+  {
+    "id": "konto-umstellen",
+    "format": "mobil",
+    "file": "bilder/132-konto-umstellen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "d1c1a3740dc9057ec468d1616b5913a65d4180c981b791892675d3e1de29fbc6"
+  },
+  {
+    "id": "urlaubsanspruch",
+    "format": "desktop",
+    "file": "bilder/133-urlaubsanspruch-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "848d13341f1fc7861f64dfea75481a87f20e09fe3d81fd09cbdbf605a88d00e5"
+  },
+  {
+    "id": "urlaubsanspruch",
+    "format": "tablet",
+    "file": "bilder/133-urlaubsanspruch-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "f1daff467221eb4ea0f7de97ddaef1f04efcbf5f67d13dd99415eac1dfdf742b"
+  },
+  {
+    "id": "urlaubsanspruch",
+    "format": "mobil",
+    "file": "bilder/133-urlaubsanspruch-mobil.jpg",
+    "width": 390,
+    "height": 847,
+    "sha256": "93718b123f347948b7fc7bd8eaaccb77f2432f8da5eee7582ffb7bcc1b207f50"
+  },
+  {
+    "id": "einstellungen",
+    "format": "desktop",
+    "file": "bilder/134-einstellungen-desktop.jpg",
+    "width": 1440,
+    "height": 1217,
+    "sha256": "3529d504262063943dc19238f286cfb5a0ed3fd581141abf2db995ad710c7158"
+  },
+  {
+    "id": "einstellungen",
+    "format": "tablet",
+    "file": "bilder/134-einstellungen-tablet.jpg",
+    "width": 834,
+    "height": 1204,
+    "sha256": "ca059fa8ed21397a2030fb030853c1eea4f8706a18ce9686bf323cf327eda7f9"
+  },
+  {
+    "id": "einstellungen",
+    "format": "mobil",
+    "file": "bilder/134-einstellungen-mobil.jpg",
+    "width": 390,
+    "height": 1441,
+    "sha256": "ddfbd4e69523cec30beadfa852319ea6376da36a3d34ac52cd8fea888fc3c7be"
+  },
+  {
+    "id": "konto",
+    "format": "desktop",
+    "file": "bilder/135-konto-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "0dae1f9d2cc4d147c910b984ccc3d41dda9983f213b1d8da93ad4eb89d421ae0"
+  },
+  {
+    "id": "konto",
+    "format": "tablet",
+    "file": "bilder/135-konto-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "4f3a62ed15e8e49bf9658ced8b2ecd5b40ef71c758729381699134708e9aa77d"
+  },
+  {
+    "id": "konto",
+    "format": "mobil",
+    "file": "bilder/135-konto-mobil.jpg",
+    "width": 390,
+    "height": 1188,
+    "sha256": "351ad4e3f5d10a5b8b20f96fa0ecd4aa694c94567ab9b13939d91c95cc4abc6e"
+  },
+  {
+    "id": "push-einrichten",
+    "format": "desktop",
+    "file": "bilder/136-push-einrichten-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "a02b434aeeab006ec8f7c02898a2e97a0d905c6ce7136b95f366f087ad23a066"
+  },
+  {
+    "id": "push-einrichten",
+    "format": "tablet",
+    "file": "bilder/136-push-einrichten-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "7e47bd59c151b9b9f6554ae1cf2599afe9c4308ddd15ab3eb3e0483e3752d430"
+  },
+  {
+    "id": "push-einrichten",
+    "format": "mobil",
+    "file": "bilder/136-push-einrichten-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "60437b2bf10887ea05954389a1f31672a593cc4b4af2d6fce6e05750d1fcc9b2"
+  },
+  {
+    "id": "firma",
+    "format": "desktop",
+    "file": "bilder/137-firma-desktop.jpg",
+    "width": 1440,
+    "height": 2033,
+    "sha256": "d24a32e0e444985faaea1c46abd9d977fb2e317dd09d10778d32ee8b185b2751"
+  },
+  {
+    "id": "firma",
+    "format": "tablet",
+    "file": "bilder/137-firma-tablet.jpg",
+    "width": 834,
+    "height": 2020,
+    "sha256": "234673d7f9c98ee6f3feb059dc17ae93667b65a382612cc72cccf836230651d0"
+  },
+  {
+    "id": "firma",
+    "format": "mobil",
+    "file": "bilder/137-firma-mobil.jpg",
+    "width": 390,
+    "height": 2133,
+    "sha256": "1a964a7a65810e2c274e499f020169889105346493aa1de2db442ddadcdf0967"
+  },
+  {
+    "id": "saetze",
+    "format": "desktop",
+    "file": "bilder/138-saetze-desktop.jpg",
+    "width": 1440,
+    "height": 1725,
+    "sha256": "59b74da561ee0c49557df4a1cbb4f5355615f6bad147ef2b8a72e71f681117d3"
+  },
+  {
+    "id": "saetze",
+    "format": "tablet",
+    "file": "bilder/138-saetze-tablet.jpg",
+    "width": 834,
+    "height": 1712,
+    "sha256": "410a16ce87e231fc22d49b521d0845958a02da82a18521e62189690db03481e7"
+  },
+  {
+    "id": "saetze",
+    "format": "mobil",
+    "file": "bilder/138-saetze-mobil.jpg",
+    "width": 390,
+    "height": 1863,
+    "sha256": "1611637be492d838c08810b167a91d93b06b57dc99dd211b3bf36607bea94a9a"
+  },
+  {
+    "id": "rechnungsvorgaben",
+    "format": "desktop",
+    "file": "bilder/139-rechnungsvorgaben-desktop.jpg",
+    "width": 1440,
+    "height": 1796,
+    "sha256": "b68b57f38faa06b1534c16a25bd3aa0c870926fb57292dd1f9b7e863fafb83e6"
+  },
+  {
+    "id": "rechnungsvorgaben",
+    "format": "tablet",
+    "file": "bilder/139-rechnungsvorgaben-tablet.jpg",
+    "width": 834,
+    "height": 1783,
+    "sha256": "f291bfb128881f1a9184da546f062d039de80e69c43f60963237b0775f72766a"
+  },
+  {
+    "id": "rechnungsvorgaben",
+    "format": "mobil",
+    "file": "bilder/139-rechnungsvorgaben-mobil.jpg",
+    "width": 390,
+    "height": 1942,
+    "sha256": "c8cb9cc507166ee8bfa48805a750ada5c01f08685d2a7d0456a5c43e4dacc441"
+  },
+  {
+    "id": "basiszins-verlauf",
+    "format": "desktop",
+    "file": "bilder/140-basiszins-verlauf-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "ab8c35667c51ded69bc2d770c66dbd1ade845ebf30b4ab8fccd2fe31c521b4d1"
+  },
+  {
+    "id": "basiszins-verlauf",
+    "format": "tablet",
+    "file": "bilder/140-basiszins-verlauf-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "a02c717bd400ec8a8d78a061d6986e568de84d113161bfc90e78ba37f1893a5a"
+  },
+  {
+    "id": "basiszins-verlauf",
+    "format": "mobil",
+    "file": "bilder/140-basiszins-verlauf-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "edd1f447aeafcd1f4ce4d4dae6db0b924de26b5d378efe57243e1ee281bee925"
+  },
+  {
+    "id": "nummern",
+    "format": "desktop",
+    "file": "bilder/141-nummern-desktop.jpg",
+    "width": 1440,
+    "height": 1180,
+    "sha256": "9a01f0b7ba724afe2f0b9cce0b305f6bc383af1f6b920069bd4fb9f9a172752e"
+  },
+  {
+    "id": "nummern",
+    "format": "tablet",
+    "file": "bilder/141-nummern-tablet.jpg",
+    "width": 834,
+    "height": 1167,
+    "sha256": "33ae358eb75655a6e56a52a8e9a2991359527f2bf54077ab08d436af7b21eed5"
+  },
+  {
+    "id": "nummern",
+    "format": "mobil",
+    "file": "bilder/141-nummern-mobil.jpg",
+    "width": 390,
+    "height": 1320,
+    "sha256": "d757c1192bc685036f29f76ebb254c621ace26e6b4704f49d9e3ab21d87ed8bf"
+  },
+  {
+    "id": "personal",
+    "format": "desktop",
+    "file": "bilder/142-personal-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "2c7bbaa3b1f91f03168ce74e613b6e89120faf0a77603c70fe3d92b77f8a7ee1"
+  },
+  {
+    "id": "personal",
+    "format": "tablet",
+    "file": "bilder/142-personal-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "2b0d0a49b0528972954278a9fdba56e334640f02c3fa27e9ccf551e6cc5bfd91"
+  },
+  {
+    "id": "personal",
+    "format": "mobil",
+    "file": "bilder/142-personal-mobil.jpg",
+    "width": 390,
+    "height": 1097,
+    "sha256": "15d65d9c5b4f3b0f706c51b97a434c297e28ae496dd8fec6bff09440c2f5955c"
+  },
+  {
+    "id": "personal-urlaub",
+    "format": "desktop",
+    "file": "bilder/143-personal-urlaub-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "d62ac8a1d73a8e357f1991142a08846d8fba63f0c97399826fd89c4b4b8a5710"
+  },
+  {
+    "id": "personal-urlaub",
+    "format": "tablet",
+    "file": "bilder/143-personal-urlaub-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "a209356c37d19e47c86a89ee977b4f9fd878fc9933a43d00822e8441c733f410"
+  },
+  {
+    "id": "personal-urlaub",
+    "format": "mobil",
+    "file": "bilder/143-personal-urlaub-mobil.jpg",
+    "width": 390,
+    "height": 850,
+    "sha256": "18e796568cf6b1c52a4411d0f2c77f08a388657bdebae7c11bc01e1e1d6d7b19"
+  },
+  {
+    "id": "personal-genehmiger",
+    "format": "desktop",
+    "file": "bilder/144-personal-genehmiger-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "0ec8e3227c1d4c3afadd53060662737e6fa0f3465a7e9fcfff881560ee82b8c1"
+  },
+  {
+    "id": "personal-genehmiger",
+    "format": "tablet",
+    "file": "bilder/144-personal-genehmiger-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "8e2374854b9359b8de2e040bb5ebe459f2075ae68b615f00685cd636dbe02028"
+  },
+  {
+    "id": "personal-genehmiger",
+    "format": "mobil",
+    "file": "bilder/144-personal-genehmiger-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "3c474254622d319ffa7ae102966669cfd3ef86d364d9199bf255d313dd574a0b"
+  },
+  {
+    "id": "personal-planung",
+    "format": "desktop",
+    "file": "bilder/145-personal-planung-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "944a30324d55d01a2c5b7e8453fb1c2ac3ef67473021b8eeb809240f85183869"
+  },
+  {
+    "id": "personal-planung",
+    "format": "tablet",
+    "file": "bilder/145-personal-planung-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "f093352467ca8e9555f963fce2f72cf454b621b5c902a73358c651e30132a114"
+  },
+  {
+    "id": "personal-planung",
+    "format": "mobil",
+    "file": "bilder/145-personal-planung-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "029d5eea885d355a55d91b52c1f343c895a42de9780355c69f32575c19757ddf"
+  },
+  {
+    "id": "personal-lohn",
+    "format": "desktop",
+    "file": "bilder/146-personal-lohn-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "cc74c1e2da66e62d891253614db256f4eb63b5b24b03b6aca422f84ad6e94855"
+  },
+  {
+    "id": "personal-lohn",
+    "format": "tablet",
+    "file": "bilder/146-personal-lohn-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "8d5fa238e73b48ddb2bbb75efa2a2f86b4b57854ee54b2629cbfb089f97cce3d"
+  },
+  {
+    "id": "personal-lohn",
+    "format": "mobil",
+    "file": "bilder/146-personal-lohn-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "8ccb7c01cb643231149708c8fd58cbfaecdac3c42008ee7659cd93cb0edbd3d5"
+  },
+  {
+    "id": "personal-sonder",
+    "format": "desktop",
+    "file": "bilder/147-personal-sonder-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "0d57fc022f9d27d929b2d3598ee91fb79a40792ad62bede9b0bd21fa7bd7ec43"
+  },
+  {
+    "id": "personal-sonder",
+    "format": "tablet",
+    "file": "bilder/147-personal-sonder-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "0370feb704dfd7dcb1615ba0271eba7a8bf4e9be035d42484a47ffd12bcd6f2d"
+  },
+  {
+    "id": "personal-sonder",
+    "format": "mobil",
+    "file": "bilder/147-personal-sonder-mobil.jpg",
+    "width": 390,
+    "height": 1231,
+    "sha256": "43fd57401c7135be14f6d76faf05b921b947712a0d7ef127365d0355d65f8a1d"
+  },
+  {
+    "id": "personal-dezember",
+    "format": "desktop",
+    "file": "bilder/148-personal-dezember-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "47f9dbc7372bd300145aa2b0df4e11e8bd56983fc722ae9c47a7ec1eca52abfa"
+  },
+  {
+    "id": "personal-dezember",
+    "format": "tablet",
+    "file": "bilder/148-personal-dezember-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "9c374ca8484771cefc7ad24eea5cccec8e205d676347ca1a3caa5f00fced2a8c"
+  },
+  {
+    "id": "personal-dezember",
+    "format": "mobil",
+    "file": "bilder/148-personal-dezember-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "8784df0a4c3fb078c5e095048e5037bb4e07698acd1af7af14a72512924704e1"
+  },
+  {
+    "id": "kontenrahmen",
+    "format": "desktop",
+    "file": "bilder/149-kontenrahmen-desktop.jpg",
+    "width": 1440,
+    "height": 1456,
+    "sha256": "3376db7ea8f02e456265a753ff73c141d91d9201d274763f2e99d5ee25c511d9"
+  },
+  {
+    "id": "kontenrahmen",
+    "format": "tablet",
+    "file": "bilder/149-kontenrahmen-tablet.jpg",
+    "width": 834,
+    "height": 1443,
+    "sha256": "777d2b6c8d3182e9aae53a4da0306a62e4b1687e933f008b24333c9d9530395a"
+  },
+  {
+    "id": "kontenrahmen",
+    "format": "mobil",
+    "file": "bilder/149-kontenrahmen-mobil.jpg",
+    "width": 390,
+    "height": 1596,
+    "sha256": "e0e2dea0bd0c35c2621675762680b8aa0b95c561bc0f879658da9f31e4545fb0"
+  },
+  {
+    "id": "support",
+    "format": "desktop",
+    "file": "bilder/150-support-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "40f70d88df7a2c7c35957152e332634347ae2916bf935f3d2ec6b62a59eb6daf"
+  },
+  {
+    "id": "support",
+    "format": "tablet",
+    "file": "bilder/150-support-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "f1cb2f92472804bc1b228d6098ba0e8f5cefeed98d91fe5eb160fc868299841b"
+  },
+  {
+    "id": "support",
+    "format": "mobil",
+    "file": "bilder/150-support-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "9836dfd959aa160f1355b7c3a7e9bb120be405b06bcccfe0979789c38c3169b5"
+  },
+  {
+    "id": "support-gewaehren",
+    "format": "desktop",
+    "file": "bilder/151-support-gewaehren-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "6fa5b8dcd88f7b07c212624f13407eaf7b008a7e141a33e661d8ec43d1686be3"
+  },
+  {
+    "id": "support-gewaehren",
+    "format": "tablet",
+    "file": "bilder/151-support-gewaehren-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "a8d70c300bf48a73c69b214230d566a86dbcd84d1e769339db5ab79d2df42038"
+  },
+  {
+    "id": "support-gewaehren",
+    "format": "mobil",
+    "file": "bilder/151-support-gewaehren-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "dead9a911c1fb9968d36bec293875bdeed2df9c50223758d9f4edfc2acc448e4"
+  },
+  {
+    "id": "module",
+    "format": "desktop",
+    "file": "bilder/152-module-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "665d6379f4d3630f9d045bd56949f288cbfea58991e2a8385e7ae938d98a0934"
+  },
+  {
+    "id": "module",
+    "format": "tablet",
+    "file": "bilder/152-module-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "996c4036d57f967209b32cad5b2bcc73a9f1fa91c475d6eaed7ce2d05863c3ee"
+  },
+  {
+    "id": "module",
+    "format": "mobil",
+    "file": "bilder/152-module-mobil.jpg",
+    "width": 390,
+    "height": 1069,
+    "sha256": "c2e9d946dfc95635871a16051b982238a6fba2a18145192b23da3d33d95e2a69"
+  },
+  {
+    "id": "sicherung",
+    "format": "desktop",
+    "file": "bilder/153-sicherung-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "53e128782664706c38124c97dc0e52c1bc20742e3b7cd7a312e2adfd8b6d4029"
+  },
+  {
+    "id": "sicherung",
+    "format": "tablet",
+    "file": "bilder/153-sicherung-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "7f8dce6277afb97406ba1a5d6630cae13e577962ef46043c5992f6de9210e869"
+  },
+  {
+    "id": "sicherung",
+    "format": "mobil",
+    "file": "bilder/153-sicherung-mobil.jpg",
+    "width": 390,
+    "height": 1090,
+    "sha256": "b58fdf67f194e0ecf5840fe60a56b5879c8aa76d336aa6c5b244411ece0cc6e4"
+  },
+  {
+    "id": "plattform",
+    "format": "desktop",
+    "file": "bilder/154-plattform-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "d8b44ee83b881506c55ad893bf42ad18d386affba9f7c5c5f375c28780309453"
+  },
+  {
+    "id": "plattform",
+    "format": "tablet",
+    "file": "bilder/154-plattform-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "3a334fda1345dee4e0c2aa9f13e44892f0b686e0a11270987eca5985789e35d9"
+  },
+  {
+    "id": "plattform",
+    "format": "mobil",
+    "file": "bilder/154-plattform-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "93fb6d868ddd3c0be3aabb7c96aff38eb74a035f9d8986301a0587d4343c90a1"
+  },
+  {
+    "id": "plattform-neu",
+    "format": "desktop",
+    "file": "bilder/155-plattform-neu-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "855da758e89d9202ae32754547dc09fd65cfafbd68bdda55ce5a0ef50cf4d1c2"
+  },
+  {
+    "id": "plattform-neu",
+    "format": "tablet",
+    "file": "bilder/155-plattform-neu-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "9b92ad48a0dab4e7f5b95ffa66d5e4e3c7b3094152aef6d2fe06371951bcf323"
+  },
+  {
+    "id": "plattform-neu",
+    "format": "mobil",
+    "file": "bilder/155-plattform-neu-mobil.jpg",
+    "width": 390,
+    "height": 1098,
+    "sha256": "cff8cac7a1cccf27503f22990ac1475d7e142a5afb29ee569ddcd33728911e01"
+  },
+  {
+    "id": "plattform-betrieb",
+    "format": "desktop",
+    "file": "bilder/156-plattform-betrieb-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "f9d9b684e8d351ee79f83099880a0026f91a63570235f1db0d3f5bf09b5cb262"
+  },
+  {
+    "id": "plattform-betrieb",
+    "format": "tablet",
+    "file": "bilder/156-plattform-betrieb-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "aff7c34d9f38ba975ff03ee62a340274c74ffc144dc2093c6033da307befbc13"
+  },
+  {
+    "id": "plattform-betrieb",
+    "format": "mobil",
+    "file": "bilder/156-plattform-betrieb-mobil.jpg",
+    "width": 390,
+    "height": 947,
+    "sha256": "37674fd47975f4504f35c27a155a01e046b90ea94b044a8ea2fc2634b704a661"
+  },
+  {
+    "id": "plattform-fehler",
+    "format": "desktop",
+    "file": "bilder/157-plattform-fehler-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "82abbccf164aa1c10320eb5412cac31678ac24d892846a32ee2a413bf7324b3a"
+  },
+  {
+    "id": "plattform-fehler",
+    "format": "tablet",
+    "file": "bilder/157-plattform-fehler-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "bc6cceaa894e6f203f4251bfdfeb289f9dfd261b5729dafc69920c13be11f53b"
+  },
+  {
+    "id": "plattform-fehler",
+    "format": "mobil",
+    "file": "bilder/157-plattform-fehler-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "852f12bfaff7fc885ce2152f15db1f5e4a4979e30b44c22b7e7910a0f3cd26d8"
+  },
+  {
+    "id": "plattform-fehlerdetail",
+    "format": "desktop",
+    "file": "bilder/158-plattform-fehlerdetail-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "caba8a621b29a7184119d191ed0b381814cf2ea45647a20c9c066c026ec74348"
+  },
+  {
+    "id": "plattform-fehlerdetail",
+    "format": "tablet",
+    "file": "bilder/158-plattform-fehlerdetail-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "2030565fa0035538c3fa1c17a834d796093059b1cdb1e7a7c471c18ae68464ce"
+  },
+  {
+    "id": "plattform-fehlerdetail",
+    "format": "mobil",
+    "file": "bilder/158-plattform-fehlerdetail-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "2c39ec8cf71f7dbbec88119b5d023c950bf2a2e02d21eb95672cb08c540dd599"
+  },
+  {
+    "id": "plattform-notzugang",
+    "format": "desktop",
+    "file": "bilder/159-plattform-notzugang-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "84b0fad51eae5f195d2fc7f2bf978ebb41b19ca8b7cc63d9769626b420510f1c"
+  },
+  {
+    "id": "plattform-notzugang",
+    "format": "tablet",
+    "file": "bilder/159-plattform-notzugang-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "97693928a5c3bfa4f520d894dd574f975b7f6499745605f8dbd296fe091ce5c1"
+  },
+  {
+    "id": "plattform-notzugang",
+    "format": "mobil",
+    "file": "bilder/159-plattform-notzugang-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "8e06d773a2eee00ff3ea686af4d256f931404202d0e1433297d1d945e15c24eb"
+  },
+  {
+    "id": "plattform-notpasswort",
+    "format": "desktop",
+    "file": "bilder/160-plattform-notpasswort-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "07c5e95ccfac535b0fb0294e4e6ac2f92f3e7af0f8d08fb10dbbe840c4c38478"
+  },
+  {
+    "id": "plattform-notpasswort",
+    "format": "tablet",
+    "file": "bilder/160-plattform-notpasswort-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "65150098c455ed418a185cd50e313b9ee27feb9a2cdf2e12a1c937a47184ab62"
+  },
+  {
+    "id": "plattform-notpasswort",
+    "format": "mobil",
+    "file": "bilder/160-plattform-notpasswort-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "67844cbad1c8f52720511ddbd90dc4d4f2c554c2136ec50011d87e80201514c8"
+  },
+  {
+    "id": "plattform-notfaktor",
+    "format": "desktop",
+    "file": "bilder/161-plattform-notfaktor-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "065481a0424b162bb732005647965638146eec033b46a457382851c7d3b176f2"
+  },
+  {
+    "id": "plattform-notfaktor",
+    "format": "tablet",
+    "file": "bilder/161-plattform-notfaktor-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "1808bdf701d0630f6abb2fae252fb7a5d2cfc64aef2201c5aeff617d38eaf0cf"
+  },
+  {
+    "id": "plattform-notfaktor",
+    "format": "mobil",
+    "file": "bilder/161-plattform-notfaktor-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "27958f42202817a70ff17cdda2e2704b8370cdcfb29ab2a3139dfb86f5de39b5"
+  },
+  {
+    "id": "plattform-basiszins",
+    "format": "desktop",
+    "file": "bilder/162-plattform-basiszins-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "7db82d364518ba876a0a75173694f1f1749312df4da749d78f0d84d187b3de82"
+  },
+  {
+    "id": "plattform-basiszins",
+    "format": "tablet",
+    "file": "bilder/162-plattform-basiszins-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "276a9b7df01ced79a020cb09e5bb328a08584cee5944e711c2454b64d3cd1782"
+  },
+  {
+    "id": "plattform-basiszins",
+    "format": "mobil",
+    "file": "bilder/162-plattform-basiszins-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "a45feaffb65e16f488a190c5098cab5db2062d1a5443a472ffc3e898fdde30a5"
+  },
+  {
+    "id": "suche",
+    "format": "desktop",
+    "file": "bilder/163-suche-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "f16814d4ec243f25c3c88252fe35034d9c14c8be92fadea28b28a5676aa463d9"
+  },
+  {
+    "id": "suche",
+    "format": "tablet",
+    "file": "bilder/163-suche-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "258a4f319506cdb1bb78c8a8e6728956ad27c17d927771dddff23352ff60b5ea"
+  },
+  {
+    "id": "suche",
+    "format": "mobil",
+    "file": "bilder/163-suche-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "8ead5b66e83ff8b022ee510d9bdfd617084cdc775994473ed5815768c433111c"
+  },
+  {
+    "id": "meldungen",
+    "format": "desktop",
+    "file": "bilder/164-meldungen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "57770603ca97d4c57e3777f11a03de4fea10c110e4bd91aeb65b787f93636d63"
+  },
+  {
+    "id": "meldungen",
+    "format": "tablet",
+    "file": "bilder/164-meldungen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "1220b8d2d0f074be5ada31e082ea6b65b76e9838973b17b2c17a931c4a0483ef"
+  },
+  {
+    "id": "meldungen",
+    "format": "mobil",
+    "file": "bilder/164-meldungen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "fcc9fe7421b24da6c8aaf0f3f28d4bb9f2382e8445941320e4427a24c5db4b71"
+  },
+  {
+    "id": "hilfe",
+    "format": "desktop",
+    "file": "bilder/165-hilfe-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "cd7bf431a86afb00b68393b6a5f9aad2791e7b5aef219736fe40dccb17480f58"
+  },
+  {
+    "id": "hilfe",
+    "format": "tablet",
+    "file": "bilder/165-hilfe-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "3deb866145a7f161e6433fb33fb0f2369b40c47861b7f612b7bb0cfe0fd4d432"
+  },
+  {
+    "id": "hilfe",
+    "format": "mobil",
+    "file": "bilder/165-hilfe-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "11504163b1e0e3b52a0e0fd5578a878b7424e789bc77631d98b287ec368e5788"
+  },
+  {
+    "id": "offline",
+    "format": "desktop",
+    "file": "bilder/166-offline-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "34126d8aa7a0b0ff58663bfd6f207330f192fd68526e6222cd2e277f19659ced"
+  },
+  {
+    "id": "offline",
+    "format": "tablet",
+    "file": "bilder/166-offline-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "133d0508d807cf9cdef56d7dd2e2de3447caf7155abd896b9d28bfc1c7d963bb"
+  },
+  {
+    "id": "offline",
+    "format": "mobil",
+    "file": "bilder/166-offline-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "b1ec92363a437975c47af81f89496899dc136c90f3a8d732fa683f8661743f73"
+  },
+  {
+    "id": "fehler",
+    "format": "desktop",
+    "file": "bilder/167-fehler-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "bfcb433b3d93a2ea9bd2cbbfeede9762fd5acb3388ade5889ef10029bb3e5b39"
+  },
+  {
+    "id": "fehler",
+    "format": "tablet",
+    "file": "bilder/167-fehler-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "7aad31425529cdf650805407b498b13252b505cd05c70e4e4da1be22da2030b1"
+  },
+  {
+    "id": "fehler",
+    "format": "mobil",
+    "file": "bilder/167-fehler-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "849167c2f210192b659d52ab43b8097063211865fda59a3a307eaad5afde65ff"
+  },
+  {
+    "id": "leer",
+    "format": "desktop",
+    "file": "bilder/168-leer-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "1cc3fd935abbebe472ad575462305e876d3ed0c33fb167499348390f892641dd"
+  },
+  {
+    "id": "leer",
+    "format": "tablet",
+    "file": "bilder/168-leer-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "8795fddc06cf1173c4f057d9b5d01288b6e393ec7ff6f8a1dfcd9e79226852f6"
+  },
+  {
+    "id": "leer",
+    "format": "mobil",
+    "file": "bilder/168-leer-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "0b1617f4a052b5d58360d104d94274afb99ded800a8d05e3a9f2e6c4d3d2ff5d"
+  },
+  {
+    "id": "laden",
+    "format": "desktop",
+    "file": "bilder/169-laden-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "bbb3673c63b9978c15f93d8112f65edb9dad00d0b3808f762014621f4369324a"
+  },
+  {
+    "id": "laden",
+    "format": "tablet",
+    "file": "bilder/169-laden-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "29fa67fbf9ffd53bc67e537b3635fb54e32a79b7321cfd91a4b6cad8cd915883"
+  },
+  {
+    "id": "laden",
+    "format": "mobil",
+    "file": "bilder/169-laden-mobil.jpg",
+    "width": 390,
+    "height": 866,
+    "sha256": "ffbec6385a2a645f260aec9a8219df920bb005f8c5d9fefc8a47fd7868422fd9"
+  },
+  {
+    "id": "gesperrt",
+    "format": "desktop",
+    "file": "bilder/170-gesperrt-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "9f67282946ada816885af77f9ad608e8990c9ca56d7216c0b4565b91596fd363"
+  },
+  {
+    "id": "gesperrt",
+    "format": "tablet",
+    "file": "bilder/170-gesperrt-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "e9b2bf67a5f99b0e5aed6333e0348d358571e94e096651c99bd8570f5f39a8fe"
+  },
+  {
+    "id": "gesperrt",
+    "format": "mobil",
+    "file": "bilder/170-gesperrt-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "6b50f4a0ff6bed6c5ff19dadeb331ee65c3179a8cea27dc41a1f532ec7025a15"
+  },
+  {
+    "id": "aktualisierung",
+    "format": "desktop",
+    "file": "bilder/171-aktualisierung-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "30e8d1c40ce0c1559b1c4165d6b8b7c187e86f37864b32b15af55e667e577c98"
+  },
+  {
+    "id": "aktualisierung",
+    "format": "tablet",
+    "file": "bilder/171-aktualisierung-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "0885dac7fee845d01aa8de27f79d47260585cc4a861bd8db5f574e71b6601115"
+  },
+  {
+    "id": "aktualisierung",
+    "format": "mobil",
+    "file": "bilder/171-aktualisierung-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "70fa3651f112a1e3b8bb80c0a328400928c3bfb19840be3ced11e14cbac2452b"
+  },
+  {
+    "id": "kunde-auskunft",
+    "format": "desktop",
+    "file": "bilder/172-kunde-auskunft-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "e30b10ee6dbc3e9a0c9ba39ed95c4a294d6750e4a533bd774ec83e7265373e08"
+  },
+  {
+    "id": "kunde-auskunft",
+    "format": "tablet",
+    "file": "bilder/172-kunde-auskunft-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "41cd70bbbc0ec3590d2ac6f9b4344fe195e2464cc9eb0270577cce20424f7bbc"
+  },
+  {
+    "id": "kunde-auskunft",
+    "format": "mobil",
+    "file": "bilder/172-kunde-auskunft-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "89b18f3dcd4218b07bc6f2963176a11e93e1f171fb324fd5b27f97d65c91fe3a"
+  },
+  {
+    "id": "benutzer-auskunft",
+    "format": "desktop",
+    "file": "bilder/173-benutzer-auskunft-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "e287dee8ac4611a7ef1033d11676e70cf5e098edadb991d9edfe155c32568129"
+  },
+  {
+    "id": "benutzer-auskunft",
+    "format": "tablet",
+    "file": "bilder/173-benutzer-auskunft-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "58774240bf93abc6b2f11eb58bb2c3e31c8778c33cbfdf494d7eab1beeb68860"
+  },
+  {
+    "id": "benutzer-auskunft",
+    "format": "mobil",
+    "file": "bilder/173-benutzer-auskunft-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "b1d5dca1518bf8eab16b78278b79c67824e8a024d467062d22105492152cd5c4"
+  },
+  {
+    "id": "bestaetigen-kunde",
+    "format": "desktop",
+    "file": "bilder/174-bestaetigen-kunde-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "6fcf0845ff0f960a142b63716dde06b7962bba1e8322686b3422b4c2e9f5fe78"
+  },
+  {
+    "id": "bestaetigen-kunde",
+    "format": "tablet",
+    "file": "bilder/174-bestaetigen-kunde-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "23e0d01e4cb101d4653fc8cc378c8eb7e433f8071c227cb168c3a4dc6ae3dbcd"
+  },
+  {
+    "id": "bestaetigen-kunde",
+    "format": "mobil",
+    "file": "bilder/174-bestaetigen-kunde-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "23fc40ccdbb6465fd84fd013286339767c915726fb034eac56961f99015c839b"
+  },
+  {
+    "id": "bestaetigen-angebot",
+    "format": "desktop",
+    "file": "bilder/175-bestaetigen-angebot-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "e4bfd7afebe988d752eae90cf452d36cda66f895a610388c982f8bcdf7d1e534"
+  },
+  {
+    "id": "bestaetigen-angebot",
+    "format": "tablet",
+    "file": "bilder/175-bestaetigen-angebot-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "ba8b70abaa0e3e10c5b0171e943af863d56cb081e4bb194bfc0406d533d8fcc3"
+  },
+  {
+    "id": "bestaetigen-angebot",
+    "format": "mobil",
+    "file": "bilder/175-bestaetigen-angebot-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "270c8ecb18e87e03aa95e04e3107f3ee2580d84ed2e6da90c6773559c1125d8e"
+  },
+  {
+    "id": "bestaetigen-termin",
+    "format": "desktop",
+    "file": "bilder/176-bestaetigen-termin-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "bfe9b336be8e8d8516c4b8c5ca828e73ce495214cdceacae3b1bcdcd99e99727"
+  },
+  {
+    "id": "bestaetigen-termin",
+    "format": "tablet",
+    "file": "bilder/176-bestaetigen-termin-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "e7a4a0543fa5828900cf6cdb29f65ddf7a4aed0cc2b9af2b1868eb3aa97871e2"
+  },
+  {
+    "id": "bestaetigen-termin",
+    "format": "mobil",
+    "file": "bilder/176-bestaetigen-termin-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "8d2ec23e8bffe012fd08a6640f3d165544f0601afd6f2d1c3626fa1e3965f29c"
+  },
+  {
+    "id": "bestaetigen-einsatz",
+    "format": "desktop",
+    "file": "bilder/177-bestaetigen-einsatz-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "21ca55a6e8ff4fea00f557c46f88db1fab5f0ea7cbf72a075831bbec2b69e11a"
+  },
+  {
+    "id": "bestaetigen-einsatz",
+    "format": "tablet",
+    "file": "bilder/177-bestaetigen-einsatz-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "d3f0ebe6fefd2b49df12828b80b49e214c6a4b3f7ccafa542bcb4b801af18a06"
+  },
+  {
+    "id": "bestaetigen-einsatz",
+    "format": "mobil",
+    "file": "bilder/177-bestaetigen-einsatz-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "12f51c15d6ece534ac7473d672a839b9f2a5efaf8fb60342451d9bc591bc382a"
+  },
+  {
+    "id": "bestaetigen-bestellung",
+    "format": "desktop",
+    "file": "bilder/178-bestaetigen-bestellung-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "3040e763223da53c40ee2ac3d84b32357f46584c0a04538a0ac7d6fa36c166cb"
+  },
+  {
+    "id": "bestaetigen-bestellung",
+    "format": "tablet",
+    "file": "bilder/178-bestaetigen-bestellung-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "7abf95d4acc350a32990a5d320ef398a7b4b57ed754509e7cae033ea73f1c4de"
+  },
+  {
+    "id": "bestaetigen-bestellung",
+    "format": "mobil",
+    "file": "bilder/178-bestaetigen-bestellung-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "083a32d2373026453895cab47ad3bb0d015098addc0ac9a9c9dd3d71ece56ba4"
+  },
+  {
+    "id": "bestaetigen-material",
+    "format": "desktop",
+    "file": "bilder/179-bestaetigen-material-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "5cce290d4e1fe840dc82b470c10c1431412b10bb8582c33bce952329f2fccfc2"
+  },
+  {
+    "id": "bestaetigen-material",
+    "format": "tablet",
+    "file": "bilder/179-bestaetigen-material-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "4fe857ae628aca3c1a4f5219a781394c3942d44d02ad702388ed4642b49784ef"
+  },
+  {
+    "id": "bestaetigen-material",
+    "format": "mobil",
+    "file": "bilder/179-bestaetigen-material-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "69f3db351d454fd253daacf4874342f463d441ec8b88664b1b5d954b1e9664f9"
+  },
+  {
+    "id": "bestaetigen-zeit",
+    "format": "desktop",
+    "file": "bilder/180-bestaetigen-zeit-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "67a1f3c7b1999077b80c88a6a0694a0e0df8ea760437756b06f97bd892868c23"
+  },
+  {
+    "id": "bestaetigen-zeit",
+    "format": "tablet",
+    "file": "bilder/180-bestaetigen-zeit-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "946c2cacc70cd2b5780a76c331923a50903f5149defc46a737dcc1c64ebdfea2"
+  },
+  {
+    "id": "bestaetigen-zeit",
+    "format": "mobil",
+    "file": "bilder/180-bestaetigen-zeit-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "05507c847de9a73414b8c2d84bc0907c6a15f8d2ea53c51c69d17aa793c990a7"
+  },
+  {
+    "id": "bestaetigen-urlaub",
+    "format": "desktop",
+    "file": "bilder/181-bestaetigen-urlaub-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "12b5018b6199443bc339c74d2b753ccadb726a3e3acc37b472609ff4eff9b819"
+  },
+  {
+    "id": "bestaetigen-urlaub",
+    "format": "tablet",
+    "file": "bilder/181-bestaetigen-urlaub-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "b97bc2dacc5e8f2bd39aeccf3502e3f9ddf9d0b0c9eb2a2ae4350f2201e701c5"
+  },
+  {
+    "id": "bestaetigen-urlaub",
+    "format": "mobil",
+    "file": "bilder/181-bestaetigen-urlaub-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "de8971835175f3a223b3602d1f5f7949c0b6166e60b0055f4654edb09699c185"
+  },
+  {
+    "id": "bestaetigen-benutzer",
+    "format": "desktop",
+    "file": "bilder/182-bestaetigen-benutzer-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "af64e593142e956b1945e416b071d923a5b506349e88268c4801456d6589f8e9"
+  },
+  {
+    "id": "bestaetigen-benutzer",
+    "format": "tablet",
+    "file": "bilder/182-bestaetigen-benutzer-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "912aa3abe4dfa9417a64d05c20b4fdd9614ccabeb8c75a1a52b667957f09c58f"
+  },
+  {
+    "id": "bestaetigen-benutzer",
+    "format": "mobil",
+    "file": "bilder/182-bestaetigen-benutzer-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "8c47fbb106c584ccebe44fd196e0d49f29e06707d8ca210af14afd04d93bbfd2"
+  },
+  {
+    "id": "bestaetigen-standard",
+    "format": "desktop",
+    "file": "bilder/183-bestaetigen-standard-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "0bc60b4a2464c9f4e1873f3550adc3e250666faf96fab521e4737927e98554c7"
+  },
+  {
+    "id": "bestaetigen-standard",
+    "format": "tablet",
+    "file": "bilder/183-bestaetigen-standard-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "8d0abb31d9590b5e0ceabf1c626ba49444ef08d6d8d91085d3d243134d19666b"
+  },
+  {
+    "id": "bestaetigen-standard",
+    "format": "mobil",
+    "file": "bilder/183-bestaetigen-standard-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "9764708228cd70ae194de785b27daf83b8ab9a573434978f41031795e7c67349"
+  },
+  {
+    "id": "muster",
+    "format": "desktop",
+    "file": "bilder/184-muster-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "a6727d171d13bbc3b32424c11d55a1735bcdd310ee1cdb62b548a0713b69ab13"
+  },
+  {
+    "id": "muster",
+    "format": "tablet",
+    "file": "bilder/184-muster-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "a32142ccdeace25281381c9b32642ee0bb2f4d15866de57f3df71558edd6836e"
+  },
+  {
+    "id": "muster",
+    "format": "mobil",
+    "file": "bilder/184-muster-mobil.jpg",
+    "width": 390,
+    "height": 1113,
+    "sha256": "0f3c611d995be6853f78064324b2c6aefe4735e59ba84ab6f0d140501d1ae0d5"
+  },
+  {
+    "id": "wartungen",
+    "format": "desktop",
+    "file": "bilder/185-wartungen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "0249b3ad60e2e5e0de9e80430f6c276b52816020101e04daed1ad5e3285b2f00"
+  },
+  {
+    "id": "wartungen",
+    "format": "tablet",
+    "file": "bilder/185-wartungen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "cb9f8d19eb2df389a3c10861d68adab3631ee1d18351aa5aef9027aae46ea4f7"
+  },
+  {
+    "id": "wartungen",
+    "format": "mobil",
+    "file": "bilder/185-wartungen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "a53586b7a242b2f7d6a5272fb1f9f59698a5e5825320508dd23dfea54b332bf0"
+  },
+  {
+    "id": "wartung-detail",
+    "format": "desktop",
+    "file": "bilder/186-wartung-detail-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "09331d5aa8c26ce8bfc964afedd0f7d411ba5c7832aed6994a719f2b02d1ac64"
+  },
+  {
+    "id": "wartung-detail",
+    "format": "tablet",
+    "file": "bilder/186-wartung-detail-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "cb94abf4fa334ec4637b7865088edac40b66f8c51bffd1e343bc731c14756db0"
+  },
+  {
+    "id": "wartung-detail",
+    "format": "mobil",
+    "file": "bilder/186-wartung-detail-mobil.jpg",
+    "width": 390,
+    "height": 1063,
+    "sha256": "d7ce376b28c68b7817866a09f158900d7ac47537a12c4d548c3badcc7f8ff378"
+  },
+  {
+    "id": "wartung-neu",
+    "format": "desktop",
+    "file": "bilder/187-wartung-neu-desktop.jpg",
+    "width": 1440,
+    "height": 1564,
+    "sha256": "c1ffab857d9df2c656ffc29adcaa90730329747c294b55f9b034791e6298f8f2"
+  },
+  {
+    "id": "wartung-neu",
+    "format": "tablet",
+    "file": "bilder/187-wartung-neu-tablet.jpg",
+    "width": 834,
+    "height": 1551,
+    "sha256": "80e9432eeb7b65f4927d065e3ac0f490b675e64dbb9cab48ea75a1d67c4aa2f2"
+  },
+  {
+    "id": "wartung-neu",
+    "format": "mobil",
+    "file": "bilder/187-wartung-neu-mobil.jpg",
+    "width": 390,
+    "height": 1667,
+    "sha256": "05fb3b22ca22b451f6e0bb0ce745ddc1d8b9ffcbed20c27091e846d62dac566f"
+  },
+  {
+    "id": "wartung-erledigt",
+    "format": "desktop",
+    "file": "bilder/188-wartung-erledigt-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "063efb688ec74c7dc6902aea2f8a931911f3ef9927ededcb53b9ad37d5eddbac"
+  },
+  {
+    "id": "wartung-erledigt",
+    "format": "tablet",
+    "file": "bilder/188-wartung-erledigt-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "0bb834f0b2b8b9d80d7934ef5bc4579045dcc127461605ef1a00a12591e2ef9e"
+  },
+  {
+    "id": "wartung-erledigt",
+    "format": "mobil",
+    "file": "bilder/188-wartung-erledigt-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "0285caddc72962fd3d658ef6c5ea48a5395a2747ac250de9c12afc3dcec9709e"
+  },
+  {
+    "id": "wartung-loeschen",
+    "format": "desktop",
+    "file": "bilder/189-wartung-loeschen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "ea4f32c06eb0322dd3efe6d792c0ef3fa4bbd9cf1f9c4f480874fdb2f9cbd3c7"
+  },
+  {
+    "id": "wartung-loeschen",
+    "format": "tablet",
+    "file": "bilder/189-wartung-loeschen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "f340778ca0d44c4711fd0554612cb280df759f3b9a7e29399ab372a1f4200e88"
+  },
+  {
+    "id": "wartung-loeschen",
+    "format": "mobil",
+    "file": "bilder/189-wartung-loeschen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "87d941856b8b67362a5571f259293ec0bd5e571786692da092a0095ca59e6f04"
+  },
+  {
+    "id": "urlaub-monat",
+    "format": "desktop",
+    "file": "bilder/190-urlaub-monat-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "9d3144315f87ac9b8f2ec0569fc4a7fe5e7ba9311d8edda8668ad5682358e411"
+  },
+  {
+    "id": "urlaub-monat",
+    "format": "tablet",
+    "file": "bilder/190-urlaub-monat-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "2b85d863aeeca8a099f952599ccada265418234914a9ad7b6feaabe8dab8e20f"
+  },
+  {
+    "id": "urlaub-monat",
+    "format": "mobil",
+    "file": "bilder/190-urlaub-monat-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "52b9be473f3b0cf6e76fd19c9d3b98db14ec2e770491be0bf2d0de045181d39d"
+  },
+  {
+    "id": "zeit-abwesenheit",
+    "format": "desktop",
+    "file": "bilder/191-zeit-abwesenheit-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "8ab8faf92f6c008802291191436cd31747dead26b7b248027eccd15c5c983b7a"
+  },
+  {
+    "id": "zeit-abwesenheit",
+    "format": "tablet",
+    "file": "bilder/191-zeit-abwesenheit-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "a4c8191c53dea64ac790b0daca4e9894776ded728339a9cab1142fcd146bffca"
+  },
+  {
+    "id": "zeit-abwesenheit",
+    "format": "mobil",
+    "file": "bilder/191-zeit-abwesenheit-mobil.jpg",
+    "width": 390,
+    "height": 936,
+    "sha256": "6e2363bcfca8e10a0f0cfa38b280c4b23bf626844a0f62018c15c6cbed3e0aea"
+  },
+  {
+    "id": "benutzer-zusatzrechte",
+    "format": "desktop",
+    "file": "bilder/192-benutzer-zusatzrechte-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "b0e9668d47a41a7e556b7da7777f6cdf6e534ada62392ed51ebc21db5693500d"
+  },
+  {
+    "id": "benutzer-zusatzrechte",
+    "format": "tablet",
+    "file": "bilder/192-benutzer-zusatzrechte-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "20b5fb89f75d2ccffe5c9c245e82749f305e52249d5d685edeafbc3ba4708f71"
+  },
+  {
+    "id": "benutzer-zusatzrechte",
+    "format": "mobil",
+    "file": "bilder/192-benutzer-zusatzrechte-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "6cfa5b0d46f2a14ad121503d194113e257313cce397637fd0d324b9c3d10c8ea"
+  },
+  {
+    "id": "benutzer-projektleitung-recht",
+    "format": "desktop",
+    "file": "bilder/193-benutzer-projektleitung-recht-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "d2ebee7f4832071f585e6c9ff261b3f59ba2cc5470dc74c32d605f88736f3e0f"
+  },
+  {
+    "id": "benutzer-projektleitung-recht",
+    "format": "tablet",
+    "file": "bilder/193-benutzer-projektleitung-recht-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "66b0794b808d6a07c5a480f583e920ef685804599813f5db263b8a0d52ff5836"
+  },
+  {
+    "id": "benutzer-projektleitung-recht",
+    "format": "mobil",
+    "file": "bilder/193-benutzer-projektleitung-recht-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "9790142227edf61cf8f3985b13a5fd398428f3052a7dafe702ba28b2d4b0a9eb"
+  },
+  {
+    "id": "uid-pruefung",
+    "format": "desktop",
+    "file": "bilder/194-uid-pruefung-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "1bbaadd2ea7ca930c0549ba4f1b920208c018c13c9341c619de9e7fc5d38741d"
+  },
+  {
+    "id": "uid-pruefung",
+    "format": "tablet",
+    "file": "bilder/194-uid-pruefung-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "613d9979b0a9cb738fb9bb9ec9e7786f4466e778b0cd5a85d91609cfe8d7ee0e"
+  },
+  {
+    "id": "uid-pruefung",
+    "format": "mobil",
+    "file": "bilder/194-uid-pruefung-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "26eecf95aa8be149f9ca86e4b67d713557d99098a9f31fecfa8a3e9ade0fdd8f"
+  },
+  {
+    "id": "baustelle-loeschen",
+    "format": "desktop",
+    "file": "bilder/195-baustelle-loeschen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "94d71e6573757c99502e6f364ec98c4722aa1b21d1d5be16e67999b7a56ea012"
+  },
+  {
+    "id": "baustelle-loeschen",
+    "format": "tablet",
+    "file": "bilder/195-baustelle-loeschen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "b71566464b1919371a93a3019e26f53fd575d3d55c363692f7a73ceda9d3a5f7"
+  },
+  {
+    "id": "baustelle-loeschen",
+    "format": "mobil",
+    "file": "bilder/195-baustelle-loeschen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "a506dd986e3b455dd146918e32edfe61d6002ee0c236b52844c5fe5ebda32c4c"
+  },
+  {
+    "id": "arbeitszeit-grenze",
+    "format": "desktop",
+    "file": "bilder/196-arbeitszeit-grenze-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "503a89e261d19e0bec883248b65c3d266e0b1ca7fad9d24502a0431cc1c8c4b3"
+  },
+  {
+    "id": "arbeitszeit-grenze",
+    "format": "tablet",
+    "file": "bilder/196-arbeitszeit-grenze-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "5effb86c8b9035c1d1e9302f1517961c8fec3c7a8c47226b4e4c70e6b4006304"
+  },
+  {
+    "id": "arbeitszeit-grenze",
+    "format": "mobil",
+    "file": "bilder/196-arbeitszeit-grenze-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "abb3fd65bc63ee2c3010dae1b42a06497436f0c5a310b8389e20ec1cec3d2345"
+  },
+  {
+    "id": "lehrling-einstufung",
+    "format": "desktop",
+    "file": "bilder/197-lehrling-einstufung-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "1ede6d78333495de1e81d927ad89231ecb99d6da8a9165102e77a7ac189430cb"
+  },
+  {
+    "id": "lehrling-einstufung",
+    "format": "tablet",
+    "file": "bilder/197-lehrling-einstufung-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "a8f2f43e6399b71c92ebfcb3e847fb250cff9d6f4d58fc0a3c04efc119f7aea7"
+  },
+  {
+    "id": "lehrling-einstufung",
+    "format": "mobil",
+    "file": "bilder/197-lehrling-einstufung-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "6741b5db9b9560e8c46d9f362f541c7cf5d8c18a2038563ba62076c2f905740c"
+  },
+  {
+    "id": "betriebsurlaub-loeschen",
+    "format": "desktop",
+    "file": "bilder/198-betriebsurlaub-loeschen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "a3232bceb21a6afc505e2bfce31be319d1f470c8f530f7cbb4e62cf28a6f4e58"
+  },
+  {
+    "id": "betriebsurlaub-loeschen",
+    "format": "tablet",
+    "file": "bilder/198-betriebsurlaub-loeschen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "9837a4f8d5bdc148ea33122f4a28a849b26f02a269791104f78ae81ed492cf37"
+  },
+  {
+    "id": "betriebsurlaub-loeschen",
+    "format": "mobil",
+    "file": "bilder/198-betriebsurlaub-loeschen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "13e756cd722ef972d60b60112def329fdce6510f8f76d507f66aecb258f17a9c"
+  },
+  {
+    "id": "support-widerrufen",
+    "format": "desktop",
+    "file": "bilder/199-support-widerrufen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "e80796a58ab0ebe4baa07bf86a3d8f4a502ee1f2e5949511c7f0d873ae014ee5"
+  },
+  {
+    "id": "support-widerrufen",
+    "format": "tablet",
+    "file": "bilder/199-support-widerrufen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "a8616a72ce6f650d4f230d48e3982631771a56002fa7199086ce3616ef078d73"
+  },
+  {
+    "id": "support-widerrufen",
+    "format": "mobil",
+    "file": "bilder/199-support-widerrufen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "4c23b5dea44ec6a36e0edf231a6768fa75f33942180916376356bdf60fc27beb"
+  },
+  {
+    "id": "problem-melden",
+    "format": "desktop",
+    "file": "bilder/200-problem-melden-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "52ea89968994b36f753a329211a4fcd04d812f0a10a2cd9a50012803a83d85c7"
+  },
+  {
+    "id": "problem-melden",
+    "format": "tablet",
+    "file": "bilder/200-problem-melden-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "9edc25ce55f76bb43588e922ae45d21f2198556ea5d664f8280cabb38ca5b1d6"
+  },
+  {
+    "id": "problem-melden",
+    "format": "mobil",
+    "file": "bilder/200-problem-melden-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "fae0305e2d40f41ddd4fdb6bab2fcbea21fe954b7b518c02c7fdf87e8604424d"
+  },
+  {
+    "id": "urlaubsanspruch-entfernen",
+    "format": "desktop",
+    "file": "bilder/201-urlaubsanspruch-entfernen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "8ba7cb17252e5c72e2a37d0a74016836f1f1f2a868ada1d0e3967105ad25371d"
+  },
+  {
+    "id": "urlaubsanspruch-entfernen",
+    "format": "tablet",
+    "file": "bilder/201-urlaubsanspruch-entfernen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "3648c7c8db373029622ee6a55591a5a98d0326395d5fdf839559def24ec2db22"
+  },
+  {
+    "id": "urlaubsanspruch-entfernen",
+    "format": "mobil",
+    "file": "bilder/201-urlaubsanspruch-entfernen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "3f0a10d14bdd8eba48737445dce8084e65316d26d984d03cdf72d36a6f3f09d2"
+  },
+  {
+    "id": "zeit-leitung",
+    "format": "desktop",
+    "file": "bilder/202-zeit-leitung-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "13793cc437203b355a102776de2fbf1467012b220eaf266aa65602d936e8ce45"
+  },
+  {
+    "id": "zeit-leitung",
+    "format": "tablet",
+    "file": "bilder/202-zeit-leitung-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "4aaf5b58534b903212cf91703cb437f939934d077fa2195958e3e9b162d346da"
+  },
+  {
+    "id": "zeit-leitung",
+    "format": "mobil",
+    "file": "bilder/202-zeit-leitung-mobil.jpg",
+    "width": 390,
+    "height": 1015,
+    "sha256": "ae23eb915853e7a5ab958fdec4be930a03fe26f0f38f74f478ac4c0856e2a283"
+  },
+  {
+    "id": "angebot-entwurf",
+    "format": "desktop",
+    "file": "bilder/203-angebot-entwurf-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "3721a29eb3ea009fdf9cbcea33c1ae9b01f8f5152f33b7566089d6fc3e821807"
+  },
+  {
+    "id": "angebot-entwurf",
+    "format": "tablet",
+    "file": "bilder/203-angebot-entwurf-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "d009f10bb27356347d0af1ff4cae0980f01d9ec8db1c6c7e0ab30524ccf992ef"
+  },
+  {
+    "id": "angebot-entwurf",
+    "format": "mobil",
+    "file": "bilder/203-angebot-entwurf-mobil.jpg",
+    "width": 390,
+    "height": 959,
+    "sha256": "7f5bccd6309f3892aa521634266f64bca6c2b4106abfca21128ce08b73c8ef42"
+  },
+  {
+    "id": "angebot-versendet",
+    "format": "desktop",
+    "file": "bilder/204-angebot-versendet-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "21e0cf73567a43d0096ad8ae3b1748fe8c6817265fba54e24309a84d7e67ae1a"
+  },
+  {
+    "id": "angebot-versendet",
+    "format": "tablet",
+    "file": "bilder/204-angebot-versendet-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "f77dc5d521ae3a4d9209c1890ccde05a14095b5476a292328e1a23eeac86a0e3"
+  },
+  {
+    "id": "angebot-versendet",
+    "format": "mobil",
+    "file": "bilder/204-angebot-versendet-mobil.jpg",
+    "width": 390,
+    "height": 959,
+    "sha256": "1334fb169f0fb17fa4b044bf6bbe38e5ad5927c3e84daeb867195ce4c0c5fe37"
+  },
+  {
+    "id": "angebot-abgelehnt",
+    "format": "desktop",
+    "file": "bilder/205-angebot-abgelehnt-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "e956c780019b752b15a120b7bf0144aad9f5fd9e7b4de1ba2dca00738ae2b1d8"
+  },
+  {
+    "id": "angebot-abgelehnt",
+    "format": "tablet",
+    "file": "bilder/205-angebot-abgelehnt-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "3c767ce648e60847ed1ddb0eadbbddf3133bdee5bc16927afb1ce2d80347d364"
+  },
+  {
+    "id": "angebot-abgelehnt",
+    "format": "mobil",
+    "file": "bilder/205-angebot-abgelehnt-mobil.jpg",
+    "width": 390,
+    "height": 959,
+    "sha256": "8c32519d45300618944db90aa2b699bac5dab81a18912c4a019d43c9a0ac66c7"
+  },
+  {
+    "id": "rechnung-export-ergebnis",
+    "format": "desktop",
+    "file": "bilder/206-rechnung-export-ergebnis-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "6c574895130508a6abd2f87802439b8ba7933731d5fc54d714ab0c76022f32bb"
+  },
+  {
+    "id": "rechnung-export-ergebnis",
+    "format": "tablet",
+    "file": "bilder/206-rechnung-export-ergebnis-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "fe15f099dd0252c055d8584a48ababf7bad6ca207fb4acfeb1133581ba5ac1d8"
+  },
+  {
+    "id": "rechnung-export-ergebnis",
+    "format": "mobil",
+    "file": "bilder/206-rechnung-export-ergebnis-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "55f4a068910f31543d159b01729d368c5aedd5bb31560e38fe855f40c0524ca6"
+  },
+  {
+    "id": "rechnung-detail-lesen",
+    "format": "desktop",
+    "file": "bilder/207-rechnung-detail-lesen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "35a5240326c7562e90e88b92d904f6e25f41325cf5ea22107fbe6f09ef1ed211"
+  },
+  {
+    "id": "rechnung-detail-lesen",
+    "format": "tablet",
+    "file": "bilder/207-rechnung-detail-lesen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "261cef71be8ec8bf3d641a06b0abd4f6b1c88abea45e625965ba7a7a109a7e30"
+  },
+  {
+    "id": "rechnung-detail-lesen",
+    "format": "mobil",
+    "file": "bilder/207-rechnung-detail-lesen-mobil.jpg",
+    "width": 390,
+    "height": 1450,
+    "sha256": "2b23572594485fa31da026b35cc1c1d810643575ba8300c74ee1646cdf87a420"
+  },
+  {
+    "id": "rechnung-ruecklass",
+    "format": "desktop",
+    "file": "bilder/208-rechnung-ruecklass-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "4409df655aa62d9776920d2f1dcb78d386b5444f22c564ae7deeb52c0e7d7c95"
+  },
+  {
+    "id": "rechnung-ruecklass",
+    "format": "tablet",
+    "file": "bilder/208-rechnung-ruecklass-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "41044eaef8b6e41a8e4474e0f5948acb752f442e045a28b4dd7701fac0280497"
+  },
+  {
+    "id": "rechnung-ruecklass",
+    "format": "mobil",
+    "file": "bilder/208-rechnung-ruecklass-mobil.jpg",
+    "width": 390,
+    "height": 1725,
+    "sha256": "264afc70b2679e0632d290d0217ecbe020a683baeb9467ecfe64f2f4a9c29175"
+  },
+  {
+    "id": "rechnung-guthaben",
+    "format": "desktop",
+    "file": "bilder/209-rechnung-guthaben-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "05df64b4f5624ef5c8344d11c5206ad9be69ec87054aa00974772ac320ae268c"
+  },
+  {
+    "id": "rechnung-guthaben",
+    "format": "tablet",
+    "file": "bilder/209-rechnung-guthaben-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "341b1425bde04b59240b78b83e0189f4b447c671d38b19c37cb489995cca5d77"
+  },
+  {
+    "id": "rechnung-guthaben",
+    "format": "mobil",
+    "file": "bilder/209-rechnung-guthaben-mobil.jpg",
+    "width": 390,
+    "height": 1568,
+    "sha256": "d4b2ce378cd6a1f9e2c894bb3d90d0f46bf3edc36869a9b652ce7589dbce72f3"
+  },
+  {
+    "id": "dokument-team",
+    "format": "desktop",
+    "file": "bilder/210-dokument-team-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "b0d257672d67dd592a173f37259c35af2714ffd02c7a38e1bf37c48a9895f365"
+  },
+  {
+    "id": "dokument-team",
+    "format": "tablet",
+    "file": "bilder/210-dokument-team-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "afeeeb7b80226c8030e91fbef8bb731d472bc6c6b2259e4632db21467073f8cd"
+  },
+  {
+    "id": "dokument-team",
+    "format": "mobil",
+    "file": "bilder/210-dokument-team-mobil.jpg",
+    "width": 390,
+    "height": 899,
+    "sha256": "cd18f65aca6665065bf4eb09df10234439516be03fbd8194a1f88853c3feca20"
+  },
+  {
+    "id": "katalog-neu",
+    "format": "desktop",
+    "file": "bilder/211-katalog-neu-desktop.jpg",
+    "width": 1440,
+    "height": 1340,
+    "sha256": "69448f9f583a15e69ebf94bf90e7fa4dd30f6cfe8db7d43704b2b99429beffe2"
+  },
+  {
+    "id": "katalog-neu",
+    "format": "tablet",
+    "file": "bilder/211-katalog-neu-tablet.jpg",
+    "width": 834,
+    "height": 1327,
+    "sha256": "a92251aeb9c4ca30ab52dd6e3cdac4db6c9616f549b9d0d337f7b0ea5b4d1ad8"
+  },
+  {
+    "id": "katalog-neu",
+    "format": "mobil",
+    "file": "bilder/211-katalog-neu-mobil.jpg",
+    "width": 390,
+    "height": 1443,
+    "sha256": "ad18403f4d83749fde68c6865fa6f856ea5fd85e66cdd6fa01cb9c4ef40eccbf"
+  },
+  {
+    "id": "planung-baustellen",
+    "format": "desktop",
+    "file": "bilder/212-planung-baustellen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "ee77e45b38156136c6ffcd4b2cd22dcfb8f74bbe0c43a85ed2122a1af211850f"
+  },
+  {
+    "id": "planung-baustellen",
+    "format": "tablet",
+    "file": "bilder/212-planung-baustellen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "f1ef250621fe0ca0244073c24f99b3bb8b9d143d9ac3d70a35bc561e54376735"
+  },
+  {
+    "id": "planung-baustellen",
+    "format": "mobil",
+    "file": "bilder/212-planung-baustellen-mobil.jpg",
+    "width": 390,
+    "height": 2141,
+    "sha256": "18248ea2830f21d83bcd1491bfb2a72763c9de3dfe6a2f30d893b7704193cc37"
+  },
+  {
+    "id": "mitarbeiter-kalender",
+    "format": "desktop",
+    "file": "bilder/213-mitarbeiter-kalender-desktop.jpg",
+    "width": 1440,
+    "height": 1360,
+    "sha256": "8be346ada3de77b91845729fdc734bb8397c8a34520fc4fab7f6c7a7143417bc"
+  },
+  {
+    "id": "mitarbeiter-kalender",
+    "format": "tablet",
+    "file": "bilder/213-mitarbeiter-kalender-tablet.jpg",
+    "width": 834,
+    "height": 1351,
+    "sha256": "34501126c31465928617b6a02d898874e1132a5c1b697010590e2c5ed45e45cf"
+  },
+  {
+    "id": "mitarbeiter-kalender",
+    "format": "mobil",
+    "file": "bilder/213-mitarbeiter-kalender-mobil.jpg",
+    "width": 390,
+    "height": 1615,
+    "sha256": "8b45ecc53c68659f43424acc9bd4acf5a228a3b2d484534d942cecc8fff2023b"
+  },
+  {
+    "id": "mitarbeiter-monatsraster",
+    "format": "desktop",
+    "file": "bilder/214-mitarbeiter-monatsraster-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "0db3af592f5b13a285a605c7eac598db42b26d2f2ffa697780cc4b5f65ee9a6d"
+  },
+  {
+    "id": "mitarbeiter-monatsraster",
+    "format": "tablet",
+    "file": "bilder/214-mitarbeiter-monatsraster-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "42854724849b97d18876b2cdaf6470fc602c7165b120a076f4fe38f9240f3050"
+  },
+  {
+    "id": "mitarbeiter-monatsraster",
+    "format": "mobil",
+    "file": "bilder/214-mitarbeiter-monatsraster-mobil.jpg",
+    "width": 390,
+    "height": 1549,
+    "sha256": "385334e5efe425eb2eb7ba75b419861ddd4b54482d3fc6e2f938a031734e64ed"
+  },
+  {
+    "id": "termin-lesen",
+    "format": "desktop",
+    "file": "bilder/215-termin-lesen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "8b540e7d7e17f3b004d4fcc261ae338ab8f4b44a797b293cd06909049f0427df"
+  },
+  {
+    "id": "termin-lesen",
+    "format": "tablet",
+    "file": "bilder/215-termin-lesen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "568a71562d7480d1acd14429424a2d2e4df88b2a1f0a717de2d63b8e1213586c"
+  },
+  {
+    "id": "termin-lesen",
+    "format": "mobil",
+    "file": "bilder/215-termin-lesen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "ea7febc6bec0fdfea55098d88f2d25b22e7287ac36141727d0d21570d562f172"
+  },
+  {
+    "id": "zahlung-rueckzahlung",
+    "format": "desktop",
+    "file": "bilder/216-zahlung-rueckzahlung-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "bfe3a07eed785be1a34b9213a0c989c40ed6e8bf47e91090dd700e93456b3e81"
+  },
+  {
+    "id": "zahlung-rueckzahlung",
+    "format": "tablet",
+    "file": "bilder/216-zahlung-rueckzahlung-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "d13f250ea3d014528495543e8478ccdf109c5f96a63a9a361c1ec10cb2651a5d"
+  },
+  {
+    "id": "zahlung-rueckzahlung",
+    "format": "mobil",
+    "file": "bilder/216-zahlung-rueckzahlung-mobil.jpg",
+    "width": 390,
+    "height": 914,
+    "sha256": "e30d44a18aecc428d0599b72384392580265437fb1a84107635bd7df15a04c02"
+  },
+  {
+    "id": "zeit-person",
+    "format": "desktop",
+    "file": "bilder/217-zeit-person-desktop.jpg",
+    "width": 1440,
+    "height": 2055,
+    "sha256": "d3ae1e5d4c1b817f05071e55a27f7fd6046a594433282f6a26a4b47417b8a53a"
+  },
+  {
+    "id": "zeit-person",
+    "format": "tablet",
+    "file": "bilder/217-zeit-person-tablet.jpg",
+    "width": 834,
+    "height": 2038,
+    "sha256": "8cc36a4727c19ce3548796361492e04e0d31675ca6a46dfff6b3a12adb8f59a6"
+  },
+  {
+    "id": "zeit-person",
+    "format": "mobil",
+    "file": "bilder/217-zeit-person-mobil.jpg",
+    "width": 390,
+    "height": 2402,
+    "sha256": "691c1558bdceec616a54fadb22d974d6b883f7ecb86956c157b78f9e83c5eab5"
+  },
+  {
+    "id": "kunden-filter-1",
+    "format": "desktop",
+    "file": "bilder/218-kunden-filter-1-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "9087d2099c1405e857d20f8d3463bdf644cc1d64bc03c929d6ffff331cf4af61"
+  },
+  {
+    "id": "kunden-filter-1",
+    "format": "tablet",
+    "file": "bilder/218-kunden-filter-1-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "ee6bf154701611828c1efff069797cce1f203c99861b61866e473cdeb9123dd6"
+  },
+  {
+    "id": "kunden-filter-1",
+    "format": "mobil",
+    "file": "bilder/218-kunden-filter-1-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "efd672ecc936430b74b71b1b6670386675892be3c745fa3f517ea26c52d47d58"
+  },
+  {
+    "id": "kunden-filter-2",
+    "format": "desktop",
+    "file": "bilder/219-kunden-filter-2-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "f8de84f3c0931b8a213baa387ff6eb218d024d3b0f3819e2fecc7bc5dd0a1dab"
+  },
+  {
+    "id": "kunden-filter-2",
+    "format": "tablet",
+    "file": "bilder/219-kunden-filter-2-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "83e21d2d75b2cdf26ae8b3bd3db92b0d2f065aad57efc2936a87eac9e8a07201"
+  },
+  {
+    "id": "kunden-filter-2",
+    "format": "mobil",
+    "file": "bilder/219-kunden-filter-2-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "271c8d6e340a992565244dabce03e6f58c8337cd87c6160f35d2480cd9486f13"
+  },
+  {
+    "id": "angebote-filter-1",
+    "format": "desktop",
+    "file": "bilder/220-angebote-filter-1-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "4cb6d695c6513b18e0e16946f70cdb1f2841e52f5c165be50b35795a775d41ff"
+  },
+  {
+    "id": "angebote-filter-1",
+    "format": "tablet",
+    "file": "bilder/220-angebote-filter-1-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "6f1cf8af004d963027fa224a5e4cf2e1d2878cc36c47a89b52ed3bce7cfcedce"
+  },
+  {
+    "id": "angebote-filter-1",
+    "format": "mobil",
+    "file": "bilder/220-angebote-filter-1-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "d72345202bd403de7f7d99f7170d1aed95eadb4e4eb38b5ea79676e082b623e6"
+  },
+  {
+    "id": "angebote-filter-2",
+    "format": "desktop",
+    "file": "bilder/221-angebote-filter-2-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "72e851b661e082c16cfc503d42aa94bbcab89daf9483fcd6e53f891125d94e1b"
+  },
+  {
+    "id": "angebote-filter-2",
+    "format": "tablet",
+    "file": "bilder/221-angebote-filter-2-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "dca781de07b1fd0dc23125efd3cc5eb4ca2b4b6d32be0b97e8c3e232588a26e4"
+  },
+  {
+    "id": "angebote-filter-2",
+    "format": "mobil",
+    "file": "bilder/221-angebote-filter-2-mobil.jpg",
+    "width": 390,
+    "height": 883,
+    "sha256": "36f1d2c82b4a1231926efc00d48f7a4346d0561d591494ecae18768aeeeb5770"
+  },
+  {
+    "id": "baustellen-filter-1",
+    "format": "desktop",
+    "file": "bilder/222-baustellen-filter-1-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "d24eaa45fa7bfbb316965948bb50765151016befd14ad1e82fc33adb69d2f1dd"
+  },
+  {
+    "id": "baustellen-filter-1",
+    "format": "tablet",
+    "file": "bilder/222-baustellen-filter-1-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "0ca08a9fc8347c5fb8f59a6abfd35c795280c28d16d48aec98619aae32fa1c74"
+  },
+  {
+    "id": "baustellen-filter-1",
+    "format": "mobil",
+    "file": "bilder/222-baustellen-filter-1-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "f54dc4dd14513f0529b838e424d476747a7cdae7b14919d6ec2dc53e312c181a"
+  },
+  {
+    "id": "baustellen-filter-2",
+    "format": "desktop",
+    "file": "bilder/223-baustellen-filter-2-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "f3181a83969ee381fd253eb17faab860d6daa39662f7b230fae3a88ea5e019b2"
+  },
+  {
+    "id": "baustellen-filter-2",
+    "format": "tablet",
+    "file": "bilder/223-baustellen-filter-2-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "fb04fb9b6178538eb7d89f70b60682be18a3c821cbc57f1c99f4a8e8101a3008"
+  },
+  {
+    "id": "baustellen-filter-2",
+    "format": "mobil",
+    "file": "bilder/223-baustellen-filter-2-mobil.jpg",
+    "width": 390,
+    "height": 937,
+    "sha256": "d4fc094575f3487487029cde5159410d18a3566316ca8855dafa94c7e15ed6b5"
+  },
+  {
+    "id": "scheine-filter-1",
+    "format": "desktop",
+    "file": "bilder/224-scheine-filter-1-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "2bb64ef837fc98a8cc91dd1582d03be56c85bf4672e52378f806992c65a8dd9a"
+  },
+  {
+    "id": "scheine-filter-1",
+    "format": "tablet",
+    "file": "bilder/224-scheine-filter-1-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "0f8ffff448729f2b946eee5efe136241cb186183b391381b02b76ac82eeb5c42"
+  },
+  {
+    "id": "scheine-filter-1",
+    "format": "mobil",
+    "file": "bilder/224-scheine-filter-1-mobil.jpg",
+    "width": 390,
+    "height": 883,
+    "sha256": "f421aaaea86d519c89d9d1b65639e4859314e501faaf91a55f38d073946ab14c"
+  },
+  {
+    "id": "benutzer-filter-1",
+    "format": "desktop",
+    "file": "bilder/225-benutzer-filter-1-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "d9fb329d7fe956726433a5d1622aa315b0dfbb1c4386dc31c3c9c9359e617b1a"
+  },
+  {
+    "id": "benutzer-filter-1",
+    "format": "tablet",
+    "file": "bilder/225-benutzer-filter-1-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "b765dac7a47e75155ccd301cc4a16d1da6d35c42a0ad978b80715645538fc042"
+  },
+  {
+    "id": "benutzer-filter-1",
+    "format": "mobil",
+    "file": "bilder/225-benutzer-filter-1-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "436e151f5654e79c61e9850476921f9b30f1b4421adda54913e6710869cb8c8c"
+  },
+  {
+    "id": "benutzer-filter-2",
+    "format": "desktop",
+    "file": "bilder/226-benutzer-filter-2-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "6a93f1fb5cc408eb134152ec8f7240206ca69a387489c2a2b1b29e1dca2e435f"
+  },
+  {
+    "id": "benutzer-filter-2",
+    "format": "tablet",
+    "file": "bilder/226-benutzer-filter-2-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "193d0533b38c0e47797f172010982b18a1bad252ce8d38cde643d78c3a66c217"
+  },
+  {
+    "id": "benutzer-filter-2",
+    "format": "mobil",
+    "file": "bilder/226-benutzer-filter-2-mobil.jpg",
+    "width": 390,
+    "height": 883,
+    "sha256": "ad5d99a25a0d0df384bc92377e2ffb004ff5fa08b1ae6d016b922f184b8b78ac"
+  },
+  {
+    "id": "wartungen-filter-1",
+    "format": "desktop",
+    "file": "bilder/227-wartungen-filter-1-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "b7ae2883d3a926d9e6583a5372210bdde3b0f4dd7e772d784b90626f38e576f3"
+  },
+  {
+    "id": "wartungen-filter-1",
+    "format": "tablet",
+    "file": "bilder/227-wartungen-filter-1-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "ad156f9bd5f8a91b4744bc1f2fe5e1fee27e533aee6a1bcf78f82dd851e94e83"
+  },
+  {
+    "id": "wartungen-filter-1",
+    "format": "mobil",
+    "file": "bilder/227-wartungen-filter-1-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "10e8465b9a05f9e2a7ddd50ac0a237609c37ce26e4d97c6bbc1d8d6f3c7fcd70"
+  },
+  {
+    "id": "nachkalkulation-filter-1",
+    "format": "desktop",
+    "file": "bilder/228-nachkalkulation-filter-1-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "9a18a271d5a24446cfe33bbb4bd4b09283cabf58013029a75e9da4882e4d8f7d"
+  },
+  {
+    "id": "nachkalkulation-filter-1",
+    "format": "tablet",
+    "file": "bilder/228-nachkalkulation-filter-1-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "73c9c3dc71123757c6108bbbdad0626deae2db58e4321a64153a9052fd745028"
+  },
+  {
+    "id": "nachkalkulation-filter-1",
+    "format": "mobil",
+    "file": "bilder/228-nachkalkulation-filter-1-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "83ab014f072f2a30a43c98f00958226e396465b2d3f704ce159c3bf6b8d4b44b"
+  },
+  {
+    "id": "rechnungen-filter-1",
+    "format": "desktop",
+    "file": "bilder/229-rechnungen-filter-1-desktop.jpg",
+    "width": 1440,
+    "height": 1041,
+    "sha256": "c547e163d784192248575b9dfbfea07ebb25c88641850b438e04f77873bd4bdf"
+  },
+  {
+    "id": "rechnungen-filter-1",
+    "format": "tablet",
+    "file": "bilder/229-rechnungen-filter-1-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "9ad0518ae2c3cf90d0d110bf407da4e7361ca5922e43a87b121465277b16e513"
+  },
+  {
+    "id": "rechnungen-filter-1",
+    "format": "mobil",
+    "file": "bilder/229-rechnungen-filter-1-mobil.jpg",
+    "width": 390,
+    "height": 908,
+    "sha256": "6157730ba9b0b0716572be0a00d117f7f546735cc802507d4390bbff0dbf772e"
+  },
+  {
+    "id": "rechnungen-filter-2",
+    "format": "desktop",
+    "file": "bilder/230-rechnungen-filter-2-desktop.jpg",
+    "width": 1440,
+    "height": 1041,
+    "sha256": "07a99d892879b364f71db074cc6a3b0f91afd1bef41cd4c44576d6c0ad488c84"
+  },
+  {
+    "id": "rechnungen-filter-2",
+    "format": "tablet",
+    "file": "bilder/230-rechnungen-filter-2-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "a40b90e34ca1b926c8872a4e32404e92dbcf8aee5b3b9ac5388a750cf3551c06"
+  },
+  {
+    "id": "rechnungen-filter-2",
+    "format": "mobil",
+    "file": "bilder/230-rechnungen-filter-2-mobil.jpg",
+    "width": 390,
+    "height": 1252,
+    "sha256": "f9d5a0eb2e0f4c23fa4264028f188d86730f0a9fd4ead8562a6cb05d25ee9e34"
+  },
+  {
+    "id": "kundenakte-baustellen",
+    "format": "desktop",
+    "file": "bilder/231-kundenakte-baustellen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "8a18842efb3a6c4a90d0ef2115e09b68b5726e9a2fa0e28bd3a0587848ee9631"
+  },
+  {
+    "id": "kundenakte-baustellen",
+    "format": "tablet",
+    "file": "bilder/231-kundenakte-baustellen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "d44eb5da7fd652ba953ad67cabf5cd773bed9bdb377796b14571f9a339f5cec2"
+  },
+  {
+    "id": "kundenakte-baustellen",
+    "format": "mobil",
+    "file": "bilder/231-kundenakte-baustellen-mobil.jpg",
+    "width": 390,
+    "height": 1278,
+    "sha256": "27389757e5d4752255de26a58aff929cb65f0a2e5fd60563064a06bf402bf3d7"
+  },
+  {
+    "id": "kundenakte-belege",
+    "format": "desktop",
+    "file": "bilder/232-kundenakte-belege-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "54931b576d01b01962610fd98bf1bc15ce50819ab44c99706c6d29b536798ac7"
+  },
+  {
+    "id": "kundenakte-belege",
+    "format": "tablet",
+    "file": "bilder/232-kundenakte-belege-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "46bfa1da9c58f522ebbf40bd94c7d57c277e8ab07f0f54668142fea86c4f4869"
+  },
+  {
+    "id": "kundenakte-belege",
+    "format": "mobil",
+    "file": "bilder/232-kundenakte-belege-mobil.jpg",
+    "width": 390,
+    "height": 1192,
+    "sha256": "f3d1c55d0777d600eed5daf21284cc24ac7e26948128909dfd25849b53a1951d"
+  },
+  {
+    "id": "kundenakte-termine",
+    "format": "desktop",
+    "file": "bilder/233-kundenakte-termine-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "4de4b1dd380bf4442cbf4ff0dbe0367b62a2f44b11063bd0c1fd229d27572c9e"
+  },
+  {
+    "id": "kundenakte-termine",
+    "format": "tablet",
+    "file": "bilder/233-kundenakte-termine-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "58807afa240574f85cb67d3a127640c9ec2bc150a10c4e2d5273ce82ab54c445"
+  },
+  {
+    "id": "kundenakte-termine",
+    "format": "mobil",
+    "file": "bilder/233-kundenakte-termine-mobil.jpg",
+    "width": 390,
+    "height": 1192,
+    "sha256": "1ba8b9e87ab4a67a79d7b8b9324cba4cd73ca62623734e4d9831b81507f1809c"
+  },
+  {
+    "id": "kundenakte-stammdaten",
+    "format": "desktop",
+    "file": "bilder/234-kundenakte-stammdaten-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "9b5b5fe7e9f99514e40375ce3123a886b405713c7e951e05e3df2c9d0048eb05"
+  },
+  {
+    "id": "kundenakte-stammdaten",
+    "format": "tablet",
+    "file": "bilder/234-kundenakte-stammdaten-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "8b061f799224ba1385fb92d90ad6591fd5b1748245135c147cee42fbc430a21a"
+  },
+  {
+    "id": "kundenakte-stammdaten",
+    "format": "mobil",
+    "file": "bilder/234-kundenakte-stammdaten-mobil.jpg",
+    "width": 390,
+    "height": 1450,
+    "sha256": "a481489e8f7a33ba1cf6c8e79785c8dca615103cd62c0d29862f25a890f6495c"
+  },
+  {
+    "id": "baustelle-termine",
+    "format": "desktop",
+    "file": "bilder/235-baustelle-termine-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "ce18ac132962a4f4c3526cb953e8f5b59e4560c905a17a89013c1562b8d0dacd"
+  },
+  {
+    "id": "baustelle-termine",
+    "format": "tablet",
+    "file": "bilder/235-baustelle-termine-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "a6979f1475696143d9ac797e301740c4222f999a5f8fde0a438630d27f7987d3"
+  },
+  {
+    "id": "baustelle-termine",
+    "format": "mobil",
+    "file": "bilder/235-baustelle-termine-mobil.jpg",
+    "width": 390,
+    "height": 1399,
+    "sha256": "534bd970655562ed4f3ce83772ca91312a4d8e5008c69fce9cec5c7da15fc362"
+  },
+  {
+    "id": "benutzer-arbeitszeit",
+    "format": "desktop",
+    "file": "bilder/236-benutzer-arbeitszeit-desktop.jpg",
+    "width": 1440,
+    "height": 1156,
+    "sha256": "560d79f73fc27be78ff183a0082ad85a03bf0e867182c574a3d86567bcd23eae"
+  },
+  {
+    "id": "benutzer-arbeitszeit",
+    "format": "tablet",
+    "file": "bilder/236-benutzer-arbeitszeit-tablet.jpg",
+    "width": 834,
+    "height": 1143,
+    "sha256": "0d84e19e5971b19dfb13acabe252eaa7f760ee3a8061eade3278d6c09b4cff10"
+  },
+  {
+    "id": "benutzer-arbeitszeit",
+    "format": "mobil",
+    "file": "bilder/236-benutzer-arbeitszeit-mobil.jpg",
+    "width": 390,
+    "height": 1893,
+    "sha256": "c594e08f31433cb3292b82fe5b2e2aa1bbc99f91bf0aa4e8cba436a989b67089"
+  },
+  {
+    "id": "fuhrpark",
+    "format": "desktop",
+    "file": "bilder/237-fuhrpark-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "fafead415bfaee92f46b2295b2ffbd086a1d9d8c12252e728660193bf3a8fb39"
+  },
+  {
+    "id": "fuhrpark",
+    "format": "tablet",
+    "file": "bilder/237-fuhrpark-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "eeee3c35a1c71626b750a643244ae99d55f5e1f4fe1dca134f2acffcd8f7bcb1"
+  },
+  {
+    "id": "fuhrpark",
+    "format": "mobil",
+    "file": "bilder/237-fuhrpark-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "756caa055e5138ef556b64deadd690303a5c83ab2ffb2224b95cba9d4184fa0b"
+  },
+  {
+    "id": "urlaub-buero",
+    "format": "desktop",
+    "file": "bilder/238-urlaub-buero-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "4f6dba627adb0bfda5fdeac5416c23c4af0dc9231b011f260540b55ebb0d8b70"
+  },
+  {
+    "id": "urlaub-buero",
+    "format": "tablet",
+    "file": "bilder/238-urlaub-buero-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "469255380ccdde97696448171ae0276d7665a4644a98640c362b222fc24046b1"
+  },
+  {
+    "id": "urlaub-buero",
+    "format": "mobil",
+    "file": "bilder/238-urlaub-buero-mobil.jpg",
+    "width": 390,
+    "height": 992,
+    "sha256": "9f799c020befe75bf865b982546a9eaed73d35ee2aff9a82fb10a040f5e7f3f8"
+  },
+  {
+    "id": "lager-knapp",
+    "format": "desktop",
+    "file": "bilder/239-lager-knapp-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "5561384d92e9081a8b1a875a3a6720d2beb3d453c833446147880640ffe819cc"
+  },
+  {
+    "id": "lager-knapp",
+    "format": "tablet",
+    "file": "bilder/239-lager-knapp-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "7b9e547b1178e4fccb7cb6691cf450b121a0455f04d20d3f3397bcb897d01758"
+  },
+  {
+    "id": "lager-knapp",
+    "format": "mobil",
+    "file": "bilder/239-lager-knapp-mobil.jpg",
+    "width": 390,
+    "height": 950,
+    "sha256": "c9816b845b77c87534bd32eb728194d51591d8fb97063ae4684f49d29d80351d"
+  },
+  {
+    "id": "lager-fehlt",
+    "format": "desktop",
+    "file": "bilder/240-lager-fehlt-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "26e055a6f852837fa2b811d4369dae8ca68c1a9d7aa0a28f89142804ebef51b7"
+  },
+  {
+    "id": "lager-fehlt",
+    "format": "tablet",
+    "file": "bilder/240-lager-fehlt-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "5aff3d999c9f980215221fc53d77a4faafda2196687f3cf22fc2d531920e912b"
+  },
+  {
+    "id": "lager-fehlt",
+    "format": "mobil",
+    "file": "bilder/240-lager-fehlt-mobil.jpg",
+    "width": 390,
+    "height": 950,
+    "sha256": "168fd6110cd630a2870f0780f6585eaa7b41c6d52fbcbb6d3bf3becec4d405b7"
+  },
+  {
+    "id": "e-rechnung-bund",
+    "format": "desktop",
+    "file": "bilder/241-e-rechnung-bund-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "4b935cb109802bfc5d526e0f910ac161849cca503d02b6393d9ab1d6e96cf050"
+  },
+  {
+    "id": "e-rechnung-bund",
+    "format": "tablet",
+    "file": "bilder/241-e-rechnung-bund-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "a35870a0ec797c7d029556d4edbf941f3d40b7c12c9ffc6e99dd670b67478417"
+  },
+  {
+    "id": "e-rechnung-bund",
+    "format": "mobil",
+    "file": "bilder/241-e-rechnung-bund-mobil.jpg",
+    "width": 390,
+    "height": 1081,
+    "sha256": "f68fcd7e2493c7a5627b40c51889f2ea3b143bcca8589e4cb8c889db23caf60f"
+  },
+  {
+    "id": "e-rechnung-andere",
+    "format": "desktop",
+    "file": "bilder/242-e-rechnung-andere-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "78699bd6c98eac62934e9b8a20a2aff746d3c817d78e11029efe68d6681e646d"
+  },
+  {
+    "id": "e-rechnung-andere",
+    "format": "tablet",
+    "file": "bilder/242-e-rechnung-andere-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "df4357be8fb2fb0fa3cef7f43db036efde142b0a1d2f861971c4414896d262dd"
+  },
+  {
+    "id": "e-rechnung-andere",
+    "format": "mobil",
+    "file": "bilder/242-e-rechnung-andere-mobil.jpg",
+    "width": 390,
+    "height": 1022,
+    "sha256": "2a518ef91b3f5a85fc4f853436945b2ea8b2542bdafa1ff294c7b69c7ea1edb7"
+  },
+  {
+    "id": "e-rechnung-allgemein",
+    "format": "desktop",
+    "file": "bilder/243-e-rechnung-allgemein-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "bb054919f044fe447c3031661c5ab8b00c0221af77aa0b5d23e6e3f5951c6714"
+  },
+  {
+    "id": "e-rechnung-allgemein",
+    "format": "tablet",
+    "file": "bilder/243-e-rechnung-allgemein-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "fa9c324b9706dabb05a8c6a11d4d6e14ab2c97a029ad8f431e9b279cf9232fcb"
+  },
+  {
+    "id": "e-rechnung-allgemein",
+    "format": "mobil",
+    "file": "bilder/243-e-rechnung-allgemein-mobil.jpg",
+    "width": 390,
+    "height": 965,
+    "sha256": "47c5ed61b7d0229b91b58ee63ec031543379c659c0f82b0e56e29f99a2a645f0"
+  },
+  {
+    "id": "e-rechnung-storno",
+    "format": "desktop",
+    "file": "bilder/244-e-rechnung-storno-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "6bc18bada140d65b360d2587c83ef850e723f20986889f5cd5cedf8b4757eb68"
+  },
+  {
+    "id": "e-rechnung-storno",
+    "format": "tablet",
+    "file": "bilder/244-e-rechnung-storno-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "70a78a4819935baca89f6b08422da4a16f7b0da07455e3b1f8be48d44f17fd64"
+  },
+  {
+    "id": "e-rechnung-storno",
+    "format": "mobil",
+    "file": "bilder/244-e-rechnung-storno-mobil.jpg",
+    "width": 390,
+    "height": 987,
+    "sha256": "c70892206337a6bce09412bd2e0a8a4fc4577c461441f2f9f7610296e33790d8"
+  },
+  {
+    "id": "kunden-import-pruefung",
+    "format": "desktop",
+    "file": "bilder/245-kunden-import-pruefung-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "9b0bb50b64b72ae7aa1093c0d895a8d532dbdb632be4f14abdc329505bbad1b6"
+  },
+  {
+    "id": "kunden-import-pruefung",
+    "format": "tablet",
+    "file": "bilder/245-kunden-import-pruefung-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "eeb7fc30a6c636ff35913b727478a3287ddbc07e26718adb5b6f23874e585f62"
+  },
+  {
+    "id": "kunden-import-pruefung",
+    "format": "mobil",
+    "file": "bilder/245-kunden-import-pruefung-mobil.jpg",
+    "width": 390,
+    "height": 913,
+    "sha256": "f613cda4faa7838cac94257cc7e3680277421d8272e308e64d8721db49611e1f"
+  },
+  {
+    "id": "firma-iban-fehler",
+    "format": "desktop",
+    "file": "bilder/246-firma-iban-fehler-desktop.jpg",
+    "width": 1440,
+    "height": 2044,
+    "sha256": "235107d4d40a0d0fd4d6908897227f01c3fbb6ab6a33ac264a429f3bcde514de"
+  },
+  {
+    "id": "firma-iban-fehler",
+    "format": "tablet",
+    "file": "bilder/246-firma-iban-fehler-tablet.jpg",
+    "width": 834,
+    "height": 2031,
+    "sha256": "6b255ee529ff4d0e471ad1cccbcbfc202ffd9a08cf4087f1857865af00cadfe8"
+  },
+  {
+    "id": "firma-iban-fehler",
+    "format": "mobil",
+    "file": "bilder/246-firma-iban-fehler-mobil.jpg",
+    "width": 390,
+    "height": 2166,
+    "sha256": "1c1e50c068d554bdeb220e7d75ff43de4783aec643d71a5e61e8f8f2a8a62703"
+  },
+  {
+    "id": "benutzer-eintritt",
+    "format": "desktop",
+    "file": "bilder/247-benutzer-eintritt-desktop.jpg",
+    "width": 1440,
+    "height": 1802,
+    "sha256": "b5c98f57eb2dcd79eed420c67b4e605f7b49c04d4bf441c8e07fa46508f9333a"
+  },
+  {
+    "id": "benutzer-eintritt",
+    "format": "tablet",
+    "file": "bilder/247-benutzer-eintritt-tablet.jpg",
+    "width": 834,
+    "height": 1789,
+    "sha256": "2377c45e8d5386ab932e6cbffd30849da3cd2f313e235430f00e5f25a3b5b531"
+  },
+  {
+    "id": "benutzer-eintritt",
+    "format": "mobil",
+    "file": "bilder/247-benutzer-eintritt-mobil.jpg",
+    "width": 390,
+    "height": 1906,
+    "sha256": "0f500572bb2d43537517ace5e4562b670e1d48447ad2eafed3718fcd066604cb"
+  },
+  {
+    "id": "personal-eintrittsjahr",
+    "format": "desktop",
+    "file": "bilder/248-personal-eintrittsjahr-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "84c978d09d23a9e62e49d498278bcc00cb53464f5e2eff3bb6a492300f87b1bb"
+  },
+  {
+    "id": "personal-eintrittsjahr",
+    "format": "tablet",
+    "file": "bilder/248-personal-eintrittsjahr-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "ebc08865ef04ac1566bff451e23a3eaeeef935a9c601551fd2f145fb0998b397"
+  },
+  {
+    "id": "personal-eintrittsjahr",
+    "format": "mobil",
+    "file": "bilder/248-personal-eintrittsjahr-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "90787e7a0e712897c9ba6b250abc74319a58d8dbfa8c3e2aad442bb3a48f8268"
+  },
+  {
+    "id": "belegarchiv",
+    "format": "desktop",
+    "file": "bilder/249-belegarchiv-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "28f39d5a7e45c8a566b5a4500f83c804e0674d414dd3fd90c475146d35e03f2b"
+  },
+  {
+    "id": "belegarchiv",
+    "format": "tablet",
+    "file": "bilder/249-belegarchiv-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "e7e285728096a586ddc8dec541f9f4e293260803ba724a77cb4b5e00516a0f6c"
+  },
+  {
+    "id": "belegarchiv",
+    "format": "mobil",
+    "file": "bilder/249-belegarchiv-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "eba73af66ca36f213004b0053562db23a01e8066b326f38084bd3026c8e3ac0a"
+  },
+  {
+    "id": "sicherung-lauf",
+    "format": "desktop",
+    "file": "bilder/250-sicherung-lauf-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "d0772528aae3c4b89f86fc6715bea3550c6ad4a859d1c03ca26d0e11abd3c199"
+  },
+  {
+    "id": "sicherung-lauf",
+    "format": "tablet",
+    "file": "bilder/250-sicherung-lauf-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "e258c64df376f31ee078940bae0199324e07aa9b7bf52e3222ae8ded5f5328f7"
+  },
+  {
+    "id": "sicherung-lauf",
+    "format": "mobil",
+    "file": "bilder/250-sicherung-lauf-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "11d6636b852e3adb58b7c4d0d208b8da25b50a57859b4a62ee0a54a9693395e9"
+  },
+  {
+    "id": "rechnung-status-ueberfaellig",
+    "format": "desktop",
+    "file": "bilder/251-rechnung-status-ueberfaellig-desktop.jpg",
+    "width": 1440,
+    "height": 1041,
+    "sha256": "9289d039bbb573689a6c982b90e656542f8d763b80b6bc79057a8fc2f0b6de94"
+  },
+  {
+    "id": "rechnung-status-ueberfaellig",
+    "format": "tablet",
+    "file": "bilder/251-rechnung-status-ueberfaellig-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "78933719e4da687415d5318c3a0d9ee31641a12259f8a43c9ca028f501af6852"
+  },
+  {
+    "id": "rechnung-status-ueberfaellig",
+    "format": "mobil",
+    "file": "bilder/251-rechnung-status-ueberfaellig-mobil.jpg",
+    "width": 390,
+    "height": 928,
+    "sha256": "2c9c47a772d9014a2d9fa3141185f9bb623563e22ce8e48c3b10a60c1580c030"
+  },
+  {
+    "id": "rechnung-status-teilbezahlt",
+    "format": "desktop",
+    "file": "bilder/252-rechnung-status-teilbezahlt-desktop.jpg",
+    "width": 1440,
+    "height": 1041,
+    "sha256": "d541fbc649a1d6babc5258ddf1b35620c412114b20adf3c7345324184699e3c3"
+  },
+  {
+    "id": "rechnung-status-teilbezahlt",
+    "format": "tablet",
+    "file": "bilder/252-rechnung-status-teilbezahlt-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "6f80d1eca633ff28517d3c811691525fd09ffc6c0ed1539b87ec3fd981691dae"
+  },
+  {
+    "id": "rechnung-status-teilbezahlt",
+    "format": "mobil",
+    "file": "bilder/252-rechnung-status-teilbezahlt-mobil.jpg",
+    "width": 390,
+    "height": 928,
+    "sha256": "5af8181d6f5568ac171ac9cdc95c1df239574f92515586a91e0961416aaa0db8"
+  },
+  {
+    "id": "rechnung-status-bezahlt",
+    "format": "desktop",
+    "file": "bilder/253-rechnung-status-bezahlt-desktop.jpg",
+    "width": 1440,
+    "height": 1041,
+    "sha256": "5236a4a285e7ae40db1173bf78bc8e7d01587e42023afec00c25c57dd9fb9142"
+  },
+  {
+    "id": "rechnung-status-bezahlt",
+    "format": "tablet",
+    "file": "bilder/253-rechnung-status-bezahlt-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "841591a00fe497ff5774dde03e8950286e31d307b69f05e80917d4aef2c2e1b9"
+  },
+  {
+    "id": "rechnung-status-bezahlt",
+    "format": "mobil",
+    "file": "bilder/253-rechnung-status-bezahlt-mobil.jpg",
+    "width": 390,
+    "height": 928,
+    "sha256": "84059fe72a46e437e0f1c25ad61ce28b3c2bb096ddee77c02a3a63228eabd5c1"
+  },
+  {
+    "id": "rechnung-status-ueberzahlt",
+    "format": "desktop",
+    "file": "bilder/254-rechnung-status-ueberzahlt-desktop.jpg",
+    "width": 1440,
+    "height": 1041,
+    "sha256": "ca5fa9e462fdc348ad2d6f6dec7ca40d73fad970295533b6458fb79b50018ddc"
+  },
+  {
+    "id": "rechnung-status-ueberzahlt",
+    "format": "tablet",
+    "file": "bilder/254-rechnung-status-ueberzahlt-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "527135432ded42ff00d49947fa4762f38196b95084f3cd74db09067674a3ec0b"
+  },
+  {
+    "id": "rechnung-status-ueberzahlt",
+    "format": "mobil",
+    "file": "bilder/254-rechnung-status-ueberzahlt-mobil.jpg",
+    "width": 390,
+    "height": 928,
+    "sha256": "08163113d377744f9d9ae69320517f254151aca10abc4b065bcba397c2fca8e5"
+  },
+  {
+    "id": "rechnung-status-storniert",
+    "format": "desktop",
+    "file": "bilder/255-rechnung-status-storniert-desktop.jpg",
+    "width": 1440,
+    "height": 1041,
+    "sha256": "c322902dc8097b1f716152469a2f9123b85579d209f715ea8339a52cea343711"
+  },
+  {
+    "id": "rechnung-status-storniert",
+    "format": "tablet",
+    "file": "bilder/255-rechnung-status-storniert-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "e8120923ab6a42f4b3d0527f5b6914f6e907665f9b02c951d1c497cac7e29b21"
+  },
+  {
+    "id": "rechnung-status-storniert",
+    "format": "mobil",
+    "file": "bilder/255-rechnung-status-storniert-mobil.jpg",
+    "width": 390,
+    "height": 928,
+    "sha256": "d4082666584bffe2f7672274d282ec087f402c2bbb7a35d56fc12c6b95e151a8"
+  },
+  {
+    "id": "angebot-bearbeiten",
+    "format": "desktop",
+    "file": "bilder/256-angebot-bearbeiten-desktop.jpg",
+    "width": 1440,
+    "height": 1444,
+    "sha256": "922cbe7f21f002510135fc89384800b32961fd1fa985db0c849140283b1ba0b8"
+  },
+  {
+    "id": "angebot-bearbeiten",
+    "format": "tablet",
+    "file": "bilder/256-angebot-bearbeiten-tablet.jpg",
+    "width": 834,
+    "height": 1431,
+    "sha256": "6d35fc0c7da435d2b95faa06bc33f9eef48fab9404416cccdb4c155ff276980e"
+  },
+  {
+    "id": "angebot-bearbeiten",
+    "format": "mobil",
+    "file": "bilder/256-angebot-bearbeiten-mobil.jpg",
+    "width": 390,
+    "height": 1987,
+    "sha256": "58343b8ed5b494e5bedfe0eebe7c33d0e243ddab6ef241cce8292e20e3c3f847"
+  },
+  {
+    "id": "planung-einsatz-bearbeiten",
+    "format": "desktop",
+    "file": "bilder/257-planung-einsatz-bearbeiten-desktop.jpg",
+    "width": 1440,
+    "height": 1255,
+    "sha256": "364b050ec32781121556f3eeef5d882f2ef55eca3116af704ba1f5a2fc7bddba"
+  },
+  {
+    "id": "planung-einsatz-bearbeiten",
+    "format": "tablet",
+    "file": "bilder/257-planung-einsatz-bearbeiten-tablet.jpg",
+    "width": 834,
+    "height": 1244,
+    "sha256": "39210980255f6eaf2828fe1099f33f5234f9f2bdabd0b29d5464012c03cd7489"
+  },
+  {
+    "id": "planung-einsatz-bearbeiten",
+    "format": "mobil",
+    "file": "bilder/257-planung-einsatz-bearbeiten-mobil.jpg",
+    "width": 390,
+    "height": 1412,
+    "sha256": "b456b3ca1b1b09ba93437eeab7c7bbbc473ae3a209e40949c49e12f7d945d03c"
+  },
+  {
+    "id": "termin-bearbeiten",
+    "format": "desktop",
+    "file": "bilder/258-termin-bearbeiten-desktop.jpg",
+    "width": 1440,
+    "height": 1213,
+    "sha256": "99864186a58bcf27f8f45a4089c667c20ff96e89efc8053224ece11e173766b3"
+  },
+  {
+    "id": "termin-bearbeiten",
+    "format": "tablet",
+    "file": "bilder/258-termin-bearbeiten-tablet.jpg",
+    "width": 834,
+    "height": 1201,
+    "sha256": "1f449e55e5ef79a16320584fb8254a3dd00e8d8b943461b88923fe35cbddb9a4"
+  },
+  {
+    "id": "termin-bearbeiten",
+    "format": "mobil",
+    "file": "bilder/258-termin-bearbeiten-mobil.jpg",
+    "width": 390,
+    "height": 1365,
+    "sha256": "2ecb6a8033b251329e5a79449d11b367343407f7b86637ac071ba3fd06b6ca0b"
+  },
+  {
+    "id": "planung-termin-woche",
+    "format": "desktop",
+    "file": "bilder/259-planung-termin-woche-desktop.jpg",
+    "width": 1440,
+    "height": 1203,
+    "sha256": "735c9416615f98c713eedd9df02c53ca31490917f5544ed02b35e1c5a36cee2f"
+  },
+  {
+    "id": "planung-termin-woche",
+    "format": "tablet",
+    "file": "bilder/259-planung-termin-woche-tablet.jpg",
+    "width": 834,
+    "height": 1191,
+    "sha256": "0e966f545455cd41cc61a61bd332460169a3af7e8bacb7eacd0e4ce3c5cfe4e5"
+  },
+  {
+    "id": "planung-termin-woche",
+    "format": "mobil",
+    "file": "bilder/259-planung-termin-woche-mobil.jpg",
+    "width": 390,
+    "height": 1389,
+    "sha256": "f62087695fe4d4eaf8decf08a72f8535ce3eb879616a20c7da3ebc859a13788f"
+  },
+  {
+    "id": "planung-termin-monat",
+    "format": "desktop",
+    "file": "bilder/260-planung-termin-monat-desktop.jpg",
+    "width": 1440,
+    "height": 1203,
+    "sha256": "b89e2b32aa12d2252ac6906007b03e42e7c6cc0302cf7b67aa7d1c8dc1994dd5"
+  },
+  {
+    "id": "planung-termin-monat",
+    "format": "tablet",
+    "file": "bilder/260-planung-termin-monat-tablet.jpg",
+    "width": 834,
+    "height": 1191,
+    "sha256": "0638ac143f1aed7995b34d875de4dbd268fff35547f568f7e4dc85d85fa72964"
+  },
+  {
+    "id": "planung-termin-monat",
+    "format": "mobil",
+    "file": "bilder/260-planung-termin-monat-mobil.jpg",
+    "width": 390,
+    "height": 1389,
+    "sha256": "13f0ec96294a8e547fa2064727989ec6a7abf93339f3ac880cc901752872d662"
+  },
+  {
+    "id": "mobil-mehr",
+    "format": "desktop",
+    "file": "bilder/261-mobil-mehr-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "fbb0f3832df804c127387042a11499dbf973f54bdee879f81dff6ace0f6af9c2"
+  },
+  {
+    "id": "mobil-mehr",
+    "format": "tablet",
+    "file": "bilder/261-mobil-mehr-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "8f0d087bb00c0e40ff0bd576a95a5252e343ddb158ab9c54afaedc932ad4cdcf"
+  },
+  {
+    "id": "mobil-mehr",
+    "format": "mobil",
+    "file": "bilder/261-mobil-mehr-mobil.jpg",
+    "width": 390,
+    "height": 853,
+    "sha256": "69b6d1259bd340b103270d7c9f3604cf0f2f82d4114e83576e4ebe3acdde55d1"
+  },
+  {
+    "id": "teilfehler",
+    "format": "desktop",
+    "file": "bilder/262-teilfehler-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "ae86dc51d3952093846bb61039475a62d4570386f33c9669a91cb27a84e72faa"
+  },
+  {
+    "id": "teilfehler",
+    "format": "tablet",
+    "file": "bilder/262-teilfehler-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "0f987402b7283d49b438a8157f80b78672dddbab55b0ed3b59d93897adc2ee5e"
+  },
+  {
+    "id": "teilfehler",
+    "format": "mobil",
+    "file": "bilder/262-teilfehler-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "127b51afb5d7ab6523bd9cb6907ded8e42ff41ae0ef69438b8c22dca27e9d2a3"
+  },
+  {
+    "id": "entwurf-verwerfen",
+    "format": "desktop",
+    "file": "bilder/263-entwurf-verwerfen-desktop.jpg",
+    "width": 1440,
+    "height": 1040,
+    "sha256": "7d9c9a1b71f06c7ebc9955c219c25a635450d53544e112d3c58ba62588b8f964"
+  },
+  {
+    "id": "entwurf-verwerfen",
+    "format": "tablet",
+    "file": "bilder/263-entwurf-verwerfen-tablet.jpg",
+    "width": 834,
+    "height": 1112,
+    "sha256": "1e104bafc1cb046325ee348cb6331db47536d3c2f6007f8213d02f59f303e389"
+  },
+  {
+    "id": "entwurf-verwerfen",
+    "format": "mobil",
+    "file": "bilder/263-entwurf-verwerfen-mobil.jpg",
+    "width": 390,
+    "height": 844,
+    "sha256": "765bddfd7ffeb076e16e4b038726e245efaa31fcda8ea6d8780f5e4b20bfb2dd"
+  }
+]

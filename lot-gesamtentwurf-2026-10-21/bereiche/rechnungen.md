@@ -1,0 +1,42 @@
+# Rechnungen
+
+[Alle Bereiche](../README.md)
+
+Jede Zeile öffnet die jeweilige Ansicht in voller Größe. Die Seitendetails enthalten Felder, Aktionen und Quellen.
+
+| Ansicht | Desktop | Tablet | Mobil | Details |
+| --- | --- | --- | --- | --- |
+| Rechnungen | [Öffnen](../bilder/081-rechnungen-desktop.jpg) | [Öffnen](../bilder/081-rechnungen-tablet.jpg) | [Öffnen](../bilder/081-rechnungen-mobil.jpg) | [Funktionen](../ansichten/rechnungen.md) |
+| Rechnung RE-2026-0234 | [Öffnen](../bilder/082-rechnung-detail-desktop.jpg) | [Öffnen](../bilder/082-rechnung-detail-tablet.jpg) | [Öffnen](../bilder/082-rechnung-detail-mobil.jpg) | [Funktionen](../ansichten/rechnung-detail.md) |
+| Rechnungen meiner Baustellen | [Öffnen](../bilder/083-rechnungen-lesen-desktop.jpg) | [Öffnen](../bilder/083-rechnungen-lesen-tablet.jpg) | [Öffnen](../bilder/083-rechnungen-lesen-mobil.jpg) | [Funktionen](../ansichten/rechnungen-lesen.md) |
+| Rechnung vorbereiten | [Öffnen](../bilder/084-rechnung-neu-desktop.jpg) | [Öffnen](../bilder/084-rechnung-neu-tablet.jpg) | [Öffnen](../bilder/084-rechnung-neu-mobil.jpg) | [Funktionen](../ansichten/rechnung-neu.md) |
+| Rechnung prüfen | [Öffnen](../bilder/085-rechnung-vorschau-desktop.jpg) | [Öffnen](../bilder/085-rechnung-vorschau-tablet.jpg) | [Öffnen](../bilder/085-rechnung-vorschau-mobil.jpg) | [Funktionen](../ansichten/rechnung-vorschau.md) |
+| Anzahlungsrechnung vorbereiten | [Öffnen](../bilder/086-rechnung-anzahlung-desktop.jpg) | [Öffnen](../bilder/086-rechnung-anzahlung-tablet.jpg) | [Öffnen](../bilder/086-rechnung-anzahlung-mobil.jpg) | [Funktionen](../ansichten/rechnung-anzahlung.md) |
+| Teilrechnung vorbereiten | [Öffnen](../bilder/087-rechnung-teil-desktop.jpg) | [Öffnen](../bilder/087-rechnung-teil-tablet.jpg) | [Öffnen](../bilder/087-rechnung-teil-mobil.jpg) | [Funktionen](../ansichten/rechnung-teil.md) |
+| Schlussrechnung vorbereiten | [Öffnen](../bilder/088-rechnung-schluss-desktop.jpg) | [Öffnen](../bilder/088-rechnung-schluss-tablet.jpg) | [Öffnen](../bilder/088-rechnung-schluss-mobil.jpg) | [Funktionen](../ansichten/rechnung-schluss.md) |
+| Zahlung zuordnen | [Öffnen](../bilder/089-zahlung-desktop.jpg) | [Öffnen](../bilder/089-zahlung-tablet.jpg) | [Öffnen](../bilder/089-zahlung-mobil.jpg) | [Funktionen](../ansichten/zahlung.md) |
+| Mahnungen | [Öffnen](../bilder/090-mahnungen-desktop.jpg) | [Öffnen](../bilder/090-mahnungen-tablet.jpg) | [Öffnen](../bilder/090-mahnungen-mobil.jpg) | [Funktionen](../ansichten/mahnungen.md) |
+| Mahnung prüfen | [Öffnen](../bilder/091-mahnen-desktop.jpg) | [Öffnen](../bilder/091-mahnen-tablet.jpg) | [Öffnen](../bilder/091-mahnen-mobil.jpg) | [Funktionen](../ansichten/mahnen.md) |
+| Mahnlauf prüfen | [Öffnen](../bilder/092-mahnlauf-desktop.jpg) | [Öffnen](../bilder/092-mahnlauf-tablet.jpg) | [Öffnen](../bilder/092-mahnlauf-mobil.jpg) | [Funktionen](../ansichten/mahnlauf.md) |
+| Buchhaltungs-Export | [Öffnen](../bilder/093-rechnung-export-desktop.jpg) | [Öffnen](../bilder/093-rechnung-export-tablet.jpg) | [Öffnen](../bilder/093-rechnung-export-mobil.jpg) | [Funktionen](../ansichten/rechnung-export.md) |
+| Rücklass durch Bankgarantie ablösen | [Öffnen](../bilder/094-bankgarantie-desktop.jpg) | [Öffnen](../bilder/094-bankgarantie-tablet.jpg) | [Öffnen](../bilder/094-bankgarantie-mobil.jpg) | [Funktionen](../ansichten/bankgarantie.md) |
+| Rechnung stornieren | [Öffnen](../bilder/095-rechnung-storno-desktop.jpg) | [Öffnen](../bilder/095-rechnung-storno-tablet.jpg) | [Öffnen](../bilder/095-rechnung-storno-mobil.jpg) | [Funktionen](../ansichten/rechnung-storno.md) |
+| Stornorechnung ausstellen | [Öffnen](../bilder/096-rechnung-stornobeleg-desktop.jpg) | [Öffnen](../bilder/096-rechnung-stornobeleg-tablet.jpg) | [Öffnen](../bilder/096-rechnung-stornobeleg-mobil.jpg) | [Funktionen](../ansichten/rechnung-stornobeleg.md) |
+| Storno aufheben | [Öffnen](../bilder/097-rechnung-storno-aufheben-desktop.jpg) | [Öffnen](../bilder/097-rechnung-storno-aufheben-tablet.jpg) | [Öffnen](../bilder/097-rechnung-storno-aufheben-mobil.jpg) | [Funktionen](../ansichten/rechnung-storno-aufheben.md) |
+| Export prüfen und herunterladen | [Öffnen](../bilder/206-rechnung-export-ergebnis-desktop.jpg) | [Öffnen](../bilder/206-rechnung-export-ergebnis-tablet.jpg) | [Öffnen](../bilder/206-rechnung-export-ergebnis-mobil.jpg) | [Funktionen](../ansichten/rechnung-export-ergebnis.md) |
+| Rechnung RE-2026-0234 | [Öffnen](../bilder/207-rechnung-detail-lesen-desktop.jpg) | [Öffnen](../bilder/207-rechnung-detail-lesen-tablet.jpg) | [Öffnen](../bilder/207-rechnung-detail-lesen-mobil.jpg) | [Funktionen](../ansichten/rechnung-detail-lesen.md) |
+| Rechnung mit Rücklass | [Öffnen](../bilder/208-rechnung-ruecklass-desktop.jpg) | [Öffnen](../bilder/208-rechnung-ruecklass-tablet.jpg) | [Öffnen](../bilder/208-rechnung-ruecklass-mobil.jpg) | [Funktionen](../ansichten/rechnung-ruecklass.md) |
+| Rechnung · Kundenguthaben | [Öffnen](../bilder/209-rechnung-guthaben-desktop.jpg) | [Öffnen](../bilder/209-rechnung-guthaben-tablet.jpg) | [Öffnen](../bilder/209-rechnung-guthaben-mobil.jpg) | [Funktionen](../ansichten/rechnung-guthaben.md) |
+| Guthaben zurückzahlen | [Öffnen](../bilder/216-zahlung-rueckzahlung-desktop.jpg) | [Öffnen](../bilder/216-zahlung-rueckzahlung-tablet.jpg) | [Öffnen](../bilder/216-zahlung-rueckzahlung-mobil.jpg) | [Funktionen](../ansichten/zahlung-rueckzahlung.md) |
+| Rechnungen · Erledigt | [Öffnen](../bilder/229-rechnungen-filter-1-desktop.jpg) | [Öffnen](../bilder/229-rechnungen-filter-1-tablet.jpg) | [Öffnen](../bilder/229-rechnungen-filter-1-mobil.jpg) | [Funktionen](../ansichten/rechnungen-filter-1.md) |
+| Rechnungen · Alle | [Öffnen](../bilder/230-rechnungen-filter-2-desktop.jpg) | [Öffnen](../bilder/230-rechnungen-filter-2-tablet.jpg) | [Öffnen](../bilder/230-rechnungen-filter-2-mobil.jpg) | [Funktionen](../ansichten/rechnungen-filter-2.md) |
+| E-Rechnung · Bund | [Öffnen](../bilder/241-e-rechnung-bund-desktop.jpg) | [Öffnen](../bilder/241-e-rechnung-bund-tablet.jpg) | [Öffnen](../bilder/241-e-rechnung-bund-mobil.jpg) | [Funktionen](../ansichten/e-rechnung-bund.md) |
+| E-Rechnung · Andere öffentliche Stelle | [Öffnen](../bilder/242-e-rechnung-andere-desktop.jpg) | [Öffnen](../bilder/242-e-rechnung-andere-tablet.jpg) | [Öffnen](../bilder/242-e-rechnung-andere-mobil.jpg) | [Funktionen](../ansichten/e-rechnung-andere.md) |
+| E-Rechnung · Unternehmen | [Öffnen](../bilder/243-e-rechnung-allgemein-desktop.jpg) | [Öffnen](../bilder/243-e-rechnung-allgemein-tablet.jpg) | [Öffnen](../bilder/243-e-rechnung-allgemein-mobil.jpg) | [Funktionen](../ansichten/e-rechnung-allgemein.md) |
+| Stornorechnung als E-Rechnung | [Öffnen](../bilder/244-e-rechnung-storno-desktop.jpg) | [Öffnen](../bilder/244-e-rechnung-storno-tablet.jpg) | [Öffnen](../bilder/244-e-rechnung-storno-mobil.jpg) | [Funktionen](../ansichten/e-rechnung-storno.md) |
+| Belegarchiv herunterladen | [Öffnen](../bilder/249-belegarchiv-desktop.jpg) | [Öffnen](../bilder/249-belegarchiv-tablet.jpg) | [Öffnen](../bilder/249-belegarchiv-mobil.jpg) | [Funktionen](../ansichten/belegarchiv.md) |
+| Rechnungen · Überfällig | [Öffnen](../bilder/251-rechnung-status-ueberfaellig-desktop.jpg) | [Öffnen](../bilder/251-rechnung-status-ueberfaellig-tablet.jpg) | [Öffnen](../bilder/251-rechnung-status-ueberfaellig-mobil.jpg) | [Funktionen](../ansichten/rechnung-status-ueberfaellig.md) |
+| Rechnungen · Teilbezahlt | [Öffnen](../bilder/252-rechnung-status-teilbezahlt-desktop.jpg) | [Öffnen](../bilder/252-rechnung-status-teilbezahlt-tablet.jpg) | [Öffnen](../bilder/252-rechnung-status-teilbezahlt-mobil.jpg) | [Funktionen](../ansichten/rechnung-status-teilbezahlt.md) |
+| Rechnungen · Bezahlt | [Öffnen](../bilder/253-rechnung-status-bezahlt-desktop.jpg) | [Öffnen](../bilder/253-rechnung-status-bezahlt-tablet.jpg) | [Öffnen](../bilder/253-rechnung-status-bezahlt-mobil.jpg) | [Funktionen](../ansichten/rechnung-status-bezahlt.md) |
+| Rechnungen · Überzahlt | [Öffnen](../bilder/254-rechnung-status-ueberzahlt-desktop.jpg) | [Öffnen](../bilder/254-rechnung-status-ueberzahlt-tablet.jpg) | [Öffnen](../bilder/254-rechnung-status-ueberzahlt-mobil.jpg) | [Funktionen](../ansichten/rechnung-status-ueberzahlt.md) |
+| Rechnungen · Storniert | [Öffnen](../bilder/255-rechnung-status-storniert-desktop.jpg) | [Öffnen](../bilder/255-rechnung-status-storniert-tablet.jpg) | [Öffnen](../bilder/255-rechnung-status-storniert-mobil.jpg) | [Funktionen](../ansichten/rechnung-status-storniert.md) |

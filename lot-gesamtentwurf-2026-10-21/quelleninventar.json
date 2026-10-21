@@ -1,0 +1,4941 @@
+{
+  "commit": "3e49090d4054ebbd3ecbce6ab583bb944c2c0770",
+  "files": [
+    {
+      "file": "src/features/accounting/AccountingView.tsx",
+      "lines": 1238,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 879,
+          "ort": "Team",
+          "title": "Mitarbeiterübersicht",
+          "subtitle": "Buchungen prüfen und Zeitkonten vergleichen."
+        },
+        {
+          "element": "Segmente",
+          "line": 993,
+          "name": "Ansicht"
+        },
+        {
+          "element": "SelectField",
+          "line": 1009,
+          "id": "acc-month",
+          "label": "Monat"
+        },
+        {
+          "element": "SelectField",
+          "line": 1013,
+          "id": "acc-year",
+          "label": "Jahr"
+        },
+        {
+          "element": "BottomSheet",
+          "line": 1108
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 1205,
+          "title": "Eintrag löschen?"
+        },
+        {
+          "element": "ExportDialog",
+          "line": 1224
+        }
+      ]
+    },
+    {
+      "file": "src/features/accounting/ArbeitszeitGrenzenKarte.tsx",
+      "lines": 350,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 93
+        },
+        {
+          "element": "InputField",
+          "line": 213
+        }
+      ]
+    },
+    {
+      "file": "src/features/accounting/ExportDialog.tsx",
+      "lines": 148,
+      "elements": [
+        {
+          "element": "InputField",
+          "line": 93,
+          "id": "export-from",
+          "label": "Von",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 100,
+          "id": "export-to",
+          "label": "Bis",
+          "type": "date"
+        }
+      ]
+    },
+    {
+      "file": "src/features/accounting/Gesamtsaldo.tsx",
+      "lines": 58,
+      "elements": []
+    },
+    {
+      "file": "src/features/accounting/PersonFenster.tsx",
+      "lines": 405,
+      "elements": []
+    },
+    {
+      "file": "src/features/accounting/PersonKalender.tsx",
+      "lines": 53,
+      "elements": []
+    },
+    {
+      "file": "src/features/accounting/ProjectSummary.tsx",
+      "lines": 417,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 154
+        },
+        {
+          "element": "Card",
+          "line": 162
+        },
+        {
+          "element": "Card",
+          "line": 169
+        }
+      ]
+    },
+    {
+      "file": "src/features/accounting/Streifen.tsx",
+      "lines": 339,
+      "elements": []
+    },
+    {
+      "file": "src/features/accounting/UebersichtListe.tsx",
+      "lines": 235,
+      "elements": []
+    },
+    {
+      "file": "src/features/assignments/AssignmentsView.tsx",
+      "lines": 537,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 357
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 512,
+          "title": "Einsatz löschen?"
+        }
+      ]
+    },
+    {
+      "file": "src/features/assignments/EinsatzFenster.tsx",
+      "lines": 119,
+      "elements": [
+        {
+          "element": "BottomSheet",
+          "line": 79
+        },
+        {
+          "element": "SelectField",
+          "line": 82,
+          "id": "fenster-tag",
+          "label": "Tag"
+        }
+      ]
+    },
+    {
+      "file": "src/features/assignments/EinsatzFormular.tsx",
+      "lines": 923,
+      "elements": [
+        {
+          "element": "CheckboxField",
+          "line": 666,
+          "label": "als Helfer"
+        },
+        {
+          "element": "InputField",
+          "line": 682,
+          "id": "acomment",
+          "label": "Kommentar / Aufgabe"
+        },
+        {
+          "element": "InputField",
+          "line": 687,
+          "id": "azeitvon",
+          "label": "Beginn (optional)",
+          "type": "time"
+        },
+        {
+          "element": "InputField",
+          "line": 689,
+          "id": "azeitbis",
+          "label": "Ende (optional)",
+          "type": "time"
+        },
+        {
+          "element": "Card",
+          "line": 811
+        },
+        {
+          "element": "Card",
+          "line": 812,
+          "title": "Material für diesen Einsatz"
+        }
+      ]
+    },
+    {
+      "file": "src/features/assignments/Einsatzplanung.tsx",
+      "lines": 526,
+      "elements": [
+        {
+          "element": "Segmente",
+          "line": 323,
+          "name": "Sicht"
+        },
+        {
+          "element": "Card",
+          "line": 335
+        },
+        {
+          "element": "Card",
+          "line": 339
+        },
+        {
+          "element": "Card",
+          "line": 386
+        },
+        {
+          "element": "BottomSheet",
+          "line": 480,
+          "label": "Noch einzuplanen",
+          "titel": "Noch einzuplanen"
+        }
+      ]
+    },
+    {
+      "file": "src/features/assignments/HandyWoche.tsx",
+      "lines": 274,
+      "elements": []
+    },
+    {
+      "file": "src/features/assignments/KalenderAboKarte.tsx",
+      "lines": 195,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 109,
+          "title": "Im eigenen Kalender",
+          "className": "mt-3 lg:mt-5"
+        }
+      ]
+    },
+    {
+      "file": "src/features/assignments/MonatsAnsicht.tsx",
+      "lines": 795,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 689
+        },
+        {
+          "element": "Card",
+          "line": 693
+        },
+        {
+          "element": "Card",
+          "line": 730,
+          "title": "Baustellen diesen Monat"
+        },
+        {
+          "element": "Card",
+          "line": 753,
+          "title": "Diesen Monat abwesend"
+        }
+      ]
+    },
+    {
+      "file": "src/features/assignments/MonatsKalender.tsx",
+      "lines": 166,
+      "elements": [
+        {
+          "element": "SelectField",
+          "line": 72,
+          "id": "monat-fuer-wen",
+          "label": "Für wen"
+        }
+      ]
+    },
+    {
+      "file": "src/features/assignments/MonatsVorschau.tsx",
+      "lines": 393,
+      "elements": []
+    },
+    {
+      "file": "src/features/assignments/MyScheduleView.tsx",
+      "lines": 677,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 396,
+          "title": "Mein Einsatzplan",
+          "subtitle": "Deine geplanten Einsätze"
+        },
+        {
+          "element": "Card",
+          "line": 439
+        },
+        {
+          "element": "Card",
+          "line": 582,
+          "title": "Nächste Einsätze",
+          "className": "mt-3 lg:mt-5"
+        },
+        {
+          "element": "Card",
+          "line": 621,
+          "title": "Nächste Termine",
+          "className": "mt-3 lg:mt-5"
+        },
+        {
+          "element": "Card",
+          "line": 637,
+          "title": "Mein Urlaub",
+          "className": "mt-3 lg:mt-5"
+        }
+      ]
+    },
+    {
+      "file": "src/features/assignments/PlanRaster.tsx",
+      "lines": 36,
+      "elements": []
+    },
+    {
+      "file": "src/features/assignments/PlanungsKopf.tsx",
+      "lines": 72,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 28,
+          "ort": "Aufträge",
+          "title": "Einsatzplanung",
+          "subtitle": "Wer ist wann auf welcher Baustelle?"
+        },
+        {
+          "element": "Segmente",
+          "line": 54,
+          "name": "Zeitraum"
+        }
+      ]
+    },
+    {
+      "file": "src/features/assignments/RuestlisteAbhaken.tsx",
+      "lines": 178,
+      "elements": []
+    },
+    {
+      "file": "src/features/assignments/RuestlistePlanen.tsx",
+      "lines": 349,
+      "elements": [
+        {
+          "element": "InputField",
+          "line": 273,
+          "id": "rsuche",
+          "label": "Artikel aus dem Lager",
+          "type": "search",
+          "placeholder": "Name, Kategorie oder Art.-Nr."
+        },
+        {
+          "element": "InputField",
+          "line": 327,
+          "id": "rfrei",
+          "label": "Freie Zeile (nicht im Lager geführt)",
+          "placeholder": "z. B. Leihgerät Kernbohrer"
+        }
+      ]
+    },
+    {
+      "file": "src/features/assignments/TagFenster.tsx",
+      "lines": 204,
+      "elements": [
+        {
+          "element": "BottomSheet",
+          "line": 76
+        }
+      ]
+    },
+    {
+      "file": "src/features/assignments/TeamWoche.tsx",
+      "lines": 178,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 80,
+          "ort": "Mein Einsatzplan",
+          "title": "Team-Woche",
+          "subtitle": "Wer ist diese Woche wo"
+        },
+        {
+          "element": "Card",
+          "line": 124
+        },
+        {
+          "element": "Card",
+          "line": 128
+        },
+        {
+          "element": "Card",
+          "line": 132
+        }
+      ]
+    },
+    {
+      "file": "src/features/assignments/WochenEintraege.tsx",
+      "lines": 239,
+      "elements": []
+    },
+    {
+      "file": "src/features/assignments/WochenRaster.tsx",
+      "lines": 469,
+      "elements": []
+    },
+    {
+      "file": "src/features/assignments/WochenplanView.tsx",
+      "lines": 15,
+      "elements": []
+    },
+    {
+      "file": "src/features/auth/LoginPage.tsx",
+      "lines": 230,
+      "elements": [
+        {
+          "element": "InputField",
+          "line": 152,
+          "id": "email",
+          "type": "text",
+          "inputMode": "email",
+          "autoComplete": "username",
+          "autoCapitalize": "none",
+          "autoCorrect": "off"
+        },
+        {
+          "element": "InputField",
+          "line": 170,
+          "id": "password",
+          "label": "Passwort",
+          "type": "password",
+          "autoComplete": "current-password"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 180,
+          "id": "remember",
+          "label": "Angemeldet bleiben"
+        }
+      ]
+    },
+    {
+      "file": "src/features/auth/PasswortAendern.tsx",
+      "lines": 184,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 94
+        },
+        {
+          "element": "InputField",
+          "line": 121,
+          "id": "pw-aktuell",
+          "label": "Aktuelles Passwort",
+          "type": "password",
+          "autoComplete": "current-password"
+        },
+        {
+          "element": "InputField",
+          "line": 135,
+          "id": "pw-neu",
+          "label": "Neues Passwort",
+          "type": "password",
+          "autoComplete": "new-password"
+        },
+        {
+          "element": "InputField",
+          "line": 146,
+          "id": "pw-wieder",
+          "label": "Noch einmal",
+          "type": "password",
+          "autoComplete": "new-password"
+        }
+      ]
+    },
+    {
+      "file": "src/features/auth/ZweiFaktorEinrichten.tsx",
+      "lines": 130,
+      "elements": [
+        {
+          "element": "InputField",
+          "line": 80,
+          "id": "zf-einrichten-code",
+          "label": "Code aus der App",
+          "inputMode": "numeric",
+          "autoComplete": "one-time-code"
+        }
+      ]
+    },
+    {
+      "file": "src/features/auth/ZweiFaktorSeite.tsx",
+      "lines": 108,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 49,
+          "ort": "Anmeldung",
+          "title": "Zwei-Faktor-Anmeldung"
+        },
+        {
+          "element": "Card",
+          "line": 61
+        },
+        {
+          "element": "InputField",
+          "line": 66,
+          "id": "zf-code",
+          "autoComplete": "one-time-code",
+          "autoCapitalize": "characters"
+        }
+      ]
+    },
+    {
+      "file": "src/features/costing/NachkalkulationView.tsx",
+      "lines": 407,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 230,
+          "ort": "Geld",
+          "title": "Nachkalkulation",
+          "subtitle": "Erlös gegen Personal- und Materialkosten — je Baustelle"
+        },
+        {
+          "element": "Card",
+          "line": 242,
+          "title": "Kostensätze fehlen"
+        },
+        {
+          "element": "Segmente",
+          "line": 269,
+          "name": "Baustellen"
+        },
+        {
+          "element": "Card",
+          "line": 315,
+          "title": "Ergebnis je Baustelle"
+        }
+      ]
+    },
+    {
+      "file": "src/features/customers/CustomersView.tsx",
+      "lines": 834,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 424,
+          "title": "Kunden",
+          "subtitle": "Stammdaten, Ansprechpartner und Baustellenhistorie"
+        },
+        {
+          "element": "Card",
+          "line": 446
+        },
+        {
+          "element": "Segmente",
+          "line": 465,
+          "name": "Kunden filtern"
+        },
+        {
+          "element": "BottomSheet",
+          "line": 619
+        },
+        {
+          "element": "InputField",
+          "line": 627,
+          "id": "kname",
+          "label": "Name oder Firma"
+        },
+        {
+          "element": "InputField",
+          "line": 643,
+          "id": "knr",
+          "label": "Kundennummer (freiwillig)",
+          "placeholder": "z. B. 10001"
+        },
+        {
+          "element": "InputField",
+          "line": 650,
+          "id": "klief",
+          "label": "Unsere Lieferantennummer bei diesem Kunden (freiwillig)",
+          "placeholder": "für die E-Rechnung, z. B. 50012345"
+        },
+        {
+          "element": "InputField",
+          "line": 659,
+          "id": "kcontact",
+          "label": "Ansprechpartner"
+        },
+        {
+          "element": "InputField",
+          "line": 665,
+          "id": "kphone",
+          "label": "Telefon"
+        },
+        {
+          "element": "InputField",
+          "line": 671,
+          "id": "kmail",
+          "label": "E-Mail",
+          "type": "email"
+        },
+        {
+          "element": "InputField",
+          "line": 687,
+          "id": "knotes",
+          "label": "Notiz"
+        },
+        {
+          "element": "BottomSheet",
+          "line": 712,
+          "label": "Bestehende Baustellen übernehmen",
+          "titel": "Bestehende Baustellen übernehmen"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 797,
+          "title": "Gleicher Name — trotzdem anlegen?",
+          "confirmLabel": "Trotzdem anlegen",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 810,
+          "title": "Kunde löschen?"
+        }
+      ]
+    },
+    {
+      "file": "src/features/customers/KundenImport.tsx",
+      "lines": 284,
+      "elements": [
+        {
+          "element": "BottomSheet",
+          "line": 171,
+          "label": "Kunden aus einer Datei",
+          "titel": "Kunden aus einer Datei"
+        }
+      ]
+    },
+    {
+      "file": "src/features/customers/KundenakteView.tsx",
+      "lines": 810,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 290,
+          "title": "Kundenakte"
+        },
+        {
+          "element": "Card",
+          "line": 291
+        },
+        {
+          "element": "PageHeader",
+          "line": 301,
+          "title": "Kundenakte"
+        },
+        {
+          "element": "PageHeader",
+          "line": 314,
+          "title": "Kundenakte"
+        },
+        {
+          "element": "Card",
+          "line": 315
+        },
+        {
+          "element": "Card",
+          "line": 330,
+          "title": "Kundendaten",
+          "id": "k-daten"
+        },
+        {
+          "element": "Card",
+          "line": 333,
+          "id": "k-baustellen"
+        },
+        {
+          "element": "Card",
+          "line": 403,
+          "title": "Wartungen",
+          "id": "k-wartungen"
+        },
+        {
+          "element": "Card",
+          "line": 441,
+          "title": "Rechnungen",
+          "id": "k-rechnungen"
+        },
+        {
+          "element": "Card",
+          "line": 483,
+          "title": "Angebote",
+          "id": "k-angebote"
+        },
+        {
+          "element": "AktenBereiche",
+          "line": 553,
+          "kennung": "kunde"
+        },
+        {
+          "element": "Card",
+          "line": 554,
+          "title": "Kontakt"
+        },
+        {
+          "element": "Card",
+          "line": 559,
+          "title": "Rechnungsanschrift"
+        },
+        {
+          "element": "Card",
+          "line": 560,
+          "title": "Notiz"
+        },
+        {
+          "element": "Card",
+          "line": 561,
+          "title": "Wartungen"
+        },
+        {
+          "element": "Card",
+          "line": 567,
+          "title": "Aktive Baustellen"
+        },
+        {
+          "element": "Card",
+          "line": 574,
+          "title": "Jüngste Belege"
+        },
+        {
+          "element": "Card",
+          "line": 582,
+          "title": "Termine"
+        },
+        {
+          "element": "Card",
+          "line": 584
+        },
+        {
+          "element": "InputField",
+          "line": 708,
+          "id": "k-name",
+          "label": "Name"
+        },
+        {
+          "element": "InputField",
+          "line": 720,
+          "id": "k-nummer",
+          "label": "Kundennummer (freiwillig)"
+        },
+        {
+          "element": "InputField",
+          "line": 724,
+          "id": "k-lieferant",
+          "label": "Unsere Lieferantennummer bei diesem Kunden (freiwillig)",
+          "placeholder": "für die E-Rechnung, z. B. 50012345"
+        },
+        {
+          "element": "InputField",
+          "line": 732,
+          "id": "k-ansprech",
+          "label": "Ansprechpartner"
+        },
+        {
+          "element": "InputField",
+          "line": 737,
+          "id": "k-telefon",
+          "label": "Telefon",
+          "type": "tel"
+        },
+        {
+          "element": "InputField",
+          "line": 741,
+          "id": "k-mail",
+          "label": "E-Mail",
+          "type": "email"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 775,
+          "id": "k-aktiv",
+          "label": "Aktiv — erscheint in den Auswahlfeldern"
+        }
+      ]
+    },
+    {
+      "file": "src/features/customers/UidVies.tsx",
+      "lines": 155,
+      "elements": []
+    },
+    {
+      "file": "src/features/dashboard/DashboardView.tsx",
+      "lines": 335,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 219
+        },
+        {
+          "element": "Card",
+          "line": 279
+        }
+      ]
+    },
+    {
+      "file": "src/features/dashboard/LaufWarnung.tsx",
+      "lines": 138,
+      "elements": []
+    },
+    {
+      "file": "src/features/dashboard/WartungHinweis.tsx",
+      "lines": 89,
+      "elements": []
+    },
+    {
+      "file": "src/features/dashboard/start/Handlungsbedarf.tsx",
+      "lines": 111,
+      "elements": []
+    },
+    {
+      "file": "src/features/dashboard/start/HeuteEigene.tsx",
+      "lines": 170,
+      "elements": []
+    },
+    {
+      "file": "src/features/dashboard/start/HeuteLeitung.tsx",
+      "lines": 71,
+      "elements": []
+    },
+    {
+      "file": "src/features/dashboard/start/HeuteListe.tsx",
+      "lines": 35,
+      "elements": []
+    },
+    {
+      "file": "src/features/dashboard/start/Kennzahlen.tsx",
+      "lines": 41,
+      "elements": []
+    },
+    {
+      "file": "src/features/dashboard/start/StartKarte.tsx",
+      "lines": 44,
+      "elements": []
+    },
+    {
+      "file": "src/features/dashboard/start/TermineHeute.tsx",
+      "lines": 32,
+      "elements": []
+    },
+    {
+      "file": "src/features/invoices/BankgarantieDialog.tsx",
+      "lines": 86,
+      "elements": [
+        {
+          "element": "ConfirmDialog",
+          "line": 47,
+          "confirmTone": "primary"
+        },
+        {
+          "element": "InputField",
+          "line": 75,
+          "id": "garantie-am",
+          "label": "Abgelöst am",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 76,
+          "id": "garantie-bank",
+          "label": "Bank"
+        },
+        {
+          "element": "InputField",
+          "line": 77,
+          "id": "garantie-nr",
+          "label": "Garantienummer"
+        },
+        {
+          "element": "InputField",
+          "line": 78,
+          "id": "garantie-bis",
+          "label": "Garantie gültig bis",
+          "type": "date"
+        }
+      ]
+    },
+    {
+      "file": "src/features/invoices/EbInterfaceDialog.tsx",
+      "lines": 170,
+      "elements": [
+        {
+          "element": "ConfirmDialog",
+          "line": 103,
+          "message": "Die Rechnung als ebInterface-Datei (6.1), mit denselben Positionen und Beträgen wie das PDF.",
+          "confirmLabel": "Datei laden",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "Segmente",
+          "line": 130,
+          "name": "Empfänger"
+        },
+        {
+          "element": "InputField",
+          "line": 131,
+          "id": "ebi-referenz"
+        },
+        {
+          "element": "InputField",
+          "line": 139,
+          "id": "ebi-position",
+          "label": "Bestellposition"
+        },
+        {
+          "element": "InputField",
+          "line": 142,
+          "id": "ebi-lieferant"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 152,
+          "id": "ebi-merken",
+          "label": "Lieferantennummer beim Kunden merken"
+        }
+      ]
+    },
+    {
+      "file": "src/features/invoices/InvoicesView.tsx",
+      "lines": 4428,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 2344,
+          "ort": "Geld",
+          "title": "Rechnungen"
+        },
+        {
+          "element": "Card",
+          "line": 2455
+        },
+        {
+          "element": "Card",
+          "line": 2507
+        },
+        {
+          "element": "Card",
+          "line": 2609,
+          "title": "Neue Rechnung aus Baustelle",
+          "hint": "Zusammengestellt wird, was auf dieser Baustelle als „Anwesend“ gebucht und noch NICHT verrechnet ist — dazu das ausgegebene Material. Eine Position kann deshalb nie zweimal auf eine Rechnung geraten. Gesperrt werden die Belege aber erst beim Anlegen, nicht schon beim Zusammenstellen: bis dahin lässt sich alles gefahrlos ansehen und wieder verwerfen."
+        },
+        {
+          "element": "SelectField",
+          "line": 2638,
+          "id": "inv-art",
+          "label": "Art der Rechnung"
+        },
+        {
+          "element": "InputField",
+          "line": 2700,
+          "id": "r-night",
+          "label": "Nachtzuschlag %",
+          "type": "number",
+          "min": "0",
+          "step": "5"
+        },
+        {
+          "element": "InputField",
+          "line": 2705,
+          "id": "r-emergency",
+          "label": "Notdienstzuschlag %",
+          "type": "number",
+          "min": "0",
+          "step": "5"
+        },
+        {
+          "element": "InputField",
+          "line": 2710,
+          "id": "r-due",
+          "label": "Zahlungsziel (Tage)",
+          "type": "number",
+          "min": "0"
+        },
+        {
+          "element": "InputField",
+          "line": 2717,
+          "id": "r-skonto-tage",
+          "label": "Skontofrist (Tage)",
+          "type": "number",
+          "min": "0",
+          "placeholder": "leer = keines"
+        },
+        {
+          "element": "SelectField",
+          "line": 2737,
+          "id": "r-vat",
+          "label": "USt-Satz"
+        },
+        {
+          "element": "Card",
+          "line": 2767,
+          "title": "Vorschau"
+        },
+        {
+          "element": "InputField",
+          "line": 2789,
+          "id": "leistung-von",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 2796,
+          "id": "leistung-bis",
+          "type": "date"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 3216
+        },
+        {
+          "element": "InputField",
+          "line": 3261,
+          "id": "invnum",
+          "label": "Rechnungsnummer"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 3286,
+          "id": "invdetail",
+          "label": "Leistungsnachweis anhängen"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 3309,
+          "id": "rc",
+          "label": "Bauleistung — Steuerschuld geht auf den Empfänger über (§ 19 Abs 1a UStG)"
+        },
+        {
+          "element": "InputField",
+          "line": 3346,
+          "id": "rc-uid",
+          "label": "UID-Nummer des Kunden",
+          "placeholder": "z. B. ATU…"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 3359,
+          "id": "uid-in-kunden"
+        },
+        {
+          "element": "InputField",
+          "line": 3386,
+          "id": "steuerbefreiung",
+          "label": "Grund der Steuerbefreiung",
+          "placeholder": "z. B. Kleinunternehmer, § 6 Abs 1 Z 27 UStG"
+        },
+        {
+          "element": "InputField",
+          "line": 3418,
+          "id": "disc-label",
+          "label": "Rabatt — Bezeichnung",
+          "placeholder": "z. B. Stammkundenrabatt"
+        },
+        {
+          "element": "SelectField",
+          "line": 3426,
+          "id": "disc-mode",
+          "label": "Art"
+        },
+        {
+          "element": "InputField",
+          "line": 3444,
+          "id": "bestellnummer",
+          "label": "Bestellnummer des Kunden",
+          "placeholder": "optional"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 3454,
+          "id": "ruecklass-an"
+        },
+        {
+          "element": "InputField",
+          "line": 3484,
+          "id": "ruecklass-bis",
+          "label": "Fällig am",
+          "type": "date"
+        },
+        {
+          "element": "Card",
+          "line": 3647
+        },
+        {
+          "element": "Segmente",
+          "line": 3687,
+          "name": "Rechnungen zeigen"
+        },
+        {
+          "element": "InputField",
+          "line": 3698,
+          "id": "invsuche",
+          "label": "Suche",
+          "type": "search",
+          "placeholder": "Rechnungsnummer, Kunde oder Baustelle"
+        },
+        {
+          "element": "SelectField",
+          "line": 3708,
+          "id": "invfilter",
+          "label": "",
+          "aria-label": "Rechnungen nach Status filtern"
+        },
+        {
+          "element": "Card",
+          "line": 3798,
+          "title": "Buchhaltungs-Export"
+        },
+        {
+          "element": "InputField",
+          "line": 3815,
+          "id": "expvon",
+          "label": "Von",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 3831,
+          "id": "expbis",
+          "label": "Bis",
+          "type": "date"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 4056,
+          "title": "Storno aufheben?",
+          "confirmLabel": "Storno aufheben",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 4080,
+          "title": "Stornorechnung ausstellen?",
+          "confirmLabel": "Ausstellen",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 4098,
+          "title": "Rechnung stornieren?",
+          "confirmLabel": "Stornieren"
+        },
+        {
+          "element": "InputField",
+          "line": 4125,
+          "id": "cancelnote",
+          "label": "Grund (erscheint in der Liste)",
+          "placeholder": "z. B. Falscher Kunde"
+        },
+        {
+          "element": "BankgarantieDialog",
+          "line": 4160
+        },
+        {
+          "element": "EbInterfaceDialog",
+          "line": 4161
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 4168,
+          "confirmTone": "primary"
+        },
+        {
+          "element": "SelectField",
+          "line": 4198,
+          "id": "z-richtung",
+          "label": "Richtung"
+        },
+        {
+          "element": "InputField",
+          "line": 4216,
+          "id": "z-datum",
+          "label": "Datum",
+          "type": "date"
+        },
+        {
+          "element": "SelectField",
+          "line": 4234,
+          "id": "z-art",
+          "label": "Art"
+        },
+        {
+          "element": "InputField",
+          "line": 4244,
+          "id": "z-hinweis",
+          "label": "Hinweis",
+          "placeholder": "z. B. Kontoauszug 14"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 4278,
+          "id": "z-skonto"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 4363,
+          "confirmLabel": "Erzeugen",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "InputField",
+          "line": 4394,
+          "id": "mahnfrist",
+          "label": "Neue Frist",
+          "type": "date"
+        }
+      ]
+    },
+    {
+      "file": "src/features/invoices/RechnungDetail.tsx",
+      "lines": 210,
+      "elements": [
+        {
+          "element": "BottomSheet",
+          "line": 77
+        }
+      ]
+    },
+    {
+      "file": "src/features/invoices/RechnungenLesen.tsx",
+      "lines": 143,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 96,
+          "ort": "Geld",
+          "title": "Rechnungen",
+          "subtitle": "Die Rechnungen deiner Baustellen — nur lesen."
+        },
+        {
+          "element": "Card",
+          "line": 101
+        },
+        {
+          "element": "Segmente",
+          "line": 103,
+          "name": "Rechnungen zeigen"
+        },
+        {
+          "element": "InputField",
+          "line": 113,
+          "id": "rechnungen-lesen-suche",
+          "label": "Suche",
+          "type": "search",
+          "placeholder": "Rechnungsnummer, Kunde oder Baustelle"
+        }
+      ]
+    },
+    {
+      "file": "src/features/invoices/RechnungenSeite.tsx",
+      "lines": 17,
+      "elements": [
+        {
+          "element": "InvoicesView",
+          "line": 15
+        }
+      ]
+    },
+    {
+      "file": "src/features/invoices/RechnungsListe.tsx",
+      "lines": 144,
+      "elements": []
+    },
+    {
+      "file": "src/features/maintenance/WartungVerlauf.tsx",
+      "lines": 64,
+      "elements": []
+    },
+    {
+      "file": "src/features/maintenance/WartungenView.tsx",
+      "lines": 1077,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 682,
+          "title": "Wartungen"
+        },
+        {
+          "element": "Card",
+          "line": 702
+        },
+        {
+          "element": "Segmente",
+          "line": 705,
+          "name": "Wartungen zeigen"
+        },
+        {
+          "element": "InputField",
+          "line": 708,
+          "id": "w-suche",
+          "label": "Suche",
+          "type": "search",
+          "placeholder": "Kunde, Anlage oder Standort"
+        },
+        {
+          "element": "BottomSheet",
+          "line": 757,
+          "label": "Wartung",
+          "titel": "Anlage"
+        },
+        {
+          "element": "BottomSheet",
+          "line": 820
+        },
+        {
+          "element": "InputField",
+          "line": 837,
+          "id": "w-anlage",
+          "label": "Anlage",
+          "placeholder": "z. B. Therme im Keller"
+        },
+        {
+          "element": "InputField",
+          "line": 844,
+          "id": "w-standort",
+          "label": "Standort (leer = Kundenadresse)"
+        },
+        {
+          "element": "SelectField",
+          "line": 849,
+          "id": "w-intervall",
+          "label": "Intervall"
+        },
+        {
+          "element": "InputField",
+          "line": 860,
+          "id": "w-zuletzt",
+          "label": "Zuletzt gewartet",
+          "type": "date"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 869,
+          "id": "w-berichtigen"
+        },
+        {
+          "element": "InputField",
+          "line": 882,
+          "id": "w-termin",
+          "label": "Nächster Termin",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 895,
+          "id": "w-hinweis",
+          "label": "Hinweis",
+          "placeholder": "z. B. Schlüssel bei der Hausverwaltung"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 902,
+          "id": "w-aktiv",
+          "label": "Vereinbarung läuft"
+        },
+        {
+          "element": "InputField",
+          "line": 914,
+          "id": "w-hersteller",
+          "label": "Hersteller",
+          "placeholder": "z. B. Vaillant"
+        },
+        {
+          "element": "InputField",
+          "line": 920,
+          "id": "w-typ",
+          "label": "Typ",
+          "placeholder": "z. B. ecoTEC plus VC 206"
+        },
+        {
+          "element": "InputField",
+          "line": 926,
+          "id": "w-seriennummer",
+          "label": "Seriennummer"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 961,
+          "title": "Wartung erledigt eintragen"
+        },
+        {
+          "element": "InputField",
+          "line": 974,
+          "id": "e-datum",
+          "label": "Gewartet am",
+          "type": "date"
+        },
+        {
+          "element": "SelectField",
+          "line": 980,
+          "id": "e-intervall",
+          "label": "Intervall ab jetzt"
+        },
+        {
+          "element": "InputField",
+          "line": 993,
+          "id": "e-baustelle",
+          "label": "Baustelle (optional)",
+          "placeholder": "z. B. 2026-014"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 1012,
+          "title": "Baustelle für diese Wartung anlegen?",
+          "confirmLabel": "Anlegen",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "InputField",
+          "line": 1026,
+          "id": "p-nummer",
+          "label": "Projektnummer"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 1051,
+          "title": "Wartung löschen?",
+          "confirmLabel": "Löschen"
+        }
+      ]
+    },
+    {
+      "file": "src/features/materials/KatalogImport.tsx",
+      "lines": 505,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 217,
+          "title": "Übernommen"
+        },
+        {
+          "element": "Card",
+          "line": 248,
+          "title": "Katalog einspielen"
+        },
+        {
+          "element": "SelectField",
+          "line": 262,
+          "id": "dn-lieferant",
+          "label": "Lieferant"
+        },
+        {
+          "element": "InputField",
+          "line": 280,
+          "id": "dn-neu",
+          "label": "Name des Lieferanten",
+          "placeholder": "z. B. HTI Großhandel"
+        },
+        {
+          "element": "Card",
+          "line": 320,
+          "title": "Probelauf"
+        },
+        {
+          "element": "Card",
+          "line": 354,
+          "title": "Die Felder stehen anders als erwartet"
+        },
+        {
+          "element": "Card",
+          "line": 364
+        },
+        {
+          "element": "Card",
+          "line": 398
+        },
+        {
+          "element": "Card",
+          "line": 427,
+          "title": "Vorschau",
+          "hint": "Die ersten fünf Artikel, so wie sie in den Katalog gingen. Stimmen Bezeichnung, Einheit und Preis hier nicht, stimmen sie auch bei den übrigen nicht."
+        },
+        {
+          "element": "Card",
+          "line": 482,
+          "title": "Bisher eingespielt"
+        }
+      ]
+    },
+    {
+      "file": "src/features/modules/ModulesView.tsx",
+      "lines": 210,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 93,
+          "ort": "Einstellungen",
+          "title": "Module",
+          "subtitle": "Welche Bereiche dieser Betrieb benutzt"
+        },
+        {
+          "element": "Card",
+          "line": 106
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 186,
+          "confirmLabel": "Ausschalten"
+        }
+      ]
+    },
+    {
+      "file": "src/features/muster/MusterMonat.tsx",
+      "lines": 195,
+      "elements": [
+        {
+          "element": "Segmente",
+          "line": 151,
+          "name": "Sicht im Monat"
+        }
+      ]
+    },
+    {
+      "file": "src/features/muster/MusterPlanung.tsx",
+      "lines": 165,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 118,
+          "title": "Einsatzplanung: Hinweiszeile"
+        },
+        {
+          "element": "Card",
+          "line": 129,
+          "title": "Einsatzplanung: Raster der Woche"
+        },
+        {
+          "element": "Card",
+          "line": 141,
+          "title": "Einsatzplanung: Woche am Handy"
+        }
+      ]
+    },
+    {
+      "file": "src/features/muster/MusterUebersicht.tsx",
+      "lines": 149,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 116,
+          "title": "Mitarbeiterübersicht: Streifen und Woche (Runde 4)"
+        },
+        {
+          "element": "Segmente",
+          "line": 130,
+          "name": "Muster-Ansicht"
+        }
+      ]
+    },
+    {
+      "file": "src/features/muster/MusterView.tsx",
+      "lines": 258,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 75,
+          "ort": "Werkzeug für die Abnahme",
+          "title": "Musterseite",
+          "subtitle": "Jeder Baustein der Linie „Lot“ einmal — ohne Wirkung auf den Betrieb",
+          "hilfe": "Diese Seite zeigt die Bausteine der Oberfläche. Nichts hier wird gespeichert."
+        },
+        {
+          "element": "Card",
+          "line": 92,
+          "title": "Darstellung",
+          "hint": "Hell ist Standard. Dunkel gilt nur auf diesem Gerät und nur auf ausdrückliche Wahl."
+        },
+        {
+          "element": "Segmente",
+          "line": 93,
+          "name": "Darstellung"
+        },
+        {
+          "element": "Card",
+          "line": 101,
+          "title": "Grundwerte"
+        },
+        {
+          "element": "Card",
+          "line": 123,
+          "title": "Zu erledigen"
+        },
+        {
+          "element": "Card",
+          "line": 140,
+          "title": "Fünf Zustände"
+        },
+        {
+          "element": "Card",
+          "line": 151,
+          "title": "Arbeitsliste"
+        },
+        {
+          "element": "Card",
+          "line": 185,
+          "title": "Auswahl als Segmente"
+        },
+        {
+          "element": "Segmente",
+          "line": 186,
+          "name": "Ansicht"
+        },
+        {
+          "element": "Card",
+          "line": 194,
+          "title": "Akte: Kurzzeilen und Verlauf"
+        },
+        {
+          "element": "Card",
+          "line": 209,
+          "title": "Formular"
+        },
+        {
+          "element": "InputField",
+          "line": 211,
+          "id": "m-name",
+          "label": "Name",
+          "defaultValue": "Familie Huber"
+        },
+        {
+          "element": "InputField",
+          "line": 213,
+          "id": "m-plz",
+          "label": "PLZ",
+          "defaultValue": "8200"
+        },
+        {
+          "element": "InputField",
+          "line": 214,
+          "id": "m-ort",
+          "label": "Ort",
+          "defaultValue": "Gleisdorf"
+        },
+        {
+          "element": "SelectField",
+          "line": 220,
+          "id": "m-art",
+          "label": "Kundenart",
+          "defaultValue": "privat"
+        },
+        {
+          "element": "Card",
+          "line": 232,
+          "title": "Leerer Zustand"
+        },
+        {
+          "element": "BottomSheet",
+          "line": 241,
+          "label": "Muster",
+          "titel": "Seitenfenster"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 248,
+          "title": "Unumkehrbar",
+          "message": "Bestätigung nur für Unumkehrbares — sonst „Rückgängig“."
+        }
+      ]
+    },
+    {
+      "file": "src/features/orders/AdminOrdersView.tsx",
+      "lines": 1122,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 621,
+          "title": "Anforderungen",
+          "subtitle": "Materialanforderungen der Monteure bearbeiten und Rückgaben sichten"
+        },
+        {
+          "element": "Segmente",
+          "line": 634,
+          "name": "Bereich"
+        },
+        {
+          "element": "Card",
+          "line": 673
+        },
+        {
+          "element": "SelectField",
+          "line": 677,
+          "id": "ofilter",
+          "label": "",
+          "aria-label": "Bestellungen nach Baustelle filtern",
+          "className": "py-1 text-sm"
+        },
+        {
+          "element": "InputField",
+          "line": 689,
+          "id": "osuche",
+          "label": "Suche",
+          "type": "search",
+          "placeholder": "Material, Besteller, Baustelle oder Notiz"
+        },
+        {
+          "element": "BottomSheet",
+          "line": 863,
+          "label": "Anforderung"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 1010,
+          "title": "Auf die Einkaufsliste?",
+          "confirmLabel": "Auf die Liste",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "SelectField",
+          "line": 1035,
+          "id": "einkauf-bei",
+          "label": "Großhändler"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 1050,
+          "title": "Bestellung abschließen?",
+          "confirmLabel": "Abschließen",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 1072,
+          "confirmLabel": "Weiterschalten",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 1103,
+          "title": "Eintrag löschen?"
+        }
+      ]
+    },
+    {
+      "file": "src/features/orders/Einkaufsliste.tsx",
+      "lines": 852,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 170,
+          "title": "Einkaufsliste"
+        },
+        {
+          "element": "Card",
+          "line": 197
+        },
+        {
+          "element": "SelectField",
+          "line": 221,
+          "label": "",
+          "className": "py-1 text-sm",
+          "value": ""
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 411,
+          "title": "Als bestellt markieren?",
+          "confirmLabel": "Bestellt",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "InputField",
+          "line": 448,
+          "id": "einkauf-liefertermin",
+          "label": "Erwarteter Liefertermin (freiwillig)",
+          "type": "date"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 463,
+          "title": "Erwarteter Liefertermin",
+          "confirmLabel": "Speichern",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "InputField",
+          "line": 485,
+          "id": "einkauf-liefertermin-aendern",
+          "label": "Liefertermin (leer lassen, um ihn zu entfernen)",
+          "type": "date"
+        },
+        {
+          "element": "Card",
+          "line": 627,
+          "title": "Material dazusetzen"
+        },
+        {
+          "element": "InputField",
+          "line": 660,
+          "id": "lp-artikel",
+          "label": "Artikel",
+          "placeholder": "Name oder Artikelnummer"
+        },
+        {
+          "element": "InputField",
+          "line": 700,
+          "id": "lp-menge",
+          "label": "Menge",
+          "inputMode": "decimal"
+        },
+        {
+          "element": "SelectField",
+          "line": 704,
+          "id": "lp-bei",
+          "label": "Großhändler"
+        },
+        {
+          "element": "InputField",
+          "line": 710,
+          "id": "lp-notiz",
+          "label": "Anmerkung (freiwillig)"
+        },
+        {
+          "element": "Card",
+          "line": 786,
+          "title": "Großhändler"
+        },
+        {
+          "element": "InputField",
+          "line": 826,
+          "id": "gh-name",
+          "label": "Name"
+        },
+        {
+          "element": "InputField",
+          "line": 828,
+          "id": "gh-kdnr",
+          "label": "Kundennummer"
+        },
+        {
+          "element": "InputField",
+          "line": 830,
+          "id": "gh-mail",
+          "label": "Bestelladresse (E-Mail)",
+          "type": "email"
+        },
+        {
+          "element": "InputField",
+          "line": 832,
+          "id": "gh-kontakt",
+          "label": "Kontakt (Vertreter, Telefon)"
+        }
+      ]
+    },
+    {
+      "file": "src/features/orders/LagerDialoge.tsx",
+      "lines": 284,
+      "elements": [
+        {
+          "element": "ConfirmDialog",
+          "line": 84,
+          "message": "Die Menge kommt zum Bestand dazu und steht mit Lieferant und Lieferschein im Bewegungsprotokoll.",
+          "confirmLabel": "Einbuchen",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "SelectField",
+          "line": 102,
+          "id": "eingang-grosshaendler",
+          "label": "Lieferant"
+        },
+        {
+          "element": "InputField",
+          "line": 115,
+          "id": "eingang-lieferant",
+          "autoComplete": "off"
+        },
+        {
+          "element": "InputField",
+          "line": 125,
+          "id": "eingang-lieferschein",
+          "label": "Lieferschein-Nr."
+        },
+        {
+          "element": "InputField",
+          "line": 131,
+          "id": "eingang-bezug",
+          "label": "Bestellbezug (Bestellnummer)",
+          "placeholder": "z. B. Bestellung 2026-114"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 175,
+          "confirmLabel": "Bestand buchen",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "InputField",
+          "line": 193,
+          "id": "inventur-grund",
+          "label": "Grund",
+          "placeholder": "z. B. Inventur 31.12., Bruch, Fehlbuchung"
+        }
+      ]
+    },
+    {
+      "file": "src/features/orders/MaterialCatalog.tsx",
+      "lines": 608,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 342
+        },
+        {
+          "element": "InputField",
+          "line": 351,
+          "id": "msearch",
+          "label": "Suche",
+          "placeholder": "Name, Kategorie oder Art.-Nr."
+        },
+        {
+          "element": "BottomSheet",
+          "line": 424
+        },
+        {
+          "element": "InputField",
+          "line": 433,
+          "id": "mname",
+          "label": "Bezeichnung"
+        },
+        {
+          "element": "InputField",
+          "line": 435,
+          "id": "mcat",
+          "label": "Kategorie",
+          "placeholder": "z. B. Sanitär"
+        },
+        {
+          "element": "InputField",
+          "line": 437,
+          "id": "mart",
+          "label": "Artikelnummer"
+        },
+        {
+          "element": "InputField",
+          "line": 461,
+          "id": "mwg",
+          "label": "Warengruppe",
+          "placeholder": "aus DATANORM, z. B. 1201"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 471,
+          "id": "mlager",
+          "label": "Im Lager führen"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 587,
+          "title": "Material löschen?"
+        }
+      ]
+    },
+    {
+      "file": "src/features/orders/OrderView.tsx",
+      "lines": 1103,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 461,
+          "title": "Material anfordern",
+          "subtitle": "Von der Baustelle bei der Projektleitung anfordern, Lieferung verfolgen und Rückgaben erfassen"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 510,
+          "id": "ourgent",
+          "label": "Eilzustellung"
+        },
+        {
+          "element": "Card",
+          "line": 541,
+          "title": "Katalog"
+        },
+        {
+          "element": "InputField",
+          "line": 542,
+          "id": "search",
+          "label": "Suche",
+          "placeholder": "Name, Kategorie oder Art.-Nr."
+        },
+        {
+          "element": "InputField",
+          "line": 619,
+          "id": "frei-name",
+          "label": "Bezeichnung",
+          "placeholder": "z. B. Eckventil ½″ verchromt"
+        },
+        {
+          "element": "InputField",
+          "line": 626,
+          "id": "frei-menge",
+          "label": "Menge",
+          "inputMode": "decimal"
+        },
+        {
+          "element": "Card",
+          "line": 690,
+          "id": "anforderung-korb",
+          "className": "border-brand-fixed"
+        },
+        {
+          "element": "InputField",
+          "line": 697,
+          "id": "onote",
+          "label": "Notiz für die Projektleitung (optional)",
+          "placeholder": "z. B. dringend, bis Freitag"
+        },
+        {
+          "element": "Card",
+          "line": 751
+        },
+        {
+          "element": "Card",
+          "line": 812
+        },
+        {
+          "element": "BottomSheet",
+          "line": 854,
+          "label": "Material zurückgeben",
+          "titel": "Material zurückgeben"
+        },
+        {
+          "element": "InputField",
+          "line": 891,
+          "id": "retmat",
+          "label": "Material",
+          "type": "search",
+          "placeholder": "Name, Kategorie oder Art.-Nr."
+        },
+        {
+          "element": "SelectField",
+          "line": 930,
+          "id": "retcond",
+          "label": "Zustand"
+        },
+        {
+          "element": "SelectField",
+          "line": 936,
+          "id": "retproj",
+          "label": "Von welcher Baustelle? (optional)"
+        },
+        {
+          "element": "InputField",
+          "line": 945,
+          "id": "retreason",
+          "label": "Grund / Notiz"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 960,
+          "title": "Material abgeholt?",
+          "confirmLabel": "Abgeholt",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 988,
+          "title": "Als eilig markieren?",
+          "confirmLabel": "Eilig",
+          "confirmTone": "primary"
+        }
+      ]
+    },
+    {
+      "file": "src/features/orders/StockView.tsx",
+      "lines": 701,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 361,
+          "title": "Lager",
+          "subtitle": "Bestände führen und den Materialkatalog pflegen"
+        },
+        {
+          "element": "Segmente",
+          "line": 391,
+          "name": "Bereich"
+        },
+        {
+          "element": "Card",
+          "line": 444,
+          "title": "Bestände"
+        },
+        {
+          "element": "InputField",
+          "line": 447,
+          "id": "stocksearch",
+          "label": "Suche",
+          "placeholder": "Name, Kategorie oder Art.-Nr."
+        },
+        {
+          "element": "Segmente",
+          "line": 455,
+          "name": "Filter"
+        },
+        {
+          "element": "BottomSheet",
+          "line": 557,
+          "label": "Artikel"
+        },
+        {
+          "element": "BottomSheet",
+          "line": 620,
+          "label": "Artikel wählen"
+        },
+        {
+          "element": "InputField",
+          "line": 628,
+          "id": "lager-wahl-suche",
+          "label": "Artikel suchen",
+          "type": "search",
+          "placeholder": "Name, Kategorie oder Art.-Nr."
+        },
+        {
+          "element": "WareneingangDialog",
+          "line": 675
+        },
+        {
+          "element": "InventurDialog",
+          "line": 687
+        }
+      ]
+    },
+    {
+      "file": "src/features/plattform/BasiszinsZentral.tsx",
+      "lines": 140,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 62,
+          "title": "Basiszinssatz",
+          "hint": "Der Basiszinssatz der OeNB je Halbjahr, für alle Betriebe. Er gewinnt über die Einträge der Betriebe; die gelten nur noch für Halbjahre, zu denen hier nichts steht. Mahnungen an Unternehmer rechnen damit die Verzugszinsen (§ 456 UGB)."
+        },
+        {
+          "element": "SelectField",
+          "line": 105,
+          "id": "p-basiszins-ab",
+          "label": "Halbjahr ab"
+        }
+      ]
+    },
+    {
+      "file": "src/features/plattform/BetriebVerwalten.tsx",
+      "lines": 362,
+      "elements": [
+        {
+          "element": "InputField",
+          "line": 130,
+          "label": "Grund (steht im Protokoll)",
+          "placeholder": "z. B. Kündigung zum 31.10., Antrag vom 01.10."
+        },
+        {
+          "element": "InputField",
+          "line": 252,
+          "label": "Frist (Tage)",
+          "type": "number",
+          "inputMode": "numeric",
+          "className": "w-32"
+        },
+        {
+          "element": "InputField",
+          "line": 302,
+          "autoComplete": "off"
+        }
+      ]
+    },
+    {
+      "file": "src/features/plattform/FehlerListe.tsx",
+      "lines": 92,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 26
+        },
+        {
+          "element": "Card",
+          "line": 51
+        }
+      ]
+    },
+    {
+      "file": "src/features/plattform/NotzugangPasswort.tsx",
+      "lines": 112,
+      "elements": [
+        {
+          "element": "SelectField",
+          "line": 81,
+          "id": "np-konto",
+          "label": "Konto"
+        },
+        {
+          "element": "InputField",
+          "line": 89,
+          "id": "np-grund",
+          "label": "Grund",
+          "placeholder": "z. B. Passwort vergessen, einziges Leitungskonto"
+        },
+        {
+          "element": "InputField",
+          "line": 91,
+          "id": "np-rueckruf",
+          "label": "Rückruf an (Nummer laut Firmenbuch oder Gewerberegister)",
+          "placeholder": "z. B. +43 1 234 56 78"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 93,
+          "id": "np-bestaetigt",
+          "label": "Die Identität ist durch Rückruf an diese Nummer bestätigt — nicht an die Nummer des Anrufers."
+        }
+      ]
+    },
+    {
+      "file": "src/features/plattform/NotzugangZweiFaktor.tsx",
+      "lines": 102,
+      "elements": [
+        {
+          "element": "SelectField",
+          "line": 75,
+          "id": "nz-konto",
+          "label": "Konto"
+        },
+        {
+          "element": "InputField",
+          "line": 83,
+          "id": "nz-grund",
+          "label": "Grund",
+          "placeholder": "z. B. Telefon verloren, keine Codes mehr"
+        },
+        {
+          "element": "InputField",
+          "line": 85,
+          "id": "nz-rueckruf",
+          "label": "Rückruf an (Nummer laut Firmenbuch oder Gewerberegister)",
+          "placeholder": "z. B. +43 1 234 56 78"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 87,
+          "id": "nz-bestaetigt",
+          "label": "Die Identität ist durch Rückruf an diese Nummer bestätigt — nicht an die Nummer des Anrufers."
+        }
+      ]
+    },
+    {
+      "file": "src/features/plattform/PlattformView.tsx",
+      "lines": 734,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 239,
+          "ort": "Plattform",
+          "title": "Betriebe anlegen",
+          "subtitle": "Dieses Konto kann Betriebe einrichten und sonst nichts. Es gehört zu keinem Betrieb und sieht in keinen hinein — auch nicht in die, die es selbst angelegt hat."
+        },
+        {
+          "element": "Card",
+          "line": 245,
+          "title": "Neuer Betrieb"
+        },
+        {
+          "element": "InputField",
+          "line": 264,
+          "id": "b-name",
+          "label": "Name des Betriebs",
+          "placeholder": "Name des Betriebs"
+        },
+        {
+          "element": "InputField",
+          "line": 280,
+          "id": "b-kennung",
+          "label": "Kennung",
+          "placeholder": "z. B. mustermann"
+        },
+        {
+          "element": "InputField",
+          "line": 292,
+          "id": "b-adminname",
+          "label": "Erster Administrator",
+          "placeholder": "Vor- und Nachname"
+        },
+        {
+          "element": "SelectField",
+          "line": 301,
+          "id": "b-anmeldung",
+          "label": "Anmeldung mit"
+        },
+        {
+          "element": "InputField",
+          "line": 310,
+          "id": "b-adminname-login",
+          "label": "Benutzername",
+          "placeholder": "z. B. petra.perl",
+          "autoComplete": "off"
+        },
+        {
+          "element": "InputField",
+          "line": 321,
+          "id": "b-adminmail",
+          "label": "Dessen E-Mail",
+          "type": "email",
+          "placeholder": "name@betrieb.at"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 334,
+          "id": "b-testbetrieb",
+          "label": "Testbetrieb (lässt sich später ohne Übergabe und ohne Frist löschen)"
+        },
+        {
+          "element": "Card",
+          "line": 378
+        },
+        {
+          "element": "Card",
+          "line": 436,
+          "hint": "Der Zugang ist LESEND. Zeitbuchungen, Urlaube und Fotos von Baustellen bleiben auch damit verschlossen — dort stehen Kranken- und Urlaubstage von Mitarbeitern und Aufnahmen aus Kundenwohnungen. Jeder geöffnete Bereich steht im Protokoll des Betriebs."
+        },
+        {
+          "element": "Card",
+          "line": 511,
+          "hint": "Name, Kennung und die Konten der Leitung — ohne Einblick in Inhalte. Hat keine Leitung eine E-Mail, gibt es für den Betrieb kein „Passwort vergessen“; dann hilft im Ernstfall nur der Notzugang."
+        },
+        {
+          "element": "BottomSheet",
+          "line": 606
+        },
+        {
+          "element": "Card",
+          "line": 642,
+          "title": "Notzugang"
+        },
+        {
+          "element": "SelectField",
+          "line": 656,
+          "id": "n-kennung",
+          "label": "Betrieb"
+        },
+        {
+          "element": "InputField",
+          "line": 672,
+          "id": "n-kennung",
+          "label": "Kennung des Betriebs",
+          "placeholder": "z. B. mustermann"
+        },
+        {
+          "element": "InputField",
+          "line": 683,
+          "id": "n-stunden",
+          "label": "Stunden (1–24)",
+          "type": "number",
+          "min": "1",
+          "max": "24"
+        },
+        {
+          "element": "InputField",
+          "line": 695,
+          "id": "n-grund",
+          "label": "Grund",
+          "placeholder": "z. B. Betrieb ausgesperrt"
+        }
+      ]
+    },
+    {
+      "file": "src/features/projects/AdminProjectsView.tsx",
+      "lines": 987,
+      "elements": [
+        {
+          "element": "InputField",
+          "line": 584,
+          "id": "pnr",
+          "label": "Projektnummer"
+        },
+        {
+          "element": "InputField",
+          "line": 637,
+          "id": "pbez",
+          "label": "Bezeichnung (freiwillig)",
+          "placeholder": "z. B. Bad 2. OG"
+        },
+        {
+          "element": "SelectField",
+          "line": 643,
+          "id": "pstatus",
+          "label": "Status"
+        },
+        {
+          "element": "SelectField",
+          "line": 650,
+          "id": "pabrechnung",
+          "label": "Abrechnung"
+        },
+        {
+          "element": "InputField",
+          "line": 660,
+          "id": "pstart",
+          "label": "Beginn",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 662,
+          "id": "pend",
+          "label": "Ende (geplant)",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 666,
+          "id": "pcontact",
+          "label": "Ansprechpartner vor Ort"
+        },
+        {
+          "element": "InputField",
+          "line": 668,
+          "id": "pphone",
+          "label": "Telefon vor Ort",
+          "type": "tel"
+        },
+        {
+          "element": "PageHeader",
+          "line": 717,
+          "title": "Baustellen",
+          "subtitle": "Baustellen anlegen und suchen — geändert wird in der Akte"
+        },
+        {
+          "element": "Card",
+          "line": 756
+        },
+        {
+          "element": "InputField",
+          "line": 761,
+          "id": "psuche",
+          "label": "Suche",
+          "type": "search",
+          "placeholder": "Suchen …",
+          "aria-describedby": "psuche-hilfe"
+        },
+        {
+          "element": "Segmente",
+          "line": 800,
+          "name": "Baustellen filtern"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 814,
+          "id": "pmeine",
+          "label": "Nur meine Baustellen"
+        },
+        {
+          "element": "BottomSheet",
+          "line": 947,
+          "label": "Neue Baustelle",
+          "titel": "Neue Baustelle"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 957,
+          "title": "Baustelle löschen?"
+        }
+      ]
+    },
+    {
+      "file": "src/features/projects/BaustellenPlaene.tsx",
+      "lines": 240,
+      "elements": [
+        {
+          "element": "CheckboxField",
+          "line": 180,
+          "id": "plaene-nur-buero",
+          "label": "Nur fürs Büro"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 198,
+          "title": "Wirklich zu den Plänen?",
+          "confirmLabel": "Hinzufügen",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 218,
+          "id": "plaene-rueckfrage-nur-buero",
+          "label": "Nur fürs Büro"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 226,
+          "title": "Plan löschen?"
+        }
+      ]
+    },
+    {
+      "file": "src/features/projects/BaustellenScheine.tsx",
+      "lines": 145,
+      "elements": []
+    },
+    {
+      "file": "src/features/projects/BaustellenUebersicht.tsx",
+      "lines": 258,
+      "elements": []
+    },
+    {
+      "file": "src/features/projects/BaustellenakteView.tsx",
+      "lines": 841,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 322,
+          "title": "Baustelle"
+        },
+        {
+          "element": "Card",
+          "line": 323
+        },
+        {
+          "element": "PageHeader",
+          "line": 331,
+          "title": "Baustelle"
+        },
+        {
+          "element": "Card",
+          "line": 332
+        },
+        {
+          "element": "PageHeader",
+          "line": 346,
+          "title": "Baustelle"
+        },
+        {
+          "element": "Card",
+          "line": 347
+        },
+        {
+          "element": "Card",
+          "line": 364,
+          "title": "Auftrag",
+          "id": "b-ueberblick"
+        },
+        {
+          "element": "Card",
+          "line": 386,
+          "title": "Kunde und Ort",
+          "id": "b-daten"
+        },
+        {
+          "element": "Card",
+          "line": 397,
+          "title": "Team und Leitung",
+          "id": "b-team"
+        },
+        {
+          "element": "Card",
+          "line": 407,
+          "title": "Pläne und Dokumente",
+          "id": "b-plaene"
+        },
+        {
+          "element": "Card",
+          "line": 423,
+          "title": "Handwerksscheine",
+          "id": "b-scheine"
+        },
+        {
+          "element": "AktenBereiche",
+          "line": 472,
+          "kennung": "baustelle"
+        },
+        {
+          "element": "Card",
+          "line": 476,
+          "title": "Jüngste Handwerksscheine"
+        },
+        {
+          "element": "Card",
+          "line": 484,
+          "title": "Termine"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 494,
+          "title": "Projektnummer ändern?",
+          "confirmLabel": "Nummer ändern",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "InputField",
+          "line": 636,
+          "id": "b-bezeichnung",
+          "label": "Bezeichnung (freiwillig)",
+          "placeholder": "z. B. Bad 2. OG"
+        },
+        {
+          "element": "InputField",
+          "line": 650,
+          "id": "b-ansprech",
+          "label": "Ansprechpartner vor Ort"
+        },
+        {
+          "element": "InputField",
+          "line": 654,
+          "id": "b-telefon",
+          "label": "Telefon vor Ort",
+          "type": "tel"
+        },
+        {
+          "element": "InputField",
+          "line": 673,
+          "id": "b-nummer",
+          "label": "Projektnummer"
+        },
+        {
+          "element": "SelectField",
+          "line": 677,
+          "id": "b-status",
+          "label": "Status"
+        },
+        {
+          "element": "SelectField",
+          "line": 692,
+          "id": "b-abrechnung",
+          "label": "Abrechnung"
+        },
+        {
+          "element": "InputField",
+          "line": 725,
+          "id": "b-beginn",
+          "label": "Beginn",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 729,
+          "id": "b-ende",
+          "label": "Ende (geplant)",
+          "type": "date"
+        }
+      ]
+    },
+    {
+      "file": "src/features/projects/BetriebsurlaubHinweis.tsx",
+      "lines": 59,
+      "elements": []
+    },
+    {
+      "file": "src/features/projects/MyProjectsView.tsx",
+      "lines": 225,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 122,
+          "title": "Meine Baustellen",
+          "subtitle": "Aus deinem Team und aus deiner Einteilung"
+        },
+        {
+          "element": "Card",
+          "line": 124
+        },
+        {
+          "element": "Card",
+          "line": 126
+        },
+        {
+          "element": "Card",
+          "line": 128
+        },
+        {
+          "element": "Card",
+          "line": 133
+        }
+      ]
+    },
+    {
+      "file": "src/features/projects/PlaeneListe.tsx",
+      "lines": 108,
+      "elements": []
+    },
+    {
+      "file": "src/features/quotes/AbrechnungWahl.tsx",
+      "lines": 41,
+      "elements": [
+        {
+          "element": "SelectField",
+          "line": 19,
+          "id": "annahme-abrechnung",
+          "label": "Abrechnung der Baustelle"
+        }
+      ]
+    },
+    {
+      "file": "src/features/quotes/AngebotView.tsx",
+      "lines": 580,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 205,
+          "title": "Angebot"
+        },
+        {
+          "element": "Card",
+          "line": 206
+        },
+        {
+          "element": "PageHeader",
+          "line": 213,
+          "title": "Angebot"
+        },
+        {
+          "element": "Card",
+          "line": 214
+        },
+        {
+          "element": "PageHeader",
+          "line": 227,
+          "title": "Angebot"
+        },
+        {
+          "element": "Card",
+          "line": 228
+        },
+        {
+          "element": "Card",
+          "line": 358,
+          "title": "Verlauf",
+          "id": "angebot-verlauf"
+        },
+        {
+          "element": "Card",
+          "line": 364,
+          "title": "Angaben",
+          "id": "angebot-angaben"
+        },
+        {
+          "element": "Card",
+          "line": 393,
+          "id": "angebot-positionen"
+        },
+        {
+          "element": "Card",
+          "line": 434,
+          "title": "Anmerkungen",
+          "id": "angebot-anmerkungen"
+        },
+        {
+          "element": "PageHeader",
+          "line": 463
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 526,
+          "title": "Angebot annehmen?",
+          "confirmLabel": "Annehmen",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 541,
+          "title": "Angebot löschen?"
+        }
+      ]
+    },
+    {
+      "file": "src/features/quotes/KatalogSuche.tsx",
+      "lines": 105,
+      "elements": [
+        {
+          "element": "InputField",
+          "line": 65,
+          "id": "angebot-katalog",
+          "label": "Artikel aus dem Katalog",
+          "type": "search",
+          "placeholder": "Name, Art.-Nr. oder Kategorie"
+        }
+      ]
+    },
+    {
+      "file": "src/features/quotes/QuotesView.tsx",
+      "lines": 1232,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 756,
+          "title": "Angebote",
+          "subtitle": "Kalkulieren, versenden, in einen Auftrag überführen"
+        },
+        {
+          "element": "Card",
+          "line": 789
+        },
+        {
+          "element": "InputField",
+          "line": 841,
+          "id": "anqgueltig",
+          "label": "Gültig bis",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 862,
+          "label": "Titel",
+          "placeholder": "z. B. Bad, Heizraum"
+        },
+        {
+          "element": "InputField",
+          "line": 888,
+          "label": "Bezeichnung"
+        },
+        {
+          "element": "InputField",
+          "line": 923,
+          "label": "Einheit",
+          "placeholder": "z. B. h, Stk, m"
+        },
+        {
+          "element": "BottomSheet",
+          "line": 1104,
+          "label": "Katalog",
+          "titel": "Aus dem Katalog"
+        },
+        {
+          "element": "Card",
+          "line": 1127
+        },
+        {
+          "element": "Segmente",
+          "line": 1130,
+          "name": "Angebote zeigen"
+        },
+        {
+          "element": "InputField",
+          "line": 1141,
+          "id": "anq-suche",
+          "label": "Suche",
+          "type": "search",
+          "placeholder": "Nummer, Kunde, Ort oder Baustelle"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 1191,
+          "title": "Angebot annehmen?",
+          "confirmLabel": "Annehmen",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 1211,
+          "title": "Angebot löschen?"
+        }
+      ]
+    },
+    {
+      "file": "src/features/recht/Datenauskunft.tsx",
+      "lines": 186,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 93,
+          "title": "Datenschutz"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 133,
+          "confirmLabel": "Jetzt löschen"
+        }
+      ]
+    },
+    {
+      "file": "src/features/recht/DatenschutzView.tsx",
+      "lines": 152,
+      "elements": []
+    },
+    {
+      "file": "src/features/recht/ImpressumView.tsx",
+      "lines": 58,
+      "elements": []
+    },
+    {
+      "file": "src/features/recht/RechtSeite.tsx",
+      "lines": 48,
+      "elements": []
+    },
+    {
+      "file": "src/features/settings/BasiszinsVerlauf.tsx",
+      "lines": 134,
+      "elements": [
+        {
+          "element": "SelectField",
+          "line": 104,
+          "id": "r-basiszins-ab",
+          "label": "Halbjahr ab"
+        }
+      ]
+    },
+    {
+      "file": "src/features/settings/EinstellungenUebersicht.tsx",
+      "lines": 206,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 152,
+          "ort": "Betrieb",
+          "title": "Einstellungen",
+          "subtitle": "Was den Betrieb einrichtet — und dein Konto"
+        },
+        {
+          "element": "InputField",
+          "line": 155,
+          "id": "einstellung-suche",
+          "label": "Einstellung suchen",
+          "type": "search",
+          "placeholder": "z. B. Skonto, IBAN, Urlaubsjahr"
+        },
+        {
+          "element": "Card",
+          "line": 165,
+          "title": "Einrichtungsstand"
+        },
+        {
+          "element": "Card",
+          "line": 171,
+          "title": "Einrichtungsstand"
+        },
+        {
+          "element": "Card",
+          "line": 192
+        }
+      ]
+    },
+    {
+      "file": "src/features/settings/FirmendatenView.tsx",
+      "lines": 440,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 78,
+          "ort": "Einstellungen",
+          "title": "Firmendaten",
+          "subtitle": "Was auf den Belegen steht"
+        },
+        {
+          "element": "Card",
+          "line": 79
+        },
+        {
+          "element": "PageHeader",
+          "line": 171,
+          "ort": "Einstellungen",
+          "title": "Firmendaten",
+          "subtitle": "Briefkopf für Rechnung, Stundenbericht und Handwerksschein"
+        },
+        {
+          "element": "Card",
+          "line": 178,
+          "title": "Briefkopf",
+          "hint": "Diese Angaben stehen oben auf jedem Beleg, den der Betrieb ausgibt."
+        },
+        {
+          "element": "InputField",
+          "line": 185,
+          "id": "fd-name",
+          "label": "Firmenname"
+        },
+        {
+          "element": "InputField",
+          "line": 199,
+          "id": "fd-kontakt",
+          "label": "Kontakt (eine Zeile)",
+          "placeholder": "z. B. 02622 12345 · office@betrieb.at"
+        },
+        {
+          "element": "Card",
+          "line": 210,
+          "title": "Logo"
+        },
+        {
+          "element": "Card",
+          "line": 264,
+          "title": "Rechnungsangaben",
+          "hint": "UID, Firmenbuchnummer und Firmenbuchgericht (§ 14 UGB) stehen im Fuß jedes Belegs, die Bankverbindung im Zahlungshinweis."
+        },
+        {
+          "element": "InputField",
+          "line": 271,
+          "id": "fd-uid",
+          "label": "UID-Nummer",
+          "placeholder": "z. B. ATU12345678"
+        },
+        {
+          "element": "InputField",
+          "line": 281,
+          "id": "fd-fn",
+          "label": "Firmenbuchnummer",
+          "placeholder": "z. B. FN 123456a"
+        },
+        {
+          "element": "InputField",
+          "line": 288,
+          "id": "fd-fbg",
+          "label": "Firmenbuchgericht",
+          "placeholder": "z. B. Landesgericht Wiener Neustadt"
+        },
+        {
+          "element": "InputField",
+          "line": 296,
+          "id": "fd-iban",
+          "label": "IBAN",
+          "placeholder": "z. B. AT61 1904 3002 3457 3201"
+        },
+        {
+          "element": "InputField",
+          "line": 313,
+          "id": "fd-bic",
+          "label": "BIC",
+          "placeholder": "z. B. BKAUATWW"
+        },
+        {
+          "element": "InputField",
+          "line": 323,
+          "id": "fd-bank",
+          "label": "Bank"
+        },
+        {
+          "element": "Card",
+          "line": 346,
+          "title": "Farben"
+        },
+        {
+          "element": "InputField",
+          "line": 355,
+          "id": "fd-brand",
+          "label": "Hauptfarbe (#rrggbb)",
+          "placeholder": "#0f4552"
+        },
+        {
+          "element": "InputField",
+          "line": 369,
+          "id": "fd-brand-fg",
+          "label": "Schrift auf der Hauptfarbe",
+          "placeholder": "#ffffff"
+        },
+        {
+          "element": "InputField",
+          "line": 376,
+          "id": "fd-accent",
+          "label": "Akzentfarbe (#rrggbb)",
+          "placeholder": "#00778a"
+        },
+        {
+          "element": "InputField",
+          "line": 383,
+          "id": "fd-accent-fg",
+          "label": "Schrift auf der Akzentfarbe",
+          "placeholder": "#ffffff"
+        }
+      ]
+    },
+    {
+      "file": "src/features/settings/KontenrahmenView.tsx",
+      "lines": 460,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 221,
+          "ort": "Einstellungen",
+          "title": "Kontenrahmen",
+          "subtitle": "Welche Konten die Buchhaltung bebucht"
+        },
+        {
+          "element": "PageHeader",
+          "line": 229,
+          "ort": "Einstellungen",
+          "title": "Kontenrahmen",
+          "subtitle": "Welche Konten die Buchhaltung bebucht"
+        },
+        {
+          "element": "Card",
+          "line": 231,
+          "title": "Grundkonten"
+        },
+        {
+          "element": "InputField",
+          "line": 266,
+          "id": "k-debitoren",
+          "label": "Forderungen (Debitorensammelkonto)",
+          "placeholder": "z. B. 2000"
+        },
+        {
+          "element": "InputField",
+          "line": 284,
+          "id": "k-anzahlung",
+          "label": "Erhaltene Anzahlungen",
+          "placeholder": "z. B. 3500"
+        },
+        {
+          "element": "InputField",
+          "line": 293,
+          "id": "k-anzahlung-code",
+          "label": "Steuercode",
+          "placeholder": "z. B. M20"
+        },
+        {
+          "element": "InputField",
+          "line": 312,
+          "id": "k-rc",
+          "label": "Bauleistung mit Übergang der Steuerschuld",
+          "placeholder": "z. B. 4005"
+        },
+        {
+          "element": "InputField",
+          "line": 321,
+          "id": "k-rc-code",
+          "label": "Steuercode",
+          "placeholder": "z. B. M00"
+        },
+        {
+          "element": "Card",
+          "line": 339,
+          "title": "Zahlungen (eigener Stapel)"
+        },
+        {
+          "element": "InputField",
+          "line": 352,
+          "id": "k-bank",
+          "label": "Bankkonto",
+          "placeholder": "z. B. 2800"
+        },
+        {
+          "element": "InputField",
+          "line": 363,
+          "id": "k-skonto",
+          "label": "Gewährte Skonti (Erlösschmälerung)",
+          "placeholder": "z. B. 4420"
+        },
+        {
+          "element": "Card",
+          "line": 379,
+          "hint": "Je Steuersatz, den du tatsächlich verrechnest, ein Konto. Was hier fehlt, verhindert den Buchungsstapel für jeden Zeitraum, in dem eine Rechnung mit diesem Satz liegt — gemeldet wird es mit Satz und Klartext."
+        },
+        {
+          "element": "InputField",
+          "line": 393,
+          "label": "Satz %",
+          "inputMode": "decimal"
+        },
+        {
+          "element": "InputField",
+          "line": 404,
+          "label": "Erlöskonto",
+          "placeholder": "z. B. 4000"
+        },
+        {
+          "element": "InputField",
+          "line": 415,
+          "label": "Steuercode",
+          "placeholder": "z. B. M20"
+        }
+      ]
+    },
+    {
+      "file": "src/features/settings/LaufStatus.tsx",
+      "lines": 142,
+      "elements": []
+    },
+    {
+      "file": "src/features/settings/LohnregelnKarte.tsx",
+      "lines": 208,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 93,
+          "title": "Nachtzeit und Überstunden"
+        },
+        {
+          "element": "InputField",
+          "line": 126,
+          "id": "nachtVon",
+          "label": "Nachtzeit von",
+          "type": "time"
+        },
+        {
+          "element": "InputField",
+          "line": 130,
+          "id": "nachtBis",
+          "label": "Nachtzeit bis",
+          "type": "time"
+        },
+        {
+          "element": "SelectField",
+          "line": 134,
+          "id": "ueberstundenModell",
+          "label": "Überstunden"
+        },
+        {
+          "element": "InputField",
+          "line": 142,
+          "id": "durchrechnungWochen",
+          "label": "Durchrechnung für den Schnitt von 48 Std. (Wochen)",
+          "type": "number",
+          "inputMode": "numeric"
+        },
+        {
+          "element": "SelectField",
+          "line": 147,
+          "id": "ueberstundenGrenze",
+          "label": "Überstunden ab"
+        },
+        {
+          "element": "InputField",
+          "line": 157,
+          "id": "vollzeitWochenstunden",
+          "label": "Vollzeit je Woche (Std.)",
+          "inputMode": "decimal"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 184,
+          "id": "ueberstundenKvMetall",
+          "label": "Zuschläge nach dem KV Metallgewerbe (Arbeiter und Lehrlinge)"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 190,
+          "id": "ueberstundenHundert"
+        }
+      ]
+    },
+    {
+      "file": "src/features/settings/MaterialaufschlagFelder.tsx",
+      "lines": 92,
+      "elements": [
+        {
+          "element": "InputField",
+          "line": 61,
+          "label": "Warengruppe",
+          "placeholder": "z. B. 1201"
+        }
+      ]
+    },
+    {
+      "file": "src/features/settings/NotificationSettings.tsx",
+      "lines": 303,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 159,
+          "ort": "Einstellungen",
+          "title": "Mein Konto",
+          "subtitle": "Benachrichtigungen und Passwort — alles, was nur dich betrifft"
+        },
+        {
+          "element": "Card",
+          "line": 174,
+          "title": "Dieses Gerät",
+          "hint": "Jedes Gerät meldet sich einzeln an — Telefon und Rechner getrennt. Das ist Absicht: so entscheidest du, wo dich eine Meldung erreicht."
+        },
+        {
+          "element": "Card",
+          "line": 211,
+          "title": "Wovon möchtest du erfahren?",
+          "hint": "Die Auswahl gilt für dich auf allen Geräten und wird sofort gespeichert."
+        },
+        {
+          "element": "CheckboxField",
+          "line": 216,
+          "id": "n-new-order",
+          "label": "Eine neue Materialanforderung geht ein"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 224,
+          "id": "n-order-ready",
+          "label": "Mein angefordertes Material ist abholbereit"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 234,
+          "id": "n-urgent",
+          "label": "Eilzustellung für meine Baustellen"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 251,
+          "id": "n-abwesenheit",
+          "label": "Urlaub, Zeitausgleich und Krankmeldungen"
+        },
+        {
+          "element": "Card",
+          "line": 278,
+          "title": "Passwort"
+        },
+        {
+          "element": "Card",
+          "line": 292,
+          "title": "Kommen die Meldungen an?",
+          "hint": "Stündlich nachgesehen: von den Meldungen, die angestoßen wurden, wie viele haben den Versand nicht verlassen. Keine Frist — Push läuft, wenn es etwas zu melden gibt, und ein ruhiger Tag ist kein Befund."
+        }
+      ]
+    },
+    {
+      "file": "src/features/settings/PushStatus.tsx",
+      "lines": 61,
+      "elements": []
+    },
+    {
+      "file": "src/features/settings/SettingsView.tsx",
+      "lines": 1530,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 535,
+          "ort": "Einstellungen"
+        },
+        {
+          "element": "Card",
+          "line": 546,
+          "title": "Rechnungsvorgaben",
+          "hint": "Diese Werte sind die Vorgabe für neue Rechnungen. Beim Erstellen lassen sie sich für den Einzelfall noch anpassen."
+        },
+        {
+          "element": "SelectField",
+          "line": 553,
+          "id": "r-vat",
+          "label": "Umsatzsteuer"
+        },
+        {
+          "element": "InputField",
+          "line": 584,
+          "id": "r-befreiung",
+          "label": "Grund der Steuerbefreiung (Vorschlag)",
+          "placeholder": "z. B. Kleinunternehmer, § 6 Abs 1 Z 27 UStG"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 607,
+          "id": "rechnungsarten",
+          "label": "Wir stellen Anzahlungs-, Teil- und Schlussrechnungen"
+        },
+        {
+          "element": "Card",
+          "line": 640,
+          "title": "Rechnungsvorgaben",
+          "hint": "Diese Werte sind die Vorgabe für neue Rechnungen und Mahnungen. Stunden- und Kostensätze pflegt die Leitung unter „Sätze und Kosten“."
+        },
+        {
+          "element": "Card",
+          "line": 662,
+          "title": "Stundensätze",
+          "hint": "Welcher Satz für eine Stunde gilt, folgt aus der Einstufung der Person (Benutzerakte). Der Haken „als Helfer“ an der Buchung bleibt für Ausnahmen und geht vor."
+        },
+        {
+          "element": "Card",
+          "line": 717,
+          "title": "Zuschläge",
+          "hint": "Zuschläge gelten als Aufschlag auf den Stundensatz. Nacht und Notdienst können zusammentreffen — dann addieren sich beide."
+        },
+        {
+          "element": "InputField",
+          "line": 723,
+          "id": "r-night",
+          "label": "Nachtarbeit (%)",
+          "type": "number",
+          "min": "0",
+          "step": "5"
+        },
+        {
+          "element": "InputField",
+          "line": 732,
+          "id": "r-emergency",
+          "label": "Notdienst (%)",
+          "type": "number",
+          "min": "0",
+          "step": "5"
+        },
+        {
+          "element": "Card",
+          "line": 785,
+          "title": "Interne Kostensätze"
+        },
+        {
+          "element": "Card",
+          "line": 862,
+          "title": "Materialaufschlag",
+          "hint": "Prozent auf den Einkaufspreis. Daraus schlägt der Katalog den Verkaufspreis vor; ein eingetragener Verkaufspreis bleibt, wie er ist."
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 904,
+          "title": "Auf Standardwerte zurücksetzen?",
+          "message": "Stundensätze, Zuschläge und Rechnungsvorgaben dieser Seite stehen danach auf den Werten ab Werk. Gespeichert wird erst mit „Sätze speichern“.",
+          "confirmLabel": "Zurücksetzen",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "Card",
+          "line": 926,
+          "title": "Urlaubsjahr und Übertrag"
+        },
+        {
+          "element": "SelectField",
+          "line": 960,
+          "id": "urlaubsjahr-tag",
+          "label": "Urlaubsjahr beginnt am"
+        },
+        {
+          "element": "SelectField",
+          "line": 973,
+          "id": "urlaubsjahr-monat",
+          "label": "Monat"
+        },
+        {
+          "element": "SelectField",
+          "line": 1042,
+          "id": "stichtag-tag",
+          "label": "Verfällt am"
+        },
+        {
+          "element": "SelectField",
+          "line": 1055,
+          "id": "stichtag-monat",
+          "label": "Monat"
+        },
+        {
+          "element": "SelectField",
+          "line": 1083,
+          "id": "urlaub-eintritt-aliquot",
+          "label": "Anspruch im Eintrittsjahr"
+        },
+        {
+          "element": "Card",
+          "line": 1119,
+          "title": "Nummernkreise und Fuhrpark"
+        },
+        {
+          "element": "InputField",
+          "line": 1141
+        },
+        {
+          "element": "InputField",
+          "line": 1164,
+          "id": "vorsatz-kennzeichen",
+          "label": "Kennzeichen des Fuhrparks",
+          "placeholder": "z. B. WZ"
+        },
+        {
+          "element": "Card",
+          "line": 1203,
+          "title": "Wer Urlaub genehmigt"
+        },
+        {
+          "element": "Card",
+          "line": 1257,
+          "title": "Wochenplan und Einsatzplan"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 1274,
+          "id": "wochenplanFuerAlle",
+          "label": "Alle Mitarbeiter sehen den Wochenplan (nur lesen)"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 1280,
+          "id": "projektleitungImEinsatzplan",
+          "label": "Projektleiter sind im Einsatzplan einteilbar und sehen „Mein Einsatzplan“"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 1286,
+          "id": "kalenderAboErlaubt",
+          "label": "Mitarbeiter dürfen ihren Einsatzplan als Kalender abonnieren"
+        },
+        {
+          "element": "Card",
+          "line": 1306,
+          "title": "24. und 31. Dezember"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 1322,
+          "id": "dezemberHalbtage",
+          "label": "24. und 31. Dezember als halbe Tage rechnen (Normalarbeitszeit bis 12 Uhr)"
+        },
+        {
+          "element": "InputField",
+          "line": 1369,
+          "id": "r-due",
+          "label": "Zahlungsziel (Tage)",
+          "type": "number",
+          "min": "0"
+        },
+        {
+          "element": "InputField",
+          "line": 1391,
+          "id": "r-skonto-tage",
+          "label": "Skontofrist (Tage)",
+          "type": "number",
+          "min": "0",
+          "placeholder": "leer = keines"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 1422,
+          "id": "r-pauschale458",
+          "label": "Firmenkunden: Pauschale 40 € nach § 458 UGB statt Spesen"
+        }
+      ]
+    },
+    {
+      "file": "src/features/settings/SicherungView.tsx",
+      "lines": 332,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 194,
+          "ort": "Einstellungen",
+          "title": "Datensicherung",
+          "subtitle": "Der Bestand des Betriebs an einem zweiten Ort — und zum Herunterladen"
+        },
+        {
+          "element": "Card",
+          "line": 207,
+          "title": "Nächtliche Sicherung"
+        },
+        {
+          "element": "Card",
+          "line": 261,
+          "title": "Daten herunterladen"
+        },
+        {
+          "element": "Card",
+          "line": 280,
+          "title": "Belegarchiv"
+        },
+        {
+          "element": "SelectField",
+          "line": 297,
+          "id": "archiv-zeitraum",
+          "label": "Zeitraum"
+        }
+      ]
+    },
+    {
+      "file": "src/features/settings/SonderurlaubKarte.tsx",
+      "lines": 107,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 71,
+          "title": "Sonderurlaub",
+          "hint": "Die Tage der Dienstverhinderung je Anlass, ab Werk nach dem Kollektivvertrag (Arbeiter und Angestellte gleich). Vorladung und Musterung bekommen die notwendige Zeit. Beim unbezahlten Urlaub schlägt die App ab der eingestellten Dauer am Stück vor, den Urlaubsanspruch aliquot zu kürzen — übernommen wird erst mit der Entscheidung."
+        },
+        {
+          "element": "InputField",
+          "line": 82,
+          "inputMode": "numeric"
+        },
+        {
+          "element": "InputField",
+          "line": 92,
+          "id": "kuerzungAb",
+          "label": "Kürzung vorschlagen ab (Kalendertage unbezahlt am Stück)",
+          "inputMode": "numeric"
+        }
+      ]
+    },
+    {
+      "file": "src/features/settings/SupportzugangView.tsx",
+      "lines": 342,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 128,
+          "ort": "Einstellungen",
+          "title": "Supportzugang",
+          "subtitle": "Einblick gewähren — befristet und widerrufbar"
+        },
+        {
+          "element": "Card",
+          "line": 132
+        },
+        {
+          "element": "InputField",
+          "line": 178,
+          "id": "sup-grund",
+          "label": "Wofür",
+          "placeholder": "z. B. Rechnung RE-2026-0042 stimmt nicht"
+        },
+        {
+          "element": "SelectField",
+          "line": 239,
+          "id": "sup-dauer",
+          "label": "Wie lange"
+        },
+        {
+          "element": "Card",
+          "line": 258,
+          "hint": "Je Zugang steht hier, WOFÜR er gewährt wurde, WIE LANGE er galt — und welche Bereiche darin geöffnet wurden. Gezählt wird jeder einzelne Aufruf; angehängt wird, geändert nie. Auch wir können hier nichts nachbessern."
+        }
+      ]
+    },
+    {
+      "file": "src/features/settings/ZweiFaktorKarte.tsx",
+      "lines": 170,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 68,
+          "title": "Zwei-Faktor-Anmeldung"
+        },
+        {
+          "element": "Card",
+          "line": 76,
+          "title": "Zwei-Faktor-Anmeldung",
+          "hint": "Nach dem Passwort zusätzlich ein Code aus einer Authenticator-App am Telefon. Wer das Passwort erfährt, kommt damit allein nicht hinein."
+        },
+        {
+          "element": "CheckboxField",
+          "line": 137,
+          "id": "zf-pflicht",
+          "label": "Für Administrator, Geschäftsführung und Buchhaltung in diesem Betrieb verpflichtend"
+        }
+      ]
+    },
+    {
+      "file": "src/features/termine/TerminFenster.tsx",
+      "lines": 135,
+      "elements": [
+        {
+          "element": "BottomSheet",
+          "line": 54
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 114,
+          "title": "Termin löschen?"
+        }
+      ]
+    },
+    {
+      "file": "src/features/termine/TerminFormular.tsx",
+      "lines": 200,
+      "elements": [
+        {
+          "element": "SelectField",
+          "line": 112,
+          "id": "termin-art",
+          "label": "Art"
+        },
+        {
+          "element": "InputField",
+          "line": 117,
+          "id": "termin-datum",
+          "label": "Tag",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 118,
+          "id": "termin-von",
+          "type": "time"
+        },
+        {
+          "element": "InputField",
+          "line": 119,
+          "id": "termin-bis",
+          "type": "time"
+        },
+        {
+          "element": "SelectField",
+          "line": 165,
+          "id": "termin-baustelle",
+          "label": "Baustelle"
+        }
+      ]
+    },
+    {
+      "file": "src/features/termine/TerminListe.tsx",
+      "lines": 68,
+      "elements": []
+    },
+    {
+      "file": "src/features/termine/TermineKarte.tsx",
+      "lines": 222,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 122,
+          "hint": "Termine sind Kundentermine, Besichtigungen, Besprechungen, Abnahmen, Lieferungen (Aviso) und Behördenwege — alles, was kein Einsatz ist. Ein Termin bucht keine Arbeitszeit. Teilnehmer sehen ihn auf der Startseite und in „Mein Einsatzplan“, ebenso wer an diesem Tag auf der Baustelle eingeteilt ist."
+        },
+        {
+          "element": "BottomSheet",
+          "line": 139
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 201,
+          "title": "Termin löschen?"
+        }
+      ]
+    },
+    {
+      "file": "src/features/time/AntragKnopf.tsx",
+      "lines": 157,
+      "elements": [
+        {
+          "element": "ConfirmDialog",
+          "line": 136,
+          "confirmLabel": "Zurücknehmen"
+        },
+        {
+          "element": "InputField",
+          "line": 145,
+          "label": "Grund"
+        }
+      ]
+    },
+    {
+      "file": "src/features/time/AufteilenDialog.tsx",
+      "lines": 173,
+      "elements": [
+        {
+          "element": "ConfirmDialog",
+          "line": 89,
+          "title": "Auf mehrere Baustellen aufteilen",
+          "confirmLabel": "Aufteilen",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "InputField",
+          "line": 115,
+          "label": "Stunden",
+          "inputMode": "decimal",
+          "placeholder": "z. B. 2,5 oder 2:30"
+        }
+      ]
+    },
+    {
+      "file": "src/features/time/TimeForm.tsx",
+      "lines": 1529,
+      "elements": [
+        {
+          "element": "InputField",
+          "line": 831,
+          "id": "travelTime",
+          "label": "Wegzeit (Min.)",
+          "type": "number",
+          "min": "0"
+        },
+        {
+          "element": "InputField",
+          "line": 876,
+          "id": "helperName",
+          "label": "Name des Helfers (optional)"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 887,
+          "id": "isEmergency",
+          "label": "Notdienst / Störungseinsatz"
+        },
+        {
+          "element": "SelectField",
+          "line": 967,
+          "id": "targetUser",
+          "label": "Mitarbeiter"
+        },
+        {
+          "element": "InputField",
+          "line": 984,
+          "id": "date",
+          "label": "Datum",
+          "type": "date"
+        },
+        {
+          "element": "SelectField",
+          "line": 999,
+          "id": "status",
+          "label": "Status"
+        },
+        {
+          "element": "InputField",
+          "line": 1057,
+          "id": "krankBis",
+          "label": "Krank bis (voraussichtlich)",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 1078,
+          "id": "urlaubBis",
+          "label": "Urlaub bis",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 1100,
+          "id": "schuleBis",
+          "label": "Berufsschule bis",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 1118,
+          "id": "unterricht",
+          "label": "Unterricht je Schultag (Std., optional)",
+          "inputMode": "decimal"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 1153,
+          "id": "zaStundenweise",
+          "label": "Nur einige Stunden"
+        },
+        {
+          "element": "InputField",
+          "line": 1161,
+          "id": "zaVon",
+          "label": "Frei von",
+          "type": "time"
+        },
+        {
+          "element": "InputField",
+          "line": 1170,
+          "id": "zaBis",
+          "label": "Frei bis",
+          "type": "time"
+        },
+        {
+          "element": "InputField",
+          "line": 1191,
+          "id": "startTime",
+          "label": "Von",
+          "type": "time"
+        },
+        {
+          "element": "InputField",
+          "line": 1200,
+          "id": "endTime",
+          "label": "Bis",
+          "type": "time"
+        },
+        {
+          "element": "InputField",
+          "line": 1209,
+          "id": "break",
+          "label": "Pause (Min.)",
+          "type": "number",
+          "min": "0"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 1276,
+          "id": "nachtAbwahl",
+          "label": "Nicht als Nachtarbeit zählen"
+        },
+        {
+          "element": "InputField",
+          "line": 1282,
+          "id": "nachtGrund",
+          "label": "Grund",
+          "placeholder": "z. B. mit dem Kunden pauschal vereinbart"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 1318,
+          "id": "erweitert",
+          "label": "Erweiterte Erfassung (Baustelle, Wegzeit, Fahrzeug, Zuschläge)"
+        },
+        {
+          "element": "InputField",
+          "line": 1394,
+          "id": "comment"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 1414,
+          "id": "isHelper",
+          "label": "Einsatz als Helfer (zählt nicht zum Projekt-Budget)"
+        },
+        {
+          "element": "AufteilenDialog",
+          "line": 1481
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 1494,
+          "title": "Grenze für Jugendliche",
+          "confirmTone": "primary"
+        }
+      ]
+    },
+    {
+      "file": "src/features/time/TimeView.tsx",
+      "lines": 1088,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 673,
+          "title": "Zeiterfassung"
+        },
+        {
+          "element": "Card",
+          "line": 808
+        },
+        {
+          "element": "Card",
+          "line": 941,
+          "id": "zeit-formular",
+          "className": "zeit-formularkarte"
+        },
+        {
+          "element": "Card",
+          "line": 979,
+          "title": "Meine Einträge",
+          "id": "meine-eintraege",
+          "className": "zeit-liste"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 1071,
+          "title": "Eintrag löschen?"
+        }
+      ]
+    },
+    {
+      "file": "src/features/time/Zeitmarker.tsx",
+      "lines": 43,
+      "elements": []
+    },
+    {
+      "file": "src/features/users/BenutzerakteView.tsx",
+      "lines": 850,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 201,
+          "title": "Benutzer"
+        },
+        {
+          "element": "Card",
+          "line": 202
+        },
+        {
+          "element": "PageHeader",
+          "line": 210,
+          "title": "Benutzer"
+        },
+        {
+          "element": "Card",
+          "line": 211
+        },
+        {
+          "element": "PageHeader",
+          "line": 225,
+          "title": "Benutzer"
+        },
+        {
+          "element": "Card",
+          "line": 226
+        },
+        {
+          "element": "Card",
+          "line": 243,
+          "title": "Beschäftigung",
+          "id": "akte-stammdaten"
+        },
+        {
+          "element": "Card",
+          "line": 246,
+          "title": "Zugang",
+          "id": "akte-zugang",
+          "className": "sprung-ziel"
+        },
+        {
+          "element": "AktenBereiche",
+          "line": 383,
+          "kennung": "benutzer"
+        },
+        {
+          "element": "Card",
+          "line": 384,
+          "title": "Anmeldekonto"
+        },
+        {
+          "element": "Card",
+          "line": 385,
+          "title": "Rolle und Freigaben"
+        },
+        {
+          "element": "Card",
+          "line": 386,
+          "title": "Mitarbeiterübersicht"
+        },
+        {
+          "element": "Card",
+          "line": 393,
+          "title": "Arbeitszeit und Urlaub"
+        },
+        {
+          "element": "Card",
+          "line": 396,
+          "title": "Startwerte des Zeitkontos",
+          "hint": "Das sind Einstellungen und Startwerte. Aktuelle Salden stehen in der Mitarbeiterübersicht."
+        },
+        {
+          "element": "Card",
+          "line": 401,
+          "title": "Zeitkonto-Einstellungen",
+          "id": "akte-zeitkonto",
+          "hint": "Hier stehen die Einstellungen und Startwerte des Zeitkontos. Die aktuellen Salden und Buchungen stehen in der Mitarbeiterübersicht."
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 425,
+          "confirmLabel": "Trotzdem speichern",
+          "confirmTone": "primary",
+          "message": "Für Jugendliche gelten engere Grenzen der Arbeitszeit (KJBG). Gespeichert wird trotzdem; Buchungen über der Grenze zeigt die Mitarbeiterübersicht als Verstoß."
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 442,
+          "title": "Neues Startpasswort vergeben?",
+          "confirmLabel": "Vergeben"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 454
+        },
+        {
+          "element": "InputField",
+          "line": 589,
+          "id": "b-name",
+          "label": "Name"
+        },
+        {
+          "element": "InputField",
+          "line": 598,
+          "id": "b-mail",
+          "label": "Benutzername",
+          "title": "Der Benutzername ist das Anmeldekonto und kann hier nicht geändert werden."
+        },
+        {
+          "element": "InputField",
+          "line": 604,
+          "id": "b-mail",
+          "label": "E-Mail",
+          "title": "Die E-Mail-Adresse ist das Anmeldekonto und kann hier nicht geändert werden."
+        },
+        {
+          "element": "SelectField",
+          "line": 611,
+          "id": "b-rolle",
+          "label": "Rolle"
+        },
+        {
+          "element": "SelectField",
+          "line": 617,
+          "id": "b-status",
+          "label": "Status"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 638,
+          "id": "b-kunden",
+          "label": "Darf Kunden anlegen und ändern"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 658,
+          "id": "b-katalog",
+          "label": "Darf den Katalog einspielen (DATANORM, mit Einkaufspreisen)"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 664,
+          "id": "b-einkauf",
+          "label": "Darf Einkaufspreise sehen"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 676,
+          "id": "b-rechnungen",
+          "label": "Darf die Rechnungen seiner Baustellen lesen"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 705,
+          "id": "b-zeitkonto",
+          "label": "Führt ein Zeitkonto"
+        },
+        {
+          "element": "InputField",
+          "line": 732,
+          "id": "b-eintritt",
+          "label": "Eintrittsdatum (im Betrieb seit)",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 738,
+          "id": "b-start",
+          "label": "Saldo-Startdatum (ab hier rechnet das Zeitkonto)",
+          "type": "date"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 788
+        }
+      ]
+    },
+    {
+      "file": "src/features/users/EinstufungFelder.tsx",
+      "lines": 174,
+      "elements": [
+        {
+          "element": "SelectField",
+          "line": 64,
+          "label": "Einstufung"
+        },
+        {
+          "element": "InputField",
+          "line": 85,
+          "label": "Lehrbeginn",
+          "type": "date"
+        },
+        {
+          "element": "SelectField",
+          "line": 93,
+          "label": "Lehrzeit"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 126,
+          "label": "Stunden zählen ins Projekt-Budget"
+        }
+      ]
+    },
+    {
+      "file": "src/features/users/GeburtsdatumKarte.tsx",
+      "lines": 114,
+      "elements": [
+        {
+          "element": "InputField",
+          "line": 78,
+          "id": "geburtsdatum",
+          "label": "Geburtsdatum",
+          "type": "date"
+        },
+        {
+          "element": "Card",
+          "line": 93,
+          "title": "Geburtsdatum",
+          "hint": "Nur für die Schutzregeln für Jugendliche unter 18 (KJBG): Die Mitarbeiterübersicht prüft damit Tages- und Wochenarbeitszeit, Ruhezeit, Nachtruhe und Wochenfreizeit. Sehen können es die Person selbst sowie Büro und Leitung. Bei einer Löschung nach DSGVO wird es entfernt."
+        }
+      ]
+    },
+    {
+      "file": "src/features/users/KontoUmstellen.tsx",
+      "lines": 172,
+      "elements": [
+        {
+          "element": "InputField",
+          "line": 125,
+          "id": "umstellen-benutzername",
+          "label": "Benutzername",
+          "autoComplete": "off"
+        },
+        {
+          "element": "InputField",
+          "line": 129,
+          "id": "umstellen-grund",
+          "label": "Grund"
+        },
+        {
+          "element": "InputField",
+          "line": 141,
+          "id": "umstellen-mail",
+          "label": "E-Mail",
+          "type": "email",
+          "autoComplete": "off"
+        }
+      ]
+    },
+    {
+      "file": "src/features/users/TagessollFelder.tsx",
+      "lines": 75,
+      "elements": [
+        {
+          "element": "CheckboxField",
+          "line": 35,
+          "id": "tagessoll-an",
+          "label": "Tagessoll je Wochentag festlegen (etwa ein kürzerer Freitag)"
+        },
+        {
+          "element": "InputField",
+          "line": 51,
+          "inputMode": "decimal"
+        }
+      ]
+    },
+    {
+      "file": "src/features/users/UrlaubsanspruchKarte.tsx",
+      "lines": 181,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 106,
+          "title": "Urlaubsanspruch",
+          "hint": "Für Zeiten, in denen kein oder weniger Urlaub entsteht: gesetzliche Elternkarenz, Präsenz- und Zivildienst, ein längerer unbezahlter Urlaub. Eine Anpassung gilt für ein Urlaubsjahr; Übertrag und Verjährung rechnen mit dem angepassten Anspruch. Aliquot gekürzt wird so: Jahresanspruch × Tage ohne Anspruch ÷ Tage des Urlaubsjahres — bei 25 Tagen und drei Monaten etwa 6,25."
+        },
+        {
+          "element": "InputField",
+          "line": 139,
+          "id": "anp-jahr",
+          "label": "Urlaubsjahr",
+          "inputMode": "numeric"
+        },
+        {
+          "element": "InputField",
+          "line": 143,
+          "id": "anp-tage",
+          "label": "Tage (weniger mit Minus)",
+          "inputMode": "decimal",
+          "placeholder": "−6,25"
+        },
+        {
+          "element": "InputField",
+          "line": 148,
+          "id": "anp-grund",
+          "label": "Grund",
+          "placeholder": "etwa: Elternkarenz 01.03.–31.08."
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 165,
+          "title": "Anpassung entfernen?",
+          "confirmLabel": "Entfernen"
+        },
+        {
+          "element": "InputField",
+          "line": 173,
+          "id": "anp-entfernen-grund",
+          "label": "Grund"
+        }
+      ]
+    },
+    {
+      "file": "src/features/users/UserMgmtView.tsx",
+      "lines": 753,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 258,
+          "ort": "Team",
+          "title": "Benutzerverwaltung",
+          "subtitle": "Benutzer anlegen, Rollen und Zeitkonten pflegen"
+        },
+        {
+          "element": "Card",
+          "line": 321,
+          "title": "Neuen Benutzer anlegen"
+        },
+        {
+          "element": "InputField",
+          "line": 326,
+          "id": "uname",
+          "label": "Name"
+        },
+        {
+          "element": "SelectField",
+          "line": 328,
+          "id": "uanmeldung",
+          "label": "Anmeldung mit"
+        },
+        {
+          "element": "InputField",
+          "line": 333,
+          "id": "uemail",
+          "label": "E-Mail",
+          "type": "email"
+        },
+        {
+          "element": "InputField",
+          "line": 344,
+          "id": "ubenutzername",
+          "label": "Benutzername",
+          "autoCapitalize": "none",
+          "autoCorrect": "off",
+          "placeholder": "z. B. manfred.huber"
+        },
+        {
+          "element": "SelectField",
+          "line": 362,
+          "id": "urole",
+          "label": "Rolle"
+        },
+        {
+          "element": "SelectField",
+          "line": 372,
+          "id": "uactive",
+          "label": "Status"
+        },
+        {
+          "element": "InputField",
+          "line": 534,
+          "id": "ueintritt",
+          "label": "Eintrittsdatum (im Betrieb seit)",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 544,
+          "id": "ustart",
+          "type": "date"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 617
+        },
+        {
+          "element": "Card",
+          "line": 660
+        },
+        {
+          "element": "InputField",
+          "line": 668,
+          "id": "usrsuche",
+          "label": "Suche",
+          "type": "search",
+          "placeholder": "Name, E-Mail oder Benutzername"
+        },
+        {
+          "element": "Segmente",
+          "line": 678,
+          "name": "Benutzer nach Status filtern"
+        }
+      ]
+    },
+    {
+      "file": "src/features/vacations/AntragFenster.tsx",
+      "lines": 200,
+      "elements": [
+        {
+          "element": "BottomSheet",
+          "line": 49
+        }
+      ]
+    },
+    {
+      "file": "src/features/vacations/BetriebsurlaubReiter.tsx",
+      "lines": 325,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 146,
+          "className": "zeit-formularkarte",
+          "title": "Betriebsurlaub anlegen"
+        },
+        {
+          "element": "InputField",
+          "line": 158,
+          "id": "bu-bezeichnung",
+          "label": "Bezeichnung"
+        },
+        {
+          "element": "InputField",
+          "line": 168,
+          "id": "bu-von",
+          "label": "Von",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 179,
+          "id": "bu-bis",
+          "label": "Bis (einschließlich)",
+          "type": "date"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 197,
+          "id": "bu-abbuchen",
+          "label": "Urlaubskonto aller aktiven Mitarbeiter belasten"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 236
+        },
+        {
+          "element": "Card",
+          "line": 259,
+          "title": "Betriebsurlaube",
+          "className": "zeit-liste"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 291,
+          "title": "Betriebsurlaub anlegen?",
+          "confirmLabel": "Anlegen",
+          "confirmTone": "primary"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 306,
+          "title": "Betriebsurlaub löschen?",
+          "confirmLabel": "Löschen"
+        }
+      ]
+    },
+    {
+      "file": "src/features/vacations/FreistellungFormular.tsx",
+      "lines": 331,
+      "elements": [
+        {
+          "element": "SelectField",
+          "line": 160,
+          "id": "fanlass",
+          "label": "Anlass"
+        },
+        {
+          "element": "InputField",
+          "line": 168,
+          "id": "fereignis",
+          "label": "Tag des Ereignisses",
+          "type": "date"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 175,
+          "id": "fstunden",
+          "label": "Nur einige Stunden (an einem Tag)"
+        },
+        {
+          "element": "InputField",
+          "line": 183,
+          "id": "fvon",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 190,
+          "id": "fbis",
+          "label": "Bis (einschließlich)",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 204,
+          "id": "fzvon",
+          "label": "Frei von",
+          "type": "time"
+        },
+        {
+          "element": "InputField",
+          "line": 205,
+          "id": "fzbis",
+          "label": "Frei bis",
+          "type": "time"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 212,
+          "id": "fkind",
+          "label": "Für ein erkranktes Kind unter 12 Jahren"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 223,
+          "id": "fzusatz",
+          "label": "Zweite Woche (die erste ist in diesem Arbeitsjahr verbraucht)"
+        },
+        {
+          "element": "InputField",
+          "line": 264,
+          "id": "fnotiz"
+        }
+      ]
+    },
+    {
+      "file": "src/features/vacations/FreistellungListe.tsx",
+      "lines": 178,
+      "elements": [
+        {
+          "element": "ConfirmDialog",
+          "line": 161,
+          "title": "Antrag zurückziehen?",
+          "confirmLabel": "Zurückziehen"
+        }
+      ]
+    },
+    {
+      "file": "src/features/vacations/FreistellungenBestaetigen.tsx",
+      "lines": 476,
+      "elements": [
+        {
+          "element": "CheckboxField",
+          "line": 295
+        },
+        {
+          "element": "CheckboxField",
+          "line": 318
+        },
+        {
+          "element": "InputField",
+          "line": 324,
+          "label": "um Tage",
+          "inputMode": "decimal"
+        },
+        {
+          "element": "InputField",
+          "line": 376,
+          "label": "Grund für die Tage darüber"
+        },
+        {
+          "element": "Card",
+          "line": 401,
+          "title": "Sonderurlaub bestätigen",
+          "hint": "Dienstverhinderung (Sonderurlaub) und Pflegefreistellung stehen zu, wenn der Anlass vorliegt — bestätigt wird der Anlass, nicht genehmigt. Unbezahlten Urlaub entscheiden Geschäftsführung oder Administration. Der Anlass steht nur hier; die Projektleitung sieht im Wochenplan die Art, die Kollegen „abwesend“."
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 461
+        },
+        {
+          "element": "InputField",
+          "line": 471,
+          "id": "frei-grund",
+          "label": "Grund"
+        }
+      ]
+    },
+    {
+      "file": "src/features/vacations/Krankmeldungen.tsx",
+      "lines": 513,
+      "elements": [
+        {
+          "element": "InputField",
+          "line": 134,
+          "label": "Krank bis",
+          "type": "date"
+        },
+        {
+          "element": "BottomSheet",
+          "line": 176,
+          "label": "Ende der Krankmeldung ändern",
+          "titel": "Ende ändern"
+        },
+        {
+          "element": "InputField",
+          "line": 190,
+          "label": "Krank bis",
+          "type": "date"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 210,
+          "title": "Krankmeldung löschen?",
+          "confirmLabel": "Löschen"
+        },
+        {
+          "element": "Card",
+          "line": 251,
+          "title": "Krankmeldung"
+        },
+        {
+          "element": "BottomSheet",
+          "line": 292,
+          "label": "Krankmeldung",
+          "titel": "Krankmeldung"
+        },
+        {
+          "element": "Card",
+          "line": 441,
+          "className": "zeit-formularkarte",
+          "title": "Krankmeldung erfassen"
+        },
+        {
+          "element": "SelectField",
+          "line": 454,
+          "id": "krank-wer",
+          "label": "Mitarbeiter"
+        },
+        {
+          "element": "InputField",
+          "line": 461,
+          "id": "krank-von",
+          "label": "Krank ab",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 472,
+          "id": "krank-bis",
+          "label": "Voraussichtlich bis",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 482,
+          "id": "krank-notiz",
+          "label": "Anmerkung (freiwillig, keine Diagnose)"
+        },
+        {
+          "element": "Card",
+          "line": 494,
+          "title": "Krankenstände",
+          "className": "zeit-liste"
+        }
+      ]
+    },
+    {
+      "file": "src/features/vacations/UrlaubMonat.tsx",
+      "lines": 131,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 70,
+          "title": "Urlaub im Monat"
+        }
+      ]
+    },
+    {
+      "file": "src/features/vacations/VacationsView.tsx",
+      "lines": 1665,
+      "elements": [
+        {
+          "element": "Card",
+          "line": 957,
+          "id": "offene-antraege",
+          "className": "zeit-liste"
+        },
+        {
+          "element": "PageHeader",
+          "line": 1117,
+          "title": "Urlaub",
+          "subtitle": "Urlaub, Zeitausgleich, Sonderurlaub und Krankmeldung"
+        },
+        {
+          "element": "Card",
+          "line": 1218,
+          "className": "zeit-formularkarte"
+        },
+        {
+          "element": "SelectField",
+          "line": 1225,
+          "id": "uart",
+          "label": "Art"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 1289,
+          "id": "uzastunden",
+          "label": "Nur einige Stunden (an einem Tag)"
+        },
+        {
+          "element": "InputField",
+          "line": 1299,
+          "id": "uvon",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 1314,
+          "id": "ubis",
+          "type": "date"
+        },
+        {
+          "element": "InputField",
+          "line": 1332,
+          "id": "uzavon",
+          "label": "Frei von",
+          "type": "time"
+        },
+        {
+          "element": "InputField",
+          "line": 1341,
+          "id": "uzabis",
+          "label": "Frei bis",
+          "type": "time"
+        },
+        {
+          "element": "InputField",
+          "line": 1352,
+          "id": "unotiz"
+        },
+        {
+          "element": "Card",
+          "line": 1504,
+          "title": "Meine Anträge"
+        },
+        {
+          "element": "Card",
+          "line": 1559,
+          "title": "Mein Sonderurlaub"
+        },
+        {
+          "element": "Card",
+          "line": 1573,
+          "title": "Meine Krankmeldungen"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 1618
+        },
+        {
+          "element": "InputField",
+          "line": 1635,
+          "id": "entscheid-grund",
+          "label": "Grund"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 1645,
+          "title": "Antrag zurückziehen?",
+          "confirmLabel": "Zurückziehen"
+        }
+      ]
+    },
+    {
+      "file": "src/features/worksheets/Fotostreifen.tsx",
+      "lines": 86,
+      "elements": []
+    },
+    {
+      "file": "src/features/worksheets/LeistungszeitErfassen.tsx",
+      "lines": 266,
+      "elements": [
+        {
+          "element": "InputField",
+          "line": 152,
+          "id": "lz-name",
+          "label": "Mitarbeiter"
+        },
+        {
+          "element": "InputField",
+          "line": 158,
+          "id": "lz-von",
+          "label": "Von",
+          "type": "time"
+        },
+        {
+          "element": "InputField",
+          "line": 165,
+          "id": "lz-bis",
+          "label": "Bis",
+          "type": "time"
+        },
+        {
+          "element": "InputField",
+          "line": 172,
+          "id": "lz-pause",
+          "label": "Pause (Minuten, optional)",
+          "type": "number",
+          "min": "0",
+          "step": "1",
+          "inputMode": "numeric",
+          "placeholder": "0"
+        },
+        {
+          "element": "InputField",
+          "line": 183,
+          "id": "lz-taetigkeit",
+          "label": "Tätigkeit (optional)",
+          "placeholder": "z. B. Therme entlüftet, Eckventil getauscht"
+        },
+        {
+          "element": "CheckboxField",
+          "line": 193,
+          "id": "lz-helfer",
+          "label": "Als Helfer gearbeitet"
+        }
+      ]
+    },
+    {
+      "file": "src/features/worksheets/MaterialErfassen.tsx",
+      "lines": 234,
+      "elements": [
+        {
+          "element": "InputField",
+          "line": 144,
+          "id": "wsmsuche",
+          "label": "Artikel aus dem Lager",
+          "type": "search",
+          "placeholder": "Name, Kategorie oder Art.-Nr."
+        },
+        {
+          "element": "InputField",
+          "line": 200,
+          "id": "wsmfrei",
+          "label": "Freie Zeile (nicht im Lager geführt)",
+          "placeholder": "z. B. Eckventil 1/2 Zoll"
+        }
+      ]
+    },
+    {
+      "file": "src/features/worksheets/Schrittfolge.tsx",
+      "lines": 125,
+      "elements": []
+    },
+    {
+      "file": "src/features/worksheets/WorkSheetView.tsx",
+      "lines": 1819,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 998,
+          "ort": "Handwerksscheine",
+          "title": "Handwerksschein — Entwurf",
+          "subtitle": "Konnte nicht geöffnet werden"
+        },
+        {
+          "element": "Card",
+          "line": 999
+        },
+        {
+          "element": "PageHeader",
+          "line": 1066,
+          "ort": "Handwerksscheine"
+        },
+        {
+          "element": "Card",
+          "line": 1113,
+          "title": "Baustelle und Tag"
+        },
+        {
+          "element": "InputField",
+          "line": 1155,
+          "id": "wsdate",
+          "label": "Leistungsdatum",
+          "type": "date"
+        },
+        {
+          "element": "Card",
+          "line": 1217
+        },
+        {
+          "element": "Card",
+          "line": 1299
+        },
+        {
+          "element": "Card",
+          "line": 1322
+        },
+        {
+          "element": "Card",
+          "line": 1366,
+          "title": "Ergänzungen"
+        },
+        {
+          "element": "InputField",
+          "line": 1387,
+          "id": "wsnotes",
+          "label": "Notizen, Regiearbeiten, Mängel",
+          "aria-describedby": "wsnotes-hinweis"
+        },
+        {
+          "element": "Card",
+          "line": 1430
+        },
+        {
+          "element": "Card",
+          "line": 1587,
+          "title": "Zusammenfassung"
+        },
+        {
+          "element": "Card",
+          "line": 1643,
+          "title": "Unterschriften"
+        },
+        {
+          "element": "InputField",
+          "line": 1651,
+          "id": "wsmname",
+          "label": "Monteur (Name in Druckbuchstaben)"
+        },
+        {
+          "element": "InputField",
+          "line": 1668,
+          "id": "wskname",
+          "label": "Kunde (Name in Druckbuchstaben)"
+        }
+      ]
+    },
+    {
+      "file": "src/features/worksheets/WorkSheetsListView.tsx",
+      "lines": 1364,
+      "elements": [
+        {
+          "element": "PageHeader",
+          "line": 702,
+          "title": "Handwerksscheine",
+          "subtitle": "Leistungsnachweise der Baustellen, auch Entwürfe"
+        },
+        {
+          "element": "Card",
+          "line": 742
+        },
+        {
+          "element": "Segmente",
+          "line": 950,
+          "name": "Ansicht"
+        },
+        {
+          "element": "Card",
+          "line": 955
+        },
+        {
+          "element": "BottomSheet",
+          "line": 1106,
+          "label": "Handwerksschein"
+        },
+        {
+          "element": "InputField",
+          "line": 1133,
+          "id": "stornogrund",
+          "label": "Grund (Pflicht)"
+        },
+        {
+          "element": "ConfirmDialog",
+          "line": 1225,
+          "title": "Entwurf verwerfen",
+          "confirmLabel": "Verwerfen",
+          "confirmTone": "primary"
+        }
+      ]
+    }
+  ]
+}
