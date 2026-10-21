@@ -26,6 +26,7 @@ export default function HeuteEigene({
   scheinVerweis,
   planVerweis,
   titel = 'Heute',
+  zeitImKopf = false,
 }: {
   einsaetze: EinsatzZeile[];
   letzteBuchung: LetzteBuchung | null | undefined;
@@ -34,6 +35,8 @@ export default function HeuteEigene({
   scheinVerweis: boolean;
   planVerweis: boolean;
   titel?: string;
+  /** Der direkte Zeit-Einstieg steht dann bereits im gemeinsamen Seitenkopf. */
+  zeitImKopf?: boolean;
 }) {
   if (einsaetze.length === 0) return null;
   const [erster, ...danach] = einsaetze;
@@ -43,7 +46,7 @@ export default function HeuteEigene({
       zusatz={einsaetze.length === 1 ? '1 Einsatz' : `${einsaetze.length} Einsätze`}
       verweis={planVerweis ? { to: '/my-schedule', text: 'Mein Einsatzplan' } : undefined}
     >
-      <Einsatz e={erster} letzteBuchung={letzteBuchung} materialAn={materialAn} scheinVerweis={scheinVerweis} gross />
+      <Einsatz e={erster} letzteBuchung={letzteBuchung} materialAn={materialAn} scheinVerweis={scheinVerweis} zeitImKopf={zeitImKopf} gross />
       {danach.length > 0 && (
         <section aria-label="Danach" className="border-t border-line">
           <h3 className="start-abschnitt">
@@ -66,17 +69,19 @@ function Einsatz({
   materialAn,
   scheinVerweis,
   gross = false,
+  zeitImKopf = false,
 }: {
   e: EinsatzZeile;
   letzteBuchung: LetzteBuchung | null | undefined;
   materialAn: boolean;
   scheinVerweis: boolean;
   gross?: boolean;
+  zeitImKopf?: boolean;
 }) {
   const zuletzt = letzteBuchung ? calcWorkMin({ ...letzteBuchung, status: 'Anwesend' }) : 0;
   return (
-    <div className="px-4 py-4">
-      <p className={`kein-trennen flex flex-wrap items-center gap-2 font-semibold text-ink-deep ${gross ? 'text-base' : ''}`}>
+    <div className={`start-einsatz ${gross ? 'start-einsatz-erster' : ''}`}>
+      <p className={`kein-trennen flex flex-wrap items-center gap-2 font-semibold text-ink-deep ${gross ? 'start-einsatz-titel' : ''}`}>
         {e.customerName}
         {e.asHelper && <Marke>Helfer</Marke>}
       </p>
@@ -84,15 +89,15 @@ function Einsatz({
         <span className="nr">{e.projectNumber}</span>
         {e.zeit ? ` · ${e.zeit}` : ''}
       </p>
-      <KontaktZeile adresse={e.address} nummer={e.contactPhone} name={e.contactName} className="mt-3" />
+      <KontaktZeile adresse={e.address} nummer={e.contactPhone} name={e.contactName} className="start-einsatz-kontakt" />
       {/* Die Notiz des Büros: was heute zu tun ist. */}
       {e.comment && (
-        <p className="mt-2 text-sm text-ink">
+        <p className="start-einsatz-aufgabe">
           <b>Aufgabe:</b> {e.comment}
         </p>
       )}
       {gross && (
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap [&>:only-child]:col-span-2">
+        <div className="start-einsatz-aktionen">
           {letzteBuchung ? (
             <Link
               to="/time"
@@ -103,14 +108,14 @@ function Einsatz({
                 endTime: letzteBuchung.endTime,
                 breakDuration: letzteBuchung.breakDuration,
               }}
-              className="col-span-2 flex min-h-touch flex-col items-center justify-center rounded bg-brand px-3 py-2 text-center text-brand-fg sm:px-5"
+              className={zeitImKopf ? 'start-wie-zuletzt' : 'flex min-h-touch flex-col items-center justify-center rounded bg-brand px-3 py-2 text-center text-brand-fg sm:px-5'}
             >
               <span className="text-fliess font-semibold">Wie zuletzt buchen</span>
               <span className="text-xs">
                 {letzteBuchung.startTime}–{letzteBuchung.endTime} · {letzteBuchung.breakDuration} min Pause · {fmtMin(zuletzt)} Std
               </span>
             </Link>
-          ) : (
+          ) : !zeitImKopf ? (
             <Link
               to="/time"
               state={{ projectNumber: e.projectNumber, asHelper: e.asHelper }}
@@ -118,8 +123,8 @@ function Einsatz({
             >
               Zeit erfassen
             </Link>
-          )}
-          {letzteBuchung && (
+          ) : null}
+          {letzteBuchung && !zeitImKopf && (
             <Link
               to="/time"
               state={{ projectNumber: e.projectNumber, asHelper: e.asHelper }}

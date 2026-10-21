@@ -29,7 +29,7 @@ export default function Kennzahlen({ werte }: { werte: Kennzahl[] }) {
   const liste = werte.slice(0, 4);
   if (liste.length === 0) return null;
   const leiste = (
-    <div className="kennzahlen">
+    <div className="kennzahlen start-kennzahlen">
       {liste.map((k) => (
         <Metric key={k.key} label={k.label} value={k.wert} hint={k.zusatz} to={k.to} tone={k.ton ?? 'default'} />
       ))}

@@ -62,7 +62,7 @@ export default function HeuteLeitung({
   );
 
   return (
-    <StartKarte titel="Heute" zusatz={`${personen} im Einsatz`} verweis={{ to: ziel, text: 'Einsatzplanung' }}>
+    <StartKarte verweisUnten titel="Die Mannschaft heute" zusatz={`${personen} im Einsatz`} verweis={{ to: ziel, text: 'Einsatzplanung' }}>
       {weg && <AbschnittBlock a={weg} />}
       {da && <AbschnittBlock a={da} />}
     </StartKarte>

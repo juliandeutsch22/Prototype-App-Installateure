@@ -40,11 +40,11 @@ function EintragZeile({ z }: { z: Zeile }) {
   return (
     <li className="border-t border-line first:border-t-0">
       {z.to ? (
-        <Link to={z.to} className="flex min-h-touch items-center gap-3 px-4 py-2.5 hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand">
+        <Link to={z.to} className="start-zeile flex min-h-touch items-center gap-3 hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand">
           {inhalt}
         </Link>
       ) : (
-        <div className="flex min-h-touch items-center gap-3 px-4 py-2.5">{inhalt}</div>
+        <div className="start-zeile flex min-h-touch items-center gap-3">{inhalt}</div>
       )}
     </li>
   );
@@ -55,7 +55,7 @@ function AbschnittBlock({ a }: { a: Abschnitt }) {
   const zeilen = offen && a.weiter && 'aufklappen' in a.weiter ? [...a.zeilen, ...a.weiter.aufklappen] : a.zeilen;
   const rest = a.anzahl - a.zeilen.length;
   return (
-    <section aria-label={a.titel} className="border-t border-line first:border-t-0">
+    <section aria-label={a.titel} className="start-gruppe">
       <h3 className="start-abschnitt">
         {a.titel} <span className="font-normal text-ink-muted">· {a.anzahl}</span>
       </h3>
@@ -94,13 +94,13 @@ export default function Handlungsbedarf({
   if (abschnitte.length === 0) return null;
   const zahl = summe(abschnitte);
   return (
-    <section className="panel karte" aria-labelledby="zu-erledigen-titel">
-      <header className="karte-kopf">
+    <section className="panel karte start-karte start-aufgaben" aria-labelledby="zu-erledigen-titel">
+      <header className="karte-kopf start-karte-kopf">
         <h2 id="zu-erledigen-titel" className="titel-karte">
           Zu erledigen <span className="font-normal text-ink-muted">· {zahl}{zaehlwort ? ` ${zaehlwort}` : ''}</span>
         </h2>
       </header>
-      <div className="karte-buendig border-t border-line">
+      <div className="karte-buendig start-karte-inhalt">
         {abschnitte.map((a) => <AbschnittBlock key={a.key} a={a} />)}
       </div>
     </section>

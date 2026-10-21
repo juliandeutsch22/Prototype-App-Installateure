@@ -20,7 +20,7 @@ export default function HeuteListe({
   if (zeilen.length === 0) return null;
   const rest = zeilen.length - JE_ABSCHNITT;
   return (
-    <StartKarte titel="Heute" zusatz={zusatz} verweis={verweis}>
+    <StartKarte verweisUnten titel="Heute" zusatz={zusatz} verweis={verweis}>
       <ul>
         {zeilen.slice(0, JE_ABSCHNITT).map((z) => <EintragZeile key={z.key} z={z} />)}
       </ul>

@@ -26,3 +26,73 @@
   .start-termin { position: relative; padding: 0.875rem 0 0.875rem 1.25rem; border-left: 1px solid var(--border-strong); border-bottom: 1px solid var(--border); }
   .start-termin::before { content: ''; position: absolute; left: -3px; top: 1.375rem; width: 5px; height: 5px; border-radius: 50%; background: var(--petrol); }
 }
+
+/* Nur die Startseite erhält den Tageskontext; Navigation und Fachansichten bleiben unverändert. */
+@layer components {
+  .start-kopf { display: flex; align-items: center; gap: 1.5rem; padding-bottom: 0.5rem; }
+  .start-kopf .seitenkopf { flex: 1; min-width: 0; }
+  .start-kopf .seitenkopf-meta { font-size: 0.75rem; line-height: 1.5rem; }
+  .start-hauptaktion { display: inline-flex; justify-content: center; align-items: center; min-height: 3rem; padding: 0.625rem 1.125rem; border-radius: var(--radius); background: var(--brand); color: var(--brand-fg); font-size: 0.875rem; font-weight: 600; text-align: center; }
+  .start-planaktion { display: none; flex: none; }
+  .start-rahmen { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 1.75rem; padding-top: 0.5rem; }
+  .start-einspaltig { padding-top: 0.5rem; }
+  .start-arbeit { min-width: 0; display: flex; flex-direction: column; gap: 1.5rem; }
+  .start-kontext { min-width: 0; padding: 0.5rem 1.25rem 1rem; background: var(--surface-2); border-top: 1px solid var(--border); }
+  .start-seite .start-karte { background: transparent; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
+  .start-seite .start-karte-kopf { padding: 0.5rem 0 1rem; border: 0; }
+  .start-seite .start-karte-inhalt { border: 0; }
+  .start-seite .start-karte-kopf h2 { font-size: 1rem; line-height: 1.5rem; }
+  .start-seite .start-karte-kopf h2 .start-karte-zusatz { font-size: 0.75rem; margin-left: 0.375rem; }
+  .start-seite .start-karte-kopf .link-weiter { font-size: 0.75rem; }
+  .start-kontext .start-karte { padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+  .start-kontext .start-karte-kopf { padding-top: 1rem; padding-bottom: 0.75rem; }
+  .start-kontext .start-karte-kopf h2 { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.8125rem; line-height: 1.375rem; }
+  .start-kontext .start-karte-kopf h2 .start-karte-zusatz { flex: none; white-space: nowrap; font-weight: 400; font-size: 0.6875rem; margin-left: 0; }
+  .start-karte-verweis { display: inline-flex; align-items: center; min-height: 2.75rem; margin-top: 0.5rem; font-size: 0.75rem; }
+  .start-seite .start-gruppe { padding-bottom: 0.875rem; }
+  .start-seite .start-abschnitt { padding: 0.625rem 0; background: transparent; font-size: 0.75rem; color: var(--text-muted); }
+  .start-seite .start-zeile { padding: 0.875rem 0; font-size: 0.875rem; }
+  .start-seite .start-zeile .text-meta { font-size: 0.75rem; line-height: 1.25rem; }
+  .start-seite .start-zeile .stand { font-size: 0.6875rem; }
+  .start-seite .start-weiter { padding: 0.5rem 0; border-top: 0; font-size: 0.75rem; font-weight: 400; }
+  .start-kontext .start-zeile { font-size: 0.8125rem; padding-block: 0.75rem; }
+  .start-kontext .start-zeile .text-meta { font-size: 0.6875rem; line-height: 1.25rem; }
+  .start-seite .start-kontext .start-status-vorn { display: inline; }
+  .start-seite .start-kontext .start-status-rechts { display: none; }
+  .start-seite .start-terminfolge { margin: 0 0 0 0.25rem; }
+  .start-seite .start-termin { padding: 0.75rem 0 0.75rem 1rem; border-bottom: 0; }
+  .start-seite .start-termin::before { top: 1.25rem; background: var(--accent-deep); }
+  .start-seite .start-termin p { font-size: 0.75rem; line-height: 1.375rem; }
+  .start-seite .start-termin .text-meta { font-size: 0.6875rem; }
+  .start-seite .start-termin a { font-size: 0.75rem; }
+  .start-leer { padding: 1rem 0; }
+  .start-leer h2 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; }
+  .start-leer p { color: var(--text-muted); font-size: 0.875rem; line-height: 1.75rem; max-width: 32rem; margin-top: 0.75rem; }
+  .start-seite .start-kennzahlen { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .start-kennzahlen-eine .start-kennzahlen { grid-template-columns: minmax(0, 1fr); }
+  .start-seite .kennzahl-wert { font-size: 1.25rem; line-height: 1.75rem; color: var(--accent-deep); margin-top: 0.5rem; }
+  .start-seite .kennzahl-wert.text-danger { color: var(--danger); }
+  .start-seite .kennzahl-name, .start-seite .kennzahl-zusatz { font-size: 0.6875rem; line-height: 1.125rem; }
+  .start-einsatz { padding: 1rem 0; }
+  .start-einsatz-kontakt { margin-top: 0.75rem; }
+  .start-einsatz-kontakt a { border: 0; padding: 0.5rem 0; border-radius: 0; color: var(--accent-deep); text-decoration: underline; text-underline-offset: 3px; font-size: 0.8125rem; overflow-wrap: anywhere; }
+  .start-einsatz-kontakt svg { display: none; }
+  .start-einsatz-aufgabe { border-left: 2px solid var(--border-strong); padding-left: 1rem; margin-block: 1rem; font-size: 0.875rem; line-height: 1.75rem; }
+  .start-einsatz-titel { font-size: 1.375rem; line-height: 1.875rem; }
+  .start-einsatz-aktionen { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-top: 1rem; }
+  .start-wie-zuletzt { display: inline-flex; flex-direction: column; justify-content: center; min-height: 3rem; padding-block: 0.5rem; color: var(--accent-deep); }
+  .start-wie-zuletzt .text-fliess { font-size: 0.8125rem; }
+  @media (min-width: 760px) {
+    .start-planaktion { display: inline-flex; }
+    .start-rahmen { grid-template-columns: minmax(0, 1fr) 15.5rem; gap: 1.5rem; }
+    .start-kontext { border-top: 0; border-left: 1px solid var(--border); }
+    .start-seite .start-kennzahlen { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .start-kennzahlen-eine .start-kennzahlen { grid-template-columns: minmax(0, 1fr); }
+    .start-kennzahlen-zwei .start-kennzahlen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (min-width: 1200px) {
+    .start-rahmen { grid-template-columns: minmax(0, 1fr) 19.125rem; gap: 2.25rem; }
+    .start-seite .kennzahl-wert { font-size: 1.5rem; line-height: 2rem; }
+    .start-seite .kennzahl-name, .start-seite .kennzahl-zusatz { font-size: 0.75rem; line-height: 1.25rem; }
+  }
+}

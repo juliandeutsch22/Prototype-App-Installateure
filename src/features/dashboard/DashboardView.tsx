@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { useModul } from '@/lib/useModule';
 import { localDateStr, todayStr, getISOWeek } from '@/lib/time';
@@ -18,7 +19,6 @@ import {
 } from '@/lib/permissions';
 import { canAccess, zusatzrechte } from '@/app/navigation';
 import Card from '@/components/Card';
-import Icon from '@/components/Icon';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import PageHeader from '@/components/PageHeader';
 import { SkeletonList, SkeletonMetrics } from '@/components/States';
@@ -50,30 +50,10 @@ import { listUsers } from '@/lib/db/users';
 import { schluessel, useZwischengespeichert } from '@/lib/zwischenspeicher';
 
 /**
- * DIE STARTSEITE (Testbericht 4.2, Nachtest 01.10.2026 Paket B; Skizzen in
- * `docs/design/startseite-skizzen`).
- *
- * Für jede Rolle derselbe Aufbau (Linie „Lot“, Protokoll E1):
- *   1. Seitenkopf — der Tag als Überschrift, KW, Betrieb, Rolle.
- *   2. Kennzahlen — höchstens vier, jede ein Verweis, als Leiste über allem.
- *   3. Zu erledigen — EINE Karte, je Thema ein Abschnitt mit höchstens
- *      drei Zeilen und „und N weitere →“ auf die gefilterte Fachseite.
- *   4. Heute — was heute ansteht (Einsatz, Lieferungen, Zahlungseingänge,
- *      wer wo ist).
- *
- * DIE KENNZAHLEN STEHEN OBEN, nicht mehr unter „Heute“ in der rechten
- * Spalte. Dort rutschten sie am Schreibtisch unter den Rand, sobald der
- * Monteur zwei Einsätze hatte — die Zahl, die man zuerst überfliegt, stand
- * zuletzt. Oben sind es höchstens vier Zahlen in einer Zeile (am Telefon
- * zwei), und darunter beginnt die Arbeit.
- *
- * Am Schreibtisch links „Zu erledigen“, rechts „Heute“; am Telefon eine
- * Spalte in dieser Reihenfolge. Ist nichts zu tun: „Heute liegt nichts an“
- * und darunter, über die ganze Breite, Heute (bei der Leitung, wenn es
- * Einsätze gibt) — keine leere Spalte (G20).
- *
- * Was eine Rolle zeigt, steht in `start/aufbau.ts` und `start/regeln.ts`;
- * geladen wird in `start/laden.ts`.
+ * Kennzahlen bleiben über der Arbeit; Aufgaben und Tageskontext verwenden
+ * weiterhin dieselben rollen- und modulabhängigen Daten. Beim Monteur steht
+ * der eigene Einsatz vor den Nachträgen. Der Kontext bleibt bei wenig Arbeit
+ * sichtbar und entfällt ganz, wenn er nichts enthält.
  */
 const KEINE_DATEN: StartDaten = {};
 const KEINE_NAMEN: string[] = [];
@@ -199,7 +179,9 @@ export default function DashboardView() {
   const planVerweis = darf('/my-schedule');
   const scheinVerweis = scheineAn && canWriteWorkSheet(user.role);
 
-  const heuteKarten = (
+  const vorname = user.name.trim().split(/\s+/)[0];
+  const monteurMitEinsatz = rolle === 'monteur' && eigene.length > 0;
+  const eigenerEinsatz = (
     <>
       {eigene.length > 0 && (
         <HeuteEigene
@@ -208,9 +190,15 @@ export default function DashboardView() {
           materialAn={materialAn}
           scheinVerweis={scheinVerweis}
           planVerweis={planVerweis}
-          titel={rolle === 'monteur' ? 'Heute' : 'Dein Einsatz heute'}
+          titel="Dein Einsatz heute"
+          zeitImKopf={monteurMitEinsatz}
         />
       )}
+    </>
+  );
+  const tagesKontext = (
+    <>
+      {!monteurMitEinsatz && eigenerEinsatz}
       {termine.length > 0 && (
         <TermineHeute termine={termine} planVerweis={planVerweis} />
       )}
@@ -222,30 +210,43 @@ export default function DashboardView() {
       )}
     </>
   );
-  const hatHeute = eigene.length > 0 || termine.length > 0 || !!seite.heute;
+  const hatKontext = (!monteurMitEinsatz && eigene.length > 0) || termine.length > 0 || !!seite.heute;
   const hatBedarf = seite.abschnitte.length > 0;
 
   return (
-    <div className="space-y-3 lg:space-y-5" data-geladen={nochAmLaden ? 'nein' : 'ja'}>
-      {/* Der Tag ist die Überschrift: die App hält Ansichten vor, und ein
-          sichtbares Datum ist die billigste Auskunft, dass man auf heute schaut. */}
-      <PageHeader
-        title={kopf.datum}
-        subtitle={
-          <>
-            {/* Umbrechen nur zwischen den Teilen (D13). */}
-            <span className="whitespace-nowrap">KW {kopf.kw}</span> ·{' '}
-            {company?.name ?? 'Installateur-App'} ·{' '}
-            <span className="whitespace-nowrap">Rolle: {rolleAnzeige(user.role, einblick)}</span>
-            {kopf.feiertag && (
-              <>
-                {' · '}
-                <span className="font-semibold text-warning">{kopf.feiertag}</span>
-              </>
-            )}
-          </>
-        }
-      />
+    <div className="start-seite space-y-3 lg:space-y-5" data-geladen={nochAmLaden ? 'nein' : 'ja'}>
+      <div className="start-kopf">
+        <PageHeader
+          ort={<>Start · KW {kopf.kw}</>}
+          title={rolle === 'monteur' ? `Dein Tag${vorname ? `, ${vorname}` : ''}` : 'Heute im Überblick'}
+          action={monteurMitEinsatz ? (
+            <Link
+              to="/time"
+              state={{ projectNumber: eigene[0].projectNumber, asHelper: eigene[0].asHelper }}
+              className="start-hauptaktion"
+            >
+              Zeit erfassen
+            </Link>
+          ) : undefined}
+          subtitle={
+            <>
+              {/* Umbrechen nur zwischen den Teilen (D13). */}
+              <span className="whitespace-nowrap">{kopf.datum}</span> ·{' '}
+              {company?.name ?? 'Installateur-App'} ·{' '}
+              <span className="whitespace-nowrap">Rolle: {rolleAnzeige(user.role, einblick)}</span>
+              {kopf.feiertag && (
+                <>
+                  {' · '}
+                  <span className="font-semibold text-warning">{kopf.feiertag}</span>
+                </>
+              )}
+            </>
+          }
+        />
+        {darf('/assignments/woche') && (
+          <Link to="/assignments/woche" className="start-planaktion start-hauptaktion">Einsatzplanung</Link>
+        )}
+      </div>
 
       {/* Die Nachtläufe zuerst: ihr Schaden wächst mit der Zeit, statt aufzufallen. */}
       <LaufWarnung />
@@ -284,26 +285,22 @@ export default function DashboardView() {
           {/* Die Zahlen zuerst, über die ganze Breite (Protokoll E1). */}
           <Kennzahlen werte={seite.kennzahlen} />
 
-          {hatBedarf ? (
-            <div className={hatHeute ? 'zwei-spalten' : undefined}>
-              <div className="spalte start-breit">
+          <div className={hatKontext ? 'start-rahmen' : 'start-einspaltig'}>
+            <div className="start-arbeit start-breit">
+              {monteurMitEinsatz && eigenerEinsatz}
+              {hatBedarf ? (
                 <Handlungsbedarf abschnitte={seite.abschnitte} zaehlwort={seite.zaehlwort} />
-              </div>
-              {hatHeute && <div className="spalte">{heuteKarten}</div>}
+              ) : (
+                <section className="start-leer" aria-label="Heute liegt nichts an">
+                  <h2>Heute liegt nichts an</h2>
+                  <p>{leerText(rolle)}</p>
+                </section>
+              )}
             </div>
-          ) : (
-            /* Nichts zu tun: EINE Spalte über die ganze Breite (G20). */
-            <div className="spalte start-breit">
-              <section className="panel karte flex items-start gap-3 p-4" aria-label="Heute liegt nichts an">
-                <Icon name="haken" size={20} className="mt-0.5 shrink-0 text-success" />
-                <div>
-                  <h2 className="titel-karte">Heute liegt nichts an</h2>
-                  <p className="mt-0.5 text-sm text-ink-muted">{leerText(rolle)}</p>
-                </div>
-              </section>
-              {heuteKarten}
-            </div>
-          )}
+            {hatKontext && (
+              <aside className="start-kontext" aria-label="Dein Tagesüberblick">{tagesKontext}</aside>
+            )}
+          </div>
         </div>
       )}
 
