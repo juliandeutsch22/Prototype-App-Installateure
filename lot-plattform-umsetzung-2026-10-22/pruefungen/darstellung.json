@@ -1,0 +1,380 @@
+{
+  "errors": [],
+  "checks": [
+    {
+      "state": "betriebe",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "neu-email",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "neu-benutzer",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "angelegt",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "geloescht",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "support",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "notzugang",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "notpasswort",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "notfaktor",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "fehler",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "fehler-details",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "basiszins",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "konto",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "verwaltung-aktiv",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "verwaltung-deaktiviert",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "verwaltung-frist",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "verwaltung-loeschen",
+      "width": 390,
+      "scroll": 390,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "betriebe",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "neu-email",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "neu-benutzer",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "angelegt",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "geloescht",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "support",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "notzugang",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "notpasswort",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "notfaktor",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "fehler",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "fehler-details",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "basiszins",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "konto",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "verwaltung-aktiv",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "verwaltung-deaktiviert",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "verwaltung-frist",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "verwaltung-loeschen",
+      "width": 834,
+      "scroll": 834,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "betriebe",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "neu-email",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "neu-benutzer",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "angelegt",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "geloescht",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "support",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "notzugang",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "notpasswort",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "notfaktor",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "fehler",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "fehler-details",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "basiszins",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "konto",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "verwaltung-aktiv",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "verwaltung-deaktiviert",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "verwaltung-frist",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "verwaltung-loeschen",
+      "width": 1440,
+      "scroll": 1440,
+      "small": [],
+      "violations": []
+    },
+    {
+      "state": "betriebe",
+      "width": 390,
+      "dark": true,
+      "violations": []
+    },
+    {
+      "state": "support",
+      "width": 390,
+      "dark": true,
+      "violations": []
+    },
+    {
+      "state": "konto",
+      "width": 390,
+      "dark": true,
+      "violations": []
+    }
+  ]
+}
