@@ -37,7 +37,8 @@ async function einrichten(page: Page): Promise<{ geheimnis: string; codes: strin
 }
 
 async function abmelden(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Abmelden' }).last().click();
+  await page.getByRole('button', { name: 'Mein Konto', exact: true }).click();
+  await page.getByRole('button', { name: 'Abmelden', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Anmelden' })).toBeVisible({ timeout: 20_000 });
 }
 
@@ -57,7 +58,7 @@ test('Plattformkonto: ohne zweiten Faktor kein Zugang, ein Wiederherstellungscod
   // 1. Nur mit Passwort: die Plattformseite bleibt zu, die Einrichtung ist Pflicht.
   await anmeldenMitPasswort(page);
   await expect(page.getByText('Für dieses Konto ist ein zweiter Faktor Pflicht')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Betriebe anlegen' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Betriebe', exact: true })).toHaveCount(0);
 
   const erste = await einrichten(page);
   await expect(page.getByRole('button', { name: 'Betrieb anlegen' })).toBeVisible({ timeout: 20_000 });

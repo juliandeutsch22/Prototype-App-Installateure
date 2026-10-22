@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { ToastProvider } from '@/components/Toast';
 
 /**
@@ -34,7 +34,9 @@ const betrieb = (leitungskonten: number, leitungMitMail: number) => ({
 });
 
 function zeige() {
-  return render(<ToastProvider><PlattformView /></ToastProvider>);
+  const ansicht = render(<ToastProvider><PlattformView /></ToastProvider>);
+  fireEvent.click(screen.getByRole('button', { name: 'Supportzugänge' }));
+  return ansicht;
 }
 
 beforeEach(() => {
@@ -67,7 +69,7 @@ describe('Notzugang: Passwort neu setzen (N5)', () => {
   it('solange die Liste der Betriebe fehlt, verspricht der Knopf nichts', async () => {
     betriebe = [];
     zeige();
-    expect(await screen.findByText('Senklot Testbetrieb GmbH')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Senklot Testbetrieb GmbH' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Passwort neu setzen' })).not.toBeInTheDocument();
   });
 });

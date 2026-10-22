@@ -61,7 +61,7 @@ export default function BasiszinsZentral() {
 
   return (
     <Card
-      title="Basiszinssatz"
+      title="Hinterlegte Sätze"
       hint="Der Basiszinssatz der OeNB je Halbjahr, für alle Betriebe. Er gewinnt über die Einträge der Betriebe; die gelten nur noch für Halbjahre, zu denen hier nichts steht. Mahnungen an Unternehmer rechnen damit die Verzugszinsen (§ 456 UGB)."
     >
       {fehler ? (
@@ -73,11 +73,11 @@ export default function BasiszinsZentral() {
           {liste.length === 0 ? (
             <p className="text-sm text-ink-muted">Noch keiner hinterlegt — es gelten die Einträge der Betriebe.</p>
           ) : (
-            <ul className="divide-y divide-line rounded-sm border border-line">
+            <ul className="divide-y divide-line border-y border-line">
               {[...liste].reverse().map((b) => (
                 <li key={b.ab} className="flex items-center justify-between gap-3 px-3 py-1.5 text-sm">
                   <span>
-                    ab {datumAT(b.ab)}: <strong>{pz(b.satz)}</strong>
+                    ab {datumAT(b.ab)}: <span className="nr">{pz(b.satz)}</span>
                   </span>
                   <Button
                     type="button"
@@ -101,7 +101,7 @@ export default function BasiszinsZentral() {
               </p>
             </Hinweiszeile>
           )}
-          <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-3">
+          <div className="formular flex flex-col gap-4">
             <SelectField id="p-basiszins-ab" label="Halbjahr ab" value={ab} onChange={(e) => setAb(e.target.value)}>
               {halbjahreZurWahl(todayStr()).map((hj) => (
                 <option key={hj} value={hj}>{datumAT(hj)}</option>

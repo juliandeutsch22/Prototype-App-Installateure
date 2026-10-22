@@ -18,7 +18,8 @@ const WERT = {
   company: firma,
   loading: false,
   error: null,
-  plattformAdmin: false,
+  plattformAdmin: ROLLE === 'Plattformadministrator',
+  einblickStarten: async () => {},
   // Runde 3, H1: in der Vorschau verlangt niemand einen zweiten Faktor.
   zweiterFaktor: 'keiner',
   signIn: async () => {},

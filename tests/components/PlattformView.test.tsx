@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 
@@ -7,9 +7,8 @@ import { ToastProvider } from '@/components/Toast';
  * Die einzige Seite des globalen Administrators.
  *
  * WAS HIER GEPRÜFT WIRD, IST NICHT DIE SICHERHEIT. Die steht in
- * `tests/firestore.rules.test.ts` (dieses Konto kommt an kein Dokument eines
- * Betriebs) und in `tests/functions/plattform.test.ts` (die Function weist
- * jeden ab, der den Claim nicht trägt). Hier geht es um die Seite: sagt sie,
+ * `tests/supabase/plattformBetriebe.test.ts` und den weiteren
+ * Plattform-/Supportprüfungen gegen die echte Datenbank. Hier geht es um die Seite: sagt sie,
  * was sie kann, führt sie den Anlagevorgang zu Ende, und zeigt sie den
  * Rücksetzlink — den einzigen Weg, wie der erste Administrator hineinkommt.
  */
@@ -42,12 +41,15 @@ vi.mock('@/app/AuthContext', () => ({
 
 const { default: PlattformView } = await import('@/features/plattform/PlattformView');
 
-function zeige() {
-  return render(
-    <ToastProvider>
-      <PlattformView />
-    </ToastProvider>,
-  );
+function zeige(anfang: 'neu' | 'liste' | 'fehler' | 'notzugang' = 'neu') {
+  const ansicht = render(<ToastProvider><PlattformView /></ToastProvider>);
+  if (anfang === 'neu') fireEvent.click(screen.getByRole('button', { name: 'Betrieb anlegen' }));
+  if (anfang === 'fehler') fireEvent.click(screen.getByRole('button', { name: 'Fehlerprotokoll' }));
+  if (anfang === 'notzugang') {
+    fireEvent.click(screen.getByRole('button', { name: 'Supportzugänge' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Notzugang öffnen' }));
+  }
+  return ansicht;
 }
 
 async function ausfuellen(nutzer: ReturnType<typeof userEvent.setup>) {
@@ -78,6 +80,7 @@ describe('Die Plattformseite', () => {
       und hält die Seite für kaputt.
     */
     zeige();
+    await userEvent.click(screen.getByRole('button', { name: 'Hilfe zu dieser Seite' }));
     expect(await screen.findByText(/sieht in keinen hinein/)).toBeInTheDocument();
   });
 
@@ -153,9 +156,9 @@ describe('Die Plattformseite', () => {
     );
   });
 
-  it('zeigt nur, was in DIESER Sitzung entstanden ist', async () => {
-    // Eine Liste aller Betriebe wäre am Ende doch ein Fenster in fremde
-    // Betriebe — und dann hätte dieses Konto genau das, was es nicht haben soll.
+  it('zeigt Erstzugänge nur aus DIESER Sitzung', async () => {
+    // Das Verzeichnis enthält Metadaten; geheime Erstzugänge dürfen nur
+    // aus Antworten auf Anlagevorgänge dieser Sitzung erscheinen.
     zeige();
     expect(screen.queryByText(/In dieser Sitzung angelegt/)).not.toBeInTheDocument();
   });
@@ -168,7 +171,7 @@ describe('Fehler aus den Betrieben', () => {
       { id: '2', companyId: 'mayr', betrieb: 'Mayr Bad', art: 'absturz', nachricht: 'x is undefined', stapel: null, pfad: '/time', fassung: 'a1', geraet: null, beschreibung: null, createdAt: Date.UTC(2026, 8, 24, 8) },
       { id: '3', companyId: 'perl', betrieb: 'Perl Installationen', art: 'meldung', nachricht: null, stapel: null, pfad: '/invoices', fassung: 'a1', geraet: null, beschreibung: 'Rechnung druckt nicht', createdAt: Date.UTC(2026, 8, 24, 9), wer: 'Eva Büro · eva@perl.at' },
     ]);
-    zeige();
+    zeige('fehler');
     expect(await screen.findByText('Rechnung druckt nicht')).toBeInTheDocument();
     expect(screen.getByText(/Eva Büro · eva@perl\.at/)).toBeInTheDocument();
     expect(screen.getByText(/2 betroffen/)).toBeInTheDocument();
@@ -177,7 +180,7 @@ describe('Fehler aus den Betrieben', () => {
 
   it('sagt es, wenn das Protokoll nicht geladen werden kann', async () => {
     plattformFehler.mockRejectedValue(new Error('Netz weg'));
-    zeige();
+    zeige('fehler');
     expect(await screen.findByText(/Netz weg/)).toBeInTheDocument();
   });
 });
@@ -203,15 +206,15 @@ describe('Die Plattformseite — Betriebe und Kennung (M43, G21)', () => {
     betriebe = [
       { kennung: 'perl', name: 'Perl Installationen', angelegtAm: '2026-09-01T08:00:00Z', leitungskonten: 1, leitungMitMail: 0, notzugangBis: null },
     ];
-    zeige();
+    zeige('liste');
     expect(await screen.findByText(/1 Leitungskonto, 0 mit E-Mail/)).toBeInTheDocument();
     expect(screen.getByText('keine Leitung mit E-Mail')).toBeInTheDocument();
     await nutzer.click(screen.getByRole('button', { name: 'Perl Installationen für den Notzugang wählen' }));
-    expect(screen.getByLabelText(/^Betrieb/)).toHaveValue('perl');
+    expect(screen.getByLabelText('Betrieb')).toHaveValue('perl');
   });
 
   it('Gegenprobe: ohne Liste bleibt das Kennungsfeld für den Notzugang', async () => {
-    zeige();
+    zeige('notzugang');
     expect(await screen.findByText('Noch kein Betrieb angelegt.')).toBeInTheDocument();
     expect(screen.getByLabelText(/Kennung des Betriebs/)).toBeInTheDocument();
   });
@@ -256,7 +259,7 @@ describe('Betriebe verwalten im Seitenfenster (Linie „Lot“)', () => {
     betriebe = [
       { kennung: 'perl', name: 'Perl Installationen', angelegtAm: '2026-09-01T08:00:00Z', leitungskonten: 1, leitungMitMail: 1, notzugangBis: null },
     ];
-    zeige();
+    zeige('liste');
     // Vorher klappte die Maske zwischen den Zeilen auf; jetzt ein Fenster.
     await nutzer.click(await screen.findByRole('button', { name: /^Perl Installationen \(perl\)$/ }));
     const fenster = await screen.findByRole('dialog', { name: 'Perl Installationen verwalten' });

@@ -34,9 +34,11 @@ const zeit = (iso: string) =>
   new Date(iso).toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 export default function BetriebVerwalten({
-  betrieb, geaendert,
+  betrieb, geaendert, notzugangOeffnen, onGeloescht,
 }: {
   betrieb: PlattformBetrieb;
+  notzugangOeffnen?: () => void;
+  onGeloescht?: (meldung: string) => void;
   /** Nach jedem Schritt: die Liste neu laden. */
   geaendert: () => Promise<void> | void;
 }) {
@@ -110,7 +112,7 @@ export default function BetriebVerwalten({
 
   return (
     // Ohne eigenen Rahmen: die Schritte stehen seit dem Umbau auf „Lot“ im Seitenfenster.
-    <div className="space-y-3" aria-label={`${betrieb.name} verwalten`}>
+    <div className="plattform-verwaltung space-y-3" aria-label={`${betrieb.name} verwalten`}>
       <p className="text-sm text-ink">
         {deaktiviert ? (
           <>
@@ -127,6 +129,16 @@ export default function BetriebVerwalten({
         {betrieb.testbetrieb && ' Als Testbetrieb gekennzeichnet: löschbar ohne Übergabe und ohne Frist.'}
       </p>
 
+      {notzugangOeffnen && <Button variant="ghost" onClick={notzugangOeffnen}>Notzugang öffnen</Button>}
+      {deaktiviert && (
+        <ol className="plattform-lebenszyklus" aria-label="Schritte bis zur Löschung">
+          <li>Deaktiviert</li>
+          <li aria-current={exportFehlt ? 'step' : undefined}>Übergabe{betrieb.testbetrieb && <span>Nicht erforderlich</span>}</li>
+          <li aria-current={!exportFehlt && (!geplant || !fristUm) ? 'step' : undefined}>Frist<span>{betrieb.testbetrieb ? 'Ab 0 Tagen' : geplant ? zeit(geplant) : 'Mindestens 7 Tage'}</span></li>
+          <li aria-current={fristUm ? 'step' : undefined}>Löschen<span>{fristUm ? 'Möglich' : 'Noch gesperrt'}</span></li>
+        </ol>
+      )}
+      {geplant && <p className="text-sm text-ink-muted">Wieder aktivieren bricht die geplante Löschung ab.</p>}
       <InputField
         id={`grund-${k}`}
         label="Grund (steht im Protokoll)"
@@ -312,9 +324,12 @@ export default function BetriebVerwalten({
                     disabled={laeuft || ohneGrund || bestaetigung.trim() !== k}
                     onClick={() => void schritt(async () => {
                       const r = await betriebLoeschen(k, bestaetigung, grund.trim());
-                      return r.kontenOffen.length
+                      const ergebnis = r.kontenOffen.length
                         ? `Gelöscht: ${r.zeilen} Zeilen, ${r.dateien} Dateien. ${r.kontenOffen.length} Anmeldekonten ließen sich nicht entfernen — sie sind gesperrt und ohne Betrieb.`
                         : `Gelöscht: ${r.zeilen} Zeilen, ${r.dateien} Dateien, ${r.konten} Anmeldekonten.`;
+                      // Der Betrieb verschwindet nach dem Neuladen samt Fenster; das Ergebnis bleibt auf der Übersicht.
+                      onGeloescht?.(ergebnis);
+                      return ergebnis;
                     })}
                   >
                     Endgültig löschen

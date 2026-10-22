@@ -191,3 +191,5 @@ export const uidPruefungen = [
 
 /** Das eigene Kalender-Abo — eingerichtet, zuletzt vor einer Stunde abgeholt. */
 export const kalenderAbo = { angelegtAm: Date.parse('2026-10-01T06:00:00Z'), zuletztAbgerufen: Date.parse('2026-10-02T20:15:00Z') };
+
+export * from './plattform-daten';

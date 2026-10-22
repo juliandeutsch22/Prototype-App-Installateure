@@ -60,7 +60,7 @@ export default function NotzugangPasswort({ kennung, name }: { kennung: string; 
   if (!konten) return <p className="text-sm text-ink-muted">Leitungskonten werden geladen …</p>;
 
   return (
-    <div className="space-y-3 rounded-sm border border-line p-3">
+    <div className="plattform-wiederherstellung space-y-3">
       <p className="text-sm font-normal text-ink">Passwort eines Leitungskontos neu setzen — {name}</p>
       {ergebnis && (
         <Hinweiszeile stufe="warn">
