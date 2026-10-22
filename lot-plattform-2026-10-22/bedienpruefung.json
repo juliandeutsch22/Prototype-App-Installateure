@@ -1,0 +1,221 @@
+{
+  "scope": "Nur statischer Entwurf, keine Backend- oder Berechtigungsprüfung.",
+  "checks": [
+    {
+      "name": "Statusfilter bleibt reine Filterung der geladenen Liste",
+      "passed": true
+    },
+    {
+      "name": "Leerer Suchtreffer wird erklärt",
+      "passed": true
+    },
+    {
+      "name": "Betriebsidentität bleibt beim Öffnen erhalten",
+      "passed": true
+    },
+    {
+      "name": "Gewählter Betrieb ist im Notzugang vorausgewählt",
+      "passed": true
+    },
+    {
+      "name": "Anmeldeart wechselt zum Benutzernamen",
+      "passed": true
+    },
+    {
+      "name": "Grenze der Wiederherstellung bleibt sichtbar",
+      "passed": true
+    },
+    {
+      "name": "notpasswort: ohne Identitätsprüfung gesperrt",
+      "passed": true
+    },
+    {
+      "name": "notpasswort: Rückrufnummer allein genügt nicht",
+      "passed": true
+    },
+    {
+      "name": "notpasswort: nach bestätigtem Rückruf verfügbar",
+      "passed": true
+    },
+    {
+      "name": "notfaktor: ohne Identitätsprüfung gesperrt",
+      "passed": true
+    },
+    {
+      "name": "notfaktor: Rückrufnummer allein genügt nicht",
+      "passed": true
+    },
+    {
+      "name": "notfaktor: nach bestätigtem Rückruf verfügbar",
+      "passed": true
+    },
+    {
+      "name": "Echter Betrieb: ohne Übergabe keine Löschplanung",
+      "passed": true
+    },
+    {
+      "name": "Echter Betrieb: nach Übergabe wird Planung freigegeben",
+      "passed": true
+    },
+    {
+      "name": "Testbetrieb: bestehende Ausnahme ohne Übergabe",
+      "passed": true
+    },
+    {
+      "name": "Testbetrieb: Frist null Tage",
+      "passed": true
+    },
+    {
+      "name": "Vor Fristablauf kein endgültiger Löschknopf",
+      "passed": true
+    },
+    {
+      "name": "Geplante Löschung bleibt abbrechbar",
+      "passed": true
+    },
+    {
+      "name": "Endgültiges Löschen ohne Kennung gesperrt",
+      "passed": true
+    },
+    {
+      "name": "Falsche Kennung genügt nicht",
+      "passed": true
+    },
+    {
+      "name": "Grund und richtige Kennung erforderlich",
+      "passed": true
+    },
+    {
+      "name": "Leerer Grund sperrt erneut",
+      "passed": true
+    },
+    {
+      "name": "Technische Einzelheiten bleiben aufklappbar",
+      "passed": true
+    },
+    {
+      "name": "Kein erfundener Erledigt-Status",
+      "passed": true
+    },
+    {
+      "name": "Vorhandenes Halbjahr bietet Ersetzen",
+      "passed": true
+    },
+    {
+      "name": "Negative Zinssätze nicht als positiver Wert erzwungen",
+      "passed": true
+    },
+    {
+      "name": "Kein Abschalten der verpflichtenden Zwei-Faktor-Anmeldung",
+      "passed": true
+    },
+    {
+      "name": "Abweichende Passwortwiederholung wird abgewiesen",
+      "passed": true
+    },
+    {
+      "name": "Zehn ausdrücklich ungültige Platzhalter",
+      "passed": true
+    },
+    {
+      "name": "betriebe: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "betrieb-aktiv: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "betrieb-deaktiviert: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "betrieb-uebergabe: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "betrieb-frist: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "betrieb-loeschen: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "betrieb-test: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "betrieb-leer: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "geloescht: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "neu-email: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "neu-benutzer: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "angelegt-email: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "angelegt-benutzer: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "support: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "notzugang: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "notpasswort: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "notfaktor: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "notpasswort-erledigt: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "notfaktor-erledigt: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "fehler: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "fehler-details: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "basiszins: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "basiszins-ersetzen: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "konto: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    },
+    {
+      "name": "konto-codes: kein seitliches Überlaufen bei 320 px",
+      "passed": true
+    }
+  ]
+}

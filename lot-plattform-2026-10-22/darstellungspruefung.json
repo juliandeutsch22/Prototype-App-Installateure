@@ -1,0 +1,1576 @@
+{
+  "errors": [],
+  "checks": [
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "search",
+          "label": true,
+          "width": 360,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "betriebe",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 513,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "betrieb-aktiv",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 513,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "deadline",
+          "label": true,
+          "width": 247,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "betrieb-deaktiviert",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 513,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "deadline",
+          "label": true,
+          "width": 247,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "betrieb-uebergabe",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 513,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "betrieb-frist",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 513,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "delete-confirm",
+          "label": true,
+          "width": 513,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "betrieb-loeschen",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 513,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "deadline",
+          "label": true,
+          "width": 247,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "betrieb-test",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 513,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "betrieb-leer",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Löschprotokoll",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "geloescht",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Betrieb anlegen",
+      "fields": [
+        {
+          "id": "name",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "kennung",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "admin",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "login",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "email",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "neu-email",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Betrieb anlegen",
+      "fields": [
+        {
+          "id": "name",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "kennung",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "admin",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "login",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "user",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "neu-benutzer",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Betrieb angelegt",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "angelegt-email",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Betrieb angelegt",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "angelegt-benutzer",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Supportzugänge",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "support",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Notzugang öffnen",
+      "fields": [
+        {
+          "id": "not-company",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "hours",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "reason",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "notzugang",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Passwort neu setzen",
+      "fields": [
+        {
+          "id": "recovery-account",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "recovery-reason",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "callback",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "notpasswort",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Zwei-Faktor zurücksetzen",
+      "fields": [
+        {
+          "id": "recovery-account",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "recovery-reason",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "callback",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "notfaktor",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Startpasswort erzeugt",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "notpasswort-erledigt",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Zweiter Faktor zurückgesetzt",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "notfaktor-erledigt",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Fehlerprotokoll",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "fehler",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Fehlerprotokoll",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "fehler-details",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Basiszinssatz",
+      "fields": [
+        {
+          "id": "rate-period",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "rate",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "basiszins",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Basiszinssatz",
+      "fields": [
+        {
+          "id": "rate-period",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "rate",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "basiszins-ersetzen",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Mein Konto",
+      "fields": [
+        {
+          "id": "current-pw",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "new-pw",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "repeat-pw",
+          "label": true,
+          "width": 560,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "konto",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 1440,
+      "scroll": 1440,
+      "heading": "Mein Konto",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "konto-codes",
+      "suffix": "desktop"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "search",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "id": "betriebe",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 513,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "id": "betrieb-aktiv",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 513,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "deadline",
+          "label": true,
+          "width": 247,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "id": "betrieb-deaktiviert",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 513,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "deadline",
+          "label": true,
+          "width": 247,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "id": "betrieb-uebergabe",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 513,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "id": "betrieb-frist",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 513,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "delete-confirm",
+          "label": true,
+          "width": 513,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "id": "betrieb-loeschen",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 513,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "deadline",
+          "label": true,
+          "width": 247,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "id": "betrieb-test",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 513,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "id": "betrieb-leer",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Löschprotokoll",
+      "fields": [],
+      "tooSmall": [],
+      "id": "geloescht",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Betrieb anlegen",
+      "fields": [
+        {
+          "id": "name",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "kennung",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "admin",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "login",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "email",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "id": "neu-email",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Betrieb anlegen",
+      "fields": [
+        {
+          "id": "name",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "kennung",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "admin",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "login",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "user",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "id": "neu-benutzer",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Betrieb angelegt",
+      "fields": [],
+      "tooSmall": [],
+      "id": "angelegt-email",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Betrieb angelegt",
+      "fields": [],
+      "tooSmall": [],
+      "id": "angelegt-benutzer",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Supportzugänge",
+      "fields": [],
+      "tooSmall": [],
+      "id": "support",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Notzugang öffnen",
+      "fields": [
+        {
+          "id": "not-company",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "hours",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "reason",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "id": "notzugang",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Passwort neu setzen",
+      "fields": [
+        {
+          "id": "recovery-account",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "recovery-reason",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "callback",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "id": "notpasswort",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Zwei-Faktor zurücksetzen",
+      "fields": [
+        {
+          "id": "recovery-account",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "recovery-reason",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "callback",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "id": "notfaktor",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Startpasswort erzeugt",
+      "fields": [],
+      "tooSmall": [],
+      "id": "notpasswort-erledigt",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Zweiter Faktor zurückgesetzt",
+      "fields": [],
+      "tooSmall": [],
+      "id": "notfaktor-erledigt",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Fehlerprotokoll",
+      "fields": [],
+      "tooSmall": [],
+      "id": "fehler",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Fehlerprotokoll",
+      "fields": [],
+      "tooSmall": [],
+      "id": "fehler-details",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Basiszinssatz",
+      "fields": [
+        {
+          "id": "rate-period",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "rate",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "id": "basiszins",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Basiszinssatz",
+      "fields": [
+        {
+          "id": "rate-period",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "rate",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "id": "basiszins-ersetzen",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Mein Konto",
+      "fields": [
+        {
+          "id": "current-pw",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "new-pw",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        },
+        {
+          "id": "repeat-pw",
+          "label": true,
+          "width": 520,
+          "height": 46,
+          "font": "14px"
+        }
+      ],
+      "tooSmall": [],
+      "id": "konto",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 834,
+      "scroll": 834,
+      "heading": "Mein Konto",
+      "fields": [],
+      "tooSmall": [],
+      "id": "konto-codes",
+      "suffix": "tablet"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "search",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "betriebe",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "betrieb-aktiv",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "deadline",
+          "label": true,
+          "width": 199,
+          "height": 48,
+          "font": "16px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "betrieb-deaktiviert",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "deadline",
+          "label": true,
+          "width": 199,
+          "height": 48,
+          "font": "16px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "betrieb-uebergabe",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "betrieb-frist",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "delete-confirm",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "betrieb-loeschen",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "deadline",
+          "label": true,
+          "width": 199,
+          "height": 48,
+          "font": "16px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "betrieb-test",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Betriebe",
+      "fields": [
+        {
+          "id": "manage-reason",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "betrieb-leer",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Löschprotokoll",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "geloescht",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Betrieb anlegen",
+      "fields": [
+        {
+          "id": "name",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "kennung",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "admin",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "login",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "email",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "neu-email",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Betrieb anlegen",
+      "fields": [
+        {
+          "id": "name",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "kennung",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "admin",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "login",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "user",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "neu-benutzer",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Betrieb angelegt",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "angelegt-email",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Betrieb angelegt",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "angelegt-benutzer",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Supportzugänge",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "support",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Notzugang öffnen",
+      "fields": [
+        {
+          "id": "not-company",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "hours",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "reason",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "notzugang",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Passwort neu setzen",
+      "fields": [
+        {
+          "id": "recovery-account",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "recovery-reason",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "callback",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "notpasswort",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Zwei-Faktor zurücksetzen",
+      "fields": [
+        {
+          "id": "recovery-account",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "recovery-reason",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "callback",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "notfaktor",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Startpasswort erzeugt",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "notpasswort-erledigt",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Zweiter Faktor zurückgesetzt",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "notfaktor-erledigt",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Fehlerprotokoll",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "fehler",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Fehlerprotokoll",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "fehler-details",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Basiszinssatz",
+      "fields": [
+        {
+          "id": "rate-period",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "rate",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "basiszins",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Basiszinssatz",
+      "fields": [
+        {
+          "id": "rate-period",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "rate",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "basiszins-ersetzen",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Mein Konto",
+      "fields": [
+        {
+          "id": "current-pw",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "new-pw",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        },
+        {
+          "id": "repeat-pw",
+          "label": true,
+          "width": 350,
+          "height": 48,
+          "font": "16px"
+        }
+      ],
+      "tooSmall": [],
+      "violations": [],
+      "id": "konto",
+      "suffix": "mobil"
+    },
+    {
+      "viewport": 390,
+      "scroll": 390,
+      "heading": "Mein Konto",
+      "fields": [],
+      "tooSmall": [],
+      "violations": [],
+      "id": "konto-codes",
+      "suffix": "mobil"
+    }
+  ]
+}

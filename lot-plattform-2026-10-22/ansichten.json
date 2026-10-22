@@ -1,0 +1,152 @@
+[
+  {
+    "id": "betriebe",
+    "title": "Betriebsübersicht",
+    "description": "Kompakte Liste, Suche, Status und befristete Zugänge im Kontext.",
+    "number": 1
+  },
+  {
+    "id": "betrieb-aktiv",
+    "title": "Aktiven Betrieb verwalten",
+    "description": "Grund und Deaktivierung im Seitenfenster; kein Zugriff auf Betriebsinhalte.",
+    "number": 2
+  },
+  {
+    "id": "betrieb-deaktiviert",
+    "title": "Deaktivierter Betrieb",
+    "description": "Wieder aktivieren, Übergabe erstellen und Löschung mit Frist planen.",
+    "number": 3
+  },
+  {
+    "id": "betrieb-uebergabe",
+    "title": "Übergabe bereit",
+    "description": "Mehrteiliger Datenstand und Dateiverzeichnis mit befristeten Links.",
+    "number": 4
+  },
+  {
+    "id": "betrieb-frist",
+    "title": "Geplante Löschung",
+    "description": "Frist und Abbruch sichtbar; vor Ablauf kein endgültiges Löschen.",
+    "number": 5
+  },
+  {
+    "id": "betrieb-loeschen",
+    "title": "Löschfrist abgelaufen",
+    "description": "Irreversibler Schritt mit Grund und exakter Kennungsbestätigung.",
+    "number": 6
+  },
+  {
+    "id": "betrieb-test",
+    "title": "Testbetrieb verwalten",
+    "description": "Bestehende Ausnahme: Übergabe optional, Frist ab null Tagen.",
+    "number": 7
+  },
+  {
+    "id": "betrieb-leer",
+    "title": "Betrieb ohne echte Daten",
+    "description": "Testkennzeichnung nur dort anbieten, wo der Bestand sie zulässt.",
+    "number": 8
+  },
+  {
+    "id": "geloescht",
+    "title": "Löschprotokoll",
+    "description": "Gelöschte Betriebe ohne Inhalte; Kennungen dauerhaft gesperrt.",
+    "number": 9
+  },
+  {
+    "id": "neu-email",
+    "title": "Betrieb anlegen · E-Mail",
+    "description": "Betrieb und erster Zugang klar getrennt.",
+    "number": 10
+  },
+  {
+    "id": "neu-benutzer",
+    "title": "Betrieb anlegen · Benutzername",
+    "description": "Alternative Anmeldung mit ausdrücklichem Hinweis zur Wiederherstellung.",
+    "number": 11
+  },
+  {
+    "id": "angelegt-email",
+    "title": "Einmalige Übergabe · Link",
+    "description": "Zugang direkt nach dem Anlegen; kein automatischer Versand.",
+    "number": 12
+  },
+  {
+    "id": "angelegt-benutzer",
+    "title": "Einmalige Übergabe · Startpasswort",
+    "description": "Fiktiver Platzhalter und Hinweis: nur jetzt sichtbar.",
+    "number": 13
+  },
+  {
+    "id": "support",
+    "title": "Supportzugänge",
+    "description": "Ansehen, Mitarbeiten und Notzugang mit Ablauf und Grund.",
+    "number": 14
+  },
+  {
+    "id": "notzugang",
+    "title": "Notzugang öffnen",
+    "description": "Betrieb, ein bis 24 Stunden und protokollierter Grund.",
+    "number": 15
+  },
+  {
+    "id": "notpasswort",
+    "title": "Passwort wiederherstellen",
+    "description": "Geeignetes Leitungskonto, Grund und bestätigter Rückruf.",
+    "number": 16
+  },
+  {
+    "id": "notfaktor",
+    "title": "Zweiten Faktor zurücksetzen",
+    "description": "Leitung oder Buchhaltung mit Faktor; bestätigte Identität bleibt Pflicht.",
+    "number": 17
+  },
+  {
+    "id": "notpasswort-erledigt",
+    "title": "Wiederherstellung · Startpasswort",
+    "description": "Einmalige Ausgabe und beendete Sitzungen.",
+    "number": 18
+  },
+  {
+    "id": "notfaktor-erledigt",
+    "title": "Wiederherstellung · Faktor entfernt",
+    "description": "Rückmeldung und Neueinrichtung bei bestehender Pflicht.",
+    "number": 19
+  },
+  {
+    "id": "fehler",
+    "title": "Fehlerprotokoll",
+    "description": "Bewusste Meldungen vor gruppierten technischen Vorfällen, letzte 14 Tage.",
+    "number": 20
+  },
+  {
+    "id": "fehler-details",
+    "title": "Technische Einzelheiten",
+    "description": "Stapel und Gerät erst nach Aufklappen.",
+    "number": 21
+  },
+  {
+    "id": "basiszins",
+    "title": "Zentraler Basiszinssatz",
+    "description": "Verlauf, fehlender aktueller Satz und Eingabe, einschließlich negativer Werte.",
+    "number": 22
+  },
+  {
+    "id": "basiszins-ersetzen",
+    "title": "Basiszinssatz ersetzen",
+    "description": "Vorhandenes Halbjahr wählen; Ersetzen und Entfernen bleiben erreichbar.",
+    "number": 23
+  },
+  {
+    "id": "konto",
+    "title": "Eigenes Plattformkonto",
+    "description": "Passwort ändern, verpflichtende Zwei-Faktor-Anmeldung und Abmelden.",
+    "number": 24
+  },
+  {
+    "id": "konto-codes",
+    "title": "Wiederherstellungscodes",
+    "description": "Einmalige Ausgabe von zehn ausdrücklich ungültigen Platzhaltern.",
+    "number": 25
+  }
+]
