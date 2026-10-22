@@ -1,0 +1,48 @@
+[
+  {
+    "file": "src/features/plattform/PlattformView.tsx",
+    "calls": [
+      "betriebAnlegenMitAnmeldung(form)",
+      "geloeschteBetriebe()",
+      "notzugang(notForm.companyId.trim(),notForm.grund.trim(),Number(notForm.stunden))",
+      "offeneFreigaben()",
+      "plattformBetriebe()",
+      "plattformFehler(14)"
+    ]
+  },
+  {
+    "file": "src/features/plattform/BetriebVerwalten.tsx",
+    "calls": [
+      "betriebAktivieren(k,grund.trim())",
+      "betriebDeaktivieren(k,grund.trim())",
+      "betriebLoeschen(k,bestaetigung,grund.trim())",
+      "betriebProtokoll(k,10)",
+      "betriebUebergabe(k,grund.trim())",
+      "loeschungAbbrechen(k,grund.trim())",
+      "loeschungPlanen(k,grund.trim(),Number(tage))",
+      "testbetriebSetzen(k,!betrieb.testbetrieb,grund.trim())"
+    ]
+  },
+  {
+    "file": "src/features/plattform/BasiszinsZentral.tsx",
+    "calls": [
+      "basiszinssatzEntfernen(b.ab)",
+      "basiszinssatzSetzen(ab,neu)",
+      "listBasiszinssaetze()"
+    ]
+  },
+  {
+    "file": "src/features/plattform/NotzugangPasswort.tsx",
+    "calls": [
+      "leitungskontenImNotzugang(kennung)",
+      "notzugangPasswort({uid,grund:grund.trim(),rueckruf:rueckruf.trim(),identitaetBestaetigt:bestaetigt})"
+    ]
+  },
+  {
+    "file": "src/features/plattform/NotzugangZweiFaktor.tsx",
+    "calls": [
+      "leitungMitZweitemFaktor(kennung)",
+      "zweitenFaktorZuruecksetzen({uid,grund:grund.trim(),rueckruf:rueckruf.trim()})"
+    ]
+  }
+]

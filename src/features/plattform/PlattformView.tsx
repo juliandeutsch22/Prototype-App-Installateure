@@ -1,5 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import MarkenBand from '@/components/MarkenBand';
+import { MehrAnzeigen } from '@/components/LotBausteine';
+import ProduktMarke from '@/components/ProduktMarke';
+import { SeitenHilfeProvider } from '@/components/SeitenHilfe';
+import type { ReactNode } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import {
   betriebAnlegenMitAnmeldung, geloeschteBetriebe, plattformBetriebe,
@@ -10,7 +13,6 @@ import { betriebFehler, kennungVorschlag, WARNUNG_OHNE_MAIL, type NeuerBetrieb }
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
-import Abschnitt from '@/components/Abschnitt';
 import BottomSheet from '@/components/BottomSheet';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
@@ -29,7 +31,8 @@ import BasiszinsZentral from './BasiszinsZentral';
 /**
  * Die einzige Seite des globalen Administrators.
  *
- * SIE LIEGT AUSSERHALB DER APP — kein Layout, keine Navigation, kein Reiter.
+ * SIE LIEGT AUSSERHALB DER BETRIEBS-APP. Die lokale Bereichswahl ordnet nur
+ * Plattformaufgaben und erschließt keine Betriebsnavigation.
  * Das ist nicht Sparsamkeit, sondern die sichtbare Form der Zusage: dieses
  * Konto gehört zu keinem Betrieb und kann in keinen hineinsehen. Es hat kein
  * `users`-Dokument, sein Token trägt keine `companyId`, und daran hängt jede
@@ -84,6 +87,13 @@ interface Angelegt {
 
 export default function PlattformView() {
   const { signOut, einblickStarten } = useAuth();
+  const [bereich, setBereich] = useState<PlattformBereich>('betriebe');
+  const [betriebSeite, setBetriebSeite] = useState<'liste' | 'neu' | 'angelegt' | 'geloescht'>('liste');
+  const [supportSeite, setSupportSeite] = useState<'liste' | 'notzugang' | 'passwort' | 'zweiter-faktor'>('liste');
+  const [suche, setSuche] = useState('');
+  const [anzahl, setAnzahl] = useState(20);
+  const [loeschErgebnis, setLoeschErgebnis] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'alle' | 'aktiv' | 'deaktiviert'>('alle');
   const [form, setForm] = useState<NeuerBetrieb>(LEER);
   const [fehler, setFehler] = useState<string | null>(null);
   const [laeuft, setLaeuft] = useState(false);
@@ -126,6 +136,8 @@ export default function PlattformView() {
 
   /* Wer gerade Einblick gewährt. */
   const [offen, setOffen] = useState<OffeneFreigabe[]>([]);
+  const [freigabenGeladen, setFreigabenGeladen] = useState(false);
+  const [freigabenFehler, setFreigabenFehler] = useState<string | null>(null);
   /**
    * Hat der Betrieb ein aktives Leitungskonto mit Benutzername (N5)? Nur dafür
    * setzt der Notzugang ein Passwort neu. `null`, solange die Liste fehlt —
@@ -146,11 +158,18 @@ export default function PlattformView() {
   const [notFehler, setNotFehler] = useState<string | null>(null);
 
   async function freigabenLaden() {
-    setOffen(await offeneFreigaben());
+    setFreigabenFehler(null);
+    try {
+      setOffen(await offeneFreigaben());
+    } catch (e) {
+      setFreigabenFehler(e instanceof Error ? e.message : 'Die Supportzugänge konnten nicht geladen werden.');
+    } finally {
+      setFreigabenGeladen(true);
+    }
   }
 
   useEffect(() => {
-    freigabenLaden().catch(() => setOffen([]));
+    void freigabenLaden();
   }, []);
 
   /* Was in den letzten zwei Wochen in den Betrieben abgestürzt ist. */
@@ -177,6 +196,7 @@ export default function PlattformView() {
       setNotForm({ companyId: '', grund: '', stunden: '4' });
       await freigabenLaden();
       await betriebeLaden();
+      setSupportSeite('liste');
     } catch (err) {
       setNotFehler(err instanceof Error ? err.message : 'Der Notzugang wurde abgewiesen.');
     } finally {
@@ -215,6 +235,7 @@ export default function PlattformView() {
       ]);
       setForm(LEER);
       setKennungVonHand(false);
+      setBetriebSeite('angelegt');
       await betriebeLaden();
     } catch (e) {
       /*
@@ -228,22 +249,100 @@ export default function PlattformView() {
     }
   }
 
-  return (
-    /*
-      Ohne Hülle (siehe oben) und deshalb mit eigenem Rand: eine Spalte von
-      höchstens 768 px, damit die Zeilen der Betriebe Platz für ihre Marken
-      und Knöpfe haben.
-    */
-    <div className="plattform-seite">
-      <MarkenBand />
-      <PageHeader
-        ort="Plattform"
-        title="Betriebe anlegen"
-        subtitle="Dieses Konto kann Betriebe einrichten und sonst nichts. Es gehört zu keinem Betrieb und sieht in keinen hinein — auch nicht in die, die es selbst angelegt hat."
-      />
+  function notzugangWaehlen(kennung: string) {
+    setNotForm((alt) => ({ ...alt, companyId: kennung }));
+    setBereich('support');
+    setSupportSeite('notzugang');
+  }
 
+  useEffect(() => {
+    if (bereich === 'support' && supportSeite === 'notzugang') document.getElementById('n-grund')?.focus();
+  }, [bereich, supportSeite]);
+
+  const sichtbar = (betriebe ?? []).filter((b) => {
+    const passt = `${b.name} ${b.kennung}`.toLocaleLowerCase('de-AT').includes(suche.trim().toLocaleLowerCase('de-AT'));
+    return passt && (filter === 'alle' || (filter === 'deaktiviert' ? !!b.deaktiviertAm : !b.deaktiviertAm));
+  }).sort((a, b) => a.name.localeCompare(b.name, 'de-AT'));
+
+  return (
+    <div className="plattform">
+      <header className="plattform-markenband">
+        <div className="plattform-markeninhalt">
+          <ProduktMarke hoehe={34} />
+          <span className="plattform-markenkontext">Plattform</span>
+          <button type="button" className="plattform-konto" aria-current={bereich === 'konto' ? 'page' : undefined} onClick={() => setBereich('konto')}>Mein Konto</button>
+        </div>
+      </header>
+      <div className="plattform-seite">
+        <nav className="plattform-navigation" aria-label="Bereiche der Plattform">
+          {BEREICHE.map(([wert, name]) => (
+            <button key={wert} type="button" aria-current={bereich === wert ? 'page' : undefined} onClick={() => setBereich(wert)}>{name}</button>
+          ))}
+        </nav>
+        <main>
+          <Bereich offen={bereich === 'betriebe'}>
+            <PageHeader ort="Globaler Administrator" title={betriebSeite === 'neu' ? 'Betrieb anlegen' : betriebSeite === 'angelegt' ? 'Betrieb angelegt' : betriebSeite === 'geloescht' ? 'Löschprotokoll' : 'Betriebe'}
+              subtitle={betriebSeite === 'liste' ? 'Einrichten und verwalten – ohne Einblick in Betriebsinhalte.' : betriebSeite === 'neu' ? 'Betrieb und ersten Administrator gemeinsam einrichten.' : betriebSeite === 'geloescht' ? 'Gelöschte Betriebe und dauerhaft gesperrte Kennungen.' : 'Den ersten Zugang jetzt an den Administrator weitergeben.'}
+              hilfe="Dieses Konto gehört zu keinem Betrieb und sieht in keinen hinein. Betriebsinhalte bleiben nur über eine gültige Supportfreigabe oder einen protokollierten Notzugang erreichbar."
+              action={betriebSeite === 'liste' ? <Button onClick={() => setBetriebSeite('neu')}>Betrieb anlegen</Button> : undefined} />
+            <div hidden={betriebSeite !== 'liste'} className="plattform-teilseite">
+              {loeschErgebnis && <div className="plattform-ergebnis"><p role="status">{loeschErgebnis}</p><Button variant="ghost" onClick={() => setLoeschErgebnis(null)} aria-label="Löschmeldung schließen">Schließen</Button></div>}
+              <div className="plattform-spalten">
+                <div>
+                  <div className="plattform-werkzeuge">
+                    <div className="plattform-suche"><InputField id="plattform-suche" type="search" label="Betrieb suchen" placeholder="Name oder Kennung" value={suche} onChange={(e) => { setSuche(e.target.value); setFilter('alle'); setAnzahl(20); }} /></div>
+                    <div className="plattform-filter" aria-label="Betriebe filtern">
+                      {(['alle', 'aktiv', 'deaktiviert'] as const).map((wert) => <button key={wert} type="button" aria-pressed={filter === wert} onClick={() => { setFilter(wert); setAnzahl(20); }}>{wert === 'alle' ? 'Alle' : wert === 'aktiv' ? 'Aktiv' : 'Deaktiviert'}</button>)}
+                    </div>
+                  </div>
+                  <Card className="plattform-betriebsliste" title={`Betriebe (${sichtbar.length}${betriebe && sichtbar.length !== betriebe.length ? ` von ${betriebe.length}` : ''})`} hint="Name, Kennung und die Konten der Leitung — ohne Einblick in Inhalte. Hat keine Leitung eine E-Mail, gibt es für den Betrieb kein „Passwort vergessen“; dann hilft im Ernstfall nur der Notzugang." buendig>
+                    {betriebeFehler ? <ErrorState message={betriebeFehler} onRetry={() => void betriebeLaden()} /> : !betriebe ? <p className="leer">Wird geladen …</p> : betriebe.length === 0 ? <p className="leer">Noch kein Betrieb angelegt.</p> : sichtbar.length === 0 ? <p className="leer">Kein Betrieb passt zur Auswahl. Suche oder Filter ändern.</p> : (
+                      <List>
+                        {sichtbar.slice(0, anzahl).map((b) => (
+                          <ListRow key={b.kennung} onOeffnen={() => setVerwaltet(b.kennung)}
+                            title={<span>{b.name} <span className="plattform-kennung">({b.kennung})</span></span>}
+                            subtitle={<>
+                              angelegt am {datumKurz(b.angelegtAm)} · {b.leitungskonten} {b.leitungskonten === 1 ? 'Leitungskonto' : 'Leitungskonten'}{b.leitungskonten > 0 && `, ${b.leitungMitMail} mit E-Mail`}
+                              <span className="plattform-zustaende">
+                                {b.testbetrieb && <Marke>Testbetrieb</Marke>}
+                                {b.deaktiviertAm && <Warnung>deaktiviert</Warnung>}
+                                {b.loeschungGeplantFuer && <Warnung>Löschung ab {zeitKurz(b.loeschungGeplantFuer)}</Warnung>}
+                                {!b.deaktiviertAm && b.leitungMitMail === 0 && <Warnung>keine Leitung mit E-Mail</Warnung>}
+                                {b.notzugangBis && <Warnung>Notzugang bis {zeitKurz(b.notzugangBis)}</Warnung>}
+                              </span>
+                            </>}>
+                            <Button className="plattform-verwalten" variant="ghost" groesse="klein" aria-expanded={verwaltet === b.kennung} onClick={() => setVerwaltet(b.kennung)} aria-label={`${b.name} verwalten`}><span className="plattform-verwalten-text">Verwalten</span><span className="plattform-zeilenpfeil" aria-hidden="true">›</span></Button>
+                            <Button className="plattform-notzugang" variant="secondary" groesse="klein" onClick={() => notzugangWaehlen(b.kennung)} aria-label={`${b.name} für den Notzugang wählen`}>Notzugang</Button>
+                          </ListRow>
+                        ))}
+                      </List>
+                    )}
+                  </Card>
+                  <MehrAnzeigen anzahl={Math.max(0, sichtbar.length - anzahl)} onClick={() => setAnzahl((alt) => alt + 20)} />
+                  {geloescht.length > 0 && <Button variant="ghost" onClick={() => setBetriebSeite('geloescht')}>Löschprotokoll ({geloescht.length})</Button>}
+                  {angelegt.length > 0 && <Button variant="ghost" onClick={() => setBetriebSeite('angelegt')}>In dieser Sitzung angelegt ({angelegt.length})</Button>}
+                </div>
+                <aside className="plattform-kontext" aria-label="Freigegebener Einblick">
+                  <h2>Freigegebener Einblick</h2>
+                  {!freigabenGeladen ? <p>Supportzugänge werden geladen …</p> : freigabenFehler ? <ErrorState message={freigabenFehler} onRetry={() => void freigabenLaden()} /> : offen.length === 0 ? <p>Kein Betrieb gewährt gerade Einblick.</p> : offen.slice(0, 2).map((f) => (
+                    <div key={f.id} className="plattform-kontextzeile">
+                      <h3>{f.name}</h3>
+                      <p>{f.notzugang ? <Warnung>Notzugang</Warnung> : f.stufe === 'mitarbeiten' ? <Warnung>Mitarbeiten</Warnung> : <Marke>Ansehen</Marke>}</p>
+                      <p>{f.grund}</p><p>Bis {zeitKurz(f.gilt_bis)}</p>
+                      <Button variant="ghost" onClick={() => { setBereich('support'); setSupportSeite('liste'); }}>Zugang ansehen</Button>
+                    </div>
+                  ))}
+                  <Button variant="ghost" onClick={() => { setBereich('support'); setSupportSeite('liste'); }}>Alle Supportzugänge ({offen.length})</Button>
+                  <Button variant="ghost" onClick={() => { setBereich('support'); setSupportSeite('notzugang'); }}>Notzugang öffnen</Button>
+                </aside>
+              </div>
+            </div>
+            <div hidden={betriebSeite !== 'neu'} className="plattform-teilseite">
+              <Button variant="ghost" onClick={() => setBetriebSeite('liste')}>Zu den Betrieben</Button>
+              <div className="plattform-spalten">
+                <div>
       <Card
-        title="Neuer Betrieb"
+        title="Betrieb"
         hint={
           <>
             <strong>Die Kennung lässt sich nachträglich nicht ändern.</strong> Sie steht als Feld
@@ -260,7 +359,7 @@ export default function PlattformView() {
       >
         {/* Formular der Linie: höchstens 560 px (Regel 9). */}
         <form onSubmit={anlegen} className="formular space-y-4">
-          <FormGrid>
+          <FormGrid cols={1}>
             <InputField
               id="b-name"
               label="Name des Betriebs"
@@ -289,6 +388,13 @@ export default function PlattformView() {
               required
               pflicht
             />
+          <CheckboxField
+            id="b-testbetrieb"
+            label="Testbetrieb (lässt sich später ohne Übergabe und ohne Frist löschen)"
+            checked={form.testbetrieb === true}
+            onChange={(e) => setForm({ ...form, testbetrieb: e.target.checked })}
+          />
+<h3 className="plattform-formulartitel">Erster Zugang</h3>
             <InputField
               id="b-adminname"
               label="Erster Administrator"
@@ -331,12 +437,7 @@ export default function PlattformView() {
               />
             )}
           </FormGrid>
-          <CheckboxField
-            id="b-testbetrieb"
-            label="Testbetrieb (lässt sich später ohne Übergabe und ohne Frist löschen)"
-            checked={form.testbetrieb === true}
-            onChange={(e) => setForm({ ...form, testbetrieb: e.target.checked })}
-          />
+
           {/* P1: ohne E-Mail gibt es kein „Passwort vergessen“ — das steht da, bevor angelegt wird. */}
           {form.anmeldung === 'benutzername' && (
             <Hinweiszeile stufe="warn">
@@ -369,14 +470,14 @@ export default function PlattformView() {
           </Button>
         </form>
       </Card>
-
-      {/*
-        DIREKT UNTER DEM FORMULAR (seit dem Umbau auf „Lot“): Link und
-        Startpasswort stehen nur jetzt hier. Vorher erschienen sie ganz unten,
-        unter dem Notzugang — wer gerade angelegt hatte, sah sie nicht.
-      */}
-      {angelegt.length > 0 && (
-        <Card title={`In dieser Sitzung angelegt (${angelegt.length})`}>
+                </div>
+                <aside className="plattform-kontext" aria-label="Nach dem Anlegen"><h2>Nach dem Anlegen</h2><p>Link oder Benutzername und Startpasswort an den ersten Administrator weitergeben.</p><p>Der Zugang wird nicht automatisch versendet und ist nur in dieser Sitzung sichtbar.</p></aside>
+              </div>
+            </div>
+            <div hidden={betriebSeite !== 'angelegt'} className="plattform-teilseite">
+              <Button variant="ghost" onClick={() => setBetriebSeite('liste')}>Zu den Betrieben</Button>
+{angelegt.length > 0 && (
+      <Card title={`In dieser Sitzung angelegt (${angelegt.length})`}>
           {/*
             DER RÜCKSETZLINK STEHT NUR HIER UND NUR JETZT.
 
@@ -426,18 +527,30 @@ export default function PlattformView() {
             ))}
           </ul>
         </Card>
-      )}
-
-      {/*
-        EINBLICK GEWÄHREN KANN NUR DER BETRIEB. Was hier steht, hat er
-        erlaubt — mit Grund und mit Frist. Wer nichts gewährt, steht nicht in
-        der Liste, und wer widerruft, verschwindet daraus.
-      */}
+)}
+              <Button onClick={() => setBetriebSeite('neu')}>Weiteren Betrieb anlegen</Button>
+            </div>
+            <div hidden={betriebSeite !== 'geloescht'} className="plattform-teilseite">
+              <Button variant="ghost" onClick={() => setBetriebSeite('liste')}>Zu den Betrieben</Button>
+              <Card title="Gelöschte Betriebe" hint="Das Löschprotokoll enthält keine Inhalte. Diese Kennungen werden nie wieder vergeben." buendig>
+                <List>{geloescht.map((g) => <ListRow key={g.kennung} title={<span>{g.name} <span className="nr font-normal text-ink-muted">({g.kennung})</span></span>} subtitle={`gelöscht am ${datumKurz(g.geloeschtAm)}${g.testbetrieb ? ' · Testbetrieb' : ''}`} />)}</List>
+              </Card>
+            </div>
+          </Bereich>
+          <Bereich offen={bereich === 'support'}>
+            <PageHeader ort="Globaler Administrator" title={supportSeite === 'notzugang' ? 'Notzugang öffnen' : supportSeite === 'passwort' ? 'Passwort neu setzen' : supportSeite === 'zweiter-faktor' ? 'Zwei-Faktor zurücksetzen' : 'Supportzugänge'}
+              subtitle="Nur ausdrücklich freigegebene oder protokollierte Zugänge."
+              hilfe="Ansehen ist lesend; Mitarbeiten erlaubt die ausdrücklich freigegebenen Änderungen. Notzugänge sind lesend, höchstens 24 Stunden gültig, im Betrieb sichtbar und protokolliert."
+              action={supportSeite === 'liste' ? <Button variant="secondary" onClick={() => setSupportSeite('notzugang')}>Notzugang öffnen</Button> : undefined} />
+            <div hidden={supportSeite !== 'liste'} className="plattform-teilseite">
+              <div className="plattform-spalten"><div>
       <Card
-        title={`Einblick gewährt (${offen.length})`}
-        hint="Der Zugang ist LESEND. Zeitbuchungen, Urlaube und Fotos von Baustellen bleiben auch damit verschlossen — dort stehen Kranken- und Urlaubstage von Mitarbeitern und Aufnahmen aus Kundenwohnungen. Jeder geöffnete Bereich steht im Protokoll des Betriebs."
+        title={`Aktuelle Zugänge (${offen.length})`}
+        hint="„Ansehen“ ist lesend; „Mitarbeiten“ erlaubt die ausdrücklich freigegebenen Änderungen. Zeitbuchungen, Urlaube und Fotos von Baustellen bleiben auch damit verschlossen — dort stehen Kranken- und Urlaubstage von Mitarbeitern und Aufnahmen aus Kundenwohnungen. Jeder geöffnete Bereich steht im Protokoll des Betriebs."
       >
-        {offen.length === 0 ? (
+        {!freigabenGeladen && <p className="text-sm text-ink-muted">Supportzugänge werden geladen …</p>}
+        {freigabenFehler && <ErrorState message={freigabenFehler} onRetry={() => void freigabenLaden()} />}
+        {offen.length === 0 && freigabenGeladen && !freigabenFehler ? (
           <p className="text-sm text-ink-muted">
             Kein Betrieb gewährt gerade Einblick. Gewähren kann ihn nur er selbst, unter
             Einstellungen → Supportzugang.
@@ -445,61 +558,27 @@ export default function PlattformView() {
         ) : (
           <ul className="space-y-3 text-sm">
             {offen.map((f) => (
-              <li key={f.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                {f.notzugang ? <Warnung>Notzugang</Warnung> : null}
-                {f.stufe === 'mitarbeiten' ? <Warnung>mitarbeiten</Warnung> : <Marke>ansehen</Marke>}
-                <span className="font-normal">{f.name}</span>
-                <span className="text-ink-muted">{f.grund}</span>
-                <span className="text-ink-muted">
-                  bis {new Date(f.gilt_bis).toLocaleString('de-AT', {
-                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-                  })}
-                </span>
-                {/*
-                  ÖFFNEN HEISST: die echte App unter diesem Betrieb. Kein
-                  zweiter Nachbau mehr — was der Support sieht, ist das, was
-                  der Betrieb sieht, und was er darf, entscheidet die
-                  Datenbank.
-                */}
-                <Button variant="secondary" onClick={() => einblickStarten(f)}>
-                  Öffnen
-                </Button>
-                {/*
-                  P2: nur im Notzugang — ein ausgesperrter Betrieb bekommt wieder ein Passwort.
-                  NUR, WENN ES DAFÜR EIN KONTO GIBT (Nachtest 01.10.2026, N5): ein aktives
-                  Leitungskonto mit Benutzername. Vorher stand der Knopf auch bei einem
-                  Betrieb ohne ein solches, und erst nach dem Klick kam die Erklärung.
-                */}
+              <li key={f.id} className="plattform-supportzeile">
+                <div className="plattform-supportinfo">
+                  <h3>{f.name}</h3>
+                  <div className="plattform-supportstufen">
+                    {f.notzugang && <Warnung>Notzugang</Warnung>}
+                    {f.stufe === 'mitarbeiten' ? <Warnung>Mitarbeiten</Warnung> : <Marke>Ansehen</Marke>}
+                  </div>
+                  <p>{f.grund}</p>
+                  <p className="text-ink-muted">bis {zeitKurz(f.gilt_bis)}</p>
+                </div>
+                <Button variant="secondary" onClick={() => einblickStarten(f)}>Öffnen</Button>
                 {f.notzugang && passwortMoeglich(f.company_id) === false && (
-                  <span className="basis-full text-ink-muted">
+                  <p className="plattform-supporthinweis">
                     Kein aktives Leitungskonto mit Benutzername — Passwort neu setzen geht hier nicht.
                     {mitMail(f.company_id) > 0 && ' Mit E-Mail hilft „Passwort vergessen“ auf der Anmeldeseite.'}
-                  </span>
-                )}
-                {f.notzugang && passwortMoeglich(f.company_id) && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => setPasswortFuer((x) => (x === f.company_id ? null : f.company_id))}
-                  >
-                    Passwort neu setzen
-                  </Button>
-                )}
-                {f.notzugang && passwortFuer === f.company_id && (
-                  <div className="basis-full">
-                    <NotzugangPasswort kennung={f.company_id} name={f.name} />
-                  </div>
+                  </p>
                 )}
                 {f.notzugang && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => setZweiterFaktorFuer((x) => (x === f.company_id ? null : f.company_id))}
-                  >
-                    Zwei-Faktor zurücksetzen
-                  </Button>
-                )}
-                {f.notzugang && zweiterFaktorFuer === f.company_id && (
-                  <div className="basis-full">
-                    <NotzugangZweiFaktor kennung={f.company_id} name={f.name} />
+                  <div className="plattform-supportaktionen">
+                    {passwortMoeglich(f.company_id) && <Button variant="ghost" onClick={() => { setPasswortFuer(f.company_id); setSupportSeite('passwort'); }}>Passwort neu setzen</Button>}
+                    <Button variant="ghost" onClick={() => { setZweiterFaktorFuer(f.company_id); setSupportSeite('zweiter-faktor'); }}>Zwei-Faktor zurücksetzen</Button>
                   </div>
                 )}
               </li>
@@ -507,140 +586,14 @@ export default function PlattformView() {
           </ul>
         )}
       </Card>
-
-      <Card
-        title={`Betriebe (${betriebe?.length ?? 0})`}
-        hint="Name, Kennung und die Konten der Leitung — ohne Einblick in Inhalte. Hat keine Leitung eine E-Mail, gibt es für den Betrieb kein „Passwort vergessen“; dann hilft im Ernstfall nur der Notzugang."
-        buendig
-      >
-        {betriebeFehler ? (
-          <div className="p-4"><ErrorState message={betriebeFehler} onRetry={() => void betriebeLaden()} /></div>
-        ) : !betriebe ? (
-          <p className="leer">Wird geladen …</p>
-        ) : betriebe.length === 0 ? (
-          <p className="leer">Noch kein Betrieb angelegt.</p>
-        ) : (
-          /*
-            DIE BETRIEBE ALS LISTE (Linie „Lot“): eine Zeile je Betrieb, die
-            ganze Zeile öffnet „Verwalten“ im Seitenfenster. „Notzugang“ bleibt
-            ein eigener Knopf und wählt den Betrieb im Formular darunter.
-          */
-          <List>
-            {betriebe.map((b) => (
-              <ListRow
-                key={b.kennung}
-                onOeffnen={() => setVerwaltet(b.kennung)}
-                title={
-                  <span>
-                    {b.name} <span className="font-normal text-ink-muted">({b.kennung})</span>
-                  </span>
-                }
-                subtitle={
-                  <>
-                    angelegt am {datumKurz(b.angelegtAm)} · {b.leitungskonten}{' '}
-                    {b.leitungskonten === 1 ? 'Leitungskonto' : 'Leitungskonten'}
-                    {b.leitungskonten > 0 && `, ${b.leitungMitMail} mit E-Mail`}
-                  </>
-                }
-                zustand={
-                  <span className="flex flex-wrap items-center gap-2">
-                    {b.testbetrieb && <Marke>Testbetrieb</Marke>}
-                    {b.deaktiviertAm && <Warnung stufe="dringend">deaktiviert</Warnung>}
-                    {b.loeschungGeplantFuer && <Warnung stufe="dringend">Löschung ab {zeitKurz(b.loeschungGeplantFuer)}</Warnung>}
-                    {!b.deaktiviertAm && b.leitungMitMail === 0 && <Warnung>keine Leitung mit E-Mail</Warnung>}
-                    {b.notzugangBis && <Warnung>Notzugang bis {zeitKurz(b.notzugangBis)}</Warnung>}
-                  </span>
-                }
-              >
-                <Button
-                  variant="ghost"
-                  groesse="klein"
-                  aria-expanded={verwaltet === b.kennung}
-                  onClick={() => setVerwaltet(b.kennung)}
-                  aria-label={`${b.name} verwalten`}
-                >
-                  Verwalten
-                </Button>
-                <Button
-                  variant="secondary"
-                  groesse="klein"
-                  onClick={() => {
-                    setNotForm((f) => ({ ...f, companyId: b.kennung }));
-                    document.getElementById('n-grund')?.focus();
-                  }}
-                  aria-label={`${b.name} für den Notzugang wählen`}
-                >
-                  Notzugang
-                </Button>
-              </ListRow>
-            ))}
-          </List>
-        )}
-        {/* Das Löschprotokoll als eigener Abschnitt derselben Gruppe — gelöschte Betriebe gehören zur Liste, nicht daneben. */}
-        {geloescht.length > 0 && (
-          <Abschnitt titel="Gelöscht" anzahl={geloescht.length}>
-            <p className="px-4 pt-3 text-sm text-ink-muted">
-              Das Löschprotokoll, ohne Inhalte. Diese Kennungen werden nie wieder vergeben.
-            </p>
-            <List>
-              {geloescht.map((g) => (
-                <ListRow
-                  key={g.kennung}
-                  title={<span>{g.name} <span className="nr font-normal text-ink-muted">({g.kennung})</span></span>}
-                  subtitle={`gelöscht am ${datumKurz(g.geloeschtAm)}${g.testbetrieb ? ' · Testbetrieb' : ''}`}
-                />
-              ))}
-            </List>
-          </Abschnitt>
-        )}
-      </Card>
-
-      {/*
-        VERWALTEN IM SEITENFENSTER (Linie „Lot“, Regel 8). Vorher klappte die
-        Maske zwischen den Zeilen auf und schob die übrigen Betriebe nach
-        unten. Der Betrieb kommt frisch aus der Liste: nach jedem Schritt lädt
-        sie neu, und das Fenster zeigt den neuen Stand.
-      */}
-      {(() => {
-        const b = betriebe?.find((x) => x.kennung === verwaltet);
-        return (
-          <BottomSheet
-            open={!!b}
-            onClose={() => setVerwaltet(null)}
-            label={b ? `${b.name} verwalten` : 'Betrieb verwalten'}
-            auchBreit
-            titel={b ? b.name : ''}
-          >
-            {b && <BetriebVerwalten betrieb={b} geaendert={betriebeLaden} />}
-          </BottomSheet>
-        );
-      })()}
-
-      <BasiszinsZentral />
-
-      {/*
-        FEHLER DER APP, nicht der Betriebe: gebündelt nach Meldung, mit dem
-        Betrieb daneben, damit ein Absturz nach einem Deploy auffällt, bevor
-        jemand anruft.
-      */}
-      <section aria-label="Fehler aus den Betrieben" className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="titel-karte">Fehler aus den Betrieben (14 Tage)</h2>
-          <Button variant="secondary" onClick={() => void fehlerLaden()}>
-            Neu laden
-          </Button>
-        </div>
-        {fehlerFehler && <ErrorState message={fehlerFehler} onRetry={() => void fehlerLaden()} />}
-        {fehlerListe && <FehlerListe zeilen={fehlerListe} />}
-      </section>
-
-      {/*
-        DER NOTZUGANG IST DIE AUSNAHME UND SOLL SICH AUCH SO ANFÜHLEN: eigene
-        Karte, eigener Grund, kurze Frist. Er läuft ohne Zustimmung des
-        Betriebs — aber nicht heimlich.
-      */}
+              </div><aside className="plattform-kontext" aria-label="Berechtigungen"><h2>Berechtigung ist sichtbar</h2><h3>Ansehen</h3><p>Lesender Einblick in die freigegebenen Bereiche.</p><h3>Mitarbeiten</h3><p>Änderungen nur im ausdrücklich freigegebenen Umfang.</p><h3>Notzugang</h3><p>Lesend, höchstens 24 Stunden. Wiederherstellung separat.</p></aside></div>
+            </div>
+            <div hidden={supportSeite !== 'notzugang'} className="plattform-teilseite">
+              <Button variant="ghost" onClick={() => setSupportSeite('liste')}>Zu den Supportzugängen</Button>
+              <div className="plattform-spalten"><div>
       <Card
         title="Notzugang"
+        className="plattform-formulargruppe"
         hint={
           <>
             <strong>Nur, wenn der Betrieb selbst nicht mehr freigeben kann</strong> — etwa weil
@@ -652,7 +605,7 @@ export default function PlattformView() {
         }
       >
         <form onSubmit={notzugangOeffnen} className="formular space-y-4">
-          <FormGrid>
+          <FormGrid cols={1}>
             {betriebe && betriebe.length > 0 ? (
               <SelectField
                 id="n-kennung"
@@ -711,23 +664,66 @@ export default function PlattformView() {
           </Button>
         </form>
       </Card>
-
-      {/*
-        AUCH DIESES KONTO MUSS SEIN PASSWORT ÄNDERN KÖNNEN. Es sieht keine
-        Einstellungen — es sieht überhaupt nur diese eine Seite. Ohne die
-        Karte hier gäbe es für den Support genau denselben Weg wie für jeden
-        Betrieb vorher: einmal per Link hinein und danach nie wieder.
-      */}
-      <PasswortAendern />
-
-      {/* Runde 3, H1: Pflicht für dieses Konto — hier die Wiederherstellungscodes. */}
-      <ZweiFaktorKarte />
-
-      <div className="border-t border-line pt-4">
-        <Button variant="ghost" onClick={() => void signOut()}>
-          Abmelden
-        </Button>
+              </div><aside className="plattform-kontext" aria-label="Notzugang"><h2>{betriebZu(notForm.companyId)?.name ?? 'Notzugang'}</h2><p>Lesender Zugang, sichtbar und protokolliert. Der Betrieb kann ihn jederzeit beenden.</p><p>Passwort und zweiten Faktor erst über einen aktiven Notzugang wiederherstellen.</p></aside></div>
+            </div>
+            <div hidden={supportSeite !== 'passwort'} className="plattform-teilseite">
+              <Button variant="ghost" onClick={() => setSupportSeite('liste')}>Zu den Supportzugängen</Button>
+              {passwortFuer && offen.some((f) => f.company_id === passwortFuer && f.notzugang) && <NotzugangPasswort key={passwortFuer} kennung={passwortFuer} name={betriebZu(passwortFuer)?.name ?? passwortFuer} />}
+            </div>
+            <div hidden={supportSeite !== 'zweiter-faktor'} className="plattform-teilseite">
+              <Button variant="ghost" onClick={() => setSupportSeite('liste')}>Zu den Supportzugängen</Button>
+              {zweiterFaktorFuer && offen.some((f) => f.company_id === zweiterFaktorFuer && f.notzugang) && <NotzugangZweiFaktor key={zweiterFaktorFuer} kennung={zweiterFaktorFuer} name={betriebZu(zweiterFaktorFuer)?.name ?? zweiterFaktorFuer} />}
+            </div>
+          </Bereich>
+          <Bereich offen={bereich === 'fehler'}>
+            <PageHeader ort="Globaler Administrator" title="Fehlerprotokoll" subtitle="Meldungen und technische Vorfälle der letzten 14 Tage." hilfe="Nur ausdrücklich an den Support gesendete Meldungen. Technische Vorfälle werden nach Art und Meldung gruppiert; der bestehende Zeitraum von 14 Tagen bleibt erhalten." />
+      <section aria-label="Fehler aus den Betrieben" className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="titel-karte">Fehler aus den Betrieben (14 Tage)</h2>
+          <Button variant="secondary" onClick={() => void fehlerLaden()}>
+            Neu laden
+          </Button>
+        </div>
+        {fehlerFehler && <ErrorState message={fehlerFehler} onRetry={() => void fehlerLaden()} />}
+        {!fehlerListe && !fehlerFehler && <p className="text-sm text-ink-muted">Fehlerprotokoll wird geladen …</p>}
+        {fehlerListe && <FehlerListe zeilen={fehlerListe} />}
+      </section>
+          </Bereich>
+          <Bereich offen={bereich === 'basiszins'}>
+            <PageHeader ort="Globaler Administrator" title="Basiszinssatz" subtitle="Zentral je Halbjahr – für alle Betriebe." />
+            <div className="plattform-spalten"><div><BasiszinsZentral /></div><aside className="plattform-kontext"><h2>Vorrang des zentralen Satzes</h2><h3>Zentral hinterlegt</h3><p>Gilt für dieses Halbjahr in allen Betrieben.</p><h3>Zentral nicht hinterlegt</h3><p>Der Eintrag des jeweiligen Betriebs bleibt der Rückfall.</p></aside></div>
+          </Bereich>
+          <Bereich offen={bereich === 'konto'}>
+            <PageHeader ort="Globaler Administrator" title="Mein Konto" subtitle="Passwort und Zwei-Faktor-Anmeldung des Plattformkontos." />
+            <div className="plattform-spalten"><div><PasswortAendern /><ZweiFaktorKarte /><Card title="Sitzung"><Button variant="ghost" onClick={() => void signOut()}>Abmelden</Button></Card></div><aside className="plattform-kontext"><h2>Plattformkonto</h2><h3>Rolle</h3><p>Globaler Administrator</p><h3>Betriebszuordnung</h3><p>Keine</p><h3>Zwei-Faktor-Anmeldung</h3><p>Verpflichtend</p></aside></div>
+          </Bereich>
+        </main>
+        <div className="plattform-verwaltungsfenster">
+      {(() => {
+        const b = betriebe?.find((x) => x.kennung === verwaltet);
+        return (
+          <BottomSheet
+            open={!!b}
+            onClose={() => setVerwaltet(null)}
+            label={b ? `${b.name} verwalten` : 'Betrieb verwalten'}
+            auchBreit
+            breit
+            titel={b ? b.name : ''}
+          >
+            {b && <BetriebVerwalten betrieb={b} onGeloescht={(text) => setLoeschErgebnis(`${b.name}: ${text}`)} geaendert={async () => { await Promise.all([betriebeLaden(), freigabenLaden()]); }} notzugangOeffnen={() => { setVerwaltet(null); notzugangWaehlen(b.kennung); }} />}
+          </BottomSheet>
+        );
+      })()}
+        </div>
       </div>
     </div>
   );
+}
+
+type PlattformBereich = 'betriebe' | 'support' | 'fehler' | 'basiszins' | 'konto';
+const BEREICHE = [['betriebe', 'Betriebe'], ['support', 'Supportzugänge'], ['fehler', 'Fehlerprotokoll'], ['basiszins', 'Basiszinssatz']] as const;
+
+function Bereich({ offen, children }: { offen: boolean; children: ReactNode }) {
+  // Bereichswechsel erhalten Entwürfe und einmalige Zugangsdaten; jede Hilfe bleibt lokal.
+  return <section hidden={!offen} className="plattform-bereich"><SeitenHilfeProvider>{children}</SeitenHilfeProvider></section>;
 }

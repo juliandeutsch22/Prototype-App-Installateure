@@ -60,7 +60,7 @@ export default function NotzugangZweiFaktor({ kennung, name }: { kennung: string
   if (!konten) return <p className="text-sm text-ink-muted">Konten werden geladen …</p>;
 
   return (
-    <div className="space-y-3 rounded-sm border border-line p-3">
+    <div className="plattform-wiederherstellung space-y-3">
       <p className="text-sm font-normal text-ink">Zwei-Faktor-Anmeldung zurücksetzen (Leitung oder Buchhaltung) — {name}</p>
       {erledigt !== null && (
         <p className="text-sm text-ink" role="status">

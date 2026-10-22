@@ -18,6 +18,16 @@ mkdirSync(ziel, { recursive: true });
 
 /** Welche Beispieldaten ein Modul zurueckgeben soll. `*` gilt fuer alles Uebrige. */
 const DATEN = {
+  plattform: {
+    plattformBetriebe: 'D.plattformBetriebe', geloeschteBetriebe: 'D.plattformGeloescht',
+    betriebProtokoll: 'D.plattformProtokoll', leitungskontenImNotzugang: 'D.plattformKonten', leitungMitZweitemFaktor: 'D.plattformKonten',
+    betriebAnlegenMitAnmeldung: "{ companyId: 'vorschau-neu', passwortLink: 'https://beispiel.invalid/nur-entwurf', hinweis: 'Vorschau: Es wurde kein Betrieb angelegt.' }",
+    betriebUebergabe: "{ zeilen: 180, dateien: 12, datenLink: 'https://beispiel.invalid/daten', datenLinks: ['https://beispiel.invalid/teil-1', 'https://beispiel.invalid/teil-2'], dateienLink: 'https://beispiel.invalid/dateien', gueltigBis: '2026-10-29T10:00:00Z' }",
+    notzugangPasswort: "'DEMO-KEIN-PASSWORT'",
+  },
+  support: { offeneFreigaben: 'D.plattformFreigaben' },
+  fehlerprotokoll: { plattformFehler: 'D.plattformFehler' },
+  basiszins: { listBasiszinssaetze: '[]' },
   users: { listUsers: 'D.benutzer', getUserByUid: 'D.benutzer[0]' },
   timeEntries: { '*': 'D.zeiten', arbeitszeitVorlauf: '[]', listUrlaubstage: '[]', subscribeUrlaubstage: '[]', stundenDerBaustellen: '[]' },
   projects: { '*': 'D.baustellen' },

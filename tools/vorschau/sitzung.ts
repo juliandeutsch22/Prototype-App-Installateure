@@ -16,16 +16,17 @@ export const profilSchnell = async () => null;
 export const profilVomServer = async () => null;
 export const firmaSchnell = async () => null;
 export const profilMerken = () => {};
-// Runde 3, H1: die Zwei-Faktor-Anmeldung — in der Vorschau nie verlangt.
+// Die Vorschau überspringt den Anmeldeablauf; das Plattformkonto zeigt seinen Pflichtstatus.
+const plattform = new URLSearchParams(location.search).get('rolle') === 'Plattformadministrator';
 export type ZweiterFaktorBedarf = 'keiner' | 'pruefen' | 'einrichten';
 export const zweiterFaktorBedarf = async (): Promise<ZweiterFaktorBedarf> => 'keiner';
 export const zweiterFaktorStand = async () => ({
-  angeboten: false, pflicht: false, plattform: false, betriebPflicht: false,
-  eingerichtet: false, codesOffen: 0, codeZuletztVerwendet: null,
+  angeboten: plattform, pflicht: plattform, plattform, betriebPflicht: false,
+  eingerichtet: plattform, codesOffen: plattform ? 8 : 0, codeZuletztVerwendet: null,
 });
 export const einrichtenBeginnen = async () => ({ faktorId: 'vorschau', qrCode: '', geheimnis: '' });
 export const einrichtenBestaetigen = async () => [] as string[];
-export const neueCodes = async () => [] as string[];
+export const neueCodes = async () => Array.from({ length: 10 }, (_, i) => `DEMO-KEIN-CODE-${i + 1}`);
 export const codePruefen = async () => {};
 export const codeEinloesen = async () => {};
 export const zweitenFaktorAusschalten = async () => {};

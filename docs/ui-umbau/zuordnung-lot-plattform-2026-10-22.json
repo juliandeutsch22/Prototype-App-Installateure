@@ -1,0 +1,209 @@
+[
+  {
+    "alt": "Betriebsverzeichnis mit allen Verwaltungszuständen",
+    "neu": "Betriebe: alphabetische Zeilen, Suche, Status, weitere Treffer",
+    "weg_alt": 0,
+    "weg_neu": 0,
+    "bemerkung": "Alle ursprünglichen Felder und Zustände; Suche vor der Begrenzung auf zwanzig.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Formular zum Betrieb anlegen",
+    "neu": "Betriebe → Betrieb anlegen, Betrieb / Erster Zugang",
+    "weg_alt": 0,
+    "weg_neu": 1,
+    "bemerkung": "Name, Kennungsvorschlag und manuelle Kennung, Adminname, E-Mail oder Benutzername, Testflag, gemeinsame Validierung erhalten.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Ergebnis: Link oder Startpasswort, Teilhinweis",
+    "neu": "Eigenes Ergebnis und In dieser Sitzung angelegt",
+    "weg_alt": 0,
+    "weg_neu": 0,
+    "bemerkung": "Ergebnis nach Erfolg automatisch; aus der Übersicht über einen Knopf wieder erreichbar. Keine neue dauerhafte Speicherung.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Einblick gewährt: Öffnen, Stufe, Grund, Frist",
+    "neu": "Supportzugänge und Kontextvorschau",
+    "weg_alt": 0,
+    "weg_neu": 1,
+    "bemerkung": "Identisches Freigabeobjekt an einblickStarten. Jede gewährte Stufe und alle Ausschlüsse bleiben serverseitig.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Notzugang mit Betriebsauswahl oder manueller Kennung",
+    "neu": "Direkter Übersichtskontext oder Support → Notzugang",
+    "weg_alt": 0,
+    "weg_neu": 1,
+    "bemerkung": "Alle Felder und Bereich 1–24 Stunden unverändert. Bei fehlender Liste bleibt die manuelle Kennung.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Notzugang aus Betriebszeile vorauswählen",
+    "neu": "Desktop: eigene Zeilenaktion; mobil über Verwaltung",
+    "weg_alt": 1,
+    "weg_neu": 2,
+    "bemerkung": "Betriebskennung bleibt vorausgewählt, Grund wird fokussiert. Derselbe Handler, zusätzlich direkter Kontextweg.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Betrieb verwalten",
+    "neu": "Ganze Zeile / Verwaltungsaktion → vorhandenes Fenster",
+    "weg_alt": 1,
+    "weg_neu": 1,
+    "bemerkung": "Aktuell neu geladener Betrieb, Fokusfalle, Esc, Rückfokus und Hintergrundsperre bleiben.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Deaktivieren und Wieder aktivieren",
+    "neu": "Verwaltungsfenster, Grund und Lebenszyklus",
+    "weg_alt": 1,
+    "weg_neu": 1,
+    "bemerkung": "Gleiche Aufrufe, Sitzungsgrenzen und Rückmeldungen. Reaktivieren bricht geplante Löschung ab.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Testbetrieb setzen oder entfernen",
+    "neu": "Verwaltungsfenster, bisherige Bedingung",
+    "weg_alt": 1,
+    "weg_neu": 1,
+    "bemerkung": "Setzen nur ohne echte Daten; entfernen bleibt möglich. Geplante Testlöschung dann abbrechen wie bisher.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Übergabe erstellen / erneut erstellen",
+    "neu": "Verwaltung → Übergabe",
+    "weg_alt": 1,
+    "weg_neu": 1,
+    "bemerkung": "Grund, vollständiger Stand, ein oder mehrere Datenlinks, Dateiverzeichnis, Umfang und Frist erhalten.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Löschung mit Frist planen",
+    "neu": "Verwaltung → Löschung",
+    "weg_alt": 1,
+    "weg_neu": 1,
+    "bemerkung": "Vorbedingungen unverändert: deaktiviert, Übergabe für echte Betriebe, Fristgrenzen; Testausnahme ab null Tagen.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Löschung abbrechen",
+    "neu": "Verwaltung → Löschung",
+    "weg_alt": 1,
+    "weg_neu": 1,
+    "bemerkung": "Gleicher Aufruf mit Grund; Betrieb bleibt deaktiviert.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Endgültig löschen nach Fristablauf",
+    "neu": "Verwaltung → Löschung mit Kennungsbestätigung",
+    "weg_alt": 1,
+    "weg_neu": 1,
+    "bemerkung": "Frist, genauer Kennungstext und Grund, Folgen, Sicherungsablauf und Teilresultate unverändert.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Protokoll der letzten zehn Verwaltungsschritte",
+    "neu": "Unter den Schritten im selben Fenster",
+    "weg_alt": 1,
+    "weg_neu": 1,
+    "bemerkung": "Datenquelle und Reihenfolge von alt nach neu, Datum, Grund und aktueller Punkt erhalten.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Gelöschte Betriebe",
+    "neu": "Betriebe → Löschprotokoll",
+    "weg_alt": 0,
+    "weg_neu": 1,
+    "bemerkung": "Name, Kennung, Datum und Testhinweis, keine Inhalte. Dauerhaft gesperrte Kennung bleibt.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Passwort eines Leitungskontos im Notzugang neu setzen",
+    "neu": "Support → eigener Wiederherstellungsvorgang",
+    "weg_alt": 1,
+    "weg_neu": 2,
+    "bemerkung": "Gleiche Eignungsschranke, Kontowahl, Grund, Rückruf, Bestätigung; einmalige Ausgabe und Sitzungsende erhalten.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Zwei-Faktor im Notzugang zurücksetzen",
+    "neu": "Support → eigener Wiederherstellungsvorgang",
+    "weg_alt": 1,
+    "weg_neu": 2,
+    "bemerkung": "Leitung/Buchhaltung mit Faktor, Grund, Rückruf, Bestätigung, Ergebnis und erneute Pflicht erhalten.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Fehler laden und wiederholen",
+    "neu": "Fehlerprotokoll",
+    "weg_alt": 0,
+    "weg_neu": 1,
+    "bemerkung": "Letzte vierzehn Tage, bestehende Abfrage und Fehlermeldungen; kein neuer Bearbeitungsstatus.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Gemeldete Probleme und technische Fehlergruppen",
+    "neu": "Zwei Gruppen im Fehlerprotokoll",
+    "weg_alt": 0,
+    "weg_neu": 1,
+    "bemerkung": "Beschreibung, bewusste Weitergabe, Metadaten, Wiederholungen, Betroffene, Pfade, Fassungen, Gerät und Stapel erhalten.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Zentralen Basiszinssatz eintragen, ersetzen oder entfernen",
+    "neu": "Bereich Basiszinssatz",
+    "weg_alt": 0,
+    "weg_neu": 1,
+    "bemerkung": "Halbjahre, negative Sätze, Vorrang und Rückfall sowie fehlender laufender Satz unverändert.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Eigenes Passwort, Faktor und Wiederherstellungscodes",
+    "neu": "Mein Konto im Markenband",
+    "weg_alt": 0,
+    "weg_neu": 1,
+    "bemerkung": "Aktuelles Passwort, Mindestlänge und Wiederholung; Pflicht ohne Ausschalten; Codezahl und einmalige Ausgabe erhalten.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Abmelden",
+    "neu": "Mein Konto → Sitzung",
+    "weg_alt": 0,
+    "weg_neu": 1,
+    "bemerkung": "Unveränderter signOut-Aufruf.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  },
+  {
+    "alt": "Hilfen und Eingabe-/Serverrückmeldungen",
+    "neu": "Eigene Hilfe je Bereich; Meldungen beim Vorgang",
+    "weg_alt": 0,
+    "weg_neu": 0,
+    "bemerkung": "Alle vorhandenen Fachhinweise, Lade-, Leer- und Fehlerzustände; getrennte Hilfe-Kontexte.",
+    "geprueft": true,
+    "art": "Funktionsabgleich mit Komponenten- und Browserprüfungen"
+  }
+]

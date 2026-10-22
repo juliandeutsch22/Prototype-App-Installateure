@@ -155,3 +155,13 @@ Fehlende Tage sind ausschließlich am Handy einklappbar; Anzahl, gezielte
 Tagesauswahl und Rückweg aus der Zeiterfassung bleiben verlässlich.
 Die bestehenden Berechnungen, Rollen und mobile Navigation bleiben.
 [Umfang, Zuordnung und Abnahme](lot-gesamt-2026-10-21.md).
+
+**E21 — Globale Plattformverwaltung (22.10.2026).** Nach Prüfung der 25
+Entwurfsansichten lautet der Startauftrag „finde ich gut, setze es so um“.
+Die Plattform übernimmt die Lot-Linie mit lokalen Bereichen, ruhigem Kontext
+und dem bestehenden Verwaltungsfenster. Bereichswechsel erhalten Formulare
+und einmalige Ergebnisse; jede Bereichsseite sammelt ihre eigene Hilfe.
+Betriebsinhalte, Berechtigungen, Zwei-Faktor-Pflicht, Wiederherstellung und
+Löschbedingungen bleiben erhalten. Die mobile Betriebsnavigation bleibt;
+die Plattform selbst erhält eine offene zweizeilige Bereichswahl.
+[Umfang, Funktionserhalt und Abnahme](lot-plattform-2026-10-22.md).
