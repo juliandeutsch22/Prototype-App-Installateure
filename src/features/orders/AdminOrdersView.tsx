@@ -54,6 +54,7 @@ import Adressfilter from '@/components/Adressfilter';
 import { ANFORDERUNGS_FILTER, bekannt, type AnforderungsFilter } from '@/features/dashboard/start/ziele';
 import { istAbholbereitAlt, istLieferungHeute, istLieferungUeberfaellig } from './anforderungStand';
 import { lieferterminText } from './einkauf';
+import RetoureFenster from './RetoureFenster';
 
 /** Was ein Filter aus der Adresse zeigt (Startseite, Nachtest 01.10.2026). */
 const FILTER_TEXT: Record<AnforderungsFilter, string> = {
@@ -200,6 +201,8 @@ function verlaufVon(o: MaterialOrder, haendler: string | undefined): LotPunkt[] 
 export default function AdminOrdersView() {
   const { user, company } = useAuth();
   const toast = useToast();
+  /** „Retoure erfassen“ im Reiter Retouren — im Seitenfenster wie bei „Material anfordern“. */
+  const [retoureOffen, setRetoureOffen] = useState(false);
   /*
     DIE GROSSHÄNDLER — für „Nicht auf Lager" und die Einkaufsliste. Scheitert
     das Laden, bleibt die Liste leer und die Zeile kommt „ohne Grosshändler"
@@ -674,7 +677,17 @@ export default function AdminOrdersView() {
         <Card
           title={tab === 'retouren' ? 'Retouren' : tab === 'archiv' ? 'Erledigt' : 'Offene Bestellungen'}
           action={
-            tab !== 'retouren' && projectOptions.length > 0 ? (
+            /*
+              DAS LAGER ERFASST, WAS IHM JEMAND HEREINBRINGT (20.10.2026): es
+              beurteilt am Regal, ob etwas neu und originalverpackt ist — davon
+              hängt die Gutschrift ab. Dasselbe Formular wie bei „Material
+              anfordern“.
+            */
+            tab === 'retouren' ? (
+              <Button variant="secondary" onClick={() => setRetoureOffen(true)}>
+                Retoure erfassen
+              </Button>
+            ) : projectOptions.length > 0 ? (
               <SelectField id="ofilter" label="" aria-label="Bestellungen nach Baustelle filtern" className="py-1 text-sm" value={projectFilter}
                 onChange={(e) => setProjectFilter(e.target.value)}>
                 <option value="">Alle Baustellen</option>
@@ -1115,6 +1128,13 @@ export default function AdminOrdersView() {
           }
           setToDelete(null);
         }}
+      />
+
+      <RetoureFenster
+        offen={retoureOffen}
+        onClose={() => setRetoureOffen(false)}
+        companyId={user.companyId}
+        user={user}
       />
     </div>
   );

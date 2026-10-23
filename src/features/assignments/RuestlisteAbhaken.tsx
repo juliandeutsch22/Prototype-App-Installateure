@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link, useInRouterContext } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { ladenUmschalten } from '@/lib/db/einsatzMaterial';
 import type { EinsatzMaterial, RuestPosition } from '@/types';
@@ -6,6 +7,7 @@ import { grundAus } from '@/lib/fehlerGrund';
 import { localDateStr, todayStr } from '@/lib/time';
 import { fmtMenge } from '@/lib/belegLayout';
 import { useToastWennDa } from '@/components/Toast';
+import { useModul } from '@/lib/useModule';
 
 /**
  * Die Rüstliste aus der Sicht des Monteurs: was mitkommt, und was schon im
@@ -52,6 +54,8 @@ export default function RuestlisteAbhaken({
   const [alle, setAlle] = useState(false);
   const [oertlich, setOertlich] = useState<NonNullable<EinsatzMaterial['geladen']>>(geladen);
   const [fehler, setFehler] = useState<string | null>(null);
+  const mitRouter = useInRouterContext();
+  const materialAn = useModul('material');
 
   if (positionen.length === 0) return null;
 
@@ -165,6 +169,22 @@ export default function RuestlisteAbhaken({
         <p className="pt-2 text-xs text-ink-muted">
           Der Haken bucht Lagermaterial vom Bestand ab. Zurücknehmen geht nur heute; was übrig
           bleibt, kommt über die Retoure zurück.
+        </p>
+      )}
+      {/*
+        DER SATZ FÜHRT HIN (20.10.2026): er sagte „über die Retoure“, und die
+        lag im „⋯“ einer anderen Seite. Jetzt öffnet der Verweis die Rückgabe
+        mit dieser Baustelle — sobald etwas eingeladen ist, kann etwas übrig
+        sein.
+      */}
+      {abhakbar && mitRouter && materialAn && Object.keys(oertlich).length > 0 && (
+        <p className="pt-1 text-sm">
+          <Link
+            to={`/material?retoure=1&baustelle=${encodeURIComponent(projectNumber)}`}
+            className="link-weiter inline-flex min-h-touch items-center"
+          >
+            Übriges zurückgeben →
+          </Link>
         </p>
       )}
       {fehler && (

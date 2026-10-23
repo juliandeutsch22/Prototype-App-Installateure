@@ -2,14 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import Adressfilter from '@/components/Adressfilter';
-import { katalogSeite, katalogBeobachten, sucheKatalog, LOW_STOCK_THRESHOLD, lagerFrei, type LagerStand } from '@/lib/db/materials';
+import { katalogSeite, katalogBeobachten, LOW_STOCK_THRESHOLD, lagerFrei, type LagerStand } from '@/lib/db/materials';
 import { Bereit, Wert } from '@/components/Wert';
 import { imLager, istKnapp } from './lagerartikel';
 import {
   createMaterialOrderOhneEmpfang,
   subscribeOwnOrders,
   updateOrderStatus,
-  createReturn,
   anforderungEiligSetzen,
 } from '@/lib/db/materialOrders';
 import { eiligMoeglich } from './eilig';
@@ -18,8 +17,6 @@ import type { WithId } from '@/lib/db/core';
 import type { Material, MaterialOrder, Project } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import BottomSheet from '@/components/BottomSheet';
-import RowMenu from '@/components/RowMenu';
 import { MehrAnzeigen } from '@/components/LotBausteine';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { Marke, Warnung } from '@/components/Badge';
@@ -28,7 +25,7 @@ import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import { InputField, SelectField, CheckboxField } from '@/components/Field';
+import { InputField, CheckboxField } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
@@ -37,9 +34,9 @@ import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/S
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAusMs } from '@/lib/datum';
 import { abschlussText } from './abschlussText';
+import RetoureFenster from './RetoureFenster';
 import { zahlAlsText, zahlOder } from '@/lib/zahl';
 import { mengeFehler, mengeMitKomma } from '@/lib/einheit';
-import ZahlFeld from '@/components/ZahlFeld';
 import { fmtMenge } from '@/lib/belegLayout';
 
 /** Gruppen höchstens 20 Zeilen (Regel 4), dann „und N weitere anzeigen“. */
@@ -96,8 +93,13 @@ export default function OrderView() {
   const [artikelGezeigt, setArtikelGezeigt] = useState(JE_SEITE);
   const [meineGezeigt, setMeineGezeigt] = useState(JE_SEITE);
   const [erledigtGezeigt, setErledigtGezeigt] = useState(JE_SEITE);
-  /** Die Retoure steht im Seitenfenster. */
-  const [retoureOffen, setRetoureOffen] = useState(false);
+  /*
+    DIE RETOURE STEHT IM SEITENFENSTER. Aus der Rüstliste eines Einsatzes
+    kommt man mit `?retoure=1&baustelle=…` gleich hinein, die Baustelle
+    vorbelegt — dort, wo man merkt, dass etwas übrig ist.
+  */
+  const [retoureOffen, setRetoureOffen] = useState(adresse.get('retoure') === '1');
+  const retoureBaustelle = adresse.get('baustelle') ?? '';
   /*
     DER KATALOG KOMMT SEITENWEISE VOM SERVER (Mengengerüst, 18.10.2026):
     die ersten zwanzig nach Namen, „und N weitere“ holt die nächsten, und
@@ -139,7 +141,6 @@ export default function OrderView() {
   */
   const [meineGeladen, setMeineGeladen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — der Katalog steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -164,15 +165,6 @@ export default function OrderView() {
   /** Nachträglich eilig (17 F) — mit Rückfrage, weil andere davon eine Meldung bekommen. */
   const [eilFrage, setEilFrage] = useState<WithId<MaterialOrder> | null>(null);
 
-  // Retoure
-  /** Das gewählte Material der Retoure — der Datensatz selbst; die Suche liefert ihn vom Server. */
-  const [retGewaehlt, setRetGewaehlt] = useState<WithId<Material> | null>(null);
-  /** Suchtext für die Artikelauswahl der Retoure. */
-  const [retSuche, setRetSuche] = useState('');
-  const [retQty, setRetQty] = useState('1');
-  const [retCondition, setRetCondition] = useState<'neu' | 'gebraucht' | 'defekt'>('neu');
-  const [retProject, setRetProject] = useState('');
-  const [retReason, setRetReason] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -256,34 +248,6 @@ export default function OrderView() {
     return (p?.projectManagers ?? []).length > 0;
   }, [projects, projectNumber]);
 
-  /**
-   * DIE ARTIKELAUSWAHL DER RETOURE IST EINE SUCHE, KEIN AUSWAHLFELD.
-   *
-   * Ein Auswahlfeld ist bei zwanzig Artikeln bequem und bei zweihundert
-   * unbrauchbar: auf dem Telefon wird daraus eine Rolliste, durch die man
-   * blind scrollt, ohne tippen zu können. Gesucht wird über dieselben drei
-   * Felder wie im Katalog — Bezeichnung, Kategorie, Artikelnummer —, damit
-   * man nicht zwei verschiedene Suchen lernen muss.
-   */
-  const [retTreffer, setRetTreffer] = useState<WithId<Material>[]>([]);
-  useEffect(() => {
-    const q = retSuche.trim();
-    if (!user || !q) {
-      setRetTreffer([]);
-      return;
-    }
-    // Auf dem Server wie der Katalog — sonst fände die Retoure nur, was oben gerade geladen ist.
-    let weg = false;
-    const t = setTimeout(() => {
-      sucheKatalog(user.companyId, q, 8)
-        .then((treffer) => { if (!weg) setRetTreffer(treffer); })
-        .catch(() => { if (!weg) setRetTreffer([]); });
-    }, 250);
-    return () => {
-      weg = true;
-      clearTimeout(t);
-    };
-  }, [user, retSuche]);
 
   const activeOrders = useMemo(
     () => myOrders.filter((o) => o.status !== 'Erledigt' && o.transactionType !== 'return'
@@ -397,53 +361,6 @@ export default function OrderView() {
     }
   }
 
-  async function submitReturn() {
-    if (!user || !retGewaehlt) return;
-    // Ohne diese Prüfung ginge eine negative Menge als increment(-n) durch und
-    // eine Retoure würde den Lagerbestand VERRINGERN.
-    // Zentral gelesen (M15); „1,5“ wird nicht still zu 1.
-    const qty = zahlOder(retQty, NaN, { negativ: true });
-    // Je Einheit (M27): Rohr in Metern mit Komma, Stück ganz.
-    const einheit = retGewaehlt.unit;
-    const falsch = mengeFehler(qty, einheit);
-    if (falsch) {
-      setError(falsch);
-      return;
-    }
-    setSaving(true);
-    setError(null);
-    try {
-      await createReturn(user.companyId, {
-        materialId: retGewaehlt.id,
-        materialName: retGewaehlt.name,
-        quantity: qty,
-        condition: retCondition,
-        note: retReason,
-        projectNumber: retProject,
-        userId: user.uid,
-        userName: user.name,
-      });
-      setRetGewaehlt(null);
-      setRetSuche('');
-      setRetQty('1');
-      setRetReason('');
-      setRetoureOffen(false);
-      toast.success(
-        retCondition === 'neu'
-          ? 'Retoure erfasst — Material wurde dem Lager gutgeschrieben'
-          : 'Retoure erfasst',
-      );
-    } catch (err) {
-      setError(grundAus(err, 'Die Retoure konnte nicht erfasst werden.'));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function retoureSchliessen() {
-    setRetoureOffen(false);
-    setError(null);
-  }
 
   if (!user) return null;
 
@@ -464,20 +381,14 @@ export default function OrderView() {
         hilfe={
           <>
             Baustelle wählen, Artikel mit „Zur Anforderung“ sammeln und unten abschicken. Darunter
-            stehen die eigenen Anforderungen mit ihrem Stand. Eine Rückgabe ans Lager steht im „⋯“.
+            stehen die eigenen Anforderungen mit ihrem Stand. Was von der Baustelle übrig ist, geht
+            über „Material zurückgeben“ ans Lager.
           </>
-        }
-        mehr={
-          <RowMenu
-            about="Material"
-            items={[{ label: 'Retoure erfassen …', onSelect: () => setRetoureOffen(true) }]}
-          />
         }
       />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      {error && !retoureOffen && <ErrorState message={error} />}
       {katalogFehler && <ErrorState message={katalogFehler} />}
 
       {/* Eine Zeile statt einer eigenen Karte: vorher stand die
@@ -742,6 +653,23 @@ export default function OrderView() {
         dabei, was noch aussteht und was abholbereit ist. Der Verweis der
         Startseite („Material abholbereit →“, `?reiter=meine`) springt hierher.
       */}
+      {/*
+        DIE RÜCKGABE STEHT SICHTBAR (20.10.2026, Auftrag „Retoure zu dezent“):
+        im „⋯“ fand sie niemand, gerade dann, wenn Material übrig war. Kein
+        Knopf im Seitenkopf — am Handy wandert die Hauptaktion nach unten, wo
+        schon die Leiste des Warenkorbs steht.
+      */}
+      <Card buendig>
+        <List>
+          <ListRow
+            title="Material zurückgeben"
+            subtitle="Übrig von der Baustelle? Zurück ans Lager — Neues wird gutgeschrieben."
+            onOeffnen={() => setRetoureOffen(true)}
+            pfeil
+          />
+        </List>
+      </Card>
+
       <section id="meine-anforderungen" ref={meineRef} className="space-y-3 lg:space-y-5" aria-label="Meine Anforderungen">
         {nurAbholbereit && <Adressfilter text="nur abholbereite Anforderungen" parameter={['status']} />}
         {/* Unter dem Katalog: erst wenn auch er steht, sonst schiebt er sie beim Eintreffen nach unten.
@@ -846,116 +774,14 @@ export default function OrderView() {
         </Bereit>
       </section>
 
-      {/*
-        DIE RETOURE IM SEITENFENSTER (Linie „Lot“, Regel 8). Bis zum Umbau ein
-        eigener Reiter; sie ist der seltene Weg, Katalog und eigene
-        Anforderungen sind der häufige.
-      */}
-      <BottomSheet
-        open={retoureOffen}
-        onClose={retoureSchliessen}
-        label="Material zurückgeben"
-        auchBreit
-        titel="Material zurückgeben"
-      >
-        <div className="formular space-y-4">
-          <p className="flex flex-wrap items-center gap-1 text-sm text-ink-muted">
-            Nur Neues wird dem Lager gutgeschrieben.
-            <InfoHint about="die Retoure">
-              Nur unbenutztes Material in Originalverpackung wird dem Lagerbestand wieder
-              gutgeschrieben. Gebrauchtes und defektes Material wird nur erfasst.
-            </InfoHint>
-          </p>
-          {retGewaehlt ? (
-            // Die Wahl steht wie ein ausgefülltes Feld da: weiss mit Haarlinie.
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-line bg-surface px-3 py-2">
-              <div>
-                <span className="section-label block">Material</span>
-                <span className="font-semibold text-ink">{retGewaehlt.name}</span>
-                <span className="block text-sm text-ink-muted">
-                  {[retGewaehlt.category, retGewaehlt.articleNumber].filter(Boolean).join(' · ')}
-                </span>
-              </div>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setRetGewaehlt(null);
-                  setRetSuche('');
-                }}
-              >
-                Ändern
-              </Button>
-            </div>
-          ) : (
-            <div>
-              <InputField
-                id="retmat"
-                label="Material"
-                type="search"
-                placeholder="Name, Kategorie oder Art.-Nr."
-                value={retSuche}
-                onChange={(e) => setRetSuche(e.target.value)}
-              />
-              {retSuche.trim() !== '' && (
-                <div className="mt-2">
-                  {retTreffer.length === 0 ? (
-                    <p className="text-sm text-ink-muted">Kein Material passt zur Suche.</p>
-                  ) : (
-                    <List>
-                      {retTreffer.map((m) => (
-                        <ListRow
-                          key={m.id}
-                          title={m.name}
-                          subtitle={[m.category, m.articleNumber].filter(Boolean).join(' · ') || undefined}
-                        >
-                          <Button
-                            variant="secondary"
-                            aria-label={`${m.name} zurückgeben`}
-                            onClick={() => {
-                              setRetGewaehlt(m);
-                              setRetSuche('');
-                            }}
-                          >
-                            Wählen
-                          </Button>
-                        </ListRow>
-                      ))}
-                    </List>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-          <ZahlFeld id="retqty" label="Menge" value={retQty} onChange={setRetQty} />
-          <SelectField id="retcond" label="Zustand" value={retCondition}
-            onChange={(e) => setRetCondition(e.target.value as typeof retCondition)}>
-            <option value="neu">Neu / originalverpackt</option>
-            <option value="gebraucht">Gebraucht</option>
-            <option value="defekt">Defekt</option>
-          </SelectField>
-          <SelectField id="retproj" label="Von welcher Baustelle? (optional)" value={retProject}
-            onChange={(e) => setRetProject(e.target.value)}>
-            <option value="">— keine —</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.projectNumber}>
-                {p.customerName} <span className="nr">({p.projectNumber})</span>
-              </option>
-            ))}
-          </SelectField>
-          <InputField id="retreason" label="Grund / Notiz" value={retReason}
-            onChange={(e) => setRetReason(e.target.value)} />
-          {/* Der Fehler der Retoure steht im Fenster, wo er entstand. */}
-          {error && <ErrorState message={error} />}
-          <div className="fuss-aktionen">
-            <Button variant="ghost" onClick={retoureSchliessen}>
-              Abbrechen
-            </Button>
-            <Button onClick={submitReturn} loading={saving} disabled={!retGewaehlt}>
-              Retoure erfassen
-            </Button>
-          </div>
-        </div>
-      </BottomSheet>
+      {/* Die Retoure im Seitenfenster (Linie „Lot“, Regel 8) — dasselbe Formular wie im Lager. */}
+      <RetoureFenster
+        offen={retoureOffen}
+        onClose={() => setRetoureOffen(false)}
+        companyId={user.companyId}
+        user={user}
+        baustelle={retoureBaustelle}
+      />
 
       <ConfirmDialog
         open={!!toPickUp}

@@ -67,6 +67,19 @@ vi.mock('@/lib/db/materialOrders', () => ({
   updateOrderStatus: (...a: unknown[]) => statusSetzen(...a),
   deleteOrder: (...a: unknown[]) => loeschen(...a),
   anforderungEiligSetzen: (...a: unknown[]) => eiligSetzen(...a),
+  createReturn: (...a: unknown[]) => retoureAnlegen(...a),
+}));
+
+const retoureAnlegen = vi.fn(async () => 'r1');
+vi.mock('@/lib/db/materials', async (echt) => ({
+  ...(await echt<typeof import('@/lib/db/materials')>()),
+  sucheKatalog: async () => [{ id: 'm1', companyId: 'perl', name: 'Kupferrohr 15mm', unit: 'm', stock: 3 }],
+}));
+vi.mock('@/lib/db/projects', async (echt) => ({
+  ...(await echt<typeof import('@/lib/db/projects')>()),
+  listActiveProjects: async () => [],
+  listRecentProjects: async () => [],
+  listProjectsByNumbers: async () => [],
 }));
 
 const ausLager = vi.fn();
@@ -725,5 +738,33 @@ describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
     anforderungen = [anforderung({ id: 'o1', projectNumber: '2026-042' })];
     zeige();
     expect(await screen.findByRole('combobox', { name: 'Bestellungen nach Baustelle filtern' })).toBeInTheDocument();
+  });
+});
+
+/*
+  DAS LAGER ERFASST, WAS IHM JEMAND HEREINBRINGT (20.10.2026) — im Reiter
+  „Retouren“, mit demselben Formular wie unter „Material anfordern“.
+*/
+describe('Anforderungen — Retoure erfassen im Lager', () => {
+  it('„Retoure erfassen“ im Reiter Retouren erfasst auf den eigenen Namen', async () => {
+    retoureAnlegen.mockClear();
+    zeige();
+    await userEvent.click(await bereich(/^Retouren/));
+    await userEvent.click(screen.getByRole('button', { name: 'Retoure erfassen' }));
+    const fenster = await screen.findByRole('dialog', { name: 'Material zurückgeben' });
+    await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'Kupfer');
+    await userEvent.click(await within(fenster).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
+    await userEvent.selectOptions(within(fenster).getByRole('combobox', { name: /Zustand/ }), 'gebraucht');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await waitFor(() => expect(retoureAnlegen).toHaveBeenCalledTimes(1));
+    expect(retoureAnlegen.mock.calls[0]).toEqual(['perl', expect.objectContaining({
+      materialId: 'm1', quantity: 1, condition: 'gebraucht', userId: 'pl', userName: 'Planer',
+    })]);
+  });
+
+  it('Gleichbleiben: in den übrigen Reitern steht kein „Retoure erfassen“', async () => {
+    zeige();
+    await screen.findByText('Aktuell keine offenen Bestellungen.');
+    expect(screen.queryByRole('button', { name: 'Retoure erfassen' })).toBeNull();
   });
 });
