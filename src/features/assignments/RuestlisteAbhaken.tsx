@@ -7,7 +7,7 @@ import { grundAus } from '@/lib/fehlerGrund';
 import { localDateStr, todayStr } from '@/lib/time';
 import { fmtMenge } from '@/lib/belegLayout';
 import { useToastWennDa } from '@/components/Toast';
-import { useModul } from '@/lib/useModule';
+import { canAccess } from '@/app/navigation';
 
 /**
  * Die Rüstliste aus der Sicht des Monteurs: was mitkommt, und was schon im
@@ -48,14 +48,19 @@ export default function RuestlisteAbhaken({
   abhakbar = true,
   max,
 }: Props) {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
   // Ohne Meldungsträger (etwa in einer Einzelprüfung) bleibt es beim Haken.
   const toast = useToastWennDa();
   const [alle, setAlle] = useState(false);
   const [oertlich, setOertlich] = useState<NonNullable<EinsatzMaterial['geladen']>>(geladen);
   const [fehler, setFehler] = useState<string | null>(null);
   const mitRouter = useInRouterContext();
-  const materialAn = useModul('material');
+  /*
+    Wohin der Verweis führt, muss die Rolle auch betreten dürfen — dieselbe
+    Frage wie Menü und `RequireNav`. Die Buchhaltung sieht Rüstlisten, darf
+    aber nicht auf „Material anfordern“ (Linkprüfung 23.10.2026).
+  */
+  const darfZurueckgeben = !!user && canAccess(user.role, '/material', company?.modules);
 
   if (positionen.length === 0) return null;
 
@@ -172,12 +177,12 @@ export default function RuestlisteAbhaken({
         </p>
       )}
       {/*
-        DER SATZ FÜHRT HIN (20.10.2026): er sagte „über die Retoure“, und die
+        DER SATZ FÜHRT HIN (23.10.2026): er sagte „über die Retoure“, und die
         lag im „⋯“ einer anderen Seite. Jetzt öffnet der Verweis die Rückgabe
         mit dieser Baustelle — sobald etwas eingeladen ist, kann etwas übrig
         sein.
       */}
-      {abhakbar && mitRouter && materialAn && Object.keys(oertlich).length > 0 && (
+      {abhakbar && mitRouter && darfZurueckgeben && Object.keys(oertlich).length > 0 && (
         <p className="pt-1 text-sm">
           <Link
             to={`/material?retoure=1&baustelle=${encodeURIComponent(projectNumber)}`}

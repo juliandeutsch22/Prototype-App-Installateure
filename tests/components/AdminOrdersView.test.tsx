@@ -70,7 +70,7 @@ vi.mock('@/lib/db/materialOrders', () => ({
   createReturn: (...a: unknown[]) => retoureAnlegen(...a),
 }));
 
-const retoureAnlegen = vi.fn(async () => 'r1');
+const retoureAnlegen = vi.fn<(...a: unknown[]) => Promise<string>>(async () => 'r1');
 vi.mock('@/lib/db/materials', async (echt) => ({
   ...(await echt<typeof import('@/lib/db/materials')>()),
   sucheKatalog: async () => [{ id: 'm1', companyId: 'perl', name: 'Kupferrohr 15mm', unit: 'm', stock: 3 }],
