@@ -125,6 +125,56 @@ function positionLabel(b: Bucket, rates: InvoiceRates): string {
   return extras.length ? `${base} (${extras.join(', ')})` : base;
 }
 
+/** Eine Buchung, die auf die nächste Rechnung dieser Baustelle gehört. */
+function offenerEintrag(e: TimeEntry, pn: string): boolean {
+  return e.status === 'Anwesend' && norm(e.projectNumber) === pn && !e.isBilled;
+}
+
+/**
+ * Die Tage aller offenen Belege der Baustelle — ohne Stichtag.
+ *
+ * Damit sieht die Vorschau, ob „Leistung bis“ zu dem passt, was sie
+ * enthält: dieselbe Auswahl wie in `assembleInvoice`, nur ohne Grenze.
+ */
+export function offeneBelegDaten(
+  projectNumber: string,
+  timeEntries: TimeEntry[],
+  scheine: WorkSheet[],
+  bereitsVerrechnet: ReadonlySet<string> = new Set(),
+): string[] {
+  const pn = norm(projectNumber);
+  return [
+    ...timeEntries.filter((e) => offenerEintrag(e, pn)).map((e) => e.date),
+    ...scheine
+      .filter((s) => s.status === 'Unterschrieben' && !(s.id && bereitsVerrechnet.has(s.id)))
+      .map((s) => s.datum),
+  ].filter((d): d is string => !!d);
+}
+
+/**
+ * Wie weit die Vorschau vom gewählten „Leistung bis“ abweicht.
+ *
+ * `zuViel`: Belege in der Vorschau, die nach dem gewählten Tag liegen.
+ * `fehlt`: offene Belege bis zum gewählten Tag, die ein früherer Stichtag
+ * draussen gelassen hat. Beides behebt ein neues Zusammenstellen.
+ */
+export function stichtagAbweichung(
+  daten: string[],
+  /** Der Stichtag, mit dem die Vorschau entstand; `null` = ohne. */
+  verwendet: string | null,
+  gewaehlt: string,
+): { zuViel: number; fehlt: number } {
+  let zuViel = 0;
+  let fehlt = 0;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(gewaehlt)) return { zuViel, fehlt };
+  for (const d of daten) {
+    const enthalten = verwendet === null || d <= verwendet;
+    if (enthalten && d > gewaehlt) zuViel += 1;
+    if (!enthalten && d <= gewaehlt) fehlt += 1;
+  }
+  return { zuViel, fehlt };
+}
+
 /**
  * Stellt die Rechnungspositionen für ein Projekt zusammen.
  *
@@ -158,12 +208,27 @@ export function assembleInvoice(
   },
   /** Die Nachtzeit des Betriebs (M35); ohne Angabe 22–6 Uhr. */
   nacht: Nachtzeit = NACHTZEIT_VORGABE,
+  /**
+   * Stichtag „Leistung bis“ (23.10.2026): nur Stunden und Scheine bis zu
+   * diesem Tag. Ohne Angabe alles Offene, wie bisher.
+   */
+  bis?: string,
 ): AssembledInvoice {
   const pn = norm(projectNumber);
 
+  /*
+    DER STICHTAG LÄSST SPÄTERES OFFEN, statt es zu verschlucken. Eine
+    Baustelle über Wochen wird in Etappen verrechnet; was nach dem Stichtag
+    gebucht ist, bleibt unverknüpft und kommt auf die nächste Rechnung. Der
+    Zeitraum auf der Rechnung stimmt damit mit dem überein, was sie enthält.
+  */
+  const imZeitraum = (datum?: string) => !bis || (!!datum && datum <= bis);
   const eligibleEntries = timeEntries.filter(
-    (e) => e.status === 'Anwesend' && norm(e.projectNumber) === pn && !e.isBilled,
+    (e) => offenerEintrag(e, pn) && imZeitraum(e.date),
   );
+  if (material && bis) {
+    material = { ...material, scheine: material.scheine.filter((s) => imZeitraum(s.datum)) };
+  }
 
   const buckets = new Map<string, Bucket>();
   for (const e of eligibleEntries) {

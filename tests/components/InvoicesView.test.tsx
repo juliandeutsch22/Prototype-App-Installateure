@@ -812,6 +812,93 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
 });
 
 /**
+ * „Leistung bis“ als Stichtag (23.10.2026).
+ *
+ * Eine Regiebaustelle über Wochen wird in Etappen verrechnet. Vorher nahm die
+ * Rechnung jede offene Stunde bis heute, auch wenn „Leistung bis“ früher
+ * stand — der Zeitraum auf der Rechnung deckte dann nicht, was sie enthielt.
+ */
+describe('Leistung bis als Stichtag', () => {
+  const SPAETER: TimeEntry & { id: string } = { ...ZEIT, id: 'z2', date: '2026-09-10' };
+  const SCHEIN_SPAETER: WorkSheet & { id: string } = {
+    ...SCHEIN, id: 's2', datum: '2026-09-12',
+    material: [{ name: 'Eckventil 1/2 Zoll', menge: 1, einheit: 'Stk' }],
+  };
+
+  async function vorschauMitSpaeterem() {
+    zeiten = [ZEIT, SPAETER];
+    scheine = [SCHEIN, SCHEIN_SPAETER];
+    katalog = KATALOG;
+    await bisZurVorschau();
+    const bis = await screen.findByLabelText('Leistung bis');
+    expect(bis).toHaveValue('2026-09-12');
+    return bis;
+  }
+
+  it('bietet bei früherem „Leistung bis“ an, nur bis dahin zu verrechnen — Späteres bleibt offen', async () => {
+    const bis = await vorschauMitSpaeterem();
+    fireEvent.change(bis, { target: { value: '2026-08-31' } });
+    expect(await screen.findByText(/2 Belege \(Stunden oder Scheine\) in dieser Vorschau liegen nach dem 31\.08\.2026/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Bis 31.08.2026 neu zusammenstellen' }));
+    await waitFor(() => expect(screen.queryByText(/in dieser Vorschau liegen nach/)).toBeNull());
+    // Der gewählte Tag bleibt stehen, auch wenn der letzte Beleg davor liegt.
+    expect(screen.getByLabelText('Leistung bis')).toHaveValue('2026-08-31');
+    expect(screen.getByLabelText('Leistung von')).toHaveValue('2026-08-20');
+
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const inv = lege.mock.calls[0][0];
+    expect(inv.linkedEntries).toEqual(['z1']);
+    expect(inv.linkedWorkSheets).toEqual(['s1']);
+    expect(inv.leistungBis).toBe('2026-08-31');
+    // 8 Stunden vom 20.08., das Material nur vom Schein des 22.08.
+    expect(inv.positions.find((p: { unit: string }) => p.unit === 'h')?.qty).toBe(8);
+    expect(inv.positions.find((p: { label: string }) => p.label === 'Eckventil 1/2 Zoll')?.qty).toBe(2);
+  });
+
+  it('meldet, wenn „Leistung bis“ danach wieder später steht, und nimmt das Offene dazu', async () => {
+    const bis = await vorschauMitSpaeterem();
+    fireEvent.change(bis, { target: { value: '2026-08-31' } });
+    await userEvent.click(await screen.findByRole('button', { name: 'Bis 31.08.2026 neu zusammenstellen' }));
+    await waitFor(() => expect(screen.getByLabelText('Leistung bis')).toHaveValue('2026-08-31'));
+
+    fireEvent.change(screen.getByLabelText('Leistung bis'), { target: { value: '2026-09-10' } });
+    expect(await screen.findByText(/Bis zum 10\.09\.2026 ist noch ein Beleg \(Stunden oder Scheine\) offen/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Bis 10.09.2026 neu zusammenstellen' }));
+    await waitFor(() => expect(screen.queryByText(/noch ein Beleg/)).toBeNull());
+
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0].linkedEntries).toEqual(['z1', 'z2']);
+    expect(lege.mock.calls[0][0].linkedWorkSheets).toEqual(['s1']);
+  });
+
+  it('meldet nichts, solange „Leistung bis“ zum Inhalt passt, und nimmt wie bisher alles Offene', async () => {
+    await vorschauMitSpaeterem();
+    expect(screen.queryByText(/Stunden oder Scheine/)).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0].linkedEntries).toEqual(['z1', 'z2']);
+    expect(lege.mock.calls[0][0].linkedWorkSheets).toEqual(['s1', 's2']);
+  });
+
+  it('meldet auch nichts, wenn „Leistung bis“ nach dem letzten Beleg liegt', async () => {
+    const bis = await vorschauMitSpaeterem();
+    fireEvent.change(bis, { target: { value: '2026-09-30' } });
+    expect(screen.queryByText(/Stunden oder Scheine/)).toBeNull();
+  });
+
+  it('bleibt bei Pauschale ohne Stichtag: kein Hinweis, die Belege gehen alle mit', async () => {
+    PROJEKT.billingMode = 'Pauschal';
+    const bis = await vorschauMitSpaeterem();
+    fireEvent.change(bis, { target: { value: '2026-08-31' } });
+    expect(screen.queryByText(/Stunden oder Scheine/)).toBeNull();
+    expect(screen.queryByRole('button', { name: /neu zusammenstellen/ })).toBeNull();
+  });
+});
+
+/**
  * Bauleistung mit Übergang der Steuerschuld — § 19 Abs 1a UStG.
  *
  * Die reinen Regeln stehen in `tests/unit/reverseCharge.test.ts`, der Beleg in

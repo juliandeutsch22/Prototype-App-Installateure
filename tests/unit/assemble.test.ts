@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { assembleInvoice, norm, INVOICE_DEFAULTS } from '@/features/invoices/assemble';
-import type { TimeEntry } from '@/types';
+import {
+  assembleInvoice, norm, offeneBelegDaten, stichtagAbweichung, INVOICE_DEFAULTS,
+} from '@/features/invoices/assemble';
+import { NACHTZEIT_VORGABE } from '@/lib/lohnregeln';
+import type { Material, TimeEntry, WorkSheet } from '@/types';
 
 const entry = (over: Partial<TimeEntry> = {}): TimeEntry & { id: string } =>
   ({
@@ -145,5 +148,70 @@ describe('Zuschläge', () => {
     });
     expect(res.positions[0].unitPrice).toBe(65 * 1.25);
     expect(res.positions[0].label).toContain('Notdienst +25 %');
+  });
+});
+
+/*
+  STICHTAG „LEISTUNG BIS“ (23.10.2026): eine Baustelle über Wochen wird in
+  Etappen verrechnet. Was nach dem Stichtag liegt, bleibt offen.
+*/
+describe('Stichtag', () => {
+  const schein = (over: Partial<WorkSheet>): WorkSheet & { id: string } =>
+    ({
+      id: 's1', companyId: 'c', projectNumber: '2025-001', datum: '2025-06-02',
+      status: 'Unterschrieben', zeiten: [], material: [{ name: 'Rohr', menge: 2, einheit: 'm' }],
+      ...over,
+    }) as WorkSheet & { id: string };
+  const katalog = [{ id: 'k', companyId: 'c', name: 'Rohr', stock: 0, unit: 'm', verkaufspreis: 5 }] as Material[];
+  const zeiten = [entry(), entry({ id: 'e2', date: '2025-06-20' })];
+  const scheine = [schein({}), schein({ id: 's2', datum: '2025-06-21' })];
+
+  it('nimmt nur Stunden und Scheine bis zum Stichtag', () => {
+    const res = assembleInvoice('2025-001', zeiten, INVOICE_DEFAULTS, { scheine, katalog },
+      NACHTZEIT_VORGABE, '2025-06-15');
+    expect(res.linkedEntries).toEqual(['e1']);
+    expect(res.linkedWorkSheets).toEqual(['s1']);
+    expect(res.positions.find((p) => p.unit === 'h')?.qty).toBe(9);
+    expect(res.positions.find((p) => p.label === 'Rohr')?.qty).toBe(2);
+    expect(res.leistung).toEqual({ von: '2025-06-02', bis: '2025-06-02' });
+  });
+
+  it('nimmt den Stichtag selbst noch mit', () => {
+    const res = assembleInvoice('2025-001', zeiten, INVOICE_DEFAULTS, { scheine, katalog },
+      NACHTZEIT_VORGABE, '2025-06-20');
+    expect(res.linkedEntries).toEqual(['e1', 'e2']);
+    expect(res.linkedWorkSheets).toEqual(['s1']);
+  });
+
+  it('ohne Stichtag bleibt alles wie bisher: alles Offene', () => {
+    const res = assembleInvoice('2025-001', zeiten, INVOICE_DEFAULTS, { scheine, katalog });
+    expect(res.linkedEntries).toEqual(['e1', 'e2']);
+    expect(res.linkedWorkSheets).toEqual(['s1', 's2']);
+    expect(res.positions.find((p) => p.label === 'Rohr')?.qty).toBe(4);
+    expect(res.leistung).toEqual({ von: '2025-06-02', bis: '2025-06-21' });
+  });
+
+  it('kennt die Tage aller offenen Belege — ohne Verrechnetes und Entwürfe', () => {
+    const daten = offeneBelegDaten('2025-001', [
+      ...zeiten,
+      entry({ id: 'e3', date: '2025-06-25', isBilled: true }),
+      entry({ id: 'e4', date: '2025-06-26', projectNumber: '2025-999' }),
+    ], [
+      ...scheine,
+      schein({ id: 's3', datum: '2025-06-27', status: 'Entwurf' }),
+      schein({ id: 's4', datum: '2025-06-28' }),
+    ], new Set(['s4']));
+    expect(daten.sort()).toEqual(['2025-06-02', '2025-06-02', '2025-06-20', '2025-06-21']);
+  });
+
+  it('meldet, was nach dem gewählten Tag in der Vorschau steht und was davor fehlt', () => {
+    const daten = ['2025-06-02', '2025-06-20', '2025-06-21'];
+    expect(stichtagAbweichung(daten, null, '2025-06-21')).toEqual({ zuViel: 0, fehlt: 0 });
+    expect(stichtagAbweichung(daten, null, '2025-06-30')).toEqual({ zuViel: 0, fehlt: 0 });
+    expect(stichtagAbweichung(daten, null, '2025-06-15')).toEqual({ zuViel: 2, fehlt: 0 });
+    expect(stichtagAbweichung(daten, '2025-06-15', '2025-06-15')).toEqual({ zuViel: 0, fehlt: 0 });
+    expect(stichtagAbweichung(daten, '2025-06-15', '2025-06-20')).toEqual({ zuViel: 0, fehlt: 1 });
+    // Ein halb getipptes Datum löst nichts aus.
+    expect(stichtagAbweichung(daten, null, '2025-06')).toEqual({ zuViel: 0, fehlt: 0 });
   });
 });

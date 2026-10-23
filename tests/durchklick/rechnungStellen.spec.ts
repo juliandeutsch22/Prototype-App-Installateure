@@ -277,3 +277,64 @@ test('Erst die Anzahlung, dann die Schlussrechnung mit Abzug', async ({ page }) 
 
   await keineFehlermeldung(page);
 });
+
+/**
+ * „Leistung bis“ als Stichtag (23.10.2026) — eine Regiebaustelle über Wochen
+ * wird in Etappen verrechnet.
+ *
+ * IM ECHTEN BROWSER, weil erst die Datenbank zeigt, worum es geht: die
+ * Buchung nach dem Stichtag bleibt UNVERRECHNET und kommt auf die nächste
+ * Rechnung. Ein Ansichtstest sieht nur, was die Seite weiterreicht.
+ */
+test('Das Büro verrechnet bis zum Stichtag — spätere Zeit bleibt offen', async ({ page }) => {
+  const { data: leute } = await admin
+    .from('users').select('id').eq('email', MONTEUR.email).single();
+  const spaeter = crypto.randomUUID();
+  const { error } = await admin.from('time_entries').insert({
+    id: spaeter,
+    company_id: BETRIEB,
+    user_id: leute!.id,
+    user_name: MONTEUR.name,
+    date: '2026-09-15',
+    status: 'Anwesend',
+    start_time: '07:00',
+    end_time: '12:00',
+    break_duration: 0,
+    project_number: BAUSTELLE.nummer,
+    source: 'manual',
+  });
+  if (error) throw new Error(error.message);
+
+  await anmelden(page, BUERO.email);
+  await page.getByRole('link', { name: 'Rechnungen' }).first().click();
+  await page.getByRole('button', { name: 'Neue Rechnung' }).click();
+  await page.locator('#invproj').selectOption(BAUSTELLE.nummer);
+  await page.getByRole('button', { name: 'Positionen zusammenstellen' }).click();
+
+  const bis = page.locator('#leistung-bis');
+  await expect(bis).toHaveValue('2026-09-15');
+  await bis.fill('2026-09-05');
+  await expect(page.getByText(/Ein Beleg \(Stunden oder Scheine\) in dieser Vorschau liegt nach dem 05\.09\.2026/)).toBeVisible();
+  await page.getByRole('button', { name: 'Bis 05.09.2026 neu zusammenstellen' }).click();
+  await expect(page.getByText(/in dieser Vorschau liegt nach/)).toHaveCount(0);
+  await expect(bis).toHaveValue('2026-09-05');
+
+  await page.getByRole('button', { name: /Rechnung erstellen/ }).click();
+
+  await expect(async () => {
+    const { data } = await admin
+      .from('invoices').select('leistung_von, leistung_bis').eq('company_id', BETRIEB);
+    expect(data ?? []).toHaveLength(1);
+    expect(data![0].leistung_von).toBe('2026-09-01');
+    expect(data![0].leistung_bis).toBe('2026-09-05');
+  }).toPass({ timeout: 25_000 });
+
+  const { data: zeiten } = await admin
+    .from('time_entries').select('id, date, is_billed, invoice_number').eq('company_id', BETRIEB).order('date');
+  expect((zeiten ?? []).map((z) => [z.date, z.is_billed === true, !!z.invoice_number])).toEqual([
+    ['2026-09-01', true, true],
+    ['2026-09-15', false, false],
+  ]);
+  expect((zeiten ?? [])[1].id).toBe(spaeter);
+  await keineFehlermeldung(page);
+});
