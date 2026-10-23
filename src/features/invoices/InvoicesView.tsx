@@ -41,6 +41,7 @@ import { listWorkSheetsForProject, listRecentWorkSheets } from '@/lib/db/workShe
 import { katalogNachNamen } from '@/lib/db/materials';
 import { leistungszeitraum, verrechneteScheine } from './materialPositionen';
 import { alsPosition, materialOhneSchein, type Ausgabe, type MaterialVorschlag } from './ausgegebenesMaterial';
+import { nachgetrageneScheine, offeneEntwuerfe, type NachgetragenerSchein, type OffenerEntwurf } from './scheinHinweise';
 import { ausgegebenesMaterial } from '@/lib/db/materialOrders';
 import {
   darfMahnen,
@@ -438,6 +439,12 @@ export default function InvoicesView() {
   const [vorschlaege, setVorschlaege] = useState<MaterialVorschlag[]>([]);
   const [uebernommen, setUebernommen] = useState<string[]>([]);
   const [ausgabenFehler, setAusgabenFehler] = useState(false);
+  /*
+    Zwei Hinweise zum Material der Scheine (24.10.2026): ein Schein im schon
+    abgerechneten Zeitraum, und Entwürfe, deren Material abgezogen ist.
+  */
+  const [nachgetragen, setNachgetragen] = useState<NachgetragenerSchein[]>([]);
+  const [entwuerfe, setEntwuerfe] = useState<OffenerEntwurf[]>([]);
   /**
    * Bauleistung mit Übergang der Steuerschuld (§ 19 Abs 1a UStG).
    *
@@ -1213,6 +1220,8 @@ export default function InvoicesView() {
     setVorschlaege([]);
     setUebernommen([]);
     setAusgabenFehler(false);
+    setNachgetragen([]);
+    setEntwuerfe([]);
     try {
       /*
         EINE ANZAHLUNG KOMMT NICHT AUS DEN ZEITEINTRÄGEN — es gibt noch keine.
@@ -1396,6 +1405,11 @@ export default function InvoicesView() {
       }
       await vorschauUebernehmen(assembled);
       setVorschlaege(vorschlag);
+      setNachgetragen(nachgetrageneScheine(
+        scheine.filter((s) => assembled.linkedWorkSheets.includes(s.id)),
+        derBaustelle,
+      ));
+      setEntwuerfe(offeneEntwuerfe(scheine, ausgaben, bis));
       setBelegDaten([
         ...offeneBelegDaten(projectNumber, entries, scheine, bereitsVerrechnet),
         ...ausgabenAlle.map((a) => a.datum),
@@ -3209,6 +3223,23 @@ export default function InvoicesView() {
               </Hinweiszeile>
             </div>
           )}
+          {/*
+            EIN SCHEIN IM SCHON ABGERECHNETEN ZEITRAUM (24.10.2026), dessen
+            Material jene Rechnung schon trägt — etwa aus dem Lager
+            übernommen. Abgezogen wird nichts: ob es zweimal hingehört, weiß
+            nur, wer die Baustelle kennt.
+          */}
+          {nachgetragen.map((n) => (
+            <div key={n.scheinId} className="mb-3">
+              <Hinweiszeile stufe="warn">
+                <p>
+                  Der Schein vom {datumAT(n.datum)} liegt im Zeitraum, den {n.rechnung} schon abgerechnet
+                  hat, und {n.rechnung} trägt bereits {n.artikel.join(', ')}. Bitte prüfen, ob es hier ein
+                  zweites Mal hingehört — sonst die Zeile anpassen oder entfernen.
+                </p>
+              </Hinweiszeile>
+            </div>
+          ))}
           {preview.materialOhnePreis.length > 0 && (
             <div className="mb-3">
               <Hinweiszeile stufe="warn">
@@ -3417,6 +3448,26 @@ export default function InvoicesView() {
             das Ausgegebene als abgerechnet — übernommen oder nicht; so kommt
             nichts zweimal (siehe `ausgegebenes_material`).
           */}
+          {/*
+            ENTWÜRFE, DEREN MATERIAL ABGEZOGEN IST (24.10.2026). Es kommt mit
+            dem Schein — wird der Entwurf nach dieser Rechnung verworfen,
+            fehlt es. Gesagt wird es jetzt, solange es sich noch ändern lässt.
+          */}
+          {entwuerfe.length > 0 && (
+            <div className="mt-4">
+              <Hinweiszeile stufe="warn">
+                <p>
+                  {entwuerfe.length === 1
+                    ? `Der Schein vom ${datumAT(entwuerfe[0].datum)} ist noch Entwurf.`
+                    : `${entwuerfe.length} Scheine dieser Baustelle sind noch Entwurf (${entwuerfe.map((e) => datumAT(e.datum)).join(', ')}).`}{' '}
+                  {entwuerfe.length === 1 ? 'Sein' : 'Ihr'} Material
+                  ({[...new Set(entwuerfe.flatMap((e) => e.artikel))].join(', ')}) ist vom Ausgegebenen
+                  abgezogen, weil es mit dem Schein kommt. Vor der Rechnung unterschreiben oder verwerfen —
+                  wird ein Entwurf danach verworfen, fehlt sein Material.
+                </p>
+              </Hinweiszeile>
+            </div>
+          )}
           {ausgabenFehler && (
             <div className="mt-4">
               <Hinweiszeile stufe="warn">
