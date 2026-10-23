@@ -16,7 +16,7 @@ import type {
   Wartung,
 } from '@/types';
 import { getUserByUid, listUsers } from '@/lib/db/users';
-import { listOwnEntriesSince, listOwnEntriesInRange, buchungstage, stundenDerBaustellen } from '@/lib/db/timeEntries';
+import { listOwnEntriesSince, listOwnEntriesInRange, buchungstage, stundenDerBaustellen, unverrechneteStunden } from '@/lib/db/timeEntries';
 import { getGeburtsdatum } from '@/lib/db/arbeitszeitGrenzen';
 import { andereVerteilung, grenzfaelle, istJugendlich, type Grenzfall } from '@/features/accounting/arbeitszeitGrenzen';
 import {
@@ -54,7 +54,7 @@ import { besetzung, ganztagsWeg } from '@/features/assignments/besetzung';
 import { einsatzZeit } from '@/features/assignments/einsatzZeit';
 import { montagDer, wocheAb } from '@/features/assignments/wochenplan';
 import { offeneNachtraege, NACHTRAG_TAGE, type OffenerNachtrag } from '@/features/worksheets/zeitNachtrag';
-import { unverrechneteScheine, UNVERRECHNET_BASIS } from '@/features/worksheets/unverrechnet';
+import { unverrechneteScheine, unverrechneteStundenZeilen, UNVERRECHNET_BASIS } from '@/features/worksheets/unverrechnet';
 import { mahnlauf, type Mahnlauf } from '@/features/invoices/mahnlauf';
 import { basiszinsVerlauf, halbjahresbeginn } from '@/features/invoices/mahnung';
 import { monateDazu } from '@/features/maintenance/wartungsplan';
@@ -67,6 +67,7 @@ import {
   type TagesBaustelle,
   type TeamLuecke,
   type UnverrechneteZeile,
+  type OffeneStundenZeile,
   type ZahlungHeute,
   type LehrzeitEndeZeile,
   lehrzeitEnden,
@@ -145,6 +146,8 @@ export interface StartDaten {
   garantien?: (GarantieRechnung & { id: string })[];
   lauf?: Mahnlauf;
   unverrechnet?: UnverrechneteZeile[];
+  /** Regiebaustellen mit unverrechneten Stunden, älteste zuerst (seit 23.10.2026). */
+  offeneStunden?: OffeneStundenZeile[];
   zahlungenHeute?: ZahlungHeute[];
   bezahltImMonat?: { summe: number; anzahl: number };
   // Team
@@ -419,6 +422,16 @@ export async function buchhaltung(
       out.zahlungenHeute = zahlungen
         .filter((z) => z.datum === heute)
         .map((z) => ({ id: z.id, betrag: Number(z.betrag) || 0, art: z.art, rechnung: nachId.get(z.invoiceId) ?? null }));
+    })() : undefined,
+    /*
+      Unverrechnete Stunden der Regiebaustellen (23.10.2026) — neben den
+      Rechnungen, nicht danach. Still: fehlen sie, bleibt der Rest.
+    */
+    was.rechnungen ? (async () => {
+      out.offeneStunden = await still(
+        async () => unverrechneteStundenZeilen(await unverrechneteStunden(), heute),
+        undefined,
+      );
     })() : undefined,
     was.scheine ? (async () => {
       out.unverrechnet = await still(async () => {

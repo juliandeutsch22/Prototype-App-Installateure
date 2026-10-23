@@ -19,6 +19,7 @@ import {
   ohneEinsatz,
   ohneProjektleitung,
   scheineNichtVerrechnet,
+  stundenNichtVerrechnet,
   scheinOhneZeit,
   stundenOhneBuchung,
   basiszinsFehlt,
@@ -208,6 +209,7 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
     d.unbezahlt ? erlaubt(ruecklassWirdFaellig(d.unbezahlt, u.heute), u) : null,
     d.garantien ? erlaubt(garantieEndet(d.garantien, u.heute), u) : null,
     d.unverrechnet ? erlaubt(scheineNichtVerrechnet(auffaellige(d.unverrechnet)), u) : null,
+    d.offeneStunden ? erlaubt(stundenNichtVerrechnet(auffaellige(d.offeneStunden)), u) : null,
     /*
       DIE EIGENE PERSON NUR EINMAL (Analyse 03.10.2026, Paket 1): ihre Tage
       stehen schon oben unter „Deine Tage ohne Buchung“. Bei der Leitung
@@ -522,6 +524,21 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       key: 'scheine', wann: 'woche',
       titel: `${anzahl(alteScheine.length, 'Schein', 'Scheine')} nicht verrechnet`,
       detail: 'über 4 Wochen',
+      status: { text: 'verrechnen', ton: 'warn' },
+    }));
+  }
+  /*
+    UNVERRECHNETE STUNDEN (23.10.2026): eine Regiebaustelle über Wochen hat
+    nicht für jede Buchung einen Schein — dann stünde sie oben nie.
+  */
+  const alteStunden = d.offeneStunden ? auffaellige(d.offeneStunden) : [];
+  if (alteStunden.length) {
+    themen.push(wenn(alteStunden.length === 1 ? ZIEL.rechnungFuer(alteStunden[0].stunden.projectNumber) : ZIEL.rechnungen, {
+      key: 'stunden', wann: 'woche',
+      titel: `${anzahl(alteStunden.length, 'Baustelle', 'Baustellen')} mit Stunden nicht verrechnet`,
+      detail: alteStunden.length === 1
+        ? `${alteStunden[0].stunden.kunde || alteStunden[0].stunden.projectNumber} · über 4 Wochen`
+        : 'über 4 Wochen',
       status: { text: 'verrechnen', ton: 'warn' },
     }));
   }

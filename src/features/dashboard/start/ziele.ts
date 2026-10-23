@@ -26,6 +26,8 @@ export const ZIEL = {
   rechnungenUeberfaellig: `/invoices?status=${q('Überfällig')}`,
   rechnungenSicht: (sicht: RechnungsSicht) => `/invoices?sicht=${sicht}`,
   rechnung: (nummer: string) => `/invoices?suche=${q(nummer)}`,
+  /** „Neue Rechnung“ mit dieser Baustelle (seit 23.10.2026). */
+  rechnungFuer: (baustelle: string) => `/invoices?neu=${q(baustelle)}`,
   scheine: (filter: ScheinFilter) => `/worksheets?filter=${filter}`,
   schein: (id: string) => `/worksheets?markiert=${q(id)}`,
   luecken: (monat?: string) => `/accounting?filter=luecken${monat ? `&monat=${monat}` : ''}`,

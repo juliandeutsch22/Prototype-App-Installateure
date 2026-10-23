@@ -36,7 +36,7 @@ import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
 import { buildBmdCsv, bmdCsvFilename, buildBmdZahlungenCsv, bmdZahlungenFilename } from './bmdExport';
 import { buchungskonten, type Buchungskonto } from '@/lib/db/konten';
 import { downloadCsv } from '@/features/accounting/export';
-import { listEntriesForProjects } from '@/lib/db/timeEntries';
+import { listEntriesForProjects, unverrechneteStunden, type OffeneStunden } from '@/lib/db/timeEntries';
 import { listWorkSheetsForProject, listRecentWorkSheets } from '@/lib/db/workSheets';
 import { katalogNachNamen } from '@/lib/db/materials';
 import { verrechneteScheine } from './materialPositionen';
@@ -53,6 +53,7 @@ import { postenNeuLaden } from '@/app/offenePosten';
 import { mahnlauf } from './mahnlauf';
 import {
   unverrechneteScheine,
+  unverrechneteStundenZeilen,
   auffaellige,
   AUFFAELLIG_AB_TAGEN,
   UNVERRECHNET_BASIS,
@@ -193,6 +194,15 @@ export default function InvoicesView() {
   */
   const [scheineVerrechnet, setScheineVerrechnet] = useState<string[] | null>(null);
   const [abdeckungFehler, setAbdeckungFehler] = useState(false);
+  /*
+    UNVERRECHNETE STUNDEN DER REGIEBAUSTELLEN (23.10.2026) — die zweite
+    Hälfte von „nicht verrechnet“: gebuchte Zeit ohne Schein fiel bisher
+    nirgends auf. `null`: noch nicht da. Neu geholt nach jeder angelegten oder
+    stornierten Rechnung (`stundenStand`), denn genau die ändern die Antwort.
+  */
+  const [offeneStunden, setOffeneStunden] = useState<OffeneStunden[] | null>(null);
+  const [stundenFehler, setStundenFehler] = useState(false);
+  const [stundenStand, setStundenStand] = useState(0);
   /*
     DIE OFFENEN FORDERUNGEN, EIGENS GEHOLT — nicht aus der Liste darüber.
 
@@ -697,6 +707,44 @@ export default function InvoicesView() {
     };
   }, [user, nurLesen, offeneAnwenden]);
 
+  useEffect(() => {
+    if (!user || nurLesen) return;
+    let weg = false;
+    unverrechneteStunden()
+      .then((rows) => {
+        if (weg) return;
+        setOffeneStunden(rows);
+        setStundenFehler(false);
+      })
+      // Wie die Abdeckung der Scheine: kommt die Antwort nicht, sagt es eine Zeile.
+      .catch(() => {
+        if (!weg) setStundenFehler(true);
+      });
+    return () => {
+      weg = true;
+    };
+  }, [user, nurLesen, stundenStand]);
+
+  /*
+    „RECHNUNG ERSTELLEN“ VON DER STARTSEITE (23.10.2026): `?neu=<Baustelle>`
+    öffnet das Formular mit dieser Baustelle. Danach verschwindet der
+    Parameter, sonst öffnete jedes Neuladen das Formular wieder.
+  */
+  useEffect(() => {
+    const neu = suchparameter.get('neu');
+    if (!neu || nurLesen) return;
+    setProjectNumber(neu);
+    setPreview(null);
+    erstellenOeffnen();
+    setSuchparameter((alt) => {
+      const rest = new URLSearchParams(alt);
+      rest.delete('neu');
+      return rest;
+    }, { replace: true });
+    // Nur beim Ankommen über die Adresse.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suchparameter]);
+
   const sorted = useMemo(
     () => [...invoices].sort((a, b) => b.invoiceNumber.localeCompare(a.invoiceNumber)),
     [invoices],
@@ -830,10 +878,12 @@ export default function InvoicesView() {
   /*
     DIE LISTE UND IHRE KARTEN ERSCHEINEN ZUSAMMEN, wenn alles da ist, woraus
     sie rechnen: die jüngsten und die offenen Rechnungen, fürs Büro dazu die
-    Scheine samt Abdeckung. Bis dahin ein Platzhalter an ihrer Stelle.
+    Scheine samt Abdeckung und die unverrechneten Stunden. Bis dahin ein
+    Platzhalter an ihrer Stelle.
   */
   const zahlenBereit = !loading && offeneGeladen;
-  const basisBereit = zahlenBereit && (nurLesen || scheineFertig);
+  const stundenFertig = offeneStunden !== null || stundenFehler;
+  const basisBereit = zahlenBereit && (nurLesen || (scheineFertig && stundenFertig));
 
   const stats = useMemo(() => {
     let offen = 0;
@@ -1606,6 +1656,7 @@ export default function InvoicesView() {
       setAbzugsfaehig([]);
       setGewaehlteAbzuege([]);
       toast.success(`Rechnung ${reserved} erstellt`);
+      setStundenStand((n) => n + 1);
       /*
         DIE KORRIGIERTE UID IN DEN KUNDEN (Testbericht 30.09.2026, M10) — nur
         auf Wunsch und erst, wenn die Rechnung steht. Schlägt es fehl, ist die
@@ -1933,6 +1984,22 @@ export default function InvoicesView() {
       ),
     [scheineAllerBaustellen, invoices, offeneRechnungen, scheineVerrechnet],
   );
+
+  /*
+    SCHEINE UND STUNDEN IN EINER LISTE, älteste zuerst. Die Scheine nur, wenn
+    ihre Grundlagen da sind (offene Forderungen, Abdeckung) — sonst stünden
+    längst verrechnete als offen da. Die Stunden hängen an keiner der beiden:
+    ob eine Buchung verrechnet ist, steht an der Buchung selbst.
+  */
+  const nichtVerrechnet = useMemo(() => {
+    const scheine = !forderungenFehler && !abdeckungFehler && scheineVerrechnet !== null
+      ? auffaellige(offeneLeistung).map((z) => ({ art: 'schein' as const, ...z }))
+      : [];
+    const stunden = offeneStunden
+      ? auffaellige(unverrechneteStundenZeilen(offeneStunden, todayStr())).map((z) => ({ art: 'stunden' as const, ...z }))
+      : [];
+    return [...scheine, ...stunden].sort((a, b) => b.tage - a.tage);
+  }, [forderungenFehler, abdeckungFehler, scheineVerrechnet, offeneLeistung, offeneStunden]);
 
   /**
    * Stellt dieser Betrieb überhaupt Anzahlungen und Teilrechnungen?
@@ -2501,55 +2568,79 @@ export default function InvoicesView() {
         </Hinweiszeile>
       )}
 
-      {!nurLesen && !forderungenFehler && !abdeckungFehler && scheineVerrechnet !== null
-        && auffaellige(offeneLeistung).length > 0 && (
+      {!nurLesen && stundenFehler && (
+        <Hinweiszeile stufe="warn" role="status">
+          <p>
+            <strong>Die unverrechneten Stunden konnten nicht geladen werden.</strong>{' '}
+            „Nicht verrechnete Leistung“ zeigt deshalb nur die Handwerksscheine. Bitte die Seite neu laden.
+          </p>
+        </Hinweiszeile>
+      )}
+
+      {!nurLesen && nichtVerrechnet.length > 0 && (
         <Card
-          title={`Nicht verrechnete Leistung (${auffaellige(offeneLeistung).length})`}
+          title={`Nicht verrechnete Leistung (${nichtVerrechnet.length})`}
           hint={
-            'Unterschriebene Handwerksscheine, die auf keiner gültigen Rechnung stehen und ' +
-            `älter als ${AUFFAELLIG_AB_TAGEN} Tage sind — älteste zuerst. Wird eine Rechnung ` +
-            'storniert, tauchen ihre Scheine hier wieder auf: der Storno nimmt die Forderung ' +
-            'zurück, also steht die Leistung wieder offen.'
+            'Unterschriebene Handwerksscheine, die auf keiner gültigen Rechnung stehen, und ' +
+            'Regiebaustellen mit gebuchten, noch nicht verrechneten Stunden — beides älter als ' +
+            `${AUFFAELLIG_AB_TAGEN} Tage, älteste zuerst. Bei den Stunden zählt der älteste ` +
+            'offene Tag; Pauschale und Einheitspreis rechnen nach dem Angebot ab und stehen hier ' +
+            'nicht. Wird eine Rechnung storniert, tauchen ihre Scheine und Stunden hier wieder ' +
+            'auf: der Storno nimmt die Forderung zurück, also steht die Leistung wieder offen.'
           }
           buendig
         >
           <GekuerzteListe
-            eintraege={auffaellige(offeneLeistung)}
-            zeile={({ schein, tage }) => (
-              <ListRow
-                key={schein.id}
-                title={
-                  <>
-                    <span>{schein.customerName}</span>
-                    <Warnung stufe={tage >= 90 ? 'dringend' : 'achtung'}>{tageWort(tage)}</Warnung>
-                  </>
-                }
-                subtitle={
-                  <span>
-                    Baustelle <span className="nr">{schein.projectNumber}</span> · Leistung vom {datumAT(schein.datum)} ·{' '}
-                    {schein.abrechnung}
-                  </span>
-                }
-              >
-                {/*
-                  Der Weg zur Rechnung ist die Baustelle: aus ihr wird
-                  zusammengestellt, nicht aus dem einzelnen Schein. Der Knopf
-                  öffnet deshalb „Neue Rechnung“ mit dieser Baustelle — von
-                  Hand abzutippen war genau die Reibung, die dazu führt, dass
-                  es liegen bleibt.
-                */}
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setProjectNumber(schein.projectNumber);
-                    setPreview(null);
-                    erstellenOeffnen();
-                  }}
+            eintraege={nichtVerrechnet}
+            zeile={(eintrag) => {
+              const nummer = eintrag.art === 'schein' ? eintrag.schein.projectNumber : eintrag.stunden.projectNumber;
+              return (
+                <ListRow
+                  key={eintrag.art === 'schein' ? eintrag.schein.id : `stunden-${nummer}`}
+                  title={
+                    <>
+                      <span>
+                        {eintrag.art === 'schein'
+                          ? eintrag.schein.customerName
+                          : eintrag.stunden.kunde || `Baustelle ${nummer}`}
+                      </span>
+                      <Warnung stufe={eintrag.tage >= 90 ? 'dringend' : 'achtung'}>{tageWort(eintrag.tage)}</Warnung>
+                    </>
+                  }
+                  subtitle={
+                    eintrag.art === 'schein' ? (
+                      <span>
+                        Baustelle <span className="nr">{nummer}</span> · Leistung vom {datumAT(eintrag.schein.datum)} ·{' '}
+                        {eintrag.schein.abrechnung}
+                      </span>
+                    ) : (
+                      <span>
+                        Baustelle <span className="nr">{nummer}</span> · {fmtDauer(eintrag.stunden.minuten)} gebucht
+                        seit {datumAT(eintrag.stunden.aeltester)} · Regie
+                      </span>
+                    )
+                  }
                 >
-                  Baustelle wählen
-                </Button>
-              </ListRow>
-            )}
+                  {/*
+                    Der Weg zur Rechnung ist die Baustelle: aus ihr wird
+                    zusammengestellt, nicht aus dem einzelnen Schein. Der Knopf
+                    öffnet deshalb „Neue Rechnung“ mit dieser Baustelle — von
+                    Hand abzutippen war genau die Reibung, die dazu führt, dass
+                    es liegen bleibt.
+                  */}
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setProjectNumber(nummer);
+                      setPreview(null);
+                      erstellenOeffnen();
+                    }}
+                  >
+                    Baustelle wählen
+                  </Button>
+                </ListRow>
+              );
+            }}
           />
         </Card>
       )}
@@ -4197,6 +4288,8 @@ export default function InvoicesView() {
             }
             await cancelInvoice(toCancel, cancelNote.trim());
             toast.success('Rechnung storniert');
+            // Der Storno gibt die Stunden wieder frei.
+            setStundenStand((n) => n + 1);
           }
           setToCancel(null);
         }}
