@@ -10,6 +10,9 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { admin, betriebAnlegen, konto, type Konto } from './helfer';
 import * as anforderungen from '@/lib/db/pg/materialOrders';
 import { clientEinreichen } from '@/lib/db/pg/kern';
+import { Client } from 'pg';
+
+const DB = process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
 
 const A = 'ausg-a';
 const B = 'ausg-b';
@@ -141,5 +144,63 @@ describe('ausgegebenes_material', () => {
     clientEinreichen(buch.client);
     expect(await anforderungen.ausgegebenesMaterial('')).toEqual([]);
     expect(await anforderungen.ausgegebenesMaterial('PR-')).toEqual([]);
+  });
+});
+
+/*
+  DER TAG EINER ANFORDERUNG (24.10.2026): `erledigt_am`, gesetzt von der
+  Datenbank beim Wechsel auf „Erledigt“. Eine spätere Änderung (etwa das
+  Umnummern der Baustelle) verschiebt den Tag nicht mehr.
+*/
+describe('ausgegebenes_material — erledigt am', () => {
+  it('hält den Moment von „Erledigt“ fest, ändert ihn bei anderen Änderungen nicht, leert ihn beim Zurücksetzen', async () => {
+    const id = await anforderung(A, max, { status: 'Offen', project_number: '2026-072' });
+    const lies = async () => (await admin.from('material_orders').select('erledigt_am, updated_at').eq('id', id).single()).data!;
+    expect((await lies()).erledigt_am).toBeNull();
+
+    await admin.from('material_orders').update({ status: 'Erledigt' }).eq('id', id);
+    const erledigt = (await lies()).erledigt_am;
+    expect(erledigt).not.toBeNull();
+
+    // Ein Gerät kann ihn nicht verstellen, eine andere Änderung lässt ihn stehen.
+    await admin.from('material_orders').update({ note: 'später', erledigt_am: '2020-01-01T00:00:00Z' }).eq('id', id);
+    const danach = await lies();
+    expect(danach.erledigt_am).toBe(erledigt);
+    expect(danach.updated_at).not.toBe(erledigt);
+
+    await admin.from('material_orders').update({ status: 'Abholbereit' }).eq('id', id);
+    expect((await lies()).erledigt_am).toBeNull();
+  });
+
+  it('das ausgegebene Material zählt am Tag von „Erledigt“, nicht am Tag der letzten Änderung', async () => {
+    // Die Datenübernahme setzt den Zeitpunkt beim Anlegen selbst.
+    const id = await anforderung(A, max, { project_number: '2026-073', erledigt_am: '2026-09-01T10:00:00+02:00' });
+    await admin.from('material_orders').update({ note: 'heute umgeschrieben' }).eq('id', id);
+    clientEinreichen(buch.client);
+    const [z] = await anforderungen.ausgegebenesMaterial('2026-073');
+    expect(z).toMatchObject({ art: 'anforderung', datum: '2026-09-01' });
+  });
+
+  it('Gleichbleiben: eine Anforderung von vor der Spalte zählt wie bisher am Tag ihrer letzten Änderung', async () => {
+    const id = await anforderung(A, max, { project_number: '2026-074' });
+    /*
+      So stehen Anforderungen von vor dem 24.10.2026 da: erledigt, aber ohne
+      Zeitpunkt — die Migration schreibt bestehende Zeilen nicht um. Nur in
+      dieser Sitzung ohne Auslöser, damit sich der Zustand herstellen lässt.
+    */
+    const db = new Client({ connectionString: DB });
+    await db.connect();
+    try {
+      await db.query("set session_replication_role = replica");
+      await db.query(
+        "update public.material_orders set erledigt_am = null, updated_at = '2026-09-05T09:00:00+02:00' where id = $1",
+        [id],
+      );
+    } finally {
+      await db.end();
+    }
+    clientEinreichen(buch.client);
+    const [z] = await anforderungen.ausgegebenesMaterial('2026-074');
+    expect(z).toMatchObject({ art: 'anforderung', datum: '2026-09-05' });
   });
 });

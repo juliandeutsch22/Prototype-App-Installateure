@@ -76,8 +76,8 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   krankmeldungen: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   material_einkaufspreise: { updated_at: 'zeitpunkt' },
   material_orders: {
-    abholbereit_seit: 'zeitpunkt', bestellt_am: 'zeitpunkt', created_at: 'zeitpunkt', geliefert_am: 'zeitpunkt',
-    updated_at: 'zeitpunkt',
+    abholbereit_seit: 'zeitpunkt', bestellt_am: 'zeitpunkt', created_at: 'zeitpunkt', erledigt_am: 'zeitpunkt',
+    geliefert_am: 'zeitpunkt', updated_at: 'zeitpunkt',
   },
   material_prices: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   materials: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },

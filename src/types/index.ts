@@ -1081,6 +1081,8 @@ export interface MaterialOrder {
   liefertermin?: string | null;
   /** Seit wann abholbereit — setzt nur die Datenbank. */
   abholbereitSeit?: number | null;
+  /** Wann „Erledigt“ — setzt nur die Datenbank (seit 24.10.2026). */
+  erledigtAm?: number | null;
   createdAt?: number;
   updatedAt?: number;
 }
