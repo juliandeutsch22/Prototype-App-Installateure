@@ -35,3 +35,39 @@ test('Ein Monteur legt Material in den Korb und sendet es ab', async ({ page }) 
 
   await keineFehlermeldung(page);
 });
+
+/*
+  DIE RÜCKGABE STEHT SICHTBAR (20.10.2026): eine Zeile auf der Seite statt
+  im „⋯“. Geprüft bis in den Bestand: Neues wird dem Lager gutgeschrieben.
+*/
+test('Ein Monteur gibt übriges Material über die sichtbare Zeile zurück', async ({ page }) => {
+  const bestand = async () => {
+    const { data } = await admin.from('materials').select('stock')
+      .eq('company_id', BETRIEB).eq('name', ARTIKEL.name).single();
+    return Number(data?.stock ?? 0);
+  };
+  const vorher = await bestand();
+
+  await anmelden(page, MONTEUR.email);
+  await menue(page, 'Material anfordern', 'Material');
+  await page.getByRole('button', { name: /^Material zurückgeben/ }).click();
+
+  const fenster = page.getByRole('dialog', { name: 'Material zurückgeben' });
+  await fenster.getByRole('searchbox', { name: 'Material' }).fill('Kupfer');
+  await fenster.getByRole('button', { name: new RegExp(`${ARTIKEL.name} zurückgeben`) }).click();
+  await fenster.getByLabel('Menge').fill('2');
+  await fenster.getByRole('button', { name: 'Retoure erfassen' }).click();
+  await expect(fenster).toBeHidden();
+
+  await expect(async () => {
+    const { data } = await admin.from('material_orders')
+      .select('material_name, quantity, transaction_type, condition')
+      .eq('company_id', BETRIEB).eq('transaction_type', 'return');
+    expect(data ?? []).toHaveLength(1);
+    expect(Number((data ?? [])[0].quantity)).toBe(2);
+    expect((data ?? [])[0].condition).toBe('neu');
+    expect(await bestand()).toBe(vorher + 2);
+  }).toPass({ timeout: 15_000 });
+
+  await keineFehlermeldung(page);
+});

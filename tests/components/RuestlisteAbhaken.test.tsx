@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
+import { MemoryRouter } from 'react-router-dom';
 
 /**
  * Nachtest 01.10.2026 — Rüstliste: mit „eingeladen“ bucht die Datenbank den
@@ -9,8 +10,13 @@ import { ToastProvider } from '@/components/Toast';
  */
 const umschalten = vi.fn<(...a: unknown[]) => Promise<number>>(async () => 0);
 vi.mock('@/lib/db/einsatzMaterial', () => ({ ladenUmschalten: (...a: unknown[]) => umschalten(...a) }));
+let rolle = 'Mitarbeiter';
+let module: Record<string, boolean> | undefined;
 vi.mock('@/app/AuthContext', () => ({
-  useAuth: () => ({ user: { uid: 'm1', name: 'Max', companyId: 'perl', role: 'Mitarbeiter' } }),
+  useAuth: () => ({
+    user: { uid: 'm1', name: 'Max', companyId: 'perl', role: rolle },
+    company: { modules: module },
+  }),
 }));
 vi.mock('@/lib/time', async () => {
   const echt = await vi.importActual<typeof import('@/lib/time')>('@/lib/time');
@@ -24,7 +30,11 @@ const POS = [
   { id: 'b', name: 'Pressfitting', menge: 4, einheit: 'Stk', materialId: 'k2' },
 ];
 
-beforeEach(() => umschalten.mockClear());
+beforeEach(() => {
+  umschalten.mockClear();
+  rolle = 'Mitarbeiter';
+  module = undefined;
+});
 
 describe('Rüstliste abhaken', () => {
   it('sagt, dass vom Lager abgebucht ist, und lässt heute zurücknehmen', async () => {
@@ -83,5 +93,80 @@ describe('Rüstliste abhaken', () => {
     await userEvent.click(screen.getByLabelText(/Pressfitting/));
     expect(await screen.findByRole('alert')).toHaveTextContent(/eingeteilt/);
     expect(screen.queryByText(/abgebucht/)).not.toBeInTheDocument();
+  });
+});
+
+/*
+  „ÜBRIGES ZURÜCKGEBEN“ (20.10.2026): der Satz sagte „über die Retoure“, und
+  die lag im „⋯“ einer anderen Seite. Jetzt führt ein Verweis dorthin, mit
+  der Baustelle des Einsatzes.
+*/
+describe('Rüstliste — Übriges zurückgeben', () => {
+  const heute = new Date('2026-10-01T06:12:00').getTime();
+
+  it('führt nach dem Einladen zur Rückgabe mit dieser Baustelle', () => {
+    render(
+      <MemoryRouter>
+        <RuestlisteAbhaken date="2026-10-01" projectNumber="PR-1/A" positionen={POS}
+          geladen={{ a: { von: 'Max', am: heute, gebucht: 10, material: 'k1' } }} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: /Übriges zurückgeben/ }))
+      .toHaveAttribute('href', '/material?retoure=1&baustelle=PR-1%2FA');
+  });
+
+  it('Gleichbleiben: ohne Eingeladenes, nur zum Ansehen oder ohne Adressleiste kein Verweis', () => {
+    const { unmount } = render(
+      <MemoryRouter>
+        <RuestlisteAbhaken date="2026-10-01" projectNumber="PR-1" positionen={POS} geladen={{}} />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('link', { name: /Übriges zurückgeben/ })).toBeNull();
+    unmount();
+    const zweite = render(
+      <MemoryRouter>
+        <RuestlisteAbhaken date="2026-10-01" projectNumber="PR-1" positionen={POS} abhakbar={false}
+          geladen={{ a: { von: 'Max', am: heute, gebucht: 10, material: 'k1' } }} />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('link', { name: /Übriges zurückgeben/ })).toBeNull();
+    zweite.unmount();
+    // Eine Einzelansicht ohne Router (wie die übrigen Prüfungen hier) bricht nicht.
+    render(<RuestlisteAbhaken date="2026-10-01" projectNumber="PR-1" positionen={POS}
+      geladen={{ a: { von: 'Max', am: heute, gebucht: 10, material: 'k1' } }} />);
+    expect(screen.queryByRole('link', { name: /Übriges zurückgeben/ })).toBeNull();
+  });
+
+  /*
+    Linkprüfung 23.10.2026: die Buchhaltung sieht Rüstlisten, darf aber
+    nicht auf „Material anfordern“ — ein Verweis dorthin wäre ein Weg ins
+    Leere. Dasselbe, wenn der Betrieb das Modul Material abgeschaltet hat.
+  */
+  it('zeigt den Verweis nur, wer „Material anfordern“ auch betreten darf', () => {
+    const geladen = { a: { von: 'Max', am: heute, gebucht: 10, material: 'k1' } };
+    rolle = 'Buchhaltung';
+    const erste = render(
+      <MemoryRouter>
+        <RuestlisteAbhaken date="2026-10-01" projectNumber="PR-1" positionen={POS} geladen={geladen} />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('link', { name: /Übriges zurückgeben/ })).toBeNull();
+    erste.unmount();
+    rolle = 'Verwaltung';
+    module = { material: false };
+    const zweite = render(
+      <MemoryRouter>
+        <RuestlisteAbhaken date="2026-10-01" projectNumber="PR-1" positionen={POS} geladen={geladen} />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('link', { name: /Übriges zurückgeben/ })).toBeNull();
+    zweite.unmount();
+    module = undefined;
+    render(
+      <MemoryRouter>
+        <RuestlisteAbhaken date="2026-10-01" projectNumber="PR-1" positionen={POS} geladen={geladen} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: /Übriges zurückgeben/ })).toBeInTheDocument();
   });
 });

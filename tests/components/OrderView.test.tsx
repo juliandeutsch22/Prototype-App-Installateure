@@ -149,12 +149,11 @@ async function baustelleFeld() {
 }
 
 /**
- * Die Retoure im Seitenfenster öffnen — seit dem Umbau (Linie „Lot“, Regel 8)
- * im „⋯“ des Seitenkopfs statt als eigener Reiter.
+ * Die Retoure im Seitenfenster öffnen — seit dem 20.10.2026 über die
+ * sichtbare Zeile „Material zurückgeben“ statt über das „⋯“ des Seitenkopfs.
  */
 async function retoureOeffnen() {
-  await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für Material' }));
-  await userEvent.click(screen.getByRole('menuitem', { name: 'Retoure erfassen …' }));
+  await userEvent.click(await screen.findByRole('button', { name: /^Material zurückgeben/ }));
   return screen.findByRole('dialog', { name: 'Material zurückgeben' });
 }
 
@@ -911,5 +910,36 @@ describe('Meine Anforderungen auf derselben Seite', () => {
     const meine = await screen.findByRole('region', { name: 'Meine Anforderungen' });
     expect(within(meine).getByText('Kupferrohr 15mm')).toBeInTheDocument();
     expect(rollen).not.toHaveBeenCalled();
+  });
+});
+
+/*
+  DIE RÜCKGABE STEHT SICHTBAR (20.10.2026, Auftrag „Retoure zu dezent“) —
+  statt im „⋯“ des Seitenkopfs, wo sie niemand fand.
+*/
+describe('Material anfordern — Rückgabe sichtbar', () => {
+  it('„Material zurückgeben“ steht als Zeile auf der Seite, das „⋯“ entfällt', async () => {
+    zeige();
+    expect(await screen.findByRole('button', { name: /^Material zurückgeben/ })).toBeInTheDocument();
+    expect(screen.getByText(/Übrig von der Baustelle\? Zurück ans Lager/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Weitere Aktionen für Material' })).toBeNull();
+  });
+
+  it('aus der Rüstliste (?retoure=1&baustelle=…) öffnet sie gleich, die Baustelle vorbelegt', async () => {
+    zeige('/material?retoure=1&baustelle=2026-042');
+    const fenster = await screen.findByRole('dialog', { name: 'Material zurückgeben' });
+    const feld = within(fenster).getByRole('combobox', { name: /Von welcher Baustelle/ });
+    await waitFor(() => expect(feld).toHaveValue('2026-042'));
+    await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'Kupfer');
+    await userEvent.click(await within(fenster).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await waitFor(() => expect(retoure).toHaveBeenCalledTimes(1));
+    expect(retoure.mock.calls[0][1]).toMatchObject({ projectNumber: '2026-042', condition: 'neu', userId: 'u1' });
+  });
+
+  it('Gleichbleiben: ohne Adresse bleibt das Fenster zu', async () => {
+    zeige();
+    await screen.findByRole('button', { name: /^Material zurückgeben/ });
+    expect(screen.queryByRole('dialog', { name: 'Material zurückgeben' })).toBeNull();
   });
 });
