@@ -39,7 +39,9 @@ import { downloadCsv } from '@/features/accounting/export';
 import { listEntriesForProjects, unverrechneteStunden, type OffeneStunden } from '@/lib/db/timeEntries';
 import { listWorkSheetsForProject, listRecentWorkSheets } from '@/lib/db/workSheets';
 import { katalogNachNamen } from '@/lib/db/materials';
-import { verrechneteScheine } from './materialPositionen';
+import { leistungszeitraum, verrechneteScheine } from './materialPositionen';
+import { alsPosition, materialOhneSchein, type Ausgabe, type MaterialVorschlag } from './ausgegebenesMaterial';
+import { ausgegebenesMaterial } from '@/lib/db/materialOrders';
 import {
   darfMahnen,
   naechsteStufe,
@@ -110,6 +112,7 @@ import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/S
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { euro } from '@/lib/betrag';
+import { fmtMenge } from '@/lib/belegLayout';
 import { ibanFehler } from '@shared/iban';
 import { stornoBelegTag } from './stornoBelegTag';
 import { empfaengerFehler, kundenartFehlt } from './empfaenger';
@@ -427,6 +430,14 @@ export default function InvoicesView() {
   */
   const [stichtag, setStichtag] = useState<string | null>(null);
   const [belegDaten, setBelegDaten] = useState<string[]>([]);
+  /*
+    AUSGEGEBENES MATERIAL OHNE SCHEIN (23.10.2026) — Vorschläge zur
+    Vorschau, nur bei Regie. `uebernommen`: welche schon als Position
+    dastehen. `ausgabenFehler`: die Abfrage kam nicht.
+  */
+  const [vorschlaege, setVorschlaege] = useState<MaterialVorschlag[]>([]);
+  const [uebernommen, setUebernommen] = useState<string[]>([]);
+  const [ausgabenFehler, setAusgabenFehler] = useState(false);
   /**
    * Bauleistung mit Übergang der Steuerschuld (§ 19 Abs 1a UStG).
    *
@@ -1166,6 +1177,12 @@ export default function InvoicesView() {
     );
   }
 
+  /** Einen Vorschlag aus dem ausgegebenen Material als Position übernehmen. */
+  function vorschlagUebernehmen(v: MaterialVorschlag) {
+    setPreview((p) => (p ? recalc(p, [...p.positions, alsPosition(v)], satz, rabatt) : p));
+    setUebernommen((u) => [...u, v.schluessel]);
+  }
+
   /** Eigene Zeile anlegen — leer oder als vorbereitete Pauschale. */
   function neuePos(label = '', qty = 1, unit = 'Stk') {
     setPreview((p) =>
@@ -1193,6 +1210,9 @@ export default function InvoicesView() {
     setNachAufmass(false);
     setStichtag(null);
     setBelegDaten([]);
+    setVorschlaege([]);
+    setUebernommen([]);
+    setAusgabenFehler(false);
     try {
       /*
         EINE ANZAHLUNG KOMMT NICHT AUS DEN ZEITEINTRÄGEN — es gibt noch keine.
@@ -1252,13 +1272,27 @@ export default function InvoicesView() {
         Abfrage nicht, entsteht keine Vorschau: eine, die doppelt verrechnen
         könnte, ist schlechter als keine.
       */
-      const [entries, scheine, derBaustelle] = await Promise.all([
+      const baustelle = projects.find((x) => x.projectNumber === projectNumber);
+      const nachAngebot =
+        baustelle?.billingMode === 'Pauschal' || baustelle?.billingMode === 'Einheitspreis';
+      const [entries, scheine, derBaustelle, ausgabenAlle] = await Promise.all([
         listEntriesForProjects(user.companyId, [projectNumber]),
         listWorkSheetsForProject(user.companyId, projectNumber).catch(() => {
           setNebenFehler('Die Handwerksscheine');
           return [];
         }),
         listInvoicesForProject(user.companyId, projectNumber).catch(() => null),
+        /*
+          Was das Lager ausgegeben hat — nur bei Regie; Pauschale und
+          Einheitspreis rechnen nach dem Angebot ab. Kommt es nicht, entsteht
+          die Rechnung trotzdem; eine Zeile sagt, was dabei gilt.
+        */
+        nachAngebot
+          ? Promise.resolve([] as Ausgabe[])
+          : ausgegebenesMaterial(projectNumber).catch(() => {
+            setAusgabenFehler(true);
+            return [] as Ausgabe[];
+          }),
       ]);
       /*
         PREISE NUR FÜR DAS MATERIAL AUF DEN SCHEINEN (19.10.2026) — aus dem
@@ -1268,7 +1302,10 @@ export default function InvoicesView() {
       */
       const katalog = await katalogNachNamen(
         user.companyId,
-        scheine.flatMap((s) => (s.material ?? []).map((z) => z.name ?? '')),
+        [
+          ...scheine.flatMap((s) => (s.material ?? []).map((z) => z.name ?? '')),
+          ...ausgabenAlle.map((a) => a.name),
+        ],
       ).catch(() => {
         setNebenFehler('Der Materialkatalog');
         return [];
@@ -1282,9 +1319,6 @@ export default function InvoicesView() {
         );
         return;
       }
-      const baustelle = projects.find((x) => x.projectNumber === projectNumber);
-      const nachAngebot =
-        baustelle?.billingMode === 'Pauschal' || baustelle?.billingMode === 'Einheitspreis';
       // Was auf einer bestehenden Rechnung steht, kommt nicht noch einmal.
       // Ein STORNIERTER Beleg zaehlt dabei nicht — sein Material ist wieder
       // offen.
@@ -1330,7 +1364,28 @@ export default function InvoicesView() {
         );
         return;
       }
-      if (assembled.positions.length === 0) {
+      /*
+        AUSGEGEBENES MATERIAL GEGEN DIE SCHEINE. Abgezogen wird, was auf den
+        Scheinen dieser Rechnung steht — und auf Entwürfen, die noch
+        unterschrieben werden: ihr Material kommt mit dem Schein. Die Tage
+        der Ausgaben gehören in den Leistungszeitraum, denn mit dem
+        Leistungsende dieser Rechnung gelten sie als abgerechnet
+        (`ausgegebenes_material`).
+      */
+      const ausgaben = bis ? ausgabenAlle.filter((a) => a.datum <= bis) : ausgabenAlle;
+      const vorschlag = materialOhneSchein(
+        ausgaben,
+        scheine.filter((s) =>
+          ((s.status === 'Unterschrieben' && !bereitsVerrechnet.has(s.id)) || s.status === 'Entwurf')
+          && (!bis || s.datum <= bis)),
+        katalog,
+      );
+      if (ausgaben.length > 0) {
+        assembled.leistung = leistungszeitraum([
+          assembled.leistung?.von, assembled.leistung?.bis, ...ausgaben.map((a) => a.datum),
+        ]);
+      }
+      if (assembled.positions.length === 0 && vorschlag.length === 0) {
         setPreview(null);
         setError(
           bis
@@ -1340,7 +1395,11 @@ export default function InvoicesView() {
         return;
       }
       await vorschauUebernehmen(assembled);
-      setBelegDaten(offeneBelegDaten(projectNumber, entries, scheine, bereitsVerrechnet));
+      setVorschlaege(vorschlag);
+      setBelegDaten([
+        ...offeneBelegDaten(projectNumber, entries, scheine, bereitsVerrechnet),
+        ...ausgabenAlle.map((a) => a.datum),
+      ]);
       if (bis) {
         setStichtag(bis);
         /*
@@ -2915,7 +2974,10 @@ export default function InvoicesView() {
             '„Rechnung anlegen“: dann zieht sie ihre Nummer, die Belege werden gesperrt, und ' +
             'beides ist nur noch über einen Storno rückgängig zu machen. Bei Regie ist „Leistung ' +
             'bis“ zugleich der Stichtag: wer ihn früher setzt, kann bis dahin neu zusammenstellen — ' +
-            'spätere Stunden und Scheine bleiben für die nächste Rechnung offen.'
+            'spätere Stunden und Scheine bleiben für die nächste Rechnung offen. Darunter steht, was ' +
+            'das Lager für die Baustelle ausgegeben hat und auf keinem Schein steht; „Übernehmen“ ' +
+            'setzt es zum Katalogpreis ein. Mit dem Leistungsende dieser Rechnung gilt das ' +
+            'Ausgegebene als abgerechnet, übernommen oder nicht.'
           }
         >
           {/*
@@ -2999,8 +3061,8 @@ export default function InvoicesView() {
               <Hinweiszeile stufe="warn">
                 <p>
                   {stichtagFolge.zuViel > 0
-                    ? `${stichtagFolge.zuViel === 1 ? 'Ein Beleg' : `${stichtagFolge.zuViel} Belege`} (Stunden oder Scheine) in dieser Vorschau ${stichtagFolge.zuViel === 1 ? 'liegt' : 'liegen'} nach dem ${datumAT(leistungBis)}.`
-                    : `Bis zum ${datumAT(leistungBis)} ${stichtagFolge.fehlt === 1 ? 'ist noch ein Beleg' : `sind noch ${stichtagFolge.fehlt} Belege`} (Stunden oder Scheine) offen, die diese Vorschau nicht enthält.`}{' '}
+                    ? `${stichtagFolge.zuViel === 1 ? 'Ein Beleg' : `${stichtagFolge.zuViel} Belege`} (Stunden, Scheine oder Material) in dieser Vorschau ${stichtagFolge.zuViel === 1 ? 'liegt' : 'liegen'} nach dem ${datumAT(leistungBis)}.`
+                    : `Bis zum ${datumAT(leistungBis)} ${stichtagFolge.fehlt === 1 ? 'ist noch ein Beleg' : `sind noch ${stichtagFolge.fehlt} Belege`} (Stunden, Scheine oder Material) offen, die diese Vorschau nicht enthält.`}{' '}
                   Neu zusammengestellt kommt genau das bis zu diesem Tag auf die Rechnung, Späteres
                   bleibt für die nächste offen. Eigene Änderungen an den Positionen gehen dabei
                   verloren.
@@ -3345,6 +3407,60 @@ export default function InvoicesView() {
               Anfahrt
             </Button>
           </div>
+
+          {/*
+            AUSGEGEBEN, NICHT AUF EINEM SCHEIN (23.10.2026). Was das Lager
+            für die Baustelle ausgegeben hat — abgeholt, eingeladen, minus
+            Retouren und minus dem, was die Scheine schon tragen. Nur ein
+            Vorschlag: übernommen wird auf Klick, zum Katalogpreis, und die
+            Zeile bleibt änderbar. Mit dem Leistungsende dieser Rechnung gilt
+            das Ausgegebene als abgerechnet — übernommen oder nicht; so kommt
+            nichts zweimal (siehe `ausgegebenes_material`).
+          */}
+          {ausgabenFehler && (
+            <div className="mt-4">
+              <Hinweiszeile stufe="warn">
+                <p>
+                  Was das Lager für diese Baustelle ausgegeben hat, konnte nicht geladen werden. Mit
+                  dem Leistungsende dieser Rechnung gilt es trotzdem als abgerechnet — bitte erst neu
+                  zusammenstellen.
+                </p>
+              </Hinweiszeile>
+            </div>
+          )}
+          {vorschlaege.length > 0 && (
+            <div className="mt-4 border-t border-line pt-4">
+              <div className="mb-2">
+                <span className="section-label">Ausgegeben, nicht auf einem Schein</span>
+              </div>
+              <List>
+                {vorschlaege.map((v) => {
+                  const schon = uebernommen.includes(v.schluessel);
+                  return (
+                    <ListRow
+                      key={v.schluessel}
+                      title={v.name}
+                      subtitle={[
+                        `ausgegeben ${fmtMenge(v.ausgegeben)} ${v.einheit}`,
+                        v.zurueck > 0 ? `zurück ${fmtMenge(v.zurueck)}` : '',
+                        v.aufScheinen > 0 ? `auf Scheinen ${fmtMenge(v.aufScheinen)}` : '',
+                        v.preis > 0 ? `${euro(v.preis)} je ${v.einheit}` : 'kein Preis im Katalog',
+                      ].filter(Boolean).join(' · ')}
+                      wert={`${fmtMenge(v.offen)} ${v.einheit}`}
+                    >
+                      {schon ? (
+                        <span className="text-sm text-ink-muted">übernommen</span>
+                      ) : (
+                        <Button variant="secondary" onClick={() => vorschlagUebernehmen(v)}>
+                          Übernehmen
+                        </Button>
+                      )}
+                    </ListRow>
+                  );
+                })}
+              </List>
+            </div>
+          )}
 
           {/*
             DER ABZUG DER VORRECHNUNGEN — § 11 Abs 12 UStG.

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { admin, BAUSTELLE, BETRIEB, BUERO, CHEFIN, MONTEUR } from './aufbau';
+import { admin, ARTIKEL, BAUSTELLE, BETRIEB, BUERO, CHEFIN, MONTEUR } from './aufbau';
 import { anmelden, keineFehlermeldung } from './helfer';
 
 /**
@@ -25,6 +25,14 @@ test.beforeEach(async () => {
   await admin.from('companies').update({ rechnungsarten: false }).eq('id', BETRIEB);
   await admin.from('invoices').delete().eq('company_id', BETRIEB);
   await admin.from('time_entries').delete().eq('company_id', BETRIEB);
+  /*
+    SEIT DEM 23.10.2026 SCHLÄGT DIE RECHNUNG AUSGEGEBENES MATERIAL VOR — auch
+    das, was andere Durchläufe auf dieser Baustelle angefordert oder
+    eingeladen haben. Ohne Aufräumen hinge der Leistungszeitraum hier am
+    Datum fremder Prüfungen.
+  */
+  await admin.from('material_orders').delete().eq('company_id', BETRIEB).eq('project_number', BAUSTELLE.nummer);
+  await admin.from('einsatz_material').delete().eq('company_id', BETRIEB).eq('project_number', BAUSTELLE.nummer);
 
   const { data: leute } = await admin
     .from('users').select('id').eq('email', MONTEUR.email).single();
@@ -314,7 +322,7 @@ test('Das Büro verrechnet bis zum Stichtag — spätere Zeit bleibt offen', asy
   const bis = page.locator('#leistung-bis');
   await expect(bis).toHaveValue('2026-09-15');
   await bis.fill('2026-09-05');
-  await expect(page.getByText(/Ein Beleg \(Stunden oder Scheine\) in dieser Vorschau liegt nach dem 05\.09\.2026/)).toBeVisible();
+  await expect(page.getByText(/Ein Beleg \(Stunden, Scheine oder Material\) in dieser Vorschau liegt nach dem 05\.09\.2026/)).toBeVisible();
   await page.getByRole('button', { name: 'Bis 05.09.2026 neu zusammenstellen' }).click();
   await expect(page.getByText(/in dieser Vorschau liegt nach/)).toHaveCount(0);
   await expect(bis).toHaveValue('2026-09-05');
@@ -372,5 +380,54 @@ test('Alte, nicht verrechnete Stunden führen von der Startseite zur Rechnung', 
   // Die Geldkennzahlen kommen aus demselben Block wie die Stunden — erst dann ist die Antwort da.
   await expect(page.getByRole('link', { name: /^Überfällig/ })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Stunden über 4 Wochen nicht verrechnet' })).toHaveCount(0);
+  await keineFehlermeldung(page);
+});
+
+/**
+ * Ausgegebenes Material ohne Schein (23.10.2026) — vom Lager bis auf die
+ * Rechnung, und danach nicht noch einmal.
+ */
+test('Ausgegebenes Material ohne Schein wird übernommen und kommt nicht zweimal', async ({ page }) => {
+  const { data: artikel } = await admin
+    .from('materials').select('id').eq('company_id', BETRIEB).eq('name', ARTIKEL.name).single();
+  await admin.from('materials').update({ verkaufspreis: 4.2 }).eq('id', artikel!.id);
+  const { data: leute } = await admin
+    .from('users').select('id').eq('email', MONTEUR.email).single();
+  const { error } = await admin.from('material_orders').insert([
+    { id: crypto.randomUUID(), company_id: BETRIEB, material_id: artikel!.id, material_name: ARTIKEL.name,
+      quantity: 10, status: 'Erledigt', transaction_type: 'order', user_id: leute!.id, user_name: MONTEUR.name,
+      project_number: BAUSTELLE.nummer },
+    { id: crypto.randomUUID(), company_id: BETRIEB, material_id: artikel!.id, material_name: ARTIKEL.name,
+      quantity: 3, status: 'Erledigt', transaction_type: 'return', condition: 'neu', user_id: leute!.id,
+      user_name: MONTEUR.name, project_number: BAUSTELLE.nummer },
+  ]);
+  if (error) throw new Error(error.message);
+
+  await anmelden(page, BUERO.email);
+  await page.getByRole('link', { name: 'Rechnungen' }).first().click();
+  await page.getByRole('button', { name: 'Neue Rechnung' }).click();
+  await page.locator('#invproj').selectOption(BAUSTELLE.nummer);
+  await page.getByRole('button', { name: 'Positionen zusammenstellen' }).click();
+
+  await expect(page.getByText('Ausgegeben, nicht auf einem Schein')).toBeVisible();
+  await expect(page.getByText(/ausgegeben 10 m · zurück 3 · € 4,20 je m/)).toBeVisible();
+  await page.getByRole('button', { name: 'Übernehmen' }).click();
+  await expect(page.getByText('übernommen', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /Rechnung erstellen/ }).click();
+
+  await expect(async () => {
+    const { data } = await admin
+      .from('invoice_lines').select('label, qty, unit, unit_price, material_id').eq('company_id', BETRIEB)
+      .eq('label', ARTIKEL.name);
+    expect(data ?? []).toEqual([
+      { label: ARTIKEL.name, qty: 7, unit: 'm', unit_price: 4.2, material_id: artikel!.id },
+    ]);
+  }).toPass({ timeout: 25_000 });
+  await expect(page.getByText(/^Rechnung .+ erstellt$/)).toBeVisible();
+
+  // Dieselbe Baustelle noch einmal: Stunden und Material sind abgerechnet.
+  await page.locator('#invproj').selectOption(BAUSTELLE.nummer);
+  await page.getByRole('button', { name: 'Positionen zusammenstellen' }).click();
+  await expect(page.getByText('Keine offenen Stunden und kein offenes Material für diese Baustelle.')).toBeVisible();
   await keineFehlermeldung(page);
 });

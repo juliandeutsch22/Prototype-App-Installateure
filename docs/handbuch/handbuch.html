@@ -687,10 +687,28 @@
     <div class="stempel">
       <span>Stand <b>22.10.2026</b></span>
       <span>Fassung <b>Lot v2 · bestätigt</b></span>
-      <span>Automatische Prüfungen <b>5.413 Modulprüfungen · 101 Browserwege · 7 Linkprüfungen</b></span>
+      <span>Automatische Prüfungen <b>5.424 Modulprüfungen · 102 Browserwege · 7 Linkprüfungen</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
+
+  <section id="material-ohne-schein">
+    <div class="abschnittskopf">
+      <h2>23. Oktober: Ausgegebenes Material ohne Schein</h2>
+      <p class="frage">Material kam nur über unterschriebene Scheine auf die Rechnung. Was das Lager für eine Baustelle ausgegeben hat und auf keinem Schein steht, fiel beim Verrechnen niemandem auf.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Vorschlag in der Rechnungsvorschau<span class="neu">neu</span></h3>
+        <p>Bei einer Regiebaustelle steht unter den Positionen <strong>„Ausgegeben, nicht auf einem Schein“</strong>: je Artikel, was abgeholt (erledigte Anforderungen) und eingeladen (Rüstlisten) wurde, abzüglich der Retouren von dieser Baustelle und abzüglich dessen, was die Scheine dieser Rechnung tragen — auch Entwürfe, deren Material mit dem Schein kommt. Verglichen wird am Artikelnamen.</p>
+        <p><strong>„Übernehmen“</strong> setzt die offene Menge zum Verkaufspreis aus dem Katalog als Position ein, mit Katalogbezug; die Zeile bleibt änderbar wie jede andere. Ohne gepflegten Preis steht 0,00 € da und will ausgefüllt werden. Übernommen wird nur auf Klick.</p>
+        <p><strong>Was danach als abgerechnet gilt:</strong> alles bis zum Leistungsende dieser Rechnung — übernommen oder bewusst nicht. So kommt nichts zweimal, auch nicht Material aus der Zeit vor dieser Funktion; Anzahlungen schließen nichts ab, ein Storno öffnet den Zeitraum wieder. Die Tage der Ausgaben gehören deshalb in den Leistungszeitraum, und der Stichtag „Leistung bis“ gilt auch für sie.</p>
+        <p>Auch eine Baustelle, auf der nur Material ausgegeben wurde, lässt sich so verrechnen. Kommt die Abfrage nicht, sagt es eine Zeile — dann erst neu zusammenstellen. Pauschale und Einheitspreis rechnen nach dem Angebot ab und zeigen keine Vorschläge.</p>
+        <p>Grenzen: Eine Anforderung zählt am Tag ihrer letzten Änderung (sie trägt kein Abholdatum). Ein Schein, der später Material aus einem schon abgerechneten Zeitraum nachträgt, bringt es mit seiner Rechnung ein zweites Mal — die Vorschau zeigt seine Zeile wie immer und lässt sie entfernen. Umgekehrt fehlt das Material eines Schein-Entwurfs, der nach der Rechnung verworfen wird.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+    </div>
+  </section>
 
   <section id="stunden-nicht-verrechnet">
     <div class="abschnittskopf">
@@ -2485,7 +2503,7 @@
     <div class="bereiche">
       <div class="bereich">
         <h3>Rechnungen</h3>
-        <p>Aus der Baustelle zusammengestellt: Stunden <em>und</em> Material aus den unterschriebenen Handwerksscheinen, Preise frei änderbar. Leistungszeitraum nach § 11 UStG, Rabatt, Nummernkreis ohne Lücken, <strong>PDF seit 23.09. als Geschäftsbrief</strong>: keine Farbflächen, Empfänger im Kuvertfenster, Bank, UID und Firmenbuch in der Fußzeile jeder Seite — dasselbe Layout für Leistungsnachweis, Mahnung und Angebot. Vor dem Anlegen steht, was die Scheine bestätigen — neben dem, was verrechnet wird. <strong>Seit 24.09. auch je Person, Tag und Satz:</strong> fehlen unterschriebene Stunden, steht jede Zeile da — „24.09. · Manfred Monteur · Facharbeiter: unterschrieben 08:00, verrechnet 00:00“ —, auch wenn die Summe stimmt. Fehlt der Leistungszeitraum oder steht er verdreht, sagt es die Maske: eine geschriebene Rechnung geht nur noch über einen Storno weg. <strong>Seit 23.10. ist „Leistung bis“ bei Regie der Stichtag:</strong> früher gesetzt, stellt die Vorschau auf Knopfdruck nur bis dahin zusammen; Späteres bleibt für die nächste Rechnung offen. <strong>Seit 24.09. sucht die Liste über alle Rechnungen</strong> — Nummer, Kunde, Baustelle —, nicht nur über die zuletzt geladenen fünfzig.</p>
+        <p>Aus der Baustelle zusammengestellt: Stunden <em>und</em> Material aus den unterschriebenen Handwerksscheinen, Preise frei änderbar; <strong>seit 23.10.</strong> dazu als Vorschlag, was das Lager ausgegeben hat und auf keinem Schein steht. Leistungszeitraum nach § 11 UStG, Rabatt, Nummernkreis ohne Lücken, <strong>PDF seit 23.09. als Geschäftsbrief</strong>: keine Farbflächen, Empfänger im Kuvertfenster, Bank, UID und Firmenbuch in der Fußzeile jeder Seite — dasselbe Layout für Leistungsnachweis, Mahnung und Angebot. Vor dem Anlegen steht, was die Scheine bestätigen — neben dem, was verrechnet wird. <strong>Seit 24.09. auch je Person, Tag und Satz:</strong> fehlen unterschriebene Stunden, steht jede Zeile da — „24.09. · Manfred Monteur · Facharbeiter: unterschrieben 08:00, verrechnet 00:00“ —, auch wenn die Summe stimmt. Fehlt der Leistungszeitraum oder steht er verdreht, sagt es die Maske: eine geschriebene Rechnung geht nur noch über einen Storno weg. <strong>Seit 23.10. ist „Leistung bis“ bei Regie der Stichtag:</strong> früher gesetzt, stellt die Vorschau auf Knopfdruck nur bis dahin zusammen; Späteres bleibt für die nächste Rechnung offen. <strong>Seit 24.09. sucht die Liste über alle Rechnungen</strong> — Nummer, Kunde, Baustelle —, nicht nur über die zuletzt geladenen fünfzig.</p>
         <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
       </div>
       <div class="bereich">
@@ -3290,7 +3308,7 @@
 
   <footer class="fuss">
     <span>Senklot · Betriebssoftware für Installationsbetriebe in Österreich</span>
-    <span>Automatische Prüfungen: 5.413 Modulprüfungen · 101 Browserwege · 7 Linkprüfungen</span>
+    <span>Automatische Prüfungen: 5.424 Modulprüfungen · 102 Browserwege · 7 Linkprüfungen</span>
     <span>Stand 22.10.2026</span>
   </footer>
 

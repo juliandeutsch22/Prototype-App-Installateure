@@ -101,3 +101,8 @@ export function listOwnOpenOrders(
 ): Promise<WithId<MaterialOrder>[]> {
   return pg.listOwnOpenOrders(companyId, uid);
 }
+
+/** Ausgegebenes, noch nicht abgerechnetes Material einer Baustelle — für die Rechnung. */
+export function ausgegebenesMaterial(projectNumber: string) {
+  return pg.ausgegebenesMaterial(projectNumber);
+}
