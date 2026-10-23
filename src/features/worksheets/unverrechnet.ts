@@ -84,3 +84,21 @@ export function unverrechneteScheine<S extends Pick<WorkSheet, 'status' | 'datum
 export function auffaellige<Z extends { tage: number }>(zeilen: Z[]): Z[] {
   return zeilen.filter((z) => z.tage >= AUFFAELLIG_AB_TAGEN);
 }
+
+/**
+ * Regiebaustellen mit gebuchten, noch nicht verrechneten Stunden (23.10.2026).
+ *
+ * DIE ZWEITE HÄLFTE VON „NICHT VERRECHNET“. Eine Baustelle über Wochen hat
+ * nicht für jede Buchung einen Schein; die Rechnung nimmt diese Stunden
+ * längst, aufgefallen sind sie aber nirgends. Gemessen wird am ÄLTESTEN
+ * offenen Tag — dieselbe Frist wie bei den Scheinen (`AUFFAELLIG_AB_TAGEN`).
+ * Älteste zuerst.
+ */
+export function unverrechneteStundenZeilen<S extends { aeltester: string }>(
+  baustellen: S[],
+  heute: string,
+): Array<{ stunden: S; tage: number }> {
+  return baustellen
+    .map((stunden) => ({ stunden, tage: tageZwischen(stunden.aeltester, heute) }))
+    .sort((a, b) => b.tage - a.tage);
+}

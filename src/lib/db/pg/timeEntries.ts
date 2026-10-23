@@ -282,6 +282,45 @@ export async function stundenDerBaustellen(projectNumbers: string[], seite = SEI
   }));
 }
 
+/** Unverrechnete Stunden einer Regiebaustelle — Summe und Zeitraum. */
+export interface OffeneStunden {
+  /** Die Nummer, wie sie an der Baustelle steht. */
+  projectNumber: string;
+  kunde: string;
+  minuten: number;
+  /** Der älteste Tag mit unverrechneter Arbeitszeit. */
+  aeltester: string;
+  juengster: string;
+}
+
+/**
+ * Die noch nicht verrechneten Stunden aller Regiebaustellen (23.10.2026).
+ *
+ * Gerechnet in der Datenbank (`unverrechnete_stunden`): eine Zeile je
+ * Baustelle statt aller offenen Buchungen im Browser. Wer keine Rechnungen
+ * schreibt, bekommt einen Fehler, keine leere Liste.
+ */
+export async function unverrechneteStunden(seite = SEITE): Promise<OffeneStunden[]> {
+  type Zeile = { projekt: string; kunde: string | null; minuten: number; aeltester: string; juengster: string };
+  const alle: Zeile[] = [];
+  for (let von = 0; ; von += seite) {
+    const { data, error } = await derClient()
+      .rpc('unverrechnete_stunden')
+      .range(von, von + seite - 1);
+    if (error) throw new Error(error.message);
+    const teil = (data ?? []) as Zeile[];
+    alle.push(...teil);
+    if (teil.length < seite) break;
+  }
+  return alle.map((z) => ({
+    projectNumber: z.projekt,
+    kunde: z.kunde ?? '',
+    minuten: Number(z.minuten) || 0,
+    aeltester: z.aeltester,
+    juengster: z.juengster,
+  }));
+}
+
 export type NewTimeEntry = Omit<TimeEntry, 'id' | 'companyId' | 'createdAt'>;
 
 export async function eintraegeAmTag(

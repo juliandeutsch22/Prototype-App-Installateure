@@ -338,3 +338,39 @@ test('Das Büro verrechnet bis zum Stichtag — spätere Zeit bleibt offen', asy
   expect((zeiten ?? [])[1].id).toBe(spaeter);
   await keineFehlermeldung(page);
 });
+
+/**
+ * Alte, nicht verrechnete Stunden (23.10.2026) — von der Startseite bis zur
+ * Rechnung.
+ *
+ * Die Buchung vom 01.09. hat keinen Schein. Bis hierher fiel sie nirgends
+ * auf, solange niemand von sich aus eine Rechnung schrieb. Jetzt steht die
+ * Baustelle auf der Startseite der Buchhaltung, die Zeile öffnet „Neue
+ * Rechnung“ mit ihr, und nach dem Verrechnen ist sie aus der Liste.
+ */
+test('Alte, nicht verrechnete Stunden führen von der Startseite zur Rechnung', async ({ page }) => {
+  await anmelden(page, BUERO.email);
+
+  const abschnitt = page.getByRole('region', { name: 'Stunden über 4 Wochen nicht verrechnet' });
+  await expect(abschnitt).toBeVisible();
+  await abschnitt.getByRole('link', { name: new RegExp(BAUSTELLE.kunde) }).click();
+
+  await expect(page).toHaveURL(/\/invoices$/);
+  await expect(page.locator('#invproj')).toHaveValue(BAUSTELLE.nummer);
+  await page.getByRole('button', { name: 'Positionen zusammenstellen' }).click();
+  await page.getByRole('button', { name: /Rechnung erstellen/ }).click();
+
+  await expect(async () => {
+    const { data } = await admin
+      .from('time_entries').select('is_billed').eq('company_id', BETRIEB);
+    expect((data ?? []).map((z) => z.is_billed)).toEqual([true]);
+  }).toPass({ timeout: 25_000 });
+
+  // Die Karte holt die Stunden nach dem Anlegen neu — die Baustelle ist weg.
+  await expect(page.getByText(/^Nicht verrechnete Leistung/)).toHaveCount(0);
+  await page.goto('/');
+  // Die Geldkennzahlen kommen aus demselben Block wie die Stunden — erst dann ist die Antwort da.
+  await expect(page.getByRole('link', { name: /^Überfällig/ })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Stunden über 4 Wochen nicht verrechnet' })).toHaveCount(0);
+  await keineFehlermeldung(page);
+});

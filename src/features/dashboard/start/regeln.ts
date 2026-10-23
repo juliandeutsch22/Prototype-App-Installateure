@@ -387,6 +387,28 @@ export function scheineNichtVerrechnet(auffaellig: UnverrechneteZeile[]): Abschn
   return abschnitt('scheine', 'Scheine über 4 Wochen nicht verrechnet', zeilen, ZIEL.scheine('nicht-verrechnet-alt'));
 }
 
+/** Eine Regiebaustelle mit unverrechneten Stunden (23.10.2026). */
+export interface OffeneStundenZeile {
+  stunden: { projectNumber: string; kunde: string; minuten: number; aeltester: string };
+  tage: number;
+}
+
+/**
+ * Regiebaustellen, deren älteste unverrechnete Stunde über vier Wochen alt
+ * ist. Die Zeile führt direkt zu „Neue Rechnung“ mit dieser Baustelle — der
+ * Weg zur Rechnung ist die Baustelle, wie bei den Scheinen.
+ */
+export function stundenNichtVerrechnet(auffaellig: OffeneStundenZeile[]): Abschnitt | null {
+  const zeilen: Zeile[] = auffaellig.map(({ stunden, tage }) => ({
+    key: `stunden-${stunden.projectNumber}`,
+    titel: stunden.kunde || `Baustelle ${stunden.projectNumber}`,
+    detail: `${fmtStd(stunden.minuten)} Std seit ${datumAT(stunden.aeltester)} · ${stunden.projectNumber}`,
+    status: { text: tageWort(tage), ton: 'warn' },
+    to: ZIEL.rechnungFuer(stunden.projectNumber),
+  }));
+  return abschnitt('stunden', 'Stunden über 4 Wochen nicht verrechnet', zeilen, ZIEL.rechnungen);
+}
+
 export interface TeamLuecke {
   uid: string;
   name: string;

@@ -604,3 +604,66 @@ describe('Bankgarantie endet', () => {
     });
   });
 });
+
+/*
+  UNVERRECHNETE STUNDEN (23.10.2026). Eine Regiebaustelle über Wochen hat
+  nicht für jede Buchung einen Schein — auf der Startseite fiel sie bisher
+  nur über Scheine auf. Jetzt auch über ihre ältesten offenen Stunden.
+*/
+describe('Unverrechnete Stunden auf der Startseite', () => {
+  const stunden = (nr: string, tage: number, kunde = 'Familie Huber') => ({
+    stunden: { projectNumber: nr, kunde, minuten: 2550, aeltester: '2026-08-01' }, tage,
+  });
+  const buch = (teil: Partial<Umfeld> = {}): Umfeld => ({
+    rolle: 'buchhaltung', heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false, ...teil,
+  });
+  const leitung = (teil: Partial<Umfeld> = {}): Umfeld => ({
+    rolle: 'leitung', heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false, ...teil,
+  });
+  const alleZeilen = (s: ReturnType<typeof startseite>) =>
+    s.abschnitte.flatMap((a) => [...a.zeilen, ...(a.weiter && 'aufklappen' in a.weiter ? a.weiter.aufklappen : [])]);
+
+  it('Buchhaltung: eigener Abschnitt, jede Zeile führt zu „Neue Rechnung“ mit der Baustelle', () => {
+    const s = startseite({ offeneStunden: [stunden('2026-042', 60), stunden('2026-050', 5)] }, buch());
+    const a = s.abschnitte.find((x) => x.key === 'stunden')!;
+    expect(a.titel).toBe('Stunden über 4 Wochen nicht verrechnet');
+    expect(a.zeilen).toHaveLength(1);
+    expect(a.zeilen[0]).toMatchObject({
+      titel: 'Familie Huber',
+      detail: '42,5 Std seit 01.08.2026 · 2026-042',
+      status: { text: '60 Tage', ton: 'warn' },
+      to: '/invoices?neu=2026-042',
+    });
+  });
+
+  it('Gegenprobe: ohne Recht auf Rechnungen und ohne Altes kein Abschnitt', () => {
+    expect(startseite({ offeneStunden: [stunden('2026-042', 60)] }, buch({ darf: (z) => !z.startsWith('/invoices') }))
+      .abschnitte.some((x) => x.key === 'stunden')).toBe(false);
+    expect(startseite({ offeneStunden: [stunden('2026-042', 27)] }, buch())
+      .abschnitte.some((x) => x.key === 'stunden')).toBe(false);
+  });
+
+  it('Leitung: ein Thema unter „Diese Woche“ — bei einer Baustelle direkt zu ihrer Rechnung', () => {
+    const eine = alleZeilen(startseite({ offeneStunden: [stunden('2026-042', 40)] }, leitung()));
+    expect(eine.find((z) => z.key === 'stunden')).toMatchObject({
+      titel: '1 Baustelle mit Stunden nicht verrechnet',
+      detail: 'Familie Huber · über 4 Wochen',
+      to: '/invoices?neu=2026-042',
+    });
+    const zwei = alleZeilen(startseite({ offeneStunden: [stunden('2026-042', 40), stunden('2026-050', 30)] }, leitung()));
+    expect(zwei.find((z) => z.key === 'stunden')).toMatchObject({
+      titel: '2 Baustellen mit Stunden nicht verrechnet', to: ZIEL.rechnungen,
+    });
+  });
+
+  it('Gleichbleiben: ohne offene Stunden bleibt die Startseite, wie sie war', () => {
+    const vorher = startseite({}, leitung());
+    const nachher = startseite({ offeneStunden: [] }, leitung());
+    expect(nachher).toEqual(vorher);
+  });
+
+  it('das Ziel gehört zu einer Seite, die Buchhaltung und Spitze betreten dürfen', () => {
+    expect(grundpfad(ZIEL.rechnungFuer('PR-1/A'))).toBe('/invoices');
+    expect(ZIEL.rechnungFuer('PR-1/A')).toBe('/invoices?neu=PR-1%2FA');
+  });
+});

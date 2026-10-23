@@ -101,6 +101,13 @@ export function listEntriesForProjects(
 
 export type { BaustellenStunden } from './pg/timeEntries';
 
+export type { OffeneStunden } from './pg/timeEntries';
+
+/** Die unverrechneten Stunden der Regiebaustellen — für „Nicht verrechnet“. */
+export function unverrechneteStunden(): Promise<pg.OffeneStunden[]> {
+  return pg.unverrechneteStunden();
+}
+
 /** Die Stunden der Baustellen als Summen je Person und Art — für Budget und Akte. */
 export function stundenDerBaustellen(projectNumbers: string[]): Promise<pg.BaustellenStunden[]> {
   return pg.stundenDerBaustellen(projectNumbers);

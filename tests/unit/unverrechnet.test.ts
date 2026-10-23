@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   unverrechneteScheine,
+  unverrechneteStundenZeilen,
   auffaellige,
   AUFFAELLIG_AB_TAGEN,
 } from '@/features/worksheets/unverrechnet';
@@ -141,5 +142,16 @@ describe('Was auffällig lange offen ist', () => {
   it('meldet nichts, wenn alles frisch ist', () => {
     const offen = unverrechneteScheine([schein('s1', '2026-09-06')], [], HEUTE);
     expect(auffaellige(offen)).toEqual([]);
+  });
+});
+
+describe('unverrechnete Stunden der Regiebaustellen (23.10.2026)', () => {
+  it('misst am ältesten offenen Tag und stellt die älteste Baustelle nach vorn', () => {
+    const z = unverrechneteStundenZeilen([
+      { projectNumber: 'B', aeltester: '2026-09-20' },
+      { projectNumber: 'A', aeltester: '2026-08-01' },
+    ], '2026-09-30');
+    expect(z.map((x) => [x.stunden.projectNumber, x.tage])).toEqual([['A', 60], ['B', 10]]);
+    expect(auffaellige(z).map((x) => x.stunden.projectNumber)).toEqual(['A']);
   });
 });

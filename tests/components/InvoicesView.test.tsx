@@ -278,8 +278,12 @@ vi.mock('@/lib/db/konten', () => ({ buchungskonten: vi.fn(async () => konten) })
 /** Der zentral gepflegte Basiszinssatz (seit 05.10.2026); ab Werk leer wie vor ihm. */
 let zentraleSaetze: Array<{ ab: string; satz: number }> = [];
 vi.mock('@/lib/db/basiszins', () => ({ listBasiszinssaetze: vi.fn(async () => zentraleSaetze) }));
+/** Unverrechnete Stunden der Regiebaustellen (seit 23.10.2026). */
+let offeneStd: { projectNumber: string; kunde: string; minuten: number; aeltester: string; juengster: string }[] = [];
+const stundenAbfrage = vi.fn(async () => offeneStd);
 vi.mock('@/lib/db/timeEntries', () => ({
   listEntriesForProjects: vi.fn(async () => zeiten),
+  unverrechneteStunden: () => stundenAbfrage(),
 }));
 /*
   Die Scheine des ganzen Betriebs — für „nicht verrechnete Leistung". Eigene
@@ -436,6 +440,8 @@ beforeEach(() => {
   aufRechnung = [];
   scheineAufRechnung.mockClear();
   zeiten = [ZEIT];
+  offeneStd = [];
+  stundenAbfrage.mockClear();
   scheine = [];
   katalog = [];
   kunden = [];
@@ -1911,6 +1917,119 @@ describe('Nicht verrechnete Leistung', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Baustelle wählen' }));
     const auswahl = await screen.findByRole<HTMLSelectElement>('combobox', { name: /Baustelle/ });
     expect(auswahl.value).toBe('2026-042');
+  });
+});
+
+/**
+ * Unverrechnete Stunden der Regiebaustellen (23.10.2026).
+ *
+ * Eine Baustelle über Wochen hat nicht für jede Buchung einen Schein. Die
+ * Rechnung nahm diese Stunden schon immer — aufgefallen sind sie nirgends,
+ * wenn niemand eine Rechnung schrieb. Jetzt stehen sie neben den Scheinen.
+ */
+describe('Nicht verrechnete Leistung — gebuchte Stunden', () => {
+  const ALT = { projectNumber: '2026-042', kunde: 'Familie Huber', minuten: 2550, aeltester: '2026-07-01', juengster: '2026-08-20' };
+
+  it('meldet eine Regiebaustelle mit alten, nicht verrechneten Stunden', async () => {
+    // „Heute“ steht in dieser Datei auf dem 01.09.2026.
+    offeneStd = [ALT];
+    zeige();
+    expect(await screen.findByText(/^Nicht verrechnete Leistung \(1\)/)).toBeInTheDocument();
+    expect(screen.getByText('Familie Huber')).toBeInTheDocument();
+    expect(screen.getByText(/42:30 Std gebucht\s+seit 01\.07\.2026 · Regie/)).toBeInTheDocument();
+    expect(screen.getByText(/62 Tage/)).toBeInTheDocument();
+  });
+
+  it('schweigt bei Stunden, deren ältester Tag jünger als vier Wochen ist', async () => {
+    offeneStd = [{ ...ALT, aeltester: '2026-08-10' }];
+    zeige();
+    await waitFor(() => expect(stundenAbfrage).toHaveBeenCalled());
+    expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
+  });
+
+  it('stellt Scheine und Stunden in eine Liste, älteste zuerst', async () => {
+    alleScheine = [{
+      id: 's9', companyId: 'perl', projectNumber: '2026-050', customerName: 'Baumeister Gruber',
+      datum: '2026-06-01', status: 'Unterschrieben', abrechnung: 'Regie', zeiten: [], material: [],
+      erstelltVonUid: 'm1', erstelltVonName: 'Max',
+    } as unknown as WorkSheet & { id: string }];
+    offeneStd = [ALT];
+    zeige();
+    expect(await screen.findByText(/^Nicht verrechnete Leistung \(2\)/)).toBeInTheDocument();
+    const namen = screen.getAllByText(/^(Baumeister Gruber|Familie Huber)$/).map((e) => e.textContent);
+    expect(namen).toEqual(['Baumeister Gruber', 'Familie Huber']);
+  });
+
+  it('wählt die Baustelle der Stunden aus', async () => {
+    offeneStd = [ALT];
+    zeige();
+    await screen.findByText(/^Nicht verrechnete Leistung/);
+    await userEvent.click(screen.getByRole('button', { name: 'Baustelle wählen' }));
+    const auswahl = await screen.findByRole<HTMLSelectElement>('combobox', { name: /Baustelle/ });
+    expect(auswahl.value).toBe('2026-042');
+  });
+
+  it('sagt es, wenn die Stunden nicht kommen — die Scheine bleiben', async () => {
+    stundenAbfrage.mockRejectedValueOnce(new Error('kein Netz'));
+    alleScheine = [{
+      id: 's9', companyId: 'perl', projectNumber: '2026-050', customerName: 'Baumeister Gruber',
+      datum: '2026-06-01', status: 'Unterschrieben', abrechnung: 'Regie', zeiten: [], material: [],
+      erstelltVonUid: 'm1', erstelltVonName: 'Max',
+    } as unknown as WorkSheet & { id: string }];
+    zeige();
+    expect(await screen.findByText(/unverrechneten Stunden konnten nicht geladen werden/)).toBeInTheDocument();
+    expect(await screen.findByText(/^Nicht verrechnete Leistung \(1\)/)).toBeInTheDocument();
+  });
+
+  it('holt die Stunden nach dem Anlegen einer Rechnung neu', async () => {
+    const bestaetigen = await bisZurVorschau();
+    const vorher = stundenAbfrage.mock.calls.length;
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    await waitFor(() => expect(stundenAbfrage.mock.calls.length).toBeGreaterThan(vorher));
+  });
+
+  it('öffnet über die Adresse „Neue Rechnung“ mit der Baustelle', async () => {
+    zeige('/invoices?neu=2026-042');
+    const auswahl = await screen.findByRole<HTMLSelectElement>('combobox', { name: /Baustelle/ });
+    await waitFor(() => expect(auswahl.value).toBe('2026-042'));
+    expect(screen.getByRole('button', { name: 'Positionen zusammenstellen' })).toBeEnabled();
+  });
+
+  /*
+    DIE KARTEN ERSCHEINEN ALS GANZES (Analyse 10.10.2026): solange die
+    Stunden fehlen, schiebt sich „Nicht verrechnete Leistung“ nicht
+    nachträglich über die Liste.
+  */
+  it('zeigt Liste und Karten erst, wenn auch die Stunden da sind', async () => {
+    const h = zurueckhalten<typeof offeneStd>();
+    stundenAbfrage.mockImplementationOnce(h.antwort);
+    rechnungen = [{
+      id: 'r1', invoiceNumber: 'RE-2026-0001', projectNumber: '2026-042', customerName: 'Familie Huber',
+      invoiceDate: '2026-08-01', dueDate: '2026-08-15', totalBrutto: 120, paymentStatus: 'Offen',
+    } as unknown as Invoice & { id: string }];
+    zeige();
+    await waitFor(() => expect(h.gefragt).toBe(true));
+    await waitFor(() => expect(listRecentWorkSheets).toHaveBeenCalled());
+    expect(screen.queryByRole('button', { name: /^RE-2026-0001 · / })).toBeNull();
+    await act(async () => h.liefern([ALT]));
+    expect(await screen.findByRole('button', { name: /^RE-2026-0001 · / })).toBeInTheDocument();
+    expect(screen.getByText(/^Nicht verrechnete Leistung \(1\)/)).toBeInTheDocument();
+  });
+
+  it('fragt für die Projektleitung (nur lesen) gar nicht erst', async () => {
+    (authWert.user as { role: string }).role = 'Projektleiter';
+    try {
+      offeneStd = [ALT];
+      zeige('/invoices?neu=2026-042');
+      await waitFor(() => expect(listRecentWorkSheets).not.toHaveBeenCalled());
+      await screen.findAllByRole('heading', { name: /Rechnungen/ });
+      expect(stundenAbfrage).not.toHaveBeenCalled();
+      expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Positionen zusammenstellen' })).toBeNull();
+    } finally {
+      (authWert.user as { role: string }).role = 'Buchhaltung';
+    }
   });
 });
 
