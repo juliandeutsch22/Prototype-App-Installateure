@@ -2013,6 +2013,43 @@ describe('Ausgegebenes Material ohne Schein', () => {
 });
 
 /**
+ * Hinweise zum Material der Scheine (24.10.2026): ein Schein im schon
+ * abgerechneten Zeitraum, und Entwürfe, deren Material abgezogen ist.
+ */
+describe('Hinweise zum Material der Scheine', () => {
+  it('sagt es, wenn ein Schein im abgerechneten Zeitraum liegt und sein Material dort schon steht', async () => {
+    scheine = [SCHEIN];
+    katalog = KATALOG;
+    derBaustelle = [{
+      id: 'r5', invoiceNumber: 'RE-2026-0005', projectNumber: '2026-042', paymentStatus: 'Offen', art: 'einzel',
+      invoiceDate: '2026-09-01', leistungBis: '2026-08-31',
+      positions: [{ label: 'Eckventil 1/2 Zoll', qty: 2, unit: 'Stk', unitPrice: 8.5, netto: 17 }],
+    } as unknown as Invoice & { id: string }];
+    await bisZurVorschau();
+    expect(screen.getByText(/Der Schein vom 22\.08\.2026 liegt im Zeitraum, den RE-2026-0005 schon abgerechnet hat, und RE-2026-0005 trägt bereits Eckventil 1\/2 Zoll/)).toBeInTheDocument();
+  });
+
+  it('sagt es, wenn ein Entwurf Material trägt, das vom Ausgegebenen abgezogen ist', async () => {
+    scheine = [SCHEIN, { ...SCHEIN, id: 's9', datum: '2026-08-23', status: 'Entwurf', material: [{ name: 'Eckventil 1/2 Zoll', menge: 3, einheit: 'Stk' }] }];
+    katalog = KATALOG;
+    ausgabenListe = [{ art: 'anforderung', belegId: 'a1', datum: '2026-08-21', materialId: 'k1', name: 'Eckventil 1/2 Zoll', einheit: 'Stk', menge: 6 }];
+    await bisZurVorschau();
+    expect(screen.getByText(/Der Schein vom 23\.08\.2026 ist noch Entwurf\. Sein Material \(Eckventil 1\/2 Zoll\) ist vom Ausgegebenen/)).toBeInTheDocument();
+    // 6 ausgegeben − 2 auf dem Schein − 3 auf dem Entwurf = 1.
+    expect(screen.getByText(/ausgegeben 6 Stk · auf Scheinen 5/)).toBeInTheDocument();
+  });
+
+  it('Gleichbleiben: ohne früheren Zeitraum und ohne Entwürfe steht keiner der beiden Hinweise da', async () => {
+    scheine = [SCHEIN];
+    katalog = KATALOG;
+    ausgabenListe = [{ art: 'anforderung', belegId: 'a1', datum: '2026-08-21', materialId: 'k1', name: 'Eckventil 1/2 Zoll', einheit: 'Stk', menge: 6 }];
+    await bisZurVorschau();
+    expect(screen.queryByText(/schon abgerechnet hat/)).toBeNull();
+    expect(screen.queryByText(/ist noch Entwurf|sind noch Entwurf/)).toBeNull();
+  });
+});
+
+/**
  * Unverrechnete Stunden der Regiebaustellen (23.10.2026).
  *
  * Eine Baustelle über Wochen hat nicht für jede Buchung einen Schein. Die
