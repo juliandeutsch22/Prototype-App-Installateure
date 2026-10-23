@@ -60,7 +60,10 @@ import {
 import { geltenderSatz, pruefeReverseCharge } from './reverseCharge';
 import { istUnternehmerKunde, uidFehler, uidNormalisieren } from '@/lib/uid';
 import { pruefeEmpfaengerUid } from './empfaengerUid';
-import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
+import {
+  assembleInvoice, offeneBelegDaten, recalc, stichtagAbweichung, INVOICE_DEFAULTS,
+  type AssembledInvoice,
+} from './assemble';
 import { abziehbar, alsVorrechnung, leistungAusVorrechnungen, mitAbzug, nachSteuer, pflichtAbzug } from './vorrechnungen';
 import { scheinAbgleich } from './scheinAbgleich';
 import { einheitspreisVorschau, pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from './pauschale';
@@ -407,6 +410,13 @@ export default function InvoicesView() {
    */
   const [leistungVon, setLeistungVon] = useState('');
   const [leistungBis, setLeistungBis] = useState('');
+  /*
+    Mit welchem Stichtag die Vorschau entstand (`null` = ohne) und die Tage
+    aller offenen Belege der Baustelle — für den Hinweis, wenn „Leistung bis“
+    nicht mehr zu dem passt, was die Vorschau enthält.
+  */
+  const [stichtag, setStichtag] = useState<string | null>(null);
+  const [belegDaten, setBelegDaten] = useState<string[]>([]);
   /**
    * Bauleistung mit Übergang der Steuerschuld (§ 19 Abs 1a UStG).
    *
@@ -1120,13 +1130,19 @@ export default function InvoicesView() {
     );
   }
 
-  /** Positionen zusammenstellen und zur Kontrolle anzeigen — noch nichts schreiben. */
-  async function buildPreview() {
+  /**
+   * Positionen zusammenstellen und zur Kontrolle anzeigen — noch nichts schreiben.
+   *
+   * `bis`: nur Belege bis zu diesem Tag (Stichtag, nur bei Regie).
+   */
+  async function buildPreview(bis?: string) {
     if (!user || !projectNumber) return;
     setBusy(true);
     setError(null);
     setPauschalAus(null);
     setNachAufmass(false);
+    setStichtag(null);
+    setBelegDaten([]);
     try {
       /*
         EINE ANZAHLUNG KOMMT NICHT AUS DEN ZEITEINTRÄGEN — es gibt noch keine.
@@ -1216,22 +1232,30 @@ export default function InvoicesView() {
         );
         return;
       }
+      const baustelle = projects.find((x) => x.projectNumber === projectNumber);
+      const nachAngebot =
+        baustelle?.billingMode === 'Pauschal' || baustelle?.billingMode === 'Einheitspreis';
+      // Was auf einer bestehenden Rechnung steht, kommt nicht noch einmal.
+      // Ein STORNIERTER Beleg zaehlt dabei nicht — sein Material ist wieder
+      // offen.
+      const bereitsVerrechnet = verrechneteScheine(derBaustelle);
+      /*
+        DER STICHTAG GILT NUR BEI REGIE. Pauschale und Einheitspreis rechnen
+        nach dem Angebot ab; ihre Schlussrechnung verknüpft alle offenen
+        Belege, damit danach nichts als „nicht verrechnet“ übrig bleibt.
+      */
       const assembled = assembleInvoice(projectNumber, entries, rates, {
         scheine,
         katalog,
-        // Was auf einer bestehenden Rechnung steht, kommt nicht noch einmal.
-        // Ein STORNIERTER Beleg zaehlt dabei nicht — sein Material ist wieder
-        // offen.
-        bereitsVerrechnet: verrechneteScheine(derBaustelle),
-      }, nachtzeitVon(company));
+        bereitsVerrechnet,
+      }, nachtzeitVon(company), nachAngebot ? undefined : bis);
       /*
         PAUSCHALBAUSTELLE: das Angebot ist die Rechnung, nicht die Stunden
         (Launch-Check, K3 — siehe `pauschale.ts`). Auch ohne eine einzige
         gebuchte Stunde: eine Pauschale lässt sich verrechnen, bevor der
         Monteur fertig gebucht hat.
       */
-      const baustelle = projects.find((x) => x.projectNumber === projectNumber);
-      if (baustelle?.billingMode === 'Pauschal' || baustelle?.billingMode === 'Einheitspreis') {
+      if (nachAngebot) {
         const einheitspreis = baustelle.billingMode === 'Einheitspreis';
         const angebote = baustelle.id
           ? await listQuotesForProject(user.companyId, baustelle.id)
@@ -1258,10 +1282,23 @@ export default function InvoicesView() {
       }
       if (assembled.positions.length === 0) {
         setPreview(null);
-        setError('Keine offenen Stunden und kein offenes Material für diese Baustelle.');
+        setError(
+          bis
+            ? `Bis zum ${datumAT(bis)} gibt es keine offenen Stunden und kein offenes Material für diese Baustelle.`
+            : 'Keine offenen Stunden und kein offenes Material für diese Baustelle.',
+        );
         return;
       }
       await vorschauUebernehmen(assembled);
+      setBelegDaten(offeneBelegDaten(projectNumber, entries, scheine, bereitsVerrechnet));
+      if (bis) {
+        setStichtag(bis);
+        /*
+          Der gewählte Tag bleibt „Leistung bis“, auch wenn der letzte Beleg
+          davor liegt: der Betrieb hat diesen Zeitraum abgerechnet.
+        */
+        setLeistungBis(bis);
+      }
     } catch {
       setError('Die Positionen konnten nicht geladen werden.');
     } finally {
@@ -1995,15 +2032,28 @@ export default function InvoicesView() {
         ? scheinAbgleich(
             projectNumber,
             preview.entries,
-            scheineAllerBaustellen,
+            // Mit Stichtag fehlt ein späterer Schein nicht — er kommt auf die nächste.
+            stichtag
+              ? scheineAllerBaustellen.filter((s) => s.datum <= stichtag)
+              : scheineAllerBaustellen,
             new Set(offeneLeistung.map((o) => o.schein.id)),
           )
         : {
             verrechnetMin: 0, bestaetigtMin: 0, scheine: 0, mehrMin: 0, auffaellig: false,
             wenigerMin: 0, zuWenig: false, fehlend: [], ohneSchein: [],
           },
-    [preview, projectNumber, scheineAllerBaustellen, offeneLeistung],
+    [preview, projectNumber, scheineAllerBaustellen, offeneLeistung, stichtag],
   );
+
+  /*
+    Passt „Leistung bis“ noch zu dem, was die Vorschau enthält? Nur bei
+    Regie gefüllt (`belegDaten`); beim verdrehten Zeitraum meldet das schon
+    der Hinweis darüber.
+  */
+  const stichtagFolge =
+    preview && leistungBis && !(leistungVon && leistungBis < leistungVon)
+      ? stichtagAbweichung(belegDaten, stichtag, leistungBis)
+      : { zuViel: 0, fehlt: 0 };
 
   if (!user) return null;
 
@@ -2750,7 +2800,7 @@ export default function InvoicesView() {
               Formulars für sich. */}
           <div>
             <Button
-              onClick={buildPreview}
+              onClick={() => buildPreview()}
               loading={busy && !preview}
               disabled={!projectNumber}
               className="shrink-0 whitespace-nowrap"
@@ -2772,7 +2822,9 @@ export default function InvoicesView() {
             'ergänzen — auch das vorbereitete Material — denn eine Rechnung ist selten genau ' +
             'das, was Zeiterfassung und Scheine hergeben. Verbindlich wird alles erst mit ' +
             '„Rechnung anlegen“: dann zieht sie ihre Nummer, die Belege werden gesperrt, und ' +
-            'beides ist nur noch über einen Storno rückgängig zu machen.'
+            'beides ist nur noch über einen Storno rückgängig zu machen. Bei Regie ist „Leistung ' +
+            'bis“ zugleich der Stichtag: wer ihn früher setzt, kann bis dahin neu zusammenstellen — ' +
+            'spätere Stunden und Scheine bleiben für die nächste Rechnung offen.'
           }
         >
           {/*
@@ -2840,6 +2892,33 @@ export default function InvoicesView() {
                   „Leistung bis“ liegt vor „Leistung von“ — so stünde der Zeitraum verdreht auf der
                   Rechnung. Zurückzunehmen wäre das nur noch mit einem Storno.
                 </p>
+              </Hinweiszeile>
+            </div>
+          )}
+          {/*
+            „LEISTUNG BIS“ IST DER STICHTAG (23.10.2026). Eine Baustelle über
+            Wochen hat nicht für jede Buchung einen Schein; verrechnet wird in
+            Etappen. Wer den Tag ändert, bekommt hier das passende neue
+            Zusammenstellen angeboten — nicht stillschweigend, weil es eigene
+            Änderungen an den Positionen ersetzt. Ohne Klick bleibt es bei der
+            Meldung, wie beim verdrehten Zeitraum darüber.
+          */}
+          {(stichtagFolge.zuViel > 0 || stichtagFolge.fehlt > 0) && (
+            <div className="mb-3">
+              <Hinweiszeile stufe="warn">
+                <p>
+                  {stichtagFolge.zuViel > 0
+                    ? `${stichtagFolge.zuViel === 1 ? 'Ein Beleg' : `${stichtagFolge.zuViel} Belege`} (Stunden oder Scheine) in dieser Vorschau ${stichtagFolge.zuViel === 1 ? 'liegt' : 'liegen'} nach dem ${datumAT(leistungBis)}.`
+                    : `Bis zum ${datumAT(leistungBis)} ${stichtagFolge.fehlt === 1 ? 'ist noch ein Beleg' : `sind noch ${stichtagFolge.fehlt} Belege`} (Stunden oder Scheine) offen, die diese Vorschau nicht enthält.`}{' '}
+                  Neu zusammengestellt kommt genau das bis zu diesem Tag auf die Rechnung, Späteres
+                  bleibt für die nächste offen. Eigene Änderungen an den Positionen gehen dabei
+                  verloren.
+                </p>
+                <div className="mt-2">
+                  <Button variant="secondary" loading={busy} onClick={() => buildPreview(leistungBis)}>
+                    Bis {datumAT(leistungBis)} neu zusammenstellen
+                  </Button>
+                </div>
               </Hinweiszeile>
             </div>
           )}
