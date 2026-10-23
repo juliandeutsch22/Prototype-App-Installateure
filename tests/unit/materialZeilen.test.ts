@@ -32,6 +32,16 @@ describe('Materialzeilen zum Speichern', () => {
     expect('einheit' in erg).toBe(false);
   });
 
+  it('behält den Katalogbezug — er gehört zur Zeile, nicht zur Ansicht (24.10.2026)', () => {
+    expect(ohneKennung([
+      { id: 'm1', name: 'Eckventil', menge: 2, einheit: 'Stk', materialId: 'k1' },
+      { id: 'm2', name: 'Frei', menge: 1 },
+    ])).toEqual([
+      { name: 'Eckventil', menge: 2, einheit: 'Stk', materialId: 'k1' },
+      { name: 'Frei', menge: 1 },
+    ]);
+  });
+
   it('behält die Reihenfolge', () => {
     // Der Monteur liest seine Liste am Bildschirm vor; steht sie auf dem PDF
     // anders, sucht der Kunde beim Gegenlesen.

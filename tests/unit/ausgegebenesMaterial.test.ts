@@ -51,4 +51,49 @@ describe('materialOhneSchein', () => {
     expect(alsPosition(v[0])).toEqual({ label: 'Kupferrohr 15', qty: 1.5, unit: 'm', unitPrice: 12.5, netto: 18.75, materialId: 'k1' });
     expect(alsPosition(v[1])).not.toHaveProperty('materialId');
   });
+
+  describe('Abgleich über die Katalogkennung (24.10.2026)', () => {
+    it('zieht eine Scheinzeile über die Kennung ab, auch wenn der Name abweicht', () => {
+      // Der Katalog wurde zwischen Anforderung und Schein umbenannt.
+      expect(materialOhneSchein(
+        [aus('Kupferrohr 15 mm', 6, { materialId: 'k1' })],
+        [{ material: [{ name: 'Kupferrohr 15', menge: 6, einheit: 'm', materialId: 'k1' }] }],
+        KATALOG,
+      )).toEqual([]);
+    });
+
+    it('fasst Ausgaben desselben Artikels unter verschiedenen Namen zusammen', () => {
+      const v = materialOhneSchein(
+        [aus('Kupferrohr 15 mm', 6, { materialId: 'k1' }), aus('Kupferrohr 15', 4, { materialId: 'k1', art: 'ruestliste' })],
+        [{ material: [{ name: 'Kupferrohr 15', menge: 3, materialId: 'k1' }] }],
+        KATALOG,
+      );
+      expect(v).toHaveLength(1);
+      expect(v[0]).toMatchObject({ materialId: 'k1', ausgegeben: 10, aufScheinen: 3, offen: 7 });
+    });
+
+    it('die Kennung schlägt den Namen: gleicher Name, anderer Artikel zieht nichts ab', () => {
+      const v = materialOhneSchein(
+        [aus('Kupferrohr 15', 5, { materialId: 'k1' }), aus('Kupferrohr 18', 2, { materialId: 'k9' })],
+        [{ material: [{ name: 'Kupferrohr 15', menge: 2, materialId: 'k9' }] }],
+        KATALOG,
+      );
+      expect(v.map((x) => [x.name, x.offen])).toEqual([['Kupferrohr 15', 5]]);
+    });
+
+    it('bleibt gleich: ohne Kennung auf einer Seite gilt der Name wie bisher', () => {
+      // Alte Scheinzeile ohne Kennung gegen Ausgabe mit Kennung — und umgekehrt.
+      expect(materialOhneSchein(
+        [aus('Kupferrohr 15', 4, { materialId: 'k1' }), aus('Pressfitting', 2, { einheit: 'Stk' })],
+        [{ material: [{ name: 'kupferrohr 15', menge: 4 }, { name: 'Pressfitting', menge: 2, materialId: 'k2' }] }],
+        KATALOG,
+      )).toEqual([]);
+      // Eine Kennung, die unter den Ausgaben nicht vorkommt, fällt auf den Namen zurück.
+      expect(materialOhneSchein(
+        [aus('Pressfitting', 3, { einheit: 'Stk' })],
+        [{ material: [{ name: 'Pressfitting', menge: 1, materialId: 'k2' }] }],
+        KATALOG,
+      )).toMatchObject([{ name: 'Pressfitting', offen: 2 }]);
+    });
+  });
 });

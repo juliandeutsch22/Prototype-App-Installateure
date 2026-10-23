@@ -21,11 +21,14 @@ import { cent, positionNetto, type InvoicePosition } from './totals';
  * Schein ist widerrufen, ein verworfener aufgegeben. Nur der unterschriebene
  * bindet den Kunden.
  *
- * DER PREIS KOMMT AUS DEM KATALOG, über den Namen. Eine Kennung führt der
- * Schein nicht mit: seine Materialzeilen sind Name, Menge, Einheit — mehr
- * unterschreibt der Kunde nicht. Wer die Zeile aus dem Katalog gesucht hat,
- * trägt dessen Namen exakt; wer eine freie Zeile getippt hat, findet keinen
+ * DER PREIS KOMMT AUS DEM KATALOG, über den Namen. Der Kunde unterschreibt
+ * Name, Menge, Einheit. Wer die Zeile aus dem Katalog gesucht hat, trägt
+ * dessen Namen exakt; wer eine freie Zeile getippt hat, findet keinen
  * Preis. Dann steht die Position mit 0,00 € da und will ausgefüllt werden.
+ * (Die Katalogkennung, die eine gewählte Zeile seit 24.10.2026 mitführt,
+ * dient nur dem Abgleich mit dem ausgegebenen Material — Zeilen von davor
+ * haben keine, und der Preis soll für alte und neue Scheine gleich zustande
+ * kommen.)
  *
  * Das ist Absicht und keine Notlösung: eine erfundene Zahl auf einer Rechnung
  * wäre schlimmer als eine sichtbare Lücke.

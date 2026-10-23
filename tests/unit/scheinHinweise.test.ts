@@ -71,3 +71,31 @@ describe('offeneEntwuerfe', () => {
     )).toEqual([]);
   });
 });
+
+describe('Abgleich über die Katalogkennung (24.10.2026)', () => {
+  const mitKennung = (id: string, datum: string, name: string, materialId: string, status = 'Unterschrieben') => ({
+    id, datum, status: status as 'Unterschrieben' | 'Entwurf', material: [{ name, menge: 1, materialId }],
+  });
+
+  it('nachgetragener Schein: dieselbe Kennung auf der Rechnung, anderer Name', () => {
+    const r = rechnung('RE-1', { positions: [{ label: 'Kupferrohr 15 mm', qty: 3, unit: 'm', unitPrice: 5, netto: 15, materialId: 'k1' }] });
+    expect(nachgetrageneScheine([mitKennung('s1', '2026-09-10', 'Kupferrohr 15', 'k1')], [r]))
+      .toEqual([{ scheinId: 's1', datum: '2026-09-10', rechnung: 'RE-1', artikel: ['Kupferrohr 15'] }]);
+  });
+
+  it('offener Entwurf: dieselbe Kennung unter den Ausgaben, anderer Name', () => {
+    expect(offeneEntwuerfe(
+      [mitKennung('e1', '2026-09-05', 'Kupferrohr 15', 'k1', 'Entwurf')],
+      [{ name: 'Kupferrohr 15 mm', menge: 4, materialId: 'k1' }],
+    )).toEqual([{ scheinId: 'e1', datum: '2026-09-05', artikel: ['Kupferrohr 15'] }]);
+  });
+
+  it('bleibt gleich: ohne passende Kennung zählt der Name wie bisher', () => {
+    expect(nachgetrageneScheine([mitKennung('s1', '2026-09-10', 'Kupferrohr 15', 'k9')], [rechnung('RE-1', {})]))
+      .toHaveLength(1);
+    expect(offeneEntwuerfe(
+      [mitKennung('e1', '2026-09-05', 'Dichtung', 'k9', 'Entwurf')],
+      [{ name: 'Kupferrohr 15', menge: 4, materialId: 'k1' }],
+    )).toEqual([]);
+  });
+});

@@ -12,6 +12,9 @@ import { normName } from './materialPositionen';
  * ergänzt, kann genauso falsch liegen — und eine still gekürzte Rechnung
  * fällt niemandem auf. Gezeigt wird deshalb, was zusammengehört, zum
  * Zeitpunkt der Entscheidung.
+ *
+ * Verglichen wird wie in `materialOhneSchein`: über die Katalogkennung, wo
+ * beide Seiten eine tragen, sonst über den Namen.
  */
 
 export interface NachgetragenerSchein {
@@ -43,7 +46,10 @@ export function nachgetrageneScheine(
       const ende = r.leistungBis || r.invoiceDate;
       if (!ende || s.datum > ende) continue;
       const aufRechnung = new Set((r.positions ?? []).map((p) => normName(p.label)));
-      const artikel = [...new Set(namen.filter((z) => aufRechnung.has(normName(z.name))).map((z) => z.name.trim()))];
+      const kennungen = new Set((r.positions ?? []).map((p) => p.materialId).filter(Boolean));
+      const artikel = [...new Set(namen
+        .filter((z) => (z.materialId && kennungen.has(z.materialId)) || aufRechnung.has(normName(z.name)))
+        .map((z) => z.name.trim()))];
       if (artikel.length === 0) continue;
       out.push({ scheinId: s.id, datum: s.datum, rechnung: r.invoiceNumber, artikel });
       break;
@@ -67,15 +73,17 @@ export interface OffenerEntwurf {
  */
 export function offeneEntwuerfe(
   scheine: Array<Pick<WorkSheet, 'status' | 'datum' | 'material'> & { id: string }>,
-  ausgaben: Array<Pick<Ausgabe, 'name' | 'menge'>>,
+  ausgaben: Array<Pick<Ausgabe, 'name' | 'menge'> & { materialId?: string | null }>,
   bis?: string,
 ): OffenerEntwurf[] {
   const ausgegeben = new Set(ausgaben.filter((a) => a.menge > 0).map((a) => normName(a.name)));
+  const kennungen = new Set(ausgaben.filter((a) => a.menge > 0 && a.materialId).map((a) => a.materialId));
   const out: OffenerEntwurf[] = [];
   for (const s of scheine) {
     if (s.status !== 'Entwurf' || (bis && s.datum > bis)) continue;
     const artikel = [...new Set((s.material ?? [])
-      .filter((z) => z.menge > 0 && ausgegeben.has(normName(z.name)))
+      .filter((z) => z.menge > 0
+        && ((z.materialId && kennungen.has(z.materialId)) || ausgegeben.has(normName(z.name))))
       .map((z) => z.name.trim()))];
     if (artikel.length > 0) out.push({ scheinId: s.id, datum: s.datum, artikel });
   }

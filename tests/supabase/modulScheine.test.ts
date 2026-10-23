@@ -478,3 +478,46 @@ describe('Suche nach Kundenname und Notiz', () => {
     expect(await scheine.searchWorkSheets(BETRIEB, '   ')).toEqual([]);
   });
 });
+
+describe('Katalogbezug am Material (24.10.2026)', () => {
+  afterEach(() => clientEinreichen(anton.client));
+  const ROHR = '0b3c6c1e-6a0f-4b8e-9d55-4c1a2f6e7a10';
+
+  it('eine aus dem Katalog gewählte Zeile behält ihre Kennung, eine freie hat keine', async () => {
+    await leeren();
+    const id = await scheine.createWorkSheet(BETRIEB, entwurf({
+      material: [
+        { name: 'Rohr 22mm', menge: 2.5, einheit: 'm', materialId: ROHR },
+        { name: 'Dichtung', menge: 4 },
+      ],
+    }));
+    expect((await scheine.getWorkSheet(id))!.material).toEqual([
+      { name: 'Rohr 22mm', menge: 2.5, einheit: 'm', materialId: ROHR },
+      { name: 'Dichtung', menge: 4 },
+    ]);
+  });
+
+  it('was keine Kennung ist, fällt weg — der Schein speichert trotzdem', async () => {
+    await leeren();
+    const id = await scheine.createWorkSheet(BETRIEB, entwurf({
+      material: [{ name: 'Rohr 22mm', menge: 1, materialId: 'kein-katalogartikel' }],
+    }));
+    expect((await scheine.getWorkSheet(id))!.material).toEqual([{ name: 'Rohr 22mm', menge: 1 }]);
+  });
+
+  it('bleibt gleich: die Prüfsumme hängt nicht an der Kennung', async () => {
+    // Derselbe Inhalt mit und ohne Kennung ergibt dieselbe Prüfsumme —
+    // bestehende Prüfsummen bleiben damit nachrechenbar.
+    await leeren();
+    const mit = await scheine.createWorkSheet(BETRIEB, entwurf({
+      material: [{ name: 'Rohr 22mm', menge: 2.5, einheit: 'm', materialId: ROHR }, { name: 'Dichtung', menge: 4 }],
+    }));
+    const ohne = await scheine.createWorkSheet(BETRIEB, entwurf());
+    await scheine.signWorkSheet(mit, strich('Anton'), strich('Huber'));
+    await scheine.signWorkSheet(ohne, strich('Anton'), strich('Huber'));
+    const { data } = await admin.from('work_sheets').select('id, inhalt_hash').in('id', [mit, ohne]);
+    const hash = new Map((data ?? []).map((z) => [z.id, z.inhalt_hash]));
+    expect(hash.get(mit)).toMatch(/^[0-9a-f]{64}$/);
+    expect(hash.get(mit)).toBe(hash.get(ohne));
+  });
+});

@@ -680,6 +680,12 @@ export interface WorkSheetMaterial {
   name: string;
   menge: number;
   einheit?: string;
+  /**
+   * Der Katalogartikel, aus dem die Zeile gewählt wurde (seit 24.10.2026);
+   * eine freie Zeile hat keinen. Nur ein Verweis für den Abgleich mit dem
+   * ausgegebenen Material — nicht auf dem PDF und nicht in der Prüfsumme.
+   */
+  materialId?: string;
 }
 
 /**

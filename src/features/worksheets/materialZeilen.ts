@@ -29,12 +29,15 @@ export function neueKennung(): string {
  * Was gespeichert wird.
  *
  * Die Kennung fällt weg, und `einheit` wird nur gesetzt, wenn es sie gibt:
- * eine leere Einheit stünde sonst als „ Stück"-Lücke auf dem PDF.
+ * eine leere Einheit stünde sonst als „ Stück"-Lücke auf dem PDF. Der
+ * Katalogbezug (`materialId`) bleibt — er ist keine Ansichtskennung, sondern
+ * gehört zur Zeile.
  */
 export function ohneKennung(zeilen: MaterialZeile[]): WorkSheetMaterial[] {
   return zeilen.map((z) => {
     const eintrag: WorkSheetMaterial = { name: z.name, menge: z.menge };
     if (z.einheit) eintrag.einheit = z.einheit;
+    if (z.materialId) eintrag.materialId = z.materialId;
     return eintrag;
   });
 }
