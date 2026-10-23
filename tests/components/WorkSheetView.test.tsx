@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, onTestFinished } from 'vitest';
 import { forwardRef, useEffect, useImperativeHandle } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -1070,6 +1070,17 @@ describe('Zeit beim Kunden eintragen', () => {
     Kunde gleich unterschreibt. Deshalb wird nachgefragt statt gesperrt.
   */
   it('rechnet eine Nachtschicht richtig und fragt bei langer Spanne nach', async () => {
+    /*
+      Ein fester Tag: der Schein steht auf heute, und in der Nacht der
+      Zeitumstellung hat 11:00–08:00 eine Stunde mehr (`calcWorkMin`, B6).
+      Am 24.10.2026 wäre die Prüfung sonst rot gewesen, ohne dass sich etwas
+      geändert hatte.
+    */
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-14T08:00:00+02:00'));
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/Zeit beim Kunden eintragen/);

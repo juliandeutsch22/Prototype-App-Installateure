@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -83,6 +83,19 @@ function zeile() {
 
 beforeEach(() => {
   eintraegeAmTag.mockClear();
+  /*
+    EIN FESTER TAG. Die Maske bucht auf heute, und `calcWorkMin` rechnet die
+    Zeitumstellung ein: in der Nacht auf den letzten Oktobersonntag hat
+    22:00–06:00 neun Stunden. Am 24.10.2026 lief diese Datei deshalb rot,
+    ohne dass sich etwas geändert hatte. Ein Mittwoch ohne Umstellung in der
+    Folgenacht hält die Prüfung bei dem, was sie prüft: der Maske.
+  */
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-10-14T08:00:00+02:00'));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('Die gerechnete Arbeitszeit in der Maske', () => {
@@ -121,6 +134,16 @@ describe('Die gerechnete Arbeitszeit in der Maske', () => {
     expect(zeile().textContent).toMatch(/08:00 Std/);
     expect(zeile().textContent).toMatch(/über Mitternacht/);
     expect(zeile().textContent).not.toMatch(/prüfen/);
+  });
+
+  it('rechnet in der Nacht der Zeitumstellung die gesprungene Stunde mit', () => {
+    // Samstag, 24.10.2026: in der Folgenacht springt die Uhr von 03:00 auf 02:00.
+    vi.setSystemTime(new Date('2026-10-24T08:00:00+02:00'));
+    zeichne();
+    setze('Von', '22:00');
+    setze('Bis', '06:00');
+    setze('Pause', '0');
+    expect(zeile().textContent).toMatch(/09:00 Std/);
   });
 
   it('meldet eine Pause, die den ganzen Zeitraum auffrisst', () => {
