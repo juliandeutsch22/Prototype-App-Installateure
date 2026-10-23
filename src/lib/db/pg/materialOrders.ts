@@ -8,6 +8,7 @@
  * `supabase/migrations/…_lager.sql`.
  */
 import type { MaterialOrder } from '@/types';
+import type { Ausgabe } from '@/features/invoices/ausgegebenesMaterial';
 import { abfragen, abonnieren, anlegenMitKennung, loeschen, derClient, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
 import { oderUeberSpalten } from './suche';
@@ -159,4 +160,29 @@ export function listOwnOpenOrders(companyId: string, uid: string) {
       { art: 'in', feld: 'status', werte: OFFEN },
     ],
   });
+}
+
+/**
+ * Was das Lager für eine Baustelle ausgegeben hat und noch nicht abgerechnet
+ * ist (23.10.2026): abgeholte Anforderungen, eingeladene Rüstlisten,
+ * Retouren negativ. Nur für wer Rechnungen schreibt; gerechnet in der
+ * Datenbank (`ausgegebenes_material`), weil Anforderungen und Rüstlisten
+ * sonst nicht für die Buchhaltung lesbar sind.
+ */
+export async function ausgegebenesMaterial(projectNumber: string): Promise<Ausgabe[]> {
+  type Zeile = {
+    art: Ausgabe['art']; beleg_id: string; datum: string; material_id: string | null;
+    name: string; einheit: string | null; menge: number;
+  };
+  const { data, error } = await derClient().rpc('ausgegebenes_material', { p_baustelle: projectNumber });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Zeile[]).map((z) => ({
+    art: z.art,
+    belegId: z.beleg_id,
+    datum: z.datum,
+    materialId: z.material_id,
+    name: z.name,
+    einheit: z.einheit,
+    menge: Number(z.menge) || 0,
+  }));
 }

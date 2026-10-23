@@ -305,6 +305,12 @@ const katalogNachNamen = vi.fn(async (_c: string, namen: readonly string[]) => {
   const gesucht = new Set(namen.map((n) => n.trim().toLowerCase().replace(/\s+/g, ' ')));
   return katalog.filter((m) => gesucht.has(m.name.trim().toLowerCase().replace(/\s+/g, ' ')));
 });
+/** Was das Lager für die Baustelle ausgegeben hat (seit 23.10.2026). */
+let ausgabenListe: import('@/features/invoices/ausgegebenesMaterial').Ausgabe[] = [];
+const ausgabenAbfrage = vi.fn<(nr: string) => Promise<typeof ausgabenListe>>(async () => ausgabenListe);
+vi.mock('@/lib/db/materialOrders', () => ({
+  ausgegebenesMaterial: (nr: string) => ausgabenAbfrage(nr),
+}));
 vi.mock('@/lib/db/materials', () => ({
   katalogNachNamen: (...a: [string, readonly string[]]) => katalogNachNamen(...a),
 }));
@@ -442,6 +448,8 @@ beforeEach(() => {
   zeiten = [ZEIT];
   offeneStd = [];
   stundenAbfrage.mockClear();
+  ausgabenListe = [];
+  ausgabenAbfrage.mockClear();
   scheine = [];
   katalog = [];
   kunden = [];
@@ -844,7 +852,7 @@ describe('Leistung bis als Stichtag', () => {
   it('bietet bei früherem „Leistung bis“ an, nur bis dahin zu verrechnen — Späteres bleibt offen', async () => {
     const bis = await vorschauMitSpaeterem();
     fireEvent.change(bis, { target: { value: '2026-08-31' } });
-    expect(await screen.findByText(/2 Belege \(Stunden oder Scheine\) in dieser Vorschau liegen nach dem 31\.08\.2026/)).toBeInTheDocument();
+    expect(await screen.findByText(/2 Belege \(Stunden, Scheine oder Material\) in dieser Vorschau liegen nach dem 31\.08\.2026/)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Bis 31.08.2026 neu zusammenstellen' }));
     await waitFor(() => expect(screen.queryByText(/in dieser Vorschau liegen nach/)).toBeNull());
@@ -870,7 +878,7 @@ describe('Leistung bis als Stichtag', () => {
     await waitFor(() => expect(screen.getByLabelText('Leistung bis')).toHaveValue('2026-08-31'));
 
     fireEvent.change(screen.getByLabelText('Leistung bis'), { target: { value: '2026-09-10' } });
-    expect(await screen.findByText(/Bis zum 10\.09\.2026 ist noch ein Beleg \(Stunden oder Scheine\) offen/)).toBeInTheDocument();
+    expect(await screen.findByText(/Bis zum 10\.09\.2026 ist noch ein Beleg \(Stunden, Scheine oder Material\) offen/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Bis 10.09.2026 neu zusammenstellen' }));
     await waitFor(() => expect(screen.queryByText(/noch ein Beleg/)).toBeNull());
 
@@ -882,7 +890,7 @@ describe('Leistung bis als Stichtag', () => {
 
   it('meldet nichts, solange „Leistung bis“ zum Inhalt passt, und nimmt wie bisher alles Offene', async () => {
     await vorschauMitSpaeterem();
-    expect(screen.queryByText(/Stunden oder Scheine/)).toBeNull();
+    expect(screen.queryByText(/Stunden, Scheine oder Material/)).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
     await waitFor(() => expect(lege).toHaveBeenCalled());
     expect(lege.mock.calls[0][0].linkedEntries).toEqual(['z1', 'z2']);
@@ -892,14 +900,14 @@ describe('Leistung bis als Stichtag', () => {
   it('meldet auch nichts, wenn „Leistung bis“ nach dem letzten Beleg liegt', async () => {
     const bis = await vorschauMitSpaeterem();
     fireEvent.change(bis, { target: { value: '2026-09-30' } });
-    expect(screen.queryByText(/Stunden oder Scheine/)).toBeNull();
+    expect(screen.queryByText(/Stunden, Scheine oder Material/)).toBeNull();
   });
 
   it('bleibt bei Pauschale ohne Stichtag: kein Hinweis, die Belege gehen alle mit', async () => {
     PROJEKT.billingMode = 'Pauschal';
     const bis = await vorschauMitSpaeterem();
     fireEvent.change(bis, { target: { value: '2026-08-31' } });
-    expect(screen.queryByText(/Stunden oder Scheine/)).toBeNull();
+    expect(screen.queryByText(/Stunden, Scheine oder Material/)).toBeNull();
     expect(screen.queryByRole('button', { name: /neu zusammenstellen/ })).toBeNull();
   });
 });
@@ -1917,6 +1925,90 @@ describe('Nicht verrechnete Leistung', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Baustelle wählen' }));
     const auswahl = await screen.findByRole<HTMLSelectElement>('combobox', { name: /Baustelle/ });
     expect(auswahl.value).toBe('2026-042');
+  });
+});
+
+/**
+ * Ausgegebenes Material ohne Schein (23.10.2026).
+ *
+ * Material kam nur über Scheine auf die Rechnung. Was das Lager für die
+ * Baustelle ausgegeben hat und auf keinem Schein steht, schlägt die Vorschau
+ * jetzt vor — übernommen wird nur auf Klick.
+ */
+describe('Ausgegebenes Material ohne Schein', () => {
+  const ausgabe = (menge: number, teil: Partial<import('@/features/invoices/ausgegebenesMaterial').Ausgabe> = {}) => ({
+    art: 'anforderung' as const, belegId: `a${menge}`, datum: '2026-08-21', materialId: 'k1',
+    name: 'Eckventil 1/2 Zoll', einheit: 'Stk', menge, ...teil,
+  });
+
+  it('schlägt Ausgegebenes vor, abzüglich der Scheine, und übernimmt es zum Katalogpreis', async () => {
+    scheine = [SCHEIN];
+    katalog = KATALOG;
+    ausgabenListe = [ausgabe(5), ausgabe(4, { art: 'ruestliste', belegId: 'r1' }), ausgabe(-1, { art: 'retoure', belegId: 'x' })];
+    await bisZurVorschau();
+    expect(ausgabenAbfrage).toHaveBeenCalledWith('2026-042');
+    expect(screen.getByText('Ausgegeben, nicht auf einem Schein')).toBeInTheDocument();
+    // 9 ausgegeben − 1 zurück − 2 auf dem Schein = 6.
+    expect(screen.getByText(/ausgegeben 9 Stk · zurück 1 · auf Scheinen 2 · € 8,50 je Stk/)).toBeInTheDocument();
+    expect(screen.getByText('6 Stk')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Übernehmen' }));
+    expect(screen.getByText('übernommen')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Übernehmen' })).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const pos = (lege.mock.calls[0][0].positions as Array<{ label: string; qty: number; unitPrice: number; materialId?: string }>)
+      .filter((p) => p.label === 'Eckventil 1/2 Zoll');
+    // Die Zeile vom Schein und die übernommene — getrennt, wie sie entstanden sind.
+    expect(pos.map((p) => [p.qty, p.unitPrice, p.materialId ?? null])).toEqual([[2, 8.5, null], [6, 8.5, 'k1']]);
+  });
+
+  it('nimmt die Tage der Ausgaben in den Leistungszeitraum', async () => {
+    ausgabenListe = [ausgabe(1, { datum: '2026-08-25' })];
+    await bisZurVorschau();
+    expect(screen.getByLabelText('Leistung von')).toHaveValue('2026-08-20');
+    expect(screen.getByLabelText('Leistung bis')).toHaveValue('2026-08-25');
+  });
+
+  it('stellt auch ohne Stunden und Scheine eine Vorschau, wenn nur Material ausgegeben wurde', async () => {
+    zeiten = [];
+    katalog = KATALOG;
+    ausgabenListe = [ausgabe(3)];
+    await bisZurVorschau();
+    expect(screen.getByText(/Ohne Positionen gibt es keine Rechnung/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Übernehmen' }));
+    expect(screen.queryByText(/Ohne Positionen gibt es keine Rechnung/)).toBeNull();
+  });
+
+  it('der Stichtag lässt spätere Ausgaben für die nächste Rechnung', async () => {
+    ausgabenListe = [ausgabe(2, { datum: '2026-09-12' })];
+    await bisZurVorschau();
+    const bis = screen.getByLabelText('Leistung bis');
+    expect(bis).toHaveValue('2026-09-12');
+    fireEvent.change(bis, { target: { value: '2026-08-31' } });
+    await userEvent.click(await screen.findByRole('button', { name: 'Bis 31.08.2026 neu zusammenstellen' }));
+    await waitFor(() => expect(screen.queryByText('Ausgegeben, nicht auf einem Schein')).toBeNull());
+    expect(screen.getByLabelText('Leistung bis')).toHaveValue('2026-08-31');
+  });
+
+  it('sagt es, wenn die Ausgaben nicht kommen — die Rechnung entsteht trotzdem', async () => {
+    ausgabenAbfrage.mockRejectedValueOnce(new Error('kein Netz'));
+    await bisZurVorschau();
+    expect(screen.getByText(/ausgegeben hat, konnte nicht geladen werden/)).toBeInTheDocument();
+  });
+
+  it('Gleichbleiben: bei Pauschale wird gar nicht gefragt, und ohne Ausgaben steht nichts da', async () => {
+    await bisZurVorschau();
+    expect(screen.queryByText('Ausgegeben, nicht auf einem Schein')).toBeNull();
+    expect(screen.queryByText(/konnte nicht geladen werden/)).toBeNull();
+    cleanup();
+    ausgabenAbfrage.mockClear();
+    PROJEKT.billingMode = 'Pauschal';
+    ausgabenListe = [ausgabe(5)];
+    await bisZurVorschau();
+    expect(ausgabenAbfrage).not.toHaveBeenCalled();
+    expect(screen.queryByText('Ausgegeben, nicht auf einem Schein')).toBeNull();
   });
 });
 
