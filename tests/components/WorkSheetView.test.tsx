@@ -406,6 +406,28 @@ describe('Handwerksschein', () => {
       ]);
     });
 
+    it('speichert bei einem Artikel aus dem Lager die Katalogkennung mit (24.10.2026)', async () => {
+      // Damit die Rechnung Schein und Ausgabe über den Artikel abgleicht,
+      // nicht nur über den Namen. Die freie Zeile bleibt ohne.
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText(/Verbautes Material \(0\)/);
+      await nutzer.type(screen.getByLabelText('Artikel aus dem Lager'), 'eckventil');
+      await nutzer.click(
+        await screen.findByRole('button', { name: /Eckventil 1\/2 Zoll auf den Schein/ }),
+      );
+      await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Dichtungen');
+      await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+      await screen.findByText(/Verbautes Material \(2\)/);
+
+      await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+
+      expect(createWorkSheet.mock.calls[0][1].material).toEqual([
+        { name: 'Eckventil 1/2 Zoll', menge: 1, einheit: 'Stk', materialId: 'mat1' },
+        { name: 'Dichtungen', menge: 1 },
+      ]);
+    });
+
     it('behaelt die getippten Zeilen, wenn die Vorausfuellung scheitert', async () => {
       /*
         DER FALL, DER SONST EINGABE VERNICHTET. Die Frist läuft zwölf

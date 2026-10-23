@@ -687,7 +687,7 @@
     <div class="stempel">
       <span>Stand <b>22.10.2026</b></span>
       <span>Fassung <b>Lot v2 · bestätigt</b></span>
-      <span>Automatische Prüfungen <b>5.433 Modulprüfungen · 102 Browserwege · 7 Linkprüfungen</b></span>
+      <span>Automatische Prüfungen <b>5.442 Modulprüfungen · 102 Browserwege · 7 Linkprüfungen</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
@@ -700,13 +700,14 @@
     <div class="bereiche">
       <div class="bereich">
         <h3>Vorschlag in der Rechnungsvorschau<span class="neu">neu</span></h3>
-        <p>Bei einer Regiebaustelle steht unter den Positionen <strong>„Ausgegeben, nicht auf einem Schein“</strong>: je Artikel, was abgeholt (erledigte Anforderungen) und eingeladen (Rüstlisten) wurde, abzüglich der Retouren von dieser Baustelle und abzüglich dessen, was die Scheine dieser Rechnung tragen — auch Entwürfe, deren Material mit dem Schein kommt. Verglichen wird am Artikelnamen.</p>
+        <p>Bei einer Regiebaustelle steht unter den Positionen <strong>„Ausgegeben, nicht auf einem Schein“</strong>: je Artikel, was abgeholt (erledigte Anforderungen) und eingeladen (Rüstlisten) wurde, abzüglich der Retouren von dieser Baustelle und abzüglich dessen, was die Scheine dieser Rechnung tragen — auch Entwürfe, deren Material mit dem Schein kommt. Verglichen wird über den Katalogartikel, wo beide Seiten ihn kennen, sonst am Artikelnamen (siehe unten).</p>
         <p><strong>„Übernehmen“</strong> setzt die offene Menge zum Verkaufspreis aus dem Katalog als Position ein, mit Katalogbezug; die Zeile bleibt änderbar wie jede andere. Ohne gepflegten Preis steht 0,00 € da und will ausgefüllt werden. Übernommen wird nur auf Klick.</p>
         <p><strong>Was danach als abgerechnet gilt:</strong> alles bis zum Leistungsende dieser Rechnung — übernommen oder bewusst nicht. So kommt nichts zweimal, auch nicht Material aus der Zeit vor dieser Funktion; Anzahlungen schließen nichts ab, ein Storno öffnet den Zeitraum wieder. Die Tage der Ausgaben gehören deshalb in den Leistungszeitraum, und der Stichtag „Leistung bis“ gilt auch für sie.</p>
         <p>Auch eine Baustelle, auf der nur Material ausgegeben wurde, lässt sich so verrechnen. Kommt die Abfrage nicht, sagt es eine Zeile — dann erst neu zusammenstellen. Pauschale und Einheitspreis rechnen nach dem Angebot ab und zeigen keine Vorschläge.</p>
         <p><strong>Seit 24.10.</strong> zählt eine Anforderung am Tag, an dem sie erledigt wurde — die Datenbank hält ihn fest; eine spätere Änderung (etwa das Umnummern der Baustelle) verschiebt ihn nicht mehr. Anforderungen von davor zählen wie bisher am Tag ihrer letzten Änderung.</p>
+        <p><strong>Seit 24.10.</strong> merkt sich der Schein bei einer Zeile, die unter „Artikel aus dem Lager“ gewählt wurde, den Katalogartikel. Abgeglichen wird dann über den Artikel: Hieß er auf der Anforderung anders als auf dem Schein — etwa weil der Katalog dazwischen umbenannt wurde —, steht er nicht mehr doppelt da. Freie Zeilen und Scheine von davor gleichen wie bisher am Namen ab. Auf dem Schein, dem PDF und in der Prüfsumme ändert sich nichts; der Preis auf der Rechnung kommt wie bisher über den Namen aus dem Katalog.</p>
         <p><strong>Zwei Hinweise seit 24.10.</strong> Liegt ein Schein dieser Rechnung im Zeitraum, den eine frühere Rechnung schon abgerechnet hat, und trägt jene Rechnung dasselbe Material schon als Position (etwa aus dem Lager übernommen), sagt es die Vorschau mit Datum, Rechnungsnummer und Artikeln — ob es ein zweites Mal hingehört, entscheidet das Büro; abgezogen wird nichts. Und liegen auf der Baustelle noch <strong>Schein-Entwürfe</strong>, deren Material vom Ausgegebenen abgezogen ist, steht da: vor der Rechnung unterschreiben oder verwerfen — sonst fehlt das Material, wenn ein Entwurf danach verworfen wird.</p>
-        <p>Grenze: Die Hinweise vergleichen am Artikelnamen; entschieden wird von Hand.</p>
+        <p>Grenze: Ohne Katalogbezug (freie Zeilen, Scheine von vor dem 24.10.) vergleichen Vorschlag und Hinweise am Artikelnamen; entschieden wird von Hand.</p>
         <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
       </div>
     </div>
@@ -3310,7 +3311,7 @@
 
   <footer class="fuss">
     <span>Senklot · Betriebssoftware für Installationsbetriebe in Österreich</span>
-    <span>Automatische Prüfungen: 5.433 Modulprüfungen · 102 Browserwege · 7 Linkprüfungen</span>
+    <span>Automatische Prüfungen: 5.442 Modulprüfungen · 102 Browserwege · 7 Linkprüfungen</span>
     <span>Stand 22.10.2026</span>
   </footer>
 

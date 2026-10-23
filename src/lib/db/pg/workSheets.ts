@@ -142,7 +142,7 @@ async function zusammensetzen(
   const nachZeiten = ordnen<WorkSheetZeit>(zeiten, [
     'datum', 'mitarbeiter', 'von', 'bis', 'pauseMin', 'minuten', 'taetigkeit', 'helfer',
   ]);
-  const nachMaterial = ordnen<WorkSheetMaterial>(material, ['name', 'menge', 'einheit']);
+  const nachMaterial = ordnen<WorkSheetMaterial>(material, ['name', 'menge', 'einheit', 'materialId']);
   const nachFotos = ordnen<WorkSheetFoto>(fotos, ['pfad', 'hash', 'bytes', 'geraetZeit']);
 
   return koepfe.map((k) => {

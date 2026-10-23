@@ -82,8 +82,11 @@ export default function MaterialErfassen({ companyId, materials, zeilen, onChang
     .filter((m) => !m.ausgelaufen)
     .slice(0, 8);
 
-  function hinzufuegen(name: string, einheit?: string) {
-    onChange([...zeilen, { id: neueKennung(), name, menge: 1, einheit }]);
+  function hinzufuegen(name: string, einheit?: string, materialId?: string) {
+    onChange([
+      ...zeilen,
+      { id: neueKennung(), name, menge: 1, einheit, ...(materialId ? { materialId } : {}) },
+    ]);
   }
 
   function mengeSetzen(id: string, n: number | null) {
@@ -181,7 +184,7 @@ export default function MaterialErfassen({ companyId, materials, zeilen, onChang
                       variant="secondary"
                       aria-label={`${m.name} auf den Schein`}
                       onClick={() => {
-                        hinzufuegen(m.name, m.unit);
+                        hinzufuegen(m.name, m.unit, m.id);
                         setSuche('');
                       }}
                     >
