@@ -128,8 +128,9 @@ describe('ausgegebenes_material', () => {
     expect(kurz(await anforderungen.ausgegebenesMaterial('2026-070')).some((z) => z.startsWith('ruestliste'))).toBe(false);
     expect(await anforderungen.ausgegebenesMaterial('2026-070')).toHaveLength(3);
 
-    // Ohne Leistungsende zählt das Rechnungsdatum.
-    const heute = new Date().toISOString().slice(0, 10);
+    // Ohne Leistungsende zählt das Rechnungsdatum. Der Tag in Wien wie in der
+    // Funktion: zwischen 22 und 24 Uhr UTC wäre der UTC-Tag noch gestern.
+    const heute = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' });
     const r2 = await rechnung('RE-AUSG-3', { invoice_date: heute, leistung_bis: null });
     expect(await anforderungen.ausgegebenesMaterial('2026-070')).toEqual([]);
 
