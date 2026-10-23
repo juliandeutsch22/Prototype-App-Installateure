@@ -103,3 +103,53 @@ describe('unverrechnete_stunden', () => {
     }
   });
 });
+
+/*
+  LEHRLINGSSTUNDEN ZUM SATZ 0 (24.10.2026). Die Rechnung lässt sie ohne
+  Zeile aus; „Nicht verrechnet“ zählte sie trotzdem, und eine Baustelle mit
+  nur solchen Stunden stand dort für immer. Geprüft wird gegen die Regel der
+  App selbst (`satzklasse`, `verrechnungssatz`), nicht gegen eine Abschrift.
+*/
+describe('unverrechnete_stunden — Lehrlingsstunden zum Satz 0', () => {
+  const FAELLE: Array<{ satz: string | null; helfer: boolean }> = [
+    { satz: 'lj1', helfer: false }, { satz: 'lj2', helfer: false }, { satz: 'lj3', helfer: false },
+    { satz: 'lj4', helfer: false }, { satz: 'lj1', helfer: true }, { satz: 'facharbeiter', helfer: false },
+    { satz: 'obermonteur', helfer: false }, { satz: 'helfer', helfer: false }, { satz: null, helfer: false },
+  ];
+  const SAETZE: Array<Record<string, unknown> | null> = [
+    { fach: 70, helper: 40, stufen: { lj1: 0, lj2: 30 } },
+    { fach: 70, helper: 0 },
+    { fach: 70, helper: 0, stufen: { lj3: 25 } },
+    null,
+  ];
+
+  it('lässt genau die Stunden weg, die auch die Rechnung auslässt — bei jedem Satz und jeder Satzklasse', async () => {
+    const { INVOICE_DEFAULTS } = await import('@/features/invoices/assemble');
+    const { satzklasse, verrechnungssatz, istLehrlingssatz } = await import('@/lib/einstufung');
+    for (const [i, rates] of SAETZE.entries()) {
+      const C = `ustd-satz-${i}`;
+      await betriebAnlegen(C);
+      await admin.from('companies').update({ rates }).eq('id', C);
+      const chef = await konto(C, 'Buchhaltung', `ustdsatz${i}`);
+      const monteur = await konto(C, 'Mitarbeiter', `ustdsatzm${i}`);
+      for (const [j, f] of FAELLE.entries()) {
+        const nr = `S-${i}-${j}`;
+        await admin.from('projects').insert({ company_id: C, project_number: nr, customer_name: nr, status: 'Aktiv' });
+        const { error } = await admin.from('time_entries').insert({
+          id: crypto.randomUUID(), company_id: C, user_id: monteur.uid, user_name: 'Lehrling',
+          date: '2026-04-01', status: 'Anwesend', start_time: '07:00', end_time: '08:00', break_duration: 0,
+          project_number: nr, satz: f.satz, is_helper: f.helfer,
+        });
+        if (error) throw new Error(error.message);
+      }
+      clientEinreichen(chef.client);
+      const da = new Set((await zeiten.unverrechneteStunden()).map((z) => z.projectNumber));
+      for (const [j, f] of FAELLE.entries()) {
+        const k = satzklasse({ satz: f.satz as never, isHelper: f.helfer });
+        const auslassen = istLehrlingssatz(k)
+          && verrechnungssatz(k, { ...INVOICE_DEFAULTS, ...(rates ?? {}) } as never) === 0;
+        expect([i, j, da.has(`S-${i}-${j}`)]).toEqual([i, j, !auslassen]);
+      }
+    }
+  });
+});
