@@ -158,3 +158,33 @@ test('angefangenes Konto nach Profilfehler und geschlossenem Tab fertigstellen u
   await zweiterKontext.close();
   await dritterKontext.close();
 });
+
+/*
+  DAS GEBURTSDATUM BEI DER ANLAGE (A7, 24.10.2026): ein Lehrling wird mit
+  Geburtsdatum angelegt, und es steht danach in `geburtsdaten` — ohne den
+  Umweg über die Akte.
+*/
+test('Ein Lehrling wird gleich mit Geburtsdatum angelegt', async ({ browser }) => {
+  test.setTimeout(120_000);
+  const name = `lehr.${crypto.randomUUID().slice(0, 6)}`;
+  const buero = await (await browser.newContext()).newPage();
+  await anmelden(buero, CHEFIN.email);
+  await buero.goto('/user-mgmt');
+  await buero.getByRole('button', { name: 'Benutzer anlegen' }).click();
+  await buero.getByRole('textbox', { name: /^Name/ }).fill('Lukas Lehrling');
+  await buero.getByLabel('Anmeldung mit').selectOption('benutzername');
+  await buero.getByRole('textbox', { name: /Benutzername/ }).fill(name);
+  await buero.getByLabel(/Resturlaub beim Umstieg/).fill('25');
+  await buero.getByLabel('Einstufung').selectOption('lehrling');
+  await buero.getByLabel(/^Lehrbeginn/).fill('2026-09-01');
+  await buero.getByLabel(/^Geburtsdatum/).fill('2004-05-20');
+  await buero.getByRole('button', { name: 'Benutzer anlegen' }).click();
+  await startpasswortLesen(buero);
+
+  await expect(async () => {
+    const { data: u } = await admin.from('users').select('id').eq('email', kunstadresse(name)).single();
+    const { data: g } = await admin.from('geburtsdaten').select('geburtsdatum').eq('user_id', u!.id).single();
+    expect(g!.geburtsdatum).toBe('2004-05-20');
+  }).toPass({ timeout: 15_000 });
+  await keineFehlermeldung(buero);
+});

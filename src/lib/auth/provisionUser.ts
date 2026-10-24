@@ -1,5 +1,6 @@
 import { kontoAnlage, passwortZuruecksetzen } from '@/lib/auth/sitzung';
 import { createUserDocEinmalig, type UserProfileInput } from '@/lib/db/users';
+import { setGeburtsdatum } from '@/lib/db/arbeitszeitGrenzen';
 import { istBenutzerkonto } from '@shared/benutzername';
 
 // Seit 30.09.2026 in `shared/startpasswort.ts`: dieselbe Erzeugung im Browser und in der Edge Function (P1, P2).
@@ -44,6 +45,12 @@ export interface ProvisionResult {
 export async function provisionUser(
   companyId: string,
   profile: UserProfileInput,
+  /**
+   * Das Geburtsdatum (A7, 24.10.2026) — gleich bei der Anlage, damit ein
+   * jugendlicher Lehrling vom ersten Tag an unter den Grenzen des KJBG steht.
+   * Es liegt in einer eigenen Tabelle (`geburtsdaten`), nicht im Profil.
+   */
+  geburtsdatum?: string | null,
 ): Promise<ProvisionResult> {
   // Der kurzlebige Vorgang überlebt einen Seitenneustart im selben Tab.
   // Das gleiche Passwort wird erneut angezeigt, niemals das eines fremden Kontos.
@@ -63,6 +70,19 @@ export async function provisionUser(
   } catch (e) {
     const grund = e instanceof Error ? e.message : 'Unbekannter Fehler';
     throw new Error(`Das Mitarbeiterprofil konnte nicht gespeichert werden: ${grund}. Bitte die Anlage in diesem Tab erneut versuchen; das Konto wird dabei wiederverwendet.`);
+  }
+  /*
+    VOR DEM ABSCHLUSS DES VORGANGS, wie das Profil: scheitert es, bleibt der
+    Vorgang im Tab stehen, und ein zweiter Versuch nimmt dasselbe Konto und
+    dasselbe Profil (beides einmalig) und schreibt das Datum erneut.
+  */
+  if (geburtsdatum) {
+    try {
+      await setGeburtsdatum(companyId, newUid, geburtsdatum);
+    } catch (e) {
+      const grund = e instanceof Error ? e.message : 'Unbekannter Fehler';
+      throw new Error(`Das Geburtsdatum konnte nicht gespeichert werden: ${grund}. Bitte die Anlage in diesem Tab erneut versuchen; das Konto wird dabei wiederverwendet.`);
+    }
   }
   sessionStorage.removeItem(schluessel);
 

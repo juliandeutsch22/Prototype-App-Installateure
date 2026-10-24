@@ -22,11 +22,12 @@ import TagessollFelder from './TagessollFelder';
 import EinstufungFelder from './EinstufungFelder';
 import {
   WEEKDAYS, leererEntwurf, alsProfil, aliquoterAnspruch, zahlOderVorgabe, entwurfFehler,
-  tagessollNachTagen,
+  tagessollNachTagen, jugendschutzHinweise,
   type BenutzerEntwurf, type Eintrittsart,
 } from './benutzerEntwurf';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { DEFAULT_VACATION_DAYS } from '@/lib/db/benutzerVorgaben';
-import { JAHRESBEGINN_VORGABE, tageZahl } from '@/lib/time';
+import { JAHRESBEGINN_VORGABE, tageZahl, todayStr } from '@/lib/time';
 import { datumAT } from '@/lib/datum';
 import { zahlAlsText } from '@/lib/zahl';
 import { benutzernameFehler, kontoAnzeige, kunstadresse, mailAdresseFehler } from '@shared/benutzername';
@@ -42,6 +43,14 @@ export default function UserMgmtView() {
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<BenutzerEntwurf>(leererEntwurf);
   const [saving, setSaving] = useState(false);
+  /*
+    DAS GEBURTSDATUM GLEICH BEI DER ANLAGE (A7, 24.10.2026). Bisher kam es
+    erst in der Akte — bis dahin stand ein jugendlicher Lehrling ohne die
+    Grenzen des KJBG da. Bei Lehrlingen Pflicht, sonst freiwillig: auch ein
+    Helfer kann unter 18 sein.
+  */
+  const [geburtsdatum, setGeburtsdatumFeld] = useState('');
+  const [jugendschutz, setJugendschutz] = useState<string[] | null>(null);
   /*
     LISTE ZUERST — gemessen: am Telefon begann die Benutzerliste bei 932 px.
     Das ist der kürzeste Weg der vier Ansichten und trotzdem eineinhalb
@@ -170,8 +179,13 @@ export default function UserMgmtView() {
     }));
   }
 
-  async function submit(e: FormEvent) {
+  function submit(e: FormEvent) {
     e.preventDefault();
+    void anlegen(false);
+  }
+
+  /** `bestaetigt`: die Rückfrage zum Jugendschutz ist beantwortet — wie in der Akte. */
+  async function anlegen(bestaetigt: boolean) {
     if (!user) return;
     setSaving(true);
     setError(null);
@@ -200,6 +214,23 @@ export default function UserMgmtView() {
       setSaving(false);
       return;
     }
+    const heute = todayStr();
+    if (form.einstufung === 'lehrling' && !geburtsdatum) {
+      setError('Bei einem Lehrling ist das Geburtsdatum Pflicht — für die Grenzen des Jugendschutzes (KJBG).');
+      setSaving(false);
+      return;
+    }
+    if (geburtsdatum && (geburtsdatum > heute || geburtsdatum < '1900-01-01')) {
+      setError('Das Geburtsdatum liegt in der Zukunft oder ist unvollständig.');
+      setSaving(false);
+      return;
+    }
+    const hinweise = bestaetigt ? [] : jugendschutzHinweise(form, geburtsdatum || null, heute);
+    if (hinweise.length > 0) {
+      setJugendschutz(hinweise);
+      setSaving(false);
+      return;
+    }
     if (anmeldung === 'email') {
       const mailFalsch = mailAdresseFehler(form.email);
       if (mailFalsch) {
@@ -224,7 +255,7 @@ export default function UserMgmtView() {
         (`/user-mgmt/:uid`) — dort, wo die Person auch steht, und mit
         offenen Zeitkonto-Feldern statt eines zweiten Aufklappens.
       */
-      const res = await provisionUser(user.companyId, profile);
+      const res = await provisionUser(user.companyId, profile, geburtsdatum || null);
       if (res.mailSent) {
         toast.success(`${form.name} angelegt — Passwort-Mail versendet`);
       } else {
@@ -237,6 +268,7 @@ export default function UserMgmtView() {
         });
       }
       setForm(leererEntwurf());
+      setGeburtsdatumFeld('');
       setAnmeldung('email');
       setBenutzername('');
       setEintritt('bestand');
@@ -384,6 +416,14 @@ export default function UserMgmtView() {
             // Beim Neueintritt ist der Saldo-Start der Eintritt (M6).
             eintritt={eintritt === 'neu' ? form.appStartDate : form.eintritt}
           />
+          <FormGrid>
+            <InputField
+              id="ugeburtsdatum" type="date"
+              label={form.einstufung === 'lehrling' ? 'Geburtsdatum' : 'Geburtsdatum (für den Jugendschutz)'}
+              value={geburtsdatum} onChange={(e) => setGeburtsdatumFeld(e.target.value)}
+              pflicht={form.einstufung === 'lehrling'}
+            />
+          </FormGrid>
 
           {/* Zeitkonto-Details sind vorbelegt — für den Normalfall reicht oben. */}
           {/*
@@ -747,6 +787,23 @@ export default function UserMgmtView() {
           </div>
         )}
       </Card>
+
+      <ConfirmDialog
+        open={!!jugendschutz}
+        title={`${form.name || 'Die Person'} ist unter 18`}
+        confirmLabel="Trotzdem anlegen"
+        confirmTone="primary"
+        message="Für Jugendliche gelten engere Grenzen der Arbeitszeit (KJBG). Angelegt wird trotzdem; Buchungen über der Grenze zeigt die Mitarbeiterübersicht als Verstoß."
+        onCancel={() => setJugendschutz(null)}
+        onConfirm={async () => {
+          setJugendschutz(null);
+          await anlegen(true);
+        }}
+      >
+        <ul className="space-y-1 text-sm text-ink">
+          {(jugendschutz ?? []).map((h) => <li key={h}>{h}</li>)}
+        </ul>
+      </ConfirmDialog>
     </div>
   );
 }
