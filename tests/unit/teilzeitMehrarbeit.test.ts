@@ -162,3 +162,54 @@ describe('Lohn-CSV', () => {
     expect(buildUserCsv(max, monat, stats, 2026, 5, true, lohn)).not.toContain('Mehrarbeit');
   });
 });
+
+/*
+  DIE VOLLZEIT JE WOCHENTAG (A6, 24.10.2026). Bei vier langen Tagen und einem
+  kurzen Freitag (4 × 8,5 + 4,5 = 38,5) ist die Vollzeit am Dienstag 8,5
+  Std., nicht 7,7 — und am Freitag 4,5. Ohne Verteilung bleibt es beim
+  Fünftel.
+*/
+describe('Mehrarbeit nach der Verteilung der Vollzeit', () => {
+  const VIER_LANGE = { 1: 8.5, 2: 8.5, 3: 8.5, 4: 8.5, 5: 4.5 };
+  const verteilt = regel({ vollzeitVerteilung: VIER_LANGE });
+
+  it('am langen Dienstag: 8 Std. sind ganz Mehrarbeit, keine Überstunde', () => {
+    expect(ueberstundenNachTagesgrenze(TEILZEIT_ARBEITER, [tag('2026-06-02', '07:00', '15:30')], verteilt, true))
+      .toEqual({ fuenfzigMin: 0, hundertMin: 0, nachtAlsUeberstundeMin: 0, mehrarbeitTeilzeitMin: 240 });
+  });
+
+  it('am kurzen Freitag: Mehrarbeit nur bis 4,5 Std., darüber Überstunden', () => {
+    // Freitag, 8 Std. bei 4 Std. Soll: 0,5 Std. Mehrarbeit, 3,5 Überstunden (davon 1,5 ab der dritten mit 100 %).
+    expect(ueberstundenNachTagesgrenze(TEILZEIT_ARBEITER, [tag('2026-06-05', '07:00', '15:30')], verteilt, true))
+      .toEqual({ fuenfzigMin: 120, hundertMin: 90, nachtAlsUeberstundeMin: 0, mehrarbeitTeilzeitMin: 30 });
+  });
+
+  it('an einem Tag ohne Vollzeit (Samstag) ist nichts Mehrarbeit', () => {
+    const samstag = ueberstundenNachTagesgrenze(TEILZEIT_ANGESTELLT, [tag('2026-06-06', '08:00', '12:00', 0)], verteilt, true);
+    expect(samstag.mehrarbeitTeilzeitMin).toBe(0);
+    expect(samstag.fuenfzigMin).toBe(240);
+  });
+
+  it('über die ganze Woche: je Tag nach der Verteilung, zusammen genau bis zur Vollzeit der Woche', () => {
+    // 8. bis 12. Juni 2026, kein Feiertag; jeden Tag 8,5 Std. bei 4 Std. Soll.
+    const woche = ['2026-06-08', '2026-06-09', '2026-06-10', '2026-06-11', '2026-06-12'].map((d) => tag(d, '07:00', '16:00'));
+    const ue = ueberstundenNachTagesgrenze(TEILZEIT_ANGESTELLT, woche, verteilt, true);
+    // Montag bis Donnerstag je 4,5 Std. Mehrarbeit, Freitag nur 0,5 — zusammen 18,5 = 38,5 − 20.
+    expect(ue.mehrarbeitTeilzeitMin).toBe(4 * 270 + 30);
+    expect(ue.fuenfzigMin).toBe(240);
+  });
+
+  it('gleich bleibt: ohne Verteilung ein Fünftel der Woche je Tag', () => {
+    expect(ueberstundenNachTagesgrenze(TEILZEIT_ARBEITER, [tag('2026-06-02', '07:00', '15:30')], regel(), true))
+      .toEqual({ fuenfzigMin: 18, hundertMin: 0, nachtAlsUeberstundeMin: 0, mehrarbeitTeilzeitMin: 222 });
+  });
+
+  it('eine Verteilung, die nicht als Woche aufgeht, gilt als nicht eingestellt', () => {
+    expect(ueberstundenRegelVon({ vollzeitWochenstunden: 38.5, vollzeitVerteilung: VIER_LANGE }).vollzeitVerteilung)
+      .toEqual(VIER_LANGE);
+    for (const falsch of [{ 1: 8, 2: 8, 3: 8, 4: 8, 5: 8 }, { 1: 11, 2: 9, 3: 9, 4: 9, 5: 0.5 }, { 7: 38.5 }, [8.5]]) {
+      expect(ueberstundenRegelVon({ vollzeitWochenstunden: 38.5, vollzeitVerteilung: falsch as never }).vollzeitVerteilung)
+        .toBeNull();
+    }
+  });
+});

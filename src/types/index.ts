@@ -205,6 +205,12 @@ export interface Company {
    */
   vollzeitWochenstunden?: number;
   /**
+   * Bei `tagesgrenze`: die Stunden einer Vollzeit je Wochentag ("0" =
+   * Sonntag bis "6" = Samstag; Summe = `vollzeitWochenstunden`). Die Grenze
+   * der Mehrarbeit in Teilzeit je Tag. Leer: ein Fünftel der Woche je Tag.
+   */
+  vollzeitVerteilung?: Record<string, number> | null;
+  /**
    * Über wie viele Wochen der Schnitt von 48 Std. gilt (§ 9 Abs 4 AZG: 17;
    * ein Kollektivvertrag kann bis 52 zulassen). Ab Werk 17.
    */

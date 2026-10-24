@@ -157,3 +157,59 @@ describe('Vollzeit je Woche für die Mehrarbeit in Teilzeit (19.10.2026)', () =>
     expect(updateCompany.mock.calls[0]).not.toContainEqual(expect.objectContaining({ vollzeitWochenstunden: expect.anything() }));
   });
 });
+
+/*
+  DIE VOLLZEIT JE WOCHENTAG (A6, 24.10.2026): ungleich verteilt — etwa vier
+  lange Tage und ein kurzer Freitag. Gespeichert nur, was als Woche aufgeht.
+*/
+describe('Vollzeit je Wochentag', () => {
+  const tagesgrenze = () => { firma = { ...firma, ueberstundenModell: 'tagesgrenze' }; };
+  const eintragen = (werte: Record<string, string>) => {
+    for (const [name, wert] of Object.entries(werte)) {
+      fireEvent.change(screen.getByLabelText(`${name} (Std.)`), { target: { value: wert } });
+    }
+  };
+
+  it('vier lange Tage und ein kurzer Freitag werden mit der Vollzeit gespeichert', async () => {
+    tagesgrenze();
+    zeige();
+    expect(screen.queryByLabelText('Montag (Std.)')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Vollzeit ungleich auf die Tage verteilt'));
+    eintragen({ Montag: '8,5', Dienstag: '8,5', Mittwoch: '8,5', Donnerstag: '8,5', Freitag: '4,5' });
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', expect.objectContaining({
+      vollzeitWochenstunden: 38.5, vollzeitVerteilung: { 1: 8.5, 2: 8.5, 3: 8.5, 4: 8.5, 5: 4.5 },
+    })));
+  });
+
+  it('zeigt eine gespeicherte Verteilung mit Komma', () => {
+    firma = { ...firma, ueberstundenModell: 'tagesgrenze', vollzeitVerteilung: { 1: 8.5, 2: 8.5, 3: 8.5, 4: 8.5, 5: 4.5 } };
+    zeige();
+    expect(screen.getByLabelText('Vollzeit ungleich auf die Tage verteilt')).toBeChecked();
+    expect(screen.getByLabelText('Freitag (Std.)')).toHaveValue('4,5');
+    expect(screen.getByLabelText('Samstag (Std.)')).toHaveValue('');
+  });
+
+  it('Gegenprobe: was nicht die Vollzeit ergibt oder über 10 Std. liegt, wird nicht gespeichert', async () => {
+    tagesgrenze();
+    zeige();
+    fireEvent.click(screen.getByLabelText('Vollzeit ungleich auf die Tage verteilt'));
+    eintragen({ Montag: '8', Dienstag: '8', Mittwoch: '8', Donnerstag: '8', Freitag: '8' });
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/ergeben 40 Stunden .* Vollzeit je Woche ergeben \(38,5\)/);
+    eintragen({ Montag: '10,5', Freitag: '2' });
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Montag: zwischen 0 und 10 Stunden/);
+    expect(updateCompany).not.toHaveBeenCalled();
+  });
+
+  it('abgewählt geht die Verteilung weg — dann wieder ein Fünftel je Tag', async () => {
+    firma = { ...firma, ueberstundenModell: 'tagesgrenze', vollzeitVerteilung: { 1: 8.5, 2: 8.5, 3: 8.5, 4: 8.5, 5: 4.5 } };
+    zeige();
+    fireEvent.click(screen.getByLabelText('Vollzeit ungleich auf die Tage verteilt'));
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', expect.objectContaining({
+      vollzeitWochenstunden: 38.5, vollzeitVerteilung: null,
+    })));
+  });
+});

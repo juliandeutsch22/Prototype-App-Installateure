@@ -205,7 +205,16 @@ export function ueberstundenNachTagesgrenze(
       const montag = montagVon(iso);
       // Am 24./31.12. ist der Nachmittag schon mit 100 % ausgewiesen; Mehrarbeit ist nur der Rest.
       const rest = l.ueber - (kv && tagesAnteil(iso, halbeTage) < 1 ? Math.min(l.ueber, t.mittag) : 0);
-      const vollTag = Math.round((vollzeitWocheMin / 5) * tagesAnteil(iso, halbeTage));
+      /*
+        DIE VOLLZEIT DIESES TAGS: nach der Verteilung des Betriebs, wenn er
+        eine eingestellt hat (A6, 24.10.2026) — bei vier langen Tagen und
+        einem kurzen Freitag ist sie am Montag länger als ein Fünftel der
+        Woche, am Freitag kürzer, und an einem Tag ohne Vollzeit null. Ohne
+        Verteilung wie bisher ein Fünftel.
+      */
+      const vollTag = regel.vollzeitVerteilung
+        ? Math.round((regel.vollzeitVerteilung[String(new Date(`${iso}T00:00:00`).getDay())] ?? 0) * 60 * tagesAnteil(iso, halbeTage))
+        : Math.round((vollzeitWocheMin / 5) * tagesAnteil(iso, halbeTage));
       const wocheRest = Math.max(0, mehrarbeitWocheMin - (verbraucht.get(montag) ?? 0));
       const mehr = Math.max(0, Math.min(rest, vollTag - l.grenze, wocheRest));
       verbraucht.set(montag, (verbraucht.get(montag) ?? 0) + mehr);
