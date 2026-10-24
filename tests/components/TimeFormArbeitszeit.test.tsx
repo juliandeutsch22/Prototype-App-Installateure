@@ -30,6 +30,7 @@ vi.mock('@/lib/db/timeEntries', () => ({
   createTimeEntryOhneEmpfang: vi.fn(async () => 'confirmed'),
   updateTimeEntryOhneEmpfang: vi.fn(async () => 'confirmed'),
   eintraegeAmTag: () => eintraegeAmTag(),
+  eintraegeUmDenTag: () => eintraegeAmTag(),
   DuplicateEntryError: class extends Error {},
 }));
 vi.mock('@/components/BaustellenSelect', () => ({ default: () => null }));

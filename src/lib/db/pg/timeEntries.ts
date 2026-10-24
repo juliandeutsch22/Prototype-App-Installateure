@@ -191,10 +191,17 @@ export async function zeitAufteilen(id: string, teile: { projectNumber: string; 
  * Eine gearbeitete Zeit zwischen bestehende Buchungen anderer Baustellen
  * einfügen — in einer Transaktion (`public.zeit_einfuegen`): die anderen
  * werden gekürzt oder geteilt, die neue angelegt. Liefert ihre Kennung.
+ *
+ * Mit `aenderungVon` (A11, 24.10.2026) ist es die Änderung dieser Buchung:
+ * sie bekommt die neuen Werte, statt dass eine neue entsteht.
  */
-export async function zeitEinfuegen(entry: Omit<TimeEntry, 'id' | 'companyId'>): Promise<string> {
+export async function zeitEinfuegen(
+  entry: Omit<TimeEntry, 'id' | 'companyId'>,
+  aenderungVon?: string,
+): Promise<string> {
   const { data, error } = await derClient().rpc('zeit_einfuegen', {
     p_neu: objektAlsZeile(ZEITEN, entry as unknown as Record<string, unknown>),
+    ...(aenderungVon ? { p_id: aenderungVon } : {}),
   });
   if (error) throw new Error(error.message);
   return (data as { neu: string }).neu;
@@ -333,6 +340,28 @@ export async function eintraegeAmTag(
     wo: [
       { art: 'gleich', feld: 'userId', wert: uid },
       { art: 'gleich', feld: 'date', wert: date },
+    ],
+  });
+  return rows.filter((r) => r.id !== exceptId);
+}
+
+/**
+ * Die Buchungen vom Vortag bis zum Folgetag (A11, 24.10.2026) — für das
+ * Einfügen über Mitternacht: eine Nachtschicht vom Vortag reicht in den
+ * Morgen, eine Nachtzeit in den Folgetag.
+ */
+export async function eintraegeUmDenTag(
+  companyId: string,
+  uid: string,
+  date: string,
+  exceptId?: string,
+): Promise<WithId<TimeEntry>[]> {
+  const tag = (n: number) => new Date(Date.parse(`${date}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+  const rows = await abfragen<TimeEntry>(ZEITEN, companyId, {
+    wo: [
+      { art: 'gleich', feld: 'userId', wert: uid },
+      { art: 'ab', feld: 'date', wert: tag(-1) },
+      { art: 'bis', feld: 'date', wert: tag(1) },
     ],
   });
   return rows.filter((r) => r.id !== exceptId);

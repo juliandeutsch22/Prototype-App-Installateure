@@ -22,6 +22,7 @@ const eintraegeAmTag = vi.fn();
 vi.mock('@/lib/db/pg/timeEntries', () => ({
   aendern: (...a: unknown[]) => aendern(...a),
   eintraegeAmTag: (...a: unknown[]) => eintraegeAmTag(...a),
+  eintraegeUmDenTag: (...a: unknown[]) => eintraegeAmTag(...a),
 }));
 
 const { updateTimeEntry, DuplicateEntryError } = await import('@/lib/db/timeEntries');

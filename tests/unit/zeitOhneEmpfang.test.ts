@@ -10,6 +10,7 @@ const eintraegeAmTag = vi.fn();
 const anlegenOhneEmpfang = vi.fn(async () => ({ stand: 'vorgemerkt' as const }));
 vi.mock('@/lib/db/pg/timeEntries', () => ({
   eintraegeAmTag: (...a: unknown[]) => eintraegeAmTag(...a),
+  eintraegeUmDenTag: (...a: unknown[]) => eintraegeAmTag(...a),
   anlegenOhneEmpfang: (...a: unknown[]) => anlegenOhneEmpfang(...(a as [])),
 }));
 

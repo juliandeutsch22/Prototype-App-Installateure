@@ -19,6 +19,7 @@ vi.mock('@/lib/db/timeEntries', () => ({
   createTimeEntryOhneEmpfang: (...a: unknown[]) => anlegen(...a),
   updateTimeEntryOhneEmpfang: (...a: unknown[]) => aendern(...a),
   eintraegeAmTag: vi.fn(async () => []),
+  eintraegeUmDenTag: vi.fn(async () => []),
   DuplicateEntryError: class extends Error {},
 }));
 const melden = vi.fn();

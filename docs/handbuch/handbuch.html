@@ -687,10 +687,29 @@
     <div class="stempel">
       <span>Stand <b>22.10.2026</b></span>
       <span>Fassung <b>Lot v2 · bestätigt</b></span>
-      <span>Automatische Prüfungen <b>5.534 Modulprüfungen · 105 Browserwege · 7 Linkprüfungen</b></span>
+      <span>Automatische Prüfungen <b>5.544 Modulprüfungen · 105 Browserwege · 7 Linkprüfungen</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
+
+  <section id="einfuegen-bearbeiten">
+    <div class="abschnittskopf">
+      <h2>24. Oktober: Einfügen beim Bearbeiten und über Mitternacht</h2>
+      <p class="frage">Eine Zeit ließ sich nur beim Anlegen zwischen andere Buchungen einfügen. Wer eine bestehende Buchung so änderte, dass sie in eine andere reichte, bekam die Sperre und musste löschen und neu anlegen. Über Mitternacht ging es gar nicht.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Beim Bearbeiten<span class="neu">neu</span></h3>
+        <p>Ändert man Tag, Von, Bis oder Baustelle einer Buchung so, dass sie in Buchungen anderer Baustellen hineinreicht, sagt die Maske wie beim Anlegen, was aus ihnen wird („B-1 07:00–11:00 wird zu 07:00–10:00“). <strong>„Änderungen speichern“</strong> kürzt oder teilt die anderen und speichert die geänderte Buchung in einem Zug; sie behält dabei ihre Kennung. Wer nur Kommentar, Fahrzeug oder Pause ändert, speichert wie bisher.</p>
+        <p class="wer">Monteure (eigene Buchungen) · Buchhaltung, Geschäftsführung, Administrator (alle)</p>
+      </div>
+      <div class="bereich">
+        <h3>Über Mitternacht<span class="neu">neu</span></h3>
+        <p>Eine Nachtschicht nimmt eine eingefügte Zeit wie ein Tag; eine Nachtzeit kürzt auch eine Buchung am Folgetag, und eine Zeit am Morgen eine Nachtschicht vom Vortag. Dafür liest die Maske die Buchungen vom Vortag bis zum Folgetag. Ein Teil steht an dem Tag, an dem er beginnt — beginnt er ab Mitternacht, am Folgetag („B-1 01:00–04:00 (Folgetag)“). Lässt sich eine solche Buchung nicht einfügen (verrechnet, ganz bedeckt, Pause passt nicht), sagt die Maske jetzt schon vor dem Speichern warum; bisher kam die Absage erst von der Datenbank.</p>
+        <p class="wer">Monteure (eigene Buchungen) · Buchhaltung, Geschäftsführung, Administrator (alle)</p>
+      </div>
+    </div>
+  </section>
 
   <section id="aufteilen-mitternacht">
     <div class="abschnittskopf">
@@ -1162,7 +1181,7 @@
         <p><strong>Grenzen:</strong> Aufgeteilt wird die gespeicherte Buchung — wer in der Maske gerade etwas geändert hat, speichert zuerst. Eine verrechnete Buchung lässt sich nicht aufteilen; eine über Mitternacht seit 24.10.2026 schon (siehe „Aufteilen über Mitternacht“). Aufteilen braucht eine Verbindung; ohne Netz bleibt die Buchung, wie sie ist. Die Uhrzeiten der Teile folgen der Reihenfolge, nicht dem tatsächlichen Ablauf — wer es genau braucht, passt sie danach einzeln an.</p>
         <h3>Schein nachtragen: die Zeit wird eingefügt<span class="neu">neu</span></h3>
         <p>Der Tag ist schon gebucht — 07:00–16:00 mit 30 Min. Pause auf B-1 —, zwischendurch kam ein Notfall mit Handwerksschein auf B-2 von 10:00 bis 12:00. Wer die Zeit des Scheins am Abend nachträgt („Zeit nachtragen“ am Schein oder eine neue Buchung), bekommt keinen Fehler mehr wegen der Überschneidung: die Maske sagt, was geschieht — „B-1 07:00–16:00 wird zu 07:00–10:00 und 12:00–16:00“ —, und <strong>„Zeit einfügen“</strong> bucht B-2 und teilt B-1 in einem Zug. Liegt die neue Zeit am Rand, wird die andere Buchung nur gekürzt, auch zwei auf einmal. Die Pause bleibt als Zahl am längeren Teil; Kommentar und Wegzeit bleiben an der ursprünglichen Buchung. Bucht das Büro für jemanden, steht es als Bearbeiter an allen geänderten Buchungen.</p>
-        <p><strong>Grenzen:</strong> Eingefügt wird nur in Buchungen einer anderen Baustelle (auf derselben die bestehende Buchung ändern), nicht in eine verrechnete, nicht in eine über Mitternacht, und nicht, wenn die neue Zeit eine Buchung ganz bedecken würde — die müsste verschwinden, das entscheidet ein Mensch. Passt die Pause in keinen Teil, sagt es die Maske. Nur für neue Buchungen und nur mit Verbindung. Urlaub, Krankenstand oder Zeitausgleich zur selben Stunde bleiben ein Konflikt.</p>
+        <p><strong>Grenzen:</strong> Eingefügt wird nur in Buchungen einer anderen Baustelle (auf derselben die bestehende Buchung ändern), nicht in eine verrechnete, und nicht, wenn die neue Zeit eine Buchung ganz bedecken würde — die müsste verschwinden, das entscheidet ein Mensch. Passt die Pause in keinen Teil, sagt es die Maske. Nur mit Verbindung. Seit 24.10.2026 auch beim Bearbeiten und über Mitternacht (siehe „Einfügen beim Bearbeiten und über Mitternacht“). Urlaub, Krankenstand oder Zeitausgleich zur selben Stunde bleiben ein Konflikt.</p>
         <p class="wer">Jeder für sich · Buchhaltung, Geschäftsführung und Administrator auch für andere</p>
       </div>
     </div>
@@ -3442,7 +3461,7 @@
 
   <footer class="fuss">
     <span>Senklot · Betriebssoftware für Installationsbetriebe in Österreich</span>
-    <span>Automatische Prüfungen: 5.534 Modulprüfungen · 105 Browserwege · 7 Linkprüfungen</span>
+    <span>Automatische Prüfungen: 5.544 Modulprüfungen · 105 Browserwege · 7 Linkprüfungen</span>
     <span>Stand 22.10.2026</span>
   </footer>
 
