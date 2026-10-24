@@ -1847,6 +1847,9 @@ export interface Mahnung {
   inhalt: MahnungInhalt;
   /** Firmendaten zum Zeitpunkt der Ausstellung (`aussteller_staende`, seit 24.10.2026); setzt nur die Datenbank. */
   ausstellerStand?: string;
+  /** Wer gemahnt hat (seit 24.10.2026); setzt nur die Datenbank aus der Anmeldung. Ältere Mahnungen ohne. */
+  gemahntVon?: string | null;
+  gemahntVonName?: string | null;
   angelegtAm?: number;
 }
 

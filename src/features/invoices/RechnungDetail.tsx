@@ -20,6 +20,8 @@ export interface MahnungZeile {
   titel: string;
   datum: string;
   frist: string;
+  /** Wer gemahnt hat — fehlt bei Mahnungen von vor dem 24.10.2026. */
+  von?: string | null;
 }
 
 /** Eine Handlung an der Rechnung — wie früher ein Eintrag im ⋯ der Zeile. */
@@ -209,7 +211,9 @@ export default function RechnungDetail({
                   >
                     <span className="text-ink">
                       {m.titel} vom {datumAT(m.datum)}
-                      <span className="block text-xs text-ink-muted">Frist bis {datumAT(m.frist)}</span>
+                      <span className="block text-xs text-ink-muted">
+                        Frist bis {datumAT(m.frist)}{m.von ? ` · gemahnt von ${m.von}` : ''}
+                      </span>
                     </span>
                     <span className="link shrink-0 self-center">PDF</span>
                   </button>

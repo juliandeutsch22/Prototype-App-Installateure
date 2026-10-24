@@ -1348,6 +1348,23 @@ describe('Eine überfällige Rechnung mahnen', () => {
     expect(mahnung).not.toHaveBeenCalled();
   });
 
+  it('nennt bei jeder Mahnung, wer gemahnt hat — ältere ohne Person bleiben wie bisher (24.10.2026)', async () => {
+    const inhalt = { titel: 'Mahnung', stufe: 2, rechnung: { nummer: 'RE-2026-0009' }, offen: 1210 };
+    gespeicherteMahnungen.mockImplementation(async () => [
+      { id: 'm1', invoiceId: 'r1', stufe: 1, datum: '2026-08-20', frist: '2026-08-27', spesen: 0,
+        inhalt: { ...inhalt, titel: 'Zahlungserinnerung', stufe: 1 } },
+      { id: 'm2', invoiceId: 'r1', stufe: 2, datum: '2026-08-30', frist: '2026-09-06', spesen: 10, inhalt,
+        gemahntVon: 'u-buch', gemahntVonName: 'Bettina Buch' },
+    ]);
+    rechnungen = [{ ...UEBERFAELLIG, mahnstufe: 2, gemahntAm: '2026-08-30', mahnfrist: '2026-09-06' }];
+    await menue();
+    const neu = await screen.findByRole('button', { name: 'Mahnung vom 30.08.2026 als PDF laden' });
+    expect(neu).toHaveTextContent('Frist bis 06.09.2026 · gemahnt von Bettina Buch');
+    const alt = screen.getByRole('button', { name: 'Zahlungserinnerung vom 20.08.2026 als PDF laden' });
+    expect(alt).toHaveTextContent('Frist bis 27.08.2026');
+    expect(alt).not.toHaveTextContent('gemahnt von');
+  });
+
   it('Gegenprobe: eine nie gemahnte Rechnung fragt keine Mahnungen ab und zeigt keine', async () => {
     rechnungen = [UEBERFAELLIG];
     await menue();

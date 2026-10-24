@@ -4515,6 +4515,7 @@ export default function InvoicesView() {
             mahnungen={inv && detailMahnungen?.fuer === inv.id
               ? detailMahnungen.liste.map((m): MahnungZeile => ({
                   id: m.id, titel: TEXTE[m.stufe as Mahnstufe]?.titel ?? 'Mahnung', datum: m.datum, frist: m.frist,
+                  von: m.gemahntVonName,
                 }))
               : []}
             onMahnungLaden={(id) => void mahnungErneutLaden(id)}
