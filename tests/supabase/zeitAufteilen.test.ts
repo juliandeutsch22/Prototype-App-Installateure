@@ -91,7 +91,7 @@ describe('Aufteilen', () => {
     expect((await amTag('2026-11-04')).map((z) => [z.project_number, z.end_time])).toEqual([['B-1', '16:00:00']]);
   });
 
-  it('weist doppelte Baustellen, fehlende Stunden und die Nacht ab', async () => {
+  it('weist doppelte Baustellen, fehlende Stunden und Von gleich Bis ab', async () => {
     const id = await tag('2026-11-05');
     const doppelt = await monteur.client.rpc('zeit_aufteilen', {
       p_id: id, p_teile: [{ project_number: 'B-1', minuten: 60 }],
@@ -99,9 +99,49 @@ describe('Aufteilen', () => {
     expect(doppelt.error?.message).toMatch(/B-1 steht doppelt/);
     const ohne = await monteur.client.rpc('zeit_aufteilen', { p_id: id, p_teile: [{ project_number: 'B-2', minuten: 0 }] });
     expect(ohne.error?.message).toMatch(/fehlen die Stunden/);
-    const nacht = await tag('2026-11-06', { start_time: '20:00', end_time: '02:00', break_duration: 0 });
-    const n = await monteur.client.rpc('zeit_aufteilen', { p_id: nacht, p_teile: [{ project_number: 'B-2', minuten: 60 }] });
-    expect(n.error?.message).toMatch(/über Mitternacht/);
+    const nichts = await tag('2026-11-06', { start_time: '07:00', end_time: '07:00', break_duration: 0 });
+    const n = await monteur.client.rpc('zeit_aufteilen', { p_id: nichts, p_teile: [{ project_number: 'B-2', minuten: 60 }] });
+    expect(n.error?.message).toMatch(/keine Zeit/);
+  });
+
+  /*
+    ÜBER MITTERNACHT (A10, 24.10.2026): die Nachtschicht teilt sich wie ein
+    Tag; ein Teil ab Mitternacht steht am Folgetag, die Summe bleibt.
+  */
+  it('teilt eine Nachtschicht: der Teil ab Mitternacht steht am Folgetag', async () => {
+    const id = await tag('2026-12-01', { start_time: '20:00', end_time: '04:00', break_duration: 30 });
+    const r = await monteur.client.rpc('zeit_aufteilen', {
+      p_id: id,
+      p_teile: [{ project_number: 'B-2', minuten: 120 }, { project_number: 'B-3', minuten: 150 }],
+    });
+    expect(r.error).toBeNull();
+    expect((await amTag('2026-12-01')).map((z) => [z.project_number, z.start_time, z.end_time, z.break_duration, Number(z.hours)])).toEqual([
+      ['B-1', '20:00:00', '23:30:00', 30, 3],
+      ['B-2', '23:30:00', '01:30:00', 0, 2],
+    ]);
+    expect((await amTag('2026-12-02')).map((z) => [z.project_number, z.start_time, z.end_time, Number(z.hours)])).toEqual([
+      ['B-3', '01:30:00', '04:00:00', 2.5],
+    ]);
+  });
+
+  it('teilt eine Nachtschicht genau an Mitternacht', async () => {
+    const id = await tag('2026-12-03', { start_time: '22:00', end_time: '02:00', break_duration: 0 });
+    const r = await monteur.client.rpc('zeit_aufteilen', { p_id: id, p_teile: [{ project_number: 'B-2', minuten: 120 }] });
+    expect(r.error).toBeNull();
+    expect((await amTag('2026-12-03')).map((z) => [z.project_number, z.start_time, z.end_time, Number(z.hours)])).toEqual([
+      ['B-1', '22:00:00', '00:00:00', 2],
+    ]);
+    expect((await amTag('2026-12-04')).map((z) => [z.project_number, z.start_time, z.end_time, Number(z.hours)])).toEqual([
+      ['B-2', '00:00:00', '02:00:00', 2],
+    ]);
+  });
+
+  it('Gegenprobe: auch in der Nacht ist ein Teil zu lang, und nichts ändert sich', async () => {
+    const id = await tag('2026-12-07', { start_time: '20:00', end_time: '04:00', break_duration: 30 });
+    const r = await monteur.client.rpc('zeit_aufteilen', { p_id: id, p_teile: [{ project_number: 'B-2', minuten: 450 }] });
+    expect(r.error?.message).toMatch(/bleibt keine Zeit/);
+    expect((await amTag('2026-12-07')).map((z) => [z.start_time, z.end_time])).toEqual([['20:00:00', '04:00:00']]);
+    expect(await amTag('2026-12-08')).toEqual([]);
   });
 
   it('eine verrechnete Buchung bleibt, wie sie ist', async () => {

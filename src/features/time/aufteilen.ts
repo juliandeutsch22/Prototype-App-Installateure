@@ -11,6 +11,11 @@ import { normProjectNumber } from '@/lib/time';
  * DER TAG BLEIBT DERSELBE: die Buchung behält Beginn, Pause und den Rest der
  * Zeit; die weiteren Baustellen schliessen in der angegebenen Reihenfolge
  * lückenlos an und enden zusammen zur alten Endzeit.
+ *
+ * ÜBER MITTERNACHT (A10, 24.10.2026): eine Nachtschicht teilt sich genauso.
+ * Ein Teil, der vor Mitternacht beginnt, bleibt am Tag der Buchung (auch
+ * wenn er danach endet); ein Teil, der ab Mitternacht beginnt, steht am
+ * Folgetag — dort liegt er auch auf der Uhr.
  */
 
 export interface AufteilZeile {
@@ -29,7 +34,11 @@ function minuten(hhmm?: string): number | null {
   return m ? Number(m[1]) * 60 + Number(m[2]) : null;
 }
 
-const uhr = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+/** Minuten ab Mitternacht des Buchungstags als Uhrzeit — ab 24 Std. wieder von vorn (Folgetag). */
+const uhr = (min: number) => {
+  const m = min % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+};
 
 /** Warum sich diese Buchung nicht aufteilen lässt — oder `null`. */
 export function aufteilenGeht(
@@ -39,7 +48,7 @@ export function aufteilenGeht(
   const von = minuten(e.startTime);
   const bis = minuten(e.endTime);
   if (von === null || bis === null) return 'Aufteilen lässt sich nur eine Buchung mit Von und Bis.';
-  if (bis <= von) return 'Eine Buchung über Mitternacht lässt sich nicht aufteilen — bitte die Teile einzeln buchen.';
+  if (bis === von) return 'Von und Bis sind gleich — die Buchung hat keine Zeit.';
   if (e.isBilled) return 'Die Buchung ist schon verrechnet.';
   return null;
 }
@@ -62,7 +71,11 @@ export interface Aufteilung {
   /** Was auf der gebuchten Baustelle bleibt, in Minuten (Arbeitszeit ohne Pause). */
   rest: number;
   /** Die entstehenden Uhrzeiten, die gebuchte Baustelle zuerst. */
-  plan: Array<{ projectNumber: string; von: string; bis: string; minuten: number }>;
+  plan: Array<{
+    projectNumber: string; von: string; bis: string; minuten: number;
+    /** Der Teil beginnt ab Mitternacht und steht am Folgetag. */
+    folgetag?: true;
+  }>;
   fehler: string | null;
 }
 
@@ -71,7 +84,9 @@ export function aufteilung(
   zeilen: AufteilZeile[],
 ): Aufteilung {
   const von = minuten(e.startTime) ?? 0;
-  const bis = minuten(e.endTime) ?? 0;
+  const ende = minuten(e.endTime) ?? 0;
+  // Über Mitternacht: das Ende liegt am Folgetag (wie `calcWorkMin` es liest).
+  const bis = ende < von ? ende + 1440 : ende;
   const pause = Number(e.breakDuration ?? 0) || 0;
   const arbeit = bis - von - pause;
   const teile: Teil[] = [];
@@ -101,7 +116,10 @@ export function aufteilung(
     let pos = von + pause + rest;
     plan.push({ projectNumber: e.projectNumber ?? '', von: uhr(von), bis: uhr(pos), minuten: rest });
     for (const t of teile) {
-      plan.push({ projectNumber: t.projectNumber, von: uhr(pos), bis: uhr(pos + t.minuten), minuten: t.minuten });
+      plan.push({
+        projectNumber: t.projectNumber, von: uhr(pos), bis: uhr(pos + t.minuten), minuten: t.minuten,
+        ...(pos >= 1440 ? { folgetag: true as const } : {}),
+      });
       pos += t.minuten;
     }
   }

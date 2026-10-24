@@ -133,15 +133,25 @@ describe('Buchung aufteilen', () => {
     expect(within(dialog).queryByLabelText('Weitere Baustelle 2')).toBeNull();
   });
 
-  it('Gegenprobe: neu, verrechnet, über Mitternacht — kein Aufteilen', () => {
+  it('Gegenprobe: neu oder verrechnet — kein Aufteilen', () => {
     const { unmount } = zeichne();
     expect(screen.queryByRole('button', { name: /aufteilen/ })).toBeNull();
     unmount();
-    const v = zeichne({ ...TAG, isBilled: true, invoiceNumber: 'RE-1' });
+    zeichne({ ...TAG, isBilled: true, invoiceNumber: 'RE-1' });
     expect(screen.queryByRole('button', { name: /aufteilen/ })).toBeNull();
-    v.unmount();
-    zeichne({ ...TAG, startTime: '20:00', endTime: '02:00' });
-    expect(screen.queryByRole('button', { name: /aufteilen/ })).toBeNull();
+  });
+
+  // A10 (24.10.2026): die Nachtschicht teilt sich wie ein Tag; was ab Mitternacht beginnt, steht am Folgetag.
+  it('über Mitternacht: Aufteilen angeboten, der Teil ab Mitternacht als Folgetag', async () => {
+    zeichne({ ...TAG, startTime: '20:00', endTime: '04:00', breakDuration: 30 });
+    fireEvent.click(screen.getByRole('button', { name: 'Auf mehrere Baustellen aufteilen …' }));
+    const dialog = await screen.findByRole('dialog');
+    // Die Vorschläge aus dem Einsatzplan stehen schon da; die erste Zeile bekommt die Stunden.
+    await within(dialog).findAllByLabelText('Stunden');
+    fireEvent.change(within(dialog).getAllByLabelText('Stunden')[0], { target: { value: '3' } });
+    const zeilen = within(dialog).getAllByRole('listitem').map((li) => li.textContent);
+    expect(zeilen[0]).toMatch(/B-1.*20:00–01:00 · 04:30 Std\. · 30 Min\. Pause/);
+    expect(zeilen[1]).toMatch(/Folgetag 01:00–04:00 · 03:00 Std\./);
   });
 
   it('Gegenprobe: mit ungespeicherter Änderung erst speichern', () => {
