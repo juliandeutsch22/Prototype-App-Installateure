@@ -96,4 +96,9 @@ describe('materialOhneSchein', () => {
       )).toMatchObject([{ name: 'Pressfitting', offen: 2 }]);
     });
   });
+
+  it('nimmt den Verkaufspreis über die Kennung, auch wenn die Ausgabe anders heisst (24.10.2026)', () => {
+    const [v] = materialOhneSchein([aus('Cu-Rohr 15', 2, { materialId: 'k1' })], [], KATALOG);
+    expect(v).toMatchObject({ name: 'Cu-Rohr 15', preis: 12.5, offen: 2 });
+  });
 });

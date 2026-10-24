@@ -424,6 +424,21 @@ describe('Material im Ergebnis', () => {
   });
 
 
+  it('fragt auch nach den Artikeln, auf die eine Scheinzeile zeigt (24.10.2026)', async () => {
+    projekte = [projekt('2026-001')];
+    rechnungen = [rechnung('2026-001', 2000)];
+    katalog = [{ id: 'm1', companyId: 'perl', name: 'Eckventil', stock: 0 } as Material];
+    scheine = [
+      {
+        id: 's1', companyId: 'perl', projectNumber: '2026-001', status: 'Unterschrieben',
+        material: [{ name: 'Eckventil alt', menge: 1, materialId: 'm1' }],
+      } as unknown as WorkSheet & { id: string },
+    ];
+    zeige();
+    await screen.findByText(/Nachkalkulation/);
+    await waitFor(() => expect(katalogNachIds).toHaveBeenCalledWith('perl', ['m1']));
+  });
+
   it('nennt Artikel ohne Einkaufspreis, statt sie mit null anzusetzen', async () => {
     projekte = [projekt('2026-001')];
     rechnungen = [rechnung('2026-001', 2000)];

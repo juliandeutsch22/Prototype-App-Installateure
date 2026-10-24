@@ -21,14 +21,14 @@ import { cent, positionNetto, type InvoicePosition } from './totals';
  * Schein ist widerrufen, ein verworfener aufgegeben. Nur der unterschriebene
  * bindet den Kunden.
  *
- * DER PREIS KOMMT AUS DEM KATALOG, über den Namen. Der Kunde unterschreibt
- * Name, Menge, Einheit. Wer die Zeile aus dem Katalog gesucht hat, trägt
- * dessen Namen exakt; wer eine freie Zeile getippt hat, findet keinen
- * Preis. Dann steht die Position mit 0,00 € da und will ausgefüllt werden.
- * (Die Katalogkennung, die eine gewählte Zeile seit 24.10.2026 mitführt,
- * dient nur dem Abgleich mit dem ausgegebenen Material — Zeilen von davor
- * haben keine, und der Preis soll für alte und neue Scheine gleich zustande
- * kommen.)
+ * DER PREIS KOMMT AUS DEM KATALOG — über den Artikel, aus dem die Zeile
+ * gewählt wurde, sonst über den Namen. Seit 24.10.2026 trägt eine am Schein
+ * aus dem Lager gewählte Zeile die Kennung ihres Katalogartikels; über sie
+ * findet die Rechnung den Preis auch dann, wenn der Artikel inzwischen
+ * anders heisst (etwa nach einem DATANORM-Import). Zeilen von davor und
+ * freie Zeilen haben keine Kennung und werden wie bisher am Namen gesucht.
+ * Wer eine freie Zeile getippt hat, findet meist keinen Preis. Dann steht die
+ * Position mit 0,00 € da und will ausgefüllt werden.
  *
  * Das ist Absicht und keine Notlösung: eine erfundene Zahl auf einer Rechnung
  * wäre schlimmer als eine sichtbare Lücke.
@@ -37,6 +37,25 @@ import { cent, positionNetto, type InvoicePosition } from './totals';
 /** Vergleichsschlüssel für Materialnamen — Groß-/Kleinschreibung und Leerraum egal. */
 export function normName(n?: string): string {
   return (n ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * Ordnet Materialzeilen ihrem Artikel zu: über die Katalogkennung, wo es sie
+ * gibt, sonst über den Namen. Zeilen desselben Artikels landen beim selben
+ * Schlüssel, auch wenn eine davon keine Kennung trägt (ein Schein von vor dem
+ * 24.10.2026) oder der Artikel inzwischen anders heisst. Der Schlüssel ist der
+ * angeglichene Name der ersten Zeile.
+ */
+export function artikelZuordnung(): (name: string, materialId?: string | null) => string {
+  const nachId = new Map<string, string>();
+  const nachName = new Map<string, string>();
+  return (name, materialId) => {
+    const n = normName(name);
+    const schluessel = (materialId ? nachId.get(materialId) : undefined) ?? nachName.get(n) ?? n;
+    if (materialId && !nachId.has(materialId)) nachId.set(materialId, schluessel);
+    if (!nachName.has(n)) nachName.set(n, schluessel);
+    return schluessel;
+  };
 }
 
 export interface MaterialHerkunft {
@@ -80,6 +99,9 @@ export function materialPositionen(
   */
   const einheiten = new Map<string, string>();
   const preise = new Map<string, number>();
+  // Über die Kennung gilt genau dieser Artikel — auch ohne gepflegten Preis
+  // kein Ausweichen auf einen gleichnamigen anderen.
+  const nachId = new Map(katalog.map((m) => [m.id, m]));
   for (const m of katalog) {
     const schluessel = normName(m.name);
     if (m.unit) einheiten.set(schluessel, m.unit);
@@ -97,6 +119,7 @@ export function materialPositionen(
     { name: string; einheit: string; menge: number; preis: number }
   >();
   const verbrauchteScheine: string[] = [];
+  const zuordnen = artikelZuordnung();
 
   for (const schein of scheine) {
     if (schein.status !== 'Unterschrieben') continue;
@@ -106,8 +129,14 @@ export function materialPositionen(
     verbrauchteScheine.push(schein.id);
     for (const zeile of schein.material) {
       if (!zeile.name?.trim() || !(zeile.menge > 0)) continue;
-      const artikel = normName(zeile.name);
-      const einheit = zeile.einheit || einheiten.get(artikel) || 'Stk';
+      const artikel = zuordnen(zeile.name, zeile.materialId);
+      const ausKatalog = zeile.materialId ? nachId.get(zeile.materialId) : undefined;
+      const einheit = zeile.einheit
+        || (ausKatalog ? ausKatalog.unit : einheiten.get(normName(zeile.name)))
+        || 'Stk';
+      const preis = ausKatalog
+        ? (typeof ausKatalog.verkaufspreis === 'number' && ausKatalog.verkaufspreis > 0 ? ausKatalog.verkaufspreis : 0)
+        : (preise.get(normName(zeile.name)) ?? 0);
       const schluessel = `${artikel}|${normName(einheit)}`;
       const vorhanden = gesammelt.get(schluessel);
       if (vorhanden) {
@@ -117,7 +146,7 @@ export function materialPositionen(
           name: zeile.name.trim(),
           einheit,
           menge: zeile.menge,
-          preis: preise.get(artikel) ?? 0,
+          preis,
         });
       }
     }

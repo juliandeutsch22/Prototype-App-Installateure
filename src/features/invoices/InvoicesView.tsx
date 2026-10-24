@@ -38,7 +38,7 @@ import { buchungskonten, type Buchungskonto } from '@/lib/db/konten';
 import { downloadCsv } from '@/features/accounting/export';
 import { listEntriesForProjects, unverrechneteStunden, type OffeneStunden } from '@/lib/db/timeEntries';
 import { listWorkSheetsForProject, listRecentWorkSheets } from '@/lib/db/workSheets';
-import { katalogNachNamen } from '@/lib/db/materials';
+import { katalogNachIds, katalogNachNamen } from '@/lib/db/materials';
 import { leistungszeitraum, verrechneteScheine } from './materialPositionen';
 import { alsPosition, materialOhneSchein, type Ausgabe, type MaterialVorschlag } from './ausgegebenesMaterial';
 import { nachgetrageneScheine, offeneEntwuerfe, type NachgetragenerSchein, type OffenerEntwurf } from './scheinHinweise';
@@ -1307,18 +1307,31 @@ export default function InvoicesView() {
         PREISE NUR FÜR DAS MATERIAL AUF DEN SCHEINEN (19.10.2026) — aus dem
         ganzen Katalog, nicht aus den ersten tausend Artikeln. Vorher fand
         ein Artikel hinter dieser Grenze (nach einem DATANORM-Import) seinen
-        Preis nicht und kam mit 0,00 € auf die Rechnung.
+        Preis nicht und kam mit 0,00 € auf die Rechnung. Dazu die Artikel,
+        auf die eine Zeile über ihre Kennung zeigt (seit 24.10.2026): über sie
+        kommt der Preis auch nach einer Umbenennung.
       */
-      const katalog = await katalogNachNamen(
-        user.companyId,
-        [
-          ...scheine.flatMap((s) => (s.material ?? []).map((z) => z.name ?? '')),
-          ...ausgabenAlle.map((a) => a.name),
-        ],
-      ).catch(() => {
-        setNebenFehler('Der Materialkatalog');
-        return [];
-      });
+      const katalog = await Promise.all([
+        katalogNachNamen(
+          user.companyId,
+          [
+            ...scheine.flatMap((s) => (s.material ?? []).map((z) => z.name ?? '')),
+            ...ausgabenAlle.map((a) => a.name),
+          ],
+        ),
+        katalogNachIds(
+          user.companyId,
+          [
+            ...scheine.flatMap((s) => (s.material ?? []).flatMap((z) => (z.materialId ? [z.materialId] : []))),
+            ...ausgabenAlle.flatMap((a) => (a.materialId ? [a.materialId] : [])),
+          ],
+        ),
+      ])
+        .then(([nachName, nachId]) => [...new Map([...nachName, ...nachId].map((m) => [m.id, m])).values()])
+        .catch(() => {
+          setNebenFehler('Der Materialkatalog');
+          return [];
+        });
       if (!derBaustelle) {
         setPreview(null);
         setError(

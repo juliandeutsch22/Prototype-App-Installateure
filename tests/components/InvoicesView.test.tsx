@@ -311,8 +311,12 @@ const ausgabenAbfrage = vi.fn<(nr: string) => Promise<typeof ausgabenListe>>(asy
 vi.mock('@/lib/db/materialOrders', () => ({
   ausgegebenesMaterial: (nr: string) => ausgabenAbfrage(nr),
 }));
+/** Und die Artikel, auf die eine Zeile über ihre Kennung zeigt (seit 24.10.2026). */
+const katalogNachIds = vi.fn(async (_c: string, ids: readonly string[]) =>
+  katalog.filter((m) => ids.includes(m.id)));
 vi.mock('@/lib/db/materials', () => ({
   katalogNachNamen: (...a: [string, readonly string[]]) => katalogNachNamen(...a),
+  katalogNachIds: (...a: [string, readonly string[]]) => katalogNachIds(...a),
 }));
 /** Die Angebote der Baustelle — für die Pauschale (Launch-Check, K3). */
 let angebote: Array<Record<string, unknown>> = [];
@@ -425,6 +429,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
   katalogNachNamen.mockClear();
+  katalogNachIds.mockClear();
   rechnungen = [];
   suchTreffer = [];
   sucheWirft = false;
@@ -768,6 +773,16 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
     await bisZurVorschau();
     expect(await screen.findByDisplayValue('Eckventil 1/2 Zoll')).toBeInTheDocument();
     expect(katalogNachNamen).toHaveBeenCalledWith('perl', expect.arrayContaining(['Eckventil 1/2 Zoll']));
+    expect(screen.queryByText(/Ohne Preis im Katalog/)).not.toBeInTheDocument();
+  });
+
+  it('findet den Preis über den Katalogartikel, auch wenn er inzwischen anders heisst (24.10.2026)', async () => {
+    // Am Schein aus dem Lager gewählt, danach im Katalog umbenannt.
+    scheine = [{ ...SCHEIN, material: [{ name: 'Eckventil 1/2"', menge: 2, einheit: 'Stk', materialId: 'k1' }] }];
+    katalog = KATALOG;
+    await bisZurVorschau();
+    expect(await screen.findByDisplayValue('Eckventil 1/2"')).toBeInTheDocument();
+    expect(katalogNachIds).toHaveBeenCalledWith('perl', expect.arrayContaining(['k1']));
     expect(screen.queryByText(/Ohne Preis im Katalog/)).not.toBeInTheDocument();
   });
 
