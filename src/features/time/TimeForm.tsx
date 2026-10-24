@@ -11,7 +11,7 @@ import {
 } from '@/lib/db/timeEntries';
 import { getGeburtsdatum } from '@/lib/db/arbeitszeitGrenzen';
 import {
-  andereVerteilung, grenzfaelleDerBuchung, grenzText, istJugendlich, umfeldDerBuchung, unterrichtAusEingabe,
+  andereVerteilung, grenzfaelleDerBuchung, grenzText, istJugendlich, umfeldDerBuchung, unterrichtAusEingabe, wegzeitAusEingabe,
   type Grenzfall,
 } from '@/features/accounting/arbeitszeitGrenzen';
 import { buchungKonflikt } from '@/lib/tagesbuchungen';
@@ -199,6 +199,8 @@ export default function TimeForm({
   const [schuleBis, setSchuleBis] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
   /** Unterrichtszeit je Schultag (Runde 3, M1) — leer heisst Tagessoll. */
   const [unterricht, setUnterricht] = useState('');
+  /** Wegzeit Schule–Betrieb je Schultag (A9) — leer heisst keine Angabe. */
+  const [wegzeit, setWegzeit] = useState('');
   const [isHelper, setIsHelper] = useState(entry?.isHelper ?? asHelperVorschlag ?? false);
   const [helperName, setHelperName] = useState(entry?.helperName ?? '');
   /*
@@ -531,7 +533,7 @@ export default function TimeForm({
     return grenzfaelleDerBuchung([...andere, neu], date, {
       geburtsdatum: geboren,
       schultagMin: grenzPerson ? (t) => tagessollStunden(grenzPerson, t) * 60 : undefined,
-      andereVerteilung: andereVerteilung(grenzPerson),
+      andereVerteilung: andereVerteilung(grenzPerson, company?.kjbgVerteilungKv === true),
     }).filter((f) => f.jugendlich);
   }
 
@@ -602,6 +604,11 @@ export default function TimeForm({
       setError(unterrichtGelesen.fehler);
       return;
     }
+    const wegzeitGelesen = wegzeitAusEingabe(wegzeit);
+    if (alsBerufsschule && wegzeitGelesen.fehler) {
+      setError(wegzeitGelesen.fehler);
+      return;
+    }
     if (staff && !isEdit && !targetUid) {
       setError('Bitte einen Mitarbeiter auswählen.');
       return;
@@ -656,6 +663,7 @@ export default function TimeForm({
           notiz: comment.trim(),
           // Leer bleibt der Aufruf, wie er war: es zählt das Tagessoll.
           ...(unterrichtGelesen.min != null ? { unterrichtMin: unterrichtGelesen.min } : {}),
+          ...(wegzeitGelesen.min != null ? { wegzeitMin: wegzeitGelesen.min } : {}),
         });
         const uebersprungen =
           r.uebersprungen > 0 ? `, ${r.uebersprungen} schon gebucht und übersprungen` : '';
@@ -664,6 +672,7 @@ export default function TimeForm({
         );
         setComment('');
         setUnterricht('');
+        setWegzeit('');
         setStatus('Anwesend');
         onSaved();
       } catch (err) {
@@ -1130,10 +1139,24 @@ export default function TimeForm({
               Zählt in der Prüfung der Arbeitszeitgrenzen für Jugendliche statt des Tagessolls — etwa
               „7,5“ oder „7:30“, samt den Pausen in der Schule, ohne Mittagspause (§ 11 Abs 6 KJBG). Nach
               acht Stunden Unterricht darf an dem Tag nicht mehr gearbeitet werden, darunter nur bis zur
-              Tagesgrenze (§ 11 Abs 7 KJBG). Leer zählt der Schultag mit dem Tagessoll. Das Zeitkonto
+              Tagesgrenze (§ 11 Abs 7 KJBG) — samt dem Weg zwischen Schule und Betrieb, wenn er
+              darunter angegeben ist. Leer zählt der Schultag mit dem Tagessoll. Das Zeitkonto
               rechnet den Schultag weiter mit dem Tagessoll.
             </InfoHint>
           </div>
+          {/*
+            DIE WEGZEIT ZWISCHEN SCHULE UND BETRIEB (A9, 24.10.2026; § 11 Abs 7
+            KJBG) zählt am Schultag zur Tagesgrenze. Nur angeben, wenn danach
+            noch im Betrieb gearbeitet wird; die Hilfe steht beim Unterricht.
+          */}
+          <InputField
+            id="wegzeit"
+            label="Weg Schule–Betrieb je Schultag (Std., optional)"
+            inputMode="decimal"
+            placeholder="leer = kein Weg, z. B. 0,5"
+            value={wegzeit}
+            onChange={(e) => setWegzeit(e.target.value)}
+          />
         </div>
       )}
       {!showWorkFields && status !== 'Zeitausgleich' && !alsKrankmeldung && !alsUrlaubEintrag && !alsBerufsschule && (

@@ -71,6 +71,7 @@ export function useArbeitszeitGrenzen({
   aktualisiert,
   aus = false,
   durchrechnungWochen,
+  kjbgVerteilungKv = false,
   eintraegeDerSeite,
 }: {
   companyId: string;
@@ -84,6 +85,8 @@ export function useArbeitszeitGrenzen({
   aus?: boolean;
   /** Durchrechnungszeitraum des Betriebs in Wochen (`company.durchrechnungWochen`); ohne: 17. */
   durchrechnungWochen?: number;
+  /** Der Kollektivvertrag lässt für Jugendliche eine andere Verteilung zu (`company.kjbgVerteilungKv`). */
+  kjbgVerteilungKv?: boolean;
   /**
    * Die Buchungen, die die Seite ohnehin live hält — mindestens der Monat
    * samt einer Woche davor und danach (Ladezeit, 19.10.2026). Dann holt die
@@ -156,7 +159,7 @@ export function useArbeitszeitGrenzen({
             {
               geburtsdatum: geburtsdaten.get(person.uid) ?? null,
               schultagMin: (tag) => tagessollStunden(person, tag) * 60,
-              andereVerteilung: andereVerteilung(person),
+              andereVerteilung: andereVerteilung(person, kjbgVerteilungKv),
               arbeitstageJeWoche: person.workDays?.length || undefined,
             },
             { stichtag: heute, durchrechnungWochen: wochen },
@@ -173,7 +176,7 @@ export function useArbeitszeitGrenzen({
       if (meiner !== lauf.current) return;
       setFehler(e instanceof Error ? e.message : String(e));
     }
-  }, [companyId, personen, von, bis, wochen]);
+  }, [companyId, personen, von, bis, wochen, kjbgVerteilungKv]);
 
   /*
     EIN EFFEKT FÜR BEIDE ANLÄSSE. Ein neuer Monat (oder Betrieb, oder eine

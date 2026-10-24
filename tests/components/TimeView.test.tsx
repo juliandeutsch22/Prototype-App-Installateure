@@ -1134,4 +1134,14 @@ describe('Zeiterfassung — vom Büro gebucht, über der Grenze für Jugendliche
     zeige();
     expect(await screen.findByText(/Berufsschule · Unterricht 07:30 Std/)).toBeInTheDocument();
   });
+
+  it('der Berufsschultag nennt seine Wegzeit (A9) — mit und ohne Unterrichtszeit', async () => {
+    eintraege = [
+      eintrag({ id: 's1', date: '2026-09-01', status: 'Berufsschule', startTime: undefined, endTime: undefined, unterrichtMin: 450, wegzeitMin: 45 }),
+      eintrag({ id: 's2', date: '2026-09-02', status: 'Berufsschule', startTime: undefined, endTime: undefined, wegzeitMin: 30 }),
+    ];
+    zeige();
+    expect((await screen.findAllByText(/Berufsschule · Unterricht 07:30 Std · Weg 00:45 Std/)).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Berufsschule · Weg 00:30 Std/).length).toBeGreaterThan(0);
+  });
 });

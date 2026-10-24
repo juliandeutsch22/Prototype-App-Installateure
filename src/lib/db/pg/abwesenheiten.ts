@@ -118,6 +118,8 @@ export async function berufsschuleEintragen(daten: {
    * Datenbank, die den Wert noch nicht kennt.
    */
   unterrichtMin?: number | null;
+  /** Wegzeit Schule–Betrieb je Schultag in Minuten (A9); wie oben nur gesetzt mitgeschickt. */
+  wegzeitMin?: number | null;
 }): Promise<{ tage: number; angelegt: number; uebersprungen: number }> {
   const { data, error } = await derClient().rpc('berufsschule_eintragen', {
     p_user: daten.userId,
@@ -125,6 +127,7 @@ export async function berufsschuleEintragen(daten: {
     p_bis: daten.bis,
     p_notiz: daten.notiz ?? null,
     ...(daten.unterrichtMin != null ? { p_unterricht_min: daten.unterrichtMin } : {}),
+    ...(daten.wegzeitMin != null ? { p_wegzeit_min: daten.wegzeitMin } : {}),
   });
   if (error) throw new Error(error.message);
   const d = data as { tage: number; angelegt: number; uebersprungen: number };

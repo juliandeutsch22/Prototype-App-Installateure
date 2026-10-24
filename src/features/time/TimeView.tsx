@@ -561,8 +561,12 @@ export default function TimeView() {
         : (e.status === 'Zeitausgleich' || e.status === 'Dienstverhinderung' || e.status === 'Pflegefreistellung')
             && e.startTime && e.endTime
           ? `${tagesStatusName(e.status)} ${e.startTime}–${e.endTime}`
-          : e.status === 'Berufsschule' && e.unterrichtMin
-            ? `${tagesStatusName(e.status)} · Unterricht ${fmtDauer(e.unterrichtMin)}`
+          : e.status === 'Berufsschule' && (e.unterrichtMin || e.wegzeitMin)
+            ? [
+                tagesStatusName(e.status),
+                e.unterrichtMin ? `Unterricht ${fmtDauer(e.unterrichtMin)}` : null,
+                e.wegzeitMin ? `Weg ${fmtDauer(e.wegzeitMin)}` : null,
+              ].filter(Boolean).join(' · ')
             : tagesStatusName(e.status);
     const subtitle = [timeLabel, e.comment].filter(Boolean).join(' · ');
     const vomBueroGesperrt = !canEditTime(user.role) && buerobuchungGesperrt(e, entries, geburtsdatum);

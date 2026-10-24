@@ -215,6 +215,12 @@ export interface Company {
    * ein Kollektivvertrag kann bis 52 zulassen). Ab Werk 17.
    */
   durchrechnungWochen?: number;
+  /**
+   * Der Kollektivvertrag lässt für Jugendliche eine andere Verteilung der
+   * Wochenarbeitszeit zu (§ 11 Abs 3 KJBG): dann gelten bei ungleichem
+   * Tagessoll 9 Std. am Tag, gleich wo die kürzeren Tage liegen. Ab Werk aus.
+   */
+  kjbgVerteilungKv?: boolean;
   /** Die Projektleitung ist im Einsatzplan einteilbar und sieht „Mein Einsatzplan“ (M38). Ab Werk aus. */
   projektleitungImEinsatzplan?: boolean;
   /**
@@ -1256,6 +1262,12 @@ export interface TimeEntry {
    * leer heisst Tagessoll. Das Zeitkonto rechnet weiter mit dem Tagessoll.
    */
   unterrichtMin?: number | null;
+  /**
+   * Nur beim Berufsschultag: die Wegzeit zwischen Schule und Betrieb in
+   * Minuten (A9, 24.10.2026). Sie zählt in der Tagesgrenze für Jugendliche
+   * mit (§ 11 Abs 7 KJBG), nicht in der Woche und nicht im Zeitkonto.
+   */
+  wegzeitMin?: number | null;
   /**
    * Aus welchem genehmigten Urlaubsantrag dieser Eintrag entstanden ist.
    *

@@ -40,13 +40,14 @@ import { leseZahl } from '@/lib/zahl';
  *     angegebenen acht Stunden Unterricht ist jede Arbeit einer (§ 11 Abs 7
  *     KJBG). Das Tagessoll als Ersatz ist nur eine Schätzung; an ihm hängt
  *     die Acht-Stunden-Regel deshalb nicht.
- *   - Die Wegzeit zwischen Schule und Betrieb zählt nach § 11 Abs 7 mit; die
- *     App kennt sie nicht (benannte Grenze).
+ *   - Die Wegzeit zwischen Schule und Betrieb zählt nach § 11 Abs 7 am Tag
+ *     mit, wenn sie beim Eintragen angegeben wurde (seit 24.10.2026).
  *   - Ist die Wochenarbeitszeit anders verteilt (eigenes Tagessoll mit
  *     kürzeren und längeren Tagen, zusammen höchstens 40 Std.), gilt am Tag
- *     bis 9 Std. (§ 11 Abs 2 und 3 KJBG). Ob die kürzeren Tage an der
- *     Wochenfreizeit liegen, wie Abs 2 es verlangt, oder der
- *     Kollektivvertrag die Verteilung zulässt, prüft die App nicht.
+ *     bis 9 Std. (§ 11 Abs 2 und 3 KJBG). Die kürzeren Tage müssen an der
+ *     Wochenfreizeit liegen, wie Abs 2 es verlangt — es sei denn, der
+ *     Kollektivvertrag lässt die Verteilung zu (Einstellung je Betrieb,
+ *     seit 24.10.2026).
  *   - Mit `stichtag` zählt nur, was bis dahin gebucht ist: ein Tag in der
  *     Zukunft ist noch nicht gearbeitet und kein Verstoss.
  *
@@ -94,6 +95,8 @@ export interface Grenzfall {
    * Minuten Unterricht (§ 11 Abs 7 KJBG). `ist` ist Unterricht plus Arbeit.
    */
   schuleMin?: number;
+  /** Am Berufsschultag: so viele Minuten Wegzeit Schule–Betrieb stecken in `ist` (§ 11 Abs 7 KJBG). */
+  wegMin?: number;
 }
 
 export const GRENZEN = {
@@ -134,7 +137,12 @@ export const NACHTRUHE_JUGENDLICHE: Nachtzeit = { von: 20 * 60, bis: 6 * 60 };
  * Ein Eintrag, soweit er hier zählt. `unterrichtMin` nur am Berufsschultag
  * (Runde 3, M1) — leer heisst: es zählt das Tagessoll.
  */
-export type GrenzEintrag = Zeitangaben & { date: string; unterrichtMin?: number | null };
+export type GrenzEintrag = Zeitangaben & {
+  date: string;
+  unterrichtMin?: number | null;
+  /** Wegzeit zwischen Schule und Betrieb am Berufsschultag (A9, 24.10.2026) — zählt am Tag mit (§ 11 Abs 7 KJBG). */
+  wegzeitMin?: number | null;
+};
 
 /** Die Person, soweit die Prüfung sie braucht. */
 export interface GrenzPerson {
@@ -222,6 +230,8 @@ export function grenzfaelle(
   const minutenJeTag = new Map<string, number>();
   /** Der Unterricht je Tag eines Jugendlichen, und ob er angegeben oder nur das Tagessoll ist. */
   const schuleJeTag = new Map<string, { min: number; angegeben: boolean }>();
+  /** Die Wegzeit Schule–Betrieb je Tag — nur für die Tagesgrenze, nicht für die Woche. */
+  const wegJeTag = new Map<string, number>();
   const belegt = new Set<string>();
   const intervalle: Intervall[] = [];
   for (const e of eintraege) {
@@ -233,6 +243,7 @@ export function grenzfaelle(
         minutenJeTag.set(e.date, (minutenJeTag.get(e.date) ?? 0) + schule);
         const vorher = schuleJeTag.get(e.date);
         schuleJeTag.set(e.date, { min: (vorher?.min ?? 0) + schule, angegeben: angegeben || !!vorher?.angegeben });
+        if (e.wegzeitMin != null && e.wegzeitMin > 0) wegJeTag.set(e.date, (wegJeTag.get(e.date) ?? 0) + e.wegzeitMin);
       }
       continue;
     }
@@ -262,6 +273,17 @@ export function grenzfaelle(
       if (min - schule.min <= 0) continue;
       if (schule.angegeben && schule.min >= GRENZEN.jugendlich.tag) {
         faelle.push({ art: 'tag', bezug: tag, jugendlich: true, ist: min, grenze: schule.min, schuleMin: schule.min });
+        continue;
+      }
+      /*
+        DIE WEGZEIT ZWISCHEN SCHULE UND BETRIEB zählt am Schultag mit (A9,
+        24.10.2026; § 11 Abs 7 KJBG): Unterricht, Weg und Arbeit zusammen
+        nicht über die Tagesgrenze. In die Woche zählt sie nicht — dorthin
+        rechnet das Gesetz nur den Unterricht (Abs 5).
+      */
+      const weg = wegJeTag.get(tag) ?? 0;
+      if (weg > 0) {
+        if (min + weg > grenze) faelle.push({ art: 'tag', bezug: tag, jugendlich: true, ist: min + weg, grenze, wegMin: weg });
         continue;
       }
     }
@@ -433,6 +455,12 @@ export function grenzText(f: Grenzfall): { titel: string; gesetz: string } {
           gesetz: '§ 11 Abs 7 KJBG',
         };
       }
+      if (f.wegMin) {
+        return {
+          titel: `${stdMin(f.ist)} Std. am ${kurz(f.bezug)} samt ${stdMin(f.wegMin)} Std. Weg Schule–Betrieb — höchstens ${f.grenze / 60} Std.`,
+          gesetz: '§ 11 Abs 7 KJBG',
+        };
+      }
       return {
         titel: `${stdMin(f.ist)} Std. am ${kurz(f.bezug)} — höchstens ${f.grenze / 60} Std.`,
         gesetz: !f.jugendlich ? '§ 9 AZG' : f.grenze > GRENZEN.jugendlich.tag ? '§ 11 Abs 2 KJBG' : '§ 11 KJBG',
@@ -489,6 +517,12 @@ export function fallSchluessel(userId: string, f: { art: string; bezug: string }
  */
 export function andereVerteilung(
   p: { tagessoll?: Record<string, number> | null; workDays?: number[] | null } | null | undefined,
+  /**
+   * Der Kollektivvertrag lässt die andere Verteilung zu (§ 11 Abs 3 KJBG) —
+   * eine Einstellung je Betrieb (`companies.kjbg_verteilung_kv`). Dann zählt
+   * die Lage der kürzeren Tage nicht.
+   */
+  kvErlaubt = false,
 ): boolean {
   if (!p?.tagessoll) return false;
   const tage = p.workDays && p.workDays.length ? p.workDays : [1, 2, 3, 4, 5];
@@ -496,7 +530,21 @@ export function andereVerteilung(
   if (werte.some((h) => typeof h !== 'number' || !Number.isFinite(h))) return false;
   const zahlen = werte as number[];
   const summe = zahlen.reduce((a, b) => a + b, 0);
-  return Math.min(...zahlen) < Math.max(...zahlen) && summe <= GRENZEN.jugendlich.woche / 60;
+  if (!(Math.min(...zahlen) < Math.max(...zahlen) && summe <= GRENZEN.jugendlich.woche / 60)) return false;
+  if (kvErlaubt) return true;
+  /*
+    DIE KÜRZEREN TAGE AN DER WOCHENFREIZEIT (A9, 24.10.2026; § 11 Abs 2
+    KJBG): länger als 8 Std. darf ein Jugendlicher nur arbeiten, damit die
+    Freizeit an der Wochenfreizeit länger wird. Die Woche von Montag bis
+    Sonntag, freie Tage mit 0 Std.: was unter 8 Std. liegt, muss am Sonntag
+    hängen — die Tage ab 8 Std. liegen also an einem Stück. Ein kurzer oder
+    freier Mittwoch macht das Wochenende nicht länger; dann bleibt es bei 8.
+  */
+  const woche = [1, 2, 3, 4, 5, 6, 0].map((t) => (tage.includes(t) ? zahlen[tage.indexOf(t)] : 0));
+  const kurz = woche.map((h) => h * 60 < GRENZEN.jugendlich.tag);
+  const ersterVoller = kurz.indexOf(false);
+  const letzterVoller = kurz.lastIndexOf(false);
+  return kurz.slice(ersterVoller, letzterVoller + 1).every((k) => !k);
 }
 
 function plusTage(iso: string, n: number): string {
@@ -579,6 +627,21 @@ export function buerobuchungGesperrt(
  * Datenbank: mehr als null und höchstens 12 Stunden.
  */
 export function unterrichtAusEingabe(text: string): { min: number | null; fehler: string | null } {
+  return stundenAusEingabe(text, 12 * 60, 'Die Unterrichtszeit liegt zwischen 0 und 12 Stunden.', '„7,5“ oder „7:30“');
+}
+
+/**
+ * Die Wegzeit Schule–Betrieb aus dem Feld am Berufsschultag (A9, 24.10.2026):
+ * wie der Unterricht, höchstens 4 Stunden wie in der Datenbank. Leer heisst
+ * keine Angabe — dann zählt kein Weg.
+ */
+export function wegzeitAusEingabe(text: string): { min: number | null; fehler: string | null } {
+  return stundenAusEingabe(text, 4 * 60, 'Die Wegzeit liegt zwischen 0 und 4 Stunden.', '„0,5“ oder „0:30“');
+}
+
+function stundenAusEingabe(
+  text: string, hoechstens: number, zuViel: string, beispiel: string,
+): { min: number | null; fehler: string | null } {
   const t = text.trim();
   if (t === '') return { min: null, fehler: null };
   const uhr = /^(\d{1,2}):([0-5]\d)$/.exec(t);
@@ -587,7 +650,7 @@ export function unterrichtAusEingabe(text: string): { min: number | null; fehler
   const min = uhr
     ? Number(uhr[1]) * 60 + Number(uhr[2])
     : dezimal !== null ? Math.round(dezimal * 60) : NaN;
-  if (!Number.isFinite(min)) return { min: null, fehler: `„${t}“ ist keine Stundenzahl — etwa „7,5“ oder „7:30“.` };
-  if (min < 1 || min > 12 * 60) return { min: null, fehler: 'Die Unterrichtszeit liegt zwischen 0 und 12 Stunden.' };
+  if (!Number.isFinite(min)) return { min: null, fehler: `„${t}“ ist keine Stundenzahl — etwa ${beispiel}.` };
+  if (min < 1 || min > hoechstens) return { min: null, fehler: zuViel };
   return { min, fehler: null };
 }
