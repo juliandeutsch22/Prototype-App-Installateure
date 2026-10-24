@@ -706,3 +706,71 @@ describe('Anlage: Lehrbeginn vor dem Eintritt (Runde 3, G18)', () => {
     expect(screen.queryByText(/Der Lehrbeginn liegt vor dem Eintritt/)).not.toBeInTheDocument();
   });
 });
+
+/*
+  DAS GEBURTSDATUM BEI DER ANLAGE (A7, 24.10.2026): bei Lehrlingen Pflicht,
+  sonst freiwillig; unter 18 mit zu langem Soll dieselbe Rückfrage wie in
+  der Akte.
+*/
+describe('Anlage: Geburtsdatum für den Jugendschutz', () => {
+  async function ausfuellen(name: string, mail: string, lehrling: boolean) {
+    zeige();
+    await formOeffnen();
+    await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), name);
+    await userEvent.type(screen.getByRole('textbox', { name: /Mail/ }), mail);
+    if (lehrling) {
+      await userEvent.selectOptions(screen.getByLabelText('Einstufung'), 'lehrling');
+      await userEvent.type(screen.getByLabelText(/^Lehrbeginn/), '2026-09-01');
+    }
+  }
+  const anlegenKlicken = () => userEvent.click(screen.getByRole('button', { name: /Anlegen|Benutzer anlegen/ }));
+
+  it('Gegenprobe: ein Lehrling ohne Geburtsdatum wird nicht angelegt', async () => {
+    await ausfuellen('Leo Lehrling', 'leo@perl.at', true);
+    await anlegenKlicken();
+    expect(await screen.findByText(/Bei einem Lehrling ist das Geburtsdatum Pflicht/)).toBeInTheDocument();
+    expect(anlegen).not.toHaveBeenCalled();
+  });
+
+  it('ein volljähriger Lehrling wird mit seinem Geburtsdatum angelegt', async () => {
+    await ausfuellen('Leo Lehrling', 'leo@perl.at', true);
+    fireEvent.change(screen.getByLabelText(/^Geburtsdatum/), { target: { value: '2000-03-01' } });
+    await anlegenKlicken();
+    await waitFor(() => expect(anlegen).toHaveBeenCalled());
+    expect(anlegen.mock.calls[0][0]).toBe('perl');
+    expect(anlegen.mock.calls[0][2]).toBe('2000-03-01');
+  });
+
+  it('unter 18 mit 45 Wochenstunden: erst die Rückfrage, dann angelegt', async () => {
+    await ausfuellen('Lena Lehrling', 'lena@perl.at', true);
+    await userEvent.click(screen.getByRole('button', { name: /Zeitkonto-Einstellungen/ }));
+    const stunden = await screen.findByRole('textbox', { name: /Wochenstunden/ });
+    await userEvent.clear(stunden);
+    await userEvent.type(stunden, '45');
+    // Heute minus 16 Jahre — jugendlich, gleich an welchem Tag die Prüfung läuft.
+    const jahr = new Date().getFullYear() - 16;
+    fireEvent.change(screen.getByLabelText(/^Geburtsdatum/), { target: { value: `${jahr}-01-15` } });
+    await anlegenKlicken();
+    const frage = await screen.findByRole('dialog', { name: /Lena Lehrling ist unter 18/ });
+    expect(frage).toHaveTextContent(/höchstens 40 Std\. in der Woche/);
+    expect(anlegen).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Trotzdem anlegen' }));
+    await waitFor(() => expect(anlegen).toHaveBeenCalled());
+    expect(anlegen.mock.calls[0][2]).toBe(`${jahr}-01-15`);
+  });
+
+  it('ein Geburtsdatum in der Zukunft wird nicht angenommen', async () => {
+    await ausfuellen('Max Neu', 'max@perl.at', false);
+    fireEvent.change(screen.getByLabelText(/^Geburtsdatum/), { target: { value: '2099-01-01' } });
+    await anlegenKlicken();
+    expect(await screen.findByText(/Das Geburtsdatum liegt in der Zukunft/)).toBeInTheDocument();
+    expect(anlegen).not.toHaveBeenCalled();
+  });
+
+  it('gleich bleibt: ohne Lehre geht die Anlage auch ohne Geburtsdatum', async () => {
+    await ausfuellen('Max Neu', 'max@perl.at', false);
+    await anlegenKlicken();
+    await waitFor(() => expect(anlegen).toHaveBeenCalled());
+    expect(anlegen.mock.calls[0][2] ?? null).toBeNull();
+  });
+});

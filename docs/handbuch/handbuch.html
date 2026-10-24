@@ -687,10 +687,25 @@
     <div class="stempel">
       <span>Stand <b>22.10.2026</b></span>
       <span>Fassung <b>Lot v2 · bestätigt</b></span>
-      <span>Automatische Prüfungen <b>5.497 Modulprüfungen · 103 Browserwege · 7 Linkprüfungen</b></span>
+      <span>Automatische Prüfungen <b>5.504 Modulprüfungen · 104 Browserwege · 7 Linkprüfungen</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
+
+  <section id="geburtsdatum-anlage">
+    <div class="abschnittskopf">
+      <h2>24. Oktober: Geburtsdatum bei der Anlage</h2>
+      <p class="frage">Das Geburtsdatum kam erst in der Benutzerakte. Bis es nachgetragen war, galten für einen jugendlichen Lehrling die Grenzen des Jugendschutzes nicht.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Im Formular „Benutzer anlegen“<span class="neu">neu</span></h3>
+        <p>Unter der Einstufung steht das <strong>Geburtsdatum</strong>. Bei einem Lehrling ist es Pflicht; bei allen anderen freiwillig — auch ein Helfer kann unter 18 sein. Ist die Person unter 18 und liegt das Soll über 8 Stunden am Tag oder 40 in der Woche, fragt die App vor dem Anlegen nach, wie in der Akte; angelegt wird auf „Trotzdem anlegen“. Danach gelten die Grenzen für Jugendliche vom ersten Tag an: Rückfrage beim Buchen, Fälle in der Mitarbeiterübersicht, Hinweis auf der Startseite.</p>
+        <p>Scheitert das Speichern des Geburtsdatums (etwa ohne Netz), sagt es die Seite; ein zweiter Versuch im selben Fenster nimmt dasselbe Konto und schreibt es nach. Geändert wird es wie bisher in der Akte.</p>
+        <p class="wer">Geschäftsführung · Administrator</p>
+      </div>
+    </div>
+  </section>
 
   <section id="vollzeit-verteilung">
     <div class="abschnittskopf">
@@ -1467,7 +1482,7 @@
         <p><strong>Zeiterfassung:</strong> Bucht ein Lehrling selbst — oder das Büro für ihn in der Mitarbeiterübersicht — eine Zeit über der Tagesgrenze, in der Nachtruhe, mit zu kurzer Ruhezeit vor oder nach dem Tag oder über 40 Std. in der Woche, nennt die Maske vor dem Speichern genau diese Fälle; gebucht wird mit „Trotzdem buchen“. Geprüft wird mit denselben Regeln wie in der Mitarbeiterübersicht, samt der Buchungen ringsum.</p>
         <p><strong>Startseite des Lehrlings:</strong> Ein leiser Abschnitt „Grenzen für Jugendliche“ nennt die eigenen Überschreitungen im laufenden und im letzten Monat, mit Verweis auf die Zeiterfassung.</p>
         <p><strong>Vom Büro gebucht, über der Grenze:</strong> Hat das Büro für eine Person unter 18 eine Zeit gebucht und liegt der Tag über 8 Std. oder die Zeit zwischen 20 und 6 Uhr, kann die Person sie <strong>nicht ändern oder löschen</strong> — nur das Büro. Statt „Bearbeiten“ und „Löschen“ steht „vom Büro gebucht“, der Grund hinter dem „i“. Die Datenbank setzt das durch, nicht nur die Oberfläche; wer eine Buchung angelegt hat, merkt sich die Datenbank selbst.</p>
-        <p>Grenzen: Ohne Geburtsdatum ist niemand jugendlich — es gibt dann keinen Hinweis und keine Sperre. Die Sperre kennt nur die Tagesgrenze (8 Std., auch bei anderer Verteilung) und die Nachtruhe; zu kurze Ruhezeit, Woche und Wochenfreizeit meldet die Maske und die Mitarbeiterübersicht, sperren sie aber nicht. Bei Buchungen von vor dem 06.10.2026 ist der Anleger nur bekannt, wenn das Büro sie angelegt und seither niemand geändert hat; sonst bleiben sie frei. Bei der Anlage eines Benutzers fragt Senklot noch nicht nach — das Geburtsdatum wird erst in der Akte eingetragen. Der Hinweis auf der Startseite gilt für die Rolle Mitarbeiter.</p>
+        <p>Grenzen: Ohne Geburtsdatum ist niemand jugendlich — es gibt dann keinen Hinweis und keine Sperre. Die Sperre kennt nur die Tagesgrenze (8 Std., auch bei anderer Verteilung) und die Nachtruhe; zu kurze Ruhezeit, Woche und Wochenfreizeit meldet die Maske und die Mitarbeiterübersicht, sperren sie aber nicht. Bei Buchungen von vor dem 06.10.2026 ist der Anleger nur bekannt, wenn das Büro sie angelegt und seither niemand geändert hat; sonst bleiben sie frei. Seit 24.10.2026 wird das Geburtsdatum schon beim Anlegen eingetragen, mit derselben Rückfrage wie in der Akte. Der Hinweis auf der Startseite gilt für die Rolle Mitarbeiter.</p>
         <p class="wer">Geschäftsführung, Administrator (Akte); Büro und Lehrlinge (Zeiterfassung); Lehrlinge unter 18 (Startseite)</p>
       </div>
       <div class="bereich">
@@ -1620,7 +1635,7 @@
       <div class="bereich">
         <h3>Arbeitszeitgrenzen<span class="neu">neu</span></h3>
         <p>Die Mitarbeiterübersicht hat je Monat die Karte <strong>„Arbeitszeitgrenzen“</strong>. Sie prüft, was gebucht ist: höchstens 12 Std. am Tag und 60 in der Woche (§ 9 AZG), 11 Std. Ruhezeit zwischen zwei Arbeitstagen (§ 12 AZG) und 36 Std. Ruhe je Kalenderwoche (§§ 3, 4 ARG). Für Jugendliche unter 18 gelten 8 Std. am Tag und 40 in der Woche samt Berufsschule, 12 Std. Ruhezeit, keine Arbeit zwischen 20 und 6 Uhr und zwei freie Tage am Stück mit dem Sonntag (KJBG). Je Fall steht, was überschritten ist und nach welchem Paragraphen; mit „Begründen“ hält das Büro fest, warum (etwa Notdienst). Wer und wann begründet hat, setzt die Datenbank. Ohne Fall steht ein Satz. Im Supportzugang fehlt die Karte, weil Zeitbuchungen dort verschlossen sind.</p>
-        <p>Wer unter 18 ist, weiß die App aus dem <strong>Geburtsdatum</strong> in der Benutzerakte (eigene Karte, pflegen Geschäftsführung und Administration). Es liegt getrennt von den übrigen Stammdaten: sehen können es nur die Person selbst sowie Büro und Leitung. Es steht in der Datenauskunft und geht mit der Löschung nach DSGVO; die Begründungen bleiben wie die Zeitbuchungen für die Aufbewahrungsfrist.</p>
+        <p>Wer unter 18 ist, weiß die App aus dem <strong>Geburtsdatum</strong> in der Benutzerakte (eigene Karte, pflegen Geschäftsführung und Administration); seit 24.10.2026 wird es schon beim Anlegen eingetragen (siehe „Geburtsdatum bei der Anlage“). Es liegt getrennt von den übrigen Stammdaten: sehen können es nur die Person selbst sowie Büro und Leitung. Es steht in der Datenauskunft und geht mit der Löschung nach DSGVO; die Begründungen bleiben wie die Zeitbuchungen für die Aufbewahrungsfrist.</p>
         <p><strong>Seit 10.10.2026 auch Ruhepausen und der Durchschnitt.</strong> Wer an einem Tag mehr als 6 Std. arbeitet, braucht mindestens 30 Min. Pause (§ 11 AZG), Jugendliche schon ab 4,5 Std. (§ 15 KJBG). Als Pause zählt die eingetragene Pause und jede Lücke von mindestens 10 Min. zwischen zwei Buchungen desselben Tages — wer 07:00–12:00 und 12:30–16:00 bucht, hat Mittag gemacht. Geprüft wird ein Tag erst, wenn er vorbei ist, und nur, wenn alle Buchungen des Tages Uhrzeiten haben; vor dem Speichern fragt die App nicht nach der Pause. Dazu im Schnitt von 17 Wochen höchstens 48 Std. je Woche (§ 9 Abs 4 AZG), für jede Woche des Monats mit den 16 Wochen davor. Urlaub, Krankenstand und andere ganze Tage mit Gutschrift zählen dabei neutral; Feiertage und Zeitausgleich mit null. Beide Fälle begründet das Büro wie die übrigen. Grenze: Eine Lücke, in der gefahren wurde, hält die App für Pause.</p>
         <p><strong>Durchrechnungszeitraum je Betrieb (seit 10.10.2026).</strong> Unter Einstellungen › Personal, Karte „Nachtzeit und Überstunden“, stellt die Geschäftsführung ein, über wie viele Wochen der Schnitt von 48 Std. gilt: ab Werk 17 Wochen wie im Gesetz, bis 52 Wochen, wenn der Kollektivvertrag es zulässt. Die Karte „Arbeitszeitgrenzen“ rechnet und benennt den Fall dann mit diesem Zeitraum („Schnitt der 26 Wochen bis KW …“) und holt die Wochen davor entsprechend weiter zurück.</p>
         <p><em>Nicht geprüft:</em> Gleitzeit und Durchrechnung, Ausnahmen aus dem Kollektivvertrag. Die Werte des KJBG sind seit 18.10. am Gesetz nachgeprüft (Abschnitt „18. Oktober“). Dazu richtiggestellt: In der Benutzerakte stand „Gelöscht wird ein Benutzer nie“, obwohl dieselbe Seite die Löschung nach DSGVO anbietet.</p>
@@ -3392,7 +3407,7 @@
 
   <footer class="fuss">
     <span>Senklot · Betriebssoftware für Installationsbetriebe in Österreich</span>
-    <span>Automatische Prüfungen: 5.497 Modulprüfungen · 103 Browserwege · 7 Linkprüfungen</span>
+    <span>Automatische Prüfungen: 5.504 Modulprüfungen · 104 Browserwege · 7 Linkprüfungen</span>
     <span>Stand 22.10.2026</span>
   </footer>
 
