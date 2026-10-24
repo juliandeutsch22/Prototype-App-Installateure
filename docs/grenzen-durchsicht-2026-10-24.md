@@ -23,7 +23,6 @@ Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 
 | # | Grenze (Fundstelle) | Was fehlt | Vorschlag |
 |---|---|---|---|
-| A13 | Belegarchiv (ZIP): bei vielen Jahren groß im Speicher des Browsers, „dann ein einzelnes Jahr wählen“ (Stand 15.5) | Skaliert nicht mit dem Bestand | Gestreamt in Teilen erzeugen oder serverseitig bauen |
 | A14 | Signierte Dokumentlinks: ein ausgegebener Link bleibt bis zum Ablauf seiner Stunde nutzbar, auch nach „nur Büro“ (Prüfbericht 13.10, Punkt 7) | Sofortiger Widerruf | Kurze Gültigkeit beim Öffnen oder Abruf über eine Funktion, die die Freigabe jedes Mal prüft |
 | A15 | Sonderurlaub nur mit eingeschaltetem Modul Urlaub (Stand 10.3) | Pflegefreistellung ist ein gesetzlicher Anspruch, unabhängig davon, ob ein Betrieb Urlaub in Senklot führt | Sonderurlaub auch ohne Modul Urlaub erreichbar machen (zu prüfen: wo er dann steht) |
 | A16 | Lange Namen brechen am Tablet mitten im Wort, „bräuchte eine Trennbibliothek; bewusst nicht“ (Stand 13 G4, 15.2) | Die Browser trennen Deutsch selbst (`hyphens: auto` mit `lang="de"`), an zwei Stellen schon im Einsatz | Für die Tagesspalten übernehmen und am Tablet nachsehen |
@@ -105,6 +104,7 @@ Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 | A10 Zeit teilen: über Mitternacht nicht möglich (Stand 15.6) | T-38 |
 | A11 Zeit einfügen: nur beim Anlegen und nicht über Mitternacht (Stand 15.10) | T-39 |
 | A12 Firmenbuch nur an der Rechtsform im Namen erkannt (Stand 12.2) | T-40 |
+| A13 Belegarchiv (ZIP) über viele Jahre im Speicher des Browsers (Stand 15.5) | T-41 |
 
 ## Wie es weitergeht
 

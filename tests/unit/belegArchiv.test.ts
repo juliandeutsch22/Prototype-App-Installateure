@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
+import { ZipSchreiber } from '@/lib/zip';
 
 // Wie in `rechnungEmpfaenger`: unter Node ist der Default von `jspdf-autotable` keine Funktion.
 vi.mock('jspdf-autotable', () => ({
@@ -415,5 +416,23 @@ describe('Belegarchiv mit den Firmendaten der Ausstellung (24.10.2026)', () => {
     await expect(belegArchiv({
       company: heute, kunden: [], von: '2026-01-01', bis: '2026-12-31', rechnungen: [rechnung({ ausstellerStand: 'st-1' })],
     })).rejects.toThrow(/Firmendaten/);
+  });
+});
+
+/*
+  DATEI FÜR DATEI (A13, 24.10.2026): jedes PDF geht sofort ins Archiv,
+  nicht erst gesammelt — im Speicher der Seite liegt nie mehr als eines.
+*/
+describe('Belegarchiv Datei für Datei', () => {
+  it('jedes PDF steht schon im Archiv, bevor das nächste entsteht', async () => {
+    const hinein = vi.spyOn(ZipSchreiber.prototype, 'hinzufuegen');
+    const imArchivBeiSchritt: number[] = [];
+    await belegArchiv({
+      company: firma, rechnungen: BESTAND, kunden: [], von: '2026-01-01', bis: '2026-12-31',
+      fortschritt: () => imArchivBeiSchritt.push(hinein.mock.calls.length),
+    });
+    hinein.mockRestore();
+    // Schritt 1: RE-0001 ist drin; Schritt 2: RE-0002 hat keine Positionen; dann RE-0003, RE-0004, zwei Stornos (eine ohne Nummer).
+    expect(imArchivBeiSchritt).toEqual([1, 1, 2, 3, 4, 4]);
   });
 });
