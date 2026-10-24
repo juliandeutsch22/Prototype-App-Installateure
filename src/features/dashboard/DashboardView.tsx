@@ -110,7 +110,8 @@ export default function DashboardView() {
           material: materialAn,
           scheine: scheineAn && r === 'monteur',
           kennzahlen: r === 'monteur',
-          jugendschutz: r === 'monteur',
+          // Nach dem Alter, nicht nach der Rolle (A8, 24.10.2026): auch ein Bürolehrling ist jugendlich.
+          jugendschutz: true,
         })]);
       }
       if (materialAn && canProcessOrders(user.role)) {

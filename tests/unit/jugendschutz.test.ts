@@ -284,6 +284,25 @@ describe('M2 — Startseite des Lehrlings', () => {
     expect(seite.abschnitte.map((x) => x.key)).toContain('jugendschutz');
   });
 
+  /* A8 (24.10.2026): nach dem Alter, nicht nach der Rolle. */
+  it('steht auf jeder Startseite — Verwaltung, Buchhaltung, Projektleitung als Abschnitt, Leitung als Thema', () => {
+    const umfeld = (rolle: 'verwaltung' | 'buchhaltung' | 'projektleitung' | 'leitung') => ({
+      rolle, heute: '2026-10-06', jetzt: 0, darf: () => true, urlaubEntscheiden: false,
+    });
+    for (const rolle of ['verwaltung', 'buchhaltung', 'projektleitung'] as const) {
+      const seite = startseite({ eigeneGrenzfaelle: faelle }, umfeld(rolle));
+      expect(seite.abschnitte.map((x) => x.key), rolle).toContain('jugendschutz');
+    }
+    const leitung = startseite({ eigeneGrenzfaelle: faelle }, umfeld('leitung'));
+    const zeilen = leitung.abschnitte.flatMap((x) => x.zeilen);
+    expect(zeilen.find((z) => z.key === 'jugendschutz')?.titel).toMatch(/Überschreitung(en)? der Grenzen für Jugendliche/);
+    // Gleich bleibt: ohne Fälle nirgends etwas.
+    for (const rolle of ['verwaltung', 'buchhaltung', 'projektleitung', 'leitung'] as const) {
+      const leer = startseite({ eigeneGrenzfaelle: [] }, umfeld(rolle));
+      expect(leer.abschnitte.flatMap((x) => [x.key, ...x.zeilen.map((z) => z.key)]), rolle).not.toContain('jugendschutz');
+    }
+  });
+
   it('Gegenprobe: ohne Fälle kein Abschnitt', () => {
     expect(jugendschutzEigen([])).toBeNull();
     const seite = startseite({ eigeneGrenzfaelle: [] }, {

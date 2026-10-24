@@ -138,6 +138,17 @@ function monteur(d: StartDaten, u: Umfeld): Startseite {
 }
 
 /** Die eigenen Tage ohne Buchung, für Rollen, die ein Zeitkonto führen, aber nicht draußen sind. */
+/*
+  DIE GRENZEN FÜR JUGENDLICHE AUF JEDER STARTSEITE (A8, 24.10.2026). Bisher
+  nur beim Monteur — ein Lehrling im Büro (Verwaltung, Buchhaltung) sah
+  seine Überschreitungen nicht. Ob jemand jugendlich ist, sagt das
+  Geburtsdatum; ohne Fälle steht nichts da. Zuletzt und leise, wie beim
+  Monteur: zu tun hat die Person nichts.
+*/
+function eigenerJugendschutz(d: StartDaten, u: Umfeld): Abschnitt | null {
+  return erlaubt(jugendschutzEigen(d.eigeneGrenzfaelle ?? []), u);
+}
+
 function eigeneTage(d: StartDaten, u: Umfeld): Abschnitt | null {
   const a = tageOhneBuchung(d.fehlendeTage ?? [], d.planNachTag);
   return a ? erlaubt({ ...a, titel: 'Deine Tage ohne Buchung' }, u) : null;
@@ -153,6 +164,7 @@ function verwaltung(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(bestelltUeberfaellig(orders, u.heute), u),
     erlaubt(abholbereitAlt(orders, u.jetzt), u),
     erlaubt(unterMindestmenge(d.knapp ?? []), u),
+    eigenerJugendschutz(d, u),
   ]);
   const lieferungen = u.darf(ZIEL.anforderungen('lieferung-heute'))
     ? lieferungenHeute(orders, d.lagerPosten ?? [], u.heute)
@@ -220,6 +232,7 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
     u.urlaubEntscheiden ? erlaubt(urlaubsantraege(d.antraege ?? []), u) : null,
     // Unbezahlten Urlaub entscheidet die Buchhaltung nicht — er steht hier nicht.
     u.freistellungBestaetigen ? erlaubt(freistellungsantraege(d.freistellungen ?? [], false), u) : null,
+    eigenerJugendschutz(d, u),
   ]);
   const zahlungen = zahlungenHeute(d.zahlungenHeute ?? []);
   return {
@@ -302,6 +315,7 @@ function projektleitung(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(eilanforderungen(d.orders ?? []), u),
     erlaubt(endeUeberschritten(d.projekte ?? [], u.heute), u),
     erlaubt(ohneProjektleitung(d.projekte ?? []), u),
+    eigenerJugendschutz(d, u),
   ]);
   return { abschnitte, kennzahlen: baustellenKennzahlen(d, u, true), heute: leitungHeute(d, u) };
 }
@@ -643,6 +657,17 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       titel: 'Firmendaten für Rechnungen unvollständig',
       detail: `fehlt: ${firmaFehlt.join(', ')}`,
       status: { text: 'ergänzen', ton: 'leise' },
+    }));
+  }
+
+  // Auch die Leitung kann unter 18 sein (etwa ein Administrator in der Lehre) — ein leises Thema.
+  const jugend = (d.eigeneGrenzfaelle ?? []).filter((f) => f.jugendlich);
+  if (jugend.length) {
+    themen.push(wenn(ZIEL.zeit, {
+      key: 'jugendschutz', wann: 'woche',
+      titel: `${anzahl(jugend.length, 'Überschreitung', 'Überschreitungen')} der Grenzen für Jugendliche`,
+      detail: 'eigene Zeiten, laufender und letzter Monat',
+      status: { text: 'über der Grenze', ton: 'leise' },
     }));
   }
 

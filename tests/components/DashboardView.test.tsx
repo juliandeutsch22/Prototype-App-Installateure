@@ -906,6 +906,28 @@ describe('Startseite — Lehrling unter 18 (Runde 3, M2)', () => {
   });
 });
 
+/*
+  NACH DEM ALTER, NICHT NACH DER ROLLE (A8, 24.10.2026): ein Lehrling im Büro
+  sieht seine Überschreitungen ebenso wie ein Monteur.
+*/
+describe('Startseite — Bürolehrling unter 18', () => {
+  it('in der Verwaltung: derselbe leise Abschnitt', async () => {
+    rolle.wert = 'Verwaltung';
+    geburt.wert = '2010-03-15';
+    zeichne();
+    const karte = await karteMit('Grenzen für Jugendliche');
+    expect(within(karte).getByText(/8:30 Std\. am 01\.09\. — höchstens 8 Std\./)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: erwachsen in der Verwaltung — kein Abschnitt', async () => {
+    rolle.wert = 'Verwaltung';
+    geburt.wert = '1990-01-01';
+    zeichne();
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    expect(screen.queryByText('Grenzen für Jugendliche')).not.toBeInTheDocument();
+  });
+});
+
 function BuchungsZiel() {
   return <output data-testid="buchungsziel">{JSON.stringify(useLocation().state)}</output>;
 }
