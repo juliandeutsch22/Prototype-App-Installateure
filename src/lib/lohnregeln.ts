@@ -123,6 +123,11 @@ export interface UeberstundenRegel {
    * leistet darüber zuerst Mehrarbeit nach § 19d AZG, keine Überstunden.
    */
   vollzeitStunden: number;
+  /**
+   * Die Stunden einer Vollzeit je Wochentag (A6, 24.10.2026) — die Grenze
+   * der Mehrarbeit je Tag. `null`: ein Fünftel der Woche an jedem Tag.
+   */
+  vollzeitVerteilung: Record<string, number> | null;
 }
 
 /** Ab Werk: die Normalarbeitszeit des KV Metallgewerbe (Abschnitt VI Pkt 1). */
@@ -134,18 +139,40 @@ export function vollzeitVon(wert: unknown): number {
   return wert != null && Number.isFinite(n) && n > 0 && n <= 40 ? n : VOLLZEIT_VORGABE;
 }
 
+/** Höchstens 10 Std. Normalarbeitszeit an einem Tag (§ 4 AZG). */
+export const VOLLZEIT_TAG_HOECHSTENS = 10;
+
+/**
+ * Die Verteilung, wenn sie als Woche aufgeht — dieselbe Prüfung wie in der
+ * Datenbank (`app.vollzeit_verteilung_gueltig`). Eine, die nicht aufgeht,
+ * gilt als nicht eingestellt: dann ein Fünftel je Tag, wie ab Werk.
+ */
+export function vollzeitVerteilungVon(wert: unknown, wocheStunden: number): Record<string, number> | null {
+  if (!wert || typeof wert !== 'object' || Array.isArray(wert)) return null;
+  let summe = 0;
+  const tage: Record<string, number> = {};
+  for (const [tag, h] of Object.entries(wert as Record<string, unknown>)) {
+    if (!/^[0-6]$/.test(tag) || typeof h !== 'number' || !Number.isFinite(h) || h < 0 || h > VOLLZEIT_TAG_HOECHSTENS) return null;
+    tage[tag] = h;
+    summe += h;
+  }
+  return Math.abs(summe - wocheStunden) < 0.01 ? tage : null;
+}
+
 export function ueberstundenRegelVon(
   company: Pick<
     Company,
     'ueberstundenModell' | 'ueberstundenGrenze' | 'ueberstundenHundertSonnFeiertag' | 'ueberstundenKvMetall' | 'vollzeitWochenstunden'
-  > | null | undefined,
+  > & Partial<Pick<Company, 'vollzeitVerteilung'>> | null | undefined,
 ): UeberstundenRegel {
+  const vollzeitStunden = vollzeitVon(company?.vollzeitWochenstunden);
   return {
     modell: company?.ueberstundenModell === 'tagesgrenze' ? 'tagesgrenze' : 'zeitkonto',
     grenze: company?.ueberstundenGrenze === 'zehn' ? 'zehn' : 'tagessoll',
     hundertSonnFeiertag: company?.ueberstundenHundertSonnFeiertag === true,
     kvMetall: company?.ueberstundenKvMetall !== false,
-    vollzeitStunden: vollzeitVon(company?.vollzeitWochenstunden),
+    vollzeitStunden,
+    vollzeitVerteilung: vollzeitVerteilungVon(company?.vollzeitVerteilung, vollzeitStunden),
   };
 }
 

@@ -23,7 +23,6 @@ Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 
 | # | Grenze (Fundstelle) | Was fehlt | Vorschlag |
 |---|---|---|---|
-| A6 | Teilzeit-Mehrarbeit: die Vollzeit eines Tages ist ein Fünftel der Woche (T-1) | Bei ungleich verteilter Woche (vier lange Tage) entsteht zu früh eine Überstunde | Vollzeit je Tag aus der vereinbarten Verteilung (Tagessoll je Wochentag) |
 | A7 | Jugendschutz: bei der Anlage eines Benutzers keine Rückfrage, das Geburtsdatum kommt erst in der Akte (Stand 12.3) | Ein Lehrling ist bis zur Nachtragung nicht geschützt | Geburtsdatum bei der Anlage abfragen (Pflicht bei Rolle Lehrling/Einstufung Lehrling) |
 | A8 | Jugendschutz: der Hinweis auf der Startseite steht nur bei der Rolle Mitarbeiter, Bürolehrlinge sehen ihn nicht (Stand 12.3) | Ein jugendlicher Lehrling im Büro | Nach Alter statt nach Rolle zeigen |
 | A9 | Jugendschutz: ob kürzere Tage an der Wochenfreizeit liegen (§ 11 Abs 2 KJBG), prüft die App nicht; die Wegzeit Schule–Betrieb (§ 11 Abs 7) kennt sie nicht (Stand 12.3, `arbeitszeitGrenzen.ts`) | Zwei gesetzliche Prüfungen | Lage der kürzeren Tage prüfen; Wegzeit beim Berufsschultag eintragbar machen |
@@ -105,6 +104,7 @@ Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 | A3 Ausgangsbuch ohne den Tag der Ablöse (Stand 15.4) | T-30 |
 | A4 Retoure auf dem Namen des Lagers statt des Monteurs (T-16) | T-31 |
 | A5 Stichtag: Schein als Ganzes nach seinem Datum statt je Zeitzeile (T-17) | T-32 |
+| A6 Teilzeit-Mehrarbeit: Vollzeit eines Tages immer ein Fünftel der Woche (T-1) | T-33 |
 
 ## Wie es weitergeht
 

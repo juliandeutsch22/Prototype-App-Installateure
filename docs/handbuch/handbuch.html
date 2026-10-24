@@ -687,10 +687,26 @@
     <div class="stempel">
       <span>Stand <b>22.10.2026</b></span>
       <span>Fassung <b>Lot v2 · bestätigt</b></span>
-      <span>Automatische Prüfungen <b>5.487 Modulprüfungen · 103 Browserwege · 7 Linkprüfungen</b></span>
+      <span>Automatische Prüfungen <b>5.497 Modulprüfungen · 103 Browserwege · 7 Linkprüfungen</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
+
+  <section id="vollzeit-verteilung">
+    <div class="abschnittskopf">
+      <h2>24. Oktober: Vollzeit je Wochentag</h2>
+      <p class="frage">Für die Mehrarbeit in Teilzeit galt als Vollzeit eines Tages immer ein Fünftel der Woche. Bei vier langen Tagen und einem kurzen Freitag begann die Überstunde am langen Tag zu früh und am Freitag zu spät.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>„Vollzeit ungleich auf die Tage verteilt“<span class="neu">neu</span></h3>
+        <p>Unter Einstellungen › Nachtzeit und Überstunden (Modell „Tagesgrenze“, Überstunden über dem Tagessoll) steht unter „Vollzeit je Woche“ der Haken <strong>„Vollzeit ungleich auf die Tage verteilt“</strong>. Dann trägt der Betrieb die Stunden einer Vollzeit je Wochentag ein, etwa Montag bis Donnerstag 8,5 und Freitag 4,5. Die Tage müssen die Vollzeit je Woche ergeben, und kein Tag mehr als 10 Stunden (§ 4 AZG); sonst wird nicht gespeichert, und auch die Datenbank nimmt es nicht an.</p>
+        <p>Mehrarbeit in Teilzeit (§ 19d AZG) zählt dann je Tag bis zur Vollzeit <strong>dieses Wochentags</strong>: wer bei 4 Stunden Soll am Dienstag 8 Stunden arbeitet, hat 4 Stunden Mehrarbeit und keine Überstunde; am Freitag sind es nur 0,5 Stunden Mehrarbeit, der Rest sind Überstunden. An einem Tag ohne Vollzeit (etwa Samstag) ist nichts Mehrarbeit. Über die Woche bleibt es bei der Vollzeit je Woche. Das wirkt in Lohn-CSV, beim einzelnen Mitarbeiter und im Stundennachweis.</p>
+        <p>Ohne Haken bleibt alles wie bisher: ein Fünftel der Woche je Tag. Wer die Vollzeit je Woche ändert, passt die Tage mit an.</p>
+        <p class="wer">Geschäftsführung · Administrator</p>
+      </div>
+    </div>
+  </section>
 
   <section id="retoure-wer">
     <div class="abschnittskopf">
@@ -938,7 +954,7 @@
         <h3>Mehrarbeit in Teilzeit<span class="neu">neu</span></h3>
         <p>Beim Modell „Tagesgrenze“ standen bei Teilzeit alle Stunden über dem eigenen Soll als Überstunden da. Nach § 19d AZG ist das zuerst <strong>Mehrarbeit</strong>: bis die Vollzeit eines Tages (ein Fünftel der Wochen-Vollzeit) und der Woche erreicht ist. Sie trägt 25 % — oder nichts, wenn sie im Quartal 1:1 ausgeglichen wird; das weiß erst die Lohnverrechnung. Deshalb steht sie eigens als „Mehrarbeit Teilzeit“ ganz hinten in der Lohn-CSV, beim einzelnen Mitarbeiter und im Stundennachweis, nicht bei den 50 %. Erst darüber beginnen die Überstunden, und an ihnen zählen die Regeln des Kollektivvertrags (etwa 100 % ab der dritten Überstunde). Beispiel bei 20 Wochenstunden und einem Tag mit 8 Stunden: 3,7 Std. Mehrarbeit, 0,3 Std. Überstunde.</p>
         <p><strong>Einstellung:</strong> „Vollzeit je Woche“ in der Karte „Nachtzeit und Überstunden“ (Einstellungen › Personal), ab Werk 38,5 Std. wie im KV Metallgewerbe, höchstens 40. Wer weniger vereinbart hat, gilt als Teilzeit. Sonn- und Feiertage mit 100 % bleiben ganz bei 100 % (es gilt der höchste Zuschlag). Die Woche vor dem Monatsersten zählt für die Grenze der Woche mit. Bei der Grenze „über 10 Stunden“ (Gleitzeit) gibt es keine Mehrarbeit — die Grenze liegt dort schon über jedem Vollzeittag.</p>
-        <p><strong>Grenzen:</strong> Die Vollzeit eines Tages ist ein Fünftel der Woche; wer an vier Tagen länger arbeitet, hat damit früher Überstunden — zugunsten des Arbeitnehmers. Ob Mehrarbeit im Quartal ausgeglichen wird und deshalb ohne Zuschlag bleibt, entscheidet die Lohnverrechnung. Ein Kollektivvertrag, der für Mehrarbeit selbst etwas anderes regelt (§ 19d Abs 3f), steht nicht in Senklot.</p>
+        <p><strong>Grenzen:</strong> Die Vollzeit eines Tages ist ein Fünftel der Woche, solange der Betrieb keine Verteilung eingestellt hat; seit 24.10.2026 lässt sie sich je Wochentag angeben (siehe „Vollzeit je Wochentag“). Ob Mehrarbeit im Quartal ausgeglichen wird und deshalb ohne Zuschlag bleibt, entscheidet die Lohnverrechnung. Ein Kollektivvertrag, der für Mehrarbeit selbst etwas anderes regelt (§ 19d Abs 3f), steht nicht in Senklot.</p>
         <p class="wer">Geschäftsführung, Administrator (Einstellungen › Personal) · Lohnverrechnung</p>
       </div>
       <div class="bereich">
@@ -3376,7 +3392,7 @@
 
   <footer class="fuss">
     <span>Senklot · Betriebssoftware für Installationsbetriebe in Österreich</span>
-    <span>Automatische Prüfungen: 5.487 Modulprüfungen · 103 Browserwege · 7 Linkprüfungen</span>
+    <span>Automatische Prüfungen: 5.497 Modulprüfungen · 103 Browserwege · 7 Linkprüfungen</span>
     <span>Stand 22.10.2026</span>
   </footer>
 

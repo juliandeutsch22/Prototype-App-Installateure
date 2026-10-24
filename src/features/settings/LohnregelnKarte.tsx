@@ -6,7 +6,7 @@ import Button from '@/components/Button';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
-import { decktKvNacht, nachtzeitVon, ueberstundenRegelVon } from '@/lib/lohnregeln';
+import { decktKvNacht, nachtzeitVon, ueberstundenRegelVon, VOLLZEIT_TAG_HOECHSTENS } from '@/lib/lohnregeln';
 import { leseZahl } from '@/lib/zahl';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { durchrechnungsWochen } from '@/features/accounting/arbeitszeitGrenzen';
@@ -21,6 +21,12 @@ import { durchrechnungsWochen } from '@/features/accounting/arbeitszeitGrenzen';
  * `docs/recherche-fragenkataloge.md`): die Nachtzeit stimmt, und bei der
  * Tagesgrenze teilt die App 50 und 100 % nach dem KV (ab Werk an).
  */
+/** Die Wochentage, Montag zuerst — Schlüssel wie `Date.getDay()`. */
+const WOCHENTAGE: [string, string][] = [
+  ['1', 'Montag'], ['2', 'Dienstag'], ['3', 'Mittwoch'], ['4', 'Donnerstag'],
+  ['5', 'Freitag'], ['6', 'Samstag'], ['0', 'Sonntag'],
+];
+
 export default function LohnregelnKarte() {
   const { user, company, reloadCompany } = useAuth();
   const toast = useToast();
@@ -34,6 +40,13 @@ export default function LohnregelnKarte() {
   const [vollzeit, setVollzeit] = useState('38,5');
   /** Als Text — das Feld darf beim Tippen kurz leer oder unfertig sein. */
   const [durchrechnung, setDurchrechnung] = useState('17');
+  /*
+    DIE VOLLZEIT JE WOCHENTAG (A6, 24.10.2026) — nur wenn sie ungleich
+    verteilt ist; sonst gilt ein Fünftel der Woche je Tag. Als Text je Tag,
+    Montag zuerst, wie man eine Woche liest.
+  */
+  const [verteilt, setVerteilt] = useState(false);
+  const [tage, setTage] = useState<Record<string, string>>({});
   const [speichert, setSpeichert] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
 
@@ -46,6 +59,10 @@ export default function LohnregelnKarte() {
     setHundert(regel.hundertSonnFeiertag);
     setKvMetall(regel.kvMetall);
     setVollzeit(String(regel.vollzeitStunden).replace('.', ','));
+    setVerteilt(regel.vollzeitVerteilung !== null);
+    setTage(Object.fromEntries(WOCHENTAGE.map(([tag]) => [
+      tag, regel.vollzeitVerteilung?.[tag] ? String(regel.vollzeitVerteilung[tag]).replace('.', ',') : '',
+    ])));
     setDurchrechnung(String(durchrechnungsWochen(company?.durchrechnungWochen)));
   }, [company]);
 
@@ -69,6 +86,25 @@ export default function LohnregelnKarte() {
       setFehler('Die Vollzeit liegt über 0 und höchstens bei 40 Stunden je Woche (§ 3 AZG).');
       return;
     }
+    let verteilung: Record<string, number> | null = null;
+    if (vollzeitStunden != null && verteilt) {
+      verteilung = {};
+      let summe = 0;
+      for (const [tag, name] of WOCHENTAGE) {
+        const roh = (tage[tag] ?? '').trim();
+        const h = roh === '' ? 0 : leseZahl(roh).wert;
+        if (h === null || h < 0 || h > VOLLZEIT_TAG_HOECHSTENS) {
+          setFehler(`${name}: zwischen 0 und ${VOLLZEIT_TAG_HOECHSTENS} Stunden (§ 4 AZG).`);
+          return;
+        }
+        if (h > 0) verteilung[tag] = h;
+        summe += h;
+      }
+      if (Math.abs(summe - vollzeitStunden) >= 0.01) {
+        setFehler(`Die Tage ergeben ${String(Math.round(summe * 100) / 100).replace('.', ',')} Stunden — sie müssen die Vollzeit je Woche ergeben (${String(vollzeitStunden).replace('.', ',')}).`);
+        return;
+      }
+    }
     setSpeichert(true);
     try {
       await updateCompany(user.companyId, {
@@ -79,7 +115,7 @@ export default function LohnregelnKarte() {
         ueberstundenHundertSonnFeiertag: hundert,
         ueberstundenKvMetall: kvMetall,
         durchrechnungWochen: wochen,
-        ...(vollzeitStunden !== undefined ? { vollzeitWochenstunden: vollzeitStunden } : {}),
+        ...(vollzeitStunden != null ? { vollzeitWochenstunden: vollzeitStunden, vollzeitVerteilung: verteilung } : {}),
       });
       await reloadCompany();
       toast.success('Nachtzeit und Überstunden gespeichert');
@@ -111,7 +147,10 @@ export default function LohnregelnKarte() {
           Nachtarbeitszulage: „davon Nacht als Überstunde“ sagt, wie viele Nachtstunden das sind. Für Angestellte gilt ein anderer
           Kollektivvertrag: bei ihnen bleibt es bei 50 % und dem Schalter für Sonn- und Feiertage. Wer
           weniger als die Vollzeit vereinbart hat, leistet über dem eigenen Soll zuerst Mehrarbeit (§ 19d
-          AZG): bis zur Vollzeit eines Tages (ein Fünftel der Woche) und der Woche. Sie steht als
+          AZG): bis zur Vollzeit eines Tages und der Woche. Die Vollzeit eines Tages ist ein Fünftel der
+          Woche; ist sie im Betrieb ungleich verteilt (etwa vier lange Tage und ein kurzer Freitag), gilt
+          die Verteilung, die hier je Wochentag steht — an einem Tag ohne Vollzeit ist dann nichts
+          Mehrarbeit. Sie steht als
           „Mehrarbeit Teilzeit“ eigens in Lohn-CSV und Stundennachweis, nicht bei den Überstunden — sie
           trägt 25 % oder nichts, wenn sie im Quartal 1:1 ausgeglichen wird; das entscheidet die
           Lohnverrechnung. Erst darüber beginnen die Überstunden. Der
@@ -162,6 +201,27 @@ export default function LohnregelnKarte() {
           />
         )}
       </FormGrid>
+      {vollzeitSichtbar && (
+        <div className="mt-3 flex flex-col gap-2">
+          <CheckboxField
+            id="vollzeitVerteilt"
+            label="Vollzeit ungleich auf die Tage verteilt"
+            checked={verteilt}
+            onChange={(e) => setVerteilt(e.target.checked)}
+          />
+          {verteilt && (
+            <FormGrid>
+              {WOCHENTAGE.map(([tag, name]) => (
+                <InputField
+                  key={tag} id={`vollzeitTag${tag}`} label={`${name} (Std.)`}
+                  inputMode="decimal"
+                  value={tage[tag] ?? ''} onChange={(e) => setTage((alt) => ({ ...alt, [tag]: e.target.value }))}
+                />
+              ))}
+            </FormGrid>
+          )}
+        </div>
+      )}
       {/*
         KÜRZER ALS 22–6 UHR (18.10.2026). Unter dem KV Metallgewerbe steht die
         Zulage für 22 bis 6 Uhr zu, und abweichen darf ein Betrieb nur zu
