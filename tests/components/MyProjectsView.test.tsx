@@ -43,7 +43,8 @@ vi.mock('@/lib/db/baustellenDokumente', () => ({
     if (plaeneScheitern) throw new Error('kein Netz');
     return plaene.wert.filter((d) => ids.includes(d.projectId));
   }),
-  dokumentAdressen: vi.fn(async (d: { pfad: string }[]) => new Map(d.map((x) => [x.pfad, `https://speicher/${x.pfad}`]))),
+  dokumentAdresse: vi.fn(async (d: { pfad: string }) => `https://speicher/${d.pfad}`),
+  dokumentBild: vi.fn(async () => new Blob(['x'], { type: 'image/jpeg' })),
   GUELTIG_SEKUNDEN: 3600,
 }));
 
@@ -181,10 +182,10 @@ describe('Die Pläne der Baustelle', () => {
       { id: 'd2', projectId: 'p1', pfad: 'baustellen/perl/p1/b.jpg', dateiname: 'Foto Schacht.jpg', mime: 'image/jpeg', bytes: 300_000 },
     ];
     render(<MyProjectsView />);
-    const link = await screen.findByRole('link', { name: 'Grundriss EG.pdf' });
+    const link = await screen.findByRole('button', { name: 'Grundriss EG.pdf' });
     const karte = link.closest('section')!;
     expect(within(karte).getByText(/Familie Huber/)).toBeInTheDocument();
-    expect(within(karte).getByRole('link', { name: 'Foto Schacht.jpg' })).toBeInTheDocument();
+    expect(within(karte).getByRole('button', { name: 'Foto Schacht.jpg' })).toBeInTheDocument();
     expect(within(karte).getByText(/2,4 MB/)).toBeInTheDocument();
     // Die zweite Baustelle hat keine Pläne — und damit auch keine Rubrik.
     expect(screen.getAllByText('Pläne und Dokumente')).toHaveLength(1);

@@ -144,7 +144,7 @@ mehrfach gezählt.
 7. **Signierte Dokumentlinks:** Ein zuvor ausgegebener Link kann bis zum
    Ablauf seiner Stunde nutzbar bleiben, auch nach Umschalten auf „nur
    Büro“. Sofortiger Widerruf wäre ein gesonderter Abrufweg, kein Teil
-   dieser Fehlerbehebung.
+   dieser Fehlerbehebung. *Seit 24.10.2026 erledigt (T-42, A14): die Adresse entsteht erst beim Antippen und gilt eine Minute; die Vorschau holt Bilder mit der Anmeldung.*
 
 Zusätzliche Produktvorhaben und bewusste Grenzen stehen weiterhin in
 `offene-punkte.md` und im Projektstand; sie werden durch diese Änderungen

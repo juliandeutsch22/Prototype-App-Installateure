@@ -131,7 +131,6 @@ export default function BaustellenPlaene({
       ) : (
         <PlaeneListe
           dokumente={dokumente}
-          adressen={stand.adressen}
           onLoeschen={darfAendern ? setWeg : undefined}
           onNurBuero={darfAendern ? (d, wert) => void nurBueroSetzen(d, wert) : undefined}
         />

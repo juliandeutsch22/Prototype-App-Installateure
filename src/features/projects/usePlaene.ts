@@ -1,23 +1,24 @@
 import { useCallback, useEffect, useState } from 'react';
-import { dokumentAdressen, listDokumente, GUELTIG_SEKUNDEN } from '@/lib/db/baustellenDokumente';
+import { listDokumente } from '@/lib/db/baustellenDokumente';
 import type { BaustellenDokument } from '@/types';
 import type { WithId } from '@/lib/db/core';
 
 export type PlaeneStand =
   | { zustand: 'laedt' }
   | { zustand: 'fehler' }
-  | { zustand: 'bereit'; dokumente: WithId<BaustellenDokument>[]; adressen: Map<string, string> };
+  | { zustand: 'bereit'; dokumente: WithId<BaustellenDokument>[] };
 
 /**
- * Die Pläne einer oder mehrerer Baustellen — samt Adressen zum Öffnen.
+ * Die Pläne einer oder mehrerer Baustellen.
  *
  * EINE ABFRAGE FÜR ALLE BAUSTELLEN AUF DEM SCHIRM, nicht eine je Karte: der
  * Einsatzplan zeigt eine Woche, und dieselbe Baustelle kommt darin fünfmal
  * vor.
  *
- * DIE ADRESSEN GELTEN EINE STUNDE und werden kurz davor erneuert. Wer den
- * Einsatzplan morgens öffnet und mittags auf den Plan tippt, soll nicht vor
- * „abgelaufen" stehen.
+ * OHNE ADRESSEN (A14, 24.10.2026): die Adresse zum Öffnen entsteht erst beim
+ * Antippen (`PlaeneListe`) — so prüft der Speicher die Freigabe jedes Mal,
+ * und auch wer den Einsatzplan morgens öffnet und mittags tippt, steht nicht
+ * vor „abgelaufen“.
  */
 export function usePlaene(companyId: string | undefined, projectIds: string[]) {
   const [stand, setStand] = useState<PlaeneStand>({ zustand: 'laedt' });
@@ -29,25 +30,21 @@ export function usePlaene(companyId: string | undefined, projectIds: string[]) {
     if (!companyId) return;
     const ids = schluessel ? schluessel.split('|') : [];
     if (ids.length === 0) {
-      setStand({ zustand: 'bereit', dokumente: [], adressen: new Map() });
+      setStand({ zustand: 'bereit', dokumente: [] });
       return;
     }
     let weg = false;
     const holen = async () => {
       try {
         const dokumente = await listDokumente(companyId, ids);
-        const adressen = await dokumentAdressen(dokumente);
-        if (!weg) setStand({ zustand: 'bereit', dokumente, adressen });
+        if (!weg) setStand({ zustand: 'bereit', dokumente });
       } catch {
         if (!weg) setStand({ zustand: 'fehler' });
       }
     };
     void holen();
-    // Zehn Minuten vor Ablauf erneuern.
-    const takt = window.setInterval(() => void holen(), (GUELTIG_SEKUNDEN - 600) * 1000);
     return () => {
       weg = true;
-      window.clearInterval(takt);
     };
   }, [companyId, schluessel, versuch]);
 

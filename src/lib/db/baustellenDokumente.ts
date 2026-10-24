@@ -7,12 +7,13 @@
 export {
   listDokumente,
   dokumentHochladen,
-  dokumentAdressen,
+  dokumentAdresse,
+  dokumentBild,
   dokumentLoeschen,
   dokumentNurBueroSetzen,
   dateiPruefen,
   dateiTyp,
   ERLAUBTE_TYPEN,
   HOECHSTENS_BYTES,
-  GUELTIG_SEKUNDEN,
+  OEFFNEN_SEKUNDEN,
 } from './pg/baustellenDokumente';

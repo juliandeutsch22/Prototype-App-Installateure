@@ -20,8 +20,8 @@ vi.mock('@/lib/db/baustellenDokumente', () => ({
   dokumentLoeschen: vi.fn(),
   dateiPruefen: () => null,
   listDokumente: vi.fn(async () => vorhanden),
-  dokumentAdressen: vi.fn(async () => new Map()),
-  GUELTIG_SEKUNDEN: 3600,
+  dokumentAdresse: vi.fn(async () => 'https://speicher/x'),
+  dokumentBild: vi.fn(async () => new Blob(['x'])),
 }));
 
 const { default: BaustellenPlaene } = await import('@/features/projects/BaustellenPlaene');

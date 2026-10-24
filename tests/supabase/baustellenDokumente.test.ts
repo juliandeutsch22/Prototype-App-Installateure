@@ -194,13 +194,28 @@ describe('Wer die Pläne sieht', () => {
     expect(new Set(alle.map((d) => d.projectId))).toEqual(new Set([baustelle, andereBaustelle]));
   });
 
-  it('gibt Adressen aus, unter denen sich die Datei öffnen lässt', async () => {
+  it('gibt beim Öffnen eine Adresse aus, unter der sich die Datei öffnen lässt — eine Minute gültig', async () => {
     clientEinreichen(eingeteilt.client);
-    const adressen = await dok.dokumentAdressen([{ pfad }]);
-    const url = adressen.get(pfad);
-    expect(url).toBeTruthy();
-    const antwort = await fetch(url!);
+    const url = await dok.dokumentAdresse({ pfad, dateiname: 'Grundriss EG.pdf' });
+    const antwort = await fetch(url);
     expect(antwort.status).toBe(200);
+    // Die Gültigkeit steht im Zeichen der Adresse (A14, 24.10.2026).
+    const zeichen = new URL(url).searchParams.get('token')!;
+    const inhalt = JSON.parse(Buffer.from(zeichen.split('.')[1], 'base64url').toString()) as { exp: number; iat: number };
+    expect(inhalt.exp - inhalt.iat).toBe(dok.OEFFNEN_SEKUNDEN);
+    expect(dok.OEFFNEN_SEKUNDEN).toBeLessThanOrEqual(60);
+  });
+
+  it('zum Herunterladen trägt die Adresse den ursprünglichen Dateinamen', async () => {
+    clientEinreichen(eingeteilt.client);
+    const url = await dok.dokumentAdresse({ pfad, dateiname: 'Grundriss EG.pdf' }, true);
+    const antwort = await fetch(url);
+    expect(antwort.headers.get('content-disposition') ?? '').toMatch(/Grundriss/);
+  });
+
+  it('die Vorschau holt die Datei mit der Anmeldung', async () => {
+    clientEinreichen(eingeteilt.client);
+    expect((await dok.dokumentBild(pfad)).size).toBeGreaterThan(0);
   });
 });
 
@@ -278,6 +293,28 @@ describe('Nur fürs Büro (17 D)', () => {
     clientEinreichen(imTeam.client);
     const liste = await dok.listDokumente(BETRIEB, [baustelle]);
     expect(liste.map((d) => d.id)).not.toContain(id);
+  });
+
+  it('der Monteur bekommt weder Adresse noch Vorschau — auch nicht über die App', async () => {
+    clientEinreichen(eingeteilt.client);
+    await expect(dok.dokumentAdresse({ pfad, dateiname: 'Angebot Lieferant.pdf' })).rejects.toThrow();
+    await expect(dok.dokumentBild(pfad)).rejects.toThrow();
+  });
+
+  /*
+    SOFORT WIDERRUFEN (A14, 24.10.2026): eben noch freigegeben und geöffnet,
+    dann „nur fürs Büro“ — die nächste Adresse gibt es nicht mehr.
+  */
+  it('auf „nur fürs Büro“ gestellt, öffnet der Monteur es beim nächsten Tippen nicht mehr', async () => {
+    clientEinreichen(chef.client);
+    const frei = await dok.dokumentHochladen(BETRIEB, baustelle, pdf('Plan OG.pdf'), 'Test', false);
+    clientEinreichen(eingeteilt.client);
+    expect(await dok.dokumentAdresse(frei)).toBeTruthy();
+    clientEinreichen(chef.client);
+    await dok.dokumentNurBueroSetzen(frei.id, true);
+    clientEinreichen(eingeteilt.client);
+    await expect(dok.dokumentAdresse(frei)).rejects.toThrow();
+    await expect(dok.dokumentBild(frei.pfad)).rejects.toThrow();
   });
 
   it('umschalten darf, wer hochladen darf — Verwaltung, Monteur und Support nicht', async () => {

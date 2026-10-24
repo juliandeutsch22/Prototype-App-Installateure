@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, render, screen, within, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -38,6 +38,7 @@ const listen: Record<string, (EinsatzMaterial & { id: string })[]> = {};
 
 /** Was die Datenbank an Terminen herausgibt — gefiltert wird in der Ansicht. */
 const termine: { wert: Termin[] } = { wert: [] };
+const dokumentAdresse = vi.fn(async (d: { pfad: string }) => `https://speicher/${d.pfad}`);
 vi.mock('@/lib/db/users', () => ({
   listUsers: vi.fn(async () => [{ uid: 'm1', name: 'Anton Berger' }, { uid: 'm2', name: 'Bruno Kollege' }]),
 }));
@@ -77,7 +78,8 @@ vi.mock('@/lib/db/einsatzMaterial', () => ({
 const plaene: { wert: { id: string; projectId: string; pfad: string; dateiname: string; mime: string; bytes: number }[] } = { wert: [] };
 vi.mock('@/lib/db/baustellenDokumente', () => ({
   listDokumente: vi.fn(async (_c: string, ids: string[]) => plaene.wert.filter((d) => ids.includes(d.projectId))),
-  dokumentAdressen: vi.fn(async (d: { pfad: string }[]) => new Map(d.map((x) => [x.pfad, `https://speicher/${x.pfad}`]))),
+  dokumentAdresse: (d: { pfad: string }) => dokumentAdresse(d),
+  dokumentBild: vi.fn(async () => new Blob(['x'], { type: 'image/jpeg' })),
   GUELTIG_SEKUNDEN: 3600,
 }));
 
@@ -267,9 +269,30 @@ describe('Mein Einsatzplan — die Pläne der Baustelle', () => {
       { id: 'd1', projectId: 'p1', pfad: 'baustellen/perl/p1/a.pdf', dateiname: 'Grundriss EG.pdf', mime: 'application/pdf', bytes: 120_000 },
     ];
     zeichne();
-    const link = await screen.findByRole('link', { name: 'Grundriss EG.pdf' });
-    expect(link).toHaveAttribute('href', 'https://speicher/baustellen/perl/p1/a.pdf');
-    expect(link).toHaveAttribute('target', '_blank');
+    // Die Adresse entsteht erst beim Antippen (A14, 24.10.2026) — in einem Fenster, das sich noch im Klick öffnet.
+    const fenster = { opener: {}, location: { href: '' }, close: vi.fn() };
+    const oeffnen = vi.spyOn(window, 'open').mockReturnValue(fenster as unknown as Window);
+    expect(dokumentAdresse).not.toHaveBeenCalled();
+    fireEvent.click(await screen.findByRole('button', { name: 'Grundriss EG.pdf' }));
+    expect(oeffnen).toHaveBeenCalledWith('', '_blank');
+    await waitFor(() => expect(fenster.location.href).toBe('https://speicher/baustellen/perl/p1/a.pdf'));
+    expect(fenster.opener).toBeNull();
+    oeffnen.mockRestore();
+  });
+
+  it('Gegenprobe: ist der Plan inzwischen nur fürs Büro, öffnet er nicht — und es steht da', async () => {
+    plaene.wert = [
+      { id: 'd1', projectId: 'p1', pfad: 'baustellen/perl/p1/a.pdf', dateiname: 'Grundriss EG.pdf', mime: 'application/pdf', bytes: 120_000 },
+    ];
+    dokumentAdresse.mockRejectedValueOnce(new Error('Object not found'));
+    const fenster = { opener: {}, location: { href: '' }, close: vi.fn() };
+    const oeffnen = vi.spyOn(window, 'open').mockReturnValue(fenster as unknown as Window);
+    zeichne();
+    fireEvent.click(await screen.findByRole('button', { name: 'Grundriss EG.pdf' }));
+    await waitFor(() => expect(fenster.close).toHaveBeenCalled());
+    expect(fenster.location.href).toBe('');
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    oeffnen.mockRestore();
   });
 
   it('zeigt ohne Pläne auch keine leere Rubrik', async () => {

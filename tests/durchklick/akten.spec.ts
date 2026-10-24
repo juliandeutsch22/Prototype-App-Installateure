@@ -16,7 +16,15 @@ test('Die drei Akten behalten ihre Schreibwege und geschützten Entwürfe', asyn
   await anmelden(page, CHEFIN.email);
   try {
     await page.goto(`/admin-projects/${baustelle!.id}`);
-    await expect(page.getByRole('tab')).toHaveText(['Übersicht', 'Scheine', 'Termine', 'Pläne']);
+    /*
+      30 STATT 10 SEKUNDEN FÜR DEN ERSTEN AUFBAU (24.10.2026). Dieser Weg ist
+      der erste im WebKit-Projekt: der Browser ist kalt, und nach dem `goto`
+      startet die App neu (Anmeldung, Betrieb, Seitencode, Baustelle). In der
+      CI brauchte schon die Anmeldung davor bis zu 20 s; die Reiter kamen
+      zweimal in drei Läufen nicht binnen 10 s. Danach gilt wieder die
+      übliche Wartezeit.
+    */
+    await expect(page.getByRole('tab')).toHaveText(['Übersicht', 'Scheine', 'Termine', 'Pläne'], { timeout: 30_000 });
     await expect(page.getByLabel(/Projektnummer/)).toHaveCount(0);
     await page.getByRole('button', { name: 'Bearbeiten', exact: true }).click();
     const bFenster = page.getByRole('dialog', { name: 'Baustelle bearbeiten' });
