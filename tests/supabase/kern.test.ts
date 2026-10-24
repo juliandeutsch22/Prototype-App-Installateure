@@ -22,6 +22,14 @@ beforeAll(async () => {
 }, 120_000);
 
 const warte = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/*
+  WIE LANGE AUF ETWAS GEWARTET WIRD, DAS KOMMEN MUSS: bis zu 12 Sekunden in
+  Schritten von 50 ms (24.10.2026). Unter der Last der ganzen Suite kam eine
+  Echtzeit-Meldung in der CI nach mehr als 4 Sekunden an, und die Prüfung fiel,
+  obwohl nichts kaputt war. Wer schneller da ist, wartet nicht länger; nur wo
+  etwas NICHT kommen darf, bleibt die feste kurze Wartezeit.
+*/
+const BIS_DA = 240;
 
 const kunde = (name: string) => ({ name, active: true });
 
@@ -195,7 +203,7 @@ describe('Abonnieren', () => {
     const ab = abonnieren<{ name: string }>('materials', 'kern-a',
       (z) => stände.push(z), (e) => { throw e; }, { sortiere: { feld: 'name' } }, chef.client);
 
-    for (let i = 0; i < 60 && stände.length === 0; i += 1) await warte(50);
+    for (let i = 0; i < BIS_DA && stände.length === 0; i += 1) await warte(50);
     expect(stände[0].map((m) => m.name)).toEqual(['Rohr A']);
 
     await anlegen('materials', 'kern-a', { name: 'Rohr B', stock: 3 }, chef.client);
@@ -209,7 +217,7 @@ describe('Abonnieren', () => {
       diese Prüfung geflattert.
     */
     const hatB = () => stände[stände.length - 1].some((m) => m.name === 'Rohr B');
-    for (let i = 0; i < 80 && !hatB(); i += 1) await warte(50);
+    for (let i = 0; i < BIS_DA && !hatB(); i += 1) await warte(50);
     expect(stände[stände.length - 1].map((m) => m.name)).toEqual(['Rohr A', 'Rohr B']);
 
     ab();
@@ -219,7 +227,7 @@ describe('Abonnieren', () => {
     const gesehen: Array<Array<{ name: string }>> = [];
     const ab = abonnieren<{ name: string }>('materials', 'kern-a',
       (z) => gesehen.push(z), (e) => { throw e; }, {}, chef.client);
-    for (let i = 0; i < 60 && gesehen.length === 0; i += 1) await warte(50);
+    for (let i = 0; i < BIS_DA && gesehen.length === 0; i += 1) await warte(50);
 
     await admin.from('materials').insert({ company_id: 'kern-b', name: 'Fremdes Rohr', stock: 1 });
     await warte(800);
@@ -271,7 +279,7 @@ describe('Abonnieren', () => {
     const ab = abonnieren('customers', 'kern-a',
       (z) => stände.push(z), (e) => { throw e; }, {}, beobachtet);
 
-    for (let i = 0; i < 80 && !verlauf.includes('abonniert'); i += 1) await warte(50);
+    for (let i = 0; i < BIS_DA && !verlauf.includes('abonniert'); i += 1) await warte(50);
     /*
       SEIT 10.10.2026 DARF EIN ERSTES BILD VORHER KOMMEN (Analyse 09.10.2026,
       Maßnahme 6): genau ein Holen, zum Anzeigen. SEIT 18.10.2026 zählt es
@@ -343,7 +351,7 @@ describe('Abonnieren', () => {
       old: {},
     });
 
-    for (let i = 0; i < 40 && stände.length === 0; i += 1) await warte(50);
+    for (let i = 0; i < BIS_DA && stände.length === 0; i += 1) await warte(50);
     // Sofort da — nicht erst beim Nachfassen.
     expect(stände[0].map((f) => f.name)).toContain('Im Fenster');
     ab();
@@ -358,7 +366,7 @@ describe('Abonnieren', () => {
     const ab = abonnieren<{ name: string }>('customers', 'kern-a',
       (z) => stände.push(z), (e) => { throw e; }, {}, gestellt);
 
-    for (let i = 0; i < 40 && stände.length === 0; i += 1) await warte(50);
+    for (let i = 0; i < BIS_DA && stände.length === 0; i += 1) await warte(50);
     expect(stände[0].map((f) => f.name)).toContain('Verschwindet gleich');
 
     // Gelöscht, ohne dass eine Meldung darüber ankommt — der Kanal ist ja
@@ -390,7 +398,7 @@ describe('Abonnieren', () => {
     } as unknown as SupabaseClient;
 
     const ab = abonnieren('customers', 'kern-a', () => {}, (e) => { throw e; }, {}, beobachtet);
-    for (let i = 0; i < 80 && verlauf.length === 0; i += 1) await warte(50);
+    for (let i = 0; i < BIS_DA && verlauf.length === 0; i += 1) await warte(50);
     ab();
     await warte(NACHFASSEN_MS + 600);
     expect(verlauf).toEqual(['geholt']);
