@@ -192,3 +192,35 @@ describe('Das Logo', () => {
     ).toBeInTheDocument();
   });
 });
+
+/*
+  IM FIRMENBUCH EINGETRAGEN (A12, 24.10.2026): vorbelegt nach dem Namen,
+  gespeichert nur, wo die Angabe davon abweicht.
+*/
+describe('Im Firmenbuch eingetragen', () => {
+  const haken = () => screen.getByLabelText('Im Firmenbuch eingetragen') as HTMLInputElement;
+
+  it('ein Einzelunternehmen ohne Zusatz setzt den Haken — gespeichert als eigene Angabe', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    expect(haken().checked).toBe(false);
+    await nutzer.click(haken());
+    await nutzer.click(speichern());
+    expect(updateCompany.mock.calls[0][1]).toMatchObject({ imFirmenbuch: true });
+  });
+
+  it('vorbelegt nach dem Namen; unverändert wird keine eigene Angabe gespeichert', async () => {
+    firma = { ...firma, name: 'Perl Installationen GmbH' };
+    const nutzer = userEvent.setup();
+    zeige();
+    expect(haken().checked).toBe(true);
+    await nutzer.click(speichern());
+    expect(updateCompany.mock.calls[0][1]).toMatchObject({ imFirmenbuch: null });
+  });
+
+  it('zeigt die gespeicherte Angabe', () => {
+    firma = { ...firma, imFirmenbuch: true };
+    zeige();
+    expect(haken().checked).toBe(true);
+  });
+});

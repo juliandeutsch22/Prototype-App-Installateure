@@ -8,7 +8,8 @@ import { urteil } from '@/lib/kontrast';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
-import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
+import { InputField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
+import { firmenbuchEingetragen, imFirmenbuch } from '@/lib/firmenbuch';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -50,6 +51,11 @@ export default function FirmendatenView() {
     land: company?.land ?? 'AT',
   });
   const [firmenbuchgericht, setFirmenbuchgericht] = useState(company?.firmenbuchgericht ?? '');
+  /*
+    IM FIRMENBUCH EINGETRAGEN (A12, 24.10.2026). Vorbelegt mit dem, was
+    bisher galt — der Eigenangabe, sonst der Rechtsform im Namen.
+  */
+  const [eingetragen, setEingetragen] = useState(firmenbuchEingetragen(company));
   const [contactLine, setContactLine] = useState(company?.contactLine ?? '');
   const [vatId, setVatId] = useState(company?.vatId ?? '');
   const uidFalsch = uidFehler(vatId);
@@ -145,6 +151,11 @@ export default function FirmendatenView() {
         ort: adresse.ort?.trim() ?? '',
         land: adresse.land ?? 'AT',
         firmenbuchgericht: firmenbuchgericht.trim(),
+        /*
+          Gespeichert wird nur, was vom Namen abweicht: wer später „GmbH“ in
+          den Namen schreibt, ist damit eingetragen, ohne den Haken nachzuziehen.
+        */
+        imFirmenbuch: eingetragen === imFirmenbuch(name.trim()) ? null : eingetragen,
         contactLine: contactLine.trim(),
         vatId: vatId.trim(),
         companyRegister: companyRegister.trim(),
@@ -263,7 +274,7 @@ export default function FirmendatenView() {
 
         <Card
           title="Rechnungsangaben"
-          hint="UID, Firmenbuchnummer und Firmenbuchgericht (§ 14 UGB) stehen im Fuß jedes Belegs, die Bankverbindung im Zahlungshinweis."
+          hint="UID, Firmenbuchnummer und Firmenbuchgericht (§ 14 UGB) stehen im Fuß jedes Belegs, die Bankverbindung im Zahlungshinweis. „Im Firmenbuch eingetragen“ ist vorbelegt nach der Rechtsform im Namen (GmbH, KG, OG, e.U. …); ein eingetragenes Einzelunternehmen ohne Zusatz im Namen setzt den Haken selbst. Dann mahnen Rechnungen und Startseite Firmenbuchnummer und -gericht an."
         >
           <div className="formular">
           <FormGrid>
@@ -277,6 +288,14 @@ export default function FirmendatenView() {
                 onChange={(e) => setVatId(e.target.value)}
               />
               {uidFalsch && <p className="mt-1 text-sm text-danger">{uidFalsch}</p>}
+            </div>
+            <div className="sm:col-span-2">
+              <CheckboxField
+                id="fd-firmenbuch"
+                label="Im Firmenbuch eingetragen"
+                checked={eingetragen}
+                onChange={(e) => setEingetragen(e.target.checked)}
+              />
             </div>
             <InputField
               id="fd-fn"

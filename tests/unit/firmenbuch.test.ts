@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { firmenbuchFehlt, firmenbuchZeile, imFirmenbuch } from '@/lib/firmenbuch';
+import { firmenbuchEingetragen, firmenbuchFehlt, firmenbuchZeile, imFirmenbuch } from '@/lib/firmenbuch';
 
 /** Runde 3, M8: Firmenbuchnummer und -gericht (§ 14 UGB). */
 describe('Firmenbuch', () => {
@@ -27,5 +27,26 @@ describe('Firmenbuch', () => {
       .toBe('FN 123456a, Landesgericht Wiener Neustadt');
     expect(firmenbuchZeile({ companyRegister: '123456a' })).toBe('FN 123456a');
     expect(firmenbuchZeile({})).toBe('');
+  });
+});
+
+/*
+  DIE EIGENE ANGABE (A12, 24.10.2026): ein eingetragenes Einzelunternehmen
+  ohne „e.U.“ im Namen setzt den Haken; ohne Angabe zählt der Name.
+*/
+describe('Firmenbuch: eigene Angabe', () => {
+  it('ein eingetragenes Einzelunternehmen ohne Zusatz bekommt die Warnung', () => {
+    expect(firmenbuchEingetragen({ name: 'Installateur Franz Huber', imFirmenbuch: true })).toBe(true);
+    expect(firmenbuchFehlt({ name: 'Installateur Franz Huber', imFirmenbuch: true })).toEqual(['Firmenbuchnummer', 'Firmenbuchgericht']);
+  });
+
+  it('die Angabe „nicht eingetragen“ zählt vor dem Namen', () => {
+    expect(firmenbuchFehlt({ name: 'Maier OG', imFirmenbuch: false })).toEqual([]);
+  });
+
+  it('bleibt gleich: ohne Angabe entscheidet der Name', () => {
+    expect(firmenbuchEingetragen({ name: 'Perl Installationen GmbH', imFirmenbuch: null })).toBe(true);
+    expect(firmenbuchEingetragen({ name: 'Franz Huber' })).toBe(false);
+    expect(firmenbuchEingetragen(null)).toBe(false);
   });
 });

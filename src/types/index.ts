@@ -58,6 +58,13 @@ export interface Company {
   land?: string;
   /** Das Firmenbuchgericht (§ 14 UGB), z. B. „Landesgericht Wiener Neustadt“ (M12). */
   firmenbuchgericht?: string | null;
+  /**
+   * Im Firmenbuch eingetragen (A12, 24.10.2026) — die eigene Angabe des
+   * Betriebs. Leer: es zählt die Rechtsform im Namen (wie bisher). Nur
+   * gesetzt, wo sie davon abweicht, etwa ein eingetragenes Einzelunternehmen
+   * ohne „e.U.“ im Namen.
+   */
+  imFirmenbuch?: boolean | null;
   contactLine?: string; // "Tel · Mail · Web"
   iban?: string;
   bic?: string;
