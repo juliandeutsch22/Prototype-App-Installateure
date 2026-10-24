@@ -38,6 +38,14 @@ let berta: Konto;
 let fremdChef: Konto;
 
 const warte = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/*
+  WIE LANGE AUF EINE MELDUNG GEWARTET WIRD, DIE KOMMEN MUSS: bis zu 15
+  Sekunden in Schritten von 100 ms (24.10.2026). Unter der Last der ganzen
+  Suite kam eine Echtzeit-Meldung nach mehr als 5 Sekunden an; die Prüfung
+  fiel, obwohl der Meldeweg stand. Wer schneller da ist, wartet nicht länger;
+  die feste Wartezeit der Negativprüfung (`bleibtDraussen`) bleibt, wie sie ist.
+*/
+const BIS_DA = 150;
 
 /**
  * Wie lange nach dem Anmelden gewartet wird, bevor geschrieben wird.
@@ -80,7 +88,7 @@ async function meldetDurch<T>(
     await warte(ANLAUF_MS);
     await ausloesen();
     const da = () => staende.length > 0 && angekommen(staende[staende.length - 1]);
-    for (let i = 0; i < 50 && !da(); i += 1) await warte(100);
+    for (let i = 0; i < BIS_DA && !da(); i += 1) await warte(100);
     if (fehler) throw fehler;
     return { ok: da(), staende: staende.length };
   } finally {
@@ -117,7 +125,7 @@ async function bleibtDraussen<T>(
 
     await richtig.ausloesen();
     const da = () => staende.length > 0 && richtig.erkennen(letzter());
-    for (let i = 0; i < 50 && !da(); i += 1) await warte(100);
+    for (let i = 0; i < BIS_DA && !da(); i += 1) await warte(100);
     if (fehler) throw fehler;
     return { falschDa, richtigDa: da() };
   } finally {
@@ -450,7 +458,7 @@ describe('Wer die Mandantengrenze wirklich hält', () => {
       await material.createMaterial(BETRIEB, { name: 'Grenzfall eigen', stock: 1 });
 
       const eigenDa = () => gesehen.some((g) => g.name === 'Grenzfall eigen');
-      for (let i = 0; i < 50 && !eigenDa(); i += 1) await warte(100);
+      for (let i = 0; i < BIS_DA && !eigenDa(); i += 1) await warte(100);
 
       // Die eigene Zeile kommt an — der Kanal lebt und filtert nichts weg.
       expect(eigenDa()).toBe(true);
@@ -491,7 +499,7 @@ describe('Unter Last', () => {
       await admin.from('time_entries').insert(zeilen);
 
       const letzte = () => staende[staende.length - 1] ?? [];
-      for (let i = 0; i < 60 && letzte().length < 20; i += 1) await warte(100);
+      for (let i = 0; i < BIS_DA && letzte().length < 20; i += 1) await warte(100);
       expect(letzte()).toHaveLength(20);
     } finally {
       stopp();
@@ -530,7 +538,7 @@ describe('Unter Last', () => {
         const l = letzte[0] as { positionen?: Array<{ menge: number }> } | undefined;
         return l?.positionen?.[0]?.menge;
       };
-      for (let i = 0; i < 60 && menge() !== 10; i += 1) await warte(100);
+      for (let i = 0; i < BIS_DA && menge() !== 10; i += 1) await warte(100);
 
       expect(menge()).toBe(10);
       const meldungen = staende.length - vorher;
