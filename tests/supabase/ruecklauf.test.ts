@@ -118,7 +118,10 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
       .from('ausleitung').download(bilanz.pfad);
     expect(holFehler).toBeNull();
     const inhalt = await blob!.text();
-    expect(inhalt).toContain('"sammlung":"companies"');
+    // Seit N1 (24.10.2026) schreibt die Datenbank die Zeilen; das Textformat
+    // ist ihres, der Inhalt derselbe — deshalb gelesen statt verglichen.
+    const sammlungen = inhalt.split('\n').filter(Boolean).map((z) => (JSON.parse(z) as { sammlung: string }).sammlung);
+    expect(sammlungen).toContain('companies');
 
     /* 4. DEN BETRIEB LÖSCHEN. Der Ernstfall, nachgestellt. */
     await betriebLoeschen(BETRIEB, tabellen);

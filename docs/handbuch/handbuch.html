@@ -687,10 +687,25 @@
     <div class="stempel">
       <span>Stand <b>22.10.2026</b></span>
       <span>Fassung <b>Lot v2 · bestätigt</b></span>
-      <span>Automatische Prüfungen <b>5.565 Modulprüfungen · 109 Browserwege · 7 Linkprüfungen</b></span>
+      <span>Automatische Prüfungen <b>5.571 Modulprüfungen · 109 Browserwege · 7 Linkprüfungen</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
+
+  <section id="sicherung-gross">
+    <div class="abschnittskopf">
+      <h2>24. Oktober: Die Sicherung auch über 256 MB</h2>
+      <p class="frage">Ob die nächtliche Sicherung einen großen Betrieb trägt, war nur mit 36 MB geprüft. Durchgespielt mit 288 MB brach sie ab — still, jede Nacht wäre sie gescheitert.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Ein großer Bestand geht vollständig hinaus<span class="neu">behoben</span></h3>
+        <p>Zwei Grenzen der Serverfunktion lagen im Weg: ihr Speicher (256 MB) und ihre Rechenzeit (zwei Sekunden je Aufruf). Die Funktion hat jede Zeile zerlegt und wieder zusammengesetzt; bei rund 200 MB Bestand war Schluss. Jetzt schreibt die Datenbank die Zeilen selbst, seitenweise zu rund 1 MB, und die Funktion reicht sie nur weiter. Der Stand geht in Teilen zu höchstens 8 MB hinaus (bisher 32 MB), gezählt in Bytes. Der Bedarf der Funktion hängt damit nicht mehr an der Größe des Betriebs.</p>
+        <p>Das Aufräumen alter Stände liest jetzt alle Dateien, nicht nur die ersten tausend — bei 30 Tagen Aufbewahrung und vielen Teilen wäre sonst Altes liegen geblieben.</p>
+        <p class="wer">Geprüft bei jedem Prüflauf: 288 MB hinaus, den Betrieb löschen, mit dem Rücklauf zurück, Zeile für Zeile verglichen</p>
+      </div>
+    </div>
+  </section>
 
   <section id="sonderurlaub-ohne-modul">
     <div class="abschnittskopf">
@@ -2357,7 +2372,7 @@
       </div>
       <div class="bereich">
         <h3>Große Stände in Teilen<span class="neu">neu</span></h3>
-        <p>Bis 10.10. ging der Stand eines Betriebs in einem Stück hinaus und musste dafür ganz in den Speicher der Serverfunktion passen; ab 256 MB brach die Sicherung ab. Ein unterschriebener Schein trägt rund 140 KB an Unterschriften — ein Betrieb mit ein paar tausend Scheinen läge darüber. Jetzt geht der Stand in Teilen zu rund 32 MB hinaus. Der erste Teil heißt wie bisher und wird zuletzt geschrieben; er nennt die Zahl der Teile. Scheitert ein Lauf mittendrin, bleibt der vorige Stand vollständig.</p>
+        <p>Bis 10.10. ging der Stand eines Betriebs in einem Stück hinaus und musste dafür ganz in den Speicher der Serverfunktion passen; ab 256 MB brach die Sicherung ab. Ein unterschriebener Schein trägt rund 140 KB an Unterschriften — ein Betrieb mit ein paar tausend Scheinen läge darüber. Jetzt geht der Stand in Teilen hinaus, seit 24.10. zu höchstens 8 MB (vorher 32 MB, siehe „Die Sicherung auch über 256 MB“). Der erste Teil heißt wie bisher und wird zuletzt geschrieben; er nennt die Zahl der Teile. Scheitert ein Lauf mittendrin, bleibt der vorige Stand vollständig.</p>
         <p class="wer">Der Rücklauf bekommt alle Teile und spielt nur ein, wenn sie vollständig und aus einem Lauf sind. Ein kleiner Betrieb bleibt bei einer Datei. Seit 10.10. spielt er in Blöcken zu höchstens 500 Zeilen und rund 4 MB ein, statt jede Tabelle in einer Anfrage</p>
       </div>
     </div>
@@ -3519,7 +3534,7 @@
 
   <footer class="fuss">
     <span>Senklot · Betriebssoftware für Installationsbetriebe in Österreich</span>
-    <span>Automatische Prüfungen: 5.565 Modulprüfungen · 109 Browserwege · 7 Linkprüfungen</span>
+    <span>Automatische Prüfungen: 5.571 Modulprüfungen · 109 Browserwege · 7 Linkprüfungen</span>
     <span>Stand 22.10.2026</span>
   </footer>
 

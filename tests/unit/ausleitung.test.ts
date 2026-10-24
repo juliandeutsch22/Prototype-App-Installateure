@@ -8,6 +8,8 @@ import {
   datumAusPfad,
   datumsStempel,
   inTeilen,
+  alleNamen,
+  inBloecken,
   jsonZeile,
   teilPfad,
   weitererTeil,
@@ -205,7 +207,9 @@ describe('Ein Stand in Teilen (10.10.2026)', () => {
 
   async function schreiben(zeilen: string[], grenze: number) {
     const abgegeben: Array<{ nr: number; text: string }> = [];
-    const stand = inTeilen('lauf1', grenze, async (text, nr) => { abgegeben.push({ nr, text }); });
+    const stand = inTeilen('lauf1', grenze, async (inhalt, nr) => {
+      abgegeben.push({ nr, text: new TextDecoder().decode(inhalt) });
+    });
     for (const z of zeilen) await stand.anhaengen(z);
     return { bilanz: await stand.abschliessen(), abgegeben };
   }
@@ -251,5 +255,65 @@ describe('Ein Stand in Teilen (10.10.2026)', () => {
     const { abgegeben } = await schreiben([klein, riesig, klein], 100);
     const nachNummer = [...abgegeben].sort((a, b) => a.nr - b.nr);
     expect(nachNummer.map((t) => t.text.slice(t.text.indexOf('\n') + 1))).toEqual([klein, riesig, klein]);
+  });
+
+  /*
+    IN BYTES (N1, 24.10.2026): gezählt wird, was der Speicher zählt. In
+    Zeichen gezählt wäre ein Teil mit Umlauten größer als die Grenze.
+  */
+  it('zählt in Bytes — ein Teil mit Umlauten bleibt unter der Grenze', async () => {
+    const zeilen = Array.from({ length: 6 }, (_, i) => jsonZeile('t', { i, f: 'ä'.repeat(20) }));
+    const bytes = new TextEncoder().encode(zeilen[0]).byteLength;
+    const grenze = bytes * 2;
+    const { abgegeben } = await schreiben(zeilen, grenze);
+    expect(abgegeben).toHaveLength(3);
+    for (const t of abgegeben) {
+      expect(new TextEncoder().encode(t.text.slice(t.text.indexOf('\n') + 1)).byteLength).toBeLessThanOrEqual(grenze);
+    }
+  });
+
+  it('nimmt ganze Seiten als Bytes und zählt ihre Zeilen, wie angesagt', async () => {
+    const seite = new TextEncoder().encode(jsonZeile('t', { i: 1 }) + jsonZeile('t', { i: 2 }));
+    const abgegeben: string[] = [];
+    const stand = inTeilen('lauf1', 1_000_000, async (inhalt) => { abgegeben.push(new TextDecoder().decode(inhalt)); });
+    await stand.anhaengen(seite, 2);
+    await stand.anhaengen(seite, 2);
+    const bilanz = await stand.abschliessen();
+    expect(bilanz.zeilen).toBe(4);
+    expect(abgegeben[0].split('\n').filter(Boolean)).toHaveLength(5);
+    expect(bilanz.bytes).toBe(new TextEncoder().encode(abgegeben[0]).byteLength);
+  });
+});
+
+/*
+  ALLE NAMEN, NICHT DIE ERSTEN TAUSEND (N1, 24.10.2026): das Aufräumen sah
+  nur eine Seite der Liste; was dahinter lag, blieb liegen.
+*/
+describe('Liste über alle Seiten', () => {
+  const bestand = Array.from({ length: 2500 }, (_, i) => `ausleitung/b/${String(i).padStart(5, '0')}.jsonl`);
+  const seite = async (offset: number, limit: number) => bestand.slice(offset, offset + limit);
+
+  it('holt 2.500 Namen in drei Seiten, ohne einen zu verlieren', async () => {
+    const abrufe: number[] = [];
+    const namen = await alleNamen(async (o, l) => { abrufe.push(o); return seite(o, l); });
+    expect(namen).toEqual(bestand);
+    expect(abrufe).toEqual([0, 1000, 2000]);
+  });
+
+  it('bleibt gleich: ein kleiner Bestand ist eine Abfrage', async () => {
+    const abrufe: number[] = [];
+    await alleNamen(async (o, l) => { abrufe.push(o); return bestand.slice(0, 12).slice(o, o + l); });
+    expect(abrufe).toEqual([0]);
+  });
+
+  it('genau 1.000 fragt einmal nach, statt die Grenze für das Ende zu halten', async () => {
+    const tausend = bestand.slice(0, 1000);
+    const namen = await alleNamen(async (o, l) => tausend.slice(o, o + l));
+    expect(namen).toHaveLength(1000);
+  });
+
+  it('löscht in Blöcken, die der Speicher annimmt', () => {
+    expect(inBloecken(bestand).map((b) => b.length)).toEqual([1000, 1000, 500]);
+    expect(inBloecken([])).toEqual([]);
   });
 });

@@ -27,7 +27,6 @@ Alle sechzehn gebaut (24.10.2026, T-28 bis T-44); sie stehen unter E.
 
 | # | Grenze (Fundstelle) | Vorschlag |
 |---|---|---|
-| N1 | Sicherung: der Rücklauf ist bei 36 MB geprüft, darüber nicht (Stand 14.6) | Prüfung mit einem Bestand über 256 MB im lokalen Stapel |
 | N2 | Absturz: ein erzwungener Absturz mit voller Wiederherstellung wurde nicht durchgespielt (Prüfbericht 13.10, Punkt 5) | Einmal im lokalen Stapel durchspielen und festhalten |
 | N3 | Tablet quer dauerhaft nur an einer Karte geprüft (Stand 18, K3) | Die Browserwege zusätzlich in 1194 × 834 laufen lassen |
 
@@ -63,6 +62,7 @@ Alle sechzehn gebaut (24.10.2026, T-28 bis T-44); sie stehen unter E.
 | `npm test` ohne Datenbanktests (offene Punkte C12) | Der Stapel läuft in der CI; im Handbuch benannt |
 | Tailwind statt einer Klasse je Element (offene Punkte B10) | Ansicht für Ansicht, wenn sie ohnehin angefasst wird |
 | Lange Namen brechen mitten im Wort in einem Browser ohne deutsches Trennwörterbuch (A16, 24.10.2026) | Die Trennregel gilt überall; das Wörterbuch bringt der Browser mit oder nicht — liegt beim Gerät |
+| Der Rücklauf hält einen Stand beim Einspielen ganz im Speicher des Rechners, auf dem er läuft (N1, 24.10.2026; geprüft mit 288 MB) | Liegt beim Gerät: der Rücklauf läuft im Ernstfall auf dem Rechner eines Menschen, nicht im Projekt; Node bekommt mit `--max-old-space-size` mehr Speicher |
 
 ## X – Liegt bei jemand anderem
 
@@ -105,6 +105,7 @@ Alle sechzehn gebaut (24.10.2026, T-28 bis T-44); sie stehen unter E.
 | A14 Dokumentlinks bis zum Ablauf ihrer Stunde nutzbar, auch nach „nur Büro“ (Prüfbericht 13.10, Punkt 7) | T-42 |
 | A15 Sonderurlaub nur mit eingeschaltetem Modul Urlaub (Stand 10.3) | T-43 |
 | A16 Silbentrennung in den Tagesspalten — galt schon (geerbt von `index.css`), jetzt dauerhaft geprüft (Stand 13 G4, 15.2) | T-44 |
+| N1 Sicherung über 256 MB nicht geprüft (Stand 14.6) — geprüft mit 288 MB; dabei Speicher- und Rechenzeitgrenze der Function gefunden und behoben | T-45 |
 
 ## Wie es weitergeht
 
