@@ -2197,11 +2197,10 @@ export default function InvoicesView() {
         ? scheinAbgleich(
             projectNumber,
             preview.entries,
-            // Mit Stichtag fehlt ein späterer Schein nicht — er kommt auf die nächste.
-            stichtag
-              ? scheineAllerBaustellen.filter((s) => s.datum <= stichtag)
-              : scheineAllerBaustellen,
+            scheineAllerBaustellen,
             new Set(offeneLeistung.map((o) => o.schein.id)),
+            // Mit Stichtag zählt jede Zeitzeile nach ihrem Tag; Späteres kommt auf die nächste.
+            stichtag ?? undefined,
           )
         : {
             verrechnetMin: 0, bestaetigtMin: 0, scheine: 0, mehrMin: 0, auffaellig: false,

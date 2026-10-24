@@ -226,6 +226,13 @@ export function assembleInvoice(
   const eligibleEntries = timeEntries.filter(
     (e) => offenerEintrag(e, pn) && imZeitraum(e.date),
   );
+  /*
+    DIE TÄTIGKEITEN DES STUNDENNACHWEISES kommen aus ALLEN Scheinen, je
+    Zeitzeile nach ihrem Tag (A5, 24.10.2026): eine Buchung bis zum Stichtag
+    findet ihre Tätigkeit auch auf einem Schein, der erst danach datiert ist.
+    Das Material dagegen bleibt am Schein und kommt mit dessen Datum.
+  */
+  const alleScheine = material?.scheine ?? [];
   if (material && bis) {
     material = { ...material, scheine: material.scheine.filter((s) => imZeitraum(s.datum)) };
   }
@@ -328,7 +335,7 @@ export function assembleInvoice(
   for (const e of eligibleEntries) {
     const name = (e.userName ?? '').trim().toLowerCase();
     if (!name) continue;
-    for (const schein of material?.scheine ?? []) {
+    for (const schein of alleScheine) {
       const z = (schein.zeiten ?? []).find(
         (x) => x.datum === e.date && x.mitarbeiter?.trim().toLowerCase() === name && x.taetigkeit?.trim(),
       );

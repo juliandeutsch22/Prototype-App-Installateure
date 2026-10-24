@@ -277,3 +277,54 @@ describe('Nur offene Scheine, und gebuchte Stunden ohne Schein', () => {
     expect(a.ohneSchein).toEqual([{ datum: '2026-06-16', name: 'Max', helfer: true, verrechnetMin: 210 }]);
   });
 });
+
+/*
+  STICHTAG JE ZEITZEILE (A5, 24.10.2026). Ein Schein über Montag bis Freitag,
+  verrechnet bis Mittwoch: er bestätigt Montag bis Mittwoch für DIESE
+  Rechnung. Vorher zählte er als Ganzes nach seinem Datum — datiert auf
+  Freitag fehlte er ganz („ohne Schein“), datiert auf Montag meldete er
+  Donnerstag und Freitag als fehlend.
+*/
+describe('Stichtag je Zeitzeile', () => {
+  const woche = ['2026-06-15', '2026-06-16', '2026-06-17', '2026-06-18', '2026-06-19'];
+  const ueberDieWoche = (datum: string) => schein([], {
+    datum,
+    zeiten: woche.map((d) => ({ datum: d, mitarbeiter: 'Max', minuten: 480 })),
+  });
+  const bisMittwoch = woche.slice(0, 3).map((d, i) => eintrag(480, { id: `e${i}`, date: d, userName: 'Max' }));
+  const offen = new Set(['s1']);
+
+  it('ein auf Freitag datierter Schein bestätigt Montag bis Mittwoch', () => {
+    const a = scheinAbgleich('2026-042', bisMittwoch, [ueberDieWoche('2026-06-19')], offen, '2026-06-17');
+    expect(a.bestaetigtMin).toBe(3 * 480);
+    expect(a.ohneSchein).toEqual([]);
+    expect(a.fehlend).toEqual([]);
+    expect(a.zuWenig).toBe(false);
+    expect(a.scheine).toBe(1);
+  });
+
+  it('ein auf Montag datierter Schein meldet Donnerstag und Freitag nicht als fehlend', () => {
+    const a = scheinAbgleich('2026-042', bisMittwoch, [ueberDieWoche('2026-06-15')], offen, '2026-06-17');
+    expect(a.bestaetigtMin).toBe(3 * 480);
+    expect(a.fehlend).toEqual([]);
+    expect(a.zuWenig).toBe(false);
+  });
+
+  it('fehlt eine Stunde bis zum Stichtag, meldet er sie weiter', () => {
+    const a = scheinAbgleich('2026-042', bisMittwoch.slice(0, 2), [ueberDieWoche('2026-06-19')], offen, '2026-06-17');
+    expect(a.fehlend.map((f) => f.datum)).toEqual(['2026-06-17']);
+  });
+
+  it('ein Schein ganz nach dem Stichtag zählt nicht mit', () => {
+    const spaeter = schein([], { id: 's2', datum: '2026-06-22', zeiten: [{ datum: '2026-06-22', mitarbeiter: 'Max', minuten: 480 }] });
+    const a = scheinAbgleich('2026-042', bisMittwoch, [ueberDieWoche('2026-06-19'), spaeter], new Set(['s1', 's2']), '2026-06-17');
+    expect(a.scheine).toBe(1);
+    expect(a.bestaetigtMin).toBe(3 * 480);
+  });
+
+  it('gleich bleibt: ohne Stichtag zählt die ganze Woche', () => {
+    const a = scheinAbgleich('2026-042', bisMittwoch, [ueberDieWoche('2026-06-19')], offen);
+    expect(a.bestaetigtMin).toBe(5 * 480);
+    expect(a.fehlend.map((f) => f.datum)).toEqual(['2026-06-18', '2026-06-19']);
+  });
+});

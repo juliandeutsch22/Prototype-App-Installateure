@@ -183,6 +183,26 @@ describe('Stichtag', () => {
     expect(res.linkedWorkSheets).toEqual(['s1']);
   });
 
+  /*
+    A5 (24.10.2026): die Tätigkeit einer Buchung bis zum Stichtag kommt auch
+    von einem Schein, der erst danach datiert ist — sein Material nicht.
+  */
+  it('findet die Tätigkeit je Zeitzeile auch auf einem später datierten Schein', () => {
+    const mitZeit = [
+      schein({}),
+      schein({
+        id: 's2', datum: '2025-06-21',
+        zeiten: [{ datum: '2025-06-02', mitarbeiter: 'Max', minuten: 540, taetigkeit: 'Vorwand gesetzt' }],
+      }),
+    ];
+    const res = assembleInvoice('2025-001', [entry({ userName: 'Max' })], INVOICE_DEFAULTS,
+      { scheine: mitZeit, katalog }, NACHTZEIT_VORGABE, '2025-06-15');
+    expect(res.taetigkeiten).toEqual({ e1: 'Vorwand gesetzt' });
+    // Gleich bleibt: das Material des späteren Scheins wartet auf die nächste Rechnung.
+    expect(res.linkedWorkSheets).toEqual(['s1']);
+    expect(res.positions.find((p) => p.label === 'Rohr')?.qty).toBe(2);
+  });
+
   it('ohne Stichtag bleibt alles wie bisher: alles Offene', () => {
     const res = assembleInvoice('2025-001', zeiten, INVOICE_DEFAULTS, { scheine, katalog });
     expect(res.linkedEntries).toEqual(['e1', 'e2']);

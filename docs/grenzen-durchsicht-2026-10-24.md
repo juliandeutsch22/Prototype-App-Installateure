@@ -23,7 +23,6 @@ Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 
 | # | Grenze (Fundstelle) | Was fehlt | Vorschlag |
 |---|---|---|---|
-| A5 | Stichtag „Leistung bis“: ein Schein zählt als Ganzes nach seinem Leistungsdatum, Zeiten auf ihm an anderen Tagen werden nicht einzeln abgegrenzt (T-17) | Bei mehrtägigen Scheinen wird um einzelne Tage falsch abgegrenzt | Je Zeitzeile nach ihrem Tag abgrenzen; Material bleibt am Schein |
 | A6 | Teilzeit-Mehrarbeit: die Vollzeit eines Tages ist ein Fünftel der Woche (T-1) | Bei ungleich verteilter Woche (vier lange Tage) entsteht zu früh eine Überstunde | Vollzeit je Tag aus der vereinbarten Verteilung (Tagessoll je Wochentag) |
 | A7 | Jugendschutz: bei der Anlage eines Benutzers keine Rückfrage, das Geburtsdatum kommt erst in der Akte (Stand 12.3) | Ein Lehrling ist bis zur Nachtragung nicht geschützt | Geburtsdatum bei der Anlage abfragen (Pflicht bei Rolle Lehrling/Einstufung Lehrling) |
 | A8 | Jugendschutz: der Hinweis auf der Startseite steht nur bei der Rolle Mitarbeiter, Bürolehrlinge sehen ihn nicht (Stand 12.3) | Ein jugendlicher Lehrling im Büro | Nach Alter statt nach Rolle zeigen |
@@ -105,6 +104,7 @@ Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 | A2 Mahnung ohne die Person, die gemahnt hat (Stand 15.9) | T-29 |
 | A3 Ausgangsbuch ohne den Tag der Ablöse (Stand 15.4) | T-30 |
 | A4 Retoure auf dem Namen des Lagers statt des Monteurs (T-16) | T-31 |
+| A5 Stichtag: Schein als Ganzes nach seinem Datum statt je Zeitzeile (T-17) | T-32 |
 
 ## Wie es weitergeht
 
