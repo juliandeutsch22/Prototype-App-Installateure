@@ -692,6 +692,20 @@
     </div>
   </header>
 
+  <section id="absturzprobe">
+    <div class="abschnittskopf">
+      <h2>24. Oktober: Ein Absturz der Datenbank, durchgespielt</h2>
+      <p class="frage">Was geschieht mit Daten und mit den Rückmeldungen der Benachrichtigungen, wenn die Datenbank abstürzt? Bisher nur nachgestellt, jetzt wirklich.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Absturzprobe<span class="neu">geprüft</span></h3>
+        <p>Im lokalen Prüfstapel wird ein Datenbankprozess hart beendet; Postgres beendet daraufhin alle anderen und stellt sich wieder her. Danach ist alles Bestätigte da und nichts Halbes. Die Nummern der Rückmeldungen beginnen nach einem Absturz neu — die Wache über Benachrichtigungen und Sicherung verwechselt eine alte Anfrage trotzdem nicht mit einer neuen gleicher Nummer, sondern meldet sie als „keine Antwort“.</p>
+        <p class="wer">Ein Werkzeug für Entwickler (<code>scripts/absturzprobe.mjs</code>), es läuft nur gegen den lokalen Stapel</p>
+      </div>
+    </div>
+  </section>
+
   <section id="sicherung-gross">
     <div class="abschnittskopf">
       <h2>24. Oktober: Die Sicherung auch über 256 MB</h2>

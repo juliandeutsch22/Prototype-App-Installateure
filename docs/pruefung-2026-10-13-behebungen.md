@@ -136,7 +136,7 @@ mehrfach gezählt.
    Datenbankzeilen; Storage-Dateien werden weiterhin separat kopiert.
 5. **Absturzprüfung:** Der Verlust des unlogged Zustands wurde simuliert;
    ein erzwungener Absturz mit anschließender kompletter Crash-Recovery
-   wurde für diese Änderung nicht durchgeführt.
+   wurde für diese Änderung nicht durchgeführt. *Seit 24.10.2026 erledigt (T-46, N2): `scripts/absturzprobe.mjs` lässt die lokale Datenbank abstürzen und prüft danach Daten, Generation, Nummernfolge von pg_net und die Wache — bestanden.*
 6. **Bestehende Abnahmen:** Kanzleiimport, Betreiber-/Rechtstexte und die
    volle CSP nach Gerätetest bleiben wie in der Projektdurchsicht offen.
    K4 (maschineller UI-Alt-/Neu-Vergleich mit Mengengerüst) und K7
