@@ -14,9 +14,10 @@ Grenze, keine Annahme über „den“ Betrieb.
 
 1. **Der vollständige Arbeitsablauf zählt, nicht die einzelne Funktion.** Keine halben Sachen: Was gebaut wird, funktioniert am Ende von Anfang bis Ende. Keine halbfertigen Funktionen in der App lassen.
 2. **Nichts verschlimmbessern.** Keine bestehende Funktion darf danach fehlen oder fehlerhaft sein. Keine Fehler suchen oder „beheben“, wo keine sind.
-3. **Lücken werden benannt, nicht verschwiegen** – im PR, im Handbuch, in `docs/stand-2026-10-03.md`.
+3. **Lücken werden benannt, nicht verschwiegen** – im PR, im Handbuch, in `docs/stand-2026-10-03.md`. Benennen ersetzt nicht das Bauen (Grundsatz 6).
 4. **Nicht überkomplizieren.** Die einfachste Lösung, die den ganzen Ablauf richtig abdeckt.
 5. **Erst auf Ansage beginnen.** Die Freigabe einer Empfehlung („finde ich gut“) ist noch kein Startsignal.
+6. **Keine Abkürzungen, keine „erste Fassung“.** Jede Funktion wird vollständig, nachhaltig und skalierbar gebaut. Eine Grenze bleibt nur stehen, wenn sie einen Grund hat: fachlich, rechtlich, Datenschutz, Sicherheit, Altdaten (die Produktion wird nicht umgeschrieben) oder sie liegt bei jemand anderem (Kanzlei, Steuerberatung, Gerät, Betrieb). „Einfacher“ oder „reicht vorerst“ ist kein Grund. Jede benannte Grenze nennt ihren Grund; die Übersicht steht in `docs/grenzen-durchsicht-2026-10-24.md`.
 
 ## Oberfläche
 
