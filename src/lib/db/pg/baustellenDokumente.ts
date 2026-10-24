@@ -14,11 +14,14 @@ const TABELLE = 'project_documents';
 const EIMER = 'baustellendokumente';
 
 /**
- * Wie lange eine Dateiadresse gilt. Eine Stunde reicht, um einen Plan zu
- * öffnen; eine weitergegebene Adresse ist am nächsten Tag kein offener
- * Zugang mehr. Die Ansicht erneuert sie, solange sie offen ist.
+ * Wie lange eine Adresse zum Öffnen gilt (A14, 24.10.2026). Sie entsteht
+ * erst beim Antippen und reicht, damit der Browser die Datei holt. Vorher
+ * galten Adressen eine Stunde und wurden mit der Liste ausgegeben: wer ein
+ * Dokument auf „nur fürs Büro“ stellte, sperrte es für die Monteure erst,
+ * wenn deren Adresse ablief. Jetzt prüft der Speicher die Freigabe bei jedem
+ * Öffnen, und eine weitergegebene Adresse ist nach einer Minute wertlos.
  */
-export const GUELTIG_SEKUNDEN = 60 * 60;
+export const OEFFNEN_SEKUNDEN = 60;
 
 /**
  * Was der Eimer annimmt — dieselbe Liste wie in der Migration.
@@ -175,25 +178,33 @@ export async function dokumentHochladen(
 }
 
 /**
- * Die Adressen, unter denen sich Dateien öffnen lassen — in einem Aufruf.
+ * Die Adresse zum Öffnen einer Datei — beim Antippen geholt, eine Minute
+ * gültig. Der Speicher prüft dabei die Leseregel (Baustelle, „nur fürs
+ * Büro“): wem die Datei inzwischen entzogen ist, bekommt keine Adresse.
  *
- * `herunterladen` setzt den ursprünglichen Dateinamen: sonst hiesse jeder
- * gespeicherte Plan wie seine Kennung.
+ * Mit `herunterladen` trägt die Antwort den ursprünglichen Dateinamen —
+ * sonst hiesse eine Word-Datei auf dem Rechner wie ihre Kennung.
  */
-export async function dokumentAdressen(
-  dokumente: Pick<BaustellenDokument, 'pfad'>[],
-): Promise<Map<string, string>> {
-  const pfade = [...new Set(dokumente.map((d) => d.pfad))];
-  if (pfade.length === 0) return new Map();
+export async function dokumentAdresse(
+  dokument: Pick<BaustellenDokument, 'pfad' | 'dateiname'>,
+  herunterladen = false,
+): Promise<string> {
   const { data, error } = await derClient()
     .storage.from(EIMER)
-    .createSignedUrls(pfade, GUELTIG_SEKUNDEN);
-  if (error) throw new Error(error.message);
-  const adressen = new Map<string, string>();
-  for (const eintrag of data ?? []) {
-    if (eintrag.path && eintrag.signedUrl && !eintrag.error) adressen.set(eintrag.path, eintrag.signedUrl);
-  }
-  return adressen;
+    .createSignedUrl(dokument.pfad, OEFFNEN_SEKUNDEN, herunterladen ? { download: dokument.dateiname } : undefined);
+  if (error || !data?.signedUrl) throw new Error(error?.message ?? 'Die Datei lässt sich nicht öffnen.');
+  return data.signedUrl;
+}
+
+/**
+ * Ein Bild für die Vorschau — mit der Anmeldung geholt, nicht über eine
+ * Adresse: die Leseregel gilt bei jedem Holen, und nichts im Bild der Seite
+ * öffnet die Datei für jemand anderen.
+ */
+export async function dokumentBild(pfad: string): Promise<Blob> {
+  const { data, error } = await derClient().storage.from(EIMER).download(pfad);
+  if (error || !data) throw new Error(error?.message ?? 'Die Vorschau lässt sich nicht laden.');
+  return data;
 }
 
 /**

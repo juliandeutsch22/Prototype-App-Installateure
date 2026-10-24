@@ -528,7 +528,7 @@ export default function MyScheduleView() {
                           return (
                             <div className="mt-3">
                               <p className="section-label">Pläne und Dokumente</p>
-                              <PlaeneListe dokumente={eigene} adressen={plaene.adressen} />
+                              <PlaeneListe dokumente={eigene} />
                             </div>
                           );
                         })()}

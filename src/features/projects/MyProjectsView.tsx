@@ -210,7 +210,7 @@ export default function MyProjectsView() {
               {plaene.zustand === 'bereit' && planeVon(plaene, p.id).length > 0 && (
                 <div className="mb-vorort">
                   <p className="section-label">Pläne und Dokumente</p>
-                  <PlaeneListe dokumente={planeVon(plaene, p.id)} adressen={plaene.adressen} />
+                  <PlaeneListe dokumente={planeVon(plaene, p.id)} />
                 </div>
               )}
             </Card>

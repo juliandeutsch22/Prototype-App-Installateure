@@ -92,7 +92,8 @@ vi.mock('@/lib/db/baustellenDokumente', async () => {
   );
   return {
     listDokumente: vi.fn(async () => plaene),
-    dokumentAdressen: vi.fn(async (d: Plan[]) => new Map(d.map((x) => [x.pfad, `https://speicher/${x.pfad}`]))),
+    dokumentAdresse: vi.fn(async (d: Plan) => `https://speicher/${d.pfad}`),
+    dokumentBild: vi.fn(async () => new Blob(['x'], { type: 'image/jpeg' })),
     dokumentHochladen: vi.fn(async (_c: string, projectId: string, datei: File) => {
       hochgeladen.push(datei);
       const neu = { id: `d${hochgeladen.length}`, projectId, pfad: `baustellen/perl/${projectId}/${hochgeladen.length}.pdf`, dateiname: datei.name, mime: 'application/pdf', bytes: datei.size };
@@ -611,10 +612,7 @@ describe('Pläne und Dokumente', () => {
     await screen.findByText('Noch keine Pläne oder Dokumente.');
     await nutzer.upload(screen.getByLabelText('Dokumente auswählen'), pdf('Grundriss EG.pdf'));
     expect(hochgeladen.map((d) => d.name)).toEqual(['Grundriss EG.pdf']);
-    expect(await screen.findByRole('link', { name: 'Grundriss EG.pdf' })).toHaveAttribute(
-      'href',
-      'https://speicher/baustellen/perl/b1/1.pdf',
-    );
+    expect(await screen.findByRole('button', { name: 'Grundriss EG.pdf' })).toBeInTheDocument();
   });
 
   it('lädt von mehreren Dateien die guten hoch und nennt die schlechte', async () => {
@@ -651,7 +649,7 @@ describe('Pläne und Dokumente', () => {
     plaene = [{ id: 'd9', projectId: 'b1', pfad: 'baustellen/perl/b1/x.pdf', dateiname: 'Alt.pdf', mime: 'application/pdf', bytes: 500 }];
     zeige();
     await userEvent.click(await screen.findByRole('tab', { name: 'Pläne' }));
-    expect(await screen.findByRole('link', { name: 'Alt.pdf' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Alt.pdf' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Dokument hinzufügen/ })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Alt.pdf löschen' })).toBeNull();
   });
