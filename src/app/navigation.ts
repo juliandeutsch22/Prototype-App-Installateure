@@ -23,6 +23,14 @@ export interface NavItem {
    */
   modul?: ModulId;
   /**
+   * Nur in der Navigation, solange dieses Modul AUS ist (A15, 24.10.2026).
+   *
+   * Der Sonderurlaub steht mit dem Modul Urlaub auf dessen Seite; ohne es
+   * bekommt er eine eigene. Erreichbar bleibt die Seite auch mit dem Modul —
+   * ein alter Link führt nicht ins Leere —, nur gezeigt wird sie nicht doppelt.
+   */
+  nurOhneModul?: ModulId;
+  /**
    * Welche offene Zahl als Abzeichen an diesem Eintrag steht.
    *
    * ABSICHTLICH NUR AN DREI EINTRAEGEN. Ein Abzeichen taugt nur, solange es
@@ -120,6 +128,7 @@ export const NAV: NavItem[] = [
   // und beantragen muessen ihn alle. Wer entscheiden darf, sieht in derselben
   // Ansicht zusaetzlich die offenen Antraege.
   { path: '/vacations', label: 'Urlaub', short: 'Urlaub', icon: 'sun', roles: ALL, group: 'Team', modul: 'urlaub', hinweis: 'urlaub' },
+  { path: '/sonderurlaub', label: 'Sonderurlaub', short: 'Sonderurl.', icon: 'sun', roles: ALL, group: 'Team', nurOhneModul: 'urlaub' },
   // Der Schein gehoert in den Aussendienst: er entsteht vor Ort beim Kunden,
   // nicht im Buero.
   { path: '/worksheets', label: 'Handwerksscheine', short: 'Scheine', icon: 'pencil', roles: ['Mitarbeiter', 'Buchhaltung', 'Verwaltung', ...LEAD], group: 'Aufträge', modul: 'scheine' },
@@ -323,7 +332,8 @@ export function navForRole(
   zusatz?: Zusatzrechte,
 ): NavItem[] {
   const an = aktiveModule(module);
-  return NAV.filter((item) => eintragFuer(item, role, zusatz) && (!item.modul || an.has(item.modul)));
+  return NAV.filter((item) => eintragFuer(item, role, zusatz) && (!item.modul || an.has(item.modul))
+    && (!item.nurOhneModul || !an.has(item.nurOhneModul)));
 }
 
 /**

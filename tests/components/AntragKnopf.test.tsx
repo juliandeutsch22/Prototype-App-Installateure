@@ -3,7 +3,8 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
-import AntragKnopf from '@/features/time/AntragKnopf';
+import AntragKnopf, { FreistellungKnopf } from '@/features/time/AntragKnopf';
+import { Routes, Route } from 'react-router-dom';
 import type { Role, Vacation } from '@/types';
 
 /**
@@ -126,5 +127,36 @@ describe('Modul Urlaub ausgeschaltet', () => {
     zeige();
     await nutzer.click(screen.getByRole('button', { name: 'Zurücknehmen' }));
     expect(await screen.findByText('Den Antrag zu diesem Tag gibt es nicht mehr.')).toBeInTheDocument();
+  });
+});
+
+/*
+  DER TAG AUS EINEM SONDERURLAUB (A15, 24.10.2026): ohne das Modul Urlaub
+  führt „Antrag“ auf die Seite Sonderurlaub, statt nur „aus Antrag“ zu sagen.
+*/
+describe('Tag aus einem Sonderurlaub', () => {
+  function zeigeFrei() {
+    return render(
+      <MemoryRouter initialEntries={['/time']}>
+        <Routes>
+          <Route path="/time" element={<FreistellungKnopf />} />
+          <Route path="/sonderurlaub" element={<p>Seite Sonderurlaub</p>} />
+          <Route path="/vacations" element={<p>Seite Urlaub</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+  }
+
+  it('ohne das Modul Urlaub führt „Antrag“ auf die Seite Sonderurlaub', async () => {
+    zeigeFrei();
+    await userEvent.click(screen.getByRole('button', { name: 'Antrag' }));
+    expect(screen.getByText('Seite Sonderurlaub')).toBeInTheDocument();
+  });
+
+  it('bleibt gleich: mit dem Modul Urlaub auf die Urlaubsseite', async () => {
+    modulAn = true;
+    zeigeFrei();
+    await userEvent.click(screen.getByRole('button', { name: 'Antrag' }));
+    expect(screen.getByText('Seite Urlaub')).toBeInTheDocument();
   });
 });

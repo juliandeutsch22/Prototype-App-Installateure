@@ -552,6 +552,26 @@ describe('Sonderurlaub auf der Startseite (Plan 10.3)', () => {
     const zeilen = s.abschnitte.flatMap((a) => a.zeilen);
     expect(zeilen.some((z) => z.titel === '2 Anträge auf Sonderurlaub')).toBe(true);
   });
+  // A15 (24.10.2026): ohne das Modul Urlaub führt der Abschnitt auf die eigene Seite.
+  it('ohne das Modul Urlaub führt der Sonderurlaub auf seine eigene Seite — Abschnitt und Thema', () => {
+    const b = startseite(daten, {
+      rolle: 'buchhaltung', heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false,
+      freistellungBestaetigen: true, sonderurlaubZiel: ZIEL.sonderurlaub,
+    });
+    expect(b.abschnitte.find((a) => a.key === 'sonderurlaub')?.zeilen[0].to).toBe('/sonderurlaub');
+    const l = startseite(daten, {
+      rolle: 'leitung', heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false,
+      freistellungBestaetigen: true, sonderurlaubZiel: ZIEL.sonderurlaub,
+    });
+    expect(JSON.stringify(l)).toContain('/sonderurlaub');
+  });
+
+  it('bleibt gleich: mit dem Modul Urlaub auf die Urlaubsseite', () => {
+    const s = startseite(daten, {
+      rolle: 'buchhaltung', heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false, freistellungBestaetigen: true,
+    });
+    expect(s.abschnitte.find((a) => a.key === 'sonderurlaub')?.zeilen[0].to).toBe(ZIEL.urlaubsantraege);
+  });
 });
 
 /*

@@ -175,3 +175,24 @@ describe('Die mobile Leiste ist ausgesucht, nicht abgeschnitten', () => {
     }
   });
 });
+
+/*
+  SONDERURLAUB OHNE DAS MODUL URLAUB (A15, 24.10.2026): die eigene Seite
+  steht in der Navigation, solange Urlaub aus ist; mit Urlaub nicht doppelt.
+*/
+describe('Sonderurlaub ohne das Modul Urlaub', () => {
+  it('ohne Urlaub steht „Sonderurlaub“ für jede Rolle in der Navigation', () => {
+    for (const rolle of ['Mitarbeiter', 'Buchhaltung', 'Geschäftsführung'] as const) {
+      const pfade = navForRole(rolle, { urlaub: false }).map((n) => n.path);
+      expect(pfade, rolle).toContain('/sonderurlaub');
+      expect(pfade, rolle).not.toContain('/vacations');
+    }
+  });
+
+  it('bleibt gleich: mit Urlaub steht er auf der Urlaubsseite, nicht doppelt — erreichbar bleibt die Seite', () => {
+    const pfade = navForRole('Mitarbeiter').map((n) => n.path);
+    expect(pfade).toContain('/vacations');
+    expect(pfade).not.toContain('/sonderurlaub');
+    expect(canAccess('Mitarbeiter', '/sonderurlaub')).toBe(true);
+  });
+});
