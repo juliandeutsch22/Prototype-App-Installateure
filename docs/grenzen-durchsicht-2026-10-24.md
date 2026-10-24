@@ -23,7 +23,6 @@ Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 
 | # | Grenze (Fundstelle) | Was fehlt | Vorschlag |
 |---|---|---|---|
-| A1 | Mahnung und Rechnung: Briefkopf und Bankverbindung kommen beim erneuten Laden aus den heutigen Firmendaten (Stand 15.9) | Ein Beleg muss so wieder erzeugt werden können, wie er ausgestellt wurde (§ 132 BAO). Ändern sich Sitz, Bank oder UID, sieht der Nachdruck eines alten Belegs anders aus als das Original | Die Firmendaten beim Ausstellen am Beleg festhalten, wie Positionen und Skonto. Vorher prüfen, ob das ausgestellte PDF schon abgelegt wird |
 | A2 | Mahnung: wer gemahnt hat, hält die Mahnung nicht fest (Stand 15.9) | Ein Verlauf ohne Person | Name und Kennung beim Festhalten mitschreiben |
 | A3 | Rechnungsausgangsbuch (CSV) nennt das vereinbarte Rücklassende, nicht den Tag der Ablöse (Stand 15.4) | Der Grund war die Prüfsumme der Exportspalten – das ist eine Prüfung, kein Grund | Spalte „Rücklass abgelöst am“ anfügen, die Prüfsumme bewusst nachziehen |
 | A4 | Retoure: erfasst das Lager, steht sie auf dem Namen dessen, der erfasst, nicht des Monteurs (T-16) | Wer das Material zurückgebracht hat | Feld „zurückgebracht von“ (Belegschaft) beim Erfassen durch das Lager |
@@ -105,6 +104,7 @@ Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 | Abgleich Schein ↔ Ausgabe am Artikelnamen (T-19, T-21) | T-22 |
 | Preis auf der Rechnung über den Namen (T-22) | T-26 |
 | Prüfungen, die an bestimmten Tagen rot würden (T-23) | T-25 |
+| A1 Belege mit den heutigen statt den damaligen Firmendaten (Stand 15.9) | T-28 |
 
 ## Wie es weitergeht
 

@@ -4,6 +4,7 @@ import { useAuth } from '@/app/AuthContext';
 import { canAccess } from '@/app/navigation';
 import { deleteQuote, getQuote, listFassungen, updateQuote } from '@/lib/db/quotes';
 import { listCustomersByIds } from '@/lib/db/customers';
+import { belegFirma } from '@/lib/db/aussteller';
 import { isGF } from '@/lib/permissions';
 import { praefixeVon } from '@/lib/praefixe';
 import { todayStr } from '@/lib/time';
@@ -180,7 +181,8 @@ export default function AngebotView() {
     setPdfLaeuft(true);
     setFehler(null);
     try {
-      await downloadAngebotPdf({ company, quote: q, kunde: kunde.daten });
+      // Ein versendetes Angebot mit den Firmendaten seines Versands, ein Entwurf mit den heutigen.
+      await downloadAngebotPdf({ company: await belegFirma(company, q.ausstellerStand), quote: q, kunde: kunde.daten });
     } catch {
       setFehler('Das PDF konnte nicht erzeugt werden.');
     } finally {

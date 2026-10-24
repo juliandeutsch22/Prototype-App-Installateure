@@ -512,6 +512,8 @@ export interface Quote {
   /** Bindefrist. Ein Angebot ohne Ablauf bindet den Betrieb unbegrenzt an seine Preise. */
   validUntil: string;
   status: 'Entwurf' | 'Versendet' | 'Angenommen' | 'Abgelehnt';
+  /** Firmendaten beim Versand (`aussteller_staende`, seit 24.10.2026); ein Entwurf hat keine. Setzt nur die Datenbank. */
+  ausstellerStand?: string;
   /**
    * Wann der Status so gesetzt wurde — hält die Datenbank fest (17 G,
    * 12.10.2026). Ältere Angebote haben keinen Zeitpunkt.
@@ -641,6 +643,8 @@ export interface WorkSheet {
    * vorgelegtes PDF genau das ist, was unterschrieben wurde.
    */
   inhaltHash?: string;
+  /** Firmendaten bei der Unterschrift (`aussteller_staende`, seit 24.10.2026); setzt nur die Datenbank. */
+  ausstellerStand?: string;
   /**
    * Fotos vom Einsatz — FREIWILLIG, nie Voraussetzung.
    *
@@ -1747,6 +1751,10 @@ export interface Invoice {
    * mehr. Vergeben nur von `stornorechnung_ausstellen`.
    */
   stornoNummer?: string | null;
+  /** Firmendaten zum Zeitpunkt der Ausstellung (`aussteller_staende`, seit 24.10.2026); setzt nur die Datenbank. */
+  ausstellerStand?: string;
+  /** Firmendaten der Stornorechnung, festgehalten mit ihrer Nummer (seit 24.10.2026). */
+  stornoAusstellerStand?: string;
   stornoAm?: number | null;
   /** Zugesagtes Skonto in % und bis wann (eingefroren mit der Rechnung). */
   skontoProzent?: number | null;
@@ -1837,6 +1845,8 @@ export interface Mahnung {
   /** Die ausgewiesenen Mahnkosten (Spesen bzw. Pauschale), in Euro. */
   spesen: number;
   inhalt: MahnungInhalt;
+  /** Firmendaten zum Zeitpunkt der Ausstellung (`aussteller_staende`, seit 24.10.2026); setzt nur die Datenbank. */
+  ausstellerStand?: string;
   angelegtAm?: number;
 }
 

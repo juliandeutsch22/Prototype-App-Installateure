@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -64,6 +64,12 @@ vi.mock('@/lib/db/customers', () => ({
     if (kundeScheitert) throw new Error('kein Netz');
     return [KUNDE];
   }),
+}));
+/** Die Firmendaten der Ausstellung (seit 24.10.2026): mit Stand die von damals. */
+const belegFirma = vi.fn(async (f: Record<string, unknown>, stand?: string | null) =>
+  stand ? { ...f, addressLine: 'Hauptplatz 1 · 2700 Wiener Neustadt', bankName: 'Alte Bank' } : f);
+vi.mock('@/lib/db/aussteller', () => ({
+  belegFirma: (f: Record<string, unknown>, stand?: string | null) => belegFirma(f, stand),
 }));
 vi.mock('@/features/quotes/angebotPdf', () => ({
   downloadAngebotPdf: (o: unknown) => pdf(o),
@@ -213,6 +219,16 @@ describe('Das PDF', () => {
     const o = pdf.mock.calls[0][0] as { quote: Quote; kunde: Customer };
     expect(o.quote.quoteNumber).toBe('AN-2026-0007');
     expect(o.kunde.address).toBe('Rathausplatz 1, 2700 Wiener Neustadt');
+  });
+
+  it('ein versendetes Angebot mit den Firmendaten seines Versands (24.10.2026)', async () => {
+    angebot = { ...ANGEBOT, ausstellerStand: 'st-1' } as typeof ANGEBOT;
+    const nutzer = userEvent.setup();
+    zeige();
+    await screen.findByText(/Positionen \(2\)/);
+    await nutzer.click(screen.getByRole('button', { name: /PDF herunterladen/ }));
+    await waitFor(() => expect(pdf).toHaveBeenCalledTimes(1));
+    expect((pdf.mock.calls[0][0] as { company: { bankName?: string } }).company.bankName).toBe('Alte Bank');
   });
 
   it('wartet, wenn der Kunde nicht geladen werden konnte — statt an die falsche Anschrift', async () => {

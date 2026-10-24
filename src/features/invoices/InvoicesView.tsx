@@ -39,6 +39,7 @@ import { downloadCsv } from '@/features/accounting/export';
 import { listEntriesForProjects, unverrechneteStunden, type OffeneStunden } from '@/lib/db/timeEntries';
 import { listWorkSheetsForProject, listRecentWorkSheets } from '@/lib/db/workSheets';
 import { katalogNachIds, katalogNachNamen } from '@/lib/db/materials';
+import { belegFirma } from '@/lib/db/aussteller';
 import { leistungszeitraum, verrechneteScheine } from './materialPositionen';
 import { alsPosition, materialOhneSchein, type Ausgabe, type MaterialVorschlag } from './ausgegebenesMaterial';
 import { nachgetrageneScheine, offeneEntwuerfe, type NachgetragenerSchein, type OffenerEntwurf } from './scheinHinweise';
@@ -77,7 +78,7 @@ import { listBasiszinssaetze, type ZentralerBasiszinssatz } from '@/lib/db/basis
 import { discountLabel, istPreiszeile, positionsRabattText, type InvoicePosition } from './totals';
 import { todayStr, localDateStr, fmtDauer, tageWort } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
-import type { Invoice, Mahnung, Project, RechnungsArt, WorkSheet, Zahlungseingang } from '@/types';
+import type { Company, Invoice, Mahnung, Project, RechnungsArt, WorkSheet, Zahlungseingang } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -1940,7 +1941,8 @@ export default function InvoicesView() {
       return;
     }
     try {
-      const blob = await mahnungPdfAusInhalt(company, m.inhalt);
+      // Mit den Firmendaten von damals — Bank und Anschrift könnten sich geändert haben.
+      const blob = await mahnungPdfAusInhalt(await belegFirma(company, m.ausstellerStand), m.inhalt);
       const { shareOrDownloadPdf } = await import('@/features/worksheets/worksheetPdf');
       await shareOrDownloadPdf(blob, mahnungDateiname({ invoiceNumber: m.inhalt.rechnung.nummer }, m.inhalt.stufe));
     } catch (err) {
@@ -1963,7 +1965,10 @@ export default function InvoicesView() {
     if (!company) return;
     const nummer = inv.stornoNummer ?? (await stornorechnungAusstellen(inv, vorsaetze.rechnung));
     const { buildStornoPdf, stornoDateiname } = await import('./stornoPdf');
-    const blob = await buildStornoPdf({ company, invoice: inv, nummer });
+    // Beim ersten Druck wird sie eben ausgestellt — mit den heutigen Daten,
+    // die die Datenbank gerade festgehalten hat. Danach gilt ihr Stand.
+    const firma = inv.stornoNummer ? await belegFirma(company, inv.stornoAusstellerStand) : company;
+    const blob = await buildStornoPdf({ company: firma, invoice: inv, nummer });
     const { shareOrDownloadPdf } = await import('@/features/worksheets/worksheetPdf');
     await shareOrDownloadPdf(blob, stornoDateiname(nummer));
     if (!inv.stornoNummer) toast.success(`Stornorechnung ${nummer} ausgestellt`);
@@ -1977,7 +1982,14 @@ export default function InvoicesView() {
       return;
     }
     const { downloadInvoicePdf } = await import('./pdf');
-    downloadInvoicePdf(druckAngaben(company, inv));
+    let firma: Company;
+    try {
+      firma = await belegFirma(company, inv.ausstellerStand);
+    } catch (err) {
+      toast.error(grundAus(err, 'Die Firmendaten dieser Rechnung konnten nicht geladen werden.'));
+      return;
+    }
+    downloadInvoicePdf(druckAngaben(firma, inv));
     toast.success('PDF erneut erzeugt');
   }
 

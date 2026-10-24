@@ -139,6 +139,12 @@ vi.mock('@/lib/db/invoices', () => ({
   scheineAufRechnung: (...a: unknown[]) => verrechnungGeholt(...(a as [])),
 }));
 
+/** Die Firmendaten der Ausstellung (seit 24.10.2026): mit Stand die von damals. */
+const belegFirma = vi.fn(async (f: Record<string, unknown>, stand?: string | null) =>
+  stand ? { ...f, addressLine: 'Hauptplatz 1 · 2700 Wiener Neustadt', bankName: 'Alte Bank' } : f);
+vi.mock('@/lib/db/aussteller', () => ({
+  belegFirma: (f: Record<string, unknown>, stand?: string | null) => belegFirma(f, stand),
+}));
 vi.mock('@/features/worksheets/worksheetPdf', () => ({
   buildWorkSheetPdf: vi.fn(),
   shareOrDownloadPdf: vi.fn(),
@@ -421,6 +427,18 @@ describe('PDF aus der Liste (Scheinlisten ohne Unterschriftsbilder, 10.10.2026)'
       einzeln.mockReset();
       einzeln.mockResolvedValue(undefined);
     }
+  });
+
+  it('mit den Firmendaten seiner Unterschrift (24.10.2026)', async () => {
+    geladen = [{ ...mitBild, ausstellerStand: 'st-1' }];
+    vi.mocked(buildWorkSheetPdf).mockClear();
+    vi.mocked(buildWorkSheetPdf).mockResolvedValue(new Blob());
+    zeichne();
+    await alle();
+    const fenster = await oeffne(/Familie Berger/);
+    await userEvent.click(within(fenster).getByRole('button', { name: 'PDF' }));
+    await waitFor(() => expect(buildWorkSheetPdf).toHaveBeenCalled());
+    expect(vi.mocked(buildWorkSheetPdf).mock.calls[0][1].addressLine).toBe('Hauptplatz 1 · 2700 Wiener Neustadt');
   });
 
   it('ein Schein, der sein Bild schon trägt, wird nicht ein zweites Mal geholt', async () => {

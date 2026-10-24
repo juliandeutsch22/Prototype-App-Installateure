@@ -54,7 +54,7 @@ export const LISTENSPALTEN = [
   'id', 'company_id', 'project_number', 'project_id', 'customer_id', 'customer_name', 'address',
   'datum', 'status', 'abrechnung', 'notizen', 'erstellt_von_uid', 'erstellt_von_name',
   'inhalt_hash', 'unterschrieben_am', 'storno_grund', 'storniert_von_name', 'verworfen_von_name',
-  'created_at', 'updated_at',
+  'created_at', 'updated_at', 'aussteller_stand',
 ] as const;
 const LISTENKOPF = [
   ...LISTENSPALTEN,

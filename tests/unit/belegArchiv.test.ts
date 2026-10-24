@@ -352,3 +352,68 @@ describe('Nachdruck und Archiv drucken dasselbe', () => {
     });
   });
 });
+
+describe('Belegarchiv mit den Firmendaten der Ausstellung (24.10.2026)', () => {
+  // Heute: neue Bank. Beim Ausstellen galt die alte.
+  const heute = { ...firma, bankName: 'Neue Bank', iban: 'AT483200000012345864' } as Company;
+  const damals = { name: 'Perl Installationen GmbH', bankName: 'Alte Bank', iban: 'AT611904300234573201', addressLine: 'Hauptplatz 1' };
+  const mahnung = (id: string, p: Partial<Mahnung> = {}): Mahnung => ({
+    id, companyId: 'perl', invoiceId: 'r1', stufe: 1, datum: '2026-04-01', frist: '2026-04-15', spesen: 0,
+    inhalt: {
+      stufe: 1, datum: '2026-04-01', frist: '2026-04-15', titel: 'Zahlungserinnerung', anrede: 'unsere Rechnung ist offen.',
+      fristSatz: 'Bitte bis 15.04.2026.', empfaenger: { name: 'Hausverwaltung Nord' },
+      rechnung: { nummer: 'RE-2026-0001', baustelle: 'B-1' }, zeilen: [['Rechnungsbetrag', '720,00 €']], offen: 720, kosten: 0,
+    },
+    ...p,
+  });
+
+  it('jeder Beleg mit seinem Stand — die Stände einmal für alle geholt', async () => {
+    const geholt: string[][] = [];
+    const e = await belegArchiv({
+      company: heute, kunden: [], von: '2026-01-01', bis: '2026-12-31',
+      rechnungen: [
+        rechnung({ ausstellerStand: 'st-1' }),
+        rechnung({
+          invoiceNumber: 'RE-2026-0003', paymentStatus: 'Storniert', cancelledAt: MAERZ,
+          stornoNummer: 'RE-2026-0005', stornoAm: MAERZ, ausstellerStand: 'st-1', stornoAusstellerStand: 'st-1',
+        }),
+      ],
+      mahnungen: [mahnung('m1', { ausstellerStand: 'st-1' })],
+      staende: async (ids) => {
+        geholt.push(ids);
+        return new Map(ids.map((id) => [id, damals]));
+      },
+    });
+    expect(geholt).toEqual([['st-1']]);
+    const d = await entpacken(e.blob);
+    for (const name of ['Rechnungen/RE-2026-0001.pdf', 'Stornorechnungen/Stornorechnung_RE-2026-0005.pdf']) {
+      expect(text(d.get(name))).toContain('Alte Bank');
+      expect(text(d.get(name))).not.toContain('Neue Bank');
+    }
+    const mahn = [...d.keys()].find((n) => n.startsWith('Mahnungen/'));
+    expect(text(d.get(mahn!))).toContain('Alte Bank');
+  });
+
+  it('bleibt gleich: ein Beleg ohne Stand (vor dem 24.10.2026) druckt mit den heutigen Daten, ohne Abfrage', async () => {
+    let gefragt = false;
+    const e = await belegArchiv({
+      company: heute, kunden: [], von: '2026-01-01', bis: '2026-12-31', rechnungen: [rechnung({})],
+      staende: async () => {
+        gefragt = true;
+        return new Map();
+      },
+    });
+    expect(gefragt).toBe(false);
+    expect(text((await entpacken(e.blob)).get('Rechnungen/RE-2026-0001.pdf'))).toContain('Neue Bank');
+  });
+
+  it('fehlt ein Stand, bricht das Archiv ab, statt still mit den heutigen Daten zu drucken', async () => {
+    await expect(belegArchiv({
+      company: heute, kunden: [], von: '2026-01-01', bis: '2026-12-31', rechnungen: [rechnung({ ausstellerStand: 'st-weg' })],
+      staende: async () => new Map(),
+    })).rejects.toThrow(/Firmendaten/);
+    await expect(belegArchiv({
+      company: heute, kunden: [], von: '2026-01-01', bis: '2026-12-31', rechnungen: [rechnung({ ausstellerStand: 'st-1' })],
+    })).rejects.toThrow(/Firmendaten/);
+  });
+});

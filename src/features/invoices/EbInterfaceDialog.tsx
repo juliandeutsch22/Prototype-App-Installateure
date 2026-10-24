@@ -5,6 +5,7 @@ import Hinweiszeile from '@/components/Hinweiszeile';
 import { Segmente } from '@/components/LotBausteine';
 import { useToast } from '@/components/Toast';
 import { kundenNachNamen, updateCustomer } from '@/lib/db/customers';
+import { belegFirma } from '@/lib/db/aussteller';
 import type { WithId } from '@/lib/db/core';
 import type { Company, Customer, Invoice } from '@/types';
 import { ebiDateiname, ebInterfaceXml, ebiPruefen, type EbiEmpfaengerArt } from './ebinterface';
@@ -60,6 +61,29 @@ export default function EbInterfaceDialog({
   const [lieferant, setLieferant] = useState('');
   const [kunde, setKunde] = useState<WithId<Customer> | null>(null);
   const [merken, setMerken] = useState(true);
+  /*
+    DER RECHNUNGSSTELLER, WIE ER AUF DER RECHNUNG STAND (seit 24.10.2026) —
+    Anschrift, UID, Bank. Die E-Rechnung muss zum PDF passen, das der Kunde
+    hat, nicht zu den heutigen Firmendaten.
+  */
+  const [firma, setFirma] = useState<Company | null>(null);
+  const [firmaFehler, setFirmaFehler] = useState<string | null>(null);
+  useEffect(() => {
+    setFirma(null);
+    setFirmaFehler(null);
+    if (!inv || !company) return;
+    let aktiv = true;
+    belegFirma(company, storno ? inv.stornoAusstellerStand : inv.ausstellerStand)
+      .then((f) => {
+        if (aktiv) setFirma(f);
+      })
+      .catch((e: unknown) => {
+        if (aktiv) setFirmaFehler(e instanceof Error ? e.message : 'Die Firmendaten der Rechnung konnten nicht geladen werden.');
+      });
+    return () => {
+      aktiv = false;
+    };
+  }, [inv, company, storno]);
 
   useEffect(() => {
     if (!inv || !company) return;
@@ -86,14 +110,14 @@ export default function EbInterfaceDialog({
   }, [inv, company]);
 
   const optionen = useMemo(
-    () => (inv && company
+    () => (inv && firma
       ? {
-          company, invoice: inv, storno, empfaengerArt: art,
+          company: firma, invoice: inv, storno, empfaengerArt: art,
           auftragsreferenz: referenz, bestellposition: position, lieferantennummer: lieferant,
           kunde,
         }
       : null),
-    [inv, company, storno, art, referenz, position, lieferant, kunde],
+    [inv, firma, storno, art, referenz, position, lieferant, kunde],
   );
   const pruefung = useMemo(() => (optionen ? ebiPruefen(optionen) : { fehler: [], hinweise: [] }), [optionen]);
   const zehnstellig = /^\d{10}$/.test(referenz.trim());
@@ -109,6 +133,8 @@ export default function EbInterfaceDialog({
       confirmTone="primary"
       onCancel={onClose}
       onConfirm={async () => {
+        if (firmaFehler) throw new Error(firmaFehler);
+        if (inv && company && !firma) throw new Error('Die Firmendaten der Rechnung werden noch geladen — bitte gleich noch einmal.');
         if (!optionen) return;
         if (pruefung.fehler.length > 0) throw new Error('Erst die Angaben unten ergänzen — so würde die E-Rechnung abgewiesen.');
         const xml = ebInterfaceXml(optionen);
@@ -127,6 +153,11 @@ export default function EbInterfaceDialog({
       }}
     >
       <div className="space-y-3">
+        {firmaFehler && (
+          <Hinweiszeile stufe="fehl">
+            <p>{firmaFehler}</p>
+          </Hinweiszeile>
+        )}
         <Segmente name="Empfänger" werte={ARTEN} wert={art} onChange={setArt} />
         <InputField
           id="ebi-referenz"

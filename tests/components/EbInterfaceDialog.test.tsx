@@ -18,6 +18,15 @@ vi.mock('@/lib/db/customers', () => ({
   kundenNachNamen: vi.fn(async () => kunden),
   updateCustomer: (...a: unknown[]) => updateCustomer(...(a as [])),
 }));
+/*
+  DIE FIRMENDATEN DER AUSSTELLUNG (seit 24.10.2026): mit Stand Anschrift und
+  Bank von damals, ohne Stand die heutigen.
+*/
+const belegFirma = vi.fn(async (f: Company, stand?: string | null) =>
+  stand ? { ...f, strasse: 'Alte Gasse 3', iban: 'AT483200000012345864' } : f);
+vi.mock('@/lib/db/aussteller', () => ({
+  belegFirma: (f: Company, stand?: string | null) => belegFirma(f, stand),
+}));
 const toast = { success: vi.fn(), error: vi.fn() };
 vi.mock('@/components/Toast', () => ({ useToast: () => toast }));
 
@@ -135,5 +144,34 @@ describe('E-Rechnung: Dialog', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Datei laden' }));
     await waitFor(() => expect(geladen).toHaveLength(1));
     expect(await lesen(geladen[0])).toContain('<CancelledOriginalDocument>');
+  });
+});
+
+describe('E-Rechnung mit den Firmendaten der Ausstellung (24.10.2026)', () => {
+  it('der Rechnungssteller steht so darin, wie er auf der Rechnung stand', async () => {
+    const onClose = zeige({ inv: rechnung({ ausstellerStand: 'st-1' }) });
+    await waitFor(() => expect(screen.getByLabelText(/Unsere Lieferantennummer/)).toHaveValue('50012345'));
+    await userEvent.click(screen.getByRole('button', { name: 'Datei laden' }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    const xml = await lesen(geladen[0]);
+    expect(xml).toContain('Alte Gasse 3');
+    expect(xml).toContain('AT483200000012345864');
+    expect(xml).not.toContain('Hauptstraße 12');
+  });
+
+  it('die Stornorechnung mit ihrem eigenen Stand', async () => {
+    belegFirma.mockClear();
+    zeige({ inv: rechnung({ ausstellerStand: 'st-1', stornoAusstellerStand: 'st-2', stornoNummer: 'RE-2026-1050' }), storno: true });
+    await waitFor(() => expect(belegFirma).toHaveBeenCalled());
+    expect(belegFirma.mock.calls[0][1]).toBe('st-2');
+  });
+
+  it('kommen die Firmendaten nicht, sagt es der Dialog und lädt nichts', async () => {
+    belegFirma.mockRejectedValueOnce(new Error('Die Firmendaten dieses Belegs konnten nicht geladen werden.'));
+    const onClose = zeige({ inv: rechnung({ ausstellerStand: 'st-1' }) });
+    expect(await screen.findAllByText(/Firmendaten dieses Belegs/)).not.toHaveLength(0);
+    await userEvent.click(screen.getByRole('button', { name: 'Datei laden' }));
+    expect(geladen).toHaveLength(0);
+    expect(onClose).not.toHaveBeenCalled();
   });
 });

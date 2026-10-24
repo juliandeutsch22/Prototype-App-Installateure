@@ -17,6 +17,7 @@ import { unterschriftOhneBild } from './scheinVollstaendig';
 import Fotostreifen from './Fotostreifen';
 import Nachladen from '@/components/Nachladen';
 import { listEntriesInRange } from '@/lib/db/timeEntries';
+import { belegFirma } from '@/lib/db/aussteller';
 import {
   scheineOhneBuchung,
   minutenOhneBuchung,
@@ -557,12 +558,14 @@ export default function WorkSheetsListView() {
       const s = unterschriftOhneBild(liste) ? await getWorkSheet(liste.id) : liste;
       if (!s) throw new Error('Schein nicht gefunden');
       // Der ganze Firmensatz, nicht nur der Name: der Beleg soll sagen, an
-      // wen der Kunde sich wenden muss.
+      // wen der Kunde sich wenden muss — und zwar so, wie er bei der
+      // Unterschrift dastand (seit 24.10.2026).
+      const firma = company ? await belegFirma(company, s.ausstellerStand) : null;
       const blob = await buildWorkSheetPdf(s, {
-        name: company?.name ?? 'Installateur',
-        addressLine: company?.addressLine,
-        contactLine: company?.contactLine,
-        logoUrl: company?.logoUrl,
+        name: firma?.name ?? 'Installateur',
+        addressLine: firma?.addressLine,
+        contactLine: firma?.contactLine,
+        logoUrl: firma?.logoUrl,
       });
       const art = await shareOrDownloadPdf(
         blob,

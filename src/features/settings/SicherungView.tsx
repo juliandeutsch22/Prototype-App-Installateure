@@ -13,6 +13,7 @@ import { SelectField } from '@/components/Field';
 import { listGemahntInRange, listInvoicesInRange, listMahnungenInRange } from '@/lib/db/invoices';
 import { listQuotesInRange } from '@/lib/db/quotes';
 import { getWorkSheetsVoll, listBelegScheineInRange } from '@/lib/db/workSheets';
+import { ausstellerStaende } from '@/lib/db/aussteller';
 import { kundenNachNamen, listCustomersByIds } from '@/lib/db/customers';
 import { todayStr } from '@/lib/time';
 
@@ -169,6 +170,7 @@ export default function SicherungView() {
       const e = await belegArchiv({
         company, rechnungen, kunden, von, bis: z.bis, angebote, scheine, gemahnt, mahnungen,
         scheineVoll: (ids) => getWorkSheetsVoll(user.companyId, ids),
+        staende: (ids) => ausstellerStaende(user.companyId, ids),
         fortschritt: (fertig, gesamt) => setArchivStand({ fertig, gesamt }),
       });
       const url = URL.createObjectURL(e.blob);
