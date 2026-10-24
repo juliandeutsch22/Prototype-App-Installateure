@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   calcOverallSaldo,
   calcMonthStats,
@@ -57,6 +57,22 @@ function werktageBisGestern(): number {
   return n;
 }
 
+/*
+  EIN FESTER TAG. Die Prüfungen rechnen den laufenden Monat, und die
+  Hilfsrechnung unten zählt Werktage ohne Feiertage. Liegt im Monat ein
+  Feiertag an einem Werktag (etwa der 8.12.), hätte sie mehr Solltage gezählt
+  als die App — die zu Recht keinen ansetzt. Ein Tag ohne Feiertag davor hält
+  die Prüfung bei dem, was sie prüft; den Feiertag prüft ein eigener Fall.
+*/
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-10-20T10:00:00+02:00'));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe('Monatsstand auf der Startseite', () => {
   it('belastet keine Tage, die noch nicht waren', () => {
     const user = { ...monteur, appStartDate: monatsStart() };
@@ -69,8 +85,8 @@ describe('Monatsstand auf der Startseite', () => {
   });
 
   it('ist am Monatsersten genau null, nicht ein ganzes Monatsminus', () => {
-    const heute = new Date();
-    if (heute.getDate() !== 1) return; // nur am Ersten aussagekraeftig
+    // Vorher lief die Prüfung nur, wenn sie zufällig an einem Ersten lief.
+    vi.setSystemTime(new Date('2026-10-01T10:00:00+02:00'));
     const user = { ...monteur, appStartDate: monatsStart() };
     expect(calcOverallSaldo(user, [], true).saldoH).toBe(0);
   });
@@ -97,6 +113,15 @@ describe('Monatsstand auf der Startseite', () => {
     expect(stats.saldoMin / 60).toBeCloseTo(calcOverallSaldo(user, [], true).saldoH, 2);
     // Der laufende Monat ist als solcher erkennbar.
     expect(stats.istLaufend).toBe(true);
+  });
+
+  it('setzt einen Feiertag im laufenden Monat nicht als Solltag an', () => {
+    // 10.12.2026: Werktage davor sind 1.–4. und 7.–9., der 8.12. ist Feiertag.
+    vi.setSystemTime(new Date('2026-12-10T10:00:00+01:00'));
+    const user = { ...monteur, appStartDate: monatsStart() };
+    const stats = calcMonthStats(user, [], [], 2026, 11, true);
+    expect(stats.requiredDays).toBe(6);
+    expect(stats.saldoMin / 60).toBeCloseTo(calcOverallSaldo(user, [], true).saldoH, 2);
   });
 
   it('laesst einen ABGESCHLOSSENEN Monat unveraendert', () => {

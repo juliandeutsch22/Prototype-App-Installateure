@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -53,6 +53,20 @@ function zeichne(p: { entry?: TimeEntry & { id: string }; staff?: AppUser[] } = 
 
 const optionen = () =>
   Array.from((screen.getByLabelText('Status') as HTMLSelectElement).options).map((o) => o.value);
+
+/*
+  EIN FESTER TAG. Die Prüfungen tragen Urlaub für Februar 2027 ein. Sobald der Tag
+  vorbei ist, behandelt die Maske ihn als Vergangenheit, und die Prüfung
+  liefe rot, ohne dass sich etwas geändert hätte.
+*/
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-10-20T10:00:00+02:00'));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 beforeEach(() => {
   anlegen.mockClear();

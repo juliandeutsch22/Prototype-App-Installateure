@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -179,6 +179,20 @@ async function datum(label: string, wert: string) {
   await nutzer.clear(feld);
   await nutzer.type(feld, wert);
 }
+
+/*
+  EIN FESTER TAG. Die Anträge und Anpassungen hier liegen im Jahr 2026, die Seite
+  zeigt das laufende Jahr. Ab dem 1.1.2027 stünden Resturlaub und
+  Sonderurlaub leer da, ohne dass sich etwas geändert hätte.
+*/
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-10-20T10:00:00+02:00'));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 beforeEach(() => {
   anpassungen = [];
