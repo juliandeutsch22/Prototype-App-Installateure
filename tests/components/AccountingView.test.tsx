@@ -1419,7 +1419,10 @@ it('zeigt im Personenvergleich auch bei vollständigen Buchungen den vorhandenen
   buchungen = [...eintraege.filter((e) => e.date !== '2026-08-25'), { ...eintrag('2026-08-25'), startTime: '05:00', endTime: '18:30' }];
   zeichneSeite('/accounting');
   expect(await screen.findByText(/13:00 Std\. am 25\.08\. — höchstens 12 Std\./)).toBeInTheDocument();
-  expect(screen.getByText('Arbeitszeitgrenze prüfen')).toBeInTheDocument();
+  // Der Hinweis steht in der Liste, und die kommt mit ihrer ganzen Grundlage (auch den
+  // Urlaubstagen) — darauf warten, nicht nur auf die Karte. Unter Last kam er in der CI
+  // einen Takt nach der Karte (24.10.2026).
+  expect(await screen.findByText('Arbeitszeitgrenze prüfen')).toBeInTheDocument();
   expect(grenzAbfragen).toBe(1);
 });
 

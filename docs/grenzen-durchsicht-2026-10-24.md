@@ -21,9 +21,7 @@ gegen den Code vom 24.10.2026. Jede Grenze fällt in eine von fünf Gruppen:
 
 Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 
-| # | Grenze (Fundstelle) | Was fehlt | Vorschlag |
-|---|---|---|---|
-| A16 | Lange Namen brechen am Tablet mitten im Wort, „bräuchte eine Trennbibliothek; bewusst nicht“ (Stand 13 G4, 15.2) | Die Browser trennen Deutsch selbst (`hyphens: auto` mit `lang="de"`), an zwei Stellen schon im Einsatz | Für die Tagesspalten übernehmen und am Tablet nachsehen |
+Alle sechzehn gebaut (24.10.2026, T-28 bis T-44); sie stehen unter E.
 
 ## N – Nachweise, die fehlen
 
@@ -64,6 +62,7 @@ Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 | App-Zeichen bei 16 px (Stand 18) | Gestaltung, abgewogen |
 | `npm test` ohne Datenbanktests (offene Punkte C12) | Der Stapel läuft in der CI; im Handbuch benannt |
 | Tailwind statt einer Klasse je Element (offene Punkte B10) | Ansicht für Ansicht, wenn sie ohnehin angefasst wird |
+| Lange Namen brechen mitten im Wort in einem Browser ohne deutsches Trennwörterbuch (A16, 24.10.2026) | Die Trennregel gilt überall; das Wörterbuch bringt der Browser mit oder nicht — liegt beim Gerät |
 
 ## X – Liegt bei jemand anderem
 
@@ -105,6 +104,7 @@ Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 | A13 Belegarchiv (ZIP) über viele Jahre im Speicher des Browsers (Stand 15.5) | T-41 |
 | A14 Dokumentlinks bis zum Ablauf ihrer Stunde nutzbar, auch nach „nur Büro“ (Prüfbericht 13.10, Punkt 7) | T-42 |
 | A15 Sonderurlaub nur mit eingeschaltetem Modul Urlaub (Stand 10.3) | T-43 |
+| A16 Silbentrennung in den Tagesspalten — galt schon (geerbt von `index.css`), jetzt dauerhaft geprüft (Stand 13 G4, 15.2) | T-44 |
 
 ## Wie es weitergeht
 
