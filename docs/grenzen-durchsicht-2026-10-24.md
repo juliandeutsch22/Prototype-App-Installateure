@@ -27,7 +27,6 @@ Alle sechzehn gebaut (24.10.2026, T-28 bis T-44); sie stehen unter E.
 
 | # | Grenze (Fundstelle) | Vorschlag |
 |---|---|---|
-| N2 | Absturz: ein erzwungener Absturz mit voller Wiederherstellung wurde nicht durchgespielt (Prüfbericht 13.10, Punkt 5) | Einmal im lokalen Stapel durchspielen und festhalten |
 | N3 | Tablet quer dauerhaft nur an einer Karte geprüft (Stand 18, K3) | Die Browserwege zusätzlich in 1194 × 834 laufen lassen |
 
 ## B – Begründete Grenzen (bleiben)
@@ -106,6 +105,7 @@ Alle sechzehn gebaut (24.10.2026, T-28 bis T-44); sie stehen unter E.
 | A15 Sonderurlaub nur mit eingeschaltetem Modul Urlaub (Stand 10.3) | T-43 |
 | A16 Silbentrennung in den Tagesspalten — galt schon (geerbt von `index.css`), jetzt dauerhaft geprüft (Stand 13 G4, 15.2) | T-44 |
 | N1 Sicherung über 256 MB nicht geprüft (Stand 14.6) — geprüft mit 288 MB; dabei Speicher- und Rechenzeitgrenze der Function gefunden und behoben | T-45 |
+| N2 Absturz mit voller Wiederherstellung nicht durchgespielt (Prüfbericht 13.10, Punkt 5) — durchgespielt, bestanden (`scripts/absturzprobe.mjs`) | T-46 |
 
 ## Wie es weitergeht
 
