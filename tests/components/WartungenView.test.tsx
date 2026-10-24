@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -135,6 +135,20 @@ function zeichne() {
     </MemoryRouter>,
   );
 }
+
+/*
+  EIN FESTER TAG. Die neue Baustelle trägt das laufende Jahr in ihrer Nummer
+  („B-2026-…“). Ab dem 1.1.2027 hieße sie anders, ohne dass sich etwas
+  geändert hätte.
+*/
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-10-20T10:00:00+02:00'));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 beforeEach(() => {
   rolle = 'Geschäftsführung';

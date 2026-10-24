@@ -7,7 +7,7 @@
  *   M7  Vor dem Eintritt sperrt die Datenbank; zwischen Eintritt und
  *       Saldo-Start warnt die Maske.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, onTestFinished } from 'vitest';
 import {
   calcMonthStats, calcOverallSaldo, hatTagessoll, localDateStr, tagessollStunden,
 } from '@/lib/time';
@@ -68,7 +68,15 @@ describe('M5 — Tagessoll je Wochentag', () => {
     /*
       Die Gegenprobe zur alten Rechnung: dort galten auch am Freitag 7,8
       Stunden, und fünf gearbeitete Stunden liessen 2,8 im Minus.
+
+      Ein fester Tag: die vierzehn Tage davor sollen keinen halben Tag (24.
+      und 31.12.) enthalten, den die Schleife unten nicht kennt.
     */
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-20T10:00:00+02:00'));
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const p = person({ tagessoll: KURZER_FREITAG });
     const start = new Date();
     start.setDate(start.getDate() - 14);
