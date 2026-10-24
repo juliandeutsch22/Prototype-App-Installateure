@@ -25,9 +25,7 @@ Alle sechzehn gebaut (24.10.2026, T-28 bis T-44); sie stehen unter E.
 
 ## N – Nachweise, die fehlen
 
-| # | Grenze (Fundstelle) | Vorschlag |
-|---|---|---|
-| N3 | Tablet quer dauerhaft nur an einer Karte geprüft (Stand 18, K3) | Die Browserwege zusätzlich in 1194 × 834 laufen lassen |
+Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 
 ## B – Begründete Grenzen (bleiben)
 
@@ -106,9 +104,12 @@ Alle sechzehn gebaut (24.10.2026, T-28 bis T-44); sie stehen unter E.
 | A16 Silbentrennung in den Tagesspalten — galt schon (geerbt von `index.css`), jetzt dauerhaft geprüft (Stand 13 G4, 15.2) | T-44 |
 | N1 Sicherung über 256 MB nicht geprüft (Stand 14.6) — geprüft mit 288 MB; dabei Speicher- und Rechenzeitgrenze der Function gefunden und behoben | T-45 |
 | N2 Absturz mit voller Wiederherstellung nicht durchgespielt (Prüfbericht 13.10, Punkt 5) — durchgespielt, bestanden (`scripts/absturzprobe.mjs`) | T-46 |
+| N3 Tablet quer dauerhaft nur an einer Karte geprüft (Stand 18, K3) — die Wege des Monteurs laufen jetzt auch bei 1194 × 834 | T-47 |
 
 ## Wie es weitergeht
 
-Die Abkürzungen A1–A16 und die Nachweise N1–N3 werden je Thema in einem
-eigenen PR gebaut, in der Reihenfolge der Tabelle. Jeder PR hat Prüfungen
-mit Gegenprobe, Handbuch und Stand. Erledigtes wandert hier heraus.
+Die Abkürzungen A1–A16 und die Nachweise N1–N3 wurden je Thema in einem
+eigenen PR gebaut, in der Reihenfolge der Tabelle, jeder mit Prüfungen samt
+Gegenprobe, Handbuch und Stand; am 24.10.2026 abgeschlossen. Was bleibt,
+steht unter B, jeweils mit seinem Grund. Eine neue Grenze kommt nach
+Grundsatz 6 nur mit Grund dorthin — sonst wird sie gebaut.

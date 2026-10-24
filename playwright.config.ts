@@ -46,10 +46,10 @@ import { defineConfig, devices } from '@playwright/test';
 const ORT = 'http://127.0.0.1:5173';
 
 /*
-  DIE WEGE DES MONTEURS LAUFEN DREIMAL (Nachtest 01.10.2026, Paket E: „Handy
+  DIE WEGE DES MONTEURS LAUFEN VIERMAL (Nachtest 01.10.2026, Paket E: „Handy
   zuerst“): in Chromium am Schreibtisch wie alle anderen, in WebKit — der
   Maschine von Safari auf jedem iPhone — bei 390 px, und auf dem Tablet bei
-  834 px. Zeit buchen, Material anfordern, Schein mit Unterschrift und Foto,
+  834 px hochkant und seit N3 (24.10.2026) bei 1194 px quer. Zeit buchen, Material anfordern, Schein mit Unterschrift und Foto,
   und jede seiner Seiten einmal. Seit Runde 3: die Leiste der Zeiterfassung
   am Handy (G22) und der Nachweis zum Sonderurlaub (G26).
 */
@@ -114,6 +114,23 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 834, height: 1112 },
+        hasTouch: true,
+        launchOptions: CHROMIUM_START,
+      },
+    },
+    /*
+      DAS TABLET QUER (N3, 24.10.2026): 1194 × 834 liegt knapp unter der
+      Schreibtischbreite (1.200 px) und zeigt damit die Tabletansicht in ihrer
+      breitesten Form — die Leiste, die Spalten und Dialoge stehen dort anders
+      als hochkant. Bis hierher prüfte das eine einzige Karte (K3); jetzt
+      laufen dieselben Wege des Monteurs auch quer.
+    */
+    {
+      name: 'tablet-quer-1194',
+      testMatch: MONTEUR_WEGE,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1194, height: 834 },
         hasTouch: true,
         launchOptions: CHROMIUM_START,
       },
