@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { admin, ARTIKEL, BETRIEB, MONTEUR } from './aufbau';
+import { admin, ARTIKEL, BETRIEB, CHEFIN, MONTEUR } from './aufbau';
 import { anmelden, keineFehlermeldung, menue } from './helfer';
 
 /**
@@ -68,6 +68,60 @@ test('Ein Monteur gibt übriges Material über die sichtbare Zeile zurück', asy
     expect((data ?? [])[0].condition).toBe('neu');
     expect(await bestand()).toBe(vorher + 2);
   }).toPass({ timeout: 15_000 });
+
+  await keineFehlermeldung(page);
+});
+
+/*
+  DAS LAGER ERFASST FÜR DEN MONTEUR (A4, 24.10.2026). Bisher stand eine so
+  erfasste Retoure auf dem Namen dessen, der erfasst. Geprüft bis in die
+  Datenbank: sie lautet auf den Monteur, „erfasst von“ ist die Chefin, und
+  Neues ist gutgeschrieben.
+*/
+test('Die Führung erfasst eine Retoure für den Monteur, der sie hereinbringt', async ({ page }) => {
+  const bestand = async () => {
+    const { data } = await admin.from('materials').select('stock')
+      .eq('company_id', BETRIEB).eq('name', ARTIKEL.name).single();
+    return Number(data?.stock ?? 0);
+  };
+  const kennung = async (email: string) => {
+    const { data } = await admin.from('users').select('id').eq('email', email).single();
+    return data!.id as string;
+  };
+  const vorher = await bestand();
+
+  await anmelden(page, CHEFIN.email);
+  await page.goto('/anforderungen');
+  await page.getByRole('button', { name: /^Retouren/ }).click();
+  await page.getByRole('button', { name: 'Retoure erfassen' }).click();
+
+  const fenster = page.getByRole('dialog', { name: 'Material zurückgeben' });
+  await fenster.getByRole('searchbox', { name: 'Material' }).fill('Kupfer');
+  await fenster.getByRole('button', { name: new RegExp(`${ARTIKEL.name} zurückgeben`) }).click();
+  await fenster.getByLabel('Menge').fill('1');
+  const wer = fenster.getByRole('combobox', { name: 'Zurückgebracht von' });
+  await expect(wer.getByRole('option', { name: MONTEUR.name })).toBeAttached();
+  await wer.selectOption({ label: MONTEUR.name });
+  await fenster.getByRole('button', { name: 'Retoure erfassen' }).click();
+  await expect(fenster).toBeHidden();
+
+  const monteur = await kennung(MONTEUR.email);
+  const chefin = await kennung(CHEFIN.email);
+  await expect(async () => {
+    const { data } = await admin.from('material_orders')
+      .select('user_id, user_name, erfasst_von, transaction_type')
+      .eq('company_id', BETRIEB).eq('transaction_type', 'return');
+    expect(data ?? []).toEqual([
+      { user_id: monteur, user_name: MONTEUR.name, erfasst_von: chefin, transaction_type: 'return' },
+    ]);
+    expect(await bestand()).toBe(vorher + 1);
+  }).toPass({ timeout: 15_000 });
+
+  // In der Liste und im Seitenfenster steht beides.
+  await page.getByRole('button', { name: new RegExp(`^${ARTIKEL.name}`) }).click();
+  const anforderung = page.getByRole('dialog', { name: 'Anforderung' });
+  await expect(anforderung.getByText('Zurückgebracht von')).toBeVisible();
+  await expect(anforderung.getByText(`${MONTEUR.name}, erfasst von ${CHEFIN.name}`)).toBeVisible();
 
   await keineFehlermeldung(page);
 });

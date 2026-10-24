@@ -117,6 +117,15 @@ const authWert = {
 };
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
+/* Die Belegschaft für „Zurückgebracht von“ (A4, 24.10.2026). */
+let belegschaft: Promise<unknown[]> | null = null;
+const belegschaftLaden = vi.fn(() => belegschaft ?? Promise.resolve([
+  { uid: 'pl', name: 'Planer', active: true },
+  { uid: 'm7', name: 'Max Monteur', active: true },
+  { uid: 'alt', name: 'Ausgeschieden', active: false },
+]));
+vi.mock('@/lib/db/users', () => ({ listUsers: () => belegschaftLaden() }));
+
 function zeige() {
   return render(
     <MemoryRouter>
@@ -147,6 +156,7 @@ beforeEach(() => {
   vorschlag = null;
   lagerPosten = [];
   lagerFehler = false;
+  belegschaft = null;
 });
 
 afterEach(() => {
@@ -746,8 +756,8 @@ describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
   „Retouren“, mit demselben Formular wie unter „Material anfordern“.
 */
 describe('Anforderungen — Retoure erfassen im Lager', () => {
-  it('„Retoure erfassen“ im Reiter Retouren erfasst auf den eigenen Namen', async () => {
-    retoureAnlegen.mockClear();
+  /** Das Fenster öffnen und das Material wählen — bis vor „Zurückgebracht von“. */
+  async function retoureBisPerson() {
     zeige();
     await userEvent.click(await bereich(/^Retouren/));
     await userEvent.click(screen.getByRole('button', { name: 'Retoure erfassen' }));
@@ -755,11 +765,68 @@ describe('Anforderungen — Retoure erfassen im Lager', () => {
     await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'Kupfer');
     await userEvent.click(await within(fenster).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
     await userEvent.selectOptions(within(fenster).getByRole('combobox', { name: /Zustand/ }), 'gebraucht');
+    return fenster;
+  }
+
+  it('erfasst auf die Person, die zurückgebracht hat — gewählt aus der aktiven Belegschaft (A4)', async () => {
+    retoureAnlegen.mockClear();
+    const fenster = await retoureBisPerson();
+    const wer = within(fenster).getByRole('combobox', { name: 'Zurückgebracht von' });
+    await waitFor(() => expect(within(wer).getByRole('option', { name: 'Max Monteur' })).toBeInTheDocument());
+    // Wer ausgeschieden ist, steht nicht zur Wahl.
+    expect(within(wer).queryByRole('option', { name: 'Ausgeschieden' })).toBeNull();
+    await userEvent.selectOptions(wer, 'm7');
     await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
     await waitFor(() => expect(retoureAnlegen).toHaveBeenCalledTimes(1));
     expect(retoureAnlegen.mock.calls[0]).toEqual(['perl', expect.objectContaining({
-      materialId: 'm1', quantity: 1, condition: 'gebraucht', userId: 'pl', userName: 'Planer',
+      materialId: 'm1', quantity: 1, condition: 'gebraucht', userId: 'm7', userName: 'Max Monteur',
     })]);
+  });
+
+  it('Gegenprobe: ohne Wahl erfasst das Lager nicht still auf den eigenen Namen', async () => {
+    retoureAnlegen.mockClear();
+    const fenster = await retoureBisPerson();
+    await within(fenster).findByRole('option', { name: 'Max Monteur' });
+    expect(within(fenster).getByRole('button', { name: 'Retoure erfassen' })).toBeDisabled();
+    // Bringt das Lager selbst zurück, wählt es sich.
+    await userEvent.selectOptions(within(fenster).getByRole('combobox', { name: 'Zurückgebracht von' }), 'pl');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await waitFor(() => expect(retoureAnlegen).toHaveBeenCalledTimes(1));
+    expect(retoureAnlegen.mock.calls[0][1]).toMatchObject({ userId: 'pl', userName: 'Planer' });
+  });
+
+  it('kommt die Belegschaft nicht, sagt es das Fenster und erfasst nichts', async () => {
+    retoureAnlegen.mockClear();
+    belegschaft = Promise.reject(new Error('Netz weg'));
+    belegschaft.catch(() => undefined);
+    const fenster = await retoureBisPerson();
+    expect(await within(fenster).findByText(/Belegschaft konnte nicht geladen werden/)).toBeInTheDocument();
+    expect(within(fenster).getByRole('button', { name: 'Retoure erfassen' })).toBeDisabled();
+  });
+
+  it('nennt an der Retoure, wer zurückgebracht und wer erfasst hat', async () => {
+    anforderungen = [
+      anforderung({
+        id: 'b', status: 'Erledigt', transactionType: 'return', condition: 'neu',
+        userId: 'm7', userName: 'Max Monteur', erfasstVon: 'pl', erfasstVonName: 'Planer',
+      }),
+    ];
+    zeige();
+    await userEvent.click(await bereich(/^Retouren/));
+    const fenster = await oeffnen();
+    expect(within(fenster).getByText('Zurückgebracht von').nextSibling).toHaveTextContent('Max Monteur');
+    expect(within(fenster).getByText('Erfasst von').nextSibling).toHaveTextContent('Planer');
+    expect(within(fenster).getByText(/Max Monteur, erfasst von Planer/)).toBeInTheDocument();
+  });
+
+  it('Gleichbleiben: die eigene Rückgabe und Anforderungen nennen keinen eigenen Erfasser', async () => {
+    anforderungen = [
+      anforderung({ id: 'a', userId: 'u1', erfasstVon: 'u1', erfasstVonName: 'Max Mustermann' }),
+    ];
+    zeige();
+    const fenster = await oeffnen();
+    expect(within(fenster).getByText('Angefordert von').nextSibling).toHaveTextContent('Max Mustermann');
+    expect(within(fenster).queryByText('Erfasst von')).toBeNull();
   });
 
   it('Gleichbleiben: in den übrigen Reitern steht kein „Retoure erfassen“', async () => {
