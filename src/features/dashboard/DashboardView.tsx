@@ -32,7 +32,7 @@ import HeuteLeitung from './start/HeuteLeitung';
 import HeuteListe from './start/HeuteListe';
 import TermineHeute from './start/TermineHeute';
 import { startseite } from './start/aufbau';
-import { grundpfad } from './start/ziele';
+import { grundpfad, ZIEL } from './start/ziele';
 import {
   buchhaltung,
   einstellungen,
@@ -75,8 +75,13 @@ export default function DashboardView() {
     return (ziel: string) => !!user && canAccess(user.role, grundpfad(ziel), company?.modules, zusatz);
   }, [user, company]);
   const urlaubEntscheiden = !!user && urlaubAn && darfUrlaubEntscheiden(user.role, user.uid, company?.vacationApprovers);
-  // Sonderurlaub bestätigen Büro und Spitze (Plan 10.3) — nur mit dem Modul Urlaub.
-  const freistellungBestaetigen = !!user && urlaubAn && canEditTime(user.role);
+  /*
+    Sonderurlaub bestätigen Büro und Spitze (Plan 10.3) — seit A15
+    (24.10.2026) auch ohne das Modul Urlaub: die Pflegefreistellung ist ein
+    gesetzlicher Anspruch. Dann führt der Abschnitt auf die eigene Seite.
+  */
+  const freistellungBestaetigen = !!user && canEditTime(user.role);
+  const sonderurlaubZiel = urlaubAn ? undefined : ZIEL.sonderurlaub;
 
   /*
     ALLE LADEBLÖCKE IN EINER ABFRAGE, ZWISCHENGESPEICHERT (Stufe 3,
@@ -158,8 +163,8 @@ export default function DashboardView() {
   const nichtGeladen = abfrage.data?.nichtGeladen ?? KEINE_NAMEN;
 
   const seite = useMemo(
-    () => startseite(data, { rolle, heute, jetzt: Date.now(), darf, urlaubEntscheiden, freistellungBestaetigen, ich: user?.uid }),
-    [data, rolle, heute, darf, urlaubEntscheiden, freistellungBestaetigen, user?.uid],
+    () => startseite(data, { rolle, heute, jetzt: Date.now(), darf, urlaubEntscheiden, freistellungBestaetigen, sonderurlaubZiel, ich: user?.uid }),
+    [data, rolle, heute, darf, urlaubEntscheiden, freistellungBestaetigen, sonderurlaubZiel, user?.uid],
   );
 
   if (!user) return null;
