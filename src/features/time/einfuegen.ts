@@ -23,10 +23,16 @@ import { buchungKonflikt } from '@/lib/tagesbuchungen';
  *
  * NUR, WAS SICH EINDEUTIG ZERLEGEN LÄSST. Nicht eingefügt wird in eine
  * Buchung derselben Baustelle (dann ist die Zeit schon gebucht — bearbeiten
- * statt doppelt), in eine verrechnete, in eine über Mitternacht und in eine,
- * die die neue Zeit ganz bedeckt würde (sie verschwände — das soll ein
- * Mensch entscheiden). Jeder andere Konflikt des Tages (Urlaub, Zeitausgleich
- * zur selben Stunde …) bleibt ein Konflikt.
+ * statt doppelt), in eine verrechnete und in eine, die die neue Zeit ganz
+ * bedeckt würde (sie verschwände — das soll ein Mensch entscheiden). Jeder
+ * andere Konflikt des Tages (Urlaub, Zeitausgleich zur selben Stunde …)
+ * bleibt ein Konflikt.
+ *
+ * AUCH BEIM BEARBEITEN UND ÜBER MITTERNACHT (A11, 24.10.2026). Die geänderte
+ * Buchung zählt nicht zu den anderen. Über Mitternacht rechnet alles in
+ * Minuten ab Mitternacht des Tages der neuen Zeit: eine Buchung vom Vortag
+ * beginnt im Minus, eine vom Folgetag ab 24 Std. Ein Teil steht an dem Tag,
+ * an dem er beginnt — wie beim Aufteilen.
  */
 
 export interface Einfuegung {
@@ -44,15 +50,31 @@ export type EinfuegenPlan =
   /** Sie überschneidet sich, lässt sich aber nicht einfügen — warum. */
   | { art: 'nicht'; grund: string };
 
-type Vorhanden = Pick<TimeEntry, 'id' | 'status' | 'projectNumber' | 'startTime' | 'endTime' | 'breakDuration' | 'isBilled'>;
+/** `date` nur, wenn Nachbartage mitkommen; ohne zählt die Buchung zum Tag der neuen Zeit. */
+type Vorhanden = Pick<TimeEntry, 'id' | 'status' | 'projectNumber' | 'startTime' | 'endTime' | 'breakDuration' | 'isBilled'>
+  & { date?: string };
+
+const TAG_MIN = 24 * 60;
+
+/** Ganze Tage von `von` bis `bis` (ISO-Datum), unabhängig von der Zeitzone. */
+function tageZwischen(von: string, bis: string): number {
+  return Math.round((Date.parse(`${bis}T00:00:00Z`) - Date.parse(`${von}T00:00:00Z`)) / 86_400_000);
+}
 
 function minuten(hhmm?: string): number | null {
   const m = /^(\d{1,2}):(\d{2})/.exec(hhmm ?? '');
   return m ? Number(m[1]) * 60 + Number(m[2]) : null;
 }
 
-const uhr = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
-const spanneText = (von: number, bis: number) => `${uhr(von)}–${uhr(bis)}`;
+const uhr = (min: number) => {
+  const m = ((min % TAG_MIN) + TAG_MIN) % TAG_MIN;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+};
+/** Die Spanne als Uhrzeiten; liegt ihr Beginn nicht am Tag der neuen Zeit, sagt sie, wo. */
+const spanneText = (von: number, bis: number) => {
+  const tag = Math.floor(von / TAG_MIN);
+  return `${uhr(von)}–${uhr(bis)}${tag < 0 ? ' (Vortag)' : tag > 0 ? ' (Folgetag)' : ''}`;
+};
 
 /** Die Spanne in Minuten, über Mitternacht in den nächsten Tag — wie `buchungKonflikt`. */
 function spanne(e: { startTime?: string; endTime?: string }): [number, number] | null {
@@ -67,7 +89,7 @@ function spanne(e: { startTime?: string; endTime?: string }): [number, number] |
  * oder `null`, wenn sich nichts überschneidet, was einzufügen wäre.
  */
 export function einfuegenPlan(
-  neu: { status: TimeEntry['status']; projectNumber?: string; startTime?: string; endTime?: string },
+  neu: { status: TimeEntry['status']; projectNumber?: string; startTime?: string; endTime?: string; date?: string },
   vorhandene: Vorhanden[],
 ): EinfuegenPlan | null {
   if (neu.status !== 'Anwesend') return null;
@@ -75,33 +97,35 @@ export function einfuegenPlan(
   const nummer = normProjectNumber(neu.projectNumber);
   if (!n || !nummer) return null;
 
+  /** Die Spanne einer anderen Buchung in Minuten ab Mitternacht des Tages der neuen Zeit. */
+  const lage = (v: Vorhanden): [number, number] | null => {
+    const s = spanne(v);
+    if (!s) return null;
+    const versatz = v.date && neu.date ? tageZwischen(neu.date, v.date) * TAG_MIN : 0;
+    return [s[0] + versatz, s[1] + versatz];
+  };
+  const amTag = (v: Vorhanden) => !v.date || !neu.date || v.date === neu.date;
+
   const getroffen = vorhandene.filter((v) => {
     if (v.status !== 'Anwesend') return false;
-    const s = spanne(v);
+    const s = lage(v);
     return !!s && s[0] < n[1] && n[0] < s[1];
   });
   if (getroffen.length === 0) return null;
 
   // Was der Tag ohne die getroffenen Buchungen noch einwendet, bleibt ein Konflikt.
   const getroffenIds = new Set(getroffen.map((v) => v.id));
-  if (buchungKonflikt(neu, vorhandene.filter((v) => !getroffenIds.has(v.id)))) return null;
-
-  if (n[1] > 24 * 60) {
-    return { art: 'nicht', grund: 'Eine Zeit über Mitternacht lässt sich nicht einfügen — bitte die andere Buchung anpassen.' };
-  }
+  if (buchungKonflikt(neu, vorhandene.filter((v) => amTag(v) && !getroffenIds.has(v.id)))) return null;
 
   const aenderungen: Einfuegung[] = [];
-  for (const v of [...getroffen].sort((a, b) => (minuten(a.startTime) ?? 0) - (minuten(b.startTime) ?? 0))) {
-    const [von, bis] = spanne(v)!;
-    const name = `${spanneText(von, bis % (24 * 60))}${v.projectNumber ? ` (${v.projectNumber})` : ''}`;
+  for (const v of [...getroffen].sort((a, b) => lage(a)![0] - lage(b)![0])) {
+    const [von, bis] = lage(v)!;
+    const name = `${spanneText(von, bis)}${v.projectNumber ? ` (${v.projectNumber})` : ''}`;
     if (normProjectNumber(v.projectNumber) === nummer) {
       return { art: 'nicht', grund: `Auf derselben Baustelle ist ${name} schon gebucht — bitte diese Buchung ändern, statt die Zeit einzufügen.` };
     }
     if (v.isBilled) {
       return { art: 'nicht', grund: `${name} ist schon verrechnet und bleibt, wie sie ist — einfügen geht dort nicht.` };
-    }
-    if (bis > 24 * 60) {
-      return { art: 'nicht', grund: `${name} geht über Mitternacht — dort lässt sich nichts einfügen.` };
     }
     if (n[0] <= von && bis <= n[1]) {
       return { art: 'nicht', grund: `Die neue Zeit bedeckt ${name} ganz — bitte diese Buchung zuerst löschen oder ändern.` };

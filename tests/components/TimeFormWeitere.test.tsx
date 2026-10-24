@@ -23,6 +23,7 @@ vi.mock('@/lib/db/timeEntries', () => ({
     createTimeEntryOhneEmpfang(firma, daten),
   updateTimeEntryOhneEmpfang: vi.fn(async () => 'confirmed'),
   eintraegeAmTag: vi.fn(async () => []),
+  eintraegeUmDenTag: vi.fn(async () => []),
   DuplicateEntryError: class extends Error {},
 }));
 // Die Baustelle ist Pflicht; hier steht sie als einfaches Feld, damit das

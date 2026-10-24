@@ -4,7 +4,7 @@ import { useAuth } from '@/app/AuthContext';
 import {
   createTimeEntryOhneEmpfang,
   updateTimeEntryOhneEmpfang,
-  eintraegeAmTag,
+  eintraegeUmDenTag,
   listOwnEntriesInRange,
   DuplicateEntryError,
   zeitEinfuegen,
@@ -362,7 +362,12 @@ export default function TimeForm({
    * DATEN, keine Baustellen, und hätte ab jetzt jeden zweiten Einsatz eines
    * Tages fälschlich als belegt gemeldet.
    */
-  const [tagesEintraege, setTagesEintraege] = useState<TimeEntry[] | null>(null);
+  /*
+    VORTAG BIS FOLGETAG (A11, 24.10.2026): für das Einfügen über Mitternacht.
+    Die Sperren des Tages prüfen weiter nur den Tag selbst.
+  */
+  const [umDenTag, setUmDenTag] = useState<TimeEntry[] | null>(null);
+  const tagesEintraege = useMemo(() => umDenTag?.filter((r) => r.date === date) ?? null, [umDenTag, date]);
   /*
     NACH JEDEM BUCHEN NEU LADEN. Das Formular bleibt für die nächste Buchung
     stehen; ohne diesen Zähler prüfte es die nächste gegen den Tag VOR der
@@ -405,16 +410,16 @@ export default function TimeForm({
   useEffect(() => {
     if (!user || !besitzerUid || !date) return;
     let verworfen = false;
-    setTagesEintraege(null);
-    eintraegeAmTag(user.companyId, besitzerUid, date, entry?.id)
+    setUmDenTag(null);
+    eintraegeUmDenTag(user.companyId, besitzerUid, date, entry?.id)
       .then((rows) => {
-        if (!verworfen) setTagesEintraege(rows);
+        if (!verworfen) setUmDenTag(rows);
       })
       // Faellt die Abfrage aus, bleibt die serverseitige Sperre beim
       // Speichern. Eine ausgebliebene VORwarnung darf das Formular nicht
       // blockieren.
       .catch(() => {
-        if (!verworfen) setTagesEintraege([]);
+        if (!verworfen) setUmDenTag([]);
       });
     return () => {
       verworfen = true;
@@ -443,26 +448,40 @@ export default function TimeForm({
     gearbeitete Zeit nur mit eigenen Buchungen anderer Baustellen, wird sie
     beim Buchen dazwischen eingefügt — der Fall des nachgetragenen
     Handwerksscheins mitten im gebuchten Tag. Was dabei aus den anderen wird,
-    steht vorher da. Beim Bearbeiten bleibt es bei der Sperre: dort ändert man
-    die bestehende Buchung selbst.
+    steht vorher da.
 
     ERST, WENN JEMAND ZEITEN EINGEGEBEN ODER ÜBERNOMMEN HAT: die Vorgabe
     07:00–16:00 einer leeren Maske soll nichts ankündigen, was niemand wollte.
+
+    AUCH BEIM BEARBEITEN UND ÜBER MITTERNACHT (A11, 24.10.2026): wer Tag,
+    Zeiten oder Baustelle einer Buchung ändert, fügt sie ebenso ein, statt
+    löschen und neu anlegen zu müssen. Nur dann — eine Buchung, die vor der
+    Regel gegen Überschneidungen entstand, soll beim Ändern des Kommentars
+    nicht ihre Nachbarn kürzen. Buchungen vom Vortag und Folgetag zählen mit.
   */
+  const zeitGeaendert = isEdit && !!entry && (
+    date !== entry.date || startTime !== (entry.startTime ?? '') || endTime !== (entry.endTime ?? '')
+    || projectNumber !== (entry.projectNumber ?? '')
+  );
   const einfuegen = useMemo(
     () =>
-      !isEdit && (angefasst || !!vorbelegung) && konflikt && tagesEintraege
+      (isEdit ? zeitGeaendert : angefasst || !!vorbelegung) && umDenTag
         && status === 'Anwesend' && mitZeiten && canHaveProject
-        ? einfuegenPlan({ status, projectNumber, startTime, endTime }, tagesEintraege)
+        ? einfuegenPlan({ status, projectNumber, startTime, endTime, date }, umDenTag)
         : null,
-    [isEdit, angefasst, vorbelegung, konflikt, tagesEintraege, status, mitZeiten, canHaveProject, projectNumber, startTime, endTime],
+    [isEdit, zeitGeaendert, angefasst, vorbelegung, umDenTag, status, mitZeiten, canHaveProject, projectNumber, startTime, endTime, date],
   );
   const einfuegbar = einfuegen?.art === 'geht' ? einfuegen.aenderungen : null;
-  /** Was das Buchen sperrt — die Überschneidung nicht, wenn sie sich einfügen lässt. */
+  /*
+    Was das Buchen sperrt — die Überschneidung nicht, wenn sie sich einfügen
+    lässt. Geht es nicht, sagt der Grund warum; auch bei einer Überschneidung
+    mit dem Vortag oder Folgetag, die die Sperre des Tages nicht sieht (die
+    Datenbank hätte sie beim Speichern abgewiesen).
+  */
   const sperre = einfuegbar
     ? null
-    : konflikt && einfuegen?.art === 'nicht'
-      ? `${konflikt} ${einfuegen.grund}`
+    : einfuegen?.art === 'nicht'
+      ? `${konflikt ?? 'Die Zeit überschneidet sich mit einer Buchung am Vortag oder Folgetag.'} ${einfuegen.grund}`
       : konflikt;
 
   /*
@@ -768,7 +787,11 @@ export default function TimeForm({
         isEmergency: canHaveProject && showWorkFields ? isEmergency : false,
       };
 
-      if (isEdit) {
+      if (isEdit && einfuegbar) {
+        // Die anderen Buchungen ändern sich mit — am Stück (`zeit_einfuegen` mit der Kennung).
+        await zeitEinfuegen({ ...payload, userId: entry.userId, userName: entry.userName, source: 'manual' as const }, entry.id);
+        toast.success('Eintrag aktualisiert — die Zeit ist eingefügt');
+      } else if (isEdit) {
         // userId/userName bleiben unangetastet — der Eintrag gehört weiter dem
         // Mitarbeiter, auch wenn die Buchhaltung ihn korrigiert (Legacy:2700-2706).
         const audit = entry.userId !== user.uid ? bearbeitungsvermerk(user) : {};

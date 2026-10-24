@@ -20,6 +20,7 @@ vi.mock('@/lib/db/timeEntries', () => ({
   createTimeEntryOhneEmpfang: (firma: string, daten: Partial<TimeEntry>) => anlegen(firma, daten),
   updateTimeEntryOhneEmpfang: vi.fn(async () => 'confirmed'),
   eintraegeAmTag: vi.fn(async () => []),
+  eintraegeUmDenTag: vi.fn(async () => []),
   DuplicateEntryError: class extends Error {},
 }));
 vi.mock('@/components/BaustellenSelect', () => ({

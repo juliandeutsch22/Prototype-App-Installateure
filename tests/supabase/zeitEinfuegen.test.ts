@@ -8,8 +8,11 @@
  * bleibt, und die Maske (`einfuegenPlan`) hat genau das vorher gezeigt.
  *
  * Gegenproben: was nicht geht, ändert gar nichts (eine Transaktion) —
- * dieselbe Baustelle, verrechnet, über Mitternacht, ganz bedeckt, Pause passt
- * nicht, keine Überschneidung, fremde Buchungen.
+ * dieselbe Baustelle, verrechnet, ganz bedeckt (auch über Mitternacht), Pause
+ * passt nicht, keine Überschneidung, fremde Buchungen.
+ *
+ * Seit A11 (24.10.2026) auch über Mitternacht und beim Bearbeiten (eigener
+ * Abschnitt unten).
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { admin, betriebAnlegen, buchung, konto, type Konto } from './helfer';
@@ -135,10 +138,10 @@ describe('Zeit einfügen', () => {
       await unveraendert('2026-11-11', schein(monteur, '2026-11-11', '10:00', '12:00'), monteur, /verrechnet/);
     });
 
-    it('über Mitternacht — die bestehende und die neue', async () => {
-      await gebucht(monteur, '2026-11-12', { start_time: '20:00', end_time: '02:00', break_duration: 0 });
-      await unveraendert('2026-11-12', schein(monteur, '2026-11-12', '21:00', '22:00'), monteur, /über Mitternacht/);
-      await unveraendert('2026-11-12', schein(monteur, '2026-11-12', '23:00', '01:00'), monteur, /über Mitternacht/);
+    it('über Mitternacht ganz bedeckt — auch am Folgetag ändert sich nichts', async () => {
+      await gebucht(monteur, '2026-11-12', { start_time: '22:00', end_time: '02:00', break_duration: 0 });
+      await unveraendert('2026-11-12', schein(monteur, '2026-11-12', '21:00', '03:00'), monteur, /ganz/);
+      expect(await amTag('2026-11-13')).toEqual([]);
     });
 
     it('die neue Zeit bedeckt die andere ganz', async () => {
@@ -161,5 +164,97 @@ describe('Zeit einfügen', () => {
       await gebucht(monteur, '2026-11-16');
       await unveraendert('2026-11-16', schein(monteur, '2026-11-16', '10:00', '12:00'), kollege, /keiner Buchung/);
     });
+  });
+});
+
+/*
+  ÜBER MITTERNACHT UND BEIM BEARBEITEN (A11, 24.10.2026). Gerechnet wird ab
+  Mitternacht des Tages der neuen Zeit; Vortag und Folgetag zählen mit. Ein
+  Teil steht an dem Tag, an dem er beginnt.
+*/
+describe('Einfügen über Mitternacht', () => {
+  it('in eine Nachtschicht: geteilt, der hintere Teil reicht über Mitternacht', async () => {
+    await gebucht(monteur, '2026-12-01', { start_time: '20:00', end_time: '04:00', break_duration: 30 });
+    await einfuegen(monteur, schein(monteur, '2026-12-01', '22:00', '23:00'));
+    expect(kurz(await amTag('2026-12-01'))).toEqual([
+      ['B-1', '20:00', '22:00', 0], ['B-2', '22:00', '23:00', 0], ['B-1', '23:00', '04:00', 30],
+    ]);
+  });
+
+  it('nach Mitternacht in eine Nachtschicht: der hintere Teil steht am Folgetag', async () => {
+    await gebucht(monteur, '2026-12-03', { start_time: '20:00', end_time: '04:00', break_duration: 30 });
+    await einfuegen(monteur, schein(monteur, '2026-12-03', '20:30', '01:00'));
+    expect(kurz(await amTag('2026-12-03'))).toEqual([['B-1', '20:00', '20:30', 0], ['B-2', '20:30', '01:00', 0]]);
+    expect(kurz(await amTag('2026-12-04'))).toEqual([['B-1', '01:00', '04:00', 30]]);
+  });
+
+  it('eine Nachtzeit kürzt die Buchung am Folgetag', async () => {
+    await gebucht(monteur, '2026-12-08', { project_number: 'B-3', customer_name: 'Kunde B-3', start_time: '00:30', end_time: '05:00', break_duration: 0 });
+    await einfuegen(monteur, schein(monteur, '2026-12-07', '22:00', '02:00'));
+    expect(kurz(await amTag('2026-12-07'))).toEqual([['B-2', '22:00', '02:00', 0]]);
+    expect(kurz(await amTag('2026-12-08'))).toEqual([['B-3', '02:00', '05:00', 0]]);
+  });
+
+  it('am Morgen in die Nachtschicht vom Vortag', async () => {
+    await gebucht(monteur, '2026-12-09', { start_time: '22:00', end_time: '06:00', break_duration: 0 });
+    await einfuegen(monteur, schein(monteur, '2026-12-10', '05:00', '08:00'));
+    expect(kurz(await amTag('2026-12-09'))).toEqual([['B-1', '22:00', '05:00', 0]]);
+    expect(kurz(await amTag('2026-12-10'))).toEqual([['B-2', '05:00', '08:00', 0]]);
+  });
+
+  it('Gegenprobe: in eine verrechnete Buchung am Folgetag nicht — und nichts ändert sich', async () => {
+    const id = await gebucht(monteur, '2026-12-12', { start_time: '00:30', end_time: '05:00', break_duration: 0 });
+    expect((await admin.from('time_entries').update({ is_billed: true, invoice_number: 'RE-9' }).eq('id', id)).error).toBeNull();
+    await expect(einfuegen(monteur, schein(monteur, '2026-12-11', '22:00', '02:00'))).rejects.toThrow(/am Folgetag.*verrechnet/);
+    expect(await amTag('2026-12-11')).toEqual([]);
+    expect(kurz(await amTag('2026-12-12'))).toEqual([['B-1', '00:30', '05:00', 0]]);
+  });
+});
+
+describe('Einfügen beim Bearbeiten', () => {
+  async function aendern(k: Konto, neu: ReturnType<typeof schein>, id: string) {
+    clientEinreichen(k.client);
+    return zeiten.zeitEinfuegen(neu, id);
+  }
+
+  it('der frühere Beginn kürzt die Buchung davor; die geänderte Buchung behält ihre Kennung', async () => {
+    await gebucht(monteur, '2026-12-14', { end_time: '11:00', break_duration: 0 });
+    const id = await gebucht(monteur, '2026-12-14', { project_number: 'B-2', customer_name: 'Kunde B-2', start_time: '11:00', end_time: '12:00', break_duration: 0 });
+    const r = await aendern(monteur, schein(monteur, '2026-12-14', '10:00', '12:00', 'B-2', { comment: 'Rohrbruch' }), id);
+    expect(r).toBe(id);
+    const zeilen = await amTag('2026-12-14');
+    expect(kurz(zeilen)).toEqual([['B-1', '07:00', '10:00', 0], ['B-2', '10:00', '12:00', 0]]);
+    expect(zeilen.find((z) => z.id === id)?.comment).toBe('Rohrbruch');
+  });
+
+  it('auf einen anderen Tag verschoben, mitten in dessen Buchung', async () => {
+    await gebucht(monteur, '2026-12-15');
+    const id = await gebucht(monteur, '2026-12-16', { project_number: 'B-2', customer_name: 'Kunde B-2', start_time: '07:00', end_time: '09:00', break_duration: 0 });
+    await aendern(monteur, schein(monteur, '2026-12-15', '10:00', '12:00'), id);
+    expect(kurz(await amTag('2026-12-15'))).toEqual([['B-1', '07:00', '10:00', 0], ['B-2', '10:00', '12:00', 0], ['B-1', '12:00', '16:00', 30]]);
+    expect(await amTag('2026-12-16')).toEqual([]);
+  });
+
+  it('das Büro ändert die Buchung des Monteurs und steht als Bearbeiter da', async () => {
+    await gebucht(monteur, '2026-12-17', { end_time: '11:00', break_duration: 0 });
+    const id = await gebucht(monteur, '2026-12-17', { project_number: 'B-2', customer_name: 'Kunde B-2', start_time: '11:00', end_time: '12:00', break_duration: 0 });
+    await aendern(buero, schein(monteur, '2026-12-17', '10:00', '12:00'), id);
+    const zeilen = await amTag('2026-12-17');
+    expect(zeilen.every((z) => !!z.last_edited_by)).toBe(true);
+  });
+
+  it('Gegenprobe: eine verrechnete Buchung wird nicht geändert — auch die andere bleibt', async () => {
+    await gebucht(monteur, '2026-12-18', { end_time: '11:00', break_duration: 0 });
+    const id = await gebucht(monteur, '2026-12-18', { project_number: 'B-2', customer_name: 'Kunde B-2', start_time: '11:00', end_time: '12:00', break_duration: 0 });
+    expect((await admin.from('time_entries').update({ is_billed: true, invoice_number: 'RE-10' }).eq('id', id)).error).toBeNull();
+    await expect(aendern(monteur, schein(monteur, '2026-12-18', '10:00', '12:00'), id)).rejects.toThrow(/verrechnet/);
+    expect(kurz(await amTag('2026-12-18'))).toEqual([['B-1', '07:00', '11:00', 0], ['B-2', '11:00', '12:00', 0]]);
+  });
+
+  it('Gegenprobe: der Kollege ändert die Buchung des Monteurs nicht', async () => {
+    await gebucht(monteur, '2026-12-21', { end_time: '11:00', break_duration: 0 });
+    const id = await gebucht(monteur, '2026-12-21', { project_number: 'B-2', customer_name: 'Kunde B-2', start_time: '11:00', end_time: '12:00', break_duration: 0 });
+    await expect(aendern(kollege, schein(monteur, '2026-12-21', '10:00', '12:00'), id)).rejects.toThrow(/gibt es nicht/);
+    expect(kurz(await amTag('2026-12-21'))).toEqual([['B-1', '07:00', '11:00', 0], ['B-2', '11:00', '12:00', 0]]);
   });
 });

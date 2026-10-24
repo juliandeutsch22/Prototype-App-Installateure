@@ -17,6 +17,7 @@ vi.mock('@/lib/db/timeEntries', () => ({
   createTimeEntryOhneEmpfang: vi.fn(),
   updateTimeEntryOhneEmpfang: vi.fn(),
   eintraegeAmTag: vi.fn(async () => []),
+  eintraegeUmDenTag: vi.fn(async () => []),
   DuplicateEntryError: class extends Error {},
 }));
 vi.mock('@/lib/db/abwesenheiten', () => ({ krankmeldungSpeichern: vi.fn() }));

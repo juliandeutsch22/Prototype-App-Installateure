@@ -15,17 +15,19 @@ import type { AppUser, TimeEntry } from '@/types';
  */
 
 const MONTEUR = 'u1';
-const einfuegen = vi.fn<(e: unknown) => Promise<string>>(async () => 'neu-1');
+const einfuegen = vi.fn<(e: unknown, id?: string) => Promise<string>>(async () => 'neu-1');
 const anlegen = vi.fn<(c: string, e: unknown) => Promise<'confirmed'>>(async () => 'confirmed');
+const aendern = vi.fn<(...a: unknown[]) => Promise<'confirmed'>>(async () => 'confirmed');
 let tag: unknown[] = [];
 
 vi.mock('@/lib/db/timeEntries', () => ({
   createTimeEntryOhneEmpfang: (c: string, e: unknown) => anlegen(c, e),
-  updateTimeEntryOhneEmpfang: vi.fn(async () => 'confirmed'),
+  updateTimeEntryOhneEmpfang: (...a: unknown[]) => aendern(...a),
   eintraegeAmTag: vi.fn(async () => tag),
+  eintraegeUmDenTag: vi.fn(async () => tag),
   listOwnEntriesInRange: vi.fn(async () => []),
   zeitAufteilen: vi.fn(),
-  zeitEinfuegen: (e: unknown) => einfuegen(e),
+  zeitEinfuegen: (e: unknown, id?: string) => einfuegen(e, id),
   DuplicateEntryError: class extends Error {},
 }));
 vi.mock('@/lib/db/assignments', () => ({ listAssignmentsForUserInRange: vi.fn(async () => []) }));
@@ -73,6 +75,7 @@ function nachtragen() {
 beforeEach(() => {
   einfuegen.mockClear();
   anlegen.mockClear();
+  aendern.mockClear();
   gespeichert.mockClear();
   tag = [TAGESBUCHUNG];
 });
@@ -139,5 +142,89 @@ describe('Zeit einfügen', () => {
     fireEvent.change(screen.getByLabelText(/^Bis/), { target: { value: '12:00' } });
     expect(await screen.findByText(/B-1 07:00–16:00 wird zu 07:00–10:00 und 12:00–16:00/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Zeit einfügen' })).toBeEnabled();
+  });
+});
+
+/*
+  BEIM BEARBEITEN UND ÜBER MITTERNACHT (A11, 24.10.2026): wer eine Buchung so
+  ändert, dass sie in eine andere reicht, fügt sie ein; Buchungen vom Vortag
+  und Folgetag zählen mit.
+*/
+function bearbeiten(entry: TimeEntry & { id: string }) {
+  return render(
+    <MemoryRouter>
+      <ToastProvider>
+        <TimeForm onSaved={gespeichert} entry={entry} />
+      </ToastProvider>
+    </MemoryRouter>,
+  );
+}
+
+const SCHEIN = {
+  ...TAGESBUCHUNG, id: 't2', startTime: '11:00', endTime: '12:00', breakDuration: 0, projectNumber: 'B-2', customerName: 'Notfall',
+} as unknown as TimeEntry & { id: string };
+
+describe('Zeit einfügen beim Bearbeiten', () => {
+  it('der frühere Beginn kürzt die Buchung davor — gespeichert in einem Zug mit der Kennung', async () => {
+    tag = [{ ...TAGESBUCHUNG, endTime: '11:00', breakDuration: 0 }];
+    bearbeiten(SCHEIN);
+    fireEvent.change(await screen.findByLabelText(/^Von/), { target: { value: '10:00' } });
+    expect(await screen.findByText(/B-1 07:00–11:00 wird zu 07:00–10:00/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    await waitFor(() => expect(einfuegen).toHaveBeenCalled());
+    expect(einfuegen.mock.calls[0][0]).toMatchObject({ startTime: '10:00', endTime: '12:00', projectNumber: 'B-2', userId: MONTEUR });
+    expect(einfuegen.mock.calls[0][1]).toBe('t2');
+    expect(aendern).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: ohne geänderte Zeit wird wie bisher gespeichert', async () => {
+    tag = [{ ...TAGESBUCHUNG, endTime: '11:00', breakDuration: 0 }];
+    bearbeiten(SCHEIN);
+    fireEvent.change(await screen.findByLabelText(/Kommentar/), { target: { value: 'Rohrbruch' } });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByText(/dazwischen eingefügt/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    await waitFor(() => expect(aendern).toHaveBeenCalled());
+    expect(einfuegen).not.toHaveBeenCalled();
+  });
+});
+
+describe('Zeit einfügen über Mitternacht', () => {
+  it('eine Nachtzeit kürzt die Buchung am Folgetag', async () => {
+    tag = [{ ...TAGESBUCHUNG, id: 'f1', date: '2026-10-07', projectNumber: 'B-3', startTime: '00:30', endTime: '05:00', breakDuration: 0 }];
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <TimeForm
+            onSaved={gespeichert}
+            vorbelegung={{ date: '2026-10-06', projectNumber: 'B-2', startTime: '22:00', endTime: '02:00', breakDuration: 0 }}
+          />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText(/B-3 00:30–05:00 \(Folgetag\) wird zu 02:00–05:00 \(Folgetag\)/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Zeit einfügen' }));
+    await waitFor(() => expect(einfuegen).toHaveBeenCalled());
+    expect(anlegen).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: die Buchung am Folgetag lässt sich nicht einfügen — der Grund steht da, gebucht wird nichts', async () => {
+    tag = [{ ...TAGESBUCHUNG, id: 'f1', date: '2026-10-07', startTime: '00:30', endTime: '05:00', breakDuration: 0, isBilled: true }];
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <TimeForm
+            onSaved={gespeichert}
+            vorbelegung={{ date: '2026-10-06', projectNumber: 'B-2', startTime: '22:00', endTime: '02:00', breakDuration: 0 }}
+          />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    const knopf = await screen.findByRole('button', { name: 'Zeit buchen' });
+    await new Promise((r) => setTimeout(r, 20));
+    fireEvent.click(knopf);
+    expect(await screen.findByText(/am Vortag oder Folgetag.*schon verrechnet/)).toBeInTheDocument();
+    expect(einfuegen).not.toHaveBeenCalled();
+    expect(anlegen).not.toHaveBeenCalled();
   });
 });
