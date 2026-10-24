@@ -3,6 +3,7 @@ import type { GemahnteRechnung } from '@/lib/db/invoices';
 import { csvZelle } from '@/lib/csvZelle';
 import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
 import { druckAngaben } from './nachdruck';
+import { mitAussteller, type AusstellerAngaben } from '@/lib/aussteller';
 import { stornoDateiname } from './stornoPdf';
 import { stornoBelegTag } from './stornoBelegTag';
 import { zipErstellen, type ZipDatei } from '@/lib/zip';
@@ -112,7 +113,7 @@ export async function belegArchiv(o: {
   /** Die Angebote des Zeitraums (nach Angebotsdatum); Entwürfe gehen nicht ins Archiv. */
   angebote?: Quote[];
   /** Unterschriebene und stornierte Scheine des Zeitraums — ohne Bilder genügt. */
-  scheine?: Pick<WorkSheet, 'id' | 'datum' | 'projectNumber' | 'status'>[];
+  scheine?: Pick<WorkSheet, 'id' | 'datum' | 'projectNumber' | 'status' | 'ausstellerStand'>[];
   /** Holt ganze Scheine samt Unterschriftsbildern, in kleinen Blöcken. */
   scheineVoll?: (ids: string[]) => Promise<WorkSheet[]>;
   /** Rechnungen mit ihrer letzten Mahnung im Zeitraum. */
@@ -121,6 +122,12 @@ export async function belegArchiv(o: {
   mahnungen?: Mahnung[];
   /** Für die Anzeige „120 von 800“ — die Erzeugung dauert bei vielen Belegen. */
   fortschritt?: (fertig: number, gesamt: number) => void;
+  /**
+   * Holt die Firmendaten zum Zeitpunkt der Ausstellung (`aussteller_staende`,
+   * seit 24.10.2026). Ohne sie stünden im Archiv Belege mit den heutigen
+   * Firmendaten — andere als die, die beim Kunden liegen.
+   */
+  staende?: (ids: string[]) => Promise<Map<string, AusstellerAngaben>>;
 }): Promise<ArchivErgebnis> {
   const { company, von, bis } = o;
   const [
@@ -166,6 +173,30 @@ export async function belegArchiv(o: {
     .filter((m) => m.datum >= von && m.datum <= bis)
     .sort((a, b) => a.datum.localeCompare(b.datum) || (a.angelegtAm ?? 0) - (b.angelegtAm ?? 0));
 
+  /*
+    DIE STÄNDE EINMAL FÜR ALLE. Hunderte Belege haben meist eine Handvoll
+    Stände; je Beleg zu fragen hiesse hunderte Abfragen. Fehlt einer, bricht
+    das Archiv ab: ein Beleg mit den heutigen statt den damaligen
+    Firmendaten wäre ein anderer Beleg, und niemand sähe es ihm an.
+  */
+  const standIds = [...new Set([
+    ...imZeitraum.map((i) => i.ausstellerStand),
+    ...storniert.map((i) => (i.stornoNummer ? i.stornoAusstellerStand : undefined)),
+    ...versandt.map((q) => q.ausstellerStand),
+    ...(o.scheineVoll ? scheine.map((w) => w.ausstellerStand) : []),
+    ...mahnungen.map((m) => m.ausstellerStand),
+  ].filter((id): id is string => !!id))];
+  if (standIds.length > 0 && !o.staende) {
+    throw new Error('Die Firmendaten der Belege lassen sich nicht laden.');
+  }
+  const staende = standIds.length > 0 && o.staende ? await o.staende(standIds) : new Map<string, AusstellerAngaben>();
+  const firmaVon = (stand?: string | null): Company => {
+    if (!stand) return company;
+    const angaben = staende.get(stand);
+    if (!angaben) throw new Error('Die Firmendaten eines Belegs konnten nicht geladen werden — bitte noch einmal versuchen.');
+    return mitAussteller(company, angaben);
+  };
+
   const dateien: ZipDatei[] = [];
   const hinweise: string[] = [];
   const gesamt = imZeitraum.length + storniert.length + versandt.length + (o.scheineVoll ? scheine.length : 0)
@@ -181,7 +212,7 @@ export async function belegArchiv(o: {
   let rechnungen = 0;
   for (const inv of imZeitraum) {
     if (inv.positions?.length) {
-      const doc = generateInvoicePdf(druckAngaben(company, inv));
+      const doc = generateInvoicePdf(druckAngaben(firmaVon(inv.ausstellerStand), inv));
       dateien.push({
         name: `Rechnungen/${dateiname(inv.invoiceNumber)}.pdf`,
         inhalt: new Uint8Array(doc.output('arraybuffer')),
@@ -196,7 +227,9 @@ export async function belegArchiv(o: {
   let stornos = 0;
   for (const inv of storniert) {
     if (inv.stornoNummer) {
-      const blob = await buildStornoPdf({ company, invoice: inv, nummer: inv.stornoNummer });
+      const blob = await buildStornoPdf({
+        company: firmaVon(inv.stornoAusstellerStand), invoice: inv, nummer: inv.stornoNummer,
+      });
       dateien.push({
         name: `Stornorechnungen/${dateiname(stornoDateiname(inv.stornoNummer))}`,
         inhalt: await bytes(blob),
@@ -211,7 +244,9 @@ export async function belegArchiv(o: {
   const kundeVon = new Map(o.kunden.map((k) => [k.id, k]));
   let angeboteZahl = 0;
   for (const q of versandt) {
-    const doc = await buildAngebotPdf({ company, quote: q, kunde: q.customerId ? kundeVon.get(q.customerId) ?? null : null });
+    const doc = await buildAngebotPdf({
+      company: firmaVon(q.ausstellerStand), quote: q, kunde: q.customerId ? kundeVon.get(q.customerId) ?? null : null,
+    });
     dateien.push({
       name: `Angebote/${dateiname(angebotDateiname(q).replace(/\.pdf$/, ''))}.pdf`,
       inhalt: new Uint8Array(doc.output('arraybuffer')),
@@ -238,8 +273,9 @@ export async function belegArchiv(o: {
         if (!w) {
           hinweise.push(`Schein vom ${datumAT(kopf.datum)} (Baustelle ${kopf.projectNumber}): nicht mehr lesbar, daher kein PDF.`);
         } else {
+          const firma = firmaVon(w.ausstellerStand ?? kopf.ausstellerStand);
           const blob = await buildWorkSheetPdf(w, {
-            name: company.name, addressLine: company.addressLine, contactLine: company.contactLine, logoUrl: company.logoUrl,
+            name: firma.name, addressLine: firma.addressLine, contactLine: firma.contactLine, logoUrl: firma.logoUrl,
           });
           dateien.push({
             name: `Handwerksscheine/${dateiname(`${w.projectNumber}_${w.datum}_${w.id.slice(0, 8)}`)}.pdf`,
@@ -262,7 +298,7 @@ export async function belegArchiv(o: {
       // Dieselbe Stufe zweimal am selben Tag: beide Schreiben gingen hinaus, beide gehören hinein.
       const name = vergeben.has(grund) ? `${grund}_${m.id.slice(0, 8)}` : grund;
       vergeben.add(name);
-      const blob = await mahnungPdfAusInhalt(company, m.inhalt);
+      const blob = await mahnungPdfAusInhalt(firmaVon(m.ausstellerStand), m.inhalt);
       dateien.push({ name: `Mahnungen/${name}.pdf`, inhalt: await bytes(blob) });
       mahnungenZahl += 1;
     }

@@ -330,6 +330,7 @@ vi.mock('@/lib/db/quotes', () => ({ listQuotesForProject: vi.fn(async () => ange
 */
 /** Die Reihenfolge, in der beim Mahnen etwas geschieht. */
 const mahnFolge: string[] = [];
+const mahnFirma = vi.fn();
 const mahnungPdf = vi.fn(async () => {
   mahnFolge.push('pdf');
   return new Blob(['%PDF'], { type: 'application/pdf' });
@@ -341,7 +342,10 @@ vi.mock('@/features/invoices/mahnungPdf', () => ({
     wird er in `mahnungPdf.test.ts`.
   */
   mahnungInhalt: (o: Record<string, unknown>) => ({ ...o, kosten: 7 }),
-  mahnungPdfAusInhalt: (_firma: unknown, inhalt: unknown) => mahnungPdf(...([inhalt] as unknown as [])),
+  mahnungPdfAusInhalt: (firma: unknown, inhalt: unknown) => {
+    mahnFirma(firma);
+    return mahnungPdf(...([inhalt] as unknown as []));
+  },
   istMahnungInhalt: (i: unknown) => !!(i as { titel?: string } | null)?.titel,
   mahnungDateiname: () => 'Mahnung.pdf',
 }));
@@ -351,6 +355,16 @@ const teilen = vi.fn(async () => 'geladen' as const);
 vi.mock('@/features/worksheets/worksheetPdf', () => ({
   shareOrDownloadPdf: (...a: unknown[]) => teilen(...(a as [])),
   buildWorkSheetPdf: vi.fn(),
+}));
+
+/**
+ * Die Firmendaten eines Belegs zum Zeitpunkt der Ausstellung (seit
+ * 24.10.2026): mit Stand die „alte Bank“, ohne Stand die heutigen Daten.
+ */
+const belegFirma = vi.fn(async (firma: Record<string, unknown>, stand?: string | null) =>
+  stand ? { ...firma, bankName: 'Alte Bank', iban: 'AT611904300234573201' } : firma);
+vi.mock('@/lib/db/aussteller', () => ({
+  belegFirma: (firma: Record<string, unknown>, stand?: string | null) => belegFirma(firma, stand),
 }));
 
 const pdfAusgabe = vi.fn();
@@ -469,6 +483,8 @@ beforeEach(() => {
   reserve.mockClear();
   lege.mockClear();
   pdfAusgabe.mockClear();
+  belegFirma.mockClear();
+  mahnFirma.mockClear();
   mahnung.mockClear();
   gespeicherteMahnungen.mockClear().mockImplementation(async () => []);
   mahnungPdf.mockClear().mockImplementation(async () => {
@@ -1043,6 +1059,39 @@ describe('Erneute PDF-Ausgabe', () => {
     paymentStatus: 'Offen',
   } as unknown as Invoice & { id: string };
 
+  it('druckt mit den Firmendaten der Ausstellung, nicht mit den heutigen (24.10.2026)', async () => {
+    rechnungen = [{ ...RC_RECHNUNG, ausstellerStand: 'st-1' } as typeof RC_RECHNUNG];
+    zeige();
+    await screen.findByText(/RE-2026-0007/);
+    await rechnungOeffnen('RE-2026-0007');
+    await userEvent.click(await screen.findByRole('button', { name: 'PDF laden' }));
+    await waitFor(() => expect(pdfAusgabe).toHaveBeenCalled());
+    expect(belegFirma.mock.calls[belegFirma.mock.calls.length - 1]?.[1]).toBe('st-1');
+    expect(pdfAusgabe.mock.calls[0][0].company).toMatchObject({ bankName: 'Alte Bank' });
+  });
+
+  it('bleibt gleich: eine Rechnung ohne Stand druckt mit den heutigen Firmendaten', async () => {
+    rechnungen = [RC_RECHNUNG];
+    zeige();
+    await screen.findByText(/RE-2026-0007/);
+    await rechnungOeffnen('RE-2026-0007');
+    await userEvent.click(await screen.findByRole('button', { name: 'PDF laden' }));
+    await waitFor(() => expect(pdfAusgabe).toHaveBeenCalled());
+    expect(pdfAusgabe.mock.calls[0][0].company.bankName).not.toBe('Alte Bank');
+    expect(pdfAusgabe.mock.calls[0][0].company.name).toBe('Perl Installationen');
+  });
+
+  it('kommt der Stand nicht, entsteht kein PDF mit falschen Firmendaten', async () => {
+    belegFirma.mockRejectedValueOnce(new Error('Die Firmendaten dieses Belegs konnten nicht geladen werden.'));
+    rechnungen = [{ ...RC_RECHNUNG, ausstellerStand: 'st-1' } as typeof RC_RECHNUNG];
+    zeige();
+    await screen.findByText(/RE-2026-0007/);
+    await rechnungOeffnen('RE-2026-0007');
+    await userEvent.click(await screen.findByRole('button', { name: 'PDF laden' }));
+    expect(await screen.findByText(/Firmendaten dieses Belegs/)).toBeInTheDocument();
+    expect(pdfAusgabe).not.toHaveBeenCalled();
+  });
+
   it('nimmt Pflichthinweis, UID und Zeitraum aus dem DOKUMENT', async () => {
     rechnungen = [RC_RECHNUNG];
     zeige();
@@ -1282,7 +1331,7 @@ describe('Eine überfällige Rechnung mahnen', () => {
     gespeicherteMahnungen.mockImplementation(async () => [
       { id: 'm1', invoiceId: 'r1', stufe: 1, datum: '2026-08-20', frist: '2026-08-27', spesen: 0,
         inhalt: { ...inhalt, titel: 'Zahlungserinnerung', stufe: 1 } },
-      { id: 'm2', invoiceId: 'r1', stufe: 2, datum: '2026-08-30', frist: '2026-09-06', spesen: 10, inhalt },
+      { id: 'm2', invoiceId: 'r1', stufe: 2, datum: '2026-08-30', frist: '2026-09-06', spesen: 10, inhalt, ausstellerStand: 'st-1' },
     ]);
     rechnungen = [{ ...UEBERFAELLIG, mahnstufe: 2, gemahntAm: '2026-08-30', mahnfrist: '2026-09-06' }];
     await menue();
@@ -1292,6 +1341,8 @@ describe('Eine überfällige Rechnung mahnen', () => {
     await userEvent.click(zeile);
     await waitFor(() => expect(teilen).toHaveBeenCalled());
     expect((mahnungPdf.mock.calls[0] as unknown[])[0]).toBe(inhalt);
+    // Mit den Firmendaten von damals (24.10.2026).
+    expect(mahnFirma.mock.calls[mahnFirma.mock.calls.length - 1]?.[0]).toMatchObject({ bankName: 'Alte Bank' });
     expect(teilen.mock.calls[0]).toEqual([expect.any(Blob), 'Mahnung.pdf']);
     // Erneut laden mahnt nicht noch einmal.
     expect(mahnung).not.toHaveBeenCalled();

@@ -29,6 +29,7 @@ export type Spaltenart = 'zeitpunkt' | 'uhrzeit';
 
 export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   assignments: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt', zeit_von: 'uhrzeit', zeit_bis: 'uhrzeit' },
+  aussteller_staende: { angelegt_am: 'zeitpunkt' },
   /*
     Die App liest diese Tabelle nie — sie gehört der Ausleitung und ist nur
     mit dem Dienstschlüssel erreichbar. Die Zeile steht trotzdem hier, weil
