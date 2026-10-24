@@ -687,10 +687,25 @@
     <div class="stempel">
       <span>Stand <b>22.10.2026</b></span>
       <span>Fassung <b>Lot v2 · bestätigt</b></span>
-      <span>Automatische Prüfungen <b>5.528 Modulprüfungen · 105 Browserwege · 7 Linkprüfungen</b></span>
+      <span>Automatische Prüfungen <b>5.534 Modulprüfungen · 105 Browserwege · 7 Linkprüfungen</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
+
+  <section id="aufteilen-mitternacht">
+    <div class="abschnittskopf">
+      <h2>24. Oktober: Aufteilen über Mitternacht</h2>
+      <p class="frage">Eine Nachtschicht — etwa 20:00 bis 04:00 auf eine Baustelle gebucht — ließ sich nicht auf mehrere Baustellen aufteilen. Der Monteur musste sie löschen und jeden Teil einzeln buchen.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>„Auf mehrere Baustellen aufteilen …“ auch in der Nacht<span class="neu">neu</span></h3>
+        <p>Beim Bearbeiten einer Buchung über Mitternacht steht der Link wie am Tag. Die Buchung behält Beginn, Pause und den Rest der Zeit; die weiteren Baustellen schließen lückenlos an und enden zusammen zur alten Endzeit. Ein Teil, der vor Mitternacht beginnt, bleibt am Tag der Buchung, auch wenn er danach endet. Ein Teil, der <strong>ab Mitternacht</strong> beginnt, steht am <strong>Folgetag</strong> — dort liegt er auch auf der Uhr; die Vorschau im Fenster sagt es dazu („Folgetag 01:00–04:00“).</p>
+        <p>Beispiel: 20:00–04:00 mit 30 Min. Pause auf B-1, davon 2 Std. auf B-2 und 2,5 Std. auf B-3. Gebucht wird B-1 20:00–23:30, B-2 23:30–01:30 (am Tag der Schicht) und B-3 01:30–04:00 am Folgetag. Die Summe bleibt 7,5 Std.; wie bei jeder Buchung zählen die Stunden des Teils am Folgetag in Tagessumme und Zeitkonto dieses Tages.</p>
+        <p class="wer">Monteure (eigene Buchungen) · Buchhaltung, Geschäftsführung, Administrator (alle)</p>
+      </div>
+    </div>
+  </section>
 
   <section id="kjbg-wegzeit-verteilung">
     <div class="abschnittskopf">
@@ -1144,7 +1159,7 @@
         <h3>Buchung auf mehrere Baustellen aufteilen<span class="neu">neu</span></h3>
         <p>Gebucht wird wie bisher — etwa 07:00–16:00 mit 30 Min. Pause auf die Baustelle, auf der der Tag begann (aus dem Einsatzplan vorbelegt). Danach die Buchung öffnen (Tipp auf die Zeile) und <strong>„Auf mehrere Baustellen aufteilen …“</strong> wählen. Vorgeschlagen werden die Baustellen, auf denen die Person an dem Tag laut Einsatzplan eingeteilt war, und die, für die sie an dem Tag einen Handwerksschein geschrieben hat. Je weitere Baustelle die Stunden eintragen („2“, „1,5“ oder „1:30“); eine Zeile ohne Stunden wird nicht gebucht. Bevor gespeichert wird, steht da, welche Uhrzeiten entstehen.</p>
         <p><strong>Der Tag bleibt derselbe:</strong> die Buchung behält Beginn, Pause und den Rest der Zeit; die weiteren Baustellen schließen in der angegebenen Reihenfolge lückenlos an und enden zusammen zur alten Endzeit. Beginn, Ende, Pause und Summe ändern sich nicht — Saldo, Lohn, Zuschläge und Arbeitszeitgrenzen also auch nicht. Kommentar und Wegzeit bleiben an der Buchung, Fahrzeug, Notdienst und „als Helfer“ gelten für alle Teile. Gekürzt und angelegt wird in einem Schritt: geht etwas nicht (die Teile sind zusammen länger als der Tag, eine Baustelle steht doppelt), bleibt alles, wie es war. Danach hat jede Baustelle ihre Stunden — im Budget, in der Nachkalkulation, beim Handwerksschein und auf der Rechnung; die Erinnerung „Zeit fehlt“ zu einem Schein erledigt sich damit.</p>
-        <p><strong>Grenzen:</strong> Aufgeteilt wird die gespeicherte Buchung — wer in der Maske gerade etwas geändert hat, speichert zuerst. Eine Buchung über Mitternacht und eine verrechnete lassen sich nicht aufteilen. Aufteilen braucht eine Verbindung; ohne Netz bleibt die Buchung, wie sie ist. Die Uhrzeiten der Teile folgen der Reihenfolge, nicht dem tatsächlichen Ablauf — wer es genau braucht, passt sie danach einzeln an.</p>
+        <p><strong>Grenzen:</strong> Aufgeteilt wird die gespeicherte Buchung — wer in der Maske gerade etwas geändert hat, speichert zuerst. Eine verrechnete Buchung lässt sich nicht aufteilen; eine über Mitternacht seit 24.10.2026 schon (siehe „Aufteilen über Mitternacht“). Aufteilen braucht eine Verbindung; ohne Netz bleibt die Buchung, wie sie ist. Die Uhrzeiten der Teile folgen der Reihenfolge, nicht dem tatsächlichen Ablauf — wer es genau braucht, passt sie danach einzeln an.</p>
         <h3>Schein nachtragen: die Zeit wird eingefügt<span class="neu">neu</span></h3>
         <p>Der Tag ist schon gebucht — 07:00–16:00 mit 30 Min. Pause auf B-1 —, zwischendurch kam ein Notfall mit Handwerksschein auf B-2 von 10:00 bis 12:00. Wer die Zeit des Scheins am Abend nachträgt („Zeit nachtragen“ am Schein oder eine neue Buchung), bekommt keinen Fehler mehr wegen der Überschneidung: die Maske sagt, was geschieht — „B-1 07:00–16:00 wird zu 07:00–10:00 und 12:00–16:00“ —, und <strong>„Zeit einfügen“</strong> bucht B-2 und teilt B-1 in einem Zug. Liegt die neue Zeit am Rand, wird die andere Buchung nur gekürzt, auch zwei auf einmal. Die Pause bleibt als Zahl am längeren Teil; Kommentar und Wegzeit bleiben an der ursprünglichen Buchung. Bucht das Büro für jemanden, steht es als Bearbeiter an allen geänderten Buchungen.</p>
         <p><strong>Grenzen:</strong> Eingefügt wird nur in Buchungen einer anderen Baustelle (auf derselben die bestehende Buchung ändern), nicht in eine verrechnete, nicht in eine über Mitternacht, und nicht, wenn die neue Zeit eine Buchung ganz bedecken würde — die müsste verschwinden, das entscheidet ein Mensch. Passt die Pause in keinen Teil, sagt es die Maske. Nur für neue Buchungen und nur mit Verbindung. Urlaub, Krankenstand oder Zeitausgleich zur selben Stunde bleiben ein Konflikt.</p>
@@ -3427,7 +3442,7 @@
 
   <footer class="fuss">
     <span>Senklot · Betriebssoftware für Installationsbetriebe in Österreich</span>
-    <span>Automatische Prüfungen: 5.528 Modulprüfungen · 105 Browserwege · 7 Linkprüfungen</span>
+    <span>Automatische Prüfungen: 5.534 Modulprüfungen · 105 Browserwege · 7 Linkprüfungen</span>
     <span>Stand 22.10.2026</span>
   </footer>
 

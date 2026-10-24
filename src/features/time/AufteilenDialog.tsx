@@ -154,7 +154,7 @@ export default function AufteilenDialog({
                 <li key={i} className="flex justify-between gap-3 py-1.5">
                   <span>{p.projectNumber || 'ohne Baustelle'}</span>
                   <span className="tabular-nums text-ink-muted">
-                    {p.von}–{p.bis} · {fmtMin(p.minuten)} Std.{i === 0 && entry.breakDuration ? ` · ${entry.breakDuration} Min. Pause` : ''}
+                    {p.folgetag ? 'Folgetag ' : ''}{p.von}–{p.bis} · {fmtMin(p.minuten)} Std.{i === 0 && entry.breakDuration ? ` · ${entry.breakDuration} Min. Pause` : ''}
                   </span>
                 </li>
               ))}

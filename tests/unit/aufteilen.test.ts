@@ -44,12 +44,53 @@ describe('Aufteilen', () => {
     expect(stundenAusEingabe('0').fehler).toMatch(/mehr als null/);
   });
 
-  it('nur gearbeitete Zeit mit Von und Bis am selben Tag, nicht verrechnet', () => {
+  it('nur gearbeitete Zeit mit Von und Bis, nicht verrechnet', () => {
     const ok = { status: 'Anwesend' as const, startTime: '07:00', endTime: '16:00', isBilled: false };
     expect(aufteilenGeht(ok)).toBeNull();
     expect(aufteilenGeht({ ...ok, status: 'Urlaub' })).toMatch(/gearbeitete Zeit/);
     expect(aufteilenGeht({ ...ok, startTime: undefined })).toMatch(/Von und Bis/);
-    expect(aufteilenGeht({ ...ok, startTime: '20:00', endTime: '02:00' })).toMatch(/Mitternacht/);
+    expect(aufteilenGeht({ ...ok, startTime: '07:00', endTime: '07:00' })).toMatch(/keine Zeit/);
     expect(aufteilenGeht({ ...ok, isBilled: true })).toMatch(/verrechnet/);
+  });
+});
+
+/*
+  ÜBER MITTERNACHT (A10, 24.10.2026): die Nachtschicht teilt sich wie ein
+  Tag. Ein Teil, der vor Mitternacht beginnt, bleibt am Buchungstag; einer
+  ab Mitternacht steht am Folgetag.
+*/
+describe('Aufteilen über Mitternacht', () => {
+  const NACHT = { startTime: '20:00', endTime: '04:00', breakDuration: 30, projectNumber: 'B-1' };
+
+  it('eine Buchung über Mitternacht lässt sich aufteilen', () => {
+    expect(aufteilenGeht({ status: 'Anwesend', startTime: '20:00', endTime: '04:00', isBilled: false })).toBeNull();
+  });
+
+  it('die Teile schliessen über Mitternacht an; ab Mitternacht am Folgetag', () => {
+    const a = aufteilung(NACHT, [{ projectNumber: 'B-2', stunden: '2' }, { projectNumber: 'B-3', stunden: '2,5' }]);
+    expect(a.fehler).toBeNull();
+    expect(a.rest).toBe(180);
+    expect(a.plan).toEqual([
+      { projectNumber: 'B-1', von: '20:00', bis: '23:30', minuten: 180 },
+      { projectNumber: 'B-2', von: '23:30', bis: '01:30', minuten: 120 },
+      { projectNumber: 'B-3', von: '01:30', bis: '04:00', minuten: 150, folgetag: true },
+    ]);
+  });
+
+  it('ein Teil genau ab Mitternacht steht am Folgetag', () => {
+    const a = aufteilung({ startTime: '22:00', endTime: '02:00', breakDuration: 0, projectNumber: 'B-1' }, [{ projectNumber: 'B-2', stunden: '2' }]);
+    expect(a.plan).toEqual([
+      { projectNumber: 'B-1', von: '22:00', bis: '00:00', minuten: 120 },
+      { projectNumber: 'B-2', von: '00:00', bis: '02:00', minuten: 120, folgetag: true },
+    ]);
+  });
+
+  it('Gegenprobe: auch über Mitternacht bleibt für die gebuchte Baustelle Zeit', () => {
+    expect(aufteilung(NACHT, [{ projectNumber: 'B-2', stunden: '7,5' }]).fehler).toMatch(/bleibt keine Zeit/);
+  });
+
+  it('bleibt gleich: am Tag steht kein Teil am Folgetag', () => {
+    const a = aufteilung(TAG, [{ projectNumber: 'B-2', stunden: '2' }]);
+    expect(a.plan.some((p) => p.folgetag)).toBe(false);
   });
 });
