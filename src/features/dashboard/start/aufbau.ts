@@ -63,8 +63,10 @@ export interface Umfeld {
   darf: (ziel: string) => boolean;
   /** Entscheidet diese Person über Urlaub? */
   urlaubEntscheiden: boolean;
-  /** Bestätigt diese Person Sonderurlaub (Büro, Spitze; Modul Urlaub an)? */
+  /** Bestätigt diese Person Sonderurlaub (Büro, Spitze)? Seit A15 auch ohne das Modul Urlaub. */
   freistellungBestaetigen?: boolean;
+  /** Wohin die Anträge auf Sonderurlaub führen — ohne das Modul Urlaub auf die eigene Seite (A15). */
+  sonderurlaubZiel?: string;
   /** Die eigene Kennung — damit die eigene Person nicht in zwei Abschnitten steht. */
   ich?: string;
 }
@@ -231,7 +233,7 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(basiszinsFehlt(d.basiszinsFehltAb), u),
     u.urlaubEntscheiden ? erlaubt(urlaubsantraege(d.antraege ?? []), u) : null,
     // Unbezahlten Urlaub entscheidet die Buchhaltung nicht — er steht hier nicht.
-    u.freistellungBestaetigen ? erlaubt(freistellungsantraege(d.freistellungen ?? [], false), u) : null,
+    u.freistellungBestaetigen ? erlaubt(freistellungsantraege(d.freistellungen ?? [], false, u.sonderurlaubZiel), u) : null,
     eigenerJugendschutz(d, u),
   ]);
   const zahlungen = zahlungenHeute(d.zahlungenHeute ?? []);
@@ -502,7 +504,7 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
   const frei = u.freistellungBestaetigen ? (d.freistellungen ?? []).filter((f) => f.status === 'Beantragt') : [];
   if (frei.length) {
     const erster = [...frei].sort((a, b) => a.von.localeCompare(b.von))[0];
-    themen.push(wenn(ZIEL.urlaubsantraege, {
+    themen.push(wenn(u.sonderurlaubZiel ?? ZIEL.urlaubsantraege, {
       key: 'sonderurlaub', wann: 'heute',
       titel: anzahl(frei.length, 'Antrag auf Sonderurlaub', 'Anträge auf Sonderurlaub'),
       detail: `frühester: ${erster.userName}, ${tagKurz(erster.von)}`,

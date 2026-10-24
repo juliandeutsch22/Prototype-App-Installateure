@@ -32,6 +32,8 @@ export const ZIEL = {
   schein: (id: string) => `/worksheets?markiert=${q(id)}`,
   luecken: (monat?: string) => `/accounting?filter=luecken${monat ? `&monat=${monat}` : ''}`,
   urlaubsantraege: '/vacations?reiter=antraege',
+  /** Sonderurlaub ohne das Modul Urlaub (A15, 24.10.2026). */
+  sonderurlaub: '/sonderurlaub',
   tag: (datum: string, filter?: 'unbesetzt') =>
     `/assignments/tag?datum=${datum}${filter ? `&filter=${filter}` : ''}`,
   woche: '/assignments/woche',

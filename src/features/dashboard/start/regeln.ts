@@ -494,7 +494,12 @@ export function urlaubsantraege(antraege: Vacation[]): Abschnitt | null {
  * der Anlass nicht: die Startseite ist kein Ort für Familiendaten. Den
  * unbezahlten Urlaub sieht nur, wer darüber entscheidet.
  */
-export function freistellungsantraege(antraege: Freistellung[], mitUnbezahlt: boolean): Abschnitt | null {
+export function freistellungsantraege(
+  antraege: Freistellung[],
+  mitUnbezahlt: boolean,
+  /** Ohne das Modul Urlaub die eigene Seite (A15, 24.10.2026). */
+  ziel: string = ZIEL.urlaubsantraege,
+): Abschnitt | null {
   const zeilen: Zeile[] = antraege
     .filter((f) => f.status === 'Beantragt' && (mitUnbezahlt || f.art !== 'unbezahlt'))
     .sort((a, b) => a.von.localeCompare(b.von))
@@ -503,9 +508,9 @@ export function freistellungsantraege(antraege: Freistellung[], mitUnbezahlt: bo
       titel: f.userName,
       detail: `${f.von === f.bis ? datumAT(f.von) : `${tagKurz(f.von)}–${datumAT(f.bis)}`} · ${ART_NAME[f.art]}`,
       status: { text: f.art === 'unbezahlt' ? 'entscheiden' : 'bestätigen', ton: 'warn' },
-      to: ZIEL.urlaubsantraege,
+      to: ziel,
     }));
-  return abschnitt('sonderurlaub', 'Sonderurlaub', zeilen, ZIEL.urlaubsantraege);
+  return abschnitt('sonderurlaub', 'Sonderurlaub', zeilen, ziel);
 }
 
 export interface ZahlungHeute {

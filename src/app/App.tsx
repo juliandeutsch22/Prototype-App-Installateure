@@ -70,6 +70,7 @@ const AngebotView = ansicht('/quotes', () => import('@/features/quotes/AngebotVi
 const NachkalkulationView = ansicht('/costing', () => import('@/features/costing/NachkalkulationView'));
 const WorkSheetView = ansicht('/worksheets', () => import('@/features/worksheets/WorkSheetView'));
 const VacationsView = ansicht('/vacations', () => import('@/features/vacations/VacationsView'));
+const SonderurlaubView = ansicht('/sonderurlaub', () => import('@/features/vacations/SonderurlaubView'));
 const ModulesView = ansicht('/settings', () => import('@/features/modules/ModulesView'));
 const SicherungView = ansicht('/settings', () => import('@/features/settings/SicherungView'));
 const WorkSheetsListView = ansicht('/worksheets', () => import('@/features/worksheets/WorkSheetsListView'));
@@ -397,6 +398,7 @@ function AppRoutes() {
         anhand der Rolle; die harte Grenze steht in der Datenbank.
       */}
       <Route path="/vacations" element={<RequireNav path="/vacations"><VacationsView /></RequireNav>} />
+      <Route path="/sonderurlaub" element={<RequireNav path="/sonderurlaub"><SonderurlaubView /></RequireNav>} />
       <Route
         path="/my-projects"
         element={<RequireNav path="/my-projects"><MyProjectsView /></RequireNav>}

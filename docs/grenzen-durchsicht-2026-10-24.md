@@ -23,7 +23,6 @@ Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 
 | # | Grenze (Fundstelle) | Was fehlt | Vorschlag |
 |---|---|---|---|
-| A15 | Sonderurlaub nur mit eingeschaltetem Modul Urlaub (Stand 10.3) | Pflegefreistellung ist ein gesetzlicher Anspruch, unabhängig davon, ob ein Betrieb Urlaub in Senklot führt | Sonderurlaub auch ohne Modul Urlaub erreichbar machen (zu prüfen: wo er dann steht) |
 | A16 | Lange Namen brechen am Tablet mitten im Wort, „bräuchte eine Trennbibliothek; bewusst nicht“ (Stand 13 G4, 15.2) | Die Browser trennen Deutsch selbst (`hyphens: auto` mit `lang="de"`), an zwei Stellen schon im Einsatz | Für die Tagesspalten übernehmen und am Tablet nachsehen |
 
 ## N – Nachweise, die fehlen
@@ -105,6 +104,7 @@ Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 | A12 Firmenbuch nur an der Rechtsform im Namen erkannt (Stand 12.2) | T-40 |
 | A13 Belegarchiv (ZIP) über viele Jahre im Speicher des Browsers (Stand 15.5) | T-41 |
 | A14 Dokumentlinks bis zum Ablauf ihrer Stunde nutzbar, auch nach „nur Büro“ (Prüfbericht 13.10, Punkt 7) | T-42 |
+| A15 Sonderurlaub nur mit eingeschaltetem Modul Urlaub (Stand 10.3) | T-43 |
 
 ## Wie es weitergeht
 

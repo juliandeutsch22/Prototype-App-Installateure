@@ -30,16 +30,15 @@ import type { WithId } from '@/lib/db/core';
  */
 /**
  * Statt „Bearbeiten" und „Löschen" bei einem Tag aus einem bestätigten
- * Sonderurlaub (Plan 10.3): er ändert sich nur über den Antrag auf der Seite
- * Urlaub. Ohne das Modul Urlaub gibt es keinen Sonderurlaub-Antrag — dann
- * steht nur, woher der Tag kommt.
+ * Sonderurlaub (Plan 10.3): er ändert sich nur über den Antrag — auf der
+ * Seite Urlaub, ohne das Modul Urlaub auf der Seite Sonderurlaub (A15,
+ * 24.10.2026).
  */
 export function FreistellungKnopf() {
   const navigate = useNavigate();
   const urlaubAn = useModul('urlaub');
-  if (!urlaubAn) return <Marke>aus Antrag</Marke>;
   return (
-    <Button variant="ghost" onClick={() => navigate('/vacations')}>
+    <Button variant="ghost" onClick={() => navigate(urlaubAn ? '/vacations' : '/sonderurlaub')}>
       Antrag
     </Button>
   );
