@@ -23,7 +23,6 @@ Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 
 | # | Grenze (Fundstelle) | Was fehlt | Vorschlag |
 |---|---|---|---|
-| A2 | Mahnung: wer gemahnt hat, hält die Mahnung nicht fest (Stand 15.9) | Ein Verlauf ohne Person | Name und Kennung beim Festhalten mitschreiben |
 | A3 | Rechnungsausgangsbuch (CSV) nennt das vereinbarte Rücklassende, nicht den Tag der Ablöse (Stand 15.4) | Der Grund war die Prüfsumme der Exportspalten – das ist eine Prüfung, kein Grund | Spalte „Rücklass abgelöst am“ anfügen, die Prüfsumme bewusst nachziehen |
 | A4 | Retoure: erfasst das Lager, steht sie auf dem Namen dessen, der erfasst, nicht des Monteurs (T-16) | Wer das Material zurückgebracht hat | Feld „zurückgebracht von“ (Belegschaft) beim Erfassen durch das Lager |
 | A5 | Stichtag „Leistung bis“: ein Schein zählt als Ganzes nach seinem Leistungsdatum, Zeiten auf ihm an anderen Tagen werden nicht einzeln abgegrenzt (T-17) | Bei mehrtägigen Scheinen wird um einzelne Tage falsch abgegrenzt | Je Zeitzeile nach ihrem Tag abgrenzen; Material bleibt am Schein |
@@ -105,6 +104,7 @@ Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 | Preis auf der Rechnung über den Namen (T-22) | T-26 |
 | Prüfungen, die an bestimmten Tagen rot würden (T-23) | T-25 |
 | A1 Belege mit den heutigen statt den damaligen Firmendaten (Stand 15.9) | T-28 |
+| A2 Mahnung ohne die Person, die gemahnt hat (Stand 15.9) | T-29 |
 
 ## Wie es weitergeht
 
