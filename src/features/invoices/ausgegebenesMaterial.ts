@@ -83,12 +83,14 @@ export function materialOhneSchein(
   }
   const preise = new Map<string, Material>();
   for (const m of katalog) preise.set(normName(m.name), m);
+  // Über die Kennung gilt genau dieser Artikel, sonst wie bisher der Name.
+  const nachKennung = new Map(katalog.map((m) => [m.id, m]));
 
   const out: MaterialVorschlag[] = [];
   for (const v of je.values()) {
     v.offen = menge(v.ausgegeben - v.zurueck - v.aufScheinen);
     if (v.offen <= 0) continue;
-    const k = preise.get(v.schluessel);
+    const k = (v.materialId ? nachKennung.get(v.materialId) : undefined) ?? preise.get(v.schluessel);
     if (typeof k?.verkaufspreis === 'number' && k.verkaufspreis > 0) v.preis = k.verkaufspreis;
     if (!v.einheit) v.einheit = k?.unit || 'Stk';
     out.push(v);

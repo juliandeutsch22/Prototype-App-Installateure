@@ -1,5 +1,5 @@
 import type { Material, WorkSheet } from '@/types';
-import { normName } from '@/features/invoices/materialPositionen';
+import { artikelZuordnung, normName } from '@/features/invoices/materialPositionen';
 
 /**
  * Was das verbaute Material den Betrieb gekostet hat.
@@ -15,7 +15,9 @@ import { normName } from '@/features/invoices/materialPositionen';
  * Materialanforderung wäre die falsche Quelle: sie sagt, was bestellt wurde,
  * nicht was auf dieser Baustelle geblieben ist.
  *
- * WOHER DIE PREISE KOMMEN: aus dem Feld `einkaufspreis` im Materialstamm.
+ * WOHER DIE PREISE KOMMEN: aus dem Feld `einkaufspreis` im Materialstamm —
+ * über den Artikel, aus dem die Zeile am Schein gewählt wurde, sonst über den
+ * Namen (wie bei der Rechnung, `materialPositionen`).
  * Es ist NICHT der Verkaufspreis — der bestimmt den Erlös, nicht die Kosten.
  * Wer beide verwechselt, bekommt für jedes Material einen Deckungsbeitrag von
  * null und hält ihn für ein Ergebnis; dieselbe Falle wie beim Stundensatz.
@@ -65,7 +67,10 @@ export function materialkosten(
     }
   }
 
-  const mengen = new Map<string, { name: string; menge: number }>();
+  // Über die Kennung gilt genau dieser Artikel, auch ohne gepflegten Preis.
+  const nachId = new Map(katalog.map((m) => [m.id, m]));
+  const mengen = new Map<string, { name: string; menge: number; preis: number | undefined }>();
+  const zuordnen = artikelZuordnung();
   let scheineMitMaterial = 0;
 
   for (const schein of scheine) {
@@ -74,17 +79,24 @@ export function materialkosten(
     scheineMitMaterial++;
     for (const zeile of schein.material) {
       if (!zeile.name?.trim() || !(zeile.menge > 0)) continue;
-      const schluessel = normName(zeile.name);
+      const schluessel = zuordnen(zeile.name, zeile.materialId);
       const vorhanden = mengen.get(schluessel);
-      if (vorhanden) vorhanden.menge += zeile.menge;
-      else mengen.set(schluessel, { name: zeile.name.trim(), menge: zeile.menge });
+      if (vorhanden) {
+        vorhanden.menge += zeile.menge;
+        continue;
+      }
+      const ausKatalog = zeile.materialId ? nachId.get(zeile.materialId) : undefined;
+      const preis = ausKatalog
+        ? (typeof ausKatalog.einkaufspreis === 'number' && ausKatalog.einkaufspreis > 0 ? ausKatalog.einkaufspreis : undefined)
+        : preise.get(normName(zeile.name));
+      mengen.set(schluessel, { name: zeile.name.trim(), menge: zeile.menge, preis });
     }
   }
 
   let kosten = 0;
   const ohnePreis: string[] = [];
-  for (const [schluessel, eintrag] of mengen) {
-    const preis = preise.get(schluessel);
+  for (const eintrag of mengen.values()) {
+    const preis = eintrag.preis;
     if (preis === undefined) {
       ohnePreis.push(eintrag.name);
       continue;

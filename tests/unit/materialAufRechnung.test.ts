@@ -371,3 +371,51 @@ describe('Namensvergleich', () => {
     expect(normName('  Eckventil   1/2  Zoll ')).toBe(normName('eckventil 1/2 zoll'));
   });
 });
+
+describe('Preis über den Katalogartikel (24.10.2026)', () => {
+  it('findet den Preis über die Kennung, auch wenn der Artikel inzwischen anders heisst', () => {
+    const { positionen, herkunft } = materialPositionen(
+      [schein({ id: 's1', material: [{ name: 'Eckventil 1/2"', menge: 2, materialId: 'k1' }] })],
+      KATALOG,
+    );
+    expect(positionen).toEqual([{ label: 'Eckventil 1/2"', qty: 2, unit: 'Stk', unitPrice: 8.5, netto: 17 }]);
+    expect(herkunft.ohnePreis).toEqual([]);
+  });
+
+  it('fasst denselben Artikel zusammen — mit und ohne Kennung, unter altem und neuem Namen', () => {
+    const { positionen } = materialPositionen(
+      [
+        schein({ id: 's1', material: [{ name: 'Eckventil 1/2 Zoll', menge: 2, einheit: 'Stk' }] }),
+        schein({ id: 's2', material: [{ name: 'Eckventil 1/2 Zoll', menge: 1, einheit: 'Stk', materialId: 'k1' }] }),
+        schein({ id: 's3', material: [{ name: 'Eckventil 1/2"', menge: 3, einheit: 'Stk', materialId: 'k1' }] }),
+      ],
+      KATALOG,
+    );
+    expect(positionen).toEqual([{ label: 'Eckventil 1/2 Zoll', qty: 6, unit: 'Stk', unitPrice: 8.5, netto: 51 }]);
+  });
+
+  it('über die Kennung gilt genau dieser Artikel — ohne Preis kein Ausweichen auf einen gleichnamigen', () => {
+    // k3 „Dichtung“ hat keinen Preis; ein anderer Artikel gleichen Namens schon.
+    const mitDoppel = [...KATALOG, { id: 'k9', companyId: 'perl', name: 'Dichtung', stock: 1, unit: 'Pkg', verkaufspreis: 4 }];
+    const { positionen, herkunft } = materialPositionen(
+      [schein({ id: 's1', material: [{ name: 'Dichtung', menge: 1, materialId: 'k3' }] })],
+      mitDoppel,
+    );
+    expect(positionen).toEqual([{ label: 'Dichtung', qty: 1, unit: 'Stk', unitPrice: 0, netto: 0 }]);
+    expect(herkunft.ohnePreis).toEqual(['Dichtung']);
+  });
+
+  it('bleibt gleich: ohne Kennung, oder mit einer Kennung, die der Katalog nicht kennt, zählt der Name', () => {
+    const { positionen } = materialPositionen(
+      [schein({ id: 's1', material: [
+        { name: 'Kupferrohr 15 mm', menge: 3 },
+        { name: 'Eckventil 1/2 Zoll', menge: 1, materialId: 'geloescht' },
+      ] })],
+      KATALOG,
+    );
+    expect(positionen).toEqual([
+      { label: 'Eckventil 1/2 Zoll', qty: 1, unit: 'Stk', unitPrice: 8.5, netto: 8.5 },
+      { label: 'Kupferrohr 15 mm', qty: 3, unit: 'm', unitPrice: 6, netto: 18 },
+    ]);
+  });
+});

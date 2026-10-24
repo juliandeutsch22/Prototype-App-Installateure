@@ -154,7 +154,7 @@ export default function NachkalkulationView() {
         /*
           DER MATERIALSTAMM NUR FÜR DIESE BAUSTELLEN (19.10.2026): die Artikel,
           deren Namen auf ihren Scheinen und angenommenen Angeboten stehen,
-          dazu die Artikel, auf die eine Angebotszeile zeigt — aus dem ganzen
+          dazu die Artikel, auf die eine Angebots- oder Scheinzeile zeigt — aus dem ganzen
           Katalog. Vorher kamen die ersten tausend Artikel; ein Artikel
           dahinter stand als „ohne Einkaufspreis“ da, und der Deckungsbeitrag
           war zu hoch. Die Einkaufspreise liest nur die Spitze (offene Punkte B1).
@@ -165,7 +165,10 @@ export default function NachkalkulationView() {
             ...scheineJeBaustelle.flatMap((sch) => (sch ?? []).flatMap((s) => (s.material ?? []).map((z) => z.name ?? ''))),
             ...zeilen.map((z) => z.label ?? ''),
           ]),
-          katalogNachIds(companyId, zeilen.map((z) => z.materialId ?? '')),
+          katalogNachIds(companyId, [
+            ...zeilen.map((z) => z.materialId ?? ''),
+            ...scheineJeBaustelle.flatMap((sch) => (sch ?? []).flatMap((s) => (s.material ?? []).flatMap((z) => (z.materialId ? [z.materialId] : [])))),
+          ]),
         ]);
         const artikel = [...new Map([...nachName, ...nachId].map((m) => [m.id, m])).values()];
         const preise = await einkaufspreise(companyId, artikel.map((m) => m.id));

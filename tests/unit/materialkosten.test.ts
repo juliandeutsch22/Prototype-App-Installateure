@@ -15,7 +15,7 @@ import type { Material, WorkSheet } from '@/types';
 
 const schein = (
   id: string,
-  material: Array<{ name: string; menge: number; einheit?: string }>,
+  material: Array<{ name: string; menge: number; einheit?: string; materialId?: string }>,
   status: WorkSheet['status'] = 'Unterschrieben',
 ): WorkSheet & { id: string } =>
   ({
@@ -199,5 +199,30 @@ describe('In der Nachkalkulation', () => {
     expect(k.materialkosten).toBe(0);
     expect(k.materialLuecken).toEqual([]);
     expect(k.deckungsbeitrag).toBe(2000);
+  });
+});
+
+describe('Einkaufspreis über den Katalogartikel (24.10.2026)', () => {
+  const rohr = { id: 'k-rohr', companyId: 'perl', name: 'Kupferrohr 15 mm', stock: 0, einkaufspreis: 4 } as Material;
+
+  it('findet den Preis über die Kennung, auch nach einer Umbenennung, und fasst zusammen', () => {
+    const k = materialkosten(
+      [
+        schein('s1', [{ name: 'Kupferrohr 15', menge: 2, materialId: 'k-rohr' }]),
+        schein('s2', [{ name: 'Kupferrohr 15 mm', menge: 3 }]),
+      ],
+      [rohr],
+    );
+    expect(k.kosten).toBe(20);
+    expect(k.ohnePreis).toEqual([]);
+  });
+
+  it('bleibt gleich: ohne Kennung zählt der Name, eine unbekannte Kennung fällt auf ihn zurück', () => {
+    const k = materialkosten(
+      [schein('s1', [{ name: 'Kupferrohr 15 mm', menge: 1, materialId: 'unbekannt' }, { name: 'Eckventil', menge: 1 }])],
+      [rohr],
+    );
+    expect(k.kosten).toBe(4);
+    expect(k.ohnePreis).toEqual(['Eckventil']);
   });
 });
