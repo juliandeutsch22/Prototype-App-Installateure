@@ -40,7 +40,7 @@
  */
 import {
   abgelaufeneStaende, ausleitungsPfad, ausleitungsPraefix, inTeilen,
-  jsonZeile, TEIL_BYTES, teilPfad, weitererTeil,
+  TEIL_BYTES, teilPfad, weitererTeil, alleNamen, inBloecken,
 } from '../_shared/ausleitungPlan.ts';
 import {
   alleDienstSchluessel, dienstKopfzeilen, rufDerMaschine, SCHLUESSEL_FEHLT,
@@ -157,7 +157,7 @@ interface OffeneDatei {
  */
 async function standSchreiben(
   betrieb: string, tabellen: string[], schluessel: Record<string, string[]>,
-  lauf: string, abgeben: (text: string, nr: number) => Promise<void>,
+  lauf: string, abgeben: (inhalt: Uint8Array<ArrayBuffer>, nr: number) => Promise<void>,
 ): Promise<{ teile: number; zeilen: number; bytes: number }> {
   void tabellen;
   void schluessel;
@@ -171,30 +171,37 @@ async function standSchreiben(
   }
   const snapshot: string = await start.json();
   try {
-    const anzahlAntwort = await fetch(`${URL_BASIS}/rest/v1/rpc/auszug_snapshot_anzahl`, {
+    /*
+      DIE DATENBANK SCHREIBT DIE ZEILEN, DIE FUNCTION REICHT SIE WEITER (N1,
+      24.10.2026). Bis hierher wurde jede Zeile hier geparst und wieder zu
+      Text gemacht — das kostet Rechenzeit je MB, und eine Function hat zwei
+      Sekunden davon: bei rund 200 MB Bestand war Schluss. Jetzt kommt jede
+      Seite (rund 1 MB) als fertiges zeilenweises JSON und geht als Bytes in
+      den Teil. Ob alles da ist, sagt der Umfang: so viele Seiten, so viele
+      Bytes — eine verworfene Arbeitskopie hat keine Zeile mehr.
+    */
+    const umfangAntwort = await fetch(`${URL_BASIS}/rest/v1/rpc/auszug_snapshot_umfang`, {
       method: 'POST', headers: alsDienst, body: JSON.stringify({ p_lauf: snapshot }),
     });
-    if (!anzahlAntwort.ok) { await anzahlAntwort.body?.cancel(); throw new Error('Die Vollständigkeit des Datenstands konnte nicht geprüft werden.'); }
-    const erwartet = Number(await anzahlAntwort.json());
-    if (!Number.isSafeInteger(erwartet) || erwartet < 1) throw new Error('Der Datenstand wurde verworfen. Bitte erneut sichern.');
-    let nach = 0;
+    if (!umfangAntwort.ok) { await umfangAntwort.body?.cancel(); throw new Error('Die Vollständigkeit des Datenstands konnte nicht geprüft werden.'); }
+    const umfang = await umfangAntwort.json() as { seiten: number; zeilen: number; bytes: number };
+    if (!Number.isSafeInteger(umfang.zeilen) || umfang.zeilen < 1) throw new Error('Der Datenstand wurde verworfen. Bitte erneut sichern.');
     let gelesen = 0;
-    for (;;) {
-      const r = await fetch(`${URL_BASIS}/rest/v1/rpc/auszug_snapshot_seite`, {
-        method: 'POST', headers: alsDienst, body: JSON.stringify({ p_lauf: snapshot, p_nach: nach }),
+    for (let seite = 1; seite <= umfang.seiten; seite += 1) {
+      const r = await fetch(`${URL_BASIS}/rest/v1/rpc/auszug_snapshot_ndjson`, {
+        method: 'POST',
+        headers: { ...alsDienst, Accept: 'application/x-ndjson' },
+        body: JSON.stringify({ p_lauf: snapshot, p_seite: seite }),
       });
       if (!r.ok) { await r.body?.cancel(); throw new Error('Der Datenstand konnte nicht vollständig gelesen werden.'); }
-      const zeilen = await r.json() as Array<{ nr: number; inhalt: { sammlung: string; daten: Record<string, unknown> } }>;
-      if (!zeilen.length) {
-        if (nach === 0) throw new Error('Der Datenstand enthält keinen Firmenstammsatz.');
-        break;
-      }
-      for (const z of zeilen) await stand.anhaengen(jsonZeile(z.inhalt.sammlung, z.inhalt.daten));
-      gelesen += zeilen.length;
-      nach = zeilen[zeilen.length - 1].nr;
+      const block = new Uint8Array(await r.arrayBuffer());
+      if (block.byteLength === 0) throw new Error('Der Datenstand wurde während der Übertragung verworfen. Bitte erneut sichern.');
+      gelesen += block.byteLength;
+      await stand.anhaengen(block, 0);
     }
-    if (gelesen !== erwartet) throw new Error('Der Datenstand wurde während der Übertragung verworfen. Bitte erneut sichern.');
-    return await stand.abschliessen();
+    if (gelesen !== umfang.bytes) throw new Error('Der Datenstand wurde während der Übertragung verworfen. Bitte erneut sichern.');
+    const fertig = await stand.abschliessen();
+    return { ...fertig, zeilen: umfang.zeilen };
   } finally {
     // Eine Aufräumpanne macht die fertige Sicherung nicht ungültig. Die
     // tägliche Obergrenze greift auch nach einem vollständig abgerissenen Lauf.
@@ -207,28 +214,47 @@ async function standSchreiben(
 /** Ein kurzer Name für einen Lauf — er steht in den Pfaden der weiteren Teile. */
 const neuerLauf = () => crypto.randomUUID().replace(/-/g, '').slice(0, 12);
 
+/**
+ * Alle Dateien eines Betriebs im Eimer — über alle Seiten der Liste.
+ * `null` heisst: die Liste kam nicht; dann wird nichts geräumt.
+ */
+async function staendeAuflisten(betrieb: string): Promise<string[] | null> {
+  const praefix = ausleitungsPraefix(betrieb);
+  try {
+    return await alleNamen(async (offset, limit) => {
+      const r = await fetch(`${URL_BASIS}/storage/v1/object/list/${EIMER}`, {
+        method: 'POST',
+        headers: alsDienst,
+        body: JSON.stringify({ prefix: praefix, limit, offset, sortBy: { column: 'name', order: 'asc' } }),
+      });
+      if (!r.ok) { await r.body?.cancel(); throw new Error('Liste'); }
+      return ((await r.json()) as Array<{ name: string }>).map((d) => `${praefix}${d.name}`);
+    });
+  } catch {
+    return null;
+  }
+}
+
+/** Löschen in Blöcken, die der Speicher annimmt; zählt, was weg ist. */
+async function wegraeumen(pfade: string[]): Promise<number> {
+  let geraeumt = 0;
+  for (const block of inBloecken(pfade)) {
+    const r = await fetch(`${URL_BASIS}/storage/v1/object/${EIMER}`, {
+      method: 'DELETE', headers: alsDienst, body: JSON.stringify({ prefixes: block }),
+    });
+    await r.body?.cancel();
+    if (r.ok) geraeumt += block.length;
+  }
+  return geraeumt;
+}
+
 /** Alte Stände wegräumen — was weg darf, entscheidet `ausleitungPlan.ts`. */
 async function alteStaendeRaeumen(betrieb: string, heute: Date): Promise<number> {
-  const r = await fetch(`${URL_BASIS}/storage/v1/object/list/${EIMER}`, {
-    method: 'POST',
-    headers: alsDienst,
-    body: JSON.stringify({ prefix: ausleitungsPraefix(betrieb), limit: 1000 }),
-  });
-  if (!r.ok) return 0;
-  const dateien = (await r.json()) as Array<{ name: string }>;
-  const weg = abgelaufeneStaende(
-    dateien.map((d) => `${ausleitungsPraefix(betrieb)}${d.name}`),
-    heute,
-    AUFBEWAHRUNG_TAGE,
-  );
+  const dateien = await staendeAuflisten(betrieb);
+  if (!dateien) return 0;
+  const weg = abgelaufeneStaende(dateien, heute, AUFBEWAHRUNG_TAGE);
   if (weg.length === 0) return 0;
-
-  const geloescht = await fetch(`${URL_BASIS}/storage/v1/object/${EIMER}`, {
-    method: 'DELETE',
-    headers: alsDienst,
-    body: JSON.stringify({ prefixes: weg }),
-  });
-  return geloescht.ok ? weg.length : 0;
+  return await wegraeumen(weg);
 }
 
 /**
@@ -237,24 +263,16 @@ async function alteStaendeRaeumen(betrieb: string, heute: Date): Promise<number>
  * oder zu einem gescheiterten Lauf und sind nichts mehr wert.
  */
 async function fremdeTeileRaeumen(betrieb: string, lauf: string, heute: Date): Promise<void> {
-  const r = await fetch(`${URL_BASIS}/storage/v1/object/list/${EIMER}`, {
-    method: 'POST',
-    headers: alsDienst,
-    body: JSON.stringify({ prefix: ausleitungsPraefix(betrieb), limit: 1000 }),
-  });
-  if (!r.ok) return;
-  const weg = ((await r.json()) as Array<{ name: string }>)
-    .map((d) => `${ausleitungsPraefix(betrieb)}${d.name}`)
+  const dateien = await staendeAuflisten(betrieb);
+  if (!dateien) return;
+  const weg = dateien
     .filter((p) => p.startsWith(ausleitungsPfad(betrieb, heute).replace(/\.jsonl$/, '.')))
     .filter((p) => {
       const t = weitererTeil(p);
       return t !== null && t.lauf !== lauf;
     });
   if (weg.length === 0) return;
-  const geloescht = await fetch(`${URL_BASIS}/storage/v1/object/${EIMER}`, {
-    method: 'DELETE', headers: alsDienst, body: JSON.stringify({ prefixes: weg }),
-  });
-  await geloescht.body?.cancel();
+  await wegraeumen(weg);
 }
 
 async function festhalten(
@@ -287,7 +305,7 @@ async function festhalten(
  * sie gebaut ist.
  */
 async function ausserHausLegen(
-  ziel: Zielspeicher, pfad: string, inhalt: string, jetzt: Date,
+  ziel: Zielspeicher, pfad: string, inhalt: string | Uint8Array<ArrayBuffer>, jetzt: Date,
 ): Promise<string> {
   const { url, kopfzeilen } = await putAnfrage(ziel, pfad, inhalt, jetzt);
 
@@ -428,7 +446,7 @@ async function betriebAusleiten(
     er wird gemerkt, die übrigen Teile gehen nur noch nach drinnen, und erst
     danach zählt er.
   */
-  const { zeilen, bytes } = await standSchreiben(betrieb, tabellen, schluessel, lauf, async (text, nr) => {
+  const { zeilen, bytes } = await standSchreiben(betrieb, tabellen, schluessel, lauf, async (inhalt, nr) => {
     const eigener = teilPfad(pfad, lauf, nr);
     /*
       EIN STAND JE TAG. Läuft die Ausleitung an einem Tag zweimal — etwa nach
@@ -446,7 +464,7 @@ async function betriebAusleiten(
         'Content-Type': 'application/x-ndjson',
         'x-upsert': 'true',
       },
-      body: text,
+      body: inhalt,
     });
     if (!hoch.ok) throw new Error(`Speicher: ${await hoch.text()}`);
     await hoch.body?.cancel();
@@ -454,7 +472,7 @@ async function betriebAusleiten(
 
     if (ZIEL && draussenPfad && !draussenFehler) {
       try {
-        const da = await ausserHausLegen(ZIEL, teilPfad(draussenPfad, lauf, nr), text, heute);
+        const da = await ausserHausLegen(ZIEL, teilPfad(draussenPfad, lauf, nr), inhalt, heute);
         if (nr === 1) ziel = da;
       } catch (e) {
         draussenFehler = e instanceof Error ? e : new Error(String(e));
@@ -519,7 +537,7 @@ async function signieren(eimer: string, pfade: string[]): Promise<Map<string, st
   return links;
 }
 
-async function ablegen(pfad: string, inhalt: string, typ: string): Promise<void> {
+async function ablegen(pfad: string, inhalt: string | Uint8Array<ArrayBuffer>, typ: string): Promise<void> {
   const r = await fetch(`${URL_BASIS}/storage/v1/object/${EIMER}/${pfad}`, {
     method: 'POST',
     headers: { ...alsDienst, 'Content-Type': typ, 'x-upsert': 'true' },
@@ -556,9 +574,9 @@ async function uebergabe(
   const datenPfad = `uebergabe/${betrieb}/${stempel}-daten.jsonl`;
   const lauf = neuerLauf();
   const datenPfade: string[] = [];
-  const { zeilen, bytes } = await standSchreiben(betrieb, tabellen, schluessel, lauf, async (text, nr) => {
+  const { zeilen, bytes } = await standSchreiben(betrieb, tabellen, schluessel, lauf, async (inhalt, nr) => {
     const p = teilPfad(datenPfad, lauf, nr);
-    await ablegen(p, text, 'application/x-ndjson');
+    await ablegen(p, inhalt, 'application/x-ndjson');
     datenPfade.push(p);
   });
   datenPfade.reverse();

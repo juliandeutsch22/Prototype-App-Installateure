@@ -7,7 +7,7 @@
  * Betrieb mit ein paar tausend Scheinen läge darüber, und zwar still: die
  * Sicherung schlüge jede Nacht fehl.
  *
- * Hier bekommt ein Betrieb rund 36 MB Bestand, also mehr als ein Teil
+ * Hier bekommt ein Betrieb rund 12 MB Bestand, also mehr als ein Teil
  * (`TEIL_BYTES`), und die Prüfung geht den ganzen Weg: Teile schreiben,
  * nachzählen, einen zweiten Lauf am selben Tag, und zurückspielen mit dem
  * echten Werkzeug — aus beiden Teilen und, als Gegenprobe, aus einem.
@@ -26,8 +26,8 @@ import {
 
 const lauf = promisify(execFile);
 const BETRIEB = 'teile-b';
-const KUNDEN = 300;
-/** Je Kunde rund 120.000 Zeichen Notiz: zusammen rund 36 MB, also zwei Teile. */
+const KUNDEN = 100;
+/** Je Kunde rund 120.000 Zeichen Notiz: zusammen rund 12 MB, also zwei Teile zu höchstens 8 MB. */
 const NOTIZ = 3750;
 
 let chef: Konto;

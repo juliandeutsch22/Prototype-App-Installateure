@@ -58,8 +58,48 @@ export function datumAusPfad(pfad: string): string | null {
  * Absage ab. Ein unterschriebener Schein trägt zwei Unterschriften zu je
  * rund 70 KB — ein Betrieb mit ein paar tausend Scheinen läge darüber. Jetzt
  * geht der Stand in Teilen hinaus; im Speicher liegen höchstens zwei.
+ *
+ * 8 MB STATT 32 MB (N1, 24.10.2026). Gemessen mit 288 MB Bestand: bei 32 MB
+ * lagen vor jedem Hochladen 113–134 MB im Speicher (erster Teil, laufender
+ * Teil, der daraus gefügte Text), das Kodieren fürs Hochladen kam dazu, und
+ * beim sechsten Teil schlug die Grenze von 256 MB zu. Mit einem Ziel ausser
+ * Haus wird jeder Teil noch zweimal kodiert (Prüfsumme, Hochladen). Bei 8 MB
+ * bleibt der Bedarf bei einem Viertel davon — gleich, wie groß der Betrieb ist.
  */
-export const TEIL_BYTES = 32 * 1024 * 1024;
+export const TEIL_BYTES = 8 * 1024 * 1024;
+
+/**
+ * Wie viele Namen der Speicher je Abfrage höchstens nennt — und wie viele
+ * Pfade er je Löschauftrag annimmt.
+ */
+export const LISTE_SEITE = 1000;
+
+/**
+ * Alle Namen unter einem Präfix, Seite für Seite.
+ *
+ * EINE SEITE REICHT NICHT (N1, 24.10.2026). 30 Tage Aufbewahrung mal die
+ * Teile eines großen Betriebs sind schnell über 1.000 Dateien; bisher sah das
+ * Aufräumen nur die ersten 1.000 (nach Namen, also die ältesten), und alles
+ * dahinter blieb liegen — der Speicher wüchse Nacht für Nacht.
+ */
+export async function alleNamen(
+  seite: (offset: number, limit: number) => Promise<string[]>,
+  limit = LISTE_SEITE,
+): Promise<string[]> {
+  const alle: string[] = [];
+  for (let offset = 0; ; offset += limit) {
+    const namen = await seite(offset, limit);
+    alle.push(...namen);
+    if (namen.length < limit) return alle;
+  }
+}
+
+/** Eine Liste in Blöcke zu höchstens `groesse` — für Löschaufträge. */
+export function inBloecken<T>(liste: T[], groesse = LISTE_SEITE): T[][] {
+  const bloecke: T[][] = [];
+  for (let i = 0; i < liste.length; i += groesse) bloecke.push(liste.slice(i, i + groesse));
+  return bloecke;
+}
 
 /**
  * Der Pfad des Teils `nr` eines Stands.
@@ -100,40 +140,55 @@ export const TEIL_SAMMLUNG = '_teil';
 /**
  * Zeilen in Teile schreiben, jeden mit seiner Kopfzeile.
  *
- * `abgeben(text, nr)` bekommt jeden fertigen Teil und legt ihn hinaus, bevor
+ * `abgeben(inhalt, nr)` bekommt jeden fertigen Teil und legt ihn hinaus, bevor
  * der nächste entsteht. Der erste bleibt bis zum Schluss im Speicher, weil
  * erst dann feststeht, wie viele Teile es sind — er geht als letzter.
+ *
+ * IN BYTES (N1, 24.10.2026). Die Ausleitung bekommt die Zeilen seitenweise als
+ * fertiges zeilenweises JSON aus der Datenbank und reicht sie unverändert
+ * weiter; ein Stück ist dann eine ganze Seite. Gezählt wird in Bytes, so wie
+ * der Speicher zählt — vorher in Zeichen, und Umlaute machten einen Teil
+ * etwas größer als die Grenze.
  */
 export function inTeilen(
   lauf: string,
   grenze: number,
-  abgeben: (text: string, nr: number) => Promise<void>,
+  abgeben: (inhalt: Uint8Array<ArrayBuffer>, nr: number) => Promise<void>,
 ) {
-  let erster: string[] | null = null;
-  let teil: string[] = [];
+  const kodierer = new TextEncoder();
+  let erster: Uint8Array<ArrayBuffer>[] | null = null;
+  let teil: Uint8Array<ArrayBuffer>[] = [];
   let groesse = 0;
   let nr = 1;
   let zeilen = 0;
   let bytes = 0;
-  const kopf = (k: TeilKopf) => jsonZeile(TEIL_SAMMLUNG, { ...k });
-  const hinaus = async (n: number, inhalt: string[], teile?: number) => {
-    const text = kopf({ lauf, nr: n, ...(teile ? { teile } : {}) }) + inhalt.join('');
-    bytes += text.length;
-    await abgeben(text, n);
+  const hinaus = async (n: number, stuecke: Uint8Array<ArrayBuffer>[], teile?: number) => {
+    const k: TeilKopf = { lauf, nr: n, ...(teile ? { teile } : {}) };
+    const kopf = kodierer.encode(jsonZeile(TEIL_SAMMLUNG, { ...k }));
+    const inhalt = new Uint8Array(kopf.byteLength + stuecke.reduce((s, x) => s + x.byteLength, 0));
+    inhalt.set(kopf, 0);
+    let pos = kopf.byteLength;
+    for (const x of stuecke) { inhalt.set(x, pos); pos += x.byteLength; }
+    bytes += inhalt.byteLength;
+    await abgeben(inhalt, n);
   };
   return {
-    /** Eine Zeile anhängen; ist der Teil voll, geht er vorher hinaus. */
-    async anhaengen(zeile: string): Promise<void> {
-      if (groesse > 0 && groesse + zeile.length > grenze) {
+    /**
+     * Ein Stück anhängen — eine Zeile oder mehrere ganze; ist der Teil voll,
+     * geht er vorher hinaus. `anzahl` sagt, wie viele Zeilen das Stück trägt.
+     */
+    async anhaengen(stueck: string | Uint8Array<ArrayBuffer>, anzahl = 1): Promise<void> {
+      const b = typeof stueck === 'string' ? kodierer.encode(stueck) : stueck;
+      if (groesse > 0 && groesse + b.byteLength > grenze) {
         if (nr === 1) erster = teil;
         else await hinaus(nr, teil);
         teil = [];
         groesse = 0;
         nr += 1;
       }
-      teil.push(zeile);
-      groesse += zeile.length;
-      zeilen += 1;
+      teil.push(b);
+      groesse += b.byteLength;
+      zeilen += anzahl;
     },
     /** Den letzten und danach den ersten Teil hinauslegen. */
     async abschliessen(): Promise<{ teile: number; zeilen: number; bytes: number }> {

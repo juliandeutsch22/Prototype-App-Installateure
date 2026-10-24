@@ -158,8 +158,8 @@ describe('Ein Stand in Teilen (10.10.2026)', () => {
   /** STAND so, wie die Ausleitung ihn in Teile schreibt — zu je höchstens `grenze` Zeichen. */
   async function inTeileGeschrieben(lauf: string, grenze: number) {
     const teile: Array<{ name: string; text: string }> = [];
-    const stand = inTeilen(lauf, grenze, async (text: string, nr: number) => {
-      teile.push({ name: nr === 1 ? 'stand.jsonl' : `stand.${lauf}.teil-${nr}.jsonl`, text });
+    const stand = inTeilen(lauf, grenze, async (inhalt, nr) => {
+      teile.push({ name: nr === 1 ? 'stand.jsonl' : `stand.${lauf}.teil-${nr}.jsonl`, text: new TextDecoder().decode(inhalt) });
     });
     for (const z of STAND.split('\n').filter(Boolean)) await stand.anhaengen(`${z}\n`);
     await stand.abschliessen();
