@@ -934,6 +934,36 @@ describe('Leistung bis als Stichtag', () => {
     expect(screen.queryByText(/Stunden, Scheine oder Material/)).toBeNull();
   });
 
+  /*
+    A5 (24.10.2026): der spätere Schein trägt auch die Zeit vom 20.08. — mit
+    Stichtag 31.08. zählt diese Zeitzeile für diese Rechnung, statt dass die
+    Buchung als „ohne unterschriebenen Schein“ dasteht.
+  */
+  it('gleicht mit Stichtag je Zeitzeile ab, nicht nach dem Datum des Scheins', async () => {
+    zeiten = [ZEIT, SPAETER];
+    scheine = [SCHEIN, {
+      ...SCHEIN_SPAETER,
+      zeiten: [
+        { datum: '2026-08-20', mitarbeiter: 'Max', minuten: 480 },
+        { datum: '2026-09-10', mitarbeiter: 'Max', minuten: 480 },
+      ],
+    }];
+    alleScheine = scheine;
+    katalog = KATALOG;
+    await bisZurVorschau();
+    fireEvent.change(await screen.findByLabelText('Leistung bis'), { target: { value: '2026-08-31' } });
+    await userEvent.click(await screen.findByRole('button', { name: 'Bis 31.08.2026 neu zusammenstellen' }));
+    await waitFor(() => expect(screen.queryByText(/in dieser Vorschau liegen nach/)).toBeNull());
+    // Beide Scheine zählen: der erste mit seinem Datum, der spätere mit der Zeitzeile vom 20.08.
+    const zeile = (await screen.findByText(/2 noch nicht verrechnete Scheine bestätigen/)).closest('p')!;
+    expect(zeile.querySelectorAll('strong')[0].textContent).toBe(zeile.querySelectorAll('strong')[1].textContent);
+    expect(screen.queryByText(/Gebucht, aber ohne unterschriebenen Schein/)).toBeNull();
+    // Gleich bleibt: das Material des späteren Scheins wartet auf die nächste Rechnung.
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0].linkedWorkSheets).toEqual(['s1']);
+  });
+
   it('bleibt bei Pauschale ohne Stichtag: kein Hinweis, die Belege gehen alle mit', async () => {
     PROJEKT.billingMode = 'Pauschal';
     const bis = await vorschauMitSpaeterem();

@@ -1,4 +1,4 @@
-import type { TimeEntry, WorkSheet } from '@/types';
+import type { TimeEntry, WorkSheet, WorkSheetZeit } from '@/types';
 import { calcWorkMin, normProjectNumber } from '@/lib/time';
 import { normName } from './materialPositionen';
 import { satzklasse } from '@/lib/einstufung';
@@ -125,8 +125,21 @@ export function scheinAbgleich(
   scheine: Array<WorkSheet & { id: string }>,
   /** Kennungen der unterschriebenen Scheine, die auf keiner Rechnung stehen. */
   offen?: ReadonlySet<string>,
+  /**
+   * Stichtag „Leistung bis“ der Rechnung. Gezählt wird JE ZEITZEILE nach
+   * ihrem Tag (A5, 24.10.2026), nicht der Schein als Ganzes nach seinem
+   * Datum: ein Schein über Montag bis Freitag mit Stichtag Mittwoch bestätigt
+   * Montag bis Mittwoch für diese Rechnung, Donnerstag und Freitag für die
+   * nächste. Vorher fehlten seine frühen Tage („ohne Schein“) oder seine
+   * späten wurden als fehlend gemeldet — je nach Datum des Scheins.
+   */
+  bis?: string,
 ): ScheinAbgleich {
   const pn = normProjectNumber(projectNumber);
+  // Eine Zeile ohne eigenen Tag gehört zum Tag des Scheins — wie unten beim Vergleich je Tag.
+  const tagDer = (z: WorkSheetZeit, schein: WorkSheet) => z.datum || schein.datum;
+  const zeilen = (schein: WorkSheet) =>
+    (schein.zeiten ?? []).filter((z) => !bis || tagDer(z, schein) <= bis);
 
   const verrechnetMin = eintraege.reduce((s, e) => s + Math.max(calcWorkMin(e), 0), 0);
 
@@ -141,9 +154,16 @@ export function scheinAbgleich(
     gar keinen Schein hatten. Ohne Liste der offenen Scheine bleibt es beim
     alten Verhalten.
   */
-  const eigene = offen ? alleDerBaustelle.filter((s) => offen.has(s.id)) : alleDerBaustelle;
+  const offeneDerBaustelle = offen ? alleDerBaustelle.filter((s) => offen.has(s.id)) : alleDerBaustelle;
+  /*
+    MIT STICHTAG zählt ein Schein, wenn er bis dahin datiert ist (sein
+    Material kommt auf diese Rechnung) oder eine Zeitzeile bis dahin trägt.
+  */
+  const eigene = bis
+    ? offeneDerBaustelle.filter((s) => s.datum <= bis || zeilen(s).length > 0)
+    : offeneDerBaustelle;
   const bestaetigtMin = eigene.reduce(
-    (s, schein) => s + (schein.zeiten ?? []).reduce((z, zeile) => z + Math.max(zeile.minuten, 0), 0),
+    (s, schein) => s + zeilen(schein).reduce((z, zeile) => z + Math.max(zeile.minuten, 0), 0),
     0,
   );
 
@@ -153,7 +173,7 @@ export function scheinAbgleich(
     ? eigene
         .filter((schein) => offen.has(schein.id))
         .reduce(
-          (s, schein) => s + (schein.zeiten ?? []).reduce((z, zeile) => z + Math.max(zeile.minuten, 0), 0),
+          (s, schein) => s + zeilen(schein).reduce((z, zeile) => z + Math.max(zeile.minuten, 0), 0),
           0,
         )
     : 0;
@@ -185,9 +205,9 @@ export function scheinAbgleich(
   const bestaetigtJe = new Map<string, { datum: string; name: string; helfer: boolean; min: number }>();
   for (const schein of eigene) {
     if (!offen?.has(schein.id)) continue;
-    for (const z of schein.zeiten ?? []) {
+    for (const z of zeilen(schein)) {
       if (z.minuten <= 0 || !normName(z.mitarbeiter)) continue;
-      const datum = z.datum || schein.datum;
+      const datum = tagDer(z, schein);
       const k = schluessel(datum, z.mitarbeiter, !!z.helfer);
       const bisher = bestaetigtJe.get(k);
       if (bisher) bisher.min += z.minuten;
