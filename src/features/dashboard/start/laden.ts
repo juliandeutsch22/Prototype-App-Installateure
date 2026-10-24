@@ -356,7 +356,7 @@ async function eigeneGrenzfaelle(k: Kontext, profil: AppUser | null): Promise<Gr
     {
       geburtsdatum: geboren,
       schultagMin: profil ? (t) => tagessollStunden(profil, t) * 60 : undefined,
-      andereVerteilung: andereVerteilung(profil),
+      andereVerteilung: andereVerteilung(profil, k.company?.kjbgVerteilungKv === true),
     },
     { stichtag: heute },
   ).filter((f) => f.jugendlich);

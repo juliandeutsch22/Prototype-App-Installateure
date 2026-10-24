@@ -572,6 +572,7 @@ export default function AccountingView() {
     */
     aus: imSupport || !user || !belegschaftDa || loading,
     durchrechnungWochen: company?.durchrechnungWochen,
+    kjbgVerteilungKv: company?.kjbgVerteilungKv === true,
     eintraegeDerSeite: entries,
   });
   const grenzenJePerson = useMemo(() => {

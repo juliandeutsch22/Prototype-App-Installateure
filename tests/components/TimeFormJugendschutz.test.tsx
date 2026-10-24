@@ -234,3 +234,37 @@ describe('Berufsschule mit Unterrichtszeit (M1)', () => {
     expect(eintragen).not.toHaveBeenCalled();
   });
 });
+
+/*
+  DIE WEGZEIT SCHULE–BETRIEB (A9, 24.10.2026; § 11 Abs 7 KJBG): geht je
+  Schultag mit; leer bleibt der Aufruf, wie er war.
+*/
+describe('Berufsschule mit Wegzeit (A9)', () => {
+  it('gibt die Wegzeit je Schultag mit', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.selectOptions(screen.getByLabelText('Status'), 'Berufsschule');
+    await nutzer.type(screen.getByLabelText('Weg Schule–Betrieb je Schultag (Std., optional)'), '0:45');
+    await nutzer.click(screen.getByRole('button', { name: 'Berufsschule eintragen' }));
+    await waitFor(() => expect(eintragen).toHaveBeenCalledWith(expect.objectContaining({ wegzeitMin: 45 })));
+  });
+
+  it('Gegenprobe: über 4 Std. wird nicht eingetragen', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.selectOptions(screen.getByLabelText('Status'), 'Berufsschule');
+    await nutzer.type(screen.getByLabelText('Weg Schule–Betrieb je Schultag (Std., optional)'), '5');
+    await nutzer.click(screen.getByRole('button', { name: 'Berufsschule eintragen' }));
+    expect(await screen.findByText(/Wegzeit liegt zwischen 0 und 4 Stunden/)).toBeInTheDocument();
+    expect(eintragen).not.toHaveBeenCalled();
+  });
+
+  it('bleibt gleich: ohne Angabe geht keine Wegzeit mit', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.selectOptions(screen.getByLabelText('Status'), 'Berufsschule');
+    await nutzer.click(screen.getByRole('button', { name: 'Berufsschule eintragen' }));
+    await waitFor(() => expect(eintragen).toHaveBeenCalled());
+    expect((eintragen.mock.calls[0] as unknown[])[0]).not.toHaveProperty('wegzeitMin');
+  });
+});

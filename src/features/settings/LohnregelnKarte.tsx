@@ -47,6 +47,8 @@ export default function LohnregelnKarte() {
   */
   const [verteilt, setVerteilt] = useState(false);
   const [tage, setTage] = useState<Record<string, string>>({});
+  /** § 11 Abs 3 KJBG: der KV lässt für Jugendliche eine andere Verteilung zu (A9, 24.10.2026). Ab Werk aus. */
+  const [kjbgKv, setKjbgKv] = useState(false);
   const [speichert, setSpeichert] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
 
@@ -64,6 +66,7 @@ export default function LohnregelnKarte() {
       tag, regel.vollzeitVerteilung?.[tag] ? String(regel.vollzeitVerteilung[tag]).replace('.', ',') : '',
     ])));
     setDurchrechnung(String(durchrechnungsWochen(company?.durchrechnungWochen)));
+    setKjbgKv(company?.kjbgVerteilungKv === true);
   }, [company]);
 
   const vollzeitSichtbar = modell === 'tagesgrenze' && grenze === 'tagessoll';
@@ -115,6 +118,7 @@ export default function LohnregelnKarte() {
         ueberstundenHundertSonnFeiertag: hundert,
         ueberstundenKvMetall: kvMetall,
         durchrechnungWochen: wochen,
+        kjbgVerteilungKv: kjbgKv,
         ...(vollzeitStunden != null ? { vollzeitWochenstunden: vollzeitStunden, vollzeitVerteilung: verteilung } : {}),
       });
       await reloadCompany();
@@ -156,7 +160,11 @@ export default function LohnregelnKarte() {
           Lohnverrechnung. Erst darüber beginnen die Überstunden. Der
           Durchrechnungszeitraum gilt für die Arbeitszeitgrenzen: im
           Schnitt höchstens 48 Std. je Woche, nach dem Gesetz über 17 Wochen (§ 9 Abs 4 AZG); länger,
-          bis 52 Wochen, nur wenn der Kollektivvertrag es zulässt.
+          bis 52 Wochen, nur wenn der Kollektivvertrag es zulässt. Jugendliche dürfen an einem Tag bis 9
+          Std. arbeiten, wenn ihre Woche ungleich verteilt ist und die kürzeren Tage an der
+          Wochenfreizeit liegen — am Anfang oder Ende der Arbeitswoche (§ 11 Abs 2 KJBG). Lässt der
+          Kollektivvertrag eine andere Verteilung zu (Abs 3), gilt das unabhängig von der Lage; dann
+          den Haken setzen.
         </>
       }
     >
@@ -255,6 +263,14 @@ export default function LohnregelnKarte() {
           />
         </div>
       )}
+      <div className="mt-3">
+        <CheckboxField
+          id="kjbgVerteilungKv"
+          label="Kollektivvertrag lässt für Jugendliche eine andere Verteilung der Arbeitszeit zu (§ 11 Abs 3 KJBG)"
+          checked={kjbgKv}
+          onChange={(e) => setKjbgKv(e.target.checked)}
+        />
+      </div>
       {fehler && <p role="alert" className="mt-2 text-sm text-danger">{fehler}</p>}
       <div className="fuss-aktionen mt-4">
         <Button type="button" loading={speichert} onClick={speichern}>

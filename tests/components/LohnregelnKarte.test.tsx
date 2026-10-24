@@ -37,6 +37,7 @@ describe('Durchrechnungszeitraum', () => {
     await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', {
       nachtVon: '22:00', nachtBis: '06:00', ueberstundenModell: 'zeitkonto', ueberstundenGrenze: 'tagessoll',
       ueberstundenHundertSonnFeiertag: false, ueberstundenKvMetall: true, durchrechnungWochen: 26,
+      kjbgVerteilungKv: false,
     }));
   });
 
@@ -211,5 +212,30 @@ describe('Vollzeit je Wochentag', () => {
     await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', expect.objectContaining({
       vollzeitWochenstunden: 38.5, vollzeitVerteilung: null,
     })));
+  });
+});
+
+/*
+  ANDERE VERTEILUNG FÜR JUGENDLICHE LAUT KOLLEKTIVVERTRAG (A9, 24.10.2026;
+  § 11 Abs 3 KJBG): eine Einstellung je Betrieb, ab Werk aus.
+*/
+describe('Kollektivvertrag und die Verteilung für Jugendliche', () => {
+  const haken = () => screen.getByLabelText(/Kollektivvertrag lässt für Jugendliche eine andere Verteilung/);
+
+  it('ab Werk aus; gesetzt wird sie gespeichert', async () => {
+    zeige();
+    expect(haken()).not.toBeChecked();
+    fireEvent.click(haken());
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', expect.objectContaining({ kjbgVerteilungKv: true })));
+  });
+
+  it('zeigt die gespeicherte Einstellung und nimmt sie wieder weg', async () => {
+    firma = { ...firma, kjbgVerteilungKv: true };
+    zeige();
+    expect(haken()).toBeChecked();
+    fireEvent.click(haken());
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', expect.objectContaining({ kjbgVerteilungKv: false })));
   });
 });
