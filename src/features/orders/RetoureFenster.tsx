@@ -34,6 +34,8 @@ export default function RetoureFenster({
   companyId,
   user,
   baustelle = '',
+  personen,
+  personenFehler = null,
 }: {
   offen: boolean;
   onClose: () => void;
@@ -41,6 +43,13 @@ export default function RetoureFenster({
   user: { uid: string; name: string };
   /** Vorbelegte Baustelle — etwa aus der Rüstliste eines Einsatzes. */
   baustelle?: string;
+  /**
+   * Erfasst das Lager für jemand anderen: die Belegschaft zur Auswahl
+   * „Zurückgebracht von“. Ohne sie gilt die Retoure für den, der erfasst.
+   */
+  personen?: { uid: string; name: string }[];
+  /** Kam die Belegschaft nicht, steht es im Fenster — erfasst wird dann nicht. */
+  personenFehler?: string | null;
 }) {
   const toast = useToast();
   /** Das gewählte Material — der Datensatz selbst; die Suche liefert ihn vom Server. */
@@ -50,6 +59,12 @@ export default function RetoureFenster({
   const [zustand, setZustand] = useState<Zustand>('neu');
   const [projekt, setProjekt] = useState(baustelle);
   const [grund, setGrund] = useState('');
+  /*
+    WER ZURÜCKGEBRACHT HAT (A4, 24.10.2026) — beim Lager eine Pflichtwahl,
+    nicht der Erfassende als Vorgabe: sonst stünde die Retoure wieder still
+    auf dem Namen des Lagers, wie vorher.
+  */
+  const [von, setVon] = useState('');
   const [fehler, setFehler] = useState<string | null>(null);
   const [speichert, setSpeichert] = useState(false);
 
@@ -91,8 +106,10 @@ export default function RetoureFenster({
     onClose();
   }
 
+  const person = personen ? personen.find((p) => p.uid === von) : user;
+
   async function erfassen() {
-    if (!gewaehlt) return;
+    if (!gewaehlt || !person) return;
     // Ohne diese Prüfung ginge eine negative Menge durch, und eine Retoure
     // würde den Lagerbestand VERRINGERN. Zentral gelesen (M15).
     const qty = zahlOder(menge, NaN, { negativ: true });
@@ -112,10 +129,11 @@ export default function RetoureFenster({
         condition: zustand,
         note: grund,
         projectNumber: projekt,
-        userId: user.uid,
-        userName: user.name,
+        userId: person.uid,
+        userName: person.name,
       });
       setGewaehlt(null);
+      setVon('');
       setSuche('');
       setMenge('1');
       setGrund('');
@@ -216,6 +234,16 @@ export default function RetoureFenster({
           value={projekt}
           onChange={(nr) => setProjekt(nr)}
         />
+        {personen && (
+          <SelectField id="retvon" label="Zurückgebracht von" value={von}
+            onChange={(e) => setVon(e.target.value)}>
+            <option value="">Bitte wählen</option>
+            {personen.map((p) => (
+              <option key={p.uid} value={p.uid}>{p.name}</option>
+            ))}
+          </SelectField>
+        )}
+        {personenFehler && <ErrorState message={personenFehler} />}
         <InputField id="retreason" label="Grund / Notiz" value={grund}
           onChange={(e) => setGrund(e.target.value)} />
         {/* Der Fehler steht im Fenster, wo er entstand. */}
@@ -224,7 +252,7 @@ export default function RetoureFenster({
           <Button variant="ghost" onClick={schliessen}>
             Abbrechen
           </Button>
-          <Button onClick={erfassen} loading={speichert} disabled={!gewaehlt}>
+          <Button onClick={erfassen} loading={speichert} disabled={!gewaehlt || !person}>
             Retoure erfassen
           </Button>
         </div>

@@ -55,6 +55,7 @@ import { ANFORDERUNGS_FILTER, bekannt, type AnforderungsFilter } from '@/feature
 import { istAbholbereitAlt, istLieferungHeute, istLieferungUeberfaellig } from './anforderungStand';
 import { lieferterminText } from './einkauf';
 import RetoureFenster from './RetoureFenster';
+import { listUsers } from '@/lib/db/users';
 
 /** Was ein Filter aus der Adresse zeigt (Startseite, Nachtest 01.10.2026). */
 const FILTER_TEXT: Record<AnforderungsFilter, string> = {
@@ -169,7 +170,10 @@ function verlaufVon(o: MaterialOrder, haendler: string | undefined): LotPunkt[] 
     {
       titel: o.transactionType === 'return' ? 'Retoure erfasst' : 'Angefordert',
       zeit: zeitpunkt(o.createdAt),
-      text: o.userName,
+      // Hat jemand anderes erfasst (seit 24.10.2026 festgehalten), steht er dabei.
+      text: o.erfasstVonName && o.erfasstVon !== o.userId
+        ? `${o.userName ?? ''}, erfasst von ${o.erfasstVonName}`
+        : o.userName,
     },
   ];
   if (o.transactionType === 'return') return punkte;
@@ -203,6 +207,26 @@ export default function AdminOrdersView() {
   const toast = useToast();
   /** „Retoure erfassen“ im Reiter Retouren — im Seitenfenster wie bei „Material anfordern“. */
   const [retoureOffen, setRetoureOffen] = useState(false);
+  /*
+    WER ZURÜCKGEBRACHT HAT (A4, 24.10.2026): die aktive Belegschaft zur Wahl,
+    geholt erst, wenn das Fenster aufgeht. `null` heißt „noch nicht da“.
+  */
+  const [belegschaft, setBelegschaft] = useState<{ uid: string; name: string }[] | null>(null);
+  const [belegschaftFehler, setBelegschaftFehler] = useState<string | null>(null);
+  useEffect(() => {
+    if (!retoureOffen || !user || belegschaft) return;
+    let weg = false;
+    listUsers(user.companyId)
+      .then((alle) => {
+        if (weg) return;
+        setBelegschaftFehler(null);
+        setBelegschaft(alle.filter((u) => u.active !== false)
+          .map((u) => ({ uid: u.uid, name: u.name }))
+          .sort((a, b) => a.name.localeCompare(b.name, 'de')));
+      })
+      .catch(() => { if (!weg) setBelegschaftFehler('Die Belegschaft konnte nicht geladen werden. Bitte das Fenster schließen und erneut öffnen.'); });
+    return () => { weg = true; };
+  }, [retoureOffen, user, belegschaft]);
   /*
     DIE GROSSHÄNDLER — für „Nicht auf Lager" und die Einkaufsliste. Scheitert
     das Laden, bleibt die Liste leer und die Zeile kommt „ohne Grosshändler"
@@ -888,9 +912,15 @@ export default function AdminOrdersView() {
                 <dd>{fmtMenge(offen.quantity)}</dd>
               </div>
               <div className="angabe">
-                <dt>Angefordert von</dt>
+                <dt>{offen.transactionType === 'return' ? 'Zurückgebracht von' : 'Angefordert von'}</dt>
                 <dd>{offen.userName || '—'}</dd>
               </div>
+              {offen.erfasstVonName && offen.erfasstVon !== offen.userId && (
+                <div className="angabe">
+                  <dt>Erfasst von</dt>
+                  <dd>{offen.erfasstVonName}</dd>
+                </div>
+              )}
               <div className="angabe">
                 <dt>Baustelle</dt>
                 <dd className="nr">{offen.projectNumber || 'ohne Baustelle'}</dd>
@@ -1135,6 +1165,8 @@ export default function AdminOrdersView() {
         onClose={() => setRetoureOffen(false)}
         companyId={user.companyId}
         user={user}
+        personen={belegschaft ?? []}
+        personenFehler={belegschaftFehler}
       />
     </div>
   );

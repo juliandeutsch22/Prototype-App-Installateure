@@ -1070,8 +1070,12 @@ export interface MaterialOrder {
   isUrgent?: boolean;
   transactionType: 'order' | 'return';
   condition?: string; // nur Retoure
+  /** Wem die Anforderung gehört — bei einer Retoure, wer das Material zurückgebracht hat. */
   userId: string; // uid
   userName?: string;
+  /** Wer sie erfasst hat (seit 24.10.2026); setzt nur die Datenbank aus der Anmeldung. Ältere ohne. */
+  erfasstVon?: string | null;
+  erfasstVonName?: string | null;
   processed?: boolean; // Lagerabzug-Guard
   isBilled?: boolean;
   invoiceNumber?: string;
