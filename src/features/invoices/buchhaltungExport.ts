@@ -136,6 +136,16 @@ const KOPF = [
   'Bestellnummer',
   'Rücklass (€)',
   'Rücklass fällig am',
+  /*
+    DER TAG DER ABLÖSE DURCH BANKGARANTIE, wieder am Ende (A3 der Durchsicht
+    vom 24.10.2026: bisher nannte das Buch nur den vereinbarten Tag). Ab ihm
+    ist der Rücklass fällig — für die offenen Posten der Kanzlei zählt er.
+    „Rücklass fällig am“ bleibt der vereinbarte Tag, wie auf der Rechnung:
+    eine Spalte, die je nach Garantie etwas anderes meint, liest niemand
+    richtig. Leer, solange nicht abgelöst; eine zurückgenommene Ablöse ist
+    wieder leer.
+  */
+  'Rücklass abgelöst am',
 ];
 
 export interface RechnungsExport {
@@ -240,6 +250,7 @@ export function buildInvoiceCsv(
           i.bestellnummer ?? '',
           '',
           '',
+          '',
         ]),
       );
       summeNetto -= i.totalNetto ?? 0;
@@ -275,6 +286,7 @@ export function buildInvoiceCsv(
         i.bestellnummer ?? '',
         i.ruecklassBetrag ? num(i.ruecklassBetrag) : '',
         i.ruecklassBis ? fmtDate(i.ruecklassBis) : '',
+        i.ruecklassGarantieAm ? fmtDate(i.ruecklassGarantieAm) : '',
       ]),
     );
     /**

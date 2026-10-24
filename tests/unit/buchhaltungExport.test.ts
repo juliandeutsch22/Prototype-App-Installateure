@@ -269,6 +269,8 @@ describe('Der Leistungszeitraum im Journal', () => {
       'Bestellnummer',
       'Rücklass (€)',
       'Rücklass fällig am',
+      // A3 (24.10.2026): der Tag der Ablöse durch Bankgarantie, wieder hinten an.
+      'Rücklass abgelöst am',
     ]);
     const felder = zeile.split(';');
     expect(felder[2]).toBe('03.12.2026');
@@ -291,8 +293,8 @@ describe('Der Leistungszeitraum im Journal', () => {
       [], '2026-01-01', '2026-12-31',
     );
     const [, erste, zweite] = r.csv.split('\n');
-    expect(erste.split(';').slice(-5)[0]).toBe('anzahlung');
-    expect(zweite.split(';').slice(-5)[0]).toBe('einzel');
+    expect(erste.split(';').slice(-6)[0]).toBe('anzahlung');
+    expect(zweite.split(';').slice(-6)[0]).toBe('einzel');
   });
 
   it('führt einen Skonto getrennt vom Geld, das gekommen ist (B7)', () => {
@@ -458,7 +460,7 @@ describe('Reverse Charge im Journal', () => {
 
 /* Runde 3, G24: Bestellnummer und Rücklass im Ausgangsbuch. */
 describe('Bestellnummer und Rücklass im Ausgangsbuch', () => {
-  it('stehen in den letzten drei Spalten', () => {
+  it('stehen in den drei Spalten vor der Ablöse', () => {
     const r = buildInvoiceCsv(
       [{
         companyId: 'perl', invoiceNumber: 'RE-2026-1507', projectNumber: 'PR-2026-0193', customerName: 'CT Bau',
@@ -469,7 +471,7 @@ describe('Bestellnummer und Rücklass im Ausgangsbuch', () => {
       [], '2026-10-01', '2026-10-31',
     );
     const zeile = r.csv.split('\n')[1].split(';');
-    expect(zeile.slice(-3)).toEqual(['BE-4711', '60,00', '06.10.2029']);
+    expect(zeile.slice(-4)).toEqual(['BE-4711', '60,00', '06.10.2029', '']);
   });
 
   it('Gegenprobe: ohne Bestellnummer und Rücklass bleiben sie leer', () => {
@@ -481,6 +483,47 @@ describe('Bestellnummer und Rücklass im Ausgangsbuch', () => {
       } as never],
       [], '2026-10-01', '2026-10-31',
     );
-    expect(r.csv.split('\n')[1].split(';').slice(-3)).toEqual(['', '', '']);
+    expect(r.csv.split('\n')[1].split(';').slice(-4)).toEqual(['', '', '', '']);
+  });
+
+  /*
+    A3 der Durchsicht vom 24.10.2026: der Tag der Ablöse durch Bankgarantie.
+    Ab ihm ist der Rücklass fällig; „Rücklass fällig am“ bleibt der
+    vereinbarte Tag wie auf der Rechnung.
+  */
+  it('nennt den Tag der Ablöse durch Bankgarantie in der letzten Spalte', () => {
+    const rechnung = {
+      companyId: 'perl', invoiceNumber: 'RE-2026-1509', projectNumber: 'PR-2026-0193', customerName: 'CT Bau',
+      invoiceDate: '2026-10-06', dueDate: '2026-10-20', totalNetto: 1000, totalVat: 200, totalBrutto: 1200,
+      vatRate: 0.2, paymentStatus: 'Offen',
+      ruecklassArt: 'haft', ruecklassProzent: 5, ruecklassBetrag: 60, ruecklassBis: '2029-10-06',
+      ruecklassGarantieAm: '2026-11-15', ruecklassGarantieBank: 'Raiffeisen', ruecklassGarantieNr: 'G-1',
+      ruecklassGarantieBis: '2029-10-06',
+    };
+    const r = buildInvoiceCsv([rechnung as never], [], '2026-10-01', '2026-10-31');
+    const [kopf, zeile] = r.csv.split('\n').map((z) => z.split(';'));
+    const feld = (name: string) => zeile[kopf.indexOf(name)];
+    expect(feld('Rücklass abgelöst am')).toBe('15.11.2026');
+    // Gleich bleibt: der vereinbarte Tag und der Betrag.
+    expect(feld('Rücklass fällig am')).toBe('06.10.2029');
+    expect(feld('Rücklass (€)')).toBe('60,00');
+  });
+
+  it('die Gegenbuchung eines Stornos lässt die Ablöse leer, wie den übrigen Rücklass', () => {
+    const r = buildInvoiceCsv(
+      [{
+        companyId: 'perl', invoiceNumber: 'RE-2026-1510', projectNumber: 'PR-2026-0193', customerName: 'CT Bau',
+        invoiceDate: '2026-10-06', dueDate: '2026-10-20', totalNetto: 1000, totalVat: 200, totalBrutto: 1200,
+        vatRate: 0.2, paymentStatus: 'Storniert', stornoAm: Date.parse('2026-10-20T10:00:00Z'),
+        ruecklassArt: 'haft', ruecklassProzent: 5, ruecklassBetrag: 60, ruecklassBis: '2029-10-06',
+        ruecklassGarantieAm: '2026-10-10',
+      } as never],
+      [], '2026-10-01', '2026-10-31',
+    );
+    const [kopf, rechnung, gegen] = r.csv.split('\n').map((z) => z.split(';'));
+    const spalte = kopf.indexOf('Rücklass abgelöst am');
+    expect(rechnung[spalte]).toBe('10.10.2026');
+    expect(gegen[kopf.indexOf('Storniert')]).toBe('Gegenbuchung');
+    expect(gegen[spalte]).toBe('');
   });
 });
