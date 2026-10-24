@@ -6,7 +6,7 @@ import { druckAngaben } from './nachdruck';
 import { mitAussteller, type AusstellerAngaben } from '@/lib/aussteller';
 import { stornoDateiname } from './stornoPdf';
 import { stornoBelegTag } from './stornoBelegTag';
-import { zipErstellen, type ZipDatei } from '@/lib/zip';
+import { ZipSchreiber } from '@/lib/zip';
 import { datumAT } from '@/lib/datum';
 import { todayStr } from '@/lib/time';
 
@@ -197,7 +197,12 @@ export async function belegArchiv(o: {
     return mitAussteller(company, angaben);
   };
 
-  const dateien: ZipDatei[] = [];
+  /*
+    JEDE DATEI GLEICH INS ARCHIV (A13, 24.10.2026), nicht erst gesammelt:
+    so liegt nie mehr als ein PDF im Speicher der Seite, auch über viele
+    Jahre und Tausende Scheine.
+  */
+  const zip = new ZipSchreiber();
   const hinweise: string[] = [];
   const gesamt = imZeitraum.length + storniert.length + versandt.length + (o.scheineVoll ? scheine.length : 0)
     + mahnungen.length;
@@ -213,10 +218,7 @@ export async function belegArchiv(o: {
   for (const inv of imZeitraum) {
     if (inv.positions?.length) {
       const doc = generateInvoicePdf(druckAngaben(firmaVon(inv.ausstellerStand), inv));
-      dateien.push({
-        name: `Rechnungen/${dateiname(inv.invoiceNumber)}.pdf`,
-        inhalt: new Uint8Array(doc.output('arraybuffer')),
-      });
+      zip.hinzufuegen(`Rechnungen/${dateiname(inv.invoiceNumber)}.pdf`, new Uint8Array(doc.output('arraybuffer')));
       rechnungen += 1;
     } else {
       hinweise.push(`${inv.invoiceNumber}: keine Positionen gespeichert, daher kein PDF. Die Zeile steht im Rechnungsausgangsbuch.`);
@@ -230,10 +232,7 @@ export async function belegArchiv(o: {
       const blob = await buildStornoPdf({
         company: firmaVon(inv.stornoAusstellerStand), invoice: inv, nummer: inv.stornoNummer,
       });
-      dateien.push({
-        name: `Stornorechnungen/${dateiname(stornoDateiname(inv.stornoNummer))}`,
-        inhalt: await bytes(blob),
-      });
+      zip.hinzufuegen(`Stornorechnungen/${dateiname(stornoDateiname(inv.stornoNummer))}`, await bytes(blob));
       stornos += 1;
     } else {
       hinweise.push(`${inv.invoiceNumber}: storniert, aber keine Stornorechnung ausgestellt. Der Storno steht im Rechnungsausgangsbuch.`);
@@ -247,10 +246,7 @@ export async function belegArchiv(o: {
     const doc = await buildAngebotPdf({
       company: firmaVon(q.ausstellerStand), quote: q, kunde: q.customerId ? kundeVon.get(q.customerId) ?? null : null,
     });
-    dateien.push({
-      name: `Angebote/${dateiname(angebotDateiname(q).replace(/\.pdf$/, ''))}.pdf`,
-      inhalt: new Uint8Array(doc.output('arraybuffer')),
-    });
+    zip.hinzufuegen(`Angebote/${dateiname(angebotDateiname(q).replace(/\.pdf$/, ''))}.pdf`, new Uint8Array(doc.output('arraybuffer')));
     angeboteZahl += 1;
     await weiter();
   }
@@ -277,10 +273,7 @@ export async function belegArchiv(o: {
           const blob = await buildWorkSheetPdf(w, {
             name: firma.name, addressLine: firma.addressLine, contactLine: firma.contactLine, logoUrl: firma.logoUrl,
           });
-          dateien.push({
-            name: `Handwerksscheine/${dateiname(`${w.projectNumber}_${w.datum}_${w.id.slice(0, 8)}`)}.pdf`,
-            inhalt: await bytes(blob),
-          });
+          zip.hinzufuegen(`Handwerksscheine/${dateiname(`${w.projectNumber}_${w.datum}_${w.id.slice(0, 8)}`)}.pdf`, await bytes(blob));
           scheineZahl += 1;
         }
         await weiter();
@@ -299,7 +292,7 @@ export async function belegArchiv(o: {
       const name = vergeben.has(grund) ? `${grund}_${m.id.slice(0, 8)}` : grund;
       vergeben.add(name);
       const blob = await mahnungPdfAusInhalt(firmaVon(m.ausstellerStand), m.inhalt);
-      dateien.push({ name: `Mahnungen/${name}.pdf`, inhalt: await bytes(blob) });
+      zip.hinzufuegen(`Mahnungen/${name}.pdf`, await bytes(blob));
       mahnungenZahl += 1;
     }
     await weiter();
@@ -309,7 +302,7 @@ export async function belegArchiv(o: {
     .filter((g) => (g.mahnstufe ?? 0) > 0 && g.gemahntAm && g.gemahntAm >= von && g.gemahntAm <= bis)
     .sort((a, b) => (a.gemahntAm ?? '').localeCompare(b.gemahntAm ?? '') || a.invoiceNumber.localeCompare(b.invoiceNumber, 'de'));
   if (gemahnt.length > 0) {
-    dateien.push({ name: MAHNUNGEN_CSV, inhalt: new TextEncoder().encode(`\uFEFF${mahnungenCsv(gemahnt)}`) });
+    zip.hinzufuegen(MAHNUNGEN_CSV, new TextEncoder().encode(`\uFEFF${mahnungenCsv(gemahnt)}`));
   }
   /*
     MAHNUNGEN VON VOR DEM 10.10.2026 haben kein gespeichertes Schreiben.
@@ -328,10 +321,7 @@ export async function belegArchiv(o: {
     hinweise.unshift(`Fehlende Nummern im Nummernkreis: ${journal.luecken.join(', ')}.`);
   }
   // Mit BOM wie beim Herunterladen im Bereich Rechnungen — sonst zeigt Excel Umlaute falsch.
-  dateien.push({
-    name: invoiceCsvFilename(von, bis),
-    inhalt: new TextEncoder().encode(`\uFEFF${journal.csv}`),
-  });
+  zip.hinzufuegen(invoiceCsvFilename(von, bis), new TextEncoder().encode(`\uFEFF${journal.csv}`));
 
   const text = [
     `Belegarchiv ${company.name}`,
@@ -357,10 +347,10 @@ export async function belegArchiv(o: {
     ...hinweise.map((h) => `- ${h}`),
     '',
   ].join('\r\n');
-  dateien.push({ name: 'Hinweise.txt', inhalt: new TextEncoder().encode(`\uFEFF${text}`) });
+  zip.hinzufuegen('Hinweise.txt', new TextEncoder().encode(`\uFEFF${text}`));
 
   return {
-    blob: zipErstellen(dateien), rechnungen, stornos,
+    blob: zip.fertig(), rechnungen, stornos,
     angebote: angeboteZahl, scheine: scheineZahl, mahnungen: mahnungenZahl, hinweise,
   };
 }
