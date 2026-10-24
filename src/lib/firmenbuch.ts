@@ -19,9 +19,21 @@ export function imFirmenbuch(name: string | null | undefined): boolean {
   return RECHTSFORM.test(name ?? '');
 }
 
+/**
+ * Steht der Betrieb im Firmenbuch? Die eigene Angabe der Firmendaten zählt
+ * (A12, 24.10.2026) — ein eingetragenes Einzelunternehmen muss „e.U.“ nicht
+ * im Namen tragen, wo die App es suchte. Ohne Angabe die Rechtsform im Namen.
+ */
+export function firmenbuchEingetragen(company: Pick<Company, 'name' | 'imFirmenbuch'> | null | undefined): boolean {
+  if (!company) return false;
+  return company.imFirmenbuch ?? imFirmenbuch(company.name);
+}
+
 /** Was für § 14 UGB fehlt — leer, wenn alles da ist oder der Betrieb nicht im Firmenbuch steht. */
-export function firmenbuchFehlt(company: Pick<Company, 'name' | 'companyRegister' | 'firmenbuchgericht'> | null | undefined): string[] {
-  if (!company || !imFirmenbuch(company.name)) return [];
+export function firmenbuchFehlt(
+  company: Pick<Company, 'name' | 'companyRegister' | 'firmenbuchgericht' | 'imFirmenbuch'> | null | undefined,
+): string[] {
+  if (!company || !firmenbuchEingetragen(company)) return [];
   const fehlt: string[] = [];
   if (!company.companyRegister?.trim()) fehlt.push('Firmenbuchnummer');
   if (!company.firmenbuchgericht?.trim()) fehlt.push('Firmenbuchgericht');
