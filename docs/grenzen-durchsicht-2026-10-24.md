@@ -23,7 +23,6 @@ Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 
 | # | Grenze (Fundstelle) | Was fehlt | Vorschlag |
 |---|---|---|---|
-| A8 | Jugendschutz: der Hinweis auf der Startseite steht nur bei der Rolle Mitarbeiter, Bürolehrlinge sehen ihn nicht (Stand 12.3) | Ein jugendlicher Lehrling im Büro | Nach Alter statt nach Rolle zeigen |
 | A9 | Jugendschutz: ob kürzere Tage an der Wochenfreizeit liegen (§ 11 Abs 2 KJBG), prüft die App nicht; die Wegzeit Schule–Betrieb (§ 11 Abs 7) kennt sie nicht (Stand 12.3, `arbeitszeitGrenzen.ts`) | Zwei gesetzliche Prüfungen | Lage der kürzeren Tage prüfen; Wegzeit beim Berufsschultag eintragbar machen |
 | A10 | Zeit teilen: über Mitternacht nicht möglich (Stand 15.6) | Nachtdienst lässt sich nicht aufteilen | Teilen über Mitternacht zulassen |
 | A11 | Zeit einfügen: nur beim Anlegen, nicht beim Bearbeiten einer Buchung (Stand 15.10) | Eine Korrektur geht nur über Löschen und neu Anlegen | Auch beim Bearbeiten anbieten |
@@ -105,6 +104,7 @@ Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
 | A5 Stichtag: Schein als Ganzes nach seinem Datum statt je Zeitzeile (T-17) | T-32 |
 | A6 Teilzeit-Mehrarbeit: Vollzeit eines Tages immer ein Fünftel der Woche (T-1) | T-33 |
 | A7 Jugendschutz: Geburtsdatum erst in der Akte, nicht bei der Anlage (Stand 12.3) | T-35 |
+| A8 Jugendschutz-Hinweis auf der Startseite nur bei der Rolle Mitarbeiter (Stand 12.3) | T-36 |
 
 ## Wie es weitergeht
 
