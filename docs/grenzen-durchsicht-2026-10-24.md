@@ -1,0 +1,113 @@
+# Durchsicht der benannten Grenzen (24.10.2026)
+
+Auftrag vom 24.10.2026: Eine einfache erste Fassung soll es in der fertigen
+Software nicht geben. Jede Funktion wird vollständig, nachhaltig und
+skalierbar gebaut. Eine Grenze bleibt nur stehen, wenn sie einen Grund hat,
+der außerhalb der Bequemlichkeit liegt (Regel in `CLAUDE.md`, Grundsatz 6).
+
+Durchgesehen wurden alle benannten Grenzen in `docs/stand-2026-10-03.md`,
+`docs/offene-punkte.md` und `docs/pruefung-2026-10-13-behebungen.md`, jeweils
+gegen den Code vom 24.10.2026. Jede Grenze fällt in eine von fünf Gruppen:
+
+- **A – Abkürzung.** Machbar, aber weggelassen. Wird gebaut.
+- **N – Nachweis fehlt.** Die Funktion ist gebaut, aber ein Teil ist nicht
+  dauerhaft geprüft. Die Prüfung wird nachgezogen.
+- **B – Begründete Grenze.** Sie bleibt; der Grund steht dabei.
+- **X – Liegt bei jemand anderem.** Betrieb, Kanzlei, Steuerberatung, Anwalt,
+  WKO, Gerät oder Zugang zum gehosteten Projekt.
+- **E – Inzwischen erledigt.** Die Doku nennt sie noch; der Code nicht mehr.
+
+## A – Abkürzungen (werden gebaut)
+
+Reihenfolge nach Gewicht: zuerst, was Belege, Geld und Recht berührt.
+
+| # | Grenze (Fundstelle) | Was fehlt | Vorschlag |
+|---|---|---|---|
+| A1 | Mahnung und Rechnung: Briefkopf und Bankverbindung kommen beim erneuten Laden aus den heutigen Firmendaten (Stand 15.9) | Ein Beleg muss so wieder erzeugt werden können, wie er ausgestellt wurde (§ 132 BAO). Ändern sich Sitz, Bank oder UID, sieht der Nachdruck eines alten Belegs anders aus als das Original | Die Firmendaten beim Ausstellen am Beleg festhalten, wie Positionen und Skonto. Vorher prüfen, ob das ausgestellte PDF schon abgelegt wird |
+| A2 | Mahnung: wer gemahnt hat, hält die Mahnung nicht fest (Stand 15.9) | Ein Verlauf ohne Person | Name und Kennung beim Festhalten mitschreiben |
+| A3 | Rechnungsausgangsbuch (CSV) nennt das vereinbarte Rücklassende, nicht den Tag der Ablöse (Stand 15.4) | Der Grund war die Prüfsumme der Exportspalten – das ist eine Prüfung, kein Grund | Spalte „Rücklass abgelöst am“ anfügen, die Prüfsumme bewusst nachziehen |
+| A4 | Retoure: erfasst das Lager, steht sie auf dem Namen dessen, der erfasst, nicht des Monteurs (T-16) | Wer das Material zurückgebracht hat | Feld „zurückgebracht von“ (Belegschaft) beim Erfassen durch das Lager |
+| A5 | Stichtag „Leistung bis“: ein Schein zählt als Ganzes nach seinem Leistungsdatum, Zeiten auf ihm an anderen Tagen werden nicht einzeln abgegrenzt (T-17) | Bei mehrtägigen Scheinen wird um einzelne Tage falsch abgegrenzt | Je Zeitzeile nach ihrem Tag abgrenzen; Material bleibt am Schein |
+| A6 | Teilzeit-Mehrarbeit: die Vollzeit eines Tages ist ein Fünftel der Woche (T-1) | Bei ungleich verteilter Woche (vier lange Tage) entsteht zu früh eine Überstunde | Vollzeit je Tag aus der vereinbarten Verteilung (Tagessoll je Wochentag) |
+| A7 | Jugendschutz: bei der Anlage eines Benutzers keine Rückfrage, das Geburtsdatum kommt erst in der Akte (Stand 12.3) | Ein Lehrling ist bis zur Nachtragung nicht geschützt | Geburtsdatum bei der Anlage abfragen (Pflicht bei Rolle Lehrling/Einstufung Lehrling) |
+| A8 | Jugendschutz: der Hinweis auf der Startseite steht nur bei der Rolle Mitarbeiter, Bürolehrlinge sehen ihn nicht (Stand 12.3) | Ein jugendlicher Lehrling im Büro | Nach Alter statt nach Rolle zeigen |
+| A9 | Jugendschutz: ob kürzere Tage an der Wochenfreizeit liegen (§ 11 Abs 2 KJBG), prüft die App nicht; die Wegzeit Schule–Betrieb (§ 11 Abs 7) kennt sie nicht (Stand 12.3, `arbeitszeitGrenzen.ts`) | Zwei gesetzliche Prüfungen | Lage der kürzeren Tage prüfen; Wegzeit beim Berufsschultag eintragbar machen |
+| A10 | Zeit teilen: über Mitternacht nicht möglich (Stand 15.6) | Nachtdienst lässt sich nicht aufteilen | Teilen über Mitternacht zulassen |
+| A11 | Zeit einfügen: nur beim Anlegen, nicht beim Bearbeiten einer Buchung (Stand 15.10) | Eine Korrektur geht nur über Löschen und neu Anlegen | Auch beim Bearbeiten anbieten |
+| A12 | Firmenbuch: ob ein Betrieb eingetragen ist, erkennt die App nur an der Rechtsform im Firmennamen (Stand 12.2) | Ein eingetragenes Einzelunternehmen ohne Zusatz bekommt keine Warnung zu FN und Gericht | Eigene Angabe „im Firmenbuch eingetragen“ in den Firmendaten |
+| A13 | Belegarchiv (ZIP): bei vielen Jahren groß im Speicher des Browsers, „dann ein einzelnes Jahr wählen“ (Stand 15.5) | Skaliert nicht mit dem Bestand | Gestreamt in Teilen erzeugen oder serverseitig bauen |
+| A14 | Signierte Dokumentlinks: ein ausgegebener Link bleibt bis zum Ablauf seiner Stunde nutzbar, auch nach „nur Büro“ (Prüfbericht 13.10, Punkt 7) | Sofortiger Widerruf | Kurze Gültigkeit beim Öffnen oder Abruf über eine Funktion, die die Freigabe jedes Mal prüft |
+| A15 | Sonderurlaub nur mit eingeschaltetem Modul Urlaub (Stand 10.3) | Pflegefreistellung ist ein gesetzlicher Anspruch, unabhängig davon, ob ein Betrieb Urlaub in Senklot führt | Sonderurlaub auch ohne Modul Urlaub erreichbar machen (zu prüfen: wo er dann steht) |
+| A16 | Lange Namen brechen am Tablet mitten im Wort, „bräuchte eine Trennbibliothek; bewusst nicht“ (Stand 13 G4, 15.2) | Die Browser trennen Deutsch selbst (`hyphens: auto` mit `lang="de"`), an zwei Stellen schon im Einsatz | Für die Tagesspalten übernehmen und am Tablet nachsehen |
+
+## N – Nachweise, die fehlen
+
+| # | Grenze (Fundstelle) | Vorschlag |
+|---|---|---|
+| N1 | Sicherung: der Rücklauf ist bei 36 MB geprüft, darüber nicht (Stand 14.6) | Prüfung mit einem Bestand über 256 MB im lokalen Stapel |
+| N2 | Absturz: ein erzwungener Absturz mit voller Wiederherstellung wurde nicht durchgespielt (Prüfbericht 13.10, Punkt 5) | Einmal im lokalen Stapel durchspielen und festhalten |
+| N3 | Tablet quer dauerhaft nur an einer Karte geprüft (Stand 18, K3) | Die Browserwege zusätzlich in 1194 × 834 laufen lassen |
+
+## B – Begründete Grenzen (bleiben)
+
+| Grenze (Fundstelle) | Grund |
+|---|---|
+| Altbestand: Scheinzeilen vor dem 24.10. ohne Katalogkennung, Anforderungen ohne Erledigt-Zeitpunkt, Mahnungen vor dem 10.10. ohne Schreiben, ältere Verlaufseinträge ohne Tage, Buchungen vor dem Jugendschutz ohne Anleger, profillose Konten ohne Herkunftsnachweis, doppelte Baustellen aus der Zeit davor (T-19/T-22, 15.9, 18, 12.3, Prüfbericht 2) | Altdaten: nachtragen hieße, Produktionsdaten umzuschreiben, und das geschieht nicht. Die App erfindet keine Werte |
+| Abgleich Schein ↔ Ausgabe und Preis über den Namen bei freien Zeilen (T-22, T-26) | Eine freie Zeile hat keinen Katalogartikel |
+| Hinweise statt automatischem Abzug in der Rechnungsvorschau (T-21) | Fachlich: ob Material ein zweites Mal hingehört, weiß nur das Büro |
+| Unverrechnete Stunden mit den Sätzen des Betriebs, nicht mit einem nur für eine Rechnung geänderten Satz (T-20) | Fachlich: dieser Satz entsteht erst beim Schreiben der Rechnung |
+| Arbeitszeitgrenzen: eine Lücke gilt als Pause; ein Tag ohne Uhrzeit wird auf die Pause nicht geprüft; vor dem ersten Buchungstag zählt die Woche mit null (Stand 15.3) | Die Angabe fehlt in den Daten; geschätzt wird nichts |
+| Jugendschutz: die Datenbank sperrt nur über 8 Std. und in der Nachtruhe, der Rest ist Rückfrage und Fall (Stand 12.3) | Fachlich: Ausnahmen sind zulässig, aber begründet – sperren hieße, sie zu verhindern |
+| Jugendschutz: ohne Geburtsdatum ist niemand jugendlich (Stand 12.3) | Ohne die Angabe lässt sich nichts prüfen; A7 sorgt dafür, dass sie da ist |
+| Teilzeit: ob Mehrarbeit im Quartal ausgeglichen wird, entscheidet die Lohnverrechnung; abweichende Regeln anderer Kollektivverträge kennt Senklot nicht (T-1) | Fachlich bzw. Umfang: Senklot rechnet nach KV Metallgewerbe; ein anderer KV ist ein eigener Auftrag |
+| Sonderurlaub: Pflegestunden über dem Kontingent warnen statt zu sperren; stundenweise nur bei Vorladung, Musterung und Pflege (Stand 10.3) | Rechtlich bzw. fachlich |
+| Zeit teilen: verrechnete Buchungen nicht teilbar; Pause bleibt als Zahl am längeren Teil (Stand 15.6, 15.10) | Verrechnet ist ein Beleg; die Pause hat keine Uhrzeit in den Daten |
+| Teilen und Einfügen nur mit Verbindung (Stand 15.6, 15.10) | Beide ändern mehrere Buchungen in einem Zug; offline könnte ein zweites Gerät dazwischen schreiben |
+| Mahnung: zwischen Nachsehen und Festhalten eingehende Zahlung (Stand 16.3) | Die Datenbank weist das Festhalten ab und die Meldung sagt es |
+| Der Support sieht keinen Budgetstand und keine Buchungen (Stand 14.1) | Datenschutz und Rechte: Zeitbuchungen gehören nicht zum Support |
+| Krankenstände und Sonderurlaub stehen nicht im Urlaubsverlauf (Stand 17) | Datenschutz: Gesundheits- und Familiendaten |
+| Plattformkonto: Wiederherstellung bei Verlust von Telefon und Codes nur durch den Betreiber (Stand 12.1) | Sicherheit |
+| Zweiter Faktor: Pflicht erst, wenn der Betrieb sie einschaltet (Stand 12.1) | Einstellung je Betrieb |
+| DATANORM: „alles oder nichts“ je Block; 50.000 Zeilen dauern rund 17 Minuten (Stand 14.5) | Sicherheit: schneller ginge es nur ohne die Prüfung je Anweisung |
+| Scheinlisten: Spalten ausgeschrieben, `scheinListen.test.ts` hält sie gegen die Tabelle (Stand 14.3) | Technisch: PostgREST kann keine Spalte ausnehmen; abgesichert durch die Prüfung |
+| Zeilenschutz: fünf Prüfungen bleiben je Zeile (Stand 14) | Fachlich an der Zeile; kleine Tabellen |
+| Laden und Zwischenspeicher: Stand bis zehn Minuten alt, Speicher je Tab, Startseite wartet auf ihren langsamsten Block (Stand 16) | Technisch, mit Messung belegt |
+| Pauschale mit anderer Einheit gilt als Ware; Material aus dem Angebot nur ohne unterschriebenen Schein (Stand 12.2, 13) | Fachlich |
+| Kundenart, PLZ-Erkennung ohne Kunden im Stamm (Stand 12.2) | Fachlich: ohne Stammdaten nur die Anschrift |
+| Prüfwerkzeuge: axe misst Kontrast, Namen und Rollen, nicht Verständlichkeit; Messungen im gedrosselten Browser (Stand 18) | Grenze des Werkzeugs |
+| Wisch-Schutz am iPhone: iOS verschiebt die Ansicht beim Öffnen der Tastatur (Stand 13) | Plattform |
+| App-Zeichen bei 16 px (Stand 18) | Gestaltung, abgewogen |
+| `npm test` ohne Datenbanktests (offene Punkte C12) | Der Stapel läuft in der CI; im Handbuch benannt |
+| Tailwind statt einer Klasse je Element (offene Punkte B10) | Ansicht für Ansicht, wenn sie ohnehin angefasst wird |
+
+## X – Liegt bei jemand anderem
+
+| Punkt | Bei wem |
+|---|---|
+| Datum der Stornobuchung, Kontenrahmen, Lücke im Rechnungskreis vor 25.09., VIES als Nachweis, Löschen nach sieben Jahren (offene Punkte A9, D4–D6, D9) | Steuerberatung |
+| BMD-Stapel vorgebaut bis zum Importtest (offene Punkte C4, D7) | Kanzlei |
+| Datenschutzerklärung, Impressum, Kalender-Abo (offene Punkte D8, D10) | Anwalt |
+| Aliquoter Urlaub, Mahnspesen an Private (offene Punkte D1, D2) | WKO |
+| Safari/iPhone, Kamera, Push, Installation, volle CSP nach Gerätetest (offene Punkte C15, Prüfbericht 4 und 6) | Gerätedurchgang |
+| SMTP, Domain, externer Sicherungsort, Wiederherstellung im Zielsystem, Einstellungen des gehosteten Projekts (Prüfbericht 4, Stand 14.7 Punkt 14) | Betrieb bzw. Zugang zum gehosteten Projekt |
+| Angebotsliste unter Windows bei 1.570 × 700 px (offene Punkte C14) | Wieder aufnehmen mit Bildschirmfoto |
+
+## E – Inzwischen erledigt (Doku nennt sie noch)
+
+| Grenze (Fundstelle) | Erledigt durch |
+|---|---|
+| Kataloge laden höchstens 1.000 Artikel (Stand 14.1) | T-3, Abschnitt 23 |
+| Durchrechnungszeitraum nicht einstellbar (Stand 15.3) | Einstellung „Durchrechnungszeitraum“ (17–52 Wochen) in den Lohnregeln |
+| Gesamtsaldo erst beim Öffnen einer Person (Stand 21) | T-2 |
+| Buchhaltung sieht die Rechnungssperre nicht auf ihrer Startseite (Stand 13) | Stand 17, Punkt E |
+| Baustelle mit nur Lehrlingsstunden zum Satz 0 bleibt gelistet (T-18) | T-20 |
+| Anforderungen ohne Abholdatum (T-19) | T-20 |
+| Abgleich Schein ↔ Ausgabe am Artikelnamen (T-19, T-21) | T-22 |
+| Preis auf der Rechnung über den Namen (T-22) | T-26 |
+| Prüfungen, die an bestimmten Tagen rot würden (T-23) | T-25 |
+
+## Wie es weitergeht
+
+Die Abkürzungen A1–A16 und die Nachweise N1–N3 werden je Thema in einem
+eigenen PR gebaut, in der Reihenfolge der Tabelle. Jeder PR hat Prüfungen
+mit Gegenprobe, Handbuch und Stand. Erledigtes wandert hier heraus.

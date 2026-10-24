@@ -7,6 +7,10 @@ Lücken, die die Prüfer neben den Fehlern gemeldet haben, und aus dem
 Testbericht vom 30.09. samt Nachtest vom 01.10.2026
 (`docs/PLAN-TESTBERICHT-2026-09-30.md`; alle Pakete bis PR #215 gemergt).
 
+Seit 24.10.2026 gilt Grundsatz 6 (`CLAUDE.md`): offen bleibt nur, was einen
+Grund hat. Die Durchsicht aller benannten Grenzen steht in
+`grenzen-durchsicht-2026-10-24.md`.
+
 Jeder Punkt hat einen Grund, warum er offen ist, und einen Vorschlag. Was
 eine Entscheidung braucht, ist als solche markiert. Wird ein Punkt erledigt,
 wandert er hier heraus und in die jeweilige Doku.
