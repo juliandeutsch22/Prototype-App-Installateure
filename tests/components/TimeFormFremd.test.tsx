@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, TimeEntry } from '@/types';
+import { todayStr } from '@/lib/time';
 
 /**
  * Die Doppelbuchungs-Warnung, wenn die Buchhaltung FÜR jemanden erfasst.
@@ -88,7 +89,12 @@ beforeEach(() => {
     {
       id: 'eigen',
       companyId: 'perl',
-      date: new Date().toISOString().slice(0, 10),
+      /*
+        Derselbe Tag wie die Vorbelegung der Maske: Wiener Zeit, nicht UTC.
+        Mit `toISOString()` lag der Eintrag zwischen Mitternacht in Wien und
+        Mitternacht UTC auf dem Vortag — und der Test fiel jede Nacht um.
+      */
+      date: todayStr(),
       status: 'Anwesend',
       userId: CHEFIN,
       userName: 'Petra Perl',
@@ -116,7 +122,7 @@ describe('Zeit für einen Mitarbeiter erfassen', () => {
 
   it('prüft den GEWÄHLTEN Mitarbeiter, sobald einer feststeht', async () => {
     // Der eigentliche Zweck der Warnung bleibt erhalten.
-    const heute = new Date().toISOString().slice(0, 10);
+    const heute = todayStr();
     amTag['u1'] = [
       {
         id: 'fremd',

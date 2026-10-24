@@ -47,7 +47,8 @@ test('Die Seiten des Monteurs laden ohne Fehler und ohne seitliches Überlaufen'
   auch als aktiver (fetter) Punkt.
 */
 test('Am Tablet steht „Einstellungen“ in der Seitenleiste in einer Zeile', async ({ page }, info) => {
-  test.skip(info.project.name !== 'tablet-834', 'nur die schmale Leiste am Tablet');
+  // Hochkant und quer (N3): beide Breiten liegen im Tabletbereich mit der schmalen Leiste.
+  test.skip(!info.project.name.startsWith('tablet-'), 'nur die schmale Leiste am Tablet');
   await anmelden(page, MONTEUR.email);
   const kurz = page.locator('.navi .navi-text-kurz', { hasText: 'Einstellungen' });
   const zeilen = () =>
