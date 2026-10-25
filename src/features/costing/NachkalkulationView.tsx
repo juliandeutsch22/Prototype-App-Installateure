@@ -234,6 +234,34 @@ export default function NachkalkulationView() {
         ort="Geld"
         title="Nachkalkulation"
         subtitle="Erlös gegen Personal- und Materialkosten — je Baustelle"
+        hilfe={
+          <>
+            „Mit Verlust“ heißt: der Deckungsbeitrag liegt unter null. „Zu prüfen“: unter 20 %
+            Marge oder Material ohne Einkaufspreis. „Ohne Erlös“: weder Rechnung noch Angebot.
+          </>
+        }
+        /*
+          Höchstens vier Zahlen im Seitenkopf (E24): wie viele, und wie viele davon
+          Aufmerksamkeit brauchen — für die Auswahl darunter, deshalb nennt der
+          Zusatz bei „Baustellen“, welche es sind. Was die anderen drei meinen,
+          steht in der Hilfe.
+        */
+        stand={kosten && !loading && ergebnisse && ergebnisse.length > 0 ? (
+          <MetricRow>
+            <Metric
+              label="Baustellen"
+              value={ergebnisse.length}
+              hint={inAuswahl > ergebnisse.length ? `die ${ergebnisse.length} jüngsten von ${inAuswahl}` : status === 'Aktiv' ? 'laufend' : 'abgeschlossen'}
+            />
+            <Metric
+              label="Mit Verlust"
+              value={zaehlung.schlecht}
+              tone={zaehlung.schlecht > 0 ? 'danger' : 'default'}
+            />
+            <Metric label="Zu prüfen" value={zaehlung.achtung} />
+            <Metric label="Ohne Erlös" value={zaehlung.ruht} />
+          </MetricRow>
+        ) : undefined}
       />
 
 
@@ -291,25 +319,6 @@ export default function NachkalkulationView() {
               <p className="text-sm text-warning">Zwischenstand — es kommen noch Stunden dazu.</p>
             )}
           </div>
-
-          {/* Höchstens vier Zahlen über der Liste: wie viele, und wie viele davon Aufmerksamkeit brauchen. */}
-          {!loading && ergebnisse && ergebnisse.length > 0 && (
-            <MetricRow>
-              <Metric
-                label="Baustellen"
-                value={ergebnisse.length}
-                hint={inAuswahl > ergebnisse.length ? `die ${ergebnisse.length} jüngsten von ${inAuswahl}` : status === 'Aktiv' ? 'laufend' : 'abgeschlossen'}
-              />
-              <Metric
-                label="Mit Verlust"
-                value={zaehlung.schlecht}
-                tone={zaehlung.schlecht > 0 ? 'danger' : 'default'}
-                hint="Deckungsbeitrag unter null"
-              />
-              <Metric label="Zu prüfen" value={zaehlung.achtung} hint="unter 20 % oder Material ohne Preis" />
-              <Metric label="Ohne Erlös" value={zaehlung.ruht} hint="keine Rechnung, kein Angebot" />
-            </MetricRow>
-          )}
 
           {error && <ErrorState message={error} />}
 

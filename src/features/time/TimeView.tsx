@@ -677,6 +677,95 @@ export default function TimeView() {
       <PageHeader
         title="Zeiterfassung"
         subtitle={fuehrtZeitkonto(profile ?? user) ? 'Deine gebuchten Zeiten und dein Saldo' : 'Deine gebuchten Zeiten'}
+        hilfe="Der Saldo zählt Über- und Unterstunden seit deinem Eintritt; „Diese Woche“ die gebuchte Arbeitszeit ab Montag."
+        /*
+          KEINE KACHEL „EINTRÄGE“ MEHR (Analyse 03.10.2026, Paket 1). Die Zahl
+          der Buchungen der letzten Monate sagte nichts und schob das Formular
+          am Telefon nach unten.
+        */
+        stand={
+          <MetricRow>
+            {/* Dieselbe Zahl wie auf dem Dashboard — und deshalb auch mit
+                demselben Vorbehalt. Ein Saldo aus Tagen, an denen gar nichts
+                gebucht wurde, ist kein Befund über den Mitarbeiter, sondern eine
+                Datenlücke; rot dargestellt behauptete er das Gegenteil. */}
+            {/*
+              Die Saldo-Kachel nur fuer alle, die ein Zeitkonto FUEHREN (siehe
+              `fuehrtZeitkonto`). Wer keines hat — die Administration, eine
+              Geschaeftsfuehrung ohne Zeitkonto —, sah dort dauerhaft „— Kein
+              Startdatum konfiguriert", was wie ein Einrichtungsfehler aussieht,
+              den niemand beheben kann. Buchen koennen sie trotzdem.
+            */}
+            {/* Die frische Zeile vor dem gemerkten Profil: schaltet die
+                Geschäftsführung ihr Zeitkonto um, soll es ohne Neuanmeldung gelten. */}
+            {fuehrtZeitkonto(profile ?? user) && (
+            <Metric
+              label="Saldo"
+              bereit={saldoBereit}
+              // Der längste Zusatz unten: am Telefon bricht er um, der Platzhalter mit ihm.
+              zusatzMuster="000 Tage ohne Buchung — unvollständig"
+              tone={
+                !saldo?.hasConfig
+                  ? 'default'
+                  : saldo.daysWithoutEntry > 0
+                    ? 'warning'
+                    : saldo.saldoH >= 0
+                      ? 'success'
+                      : 'danger'
+              }
+              /*
+                ZAHLEN IN DIESER APP SCHREIBEN SICH OESTERREICHISCH. Hier stand
+                `${saldo.saldoH} h` — die rohe JS-Zahl, also „-1366.75 h" mit
+                PUNKT, waehrend zwei Zeilen weiter „8,00 h" und in den Rechnungen
+                „€ 22 104,60" steht. Ein Punkt als Dezimaltrennzeichen liest sich
+                im Deutschen als Tausenderpunkt und damit als ganz andere Zahl.
+              */
+              /*
+                UND IN STUNDEN:MINUTEN, wie in der Mitarbeiterübersicht
+                (Launch-Check 25.09.2026, R3): dort stand „+01:00", hier „+9,00 h"
+                — zwei Formate für zwei verschiedene Zeiträume, und keiner war
+                genannt. Hier gilt „seit Eintritt", dort der gewählte Monat.
+              */
+              value={
+                saldo?.hasConfig
+                  ? `${saldo.saldoH > 0 ? '+' : ''}${fmtMin(Math.round(saldo.saldoH * 60))}`
+                  : '—'
+              }
+              hint={
+                !saldo?.hasConfig
+                  ? 'Kein Startdatum konfiguriert'
+                  : saldo.daysWithoutEntry > 0
+                    ? `${tageWort(saldo.daysWithoutEntry)} ohne Buchung — unvollständig`
+                    : 'seit Eintritt'
+              }
+            />
+            )}
+            <Metric label="Diese Woche" value={fmtMin(thisWeekMin)} bereit={!loading} />
+            {/*
+              NUR WENN ES WELCHE GIBT. Eine Kachel, die bei den allermeisten
+              dauerhaft „0:00" zeigt, nimmt auf dem Telefon die Breite weg, die
+              Saldo und Wochensumme brauchen — und sagt nichts.
+
+              Der Wert ist die VEREINIGUNG, nicht die Summe: Nacht und Notdienst
+              schliessen einander nicht aus, der Rohrbruch um zwei Uhr früh ist
+              beides. Addiert stünde er doppelt da. Dasselbe gilt für den
+              Nachmittag des 24. und 31. Dezember (`gesamtMin`). Die
+              Aufschlüsselung steht im Beipacktext, dort auch die Überschneidung.
+            */}
+            {hatZuschlaege(zuschlag) && (
+              <Metric
+                label="Zuschlag"
+                value={fmtMin(zuschlag.gesamtMin)}
+                hint={
+                  `Nacht ${fmtMin(zuschlag.nachtMin)} · Notdienst ${fmtMin(zuschlag.notdienstMin)}` +
+                  (zuschlag.beidesMin > 0 ? ` · ${fmtMin(zuschlag.beidesMin)} beides` : '') +
+                  (zuschlag.dezemberMin > 0 ? ` · 24./31.12. ab 12 Uhr ${fmtMin(zuschlag.dezemberMin)}` : '') +
+                  ` · letzte ${monate} Monate`
+                }
+              />
+            )}
+          </MetricRow>
+        }
       />
 
       {/*
@@ -853,92 +942,6 @@ export default function TimeView() {
         </Hinweiszeile>
       )}
 
-      {/*
-        KEINE KACHEL „EINTRÄGE“ MEHR (Analyse 03.10.2026, Paket 1). Die Zahl
-        der Buchungen der letzten Monate sagte nichts und schob das Formular
-        am Telefon nach unten.
-      */}
-      <MetricRow>
-        {/* Dieselbe Zahl wie auf dem Dashboard — und deshalb auch mit
-            demselben Vorbehalt. Ein Saldo aus Tagen, an denen gar nichts
-            gebucht wurde, ist kein Befund über den Mitarbeiter, sondern eine
-            Datenlücke; rot dargestellt behauptete er das Gegenteil. */}
-        {/*
-          Die Saldo-Kachel nur fuer alle, die ein Zeitkonto FUEHREN (siehe
-          `fuehrtZeitkonto`). Wer keines hat — die Administration, eine
-          Geschaeftsfuehrung ohne Zeitkonto —, sah dort dauerhaft „— Kein
-          Startdatum konfiguriert", was wie ein Einrichtungsfehler aussieht,
-          den niemand beheben kann. Buchen koennen sie trotzdem.
-        */}
-        {/* Die frische Zeile vor dem gemerkten Profil: schaltet die
-            Geschäftsführung ihr Zeitkonto um, soll es ohne Neuanmeldung gelten. */}
-        {fuehrtZeitkonto(profile ?? user) && (
-        <Metric
-          label="Saldo"
-          bereit={saldoBereit}
-          // Der längste Zusatz unten: am Telefon bricht er um, der Platzhalter mit ihm.
-          zusatzMuster="000 Tage ohne Buchung — unvollständig"
-          tone={
-            !saldo?.hasConfig
-              ? 'default'
-              : saldo.daysWithoutEntry > 0
-                ? 'warning'
-                : saldo.saldoH >= 0
-                  ? 'success'
-                  : 'danger'
-          }
-          /*
-            ZAHLEN IN DIESER APP SCHREIBEN SICH OESTERREICHISCH. Hier stand
-            `${saldo.saldoH} h` — die rohe JS-Zahl, also „-1366.75 h" mit
-            PUNKT, waehrend zwei Zeilen weiter „8,00 h" und in den Rechnungen
-            „€ 22 104,60" steht. Ein Punkt als Dezimaltrennzeichen liest sich
-            im Deutschen als Tausenderpunkt und damit als ganz andere Zahl.
-          */
-          /*
-            UND IN STUNDEN:MINUTEN, wie in der Mitarbeiterübersicht
-            (Launch-Check 25.09.2026, R3): dort stand „+01:00", hier „+9,00 h"
-            — zwei Formate für zwei verschiedene Zeiträume, und keiner war
-            genannt. Hier gilt „seit Eintritt", dort der gewählte Monat.
-          */
-          value={
-            saldo?.hasConfig
-              ? `${saldo.saldoH > 0 ? '+' : ''}${fmtMin(Math.round(saldo.saldoH * 60))}`
-              : '—'
-          }
-          hint={
-            !saldo?.hasConfig
-              ? 'Kein Startdatum konfiguriert'
-              : saldo.daysWithoutEntry > 0
-                ? `${tageWort(saldo.daysWithoutEntry)} ohne Buchung — unvollständig`
-                : 'Über-/Unterstunden seit Eintritt'
-          }
-        />
-        )}
-        <Metric label="Diese Woche" value={fmtMin(thisWeekMin)} bereit={!loading} />
-        {/*
-          NUR WENN ES WELCHE GIBT. Eine Kachel, die bei den allermeisten
-          dauerhaft „0:00" zeigt, nimmt auf dem Telefon die Breite weg, die
-          Saldo und Wochensumme brauchen — und sagt nichts.
-
-          Der Wert ist die VEREINIGUNG, nicht die Summe: Nacht und Notdienst
-          schliessen einander nicht aus, der Rohrbruch um zwei Uhr früh ist
-          beides. Addiert stünde er doppelt da. Dasselbe gilt für den
-          Nachmittag des 24. und 31. Dezember (`gesamtMin`). Die
-          Aufschlüsselung steht im Beipacktext, dort auch die Überschneidung.
-        */}
-        {hatZuschlaege(zuschlag) && (
-          <Metric
-            label="Zuschlag"
-            value={fmtMin(zuschlag.gesamtMin)}
-            hint={
-              `Nacht ${fmtMin(zuschlag.nachtMin)} · Notdienst ${fmtMin(zuschlag.notdienstMin)}` +
-              (zuschlag.beidesMin > 0 ? ` · ${fmtMin(zuschlag.beidesMin)} beides` : '') +
-              (zuschlag.dezemberMin > 0 ? ` · 24./31.12. ab 12 Uhr ${fmtMin(zuschlag.dezemberMin)}` : '') +
-              ` · letzte ${monate} Monate`
-            }
-          />
-        )}
-      </MetricRow>
 
       {/* Formular und eigene Einträge nebeneinander, wo beide Platz haben (lot-zeit.css). */}
       <div className="zeit-raster">

@@ -241,7 +241,8 @@ export default function AngebotView() {
 
   /*
     DIE ZUSAMMENFASSUNG ZUERST (Linie „Lot“, Regel 6): was das Angebot wert
-    ist, wie viel Arbeit darin steckt und bis wann es gilt. Die kalkulierte
+    ist, wie viel Arbeit darin steckt und bis wann es gilt — im Seitenkopf
+    (E24), unter Kunde und Stand des Angebots. Die kalkulierte
     Arbeitszeit ist intern — sie steht nicht auf dem PDF, sie wird beim
     Annehmen zum Budget der Baustelle.
   */
@@ -473,6 +474,7 @@ export default function AngebotView() {
           </span>
         }
         mehr={mehr}
+        stand={kennzahlen}
         action={
           <Button
             onClick={() => void pdf(q)}
@@ -491,8 +493,6 @@ export default function AngebotView() {
         />
       )}
       {fehler && <ErrorState message={fehler} />}
-
-      {kennzahlen}
 
       {/*
         DIE SPRUNGLEISTE NUR AN HANDY UND TABLET, waagrecht mitlaufend: dort

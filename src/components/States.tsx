@@ -78,17 +78,27 @@ export function SeitenPlatzhalter() {
   );
 }
 
-/** Ladeplatzhalter für die Stand-Zeile (`MetricRow`). */
-export function SkeletonMetrics({ count = 3 }: { count?: number }) {
+/** Ladeplatzhalter für den Stand im Seitenkopf (`MetricRow`). */
+export function SkeletonMetrics({ count = 3, zusatz = true }: { count?: number; zusatz?: boolean }) {
   return (
-    // Höhe und Linien folgen der Stand-Zeile. Ein Platzhalter, der anders
-    // gebaut ist als sein Inhalt, lässt die Seite beim Eintreffen springen —
-    // genau das, was er verhindern soll.
-    <div role="status" aria-busy="true" className="lage-platzhalter">
+    // Dieselben Bausteine wie der Stand selbst — Zeile, Eintrag, Beschriftung,
+    // Wert —, damit er beim Eintreffen in jeder Breite dieselbe Höhe findet.
+    // Ein Platzhalter, der anders gebaut ist als sein Inhalt, lässt die Seite
+    // springen — genau das, was er verhindern soll.
+    <div role="status" aria-busy="true">
       <span className="sr-only">Wird geladen …</span>
-      {Array.from({ length: count }).map((_, i) => (
-        <span key={i} className="skeleton h-3 w-40" aria-hidden="true" />
-      ))}
+      <div className="lage-zeile" aria-hidden="true">
+        {Array.from({ length: count }).map((_, i) => (
+          <div key={i} className="lage-punkt">
+            <div className="lage-eintrag">
+              <span className="lage-name"><span className="skeleton skeleton-text" data-muster="Beschriftung" /></span>
+              <span className="lage-wert"><span className="skeleton skeleton-text" data-muster="€ 00 000,00" /></span>
+              {/* Am Handy steht der Zusatz in einer eigenen Zeile — der Platzhalter hält sie frei. */}
+              {zusatz && <span className="lage-zusatz"><span className="skeleton skeleton-text" data-muster="00 von 00 Tagen" /></span>}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

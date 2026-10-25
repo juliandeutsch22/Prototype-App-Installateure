@@ -263,6 +263,25 @@ describe('Lager — was ist wirklich frei?', () => {
   });
 });
 
+describe('Lager — der Stand im Seitenkopf (E24)', () => {
+  it('steht im Kopf; was „Knapp“ und „Reserviert“ meinen, steht in der Hilfe', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    anforderungen = [anforderung({ id: 'o1', materialId: 'm1', quantity: 18 })];
+    zeige();
+    const knapp = await screen.findByText('Knapp');
+    expect(knapp.closest('.seitenkopf')).not.toBeNull();
+    expect(screen.getByText('Reserviert').closest('.seitenkopf')).not.toBeNull();
+    expect(screen.queryByText(/unter Mindestmenge/)).toBeNull();
+    expect(screen.queryByText('zugesagt und auf Rüstlisten')).toBeNull();
+  });
+
+  it('bleibt auf dem Reiter „Katalog“ stehen — sonst sprängen die Reiter beim Wechseln', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    zeige('/lager?reiter=katalog');
+    expect((await screen.findByText('Im Lager')).closest('.seitenkopf')).not.toBeNull();
+  });
+});
+
 describe('Lager — das Freie aus der Datenbank', () => {
   it('fragt es für die geladenen Artikel, nicht ohne Liste', async () => {
     // Ohne Liste endete `lager_frei()` bei 1.000 Zeilen; mit großem Katalog fehlte das Zugesagte still.

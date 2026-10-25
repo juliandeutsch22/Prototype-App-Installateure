@@ -1114,7 +1114,30 @@ export default function VacationsView() {
 
   return (
     <div className="space-y-3 lg:space-y-5">
-      <PageHeader title="Urlaub" subtitle="Urlaub, Zeitausgleich, Sonderurlaub und Krankmeldung" />
+      {/*
+        DER EIGENE RESTURLAUB steht im Seitenkopf (E24): das ist die Frage, mit
+        der man diese Seite öffnet. Wie er zustande kommt (Übertrag,
+        Anfangsbestand, verfallene Tage), steht beim Antrag darunter. Er steht
+        auf jedem Reiter — verschwände er, spränge die Reiterleiste.
+      */}
+      <PageHeader
+        title="Urlaub"
+        subtitle="Urlaub, Zeitausgleich, Sonderurlaub und Krankmeldung"
+        hilfe="„Beantragt“ zählt die Tage aus deinen Anträgen, über die noch nicht entschieden ist."
+        stand={!ersterStand ? (
+          <SkeletonMetrics count={1} />
+        ) : profil && fuehrtZeitkonto(profil) ? (
+          <MetricRow>
+            <Metric
+              label="Resturlaub"
+              value={tageText(stand.rest)}
+              tone={stand.rest < 0 ? 'warning' : 'brand'}
+              hint={`${tageZahl(genommen)} von ${tageZahl(anspruch)} genehmigt`}
+            />
+            {beantragt > 0 && <Metric label="Beantragt" value={tageText(beantragt)} />}
+          </MetricRow>
+        ) : undefined}
+      />
 
       {/*
         DIE BÜRO-REITER nur für Buchhaltung und Spitze: Krankenstände sind
@@ -1149,11 +1172,6 @@ export default function VacationsView() {
       {error && <ErrorState message={error} />}
 
       {/*
-        DER EIGENE RESTURLAUB, gleich oben: das ist die Frage, mit der man
-        diese Seite öffnet. Wie er zustande kommt (Übertrag, Anfangsbestand,
-        verfallene Tage), steht beim Antrag darunter.
-      */}
-      {/*
         OHNE ZEITKONTO KEIN RESTURLAUB (Testbericht 30.09.2026, G13). Die
         Administration führt keines — sie ist eine Funktion im System, kein
         Arbeitsverhältnis (`fuehrtZeitkonto`); ebenso die Geschäftsführung,
@@ -1167,28 +1185,12 @@ export default function VacationsView() {
         25 Tagen“. Ohne Stammdatenblatt zählt es ohnehin keine Arbeitstage.
       */}
       {!ersterStand ? (
-        <>
-          <SkeletonMetrics count={1} />
-          <SkeletonList rows={6} />
-        </>
+        <SkeletonList rows={6} />
       ) : (<>
       {profil && !fuehrtZeitkonto(profil) && (
         <Hinweiszeile>
           <p>Für dich führt Senklot kein Zeitkonto — deshalb steht hier kein Resturlaub.</p>
         </Hinweiszeile>
-      )}
-      {profil && fuehrtZeitkonto(profil) && (
-        <MetricRow>
-          <Metric
-            label="Resturlaub"
-            value={tageText(stand.rest)}
-            tone={stand.rest < 0 ? 'warning' : 'brand'}
-            hint={`${tageZahl(genommen)} von ${tageZahl(anspruch)} genehmigt`}
-          />
-          {beantragt > 0 && (
-            <Metric label="Beantragt" value={tageText(beantragt)} hint="noch nicht entschieden" />
-          )}
-        </MetricRow>
       )}
 
       {/*

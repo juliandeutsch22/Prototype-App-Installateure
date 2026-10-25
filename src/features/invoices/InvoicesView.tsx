@@ -2562,9 +2562,35 @@ export default function InvoicesView() {
           ? 'Die Rechnungen Ihrer Baustellen — zum Lesen'
           : 'Aus einer Baustelle erzeugen, Zahlung verfolgen, stornieren'}
         hilfe={nurLesen
-          ? 'Eine Zeile antippen öffnet die Rechnung mit Positionen, Summen und Zahlstand.'
-          : 'Eine Zeile antippen öffnet die Rechnung — dort stehen Zahlung erfassen, Mahnen, PDF und Storno.'}
+          ? 'Eine Zeile antippen öffnet die Rechnung mit Positionen, Summen und Zahlstand. „Bezahlt im Monat“ zählt die Zahlungseingänge seit dem Monatsersten, ohne Skonto.'
+          : 'Eine Zeile antippen öffnet die Rechnung — dort stehen Zahlung erfassen, Mahnen, PDF und Storno. „Bezahlt im Monat“ zählt die Zahlungseingänge seit dem Monatsersten, ohne Skonto.'}
         action={nurLesen ? undefined : <Button onClick={erstellenOeffnen}>Neue Rechnung</Button>}
+        /*
+          DIE KENNZAHLEN SIND ANTIPPBAR (Linie „Lot“, Regel 4): eine Zahl, hinter
+          der Arbeit steht, ohne Weg dorthin, lässt einen suchen. Sie setzen den
+          Filter der Liste darunter — in der Adresse, wie die Startseite auch.
+          Sie stehen im Seitenkopf (E24).
+        */
+        stand={
+          <MetricRow>
+            {/* Kamen die offenen Forderungen nicht, sagen es die beiden Zahlen dazu —
+                sonst stünde eine zu kleine Summe da, die niemand als solche erkennt. */}
+            <Metric label="Offen" value={euro(stats.offen)} to="/invoices?ansicht=offen" bereit={zahlenBereit}
+              hint={forderungenFehler ? 'nur die jüngsten — offene Forderungen nicht geladen' : undefined} />
+            <Metric label="Überfällig" tone={stats.ueberfaellig > 0 ? 'danger' : 'default'} bereit={zahlenBereit}
+              value={euro(stats.ueberfaellig)} to={`/invoices?status=${encodeURIComponent('Überfällig')}`}
+              hint={forderungenFehler ? 'nur die jüngsten — offene Forderungen nicht geladen' : undefined} />
+            {bezahltImMonat !== null || (!nurLesen && !bezahltGeladen) ? (
+              // „im laufenden Monat“ wurde am Telefon gekürzt (U10); seit wann, sagt der Zusatz, „ohne Skonto“ die Hilfe.
+              <Metric label="Bezahlt im Monat" tone="success" value={euro(bezahltImMonat ?? 0)} to="/invoices?sicht=bezahlt-monat"
+                bereit={bezahltGeladen} zusatzMuster="seit 00.00.0000"
+                hint={`seit ${datumAT(monatsErster)}`} />
+            ) : (
+              <Metric label="Bezahlt" tone="success" value={euro(stats.bezahlt)} to="/invoices?status=Bezahlt" bereit={!loading}
+                hint={`auf die ${invoices.length} zuletzt geladenen Rechnungen`} />
+            )}
+          </MetricRow>
+        }
       />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
@@ -2577,29 +2603,6 @@ export default function InvoicesView() {
       */}
       {error && !erstellen && <ErrorState message={error} />}
 
-      {/*
-        DIE KENNZAHLEN SIND ANTIPPBAR (Linie „Lot“, Regel 4): eine Zahl, hinter
-        der Arbeit steht, ohne Weg dorthin, lässt einen suchen. Sie setzen den
-        Filter der Liste darunter — in der Adresse, wie die Startseite auch.
-      */}
-      <MetricRow>
-        {/* Kamen die offenen Forderungen nicht, sagen es die beiden Zahlen dazu —
-            sonst stünde eine zu kleine Summe da, die niemand als solche erkennt. */}
-        <Metric label="Offen" value={euro(stats.offen)} to="/invoices?ansicht=offen" bereit={zahlenBereit}
-          hint={forderungenFehler ? 'nur die jüngsten — offene Forderungen nicht geladen' : undefined} />
-        <Metric label="Überfällig" tone={stats.ueberfaellig > 0 ? 'danger' : 'default'} bereit={zahlenBereit}
-          value={euro(stats.ueberfaellig)} to={`/invoices?status=${encodeURIComponent('Überfällig')}`}
-          hint={forderungenFehler ? 'nur die jüngsten — offene Forderungen nicht geladen' : undefined} />
-        {bezahltImMonat !== null || (!nurLesen && !bezahltGeladen) ? (
-          // „im laufenden Monat“ wurde am Telefon gekürzt (U10); was gilt, sagt der Zusatz.
-          <Metric label="Bezahlt im Monat" tone="success" value={euro(bezahltImMonat ?? 0)} to="/invoices?sicht=bezahlt-monat"
-            bereit={bezahltGeladen}
-            hint={`Zahlungseingänge seit ${datumAT(monatsErster)}, ohne Skonto`} />
-        ) : (
-          <Metric label="Bezahlt" tone="success" value={euro(stats.bezahlt)} to="/invoices?status=Bezahlt" bereit={!loading}
-            hint={`auf die ${invoices.length} zuletzt geladenen Rechnungen`} />
-        )}
-      </MetricRow>
 
       {/*
         DER MAHNLAUF.

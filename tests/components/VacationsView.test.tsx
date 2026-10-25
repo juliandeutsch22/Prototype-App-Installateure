@@ -1062,8 +1062,10 @@ describe('Resturlaub', () => {
     expect(await screen.findByText('Resturlaub')).toBeInTheDocument();
     expect(screen.getByText('22 Tage')).toBeInTheDocument();
     expect(screen.getByText('3 von 25 genehmigt')).toBeInTheDocument();
-    expect(screen.getByText('noch nicht entschieden')).toBeInTheDocument();
-    expect(screen.getByText('2 Tage')).toBeInTheDocument();
+    // Was „Beantragt“ meint, steht seit E24 in der Hilfe der Seite, nicht mehr als Zusatz.
+    const stand = screen.getByText('Resturlaub').closest('.lage-zeile') as HTMLElement;
+    expect(within(stand).getByText('Beantragt')).toBeInTheDocument();
+    expect(within(stand).getByText('2 Tage')).toBeInTheDocument();
   });
 
   it('sagt beim Antrag, was danach bleibt', async () => {

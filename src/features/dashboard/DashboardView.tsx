@@ -248,6 +248,13 @@ export default function DashboardView() {
               )}
             </>
           }
+          /*
+            Der Stand im Seitenkopf (E22, E24). Bis alle Blöcke da sind, ein
+            Platzhalter in seiner Form; ist alles leer, fällt er weg.
+          */
+          stand={nochAmLaden
+            ? <SkeletonMetrics />
+            : seite.kennzahlen.some((k) => !k.leer) ? <Kennzahlen werte={seite.kennzahlen} /> : undefined}
         />
         {darf('/assignments/woche') && (
           <Link to="/assignments/woche" className="start-planaktion start-hauptaktion">Einsatzplanung</Link>
@@ -281,16 +288,12 @@ export default function DashboardView() {
       */}
       {nochAmLaden ? (
         <div className="space-y-3 lg:space-y-5">
-          <SkeletonMetrics />
           <Card>
             <SkeletonList rows={5} />
           </Card>
         </div>
       ) : (
         <div className="wert-erscheint space-y-3 lg:space-y-5">
-          {/* Der Stand zuerst, als eine Zeile über die ganze Breite (E22). */}
-          <Kennzahlen werte={seite.kennzahlen} />
-
           <div className={hatKontext ? 'start-rahmen' : 'start-einspaltig'}>
             <div className="start-arbeit start-breit">
               {monteurMitEinsatz && eigenerEinsatz}

@@ -207,3 +207,37 @@ nie Kacheln, sondern stehen schon klein in einer Reihe; sie bleiben.
 Berichtigt dabei: am Schreibtisch stand die Zeile seit E22 untereinander
 statt in einer Reihe (die Richtung des Handys wurde geerbt); jetzt steht sie
 ab 1.200 px nebeneinander, wie in E22 beschrieben.
+
+**E24 — Stand im Seitenkopf, Abstand statt Linien (25.10.2026).** Der
+Auftraggeber war mit dem Stand als Zeile zwischen zwei Linien „noch immer
+nicht ganz zufrieden“ und fragte nach „mehr Abständen zwischen Abschnitten
+einer Seite statt zu vielen Trennlinien“; auf die Empfehlung (Stand im
+Seitenkopf, dazu Luft statt Linien) hin „ja setze alles direkt um. Sei
+genau, verschlimmbessere nichts“. Umgesetzt:
+- **Stand im Seitenkopf.** `PageHeader` nimmt `stand` und zeigt ihn unter
+  dem Untertitel als ruhige Zeile: Beschriftung grau, Wert, ein Zusatz grau
+  dahinter; am Handy zwei Spalten. Startseite, Rechnungen, Lager,
+  Zeiterfassung, Urlaub, Nachkalkulation und Angebot-Akte. Ziele, Farben
+  und Platzhalter bleiben. Auf Lager und Urlaub steht der Stand auf jedem
+  Reiter — verschwände er, spränge die Reiterleiste.
+- **Der Zusatz nur für, was sich ändert.** Bleibt: Anzahl der Rechnungen,
+  „seit 01.10.“, „von 4 im Katalog“, „3 von 25 genehmigt“, „seit Eintritt“,
+  „65 Tage ohne Buchung — unvollständig“, „nur die jüngsten — offene
+  Forderungen nicht geladen“, „die 20 jüngsten von 34“. In die Hilfe der
+  Seite: was „Knapp“, „Reserviert“, „Mit Verlust“, „Zu prüfen“, „Ohne Erlös“,
+  „Beantragt“, „Bezahlt im Monat … ohne Skonto“ und der Saldo bedeuten.
+- **Abstand statt Linien.** Eine Karte auf einer Seite hat keine Linie mehr
+  über sich, sondern Luft (1,25 rem am Handy, 1,75 rem ab Tablet, dazu der
+  Abstand der Seite); ihr Titel steht eine Stufe größer („Abschnitt 18“).
+  Linien bleiben, wo sie beim Lesen helfen: unter dem Titel einer Liste,
+  zwischen ihren Zeilen, unter Gruppenüberschriften, über einem Kartenfuß.
+  Akten und die Kontextspalte der Startseite trennen ihre Abschnitte ebenso.
+- **Eine Kante.** Die Karte ragt um ihr Polster in den Seitenrand; Titel,
+  Zeilen und Felder stehen dadurch an der Kante von Seitentitel und Stand,
+  eine angetippte Zeile behält links und rechts Luft. Ausgenommen sind die
+  schon bündig gebauten Seiten (Akten, Startseite, Plattform, Belegspalte)
+  und alles in Fenstern und Blättern. Wo zwei Karten nebeneinanderstehen
+  (Zeiterfassung, Urlaub, Einsatzplanung „Tag“), ist der Spaltenabstand
+  auf 2,25 rem vergrößert, damit sich die Karten nicht überdecken.
+Grenze, mit Grund: Seitenfenster und Dialoge behalten ihre Linien — ihr
+Rand ist kein Seitenrand, und ihre Abschnitte sind kurz.

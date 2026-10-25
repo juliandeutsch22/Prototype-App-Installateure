@@ -49,13 +49,31 @@ describe('Die Stand-Zeile', () => {
     expect(screen.getByRole('link')).toHaveTextContent(/^Überfällig € 2,00 seit 30 Tagen$/);
   });
 
-  it('der Ladeplatzhalter hat die Form der Zeile', () => {
-    // Sonst springt die Seite in dem Augenblick, in dem die Zahlen eintreffen.
+  it('der Ladeplatzhalter ist gebaut wie der Stand selbst', () => {
+    /*
+      Sonst springt die Seite in dem Augenblick, in dem die Zahlen eintreffen.
+      Seit E24 steht der Stand im Seitenkopf: dieselben Bausteine (Zeile,
+      Eintrag, Beschriftung, Wert, Zusatz) geben dem Platzhalter in jeder
+      Breite dieselbe Höhe — am Handy auch die Zeile des Zusatzes.
+    */
     const { container } = render(<SkeletonMetrics count={2} />);
     const platz = container.firstElementChild!;
-    expect([...platz.classList]).toContain('lage-platzhalter');
     expect(platz).toHaveAttribute('role', 'status');
-    expect(platz.querySelectorAll('.skeleton')).toHaveLength(2);
+    const zeile = platz.querySelector('.lage-zeile')!;
+    expect(zeile).not.toBeNull();
+    const punkte = zeile.querySelectorAll('.lage-punkt');
+    expect(punkte).toHaveLength(2);
+    for (const p of punkte) {
+      expect(p.querySelector('.lage-name .skeleton')).not.toBeNull();
+      expect(p.querySelector('.lage-wert .skeleton')).not.toBeNull();
+      expect(p.querySelector('.lage-zusatz .skeleton')).not.toBeNull();
+    }
+  });
+
+  it('der Platzhalter ohne Zusatz lässt dessen Zeile weg', () => {
+    const { container } = render(<SkeletonMetrics count={1} zusatz={false} />);
+    expect(container.querySelector('.lage-zusatz')).toBeNull();
+    expect(container.querySelector('.lage-wert .skeleton')).not.toBeNull();
   });
 
   it('färbt nur „Überfällig“ rot, Achtung in der Warnfarbe, und schreibt nie fett', () => {
@@ -95,13 +113,16 @@ describe('Die Stand-Zeile', () => {
     expect(lot).toMatch(/\.lage-wert-warn \{/);
     expect(lesen('styles/lot-start.css')).not.toMatch(/\.lage-/);
     /*
-      Am Schreibtisch eine Reihe. Die Regel des Handys stellt die Einträge
-      untereinander (`column`); ohne ausdrückliche Richtung erbte die Reihe
-      ab 1.200 px genau das — so stand sie bis zum 25.10.2026 auch auf der
-      Startseite. jsdom rechnet kein Layout, deshalb steht die Prüfung an der
-      Regel selbst.
+      Am Schreibtisch und Tablet eine Reihe, die umbricht; am Handy zwei
+      Spalten. Bis zum 25.10.2026 stand die Zeile am Schreibtisch
+      untereinander, weil die Richtung des Handys geerbt wurde — deshalb ist
+      die Richtung ausdrücklich. jsdom rechnet kein Layout, also steht die
+      Prüfung an der Regel selbst.
     */
-    expect(lot).toMatch(/@media \(min-width: 1200px\) \{ \.lage-zeile \{[^}]*flex-direction: row;/);
+    expect(lot).toMatch(/\.lage-zeile \{ display: flex; flex-direction: row; flex-wrap: wrap;/);
+    expect(lot).toMatch(/@media \(max-width: 759px\) \{\s*\.lage-zeile \{ display: grid; grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+    // Keine eigenen Linien mehr: der Stand steht im Seitenkopf (E24).
+    expect(lot.slice(lot.indexOf('.lage-zeile {'), lot.indexOf('.lage-punkt {'))).not.toMatch(/border/);
     expect(lesen('index.css')).not.toMatch(/\.kennzahlen? \{/);
   });
 });
