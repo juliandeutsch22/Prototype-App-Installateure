@@ -13,17 +13,6 @@
   .rechnung-lesegruppe dd { min-width: 0; overflow-wrap: anywhere; }
 
   /* ── Rechnungsliste ──────────────────────────────────────────────────── */
-  /*
-    Über den Zeilen: Segmente, darunter Suche und Stand. Am Handy steht jedes
-    für sich in voller Breite; ab dem Tablet stehen Suche und Stand in einer
-    Zeile, der Stand so breit wie sein längster Eintrag.
-  */
-  .rechnungen-filter { display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem; }
-  @media (min-width: 760px) { .rechnungen-filter { align-items: flex-start; } }
-  .rechnungen-suchzeile { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem; width: 100%; }
-  .rechnungen-suchfeld { flex: 1 1 16rem; min-width: 0; }
-  .rechnungen-stand { flex: 1 1 10rem; min-width: 0; }
-  @media (min-width: 760px) { .rechnungen-stand { flex: 0 0 12rem; } }
   /* „Ältere Rechnungen laden“ unter der letzten Gruppe. */
   .rechnungen-nachladen { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); }
 

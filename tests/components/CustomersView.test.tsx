@@ -95,6 +95,7 @@ const searchCustomers = vi.fn<(a0: string, a1: string, a2: number | undefined) =
   darüber, unter Firestore filtert die Datenschicht wie bisher im Browser.
 */
 const updateCustomer = vi.fn(async () => 0);
+const kundenZuPruefenAnzahl = vi.fn<(c: string) => Promise<{ adressePruefen: number; ohneKundenart: number }>>(async () => ({ adressePruefen: 3, ohneKundenart: 2 }));
 vi.mock('@/lib/db/customers', () => ({
   searchCustomers: (c: string, begriff: string, max?: number) =>
     searchCustomers(c, begriff, max),
@@ -102,6 +103,7 @@ vi.mock('@/lib/db/customers', () => ({
   naechsteKundennummer: vi.fn(async () => '10042'),
   kundenAdressePruefen: vi.fn(async () => kunden.filter((k) => (k as { adressePruefen?: boolean }).adressePruefen)),
   kundenOhneKundenart: vi.fn(async () => artListe.filter((k) => !k.kundenart)),
+  kundenZuPruefenAnzahl: (c: string) => kundenZuPruefenAnzahl(c),
   updateCustomer: () => updateCustomer(),
   deleteCustomer: vi.fn(async () => undefined),
   listProjectsForCustomer: () => listProjectsForCustomer(),
@@ -160,6 +162,7 @@ beforeEach(() => {
   assignProjectToCustomer.mockClear();
   listUnlinkedProjectsByName.mockClear();
   listProjectsForCustomer.mockClear();
+  kundenZuPruefenAnzahl.mockClear().mockImplementation(async () => ({ adressePruefen: 3, ohneKundenart: 2 }));
 });
 
 describe('Kundenverwaltung', () => {
@@ -606,7 +609,7 @@ describe('Kundenart prüfen', () => {
     expect(await screen.findByText('Anna Beispiel')).toBeInTheDocument();
     expect(screen.getAllByText('Kundenart prüfen')).toHaveLength(1);
     // Seit „Lot“ ein Segment statt eines Kästchens; was es filtert, bleibt.
-    await userEvent.click(screen.getByRole('button', { name: 'Ohne Kundenart' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Ohne Kundenart/ }));
     await waitFor(() => expect(screen.queryByText('Bau GmbH')).toBeNull());
     expect(screen.getByText('Anna Beispiel')).toBeInTheDocument();
   });
@@ -637,7 +640,7 @@ describe('Kundenliste in der Linie „Lot“', () => {
     artListe = [{ id: 'a', companyId: 'perl', name: 'Anna Beispiel', kundenart: null }];
     zeichne('/customers?auswahl=ohne-art');
     expect(await screen.findByText('Anna Beispiel')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Ohne Kundenart' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /^Ohne Kundenart/ })).toHaveAttribute('aria-pressed', 'true');
     expect(searchCustomers).not.toHaveBeenCalled();
   });
 
@@ -645,7 +648,7 @@ describe('Kundenliste in der Linie „Lot“', () => {
     artListe = [{ id: 'b', companyId: 'perl', name: 'Bau GmbH', kundenart: 'unternehmen' }];
     zeichne('/customers?auswahl=ohne-art');
     expect(await screen.findByText('Jeder Kunde hat eine Kundenart.')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Anschrift prüfen' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Anschrift prüfen/ }));
     expect(await screen.findByText('Keine Anschrift ist zu prüfen.')).toBeInTheDocument();
     expect(screen.queryByText(/Noch keine Kunden/)).toBeNull();
   });
@@ -728,3 +731,48 @@ describe('Kundenliste in der Linie „Lot“', () => {
     expect(assignProjectToCustomer).not.toHaveBeenCalled();
   });
 });
+
+/*
+  DIE LISTENLEISTE (Design-Entwurf, Punkt 2): die Reiter, die Arbeit
+  bedeuten, tragen ihre Zahl — gezählt beim Server über den ganzen Bestand.
+*/
+describe('Die Zahlen an den Reitern der Kundenliste', () => {
+  it('nennt, wie viele Anschriften und Kundenarten zu prüfen sind', async () => {
+    zeichne();
+    const wahl = await screen.findByRole('group', { name: 'Kunden filtern' });
+    expect(await within(wahl).findByRole('button', { name: 'Anschrift prüfen 3' })).toBeInTheDocument();
+    expect(within(wahl).getByRole('button', { name: 'Ohne Kundenart 2' })).toBeInTheDocument();
+    // „Alle“ ist Bestand, kein Handlungsbedarf (Protokoll 7.7): ohne Zahl.
+    expect(within(wahl).getByRole('button', { name: 'Alle' })).toBeInTheDocument();
+  });
+
+  it('zählt neu, nachdem ein Kunde gelöscht wurde', async () => {
+    zeichne();
+    await screen.findByRole('button', { name: 'Anschrift prüfen 3' });
+    const vorher = kundenZuPruefenAnzahl.mock.calls.length;
+    kundenZuPruefenAnzahl.mockImplementation(async () => ({ adressePruefen: 2, ohneKundenart: 2 }));
+    const zeile = (await screen.findByText('Hausverwaltung Nord')).closest('li')!;
+    await userEvent.click(within(zeile).getByRole('button', { name: /Weitere Aktionen für Kunde Hausverwaltung Nord/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Löschen' }));
+    await userEvent.click(within(await screen.findByRole('dialog', { name: 'Kunde löschen?' })).getByRole('button', { name: 'Löschen' }));
+    expect(await screen.findByRole('button', { name: 'Anschrift prüfen 2' })).toBeInTheDocument();
+    expect(kundenZuPruefenAnzahl.mock.calls.length).toBeGreaterThan(vorher);
+  });
+
+  it('Gegenprobe: scheitert die Zählung, steht keine Zahl da — keine ungeprüfte Null', async () => {
+    kundenZuPruefenAnzahl.mockImplementation(async () => { throw new Error('weg'); });
+    zeichne();
+    const wahl = await screen.findByRole('group', { name: 'Kunden filtern' });
+    await waitFor(() => expect(kundenZuPruefenAnzahl).toHaveBeenCalled());
+    expect(within(wahl).getByRole('button', { name: 'Anschrift prüfen' })).toBeInTheDocument();
+    expect(wahl.querySelector('.segment-anzahl')).toBeNull();
+  });
+
+  it('die Suche hat keine sichtbare Beschriftung mehr — ihr Name bleibt für die Vorlesehilfe', async () => {
+    zeichne();
+    const feld = await screen.findByRole('searchbox', { name: 'Kunden durchsuchen' });
+    expect(feld).toHaveAttribute('placeholder', 'Name, Adresse oder Telefon');
+    expect(document.querySelector('label[for="ksuche"]')).toBeNull();
+  });
+});
+

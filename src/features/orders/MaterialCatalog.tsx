@@ -19,7 +19,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { Marke, Warnung } from '@/components/Badge';
 import BottomSheet from '@/components/BottomSheet';
-import { MehrAnzeigen } from '@/components/LotBausteine';
+import { Listenleiste, MehrAnzeigen } from '@/components/LotBausteine';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { CheckboxField, InputField, FormGrid, Pflichthinweis } from '@/components/Field';
@@ -347,21 +347,26 @@ export default function MaterialCatalog({
             <Button variant="secondary" onClick={neu}>Neues Material</Button>
           </>
         }
+        buendig
       >
-        <InputField
-          id="msearch"
-          label="Suche"
-          placeholder="Name, Kategorie oder Art.-Nr."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setGezeigt(JE_SEITE);
+        {/* Bündig wie jede Liste: die Leiste gepolstert oben, darunter die Zeilen von Kante zu Kante. */}
+        <Listenleiste
+          suche={{
+            id: 'msearch',
+            wert: search,
+            onChange: (wert) => {
+              setSearch(wert);
+              setGezeigt(JE_SEITE);
+            },
+            platzhalter: 'Name, Kategorie oder Art.-Nr.',
           }}
         />
-        <div className="mt-4">
-          {ladeFehler && <ErrorState message={ladeFehler} />}
+        <div>
+          {ladeFehler && <div className="px-4 pb-4"><ErrorState message={ladeFehler} /></div>}
           {loading ? (
-            <SkeletonList rows={4} />
+            <div className="px-4 pb-4">
+              <SkeletonList rows={4} />
+            </div>
           ) : visible.length === 0 ? (
             <EmptyState
               action={

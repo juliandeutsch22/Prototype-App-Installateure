@@ -17,21 +17,6 @@
   .beleg-kontext .beleg-angaben { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
   .beleg-kontext .beleg-angaben .link { max-width: 100%; overflow-wrap: anywhere; hyphens: auto; }
 
-  /* ── Listen: Suche und Auswahl über den Zeilen ────────────────────────── */
-  /*
-    Suche links, Auswahl rechts; am Handy untereinander. Steht in der Gruppe
-    über den Zeilen, damit Filter und Liste eine Fläche bleiben.
-  */
-  .listen-werkzeug { display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem; }
-  @media (min-width: 760px) { .listen-werkzeug { flex-direction: row; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; } }
-  .listen-suche { flex: 1; min-width: 0; }
-  @media (min-width: 760px) { .listen-suche { max-width: 26rem; } }
-  .listen-suchfeld { width: 100%; min-height: 2.75rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: 1rem; }
-  .listen-suchfeld:focus { outline: none; border-color: var(--petrol); box-shadow: 0 0 0 1px var(--petrol); }
-  .listen-auswahl { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.25rem; }
-  /* Auf Höhe des Suchfelds, nicht seiner Beschriftung. */
-  @media (min-width: 760px) { .listen-auswahl { margin-top: 1.5rem; } }
-
   /*
     VERWEISE IN EINER GANZ ANTIPPBAREN ZEILE. Die Fläche des Titels spannt
     sich über die ganze Zeile (`.zeile-ziel::after`); Adresse und Telefon im

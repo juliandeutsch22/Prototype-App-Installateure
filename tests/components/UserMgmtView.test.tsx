@@ -372,7 +372,7 @@ describe('Benutzerverwaltung — die Liste', () => {
     // Der Filter steht seit dem Umbau auf „Lot“ als Segmente da; geschützt
     // bleibt das Wort „Deaktivierte“ mit der Zahl.
     const filter = await screen.findByRole('group', { name: 'Benutzer nach Status filtern' });
-    expect(within(filter).getByRole('button', { name: 'Deaktivierte (1)' })).toBeInTheDocument();
+    expect(within(filter).getByRole('button', { name: 'Deaktivierte 1' })).toBeInTheDocument();
     await userEvent.click(within(filter).getByRole('button', { name: 'Alle' }));
     expect(await screen.findByText('Ausgeschieden')).toBeInTheDocument();
     expect(screen.getByText('deaktiviert')).toBeInTheDocument();
@@ -401,7 +401,7 @@ describe('Benutzerverwaltung — die Liste', () => {
     zeige('/user-mgmt?status=inaktiv');
     expect(await screen.findByText('Ausgeschieden')).toBeInTheDocument();
     expect(screen.queryByText('Erna Beispiel')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Deaktivierte (1)' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Deaktivierte 1' })).toHaveAttribute('aria-pressed', 'true');
 
     await userEvent.click(screen.getByRole('button', { name: 'Aktive' }));
     // Die Vorgabe steht nicht in der Adresse — ein Lesezeichen bleibt kurz.

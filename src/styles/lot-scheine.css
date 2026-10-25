@@ -6,19 +6,6 @@
  * gestrichelten Linien. Farben nur aus den Grundwerten (var(--…)).
  */
 @layer components {
-  /* ── Liste: Suche und Ansicht über der Liste ──────────────────────────── */
-  /*
-    Am Handy untereinander (Suche zuerst, volle Breite), ab dem Tablet in
-    einer Zeile. Die Suche steht vorne, damit sie beim Tippen nicht springt,
-    wenn die Segmente ausgeblendet werden.
-  */
-  .scheine-werkzeug { display: flex; flex-direction: column; gap: 0.75rem; }
-  @media (min-width: 760px) { .scheine-werkzeug { flex-direction: row; align-items: center; justify-content: space-between; } }
-  .scheine-suche { width: 100%; min-height: 2.75rem; padding: 0.25rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: 1rem; }
-  @media (min-width: 760px) { .scheine-suche { max-width: 22rem; } }
-  .scheine-ansicht { width: 100%; }
-  @media (min-width: 760px) { .scheine-ansicht { width: 14rem; flex: none; } }
-
   /* ── Schein: die Einsätze des Tages als Auswahl ───────────────────────── */
   /*
     Die gewählte Baustelle trägt einen Petrol-Rand und den hellen Petrolgrund

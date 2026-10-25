@@ -8,8 +8,7 @@ import Card from '@/components/Card';
 import PageHeader from '@/components/PageHeader';
 import { ListRow } from '@/components/ListRow';
 import StatusBadge from '@/components/StatusBadge';
-import { InputField } from '@/components/Field';
-import { Segmente } from '@/components/LotBausteine';
+import { Listenleiste, Segmente } from '@/components/LotBausteine';
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import { euro } from '@/lib/betrag';
 import { datumAT } from '@/lib/datum';
@@ -99,26 +98,21 @@ export default function RechnungenLesen() {
         subtitle="Die Rechnungen deiner Baustellen — nur lesen."
       />
       <Card buendig>
-        <div className="rechnungen-filter">
-          <Segmente
-            name="Rechnungen zeigen"
-            werte={BEREICHE}
-            wert={bereich}
-            onChange={(w) => {
-              const neu = new URLSearchParams(parameter);
-              neu.set('ansicht', w);
-              setParameter(neu, { replace: true });
-            }}
-          />
-          <InputField
-            id="rechnungen-lesen-suche"
-            label="Suche"
-            type="search"
-            placeholder="Rechnungsnummer, Kunde oder Baustelle"
-            value={suche}
-            onChange={(e) => setSuche(e.target.value)}
-          />
-        </div>
+        <Listenleiste
+          reiter={
+            <Segmente
+              name="Rechnungen zeigen"
+              werte={BEREICHE}
+              wert={bereich}
+              onChange={(w) => {
+                const neu = new URLSearchParams(parameter);
+                neu.set('ansicht', w);
+                setParameter(neu, { replace: true });
+              }}
+            />
+          }
+          suche={{ id: 'rechnungen-lesen-suche', wert: suche, onChange: setSuche, platzhalter: 'Nummer, Kunde oder Baustelle' }}
+        />
         {fehler ? (
           <ErrorState message={fehler} />
         ) : zeilen === null ? (

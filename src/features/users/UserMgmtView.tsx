@@ -16,7 +16,7 @@ import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
-import { MehrAnzeigen, Segmente } from '@/components/LotBausteine';
+import { Listenleiste, MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import { anlegeFehler } from './anlegeFehler';
 import TagessollFelder from './TagessollFelder';
 import EinstufungFelder from './EinstufungFelder';
@@ -703,32 +703,24 @@ export default function UserMgmtView() {
           Suche, der Filter steht als Segmente statt als Auswahlliste — drei
           Möglichkeiten sieht man lieber, als sie aufzuklappen.
         */}
-        <div className="listen-werkzeug">
-          <div className="listen-suche">
-            <InputField
-              id="usrsuche"
-              label="Suche"
-              type="search"
-              placeholder="Name, E-Mail oder Benutzername"
-              value={suche}
-              onChange={(e) => setSuche(e.target.value)}
+        <Listenleiste
+          reiter={
+            <Segmente
+              name="Benutzer nach Status filtern"
+              werte={[
+                { wert: 'aktiv', text: 'Aktive' },
+                /* „Deaktiviert“ wie im Statusfeld der Akte (Runde 3, G5) — für
+                   dieselbe Sache standen zwei Wörter auf dem Bildschirm. Die
+                   Zahl stand schon vor der Listenleiste da und bleibt. */
+                { wert: 'inaktiv', text: 'Deaktivierte', anzahl: inaktiv },
+                { wert: 'alle', text: 'Alle' },
+              ]}
+              wert={status}
+              onChange={setStatus}
             />
-          </div>
-          <div className="listen-filter">
-          <Segmente
-            name="Benutzer nach Status filtern"
-            werte={[
-              { wert: 'aktiv', text: 'Aktive' },
-              /* „Deaktiviert“ wie im Statusfeld der Akte (Runde 3, G5) — für
-                 dieselbe Sache standen zwei Wörter auf dem Bildschirm. */
-              { wert: 'inaktiv', text: `Deaktivierte (${inaktiv})` },
-              { wert: 'alle', text: 'Alle' },
-            ]}
-            wert={status}
-            onChange={setStatus}
-          />
-          </div>
-        </div>
+          }
+          suche={{ id: 'usrsuche', wert: suche, onChange: setSuche, platzhalter: 'Name, E-Mail oder Benutzername' }}
+        />
         {loading ? (
           <div className="p-4">
             <SkeletonList rows={4} />

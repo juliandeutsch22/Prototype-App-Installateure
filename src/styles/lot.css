@@ -319,3 +319,40 @@
     .lage-eintrag { flex-direction: column; align-items: flex-start; min-height: 2.75rem; padding-block: 0; }
   }
 }
+
+/* ── Listenleiste: Reiter links, Suche rechts (Design-Entwurf, Punkt 2, E26) ── */
+/*
+  Eine Anordnung für jede Liste. Ab dem Tablet stehen die Reiter links in
+  ihrer natürlichen Breite und die Suche rechts; fehlen die Reiter, bleibt
+  die Suche trotzdem rechts. Am Handy steht die Suche oben und die Reiter
+  teilen sich die volle Breite, damit jeder groß genug zum Tippen ist.
+*/
+@layer components {
+  .listenleiste { display: flex; flex-direction: column-reverse; gap: 0.75rem; padding: 1rem; }
+  @media (min-width: 760px) {
+    .listenleiste { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1.5rem; }
+    .listenleiste-werkzeug { flex: 0 1 30rem; margin-left: auto; justify-content: flex-end; }
+  }
+  .listenleiste-reiter { min-width: 0; }
+  /*
+    Reiter nach ihrem Text breit statt gleich breit, den Rest verteilt: mit
+    gleich breiten Spalten brach „Deaktivierte 12“ am Handy mitten im Wort.
+  */
+  .listenleiste-reiter .segment { grid-auto-columns: auto; }
+  .listenleiste-werkzeug { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1rem; min-width: 0; }
+  .listenleiste-zusatz { flex: none; max-width: 100%; }
+  .listenleiste-suche { display: flex; align-items: center; gap: 0.5rem; flex: 1 1 14rem; min-width: 0; min-height: 2.75rem; padding: 0 0.75rem; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text-muted); }
+  .listenleiste-suche:focus-within { border-color: var(--brand-fixed); box-shadow: 0 0 0 1px var(--brand-fixed); }
+  .listenleiste-suche input { flex: 1; min-width: 0; padding: 0.5rem 0; border: 0; background: transparent; color: var(--text); font-size: 1rem; }
+  .listenleiste-suche input::placeholder { color: var(--text-placeholder); }
+  /* Der Fokusring wie bei jedem Feld (3 px), aber um Lupe und Feld zusammen — ein Ring ums Eingabefeld darin säße mitten im Rahmen. */
+  .listenleiste-suche input:focus-visible { outline: none; }
+  .listenleiste-suche:has(input:focus-visible) { outline: 3px solid var(--brand-fixed); outline-offset: 2px; }
+  /*
+    Die Zahl am Reiter: grau und ruhig, damit das Wort vorne bleibt; nie
+    umgebrochen. Der Abstand kommt aus dem Rand, nicht aus dem Leerzeichen
+    davor: im Flex-Knopf fällt ein reines Leerzeichen sichtbar weg — für die
+    Vorlesehilfe bleibt es.
+  */
+  .segment-anzahl { margin-left: 0.375rem; font-weight: var(--gewicht-zahl); color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+}

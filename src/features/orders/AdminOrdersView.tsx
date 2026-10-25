@@ -32,11 +32,12 @@ import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import BottomSheet from '@/components/BottomSheet';
 import { List, ListRow } from '@/components/ListRow';
-import { InputField, SelectField } from '@/components/Field';
+import { SelectField } from '@/components/Field';
 import Abschnitt from '@/components/Abschnitt';
 import Button from '@/components/Button';
 import {
   Arbeitszeile,
+  Listenleiste,
   LotVerlauf,
   MehrAnzeigen,
   Sammelleiste,
@@ -660,10 +661,7 @@ export default function AdminOrdersView() {
       <div className="bereichswahl">
       <Segmente
         name="Bereich"
-        werte={TABS.map((t) => ({
-          wert: t.key,
-          text: t.count ? `${t.label} ${t.count}` : t.label,
-        }))}
+        werte={TABS.map((t) => ({ wert: t.key, text: t.label, anzahl: t.count || undefined }))}
         wert={tab}
         onChange={setTab}
       />
@@ -711,37 +709,39 @@ export default function AdminOrdersView() {
               <Button variant="secondary" onClick={() => setRetoureOffen(true)}>
                 Retoure erfassen
               </Button>
-            ) : projectOptions.length > 0 ? (
-              <SelectField id="ofilter" label="" aria-label="Bestellungen nach Baustelle filtern" className="py-1 text-sm" value={projectFilter}
-                onChange={(e) => setProjectFilter(e.target.value)}>
-                <option value="">Alle Baustellen</option>
-                {projectOptions.map((p) => <option key={p} value={p}>{p}</option>)}
-              </SelectField>
             ) : undefined
           }
           buendig
         >
-          {orders.length >= 10 && (
-            <div className="p-4">
-              <InputField
-                id="osuche"
-                label="Suche"
-                type="search"
-                placeholder="Material, Besteller, Baustelle oder Notiz"
-                value={suche}
-                onChange={(e) => setSuche(e.target.value)}
-              />
-              {suchbegriff && suchFehler && (
-                <p className="mt-2 text-xs text-warning">
-                  Die Suche über alle Anforderungen ist gerade nicht erreichbar — gezeigt werden Treffer unter den geladenen.
-                </p>
-              )}
-              {serverTreffer && serverTreffer.length >= ANFORDERUNG_TREFFER && (
-                <p className="mt-2 text-xs text-ink-muted">
-                  Die {ANFORDERUNG_TREFFER} jüngsten Treffer — für ältere genauer suchen.
-                </p>
-              )}
-            </div>
+          {/*
+            DIE LISTENLEISTE (Design-Entwurf, Punkt 2): die Suche ab zehn
+            Anforderungen wie bisher, die Auswahl der Baustelle als Zusatz
+            daneben statt im Kopf der Karte. Die Reiter stehen schon oben als
+            Bereiche der Seite.
+          */}
+          {(orders.length >= 10 || (tab !== 'retouren' && projectOptions.length > 0)) && (
+            <Listenleiste
+              suche={orders.length >= 10
+                ? { id: 'osuche', wert: suche, onChange: setSuche, platzhalter: 'Material, Besteller, Baustelle oder Notiz' }
+                : undefined}
+              zusatz={tab !== 'retouren' && projectOptions.length > 0 ? (
+                <SelectField id="ofilter" label="" aria-label="Bestellungen nach Baustelle filtern" value={projectFilter}
+                  onChange={(e) => setProjectFilter(e.target.value)}>
+                  <option value="">Alle Baustellen</option>
+                  {projectOptions.map((p) => <option key={p} value={p}>{p}</option>)}
+                </SelectField>
+              ) : undefined}
+            />
+          )}
+          {orders.length >= 10 && suchbegriff && suchFehler && (
+            <p className="px-4 pb-3 text-xs text-warning">
+              Die Suche über alle Anforderungen ist gerade nicht erreichbar — gezeigt werden Treffer unter den geladenen.
+            </p>
+          )}
+          {orders.length >= 10 && serverTreffer && serverTreffer.length >= ANFORDERUNG_TREFFER && (
+            <p className="px-4 pb-3 text-xs text-ink-muted">
+              Die {ANFORDERUNG_TREFFER} jüngsten Treffer — für ältere genauer suchen.
+            </p>
           )}
           {loading ? (
             <div className="p-4">

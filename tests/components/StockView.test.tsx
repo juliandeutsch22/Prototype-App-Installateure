@@ -322,7 +322,10 @@ describe('Lager — frei und reserviert erst mit der Datenbank', () => {
       expect(screen.queryByText(/20 m frei/)).not.toBeInTheDocument();
       const knapp = screen.getAllByText('Knapp').find((e) => e.classList.contains('lage-name'))!.parentElement!;
       expect(within(knapp).getAllByRole('status').length).toBeGreaterThan(0);
+      // Auch die Reiter zählen erst mit der Datenbank: vorher keine Zahl aus der eigenen Rechnung.
+      expect(screen.getByRole('button', { name: 'knapp' }).querySelector('.segment-anzahl')).toBeNull();
       await act(async () => liefern(new Map([['m1', { bestand: 20, zugesagt: 0, geplant: 17, frei: 3 }]])));
+      expect(await screen.findByRole('button', { name: 'knapp 1' })).toBeInTheDocument();
       // Gleich die Zahl der Datenbank, nie die eigene (20 frei).
       expect(await screen.findByText(/3 m frei/)).toBeInTheDocument();
       expect(screen.queryByText(/20 m frei/)).not.toBeInTheDocument();
@@ -663,10 +666,10 @@ describe('Lager — wenn ein Ladevorgang scheitert', () => {
     materialien = [material({ id: 'm1' })];
     zeige();
 
-    await userEvent.type(await screen.findByRole('textbox', { name: /Suche/ }), 'Wasserhahn');
+    await userEvent.type(await screen.findByRole('searchbox', { name: /Suche/ }), 'Wasserhahn');
     expect(await screen.findByText(/Kein Lagerartikel passt zu/)).toBeInTheDocument();
 
-    await userEvent.clear(screen.getByRole('textbox', { name: /Suche/ }));
+    await userEvent.clear(screen.getByRole('searchbox', { name: /Suche/ }));
     materialien = [];
     // Der leere Katalog verweist auf den Reiter, der ihn füllt.
     zeige();
@@ -776,7 +779,7 @@ describe('Lager — Filter', () => {
   it('„fehlt“ zeigt nur, was unter null frei ist, und steht in der Adresse', async () => {
     bestand();
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'fehlt' }));
+    await userEvent.click(await screen.findByRole('button', { name: /^fehlt( \d+)?$/ }));
     expect(screen.getByTestId('adresse')).toHaveTextContent('/lager?filter=fehlt');
     expect(screen.getByText('Fehlender')).toBeInTheDocument();
     expect(screen.queryByText('Knapper')).toBeNull();
@@ -786,7 +789,7 @@ describe('Lager — Filter', () => {
   it('„knapp“ aus der Adresse schliesst „fehlt“ ein, wie die Kennzahl', async () => {
     bestand();
     zeige('/lager?filter=knapp');
-    expect(await screen.findByRole('button', { name: 'knapp' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByRole('button', { name: /^knapp( \d+)?$/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('Knapper')).toBeInTheDocument();
     expect(screen.getByText('Fehlender')).toBeInTheDocument();
     expect(screen.queryByText('Reichlich')).toBeNull();
@@ -798,6 +801,18 @@ describe('Lager — Filter', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Alle' }));
     expect(screen.getByTestId('adresse')).toHaveTextContent(/^\/lager$/);
     expect(screen.getByText('Reichlich')).toBeInTheDocument();
+  });
+
+  /*
+    DIE ZAHLEN AN DEN REITERN (Design-Entwurf, Punkt 2): was zu tun ist, über
+    alle Lagerartikel — „knapp“ schliesst „fehlt“ ein, wie die Kennzahl.
+  */
+  it('nennt an „knapp“ und „fehlt“, wie viele es sind — erst mit dem Stand der Datenbank', async () => {
+    bestand();
+    zeige();
+    expect(await screen.findByRole('button', { name: 'knapp 2' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'fehlt 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Alle' }).textContent).toBe('Alle');
   });
 
   it('zeigt einen Zustand nur bei „knapp“ oder „fehlen“', async () => {

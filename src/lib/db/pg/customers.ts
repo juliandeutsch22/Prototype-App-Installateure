@@ -6,7 +6,7 @@
  */
 import type { Customer, Project, UidPruefung } from '@/types';
 import { KUNDEN_GRENZE } from '@/lib/listengrenzen';
-import { abfragen, anlegen, aendern, loeschen, derClient, type WithId } from './kern';
+import { abfragen, anlegen, aendern, loeschen, derClient, zaehlen, type Bedingung, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
 import { alsOderWert, oderUeberSpalten, ohneJoker } from './suche';
 
@@ -244,24 +244,32 @@ export function searchCustomers(
  * Kunden, deren alte Anschrift sich nicht eindeutig zerlegen liess — die
  * Liste „zu prüfen“ (Testbericht 30.09.2026, M12).
  */
+/*
+  Runde 3, M10: Altkunden ohne Kundenart. Sie entscheidet über Zinsen und
+  Mahnspesen; ohne sie gehen Rechnung und Mahnung nicht.
+*/
+const OHNE_KUNDENART: Bedingung[] = [{ art: 'leer', feld: 'kundenart' }];
+const ADRESSE_PRUEFEN: Bedingung[] = [{ art: 'gleich', feld: 'adressePruefen', wert: true }];
+
 export function kundenOhneKundenart(companyId: string, max = KUNDEN_GRENZE): Promise<WithId<Customer>[]> {
-  /*
-    Runde 3, M10: Altkunden ohne Kundenart. Sie entscheidet über Zinsen und
-    Mahnspesen; ohne sie gehen Rechnung und Mahnung nicht.
-  */
-  return abfragen<Customer>(KUNDEN, companyId, {
-    wo: [{ art: 'leer', feld: 'kundenart' }],
-    sortiere: { feld: 'name' },
-    grenze: max,
-  });
+  return abfragen<Customer>(KUNDEN, companyId, { wo: OHNE_KUNDENART, sortiere: { feld: 'name' }, grenze: max });
 }
 
 export function kundenAdressePruefen(companyId: string, max = KUNDEN_GRENZE): Promise<WithId<Customer>[]> {
-  return abfragen<Customer>(KUNDEN, companyId, {
-    wo: [{ art: 'gleich', feld: 'adressePruefen', wert: true }],
-    sortiere: { feld: 'name' },
-    grenze: max,
-  });
+  return abfragen<Customer>(KUNDEN, companyId, { wo: ADRESSE_PRUEFEN, sortiere: { feld: 'name' }, grenze: max });
+}
+
+/**
+ * Wie viele Kunden jemand prüfen muss — die Zahlen an den Reitern der
+ * Kundenliste (Design-Entwurf, Punkt 2). Über dieselben Bedingungen wie die
+ * beiden Listen, und über den ganzen Bestand, nicht nur die geladenen.
+ */
+export async function kundenZuPruefenAnzahl(companyId: string): Promise<{ adressePruefen: number; ohneKundenart: number }> {
+  const [adressePruefen, ohneKundenart] = await Promise.all([
+    zaehlen(KUNDEN, companyId, { wo: ADRESSE_PRUEFEN }),
+    zaehlen(KUNDEN, companyId, { wo: OHNE_KUNDENART }),
+  ]);
+  return { adressePruefen, ohneKundenart };
 }
 
 /** Die nächste freie Kundennummer — ein Vorschlag (M12). */

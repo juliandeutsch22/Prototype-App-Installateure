@@ -35,7 +35,7 @@ import { Warnung, Zustand } from '@/components/Badge';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import BottomSheet from '@/components/BottomSheet';
 import Abschnitt from '@/components/Abschnitt';
-import { MehrAnzeigen, Segmente } from '@/components/LotBausteine';
+import { Listenleiste, MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField } from '@/components/Field';
@@ -935,26 +935,6 @@ export default function WorkSheetsListView() {
         />
       )}
 
-      {/*
-        SUCHE UND ANSICHT ÜBER DER LISTE (Regel 4). Die Suche steht zuerst:
-        verschwinden beim Tippen die Segmente, rutscht das Feld nicht unter
-        dem Finger weg.
-      */}
-      <div className="scheine-werkzeug">
-        <input
-          aria-label="Scheine durchsuchen"
-          placeholder="Suchen …"
-          value={suche}
-          onChange={(e) => setSuche(e.target.value)}
-          className="scheine-suche"
-        />
-        {!suchend && !nurUnverrechnet && (
-          <div className="scheine-ansicht">
-            <Segmente name="Ansicht" werte={ANSICHTEN} wert={ansicht} onChange={ansichtSetzen} />
-          </div>
-        )}
-      </div>
-
       <Card
         title={
           offeneAnsicht
@@ -965,6 +945,18 @@ export default function WorkSheetsListView() {
         }
         buendig
       >
+        {/*
+          SUCHE UND ANSICHT ÜBER DER LISTE (Regel 4, Listenleiste). Beim
+          Tippen verschwinden die Reiter; die Suche steht am Handy darüber
+          und rutscht deshalb nicht unter dem Finger weg. Der Platzhalter
+          nennt, was die Suche findet — auch einen Monat („09.2026“).
+        */}
+        <Listenleiste
+          reiter={!suchend && !nurUnverrechnet ? (
+            <Segmente name="Ansicht" werte={ANSICHTEN} wert={ansicht} onChange={ansichtSetzen} />
+          ) : undefined}
+          suche={{ id: 'scheine-suche', wert: suche, onChange: setSuche, platzhalter: 'Kunde, Baustelle oder Monat', name: 'Scheine durchsuchen' }}
+        />
         {obenEtwas && (
           <div className="p-4 pb-1">
             {error && <div className="mb-3"><ErrorState message={error} /></div>}

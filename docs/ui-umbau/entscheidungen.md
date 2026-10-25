@@ -271,3 +271,43 @@ Grenze, mit Grund: Nachkalkulation, Handwerksscheine, Urlaub und
 Sonderurlaub behalten ihren Untertitel — er sagt dort etwas Fachliches
 („je Baustelle“, „auch Entwürfe“, die drei Arten der Freistellung), das
 Prüfungen und Handbuch beim Wort nehmen.
+
+**E26 — Eine Listenleiste (25.10.2026).** Punkt 2 des Design-Entwurfs,
+beauftragt mit E24. Vorher baute jede Listenseite ihre eigene Leiste: die
+Suche mal links, mal rechts, mit der Beschriftung „Suche“ darüber und bei
+den Baustellen einem Hilfetext darunter; die Reiter mal gestreckt, mal
+schmal; der Baustellenfilter der Anforderungen im Kopf der Karte. Umgesetzt
+mit dem Baustein `Listenleiste` (`LotBausteine.tsx`, `lot.css`):
+- **Reiter links, Suche rechts, Zusatzfilter daneben.** Ab dem Tablet stehen
+  die Reiter in ihrer Textbreite links und die Suche rechts; fehlen die
+  Reiter (Katalog, Anforderungen), bleibt die Suche rechts. Am Handy steht
+  die Suche oben und die Reiter teilen sich die Breite — blendet eine Seite
+  die Reiter beim Tippen aus (Scheine), rutscht das Feld nicht weg.
+  Zusatzfilter: „Jeder Stand“ (Rechnungen), „Nur meine Baustellen“
+  (Projektleitung), die Baustelle (Anforderungen).
+- **Suche ohne Beschriftung, mit Lupe.** Der Platzhalter sagt, wonach
+  gesucht wird, und ist so kurz, dass er auch am Handy ganz dasteht (U11);
+  der Name „Suche“ bleibt für die Vorlesehilfe. Geändert: Baustellen
+  „Kunde, Nummer oder Adresse“ (die Bezeichnung nennt die Hilfe der Seite),
+  Scheine „Kunde, Baustelle oder Monat“ statt „Suchen …“, Rechnungen
+  „Nummer, Kunde oder Baustelle“.
+- **Eine Zahl am Reiter nur, wo sie Arbeit zählt (Protokoll 7.7) und
+  vollständig bekannt ist.** Kunden „Anschrift prüfen“ und „Ohne
+  Kundenart“ (beim Server gezählt, über den ganzen Stamm, neu nach jeder
+  Änderung), Lager „knapp“ und „fehlt“ (alle Lagerartikel sind geladen;
+  erst mit dem Stand der Datenbank), Wartungen „Steht an“ (nur wenn der
+  ganze Bestand geladen ist, sonst ohne Zahl). Schon vorher da und
+  geblieben: „Deaktivierte“ bei den Benutzern und die Zahlen der Bereiche
+  der Anforderungen — jetzt ohne Klammer, grau hinter dem Wort.
+
+Grenze, mit Grund — der Entwurf zeigte „Laufend 5 · Erledigt 12 · Alle
+17“: Reiter für Bestand (Laufend, Offen, Erledigt, Alle) tragen keine Zahl.
+Protokoll 7.7 legt fest, dass Zähler nur Handlungsbedarf zählen, nie den
+Gesamtbestand; die Zahl der Gruppe steht über ihr in der Liste, die offene
+Summe im Stand. Ebenfalls ohne Listenleiste: die Mitarbeiterübersicht (ihre
+Leiste steuert einen Zeitraum, keine Liste), die Nachkalkulation (die Wahl
+zwischen laufend und abgeschlossen gehört zum Satz „Zwischenstand“ darunter),
+die Suche der Einstellungen (sie findet eine Einstellung, filtert keinen
+Bestand; ihre Beschriftung unterscheidet sie von der Suche über alles) und
+die Plattform (eigene Fläche des Betreibers).
+

@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import BottomSheet from '@/components/BottomSheet';
 import InfoHint from '@/components/InfoHint';
-import { MehrAnzeigen, Segmente } from '@/components/LotBausteine';
+import { Listenleiste, MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import { useAuth } from '@/app/AuthContext';
 import {
   searchCustomers,
   kundenAdressePruefen,
   kundenOhneKundenart,
+  kundenZuPruefenAnzahl,
   naechsteKundennummer,
   createCustomer,
   updateCustomer,
@@ -238,6 +239,31 @@ export default function CustomersView() {
     void laden();
   }, [laden]);
 
+  /*
+    WIE VIELE ZU PRÜFEN SIND — die Zahlen an den Reitern (Design-Entwurf,
+    Punkt 2). Gezählt beim Server über den ganzen Bestand und unabhängig von
+    Suche und Auswahl: die Zahl sagt, wie viel Arbeit wartet. Bei einem
+    Fehler bleibt der Reiter ohne Zahl statt mit einer Null, die niemand
+    geprüft hat.
+  */
+  const [zuPruefen, setZuPruefen] = useState<{ adressePruefen: number; ohneKundenart: number } | undefined>();
+  const zuPruefenZaehlen = useCallback(async () => {
+    if (!user) return;
+    try {
+      setZuPruefen(await kundenZuPruefenAnzahl(user.companyId));
+    } catch {
+      setZuPruefen(undefined);
+    }
+  }, [user]);
+  useEffect(() => {
+    void zuPruefenZaehlen();
+  }, [zuPruefenZaehlen]);
+  /** Nach einer Änderung am Bestand: die Liste und die Zahlen neu. */
+  const nachAenderung = async () => {
+    await laden();
+    void zuPruefenZaehlen();
+  };
+
   const sichtbar = kunden;
 
   async function speichern(e: FormEvent) {
@@ -286,7 +312,7 @@ export default function CustomersView() {
       setForm(LEER);
       setBearbeitet(null);
       setFormOffen(false);
-      await laden();
+      await nachAenderung();
     } catch (err) {
       setError(grundAus(err, 'Der Kunde konnte nicht gespeichert werden.'));
     } finally {
@@ -363,7 +389,7 @@ export default function CustomersView() {
       toast.success(`${neu} Kunden angelegt, ${zugeordnet} Baustellen zugeordnet`);
       setUebernahme(null);
       setUebernahmeOffen(false);
-      await laden();
+      await nachAenderung();
     } catch (err) {
       setError(grundAus(err, 'Die Übernahme ist fehlgeschlagen.'));
     } finally {
@@ -441,39 +467,26 @@ export default function CustomersView() {
       )}
 
       {/* Der Kundenstamm aus dem Altprogramm — beim Umstieg einmal, danach selten. */}
-      {darfAendern && <KundenImport ref={kundenImport} onUebernommen={() => void laden()} />}
+      {darfAendern && <KundenImport ref={kundenImport} onUebernommen={() => void nachAenderung()} />}
 
       <Card buendig>
-        <div className="listen-werkzeug">
-          <div className="listen-suche">
-            <label htmlFor="ksuche" className="mb-1 block text-sm font-normal text-ink">
-              Suche
-            </label>
-            <input
-              id="ksuche"
-              type="search"
-              aria-label="Kunden durchsuchen"
-              placeholder="Name, Adresse oder Telefon"
-              value={suche}
-              onChange={(e) => setSuche(e.target.value)}
-              className="listen-suchfeld"
-            />
-          </div>
-          <div className="listen-auswahl">
-            {/* M12 und Runde 3, M10: die Kunden, die jemand prüfen muss. Ohne
-                Kundenart gehen Rechnung und Mahnung nicht. */}
+        <Listenleiste
+          reiter={
+            /* M12 und Runde 3, M10: die Kunden, die jemand prüfen muss. Ohne
+               Kundenart gehen Rechnung und Mahnung nicht. */
             <Segmente
               name="Kunden filtern"
               werte={[
                 { wert: 'alle', text: 'Alle' },
-                { wert: 'pruefen', text: 'Anschrift prüfen' },
-                { wert: 'ohne-art', text: 'Ohne Kundenart' },
+                { wert: 'pruefen', text: 'Anschrift prüfen', anzahl: zuPruefen?.adressePruefen },
+                { wert: 'ohne-art', text: 'Ohne Kundenart', anzahl: zuPruefen?.ohneKundenart },
               ]}
               wert={auswahl}
               onChange={setAuswahl}
             />
-          </div>
-        </div>
+          }
+          suche={{ id: 'ksuche', wert: suche, onChange: setSuche, platzhalter: 'Name, Adresse oder Telefon', name: 'Kunden durchsuchen' }}
+        />
 
         {loading ? (
           <div className="border-t border-line p-4">
@@ -821,7 +834,7 @@ export default function CustomersView() {
           try {
             await deleteCustomer(user.companyId, toDelete.id);
             toast.success('Kunde gelöscht');
-            await laden();
+            await nachAenderung();
           } catch (e) {
             setError((e as Error).message);
           }

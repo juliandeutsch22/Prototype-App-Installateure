@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Icon from './Icon';
 
 /**
  * Kleine Bausteine der Linie „Lot“ (Protokoll Abschnitt 4), die es vor dem
@@ -40,7 +41,11 @@ export function Segmente<T extends string>({
   onChange,
 }: {
   name: string;
-  werte: readonly { wert: T; text: string }[];
+  /**
+   * `anzahl` nur, wo sie Handlungsbedarf zählt (Protokoll 7.7) und vollständig
+   * bekannt ist — `undefined` zeigt keine Zahl statt einer geratenen.
+   */
+  werte: readonly { wert: T; text: string; anzahl?: number }[];
   wert: T;
   onChange: (w: T) => void;
 }) {
@@ -55,8 +60,64 @@ export function Segmente<T extends string>({
           onClick={() => onChange(w.wert)}
         >
           {w.text}
+          {/* Ein echtes Leerzeichen, kein Abstand per CSS: vorgelesen wird „Retouren 1“, nicht „Retouren1“. */}
+          {w.anzahl !== undefined && <> <span className="segment-anzahl">{w.anzahl}</span></>}
         </button>
       ))}
+    </div>
+  );
+}
+
+/**
+ * DIE LISTENLEISTE (Design-Entwurf, Punkt 2): Reiter links, Suche rechts,
+ * Zusatzfilter daneben — auf jeder Listenseite gleich. Vorher baute jede
+ * Seite ihre eigene Anordnung: die Suche mal links, mal rechts, mit
+ * Beschriftung darüber und Hilfetext darunter oder ohne, die Reiter mal
+ * gestreckt, mal schmal.
+ *
+ * Sichtbar sagt der Platzhalter, wonach gesucht wird; der Name des Felds
+ * bleibt für die Vorlesehilfe. Am Handy steht die Suche über den Reitern:
+ * blendet eine Seite die Reiter beim Tippen aus (Scheine), rutscht das Feld
+ * nicht unter dem Finger weg.
+ */
+export function Listenleiste({
+  reiter,
+  suche,
+  zusatz,
+}: {
+  reiter?: ReactNode;
+  suche?: {
+    id: string;
+    wert: string;
+    onChange: (wert: string) => void;
+    platzhalter: string;
+    /** Der Name für die Vorlesehilfe; ohne Angabe „Suche“. */
+    name?: string;
+  };
+  /** Ein Zusatzfilter neben der Suche (eine Auswahl, ein Kästchen). */
+  zusatz?: ReactNode;
+}) {
+  return (
+    <div className="listenleiste">
+      {reiter && <div className="listenleiste-reiter">{reiter}</div>}
+      {(suche || zusatz) && (
+        <div className="listenleiste-werkzeug">
+          {zusatz && <div className="listenleiste-zusatz">{zusatz}</div>}
+          {suche && (
+            <div className="listenleiste-suche">
+              <Icon name="lupe" size={18} aria-hidden="true" />
+              <input
+                id={suche.id}
+                type="search"
+                aria-label={suche.name ?? 'Suche'}
+                placeholder={suche.platzhalter}
+                value={suche.wert}
+                onChange={(e) => suche.onChange(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

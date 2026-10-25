@@ -46,7 +46,7 @@ import KatalogSuche from './KatalogSuche';
 import Abschnitt from '@/components/Abschnitt';
 import BottomSheet from '@/components/BottomSheet';
 import Nachladen from '@/components/Nachladen';
-import { MehrAnzeigen, Segmente, WeitereAngaben } from '@/components/LotBausteine';
+import { Listenleiste, MehrAnzeigen, Segmente, WeitereAngaben } from '@/components/LotBausteine';
 
 /**
  * Zahl aus einem Eingabefeld — über die zentrale Lesung (M15). „7.500,50“
@@ -1125,8 +1125,8 @@ export default function QuotesView() {
 
       {/* Bündig: Angebote als Zeilen von Kante zu Kante. */}
       <Card buendig>
-        <div className="flex flex-wrap items-end gap-3 p-4">
-          <div className="w-full md:w-auto">
+        <Listenleiste
+          reiter={
             <Segmente
               name="Angebote zeigen"
               werte={ANSICHTEN}
@@ -1136,28 +1136,19 @@ export default function QuotesView() {
                 ansichtWaehlen(neu);
               }}
             />
-          </div>
-          <div className="min-w-[12rem] flex-1">
-            <InputField
-              id="anq-suche"
-              label="Suche"
-              type="search"
-              placeholder="Nummer, Kunde, Ort oder Baustelle"
-              value={suche}
-              onChange={(e) => sucheAendern(e.target.value)}
-            />
-          </div>
-          {suchbegriff && suchFehler && (
-            <p className="w-full text-xs text-warning">
-              Die Suche über alle Angebote ist gerade nicht erreichbar — gezeigt werden Treffer unter den geladenen.
-            </p>
-          )}
-          {serverTreffer && serverTreffer.length >= ANGEBOT_TREFFER && (
-            <p className="w-full text-xs text-ink-muted">
-              Die {ANGEBOT_TREFFER} jüngsten Treffer — für ältere genauer suchen.
-            </p>
-          )}
-        </div>
+          }
+          suche={{ id: 'anq-suche', wert: suche, onChange: sucheAendern, platzhalter: 'Nummer, Kunde, Ort oder Baustelle' }}
+        />
+        {suchbegriff && suchFehler && (
+          <p className="px-4 pb-3 text-xs text-warning">
+            Die Suche über alle Angebote ist gerade nicht erreichbar — gezeigt werden Treffer unter den geladenen.
+          </p>
+        )}
+        {serverTreffer && serverTreffer.length >= ANGEBOT_TREFFER && (
+          <p className="px-4 pb-3 text-xs text-ink-muted">
+            Die {ANGEBOT_TREFFER} jüngsten Treffer — für ältere genauer suchen.
+          </p>
+        )}
         {loading ? (
           <div className="p-4">
             <SkeletonList rows={3} />

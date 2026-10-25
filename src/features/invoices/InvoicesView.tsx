@@ -105,7 +105,7 @@ import { darfKundenPflegen, isTopLevel } from '@/lib/permissions';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import Hinweiszeile from '@/components/Hinweiszeile';
-import { Segmente, WeitereAngaben } from '@/components/LotBausteine';
+import { Listenleiste, Segmente, WeitereAngaben } from '@/components/LotBausteine';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
 import InfoHint from '@/components/InfoHint';
@@ -4041,34 +4041,28 @@ export default function InvoicesView() {
             <Adressfilter text={SICHT_TITEL[sicht]} parameter={['sicht']} />
           </div>
         ) : (
-        <div className="rechnungen-filter">
-          {/*
-            DIE ANSICHT ALS SEGMENTE (Linie „Lot“, Regel 4): Arbeitsstand als
-            Standard, „Erledigt“ und „Alle“ einen Tipp entfernt. Die Auswahl
-            nach einem einzelnen Stand bleibt daneben — mit sieben Werten
-            passten Segmente am Handy nicht in eine Zeile.
-          */}
-          <Segmente
-            name="Rechnungen zeigen"
-            werte={BEREICHE}
-            wert={filter as (typeof BEREICHE)[number]['wert']}
-            onChange={(w) => {
-              vorDerSuche.current = null;
-              filterSetzen(w);
-            }}
-          />
-          <div className="rechnungen-suchzeile">
-            <div className="rechnungen-suchfeld">
-              <InputField
-                id="invsuche"
-                label="Suche"
-                type="search"
-                placeholder="Rechnungsnummer, Kunde oder Baustelle"
-                value={rechnungSuche}
-                onChange={(e) => sucheAendern(e.target.value)}
+        <>
+          <Listenleiste
+            reiter={
+              /*
+                DIE ANSICHT ALS SEGMENTE (Linie „Lot“, Regel 4): Arbeitsstand als
+                Standard, „Erledigt“ und „Alle“ einen Tipp entfernt. Ohne Zahl:
+                offene Rechnungen sind Bestand, ihre Summe steht im Stand (7.7).
+              */
+              <Segmente
+                name="Rechnungen zeigen"
+                werte={BEREICHE}
+                wert={filter as (typeof BEREICHE)[number]['wert']}
+                onChange={(w) => {
+                  vorDerSuche.current = null;
+                  filterSetzen(w);
+                }}
               />
-            </div>
-            <div className="rechnungen-stand">
+            }
+            suche={{ id: 'invsuche', wert: rechnungSuche, onChange: sucheAendern, platzhalter: 'Nummer, Kunde oder Baustelle' }}
+            /* Die Auswahl nach einem einzelnen Stand neben der Suche — mit
+               sieben Werten passten Segmente am Handy nicht in eine Zeile. */
+            zusatz={
               <SelectField id="invfilter" label="" aria-label="Rechnungen nach Status filtern"
                 value={(FILTERSTATI as readonly string[]).includes(filter) ? filter : 'alle'}
                 onChange={(e) => {
@@ -4078,20 +4072,20 @@ export default function InvoicesView() {
                 <option value="alle">Jeder Stand</option>
                 {FILTERSTATI.map((st) => <option key={st} value={st}>{st}</option>)}
               </SelectField>
-            </div>
-          </div>
+            }
+          />
           {suchbegriff && suchFehler && (
-            <p className="text-xs text-warning">
+            <p className="px-4 pb-3 text-xs text-warning">
               Die Suche über alle Rechnungen ist gerade nicht erreichbar — gezeigt werden Treffer unter
               den geladenen.
             </p>
           )}
           {serverTreffer && serverTreffer.length >= RECHNUNG_TREFFER && (
-            <p className="text-xs text-ink-muted">
+            <p className="px-4 pb-3 text-xs text-ink-muted">
               Die {RECHNUNG_TREFFER} jüngsten Treffer — für ältere genauer suchen.
             </p>
           )}
-        </div>
+        </>
         )}
         {loading ? (
           <div className="px-4 pb-4">
