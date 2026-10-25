@@ -197,6 +197,7 @@ function lagerKennzahlen(d: StartDaten, u: Umfeld): Kennzahl[] {
       wert: offen.length,
       zusatz: eil ? `offen, davon ${eil} Eil` : 'offen',
       to: ZIEL.anforderungen('offen'),
+      leer: offen.length === 0,
     });
   }
   if (d.knapp && u.darf(ZIEL.lagerKnapp)) {
@@ -206,6 +207,7 @@ function lagerKennzahlen(d: StartDaten, u: Umfeld): Kennzahl[] {
       wert: d.knapp.length,
       zusatz: 'unter Mindestmenge',
       to: ZIEL.lagerKnapp,
+      leer: d.knapp.length === 0,
     });
   }
   return out;
@@ -268,6 +270,7 @@ function geldKennzahlen(d: StartDaten, u: Umfeld, mitBezahlt: boolean): Kennzahl
       wert: euro(summe(offen) + summe(ueber) - faellig),
       zusatz: anzahl(offen.length + mitRuecklass, 'Rechnung', 'Rechnungen'),
       to: ZIEL.rechnungen,
+      leer: offen.length + mitRuecklass === 0,
     });
     out.push({
       key: 'ueberfaellig',
@@ -276,6 +279,7 @@ function geldKennzahlen(d: StartDaten, u: Umfeld, mitBezahlt: boolean): Kennzahl
       zusatz: ueber.length ? anzahl(ueber.length, 'Rechnung', 'Rechnungen') : 'keine Rechnung',
       to: ZIEL.rechnungenUeberfaellig,
       ton: ueber.length ? 'danger' : undefined,
+      leer: ueber.length === 0,
     });
   }
   if (d.unverrechnet && u.darf(ZIEL.scheine('nicht-verrechnet'))) {
@@ -286,6 +290,7 @@ function geldKennzahlen(d: StartDaten, u: Umfeld, mitBezahlt: boolean): Kennzahl
       wert: anzahl(d.unverrechnet.length, 'Schein', 'Scheine'),
       zusatz: alt ? `davon ${alt} über 4 Wochen` : 'keiner über 4 Wochen',
       to: ZIEL.scheine('nicht-verrechnet'),
+      leer: d.unverrechnet.length === 0,
     });
   }
   if (mitBezahlt && d.bezahltImMonat && u.darf(ZIEL.rechnungen)) {

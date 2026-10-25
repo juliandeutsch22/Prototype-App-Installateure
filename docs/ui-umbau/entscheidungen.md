@@ -165,3 +165,19 @@ Betriebsinhalte, Berechtigungen, Zwei-Faktor-Pflicht, Wiederherstellung und
 Löschbedingungen bleiben erhalten. Die mobile Betriebsnavigation bleibt;
 die Plattform selbst erhält eine offene zweizeilige Bereichswahl.
 [Umfang, Funktionserhalt und Abnahme](lot-plattform-2026-10-22.md).
+
+**E22 — Stand-Zeile statt großer Kennzahlen auf der Startseite (25.10.2026).**
+Der Auftraggeber: „was mich immer stört ist diese anzeige auf der startseite
+ganz oben mit den vier großen zahlen … Das sieht auf keiner seite und keiner
+ansicht schön aus“; auf den Vorschlag einer Zeile hin „ja kannst du umsetzen
+wenn dennoch voll funktionsfähigkeit gegeben ist“. Die Kacheln weichen einer
+Zeile zwischen zwei Linien: Beschriftung, Wert und Zusatz hintereinander,
+jeder Eintrag ein Verweis auf dieselbe gefilterte Liste wie vorher; am Handy
+je Eintrag eine Zeile, der Wert rechts. Gerechnet wird unverändert in
+`start/aufbau.ts`. Neu ist nur `leer`: offene und überfällige Rechnungen,
+unverrechnete Scheine, offene Anforderungen und knappe Artikel fallen aus
+der Zeile, wenn nichts zu tun ist; Zustände (Saldo, Resturlaub, aktive
+Baustellen, Auslastung, Bezahlt im Monat) stehen auch bei null. Ist alles
+leer, fällt die Zeile weg. Überfälliges bleibt rot. Keine Grafik: die
+Startseite ist zum Handeln da, eine Auswertung gehört zu Rechnungen oder
+Nachkalkulation. Die übrigen Seiten behalten ihre Kennzahlen.

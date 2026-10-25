@@ -6,18 +6,31 @@
  * gestrichelten Linien. Farben nur aus den Grundwerten (var(--…)).
  */
 @layer components {
-  /* ── Startseite: Breite der Kennzahlenleiste ─────────────────────────── */
+  /* ── Startseite: der Stand in einer Zeile (E22) ───────────────────────── */
   /*
-    Bei einer oder zwei Kennzahlen bleibt jede so breit wie bei vieren: eine
-    Zahl über die ganze Seite wäre ein Balken (U4), und die Beschriftung
-    stünde weit von ihrer Zahl. Am Telefon gilt das Raster zu zwei.
+    Beschriftung klein und grau über dem Wert, Wert in Tinte, Zusatz grau
+    daneben — eine Reihe zwischen zwei Linien. Am Handy je Eintrag eine Zeile
+    mit dem Wert rechts, damit Beträge untereinander stehen.
   */
-  .start-kennzahlen-eine { max-width: 50%; }
-  .start-kennzahlen-zwei { max-width: 100%; }
-  @media (min-width: 760px) {
-    .start-kennzahlen-eine { max-width: 25%; }
-    .start-kennzahlen-zwei { max-width: 50%; }
-  }
+  .lage-zeile { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--border); }
+  /* Am Tablet zwei Spalten, damit vier Einträge 2 + 2 stehen und nicht 3 + 1; ab dem Schreibtisch eine Reihe. */
+  @media (min-width: 760px) { .lage-zeile { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 2.5rem; border-bottom: 1px solid var(--border); } }
+  @media (min-width: 1200px) { .lage-zeile { display: flex; flex-wrap: wrap; } }
+  .lage-punkt { border-bottom: 1px solid var(--border); }
+  @media (min-width: 760px) { .lage-punkt { border-bottom: 0; } }
+  .lage-eintrag { display: flex; align-items: baseline; gap: 0.75rem; min-height: 2.75rem; padding: 0.625rem 0; color: inherit; text-decoration: none; }
+  @media (min-width: 760px) { .lage-eintrag { flex-direction: column; align-items: flex-start; gap: 0.125rem; padding: 0.75rem 0; } }
+  .lage-eintrag:hover .lage-wert { color: var(--accent-deep); }
+  .lage-name { flex: 1; font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
+  @media (min-width: 760px) { .lage-name { flex: none; } }
+  .lage-zahl { text-align: right; }
+  @media (min-width: 760px) { .lage-zahl { text-align: left; white-space: nowrap; } }
+  .lage-wert { font-size: 0.9375rem; line-height: 1.375rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .lage-wert-rot { color: var(--danger); }
+  .lage-zusatz { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
+  @media (max-width: 759px) { .lage-zusatz { display: block; } }
+  /* Der Platzhalter hat die Höhe der Zeile am Schreibtisch, damit beim Eintreffen nichts springt. */
+  .lage-platzhalter { display: flex; align-items: center; gap: 2.5rem; min-height: 4.25rem; padding: 0.75rem 0; border-block: 1px solid var(--border); }
 }
 
 /* Die Linie verbindet vorhandene Termine; ihre Abstände behaupten keine maßstäbliche Zeitachse. */
@@ -68,11 +81,6 @@
   .start-leer { padding: 1rem 0; }
   .start-leer h2 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; }
   .start-leer p { color: var(--text-muted); font-size: 0.875rem; line-height: 1.75rem; max-width: 32rem; margin-top: 0.75rem; }
-  .start-seite .start-kennzahlen { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .start-kennzahlen-eine .start-kennzahlen { grid-template-columns: minmax(0, 1fr); }
-  .start-seite .kennzahl-wert { font-size: 1.25rem; line-height: 1.75rem; color: var(--accent-deep); margin-top: 0.5rem; }
-  .start-seite .kennzahl-wert.text-danger { color: var(--danger); }
-  .start-seite .kennzahl-name, .start-seite .kennzahl-zusatz { font-size: 0.6875rem; line-height: 1.125rem; }
   .start-einsatz { padding: 1rem 0; }
   .start-einsatz-kontakt { margin-top: 0.75rem; }
   .start-einsatz-kontakt a { border: 0; padding: 0.5rem 0; border-radius: 0; color: var(--accent-deep); text-decoration: underline; text-underline-offset: 3px; font-size: 0.8125rem; overflow-wrap: anywhere; }
@@ -86,13 +94,8 @@
     .start-planaktion { display: inline-flex; }
     .start-rahmen { grid-template-columns: minmax(0, 1fr) 15.5rem; gap: 1.5rem; }
     .start-kontext { border-top: 0; border-left: 1px solid var(--border); }
-    .start-seite .start-kennzahlen { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .start-kennzahlen-eine .start-kennzahlen { grid-template-columns: minmax(0, 1fr); }
-    .start-kennzahlen-zwei .start-kennzahlen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (min-width: 1200px) {
     .start-rahmen { grid-template-columns: minmax(0, 1fr) 19.125rem; gap: 2.25rem; }
-    .start-seite .kennzahl-wert { font-size: 1.5rem; line-height: 2rem; }
-    .start-seite .kennzahl-name, .start-seite .kennzahl-zusatz { font-size: 0.75rem; line-height: 1.25rem; }
   }
 }
