@@ -376,15 +376,26 @@ export interface UnverrechneteZeile {
   tage: number;
 }
 
-export function scheineNichtVerrechnet(auffaellig: UnverrechneteZeile[]): Abschnitt | null {
-  const zeilen: Zeile[] = auffaellig.map(({ schein, tage }) => ({
-    key: `schein-${schein.id}`,
-    titel: schein.customerName || `Baustelle ${schein.projectNumber}`,
-    detail: `Schein ${datumAT(schein.datum)} · ${schein.projectNumber}`,
-    status: { text: tageWort(tage), ton: 'warn' },
-    to: ZIEL.schein(schein.id),
-  }));
-  return abschnitt('scheine', 'Scheine über 4 Wochen nicht verrechnet', zeilen, ZIEL.scheine('nicht-verrechnet-alt'));
+/**
+ * ALLE NICHT VERRECHNETEN SCHEINE ALS EINE ZEILE (25.10.2026, E22).
+ *
+ * Vorher stand unter „Zu erledigen“ nur, was über vier Wochen alt ist — und
+ * die Gesamtzahl als Kennzahl im Stand. Nicht verrechnet ist aber Arbeit,
+ * kein Stand: jetzt steht hier alles, als EINE Zeile, damit die Liste nicht
+ * mit jedem Einsatz wächst. Ist etwas über vier Wochen alt, trägt die Zeile
+ * den Achtung-Punkt; sonst steht sie ruhig. Die einzelnen Scheine zeigt die
+ * Liste dahinter, älteste zuerst.
+ */
+export function scheineZeile(alle: UnverrechneteZeile[], altAb: number): Zeile | null {
+  if (alle.length === 0) return null;
+  const alt = alle.filter((z) => z.tage >= altAb).length;
+  return {
+    key: 'scheine',
+    titel: `${alle.length} ${alle.length === 1 ? 'Schein' : 'Scheine'} nicht verrechnet`,
+    detail: alt ? `davon ${alt} über 4 Wochen` : 'alle jünger als 4 Wochen',
+    status: { text: 'verrechnen', ton: alt ? 'warn' : 'leise' },
+    to: ZIEL.scheine('nicht-verrechnet'),
+  };
 }
 
 /** Eine Regiebaustelle mit unverrechneten Stunden (23.10.2026). */
@@ -394,19 +405,24 @@ export interface OffeneStundenZeile {
 }
 
 /**
- * Regiebaustellen, deren älteste unverrechnete Stunde über vier Wochen alt
- * ist. Die Zeile führt direkt zu „Neue Rechnung“ mit dieser Baustelle — der
- * Weg zur Rechnung ist die Baustelle, wie bei den Scheinen.
+ * DIE REGIEBAUSTELLEN MIT NICHT VERRECHNETEN STUNDEN ALS EINE ZEILE
+ * (25.10.2026, E22) — wie bei den Scheinen alle, nicht nur die alten. Bei
+ * einer Baustelle führt die Zeile direkt zu „Neue Rechnung“ mit ihr und nennt
+ * Kunde, Stunden und den ältesten Tag; bei mehreren zu den Rechnungen.
  */
-export function stundenNichtVerrechnet(auffaellig: OffeneStundenZeile[]): Abschnitt | null {
-  const zeilen: Zeile[] = auffaellig.map(({ stunden, tage }) => ({
-    key: `stunden-${stunden.projectNumber}`,
-    titel: stunden.kunde || `Baustelle ${stunden.projectNumber}`,
-    detail: `${fmtStd(stunden.minuten)} Std seit ${datumAT(stunden.aeltester)} · ${stunden.projectNumber}`,
-    status: { text: tageWort(tage), ton: 'warn' },
-    to: ZIEL.rechnungFuer(stunden.projectNumber),
-  }));
-  return abschnitt('stunden', 'Stunden über 4 Wochen nicht verrechnet', zeilen, ZIEL.rechnungen);
+export function stundenZeile(alle: OffeneStundenZeile[], altAb: number): Zeile | null {
+  if (alle.length === 0) return null;
+  const alt = alle.filter((z) => z.tage >= altAb).length;
+  const eine = alle.length === 1 ? alle[0].stunden : null;
+  return {
+    key: 'stunden',
+    titel: `${alle.length} ${alle.length === 1 ? 'Baustelle' : 'Baustellen'} mit Stunden nicht verrechnet`,
+    detail: eine
+      ? `${eine.kunde || eine.projectNumber} · ${fmtStd(eine.minuten)} Std seit ${datumAT(eine.aeltester)}`
+      : alt ? `davon ${alt} über 4 Wochen` : 'alle jünger als 4 Wochen',
+    status: { text: 'verrechnen', ton: alt ? 'warn' : 'leise' },
+    to: eine ? ZIEL.rechnungFuer(eine.projectNumber) : ZIEL.rechnungen,
+  };
 }
 
 export interface TeamLuecke {

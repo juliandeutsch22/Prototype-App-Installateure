@@ -181,3 +181,10 @@ Baustellen, Auslastung, Bezahlt im Monat) stehen auch bei null. Ist alles
 leer, fällt die Zeile weg. Überfälliges bleibt rot. Keine Grafik: die
 Startseite ist zum Handeln da, eine Auswertung gehört zu Rechnungen oder
 Nachkalkulation. Die übrigen Seiten behalten ihre Kennzahlen.
+Nachtrag am selben Tag: „muss dieses 1 schein nicht verrechnet dort
+aufscheinen? … das ist eher eine meldung die bei zu erledigen aufscheinen
+sollte“ — auf den Vorschlag hin „ja das passt so“. „Nicht verrechnet“ fällt
+aus dem Stand und steht unter „Zu erledigen“ immer, nicht erst ab vier
+Wochen: je eine Sammelzeile für Scheine und für Regiestunden, ab vier Wochen
+mit Achtung-Punkt. Die Seite Rechnungen („Nicht verrechnete Leistung“)
+bleibt bei ihrer Vier-Wochen-Grenze.

@@ -159,7 +159,7 @@ describe('Buchhaltung', () => {
     }
   });
 
-  it('zeigt Offen, Überfällig, Nicht verrechnet und Bezahlt im Monat (M24)', () => {
+  it('zeigt Offen, Überfällig und Bezahlt im Monat (M24) — „Nicht verrechnet“ steht unter Zu erledigen (E22)', () => {
     const s = startseite({
       unbezahlt: [
         rechnung({ id: 'RE-1', totalBrutto: 200, dueDate: '2026-10-14' }),
@@ -170,14 +170,18 @@ describe('Buchhaltung', () => {
       bezahltImMonat: { summe: 1234.5, anzahl: 4 },
     }, umfeld());
 
-    expect(s.kennzahlen.map((k) => k.label)).toEqual(['Offen', 'Überfällig', 'Nicht verrechnet', 'Bezahlt im September']);
+    expect(s.kennzahlen.map((k) => k.label)).toEqual(['Offen', 'Überfällig', 'Bezahlt im September']);
     const nach = new Map(s.kennzahlen.map((k) => [k.key, k]));
     expect(nach.get('offen')).toMatchObject({ wert: euro(500), zusatz: '2 Rechnungen', to: ZIEL.rechnungen });
     // Rot nur, wo etwas überfällig ist.
     expect(nach.get('ueberfaellig')).toMatchObject({
       wert: euro(150), zusatz: '1 Rechnung', to: ZIEL.rechnungenUeberfaellig, ton: 'danger',
     });
-    expect(nach.get('unverrechnet')).toMatchObject({ wert: '2 Scheine', zusatz: 'davon 1 über 4 Wochen' });
+    const verrechnen = s.abschnitte.find((a) => a.key === 'verrechnen');
+    expect(verrechnen?.zeilen.find((z) => z.key === 'scheine')).toMatchObject({
+      titel: '2 Scheine nicht verrechnet', detail: 'davon 1 über 4 Wochen',
+      status: { text: 'verrechnen', ton: 'warn' }, to: ZIEL.scheine('nicht-verrechnet'),
+    });
     expect(nach.get('bezahlt')).toMatchObject({ wert: euro(1234.5), zusatz: '4 Rechnungen', to: ZIEL.rechnungenSicht('bezahlt-monat') });
   });
 
@@ -201,7 +205,6 @@ describe('Buchhaltung', () => {
     const nach = new Map(s.kennzahlen.map((k) => [k.key, k]));
     expect(nach.get('offen')?.leer).toBe(true);
     expect(nach.get('ueberfaellig')?.leer).toBe(true);
-    expect(nach.get('unverrechnet')?.leer).toBe(true);
     // Auch null Eingänge sind eine Auskunft über den Monat.
     expect(nach.get('bezahlt')?.leer).toBeUndefined();
   });
@@ -214,7 +217,6 @@ describe('Buchhaltung', () => {
     const nach = new Map(s.kennzahlen.map((k) => [k.key, k]));
     expect(nach.get('offen')?.leer).toBe(false);
     expect(nach.get('ueberfaellig')?.leer).toBe(true);
-    expect(nach.get('unverrechnet')?.leer).toBe(false);
   });
 
   it('Gegenprobe: ein überfälliger Rücklass-Rest hält „Überfällig“ in der Zeile (E22)', () => {
@@ -225,6 +227,40 @@ describe('Buchhaltung', () => {
       })],
     }, umfeld());
     expect(s.kennzahlen.find((k) => k.key === 'ueberfaellig')?.leer).toBe(false);
+  });
+
+  /*
+    NICHT VERRECHNET IST ARBEIT, KEIN STAND (E22, 25.10.2026). Die Zahl
+    stand im Stand und unter „Zu erledigen“ nur ab vier Wochen. Jetzt fehlt sie
+    im Stand und steht unter „Zu erledigen“ immer — frisch ruhig, alt mit
+    Achtung-Punkt.
+  */
+  it('Stand ohne „Nicht verrechnet“ — die Scheine stehen unter Zu erledigen (E22)', () => {
+    const s = startseite({ unverrechnet: [schein('s1', 40)] }, umfeld());
+    expect(s.kennzahlen.some((k) => k.key === 'unverrechnet')).toBe(false);
+    expect(s.abschnitte.find((a) => a.key === 'verrechnen')?.zeilen[0]).toMatchObject({ key: 'scheine', titel: '1 Schein nicht verrechnet' });
+  });
+
+  it('Buchhaltung: auch ein frischer Schein steht da — ruhig, ohne Achtung-Punkt (E22)', () => {
+    const s = startseite({ unverrechnet: [schein('s1', 3), schein('s2', 10)] }, umfeld());
+    expect(s.abschnitte.find((a) => a.key === 'verrechnen')?.zeilen).toEqual([expect.objectContaining({
+      key: 'scheine', titel: '2 Scheine nicht verrechnet', detail: 'alle jünger als 4 Wochen',
+      status: { text: 'verrechnen', ton: 'leise' }, to: ZIEL.scheine('nicht-verrechnet'),
+    })]);
+  });
+
+  it('Geschäftsführung: ein Thema unter „Diese Woche“, frisch ruhig, alt mit Achtung-Punkt (E22)', () => {
+    const leitung = (d: Parameters<typeof startseite>[0]) => startseite(d, umfeld({ rolle: 'leitung' }));
+    const thema = (d: Parameters<typeof startseite>[0]) =>
+      leitung(d).abschnitte.flatMap((a) => [...a.zeilen, ...(a.weiter && 'aufklappen' in a.weiter ? a.weiter.aufklappen : [])])
+        .find((z) => z.key === 'scheine');
+    expect(thema({ unverrechnet: [schein('s1', 3)] })).toMatchObject({ detail: 'alle jünger als 4 Wochen', status: { ton: 'leise' } });
+    expect(thema({ unverrechnet: [schein('s1', 3), schein('s2', 40)] })).toMatchObject({ detail: 'davon 1 über 4 Wochen', status: { ton: 'warn' } });
+    expect(leitung({ unverrechnet: [schein('s1', 3)] }).kennzahlen.some((k) => k.key === 'unverrechnet')).toBe(false);
+  });
+
+  it('Gegenprobe: ohne nicht verrechnete Scheine und Stunden kein Abschnitt (E22)', () => {
+    expect(startseite({ unverrechnet: [], offeneStunden: [] }, umfeld()).abschnitte.some((a) => a.key === 'verrechnen')).toBe(false);
   });
 
   // Rücklass (05.10.2026): der nicht fällige Teil einer überfälligen Rechnung bleibt offen.
@@ -679,31 +715,49 @@ describe('Unverrechnete Stunden auf der Startseite', () => {
   const alleZeilen = (s: ReturnType<typeof startseite>) =>
     s.abschnitte.flatMap((a) => [...a.zeilen, ...(a.weiter && 'aufklappen' in a.weiter ? a.weiter.aufklappen : [])]);
 
-  it('Buchhaltung: eigener Abschnitt, jede Zeile führt zu „Neue Rechnung“ mit der Baustelle', () => {
-    const s = startseite({ offeneStunden: [stunden('2026-042', 60), stunden('2026-050', 5)] }, buch());
-    const a = s.abschnitte.find((x) => x.key === 'stunden')!;
-    expect(a.titel).toBe('Stunden über 4 Wochen nicht verrechnet');
-    expect(a.zeilen).toHaveLength(1);
-    expect(a.zeilen[0]).toMatchObject({
-      titel: 'Familie Huber',
-      detail: '42,5 Std seit 01.08.2026 · 2026-042',
-      status: { text: '60 Tage', ton: 'warn' },
+  /*
+    SEIT E22 EINE SAMMELZEILE im Abschnitt „Nicht verrechnet“, für alle
+    offenen Stunden, nicht nur die alten. Bei einer Baustelle führt sie direkt
+    zu „Neue Rechnung“ mit ihr und nennt Kunde, Stunden und ältesten Tag.
+  */
+  it('Buchhaltung: eine Sammelzeile unter „Nicht verrechnet“ — bei einer Baustelle direkt zu ihrer Rechnung', () => {
+    const eine = startseite({ offeneStunden: [stunden('2026-042', 60)] }, buch());
+    const a = eine.abschnitte.find((x) => x.key === 'verrechnen')!;
+    expect(a.titel).toBe('Nicht verrechnet');
+    expect(a.zeilen).toEqual([expect.objectContaining({
+      key: 'stunden',
+      titel: '1 Baustelle mit Stunden nicht verrechnet',
+      detail: 'Familie Huber · 42,5 Std seit 01.08.2026',
+      status: { text: 'verrechnen', ton: 'warn' },
       to: '/invoices?neu=2026-042',
+    })]);
+    const zwei = startseite({ offeneStunden: [stunden('2026-042', 60), stunden('2026-050', 5)] }, buch());
+    expect(zwei.abschnitte.find((x) => x.key === 'verrechnen')!.zeilen[0]).toMatchObject({
+      titel: '2 Baustellen mit Stunden nicht verrechnet', detail: 'davon 1 über 4 Wochen', to: ZIEL.rechnungen,
     });
   });
 
-  it('Gegenprobe: ohne Recht auf Rechnungen und ohne Altes kein Abschnitt', () => {
-    expect(startseite({ offeneStunden: [stunden('2026-042', 60)] }, buch({ darf: (z) => !z.startsWith('/invoices') }))
-      .abschnitte.some((x) => x.key === 'stunden')).toBe(false);
-    expect(startseite({ offeneStunden: [stunden('2026-042', 27)] }, buch())
-      .abschnitte.some((x) => x.key === 'stunden')).toBe(false);
+  it('auch frische Stunden stehen da — ruhig, ohne Achtung-Punkt (E22)', () => {
+    const s = startseite({ offeneStunden: [stunden('2026-042', 27), stunden('2026-050', 3)] }, buch());
+    expect(s.abschnitte.find((x) => x.key === 'verrechnen')!.zeilen[0]).toMatchObject({
+      detail: 'alle jünger als 4 Wochen', status: { text: 'verrechnen', ton: 'leise' },
+    });
+  });
+
+  it('Gegenprobe: ohne Recht auf Rechnungen keine Stundenzeile — die Scheine bleiben', () => {
+    const s = startseite(
+      { offeneStunden: [stunden('2026-042', 60)], unverrechnet: [{ schein: { id: 's1', projectNumber: 'PR-1', customerName: 'Kunde', datum: '2026-10-10' }, tage: 3 }] },
+      buch({ darf: (z) => !z.startsWith('/invoices') }),
+    );
+    const zeilen = s.abschnitte.find((x) => x.key === 'verrechnen')!.zeilen;
+    expect(zeilen.map((z) => z.key)).toEqual(['scheine']);
   });
 
   it('Leitung: ein Thema unter „Diese Woche“ — bei einer Baustelle direkt zu ihrer Rechnung', () => {
     const eine = alleZeilen(startseite({ offeneStunden: [stunden('2026-042', 40)] }, leitung()));
     expect(eine.find((z) => z.key === 'stunden')).toMatchObject({
       titel: '1 Baustelle mit Stunden nicht verrechnet',
-      detail: 'Familie Huber · über 4 Wochen',
+      detail: 'Familie Huber · 42,5 Std seit 01.08.2026',
       to: '/invoices?neu=2026-042',
     });
     const zwei = alleZeilen(startseite({ offeneStunden: [stunden('2026-042', 40), stunden('2026-050', 30)] }, leitung()));
