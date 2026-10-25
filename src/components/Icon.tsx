@@ -27,7 +27,8 @@ export type IconName =
   | 'weiter'
   | 'warnung'
   | 'hinweis'
-  | 'haken';
+  | 'haken'
+  | 'hilfe';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
 // Ausserhalb der Navigation nur, wo das Zeichen mehr sagt als das Wort:
@@ -89,6 +90,8 @@ const paths: Record<IconName, string> = {
   warnung: 'M12 4 2.5 20h19L12 4ZM12 10v4.5M12 17.5h.01',
   hinweis: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18ZM12 11v5.5M12 7.5h.01',
   haken: 'm5 12.5 4.5 4.5L19 7',
+  // „Hilfe zu dieser Seite“ im Seitenkopf (Design-Entwurf, Punkt 1): ein ruhiges Zeichen statt eines unterstrichenen Worts.
+  hilfe: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18ZM9.6 9.4a2.5 2.5 0 1 1 3.6 2.3c-.7.3-1.2.9-1.2 1.6v.4M12 17.2h.01',
   // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
   // und meint hier genau das, was der Screen tut — Werte einstellen.
   settings:

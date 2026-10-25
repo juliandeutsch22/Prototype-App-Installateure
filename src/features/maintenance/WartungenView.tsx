@@ -681,7 +681,7 @@ export default function WartungenView() {
     <div className="space-y-6">
       <PageHeader
         title="Wartungen"
-        subtitle={`Wiederkehrende Wartungen · fällig gilt ab ${VORLAUF_TAGE} Tagen im Voraus`}
+        subtitle="Wiederkehrende Wartungen"
         // Eine Hilfe je Seite (Testbericht Runde 5, G8) — der Wortlaut aus dem Handbuch.
         hilfe={
           <>
@@ -689,6 +689,7 @@ export default function WartungenView() {
             auf die Zeile öffnet die Anlage mit Anlagendaten, Verlauf und den Handgriffen:
             „Erledigt“ rückt den nächsten Termin nach, „Baustelle anlegen“ macht aus einer
             fälligen Wartung eine Baustelle mit Anlagenadresse und Vorschlag für die Nummer.
+            {' '}Fällig gilt eine Wartung ab {VORLAUF_TAGE} Tagen im Voraus.
           </>
         }
         action={

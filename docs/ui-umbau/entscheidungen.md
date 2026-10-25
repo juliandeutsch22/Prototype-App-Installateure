@@ -241,3 +241,33 @@ genau, verschlimmbessere nichts“. Umgesetzt:
   auf 2,25 rem vergrößert, damit sich die Karten nicht überdecken.
 Grenze, mit Grund: Seitenfenster und Dialoge behalten ihre Linien — ihr
 Rand ist kein Seitenrand, und ihre Abschnitte sind kurz.
+
+**E25 — Der Seitenkopf überall gleich (25.10.2026).** Punkt 1 des
+Design-Entwurfs, beauftragt mit E24 („ja setze alles direkt um“). Vorher
+trugen manche Seiten eine Ortszeile über dem Titel, andere nicht; „Hilfe zu
+dieser Seite“ stand als unterstrichenes Wort neben einem ⋯-Zeichen; Hilfe
+und Hauptaktion saßen ab dem Tablet unten an der letzten Zeile des Kopfs,
+je nach Untertitel und Stand mal höher, mal tiefer; manche Untertitel liefen
+über zwei Zeilen. Umgesetzt:
+- **Ortszeile auf jeder Seite.** Ohne eigene Angabe nennt `PageHeader` die
+  Gruppe aus dem Menü („Aufträge“, „Material“, „Geld“, „Team“ …); Akten und
+  Unterseiten zählen zu ihrer Liste (`gruppeVon` in `navigation.ts`, derselbe
+  Treffer wie `bereichVon`). Eine eigene Ortszeile geht vor. Die Startseite
+  hat ihre eigene Zeile (Tag, Kalenderwoche) und keine Gruppe.
+- **Hilfe als Zeichen.** Ein Fragezeichen im Kreis, 44 px Tastfläche, grau
+  wie das ⋯ daneben — rechts fällt nur die Hauptaktion auf. Der Name
+  „Hilfe zu dieser Seite“ bleibt für Vorlesehilfe und Mauszeiger.
+- **Aktionen oben.** Hilfe, ⋯ und Hauptaktion stehen bei jeder Breite oben
+  neben Ortszeile und Titel. Ab dem Tablet gibt der Titelblock bis 18 rem
+  nach; ein langer Stand bricht in sich um, statt die Aktionen unter sich
+  zu schieben.
+- **Untertitel eine Zeile.** Gekürzt, wo sie umbrachen: Material anfordern,
+  Anforderungen, Baustellen, Rechnungen, Wartungen, Firmendaten, Mein
+  Konto, Datensicherung, Nummernkreise, Musterseite. Was dabei wegfiel und
+  eine Erklärung war (wer anfordert, ab wann eine Wartung fällig ist), steht
+  in der Hilfe der Seite.
+
+Grenze, mit Grund: Nachkalkulation, Handwerksscheine, Urlaub und
+Sonderurlaub behalten ihren Untertitel — er sagt dort etwas Fachliches
+(„je Baustelle“, „auch Entwürfe“, die drei Arten der Freistellung), das
+Prüfungen und Handbuch beim Wort nehmen.

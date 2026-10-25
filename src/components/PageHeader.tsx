@@ -1,10 +1,13 @@
 import type { ReactNode } from 'react';
+import { useInRouterContext, useLocation } from 'react-router-dom';
 import { SeitenHilfeKnopf } from './SeitenHilfe';
+import { gruppeVon } from '@/app/navigation';
 
 /**
  * DER SEITENKOPF DER LINIE „LOT“ (Regel 2): überall gleich gebaut.
  *
- *   Ortszeile   klein und grau über dem Titel (wo bin ich, welcher Tag)
+ *   Ortszeile   klein und grau über dem Titel (wo bin ich, welcher Tag);
+ *               ohne Angabe die Gruppe aus dem Menü („Aufträge“, „Geld“ …)
  *   Titel       30 px am Tablet und Schreibtisch, 24 px am Handy, halbfett
  *   Meta        eine Zeile darunter
  *   Stand       die Kennzahlen der Seite als ruhige Zeile (E24)
@@ -42,10 +45,11 @@ export default function PageHeader({
   /** Der Stand der Seite — eine `MetricRow` (oder ihr Platzhalter). */
   stand?: ReactNode;
 }) {
+  const imRouter = useInRouterContext();
   return (
     <div className="seitenkopf">
       <div className="min-w-0">
-        {ort && <p className="seitenkopf-ort">{ort}</p>}
+        {ort ? <p className="seitenkopf-ort">{ort}</p> : imRouter ? <OrtAusDemMenue /> : null}
         <h1>{title}</h1>
         {subtitle && <div className="seitenkopf-meta">{subtitle}</div>}
         {stand && <div className="seitenkopf-stand">{stand}</div>}
@@ -57,4 +61,15 @@ export default function PageHeader({
       </div>
     </div>
   );
+}
+
+/*
+  DIESELBE ORTSZEILE AUF JEDER SEITE (Design-Entwurf, Punkt 1). Vorher
+  trugen manche Seiten sie („Geld“, „Team“), andere nicht — der Kopf sah
+  von Seite zu Seite anders aus. Wo eine Seite nichts Eigenes sagt (eine
+  Akte ihren Typ, ein Rückweg), steht die Gruppe aus dem Menü.
+*/
+function OrtAusDemMenue() {
+  const gruppe = gruppeVon(useLocation().pathname);
+  return gruppe ? <p className="seitenkopf-ort">{gruppe}</p> : null;
 }

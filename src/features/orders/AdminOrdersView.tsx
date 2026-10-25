@@ -647,7 +647,7 @@ export default function AdminOrdersView() {
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title="Anforderungen"
-        subtitle="Materialanforderungen der Monteure bearbeiten und Rückgaben sichten"
+        subtitle="Anforderungen bearbeiten, Rückgaben sichten"
         hilfe={
           <>
             Laufend steht nach Arbeitsschritt geordnet, Eilzustellungen oben. Eine Zeile öffnet die

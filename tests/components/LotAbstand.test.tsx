@@ -48,8 +48,11 @@ describe('Der Stand im Seitenkopf', () => {
     expect(container.querySelector('.seitenkopf-stand')).toBeNull();
   });
 
-  it('mit Stand steht die Hauptaktion oben neben dem Titel', () => {
-    expect(lesen('index.css')).toMatch(/\.seitenkopf:has\(\.seitenkopf-stand\) \{ align-items: flex-start; \}/);
+  it('mit Stand steht die Hauptaktion oben neben dem Titel — seit dem gleichen Kopf auf jeder Seite', () => {
+    const css = lesen('index.css');
+    // Die Grundregel richtet nach oben aus; keine breitere Regel darf das wieder nach unten ziehen.
+    expect(css).toMatch(/\.seitenkopf \{ display: flex; align-items: flex-start;/);
+    expect(css).not.toMatch(/\.seitenkopf(:has\([^)]*\))? \{[^}]*align-items: flex-end/);
   });
 });
 

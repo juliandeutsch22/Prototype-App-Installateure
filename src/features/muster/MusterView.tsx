@@ -75,7 +75,7 @@ export default function MusterView() {
       <PageHeader
         ort="Werkzeug für die Abnahme"
         title="Musterseite"
-        subtitle="Jeder Baustein der Linie „Lot“ einmal — ohne Wirkung auf den Betrieb"
+        subtitle="Jeder Baustein der Linie „Lot“ einmal"
         hilfe="Diese Seite zeigt die Bausteine der Oberfläche. Nichts hier wird gespeichert."
         mehr={
           <RowMenu

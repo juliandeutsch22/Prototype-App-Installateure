@@ -40,7 +40,6 @@
   .plattform-betriebsliste .titel-karte { font-size: 0.75rem; font-weight: 400; color: var(--text-muted); }
   .plattform-zeilenpfeil { display: none; }
   .plattform .daumen > * { flex: none; }
-  .plattform .seitenkopf-hilfe { min-width: 2.75rem; }
   .plattform .zeile-ziel { min-height: 2.75rem; }
   .plattform-verwaltung button { min-height: 2.75rem; }
   .plattform .link { display: inline-block; min-width: 2.75rem; min-height: 2.75rem; max-width: 100%; padding-block: 0.625rem; }

@@ -377,9 +377,10 @@ export default function OrderView() {
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title="Material anfordern"
-        subtitle="Von der Baustelle bei der Projektleitung anfordern, Lieferung verfolgen und Rückgaben erfassen"
+        subtitle="Anfordern, Lieferung verfolgen, zurückgeben"
         hilfe={
           <>
+            Angefordert wird von der Baustelle bei der Projektleitung.
             Baustelle wählen, Artikel mit „Zur Anforderung“ sammeln und unten abschicken. Darunter
             stehen die eigenen Anforderungen mit ihrem Stand. Was von der Baustelle übrig ist, geht
             über „Material zurückgeben“ ans Lager.

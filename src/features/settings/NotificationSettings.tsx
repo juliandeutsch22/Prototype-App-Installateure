@@ -159,7 +159,7 @@ export default function NotificationSettings() {
       <PageHeader
         ort="Einstellungen"
         title="Mein Konto"
-        subtitle="Benachrichtigungen und Passwort — alles, was nur dich betrifft"
+        subtitle="Benachrichtigungen, Anmeldung und Passwort"
       />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}

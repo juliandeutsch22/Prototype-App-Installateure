@@ -2560,7 +2560,7 @@ export default function InvoicesView() {
         title="Rechnungen"
         subtitle={nurLesen
           ? 'Die Rechnungen Ihrer Baustellen — zum Lesen'
-          : 'Aus einer Baustelle erzeugen, Zahlung verfolgen, stornieren'}
+          : 'Aus Baustellen erzeugen, Zahlung verfolgen, stornieren'}
         hilfe={nurLesen
           ? 'Eine Zeile antippen öffnet die Rechnung mit Positionen, Summen und Zahlstand. „Bezahlt im Monat“ zählt die Zahlungseingänge seit dem Monatsersten, ohne Skonto.'
           : 'Eine Zeile antippen öffnet die Rechnung — dort stehen Zahlung erfassen, Mahnen, PDF und Storno. „Bezahlt im Monat“ zählt die Zahlungseingänge seit dem Monatsersten, ohne Skonto.'}
