@@ -8,24 +8,29 @@
 @layer components {
   /* ── Startseite: der Stand in einer Zeile (E22) ───────────────────────── */
   /*
-    Beschriftung klein und grau, der Wert in Tinte, der Zusatz wieder grau —
-    hintereinander, zwischen zwei Linien. Am Handy je Eintrag eine Zeile mit
-    dem Wert rechts, damit Beträge untereinander stehen.
+    Beschriftung klein und grau über dem Wert, Wert in Tinte, Zusatz grau
+    daneben — eine Reihe zwischen zwei Linien. Am Handy je Eintrag eine Zeile
+    mit dem Wert rechts, damit Beträge untereinander stehen.
   */
   .lage-zeile { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--border); }
-  @media (min-width: 760px) { .lage-zeile { flex-direction: row; flex-wrap: wrap; gap: 0 2rem; border-bottom: 1px solid var(--border); } }
+  /* Am Tablet zwei Spalten, damit vier Einträge 2 + 2 stehen und nicht 3 + 1; ab dem Schreibtisch eine Reihe. */
+  @media (min-width: 760px) { .lage-zeile { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 2.5rem; border-bottom: 1px solid var(--border); } }
+  @media (min-width: 1200px) { .lage-zeile { display: flex; flex-wrap: wrap; } }
   .lage-punkt { border-bottom: 1px solid var(--border); }
   @media (min-width: 760px) { .lage-punkt { border-bottom: 0; } }
-  .lage-eintrag { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.5rem; min-height: 2.75rem; padding: 0.625rem 0; color: inherit; text-decoration: none; }
+  .lage-eintrag { display: flex; align-items: baseline; gap: 0.75rem; min-height: 2.75rem; padding: 0.625rem 0; color: inherit; text-decoration: none; }
+  @media (min-width: 760px) { .lage-eintrag { flex-direction: column; align-items: flex-start; gap: 0.125rem; padding: 0.75rem 0; } }
   .lage-eintrag:hover .lage-wert { color: var(--accent-deep); }
-  .lage-name { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
-  @media (max-width: 759px) { .lage-name { flex: 1; } }
+  .lage-name { flex: 1; font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
+  @media (min-width: 760px) { .lage-name { flex: none; } }
+  .lage-zahl { text-align: right; }
+  @media (min-width: 760px) { .lage-zahl { text-align: left; white-space: nowrap; } }
   .lage-wert { font-size: 0.9375rem; line-height: 1.375rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .lage-wert-rot { color: var(--danger); }
   .lage-zusatz { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
-  @media (max-width: 759px) { .lage-zusatz { flex-basis: 100%; text-align: right; } }
+  @media (max-width: 759px) { .lage-zusatz { display: block; } }
   /* Der Platzhalter hat die Höhe der Zeile am Schreibtisch, damit beim Eintreffen nichts springt. */
-  .lage-platzhalter { display: flex; align-items: center; gap: 2rem; min-height: 2.75rem; padding: 0.625rem 0; border-block: 1px solid var(--border); }
+  .lage-platzhalter { display: flex; align-items: center; gap: 2.5rem; min-height: 4.25rem; padding: 0.75rem 0; border-block: 1px solid var(--border); }
 }
 
 /* Die Linie verbindet vorhandene Termine; ihre Abstände behaupten keine maßstäbliche Zeitachse. */

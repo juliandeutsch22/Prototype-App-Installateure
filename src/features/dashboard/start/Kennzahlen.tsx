@@ -27,9 +27,11 @@ export interface Kennzahl {
  * war, stand darunter ohnehin noch einmal als Aufgabe. Die Startseite ist
  * zum Handeln da; der Stand ist der Blick nebenbei.
  *
- * Jetzt: Beschriftung, Wert und Zusatz hintereinander, jeder Eintrag ein
- * Verweis auf dieselbe gefilterte Liste wie vorher die Kachel. Am Handy
- * untereinander, Beschriftung links, Wert rechts. Gerechnet wird nach wie vor
+ * Jetzt: eine Reihe kleiner Einträge, jeder ein Verweis auf dieselbe
+ * gefilterte Liste wie vorher die Kachel — die Beschriftung klein darüber,
+ * Wert und Zusatz in einer Zeile. Hintereinander geschrieben brach die Reihe
+ * bei vier Einträgen schon am Schreibtisch um. Am Handy untereinander,
+ * Beschriftung links, Wert rechts. Gerechnet wird nach wie vor
  * in `aufbau.ts`; hier ändert sich nur die Darstellung.
  */
 export default function Kennzahlen({ werte }: { werte: Kennzahl[] }) {
@@ -41,13 +43,15 @@ export default function Kennzahlen({ werte }: { werte: Kennzahl[] }) {
         <li key={k.key} className="lage-punkt">
           <Link to={k.to} className="lage-eintrag">
             <span className="lage-name">{k.label}</span>{' '}
-            <span className={k.ton === 'danger' ? 'lage-wert lage-wert-rot' : 'lage-wert'}>{k.wert}</span>
-            {k.zusatz && (
-              <>
-                {' '}
-                <span className="lage-zusatz">{k.zusatz}</span>
-              </>
-            )}
+            <span className="lage-zahl">
+              <span className={k.ton === 'danger' ? 'lage-wert lage-wert-rot' : 'lage-wert'}>{k.wert}</span>
+              {k.zusatz && (
+                <>
+                  {' '}
+                  <span className="lage-zusatz">{k.zusatz}</span>
+                </>
+              )}
+            </span>
           </Link>
         </li>
       ))}
