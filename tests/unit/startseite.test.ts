@@ -191,6 +191,42 @@ describe('Buchhaltung', () => {
     expect(ohne.kennzahlen).toEqual([]);
   });
 
+  /*
+    DIE STAND-ZEILE (E22, 25.10.2026) lässt aus, wo nichts zu tun ist. Die
+    Entscheidung trifft der Aufbau, nicht die Darstellung: nur er weiß, ob
+    „€ 0,00“ eine leere Arbeitsliste ist oder ein Rücklass, der noch zählt.
+  */
+  it('markiert leere Arbeitszahlen als leer — Bezahlt im Monat nie (E22)', () => {
+    const s = startseite({ unbezahlt: [], unverrechnet: [], bezahltImMonat: { summe: 0, anzahl: 0 } }, umfeld());
+    const nach = new Map(s.kennzahlen.map((k) => [k.key, k]));
+    expect(nach.get('offen')?.leer).toBe(true);
+    expect(nach.get('ueberfaellig')?.leer).toBe(true);
+    expect(nach.get('unverrechnet')?.leer).toBe(true);
+    // Auch null Eingänge sind eine Auskunft über den Monat.
+    expect(nach.get('bezahlt')?.leer).toBeUndefined();
+  });
+
+  it('Gegenprobe: was offen oder überfällig ist, bleibt stehen (E22)', () => {
+    const s = startseite({
+      unbezahlt: [rechnung({ id: 'RE-1', totalBrutto: 200, dueDate: '2026-10-14' })],
+      unverrechnet: [schein('s1', 3)],
+    }, umfeld());
+    const nach = new Map(s.kennzahlen.map((k) => [k.key, k]));
+    expect(nach.get('offen')?.leer).toBe(false);
+    expect(nach.get('ueberfaellig')?.leer).toBe(true);
+    expect(nach.get('unverrechnet')?.leer).toBe(false);
+  });
+
+  it('Gegenprobe: ein überfälliger Rücklass-Rest hält „Überfällig“ in der Zeile (E22)', () => {
+    const s = startseite({
+      unbezahlt: [rechnung({
+        id: 'RE-4', totalBrutto: 1200, dueDate: '2026-09-15',
+        ruecklassArt: 'haft', ruecklassProzent: 5, ruecklassBetrag: 60, ruecklassBis: '2029-09-01',
+      })],
+    }, umfeld());
+    expect(s.kennzahlen.find((k) => k.key === 'ueberfaellig')?.leer).toBe(false);
+  });
+
   // Rücklass (05.10.2026): der nicht fällige Teil einer überfälligen Rechnung bleibt offen.
   it('ein noch nicht fälliger Rücklass zählt unter „Offen“, samt seiner Rechnung', () => {
     const s = startseite({

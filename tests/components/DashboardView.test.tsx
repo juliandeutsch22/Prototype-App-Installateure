@@ -355,11 +355,17 @@ describe('Startseite — Monteur', () => {
     expect(knopf).toHaveTextContent('07:00–16:00 · 30 min Pause · 08:30 Std');
   });
 
-  it('hält zwei Kennzahlen so breit wie bei vieren — keine halbe Seite je Zahl', async () => {
+  /*
+    STATT ZWEIER KACHELN EINE ZEILE (E22). Die halbbreiten Kacheln standen am
+    Handy als verlorene Kästen da; jetzt sind Saldo und Resturlaub zwei
+    Einträge der Stand-Zeile, jeder ein Verweis.
+  */
+  it('stellt Saldo und Resturlaub als Einträge der Stand-Zeile dar, nicht als Kacheln', async () => {
     zeichne();
-    const saldo = await screen.findByRole('link', { name: /Saldo/ });
-    await screen.findByRole('link', { name: /Resturlaub/ });
-    expect(saldo.closest('.start-kennzahlen-zwei')).not.toBeNull();
+    const zeile = await screen.findByRole('list', { name: 'Stand' });
+    expect(within(zeile).getByRole('link', { name: /^Saldo/ })).toHaveAttribute('href', '/time');
+    expect(within(zeile).getByRole('link', { name: /^Resturlaub/ })).toHaveAttribute('href', '/vacations');
+    expect(document.querySelector('.kennzahl')).toBeNull();
   });
 
   it('nennt die fehlenden Tage einzeln, höchstens drei, mit dem Weg zum Nachtragen', async () => {
@@ -648,7 +654,13 @@ describe('Startseite — Verwaltung', () => {
     try {
       zeichne();
       expect(await screen.findByText('Heute liegt nichts an')).toBeInTheDocument();
-      expect(await screen.findByRole('link', { name: /^Anforderungen/ })).toHaveTextContent(/0/);
+      /*
+        NULL ANFORDERUNGEN STEHEN NICHT MEHR DA (E22): „Anforderungen 0“ sagt
+        nichts, was „Heute liegt nichts an“ nicht schon sagt. Ohne einen
+        Eintrag fällt die ganze Stand-Zeile weg.
+      */
+      expect(screen.queryByRole('link', { name: /^Anforderungen/ })).toBeNull();
+      expect(screen.queryByRole('list', { name: 'Stand' })).toBeNull();
       expect(within(screen.getByRole('complementary', { name: 'Dein Tagesüberblick' })).getByRole('heading', { name: /Dein Einsatz heute/ })).toBeInTheDocument();
     } finally {
       (monteur as { appStartDate?: string }).appStartDate = eintritt;

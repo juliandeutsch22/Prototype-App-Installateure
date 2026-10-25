@@ -148,8 +148,8 @@ async function startseitePruefen(page: Page): Promise<number> {
   }));
   // Nichts ragt seitlich heraus.
   expect(masse.breite).toBeLessThanOrEqual(masse.sichtBreite);
-  // Kein Kennzahlwert endet mit „…“ — ein abgeschnittener Betrag ist falsch.
-  const abgeschnitten = await page.locator('.kennzahl-wert').evaluateAll((els) =>
+  // Kein Wert der Stand-Zeile endet mit „…“ — ein abgeschnittener Betrag ist falsch.
+  const abgeschnitten = await page.locator('.lage-wert').evaluateAll((els) =>
     els.filter((e) => e.scrollWidth > e.clientWidth).map((e) => e.textContent));
   expect(abgeschnitten).toEqual([]);
   // Etwa zwei Bildschirmhöhen — mit Luft für Kopfleiste und Leiste unten.
@@ -161,7 +161,7 @@ for (const [breite, hoehe, wo] of [[390, 844, 'am Telefon'], [1150, 800, 'bei 1.
   test.describe(`Startseite mit vollem Betrieb ${wo}`, () => {
     test.use({ viewport: { width: breite, height: hoehe } });
 
-    test('Geschäftsführung: Themen statt Listen, Heute, vier Kennzahlen', async ({ page }) => {
+    test('Geschäftsführung: Themen statt Listen, Heute, Stand-Zeile', async ({ page }) => {
       await anmelden(page, KONTEN.chefin.email);
       const verhaeltnis = await startseitePruefen(page);
       test.info().annotations.push({ type: 'Höhe', description: `${verhaeltnis.toFixed(2)} Bildschirme` });

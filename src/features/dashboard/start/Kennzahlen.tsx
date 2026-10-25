@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import Metric from '@/components/Metric';
+import { Link } from 'react-router-dom';
 
 export interface Kennzahl {
   key: string;
@@ -8,33 +8,49 @@ export interface Kennzahl {
   zusatz?: string;
   to: string;
   ton?: 'danger';
+  /**
+   * Nichts zu tun: keine offene Rechnung, kein unverrechneter Schein, keine
+   * Anforderung. Solche Zahlen fallen aus der Zeile — „Überfällig € 0,00“ sagt
+   * nichts, was das Fehlen der Angabe nicht auch sagt. Zustände wie Resturlaub,
+   * Saldo oder aktive Baustellen tragen das Feld nie: dort ist auch die Null
+   * eine Auskunft.
+   */
+  leer?: boolean;
 }
 
-/*
- * WIE BREIT DIE LEISTE IST, hängt an der Zahl der Kennzahlen. Über die
- * ganze Breite gezogen, stünde eine einzelne Zahl als Balken da (U4) und
- * zwei Zahlen je über eine halbe Seite — weit weg von ihrer Beschriftung.
- * So steht jede Kennzahl in derselben Spaltenbreite wie bei vieren.
- */
-const BREITE: Record<number, string> = {
-  1: 'start-kennzahlen-eine',
-  2: 'start-kennzahlen-zwei',
-};
-
 /**
- * HÖCHSTENS VIER KENNZAHLEN, JEDE EIN VERWEIS (Regel 4). Sie stehen als
- * Leiste über „Zu erledigen“ und „Heute“ (Linie „Lot“, Protokoll E1).
+ * DER STAND IN EINER ZEILE (Entscheidung E22, 25.10.2026).
+ *
+ * Bis hierher standen bis zu vier große Kacheln über „Zu erledigen“. Sie
+ * sahen in keiner Rolle und keiner Breite gut aus: oft „€ 0,00“ in großer
+ * Schrift, bei einer einzelnen Zahl eine verlorene Kachel, und was dringend
+ * war, stand darunter ohnehin noch einmal als Aufgabe. Die Startseite ist
+ * zum Handeln da; der Stand ist der Blick nebenbei.
+ *
+ * Jetzt: Beschriftung, Wert und Zusatz hintereinander, jeder Eintrag ein
+ * Verweis auf dieselbe gefilterte Liste wie vorher die Kachel. Am Handy
+ * untereinander, Beschriftung links, Wert rechts. Gerechnet wird nach wie vor
+ * in `aufbau.ts`; hier ändert sich nur die Darstellung.
  */
 export default function Kennzahlen({ werte }: { werte: Kennzahl[] }) {
-  const liste = werte.slice(0, 4);
+  const liste = werte.filter((k) => !k.leer).slice(0, 4);
   if (liste.length === 0) return null;
-  const leiste = (
-    <div className="kennzahlen start-kennzahlen">
+  return (
+    <ul className="lage-zeile" aria-label="Stand">
       {liste.map((k) => (
-        <Metric key={k.key} label={k.label} value={k.wert} hint={k.zusatz} to={k.to} tone={k.ton ?? 'default'} />
+        <li key={k.key} className="lage-punkt">
+          <Link to={k.to} className="lage-eintrag">
+            <span className="lage-name">{k.label}</span>{' '}
+            <span className={k.ton === 'danger' ? 'lage-wert lage-wert-rot' : 'lage-wert'}>{k.wert}</span>
+            {k.zusatz && (
+              <>
+                {' '}
+                <span className="lage-zusatz">{k.zusatz}</span>
+              </>
+            )}
+          </Link>
+        </li>
       ))}
-    </div>
+    </ul>
   );
-  const breite = BREITE[liste.length];
-  return breite ? <div className={breite}>{leiste}</div> : leiste;
 }

@@ -377,8 +377,13 @@ test('Alte, nicht verrechnete Stunden führen von der Startseite zur Rechnung', 
   // Die Karte holt die Stunden nach dem Anlegen neu — die Baustelle ist weg.
   await expect(page.getByText(/^Nicht verrechnete Leistung/)).toHaveCount(0);
   await page.goto('/');
-  // Die Geldkennzahlen kommen aus demselben Block wie die Stunden — erst dann ist die Antwort da.
-  await expect(page.getByRole('link', { name: /^Überfällig/ })).toBeVisible();
+  /*
+    Die Geldzahlen kommen aus demselben Block wie die Stunden — erst dann ist
+    die Antwort da. Gewartet wird auf den fertigen Inhalt der Startseite,
+    nicht auf „Überfällig“: ohne überfällige Rechnung steht dieser Eintrag
+    seit der Stand-Zeile (E17) gar nicht da.
+  */
+  await expect(page.locator('.wert-erscheint')).toBeVisible();
   await expect(page.getByRole('region', { name: 'Stunden über 4 Wochen nicht verrechnet' })).toHaveCount(0);
   await keineFehlermeldung(page);
 });
