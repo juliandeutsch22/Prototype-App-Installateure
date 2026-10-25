@@ -683,7 +683,13 @@ export default function MonatsAnsicht({
   );
 
   return (
-    <div className="space-y-4">
+    /*
+      `gap` statt `space-y`: das ausgeblendete Raster bzw. der ausgeblendete
+      Kalender zählen dann nicht mit. Mit `space-y` stand am Handy über „Für
+      wen“ ein leerer Streifen (Auftrag 25.10.2026), dazu ein Polster, das
+      seit E24 die Karte selbst mitbringt.
+    */
+    <div className="flex flex-col gap-4">
       {/* Das Raster ab Tablet; am Handy der Kalender (beide blendet CSS aus). */}
       <div className="mo-raster">
         <Card buendig>{raster}</Card>
@@ -691,7 +697,7 @@ export default function MonatsAnsicht({
 
       <div className="kal">
         <Card buendig>
-          <div className="px-4 pb-4 pt-4">
+          <div className="px-4 pb-4">
             <MonatsKalender
               tage={tage}
               heute={heute}

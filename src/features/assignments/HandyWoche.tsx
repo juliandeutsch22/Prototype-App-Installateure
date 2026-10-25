@@ -23,7 +23,7 @@ import {
  * Unter dem Datum ein Punkt: Petrol, wenn Termine bestehen, Bernstein bei
  * einer Lieferung ohne Annahme. In der Liste zuerst die Termine, dann je
  * Einstufung die Personen mit denselben Blöcken wie im Raster; wer frei ist,
- * trägt „frei – Einsatz planen“. Die Einsätze je Baustelle und alle Freien
+ * trägt „frei“ und „Einplanen“. Die Einsätze je Baustelle und alle Freien
  * stehen im Seitenfenster „Tag“ („Ganzen Tag ansehen“).
  *
  * In der Team-Woche (`lesen`) dieselbe Liste ohne Knöpfe und ohne „frei“.
@@ -122,9 +122,10 @@ export default function HandyWoche({
 
       <div className="tl-kopf">
         <div>
+          {/* „· heute“ bleibt am Stück: am Handy brach es als „heu-te“ um (Auftrag 25.10.2026). */}
           <p className="tl-tag">
             {tagLang(gewaehlt)}
-            {gewaehlt === heute ? ' · heute' : ''}
+            {gewaehlt === heute && <span className="whitespace-nowrap"> · heute</span>}
           </p>
           {info && <p className="tl-info">{info}</p>}
         </div>
@@ -256,6 +257,10 @@ function TagesPerson({
         {/*
           WER FREI IST, wird hier gleich eingeteilt — auch mit einem Termin
           oder stundenweise weg: „frei“ heißt dasselbe wie im Kopf („N frei“).
+          Ruhig statt eines Rahmenknopfs (Auftrag 25.10.2026): „frei“ ist ein
+          Zustand wie jeder andere — ein leerer Ring und das Wort —, dahinter
+          „Einplanen“ als Verweis. Bei zehn freien Leuten standen vorher zehn
+          umrandete Knöpfe untereinander.
         */}
         {frei && (
           <button
@@ -264,7 +269,8 @@ function TagesPerson({
             aria-label={`${u.name} am ${datum} einteilen`}
             onClick={() => onEinsatz({ datum: tag, person: u.uid })}
           >
-            frei – Einsatz planen
+            <span className="stand stand-offen">frei</span>
+            <span className="tl-frei-aktion">Einplanen</span>
           </button>
         )}
       </div>

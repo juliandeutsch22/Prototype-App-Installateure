@@ -55,7 +55,8 @@ type Fenster =
   | { art: 'einsatz'; start: FensterStart }
   | { art: 'tag'; datum: string; projectNumber?: string }
   | { art: 'termin'; termin: Termin | null; datum: string }
-  | { art: 'noch' };
+  | { art: 'noch' }
+  | { art: 'kalender' };
 
 const ISO_TAG = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -231,6 +232,20 @@ export default function Einsatzplanung() {
   };
   const termineDes = (tag: string) => d.termineAm(tag);
 
+  /*
+    DER GANZE PLAN IM EIGENEN KALENDER (Plan 10.4, PR B) — nur für die, die
+    planen (die Team-Woche der Monteure bekommt ihn nicht), nur wenn der
+    Betrieb das Abo erlaubt, und nicht im Supportzugang. Seit 25.10.2026 im
+    „⋯“ statt als Karte unter dem Plan: am Handy stand sie mitten in der
+    Planung, und eingerichtet wird das Abo einmal, nicht täglich.
+  */
+  const aboMoeglich = !!company?.kalenderAboErlaubt && !einblick;
+  const menue = [
+    // Nur wer Termine schreiben darf — wie „Termin anlegen“ im Seitenfenster „Tag“.
+    ...(darf ? [{ label: 'Termin anlegen', onSelect: () => setFenster({ art: 'termin', termin: null, datum: kopfTag }) }] : []),
+    ...(aboMoeglich ? [{ label: 'Im eigenen Kalender …', onSelect: () => setFenster({ art: 'kalender' }) }] : []),
+  ];
+
   return (
     // `einsatzplanung` gibt der Seite die volle Inhaltsbreite (lot-planung.css).
     <div className="einsatzplanung" lang="de-AT">
@@ -257,6 +272,12 @@ export default function Einsatzplanung() {
               es auch über das Seitenfenster „Tag“ und im Monat über die Vorschau eines Tages.
             </p>
             <p className="mt-2">
+              Im Monat am Handy steht je Tag eine Zahl: so viele Baustellen haben einen Einsatz;
+              Bernstein heißt, jemand Eingeteiltes fehlt, ein Punkt, dass Termine bestehen. Mit
+              „Für wen“ zeigt der Kalender den Monat einer Person: ein Balken heißt eingeplant, grau
+              abwesend, „fehlt“ eingeteilt, aber abwesend. Ein Tipp auf einen Tag zeigt die Vorschau.
+            </p>
+            <p className="mt-2">
               Gezählt als frei ist, wer an diesem Tag auf keiner Baustelle steht und keinen
               genehmigten Urlaub hat. Der Wochenplan zeigt Einsätze, nicht gebuchte Zeiten: wer
               ohne Einsatz Stunden bucht, steht hier trotzdem als frei. Samstag, Sonntag und
@@ -272,13 +293,7 @@ export default function Einsatzplanung() {
           </Button>
         }
         mehr={
-          // Nur wer Termine schreiben darf — wie „Termin anlegen“ im Seitenfenster „Tag“.
-          darf ? (
-            <RowMenu
-              about="Einsatzplanung"
-              items={[{ label: 'Termin anlegen', onSelect: () => setFenster({ art: 'termin', termin: null, datum: kopfTag }) }]}
-            />
-          ) : undefined
+          menue.length > 0 ? <RowMenu about="Einsatzplanung" items={menue} /> : undefined
         }
       />
 
@@ -375,8 +390,16 @@ export default function Einsatzplanung() {
             <div className="planung-hinweiszeile">
               <p className="hinweis-text">
                 {ohneEinsatz.length === 1 ? '1 laufende Baustelle' : `${ohneEinsatz.length} laufende Baustellen`} ohne
-                Einsatz in dieser Woche: {ohneEinsatz.slice(0, 3).map(mitNummer).join(', ')}
-                {ohneEinsatz.length > 3 ? ` und ${ohneEinsatz.length - 3} weitere` : ''}
+                Einsatz in dieser Woche
+                {/*
+                  DIE NAMEN ERST AB DEM TABLET (Auftrag 25.10.2026): am Handy
+                  machten drei Baustellen samt Nummer die Zeile fünf Zeilen
+                  hoch. Dort stehen sie einen Tipp weiter im Seitenfenster.
+                */}
+                <span className="hidden md:inline">
+                  : {ohneEinsatz.slice(0, 3).map(mitNummer).join(', ')}
+                  {ohneEinsatz.length > 3 ? ` und ${ohneEinsatz.length - 3} weitere` : ''}
+                </span>
               </p>
               <button type="button" className="wp-textknopf" onClick={() => setFenster({ art: 'noch' })}>
                 Noch einzuplanen …
@@ -422,13 +445,11 @@ export default function Einsatzplanung() {
         </>
       )}
 
-      {/*
-        DER GANZE PLAN IM EIGENEN KALENDER (Plan 10.4, PR B) — nur für die,
-        die planen (die Team-Woche der Monteure bekommt ihn nicht), nur wenn
-        der Betrieb das Abo erlaubt, und nicht im Supportzugang. Unverändert.
-      */}
-      {/* Mit dem Plan, nicht vor ihm: sonst schob ihn der Plan beim Laden nach unten (Messung 11.10.2026). */}
-      {company?.kalenderAboErlaubt && !einblick && d.geladen && <KalenderAboKarte userId={user.uid} art="gesamt" />}
+      {fenster?.art === 'kalender' && (
+        <BottomSheet open onClose={() => setFenster(null)} label="Im eigenen Kalender" auchBreit titel="Im eigenen Kalender">
+          <KalenderAboKarte userId={user.uid} art="gesamt" imFenster />
+        </BottomSheet>
+      )}
 
       {fenster?.art === 'einsatz' && (
         <EinsatzFenster
@@ -489,7 +510,7 @@ export default function Einsatzplanung() {
                   <ListRow
                     key={p.projectNumber}
                     title={baustellenName(p)}
-                    subtitle={p.projectNumber}
+                    nummer={p.customerName ? p.projectNumber : undefined}
                     // Mit der Baustelle und dem nächsten Arbeitstag der Woche ab heute.
                     onOeffnen={() =>
                       setFenster({

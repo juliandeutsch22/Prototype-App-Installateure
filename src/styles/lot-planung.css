@@ -23,6 +23,15 @@
   .planung-steuerung-tag { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
   .inhalt:has(.planung-steuerung-tag) { max-width: none; }
   @media (min-width: 760px) { .planung-wahl { margin-left: auto; } }
+  /*
+    AM HANDY ÜBER DIE VOLLE BREITE (Auftrag 25.10.2026): „Woche · Monat ·
+    Tag“ stand als halbe Leiste unter dem Zeitraum und sah abgeschnitten
+    aus. Ganz breit ist jeder Reiter ein Drittel — gut zu treffen.
+  */
+  @media (max-width: 759px) {
+    .planung-wahl { width: 100%; }
+    .planung-wahl > .segment { flex: 1; }
+  }
 
   /* Gruppenkopf im Raster (Einstufung) — einklappbar. */
   .planung-gruppe { position: sticky; left: 0; display: flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; padding: 0 0.75rem; background: none; border: 0; font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); cursor: pointer; }
@@ -48,9 +57,15 @@
   .wp-textknopf { flex: none; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: var(--accent-deep); font-size: 0.875rem; font-weight: 600; text-align: left; cursor: pointer; }
   .wp-textknopf:hover { text-decoration: underline; text-underline-offset: 3px; }
 
-  /* „Noch einzuplanen“ als schlanke Zeile über dem Raster (ersetzt die Ablage). */
-  .planung-hinweiszeile { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 1rem; padding: 0.375rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
-  .hinweis-text { flex: 1; min-width: 12rem; padding: 0.5rem 0; font-size: 0.875rem; line-height: 1.375rem; color: var(--text-muted); }
+  /*
+    „Noch einzuplanen“ als eine Zeile über dem Raster (ersetzt die Ablage).
+    Ohne Rahmen und ohne Namensliste (Auftrag 25.10.2026): am Handy wurde
+    der Kasten mit drei Baustellen samt Nummern fünf Zeilen hoch und schob
+    den Plan unter die Falz. Wer welche Baustelle ist, steht einen Tipp
+    weiter im Seitenfenster.
+  */
+  .planung-hinweiszeile { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 1rem; }
+  .hinweis-text { flex: 1 1 12rem; min-width: 0; font-size: 0.875rem; line-height: 1.375rem; color: var(--text-muted); }
 
   /*
     DIE HÜLLE DES RASTERS rollt in sich, waagrecht und senkrecht: Kopfzeile
@@ -95,8 +110,9 @@
 
   /* Ecke und Namensspalte stehen beim Rollen fest. */
   .wp-ecke { position: sticky; left: 0; top: 0; z-index: 30; padding: 0.5rem 0.75rem; background: var(--surface); border-bottom: 1px solid var(--border); text-align: left; vertical-align: bottom; }
-  .wp-name { position: sticky; left: 0; z-index: 10; padding: 0.625rem 0.75rem; background: var(--surface); border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; font-size: 0.875rem; line-height: 1.25rem; font-weight: 400; color: var(--text); overflow-wrap: anywhere; }
-  .wp-name-titel { display: block; color: var(--text); overflow-wrap: break-word; hyphens: auto; }
+  .wp-name { position: sticky; left: 0; z-index: 10; padding: 0.625rem 0.75rem; background: var(--surface); border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; font-size: 0.875rem; line-height: 1.25rem; font-weight: 400; color: var(--text); overflow-wrap: anywhere; hyphens: manual; -webkit-hyphens: manual; }
+  /* Namen (Personen wie Baustellen) nie automatisch trennen — siehe `.tl-tag`. */
+  .wp-name-titel { display: block; color: var(--text); overflow-wrap: break-word; hyphens: manual; -webkit-hyphens: manual; }
   .wp-name-info { display: block; font-size: 0.75rem; line-height: 1rem; color: var(--text-muted); }
   .wp-leer { padding: 1rem; font-size: 0.875rem; color: var(--text-muted); }
 
@@ -208,16 +224,23 @@
   .tagwahl-punkt { width: 6px; height: 6px; border-radius: 999px; background: var(--petrol); }
   .tagwahl-punkt-achtung { width: 6px; height: 6px; border-radius: 999px; background: var(--warning); }
   .tagwahl-ohne { width: 6px; height: 6px; }
-  .tl-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); }
-  .tl-tag { font-weight: 600; color: var(--ink-deep); }
+  .tl-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 0.75rem; padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); }
+  /*
+    NAMEN UND DER TAG WERDEN NIE GETRENNT (Auftrag 25.10.2026). Die Seite
+    trennt sonst automatisch (`hyphens: auto` am body, für lange
+    Fachwörter); an „Max Muster-mann“ und „heu-te“ hilft das niemandem.
+    Ein sehr langer Name bricht an seinen Leerzeichen.
+  */
+  .tl-tag { font-weight: 600; color: var(--ink-deep); hyphens: manual; -webkit-hyphens: manual; }
   .tl-info { font-size: 0.8125rem; color: var(--text-muted); }
-  .tl-gruppe { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; min-height: 2.75rem; padding: 0 1rem; background: var(--surface-2); border-bottom: 1px solid var(--border); font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); }
+  /* Gruppenköpfe wie `Abschnitt` in jeder Liste: eine Linie, keine graue Fläche (Linie „Lot“, E24). */
+  .tl-gruppe { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; min-height: 2.75rem; padding: 0.75rem 1rem 0; border-bottom: 1px solid var(--border); font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); }
   .tl-termin { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 3rem; padding: 0.5rem 1rem; background: var(--surface); border: 0; border-bottom: 1px solid var(--border); text-align: left; cursor: pointer; }
   .tl-termin-text { display: flex; flex-direction: column; min-width: 0; }
   .tl-termin-titel { font-weight: 600; color: var(--ink-deep); }
   .tl-termin-ort { font-size: 0.8125rem; color: var(--text-muted); overflow-wrap: break-word; }
   .tl-person { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0.75rem; padding: 0.625rem 1rem; border-bottom: 1px solid var(--border); }
-  .tl-name { font-weight: 600; color: var(--text); overflow-wrap: break-word; }
+  .tl-name { font-weight: 600; color: var(--text); overflow-wrap: break-word; hyphens: manual; -webkit-hyphens: manual; }
   .tl-eintraege { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
   .tl-leer { display: flex; align-items: center; min-height: 2.75rem; font-size: 0.875rem; color: var(--text-muted); }
   /*
@@ -231,5 +254,8 @@
   .wp-kopf-knopf.nur-lesen:hover .kopf-tag, .wp-kopf-knopf-schmal.nur-lesen:hover .kopf-tag { color: var(--ink-deep); text-decoration: none; }
   /* Die eigene Zeile: „· du“ hinter dem Namen, in der Schrift der übrigen Angaben. */
   .wp-name-ich { font-weight: 400; color: var(--text-muted); }
-  .tl-frei { display: flex; align-items: center; min-height: 2.75rem; padding: 0 0.5rem; background: var(--surface); color: var(--accent-deep); border: 1px solid var(--border); border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600; text-align: left; cursor: pointer; }
+  /* „frei“ als Zustand, „Einplanen“ als Verweis dahinter — die ganze Fläche ist der Knopf, ohne Rahmen. */
+  .tl-frei { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 2.75rem; padding: 0; background: none; border: 0; text-align: left; cursor: pointer; }
+  .tl-frei-aktion { color: var(--accent-deep); font-size: 0.875rem; font-weight: 600; }
+  .tl-frei:hover .tl-frei-aktion { text-decoration: underline; text-underline-offset: 3px; }
 }

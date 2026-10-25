@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { KalenderAbo, KalenderAboArt } from '@/types';
 import { kalenderAboAnlegen, kalenderAboBeenden, kalenderAboStand } from '@/lib/db/assignments';
 import Card from '@/components/Card';
+import InfoHint from '@/components/InfoHint';
 import Button from '@/components/Button';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -34,16 +35,29 @@ const TEXTE: Record<KalenderAboArt, { leer: string; ende: string; hinweis: strin
  * DER EINSATZPLAN IM EIGENEN KALENDER — ganz unten in „Mein Einsatzplan“
  * (Entscheidung vom 02.10.2026). Nur, wenn der Betrieb es eingeschaltet hat.
  *
- * MIT `art="gesamt"` DER GANZE PLAN für die Leitung, unter Einsatzplanung →
- * Wochenplan (Plan 10.4, PR B). Ein eigener Link: wer beides hat, trägt zwei
- * Kalender ein und kann sie getrennt ein- und ausblenden.
+ * MIT `art="gesamt"` DER GANZE PLAN für die Leitung, in der Einsatzplanung
+ * unter ⋯ → „Im eigenen Kalender …“ (Plan 10.4, PR B; seit 25.10.2026 im
+ * Seitenfenster). Ein eigener Link: wer beides hat, trägt zwei Kalender ein
+ * und kann sie getrennt ein- und ausblenden.
  *
  * DER LINK STEHT NUR EINMAL DA. Gespeichert ist sein Hashwert; wer ihn
  * verliert, legt einen neuen an, und der alte hört auf. Darum fragen „Neuer
  * Link“ und „Abo beenden“ vorher nach: der Kalender am Telefon zeigt danach
  * nichts mehr, bis der neue Link dort eingetragen ist.
  */
-export default function KalenderAboKarte({ userId, art = 'eigen' }: { userId: string; art?: KalenderAboArt }) {
+export default function KalenderAboKarte({
+  userId,
+  art = 'eigen',
+  imFenster = false,
+}: {
+  userId: string;
+  art?: KalenderAboArt;
+  /**
+   * Im Seitenfenster (Einsatzplanung, ⋯ → „Im eigenen Kalender …“): ohne
+   * eigene Karte und Überschrift — die trägt das Fenster.
+   */
+  imFenster?: boolean;
+}) {
   const texte = TEXTE[art];
   const toast = useToast();
   const [stand, setStand] = useState<KalenderAbo | null | 'laedt' | 'fehler'>('laedt');
@@ -106,13 +120,7 @@ export default function KalenderAboKarte({ userId, art = 'eigen' }: { userId: st
     }
   }
 
-  return (
-    <Card
-      title="Im eigenen Kalender"
-      className="mt-3 lg:mt-5"
-      hint={texte.hinweis}
-    >
-      {stand === 'laedt' ? (
+  const inhalt = stand === 'laedt' ? (
         <p className="text-sm text-ink-muted">Lädt …</p>
       ) : stand === 'fehler' ? (
         <div className="space-y-2">
@@ -188,7 +196,23 @@ export default function KalenderAboKarte({ userId, art = 'eigen' }: { userId: st
             </Button>
           )}
         </div>
-      )}
+      );
+
+  if (imFenster) {
+    return (
+      <div className="space-y-3">
+        {/* Im Fenster bleibt die Erklärung hinter dem „i“ an ihrem Platz (Regel 11). */}
+        <div className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
+          <span>Was der Kalender zeigt und wer den Link sehen darf</span>
+          <InfoHint about="das Kalender-Abo">{texte.hinweis}</InfoHint>
+        </div>
+        {inhalt}
+      </div>
+    );
+  }
+  return (
+    <Card title="Im eigenen Kalender" className="mt-3 lg:mt-5" hint={texte.hinweis}>
+      {inhalt}
     </Card>
   );
 }

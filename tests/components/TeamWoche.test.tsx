@@ -212,7 +212,8 @@ describe('Team-Woche — die Bausteine der Planung, nur zum Lesen', () => {
   it('am Handy der Tag von heute, je Person dieselben Einträge; wer nichts hat, „nicht eingeteilt“', async () => {
     await geladen();
     const liste = screen.getByRole('region', { name: 'Wochenplan als Liste' });
-    expect(within(liste).getByText('Mittwoch 28.10. · heute')).toBeInTheDocument();
+    // „· heute“ steht seit 25.10.2026 in einem eigenen Teil, der nicht umbricht.
+    expect(liste.querySelector('.tl-tag')).toHaveTextContent('Mittwoch 28.10. · heute');
     expect(within(liste).getByText('Max Mustermann').parentElement).toHaveTextContent('Max Mustermann · du');
     expect(within(liste).getAllByText('nicht eingeteilt').length).toBeGreaterThan(0);
     expect(liste.querySelectorAll('.tag-karte-lesen, .tl-frei')).toHaveLength(0);

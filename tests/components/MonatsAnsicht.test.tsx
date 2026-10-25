@@ -539,6 +539,32 @@ describe('Monat — Handy (Auftrag 5.4)', () => {
   });
 });
 
+/*
+  RUHIGER AM HANDY (Auftrag 25.10.2026): die Lesart des Kalenders stand
+  offen über ihm (jetzt in der Hilfe der Seite), und über „Für wen“ lag ein
+  leerer Streifen — `space-y` zählte das ausgeblendete Raster mit.
+  Gegenprobe: gegen den Stand davor rot.
+*/
+describe('Monat — Handy ohne Lesart und ohne Streifen (25.10.2026)', () => {
+  it('keine Lesart offen über dem Kalender', () => {
+    zeige();
+    expect(screen.getByRole('group', { name: 'Monat, alle Personen' })).toBeInTheDocument();
+    // Nur der Handy-Kalender: die Legende unter dem Raster ab dem Tablet bleibt.
+    const kal = document.querySelector('.kal') as HTMLElement;
+    expect(within(kal).queryByText(/Tag antippen zeigt/)).toBeNull();
+    expect(kal.querySelector('.kal-lesart')).toBeNull();
+    expect(screen.getByText(/Punkt im Kopf: Termine an diesem Tag/)).toBeInTheDocument();
+  });
+
+  it('Raster und Kalender stehen mit `gap` untereinander — das ausgeblendete zählt nicht mit', () => {
+    const { container } = zeige();
+    const huelle = (container.querySelector('.kal') as HTMLElement).parentElement as HTMLElement;
+    expect(huelle.className).toContain('gap-4');
+    expect(huelle.className).not.toMatch(/space-y/);
+    expect(huelle.querySelector(':scope > .mo-raster')).not.toBeNull();
+  });
+});
+
 describe('Monat — Mengengerüst (Auftrag 7)', () => {
   it('25 Personen × 31 Tage: höchstens 2.500 Elemente im Raster', () => {
     const leute = Array.from({ length: 25 }, (_, i) => mk(`x${i}`, `Person ${i}`, { einstufung: i < 3 ? 'lehrling' : undefined }));
