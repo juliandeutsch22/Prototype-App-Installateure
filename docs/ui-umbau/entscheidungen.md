@@ -311,3 +311,35 @@ die Suche der Einstellungen (sie findet eine Einstellung, filtert keinen
 Bestand; ihre Beschriftung unterscheidet sie von der Suche über alles) und
 die Plattform (eigene Fläche des Betreibers).
 
+**E27 — Zeilen gleich gebaut (25.10.2026).** Punkt 3 des Design-Entwurfs,
+beauftragt mit E24. Vorher stand die Nummer mal in Klammern hinter dem
+Namen (Baustellen, Scheine, Nachkalkulation, Einsatzplan des Monteurs), mal
+vorn vor dem Namen (Rechnungen, Angebote); Zustände färbten ihr Wort
+bernsteinfarben oder rot; Baustellen trugen drei Detailzeilen; Kunden und
+Baustellen zeigten „⋯“ und „›“ nebeneinander. Umgesetzt im Baustein
+`ListRow` und auf den Seiten:
+- **Name fett, Nummer grau daneben** (`ListRow nummer`, `.zeile-nr`), ohne
+  Klammer, mit echtem Leerzeichen für Vorlesehilfe und Kopieren — auch bei
+  Rechnungen, Stornorechnungen und Angeboten, wo bisher die Nummer vorn
+  stand, und in der Einsatzwahl des Scheins.
+- **Eine Detailzeile.** Baustellen: Adresse, Telefon, Projektleitung und Team
+  in einer Zeile, Adresse und Telefon bleiben antippbar. Kunden:
+  Ansprechpartner in derselben Zeile wie Adresse und Telefon. Angebote:
+  Datum, Gültigkeit, kalkulierte Stunden und Baustelle in einer Zeile.
+- **Zustand in einer festen Spalte** (`.zeile-zustand`, ab dem Tablet
+  8,5 rem breit), davor nichts, dahinter der Wert. „Ohne Projektleitung“ ist
+  jetzt ein Zustand (Achtung) statt einer bernsteinfarbenen Fußnote;
+  „Adresse prüfen“ und „Kundenart prüfen“ stehen in der Spalte statt im
+  Titel; das Budget der Baustelle steht als Wert („40 h · Budget“).
+- **Nur der Punkt trägt Farbe.** `.stand-warn` und `.stand-fehl` heben das
+  Wort halbfett in Tinte; Bernstein und Rot bleiben am Punkt.
+- **Nie „⋯“ und „›“ nebeneinander.** Wo eine Zeile ein „⋯“ hat, entfällt der
+  Pfeil; die ganze Zeile führt weiter in die Akte. Kunden ohne
+  Bearbeitungsrecht (kein „⋯“) behalten den Pfeil.
+
+Grenze, mit Grund: Zusatzzeilen, die eine Handlung tragen, bleiben unter
+der Detailzeile — Mahnstand und Teilzahlung an der Rechnung (Prüflauf
+24.09.2026, F14: der Mahnstand gehört in die Zeile), „Unterschrieben von“,
+„Verworfen“ und der Stornogrund am Schein. Sie in die eine Detailzeile zu
+pressen, hätte sie abgeschnitten oder unlesbar gemacht.
+

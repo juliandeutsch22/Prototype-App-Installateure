@@ -530,27 +530,30 @@ export default function CustomersView() {
                       bis zum Umbau ein eigener Verweis „Akte“ rechts.
                     */
                     to={`/customers/${k.id}`}
-                    pfeil
-                    title={
-                      <span className="flex flex-wrap items-center gap-2">
-                        {k.name}
-                        {k.kundennummer && <span className="text-sm font-normal text-ink-muted">Nr. {k.kundennummer}</span>}
-                        {/* M12: die alte Zeile liess sich nicht eindeutig zerlegen. */}
-                        {k.adressePruefen && <Warnung>Adresse prüfen</Warnung>}
-                        {!k.kundenart && <Warnung>Kundenart prüfen</Warnung>}
-                      </span>
+                    /*
+                      ZEILEN GLEICH GEBAUT (Design-Entwurf, Punkt 3): Name fett,
+                      Kundennummer grau daneben, eine Detailzeile, was zu prüfen
+                      ist in der Zustandsspalte. Der „›“ nur, wo kein „⋯“ steht.
+                    */
+                    pfeil={!darfAendern}
+                    title={k.name}
+                    nummer={k.kundennummer ? `Nr. ${k.kundennummer}` : undefined}
+                    zustand={
+                      k.adressePruefen || !k.kundenart ? (
+                        <>
+                          {/* M12: die alte Zeile liess sich nicht eindeutig zerlegen. */}
+                          {k.adressePruefen && <Warnung>Adresse prüfen</Warnung>}
+                          {!k.kundenart && <Warnung>Kundenart prüfen</Warnung>}
+                        </>
+                      ) : undefined
                     }
                     subtitle={
-                      <>
-                        {/* Über der Fläche der Zeile: anrufen und hinfahren bleiben ein Tipp. */}
-                        <span className="flex flex-wrap items-center gap-x-3">
-                          <span className="zeile-griff"><AdresseLink adresse={k.address} /></span>
-                          <span className="zeile-griff"><TelefonLink nummer={k.contactPhone} name={k.contactName} /></span>
-                        </span>
-                        {k.contactName && (
-                          <span className="mt-1 block text-xs text-ink-muted">{k.contactName}</span>
-                        )}
-                      </>
+                      /* Über der Fläche der Zeile: anrufen und hinfahren bleiben ein Tipp. */
+                      <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                        <span className="zeile-griff"><AdresseLink adresse={k.address} /></span>
+                        <span className="zeile-griff"><TelefonLink nummer={k.contactPhone} name={k.contactName} /></span>
+                        {k.contactName && <span>{k.contactName}</span>}
+                      </span>
                     }
                   >
                     {/*

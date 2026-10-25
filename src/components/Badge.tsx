@@ -104,8 +104,9 @@ export function Marke({ children }: { children: ReactNode }) {
  * 500) und nicht mehr in Tinte und halbfett: in einer Zeile ist der Status
  * Beiwerk zum Titel, nicht sein Nebenbuhler. Der Punkt kommt aus
  * `.stand::before` — ein erzeugtes Element ohne Text, das ein Vorleser nicht
- * ansagt; er sagt nichts, was nicht im Wort steht. Einzig „schlecht"
- * (Überfällig) färbt auch das Wort, rot.
+ * ansagt; er sagt nichts, was nicht im Wort steht. Seit dem Design-Entwurf
+ * vom 25.10.2026 (Punkt 3) färbt kein Zustand mehr das Wort: „Achtung“ und
+ * „schlecht“ heben es halbfett, die Farbe bleibt am Punkt.
  */
 export function Zustand({ stand, children }: { stand: Stand; children: ReactNode }) {
   return <span className={`stand ${standKlasse[stand]}`}>{children}</span>;
@@ -123,8 +124,9 @@ export function Zustand({ stand, children }: { stand: Stand; children: ReactNode
  * Pastellgelb und -rot, dann umrandet. Beides ist die Form, die zweimal als
  * „zu bunt, zu verspielt" abgelehnt wurde. Jetzt dieselbe Form wie der
  * Status: Punkt plus Wort (`.stand`). Die Dringlichkeit bleibt sichtbar —
- * `achtung` mit orangem Punkt, `dringend` mit rotem Punkt UND roter
- * Schrift; rot ist in der Linie genau dem Überfälligen vorbehalten.
+ * `achtung` mit orangem Punkt, `dringend` mit rotem Punkt; das Wort in
+ * beiden Fällen halbfett in Tinte (Design-Entwurf, Punkt 3). Rot ist in der
+ * Linie genau dem Überfälligen vorbehalten.
  */
 export function Warnung({
   stufe = 'achtung',

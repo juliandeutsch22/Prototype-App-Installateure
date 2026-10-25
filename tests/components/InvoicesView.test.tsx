@@ -414,7 +414,8 @@ async function neueRechnung() {
   await userEvent.click(await screen.findByRole('button', { name: 'Neue Rechnung' }));
 }
 async function rechnungOeffnen(nummer: string) {
-  await userEvent.click(await screen.findByRole('button', { name: new RegExp(`^${nummer} · `) }));
+  // Seit dem Design-Entwurf (Punkt 3) steht der Name vorn und die Nummer grau dahinter.
+  await userEvent.click(await screen.findByRole('button', { name: new RegExp(` ${nummer}$`) }));
   return screen.findByRole('dialog', { name: new RegExp(nummer) });
 }
 
@@ -2253,9 +2254,9 @@ describe('Nicht verrechnete Leistung — gebuchte Stunden', () => {
     zeige();
     await waitFor(() => expect(h.gefragt).toBe(true));
     await waitFor(() => expect(listRecentWorkSheets).toHaveBeenCalled());
-    expect(screen.queryByRole('button', { name: /^RE-2026-0001 · / })).toBeNull();
+    expect(screen.queryByRole('button', { name: / RE-2026-0001$/ })).toBeNull();
     await act(async () => h.liefern([ALT]));
-    expect(await screen.findByRole('button', { name: /^RE-2026-0001 · / })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: / RE-2026-0001$/ })).toBeInTheDocument();
     expect(screen.getByText(/^Nicht verrechnete Leistung \(1\)/)).toBeInTheDocument();
   });
 
@@ -3367,16 +3368,16 @@ describe('Rechnungen suchen — über alle, nicht nur die geladenen', () => {
     suchTreffer = [rechnung('alt', 'RE-2025-1001', 'Familie Huber')];
     zeige();
     await userEvent.type(await screen.findByLabelText('Suche'), 'Huber');
-    expect(await screen.findByRole('button', { name: 'RE-2025-1001 · Familie Huber' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Familie Huber RE-2025-1001' })).toBeInTheDocument();
     expect(suche).toHaveBeenLastCalledWith('perl', 'Huber');
-    expect(screen.queryByRole('button', { name: 'RE-2026-1010 · Familie Maier' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Familie Maier RE-2026-1010' })).not.toBeInTheDocument();
   });
 
   it('nimmt den Suchbegriff aus der Adresse — so verlinkt die Kundenakte', async () => {
     suchTreffer = [rechnung('alt', 'RE-2025-1001', 'Familie Huber')];
     zeige('/invoices?suche=RE-2025-1001');
     expect(await screen.findByLabelText('Suche')).toHaveValue('RE-2025-1001');
-    expect(await screen.findByRole('button', { name: 'RE-2025-1001 · Familie Huber' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Familie Huber RE-2025-1001' })).toBeInTheDocument();
   });
 
   it('sagt, wenn die Suche nicht erreichbar ist — und sucht im Geladenen', async () => {
@@ -3385,7 +3386,7 @@ describe('Rechnungen suchen — über alle, nicht nur die geladenen', () => {
     zeige();
     await userEvent.type(await screen.findByLabelText('Suche'), 'Maier');
     expect(await screen.findByText(/Suche über alle Rechnungen ist gerade nicht erreichbar/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'RE-2026-1010 · Familie Maier' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Familie Maier RE-2026-1010' })).toBeInTheDocument();
   });
 });
 
@@ -3911,13 +3912,13 @@ describe('Rechnungsliste am Schreibtisch', () => {
   it('steht als Zeile mit Betrag und Stand und öffnet dieselben Handlungen', async () => {
     rechnungen = [offeneRechnung({ paymentStatus: 'Teilbezahlt', bezahltBetrag: 400, dueDate: '2026-07-15' })];
     zeige();
-    const knopf = await screen.findByRole('button', { name: /^RE-2026-0042 · / });
+    const knopf = await screen.findByRole('button', { name: / RE-2026-0042$/ });
     const zeile = knopf.closest('li') as HTMLElement;
     expect(within(zeile).getByText(/800,00 offen/)).toBeInTheDocument();
     expect(within(zeile).getByText('Teilbezahlt')).toBeInTheDocument();
     // Nur eine Darstellung: keine Tabelle daneben, die Zeile genau einmal.
     expect(screen.queryByRole('table')).toBeNull();
-    expect(screen.getAllByRole('button', { name: /^RE-2026-0042 · / })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: / RE-2026-0042$/ })).toHaveLength(1);
 
     const fenster = await rechnungOeffnen('RE-2026-0042');
     expect(within(fenster).getByRole('button', { name: /Zahlungserinnerung erzeugen/ })).toBeInTheDocument();
@@ -4454,37 +4455,37 @@ describe('Linie „Lot“ — die Rechnungsliste', () => {
       rechnung('0044', { paymentStatus: 'Bezahlt', bezahltBetrag: 120 }),
     ];
     zeige();
-    await screen.findByRole('button', { name: /^RE-2026-0042 · / });
+    await screen.findByRole('button', { name: / RE-2026-0042$/ });
     expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(['Überfällig', 'Offen']);
-    const reihenfolge = screen.getAllByRole('button', { name: /^RE-2026-004\d · / }).map((b) => b.textContent);
-    expect(reihenfolge).toEqual(['RE-2026-0042 · Kunde 0042', 'RE-2026-0043 · Kunde 0043']);
-    expect(screen.queryByRole('button', { name: /^RE-2026-0044 · / })).toBeNull();
+    const reihenfolge = screen.getAllByRole('button', { name: / RE-2026-004\d$/ }).map((b) => b.textContent);
+    expect(reihenfolge).toEqual(['Kunde 0042 RE-2026-0042', 'Kunde 0043 RE-2026-0043']);
+    expect(screen.queryByRole('button', { name: / RE-2026-0044$/ })).toBeNull();
     expect(screen.getByRole('button', { name: 'Offen' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('„Alle“ zeigt auch das Erledigte — und steht danach in der Adresse', async () => {
     rechnungen = [rechnung('0043'), rechnung('0044', { paymentStatus: 'Bezahlt', bezahltBetrag: 120 })];
     zeigeMitAdresse();
-    await screen.findByRole('button', { name: /^RE-2026-0043 · / });
+    await screen.findByRole('button', { name: / RE-2026-0043$/ });
     await userEvent.click(screen.getByRole('button', { name: 'Alle' }));
-    expect(await screen.findByRole('button', { name: /^RE-2026-0044 · / })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: / RE-2026-0044$/ })).toBeInTheDocument();
     expect(screen.getByTestId('adresse')).toHaveTextContent('ansicht=alle');
   });
 
   it('Gegenprobe: „Erledigt“ zeigt nur das Erledigte', async () => {
     rechnungen = [rechnung('0043'), rechnung('0044', { paymentStatus: 'Bezahlt', bezahltBetrag: 120 })];
     zeige('/invoices?ansicht=erledigt');
-    expect(await screen.findByRole('button', { name: /^RE-2026-0044 · / })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^RE-2026-0043 · / })).toBeNull();
+    expect(await screen.findByRole('button', { name: / RE-2026-0044$/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: / RE-2026-0043$/ })).toBeNull();
   });
 
   it('bricht eine Gruppe nach zwanzig Zeilen ab und sagt, wie viele noch kommen', async () => {
     rechnungen = Array.from({ length: 23 }, (_, i) => rechnung(String(1000 + i)));
     zeige();
-    await screen.findAllByRole('button', { name: /^RE-2026-1\d{3} · / });
-    expect(screen.getAllByRole('button', { name: /^RE-2026-1\d{3} · / })).toHaveLength(20);
+    await screen.findAllByRole('button', { name: / RE-2026-1\d{3}$/ });
+    expect(screen.getAllByRole('button', { name: / RE-2026-1\d{3}$/ })).toHaveLength(20);
     await userEvent.click(screen.getByRole('button', { name: 'und 3 weitere anzeigen' }));
-    expect(screen.getAllByRole('button', { name: /^RE-2026-1\d{3} · / })).toHaveLength(23);
+    expect(screen.getAllByRole('button', { name: / RE-2026-1\d{3}$/ })).toHaveLength(23);
   });
 
   it('die Kennzahlen führen in die passende Ansicht', async () => {

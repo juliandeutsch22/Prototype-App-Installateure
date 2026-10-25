@@ -337,14 +337,8 @@ export default function NachkalkulationView() {
                   {ergebnisse.map((k) => (
                     <ListRow
                       key={k.projectNumber}
-                      title={
-                        <span>
-                          {k.customerName}{' '}
-                          <span className="text-sm font-normal text-ink-muted">
-                            <span className="nr">({k.projectNumber})</span>
-                          </span>
-                        </span>
-                      }
+                      title={k.customerName}
+                      nummer={k.projectNumber}
                       subtitle={
                         <>
                           <span className="block">

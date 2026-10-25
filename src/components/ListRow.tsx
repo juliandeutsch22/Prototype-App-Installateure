@@ -9,6 +9,7 @@ import Icon from './Icon';
  */
 export function ListRow({
   title,
+  nummer,
   subtitle,
   zustand,
   wert,
@@ -18,6 +19,12 @@ export function ListRow({
   children,
 }: {
   title: ReactNode;
+  /**
+   * Die Nummer zum Namen — Baustelle, Rechnung, Angebot. Steht grau neben dem
+   * fetten Namen, ohne Klammer (Design-Entwurf, Punkt 3): in jeder Liste
+   * dieselbe Stelle, damit das Auge sie nicht suchen muss.
+   */
+  nummer?: ReactNode;
   subtitle?: ReactNode;
   /**
    * Betrag oder Stunden der Zeile — steht RECHTS, vor Status und Aktionen.
@@ -40,12 +47,19 @@ export function ListRow({
   children?: ReactNode; // rechte Seite (Aktionen)
 }) {
   const ganz = !!to || !!onOeffnen;
-  const titelInhalt = to ? (
-    <Link to={to} className="zeile-ziel">{title}</Link>
-  ) : onOeffnen ? (
-    <button type="button" onClick={onOeffnen} className="zeile-ziel text-left">{title}</button>
+  const titelText = nummer != null && nummer !== '' ? (
+    <>
+      <span className="zeile-name">{title}</span> <span className="zeile-nr">{nummer}</span>
+    </>
   ) : (
     title
+  );
+  const titelInhalt = to ? (
+    <Link to={to} className="zeile-ziel">{titelText}</Link>
+  ) : onOeffnen ? (
+    <button type="button" onClick={onOeffnen} className="zeile-ziel text-left">{titelText}</button>
+  ) : (
+    titelText
   );
   return (
     <li className={ganz ? 'zeile zeile-ganz flex-wrap gap-y-2' : 'zeile flex-wrap gap-y-2'}>
@@ -80,7 +94,8 @@ export function ListRow({
         // Plattformrichtlinien verlangen. Symbolknoepfe sind ausgenommen,
         // sonst schruempfte das Symbol mit.
         <div className="relative z-[1] ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-1 [&>button:not([data-icon])]:min-h-[2.75rem] [&>button:not([data-icon])]:px-3 [&>button:not([data-icon])]:text-sm">
-          {zustand}
+          {/* Der Zustand in einer festen Spalte (Design-Entwurf, Punkt 3): untereinander stehen Punkt und Wort bündig. */}
+          {zustand && <span className="zeile-zustand">{zustand}</span>}
           {wert != null && <span className="zeile-wert">{wert}</span>}
           {children}
           {pfeil && <Icon name="weiter" size={16} className="zeile-pfeil" />}

@@ -688,11 +688,8 @@ export default function QuotesView() {
       key={q.id}
       // DIE GANZE ZEILE führt zur Angebotsseite — Positionen, Anmerkungen, PDF.
       to={`/quotes/${q.id}`}
-      title={
-        <>
-          <span className="nr">{q.quoteNumber}</span> · <OhneUmbruch text={q.customerName} />
-        </>
-      }
+      title={<OhneUmbruch text={q.customerName} />}
+      nummer={q.quoteNumber}
       wert={`${euro(q.totalBrutto)} brutto`}
       zustand={
         <>
@@ -701,12 +698,10 @@ export default function QuotesView() {
         </>
       }
       subtitle={
+        // Eine Detailzeile (Design-Entwurf, Punkt 3): Datum, Gültigkeit, Kalkulation, Baustelle.
         <>
-          {datumAT(q.quoteDate)} · gültig bis {datumAT(q.validUntil)}
-          <span className="mt-1 block text-xs text-ink-muted">
-            {fmtStunden(q.kalkulierteStunden)} h kalkuliert
-            {q.projectNumber ? <> · Baustelle <span className="nr">{q.projectNumber}</span></> : ''}
-          </span>
+          {datumAT(q.quoteDate)} · gültig bis {datumAT(q.validUntil)} · {fmtStunden(q.kalkulierteStunden)} h kalkuliert
+          {q.projectNumber ? <> · Baustelle <span className="nr">{q.projectNumber}</span></> : ''}
         </>
       }
     >

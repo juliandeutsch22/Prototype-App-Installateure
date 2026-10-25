@@ -896,7 +896,7 @@ describe('Angebote auf der Linie „Lot“', () => {
 
     await nutzer.click(screen.getByRole('button', { name: 'Alle' }));
     expect(screen.getAllByRole('link').map((a) => a.textContent)).toEqual([
-      'AN-2026-0010 · Familie Huber', 'AN-2026-0011 · Gasthof Post', 'AN-2026-0012 · Bäckerei Pichler',
+      'Familie Huber AN-2026-0010', 'Gasthof Post AN-2026-0011', 'Bäckerei Pichler AN-2026-0012',
     ]);
     expect(screen.getByRole('heading', { name: /Alle Angebote/ })).toHaveTextContent('· 3');
   });
@@ -918,7 +918,8 @@ describe('Angebote auf der Linie „Lot“', () => {
     expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
       'Bindefrist abgelaufen· 1', 'Versendet· 2', 'Entwurf· 1',
     ]);
-    expect(screen.getAllByRole('link').map((a) => a.textContent?.slice(0, 12))).toEqual([
+    // Die Nummer steht seit dem Design-Entwurf (Punkt 3) grau hinter dem Namen: die Reihenfolge an ihr ablesen.
+    expect(screen.getAllByRole('link').map((a) => a.querySelector('.zeile-nr')?.textContent)).toEqual([
       'AN-2026-0023', 'AN-2026-0022', 'AN-2026-0021', 'AN-2026-0020',
     ]);
     // Die Zeile sagt es auch selbst — in „Alle“ steht keine Gruppe darüber.
