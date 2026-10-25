@@ -345,8 +345,8 @@ describe('Die Akte auf der Linie „Lot“', () => {
     zeige();
     const positionen = (await screen.findByText(/Positionen \(2\)/)).closest('section')!;
     const kennzahl = screen.getByText('Kalkulierte Arbeitszeit');
-    expect(kennzahl.nextSibling).toHaveTextContent('16 h');
-    expect(screen.getByText('Gültig bis').nextSibling).toHaveTextContent('01.10.2099');
+    expect(kennzahl.nextElementSibling).toHaveTextContent('16 h');
+    expect(screen.getByText('Gültig bis').nextElementSibling).toHaveTextContent('01.10.2099');
     // Im Dokument vor den Positionen: am Handy steht sie zuerst.
     expect(kennzahl.compareDocumentPosition(positionen) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });

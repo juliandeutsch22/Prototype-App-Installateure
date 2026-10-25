@@ -870,21 +870,6 @@ textarea {
   .hinweiszeile-warn svg { color: var(--warning); }
   .hinweiszeile-fehl svg { color: var(--danger); }
   .hinweiszeile a { text-decoration: underline; text-underline-offset: 3px; font-weight: 600; color: var(--ink-deep); }
-  /*
-    KENNZAHLEN OHNE POSITIONSSELEKTOREN. Die Trennlinien zeichnet jede Zahl
-    rechts und unten selbst; der Behälter schneidet die äussersten weg (der
-    negative Rand schiebt sie unter seine Kante). So passt dieselbe Regel auf
-    zwei, drei oder vier Zahlen, und eine einzelne nimmt die ganze Breite.
-  */
-  .kennzahlen { display: flex; flex-wrap: wrap; background: var(--surface); border-block: 1px solid var(--border); border-radius: 0; overflow: hidden; }
-  .kennzahl { padding: 0.875rem 1rem; flex: 1 1 9rem; min-width: 0; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 0 -1px -1px 0; color: inherit; text-decoration: none; }
-  a.kennzahl:hover { background: var(--petrol-hell); }
-  .kennzahl-name { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
-  /* Ein langer Betrag bricht in die nächste Zeile, statt mit „…“ zu enden. */
-  .kennzahl-wert { font-size: 1.25rem; line-height: 1.625rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); margin-top: 2px; font-variant-numeric: tabular-nums; }
-  @media (min-width: 1200px) { .kennzahl-wert { font-size: 1.375rem; line-height: 1.75rem; } }
-  .kennzahl-zusatz { font-size: 0.8125rem; color: var(--text-muted); margin-top: 2px; }
-  .karte-koerper > .kennzahlen { margin-inline: -1rem; border: 0; border-radius: 0; background: transparent; }
   .aktionsleiste { position: sticky; bottom: var(--reiter-hoehe, 0px); z-index: 10; background: var(--surface); border-top: 1px solid var(--border); padding: 0.625rem 1rem 0.75rem; margin: 0 -1rem; }
   @media (min-width: 760px) { .aktionsleiste { margin: 0 -1.5rem; padding-inline: 1.5rem; } }
   .aktionsleiste-summe { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.5rem; }
@@ -962,7 +947,7 @@ textarea {
     ohne Strich mitten im Wort (D3). Ab 13 Zeichen, mindestens 6 vorn und 5
     hinten. Wird vererbt; Fließtext außerhalb dieser Stellen trennt wie bisher.
   */
-  li, td, th, label, .zeile-meta, .text-meta, .kennzahl, .titel-karte, .start-abschnitt, .abschnitt {
+  li, td, th, label, .zeile-meta, .text-meta, .titel-karte, .start-abschnitt, .abschnitt {
     hyphenate-limit-chars: 13 6 5;
     -webkit-hyphenate-limit-before: 6;
     -webkit-hyphenate-limit-after: 5;

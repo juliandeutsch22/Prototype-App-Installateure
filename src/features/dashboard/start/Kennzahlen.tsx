@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import Metric, { MetricRow } from '@/components/Metric';
 
 export interface Kennzahl {
   key: string;
@@ -27,34 +27,18 @@ export interface Kennzahl {
  * war, stand darunter ohnehin noch einmal als Aufgabe. Die Startseite ist
  * zum Handeln da; der Stand ist der Blick nebenbei.
  *
- * Jetzt: eine Reihe kleiner Einträge, jeder ein Verweis auf dieselbe
- * gefilterte Liste wie vorher die Kachel — die Beschriftung klein darüber,
- * Wert und Zusatz in einer Zeile. Hintereinander geschrieben brach die Reihe
- * bei vier Einträgen schon am Schreibtisch um. Am Handy untereinander,
- * Beschriftung links, Wert rechts. Gerechnet wird nach wie vor
- * in `aufbau.ts`; hier ändert sich nur die Darstellung.
+ * Gezeichnet wird mit demselben Baustein wie auf allen anderen Seiten
+ * (`MetricRow`, E23); hier kommt nur dazu, dass leere Zahlen ausfallen.
+ * Gerechnet wird nach wie vor in `aufbau.ts`.
  */
 export default function Kennzahlen({ werte }: { werte: Kennzahl[] }) {
   const liste = werte.filter((k) => !k.leer).slice(0, 4);
   if (liste.length === 0) return null;
   return (
-    <ul className="lage-zeile" aria-label="Stand">
+    <MetricRow label="Stand">
       {liste.map((k) => (
-        <li key={k.key} className="lage-punkt">
-          <Link to={k.to} className="lage-eintrag">
-            <span className="lage-name">{k.label}</span>{' '}
-            <span className="lage-zahl">
-              <span className={k.ton === 'danger' ? 'lage-wert lage-wert-rot' : 'lage-wert'}>{k.wert}</span>
-              {k.zusatz && (
-                <>
-                  {' '}
-                  <span className="lage-zusatz">{k.zusatz}</span>
-                </>
-              )}
-            </span>
-          </Link>
-        </li>
+        <Metric key={k.key} label={k.label} value={k.wert} hint={k.zusatz} to={k.to} tone={k.ton} />
       ))}
-    </ul>
+    </MetricRow>
   );
 }

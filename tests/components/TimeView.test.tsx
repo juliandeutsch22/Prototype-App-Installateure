@@ -271,7 +271,7 @@ describe('Zeiterfassung — verrechnete Einträge', () => {
   sah kurz −9.663 Std. und „1.258 Tage ohne Buchung“.
 */
 describe('Zeiterfassung — der Saldo erst mit seinen Buchungen', () => {
-  const kachel = () => screen.getAllByText('Saldo').find((e) => e.tagName === 'P')!.parentElement!;
+  const kachel = () => screen.getAllByText('Saldo').find((e) => e.classList.contains('lage-name'))!.parentElement!;
 
   it('steht als Platzhalter da, bis die Buchungen seit Eintritt geladen sind', async () => {
     let freigeben: (r: (TimeEntry & { id: string })[]) => void = () => undefined;
@@ -284,7 +284,7 @@ describe('Zeiterfassung — der Saldo erst mit seinen Buchungen', () => {
     // Auch der Mustertext des Platzhalters ist kein Text der Seite.
     expect(kachel()).not.toHaveTextContent(/ohne Buchung/);
     // Am Telefon bricht der längste Zusatz auf zwei Zeilen; der Platzhalter hat seine Form (Messung 11.10.2026).
-    expect(kachel().querySelector('.kennzahl-zusatz .skeleton-text')?.getAttribute('data-muster')).toBe('000 Tage ohne Buchung — unvollständig');
+    expect(kachel().querySelector('.lage-zusatz .skeleton-text')?.getAttribute('data-muster')).toBe('000 Tage ohne Buchung — unvollständig');
 
     await act(async () => freigeben(eintraege));
     await waitFor(() => expect(within(kachel()).queryAllByRole('status')).toHaveLength(0));
