@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Assignment, Project, Termin, Vacation } from '@/types';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 /**
  * Die Einsatzplanung (Woche und Monat) — die Frage VOR der Tagesplanung:
@@ -697,7 +699,7 @@ describe('Wochenplan — die Tagesliste am Handy (Auftrag 4.7)', () => {
     expect(liste().getByRole('button', { name: /Familie Huber \(2026-042\) am 02\.09\. bearbeiten – Max Mustermann/ })).toBeInTheDocument();
   });
 
-  it('wer frei ist, trägt „frei – Einsatz planen“ — mit dem Tag gewählt', async () => {
+  it('wer frei ist, trägt „frei“ und „Einplanen“ — mit dem Tag gewählt', async () => {
     einsaetze = [EINSATZ_MAX];
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
@@ -1014,17 +1016,28 @@ describe('Termin anlegen aus dem Seitenkopf (20.10.2026)', () => {
 });
 
 describe('Der ganze Plan im eigenen Kalender (Plan 10.4, PR B)', () => {
-  it('steht unter dem Wochenplan, wenn der Betrieb das Abo erlaubt — mit der Art „gesamt"', async () => {
+  /*
+    SEIT 25.10.2026 IM „⋯“ (Auftrag: Einsatzplanung mobil): als Karte stand
+    das Abo am Handy mitten in der Planung. Eingerichtet wird es einmal.
+  */
+  it('steht im ⋯ der Seite, wenn der Betrieb das Abo erlaubt — und öffnet mit der Art „gesamt“', async () => {
     authWert.company = { id: 'perl', name: 'Perl Installationen', kalenderAboErlaubt: true };
     zeige();
-    expect(await screen.findByRole('heading', { name: /Im eigenen Kalender/ })).toBeInTheDocument();
+    await screen.findByRole('table', { name: 'Wochenplan als Tabelle' });
+    expect(screen.queryByRole('heading', { name: /Im eigenen Kalender/ })).not.toBeInTheDocument();
+    expect(kalenderAboStand).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Weitere Aktionen für Einsatzplanung' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Im eigenen Kalender …' }));
+    expect(await screen.findByRole('dialog', { name: 'Im eigenen Kalender' })).toBeInTheDocument();
     await waitFor(() => expect(kalenderAboStand).toHaveBeenCalledWith('pl', 'gesamt'));
   });
 
   it('nicht ohne Erlaubnis des Betriebs', async () => {
     zeige();
     await screen.findByRole('table', { name: 'Wochenplan als Tabelle' });
-    expect(screen.queryByRole('heading', { name: /Im eigenen Kalender/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Weitere Aktionen für Einsatzplanung' }));
+    expect(await screen.findByRole('menuitem', { name: 'Termin anlegen' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Im eigenen Kalender …' })).toBeNull();
   });
 
   it('nicht in der Team-Woche der Monteure', async () => {
@@ -1150,6 +1163,10 @@ describe('Planung — Sicht nach Baustellen', () => {
   Woche — dieselbe Menge wie vorher, jetzt als Hinweiszeile über dem Raster
   und die Liste im Seitenfenster.
 */
+/** Die Hinweiszeile als Ganzes — die Namen stehen seit 25.10.2026 in einem eigenen Teil, der am Handy fehlt. */
+const hinweiszeile = (muster: RegExp) =>
+  screen.getByText((_, el) => !!el?.classList.contains('hinweis-text') && muster.test(el.textContent?.replace(/\s+/g, ' ') ?? ''));
+
 describe('Planung — Noch einzuplanen', () => {
   afterEach(() => {
     BAUSTELLEN.splice(1);
@@ -1158,9 +1175,9 @@ describe('Planung — Noch einzuplanen', () => {
   it('nennt eine laufende Baustelle ohne Einsatz und plant sie auf Tipp ein — am nächsten Arbeitstag ab heute', async () => {
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
-    expect(screen.getByText(/1 laufende Baustelle ohne Einsatz in dieser Woche: Familie Huber/)).toBeInTheDocument();
+    expect(hinweiszeile(/1 laufende Baustelle ohne Einsatz in dieser Woche: Familie Huber/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Noch einzuplanen …' }));
-    await userEvent.click(within(screen.getByRole('dialog', { name: 'Noch einzuplanen' })).getByRole('button', { name: 'Familie Huber' }));
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Noch einzuplanen' })).getByRole('button', { name: 'Familie Huber 2026-042' }));
     const dialog = within(screen.getByRole('dialog', { name: 'Einsatz planen' }));
     await waitFor(() => expect(dialog.getByRole('combobox', { name: /Baustelle/ })).toHaveValue('2026-042'));
     expect(dialog.getByRole('combobox', { name: 'Tag' })).toHaveValue(MITTWOCH);
@@ -1186,10 +1203,10 @@ describe('Planung — Noch einzuplanen', () => {
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
     // Mit Nummer: zwei Baustellen desselben Kunden stünden sonst gleich da (Runde 5, G3).
-    expect(screen.getByText(/23 laufende Baustellen ohne Einsatz in dieser Woche: Familie Huber \(2026-042\), Kunde 02 \(X-02\), Kunde 03 \(X-03\) und 20 weitere/)).toBeInTheDocument();
+    expect(hinweiszeile(/23 laufende Baustellen ohne Einsatz in dieser Woche: Familie Huber \(2026-042\), Kunde 02 \(X-02\), Kunde 03 \(X-03\) und 20 weitere/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Noch einzuplanen …' }));
     const dialog = within(screen.getByRole('dialog', { name: 'Noch einzuplanen' }));
-    expect(dialog.queryByRole('button', { name: 'Kunde 01' })).toBeNull();
+    expect(dialog.queryByRole('button', { name: /^Kunde 01/ })).toBeNull();
     expect(dialog.getAllByRole('listitem')).toHaveLength(20);
     await userEvent.click(dialog.getByRole('button', { name: 'und 3 weitere anzeigen' }));
     const alle = dialog.getAllByRole('listitem').map((li) => li.textContent);
@@ -1448,20 +1465,91 @@ describe('Einsatzplanung — Kunden erst mit den Baustellen', () => {
   });
 });
 
-describe('Einsatzplanung — „Im eigenen Kalender“ mit dem Plan (11.10.2026)', () => {
-  it('erscheint erst mit dem Plan — der Plan schiebt ihn sonst beim Laden nach unten', async () => {
+describe('Einsatzplanung — „Im eigenen Kalender“ nicht mehr unter dem Plan (25.10.2026)', () => {
+  it('auch nach dem Laden steht keine Karte unter dem Plan — sie kann ihn nicht mehr verschieben', async () => {
     authWert.company = { id: 'perl', name: 'Perl Installationen', kalenderAboErlaubt: true };
     einsaetze = [EINSATZ_MAX];
-    einsaetzeHalten = true;
-    try {
-      zeige();
-      await waitFor(() => expect(geladen.length).toBeGreaterThan(0));
-      await act(async () => { await Promise.resolve(); });
-      expect(screen.queryByRole('heading', { name: /Im eigenen Kalender/ })).not.toBeInTheDocument();
-      await act(async () => einsaetzeSenden());
-      expect(await screen.findByRole('heading', { name: /Im eigenen Kalender/ })).toBeInTheDocument();
-    } finally {
-      einsaetzeHalten = false;
+    zeige();
+    await screen.findByRole('table', { name: 'Wochenplan als Tabelle' });
+    expect(screen.queryByRole('heading', { name: /Im eigenen Kalender/ })).not.toBeInTheDocument();
+  });
+});
+
+/*
+  EINSATZPLANUNG AM HANDY (Auftrag 25.10.2026): ruhiger und ohne
+  Silbentrennung in Namen. Gegenprobe: gegen den Stand davor rot — dort
+  standen „· heute“ ohne Schutz, ein umrandeter Knopf „frei – Einsatz
+  planen“, die Baustellennamen auch am Handy und die Regeln ohne `hyphens:
+  manual`.
+*/
+describe('Einsatzplanung am Handy (25.10.2026)', () => {
+  const css = readFileSync(join(process.cwd(), 'src/styles/lot-planung.css'), 'utf8');
+  /** Der Rumpf einer Regel, deren Auswahl genau `auswahl` ist (die erste). */
+  const regel = (auswahl: string) => {
+    const m = css.match(new RegExp(`(?:^|[\\s}])${auswahl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`));
+    if (!m) throw new Error(`Regel ${auswahl} fehlt`);
+    return m[1];
+  };
+
+  it('„· heute“ bricht nicht um — es steht am Stück hinter dem Tag', async () => {
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    const tag = screen.getByRole('region', { name: 'Wochenplan als Liste' }).querySelector('.tl-tag') as HTMLElement;
+    expect(tag).toHaveTextContent('Mittwoch 02.09. · heute');
+    expect(within(tag).getByText('· heute').className).toBe('whitespace-nowrap');
+  });
+
+  it('gleich geblieben: an einem anderen Tag kein „heute“', async () => {
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(liste().getByRole('button', { name: /^Donnerstag 03\.09\./ }));
+    const tag = screen.getByRole('region', { name: 'Wochenplan als Liste' }).querySelector('.tl-tag') as HTMLElement;
+    expect(tag).toHaveTextContent(/^Donnerstag 03\.09\.$/);
+  });
+
+  it('wer frei ist: der Zustand „frei“ und dahinter „Einplanen“, die ganze Zeile ein Knopf', async () => {
+    einsaetze = [EINSATZ_MAX];
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    const knopf = liste().getByRole('button', { name: 'Erna Beispiel am 02.09. einteilen' });
+    expect(within(knopf).getByText('frei').className).toBe('stand stand-offen');
+    expect(within(knopf).getByText('Einplanen')).toBeInTheDocument();
+    expect(knopf).not.toHaveTextContent('Einsatz planen');
+  });
+
+  it('„Noch einzuplanen“: die Zahl überall, die Namen erst ab dem Tablet', async () => {
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    const zeile = hinweiszeile(/^1 laufende Baustelle ohne Einsatz in dieser Woche/);
+    const namen = within(zeile).getByText(/Familie Huber/);
+    expect(namen).not.toBe(zeile);
+    expect(namen.classList).toContain('hidden');
+    expect(namen.classList).toContain('md:inline');
+    // Ohne die Namen bleibt der ganze Satz bis „Woche“ stehen.
+    expect(zeile.textContent?.replace(namen.textContent ?? '', '').replace(/\s+/g, ' ').trim()).toBe('1 laufende Baustelle ohne Einsatz in dieser Woche');
+  });
+
+  it('die Lesart des Monats steht in der Hilfe der Seite', async () => {
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(screen.getByRole('button', { name: 'Hilfe zu dieser Seite' }));
+    expect(await screen.findByText(/Im Monat am Handy steht je Tag eine Zahl/)).toBeInTheDocument();
+    expect(screen.getByText(/ein Balken heißt eingeplant, grau\s+abwesend/)).toBeInTheDocument();
+  });
+
+  it('Namen und der Tag werden nie automatisch getrennt', () => {
+    for (const auswahl of ['.tl-tag', '.tl-name', '.wp-name', '.wp-name-titel']) {
+      expect(regel(auswahl), auswahl).toMatch(/(^|;)\s*hyphens:\s*manual/);
     }
+  });
+
+  it('ohne Rahmen: die Hinweiszeile und „frei“', () => {
+    expect(regel('.planung-hinweiszeile')).not.toMatch(/border/);
+    expect(regel('.tl-frei')).toMatch(/border:\s*0/);
+  });
+
+  it('„Woche · Monat · Tag“ am Handy über die volle Breite, ab dem Tablet rechts', () => {
+    expect(css).toMatch(/@media \(max-width: 759px\) \{\s*\.planung-wahl \{ width: 100%; \}\s*\.planung-wahl > \.segment \{ flex: 1; \}/);
+    expect(css).toMatch(/@media \(min-width: 760px\) \{ \.planung-wahl \{ margin-left: auto; \} \}/);
   });
 });

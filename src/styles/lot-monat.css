@@ -149,7 +149,6 @@
   /* ── Handy: Monatskalender ─────────────────────────────────────────────── */
   .kal { display: block; }
   @media (min-width: 760px) { .kal { display: none; } }
-  .kal-lesart { margin: 0.5rem 0 0.75rem; font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
   .kal-raster { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
   .kal-kopf { padding: 0.25rem 0; text-align: center; font-size: 0.8125rem; color: var(--text-muted); }
   .kal-leer { min-height: 3.625rem; }

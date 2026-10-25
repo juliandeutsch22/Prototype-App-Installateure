@@ -77,11 +77,11 @@ export default function MonatsKalender({
           </option>
         ))}
       </SelectField>
-      <p className="kal-lesart">
-        {person
-          ? 'Balken = eingeplant · grau = abwesend · „fehlt“ = eingeteilt, aber abwesend · Punkt = Termin · Tag antippen zeigt die Vorschau'
-          : 'Zahl = Baustellen mit Einsatz · Bernstein = jemand Eingeteiltes fehlt · Punkt = Termine · Tag antippen zeigt alle Einsätze'}
-      </p>
+      {/*
+        DIE LESART STEHT IN DER HILFE DER SEITE (Auftrag 25.10.2026, eine
+        Hilfe pro Seite): offen nahm sie am Handy drei Zeilen über dem
+        Kalender ein — jedes Mal, für etwas, das man einmal liest.
+      */}
       <div className="kal-raster" role="group" aria-label={person ? `Monat von ${name}` : 'Monat, alle Personen'}>
         {KOPF.map((k) => (
           <div key={k} className="kal-kopf" aria-hidden="true">

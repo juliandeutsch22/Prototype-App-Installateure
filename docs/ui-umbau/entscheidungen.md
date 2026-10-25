@@ -343,3 +343,31 @@ der Detailzeile — Mahnstand und Teilzahlung an der Rechnung (Prüflauf
 „Verworfen“ und der Stornogrund am Schein. Sie in die eine Detailzeile zu
 pressen, hätte sie abgeschnitten oder unlesbar gemacht.
 
+**E28 — Einsatzplanung am Handy ruhiger (25.10.2026).** Auftrag mit drei
+Fotos vom Handy (Woche, Tag, Monat). Umgesetzt:
+- **Keine Silbentrennung in Namen und im Tag.** Die Seite trennt sonst
+  automatisch (`hyphens: auto` am body, für lange Fachwörter); in
+  `.tl-tag`, `.tl-name`, `.wp-name` und `.wp-name-titel` gilt `hyphens:
+  manual`, „· heute“ bricht nicht um.
+- **„frei“ als Zustand, „Einplanen“ als Verweis.** Der umrandete Knopf je
+  freier Person wird eine ruhige Zeile; der Knopf ist weiter die ganze
+  Fläche, Vorlesename und Vorbelegung unverändert.
+- **„Noch einzuplanen“ ohne Rahmen, am Handy ohne Namen.** Drei Baustellen
+  samt Nummer machten die Zeile fünf Zeilen hoch. Die Namen stehen ab dem
+  Tablet in der Zeile und überall im Seitenfenster, dort mit der Nummer grau
+  daneben (E27).
+- **„Woche · Monat · Tag“ am Handy über die volle Breite**, ab dem Tablet
+  rechts wie bisher.
+- **Gruppenköpfe der Tagesliste als Linie** statt grauer Fläche (Linie
+  „Lot“, E24).
+- **Monat: Lesart in die Hilfe der Seite**, kein leerer Streifen mehr über
+  „Für wen“ (`gap` statt `space-y`, das ausgeblendete Raster zählte mit).
+- **Kalender-Abo ins ⋯.** Die Karte stand am Handy mitten in der Planung;
+  eingerichtet wird das Abo einmal. Gleiche Bedingungen wie die Karte
+  (Abo erlaubt, nicht im Supportzugang, nicht in der Team-Woche), gleicher
+  Inhalt im Seitenfenster.
+
+Keine Grenze: am Tablet und Schreibtisch bleiben Raster, Monat und Tag
+unverändert; die Legende unter dem Monatsraster ab dem Tablet bleibt offen,
+weil sie dort neben dem Raster Platz hat.
+
