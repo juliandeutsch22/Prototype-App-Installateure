@@ -21,7 +21,7 @@ import { canAccess, zusatzrechte } from '@/app/navigation';
 import Card from '@/components/Card';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import PageHeader from '@/components/PageHeader';
-import { SkeletonList } from '@/components/States';
+import { SkeletonList, SkeletonMetrics } from '@/components/States';
 import { rolleAnzeige } from '@/lib/rolleAnzeige';
 import LaufWarnung from './LaufWarnung';
 import WartungHinweis from './WartungHinweis';
@@ -281,12 +281,7 @@ export default function DashboardView() {
       */}
       {nochAmLaden ? (
         <div className="space-y-3 lg:space-y-5">
-          <div className="lage-platzhalter" role="status" aria-busy="true">
-            <span className="sr-only">Wird geladen …</span>
-            <span className="skeleton h-3 w-40" aria-hidden="true" />
-            <span className="skeleton h-3 w-40" aria-hidden="true" />
-            <span className="skeleton h-3 w-32" aria-hidden="true" />
-          </div>
+          <SkeletonMetrics />
           <Card>
             <SkeletonList rows={5} />
           </Card>

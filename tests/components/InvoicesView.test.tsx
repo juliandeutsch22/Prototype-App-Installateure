@@ -2890,7 +2890,7 @@ describe('Zahlungen erfassen', () => {
     zeige();
     expect(await screen.findByText(/800,00 offen/)).toHaveTextContent(/offen · überfällig$/);
 
-    const kachel = screen.getAllByText('Überfällig').find((e) => e.tagName === 'P')!.parentElement!;
+    const kachel = screen.getAllByText('Überfällig').find((e) => e.classList.contains('lage-name'))!.parentElement!;
     expect(kachel).toHaveTextContent('€ 800,00');
 
     // Auch der Filter „Überfällig" zeigt sie.
@@ -2931,7 +2931,7 @@ describe('Zahlungen erfassen', () => {
     rechnungen = [offeneRechnung({ paymentStatus: 'Teilbezahlt', bezahltBetrag: 400, dueDate: '2099-01-15' })];
     zeige();
     expect(await screen.findByText(/800,00 offen/)).not.toHaveTextContent(/überfällig/);
-    const kachel = screen.getAllByText('Überfällig').find((e) => e.tagName === 'P')!.parentElement!;
+    const kachel = screen.getAllByText('Überfällig').find((e) => e.classList.contains('lage-name'))!.parentElement!;
     expect(kachel).toHaveTextContent('€ 0,00');
   });
 
@@ -3792,7 +3792,7 @@ describe('Die Rechnung geht an den Kunden, nicht an die Baustelle', () => {
 */
 describe('Die Kennzahlen „Offen“ und „Überfällig“', () => {
   const kachel = (name: string) =>
-    screen.getAllByText(name).find((e) => e.tagName === 'P')!.parentElement!;
+    screen.getAllByText(name).find((e) => e.classList.contains('lage-name'))!.parentElement!;
 
   it('zählen auch eine alte Forderung, die in der Liste gar nicht mehr steht', async () => {
     rechnungen = [];
@@ -4059,7 +4059,7 @@ describe('Rücklass beim Anlegen', () => {
  */
 describe('Solange die offenen Forderungen laden', () => {
   const kachel = (name: string) =>
-    screen.getAllByText(name).find((e) => e.tagName === 'P')!.parentElement!;
+    screen.getAllByText(name).find((e) => e.classList.contains('lage-name'))!.parentElement!;
 
   it('stehen Platzhalter statt „€ 0,00“, und die Liste erscheint erst mit ihnen', async () => {
     const offene = zurueckhalten<(Invoice & { id: string })[]>();
@@ -4098,7 +4098,7 @@ describe('Solange die offenen Forderungen laden', () => {
 /** Ein offener Rücklass in der Liste: offen, nicht überfällig, solange er nicht fällig ist. */
 describe('Rücklass in der Liste', () => {
   const kachel = (name: string) =>
-    screen.getAllByText(name).find((e) => e.tagName === 'P')!.parentElement!;
+    screen.getAllByText(name).find((e) => e.classList.contains('lage-name'))!.parentElement!;
   // 1.200 € brutto, Zahlungsziel vorbei, 60 € Haftrücklass.
   const mitRuecklass = (p: Partial<Invoice>): Invoice & { id: string } => ({
     id: 'rl', invoiceNumber: 'RE-2026-1100', projectNumber: '2026-001', customerName: 'Bauträger Nord',
@@ -4480,9 +4480,9 @@ describe('Linie „Lot“ — die Rechnungsliste', () => {
 
   it('die Kennzahlen führen in die passende Ansicht', async () => {
     zeige();
-    const link = (await screen.findAllByText('Überfällig')).find((e) => e.tagName === 'P')!.closest('a');
+    const link = (await screen.findAllByText('Überfällig')).find((e) => e.classList.contains('lage-name'))!.closest('a');
     expect(link).toHaveAttribute('href', `/invoices?status=${encodeURIComponent('Überfällig')}`);
-    const offen = screen.getAllByText('Offen').find((e) => e.tagName === 'P')!.closest('a');
+    const offen = screen.getAllByText('Offen').find((e) => e.classList.contains('lage-name'))!.closest('a');
     expect(offen).toHaveAttribute('href', '/invoices?ansicht=offen');
   });
 

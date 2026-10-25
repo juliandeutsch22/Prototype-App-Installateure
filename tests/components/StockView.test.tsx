@@ -231,7 +231,9 @@ describe('Lager — was ist wirklich frei?', () => {
     ];
     zeige();
 
-    const zeilen = await screen.findAllByRole('listitem');
+    // Die Einträge der Stand-Zeile darüber sind auch Listenpunkte; gezählt wird die Bestandsliste.
+    await screen.findByText('Zargenschraube');
+    const zeilen = screen.getAllByRole('listitem').filter((li) => !li.classList.contains('lage-punkt'));
     expect(within(zeilen[0]).getByText('Zargenschraube')).toBeInTheDocument();
     expect(within(zeilen[1]).getByText('Abflussrohr')).toBeInTheDocument();
   });
@@ -299,7 +301,7 @@ describe('Lager — frei und reserviert erst mit der Datenbank', () => {
       zeige();
       await waitFor(() => expect(lagerStand).toHaveBeenCalled());
       expect(screen.queryByText(/20 m frei/)).not.toBeInTheDocument();
-      const knapp = screen.getAllByText('Knapp').find((e) => e.tagName === 'P')!.parentElement!;
+      const knapp = screen.getAllByText('Knapp').find((e) => e.classList.contains('lage-name'))!.parentElement!;
       expect(within(knapp).getAllByRole('status').length).toBeGreaterThan(0);
       await act(async () => liefern(new Map([['m1', { bestand: 20, zugesagt: 0, geplant: 17, frei: 3 }]])));
       // Gleich die Zahl der Datenbank, nie die eigene (20 frei).
@@ -325,7 +327,7 @@ describe('Lager — frei und reserviert erst mit der Datenbank', () => {
       lagerStand.mockImplementation(() => new Promise(() => undefined));
       zeige();
       expect(screen.getByText(/3 m frei/)).toBeInTheDocument();
-      const knapp = screen.getAllByText('Knapp').find((e) => e.tagName === 'P')!.parentElement!;
+      const knapp = screen.getAllByText('Knapp').find((e) => e.classList.contains('lage-name'))!.parentElement!;
       expect(within(knapp).queryByRole('status')).toBeNull();
       await waitFor(() => expect(lagerStand.mock.calls.length).toBeGreaterThan(vorher));
     } finally {

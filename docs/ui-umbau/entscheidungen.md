@@ -188,3 +188,22 @@ aus dem Stand und steht unter „Zu erledigen“ immer, nicht erst ab vier
 Wochen: je eine Sammelzeile für Scheine und für Regiestunden, ab vier Wochen
 mit Achtung-Punkt. Die Seite Rechnungen („Nicht verrechnete Leistung“)
 bleibt bei ihrer Vier-Wochen-Grenze.
+
+**E23 — Die Stand-Zeile auf allen Seiten (25.10.2026).** Auf die Frage,
+ob die Zeile nur auf der Startseite steht, und das Angebot, sie überall
+einzusetzen: „ja setze das direkt alles um“. Die Kennzahlen-Leiste
+(`MetricRow`/`Metric`) zeichnet jetzt selbst die Stand-Zeile; die
+Startseite verwendet denselben Baustein, die Gestaltung steht nur noch in
+`lot.css` (`.lage-*`), die Kachel-Regeln aus `index.css` sind entfernt. Das
+betrifft Rechnungen, Nachkalkulation, Lager, die Angebot-Akte,
+Zeiterfassung, Urlaub sowie den Kunden- und den Katalogimport. Werte,
+Zusätze, Ziele, Ladeplatzhalter und Farben (rot nur Überfälliges und
+Verlust, Warnfarbe für Achtung) bleiben, wie sie waren. Anders als auf der
+Startseite fällt auf diesen Seiten keine Null aus: dort beschreibt die Zahl
+die Liste darunter oder das Ergebnis eines Probelaufs („Mit Verlust 0“,
+„Nicht verstanden 0“), und eine fehlende Zahl ließe offen, ob gezählt wurde.
+Die drei Werte im Seitenfenster einer Person (Mitarbeiterübersicht) waren
+nie Kacheln, sondern stehen schon klein in einer Reihe; sie bleiben.
+Berichtigt dabei: am Schreibtisch stand die Zeile seit E22 untereinander
+statt in einer Reihe (die Richtung des Handys wurde geerbt); jetzt steht sie
+ab 1.200 px nebeneinander, wie in E22 beschrieben.

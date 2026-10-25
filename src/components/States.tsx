@@ -78,19 +78,16 @@ export function SeitenPlatzhalter() {
   );
 }
 
-/** Ladeplatzhalter für die Kennzahlen-Reihe. */
+/** Ladeplatzhalter für die Stand-Zeile (`MetricRow`). */
 export function SkeletonMetrics({ count = 3 }: { count?: number }) {
   return (
-    // Form und Hoehe folgen der Kennzahlen-Leiste. Ein Platzhalter, der
-    // anders gebaut ist als sein Inhalt, laesst die Seite beim Eintreffen
-    // springen — genau das, was er verhindern soll.
-    <div role="status" aria-busy="true" className="kennzahlen">
+    // Höhe und Linien folgen der Stand-Zeile. Ein Platzhalter, der anders
+    // gebaut ist als sein Inhalt, lässt die Seite beim Eintreffen springen —
+    // genau das, was er verhindern soll.
+    <div role="status" aria-busy="true" className="lage-platzhalter">
       <span className="sr-only">Wird geladen …</span>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="kennzahl" aria-hidden="true">
-          <div className="skeleton h-3 w-20" />
-          <div className="skeleton mt-2 h-6 w-16 lg:h-8" />
-        </div>
+        <span key={i} className="skeleton h-3 w-40" aria-hidden="true" />
       ))}
     </div>
   );

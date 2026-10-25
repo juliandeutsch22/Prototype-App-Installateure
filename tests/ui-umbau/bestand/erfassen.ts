@@ -44,7 +44,8 @@ export const KLASSEN = {
   hinweis: ['.hinweiszeile'],
   abzeichen: ['.stand', '.section-label'],
   // Nachher dazu (K4, 12.10.2026): die Kennzahlen im Seitenfenster der Person und die feste der Übersicht.
-  kennzahl: ['.kennzahl', '.pf-kennzahl', '.ue-kennzahl-fest'],
+  // Seit E23 (25.10.2026) die Stand-Zeile: ein Eintrag je Kennzahl.
+  kennzahl: ['.kennzahl', '.pf-kennzahl', '.ue-kennzahl-fest', '.lage-punkt'],
 };
 
 /**

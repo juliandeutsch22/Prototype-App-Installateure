@@ -116,8 +116,8 @@ export default function MusterView() {
       <MetricRow>
         <Metric label="Offen" value="€ 18 240,00" to="/_muster" />
         <Metric label="Überfällig" value="€ 1 120,00" tone="danger" to="/_muster" />
-        <Metric label="Nicht verrechnet" value="3 Scheine" to="/_muster" />
-        <Metric label="Baustellen" value="14" to="/_muster" />
+        <Metric label="Bezahlt im Monat" value="€ 9 860,00" hint="Zahlungseingänge seit 01.10." to="/_muster" />
+        <Metric label="Knapp" value="2" tone="warning" />
       </MetricRow>
 
       <Card title="Zu erledigen" buendig>

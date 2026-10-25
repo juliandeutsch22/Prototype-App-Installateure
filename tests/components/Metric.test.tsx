@@ -1,81 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import Metric, { MetricRow, GUTER_RAND } from '@/components/Metric';
+import Metric, { MetricRow } from '@/components/Metric';
 import { SkeletonMetrics } from '@/components/States';
-import Card from '@/components/Card';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
- * Die Kennzahlen-Leiste fluchtet mit dem, was unter ihr steht.
+ * Die Kennzahlen einer Seite als Stand-Zeile (E22 Startseite, E23 alle Seiten).
  *
- * DER BEFUND AUS DEM BETRIEB. Die Leiste hat keinen Rahmen und deshalb keine
- * eigene Polsterung — ihre erste Beschriftung stand genau dort, wo die KANTE
- * der Karte darunter liegt, und damit sechzehn Bildpunkte links neben deren
- * Titel. Zwei Beschriftungen untereinander, die knapp nicht übereinander
- * stehen, sehen nicht nach einer Entscheidung aus, sondern nach einem
- * Versehen; auf dem Telefon, wo die Karte fast die ganze Breite einnimmt,
- * umso mehr.
- *
- * WAS DIESE PRÜFUNG KANN UND WAS NICHT. Sie misst keine Bildpunkte — in
- * jsdom gibt es kein Tailwind und keine Layoutrechnung. Sie hält die beiden
- * Masse ZUSAMMEN: weicht eines ab, fällt sie. Genau das ist der Fehler, der
- * passiert ist — nicht ein falscher Wert, sondern zwei Werte, wo einer
- * gehört.
+ * Bis zum 25.10.2026 standen sie als Leiste großer Kacheln über der Liste.
+ * Jetzt ist es eine Reihe kleiner Einträge — dieselben Werte, Zusätze und
+ * Ziele. Geprüft wird, dass dabei nichts verloren geht und dass die
+ * Gestaltung nur EINMAL steht: die Startseite und alle anderen Seiten
+ * zeichnen mit demselben Baustein.
  */
-describe('Die Kennzahlen-Leiste', () => {
-  /*
-    SEIT DER DESIGNLINIE „FASSUNG 3" ist die Leiste ein eigener Kasten mit
-    Rand (`.kennzahlen`), und jede Kennzahl polstert sich selbst
-    (`.kennzahl`). Die Flucht entsteht damit so: Kante der Leiste = Kante der
-    Karte darunter, Polsterung der Kennzahl = Polsterung des Kartenkörpers.
-    Das zweite ist die Stelle, an der zwei Werte auseinanderlaufen können —
-    der eine steht in index.css, der andere als Tailwind-Klasse an `Card`.
-  */
-  it('polstert jede Kennzahl so wie den Kartenkörper', () => {
-    const { container: karte } = render(<Card title="Neue Rechnung">Inhalt</Card>);
-    const koerper = karte.querySelector('section > div')!;
-
-    /*
-      DAS MASS WIRD ZUERST GEPRÜFT, und das ist nicht überflüssig: mit
-      `toContain` allein ginge eine LEERE Polsterung durch — jede
-      Zeichenkette enthält die leere.
-    */
-    const stufe = /^px-(\d+)$/.exec(GUTER_RAND);
-    expect(stufe).not.toBeNull();
-    // Über die Klassenliste und nicht über die Zeichenkette: `px-4` steckt
-    // auch in `px-40`.
-    expect([...koerper.classList]).toContain(GUTER_RAND);
-
-    // Tailwind: eine Stufe sind 0,25 rem.
-    const css = readFileSync(join(process.cwd(), 'src/index.css'), 'utf8');
-    const kennzahl = /\.kennzahl \{ padding: [\d.]+rem ([\d.]+)rem;/.exec(css);
-    expect(kennzahl).not.toBeNull();
-    expect(Number(kennzahl![1])).toBe(Number(stufe![1]) * 0.25);
-  });
-
-  it('und der Ladeplatzhalter ist genauso gebaut', () => {
-    /*
-      Sonst springt die Seite in dem Augenblick, in dem die Zahlen
-      eintreffen — und zwar seitlich, was noch stärker auffällt als ein
-      Sprung in der Höhe. Der Platzhalter ist dafür da, genau das zu
-      verhindern.
-    */
-    const { container } = render(<SkeletonMetrics />);
-    const leiste = container.firstElementChild!;
-    expect([...leiste.classList]).toContain('kennzahlen');
-    const spalten = [...leiste.children].filter((k) => !k.classList.contains('sr-only'));
-    expect(spalten.length).toBe(3);
-    for (const s of spalten) expect([...s.classList]).toContain('kennzahl');
-  });
-
-  it('gibt jeder Spalte dieselbe Form, ohne eigene Polsterung daneben', () => {
-    /*
-      Die Polsterung sitzt an `.kennzahl`. Bekäme eine Spalte zusätzlich eine
-      eigene (`px-…`, `pl-…`), stünde ihre Beschriftung anders eingerückt als
-      die der Nachbarn — und die Flucht wäre wieder dahin.
-    */
+describe('Die Stand-Zeile', () => {
+  it('ist eine Liste mit einem Eintrag je Kennzahl — keine Kachel mehr', () => {
     const { container } = render(
       <MemoryRouter>
         <MetricRow>
@@ -84,27 +25,55 @@ describe('Die Kennzahlen-Leiste', () => {
         </MetricRow>
       </MemoryRouter>,
     );
-    const leiste = container.firstElementChild!;
-    expect([...leiste.classList]).toContain('kennzahlen');
-    for (const spalte of [...leiste.children]) {
-      const k = [...spalte.classList];
-      expect(k).toContain('kennzahl');
-      expect(k.some((c) => /^(sm:|lg:)?p[xlr]-/.test(c))).toBe(false);
+    const zeile = screen.getByRole('list');
+    expect([...zeile.classList]).toContain('lage-zeile');
+    const eintraege = within(zeile).getAllByRole('listitem');
+    expect(eintraege).toHaveLength(2);
+    for (const e of eintraege) {
+      expect([...e.classList]).toContain('lage-punkt');
+      // Eine eigene Polsterung je Eintrag rückte seine Beschriftung gegen die Nachbarn ein.
+      expect([...e.querySelectorAll('*'), e].some((el) => [...el.classList].some((c) => /^(md:|lg:)?p[xlr]-/.test(c)))).toBe(false);
     }
+    expect(container.querySelector('.kennzahl, .kennzahlen, .kennzahl-wert')).toBeNull();
   });
 
-  it('färbt nur „Überfällig“ rot und schreibt nie fett', () => {
+  it('liest sich als ein Satz: Beschriftung, Wert, Zusatz', () => {
+    render(
+      <MemoryRouter>
+        <MetricRow>
+          <Metric label="Überfällig" value="€ 2,00" hint="seit 30 Tagen" to="/invoices" />
+        </MetricRow>
+      </MemoryRouter>,
+    );
+    // Ohne Leerzeichen zwischen den Teilen hieße der Verweis „Überfällig€ 2,00seit 30 Tagen“.
+    expect(screen.getByRole('link')).toHaveTextContent(/^Überfällig € 2,00 seit 30 Tagen$/);
+  });
+
+  it('der Ladeplatzhalter hat die Form der Zeile', () => {
+    // Sonst springt die Seite in dem Augenblick, in dem die Zahlen eintreffen.
+    const { container } = render(<SkeletonMetrics count={2} />);
+    const platz = container.firstElementChild!;
+    expect([...platz.classList]).toContain('lage-platzhalter');
+    expect(platz).toHaveAttribute('role', 'status');
+    expect(platz.querySelectorAll('.skeleton')).toHaveLength(2);
+  });
+
+  it('färbt nur „Überfällig“ rot, Achtung in der Warnfarbe, und schreibt nie fett', () => {
     render(
       <MetricRow>
         <Metric label="Offen" value="€ 1,00" tone="brand" />
         <Metric label="Überfällig" value="€ 2,00" tone="danger" />
+        <Metric label="Knapp" value="3" tone="warning" />
+        <Metric label="Bezahlt" value="€ 4,00" tone="success" />
       </MetricRow>,
     );
-    const offen = screen.getByText('€ 1,00');
-    const faellig = screen.getByText('€ 2,00');
-    expect([...faellig.classList]).toContain('text-danger');
-    expect(offen.className).not.toMatch(/text-(danger|brand|success)/);
-    expect(offen.className + faellig.className).not.toMatch(/font-bold|font-extrabold/);
+    expect([...screen.getByText('€ 2,00').classList]).toContain('lage-wert-rot');
+    expect([...screen.getByText('3').classList]).toContain('lage-wert-warn');
+    for (const ruhig of ['€ 1,00', '€ 4,00']) {
+      expect(screen.getByText(ruhig).className).not.toMatch(/lage-wert-(rot|warn)|text-(danger|brand|success)/);
+    }
+    const alle = ['€ 1,00', '€ 2,00', '3', '€ 4,00'].map((w) => screen.getByText(w).className).join(' ');
+    expect(alle).not.toMatch(/font-bold|font-extrabold|font-semibold/);
   });
 
   it('zeigt Beschriftung und Wert', () => {
@@ -112,6 +81,28 @@ describe('Die Kennzahlen-Leiste', () => {
     expect(screen.getByText('Überfällig')).toBeInTheDocument();
     expect(screen.getByText('€ 12,00')).toBeInTheDocument();
     expect(screen.getByText('seit 30 Tagen')).toBeInTheDocument();
+  });
+
+  it('die Gestaltung steht einmal, in lot.css — die alte Kachel-Leiste ist weg', () => {
+    /*
+      Zwei Fassungen derselben Zeile liefen auseinander, sobald eine davon
+      angepasst wird. Deshalb stehen die Regeln nur in lot.css; die Startseite
+      hat keine eigenen mehr, und die Kachel-Regeln aus index.css sind fort.
+    */
+    const lesen = (datei: string) => readFileSync(join(process.cwd(), 'src', datei), 'utf8');
+    const lot = lesen('styles/lot.css');
+    expect(lot).toMatch(/\.lage-zeile \{/);
+    expect(lot).toMatch(/\.lage-wert-warn \{/);
+    expect(lesen('styles/lot-start.css')).not.toMatch(/\.lage-/);
+    /*
+      Am Schreibtisch eine Reihe. Die Regel des Handys stellt die Einträge
+      untereinander (`column`); ohne ausdrückliche Richtung erbte die Reihe
+      ab 1.200 px genau das — so stand sie bis zum 25.10.2026 auch auf der
+      Startseite. jsdom rechnet kein Layout, deshalb steht die Prüfung an der
+      Regel selbst.
+    */
+    expect(lot).toMatch(/@media \(min-width: 1200px\) \{ \.lage-zeile \{[^}]*flex-direction: row;/);
+    expect(lesen('index.css')).not.toMatch(/\.kennzahlen? \{/);
   });
 });
 
@@ -151,7 +142,7 @@ describe('Eine Kennzahl, die lädt', () => {
     const { container } = render(
       <Metric label="Saldo" value="+1:00" hint="58 Tage ohne Buchung" bereit={false} zusatzMuster="000 Tage ohne Buchung — unvollständig" />,
     );
-    const zusatz = container.querySelector('.kennzahl-zusatz');
+    const zusatz = container.querySelector('.lage-zusatz');
     expect(zusatz?.querySelector('.skeleton-text')?.getAttribute('data-muster')).toBe('000 Tage ohne Buchung — unvollständig');
   });
 

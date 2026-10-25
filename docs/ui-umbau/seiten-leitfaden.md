@@ -23,7 +23,7 @@ beschreiben**, nicht selbst ändern.
 | `Card` | `@/components/Card` | = „Gruppe“. Mit `buendig` für Listen. Eine Fläche, Linien statt Karten-in-Karten. |
 | `ListRow`, `List` | `@/components/ListRow` | = „Zeile“. Mit `to` (Adresse) oder `onOeffnen` (z. B. Seitenfenster) ist die **ganze Zeile antippbar**; Knöpfe rechts bleiben eigene Ziele. |
 | `Zustand`, `StatusBadge`, `Warnung`, `Marke` | `@/components/Badge`, `StatusBadge` | Fünf Zustände: `offen`, `laeuft`/`gut`, `ruht` (= erledigt), `achtung`, `schlecht` (= Fehler). Keine farbigen Pillen. |
-| `Metric`, `MetricRow` | `@/components/Metric` | Kennzahlen, höchstens vier, mit `to` antippbar. |
+| `Metric`, `MetricRow` | `@/components/Metric` | Kennzahlen als Stand-Zeile (E23), höchstens vier, mit `to` antippbar. Keine eigenen Kacheln bauen. |
 | `BottomSheet` mit `auchBreit titel="…"` | `@/components/BottomSheet` | = Seitenfenster rechts (Tablet/Schreibtisch) bzw. Blatt von unten (Handy). Für Bearbeiten, Planen, Einzelheiten einer Zeile. |
 | `ConfirmDialog` | `@/components/ConfirmDialog` | nur für Unumkehrbares. Bestehende Bestätigungen bleiben (nie lockerer). |
 | Meldung mit Rückgängig | `toast.success(text, { label: 'Rückgängig', onClick })` | nur wo die Umkehr den Zustand **exakt** wiederherstellt, über dieselbe Funktion der Datenschicht. Nichts erfinden. |

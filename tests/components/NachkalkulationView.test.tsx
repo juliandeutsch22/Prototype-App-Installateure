@@ -291,7 +291,8 @@ describe('Mit Kostensätzen', () => {
     zeige();
 
     await screen.findByText(/Kunde 2026-001/);
-    const zeilen = screen.getAllByRole('listitem').map((li) => li.textContent ?? '');
+    // Die Einträge der Stand-Zeile darüber sind auch Listenpunkte; gezählt wird die Liste der Baustellen.
+    const zeilen = screen.getAllByRole('listitem').filter((li) => !li.classList.contains('lage-punkt')).map((li) => li.textContent ?? '');
     // 700 € Erlös bei 640 € Kosten ist die dünnere Baustelle.
     expect(zeilen[0]).toContain('Kunde 2026-002');
   });
@@ -349,7 +350,7 @@ describe('Mit Kostensätzen', () => {
     rechnungen = [rechnung('2026-001', 2000), rechnung('2026-004', 300)];
     zeige();
     await screen.findByText(/Kunde 2026-004/);
-    const zahl = (name: string) => screen.getByText(name).closest('.kennzahl') as HTMLElement;
+    const zahl = (name: string) => screen.getByText(name).closest('.lage-punkt') as HTMLElement;
     expect(zahl('Baustellen')).toHaveTextContent('3');
     expect(zahl('Mit Verlust')).toHaveTextContent('1');
     expect(zahl('Zu prüfen')).toHaveTextContent('0');
