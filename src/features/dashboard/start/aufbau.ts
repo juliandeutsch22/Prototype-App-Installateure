@@ -1,5 +1,5 @@
 import type { Zeile, Abschnitt } from './abschnitte';
-import { mitInhalt } from './abschnitte';
+import { abschnitt, mitInhalt } from './abschnitte';
 import type { Kennzahl } from './Kennzahlen';
 import type { StartDaten, StartRolle } from './laden';
 import {
@@ -18,8 +18,8 @@ import {
   offeneAnforderungen,
   ohneEinsatz,
   ohneProjektleitung,
-  scheineNichtVerrechnet,
-  stundenNichtVerrechnet,
+  scheineZeile,
+  stundenZeile,
   scheinOhneZeit,
   stundenOhneBuchung,
   basiszinsFehlt,
@@ -42,7 +42,7 @@ import {
 } from './regeln';
 import { anzahl, themenAbschnitte, type Thema } from './themen';
 import { ZIEL } from './ziele';
-import { auffaellige } from '@/features/worksheets/unverrechnet';
+import { AUFFAELLIG_AB_TAGEN } from '@/features/worksheets/unverrechnet';
 import { istUeberfaellig, mahnbar, offenerRest, offenerRuecklass, ruecklassFaelligAm } from '@/features/invoices/zahlstand';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { euro } from '@/lib/betrag';
@@ -215,6 +215,20 @@ function lagerKennzahlen(d: StartDaten, u: Umfeld): Kennzahl[] {
 
 // ─────────────────────────────────────────────────────────── Buchhaltung ──
 
+/**
+ * „Nicht verrechnet“ bei der Buchhaltung: ein Abschnitt mit höchstens zwei
+ * Sammelzeilen, Scheine und Regiestunden (E22). Jede Zeile nur, wenn ihr
+ * Ziel erlaubt ist — die Scheinliste und die Rechnungen sind verschiedene
+ * Rechte.
+ */
+function nichtVerrechnet(d: StartDaten, u: Umfeld): Abschnitt | null {
+  const zeilen = [
+    d.unverrechnet ? scheineZeile(d.unverrechnet, AUFFAELLIG_AB_TAGEN) : null,
+    d.offeneStunden ? stundenZeile(d.offeneStunden, AUFFAELLIG_AB_TAGEN) : null,
+  ].filter((z): z is Zeile => !!z && (!z.to || u.darf(z.to)));
+  return abschnitt('verrechnen', 'Nicht verrechnet', zeilen, ZIEL.scheine('nicht-verrechnet'));
+}
+
 function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
   const abschnitte = mitInhalt([
     // Zuerst: solange die Firmendaten jede Rechnung sperren, geht hier nichts.
@@ -224,8 +238,7 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
     d.lauf && d.unbezahlt ? erlaubt(ueberfaelligNichtMahnbar(d.unbezahlt, d.lauf, u.heute), u) : null,
     d.unbezahlt ? erlaubt(ruecklassWirdFaellig(d.unbezahlt, u.heute), u) : null,
     d.garantien ? erlaubt(garantieEndet(d.garantien, u.heute), u) : null,
-    d.unverrechnet ? erlaubt(scheineNichtVerrechnet(auffaellige(d.unverrechnet)), u) : null,
-    d.offeneStunden ? erlaubt(stundenNichtVerrechnet(auffaellige(d.offeneStunden)), u) : null,
+    nichtVerrechnet(d, u),
     /*
       DIE EIGENE PERSON NUR EINMAL (Analyse 03.10.2026, Paket 1): ihre Tage
       stehen schon oben unter „Deine Tage ohne Buchung“. Bei der Leitung
@@ -280,17 +293,6 @@ function geldKennzahlen(d: StartDaten, u: Umfeld, mitBezahlt: boolean): Kennzahl
       to: ZIEL.rechnungenUeberfaellig,
       ton: ueber.length ? 'danger' : undefined,
       leer: ueber.length === 0,
-    });
-  }
-  if (d.unverrechnet && u.darf(ZIEL.scheine('nicht-verrechnet'))) {
-    const alt = auffaellige(d.unverrechnet).length;
-    out.push({
-      key: 'unverrechnet',
-      label: 'Nicht verrechnet',
-      wert: anzahl(d.unverrechnet.length, 'Schein', 'Scheine'),
-      zusatz: alt ? `davon ${alt} über 4 Wochen` : 'keiner über 4 Wochen',
-      to: ZIEL.scheine('nicht-verrechnet'),
-      leer: d.unverrechnet.length === 0,
     });
   }
   if (mitBezahlt && d.bezahltImMonat && u.darf(ZIEL.rechnungen)) {
@@ -539,29 +541,16 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: 'prüfen', ton: 'warn' },
     }));
   }
-  const alteScheine = d.unverrechnet ? auffaellige(d.unverrechnet) : [];
-  if (alteScheine.length) {
-    themen.push(wenn(ZIEL.scheine('nicht-verrechnet-alt'), {
-      key: 'scheine', wann: 'woche',
-      titel: `${anzahl(alteScheine.length, 'Schein', 'Scheine')} nicht verrechnet`,
-      detail: 'über 4 Wochen',
-      status: { text: 'verrechnen', ton: 'warn' },
-    }));
-  }
   /*
-    UNVERRECHNETE STUNDEN (23.10.2026): eine Regiebaustelle über Wochen hat
-    nicht für jede Buchung einen Schein — dann stünde sie oben nie.
+    NICHT VERRECHNET (E22): alle Scheine und alle Regiestunden, je als ein
+    Thema — mit Achtung-Punkt, sobald etwas über vier Wochen alt ist, sonst
+    ruhig. Die Zahl stand bis dahin zusätzlich im Stand; sie ist Arbeit.
   */
-  const alteStunden = d.offeneStunden ? auffaellige(d.offeneStunden) : [];
-  if (alteStunden.length) {
-    themen.push(wenn(alteStunden.length === 1 ? ZIEL.rechnungFuer(alteStunden[0].stunden.projectNumber) : ZIEL.rechnungen, {
-      key: 'stunden', wann: 'woche',
-      titel: `${anzahl(alteStunden.length, 'Baustelle', 'Baustellen')} mit Stunden nicht verrechnet`,
-      detail: alteStunden.length === 1
-        ? `${alteStunden[0].stunden.kunde || alteStunden[0].stunden.projectNumber} · über 4 Wochen`
-        : 'über 4 Wochen',
-      status: { text: 'verrechnen', ton: 'warn' },
-    }));
+  for (const z of [
+    d.unverrechnet ? scheineZeile(d.unverrechnet, AUFFAELLIG_AB_TAGEN) : null,
+    d.offeneStunden ? stundenZeile(d.offeneStunden, AUFFAELLIG_AB_TAGEN) : null,
+  ]) {
+    if (z?.to) themen.push(wenn(z.to, { key: z.key, wann: 'woche', titel: z.titel, detail: z.detail, status: z.status }));
   }
   if ((d.ohneEinsatz ?? []).length) {
     themen.push(wenn(ZIEL.baustellen('ohne-einsatz'), {

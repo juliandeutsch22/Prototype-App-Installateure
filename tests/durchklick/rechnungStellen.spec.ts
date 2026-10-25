@@ -359,9 +359,10 @@ test('Das Büro verrechnet bis zum Stichtag — spätere Zeit bleibt offen', asy
 test('Alte, nicht verrechnete Stunden führen von der Startseite zur Rechnung', async ({ page }) => {
   await anmelden(page, BUERO.email);
 
-  const abschnitt = page.getByRole('region', { name: 'Stunden über 4 Wochen nicht verrechnet' });
+  // Seit E22 eine Sammelzeile im Abschnitt „Nicht verrechnet“; bei einer Baustelle nennt sie den Kunden.
+  const abschnitt = page.getByRole('region', { name: 'Nicht verrechnet' });
   await expect(abschnitt).toBeVisible();
-  await abschnitt.getByRole('link', { name: new RegExp(BAUSTELLE.kunde) }).click();
+  await abschnitt.getByRole('link', { name: new RegExp(`mit Stunden nicht verrechnet.*${BAUSTELLE.kunde}`) }).click();
 
   await expect(page).toHaveURL(/\/invoices$/);
   await expect(page.locator('#invproj')).toHaveValue(BAUSTELLE.nummer);
@@ -381,10 +382,10 @@ test('Alte, nicht verrechnete Stunden führen von der Startseite zur Rechnung', 
     Die Geldzahlen kommen aus demselben Block wie die Stunden — erst dann ist
     die Antwort da. Gewartet wird auf den fertigen Inhalt der Startseite,
     nicht auf „Überfällig“: ohne überfällige Rechnung steht dieser Eintrag
-    seit der Stand-Zeile (E17) gar nicht da.
+    seit der Stand-Zeile (E22) gar nicht da.
   */
   await expect(page.locator('.wert-erscheint')).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Stunden über 4 Wochen nicht verrechnet' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /mit Stunden nicht verrechnet/ })).toHaveCount(0);
   await keineFehlermeldung(page);
 });
 
