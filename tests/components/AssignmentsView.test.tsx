@@ -38,6 +38,7 @@ const HEUTE = '2026-09-01';
 let einsaetze: (Assignment & { id: string })[] = [];
 let urlaube: (Vacation & { id: string })[] = [];
 let ladefehler = false;
+let abwesenheitFehler = false;
 let loeschenScheitert = false;
 
 const speichere = vi.fn();
@@ -69,10 +70,13 @@ vi.mock('@/lib/db/users', () => ({ listUsers: vi.fn(async () => personen) }));
 let betriebsurlaube: { id: string; von: string; bis: string; bezeichnung: string }[] = [];
 let weitereAbwesend: { userId: string; von: string; bis: string; grund: string | null; zeiten: string | null }[] = [];
 vi.mock('@/lib/db/vacations', () => ({
-  listAbwesendInRange: vi.fn(async () => [
+  listAbwesendInRange: vi.fn(async () => {
+    if (abwesenheitFehler) throw new Error('Abwesenheiten nicht erreichbar');
+    return [
     ...urlaube.map((v) => ({ userId: v.userId, von: v.von, bis: v.bis, grund: 'Urlaub', zeiten: null })),
     ...weitereAbwesend,
-  ]),
+    ];
+  }),
 }));
 vi.mock('@/lib/db/abwesenheiten', () => ({
   listBetriebsurlaubeImZeitraum: vi.fn(async () => betriebsurlaube),
@@ -170,6 +174,7 @@ beforeEach(() => {
   weitereAbwesend = [];
   ruestlisten = [];
   ladefehler = false;
+  abwesenheitFehler = false;
   loeschenScheitert = false;
   speichere.mockClear();
   loesche.mockClear();
@@ -390,6 +395,16 @@ describe('Einsatzplanung — Krankenstand, Zeitausgleich, Betriebsurlaub', () =>
     expect(await screen.findByText(/Der Betrieb hat an diesem Tag/)).toHaveTextContent('Sommersperre');
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
     expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).toBeEnabled();
+  });
+});
+
+describe('Audit: Ausfall des Abwesenheitsabrufs', () => {
+  it.fails('warnt die Planung explizit, wenn Abwesenheiten nicht geladen wurden', async () => {
+    abwesenheitFehler = true;
+    zeige();
+    // Sollzustand: kein stilles Behandeln eines Abruffehlers als leere Urlaubsliste.
+    const warnung = await screen.findByRole('alert');
+    expect(warnung).toHaveTextContent(/Abwesenheit|Urlaub|nicht geladen/);
   });
 });
 
