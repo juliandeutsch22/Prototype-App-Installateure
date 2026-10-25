@@ -366,9 +366,41 @@ export default function StockView() {
             Der Bestand zeigt je Artikel, was frei ist und was schon für Anforderungen oder
             Rüstlisten reserviert ist. Eine Zeile öffnet den Artikel mit Kennzahlen,
             Bewegungsprotokoll, Wareneingang und Inventur.
+            {' '}„Knapp“ heißt: unter der Mindestmenge, ohne Mindestmenge höchstens{' '}
+            {LOW_STOCK_THRESHOLD} frei — gemeint ist immer das Freie. „Reserviert“ ist,
+            was Anforderungen zugesagt ist oder auf Rüstlisten steht.
           </>
         }
         action={<Button onClick={() => wahlOeffnen('eingang')}>Wareneingang</Button>}
+        /*
+          Der Stand steht im Seitenkopf (E24), auch auf dem Reiter „Katalog“:
+          verschwände er dort, sprängen die Reiter beim Wechseln hoch und
+          wieder herunter. „Knapp“ führt von jedem Reiter in den Bestand.
+        */
+        stand={
+          <MetricRow>
+            <Metric
+              label="Im Lager"
+              value={materials.filter(imLager).length}
+              // Mit dem Hinweis zusammen — käme er später, rückte die Zeile darunter nach.
+              bereit={!loading && gezaehlt}
+              // Katalog und Lager sind getrennt (M30): nicht jeder Katalogartikel liegt im Regal.
+              hint={imKatalog === null ? undefined : `von ${imKatalog} im Katalog`}
+            />
+            <Metric
+              label="Knapp"
+              tone={lowCount > 0 ? 'warning' : 'success'}
+              value={lowCount}
+              bereit={bestandBereit}
+              to={lowCount > 0 && filter !== 'knapp' ? '/lager?filter=knapp' : undefined}
+            />
+            <Metric
+              label="Reserviert"
+              value={fmtMenge([...reserved.values()].reduce((a, b) => a + b, 0))}
+              bereit={bestandBereit}
+            />
+          </MetricRow>
+        }
         mehr={
           <RowMenu
             about="Lager"
@@ -415,32 +447,6 @@ export default function StockView() {
         />
       ) : (
         <>
-          <MetricRow>
-            <Metric
-              label="Im Lager"
-              value={materials.filter(imLager).length}
-              // Mit dem Hinweis zusammen — käme er später, rückte die Zeile darunter nach.
-              bereit={!loading && gezaehlt}
-              // Katalog und Lager sind getrennt (M30): nicht jeder Katalogartikel liegt im Regal.
-              hint={imKatalog === null ? undefined : `von ${imKatalog} im Katalog`}
-            />
-            <Metric
-              label="Knapp"
-              tone={lowCount > 0 ? 'warning' : 'success'}
-              value={lowCount}
-              bereit={bestandBereit}
-              // „ab 5 oder weniger“ war missverständlich (G8): gemeint ist das Freie.
-              hint={`unter Mindestmenge, sonst höchstens ${LOW_STOCK_THRESHOLD} frei`}
-              to={lowCount > 0 && filter !== 'knapp' ? '/lager?filter=knapp' : undefined}
-            />
-            <Metric
-              label="Reserviert"
-              value={fmtMenge([...reserved.values()].reduce((a, b) => a + b, 0))}
-              bereit={bestandBereit}
-              hint="zugesagt und auf Rüstlisten"
-            />
-          </MetricRow>
-
           <Card title="Bestände" buendig>
             <div className="lager-werkzeug">
               <div className="lager-suche">

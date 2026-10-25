@@ -284,7 +284,8 @@ export default function AssignmentsView() {
       {nebenFehler && <TeilFehler was={nebenFehler} />}
       {error && <ErrorState message={error} />}
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-5 lg:gap-5">
+      {/* Spaltenabstand 2,25 rem: die Karte rechts ragt seit E24 um ihr Polster in den Rand. */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-5 lg:gap-x-9 lg:gap-y-5">
         {/* Kalender links, Planung rechts — am Telefon untereinander. */}
         <div className="space-y-3 lg:col-span-2">
           <MonthCalendar

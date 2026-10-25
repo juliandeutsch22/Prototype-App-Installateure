@@ -811,6 +811,8 @@ textarea {
     Meta-Zeile, bei Platzmangel darunter.
   */
   @media (min-width: 760px) { .seitenkopf { align-items: flex-end; flex-wrap: wrap; gap: 0.25rem 1rem; } }
+  /* Mit Stand (E24) steht die Hauptaktion oben neben dem Titel, nicht unten neben den Zahlen. */
+  @media (min-width: 760px) { .seitenkopf:has(.seitenkopf-stand) { align-items: flex-start; } }
   .seitenkopf h1 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; color: var(--ink-deep); }
   @media (min-width: 760px) { .seitenkopf h1 { font-size: 1.875rem; line-height: 2.5rem; } }
   .seitenkopf-ort { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); margin-bottom: 0.125rem; }
@@ -833,6 +835,26 @@ textarea {
   /* Unter dem Kopf einer bündigen Karte zieht schon der Körper die Linie (E7). */
   .karte-buendig > .kurz:first-child { border-top: 0; }
   .karte { overflow: hidden; overflow: clip; background: var(--surface); border: 0; border-top: 1px solid var(--border); border-radius: 0; }
+  /*
+    ABSTAND STATT LINIEN (E24, 25.10.2026). Jeder Abschnitt einer Seite begann
+    mit einer Linie über der Karte, die bündige Karte zog eine zweite unter
+    ihrem Titel, die Liste eine je Zeile — alles sah gleich wichtig aus. Jetzt
+    trennt Luft die Abschnitte, und der Titel trägt die Trennung allein (eine
+    Stufe größer, „Abschnitt 18“). Linien bleiben, wo sie beim Lesen helfen:
+    unter dem Titel einer Liste, zwischen ihren Zeilen, unter einer
+    Gruppenüberschrift.
+
+    DIE KARTE RAGT UM IHR POLSTER IN DEN SEITENRAND, damit Titel, Zeilen und
+    Felder an derselben Kante stehen wie Seitentitel und Stand. Das Polster
+    innen bleibt: eine angetippte Zeile hat links und rechts Luft, und kein
+    Baustein darin muss seine Abstände kennen. Am Handy reicht die Karte so
+    genau an den Bildrand. Ausgenommen sind Seiten, die schon bündig gebaut
+    sind (Akten, Startseite, Plattform, Belegspalte), und alles in Fenstern
+    und Blättern — dort ist der Rand kein Seitenrand.
+  */
+  .inhalt .karte:not(:is(.akten-seite, .start-seite, .plattform, .beleg-kontext, .fenster, .fenster-breit, .blatt, [role='dialog']) .karte) { border-top: 0; margin-inline: -1rem; padding-top: 1.25rem; }
+  @media (min-width: 760px) { .inhalt .karte:not(:is(.akten-seite, .start-seite, .plattform, .beleg-kontext, .fenster, .fenster-breit, .blatt, [role='dialog']) .karte) { padding-top: 1.75rem; } }
+  .inhalt .karte:not(:is(.akten-seite, .start-seite, .plattform, .beleg-kontext, .fenster, .fenster-breit, .blatt, [role='dialog']) .karte) .karte-kopf .titel-karte { font-size: 1.125rem; line-height: 1.625rem; }
   .karte-koerper .zeile { padding-inline: 0; }
   .zeile { display: flex; align-items: center; gap: 0.75rem 1rem; min-height: 3.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); background: var(--surface); }
   .zeile:first-child { border-top: 0; }

@@ -291,6 +291,21 @@ describe('Zeiterfassung — der Saldo erst mit seinen Buchungen', () => {
     expect(kachel()).toHaveTextContent(/[+-]?\d+:\d{2}/);
   });
 
+  it('steht im Seitenkopf (E24) — der Vorbehalt „ohne Buchung“ bleibt sichtbar', async () => {
+    /*
+      Ein Zusatz, der sich ändert, bleibt am Wert: fehlen Buchungen, sagt er
+      es (und sonst „seit Eintritt“, was diesen Saldo vom Monatssaldo der
+      Mitarbeiterübersicht unterscheidet, R3). Was „Über-/Unterstunden“
+      heißt, steht in der Hilfe.
+    */
+    eintraege = [eintrag({ id: 'e1' })];
+    zeige();
+    await waitFor(() => expect(within(kachel()).queryAllByRole('status')).toHaveLength(0));
+    expect(kachel().closest('.seitenkopf')).not.toBeNull();
+    expect(kachel()).toHaveTextContent(/Tage ohne Buchung — unvollständig/);
+    expect(kachel()).not.toHaveTextContent('Über-/Unterstunden');
+  });
+
   /*
     DER ZWEITE BESUCH (Stufe 3, `lib/zwischenspeicher.ts`): Saldo und
     Stammdatenblatt stehen sofort da, die Buchungen seit Eintritt werden im

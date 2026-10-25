@@ -1,7 +1,8 @@
 /* Die Akten teilen dieselbe Lesefläche; andere Seiten behalten ihre bisherigen Gruppen. */
 @layer components {
   .akten-seite { display: flex; flex-direction: column; gap: 1.25rem; }
-  .akten-seite .karte { overflow: visible; border-top: 0; border-bottom: 1px solid var(--border); }
+  /* Abschnitte durch Luft getrennt, nicht durch Linien (E24); der Titel eine Stufe größer trägt die Trennung. */
+  .akten-seite .karte { overflow: visible; border-top: 0; }
   .akten-kopf { min-width: 0; }
   .akten-zurueck { display: inline-flex; align-items: center; min-height: 2.75rem; margin-bottom: 0.75rem; color: var(--text-muted); font-size: 0.75rem; }
   .akten-kopf .seitenkopf { flex-wrap: nowrap; align-items: flex-start; gap: 1.5rem; }
@@ -15,6 +16,7 @@
   .akten-identitaet { display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem 1rem; padding-top: 0.375rem; }
   .akten-mobil-kontakt { display: none; }
   .akten-seite .karte-kopf { padding: 0.75rem 0; }
+  .akten-hauptteil .karte-kopf .titel-karte { font-size: 1.125rem; line-height: 1.625rem; }
   .akten-seite .karte-koerper { padding-inline: 0; }
   .akten-seite .karte-buendig { border-top: 0; }
   .akten-seite .zeile { padding-inline: 0; }
@@ -35,7 +37,7 @@
   .akten-kontext .link-kontakt { text-decoration: none; }
   .akten-kontext svg, .akten-mobil-kontakt svg { display: none; }
   .akten-spalten { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem 2rem; align-items: start; }
-  .akten-spalte { min-width: 0; display: flex; flex-direction: column; gap: 1.5rem; }
+  .akten-spalte { min-width: 0; display: flex; flex-direction: column; gap: 2rem; }
   .akten-angaben { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem 1.5rem; padding: 0.5rem 0 1rem; }
   .akten-angabe, .akten-angabe-breit { min-width: 0; }
   .akten-angabe-breit { grid-column: 1 / -1; }

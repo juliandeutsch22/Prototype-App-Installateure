@@ -3840,6 +3840,15 @@ describe('Die Kennzahlen „Offen“ und „Überfällig“', () => {
     const tt = `01.${String(erster.getMonth() + 1).padStart(2, '0')}.${erster.getFullYear()}`;
     await waitFor(() => expect(kachel('Bezahlt im Monat')).toHaveTextContent(`seit ${tt}`));
   });
+
+  it('steht im Seitenkopf (E24) — was „Bezahlt im Monat“ meint, steht in der Hilfe', async () => {
+    zeige('/invoices?ansicht=alle');
+    await waitFor(() => expect(kachel('Bezahlt im Monat')).toHaveTextContent(/seit \d\d\.\d\d\.\d{4}/));
+    expect(kachel('Offen').closest('.seitenkopf')).not.toBeNull();
+    expect(kachel('Bezahlt im Monat').closest('.seitenkopf')).not.toBeNull();
+    // Die Erklärung ist kein Zusatz mehr — sie ändert sich nicht und gehört nicht dauerhaft auf die Seite.
+    expect(screen.queryByText(/Zahlungseingänge seit/)).toBeNull();
+  });
 });
 
 /*

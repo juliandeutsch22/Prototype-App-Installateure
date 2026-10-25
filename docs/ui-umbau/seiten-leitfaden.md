@@ -18,12 +18,12 @@ beschreiben**, nicht selbst ändern.
 
 | Baustein | Wo | Wofür |
 |---|---|---|
-| `PageHeader` | `@/components/PageHeader` | `title`, `subtitle` (eine Zeile), `ort` (Ortszeile darüber), `action` (genau EINE Hauptaktion — am Handy im Daumenbereich), `mehr` (ein `RowMenu` für seltene Seitenaktionen — das einzige ⋯ im Kopf), `hilfe` (Einleitung für „Hilfe zu dieser Seite“) |
+| `PageHeader` | `@/components/PageHeader` | `title`, `subtitle` (eine Zeile), `ort` (Ortszeile darüber), `action` (genau EINE Hauptaktion — am Handy im Daumenbereich), `mehr` (ein `RowMenu` für seltene Seitenaktionen — das einzige ⋯ im Kopf), `hilfe` (Einleitung für „Hilfe zu dieser Seite“), `stand` (die Kennzahlen der Seite als `MetricRow`, E24) |
 | Hilfe zu dieser Seite | automatisch | Jede `InfoHint` und jeder `hint` einer `Card` auf der Seite wandert dorthin. In Dialogen und Seitenfenstern bleibt das „i“ am Platz. Lange Texte nie offen auf die Seite. |
-| `Card` | `@/components/Card` | = „Gruppe“. Mit `buendig` für Listen. Eine Fläche, Linien statt Karten-in-Karten. |
+| `Card` | `@/components/Card` | = „Gruppe“. Mit `buendig` für Listen. Eine Fläche, Linien statt Karten-in-Karten. Seit E24 trennt Luft die Abschnitte (keine Linie über der Karte); Titel, Zeilen und Felder stehen an der Kante des Seitenkopfs. Linien nur in Listen: unter dem Titel einer bündigen Karte, zwischen Zeilen, unter Gruppenüberschriften. Zwei Karten nebeneinander brauchen mindestens 2 rem Spaltenabstand. |
 | `ListRow`, `List` | `@/components/ListRow` | = „Zeile“. Mit `to` (Adresse) oder `onOeffnen` (z. B. Seitenfenster) ist die **ganze Zeile antippbar**; Knöpfe rechts bleiben eigene Ziele. |
 | `Zustand`, `StatusBadge`, `Warnung`, `Marke` | `@/components/Badge`, `StatusBadge` | Fünf Zustände: `offen`, `laeuft`/`gut`, `ruht` (= erledigt), `achtung`, `schlecht` (= Fehler). Keine farbigen Pillen. |
-| `Metric`, `MetricRow` | `@/components/Metric` | Kennzahlen als Stand-Zeile (E23), höchstens vier, mit `to` antippbar. Keine eigenen Kacheln bauen. |
+| `Metric`, `MetricRow` | `@/components/Metric` | Der Stand der Seite (E23, E24): in den Seitenkopf (`PageHeader stand`), höchstens vier, mit `to` antippbar. Der Zusatz nur für, was sich ändert; Erklärungen in die Hilfe. Keine eigenen Kacheln bauen. |
 | `BottomSheet` mit `auchBreit titel="…"` | `@/components/BottomSheet` | = Seitenfenster rechts (Tablet/Schreibtisch) bzw. Blatt von unten (Handy). Für Bearbeiten, Planen, Einzelheiten einer Zeile. |
 | `ConfirmDialog` | `@/components/ConfirmDialog` | nur für Unumkehrbares. Bestehende Bestätigungen bleiben (nie lockerer). |
 | Meldung mit Rückgängig | `toast.success(text, { label: 'Rückgängig', onClick })` | nur wo die Umkehr den Zustand **exakt** wiederherstellt, über dieselbe Funktion der Datenschicht. Nichts erfinden. |

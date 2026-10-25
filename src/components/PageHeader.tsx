@@ -7,12 +7,18 @@ import { SeitenHilfeKnopf } from './SeitenHilfe';
  *   Ortszeile   klein und grau über dem Titel (wo bin ich, welcher Tag)
  *   Titel       30 px am Tablet und Schreibtisch, 24 px am Handy, halbfett
  *   Meta        eine Zeile darunter
+ *   Stand       die Kennzahlen der Seite als ruhige Zeile (E24)
  *   rechts      „Hilfe zu dieser Seite“, das ⋯ der Seite, die Hauptaktion
  *
  * AM HANDY GEHT DIE HAUPTAKTION IN DEN DAUMENBEREICH: eine feste Leiste über
  * der unteren Navigation (`.daumen`). Oben rechts wäre sie mit einer Hand
  * nicht zu erreichen. Der Inhalt bekommt dafür unten Platz (`.inhalt:has(.daumen)`),
  * damit die Leiste kein Feld verdeckt.
+ *
+ * DER STAND GEHÖRT ZUM KOPF (E24, 25.10.2026). Als eigener Streifen zwischen
+ * zwei Linien stand er zwischen Kopf und Arbeit und machte aus einem Block
+ * drei. Im Kopf liest er sich wie der Kopf eines Dokuments: was die Seite
+ * ist, und wie sie gerade steht.
  */
 export default function PageHeader({
   title,
@@ -21,6 +27,7 @@ export default function PageHeader({
   action,
   mehr,
   hilfe,
+  stand,
 }: {
   title: string;
   subtitle?: ReactNode;
@@ -32,6 +39,8 @@ export default function PageHeader({
   mehr?: ReactNode;
   /** Einleitung für „Hilfe zu dieser Seite“, vor den gesammelten Erklärungen. */
   hilfe?: ReactNode;
+  /** Der Stand der Seite — eine `MetricRow` (oder ihr Platzhalter). */
+  stand?: ReactNode;
 }) {
   return (
     <div className="seitenkopf">
@@ -39,6 +48,7 @@ export default function PageHeader({
         {ort && <p className="seitenkopf-ort">{ort}</p>}
         <h1>{title}</h1>
         {subtitle && <div className="seitenkopf-meta">{subtitle}</div>}
+        {stand && <div className="seitenkopf-stand">{stand}</div>}
       </div>
       <div className="seitenkopf-rechts">
         <SeitenHilfeKnopf seite={title} einleitung={hilfe} />

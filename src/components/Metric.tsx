@@ -45,14 +45,18 @@ const valueTone: Record<Tone, string> = {
 };
 
 /**
- * DER STAND EINER SEITE IN EINER ZEILE (E22 Startseite, E23 alle Seiten).
+ * DER STAND EINER SEITE (E22 Startseite, E23 alle Seiten, E24 im Seitenkopf).
  *
- * Bis zum 25.10.2026 eine Leiste großer Kacheln über der Liste. Sie sah in
- * keiner Breite gut aus: oft „€ 0,00“ in großer Schrift, bei einer einzelnen
- * Zahl eine verlorene Kachel, und was zu tun war, stand darunter ohnehin als
- * Zeile. Jetzt eine Reihe kleiner Einträge zwischen zwei Linien — dieselben
- * Zahlen, dieselben Ziele, nur ruhiger. Gestaltung in `lot.css`
- * (`.lage-*`); die Startseite verwendet denselben Baustein.
+ * Bis zum 25.10.2026 eine Leiste großer Kacheln über der Liste, dann eine
+ * Zeile zwischen zwei Linien. Jetzt steht er im Seitenkopf (`PageHeader`,
+ * `stand`) als ruhige Zeile — dieselben Zahlen, dieselben Ziele. Wo eine
+ * Karte ein Ergebnis zählt (Probelauf eines Imports), steht dieselbe Zeile
+ * in der Karte. Gestaltung in `lot.css` (`.lage-*`).
+ *
+ * DER ZUSATZ IST FÜR WAS SICH ÄNDERT: wie viele Rechnungen, seit wann
+ * unvollständig, was nicht geladen werden konnte. Was nur erklärt, was die
+ * Zahl bedeutet, steht in der Hilfe der Seite — dauerhaft auf der Seite
+ * machte es den Kopf zu einem Absatz.
  */
 export function MetricRow({ children, label }: { children: ReactNode; label?: string }) {
   return (
