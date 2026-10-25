@@ -196,7 +196,7 @@ export default function SicherungView() {
       <PageHeader
         ort="Einstellungen"
         title="Datensicherung"
-        subtitle="Der Bestand des Betriebs an einem zweiten Ort — und zum Herunterladen"
+        subtitle="An einem zweiten Ort — und zum Herunterladen"
       />
 
       {fehler && <ErrorState message={fehler} />}

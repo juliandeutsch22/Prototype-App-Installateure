@@ -492,14 +492,29 @@ export function hinweisSumme(items: NavItem[], posten: OffenePosten | undefined)
 }
 
 /**
+ * Die Gruppe des Menüs, zu der ein Pfad gehört — die Ortszeile über dem
+ * Seitentitel (Design-Entwurf, Punkt 1: auf jeder Seite dieselbe Ortszeile).
+ * Die Startseite hat ihre eigene; dort gibt es keine Gruppe.
+ */
+export function gruppeVon(pfad: string): string | null {
+  if (pfad === '/worksheet' || pfad.startsWith('/worksheet/')) return 'Aufträge';
+  const treffer = eintragVon(pfad);
+  return treffer && treffer.group !== 'Start' ? treffer.group : null;
+}
+
+/** Der Menüeintrag eines Pfads; Akten und Unterseiten zählen zu ihrer Liste (der längste passende Pfad gewinnt). */
+function eintragVon(pfad: string): NavItem | undefined {
+  return NAV
+    .filter((i) => i.path === pfad || (i.path !== '/' && pfad.startsWith(`${i.path}/`)))
+    .sort((a, b) => b.path.length - a.path.length)[0];
+}
+
+/**
  * Welcher Bereich hinter einem Pfad steht — der Name aus dem Menü, so wie
  * ihn der Betrieb kennt. Akten und Unterseiten zählen zu ihrer Liste
  * (`/customers/k1` → „Kunden"), der einzelne Schein zu den Scheinen.
  */
 export function bereichVon(pfad: string): string {
   if (pfad === '/worksheet' || pfad.startsWith('/worksheet/')) return 'Handwerksscheine';
-  const treffer = NAV
-    .filter((i) => i.path === pfad || (i.path !== '/' && pfad.startsWith(`${i.path}/`)))
-    .sort((a, b) => b.path.length - a.path.length)[0];
-  return treffer?.label ?? NAV.find((i) => i.path === '/')!.label;
+  return eintragVon(pfad)?.label ?? NAV.find((i) => i.path === '/')!.label;
 }

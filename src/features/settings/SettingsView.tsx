@@ -73,7 +73,7 @@ export type EinstellungsTeil = 'saetze' | 'rechnung' | 'nummern' | 'personal';
 const KOPF: Record<EinstellungsTeil, { titel: string; unter: string }> = {
   saetze: { titel: 'Sätze und Kosten', unter: 'Stundensätze, Zuschläge und Kostensätze' },
   rechnung: { titel: 'Rechnungsvorgaben', unter: 'Zahlungsziel, Skonto, Mahnspesen und Basiszinssatz' },
-  nummern: { titel: 'Nummernkreise', unter: 'Vorsätze für Rechnungen, Angebote, Baustellen und Kennzeichen' },
+  nummern: { titel: 'Nummernkreise', unter: 'Vorsätze der Nummern und Kennzeichen' },
   personal: { titel: 'Personal', unter: 'Urlaubsjahr, Genehmigung und Wochenplan' },
 };
 

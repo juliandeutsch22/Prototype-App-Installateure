@@ -18,7 +18,7 @@ beschreiben**, nicht selbst ändern.
 
 | Baustein | Wo | Wofür |
 |---|---|---|
-| `PageHeader` | `@/components/PageHeader` | `title`, `subtitle` (eine Zeile), `ort` (Ortszeile darüber), `action` (genau EINE Hauptaktion — am Handy im Daumenbereich), `mehr` (ein `RowMenu` für seltene Seitenaktionen — das einzige ⋯ im Kopf), `hilfe` (Einleitung für „Hilfe zu dieser Seite“), `stand` (die Kennzahlen der Seite als `MetricRow`, E24) |
+| `PageHeader` | `@/components/PageHeader` | `title`, `subtitle` (eine Zeile), `ort` (Ortszeile darüber; ohne Angabe die Gruppe aus dem Menü, E25), `action` (genau EINE Hauptaktion — am Handy im Daumenbereich), `mehr` (ein `RowMenu` für seltene Seitenaktionen — das einzige ⋯ im Kopf), `hilfe` (Einleitung für „Hilfe zu dieser Seite“), `stand` (die Kennzahlen der Seite als `MetricRow`, E24) |
 | Hilfe zu dieser Seite | automatisch | Jede `InfoHint` und jeder `hint` einer `Card` auf der Seite wandert dorthin. In Dialogen und Seitenfenstern bleibt das „i“ am Platz. Lange Texte nie offen auf die Seite. |
 | `Card` | `@/components/Card` | = „Gruppe“. Mit `buendig` für Listen. Eine Fläche, Linien statt Karten-in-Karten. Seit E24 trennt Luft die Abschnitte (keine Linie über der Karte); Titel, Zeilen und Felder stehen an der Kante des Seitenkopfs. Linien nur in Listen: unter dem Titel einer bündigen Karte, zwischen Zeilen, unter Gruppenüberschriften. Zwei Karten nebeneinander brauchen mindestens 2 rem Spaltenabstand. |
 | `ListRow`, `List` | `@/components/ListRow` | = „Zeile“. Mit `to` (Adresse) oder `onOeffnen` (z. B. Seitenfenster) ist die **ganze Zeile antippbar**; Knöpfe rechts bleiben eigene Ziele. |
@@ -45,7 +45,8 @@ Die Musterseite `/_muster` (`src/features/muster/MusterView.tsx`) zeigt alles.
 2. **Seitenkopf überall gleich.** Jede Seite beginnt mit `PageHeader`. Die
    wichtigste Aktion (z. B. „Neue Baustelle“) als `action`; seltene
    Seitenaktionen (Export, Import, Einspielen) als `mehr`-Menü — nicht als
-   Knopfreihe. Keine zweite Hauptaktion daneben.
+   Knopfreihe. Keine zweite Hauptaktion daneben. Der Untertitel passt in
+   eine Zeile; was er erklären müsste, gehört in `hilfe` (E25).
 3. **Ganze Zeilen antippbar.** Zeilen, die eine Akte oder Einzelheiten
    öffnen, bekommen `to`/`onOeffnen`. Ein ⋯ je Zeile nur, wo es heute schon
    steht und die Aktionen nicht sinnvoll ins Seitenfenster passen; dann

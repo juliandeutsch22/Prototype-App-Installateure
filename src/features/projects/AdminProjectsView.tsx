@@ -716,7 +716,7 @@ export default function AdminProjectsView() {
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title="Baustellen"
-        subtitle="Baustellen anlegen und suchen — geändert wird in der Akte"
+        subtitle="Anlegen und suchen — geändert wird in der Akte"
         // Eine Hilfe je Seite (Testbericht Runde 5, G8) — der Wortlaut aus dem Handbuch.
         hilfe={
           <>

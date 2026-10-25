@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from 'react';
 import BottomSheet from './BottomSheet';
+import Icon from './Icon';
 import { ImFensterContext } from './imFenster';
 
 /**
@@ -137,10 +138,14 @@ export function SeitenHilfeKnopf({ seite, einleitung }: { seite: string; einleit
 
   return (
     <>
-      {/* Am Handy kurz „Hilfe“, damit es neben dem Titel Platz hat; der Name für die Vorlesehilfe bleibt lang. */}
-      <button type="button" className="seitenkopf-hilfe" onClick={() => setOffen(true)} aria-label="Hilfe zu dieser Seite">
-        <span className="seitenkopf-hilfe-kurz" aria-hidden="true">Hilfe</span>
-        <span className="seitenkopf-hilfe-lang" aria-hidden="true">Hilfe zu dieser Seite</span>
+      {/*
+        EIN RUHIGES ZEICHEN STATT EINES UNTERSTRICHENEN WORTS (Design-Entwurf,
+        Punkt 1): neben dem ⋯ der Seite gleich groß und gleich still, damit
+        rechts im Kopf nur die Hauptaktion auffällt. Der Name für Vorlesehilfe
+        und Mauszeiger bleibt ausgeschrieben.
+      */}
+      <button type="button" className="seitenkopf-hilfe" onClick={() => setOffen(true)} aria-label="Hilfe zu dieser Seite" title="Hilfe zu dieser Seite">
+        <Icon name="hilfe" size={22} aria-hidden="true" />
       </button>
       <BottomSheet open={offen} onClose={() => setOffen(false)} label={`Hilfe zu ${seite}`} auchBreit titel={`Hilfe: ${seite}`}>
         <div className="hilfe-liste">

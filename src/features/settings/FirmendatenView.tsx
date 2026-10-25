@@ -182,7 +182,7 @@ export default function FirmendatenView() {
       <PageHeader
         ort="Einstellungen"
         title="Firmendaten"
-        subtitle="Briefkopf für Rechnung, Stundenbericht und Handwerksschein"
+        subtitle="Briefkopf für Rechnung, Bericht und Schein"
       />
 
       <form onSubmit={submit} className="space-y-6">
