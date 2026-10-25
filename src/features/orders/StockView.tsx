@@ -26,7 +26,7 @@ import PageHeader from '@/components/PageHeader';
 import BottomSheet from '@/components/BottomSheet';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField } from '@/components/Field';
-import { MehrAnzeigen, Segmente } from '@/components/LotBausteine';
+import { Listenleiste, MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import { useToast } from '@/components/Toast';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
@@ -318,6 +318,7 @@ export default function StockView() {
     () => lagerZeilen.filter((m) => istKnapp(m.free, m, LOW_STOCK_THRESHOLD)).length,
     [lagerZeilen],
   );
+  const fehltCount = useMemo(() => lagerZeilen.filter((m) => m.free < 0).length, [lagerZeilen]);
 
   /*
     DER WARENEINGANG FRAGT IN EINEM DIALOG DER APP, nicht über
@@ -448,27 +449,27 @@ export default function StockView() {
       ) : (
         <>
           <Card title="Bestände" buendig>
-            <div className="lager-werkzeug">
-              <div className="lager-suche">
-                <InputField
-                  id="stocksearch"
-                  label="Suche"
-                  placeholder="Name, Kategorie oder Art.-Nr."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+            <Listenleiste
+              reiter={
+                /*
+                  Die Zahlen zählen, was zu tun ist (Protokoll 7.7) — über
+                  alle Lagerartikel, die hier vollständig geladen sind, und
+                  erst mit dem Stand der Datenbank: vorher wären es Zahlen
+                  aus einer vorläufigen Rechnung.
+                */
+                <Segmente
+                  name="Filter"
+                  werte={[
+                    { wert: 'alle' as Filter, text: 'Alle' },
+                    { wert: 'knapp' as Filter, text: 'knapp', anzahl: bestandBereit ? lowCount : undefined },
+                    { wert: 'fehlt' as Filter, text: 'fehlt', anzahl: bestandBereit ? fehltCount : undefined },
+                  ]}
+                  wert={filter}
+                  onChange={setFilter}
                 />
-              </div>
-              <Segmente
-                name="Filter"
-                werte={[
-                  { wert: 'alle' as Filter, text: 'Alle' },
-                  { wert: 'knapp' as Filter, text: 'knapp' },
-                  { wert: 'fehlt' as Filter, text: 'fehlt' },
-                ]}
-                wert={filter}
-                onChange={setFilter}
-              />
-            </div>
+              }
+              suche={{ id: 'stocksearch', wert: search, onChange: setSearch, platzhalter: 'Name, Kategorie oder Art.-Nr.' }}
+            />
             <div>
               {/* Ein leeres Lager wartet auf die Zahl des Katalogs: sie wählt den Hinweis. */}
               {!bestandBereit || (materials.length === 0 && !gezaehlt) ? (

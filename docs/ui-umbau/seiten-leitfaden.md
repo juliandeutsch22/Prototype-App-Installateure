@@ -29,7 +29,8 @@ beschreiben**, nicht selbst ändern.
 | Meldung mit Rückgängig | `toast.success(text, { label: 'Rückgängig', onClick })` | nur wo die Umkehr den Zustand **exakt** wiederherstellt, über dieselbe Funktion der Datenschicht. Nichts erfinden. |
 | `Arbeitszeile`, `Sammelleiste` | `@/components/LotBausteine` | Arbeitslisten: Kästchen, antippbarer Inhalt, genau ein Knopf für den nächsten Schritt; Sammelaktion über dieselbe Funktion je Eintrag, Teilfehler je Zeile melden. |
 | `MehrAnzeigen` | `@/components/LotBausteine` | „und N weitere anzeigen“ — Gruppen höchstens 20 Zeilen. |
-| `Segmente` | `@/components/LotBausteine` | Auswahl als Segmente (Filter, Ansicht). |
+| `Segmente` | `@/components/LotBausteine` | Auswahl als Segmente (Filter, Ansicht). `anzahl` je Wert nur für Handlungsbedarf und nur, wenn vollständig bekannt (Protokoll 7.7, E26). |
+| `Listenleiste` | `@/components/LotBausteine` | Über jeder Liste: `reiter` (Segmente) links, `suche` rechts ohne Beschriftung (der Platzhalter sagt, wonach gesucht wird; am Handy ganz sichtbar), `zusatz` für einen Filter daneben. Am Handy die Suche oben (E26). |
 | `Kurzzeile`, `LotVerlauf`, `Sprungleiste` | `@/components/LotBausteine` | Akten: Zusammenfassung zuerst, Verläufe als Lot, Sprungleiste. `Aktenspalten` gibt es schon. |
 | `WeitereAngaben` | `@/components/LotBausteine` | Seltene Formularfelder, zugeklappt (offen, wenn schon etwas darin steht). |
 | Klassen `formular`, `fuss-aktionen`, `leer` | `src/styles/lot.css` | Formular einspaltig max. 560 px; Fusszeile der Aktionen; leerer Zustand. |
@@ -54,7 +55,7 @@ Die Musterseite `/_muster` (`src/features/muster/MusterView.tsx`) zeigt alles.
 4. **Viele Daten.** Standardansicht = Arbeitsstand (offen, laufend, diese
    Woche), „Alle“/„Erledigt“ bleibt erreichbar. Gruppen ≤ 20 Zeilen, dann
    `MehrAnzeigen`. Nach Dringlichkeit sortieren (überfällig, eilig, heute,
-   diese Woche), dann Datum. Jede Liste hat eine Suche. Filter wenn möglich
+   diese Woche), dann Datum. Jede Liste hat eine Suche, in der `Listenleiste`. Filter wenn möglich
    in der Adresse (`useSearchParams`). Seitenweise vom Server nur, wo die
    Datenschicht es heute schon kann — **die Datenschicht wird nicht
    geändert**; wo sie es nicht kann, im Bericht als Lücke nennen.

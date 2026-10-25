@@ -7,19 +7,6 @@
  */
 @layer components {
   /* ── Suche und Filter über einer Liste ───────────────────────────────── */
-  /*
-    Suche links, Segmente rechts; am Handy untereinander. Steht im Kopf einer
-    bündigen Gruppe, deshalb mit eigenem Rand.
-  */
-  .listen-werkzeug { display: flex; flex-direction: column; gap: 0.75rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
-  @media (min-width: 760px) { .listen-werkzeug { flex-direction: row; align-items: flex-end; justify-content: space-between; } }
-  .listen-suche { flex: 1; max-width: 26rem; }
-  /*
-    Segmente nach ihrem Text breit statt gleich breit: „Deaktivierte (12)“
-    brach am Handy sonst mitten im Wort.
-  */
-  .listen-filter > .segment { grid-auto-columns: auto; }
-
   /* ── „Weitere Angaben“ als Knopf ─────────────────────────────────────── */
   /*
     Wie `.weiteres-kopf`, aber als Knopf mit aria-expanded: dort, wo die

@@ -200,7 +200,7 @@ async function anstehendeZeilen() {
     Auswahl steht; „Steht an“ ist die Vorgabe.
   */
   const wahl = screen.getByRole('group', { name: 'Wartungen zeigen' });
-  expect(within(wahl).getByRole('button', { name: 'Steht an' })).toHaveAttribute('aria-pressed', 'true');
+  expect(within(wahl).getByRole('button', { name: /^Steht an( \d+)?$/ })).toHaveAttribute('aria-pressed', 'true');
   const karte = wahl.closest('section');
   if (!karte) throw new Error('Liste „Steht an“ nicht gefunden');
   return within(karte as HTMLElement);
@@ -788,5 +788,38 @@ describe('Hilfe zu dieser Seite (Runde 5, G8)', () => {
     zeichne();
     await userEvent.click(await screen.findByRole('button', { name: 'Hilfe zu dieser Seite' }));
     expect(await screen.findByText(/„Erledigt“ rückt den nächsten Termin nach/)).toBeInTheDocument();
+  });
+});
+
+/*
+  DIE ZAHL AM REITER „STEHT AN“ (Design-Entwurf, Punkt 2): sie zählt
+  Handlungsbedarf (Protokoll 7.7) — aber nur, wenn der ganze Bestand geladen
+  ist. Eine Zahl aus einer Liste an ihrer Grenze wäre zu klein, ohne es zu
+  sagen.
+*/
+describe('Die Zahl am Reiter „Steht an“', () => {
+  it('zählt Überfälliges und bald Fälliges, nicht das Spätere und nicht das Ruhende', async () => {
+    zeichne();
+    await geladen();
+    expect(screen.getByRole('button', { name: 'Steht an 2' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Alle' }).textContent).toBe('Alle');
+  });
+
+  it('die Suche ändert sie nicht — sie sagt, was ansteht, nicht was passt', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await geladen();
+    await nutzer.type(screen.getByRole('searchbox', { name: 'Suche' }), 'Stein');
+    expect(screen.getByRole('button', { name: 'Steht an 2' })).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: steht die Liste an ihrer Grenze (200), bleibt der Reiter ohne Zahl', async () => {
+    bestand = Array.from({ length: 200 }, (_, i) =>
+      wartung(`v${i}`, i === 0 ? 'Bäckerei Stein' : `Kunde ${i}`, i < 3 ? '2026-04-10' : '2027-03-01'),
+    );
+    zeichne();
+    await geladen();
+    const reiter = screen.getByRole('button', { name: 'Steht an' });
+    expect(reiter.querySelector('.segment-anzahl')).toBeNull();
   });
 });

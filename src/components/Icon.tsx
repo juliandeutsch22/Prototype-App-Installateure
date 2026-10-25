@@ -28,7 +28,8 @@ export type IconName =
   | 'warnung'
   | 'hinweis'
   | 'haken'
-  | 'hilfe';
+  | 'hilfe'
+  | 'lupe';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
 // Ausserhalb der Navigation nur, wo das Zeichen mehr sagt als das Wort:
@@ -92,6 +93,8 @@ const paths: Record<IconName, string> = {
   haken: 'm5 12.5 4.5 4.5L19 7',
   // „Hilfe zu dieser Seite“ im Seitenkopf (Design-Entwurf, Punkt 1): ein ruhiges Zeichen statt eines unterstrichenen Worts.
   hilfe: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18ZM9.6 9.4a2.5 2.5 0 1 1 3.6 2.3c-.7.3-1.2.9-1.2 1.6v.4M12 17.2h.01',
+  // In der Listenleiste ersetzt die Lupe die Beschriftung „Suche“ über dem Feld (Design-Entwurf, Punkt 2).
+  lupe: 'M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13ZM15.3 15.3 20 20',
   // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
   // und meint hier genau das, was der Screen tut — Werte einstellen.
   settings:

@@ -278,6 +278,34 @@ function bloecke(werte: readonly unknown[]): unknown[][] {
  */
 export const SEITE = 500;
 
+/**
+ * Wie viele Zeilen eines Mandanten zu einer Bedingung passen — gezählt, nicht
+ * geholt.
+ *
+ * DIESELBEN BEDINGUNGEN WIE `abfragen`, über dasselbe `anwenden`: eine Zahl
+ * am Reiter, die anders filterte als die Liste dahinter, wiche irgendwann
+ * still von ihr ab. Sortierung und Grenze gelten fürs Zählen nicht.
+ */
+export async function zaehlen(
+  tabelle: string,
+  companyId: string,
+  abfrage: Pick<Abfrage, 'wo' | 'oder'> = {},
+  client?: SupabaseClient,
+): Promise<number> {
+  const bauer = anwenden(
+    derClient(client).from(tabelle).select('id', { count: 'exact', head: true })
+      .eq('company_id', companyId) as unknown as Filterbar,
+    { wo: abfrage.wo, oder: abfrage.oder },
+    tabelle,
+  );
+  const { error, count } = await (bauer as unknown as PromiseLike<{
+    error: { message: string } | null;
+    count?: number | null;
+  }>);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
 /** Abfrage innerhalb eines Mandanten. */
 export async function abfragen<T>(
   tabelle: string,

@@ -2,7 +2,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import OhneUmbruch from '@/components/OhneUmbruch';
 import BottomSheet from '@/components/BottomSheet';
 import Abschnitt from '@/components/Abschnitt';
-import { MehrAnzeigen, Segmente } from '@/components/LotBausteine';
+import { Listenleiste, MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Adressfilter from '@/components/Adressfilter';
 import { BAUSTELLEN_FILTER, bekannt as bekannterWert, type BaustellenFilter } from '@/features/dashboard/start/ziele';
@@ -754,49 +754,15 @@ export default function AdminProjectsView() {
         Status — Linien statt Karten in der Karte.
       */}
       <Card buendig>
-        <div className="listen-werkzeug">
-          {/* G7: die Suche steht immer da, wie im Handbuch — nicht erst ab acht Baustellen. */}
-          {projects.length > 0 && (
-            <div className="listen-suche">
-              <InputField
-                id="psuche"
-                label="Suche"
-                type="search"
-                placeholder="Suchen …"
-                aria-describedby="psuche-hilfe"
-                value={suche}
-                onChange={(e) => setSuche(e.target.value)}
-              />
-              {/* Der Platzhalter war am Telefon abgeschnitten (U11) — was gesucht wird, steht hier. */}
-              <p id="psuche-hilfe" className="mt-1 text-xs text-ink-muted">
-                Kunde, Bezeichnung, Projektnummer oder Adresse
-              </p>
-              {/*
-                WAS DIE SUCHE ERREICHT, BEVOR SIE ETWAS FINDET.
-
-                Ohne diesen Satz sah eine Suche nach „Huber" ueber die Grenze
-                hinaus genauso aus wie eine, die es wirklich nicht gibt: leer.
-                Der Hinweis steht deshalb waehrend des Tippens da und nicht
-                erst im Leerzustand.
-              */}
-              {nurVomServer > 0 && (
-                <p className="mt-1 text-xs text-ink">
-                  {nurVomServer === 1
-                    ? 'Eine Baustelle außerhalb der geladenen Liste gefunden.'
-                    : `${nurVomServer} Baustellen außerhalb der geladenen Liste gefunden.`}
-                </p>
-              )}
-            </div>
-          )}
-          <div className="listen-auswahl">
-            {/*
+        <Listenleiste
+          reiter={
+            /*
               ARBEITSSTAND ALS STANDARD (Protokoll 7.1): laufend heisst aktiv
               und pausiert, wie bisher; „Erledigt“ (die abgeschlossenen, bis
-              zum Umbau „Archiv“) und „Alle“ einen Tipp weiter. Die Zahl der
-              abgeschlossenen steht nicht mehr im Segment — am Handy brach
-              „Abgeschlossen (12)“ mitten im Wort —, sondern über ihrer
-              Gruppe; Zähler zählen sonst nur Handlungsbedarf (7.7).
-            */}
+              zum Umbau „Archiv“) und „Alle“ einen Tipp weiter. Ohne Zahl am
+              Reiter: Laufendes ist Bestand, kein Handlungsbedarf (7.7) — die
+              Zahl steht über der Gruppe.
+            */
             <Segmente
               name="Baustellen filtern"
               werte={[
@@ -807,20 +773,40 @@ export default function AdminProjectsView() {
               wert={filter}
               onChange={setFilter}
             />
-            {/*
-              NUR MEINE BAUSTELLEN (Testbericht 30.09.2026, M38): für die
-              Projektleitung die, in deren Leitung oder Team sie steht.
-            */}
-            {istProjektleitung && (
-              <CheckboxField
-                id="pmeine"
-                label="Nur meine Baustellen"
-                checked={nurMeine}
-                onChange={(e) => setNurMeine(e.target.checked)}
-              />
-            )}
-          </div>
-        </div>
+          }
+          /*
+            G7: die Suche steht da, sobald es Baustellen gibt — nicht erst ab
+            acht. Der Platzhalter ist so kurz, dass er auch am Telefon ganz
+            dasteht (U11); dass auch die Bezeichnung gefunden wird, sagt die
+            Hilfe der Seite.
+          */
+          suche={projects.length > 0 ? { id: 'psuche', wert: suche, onChange: setSuche, platzhalter: 'Kunde, Nummer oder Adresse' } : undefined}
+          /* NUR MEINE BAUSTELLEN (Testbericht 30.09.2026, M38): für die
+             Projektleitung die, in deren Leitung oder Team sie steht. */
+          zusatz={istProjektleitung ? (
+            <CheckboxField
+              id="pmeine"
+              label="Nur meine Baustellen"
+              checked={nurMeine}
+              onChange={(e) => setNurMeine(e.target.checked)}
+            />
+          ) : undefined}
+        />
+        {/*
+          WAS DIE SUCHE ERREICHT, BEVOR SIE ETWAS FINDET.
+
+          Ohne diesen Satz sah eine Suche nach „Huber" ueber die Grenze
+          hinaus genauso aus wie eine, die es wirklich nicht gibt: leer.
+          Der Hinweis steht deshalb waehrend des Tippens da und nicht
+          erst im Leerzustand.
+        */}
+        {nurVomServer > 0 && (
+          <p className="px-4 pb-3 text-xs text-ink">
+            {nurVomServer === 1
+              ? 'Eine Baustelle außerhalb der geladenen Liste gefunden.'
+              : `${nurVomServer} Baustellen außerhalb der geladenen Liste gefunden.`}
+          </p>
+        )}
 
         {loading || lageFehlt || !belegschaftDa ? (
           <div className="border-t border-line p-4">

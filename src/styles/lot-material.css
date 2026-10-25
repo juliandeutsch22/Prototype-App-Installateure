@@ -43,10 +43,6 @@
   .material-status { display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .material-gefahr { display: flex; flex-direction: column; padding-top: 1rem; border-top: 1px solid var(--border); }
 
-  /* ── Lager: Werkzeugzeile über dem Bestand ────────────────────────────── */
-  .lager-werkzeug { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem 1rem; padding: 1rem; }
-  .lager-suche { flex: 1; min-width: 14rem; }
-
   /* Artikelwahl für Wareneingang und Inventur aus dem Seitenkopf. */
   .wahl-liste { margin: 0; padding: 0; list-style: none; border: 1px solid var(--border); border-top: 0; border-radius: var(--radius); overflow: hidden; }
   .wahl-zeile { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 2.75rem; padding: 0.5rem 0.75rem; background: var(--surface); border: 0; border-top: 1px solid var(--border); color: var(--text); text-align: left; font-size: 0.9375rem; cursor: pointer; }

@@ -105,6 +105,11 @@ export function kundenAdressePruefen(companyId: string): Promise<WithId<Customer
   return pg.kundenAdressePruefen(companyId);
 }
 
+/** Wie viele Kunden zu prüfen sind (Anschrift, Kundenart) — über den ganzen Bestand. */
+export function kundenZuPruefenAnzahl(companyId: string): Promise<{ adressePruefen: number; ohneKundenart: number }> {
+  return pg.kundenZuPruefenAnzahl(companyId);
+}
+
 /** Die nächste freie Kundennummer — ein Vorschlag (M12). */
 export function naechsteKundennummer(): Promise<string> {
   return pg.naechsteKundennummer();

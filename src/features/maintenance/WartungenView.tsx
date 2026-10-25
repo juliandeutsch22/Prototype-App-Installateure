@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import Adressfilter from '@/components/Adressfilter';
 import { useAuth } from '@/app/AuthContext';
@@ -39,7 +39,7 @@ import PageHeader from '@/components/PageHeader';
 import Abschnitt from '@/components/Abschnitt';
 import BottomSheet from '@/components/BottomSheet';
 import InfoHint from '@/components/InfoHint';
-import { MehrAnzeigen, Segmente, WeitereAngaben, type LotPunkt } from '@/components/LotBausteine';
+import { Listenleiste, MehrAnzeigen, Segmente, WeitereAngaben, type LotPunkt } from '@/components/LotBausteine';
 import Nachladen from '@/components/Nachladen';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import {
@@ -337,17 +337,25 @@ export default function WartungenView() {
    * wirkt und in der anderen nicht, wäre ein Rätsel. Ohne Suchbegriff ist
    * die Grundlage wie bisher das Geladene.
    */
-  const anstehend = useMemo(
-    () =>
-      gefiltert
-        .filter((w) => {
-          const s = beurteile(w, heute).stand;
-          if (nurOhneBaustelle) return (s === 'überfällig' || s === 'fällig') && !w.offeneBaustelle;
-          return s === 'überfällig' || s === 'fällig' || s === 'unklar';
-        })
-        .sort(nachFaelligkeit),
-    [gefiltert, heute, nurOhneBaustelle],
+  const stehtAn = useCallback(
+    (w: WithId<Wartung>) => {
+      const s = beurteile(w, heute).stand;
+      if (nurOhneBaustelle) return (s === 'überfällig' || s === 'fällig') && !w.offeneBaustelle;
+      return s === 'überfällig' || s === 'fällig' || s === 'unklar';
+    },
+    [heute, nurOhneBaustelle],
   );
+  const anstehend = useMemo(() => gefiltert.filter(stehtAn).sort(nachFaelligkeit), [gefiltert, stehtAn]);
+
+  /*
+    DIE ZAHL AM REITER „STEHT AN“ (Design-Entwurf, Punkt 2) zählt Handlungs-
+    bedarf (Protokoll 7.7) — und nur, wenn der ganze Bestand geladen ist.
+    Kommt die Liste an ihre Grenze, könnte hinter ihr noch Fälliges liegen;
+    eine Zahl aus dem Geladenen wäre dann zu klein, ohne es zu sagen. Die
+    Suche ändert die Zahl nicht: sie sagt, was ansteht, nicht was passt.
+  */
+  const anstehendGesamt = wartungen.length < grenze ? wartungen.filter(stehtAn).length : undefined;
+  const ansichten = ANSICHTEN.map((a) => (a.wert === 'anstehend' ? { ...a, anzahl: anstehendGesamt } : a));
 
   const formOeffnen = (w?: WithId<Wartung>) => {
     if (w) {
@@ -701,20 +709,10 @@ export default function WartungenView() {
 
       {/* Bündig: Wartungen als Zeilen von Kante zu Kante. */}
       <Card buendig>
-        <div className="flex flex-wrap items-end gap-3 p-4">
-          <div className="w-full md:w-auto">
-            <Segmente name="Wartungen zeigen" werte={ANSICHTEN} wert={ansicht} onChange={ansichtWaehlen} />
-          </div>
-          <div className="min-w-[12rem] flex-1">
-            <InputField id="w-suche"
-              label="Suche"
-              type="search"
-              placeholder="Kunde, Anlage oder Standort"
-              value={suche}
-              onChange={(e) => setSuche(e.target.value)}
-            />
-          </div>
-        </div>
+        <Listenleiste
+          reiter={<Segmente name="Wartungen zeigen" werte={ansichten} wert={ansicht} onChange={ansichtWaehlen} />}
+          suche={{ id: 'w-suche', wert: suche, onChange: setSuche, platzhalter: 'Kunde, Anlage oder Standort' }}
+        />
         {suchFehler && suche.trim() ? (
           <ErrorState message="Die Wartungssuche konnte nicht geladen werden." onRetry={() => setSuchVersuch((n) => n + 1)} />
         ) : loading || suchtGerade ? (
