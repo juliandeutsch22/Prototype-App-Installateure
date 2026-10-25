@@ -2509,7 +2509,8 @@ export default function InvoicesView() {
   const rechnungZeile = (inv: WithId<Invoice>) => (
     <Fragment key={inv.id}>
       <ListRow
-        title={<><span className="nr">{inv.invoiceNumber}</span> · {inv.customerName}</>}
+        title={inv.customerName}
+        nummer={inv.invoiceNumber}
         wert={euro(inv.totalBrutto)}
         zustand={<StatusBadge status={inv.paymentStatus} />}
         onOeffnen={() => setDetailFuer(inv)}
@@ -2536,7 +2537,8 @@ export default function InvoicesView() {
       */}
       {inv.stornoNummer && (
         <ListRow
-          title={`${inv.stornoNummer} · ${inv.customerName}`}
+          title={inv.customerName}
+          nummer={inv.stornoNummer}
           wert={euro(-inv.totalBrutto)}
           zustand={<Marke>Stornorechnung</Marke>}
           subtitle={`${stornoDatum(inv)} · zu ${inv.invoiceNumber}`}

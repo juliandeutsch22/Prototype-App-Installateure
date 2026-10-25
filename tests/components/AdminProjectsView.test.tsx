@@ -532,7 +532,7 @@ describe('Wie weit die Baustellenliste reicht', () => {
   it('schweigt, solange die Grenze nicht greift', async () => {
     baustellen = viele(12);
     zeige();
-    await screen.findByText('(B-0000)');
+    await screen.findByText('B-0000');
     expect(screen.queryByRole('button', { name: /Weitere Baustellen laden/ })).not.toBeInTheDocument();
   });
 
@@ -549,7 +549,7 @@ describe('Wie weit die Baustellenliste reicht', () => {
     */
     baustellen = viele(300);
     zeige();
-    await screen.findByText('(B-0000)');
+    await screen.findByText('B-0000');
     expect(screen.getByRole('button', { name: /Weitere Baustellen laden/ })).toBeInTheDocument();
     expect(screen.queryByText(/nur in diesen gesucht/)).toBeNull();
     expect(screen.queryByText(/Baustellennummer geht auf den Server/)).toBeNull();
@@ -559,7 +559,7 @@ describe('Wie weit die Baustellenliste reicht', () => {
     baustellen = viele(300);
     const nutzer = userEvent.setup();
     zeige();
-    await screen.findByText('(B-0000)');
+    await screen.findByText('B-0000');
     expect(letzteGrenze).toBe(300);
 
     await nutzer.click(screen.getByRole('button', { name: /Weitere Baustellen laden/ }));
@@ -693,7 +693,7 @@ describe('Baustellen — Suche über die Liste hinaus', () => {
 
     // Die Zeile der Baustelle, nicht der Hinweis über dem Feld: dort steht die
     // Nummer in Klammern hinter dem Kundennamen.
-    expect(await screen.findByText('(2026-003)')).toBeInTheDocument();
+    expect(await screen.findByText('2026-003')).toBeInTheDocument();
     expect(screen.queryByText(/Baustellen? außerhalb der geladenen Liste gefunden/))
       .not.toBeInTheDocument();
   });
@@ -863,7 +863,7 @@ describe('Nur meine Baustellen (M38)', () => {
     nutzer.uid = 'pl';
     zeige();
     // Gezählt werden die Zeilen; bis „Lot“ stand die Zahl im Kartentitel „Alle Baustellen (n)“.
-    await screen.findByText('(2026-101)');
+    await screen.findByText('2026-101');
     expect(zeilen()).toHaveLength(3);
     const haken = screen.getByRole('checkbox', { name: 'Nur meine Baustellen' });
     // Ab Werk aus: die Projektleitung sieht zuerst alle Baustellen.
@@ -883,7 +883,7 @@ describe('Nur meine Baustellen (M38)', () => {
 
   it('Gegenprobe: die Geschäftsführung bekommt den Haken gar nicht', async () => {
     zeige();
-    await screen.findByText('(2026-101)');
+    await screen.findByText('2026-101');
     expect(zeilen()).toHaveLength(3);
     expect(screen.queryByRole('checkbox', { name: 'Nur meine Baustellen' })).toBeNull();
   });
@@ -909,7 +909,7 @@ describe('Baustellenliste in der Linie „Lot“', () => {
   it('zeigt je Gruppe höchstens 20 Zeilen und dann „und N weitere anzeigen“', async () => {
     baustellen = reihe(25, 'Aktiv');
     zeige();
-    await screen.findByText('(L-000)');
+    await screen.findByText('L-000');
     expect(zeilen()).toHaveLength(20);
     await userEvent.click(screen.getByRole('button', { name: 'und 5 weitere anzeigen' }));
     expect(zeilen()).toHaveLength(25);
@@ -919,7 +919,7 @@ describe('Baustellenliste in der Linie „Lot“', () => {
   it('Gegenprobe: bei genau 20 Zeilen kein „weitere“', async () => {
     baustellen = reihe(20, 'Aktiv');
     zeige();
-    await screen.findByText('(L-000)');
+    await screen.findByText('L-000');
     expect(zeilen()).toHaveLength(20);
     expect(screen.queryByRole('button', { name: /weitere anzeigen/ })).toBeNull();
   });
@@ -927,14 +927,14 @@ describe('Baustellenliste in der Linie „Lot“', () => {
   it('gruppiert nach Status: Aktiv vor Pausiert, Abgeschlossenes erst auf Wunsch', async () => {
     baustellen = [...reihe(1, 'Pausiert', 1), ...reihe(1, 'Aktiv', 2), ...reihe(1, 'Abgeschlossen', 3)];
     zeige();
-    await screen.findByText('(L-002)');
+    await screen.findByText('L-002');
     const titel = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
     expect(titel).toEqual(['Aktiv· 1', 'Pausiert· 1']);
-    expect(screen.queryByText('(L-003)')).toBeNull();
+    expect(screen.queryByText('L-003')).toBeNull();
 
     await userEvent.click(screen.getByRole('button', { name: 'Erledigt' }));
-    expect(await screen.findByText('(L-003)')).toBeInTheDocument();
-    expect(screen.queryByText('(L-002)')).toBeNull();
+    expect(await screen.findByText('L-003')).toBeInTheDocument();
+    expect(screen.queryByText('L-002')).toBeNull();
     expect(screen.getByRole('button', { name: 'Erledigt' })).toHaveAttribute('aria-pressed', 'true');
     // Die Zahl, die bis zum Umbau hinter „Archiv (n)“ stand, steht über der Gruppe.
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('Abgeschlossen· 1');
@@ -943,15 +943,15 @@ describe('Baustellenliste in der Linie „Lot“', () => {
   it('nimmt die Auswahl aus der Adresse — als Lesezeichen gespeichert bleibt sie', async () => {
     baustellen = [...reihe(1, 'Aktiv', 2), ...reihe(1, 'Abgeschlossen', 3)];
     zeige('/admin-projects?stand=archiv');
-    expect(await screen.findByText('(L-003)')).toBeInTheDocument();
-    expect(screen.queryByText('(L-002)')).toBeNull();
+    expect(await screen.findByText('L-003')).toBeInTheDocument();
+    expect(screen.queryByText('L-002')).toBeNull();
   });
 
   it('Gegenprobe: ein unbekannter Wert in der Adresse gilt als „Aktiv & pausiert“', async () => {
     baustellen = [...reihe(1, 'Aktiv', 2), ...reihe(1, 'Abgeschlossen', 3)];
     zeige('/admin-projects?stand=quatsch');
-    expect(await screen.findByText('(L-002)')).toBeInTheDocument();
-    expect(screen.queryByText('(L-003)')).toBeNull();
+    expect(await screen.findByText('L-002')).toBeInTheDocument();
+    expect(screen.queryByText('L-003')).toBeNull();
   });
 
   it('hebt Adresse und Telefon über die Zeilenfläche — anrufen bleibt ein Tipp', async () => {
@@ -1005,9 +1005,9 @@ describe('Filter „über oder nahe Budget“ (Runde 5, M1)', () => {
 
   it('zeigt nur die Baustelle über 90 % — gefragt wird nur nach Baustellen mit Budget', async () => {
     zeige('/admin-projects?filter=budget');
-    await screen.findByText('(PR-2026-193)');
+    await screen.findByText('PR-2026-193');
     await waitFor(() => expect(zeilen()).toHaveLength(1));
-    expect(screen.queryByText('(PR-2026-194)')).toBeNull();
+    expect(screen.queryByText('PR-2026-194')).toBeNull();
     expect(stundenDerBaustellen).toHaveBeenCalledTimes(1);
     expect(stundenDerBaustellen.mock.calls[0]).toEqual([['PR-2026-193', 'PR-2026-194']]);
   });
@@ -1040,13 +1040,14 @@ describe('Baustellen — Zeilen erst mit der Belegschaft', () => {
     });
   });
 
-  it('sagt nie „Keine Projektleitung zugeteilt“, solange die Namen laden', async () => {
+  it('sagt nie „ohne Projektleitung“, solange die Namen laden', async () => {
     baustellen = [geleitet];
     let freigeben: () => void = () => undefined;
     vi.mocked(listUsers).mockImplementation(() => new Promise((fertig) => { freigeben = () => fertig([MONTEUR]); }));
     zeige();
     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
-    expect(screen.queryByText('Keine Projektleitung zugeteilt')).not.toBeInTheDocument();
+    // Seit dem Design-Entwurf (Punkt 3) steht das als Zustand „ohne Projektleitung“ rechts in der Zeile.
+    expect(screen.queryByText('ohne Projektleitung')).not.toBeInTheDocument();
     await act(async () => { freigeben(); });
     expect(await screen.findByText(/Projektleitung: Max Mustermann/)).toBeInTheDocument();
   });
@@ -1062,3 +1063,40 @@ describe('Baustellen — Zeilen erst mit der Belegschaft', () => {
     expect(await screen.findByText(/Projektleitung: Max Mustermann/)).toBeInTheDocument();
   });
 });
+
+/*
+  ZEILEN GLEICH GEBAUT (Design-Entwurf vom 25.10.2026, Punkt 3): Name fett,
+  Nummer grau daneben ohne Klammer, eine Detailzeile, Zustand und Wert in
+  festen Spalten rechts — und nie „⋯“ und „›“ nebeneinander.
+*/
+describe('Baustellen — die Zeile', () => {
+  it('Name und Nummer ohne Klammer, Budget als Wert, ohne Pfeil neben dem ⋯', async () => {
+    baustellen = [{
+      id: 'p-z', companyId: 'perl', projectNumber: '2026-077', customerName: 'Familie Zeiler', status: 'Aktiv',
+      assignedEmployees: ['u1'], projectManagers: ['u1'], estimatedHours: 40,
+    } as unknown as Project & { id: string }];
+    zeige();
+    const zeile = (await screen.findByText('2026-077')).closest('li')!;
+    expect(within(zeile).getByText('2026-077')).toHaveClass('zeile-nr');
+    expect(zeile.textContent).not.toContain('(2026-077)');
+    expect(within(zeile).getByText('Budget').closest('.zeile-wert')).toHaveTextContent('40 h');
+    expect(zeile.querySelector('.zeile-pfeil')).toBeNull();
+    expect(within(zeile).getByRole('button', { name: /Weitere Aktionen/ })).toBeInTheDocument();
+    // Eine Detailzeile: Leitung und Team stehen in derselben wie die Adresse.
+    expect(zeile.querySelectorAll('.zeile-meta')).toHaveLength(1);
+    expect(within(zeile).getByText(/Projektleitung: Max Mustermann/).closest('.zeile-meta')).not.toBeNull();
+    expect(within(zeile).getByText(/Team: Max Mustermann/).closest('.zeile-meta')).not.toBeNull();
+  });
+
+  it('ohne Leitung steht „ohne Projektleitung“ als Achtung in der Zustandsspalte', async () => {
+    baustellen = [{
+      id: 'p-o', companyId: 'perl', projectNumber: '2026-078', customerName: 'Familie Ohne', status: 'Aktiv',
+      assignedEmployees: [], projectManagers: [],
+    } as unknown as Project & { id: string }];
+    zeige();
+    const zustand = await screen.findByText('ohne Projektleitung');
+    expect(zustand).toHaveClass('stand', 'stand-warn');
+    expect(zustand.closest('.zeile-zustand')).not.toBeNull();
+  });
+});
+

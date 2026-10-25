@@ -1134,7 +1134,8 @@ export default function WorkSheetView() {
                       className={projectNumber === e.projectNumber ? 'schein-einsatz-an' : 'schein-einsatz'}
                     >
                       {e.name}
-                      <span className="nr ml-1 font-normal text-ink-muted">({e.projectNumber})</span>
+                      {/* Die Nummer grau neben dem Namen, ohne Klammer — wie in jeder Zeile (Design-Entwurf, Punkt 3). */}
+                      <span className="zeile-nr ml-1.5">{e.projectNumber}</span>
                     </button>
                   ))}
                 </div>

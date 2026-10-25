@@ -619,14 +619,8 @@ export default function WorkSheetsListView() {
         wert={fmtDauer(gesamt)}
         zustand={<Zustand stand={STAND[s.status]}>{s.status}</Zustand>}
         onOeffnen={() => setOffen(s.id)}
-        title={
-          <span>
-            {s.customerName}{' '}
-            <span className="text-sm font-normal text-ink-muted">
-              <span className="nr">({s.projectNumber})</span>
-            </span>
-          </span>
-        }
+        title={s.customerName}
+        nummer={s.projectNumber}
         subtitle={
           <>
             {datumAT(s.datum)} · {s.abrechnung}

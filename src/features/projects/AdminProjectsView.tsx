@@ -37,7 +37,7 @@ import KundenAuswahl from '@/components/KundenAuswahl';
 import { useKunde } from '@/features/customers/useKundenFuer';
 import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
-import { Marke } from '@/components/Badge';
+import { Zustand } from '@/components/Badge';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import PageHeader from '@/components/PageHeader';
 import RowMenu from '@/components/RowMenu';
@@ -842,37 +842,29 @@ export default function AdminProjectsView() {
                           lässt sich verlinken und kommt zurück, wohin man war.
                         */
                         to={`/admin-projects/${p.id}`}
-                        pfeil
-                        title={
-                          <span>
-                            <OhneUmbruch text={baustellenTitel(p)} /> <span className="nr text-ink-muted">({p.projectNumber})</span>
+                        /*
+                          ZEILEN GLEICH GEBAUT (Design-Entwurf, Punkt 3): Name fett,
+                          Nummer grau daneben, eine Detailzeile, rechts Zustand und
+                          Wert in festen Spalten. Ohne „›“: das „⋯“ steht schon da,
+                          und die ganze Zeile führt ohnehin in die Akte.
+                        */
+                        title={<OhneUmbruch text={baustellenTitel(p)} />}
+                        nummer={p.projectNumber}
+                        subtitle={
+                          /* Adresse und Nummer anklickbar: auch die Projektleitung
+                             faehrt raus und ruft an. Über der Fläche der Zeile,
+                             sonst öffnete der Tipp die Akte statt der Karte. */
+                          <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                            <span className="zeile-griff"><AdresseLink adresse={p.address} /></span>
+                            <span className="zeile-griff"><TelefonLink nummer={p.contactPhone} name={p.contactName} /></span>
+                            {leitung.length > 0 && <span>Projektleitung: {leitung.join(', ')}</span>}
+                            {team.length > 0 && <span>Team: {team.join(', ')}</span>}
                           </span>
                         }
-                        subtitle={
-                          <>
-                            {/* Adresse und Nummer anklickbar: auch die Projektleitung
-                                faehrt raus und ruft an. Über der Fläche der Zeile,
-                                sonst öffnete der Tipp die Akte statt der Karte. */}
-                            <span className="flex flex-wrap items-center gap-x-3">
-                              <span className="zeile-griff"><AdresseLink adresse={p.address} /></span>
-                              <span className="zeile-griff"><TelefonLink nummer={p.contactPhone} name={p.contactName} /></span>
-                            </span>
-                            {team.length > 0 && (
-                              <span className="mt-1 block text-xs text-ink-muted">
-                                Team: {team.join(', ')}
-                              </span>
-                            )}
-                            <span className="mt-1 block text-xs text-ink-muted">
-                              {leitung.length > 0 ? (
-                                <>Projektleitung: {leitung.join(', ')}</>
-                              ) : (
-                                <span className="text-warning">Keine Projektleitung zugeteilt</span>
-                              )}
-                            </span>
-                          </>
-                        }
+                        /* Ohne Leitung ist ein Zustand, keine Fußnote: er steht in der Spalte, wo man nach Achtung sucht. */
+                        zustand={leitung.length === 0 ? <Zustand stand="achtung">ohne Projektleitung</Zustand> : undefined}
+                        wert={p.estimatedHours ? <>{fmtStunden(p.estimatedHours)} h<small>Budget</small></> : undefined}
                       >
-                        {p.estimatedHours ? <Marke>{fmtStunden(p.estimatedHours)} h Budget</Marke> : null}
                         {/*
                           LÖSCHEN STEHT IM MENÜ, NICHT ALS ✕ IN DER ZEILE.
 

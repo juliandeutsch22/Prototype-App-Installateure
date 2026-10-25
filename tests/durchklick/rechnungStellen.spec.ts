@@ -117,7 +117,7 @@ test('Das Büro stellt aus der gebuchten Zeit eine Rechnung', async ({ page, bro
   const haelfte = Math.round((Number(vorher!.total_brutto) / 2) * 100) / 100;
 
   // Die Zeile öffnet das Seitenfenster der Rechnung; dort stehen die Handlungen (Linie „Lot“).
-  await page.getByRole('button', { name: /^RE-\d{4}-\d+ · / }).first().click();
+  await page.getByRole('button', { name: / RE-\d{4}-\d+$/ }).first().click();
   await page.getByRole('button', { name: 'Zahlung erfassen' }).click();
 
   const betrag = page.getByLabel(/^Betrag/);
@@ -139,7 +139,7 @@ test('Das Büro stellt aus der gebuchten Zeit eine Rechnung', async ({ page, bro
   */
   // Der Zahlungsdialog bleibt nach dem Eintragen offen — er zeigt, was eingegangen ist.
   await page.getByRole('button', { name: 'Abbrechen' }).click();
-  await page.getByRole('button', { name: /^RE-\d{4}-\d+ · / }).first().click();
+  await page.getByRole('button', { name: / RE-\d{4}-\d+$/ }).first().click();
   const ansicht = page.getByRole('dialog', { name: /Rechnung RE-/ });
   await expect(ansicht).toBeVisible();
   // Nicht der Zahlungsstand: den zieht die Liste erst kurz nach der Datenbank nach.
@@ -149,7 +149,7 @@ test('Das Büro stellt aus der gebuchten Zeit eine Rechnung', async ({ page, bro
   await expect(ansicht).toHaveCount(0);
 
   // Und wieder auf, diesmal mit Esc zu.
-  await page.getByRole('button', { name: /^RE-\d{4}-\d+ · / }).first().click();
+  await page.getByRole('button', { name: / RE-\d{4}-\d+$/ }).first().click();
   await expect(ansicht).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(ansicht).toHaveCount(0);

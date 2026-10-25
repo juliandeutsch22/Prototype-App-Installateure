@@ -489,9 +489,7 @@ export default function MyScheduleView() {
                             {proj?.customerName && (
                               <>
                                 {' '}
-                                <span className="text-sm font-normal text-ink-muted">
-                                  <span className="nr">({a.projectNumber})</span>
-                                </span>
+                                <span className="zeile-nr">{a.projectNumber}</span>
                               </>
                             )}
                           </span>

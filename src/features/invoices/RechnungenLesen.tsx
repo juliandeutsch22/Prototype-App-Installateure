@@ -66,7 +66,8 @@ export default function RechnungenLesen() {
     return (
       <ListRow
         key={r.id}
-        title={`${r.invoiceNumber} · ${r.customerName}`}
+        title={r.customerName}
+        nummer={r.invoiceNumber}
         subtitle={
           /*
             JEDE ANGABE BLEIBT AM STÜCK — wie in der Rechnungsverwaltung (17 J,

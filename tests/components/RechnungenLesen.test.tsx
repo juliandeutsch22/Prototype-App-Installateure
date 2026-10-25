@@ -48,7 +48,7 @@ beforeEach(() => {
 describe('Rechnungen lesen', () => {
   it('zeigt die Rechnung mit Baustelle, Stand und offenem Betrag — und keinen Knopf, der etwas tut', () => {
     zeige();
-    expect(screen.getByText('RE-2026-0007 · Familie Huber')).toBeInTheDocument();
+    expect(screen.getByText('RE-2026-0007')).toBeInTheDocument();
     expect(screen.getByText(/Baustelle PR-2026-0003/)).toBeInTheDocument();
     expect(screen.getByText(/offen € 1[.\s]000,00/)).toBeInTheDocument();
     expect(screen.getByText('Teilbezahlt')).toBeInTheDocument();
@@ -67,25 +67,25 @@ describe('Rechnungen lesen', () => {
   it('zeigt zuerst den Arbeitsstand — Bezahltes steht unter „Alle“', async () => {
     zeilen = [TEILBEZAHLT, BEZAHLT];
     zeige();
-    expect(screen.getByText('RE-2026-0007 · Familie Huber')).toBeInTheDocument();
-    expect(screen.queryByText('RE-2026-0003 · Gasthof Post')).toBeNull();
+    expect(screen.getByText('RE-2026-0007')).toBeInTheDocument();
+    expect(screen.queryByText('RE-2026-0003')).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Alle' }));
-    expect(screen.getByText('RE-2026-0003 · Gasthof Post')).toBeInTheDocument();
+    expect(screen.getByText('RE-2026-0003')).toBeInTheDocument();
   });
 
   it('Gegenprobe: „Erledigt“ zeigt nur das Bezahlte', () => {
     zeilen = [TEILBEZAHLT, BEZAHLT];
     zeige('/invoices?ansicht=erledigt');
-    expect(screen.getByText('RE-2026-0003 · Gasthof Post')).toBeInTheDocument();
-    expect(screen.queryByText('RE-2026-0007 · Familie Huber')).toBeNull();
+    expect(screen.getByText('RE-2026-0003')).toBeInTheDocument();
+    expect(screen.queryByText('RE-2026-0007')).toBeNull();
   });
 
   it('sucht nach Nummer, Kunde oder Baustelle', async () => {
     zeilen = [TEILBEZAHLT, { ...BEZAHLT, paymentStatus: 'Offen', bezahltBetrag: 0 }];
     zeige();
-    expect(screen.getByText('RE-2026-0003 · Gasthof Post')).toBeInTheDocument();
+    expect(screen.getByText('RE-2026-0003')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Suche'), 'PR-2026-0003');
-    expect(screen.getByText('RE-2026-0007 · Familie Huber')).toBeInTheDocument();
-    expect(screen.queryByText('RE-2026-0003 · Gasthof Post')).toBeNull();
+    expect(screen.getByText('RE-2026-0007')).toBeInTheDocument();
+    expect(screen.queryByText('RE-2026-0003')).toBeNull();
   });
 });

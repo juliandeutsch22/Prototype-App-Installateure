@@ -58,7 +58,7 @@ test('Rechnung an eine Dienststelle des Bundes als E-Rechnung laden', async ({ p
   }).toPass({ timeout: 25_000 });
   const { data: rechnung } = await admin.from('invoices').select('invoice_number, total_brutto').eq('company_id', BETRIEB).single();
 
-  await page.getByRole('button', { name: new RegExp(`^${rechnung!.invoice_number} · `) }).click();
+  await page.getByRole('button', { name: new RegExp(` ${rechnung!.invoice_number}$`) }).click();
   await page.getByRole('button', { name: 'E-Rechnung (ebInterface) …' }).click();
   const dialog = page.getByRole('dialog', { name: `E-Rechnung — ${rechnung!.invoice_number}` });
   await dialog.getByRole('button', { name: 'Bund' }).click();
@@ -87,7 +87,7 @@ test('Rechnung an eine Dienststelle des Bundes als E-Rechnung laden', async ({ p
     const { data } = await admin.from('customers').select('lieferantennummer').eq('company_id', BETRIEB).eq('name', BAUSTELLE.kunde).single();
     expect(data?.lieferantennummer).toBe('50012345');
   }).toPass({ timeout: 10_000 });
-  await page.getByRole('button', { name: new RegExp(`^${rechnung!.invoice_number} · `) }).click();
+  await page.getByRole('button', { name: new RegExp(` ${rechnung!.invoice_number}$`) }).click();
   await page.getByRole('button', { name: 'E-Rechnung (ebInterface) …' }).click();
   await expect(page.getByRole('dialog', { name: /E-Rechnung/ }).getByLabel(/Unsere Lieferantennummer/)).toHaveValue('50012345');
   await keineFehlermeldung(page);
