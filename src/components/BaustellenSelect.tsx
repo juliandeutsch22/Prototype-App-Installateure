@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { listActiveProjects, listProjectsByNumbers, listRecentProjects } from '@/lib/db/projects';
 import { baustellenAuswahlAbgeschnitten } from '@/lib/listengrenzen';
 import type { Project } from '@/types';
@@ -6,6 +6,7 @@ import type { WithId } from '@/lib/db/core';
 import { SelectField } from '@/components/Field';
 import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
+import { abgeschnittenerText } from '@/lib/auswahlAbgeschnitten';
 
 /**
  * Auswahl einer Baustelle — überall dort, wo eine gebraucht wird.
@@ -159,6 +160,25 @@ export default function BaustellenSelect({
     (document.getElementById(id) as HTMLSelectElement | null)?.setCustomValidity?.('');
   }, [value, id]);
 
+  /*
+    DIE GEWÄHLTE BAUSTELLE GANZ LESBAR (Testbericht Runde 6, G14). Im
+    Seitenfenster (Termin, Einsatz, Retoure) und am Handy schnitt das Feld
+    „Kunde (Nummer)“ hinten ab — und damit die Nummer, die zwei Baustellen
+    eines Kunden unterscheidet. Passt die Wahl nicht ins Feld, steht sie
+    darunter vollständig und darf umbrechen; passt sie, steht nichts doppelt.
+    Neu gemessen, wenn sich Wahl, Liste oder Breite ändern.
+  */
+  const [ganzeWahl, setGanzeWahl] = useState<string | null>(null);
+  useLayoutEffect(() => {
+    const feld = document.getElementById(id) as HTMLSelectElement | null;
+    const messen = () => setGanzeWahl(abgeschnittenerText(feld));
+    messen();
+    if (!feld || typeof ResizeObserver === 'undefined') return;
+    const beobachter = new ResizeObserver(messen);
+    beobachter.observe(feld);
+    return () => beobachter.disconnect();
+  }, [id, value, projekte, zustand]);
+
   if (zustand === 'fehler') {
     return (
       <Hinweiszeile stufe="fehl">
@@ -243,6 +263,15 @@ export default function BaustellenSelect({
           </optgroup>
         )}
       </SelectField>
+      {/* Für die Vorlesehilfe nicht noch einmal: sie liest den Wert des Feldes ohnehin ganz. */}
+      {ganzeWahl && (
+        <p className="auswahl-ganz" aria-hidden="true">
+          {/* Eine Nummer bricht nicht am Bindestrich („B-2026-/0148“, wie Runde 6, G4). */}
+          {ganzeWahl.split(/(\S*\d+-\d\S*)/).map((teil, i) =>
+            i % 2 === 1 ? <span key={i} className="nr">{teil}</span> : teil,
+          )}
+        </p>
+      )}
 
       {zustand === 'bereit' && projekte.length === 0 && (
         <div className="mt-2">

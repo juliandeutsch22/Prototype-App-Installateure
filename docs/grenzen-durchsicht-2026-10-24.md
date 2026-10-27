@@ -61,7 +61,6 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Lange Namen brechen mitten im Wort in einem Browser ohne deutsches Trennwörterbuch (A16, 24.10.2026) | Die Trennregel gilt überall; das Wörterbuch bringt der Browser mit oder nicht — liegt beim Gerät |
 | Der Rücklauf hält einen Stand beim Einspielen ganz im Speicher des Rechners, auf dem er läuft (N1, 24.10.2026; geprüft mit 288 MB) | Liegt beim Gerät: der Rücklauf läuft im Ernstfall auf dem Rechner eines Menschen, nicht im Projekt; Node bekommt mit `--max-old-space-size` mehr Speicher |
 | „E-Mail an …“ (Bestellung, Angebot) öffnet das Mailprogramm; die App verschickt nichts an Kunden oder Großhändler und führt keinen Versandnachweis (Stand 24.5, Testbericht Runde 6, Hinweis 12) | Sicherheit und Betrieb: gesendet wird aus dem eigenen Postfach, damit Antworten und die gesendete Nachricht beim Betrieb liegen; die App hält keine Zugangsdaten zu diesem Postfach |
-| Auswahl der Baustelle am Handy und im Termin-Fenster: ein langer Kundenname samt Nummer passt nicht ganz ins Feld (Stand 24.5, G14) | Technisch: ein Auswahlfeld bricht seinen Text nicht um, und es steht schon in voller Breite; fachlich bleibt im Büro der Kunde vorn, weil dort nach ihm getippt wird (Stand 24.1, G3) |
 
 ## X – Liegt bei jemand anderem
 

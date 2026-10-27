@@ -160,6 +160,12 @@
 
   /* ── Formular ─────────────────────────────────────────────────────────── */
   .formular { max-width: 35rem; }
+  /*
+    Die Wahl eines Auswahlfelds, die nicht hineinpasst, ganz darunter
+    (Runde 6, G14): in Tinte, weil sie der Wert ist, nicht ein Hinweis;
+    umbrochen zwischen den Wörtern, ohne Trennstrich.
+  */
+  .auswahl-ganz { margin-top: 0.25rem; font-size: 0.875rem; line-height: 1.25rem; color: var(--text); overflow-wrap: anywhere; hyphens: manual; -webkit-hyphens: manual; }
   .weiteres { border-top: 1px solid var(--border); margin: 0.5rem 0 1rem; }
   /* Kein Trennstrich im Wort („Weg-zeit“): umbrochen wird zwischen den Wörtern. */
   .weiteres-kopf { display: flex; flex-wrap: wrap; align-items: center; min-height: 2.75rem; padding: 0.375rem 0; cursor: pointer; font-weight: 600; color: var(--accent-deep); list-style: none; hyphens: manual; -webkit-hyphens: manual; }
