@@ -47,7 +47,7 @@ ist vorher behoben. Was offen bleibt, steht am Ende mit Grund.
 - **Nachweis:** `mandantenTrennung.test.ts`, „sind für nicht angemeldete Aufrufer gesperrt“, rot vor der Behebung: `betrieb_auszug`, `schein_vorbereiten`, `support_freigaben_offen`, `support_notzugang`, `urlaub_entscheiden`. Jede prüft die Anmeldung im Rumpf und bricht ohne sie ab — offen lag nichts, aber die Sperre gehört an die Tür (CLAUDE.md: `revoke … from public, anon`).
 - **Behebung:** `20261027600000_rpc_ohne_anmeldung_sperren.sql`.
 - **Benannte Ausnahmen:** `fehler_vor_anmeldung_eintragen` (die Anmeldemaske meldet Abstürze vor der Anmeldung; schreibt nur, gibt nichts zurück, gedrosselt) und die Helfer der Zeilenschutz-Regeln (`app.rolle`, `app.ist_plattform`, `app.support_*`, `app.aktiv`) — Regeln werten sie auch für nicht angemeldete Anfragen aus; sie sagen dann „nein“ (eigene Prüfung).
-- **Gegenprobe:** Freigabe an `anon` zurückgegeben → rot.
+- **Gegenprobe:** Freigabe an `anon` zurückgegeben → rot. `rechte.test.ts` hielt bis dahin fest, dass diese Funktionen ohne Anmeldung aufrufbar bleiben und mit „Keine Anmeldung“ antworten; es prüft jetzt die Sperre am Ausführungsrecht.
 
 ### 3.3 Abmelden: ein Gerät beendete alle, ein anderes las noch eine Stunde — mittel
 

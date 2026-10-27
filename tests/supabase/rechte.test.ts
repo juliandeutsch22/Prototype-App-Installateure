@@ -219,14 +219,17 @@ describe('Ohne Anmeldung gibt es nicht einmal die Tür', () => {
     expect(error?.code).toBe('42501');
   }, 30_000);
 
-  it('und die Datenbankfunktionen weisen ihn mit einer MELDUNG ab', async () => {
+  it('und die Datenbankfunktionen lassen ihn gar nicht erst hinein', async () => {
     /*
-      Die Funktionen bleiben ausdrücklich aufrufbar: sie prüfen die Anmeldung
-      in ihrer ersten Zeile. Wer sich vertan hat, soll lesen können, was los
-      ist, statt auf eine Rechteverletzung zu stossen — und ein
-      Ausführungsrecht ist ohnehin keines auf die Daten.
+      Bis 27.10.2026 blieben sie ausdrücklich aufrufbar und wiesen in ihrer
+      ersten Zeile mit „Keine Anmeldung“ ab. Seit der Sicherheitsprüfung
+      (Testbericht Runde 6, 8.4; `20261027600000_rpc_ohne_anmeldung_sperren.sql`)
+      sperrt schon das fehlende Ausführungsrecht — so verlangt es CLAUDE.md
+      (`revoke … from public, anon`): ein künftiger Fehler im Rumpf stünde
+      sonst jedem im Netz offen. Die App ruft sie nie ohne Anmeldung auf.
     */
     const { error } = await ohneAnmeldung.rpc('betrieb_auszug');
-    expect(error?.message).toContain('Keine Anmeldung');
+    expect(error?.code).toBe('42501');
+    expect(error?.message).toMatch(/permission denied/);
   }, 30_000);
 });
