@@ -728,6 +728,41 @@
     </div>
   </section>
 
+  <section id="abrechnung-runde6">
+    <div class="abschnittskopf">
+      <h2>27. Oktober: Abrechnungsstand, Schlussrechnung, Zahlungen</h2>
+      <p class="frage">Aus dem Testbericht Runde 6: die Startseite zählte „nicht verrechnet“ anders als die Liste dahinter, Material kam zwischen Teil- und Schlussrechnung doppelt, eine zweite Schlussrechnung war möglich, und der Zahlungsdialog sagte Veraltetes oder gar nichts.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Nicht verrechnete Leistung: alles, wie auf der Startseite<span class="neu">geändert</span></h3>
+        <p>Unter Rechnungen stehen in „Nicht verrechnete Leistung“ jetzt <strong>alle</strong> unterschriebenen Scheine ohne gültige Rechnung und alle Regiebaustellen mit offenen Stunden — dieselbe Menge, die die Startseite zählt und hierher verlinkt. Darunter steht „davon N über 4 Wochen“. Was über vier Wochen alt ist, trägt den Achtung-Zustand (ab 90 Tagen den roten); jüngere Zeilen stehen ruhig mit ihrem Alter da. Gemahnt wird also weiter ab vier Wochen, aber was gezählt wird, ist auch zu sehen.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Material zwischen Teil- und Schlussrechnung<span class="neu">geändert</span></h3>
+        <p>Mit einem Stichtag („Leistung bis“) zieht „Ausgegeben, nicht auf einem Schein“ jetzt auch ab, was <strong>spätere unterschriebene Scheine</strong> der Baustelle über das danach Ausgegebene hinaus tragen: das Material der Rüstliste vom Montag, das erst auf dem Schein vom Donnerstag steht, kommt mit diesem Schein auf die nächste Rechnung und wird hier nicht mehr vorgeschlagen. Eine Zeile nennt es mit Artikel, Menge und dem Tag des Scheins; beim Vorschlag steht „auf späteren Scheinen …“. Ein späterer Entwurf zählt nicht — er ist noch änderbar.</p>
+        <p>Und bringt ein Schein dieser Rechnung einen Artikel, den eine <strong>frühere gültige Rechnung der Baustelle schon ohne Schein trägt</strong> (aus dem Lager übernommen oder von Hand eingesetzt), warnt die Vorschau — gleich, in welchem Zeitraum der Schein liegt —, mit Datum, Rechnungsnummer und beiden Mengen. Abgezogen wird nichts: ob es ein zweites Mal hingehört, entscheidet das Büro. Was schon der Hinweis „Schein im abgerechneten Zeitraum“ meldet, steht nicht doppelt da.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Eine Schlussrechnung je Baustelle<span class="neu">neu</span></h3>
+        <p>Hat die Baustelle eine gültige Schlussrechnung, stellt „Neue Rechnung“ keine zweite zusammen, sondern sagt, was geht: das Spätere als „Rechnung“ — oder die Schlussrechnung stornieren und neu ausstellen. Die Datenbank weist eine zweite gültige Schlussrechnung ebenso ab, auch beim Aufheben des Stornos einer früheren.</p>
+        <p><strong>Storno einer Anzahlung oder Teilrechnung:</strong> Zieht eine spätere Schlussrechnung sie ab, sagt der Dialog es vorher — der Storno geht dann erst, wenn die Schlussrechnung storniert ist (das galt in der Datenbank schon). Rechnet die Schlussrechnung erst nach einer Teilrechnung ab, nennt der Dialog die Folgen: Stunden und Scheine der Teilrechnung sind danach wieder offen und gehen auf eine eigene Rechnung, und Material, das dort aus dem Lager übernommen wurde, gilt durch den Zeitraum der Schlussrechnung als abgerechnet. Der Text sagt jetzt je Art, was freigegeben wird: bei der Anzahlung nichts.</p>
+        <p><strong>Die Schlussrechnung nennt die Teilrechnungen,</strong> die ihre Stunden und Scheine schon verrechnet haben: vorn in der Vorschau steht eine Textzeile „Bereits mit Teilrechnung … vom … (Leistung bis …) verrechnet und hier nicht enthalten.“ Sie steht auf PDF und E-Rechnung, lässt sich ändern oder entfernen und zieht nichts ab. Der Hinweis bei der Anzahlung verspricht nicht mehr „die ganze Leistung“: die Schlussrechnung führt an, was noch auf keiner Rechnung steht.</p>
+        <p><strong>Grenze (Steuerberatung):</strong> Ob die Schlussrechnung nach einer Teilrechnung mit verbrauchten Belegen die ganze Leistung anführen und die Teilrechnung samt Steuer abziehen muss, ob eine noch unbezahlte Anzahlung abgezogen werden darf und ob eine Teilrechnung Skonto tragen soll, klärt der Betrieb mit seiner Steuerberatung. Die App rechnet bis dahin wie bisher.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Vorschau, Zahlungen, Liste<span class="neu">geändert</span></h3>
+        <p>„Gebucht, aber ohne unterschriebenen Schein“ und die fehlenden Stunden nennen den <strong>Satz der Buchung</strong> — beim Lehrling „Lehrling, 2. Lehrjahr“ statt „Facharbeiter“. Bei einer <strong>Anzahlung</strong> steht kein Abgleich mit den Scheinen mehr; sie verrechnet keine Stunden.</p>
+        <p>Im <strong>Zahlungsdialog</strong> folgt „Diese Rechnung ist schon bezahlt …“ den Eingängen im Dialog: nach dem Löschen von Zahlung oder Skonto verschwindet der Satz sofort. Ist ein Betrag <strong>höher als offen</strong>, fragt der Dialog vor dem Speichern: „Das sind € … mehr als offen — als Guthaben des Kunden buchen?“; erst „Als Guthaben buchen“ speichert. Auf eine schon bezahlte oder stornierte Rechnung und bei der Rückzahlung eines Guthabens fragt er nicht — dort steht der Hinweis schon oben.</p>
+        <p>An einer <strong>stornierten Rechnung</strong> steht keine „E-Rechnung (ebInterface) …“ mehr, nur noch die E-Rechnung der Stornorechnung; das PDF bleibt. Die Überschrift der Liste zählt die Stornorechnung eigens: „Alle Rechnungen (8, dazu 1 Stornorechnung)“.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+    </div>
+  </section>
+
   <section id="planung-handy">
     <div class="abschnittskopf">
       <h2>25. Oktober: Einsatzplanung am Handy ruhiger</h2>
@@ -1089,7 +1124,7 @@
     <div class="bereiche">
       <div class="bereich">
         <h3>Stunden neben den Scheinen<span class="neu">neu</span></h3>
-        <p><strong>Unter Rechnungen</strong> stehen in „Nicht verrechnete Leistung“ jetzt auch Regiebaustellen mit gebuchten, noch nicht verrechneten Stunden: Kunde, Baustelle, die Summe der offenen Stunden und der älteste offene Tag. Gemeldet wird ab vier Wochen, gemessen am ältesten offenen Tag — dieselbe Frist wie bei den Scheinen; Scheine und Baustellen stehen in einer Liste, älteste zuerst. „Baustelle wählen“ öffnet „Neue Rechnung“ mit dieser Baustelle.</p>
+        <p><strong>Unter Rechnungen</strong> stehen in „Nicht verrechnete Leistung“ jetzt auch Regiebaustellen mit gebuchten, noch nicht verrechneten Stunden: Kunde, Baustelle, die Summe der offenen Stunden und der älteste offene Tag. Gemeldet wird ab vier Wochen, gemessen am ältesten offenen Tag — dieselbe Frist wie bei den Scheinen; Scheine und Baustellen stehen in einer Liste, älteste zuerst. <strong>Seit 27.10.2026</strong> stehen hier alle, die jüngeren ohne Achtung-Zustand — dieselbe Menge wie auf der Startseite. „Baustelle wählen“ öffnet „Neue Rechnung“ mit dieser Baustelle.</p>
         <p><strong>Auf der Startseite</strong> steht bei der Buchhaltung der Abschnitt „Stunden über 4 Wochen nicht verrechnet“; jede Zeile öffnet „Neue Rechnung“ mit der Baustelle. Bei Geschäftsführung und Administrator steht unter „Diese Woche“ das Thema „… mit Stunden nicht verrechnet“. <strong>Seit 25.10.2026</strong> steht auf der Startseite alles Nicht-Verrechnete, nicht nur das über vier Wochen Alte — als Sammelzeile (siehe Startseite).</p>
         <p>Pauschale und Einheitspreis stehen hier nicht: sie rechnen nach dem Angebot ab. Gezählt wird nur „Anwesend“; nach jeder angelegten oder stornierten Rechnung wird neu gezählt. Die Summen rechnet die Datenbank, ohne Personen und Zeitkonto.</p>
         <p><strong>Seit 24.10.</strong> zählen Lehrlingsstunden, die der Betrieb zum Satz 0 verrechnet (etwa das 1. und 2. Lehrjahr), hier nicht mehr mit — nach derselben Regel wie die Rechnung, die sie ohne Zeile auslässt. Eine Baustelle mit nur solchen Stunden steht nicht mehr in der Liste, und die Stundensumme gemischter Baustellen stimmt mit dem überein, was verrechnet wird. Gezählt wird mit den Sätzen des Betriebs; wer in der Rechnung einen Satz für diese eine Rechnung ändert, ändert die Liste nicht.</p>
@@ -1180,7 +1215,7 @@
         <h3>E-Rechnung zu jeder Rechnung<span class="neu">neu</span></h3>
         <p>Im Seitenfenster einer Rechnung steht „E-Rechnung (ebInterface) …“. Der Dialog fragt, an wen die Datei geht: ein <strong>Unternehmen</strong>, der <strong>Bund</strong> oder ein <strong>Land, eine Gemeinde oder eine andere Stelle</strong> über e-rechnung.gv.at. Für den Bund braucht es die Auftragsreferenz (die zehnstellige Bestellnummer oder die Einkäufergruppe aus der Bestellung, bei einer Bestellnummer dazu die Bestellposition) und die achtstellige Lieferantennummer. Für andere Stellen die Auftragsreferenz der Stelle (z. B. „Z0/Akt 4711“) und die Lieferantennummer bei ihr. Die Bestellnummer der Rechnung und die beim Kunden hinterlegte Lieferantennummer sind vorbelegt.</p>
         <p><strong>Was fehlt, steht vor dem Laden da:</strong> die E-Mail-Adresse oder IBAN des Betriebs, eine Anschrift ohne Postleitzahl, ein fehlendes Leistungsdatum, eine Position, bei der Menge mal Preis nicht den Betrag ergibt. Solange etwas davon fehlt, entsteht keine Datei — e-rechnung.gv.at würde sie abweisen. Hinweise (etwa ein Rücklass) halten nichts auf.</p>
-        <p><strong>Dieselbe Rechnung wie das PDF:</strong> dieselben Positionen mit Titeln und Texten, Positionsrabatt und Rabatt über die Rechnung, dieselbe Umsatzsteuer (auch Übergang der Steuerschuld und steuerfrei mit Grund), dasselbe Skonto und derselbe Zahlbetrag. Bei Teil- und Schlussrechnung stehen die abgezogenen Rechnungen als eigene Positionen mit Verweis; der Haft- oder Deckungsrücklass mindert den Zahlbetrag, nicht die Steuer. Nach einem Storno gibt es auch die Stornorechnung als E-Rechnung, mit ihrer eigenen Nummer und dem Verweis auf die stornierte Rechnung.</p>
+        <p><strong>Dieselbe Rechnung wie das PDF:</strong> dieselben Positionen mit Titeln und Texten, Positionsrabatt und Rabatt über die Rechnung, dieselbe Umsatzsteuer (auch Übergang der Steuerschuld und steuerfrei mit Grund), dasselbe Skonto und derselbe Zahlbetrag. Bei Teil- und Schlussrechnung stehen die abgezogenen Rechnungen als eigene Positionen mit Verweis; der Haft- oder Deckungsrücklass mindert den Zahlbetrag, nicht die Steuer. Nach einem Storno gibt es die Stornorechnung als E-Rechnung, mit ihrer eigenen Nummer und dem Verweis auf die stornierte Rechnung; die E-Rechnung der stornierten Rechnung selbst wird seit 27.10. nicht mehr angeboten.</p>
         <p><strong>Einreichen:</strong> An den Bund und andere öffentliche Stellen lädt man die Datei unter e-rechnung.gv.at hoch, angemeldet über das Unternehmensserviceportal (USP). An Unternehmen geht sie per E-Mail oder über deren Portal.</p>
         <p><strong>Lieferantennummer beim Kunden:</strong> Sie steht im Kundenformular und in der Kundenakte („Unsere Lieferantennummer bei diesem Kunden“). Wer im Dialog eine neue einträgt und Kunden pflegen darf, kann sie dort gleich beim Kunden merken.</p>
         <p><strong>Grenzen:</strong> Senklot reicht die Datei nicht selbst bei e-rechnung.gv.at ein; das Hochladen bleibt ein Handgriff. Bei einer zehnstelligen Bestellnummer des Bundes gilt eine Bestellposition für alle Zeilen. Beilagen (etwa der Leistungsnachweis) gehen nicht mit. Die Projektleitung, die Rechnungen nur liest, sieht den Eintrag nicht.</p>
@@ -2894,7 +2929,7 @@
       </div>
       <div class="bereich">
         <h3>Anzahlung, Teil, Schluss<span class="neu">hinter einem schalter</span></h3>
-        <p>Der Haken „Wir stellen Anzahlungs-, Teil- und Schlussrechnungen“ steht in den Einstellungen und ist <strong>ab Werk aus</strong>. Ohne ihn sieht die Rechnungsmaske genau so aus wie vorher. Eingeschaltet zieht die Schlussrechnung jede Vorrechnung einzeln ab — seit 30.09. zwingend, vorausgewählt und nicht abwählbar —, mit Entgelt UND Steuer, denn wer eine Steuer ausweist, schuldet sie (§ 11 Abs 12 UStG). <strong>Abgezogen wird nur, was keine Belege verbraucht hat:</strong> eine Teilrechnung über einen abgeschlossenen Bauabschnitt hat ihre Stunden mitgenommen und steht in der Schlussrechnung gar nicht mehr.</p>
+        <p>Der Haken „Wir stellen Anzahlungs-, Teil- und Schlussrechnungen“ steht in den Einstellungen und ist <strong>ab Werk aus</strong>. Ohne ihn sieht die Rechnungsmaske genau so aus wie vorher. Eingeschaltet zieht die Schlussrechnung jede Vorrechnung einzeln ab — seit 30.09. zwingend, vorausgewählt und nicht abwählbar —, mit Entgelt UND Steuer, denn wer eine Steuer ausweist, schuldet sie (§ 11 Abs 12 UStG). <strong>Abgezogen wird nur, was keine Belege verbraucht hat:</strong> eine Teilrechnung über einen abgeschlossenen Bauabschnitt hat ihre Stunden mitgenommen und steht in der Schlussrechnung gar nicht mehr — seit 27.10. nennt eine Textzeile sie dort. Je Baustelle gibt es eine gültige Schlussrechnung.</p>
         <p class="wer">Buchhaltung · Geschäftsführung · Administrator · Schalter: nur Geschäftsführung und Administrator</p>
       </div>
       <div class="bereich">
@@ -2904,7 +2939,7 @@
       </div>
       <div class="bereich">
         <h3>Nicht verrechnete Leistung</h3>
-        <p>Unterschriebene Scheine, die auf keiner gültigen Rechnung stehen und älter als vier Wochen sind. Wird eine Rechnung storniert, tauchen ihre Scheine wieder auf — der Storno nimmt die Forderung zurück. <strong>Seit 23.10. auch Regiebaustellen mit gebuchten, nicht verrechneten Stunden</strong>, deren ältester offener Tag über vier Wochen zurückliegt — mit oder ohne Schein.</p>
+        <p>Unterschriebene Scheine, die auf keiner gültigen Rechnung stehen. Wird eine Rechnung storniert, tauchen ihre Scheine wieder auf — der Storno nimmt die Forderung zurück. <strong>Seit 23.10. auch Regiebaustellen mit gebuchten, nicht verrechneten Stunden</strong> — mit oder ohne Schein. <strong>Seit 27.10.</strong> alle, nicht nur die über vier Wochen; diese tragen den Achtung-Zustand.</p>
         <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
       </div>
       <div class="bereich">

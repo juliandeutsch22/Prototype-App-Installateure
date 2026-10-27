@@ -46,16 +46,60 @@ export interface MaterialVorschlag {
   offen: number;
   /** Verkaufspreis aus dem Katalog; 0, wenn keiner gepflegt ist. */
   preis: number;
+  /**
+   * Was spätere Scheine über das danach Ausgegebene hinaus tragen und deshalb
+   * hier abgezogen ist (Testbericht Runde 6, M4). Nur gesetzt, wenn es etwas
+   * abzuziehen gab.
+   */
+  spaeterAbgezogen?: number;
+  /** Die späteren Scheine mit diesem Artikel — Tag und Menge, für den Hinweis. */
+  spaetereScheine?: SpaetererSchein[];
+}
+
+export interface SpaetererSchein {
+  datum: string;
+  menge: number;
+}
+
+/**
+ * Was nach dem Stichtag liegt (Testbericht Runde 6, M4): die Ausgaben danach
+ * und die unterschriebenen, noch nicht verrechneten Scheine danach.
+ */
+export interface NachDemStichtag {
+  ausgaben: Ausgabe[];
+  scheine: Array<Pick<WorkSheet, 'datum' | 'material'>>;
 }
 
 const menge = (x: number) => Math.round(x * 1000) / 1000;
 
-export function materialOhneSchein(
+/*
+  SPÄTERE SCHEINE (Testbericht Runde 6, M4). Mit Stichtag kennt der Abzug nur
+  die Scheine bis dahin. Lädt der Monteur am Montag die Rüstliste ein und
+  trägt das Material erst auf dem Schein vom Donnerstag ein, schlug eine
+  Teilrechnung „bis Dienstag“ es als ausgegeben vor — und die nächste
+  Rechnung brachte es mit dem Schein ein zweites Mal.
+
+  Abgezogen wird deshalb auch, was spätere Scheine ÜBER das danach Ausgegebene
+  hinaus tragen: das muss aus dem stammen, was bis zum Stichtag ausgegeben
+  wurde. Was nach dem Stichtag ausgegeben wurde, bringt sein Schein selbst
+  mit; eine Retoure danach zeigt, dass weniger verbaut wurde. Gleichwertig:
+  vorgeschlagen wird höchstens, was über alle offenen Scheine hinweg auf
+  keinem steht. Nur unterschriebene Scheine — ein späterer Entwurf ist noch
+  änderbar, sein Material wird vorgeschlagen wie bisher.
+*/
+export function materialAbgleich(
   ausgaben: Ausgabe[],
   /** Die Scheine, deren Material auf dieser Rechnung steht oder noch stehen wird. */
   scheine: Array<Pick<WorkSheet, 'material'>>,
   katalog: Material[],
-): MaterialVorschlag[] {
+  /** Mit Stichtag: was danach kommt (siehe oben). */
+  spaeter?: NachDemStichtag,
+): {
+  /** Was vorgeschlagen wird — offen über null. */
+  vorschlaege: MaterialVorschlag[];
+  /** Jeder Artikel, von dem spätere Scheine etwas tragen — auch ganz abgezogene. */
+  spaeterGetragen: MaterialVorschlag[];
+} {
   const je = new Map<string, MaterialVorschlag>();
   // Beide Wege zum selben Artikel: über die Kennung und über den Namen.
   const nachId = new Map<string, MaterialVorschlag>();
@@ -81,21 +125,60 @@ export function materialOhneSchein(
       if (v && z.menge > 0) v.aufScheinen = menge(v.aufScheinen + z.menge);
     }
   }
+  // Was nach dem Stichtag ausgegeben wurde und was spätere Scheine tragen, je Artikel.
+  const spaeterAus = new Map<MaterialVorschlag, number>();
+  const spaeterAuf = new Map<MaterialVorschlag, SpaetererSchein[]>();
+  const artikel = (materialId: string | null | undefined, name: string) =>
+    (materialId ? nachId.get(materialId) : undefined) ?? nachName.get(normName(name));
+  for (const a of spaeter?.ausgaben ?? []) {
+    const v = artikel(a.materialId, a.name);
+    if (v) spaeterAus.set(v, menge((spaeterAus.get(v) ?? 0) + a.menge));
+  }
+  for (const s of spaeter?.scheine ?? []) {
+    for (const z of s.material ?? []) {
+      const v = artikel(z.materialId, z.name);
+      if (!v || !(z.menge > 0)) continue;
+      spaeterAuf.set(v, [...(spaeterAuf.get(v) ?? []), { datum: s.datum, menge: z.menge }]);
+    }
+  }
+  for (const [v, liste] of spaeterAuf) {
+    const getragen = liste.reduce((sum, x) => menge(sum + x.menge), 0);
+    // Abgezogen wird höchstens, was bis zum Stichtag noch offen war.
+    const vorher = Math.max(0, menge(v.ausgegeben - v.zurueck - v.aufScheinen));
+    const abzug = Math.min(vorher, menge(getragen - (spaeterAus.get(v) ?? 0)));
+    if (abzug <= 0) continue;
+    v.spaeterAbgezogen = abzug;
+    v.spaetereScheine = [...liste].sort((a, b) => a.datum.localeCompare(b.datum));
+  }
+
   const preise = new Map<string, Material>();
   for (const m of katalog) preise.set(normName(m.name), m);
   // Über die Kennung gilt genau dieser Artikel, sonst wie bisher der Name.
   const nachKennung = new Map(katalog.map((m) => [m.id, m]));
 
-  const out: MaterialVorschlag[] = [];
+  const alle: MaterialVorschlag[] = [];
   for (const v of je.values()) {
-    v.offen = menge(v.ausgegeben - v.zurueck - v.aufScheinen);
-    if (v.offen <= 0) continue;
+    v.offen = menge(v.ausgegeben - v.zurueck - v.aufScheinen - (v.spaeterAbgezogen ?? 0));
     const k = (v.materialId ? nachKennung.get(v.materialId) : undefined) ?? preise.get(v.schluessel);
     if (typeof k?.verkaufspreis === 'number' && k.verkaufspreis > 0) v.preis = k.verkaufspreis;
     if (!v.einheit) v.einheit = k?.unit || 'Stk';
-    out.push(v);
+    alle.push(v);
   }
-  return out.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  alle.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  return {
+    vorschlaege: alle.filter((v) => v.offen > 0),
+    spaeterGetragen: alle.filter((v) => (v.spaeterAbgezogen ?? 0) > 0),
+  };
+}
+
+/** Nur die Vorschläge — ohne `spaeter` genau wie vor M4. */
+export function materialOhneSchein(
+  ausgaben: Ausgabe[],
+  scheine: Array<Pick<WorkSheet, 'material'>>,
+  katalog: Material[],
+  spaeter?: NachDemStichtag,
+): MaterialVorschlag[] {
+  return materialAbgleich(ausgaben, scheine, katalog, spaeter).vorschlaege;
 }
 
 /** Der Vorschlag als Rechnungsposition — mit Katalogbezug, wenn es ihn gibt. */

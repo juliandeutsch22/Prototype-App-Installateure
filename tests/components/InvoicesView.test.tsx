@@ -1945,16 +1945,27 @@ describe('Nicht verrechnete Leistung', () => {
   });
 
   /*
-    EIN SCHEIN VON VORGESTERN GEHÖRT NICHT GEMELDET. Zwischen Einsatz und
-    Rechnung liegt im Handwerk regelmässig ein Monatsabschluss — eine Liste,
-    die das anmahnt, sieht sich nach zwei Wochen niemand mehr an, und dann
-    fällt auch der echte Fall nicht mehr auf.
+    TESTBERICHT RUNDE 6, M2 — die Startseite zählt seit dem 25.10. ALLES
+    Nicht-Verrechnete und führt hierher; hier standen nur die über vier
+    Wochen, der vierte Schein war von nirgends zu sehen. Jetzt steht hier
+    dieselbe Menge. Gemahnt wird weiter erst ab vier Wochen: nur diese Zeile
+    trägt den Achtung-Zustand, ein Schein von vorgestern steht ruhig da.
   */
-  it('schweigt bei frischer Leistung', async () => {
+  it('zeigt auch frische Leistung — ruhig, ohne Achtung-Zustand (M2)', async () => {
     alleScheine = [schein('s1', '2026-08-30')];
     zeige();
-    await waitFor(() => expect(listRecentWorkSheets).toHaveBeenCalled());
-    expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
+    expect(await screen.findByText(/^Nicht verrechnete Leistung \(1\)/)).toBeInTheDocument();
+    expect(screen.getByText('alle jünger als 4 Wochen')).toBeInTheDocument();
+    expect(screen.getByText('2 Tage')).not.toHaveClass('stand');
+  });
+
+  it('zählt alles und markiert, was über vier Wochen alt ist (M2)', async () => {
+    alleScheine = [schein('s1', '2026-08-30'), schein('s2', '2026-07-15')];
+    zeige();
+    expect(await screen.findByText(/^Nicht verrechnete Leistung \(2\)/)).toBeInTheDocument();
+    expect(screen.getByText('davon 1 über 4 Wochen')).toBeInTheDocument();
+    expect(screen.getByText('48 Tage')).toHaveClass('stand-warn');
+    expect(screen.getByText('2 Tage')).not.toHaveClass('stand');
   });
 
   it('schweigt, sobald eine Rechnung den Schein trägt', async () => {
@@ -2183,11 +2194,13 @@ describe('Nicht verrechnete Leistung — gebuchte Stunden', () => {
     expect(screen.getByText(/62 Tage/)).toBeInTheDocument();
   });
 
-  it('schweigt bei Stunden, deren ältester Tag jünger als vier Wochen ist', async () => {
+  // Runde 6, M2: wie bei den Scheinen alle — jüngere ohne Achtung-Zustand.
+  it('zeigt auch Stunden, deren ältester Tag jünger als vier Wochen ist — ruhig (M2)', async () => {
     offeneStd = [{ ...ALT, aeltester: '2026-08-10' }];
     zeige();
-    await waitFor(() => expect(stundenAbfrage).toHaveBeenCalled());
-    expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
+    expect(await screen.findByText(/^Nicht verrechnete Leistung \(1\)/)).toBeInTheDocument();
+    expect(screen.getByText('22 Tage')).not.toHaveClass('stand');
+    expect(screen.getByText('alle jünger als 4 Wochen')).toBeInTheDocument();
   });
 
   it('stellt Scheine und Stunden in eine Liste, älteste zuerst', async () => {
@@ -4272,15 +4285,26 @@ describe('Paket 5a — die Rechnungsliste', () => {
     expect(screen.getAllByText('Stornorechnung').length).toBeGreaterThan(0);
   });
 
-  it('E-Rechnung (ebInterface): an der Rechnung und, nach dem Storno, auch für die Stornorechnung', async () => {
+  /*
+    TESTBERICHT RUNDE 6, G27 — bei der stornierten RE-2026-1509 stand weiter
+    „E-Rechnung (ebInterface) …“. Nach dem Storno gibt es nur noch die
+    E-Rechnung der Stornorechnung; an einer gültigen Rechnung bleibt sie.
+  */
+  it('E-Rechnung (ebInterface): an der gültigen Rechnung — nach dem Storno nur noch für die Stornorechnung (G27)', async () => {
     rechnungen = [
       { id: 's', invoiceNumber: 'RE-2026-1500', projectNumber: '2026-042', customerName: 'Max',
         invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Storniert', totalBrutto: 504,
         stornoNummer: 'RE-2026-1510', stornoAm: Date.UTC(2026, 8, 20, 10) },
+      { id: 'g', invoiceNumber: 'RE-2026-1501', projectNumber: '2026-042', customerName: 'Max',
+        invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Offen', totalBrutto: 504 },
     ] as unknown as (Invoice & { id: string })[];
     zeige('/invoices?ansicht=alle');
+    const gueltig = await rechnungOeffnen('RE-2026-1501');
+    expect(within(gueltig).getByRole('button', { name: 'E-Rechnung (ebInterface) …' })).toBeInTheDocument();
+    cleanup();
+    zeige('/invoices?ansicht=alle');
     const fenster = await rechnungOeffnen('RE-2026-1500');
-    expect(within(fenster).getByRole('button', { name: 'E-Rechnung (ebInterface) …' })).toBeInTheDocument();
+    expect(within(fenster).queryByRole('button', { name: 'E-Rechnung (ebInterface) …' })).toBeNull();
     await userEvent.click(within(fenster).getByRole('button', { name: 'Stornorechnung als E-Rechnung …' }));
     expect(await screen.findByRole('dialog', { name: 'E-Rechnung — Stornorechnung RE-2026-1510' })).toBeInTheDocument();
   });
@@ -4336,6 +4360,8 @@ describe('Paket 5a — die Rechnungsliste', () => {
       { id: 'b', invoiceNumber: 'RE-2026-1003', projectNumber: '2026-001', customerName: 'Max',
         invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Bezahlt', totalBrutto: 100, bezahltBetrag: 100 },
     ] as unknown as (Invoice & { id: string })[];
+    // Seit Runde 6 (G22) rechnet der Hinweis mit den Eingängen im Dialog — sie gehören dazu.
+    bisherigeZahlungen = [{ id: 'z1', invoiceId: 'b', datum: '2026-09-02', betrag: 100, art: 'Überweisung' }];
     // Erledigtes steht seit der Linie „Lot“ unter „Alle“, nicht im Arbeitsstand.
     zeige('/invoices?ansicht=alle');
     await rechnungOeffnen('RE-2026-1003');
@@ -4566,5 +4592,274 @@ describe('Linie „Lot“ — deckende Farben in den Rechnungsansichten', () => 
   it.each(dateien)('%s', (datei) => {
     const quelle = readFileSync(`src/features/invoices/${datei}`, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
     expect(quelle).not.toMatch(VERBOTEN);
+  });
+});
+
+/*
+  TESTBERICHT RUNDE 6, PAKET 2 — Abrechnungsstand, Schlussrechnung, Zahlungen.
+  Jede Prüfung mit dem Fall aus dem Bericht; was gleich bleiben muss, prüft
+  eine eigene.
+*/
+describe('Runde 6, Paket 2', () => {
+  const inv = (id: string, nr: string, teil: Partial<Invoice> = {}) =>
+    ({
+      id, companyId: 'perl', invoiceNumber: nr, projectNumber: '2026-042', customerName: 'Familie Huber',
+      invoiceDate: '2026-08-25', dueDate: '2026-09-08', paymentStatus: 'Offen', art: 'einzel',
+      totalNetto: 100, totalVat: 20, totalBrutto: 120, ...teil,
+    }) as unknown as Invoice & { id: string };
+
+  describe('Zahlungsdialog (G22, G26)', () => {
+    beforeEach(() => {
+      createZahlung.mockClear();
+      erfassteZahlungen = [];
+    });
+
+    it('„schon bezahlt“ verschwindet, sobald die Zahlung gelöscht ist (G22)', async () => {
+      rechnungen = [inv('b', 'RE-2026-1003', { paymentStatus: 'Bezahlt', totalBrutto: 100, bezahltBetrag: 100 })];
+      bisherigeZahlungen = [{ id: 'z1', invoiceId: 'b', datum: '2026-08-30', betrag: 100, art: 'Überweisung' }];
+      zeige('/invoices?ansicht=alle');
+      await rechnungOeffnen('RE-2026-1003');
+      await userEvent.click(await screen.findByRole('button', { name: 'Weitere Zahlung erfassen …' }));
+      expect(await screen.findByText(/schon bezahlt\. Eine weitere Zahlung wird zum Guthaben/)).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Löschen' }));
+      bisherigeZahlungen = [];
+      await userEvent.click(screen.getByRole('button', { name: 'Ja, löschen' }));
+      expect(await screen.findByText('Auf diese Rechnung ist noch nichts eingegangen.')).toBeInTheDocument();
+      expect(screen.queryByText(/schon bezahlt/)).toBeNull();
+    });
+
+    it('fragt nach, bevor mehr als offen gebucht wird, und bucht dann als Guthaben (G26)', async () => {
+      rechnungen = [inv('o', 'RE-2026-1005', { totalBrutto: 100 })];
+      bisherigeZahlungen = [];
+      zeige();
+      await rechnungOeffnen('RE-2026-1005');
+      await userEvent.click(await screen.findByRole('button', { name: 'Zahlung erfassen' }));
+      const betrag = await screen.findByLabelText(/^Betrag/);
+      await userEvent.clear(betrag);
+      await userEvent.type(betrag, '150');
+      await userEvent.click(screen.getByRole('button', { name: 'Zahlung eintragen' }));
+      expect(await screen.findByText(/Das sind € 50,00 mehr als offen — als Guthaben des Kunden buchen\?/)).toBeInTheDocument();
+      expect(createZahlung).not.toHaveBeenCalled();
+      await userEvent.click(screen.getByRole('button', { name: 'Als Guthaben buchen' }));
+      await waitFor(() => expect(createZahlung).toHaveBeenCalledTimes(1));
+      expect(erfassteZahlungen[0]).toMatchObject({ invoiceId: 'o', betrag: 150 });
+    });
+
+    it('Gleichbleiben: der offene Betrag und eine Zahlung auf eine bezahlte Rechnung gehen ohne Rückfrage', async () => {
+      rechnungen = [inv('o', 'RE-2026-1005', { totalBrutto: 100 })];
+      bisherigeZahlungen = [];
+      zeige();
+      await rechnungOeffnen('RE-2026-1005');
+      await userEvent.click(await screen.findByRole('button', { name: 'Zahlung erfassen' }));
+      expect(await screen.findByLabelText(/^Betrag/)).toHaveValue('100');
+      await userEvent.click(screen.getByRole('button', { name: 'Zahlung eintragen' }));
+      await waitFor(() => expect(createZahlung).toHaveBeenCalledTimes(1));
+      expect(screen.queryByText(/mehr als offen/)).toBeNull();
+      cleanup();
+
+      // Schon bezahlt: der Hinweis oben sagt es — keine zweite Rückfrage.
+      rechnungen = [inv('b', 'RE-2026-1003', { paymentStatus: 'Bezahlt', totalBrutto: 100, bezahltBetrag: 100 })];
+      bisherigeZahlungen = [{ id: 'z1', invoiceId: 'b', datum: '2026-08-30', betrag: 100, art: 'Überweisung' }];
+      zeige('/invoices?ansicht=alle');
+      await rechnungOeffnen('RE-2026-1003');
+      await userEvent.click(await screen.findByRole('button', { name: 'Weitere Zahlung erfassen …' }));
+      await screen.findByText(/schon bezahlt/);
+      const betrag = screen.getByLabelText(/^Betrag/);
+      await userEvent.clear(betrag);
+      await userEvent.type(betrag, '20');
+      await userEvent.click(screen.getByRole('button', { name: 'Zahlung eintragen' }));
+      await waitFor(() => expect(createZahlung).toHaveBeenCalledTimes(2));
+      expect(screen.queryByText(/mehr als offen/)).toBeNull();
+    });
+  });
+
+  describe('Storno (G27, M7)', () => {
+    async function stornoOeffnen(nr: string) {
+      const fenster = await rechnungOeffnen(nr);
+      await userEvent.click(within(fenster).getByRole('button', { name: 'Stornieren' }));
+      return screen.findByRole('dialog', { name: 'Rechnung stornieren?' });
+    }
+
+    it('die Anzahlung gibt nichts frei — der Text sagt es (G27)', async () => {
+      rechnungen = [inv('a', 'RE-2026-1508', { art: 'anzahlung' })];
+      zeige();
+      const dialog = await stornoOeffnen('RE-2026-1508');
+      expect(within(dialog).getByText(/Eine Anzahlung verrechnet keine Stunden und kein Material — freigegeben wird deshalb nichts\./)).toBeInTheDocument();
+      expect(within(dialog).queryByText(/Zeiteinträge werden wieder freigegeben/)).toBeNull();
+      await waitFor(() => expect(listInvoicesForProject).toHaveBeenCalled());
+    });
+
+    it('warnt, wenn die Schlussrechnung die Anzahlung abzieht (M7)', async () => {
+      const anz = inv('a', 'RE-2026-1508', { art: 'anzahlung' });
+      rechnungen = [anz];
+      derBaustelle = [anz, inv('s', 'RE-2026-1510', { art: 'schluss', vorrechnungen: [{ invoiceId: 'a' } as never] })];
+      zeige();
+      const dialog = await stornoOeffnen('RE-2026-1508');
+      expect(await within(dialog).findByText(/Die Schlussrechnung RE-2026-1510 zieht RE-2026-1508 ab/)).toBeInTheDocument();
+    });
+
+    it('warnt, wenn eine spätere Schlussrechnung nach der Teilrechnung abrechnet (M7)', async () => {
+      const teil = inv('t', 'RE-2026-1509', { art: 'teil', invoiceDate: '2026-08-21', linkedEntries: ['z1'] });
+      rechnungen = [teil];
+      derBaustelle = [teil, inv('s', 'RE-2026-1510', { art: 'schluss', invoiceDate: '2026-08-28' })];
+      zeige();
+      const dialog = await stornoOeffnen('RE-2026-1509');
+      expect(await within(dialog).findByText(/Die Schlussrechnung RE-2026-1510 rechnet nur ab, was nach dieser Teilrechnung kam/)).toBeInTheDocument();
+      expect(within(dialog).getByText(/Zeiteinträge und Scheine werden wieder freigegeben/)).toBeInTheDocument();
+    });
+
+    it('Gleichbleiben: ohne Schlussrechnung keine Warnung, die Rechnung gibt ihre Belege frei', async () => {
+      const teil = inv('t', 'RE-2026-1509', { art: 'teil' });
+      rechnungen = [teil];
+      derBaustelle = [teil];
+      zeige();
+      const dialog = await stornoOeffnen('RE-2026-1509');
+      await waitFor(() => expect(listInvoicesForProject).toHaveBeenCalled());
+      expect(within(dialog).getByText(/RE-2026-1509 wird storniert; die verknüpften Zeiteinträge.* werden wieder freigegeben\./)).toBeInTheDocument();
+      expect(within(dialog).queryByText(/Schlussrechnung/)).toBeNull();
+    });
+  });
+
+  describe('Schlussrechnung (M7, Hinweis 8)', () => {
+    beforeEach(() => {
+      authWert.company.rechnungsarten = true;
+    });
+
+    it('stellt keine zweite Schlussrechnung zusammen und nennt die erste (M7)', async () => {
+      derBaustelle = [inv('s', 'RE-2026-1510', { art: 'schluss' })];
+      zeige();
+      await neueRechnung();
+      await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+      await userEvent.selectOptions(screen.getByRole('combobox', { name: /Art der Rechnung/ }), 'schluss');
+      await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
+      expect(await screen.findByText(/Für diese Baustelle gibt es schon die Schlussrechnung RE-2026-1510\. Eine zweite gibt es nicht/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Rechnung erstellen/ })).toBeNull();
+    });
+
+    it('Gleichbleiben: als Rechnung geht es, und nach einer stornierten Schlussrechnung auch als Schlussrechnung', async () => {
+      derBaustelle = [inv('s', 'RE-2026-1510', { art: 'schluss' })];
+      expect(await bisZurVorschau('einzel')).toBeInTheDocument();
+      cleanup();
+      derBaustelle = [inv('s', 'RE-2026-1510', { art: 'schluss', paymentStatus: 'Storniert' })];
+      expect(await bisZurVorschau('schluss')).toBeInTheDocument();
+    });
+
+    it('nennt die Teilrechnung, die ihre Stunden schon verrechnet hat — als Textzeile, ohne Abzug (Hinweis 8)', async () => {
+      derBaustelle = [inv('t', 'RE-2026-1509', {
+        art: 'teil', invoiceDate: '2026-08-21', leistungBis: '2026-08-19', linkedEntries: ['z0'],
+      })];
+      const erstellen = await bisZurVorschau('schluss');
+      const text = 'Bereits mit Teilrechnung RE-2026-1509 vom 21.08.2026 (Leistung bis 19.08.2026) verrechnet und hier nicht enthalten.';
+      expect(screen.getByLabelText('Text 1')).toHaveValue(text);
+      // Kein Abzug: die Teilrechnung hat Belege verbraucht.
+      expect(screen.queryByText(/abzüglich RE-2026-1509/)).toBeNull();
+      await userEvent.click(erstellen);
+      await waitFor(() => expect(lege).toHaveBeenCalled());
+      const positionen = lege.mock.calls[0][0].positions as Array<{ label: string; art?: string }>;
+      expect(positionen[0]).toMatchObject({ label: text, art: 'text' });
+    });
+
+    it('Gleichbleiben: ohne Teilrechnung und bei der Rechnung keine Textzeile', async () => {
+      await bisZurVorschau('schluss');
+      expect(screen.queryByLabelText('Text 1')).toBeNull();
+      cleanup();
+      derBaustelle = [inv('t', 'RE-2026-1509', { art: 'teil', linkedEntries: ['z0'] })];
+      await bisZurVorschau('einzel');
+      expect(screen.queryByLabelText('Text 1')).toBeNull();
+    });
+
+    it('der Hinweis bei der Anzahlung verspricht nicht mehr „die ganze Leistung“ (Hinweis 8)', async () => {
+      zeige();
+      await neueRechnung();
+      await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Art der Rechnung/ }), 'anzahlung');
+      expect(screen.getByText(/führt später die Leistung an, die noch auf keiner Rechnung steht/)).toBeInTheDocument();
+      expect(screen.queryByText(/führt später die ganze Leistung an/)).toBeNull();
+    });
+  });
+
+  describe('Abgleich mit den Scheinen (G16, G17)', () => {
+    const offenerSchein = {
+      ...SCHEIN, id: 'so', datum: '2026-08-20', material: [],
+      zeiten: [{ datum: '2026-08-20', mitarbeiter: 'Max', minuten: 480 }],
+    } as WorkSheet & { id: string };
+
+    it('die Anzahlung zeigt keinen Abgleich — sie verrechnet keine Stunden (G17)', async () => {
+      authWert.company.rechnungsarten = true;
+      alleScheine = [offenerSchein];
+      await bisZurVorschau('anzahlung');
+      expect(screen.queryByText(/noch nicht verrechneter Schein bestätigt/)).toBeNull();
+      expect(screen.queryByText(/Gebucht, aber ohne unterschriebenen Schein/)).toBeNull();
+    });
+
+    it('Gleichbleiben: bei der Rechnung steht der Abgleich weiter da', async () => {
+      alleScheine = [offenerSchein];
+      await bisZurVorschau();
+      expect(screen.getByText(/Ein noch nicht verrechneter Schein bestätigt/)).toBeInTheDocument();
+    });
+
+    it('nennt bei Lehrlingsstunden ohne Schein das Lehrjahr, nicht „Facharbeiter“ (G16)', async () => {
+      zeiten = [{ ...ZEIT, id: 'zl', userName: 'Test Lehrling', satz: 'lj2' } as TimeEntry & { id: string }];
+      alleScheine = [{ ...offenerSchein, zeiten: [{ datum: '2026-08-21', mitarbeiter: 'Max', minuten: 60 }] }];
+      await bisZurVorschau();
+      expect(screen.getByText(/20\.08\. · Test Lehrling · Lehrling, 2\. Lehrjahr:/)).toBeInTheDocument();
+      expect(screen.queryByText(/Test Lehrling · Facharbeiter/)).toBeNull();
+    });
+  });
+
+  describe('Material zwischen Teil- und Schlussrechnung (M4)', () => {
+    const ausgabe = { art: 'ruestliste' as const, belegId: 'r1', datum: '2026-08-21', materialId: 'k1',
+      name: 'Eckventil 1/2 Zoll', einheit: 'Stk', menge: 6 };
+
+    it('mit Stichtag: was ein späterer Schein trägt, wird nicht vorgeschlagen — mit Tag und Menge', async () => {
+      katalog = KATALOG;
+      ausgabenListe = [ausgabe];
+      scheine = [{ ...SCHEIN, id: 's28', datum: '2026-08-28', material: [{ name: 'Eckventil 1/2 Zoll', menge: 5, einheit: 'Stk' }] }];
+      await bisZurVorschau();
+      const bis = screen.getByLabelText('Leistung bis');
+      fireEvent.change(bis, { target: { value: '2026-08-25' } });
+      await userEvent.click(await screen.findByRole('button', { name: 'Bis 25.08.2026 neu zusammenstellen' }));
+      expect(await screen.findByText(/Nicht vorgeschlagen, weil es ein späterer Schein dieser Baustelle trägt/)).toBeInTheDocument();
+      expect(screen.getByText(/Eckventil 1\/2 Zoll 5 Stk \(Schein vom 28\.08\.2026: 5 Stk\)/)).toBeInTheDocument();
+      // 6 ausgegeben, 5 kommen mit dem Schein vom 28.08. — vorgeschlagen 1, nicht 6.
+      expect(screen.getByText(/ausgegeben 6 Stk · auf späteren Scheinen 5/)).toBeInTheDocument();
+      expect(screen.getByText('1 Stk')).toBeInTheDocument();
+    });
+
+    it('warnt, wenn eine frühere Rechnung das Material des Scheins schon ohne Schein trägt — gleich welcher Zeitraum', async () => {
+      scheine = [SCHEIN];
+      katalog = KATALOG;
+      derBaustelle = [inv('t', 'RE-2026-0005', {
+        art: 'teil', invoiceDate: '2026-08-15', leistungBis: '2026-08-14', linkedEntries: ['z0'],
+        positions: [{ label: 'Eckventil 1/2 Zoll', qty: 6, unit: 'Stk', unitPrice: 8.5, netto: 51, materialId: 'k1' }],
+      })];
+      await bisZurVorschau();
+      expect(screen.getByText(/Der Schein vom 22\.08\.2026 bringt Eckventil 1\/2 Zoll 2 Stk — RE-2026-0005 trägt davon schon 6 Stk ohne Schein/)).toBeInTheDocument();
+      // Der Schein liegt nach ihrem Zeitraum — der Hinweis von T-21 greift dort nicht.
+      expect(screen.queryByText(/schon abgerechnet hat/)).toBeNull();
+    });
+
+    it('Gleichbleiben: trägt die frühere Rechnung das Material mit ihrem eigenen Schein, keine Warnung', async () => {
+      scheine = [SCHEIN, { ...SCHEIN, id: 'alt', datum: '2026-08-10' }];
+      katalog = KATALOG;
+      derBaustelle = [inv('t', 'RE-2026-0005', {
+        art: 'teil', invoiceDate: '2026-08-15', leistungBis: '2026-08-14', linkedWorkSheets: ['alt'],
+        positions: [{ label: 'Eckventil 1/2 Zoll', qty: 2, unit: 'Stk', unitPrice: 8.5, netto: 17 }],
+      })];
+      await bisZurVorschau();
+      expect(screen.queryByText(/ohne Schein \(aus dem Lager/)).toBeNull();
+    });
+  });
+
+  it('zählt die Stornorechnung in der Überschrift eigens (Hinweis 5)', async () => {
+    rechnungen = [
+      inv('s', 'RE-2026-1500', { paymentStatus: 'Storniert', stornoNummer: 'RE-2026-1510', stornoAm: Date.UTC(2026, 7, 20, 10) }),
+      inv('g', 'RE-2026-1501'),
+    ];
+    zeige('/invoices?ansicht=alle');
+    expect(await screen.findByText('Alle Rechnungen (2, dazu 1 Stornorechnung)')).toBeInTheDocument();
+    cleanup();
+    rechnungen = [inv('g', 'RE-2026-1501')];
+    zeige('/invoices?ansicht=alle');
+    expect(await screen.findByText('Alle Rechnungen (1)')).toBeInTheDocument();
   });
 });

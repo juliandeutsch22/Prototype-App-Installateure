@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { alsPosition, materialOhneSchein, type Ausgabe } from '@/features/invoices/ausgegebenesMaterial';
+import { alsPosition, materialAbgleich, materialOhneSchein, type Ausgabe } from '@/features/invoices/ausgegebenesMaterial';
 import type { Material } from '@/types';
 
 /**
@@ -100,5 +100,58 @@ describe('materialOhneSchein', () => {
   it('nimmt den Verkaufspreis über die Kennung, auch wenn die Ausgabe anders heisst (24.10.2026)', () => {
     const [v] = materialOhneSchein([aus('Cu-Rohr 15', 2, { materialId: 'k1' })], [], KATALOG);
     expect(v).toMatchObject({ name: 'Cu-Rohr 15', preis: 12.5, offen: 2 });
+  });
+});
+
+/*
+  TESTBERICHT RUNDE 6, M4 — Rüstliste am 19.10. (6 Pressfittings, 4
+  Kugelhähne), verbaut und auf dem Schein vom 22.10. eingetragen. Die
+  Teilrechnung „bis 20.10.“ schlug beides als „ausgegeben, nicht auf einem
+  Schein“ vor; die Schlussrechnung brachte es mit dem Schein ein zweites Mal.
+*/
+describe('Spätere Scheine bei Stichtag (M4)', () => {
+  const ruest = (name: string, menge: number, datum = '2026-10-19') =>
+    aus(name, menge, { art: menge < 0 ? 'retoure' : 'ruestliste', datum, einheit: 'Stk' });
+  const spaeterSchein = (material: Array<[string, number]>, datum = '2026-10-22') =>
+    ({ datum, material: material.map(([name, menge]) => ({ name, menge, einheit: 'Stk' })) });
+
+  it('zieht ab, was ein späterer Schein trägt, und nennt Tag und Menge', () => {
+    const { vorschlaege, spaeterGetragen } = materialAbgleich(
+      [ruest('Pressfitting', 6), ruest('Kugelhahn', 4)],
+      [],
+      KATALOG,
+      { ausgaben: [ruest('Pressfitting', 2, '2026-10-21'), ruest('Pressfitting', -1, '2026-10-23')],
+        scheine: [spaeterSchein([['Kugelhahn', 4], ['Pressfitting', 5], ['Therme', 1]])] },
+    );
+    // Pressfitting: 6 bis zum Stichtag; der Schein trägt 5, danach kamen 2 − 1 = 1 → 4 stammen von davor.
+    expect(vorschlaege.map((v) => [v.name, v.offen])).toEqual([['Pressfitting', 2]]);
+    expect(spaeterGetragen.map((v) => [v.name, v.spaeterAbgezogen, v.spaetereScheine])).toEqual([
+      ['Kugelhahn', 4, [{ datum: '2026-10-22', menge: 4 }]],
+      ['Pressfitting', 4, [{ datum: '2026-10-22', menge: 5 }]],
+    ]);
+  });
+
+  it('was nach dem Stichtag ausgegeben wurde, bringt sein Schein selbst mit', () => {
+    // 4 am 19.10. und 4 am 21.10.; der spätere Schein trägt 4 — die vom 21.10.
+    expect(materialOhneSchein(
+      [ruest('Kugelhahn', 4)], [], KATALOG,
+      { ausgaben: [ruest('Kugelhahn', 4, '2026-10-21')], scheine: [spaeterSchein([['Kugelhahn', 4]])] },
+    ).map((v) => [v.name, v.offen])).toEqual([['Kugelhahn', 4]]);
+  });
+
+  it('zieht höchstens ab, was bis zum Stichtag offen war', () => {
+    const { spaeterGetragen } = materialAbgleich(
+      [ruest('Kugelhahn', 4)], [{ material: [{ name: 'Kugelhahn', menge: 3 }] }], KATALOG,
+      { ausgaben: [], scheine: [spaeterSchein([['Kugelhahn', 9]])] },
+    );
+    expect(spaeterGetragen[0]).toMatchObject({ spaeterAbgezogen: 1, offen: 0 });
+  });
+
+  it('Gleichbleiben: ohne Stichtag (ohne `spaeter`) rechnet es wie bisher', () => {
+    expect(materialOhneSchein([ruest('Pressfitting', 6)], [], KATALOG)).toEqual([{
+      schluessel: 'pressfitting', name: 'Pressfitting', einheit: 'Stk', materialId: null,
+      ausgegeben: 6, zurueck: 0, aufScheinen: 0, offen: 6, preis: 0,
+    }]);
+    expect(materialAbgleich([ruest('Pressfitting', 6)], [], KATALOG).spaeterGetragen).toEqual([]);
   });
 });

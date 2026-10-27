@@ -1,6 +1,6 @@
 import type { Invoice, WorkSheet } from '@/types';
 import type { Ausgabe } from './ausgegebenesMaterial';
-import { normName } from './materialPositionen';
+import { artikelZuordnung, normName } from './materialPositionen';
 
 /**
  * Zwei Hinweise zur Rechnungsvorschau (24.10.2026) — dort, wo eine Rechnung
@@ -88,4 +88,88 @@ export function offeneEntwuerfe(
     if (artikel.length > 0) out.push({ scheinId: s.id, datum: s.datum, artikel });
   }
   return out.sort((a, b) => a.datum.localeCompare(b.datum));
+}
+
+export interface SchonOhneSchein {
+  scheinId: string;
+  datum: string;
+  /** Die frühere Rechnung, die den Artikel ohne Schein trägt. */
+  rechnung: string;
+  artikel: Array<{
+    name: string;
+    einheit: string;
+    /** Was jene Rechnung davon trägt, ohne dass einer ihrer Scheine es bringt. */
+    aufRechnung: number;
+    /** Was dieser Schein davon bringt. */
+    aufSchein: number;
+  }>;
+}
+
+const menge = (x: number) => Math.round(x * 1000) / 1000;
+
+/**
+ * MATERIAL, DAS SCHON OHNE SCHEIN VERRECHNET IST (Testbericht Runde 6, M4).
+ *
+ * Eine Teilrechnung übernahm 6 Pressfittings aus dem Lager; die
+ * Schlussrechnung brachte mit dem Schein vom 22.10. noch einmal 5 — ohne ein
+ * Wort, weil der Schein NACH dem Zeitraum der Teilrechnung lag und
+ * `nachgetrageneScheine` nur Scheine in einem schon abgerechneten Zeitraum
+ * sieht. Gemeldet wird jetzt jeder Artikel eines Scheins dieser Rechnung, den
+ * eine frühere gültige Rechnung der Baustelle (ohne Anzahlungen) über das
+ * hinaus trägt, was ihre eigenen Scheine bringen — also aus dem Lager
+ * übernommen oder von Hand eingesetzt —, gleich welcher Zeitraum.
+ *
+ * Abgezogen wird auch hier nichts: dieselbe Menge kann zu Recht zweimal
+ * dastehen (der Rest der Rüstliste, später doch verbaut). Was schon
+ * `nachgetrageneScheine` meldet (derselbe Schein, dieselbe Rechnung), steht
+ * nicht zweimal da.
+ */
+export function schonOhneScheinVerrechnet(
+  /** Die Scheine, deren Material auf dieser Rechnung steht. */
+  scheine: Array<Pick<WorkSheet, 'datum' | 'material'> & { id: string }>,
+  rechnungen: Array<Pick<Invoice, 'invoiceNumber' | 'paymentStatus' | 'art' | 'positions' | 'linkedWorkSheets'>>,
+  /** Alle Scheine der Baustelle — für das, was die früheren Rechnungen mit ihren Scheinen trugen. */
+  alleScheine: Array<Pick<WorkSheet, 'material'> & { id: string }>,
+  schonGemeldet: Array<Pick<NachgetragenerSchein, 'scheinId' | 'rechnung'>> = [],
+): SchonOhneSchein[] {
+  const scheinNach = new Map(alleScheine.map((x) => [x.id, x]));
+  const gemeldet = new Set(schonGemeldet.map((n) => `${n.scheinId}|${n.rechnung}`));
+  const out: SchonOhneSchein[] = [];
+  for (const r of rechnungen) {
+    if (r.paymentStatus === 'Storniert' || r.art === 'anzahlung') continue;
+    // Eine Zuordnung je Rechnung: Positionen, ihre Scheine und dieser Schein auf denselben Artikel.
+    const artikel = artikelZuordnung();
+    const ohneSchein = new Map<string, { menge: number; einheit: string }>();
+    for (const p of r.positions ?? []) {
+      if ((p.art ?? 'position') !== 'position' || !(p.qty > 0) || !normName(p.label)) continue;
+      const k = artikel(p.label, p.materialId);
+      const bisher = ohneSchein.get(k);
+      ohneSchein.set(k, { menge: menge((bisher?.menge ?? 0) + p.qty), einheit: bisher?.einheit || p.unit || '' });
+    }
+    for (const id of r.linkedWorkSheets ?? []) {
+      for (const z of scheinNach.get(id)?.material ?? []) {
+        if (!(z.menge > 0) || !normName(z.name)) continue;
+        const k = artikel(z.name, z.materialId);
+        const bisher = ohneSchein.get(k);
+        if (bisher) bisher.menge = menge(bisher.menge - z.menge);
+      }
+    }
+    for (const s of scheine) {
+      if (gemeldet.has(`${s.id}|${r.invoiceNumber}`)) continue;
+      const treffer = new Map<string, SchonOhneSchein['artikel'][number]>();
+      for (const z of s.material ?? []) {
+        if (!(z.menge > 0) || !normName(z.name)) continue;
+        const k = artikel(z.name, z.materialId);
+        const dort = ohneSchein.get(k);
+        if (!dort || dort.menge <= 0) continue;
+        const bisher = treffer.get(k);
+        if (bisher) bisher.aufSchein = menge(bisher.aufSchein + z.menge);
+        else treffer.set(k, { name: z.name.trim(), einheit: z.einheit || dort.einheit, aufRechnung: dort.menge, aufSchein: z.menge });
+      }
+      if (treffer.size > 0) {
+        out.push({ scheinId: s.id, datum: s.datum, rechnung: r.invoiceNumber, artikel: [...treffer.values()] });
+      }
+    }
+  }
+  return out.sort((a, b) => a.datum.localeCompare(b.datum) || a.rechnung.localeCompare(b.rechnung));
 }
