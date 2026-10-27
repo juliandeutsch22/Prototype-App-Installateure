@@ -763,6 +763,40 @@
     </div>
   </section>
 
+  <section id="sicherheit-runde6">
+    <div class="abschnittskopf">
+      <h2>27. Oktober: Sicherheitsprüfung vor dem Start</h2>
+      <p class="frage">Hält die Datenbank Betriebe und Rollen wirklich auseinander, auch wenn jemand an der Oberfläche vorbei direkt fragt? Geprüft wurde jede Tabelle, Sicht, Serverfunktion und jeder Dateispeicher, mit zwei Betrieben und jeder Rolle, gegen den örtlichen Stapel mit Testdaten. Was gefunden wurde, ist behoben; der vollständige Bericht steht in <code>docs/sicherheitspruefung-2026-10-27.md</code>.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Mandanten- und Rollentest als fester Prüflauf<span class="neu">neu</span></h3>
+        <p>Ein zweiter Betrieb bekommt Zeilen in <strong>jeder</strong> Tabelle. Jede Rolle des ersten Betriebs und der Support mit Einblick nur dort versuchen, sie zu lesen, zu ändern, zu löschen und unter dem fremden Betrieb anzulegen — nichts davon gelingt. Dazu steht für jede Rolle fest, welche Tabellen sie im eigenen Betrieb liest. Der Lauf geht bei jeder Änderung an der Datenbank mit, auch über Tabellen, die erst später dazukommen; eine offene Regel fällt ihm auf (Gegenprobe im selben Lauf).</p>
+        <p class="wer">Automatisch, bei jeder Migration</p>
+      </div>
+      <div class="bereich">
+        <h3>Einkaufskonditionen nur mit Recht<span class="neu">behoben</span></h3>
+        <p>Die Oberfläche zeigte sie nicht, an der Schnittstelle waren sie aber lesbar: die Preislisten der Großhändler (Listenpreis, Rabatt, Einkaufspreis) für die Verwaltung ohne Freigabe und für die Projektleitung, die Rabattsätze und die eingelesenen Katalogdateien sogar für den Monteur. Jetzt gilt für sie dieselbe Regel wie für den Einkaufspreis am Artikel: lesen Geschäftsführung, Administrator und die Verwaltung mit „Einkaufspreise sehen“ oder „Katalog einspielen“; die Katalogdateien nur, wer einspielt. Auf der Einkaufsliste kommt der vorgeschlagene Großhändler weiter für jeden, der sie führt — ohne Preis.</p>
+        <p class="wer">Verwaltung ohne Freigabe, Projektleitung, Monteur: sehen keine Einkaufskonditionen mehr</p>
+      </div>
+      <div class="bereich">
+        <h3>Abmelden: dieses Gerät — oder alle<span class="neu">geändert</span></h3>
+        <p>„Abmelden“ im Menü meldet nur noch <strong>dieses</strong> Gerät ab. Bisher beendete es nebenbei auch die Anmeldung am Telefon, wenn man sich am geteilten Tablet abmeldete. Für ein verlorenes Telefon gibt es unter „Mein Konto“ den Knopf <strong>„Auf allen Geräten abmelden“</strong> (für das Plattformkonto auf seiner Seite unter „Sitzung“). Er wirkt sofort: die Datenbank nimmt die Anmeldung der anderen Geräte ab diesem Augenblick nicht mehr an — bisher lief sie dort bis zu einer Stunde weiter. Ein Gerät, dessen Anmeldung anderswo beendet wurde, zeigt beim nächsten Öffnen die Anmeldemaske mit dem Grund; ohne Empfang bleibt es angemeldet.</p>
+        <p class="wer">jeder</p>
+      </div>
+      <div class="bereich">
+        <h3>Inhaltsregel durchgesetzt<span class="neu">neu</span></h3>
+        <p>Die Inhaltsregel (CSP) sperrt jetzt, statt nur zu melden: Skripte kommen nur von der App selbst (dazu der Push-Dienst von Google im Hintergrund), eingeschleuste Skripte und Stilblöcke führt der Browser nicht aus, Verbindungen gehen nur zur eigenen Datenbank. Stil-Attribute bleiben erlaubt — die App setzt Breiten und Diagrammmaße so, und ein Attribut kann kein Skript starten. Vorher ging ein Rundgang durch jede Seite jeder Rolle im fertigen Bau, am Schreibtisch, am Telefon und am iPhone (WebKit): ohne Verstoß. Er läuft bei jeder Änderung mit; Verstöße im Betrieb landen weiter im Fehlerprotokoll.</p>
+        <p class="wer">Automatisch · am echten iPhone mit Push und Kamera bleibt es Teil des Gerätedurchgangs</p>
+      </div>
+      <div class="bereich">
+        <h3>Was sonst geprüft wurde<span class="neu">ohne befund</span></h3>
+        <p>Fünf Serverfunktionen waren auch ohne Anmeldung aufrufbar; jede brach ohne Anmeldung selbst ab, gesperrt sind sie jetzt schon an der Tür. Bibliotheken mit bekannten Lücken sind aktualisiert (darunter DOMPurify, das mit dem PDF ausgeliefert wird); <code>npm audit</code> meldet nichts mehr. Ohne Befund: kein geheimer Schlüssel im ausgelieferten Code, kein Weg für eingeschleusten Code in Oberfläche, PDF, E-Rechnung und CSV, die Zwei-Faktor-Pflicht nicht zu umgehen, ein deaktiviertes Konto sofort ohne Daten, der Supportzugang nur mit Freigabe und im Protokoll.</p>
+        <p class="wer">Offen und an den externen Sicherheitstest übergeben: Angriffsversuche gegen das gehostete Projekt; Einstellungen des gehosteten Projekts (geleakte Passwörter, Ratenbegrenzung, Sitzungsdauer) setzt der Betreiber nach <code>docs/DEPLOYMENT.md</code></p>
+      </div>
+    </div>
+  </section>
+
   <section id="planung-handy">
     <div class="abschnittskopf">
       <h2>25. Oktober: Einsatzplanung am Handy ruhiger</h2>
@@ -3384,8 +3418,8 @@
       </div>
       <div class="bereich">
         <h3>Sicherheits-Kopfzeilen<span class="neu">neu</span></h3>
-        <p>Seit dem 11.10. schickt die Auslieferung mehr als nur HSTS: der Browser rät keinen Dateityp, fremde Seiten bekommen beim Verlassen nur die Adresse der App, nicht die der Akte, die App lässt sich nicht in eine fremde Seite einbetten, und Mikrofon, Standort, Zahlung und USB sind gesperrt. Eine <strong>Inhaltsregel</strong> (CSP) legt fest, woher Skripte, Bilder und Verbindungen kommen dürfen — zunächst nur <em>meldend</em>: sie sperrt nichts, jeder Verstoß landet als „Inhaltsregel …“ im Fehlerprotokoll, nur mit der Herkunft, ohne Pfad. Beim Durchgang durch jede Seite aller Rollen kam keiner.</p>
-        <p class="wer">Durchgesetzt wird die Regel erst nach der Prüfung am echten Gerät — sonst bliebe eine Seite weiß, die niemand vorher gesehen hat</p>
+        <p>Seit dem 11.10. schickt die Auslieferung mehr als nur HSTS: der Browser rät keinen Dateityp, fremde Seiten bekommen beim Verlassen nur die Adresse der App, nicht die der Akte, die App lässt sich nicht in eine fremde Seite einbetten, und Mikrofon, Standort, Zahlung und USB sind gesperrt. Eine <strong>Inhaltsregel</strong> (CSP) legt fest, woher Skripte, Bilder und Verbindungen kommen dürfen — zunächst nur <em>meldend</em>: sie sperrt nichts, jeder Verstoß landet als „Inhaltsregel …“ im Fehlerprotokoll, nur mit der Herkunft, ohne Pfad. Beim Durchgang durch jede Seite aller Rollen kam keiner. <strong>Seit 27.10. durchgesetzt</strong> (Abschnitt „Sicherheitsprüfung vor dem Start“); gemeldet wird weiter.</p>
+        <p class="wer">Vor dem Durchsetzen ging ein Rundgang durch jede Seite jeder Rolle, auch in WebKit — er läuft seitdem bei jeder Änderung mit</p>
       </div>
       <div class="bereich">
         <h3>Vorhalten der App auch bei schnellem Start<span class="neu">behoben</span></h3>

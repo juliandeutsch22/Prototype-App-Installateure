@@ -69,8 +69,10 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | BMD-Stapel vorgebaut bis zum Importtest (offene Punkte C4, D7) | Kanzlei |
 | Datenschutzerklärung, Impressum, Kalender-Abo (offene Punkte D8, D10) | Anwalt |
 | Aliquoter Urlaub, Mahnspesen an Private (offene Punkte D1, D2) | WKO |
-| Safari/iPhone, Kamera, Push, Installation, volle CSP nach Gerätetest (offene Punkte C15, Prüfbericht 4 und 6) | Gerätedurchgang |
+| Safari/iPhone, Kamera, Push, Installation am echten Gerät (offene Punkte C15, Prüfbericht 4 und 6); die volle CSP ist seit 27.10.2026 durchgesetzt (Stand 24.6) | Gerätedurchgang |
 | SMTP, Domain, externer Sicherungsort, Wiederherstellung im Zielsystem, Einstellungen des gehosteten Projekts (Prüfbericht 4, Stand 14.7 Punkt 14) | Betrieb bzw. Zugang zum gehosteten Projekt |
+| Schutz gegen geleakte Passwörter, Ratenbegrenzung, Sitzungsdauer im gehosteten Projekt (Sicherheitsprüfung 27.10.2026, Werte in `docs/DEPLOYMENT.md`) | Zugang zum gehosteten Projekt |
+| Angriffsversuche gegen das gehostete Projekt, Wertebereiche einzelner Zahlenfelder (`docs/sicherheitspruefung-2026-10-27.md`, Abschnitt 4) | externer Sicherheitstest |
 | Angebotsliste unter Windows bei 1.570 × 700 px (offene Punkte C14) | Wieder aufnehmen mit Bildschirmfoto |
 
 ## E – Inzwischen erledigt (Doku nennt sie noch)

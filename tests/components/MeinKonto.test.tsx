@@ -17,7 +17,9 @@ const PROFIL = {
   docId: 'm1',
 };
 
-vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ user: PROFIL }) }));
+const signOut = vi.fn<(ueberall?: boolean) => Promise<void>>(async () => undefined);
+let einblick: object | null = null;
+vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ user: PROFIL, signOut, einblick }) }));
 vi.mock('@/components/Toast', () => ({ useToast: () => ({ success: vi.fn(), error: vi.fn() }) }));
 vi.mock('@/lib/db/prefs', () => ({
   getPrefs: () => Promise.resolve(null),
@@ -64,5 +66,29 @@ describe('Mein Konto', () => {
     expect(screen.getByLabelText(/Neues Passwort/)).toBeInTheDocument();
     // Der Öffnen-Knopf ist weg; übrig bleibt nur der des Formulars.
     expect(screen.getAllByRole('button', { name: 'Passwort ändern' })).toHaveLength(1);
+  });
+
+  /*
+    Testbericht Runde 6, 8.4: „Abmelden“ im Menü meldet nur dieses Gerät ab;
+    für das verlorene Telefon gibt es hier das Abmelden auf allen Geräten.
+  */
+  it('meldet auf Knopfdruck auf allen Geräten ab', async () => {
+    const nutzer = userEvent.setup();
+    signOut.mockClear();
+    render(<NotificationSettings />);
+    await screen.findByText('Dieses Gerät bekommt noch keine Meldungen.');
+    await nutzer.click(screen.getByRole('button', { name: 'Auf allen Geräten abmelden' }));
+    expect(signOut).toHaveBeenCalledWith(true);
+  });
+
+  it('nicht im Einblick des Supports — dort ist es das Plattformkonto', async () => {
+    einblick = { companyId: 'perl', stufe: 'ansehen' };
+    try {
+      render(<NotificationSettings />);
+      await screen.findByText('Dieses Gerät bekommt noch keine Meldungen.');
+      expect(screen.queryByRole('button', { name: 'Auf allen Geräten abmelden' })).not.toBeInTheDocument();
+    } finally {
+      einblick = null;
+    }
   });
 });

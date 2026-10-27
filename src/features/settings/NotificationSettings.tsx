@@ -52,7 +52,7 @@ const PUSH_TEXT: Record<PushState, { text: string; ton: 'ok' | 'hinweis' | 'aus'
  * Telefon wechselt, verliert sonst unbemerkt seine Meldungen.
  */
 export default function NotificationSettings() {
-  const { user, einblick, reloadCompany } = useAuth();
+  const { user, einblick, reloadCompany, signOut } = useAuth();
   const toast = useToast();
   const [newOrder, setNewOrder] = useState(PREFS_DEFAULTS.notifyNewOrder ?? true);
   const [orderReady, setOrderReady] = useState(PREFS_DEFAULTS.notifyOrderReady ?? true);
@@ -65,6 +65,7 @@ export default function NotificationSettings() {
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   // Selten gebraucht — das Formular bleibt zu, bis es jemand öffnet.
   const [passwortOffen, setPasswortOffen] = useState(false);
+  const [ueberallBusy, setUeberallBusy] = useState(false);
 
   // Wer Anforderungen bearbeitet, ist der Empfänger der Eingangsmeldung;
   // wer selbst anfordert, der der Abholmeldung. Beides zu zeigen, wenn nur
@@ -148,6 +149,16 @@ export default function NotificationSettings() {
       toast.success('Dieses Gerät bekommt keine Meldungen mehr');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function ueberallAbmelden() {
+    setUeberallBusy(true);
+    try {
+      await signOut(true);
+    } catch (e) {
+      toast.error(grundAus(e, 'Das Abmelden auf allen Geräten hat nicht geklappt.'));
+      setUeberallBusy(false);
     }
   }
 
@@ -279,6 +290,23 @@ export default function NotificationSettings() {
         <Card title="Passwort">
           <Button variant="secondary" onClick={() => setPasswortOffen(true)}>
             Passwort ändern
+          </Button>
+        </Card>
+      )}
+
+      {/*
+        AUF ALLEN GERÄTEN ABMELDEN (Testbericht Runde 6, 8.4; 27.10.2026):
+        für das verlorene Telefon. „Abmelden“ im Menü meldet nur dieses Gerät
+        ab. Nicht im Einblick des Supports — dort ist das Konto das
+        Plattformkonto, und das meldet sich auf seiner eigenen Seite ab.
+      */}
+      {!einblick && (
+        <Card
+          title="Auf allen Geräten"
+          hint="„Abmelden“ im Menü meldet nur dieses Gerät ab. Hier endet die Anmeldung auf jedem Gerät sofort, auch hier — etwa wenn ein Telefon verloren ging. Danach meldest du dich neu an."
+        >
+          <Button variant="secondary" loading={ueberallBusy} onClick={() => void ueberallAbmelden()}>
+            Auf allen Geräten abmelden
           </Button>
         </Card>
       )}

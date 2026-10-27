@@ -16,6 +16,7 @@ let verwaltung: Konto;
 let leitung: Konto;
 let monteur: Konto;
 let artikel: string;
+let lieferantId: string;
 
 const einkauf = async (material: string) => {
   const { data } = await admin.from('material_einkaufspreise')
@@ -43,8 +44,9 @@ beforeAll(async () => {
 
   const { data: lieferant } = await admin.from('suppliers')
     .insert({ company_id: BETRIEB, name: 'Grosshandel' }).select('id').single();
+  lieferantId = (lieferant as { id: string }).id;
   await admin.from('material_prices').insert({
-    company_id: BETRIEB, material_id: artikel, supplier_id: (lieferant as { id: string }).id,
+    company_id: BETRIEB, material_id: artikel, supplier_id: lieferantId,
     listenpreis: 10, rabatt_prozent: 35, einkaufspreis: 6.5,
   });
 
@@ -141,13 +143,43 @@ describe('Wer liest', () => {
     expect(c).toEqual({ cost_rates: null });
   });
 
-  it('die Preislisten der Grosshändler: wer einkauft — nicht der Monteur', async () => {
-    const { data: mon } = await monteur.client.from('material_prices').select('einkaufspreis');
-    expect(mon ?? []).toEqual([]);
-    for (const k of [verwaltung, leitung, chef]) {
-      const { data } = await k.client.from('material_prices').select('einkaufspreis');
-      expect(data).toEqual([{ einkaufspreis: 6.5 }]);
+  /*
+    Testbericht Runde 6, 8.4 (27.10.2026): die Preislisten tragen Listenpreis,
+    Rabatt und Einkaufspreis — sie liest, wer Einkaufspreise sehen darf, wie
+    `material_einkaufspreise`. Bis dahin lasen sie auch die Verwaltung ohne
+    Freigabe und die Projektleitung; die Rabattsätze und die eingelesene
+    Katalogdatei sogar der Monteur.
+  */
+  it('die Preislisten, Rabattsätze und Katalogdateien der Grosshändler: nur wer Einkaufspreise sehen darf', async () => {
+    await admin.from('rabattsaetze').insert({ company_id: BETRIEB, supplier_id: lieferantId, gruppe: 'A1', prozent: 35 });
+    for (const k of [monteur, verwaltung, leitung]) {
+      const { data: preise } = await k.client.from('material_prices').select('einkaufspreis');
+      expect(preise ?? []).toEqual([]);
+      const { data: saetze } = await k.client.from('rabattsaetze').select('prozent');
+      expect(saetze ?? []).toEqual([]);
     }
+    const { data } = await chef.client.from('material_prices').select('einkaufspreis');
+    expect(data).toEqual([{ einkaufspreis: 6.5 }]);
+    const { data: saetze } = await chef.client.from('rabattsaetze').select('prozent');
+    expect(saetze).toEqual([{ prozent: 35 }]);
+    // Die Freigabe „Einkaufspreise sehen“ öffnet sie der Verwaltung.
+    await admin.from('users').update({ einkauf_sehen: true }).eq('id', verwaltung.uid);
+    try {
+      const { data: mit } = await verwaltung.client.from('material_prices').select('einkaufspreis');
+      expect(mit).toEqual([{ einkaufspreis: 6.5 }]);
+    } finally {
+      await admin.from('users').update({ einkauf_sehen: false }).eq('id', verwaltung.uid);
+    }
+  });
+
+  it('den Grosshändler als Vorschlag für die Einkaufsliste bekommt die Verwaltung trotzdem — ohne Preis', async () => {
+    for (const k of [verwaltung, leitung, chef]) {
+      const { data, error } = await k.client.rpc('lieferant_vorschlag', { p_material: artikel });
+      expect(error).toBeNull();
+      expect(data).toBe(lieferantId);
+    }
+    const { error } = await monteur.client.rpc('lieferant_vorschlag', { p_material: artikel });
+    expect(error?.message).toMatch(/Verwaltung und Führung/);
   });
 
   it('der Support, der den Betrieb ansieht, liest mit — erst nach dem Beginn', async () => {
