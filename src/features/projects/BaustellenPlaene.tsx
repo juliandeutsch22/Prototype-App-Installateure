@@ -100,7 +100,7 @@ export default function BaustellenPlaene({
   async function nurBueroSetzen(d: WithId<BaustellenDokument>, wert: boolean) {
     try {
       await dokumentNurBueroSetzen(d.id, wert);
-      toast.success(wert ? `${d.dateiname}: nur fürs Büro` : `${d.dateiname}: für die Monteure freigegeben`);
+      toast.success(wert ? `${d.dateiname}: vor den Monteuren verborgen` : `${d.dateiname}: für die Monteure sichtbar`);
       neuLaden();
     } catch {
       setFehler([`„${d.dateiname}“ ließ sich nicht umstellen.`]);

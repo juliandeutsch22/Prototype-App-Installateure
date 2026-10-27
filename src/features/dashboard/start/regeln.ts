@@ -115,9 +115,14 @@ export function scheinOhneZeit(nachtraege: OffenerNachtrag[]): Abschnitt | null 
 export function abholbereitEigen(orders: MaterialOrder[]): Abschnitt | null {
   const zeilen: Zeile[] = orders
     .filter((o) => nurEchte(o) && o.status === 'Abholbereit')
-    .sort((a, b) => (a.abholbereitSeit ?? a.updatedAt ?? 0) - (b.abholbereitSeit ?? b.updatedAt ?? 0))
+    .sort((a, b) => (a.abholbereitSeit ?? 0) - (b.abholbereitSeit ?? 0))
     .map((o) => {
-      const seit = o.abholbereitSeit ?? o.updatedAt;
+      /*
+        NUR DER ZEITSTEMPEL DER DATENBANK (Runde 6, Hinweis 7). Ohne ihn stand
+        hier die letzte Änderung — bei einer frisch angelegten Anforderung der
+        Tag des Anforderns, und „seit 28.09.“ las sich wie „abholbereit seit“.
+      */
+      const seit = o.abholbereitSeit;
       return {
         key: `abh-${o.id}`,
         titel: mengeText(o),

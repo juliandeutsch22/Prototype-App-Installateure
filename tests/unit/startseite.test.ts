@@ -4,6 +4,7 @@ import { euro } from '@/lib/betrag';
 import { abschnitt, JE_ABSCHNITT, summe } from '@/features/dashboard/start/abschnitte';
 import {
   abholbereitAlt,
+  abholbereitEigen,
   bestelltUeberfaellig,
   budgetNahe,
   lieferungenHeute,
@@ -102,6 +103,28 @@ describe('Verwaltung', () => {
     expect(a.zeilen.map((z) => z.key)).toEqual(['best-spaet']);
     expect(a.zeilen[0].status).toEqual({ text: '2 Tage', ton: 'fehl' });
     expect(lieferungenHeute([anf({ id: 'heute', ...bestellt, liefertermin: HEUTE })], [], HEUTE)).toHaveLength(1);
+  });
+
+  /*
+    RUNDE 6, HINWEIS 7: gezählt wird in Kalendertagen, nach dem Tag, der an der
+    Zeile steht — nicht nach Stunden. Abholbereit am 27.09. um 8 Uhr ist am
+    30.09. um 10 Uhr (74 Stunden) noch nicht „über 3 Tage“, am 26.09. schon.
+  */
+  it('zählt „seit über 3 Tagen“ nach Kalendertagen (Hinweis 7)', () => {
+    const a = abholbereitAlt([
+      anf({ id: 'drei', status: 'Abholbereit', abholbereitSeit: Date.parse('2026-09-27T08:00:00+02:00') }),
+      anf({ id: 'vier', status: 'Abholbereit', abholbereitSeit: Date.parse('2026-09-26T23:30:00+02:00') }),
+    ], JETZT)!;
+    expect(a.zeilen.map((z) => z.key)).toEqual(['alt-vier']);
+    expect(a.zeilen[0].status?.text).toBe('seit 26.09.');
+  });
+
+  it('die eigene Abholung nennt nur den Tag der Datenbank — nicht den der Anforderung (Hinweis 7)', () => {
+    const a = abholbereitEigen([
+      anf({ id: 'ohne', status: 'Abholbereit', createdAt: Date.parse('2026-09-28T08:00:00+02:00'), updatedAt: Date.parse('2026-09-28T08:00:00+02:00') }),
+      anf({ id: 'mit', status: 'Abholbereit', abholbereitSeit: Date.parse('2026-09-29T08:00:00+02:00') }),
+    ])!;
+    expect(a.zeilen.map((z) => z.status?.text)).toEqual(['abholbereit', 'seit 29.09.']);
   });
 
   it('abholbereit zählt ab dem Zeitstempel der Datenbank, nicht ab der letzten Änderung', () => {

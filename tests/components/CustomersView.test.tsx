@@ -345,6 +345,57 @@ describe('Kundenverwaltung', () => {
     expect(screen.queryByText(/Die PLZ hat/)).toBeNull();
   });
 
+  /*
+    RUNDE 6, M6: PLZ „82“ und „juliandeutsch22@gmail“ wurden ohne Rückfrage
+    gespeichert. Jetzt fragt die Maske — und speichert auf Bestätigung trotzdem.
+  */
+  it('fragt bei PLZ „82“ und einer E-Mail ohne Endung nach — und legt auf Bestätigung an (M6)', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Julian Deutsch');
+    await nutzer.type(screen.getByLabelText('Straße und Hausnummer'), 'Bürgergasse 7');
+    await nutzer.type(screen.getByLabelText('PLZ'), '82');
+    await nutzer.type(screen.getByLabelText('Ort'), 'Gleisdorf');
+    await nutzer.type(screen.getByLabelText('E-Mail'), 'juliandeutsch22@gmail');
+    expect(screen.getByText(/E-Mail-Adresse ist unvollständig/)).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
+
+    expect(await screen.findByText('Angaben prüfen — trotzdem speichern?')).toBeInTheDocument();
+    expect(screen.getByText(/PLZ „82“: Die PLZ hat in diesem Land vier Ziffern/)).toBeInTheDocument();
+    expect(screen.getByText(/E-Mail „juliandeutsch22@gmail“/)).toBeInTheDocument();
+    expect(createCustomer).not.toHaveBeenCalled();
+    await nutzer.click(screen.getByRole('button', { name: 'Trotzdem speichern' }));
+    await waitFor(() => expect(createCustomer).toHaveBeenCalledTimes(1));
+    expect((createCustomer.mock.calls[0] as unknown[])[1]).toMatchObject({ plz: '82', email: 'juliandeutsch22@gmail' });
+  });
+
+  it('Gegenprobe: wer die Rückfrage zu PLZ und E-Mail abbricht, legt nichts an (M6)', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Julian Deutsch');
+    await nutzer.type(screen.getByLabelText('PLZ'), '82');
+    await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
+    const dialog = await screen.findByRole('dialog', { name: /Angaben prüfen/ });
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Abbrechen' }));
+    expect(createCustomer).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog', { name: /Angaben prüfen/ })).toBeNull();
+  });
+
+  it('zeigt in der Liste, was zu prüfen ist: Adresse bei falscher PLZ, E-Mail ohne Endung (M6)', async () => {
+    searchCustomers.mockImplementation(async () => [
+      { id: 'p', companyId: 'perl', name: 'PLZ falsch', plz: '82', land: 'AT', kundenart: 'privat' },
+      { id: 'm', companyId: 'perl', name: 'Mail falsch', plz: '8200', email: 'x@gmail', kundenart: 'privat' },
+      { id: 'g', companyId: 'perl', name: 'Alles gut', plz: '8200', email: 'x@gmail.com', kundenart: 'privat' },
+    ]);
+    zeichne();
+    const zeile = async (name: string) => (await screen.findByText(name)).closest('li') as HTMLElement;
+    expect(within(await zeile('PLZ falsch')).getByText('Adresse prüfen')).toBeInTheDocument();
+    expect(within(await zeile('Mail falsch')).getByText('E-Mail prüfen')).toBeInTheDocument();
+    expect(within(await zeile('Alles gut')).queryByText(/prüfen/)).toBeNull();
+  });
+
   it('zeigt die Liste zuerst, nicht die leere Maske', async () => {
     /*
       GEMESSEN, NICHT GESCHÄTZT: am Telefon begann die Kundenliste bei

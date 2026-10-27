@@ -247,6 +247,12 @@ export interface BaustellenStunden {
   minuten: number;
   /** Der letzte Tag mit Arbeitszeit. */
   zuletzt: string;
+  /**
+   * Davon gebucht von einem Lehrling, dessen Stunden ins Budget zählen
+   * (Runde 6, G18) — nur bei „fach“, sonst 0. Die Akte nennt sie, statt sie
+   * als „Fachzeit“ auszugeben.
+   */
+  lehrlingImBudget?: number;
 }
 
 /**
@@ -268,6 +274,7 @@ export async function stundenDerBaustellen(projectNumbers: string[], seite = SEI
   type Zeile = {
     projekt: string; user_id: string | null; user_name: string | null;
     art: BaustellenStunden['art']; minuten: number; zuletzt: string;
+    lehrling_minuten?: number | null;
   };
   const alle: Zeile[] = [];
   for (let von = 0; ; von += seite) {
@@ -286,6 +293,7 @@ export async function stundenDerBaustellen(projectNumbers: string[], seite = SEI
     art: z.art,
     minuten: Number(z.minuten) || 0,
     zuletzt: z.zuletzt,
+    lehrlingImBudget: Number(z.lehrling_minuten) || 0,
   }));
 }
 

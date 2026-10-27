@@ -39,6 +39,13 @@ export interface EinkaufsZeile {
   anforderungen: string[];
   /** Die eigenen Posten dahinter. */
   posten: string[];
+  /**
+   * Die Anmerkungen der eigenen Posten (Runde 6, G21) — Liefertermin,
+   * Lieferadresse, Kommission. Sie sind für den Großhändler geschrieben und
+   * gehen deshalb mit auf PDF und E-Mail. Die Notiz einer Anforderung nicht:
+   * sie ist für den Monteur („Für den Einsatz am …“).
+   */
+  anmerkungen: string[];
 }
 
 /** Bestellt und noch nicht da — eine Anforderung oder ein eigener Posten. */
@@ -122,6 +129,7 @@ export function einkaufsliste(
         kommissionen: [],
         anforderungen: [],
         posten: [],
+        anmerkungen: [],
       };
       g.zuBestellen.push(z);
     }
@@ -174,6 +182,8 @@ export function einkaufsliste(
     const z = zeile(g, p, p.einheit);
     dazu(z, p.menge, LAGER_KOMMISSION);
     z.posten.push(p.id);
+    const anmerkung = p.notiz?.trim();
+    if (anmerkung && !z.anmerkungen.includes(anmerkung)) z.anmerkungen.push(anmerkung);
   }
 
   for (const g of gruppen.values()) {
@@ -183,6 +193,11 @@ export function einkaufsliste(
   return [...gruppen.values()].sort((a, b) =>
     a.supplierId === null ? 1 : b.supplierId === null ? -1 : 0,
   );
+}
+
+/** „Anmerkung: …“ zu einer Zeile — leer, wenn es keine gibt. Dieselbe Form in Text, PDF und Liste. */
+export function anmerkungText(z: Pick<EinkaufsZeile, 'anmerkungen'>, davor = ''): string {
+  return z.anmerkungen.length ? `${davor}Anmerkung: ${z.anmerkungen.join('; ')}` : '';
 }
 
 /** Die Bestellung als Text — für die E-Mail und zum Kopieren. */
@@ -203,7 +218,7 @@ export function bestellText(o: {
     const menge = `${fmtMenge(z.menge)}${z.einheit ? ` ${z.einheit}` : ''}`;
     const nr = z.artikelnummer ? `Art.-Nr. ${z.artikelnummer} – ` : '';
     const kommission = z.kommissionen.length ? ` (Kommission ${z.kommissionen.join(', ')})` : '';
-    return `- ${menge} × ${nr}${z.bezeichnung}${kommission}`;
+    return `- ${menge} × ${nr}${z.bezeichnung}${kommission}${anmerkungText(z, ' – ')}`;
   });
   const fuss = [
     '',

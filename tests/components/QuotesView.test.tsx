@@ -373,7 +373,8 @@ describe('Angebot kalkulieren', () => {
     await nutzer.type(screen.getAllByLabelText('Einheit')[1], 'Stk');
     await nutzer.type(screen.getAllByLabelText('Einzelpreis netto')[1], '3');
 
-    expect(screen.getAllByRole('checkbox')[1]).not.toBeChecked();
+    // Ohne Stunden-Einheit gibt es den Haken gar nicht (Runde 6, G24) — nur Montage hat einen.
+    expect(screen.getAllByRole('checkbox')).toHaveLength(1);
     expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('16 h');
   });
 
@@ -384,23 +385,50 @@ describe('Angebot kalkulieren', () => {
     await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Heizkörper');
     await nutzer.type(screen.getByLabelText('Menge'), '1');
     expect(screen.getByLabelText('Einheit')).toHaveValue('');
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(screen.queryByRole('checkbox')).toBeNull();
     await nutzer.type(screen.getByLabelText('Einheit'), 'h');
     expect(screen.getByRole('checkbox')).toBeChecked();
   });
 
-  it('lässt einen von Hand gesetzten Haken stehen, auch wenn die Einheit wechselt', async () => {
-    // Eine Pauschale, die trotzdem Arbeitszeit ist — der Mensch hat entschieden.
+  /*
+    RUNDE 6, G24: „1 Pauschale à 6.000 €“ mit dem Haken ergab „Kalkulierte
+    Arbeitszeit: 1 h“ — der Haken nahm die Menge als Stunden, egal welche
+    Einheit dastand. Bis dahin galt: ein von Hand gesetzter Haken bleibt auch
+    bei „Pauschale“. Jetzt gibt es ihn nur bei einer Stunden-Einheit.
+  */
+  it('bietet den Haken bei einer Pauschale nicht an — und ein gesetzter fällt beim Wechsel weg (G24)', async () => {
     const nutzer = userEvent.setup();
     zeichne();
     await formOeffnen();
+    await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Heizungstausch');
+    await nutzer.type(screen.getByLabelText('Menge'), '1');
+    await nutzer.type(screen.getByLabelText('Einheit'), 'Pauschale');
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('0 h');
+
+    // Erst in Stunden mit Haken — dann auf Pauschale umgestellt.
     await nutzer.clear(screen.getByLabelText('Einheit'));
-    await nutzer.type(screen.getByLabelText('Einheit'), 'Pausch');
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    await nutzer.type(screen.getByLabelText('Einheit'), 'h');
+    expect(screen.getByRole('checkbox')).toBeChecked();
+    expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('1 h');
+    await nutzer.clear(screen.getByLabelText('Einheit'));
+    await nutzer.type(screen.getByLabelText('Einheit'), 'Pauschale');
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('0 h');
+  });
+
+  it('lässt einen von Hand entfernten Haken bei Stunden stehen, solange die Einheit Stunden bleibt', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Anfahrt');
+    await nutzer.type(screen.getByLabelText('Menge'), '2');
+    await nutzer.type(screen.getByLabelText('Einheit'), 'h');
     await nutzer.click(screen.getByRole('checkbox'));
     await nutzer.clear(screen.getByLabelText('Einheit'));
-    await nutzer.type(screen.getByLabelText('Einheit'), 'Stk');
-    expect(screen.getByRole('checkbox')).toBeChecked();
+    await nutzer.type(screen.getByLabelText('Einheit'), 'Std');
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('0 h');
   });
 
   /*
@@ -591,6 +619,27 @@ describe('Einen Entwurf bearbeiten', () => {
     expect(daten).toMatchObject({ kalkulierteStunden: 20, vatRate: 20 });
     expect((daten.positions as { istArbeitszeit?: boolean }[]).map((p) => p.istArbeitszeit))
       .toEqual([true, false]);
+  });
+
+  it('zählt einen angehakten Entwurf von früher bei einer Pauschale nicht und speichert ihn ohne Haken (G24)', async () => {
+    angebote.push({
+      id: 'q3', companyId: 'perl', quoteNumber: 'AN-2026-0009', customerId: 'k1', customerName: 'Gemeinde Neudorf',
+      address: 'Rathausplatz 1', quoteDate: '2026-09-01', validUntil: '2026-10-01', status: 'Entwurf',
+      positions: [
+        { label: 'Heizungstausch', qty: 1, unit: 'Pauschale', unitPrice: 6000, netto: 6000, istArbeitszeit: true },
+        { label: 'Montage', qty: 16, unit: 'h', unitPrice: 70, netto: 1120, istArbeitszeit: true },
+      ],
+      subtotalNetto: 7120, totalNetto: 7120, totalVat: 1424, totalBrutto: 8544, vatRate: 20, kalkulierteStunden: 17,
+    });
+    zeichne();
+    await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+    expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('16 h');
+    await userEvent.type(screen.getByLabelText('Anmerkungen'), 'x');
+    await userEvent.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    await vi.waitFor(() => expect(updateQuote).toHaveBeenCalled());
+    const daten = updateQuote.mock.calls[0][1] as { kalkulierteStunden: number; positions: { istArbeitszeit?: boolean }[] };
+    expect(daten.kalkulierteStunden).toBe(16);
+    expect(daten.positions.map((p) => p.istArbeitszeit)).toEqual([false, true]);
   });
 
   // Runde 3, G8: ein Preis steht mit zwei Nachkommastellen im Feld.
@@ -901,6 +950,50 @@ describe('Angebote auf der Linie „Lot“', () => {
     expect(screen.getByRole('heading', { name: /Alle Angebote/ })).toHaveTextContent('· 3');
   });
 
+  /*
+    RUNDE 6, G15: AN-0008 blieb nach dem Annehmen der neuen Fassung AN-0009
+    „Versendet“ mit „Annehmen → Baustelle“.
+  */
+  it('bietet eine Fassung neben einer angenommenen nicht zum Annehmen an (G15)', async () => {
+    angebot('alt', 'AN-2026-0008', 'Familie Deutsch', 'Versendet', '2099-01-01');
+    angebot('neu', 'AN-2026-0009', 'Familie Deutsch', 'Angenommen', '2099-01-01');
+    angebote[1].vorgaengerId = 'alt';
+    zeichne();
+    const zeile = (await screen.findByText('AN-2026-0008')).closest('li') as HTMLElement;
+    expect(within(zeile).queryByRole('button', { name: 'Annehmen → Baustelle' })).toBeNull();
+    expect(within(zeile).getByText('Fassung AN-2026-0009 angenommen')).toBeInTheDocument();
+  });
+
+  it('sagt im Dialog, welche Fassung danach als ersetzt gilt (G15)', async () => {
+    const nutzer = userEvent.setup();
+    angebot('alt', 'AN-2026-0008', 'Familie Deutsch', 'Versendet', '2099-01-01');
+    angebot('neu', 'AN-2026-0009', 'Familie Deutsch', 'Versendet', '2099-01-01');
+    angebote[1].vorgaengerId = 'alt';
+    zeichne();
+    const zeile = (await screen.findByText('AN-2026-0009')).closest('li') as HTMLElement;
+    await nutzer.click(within(zeile).getByRole('button', { name: 'Annehmen → Baustelle' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/Damit gilt AN-2026-0008 als\s+ersetzt/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne andere Fassung kein Satz über Ersetzte (G15)', async () => {
+    const nutzer = userEvent.setup();
+    angebot('a', 'AN-2026-0010', 'Familie Huber', 'Versendet', '2099-01-01');
+    zeichne();
+    await screen.findByText('AN-2026-0010');
+    await nutzer.click(screen.getByRole('button', { name: 'Annehmen → Baustelle' }));
+    expect(within(await screen.findByRole('dialog')).queryByText(/als\s+ersetzt/)).toBeNull();
+  });
+
+  it('führt ersetzte Fassungen unter „Erledigt“ (G15)', async () => {
+    angebot('alt', 'AN-2026-0008', 'Familie Deutsch', 'Ersetzt', '2099-01-01');
+    zeichneMit('/quotes?ansicht=erledigt');
+    expect(await screen.findByText('AN-2026-0008')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Ersetzt durch eine andere Fassung/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Annehmen → Baustelle' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Neue Fassung' })).toBeNull();
+  });
+
   it('nimmt die Ansicht aus der Adresse — als Lesezeichen', async () => {
     angebot('b', 'AN-2026-0011', 'Gasthof Post', 'Angenommen', '2099-01-01');
     zeichneMit('/quotes?ansicht=erledigt');
@@ -1034,6 +1127,6 @@ describe('Hilfe zu dieser Seite (Runde 5, G8)', () => {
   it('steht schon ohne offenes Formular und erklärt die Liste', async () => {
     zeichne();
     await userEvent.click(await screen.findByRole('button', { name: 'Hilfe zu dieser Seite' }));
-    expect(await screen.findByText(/„Erledigt“ die angenommenen und abgelehnten/)).toBeInTheDocument();
+    expect(await screen.findByText(/„Erledigt“ die angenommenen, abgelehnten und\s+ersetzten/)).toBeInTheDocument();
   });
 });

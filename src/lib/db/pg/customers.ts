@@ -249,7 +249,11 @@ export function searchCustomers(
   Mahnspesen; ohne sie gehen Rechnung und Mahnung nicht.
 */
 const OHNE_KUNDENART: Bedingung[] = [{ art: 'leer', feld: 'kundenart' }];
-const ADRESSE_PRUEFEN: Bedingung[] = [{ art: 'gleich', feld: 'adressePruefen', wert: true }];
+/*
+  Runde 6, M6: nicht nur die unzerlegbare alte Zeile, auch eine PLZ, die
+  nicht zum Land passt, und eine E-Mail ohne Endung (`angaben_pruefen`).
+*/
+const ADRESSE_PRUEFEN: Bedingung[] = [{ art: 'gleich', feld: 'angabenPruefen', wert: true }];
 
 export function kundenOhneKundenart(companyId: string, max = KUNDEN_GRENZE): Promise<WithId<Customer>[]> {
   return abfragen<Customer>(KUNDEN, companyId, { wo: OHNE_KUNDENART, sortiere: { feld: 'name' }, grenze: max });

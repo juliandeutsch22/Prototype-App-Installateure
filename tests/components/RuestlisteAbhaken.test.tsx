@@ -57,6 +57,18 @@ describe('Rüstliste abhaken', () => {
     expect(box).toHaveAttribute('title', expect.stringMatching(/nur am selben Tag/));
   });
 
+  // Runde 6, M5: der Teil der Anforderung kommt über die Abholung, nicht aus dem Regal.
+  it('nennt den Teil, der über die Anforderung kommt (M5)', () => {
+    render(<RuestlisteAbhaken date="2026-10-01" projectNumber="PR-1"
+      positionen={[{ ...POS[0], menge: 6, einheit: 'Stk', angefordert: 2 }]} geladen={{}} />);
+    expect(screen.getByText('davon 2 Stk über die Anforderung — dort abholen')).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne Anforderung kein Satz dazu (M5)', () => {
+    render(<RuestlisteAbhaken date="2026-10-01" projectNumber="PR-1" positionen={POS} geladen={{}} />);
+    expect(screen.queryByText(/über die Anforderung/)).toBeNull();
+  });
+
   it('erklärt den Haken', () => {
     render(<RuestlisteAbhaken date="2026-10-01" projectNumber="PR-1" positionen={POS} geladen={{}} />);
     expect(screen.getByText(/Der Haken bucht Lagermaterial vom Bestand ab/)).toBeInTheDocument();

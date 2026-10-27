@@ -251,6 +251,30 @@ describe('Weiter mit dem Angebot', () => {
     expect(await screen.findByText('Baustelle B-2026-0007 angelegt')).toBeInTheDocument();
   });
 
+  // Runde 6, G15: eine ersetzte Fassung ist erledigt — kein Annehmen mehr.
+  it('zeigt eine ersetzte Fassung als ersetzt, ohne „Annehmen“ (G15)', async () => {
+    angebot = { ...ANGEBOT, status: 'Ersetzt' };
+    zeige();
+    expect(await screen.findByText('Eine andere Fassung dieses Angebots wurde angenommen.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Annehmen → Baustelle' })).toBeNull();
+  });
+
+  it('nimmt nicht an, wenn die neue Fassung schon angenommen ist — und sagt welche (G15)', async () => {
+    fassungen = [{ ...ANGEBOT, id: 'neu', quoteNumber: 'AN-2026-0008', status: 'Angenommen', vorgaengerId: ANGEBOT.id }];
+    zeige();
+    expect(await screen.findByText(/Die Fassung AN-2026-0008 ist schon angenommen/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Annehmen → Baustelle' })).toBeNull();
+  });
+
+  it('sagt im Dialog, dass die offene neue Fassung danach ersetzt ist (G15)', async () => {
+    fassungen = [{ ...ANGEBOT, id: 'neu', quoteNumber: 'AN-2026-0008', status: 'Entwurf', vorgaengerId: ANGEBOT.id }];
+    const nutzer = userEvent.setup();
+    zeige();
+    await screen.findByText(/AN-2026-0008/);
+    await nutzer.click(await screen.findByRole('button', { name: 'Annehmen → Baustelle' }));
+    expect(within(await screen.findByRole('dialog')).getByText(/Damit gilt AN-2026-0008 als ersetzt/)).toBeInTheDocument();
+  });
+
   it('vermerkt die Ablehnung', async () => {
     const nutzer = userEvent.setup();
     zeige();

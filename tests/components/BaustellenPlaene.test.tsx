@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 
@@ -97,7 +97,11 @@ describe('Pläne hochladen', () => {
     expect(screen.queryByText('Wirklich zu den Plänen?')).not.toBeInTheDocument();
   });
 
-  it('schaltet ein vorhandenes Dokument um — und zeigt „Nur Büro“ an', async () => {
+  /*
+    Runde 6, G20: „Nur fürs Büro“ war ein Knopf und las sich wie ein Zustand.
+    Jetzt steht der Zustand als Etikett an jeder Zeile, der Knopf nennt die Aktion.
+  */
+  it('schaltet ein vorhandenes Dokument um — Zustand als Etikett, Knopf als Aktion (G20)', async () => {
     vorhanden = [
       { id: 'd1', projectId: 'p1', pfad: 'baustellen/perl/p1/a.pdf', dateiname: 'Grundriss.pdf', mime: 'application/pdf', bytes: 500 },
       { id: 'd2', projectId: 'p1', pfad: 'baustellen/perl/p1/b.xlsx', dateiname: 'Aufmaß.xlsx', bytes: 500, nurBuero: true,
@@ -106,9 +110,12 @@ describe('Pläne hochladen', () => {
     const nutzer = userEvent.setup();
     zeichne();
     expect(await screen.findByText('EXCEL')).toBeInTheDocument();
-    expect(screen.getByText(/^Nur Büro · /)).toBeInTheDocument();
-    await nutzer.click(screen.getByRole('button', { name: 'Nur fürs Büro' }));
-    await nutzer.click(screen.getByRole('button', { name: 'Für Monteure freigeben' }));
+    const zeile = (name: string) => screen.getByRole('button', { name }).closest('li')!;
+    expect(within(zeile('Aufmaß.xlsx')).getByText('Nur fürs Büro')).toBeInTheDocument();
+    expect(within(zeile('Grundriss.pdf')).getByText('Für Monteure sichtbar')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nur fürs Büro' })).toBeNull();
+    await nutzer.click(screen.getByRole('button', { name: 'Vor Monteuren verbergen' }));
+    await nutzer.click(screen.getByRole('button', { name: 'Für Monteure zeigen' }));
     expect(dokumentNurBueroSetzen.mock.calls).toEqual([['d1', true], ['d2', false]]);
   });
 

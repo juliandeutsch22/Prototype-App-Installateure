@@ -530,7 +530,8 @@ export interface Quote {
   quoteDate: string;
   /** Bindefrist. Ein Angebot ohne Ablauf bindet den Betrieb unbegrenzt an seine Preise. */
   validUntil: string;
-  status: 'Entwurf' | 'Versendet' | 'Angenommen' | 'Abgelehnt';
+  /** `Ersetzt` (Runde 6, G15): eine andere Fassung desselben Angebots wurde angenommen. */
+  status: 'Entwurf' | 'Versendet' | 'Angenommen' | 'Abgelehnt' | 'Ersetzt';
   /** Firmendaten beim Versand (`aussteller_staende`, seit 24.10.2026); ein Entwurf hat keine. Setzt nur die Datenbank. */
   ausstellerStand?: string;
   /**
@@ -786,6 +787,11 @@ export interface Customer {
   land?: string;
   /** Die alte Zeile liess sich nicht eindeutig zerlegen — bitte prüfen (M12). */
   adressePruefen?: boolean;
+  /**
+   * „Anschrift prüfen“ (Runde 6, M6): `adressePruefen`, eine PLZ, die nicht
+   * zum Land passt, oder eine E-Mail ohne Endung — setzt nur die Datenbank.
+   */
+  angabenPruefen?: boolean;
   /** Kunden- bzw. Debitorennummer (M12, für den Export an die Kanzlei). */
   kundennummer?: string | null;
   /**
@@ -1137,6 +1143,17 @@ export interface RuestPosition {
   name: string;
   menge: number;
   einheit?: string;
+  /**
+   * Wie viel davon über verknüpfte Anforderungen kommt (Runde 6, M5) — liest
+   * nur die Datenbank (`ruest_angefordert`). Diesen Teil reserviert und bucht
+   * die Anforderung; die Liste nur den Rest aus dem Regal.
+   */
+  angefordert?: number;
+  /**
+   * Nur beim Speichern: die Anforderung über die Fehlmenge, die im selben
+   * Zug angelegt und mit der Position verknüpft wird (M5).
+   */
+  anfordern?: { menge: number; userId: string; userName: string; note: string };
 }
 
 /**

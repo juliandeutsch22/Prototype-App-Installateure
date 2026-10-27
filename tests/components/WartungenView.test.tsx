@@ -269,6 +269,21 @@ describe('Wartungen', () => {
     });
   });
 
+  it('trägt keinen Tag aus der Zukunft als erledigt ein (G23)', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    const an = await anstehendeZeilen();
+    const zeile = an.getByText(/Bäckerei Stein/).closest('li');
+    await nutzer.click(within(zeile as HTMLElement).getByRole('button', { name: 'Erledigt' }));
+    const tag = screen.getByLabelText('Gewartet am');
+    expect(tag).toHaveAttribute('max', HEUTE);
+    await nutzer.clear(tag);
+    await nutzer.type(tag, '2026-06-02');
+    expect(screen.getByText(/Der Tag liegt in der Zukunft/)).toBeTruthy();
+    await nutzer.click(screen.getByRole('button', { name: 'Eintragen' }));
+    expect(wartungErledigt).not.toHaveBeenCalled();
+  });
+
   it('rechnet den neuen Termin mit dem im Dialog geänderten Intervall', async () => {
     const nutzer = userEvent.setup();
     zeichne();
@@ -391,6 +406,43 @@ describe('Wartungen', () => {
       hersteller: 'Vaillant', typ: 'ecoTEC plus', seriennummer: '21184500', baujahr: 2018, preis: 149,
       faelligAm: '2027-03-15',
     });
+  });
+
+  /*
+    RUNDE 6, G23: „Zuletzt gewartet 01.12.2026“ (am 27.10.) und „Bj. 2030“
+    wurden ohne Rückfrage gespeichert, die Erledigt-Maske begrenzte das Datum nicht.
+  */
+  it('speichert keinen Wartungstag aus der Zukunft (G23)', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await geladen();
+    await nutzer.click(screen.getByRole('button', { name: 'Neue Wartung' }));
+    await kundeWaehlen(nutzer, 'Hausverwaltung Nord');
+    await nutzer.type(screen.getByLabelText('Anlage'), 'Therme');
+    await nutzer.type(screen.getByLabelText('Zuletzt gewartet'), '2026-12-01');
+    expect(screen.getByLabelText('Zuletzt gewartet')).toHaveAttribute('max', HEUTE);
+    expect(screen.getByText(/Der Tag liegt in der Zukunft/)).toBeTruthy();
+    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    expect(createWartung).not.toHaveBeenCalled();
+  });
+
+  it('speichert kein Baujahr aus der Zukunft — das laufende Jahr geht (G23)', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await geladen();
+    await nutzer.click(screen.getByRole('button', { name: 'Neue Wartung' }));
+    await kundeWaehlen(nutzer, 'Hausverwaltung Nord');
+    await nutzer.type(screen.getByLabelText('Anlage'), 'Therme');
+    await nutzer.type(screen.getByLabelText('Zuletzt gewartet'), '2026-03-15');
+    await nutzer.type(screen.getByLabelText('Baujahr'), '2030');
+    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    expect(createWartung).not.toHaveBeenCalled();
+    expect(screen.getAllByText(/Das Baujahr liegt in der Zukunft — höchstens 2026/).length).toBeGreaterThan(0);
+
+    await nutzer.clear(screen.getByLabelText('Baujahr'));
+    await nutzer.type(screen.getByLabelText('Baujahr'), '2026');
+    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(createWartung).toHaveBeenCalled());
   });
 });
 

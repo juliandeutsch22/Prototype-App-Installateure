@@ -604,6 +604,13 @@ export default function AdminProjectsView() {
           kunde={kunde}
           onChange={(id, k) => {
             const vorher = kunde?.address;
+            /*
+              Runde 6, Hinweis 11: dasselbe für den Ansprechpartner — er musste
+              bei jeder Baustelle neu getippt werden. Ein Vorschlag aus der
+              Kundenakte, nur in ein leeres Feld oder statt des vorigen Kunden.
+            */
+            const vorschlag = (feld: string | undefined, vonVorher: string | undefined, neu: string | undefined) =>
+              !feld || feld === (vonVorher ?? '') ? (neu ?? '') : feld;
             setKunde(k);
             setForm({
               ...form,
@@ -612,6 +619,8 @@ export default function AdminProjectsView() {
               // G5: die Anschrift des Kunden als Vorschlag — nur in ein
               // leeres Feld oder statt des Vorschlags des vorigen Kunden.
               address: !form.address || form.address === vorher ? (k?.address ?? '') : form.address,
+              contactName: vorschlag(form.contactName, kunde?.contactName, k?.contactName),
+              contactPhone: vorschlag(form.contactPhone, kunde?.contactPhone, k?.contactPhone),
             });
           }}
           pflicht

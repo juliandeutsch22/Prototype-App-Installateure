@@ -705,6 +705,38 @@ describe('Anforderungen — eine ruhige Zeile (Prüflauf 24.09.2026, D11; Linie 
     expect(knoepfe[knoepfe.length - 1]).toBe('Anforderung löschen …');
   });
 
+  /*
+    RUNDE 6, HINWEIS 7: „Abholbereit“ stand ohne Zeitpunkt im Verlauf, und
+    welche Zeile „seit über 3 Tagen“ zählt, war nicht nachzuprüfen.
+  */
+  it('nennt an der Zeile, seit wann abholbereit — der Tag, nach dem gezählt wird (Hinweis 7)', async () => {
+    anforderungen = [anforderung({ id: 'o1', status: 'Abholbereit', abholbereitSeit: new Date(2026, 7, 28, 15, 0).getTime() as never })];
+    zeige();
+    const zeile = (await screen.findByText('Kupferrohr 15mm', { exact: false })).closest('li') as HTMLElement;
+    expect(within(zeile).getByText(/abholbereit seit 28\.08\.2026/)).toBeInTheDocument();
+  });
+
+  it('zeigt im Verlauf einer erledigten Anforderung, wann sie abholbereit und wann erledigt wurde (Hinweis 7)', async () => {
+    anforderungen = [anforderung({
+      id: 'o1', status: 'Erledigt',
+      abholbereitSeit: new Date(2026, 7, 28, 15, 0).getTime() as never,
+      erledigtAm: new Date(2026, 8, 1, 7, 30).getTime() as never,
+    })];
+    render(
+      <MemoryRouter initialEntries={['/anforderungen?reiter=erledigt']}>
+        <ToastProvider>
+          <AdminOrdersView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    const fenster = await oeffnen();
+    const verlauf = within(fenster).getByRole('list', { name: 'Verlauf der Anforderung' });
+    const punkte = within(verlauf).getAllByRole('listitem').map((l) => [
+      l.querySelector('.lot-titel')?.textContent, l.querySelector('.lot-zeit')?.textContent ?? '',
+    ]);
+    expect(punkte.slice(-2)).toEqual([['Abholbereit', '28.08.2026, 15:00'], ['Erledigt', '01.09.2026, 07:30']]);
+  });
+
   it('zeigt im Seitenfenster Notiz und Verlauf aus den Zeitstempeln', async () => {
     anforderungen = [anforderung({ id: 'o1', status: 'In Bearbeitung', note: 'Kiste im Keller',
       beschaffung: 'einkauf', supplierId: 'gh1', bestelltAm: new Date(2026, 8, 1, 10, 0).getTime() as never })];

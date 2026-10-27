@@ -4,6 +4,7 @@ import {
   dekodiere,
   layoutWarnung,
   liesDatanorm,
+  ohneDoppelte,
 } from '@/features/materials/datanorm';
 
 /**
@@ -287,5 +288,41 @@ describe('Verdacht auf ein verschobenes Feldlayout', () => {
 
   it('schweigt bei einer leeren Datei, statt ein Layout zu beklagen', () => {
     expect(layoutWarnung(liesDatanorm('V;20092026;HTI;EUR\nT;N;A1;0;Langtext'))).toBeUndefined();
+  });
+});
+
+/*
+  RUNDE 6, G25: CT-TEST-001 stand zweimal in der Datei (18,90 € und 1,00 €).
+  Der Probelauf zählte „4 neu“, die Übernahme überschrieb die erste Zeile
+  still mit der zweiten.
+*/
+describe('Doppelte Artikelnummern in der Datei (Runde 6, G25)', () => {
+  const DATEI = [
+    'A;N;CT-TEST-001;0;Kugelhahn;;1;0;Stk;1890;10;0',
+    'A;N;CT-TEST-002;0;Eckventil;;1;0;Stk;990;10;0',
+    'A;N;CT-TEST-003;0;Muffe;;1;0;Stk;210;10;0',
+    'A;N;CT-TEST-001;0;Kugelhahn doppelt;;1;0;Stk;100;10;0',
+  ].join('\n');
+
+  it('übernimmt keine der beiden Zeilen und nennt beide mit allen Zeilennummern', () => {
+    const e = ohneDoppelte(liesDatanorm(DATEI));
+    expect(e.artikel.map((a) => a.artikelnummer)).toEqual(['CT-TEST-002', 'CT-TEST-003']);
+    expect(e.unverstanden.map((u) => u.zeile)).toEqual([1, 4]);
+    expect(e.unverstanden[0].grund).toContain('„CT-TEST-001“ steht in der Datei mehrfach (Zeilen 1, 4)');
+    expect(e.unverstanden[1].inhalt).toContain('1,00 €');
+    expect(befunde(e)).toMatchObject({ artikel: 2, neu: 2, unverstanden: 2 });
+  });
+
+  it('prüft über die ganze Datei, auch weit auseinander', () => {
+    const zeilen = Array.from({ length: 250 }, (_, i) => `A;N;N${i};0;Artikel ${i};;1;0;Stk;100;10;0`);
+    zeilen.push('A;N;N3;0;Artikel 3 nochmal;;1;0;Stk;100;10;0');
+    const e = ohneDoppelte(liesDatanorm(zeilen.join('\n')));
+    expect(e.artikel).toHaveLength(249);
+    expect(e.unverstanden.map((u) => u.zeile)).toEqual([4, 251]);
+  });
+
+  it('lässt eine Datei ohne Dubletten unverändert', () => {
+    const e = liesDatanorm(DATEI.split('\n').slice(0, 3).join('\n'));
+    expect(ohneDoppelte(e)).toBe(e);
   });
 });

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { lagerFrei, type LagerStand } from '@/lib/db/materials';
-import { createMaterialOrder } from '@/lib/db/materialOrders';
 import { saveAssignments } from '@/lib/db/assignments';
 import { saveEinsatzMaterial } from '@/lib/db/einsatzMaterial';
 import type { Abwesenheit } from '@/lib/db/vacations';
@@ -30,6 +29,7 @@ import { ErrorState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { terminKopf } from '@/features/termine/terminText';
 import RuestlistePlanen from './RuestlistePlanen';
+import { ausDemRegal, nochAnzufordern } from './ruestFehlmenge';
 import { abwesendAm, fmtDay, useMaterialstamm } from './einsatzDaten';
 import { alsHelferEingestuft, istLehrling, stufeImEinsatz } from './stufeImEinsatz';
 
@@ -42,9 +42,10 @@ interface Pick {
 const MATERIAL_HINWEIS = (
   <>
     Was der Monteur am Einsatztag mitnehmen soll. Er sieht die Liste auf seiner Startseite und hakt
-    ab, was im Bus ist. Der Lagerstand ändert sich dadurch
-    <strong> nicht</strong> — gebucht wird er weiterhin über die Materialanforderung und das
-    Abholen.
+    ab, was im Bus ist; der Haken bucht es vom Lager ab. Ab dem Einsatztag ist die Menge für diese
+    Liste reserviert. Fehlt etwas im Lager, wird auf Wunsch eine Anforderung über die Fehlmenge
+    mit dem Einsatz gespeichert — diesen Teil holt der Monteur über die Anforderung ab, der Haken
+    bucht nur den Rest aus dem Regal.
   </>
 );
 
@@ -151,14 +152,17 @@ export default function EinsatzFormular({
   const [ruestliste, setRuestliste] = useState<RuestPosition[]>([]);
   // Am Inhalt, nicht an der Array-Identität: jede Mengenänderung wäre sonst eine neue Abfrage.
   const ruestIds = [...new Set(ruestliste.map((p) => p.materialId ?? '').filter(Boolean))].sort().join('|');
-  /** Rüstpositionen, für die in dieser Sitzung eine Anforderung angelegt wurde (G14). */
-  const [angefordert, setAngefordert] = useState<Set<string>>(new Set());
+  /**
+   * Rüstpositionen, deren Fehlmenge beim Speichern angefordert wird (Runde 6,
+   * M5) — mit der Menge, die beim Tipp dastand. Gespeichert wird die dann
+   * aktuelle; die gemerkte gilt nur, wenn sich der Artikel nicht mehr
+   * nachschlagen lässt.
+   */
+  const [vorgemerkt, setVorgemerkt] = useState<Map<string, number>>(new Map());
   /** Frei je Artikel laut Datenbank (M32) — `null`, solange unbekannt. */
   const [lagerStand, setLagerStand] = useState<Map<string, LagerStand> | null>(null);
   /** Eine freie Zeile der Rüstliste, die eingetippt, aber nicht hinzugefügt ist. */
   const [offeneRuestzeile, setOffeneRuestzeile] = useState<string | null>(null);
-  const [ruestFehler, setRuestFehler] = useState<string | null>(null);
-  const [anforderungLaeuft, setAnforderungLaeuft] = useState(false);
   /** Welcher Einsatz gerade gelöscht werden soll — die Rückfrage steht im Fenster. */
   const [loeschFrage, setLoeschFrage] = useState<WithId<Assignment> | null>(null);
   const [loeschtGerade, setLoeschtGerade] = useState(false);
@@ -211,6 +215,8 @@ export default function EinsatzFormular({
     }
     const treffer = tagesListen.find((l) => l.projectNumber === projectNumber);
     setRuestliste(treffer?.positionen ?? []);
+    // Gespeichert ist gespeichert: was vorgemerkt war, ist jetzt angelegt (oder verworfen).
+    setVorgemerkt(new Map());
   }, [projectNumber, tagesListen]);
 
   /*
@@ -239,7 +245,8 @@ export default function EinsatzFormular({
     const eigene = new Map<string, number>();
     if (date >= todayStr()) {
       for (const p of tagesListen.find((l) => l.projectNumber === projectNumber)?.positionen ?? []) {
-        if (p.materialId) eigene.set(p.materialId, (eigene.get(p.materialId) ?? 0) + p.menge);
+        // Was die eigene Liste reserviert: ohne den Teil ihrer Anforderungen (M5).
+        if (p.materialId) eigene.set(p.materialId, (eigene.get(p.materialId) ?? 0) + ausDemRegal(p));
       }
     }
     const karte = new Map<string, number>();
@@ -384,7 +391,42 @@ export default function EinsatzFormular({
         Formular, oder eine bereits gespeicherte Liste, die geleert werden
         soll. Sonst entstuende fuer jeden Einsatz ein leeres Dokument.
       */
-      const positionen = ruestliste.filter((p) => p.menge > 0);
+      /*
+        DIE VORGEMERKTE FEHLMENGE GEHT MIT (Runde 6, M5): die Anforderung
+        entsteht im selben Zug wie die Liste und trägt ihre Position. Die
+        Menge ist die, die jetzt dasteht — wer nach dem Tipp die Menge
+        ändert, fordert die neue Fehlmenge an.
+      */
+      const abholer = abholerFuer(rows.map((r) => r.userId));
+      const positionen = ruestliste
+        .filter((p) => p.menge > 0)
+        .map((p) => {
+          const gemerkt = vorgemerkt.get(p.id);
+          /*
+            Der Artikel kann aus der Suche über den ganzen Katalog stammen und
+            nicht unter den geladenen stehen — dann rechnet das Freie der
+            Datenbank, sonst gilt die gemerkte Menge.
+          */
+          const artikel = p.materialId
+            ? (materials.find((m) => m.id === p.materialId) ??
+              (ruestVerfuegbar?.has(p.materialId) ? { id: p.materialId, stock: 0 } : undefined))
+            : undefined;
+          const menge = gemerkt === undefined ? 0 : artikel ? nochAnzufordern(p, artikel, ruestVerfuegbar) : gemerkt;
+          return menge > 0
+            ? {
+                ...p,
+                anfordern: {
+                  menge,
+                  userId: abholer.uid,
+                  userName: abholer.name,
+                  note:
+                    abholer.uid === user.uid
+                      ? `Für den Einsatz am ${fmtDay(date)}`
+                      : `Für den Einsatz am ${fmtDay(date)} · angelegt von ${user.name}`,
+                },
+              }
+            : p;
+        });
       const hatGespeicherteListe = tagesListen.some((l) => l.projectNumber === projectNumber);
       if (materialAn && (positionen.length > 0 || hatGespeicherteListe)) {
         try {
@@ -407,7 +449,13 @@ export default function EinsatzFormular({
           );
           return;
         }
-        toast.success('Einsatz und Rüstliste gespeichert');
+        setVorgemerkt(new Map());
+        const angefordertJetzt = positionen.filter((p) => p.anfordern).length;
+        toast.success(
+          angefordertJetzt > 0
+            ? `Einsatz und Rüstliste gespeichert, ${angefordertJetzt === 1 ? 'eine Anforderung' : `${angefordertJetzt} Anforderungen`} angelegt`
+            : 'Einsatz und Rüstliste gespeichert',
+        );
         onGespeichert?.();
         return;
       }
@@ -422,54 +470,23 @@ export default function EinsatzFormular({
   }
 
   /**
-   * Aus einer Unterdeckung eine Materialanforderung machen — AUF TIPP.
+   * WER DIE ANFORDERUNG ÜBER DIE FEHLMENGE ABHOLT (Testbericht 30.09.2026,
+   * G31): der eingeteilte Monteur, nicht der Planer. Ein Facharbeiter vor
+   * einem Helfer; ist niemand eingeteilt, bleibt es der Planer. Wer sie
+   * angelegt hat, steht in der Notiz.
    *
-   * Nie von selbst: der Planer weiß vielleicht, dass morgen eine Lieferung
-   * kommt oder das Teil schon im Bus liegt. Eine Schreibung in die
-   * Arbeitsliste eines anderen, auf Grundlage einer Vermutung, ist genau die
-   * Sorte Funktion, die das Vertrauen in die App kostet.
-   *
-   * Der LAGERSTAND BLEIBT UNANGETASTET. Abgezogen wird erst, wenn die
-   * Anforderung erledigt oder abgeholt wird — dort, wo es schon immer
-   * passiert. Zweimal abziehen hieße, den Bestand kaputtzurechnen.
+   * Angelegt wird sie seit Runde 6 (M5) nicht mehr auf den Tipp, sondern
+   * beim Speichern — siehe `save`. Nie von selbst: der Planer weiß
+   * vielleicht, dass morgen eine Lieferung kommt oder das Teil schon im Bus
+   * liegt.
    */
-  async function anforderungAnlegen(position: RuestPosition, fehlmenge: number) {
-    if (!user) return;
-    /*
-      WER ABHOLT, STEHT AUF DER ANFORDERUNG (Testbericht 30.09.2026, G31):
-      der eingeteilte Monteur, nicht der Planer. Ein Facharbeiter vor einem
-      Helfer; ist noch niemand eingeteilt, bleibt es der Planer. Wer sie
-      angelegt hat, steht in der Notiz.
-    */
-    const eingeteilt = staff.filter((u) => picks[u.uid]?.on);
-    const abholer =
-      eingeteilt.find((u) =>
-        ['Facharbeiter', 'Obermonteur'].includes(stufeImEinsatz(picks[u.uid]?.asHelper, u)),
-      ) ?? eingeteilt[0] ?? { uid: user.uid, name: user.name };
-    setAnforderungLaeuft(true);
-    setRuestFehler(null);
-    try {
-      await createMaterialOrder(user.companyId, {
-        materialId: position.materialId ?? '',
-        materialName: position.name,
-        quantity: fehlmenge,
-        projectNumber,
-        note:
-          abholer.uid === user.uid
-            ? `Für den Einsatz am ${fmtDay(date)}`
-            : `Für den Einsatz am ${fmtDay(date)} · angelegt von ${user.name}`,
-        status: 'Offen',
-        transactionType: 'order',
-        userId: abholer.uid,
-        userName: abholer.name,
-      });
-      setAngefordert((alt) => new Set(alt).add(position.id));
-      toast.success('Anforderung angelegt');
-    } catch {
-      setRuestFehler('Die Anforderung konnte nicht angelegt werden.');
-    } finally {
-      setAnforderungLaeuft(false);
-    }
+  function abholerFuer(eingeteilt: string[]): { uid: string; name: string } {
+    const leute = staff.filter((u) => eingeteilt.includes(u.uid));
+    const fach = leute.find((u) =>
+      ['Facharbeiter', 'Obermonteur'].includes(stufeImEinsatz(picks[u.uid]?.asHelper, u)),
+    );
+    const wer = fach ?? leute[0];
+    return wer ? { uid: wer.uid, name: wer.name } : { uid: user!.uid, name: user!.name };
   }
 
   if (!user) return null;
@@ -741,18 +758,18 @@ export default function EinsatzFormular({
           materials={materials}
           positionen={ruestliste}
           onChange={setRuestliste}
-          onAnforderung={anforderungAnlegen}
-          anforderungLaeuft={anforderungLaeuft}
+          onVormerken={(id, menge) =>
+            setVorgemerkt((alt) => {
+              const neu = new Map(alt);
+              if (menge != null) neu.set(id, menge);
+              else neu.delete(id);
+              return neu;
+            })
+          }
+          vorgemerkt={vorgemerkt}
           onOffen={setOffeneRuestzeile}
           verfuegbar={ruestVerfuegbar}
-          angefordert={angefordert}
         />
-        {/*
-          Der Fehler der ANFORDERUNG steht hier — sie ist ein eigener
-          Vorgang mit eigenem Knopf. Der Fehler des Speicherns steht unten
-          beim Speichern.
-        */}
-        {ruestFehler && <div className="mt-3"><ErrorState message={ruestFehler} /></div>}
       </>
     ) : null;
 

@@ -53,7 +53,8 @@ import { fmtMenge } from '@/lib/belegLayout';
 import { todayStr } from '@/lib/time';
 import Adressfilter from '@/components/Adressfilter';
 import { ANFORDERUNGS_FILTER, bekannt, type AnforderungsFilter } from '@/features/dashboard/start/ziele';
-import { istAbholbereitAlt, istLieferungHeute, istLieferungUeberfaellig } from './anforderungStand';
+import { istAbholbereitAlt, istLieferungHeute, istLieferungUeberfaellig, wienerTag } from './anforderungStand';
+import { datumAT } from '@/lib/datum';
 import { lieferterminText } from './einkauf';
 import RetoureFenster from './RetoureFenster';
 import { listUsers } from '@/lib/db/users';
@@ -191,12 +192,19 @@ function verlaufVon(o: MaterialOrder, haendler: string | undefined): LotPunkt[] 
   }
   if (o.geliefertAm) punkte.push({ titel: 'Geliefert', zeit: zeitpunkt(o.geliefertAm) });
   if (o.status === 'In Bearbeitung' && !o.beschaffung) punkte.push({ titel: 'In Bearbeitung' });
+  /*
+    ABHOLBEREIT MIT ZEITPUNKT, AUCH NACH DEM ABHOLEN (Runde 6, Hinweis 7):
+    die Datenbank behält „abholbereit seit“ seit dieser Fassung auch bei
+    „Erledigt“, und „Erledigt“ hat seinen eigenen Zeitpunkt. Ältere erledigte
+    Anforderungen haben den ersten nicht mehr — dann fehlt der Punkt, statt
+    eine Zeit zu erfinden.
+  */
   if (o.status === 'Abholbereit' || o.status === 'Erledigt') {
     if (o.abholbereitSeit || o.status === 'Abholbereit') {
       punkte.push({ titel: 'Abholbereit', zeit: zeitpunkt(o.abholbereitSeit) });
     }
   }
-  if (o.status === 'Erledigt') punkte.push({ titel: 'Erledigt' });
+  if (o.status === 'Erledigt') punkte.push({ titel: 'Erledigt', zeit: zeitpunkt(o.erledigtAm) });
   // Der letzte Punkt ist der jetzige — ausser die Anforderung ist erledigt.
   if (o.status !== 'Erledigt') punkte[punkte.length - 1] = { ...punkte[punkte.length - 1], jetzt: true };
   return punkte;
@@ -615,6 +623,8 @@ export default function AdminOrdersView() {
       {o.projectNumber && <> · <span className="nr">{o.projectNumber}</span></>}
       {o.condition && ` · ${CONDITION_LABEL[o.condition] ?? o.condition}`}
       {o.bestelltAm && !o.geliefertAm && o.liefertermin && ` · ${lieferterminText(o.liefertermin)}`}
+      {/* Hinweis 7: der Tag, nach dem „seit über 3 Tagen abholbereit“ zählt. */}
+      {o.status === 'Abholbereit' && o.abholbereitSeit && ` · abholbereit seit ${datumAT(wienerTag(o.abholbereitSeit))}`}
     </>
   );
 

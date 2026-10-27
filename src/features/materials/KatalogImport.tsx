@@ -15,6 +15,7 @@ import {
   dekodiere,
   layoutWarnung,
   liesDatanorm,
+  ohneDoppelte,
   type DatanormErgebnis,
 } from './datanorm';
 import { datumAusMs } from '@/lib/datum';
@@ -57,7 +58,10 @@ export default function KatalogImport() {
   const [neuerName, setNeuerName] = useState('');
 
   const [datei, setDatei] = useState<{ name: string; zeichensatz: string } | null>(null);
-  const [ergebnis, setErgebnis] = useState<DatanormErgebnis | null>(null);
+  /** Was die Datei hergibt — ungefiltert; nur die Prüfung auf ein verschobenes Layout liest es. */
+  const [gelesen, setGelesen] = useState<DatanormErgebnis | null>(null);
+  /** Ohne doppelte Artikelnummern (G25) — das zeigt der Probelauf, und nur das wird übernommen. */
+  const ergebnis = useMemo(() => (gelesen ? ohneDoppelte(gelesen) : null), [gelesen]);
   const [saetze, setSaetze] = useState<Record<string, string>>({});
   const [fortschritt, setFortschritt] = useState<number | null>(null);
   /** Was gerade läuft: Zeilen ins Zwischenlager senden, oder sie in den Stamm übernehmen. */
@@ -89,7 +93,7 @@ export default function KatalogImport() {
   }, [betrieb]);
 
   const zahlen = useMemo(() => (ergebnis ? befunde(ergebnis) : null), [ergebnis]);
-  const warnung = useMemo(() => (ergebnis ? layoutWarnung(ergebnis) : undefined), [ergebnis]);
+  const warnung = useMemo(() => (gelesen ? layoutWarnung(gelesen) : undefined), [gelesen]);
 
   /**
    * Die Rabattgruppen, die in dieser Datei mit einem LISTENpreis vorkommen.
@@ -134,7 +138,7 @@ export default function KatalogImport() {
       const e = liesDatanorm(roh.text);
       const wer = await lieferantWaehlen();
       setDatei({ name: f.name, zeichensatz: roh.zeichensatz });
-      setErgebnis(e);
+      setGelesen(e);
 
       // Die schon hinterlegten Sätze in die Felder — sonst tippt der Betrieb
       // bei jedem Katalog dieselben Zahlen neu.
@@ -204,7 +208,7 @@ export default function KatalogImport() {
 
   function zurueck() {
     setLaufInArbeit(null);
-    setErgebnis(null);
+    setGelesen(null);
     setDatei(null);
     setBericht(null);
     setFehler(null);
@@ -339,7 +343,8 @@ export default function KatalogImport() {
               />
               <Metric label="Nur Listenpreis" value={zahlen.nurListenpreis} />
               <Metric
-                label="Nicht verstanden"
+                // Nicht verstanden ODER doppelt in der Datei (G25) — beides geht nicht in den Katalog.
+                label="Nicht übernommen"
                 value={zahlen.unverstanden}
                 tone={zahlen.unverstanden > 0 ? 'warning' : 'default'}
               />
@@ -397,7 +402,7 @@ export default function KatalogImport() {
 
           {ergebnis.unverstanden.length > 0 && (
             <Card
-              title={`Nicht verstandene Zeilen (${ergebnis.unverstanden.length})`}
+              title={`Nicht übernommene Zeilen (${ergebnis.unverstanden.length})`}
               hint={
                 <>
                   Diese Zeilen werden <strong>nicht</strong> übernommen. Die Originalzeile steht

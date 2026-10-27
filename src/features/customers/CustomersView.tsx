@@ -37,6 +37,7 @@ import KundenImport, { type KundenImportGriff } from './KundenImport';
 import KundenartUidFelder from '@/components/KundenartUidFelder';
 import { uidSperrt } from '@/lib/uid';
 import { grundAus } from '@/lib/fehlerGrund';
+import { angabenZuPruefen, mailFehler, plzFehler } from '@/lib/adresse';
 
 const LEER: NewCustomer = {
   name: '',
@@ -140,6 +141,8 @@ export default function CustomersView() {
    * Anlegen (Testbericht 30.09.2026, M11). `null`: keine Rückfrage offen.
    */
   const [gleichNamig, setGleichNamig] = useState<WithId<Customer>[] | null>(null);
+  /** Runde 6, M6: was an PLZ oder E-Mail nicht stimmt — die Rückfrage „Trotzdem speichern“. */
+  const [angabenFrage, setAngabenFrage] = useState<string[] | null>(null);
 
   /*
     ZWEI RECHTE, NICHT EINES. Kunden pflegt, wer die Freigabe hat (siehe
@@ -268,16 +271,29 @@ export default function CustomersView() {
 
   async function speichern(e: FormEvent) {
     e.preventDefault();
-    await speichernBestaetigt(false);
+    await speichernBestaetigt({});
   }
 
-  async function speichernBestaetigt(trotzdem: boolean) {
+  async function speichernBestaetigt(bestaetigt: { gleichNamig?: boolean; angaben?: boolean }) {
+    const trotzdem = !!bestaetigt.gleichNamig;
     if (!user || !form.name.trim()) return;
     // Eine falsch geschriebene UID hält auf — nur wenn sie geändert wurde (M10).
     const uidFalsch = uidSperrt(form.vatId, bearbeitet?.vatId);
     if (uidFalsch) {
       setError(uidFalsch);
       return;
+    }
+    /*
+      PLZ UND E-MAIL MIT RÜCKFRAGE (Runde 6, M6): „82“ in Österreich und
+      „…@gmail“ gingen ohne Wort durch, bis die E-Rechnung daran scheiterte.
+      Beim Bearbeiten nur, was sich geändert hat.
+    */
+    if (!bestaetigt.angaben) {
+      const funde = angabenZuPruefen(form, bearbeitet ?? undefined);
+      if (funde.length > 0) {
+        setAngabenFrage(funde);
+        return;
+      }
     }
     setSpeichert(true);
     setError(null);
@@ -539,10 +555,11 @@ export default function CustomersView() {
                     title={k.name}
                     nummer={k.kundennummer ? `Nr. ${k.kundennummer}` : undefined}
                     zustand={
-                      k.adressePruefen || !k.kundenart ? (
+                      k.adressePruefen || plzFehler(k.plz, k.land) || mailFehler(k.email) || !k.kundenart ? (
                         <>
-                          {/* M12: die alte Zeile liess sich nicht eindeutig zerlegen. */}
-                          {k.adressePruefen && <Warnung>Adresse prüfen</Warnung>}
+                          {/* M12: die alte Zeile liess sich nicht eindeutig zerlegen; Runde 6, M6: die PLZ passt nicht zum Land. */}
+                          {(k.adressePruefen || plzFehler(k.plz, k.land)) && <Warnung>Adresse prüfen</Warnung>}
+                          {mailFehler(k.email) && <Warnung>E-Mail prüfen</Warnung>}
                           {!k.kundenart && <Warnung>Kundenart prüfen</Warnung>}
                         </>
                       ) : undefined
@@ -689,8 +706,10 @@ export default function CustomersView() {
               label="E-Mail"
               type="email"
               value={form.email ?? ''}
+              aria-invalid={mailFehler(form.email) ? true : undefined}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
+            {mailFehler(form.email) && <p className="-mt-2 text-sm text-danger">{mailFehler(form.email)}</p>}
           </FormGrid>
           <KundenartUidFelder
             idPrefix="k"
@@ -819,9 +838,26 @@ export default function CustomersView() {
         onCancel={() => setGleichNamig(null)}
         onConfirm={async () => {
           setGleichNamig(null);
-          await speichernBestaetigt(true);
+          await speichernBestaetigt({ gleichNamig: true, angaben: true });
         }}
       />
+
+      <ConfirmDialog
+        open={angabenFrage !== null}
+        title="Angaben prüfen — trotzdem speichern?"
+        message="Die Prüfung ist grob — wer es besser weiß, speichert trotzdem. Bis die Angaben berichtigt sind, steht der Kunde unter „Anschrift prüfen“."
+        confirmLabel="Trotzdem speichern"
+        confirmTone="primary"
+        onCancel={() => setAngabenFrage(null)}
+        onConfirm={async () => {
+          setAngabenFrage(null);
+          await speichernBestaetigt({ angaben: true });
+        }}
+      >
+        <ul className="space-y-1 text-sm text-ink">
+          {(angabenFrage ?? []).map((f) => <li key={f}>{f}</li>)}
+        </ul>
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={!!toDelete}

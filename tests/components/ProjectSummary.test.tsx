@@ -325,6 +325,23 @@ describe('Projektauswertung — die Nummer, wie sie an der Baustelle steht (Laun
  * Monats) und „09:00" (die Einträge) nebeneinander, und das Datum der
  * Einträge hatte als einziges in der App eine zweistellige Jahreszahl.
  */
+describe('Projektauswertung — Lehrlinge im Budget (Runde 6, G18)', () => {
+  it('nennt den Anteil der Lehrlinge, die ins Budget zählen, statt alles „Fachzeit“ zu nennen', async () => {
+    const lehrling = eintrag({ id: 'l', userId: 'u3', userName: 'Lena Lehrling', insBudget: true } as Partial<TimeEntry>);
+    render(
+      <ProjectSummary
+        entries={[eintrag({ id: 'a' } as Partial<TimeEntry>), lehrling]}
+        gesamtFach={fachAus([eintrag({ id: 'a' } as Partial<TimeEntry>), lehrling])}
+        projects={[projekt]}
+        label="September 2026"
+      />,
+    );
+    await aufklappen();
+    expect(screen.getByText('Budgetstunden in September 2026: 17:00 Std (davon 08:30 Std Lehrling)')).toBeInTheDocument();
+    expect(screen.queryByText(/Fachzeit in/)).toBeNull();
+  });
+});
+
 describe('Projektauswertung — Zeiten und Datum wie überall', () => {
   it('schreibt Arbeitszeit UND Budget als HH:MM Std (Runde 3, G7)', async () => {
     render(
@@ -352,7 +369,7 @@ describe('Projektauswertung — Zeiten und Datum wie überall', () => {
     ).toBeInTheDocument();
 
     await aufklappen();
-    expect(screen.getByText('Fachzeit in September 2026: 08:30 Std')).toBeInTheDocument();
+    expect(screen.getByText('Budgetstunden in September 2026: 08:30 Std')).toBeInTheDocument();
     expect(screen.getByText(/\+ 08:30 Std Helfer-Leistung/)).toBeInTheDocument();
     expect(screen.getByText(/gesamt 08:30 Std \/ 40:00 Std Budget/)).toBeInTheDocument();
     // Keine Dezimalstunden mehr in der Karte.

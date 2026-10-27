@@ -13,7 +13,23 @@ import {
   TINTE,
   titel,
 } from '@/lib/belegLayout';
-import type { EinkaufsZeile } from './einkauf';
+import { anmerkungText, type EinkaufsZeile } from './einkauf';
+
+/**
+ * Die Zeilen der Tabelle — eigens, damit sie sich ohne PDF prüfen lassen.
+ * Die Anmerkung steht unter der Bezeichnung (Runde 6, G21): dort liest der
+ * Vertreter, was zu genau diesem Artikel gesagt ist.
+ */
+export function bestellTabelle(zeilen: EinkaufsZeile[]): string[][] {
+  return zeilen.map((z, i) => [
+    String(i + 1),
+    z.artikelnummer ?? '',
+    [z.bezeichnung, anmerkungText(z)].filter(Boolean).join('\n'),
+    fmtMenge(z.menge),
+    z.einheit ?? '',
+    z.kommissionen.join(', '),
+  ]);
+}
 
 /**
  * Die Bestellung beim Grosshändler als Beleg — im Layout von Rechnung und
@@ -65,14 +81,7 @@ export async function buildBestellungPdf(o: BestellungPdfOptionen) {
     ...TABELLENSTIL,
     startY: TABELLE_AB + 4,
     head: [['Pos.', 'Art.-Nr.', 'Bezeichnung', 'Menge', 'Einheit', 'Kommission']],
-    body: o.zeilen.map((z, i) => [
-      String(i + 1),
-      z.artikelnummer ?? '',
-      z.bezeichnung,
-      fmtMenge(z.menge),
-      z.einheit ?? '',
-      z.kommissionen.join(', '),
-    ]),
+    body: bestellTabelle(o.zeilen),
     columnStyles: {
       0: { cellWidth: 11, halign: 'right' },
       1: { cellWidth: 28 },

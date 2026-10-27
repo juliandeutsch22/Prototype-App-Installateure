@@ -795,6 +795,57 @@
     </div>
   </section>
 
+  <section id="lager-angebote-r6">
+    <div class="abschnittskopf">
+      <h2>27. Oktober: Lager, Angebote und Stammdaten (Testbericht Runde 6)</h2>
+      <p class="frage">Die Fehlmenge einer Rüstliste wurde zweimal ausgegeben, eine überholte Angebotsfassung ließ sich noch annehmen, Kunden mit PLZ „82“ standen nirgends zur Prüfung, und an einigen Stellen passten Beschriftung und Inhalt nicht zusammen.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Rüstliste: die Fehlmenge kommt über die Anforderung<span class="neu">geändert</span></h3>
+        <p>„Anforderung über 2 anlegen“ legt die Anforderung nicht mehr sofort an, sondern <strong>beim Speichern des Einsatzes</strong>, im selben Zug wie die Rüstliste und mit der Position verknüpft („Anforderung über 2 wird mit dem Einsatz gespeichert“, „Doch nicht“ nimmt es zurück). Gespeichert steht bei der Position „Anforderung angelegt“ und „Davon 2 über eine Anforderung“. Die Position teilt sich damit in zwei Wege: <strong>was die Anforderung bringt, reserviert und bucht die Anforderung</strong> (zugesagt, abgeholt), die Rüstliste reserviert und bucht beim Einladen nur den Rest aus dem Regal. Beispiel: 6 Pressfitting, im Regal 4 — die Liste reserviert 4, die Anforderung 2; „Aus Lager“ sagt die 2 erst zu, wenn neben den 4 wirklich 2 frei sind; der Haken „eingeladen“ bucht 4 ab, die Abholung 2. Ausgegeben sind 6, und „Ausgegeben, nicht auf einem Schein“ in der Rechnungsvorschau zählt ebenso 4 aus der Rüstliste und 2 aus der Anforderung. Der Monteur sieht an der Position „davon 2 Stk über die Anforderung — dort abholen“.</p>
+        <p>Wird die Anforderung gelöscht, zählt die Position wieder ganz. Ein zweiter Tipp oder ein weiteres Speichern legt nichts doppelt an; wächst die Menge, wird nur der Rest angeboten. Grenzen: Anforderungen, die vor dieser Fassung aus einer Rüstliste entstanden, tragen keine Position und rechnen wie bisher daneben. Reserviert wird weiter ab dem Einsatztag; eine Rüstliste für einen vergangenen Tag reserviert nichts mehr (so auch im Testbericht, der die Woche nachträglich durchspielte). Nimmt der Monteur trotz des Hinweises alles aus dem Regal, stimmt der Bestand erst nach der Inventur.</p>
+        <p class="wer">Planung (Geschäftsführung, Administrator, Projektleitung); Monteur (Rüstliste); Verwaltung (Anforderungen, „Aus Lager“)</p>
+      </div>
+      <div class="bereich">
+        <h3>Abholbereit mit Zeitpunkt<span class="neu">geändert</span></h3>
+        <p>Die Zeile einer abholbereiten Anforderung nennt „abholbereit seit 24.10.2026“; der Verlauf zeigt bei „Abholbereit“ den Zeitpunkt auch nach dem Abholen, und „Erledigt“ hat seinen eigenen. „Seit über 3 Tagen abholbereit“ zählt <strong>nach Kalendertagen</strong> ab diesem Tag — am 27.10. also, was seit dem 23.10. oder früher bereitliegt —, nicht mehr nach Stunden. Die Startseite des Monteurs nennt nur diesen Tag, nie den Tag des Anforderns. Grenze: Anforderungen, die vor dieser Fassung abgeholt wurden, haben den Zeitpunkt „abholbereit“ nicht mehr; bei ihnen fehlt der Punkt im Verlauf.</p>
+        <p class="wer">Verwaltung (Anforderungen, Startseite); Monteur (Startseite)</p>
+      </div>
+      <div class="bereich">
+        <h3>Angebot: ersetzte Fassungen<span class="neu">neu</span></h3>
+        <p>Wird eine Fassung angenommen, gelten die übrigen noch offenen Fassungen desselben Angebots (Entwurf, Versendet) als <strong>„Ersetzt“</strong>; sie stehen unter „Erledigt“ in der eigenen Gruppe „Ersetzt durch eine andere Fassung“ und lassen sich nicht mehr annehmen. Der Annehmen-Dialog sagt vorher, welche es betrifft („Damit gilt AN-2026-0008 als ersetzt“). Eine abgelehnte Fassung bleibt abgelehnt. Die Datenbank nimmt keine zweite Fassung desselben Angebots an — auch bei Angeboten von vor dieser Fassung, bei denen die alte noch „Versendet“ steht; die Zeile zeigt dort „Fassung AN-2026-0009 angenommen“ statt „Annehmen“.</p>
+        <p><strong>„Zählt als Arbeitszeit ins Stundenbudget“</strong> gibt es nur noch bei einer Stunden-Einheit (h, Std., Stunde); eine Pauschale bringt kein Budget — die Stunden dazu als eigene Position in h führen oder das Budget an der Baustelle eintragen. Ein Entwurf von früher, der eine Pauschale angehakt trägt, zählt sie nicht mehr; beim Speichern verliert sie den Haken. Ein schon versendetes Angebot behält seine Zahl.</p>
+        <p class="wer">Geschäftsführung, Administrator, Projektleitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Kunden und Firmendaten: PLZ und E-Mail mit Rückfrage<span class="neu">neu</span></h3>
+        <p>Passt die PLZ nicht zum Land (Österreich, Schweiz, Liechtenstein, Ungarn, Slowenien vier Ziffern, Deutschland fünf, sonst 3 bis 10 Zeichen) oder fehlt der E-Mail die Endung („…@gmail“), fragt das Speichern nach: <strong>„Angaben prüfen — trotzdem speichern?“</strong>. Beim Bearbeiten nur, wenn sich PLZ, Land oder E-Mail geändert haben. Wer trotzdem speichert, findet den Kunden unter <strong>„Anschrift prüfen“</strong> (mitgezählt), die Zeile sagt „Adresse prüfen“ bzw. „E-Mail prüfen“. Altkunden mit solchen Angaben stehen ab jetzt ebenso dort; geändert wird an ihnen nichts. Die Firmendaten fragen bei einer geänderten PLZ genauso nach. Ob eine solche Anschrift eine Rechnung aufhält, regelt die Rechnung (siehe Abrechnung).</p>
+        <p class="wer">Wer Kunden pflegt; Geschäftsführung, Administrator (Firmendaten)</p>
+      </div>
+      <div class="bereich">
+        <h3>Baustelle: Stunden im Budget samt Lehrling<span class="neu">geändert</span></h3>
+        <p>Statt „45,0 h Fachzeit von 16 h Budget“ steht <strong>„45,0 h von 16 h Budget (davon 16,0 h Lehrling)“</strong>: Lehrlingsstunden, die ins Budget zählen (ab Werk), werden genannt statt als Fachzeit ausgegeben; ohne Budget heißt es „Arbeitszeit“. Bei der Person steht ihr Anteil ebenso, und die Projektauswertung des Monats schreibt „Budgetstunden in Oktober 2026: … (davon … Lehrling)“ statt „Fachzeit“. Gerechnet wird wie bisher. Beim Anlegen einer Baustelle schlägt die Maske <strong>Ansprechpartner und Telefon aus der Kundenakte</strong> vor (änderbar, ein schon Getipptes bleibt); eine Baustelle aus einem angenommenen Angebot bekommt beides gleich mit.</p>
+        <p class="wer">Geschäftsführung, Administrator, Projektleitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Wartung: kein Datum aus der Zukunft<span class="neu">geändert</span></h3>
+        <p>„Zuletzt gewartet“ und „Gewartet am“ (Erledigt) nehmen höchstens heute an, das Baujahr höchstens das laufende Jahr — in der Maske und in der Datenbank, auch beim Berichtigen eines Tages. Eine Wartung, die schon einen Tag aus der Zukunft trägt, lässt sich weiter bearbeiten; erst wer den Tag oder das Baujahr ändert, muss einen gültigen eintragen.</p>
+        <p class="wer">Geschäftsführung, Administrator, Projektleitung</p>
+      </div>
+      <div class="bereich">
+        <h3>DATANORM: doppelte Artikelnummer in der Datei<span class="neu">behoben</span></h3>
+        <p>Steht eine Artikelnummer in der Datei mehrfach, übernimmt die App <strong>keine</strong> dieser Zeilen: sie stehen im Probelauf unter „Nicht übernommene Zeilen“ mit allen Zeilennummern und dem Preis, und der Artikel im Katalog bleibt, wie er ist. Welche Zeile gilt, weiß nur der Großhändler. Geprüft wird über die ganze Datei, bevor in Blöcken übernommen wird; die Kennzahl heißt jetzt „Nicht übernommen“. Vorher zeigte der Probelauf „4 neu“, und die zweite Zeile überschrieb die erste still.</p>
+        <p class="wer">Geschäftsführung, Administrator, Verwaltung mit „Katalog einspielen“</p>
+      </div>
+      <div class="bereich">
+        <h3>Kleinere Beschriftungen<span class="neu">geändert</span></h3>
+        <p><strong>Pläne:</strong> der Zustand steht als Etikett an der Zeile („Nur fürs Büro“ bzw. „Für Monteure sichtbar“), der Knopf nennt die Aktion: <strong>„Vor Monteuren verbergen“</strong> bzw. <strong>„Für Monteure zeigen“</strong>. <strong>Einkaufsliste:</strong> die Anmerkung eines eigenen Postens steht schon unter „Zu bestellen“ und geht ins Bestell-PDF (unter der Bezeichnung) und in die E-Mail an den Vertreter. <strong>Kundenakte:</strong> „Rechnungsanschrift“ steht einmal, nicht noch einmal als „Rechnungsadresse“ darunter. <strong>Lager:</strong> beim Einspielen eines Katalogs ist der Reiter „Einspielen“ markiert, die Überschrift steht einmal.</p>
+        <p class="wer">Je nach Bereich</p>
+      </div>
+    </div>
+  </section>
+
   <section id="sicherheit-runde6">
     <div class="abschnittskopf">
       <h2>27. Oktober: Sicherheitsprüfung vor dem Start</h2>
@@ -2371,17 +2422,17 @@
       </div>
       <div class="bereich">
         <h3>Angebote überarbeiten, Abrechnungsart<span class="neu">neu</span></h3>
-        <p>Ein versendetes oder abgelehntes Angebot wird über <strong>„Neue Fassung“</strong> überarbeitet: ein neuer Entwurf mit eigener Nummer, der auf den Vorgänger verweist; das versendete bleibt, wie es beim Kunden liegt. „Als Kopie anlegen“ geht ohne Verweis. Beim Annehmen wählt man die Abrechnung: <strong>Pauschal, Regie oder Einheitspreis nach Aufmaß</strong>. Ein Kunde gleichen Namens ist erlaubt, nach einer Rückfrage.</p>
+        <p>Ein versendetes oder abgelehntes Angebot wird über <strong>„Neue Fassung“</strong> überarbeitet: ein neuer Entwurf mit eigener Nummer, der auf den Vorgänger verweist; das versendete bleibt, wie es beim Kunden liegt. Wird eine Fassung angenommen, gelten die übrigen offenen seit 27.10. als „Ersetzt“. „Als Kopie anlegen“ geht ohne Verweis. Beim Annehmen wählt man die Abrechnung: <strong>Pauschal, Regie oder Einheitspreis nach Aufmaß</strong>. Ein Kunde gleichen Namens ist erlaubt, nach einer Rückfrage.</p>
         <p class="wer">Projektleiter, Geschäftsführung, Administrator · die Buchhaltung liest</p>
       </div>
       <div class="bereich">
         <h3>Planung: unbesetzt, Uhrzeit, Abholer<span class="neu">neu</span></h3>
-        <p>Fehlt ein Eingeteilter ganztags, bleibt der Einsatz im Wochenplan stehen — mit „fehlt“ — und die Startseite der Leitung meldet die Baustelle als <strong>unbesetzt</strong>. Ein Einsatz kann eine Uhrzeit von–bis tragen. Eine Anforderung aus der Rüstliste steht auf dem eingeteilten Monteur, damit das Lager weiß, wer abholt.</p>
+        <p>Fehlt ein Eingeteilter ganztags, bleibt der Einsatz im Wochenplan stehen — mit „fehlt“ — und die Startseite der Leitung meldet die Baustelle als <strong>unbesetzt</strong>. Ein Einsatz kann eine Uhrzeit von–bis tragen. Eine Anforderung aus der Rüstliste steht auf dem eingeteilten Monteur, damit das Lager weiß, wer abholt; seit 27.10. entsteht sie beim Speichern des Einsatzes und trägt ihre Position.</p>
         <p class="wer">Leitung, Projektleiter</p>
       </div>
       <div class="bereich">
         <h3>Lager mit Protokoll<span class="neu">neu</span></h3>
-        <p>Jede Änderung des Bestands ist eine Bewegung im <strong>Bewegungsprotokoll</strong>: Wareneingang mit Lieferant und Lieferschein, Inventur mit Grund. Das <strong>Lager</strong> zeigt nur Artikel, die dort geführt werden; der <strong>Katalog</strong> bleibt Katalog. „Knapp“ heißt unter der Mindestmenge, sonst höchstens 5 frei. Meter und Kilo nehmen Komma, Stück bleibt ganz. Die Rüstliste reserviert, der Monteur sieht, was frei ist. Ein <strong>Materialaufschlag</strong> (Standard und je Warengruppe) schlägt Verkaufspreise vor, übernommen erst auf Klick.</p>
+        <p>Jede Änderung des Bestands ist eine Bewegung im <strong>Bewegungsprotokoll</strong>: Wareneingang mit Lieferant und Lieferschein, Inventur mit Grund. Das <strong>Lager</strong> zeigt nur Artikel, die dort geführt werden; der <strong>Katalog</strong> bleibt Katalog. „Knapp“ heißt unter der Mindestmenge, sonst höchstens 5 frei. Meter und Kilo nehmen Komma, Stück bleibt ganz. Die Rüstliste reserviert, der Monteur sieht, was frei ist; was eine verknüpfte Anforderung bringt, reserviert seit 27.10. die Anforderung, nicht noch einmal die Liste. Ein <strong>Materialaufschlag</strong> (Standard und je Warengruppe) schlägt Verkaufspreise vor, übernommen erst auf Klick.</p>
         <p class="wer">Verwaltung, Leitung</p>
       </div>
       <div class="bereich">
@@ -2905,7 +2956,7 @@
       </div>
       <div class="bereich">
         <h3>Baustellen<span class="neu">nummer ändern</span></h3>
-        <p>Anlegen, Kunde zuordnen, Team und Projektleitung, Stundenbudget — dasselbe Muster wie beim Kunden: eine eigene Seite je Baustelle, Bearbeiten darin. Fachzeit über die ganze Laufzeit gegen das Budget, Stunden je Mitarbeiter, letzter Buchungstag. Gesucht wird nach Nummer, Bezeichnung, Adresse und Kunde — serverseitig, samt der alten, abgeschlossenen. <strong>Seit 23.09.: Pläne und Dokumente</strong> (PDF, Bilder, seit 12.10. auch Word, Excel und E-Mails; bis 25 MB) — sichtbar für das Büro und für Monteure, die im Team stehen oder dort eingeteilt sind. <strong>„Nur fürs Büro“</strong> lässt sich beim Hinzufügen ankreuzen und je Dokument jederzeit umstellen; was „Nur Büro“ trägt, sehen die Monteure weder in der Liste noch über die Adresse der Datei. Klingt ein Dateiname nach einem Beleg oder nach einer Person, fragt die App nach und hat „Nur fürs Büro“ dabei schon angekreuzt. Behoben am selben Tag: eine Datei, für die das Gerät keinen Typ meldet (oft aus der Dateien-App am iPhone), wurde vom Speicher abgewiesen — hier wie beim Nachweis einer Freistellung. Eine Baustelle mit Buchungen, Scheinen oder Plänen lässt sich nicht löschen, und die Liste sagt jetzt warum, statt wortlos offen zu bleiben. <strong>Seit 24.09. nimmt eine geänderte Projektnummer alles mit</strong> — Zeitbuchungen, Einsätze, Rüstlisten, Schein-Entwürfe, Anforderungen, Angebote, Wartungen samt ihren Ausführungen; vorher zeigte die Baustelle danach null Stunden. Steht die Nummer schon auf einer Rechnung oder einem unterschriebenen Schein, bleibt sie, und die Meldung sagt warum. Fällt der geplante Zeitraum in einen Betriebsurlaub, steht das beim Datum.</p>
+        <p>Anlegen, Kunde zuordnen, Team und Projektleitung, Stundenbudget — dasselbe Muster wie beim Kunden: eine eigene Seite je Baustelle, Bearbeiten darin. Was ins Budget zählt über die ganze Laufzeit gegen das Budget — seit 27.10. mit dem Anteil der Lehrlinge („45,0 h von 16 h Budget (davon 16,0 h Lehrling)“) —, Stunden je Mitarbeiter, letzter Buchungstag. Gesucht wird nach Nummer, Bezeichnung, Adresse und Kunde — serverseitig, samt der alten, abgeschlossenen. <strong>Seit 23.09.: Pläne und Dokumente</strong> (PDF, Bilder, seit 12.10. auch Word, Excel und E-Mails; bis 25 MB) — sichtbar für das Büro und für Monteure, die im Team stehen oder dort eingeteilt sind. <strong>„Nur fürs Büro“</strong> lässt sich beim Hinzufügen ankreuzen und je Dokument jederzeit umstellen (seit 27.10. „Vor Monteuren verbergen“ bzw. „Für Monteure zeigen“, der Zustand als Etikett an der Zeile); was „Nur Büro“ trägt, sehen die Monteure weder in der Liste noch über die Adresse der Datei. Klingt ein Dateiname nach einem Beleg oder nach einer Person, fragt die App nach und hat „Nur fürs Büro“ dabei schon angekreuzt. Behoben am selben Tag: eine Datei, für die das Gerät keinen Typ meldet (oft aus der Dateien-App am iPhone), wurde vom Speicher abgewiesen — hier wie beim Nachweis einer Freistellung. Eine Baustelle mit Buchungen, Scheinen oder Plänen lässt sich nicht löschen, und die Liste sagt jetzt warum, statt wortlos offen zu bleiben. <strong>Seit 24.09. nimmt eine geänderte Projektnummer alles mit</strong> — Zeitbuchungen, Einsätze, Rüstlisten, Schein-Entwürfe, Anforderungen, Angebote, Wartungen samt ihren Ausführungen; vorher zeigte die Baustelle danach null Stunden. Steht die Nummer schon auf einer Rechnung oder einem unterschriebenen Schein, bleibt sie, und die Meldung sagt warum. Fällt der geplante Zeitraum in einen Betriebsurlaub, steht das beim Datum.</p>
         <p class="wer">Leitung</p>
       </div>
       <div class="bereich">
@@ -3368,7 +3419,7 @@
     <div class="bereiche">
       <div class="bereich">
         <h3>Erst ansehen, dann übernehmen</h3>
-        <p>Die DATANORM-Datei wird eingelesen und <strong>zunächst nur gezeigt</strong>: wie viele Artikel erkannt wurden, wie viele ohne Preis blieben, welche Zeilen mit Nummer und Grund NICHT verstanden wurden. Geschrieben wird erst auf den zweiten Klick. <strong>Seit 10.10.2026 in Blöcken zu hundert Zeilen</strong>, mit Fortschritt („2.300 von 18.000 übernommen …“): in einem Zug brach jeder Katalog über ein paar hundert Zeilen an der Zeitgrenze der Datenbank ab und schrieb gar nichts. Jeder Block ist für sich ganz oder gar nicht. Steht eine Artikelnummer im Katalog doppelt, beginnt die Übernahme gar nicht erst. Bricht sie zwischendurch ab (Netz, Fenster geschlossen), bleibt das schon Übernommene im Katalog, der Lauf steht mit seinem Zwischenstand im Protokoll, und <strong>„Weiter übernehmen“</strong> setzt beim Rest fort.</p>
+        <p>Die DATANORM-Datei wird eingelesen und <strong>zunächst nur gezeigt</strong>: wie viele Artikel erkannt wurden, wie viele ohne Preis blieben, welche Zeilen mit Nummer und Grund NICHT verstanden wurden. Geschrieben wird erst auf den zweiten Klick. <strong>Seit 10.10.2026 in Blöcken zu hundert Zeilen</strong>, mit Fortschritt („2.300 von 18.000 übernommen …“): in einem Zug brach jeder Katalog über ein paar hundert Zeilen an der Zeitgrenze der Datenbank ab und schrieb gar nichts. Jeder Block ist für sich ganz oder gar nicht. Steht eine Artikelnummer im Katalog doppelt, beginnt die Übernahme gar nicht erst; steht sie in der Datei doppelt, wird seit 27.10. keine dieser Zeilen übernommen (Probelauf: „Nicht übernommene Zeilen“). Bricht sie zwischendurch ab (Netz, Fenster geschlossen), bleibt das schon Übernommene im Katalog, der Lauf steht mit seinem Zwischenstand im Protokoll, und <strong>„Weiter übernehmen“</strong> setzt beim Rest fort.</p>
         <p class="wer">Geschäftsführung, Administrator und die Verwaltung mit Freigabe „Katalog einspielen“ (sie sieht damit auch Einkaufspreise) — wer einzeln keine Einkaufspreise setzen darf, darf sie auch nicht zu vierzigtausend Stück einspielen</p>
       </div>
       <div class="bereich">

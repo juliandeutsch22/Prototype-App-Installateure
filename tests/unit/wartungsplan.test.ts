@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
+  baujahrFehler,
   monateDazu,
+  wartungsTagFehler,
   naechsterTermin,
   beurteile,
   tageZwischen,
@@ -160,5 +162,21 @@ describe('nachFaelligkeit', () => {
   it('stellt Vereinbarungen ohne Termin nach ganz oben', () => {
     const liste = [w('2026-09-01'), { faelligAm: '', aktiv: true }, w('2026-03-01')];
     expect(liste.sort(nachFaelligkeit)[0].faelligAm).toBe('');
+  });
+});
+
+describe('Kein Datum aus der Zukunft (Runde 6, G23)', () => {
+  it('weist einen Wartungstag nach heute ab, heute und früher nicht', () => {
+    expect(wartungsTagFehler('2026-12-01', '2026-10-27')).toMatch(/Zukunft/);
+    expect(wartungsTagFehler('2026-10-27', '2026-10-27')).toBeNull();
+    expect(wartungsTagFehler('2025-01-01', '2026-10-27')).toBeNull();
+    expect(wartungsTagFehler('', '2026-10-27')).toBeNull();
+  });
+
+  it('lässt das Baujahr bis zum laufenden Jahr zu', () => {
+    expect(baujahrFehler(2030, '2026-10-27')).toMatch(/höchstens 2026/);
+    expect(baujahrFehler(2026, '2026-10-27')).toBeNull();
+    expect(baujahrFehler(1899, '2026-10-27')).toMatch(/1900/);
+    expect(baujahrFehler(null, '2026-10-27')).toBeNull();
   });
 });

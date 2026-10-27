@@ -3,7 +3,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
-import type { AppUser, Assignment, EinsatzMaterial, Material, Project, Vacation } from '@/types';
+import type { AppUser, Assignment, EinsatzMaterial, Material, Project, RuestPosition, Vacation } from '@/types';
 import AssignmentsView from '@/features/assignments/AssignmentsView';
 import { listTermineImZeitraum } from '@/lib/db/termine';
 import { listUsers } from '@/lib/db/users';
@@ -578,15 +578,17 @@ describe('Einsatzplanung — Rüstliste', () => {
     expect(screen.getByText('Eckventil 1/2')).toBeInTheDocument();
   });
 
-  it('meldet eine Unterdeckung und legt NUR auf Tipp eine Anforderung an', async () => {
+  it('meldet eine Unterdeckung und fordert NUR auf Tipp an — angelegt mit dem Speichern (M5)', async () => {
     /**
      * Nie von selbst: der Planer weiß vielleicht, dass morgen eine Lieferung
-     * kommt oder das Teil schon im Bus liegt. Eine Schreibung in die
-     * Arbeitsliste eines anderen, auf Grundlage einer Vermutung, ist genau
-     * die Sorte Funktion, die das Vertrauen in die App kostet.
+     * kommt oder das Teil schon im Bus liegt. Seit Runde 6 (M5) entsteht die
+     * Anforderung nicht mehr auf den Tipp, noch bevor es den Einsatz gibt,
+     * sondern beim Speichern — im selben Zug wie die Liste, mit der Position
+     * verknüpft.
      */
     zeige();
     await baustelleWaehlen();
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
     await userEvent.type(
       await screen.findByRole('searchbox', { name: /Artikel aus dem Lager/ }),
       'Mischbatterie',
@@ -599,17 +601,33 @@ describe('Einsatzplanung — Rüstliste', () => {
     await userEvent.type(menge, '3');
 
     expect(await screen.findByText(/Im Lager fehlen/)).toBeInTheDocument();
-    expect(anforderungAnlegen).not.toHaveBeenCalled();
-
     await userEvent.click(screen.getByRole('button', { name: /Anforderung über 2 anlegen/ }));
-    await waitFor(() => expect(anforderungAnlegen).toHaveBeenCalled());
-    expect(anforderungAnlegen.mock.calls[0][1]).toMatchObject({
-      materialName: 'Mischbatterie',
-      quantity: 2,
-      projectNumber: '2026-042',
-      transactionType: 'order',
-      status: 'Offen',
-    });
+    expect(screen.getByText(/Anforderung über 2 wird mit dem Einsatz gespeichert/)).toBeInTheDocument();
+    // Noch nichts geschrieben — weder Anforderung noch Liste.
+    expect(anforderungAnlegen).not.toHaveBeenCalled();
+    expect(ruestSpeichern).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+    await waitFor(() => expect(ruestSpeichern).toHaveBeenCalled());
+    const positionen = ruestSpeichern.mock.calls[0][3] as RuestPosition[];
+    expect(positionen[0]).toMatchObject({ name: 'Mischbatterie', menge: 3, anfordern: { menge: 2 } });
+    expect(anforderungAnlegen).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: zurückgenommen oder nie getippt — keine Anforderung beim Speichern (M5)', async () => {
+    zeige();
+    await baustelleWaehlen();
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
+    await userEvent.type(await screen.findByRole('searchbox', { name: /Artikel aus dem Lager/ }), 'Mischbatterie');
+    await userEvent.click(await screen.findByRole('button', { name: /Mischbatterie auf die Rüstliste/ }));
+    const menge = screen.getByRole('textbox', { name: 'Menge' });
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '3');
+    await userEvent.click(screen.getByRole('button', { name: /Anforderung über 2 anlegen/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Doch nicht' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+    await waitFor(() => expect(ruestSpeichern).toHaveBeenCalled());
+    expect((ruestSpeichern.mock.calls[0][3] as RuestPosition[])[0].anfordern).toBeUndefined();
   });
 
   /* Testbericht 30.09.2026, G31 — wer abholt, steht auf der Anforderung. */
@@ -623,8 +641,9 @@ describe('Einsatzplanung — Rüstliste', () => {
     await userEvent.clear(menge);
     await userEvent.type(menge, '3');
     await userEvent.click(await screen.findByRole('button', { name: /Anforderung über 2 anlegen/ }));
-    await waitFor(() => expect(anforderungAnlegen).toHaveBeenCalled());
-    return anforderungAnlegen.mock.calls[0][1] as { userId: string; userName: string; note: string };
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+    await waitFor(() => expect(ruestSpeichern).toHaveBeenCalled());
+    return (ruestSpeichern.mock.calls[0][3] as RuestPosition[])[0].anfordern!;
   }
 
   it('legt die Anforderung auf den eingeteilten Monteur an, nicht auf den Planer (G31)', async () => {
@@ -636,12 +655,14 @@ describe('Einsatzplanung — Rüstliste', () => {
     expect(a.note).toMatch(/angelegt von Planer/);
   });
 
-  it('Gegenprobe: ist noch niemand eingeteilt, bleibt es der Planer', async () => {
+  it('Gegenprobe: mit zwei Eingeteilten der erste Facharbeiter — und der Vermerk, wer angelegt hat (G31)', async () => {
     zeige();
     await baustelleWaehlen();
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Erna Beispiel/ }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
     const a = await unterdeckungAnfordern();
-    expect(a).toMatchObject({ userId: 'pl', userName: 'Planer' });
-    expect(a.note).not.toMatch(/angelegt von/);
+    expect(['u1', 'u2']).toContain(a.userId);
+    expect(a.note).toMatch(/Für den Einsatz am .* · angelegt von Planer/);
   });
 
   it('meldet KEINE Unterdeckung bei einer freien Zeile', async () => {
@@ -889,17 +910,38 @@ describe('Rüstliste: Nachbestellung und Reservierung', () => {
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
   }
 
-  it('nach dem Anlegen ist der Knopf erledigt — keine doppelte Anforderung (G14)', async () => {
+  it('nach dem Anlegen ist der Knopf erledigt — keine doppelte Anforderung (G14, M5)', async () => {
+    // Gespeichert: 3 Mischbatterien, davon 2 über eine verknüpfte Anforderung; im Regal 1.
+    const id = MATERIAL.find((m) => m.name === 'Mischbatterie')!.id;
+    lagerStand = new Map([[id, { bestand: 1, zugesagt: 0, geplant: 1, frei: 0 }]]);
+    ruestlisten = [{
+      id: 'l1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', uids: ['u1'],
+      positionen: [{ id: 'p1', materialId: id, name: 'Mischbatterie', menge: 3, angefordert: 2 }],
+    } as EinsatzMaterial & { id: string }];
     zeige();
     await baustelleWaehlen();
-    await userEvent.type(await screen.findByRole('searchbox', { name: /Artikel aus dem Lager/ }), 'Mischbatterie');
-    await userEvent.click(await screen.findByRole('button', { name: /Mischbatterie auf die Rüstliste/ }));
-    const menge = screen.getByRole('textbox', { name: 'Menge' });
-    await userEvent.clear(menge);
-    await userEvent.type(menge, '3');
-    await userEvent.click(await screen.findByRole('button', { name: /Anforderung über 2 anlegen/ }));
-    expect((await screen.findAllByText('Anforderung angelegt')).length).toBeGreaterThan(1);
+    expect(await screen.findByText(/Im Lager fehlen/)).toBeInTheDocument();
+    expect(screen.getByText('Anforderung angelegt')).toBeInTheDocument();
+    expect(screen.getByText(/Davon 2 über eine Anforderung/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Anforderung über/ })).toBeNull();
+    lagerStand = null;
+  });
+
+  it('fordert nur den Rest an, wenn die Menge über das Angeforderte wächst (M5)', async () => {
+    const id = MATERIAL.find((m) => m.name === 'Mischbatterie')!.id;
+    lagerStand = new Map([[id, { bestand: 1, zugesagt: 0, geplant: 1, frei: 0 }]]);
+    ruestlisten = [{
+      id: 'l1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', uids: ['u1'],
+      positionen: [{ id: 'p1', materialId: id, name: 'Mischbatterie', menge: 3, angefordert: 2 }],
+    } as EinsatzMaterial & { id: string }];
+    zeige();
+    await baustelleWaehlen();
+    const menge = await screen.findByRole('textbox', { name: 'Menge' });
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '5');
+    // Für diese Liste frei ist 1 (ihr eigener Teil aus dem Regal); es fehlen 4, davon 2 schon angefordert.
+    expect(await screen.findByRole('button', { name: /Anforderung über 2 anlegen/ })).toBeInTheDocument();
+    lagerStand = null;
   });
 
   it('rechnet mit dem, was nach anderen Zusagen und Rüstlisten frei ist (M32)', async () => {

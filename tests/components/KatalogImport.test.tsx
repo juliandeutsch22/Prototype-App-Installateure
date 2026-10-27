@@ -139,7 +139,7 @@ describe('Erst ansehen, dann übernehmen', () => {
     // Vier Artikel tragen Preiskennzeichen 0 (Liste), einer die 1 (netto).
     expect(kennzahl('Artikel erkannt')).toBe('5');
     expect(kennzahl('Nur Listenpreis')).toBe('4');
-    expect(kennzahl('Nicht verstanden')).toBe('0');
+    expect(kennzahl('Nicht übernommen')).toBe('0');
     expect(screen.getByText(/5 neu · 0 Änderungen · 0 Löschsätze/)).toBeInTheDocument();
   });
 
@@ -269,6 +269,18 @@ describe('Nach der Übernahme', () => {
     expect(await screen.findByText('Übernommen')).toBeInTheDocument();
     expect(screen.getByText('Neu angelegt')).toBeInTheDocument();
     expect(screen.getByText(/4 Artikel stehen mit Listenpreis/)).toBeInTheDocument();
+  });
+
+  it('Runde 6, G25: zeigt eine doppelte Artikelnummer im Probelauf und schickt sie nicht', async () => {
+    await einlesen([SAUBER, 'A;N;A2;0;Kugelhahn doppelt;;1;0;Stk;100;10;0'].join('\n'));
+    expect(kennzahl('Artikel erkannt')).toBe('4');
+    expect(kennzahl('Nicht übernommen')).toBe('2');
+    expect(screen.getByText(/Nicht übernommene Zeilen \(2\)/)).toBeInTheDocument();
+    expect(screen.getAllByText(/„A2“ steht in der Datei mehrfach \(Zeilen 3, 7\)/)).toHaveLength(2);
+    await userEvent.click(screen.getByRole('button', { name: /4 Artikel übernehmen/ }));
+    await waitFor(() => expect(zeilenSchicken).toHaveBeenCalled());
+    const geschickt = zeilenSchicken.mock.calls[0][2] as Array<{ artikelnummer: string }>;
+    expect(geschickt.map((a) => a.artikelnummer)).toEqual(['A1', 'A3', 'A4', 'A5']);
   });
 
   it('schickt die gelesenen Artikel und nicht die Rohzeilen', async () => {
