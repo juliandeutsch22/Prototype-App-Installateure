@@ -42,6 +42,7 @@ export default function BaustellenSelect({
   label = 'Baustelle',
   required,
   meineUid,
+  nummerVorn = false,
 }: {
   companyId: string;
   /**
@@ -57,6 +58,15 @@ export default function BaustellenSelect({
   id?: string;
   label?: string;
   required?: boolean;
+  /**
+   * Die Nummer VOR dem Kunden: „PR-2026-0193 · CT Bau GmbH“ (Testbericht
+   * Runde 6, G3). In der Zeiterfassung stehen oft mehrere Baustellen
+   * desselben Kunden zur Wahl; hinten wurde die Nummer im schmalen Feld
+   * abgeschnitten, und gerade sie unterscheidet sie. Nur dort — im Büro
+   * (Einsatz, Rechnung, Bestellung, Schein) sucht man nach dem Kunden, und
+   * die Auswahl springt beim Tippen zu seinem Anfangsbuchstaben.
+   */
+  nummerVorn?: boolean;
 }) {
   const [projekte, setProjekte] = useState<WithId<Project>[]>([]);
   const [zustand, setZustand] = useState<'laedt' | 'fehler' | 'bereit'>('laedt');
@@ -164,7 +174,8 @@ export default function BaustellenSelect({
     );
   }
 
-  // Nach dem, was vorne in der Zeile steht — dem Kunden; die Datenbank liefert ungeordnet.
+  // Nach dem Kunden; die Datenbank liefert ungeordnet. Auch mit der Nummer vorn
+  // (`nummerVorn`): so stehen die Baustellen eines Kunden beisammen.
   const sortiert = [...projekte].sort(
     (a, b) =>
       (a.customerName ?? '').localeCompare(b.customerName ?? '', 'de') ||
@@ -174,7 +185,8 @@ export default function BaustellenSelect({
   const meine = meineUid ? laufend.filter((p) => p.assignedEmployees?.includes(meineUid)) : [];
   const aktiv = laufend.filter((p) => !meine.includes(p));
   const uebrige = sortiert.filter((p) => !laufend.includes(p));
-  const beschriften = (p: WithId<Project>) => `${p.customerName} (${p.projectNumber})`;
+  const beschriften = (p: WithId<Project>) =>
+    nummerVorn ? `${p.projectNumber} · ${p.customerName}` : `${p.customerName} (${p.projectNumber})`;
 
   return (
     <div>

@@ -627,3 +627,19 @@ describe('Monat — Vorschau und Seitenfenster sagen dasselbe', () => {
     expect(fenster.getByText(/Am selben Tag auf dieser Baustelle:/).parentElement?.textContent).toContain('08:00–10:00');
   });
 });
+
+/*
+  TESTBERICHT RUNDE 6, G4: in der Vorschau stand „Max Tes-termann (Helfer)“ —
+  die Namen wurden automatisch getrennt. Wie in der Planung (25.10.) jetzt nie.
+*/
+describe('Monat — Vorschau trennt keine Namen (Runde 6, G4)', () => {
+  it('die Namen der Eingeteilten tragen `kein-trennen`, die Adresse nicht', async () => {
+    zeige({ sicht: 'baustellen' });
+    const r = within(screen.getByRole('region', { name: 'Monatsplan nach Baustellen' }));
+    await userEvent.click(within(r.getByRole('group', { name: 'CT Bau GmbH' })).getByRole('button', { name: /05\.10\.: eingeplant, / }));
+    const v = within(vorschau());
+    expect(v.getByText('Eingeteilt').nextElementSibling).toHaveClass('v-wert', 'kein-trennen');
+    // Gegenprobe: lange Wörter in Zeit und Adresse trennen weiter wie überall.
+    expect(v.getByText('Zeit').nextElementSibling).not.toHaveClass('kein-trennen');
+  });
+});

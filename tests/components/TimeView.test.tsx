@@ -1160,3 +1160,50 @@ describe('Zeiterfassung — vom Büro gebucht, über der Grenze für Jugendliche
     expect(screen.getAllByText(/Berufsschule · Weg 00:30 Std/).length).toBeGreaterThan(0);
   });
 });
+
+/*
+  TESTBERICHT RUNDE 6, G3 und G12. „Meine Einträge“: drei Buchungen „CT Bau
+  GmbH“ an einem Tag waren nicht zu unterscheiden — die Baustellennummer
+  fehlte. Und der Schultag lautete ohne Notiz „Berufsschule · Unterricht … ·
+  Berufsschule“.
+*/
+describe('Zeiterfassung — Testbericht Runde 6 (G3, G12)', () => {
+  it('nennt neben dem Kunden die Baustellennummer, grau und ungetrennt', async () => {
+    eintraege = [
+      eintrag({ id: 'a', date: '2026-09-01', startTime: '07:00', endTime: '10:00', customerName: 'CT Bau GmbH', projectNumber: 'PR-2026-0189' }),
+      eintrag({ id: 'b', date: '2026-09-01', startTime: '10:00', endTime: '12:00', customerName: 'CT Bau GmbH', projectNumber: 'PR-2026-0193' }),
+    ];
+    zeige();
+    const nummern = await screen.findAllByText(/^PR-2026-019[03]$|^PR-2026-0189$/);
+    expect(nummern.map((n) => n.textContent).sort()).toEqual(['PR-2026-0189', 'PR-2026-0193']);
+    for (const n of nummern) expect(n).toHaveClass('zeile-nr');
+    // Die Zeile öffnet weiter den Eintrag, und die Vorlesehilfe endet auf „bearbeiten“.
+    expect(screen.getAllByRole('button', { name: /CT Bau GmbH PR-2026-0189 bearbeiten$/ })).toHaveLength(1);
+  });
+
+  it('Gegenprobe: ohne Baustelle keine leere Nummer', async () => {
+    eintraege = [eintrag({ id: 'a', date: '2026-09-01', customerName: undefined, projectNumber: undefined })];
+    const { container } = zeige();
+    await screen.findByText('01.09.2026');
+    expect(container.querySelector('.zeile-nr')).toBeNull();
+  });
+
+  it('der Schultag ohne Notiz nennt „Berufsschule“ nur einmal', async () => {
+    eintraege = [eintrag({
+      id: 's1', date: '2026-09-01', status: 'Berufsschule', startTime: undefined, endTime: undefined,
+      unterrichtMin: 360, wegzeitMin: 60, comment: 'Berufsschule',
+    })];
+    zeige();
+    const zeile = await screen.findAllByText(/Berufsschule · Unterricht 06:00 Std · Weg 01:00 Std/);
+    expect(zeile[0].textContent).toBe('Berufsschule · Unterricht 06:00 Std · Weg 01:00 Std');
+  });
+
+  it('Gegenprobe: eine eigene Notiz steht weiter da', async () => {
+    eintraege = [eintrag({
+      id: 's1', date: '2026-09-01', status: 'Berufsschule', startTime: undefined, endTime: undefined,
+      unterrichtMin: 360, comment: 'Blocklehrgang Wien',
+    })];
+    zeige();
+    expect((await screen.findAllByText(/Berufsschule · Unterricht 06:00 Std · Blocklehrgang Wien/)).length).toBeGreaterThan(0);
+  });
+});

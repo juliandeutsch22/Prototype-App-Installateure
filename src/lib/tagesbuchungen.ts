@@ -68,6 +68,21 @@ function istGanztags(e: Tagesbuchung): boolean {
 }
 
 /**
+ * ARBEIT NEBEN DER BERUFSSCHULE (Testbericht Runde 6, M1). Der Schultag ist
+ * ganztägig — kein zweiter Schultag, kein Urlaub oder Krankenstand daneben —,
+ * aber nach dem Unterricht kommen Lehrlinge oft noch in den Betrieb. Diese
+ * Arbeit war nicht buchbar; sie fehlte im Zeitkonto, im Lohn und in der
+ * Nachkalkulation, und die Prüfung „Unterricht + Weg + Arbeit“ (§ 11 Abs 7
+ * KJBG) schlug nie an. Doppelt zählt nichts: der Schultag schreibt dann nur
+ * gut, was die Arbeit vom Tagessoll offen lässt (`schultagGutschriftMin`).
+ * Dieselbe Regel steht in der Datenbank (`app.ganzer_tag_allein`).
+ */
+function nebenSchule(a: Tagesbuchung, b: Tagesbuchung): boolean {
+  return (a.status === 'Berufsschule' && b.status === 'Anwesend')
+    || (a.status === 'Anwesend' && b.status === 'Berufsschule');
+}
+
+/**
  * Was stundenweise frei sein kann: Zeitausgleich und seit dem 04.10.2026
  * Sonderurlaub und Pflegefreistellung (Behördenweg, ein Nachmittag Pflege).
  * Mit Uhrzeit sind sie ein Teil des Tages — Arbeit daneben ja, darüber nein.
@@ -117,13 +132,14 @@ export function buchungKonflikt(
 ): string | null {
   if (vorhandene.length === 0) return null;
 
-  const ganztags = vorhandene.find(istGanztags);
+  const ganztags = vorhandene.find((v) => istGanztags(v) && !nebenSchule(neu, v));
   if (ganztags) {
     const name = tagesStatusName(ganztags.status);
     return `Für diesen Tag ist bereits „${name}“ eingetragen. ${name} gilt für den ganzen Tag — zum Ändern bitte den bestehenden Eintrag bearbeiten.`;
   }
 
   if (istGanztags(neu)) {
+    if (vorhandene.every((v) => nebenSchule(neu, v))) return null;
     return `Für diesen Tag sind bereits Zeiten gebucht. „${tagesStatusName(neu.status)}“ gilt für den ganzen Tag — dafür müssen die gebuchten Zeiten zuerst gelöscht werden.`;
   }
 
@@ -139,7 +155,8 @@ export function buchungKonflikt(
   // Alles, was hier noch übrig ist und nicht stundenweise frei ist, ist
   // Arbeit — auch ein Eintrag ohne erkennbaren Status. Im Zweifel prüfen.
   const frei = vorhandene.filter((v) => istTeilfrei(v.status));
-  const arbeit = vorhandene.filter((v) => !istTeilfrei(v.status));
+  // Der Schultag daneben ist keine gearbeitete Zeit, mit der sich diese überschneiden könnte.
+  const arbeit = vorhandene.filter((v) => !istTeilfrei(v.status) && v.status !== 'Berufsschule');
   const gegen = istTeilfrei(neu.status) ? arbeit : frei;
   const ueberFrei = gegen.find((v) => ueberschneiden(neu, v));
   if (ueberFrei) {
@@ -231,6 +248,7 @@ export function tageMitEchterDoppelung(
  * Doppelung.
  */
 function doppeltMit(a: Tagesbuchung, b: Tagesbuchung): boolean {
+  if (nebenSchule(a, b)) return false;
   if (istGanztags(a) || istGanztags(b)) return true;
   const zaA = a.status === 'Zeitausgleich';
   const zaB = b.status === 'Zeitausgleich';

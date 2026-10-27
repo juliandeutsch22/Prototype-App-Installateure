@@ -1,4 +1,4 @@
-import { calcWorkMin, freigestelltMin, istGanztagsGutschrift, type Zeitangaben } from './arbeitszeit';
+import { arbeitJeTag, calcWorkMin, freigestelltMin, istGanztagsGutschrift, type Zeitangaben } from './arbeitszeit';
 import { tagesAnteil } from './feiertage';
 
 /**
@@ -39,6 +39,8 @@ import { tagesAnteil } from './feiertage';
 export interface EintragDoc extends Zeitangaben {
   userId: string;
   date: string; // 'YYYY-MM-DD'
+  /** Nur am Berufsschultag: die angegebene Unterrichtszeit in Minuten. */
+  unterrichtMin?: number | null;
 }
 
 export interface Monatsbilanz {
@@ -65,6 +67,12 @@ export interface Monatsbilanz {
   freistellungTage: number;
   /** Minuten stundenweiser Freistellung — erfüllte Sollzeit, keine Arbeitszeit. */
   freigestelltMin: number;
+  /**
+   * Die Berufsschultage mit angegebener Unterrichtszeit, je mit der Arbeit
+   * desselben Tages (Runde 6, M1). Bewertet wird erst bei der Anzeige
+   * (`schultagGutschriftMin`) — wie die Tage oben nur gezählt werden.
+   */
+  schultage: Array<{ tag: string; unterrichtMin: number; arbeitMin: number }>;
   /**
    * Die Daten mit Buchung, aufsteigend.
    *
@@ -100,6 +108,12 @@ export function bilanzAusEintraegen(monat: string, eintraege: EintragDoc[]): Mon
   let freistellungTage = 0;
   let freigestellt = 0;
   const tage = new Set<string>();
+  const imMonat = eintraege.filter((e) => monatVon(e.date) === monat);
+  const arbeit = arbeitJeTag(imMonat);
+  const schultage = imMonat
+    .filter((e) => e.status === 'Berufsschule' && e.unterrichtMin != null && e.unterrichtMin > 0)
+    .map((e) => ({ tag: e.date, unterrichtMin: e.unterrichtMin as number, arbeitMin: arbeit.get(e.date) ?? 0 }))
+    .sort((a, b) => a.tag.localeCompare(b.tag));
 
   for (const e of eintraege) {
     if (monatVon(e.date) !== monat) continue;
@@ -124,6 +138,7 @@ export function bilanzAusEintraegen(monat: string, eintraege: EintragDoc[]): Mon
     berufsschuleTage,
     freistellungTage,
     freigestelltMin: freigestellt,
+    schultage,
     tage: [...tage].sort(),
   };
 }

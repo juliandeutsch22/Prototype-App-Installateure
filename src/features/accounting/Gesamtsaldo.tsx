@@ -17,17 +17,36 @@ import { fmtMin } from '@/lib/time';
  * wird erst beim Aufklappen: für zwanzig Konten auf einmal wären das zwanzig
  * Abfragen, von denen niemand eine angesehen hat.
  */
-export default function Gesamtsaldo({ profil, halbeTage }: { profil: AppUser; halbeTage: boolean }) {
-  const [stand, setStand] = useState<{ saldoH: number } | 'laedt' | 'fehler'>('laedt');
+export default function Gesamtsaldo({
+  profil,
+  halbeTage,
+  saldoH,
+}: {
+  profil: AppUser;
+  halbeTage: boolean;
+  /**
+   * DIE ZAHL DER SEITE, wenn sie eine hat (Testbericht Runde 6, G7). Selbst
+   * geladen wurde nur beim Öffnen: nach dem Löschen eines Eintrags blieb der
+   * alte Stand stehen, während die Spalte „Gesamtsaldo“ der Liste daneben
+   * schon nachgerechnet hatte. Die Mitarbeiterübersicht holt ihre Salden nach
+   * jeder Änderung neu; mit ihrer Zahl zeigen Fenster und Liste dasselbe.
+   */
+  saldoH?: number | null;
+}) {
+  const [geladen, setStand] = useState<{ saldoH: number } | 'laedt' | 'fehler'>('laedt');
+  // `null`: die Seite holt die Zahl gerade — darauf warten statt doppelt zu laden.
+  const vonAussen = saldoH === null || (typeof saldoH === 'number' && Number.isFinite(saldoH));
+  const stand = saldoH === null ? 'laedt' : vonAussen ? { saldoH: saldoH as number } : geladen;
 
   useEffect(() => {
+    if (vonAussen) return;
     let weg = false;
     setStand('laedt');
     zeitguthabenLaden(profil, halbeTage)
       .then((r) => { if (!weg) setStand({ saldoH: r.saldoH }); })
       .catch(() => { if (!weg) setStand('fehler'); });
     return () => { weg = true; };
-  }, [profil, halbeTage]);
+  }, [profil, halbeTage, vonAussen]);
 
   if (!profil.appStartDate) return null;
   const start = Number(profil.initialOvertime ?? 0) || 0;

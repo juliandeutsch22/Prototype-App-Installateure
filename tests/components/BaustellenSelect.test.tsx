@@ -237,3 +237,30 @@ describe('Baustellenauswahl — wenn die Grenze greift', () => {
     expect(screen.queryByText(/nur die ersten/)).not.toBeInTheDocument();
   });
 });
+
+/*
+  TESTBERICHT RUNDE 6, G3: im Aufteilen-Dialog stand zweimal „CT Bau GmbH
+  (Claude-Test) (PR-2026-0…“ — die unterscheidende Nummer war abgeschnitten.
+  In der Zeiterfassung steht sie jetzt vorn; im Büro bleibt der Kunde vorn.
+*/
+describe('Baustellenauswahl — Nummer vorn (Runde 6, G3)', () => {
+  const zwei: (Project & { id: string })[] = [
+    { id: 'a', companyId: 'perl', projectNumber: 'PR-2026-0193', customerName: 'CT Bau GmbH (Claude-Test)', status: 'Aktiv' },
+    { id: 'b', companyId: 'perl', projectNumber: 'PR-2026-0189', customerName: 'CT Bau GmbH (Claude-Test)', status: 'Aktiv' },
+  ];
+  const beschriftungen = () =>
+    screen.getAllByRole('option').map((o) => o.textContent).filter((t) => t !== '— wählen —');
+
+  it('mit `nummerVorn`: „PR-2026-0189 · CT Bau GmbH …“', async () => {
+    listActiveProjects.mockResolvedValue(zwei);
+    render(<BaustellenSelect companyId="perl" value="" onChange={() => undefined} nummerVorn />);
+    await screen.findByText('PR-2026-0189 · CT Bau GmbH (Claude-Test)');
+    expect(beschriftungen()).toEqual(['PR-2026-0189 · CT Bau GmbH (Claude-Test)', 'PR-2026-0193 · CT Bau GmbH (Claude-Test)']);
+  });
+
+  it('Gegenprobe: ohne bleibt es „Kunde (Nummer)“ — für Einsatz, Rechnung, Bestellung, Schein', async () => {
+    listActiveProjects.mockResolvedValue(zwei);
+    render(<BaustellenSelect companyId="perl" value="" onChange={() => undefined} />);
+    await screen.findByText('CT Bau GmbH (Claude-Test) (PR-2026-0189)');
+  });
+});

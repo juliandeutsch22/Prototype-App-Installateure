@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -88,6 +88,10 @@ describe('Berufsschule', () => {
     await userEvent.clear(bis);
     await userEvent.type(bis, tag(4));
     await userEvent.click(screen.getByRole('button', { name: 'Berufsschule eintragen' }));
+    // Runde 6, M3/G12: ein mehrtägiger Zeitraum wird vorher genannt und bestätigt.
+    const frage = await screen.findByRole('dialog');
+    expect(frage).toHaveTextContent('Berufsschule über 5 Tage?');
+    await userEvent.click(within(frage).getByRole('button', { name: 'Eintragen' }));
     await waitFor(() =>
       expect(eintragen).toHaveBeenCalledWith({ userId: null, von: tag(0), bis: tag(4), notiz: '' }),
     );

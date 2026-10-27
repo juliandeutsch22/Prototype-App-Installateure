@@ -125,3 +125,43 @@ export function calcWorkMin(entry: Zeitangaben): number {
   }
   return 0;
 }
+
+/**
+ * WAS EIN BERUFSSCHULTAG DEM IST GUTSCHREIBT, in Minuten (Testbericht
+ * Runde 6, M1). `sollMin` ist das Soll dieses Tages (am 24./31.12. schon
+ * halbiert), `unterrichtMin` die beim Eintragen angegebene Unterrichtszeit,
+ * `arbeitMin` die an diesem Tag im Betrieb gearbeitete Zeit.
+ *
+ * WARUM NICHT EINFACH DAS TAGESSOLL PLUS DIE ARBEIT. Der Unterricht zählt
+ * als Arbeitszeit (§ 11 Abs 5 KJBG), der Schultag erfüllt das Tagessoll.
+ * Kommt der Lehrling nach sechs Stunden Unterricht noch eineinhalb Stunden
+ * in den Betrieb, hat er 7:30 Std. gearbeitet — mit Tagessoll plus Arbeit
+ * stünden 9:30 im Zeitkonto, also 1:30 Überstunden für Zeit, die das
+ * Tagessoll schon abdeckt. Deshalb: die Arbeit füllt zuerst auf, was der
+ * Unterricht vom Tagessoll offen ließ; erst was darüber geht, zählt dazu.
+ * Das Ist des Tages ist damit `max(Tagessoll, Unterricht + Arbeit)`.
+ *
+ * WAS GLEICH BLEIBT. Ein Schultag ohne Arbeit schreibt das Tagessoll gut,
+ * wie bisher. Ohne angegebene Unterrichtszeit zählt der Unterricht mit dem
+ * Tagessoll — wie in der Prüfung der Arbeitszeitgrenzen —, die Arbeit kommt
+ * dann ganz dazu. Mehr als das Tagessoll schreibt der Schultag selbst nie
+ * gut; der Weg zwischen Schule und Betrieb zählt nicht ins Zeitkonto.
+ */
+export function schultagGutschriftMin(
+  sollMin: number,
+  unterrichtMin: number | null | undefined,
+  arbeitMin: number,
+): number {
+  if (!(unterrichtMin != null && unterrichtMin > 0) || !(arbeitMin > 0)) return sollMin;
+  return Math.max(Math.min(unterrichtMin, sollMin), sollMin - arbeitMin);
+}
+
+/** Die gearbeiteten Minuten je Tag (nur „Anwesend“) — für `schultagGutschriftMin`. */
+export function arbeitJeTag(eintraege: ReadonlyArray<Zeitangaben & { date?: string }>): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const e of eintraege) {
+    if (e.status !== 'Anwesend' || !e.date) continue;
+    m.set(e.date, (m.get(e.date) ?? 0) + calcWorkMin(e));
+  }
+  return m;
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -96,6 +96,10 @@ describe('Urlaub in der Zeiterfassung', () => {
     await userEvent.clear(bis);
     await userEvent.type(bis, '2027-02-26');
     await userEvent.click(screen.getByRole('button', { name: 'Urlaub eintragen' }));
+    // Runde 6, M3/G12: ein mehrtägiger Zeitraum wird vorher genannt und bestätigt.
+    const frage = await screen.findByRole('dialog');
+    expect(frage).toHaveTextContent('Urlaub über 5 Tage?');
+    await userEvent.click(within(frage).getByRole('button', { name: 'Eintragen' }));
     await waitFor(() =>
       expect(eintragen).toHaveBeenCalledWith({
         userId: 'max', von: '2027-02-22', bis: '2027-02-26', notiz: '', name: 'Brigitte Büro',

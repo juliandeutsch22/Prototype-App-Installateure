@@ -33,7 +33,7 @@ export default function ConfirmDialog({
 }: {
   open: boolean;
   title: string;
-  message?: string;
+  message?: ReactNode;
   confirmLabel?: string;
   confirmTone?: 'danger' | 'primary';
   onConfirm: () => void | Promise<void>;

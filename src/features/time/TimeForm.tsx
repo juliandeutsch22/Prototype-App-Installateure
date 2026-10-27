@@ -45,6 +45,7 @@ import { aktiveModule } from '@/lib/module';
 import AufteilenDialog from './AufteilenDialog';
 import { aufteilenGeht } from './aufteilen';
 import { einfuegenPlan, einfuegenText } from './einfuegen';
+import { zeitraumFrage, type ZeitraumArt } from './zeitraumFrage';
 
 
 interface Props {
@@ -197,6 +198,18 @@ export default function TimeForm({
   /** Urlaub bis (einschließlich) — das Büro trägt ihn als genehmigten Antrag ein. */
   const [urlaubBis, setUrlaubBis] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
   const [schuleBis, setSchuleBis] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
+  /*
+    DAS ENDE ZIEHT MIT DEM DATUM MIT, solange es niemand von Hand gesetzt
+    hat (Testbericht Runde 6, M3 und G12). Bisher zog es nur nach vorn: wer
+    das Datum auf einen vergangenen Tag stellte, behielt „bis heute“ — aus
+    einem Krankheitstag wurde still eine Woche. Ein von Hand gesetztes Ende
+    bleibt stehen, rückt aber nach, wenn es sonst vor dem Datum läge.
+  */
+  const [bisVonHand, setBisVonHand] = useState<Record<ZeitraumArt, boolean>>({
+    Krank: false, Urlaub: false, Berufsschule: false,
+  });
+  /** Die Rückfrage vor einem mehrtägigen Zeitraum (M3) — offen, solange sie steht. */
+  const [zeitraumRueckfrage, setZeitraumRueckfrage] = useState<{ titel: string; text: string } | null>(null);
   /** Unterrichtszeit je Schultag (Runde 3, M1) — leer heisst Tagessoll. */
   const [unterricht, setUnterricht] = useState('');
   /** Wegzeit Schule–Betrieb je Schultag (A9) — leer heisst keine Angabe. */
@@ -517,7 +530,8 @@ export default function TimeForm({
   const [umfeld, setUmfeld] = useState<WithId<TimeEntry>[] | null>(null);
   useEffect(() => {
     setUmfeld(null);
-    if (!user || !besitzerUid || !jugendlichAmTag) return;
+    // Ohne Datum (das Feld wird gerade neu getippt) gibt es kein Umfeld — `umfeldDerBuchung('')` bräche ab.
+    if (!user || !besitzerUid || !jugendlichAmTag || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
     let verworfen = false;
     const { von, bis } = umfeldDerBuchung(date);
     Promise.resolve()
@@ -576,8 +590,26 @@ export default function TimeForm({
     void absenden(false);
   }
 
-  /** `bestaetigt`: die Rückfrage zum Jugendschutz ist schon beantwortet. */
-  async function absenden(bestaetigt: boolean) {
+  /**
+   * Titel und Text der Rückfrage vor einem mehrtägigen Zeitraum — mit den
+   * Tagen, die schon gebucht sind. Höchstens drei Sekunden: ohne Antwort
+   * steht nur, dass gebuchte Tage bleiben.
+   */
+  async function zeitraumText(art: ZeitraumArt, bis: string) {
+    const rows = user && besitzerUid
+      ? await mitFrist(
+        Promise.resolve().then(() => listOwnEntriesInRange(user.companyId, besitzerUid, date, bis)),
+        3000,
+      ).catch(() => null)
+      : null;
+    return zeitraumFrage(art, date, bis, (target ?? besitzerProfil)?.workDays, rows);
+  }
+
+  /**
+   * `bestaetigt`: die Rückfrage zum Jugendschutz ist schon beantwortet;
+   * `zeitraumOk`: die Rückfrage zum mehrtägigen Zeitraum (M3).
+   */
+  async function absenden(bestaetigt: boolean, zeitraumOk = false) {
     if (!user) return;
     setError(null);
 
@@ -645,6 +677,25 @@ export default function TimeForm({
       return;
     }
 
+    /*
+      EIN MEHRTÄGIGER ZEITRAUM WIRD VORHER GENANNT (M3, G12): wie viele Tage,
+      welche davon ins Zeitkonto kommen und welche schon gebucht sind.
+    */
+    const zeitraum: [ZeitraumArt, string] | null = alsKrankmeldung
+      ? ['Krank', krankBis]
+      : alsUrlaubEintrag
+        ? ['Urlaub', urlaubBis]
+        : alsBerufsschule
+          ? ['Berufsschule', schuleBis]
+          : null;
+    if (zeitraum && zeitraum[1] > date && !zeitraumOk) {
+      setSaving(true);
+      const frage = await zeitraumText(zeitraum[0], zeitraum[1]);
+      setSaving(false);
+      setZeitraumRueckfrage(frage);
+      return;
+    }
+
     setSaving(true);
     if (alsUrlaubEintrag) {
       try {
@@ -663,6 +714,7 @@ export default function TimeForm({
         );
         setComment('');
         setStatus('Anwesend');
+        setBisVonHand({ Krank: false, Urlaub: false, Berufsschule: false });
         onSaved();
       } catch (err) {
         setError(
@@ -693,6 +745,7 @@ export default function TimeForm({
         setUnterricht('');
         setWegzeit('');
         setStatus('Anwesend');
+        setBisVonHand({ Krank: false, Urlaub: false, Berufsschule: false });
         onSaved();
       } catch (err) {
         setError(grundAus(err, 'Die Berufsschule konnte nicht eingetragen werden.'));
@@ -719,6 +772,7 @@ export default function TimeForm({
         // Zurück auf den Normalfall: die Maske steht für die nächste Buchung
         // bereit, nicht für eine zweite Krankmeldung über dieselben Tage.
         setStatus('Anwesend');
+        setBisVonHand({ Krank: false, Urlaub: false, Berufsschule: false });
         onSaved();
       } catch (err) {
         // Der Grund des Servers zählt: eine Überschneidung nennt die andere
@@ -1019,11 +1073,14 @@ export default function TimeForm({
           type="date"
           value={date}
           onChange={(e) => {
-            setDate(e.target.value);
-            // Das Krank- und das Urlaubsende mitziehen, solange es davor läge.
-            if (krankBis < e.target.value) setKrankBis(e.target.value);
-            if (urlaubBis < e.target.value) setUrlaubBis(e.target.value);
-            if (schuleBis < e.target.value) setSchuleBis(e.target.value);
+            const neu = e.target.value;
+            setDate(neu);
+            // Das Ende mitziehen (M3, G12) — ein von Hand gesetztes nur, wenn es davor läge.
+            // Ein geleertes Feld (beim Tippen) zieht nichts mit.
+            const ziehen = (bis: string, vonHand: boolean) => (neu && (!vonHand || bis < neu) ? neu : bis);
+            setKrankBis(ziehen(krankBis, bisVonHand.Krank));
+            setUrlaubBis(ziehen(urlaubBis, bisVonHand.Urlaub));
+            setSchuleBis(ziehen(schuleBis, bisVonHand.Berufsschule));
           }}
           required
           pflicht
@@ -1092,7 +1149,10 @@ export default function TimeForm({
             type="date"
             value={krankBis}
             min={date}
-            onChange={(e) => setKrankBis(e.target.value)}
+            onChange={(e) => {
+              setKrankBis(e.target.value);
+              setBisVonHand((h) => ({ ...h, Krank: true }));
+            }}
             required
             pflicht
           />
@@ -1113,7 +1173,10 @@ export default function TimeForm({
             type="date"
             value={urlaubBis}
             min={date}
-            onChange={(e) => setUrlaubBis(e.target.value)}
+            onChange={(e) => {
+              setUrlaubBis(e.target.value);
+              setBisVonHand((h) => ({ ...h, Urlaub: true }));
+            }}
             required
             pflicht
           />
@@ -1126,7 +1189,7 @@ export default function TimeForm({
             <InfoHint about="Berufsschule">
               Die Arbeitstage bis zum Ende stehen als „Berufsschule“ im Zeitkonto: sie erfüllen das
               Tagessoll und gehen auf keine Rechnung. Für einen Blocklehrgang das letzte Datum
-              eintragen; schon gebuchte Tage bleiben.
+              eintragen; schon gebuchte Tage bleiben. Arbeit nach dem Unterricht wird wie sonst gebucht.
             </InfoHint>
           </p>
           <InputField
@@ -1135,7 +1198,10 @@ export default function TimeForm({
             type="date"
             value={schuleBis}
             min={date}
-            onChange={(e) => setSchuleBis(e.target.value)}
+            onChange={(e) => {
+              setSchuleBis(e.target.value);
+              setBisVonHand((h) => ({ ...h, Berufsschule: true }));
+            }}
             required
             pflicht
           />
@@ -1163,8 +1229,9 @@ export default function TimeForm({
               „7,5“ oder „7:30“, samt den Pausen in der Schule, ohne Mittagspause (§ 11 Abs 6 KJBG). Nach
               acht Stunden Unterricht darf an dem Tag nicht mehr gearbeitet werden, darunter nur bis zur
               Tagesgrenze (§ 11 Abs 7 KJBG) — samt dem Weg zwischen Schule und Betrieb, wenn er
-              darunter angegeben ist. Leer zählt der Schultag mit dem Tagessoll. Das Zeitkonto
-              rechnet den Schultag weiter mit dem Tagessoll.
+              darunter angegeben ist. Leer zählt der Schultag mit dem Tagessoll. Im Zeitkonto zählt
+              der Schultag mit dem Tagessoll; wird danach gearbeitet, füllt die Arbeit zuerst die
+              Stunden zwischen Unterricht und Tagessoll, erst was darüber geht, kommt dazu.
             </InfoHint>
           </div>
           {/*
@@ -1403,6 +1470,7 @@ export default function TimeForm({
               */}
               <BaustellenSelect
                 id="project"
+                nummerVorn
                 companyId={user.companyId}
                 meineUid={target?.uid ?? entry?.userId ?? user.uid}
                 value={projectNumber}
@@ -1537,6 +1605,18 @@ export default function TimeForm({
         }}
       />
     )}
+    <ConfirmDialog
+      open={!!zeitraumRueckfrage}
+      title={zeitraumRueckfrage?.titel ?? ''}
+      message={zeitraumRueckfrage?.text}
+      confirmLabel="Eintragen"
+      confirmTone="primary"
+      onCancel={() => setZeitraumRueckfrage(null)}
+      onConfirm={async () => {
+        setZeitraumRueckfrage(null);
+        await absenden(false, true);
+      }}
+    />
     <ConfirmDialog
       open={!!rueckfrage}
       title="Grenze für Jugendliche"

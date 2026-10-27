@@ -246,10 +246,17 @@ describe('Berufsschule im Zeitkonto', () => {
     });
   });
 
-  it('gilt für den ganzen Tag: daneben lässt sich keine Arbeitszeit buchen', () => {
+  /*
+    Seit Testbericht Runde 6 (M1) steht Arbeit nach dem Unterricht neben dem
+    Schultag; ganztägig bleibt er gegen alles andere. Die Einzelheiten prüft
+    `arbeitAmSchultag.test.ts`.
+  */
+  it('gilt für den ganzen Tag — daneben nur Arbeit nach dem Unterricht', () => {
     const schule = { status: 'Berufsschule' as const };
-    expect(buchungKonflikt({ status: 'Anwesend', startTime: '07:00', endTime: '11:00' }, [schule])).toMatch(/Berufsschule/);
-    expect(buchungKonflikt(schule, [{ status: 'Anwesend', startTime: '07:00', endTime: '11:00' }])).not.toBeNull();
+    expect(buchungKonflikt({ status: 'Anwesend', startTime: '16:00', endTime: '17:30', projectNumber: 'PR-1' }, [schule])).toBeNull();
+    expect(buchungKonflikt(schule, [{ status: 'Anwesend', startTime: '16:00', endTime: '17:30', projectNumber: 'PR-1' }])).toBeNull();
+    expect(buchungKonflikt({ status: 'Urlaub' }, [schule])).toMatch(/Berufsschule/);
+    expect(buchungKonflikt(schule, [schule])).toMatch(/Berufsschule/);
   });
 });
 
