@@ -774,3 +774,21 @@ describe('Anlage: Geburtsdatum für den Jugendschutz', () => {
     expect(anlegen.mock.calls[0][2] ?? null).toBeNull();
   });
 });
+
+/*
+  EINE HILFE AUCH IN DER LISTE (Testbericht Runde 6, G5): die Erklärungen
+  kamen bis dahin nur aus den „i“ des offenen Formulars. Gegenprobe: ohne
+  `hilfe` am Seitenkopf fehlt das Zeichen in der Liste.
+*/
+describe('Benutzerverwaltung — Hilfe zu dieser Seite', () => {
+  it('steht in der Liste, ohne dass das Formular offen ist', async () => {
+    leute = [person({ uid: 'u1', name: 'Erna Beispiel' })];
+    zeige();
+    await screen.findByText('Erna Beispiel');
+    expect(screen.queryByRole('heading', { name: 'Neuen Benutzer anlegen' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Hilfe zu dieser Seite' }));
+    const fenster = await screen.findByRole('dialog', { name: 'Hilfe zu Benutzerverwaltung' });
+    expect(within(fenster).getByText(/Gelöscht wird kein Konto/)).toBeInTheDocument();
+    expect(within(fenster).getByText(/Eine Zeile öffnet die Akte/)).toBeInTheDocument();
+  });
+});

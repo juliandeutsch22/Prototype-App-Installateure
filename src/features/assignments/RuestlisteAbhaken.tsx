@@ -188,7 +188,8 @@ export default function RuestlisteAbhaken({
             to={`/material?retoure=1&baustelle=${encodeURIComponent(projectNumber)}`}
             className="link-weiter inline-flex min-h-touch items-center"
           >
-            Übriges zurückgeben →
+            {/* Ohne eigenen Pfeil: `link-weiter` setzt das „›“ selbst (Runde 6, G9 — es stand „→ ›“). */}
+            Übriges zurückgeben
           </Link>
         </p>
       )}

@@ -472,7 +472,6 @@ export default function AdminOrdersView() {
     return [...map.entries()].map(([k, zeilen]) => ({ titel: dayHeading(k), zeilen }));
   }, [tab, rows, limit]);
 
-  const activeCount = purchases.filter((o) => o.status !== 'Erledigt').length;
   const haendlerName = (id?: string | null) => (id ? grosshaendler.find((g) => g.id === id)?.name : undefined);
   const offen = offenId ? bekannte.find((o) => o.id === offenId) ?? null : null;
 
@@ -589,16 +588,23 @@ export default function AdminOrdersView() {
   if (!user) return null;
 
   /*
-    „LAUFEND", NICHT „OFFEN". Der Reiter zählt alles, was noch nicht erledigt
-    ist — offen, in Bearbeitung, abholbereit. Das Abzeichen im Menü zählt nur
-    die noch unberührten, die auf jemanden warten. Hiessen beide „offen",
-    stünde im Menü 1 und am Reiter 3, und eine der beiden Zahlen sähe falsch
-    aus (Prüflauf 24.09.2026, F13).
+    „LAUFEND", NICHT „OFFEN". Der Reiter umfasst alles, was noch nicht
+    erledigt ist — offen, in Bearbeitung, abholbereit. Das Abzeichen im Menü
+    zählt nur die noch unberührten, die auf jemanden warten. Hiessen beide
+    „offen", läse man zwei verschiedene Zahlen für dasselbe Wort (Prüflauf
+    24.09.2026, F13).
+
+    EINE ZAHL NUR AM REITER, DER ARBEIT ZÄHLT (E26, Protokoll 7.7;
+    Testbericht Runde 6, G6): „Einkauf“ zählt, was noch zu bestellen ist.
+    „Laufend“, „Retouren“ und „Erledigt“ sind Bestand — die Zahl der
+    laufenden steht über jeder Gruppe in der Liste, und Retouren sind
+    erfasst, nicht zu tun. Beide Zahlen kamen zudem nur aus den geladenen
+    Anforderungen.
   */
   const TABS: { key: Tab; label: string; count?: number }[] = [
-    { key: 'aktiv', label: 'Laufend', count: activeCount },
+    { key: 'aktiv', label: 'Laufend' },
     { key: 'einkauf', label: 'Einkauf', count: zuBestellen },
-    { key: 'retouren', label: 'Retouren', count: returns.length },
+    { key: 'retouren', label: 'Retouren' },
     { key: 'archiv', label: 'Erledigt' },
   ];
 
@@ -653,18 +659,45 @@ export default function AdminOrdersView() {
           <>
             Laufend steht nach Arbeitsschritt geordnet, Eilzustellungen oben. Eine Zeile öffnet die
             Anforderung mit Verlauf und allen Aktionen; der Knopf daneben ist der übliche nächste
-            Schritt. Mit den Kästchen lassen sich mehrere auf einmal weiterschalten.
+            Schritt. Mit den Kästchen lassen sich mehrere auf einmal weiterschalten. Die Suche findet
+            Material, Besteller, Baustelle und Notiz über alle Anforderungen, auch ältere als die geladenen.
           </>
         }
       />
 
-      <div className="bereichswahl">
-      <Segmente
-        name="Bereich"
-        werte={TABS.map((t) => ({ wert: t.key, text: t.label, anzahl: t.count || undefined }))}
-        wert={tab}
-        onChange={setTab}
-      />
+      {/*
+        DIE LISTENLEISTE WIE ÜBER JEDER LISTE (E26; Testbericht Runde 6, G6):
+        die Bereiche links in ihrer Textbreite, die Suche rechts, die Auswahl
+        der Baustelle daneben. Vorher standen die Bereiche gestreckt über der
+        Seite, die Suche erst ab zehn Anforderungen und die Baustelle allein
+        im Kopf der Liste. Die Leiste steht über der Liste und nicht in ihr,
+        weil „Einkauf“ eine eigene Seite mit eigenen Karten ist; dort gibt es
+        nichts zu suchen und keine Baustelle zu wählen, also nur die Bereiche.
+      */}
+      <div className="anf-leiste">
+        <Listenleiste
+          reiter={
+            <div className="bereichswahl">
+              <Segmente
+                name="Bereich"
+                werte={TABS.map((t) => ({ wert: t.key, text: t.label, anzahl: t.count || undefined }))}
+                wert={tab}
+                onChange={setTab}
+              />
+            </div>
+          }
+          // Der Platzhalter ist kurz genug, dass er neben der Baustelle ganz dasteht (E26); die Notiz nennt die Hilfe.
+          suche={tab !== 'einkauf'
+            ? { id: 'osuche', wert: suche, onChange: setSuche, platzhalter: 'Material, Person, Baustelle' }
+            : undefined}
+          zusatz={tab !== 'einkauf' && tab !== 'retouren' && projectOptions.length > 0 ? (
+            <SelectField id="ofilter" label="" aria-label="Bestellungen nach Baustelle filtern" value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}>
+              <option value="">Alle Baustellen</option>
+              {projectOptions.map((p) => <option key={p} value={p}>{p}</option>)}
+            </SelectField>
+          ) : undefined}
+        />
       </div>
 
       {adressFilter && tab === 'aktiv' && (
@@ -713,32 +746,12 @@ export default function AdminOrdersView() {
           }
           buendig
         >
-          {/*
-            DIE LISTENLEISTE (Design-Entwurf, Punkt 2): die Suche ab zehn
-            Anforderungen wie bisher, die Auswahl der Baustelle als Zusatz
-            daneben statt im Kopf der Karte. Die Reiter stehen schon oben als
-            Bereiche der Seite.
-          */}
-          {(orders.length >= 10 || (tab !== 'retouren' && projectOptions.length > 0)) && (
-            <Listenleiste
-              suche={orders.length >= 10
-                ? { id: 'osuche', wert: suche, onChange: setSuche, platzhalter: 'Material, Besteller, Baustelle oder Notiz' }
-                : undefined}
-              zusatz={tab !== 'retouren' && projectOptions.length > 0 ? (
-                <SelectField id="ofilter" label="" aria-label="Bestellungen nach Baustelle filtern" value={projectFilter}
-                  onChange={(e) => setProjectFilter(e.target.value)}>
-                  <option value="">Alle Baustellen</option>
-                  {projectOptions.map((p) => <option key={p} value={p}>{p}</option>)}
-                </SelectField>
-              ) : undefined}
-            />
-          )}
-          {orders.length >= 10 && suchbegriff && suchFehler && (
+          {suchbegriff && suchFehler && (
             <p className="px-4 pb-3 text-xs text-warning">
               Die Suche über alle Anforderungen ist gerade nicht erreichbar — gezeigt werden Treffer unter den geladenen.
             </p>
           )}
-          {orders.length >= 10 && serverTreffer && serverTreffer.length >= ANFORDERUNG_TREFFER && (
+          {serverTreffer && serverTreffer.length >= ANFORDERUNG_TREFFER && (
             <p className="px-4 pb-3 text-xs text-ink-muted">
               Die {ANFORDERUNG_TREFFER} jüngsten Treffer — für ältere genauer suchen.
             </p>
@@ -842,13 +855,25 @@ export default function AdminOrdersView() {
                   <Abschnitt titel={g.titel} anzahl={g.zeilen.length} />
                   <List>
                     {g.zeilen.map((o) => (
+                      /*
+                        DER ZUSTAND IN DER FESTEN SPALTE (E27; Testbericht
+                        Runde 6, G6): „Eil“ und die Herkunft standen rechts
+                        hinter dem Zustand und schoben ihn je nach Zeile um
+                        ihre Breite nach links. Jetzt stehen sie als Marken
+                        beim Namen, wie „deaktiviert“ bei den Benutzern, und
+                        rechts steht nur der Zustand vor dem Pfeil.
+                      */
                       <ListRow
                         key={o.id}
                         onOeffnen={() => setOffenId(o.id)}
                         title={
-                          <span>
-                            {o.materialName}{' '}
-                            <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
+                          <span className="inline-flex flex-wrap items-center gap-x-2">
+                            <span>
+                              {o.materialName}{' '}
+                              <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
+                            </span>
+                            {o.isUrgent && <Warnung stufe="dringend">Eil</Warnung>}
+                            {beschaffungMarke(o)}
                           </span>
                         }
                         subtitle={
@@ -861,10 +886,7 @@ export default function AdminOrdersView() {
                           o.transactionType === 'return' ? <Marke>Retoure</Marke> : <StatusBadge status={o.status} />
                         }
                         pfeil
-                      >
-                        {o.isUrgent && <Warnung stufe="dringend">Eil</Warnung>}
-                        {beschaffungMarke(o)}
-                      </ListRow>
+                      />
                     ))}
                   </List>
                 </div>

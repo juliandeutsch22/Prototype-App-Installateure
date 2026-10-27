@@ -239,3 +239,88 @@ describe('Kollektivvertrag und die Verteilung für Jugendliche', () => {
     await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', expect.objectContaining({ kjbgVerteilungKv: false })));
   });
 });
+
+/*
+  DIE MELDUNG AM FELD (Testbericht Runde 6, G14): bei „Vollzeit ungleich
+  verteilt“ stand sie unter dem KJBG-Haken, und das Feld „Montag“ sah aus
+  wie jedes andere. Gegenprobe: mit der einen Meldung unten ist kein Feld
+  `aria-invalid`, und die Meldung folgt nicht dem Feld.
+*/
+describe('Die Meldung steht beim Feld (Runde 6, G14)', () => {
+  const verteilen = () => {
+    firma = { ...firma, ueberstundenModell: 'tagesgrenze' };
+    zeige();
+    fireEvent.click(screen.getByLabelText('Vollzeit ungleich auf die Tage verteilt'));
+  };
+  /** Liegt die Meldung im selben Feldblock wie das Feld — und nach ihm? */
+  const beimFeld = (feld: HTMLElement, meldung: HTMLElement) => {
+    const block = feld.closest('div')!.parentElement!;
+    expect(block.contains(meldung)).toBe(true);
+    expect(feld.compareDocumentPosition(meldung) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  };
+
+  it('ein Tag über 10 Std.: Meldung unter „Montag“, das Feld markiert und verknüpft', async () => {
+    verteilen();
+    fireEvent.change(screen.getByLabelText('Montag (Std.)'), { target: { value: '10,5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    const meldung = await screen.findByRole('alert');
+    expect(meldung).toHaveTextContent(/Montag: zwischen 0 und 10 Stunden/);
+    const montag = screen.getByLabelText('Montag (Std.)');
+    expect(montag).toHaveAttribute('aria-invalid', 'true');
+    expect(montag).toHaveAttribute('aria-describedby', meldung.id);
+    beimFeld(montag, meldung);
+    expect(screen.getByLabelText('Dienstag (Std.)')).not.toHaveAttribute('aria-invalid');
+    // Nicht mehr unter dem KJBG-Haken: der steht nach der Meldung.
+    const haken = screen.getByLabelText(/Kollektivvertrag lässt für Jugendliche/);
+    expect(meldung.compareDocumentPosition(haken) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await waitFor(() => expect(montag).toHaveFocus());
+  });
+
+  it('stimmt die Summe nicht, sind alle Tage markiert und die Meldung steht unter ihnen', async () => {
+    verteilen();
+    for (const tag of ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag']) {
+      fireEvent.change(screen.getByLabelText(`${tag} (Std.)`), { target: { value: '8' } });
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    const meldung = await screen.findByRole('alert');
+    expect(meldung).toHaveTextContent(/ergeben 40 Stunden/);
+    for (const tag of ['Montag', 'Sonntag']) {
+      expect(screen.getByLabelText(`${tag} (Std.)`)).toHaveAttribute('aria-invalid', 'true');
+    }
+    const sonntag = screen.getByLabelText('Sonntag (Std.)');
+    expect(sonntag.compareDocumentPosition(meldung) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('der Durchrechnungszeitraum: Meldung bei seinem Feld', async () => {
+    zeige();
+    const feld = screen.getByLabelText(/Durchrechnung für den Schnitt/);
+    fireEvent.change(feld, { target: { value: '16' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    const meldung = await screen.findByRole('alert');
+    expect(feld).toHaveAttribute('aria-invalid', 'true');
+    beimFeld(feld, meldung);
+  });
+
+  it('gleich geblieben: scheitert das Speichern, steht die Meldung beim Knopf und kein Feld ist markiert', async () => {
+    updateCompany.mockRejectedValueOnce(new Error('Netz weg'));
+    zeige();
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    const meldung = await screen.findByRole('alert');
+    expect(meldung).toHaveTextContent(/Netz weg|konnten nicht gespeichert werden/);
+    expect(document.querySelector('[aria-invalid="true"]')).toBeNull();
+    const knopf = screen.getByRole('button', { name: 'Speichern' });
+    expect(meldung.compareDocumentPosition(knopf) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
+/* Die gemeldete Stelle aus G14: „Tagesgrenze (Überstunden j…“ in der halben Zeile. */
+describe('Die Auswahl „Überstunden“ (Runde 6, G14)', () => {
+  it('nimmt die ganze Zeile — ihre Optionen passen nicht in die halbe', () => {
+    firma = { ...firma, ueberstundenModell: 'tagesgrenze' };
+    zeige();
+    expect(screen.getByLabelText('Überstunden').closest('.feld-breit')).not.toBeNull();
+    expect(screen.getByLabelText('Überstunden ab').closest('.feld-breit')).not.toBeNull();
+    // Gleich geblieben: die Uhrzeiten stehen weiter nebeneinander.
+    expect(screen.getByLabelText('Nachtzeit von').closest('.feld-breit')).toBeNull();
+  });
+});

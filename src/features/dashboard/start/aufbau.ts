@@ -86,6 +86,19 @@ export interface Startseite {
 const MONATE = ['Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
 /** Nur, was die Rolle sehen darf — eine Zeile auf eine gesperrte Seite wäre eine Sackgasse. */
+/**
+ * WEN EINE SAMMELZEILE BETRIFFT (Testbericht Runde 6, G10): „2 Baustellen
+ * über dem Endtermin · Max Musterkunde“ nannte nur die erste — die Zeile las
+ * sich, als beträfe sie nur einen Kunden. Jetzt stehen bis zu zwei Namen da,
+ * darüber hinaus „und N weitere“; derselbe Name zweimal steht einmal (zwei
+ * Baustellen eines Kunden). Die ganze Liste zeigt die Fachseite.
+ */
+export function aufzaehlen(namen: string[]): string {
+  const eindeutig = [...new Set(namen.map((n) => n.trim()).filter(Boolean))];
+  if (eindeutig.length <= 2) return eindeutig.join(', ');
+  return `${eindeutig.slice(0, 2).join(', ')} und ${eindeutig.length - 2} weitere`;
+}
+
 function erlaubt(a: Abschnitt | null, u: Umfeld): Abschnitt | null {
   if (!a) return null;
   const ziel = a.zeilen[0]?.to ?? (a.weiter && 'to' in a.weiter ? a.weiter.to : undefined);
@@ -458,12 +471,15 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: tageWort(tageZwischen(wUeber[0].w.faelligAm, h)), ton: 'fehl' },
     }));
   }
-  const ende = (d.projekte ?? []).filter((p) => p.status === 'Aktiv' && p.endDate && p.endDate < h);
+  // Am längsten überzogen zuerst — sie nennt die Zeile vorne.
+  const ende = (d.projekte ?? [])
+    .filter((p) => p.status === 'Aktiv' && p.endDate && p.endDate < h)
+    .sort((a, b) => a.endDate!.localeCompare(b.endDate!));
   if (ende.length) {
     themen.push(wenn(ZIEL.baustellen('ende-ueberschritten'), {
       key: 'ende', wann: 'ueberfaellig',
       titel: `${anzahl(ende.length, 'Baustelle', 'Baustellen')} über dem Endtermin`,
-      detail: baustellenTitel(ende[0]),
+      detail: aufzaehlen(ende.map(baustellenTitel)),
       status: { text: 'Ende überschritten', ton: 'fehl' },
     }));
   }

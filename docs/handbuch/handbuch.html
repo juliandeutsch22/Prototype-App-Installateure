@@ -797,6 +797,42 @@
     </div>
   </section>
 
+  <section id="oberflaeche-r6">
+    <div class="abschnittskopf">
+      <h2>27. Oktober: Oberfläche (Testbericht Runde 6)</h2>
+      <p class="frage">Die Benutzerverwaltung hatte als einzige Hauptseite keine Hilfe, die Anforderungen nicht die Leiste der übrigen Listen. Auf der Startseite standen doppelte Pfeile, Stunden als Dezimalzahl und eine Sammelzeile, die nur einen Kunden nannte. Auswahlfelder in halber Breite schnitten ihren Text ab, und eine Meldung stand nicht beim Feld, das sie meinte.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Hilfe in der Benutzerverwaltung<span class="neu">neu</span></h3>
+        <p>Auch die Liste der Benutzerverwaltung hat jetzt oben rechts „Hilfe zu dieser Seite“: wie die Liste geordnet ist, wonach die Suche sucht, was in der Akte steht, dass ein Konto deaktiviert und nicht gelöscht wird und wer die Rolle Administrator vergibt. Bisher erschien das Zeichen nur mit offenem Formular „Benutzer anlegen“.</p>
+        <p class="wer">Geschäftsführung, Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Anforderungen mit der Listenleiste<span class="neu">geändert</span></h3>
+        <p>Die Bereiche <strong>Laufend · Einkauf · Retouren · Erledigt</strong> stehen links in ihrer Textbreite, die <strong>Suche</strong> rechts, die Auswahl der Baustelle daneben — wie bei den übrigen Listen. Die Suche steht immer da, nicht erst ab zehn Anforderungen, und findet wie bisher Material, Besteller, Baustelle und Notiz über alle Anforderungen. Eine Zahl trägt nur noch „Einkauf“ (was noch zu bestellen ist); „Laufend“ und „Retouren“ zählen Bestand und tragen keine — die Zahl je Gruppe steht weiter über ihr. Unter „Einkauf“ stehen nur die Bereiche, dort gibt es nichts zu suchen. Unter „Erledigt“ und „Retouren“ steht der Zustand rechts an fester Stelle; „Eil“ und die Herkunft („aus Lager“, „geliefert · Holter“) stehen beim Namen.</p>
+        <p class="wer">Verwaltung, Projektleitung, Geschäftsführung, Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Startseite: ein Pfeil, Std:Min, alle Kunden<span class="neu">geändert</span></h3>
+        <p>„Einsatzplanung“ unter „Die Mannschaft heute“ und „Übriges zurückgeben“ an der Rüstliste tragen ein Zeichen „›“ statt zwei. Die Projektleitung sieht die Stunden ihrer Baustellen am Budget in Std:Min wie überall („25:00 Std von 12:00 Std“ statt „25,0 von 12 Std“), ebenso die nicht verrechneten Stunden einer Regiebaustelle („42:30 Std seit 01.08.2026“). Die Sammelzeile „2 Baustellen über dem Endtermin“ nennt bei zwei Kunden beide, ab drei zwei Namen und „und 1 weitere“ usw. — die am längsten überzogene zuerst.</p>
+        <p class="wer">Alle Rollen mit Startseite; Sammelzeile: Geschäftsführung, Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Auswahlfelder ganz lesbar, Meldung am Feld<span class="neu">geändert</span></h3>
+        <p>Ein Auswahlfeld, dessen Möglichkeiten nicht in eine halbe Zeile passen, nimmt in jedem Formular die ganze Zeile — etwa „Überstunden“ und „Überstunden ab“ unter Einstellungen › Personal, „Einstufung“ beim Anlegen eines Benutzers und „Art“ beim Termin. Kurze Auswahlen stehen weiter nebeneinander. Bei „Nachtzeit und Überstunden“ steht eine Meldung jetzt beim Feld, das sie meint — „Montag: zwischen 0 und 10 Stunden“ unter dem Montag —, das Feld ist rot umrandet, und der Cursor springt hinein; stimmt die Summe der Tage nicht, sind alle Tage markiert und die Meldung steht unter ihnen. Rot umrandet sind seither alle Felder, die eine Meldung als fehlerhaft kennzeichnet (etwa eine ungültige UID oder IBAN).</p>
+        <p>Grenze: Die Auswahl der Baustelle (Neue Rechnung, Termin) steht schon in voller Breite. Am Handy und im Seitenfenster des Termins (rund 400 px) passt ein langer Kundenname samt Nummer trotzdem nicht ganz hinein — ein Auswahlfeld bricht seinen Text nicht um. Im Büro bleibt der Kunde vorn, weil dort nach ihm gesucht und getippt wird; die geöffnete Liste zeigt jede Baustelle ganz.</p>
+        <p class="wer">Alle, die Formulare ausfüllen</p>
+      </div>
+      <div class="bereich">
+        <h3>„E-Mail an …“ geht über das eigene Postfach<span class="neu">benannt</span></h3>
+        <p><strong>Senklot verschickt keine E-Mail an Kunden oder Großhändler.</strong> „E-Mail an …“ an der Einkaufsliste öffnet eine fertige Nachricht im Mailprogramm des Geräts; abgeschickt wird sie dort, aus dem Postfach des Betriebs. Ein Angebot geht als PDF auf demselben Weg hinaus; eine hinterlegte E-Mail-Adresse öffnet ebenso das Mailprogramm. <strong>Die App führt deshalb keinen Versandnachweis</strong>: ob und wann die Nachricht hinausging, steht im Postfach des Betriebs („Gesendet“). „Als bestellt markieren“ und „Als versendet markieren“ halten fest, dass jemand das in Senklot vermerkt hat, nicht die Zustellung.</p>
+        <p>Grund: Versendet wird aus dem eigenen Postfach, damit Antworten dort ankommen und die gesendete Nachricht beim Betrieb liegt; dafür braucht die App keine Zugangsdaten zu diesem Postfach, und sie hält keine. Selbst verschickt Senklot nur die Passwort-Mails an die eigenen Benutzer, auch die Willkommens-Mail beim Anlegen.</p>
+        <p class="wer">Verwaltung, Büro, Geschäftsführung, Administrator</p>
+      </div>
+    </div>
+  </section>
+
   <section id="planung-handy">
     <div class="abschnittskopf">
       <h2>25. Oktober: Einsatzplanung am Handy ruhiger</h2>
@@ -843,7 +879,7 @@
     <div class="bereiche">
       <div class="bereich">
         <h3>Reiter links, Suche rechts<span class="neu">geändert</span></h3>
-        <p>Bei Angeboten, Wartungen, Kunden, Lager, Anforderungen, Baustellen, Benutzern, Rechnungen und Handwerksscheinen stehen die Reiter links und die Suche rechts, ein zusätzlicher Filter wie „Jeder Stand“ oder „Nur meine Baustellen“ daneben. Die Suche trägt eine Lupe statt der Beschriftung „Suche“; was sie findet, steht im Feld („Kunde, Nummer oder Adresse“). Am Handy steht die Suche oben, die Reiter darunter über die ganze Breite. Bei den Anforderungen steht die Auswahl der Baustelle jetzt neben der Suche statt im Kopf der Liste.</p>
+        <p>Bei Angeboten, Wartungen, Kunden, Lager, Anforderungen, Baustellen, Benutzern, Rechnungen und Handwerksscheinen stehen die Reiter links und die Suche rechts, ein zusätzlicher Filter wie „Jeder Stand“ oder „Nur meine Baustellen“ daneben. Die Suche trägt eine Lupe statt der Beschriftung „Suche“; was sie findet, steht im Feld („Kunde, Nummer oder Adresse“). Am Handy steht die Suche oben, die Reiter darunter über die ganze Breite. Bei den Anforderungen steht die Auswahl der Baustelle jetzt neben der Suche statt im Kopf der Liste. <strong>Seit 27.10.</strong> stehen dort auch die Bereiche in der Leiste und die Suche immer — vorher standen die Bereiche gestreckt über der Seite und die Suche erst ab zehn Anforderungen (siehe „27. Oktober: Oberfläche“).</p>
         <p class="wer">Alle Rollen · funktional ändert sich nichts</p>
       </div>
       <div class="bereich">
@@ -2847,7 +2883,7 @@
       </div>
       <div class="bereich">
         <h3>Anforderungen<span class="neu">einkaufsliste</span></h3>
-        <p><strong>Seit 24.09. hakt das Lager ab:</strong> „Aus Lager“ macht die Anforderung gleich abholbereit, „Nicht auf Lager“ setzt sie auf die <strong>Einkaufsliste</strong> beim gewählten Großhändler. Der Reiter „Einkauf“ fasst gleiche Artikel zu einer Zeile zusammen, mit den Baustellen als Kommission, und schickt die Bestellung als PDF (ohne Preise) oder als fertige E-Mail an den Vertreter; „Geliefert“ bucht die Ware ins Lager, einmal, auch bei doppeltem Klick. Der Monteur sieht „wird bestellt“. <strong>Dazu setzt das Büro eigenes Material auf die Liste</strong> — „Material dazusetzen“: Artikel aus dem Katalog suchen oder frei eintragen, Menge, Großhändler. Es steht mit der Kommission „Lager“ in derselben Zeile wie gleiche Artikel aus Anforderungen und kommt beim Eintreffen ins Lager. Eingehende Materialanforderungen abarbeiten: bestellen, teilliefern, abschließen, Retoure buchen. Die <strong>Notiz des Monteurs</strong> steht seit 23.09. in einer eigenen Zeile — oft das Einzige, was man wirklich lesen muss. Der Lagerabzug läuft als Datenbankfunktion — zwei gleichzeitige Abschlüsse ziehen nicht doppelt ab, und unter null geht es nicht. <strong>Seit 25.09. geht „Aus Lager“ nur, was frei ist</strong> — im Regal, abzüglich dessen, was anderen schon zugesagt ist; sonst nennt die App die Zahlen und verweist auf „Nicht auf Lager“. Anforderungen ohne Katalogartikel (der Monteur tippt sie frei) laufen über die Einkaufsliste. <strong>Wie viele offen sind, steht seit 16.09. am Reiter selbst.</strong></p>
+        <p><strong>Seit 24.09. hakt das Lager ab:</strong> „Aus Lager“ macht die Anforderung gleich abholbereit, „Nicht auf Lager“ setzt sie auf die <strong>Einkaufsliste</strong> beim gewählten Großhändler. Der Reiter „Einkauf“ fasst gleiche Artikel zu einer Zeile zusammen, mit den Baustellen als Kommission, und schickt die Bestellung als PDF (ohne Preise) oder als fertige E-Mail an den Vertreter; „Geliefert“ bucht die Ware ins Lager, einmal, auch bei doppeltem Klick. Der Monteur sieht „wird bestellt“. <strong>Dazu setzt das Büro eigenes Material auf die Liste</strong> — „Material dazusetzen“: Artikel aus dem Katalog suchen oder frei eintragen, Menge, Großhändler. Es steht mit der Kommission „Lager“ in derselben Zeile wie gleiche Artikel aus Anforderungen und kommt beim Eintreffen ins Lager. Eingehende Materialanforderungen abarbeiten: bestellen, teilliefern, abschließen, Retoure buchen. Die <strong>Notiz des Monteurs</strong> steht seit 23.09. in einer eigenen Zeile — oft das Einzige, was man wirklich lesen muss. Der Lagerabzug läuft als Datenbankfunktion — zwei gleichzeitige Abschlüsse ziehen nicht doppelt ab, und unter null geht es nicht. <strong>Seit 25.09. geht „Aus Lager“ nur, was frei ist</strong> — im Regal, abzüglich dessen, was anderen schon zugesagt ist; sonst nennt die App die Zahlen und verweist auf „Nicht auf Lager“. Anforderungen ohne Katalogartikel (der Monteur tippt sie frei) laufen über die Einkaufsliste. <strong>Wie viele offen sind, steht seit 16.09. am Reiter selbst.</strong> Seit 27.10. trägt nur noch „Einkauf“ eine Zahl; wie viele laufen, steht über jeder Gruppe (siehe „27. Oktober: Oberfläche“).</p>
         <p class="wer">Verwaltung · Leitung</p>
       </div>
       <div class="bereich">
@@ -3684,8 +3720,8 @@
         <p>Seit 29.09. landet ein Absturz vor der Anmeldung in einem eigenen Protokoll, das die Plattform als „Vor der Anmeldung“ sieht — abgesichert gegen Missbrauch: nur über eine Funktion, Felder gekürzt, keine Wiederholungen, höchstens 100 Einträge je Stunde. Anmeldung, Impressum und Datenschutz zeigen bei einem Absturz jetzt die Fehlertafel statt einer weißen Seite. Ein Nachladefehler, bei dem auch das Neuladen nicht geholfen hat, gilt weiterhin als Rauschen.</p>
       </div>
       <div class="luecke">
-        <strong>Die Bestellung verschickt das Mailprogramm<span class="schwere offen">offen</span></strong>
-        <p>„E-Mail an den Vertreter“ öffnet eine fertige Nachricht im Mailprogramm des Geräts; abschicken muss man sie dort. Direkt aus der App zu senden bräuchte das Mailkonto des Betriebs als Geheimnis beim Server — eine Einrichtung, keine Programmierung.</p>
+        <strong>Bestellung und Angebot verschickt das eigene Postfach<span class="schwere offen">bewusst</span></strong>
+        <p>„E-Mail an …“ öffnet eine fertige Nachricht im Mailprogramm des Geräts; abschicken muss man sie dort, ein Angebot geht als PDF denselben Weg. Aus der App geht keine Nachricht an Kunden oder Großhändler hinaus, <strong>und sie führt keinen Versandnachweis</strong> — der steht im Postfach des Betriebs unter „Gesendet“. „Als bestellt markieren“ und „Als versendet markieren“ vermerken, dass jemand es eingetragen hat, nicht die Zustellung. Grund: gesendet wird aus dem eigenen Postfach, damit Antworten dort ankommen und die Nachricht beim Betrieb liegt; dafür braucht die App keine Zugangsdaten zum Postfach und hält keine. Direkt aus der App zu senden hieße, das Mailkonto des Betriebs als Geheimnis beim Server zu hinterlegen (siehe „27. Oktober: Oberfläche“).</p>
       </div>
       <div class="luecke">
         <strong>Der erste volle Katalog<span class="schwere offen">offen</span></strong>

@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes, ReactNode } from 'react';
+import { Children, isValidElement, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes, type ReactNode } from 'react';
 
 /*
  * `max-w-full min-w-0` GEHOEREN ZUR GRUNDAUSSTATTUNG, nicht zur Zierde.
@@ -14,8 +14,13 @@ import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes,
  * absichtlich schmal in einer Kartenkopfzeile stehen. `min-w-0` erlaubt
  * zusaetzlich das Schrumpfen, wo ein Feld in einer Flex-Zeile sitzt.
  */
+/*
+ * EIN FEHLERHAFTES FELD IST ROT UMRANDET (Testbericht Runde 6, G14). Mehrere
+ * Formulare setzten `aria-invalid` und schrieben die Meldung darunter — zu
+ * sehen war am Feld selbst nichts. Rot ist der Zustand „Fehler“ der Linie.
+ */
 const fieldBase =
-  'min-h-touch min-w-0 max-w-full rounded border border-line-strong bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand-fixed focus:ring-1 focus:ring-brand-fixed';
+  'min-h-touch min-w-0 max-w-full rounded border border-line-strong bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder aria-[invalid=true]:border-danger focus:border-brand-fixed focus:ring-1 focus:ring-brand-fixed';
 
 /**
  * Pflichtfelder kennzeichnen — der Stern und was daran hängt.
@@ -137,6 +142,31 @@ interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement> {
   children: ReactNode;
 }
 
+/**
+ * Wie viele Zeichen eine Option höchstens haben darf, damit sie in einer
+ * halben Formularzeile ganz zu lesen ist. Gemessen in Poppins 16 px: die
+ * schmalste halbe Spalte (Seitenfenster, 190 px) fasst nach Polster und
+ * Pfeil rund 140 px Text, also gut fünfzehn Zeichen.
+ */
+const HALBE_ZEILE_ZEICHEN = 15;
+
+/** Der Text der längsten Option — auch in `optgroup`s und aus Listen. */
+function laengsteOption(children: ReactNode): number {
+  let laengste = 0;
+  Children.forEach(children, (kind) => {
+    if (!isValidElement<{ children?: ReactNode }>(kind)) return;
+    if (kind.type === 'optgroup') {
+      laengste = Math.max(laengste, laengsteOption(kind.props.children));
+    } else if (kind.type === 'option') {
+      const text = Children.toArray(kind.props.children)
+        .filter((t) => typeof t === 'string' || typeof t === 'number')
+        .join('');
+      laengste = Math.max(laengste, text.length);
+    }
+  });
+  return laengste;
+}
+
 export function SelectField({
   label,
   id,
@@ -145,8 +175,17 @@ export function SelectField({
   children,
   ...rest
 }: SelectFieldProps) {
+  /*
+    LANGE WAHLMÖGLICHKEITEN BEKOMMEN DIE GANZE ZEILE (Testbericht Runde 6,
+    G14). Optionen brechen nicht um: in der halben Spalte eines `FormGrid`
+    stand „Tagesgrenze (Überstunden j…“ und „Nicht festgelegt (zählt wie
+    Fa…“. Entschieden wird an der längsten Option, nicht an der gewählten —
+    sonst spränge das Formular beim Wählen. Ausserhalb eines `FormGrid`
+    wirkt die Klasse nicht.
+  */
+  const breit = laengsteOption(children) > HALBE_ZEILE_ZEICHEN;
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className={breit ? 'feld-breit flex flex-col gap-1.5' : 'flex flex-col gap-1.5'}>
       {label && <Beschriftung label={label} pflicht={pflicht} id={id} />}
       <select
         id={id}
@@ -184,5 +223,6 @@ export function CheckboxField({ label, id, className = '', ...rest }: CheckboxFi
 /** Responsives Formular-Raster: 1 Spalte mobil, mehrspaltig ab sm. */
 export function FormGrid({ children, cols = 2 }: { children: ReactNode; cols?: 1 | 2 | 3 }) {
   const map = { 1: '', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-2 lg:grid-cols-3' };
-  return <div className={`grid grid-cols-1 gap-4 ${map[cols]}`}>{children}</div>;
+  // `feld-breit` (eine Auswahl mit langen Optionen) nimmt die ganze Zeile.
+  return <div className={`grid grid-cols-1 gap-4 [&>.feld-breit]:col-span-full ${map[cols]}`}>{children}</div>;
 }

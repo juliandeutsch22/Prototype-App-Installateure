@@ -443,7 +443,8 @@ describe('Startseite — Geschäftsführung', () => {
     expect(within(karte).getByRole('link', { name: 'Einsatzplanung' })).toHaveAttribute('href', `/assignments/tag?datum=${HEUTE}`);
   });
 
-  it('schreibt die Baustellenstunden mit KOMMA — und nennt die Baustelle erst ab 90 %', async () => {
+  // Seit Runde 6 (G11) in Std:Min wie überall; vorher „8,5 von 9 Std“ (mit Komma statt Punkt).
+  it('schreibt die Baustellenstunden in Std:Min — und nennt die Baustelle erst ab 90 %', async () => {
     // 8,5 von 9 h = 94 %.
     baustellen[0].estimatedHours = 9;
     zeitenJeBaustelle = [
@@ -453,7 +454,7 @@ describe('Startseite — Geschäftsführung', () => {
     try {
       zeichne();
       const abschnitt = await screen.findByRole('region', { name: 'Baustellen über oder nahe Budget' });
-      expect(within(abschnitt).getByText(/8,5 von 9 Std/)).toBeInTheDocument();
+      expect(within(abschnitt).getByText(/08:30 Std von 09:00 Std/)).toBeInTheDocument();
       // Einmal vorn (schmal), einmal rechts (breit) — die Breite entscheidet per CSS.
       expect(within(abschnitt).getAllByText('94 %').length).toBeGreaterThan(0);
     } finally {

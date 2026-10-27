@@ -12,6 +12,13 @@
     Weniger Polsterung je Segment lässt Wort und Zahl nebeneinander stehen.
   */
   @media (max-width: 759px) { .bereichswahl .segment > * { padding: 0 0.375rem; } }
+  /*
+    Die Listenleiste der Anforderungen steht über der Liste, nicht in einer
+    Karte (der Bereich „Einkauf“ bringt eigene Karten mit). Ohne das Polster,
+    das sie in einer bündigen Karte braucht, steht sie an der Kante von
+    Seitentitel und Karteninhalt (E24).
+  */
+  .anf-leiste .listenleiste { padding: 0; }
 
   /* ── Anforderungen: Arbeitszeile ──────────────────────────────────────── */
   /* Eil und Beschaffung rechts im antippbaren Inhalt, am Handy darunter. */
