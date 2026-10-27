@@ -108,6 +108,13 @@ const anforderungAnlegen = vi.fn();
 
 let lagerStand: Map<string, unknown> | null = null;
 vi.mock('@/lib/db/materials', () => ({
+  /*
+    Die Katalogsuche fragt nach einer kurzen Pause den Server. Fehlte sie
+    hier, warf der Zeitgeber unter Last nach dem Ende einer Prüfung („No
+    sucheKatalog export“) — ein Fehler, der den ganzen Lauf rot macht.
+  */
+  sucheKatalog: async (_c: string, q: string) =>
+    MATERIAL.filter((m) => m.name.toLowerCase().includes(q.toLowerCase())),
   lagerFrei: async () => {
     if (!lagerStand) throw new Error('nicht geladen');
     return lagerStand;

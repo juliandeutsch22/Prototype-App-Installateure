@@ -4,6 +4,7 @@ export type Angemeldet = { uid: string; email: string };
 export const beiAenderung = () => () => {};
 export const anmelden = async () => {};
 export const abmelden = async () => {};
+export const sitzungAnderswoBeendet = async () => false;
 export const passwortZuruecksetzen = async () => {};
 export const passwortSetzen = async () => {};
 export const startpasswortOffen = async () => false;
