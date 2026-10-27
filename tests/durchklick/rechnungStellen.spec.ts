@@ -434,6 +434,8 @@ test('Ausgegebenes Material ohne Schein wird übernommen und kommt nicht zweimal
   // Dieselbe Baustelle noch einmal: Stunden und Material sind abgerechnet.
   await page.locator('#invproj').selectOption(BAUSTELLE.nummer);
   await page.getByRole('button', { name: 'Positionen zusammenstellen' }).click();
-  await expect(page.getByText('Keine offenen Stunden und kein offenes Material für diese Baustelle.')).toBeVisible();
+  // Seit Runde 6 (M9) eine leere Vorschau statt einer Fehlermeldung — eine Rechnung entsteht daraus nicht.
+  await expect(page.getByText(/Keine offenen Stunden und kein offenes Material für diese Baustelle\./)).toBeVisible();
+  await expect(page.getByRole('button', { name: /Rechnung erstellen/ })).toBeDisabled();
   await keineFehlermeldung(page);
 });

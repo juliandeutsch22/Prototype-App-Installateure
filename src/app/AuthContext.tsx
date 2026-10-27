@@ -12,6 +12,7 @@ import {
   beiAenderung,
   anmelden as anmeldenNaht,
   abmelden as abmeldenNaht,
+  sitzungAnderswoBeendet,
   passwortZuruecksetzen,
   istPlattformAdmin,
   profilSchnell,
@@ -108,7 +109,8 @@ interface AuthState {
   error: string | null;
   /** `remember: false` meldet beim Schließen des Browsers ab (Gemeinschaftsgerät). */
   signIn: (email: string, password: string, remember?: boolean) => Promise<void>;
-  signOut: () => Promise<void>;
+  /** Ohne Angabe nur dieses Gerät; `ueberall` beendet die Anmeldung auf jedem Gerät sofort. */
+  signOut: (ueberall?: boolean) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   /** Lädt die Mandanten-Stammdaten neu — nach dem Speichern in den Einstellungen. */
   reloadCompany: () => Promise<void>;
@@ -486,7 +488,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     Abmelden der Marke (kein Netz, kein Push auf diesem Gerät), hält das die
     Abmeldung nicht auf; nach vier Sekunden geht es ohne weiter.
   */
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(async (ueberall = false) => {
     if (user) {
       // Nachgeladen: Firebase Messaging gehört nicht in den Start der App.
       const abmeldenPush = import('@/lib/push').then(({ disablePush }) => disablePush(user.uid));
@@ -495,7 +497,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         new Promise((weiter) => setTimeout(weiter, 4000)),
       ]);
     }
-    await abmeldenNaht();
+    await abmeldenNaht(ueberall);
     /*
       WAS DEM NUTZER GEHÖRT, GEHT MIT (Testbericht 30.09.2026, M9): Profil
       und Firma im Zwischenspeicher, die zuletzt gewählte Firma, der
@@ -504,6 +506,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     */
     benutzerSpurenLoeschen();
   }, [user]);
+
+  /*
+    ANDERSWO ABGEMELDET (Testbericht Runde 6, 8.4; 27.10.2026). Wählt jemand
+    auf einem anderen Gerät „Auf allen Geräten abmelden“, nimmt die Datenbank
+    das Token dieses Geräts sofort nicht mehr an — die App merkte es aber erst
+    beim Erneuern des Tokens und zeigte bis dahin leere Listen. Kommt sie
+    wieder in den Vordergrund, fragt sie nach (höchstens einmal je Minute);
+    ist die Anmeldung fort, steht wieder die Anmeldemaske da, mit dem Grund.
+  */
+  const angemeldet = !!user || plattformAdmin;
+  useEffect(() => {
+    if (!angemeldet) return undefined;
+    let zuletzt = 0;
+    const nachsehen = () => {
+      if (document.visibilityState !== 'visible' || Date.now() - zuletzt < 60_000) return;
+      zuletzt = Date.now();
+      void sitzungAnderswoBeendet()
+        .then((beendet) => {
+          if (beendet) {
+            benutzerSpurenLoeschen();
+            setError('Diese Anmeldung wurde auf einem anderen Gerät beendet. Bitte neu anmelden.');
+          }
+        })
+        .catch(() => undefined);
+    };
+    document.addEventListener('visibilitychange', nachsehen);
+    window.addEventListener('focus', nachsehen);
+    return () => {
+      document.removeEventListener('visibilitychange', nachsehen);
+      window.removeEventListener('focus', nachsehen);
+    };
+  }, [angemeldet]);
 
   const resetPassword = useCallback((email: string) => passwortZuruecksetzen(email), []);
 

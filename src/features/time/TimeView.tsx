@@ -568,7 +568,13 @@ export default function TimeView() {
                 e.wegzeitMin ? `Weg ${fmtDauer(e.wegzeitMin)}` : null,
               ].filter(Boolean).join(' · ')
             : tagesStatusName(e.status);
-    const subtitle = [timeLabel, e.comment].filter(Boolean).join(' · ');
+    /*
+      DER KOMMENTAR NICHT NOCH EINMAL ALS STATUS (Runde 6, G12): ohne Notiz
+      trägt die Datenbank „Berufsschule“ als Kommentar ein — die Zeile lautete
+      „Berufsschule · Unterricht 06:00 Std · Weg 01:00 Std · Berufsschule“.
+    */
+    const kommentar = e.comment?.trim() && e.comment.trim() !== tagesStatusName(e.status) ? e.comment : null;
+    const subtitle = [timeLabel, kommentar].filter(Boolean).join(' · ');
     const vomBueroGesperrt = !canEditTime(user.role) && buerobuchungGesperrt(e, entries, geburtsdatum);
     /*
       Bearbeitbar ist genau, was vorher den Knopf „Bearbeiten“ trug: nicht
@@ -593,6 +599,14 @@ export default function TimeView() {
               {datumAT(e.date)}
               {e.customerName && ` · ${e.customerName}`}
             </span>
+            {/*
+              DIE BAUSTELLENNUMMER NEBEN DEM KUNDEN (Runde 6, G3), grau wie in
+              jeder Liste („Name, Nummer“): drei Buchungen „CT Bau GmbH“ an
+              einem Tag lagen auf drei Baustellen und waren nicht zu
+              unterscheiden. Hier statt über `nummer` der Zeile, damit die
+              Vorlesehilfe weiter mit „bearbeiten“ endet.
+            */}
+            {e.projectNumber && <> <span className="zeile-nr">{e.projectNumber}</span></>}
             {/* Die Zeile öffnet das Formular — die Vorlesehilfe soll es hören. */}
             {bearbeitbar && <span className="sr-only"> bearbeiten</span>}
           </>

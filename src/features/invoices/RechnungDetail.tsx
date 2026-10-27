@@ -113,12 +113,20 @@ export default function RechnungDetail({
         {inv.positions && inv.positions.length > 0 && (
           <section className="rechnung-lesegruppe" aria-label="Leistungen">
             <h3 className="rechnung-lesetitel">Leistungen</h3>
+            {/*
+              DIE ZAHLEN BRECHEN NICHT UND KLEBEN NICHT (Testbericht Runde 6,
+              G1). Die Lesegruppe bricht Zellen „anywhere“, damit lange
+              Bezeichnungen das Seitenfenster nicht sprengen — der Kopf
+              „Menge“ brach dadurch zu „Meng/e“, und ohne Abstand las sich die
+              Zeile „1 Stk7 500,50“. Köpfe und Zahlen bleiben ganz und halten
+              Abstand zur Spalte davor.
+            */}
             <table className="w-full text-left">
               <thead>
                 <tr className="text-xs text-ink-muted">
                   <th className="py-1 font-normal">Bezeichnung</th>
-                  <th className="py-1 text-right font-normal">Menge</th>
-                  <th className="py-1 text-right font-normal">Netto</th>
+                  <th className="whitespace-nowrap py-1 pl-3 text-right font-normal">Menge</th>
+                  <th className="whitespace-nowrap py-1 pl-3 text-right font-normal">Netto</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -136,10 +144,10 @@ export default function RechnungDetail({
                           <span className="block text-xs text-ink-muted">{positionsRabattText(p.rabattProzent)}</span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap py-1 text-right">
+                      <td className="whitespace-nowrap py-1 pl-3 text-right">
                         {String(p.qty).replace('.', ',')} {p.unit}
                       </td>
-                      <td className="whitespace-nowrap py-1 text-right">{euroBetrag(p.netto)}</td>
+                      <td className="whitespace-nowrap py-1 pl-3 text-right">{euroBetrag(p.netto)}</td>
                     </tr>
                   ),
                 )}

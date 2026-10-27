@@ -8,7 +8,10 @@
  * Datenbank muss sie halten, wenn jemand anders schreibt.
  */
 import { describe, it, expect } from 'vitest';
-import { abziehbar, alsVorrechnung, abzugssumme, mitAbzug, nachSteuer } from '@/features/invoices/vorrechnungen';
+import {
+  abziehbar, alsVorrechnung, abzugssumme, gueltigeSchlussrechnung, mitAbzug, nachSteuer, schlussNachStorno, stornoText,
+  teilrechnungenText,
+} from '@/features/invoices/vorrechnungen';
 import type { Invoice } from '@/types';
 
 type R = Invoice & { id: string };
@@ -171,5 +174,63 @@ describe('Abzug nur bei derselben Steuerbehandlung', () => {
     const mit = nachSteuer([mitUst, rc, altbestand], true);
     expect(mit.passend.map((r) => r.id)).toEqual(['r']);
     expect(mit.andere.map((r) => r.id)).toEqual(['u', 'x']);
+  });
+});
+
+/*
+  TESTBERICHT RUNDE 6, M7, G27 und Hinweis 8 — Schlussrechnung und Storno.
+*/
+describe('Schlussrechnung und Storno (Runde 6)', () => {
+  const r = (id: string, art: Invoice['art'], teil: Partial<Invoice> = {}) =>
+    ({
+      id, invoiceNumber: `RE-${id}`, art, projectNumber: 'PR-2026-0194', paymentStatus: 'Offen',
+      invoiceDate: '2026-10-21', ...teil,
+    }) as Invoice;
+
+  it('findet die gültige Schlussrechnung der Baustelle, in jeder Schreibweise der Nummer', () => {
+    expect(gueltigeSchlussrechnung([r('1', 'teil'), r('2', 'schluss')], '2026-0194')?.invoiceNumber).toBe('RE-2');
+    expect(gueltigeSchlussrechnung([r('2', 'schluss', { paymentStatus: 'Storniert' })], '2026-0194')).toBeNull();
+    expect(gueltigeSchlussrechnung([r('2', 'schluss', { projectNumber: '2026-0195' })], '2026-0194')).toBeNull();
+  });
+
+  it('beim Storno: die Schlussrechnung zieht die Anzahlung ab', () => {
+    const anz = r('1508', 'anzahlung');
+    const schluss = r('1510', 'schluss', { vorrechnungen: [{ invoiceId: '1508' } as never] });
+    expect(schlussNachStorno(anz, [anz, schluss])).toMatchObject({ schluss: { invoiceNumber: 'RE-1510' }, abgezogen: true });
+  });
+
+  it('beim Storno: die Schlussrechnung rechnet nach der Teilrechnung ab', () => {
+    const teil = r('1509', 'teil', { invoiceDate: '2026-10-21' });
+    const schluss = r('1510', 'schluss', { invoiceDate: '2026-10-27' });
+    expect(schlussNachStorno(teil, [teil, schluss])).toMatchObject({ schluss: { invoiceNumber: 'RE-1510' }, abgezogen: false });
+  });
+
+  it('Gleichbleiben: ohne gültige Schlussrechnung, bei einer Einzelrechnung und bei nicht abgezogener Anzahlung nichts', () => {
+    const teil = r('1509', 'teil');
+    expect(schlussNachStorno(teil, [teil])).toBeNull();
+    expect(schlussNachStorno(teil, [teil, r('1510', 'schluss', { paymentStatus: 'Storniert' })])).toBeNull();
+    expect(schlussNachStorno(r('9', 'einzel'), [r('1510', 'schluss')])).toBeNull();
+    expect(schlussNachStorno(r('1508', 'anzahlung'), [r('1510', 'schluss')])).toBeNull();
+  });
+
+  it('der Storno-Text passt zur Art: eine Anzahlung gibt nichts frei', () => {
+    expect(stornoText(r('1508', 'anzahlung'))).toBe(
+      'RE-1508 wird storniert. Eine Anzahlung verrechnet keine Stunden und kein Material — freigegeben wird deshalb nichts.',
+    );
+    expect(stornoText(r('1509', 'teil'))).toBe('RE-1509 wird storniert; die verknüpften Zeiteinträge und Scheine werden wieder freigegeben.');
+    expect(stornoText(r('1510', 'schluss', { vorrechnungen: [{ invoiceId: '1508' } as never] })))
+      .toMatch(/Die abgezogenen Rechnungen lassen sich danach wieder abziehen\.$/);
+  });
+
+  it('nennt die Teilrechnungen, die ihre Belege verbraucht haben — nur nennen, nicht abziehen', () => {
+    expect(teilrechnungenText([
+      r('1509', 'teil', { leistungBis: '2026-10-20', linkedEntries: ['z1'] }),
+      r('1507', 'teil'), // ohne Belege: wird abgezogen, nicht genannt
+      r('1506', 'teil', { linkedWorkSheets: ['s'], paymentStatus: 'Storniert' }),
+      r('1508', 'anzahlung'),
+    ], '2026-0194')).toBe(
+      'Bereits mit Teilrechnung RE-1509 vom 21.10.2026 (Leistung bis 20.10.2026) verrechnet und hier nicht enthalten.',
+    );
+    expect(teilrechnungenText([r('1508', 'anzahlung')], '2026-0194')).toBeNull();
   });
 });

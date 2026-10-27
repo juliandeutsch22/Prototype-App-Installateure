@@ -28,6 +28,12 @@ export function listWartungenForCustomer(
   return pg.listWartungenForCustomer(companyId, customerId, max);
 }
 
+/** Die Wartungen, deren Baustelle diese ist — eingeplant oder ausgeführt (Runde 6, M9). */
+export type { WartungDerBaustelle } from './pg/wartungen';
+export function wartungenDerBaustelle(companyId: string, projectNumber: string): Promise<pg.WartungDerBaustelle[]> {
+  return pg.wartungenDerBaustelle(companyId, projectNumber);
+}
+
 export function createWartung(companyId: string, w: NewWartung): Promise<string> {
   return pg.createWartung(companyId, w);
 }

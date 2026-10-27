@@ -25,8 +25,12 @@ export function anmelden(
   return pg.anmelden(email, passwort, merken);
 }
 
-export function abmelden(): Promise<void> {
-  return pg.abmelden();
+export function abmelden(ueberall = false): Promise<void> {
+  return pg.abmelden(ueberall);
+}
+
+export function sitzungAnderswoBeendet(): Promise<boolean> {
+  return pg.sitzungAnderswoBeendet();
 }
 
 export function passwortZuruecksetzen(email: string): Promise<void> {

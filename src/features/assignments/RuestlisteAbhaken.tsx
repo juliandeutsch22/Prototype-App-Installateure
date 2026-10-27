@@ -147,6 +147,15 @@ export default function RuestlisteAbhaken({
                     <span className="font-semibold">{p.menge}</span>
                     {p.einheit ? ` ${p.einheit}` : ''} {p.name}
                   </span>
+                  {/*
+                    DER TEIL DER ANFORDERUNG (Runde 6, M5): er kommt über die
+                    Abholung, nicht aus dem Regal — der Haken bucht nur den Rest.
+                  */}
+                  {(p.angefordert ?? 0) > 0 && (
+                    <span className="block text-xs text-ink-muted">
+                      davon {fmtMenge(p.angefordert!)}{p.einheit ? ` ${p.einheit}` : ''} über die Anforderung — dort abholen
+                    </span>
+                  )}
                   {/* Der Name verhindert die doppelte Suche im Lager. */}
                   {eintrag && (
                     <span className="block text-xs text-ink-muted">
@@ -188,7 +197,8 @@ export default function RuestlisteAbhaken({
             to={`/material?retoure=1&baustelle=${encodeURIComponent(projectNumber)}`}
             className="link-weiter inline-flex min-h-touch items-center"
           >
-            Übriges zurückgeben →
+            {/* Ohne eigenen Pfeil: `link-weiter` setzt das „›“ selbst (Runde 6, G9 — es stand „→ ›“). */}
+            Übriges zurückgeben
           </Link>
         </p>
       )}

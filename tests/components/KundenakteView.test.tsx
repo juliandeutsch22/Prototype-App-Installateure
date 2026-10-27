@@ -247,6 +247,20 @@ describe('Die Stammdaten für alle, die nur lesen', () => {
     expect(angabe('E-Mail').textContent).toBe('nicht hinterlegt');
   });
 
+  it('Runde 6, G19: die Rechnungsanschrift trägt eine Beschriftung, nicht zwei', async () => {
+    zeige();
+    await screen.findByText('Kundendaten');
+    expect(screen.getByRole('heading', { name: 'Rechnungsanschrift' })).toBeInTheDocument();
+    expect(screen.queryByText('Rechnungsadresse')).toBeNull();
+  });
+
+  it('Runde 6, G19: ohne Anschrift steht „nicht hinterlegt“ unter der Überschrift', async () => {
+    kunden = [{ ...KUNDE, address: '' }];
+    zeige();
+    const karte = (await screen.findByRole('heading', { name: 'Rechnungsanschrift' })).closest('section')!;
+    expect(within(karte).getByText('nicht hinterlegt')).toBeInTheDocument();
+  });
+
   it('macht Adresse und Telefon zum Handgriff', async () => {
     zeige();
     await screen.findByText('Kundendaten');
@@ -444,6 +458,37 @@ describe('Die Stammdaten bearbeiten — in der Akte statt woanders', () => {
     expect(updateCustomer).toHaveBeenCalledWith(
       'perl', 'k1', expect.objectContaining({ name: 'Hausverwaltung Süd' }),
     );
+  });
+
+  it('Runde 6, M6: fragt bei einer geänderten PLZ, die nicht passt, nach — und speichert auf Bestätigung', async () => {
+    kunden = [{ ...KUNDE, strasse: 'Ringstraße 3', plz: '2700', ort: 'Wiener Neustadt', land: 'AT' }];
+    const bediener = userEvent.setup();
+    zeige();
+    await bearbeite();
+    const plz = await screen.findByLabelText('PLZ');
+    await bediener.clear(plz);
+    await bediener.type(plz, '82');
+    await bediener.click(screen.getByRole('button', { name: 'Speichern' }));
+    const dialog = await screen.findByRole('dialog', { name: /Angaben prüfen/ });
+    expect(within(dialog).getByText(/PLZ „82“/)).toBeInTheDocument();
+    expect(updateCustomer).not.toHaveBeenCalled();
+    await bediener.click(within(dialog).getByRole('button', { name: 'Trotzdem speichern' }));
+    await waitFor(() => expect(updateCustomer).toHaveBeenCalledWith('perl', 'k1', expect.objectContaining({ plz: '82' })));
+  });
+
+  it('Runde 6, M6: eine E-Mail ohne Endung wird schon im Feld gemeldet; ein unveränderter Altbestand fragt nicht', async () => {
+    kunden = [{ ...KUNDE, email: 'office@hv-nord' }];
+    const bediener = userEvent.setup();
+    zeige();
+    await bearbeite();
+    expect(await screen.findByText(/E-Mail-Adresse ist unvollständig/)).toBeInTheDocument();
+    await bediener.type(screen.getByLabelText('UID-Nummer'), '9');
+    await bediener.clear(screen.getByLabelText('UID-Nummer'));
+    await bediener.type(screen.getByLabelText('UID-Nummer'), 'ATU12345678');
+    await bediener.type(screen.getByLabelText(/^Name/), 'x');
+    await bediener.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(updateCustomer).toHaveBeenCalled());
+    expect(screen.queryByRole('dialog', { name: /Angaben prüfen/ })).toBeNull();
   });
 
   it('weist einen leeren Namen ab, statt ihn zu speichern', async () => {

@@ -42,15 +42,18 @@ async function zusammensetzen(
 ): Promise<WithId<EinsatzMaterial>[]> {
   if (koepfe.length === 0) return [];
 
-  const zeilen = await abfragen<PositionsZeile>(
-    POSITIONEN,
-    companyId,
-    {
-      wo: [{ art: 'in', feld: 'einsatzMaterialId', werte: koepfe.map((k) => k.id) }],
-      sortiere: { feld: 'position' },
-    },
-    client,
-  );
+  const [zeilen, angefordert] = await Promise.all([
+    abfragen<PositionsZeile>(
+      POSITIONEN,
+      companyId,
+      {
+        wo: [{ art: 'in', feld: 'einsatzMaterialId', werte: koepfe.map((k) => k.id) }],
+        sortiere: { feld: 'position' },
+      },
+      client,
+    ),
+    angefordertJePosition(koepfe.map((k) => k.id), client),
+  ]);
 
   const nachKopf = new Map<string, RuestPosition[]>();
   for (const z of zeilen) {
@@ -64,11 +67,28 @@ async function zusammensetzen(
     const pos: RuestPosition = { id: z.id, name: z.name, menge: z.menge };
     if (z.materialId != null) pos.materialId = z.materialId;
     if (z.einheit != null) pos.einheit = z.einheit;
+    const dazu = angefordert.get(`${z.einsatzMaterialId}|${z.id}`);
+    if (dazu) pos.angefordert = dazu;
     liste.push(pos);
     nachKopf.set(z.einsatzMaterialId, liste);
   }
 
   return koepfe.map((k) => ({ ...k, positionen: nachKopf.get(k.id) ?? [] }));
+}
+
+/**
+ * Was die verknüpften Anforderungen je Position bringen (Runde 6, M5) —
+ * über eine Funktion der Datenbank, weil der Monteur von den Anforderungen
+ * nur die eigenen liest. Schlüssel: „Liste|Position“.
+ */
+async function angefordertJePosition(listen: string[], client?: SupabaseClient): Promise<Map<string, number>> {
+  const { data, error } = await derClient(client).rpc('ruest_angefordert', { p_listen: listen });
+  if (error) throw new Error(error.message);
+  const m = new Map<string, number>();
+  for (const z of (data ?? []) as { einsatz_material_id: string; position_id: string; menge: number }[]) {
+    m.set(`${z.einsatz_material_id}|${z.position_id}`, Number(z.menge) || 0);
+  }
+  return m;
 }
 
 /** Alle Rüstlisten EINES TAGES. */
@@ -221,6 +241,17 @@ export async function saveEinsatzMaterial(
       name: p.name,
       menge: p.menge,
       einheit: p.einheit ?? null,
+      // M5: die Anforderung über die Fehlmenge entsteht im selben Zug.
+      ...(p.anfordern && p.anfordern.menge > 0
+        ? {
+            anfordern: {
+              menge: p.anfordern.menge,
+              user_id: p.anfordern.userId,
+              user_name: p.anfordern.userName,
+              note: p.anfordern.note,
+            },
+          }
+        : {}),
     })),
     p_uids: uids,
     p_von: updatedBy,

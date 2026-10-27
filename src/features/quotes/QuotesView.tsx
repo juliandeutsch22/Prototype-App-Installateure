@@ -12,6 +12,7 @@ import {
   reserveQuoteNumber,
 } from '@/lib/db/quotes';
 import { angebotAnnehmen, annahmeMeldung } from './angebotAnnehmen';
+import { fassungsHinweis } from './fassungen';
 import { calcTotals, cent, positionNetto, rabattAnteil, titelSummen, type InvoicePosition, type PositionsArt } from '@/features/invoices/totals';
 import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { todayStr, localDateStr, fmtStunden } from '@/lib/time';
@@ -24,7 +25,7 @@ import { useKunde } from '@/features/customers/useKundenFuer';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
-import { Zustand } from '@/components/Badge';
+import { Marke, Zustand } from '@/components/Badge';
 import { STAND } from './stand';
 import IconButton from '@/components/IconButton';
 import RowMenu from '@/components/RowMenu';
@@ -104,6 +105,18 @@ function istStundenEinheit(einheit: string): boolean {
 */
 function zaehltAlsArbeitszeit(einheit: string, bezeichnung: string): boolean {
   return istStundenEinheit(einheit) && !/helfer/i.test(bezeichnung);
+}
+
+/*
+  NUR STUNDEN SIND ARBEITSZEIT (Runde 6, G24). Der Haken nahm die Menge als
+  Stunden, egal welche Einheit dastand: „1 Pauschale“ mit Haken ergab 1 h
+  Budget. Deshalb gibt es den Haken nur bei einer Stunden-Einheit, und was
+  ein Entwurf von früher bei einer anderen Einheit noch angehakt trägt,
+  zählt nicht. Eine Pauschale bringt kein Budget — die Stunden dazu stehen
+  als eigene Position in h oder als Budget an der Baustelle.
+*/
+function zaehltWirklich(z: Pick<ZeilenEingabe, 'istArbeitszeit' | 'unit'>): boolean {
+  return z.istArbeitszeit && istStundenEinheit(z.unit);
 }
 
 /*
@@ -328,7 +341,7 @@ export default function QuotesView() {
             ...(rabattProzent ? { rabattProzent } : {}),
             ...(z.materialId ? { materialId: z.materialId } : {}),
             // Gespeichert, damit ein wieder geöffneter Entwurf ihn nicht raten muss.
-            istArbeitszeit: z.istArbeitszeit,
+            istArbeitszeit: zaehltWirklich(z),
           };
         }),
     [zeilen],
@@ -355,7 +368,7 @@ export default function QuotesView() {
         Speichern weg; ihre Stunden standen trotzdem im Budget.
       */
       zeilen
-        .filter((z) => z.art === 'position' && z.istArbeitszeit && z.label.trim() && num(z.qty) > 0)
+        .filter((z) => z.art === 'position' && zaehltWirklich(z) && z.label.trim() && num(z.qty) > 0)
         .reduce((s, z) => s + num(z.qty), 0),
     [zeilen],
   );
@@ -671,6 +684,8 @@ export default function QuotesView() {
         ? [
             { id: 'angenommen', titel: 'Angenommen', zeilen: gesucht.filter((q) => q.status === 'Angenommen') },
             { id: 'abgelehnt', titel: 'Abgelehnt', zeilen: gesucht.filter((q) => q.status === 'Abgelehnt') },
+            // G15: eine andere Fassung desselben Angebots wurde angenommen.
+            { id: 'ersetzt', titel: 'Ersetzt durch eine andere Fassung', zeilen: gesucht.filter((q) => q.status === 'Ersetzt') },
           ]
         : [{ id: 'alle', titel: 'Alle Angebote', zeilen: gesucht }];
   const sichtbar = gruppen.filter((g) => g.zeilen.length > 0);
@@ -722,10 +737,19 @@ export default function QuotesView() {
           Neue Fassung
         </Button>
       )}
+      {/*
+        NICHT, WENN EINE ANDERE FASSUNG SCHON ANGENOMMEN IST (Runde 6, G15) —
+        das gibt es noch im Bestand von vor dem Stand „Ersetzt“. Die Datenbank
+        nähme ohnehin nicht an; hier steht stattdessen, welche es ist.
+      */}
       {darfAendern && (q.status === 'Versendet' || q.status === 'Entwurf') && (
-        <Button variant="ghost" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setAnnehmenFragen(q); }}>
-          Annehmen → Baustelle
-        </Button>
+        fassungsHinweis(q, angebote).angenommen ? (
+          <Marke>Fassung {fassungsHinweis(q, angebote).angenommen!.quoteNumber} angenommen</Marke>
+        ) : (
+          <Button variant="ghost" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setAnnehmenFragen(q); }}>
+            Annehmen → Baustelle
+          </Button>
+        )
       )}
       {darfAendern && (q.status === 'Versendet' || q.status === 'Entwurf') && (
         <RowMenu
@@ -754,7 +778,8 @@ export default function QuotesView() {
         // Eine Hilfe je Seite (Testbericht Runde 5, G8) — der Wortlaut aus dem Handbuch.
         hilfe={
           <>
-            „Offen“ zeigt die laufenden Angebote, „Erledigt“ die angenommenen und abgelehnten.
+            „Offen“ zeigt die laufenden Angebote, „Erledigt“ die angenommenen, abgelehnten und
+            ersetzten — ersetzt ist eine Fassung, wenn eine andere desselben Angebots angenommen wurde.
             Eine Zeile öffnet die Angebotsseite mit PDF, Verlauf und den nächsten Schritten.
             Bearbeiten lässt sich ein Angebot, solange es Entwurf ist; danach eine neue Fassung.
             Wird es angenommen, entsteht die Baustelle samt Stundenbudget.
@@ -929,6 +954,7 @@ export default function QuotesView() {
                               ? {
                                   ...x,
                                   unit: e.target.value,
+                                  // Ohne Stunden-Einheit verschwindet der Haken und zählt nicht (G24, `zaehltWirklich`).
                                   istArbeitszeit: x.hakenVonHand
                                     ? x.istArbeitszeit
                                     : zaehltAlsArbeitszeit(e.target.value, x.label),
@@ -975,21 +1001,23 @@ export default function QuotesView() {
                     mitzählen, bekäme die Baustelle ein zu hohes Budget und die
                     Ampel bliebe grün, während der Auftrag längst gerissen ist.
                   */}
-                  <label className="mt-2 flex min-h-touch items-center gap-2 text-sm text-ink">
-                    <input
-                      type="checkbox"
-                      checked={z.istArbeitszeit}
-                      onChange={(e) =>
-                        setZeilen((v) =>
-                          v.map((x, j) =>
-                            j === i ? { ...x, istArbeitszeit: e.target.checked, hakenVonHand: true } : x,
-                          ),
-                        )
-                      }
-                      className="checkbox"
-                    />
-                    Zählt als Arbeitszeit ins Stundenbudget
-                  </label>
+                  {istStundenEinheit(z.unit) && (
+                    <label className="mt-2 flex min-h-touch items-center gap-2 text-sm text-ink">
+                      <input
+                        type="checkbox"
+                        checked={z.istArbeitszeit}
+                        onChange={(e) =>
+                          setZeilen((v) =>
+                            v.map((x, j) =>
+                              j === i ? { ...x, istArbeitszeit: e.target.checked, hakenVonHand: true } : x,
+                            ),
+                          )
+                        }
+                        className="checkbox"
+                      />
+                      Zählt als Arbeitszeit ins Stundenbudget
+                    </label>
+                  )}
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-sm text-ink-muted">
                       {euro(positionNetto(num(z.qty), cent(num(z.unitPrice)), rabattAnteil(num(z.rabatt))))}
@@ -1048,7 +1076,10 @@ export default function QuotesView() {
                   Diese Stundenzahl wird beim Annehmen des Angebots zum <strong>Stundenbudget</strong>{' '}
                   der neuen Baustelle. Daran misst die Auswertung später, ob die Baustelle im Rahmen
                   geblieben ist — und die Nachkalkulation, was sie verdient hat. Gemessen wird die
-                  Zeit der Facharbeiter; Helferstunden zählen deshalb nicht von selbst mit.
+                  Zeit der Facharbeiter; Helferstunden zählen deshalb nicht von selbst mit. Als
+                  Arbeitszeit zählen nur Positionen in Stunden (h, Std.) — eine Pauschale bringt kein
+                  Budget; die Stunden dazu als eigene Position in h führen oder das Budget an der
+                  Baustelle eintragen.
                 </InfoHint>
               </p>
             </div>
@@ -1191,6 +1222,12 @@ export default function QuotesView() {
           if (q) await annehmen(q);
         }}
       >
+        {annehmenFragen && fassungsHinweis(annehmenFragen, angebote).ersetzt.length > 0 && (
+          <p className="text-sm text-ink">
+            Damit gilt {fassungsHinweis(annehmenFragen, angebote).ersetzt.map((x) => x.quoteNumber).join(', ')} als
+            ersetzt und lässt sich nicht mehr annehmen.
+          </p>
+        )}
         <AbrechnungWahl wert={abrechnung} onWert={setAbrechnung} />
       </ConfirmDialog>
 

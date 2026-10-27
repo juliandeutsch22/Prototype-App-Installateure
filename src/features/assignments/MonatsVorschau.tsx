@@ -350,7 +350,8 @@ function EinsatzAbschnitt({
       <dl className="v-liste">
         <Reihe name="Zeit" wert={teil.zeit} />
         <Reihe name="Adresse" wert={teil.adresse === undefined ? '…' : (teil.adresse ?? '–')} />
-        <Reihe name={teil.leuteName} wert={teil.leute} />
+        {/* Namen nie trennen (Runde 6, G4): „Max Tes-termann“ — ein langer Name bricht an seinen Leerzeichen. */}
+        <Reihe name={teil.leuteName} wert={teil.leute} ungetrennt />
         {teil.aufgabe && <Reihe name="Aufgabe" wert={teil.aufgabe} />}
         {ruest !== undefined && <Reihe name="Rüstliste" wert={ruest} />}
       </dl>
@@ -382,11 +383,11 @@ function EinsatzAbschnitt({
   );
 }
 
-function Reihe({ name, wert }: { name: string; wert: string }) {
+function Reihe({ name, wert, ungetrennt = false }: { name: string; wert: string; ungetrennt?: boolean }) {
   return (
     <div className="v-reihe">
       <dt className="v-label">{name}</dt>
-      <dd className="v-wert">{wert}</dd>
+      <dd className={ungetrennt ? 'v-wert kein-trennen' : 'v-wert'}>{wert}</dd>
     </div>
   );
 }

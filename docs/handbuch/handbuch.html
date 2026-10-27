@@ -685,12 +685,236 @@
       veranschaulichen vorhandene Werte; Fachregeln und Berechtigungen bleiben erhalten.
     </p>
     <div class="stempel">
-      <span>Stand <b>22.10.2026</b></span>
+      <span>Stand <b>27.10.2026</b></span>
       <span>Fassung <b>Lot v2 · bestätigt</b></span>
-      <span>Automatische Prüfungen <b>5.658 Modulprüfungen · 125 Browserwege · 7 Linkprüfungen</b></span>
+      <span>Automatische Prüfungen <b>5.857 Modulprüfungen · 140 Browserwege · 7 Linkprüfungen</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
+
+  <section id="zeit-abwesenheiten-r6">
+    <div class="abschnittskopf">
+      <h2>27. Oktober: Zeiterfassung und Abwesenheiten (Testbericht Runde 6)</h2>
+      <p class="frage">Am Berufsschultag ließ sich keine Arbeit buchen, „Krank bis“ und „Berufsschule bis“ blieben beim Zurückstellen des Datums auf heute stehen, und in „Meine Einträge“ waren Baustellen desselben Kunden nicht zu unterscheiden. Dazu Kleinigkeiten in der Mitarbeiterübersicht und der Monatsvorschau.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Arbeit am Berufsschultag<span class="neu">neu</span></h3>
+        <p>Nach dem Unterricht lässt sich am Schultag <strong>Arbeit buchen</strong> wie an jedem Tag, auch auf mehrere Baustellen; ebenso lässt sich die Berufsschule zu schon gebuchter Arbeit nachtragen. Ein zweiter Schultag, Urlaub, Krankenstand, unbezahlter Urlaub, Sonderurlaub und ganztägiger Zeitausgleich bleiben daneben gesperrt — in der Maske und in der Datenbank. Für Jugendliche fragt die Zeiterfassung vor dem Buchen nach, wenn Unterricht, Weg und Arbeit zusammen über der Tagesgrenze liegen („8:30 Std. am 20.10. samt 1:00 Std. Weg Schule–Betrieb — höchstens 8 Std.“), nach angegebenen 8 Std. Unterricht bei jeder Arbeit; die Karte „Arbeitszeitgrenzen“ meldet dieselben Fälle.</p>
+        <p><strong>Im Zeitkonto zählt der Schultag mit dem Tagessoll, die Arbeit danach füllt zuerst die Stunden zwischen Unterricht und Tagessoll</strong>; erst was darüber geht, kommt dazu. Das Ist des Tages ist also das Tagessoll oder Unterricht plus Arbeit, je nachdem, was mehr ist: 6 Std. Unterricht und 1:30 Std. Arbeit ergeben bei 8 Std. Tagessoll 8 Std., kein Plus; 6 Std. Unterricht und 3 Std. Arbeit ergeben 9 Std. Der Weg zählt nicht ins Zeitkonto. Die gearbeiteten Stunden stehen wie immer in Lohn-CSV, Stundennachweis und Nachkalkulation; die Spalte „Berufsschule(Std)“ der Lohn-CSV zeigt, was der Schultag gutschreibt (im Beispiel 6:30 Std.). So rechnen Saldo, Monatsauswertung, Gesamtsaldo und Tagesstreifen.</p>
+        <p>Grenzen: Ohne angegebene Unterrichtszeit zählt der Schultag mit dem Tagessoll, und die Arbeit kommt ganz dazu — die App weiß dann nicht, wie lange der Unterricht war; wer nach der Schule arbeitet, gibt deshalb den Unterricht an. Stundenweiser Zeitausgleich oder stundenweise Freistellung am Schultag lässt die Zeiterfassung nicht zu.</p>
+        <p class="wer">Lehrlinge und Büro (Zeiterfassung, Berufsschule eintragen); Buchhaltung, Geschäftsführung, Administrator (Mitarbeiterübersicht)</p>
+      </div>
+      <div class="bereich">
+        <h3>„Krank bis“, „Urlaub bis“, „Berufsschule bis“ folgen dem Datum<span class="neu">geändert</span></h3>
+        <p>Das Ende zieht beim Ändern des Datums mit, solange es niemand von Hand gesetzt hat — wer einen vergangenen Krankheitstag nachträgt, meldet einen Tag und nicht eine Woche bis heute. Ein von Hand gesetztes Ende bleibt stehen und rückt nur nach, wenn es sonst vor dem Datum läge. <strong>Vor dem Speichern eines Zeitraums über mehrere Tage</strong> nennt die Maske die Tage und lässt sie bestätigen: „Krankmeldung über 7 Tage? 21.10.–27.10.2026: 7 Tage, davon 3 Arbeitstage als „Krank“ im Zeitkonto (21.10., 23.10. und 27.10.). 22.10. ist schon gebucht und bleibt.“ Bei der Berufsschule steht dabei, an welchen Tagen sie zur gebuchten Arbeit dazukommt. Ein einzelner Tag geht ohne Rückfrage.</p>
+        <p class="wer">Alle, die Krank, Urlaub oder Berufsschule in der Zeiterfassung eintragen</p>
+      </div>
+      <div class="bereich">
+        <h3>Baustellennummer in der Zeiterfassung<span class="neu">geändert</span></h3>
+        <p>„Meine Einträge“ zeigen neben dem Kunden die <strong>Baustellennummer</strong> grau daneben, wie jede Liste („CT Bau GmbH PR-2026-0193“). In den Auswahlfeldern der Zeiterfassung — Baustelle und „Auf mehrere Baustellen aufteilen“ — steht die Nummer vorn („PR-2026-0193 · CT Bau GmbH“), damit sie im schmalen Feld nicht abgeschnitten wird; sortiert wird weiter nach dem Kunden. In den Auswahlfeldern des Büros (Einsatz, Rechnung, Bestellung, Schein) bleibt der Kunde vorn. Ohne Notiz steht ein Schultag als „Berufsschule · Unterricht 06:00 Std · Weg 01:00 Std“, ohne das Wort ein zweites Mal.</p>
+        <p class="wer">Alle, die Zeiten buchen</p>
+      </div>
+      <div class="bereich">
+        <h3>Namen und Nummern ungetrennt<span class="neu">geändert</span></h3>
+        <p>In der Vorschau des Monats werden die Namen unter „Mit dabei“ bzw. „Eingeteilt“ nicht mehr getrennt („Max Tes-termann“), im Aufteilen-Dialog bricht die Baustellennummer nicht mehr am Bindestrich um („PR-2026-/0189“).</p>
+        <p class="wer">Alle Rollen</p>
+      </div>
+      <div class="bereich">
+        <h3>Mitarbeiterübersicht: Gesamtsaldo, Spaltenköpfe, kommende Tage<span class="neu">geändert</span></h3>
+        <p>Im Seitenfenster der Person rechnet der <strong>Gesamtsaldo</strong> nach einer Änderung mit — er zeigt dieselbe Zahl wie die Spalte der Liste, die nach jedem Speichern oder Löschen neu geholt wird. Am Tablet brechen die Spaltenköpfe um („Saldo / Monat“, „Gesamt- / saldo“) und stehen rechtsbündig über ihren Zahlen, statt über die Spalte hinauszulaufen. Im Tagesstreifen haben <strong>kommende Tage einen eigenen, blassen Ton</strong>, die Legende nennt sie „kommt noch“ — vorher sahen sie aus wie „frei“.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung, Administrator</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="abrechnung-runde6">
+    <div class="abschnittskopf">
+      <h2>27. Oktober: Abrechnungsstand, Schlussrechnung, Zahlungen</h2>
+      <p class="frage">Aus dem Testbericht Runde 6: die Startseite zählte „nicht verrechnet“ anders als die Liste dahinter, Material kam zwischen Teil- und Schlussrechnung doppelt, eine zweite Schlussrechnung war möglich, und der Zahlungsdialog sagte Veraltetes oder gar nichts.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Nicht verrechnete Leistung: alles, wie auf der Startseite<span class="neu">geändert</span></h3>
+        <p>Unter Rechnungen stehen in „Nicht verrechnete Leistung“ jetzt <strong>alle</strong> unterschriebenen Scheine ohne gültige Rechnung und alle Regiebaustellen mit offenen Stunden — dieselbe Menge, die die Startseite zählt und hierher verlinkt. Darunter steht „davon N über 4 Wochen“. Was über vier Wochen alt ist, trägt den Achtung-Zustand (ab 90 Tagen den roten); jüngere Zeilen stehen ruhig mit ihrem Alter da. Gemahnt wird also weiter ab vier Wochen, aber was gezählt wird, ist auch zu sehen.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Material zwischen Teil- und Schlussrechnung<span class="neu">geändert</span></h3>
+        <p>Mit einem Stichtag („Leistung bis“) zieht „Ausgegeben, nicht auf einem Schein“ jetzt auch ab, was <strong>spätere unterschriebene Scheine</strong> der Baustelle über das danach Ausgegebene hinaus tragen: das Material der Rüstliste vom Montag, das erst auf dem Schein vom Donnerstag steht, kommt mit diesem Schein auf die nächste Rechnung und wird hier nicht mehr vorgeschlagen. Eine Zeile nennt es mit Artikel, Menge und dem Tag des Scheins; beim Vorschlag steht „auf späteren Scheinen …“. Ein späterer Entwurf zählt nicht — er ist noch änderbar.</p>
+        <p>Und bringt ein Schein dieser Rechnung einen Artikel, den eine <strong>frühere gültige Rechnung der Baustelle schon ohne Schein trägt</strong> (aus dem Lager übernommen oder von Hand eingesetzt), warnt die Vorschau — gleich, in welchem Zeitraum der Schein liegt —, mit Datum, Rechnungsnummer und beiden Mengen. Abgezogen wird nichts: ob es ein zweites Mal hingehört, entscheidet das Büro. Was schon der Hinweis „Schein im abgerechneten Zeitraum“ meldet, steht nicht doppelt da.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Eine Schlussrechnung je Baustelle<span class="neu">neu</span></h3>
+        <p>Hat die Baustelle eine gültige Schlussrechnung, stellt „Neue Rechnung“ keine zweite zusammen, sondern sagt, was geht: das Spätere als „Rechnung“ — oder die Schlussrechnung stornieren und neu ausstellen. Die Datenbank weist eine zweite gültige Schlussrechnung ebenso ab, auch beim Aufheben des Stornos einer früheren.</p>
+        <p><strong>Storno einer Anzahlung oder Teilrechnung:</strong> Zieht eine spätere Schlussrechnung sie ab, sagt der Dialog es vorher — der Storno geht dann erst, wenn die Schlussrechnung storniert ist (das galt in der Datenbank schon). Rechnet die Schlussrechnung erst nach einer Teilrechnung ab, nennt der Dialog die Folgen: Stunden und Scheine der Teilrechnung sind danach wieder offen und gehen auf eine eigene Rechnung, und Material, das dort aus dem Lager übernommen wurde, gilt durch den Zeitraum der Schlussrechnung als abgerechnet. Der Text sagt jetzt je Art, was freigegeben wird: bei der Anzahlung nichts.</p>
+        <p><strong>Die Schlussrechnung nennt die Teilrechnungen,</strong> die ihre Stunden und Scheine schon verrechnet haben: vorn in der Vorschau steht eine Textzeile „Bereits mit Teilrechnung … vom … (Leistung bis …) verrechnet und hier nicht enthalten.“ Sie steht auf PDF und E-Rechnung, lässt sich ändern oder entfernen und zieht nichts ab. Der Hinweis bei der Anzahlung verspricht nicht mehr „die ganze Leistung“: die Schlussrechnung führt an, was noch auf keiner Rechnung steht.</p>
+        <p><strong>Grenze (Steuerberatung):</strong> Ob die Schlussrechnung nach einer Teilrechnung mit verbrauchten Belegen die ganze Leistung anführen und die Teilrechnung samt Steuer abziehen muss, ob eine noch unbezahlte Anzahlung abgezogen werden darf und ob eine Teilrechnung Skonto tragen soll, klärt der Betrieb mit seiner Steuerberatung. Die App rechnet bis dahin wie bisher.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Vorschau, Zahlungen, Liste<span class="neu">geändert</span></h3>
+        <p>„Gebucht, aber ohne unterschriebenen Schein“ und die fehlenden Stunden nennen den <strong>Satz der Buchung</strong> — beim Lehrling „Lehrling, 2. Lehrjahr“ statt „Facharbeiter“. Bei einer <strong>Anzahlung</strong> steht kein Abgleich mit den Scheinen mehr; sie verrechnet keine Stunden.</p>
+        <p>Im <strong>Zahlungsdialog</strong> folgt „Diese Rechnung ist schon bezahlt …“ den Eingängen im Dialog: nach dem Löschen von Zahlung oder Skonto verschwindet der Satz sofort. Ist ein Betrag <strong>höher als offen</strong>, fragt der Dialog vor dem Speichern: „Das sind € … mehr als offen — als Guthaben des Kunden buchen?“; erst „Als Guthaben buchen“ speichert. Auf eine schon bezahlte oder stornierte Rechnung und bei der Rückzahlung eines Guthabens fragt er nicht — dort steht der Hinweis schon oben.</p>
+        <p>An einer <strong>stornierten Rechnung</strong> steht keine „E-Rechnung (ebInterface) …“ mehr, nur noch die E-Rechnung der Stornorechnung; das PDF bleibt. Die Überschrift der Liste zählt die Stornorechnung eigens: „Alle Rechnungen (8, dazu 1 Stornorechnung)“.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="rechnungen-runde6">
+    <div class="abschnittskopf">
+      <h2>27. Oktober: Leistungszeitraum, Wartungspreis, Spalten, E-Rechnungs-Anschrift</h2>
+      <p class="frage">Aus dem Testbericht Runde 6: eine Teilrechnung ging ohne Leistungszeitraum hinaus, der Preis einer Wartung kam nie auf eine Rechnung, Spalten in Vorschau und Seitenfenster standen schief, und eine Anschrift, die die E-Rechnung nicht annimmt, fiel erst danach auf — ohne Ausweg.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Ohne Leistungszeitraum keine Rechnung<span class="neu">geändert</span></h3>
+        <p>„Rechnung erstellen &amp; PDF“ bleibt gesperrt, solange „Leistung von“ oder „Leistung bis“ fehlt oder „bis“ vor „von“ liegt; die Vorschau sagt es oben bei den Feldern und unten beim Knopf. § 11 UStG verlangt Tag oder Zeitraum der Leistung — für einen einzelnen Tag stehen beide Felder gleich. Die Datenbank weist eine solche Rechnung ebenso ab. <strong>Die Anzahlung ist ausgenommen:</strong> ihre Leistung steht noch aus; vorbelegt ist der voraussichtliche Zeitraum aus Beginn und Ende der Baustelle, sonst bleibt er leer. Bestehende Rechnungen bleiben, wie sie sind.</p>
+        <p><strong>Pauschale und Einheitspreis:</strong> Der Zeitraum kommt wie bei Regie aus Buchungen und Scheinen. Gibt es keine, ist er aus <strong>Beginn und Ende der Baustelle</strong> vorbelegt (Baustellenakte, „Zeitraum“) — nur wenn beides eingetragen ist, und höchstens bis heute, weil das Ende geplant ist. Die Felder bleiben änderbar.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Der Preis der Wartung auf der Rechnung<span class="neu">neu</span></h3>
+        <p>Ist die Baustelle aus einer Wartung mit „Preis je Wartung netto“ entstanden, steht in der Vorschau unter „Aus der Wartung“ die Zeile <strong>„Wartung … laut Vereinbarung“</strong> zum Preis. „Übernehmen“ setzt sie als Position (1 Pauschale) ein; hat die Rechnung noch keinen Zeitraum, wird der Tag eingetragen, an dem die Wartung als erledigt eingetragen wurde. Von selbst kommt sie nicht neben gebuchte Stunden — ob beides verrechnet wird, steht im Wartungsvertrag. Steht die Zeile schon auf einer gültigen Rechnung dieser Baustelle, nennt der Vorschlag deren Nummer statt „Übernehmen“.</p>
+        <p><strong>Nichts offen ist kein Fehler mehr:</strong> Gibt es keine offenen Stunden und kein offenes Material, steht statt der Fehlermeldung eine leere Vorschau mit dem Hinweis und „Position hinzufügen“ da. Eine leere Rechnung entsteht daraus nicht: ohne Position oder über null Euro bleibt der Knopf gesperrt.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Spalten in Vorschau und Seitenfenster<span class="neu">geändert</span></h3>
+        <p>In der Vorschau stehen die Felder für Menge und Einzelpreis rechts unter ihren Köpfen, kein Kopf bricht um, und „Pauschale“ passt ganz ins Feld für die Einheit. Lange Bezeichnungen, Titel und Textzeilen brechen im Feld um und sind ganz zu lesen; ein Zeilenwechsel lässt sich nicht hineintippen, weil die Bezeichnung so auf PDF und E-Rechnung steht. Im Seitenfenster einer Rechnung bricht „Menge“ nicht mehr, und Menge und Betrag halten Abstand („1 Stk“ · „7 500,50“).</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Anschrift für die E-Rechnung<span class="neu">neu</span></h3>
+        <p>Lässt sich die Anschrift des Kunden nicht in Straße, Postleitzahl und Ort zerlegen (etwa „Bürgergasse 7, 82 Gleisdorf“), warnt die Vorschau vor dem Erstellen — mit derselben Zerlegung, die die E-Rechnung benutzt, und dem Weg zur Kundenakte. Eine Sperre ist es nicht: das PDF ist vollständig, nur die E-Rechnung würde abgewiesen. Ist die Rechnung schon ausgestellt, sagt der E-Rechnungs-Dialog, was zu tun ist: <strong>Anschrift in der Kundenakte berichtigen, dann die Rechnung stornieren und neu ausstellen</strong> — die Anschrift ist mit der Rechnung festgehalten. Dasselbe gilt für ein fehlendes Leistungsdatum. Die Stornorechnung trägt die Angaben der Rechnung; sie geht dann als PDF.</p>
+        <p><strong>Grenze:</strong> Postleitzahl und E-Mail-Adresse beim Speichern des Kunden zu prüfen und ihn unter „Anschrift prüfen“ zu zählen, ist ein eigenes Thema (Kunden) und hier nicht enthalten.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="lager-angebote-r6">
+    <div class="abschnittskopf">
+      <h2>27. Oktober: Lager, Angebote und Stammdaten (Testbericht Runde 6)</h2>
+      <p class="frage">Die Fehlmenge einer Rüstliste wurde zweimal ausgegeben, eine überholte Angebotsfassung ließ sich noch annehmen, Kunden mit PLZ „82“ standen nirgends zur Prüfung, und an einigen Stellen passten Beschriftung und Inhalt nicht zusammen.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Rüstliste: die Fehlmenge kommt über die Anforderung<span class="neu">geändert</span></h3>
+        <p>„Anforderung über 2 anlegen“ legt die Anforderung nicht mehr sofort an, sondern <strong>beim Speichern des Einsatzes</strong>, im selben Zug wie die Rüstliste und mit der Position verknüpft („Anforderung über 2 wird mit dem Einsatz gespeichert“, „Doch nicht“ nimmt es zurück). Gespeichert steht bei der Position „Anforderung angelegt“ und „Davon 2 über eine Anforderung“. Die Position teilt sich damit in zwei Wege: <strong>was die Anforderung bringt, reserviert und bucht die Anforderung</strong> (zugesagt, abgeholt), die Rüstliste reserviert und bucht beim Einladen nur den Rest aus dem Regal. Beispiel: 6 Pressfitting, im Regal 4 — die Liste reserviert 4, die Anforderung 2; „Aus Lager“ sagt die 2 erst zu, wenn neben den 4 wirklich 2 frei sind; der Haken „eingeladen“ bucht 4 ab, die Abholung 2. Ausgegeben sind 6, und „Ausgegeben, nicht auf einem Schein“ in der Rechnungsvorschau zählt ebenso 4 aus der Rüstliste und 2 aus der Anforderung. Der Monteur sieht an der Position „davon 2 Stk über die Anforderung — dort abholen“.</p>
+        <p>Wird die Anforderung gelöscht, zählt die Position wieder ganz. Ein zweiter Tipp oder ein weiteres Speichern legt nichts doppelt an; wächst die Menge, wird nur der Rest angeboten. Grenzen: Anforderungen, die vor dieser Fassung aus einer Rüstliste entstanden, tragen keine Position und rechnen wie bisher daneben. Reserviert wird weiter ab dem Einsatztag; eine Rüstliste für einen vergangenen Tag reserviert nichts mehr (so auch im Testbericht, der die Woche nachträglich durchspielte). Nimmt der Monteur trotz des Hinweises alles aus dem Regal, stimmt der Bestand erst nach der Inventur.</p>
+        <p class="wer">Planung (Geschäftsführung, Administrator, Projektleitung); Monteur (Rüstliste); Verwaltung (Anforderungen, „Aus Lager“)</p>
+      </div>
+      <div class="bereich">
+        <h3>Abholbereit mit Zeitpunkt<span class="neu">geändert</span></h3>
+        <p>Die Zeile einer abholbereiten Anforderung nennt „abholbereit seit 24.10.2026“; der Verlauf zeigt bei „Abholbereit“ den Zeitpunkt auch nach dem Abholen, und „Erledigt“ hat seinen eigenen. „Seit über 3 Tagen abholbereit“ zählt <strong>nach Kalendertagen</strong> ab diesem Tag — am 27.10. also, was seit dem 23.10. oder früher bereitliegt —, nicht mehr nach Stunden. Die Startseite des Monteurs nennt nur diesen Tag, nie den Tag des Anforderns. Grenze: Anforderungen, die vor dieser Fassung abgeholt wurden, haben den Zeitpunkt „abholbereit“ nicht mehr; bei ihnen fehlt der Punkt im Verlauf.</p>
+        <p class="wer">Verwaltung (Anforderungen, Startseite); Monteur (Startseite)</p>
+      </div>
+      <div class="bereich">
+        <h3>Angebot: ersetzte Fassungen<span class="neu">neu</span></h3>
+        <p>Wird eine Fassung angenommen, gelten die übrigen noch offenen Fassungen desselben Angebots (Entwurf, Versendet) als <strong>„Ersetzt“</strong>; sie stehen unter „Erledigt“ in der eigenen Gruppe „Ersetzt durch eine andere Fassung“ und lassen sich nicht mehr annehmen. Der Annehmen-Dialog sagt vorher, welche es betrifft („Damit gilt AN-2026-0008 als ersetzt“). Eine abgelehnte Fassung bleibt abgelehnt. Die Datenbank nimmt keine zweite Fassung desselben Angebots an — auch bei Angeboten von vor dieser Fassung, bei denen die alte noch „Versendet“ steht; die Zeile zeigt dort „Fassung AN-2026-0009 angenommen“ statt „Annehmen“.</p>
+        <p><strong>„Zählt als Arbeitszeit ins Stundenbudget“</strong> gibt es nur noch bei einer Stunden-Einheit (h, Std., Stunde); eine Pauschale bringt kein Budget — die Stunden dazu als eigene Position in h führen oder das Budget an der Baustelle eintragen. Ein Entwurf von früher, der eine Pauschale angehakt trägt, zählt sie nicht mehr; beim Speichern verliert sie den Haken. Ein schon versendetes Angebot behält seine Zahl.</p>
+        <p class="wer">Geschäftsführung, Administrator, Projektleitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Kunden und Firmendaten: PLZ und E-Mail mit Rückfrage<span class="neu">neu</span></h3>
+        <p>Passt die PLZ nicht zum Land (Österreich, Schweiz, Liechtenstein, Ungarn, Slowenien vier Ziffern, Deutschland fünf, sonst 3 bis 10 Zeichen) oder fehlt der E-Mail die Endung („…@gmail“), fragt das Speichern nach: <strong>„Angaben prüfen — trotzdem speichern?“</strong>. Beim Bearbeiten nur, wenn sich PLZ, Land oder E-Mail geändert haben. Wer trotzdem speichert, findet den Kunden unter <strong>„Anschrift prüfen“</strong> (mitgezählt), die Zeile sagt „Adresse prüfen“ bzw. „E-Mail prüfen“. Altkunden mit solchen Angaben stehen ab jetzt ebenso dort; geändert wird an ihnen nichts. Die Firmendaten fragen bei einer geänderten PLZ genauso nach. Ob eine solche Anschrift eine Rechnung aufhält, regelt die Rechnung (siehe Abrechnung).</p>
+        <p class="wer">Wer Kunden pflegt; Geschäftsführung, Administrator (Firmendaten)</p>
+      </div>
+      <div class="bereich">
+        <h3>Baustelle: Stunden im Budget samt Lehrling<span class="neu">geändert</span></h3>
+        <p>Statt „45,0 h Fachzeit von 16 h Budget“ steht <strong>„45,0 h von 16 h Budget (davon 16,0 h Lehrling)“</strong>: Lehrlingsstunden, die ins Budget zählen (ab Werk), werden genannt statt als Fachzeit ausgegeben; ohne Budget heißt es „Arbeitszeit“. Bei der Person steht ihr Anteil ebenso, und die Projektauswertung des Monats schreibt „Budgetstunden in Oktober 2026: … (davon … Lehrling)“ statt „Fachzeit“. Gerechnet wird wie bisher. Beim Anlegen einer Baustelle schlägt die Maske <strong>Ansprechpartner und Telefon aus der Kundenakte</strong> vor (änderbar, ein schon Getipptes bleibt); eine Baustelle aus einem angenommenen Angebot bekommt beides gleich mit.</p>
+        <p class="wer">Geschäftsführung, Administrator, Projektleitung</p>
+      </div>
+      <div class="bereich">
+        <h3>Wartung: kein Datum aus der Zukunft<span class="neu">geändert</span></h3>
+        <p>„Zuletzt gewartet“ und „Gewartet am“ (Erledigt) nehmen höchstens heute an, das Baujahr höchstens das laufende Jahr — in der Maske und in der Datenbank, auch beim Berichtigen eines Tages. Eine Wartung, die schon einen Tag aus der Zukunft trägt, lässt sich weiter bearbeiten; erst wer den Tag oder das Baujahr ändert, muss einen gültigen eintragen.</p>
+        <p class="wer">Geschäftsführung, Administrator, Projektleitung</p>
+      </div>
+      <div class="bereich">
+        <h3>DATANORM: doppelte Artikelnummer in der Datei<span class="neu">behoben</span></h3>
+        <p>Steht eine Artikelnummer in der Datei mehrfach, übernimmt die App <strong>keine</strong> dieser Zeilen: sie stehen im Probelauf unter „Nicht übernommene Zeilen“ mit allen Zeilennummern und dem Preis, und der Artikel im Katalog bleibt, wie er ist. Welche Zeile gilt, weiß nur der Großhändler. Geprüft wird über die ganze Datei, bevor in Blöcken übernommen wird; die Kennzahl heißt jetzt „Nicht übernommen“. Vorher zeigte der Probelauf „4 neu“, und die zweite Zeile überschrieb die erste still.</p>
+        <p class="wer">Geschäftsführung, Administrator, Verwaltung mit „Katalog einspielen“</p>
+      </div>
+      <div class="bereich">
+        <h3>Kleinere Beschriftungen<span class="neu">geändert</span></h3>
+        <p><strong>Pläne:</strong> der Zustand steht als Etikett an der Zeile („Nur fürs Büro“ bzw. „Für Monteure sichtbar“), der Knopf nennt die Aktion: <strong>„Vor Monteuren verbergen“</strong> bzw. <strong>„Für Monteure zeigen“</strong>. <strong>Einkaufsliste:</strong> die Anmerkung eines eigenen Postens steht schon unter „Zu bestellen“ und geht ins Bestell-PDF (unter der Bezeichnung) und in die E-Mail an den Vertreter. <strong>Kundenakte:</strong> „Rechnungsanschrift“ steht einmal, nicht noch einmal als „Rechnungsadresse“ darunter. <strong>Lager:</strong> beim Einspielen eines Katalogs ist der Reiter „Einspielen“ markiert, die Überschrift steht einmal.</p>
+        <p class="wer">Je nach Bereich</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="sicherheit-runde6">
+    <div class="abschnittskopf">
+      <h2>27. Oktober: Sicherheitsprüfung vor dem Start</h2>
+      <p class="frage">Hält die Datenbank Betriebe und Rollen wirklich auseinander, auch wenn jemand an der Oberfläche vorbei direkt fragt? Geprüft wurde jede Tabelle, Sicht, Serverfunktion und jeder Dateispeicher, mit zwei Betrieben und jeder Rolle, gegen den örtlichen Stapel mit Testdaten. Was gefunden wurde, ist behoben; der vollständige Bericht steht in <code>docs/sicherheitspruefung-2026-10-27.md</code>.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Mandanten- und Rollentest als fester Prüflauf<span class="neu">neu</span></h3>
+        <p>Ein zweiter Betrieb bekommt Zeilen in <strong>jeder</strong> Tabelle. Jede Rolle des ersten Betriebs und der Support mit Einblick nur dort versuchen, sie zu lesen, zu ändern, zu löschen und unter dem fremden Betrieb anzulegen — nichts davon gelingt. Dazu steht für jede Rolle fest, welche Tabellen sie im eigenen Betrieb liest. Der Lauf geht bei jeder Änderung an der Datenbank mit, auch über Tabellen, die erst später dazukommen; eine offene Regel fällt ihm auf (Gegenprobe im selben Lauf).</p>
+        <p class="wer">Automatisch, bei jeder Migration</p>
+      </div>
+      <div class="bereich">
+        <h3>Einkaufskonditionen nur mit Recht<span class="neu">behoben</span></h3>
+        <p>Die Oberfläche zeigte sie nicht, an der Schnittstelle waren sie aber lesbar: die Preislisten der Großhändler (Listenpreis, Rabatt, Einkaufspreis) für die Verwaltung ohne Freigabe und für die Projektleitung, die Rabattsätze und die eingelesenen Katalogdateien sogar für den Monteur. Jetzt gilt für sie dieselbe Regel wie für den Einkaufspreis am Artikel: lesen Geschäftsführung, Administrator und die Verwaltung mit „Einkaufspreise sehen“ oder „Katalog einspielen“; die Katalogdateien nur, wer einspielt. Auf der Einkaufsliste kommt der vorgeschlagene Großhändler weiter für jeden, der sie führt — ohne Preis.</p>
+        <p class="wer">Verwaltung ohne Freigabe, Projektleitung, Monteur: sehen keine Einkaufskonditionen mehr</p>
+      </div>
+      <div class="bereich">
+        <h3>Abmelden: dieses Gerät — oder alle<span class="neu">geändert</span></h3>
+        <p>„Abmelden“ im Menü meldet nur noch <strong>dieses</strong> Gerät ab. Bisher beendete es nebenbei auch die Anmeldung am Telefon, wenn man sich am geteilten Tablet abmeldete. Für ein verlorenes Telefon gibt es unter „Mein Konto“ den Knopf <strong>„Auf allen Geräten abmelden“</strong> (für das Plattformkonto auf seiner Seite unter „Sitzung“). Er wirkt sofort: die Datenbank nimmt die Anmeldung der anderen Geräte ab diesem Augenblick nicht mehr an — bisher lief sie dort bis zu einer Stunde weiter. Ein Gerät, dessen Anmeldung anderswo beendet wurde, zeigt beim nächsten Öffnen die Anmeldemaske mit dem Grund; ohne Empfang bleibt es angemeldet.</p>
+        <p class="wer">jeder</p>
+      </div>
+      <div class="bereich">
+        <h3>Inhaltsregel durchgesetzt<span class="neu">neu</span></h3>
+        <p>Die Inhaltsregel (CSP) sperrt jetzt, statt nur zu melden: Skripte kommen nur von der App selbst (dazu der Push-Dienst von Google im Hintergrund), eingeschleuste Skripte und Stilblöcke führt der Browser nicht aus, Verbindungen gehen nur zur eigenen Datenbank. Stil-Attribute bleiben erlaubt — die App setzt Breiten und Diagrammmaße so, und ein Attribut kann kein Skript starten. Vorher ging ein Rundgang durch jede Seite jeder Rolle im fertigen Bau, am Schreibtisch, am Telefon und am iPhone (WebKit): ohne Verstoß. Er läuft bei jeder Änderung mit; Verstöße im Betrieb landen weiter im Fehlerprotokoll.</p>
+        <p class="wer">Automatisch · am echten iPhone mit Push und Kamera bleibt es Teil des Gerätedurchgangs</p>
+      </div>
+      <div class="bereich">
+        <h3>Was sonst geprüft wurde<span class="neu">ohne befund</span></h3>
+        <p>Fünf Serverfunktionen waren auch ohne Anmeldung aufrufbar; jede brach ohne Anmeldung selbst ab, gesperrt sind sie jetzt schon an der Tür. Bibliotheken mit bekannten Lücken sind aktualisiert (darunter DOMPurify, das mit dem PDF ausgeliefert wird); <code>npm audit</code> meldet nichts mehr. Ohne Befund: kein geheimer Schlüssel im ausgelieferten Code, kein Weg für eingeschleusten Code in Oberfläche, PDF, E-Rechnung und CSV, die Zwei-Faktor-Pflicht nicht zu umgehen, ein deaktiviertes Konto sofort ohne Daten, der Supportzugang nur mit Freigabe und im Protokoll.</p>
+        <p class="wer">Offen und an den externen Sicherheitstest übergeben: Angriffsversuche gegen das gehostete Projekt; Einstellungen des gehosteten Projekts (geleakte Passwörter, Ratenbegrenzung, Sitzungsdauer) setzt der Betreiber nach <code>docs/DEPLOYMENT.md</code></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="oberflaeche-r6">
+    <div class="abschnittskopf">
+      <h2>27. Oktober: Oberfläche (Testbericht Runde 6)</h2>
+      <p class="frage">Die Benutzerverwaltung hatte als einzige Hauptseite keine Hilfe, die Anforderungen nicht die Leiste der übrigen Listen. Auf der Startseite standen doppelte Pfeile, Stunden als Dezimalzahl und eine Sammelzeile, die nur einen Kunden nannte. Auswahlfelder in halber Breite schnitten ihren Text ab, und eine Meldung stand nicht beim Feld, das sie meinte.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Hilfe in der Benutzerverwaltung<span class="neu">neu</span></h3>
+        <p>Auch die Liste der Benutzerverwaltung hat jetzt oben rechts „Hilfe zu dieser Seite“: wie die Liste geordnet ist, wonach die Suche sucht, was in der Akte steht, dass ein Konto deaktiviert und nicht gelöscht wird und wer die Rolle Administrator vergibt. Bisher erschien das Zeichen nur mit offenem Formular „Benutzer anlegen“.</p>
+        <p class="wer">Geschäftsführung, Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Anforderungen mit der Listenleiste<span class="neu">geändert</span></h3>
+        <p>Die Bereiche <strong>Laufend · Einkauf · Retouren · Erledigt</strong> stehen links in ihrer Textbreite, die <strong>Suche</strong> rechts, die Auswahl der Baustelle daneben — wie bei den übrigen Listen. Die Suche steht immer da, nicht erst ab zehn Anforderungen, und findet wie bisher Material, Besteller, Baustelle und Notiz über alle Anforderungen. Eine Zahl trägt nur noch „Einkauf“ (was noch zu bestellen ist); „Laufend“ und „Retouren“ zählen Bestand und tragen keine — die Zahl je Gruppe steht weiter über ihr. Unter „Einkauf“ stehen nur die Bereiche, dort gibt es nichts zu suchen. Unter „Erledigt“ und „Retouren“ steht der Zustand rechts an fester Stelle; „Eil“ und die Herkunft („aus Lager“, „geliefert · Holter“) stehen beim Namen.</p>
+        <p class="wer">Verwaltung, Projektleitung, Geschäftsführung, Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Startseite: ein Pfeil, Std:Min, alle Kunden<span class="neu">geändert</span></h3>
+        <p>„Einsatzplanung“ unter „Die Mannschaft heute“ und „Übriges zurückgeben“ an der Rüstliste tragen ein Zeichen „›“ statt zwei. Die Projektleitung sieht die Stunden ihrer Baustellen am Budget in Std:Min wie überall („25:00 Std von 12:00 Std“ statt „25,0 von 12 Std“), ebenso die nicht verrechneten Stunden einer Regiebaustelle („42:30 Std seit 01.08.2026“). Die Sammelzeile „2 Baustellen über dem Endtermin“ nennt bei zwei Kunden beide, ab drei zwei Namen und „und 1 weitere“ usw. — die am längsten überzogene zuerst.</p>
+        <p class="wer">Alle Rollen mit Startseite; Sammelzeile: Geschäftsführung, Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Auswahlfelder ganz lesbar, Meldung am Feld<span class="neu">geändert</span></h3>
+        <p>Ein Auswahlfeld, dessen Möglichkeiten nicht in eine halbe Zeile passen, nimmt in jedem Formular die ganze Zeile — etwa „Überstunden“ und „Überstunden ab“ unter Einstellungen › Personal, „Einstufung“ beim Anlegen eines Benutzers und „Art“ beim Termin. Kurze Auswahlen stehen weiter nebeneinander. Bei „Nachtzeit und Überstunden“ steht eine Meldung jetzt beim Feld, das sie meint — „Montag: zwischen 0 und 10 Stunden“ unter dem Montag —, das Feld ist rot umrandet, und der Cursor springt hinein; stimmt die Summe der Tage nicht, sind alle Tage markiert und die Meldung steht unter ihnen. Rot umrandet sind seither alle Felder, die eine Meldung als fehlerhaft kennzeichnet (etwa eine ungültige UID oder IBAN).</p>
+        <p><strong>Die gewählte Baustelle ist ganz zu lesen.</strong> Ein Auswahlfeld bricht seinen Text nicht um: am Handy und im Seitenfenster (Termin, Einsatz, Retoure, rund 400 px) stand von „CT Bau GmbH (Claude-Test) (PR-2026-0193)“ nur „… (PR-2026-019…“. Passt die gewählte Baustelle nicht ins Feld, steht sie jetzt vollständig darunter, mit umbrechendem Namen und ungetrennter Nummer; passt sie, steht nichts doppelt. Das gilt überall, wo eine Baustelle gewählt wird. Im Büro bleibt der Kunde vorn, weil dort nach ihm getippt wird.</p>
+        <p class="wer">Alle, die Formulare ausfüllen</p>
+      </div>
+      <div class="bereich">
+        <h3>„E-Mail an …“ geht über das eigene Postfach<span class="neu">benannt</span></h3>
+        <p><strong>Senklot verschickt keine E-Mail an Kunden oder Großhändler.</strong> „E-Mail an …“ an der Einkaufsliste öffnet eine fertige Nachricht im Mailprogramm des Geräts; abgeschickt wird sie dort, aus dem Postfach des Betriebs. Ein Angebot geht als PDF auf demselben Weg hinaus; eine hinterlegte E-Mail-Adresse öffnet ebenso das Mailprogramm. <strong>Die App führt deshalb keinen Versandnachweis</strong>: ob und wann die Nachricht hinausging, steht im Postfach des Betriebs („Gesendet“). „Als bestellt markieren“ und „Als versendet markieren“ halten fest, dass jemand das in Senklot vermerkt hat, nicht die Zustellung.</p>
+        <p>Grund: Versendet wird aus dem eigenen Postfach, damit Antworten dort ankommen und die gesendete Nachricht beim Betrieb liegt; dafür braucht die App keine Zugangsdaten zu diesem Postfach, und sie hält keine. Selbst verschickt Senklot nur die Passwort-Mails an die eigenen Benutzer, auch die Willkommens-Mail beim Anlegen.</p>
+        <p class="wer">Verwaltung, Büro, Geschäftsführung, Administrator</p>
+      </div>
+    </div>
+  </section>
 
   <section id="planung-handy">
     <div class="abschnittskopf">
@@ -738,7 +962,7 @@
     <div class="bereiche">
       <div class="bereich">
         <h3>Reiter links, Suche rechts<span class="neu">geändert</span></h3>
-        <p>Bei Angeboten, Wartungen, Kunden, Lager, Anforderungen, Baustellen, Benutzern, Rechnungen und Handwerksscheinen stehen die Reiter links und die Suche rechts, ein zusätzlicher Filter wie „Jeder Stand“ oder „Nur meine Baustellen“ daneben. Die Suche trägt eine Lupe statt der Beschriftung „Suche“; was sie findet, steht im Feld („Kunde, Nummer oder Adresse“). Am Handy steht die Suche oben, die Reiter darunter über die ganze Breite. Bei den Anforderungen steht die Auswahl der Baustelle jetzt neben der Suche statt im Kopf der Liste.</p>
+        <p>Bei Angeboten, Wartungen, Kunden, Lager, Anforderungen, Baustellen, Benutzern, Rechnungen und Handwerksscheinen stehen die Reiter links und die Suche rechts, ein zusätzlicher Filter wie „Jeder Stand“ oder „Nur meine Baustellen“ daneben. Die Suche trägt eine Lupe statt der Beschriftung „Suche“; was sie findet, steht im Feld („Kunde, Nummer oder Adresse“). Am Handy steht die Suche oben, die Reiter darunter über die ganze Breite. Bei den Anforderungen steht die Auswahl der Baustelle jetzt neben der Suche statt im Kopf der Liste. <strong>Seit 27.10.</strong> stehen dort auch die Bereiche in der Leiste und die Suche immer — vorher standen die Bereiche gestreckt über der Seite und die Suche erst ab zehn Anforderungen (siehe „27. Oktober: Oberfläche“).</p>
         <p class="wer">Alle Rollen · funktional ändert sich nichts</p>
       </div>
       <div class="bereich">
@@ -1053,7 +1277,7 @@
     <div class="bereiche">
       <div class="bereich">
         <h3>Stunden neben den Scheinen<span class="neu">neu</span></h3>
-        <p><strong>Unter Rechnungen</strong> stehen in „Nicht verrechnete Leistung“ jetzt auch Regiebaustellen mit gebuchten, noch nicht verrechneten Stunden: Kunde, Baustelle, die Summe der offenen Stunden und der älteste offene Tag. Gemeldet wird ab vier Wochen, gemessen am ältesten offenen Tag — dieselbe Frist wie bei den Scheinen; Scheine und Baustellen stehen in einer Liste, älteste zuerst. „Baustelle wählen“ öffnet „Neue Rechnung“ mit dieser Baustelle.</p>
+        <p><strong>Unter Rechnungen</strong> stehen in „Nicht verrechnete Leistung“ jetzt auch Regiebaustellen mit gebuchten, noch nicht verrechneten Stunden: Kunde, Baustelle, die Summe der offenen Stunden und der älteste offene Tag. Gemeldet wird ab vier Wochen, gemessen am ältesten offenen Tag — dieselbe Frist wie bei den Scheinen; Scheine und Baustellen stehen in einer Liste, älteste zuerst. <strong>Seit 27.10.2026</strong> stehen hier alle, die jüngeren ohne Achtung-Zustand — dieselbe Menge wie auf der Startseite. „Baustelle wählen“ öffnet „Neue Rechnung“ mit dieser Baustelle.</p>
         <p><strong>Auf der Startseite</strong> steht bei der Buchhaltung der Abschnitt „Stunden über 4 Wochen nicht verrechnet“; jede Zeile öffnet „Neue Rechnung“ mit der Baustelle. Bei Geschäftsführung und Administrator steht unter „Diese Woche“ das Thema „… mit Stunden nicht verrechnet“. <strong>Seit 25.10.2026</strong> steht auf der Startseite alles Nicht-Verrechnete, nicht nur das über vier Wochen Alte — als Sammelzeile (siehe Startseite).</p>
         <p>Pauschale und Einheitspreis stehen hier nicht: sie rechnen nach dem Angebot ab. Gezählt wird nur „Anwesend“; nach jeder angelegten oder stornierten Rechnung wird neu gezählt. Die Summen rechnet die Datenbank, ohne Personen und Zeitkonto.</p>
         <p><strong>Seit 24.10.</strong> zählen Lehrlingsstunden, die der Betrieb zum Satz 0 verrechnet (etwa das 1. und 2. Lehrjahr), hier nicht mehr mit — nach derselben Regel wie die Rechnung, die sie ohne Zeile auslässt. Eine Baustelle mit nur solchen Stunden steht nicht mehr in der Liste, und die Stundensumme gemischter Baustellen stimmt mit dem überein, was verrechnet wird. Gezählt wird mit den Sätzen des Betriebs; wer in der Rechnung einen Satz für diese eine Rechnung ändert, ändert die Liste nicht.</p>
@@ -1143,8 +1367,8 @@
       <div class="bereich">
         <h3>E-Rechnung zu jeder Rechnung<span class="neu">neu</span></h3>
         <p>Im Seitenfenster einer Rechnung steht „E-Rechnung (ebInterface) …“. Der Dialog fragt, an wen die Datei geht: ein <strong>Unternehmen</strong>, der <strong>Bund</strong> oder ein <strong>Land, eine Gemeinde oder eine andere Stelle</strong> über e-rechnung.gv.at. Für den Bund braucht es die Auftragsreferenz (die zehnstellige Bestellnummer oder die Einkäufergruppe aus der Bestellung, bei einer Bestellnummer dazu die Bestellposition) und die achtstellige Lieferantennummer. Für andere Stellen die Auftragsreferenz der Stelle (z. B. „Z0/Akt 4711“) und die Lieferantennummer bei ihr. Die Bestellnummer der Rechnung und die beim Kunden hinterlegte Lieferantennummer sind vorbelegt.</p>
-        <p><strong>Was fehlt, steht vor dem Laden da:</strong> die E-Mail-Adresse oder IBAN des Betriebs, eine Anschrift ohne Postleitzahl, ein fehlendes Leistungsdatum, eine Position, bei der Menge mal Preis nicht den Betrag ergibt. Solange etwas davon fehlt, entsteht keine Datei — e-rechnung.gv.at würde sie abweisen. Hinweise (etwa ein Rücklass) halten nichts auf.</p>
-        <p><strong>Dieselbe Rechnung wie das PDF:</strong> dieselben Positionen mit Titeln und Texten, Positionsrabatt und Rabatt über die Rechnung, dieselbe Umsatzsteuer (auch Übergang der Steuerschuld und steuerfrei mit Grund), dasselbe Skonto und derselbe Zahlbetrag. Bei Teil- und Schlussrechnung stehen die abgezogenen Rechnungen als eigene Positionen mit Verweis; der Haft- oder Deckungsrücklass mindert den Zahlbetrag, nicht die Steuer. Nach einem Storno gibt es auch die Stornorechnung als E-Rechnung, mit ihrer eigenen Nummer und dem Verweis auf die stornierte Rechnung.</p>
+        <p><strong>Was fehlt, steht vor dem Laden da:</strong> die E-Mail-Adresse oder IBAN des Betriebs, eine Anschrift ohne Postleitzahl, ein fehlendes Leistungsdatum, eine Position, bei der Menge mal Preis nicht den Betrag ergibt. Solange etwas davon fehlt, entsteht keine Datei — e-rechnung.gv.at würde sie abweisen. Hinweise (etwa ein Rücklass) halten nichts auf. Was auf der Rechnung festgehalten ist (Anschrift, Leistungszeitraum), lässt sich im Dialog nicht ändern; seit 27.10. sagt die Meldung den Weg: in der Kundenakte berichtigen, dann stornieren und neu ausstellen.</p>
+        <p><strong>Dieselbe Rechnung wie das PDF:</strong> dieselben Positionen mit Titeln und Texten, Positionsrabatt und Rabatt über die Rechnung, dieselbe Umsatzsteuer (auch Übergang der Steuerschuld und steuerfrei mit Grund), dasselbe Skonto und derselbe Zahlbetrag. Bei Teil- und Schlussrechnung stehen die abgezogenen Rechnungen als eigene Positionen mit Verweis; der Haft- oder Deckungsrücklass mindert den Zahlbetrag, nicht die Steuer. Nach einem Storno gibt es die Stornorechnung als E-Rechnung, mit ihrer eigenen Nummer und dem Verweis auf die stornierte Rechnung; die E-Rechnung der stornierten Rechnung selbst wird seit 27.10. nicht mehr angeboten.</p>
         <p><strong>Einreichen:</strong> An den Bund und andere öffentliche Stellen lädt man die Datei unter e-rechnung.gv.at hoch, angemeldet über das Unternehmensserviceportal (USP). An Unternehmen geht sie per E-Mail oder über deren Portal.</p>
         <p><strong>Lieferantennummer beim Kunden:</strong> Sie steht im Kundenformular und in der Kundenakte („Unsere Lieferantennummer bei diesem Kunden“). Wer im Dialog eine neue einträgt und Kunden pflegen darf, kann sie dort gleich beim Kunden merken.</p>
         <p><strong>Grenzen:</strong> Senklot reicht die Datei nicht selbst bei e-rechnung.gv.at ein; das Hochladen bleibt ein Handgriff. Bei einer zehnstelligen Bestellnummer des Bundes gilt eine Bestellposition für alle Zeilen. Beilagen (etwa der Leistungsnachweis) gehen nicht mit. Die Projektleitung, die Rechnungen nur liest, sieht den Eintrag nicht.</p>
@@ -1725,7 +1949,7 @@
         <h3>Berufsschultag in der Prüfung<span class="neu">nachgeprüft</span></h3>
         <p>Die Karte „Arbeitszeitgrenzen“ meldete für einen Berufsschultag „8:30 Std. — höchstens 8 Std.“, weil der Schultag mit dem Tagessoll zählte, und sie meldete auch Tage in der Zukunft. <strong>Am Gesetz nachgeprüft am 18.10.2026</strong> (§ 11 Abs 5–7 KJBG) gilt: Beim Eintragen der Berufsschule lässt sich die <strong>Unterrichtszeit je Schultag</strong> angeben („7,5“ oder „7:30“); die Prüfung nimmt diese Zeit, ohne Angabe weiter das Tagessoll. Ist die Wochenarbeitszeit anders verteilt — eigenes Tagessoll mit kürzeren und längeren Tagen, zusammen höchstens 40 Std., die kürzeren an der Wochenfreizeit oder laut Kollektivvertrag —, gelten am Tag bis 9 Std. (§ 11 Abs 2 und 3 KJBG). Geprüft wird nur, was bis heute gebucht ist: ein Tag in der Zukunft ist kein Verstoß. Die Zeiterfassung zeigt am Schultag „Berufsschule · Unterricht 07:30 Std“.</p>
         <p><strong>Seit 18.10.2026:</strong> Der Unterricht allein ist nie ein Verstoß — er ist keine Arbeit im Betrieb. Wird am Schultag gearbeitet, zählen Unterricht und Arbeit zusammen gegen die Tagesgrenze; nach angegebenen <strong>8 Std. Unterricht ist jede Arbeit ein Verstoß</strong>, auch wo am Tag 9 Std. gelten („Arbeit nach 8:00 Std. Berufsschule am …“, § 11 Abs 7 KJBG). Zur Unterrichtszeit gehören die Pausen in der Schule, nicht die Mittagspause.</p>
-        <p>Grenzen: Das Zeitkonto rechnet den Schultag weiter mit dem Tagessoll — die Unterrichtszeit zählt nur in der Prüfung. Sie gilt für alle Tage eines eingetragenen Zeitraums gleich; einen einzelnen Schultag ändert man, indem man ihn löscht und neu einträgt. Ohne Angabe ist das Tagessoll nur eine Schätzung; an ihm hängt die Acht-Stunden-Regel nicht. Seit 24.10.2026 zählt der Weg zwischen Schule und Betrieb mit, wenn er beim Eintragen angegeben ist, und die 9 Std. gelten nur, wenn die kürzeren Tage an der Wochenfreizeit liegen oder der Kollektivvertrag die Verteilung zulässt (siehe „Jugendschutz — Weg zur Schule und kürzere Tage“).</p>
+        <p>Grenzen: Das Zeitkonto rechnet den Schultag weiter mit dem Tagessoll — die Unterrichtszeit zählt nur in der Prüfung (seit 27.10.2026 auch im Zeitkonto, wenn danach gearbeitet wird; siehe „Arbeit am Berufsschultag“). Sie gilt für alle Tage eines eingetragenen Zeitraums gleich; einen einzelnen Schultag ändert man, indem man ihn löscht und neu einträgt. Ohne Angabe ist das Tagessoll nur eine Schätzung; an ihm hängt die Acht-Stunden-Regel nicht. Seit 24.10.2026 zählt der Weg zwischen Schule und Betrieb mit, wenn er beim Eintragen angegeben ist, und die 9 Std. gelten nur, wenn die kürzeren Tage an der Wochenfreizeit liegen oder der Kollektivvertrag die Verteilung zulässt (siehe „Jugendschutz — Weg zur Schule und kürzere Tage“).</p>
         <p class="wer">Lehrlinge und Büro (Eintragen); Buchhaltung, Geschäftsführung, Administrator (Mitarbeiterübersicht)</p>
       </div>
       <div class="bereich">
@@ -2198,17 +2422,17 @@
       </div>
       <div class="bereich">
         <h3>Angebote überarbeiten, Abrechnungsart<span class="neu">neu</span></h3>
-        <p>Ein versendetes oder abgelehntes Angebot wird über <strong>„Neue Fassung“</strong> überarbeitet: ein neuer Entwurf mit eigener Nummer, der auf den Vorgänger verweist; das versendete bleibt, wie es beim Kunden liegt. „Als Kopie anlegen“ geht ohne Verweis. Beim Annehmen wählt man die Abrechnung: <strong>Pauschal, Regie oder Einheitspreis nach Aufmaß</strong>. Ein Kunde gleichen Namens ist erlaubt, nach einer Rückfrage.</p>
+        <p>Ein versendetes oder abgelehntes Angebot wird über <strong>„Neue Fassung“</strong> überarbeitet: ein neuer Entwurf mit eigener Nummer, der auf den Vorgänger verweist; das versendete bleibt, wie es beim Kunden liegt. Wird eine Fassung angenommen, gelten die übrigen offenen seit 27.10. als „Ersetzt“. „Als Kopie anlegen“ geht ohne Verweis. Beim Annehmen wählt man die Abrechnung: <strong>Pauschal, Regie oder Einheitspreis nach Aufmaß</strong>. Ein Kunde gleichen Namens ist erlaubt, nach einer Rückfrage.</p>
         <p class="wer">Projektleiter, Geschäftsführung, Administrator · die Buchhaltung liest</p>
       </div>
       <div class="bereich">
         <h3>Planung: unbesetzt, Uhrzeit, Abholer<span class="neu">neu</span></h3>
-        <p>Fehlt ein Eingeteilter ganztags, bleibt der Einsatz im Wochenplan stehen — mit „fehlt“ — und die Startseite der Leitung meldet die Baustelle als <strong>unbesetzt</strong>. Ein Einsatz kann eine Uhrzeit von–bis tragen. Eine Anforderung aus der Rüstliste steht auf dem eingeteilten Monteur, damit das Lager weiß, wer abholt.</p>
+        <p>Fehlt ein Eingeteilter ganztags, bleibt der Einsatz im Wochenplan stehen — mit „fehlt“ — und die Startseite der Leitung meldet die Baustelle als <strong>unbesetzt</strong>. Ein Einsatz kann eine Uhrzeit von–bis tragen. Eine Anforderung aus der Rüstliste steht auf dem eingeteilten Monteur, damit das Lager weiß, wer abholt; seit 27.10. entsteht sie beim Speichern des Einsatzes und trägt ihre Position.</p>
         <p class="wer">Leitung, Projektleiter</p>
       </div>
       <div class="bereich">
         <h3>Lager mit Protokoll<span class="neu">neu</span></h3>
-        <p>Jede Änderung des Bestands ist eine Bewegung im <strong>Bewegungsprotokoll</strong>: Wareneingang mit Lieferant und Lieferschein, Inventur mit Grund. Das <strong>Lager</strong> zeigt nur Artikel, die dort geführt werden; der <strong>Katalog</strong> bleibt Katalog. „Knapp“ heißt unter der Mindestmenge, sonst höchstens 5 frei. Meter und Kilo nehmen Komma, Stück bleibt ganz. Die Rüstliste reserviert, der Monteur sieht, was frei ist. Ein <strong>Materialaufschlag</strong> (Standard und je Warengruppe) schlägt Verkaufspreise vor, übernommen erst auf Klick.</p>
+        <p>Jede Änderung des Bestands ist eine Bewegung im <strong>Bewegungsprotokoll</strong>: Wareneingang mit Lieferant und Lieferschein, Inventur mit Grund. Das <strong>Lager</strong> zeigt nur Artikel, die dort geführt werden; der <strong>Katalog</strong> bleibt Katalog. „Knapp“ heißt unter der Mindestmenge, sonst höchstens 5 frei. Meter und Kilo nehmen Komma, Stück bleibt ganz. Die Rüstliste reserviert, der Monteur sieht, was frei ist; was eine verknüpfte Anforderung bringt, reserviert seit 27.10. die Anforderung, nicht noch einmal die Liste. Ein <strong>Materialaufschlag</strong> (Standard und je Warengruppe) schlägt Verkaufspreise vor, übernommen erst auf Klick.</p>
         <p class="wer">Verwaltung, Leitung</p>
       </div>
       <div class="bereich">
@@ -2732,7 +2956,7 @@
       </div>
       <div class="bereich">
         <h3>Baustellen<span class="neu">nummer ändern</span></h3>
-        <p>Anlegen, Kunde zuordnen, Team und Projektleitung, Stundenbudget — dasselbe Muster wie beim Kunden: eine eigene Seite je Baustelle, Bearbeiten darin. Fachzeit über die ganze Laufzeit gegen das Budget, Stunden je Mitarbeiter, letzter Buchungstag. Gesucht wird nach Nummer, Bezeichnung, Adresse und Kunde — serverseitig, samt der alten, abgeschlossenen. <strong>Seit 23.09.: Pläne und Dokumente</strong> (PDF, Bilder, seit 12.10. auch Word, Excel und E-Mails; bis 25 MB) — sichtbar für das Büro und für Monteure, die im Team stehen oder dort eingeteilt sind. <strong>„Nur fürs Büro“</strong> lässt sich beim Hinzufügen ankreuzen und je Dokument jederzeit umstellen; was „Nur Büro“ trägt, sehen die Monteure weder in der Liste noch über die Adresse der Datei. Klingt ein Dateiname nach einem Beleg oder nach einer Person, fragt die App nach und hat „Nur fürs Büro“ dabei schon angekreuzt. Behoben am selben Tag: eine Datei, für die das Gerät keinen Typ meldet (oft aus der Dateien-App am iPhone), wurde vom Speicher abgewiesen — hier wie beim Nachweis einer Freistellung. Eine Baustelle mit Buchungen, Scheinen oder Plänen lässt sich nicht löschen, und die Liste sagt jetzt warum, statt wortlos offen zu bleiben. <strong>Seit 24.09. nimmt eine geänderte Projektnummer alles mit</strong> — Zeitbuchungen, Einsätze, Rüstlisten, Schein-Entwürfe, Anforderungen, Angebote, Wartungen samt ihren Ausführungen; vorher zeigte die Baustelle danach null Stunden. Steht die Nummer schon auf einer Rechnung oder einem unterschriebenen Schein, bleibt sie, und die Meldung sagt warum. Fällt der geplante Zeitraum in einen Betriebsurlaub, steht das beim Datum.</p>
+        <p>Anlegen, Kunde zuordnen, Team und Projektleitung, Stundenbudget — dasselbe Muster wie beim Kunden: eine eigene Seite je Baustelle, Bearbeiten darin. Was ins Budget zählt über die ganze Laufzeit gegen das Budget — seit 27.10. mit dem Anteil der Lehrlinge („45,0 h von 16 h Budget (davon 16,0 h Lehrling)“) —, Stunden je Mitarbeiter, letzter Buchungstag. Gesucht wird nach Nummer, Bezeichnung, Adresse und Kunde — serverseitig, samt der alten, abgeschlossenen. <strong>Seit 23.09.: Pläne und Dokumente</strong> (PDF, Bilder, seit 12.10. auch Word, Excel und E-Mails; bis 25 MB) — sichtbar für das Büro und für Monteure, die im Team stehen oder dort eingeteilt sind. <strong>„Nur fürs Büro“</strong> lässt sich beim Hinzufügen ankreuzen und je Dokument jederzeit umstellen (seit 27.10. „Vor Monteuren verbergen“ bzw. „Für Monteure zeigen“, der Zustand als Etikett an der Zeile); was „Nur Büro“ trägt, sehen die Monteure weder in der Liste noch über die Adresse der Datei. Klingt ein Dateiname nach einem Beleg oder nach einer Person, fragt die App nach und hat „Nur fürs Büro“ dabei schon angekreuzt. Behoben am selben Tag: eine Datei, für die das Gerät keinen Typ meldet (oft aus der Dateien-App am iPhone), wurde vom Speicher abgewiesen — hier wie beim Nachweis einer Freistellung. Eine Baustelle mit Buchungen, Scheinen oder Plänen lässt sich nicht löschen, und die Liste sagt jetzt warum, statt wortlos offen zu bleiben. <strong>Seit 24.09. nimmt eine geänderte Projektnummer alles mit</strong> — Zeitbuchungen, Einsätze, Rüstlisten, Schein-Entwürfe, Anforderungen, Angebote, Wartungen samt ihren Ausführungen; vorher zeigte die Baustelle danach null Stunden. Steht die Nummer schon auf einer Rechnung oder einem unterschriebenen Schein, bleibt sie, und die Meldung sagt warum. Fällt der geplante Zeitraum in einen Betriebsurlaub, steht das beim Datum.</p>
         <p class="wer">Leitung</p>
       </div>
       <div class="bereich">
@@ -2742,7 +2966,7 @@
       </div>
       <div class="bereich">
         <h3>Anforderungen<span class="neu">einkaufsliste</span></h3>
-        <p><strong>Seit 24.09. hakt das Lager ab:</strong> „Aus Lager“ macht die Anforderung gleich abholbereit, „Nicht auf Lager“ setzt sie auf die <strong>Einkaufsliste</strong> beim gewählten Großhändler. Der Reiter „Einkauf“ fasst gleiche Artikel zu einer Zeile zusammen, mit den Baustellen als Kommission, und schickt die Bestellung als PDF (ohne Preise) oder als fertige E-Mail an den Vertreter; „Geliefert“ bucht die Ware ins Lager, einmal, auch bei doppeltem Klick. Der Monteur sieht „wird bestellt“. <strong>Dazu setzt das Büro eigenes Material auf die Liste</strong> — „Material dazusetzen“: Artikel aus dem Katalog suchen oder frei eintragen, Menge, Großhändler. Es steht mit der Kommission „Lager“ in derselben Zeile wie gleiche Artikel aus Anforderungen und kommt beim Eintreffen ins Lager. Eingehende Materialanforderungen abarbeiten: bestellen, teilliefern, abschließen, Retoure buchen. Die <strong>Notiz des Monteurs</strong> steht seit 23.09. in einer eigenen Zeile — oft das Einzige, was man wirklich lesen muss. Der Lagerabzug läuft als Datenbankfunktion — zwei gleichzeitige Abschlüsse ziehen nicht doppelt ab, und unter null geht es nicht. <strong>Seit 25.09. geht „Aus Lager“ nur, was frei ist</strong> — im Regal, abzüglich dessen, was anderen schon zugesagt ist; sonst nennt die App die Zahlen und verweist auf „Nicht auf Lager“. Anforderungen ohne Katalogartikel (der Monteur tippt sie frei) laufen über die Einkaufsliste. <strong>Wie viele offen sind, steht seit 16.09. am Reiter selbst.</strong></p>
+        <p><strong>Seit 24.09. hakt das Lager ab:</strong> „Aus Lager“ macht die Anforderung gleich abholbereit, „Nicht auf Lager“ setzt sie auf die <strong>Einkaufsliste</strong> beim gewählten Großhändler. Der Reiter „Einkauf“ fasst gleiche Artikel zu einer Zeile zusammen, mit den Baustellen als Kommission, und schickt die Bestellung als PDF (ohne Preise) oder als fertige E-Mail an den Vertreter; „Geliefert“ bucht die Ware ins Lager, einmal, auch bei doppeltem Klick. Der Monteur sieht „wird bestellt“. <strong>Dazu setzt das Büro eigenes Material auf die Liste</strong> — „Material dazusetzen“: Artikel aus dem Katalog suchen oder frei eintragen, Menge, Großhändler. Es steht mit der Kommission „Lager“ in derselben Zeile wie gleiche Artikel aus Anforderungen und kommt beim Eintreffen ins Lager. Eingehende Materialanforderungen abarbeiten: bestellen, teilliefern, abschließen, Retoure buchen. Die <strong>Notiz des Monteurs</strong> steht seit 23.09. in einer eigenen Zeile — oft das Einzige, was man wirklich lesen muss. Der Lagerabzug läuft als Datenbankfunktion — zwei gleichzeitige Abschlüsse ziehen nicht doppelt ab, und unter null geht es nicht. <strong>Seit 25.09. geht „Aus Lager“ nur, was frei ist</strong> — im Regal, abzüglich dessen, was anderen schon zugesagt ist; sonst nennt die App die Zahlen und verweist auf „Nicht auf Lager“. Anforderungen ohne Katalogartikel (der Monteur tippt sie frei) laufen über die Einkaufsliste. <strong>Wie viele offen sind, steht seit 16.09. am Reiter selbst.</strong> Seit 27.10. trägt nur noch „Einkauf“ eine Zahl; wie viele laufen, steht über jeder Gruppe (siehe „27. Oktober: Oberfläche“).</p>
         <p class="wer">Verwaltung · Leitung</p>
       </div>
       <div class="bereich">
@@ -2838,7 +3062,7 @@
     <div class="bereiche">
       <div class="bereich">
         <h3>Rechnungen</h3>
-        <p>Aus der Baustelle zusammengestellt: Stunden <em>und</em> Material aus den unterschriebenen Handwerksscheinen, Preise frei änderbar; <strong>seit 23.10.</strong> dazu als Vorschlag, was das Lager ausgegeben hat und auf keinem Schein steht. Leistungszeitraum nach § 11 UStG, Rabatt, Nummernkreis ohne Lücken, <strong>PDF seit 23.09. als Geschäftsbrief</strong>: keine Farbflächen, Empfänger im Kuvertfenster, Bank, UID und Firmenbuch in der Fußzeile jeder Seite — dasselbe Layout für Leistungsnachweis, Mahnung und Angebot. Vor dem Anlegen steht, was die Scheine bestätigen — neben dem, was verrechnet wird. <strong>Seit 24.09. auch je Person, Tag und Satz:</strong> fehlen unterschriebene Stunden, steht jede Zeile da — „24.09. · Manfred Monteur · Facharbeiter: unterschrieben 08:00, verrechnet 00:00“ —, auch wenn die Summe stimmt. Fehlt der Leistungszeitraum oder steht er verdreht, sagt es die Maske: eine geschriebene Rechnung geht nur noch über einen Storno weg. <strong>Seit 23.10. ist „Leistung bis“ bei Regie der Stichtag:</strong> früher gesetzt, stellt die Vorschau auf Knopfdruck nur bis dahin zusammen; Späteres bleibt für die nächste Rechnung offen. <strong>Seit 24.09. sucht die Liste über alle Rechnungen</strong> — Nummer, Kunde, Baustelle —, nicht nur über die zuletzt geladenen fünfzig.</p>
+        <p>Aus der Baustelle zusammengestellt: Stunden <em>und</em> Material aus den unterschriebenen Handwerksscheinen, Preise frei änderbar; <strong>seit 23.10.</strong> dazu als Vorschlag, was das Lager ausgegeben hat und auf keinem Schein steht. Leistungszeitraum nach § 11 UStG, Rabatt, Nummernkreis ohne Lücken, <strong>PDF seit 23.09. als Geschäftsbrief</strong>: keine Farbflächen, Empfänger im Kuvertfenster, Bank, UID und Firmenbuch in der Fußzeile jeder Seite — dasselbe Layout für Leistungsnachweis, Mahnung und Angebot. Vor dem Anlegen steht, was die Scheine bestätigen — neben dem, was verrechnet wird. <strong>Seit 24.09. auch je Person, Tag und Satz:</strong> fehlen unterschriebene Stunden, steht jede Zeile da — „24.09. · Manfred Monteur · Facharbeiter: unterschrieben 08:00, verrechnet 00:00“ —, auch wenn die Summe stimmt. Fehlt der Leistungszeitraum oder steht er verdreht, sagt es die Maske — <strong>seit 27.10. bleibt der Knopf dann gesperrt</strong> (außer bei der Anzahlung), und die Datenbank weist es ebenso ab: eine geschriebene Rechnung geht nur noch über einen Storno weg. <strong>Seit 23.10. ist „Leistung bis“ bei Regie der Stichtag:</strong> früher gesetzt, stellt die Vorschau auf Knopfdruck nur bis dahin zusammen; Späteres bleibt für die nächste Rechnung offen. <strong>Seit 24.09. sucht die Liste über alle Rechnungen</strong> — Nummer, Kunde, Baustelle —, nicht nur über die zuletzt geladenen fünfzig.</p>
         <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
       </div>
       <div class="bereich">
@@ -2858,7 +3082,7 @@
       </div>
       <div class="bereich">
         <h3>Anzahlung, Teil, Schluss<span class="neu">hinter einem schalter</span></h3>
-        <p>Der Haken „Wir stellen Anzahlungs-, Teil- und Schlussrechnungen“ steht in den Einstellungen und ist <strong>ab Werk aus</strong>. Ohne ihn sieht die Rechnungsmaske genau so aus wie vorher. Eingeschaltet zieht die Schlussrechnung jede Vorrechnung einzeln ab — seit 30.09. zwingend, vorausgewählt und nicht abwählbar —, mit Entgelt UND Steuer, denn wer eine Steuer ausweist, schuldet sie (§ 11 Abs 12 UStG). <strong>Abgezogen wird nur, was keine Belege verbraucht hat:</strong> eine Teilrechnung über einen abgeschlossenen Bauabschnitt hat ihre Stunden mitgenommen und steht in der Schlussrechnung gar nicht mehr.</p>
+        <p>Der Haken „Wir stellen Anzahlungs-, Teil- und Schlussrechnungen“ steht in den Einstellungen und ist <strong>ab Werk aus</strong>. Ohne ihn sieht die Rechnungsmaske genau so aus wie vorher. Eingeschaltet zieht die Schlussrechnung jede Vorrechnung einzeln ab — seit 30.09. zwingend, vorausgewählt und nicht abwählbar —, mit Entgelt UND Steuer, denn wer eine Steuer ausweist, schuldet sie (§ 11 Abs 12 UStG). <strong>Abgezogen wird nur, was keine Belege verbraucht hat:</strong> eine Teilrechnung über einen abgeschlossenen Bauabschnitt hat ihre Stunden mitgenommen und steht in der Schlussrechnung gar nicht mehr — seit 27.10. nennt eine Textzeile sie dort. Je Baustelle gibt es eine gültige Schlussrechnung.</p>
         <p class="wer">Buchhaltung · Geschäftsführung · Administrator · Schalter: nur Geschäftsführung und Administrator</p>
       </div>
       <div class="bereich">
@@ -2868,7 +3092,7 @@
       </div>
       <div class="bereich">
         <h3>Nicht verrechnete Leistung</h3>
-        <p>Unterschriebene Scheine, die auf keiner gültigen Rechnung stehen und älter als vier Wochen sind. Wird eine Rechnung storniert, tauchen ihre Scheine wieder auf — der Storno nimmt die Forderung zurück. <strong>Seit 23.10. auch Regiebaustellen mit gebuchten, nicht verrechneten Stunden</strong>, deren ältester offener Tag über vier Wochen zurückliegt — mit oder ohne Schein.</p>
+        <p>Unterschriebene Scheine, die auf keiner gültigen Rechnung stehen. Wird eine Rechnung storniert, tauchen ihre Scheine wieder auf — der Storno nimmt die Forderung zurück. <strong>Seit 23.10. auch Regiebaustellen mit gebuchten, nicht verrechneten Stunden</strong> — mit oder ohne Schein. <strong>Seit 27.10.</strong> alle, nicht nur die über vier Wochen; diese tragen den Achtung-Zustand.</p>
         <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
       </div>
       <div class="bereich">
@@ -3195,7 +3419,7 @@
     <div class="bereiche">
       <div class="bereich">
         <h3>Erst ansehen, dann übernehmen</h3>
-        <p>Die DATANORM-Datei wird eingelesen und <strong>zunächst nur gezeigt</strong>: wie viele Artikel erkannt wurden, wie viele ohne Preis blieben, welche Zeilen mit Nummer und Grund NICHT verstanden wurden. Geschrieben wird erst auf den zweiten Klick. <strong>Seit 10.10.2026 in Blöcken zu hundert Zeilen</strong>, mit Fortschritt („2.300 von 18.000 übernommen …“): in einem Zug brach jeder Katalog über ein paar hundert Zeilen an der Zeitgrenze der Datenbank ab und schrieb gar nichts. Jeder Block ist für sich ganz oder gar nicht. Steht eine Artikelnummer im Katalog doppelt, beginnt die Übernahme gar nicht erst. Bricht sie zwischendurch ab (Netz, Fenster geschlossen), bleibt das schon Übernommene im Katalog, der Lauf steht mit seinem Zwischenstand im Protokoll, und <strong>„Weiter übernehmen“</strong> setzt beim Rest fort.</p>
+        <p>Die DATANORM-Datei wird eingelesen und <strong>zunächst nur gezeigt</strong>: wie viele Artikel erkannt wurden, wie viele ohne Preis blieben, welche Zeilen mit Nummer und Grund NICHT verstanden wurden. Geschrieben wird erst auf den zweiten Klick. <strong>Seit 10.10.2026 in Blöcken zu hundert Zeilen</strong>, mit Fortschritt („2.300 von 18.000 übernommen …“): in einem Zug brach jeder Katalog über ein paar hundert Zeilen an der Zeitgrenze der Datenbank ab und schrieb gar nichts. Jeder Block ist für sich ganz oder gar nicht. Steht eine Artikelnummer im Katalog doppelt, beginnt die Übernahme gar nicht erst; steht sie in der Datei doppelt, wird seit 27.10. keine dieser Zeilen übernommen (Probelauf: „Nicht übernommene Zeilen“). Bricht sie zwischendurch ab (Netz, Fenster geschlossen), bleibt das schon Übernommene im Katalog, der Lauf steht mit seinem Zwischenstand im Protokoll, und <strong>„Weiter übernehmen“</strong> setzt beim Rest fort.</p>
         <p class="wer">Geschäftsführung, Administrator und die Verwaltung mit Freigabe „Katalog einspielen“ (sie sieht damit auch Einkaufspreise) — wer einzeln keine Einkaufspreise setzen darf, darf sie auch nicht zu vierzigtausend Stück einspielen</p>
       </div>
       <div class="bereich">
@@ -3313,8 +3537,8 @@
       </div>
       <div class="bereich">
         <h3>Sicherheits-Kopfzeilen<span class="neu">neu</span></h3>
-        <p>Seit dem 11.10. schickt die Auslieferung mehr als nur HSTS: der Browser rät keinen Dateityp, fremde Seiten bekommen beim Verlassen nur die Adresse der App, nicht die der Akte, die App lässt sich nicht in eine fremde Seite einbetten, und Mikrofon, Standort, Zahlung und USB sind gesperrt. Eine <strong>Inhaltsregel</strong> (CSP) legt fest, woher Skripte, Bilder und Verbindungen kommen dürfen — zunächst nur <em>meldend</em>: sie sperrt nichts, jeder Verstoß landet als „Inhaltsregel …“ im Fehlerprotokoll, nur mit der Herkunft, ohne Pfad. Beim Durchgang durch jede Seite aller Rollen kam keiner.</p>
-        <p class="wer">Durchgesetzt wird die Regel erst nach der Prüfung am echten Gerät — sonst bliebe eine Seite weiß, die niemand vorher gesehen hat</p>
+        <p>Seit dem 11.10. schickt die Auslieferung mehr als nur HSTS: der Browser rät keinen Dateityp, fremde Seiten bekommen beim Verlassen nur die Adresse der App, nicht die der Akte, die App lässt sich nicht in eine fremde Seite einbetten, und Mikrofon, Standort, Zahlung und USB sind gesperrt. Eine <strong>Inhaltsregel</strong> (CSP) legt fest, woher Skripte, Bilder und Verbindungen kommen dürfen — zunächst nur <em>meldend</em>: sie sperrt nichts, jeder Verstoß landet als „Inhaltsregel …“ im Fehlerprotokoll, nur mit der Herkunft, ohne Pfad. Beim Durchgang durch jede Seite aller Rollen kam keiner. <strong>Seit 27.10. durchgesetzt</strong> (Abschnitt „Sicherheitsprüfung vor dem Start“); gemeldet wird weiter.</p>
+        <p class="wer">Vor dem Durchsetzen ging ein Rundgang durch jede Seite jeder Rolle, auch in WebKit — er läuft seitdem bei jeder Änderung mit</p>
       </div>
       <div class="bereich">
         <h3>Vorhalten der App auch bei schnellem Start<span class="neu">behoben</span></h3>
@@ -3579,8 +3803,8 @@
         <p>Seit 29.09. landet ein Absturz vor der Anmeldung in einem eigenen Protokoll, das die Plattform als „Vor der Anmeldung“ sieht — abgesichert gegen Missbrauch: nur über eine Funktion, Felder gekürzt, keine Wiederholungen, höchstens 100 Einträge je Stunde. Anmeldung, Impressum und Datenschutz zeigen bei einem Absturz jetzt die Fehlertafel statt einer weißen Seite. Ein Nachladefehler, bei dem auch das Neuladen nicht geholfen hat, gilt weiterhin als Rauschen.</p>
       </div>
       <div class="luecke">
-        <strong>Die Bestellung verschickt das Mailprogramm<span class="schwere offen">offen</span></strong>
-        <p>„E-Mail an den Vertreter“ öffnet eine fertige Nachricht im Mailprogramm des Geräts; abschicken muss man sie dort. Direkt aus der App zu senden bräuchte das Mailkonto des Betriebs als Geheimnis beim Server — eine Einrichtung, keine Programmierung.</p>
+        <strong>Bestellung und Angebot verschickt das eigene Postfach<span class="schwere offen">bewusst</span></strong>
+        <p>„E-Mail an …“ öffnet eine fertige Nachricht im Mailprogramm des Geräts; abschicken muss man sie dort, ein Angebot geht als PDF denselben Weg. Aus der App geht keine Nachricht an Kunden oder Großhändler hinaus, <strong>und sie führt keinen Versandnachweis</strong> — der steht im Postfach des Betriebs unter „Gesendet“. „Als bestellt markieren“ und „Als versendet markieren“ vermerken, dass jemand es eingetragen hat, nicht die Zustellung. Grund: gesendet wird aus dem eigenen Postfach, damit Antworten dort ankommen und die Nachricht beim Betrieb liegt; dafür braucht die App keine Zugangsdaten zum Postfach und hält keine. Direkt aus der App zu senden hieße, das Mailkonto des Betriebs als Geheimnis beim Server zu hinterlegen (siehe „27. Oktober: Oberfläche“).</p>
       </div>
       <div class="luecke">
         <strong>Der erste volle Katalog<span class="schwere offen">offen</span></strong>
@@ -3643,8 +3867,8 @@
 
   <footer class="fuss">
     <span>Senklot · Betriebssoftware für Installationsbetriebe in Österreich</span>
-    <span>Automatische Prüfungen: 5.658 Modulprüfungen · 125 Browserwege · 7 Linkprüfungen</span>
-    <span>Stand 22.10.2026</span>
+    <span>Automatische Prüfungen: 5.857 Modulprüfungen · 140 Browserwege · 7 Linkprüfungen</span>
+    <span>Stand 27.10.2026</span>
   </footer>
 
 </div>

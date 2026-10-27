@@ -54,7 +54,9 @@ test('Katalog einspielen: erst der Probelauf, dann die Übernahme', async ({ pag
 
   await page.getByLabel(/Gruppe 10/).fill('40');
   await page.getByRole('button', { name: /3 Artikel übernehmen/ }).click();
-  await expect(page.getByRole('heading', { name: 'Übernommen' })).toBeVisible({ timeout: 30_000 });
+  // GENAU „Übernommen“: seit Runde 6 (G25) heißt die Karte des Probelaufs
+  // „Nicht übernommene Zeilen“ — ohne `exact` stand sie schon vor dem Ende da.
+  await expect(page.getByRole('heading', { name: 'Übernommen', exact: true })).toBeVisible({ timeout: 30_000 });
   await keineFehlermeldung(page);
 
   /*

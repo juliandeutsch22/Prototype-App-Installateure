@@ -38,9 +38,21 @@ const RING_TON = {
 
 interface Person {
   name: string;
+  /** Was gegen das Budget läuft — Fach und Lehrlinge, deren Stunden ins Budget zählen. */
   fachMin: number;
+  /** Davon von einem Lehrling (Runde 6, G18). */
+  lehrlingImBudgetMin: number;
   helperMin: number;
   lehrlingMin: number;
+}
+
+/*
+  „FACHZEIT“ WAR FALSCH, SOBALD EIN LEHRLING MITZÄHLT (Runde 6, G18): „45,0 h
+  Fachzeit von 16 h Budget“ enthielt 16 h Lehrling. Die Zahl bleibt dieselbe
+  — sie ist, was gegen das Budget läuft —, die Beschriftung nennt den Anteil.
+*/
+function davonLehrling(min: number): string {
+  return min > 0 ? ` (davon ${fmtStd(min)} h Lehrling)` : '';
 }
 
 type Stand =
@@ -49,6 +61,7 @@ type Stand =
   | {
       art: 'bereit';
       fachMin: number;
+      lehrlingImBudgetMin: number;
       helperMin: number;
       lehrlingMin: number;
       personen: Person[];
@@ -112,8 +125,10 @@ export default function BaustellenUebersicht({
   }
 
   if (kompakt) return <div className="akten-stunden">
-    <p><span className="akten-stunden-zahl">{fmtStd(stand.fachMin)} h</span> Fachzeit
-      {projekt.estimatedHours ? <> von {fmtStunden(projekt.estimatedHours)} h Budget</> : ' · kein Stundenbudget hinterlegt'}</p>
+    <p className="baustelle-summe"><span className="akten-stunden-zahl">{fmtStd(stand.fachMin)} h</span>
+      {projekt.estimatedHours ? <> von {fmtStunden(projekt.estimatedHours)} h Budget</> : ' Arbeitszeit'}
+      {davonLehrling(stand.lehrlingImBudgetMin)}
+      {projekt.estimatedHours ? null : ' · kein Stundenbudget hinterlegt'}</p>
     {projekt.estimatedHours ? <p className={budget.over ? 'text-danger' : budget.tone === 'warning' ? 'text-warning' : 'text-ink-muted'}>
       <span className="akten-stunden-zahl">{fmtStd(Math.abs(projekt.estimatedHours * 60 - stand.fachMin))} h</span>{' '}{budget.over ? 'über Budget' : 'verbleibend'}
     </p> : null}
@@ -126,7 +141,7 @@ export default function BaustellenUebersicht({
     {stand.lehrlingMin > 0 && <p className="text-sm text-ink-muted">+{fmtStd(stand.lehrlingMin)} h Lehrling, nicht im Budget</p>}
     <details><summary>Stunden nach Person</summary><ul className="divide-y divide-line">
       {stand.personen.map((p) => <li key={p.name} className="py-2 text-sm"><span className="font-semibold">{p.name}</span><br />
-        {fmtStd(p.fachMin)} h Fachzeit{p.helperMin > 0 && <> · +{fmtStd(p.helperMin)} h Helfer</>}
+        {fmtStd(p.fachMin)} h{davonLehrling(p.lehrlingImBudgetMin)}{p.helperMin > 0 && <> · +{fmtStd(p.helperMin)} h Helfer</>}
         {p.lehrlingMin > 0 && <> · +{fmtStd(p.lehrlingMin)} h nicht im Budget</>}
       </li>)}
     </ul>{stand.zuletzt && <p className="text-xs text-ink-muted">Zuletzt gebucht am {fmtDatum(stand.zuletzt)}.</p>}</details>
@@ -134,12 +149,12 @@ export default function BaustellenUebersicht({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm">
-        <span className="font-semibold text-ink">{fmtStd(stand.fachMin)} h</span>{' '}
-        <span className="text-ink-muted">Fachzeit</span>
-        {projekt.estimatedHours ? (
-          <span className="text-ink-muted"> von {fmtStunden(projekt.estimatedHours)} h Budget</span>
-        ) : null}
+      <p className="baustelle-summe text-sm">
+        <span className="font-semibold text-ink">{fmtStd(stand.fachMin)} h</span>
+        <span className="text-ink-muted">
+          {projekt.estimatedHours ? ` von ${fmtStunden(projekt.estimatedHours)} h Budget` : ' Arbeitszeit'}
+          {davonLehrling(stand.lehrlingImBudgetMin)}
+        </span>
         {/*
           Helferstunden zählen NICHT gegen das Budget — sie werden zwar
           verrechnet, sind für die Kalkulation aber kostenneutral. Dieselbe
@@ -188,7 +203,7 @@ export default function BaustellenUebersicht({
             className="inline-flex items-baseline gap-1.5 text-xs"
           >
             <span className="font-semibold text-ink">{p.name}</span>
-            <span className="text-ink-muted">{fmtStd(p.fachMin)} h</span>
+            <span className="text-ink-muted">{fmtStd(p.fachMin)} h{davonLehrling(p.lehrlingImBudgetMin)}</span>
             {p.helperMin > 0 && (
               <span className="text-ink-muted">+{fmtStd(p.helperMin)} h Helfer</span>
             )}
@@ -218,6 +233,7 @@ export default function BaustellenUebersicht({
 function auswerten(stunden: BaustellenStunden[]): Extract<Stand, { art: 'bereit' }> {
   const nachPerson = new Map<string, Person>();
   let fachMin = 0;
+  let lehrlingImBudgetMin = 0;
   let helperMin = 0;
   let lehrlingMin = 0;
   let zuletzt: string | null = null;
@@ -226,6 +242,7 @@ function auswerten(stunden: BaustellenStunden[]): Extract<Stand, { art: 'bereit'
     const cur = nachPerson.get(schluessel) ?? {
       name: s.userName || 'Unbekannt',
       fachMin: 0,
+      lehrlingImBudgetMin: 0,
       helperMin: 0,
       lehrlingMin: 0,
     };
@@ -238,6 +255,8 @@ function auswerten(stunden: BaustellenStunden[]): Extract<Stand, { art: 'bereit'
     } else {
       cur.fachMin += s.minuten;
       fachMin += s.minuten;
+      cur.lehrlingImBudgetMin += s.lehrlingImBudget ?? 0;
+      lehrlingImBudgetMin += s.lehrlingImBudget ?? 0;
     }
     nachPerson.set(schluessel, cur);
     if (zuletzt === null || s.zuletzt > zuletzt) zuletzt = s.zuletzt;
@@ -246,6 +265,7 @@ function auswerten(stunden: BaustellenStunden[]): Extract<Stand, { art: 'bereit'
   return {
     art: 'bereit',
     fachMin,
+    lehrlingImBudgetMin,
     helperMin,
     lehrlingMin,
     // Groesster Beitrag zuerst: wer die Baustelle getragen hat, steht vorn.

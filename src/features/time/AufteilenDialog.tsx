@@ -90,7 +90,18 @@ export default function AufteilenDialog({
     <ConfirmDialog
       open={open}
       title="Auf mehrere Baustellen aufteilen"
-      message={`${entry.startTime}–${entry.endTime}, ${entry.breakDuration ?? 0} Min. Pause — gebucht auf ${entry.projectNumber || 'keine Baustelle'}. Je weitere Baustelle die Stunden angeben; der Rest bleibt auf ${entry.projectNumber || 'der Buchung'}.`}
+      /*
+        DIE NUMMER BRICHT NICHT UM (Runde 6, G4): „gebucht auf PR-2026-/0189“
+        stand am Handy auf zwei Zeilen. `.nr` hält sie zusammen.
+      */
+      message={
+        <>
+          {entry.startTime}–{entry.endTime}, {entry.breakDuration ?? 0} Min. Pause — gebucht auf{' '}
+          {entry.projectNumber ? <span className="nr">{entry.projectNumber}</span> : 'keine Baustelle'}. Je weitere
+          Baustelle die Stunden angeben; der Rest bleibt auf{' '}
+          {entry.projectNumber ? <span className="nr">{entry.projectNumber}</span> : 'der Buchung'}.
+        </>
+      }
       confirmLabel="Aufteilen"
       confirmTone="primary"
       onCancel={onCancel}
@@ -106,6 +117,7 @@ export default function AufteilenDialog({
             <BaustellenSelect
               id={`aufteilen-baustelle-${i}`}
               label={`Weitere Baustelle ${i + 1}`}
+              nummerVorn
               companyId={companyId}
               meineUid={entry.userId}
               value={z.projectNumber}
@@ -152,7 +164,7 @@ export default function AufteilenDialog({
             <ul className="mt-1 divide-y divide-line border-y border-line text-sm">
               {a.plan.map((p, i) => (
                 <li key={i} className="flex justify-between gap-3 py-1.5">
-                  <span>{p.projectNumber || 'ohne Baustelle'}</span>
+                  <span className="nr">{p.projectNumber || 'ohne Baustelle'}</span>
                   <span className="tabular-nums text-ink-muted">
                     {p.folgetag ? 'Folgetag ' : ''}{p.von}–{p.bis} · {fmtMin(p.minuten)} Std.{i === 0 && entry.breakDuration ? ` · ${entry.breakDuration} Min. Pause` : ''}
                   </span>

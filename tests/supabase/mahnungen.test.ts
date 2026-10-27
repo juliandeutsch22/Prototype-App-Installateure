@@ -39,7 +39,7 @@ async function rechnung(nummer: string, customerId?: string): Promise<string> {
     invoiceNumber: nummer, projectNumber: 'B-1', customerName: customerId ? 'Familie Huber' : 'Laufkunde',
     ...(customerId ? { customerId } : {}),
     address: 'Hauptstraße 1, 2700 Wiener Neustadt',
-    invoiceDate: '2026-01-02', dueDate: '2026-01-16', subtotalNetto: 100, totalNetto: 100, totalVat: 20, totalBrutto: 120,
+    invoiceDate: '2026-01-02', leistungVon: '2026-01-02', leistungBis: '2026-01-02', dueDate: '2026-01-16', subtotalNetto: 100, totalNetto: 100, totalVat: 20, totalBrutto: 120,
     vatRate: 0.2, paymentStatus: 'Offen',
     positions: [{ label: 'Leistung', qty: 1, unit: 'Pauschale', unitPrice: 100, netto: 100 }],
   });

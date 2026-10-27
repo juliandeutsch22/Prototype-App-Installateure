@@ -65,8 +65,8 @@ const zeige = (p: Project = projekt()) =>
  * „16,0 h" sucht, findet beide und sagt nicht, welche er meint.
  */
 async function summenzeile() {
-  const marke = await screen.findByText('Fachzeit');
-  const p = marke.closest('p');
+  await screen.findByText(/h Budget|Arbeitszeit/);
+  const p = document.querySelector('p.baustelle-summe');
   if (!p) throw new Error('Summenzeile nicht gefunden');
   return p.textContent ?? '';
 }
@@ -118,6 +118,37 @@ describe('Baustellenübersicht', () => {
     expect(zeile).toContain('+8,0 h Lehrling, nicht im Budget');
     expect(zeile).not.toContain('Helfer');
     expect(screen.getByText('20 %')).toBeInTheDocument();
+  });
+
+  /*
+    RUNDE 6, G18: „45,0 h Fachzeit von 16 h Budget“ enthielt 16 h Lehrling.
+    Lehrlingsstunden zählen ab Werk ins Budget — die Beschriftung nennt sie jetzt.
+  */
+  it('nennt Lehrlingsstunden im Budget, statt sie „Fachzeit“ zu nennen (G18)', async () => {
+    bestand = [
+      summe({ minuten: 29 * 60 }),
+      summe({ userId: 'l1', userName: 'Lena Lehrling', minuten: 16 * 60, lehrlingImBudget: 16 * 60 }),
+    ];
+    zeige(projekt({ estimatedHours: 16 }));
+    const zeile = await summenzeile();
+    expect(zeile).toBe('45,0 h von 16 h Budget (davon 16,0 h Lehrling)');
+    expect(screen.queryByText(/Fachzeit/)).toBeNull();
+    // Die Person: ihr Anteil als Lehrling, nicht als Fachzeit.
+    expect(screen.getByText('16,0 h (davon 16,0 h Lehrling)')).toBeInTheDocument();
+    // Gemessen wird wie bisher alles, was ins Budget zählt: 45 von 16 h.
+    expect(screen.getByText('281 %')).toBeInTheDocument();
+  });
+
+  it('ohne Lehrling bleibt die Summe ohne Zusatz — auch kompakt nicht „Fachzeit“ (G18)', async () => {
+    bestand = [summe({ minuten: 960 })];
+    render(<BaustellenUebersicht companyId="perl" projekt={projekt()} kompakt />);
+    expect(await summenzeile()).toBe('16,0 h von 40 h Budget');
+  });
+
+  it('kompakt mit Lehrling und ohne Budget (G18)', async () => {
+    bestand = [summe({ minuten: 600, lehrlingImBudget: 120 })];
+    render(<BaustellenUebersicht companyId="perl" projekt={projekt({ estimatedHours: undefined })} kompakt />);
+    expect(await summenzeile()).toBe('10,0 h Arbeitszeit (davon 2,0 h Lehrling) · kein Stundenbudget hinterlegt');
   });
 
   it('nennt die Mitarbeiter, größter Beitrag zuerst', async () => {

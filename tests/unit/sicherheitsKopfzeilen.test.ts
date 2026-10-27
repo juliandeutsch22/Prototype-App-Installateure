@@ -4,7 +4,8 @@
  * Live setzte Firebase Hosting bisher nur HSTS. Jetzt: kein Raten des
  * Dateityps, keine volle Adresse an fremde Seiten, kein Einbetten in fremde
  * Seiten, keine Geräte, die die App nicht braucht — und eine Inhaltsregel,
- * die zuerst nur meldet.
+ * die zuerst nur meldete und seit dem 27.10.2026 durchgesetzt ist
+ * (Testbericht Runde 6, Abschnitt 8 und Hinweis 13).
  *
  * Geprüft wird zweierlei: dass die Kopfzeilen da sind, UND dass die meldende
  * Regel zu dem passt, was die App wirklich lädt (Service Worker, Startseite).
@@ -58,28 +59,52 @@ describe('Auslieferung (firebase.json)', () => {
     expect(kopf['Permissions-Policy']).toBe('camera=(self), microphone=(), geolocation=(), payment=(), usb=()');
   });
 
-  it('die durchgesetzte Regel sperrt nur das Einbetten, Plug-ins und eine fremde Basis — nichts, was die App lädt', () => {
-    expect(anweisungen(kopf['Content-Security-Policy'])).toEqual({
-      'frame-ancestors': ["'none'"],
-      'object-src': ["'none'"],
-      'base-uri': ["'self'"],
-    });
+  /*
+    SEIT 27.10.2026 DURCHGESETZT. Vorher stand die strenge Regel nur als
+    `Content-Security-Policy-Report-Only` da: sie meldete, sperrte aber
+    nichts. Die Anmeldung liegt im Browser-Speicher — gelänge ein
+    eingeschleustes Skript, könnte es sie lesen. Diese Regel ist der Schutz
+    dagegen, und eine meldende allein schützt nicht.
+  */
+  it('setzt die strenge Regel durch — eine meldende daneben gibt es nicht mehr', () => {
+    expect(kopf['Content-Security-Policy-Report-Only']).toBeUndefined();
+    const r = anweisungen(kopf['Content-Security-Policy']);
+    expect(r['default-src']).toEqual(["'self'"]);
+    expect(r['object-src']).toEqual(["'none'"]);
+    expect(r['base-uri']).toEqual(["'self'"]);
+    expect(r['form-action']).toEqual(["'self'"]);
+    // Im durchgesetzten Kopf wirkt `frame-ancestors` (im meldenden übergeht der Browser es).
+    expect(r['frame-ancestors']).toEqual(["'none'"]);
   });
 
-  it('die meldende Regel erlaubt kein eingebettetes Skript und kein eval', () => {
-    const r = anweisungen(kopf['Content-Security-Policy-Report-Only']);
-    expect(r['default-src']).toEqual(["'self'"]);
+  it('erlaubt kein eingebettetes Skript, kein eval und keine fremde Skriptquelle außer dem Push-Dienst', () => {
+    const r = anweisungen(kopf['Content-Security-Policy']);
+    expect(r['script-src']).toEqual(["'self'", 'https://www.gstatic.com']);
     expect(r['script-src']).not.toContain("'unsafe-inline'");
     expect(r['script-src']).not.toContain("'unsafe-eval'");
-    // Im Meldemodus übergeht der Browser `frame-ancestors`; das steht in der durchgesetzten.
-    expect(r['frame-ancestors']).toBeUndefined();
   });
 
-  it('die meldende Regel deckt, was der Service Worker nachlädt', () => {
+  /*
+    STILE: NUR ALS ATTRIBUT. Die Oberfläche setzt an einzelnen Stellen
+    `style="…"` (React `style={…}`); das braucht `'unsafe-inline'` für
+    Attribute. Eingeschleuste `<style>`-Blöcke dagegen sperrt
+    `style-src-elem 'self'` in jedem Browser, der die Unterscheidung kennt
+    (Chrome, Edge, Firefox, Safari ab 15.4). Ältere fallen auf `style-src`
+    zurück und laufen wie bisher — eine leere Seite auf einem alten Tablet
+    wäre schlimmer als die Lücke, die dort bleibt.
+  */
+  it('erlaubt Stile als Attribut, aber keinen eingeschleusten Stilblock', () => {
+    const r = anweisungen(kopf['Content-Security-Policy']);
+    expect(r['style-src-elem']).toEqual(["'self'"]);
+    expect(r['style-src-attr']).toEqual(["'unsafe-inline'"]);
+    expect(r['style-src']).toEqual(["'self'", "'unsafe-inline'"]);
+  });
+
+  it('die Regel deckt, was der Service Worker nachlädt', () => {
     const sw = readFileSync(join(wurzel, 'public/sw.js'), 'utf8');
     const geladen = [...sw.matchAll(/importScripts\('([^']+)'\)/g)].map((m) => new URL(m[1]).origin);
     expect(geladen.length).toBeGreaterThan(0);
-    const erlaubt = anweisungen(kopf['Content-Security-Policy-Report-Only'])['script-src'];
+    const erlaubt = anweisungen(kopf['Content-Security-Policy'])['script-src'];
     for (const herkunft of geladen) expect(erlaubt).toContain(herkunft);
   });
 
@@ -110,11 +135,14 @@ describe('Vorschau (vite preview)', () => {
 
   it('nimmt den lokalen Stapel in die Regel auf — nur dort, wo die App die Datenbank anspricht', () => {
     const v = vorschauKopfzeilen(konfig, 'http://127.0.0.1:54321');
-    const r = anweisungen(v['Content-Security-Policy-Report-Only']);
-    expect(r['connect-src']).toEqual([...anweisungen(kopf['Content-Security-Policy-Report-Only'])['connect-src'], 'http://127.0.0.1:54321', 'ws://127.0.0.1:54321']);
+    const r = anweisungen(v['Content-Security-Policy']);
+    expect(r['connect-src']).toEqual([...anweisungen(kopf['Content-Security-Policy'])['connect-src'], 'http://127.0.0.1:54321', 'ws://127.0.0.1:54321']);
     expect(r['img-src']).toContain('http://127.0.0.1:54321');
     expect(r['script-src']).not.toContain('http://127.0.0.1:54321');
-    expect(v['Content-Security-Policy']).toBe(kopf['Content-Security-Policy']);
+    // Alles andere bleibt wie live.
+    expect({ ...r, 'connect-src': [], 'img-src': [] }).toEqual({
+      ...anweisungen(kopf['Content-Security-Policy']), 'connect-src': [], 'img-src': [],
+    });
   });
 
   it('der Vorschau-Server setzt sie an jeder Antwort', () => {

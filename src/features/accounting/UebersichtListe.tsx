@@ -70,7 +70,8 @@ export default function UebersichtListe({
           <p className="ue-kopf-zahl">Gebucht</p>
           <p className="ue-kopf-zahl">Soll bisher</p>
           <p className="ue-kopf-zahl">{woche ? 'Saldo' : 'Saldo Monat'}</p>
-          {vergleich && <p className="ue-kopf-zahl">Gesamtsaldo</p>}
+          {/* Mit weicher Trennstelle: am Tablet ist die Spalte schmaler als das Wort (Runde 6, G8). */}
+          {vergleich && <p className="ue-kopf-zahl">Gesamt&shy;saldo</p>}
         </div>
       )}
       {imSupport ? (
@@ -91,7 +92,7 @@ export default function UebersichtListe({
               {...{ woche, vergleich, heute, imSupport, onOeffnen }}
             />
           )}
-          {!vergleich && <Legende woche={woche} />}
+          {!vergleich && <Legende woche={woche} mitZukunft={zeilen.some((z) => z.werte.some((t) => t.zustand === 'zukunft'))} />}
         </>
       )}
     </div>
@@ -214,13 +215,15 @@ function Zeile({
  * Wörter umfassen und wie man den Streifen bedient, steht in „Hilfe zu dieser
  * Seite“. Die Woche braucht keine: ihre Zellen tragen Stunden und Wörter.
  */
-function Legende({ woche }: { woche: boolean }) {
+function Legende({ woche, mitZukunft }: { woche: boolean; mitZukunft: boolean }) {
   if (woche) return null;
   const eintraege: Array<[Tageswert['zustand'], string]> = [
     ['ok', 'gebucht'],
     ['fehlt', 'ohne Buchung'],
     ['weg', 'abwesend'],
     ['frei', 'frei'],
+    // Nur, wo der Streifen kommende Tage zeigt — im vergangenen Monat gibt es keine (Runde 6, G13).
+    ...(mitZukunft ? [['zukunft', 'kommt noch'] as [Tageswert['zustand'], string]] : []),
     ['grenze', 'Grenze überschritten'],
   ];
   return (

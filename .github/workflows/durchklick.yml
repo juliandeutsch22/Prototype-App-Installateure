@@ -29,6 +29,12 @@ on:
       - 'tools/vorschau/**'
       - 'playwright.config.ts'
       - 'playwright.links.config.ts'
+      # Die Inhaltsregel: ein neuer Kopf, eine neue Seite oder Bibliothek kann
+      # etwas brauchen, das die Regel sperrt — live wäre das eine weiße Seite.
+      - 'tests/csp/**'
+      - 'playwright.csp.config.ts'
+      - 'firebase.json'
+      - 'vite.config.ts'
       # Ein Bibliotheks-Update ändert keine Zeile in src/ und kann trotzdem
       # jeden Weg brechen (React Router, jsPDF) — genau dann muss er laufen.
       - 'package.json'
@@ -94,6 +100,13 @@ jobs:
       # Läuft gegen die Vorschau mit Beispieldaten, nicht gegen den Stapel.
       - name: Links je Rolle
         run: npm run pruefen:links
+
+      # Jede Seite jeder Rolle unter der DURCHGESETZTEN Inhaltsregel, am
+      # Schreibtisch und am Telefon (Testbericht Runde 6, 8.4 und Hinweis 13).
+      # Gegen den fertigen Bau mit den Kopfzeilen aus `firebase.json` — der
+      # Entwicklungsserver des Durchklicks schickt keine Regel.
+      - name: Inhaltsregel je Rolle
+        run: npm run pruefen:inhaltsregel
 
       # Bilder und Spuren NUR BEI ROT. Sie sind der Unterschied zwischen
       # „irgendein Knopf fehlte" und einer Antwort in zwei Minuten.

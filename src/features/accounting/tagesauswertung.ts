@@ -10,7 +10,7 @@ import {
   tagesStatusName,
   tagessollStunden,
 } from '@/lib/time';
-import { freigestelltMin } from '@shared/arbeitszeit';
+import { freigestelltMin, schultagGutschriftMin } from '@shared/arbeitszeit';
 import { grenzText, type Grenzfall } from './arbeitszeitGrenzen';
 
 /**
@@ -188,9 +188,19 @@ export function tagesauswertung({
       Monatsauswertung rundet einmal am Ende, die Woche auch.
     */
     const gutgeschrieben = amTag.some((e) => istGanztagsGutschrift(e));
-    const sollImSaldoMin = !imSoll || gutgeschrieben
+    /*
+      Ausser am Berufsschultag mit Arbeit danach (Runde 6, M1): dann bleibt
+      vom Soll, was die Arbeit füllt (`schultagGutschriftMin`).
+    */
+    const schule = amTag.find((e) => e.status === 'Berufsschule');
+    const sollImSaldoMin = !imSoll
       ? 0
-      : anteil * tagessollStunden(user, tag) * 60 - amTag.reduce((s, e) => s + freigestelltMin(e), 0);
+      : gutgeschrieben
+        ? schule && !amTag.some((e) => e !== schule && istGanztagsGutschrift(e))
+          ? anteil * tagessollStunden(user, tag) * 60
+            - schultagGutschriftMin(anteil * tagessollStunden(user, tag) * 60, schule.unterrichtMin, istMin)
+          : 0
+        : anteil * tagessollStunden(user, tag) * 60 - amTag.reduce((s, e) => s + freigestelltMin(e), 0);
     const mitZeit = amTag.filter((e) => e.startTime && e.endTime);
     const grenzenAmTag = amTag.length > 0 ? faelleJeTag.get(tag) ?? [] : [];
 

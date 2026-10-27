@@ -23,6 +23,7 @@ import { Zustand } from '@/components/Badge';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/States';
 import { angebotAnnehmen, annahmeMeldung } from './angebotAnnehmen';
+import { fassungsHinweis } from './fassungen';
 import { downloadAngebotPdf } from './angebotPdf';
 import { STAND } from './stand';
 import AbrechnungWahl from './AbrechnungWahl';
@@ -237,6 +238,12 @@ export default function AngebotView() {
   }
 
   const offen = q.status === 'Entwurf' || q.status === 'Versendet';
+  /*
+    DIE FASSUNGEN RUNDHERUM (Runde 6, G15): ist eine andere schon angenommen
+    (Bestand von vor dem Stand „Ersetzt“), wird diese nicht angenommen; sonst
+    sagt der Dialog, welche danach als ersetzt gelten.
+  */
+  const nachbarn = fassungsHinweis(q, [...(vorgaenger ? [vorgaenger] : []), ...fassungen]);
   const abgelaufen = offen && q.validUntil < todayStr();
 
   /*
@@ -280,10 +287,15 @@ export default function AngebotView() {
           </Button>
         </>
       )}
-      {offen && (
+      {offen && !nachbarn.angenommen && (
         <Button variant="secondary" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setAnnehmenFragen(true); }}>
           Annehmen → Baustelle
         </Button>
+      )}
+      {offen && nachbarn.angenommen && (
+        <span className="text-sm text-ink-muted">
+          Die Fassung {nachbarn.angenommen.quoteNumber} ist schon angenommen — diese wird nicht mehr angenommen.
+        </span>
       )}
       {/*
         ÜBERARBEITEN, OHNE ZU ÄNDERN (M17). Was beim Kunden liegt, bleibt;
@@ -345,7 +357,9 @@ export default function AngebotView() {
               zeit: q.angenommenAm ? datumAusMs(q.angenommenAm) : undefined,
               text: q.projectNumber ? `Baustelle ${q.projectNumber}` : undefined,
             }
-          : { titel: 'Abgelehnt', zeit: q.abgelehntAm ? datumAusMs(q.abgelehntAm) : undefined, text: schritte },
+          : q.status === 'Ersetzt'
+            ? { titel: 'Ersetzt', text: 'Eine andere Fassung dieses Angebots wurde angenommen.' }
+            : { titel: 'Abgelehnt', zeit: q.abgelehntAm ? datumAusMs(q.abgelehntAm) : undefined, text: schritte },
     ...fassungen.map((f) => ({
       titel: (
         <>
@@ -537,6 +551,12 @@ export default function AngebotView() {
           await annehmen(q);
         }}
       >
+        {nachbarn.ersetzt.length > 0 && (
+          <p className="text-sm text-ink">
+            Damit gilt {nachbarn.ersetzt.map((x) => x.quoteNumber).join(', ')} als ersetzt und lässt sich nicht
+            mehr annehmen.
+          </p>
+        )}
         <AbrechnungWahl wert={abrechnung} onWert={setAbrechnung} />
       </ConfirmDialog>
 

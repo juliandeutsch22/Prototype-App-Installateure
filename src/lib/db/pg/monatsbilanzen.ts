@@ -34,6 +34,8 @@ export interface Monatsbilanz {
   freistellungTage: number;
   /** Minuten stundenweiser Freistellung — erfüllte Sollzeit, keine Arbeitszeit. */
   freigestelltMin: number;
+  /** Schultage mit Unterrichtszeit und der Arbeit des Tages (Runde 6, M1) — siehe `schultagGutschriftMin`. */
+  schultage: Array<{ tag: string; unterrichtMin: number; arbeitMin: number }>;
   tage: string[];
 }
 
@@ -91,6 +93,11 @@ function alsBilanz(r: Monatsbilanz): Monatsbilanz {
     berufsschuleTage: Number(r.berufsschuleTage ?? 0),
     freistellungTage: Number(r.freistellungTage ?? 0),
     freigestelltMin: Number(r.freigestelltMin ?? 0),
+    schultage: (r.schultage ?? []).map((t) => ({
+      tag: String(t.tag),
+      unterrichtMin: Number(t.unterrichtMin ?? 0),
+      arbeitMin: Number(t.arbeitMin ?? 0),
+    })),
     tage: r.tage ?? [],
   };
 }
@@ -131,6 +138,7 @@ export async function listBilanzenAlle(
       berufsschuleTage: b.berufsschule_tage,
       freistellungTage: b.freistellung_tage,
       freigestelltMin: b.freigestellt_min,
+      schultage: b.schultage,
       tage: b.tage,
     } as Monatsbilanz),
     userId: p.user_id,

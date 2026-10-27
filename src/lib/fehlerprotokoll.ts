@@ -194,10 +194,10 @@ export function gesperrtesZiel(adresse: string): string {
 /**
  * Ein Verstoß gegen die Inhaltsregel (Content-Security-Policy) ins Protokoll.
  *
- * WARUM. Die volle Regel gilt zuerst nur MELDEND: sie sperrt nichts, der
- * Browser sagt nur, was er gesperrt hätte. Erst wenn auf den Geräten der
- * Betriebe nichts mehr gemeldet wird, darf sie sperren — sonst bliebe eine
- * Seite leer, die niemand vorher geprüft hat. Ohne diesen Weg landete die
+ * WARUM. Die volle Regel galt zuerst nur MELDEND; seit 27.10.2026 sperrt
+ * sie (Testbericht Runde 6, Hinweis 13). Sperrt sie auf einem Gerät der
+ * Betriebe etwas, das die App braucht, steht dort eine halbe Seite — und das
+ * soll hier auffallen, nicht erst beim Anruf. Ohne diesen Weg landete die
  * Meldung nur in der Konsole des Geräts.
  */
 export function regelverstossMelden(

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { adresseZeile, landName, plzFehler } from '@/lib/adresse';
+import { adresseZeile, angabenZuPruefen, landName, mailFehler, plzFehler } from '@/lib/adresse';
 import { adresszeilen } from '@/lib/belegLayout';
 
 // Testbericht 30.09.2026, M12 — Adressen in Teilen, die Zeile daraus.
@@ -32,5 +32,29 @@ describe('plzFehler', () => {
   });
   it('Gegenprobe: leer ist kein Fehler', () => {
     expect(plzFehler('', 'AT')).toBeNull();
+  });
+});
+
+describe('mailFehler und angabenZuPruefen (Runde 6, M6)', () => {
+  it('eine E-Mail ohne Endung fällt durch, leer ist erlaubt', () => {
+    expect(mailFehler('juliandeutsch22@gmail')).toMatch(/unvollständig/);
+    expect(mailFehler('juliandeutsch22@gmail.com')).toBeNull();
+    expect(mailFehler('  ')).toBeNull();
+    expect(mailFehler(undefined)).toBeNull();
+  });
+
+  it('nennt PLZ und E-Mail beim Anlegen', () => {
+    expect(angabenZuPruefen({ plz: '82', land: 'AT', email: 'a@gmail' })).toEqual([
+      'PLZ „82“: Die PLZ hat in diesem Land vier Ziffern.',
+      'E-Mail „a@gmail“: Die E-Mail-Adresse ist unvollständig — etwa office@huber.at.',
+    ]);
+    expect(angabenZuPruefen({ plz: '8200', land: 'AT', email: 'a@gmail.com' })).toEqual([]);
+  });
+
+  it('beim Bearbeiten nur, was sich geändert hat — auch ein Wechsel des Landes', () => {
+    const vorher = { plz: '82', land: 'AT', email: 'a@gmail' };
+    expect(angabenZuPruefen({ ...vorher }, vorher)).toEqual([]);
+    expect(angabenZuPruefen({ ...vorher, email: 'b@gmail' }, vorher)).toHaveLength(1);
+    expect(angabenZuPruefen({ ...vorher, land: 'DE' }, vorher)[0]).toMatch(/fünf Ziffern/);
   });
 });

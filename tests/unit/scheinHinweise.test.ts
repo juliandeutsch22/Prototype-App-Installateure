@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { nachgetrageneScheine, offeneEntwuerfe } from '@/features/invoices/scheinHinweise';
+import { nachgetrageneScheine, offeneEntwuerfe, schonOhneScheinVerrechnet } from '@/features/invoices/scheinHinweise';
 
 /**
  * Zwei Hinweise zur Rechnungsvorschau (24.10.2026): ein Schein im schon
@@ -97,5 +97,48 @@ describe('Abgleich über die Katalogkennung (24.10.2026)', () => {
       [mitKennung('e1', '2026-09-05', 'Dichtung', 'k9', 'Entwurf')],
       [{ name: 'Kupferrohr 15', menge: 4, materialId: 'k1' }],
     )).toEqual([]);
+  });
+});
+
+/*
+  TESTBERICHT RUNDE 6, M4 — die Teilrechnung RE-2026-1509 übernahm 6
+  Pressfittings aus dem Lager; der Schein vom 22.10. brachte in der
+  Schlussrechnung 5 noch einmal, ohne Hinweis, weil er nach ihrem Zeitraum lag.
+*/
+describe('schonOhneScheinVerrechnet (M4)', () => {
+  const teil = (teil: Record<string, unknown> = {}) => ({
+    invoiceNumber: 'RE-2026-1509', paymentStatus: 'Offen', art: 'teil', linkedWorkSheets: ['alt'],
+    positions: [
+      { label: 'Facharbeiterstunden', qty: 16, unit: 'h', unitPrice: 70, netto: 1120 },
+      { label: 'Pressfitting', qty: 6, unit: 'Stk', unitPrice: 3, netto: 18, materialId: 'k2' },
+      { label: 'Eckventil', qty: 2, unit: 'Stk', unitPrice: 8, netto: 16 },
+    ],
+    ...teil,
+  }) as never;
+  // Der Schein, den die Teilrechnung verbraucht hat: er trägt die 2 Eckventile.
+  const alt = { id: 'alt', material: [{ name: 'Eckventil', menge: 2 }] };
+  const neu = { id: 's22', datum: '2026-10-22', material: [
+    { name: 'Pressfitting 15 mm', menge: 5, einheit: 'Stk', materialId: 'k2' },
+    { name: 'Eckventil', menge: 1, einheit: 'Stk' },
+    { name: 'Therme', menge: 1, einheit: 'Stk' },
+  ] };
+
+  it('meldet Material, das eine frühere Rechnung ohne Schein trägt — gleich welcher Zeitraum', () => {
+    expect(schonOhneScheinVerrechnet([neu], [teil()], [alt, neu])).toEqual([{
+      scheinId: 's22', datum: '2026-10-22', rechnung: 'RE-2026-1509',
+      artikel: [{ name: 'Pressfitting 15 mm', einheit: 'Stk', aufRechnung: 6, aufSchein: 5 }],
+    }]);
+  });
+
+  it('Gleichbleiben: was die Scheine jener Rechnung trugen, ist kein Fall — ebenso Storno und Anzahlung', () => {
+    const nurEckventil = { ...neu, material: [{ name: 'Eckventil', menge: 1 }] };
+    expect(schonOhneScheinVerrechnet([nurEckventil], [teil()], [alt, nurEckventil])).toEqual([]);
+    expect(schonOhneScheinVerrechnet([neu], [teil({ paymentStatus: 'Storniert' })], [alt, neu])).toEqual([]);
+    expect(schonOhneScheinVerrechnet([neu], [teil({ art: 'anzahlung' })], [alt, neu])).toEqual([]);
+  });
+
+  it('meldet nicht doppelt, was schon `nachgetrageneScheine` sagt', () => {
+    expect(schonOhneScheinVerrechnet([neu], [teil()], [alt, neu], [{ scheinId: 's22', rechnung: 'RE-2026-1509' }]))
+      .toEqual([]);
   });
 });

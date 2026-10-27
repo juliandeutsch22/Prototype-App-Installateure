@@ -65,6 +65,41 @@ export function listFaelligeWartungen(companyId: string, bis: string, max = 200)
   });
 }
 
+/**
+ * Die Wartungen, deren Baustelle diese ist (Testbericht Runde 6, M9) — für
+ * den vereinbarten Preis auf der Rechnung.
+ *
+ * Eingeplant steht die Baustelle an der Wartung (`offeneBaustelle`); nach
+ * „Erledigt“ wandert sie in die Ausführung, und die nächste Ausführung
+ * überschreibt `letzteBaustelle`. Deshalb beide Wege: was eingeplant ist,
+ * und jede Ausführung, die auf dieser Baustelle stattfand. Die Nummer gilt
+ * mit und ohne „PR-“, wie bei den Rechnungen einer Baustelle.
+ */
+export type WartungDerBaustelle = WithId<Wartung> & {
+  /** Der jüngste Tag, an dem sie auf dieser Baustelle ausgeführt wurde — der Leistungstag. */
+  ausgefuehrtAm: string | null;
+};
+
+export async function wartungenDerBaustelle(companyId: string, projectNumber: string): Promise<WartungDerBaustelle[]> {
+  const blank = (projectNumber ?? '').trim().replace(/^PR-/i, '');
+  if (!blank) return [];
+  const formen = [...new Set([projectNumber.trim(), blank, `PR-${blank}`])];
+  const [eingeplant, ausgefuehrt] = await Promise.all([
+    abfragen<Wartung>(WARTUNGEN, companyId, { wo: [{ art: 'in', feld: 'offeneBaustelle', werte: formen }] }),
+    abfragen<WartungAusfuehrung>(AUSFUEHRUNGEN, companyId, { wo: [{ art: 'in', feld: 'baustelle', werte: formen }] }),
+  ]);
+  const schon = new Set(eingeplant.map((w) => w.id));
+  const fehlen = [...new Set(ausgefuehrt.map((a) => a.wartungId))].filter((id) => !schon.has(id));
+  const weitere = fehlen.length > 0
+    ? await abfragen<Wartung>(WARTUNGEN, companyId, { wo: [{ art: 'in', feld: 'id', werte: fehlen }] })
+    : [];
+  const zuletzt = new Map<string, string>();
+  for (const a of ausgefuehrt) {
+    if (a.am && (zuletzt.get(a.wartungId) ?? '') < a.am) zuletzt.set(a.wartungId, a.am);
+  }
+  return [...eingeplant, ...weitere].map((w) => ({ ...w, ausgefuehrtAm: zuletzt.get(w.id) ?? null }));
+}
+
 /** Die Vereinbarungen EINES Kunden — für die Kundenakte. */
 export function listWartungenForCustomer(companyId: string, customerId: string, max = 100) {
   return abfragen<Wartung>(WARTUNGEN, companyId, {

@@ -198,7 +198,7 @@ describe('Rechnung gegen Schein — je Person, Tag und Satz', () => {
     const a = scheinAbgleich('2026-042', [hansGebucht], [manfredsSchein], new Set(['sm']));
     expect(a.verrechnetMin).toBe(a.bestaetigtMin);
     expect(a.fehlend).toEqual([
-      { datum: '2026-09-24', name: 'Manfred Monteur', helfer: false, bestaetigtMin: 480, verrechnetMin: 0, andererSatzMin: 0 },
+      { datum: '2026-09-24', name: 'Manfred Monteur', helfer: false, bestaetigtMin: 480, verrechnetMin: 0, andererSatzMin: 0, satz: 'facharbeiter' },
     ]);
   });
 
@@ -255,7 +255,7 @@ describe('Nur offene Scheine, und gebuchte Stunden ohne Schein', () => {
 
   it('meldet die gebuchten Stunden ohne Schein je Person, Tag und Satz', () => {
     const a = scheinAbgleich('2026-042', [notdienst], [verrechneterSchein], new Set());
-    expect(a.ohneSchein).toEqual([{ datum: '2026-06-16', name: 'Max', helfer: false, verrechnetMin: 210 }]);
+    expect(a.ohneSchein).toEqual([{ datum: '2026-06-16', name: 'Max', helfer: false, satz: 'facharbeiter', verrechnetMin: 210 }]);
   });
 
   it('schweigt, wenn ein offener Schein Person, Tag und Satz abdeckt', () => {
@@ -274,7 +274,39 @@ describe('Nur offene Scheine, und gebuchte Stunden ohne Schein', () => {
       zeiten: [{ datum: '2026-06-16', mitarbeiter: 'Max', minuten: 210 }] });
     const alsHelfer = { ...notdienst, isHelper: true };
     const a = scheinAbgleich('2026-042', [alsHelfer], [offenerSchein], new Set(['neu']));
-    expect(a.ohneSchein).toEqual([{ datum: '2026-06-16', name: 'Max', helfer: true, verrechnetMin: 210 }]);
+    expect(a.ohneSchein).toEqual([{ datum: '2026-06-16', name: 'Max', helfer: true, satz: 'helfer', verrechnetMin: 210 }]);
+  });
+});
+
+/*
+  TESTBERICHT RUNDE 6, G16 — „19.10. · Test Lehrling (Claude) · Facharbeiter:
+  08:00 Std“, obwohl die Position darunter „Lehrlingsstunden (2. Lehrjahr)“
+  hieß. Der Abgleich kannte nur Helfer und Nicht-Helfer.
+*/
+describe('Der Satz in den Meldungen (G16)', () => {
+  const lehrling = eintrag(480, { date: '2026-10-19', userName: 'Test Lehrling', satz: 'lj2' });
+  const andererSchein = schein([60], { id: 'x', datum: '2026-10-20',
+    zeiten: [{ datum: '2026-10-20', mitarbeiter: 'Jemand', minuten: 60 }] });
+
+  it('nennt bei Stunden ohne Schein das Lehrjahr statt „Facharbeiter“', () => {
+    const a = scheinAbgleich('2026-042', [lehrling], [andererSchein], new Set(['x']));
+    expect(a.ohneSchein).toEqual([
+      { datum: '2026-10-19', name: 'Test Lehrling', helfer: false, satz: 'lj2', verrechnetMin: 480 },
+    ]);
+  });
+
+  it('nennt bei fehlenden Stunden den gebuchten Satz der Person', () => {
+    const lehrlingsSchein = schein([], { id: 'l', datum: '2026-10-19',
+      zeiten: [{ datum: '2026-10-19', mitarbeiter: 'Test Lehrling', minuten: 600 }] });
+    const a = scheinAbgleich('2026-042', [{ ...lehrling, hours: 4 }], [lehrlingsSchein], new Set(['l']));
+    expect(a.fehlend).toMatchObject([{ name: 'Test Lehrling', helfer: false, satz: 'lj2', verrechnetMin: 240 }]);
+  });
+
+  it('Gleichbleiben: ohne Buchung bleibt es bei Facharbeiter bzw. Helfer', () => {
+    const helferSchein = schein([], { id: 'h', datum: '2026-10-19',
+      zeiten: [{ datum: '2026-10-19', mitarbeiter: 'Hans', minuten: 240, helfer: true }] });
+    expect(scheinAbgleich('2026-042', [], [helferSchein], new Set(['h'])).fehlend)
+      .toMatchObject([{ name: 'Hans', helfer: true, satz: 'helfer' }]);
   });
 });
 

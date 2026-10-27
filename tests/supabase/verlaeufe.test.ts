@@ -219,10 +219,20 @@ describe('Wartung: jede Ausführung', () => {
         neu fasst (Stand 18, G2), auf den alten Stand zurück — und jede
         Prüfung danach liefe gegen eine Datenbank, die es so nie gibt.
       */
+      /*
+        DIE MONATSSICHT VORHER WEG (27.10.2026). Eine spätere Migration hängt
+        ihr eine Spalte an (`schultage`, Testbericht Runde 6, M1); die älteren
+        Fassungen hier davor können sie nicht ohne diese Spalte neu fassen
+        („cannot drop columns from view“). Der Abbruch mitten im Einspielen
+        ließ ältere Funktionsrümpfe zurück, und Prüfungen in anderen Dateien
+        liefen danach gegen sie. Die Migrationen bauen die Sicht wieder auf.
+      */
+      await db.query('drop view if exists public.monthly_stats');
       const ordner = join(__dirname, '../../supabase/migrations');
       for (const datei of readdirSync(ordner).filter((d) => d >= '20261012200000' && d.endsWith('.sql')).sort()) {
         await db.query(readFileSync(join(ordner, datei), 'utf8'));
       }
+      await db.query('grant select on public.monthly_stats to authenticated');
     } finally {
       await db.end();
     }

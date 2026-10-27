@@ -1,7 +1,7 @@
 import type { TimeEntry, WorkSheet, WorkSheetZeit } from '@/types';
 import { calcWorkMin, normProjectNumber } from '@/lib/time';
 import { normName } from './materialPositionen';
-import { satzklasse } from '@/lib/einstufung';
+import { satzklasse, type Satzklasse } from '@/lib/einstufung';
 
 /**
  * Was die Rechnung verrechnet, gegen das, was der Kunde unterschrieben hat.
@@ -60,6 +60,12 @@ export interface OhneSchein {
   /** So, wie er auf der Buchung steht. */
   name: string;
   helfer: boolean;
+  /**
+   * Der Satz der Buchungen (Testbericht Runde 6, G16): ein Lehrling stand
+   * hier als „Facharbeiter“, weil nur Helfer und Nicht-Helfer unterschieden
+   * wurden — wer das las, glaubte, er werde zum Facharbeitersatz verrechnet.
+   */
+  satz: Satzklasse;
   verrechnetMin: number;
 }
 
@@ -73,6 +79,11 @@ export interface FehlendeStunden {
   verrechnetMin: number;
   /** Was sie für dieselbe Person am selben Tag zum ANDEREN Satz verrechnet. */
   andererSatzMin: number;
+  /**
+   * Der Satz, zu dem die Person an diesem Tag gebucht ist — der Schein kennt
+   * nur „Helfer“ oder nicht (G16). Ohne Buchung: Facharbeiter bzw. Helfer.
+   */
+  satz: Satzklasse;
 }
 
 /**
@@ -197,11 +208,16 @@ export function scheinAbgleich(
   const schluessel = (datum: string, name: string, helfer: boolean) =>
     `${datum}|${normName(name)}|${helfer ? 'h' : 'f'}`;
   const verrechnetJe = new Map<string, number>();
+  // Der Satz der ersten Buchung je Person, Tag und Helfer/nicht — für die Anzeige (G16).
+  const satzJe = new Map<string, Satzklasse>();
   for (const e of eintraege) {
     // Helfer ist, wer als Helfer zählt — per Haken oder per Einstufung (4.1).
     const k = schluessel(e.date, e.userName ?? '', satzklasse(e) === 'helfer');
     verrechnetJe.set(k, (verrechnetJe.get(k) ?? 0) + Math.max(calcWorkMin(e), 0));
+    if (!satzJe.has(k)) satzJe.set(k, satzklasse(e));
   }
+  const satzVon = (k: string, helfer: boolean): Satzklasse =>
+    satzJe.get(k) ?? (helfer ? 'helfer' : 'facharbeiter');
   const bestaetigtJe = new Map<string, { datum: string; name: string; helfer: boolean; min: number }>();
   for (const schein of eigene) {
     if (!offen?.has(schein.id)) continue;
@@ -226,6 +242,7 @@ export function scheinAbgleich(
       bestaetigtMin: b.min,
       verrechnetMin: verrechnet,
       andererSatzMin: verrechnetJe.get(schluessel(b.datum, b.name, !b.helfer)) ?? 0,
+      satz: satzVon(k, b.helfer),
     });
   }
   fehlend.sort((a, b) => a.datum.localeCompare(b.datum) || a.name.localeCompare(b.name, 'de'));
@@ -251,7 +268,7 @@ export function scheinAbgleich(
     for (const [k, min] of verrechnetJe) {
       if (min <= 0 || bestaetigtJe.has(k)) continue;
       const [datum, , satz] = k.split('|');
-      ohneSchein.push({ datum, name: namen.get(k) || '—', helfer: satz === 'h', verrechnetMin: min });
+      ohneSchein.push({ datum, name: namen.get(k) || '—', helfer: satz === 'h', satz: satzVon(k, satz === 'h'), verrechnetMin: min });
     }
     ohneSchein.sort((a, b) => a.datum.localeCompare(b.datum) || a.name.localeCompare(b.name, 'de'));
   }

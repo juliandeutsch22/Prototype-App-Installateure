@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { BaustellenDokument } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import IconButton from '@/components/IconButton';
+import { Marke } from '@/components/Badge';
 import { grundAus } from '@/lib/fehlerGrund';
 import { dokumentAdresse, dokumentBild } from '@/lib/db/baustellenDokumente';
 import { datumAusMs } from '@/lib/datum';
@@ -143,10 +144,18 @@ export default function PlaeneListe({
               </button>
               {fehler?.id === d.id && <p role="alert" className="text-sm text-danger">{fehler.text}</p>}
               <p className="text-xs text-ink-muted">
-                {[d.nurBuero ? 'Nur Büro' : '', groesse(d.bytes), datum(d.createdAt), d.hochgeladenVonName]
-                  .filter(Boolean)
-                  .join(' · ')}
+                {[groesse(d.bytes), datum(d.createdAt), d.hochgeladenVonName].filter(Boolean).join(' · ')}
               </p>
+              {/*
+                DER ZUSTAND ALS ETIKETT, DIE AKTION ALS VERB (Runde 6, G20):
+                „Nur fürs Büro“ stand auf dem Knopf und las sich wie ein
+                Zustand — niemand wusste, ob der Plan schon verborgen ist.
+                Wer umschalten darf, sieht beide Zustände benannt; der
+                Monteur sieht verborgene Pläne ohnehin nicht.
+              */}
+              {(d.nurBuero || onNurBuero) && (
+                <p><Marke>{d.nurBuero ? 'Nur fürs Büro' : 'Für Monteure sichtbar'}</Marke></p>
+              )}
               {/*
                 IN DER TEXTSPALTE, nicht neben der Zeile: die Ablage steht in
                 der Akte in einer schmalen Spalte, und ein Knopf daneben nahm
@@ -158,7 +167,7 @@ export default function PlaeneListe({
                   className="link inline-flex min-h-touch items-center text-sm"
                   onClick={() => onNurBuero(d, !d.nurBuero)}
                 >
-                  {d.nurBuero ? 'Für Monteure freigeben' : 'Nur fürs Büro'}
+                  {d.nurBuero ? 'Für Monteure zeigen' : 'Vor Monteuren verbergen'}
                 </button>
               )}
             </div>

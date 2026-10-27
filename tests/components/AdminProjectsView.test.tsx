@@ -218,6 +218,30 @@ describe('Baustellen — anlegen', () => {
     });
   });
 
+  /* Runde 6, Hinweis 11: der Ansprechpartner musste bei jeder Baustelle neu getippt werden. */
+  it('schlägt Ansprechpartner und Telefon aus der Kundenakte vor — änderbar (Hinweis 11)', async () => {
+    kundenBestand = [{ ...KUNDE, contactName: 'Frau Huber', contactPhone: '0664 1234567' }];
+    zeige();
+    await formOeffnen();
+    await kundeWaehlen(userEvent.setup(), KUNDE.name);
+    expect(screen.getByLabelText('Ansprechpartner vor Ort')).toHaveValue('Frau Huber');
+    expect(screen.getByLabelText('Telefon vor Ort')).toHaveValue('0664 1234567');
+    await userEvent.clear(screen.getByLabelText('Ansprechpartner vor Ort'));
+    await userEvent.type(screen.getByLabelText('Ansprechpartner vor Ort'), 'Hausmeister Berger');
+    await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][1]).toMatchObject({ contactName: 'Hausmeister Berger', contactPhone: '0664 1234567' });
+  });
+
+  it('Gegenprobe: ein schon getippter Ansprechpartner bleibt stehen (Hinweis 11)', async () => {
+    kundenBestand = [{ ...KUNDE, contactName: 'Frau Huber' }];
+    zeige();
+    await formOeffnen();
+    await userEvent.type(await screen.findByLabelText('Ansprechpartner vor Ort'), 'Polier Gruber');
+    await kundeWaehlen(userEvent.setup(), KUNDE.name);
+    expect(screen.getByLabelText('Ansprechpartner vor Ort')).toHaveValue('Polier Gruber');
+  });
+
   it('schlägt die nächste Nummer aus dem Nummernkreis vor', async () => {
     /*
       DER VORSCHLAG IST EIN VORSCHLAG UND KEIN ZWANG — manche Betriebe führen

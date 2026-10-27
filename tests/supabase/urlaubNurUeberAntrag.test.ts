@@ -235,6 +235,10 @@ describe('Übernahme des Altbestands', () => {
     // `satz_setzen` hinter #230 zurück und scheitert, sobald ein
     // Sonderurlaubstag im Bestand ist (ihre Statusliste kennt ihn nicht).
     await db.query('drop view if exists public.monthly_stats');
+    // Ebenso `baustellen_stunden`: seit 27.10.2026 liefert sie eine Spalte mehr
+    // (`lehrling_minuten`, Testbericht Runde 6, G18) — die Fassung vom 09.10.
+    // hier davor dürfte die Rückgabe sonst nicht ändern.
+    await db.query('drop function if exists public.baustellen_stunden(text[])');
     await db.query(readFileSync(
       join(__dirname, '../../supabase/migrations/20260929200000_dezember_halbtage.sql'), 'utf8'));
     const ordner = join(__dirname, '../../supabase/migrations');

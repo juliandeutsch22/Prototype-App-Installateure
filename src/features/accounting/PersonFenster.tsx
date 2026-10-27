@@ -54,6 +54,7 @@ export default function PersonFenster({
   onKorrigieren,
   onCsv,
   onBericht,
+  gesamtsaldoH,
 }: {
   user: AppUser;
   stats: MonthStats;
@@ -78,6 +79,12 @@ export default function PersonFenster({
   onMeldung: (id: string) => void;
   onKorrigieren: (e: WithId<TimeEntry>) => void;
   onCsv: () => void;
+  /**
+   * Der Gesamtsaldo aus der Liste der Seite (`gesamtsaldenLaden`) — dieselbe
+   * Zahl wie in der Spalte daneben, nach jeder Änderung neu geholt (Runde 6,
+   * G7). `null`: die Seite holt sie gerade. Fehlt sie, lädt das Fenster selbst.
+   */
+  gesamtsaldoH?: number | null;
   onBericht: () => void;
 }) {
   /*
@@ -229,7 +236,7 @@ export default function PersonFenster({
         {zeigtSaldo && u.appStartDate && (
           <div className="pf-kennzahl">
             <p className="pf-kennzahl-name">Gesamtsaldo</p>
-            <Gesamtsaldo profil={u} halbeTage={halbeTage} />
+            <Gesamtsaldo profil={u} halbeTage={halbeTage} saldoH={gesamtsaldoH} />
           </div>
         )}
         {/*

@@ -138,9 +138,17 @@ export default function ProjectSummary({
       );
       // Geladen und ohne Fachminuten heißt 0 — nicht „nicht geladen“.
       const gesamtFachMin = gesamtFach ? (gesamtFach.get(g.projectNumber) ?? 0) : null;
+      /*
+        LEHRLINGE IM BUDGET (Runde 6, G18): sie zählen ab Werk mit und standen
+        bisher als „Fachzeit“ da. Die Zahl bleibt, die Beschriftung nennt sie.
+      */
+      const lehrlingImBudgetMin = g.entries
+        .filter((e) => e.insBudget === true && budgetArt(e) === 'fach')
+        .reduce((s, e) => s + calcWorkMin(e), 0);
       return {
         ...g,
         project,
+        lehrlingImBudgetMin,
         gesamtFachMin,
         budget:
           gesamtFachMin === null
@@ -380,7 +388,8 @@ export default function ProjectSummary({
                       deshalb neben die GESAMTZAHL, nicht neben den Monat.
                     */}
                     <span className="font-semibold text-ink">
-                      Fachzeit in {label}: {dauer(r.fachMin)}
+                      Budgetstunden in {label}: {dauer(r.fachMin)}
+                      {r.lehrlingImBudgetMin > 0 && ` (davon ${dauer(r.lehrlingImBudgetMin)} Lehrling)`}
                     </span>
                     {r.project?.estimatedHours && r.gesamtFachMin !== null ? (
                       <span className="text-ink-muted">

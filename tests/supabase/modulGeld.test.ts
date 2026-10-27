@@ -47,7 +47,7 @@ const rechnung = (rest: Record<string, unknown> = {}) => ({
   projectNumber: 'B-100',
   customerName: 'Familie Huber',
   address: 'Hauptplatz 1, 8200 Gleisdorf',
-  invoiceDate: '2026-04-30',
+  invoiceDate: '2026-04-30', leistungVon: '2026-04-30', leistungBis: '2026-04-30',
   dueDate: '2026-05-14',
   subtotalNetto: 1000,
   totalNetto: 1000,

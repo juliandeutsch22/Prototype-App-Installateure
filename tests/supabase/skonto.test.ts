@@ -33,7 +33,7 @@ async function ausstellen(extra: Partial<Invoice> = { skontoProzent: 2, skontoBi
     projectNumber: 'B-600',
     customerName: 'Baumeister Gruber',
     address: 'Bergweg 3, 2700 Wiener Neustadt',
-    invoiceDate: `${JAHR}-04-30`,
+    invoiceDate: `${JAHR}-04-30`, leistungVon: `${JAHR}-04-30`, leistungBis: `${JAHR}-04-30`,
     dueDate: `${JAHR}-05-14`,
     subtotalNetto: 1000,
     totalNetto: 1000,

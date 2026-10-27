@@ -44,8 +44,8 @@ vi.mock('@/lib/db/workSheets', () => ({
   ]),
 }));
 vi.mock('@/components/BaustellenSelect', () => ({
-  default: ({ id, label, value, onChange }: { id: string; label?: string; value: string; onChange: (nr: string) => void }) => (
-    <input id={id} aria-label={label ?? 'Baustelle'} value={value} onChange={(e) => onChange(e.target.value)} />
+  default: ({ id, label, value, onChange, nummerVorn }: { id: string; label?: string; value: string; onChange: (nr: string) => void; nummerVorn?: boolean }) => (
+    <input id={id} aria-label={label ?? 'Baustelle'} value={value} onChange={(e) => onChange(e.target.value)} data-nummer-vorn={nummerVorn ? 'ja' : 'nein'} />
   ),
 }));
 vi.mock('@/lib/db/arbeitszeitGrenzen', () => ({ getGeburtsdatum: vi.fn(async () => null) }));
@@ -160,5 +160,34 @@ describe('Buchung aufteilen', () => {
     fireEvent.change(screen.getByLabelText(/^Bis/), { target: { value: '17:00' } });
     expect(screen.queryByRole('button', { name: /aufteilen/ })).toBeNull();
     expect(screen.getByText(/zuerst speichern/)).toBeInTheDocument();
+  });
+});
+
+/*
+  TESTBERICHT RUNDE 6, G3 und G4: im Dialog war die unterscheidende Nummer
+  abgeschnitten („CT Bau GmbH (Claude-Test) (PR-2026-0…“) und brach am
+  Bindestrich um („gebucht auf PR-2026-/0189“).
+*/
+describe('Buchung aufteilen — Nummern (Runde 6, G3, G4)', () => {
+  it('die Auswahlfelder der Zeiterfassung stellen die Nummer voran', async () => {
+    zeichne(TAG);
+    fireEvent.click(screen.getByRole('button', { name: 'Auf mehrere Baustellen aufteilen …' }));
+    const dialog = await screen.findByRole('dialog');
+    await waitFor(() => expect(within(dialog).getByLabelText('Weitere Baustelle 1')).toHaveValue('B-2'));
+    expect(within(dialog).getByLabelText('Weitere Baustelle 1')).toHaveAttribute('data-nummer-vorn', 'ja');
+    expect(document.getElementById('project')).toHaveAttribute('data-nummer-vorn', 'ja');
+  });
+
+  it('die Nummer bricht nicht um — im Satz und in „So wird gebucht“', async () => {
+    zeichne(TAG);
+    fireEvent.click(screen.getByRole('button', { name: 'Auf mehrere Baustellen aufteilen …' }));
+    const dialog = await screen.findByRole('dialog');
+    await waitFor(() => expect(within(dialog).getByLabelText('Weitere Baustelle 1')).toHaveValue('B-2'));
+    const imSatz = within(dialog).getAllByText('B-1', { selector: 'span' });
+    expect(imSatz.length).toBe(2);
+    for (const n of imSatz) expect(n).toHaveClass('nr');
+    fireEvent.change(within(dialog).getAllByLabelText('Stunden')[0], { target: { value: '2' } });
+    const liste = within(dialog).getByText('So wird gebucht:').nextElementSibling as HTMLElement;
+    for (const n of within(liste).getAllByText(/^B-\d$/)) expect(n).toHaveClass('nr');
   });
 });

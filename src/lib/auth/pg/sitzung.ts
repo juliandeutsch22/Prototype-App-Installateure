@@ -21,6 +21,7 @@
  *    abgewiesenen Zugriff ergab. Für den globalen Administrator ist das der
  *    ruhigere Weg.
  */
+import { isAuthSessionMissingError } from '@supabase/supabase-js';
 import type { Company, CurrentUser, Role } from '@/types';
 import { supabaseClient, merkenSetzen, pruefClient } from '@/lib/supabase';
 import { InactiveUserError, type Angemeldet } from '../kern';
@@ -75,9 +76,48 @@ export async function anmelden(
   if (error) throw new Error(error.message);
 }
 
-export async function abmelden(): Promise<void> {
-  const { error } = await supabaseClient().auth.signOut();
+/**
+ * Abmelden — dieses Gerät, oder ausdrücklich jedes.
+ *
+ * NUR DIESES GERÄT IST DER REGELFALL (Testbericht Runde 6, 8.4; 27.10.2026).
+ * supabase-js meldet ohne Angabe ÜBERALL ab: wer sich am geteilten
+ * Baustellen-Tablet abmeldete, beendete nebenbei die Anmeldung auf seinem
+ * Telefon. „Auf allen Geräten abmelden“ ist ein eigener Knopf in „Mein
+ * Konto“ — für das verlorene Telefon. Beendet wird die Sitzung in beiden
+ * Fällen beim Anmeldedienst, und die Datenbank nimmt ihr Token ab dann nicht
+ * mehr an (`app.sitzung_lebt`).
+ */
+export async function abmelden(ueberall = false): Promise<void> {
+  const { error } = await supabaseClient().auth.signOut({ scope: ueberall ? 'global' : 'local' });
   if (error) throw new Error(error.message);
+}
+
+/**
+ * Ist die Anmeldung dieses Geräts anderswo beendet worden?
+ *
+ * Ein Abmelden auf allen Geräten beendet die Sitzung sofort; dieses Gerät
+ * merkt es aber erst, wenn sein Token erneuert wird — bis zu einer Stunde.
+ * Bis dahin lieferte die Datenbank ihm leere Listen. Gefragt wird deshalb
+ * beim Anmeldedienst, sobald die App wieder in den Vordergrund kommt; ist
+ * die Sitzung fort, meldet sich dieses Gerät selbst ab. Ohne Netz oder bei
+ * jeder anderen Antwort bleibt alles, wie es ist — ein Monteur im Keller wird
+ * nicht abgemeldet, weil der Empfang fehlt.
+ */
+export async function sitzungAnderswoBeendet(): Promise<boolean> {
+  const c = supabaseClient();
+  const { data } = await c.auth.getSession();
+  if (!data.session) return false;
+  const { error } = await c.auth.getUser();
+  if (!error) return false;
+  /*
+    Eine beendete Sitzung meldet supabase-js als „Auth session missing“
+    (der Dienst antwortet `session_not_found`); ein gelöschtes Konto als
+    `user_not_found`. Alles andere — kein Netz, Zeitüberschreitung — ist
+    keine Auskunft über die Sitzung.
+  */
+  if (!isAuthSessionMissingError(error) && error.code !== 'user_not_found') return false;
+  await c.auth.signOut({ scope: 'local' }).catch(() => undefined);
+  return true;
 }
 
 export async function passwortZuruecksetzen(email: string): Promise<void> {

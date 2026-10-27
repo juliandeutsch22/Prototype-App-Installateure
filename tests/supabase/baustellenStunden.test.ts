@@ -26,6 +26,7 @@ let buch: Konto;
 let verw: Konto;
 let max: Konto;
 let anton: Konto;
+let lena: Konto;
 let fremd: Konto;
 
 const NAME = new Map<string, string>();
@@ -48,8 +49,9 @@ beforeAll(async () => {
   verw = await konto(A, 'Verwaltung', 'bstdverw');
   max = await konto(A, 'Mitarbeiter', 'Max');
   anton = await konto(A, 'Mitarbeiter', 'Anton');
+  lena = await konto(A, 'Mitarbeiter', 'Lena');
   fremd = await konto(B, 'Mitarbeiter', 'Fremd');
-  NAME.set(max.uid, 'Max').set(anton.uid, 'Anton').set(pl.uid, 'Paula').set(fremd.uid, 'Fremd');
+  NAME.set(max.uid, 'Max').set(anton.uid, 'Anton').set(lena.uid, 'Lena').set(pl.uid, 'Paula').set(fremd.uid, 'Fremd');
 
   // Baustelle 2026-050, in beiden Schreibweisen gebucht.
   await buche(A, max, '2026-04-01', { project_number: 'PR-2026-050' });                       // 510 Fach
@@ -63,6 +65,10 @@ beforeAll(async () => {
   await buche(A, max, '2026-04-09', { project_number: '2026-051' });
   await buche(A, pl, '2026-04-10', { project_number: '2026-050', end_time: '08:00', break_duration: 0 }); // 60 Fach
   await buche(B, fremd, '2026-04-01', { project_number: '2026-050' });
+  // Runde 6, G18: eine eigene Baustelle, damit die Summen oben bleiben, wie sie sind.
+  await buche(A, max, '2026-04-01', { project_number: '2026-052' });                          // 510 Fach
+  await buche(A, lena, '2026-04-01', { project_number: '2026-052', end_time: '11:00', break_duration: 0, ins_budget: true });  // 240 Lehrling im Budget
+  await buche(A, lena, '2026-04-02', { project_number: '2026-052', end_time: '08:00', break_duration: 0, ins_budget: false }); // 60 Lehrling außerhalb
 }, 120_000);
 
 afterAll(() => clientEinreichen(null));
@@ -132,6 +138,23 @@ describe('baustellen_stunden', () => {
     const inZweien = await zeiten.stundenDerBaustellen(['2026-050', '2026-051'], 2);
     expect(inZweien).toEqual(ganz);
     expect(inZweien).toHaveLength(6);
+  });
+
+  /*
+    RUNDE 6, G18: „45,0 h Fachzeit“ enthielt die Lehrlingsstunden, die ins
+    Budget zählen. Die Zeilen bleiben, wie sie waren; dazu kommt, wie viel
+    davon ein Lehrling gebucht hat.
+  */
+  it('nennt die Lehrlingsminuten im Budget — Zeilen und Summen bleiben gleich', async () => {
+    clientEinreichen(pl.client);
+    const zeilen = await zeiten.stundenDerBaustellen(['2026-052']);
+    expect(zeilen.map((z) => `${z.userName} ${z.art} ${z.minuten} ${z.lehrlingImBudget}`).sort()).toEqual([
+      'Lena fach 240 240',
+      'Lena lehrling 60 0',
+      'Max fach 510 0',
+    ]);
+    // Wo kein Lehrling mitzählt, ist der Anteil null.
+    expect((await zeiten.stundenDerBaustellen(['2026-050'])).every((z) => z.lehrlingImBudget === 0)).toBe(true);
   });
 
   it('fragt nicht, wenn keine Nummer übrig bleibt', async () => {

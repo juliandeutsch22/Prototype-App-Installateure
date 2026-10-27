@@ -379,6 +379,19 @@ export function auftragsreferenzFehler(art: EbiEmpfaengerArt, ref: string): stri
   return null;
 }
 
+/**
+ * Was zu tun ist, wenn eine Angabe FESTGEHALTEN ist — Anschrift oder
+ * Leistungszeitraum stehen so auf der ausgestellten Rechnung und ändern sich
+ * nicht mehr. Bei der Rechnung: berichtigen, stornieren, neu ausstellen. Die
+ * Stornorechnung trägt die Angaben der Rechnung, die sie aufhebt; sie bleibt
+ * beim PDF.
+ */
+function festgehaltenText(storno: boolean | undefined, schritte: string): string {
+  return storno
+    ? 'Die Stornorechnung trägt die festgehaltenen Angaben der Rechnung und lässt sich nicht mehr ändern — sie geht deshalb als PDF.'
+    : `Das ist mit der Rechnung festgehalten und lässt sich hier nicht ändern: ${schritte}.`;
+}
+
 /** Alles, was die Datei ungültig machte oder beim Empfänger abgewiesen würde — und was nur auffällt. */
 export function ebiPruefen(o: EbiOptionen): EbiPruefung {
   const fehler: string[] = [];
@@ -415,11 +428,17 @@ export function ebiPruefen(o: EbiOptionen): EbiPruefung {
     hinweise.push(`Ohne eigene UID-Nummer steht ${OHNE_UID} in der E-Rechnung. Über ${UID_STELLER_AB} € brutto verlangt das Gesetz die UID des Rechnungsstellers, sofern es eine gibt.`);
   }
 
-  // Der Empfänger.
+  /*
+    DER EMPFÄNGER — UND WAS ZU TUN IST (Testbericht Runde 6, M6). Die
+    Anschrift ist mit der Rechnung festgehalten; im Dialog gibt es kein Feld
+    dafür, und das ist richtig so: die E-Rechnung muss zum PDF passen, das der
+    Kunde hat. Berichtigen heisst deshalb Kundenakte, Storno, neue Rechnung —
+    das steht jetzt da, statt eines Verweises auf Angaben, die es nicht gibt.
+  */
   if (!anschriftZerlegen(inv.address)) {
-    fehler.push(inv.address?.trim()
+    fehler.push(`${inv.address?.trim()
       ? `Die Anschrift auf der Rechnung („${inv.address.trim()}“) lässt sich nicht in Straße, Postleitzahl und Ort zerlegen.`
-      : 'Auf der Rechnung steht keine Anschrift des Empfängers.');
+      : 'Auf der Rechnung steht keine Anschrift des Empfängers.'} ${festgehaltenText(o.storno, 'die Anschrift in der Kundenakte berichtigen, dann die Rechnung stornieren und neu ausstellen')}`);
   }
   if (!uidNormalisieren(inv.customerVatId) && beleg.forderung > UID_EMPFAENGER_AB) {
     hinweise.push(`Über ${UID_EMPFAENGER_AB.toLocaleString('de-AT')} € brutto verlangt das Gesetz die UID des Empfängers; ohne sie steht ${OHNE_UID} da.`);
@@ -428,7 +447,7 @@ export function ebiPruefen(o: EbiOptionen): EbiPruefung {
   // Leistungsdatum — Pflichtangabe nach § 11 Abs 1 Z 4 UStG.
   if (!(inv.leistungVon && inv.leistungBis)) {
     if (beleg.art === 'anzahlung') hinweise.push('Ohne Leistungszeitraum: bei einer Anzahlung steht die Leistung noch aus.');
-    else fehler.push('Das Leistungsdatum oder der Leistungszeitraum fehlt auf der Rechnung (§ 11 Abs 1 Z 4 UStG).');
+    else fehler.push(`Das Leistungsdatum oder der Leistungszeitraum fehlt auf der Rechnung (§ 11 Abs 1 Z 4 UStG). ${festgehaltenText(o.storno, 'die Rechnung stornieren und mit Leistungszeitraum neu ausstellen')}`);
   }
 
   // Auftragsreferenz und Lieferantennummer über e-Rechnung.gv.at.

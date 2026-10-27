@@ -13,6 +13,7 @@ import { ZahlWertFeld } from '@/components/ZahlFeld';
 import { mengeFehler } from '@/lib/einheit';
 import { fmtMenge } from '@/lib/belegLayout';
 import { imLager } from '@/features/orders/lagerartikel';
+import { nochAnzufordern, ruestFehlt } from './ruestFehlmenge';
 
 /**
  * Die Rüstliste eines Einsatzes zusammenstellen — was in den Bus soll.
@@ -49,10 +50,13 @@ interface Props {
   materials: WithId<Material>[];
   positionen: RuestPosition[];
   onChange: (next: RuestPosition[]) => void;
-  /** Fehlmenge melden — der Knopf dazu steht hier, ausgelöst wird es oben. */
-  onAnforderung?: (position: RuestPosition, fehlmenge: number) => void;
-  /** Läuft gerade eine Anforderung? Dann keinen zweiten Tipp annehmen. */
-  anforderungLaeuft?: boolean;
+  /**
+   * Fehlmenge anfordern — vorgemerkt hier, angelegt beim Speichern des
+   * Einsatzes (Runde 6, M5). Ohne Angabe gibt es den Knopf nicht.
+   */
+  onVormerken?: (positionId: string, menge: number | null) => void;
+  /** Positionen, deren Fehlmenge beim Speichern angefordert wird — mit der Menge beim Tipp. */
+  vorgemerkt?: Map<string, number>;
   /**
    * Meldet eine eingetippte, aber noch nicht hinzugefügte freie Zeile oder
    * `null` — dieselbe Naht wie am Handwerksschein (`MaterialErfassen`).
@@ -64,8 +68,6 @@ interface Props {
    * gespeicherte Menge wieder dazugezählt. Ohne Angabe gilt der Bestand.
    */
   verfuegbar?: Map<string, number>;
-  /** Positionen, für die schon eine Anforderung angelegt wurde (G14). */
-  angefordert?: Set<string>;
 }
 
 export default function RuestlistePlanen({
@@ -73,11 +75,10 @@ export default function RuestlistePlanen({
   materials,
   positionen,
   onChange,
-  onAnforderung,
-  anforderungLaeuft = false,
+  onVormerken,
+  vorgemerkt,
   onOffen,
   verfuegbar,
-  angefordert,
 }: Props) {
   const [suche, setSuche] = useState('');
   const [freierName, setFreierName] = useState('');
@@ -168,13 +169,10 @@ export default function RuestlistePlanen({
         <ul className="divide-y divide-line border-y border-line">
           {positionen.map((p) => {
             const artikel = p.materialId ? nachId.get(p.materialId) : undefined;
-            /*
-              Fehlmenge nur bei einem KATALOGARTIKEL. Eine freie Zeile
-              („Leihgerät Kernbohrer") hat keinen Bestand, und „0 von 1
-              vorhanden" wäre dort eine Falschaussage statt einer Warnung.
-            */
+            // Fehlmenge nur bei einem Katalogartikel (`ruestFehlt`).
             const da = artikel ? (verfuegbar?.get(artikel.id) ?? artikel.stock ?? 0) : 0;
-            const fehlt = artikel ? Math.max(0, Math.round((p.menge - Math.max(da, 0)) * 1000) / 1000) : 0;
+            const fehlt = ruestFehlt(p, artikel, verfuegbar);
+            const offen = nochAnzufordern(p, artikel, verfuegbar);
             return (
               <li key={p.id} className="py-3">
                 <div className="flex flex-wrap items-end gap-3">
@@ -230,6 +228,12 @@ export default function RuestlistePlanen({
                   Grundlage einer Vermutung, wäre genau der Vertrauensverlust,
                   den diese App sich nicht leisten kann.
                 */}
+                {(p.angefordert ?? 0) > 0 && (
+                  <p className="mt-1 text-sm text-ink-muted">
+                    Davon {fmtMenge(p.angefordert!)} über eine Anforderung — sie kommen über die Abholung,
+                    nicht aus dem Regal.
+                  </p>
+                )}
                 {fehlt > 0 && (
                   <div className="mt-2">
                     <Hinweiszeile stufe="warn">
@@ -243,20 +247,30 @@ export default function RuestlistePlanen({
                           )}
                         </span>
                         {/*
-                          NACH DEM ANLEGEN IST DER KNOPF ERLEDIGT (Testbericht
-                          30.09.2026, G14): er blieb aktiv, und ein zweiter
-                          Tipp legte dieselbe Anforderung noch einmal an.
+                          VORGEMERKT, NICHT SOFORT ANGELEGT (Runde 6, M5): die
+                          Anforderung entsteht beim Speichern, mit der Position
+                          verknüpft. Vorher entstand sie auf den Tipp, noch
+                          bevor es den Einsatz gab, und wusste nichts von der
+                          Liste — Regal und Anforderung gaben dasselbe zweimal
+                          aus. Ein zweiter Tipp legt nichts doppelt an
+                          (Testbericht 30.09.2026, G14): was schon angefordert
+                          ist, zählt ab.
                         */}
-                        {onAnforderung && (angefordert?.has(p.id) ? (
+                        {onVormerken && offen === 0 && (p.angefordert ?? 0) > 0 && (
                           <span className="text-sm text-ink-muted">Anforderung angelegt</span>
+                        )}
+                        {onVormerken && offen > 0 && (vorgemerkt?.has(p.id) ? (
+                          <>
+                            <span className="text-sm text-ink">
+                              Anforderung über {fmtMenge(offen)} wird mit dem Einsatz gespeichert.
+                            </span>
+                            <Button variant="ghost" onClick={() => onVormerken(p.id, null)}>
+                              Doch nicht
+                            </Button>
+                          </>
                         ) : (
-                          <Button
-                            variant="secondary"
-                            loading={anforderungLaeuft}
-                            disabled={anforderungLaeuft}
-                            onClick={() => onAnforderung(p, fehlt)}
-                          >
-                            Anforderung über {fmtMenge(fehlt)} anlegen
+                          <Button variant="secondary" onClick={() => onVormerken(p.id, offen)}>
+                            Anforderung über {fmtMenge(offen)} anlegen
                           </Button>
                         ))}
                       </div>

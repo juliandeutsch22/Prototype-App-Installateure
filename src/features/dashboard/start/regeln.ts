@@ -9,7 +9,7 @@ import { istUeberfaellig, mahnbar, offenerRuecklass, ruecklassFaelligAm } from '
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { euro } from '@/lib/betrag';
 import { datumAT } from '@/lib/datum';
-import { fmtStd, fmtStunden, tageWort, tageWortDativ } from '@/lib/time';
+import { fmtDauer, fmtStunden, tageWort, tageWortDativ } from '@/lib/time';
 import { baustellenTitel } from '@/lib/baustellenTitel';
 import { abschnitt, type Abschnitt, type Zeile } from './abschnitte';
 import { istAbholbereitAlt, istLieferungHeute, istLieferungUeberfaellig } from '@/features/orders/anforderungStand';
@@ -115,9 +115,14 @@ export function scheinOhneZeit(nachtraege: OffenerNachtrag[]): Abschnitt | null 
 export function abholbereitEigen(orders: MaterialOrder[]): Abschnitt | null {
   const zeilen: Zeile[] = orders
     .filter((o) => nurEchte(o) && o.status === 'Abholbereit')
-    .sort((a, b) => (a.abholbereitSeit ?? a.updatedAt ?? 0) - (b.abholbereitSeit ?? b.updatedAt ?? 0))
+    .sort((a, b) => (a.abholbereitSeit ?? 0) - (b.abholbereitSeit ?? 0))
     .map((o) => {
-      const seit = o.abholbereitSeit ?? o.updatedAt;
+      /*
+        NUR DER ZEITSTEMPEL DER DATENBANK (Runde 6, Hinweis 7). Ohne ihn stand
+        hier die letzte Änderung — bei einer frisch angelegten Anforderung der
+        Tag des Anforderns, und „seit 28.09.“ las sich wie „abholbereit seit“.
+      */
+      const seit = o.abholbereitSeit;
       return {
         key: `abh-${o.id}`,
         titel: mengeText(o),
@@ -418,7 +423,8 @@ export function stundenZeile(alle: OffeneStundenZeile[], altAb: number): Zeile |
     key: 'stunden',
     titel: `${alle.length} ${alle.length === 1 ? 'Baustelle' : 'Baustellen'} mit Stunden nicht verrechnet`,
     detail: eine
-      ? `${eine.kunde || eine.projectNumber} · ${fmtStd(eine.minuten)} Std seit ${datumAT(eine.aeltester)}`
+      // Std:Min wie überall bei Dauern (Runde 6, G11) — „42,5 Std“ stand nur auf der Startseite.
+      ? `${eine.kunde || eine.projectNumber} · ${fmtDauer(eine.minuten)} seit ${datumAT(eine.aeltester)}`
       : alt ? `davon ${alt} über 4 Wochen` : 'alle jünger als 4 Wochen',
     status: { text: 'verrechnen', ton: alt ? 'warn' : 'leise' },
     to: eine ? ZIEL.rechnungFuer(eine.projectNumber) : ZIEL.rechnungen,
@@ -560,7 +566,12 @@ export function budgetNahe(alle: BudgetZeile[]): Abschnitt | null {
     .map((b) => ({
       key: `budget-${b.projectNumber}`,
       titel: b.titel,
-      detail: `${b.projectNumber} · ${fmtStd(b.usedMin)} von ${fmtStunden(b.estimatedHours)} Std`,
+      /*
+        STD:MIN WIE IN DER MITARBEITERÜBERSICHT (Testbericht Runde 6, G11):
+        „25,0 von 12 Std“ war die einzige Stelle, an der Stunden als
+        Dezimalzahl standen; daneben stand „27:55 Std von 30:00 Std“.
+      */
+      detail: `${b.projectNumber} · ${fmtDauer(b.usedMin)} von ${fmtDauer(b.estimatedHours * 60)}`,
       status: { text: `${b.pct} %`, ton: 'warn' },
       to: ZIEL.baustelle(b.projectNumber),
     }));

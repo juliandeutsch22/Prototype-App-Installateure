@@ -138,3 +138,27 @@ export function nachFaelligkeit(
   const y = b.faelligAm && ISO.test(b.faelligAm) ? b.faelligAm : '';
   return x.localeCompare(y);
 }
+
+/*
+  KEIN DATUM AUS DER ZUKUNFT (Runde 6, G23): „Zuletzt gewartet 01.12.2026“
+  am 27.10. und „Bj. 2030“ wurden ohne Rückfrage gespeichert; die Liste
+  rechnete danach den nächsten Termin ab einem Tag, der noch nicht war.
+  Dieselben Grenzen zieht die Datenbank (`app.wartung_keine_zukunft`).
+*/
+
+/** Ein Wartungstag nach heute? Dann der Satz dazu, sonst `null`. */
+export function wartungsTagFehler(tag: string | null | undefined, heute: string): string | null {
+  if (!tag) return null;
+  return tag > heute
+    ? 'Der Tag liegt in der Zukunft — eingetragen wird eine Wartung, die schon gemacht ist.'
+    : null;
+}
+
+/** Das Baujahr: zwischen 1900 und dem laufenden Jahr. */
+export function baujahrFehler(baujahr: number | null | undefined, heute: string): string | null {
+  if (baujahr == null) return null;
+  const jahr = Number(heute.slice(0, 4));
+  if (baujahr < 1900) return 'Das Baujahr liegt zwischen 1900 und heute.';
+  if (baujahr > jahr) return `Das Baujahr liegt in der Zukunft — höchstens ${jahr}.`;
+  return null;
+}

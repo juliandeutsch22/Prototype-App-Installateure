@@ -111,7 +111,19 @@ describe('E-Rechnung: Dialog', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Bund' }));
     expect(await screen.findByText(/Lieferantennummer des Bundes ist achtstellig/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Datei laden' }));
-    expect(await screen.findByText(/Erst die Angaben unten ergänzen/)).toBeInTheDocument();
+    // Die Meldungen stehen ÜBER der Zeile — seit Runde 6 (M6) sagt sie das, statt „unten“.
+    expect(await screen.findByText(/was zu tun ist, steht in den Meldungen darüber/)).toBeInTheDocument();
+    expect(screen.queryByText(/Angaben unten/)).toBeNull();
+    expect(geladen).toHaveLength(0);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('eine festgehaltene Anschrift, die sich nicht zerlegen lässt: der Weg über Kundenakte und Storno (Runde 6, M6)', async () => {
+    const onClose = zeige({ inv: rechnung({ address: 'Bürgergasse 7, 82 Gleisdorf' }) });
+    expect(await screen.findByText(/Anschrift in der Kundenakte berichtigen, dann die Rechnung stornieren und neu ausstellen/))
+      .toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Datei laden' }));
+    expect(await screen.findByText(/steht in den Meldungen darüber/)).toBeInTheDocument();
     expect(geladen).toHaveLength(0);
     expect(onClose).not.toHaveBeenCalled();
   });

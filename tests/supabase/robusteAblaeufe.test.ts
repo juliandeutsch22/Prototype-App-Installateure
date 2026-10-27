@@ -86,7 +86,7 @@ describe('Atomare Arbeitsketten', () => {
 describe('Vollständigkeit und Wiederholung', () => {
   it('liest 2501 Zahlungen im Export und mehr als 100 in der Akte vollständig', async () => {
     const id = await createInvoice(B, { invoiceNumber: 'RE-2026-8700', projectNumber: 'B-Z', customerName: 'Huber',
-      address: 'Hauptplatz 1, 8200 Gleisdorf', invoiceDate: '2026-04-30', dueDate: '2026-05-14',
+      address: 'Hauptplatz 1, 8200 Gleisdorf', invoiceDate: '2026-04-30', leistungVon: '2026-04-30', leistungBis: '2026-04-30', dueDate: '2026-05-14',
       totalNetto: 10000, totalVat: 2000, totalBrutto: 12000, vatRate: 0.2, paymentStatus: 'Offen',
       positions: [{ label: 'Leistung', qty: 1, unit: 'Pauschale', unitPrice: 10000, netto: 10000 }] });
     await db.query(`insert into zahlungseingaenge(company_id,invoice_id,datum,betrag,art)

@@ -112,8 +112,10 @@ test('Ein Monteur teilt seinen Tag auf zwei Baustellen auf', async ({ page }) =>
       expect(data ?? []).toHaveLength(1);
     }).toPass({ timeout: 15_000 });
 
-    // Die Zeile in „Meine Einträge“ öffnet die Buchung zum Bearbeiten.
-    await page.locator('#meine-eintraege').getByRole('button', { name: /Familie Huber bearbeiten/ }).first().click();
+    // Die Zeile in „Meine Einträge“ öffnet die Buchung zum Bearbeiten. Seit
+    // Runde 6 (G3) nennt sie zwischen Kunde und „bearbeiten“ die Baustelle.
+    await page.locator('#meine-eintraege')
+      .getByRole('button', { name: new RegExp(`Familie Huber.*${BAUSTELLE.nummer}.*bearbeiten`) }).first().click();
     await page.getByRole('button', { name: 'Auf mehrere Baustellen aufteilen …' }).click();
     const dialog = page.getByRole('dialog');
     await dialog.getByLabel('Weitere Baustelle 1').selectOption(ZWEITE.nummer);

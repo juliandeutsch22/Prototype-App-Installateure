@@ -268,9 +268,102 @@ describe('Anforderungen — Reiter und Abzeichen widersprechen sich nicht', () =
       anforderung({ id: 'c', status: 'Abholbereit' }),
     ];
     zeige();
-    // Seit dem Umbau ein Segment mit der Zahl im Namen; geschützt bleibt der Name.
-    expect(await bereich(/^Laufend\s*3$/)).toHaveAttribute('aria-pressed', 'true');
+    // Geschützt bleibt der Name. Seit Runde 6 (G6) ohne Zahl: „Laufend“ ist Bestand (E26).
+    expect(await bereich(/^Laufend$/)).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: /^Offen\s*\d/ })).not.toBeInTheDocument();
+  });
+});
+
+/*
+  DIE LISTENLEISTE WIE ÜBER JEDER LISTE (Testbericht Runde 6, G6; E26).
+  Gegenprobe: mit der alten Anordnung (Bereiche gestreckt über der Seite,
+  Suche erst ab zehn Anforderungen, Baustelle allein in der Karte) schlagen
+  die ersten drei fehl; die beiden letzten halten fest, was gleich bleibt.
+*/
+describe('Anforderungen — eine Listenleiste (Runde 6, G6)', () => {
+  it('Bereiche, Suche und Baustelle stehen in einer Leiste, die Bereiche links', async () => {
+    anforderungen = [anforderung({ id: 'o1', projectNumber: '2026-042' })];
+    const { container } = zeige();
+    const feld = await screen.findByRole('combobox', { name: 'Bestellungen nach Baustelle filtern' });
+    const leiste = feld.closest('.listenleiste')!;
+    expect(leiste).not.toBeNull();
+    expect(leiste.firstElementChild).toHaveClass('listenleiste-reiter');
+    expect(within(leiste as HTMLElement).getByRole('group', { name: 'Bereich' })).toBeInTheDocument();
+    expect(within(leiste as HTMLElement).getByRole('searchbox', { name: 'Suche' })).toBeInTheDocument();
+    expect(feld.closest('.listenleiste-zusatz')).not.toBeNull();
+    expect(container.querySelectorAll('.listenleiste')).toHaveLength(1);
+  });
+
+  it('sucht auch bei wenigen Anforderungen — und findet', async () => {
+    anforderungen = [
+      anforderung({ id: 'o1', materialName: 'Kugelhahn' }),
+      anforderung({ id: 'o2', materialName: 'Muffe', userName: 'Erna Beispiel' }),
+    ];
+    zeige();
+    await userEvent.type(await screen.findByRole('searchbox', { name: 'Suche' }), 'Erna');
+    await waitFor(() => expect(screen.queryByText('Kugelhahn')).toBeNull());
+    expect(screen.getByText('Muffe')).toBeInTheDocument();
+  });
+
+  it('„Laufend“ und „Retouren“ ohne Zahl — sie zählen Bestand', async () => {
+    anforderungen = [
+      anforderung({ id: 'a', status: 'Offen' }),
+      anforderung({ id: 'r', status: 'Erledigt', transactionType: 'return', condition: 'neu' }),
+    ];
+    zeige();
+    expect(await bereich('Laufend')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retouren' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Erledigt' })).toBeInTheDocument();
+  });
+
+  it('gleich geblieben: „Einkauf“ zählt weiter, was zu bestellen ist; dort keine Suche und keine Baustelle', async () => {
+    anforderungen = [anforderung({ id: 'o1', status: 'In Bearbeitung', beschaffung: 'einkauf', supplierId: 'gh1', projectNumber: '2026-042' })];
+    zeige();
+    await userEvent.click(await bereich(/^Einkauf 1$/));
+    expect(await screen.findByText('Zu bestellen')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Bereich' })).toBeInTheDocument();
+    expect(screen.queryByRole('searchbox')).toBeNull();
+    expect(screen.queryByRole('combobox', { name: 'Bestellungen nach Baustelle filtern' })).toBeNull();
+  });
+
+  it('gleich geblieben: bei den Retouren keine Auswahl der Baustelle', async () => {
+    anforderungen = [
+      anforderung({ id: 'o1', projectNumber: '2026-042' }),
+      anforderung({ id: 'r', status: 'Erledigt', transactionType: 'return', condition: 'neu', projectNumber: '2026-042' }),
+    ];
+    zeige();
+    await userEvent.click(await bereich('Retouren'));
+    expect(await screen.findByRole('searchbox', { name: 'Suche' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Bestellungen nach Baustelle filtern' })).toBeNull();
+  });
+});
+
+/*
+  DER ZUSTAND IN DER FESTEN SPALTE (E27; Runde 6, G6): unter „Erledigt“
+  standen „Eil“ und die Herkunft hinter dem Zustand und schoben ihn je Zeile
+  hin und her. Gegenprobe: mit den Marken rechts hinter dem Zustand folgt
+  ihm nicht der Pfeil, und „aus Lager“ steht nicht im Namen.
+*/
+describe('Anforderungen — „Erledigt“ mit dem Zustand an fester Stelle', () => {
+  it('rechts nur der Zustand vor dem Pfeil, Eil und Herkunft beim Namen', async () => {
+    anforderungen = [
+      anforderung({ id: 'a', materialName: 'Kugelhahn', status: 'Erledigt', isUrgent: true, beschaffung: 'lager' }),
+      anforderung({ id: 'b', materialName: 'Muffe', status: 'Erledigt' }),
+    ];
+    render(
+      <MemoryRouter initialEntries={['/anforderungen?reiter=erledigt']}>
+        <ToastProvider>
+          <AdminOrdersView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    const knopf = await screen.findByRole('button', { name: /^Kugelhahn/ });
+    expect(within(knopf).getByText('aus Lager')).toBeInTheDocument();
+    expect(within(knopf).getByText('Eil')).toBeInTheDocument();
+    for (const zeile of document.querySelectorAll('li.zeile')) {
+      const zustand = zeile.querySelector('.zeile-zustand')!;
+      expect(zustand.nextElementSibling).toHaveClass('zeile-pfeil');
+    }
   });
 });
 
@@ -425,14 +518,6 @@ describe('Anforderungen — suchen und filtern', () => {
     expect(screen.getByText('Ding 3')).toBeInTheDocument();
   });
 
-  it('blendet das Suchfeld bei wenigen Zeilen aus', async () => {
-    // Ein Suchfeld über drei Zeilen ist Ballast auf einem Telefonschirm.
-    anforderungen = [anforderung({ id: 'o1' })];
-    zeige();
-
-    await screen.findByText('Kupferrohr 15mm');
-    expect(screen.queryByRole('searchbox', { name: /Suche/ })).not.toBeInTheDocument();
-  });
 });
 
 describe('Anforderungen — löschen', () => {
@@ -618,6 +703,38 @@ describe('Anforderungen — eine ruhige Zeile (Prüflauf 24.09.2026, D11; Linie 
     expect(knoepfe).toContain('Auf „Erledigt“ setzen');
     expect(knoepfe).toContain('Nicht auf Lager – auf die Einkaufsliste');
     expect(knoepfe[knoepfe.length - 1]).toBe('Anforderung löschen …');
+  });
+
+  /*
+    RUNDE 6, HINWEIS 7: „Abholbereit“ stand ohne Zeitpunkt im Verlauf, und
+    welche Zeile „seit über 3 Tagen“ zählt, war nicht nachzuprüfen.
+  */
+  it('nennt an der Zeile, seit wann abholbereit — der Tag, nach dem gezählt wird (Hinweis 7)', async () => {
+    anforderungen = [anforderung({ id: 'o1', status: 'Abholbereit', abholbereitSeit: new Date(2026, 7, 28, 15, 0).getTime() as never })];
+    zeige();
+    const zeile = (await screen.findByText('Kupferrohr 15mm', { exact: false })).closest('li') as HTMLElement;
+    expect(within(zeile).getByText(/abholbereit seit 28\.08\.2026/)).toBeInTheDocument();
+  });
+
+  it('zeigt im Verlauf einer erledigten Anforderung, wann sie abholbereit und wann erledigt wurde (Hinweis 7)', async () => {
+    anforderungen = [anforderung({
+      id: 'o1', status: 'Erledigt',
+      abholbereitSeit: new Date(2026, 7, 28, 15, 0).getTime() as never,
+      erledigtAm: new Date(2026, 8, 1, 7, 30).getTime() as never,
+    })];
+    render(
+      <MemoryRouter initialEntries={['/anforderungen?reiter=erledigt']}>
+        <ToastProvider>
+          <AdminOrdersView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    const fenster = await oeffnen();
+    const verlauf = within(fenster).getByRole('list', { name: 'Verlauf der Anforderung' });
+    const punkte = within(verlauf).getAllByRole('listitem').map((l) => [
+      l.querySelector('.lot-titel')?.textContent, l.querySelector('.lot-zeit')?.textContent ?? '',
+    ]);
+    expect(punkte.slice(-2)).toEqual([['Abholbereit', '28.08.2026, 15:00'], ['Erledigt', '01.09.2026, 07:30']]);
   });
 
   it('zeigt im Seitenfenster Notiz und Verlauf aus den Zeitstempeln', async () => {

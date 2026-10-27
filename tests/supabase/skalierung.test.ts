@@ -372,7 +372,7 @@ describe('unbezahlte Rechnungen: nur die Köpfe', () => {
   it('Gleichbleiben: dieselben Rechnungen und Felder wie die ganzen, ohne Positionen und Abdeckung — der Rabatt bleibt', async () => {
     const rechnung = (nr: string, rabatt?: { mode: 'percent'; value: number; label: string }) => createInvoice(BETRIEB, {
       invoiceNumber: nr, projectNumber: 'B-1', customerName: 'Familie Huber', address: 'Hauptplatz 1, 8200 Gleisdorf',
-      invoiceDate: '2026-09-30', dueDate: '2026-10-14', totalNetto: 900, totalVat: 180, totalBrutto: 1080, vatRate: 0.2,
+      invoiceDate: '2026-09-30', leistungVon: '2026-09-30', leistungBis: '2026-09-30', dueDate: '2026-10-14', totalNetto: 900, totalVat: 180, totalBrutto: 1080, vatRate: 0.2,
       paymentStatus: 'Offen',
       positions: [{ label: 'Leistung', qty: 1, unit: 'Pauschale', unitPrice: 1000, netto: 1000 }],
       ...(rabatt ? { discount: rabatt } : {}),

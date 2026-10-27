@@ -7,7 +7,6 @@
  * Moment, in dem der Monteur seine Meldung bekommt.
  */
 import type { EinkaufPosten, Material } from '@/types';
-import { todayStr } from '@/lib/time';
 import { abfragen, anlegen, aendern, derClient, type WithId } from './kern';
 import { oderUeberSpalten } from './suche';
 
@@ -146,23 +145,20 @@ export async function katalogFuer(
  * Der jüngste gültige Preis gewinnt: der Katalog, der zuletzt eingespielt
  * wurde, ist der, bei dem der Betrieb gerade einkauft. Gewählt wird trotzdem
  * vom Menschen — ein Vorschlag, keine Vorgabe.
+ *
+ * Über `lieferant_vorschlag`, nicht über die Preisliste selbst: die liest nur,
+ * wer Einkaufspreise sehen darf (Testbericht Runde 6, 8.4). Die Einkaufsliste
+ * führt auch die Verwaltung ohne diese Freigabe — sie bekommt den
+ * Großhändler, keinen Preis. Der Tag ist der in Wien, wie bisher.
  */
 export async function lieferantVorschlag(
-  companyId: string,
+  _companyId: string,
   materialId: string,
 ): Promise<string | null> {
   if (!materialId) return null;
-  // Der Tag in Wien, nicht in UTC — kurz nach Mitternacht wäre es sonst gestern.
-  const heute = todayStr();
-  const preise = await abfragen<{ supplierId: string; gueltigAb: string }>('material_prices', companyId, {
-    wo: [
-      { art: 'gleich', feld: 'materialId', wert: materialId },
-      { art: 'bis', feld: 'gueltigAb', wert: heute },
-    ],
-    sortiere: { feld: 'gueltigAb', absteigend: true },
-    grenze: 1,
-  });
-  return preise[0]?.supplierId ?? null;
+  const { data, error } = await derClient().rpc('lieferant_vorschlag', { p_material: materialId });
+  if (error) throw new Error(error.message);
+  return (data as string | null) ?? null;
 }
 
 // ---------------------------------------------------------------------------

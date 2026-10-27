@@ -50,7 +50,21 @@ export default function LohnregelnKarte() {
   /** § 11 Abs 3 KJBG: der KV lässt für Jugendliche eine andere Verteilung zu (A9, 24.10.2026). Ab Werk aus. */
   const [kjbgKv, setKjbgKv] = useState(false);
   const [speichert, setSpeichert] = useState(false);
-  const [fehler, setFehler] = useState<string | null>(null);
+  /*
+    DIE MELDUNG STEHT AM FELD, DAS SIE MEINT (Testbericht Runde 6, G14).
+    Vorher stand jede Meldung unten unter dem letzten Haken — bei „Vollzeit
+    ungleich verteilt“ also unter dem KJBG-Haken statt beim Montag, und das
+    Feld selbst sah aus wie jedes andere. `feld` sagt, wo sie hingehört;
+    ohne `feld` (Speichern scheiterte) steht sie wie bisher beim Knopf.
+  */
+  const [fehler, setFehler] = useState<{ text: string; feld?: string } | null>(null);
+
+  /** Meldung setzen und in das Feld springen — es kann weit über dem Knopf stehen. */
+  function fehlerAm(text: string, feld: string, fokus: string) {
+    setFehler({ text, feld });
+    // Nach dem Zeichnen, damit das Feld schon markiert ist.
+    setTimeout(() => document.getElementById(fokus)?.focus(), 0);
+  }
 
   useEffect(() => {
     setNachtVon(company?.nachtVon ?? '22:00');
@@ -75,18 +89,18 @@ export default function LohnregelnKarte() {
     if (!user) return;
     setFehler(null);
     if (!/^\d{2}:\d{2}$/.test(nachtVon) || !/^\d{2}:\d{2}$/.test(nachtBis) || nachtVon === nachtBis) {
-      setFehler('Bitte Beginn und Ende der Nachtzeit angeben — zwei verschiedene Uhrzeiten.');
+      fehlerAm('Bitte Beginn und Ende der Nachtzeit angeben — zwei verschiedene Uhrzeiten.', 'nacht', 'nachtVon');
       return;
     }
     const wochen = Number(durchrechnung);
     if (!/^\d+$/.test(durchrechnung.trim()) || wochen < 17 || wochen > 52) {
-      setFehler('Der Durchrechnungszeitraum liegt zwischen 17 Wochen (Gesetz) und 52 Wochen (höchstens laut Kollektivvertrag).');
+      fehlerAm('Der Durchrechnungszeitraum liegt zwischen 17 Wochen (Gesetz) und 52 Wochen (höchstens laut Kollektivvertrag).', 'durchrechnung', 'durchrechnungWochen');
       return;
     }
     // Ausgeblendet bleibt der gespeicherte Wert, wie er ist — eine Prüfung ohne sichtbares Feld verwirrte nur.
     const vollzeitStunden = vollzeitSichtbar ? leseZahl(vollzeit).wert : undefined;
     if (vollzeitStunden !== undefined && (vollzeitStunden === null || vollzeitStunden <= 0 || vollzeitStunden > 40)) {
-      setFehler('Die Vollzeit liegt über 0 und höchstens bei 40 Stunden je Woche (§ 3 AZG).');
+      fehlerAm('Die Vollzeit liegt über 0 und höchstens bei 40 Stunden je Woche (§ 3 AZG).', 'vollzeit', 'vollzeitWochenstunden');
       return;
     }
     let verteilung: Record<string, number> | null = null;
@@ -97,14 +111,15 @@ export default function LohnregelnKarte() {
         const roh = (tage[tag] ?? '').trim();
         const h = roh === '' ? 0 : leseZahl(roh).wert;
         if (h === null || h < 0 || h > VOLLZEIT_TAG_HOECHSTENS) {
-          setFehler(`${name}: zwischen 0 und ${VOLLZEIT_TAG_HOECHSTENS} Stunden (§ 4 AZG).`);
+          fehlerAm(`${name}: zwischen 0 und ${VOLLZEIT_TAG_HOECHSTENS} Stunden (§ 4 AZG).`, `tag-${tag}`, `vollzeitTag${tag}`);
           return;
         }
         if (h > 0) verteilung[tag] = h;
         summe += h;
       }
       if (Math.abs(summe - vollzeitStunden) >= 0.01) {
-        setFehler(`Die Tage ergeben ${String(Math.round(summe * 100) / 100).replace('.', ',')} Stunden — sie müssen die Vollzeit je Woche ergeben (${String(vollzeitStunden).replace('.', ',')}).`);
+        // Die Summe stimmt nicht — welcher Tag falsch ist, weiss nur der Betrieb: alle Tage sind markiert, der Montag hat den Fokus.
+        fehlerAm(`Die Tage ergeben ${String(Math.round(summe * 100) / 100).replace('.', ',')} Stunden — sie müssen die Vollzeit je Woche ergeben (${String(vollzeitStunden).replace('.', ',')}).`, 'tage', 'vollzeitTag1');
         return;
       }
     }
@@ -124,11 +139,21 @@ export default function LohnregelnKarte() {
       await reloadCompany();
       toast.success('Nachtzeit und Überstunden gespeichert');
     } catch (err) {
-      setFehler(grundAus(err, 'Nachtzeit und Überstunden konnten nicht gespeichert werden.'));
+      setFehler({ text: grundAus(err, 'Nachtzeit und Überstunden konnten nicht gespeichert werden.') });
     } finally {
       setSpeichert(false);
     }
   }
+
+  /** Markierung und Verweis auf die Meldung für ein Feld (oder seine Gruppe). */
+  const markiert = (...felder: string[]) =>
+    fehler?.feld && felder.includes(fehler.feld)
+      ? { 'aria-invalid': true as const, 'aria-describedby': `lohnregel-fehler-${fehler.feld}` }
+      : {};
+  const meldung = (feld: string) =>
+    fehler?.feld === feld ? (
+      <p id={`lohnregel-fehler-${feld}`} role="alert" className="mt-1 text-sm text-danger">{fehler.text}</p>
+    ) : null;
 
   return (
     <Card
@@ -173,11 +198,16 @@ export default function LohnregelnKarte() {
         <InputField
           id="nachtVon" label="Nachtzeit von" type="time"
           value={nachtVon} onChange={(e) => setNachtVon(e.target.value)}
+          {...markiert('nacht')}
         />
-        <InputField
-          id="nachtBis" label="Nachtzeit bis" type="time"
-          value={nachtBis} onChange={(e) => setNachtBis(e.target.value)}
-        />
+        <div>
+          <InputField
+            id="nachtBis" label="Nachtzeit bis" type="time"
+            value={nachtBis} onChange={(e) => setNachtBis(e.target.value)}
+            {...markiert('nacht')}
+          />
+          {meldung('nacht')}
+        </div>
         <SelectField
           id="ueberstundenModell" label="Überstunden"
           value={modell}
@@ -186,11 +216,15 @@ export default function LohnregelnKarte() {
           <option value="zeitkonto">Zeitkonto (Gleitzeit mit Saldo)</option>
           <option value="tagesgrenze">Tagesgrenze (Überstunden je Tag)</option>
         </SelectField>
-        <InputField
-          id="durchrechnungWochen" label="Durchrechnung für den Schnitt von 48 Std. (Wochen)"
-          type="number" inputMode="numeric" min={17} max={52}
-          value={durchrechnung} onChange={(e) => setDurchrechnung(e.target.value)}
-        />
+        <div>
+          <InputField
+            id="durchrechnungWochen" label="Durchrechnung für den Schnitt von 48 Std. (Wochen)"
+            type="number" inputMode="numeric" min={17} max={52}
+            value={durchrechnung} onChange={(e) => setDurchrechnung(e.target.value)}
+            {...markiert('durchrechnung')}
+          />
+          {meldung('durchrechnung')}
+        </div>
         {modell === 'tagesgrenze' && (
           <SelectField
             id="ueberstundenGrenze" label="Überstunden ab"
@@ -202,11 +236,15 @@ export default function LohnregelnKarte() {
           </SelectField>
         )}
         {vollzeitSichtbar && (
-          <InputField
-            id="vollzeitWochenstunden" label="Vollzeit je Woche (Std.)"
-            inputMode="decimal"
-            value={vollzeit} onChange={(e) => setVollzeit(e.target.value)}
-          />
+          <div>
+            <InputField
+              id="vollzeitWochenstunden" label="Vollzeit je Woche (Std.)"
+              inputMode="decimal"
+              value={vollzeit} onChange={(e) => setVollzeit(e.target.value)}
+              {...markiert('vollzeit')}
+            />
+            {meldung('vollzeit')}
+          </div>
         )}
       </FormGrid>
       {vollzeitSichtbar && (
@@ -218,15 +256,22 @@ export default function LohnregelnKarte() {
             onChange={(e) => setVerteilt(e.target.checked)}
           />
           {verteilt && (
-            <FormGrid>
-              {WOCHENTAGE.map(([tag, name]) => (
-                <InputField
-                  key={tag} id={`vollzeitTag${tag}`} label={`${name} (Std.)`}
-                  inputMode="decimal"
-                  value={tage[tag] ?? ''} onChange={(e) => setTage((alt) => ({ ...alt, [tag]: e.target.value }))}
-                />
-              ))}
-            </FormGrid>
+            <>
+              <FormGrid>
+                {WOCHENTAGE.map(([tag, name]) => (
+                  <div key={tag}>
+                    <InputField
+                      id={`vollzeitTag${tag}`} label={`${name} (Std.)`}
+                      inputMode="decimal"
+                      value={tage[tag] ?? ''} onChange={(e) => setTage((alt) => ({ ...alt, [tag]: e.target.value }))}
+                      {...markiert(`tag-${tag}`, 'tage')}
+                    />
+                    {meldung(`tag-${tag}`)}
+                  </div>
+                ))}
+              </FormGrid>
+              {meldung('tage')}
+            </>
           )}
         </div>
       )}
@@ -271,7 +316,7 @@ export default function LohnregelnKarte() {
           onChange={(e) => setKjbgKv(e.target.checked)}
         />
       </div>
-      {fehler && <p role="alert" className="mt-2 text-sm text-danger">{fehler}</p>}
+      {fehler && !fehler.feld && <p role="alert" className="mt-2 text-sm text-danger">{fehler.text}</p>}
       <div className="fuss-aktionen mt-4">
         <Button type="button" loading={speichert} onClick={speichern}>
           Speichern

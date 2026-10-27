@@ -35,6 +35,7 @@ import { fmtMenge } from '@/lib/belegLayout';
 import {
   bestellMail,
   bestellText,
+  anmerkungText,
   einkaufsliste,
   lieferterminText,
   type EinkaufsGruppe,
@@ -215,7 +216,9 @@ export default function Einkaufsliste({
                           </span>
                         }
                         subtitle={
-                          z.kommissionen.length ? `Kommission ${z.kommissionen.join(', ')}` : undefined
+                          // Die Anmerkung schon hier, nicht erst nach „bestellt“ (G21): sie geht mit hinaus.
+                          [z.kommissionen.length ? `Kommission ${z.kommissionen.join(', ')}` : '', anmerkungText(z)]
+                            .filter(Boolean).join(' · ') || undefined
                         }
                       >
                         {!g.supplierId && grosshaendler.length > 0 && (

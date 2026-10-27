@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { einheitspreisVorschau, pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from '@/features/invoices/pauschale';
+import { einheitspreisVorschau, leistungNachAngebot, pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from '@/features/invoices/pauschale';
 import type { AssembledInvoice } from '@/features/invoices/assemble';
 import type { Invoice, Quote } from '@/types';
 
@@ -142,5 +142,35 @@ describe('Katalogartikel aus dem Angebot (Runde 3, M12)', () => {
   it('die Einheitspreisrechnung trägt die Artikel-ID weiter', () => {
     const v = einheitspreisVorschau('einzel', BELEGE, mitArtikel, 0.2);
     expect(v.positions.map((p) => p.materialId ?? null)).toEqual(['m-press', null]);
+  });
+});
+
+/**
+ * Der Leistungszeitraum einer Pauschal- oder Einheitspreisbaustelle
+ * (Testbericht Runde 6, M8): ohne Belege aus Beginn und Ende der Baustelle.
+ */
+describe('leistungNachAngebot', () => {
+  const HEUTE = '2026-10-27';
+
+  it('nimmt Beginn und Ende der Baustelle, wenn die Belege nichts hergeben', () => {
+    expect(leistungNachAngebot(null, { startDate: '2026-10-01', endDate: '2026-10-20' }, HEUTE))
+      .toEqual({ von: '2026-10-01', bis: '2026-10-20' });
+  });
+
+  it('endet höchstens heute — eine Rechnung rechnet keine künftige Leistung ab', () => {
+    expect(leistungNachAngebot(null, { startDate: '2026-10-01', endDate: '2026-11-30' }, HEUTE))
+      .toEqual({ von: '2026-10-01', bis: HEUTE });
+  });
+
+  it('Gleichbleiben: die Belege gehen vor', () => {
+    expect(leistungNachAngebot({ von: '2026-10-05', bis: '2026-10-09' }, { startDate: '2026-10-01', endDate: '2026-10-20' }, HEUTE))
+      .toEqual({ von: '2026-10-05', bis: '2026-10-09' });
+  });
+
+  it('Gegenprobe: ohne Beginn oder ohne Ende, oder mit Beginn nach heute, nichts', () => {
+    expect(leistungNachAngebot(null, { startDate: '2026-10-01' }, HEUTE)).toBeNull();
+    expect(leistungNachAngebot(null, { endDate: '2026-10-20' }, HEUTE)).toBeNull();
+    expect(leistungNachAngebot(null, { startDate: '2026-11-02', endDate: '2026-11-30' }, HEUTE)).toBeNull();
+    expect(leistungNachAngebot(null, undefined, HEUTE)).toBeNull();
   });
 });

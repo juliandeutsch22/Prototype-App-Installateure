@@ -13,4 +13,6 @@ export const STAND: Record<Quote['status'], Stand> = {
   Versendet: 'laeuft',
   Angenommen: 'gut',
   Abgelehnt: 'ruht',
+  // Ein Endzustand wie „Abgelehnt“: eine andere Fassung wurde angenommen (G15).
+  Ersetzt: 'ruht',
 };

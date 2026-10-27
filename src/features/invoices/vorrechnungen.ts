@@ -1,6 +1,7 @@
 import type { Invoice, Vorrechnung } from '@/types';
 import { cent } from './totals';
 import { norm } from './assemble';
+import { datumAT } from '@/lib/datum';
 
 /**
  * Anzahlung abziehen — die Rechenseite der Schlussrechnung.
@@ -196,4 +197,96 @@ export function mitAbzug(
     abzug,
     gutschrift: cent(gesamt.totalBrutto - abzug.brutto) < 0,
   };
+}
+
+type Kopf = Pick<Invoice, 'id' | 'art' | 'paymentStatus' | 'projectNumber' | 'invoiceNumber' | 'invoiceDate' | 'vorrechnungen'>;
+
+/**
+ * Die gültige Schlussrechnung der Baustelle — oder keine (Testbericht Runde 6,
+ * M7). Eine zweite gibt es nicht; die Datenbank weist sie ab
+ * (`app.eine_schlussrechnung`).
+ */
+export function gueltigeSchlussrechnung<T extends Omit<Kopf, 'id' | 'invoiceDate' | 'vorrechnungen'>>(
+  rechnungen: T[],
+  projectNumber: string,
+): T | null {
+  const pn = norm(projectNumber);
+  return rechnungen.find(
+    (r) => r.art === 'schluss' && r.paymentStatus !== 'Storniert' && norm(r.projectNumber) === pn,
+  ) ?? null;
+}
+
+/**
+ * Was ein Storno dieser Anzahlungs- oder Teilrechnung an einer späteren
+ * Schlussrechnung berührt (Testbericht Runde 6, M7) — `null`, wenn nichts.
+ *
+ *   abgezogen   die Schlussrechnung zieht sie ab. Die Datenbank lässt den
+ *               Storno dann gar nicht zu, solange der Abzug gilt: erst die
+ *               Schlussrechnung stornieren.
+ *   danach      die Schlussrechnung rechnet erst ab, was nach ihr kam (eine
+ *               Teilrechnung, die Stunden und Scheine mitnahm). Nach dem
+ *               Storno sind diese wieder offen — auf eine eigene Rechnung,
+ *               denn eine zweite Schlussrechnung gibt es nicht.
+ */
+export function schlussNachStorno<T extends Kopf>(
+  inv: Kopf,
+  rechnungen: T[],
+): { schluss: T; abgezogen: boolean } | null {
+  if (inv.art !== 'anzahlung' && inv.art !== 'teil') return null;
+  const pn = norm(inv.projectNumber);
+  const gueltig = rechnungen.filter(
+    (r) => r.id !== inv.id && r.art === 'schluss' && r.paymentStatus !== 'Storniert' && norm(r.projectNumber) === pn,
+  );
+  const ziehtAb = gueltig.find((r) => (r.vorrechnungen ?? []).some((v) => v.invoiceId === inv.id));
+  if (ziehtAb) return { schluss: ziehtAb, abgezogen: true };
+  // Eine Anzahlung, die die Schlussrechnung nicht abzieht, berührt sie nicht.
+  const danach = inv.art === 'teil'
+    ? gueltig.find((r) => (r.invoiceDate ?? '') >= (inv.invoiceDate ?? ''))
+    : undefined;
+  return danach ? { schluss: danach, abgezogen: false } : null;
+}
+
+/**
+ * Was der Storno freigibt — je Rechnungsart (Testbericht Runde 6, G27). Bei
+ * der Anzahlung stand „die verknüpften Zeiteinträge werden wieder
+ * freigegeben“; eine Anzahlung hat keine.
+ */
+export function stornoText(inv: Pick<Invoice, 'invoiceNumber' | 'art' | 'vorrechnungen'>): string {
+  if (inv.art === 'anzahlung') {
+    return `${inv.invoiceNumber} wird storniert. Eine Anzahlung verrechnet keine Stunden und kein Material — freigegeben wird deshalb nichts.`;
+  }
+  const abzug = (inv.vorrechnungen?.length ?? 0) > 0
+    ? ' Die abgezogenen Rechnungen lassen sich danach wieder abziehen.'
+    : '';
+  return `${inv.invoiceNumber} wird storniert; die verknüpften Zeiteinträge und Scheine werden wieder freigegeben.${abzug}`;
+}
+
+/**
+ * Die Teilrechnungen, die die Schlussrechnung NICHT abzieht, als Textzeile
+ * (Testbericht Runde 6, Hinweis 8) — `null`, wenn es keine gibt.
+ *
+ * Eine Teilrechnung mit „Leistung bis“ hat ihre Stunden und Scheine
+ * verbraucht; die Schlussrechnung führt nur an, was danach kam, und nannte
+ * die Teilrechnung nirgends. Wer die Schlussrechnung liest, sah eine
+ * Teilleistung und hielt sie für die ganze. Die Zeile NENNT nur — abgezogen
+ * wird nichts (die Teilrechnung steht ja nicht in der Leistung); sie steht
+ * als Textzeile ohne Preis vorn in der Vorschau und lässt sich ändern oder
+ * entfernen wie jede andere. Ob die Schlussrechnung Teilrechnungen nennen
+ * oder samt Steuer abziehen muss, klärt die Steuerberatung; die Rechnung
+ * selbst rechnet unverändert.
+ */
+export function teilrechnungenText(
+  rechnungen: Array<Pick<Invoice, 'art' | 'paymentStatus' | 'projectNumber' | 'invoiceNumber' | 'invoiceDate'
+    | 'leistungBis' | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets'>>,
+  projectNumber: string,
+): string | null {
+  const pn = norm(projectNumber);
+  const teile = rechnungen
+    .filter((r) => r.art === 'teil' && r.paymentStatus !== 'Storniert' && norm(r.projectNumber) === pn
+      && ((r.linkedEntries?.length ?? 0) + (r.linkedOrders?.length ?? 0) + (r.linkedWorkSheets?.length ?? 0)) > 0)
+    .sort((a, b) => (a.invoiceDate ?? '').localeCompare(b.invoiceDate ?? '') || a.invoiceNumber.localeCompare(b.invoiceNumber));
+  if (teile.length === 0) return null;
+  const genannt = teile.map((r) =>
+    `${r.invoiceNumber} vom ${datumAT(r.invoiceDate)}${r.leistungBis ? ` (Leistung bis ${datumAT(r.leistungBis)})` : ''}`);
+  return `Bereits mit ${teile.length === 1 ? 'Teilrechnung' : 'den Teilrechnungen'} ${genannt.join(', ')} verrechnet und hier nicht enthalten.`;
 }

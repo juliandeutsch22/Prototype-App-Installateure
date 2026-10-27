@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { Company } from '@/types';
@@ -222,5 +222,45 @@ describe('Im Firmenbuch eingetragen', () => {
     firma = { ...firma, imFirmenbuch: true };
     zeige();
     expect(haken().checked).toBe(true);
+  });
+});
+
+/*
+  RUNDE 6, M6 (Teil C): Einstellungen › Firmendaten speicherte die PLZ „82“
+  mit „Firmendaten gespeichert“; ältere Belege druckten sie im Briefkopf.
+*/
+describe('PLZ der Firma (Runde 6, M6)', () => {
+  it('fragt bei einer PLZ, die nicht zum Land passt, nach — und speichert auf Bestätigung', async () => {
+    firma = { ...firma, strasse: 'Teststraße 1', plz: '8200', ort: 'Gleisdorf', land: 'AT' };
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.clear(feld('PLZ'));
+    await nutzer.type(feld('PLZ'), '82');
+    await nutzer.click(speichern());
+    const dialog = await screen.findByRole('dialog', { name: /PLZ prüfen/ });
+    expect(within(dialog).getByText(/PLZ „82“: Die PLZ hat in diesem Land vier Ziffern/)).toBeInTheDocument();
+    expect(updateCompany).not.toHaveBeenCalled();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Trotzdem speichern' }));
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledTimes(1));
+    expect(updateCompany.mock.calls[0][1]).toMatchObject({ plz: '82' });
+  });
+
+  it('Gegenprobe: abgebrochen wird nichts gespeichert', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.type(feld('PLZ'), '82');
+    await nutzer.click(speichern());
+    const dialog = await screen.findByRole('dialog', { name: /PLZ prüfen/ });
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Abbrechen' }));
+    expect(updateCompany).not.toHaveBeenCalled();
+  });
+
+  it('eine schon gespeicherte, unveränderte PLZ fragt nicht bei jedem Speichern', async () => {
+    firma = { ...firma, strasse: 'Teststraße 1', plz: '82', ort: 'Gleisdorf', land: 'AT' };
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(speichern());
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('dialog', { name: /PLZ prüfen/ })).toBeNull();
   });
 });

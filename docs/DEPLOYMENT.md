@@ -51,6 +51,23 @@ Unterauftragsverarbeiter stehen bleibt.
    kommt das Plattformkonto nach dem Ausliefern nicht mehr auf seine Seite:
    die Datenbank verlangt für jede Plattformfunktion `aal2`.
 
+   **Seit 27.10.2026 (Sicherheitsprüfung, `docs/sicherheitspruefung-2026-10-27.md`)**
+   zusätzlich — auch das erreicht `config.toml` nicht:
+   - *Authentication → Attack Protection:* **„Prevent use of leaked
+     passwords“ an** (prüft neue Passwörter gegen bekannte Datenlecks; ab
+     Tarif Pro). Die Mindestlänge bleibt 8, ohne Zeichenklassen-Pflicht —
+     ein langes Passwort schützt mehr als ein erzwungenes Sonderzeichen.
+   - *Authentication → Rate Limits:* nicht über der Vorgabe — Anmelden
+     höchstens 30 Versuche je 5 Minuten und IP, Token erneuern 150; die
+     Mails zum Zurücksetzen begrenzt der Dienst je Konto (60 Sekunden) und
+     nach Einrichtung des SMTP-Versands je Stunde.
+   - *Authentication → Sessions:* **Zeitlimit nach Untätigkeit 30 Tage.**
+     Wer die App täglich öffnet, merkt davon nichts; ein Gerät, das einen
+     Monat nicht geöffnet wurde, meldet sich neu an. Ein festes Höchstalter der Sitzung
+     bleibt aus: „Angemeldet bleiben“ ist für das eigene Telefon gedacht.
+     Für ein verlorenes Gerät gibt es „Mein Konto › Auf allen Geräten
+     abmelden“ — die Datenbank nimmt dessen Token danach sofort nicht mehr an.
+
 > **Der `service_role`-Schlüssel gehört nirgendwo hin, wo ein Browser ihn
 > sieht.** Er hebelt den Zeilenschutz vollständig aus. Er wird an genau zwei
 > Stellen gebraucht: einmal von Hand für die Erstanlage (Schritt 4) und in den

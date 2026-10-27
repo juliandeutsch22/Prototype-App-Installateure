@@ -303,9 +303,15 @@ describe('4 — Berufsschule', () => {
     expect(buerosache.error).toBeNull();
   });
 
-  it('gilt für den ganzen Tag — daneben keine Arbeitszeit', async () => {
-    const { error } = await lehrling.client.from('time_entries').insert(buchung(lehrling, '2099-11-17'));
-    expect(error?.message).toMatch(/„Berufsschule“ eingetragen|„Berufsschule"/);
+  /*
+    Seit Testbericht Runde 6 (M1) steht Arbeit nach dem Unterricht neben dem
+    Schultag; ganztägig bleibt er gegen alles andere
+    (`arbeitAmSchultag.test.ts`).
+  */
+  it('gilt für den ganzen Tag — daneben nur Arbeit nach dem Unterricht', async () => {
+    const { error } = await lehrling.client.from('time_entries')
+      .insert(buchung(lehrling, '2099-11-17', { start_time: '16:00', end_time: '17:30', break_duration: 0 }));
+    expect(error).toBeNull();
   });
 
   it('wird nicht umgebaut, aber gelöscht', async () => {

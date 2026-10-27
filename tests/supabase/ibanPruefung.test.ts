@@ -18,7 +18,7 @@ beforeAll(async () => {
 
 const rechnung = (nr: string) => ({
   company_id: BETRIEB, invoice_number: nr, project_number: 'PR-2026-0001',
-  customer_name: 'Familie Huber', invoice_date: heute, due_date: heute,
+  customer_name: 'Familie Huber', invoice_date: heute, leistung_von: heute, leistung_bis: heute, due_date: heute,
   total_netto: 100, total_vat: 20, total_brutto: 120, payment_status: 'Offen',
   address: 'Hauptplatz 1, 8200 Gleisdorf',
 });

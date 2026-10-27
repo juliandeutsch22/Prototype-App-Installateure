@@ -45,7 +45,7 @@ async function anlegen(extra: Partial<rechnungen.NewInvoice> = {}): Promise<stri
     projectNumber: baustelle,
     customerName: 'Familie Huber',
     address: 'Hauptplatz 1, 8200 Gleisdorf',
-    invoiceDate: `${JAHR}-04-30`,
+    invoiceDate: `${JAHR}-04-30`, leistungVon: `${JAHR}-04-30`, leistungBis: `${JAHR}-04-30`,
     dueDate: `${JAHR}-05-14`,
     totalNetto: 1000,
     totalVat: 200,
@@ -132,10 +132,19 @@ describe('K2 — die Schlussrechnung zieht ab, was auf der Baustelle schon verre
     ).resolves.toBeTruthy();
   });
 
-  it('eine Anzahlung, die schon auf einer anderen Schlussrechnung steht, fehlt nicht', async () => {
+  /*
+    Seit Runde 6 (M7) gibt es keine zweite gültige Schlussrechnung je
+    Baustelle mehr — die Anzahlung steht deshalb hier auf einer Teilrechnung,
+    die sie abgezogen hat. Die Regel ist dieselbe: was schon abgezogen ist,
+    verlangt die Schlussrechnung nicht noch einmal.
+  */
+  it('eine Anzahlung, die schon eine andere Rechnung abgezogen hat, fehlt nicht', async () => {
     const anz = await anlegen({ art: 'anzahlung' });
-    await schluss([await abzugVon(anz)]);
-    await expect(schluss([])).resolves.toBeTruthy();
+    const a = await abzugVon(anz);
+    const teil = await anlegen({
+      art: 'teil', vorrechnungen: [a], gesamtNetto: 1000 + a.netto, gesamtVat: 200 + a.vat, gesamtBrutto: 1200 + a.brutto,
+    });
+    await expect(schluss([await abzugVon(teil)])).resolves.toBeTruthy();
   });
 
   it('eine Teilrechnung darf eine Anzahlung auslassen — Pflicht ist der Abzug nur am Schluss', async () => {

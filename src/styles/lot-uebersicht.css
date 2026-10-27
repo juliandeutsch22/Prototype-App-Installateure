@@ -67,9 +67,18 @@
   }
   .ue-kopf-person { display: none; font-size: 0.8125rem; color: var(--text-muted); }
   .ue-kopf-zahl { display: none; font-size: 0.8125rem; color: var(--text-muted); text-align: right; white-space: nowrap; }
+  /*
+    DIE KÖPFE DER ZAHLEN BRECHEN UM, STATT ÜBERZULAUFEN (Testbericht Runde 6,
+    G8). Am Tablet (840 px) war „Saldo Monat“ 82 px breit in einer 72-px-
+    Spalte; ohne Umbruch lief der Kopf nach rechts hinaus und stand damit
+    links über den rechtsbündigen Zahlen. Jetzt bricht er am Leerzeichen
+    („Saldo / Monat“), „Gesamtsaldo“ an seiner weichen Trennstelle, und
+    steht rechtsbündig über seiner Spalte. Nur dort trennen, nie mitten im
+    Wort ohne Strich (`overflow-wrap` am `body`).
+  */
   @media (min-width: 760px) {
     .ue-kopf-person { display: block; }
-    .ue-kopf-zahl { display: block; }
+    .ue-kopf-zahl { display: block; white-space: normal; overflow-wrap: normal; hyphens: manual; -webkit-hyphens: manual; }
   }
   .ue-gruppe { margin: 0; padding: 0.625rem 1rem; background: var(--bg); color: var(--text-muted); border-top: 1px solid var(--border); font-size: 0.8125rem; line-height: 1.125rem; font-weight: 600; }
   @media (min-width: 1200px) { .ue-gruppe { padding: 0.625rem 1.25rem; } }
@@ -115,7 +124,13 @@
   .st-fehlt { height: 22px; min-width: 0; margin: 0; padding: 0; border: 0; border-radius: 2px; background: var(--warning); cursor: pointer; }
   .st-weg { height: 22px; min-width: 0; margin: 0; padding: 0; border: 0; border-radius: 2px; background: var(--border-strong); cursor: pointer; }
   .st-frei { display: block; height: 22px; min-width: 0; border-radius: 2px; background: var(--bg); }
-  .st-zukunft { height: 22px; min-width: 0; margin: 0; padding: 0; border: 0; border-radius: 2px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--border-strong); cursor: pointer; }
+  /*
+    KOMMENDE TAGE IN EIGENEM TON (Testbericht Runde 6, G13): weiß mit Rand
+    sahen sie aus wie „frei“, und wer nicht darüberfuhr, las vier freie Tage.
+    Das helle Petrol ist der Ton des Gebuchten, nur blass: der Tag kommt noch.
+    Volle Fläche aus den Grundwerten, keine Strichelung.
+  */
+  .st-zukunft { height: 22px; min-width: 0; margin: 0; padding: 0; border: 0; border-radius: 2px; background: var(--petrol-hell); box-shadow: inset 0 0 0 1px var(--border-strong); cursor: pointer; }
   @media (min-width: 760px) {
     .st-ok { height: 24px; border-radius: 3px; }
     .st-grenze { height: 24px; border-radius: 3px; }
@@ -145,7 +160,7 @@
   .leg-fehlt { display: inline-block; flex: none; width: 0.75rem; height: 0.75rem; border-radius: 2px; background: var(--warning); }
   .leg-weg { display: inline-block; flex: none; width: 0.75rem; height: 0.75rem; border-radius: 2px; background: var(--border-strong); }
   .leg-frei { display: inline-block; flex: none; width: 0.75rem; height: 0.75rem; border-radius: 2px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--border); }
-  .leg-zukunft { display: inline-block; flex: none; width: 0.75rem; height: 0.75rem; border-radius: 2px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--border-strong); }
+  .leg-zukunft { display: inline-block; flex: none; width: 0.75rem; height: 0.75rem; border-radius: 2px; background: var(--petrol-hell); box-shadow: inset 0 0 0 1px var(--border-strong); }
 
   /* ── Woche (Auftrag 3.4, Baustein „Wochenzelle“) ──────────────────────── */
   .mw-tage { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; min-width: 0; }
@@ -272,7 +287,7 @@
     .ue-vergleich .ue-zahl-stark { font-size: 0.9375rem; }
     .ue-vergleich .ue-gruppe { padding-inline: 1rem; }
     .ue-vergleich-kopf, .ue-vergleich-zeile { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.6fr) repeat(4, minmax(4.5rem, 0.65fr)); gap: 0.875rem; padding: 1rem; }
-    .ue-vergleich-kopf { font-size: 0.75rem; color: var(--text-muted); }
+    .ue-vergleich-kopf { align-items: end; font-size: 0.75rem; color: var(--text-muted); }
     .ue-pruefstand, .ue-pruefstand-achtung { grid-column: auto; }
     .ue-vergleich .ue-person { grid-column: auto; }
   }

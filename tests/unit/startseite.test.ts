@@ -4,6 +4,7 @@ import { euro } from '@/lib/betrag';
 import { abschnitt, JE_ABSCHNITT, summe } from '@/features/dashboard/start/abschnitte';
 import {
   abholbereitAlt,
+  abholbereitEigen,
   bestelltUeberfaellig,
   budgetNahe,
   lieferungenHeute,
@@ -102,6 +103,28 @@ describe('Verwaltung', () => {
     expect(a.zeilen.map((z) => z.key)).toEqual(['best-spaet']);
     expect(a.zeilen[0].status).toEqual({ text: '2 Tage', ton: 'fehl' });
     expect(lieferungenHeute([anf({ id: 'heute', ...bestellt, liefertermin: HEUTE })], [], HEUTE)).toHaveLength(1);
+  });
+
+  /*
+    RUNDE 6, HINWEIS 7: gezählt wird in Kalendertagen, nach dem Tag, der an der
+    Zeile steht — nicht nach Stunden. Abholbereit am 27.09. um 8 Uhr ist am
+    30.09. um 10 Uhr (74 Stunden) noch nicht „über 3 Tage“, am 26.09. schon.
+  */
+  it('zählt „seit über 3 Tagen“ nach Kalendertagen (Hinweis 7)', () => {
+    const a = abholbereitAlt([
+      anf({ id: 'drei', status: 'Abholbereit', abholbereitSeit: Date.parse('2026-09-27T08:00:00+02:00') }),
+      anf({ id: 'vier', status: 'Abholbereit', abholbereitSeit: Date.parse('2026-09-26T23:30:00+02:00') }),
+    ], JETZT)!;
+    expect(a.zeilen.map((z) => z.key)).toEqual(['alt-vier']);
+    expect(a.zeilen[0].status?.text).toBe('seit 26.09.');
+  });
+
+  it('die eigene Abholung nennt nur den Tag der Datenbank — nicht den der Anforderung (Hinweis 7)', () => {
+    const a = abholbereitEigen([
+      anf({ id: 'ohne', status: 'Abholbereit', createdAt: Date.parse('2026-09-28T08:00:00+02:00'), updatedAt: Date.parse('2026-09-28T08:00:00+02:00') }),
+      anf({ id: 'mit', status: 'Abholbereit', abholbereitSeit: Date.parse('2026-09-29T08:00:00+02:00') }),
+    ])!;
+    expect(a.zeilen.map((z) => z.status?.text)).toEqual(['abholbereit', 'seit 29.09.']);
   });
 
   it('abholbereit zählt ab dem Zeitstempel der Datenbank, nicht ab der letzten Änderung', () => {
@@ -328,6 +351,22 @@ describe('Projektleitung', () => {
       { projectNumber: 'C', titel: 'C', pct: 90, usedMin: 0, estimatedHours: 10 },
     ])!;
     expect(a.zeilen.map((z) => z.key)).toEqual(['budget-B', 'budget-C']);
+  });
+
+  /*
+    STD:MIN WIE ÜBERALL (Testbericht Runde 6, G11): „25,0 von 12 Std“ stand
+    nur hier als Dezimalzahl. Gegenprobe: mit `fmtStd` und `fmtStunden` steht
+    wieder „27,9 von 30 Std“.
+  */
+  it('nennt verbrauchte und geplante Stunden in Std:Min', () => {
+    const a = budgetNahe([
+      { projectNumber: 'PR-2026-0001', titel: 'Huber', pct: 93, usedMin: 1675, estimatedHours: 30 },
+      { projectNumber: 'PR-2026-0189', titel: 'CT Bau', pct: 208, usedMin: 1500, estimatedHours: 12.5 },
+    ])!;
+    expect(a.zeilen.map((z) => z.detail)).toEqual([
+      'PR-2026-0189 · 25:00 Std von 12:30 Std',
+      'PR-2026-0001 · 27:55 Std von 30:00 Std',
+    ]);
   });
 
   /*
@@ -727,7 +766,7 @@ describe('Unverrechnete Stunden auf der Startseite', () => {
     expect(a.zeilen).toEqual([expect.objectContaining({
       key: 'stunden',
       titel: '1 Baustelle mit Stunden nicht verrechnet',
-      detail: 'Familie Huber · 42,5 Std seit 01.08.2026',
+      detail: 'Familie Huber · 42:30 Std seit 01.08.2026',
       status: { text: 'verrechnen', ton: 'warn' },
       to: '/invoices?neu=2026-042',
     })]);
@@ -757,7 +796,7 @@ describe('Unverrechnete Stunden auf der Startseite', () => {
     const eine = alleZeilen(startseite({ offeneStunden: [stunden('2026-042', 40)] }, leitung()));
     expect(eine.find((z) => z.key === 'stunden')).toMatchObject({
       titel: '1 Baustelle mit Stunden nicht verrechnet',
-      detail: 'Familie Huber · 42,5 Std seit 01.08.2026',
+      detail: 'Familie Huber · 42:30 Std seit 01.08.2026',
       to: '/invoices?neu=2026-042',
     });
     const zwei = alleZeilen(startseite({ offeneStunden: [stunden('2026-042', 40), stunden('2026-050', 30)] }, leitung()));
@@ -775,5 +814,43 @@ describe('Unverrechnete Stunden auf der Startseite', () => {
   it('das Ziel gehört zu einer Seite, die Buchhaltung und Spitze betreten dürfen', () => {
     expect(grundpfad(ZIEL.rechnungFuer('PR-1/A'))).toBe('/invoices');
     expect(ZIEL.rechnungFuer('PR-1/A')).toBe('/invoices?neu=PR-1%2FA');
+  });
+});
+
+/*
+  WEN DIE SAMMELZEILE BETRIFFT (Testbericht Runde 6, G10): „2 Baustellen über
+  dem Endtermin · Max Musterkunde“ nannte nur den ersten Kunden. Gegenprobe:
+  mit `baustellenTitel(ende[0])` stehen die beiden ersten Fälle auf einem
+  Namen; der dritte (ein Kunde, zwei Baustellen) hält fest, was gleich bleibt.
+*/
+describe('Sammelzeile „über dem Endtermin“ (Runde 6, G10)', () => {
+  const leitung = (): Umfeld => ({
+    rolle: 'leitung', heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false,
+  });
+  const bau = (nr: string, kunde: string, ende: string) =>
+    ({ id: nr, projectNumber: nr, companyId: 'b', customerName: kunde, address: '', status: 'Aktiv', endDate: ende }) as Project;
+  const zeile = (projekte: Project[]) =>
+    startseite({ projekte }, leitung()).abschnitte
+      .flatMap((a) => [...a.zeilen, ...(a.weiter && 'aufklappen' in a.weiter ? a.weiter.aufklappen : [])])
+      .find((z) => z.key === 'ende');
+
+  it('nennt bei zwei Kunden beide, am längsten überzogen zuerst', () => {
+    expect(zeile([bau('PR-2026-0189', 'CT Bau GmbH', '2026-09-20'), bau('PR-187', 'Max Musterkunde', '2026-09-01')]))
+      .toMatchObject({ titel: '2 Baustellen über dem Endtermin', detail: 'Max Musterkunde, CT Bau GmbH' });
+  });
+
+  it('ab drei Kunden: zwei Namen und „und N weitere“', () => {
+    expect(zeile([
+      bau('A', 'Anna Auer', '2026-09-01'), bau('B', 'Bert Berger', '2026-09-02'),
+      bau('C', 'Clara Czerny', '2026-09-03'), bau('D', 'Dora Danner', '2026-09-04'),
+    ])?.detail).toBe('Anna Auer, Bert Berger und 2 weitere');
+  });
+
+  it('gleich geblieben: eine Baustelle, oder zwei desselben Kunden, nennen den Kunden einmal', () => {
+    expect(zeile([bau('A', 'Max Musterkunde', '2026-09-01')])).toMatchObject({
+      titel: '1 Baustelle über dem Endtermin', detail: 'Max Musterkunde',
+    });
+    expect(zeile([bau('A', 'Max Musterkunde', '2026-09-01'), bau('B', 'Max Musterkunde', '2026-09-10')])?.detail)
+      .toBe('Max Musterkunde');
   });
 });

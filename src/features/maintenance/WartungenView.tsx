@@ -21,11 +21,13 @@ import { todayStr } from '@/lib/time';
 import type { Wartung } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import {
+  baujahrFehler,
   beurteile,
   nachFaelligkeit,
   naechsterTermin,
   INTERVALLE,
   VORLAUF_TAGE,
+  wartungsTagFehler,
   type Dringlichkeit,
 } from './wartungsplan';
 import {
@@ -441,8 +443,14 @@ export default function WartungenView() {
       toast.error('Bitte eintragen, was gewartet wird.');
       return;
     }
-    if (form.baujahr != null && (form.baujahr < 1900 || form.baujahr > 2100)) {
-      toast.error('Das Baujahr liegt zwischen 1900 und 2100.');
+    const tagFalsch = wartungsTagFehler(form.zuletztAm, heute);
+    if (tagFalsch) {
+      toast.error(`Zuletzt gewartet: ${tagFalsch}`);
+      return;
+    }
+    const baujahrFalsch = baujahrFehler(form.baujahr, heute);
+    if (baujahrFalsch) {
+      toast.error(baujahrFalsch);
       return;
     }
     if (!form.faelligAm) {
@@ -510,6 +518,11 @@ export default function WartungenView() {
 
   const erledigtSpeichern = async () => {
     if (!erledigung) return;
+    const tagFalsch = erledigung.datum ? wartungsTagFehler(erledigung.datum, heute) : 'Bitte den Tag der Wartung angeben.';
+    if (tagFalsch) {
+      toast.error(tagFalsch);
+      return;
+    }
     setSpeichert(true);
     try {
       await wartungErledigt(erledigung.wartung.id, {
@@ -860,9 +873,14 @@ export default function WartungenView() {
             label="Zuletzt gewartet"
             type="date"
             value={form.zuletztAm ?? ''}
+            max={heute}
+            aria-invalid={wartungsTagFehler(form.zuletztAm, heute) ? true : undefined}
             onChange={(e) => setForm(mitTermin({ ...form, zuletztAm: e.target.value }))}
             onBlur={terminVorschlagen}
           />
+          {wartungsTagFehler(form.zuletztAm, heute) && (
+            <p className="text-sm text-danger">{wartungsTagFehler(form.zuletztAm, heute)}</p>
+          )}
           {tagGeaendert && (
             <div className="flex flex-wrap items-center">
               <CheckboxField id="w-berichtigen"
@@ -933,6 +951,9 @@ export default function WartungenView() {
               wert={form.baujahr ?? null}
               onWert={(n) => setForm({ ...form, baujahr: n == null ? null : Math.round(n) })}
             />
+            {baujahrFehler(form.baujahr, heute) && (
+              <p className="text-sm text-danger">{baujahrFehler(form.baujahr, heute)}</p>
+            )}
             <ZahlWertFeld id="w-preis"
               label="Preis je Wartung netto (€)"
               placeholder="leer = nicht vereinbart"
@@ -974,8 +995,13 @@ export default function WartungenView() {
                 label="Gewartet am"
                 type="date"
                 value={erledigung.datum}
+                max={heute}
+                aria-invalid={wartungsTagFehler(erledigung.datum, heute) ? true : undefined}
                 onChange={(e) => setErledigung({ ...erledigung, datum: e.target.value })}
               />
+              {wartungsTagFehler(erledigung.datum, heute) && (
+                <p className="text-sm text-danger">{wartungsTagFehler(erledigung.datum, heute)}</p>
+              )}
               <SelectField id="e-intervall"
                 label="Intervall ab jetzt"
                 value={String(erledigung.intervall)}
@@ -998,7 +1024,8 @@ export default function WartungenView() {
             </FormGrid>
             {/* Die Vorschau in einer Zeile, die Begründung hinter dem „i“ (Regel 9). */}
             <p className="flex flex-wrap items-center text-sm text-ink-muted">
-              Nächster Termin: {fmtDatum(naechsterTermin(erledigung.datum, erledigung.intervall))}
+              {/* Ein geleertes Datumsfeld ist kein Tag — vorher riss `naechsterTermin` die Seite ab. */}
+              Nächster Termin: {erledigung.datum ? fmtDatum(naechsterTermin(erledigung.datum, erledigung.intervall)) : '—'}
               <InfoHint about="nächster Termin">
                 Gerechnet ab dem Tag der Ausführung, nicht ab dem geplanten Termin — das
                 Wartungsintervall läuft ab der letzten tatsächlichen Wartung.

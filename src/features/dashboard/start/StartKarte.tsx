@@ -35,8 +35,12 @@ export default function StartKarte({
         </div>
       </header>
       <div className="karte-buendig start-karte-inhalt">{children}</div>
+      {/*
+        Der Pfeil kommt aus `link-weiter` (::after). Ein eigenes „›“ dazu ergab
+        „Einsatzplanung › ›“ (Testbericht Runde 6, G9).
+      */}
       {verweis && verweisUnten && (
-        <Link to={verweis.to} className="start-karte-verweis link-weiter">{verweis.text}<span aria-hidden="true"> ›</span></Link>
+        <Link to={verweis.to} className="start-karte-verweis link-weiter">{verweis.text}</Link>
       )}
     </section>
   );

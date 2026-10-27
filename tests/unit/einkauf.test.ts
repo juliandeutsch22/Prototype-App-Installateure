@@ -6,7 +6,8 @@
  * nicht heisst ein Monteur, der auf etwas wartet, das niemand bestellt hat.
  */
 import { describe, it, expect } from 'vitest';
-import type { MaterialOrder } from '@/types';
+import type { EinkaufPosten, MaterialOrder } from '@/types';
+import { bestellTabelle } from '@/features/orders/bestellungPdf';
 import type { WithId } from '@/lib/db/core';
 import { bestellMail, bestellText, einkaufsliste, MAILTO_GRENZE } from '@/features/orders/einkauf';
 
@@ -115,5 +116,48 @@ describe('Text und Mail', () => {
     expect(gekuerzt).toBe(true);
     expect(href.length).toBeLessThan(MAILTO_GRENZE);
     expect(decodeURIComponent(href)).toContain('im Anhang');
+  });
+});
+
+/*
+  RUNDE 6, G21: Die Anmerkung eines eigenen Postens (Liefertermin,
+  Lieferadresse, Kommission) stand erst nach „bestellt“ in der App — im
+  Bestell-PDF und in der E-Mail an den Vertreter fehlte sie.
+*/
+describe('Die Anmerkung geht mit hinaus (Runde 6, G21)', () => {
+  const posten = (rest: Partial<EinkaufPosten>): WithId<EinkaufPosten> => ({
+    id: `p${(n += 1)}`, companyId: 'perl', supplierId: 'holter', materialId: 'm1',
+    materialName: 'Eckventil 1/2', menge: 2, einheit: 'Stk', ...rest,
+  }) as WithId<EinkaufPosten>;
+
+  it('steht an der Zeile, in der E-Mail und im PDF', () => {
+    const [g] = einkaufsliste(
+      [a({ materialId: 'm1', quantity: 1, projectNumber: 'B-1', note: 'Für den Einsatz am Montag' })],
+      KATALOG,
+      [posten({ notiz: 'Lieferung bis Freitag an die Baustelle' })],
+    );
+    const [z] = g.zuBestellen;
+    expect(z.anmerkungen).toEqual(['Lieferung bis Freitag an die Baustelle']);
+    const t = bestellText({ company: { name: 'Perl' }, zeilen: g.zuBestellen, datum: '27.10.2026' });
+    expect(t).toContain('- 3 Stk × Art.-Nr. EV-12 – Eckventil 1/2 (Kommission B-1, Lager) – Anmerkung: Lieferung bis Freitag an die Baustelle');
+    expect(bestellTabelle(g.zuBestellen)[0][2]).toBe('Eckventil 1/2\nAnmerkung: Lieferung bis Freitag an die Baustelle');
+  });
+
+  it('nennt dieselbe Anmerkung zweier Posten nur einmal und die Notiz einer Anforderung gar nicht', () => {
+    const [g] = einkaufsliste(
+      [a({ materialId: 'm1', note: 'Für den Einsatz am Montag' })],
+      KATALOG,
+      [posten({ notiz: 'Kommission Keller' }), posten({ notiz: ' Kommission Keller ' })],
+    );
+    expect(g.zuBestellen[0].anmerkungen).toEqual(['Kommission Keller']);
+    expect(bestellText({ company: { name: 'Perl' }, zeilen: g.zuBestellen, datum: '27.10.2026' }))
+      .not.toContain('Einsatz am Montag');
+  });
+
+  it('ohne Anmerkung bleiben Text und PDF wie bisher', () => {
+    const [g] = einkaufsliste([a({ materialId: 'm1', quantity: 6, projectNumber: 'B-1' })], KATALOG, [posten({ notiz: '' })]);
+    const t = bestellText({ company: { name: 'Perl' }, zeilen: g.zuBestellen, datum: '27.10.2026' });
+    expect(t).not.toContain('Anmerkung');
+    expect(bestellTabelle(g.zuBestellen)[0][2]).toBe('Eckventil 1/2');
   });
 });

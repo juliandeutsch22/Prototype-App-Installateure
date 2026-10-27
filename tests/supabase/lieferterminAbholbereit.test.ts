@@ -57,6 +57,35 @@ describe('Abholbereit seit', () => {
   });
 });
 
+/*
+  RUNDE 6, HINWEIS 7: der Verlauf nannte bei „Abholbereit“ keinen Zeitpunkt —
+  beim Abholen leerte die Datenbank ihn. Jetzt bleibt er bei „Erledigt“.
+*/
+describe('Abholbereit seit — auch nach dem Abholen (Hinweis 7)', () => {
+  it('bleibt beim Abholen stehen', async () => {
+    const id = await anforderung({ status: 'Abholbereit' });
+    const seit = (await zeile(id)).abholbereit_seit;
+    expect(seit).not.toBeNull();
+    const { error } = await verwaltung.client.rpc('anforderung_abschliessen', { p_order: id });
+    expect(error).toBeNull();
+    const nachher = await zeile(id);
+    expect(nachher.status).toBe('Erledigt');
+    expect(nachher.abholbereit_seit).toBe(seit);
+  });
+
+  it('Gegenprobe: zurück in Bearbeitung ist sie nicht mehr abholbereit — ohne Zeitpunkt', async () => {
+    const id = await anforderung({ status: 'Abholbereit' });
+    await verwaltung.client.from('material_orders').update({ status: 'In Bearbeitung' }).eq('id', id);
+    expect((await zeile(id)).abholbereit_seit).toBeNull();
+  });
+
+  it('nie abholbereit gewesen, gleich erledigt: kein Zeitpunkt', async () => {
+    const id = await anforderung({ status: 'Offen' });
+    await verwaltung.client.rpc('anforderung_abschliessen', { p_order: id });
+    expect((await zeile(id)).abholbereit_seit).toBeNull();
+  });
+});
+
 describe('Liefertermin', () => {
   it('nur an einer bestellten Zeile', async () => {
     const id = await anforderung({ status: 'In Bearbeitung', beschaffung: 'einkauf' });

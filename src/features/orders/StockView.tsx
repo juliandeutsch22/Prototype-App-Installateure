@@ -426,6 +426,12 @@ export default function StockView() {
         werte={[
           { wert: 'bestand' as Tab, text: 'Bestand' },
           { wert: 'katalog' as Tab, text: 'Katalog' },
+          /*
+            DAS EINSPIELEN STEHT ALS REITER DA, SOLANGE ES OFFEN IST (Runde 6,
+            G28): erreicht wird es über das „⋯“, und ohne eigenen Reiter war
+            in der Leiste keiner markiert — man wusste nicht, wo man ist.
+          */
+          ...(tab === 'import' ? [{ wert: 'import' as Tab, text: 'Einspielen' }] : []),
         ]}
         wert={tab}
         onChange={setTab}
@@ -434,12 +440,10 @@ export default function StockView() {
       {error && <ErrorState message={error} />}
 
       {tab === 'import' ? (
-        <>
-          <h2 className="text-lg font-semibold text-ink-deep">Katalog einspielen</h2>
-          <Suspense fallback={<SkeletonList rows={3} />}>
-            <KatalogImport />
-          </Suspense>
-        </>
+        // Die Überschrift trägt die Karte des Einspielens selbst; eine zweite darüber stand doppelt (G28).
+        <Suspense fallback={<SkeletonList rows={3} />}>
+          <KatalogImport />
+        </Suspense>
       ) : tab === 'katalog' ? (
         <MaterialCatalog
           zuBearbeiten={zuBearbeiten}

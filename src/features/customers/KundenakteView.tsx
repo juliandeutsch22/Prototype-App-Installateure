@@ -42,7 +42,8 @@ import { euro } from '@/lib/betrag';
 import Datenauskunft from '@/features/recht/Datenauskunft';
 import { zeigtAuskunft } from '@/features/recht/auskunftDatei';
 import AdressteileFelder from '@/components/AdressteileFelder';
-import { adresseZeile } from '@/lib/adresse';
+import { adresseZeile, angabenZuPruefen, mailFehler } from '@/lib/adresse';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import KundenartUidFelder from '@/components/KundenartUidFelder';
 import { uidNormalisieren, uidSperrt } from '@/lib/uid';
 import UidVies from './UidVies';
@@ -108,6 +109,8 @@ export default function KundenakteView() {
   const [bearbeitet, setBearbeitet] = useState(false);
   const [terminStand, setTerminStand] = useState<AktenTerminStand>({ termine: null, fehler: false });
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
+  /** Runde 6, M6: was an PLZ oder E-Mail nicht stimmt — die Rückfrage „Trotzdem speichern“. */
+  const [angabenFrage, setAngabenFrage] = useState<string[] | null>(null);
 
   const companyId = user?.companyId;
   const darfAendern = user ? darfKundenPflegen(user) : false;
@@ -166,7 +169,7 @@ export default function KundenakteView() {
   // Wer mit ungespeicherten Änderungen weggeht, wird gefragt (Testbericht 30.09.2026, M1).
   const warnung = useUngespeichertWarnung(geaendert);
 
-  async function stammdatenSpeichern(): Promise<void> {
+  async function stammdatenSpeichern(angabenBestaetigt = false): Promise<void> {
     if (!companyId || !id || !entwurf) return;
     if (!entwurf.name.trim()) {
       setSpeicherFehler('Ohne Namen geht es nicht — daran hängen Baustellen und Rechnungen.');
@@ -177,6 +180,14 @@ export default function KundenakteView() {
     if (uidFalsch) {
       setSpeicherFehler(uidFalsch);
       return;
+    }
+    // PLZ und E-Mail mit Rückfrage (Runde 6, M6) — nur, was sich geändert hat.
+    if (!angabenBestaetigt) {
+      const funde = angabenZuPruefen(entwurf, kundeDaten ?? undefined);
+      if (funde.length > 0) {
+        setAngabenFrage(funde);
+        return;
+      }
     }
     setSpeichert(true);
     setSpeicherFehler(null);
@@ -556,7 +567,9 @@ export default function KundenakteView() {
           <AktenAngabe wort="Telefon">{k.contactPhone?.trim() ? <TelefonLink nummer={k.contactPhone} name={k.contactName} /> : null}</AktenAngabe>
           <AktenAngabe wort="E-Mail">{k.email?.trim() ? <MailLink adresse={k.email} /> : null}</AktenAngabe>
         </AktenAngaben></Card>
-        <Card title="Rechnungsanschrift"><AktenAngaben><AktenAngabe wort="Rechnungsadresse">{k.address?.trim() ? <AdresseLink adresse={k.address} /> : null}</AktenAngabe></AktenAngaben></Card>
+        {/* Eine Beschriftung für eine Angabe (Runde 6, G19): darunter stand noch einmal „Rechnungsadresse“. */}
+        <Card title="Rechnungsanschrift">{k.address?.trim() ? <p><AdresseLink adresse={k.address} /></p>
+          : <p className="text-sm text-ink-muted">nicht hinterlegt</p>}</Card>
         {k.notes?.trim() && <Card title="Notiz"><p className="akten-notiz whitespace-pre-line">{k.notes}</p></Card>}
         {wartungAn && <Card title="Wartungen" action={<AktenVerweis bereich="wartung">Wartungen öffnen →</AktenVerweis>}>
           {wartungen.zustand === 'laedt' ? <SkeletonList rows={1} /> : wartungen.zustand === 'fehler' ? <TeilFehler was="die Wartungen" onRetry={() => setVersuch((v) => v + 1)} />
@@ -588,6 +601,22 @@ export default function KundenakteView() {
         <StammdatenFormular entwurf={entwurf} setEntwurf={setEntwurf} geaendert={geaendert} speichert={speichert} fehler={speicherFehler}
           onSpeichern={() => void stammdatenSpeichern()} onVerwerfen={() => setEntwurf(alsEntwurf(k))} uidPruefung={bearbeitet ? vies : null} />
       </AktenBearbeiten>}
+      <ConfirmDialog
+        open={angabenFrage !== null}
+        title="Angaben prüfen — trotzdem speichern?"
+        message="Die Prüfung ist grob — wer es besser weiß, speichert trotzdem. Bis die Angaben berichtigt sind, steht der Kunde unter „Anschrift prüfen“."
+        confirmLabel="Trotzdem speichern"
+        confirmTone="primary"
+        onCancel={() => setAngabenFrage(null)}
+        onConfirm={async () => {
+          setAngabenFrage(null);
+          await stammdatenSpeichern(true);
+        }}
+      >
+        <ul className="space-y-1 text-sm text-ink">
+          {(angabenFrage ?? []).map((f) => <li key={f}>{f}</li>)}
+        </ul>
+      </ConfirmDialog>
     </div>
   );
 }
@@ -740,9 +769,11 @@ function StammdatenFormular({
             />
             <InputField
               id="k-mail" label="E-Mail" type="email" value={entwurf.email ?? ''}
+              aria-invalid={mailFehler(entwurf.email) ? true : undefined}
               onChange={(e) => setze('email', e.target.value)}
             />
           </FormGrid>
+          {mailFehler(entwurf.email) && <p className="text-sm text-danger">{mailFehler(entwurf.email)}</p>}
         </Gruppe>
         <Gruppe name="Kundenart und UID">
           <KundenartUidFelder

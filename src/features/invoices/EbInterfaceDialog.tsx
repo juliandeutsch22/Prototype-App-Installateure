@@ -136,7 +136,13 @@ export default function EbInterfaceDialog({
         if (firmaFehler) throw new Error(firmaFehler);
         if (inv && company && !firma) throw new Error('Die Firmendaten der Rechnung werden noch geladen — bitte gleich noch einmal.');
         if (!optionen) return;
-        if (pruefung.fehler.length > 0) throw new Error('Erst die Angaben unten ergänzen — so würde die E-Rechnung abgewiesen.');
+        /*
+          Die Meldungen stehen ÜBER dieser Zeile, und nicht jede lässt sich im
+          Dialog beheben — eine festgehaltene Anschrift etwa nur über die
+          Kundenakte und eine neue Rechnung (Testbericht Runde 6, M6). Was zu
+          tun ist, sagt deshalb jede Meldung selbst.
+        */
+        if (pruefung.fehler.length > 0) throw new Error('So würde die E-Rechnung abgewiesen — was zu tun ist, steht in den Meldungen darüber.');
         const xml = ebInterfaceXml(optionen);
         dateiSpeichern(xml, ebiDateiname(optionen));
         if (kunde && neueNummer && merken && darfKundenPflegen) {

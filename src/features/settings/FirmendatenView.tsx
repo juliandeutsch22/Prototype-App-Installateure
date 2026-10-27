@@ -14,7 +14,8 @@ import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import AdressteileFelder from '@/components/AdressteileFelder';
-import { adresseZeile, type Adressteile } from '@/lib/adresse';
+import { adresseZeile, angabenZuPruefen, type Adressteile } from '@/lib/adresse';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { uidFehler, uidSperrt } from '@/lib/uid';
 import { bicFehler, ibanAnzeige, ibanFehler, ibanNormal } from '@shared/iban';
 
@@ -74,6 +75,8 @@ export default function FirmendatenView() {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Runde 6, M6: eine PLZ, die nicht zum Land passt — die Rückfrage „Trotzdem speichern“. */
+  const [plzFrage, setPlzFrage] = useState<string[] | null>(null);
   const [logoFehler, setLogoFehler] = useState<string | null>(null);
   const [logoLaeuft, setLogoLaeuft] = useState(false);
 
@@ -114,6 +117,10 @@ export default function FirmendatenView() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    await speichern(false);
+  }
+
+  async function speichern(plzBestaetigt: boolean) {
     // Die eigene UID steht auf jedem Beleg — eine falsche Form hält auf, wenn
     // sie geändert wurde (Testbericht 30.09.2026, M10).
     const uidSperre = uidSperrt(vatId, company?.vatId);
@@ -135,6 +142,21 @@ export default function FirmendatenView() {
     if (ibanNormal(bic) !== ibanNormal(company?.bic) && bicFalsch) {
       setError(bicFalsch);
       return;
+    }
+    /*
+      DIE EIGENE ANSCHRIFT STEHT IM BRIEFKOPF JEDES BELEGS (Runde 6, M6):
+      „82“ wurde mit „Firmendaten gespeichert“ angenommen. Wie beim Kunden
+      eine Rückfrage, nur wenn PLZ oder Land geändert wurden.
+    */
+    if (!plzBestaetigt) {
+      const funde = angabenZuPruefen(adresse, {
+        plz: company?.plz ?? '',
+        land: company?.land ?? 'AT',
+      });
+      if (funde.length > 0) {
+        setPlzFrage(funde);
+        return;
+      }
     }
     setSaving(true);
     setError(null);
@@ -453,6 +475,23 @@ export default function FirmendatenView() {
           </Button>
         </div>
       </form>
+
+      <ConfirmDialog
+        open={plzFrage !== null}
+        title="PLZ prüfen — trotzdem speichern?"
+        message="Diese Anschrift steht im Briefkopf jeder Rechnung und in jeder E-Rechnung. Die Prüfung ist grob — wer es besser weiß, speichert trotzdem."
+        confirmLabel="Trotzdem speichern"
+        confirmTone="primary"
+        onCancel={() => setPlzFrage(null)}
+        onConfirm={async () => {
+          setPlzFrage(null);
+          await speichern(true);
+        }}
+      >
+        <ul className="space-y-1 text-sm text-ink">
+          {(plzFrage ?? []).map((f) => <li key={f}>{f}</li>)}
+        </ul>
+      </ConfirmDialog>
     </div>
   );
 }

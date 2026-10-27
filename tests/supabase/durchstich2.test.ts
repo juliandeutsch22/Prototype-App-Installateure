@@ -103,7 +103,7 @@ describe('Durchstich 3: vom Angebot bis zur Nachkalkulation', () => {
       projectNumber: BAUSTELLE,
       customerName: 'Familie Huber',
       address: 'Hauptplatz 1, 8200 Gleisdorf',
-      invoiceDate: '2026-06-30',
+      invoiceDate: '2026-06-30', leistungVon: '2026-06-30', leistungBis: '2026-06-30',
       dueDate: '2026-07-14',
       totalNetto: 3000,
       totalVat: 600,

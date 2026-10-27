@@ -901,7 +901,8 @@ export default function AccountingView() {
             <br />
             <br />
             Die Felder des Streifens: „abwesend“ heißt Urlaub, Krankenstand, Berufsschule, Zeitausgleich
-            oder Sonderurlaub; „frei“ Wochenende und Feiertag; umrandete Felder liegen noch vor heute. Ein
+            oder Sonderurlaub; „frei“ Wochenende und Feiertag; „kommt noch“ (blass getönt, umrandet) sind
+            heute und die kommenden Tage ohne Buchung. Ein
             roter Strich unten heißt: an diesem Tag ist eine Arbeitszeitgrenze überschritten — die Fälle
             stehen mit Begründung in der Karte „Arbeitszeitgrenzen“ unter der Liste. Darüberfahren zeigt
             Stunden und Soll des Tages, ein Tipp öffnet ihn. In der Ansicht „Woche“ stehen die Stunden je
@@ -1173,6 +1174,7 @@ export default function AccountingView() {
               onKorrigieren={(e) => setAufgabe({ art: 'bearbeiten', eintrag: e })}
               onCsv={() => exportUserCsv(personZeile.user)}
               onBericht={() => setExportFor(personZeile.user)}
+              gesamtsaldoH={gesamt === 'laedt' ? null : gesamt instanceof Map ? gesamt.get(personZeile.user.uid) : undefined}
             />
           ) : null}
         </div>

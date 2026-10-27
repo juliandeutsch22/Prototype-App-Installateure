@@ -8,6 +8,7 @@
  * Verteilung zulässt (§ 11 Abs 3), stellt die Geschäftsführung ein.
  */
 import { describe, it, expect, beforeAll } from 'vitest';
+import { getAustrianHolidayName } from '@shared/feiertage';
 import { admin, betriebAnlegen, buchung, konto, type Konto } from './helfer';
 
 const BETRIEB = 'kjbg-wegzeit';
@@ -53,15 +54,22 @@ describe('Wegzeit am Berufsschultag', () => {
   });
 
   it('der Lehrling trägt seinen Weg selbst ein', async () => {
-    // Der Montag dieser Woche: ein Arbeitstag, höchstens sechs Tage zurück (selbst bis 14).
-    const heute = new Date(`${new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' })}T12:00:00Z`);
-    heute.setUTCDate(heute.getUTCDate() - ((heute.getUTCDay() + 6) % 7));
-    const montag = heute.toISOString().slice(0, 10);
+    /*
+      Der jüngste Arbeitstag bis heute — höchstens sechs Tage zurück (selbst
+      geht bis 14). Bis 27.10.2026 stand hier „der Montag dieser Woche“: in
+      der Woche des Nationalfeiertags (Montag, 26.10.) war das kein
+      Arbeitstag, und die Prüfung scheiterte eine ganze Woche lang an
+      „Im Zeitraum liegt kein Arbeitstag“.
+    */
+    const [j, m, t] = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' }).split('-').map(Number);
+    const tag = new Date(j, m - 1, t, 12);
+    while (tag.getDay() === 0 || tag.getDay() === 6 || getAustrianHolidayName(tag)) tag.setDate(tag.getDate() - 1);
+    const arbeitstag = `${tag.getFullYear()}-${String(tag.getMonth() + 1).padStart(2, '0')}-${String(tag.getDate()).padStart(2, '0')}`;
     const { error } = await lena.client.rpc('berufsschule_eintragen', {
-      p_user: null, p_von: montag, p_bis: montag, p_notiz: null, p_wegzeit_min: 30,
+      p_user: null, p_von: arbeitstag, p_bis: arbeitstag, p_notiz: null, p_wegzeit_min: 30,
     });
     expect(error).toBeNull();
-    expect(await schultage([montag])).toEqual([{ date: montag, unterricht_min: null, wegzeit_min: 30 }]);
+    expect(await schultage([arbeitstag])).toEqual([{ date: arbeitstag, unterricht_min: null, wegzeit_min: 30 }]);
   });
 
   it('Gegenprobe: kein Weg von null Minuten oder über 4 Std., keiner an einem Arbeitstag', async () => {

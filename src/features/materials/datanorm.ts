@@ -394,3 +394,50 @@ export function layoutWarnung(e: DatanormErgebnis): string | undefined {
 
   return undefined;
 }
+
+/**
+ * DOPPELTE ARTIKELNUMMERN IN DER DATEI (Runde 6, G25).
+ *
+ * Steht dieselbe Nummer zweimal in der Datei, überschrieb die Übernahme den
+ * ersten Satz still mit dem zweiten — mit welchem Preis, hing an der
+ * Reihenfolge der Zeilen. Welche Zeile gilt, weiß nur der Großhändler.
+ * Deshalb wird KEINE davon übernommen: alle Zeilen der Nummer stehen unter
+ * „nicht verstanden“, mit allen Zeilennummern, und der Artikel im Katalog
+ * bleibt, wie er ist. Der Rest der Datei geht durch — eine Dublette des
+ * Lieferanten soll nicht den ganzen Katalog aufhalten.
+ *
+ * Über die GANZE Datei, vor dem Senden: die Übernahme läuft danach in
+ * Blöcken, und zwei gleiche Nummern in verschiedenen Blöcken sähe dort
+ * keine einzelne Prüfung.
+ *
+ * `layoutWarnung` bekommt das ungefilterte Ergebnis: dass sich Nummern
+ * reihenweise wiederholen, ist dort das Zeichen für ein verschobenes Layout.
+ */
+export function ohneDoppelte(e: DatanormErgebnis): DatanormErgebnis {
+  const zeilenJeNummer = new Map<string, number[]>();
+  for (const a of e.artikel) {
+    zeilenJeNummer.set(a.artikelnummer, [...(zeilenJeNummer.get(a.artikelnummer) ?? []), a.zeile]);
+  }
+  const doppelt = new Set([...zeilenJeNummer].filter(([, z]) => z.length > 1).map(([n]) => n));
+  if (doppelt.size === 0) return e;
+  const unverstanden = [
+    ...e.unverstanden,
+    ...e.artikel
+      .filter((a) => doppelt.has(a.artikelnummer))
+      .map((a) => ({
+        zeile: a.zeile,
+        // Was sich zwischen den Zeilen unterscheidet, ist meist der Preis — er steht dabei.
+        inhalt: [
+          `Art.-Nr. ${a.artikelnummer}`,
+          a.name,
+          a.einheit,
+          a.preis !== undefined ? `${a.preis.toFixed(2).replace('.', ',')} €` : 'ohne Preis',
+        ].filter(Boolean).join(' · ').slice(0, 120),
+        grund:
+          `Artikelnummer „${a.artikelnummer}“ steht in der Datei mehrfach (Zeilen ` +
+          `${zeilenJeNummer.get(a.artikelnummer)!.join(', ')}) — keine davon wird übernommen, ` +
+          'der Artikel im Katalog bleibt, wie er ist. Welche Zeile gilt, weiß nur der Großhändler.',
+      })),
+  ].sort((x, y) => x.zeile - y.zeile);
+  return { ...e, artikel: e.artikel.filter((a) => !doppelt.has(a.artikelnummer)), unverstanden };
+}

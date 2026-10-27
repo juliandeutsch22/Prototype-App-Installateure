@@ -695,7 +695,7 @@ export default function PlattformView() {
           </Bereich>
           <Bereich offen={bereich === 'konto'}>
             <PageHeader ort="Globaler Administrator" title="Mein Konto" subtitle="Passwort und Zwei-Faktor-Anmeldung des Plattformkontos." />
-            <div className="plattform-spalten"><div><PasswortAendern /><ZweiFaktorKarte /><Card title="Sitzung"><Button variant="ghost" onClick={() => void signOut()}>Abmelden</Button></Card></div><aside className="plattform-kontext"><h2>Plattformkonto</h2><h3>Rolle</h3><p>Globaler Administrator</p><h3>Betriebszuordnung</h3><p>Keine</p><h3>Zwei-Faktor-Anmeldung</h3><p>Verpflichtend</p></aside></div>
+            <div className="plattform-spalten"><div><PasswortAendern /><ZweiFaktorKarte /><Card title="Sitzung"><div className="flex flex-wrap gap-2"><Button variant="ghost" onClick={() => void signOut()}>Abmelden</Button><Button variant="ghost" onClick={() => void signOut(true)}>Auf allen Geräten abmelden</Button></div></Card></div><aside className="plattform-kontext"><h2>Plattformkonto</h2><h3>Rolle</h3><p>Globaler Administrator</p><h3>Betriebszuordnung</h3><p>Keine</p><h3>Zwei-Faktor-Anmeldung</h3><p>Verpflichtend</p></aside></div>
           </Bereich>
         </main>
         <div className="plattform-verwaltungsfenster">

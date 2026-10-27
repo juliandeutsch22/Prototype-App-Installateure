@@ -101,6 +101,19 @@ export function rechnungsGruppen(rechnungen: WithId<Invoice>[], gruppiert: boole
 }
 
 /**
+ * Die Zahl hinter einer Überschrift der Rechnungsliste (Testbericht Runde 6,
+ * Hinweis 5). Eine Stornorechnung steht als eigene Zeile unter ihrer
+ * stornierten Rechnung, zählte aber nicht mit: „Alle Rechnungen (8)“ über
+ * neun Zeilen. Jetzt steht sie eigens dabei — „8, dazu 1 Stornorechnung“.
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export function anzahlText(rechnungen: Array<Pick<Invoice, 'stornoNummer'>>): string {
+  const storno = rechnungen.filter((r) => !!r.stornoNummer).length;
+  if (storno === 0) return String(rechnungen.length);
+  return `${rechnungen.length}, dazu ${storno} ${storno === 1 ? 'Stornorechnung' : 'Stornorechnungen'}`;
+}
+
+/**
  * Eine Liste, die nach 20 Zeilen abbricht und sagt, wie viele noch kommen
  * (Regel 4) — für die Gruppen der Rechnungsliste wie für Mahnlauf und nicht
  * verrechnete Leistung. Die Zeilen kommen von aussen.
@@ -134,7 +147,7 @@ export function RechnungsGruppe({
       {titel && (
         <div className="abschnitt">
           <h3>{titel}</h3>
-          <span className="gruppe-anzahl">{rechnungen.length}</span>
+          <span className="gruppe-anzahl">{anzahlText(rechnungen)}</span>
         </div>
       )}
       <GekuerzteListe eintraege={rechnungen} zeile={zeile} />

@@ -590,14 +590,51 @@ describe('Mitarbeiteruebersicht — Abwesenheiten im Soll', () => {
 });
 
 describe('Gesamtsaldo neben dem Monatssaldo (Testbericht 30.09.2026, M8)', () => {
-  it('zeigt den Stand seit Eintritt und den Start-Saldo darin', async () => {
+  it('zeigt den Stand seit Eintritt und den Start-Saldo darin — dieselbe Zahl wie die Spalte der Liste', async () => {
     benutzer = [{ ...monteur, initialOvertime: 5 }];
     await oeffneMitarbeiter();
     // Runde 5, G6: der Wert, darunter klein „seit …“ — das Wort „Gesamtsaldo“ steht nur in der Beschriftung.
+    // Runde 6, G7: der Wert kommt aus der Liste (`gesamtsaldenLaden`), nicht aus einer eigenen Abfrage.
     await waitFor(() =>
-      expect(screen.getByTestId('gesamtsaldo')).toHaveTextContent('+12:30seit 17.08.2026 · darin Start-Saldo +05:00'));
+      expect(screen.getByTestId('gesamtsaldo')).toHaveTextContent('-03:15seit 17.08.2026 · darin Start-Saldo +05:00'));
     expect(screen.getByTestId('gesamtsaldo').closest('.pf-kennzahl')?.textContent?.match(/Gesamtsaldo/g)).toHaveLength(1);
-    expect(zeitguthabenLaden).toHaveBeenCalledWith(expect.objectContaining({ uid: 'u1' }), expect.any(Boolean));
+    expect(zeitguthabenLaden).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: ohne Zahl der Liste lädt das Fenster selbst, wie bisher', async () => {
+    gesamtsaldenLaden.mockRejectedValue(new Error('weg'));
+    try {
+      benutzer = [{ ...monteur, initialOvertime: 5 }];
+      await oeffneMitarbeiter();
+      await waitFor(() =>
+        expect(screen.getByTestId('gesamtsaldo')).toHaveTextContent('+12:30seit 17.08.2026 · darin Start-Saldo +05:00'));
+      expect(zeitguthabenLaden).toHaveBeenCalledWith(expect.objectContaining({ uid: 'u1' }), expect.any(Boolean));
+    } finally {
+      gesamtsaldenLaden.mockReset();
+      gesamtsaldenLaden.mockImplementation(async (_betrieb: string, personen: AppUser[]) =>
+        new Map(personen.filter((p) => p.appStartDate).map((p) => [p.uid, -3.25])));
+    }
+  });
+
+  /*
+    TESTBERICHT RUNDE 6, G7: im offenen Fenster einen Eintrag gelöscht — „Saldo
+    im Monat“ sprang, „Gesamtsaldo“ blieb, die Spalte der Liste daneben
+    rechnete nach. Jetzt rechnen beide mit.
+  */
+  it('rechnet nach einer Änderung im offenen Fenster mit der Liste nach', async () => {
+    await oeffneMitarbeiter();
+    await waitFor(() => expect(screen.getByTestId('gesamtsaldo')).toHaveTextContent('-03:15'));
+    gesamtsaldenLaden.mockImplementation(async (_betrieb: string, personen: AppUser[]) =>
+      new Map(personen.filter((p) => p.appStartDate).map((p) => [p.uid, -11.25])));
+    try {
+      // Der Eintrag vom 28.08. ist weg — so meldet es die Live-Verbindung.
+      act(() => liveSenden!(buchungen.filter((b) => b.date !== '2026-08-28')));
+      await act(async () => { vi.advanceTimersByTime(1600); });
+      await waitFor(() => expect(within(fenster()).getByTestId('gesamtsaldo')).toHaveTextContent('-11:15'));
+    } finally {
+      gesamtsaldenLaden.mockImplementation(async (_betrieb: string, personen: AppUser[]) =>
+        new Map(personen.filter((p) => p.appStartDate).map((p) => [p.uid, -3.25])));
+    }
   });
 
 
@@ -608,7 +645,8 @@ describe('Gesamtsaldo neben dem Monatssaldo (Testbericht 30.09.2026, M8)', () =>
     zeigeListe();
     const zeile = await screen.findByText('Gesamtsaldo', { selector: '.ue-zahl-name' });
     await waitFor(() => expect(zeile.parentElement).toHaveTextContent('Gesamtsaldo-03:15'));
-    expect(screen.getByText('Gesamtsaldo', { selector: '.ue-kopf-zahl' })).toBeInTheDocument();
+    // Mit weicher Trennstelle (Runde 6, G8) — der Text bleibt „Gesamtsaldo“.
+    expect(screen.getByText('Gesamt\u00ADsaldo', { selector: '.ue-kopf-zahl' })).toBeInTheDocument();
     expect(gesamtsaldenLaden).toHaveBeenCalledWith('perl', [expect.objectContaining({ uid: 'u1' })], expect.any(Boolean));
     // Die Liste holt nicht je Person einzeln.
     expect(zeitguthabenLaden).not.toHaveBeenCalled();
@@ -959,11 +997,22 @@ describe('Mitarbeiterübersicht: der Monat als Streifen (Runde 4, Auftrag 3.3)',
     await personKnopf('Neu Eingestellt');
     // Eine Zeile mit kurzen Wörtern (Wunsch des Betriebs, 09.10.2026) — die Erklärung steht in der Seitenhilfe.
     const legende = screen.getByRole('list', { name: 'Legende' });
+    // Runde 6, G13: der 31.08. (heute) kommt noch — dafür steht „kommt noch“ in der Legende.
+    expect(within(legende).getAllByRole('listitem').map((l) => l.textContent)).toEqual([
+      'gebucht', 'ohne Buchung', 'abwesend', 'frei', 'kommt noch', 'Grenze überschritten',
+    ]);
+    expect(within(legende).getByText('kommt noch').querySelector('.leg-zukunft')).not.toBeNull();
+    expect(screen.queryByText(/Darüberfahren zeigt Stunden und Soll/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/K Krank|ZA Zeitausgleich/)).not.toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ein vergangener Monat ohne kommende Tage nennt „kommt noch“ nicht', async () => {
+    zeichneSeite('/accounting?tage=alle&monat=2026-07');
+    await personKnopf('Neu Eingestellt');
+    const legende = screen.getByRole('list', { name: 'Legende' });
     expect(within(legende).getAllByRole('listitem').map((l) => l.textContent)).toEqual([
       'gebucht', 'ohne Buchung', 'abwesend', 'frei', 'Grenze überschritten',
     ]);
-    expect(screen.queryByText(/Darüberfahren zeigt Stunden und Soll/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/K Krank|ZA Zeitausgleich/)).not.toBeInTheDocument();
   });
 
   it('erklärt die Felder in „Hilfe zu dieser Seite“', async () => {

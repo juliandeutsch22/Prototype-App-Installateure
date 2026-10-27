@@ -291,6 +291,24 @@ export default function UserMgmtView() {
         ort="Team"
         title="Benutzerverwaltung"
         subtitle="Benutzer anlegen, Rollen und Zeitkonten pflegen"
+        /*
+          DIE HILFE STEHT AUCH OHNE FORMULAR (Testbericht Runde 6, G5). Bis
+          dahin kamen alle Erklärungen dieser Seite aus den „i“ des Formulars
+          „Benutzer anlegen“ — in der Liste gab es keine, und das Zeichen
+          fehlte als einziges unter den Hauptseiten.
+        */
+        hilfe={
+          <>
+            Die Liste zeigt die Belegschaft nach Rolle, zuerst die aktiven Konten; „Deaktivierte“
+            zählt die gesperrten. Gesucht wird nach Name, E-Mail oder Benutzername. Eine Zeile öffnet
+            die Akte der Person mit Profil, Arbeitszeit und Urlaub sowie Zugang und Rechten; dort wird
+            auch bearbeitet. Gelöscht wird kein Konto: wer ausscheidet, wird deaktiviert, damit Zeiten
+            und Scheine bleiben; was keiner Aufbewahrung unterliegt, entfernt die Löschung unter
+            „Datenschutz“ in der Akte. „Benutzer anlegen“ fragt, ob die Person neu eintritt oder schon
+            im Betrieb ist — davon hängt der Resturlaub ab. Die Rolle Administrator vergibt nur ein
+            Administrator.
+          </>
+        }
         action={
           formOffen ? undefined : (
             // „Benutzer anlegen“ wie der Knopf am Ende des Formulars: dieselbe

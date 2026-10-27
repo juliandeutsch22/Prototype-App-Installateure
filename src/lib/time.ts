@@ -11,7 +11,9 @@ import { budgetArt } from './einstufung';
   zweimal die nackte 25.
 */
 import { DEFAULT_VACATION_DAYS as DEFAULT_URLAUBSTAGE } from './db/benutzerVorgaben';
-import { calcWorkMin, freigestelltMin, istGanztagsGutschrift as ganztagsAusShared } from '@shared/arbeitszeit';
+import {
+  arbeitJeTag, calcWorkMin, freigestelltMin, istGanztagsGutschrift as ganztagsAusShared, schultagGutschriftMin,
+} from '@shared/arbeitszeit';
 import {
   getAustrianHolidayName,
   getEasterDate,
@@ -719,6 +721,21 @@ function ganztagGutschreiben(e: Pick<TimeEntry, 'status' | 'date' | 'startTime' 
 }
 
 /**
+ * Was ein ganztägiger Eintrag gutschreibt, in Minuten — das Tagessoll, am
+ * Berufsschultag mit Arbeit danach weniger (`schultagGutschriftMin`, Runde 6,
+ * M1). `arbeit` sind die gearbeiteten Minuten je Tag derselben Person.
+ */
+function ganztagMinuten(
+  user: Pick<AppUser, 'weeklyTargetHours' | 'workDays' | 'tagessoll'>,
+  e: Pick<TimeEntry, 'status' | 'date' | 'unterrichtMin'>,
+  halbeTage: boolean,
+  arbeit: Map<string, number>,
+): number {
+  const soll = tagesAnteil(e.date, halbeTage) * tagessollStunden(user, e.date) * 60;
+  return e.status === 'Berufsschule' ? schultagGutschriftMin(soll, e.unterrichtMin, arbeit.get(e.date) ?? 0) : soll;
+}
+
+/**
  * Die Einträge, die das Tagessoll ganz erfüllen: Krank, Urlaub, seit dem
  * 30.09.2026 die Berufsschule (Testbericht 4.1) und seit dem 04.10.2026 der
  * ganztägige Sonderurlaub samt Pflegefreistellung und unbezahltem Urlaub
@@ -766,11 +783,12 @@ export function calcOverallSaldo(
     sähe bis dahin zu gut aus.
   */
   const heuteIso = todayStr();
+  const arbeit = arbeitJeTag(entries);
   for (const e of entries) {
     if (e.date < user.appStartDate || e.date > heuteIso) continue;
     bookedDates.add(e.date);
     if (e.status === 'Anwesend') istMin += calcWorkMin(e);
-    else if (ganztagGutschreiben(e, heuteIso)) istMin += tagesAnteil(e.date, halbeTage) * tagessollStunden(user, e.date) * 60;
+    else if (ganztagGutschreiben(e, heuteIso)) istMin += ganztagMinuten(user, e, halbeTage, arbeit);
     else istMin += freigestelltGutschreiben(e, heuteIso);
   }
 
@@ -831,6 +849,8 @@ export function saldoAusBilanzen(
     /** Seit 04.10.2026 (Plan 10.3): ganztägige Freistellungen und stundenweise Minuten. */
     freistellungTage?: number;
     freigestelltMin?: number;
+    /** Seit Runde 6 (M1): Schultage mit Unterrichtszeit, mit der Arbeit des Tages. */
+    schultage?: Array<{ tag: string; unterrichtMin: number; arbeitMin: number }>;
     tage: string[];
   }>,
   laufenderMonat: TimeEntry[],
@@ -871,6 +891,16 @@ export function saldoAusBilanzen(
     const halbe = halbeTage ? b.abwesendHalbtage * 0.5 : 0;
     istMin += (b.krankTage + b.urlaubTage + (b.berufsschuleTage ?? 0) + (b.freistellungTage ?? 0) - halbe) * dailyH * 60;
     istMin += b.freigestelltMin ?? 0;
+    /*
+      SCHULTAGE MIT ARBEIT DANACH (Runde 6, M1): oben zählen sie mit dem
+      Tagessoll; hier geht ab, was die Arbeit davon schon füllt
+      (`schultagGutschriftMin`). Die Bilanz liefert dafür je Schultag mit
+      Unterrichtszeit den Unterricht und die Arbeit des Tages.
+    */
+    for (const s of b.schultage ?? []) {
+      const soll = tagesAnteil(s.tag, halbeTage) * dailyH * 60;
+      istMin += schultagGutschriftMin(soll, s.unterrichtMin, s.arbeitMin) - soll;
+    }
     for (const t of b.tage) {
       if (t >= user.appStartDate) gebucht.add(t);
     }
@@ -883,12 +913,13 @@ export function saldoAusBilanzen(
     // mitgibt, steckt schon in einer Bilanz.
     ...(startAusEinzeln ? eintrittsmonat!.filter((e) => e.date.slice(0, 7) === startMonat) : []),
   ];
+  const arbeit = arbeitJeTag(einzeln);
   for (const e of einzeln) {
     // Nichts aus der Zukunft — siehe `calcOverallSaldo`.
     if (e.date < user.appStartDate || e.date > heuteIso) continue;
     gebucht.add(e.date);
     if (e.status === 'Anwesend') istMin += calcWorkMin(e);
-    else if (ganztagGutschreiben(e, heuteIso)) istMin += tagesAnteil(e.date, halbeTage) * tagessollStunden(user, e.date) * 60;
+    else if (ganztagGutschreiben(e, heuteIso)) istMin += ganztagMinuten(user, e, halbeTage, arbeit);
     else istMin += freigestelltGutschreiben(e, heuteIso);
   }
 
@@ -1050,9 +1081,16 @@ export function calcMonthStats(
   );
   const schultage = monthEntries.filter((e) => e.status === 'Berufsschule');
   const berufsschuleDays = schultage.length;
-  const berufsschuleMin = Math.round(
-    schultage.reduce((s, e) => s + tagessollStunden(user, e.date) * tagesAnteil(e.date, halbeTage) * 60, 0),
-  );
+  /*
+    DER SCHULTAG MIT ARBEIT DANACH (Runde 6, M1) schreibt weniger als das
+    Tagessoll gut (`schultagGutschriftMin`): die Arbeit füllt zuerst, was der
+    Unterricht offen ließ. Hier, wo ein ganzer Tag das Soll mindert, bleibt
+    der Unterschied als Soll stehen — sonst zählte die Arbeit doppelt.
+  */
+  const arbeit = arbeitJeTag(monthEntries);
+  const schulGutschrift = (e: TimeEntry) =>
+    ganztagMinuten(user, e, halbeTage, arbeit);
+  const berufsschuleMin = Math.round(schultage.reduce((s, e) => s + schulGutschrift(e), 0));
 
   /*
     SONDERURLAUB IM MONAT (Plan 10.3) — für Lohn-CSV und Stundennachweis.
@@ -1090,7 +1128,11 @@ export function calcMonthStats(
         ),
       )
     : Math.round(requiredDays * dailyTargetH * 60);
-  const sollMin = freigestelltImSoll > 0 ? Math.max(0, sollGanzeTage - freigestelltImSoll) : sollGanzeTage;
+  const schulRest = schultage
+    .filter((e) => imSoll.has(e.date))
+    .reduce((s, e) => s + tagesAnteil(e.date, halbeTage) * tagessollStunden(user, e.date) * 60 - schulGutschrift(e), 0);
+  const sollGanzeUndSchule = sollGanzeTage + Math.round(schulRest);
+  const sollMin = freigestelltImSoll > 0 ? Math.max(0, sollGanzeUndSchule - freigestelltImSoll) : sollGanzeUndSchule;
 
   /*
     DER RESTURLAUB KOMMT AUS `urlaubsStand` UND WIRD HIER NICHT GERECHNET.

@@ -705,6 +705,23 @@ describe('Wer den Katalog einspielen darf', () => {
     expect(screen.getByTestId('adresse')).toHaveTextContent('/lager?reiter=import');
   });
 
+  it('Runde 6, G28: beim Einspielen ist ein Reiter markiert und die Überschrift steht nur einmal', async () => {
+    authWert = CHEFIN;
+    zeige('/lager?reiter=import');
+    expect(await screen.findByText('Katalog einspielen (Inhalt)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Einspielen' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Bestand' })).toHaveAttribute('aria-pressed', 'false');
+    // Die Überschrift bringt die (hier nachgestellte) Karte des Einspielens selbst mit.
+    expect(screen.queryByRole('heading', { name: 'Katalog einspielen' })).toBeNull();
+  });
+
+  it('Runde 6, G28: ohne Einspielen gibt es den Reiter nicht', async () => {
+    authWert = CHEFIN;
+    zeige('/lager?reiter=katalog');
+    expect(await screen.findByRole('button', { name: 'Katalog' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: 'Einspielen' })).toBeNull();
+  });
+
   it('Gegenprobe: die Verwaltung kommt auch über die Adresse nicht hinein', async () => {
     zeige('/lager?reiter=import');
     expect(await screen.findByRole('button', { name: 'Bestand' })).toHaveAttribute('aria-pressed', 'true');

@@ -44,11 +44,20 @@
   .position-bezeichnung:focus, .position-titel:focus, .position-textzeile:focus, .position-menge:focus, .position-einheit:focus, .position-preis:focus {
     outline: none; border-color: var(--brand-fixed); box-shadow: 0 0 0 1px var(--brand-fixed);
   }
-  .position-bezeichnung { width: 100%; min-width: 10rem; }
-  .position-titel { width: 100%; min-width: 10rem; font-weight: 600; }
-  .position-textzeile { width: 100%; min-width: 10rem; color: var(--text-muted); }
+  /*
+    BEZEICHNUNG, TITEL UND TEXT SIND TEXTFELDER, DIE MITWACHSEN (Testbericht
+    Runde 6, G2) — lange Namen brechen um, statt abgeschnitten zu werden. Die
+    Polsterung oben und unten setzt eine Zeile in dieselben 44 px wie die
+    Zahlenfelder daneben; die Höhe darüber setzt `WachsendesTextfeld`.
+  */
+  .position-bezeichnung { display: block; width: 100%; min-width: 10rem; padding-block: 0.6875rem; line-height: 1.25rem; resize: none; overflow: hidden; }
+  .position-titel { display: block; width: 100%; min-width: 10rem; padding-block: 0.6875rem; line-height: 1.25rem; resize: none; overflow: hidden; font-weight: 600; }
+  .position-textzeile { display: block; width: 100%; min-width: 10rem; padding-block: 0.6875rem; line-height: 1.25rem; resize: none; overflow: hidden; color: var(--text-muted); }
   .position-menge { width: 6rem; text-align: right; }
-  .position-einheit { width: 5rem; }
+  /* „Pauschale“ passt ganz hinein — bei 5rem stand „Pauscha…“ (G1, Teil B). */
+  .position-einheit { width: 6.5rem; }
+  /* Der Betrag auf der Höhe der Felder: eine Zeile von 44 px, oben bündig wie sie. */
+  .position-betrag { display: block; line-height: 2.75rem; }
   .position-preis { width: 7rem; text-align: right; }
   /*
     EINE NULL FÄLLT AUF: der Preis fehlt noch. Bernstein ist der Zustand
