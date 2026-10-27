@@ -321,6 +321,12 @@ vi.mock('@/lib/db/materials', () => ({
 /** Die Angebote der Baustelle — für die Pauschale (Launch-Check, K3). */
 let angebote: Array<Record<string, unknown>> = [];
 vi.mock('@/lib/db/quotes', () => ({ listQuotesForProject: vi.fn(async () => angebote) }));
+/** Die Wartungen der Baustelle — für ihren vereinbarten Preis (Testbericht Runde 6, M9). */
+let wartungenListe: Array<Record<string, unknown>> = [];
+const wartungenAbfrage = vi.fn<(c: string, nr: string) => Promise<typeof wartungenListe>>(async () => wartungenListe);
+vi.mock('@/lib/db/wartungen', () => ({
+  wartungenDerBaustelle: (c: string, nr: string) => wartungenAbfrage(c, nr),
+}));
 
 // Das PDF wird beim Bestätigen dynamisch nachgeladen und hat mit der Frage
 // dieses Tests nichts zu tun.
@@ -474,6 +480,8 @@ beforeEach(() => {
   katalog = [];
   kunden = [];
   angebote = [];
+  wartungenListe = [];
+  wartungenAbfrage.mockClear();
   PROJEKT.billingMode = undefined;
   PROJEKT.customerId = undefined;
   PROJEKT.startDate = undefined;
@@ -620,6 +628,12 @@ describe('Rechnungen — der Weg von Zeiten zu einer Rechnung', () => {
   it('legt ohne verrechenbare Belege gar nichts an', async () => {
     // Die Meldung nennt seither BEIDE Quellen: seit Material aus den
     // Handwerksscheinen mitkommt, wäre „keine Stunden" nur die halbe Auskunft.
+    /*
+      SEIT DEM TESTBERICHT RUNDE 6 (M9) steht dabei eine leere Vorschau mit
+      „Position hinzufügen“ statt einer Fehlermeldung. Was gleich bleibt: ohne
+      Position entsteht keine Rechnung — der Knopf ist gesperrt, und es wird
+      keine Nummer gezogen.
+    */
     zeiten = [];
     zeige();
     await neueRechnung();
@@ -628,8 +642,12 @@ describe('Rechnungen — der Weg von Zeiten zu einer Rechnung', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
 
     expect(await screen.findByText(/Keine offenen Stunden und kein offenes Material/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Rechnung erstellen/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Position hinzufügen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Rechnung erstellen/ })).toBeDisabled();
+    expect(screen.getByText(/Ohne Positionen gibt es keine Rechnung/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
     expect(reserve).not.toHaveBeenCalled();
+    expect(lege).not.toHaveBeenCalled();
   });
 });
 
@@ -746,13 +764,31 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
     });
   });
 
-  it('warnt, wenn der Zeitraum leer ist', async () => {
-    // Ohne ihn ist die Rechnung nach § 11 UStG unvollständig. Das darf nicht
-    // stillschweigend durchgehen.
+  it('sperrt, wenn der Zeitraum leer ist (Testbericht Runde 6, M8)', async () => {
+    // Ohne ihn ist die Rechnung nach § 11 UStG unvollständig. Bis zum
+    // Testbericht Runde 6 stand nur ein Hinweis, und RE-2026-1511 ging ohne
+    // Leistungszeitraum hinaus. Jetzt sperrt der Knopf — und die Datenbank.
     await bisZurVorschau();
     const von = await screen.findByLabelText('Leistung von');
     await userEvent.clear(von);
-    expect(await screen.findByText(/nach § 11 UStG unvollständig/)).toBeInTheDocument();
+    expect(await screen.findByText(/Ohne Leistungszeitraum wird die Rechnung nicht erstellt/)).toBeInTheDocument();
+    const knopf = screen.getByRole('button', { name: /Rechnung erstellen/ });
+    expect(knopf).toBeDisabled();
+    await userEvent.click(knopf);
+    expect(lege).not.toHaveBeenCalled();
+    // Gegenprobe: mit einem einzelnen Tag geht es wieder.
+    fireEvent.change(von, { target: { value: '2026-08-20' } });
+    fireEvent.change(screen.getByLabelText('Leistung bis'), { target: { value: '2026-08-20' } });
+    expect(knopf).toBeEnabled();
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0]).toMatchObject({ leistungVon: '2026-08-20', leistungBis: '2026-08-20' });
+  });
+
+  it('sperrt auch mit nur einem der beiden Tage', async () => {
+    await bisZurVorschau();
+    fireEvent.change(await screen.findByLabelText('Leistung bis'), { target: { value: '' } });
+    expect(screen.getByRole('button', { name: /Rechnung erstellen/ })).toBeDisabled();
   });
 
   it('warnt, wenn der Zeitraum verdreht ist', async () => {
@@ -765,6 +801,8 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
     const bis = await screen.findByLabelText('Leistung bis');
     fireEvent.change(bis, { target: { value: '2026-07-01' } });
     expect(await screen.findByText(/liegt vor „Leistung von“/)).toBeInTheDocument();
+    // Seit M8 (Testbericht Runde 6) sperrt der verdrehte Zeitraum wie der fehlende.
+    expect(screen.getByRole('button', { name: /Rechnung erstellen/ })).toBeDisabled();
   });
 
   it('warnt NICHT bei einem eintägigen Zeitraum', async () => {
@@ -776,6 +814,7 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
     const bis = await screen.findByLabelText('Leistung bis');
     fireEvent.change(bis, { target: { value: (von as HTMLInputElement).value } });
     expect(screen.queryByText(/liegt vor „Leistung von“/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Rechnung erstellen/ })).toBeEnabled();
   });
 
   it('fragt den Katalog nach den Namen auf den Scheinen, nicht den ganzen Stamm (19.10.2026)', async () => {
@@ -818,8 +857,8 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
     scheine = [SCHEIN];
     katalog = [];
     await bisZurVorschau();
-    expect(await screen.findByText(/Ohne Preis im Katalog/)).toBeInTheDocument();
-    expect(screen.getByText(/Eckventil 1\/2 Zoll/)).toBeInTheDocument();
+    // Der Hinweis nennt den Artikel — die Zeile selbst steht seit G2 in einem Textfeld.
+    expect((await screen.findByText(/Ohne Preis im Katalog/)).textContent).toContain('Eckventil 1/2 Zoll');
   });
 
   it('nimmt einen Schein NICHT, dessen Material schon auf einer Rechnung steht', async () => {
@@ -4861,5 +4900,195 @@ describe('Runde 6, Paket 2', () => {
     rechnungen = [inv('g', 'RE-2026-1501')];
     zeige('/invoices?ansicht=alle');
     expect(await screen.findByText('Alle Rechnungen (1)')).toBeInTheDocument();
+  });
+});
+
+/**
+ * Testbericht Runde 6, Paket 3 — Leistungszeitraum, Wartungspreis, Spalten
+ * und die Anschrift für die E-Rechnung. Jede Regel mit Gegenprobe; was gleich
+ * bleiben muss, prüft eine eigene Zeile.
+ */
+describe('Runde 6: Leistungszeitraum bei Pauschale und Einheitspreis (M8)', () => {
+  const ANGEBOT = {
+    id: 'q8', quoteNumber: 'AN-2026-0195', status: 'Angenommen', quoteDate: '2026-07-20',
+    positions: [{ label: 'Badsanierung pauschal', qty: 1, unit: 'Pauschale', unitPrice: 3000, netto: 3000 }],
+    discount: null, subtotalNetto: 3000, totalNetto: 3000, totalVat: 600, totalBrutto: 3600,
+  };
+
+  it('belegt ohne Buchung Beginn und Ende der Baustelle vor', async () => {
+    PROJEKT.billingMode = 'Pauschal';
+    PROJEKT.startDate = '2026-08-03';
+    PROJEKT.endDate = '2026-08-14';
+    zeiten = [];
+    angebote = [ANGEBOT];
+    const knopf = await bisZurVorschau();
+    expect(screen.getByLabelText('Leistung von')).toHaveValue('2026-08-03');
+    expect(screen.getByLabelText('Leistung bis')).toHaveValue('2026-08-14');
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0]).toMatchObject({ leistungVon: '2026-08-03', leistungBis: '2026-08-14' });
+  });
+
+  it('endet höchstens heute, wenn das geplante Ende noch kommt', async () => {
+    // Heute ist im Test der 01.09.2026.
+    PROJEKT.billingMode = 'Einheitspreis';
+    PROJEKT.startDate = '2026-08-03';
+    PROJEKT.endDate = '2026-11-30';
+    zeiten = [];
+    angebote = [ANGEBOT];
+    await bisZurVorschau();
+    expect(screen.getByLabelText('Leistung von')).toHaveValue('2026-08-03');
+    expect(screen.getByLabelText('Leistung bis')).toHaveValue('2026-09-01');
+  });
+
+  it('Gleichbleiben: die Belege gehen vor, wie bei Regie', async () => {
+    PROJEKT.billingMode = 'Pauschal';
+    PROJEKT.startDate = '2026-08-03';
+    PROJEKT.endDate = '2026-08-31';
+    angebote = [ANGEBOT];
+    // ZEIT liegt am 20.08.
+    await bisZurVorschau();
+    expect(screen.getByLabelText('Leistung von')).toHaveValue('2026-08-20');
+    expect(screen.getByLabelText('Leistung bis')).toHaveValue('2026-08-20');
+  });
+
+  it('Gegenprobe: ohne Belege und ohne Beginn und Ende bleibt es leer — und gesperrt', async () => {
+    PROJEKT.billingMode = 'Pauschal';
+    zeiten = [];
+    angebote = [ANGEBOT];
+    const knopf = await bisZurVorschau();
+    expect(screen.getByLabelText('Leistung von')).toHaveValue('');
+    expect(knopf).toBeDisabled();
+    expect(screen.getByText(/Leistung von und bis fehlen/)).toBeInTheDocument();
+  });
+
+  it('Gleichbleiben: die Anzahlung geht auch ohne Zeitraum', async () => {
+    authWert.company.rechnungsarten = true;
+    angebote = [ANGEBOT];
+    const knopf = await bisZurVorschau('anzahlung');
+    expect(screen.getByLabelText('Leistung voraussichtlich von')).toHaveValue('');
+    expect(screen.queryByText(/Ohne Leistungszeitraum wird die Rechnung nicht erstellt/)).toBeNull();
+    expect(knopf).toBeEnabled();
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0]).toMatchObject({ art: 'anzahlung', leistungVon: '', leistungBis: '' });
+  });
+});
+
+describe('Runde 6: der Preis der Wartung (M9)', () => {
+  const WARTUNG = {
+    id: 'w1', companyId: 'perl', customerId: 'k1', customerName: 'Familie Huber', anlage: 'Gaskessel Heizraum',
+    intervallMonate: 12, faelligAm: '2027-08-25', aktiv: true, preis: 180, ausgefuehrtAm: '2026-08-25',
+  };
+
+  it('schlägt die Wartung zum vereinbarten Preis vor — auch ganz ohne Buchung', async () => {
+    zeiten = [];
+    wartungenListe = [WARTUNG];
+    const knopf = await bisZurVorschau();
+    expect(wartungenAbfrage).toHaveBeenCalledWith('perl', '2026-042');
+    expect(screen.getByText(/Keine offenen Stunden und kein offenes Material/)).toBeInTheDocument();
+    expect(screen.getByText('Aus der Wartung')).toBeInTheDocument();
+    expect(screen.getByText('Wartung Gaskessel Heizraum laut Vereinbarung')).toBeInTheDocument();
+    expect(knopf).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Übernehmen' }));
+    expect(screen.getByDisplayValue('Wartung Gaskessel Heizraum laut Vereinbarung')).toBeInTheDocument();
+    // Der Tag der Ausführung ist der Leistungstag.
+    expect(screen.getByLabelText('Leistung von')).toHaveValue('2026-08-25');
+    expect(screen.getByLabelText('Leistung bis')).toHaveValue('2026-08-25');
+    expect(knopf).toBeEnabled();
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0]).toMatchObject({
+      positions: [{ label: 'Wartung Gaskessel Heizraum laut Vereinbarung', qty: 1, unit: 'Pauschale', unitPrice: 180, netto: 180 }],
+      totalNetto: 180,
+      leistungVon: '2026-08-25',
+      leistungBis: '2026-08-25',
+    });
+  });
+
+  it('setzt sie nicht von selbst neben die gebuchten Stunden', async () => {
+    // Ob neben der Pauschale noch Stunden verrechnet werden, steht im Vertrag.
+    wartungenListe = [WARTUNG];
+    await bisZurVorschau();
+    expect(screen.getByText('Wartung Gaskessel Heizraum laut Vereinbarung')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Wartung Gaskessel Heizraum laut Vereinbarung')).toBeNull();
+    // Mit Belegen gibt es keinen Hinweis „nichts offen“.
+    expect(screen.queryByText(/Keine offenen Stunden/)).toBeNull();
+  });
+
+  it('nennt die Rechnung, auf der die Wartung schon steht, statt sie noch einmal anzubieten', async () => {
+    zeiten = [];
+    wartungenListe = [WARTUNG];
+    derBaustelle = [{
+      id: 'alt', invoiceNumber: 'RE-2026-1600', projectNumber: '2026-042', customerName: 'Familie Huber',
+      invoiceDate: '2026-08-26', dueDate: '2026-09-09', vatRate: 0.2, totalNetto: 180, totalVat: 36, totalBrutto: 216,
+      paymentStatus: 'Offen', art: 'einzel',
+      positions: [{ label: 'Wartung Gaskessel Heizraum laut Vereinbarung', qty: 1, unit: 'Pauschale', unitPrice: 180, netto: 180 }],
+    } as unknown as Invoice & { id: string }];
+    await bisZurVorschau();
+    expect(screen.getByText('auf RE-2026-1600')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Übernehmen' })).toBeNull();
+  });
+
+  it('Gegenprobe: ohne Preis gibt es keinen Vorschlag', async () => {
+    zeiten = [];
+    wartungenListe = [{ ...WARTUNG, preis: null }];
+    await bisZurVorschau();
+    expect(screen.queryByText('Aus der Wartung')).toBeNull();
+  });
+
+  it('kommen die Wartungen nicht, entsteht die Vorschau trotzdem — mit Hinweis', async () => {
+    wartungenAbfrage.mockImplementationOnce(async () => { throw new Error('weg'); });
+    await bisZurVorschau();
+    expect(screen.getByText(/Die Wartungen dieser Baustelle/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Rechnung erstellen/ })).toBeEnabled();
+  });
+});
+
+describe('Runde 6: Spalten der Vorschau (G2)', () => {
+  it('Köpfe brechen nicht um, und Menge und EP stehen rechts wie ihre Köpfe', async () => {
+    await bisZurVorschau();
+    const kopf = (name: string) => screen.getByRole('columnheader', { name });
+    for (const name of ['Position', 'Menge', 'Einheit', 'EP', 'Netto']) {
+      expect(kopf(name).className).toContain('whitespace-nowrap');
+    }
+    expect(kopf('Menge').className).toContain('text-right');
+    expect(kopf('EP').className).toContain('text-right');
+    expect(screen.getByLabelText('Menge Position 1').closest('td')!.className).toContain('text-right');
+    expect(screen.getByLabelText('Einzelpreis Position 1').closest('td')!.className).toContain('text-right');
+  });
+
+  it('lange Bezeichnungen stehen in einem Textfeld, das umbricht — ohne Zeilenwechsel im Text', async () => {
+    await bisZurVorschau();
+    const feld = screen.getByLabelText('Bezeichnung Position 1');
+    expect(feld.tagName).toBe('TEXTAREA');
+    await userEvent.clear(feld);
+    await userEvent.type(feld, 'Facharbeiterstunden (Notdienst +100 %,{Enter} Nachtarbeit)');
+    expect(feld).toHaveValue('Facharbeiterstunden (Notdienst +100 %, Nachtarbeit)');
+    fireEvent.change(feld, { target: { value: 'Zeile eins\nZeile zwei' } });
+    expect(feld).toHaveValue('Zeile eins Zeile zwei');
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0].positions[0].label).toBe('Zeile eins Zeile zwei');
+  });
+});
+
+describe('Runde 6: Anschrift für die E-Rechnung (M6)', () => {
+  it('warnt beim Erstellen, wenn die Anschrift sich nicht zerlegen lässt — und erstellt trotzdem', async () => {
+    kunden = [{ id: 'k82', name: 'Familie Huber', address: 'Bürgergasse 7, 82 Gleisdorf', plz: '82', ort: 'Gleisdorf' }];
+    const knopf = await bisZurVorschau();
+    const warnung = screen.getByText(/lässt sich nicht in Straße, Postleitzahl und Ort/);
+    expect(warnung.textContent).toContain('„Bürgergasse 7, 82 Gleisdorf“');
+    expect(warnung.textContent).toContain('E-Rechnung');
+    expect(within(warnung).getByRole('link', { name: 'Zur Kundenakte' })).toHaveAttribute('href', '/customers/k82');
+    // Eine Warnung, keine Sperre: das PDF ist mit dieser Anschrift vollständig.
+    expect(knopf).toBeEnabled();
+  });
+
+  it('Gegenprobe: eine zerlegbare Anschrift löst keine Warnung aus', async () => {
+    kunden = [{ id: 'k1', name: 'Familie Huber', address: 'Bürgergasse 7, 8200 Gleisdorf', plz: '8200', ort: 'Gleisdorf' }];
+    await bisZurVorschau();
+    expect(screen.queryByText(/lässt sich nicht in Straße, Postleitzahl und Ort/)).toBeNull();
   });
 });

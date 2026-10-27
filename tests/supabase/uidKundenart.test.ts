@@ -112,7 +112,7 @@ describe('Rechnungen', () => {
       projectNumber: 'B-310',
       customerName: 'Baumeister Gruber',
       address: 'Hauptplatz 1, 8200 Gleisdorf',
-      invoiceDate: '2026-04-30',
+      invoiceDate: '2026-04-30', leistungVon: '2026-04-30', leistungBis: '2026-04-30',
       dueDate: '2026-05-14',
       totalNetto: 1000,
       totalVat: 200,

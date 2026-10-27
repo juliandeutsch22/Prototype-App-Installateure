@@ -763,6 +763,38 @@
     </div>
   </section>
 
+  <section id="rechnungen-runde6">
+    <div class="abschnittskopf">
+      <h2>27. Oktober: Leistungszeitraum, Wartungspreis, Spalten, E-Rechnungs-Anschrift</h2>
+      <p class="frage">Aus dem Testbericht Runde 6: eine Teilrechnung ging ohne Leistungszeitraum hinaus, der Preis einer Wartung kam nie auf eine Rechnung, Spalten in Vorschau und Seitenfenster standen schief, und eine Anschrift, die die E-Rechnung nicht annimmt, fiel erst danach auf — ohne Ausweg.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Ohne Leistungszeitraum keine Rechnung<span class="neu">geändert</span></h3>
+        <p>„Rechnung erstellen &amp; PDF“ bleibt gesperrt, solange „Leistung von“ oder „Leistung bis“ fehlt oder „bis“ vor „von“ liegt; die Vorschau sagt es oben bei den Feldern und unten beim Knopf. § 11 UStG verlangt Tag oder Zeitraum der Leistung — für einen einzelnen Tag stehen beide Felder gleich. Die Datenbank weist eine solche Rechnung ebenso ab. <strong>Die Anzahlung ist ausgenommen:</strong> ihre Leistung steht noch aus; vorbelegt ist der voraussichtliche Zeitraum aus Beginn und Ende der Baustelle, sonst bleibt er leer. Bestehende Rechnungen bleiben, wie sie sind.</p>
+        <p><strong>Pauschale und Einheitspreis:</strong> Der Zeitraum kommt wie bei Regie aus Buchungen und Scheinen. Gibt es keine, ist er aus <strong>Beginn und Ende der Baustelle</strong> vorbelegt (Baustellenakte, „Zeitraum“) — nur wenn beides eingetragen ist, und höchstens bis heute, weil das Ende geplant ist. Die Felder bleiben änderbar.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Der Preis der Wartung auf der Rechnung<span class="neu">neu</span></h3>
+        <p>Ist die Baustelle aus einer Wartung mit „Preis je Wartung netto“ entstanden, steht in der Vorschau unter „Aus der Wartung“ die Zeile <strong>„Wartung … laut Vereinbarung“</strong> zum Preis. „Übernehmen“ setzt sie als Position (1 Pauschale) ein; hat die Rechnung noch keinen Zeitraum, wird der Tag eingetragen, an dem die Wartung als erledigt eingetragen wurde. Von selbst kommt sie nicht neben gebuchte Stunden — ob beides verrechnet wird, steht im Wartungsvertrag. Steht die Zeile schon auf einer gültigen Rechnung dieser Baustelle, nennt der Vorschlag deren Nummer statt „Übernehmen“.</p>
+        <p><strong>Nichts offen ist kein Fehler mehr:</strong> Gibt es keine offenen Stunden und kein offenes Material, steht statt der Fehlermeldung eine leere Vorschau mit dem Hinweis und „Position hinzufügen“ da. Eine leere Rechnung entsteht daraus nicht: ohne Position oder über null Euro bleibt der Knopf gesperrt.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Spalten in Vorschau und Seitenfenster<span class="neu">geändert</span></h3>
+        <p>In der Vorschau stehen die Felder für Menge und Einzelpreis rechts unter ihren Köpfen, kein Kopf bricht um, und „Pauschale“ passt ganz ins Feld für die Einheit. Lange Bezeichnungen, Titel und Textzeilen brechen im Feld um und sind ganz zu lesen; ein Zeilenwechsel lässt sich nicht hineintippen, weil die Bezeichnung so auf PDF und E-Rechnung steht. Im Seitenfenster einer Rechnung bricht „Menge“ nicht mehr, und Menge und Betrag halten Abstand („1 Stk“ · „7 500,50“).</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Anschrift für die E-Rechnung<span class="neu">neu</span></h3>
+        <p>Lässt sich die Anschrift des Kunden nicht in Straße, Postleitzahl und Ort zerlegen (etwa „Bürgergasse 7, 82 Gleisdorf“), warnt die Vorschau vor dem Erstellen — mit derselben Zerlegung, die die E-Rechnung benutzt, und dem Weg zur Kundenakte. Eine Sperre ist es nicht: das PDF ist vollständig, nur die E-Rechnung würde abgewiesen. Ist die Rechnung schon ausgestellt, sagt der E-Rechnungs-Dialog, was zu tun ist: <strong>Anschrift in der Kundenakte berichtigen, dann die Rechnung stornieren und neu ausstellen</strong> — die Anschrift ist mit der Rechnung festgehalten. Dasselbe gilt für ein fehlendes Leistungsdatum. Die Stornorechnung trägt die Angaben der Rechnung; sie geht dann als PDF.</p>
+        <p><strong>Grenze:</strong> Postleitzahl und E-Mail-Adresse beim Speichern des Kunden zu prüfen und ihn unter „Anschrift prüfen“ zu zählen, ist ein eigenes Thema (Kunden) und hier nicht enthalten.</p>
+        <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
+      </div>
+    </div>
+  </section>
+
   <section id="sicherheit-runde6">
     <div class="abschnittskopf">
       <h2>27. Oktober: Sicherheitsprüfung vor dem Start</h2>
@@ -1284,7 +1316,7 @@
       <div class="bereich">
         <h3>E-Rechnung zu jeder Rechnung<span class="neu">neu</span></h3>
         <p>Im Seitenfenster einer Rechnung steht „E-Rechnung (ebInterface) …“. Der Dialog fragt, an wen die Datei geht: ein <strong>Unternehmen</strong>, der <strong>Bund</strong> oder ein <strong>Land, eine Gemeinde oder eine andere Stelle</strong> über e-rechnung.gv.at. Für den Bund braucht es die Auftragsreferenz (die zehnstellige Bestellnummer oder die Einkäufergruppe aus der Bestellung, bei einer Bestellnummer dazu die Bestellposition) und die achtstellige Lieferantennummer. Für andere Stellen die Auftragsreferenz der Stelle (z. B. „Z0/Akt 4711“) und die Lieferantennummer bei ihr. Die Bestellnummer der Rechnung und die beim Kunden hinterlegte Lieferantennummer sind vorbelegt.</p>
-        <p><strong>Was fehlt, steht vor dem Laden da:</strong> die E-Mail-Adresse oder IBAN des Betriebs, eine Anschrift ohne Postleitzahl, ein fehlendes Leistungsdatum, eine Position, bei der Menge mal Preis nicht den Betrag ergibt. Solange etwas davon fehlt, entsteht keine Datei — e-rechnung.gv.at würde sie abweisen. Hinweise (etwa ein Rücklass) halten nichts auf.</p>
+        <p><strong>Was fehlt, steht vor dem Laden da:</strong> die E-Mail-Adresse oder IBAN des Betriebs, eine Anschrift ohne Postleitzahl, ein fehlendes Leistungsdatum, eine Position, bei der Menge mal Preis nicht den Betrag ergibt. Solange etwas davon fehlt, entsteht keine Datei — e-rechnung.gv.at würde sie abweisen. Hinweise (etwa ein Rücklass) halten nichts auf. Was auf der Rechnung festgehalten ist (Anschrift, Leistungszeitraum), lässt sich im Dialog nicht ändern; seit 27.10. sagt die Meldung den Weg: in der Kundenakte berichtigen, dann stornieren und neu ausstellen.</p>
         <p><strong>Dieselbe Rechnung wie das PDF:</strong> dieselben Positionen mit Titeln und Texten, Positionsrabatt und Rabatt über die Rechnung, dieselbe Umsatzsteuer (auch Übergang der Steuerschuld und steuerfrei mit Grund), dasselbe Skonto und derselbe Zahlbetrag. Bei Teil- und Schlussrechnung stehen die abgezogenen Rechnungen als eigene Positionen mit Verweis; der Haft- oder Deckungsrücklass mindert den Zahlbetrag, nicht die Steuer. Nach einem Storno gibt es die Stornorechnung als E-Rechnung, mit ihrer eigenen Nummer und dem Verweis auf die stornierte Rechnung; die E-Rechnung der stornierten Rechnung selbst wird seit 27.10. nicht mehr angeboten.</p>
         <p><strong>Einreichen:</strong> An den Bund und andere öffentliche Stellen lädt man die Datei unter e-rechnung.gv.at hoch, angemeldet über das Unternehmensserviceportal (USP). An Unternehmen geht sie per E-Mail oder über deren Portal.</p>
         <p><strong>Lieferantennummer beim Kunden:</strong> Sie steht im Kundenformular und in der Kundenakte („Unsere Lieferantennummer bei diesem Kunden“). Wer im Dialog eine neue einträgt und Kunden pflegen darf, kann sie dort gleich beim Kunden merken.</p>
@@ -2979,7 +3011,7 @@
     <div class="bereiche">
       <div class="bereich">
         <h3>Rechnungen</h3>
-        <p>Aus der Baustelle zusammengestellt: Stunden <em>und</em> Material aus den unterschriebenen Handwerksscheinen, Preise frei änderbar; <strong>seit 23.10.</strong> dazu als Vorschlag, was das Lager ausgegeben hat und auf keinem Schein steht. Leistungszeitraum nach § 11 UStG, Rabatt, Nummernkreis ohne Lücken, <strong>PDF seit 23.09. als Geschäftsbrief</strong>: keine Farbflächen, Empfänger im Kuvertfenster, Bank, UID und Firmenbuch in der Fußzeile jeder Seite — dasselbe Layout für Leistungsnachweis, Mahnung und Angebot. Vor dem Anlegen steht, was die Scheine bestätigen — neben dem, was verrechnet wird. <strong>Seit 24.09. auch je Person, Tag und Satz:</strong> fehlen unterschriebene Stunden, steht jede Zeile da — „24.09. · Manfred Monteur · Facharbeiter: unterschrieben 08:00, verrechnet 00:00“ —, auch wenn die Summe stimmt. Fehlt der Leistungszeitraum oder steht er verdreht, sagt es die Maske: eine geschriebene Rechnung geht nur noch über einen Storno weg. <strong>Seit 23.10. ist „Leistung bis“ bei Regie der Stichtag:</strong> früher gesetzt, stellt die Vorschau auf Knopfdruck nur bis dahin zusammen; Späteres bleibt für die nächste Rechnung offen. <strong>Seit 24.09. sucht die Liste über alle Rechnungen</strong> — Nummer, Kunde, Baustelle —, nicht nur über die zuletzt geladenen fünfzig.</p>
+        <p>Aus der Baustelle zusammengestellt: Stunden <em>und</em> Material aus den unterschriebenen Handwerksscheinen, Preise frei änderbar; <strong>seit 23.10.</strong> dazu als Vorschlag, was das Lager ausgegeben hat und auf keinem Schein steht. Leistungszeitraum nach § 11 UStG, Rabatt, Nummernkreis ohne Lücken, <strong>PDF seit 23.09. als Geschäftsbrief</strong>: keine Farbflächen, Empfänger im Kuvertfenster, Bank, UID und Firmenbuch in der Fußzeile jeder Seite — dasselbe Layout für Leistungsnachweis, Mahnung und Angebot. Vor dem Anlegen steht, was die Scheine bestätigen — neben dem, was verrechnet wird. <strong>Seit 24.09. auch je Person, Tag und Satz:</strong> fehlen unterschriebene Stunden, steht jede Zeile da — „24.09. · Manfred Monteur · Facharbeiter: unterschrieben 08:00, verrechnet 00:00“ —, auch wenn die Summe stimmt. Fehlt der Leistungszeitraum oder steht er verdreht, sagt es die Maske — <strong>seit 27.10. bleibt der Knopf dann gesperrt</strong> (außer bei der Anzahlung), und die Datenbank weist es ebenso ab: eine geschriebene Rechnung geht nur noch über einen Storno weg. <strong>Seit 23.10. ist „Leistung bis“ bei Regie der Stichtag:</strong> früher gesetzt, stellt die Vorschau auf Knopfdruck nur bis dahin zusammen; Späteres bleibt für die nächste Rechnung offen. <strong>Seit 24.09. sucht die Liste über alle Rechnungen</strong> — Nummer, Kunde, Baustelle —, nicht nur über die zuletzt geladenen fünfzig.</p>
         <p class="wer">Buchhaltung · Geschäftsführung · Administrator</p>
       </div>
       <div class="bereich">

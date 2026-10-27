@@ -31,7 +31,7 @@ function anlegen(kopf: Record<string, unknown>, positionen?: Record<string, unkn
   return buch.client.rpc('rechnung_anlegen', {
     p_kopf: {
       invoice_number: `R3E-${++lauf}`, project_number: 'R3E-1', customer_name: 'Kunde',
-      invoice_date: '2026-10-06', due_date: '2026-10-20', address: 'Hauptplatz 1, 8200 Gleisdorf',
+      invoice_date: '2026-10-06', leistung_von: '2026-10-06', leistung_bis: '2026-10-06', due_date: '2026-10-20', address: 'Hauptplatz 1, 8200 Gleisdorf',
       total_netto: 100, total_vat: 20, total_brutto: 120, vat_rate: 0.2, payment_status: 'Offen',
       ...kopf,
     },

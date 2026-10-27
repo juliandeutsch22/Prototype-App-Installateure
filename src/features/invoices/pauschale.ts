@@ -1,4 +1,4 @@
-import type { Invoice, Quote, RechnungsArt } from '@/types';
+import type { Invoice, Project, Quote, RechnungsArt } from '@/types';
 import type { AssembledInvoice } from './assemble';
 import { norm } from './assemble';
 import { calcTotals, istPreiszeile, zeilenNetto, type InvoicePosition } from './totals';
@@ -163,4 +163,37 @@ export function einheitspreisVorschau(
       ? { linkedEntries: [], linkedOrders: [], linkedWorkSheets: [], entries: [] }
       : {}),
   };
+}
+
+/**
+ * DER LEISTUNGSZEITRAUM EINER PAUSCHAL- ODER EINHEITSPREISBAUSTELLE
+ * (Testbericht Runde 6, M8).
+ *
+ * Bei Regie kommt er aus den Buchungen und Scheinen. Eine Pauschale wird oft
+ * verrechnet, ohne dass jemand eine Stunde gebucht hat — dann blieben die
+ * Felder leer, und seit die Rechnung ohne Zeitraum nicht mehr entsteht, müsste
+ * das Büro ihn jedes Mal abtippen. Deshalb:
+ *
+ * - Was die Belege hergeben, gilt zuerst — wie bei Regie: das sind Tage, an
+ *   denen nachweislich gearbeitet wurde.
+ * - Sonst Beginn und Ende der Baustelle, nur wenn beides eingetragen ist
+ *   (dieselbe Regel wie bei der Anzahlung: ein halber Zeitraum wäre eine
+ *   erfundene Angabe). Das Ende ist „geplant“; liegt es nach heute, endet die
+ *   Leistung dieser Rechnung spätestens heute — eine Rechnung über erbrachte
+ *   Leistung kann keine künftige abrechnen.
+ * - Liegt der Beginn nach heute, gibt es nichts vorzubelegen.
+ *
+ * Vorbelegt heisst nicht festgelegt: die Felder bleiben änderbar.
+ */
+export function leistungNachAngebot(
+  ausBelegen: { von: string; bis: string } | null,
+  baustelle: Pick<Project, 'startDate' | 'endDate'> | null | undefined,
+  heute: string,
+): { von: string; bis: string } | null {
+  if (ausBelegen) return ausBelegen;
+  const von = baustelle?.startDate?.trim();
+  const ende = baustelle?.endDate?.trim();
+  if (!von || !ende) return null;
+  const bis = ende > heute ? heute : ende;
+  return von <= bis ? { von, bis } : null;
 }

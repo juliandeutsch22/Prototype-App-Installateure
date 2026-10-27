@@ -35,7 +35,7 @@ async function ausstellen(): Promise<WithId<Invoice>> {
     projectNumber: 'B-500',
     customerName: 'Familie Huber',
     address: 'Hauptstraße 1, 2700 Wiener Neustadt',
-    invoiceDate: `${JAHR}-04-30`,
+    invoiceDate: `${JAHR}-04-30`, leistungVon: `${JAHR}-04-30`, leistungBis: `${JAHR}-04-30`,
     dueDate: `${JAHR}-05-14`,
     subtotalNetto: 1000,
     totalNetto: 1000,

@@ -26,7 +26,7 @@ const strich = (name: string): WorkSheetUnterschrift => ({
 async function rechnung(nummer: string, invoiceDate: string): Promise<string> {
   return rechnungen.createInvoice(BETRIEB, {
     invoiceNumber: nummer, projectNumber: 'B-1', customerName: 'Familie Huber', address: 'Hauptstraße 1, 2700 Wiener Neustadt',
-    invoiceDate, dueDate: invoiceDate, subtotalNetto: 100, totalNetto: 100, totalVat: 20, totalBrutto: 120,
+    invoiceDate, dueDate: invoiceDate, leistungVon: invoiceDate, leistungBis: invoiceDate, subtotalNetto: 100, totalNetto: 100, totalVat: 20, totalBrutto: 120,
     vatRate: 0.2, paymentStatus: 'Offen',
     positions: [{ label: 'Leistung', qty: 1, unit: 'Pauschale', unitPrice: 100, netto: 100 }],
   });

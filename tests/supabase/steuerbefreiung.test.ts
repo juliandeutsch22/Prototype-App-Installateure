@@ -33,7 +33,7 @@ function anlegen(extra: Partial<rechnungen.NewInvoice> = {}): Promise<string> {
     projectNumber: 'B-300',
     customerName: 'Familie Maier',
     address: 'Hauptplatz 1, 8200 Gleisdorf',
-    invoiceDate: '2026-04-30',
+    invoiceDate: '2026-04-30', leistungVon: '2026-04-30', leistungBis: '2026-04-30',
     dueDate: '2026-05-14',
     totalNetto: 1000,
     totalVat: 0,

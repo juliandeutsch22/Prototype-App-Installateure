@@ -322,6 +322,31 @@ describe('ebInterface 6.1: was die Datei zurückhält', () => {
     expect(p.fehler.join(' ')).toMatch(/Leistungsdatum/);
   });
 
+  /*
+    WAS ZU TUN IST (Testbericht Runde 6, M6). Die Anschrift ist festgehalten,
+    im Dialog gibt es kein Feld dafür — die Meldung sagt den Weg: Kundenakte,
+    Storno, neue Rechnung. Bei der Stornorechnung gibt es diesen Weg nicht.
+  */
+  it('sagt bei einer Anschrift, die sich nicht zerlegen lässt, was zu tun ist', () => {
+    const p = ebiPruefen(allgemein(rechnung({ address: 'Bürgergasse 7, 82 Gleisdorf' })));
+    expect(p.fehler).toEqual([
+      'Die Anschrift auf der Rechnung („Bürgergasse 7, 82 Gleisdorf“) lässt sich nicht in Straße, Postleitzahl und Ort zerlegen. '
+        + 'Das ist mit der Rechnung festgehalten und lässt sich hier nicht ändern: die Anschrift in der Kundenakte berichtigen, '
+        + 'dann die Rechnung stornieren und neu ausstellen.',
+    ]);
+    expect(p.fehler.join(' ')).not.toMatch(/Angaben unten/);
+  });
+
+  it('sagt es auch bei fehlendem Leistungsdatum — und bei der Stornorechnung den anderen Weg', () => {
+    const ohne = ebiPruefen(allgemein(rechnung({ leistungVon: undefined, leistungBis: undefined })));
+    expect(ohne.fehler.join(' ')).toMatch(/stornieren und mit Leistungszeitraum neu ausstellen/);
+    const storno = ebiPruefen(allgemein(rechnung({
+      address: 'Bürgergasse 7, 82 Gleisdorf', paymentStatus: 'Storniert', stornoNummer: 'RE-2026-1600',
+    }), { storno: true }));
+    expect(storno.fehler.join(' ')).toMatch(/Stornorechnung trägt die festgehaltenen Angaben der Rechnung/);
+    expect(storno.fehler.join(' ')).not.toMatch(/stornieren und neu ausstellen/);
+  });
+
   it('bei einer Anzahlung ist das fehlende Leistungsdatum nur ein Hinweis', () => {
     const p = ebiPruefen(allgemein(rechnung({ art: 'anzahlung', leistungVon: undefined, leistungBis: undefined })));
     expect(p.fehler).toEqual([]);

@@ -78,7 +78,10 @@ import {
   schlussNachStorno, stornoText, teilrechnungenText,
 } from './vorrechnungen';
 import { scheinAbgleich } from './scheinAbgleich';
-import { einheitspreisVorschau, pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from './pauschale';
+import { einheitspreisVorschau, leistungNachAngebot, pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from './pauschale';
+import { wartungAlsPosition, wartungsVorschlaege, type WartungVorschlag } from './wartungPosition';
+import { anschriftZerlegen } from './ebinterface';
+import { wartungenDerBaustelle } from '@/lib/db/wartungen';
 import { ANZAHLUNG_PROZENT_VORGABE, anteilFehler, anzahlungVorschau } from './anzahlung';
 import { listQuotesForProject } from '@/lib/db/quotes';
 import { listBasiszinssaetze, type ZentralerBasiszinssatz } from '@/lib/db/basiszins';
@@ -90,6 +93,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Metric, { MetricRow } from '@/components/Metric';
 import IconButton from '@/components/IconButton';
+import WachsendesTextfeld from '@/components/WachsendesTextfeld';
 import StatusBadge from '@/components/StatusBadge';
 import { Marke, Warnung } from '@/components/Badge';
 import RechnungDetail, { type MahnungZeile, type RechnungAktion } from './RechnungDetail';
@@ -478,6 +482,14 @@ export default function InvoicesView() {
   */
   const [vorschlaege, setVorschlaege] = useState<MaterialVorschlag[]>([]);
   const [uebernommen, setUebernommen] = useState<string[]>([]);
+  /*
+    DER VEREINBARTE PREIS DER WARTUNG (Testbericht Runde 6, M9) — Vorschläge
+    wie beim Material, übernommen auf Klick. `ohneBelege`: die Vorschau steht,
+    obwohl es nichts Offenes gibt; die Zeile sagt es, statt einer Fehlermeldung
+    ohne Vorschau.
+  */
+  const [wartungVorschlaege, setWartungVorschlaege] = useState<WartungVorschlag[]>([]);
+  const [ohneBelege, setOhneBelege] = useState<string | null>(null);
   const [ausgabenFehler, setAusgabenFehler] = useState(false);
   /*
     Zwei Hinweise zum Material der Scheine (24.10.2026): ein Schein im schon
@@ -1250,6 +1262,20 @@ export default function InvoicesView() {
     setUebernommen((u) => [...u, v.schluessel]);
   }
 
+  /**
+   * Die Wartung zum vereinbarten Preis übernehmen. Hat die Rechnung noch
+   * keinen Zeitraum, ist der Tag der Ausführung der Leistungstag — wie bei
+   * Regie der Tag der Buchung.
+   */
+  function wartungUebernehmen(v: WartungVorschlag) {
+    setPreview((p) => (p ? recalc(p, [...p.positions, wartungAlsPosition(v)], satz, rabatt) : p));
+    setUebernommen((u) => [...u, v.schluessel]);
+    if (v.am && !leistungVon && !leistungBis) {
+      setLeistungVon(v.am);
+      setLeistungBis(v.am);
+    }
+  }
+
   /** Eigene Zeile anlegen — leer oder als vorbereitete Pauschale. */
   function neuePos(label = '', qty = 1, unit = 'Stk') {
     setPreview((p) =>
@@ -1279,6 +1305,8 @@ export default function InvoicesView() {
     setBelegDaten([]);
     setVorschlaege([]);
     setUebernommen([]);
+    setWartungVorschlaege([]);
+    setOhneBelege(null);
     setAusgabenFehler(false);
     setNachgetragen([]);
     setEntwuerfe([]);
@@ -1346,7 +1374,7 @@ export default function InvoicesView() {
       const baustelle = projects.find((x) => x.projectNumber === projectNumber);
       const nachAngebot =
         baustelle?.billingMode === 'Pauschal' || baustelle?.billingMode === 'Einheitspreis';
-      const [entries, scheine, derBaustelle, ausgabenAlle] = await Promise.all([
+      const [entries, scheine, derBaustelle, ausgabenAlle, wartungen] = await Promise.all([
         listEntriesForProjects(user.companyId, [projectNumber]),
         listWorkSheetsForProject(user.companyId, projectNumber).catch(() => {
           setNebenFehler('Die Handwerksscheine');
@@ -1364,6 +1392,15 @@ export default function InvoicesView() {
             setAusgabenFehler(true);
             return [] as Ausgabe[];
           }),
+        /*
+          Die Wartungen dieser Baustelle — für ihren vereinbarten Preis (M9).
+          Kommen sie nicht, entsteht die Rechnung trotzdem; die Zeile oben
+          sagt, was fehlt.
+        */
+        wartungenDerBaustelle(user.companyId, projectNumber).catch(() => {
+          setNebenFehler('Die Wartungen dieser Baustelle');
+          return [];
+        }),
       ]);
       /*
         PREISE NUR FÜR DAS MATERIAL AUF DEN SCHEINEN (19.10.2026) — aus dem
@@ -1425,6 +1462,7 @@ export default function InvoicesView() {
       // Ein STORNIERTER Beleg zaehlt dabei nicht — sein Material ist wieder
       // offen.
       const bereitsVerrechnet = verrechneteScheine(derBaustelle);
+      const ausWartung = wartungsVorschlaege(wartungen, derBaustelle, projectNumber);
       /*
         DER STICHTAG GILT NUR BEI REGIE. Pauschale und Einheitspreis rechnen
         nach dem Angebot ab; ihre Schlussrechnung verknüpft alle offenen
@@ -1459,11 +1497,16 @@ export default function InvoicesView() {
         const angebot = pauschalAngebot(angebote);
         setPauschalAus(angebot ? `${angebot.quoteNumber} (${euro(angebot.totalNetto)} netto)` : '');
         setNachAufmass(einheitspreis);
-        await vorschauUebernehmen(
-          einheitspreis
-            ? einheitspreisVorschau(art, assembled, angebot, satz)
-            : pauschalVorschau(art, assembled, angebot, satz),
-        );
+        const vorschau = einheitspreis
+          ? einheitspreisVorschau(art, assembled, angebot, satz)
+          : pauschalVorschau(art, assembled, angebot, satz);
+        /*
+          BEGINN UND ENDE DER BAUSTELLE, wenn die Belege keinen Zeitraum
+          hergeben (Testbericht Runde 6, M8) — siehe `leistungNachAngebot`.
+        */
+        vorschau.leistung = leistungNachAngebot(vorschau.leistung, baustelle, todayStr());
+        await vorschauUebernehmen(vorschau);
+        setWartungVorschlaege(ausWartung);
         return;
       }
       /*
@@ -1499,16 +1542,25 @@ export default function InvoicesView() {
           assembled.leistung?.von, assembled.leistung?.bis, ...ausgaben.map((a) => a.datum),
         ]);
       }
-      if (assembled.positions.length === 0 && vorschlag.length === 0) {
-        setPreview(null);
-        setError(
-          bis
-            ? `Bis zum ${datumAT(bis)} gibt es keine offenen Stunden und kein offenes Material für diese Baustelle.`
-            : 'Keine offenen Stunden und kein offenes Material für diese Baustelle.',
-        );
-        return;
-      }
+      /*
+        NICHTS OFFEN IST KEIN FEHLER (Testbericht Runde 6, M9). Vorher stand
+        hier eine Fehlermeldung und keine Vorschau — eine Wartung zum
+        Pauschalpreis oder eine vereinbarte Leistung ohne Buchung liess sich
+        so gar nicht verrechnen. Jetzt steht die leere Vorschau mit „Position
+        hinzufügen“ da. Eine leere Rechnung entsteht trotzdem nie: ohne
+        Position oder bei null Euro bleibt der Knopf gesperrt, und die
+        Datenbank weist beides ab (`rechnung_anlegen`).
+      */
+      const nichtsOffen = assembled.positions.length === 0 && vorschlag.length === 0;
       await vorschauUebernehmen(assembled);
+      setOhneBelege(
+        nichtsOffen
+          ? bis
+            ? `Bis zum ${datumAT(bis)} gibt es keine offenen Stunden und kein offenes Material für diese Baustelle.`
+            : 'Keine offenen Stunden und kein offenes Material für diese Baustelle.'
+          : null,
+      );
+      setWartungVorschlaege(ausWartung);
       setVorschlaege(vorschlag);
       setSpaeterGetragen(spaeterAbgezogen);
       const scheineDerRechnung = scheine.filter((s) => assembled.linkedWorkSheets.includes(s.id));
@@ -1633,6 +1685,12 @@ export default function InvoicesView() {
     const uidFalsch = uidFehler(kundenUid);
     if (uidFalsch) {
       setError(uidFalsch);
+      return;
+    }
+    if (zeitraumFehlt || zeitraumVerdreht) {
+      setError(zeitraumFehlt
+        ? 'Ohne Leistungszeitraum wird die Rechnung nicht erstellt — bitte „Leistung von“ und „Leistung bis“ eintragen.'
+        : '„Leistung bis“ liegt vor „Leistung von“ — bitte den Zeitraum berichtigen.');
       return;
     }
     // Runde 3, M9/M10 und H3: dieselben Sperren wie am Knopf, falls er doch erreicht wird.
@@ -2293,6 +2351,31 @@ export default function InvoicesView() {
     Datenbank (`rechnung_anlegen`) weist beides ebenso ab.
   */
   const leer = !!preview && (preview.positions.length === 0 || preview.totalNetto <= 0);
+
+  /*
+    OHNE LEISTUNGSZEITRAUM KEINE RECHNUNG (Testbericht Runde 6, M8). Bis
+    hierher stand nur ein Hinweis, und RE-2026-1511 ging ohne Tag und Zeitraum
+    der Leistung hinaus (§ 11 UStG). Verdreht ist er ebenso gesperrt — eine
+    geschriebene Rechnung geht nur noch über einen Storno weg. Die Anzahlung
+    ist ausgenommen: ihre Leistung steht noch aus. Die Datenbank sperrt
+    dasselbe (`app.leistungszeitraum_pflicht`).
+  */
+  const zeitraumFehlt = !!preview && art !== 'anzahlung' && (!leistungVon || !leistungBis);
+  const zeitraumVerdreht = !!leistungVon && !!leistungBis && leistungBis < leistungVon;
+
+  /*
+    TAUGT DIE ANSCHRIFT FÜR DIE E-RECHNUNG? (Testbericht Runde 6, M6) Mit
+    derselben Zerlegung wie die E-Rechnung selbst (`anschriftZerlegen`) — nicht
+    mit einer zweiten Regel. Eine Warnung, keine Sperre: das PDF ist mit
+    dieser Anschrift vollständig, nur die E-Rechnung würde abgewiesen. Gesagt
+    wird es jetzt, weil die Anschrift danach festgehalten ist.
+  */
+  const eRechnungAnschrift = (() => {
+    if (!preview || empfaengerBefund) return null;
+    const p = projects.find((x) => x.projectNumber === projectNumber);
+    const anschrift = kundeDerVorschau?.address?.trim() || p?.address || '';
+    return anschrift && !anschriftZerlegen(anschrift) ? anschrift : null;
+  })();
 
   /** Abgezogen wird nur, wo es etwas abzuziehen gibt. */
   const zieheAb = art === 'teil' || art === 'schluss';
@@ -3163,7 +3246,11 @@ export default function InvoicesView() {
             'spätere Stunden und Scheine bleiben für die nächste Rechnung offen. Darunter steht, was ' +
             'das Lager für die Baustelle ausgegeben hat und auf keinem Schein steht; „Übernehmen“ ' +
             'setzt es zum Katalogpreis ein. Mit dem Leistungsende dieser Rechnung gilt das ' +
-            'Ausgegebene als abgerechnet, übernommen oder nicht.'
+            'Ausgegebene als abgerechnet, übernommen oder nicht. Ohne Leistungszeitraum entsteht ' +
+            'keine Rechnung (außer der Anzahlung); bei Pauschale und Einheitspreis ist er aus den ' +
+            'Belegen vorbelegt, sonst aus Beginn und Ende der Baustelle (höchstens bis heute). Ist ' +
+            'die Baustelle aus einer Wartung mit Preis entstanden, steht die Wartung „laut ' +
+            'Vereinbarung“ zum Übernehmen da.'
           }
         >
           {/*
@@ -3199,12 +3286,13 @@ export default function InvoicesView() {
             stünde hier gegen den Beleg — und wer sie befolgt, trägt ein
             Datum ein, das es nicht gibt.
           */}
-          {art !== 'anzahlung' && (!leistungVon || !leistungBis) && (
+          {zeitraumFehlt && (
             <div className="mb-3">
               <Hinweiszeile stufe="warn">
                 <p>
-                  Ohne Leistungszeitraum ist die Rechnung nach § 11 UStG unvollständig — beim Kunden
-                  wackelt damit der Vorsteuerabzug.
+                  Ohne Leistungszeitraum wird die Rechnung nicht erstellt: § 11 UStG verlangt Tag oder
+                  Zeitraum der Leistung, sonst wackelt beim Kunden der Vorsteuerabzug. Für einen einzelnen
+                  Tag beide Felder gleich setzen.
                 </p>
               </Hinweiszeile>
             </div>
@@ -3219,17 +3307,17 @@ export default function InvoicesView() {
             geschriebene Rechnung geht nur noch über einen Storno weg, und
             zwischendurch ist sie beim Kunden und im Journal.
 
-            Gesperrt wird trotzdem nicht — dieselbe Entscheidung wie eine
-            Zeile darüber, wo der ganz FEHLENDE Zeitraum der schwerere Mangel
-            ist und ebenfalls nur gemeldet wird. Zwei verschiedene Maßstäbe in
-            derselben Maske wären für niemanden nachvollziehbar.
+            Seit dem Testbericht Runde 6 (M8) sperrt der fehlende Zeitraum den
+            Knopf — der verdrehte deshalb ebenso: zwei verschiedene Maßstäbe
+            in derselben Maske wären für niemanden nachvollziehbar.
           */}
-          {leistungVon && leistungBis && leistungBis < leistungVon && (
+          {zeitraumVerdreht && (
             <div className="mb-3">
               <Hinweiszeile stufe="warn">
                 <p>
                   „Leistung bis“ liegt vor „Leistung von“ — so stünde der Zeitraum verdreht auf der
-                  Rechnung. Zurückzunehmen wäre das nur noch mit einem Storno.
+                  Rechnung, und zurückzunehmen wäre das nur noch mit einem Storno. Erst berichtigen, dann
+                  erstellen.
                 </p>
               </Hinweiszeile>
             </div>
@@ -3457,15 +3545,31 @@ export default function InvoicesView() {
               Die Beträge stehen `whitespace-nowrap`: am Handy war die
               Spalte „Netto“ 24 px schmal, „€ 1 404,00“ brach Zeichen für
               Zeichen, und jede Zeile wurde 200 px hoch. */}
+          {ohneBelege && (
+            <div className="mb-3">
+              <Hinweiszeile>
+                <p>
+                  {ohneBelege} Was verrechnet werden soll — etwa eine vereinbarte Pauschale —, mit
+                  „Position hinzufügen“ eintragen.
+                </p>
+              </Hinweiszeile>
+            </div>
+          )}
           <div className="relative overflow-x-auto">
             <table className="w-full min-w-[34rem] text-sm">
               <thead>
+                {/*
+                  KOPF UND FELD BÜNDIG (Testbericht Runde 6, G2): „Menge“ und
+                  „EP“ stehen rechts, also stehen ihre Felder rechts in der
+                  Zelle — vorher links, und „EP“ hing rund 70 px neben seinem
+                  Feld. Kein Kopf bricht um.
+                */}
                 <tr className="border-b border-line text-left text-ink-muted">
-                  <th className="py-1 pr-3 font-normal">Position</th>
-                  <th className="py-1 pr-3 text-right font-normal">Menge</th>
-                  <th className="py-1 pr-3 font-normal">Einheit</th>
-                  <th className="py-1 pr-3 text-right font-normal">EP</th>
-                  <th className="py-1 pr-3 text-right font-normal">Netto</th>
+                  <th className="whitespace-nowrap py-1 pr-3 font-normal">Position</th>
+                  <th className="whitespace-nowrap py-1 pr-3 text-right font-normal">Menge</th>
+                  <th className="whitespace-nowrap py-1 pr-3 font-normal">Einheit</th>
+                  <th className="whitespace-nowrap py-1 pr-3 text-right font-normal">EP</th>
+                  <th className="whitespace-nowrap py-1 pr-3 text-right font-normal">Netto</th>
                   <th className="py-1 text-right font-normal">
                     <span className="sr-only">Entfernen</span>
                   </th>
@@ -3477,13 +3581,13 @@ export default function InvoicesView() {
                     TITEL UND TEXT AUS DEM ANGEBOT (M18): nur die Bezeichnung,
                     keine Menge und kein Preis — sie zählen nie zur Summe.
                   */
-                  <tr key={i} className="border-b border-line">
+                  <tr key={i} className="border-b border-line align-top">
                     <td colSpan={5} className="py-2 pr-3">
-                      <input
+                      <WachsendesTextfeld
                         aria-label={`${p.art === 'titel' ? 'Titel' : 'Text'} ${i + 1}`}
                         className={p.art === 'titel' ? 'position-titel' : 'position-textzeile'}
                         value={p.label}
-                        onChange={(e) => setPos(i, { label: e.target.value })}
+                        onWert={(label) => setPos(i, { label })}
                       />
                     </td>
                     <td className="py-2 text-right">
@@ -3497,19 +3601,25 @@ export default function InvoicesView() {
                     </td>
                   </tr>
                 ) : (
-                  <tr key={i} className="border-b border-line">
+                  /*
+                    LANGE BEZEICHNUNGEN BRECHEN UM (G2): ein Textfeld, das mit
+                    dem Inhalt wächst, statt „…Nachtc“ abzuschneiden. Die Zeile
+                    steht oben bündig, damit Menge und Preis neben dem Anfang
+                    der Bezeichnung bleiben.
+                  */
+                  <tr key={i} className="border-b border-line align-top">
                     <td className="py-2 pr-3">
-                      <input
+                      <WachsendesTextfeld
                         aria-label={`Bezeichnung Position ${i + 1}`}
                         className="position-bezeichnung"
                         value={p.label}
-                        onChange={(e) => setPos(i, { label: e.target.value })}
+                        onWert={(label) => setPos(i, { label })}
                       />
                       {positionsRabattText(p.rabattProzent) && (
                         <span className="mt-1 block text-xs text-ink-muted">{positionsRabattText(p.rabattProzent)} (aus dem Angebot)</span>
                       )}
                     </td>
-                    <td className="py-2 pr-3">
+                    <td className="py-2 pr-3 text-right">
                       {/* Über die zentrale Zahlenlesung (M15): „7.500,50“ ist keine 0 mehr. */}
                       <ZahlZelle
                         aria-label={`Menge Position ${i + 1}`}
@@ -3528,7 +3638,7 @@ export default function InvoicesView() {
                         onChange={(e) => setPos(i, { unit: e.target.value })}
                       />
                     </td>
-                    <td className="py-2 pr-3">
+                    <td className="py-2 pr-3 text-right">
                       <ZahlZelle
                         aria-label={`Einzelpreis Position ${i + 1}`}
                         /*
@@ -3545,7 +3655,9 @@ export default function InvoicesView() {
                         onWert={(n) => setPos(i, { unitPrice: n })}
                       />
                     </td>
-                    <td className="whitespace-nowrap py-2 pr-3 text-right font-normal">{euro(p.netto)}</td>
+                    <td className="whitespace-nowrap py-2 pr-3 text-right font-normal">
+                      <span className="position-betrag">{euro(p.netto)}</span>
+                    </td>
                     <td className="py-2 text-right">
                       <IconButton
                         label={`Position ${i + 1} entfernen`}
@@ -3631,6 +3743,44 @@ export default function InvoicesView() {
               Anfahrt
             </Button>
           </div>
+
+          {/*
+            AUS DER WARTUNG (Testbericht Runde 6, M9): der vereinbarte Preis je
+            Wartung als Vorschlag. Übernommen wird auf Klick — ob daneben noch
+            Stunden oder Material verrechnet werden, steht im Vertrag, nicht
+            hier. Steht die Zeile schon auf einer gültigen Rechnung dieser
+            Baustelle, sagt es der Vorschlag.
+          */}
+          {wartungVorschlaege.length > 0 && (
+            <div className="mt-4 border-t border-line pt-4">
+              <div className="mb-2">
+                <span className="section-label">Aus der Wartung</span>
+              </div>
+              <List>
+                {wartungVorschlaege.map((v) => (
+                  <ListRow
+                    key={v.schluessel}
+                    title={v.label}
+                    subtitle={[
+                      'Preis je Wartung laut Vereinbarung',
+                      v.am ? `gewartet am ${datumAT(v.am)}` : 'noch nicht als erledigt eingetragen',
+                    ].join(' · ')}
+                    wert={euro(v.preis)}
+                  >
+                    {v.schonAuf ? (
+                      <span className="text-sm text-ink-muted">auf {v.schonAuf}</span>
+                    ) : uebernommen.includes(v.schluessel) ? (
+                      <span className="text-sm text-ink-muted">übernommen</span>
+                    ) : (
+                      <Button variant="secondary" onClick={() => wartungUebernehmen(v)}>
+                        Übernehmen
+                      </Button>
+                    )}
+                  </ListRow>
+                ))}
+              </List>
+            </div>
+          )}
 
           {/*
             AUSGEGEBEN, NICHT AUF EINEM SCHEIN (23.10.2026). Was das Lager
@@ -4160,6 +4310,28 @@ export default function InvoicesView() {
                 )}
               </p>
             )}
+            {(zeitraumFehlt || zeitraumVerdreht) && (
+              <p className="text-sm text-warning" role="alert">
+                {zeitraumFehlt
+                  ? 'Leistung von und bis fehlen — ohne sie wird die Rechnung nicht erstellt (oben bei der Vorschau eintragen).'
+                  : 'Der Leistungszeitraum ist verdreht — bitte oben bei der Vorschau berichtigen.'}
+              </p>
+            )}
+            {eRechnungAnschrift && (
+              <p className="text-sm text-warning">
+                Die Anschrift „{eRechnungAnschrift}“ lässt sich nicht in Straße, Postleitzahl und Ort
+                zerlegen — eine E-Rechnung zu dieser Rechnung würde abgewiesen. Die Anschrift wird mit der
+                Rechnung festgehalten; wer eine E-Rechnung braucht, berichtigt sie vorher in der Kundenakte.
+                {kundeDerVorschau?.id && (
+                  <>
+                    {' '}
+                    <Link to={`/customers/${kundeDerVorschau.id}`} className="link-hinweis-weiter">
+                      Zur Kundenakte
+                    </Link>
+                  </>
+                )}
+              </p>
+            )}
             {leer && (
               <p className="text-sm text-warning" role="alert">
                 {preview.positions.length === 0
@@ -4180,6 +4352,8 @@ export default function InvoicesView() {
                   || !!uidFormFehler
                   || !!summen?.gutschrift
                   || leer
+                  || zeitraumFehlt
+                  || zeitraumVerdreht
                   || firmaSperrtRechnung(company).length > 0
                   || !!empfaengerBefund
                 }
