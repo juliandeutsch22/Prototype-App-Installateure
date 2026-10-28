@@ -14,7 +14,15 @@ for (const width of [390, 834, 1440]) for (const reducedMotion of ['no-preferenc
     const dialog = page.getByRole('dialog', { name: 'Ungespeicherte Änderungen verwerfen?', exact: true });
     await expect(dialog).toBeVisible();
     for (let i = 0; i < 5; i++) { await page.keyboard.press('Tab'); expect(await dialog.evaluate(el => el.contains(document.activeElement))).toBe(true); }
-    if (reducedMotion === 'reduce') expect(await dialog.evaluate(el => el.getAnimations({ subtree: true }).filter(a => a.playState === 'running').length)).toBe(0);
+    if (reducedMotion === 'reduce') {
+      const bewegung = await dialog.evaluate(el => el.getAnimations({ subtree: true })
+        .filter(a => a.playState === 'running').map(a => ({
+          element: ((a.effect as KeyframeEffect | null)?.target as Element | null)?.tagName,
+          pseudo: (a.effect as KeyframeEffect | null)?.pseudoElement,
+          dauer: a.effect?.getComputedTiming().duration,
+        })));
+      expect(bewegung).toEqual([]);
+    }
     await page.keyboard.press('Escape'); await expect(dialog).toHaveCount(0);
     await expect(page.getByLabel('Firmenname', { exact: true })).toHaveValue('Offene Briefkopfänderung');
     // Das mobile Mehr-Blatt bleibt absichtlich unter der abgebrochenen Rückfrage.
@@ -120,3 +128,19 @@ for (const width of [320, 1440]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   });
 }
+
+test('Premium: unveränderte Ladebeschriftung lässt dem Spinner seinen Platz', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.route('**/tools/vorschau/AuthStub.tsx*', async r => {
+    const response = await r.fetch();
+    const body = (await response.text()).replace(/reloadCompany:\s*async\s*\(\)\s*=>\s*\{\s*\}/,
+      "reloadCompany: (() => { let first = true; return async () => { if (first) { first = false; throw new Error('Nachladen nicht möglich'); } return new Promise(() => {}); }; })()");
+    await r.fulfill({ response, body });
+  });
+  await page.goto('./?pfad=%2Fsettings%2Ffirma&rolle=Administrator');
+  await page.getByLabel('Firmenname', { exact: true }).fill('Gespeicherter Stand');
+  await page.getByRole('button', { name: 'Firmendaten speichern', exact: true }).click();
+  const retry = page.getByRole('button', { name: 'Anzeige erneut laden', exact: true });
+  await retry.click(); await expect(retry).toBeDisabled();
+  expect((await retry.locator('.animate-spin').boundingBox())!.width).toBeGreaterThanOrEqual(15);
+});

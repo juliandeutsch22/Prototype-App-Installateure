@@ -45,7 +45,13 @@
 .unten :where(button, a):focus-visible { outline-offset: -4px; }
 @media (prefers-reduced-motion: reduce) {
   .lot-knopf, .lot-knopf *, .lot-overlay, .lot-overlay *, .lot-menue, .lot-menue *,
-  .reiterleiste a, .segment > button, [role=tab] {
+  .reiterleiste a, .segment > button, [role=tab],
+  :is(.lot-knopf, .lot-overlay, .lot-menue, .reiterleiste a, .segment > button, [role=tab])::before,
+  :is(.lot-knopf, .lot-overlay, .lot-menue, .reiterleiste a, .segment > button, [role=tab])::after,
+  :is(.lot-knopf, .lot-overlay, .lot-menue) *::before,
+  :is(.lot-knopf, .lot-overlay, .lot-menue) *::after {
+    /* Auch Pseudoelemente: die globale 0,01-ms-Regel erzeugt sonst in
+       WebKit noch Farb-Transitions beim Einfügen eines Dialogs. */
     animation: none !important;
     transition: none !important;
   }
