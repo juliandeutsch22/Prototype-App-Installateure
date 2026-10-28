@@ -18,6 +18,7 @@ import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, type WithId }
 import { objektAlsZeile } from './felder';
 import { oderUeberSpalten } from './suche';
 import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
+import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
 
 const RECHNUNGEN = 'invoices';
 const POSITIONEN = 'invoice_lines';
@@ -623,8 +624,15 @@ export async function rechnungAusstellen(
     p_praefix: nummer.praefix ?? PRAEFIX_VORGABE.rechnung,
     p_jahr: new Date().getFullYear(),
     p_wunsch: nummer.desired ?? null,
-  });
-  if (error) throw new Error(error.message);
+  }).then((antwort) => antwort, () => { throw new RechnungsAntwortUnklar(); });
+  if (error) {
+    // Nur eine SQL-Fehlerantwort belegt die Ablehnung der Transaktion.
+    if (/^[0-9A-Z]{5}$/.test(error.code ?? '')) throw new Error(error.message);
+    throw new RechnungsAntwortUnklar();
+  }
+  if (!data || typeof data.id !== 'string' || typeof data.invoice_number !== 'string') {
+    throw new RechnungsAntwortUnklar();
+  }
   const r = data as { id: string; invoice_number: string };
   return { id: String(r.id), invoiceNumber: String(r.invoice_number) };
 }

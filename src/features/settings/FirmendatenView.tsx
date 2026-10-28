@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { updateCompany } from '@/lib/db/company';
 import { isTopLevel } from '@/lib/permissions';
@@ -17,6 +17,9 @@ import AdressteileFelder from '@/components/AdressteileFelder';
 import { adresseZeile, angabenZuPruefen, type Adressteile } from '@/lib/adresse';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { uidFehler, uidSperrt } from '@/lib/uid';
+import Aktionsleiste from '@/components/Aktionsleiste';
+import Hinweiszeile from '@/components/Hinweiszeile';
+import { useUngespeichertWarnung } from '@/lib/ungespeichert';
 import { bicFehler, ibanAnzeige, ibanFehler, ibanNormal } from '@shared/iban';
 
 /**
@@ -80,6 +83,45 @@ export default function FirmendatenView() {
   const [logoFehler, setLogoFehler] = useState<string | null>(null);
   const [logoLaeuft, setLogoLaeuft] = useState(false);
 
+  const eingabe = {
+    name, adresse, firmenbuchgericht, eingetragen, contactLine, vatId, companyRegister,
+    iban, bic, bankName, logoUrl, brandColor, brandForeground, accentColor, accentForeground,
+  };
+  const [letzterStand, setLetzterStand] = useState(eingabe);
+  const geaendert = JSON.stringify(eingabe) !== JSON.stringify(letzterStand);
+  const [bestaetigt, setBestaetigt] = useState(false);
+  const [anzeigeFehler, setAnzeigeFehler] = useState(false);
+  const [laedtAnzeige, setLaedtAnzeige] = useState(false);
+  const speichert = useRef(false);
+  const logoLauf = useRef(0);
+  const warnung = useUngespeichertWarnung(!!user && isTopLevel(user.role) && (geaendert || logoLaeuft));
+  function verwerfen() {
+    const v = letzterStand;
+    setName(v.name);
+    setAdresse(v.adresse);
+    setFirmenbuchgericht(v.firmenbuchgericht);
+    setEingetragen(v.eingetragen);
+    setContactLine(v.contactLine);
+    setVatId(v.vatId);
+    setCompanyRegister(v.companyRegister);
+    setIban(v.iban);
+    setBic(v.bic);
+    setBankName(v.bankName);
+    setLogoUrl(v.logoUrl);
+    setBrandColor(v.brandColor);
+    setBrandForeground(v.brandForeground);
+    setAccentColor(v.accentColor);
+    setAccentForeground(v.accentForeground);
+    setError(null);
+    setLogoFehler(null);
+  }
+  async function anzeigeLaden() {
+    setLaedtAnzeige(true);
+    try { await reloadCompany(); setAnzeigeFehler(false); }
+    catch { setAnzeigeFehler(true); }
+    finally { setLaedtAnzeige(false); }
+  }
+
   if (!user) return null;
   if (!isTopLevel(user.role)) {
     return (
@@ -97,21 +139,24 @@ export default function FirmendatenView() {
 
   async function logoWaehlen(datei: File | undefined) {
     if (!datei) return;
+    const lauf = ++logoLauf.current;
     setLogoFehler(null);
     setLogoLaeuft(true);
     try {
-      setLogoUrl(await logoAufbereiten(datei));
+      const logo = await logoAufbereiten(datei);
+      if (lauf === logoLauf.current) setLogoUrl(logo);
     } catch (e) {
       /*
         Der Text kommt aus `LogoFehler` und ist für den Betrieb geschrieben.
         Alles andere bekommt einen eigenen Satz — eine durchgereichte
         technische Meldung hilft hier niemandem.
       */
+      if (lauf !== logoLauf.current) return;
       setLogoFehler(
         e instanceof LogoFehler ? e.message : 'Das Logo konnte nicht verarbeitet werden.',
       );
     } finally {
-      setLogoLaeuft(false);
+      if (lauf === logoLauf.current) setLogoLaeuft(false);
     }
   }
 
@@ -121,9 +166,10 @@ export default function FirmendatenView() {
   }
 
   async function speichern(plzBestaetigt: boolean) {
+    if (speichert.current || logoLaeuft) return;
     // Die eigene UID steht auf jedem Beleg — eine falsche Form hält auf, wenn
     // sie geändert wurde (Testbericht 30.09.2026, M10).
-    const uidSperre = uidSperrt(vatId, company?.vatId);
+    const uidSperre = uidSperrt(vatId, letzterStand.vatId);
     if (uidSperre) {
       setError(uidSperre);
       return;
@@ -134,12 +180,12 @@ export default function FirmendatenView() {
       geänderter Wert auf; ein Altbestand steht markiert da, bis jemand ihn
       berichtigt — dann prüft auch die Datenbank.
     */
-    const ibanGeaendert = ibanNormal(iban) !== ibanNormal(company?.iban);
+    const ibanGeaendert = ibanNormal(iban) !== ibanNormal(letzterStand.iban);
     if (ibanGeaendert && ibanFalsch) {
       setError(ibanFalsch);
       return;
     }
-    if (ibanNormal(bic) !== ibanNormal(company?.bic) && bicFalsch) {
+    if (ibanNormal(bic) !== ibanNormal(letzterStand.bic) && bicFalsch) {
       setError(bicFalsch);
       return;
     }
@@ -150,14 +196,16 @@ export default function FirmendatenView() {
     */
     if (!plzBestaetigt) {
       const funde = angabenZuPruefen(adresse, {
-        plz: company?.plz ?? '',
-        land: company?.land ?? 'AT',
+        plz: letzterStand.adresse.plz ?? '',
+        land: letzterStand.adresse.land ?? 'AT',
       });
       if (funde.length > 0) {
         setPlzFrage(funde);
         return;
       }
     }
+    speichert.current = true;
+    const gesendet = eingabe;
     setSaving(true);
     setError(null);
     try {
@@ -190,11 +238,15 @@ export default function FirmendatenView() {
         accentColor: accentColor.trim(),
         accentForeground: accentForeground.trim(),
       });
-      await reloadCompany();
+      setLetzterStand(gesendet);
+      setBestaetigt(true);
       toast.success('Firmendaten gespeichert');
+      // Ein Fehler beim Lesen darf das bestätigte Schreiben nicht zurücknehmen.
+      await anzeigeLaden();
     } catch (err) {
       setError(grundAus(err, 'Die Firmendaten konnten nicht gespeichert werden.'));
     } finally {
+      speichert.current = false;
       setSaving(false);
     }
   }
@@ -262,7 +314,7 @@ export default function FirmendatenView() {
               <p className="text-xs text-ink-muted">
                 Rund <span>{Math.round(dataUrlBytes(logoUrl) / 1024)}</span> kB.
               </p>
-              <Button variant="danger" onClick={() => setLogoUrl('')}>
+              <Button type="button" variant="danger" onClick={() => setLogoUrl('')}>
                 Logo entfernen
               </Button>
             </div>
@@ -307,9 +359,10 @@ export default function FirmendatenView() {
                 placeholder="z. B. ATU12345678"
                 value={vatId}
                 aria-invalid={uidFalsch ? true : undefined}
+                aria-describedby={uidFalsch ? 'fd-uid-fehler' : undefined}
                 onChange={(e) => setVatId(e.target.value)}
               />
-              {uidFalsch && <p className="mt-1 text-sm text-danger">{uidFalsch}</p>}
+              {uidFalsch && <p id="fd-uid-fehler" className="mt-1 text-sm text-danger">{uidFalsch}</p>}
             </div>
             <div className="sm:col-span-2">
               <CheckboxField
@@ -340,11 +393,12 @@ export default function FirmendatenView() {
                 placeholder="z. B. AT61 1904 3002 3457 3201"
                 value={iban}
                 aria-invalid={ibanFalsch ? true : undefined}
+                aria-describedby={ibanFalsch ? 'fd-iban-fehler' : undefined}
                 onChange={(e) => setIban(e.target.value)}
                 onBlur={() => setIban((x) => ibanAnzeige(x))}
               />
               {ibanFalsch && (
-                <p className="mt-1 text-sm text-danger">
+                <p id="fd-iban-fehler" className="mt-1 text-sm text-danger">
                   {ibanFalsch}
                   {ibanNormal(iban) === ibanNormal(company?.iban) && ' Mit dieser IBAN lässt sich keine Rechnung erstellen.'}
                 </p>
@@ -357,9 +411,10 @@ export default function FirmendatenView() {
                 placeholder="z. B. BKAUATWW"
                 value={bic}
                 aria-invalid={bicFalsch ? true : undefined}
+                aria-describedby={bicFalsch ? 'fd-bic-fehler' : undefined}
                 onChange={(e) => setBic(e.target.value)}
               />
-              {bicFalsch && <p className="mt-1 text-sm text-danger">{bicFalsch}</p>}
+              {bicFalsch && <p id="fd-bic-fehler" className="mt-1 text-sm text-danger">{bicFalsch}</p>}
             </div>
             <InputField
               id="fd-bank"
@@ -469,13 +524,15 @@ export default function FirmendatenView() {
 
         {error && <ErrorState message={error} />}
 
-        <div className="fuss-aktionen">
-          <Button type="submit" loading={saving} disabled={logoLaeuft}>
-            Firmendaten speichern
-          </Button>
-        </div>
+        {anzeigeFehler && <Hinweiszeile stufe="warn" role="status"><p>Firmendaten gespeichert. Die Anzeige konnte noch nicht aktualisiert werden.</p><Button type="button" variant="secondary" groesse="klein" loading={laedtAnzeige} onClick={anzeigeLaden}>Anzeige erneut laden</Button></Hinweiszeile>}
+        <Aktionsleiste
+          summe={{ name: <span role="status" className="lot-speicherstand">{saving ? 'Änderungen werden gespeichert …' : geaendert ? (bestaetigt ? 'Vorheriger Stand gespeichert · weitere Änderungen noch offen' : 'Nicht gespeicherte Änderungen') : bestaetigt ? 'Gespeichert' : 'Keine offenen Änderungen'}</span>, wert: null }}
+          links={geaendert ? <Button type="button" variant="ghost" disabled={saving || logoLaeuft} onClick={verwerfen}>Verwerfen</Button> : <span className="lot-speicherplatz" aria-hidden="true" />}
+          rechts={<Button type="submit" loading={saving} gespeichert={bestaetigt && !geaendert && !saving} disabled={logoLaeuft || (bestaetigt && !geaendert)}>{saving ? 'Speichert …' : bestaetigt && !geaendert ? 'Gespeichert' : 'Firmendaten speichern'}</Button>}
+        />
       </form>
 
+      {warnung}
       <ConfirmDialog
         open={plzFrage !== null}
         title="PLZ prüfen — trotzdem speichern?"

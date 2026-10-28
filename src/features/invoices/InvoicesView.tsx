@@ -1,3 +1,4 @@
+import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
@@ -313,6 +314,10 @@ export default function InvoicesView() {
   const exportAnfrage = useRef(0);
   const [exportFehler, setExportFehler] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const ausstellungLaeuft = useRef(false);
+  const [erstellungUnklar, setErstellungUnklar] = useState(false);
+  const [pdfNachholen, setPdfNachholen] = useState<{ nummer: string; erneut: () => Promise<void> } | null>(null);
+  const [pdfLaedt, setPdfLaedt] = useState(false);
   const [toCancel, setToCancel] = useState<WithId<Invoice> | null>(null);
   /** Welcher Storno gerade aufgehoben werden soll — erst nach der Rückfrage. */
   const [aufheben, setAufheben] = useState<WithId<Invoice> | null>(null);
@@ -1679,7 +1684,7 @@ export default function InvoicesView() {
   }
 
   async function confirmInvoice() {
-    if (!user || !company || !preview || !summen || !invoiceNumber || numberTaken || leer) return;
+    if (erstellungUnklar || ausstellungLaeuft.current || !user || !company || !preview || !summen || !invoiceNumber || numberTaken || leer) return;
     // Eine UID in falscher Form kommt nicht auf den Beleg (M10); die
     // Datenbank weist sie ebenso ab.
     const uidFalsch = uidFehler(kundenUid);
@@ -1730,6 +1735,7 @@ export default function InvoicesView() {
       setError('Für den Rücklass fehlen Prozentsatz oder eine Fälligkeit nach dem heutigen Tag.');
       return;
     }
+    ausstellungLaeuft.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -1849,46 +1855,51 @@ export default function InvoicesView() {
         desired: vonHand ? typedSeq : undefined,
       });
 
-      // jsPDF erst hier nachladen — es wiegt mehrere hundert Kilobyte und
-      // gehoert nicht ins Paket, das jeder Monteur beim Anmelden zieht.
-      const { downloadInvoicePdf } = await import('./pdf');
-      downloadInvoicePdf({
-        company,
-        project: {
-          customerName: project?.customerName ?? '–',
-          address: anschrift,
-          projectNumber,
-        },
-        leistungsort,
-        invoiceNumber: reserved,
-        invoiceDate,
-        dueDate,
-        // Der GEÄNDERTE Zeitraum, nicht der abgeleitete: auf dem Beleg steht,
-        // was im Feld steht.
-        assembled: {
-          ...preview,
-          leistung: leistungVon && leistungBis ? { von: leistungVon, bis: leistungBis } : null,
-        },
-        appendDetail,
-        vatRate: satz,
-        reverseCharge,
-        // `assembled` trägt die volle Leistung; den Rest rechnet das PDF
-        // daraus selbst — so können Beleg und Datensatz nicht auseinanderlaufen.
-        art,
-        vorrechnungen: abzuege,
-        /*
-          IMMER MITGESCHRIEBEN, nicht nur bei Reverse Charge. Vorher wurde die
-          UID aus dem Kundenstamm geladen, im Formular angezeigt — und beim
-          Speichern weggeworfen, sobald der Haken aus war. Über 10.000 € brutto
-          ist sie Pflichtangabe (§ 11 Abs 1 Z 2 UStG); darunter schadet sie
-          nicht und hilft dem Empfänger beim Zuordnen.
-        */
-        customerVatId: uidNormalisieren(kundenUid),
-        steuerbefreiung: brauchtBefreiung ? steuerbefreiung.trim() : undefined,
-        bestellnummer: bestellnummer.trim() || undefined,
-        ruecklass: ruecklass ? { art: ruecklass.art, prozent: ruecklass.prozent, betrag: ruecklass.betrag, bis: ruecklass.bis } : null,
-        skonto,
-      });
+      // Ab jetzt steht die Rechnung. PDF-Ausgabe ist ein unabhängiger Folgeschritt.
+      const pdfErzeugen = async () => {
+        // jsPDF erst hier nachladen — es wiegt mehrere hundert Kilobyte und
+        // gehoert nicht ins Paket, das jeder Monteur beim Anmelden zieht.
+        const { downloadInvoicePdf } = await import('./pdf');
+        downloadInvoicePdf({
+          company,
+          project: {
+            customerName: project?.customerName ?? '–',
+            address: anschrift,
+            projectNumber,
+          },
+          leistungsort,
+          invoiceNumber: reserved,
+          invoiceDate,
+          dueDate,
+          // Der GEÄNDERTE Zeitraum, nicht der abgeleitete: auf dem Beleg steht,
+          // was im Feld steht.
+          assembled: {
+            ...preview,
+            leistung: leistungVon && leistungBis ? { von: leistungVon, bis: leistungBis } : null,
+          },
+          appendDetail,
+          vatRate: satz,
+          reverseCharge,
+          // `assembled` trägt die volle Leistung; den Rest rechnet das PDF
+          // daraus selbst — so können Beleg und Datensatz nicht auseinanderlaufen.
+          art,
+          vorrechnungen: abzuege,
+          /*
+            IMMER MITGESCHRIEBEN, nicht nur bei Reverse Charge. Vorher wurde die
+            UID aus dem Kundenstamm geladen, im Formular angezeigt — und beim
+            Speichern weggeworfen, sobald der Haken aus war. Über 10.000 € brutto
+            ist sie Pflichtangabe (§ 11 Abs 1 Z 2 UStG); darunter schadet sie
+            nicht und hilft dem Empfänger beim Zuordnen.
+          */
+          customerVatId: uidNormalisieren(kundenUid),
+          steuerbefreiung: brauchtBefreiung ? steuerbefreiung.trim() : undefined,
+          bestellnummer: bestellnummer.trim() || undefined,
+          ruecklass: ruecklass ? { art: ruecklass.art, prozent: ruecklass.prozent, betrag: ruecklass.betrag, bis: ruecklass.bis } : null,
+          skonto,
+        });
+      };
+      try { await pdfErzeugen(); }
+      catch { setPdfNachholen({ nummer: reserved, erneut: pdfErzeugen }); }
 
       setPreview(null);
       setProjectNumber('');
@@ -1922,19 +1933,21 @@ export default function InvoicesView() {
         }
       }
     } catch (e) {
+      if (e instanceof RechnungsAntwortUnklar) setErstellungUnklar(true);
       /*
         Die Datenbank sagt genau, woran es lag — welche Nummer belegt ist
         und welche frei wäre, oder dass ein Beleg inzwischen verrechnet ist.
-        Diese Auskunft ist mehr wert als ein Sammelsatz. Angelegt und
-        gesperrt ist in jedem Fall nichts: alles lief in einer Transaktion.
+        Diese Auskunft ist mehr wert als ein Sammelsatz. Eine unterbrochene
+        Antwort allein beweist dagegen keinen Rollback der Transaktion.
       */
-      setError(
+      setError(e instanceof RechnungsAntwortUnklar ? null :
         grundAus(
           e,
-          'Die Rechnung konnte nicht erstellt werden. Es ist nichts angelegt und nichts gesperrt — bitte erneut versuchen.',
+          'Die Erstellung konnte nicht bestätigt werden. Bitte zuerst die Rechnungsliste prüfen, bevor erneut erstellt wird.',
         ),
       );
     } finally {
+      ausstellungLaeuft.current = false;
       setBusy(false);
     }
   }
@@ -3065,6 +3078,26 @@ export default function InvoicesView() {
         Nach dem Anlegen bleibt es offen: die Schlussrechnung folgt der
         Anzahlung oft gleich.
       */}
+      {erstellungUnklar && <Hinweiszeile stufe="warn" role="status">
+        <p><b>Die Erstellung ist noch nicht bestätigt.</b></p>
+        <p>Die Serverantwort wurde unterbrochen. Deine Angaben bleiben erhalten. Die Erstellung aus dieser Vorschau bleibt gesperrt, damit nicht versehentlich eine zweite Rechnung entsteht.</p>
+        <Button variant="secondary" onClick={() => {
+          filterSetzen('alle'); offeneNeuLaden();
+          document.getElementById('rechnungsliste')?.scrollIntoView({ block: 'start' });
+        }}>Rechnungsliste prüfen</Button>
+      </Hinweiszeile>}
+      {pdfNachholen && <Hinweiszeile stufe="warn" role="status">
+        <p><b>Rechnung {pdfNachholen.nummer} wurde erstellt.</b></p>
+        <p>Die Rechnung ist gespeichert. Nur die PDF-Ausgabe ist fehlgeschlagen. Es wird keine neue Rechnung benötigt.</p>
+        <Button variant="secondary" loading={pdfLaedt} onClick={async () => {
+          if (pdfLaedt) return;
+          setPdfLaedt(true);
+          try { await pdfNachholen.erneut(); setPdfNachholen(null); toast.success('PDF erneut erzeugt'); }
+          catch { toast.error('Die PDF-Ausgabe ist weiterhin nicht möglich. Die Rechnung bleibt gespeichert.'); }
+          finally { setPdfLaedt(false); }
+        }}>PDF erneut laden</Button>
+      </Hinweiszeile>}
+
       {!nurLesen && erstellen && (
       <div ref={erstellenRef} className="space-y-3 lg:space-y-5">
       <Card
@@ -4348,7 +4381,7 @@ export default function InvoicesView() {
                 onClick={confirmInvoice}
                 loading={busy}
                 disabled={
-                  numberTaken || !invoiceNumber || !rcPruefung.vollstaendig || befreiungFehlt
+                  erstellungUnklar || numberTaken || !invoiceNumber || !rcPruefung.vollstaendig || befreiungFehlt
                   || !!uidFormFehler
                   || !!summen?.gutschrift
                   || leer
@@ -4369,6 +4402,7 @@ export default function InvoicesView() {
 
       {basisBereit ? (
       <Card
+        id="rechnungsliste"
         title={`${sicht ? SICHT_TITEL[sicht] : LISTEN_TITEL[filter] ?? `Rechnungen: ${filter}`} (${anzahlText(liste)})`}
         /*
           DER TEXT SAGT, WAS GILT (Prüflauf 25.09.2026, P2-20). Hier stand,

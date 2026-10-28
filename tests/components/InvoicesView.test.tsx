@@ -1,3 +1,4 @@
+import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -5090,5 +5091,34 @@ describe('Runde 6: Anschrift für die E-Rechnung (M6)', () => {
     kunden = [{ id: 'k1', name: 'Familie Huber', address: 'Bürgergasse 7, 8200 Gleisdorf', plz: '8200', ort: 'Gleisdorf' }];
     await bisZurVorschau();
     expect(screen.queryByText(/lässt sich nicht in Straße, Postleitzahl und Ort/)).toBeNull();
+  });
+});
+
+
+describe('Premium: Ausstellen und PDF sind getrennte Ergebnisse', () => {
+  it('PDF-Fehler nach bestätigtem Schreiben bietet nur PDF-Wiederholung an', async () => {
+    pdfAusgabe.mockImplementationOnce(() => { throw new Error('PDF kaputt'); });
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.click(bestaetigen);
+    expect(await screen.findByText(/Die Rechnung ist gespeichert. Nur die PDF-Ausgabe/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Rechnung erstellen & PDF' })).toBeNull();
+    expect(lege).toHaveBeenCalledOnce();
+    await userEvent.click(screen.getByRole('button', { name: 'PDF erneut laden' }));
+    await waitFor(() => expect(pdfAusgabe).toHaveBeenCalledTimes(2));
+    expect(lege).toHaveBeenCalledOnce();
+    expect(reserve).toHaveBeenCalledOnce();
+    expect(screen.queryByText(/Nur die PDF-Ausgabe ist fehlgeschlagen/)).toBeNull();
+  });
+  it('unterbrochene Antwort behauptet keinen Rollback und sperrt erneutes Ausstellen', async () => {
+    reservierungWirft = new RechnungsAntwortUnklar();
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.click(bestaetigen);
+    expect(await screen.findByText('Die Erstellung ist noch nicht bestätigt.')).toBeInTheDocument();
+    expect(bestaetigen).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Rechnungsliste prüfen' })).toBeEnabled();
+    await userEvent.click(bestaetigen);
+    expect(reserve).toHaveBeenCalledOnce();
+    expect(pdfAusgabe).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Es ist nichts angelegt und nichts gesperrt/)).toBeNull();
   });
 });

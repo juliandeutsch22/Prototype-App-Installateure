@@ -29,7 +29,7 @@ export default function IconButton({
       aria-label={label}
       title={label}
       data-icon=""
-      className={`inline-flex min-h-touch min-w-touch items-center justify-center rounded text-lg transition active:scale-95 ${tones[tone]} ${className}`}
+      className={`lot-knopf inline-flex min-h-touch min-w-touch items-center justify-center rounded text-lg ${tones[tone]} ${className}`}
       {...rest}
     >
       {children}

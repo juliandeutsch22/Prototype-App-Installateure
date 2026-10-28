@@ -106,7 +106,7 @@ describe('Die Bausteine halten die Regeln der Linie (Protokoll 0.2)', () => {
     ['Container-Abfragen', /@container|container-type|cq[iwhb]/],
     ['Positionsselektoren', /:(nth|first|last|only)-(child|of-type)/],
     ['gestrichelte Linien', /dashed|dotted/],
-    ['Abfragen ausser auf die Breite', /@media(?![^{]*width)[^{]*\{/],
+    ['Abfragen ausser auf die Breite', /@media(?![^{]*(?:width|prefers-reduced-motion:\s*reduce))[^{]*\{/],
   ])('kein %s', (_was, muster) => {
     expect(ohneKommentare).not.toMatch(muster);
   });

@@ -1,4 +1,5 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { useLayoutEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import Icon from './Icon';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'ghost-dark';
 
@@ -23,6 +24,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   groesse?: Groesse;
   loading?: boolean;
+  /** Bestätigtes Ergebnis, nie als zeitgesteuerte Vermutung setzen. */
+  gespeichert?: boolean;
   children: ReactNode;
 }
 
@@ -87,15 +90,32 @@ export default function Button({
   variant = 'primary',
   groesse = 'normal',
   loading = false,
+  gespeichert = false,
   disabled,
   className = '',
   children,
   ...rest
 }: ButtonProps) {
+  const knopf = useRef<HTMLButtonElement>(null);
+  // Nur den vorigen normalen Stand reservieren, keine appweite feste Breite.
+  const breite = useRef(0);
+  useLayoutEffect(() => {
+    const el = knopf.current;
+    if (!el) return;
+    if (!loading && !gespeichert) {
+      if (el.style.minWidth) el.style.minWidth = '';
+      breite.current = Math.ceil(el.getBoundingClientRect().width);
+    } else if (breite.current) {
+      el.style.minWidth = `min(${breite.current}px, 100%)`;
+    }
+  }, [loading, gespeichert, children]);
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${groessen[groesse]} ${variants[variant]} ${className}`}
+      ref={knopf}
+      className={`lot-knopf inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50 ${groessen[groesse]} ${variants[variant]} ${className}`}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      data-zustand={gespeichert ? 'gespeichert' : undefined}
       {...rest}
     >
       {loading && (
@@ -104,6 +124,7 @@ export default function Button({
           aria-hidden="true"
         />
       )}
+      {gespeichert && !loading && <Icon name="haken" size={16} />}
       {children}
     </button>
   );

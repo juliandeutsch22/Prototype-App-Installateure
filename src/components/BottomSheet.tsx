@@ -3,6 +3,7 @@ import { istOben, tabZiele, useFokusFalle } from './fokusFalle';
 import { AB_TABLET } from '@/lib/breiten';
 import { ImFenster } from './imFenster';
 import { useHintergrundSperre } from './hintergrundSperre';
+import { useOverlayAnwesenheit } from '@/lib/useOverlayAnwesenheit';
 
 /** Ab wie vielen Pixeln nach unten das Blatt losgelassen als „zu" gilt. */
 const SCHWELLE = 90;
@@ -55,6 +56,9 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
   const start = useRef<{ y: number; t: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const blattRef = useRef<HTMLDivElement>(null);
+  const { sichtbar, phase } = useOverlayAnwesenheit(open);
+  const abTablet = useAbTablet();
+  const modalSichtbar = sichtbar && (auchBreit || !abTablet);
   /*
     DER FOKUS KOMMT HEREIN UND GEHT ZURÜCK. Vorher blieb er beim Öffnen auf
     dem Auslöser hinter dem Blatt, Tab lief in die verdeckte Seite, und nach
@@ -62,7 +66,7 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
     wird das Blatt selbst, nicht der Knopf „Schließen": der wird beim Fokus
     sichtbar, und wer mit dem Finger öffnet, soll davon nichts sehen.
   */
-  useFokusFalle(blattRef, open, { hineinHolen: 'behaelter', zurueckGeben: true });
+  useFokusFalle(blattRef, modalSichtbar, { hineinHolen: 'behaelter', zurueckGeben: true });
 
   /*
     DIE SEITE DAHINTER STEHT STILL, solange das Blatt zu sehen ist
@@ -70,15 +74,15 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
     Handy; dreht jemand das Tablet bei offenem „Mehr“ über 760 px, ist es
     ausgeblendet — dann darf es die Seite nicht festhalten.
   */
-  const abTablet = useAbTablet();
-  useHintergrundSperre(open && (auchBreit || !abTablet));
+  useHintergrundSperre(modalSichtbar);
 
   const schliessen = useCallback(() => {
+    if (!open) return;
     setDy(0);
     setZieht(false);
     start.current = null;
     onClose();
-  }, [onClose]);
+  }, [onClose, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -114,7 +118,7 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
     return () => beobachter.disconnect();
   }, [open]);
 
-  if (!open) return null;
+  if (!sichtbar) return null;
 
   function beginn(e: React.PointerEvent, nurWennOben: boolean) {
     // Vom Inhalt aus nur ziehen, wenn er nicht gescrollt ist — sonst kaempfen
@@ -156,12 +160,15 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
       das Blatt weiter nur am Telefon (das „Mehr“-Menü).
     */
     <div
-      className={auchBreit ? 'schleier' : 'schleier md:hidden'}
+      className={auchBreit ? 'schleier lot-overlay' : 'schleier lot-overlay md:hidden'}
+      data-phase={phase}
       onClick={schliessen}
+      onClickCapture={(e) => { if (!open) { e.preventDefault(); e.stopPropagation(); } }}
       style={{ opacity: dy > 0 ? Math.max(0.15, 1 - dy / 320) : 1 }}
     >
       <div
         ref={blattRef}
+        data-lot-inhalt=""
         role="dialog"
         aria-modal="true"
         aria-label={label}

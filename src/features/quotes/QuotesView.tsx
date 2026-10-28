@@ -1181,7 +1181,11 @@ export default function QuotesView() {
           </div>
         ) : sichtbar.length === 0 ? (
           <div className="border-t border-line">
-            <EmptyState>{leer}</EmptyState>
+            <EmptyState
+              zeichnung={angebote.length === 0 && !begriff && !error && !formOffen ? 'angebot' : undefined}
+              titel={angebote.length === 0 && !begriff && !error && !formOffen ? 'Dein erstes Angebot beginnt hier' : undefined}
+              action={angebote.length === 0 && !begriff && !error && !formOffen && darfAendern ? <Button onClick={() => setFormOffen(true)}>Erstes Angebot erstellen</Button> : undefined}
+            >{leer}</EmptyState>
           </div>
         ) : (
           sichtbar.map((g) => <Gruppe key={`${ansicht}-${g.id}`} titel={g.titel} zeilen={g.zeilen} zeile={zeile} />)

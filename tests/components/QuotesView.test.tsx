@@ -1108,7 +1108,7 @@ describe('Angebote auf der Linie „Lot“', () => {
     await nutzer.type(within(fenster).getByLabelText('Artikel aus dem Katalog'), 'therme');
     await nutzer.click(await within(fenster).findByRole('button', { name: 'Gastherme 24 kW übernehmen' }));
     // Die Rückmeldung im Fenster — am Handy liegt das Formular ganz dahinter.
-    expect(within(fenster).getByRole('status')).toHaveTextContent('„Gastherme 24 kW“ übernommen.');
+    expect(within(fenster).getByText('„Gastherme 24 kW“ übernommen.')).toHaveAttribute('role', 'status');
     expect(screen.getByLabelText('Bezeichnung')).toHaveValue('Gastherme 24 kW');
     await nutzer.click(within(fenster).getByRole('button', { name: 'Fertig' }));
     expect(screen.queryByRole('dialog', { name: 'Katalog' })).toBeNull();

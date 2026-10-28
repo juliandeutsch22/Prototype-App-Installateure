@@ -96,7 +96,7 @@ export default function Unterreiter({
               to={`${basis}/${s.pfad}`}
               className={({ isActive }) =>
                 [
-                  'min-h-touch whitespace-nowrap border-b-2 px-3 py-2 text-sm transition',
+                  'lot-reiter min-h-touch whitespace-nowrap border-b-2 px-3 py-2 text-sm',
                   // Dieselbe Markierung wie bei den Reitern in Material,
                   // Lager, Anforderungen und Urlaub: Kante UNTEN im festen
                   // Petrol des Produkts, Text halbfett in Tinte (Designlinie

@@ -154,7 +154,7 @@ export default function RowMenu({ about, items }: RowMenuProps) {
         aria-label={`Weitere Aktionen für ${about}`}
         title="Weitere Aktionen"
         onClick={() => setOffen((o) => !o)}
-        className={`inline-flex min-h-touch min-w-touch items-center justify-center rounded text-lg leading-none transition active:scale-95 ${
+        className={`lot-knopf inline-flex min-h-touch min-w-touch items-center justify-center rounded text-lg leading-none ${
           offen ? 'bg-surface-2 text-ink' : 'text-ink-muted hover:bg-surface-2 hover:text-ink'
         }`}
       >
@@ -167,7 +167,7 @@ export default function RowMenu({ about, items }: RowMenuProps) {
             ref={menu}
             role="menu"
             aria-label={`Aktionen für ${about}`}
-            className="absolute z-50 min-w-[11rem] overflow-hidden rounded border border-line bg-surface py-1 shadow-lg"
+            className="lot-menue absolute z-50 min-w-[11rem] overflow-hidden rounded border border-line bg-surface py-1 shadow-lg"
             style={{ top: pos?.top ?? -9999, left: pos?.left ?? -9999 }}
             onKeyDown={imMenue}
           >

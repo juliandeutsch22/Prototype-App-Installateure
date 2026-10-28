@@ -12,6 +12,7 @@
 @import './styles/lot-monat.css';
 @import './styles/lot-akten.css';
 @import './styles/lot-plattform.css';
+@import './styles/lot-feinschliff.css';
 
 @tailwind base;
 @tailwind components;

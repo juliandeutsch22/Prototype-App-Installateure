@@ -823,7 +823,11 @@ export default function AdminProjectsView() {
           </div>
         ) : visible.length === 0 ? (
           <div className="border-t border-line">
-            <EmptyState>
+            <EmptyState
+              zeichnung={projects.length === 0 && !suche && !error && !formOffen ? 'baustelle' : undefined}
+              titel={projects.length === 0 && !suche && !error && !formOffen ? 'Deine erste Baustelle beginnt hier' : undefined}
+              action={!suche && projects.length === 0 && !error && !formOffen ? <Button onClick={() => setFormOffen(true)}>Erste Baustelle anlegen</Button> : undefined}
+            >
               {projects.length === 0
                 ? 'Noch keine Baustellen angelegt.'
                 : suche

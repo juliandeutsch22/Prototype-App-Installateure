@@ -1,0 +1,45 @@
+/* Gemeinsame Rückmeldung der freigegebenen Premium-Linie. Keine Layoutanimation. */
+:root {
+  --motion-press: 100ms;
+  --motion-state: 160ms;
+  --motion-overlay: 200ms;
+  --motion-exit: 140ms;
+  --motion-route: 160ms;
+  --ease-response: cubic-bezier(.22, 1, .36, 1);
+}
+@layer components {
+  .lot-knopf {
+    transition: background-color var(--motion-press) var(--ease-response), border-color var(--motion-press) var(--ease-response), color var(--motion-press) var(--ease-response), opacity var(--motion-press) var(--ease-response), transform var(--motion-press) var(--ease-response);
+  }
+  .lot-knopf:active:not(:disabled):not([aria-disabled=true]) { transform: translateY(1px); }
+  .lot-knopf:disabled { transform: none; }
+  .lot-knopf[aria-busy=true], .lot-knopf[data-zustand=gespeichert]:disabled { opacity: 1; }
+  .lot-knopf-inhalt { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; }
+  .lot-overlay > [data-lot-inhalt] { animation: lot-einblenden var(--motion-overlay) var(--ease-response) both; }
+  .lot-overlay[data-phase=schliesst] > [data-lot-inhalt] { animation: lot-ausblenden var(--motion-exit) var(--ease-response) both; }
+  .lot-overlay[data-phase=schliesst] { cursor: default; }
+  .lot-menue { animation: lot-einblenden var(--motion-state) var(--ease-response) both; }
+  .weiteres[open] > .weiteres-inhalt { animation: lot-einblenden var(--motion-state) var(--ease-response) both; }
+  :where(.segment > button, [role=tab], .reiterleiste a) {
+    transition: color var(--motion-state) var(--ease-response), background-color var(--motion-state) var(--ease-response), border-color var(--motion-state) var(--ease-response);
+  }
+  .lot-speicherstand { min-height: 1.5rem; font-size: .8125rem; color: var(--text-muted); }
+  .lot-speicherplatz { min-height: 3rem; min-width: 5rem; }
+  .lot-erstnutzung { max-width: 37rem; margin: 0 auto; padding: 2.75rem 1rem; text-align: center; }
+  .lot-erstnutzung h2 { font-size: 1.1875rem; line-height: 1.5; font-weight: 600; }
+  .lot-erstnutzung p { color: var(--text-muted); margin: .5rem auto 1.25rem; max-width: 50ch; font-size: .875rem; }
+  .lot-leerzeichnung { width: 9.25rem; height: 6.25rem; display: block; margin: 0 auto 1.375rem; color: var(--accent-deep); }
+  .lot-leerzeichnung .konstruktion { stroke: var(--border-strong); stroke-width: 1; fill: none; }
+  .lot-leerzeichnung .lot { stroke: currentColor; stroke-width: 1.6; fill: none; }
+  .lot-leerzeichnung .flaeche { fill: currentColor; stroke: none; }
+}
+@keyframes lot-einblenden { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lot-ausblenden { from { opacity: 1; } to { opacity: 0; } }
+/* Kontrast auf dunklen Trägern bleibt unabhängig von der Hausfarbe. */
+:root :focus-visible { outline-color: var(--accent-deep); }
+:root :where(.navi, .kopfzeile, .meldung, .meldung-fehler) :where(button, a, input):focus-visible { outline-color: #fff; }
+.unten :where(button, a):focus-visible { outline-offset: -4px; }
+@media (prefers-reduced-motion: reduce) {
+  .lot-overlay > [data-lot-inhalt], .lot-menue, .weiteres[open] > .weiteres-inhalt { animation: none !important; }
+  .lot-knopf:active { transform: none !important; }
+}

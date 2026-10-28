@@ -5,6 +5,7 @@ import { istOben, useFokusFalle } from './fokusFalle';
 import { useHintergrundSperre } from './hintergrundSperre';
 import { ImFenster } from './imFenster';
 import { grundAus } from '@/lib/fehlerGrund';
+import { useOverlayAnwesenheit } from '@/lib/useOverlayAnwesenheit';
 
 /**
  * Modaler Bestätigungsdialog für nicht-triviale/destruktive Aktionen
@@ -51,11 +52,13 @@ export default function ConfirmDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dialog = useRef<HTMLDivElement>(null);
+  const bestaetigtLaeuft = useRef(false);
+  const { sichtbar, phase } = useOverlayAnwesenheit(open);
   // Tab bleibt im Dialog (Prüflauf 25.09.2026, P4-05). Den Fokus setzt
   // weiterhin `autoFocus` auf „Abbrechen".
-  useFokusFalle(dialog, open);
+  useFokusFalle(dialog, sichtbar);
   // Die Seite dahinter steht still, solange die Rückfrage offen ist.
-  useHintergrundSperre(open);
+  useHintergrundSperre(sichtbar);
 
   useEffect(() => {
     if (open) setError(null);
@@ -74,9 +77,11 @@ export default function ConfirmDialog({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, busy, onCancel]);
 
-  if (!open) return null;
+  if (!sichtbar) return null;
 
   async function handleConfirm() {
+    if (!open || bestaetigtLaeuft.current) return;
+    bestaetigtLaeuft.current = true;
     setError(null);
     setBusy(true);
     try {
@@ -86,6 +91,7 @@ export default function ConfirmDialog({
         grundAus(e, 'Die Aktion konnte nicht ausgeführt werden.'),
       );
     } finally {
+      bestaetigtLaeuft.current = false;
       setBusy(false);
     }
   }
@@ -93,14 +99,17 @@ export default function ConfirmDialog({
   return (
     <div
       ref={dialog}
-      className="schleier-dialog"
+      className="schleier-dialog lot-overlay"
+      data-phase={phase}
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
-      onClick={busy ? undefined : onCancel}
+      onClick={busy || !open ? undefined : onCancel}
+      onClickCapture={(e) => { if (!open) { e.preventDefault(); e.stopPropagation(); } }}
     >
       <div
         className="dialog"
+        data-lot-inhalt=""
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="titel-karte">
