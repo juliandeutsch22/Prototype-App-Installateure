@@ -37,6 +37,11 @@ export default defineConfig({
           : {},
       },
     },
+    {
+      name: 'webkit-premium',
+      testMatch: 'premium.spec.ts',
+      use: { ...devices['iPhone 13'] },
+    },
   ],
   webServer: {
     command: 'npm run vorschau',

@@ -38,7 +38,7 @@ describe('Das Verbindungsband', () => {
     render(<Verbindungsband />);
 
     expect(screen.getByRole('status')).toHaveTextContent(/Keine Verbindung/);
-    expect(screen.getByRole('status')).toHaveTextContent(/automatisch gesendet/);
+    expect(screen.getByRole('status')).toHaveTextContent(/jeweilige Bestätigung.*vorgemerkt/);
   });
 
   it('meldet eine abgerissene Live-Verbindung — ohne Tabellennamen und ohne Zustandscode', () => {
@@ -101,7 +101,7 @@ describe('Das Verbindungsband', () => {
 
     const baender = screen.getAllByRole('status');
     expect(baender).toHaveLength(1);
-    expect(baender[0]).toHaveTextContent(/automatisch gesendet/);
+    expect(baender[0]).toHaveTextContent(/jeweilige Bestätigung.*vorgemerkt/);
     expect(baender[0].textContent).not.toMatch(/aktualisiert sich/);
   });
 

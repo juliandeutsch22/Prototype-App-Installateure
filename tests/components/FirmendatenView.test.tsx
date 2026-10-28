@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Company } from '@/types';
 
@@ -46,9 +47,9 @@ const { default: FirmendatenView } = await import('@/features/settings/Firmendat
 
 function zeige() {
   return render(
-    <ToastProvider>
+    <MemoryRouter><ToastProvider>
       <FirmendatenView />
-    </ToastProvider>,
+    </ToastProvider></MemoryRouter>,
   );
 }
 
@@ -262,5 +263,68 @@ describe('PLZ der Firma (Runde 6, M6)', () => {
     await nutzer.click(speichern());
     await waitFor(() => expect(updateCompany).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole('dialog', { name: /PLZ prüfen/ })).toBeNull();
+  });
+});
+
+
+describe('Premium: bestätigter Stand und offene Eingaben', () => {
+  it('verhindert Doppel-Submit und erhält Eingaben, die während des Schreibens entstehen', async () => {
+    let fertig: (() => void) | undefined;
+    updateCompany.mockImplementationOnce(() => new Promise<void>((r) => { fertig = r; }));
+    zeige();
+    fireEvent.change(feld('Firmenname'), { target: { value: 'Gesendeter Name' } });
+    const form = speichern().closest('form')!;
+    fireEvent.submit(form); fireEvent.submit(form); fireEvent.submit(form);
+    expect(updateCompany).toHaveBeenCalledOnce();
+    expect(screen.getByRole('button', { name: 'Speichert …' })).toBeDisabled();
+    fireEvent.change(feld('Firmenname'), { target: { value: 'Weitere offene Änderung' } });
+    await act(async () => fertig?.());
+    expect(feld('Firmenname')).toHaveValue('Weitere offene Änderung');
+    expect(screen.getByText('Vorheriger Stand gespeichert · weitere Änderungen noch offen')).toBeInTheDocument();
+    expect(speichern()).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Verwerfen' }));
+    expect(feld('Firmenname')).toHaveValue('Gesendeter Name');
+    expect(screen.getByRole('button', { name: 'Gespeichert' })).toBeDisabled();
+  });
+  it('bestätigtes Schreiben bleibt bestätigt, wenn nur das Nachladen scheitert', async () => {
+    reloadCompany.mockRejectedValueOnce(new Error('Nachladen ausgefallen'));
+    zeige();
+    fireEvent.change(feld('Firmenname'), { target: { value: 'Bestätigter Name' } });
+    fireEvent.click(speichern());
+    await screen.findByText('Firmendaten gespeichert. Die Anzeige konnte noch nicht aktualisiert werden.');
+    expect(screen.getByRole('button', { name: 'Gespeichert' })).toBeDisabled();
+    expect(screen.queryByText('Die Firmendaten konnten nicht gespeichert werden.')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Anzeige erneut laden' }));
+    await waitFor(() => expect(screen.queryByText('Firmendaten gespeichert. Die Anzeige konnte noch nicht aktualisiert werden.')).not.toBeInTheDocument());
+    expect(updateCompany).toHaveBeenCalledOnce();
+  });
+  it('fehlgeschlagenes Schreiben behält Eingaben und bleibt wiederholbar', async () => {
+    updateCompany.mockRejectedValueOnce(new Error('Keine Schreibverbindung'));
+    zeige();
+    fireEvent.change(feld('Firmenname'), { target: { value: 'Nicht verlieren' } });
+    fireEvent.click(speichern());
+    await screen.findByText('Keine Schreibverbindung');
+    expect(feld('Firmenname')).toHaveValue('Nicht verlieren');
+    expect(screen.queryByRole('button', { name: 'Gespeichert' })).not.toBeInTheDocument();
+    expect(speichern()).toBeEnabled();
+  });
+  it('warnt nur bei tatsächlicher Änderung vor Neuladen und gibt den Listener wieder frei', () => {
+    const { unmount } = zeige();
+    const fragen = () => { const e = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(e); return e.defaultPrevented; };
+    expect(fragen()).toBe(false);
+    fireEvent.change(feld('Firmenname'), { target: { value: 'Offener Name' } });
+    expect(fragen()).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Verwerfen' }));
+    expect(fragen()).toBe(false);
+    unmount(); expect(fragen()).toBe(false);
+  });
+  it('ordnet UID-, IBAN- und BIC-Fehler dem jeweiligen Feld zu', () => {
+    zeige();
+    for (const label of ['UID-Nummer', 'IBAN', 'BIC']) {
+      fireEvent.change(feld(label), { target: { value: 'ungültig' } });
+      const id = feld(label).getAttribute('aria-describedby');
+      expect(id).toBeTruthy(); expect(document.getElementById(id!)).toBeInTheDocument();
+      expect(feld(label)).toHaveAttribute('aria-invalid', 'true');
+    }
   });
 });

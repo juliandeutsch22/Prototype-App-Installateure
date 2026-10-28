@@ -17,9 +17,9 @@ import { useToast } from '@/components/Toast';
  * ist genau die Sorte Fehler, wegen der man einer App nicht mehr traut. Die
  * Meldung kann sie nicht retten — aber sie sagt, dass man nachsehen muss.
  *
- * OHNE FRIST UND OHNE KNOPF: Die Meldung darf nicht wegblinken, bevor jemand
+ * OHNE FRIST: Die Meldung darf nicht wegblinken, bevor jemand
  * sie gelesen hat, und es gibt nichts zu tun ausser nachzusehen. Deshalb ein
- * Hinweis, der stehen bleibt, bis die App neu geladen wird.
+ * Hinweis, der stehen bleibt, bis sie bewusst mit „Gelesen“ bestätigt wird (innerhalb dieser Sitzung).
  *
  * EINE QUELLE, SEIT STUFE 9. Bis zum Abbau von Firestore kam derselbe
  * Fehlschlag auch aus dem SDK (`lib/offlineWrite.ts`); diesen Weg gibt es
@@ -31,7 +31,7 @@ export default function VerloreneBuchung() {
 
   useEffect(() => {
     const melden = () => {
-      toast.error(
+      toast.wichtig(
         'Eine vorgemerkte Buchung konnte nicht gesendet werden. Bitte in der Übersicht nachsehen und gegebenenfalls neu erfassen.',
       );
     };

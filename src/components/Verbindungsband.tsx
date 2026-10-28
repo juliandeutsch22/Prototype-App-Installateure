@@ -66,8 +66,8 @@ export default function Verbindungsband() {
     >
       {offline ? (
         <span>
-          Keine Verbindung — Erfasstes wird gespeichert und automatisch gesendet,
-          sobald wieder Netz da ist.
+          Keine Verbindung. Neue Daten können gerade nicht geladen werden.
+          Bei einer Buchung zeigt die jeweilige Bestätigung, ob sie auf diesem Gerät vorgemerkt wurde.
         </span>
       ) : (
         <>

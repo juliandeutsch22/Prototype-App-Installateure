@@ -5,6 +5,7 @@ import { sucheKatalog } from '@/lib/db/materials';
 import Button from '@/components/Button';
 import { InputField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
+import { SkeletonList } from '@/components/States';
 import { euro } from '@/lib/betrag';
 
 /**
@@ -26,8 +27,14 @@ export default function KatalogSuche({
   onSchliessen: () => void;
 }) {
   const [begriff, setBegriff] = useState('');
-  const [treffer, setTreffer] = useState<WithId<Material>[] | null>(null);
-  const [fehler, setFehler] = useState(false);
+  const [antwort, setAntwort] = useState<{ schluessel: string; zeilen: WithId<Material>[]; fehler: boolean } | null>(null);
+  const [versuch, setVersuch] = useState(0);
+  const b = begriff.trim();
+  const schluessel = JSON.stringify([companyId, b, versuch]);
+  const aktuell = b.length >= 2 && antwort?.schluessel === schluessel;
+  const treffer = aktuell ? antwort.zeilen : null;
+  const fehler = aktuell && antwort.fehler;
+  const sucht = b.length >= 2 && !aktuell;
   /*
     WAS ZULETZT ÜBERNOMMEN WURDE. Seit die Suche im Seitenfenster steht, liegt
     das Formular am Handy ganz dahinter: ohne diese Zeile sähe niemand, dass
@@ -36,28 +43,23 @@ export default function KatalogSuche({
   const [zuletzt, setZuletzt] = useState<string | null>(null);
 
   useEffect(() => {
-    const b = begriff.trim();
-    if (b.length < 2) {
-      setTreffer(null);
-      return;
-    }
+    if (b.length < 2) return;
     let weg = false;
     // Kurz warten: nicht bei jedem Tastendruck eine Abfrage.
     const t = setTimeout(() => {
       sucheKatalog(companyId, b)
         .then((liste) => {
           if (weg) return;
-          setFehler(false);
-          // Ausgelaufene Artikel führt der Großhändler nicht mehr — nicht anbieten.
-          setTreffer(liste.filter((m) => !m.ausgelaufen));
+          // Ergebnis ist an genau diesen Suchlauf und Betrieb gebunden.
+          setAntwort({ schluessel, zeilen: liste.filter((m) => !m.ausgelaufen), fehler: false });
         })
-        .catch(() => { if (!weg) setFehler(true); });
+        .catch(() => { if (!weg) setAntwort({ schluessel, zeilen: [], fehler: true }); });
     }, 300);
     return () => {
       weg = true;
       clearTimeout(t);
     };
-  }, [begriff, companyId]);
+  }, [b, companyId, schluessel]);
 
   return (
     // Ohne eigenen Rahmen: sie steht im Seitenfenster, nicht als Kasten im Formular.
@@ -69,19 +71,21 @@ export default function KatalogSuche({
         placeholder="Name, Art.-Nr. oder Kategorie"
         autoFocus
         value={begriff}
-        onChange={(e) => setBegriff(e.target.value)}
+        onChange={(e) => { setBegriff(e.target.value); setVersuch((v) => v + 1); }}
       />
       {zuletzt && (
         <p role="status" className="text-sm text-ink-muted">
           „{zuletzt}“ übernommen.
         </p>
       )}
-      {fehler && <p role="alert" className="text-sm text-danger">Der Katalog ließ sich nicht durchsuchen.</p>}
+      {b.length < 2 && <p className="text-sm text-ink-muted">Gib mindestens zwei Zeichen ein.</p>}
+      {sucht && <div role="status" aria-busy="true"><p className="text-sm text-ink-muted">Suche nach „{b}“ …</p><SkeletonList rows={3} /></div>}
+      {fehler && <div role="alert" className="space-y-2"><p className="text-sm text-danger">Der Katalog ließ sich nicht durchsuchen. Bereits übernommene Positionen bleiben erhalten.</p><Button type="button" variant="secondary" groesse="klein" onClick={() => setVersuch((v) => v + 1)}>Suche wiederholen</Button></div>}
       {treffer && treffer.length === 0 && !fehler && (
-        <p className="text-sm text-ink-muted">Kein Artikel passt zur Suche.</p>
+        <div className="space-y-2"><p className="text-sm text-ink-muted">Kein Artikel passt zur Suche.</p><Button type="button" variant="secondary" groesse="klein" onClick={() => { setBegriff(''); setVersuch((v) => v + 1); }}>Suche zurücksetzen</Button></div>
       )}
-      {treffer && treffer.length > 0 && (
-        <List>
+      {treffer && treffer.length > 0 && !fehler && (
+        <div><p role="status" className="mb-2 text-sm text-ink-muted">{treffer.length} Treffer für „{b}“</p><List>
           {treffer.map((m) => (
             <ListRow
               key={m.id}
@@ -91,14 +95,14 @@ export default function KatalogSuche({
                 m.verkaufspreis != null ? `${euro(m.verkaufspreis)} je ${m.unit || 'Einheit'}` : 'ohne Verkaufspreis',
               ].filter(Boolean).join(' · ')}
             >
-              <Button variant="secondary" aria-label={`${m.name} übernehmen`} onClick={() => { onWahl(m); setZuletzt(m.name); }}>
+              <Button type="button" variant="secondary" aria-label={`${m.name} übernehmen`} onClick={() => { onWahl(m); setZuletzt(m.name); }}>
                 Übernehmen
               </Button>
             </ListRow>
           ))}
-        </List>
+        </List></div>
       )}
-      <Button variant="ghost" onClick={onSchliessen}>Fertig</Button>
+      <Button type="button" variant="ghost" onClick={onSchliessen}>Fertig</Button>
     </div>
   );
 }

@@ -242,7 +242,7 @@ describe('G29 — Meldungen verdecken keinen Knopf', () => {
       </ToastProvider>,
     );
     fireEvent.click(screen.getByText('los'));
-    expect(screen.getByText('Gespeichert').parentElement!.className).toBe('meldung');
+    expect(screen.getByText('Gespeichert').parentElement!).toHaveClass('meldung');
     expect(regel('meldung')).toMatch(/pointer-events: none/);
     expect(regel('meldungen')).toMatch(/pointer-events: none/);
     // Treffbar ist nur der Knopf in der Meldung selbst.

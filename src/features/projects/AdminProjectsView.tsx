@@ -721,6 +721,8 @@ export default function AdminProjectsView() {
     </form>
   );
 
+  const ersteBaustelle = !loading && !lageFehlt && belegschaftDa && projects.length === 0 && !suche && !error && !formOffen;
+
   return (
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
@@ -823,12 +825,17 @@ export default function AdminProjectsView() {
           </div>
         ) : visible.length === 0 ? (
           <div className="border-t border-line">
-            <EmptyState>
-              {projects.length === 0
-                ? 'Noch keine Baustellen angelegt.'
+            <EmptyState
+              zeichnung={ersteBaustelle ? 'baustelle' : undefined}
+              titel={ersteBaustelle ? 'Noch keine Baustellen angelegt.' : undefined}
+            >
+              {ersteBaustelle
+                ? 'Lege deine erste Baustelle an. Hier findest du anschließend Auftrag, Planung und zugehörige Belege zusammen.'
                 : suche
                   ? `Keine Baustelle passt zu „${suche}“.`
-                  : 'Keine Baustelle in dieser Auswahl.'}
+                  : projects.length === 0
+                    ? 'Noch keine Baustellen angelegt.'
+                    : 'Keine Baustelle in dieser Auswahl.'}
             </EmptyState>
           </div>
         ) : (
