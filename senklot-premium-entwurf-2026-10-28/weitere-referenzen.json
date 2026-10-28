@@ -1,0 +1,562 @@
+[
+  {
+    "name": "planung-monat",
+    "route": "/assignments/woche?ansicht=monat",
+    "role": "Projektleiter",
+    "width": 390,
+    "scrollWidth": 390,
+    "title": "Einsatzplanung",
+    "activeTabs": [
+      "EinsatzplanungPlanung",
+      "Planung"
+    ],
+    "errors": [],
+    "violations": []
+  },
+  {
+    "name": "planung-monat",
+    "route": "/assignments/woche?ansicht=monat",
+    "role": "Projektleiter",
+    "width": 834,
+    "scrollWidth": 834,
+    "title": "Einsatzplanung",
+    "activeTabs": [
+      "EinsatzplanungPlanung",
+      "Planung"
+    ],
+    "errors": []
+  },
+  {
+    "name": "planung-monat",
+    "route": "/assignments/woche?ansicht=monat",
+    "role": "Projektleiter",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "title": "Einsatzplanung",
+    "activeTabs": [
+      "EinsatzplanungPlanung",
+      "Planung"
+    ],
+    "errors": []
+  },
+  {
+    "name": "mitarbeiter-woche",
+    "route": "/accounting?ansicht=woche",
+    "role": "Buchhaltung",
+    "width": 390,
+    "scrollWidth": 390,
+    "title": "Mitarbeiterübersicht",
+    "activeTabs": [
+      "MitarbeiterübersichtÜbersicht",
+      "Übersicht"
+    ],
+    "errors": [],
+    "violations": []
+  },
+  {
+    "name": "mitarbeiter-woche",
+    "route": "/accounting?ansicht=woche",
+    "role": "Buchhaltung",
+    "width": 834,
+    "scrollWidth": 834,
+    "title": "Mitarbeiterübersicht",
+    "activeTabs": [
+      "MitarbeiterübersichtÜbersicht",
+      "Übersicht"
+    ],
+    "errors": []
+  },
+  {
+    "name": "mitarbeiter-woche",
+    "route": "/accounting?ansicht=woche",
+    "role": "Buchhaltung",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "title": "Mitarbeiterübersicht",
+    "activeTabs": [
+      "MitarbeiterübersichtÜbersicht",
+      "Übersicht"
+    ],
+    "errors": []
+  },
+  {
+    "name": "mitarbeiter-tage",
+    "route": "/accounting?tage=alle",
+    "role": "Buchhaltung",
+    "width": 390,
+    "scrollWidth": 390,
+    "title": "Mitarbeiterübersicht",
+    "activeTabs": [
+      "MitarbeiterübersichtÜbersicht",
+      "Übersicht"
+    ],
+    "errors": [],
+    "violations": []
+  },
+  {
+    "name": "mitarbeiter-tage",
+    "route": "/accounting?tage=alle",
+    "role": "Buchhaltung",
+    "width": 834,
+    "scrollWidth": 834,
+    "title": "Mitarbeiterübersicht",
+    "activeTabs": [
+      "MitarbeiterübersichtÜbersicht",
+      "Übersicht"
+    ],
+    "errors": []
+  },
+  {
+    "name": "mitarbeiter-tage",
+    "route": "/accounting?tage=alle",
+    "role": "Buchhaltung",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "title": "Mitarbeiterübersicht",
+    "activeTabs": [
+      "MitarbeiterübersichtÜbersicht",
+      "Übersicht"
+    ],
+    "errors": []
+  },
+  {
+    "name": "lager-katalog",
+    "route": "/lager?reiter=katalog",
+    "role": "Administrator",
+    "width": 390,
+    "scrollWidth": 390,
+    "title": "Lager",
+    "activeTabs": [
+      "LagerLager"
+    ],
+    "errors": [],
+    "violations": []
+  },
+  {
+    "name": "lager-katalog",
+    "route": "/lager?reiter=katalog",
+    "role": "Administrator",
+    "width": 834,
+    "scrollWidth": 834,
+    "title": "Lager",
+    "activeTabs": [
+      "LagerLager"
+    ],
+    "errors": []
+  },
+  {
+    "name": "lager-katalog",
+    "route": "/lager?reiter=katalog",
+    "role": "Administrator",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "title": "Lager",
+    "activeTabs": [
+      "LagerLager"
+    ],
+    "errors": []
+  },
+  {
+    "name": "lager-import",
+    "route": "/lager?reiter=import",
+    "role": "Administrator",
+    "width": 390,
+    "scrollWidth": 390,
+    "title": "Lager",
+    "activeTabs": [
+      "LagerLager"
+    ],
+    "errors": [],
+    "violations": []
+  },
+  {
+    "name": "lager-import",
+    "route": "/lager?reiter=import",
+    "role": "Administrator",
+    "width": 834,
+    "scrollWidth": 834,
+    "title": "Lager",
+    "activeTabs": [
+      "LagerLager"
+    ],
+    "errors": []
+  },
+  {
+    "name": "lager-import",
+    "route": "/lager?reiter=import",
+    "role": "Administrator",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "title": "Lager",
+    "activeTabs": [
+      "LagerLager"
+    ],
+    "errors": []
+  },
+  {
+    "name": "anforderungen-einkauf",
+    "route": "/anforderungen?reiter=einkauf",
+    "role": "Verwaltung",
+    "width": 390,
+    "scrollWidth": 390,
+    "title": "Anforderungen",
+    "activeTabs": [
+      "AnforderungenAnford.2, 2 offene Materialanforderungen",
+      "2, 2 offene MaterialanforderungenAnford."
+    ],
+    "errors": [],
+    "violations": []
+  },
+  {
+    "name": "anforderungen-einkauf",
+    "route": "/anforderungen?reiter=einkauf",
+    "role": "Verwaltung",
+    "width": 834,
+    "scrollWidth": 834,
+    "title": "Anforderungen",
+    "activeTabs": [
+      "AnforderungenAnford.2, 2 offene Materialanforderungen",
+      "2, 2 offene MaterialanforderungenAnford."
+    ],
+    "errors": []
+  },
+  {
+    "name": "anforderungen-einkauf",
+    "route": "/anforderungen?reiter=einkauf",
+    "role": "Verwaltung",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "title": "Anforderungen",
+    "activeTabs": [
+      "AnforderungenAnford.2, 2 offene Materialanforderungen",
+      "2, 2 offene MaterialanforderungenAnford."
+    ],
+    "errors": []
+  },
+  {
+    "name": "anforderungen-retouren",
+    "route": "/anforderungen?reiter=retouren",
+    "role": "Verwaltung",
+    "width": 390,
+    "scrollWidth": 390,
+    "title": "Anforderungen",
+    "activeTabs": [
+      "AnforderungenAnford.2, 2 offene Materialanforderungen",
+      "2, 2 offene MaterialanforderungenAnford."
+    ],
+    "errors": [],
+    "violations": []
+  },
+  {
+    "name": "anforderungen-retouren",
+    "route": "/anforderungen?reiter=retouren",
+    "role": "Verwaltung",
+    "width": 834,
+    "scrollWidth": 834,
+    "title": "Anforderungen",
+    "activeTabs": [
+      "AnforderungenAnford.2, 2 offene Materialanforderungen",
+      "2, 2 offene MaterialanforderungenAnford."
+    ],
+    "errors": []
+  },
+  {
+    "name": "anforderungen-retouren",
+    "route": "/anforderungen?reiter=retouren",
+    "role": "Verwaltung",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "title": "Anforderungen",
+    "activeTabs": [
+      "AnforderungenAnford.2, 2 offene Materialanforderungen",
+      "2, 2 offene MaterialanforderungenAnford."
+    ],
+    "errors": []
+  },
+  {
+    "name": "anforderungen-erledigt",
+    "route": "/anforderungen?reiter=erledigt",
+    "role": "Verwaltung",
+    "width": 390,
+    "scrollWidth": 390,
+    "title": "Anforderungen",
+    "activeTabs": [
+      "AnforderungenAnford.2, 2 offene Materialanforderungen",
+      "2, 2 offene MaterialanforderungenAnford."
+    ],
+    "errors": [],
+    "violations": []
+  },
+  {
+    "name": "anforderungen-erledigt",
+    "route": "/anforderungen?reiter=erledigt",
+    "role": "Verwaltung",
+    "width": 834,
+    "scrollWidth": 834,
+    "title": "Anforderungen",
+    "activeTabs": [
+      "AnforderungenAnford.2, 2 offene Materialanforderungen",
+      "2, 2 offene MaterialanforderungenAnford."
+    ],
+    "errors": []
+  },
+  {
+    "name": "anforderungen-erledigt",
+    "route": "/anforderungen?reiter=erledigt",
+    "role": "Verwaltung",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "title": "Anforderungen",
+    "activeTabs": [
+      "AnforderungenAnford.2, 2 offene Materialanforderungen",
+      "2, 2 offene MaterialanforderungenAnford."
+    ],
+    "errors": []
+  },
+  {
+    "name": "plattform-support",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Supportzugänge",
+    "width": 390,
+    "scrollWidth": 390,
+    "title": "Betriebe",
+    "activeTabs": [
+      "Supportzugänge"
+    ],
+    "errors": [],
+    "violations": []
+  },
+  {
+    "name": "plattform-support",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Supportzugänge",
+    "width": 834,
+    "scrollWidth": 834,
+    "title": "Betriebe",
+    "activeTabs": [
+      "Supportzugänge"
+    ],
+    "errors": []
+  },
+  {
+    "name": "plattform-support",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Supportzugänge",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "title": "Betriebe",
+    "activeTabs": [
+      "Supportzugänge"
+    ],
+    "errors": []
+  },
+  {
+    "name": "plattform-fehler",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Fehlerprotokoll",
+    "width": 390,
+    "scrollWidth": 390,
+    "title": "Betriebe",
+    "activeTabs": [
+      "Fehlerprotokoll"
+    ],
+    "errors": [],
+    "violations": []
+  },
+  {
+    "name": "plattform-fehler",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Fehlerprotokoll",
+    "width": 834,
+    "scrollWidth": 834,
+    "title": "Betriebe",
+    "activeTabs": [
+      "Fehlerprotokoll"
+    ],
+    "errors": []
+  },
+  {
+    "name": "plattform-fehler",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Fehlerprotokoll",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "title": "Betriebe",
+    "activeTabs": [
+      "Fehlerprotokoll"
+    ],
+    "errors": []
+  },
+  {
+    "name": "plattform-zins",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Basiszinssatz",
+    "width": 390,
+    "scrollWidth": 390,
+    "title": "Betriebe",
+    "activeTabs": [
+      "Basiszinssatz"
+    ],
+    "errors": [],
+    "violations": []
+  },
+  {
+    "name": "plattform-zins",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Basiszinssatz",
+    "width": 834,
+    "scrollWidth": 834,
+    "title": "Betriebe",
+    "activeTabs": [
+      "Basiszinssatz"
+    ],
+    "errors": []
+  },
+  {
+    "name": "plattform-zins",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Basiszinssatz",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "title": "Betriebe",
+    "activeTabs": [
+      "Basiszinssatz"
+    ],
+    "errors": []
+  },
+  {
+    "name": "plattform-konto",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Mein Konto",
+    "width": 390,
+    "scrollWidth": 390,
+    "title": "Betriebe",
+    "activeTabs": [
+      "Mein Konto"
+    ],
+    "errors": [],
+    "violations": []
+  },
+  {
+    "name": "plattform-konto",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Mein Konto",
+    "width": 834,
+    "scrollWidth": 834,
+    "title": "Betriebe",
+    "activeTabs": [
+      "Mein Konto"
+    ],
+    "errors": []
+  },
+  {
+    "name": "plattform-konto",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Mein Konto",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "title": "Betriebe",
+    "activeTabs": [
+      "Mein Konto"
+    ],
+    "errors": []
+  },
+  {
+    "name": "urlaub-krank",
+    "route": "/vacations",
+    "role": "Administrator",
+    "tab": "Krankenstände",
+    "width": 390,
+    "scrollWidth": 390,
+    "title": "Urlaub",
+    "activeTabs": [
+      "UrlaubUrlaub1, 1 offener Urlaubsantrag",
+      "Krankenstände"
+    ],
+    "errors": [],
+    "violations": []
+  },
+  {
+    "name": "urlaub-krank",
+    "route": "/vacations",
+    "role": "Administrator",
+    "tab": "Krankenstände",
+    "width": 834,
+    "scrollWidth": 834,
+    "title": "Urlaub",
+    "activeTabs": [
+      "UrlaubUrlaub1, 1 offener Urlaubsantrag",
+      "Krankenstände"
+    ],
+    "errors": []
+  },
+  {
+    "name": "urlaub-krank",
+    "route": "/vacations",
+    "role": "Administrator",
+    "tab": "Krankenstände",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "title": "Urlaub",
+    "activeTabs": [
+      "UrlaubUrlaub1, 1 offener Urlaubsantrag",
+      "Krankenstände"
+    ],
+    "errors": []
+  },
+  {
+    "name": "urlaub-betrieb",
+    "route": "/vacations",
+    "role": "Administrator",
+    "tab": "Betriebsurlaub",
+    "width": 390,
+    "scrollWidth": 390,
+    "title": "Urlaub",
+    "activeTabs": [
+      "UrlaubUrlaub1, 1 offener Urlaubsantrag",
+      "Betriebsurlaub"
+    ],
+    "errors": [],
+    "violations": []
+  },
+  {
+    "name": "urlaub-betrieb",
+    "route": "/vacations",
+    "role": "Administrator",
+    "tab": "Betriebsurlaub",
+    "width": 834,
+    "scrollWidth": 834,
+    "title": "Urlaub",
+    "activeTabs": [
+      "UrlaubUrlaub1, 1 offener Urlaubsantrag",
+      "Betriebsurlaub"
+    ],
+    "errors": []
+  },
+  {
+    "name": "urlaub-betrieb",
+    "route": "/vacations",
+    "role": "Administrator",
+    "tab": "Betriebsurlaub",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "title": "Urlaub",
+    "activeTabs": [
+      "UrlaubUrlaub1, 1 offener Urlaubsantrag",
+      "Betriebsurlaub"
+    ],
+    "errors": []
+  }
+]

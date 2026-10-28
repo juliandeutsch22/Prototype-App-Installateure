@@ -1,0 +1,357 @@
+{
+  "layoutCases": 64,
+  "layout": [
+    {
+      "state": "rechnung-pdf",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "rechnung-unklar",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "firma-teilerfolg",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "buchung-abgelehnt",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "firmendaten",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "verlassen",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "gespeichert",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "katalog",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "katalog-fehler",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "material-offline",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "zeit-vorgemerkt",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "rechnung-pruefen",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "rechnung-fehler",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "leer",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "berechtigung",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "rechnungen",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "rechnung-pdf",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "rechnung-unklar",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "firma-teilerfolg",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "buchung-abgelehnt",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "firmendaten",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "verlassen",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "gespeichert",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "katalog",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "katalog-fehler",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "material-offline",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "zeit-vorgemerkt",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "rechnung-pruefen",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "rechnung-fehler",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "leer",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "berechtigung",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "rechnungen",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "rechnung-pdf",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "rechnung-unklar",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "firma-teilerfolg",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "buchung-abgelehnt",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "firmendaten",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "verlassen",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "gespeichert",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "katalog",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "katalog-fehler",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "material-offline",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "zeit-vorgemerkt",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "rechnung-pruefen",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "rechnung-fehler",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "leer",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "berechtigung",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "rechnungen",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "rechnung-pdf",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "rechnung-unklar",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "firma-teilerfolg",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "buchung-abgelehnt",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "firmendaten",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "verlassen",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "gespeichert",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "katalog",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "katalog-fehler",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "material-offline",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "zeit-vorgemerkt",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "rechnung-pruefen",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "rechnung-fehler",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "leer",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "berechtigung",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "rechnungen",
+      "width": 1112,
+      "scrollWidth": 1112
+    }
+  ],
+  "longTextCases": [
+    {
+      "state": "rechnungen",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "firmendaten",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "rechnungen",
+      "width": 834,
+      "scrollWidth": 834
+    },
+    {
+      "state": "firmendaten",
+      "width": 834,
+      "scrollWidth": 834
+    }
+  ],
+  "prototypeInteractions": 6,
+  "interactions": [
+    "Speichern-Simulation: sichtbare mobile Aktion, bestätigter Zustand, kein aktives erneutes Speichern",
+    "Verlassen-Rückfrage: Tab bleibt im Dialog, Escape führt zum Bearbeiten",
+    "Katalog: Fokus bleibt im Fenster, reduzierte Bewegung respektiert, Fertig bleibt im Angebot",
+    "PDF-Simulation: laufende Aktion gesperrt, Rückmeldung, vorhandene Rechnung im Detail",
+    "Statusabgleich nur simuliert: eindeutige Ladephase und gefundener bestehender Beleg; kein Backendbeweis",
+    "Wichtige Fehlermeldung: bewusst bestätigen"
+  ],
+  "scope": "Nur eigenständige Designvorschau. Keine Aussage über reale Server-, PDF- oder Speicherfunktion."
+}

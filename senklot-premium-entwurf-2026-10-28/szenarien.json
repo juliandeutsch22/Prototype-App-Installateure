@@ -1,0 +1,98 @@
+[
+  {
+    "id": "rechnung-pdf",
+    "title": "Rechnung erstellt, PDF fehlgeschlagen",
+    "finding": "F01",
+    "description": "Speicherbestätigung bleibt stehen. Nur die PDF-Ausgabe wird erneut versucht."
+  },
+  {
+    "id": "rechnung-unklar",
+    "title": "Ausgang der Erstellung unklar",
+    "finding": "F06",
+    "description": "Kein unbelegtes Erfolgs- oder Misserfolgsversprechen. Der sichere Statusabgleich ist noch technisch zu klären."
+  },
+  {
+    "id": "firma-teilerfolg",
+    "title": "Firmendaten gespeichert, Anzeige nicht aktualisiert",
+    "finding": "F07",
+    "description": "Der bestätigte Schreibvorgang bleibt von einem fehlgeschlagenen Nachladen getrennt."
+  },
+  {
+    "id": "buchung-abgelehnt",
+    "title": "Wichtiger Nachsendefehler bleibt sichtbar",
+    "finding": "F02",
+    "description": "Die Warnung verschwindet erst nach bewusster Bestätigung. Kein automatisches erneutes Buchen."
+  },
+  {
+    "id": "firmendaten",
+    "title": "Ungespeicherte Firmendaten",
+    "finding": "F03",
+    "description": "Ruhige Speicherleiste mit eindeutigem Änderungsstand. Gezeigt sind Briefkopf und Steuer als Ausschnitt."
+  },
+  {
+    "id": "verlassen",
+    "title": "Sichere Rückfrage beim Verlassen",
+    "finding": "F03",
+    "description": "Weiterarbeiten ist die sichere Alternative. Gespeicherte Daten und aktuelle Änderungen bleiben unterscheidbar."
+  },
+  {
+    "id": "gespeichert",
+    "title": "Bestätigter Speicherstand",
+    "finding": "F03 / F07",
+    "description": "Gespeichert ist ein nachvollziehbarer Zustand. Eine neue Eingabe setzt die Anzeige wieder auf ungespeichert."
+  },
+  {
+    "id": "katalog",
+    "title": "Neue Katalogsuche läuft",
+    "finding": "F04",
+    "description": "Ein neuer Suchbegriff zeigt einen eigenen Ladezustand. Alte Treffer werden nicht als aktuelle angeboten."
+  },
+  {
+    "id": "katalog-fehler",
+    "title": "Katalogsuche fehlgeschlagen",
+    "finding": "F04",
+    "description": "Bereits übernommene Positionen bleiben erhalten. Dieselbe Suche lässt sich wiederholen."
+  },
+  {
+    "id": "material-offline",
+    "title": "Material tatsächlich auf dem Gerät vorgemerkt",
+    "finding": "F05",
+    "description": "Der konkrete Vorgang erhält erst nach lokaler Ablage die Zusage zum Nachsenden."
+  },
+  {
+    "id": "zeit-vorgemerkt",
+    "title": "Zeitbuchung vorgemerkt, noch nicht bestätigt",
+    "finding": "F05",
+    "description": "Vorgemerkt und bestätigt werden verständlich auseinandergehalten. Keine Erweiterung des Offline-Schreibumfangs."
+  },
+  {
+    "id": "rechnung-pruefen",
+    "title": "Validierung mit direktem Weg zum Feld",
+    "finding": "F08",
+    "description": "Vorhandene Prüfungen erhalten eine verknüpfte Zusammenfassung. Die zwei Felder sind ein Ausschnitt."
+  },
+  {
+    "id": "rechnung-fehler",
+    "title": "Nachladen fehlgeschlagen, Bestand bleibt sichtbar",
+    "finding": "Zustandsmuster",
+    "description": "Bekannter Bestand, Aktualität und Wiederholungsmöglichkeit bleiben klar erkennbar. Ein Zeitstempel wird nur gezeigt, wenn er tatsächlich erfasst wurde."
+  },
+  {
+    "id": "leer",
+    "title": "Keine Treffer zur Suche",
+    "finding": "Bestandsmuster",
+    "description": "Die bereits vorhandene Unterscheidung zwischen leerem Bestand und leerer Suche bleibt erhalten."
+  },
+  {
+    "id": "berechtigung",
+    "title": "Fehlende Berechtigung",
+    "finding": "Zustandsmuster",
+    "description": "Keine zusätzlichen Rechte. Der gezeigte Rollenzustand ersetzt keine bestehende serverseitige Prüfung."
+  },
+  {
+    "id": "rechnungen",
+    "title": "Ruhige Rechnungsübersicht",
+    "finding": "Linienreferenz",
+    "description": "Zeigt die gemeinsame Lot-Sprache. Vorhandene fachliche Filter und Aktionen bleiben vollständig."
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "basis": "7601e3781d4645aed2479bb8bbae9a1742e57b5b",
+  "productionVersion": "7601e37 · 28.10.2026, 01:00",
+  "date": "2026-10-28",
+  "timezone": "Europe/Vienna",
+  "appChanged": false,
+  "merged": false,
+  "deployed": false,
+  "findings": 9,
+  "sourceProbes": 4,
+  "browserSourceProbe": 1,
+  "references": 168,
+  "draftImages": 56,
+  "draftSourceHashes": {
+    "vorschau.js": "72dd613080d7b486d7e144e691464df28200c6ee3b8fd2e8e71a498e16711c29",
+    "vorschau.css": "9c464762fba63bade7afa3f1d4380ab1afb39a2e400285e68fdbc3e877d9f6d1",
+    "vorschau.html": "9ddcc0359e1aee8ae2cca9c20eee820b6dd6b5a1311a7738c8b33de8897d7d5f"
+  }
+}
