@@ -129,8 +129,8 @@ for (const width of [320, 1440]) {
   });
 }
 
-test('Premium: unveränderte Ladebeschriftung lässt dem Spinner seinen Platz', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 1000 });
+for (const width of [320, 1440]) test(`Premium: unveränderte Ladebeschriftung lässt dem Spinner seinen Platz ${width}`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
   await page.route('**/tools/vorschau/AuthStub.tsx*', async r => {
     const response = await r.fetch();
     const body = (await response.text()).replace(/reloadCompany:\s*async\s*\(\)\s*=>\s*\{\s*\}/,
@@ -141,6 +141,15 @@ test('Premium: unveränderte Ladebeschriftung lässt dem Spinner seinen Platz', 
   await page.getByLabel('Firmenname', { exact: true }).fill('Gespeicherter Stand');
   await page.getByRole('button', { name: 'Firmendaten speichern', exact: true }).click();
   const retry = page.getByRole('button', { name: 'Anzeige erneut laden', exact: true });
+  await page.evaluate(() => document.fonts.ready);
+  const vorher = (await retry.boundingBox())!;
   await retry.click(); await expect(retry).toBeDisabled();
-  expect((await retry.locator('.animate-spin').boundingBox())!.width).toBeGreaterThanOrEqual(15);
+  // Die rotierende Bounding-Box kann einen zusammengedrückten Spinner
+  // verdecken. Entscheidend ist die unverzerrte CSS-Breite und -Höhe.
+  await expect(retry.locator('.animate-spin')).toHaveCSS('width', '16px');
+  await expect(retry.locator('.animate-spin')).toHaveCSS('height', '16px');
+  const nachher = (await retry.boundingBox())!;
+  expect(nachher.width).toBeGreaterThanOrEqual(vorher.width);
+  expect(nachher.height).toBe(vorher.height);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
 });

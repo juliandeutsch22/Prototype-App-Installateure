@@ -82,7 +82,7 @@ const groessen: Record<Groesse, string> = {
 };
 
 /**
- * Knopf mit taktilem Press-Feedback (:active-Scale). Hover-Effekte sind
+ * Knopf mit kurzem Druck-Feedback. Hover-Effekte sind
  * app-weit hinter @media (hover:hover) gegatet (Tailwind
  * hoverOnlyWhenSupported) — Touch löst kein klebriges Hover aus.
  */
@@ -97,7 +97,8 @@ export default function Button({
   ...rest
 }: ButtonProps) {
   const knopf = useRef<HTMLButtonElement>(null);
-  // Nur den vorigen normalen Stand reservieren, keine appweite feste Breite.
+  // Den normalen Stand halten, aber langen Ladebeschriftungen weiterhin
+  // den nötigen Platz lassen. Sonst schrumpft der neue Spinner zum Oval.
   const breite = useRef(0);
   useLayoutEffect(() => {
     const el = knopf.current;
@@ -109,7 +110,10 @@ export default function Button({
       }
       breite.current = Math.ceil(el.getBoundingClientRect().width);
     } else if (breite.current) {
-      el.style.setProperty('--lot-knopf-breite', `${breite.current}px`);
+      el.style.removeProperty('--lot-knopf-breite');
+      delete el.dataset.lotBreite;
+      const benoetigt = Math.ceil(el.getBoundingClientRect().width);
+      el.style.setProperty('--lot-knopf-breite', `${Math.max(breite.current, benoetigt)}px`);
       el.dataset.lotBreite = 'reserviert';
     }
   }, [loading, gespeichert, children]);
@@ -124,7 +128,7 @@ export default function Button({
     >
       {loading && (
         <span
-          className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+          className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent"
           aria-hidden="true"
         />
       )}
