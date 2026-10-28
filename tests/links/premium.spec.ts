@@ -76,3 +76,23 @@ test('Premium: ein am Tablet verborgenes Mehr-Blatt hält keinen Fokus fest', as
   await expect(page.getByRole('dialog', { name: 'Weitere Bereiche', exact: true })).toBeVisible();
   await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0);
 });
+
+for (const [route, aktion] of [['/admin-projects', 'Neue Baustelle'], ['/quotes', 'Neues Angebot']]) {
+  test(`Premium: Erstnutzung mit einer eindeutigen Hauptaktion ${route}`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 1000 });
+    await page.route('**/tools/vorschau/daten.ts*', async r => {
+      const response = await r.fetch();
+      await r.fulfill({ response, body: (await response.text()) + '\nbaustellen.length=0;angebote.length=0;' });
+    });
+    await page.goto(`./?pfad=${encodeURIComponent(route)}&rolle=Administrator`);
+    await expect(page.locator('.lot-leerzeichnung')).toHaveCount(1);
+    await expect(page.getByRole('button', { name: aktion, exact: true })).toHaveCount(1);
+    if (route === '/quotes') {
+      await page.locator('main input[type=search]').fill('zzzz');
+      await expect(page.locator('.lot-leerzeichnung')).toHaveCount(0);
+      await expect(page.getByText('Kein Angebot passt zur Suche.', { exact: true })).toBeVisible();
+    }
+    await page.getByRole('button', { name: aktion, exact: true }).click();
+    await expect(page.getByLabel(route === '/quotes' ? 'Bezeichnung' : 'Projektnummer', { exact: true })).toBeVisible();
+  });
+}

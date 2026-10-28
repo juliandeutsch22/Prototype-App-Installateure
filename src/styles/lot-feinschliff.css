@@ -13,7 +13,7 @@
   }
   .lot-knopf:active:not(:disabled):not([aria-disabled=true]) { transform: translateY(1px); }
   .lot-knopf:disabled { transform: none; }
-  .lot-knopf[aria-busy=true], .lot-knopf[data-zustand=gespeichert]:disabled { opacity: 1; }
+  .lot-knopf[aria-busy=true]:disabled, .lot-knopf[data-zustand=gespeichert]:disabled { opacity: 1; }
   .lot-knopf-inhalt { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; }
   .lot-overlay > [data-lot-inhalt] { animation: lot-einblenden var(--motion-overlay) var(--ease-response) both; }
   .lot-overlay[data-phase=schliesst] > [data-lot-inhalt] { animation: lot-ausblenden var(--motion-exit) var(--ease-response) both; }
@@ -40,6 +40,11 @@
 :root :where(.navi, .kopfzeile, .meldung, .meldung-fehler) :where(button, a, input):focus-visible { outline-color: #fff; }
 .unten :where(button, a):focus-visible { outline-offset: -4px; }
 @media (prefers-reduced-motion: reduce) {
+  .lot-knopf, .lot-overlay, .lot-overlay *, .lot-menue, .lot-menue *,
+  .reiterleiste a, .segment > button, [role=tab] {
+    animation: none !important;
+    transition: none !important;
+  }
   .lot-overlay > [data-lot-inhalt], .lot-menue, .weiteres[open] > .weiteres-inhalt { animation: none !important; }
   .lot-knopf:active { transform: none !important; }
 }

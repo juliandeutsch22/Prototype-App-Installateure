@@ -690,10 +690,10 @@ export default function QuotesView() {
         : [{ id: 'alle', titel: 'Alle Angebote', zeilen: gesucht }];
   const sichtbar = gruppen.filter((g) => g.zeilen.length > 0);
   const leer =
-    angebote.length === 0
-      ? 'Noch kein Angebot erstellt.'
-      : begriff
-        ? 'Kein Angebot passt zur Suche.'
+    begriff
+      ? 'Kein Angebot passt zur Suche.'
+      : angebote.length === 0
+        ? 'Noch kein Angebot erstellt.'
         : ansicht === 'offen'
           ? 'Kein offenes Angebot.'
           : 'Noch kein Angebot angenommen oder abgelehnt.';
@@ -769,6 +769,8 @@ export default function QuotesView() {
       )}
     </ListRow>
   );
+
+  const erstesAngebot = !loading && angebote.length === 0 && !begriff && !error && !formOffen;
 
   return (
     <div className="space-y-6">
@@ -1182,10 +1184,9 @@ export default function QuotesView() {
         ) : sichtbar.length === 0 ? (
           <div className="border-t border-line">
             <EmptyState
-              zeichnung={angebote.length === 0 && !begriff && !error && !formOffen ? 'angebot' : undefined}
-              titel={angebote.length === 0 && !begriff && !error && !formOffen ? 'Dein erstes Angebot beginnt hier' : undefined}
-              action={angebote.length === 0 && !begriff && !error && !formOffen && darfAendern ? <Button onClick={() => setFormOffen(true)}>Erstes Angebot erstellen</Button> : undefined}
-            >{leer}</EmptyState>
+              zeichnung={erstesAngebot ? 'angebot' : undefined}
+              titel={erstesAngebot ? 'Noch kein Angebot erstellt.' : undefined}
+            >{erstesAngebot ? 'Erstelle ein Angebot für einen Kunden. Entwürfe und versandte Angebote findest du anschließend in dieser Übersicht.' : leer}</EmptyState>
           </div>
         ) : (
           sichtbar.map((g) => <Gruppe key={`${ansicht}-${g.id}`} titel={g.titel} zeilen={g.zeilen} zeile={zeile} />)

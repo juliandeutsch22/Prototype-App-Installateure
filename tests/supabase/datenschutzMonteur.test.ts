@@ -90,13 +90,16 @@ describe('H8 — Krankmeldungen', () => {
     });
 
   it('eine vom Büro erfasste Meldung kann der Monteur weder löschen noch ändern', async () => {
-    const { data, error } = await speichern(buero, { user: monteur.uid, von: tag(-4), bis: tag(-2) });
+    // Neun Tage enthalten auch dann Arbeitstage, wenn das kurze Fenster
+    // Wochenende plus Feiertag trifft (24.–26.10.2026). Hier werden Rechte geprüft.
+    const von = tag(-10);
+    const { data, error } = await speichern(buero, { user: monteur.uid, von, bis: tag(-2) });
     expect(error).toBeNull();
     const id = (data as { id: string }).id;
 
     const weg = await monteur.client.rpc('krankmeldung_loeschen', { p_id: id });
     expect(weg.error?.message).toMatch(/hat das Büro erfasst/);
-    const anders = await speichern(monteur, { id, von: tag(-4), bis: tag(-1) });
+    const anders = await speichern(monteur, { id, von, bis: tag(-1) });
     expect(anders.error?.message).toMatch(/hat das Büro erfasst/);
 
     // Die Tage sind noch da — der Aufruf ist ganz zurückgerollt.
