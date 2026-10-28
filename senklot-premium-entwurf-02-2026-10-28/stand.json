@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-28",
+  "timezone": "Europe/Vienna",
+  "phase": "Design review only; no application changes",
+  "baseline": "7601e3781d4645aed2479bb8bbae9a1742e57b5b",
+  "pageContexts": 69,
+  "pageImages": 219,
+  "stateContexts": 24,
+  "stateImages": 84,
+  "videos": 4,
+  "browser": "Chromium 154, Linux",
+  "physicalMobileTested": false,
+  "webKitTested": false,
+  "applicationCITriggered": false,
+  "deployed": false
+}

@@ -1,0 +1,62 @@
+/* Entwurf 02: gemeinsam auf echte React-Vorschau und eigenständige Szenarien
+   angewandt. Diese Datei ist nicht Teil des Produktbuilds. */
+:root{
+ --motion-press:100ms;--motion-state:160ms;--motion-overlay:200ms;
+ --motion-exit:140ms;--motion-route:160ms;
+ --ease-response:cubic-bezier(.22,1,.36,1);
+ --craft-focus:var(--accent-deep,var(--petrol,#0f4552));
+ --craft-hover:var(--surface-2,#f3f6f6);
+ --craft-line:var(--border-strong,var(--strong,#c2d2d5));
+}
+:root.craft [data-craft-button]{
+ transition:background-color var(--motion-press) var(--ease-response),border-color var(--motion-press) var(--ease-response),color var(--motion-press) var(--ease-response),opacity var(--motion-press) var(--ease-response),transform var(--motion-press) var(--ease-response);
+}
+:root.craft [data-craft-button]:active:not(:disabled):not([aria-disabled=true]){transform:translateY(1px)}
+:root.craft [data-craft-button]:disabled,:root.craft [data-craft-button][aria-disabled=true]{transform:none;opacity:.55}
+:root.craft [data-craft-button][aria-busy=true]{cursor:progress;opacity:1}
+:root.craft :where(button,a,input,select,textarea,summary):focus-visible{outline:3px solid var(--craft-focus);outline-offset:3px}
+:root.craft :where(.navi,.kopfzeile,.sidebar,.mobilehead) :where(button,a,input,select,summary):focus-visible{outline-color:#fff}
+:root.craft :where(.unten,.bottomnav) :where(a,button):focus-visible{outline-offset:-4px}
+/* Auch das isolierte Zustandsmodell verwendet die vorhandene helle mobile Reiterleiste. */
+:root.craft .bottomnav{background:var(--bg);color:var(--muted);border-top:1px solid var(--line)}
+:root.craft .bottomnav a.active{color:var(--petrol);font-weight:600}
+:root.craft :where(input,select,textarea){transition:border-color var(--motion-press) var(--ease-response),box-shadow var(--motion-press) var(--ease-response)}
+:root.craft :where(.dot,.stand,.tab,.chip,.segment>button,[role=tab]){transition:color var(--motion-state) var(--ease-response),background-color var(--motion-state) var(--ease-response),border-color var(--motion-state) var(--ease-response)}
+/* Größere Tabellen behalten ihre Geometrie. Feedback färbt nur die getroffene Zeile. */
+@media(hover:hover) and (pointer:fine){
+ :root.craft :where(.table tbody tr:has(a,button),.tabelle tbody tr:has(a,button),.zeile-ganz){transition:background-color var(--motion-press) var(--ease-response)}
+ :root.craft :where(.table tbody tr:has(a,button):hover,.tabelle tbody tr:has(a,button):hover,.zeile-ganz:hover){background-color:var(--craft-hover)}
+ :root.craft .btn:not(.primary):not(.danger):not(:disabled):hover{background-color:var(--craft-hover);border-color:var(--craft-focus)}
+ :root.craft .btn.primary:not(:disabled):hover{filter:brightness(.96)}
+}
+/* Bestehende Icons: 24er-Raster, 1,8er Outline, keine zweite Stilfamilie. */
+:root.craft :where(.navitem,.bottomnav,.search) svg{fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.craft-check{display:inline-block;width:16px;height:16px;stroke:currentColor;stroke-width:1.8;fill:none;flex:none}
+.quietbtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8}
+.craft-save-error{font-size:12px;color:var(--danger);max-width:58ch;margin-bottom:8px}
+.btn[data-craft-state=success]:disabled{opacity:1!important}
+.craft-discard-space{display:block;min-width:80px;min-height:48px;flex:none}
+.search-results{min-height:360px}
+.btn .spinner{margin:0;border-color:currentColor;border-right-color:transparent}
+.btn-content{display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.craft-state{font-size:12px;color:var(--muted,var(--text-muted));min-height:20px}
+.craft-live{min-height:26px;margin-top:10px}
+.craft-live:empty{visibility:hidden}
+.craft-row-added{animation:craft-arrive var(--motion-state) var(--ease-response) both}
+.craft-empty{padding:44px 8px;max-width:590px;margin:0 auto;text-align:center}
+.craft-empty h2{font-size:19px;line-height:1.5;margin-bottom:8px;font-weight:600}
+.craft-empty p{font-size:13px;color:var(--muted,var(--text-muted));max-width:50ch;margin:8px auto 18px}
+.craft-empty .actions{justify-content:center}
+.craft-empty-motif{width:148px;height:100px;display:block;margin:0 auto 22px;color:var(--craft-focus)}
+.craft-empty-motif .construction{stroke:var(--craft-line);stroke-width:1;fill:none}
+.craft-empty-motif .plumb{stroke:currentColor;stroke-width:1.6;fill:none}
+.craft-empty-motif .solid{fill:currentColor;stroke:none}
+.craft-empty-quiet{padding:34px 8px}
+.craft-empty-quiet h2{font-size:18px}
+.craft-empty-quiet .craft-empty-motif{display:none}
+.craft-description{font-size:12px;color:var(--muted,var(--text-muted));margin-top:8px}
+@keyframes craft-arrive{from{opacity:0}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){
+ :root.craft *, :root.craft *:before, :root.craft *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+ :root.craft [data-craft-button]:active{transform:none!important}
+}

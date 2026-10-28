@@ -1,0 +1,758 @@
+[
+  {
+    "state": "rechnung-pdf",
+    "width": 390,
+    "theme": "light",
+    "file": "rechnung-pdf-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "rechnung-pdf",
+    "width": 834,
+    "theme": "light",
+    "file": "rechnung-pdf-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "rechnung-pdf",
+    "width": 1440,
+    "theme": "light",
+    "file": "rechnung-pdf-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "rechnung-unklar",
+    "width": 390,
+    "theme": "light",
+    "file": "rechnung-unklar-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "rechnung-unklar",
+    "width": 834,
+    "theme": "light",
+    "file": "rechnung-unklar-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "rechnung-unklar",
+    "width": 1440,
+    "theme": "light",
+    "file": "rechnung-unklar-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-teilerfolg",
+    "width": 390,
+    "theme": "light",
+    "file": "firma-teilerfolg-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-teilerfolg",
+    "width": 834,
+    "theme": "light",
+    "file": "firma-teilerfolg-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-teilerfolg",
+    "width": 1440,
+    "theme": "light",
+    "file": "firma-teilerfolg-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "buchung-abgelehnt",
+    "width": 390,
+    "theme": "light",
+    "file": "buchung-abgelehnt-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "buchung-abgelehnt",
+    "width": 834,
+    "theme": "light",
+    "file": "buchung-abgelehnt-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "buchung-abgelehnt",
+    "width": 1440,
+    "theme": "light",
+    "file": "buchung-abgelehnt-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firmendaten",
+    "width": 390,
+    "theme": "light",
+    "file": "firmendaten-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firmendaten",
+    "width": 834,
+    "theme": "light",
+    "file": "firmendaten-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firmendaten",
+    "width": 1440,
+    "theme": "light",
+    "file": "firmendaten-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "verlassen",
+    "width": 390,
+    "theme": "light",
+    "file": "verlassen-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "verlassen",
+    "width": 834,
+    "theme": "light",
+    "file": "verlassen-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "verlassen",
+    "width": 1440,
+    "theme": "light",
+    "file": "verlassen-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "gespeichert",
+    "width": 390,
+    "theme": "light",
+    "file": "gespeichert-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "gespeichert",
+    "width": 834,
+    "theme": "light",
+    "file": "gespeichert-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "gespeichert",
+    "width": 1440,
+    "theme": "light",
+    "file": "gespeichert-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "katalog",
+    "width": 390,
+    "theme": "light",
+    "file": "katalog-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "katalog",
+    "width": 834,
+    "theme": "light",
+    "file": "katalog-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "katalog",
+    "width": 1440,
+    "theme": "light",
+    "file": "katalog-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "katalog-fehler",
+    "width": 390,
+    "theme": "light",
+    "file": "katalog-fehler-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "katalog-fehler",
+    "width": 834,
+    "theme": "light",
+    "file": "katalog-fehler-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "katalog-fehler",
+    "width": 1440,
+    "theme": "light",
+    "file": "katalog-fehler-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "material-offline",
+    "width": 390,
+    "theme": "light",
+    "file": "material-offline-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "material-offline",
+    "width": 834,
+    "theme": "light",
+    "file": "material-offline-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "material-offline",
+    "width": 1440,
+    "theme": "light",
+    "file": "material-offline-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "zeit-vorgemerkt",
+    "width": 390,
+    "theme": "light",
+    "file": "zeit-vorgemerkt-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "zeit-vorgemerkt",
+    "width": 834,
+    "theme": "light",
+    "file": "zeit-vorgemerkt-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "zeit-vorgemerkt",
+    "width": 1440,
+    "theme": "light",
+    "file": "zeit-vorgemerkt-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "rechnung-pruefen",
+    "width": 390,
+    "theme": "light",
+    "file": "rechnung-pruefen-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "rechnung-pruefen",
+    "width": 834,
+    "theme": "light",
+    "file": "rechnung-pruefen-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "rechnung-pruefen",
+    "width": 1440,
+    "theme": "light",
+    "file": "rechnung-pruefen-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "rechnung-fehler",
+    "width": 390,
+    "theme": "light",
+    "file": "rechnung-fehler-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "rechnung-fehler",
+    "width": 834,
+    "theme": "light",
+    "file": "rechnung-fehler-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "rechnung-fehler",
+    "width": 1440,
+    "theme": "light",
+    "file": "rechnung-fehler-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "leer",
+    "width": 390,
+    "theme": "light",
+    "file": "leer-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "leer",
+    "width": 834,
+    "theme": "light",
+    "file": "leer-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "leer",
+    "width": 1440,
+    "theme": "light",
+    "file": "leer-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "berechtigung",
+    "width": 390,
+    "theme": "light",
+    "file": "berechtigung-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "berechtigung",
+    "width": 834,
+    "theme": "light",
+    "file": "berechtigung-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "berechtigung",
+    "width": 1440,
+    "theme": "light",
+    "file": "berechtigung-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "rechnungen",
+    "width": 390,
+    "theme": "light",
+    "file": "rechnungen-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "rechnungen",
+    "width": 834,
+    "theme": "light",
+    "file": "rechnungen-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "rechnungen",
+    "width": 1440,
+    "theme": "light",
+    "file": "rechnungen-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "baustellen-leer",
+    "width": 390,
+    "theme": "light",
+    "file": "baustellen-leer-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "baustellen-leer",
+    "width": 834,
+    "theme": "light",
+    "file": "baustellen-leer-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "baustellen-leer",
+    "width": 1440,
+    "theme": "light",
+    "file": "baustellen-leer-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "angebote-leer",
+    "width": 390,
+    "theme": "light",
+    "file": "angebote-leer-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "angebote-leer",
+    "width": 834,
+    "theme": "light",
+    "file": "angebote-leer-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "angebote-leer",
+    "width": 1440,
+    "theme": "light",
+    "file": "angebote-leer-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "filter-leer",
+    "width": 390,
+    "theme": "light",
+    "file": "filter-leer-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "filter-leer",
+    "width": 834,
+    "theme": "light",
+    "file": "filter-leer-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "filter-leer",
+    "width": 1440,
+    "theme": "light",
+    "file": "filter-leer-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "zeitraum-leer",
+    "width": 390,
+    "theme": "light",
+    "file": "zeitraum-leer-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "zeitraum-leer",
+    "width": 834,
+    "theme": "light",
+    "file": "zeitraum-leer-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "zeitraum-leer",
+    "width": 1440,
+    "theme": "light",
+    "file": "zeitraum-leer-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "katalog-treffer",
+    "width": 390,
+    "theme": "light",
+    "file": "katalog-treffer-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "katalog-treffer",
+    "width": 834,
+    "theme": "light",
+    "file": "katalog-treffer-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "katalog-treffer",
+    "width": 1440,
+    "theme": "light",
+    "file": "katalog-treffer-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-speichert",
+    "width": 390,
+    "theme": "light",
+    "file": "firma-speichert-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-speichert",
+    "width": 834,
+    "theme": "light",
+    "file": "firma-speichert-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-speichert",
+    "width": 1440,
+    "theme": "light",
+    "file": "firma-speichert-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-fehler",
+    "width": 390,
+    "theme": "light",
+    "file": "firma-fehler-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-fehler",
+    "width": 834,
+    "theme": "light",
+    "file": "firma-fehler-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-fehler",
+    "width": 1440,
+    "theme": "light",
+    "file": "firma-fehler-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "bausteine",
+    "width": 390,
+    "theme": "light",
+    "file": "bausteine-390.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "bausteine",
+    "width": 834,
+    "theme": "light",
+    "file": "bausteine-834.jpg",
+    "scrollWidth": 834,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "bausteine",
+    "width": 1440,
+    "theme": "light",
+    "file": "bausteine-1440.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "rechnung-pdf",
+    "width": 390,
+    "theme": "dark",
+    "file": "rechnung-pdf-390-dunkel.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "rechnung-pdf",
+    "width": 1440,
+    "theme": "dark",
+    "file": "rechnung-pdf-1440-dunkel.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "verlassen",
+    "width": 390,
+    "theme": "dark",
+    "file": "verlassen-390-dunkel.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "verlassen",
+    "width": 1440,
+    "theme": "dark",
+    "file": "verlassen-1440-dunkel.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "katalog",
+    "width": 390,
+    "theme": "dark",
+    "file": "katalog-390-dunkel.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "katalog",
+    "width": 1440,
+    "theme": "dark",
+    "file": "katalog-1440-dunkel.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "buchung-abgelehnt",
+    "width": 390,
+    "theme": "dark",
+    "file": "buchung-abgelehnt-390-dunkel.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "buchung-abgelehnt",
+    "width": 1440,
+    "theme": "dark",
+    "file": "buchung-abgelehnt-1440-dunkel.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "baustellen-leer",
+    "width": 390,
+    "theme": "dark",
+    "file": "baustellen-leer-390-dunkel.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "baustellen-leer",
+    "width": 1440,
+    "theme": "dark",
+    "file": "baustellen-leer-1440-dunkel.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "bausteine",
+    "width": 390,
+    "theme": "dark",
+    "file": "bausteine-390-dunkel.jpg",
+    "scrollWidth": 390,
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "bausteine",
+    "width": 1440,
+    "theme": "dark",
+    "file": "bausteine-1440-dunkel.jpg",
+    "scrollWidth": 1440,
+    "errors": [],
+    "violations": []
+  }
+]

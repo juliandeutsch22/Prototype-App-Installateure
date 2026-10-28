@@ -1,0 +1,20 @@
+[
+  {
+    "gallery": true,
+    "width": 390,
+    "scrollWidth": 390,
+    "axeViolations": 0
+  },
+  {
+    "gallery": true,
+    "width": 1440,
+    "scrollWidth": 1440,
+    "axeViolations": 0
+  },
+  {
+    "successWidth": {
+      "before": 212.9375,
+      "after": 213
+    }
+  }
+]

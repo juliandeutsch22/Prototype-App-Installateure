@@ -1,0 +1,480 @@
+{
+  "checks": [
+    "Speichern: 20 weitere Submit-Ereignisse erzeugen keinen zweiten Modellaufruf; Buttonbreite stabil",
+    "Eingabe während laufendem Speichern bleibt als noch ungespeichert erkennbar",
+    "Dialog: Fokus bleibt im Fenster, Escape schließt und gibt Hintergrund frei",
+    "Verwerfen stellt den im Modell bestätigten Stand wieder her",
+    "Fehler: Eingaben erhalten, kein Erfolgssymbol, Aktion erneut erreichbar",
+    "Erfolg erscheint erst nach dem simulierten bestätigten Ergebnis",
+    "Neue Suche: alte Treffer sofort weg; überholte Antwort wird nicht angezeigt; Übernahmebestätigung bleibt erhalten",
+    "Trefferzahl gehört zur aktuellen Suche, Artikelnummer findet genau den passenden Artikel",
+    "Keine Treffer und Zurücksetzen erhalten den Suchkontext",
+    "Katalog schließen führt zurück ins Angebot",
+    "Acht schnelle Öffnen-/Schließen-Folgen hinterlassen keinen Dialog oder inerten Hintergrund",
+    "Reduzierte Bewegung: keine laufende Dialoganimation, vollständige Bedienung",
+    "Kein Vibration-Aufruf; kein taktiles Erfolgsversprechen"
+  ],
+  "layout": [
+    {
+      "state": "rechnung-pdf",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "rechnung-unklar",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "firma-teilerfolg",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "buchung-abgelehnt",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "firmendaten",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "verlassen",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "gespeichert",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "katalog",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "katalog-fehler",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "material-offline",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "zeit-vorgemerkt",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "rechnung-pruefen",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "rechnung-fehler",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "leer",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "berechtigung",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "rechnungen",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "baustellen-leer",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "angebote-leer",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "filter-leer",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "zeitraum-leer",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "katalog-treffer",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "firma-speichert",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "firma-fehler",
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "state": "rechnung-pdf",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "rechnung-unklar",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "firma-teilerfolg",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "buchung-abgelehnt",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "firmendaten",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "verlassen",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "gespeichert",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "katalog",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "katalog-fehler",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "material-offline",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "zeit-vorgemerkt",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "rechnung-pruefen",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "rechnung-fehler",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "leer",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "berechtigung",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "rechnungen",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "baustellen-leer",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "angebote-leer",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "filter-leer",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "zeitraum-leer",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "katalog-treffer",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "firma-speichert",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "firma-fehler",
+      "width": 375,
+      "scrollWidth": 375
+    },
+    {
+      "state": "rechnung-pdf",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "rechnung-unklar",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "firma-teilerfolg",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "buchung-abgelehnt",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "firmendaten",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "verlassen",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "gespeichert",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "katalog",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "katalog-fehler",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "material-offline",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "zeit-vorgemerkt",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "rechnung-pruefen",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "rechnung-fehler",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "leer",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "berechtigung",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "rechnungen",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "baustellen-leer",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "angebote-leer",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "filter-leer",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "zeitraum-leer",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "katalog-treffer",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "firma-speichert",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "firma-fehler",
+      "width": 430,
+      "scrollWidth": 430
+    },
+    {
+      "state": "rechnung-pdf",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "rechnung-unklar",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "firma-teilerfolg",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "buchung-abgelehnt",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "firmendaten",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "verlassen",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "gespeichert",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "katalog",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "katalog-fehler",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "material-offline",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "zeit-vorgemerkt",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "rechnung-pruefen",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "rechnung-fehler",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "leer",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "berechtigung",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "rechnungen",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "baustellen-leer",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "angebote-leer",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "filter-leer",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "zeitraum-leer",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "katalog-treffer",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "firma-speichert",
+      "width": 1112,
+      "scrollWidth": 1112
+    },
+    {
+      "state": "firma-fehler",
+      "width": 1112,
+      "scrollWidth": 1112
+    }
+  ],
+  "scope": "Eigenständiges Designmodell. Keine Produktionsschreibtests und kein Hardwaretest."
+}

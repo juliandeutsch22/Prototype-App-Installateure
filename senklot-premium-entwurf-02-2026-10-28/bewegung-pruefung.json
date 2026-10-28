@@ -1,0 +1,43 @@
+{
+  "focus": [
+    {
+      "theme": "light",
+      "width": "3px",
+      "focus": true,
+      "color": "rgb(15, 69, 82)",
+      "offset": "-4px",
+      "viewportWidth": 390
+    },
+    {
+      "theme": "light",
+      "width": "3px",
+      "focus": true,
+      "color": "rgb(255, 255, 255)",
+      "offset": "3px",
+      "viewportWidth": 1440
+    },
+    {
+      "theme": "dark",
+      "width": "3px",
+      "focus": true,
+      "color": "rgb(124, 196, 210)",
+      "offset": "-4px",
+      "viewportWidth": 390
+    },
+    {
+      "theme": "dark",
+      "width": "3px",
+      "focus": true,
+      "color": "rgb(255, 255, 255)",
+      "offset": "3px",
+      "viewportWidth": 1440
+    }
+  ],
+  "recordings": [
+    "01-speichern",
+    "02-rueckfrage",
+    "03-katalog",
+    "04-zeilenmenue"
+  ],
+  "scope": "Drei isolierte asynchrone Designmodelle und ein Menü der echten lokalen React-Vorschau. Keine Produktionsschreibvorgänge. Videozeit ist keine Performance-Messung."
+}
