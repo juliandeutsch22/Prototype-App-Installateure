@@ -9,3 +9,5 @@ Im ersten breiten Lauf trat bei Kundenakte/Belege/320 px eine Zeitüberschreitun
 Die Bildprüfung ist keine vollständige Funktions- oder Hardwareabnahme. Die dauerhaft ergänzten Komponenten-/Browserprüfungen und die regulären fachlichen Abläufe laufen in [PR #385](https://github.com/juliandeutsch22/Prototype-App-Installateure/pull/385). Lokales Chromium ist geprüft. Die lokalen WebKit-Systembibliotheken fehlen; die reguläre CI installiert sie und prüft WebKit. Physische iPhone-/Android-Geräte sind hier nicht geprüft. Der aktuelle CI- und Auslieferungsstand ist im PR zu prüfen.
 
 Verhalten, unveränderte Funktionen und verbleibende Grenzen: [Umsetzung](UMSETZUNG.md). Insbesondere wird kein sicherer automatischer Rechnungsabgleich nach unterbrochener Serverantwort behauptet und der vorhandene BrowserRouter nicht neu aufgebaut.
+
+Zusätzliche Messung der Speicherleiste vor/während/nach dem Schreiben in fünf Breiten: ohne Seitenüberlauf und höchstens 1 px Rundungsabweichung. [Messdaten](speicherbreite-pruefung.json). 13 dauerhafte lokale Chromium-Browserprüfungen sind grün; die vollständige CI ist im PR ersichtlich.

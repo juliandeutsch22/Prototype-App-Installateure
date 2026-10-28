@@ -1,0 +1,37 @@
+[
+  {
+    "width": 320,
+    "before": 186.671875,
+    "pending": 186.671875,
+    "after": 186.671875,
+    "scrollWidth": 320
+  },
+  {
+    "width": 375,
+    "before": 223.34375,
+    "pending": 223.34375,
+    "after": 223.34375,
+    "scrollWidth": 375
+  },
+  {
+    "width": 390,
+    "before": 233.34375,
+    "pending": 233.34375,
+    "after": 233.34375,
+    "scrollWidth": 390
+  },
+  {
+    "width": 834,
+    "before": 457.34375,
+    "pending": 457.34375,
+    "after": 457.34375,
+    "scrollWidth": 834
+  },
+  {
+    "width": 1440,
+    "before": 209.921875,
+    "pending": 210,
+    "after": 210,
+    "scrollWidth": 1440
+  }
+]

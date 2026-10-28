@@ -1,7 +1,7 @@
 {
   "phase": "Implemented UI in PR #385; screenshots do not establish deployment",
   "sourcePR": "https://github.com/juliandeutsch22/Prototype-App-Installateure/pull/385",
-  "sourceHead": "2d282edc",
+  "sourceHead": "9c0aeb6a394862506e173868a470e9ab9aca75bd",
   "pageImages": 357,
   "pageContexts": 69,
   "stateImages": 12,
@@ -10,6 +10,7 @@
   "stateAxeChecks": 12,
   "physicalDevicesTested": false,
   "webkitLocal": "Missing host system libraries; checked by regular CI instead",
-  "finalLocalChromiumTests": 11,
-  "stateScreensIncludeOpacityAssertion": true
+  "finalLocalChromiumTests": 13,
+  "stateScreensIncludeOpacityAssertion": true,
+  "saveWidthCases": 5
 }
