@@ -630,7 +630,8 @@ export async function rechnungAusstellen(
     if (/^[0-9A-Z]{5}$/.test(error.code ?? '')) throw new Error(error.message);
     throw new RechnungsAntwortUnklar();
   }
-  if (!data || typeof data.id !== 'string' || typeof data.invoice_number !== 'string') {
+  if (!data || typeof data.id !== 'string' || !data.id.trim()
+      || typeof data.invoice_number !== 'string' || !data.invoice_number.trim()) {
     throw new RechnungsAntwortUnklar();
   }
   const r = data as { id: string; invoice_number: string };
