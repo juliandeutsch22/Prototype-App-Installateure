@@ -103,10 +103,14 @@ export default function Button({
     const el = knopf.current;
     if (!el) return;
     if (!loading && !gespeichert) {
-      if (el.style.minWidth) el.style.minWidth = '';
+      if (el.dataset.lotBreite) {
+        el.style.removeProperty('--lot-knopf-breite');
+        delete el.dataset.lotBreite;
+      }
       breite.current = Math.ceil(el.getBoundingClientRect().width);
     } else if (breite.current) {
-      el.style.minWidth = `min(${breite.current}px, 100%)`;
+      el.style.setProperty('--lot-knopf-breite', `${breite.current}px`);
+      el.dataset.lotBreite = 'reserviert';
     }
   }, [loading, gespeichert, children]);
   return (

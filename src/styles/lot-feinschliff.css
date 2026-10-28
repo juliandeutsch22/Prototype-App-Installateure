@@ -13,6 +13,10 @@
   }
   .lot-knopf:active:not(:disabled):not([aria-disabled=true]) { transform: translateY(1px); }
   .lot-knopf:disabled { transform: none; }
+  /* Eine Prozent-Mindestbreite kollabiert in den automatischen Grid-Spalten
+     am Desktop. Feste Wunschbreite + maximale verfügbare Breite bleibt stabil
+     und passt beim Gerätewechsel weiterhin in die schmale Spalte. */
+  .lot-knopf[data-lot-breite] { width: var(--lot-knopf-breite); max-width: 100%; }
   .lot-knopf[aria-busy=true]:disabled, .lot-knopf[data-zustand=gespeichert]:disabled { opacity: 1; }
   .lot-knopf-inhalt { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; }
   .lot-overlay > [data-lot-inhalt] { animation: lot-einblenden var(--motion-overlay) var(--ease-response) both; }
@@ -40,7 +44,7 @@
 :root :where(.navi, .kopfzeile, .meldung, .meldung-fehler) :where(button, a, input):focus-visible { outline-color: #fff; }
 .unten :where(button, a):focus-visible { outline-offset: -4px; }
 @media (prefers-reduced-motion: reduce) {
-  .lot-knopf, .lot-overlay, .lot-overlay *, .lot-menue, .lot-menue *,
+  .lot-knopf, .lot-knopf *, .lot-overlay, .lot-overlay *, .lot-menue, .lot-menue *,
   .reiterleiste a, .segment > button, [role=tab] {
     animation: none !important;
     transition: none !important;

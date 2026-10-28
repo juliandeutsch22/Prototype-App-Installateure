@@ -626,8 +626,10 @@ export async function rechnungAusstellen(
     p_wunsch: nummer.desired ?? null,
   }).then((antwort) => antwort, () => { throw new RechnungsAntwortUnklar(); });
   if (error) {
-    // Nur eine SQL-Fehlerantwort belegt die Ablehnung der Transaktion.
-    if (/^[0-9A-Z]{5}$/.test(error.code ?? '')) throw new Error(error.message);
+    // SQL-Ablehnung bzw. abgewiesene Authentifizierung vor dem RPC-Aufruf.
+    if (/^[0-9A-Z]{5}$/.test(error.code ?? '') || error.code === 'PGRST301' || error.code === 'PGRST302') {
+      throw new Error(error.message);
+    }
     throw new RechnungsAntwortUnklar();
   }
   if (!data || typeof data.id !== 'string' || !data.id.trim()

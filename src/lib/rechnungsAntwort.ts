@@ -2,7 +2,7 @@
  * kann ein reiner Listenvergleich die fehlende Antwort nicht sicher ersetzen. */
 export class RechnungsAntwortUnklar extends Error {
   constructor() {
-    super('Die Antwort auf die Rechnungserstellung wurde unterbrochen. Ob die Rechnung erstellt wurde, ist noch nicht sicher. Bitte zuerst die Rechnungsliste prüfen.');
+    super('Die Rechnungserstellung konnte nicht bestätigt werden. Ob die Rechnung erstellt wurde, ist noch nicht sicher. Bitte zuerst die Rechnungsliste prüfen.');
     this.name = 'RechnungsAntwortUnklar';
   }
 }

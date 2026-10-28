@@ -96,3 +96,27 @@ for (const [route, aktion] of [['/admin-projects', 'Neue Baustelle'], ['/quotes'
     await expect(page.getByLabel(route === '/quotes' ? 'Bezeichnung' : 'Projektnummer', { exact: true })).toBeVisible();
   });
 }
+
+for (const width of [320, 1440]) {
+  test(`Premium: Speicherbutton bleibt in allen Phasen gleich breit ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.route('**/tools/vorschau/db/company.ts*', async r => {
+      const response = await r.fetch();
+      await r.fulfill({ response, body: (await response.text()).replace('export const updateCompany = NOOP;', "export const updateCompany = () => new Promise(resolve => window.addEventListener('premium-save-release', () => resolve(), { once: true }));") });
+    });
+    await page.goto('./?pfad=%2Fsettings%2Ffirma&rolle=Administrator');
+    await page.evaluate(() => document.fonts.ready);
+    await page.getByLabel('Firmenname', { exact: true }).fill('Bestätigter Teststand');
+    const before = (await page.getByRole('button', { name: 'Firmendaten speichern', exact: true }).boundingBox())!;
+    await page.getByRole('button', { name: 'Firmendaten speichern', exact: true }).click();
+    const pending = page.getByRole('button', { name: 'Speichert …', exact: true });
+    await expect(pending).toBeDisabled(); await expect(pending).toHaveCSS('opacity', '1');
+    expect(Math.abs((await pending.boundingBox())!.width - before.width)).toBeLessThanOrEqual(1);
+    await page.evaluate(() => window.dispatchEvent(new Event('premium-save-release')));
+    const saved = page.getByRole('button', { name: 'Gespeichert', exact: true });
+    await expect(saved).toBeDisabled(); await expect(saved).toHaveCSS('opacity', '1');
+    expect(Math.abs((await saved.boundingBox())!.width - before.width)).toBeLessThanOrEqual(1);
+    await page.setViewportSize({ width: 320, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+  });
+}

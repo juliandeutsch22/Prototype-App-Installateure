@@ -23,6 +23,10 @@ it('SQL-Ablehnung bleibt eine konkrete Ablehnung ohne Erfolgsmeldung', async () 
   rpc.mockResolvedValueOnce({ data: null, error: { code: '23505', message: 'Nummer schon vergeben' } });
   await expect(rechnungAusstellen('firma', inv, {})).rejects.toThrow('Nummer schon vergeben');
 });
+it('eindeutige Authentifizierungsablehnung wird nicht als verlorene Erstellungsantwort dargestellt', async () => {
+  rpc.mockResolvedValueOnce({ data: null, error: { code: 'PGRST301', message: 'JWT expired' } });
+  await expect(rechnungAusstellen('firma', inv, {})).rejects.toThrow('JWT expired');
+});
 it('Transportabbruch und unbestimmte Gateway-Antwort sind kein Rollback-Beweis', async () => {
   rpc.mockRejectedValueOnce(new TypeError('Failed to fetch'));
   await expect(rechnungAusstellen('firma', inv, {})).rejects.toBeInstanceOf(RechnungsAntwortUnklar);

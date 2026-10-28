@@ -3080,7 +3080,7 @@ export default function InvoicesView() {
       */}
       {erstellungUnklar && <Hinweiszeile stufe="warn" role="status">
         <p><b>Die Erstellung ist noch nicht bestätigt.</b></p>
-        <p>Die Serverantwort wurde unterbrochen. Deine Angaben bleiben erhalten. Die Erstellung aus dieser Vorschau bleibt gesperrt, damit nicht versehentlich eine zweite Rechnung entsteht.</p>
+        <p>Die Antwort auf die Erstellung ist nicht eindeutig. Deine Angaben bleiben erhalten. Die Erstellung aus dieser Vorschau bleibt gesperrt, damit nicht versehentlich eine zweite Rechnung entsteht.</p>
         <Button variant="secondary" onClick={() => {
           filterSetzen('alle'); offeneNeuLaden();
           document.getElementById('rechnungsliste')?.scrollIntoView({ block: 'start' });
