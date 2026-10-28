@@ -61,3 +61,18 @@ test('Premium: Maus über der Meldung pausiert, ohne Klicks auf die Seite zu spe
   await page.mouse.move(5, 5);
   await expect(text).toHaveCount(0, { timeout: 4500 });
 });
+
+test('Premium: ein am Tablet verborgenes Mehr-Blatt hält keinen Fokus fest', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('./?pfad=%2F&rolle=Administrator');
+  await page.locator('.unten button').filter({ hasText: 'Mehr' }).click();
+  await expect(page.getByRole('dialog', { name: 'Weitere Bereiche', exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 834, height: 1000 });
+  await expect(page.locator('html')).not.toHaveCSS('overflow', 'hidden');
+  const ziel = page.locator('.navi a').first(); await ziel.focus();
+  await page.keyboard.press('Tab');
+  expect(await page.evaluate(() => !document.activeElement?.closest('.blatt'))).toBe(true);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole('dialog', { name: 'Weitere Bereiche', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0);
+});

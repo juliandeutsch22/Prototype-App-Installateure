@@ -3099,7 +3099,8 @@ export default function InvoicesView() {
       </Hinweiszeile>}
 
       {!nurLesen && erstellen && (
-      <div ref={erstellenRef} className="space-y-3 lg:space-y-5">
+      <div ref={erstellenRef}>
+      <fieldset disabled={busy && ausstellungLaeuft.current} aria-label="Rechnung erstellen" className="m-0 min-w-0 space-y-3 border-0 p-0 lg:space-y-5">
       <Card
         title="Neue Rechnung aus Baustelle"
         hint="Zusammengestellt wird, was auf dieser Baustelle als „Anwesend“ gebucht und noch NICHT verrechnet ist — dazu das ausgegebene Material. Eine Position kann deshalb nie zweimal auf eine Rechnung geraten. Gesperrt werden die Belege aber erst beim Anlegen, nicht schon beim Zusammenstellen: bis dahin lässt sich alles gefahrlos ansehen und wieder verwerfen."
@@ -4397,6 +4398,7 @@ export default function InvoicesView() {
           </div>
         </Card>
       )}
+      </fieldset>
       </div>
       )}
 

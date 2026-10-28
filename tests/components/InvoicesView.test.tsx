@@ -84,6 +84,7 @@ let scheine: (WorkSheet & { id: string })[] = [];
 let katalog: Material[] = [];
 let reservierteNummer = 'RE-2026-1099';
 let reservierungWirft: Error | null = null;
+let ausstellungWartet: Promise<{ id: string; invoiceNumber: string }> | null = null;
 
 const reserve = vi.fn();
 const lege = vi.fn();
@@ -199,7 +200,7 @@ vi.mock('@/lib/db/invoices', async () => {
       reserve(c, nummer);
       if (reservierungWirft) return Promise.reject(reservierungWirft);
       lege(inv);
-      return Promise.resolve({ id: 'neu', invoiceNumber: reservierteNummer });
+      return ausstellungWartet ?? Promise.resolve({ id: 'neu', invoiceNumber: reservierteNummer });
     },
     /*
       Die Rechnungen EINER BAUSTELLE — für den Abzug auf der Schlussrechnung.
@@ -489,6 +490,7 @@ beforeEach(() => {
   PROJEKT.endDate = undefined;
   reservierteNummer = 'RE-2026-1099';
   reservierungWirft = null;
+  ausstellungWartet = null;
   reihenfolge.length = 0;
   reserve.mockClear();
   lege.mockClear();
@@ -5121,4 +5123,20 @@ describe('Premium: Ausstellen und PDF sind getrennte Ergebnisse', () => {
     expect(pdfAusgabe).not.toHaveBeenCalled();
     expect(screen.queryByText(/Es ist nichts angelegt und nichts gesperrt/)).toBeNull();
   });
+});
+
+
+it('Rechnung: während ausstehender Bestätigung sind Eingaben und Verwerfen gesperrt', async () => {
+  let fertig: ((v: { id: string; invoiceNumber: string }) => void) | undefined;
+  ausstellungWartet = new Promise((r) => { fertig = r; });
+  const bestaetigen = await bisZurVorschau();
+  await userEvent.click(bestaetigen);
+  const gruppe = screen.getByRole('group', { name: 'Rechnung erstellen' });
+  expect(within(gruppe).getByLabelText('Leistung bis')).toBeDisabled();
+  expect(within(gruppe).getByRole('button', { name: 'Verwerfen' })).toBeDisabled();
+  expect(within(gruppe).getByRole('button', { name: 'Schließen' })).toBeDisabled();
+  expect(reserve).toHaveBeenCalledOnce();
+  fertig?.({ id: 'neu', invoiceNumber: reservierteNummer });
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Rechnung erstellen & PDF' })).toBeNull());
+  expect(pdfAusgabe).toHaveBeenCalledOnce();
 });
