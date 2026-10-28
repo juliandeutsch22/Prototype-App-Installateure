@@ -1,0 +1,15 @@
+{
+  "phase": "Implemented UI in PR #385; screenshots do not establish deployment",
+  "sourcePR": "https://github.com/juliandeutsch22/Prototype-App-Installateure/pull/385",
+  "sourceHead": "2d282edc",
+  "pageImages": 357,
+  "pageContexts": 69,
+  "stateImages": 12,
+  "initialRunTimeout": "Kundenakte Belege at320px; not reproduced in3targeted controls; full fixed-source rerun357passed",
+  "pageAxeChecks": 75,
+  "stateAxeChecks": 12,
+  "physicalDevicesTested": false,
+  "webkitLocal": "Missing host system libraries; checked by regular CI instead",
+  "finalLocalChromiumTests": 11,
+  "stateScreensIncludeOpacityAssertion": true
+}

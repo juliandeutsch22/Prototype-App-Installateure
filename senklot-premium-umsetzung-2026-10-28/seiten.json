@@ -1,0 +1,368 @@
+[
+  {
+    "name": "start",
+    "route": "/",
+    "role": "Administrator"
+  },
+  {
+    "name": "start-monteur",
+    "route": "/",
+    "role": "Mitarbeiter"
+  },
+  {
+    "name": "start-buchhaltung",
+    "route": "/",
+    "role": "Buchhaltung"
+  },
+  {
+    "name": "zeit",
+    "route": "/time",
+    "role": "Mitarbeiter"
+  },
+  {
+    "name": "material",
+    "route": "/material",
+    "role": "Mitarbeiter"
+  },
+  {
+    "name": "anforderungen",
+    "route": "/anforderungen",
+    "role": "Verwaltung"
+  },
+  {
+    "name": "lager",
+    "route": "/lager",
+    "role": "Verwaltung"
+  },
+  {
+    "name": "eigener-plan",
+    "route": "/my-schedule/mein",
+    "role": "Mitarbeiter"
+  },
+  {
+    "name": "teamplan",
+    "route": "/my-schedule/team",
+    "role": "Mitarbeiter"
+  },
+  {
+    "name": "meine-baustellen",
+    "route": "/my-projects",
+    "role": "Mitarbeiter"
+  },
+  {
+    "name": "urlaub",
+    "route": "/vacations",
+    "role": "Administrator"
+  },
+  {
+    "name": "sonderurlaub",
+    "route": "/sonderurlaub",
+    "role": "Administrator"
+  },
+  {
+    "name": "scheine",
+    "route": "/worksheets",
+    "role": "Administrator"
+  },
+  {
+    "name": "schein-neu",
+    "route": "/worksheet",
+    "role": "Mitarbeiter"
+  },
+  {
+    "name": "angebote",
+    "route": "/quotes",
+    "role": "Administrator"
+  },
+  {
+    "name": "angebotsakte",
+    "route": "/quotes/q1",
+    "role": "Administrator"
+  },
+  {
+    "name": "kunden",
+    "route": "/customers",
+    "role": "Administrator"
+  },
+  {
+    "name": "kundenakte",
+    "route": "/customers/k1",
+    "role": "Administrator"
+  },
+  {
+    "name": "wartungen",
+    "route": "/wartungen",
+    "role": "Administrator"
+  },
+  {
+    "name": "baustellen",
+    "route": "/admin-projects",
+    "role": "Administrator"
+  },
+  {
+    "name": "baustellenakte",
+    "route": "/admin-projects/p1",
+    "role": "Administrator"
+  },
+  {
+    "name": "wochenplan",
+    "route": "/assignments/woche",
+    "role": "Projektleiter"
+  },
+  {
+    "name": "tagesplan",
+    "route": "/assignments/tag",
+    "role": "Projektleiter"
+  },
+  {
+    "name": "benutzer",
+    "route": "/user-mgmt",
+    "role": "Administrator"
+  },
+  {
+    "name": "benutzerakte",
+    "route": "/user-mgmt/u1",
+    "role": "Administrator"
+  },
+  {
+    "name": "konto",
+    "route": "/settings/meldungen",
+    "role": "Mitarbeiter"
+  },
+  {
+    "name": "einstellungen",
+    "route": "/settings/uebersicht",
+    "role": "Administrator"
+  },
+  {
+    "name": "firmendaten",
+    "route": "/settings/firma",
+    "role": "Administrator"
+  },
+  {
+    "name": "saetze",
+    "route": "/settings/saetze",
+    "role": "Administrator"
+  },
+  {
+    "name": "rechnungsvorgaben",
+    "route": "/settings/rechnung",
+    "role": "Buchhaltung"
+  },
+  {
+    "name": "nummern",
+    "route": "/settings/nummern",
+    "role": "Administrator"
+  },
+  {
+    "name": "personal",
+    "route": "/settings/personal",
+    "role": "Administrator"
+  },
+  {
+    "name": "konten",
+    "route": "/settings/konten",
+    "role": "Buchhaltung"
+  },
+  {
+    "name": "support",
+    "route": "/settings/support",
+    "role": "Administrator"
+  },
+  {
+    "name": "module",
+    "route": "/settings/module",
+    "role": "Administrator"
+  },
+  {
+    "name": "sicherung",
+    "route": "/settings/sicherung",
+    "role": "Administrator"
+  },
+  {
+    "name": "kalkulation",
+    "route": "/costing",
+    "role": "Administrator"
+  },
+  {
+    "name": "rechnungen",
+    "route": "/invoices",
+    "role": "Buchhaltung"
+  },
+  {
+    "name": "mitarbeiter",
+    "route": "/accounting",
+    "role": "Buchhaltung"
+  },
+  {
+    "name": "impressum",
+    "route": "/impressum",
+    "role": "Administrator"
+  },
+  {
+    "name": "datenschutz",
+    "route": "/datenschutz",
+    "role": "Administrator"
+  },
+  {
+    "name": "plattform",
+    "route": "/plattform",
+    "role": "Plattformadministrator"
+  },
+  {
+    "name": "planung-monat",
+    "route": "/assignments/woche?ansicht=monat",
+    "role": "Projektleiter"
+  },
+  {
+    "name": "mitarbeiter-woche",
+    "route": "/accounting?ansicht=woche",
+    "role": "Buchhaltung"
+  },
+  {
+    "name": "mitarbeiter-tage",
+    "route": "/accounting?tage=alle",
+    "role": "Buchhaltung"
+  },
+  {
+    "name": "lager-katalog",
+    "route": "/lager?reiter=katalog",
+    "role": "Administrator"
+  },
+  {
+    "name": "lager-import",
+    "route": "/lager?reiter=import",
+    "role": "Administrator"
+  },
+  {
+    "name": "anforderungen-einkauf",
+    "route": "/anforderungen?reiter=einkauf",
+    "role": "Verwaltung"
+  },
+  {
+    "name": "anforderungen-retouren",
+    "route": "/anforderungen?reiter=retouren",
+    "role": "Verwaltung"
+  },
+  {
+    "name": "anforderungen-erledigt",
+    "route": "/anforderungen?reiter=erledigt",
+    "role": "Verwaltung"
+  },
+  {
+    "name": "plattform-support",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Supportzugänge"
+  },
+  {
+    "name": "plattform-fehler",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Fehlerprotokoll"
+  },
+  {
+    "name": "plattform-zins",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Basiszinssatz"
+  },
+  {
+    "name": "plattform-konto",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Mein Konto"
+  },
+  {
+    "name": "urlaub-krank",
+    "route": "/vacations",
+    "role": "Administrator",
+    "tab": "Krankenstände"
+  },
+  {
+    "name": "urlaub-betrieb",
+    "route": "/vacations",
+    "role": "Administrator",
+    "tab": "Betriebsurlaub"
+  },
+  {
+    "name": "baustellenakte-scheine",
+    "route": "/admin-projects/p1?bereich=dokumente",
+    "role": "Administrator",
+    "area": "Scheine"
+  },
+  {
+    "name": "baustellenakte-termine",
+    "route": "/admin-projects/p1?bereich=planung",
+    "role": "Administrator",
+    "area": "Termine"
+  },
+  {
+    "name": "baustellenakte-plaene",
+    "route": "/admin-projects/p1?bereich=plaene",
+    "role": "Administrator",
+    "area": "Pläne"
+  },
+  {
+    "name": "kundenakte-baustellen",
+    "route": "/customers/k1?bereich=baustellen",
+    "role": "Administrator",
+    "area": "Baustellen"
+  },
+  {
+    "name": "kundenakte-belege",
+    "route": "/customers/k1?bereich=belege",
+    "role": "Administrator",
+    "area": "Belege"
+  },
+  {
+    "name": "kundenakte-termine",
+    "route": "/customers/k1?bereich=wartung",
+    "role": "Administrator",
+    "area": "Termine und Wartungen"
+  },
+  {
+    "name": "kundenakte-stammdaten",
+    "route": "/customers/k1?bereich=daten",
+    "role": "Administrator",
+    "area": "Stammdaten"
+  },
+  {
+    "name": "benutzerakte-arbeitszeit",
+    "route": "/user-mgmt/u1?bereich=arbeitszeit",
+    "role": "Administrator",
+    "area": "Arbeitszeit und Urlaub"
+  },
+  {
+    "name": "benutzerakte-zugang",
+    "route": "/user-mgmt/u1?bereich=zugang",
+    "role": "Administrator",
+    "area": "Zugang und Rechte"
+  },
+  {
+    "name": "anmeldung",
+    "route": "/login",
+    "role": "Mitarbeiter",
+    "auth": "login"
+  },
+  {
+    "name": "passwort-vergessen",
+    "route": "/login",
+    "role": "Mitarbeiter",
+    "auth": "login",
+    "tab": "Passwort vergessen?"
+  },
+  {
+    "name": "zweiter-faktor",
+    "route": "/",
+    "role": "Mitarbeiter",
+    "auth": "mfa"
+  },
+  {
+    "name": "wiederherstellung",
+    "route": "/",
+    "role": "Mitarbeiter",
+    "auth": "mfa",
+    "tab": "Wiederherstellungscode verwenden"
+  }
+]

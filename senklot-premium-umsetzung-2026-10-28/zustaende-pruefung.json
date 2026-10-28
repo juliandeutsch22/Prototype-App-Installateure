@@ -1,0 +1,86 @@
+[
+  {
+    "state": "baustellen-leer",
+    "width": 390,
+    "file": "baustellen-leer-390.jpg",
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "angebote-leer",
+    "width": 390,
+    "file": "angebote-leer-390.jpg",
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-speichert",
+    "width": 390,
+    "file": "firma-speichert-390.jpg",
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-gespeichert",
+    "width": 390,
+    "file": "firma-gespeichert-390.jpg",
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-fehler",
+    "width": 390,
+    "file": "firma-fehler-390.jpg",
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-teilerfolg",
+    "width": 390,
+    "file": "firma-teilerfolg-390.jpg",
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "baustellen-leer",
+    "width": 1440,
+    "file": "baustellen-leer-1440.jpg",
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "angebote-leer",
+    "width": 1440,
+    "file": "angebote-leer-1440.jpg",
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-speichert",
+    "width": 1440,
+    "file": "firma-speichert-1440.jpg",
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-gespeichert",
+    "width": 1440,
+    "file": "firma-gespeichert-1440.jpg",
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-fehler",
+    "width": 1440,
+    "file": "firma-fehler-1440.jpg",
+    "errors": [],
+    "violations": []
+  },
+  {
+    "state": "firma-teilerfolg",
+    "width": 1440,
+    "file": "firma-teilerfolg-1440.jpg",
+    "errors": [],
+    "violations": []
+  }
+]
