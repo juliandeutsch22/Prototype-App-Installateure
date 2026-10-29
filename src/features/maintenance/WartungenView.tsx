@@ -695,9 +695,9 @@ export default function WartungenView() {
   */
   const ersteWartung = wartungen.length === 0 && !suche.trim();
   const leer = ersteWartung
-    ? 'Noch keine Wartung erfasst.'
+    ? 'Wiederkehrende Wartungen einer Anlage stehen hier — die nächste fällige zuerst.'
     : suche.trim()
-      ? 'Kein Treffer für diese Suche.'
+      ? `Gesucht wurde „${suche.trim()}“ in Kunde, Anlage und Standort.`
       : ansicht === 'anstehend'
         ? `In den nächsten ${VORLAUF_TAGE} Tagen steht keine Wartung an.`
         : 'Noch keine Wartung erfasst.';
@@ -709,7 +709,6 @@ export default function WartungenView() {
   return (
     <div className="space-y-6">
       <PageHeader
-        zeichnung="wartung"
         title="Wartungen"
         subtitle="Wiederkehrende Wartungen"
         // Eine Hilfe je Seite (Testbericht Runde 5, G8) — der Wortlaut aus dem Handbuch.
@@ -731,10 +730,13 @@ export default function WartungenView() {
 
       {/* Bündig: Wartungen als Zeilen von Kante zu Kante. */}
       <Card buendig>
-        <Listenleiste
-          reiter={<Segmente name="Wartungen zeigen" werte={ansichten} wert={ansicht} onChange={ansichtWaehlen} />}
-          suche={{ id: 'w-suche', wert: suche, onChange: setSuche, platzhalter: 'Kunde, Anlage oder Standort' }}
-        />
+        {/* Erster Besuch: noch nichts zu filtern oder zu suchen — die Leiste kommt mit dem ersten Eintrag. */}
+        {!(ersteWartung && !loading && !error) && (
+          <Listenleiste
+            reiter={<Segmente name="Wartungen zeigen" werte={ansichten} wert={ansicht} onChange={ansichtWaehlen} />}
+            suche={{ id: 'w-suche', wert: suche, onChange: setSuche, platzhalter: 'Kunde, Anlage oder Standort' }}
+          />
+        )}
         {suchFehler && suche.trim() ? (
           <ErrorState message="Die Wartungssuche konnte nicht geladen werden." onRetry={() => setSuchVersuch((n) => n + 1)} />
         ) : loading || suchtGerade ? (
@@ -751,15 +753,16 @@ export default function WartungenView() {
             <SkeletonList />
           </div>
         ) : sichtbar.length === 0 ? (
-          <div className="border-t border-line">
+          <div className={ersteWartung ? undefined : 'border-t border-line'}>
             <EmptyState
               zeichnung={ersteWartung ? 'wartung' : suche.trim() ? 'suche' : undefined}
+              titel={ersteWartung ? (darfAendern ? 'Deine erste Wartung.' : 'Noch keine Wartung erfasst.') : suche.trim() ? 'Keine passenden Wartungen.' : undefined}
               aktionImDaumen={ersteWartung}
               action={
                 ersteWartung && darfAendern
                   ? <Button onClick={() => formOeffnen()}>Neue Wartung</Button>
                   : suche.trim()
-                    ? <button type="button" className="link min-h-touch" onClick={() => setSuche('')}>Suche zurücksetzen</button>
+                    ? <Button variant="secondary" onClick={() => setSuche('')}>Suche zurücksetzen</Button>
                     : undefined
               }
             >

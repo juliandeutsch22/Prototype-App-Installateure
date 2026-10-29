@@ -29,29 +29,60 @@
   }
   .lot-speicherstand { min-height: 1.5rem; font-size: .8125rem; color: var(--text-muted); }
   .lot-speicherplatz { min-height: 3rem; min-width: 5rem; }
-  .lot-erstnutzung { max-width: 37rem; margin: 0 auto; padding: 2.75rem 1rem; text-align: center; }
-  .lot-erstnutzung h2 { font-size: 1.1875rem; line-height: 1.5; font-weight: 600; }
-  .lot-erstnutzung p { color: var(--text-muted); margin: .5rem auto 1.25rem; max-width: 50ch; font-size: .875rem; }
-  .lot-naechster-schritt { display: flex; justify-content: center; }
-  @media (max-width: 759px) { .lot-naechster-schritt-breit { display: none; } }
   /*
-    DIE ZEICHNUNGEN (Illustrationsentwurf 29.10.2026, `LotZeichnung`).
-    Kontur 1,4 in Petrol, Hilfslinie 1,0 in der kräftigen Linienfarbe,
-    Flächen mit 12 % Deckkraft — alles aus den Theme-Variablen, damit die
-    dunkle Darstellung dieselbe Zeichnung trägt. Rein dekorativ: keine
-    Klickfläche, keine Auswahl.
+    DER LEERZUSTAND ALS KOMPOSITION (Konzept „Kleine Bilder. Klare nächste
+    Schritte.“): eine Achse, ein Rhythmus. Zeichnung, Titel, Satz und nächster
+    Schritt stehen mittig untereinander, die Abstände wachsen von innen nach
+    außen (Satz ↔ Titel eng, Zeichnung ↔ Titel und Satz ↔ Knopf weiter) —
+    so lesen sich die vier Teile als ein Block statt als lose Stücke.
   */
-  .lot-zeichnung { display: block; flex: none; overflow: visible; color: var(--accent-deep); pointer-events: none; user-select: none; }
-  .lot-zeichnung .guide { stroke: var(--border-strong); stroke-width: 1; }
-  .lot-zeichnung .ink { stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
-  .lot-zeichnung .wash { fill: currentColor; fill-opacity: .12; stroke: none; }
-  /* Kopfakzent: nur wo neben Titel, Hilfe und Hauptaktion Platz bleibt (ab 1280 px). */
-  .lot-zeichnung-kopf { display: none; width: 7rem; height: 4.5625rem; margin-right: 1rem; align-self: flex-start; }
-  .lot-zeichnung-leer { width: 8.5rem; height: 5.5rem; margin: 0 auto 1.125rem; }
-  .lot-zeichnung-hinweis { width: 5.25rem; height: 3.75rem; }
-  .lot-einrichtung { display: flex; align-items: center; gap: 1.25rem; padding: 1rem 1.25rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+  .lot-erstnutzung { display: flex; flex-direction: column; align-items: center; max-width: 34rem; margin: 0 auto; padding: 3.5rem 1rem 4rem; text-align: center; }
+  .lot-erstnutzung h2 { font-size: 1.375rem; line-height: 1.875rem; font-weight: 600; color: var(--ink-deep); text-wrap: balance; hyphens: manual; }
+  .lot-erstnutzung p { max-width: 40ch; margin-top: .5rem; font-size: .9375rem; line-height: 1.5rem; color: var(--text-muted); text-wrap: pretty; hyphens: manual; }
+  .lot-erstnutzung .lot-naechster-schritt { margin-top: 1.5rem; }
+  .lot-naechster-schritt { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; }
+  @media (max-width: 759px) {
+    .lot-erstnutzung { padding: 2.5rem .5rem 3rem; }
+    .lot-erstnutzung h2 { font-size: 1.1875rem; line-height: 1.625rem; }
+    .lot-erstnutzung p { font-size: .875rem; line-height: 1.375rem; }
+    .lot-naechster-schritt-breit { display: none; }
+  }
+  /*
+    DIE ZEICHNUNGEN (`LotZeichnung`, Zeichenraum 240 × 150). Hilfslinien in
+    der kräftigen Linienfarbe, das Objekt in Petrol, Papier und Flächen
+    deckend aus den Theme-Variablen — die dunkle Darstellung trägt dieselbe
+    Zeichnung ohne zweite Fassung und ohne halbdurchsichtige Flächen. Linien
+    bleiben bei jeder Größe gleich fein; nur der Griff (ein Werkstück, keine
+    Linie) wächst mit. Rein dekorativ: keine Klickfläche, keine Auswahl.
+  */
+  .lot-zeichnung { display: block; flex: none; height: auto; aspect-ratio: 240 / 150; overflow: visible; pointer-events: none; user-select: none; }
+  .lot-zeichnung .hilfe { fill: none; stroke: var(--border-strong); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .lot-zeichnung .kontur { fill: none; stroke: var(--accent-deep); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  /* Nach Hilfe und Kontur: „papier kontur“ ist ein deckendes Blatt mit Umriss. */
+  .lot-zeichnung .papier { fill: var(--surface); }
+  .lot-zeichnung .flaeche { fill: var(--petrol-hell); }
+  .lot-zeichnung .zeile { fill: var(--border); }
+  .lot-zeichnung .balken { fill: var(--accent-deep); }
+  .lot-zeichnung .griff { fill: none; stroke: var(--accent-deep); stroke-width: 5; stroke-linecap: round; }
+  .lot-zeichnung .haken { fill: none; stroke: var(--surface); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .lot-zeichnung-leer { width: 15rem; margin-bottom: 1.75rem; }
+  .lot-zeichnung-hinweis { width: 7.5rem; }
+  @media (max-width: 759px) { .lot-zeichnung-leer { width: 12rem; margin-bottom: 1.25rem; } }
+  /*
+    So breit wie die Felder darunter (`.formular`): Hinweis und Formular
+    stehen auf einer Kante. Oben ausgerichtet — Zeichnung und Überschrift auf
+    einer Linie; unten weniger Polster, weil der Link 44 px Tippfläche mitbringt.
+  */
+  .lot-einrichtung { display: flex; align-items: flex-start; gap: 1.25rem; max-width: 35rem; padding: 1.25rem 1.5rem .5rem 1.25rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
   .lot-einrichtung .link { font-size: .8125rem; }
-  .lot-einrichtung p { font-size: .8125rem; line-height: 1.65; color: var(--text-muted); max-width: 52ch; }
+  .lot-einrichtung p { font-size: .8125rem; line-height: 1.65; color: var(--text-muted); max-width: 52ch; hyphens: manual; text-wrap: pretty; }
+  .lot-einrichtung .lot-zeichnung-hinweis { width: 7rem; margin-top: .125rem; }
+  @media (max-width: 759px) {
+    /* Daneben blieb dem Satz ein Drittel der Breite, und er brach Silbe für Silbe. */
+    .lot-einrichtung { flex-direction: column; gap: .75rem; padding: 1rem 1rem .375rem; }
+    /* Die Grundlinie beginnt bei x = 18 von 240: verschoben steht sie auf der Textkante. */
+    .lot-einrichtung .lot-zeichnung-hinweis { width: 6rem; margin-top: 0; translate: -7.5% 0; }
+  }
   .lot-einrichtung b { display: block; color: var(--ink-deep); font-weight: 600; }
   /*
     DIE ABLAGE (`DokumentAblage`): eine ruhige Fläche mit durchgezogener
@@ -61,15 +92,28 @@
   */
   .lot-ablage-fenster { display: flex; flex-direction: column; gap: 1.25rem; }
   .lot-ablage-unterzeile { font-size: .875rem; color: var(--text-muted); }
-  .lot-ablage { display: flex; align-items: center; gap: 1.5rem; padding: 1.25rem 1.5rem; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface-2); transition: border-color var(--motion-state) var(--ease-response), background-color var(--motion-state) var(--ease-response); }
+  /* Untereinander und mittig wie ein Leerzustand: Zeichnung, Satz, Knopf — im schmalen Seitenfenster liest sich das ruhiger als zwei Spalten. */
+  .lot-ablage { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 1.75rem 1.5rem 1.5rem; text-align: center; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface-2); transition: border-color var(--motion-state) var(--ease-response), background-color var(--motion-state) var(--ease-response); }
   .lot-ablage[data-darueber] { border-color: var(--accent-deep); background: var(--petrol-hell); }
+  .lot-ablage .lot-zeichnung-hinweis { width: 9.5rem; }
+  /* Sind Dateien gewählt, ist die Liste die Hauptsache: die Fläche wird zur Zeile, damit „Hochladen“ im Bild bleibt. */
+  .lot-ablage[data-gefuellt] { padding: 1rem 1.25rem; }
+  .lot-ablage[data-gefuellt] .lot-zeichnung-hinweis { display: none; }
+  .lot-ablage[data-gefuellt] .lot-ablage-text p { margin-bottom: .75rem; }
+  @media (min-width: 760px) {
+    .lot-ablage[data-gefuellt] { flex-direction: row; text-align: left; }
+    .lot-ablage[data-gefuellt] .lot-ablage-text { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 1rem; align-items: center; width: 100%; }
+    .lot-ablage[data-gefuellt] .lot-ablage-text h3 { grid-column: 1; font-size: .9375rem; }
+    .lot-ablage[data-gefuellt] .lot-ablage-text p { grid-column: 1; margin: 0; max-width: none; text-wrap: pretty; }
+    .lot-ablage[data-gefuellt] .lot-ablage-text > button { grid-column: 2; grid-row: 1 / span 2; }
+  }
   .lot-ablage-text h3 { font-size: 1rem; line-height: 1.5rem; font-weight: 600; color: var(--ink-deep); }
-  .lot-ablage-text p { margin: .125rem 0 .875rem; font-size: .8125rem; line-height: 1.5; color: var(--text-muted); }
+  .lot-ablage-text p { max-width: 34ch; margin: .25rem auto 1rem; font-size: .8125rem; line-height: 1.25rem; color: var(--text-muted); hyphens: manual; text-wrap: balance; }
   .lot-ablage-grob { display: none; }
   .lot-ablage-titel { font-size: .875rem; line-height: 1.5rem; font-weight: 600; margin-bottom: .25rem; }
   .lot-ablage-liste > li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .625rem 0; border-bottom: 1px solid var(--border); }
-  .lot-ablage-liste > li:first-child { border-top: 1px solid var(--border); }
-  .lot-ablage-liste > li > :last-child { flex: none; white-space: nowrap; }
+  .lot-ablage-liste { border-top: 1px solid var(--border); }
+  .lot-ablage-entfernen { flex: none; white-space: nowrap; }
   .lot-ablage-name { font-size: .875rem; line-height: 1.375rem; overflow-wrap: anywhere; }
   .lot-ablage-zustand { font-size: .75rem; line-height: 1.25rem; color: var(--text-muted); }
   /* Zustand der Datei wie die übrigen Zustände: Punkt und Wort, umbrechend (ein Grund kann lang sein). */
@@ -77,10 +121,8 @@
   .lot-ablage-zustand[data-stand]::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: .375rem; border-radius: 999px; vertical-align: 1px; }
   .lot-ablage-zustand[data-stand=warn]::before { background: var(--warning); }
   .lot-ablage-zustand[data-stand=fehl]::before { background: var(--danger); }
-  @media (pointer: coarse) { .lot-ablage-fein { display: none; } .lot-ablage-grob { display: inline; } }
-  @media (max-width: 759px) { .lot-ablage { flex-direction: column; text-align: center; } }
-  @media (min-width: 1280px) { .lot-zeichnung-kopf { display: block; } }
-  @media (max-width: 759px) { .lot-zeichnung-leer { width: 6.5rem; height: 4.25rem; margin-bottom: 0.875rem; } }
+  /* Am Handy zieht niemand Dateien — dort sagt die Fläche, was der Knopf tut. Abgefragt wird wie überall in der Linie nur die Breite. */
+  @media (max-width: 759px) { .lot-ablage-fein { display: none; } .lot-ablage-grob { display: inline; } }
   .darstellung-schalter { display: inline-flex; align-items: center; justify-content: center; flex: none; align-self: flex-start; width: 3.75rem; min-height: 2.75rem; margin-left: 0.5rem; padding: 0.25rem; border: 0; border-radius: var(--radius); background: none; cursor: pointer; }
   .darstellung-schiene { position: relative; display: block; width: 3.25rem; height: 1.75rem; border: 1px solid var(--text-muted); border-radius: 999px; background: var(--surface-3); }
   .darstellung-griff { position: absolute; top: 2px; left: 2px; display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: 50%; background: var(--accent-deep); color: var(--bg); transition: transform var(--motion-state) var(--ease-response); }

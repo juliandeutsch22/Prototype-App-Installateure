@@ -137,6 +137,12 @@ export default function AdminProjectsView() {
   const [belegschaftDa, setBelegschaftDa] = useState(() => belegschaftGemerkt?.users !== undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /*
+    DER LADEFEHLER DER LISTE GEHÖRT AN DIE LISTE (wie bei den Kunden). Er
+    teilte sich `error` mit dem Formular und stand nur dort, im zugeklappten
+    Seitenfenster; die leere Liste darunter zeigte dann gar nichts.
+  */
+  const [listenFehler, setListenFehler] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — die Baustellenliste steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
@@ -263,10 +269,11 @@ export default function AdminProjectsView() {
       grenze,
       (rows) => {
         setProjects(rows);
+        setListenFehler(null);
         setLoading(false);
       },
       (e) => {
-        setError(e.message);
+        setListenFehler(e.message);
         setLoading(false);
       },
     );
@@ -721,12 +728,11 @@ export default function AdminProjectsView() {
     </form>
   );
 
-  const ersteBaustelle = !loading && !lageFehlt && belegschaftDa && projects.length === 0 && !suche && !error && !formOffen;
+  const ersteBaustelle = !loading && !lageFehlt && belegschaftDa && projects.length === 0 && !suche && !error && !listenFehler && !formOffen;
 
   return (
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
-        zeichnung="bau"
         title="Baustellen"
         subtitle="Anlegen und suchen — geändert wird in der Akte"
         // Eine Hilfe je Seite (Testbericht Runde 5, G8) — der Wortlaut aus dem Handbuch.
@@ -766,44 +772,47 @@ export default function AdminProjectsView() {
         Status — Linien statt Karten in der Karte.
       */}
       <Card buendig>
-        <Listenleiste
-          reiter={
+        {/* Erster Besuch: noch nichts zu filtern oder zu suchen — die Leiste kommt mit dem ersten Eintrag. */}
+        {!ersteBaustelle && (
+          <Listenleiste
+            reiter={
+              /*
+                ARBEITSSTAND ALS STANDARD (Protokoll 7.1): laufend heisst aktiv
+                und pausiert, wie bisher; „Erledigt“ (die abgeschlossenen, bis
+                zum Umbau „Archiv“) und „Alle“ einen Tipp weiter. Ohne Zahl am
+                Reiter: Laufendes ist Bestand, kein Handlungsbedarf (7.7) — die
+                Zahl steht über der Gruppe.
+              */
+              <Segmente
+                name="Baustellen filtern"
+                werte={[
+                  { wert: 'offen', text: 'Laufend' },
+                  { wert: 'archiv', text: 'Erledigt' },
+                  { wert: 'alle', text: 'Alle' },
+                ]}
+                wert={filter}
+                onChange={setFilter}
+              />
+            }
             /*
-              ARBEITSSTAND ALS STANDARD (Protokoll 7.1): laufend heisst aktiv
-              und pausiert, wie bisher; „Erledigt“ (die abgeschlossenen, bis
-              zum Umbau „Archiv“) und „Alle“ einen Tipp weiter. Ohne Zahl am
-              Reiter: Laufendes ist Bestand, kein Handlungsbedarf (7.7) — die
-              Zahl steht über der Gruppe.
+              G7: die Suche steht da, sobald es Baustellen gibt — nicht erst ab
+              acht. Der Platzhalter ist so kurz, dass er auch am Telefon ganz
+              dasteht (U11); dass auch die Bezeichnung gefunden wird, sagt die
+              Hilfe der Seite.
             */
-            <Segmente
-              name="Baustellen filtern"
-              werte={[
-                { wert: 'offen', text: 'Laufend' },
-                { wert: 'archiv', text: 'Erledigt' },
-                { wert: 'alle', text: 'Alle' },
-              ]}
-              wert={filter}
-              onChange={setFilter}
-            />
-          }
-          /*
-            G7: die Suche steht da, sobald es Baustellen gibt — nicht erst ab
-            acht. Der Platzhalter ist so kurz, dass er auch am Telefon ganz
-            dasteht (U11); dass auch die Bezeichnung gefunden wird, sagt die
-            Hilfe der Seite.
-          */
-          suche={projects.length > 0 ? { id: 'psuche', wert: suche, onChange: setSuche, platzhalter: 'Kunde, Nummer oder Adresse' } : undefined}
-          /* NUR MEINE BAUSTELLEN (Testbericht 30.09.2026, M38): für die
-             Projektleitung die, in deren Leitung oder Team sie steht. */
-          zusatz={istProjektleitung ? (
-            <CheckboxField
-              id="pmeine"
-              label="Nur meine Baustellen"
-              checked={nurMeine}
-              onChange={(e) => setNurMeine(e.target.checked)}
-            />
-          ) : undefined}
-        />
+            suche={projects.length > 0 ? { id: 'psuche', wert: suche, onChange: setSuche, platzhalter: 'Kunde, Nummer oder Adresse' } : undefined}
+            /* NUR MEINE BAUSTELLEN (Testbericht 30.09.2026, M38): für die
+               Projektleitung die, in deren Leitung oder Team sie steht. */
+            zusatz={istProjektleitung ? (
+              <CheckboxField
+                id="pmeine"
+                label="Nur meine Baustellen"
+                checked={nurMeine}
+                onChange={(e) => setNurMeine(e.target.checked)}
+              />
+            ) : undefined}
+          />
+        )}
         {/*
           WAS DIE SUCHE ERREICHT, BEVOR SIE ETWAS FINDET.
 
@@ -824,27 +833,29 @@ export default function AdminProjectsView() {
           <div className="border-t border-line p-4">
             <SkeletonList rows={4} />
           </div>
-        ) : visible.length === 0 && error && projects.length === 0 && !suche ? (
-          /* Nicht geladen ist nicht „noch keine“: der Fehler oben sagt, was los ist. */
-          null
+        ) : visible.length === 0 && listenFehler && projects.length === 0 && !suche ? (
+          /* Nicht geladen ist nicht „noch keine“. */
+          <div className="border-t border-line p-4">
+            <ErrorState message={listenFehler} />
+          </div>
         ) : visible.length === 0 ? (
-          <div className="border-t border-line">
+          <div className={ersteBaustelle ? undefined : 'border-t border-line'}>
             <EmptyState
               zeichnung={ersteBaustelle ? 'bau' : suche ? 'suche' : undefined}
-              titel={ersteBaustelle ? 'Noch keine Baustellen angelegt.' : undefined}
+              titel={ersteBaustelle ? 'Deine erste Baustelle.' : suche ? 'Keine passenden Baustellen.' : undefined}
               aktionImDaumen={ersteBaustelle}
               action={
                 ersteBaustelle
                   ? <Button onClick={() => setFormOffen(true)}>Neue Baustelle</Button>
                   : suche
-                    ? <button type="button" className="link min-h-touch" onClick={() => setSuche('')}>Suche zurücksetzen</button>
+                    ? <Button variant="secondary" onClick={() => setSuche('')}>Suche zurücksetzen</Button>
                     : undefined
               }
             >
               {ersteBaustelle
-                ? 'Lege deine erste Baustelle an. Hier findest du anschließend Auftrag, Planung und zugehörige Belege zusammen.'
+                ? 'Auftrag, Einsätze, Pläne und Belege einer Baustelle stehen hier an einem Ort.'
                 : suche
-                  ? `Keine Baustelle passt zu „${suche}“.`
+                  ? `Gesucht wurde „${suche.trim()}“ in Kunde, Nummer und Adresse.`
                   : projects.length === 0
                     ? 'Noch keine Baustellen angelegt.'
                     : 'Keine Baustelle in dieser Auswahl.'}

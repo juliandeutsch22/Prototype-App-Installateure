@@ -288,7 +288,6 @@ export default function UserMgmtView() {
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
-        zeichnung="team"
         ort="Team"
         title="Benutzerverwaltung"
         subtitle="Benutzer anlegen, Rollen und Zeitkonten pflegen"
@@ -753,8 +752,8 @@ export default function UserMgmtView() {
             E-Mail und Rolle genügen.
           </EmptyState>
         ) : gefiltert.length === 0 ? (
-          <EmptyState zeichnung={suche ? 'suche' : undefined} action={suche ? <button type="button" className="link min-h-touch" onClick={() => setSuche('')}>Suche zurücksetzen</button> : undefined}>
-            {suche ? `Niemand passt zu „${suche}“.` : 'Kein Benutzer in dieser Auswahl.'}
+          <EmptyState zeichnung={suche ? 'suche' : undefined} titel={suche ? 'Keine passenden Benutzer.' : undefined} action={suche ? <Button variant="secondary" onClick={() => setSuche('')}>Suche zurücksetzen</Button> : undefined}>
+            {suche ? `Gesucht wurde „${suche.trim()}“ in Name, E-Mail und Benutzername.` : 'Kein Benutzer in dieser Auswahl.'}
           </EmptyState>
         ) : (
           <div>

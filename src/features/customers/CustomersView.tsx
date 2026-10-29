@@ -207,6 +207,8 @@ export default function CustomersView() {
   const nurPruefen = auswahl === 'pruefen';
   const nurOhneArt = auswahl === 'ohne-art';
   const [ohneSuche, setOhneSuche] = useState(0);
+  /** Wofür die geladene Liste steht: der Suchbegriff der Alle-Liste, sonst null (Auswahl „prüfen“). */
+  const [listeFuer, setListeFuer] = useState<string | null>(null);
   /** Wie viele Zeilen gezeigt sind — höchstens 20, dann „und N weitere“ (Regel 4). */
   const [gezeigt, setGezeigt] = useState(JE_GRUPPE);
   // Eine neue Suche oder Auswahl beginnt wieder oben.
@@ -228,6 +230,7 @@ export default function CustomersView() {
             ? await kundenOhneKundenart(user.companyId)
             : await searchCustomers(user.companyId, begriff, grenze);
         setKunden(treffer);
+        setListeFuer(nurPruefen || nurOhneArt ? null : begriff.trim());
         /*
           WIE VIELE OHNE SUCHE DA WAREN — getrennt gemerkt.
 
@@ -276,6 +279,14 @@ export default function CustomersView() {
   };
 
   const sichtbar = kunden;
+  /*
+    DER ERSTE BESUCH: noch kein Kunde, also nichts zu filtern oder zu suchen —
+    Reiter mit lauter Nullen und ein Suchfeld sagten nur „hier fehlt etwas“.
+    Es zählt die geladene ALLE-LISTE OHNE SUCHE, nicht der getippte Begriff:
+    wer eine erfolglose Suche löscht, hat bis zur neuen Antwort noch die alte
+    leere Trefferliste — die Leiste verschwände sonst mitten im Tippen.
+  */
+  const ersterKunde = !loading && !listenFehler && listeFuer === '' && !suche.trim() && kunden.length === 0;
 
   async function speichern(e: FormEvent) {
     e.preventDefault();
@@ -472,7 +483,6 @@ export default function CustomersView() {
   return (
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
-        zeichnung="akte"
         title="Kunden"
         subtitle="Stammdaten, Ansprechpartner und Baustellenhistorie"
         mehr={seitenMenue.length > 0 ? <RowMenu about="Kunden" items={seitenMenue} /> : undefined}
@@ -495,23 +505,25 @@ export default function CustomersView() {
       {darfAendern && <KundenImport ref={kundenImport} onUebernommen={() => void nachAenderung()} />}
 
       <Card buendig>
-        <Listenleiste
-          reiter={
-            /* M12 und Runde 3, M10: die Kunden, die jemand prüfen muss. Ohne
-               Kundenart gehen Rechnung und Mahnung nicht. */
-            <Segmente
-              name="Kunden filtern"
-              werte={[
-                { wert: 'alle', text: 'Alle' },
-                { wert: 'pruefen', text: 'Anschrift prüfen', anzahl: zuPruefen?.adressePruefen },
-                { wert: 'ohne-art', text: 'Ohne Kundenart', anzahl: zuPruefen?.ohneKundenart },
-              ]}
-              wert={auswahl}
-              onChange={setAuswahl}
-            />
-          }
-          suche={{ id: 'ksuche', wert: suche, onChange: setSuche, platzhalter: 'Name, Adresse oder Telefon', name: 'Kunden durchsuchen' }}
-        />
+        {!ersterKunde && (
+          <Listenleiste
+            reiter={
+              /* M12 und Runde 3, M10: die Kunden, die jemand prüfen muss. Ohne
+                 Kundenart gehen Rechnung und Mahnung nicht. */
+              <Segmente
+                name="Kunden filtern"
+                werte={[
+                  { wert: 'alle', text: 'Alle' },
+                  { wert: 'pruefen', text: 'Anschrift prüfen', anzahl: zuPruefen?.adressePruefen },
+                  { wert: 'ohne-art', text: 'Ohne Kundenart', anzahl: zuPruefen?.ohneKundenart },
+                ]}
+                wert={auswahl}
+                onChange={setAuswahl}
+              />
+            }
+            suche={{ id: 'ksuche', wert: suche, onChange: setSuche, platzhalter: 'Name, Adresse oder Telefon', name: 'Kunden durchsuchen' }}
+          />
+        )}
 
         {loading ? (
           <div className="border-t border-line p-4">
@@ -522,7 +534,7 @@ export default function CustomersView() {
             <ErrorState message={listenFehler} onRetry={() => void laden()} />
           </div>
         ) : sichtbar.length === 0 ? (
-          <div className="border-t border-line">
+          <div className={ersterKunde ? undefined : 'border-t border-line'}>
             {/*
               DIE ZEICHNUNG NUR, WO SIE ETWAS ERKLÄRT: beim ersten Bestand und
               bei einer Suche ohne Treffer — nicht bei einer leeren Auswahl,
@@ -530,14 +542,21 @@ export default function CustomersView() {
             */}
             <EmptyState
               zeichnung={suche.trim() ? 'suche' : !nurPruefen && !nurOhneArt ? 'akte' : undefined}
-              titel={!suche.trim() && !nurPruefen && !nurOhneArt ? 'Noch keine Kunden.' : undefined}
+              titel={suche.trim() ? 'Keine passenden Kunden.' : !nurPruefen && !nurOhneArt ? (darfAendern ? 'Dein erster Kunde.' : 'Noch keine Kunden.') : undefined}
               aktionImDaumen={!suche.trim()}
               action={
                 suche.trim()
-                  ? <button type="button" className="link min-h-touch" onClick={() => setSuche('')}>Suche zurücksetzen</button>
+                  ? <Button variant="secondary" onClick={() => setSuche('')}>Suche zurücksetzen</Button>
                   : !nurPruefen && !nurOhneArt && darfAendern && !formOffen
                     ? <Button onClick={neuerKunde}>Neuer Kunde</Button>
                     : undefined
+              }
+              nebenAktion={
+                !suche.trim() && !nurPruefen && !nurOhneArt && darfBaustellenZuordnen && !formOffen ? (
+                  <Button variant="secondary" onClick={() => { setUebernahmeOffen(true); void uebernahmeVorbereiten(); }}>
+                    Bestehende Baustellen übernehmen
+                  </Button>
+                ) : undefined
               }
             >
               {/*
@@ -555,12 +574,12 @@ export default function CustomersView() {
                 wer dem folgte, legte Doppelte an (K4, 17.10.2026).
               */}
               {suche.trim()
-                ? `Kein Kunde passt zu „${suche}“.`
+                ? `Gesucht wurde „${suche.trim()}“ in Name, Adresse und Telefon.`
                 : nurPruefen
                   ? 'Keine Anschrift ist zu prüfen.'
                   : nurOhneArt
                     ? 'Jeder Kunde hat eine Kundenart.'
-                    : 'Kontaktdaten, Baustellen und Belege eines Kunden stehen hier zusammen. Über „Bestehende Baustellen übernehmen“ lassen sich die vorhandenen anlegen.'}
+                    : 'Kontaktdaten, Baustellen und Belege eines Kunden bleiben hier zusammen.'}
             </EmptyState>
           </div>
         ) : (

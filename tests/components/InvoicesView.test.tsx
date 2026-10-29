@@ -419,7 +419,7 @@ function zeige(adresse = '/invoices') {
   bleiben dieselben.
 */
 async function neueRechnung() {
-  await userEvent.click(await screen.findByRole('button', { name: 'Neue Rechnung' }));
+  await userEvent.click((await screen.findAllByRole('button', { name: 'Neue Rechnung' }))[0]);
 }
 async function rechnungOeffnen(nummer: string) {
   // Seit dem Design-Entwurf (Punkt 3) steht der Name vorn und die Nummer grau dahinter.
@@ -3677,8 +3677,16 @@ describe('Rechnungen — neu zusammengestellt, Satz und Rabatt bleiben', () => {
 
 describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
   it('nennt die Auswahl „Rechnungen nach Status filtern“ — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl“', async () => {
+    rechnungen = [{ id: 'alt', invoiceNumber: 'RE-2026-1004', customerName: 'Familie Huber', status: 'Offen' } as unknown as Invoice & { id: string }];
     zeige();
     expect(await screen.findByRole('combobox', { name: 'Rechnungen nach Status filtern' })).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne eine einzige Rechnung gibt es noch nichts zu filtern', async () => {
+    zeige();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Deine erste Rechnung.' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Rechnungen nach Status filtern' })).toBeNull();
+    expect(screen.queryByLabelText('Suche')).toBeNull();
   });
 });
 
@@ -4576,7 +4584,7 @@ describe('Linie „Lot“ — die Rechnungsliste', () => {
 
   it('„Neue Rechnung“ öffnet das Formular, „Schließen“ nimmt es wieder weg', async () => {
     zeige();
-    await screen.findByRole('button', { name: 'Neue Rechnung' });
+    (await screen.findAllByRole('button', { name: 'Neue Rechnung' }))[0];
     expect(screen.queryByRole('combobox', { name: /Baustelle/ })).toBeNull();
     await neueRechnung();
     expect(await screen.findByRole('combobox', { name: /Baustelle/ })).toBeInTheDocument();

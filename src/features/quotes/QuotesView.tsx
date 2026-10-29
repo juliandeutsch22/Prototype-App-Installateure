@@ -691,7 +691,7 @@ export default function QuotesView() {
   const sichtbar = gruppen.filter((g) => g.zeilen.length > 0);
   const leer =
     begriff
-      ? 'Kein Angebot passt zur Suche.'
+      ? `Gesucht wurde „${suchbegriff}“ in Nummer, Kunde, Ort und Baustelle.`
       : angebote.length === 0
         ? 'Noch kein Angebot erstellt.'
         : ansicht === 'offen'
@@ -775,7 +775,6 @@ export default function QuotesView() {
   return (
     <div className="space-y-6">
       <PageHeader
-        zeichnung="beleg"
         title="Angebote"
         subtitle="Kalkulieren, versenden, in einen Auftrag überführen"
         // Eine Hilfe je Seite (Testbericht Runde 5, G8) — der Wortlaut aus dem Handbuch.
@@ -1154,20 +1153,23 @@ export default function QuotesView() {
 
       {/* Bündig: Angebote als Zeilen von Kante zu Kante. */}
       <Card buendig>
-        <Listenleiste
-          reiter={
-            <Segmente
-              name="Angebote zeigen"
-              werte={ANSICHTEN}
-              wert={ansicht}
-              onChange={(neu) => {
-                vorDerSuche.current = null;
-                ansichtWaehlen(neu);
-              }}
-            />
-          }
-          suche={{ id: 'anq-suche', wert: suche, onChange: sucheAendern, platzhalter: 'Nummer, Kunde, Ort oder Baustelle' }}
-        />
+        {/* Erster Besuch: noch nichts zu filtern oder zu suchen — die Leiste kommt mit dem ersten Eintrag. */}
+        {!erstesAngebot && (
+          <Listenleiste
+            reiter={
+              <Segmente
+                name="Angebote zeigen"
+                werte={ANSICHTEN}
+                wert={ansicht}
+                onChange={(neu) => {
+                  vorDerSuche.current = null;
+                  ansichtWaehlen(neu);
+                }}
+              />
+            }
+            suche={{ id: 'anq-suche', wert: suche, onChange: sucheAendern, platzhalter: 'Nummer, Kunde, Ort oder Baustelle' }}
+          />
+        )}
         {suchbegriff && suchFehler && (
           <p className="px-4 pb-3 text-xs text-warning">
             Die Suche über alle Angebote ist gerade nicht erreichbar — gezeigt werden Treffer unter den geladenen.
@@ -1186,7 +1188,7 @@ export default function QuotesView() {
           /* Nicht geladen ist nicht „noch keines“: der Fehler oben sagt, was los ist. */
           null
         ) : sichtbar.length === 0 ? (
-          <div className="border-t border-line">
+          <div className={erstesAngebot ? undefined : 'border-t border-line'}>
             <EmptyState
               zeichnung={erstesAngebot ? 'beleg' : begriff ? 'suche' : undefined}
               aktionImDaumen={erstesAngebot}
@@ -1194,11 +1196,11 @@ export default function QuotesView() {
                 erstesAngebot && darfAendern
                   ? <Button onClick={() => setFormOffen(true)}>Neues Angebot</Button>
                   : begriff
-                    ? <button type="button" className="link min-h-touch" onClick={() => setSuche('')}>Suche zurücksetzen</button>
+                    ? <Button variant="secondary" onClick={() => setSuche('')}>Suche zurücksetzen</Button>
                     : undefined
               }
-              titel={erstesAngebot ? 'Noch kein Angebot erstellt.' : undefined}
-            >{erstesAngebot ? 'Erstelle ein Angebot für einen Kunden. Entwürfe und versandte Angebote findest du anschließend in dieser Übersicht.' : leer}</EmptyState>
+              titel={erstesAngebot ? (darfAendern ? 'Dein erstes Angebot.' : 'Noch kein Angebot erstellt.') : begriff ? 'Keine passenden Angebote.' : undefined}
+            >{erstesAngebot ? 'Entwürfe, versandte und angenommene Angebote stehen hier — jedes mit seinem Kunden.' : leer}</EmptyState>
           </div>
         ) : (
           sichtbar.map((g) => <Gruppe key={`${ansicht}-${g.id}`} titel={g.titel} zeilen={g.zeilen} zeile={zeile} />)

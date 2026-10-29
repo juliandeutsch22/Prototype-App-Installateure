@@ -378,28 +378,62 @@ Grundlage: der freigegebene Illustrationsentwurf
 `bilder/landingpage-2026-10-14`) und die Konzeptbilder des Auftraggebers
 „Kleine Bilder. Klare nächste Schritte.“ und „Orientierung, die Platz lässt.“
 
-- **Eine Zeichnungsfamilie** (`LotZeichnung`): zwölf Motive im Zeichenraum
-  160 × 104 — Kontur 1,4 in Petrol (`--accent-deep`), Hilfslinien 1,0
-  (`--border-strong`), Flächen mit 12 % Deckkraft. Hell und dunkel aus den
-  Theme-Variablen; rein dekorativ (`aria-hidden`), nie Träger einer Aussage.
-- **Kopfakzent** auf 14 Hauptseiten, erst ab 1280 px; am Tablet und Handy
-  nicht. Im globalen Admin nur auf Bereichsebene, nie bei Notzugang,
-  Passwort, zweitem Faktor oder Löschvorgängen.
-- **Leerzustände unterscheiden**: Erstnutzung (Motiv des Bereichs, Titel,
-  Erklärung, die Hauptaktion als nächster Schritt — am Handy steht sie schon
-  im Daumenbereich), Suche ohne Treffer (Motiv „Suche“, „Suche
-  zurücksetzen“), leere Auswahl (ohne Zeichnung, das ist der gute Fall),
-  nicht geladen (kein „noch keine …“, der Fehler spricht). Die Startseite
-  zeigt die Abschlusszeichnung nur, wenn alles geladen ist.
+- **Eine Zeichnungsfamilie** (`LotZeichnung`): elf Motive im Zeichenraum
+  240 × 150 — Konstruktionsschienen und Grundlinie (`--border-strong`, 1,0),
+  das Objekt in Petrol (`--accent-deep`, 1,5), deckendes Papier
+  (`--surface`), helle Flächen (`--petrol-hell`), Textzeilen (`--border`).
+  Keine halbdurchsichtigen Flächen; hell und dunkel aus den Theme-Variablen
+  ohne zweite Fassung; Linien bleiben bei jeder Größe gleich fein
+  (`non-scaling-stroke`). Rein dekorativ (`aria-hidden`), nie Träger einer
+  Aussage. Der Handwerksschein hat ein eigenes Motiv (das unterschriebene
+  Blatt), damit drei Bereiche nicht dieselbe Zeichnung tragen.
+- **Kein Kopfakzent.** Eine erste Fassung setzte die Zeichnung neben Titel,
+  Hilfe und Hauptaktion in den Seitenkopf. In der Prüfung des Auftraggebers
+  wirkte sie dort willkürlich platziert; sie ist entfernt. Zeichnungen
+  stehen nur in Leerzuständen, im Einrichtungshinweis, in der Ablage und auf
+  der Bühne der Anmeldung.
+- **Der Leerzustand als eine Komposition**: Zeichnung (15 rem, am Handy
+  12 rem), Titel (22/30, 600), ein Satz (höchstens 40 Zeichen breit, ohne
+  Silbentrennung) und der nächste Schritt stehen auf einer Mittelachse; die
+  Abstände wachsen von innen nach außen (Titel–Satz eng, Zeichnung–Titel
+  und Satz–Knopf weiter). Ein zweiter, leiserer Weg steht als `nebenAktion`
+  daneben (Kunden: „Bestehende Baustellen übernehmen“) und bleibt auch am
+  Handy sichtbar.
+- **Leerzustände unterscheiden**: Erstnutzung („Dein erster Kunde.“ für wer
+  anlegen darf, sonst „Noch keine …“; Motiv des Bereichs, Hauptaktion als
+  nächster Schritt — am Handy steht sie schon im Daumenbereich), Suche ohne
+  Treffer (Motiv „suche“, Titel „Keine passenden …“, der Satz nennt, wo
+  gesucht wurde, „Suche zurücksetzen“ als Knopf), leere Auswahl (ohne
+  Zeichnung, das ist der gute Fall), nicht geladen (kein „noch keine …“, der
+  Fehler steht an der Liste). Die Startseite zeigt die Abschlusszeichnung
+  nur, wenn alles geladen ist.
+- **Erster Besuch ohne Leiste**: Gibt es in Kunden, Baustellen, Angeboten,
+  Wartungen, Rechnungen oder Handwerksscheinen noch keinen Eintrag, stehen
+  Reiter und Suche (bei den Scheinen auch die Prüfkarte „Stunden ohne
+  Buchung“) erst mit dem ersten Eintrag da — Reiter mit lauter Nullen sagten
+  nur „hier fehlt etwas“. Gemessen wird an der geladenen Grundliste, nicht
+  am getippten Suchbegriff, damit die Leiste beim Löschen einer erfolglosen
+  Suche nicht verschwindet.
 - **Keine Zeichnung** über Planungsrastern, in Formularen, Akten mit Inhalt,
   Finanzformularen und Sicherheitsabläufen.
 - **Dokumente hinzufügen**: erst sammeln, dann hochladen — Ablagefläche mit
   Zeichnung, Liste mit Größe, Zustand und „Entfernen“. Die Ablagefläche
   trägt eine durchgezogene Linie (gestrichelt gibt es in der Linie nicht);
-  beim Darüberziehen antwortet sie in Petrol.
+  beim Darüberziehen antwortet sie in Petrol. Sind Dateien gewählt, wird sie
+  zur schmalen Zeile, damit „Hochladen“ im Bild bleibt. Eine am Netz
+  gescheiterte Datei bleibt mit dem Grund in der Liste und geht beim
+  nächsten „Hochladen“ wieder mit.
+- **Einrichtungshinweis** (Firmendaten): so breit wie das Formular, oben
+  ausgerichtet, am Handy untereinander; ausblendbar je Betrieb und Browser.
 - **Anmeldung**: am Schreibtisch eine ruhige Bühne mit Marke, Zeichnung und
-  einem Satz neben dem unveränderten Formular; Handy und Tablet behalten
-  die Karte.
+  einem Satz; das Formular steht auf der zweiten Hälfte ohne eigenen Rahmen
+  (sonst eine Karte auf der Karte). Handy und Tablet behalten die Karte.
+- **Designprüfung**: Ein eigens gebriefter Prüfer (Rolle: UI/UX-Designer)
+  hat die Fassung an Fotos aller Breiten, hell und dunkel, gegen die Regeln
+  der Linie geprüft; seine Änderungen (Lot über der Bodenmarke statt durch
+  den Boden, einfaches Dach, eigenes Motiv „schein“, Ablage nach der Wahl
+  kompakt, Hinweis am Handy untereinander, optische Kante der Zeichnungen,
+  Suchsätze ohne Doppelung) sind übernommen.
 - **Knopf-Links aus einem Guss** (`knopf.ts`, `KnopfLink`): ein Link in der
   Rolle eines Knopfs sieht aus wie der Knopf — ohne eigene Schatten oder
   Skalierung.

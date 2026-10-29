@@ -481,7 +481,7 @@ describe('Anforderungen — suchen und filtern', () => {
     zeige();
 
     await userEvent.type(await screen.findByRole('searchbox', { name: /Suche/ }), 'Wasserhahn');
-    expect(await screen.findByText(/Nichts passt zu/)).toBeInTheDocument();
+    expect(await screen.findByText(/Gesucht wurde „.+“ in Material, Person und Baustelle\./)).toBeInTheDocument();
   });
 
   /*

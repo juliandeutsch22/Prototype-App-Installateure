@@ -38,7 +38,8 @@ test('Angebot: den 600. Kunden suchen und wählen — mit seiner Anschrift als V
   test.setTimeout(90_000);
   await anmelden(page, CHEFIN.email);
   await page.goto('/quotes');
-  await page.getByRole('button', { name: 'Neues Angebot' }).click();
+  // Ohne Angebote steht „Neues Angebot“ auch im Leerzustand — gemeint ist der Knopf im Seitenkopf.
+  await page.getByRole('button', { name: 'Neues Angebot' }).first().click();
 
   const suche = page.getByRole('searchbox', { name: 'Kunde' });
   await suche.fill(`${MARKE} 0599`);

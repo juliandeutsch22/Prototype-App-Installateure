@@ -663,7 +663,6 @@ export default function AdminOrdersView() {
   return (
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
-        zeichnung="lager"
         title="Anforderungen"
         subtitle="Anforderungen bearbeiten, Rückgaben sichten"
         hilfe={
@@ -779,10 +778,11 @@ export default function AdminOrdersView() {
             /* Die Zeichnung nur bei „nichts offen“ im laufenden Bereich und bei einer Suche ohne Treffer. */
             <EmptyState
               zeichnung={suche ? 'suche' : tab === 'aktiv' && !adressFilter ? 'lager' : undefined}
-              action={suche ? <button type="button" className="link min-h-touch" onClick={() => setSuche('')}>Suche zurücksetzen</button> : undefined}
+              titel={suche ? 'Keine passenden Bestellungen.' : undefined}
+              action={suche ? <Button variant="secondary" onClick={() => setSuche('')}>Suche zurücksetzen</Button> : undefined}
             >
               {suche
-                ? `Nichts passt zu „${suche}“.`
+                ? `Gesucht wurde „${suche.trim()}“ in Material, Person und Baustelle.`
                 : tab === 'retouren'
                   ? 'Keine Retouren erfasst.'
                   : tab === 'archiv'

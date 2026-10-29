@@ -224,7 +224,6 @@ export default function DashboardView() {
     <div className="start-seite space-y-3 lg:space-y-5" data-geladen={nochAmLaden ? 'nein' : 'ja'}>
       <div className="start-kopf">
         <PageHeader
-          zeichnung="bau"
           ort={<>Start · KW {kopf.kw}</>}
           title={rolle === 'monteur' ? `Dein Tag${vorname ? `, ${vorname}` : ''}` : 'Heute im Überblick'}
           action={monteurMitEinsatz ? (
@@ -310,13 +309,13 @@ export default function DashboardView() {
                   Zeichnungen, Regel 5: kein Erfolgsmotiv bei Ladefehlern).
                 */
                 <section className="start-leer" aria-label="Nicht vollständig geladen">
-                  <h2>Aus den geladenen Bereichen steht nichts an</h2>
+                  <h2>Aus den geladenen Bereichen steht nichts an.</h2>
                   <p>Nicht alles kam an — der Hinweis unten nennt, was fehlt. Ob dort etwas ansteht, zeigt erst ein neuer Versuch.</p>
                 </section>
               ) : (
                 <section className="start-leer" aria-label="Heute liegt nichts an">
                   <LotZeichnung motiv="fertig" art="leer" />
-                  <h2>Heute liegt nichts an</h2>
+                  <h2>Heute liegt nichts an.</h2>
                   <p>{leerText(rolle)}</p>
                 </section>
               )}

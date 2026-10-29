@@ -837,6 +837,12 @@ export default function InvoicesView() {
     steht beim Tippen sofort etwas da.
   */
   const suchbegriff = rechnungSuche.trim();
+  /*
+    DER ERSTE BESUCH: `invoices` ist die geladene Grundliste, unabhängig von
+    Suche und Reiter — leer heißt, es gibt noch keine Rechnung. Dann gibt es
+    nichts zu filtern; Reiter und Suche kommen mit der ersten Rechnung.
+  */
+  const ohneRechnungen = !loading && !error && !suchbegriff && invoices.length === 0;
   useEffect(() => {
     if (!user || !suchbegriff) {
       setSuchFehler(false);
@@ -2775,7 +2781,6 @@ export default function InvoicesView() {
         hereinkommen. Am Handy steht der Knopf im Daumenbereich.
       */}
       <PageHeader
-        zeichnung="beleg"
         ort="Geld"
         title="Rechnungen"
         subtitle={nurLesen
@@ -4436,7 +4441,7 @@ export default function InvoicesView() {
           <div className="p-4">
             <Adressfilter text={SICHT_TITEL[sicht]} parameter={['sicht']} />
           </div>
-        ) : (
+        ) : ohneRechnungen ? null : (
         <>
           <Listenleiste
             reiter={
@@ -4497,11 +4502,15 @@ export default function InvoicesView() {
                 ? serverTreffer || suchFehler ? 'suche' : undefined
                 : invoices.length === 0 ? 'beleg' : undefined
             }
-            titel={!suchbegriff && invoices.length === 0 ? 'Noch keine Rechnungen.' : undefined}
+            titel={
+              suchbegriff
+                ? serverTreffer || suchFehler ? 'Keine passenden Rechnungen.' : undefined
+                : invoices.length === 0 ? (nurLesen ? 'Noch keine Rechnungen.' : 'Deine erste Rechnung.') : undefined
+            }
             aktionImDaumen={!suchbegriff}
             action={
               suchbegriff
-                ? serverTreffer || suchFehler ? <button type="button" className="link min-h-touch" onClick={() => sucheAendern('')}>Suche zurücksetzen</button> : undefined
+                ? serverTreffer || suchFehler ? <Button variant="secondary" onClick={() => sucheAendern('')}>Suche zurücksetzen</Button> : undefined
                 : invoices.length === 0 && !nurLesen
                   ? <Button onClick={erstellenOeffnen}>Neue Rechnung</Button>
                   : undefined
@@ -4510,7 +4519,7 @@ export default function InvoicesView() {
             {suchbegriff
               ? !serverTreffer && !suchFehler
                 ? 'Suche in allen Rechnungen …'
-                : `Keine Rechnung passt zu „${suchbegriff}“.`
+                : `Gesucht wurde „${suchbegriff}“ in Nummer, Kunde und Baustelle.`
               : invoices.length === 0
                 ? 'Rechnungen entstehen aus Baustellen, Scheinen und Angeboten — hier stehen sie danach mit ihrem Zahlungsstand.'
                 : filter === 'offen' && !sicht

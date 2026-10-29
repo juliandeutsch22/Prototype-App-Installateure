@@ -152,7 +152,7 @@ export default function LoginPage() {
               weissem Formular ist die Trennung; ein Streifen darauf wäre eine
               zweite für dieselbe Sache. */}
 
-          <form onSubmit={handleSubmit} className="bg-surface px-6 py-6">
+          <form onSubmit={handleSubmit} className="px-6 py-6">
             <h1 className="mb-1 text-xl font-semibold text-ink">
               {resetMode ? 'Passwort zurücksetzen' : 'Anmelden'}
             </h1>

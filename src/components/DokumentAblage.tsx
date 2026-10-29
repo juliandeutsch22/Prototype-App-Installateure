@@ -26,7 +26,7 @@ export interface AblageDatei {
  *
  * DIE ABLAGEFLÄCHE trägt eine durchgezogene Linie, keine gestrichelte (Regel
  * der Linie „Lot“); zieht man Dateien darüber, wird sie petrolfarben. Am
- * Telefon gibt es kein Ziehen — dort sagt die Fläche nur „Dateien auswählen“.
+ * Handy gibt es kein Ziehen — dort sagt die Fläche „Vom Gerät hinzufügen“.
  */
 export default function DokumentAblage({
   open,
@@ -92,6 +92,7 @@ export default function DokumentAblage({
         <div
           className="lot-ablage"
           data-darueber={darueber || undefined}
+          data-gefuellt={dateien.length > 0 || undefined}
           onDragEnter={(e) => ziehen(e, 'rein')}
           onDragOver={(e) => ziehen(e, 'drueber')}
           onDragLeave={(e) => ziehen(e, 'raus')}
@@ -110,10 +111,7 @@ export default function DokumentAblage({
               <span className="lot-ablage-fein">Dateien hier ablegen</span>
               <span className="lot-ablage-grob">Vom Gerät hinzufügen</span>
             </h3>
-            <p>
-              <span className="lot-ablage-fein">oder auf deinem Gerät auswählen · </span>
-              {erlaubt}
-            </p>
+            <p>{erlaubt}</p>
             <input
               ref={feld}
               id={eingabeId}
@@ -150,6 +148,7 @@ export default function DokumentAblage({
                   <Button
                     variant="ghost"
                     groesse="klein"
+                    className="lot-ablage-entfernen"
                     disabled={laeuft}
                     aria-label={`${d.datei.name} entfernen`}
                     onClick={() => onEntfernen(d.id)}

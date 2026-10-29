@@ -164,6 +164,7 @@ export function TeilFehler({ was, onRetry }: { was: string; onRetry?: () => void
 export function EmptyState({
   children,
   action,
+  nebenAktion,
   titel,
   zeichnung,
   aktionImDaumen = false,
@@ -171,22 +172,30 @@ export function EmptyState({
   children: ReactNode;
   /** Der nächste Schritt („Kunde anlegen“, „Suche zurücksetzen“). */
   action?: ReactNode;
+  /** Ein zweiter, leiserer Weg daneben („Bestehende Baustellen übernehmen“) — auch am Handy sichtbar. */
+  nebenAktion?: ReactNode;
   titel?: string;
   zeichnung?: LotMotiv;
   /**
    * Die Aktion ist die Hauptaktion der Seite und steht am Handy schon im
    * Daumenbereich (`PageHeader`). Dort zeigt der Leerzustand sie nicht noch
-   * einmal; ab Tablet steht sie als nächster Schritt neben der Erklärung
+   * einmal; ab Tablet steht sie als nächster Schritt unter der Erklärung
    * (Konzept „Kleine Bilder. Klare nächste Schritte.“, 29.10.2026).
    */
   aktionImDaumen?: boolean;
 }) {
+  const schritte = action || nebenAktion;
   return (
     <div className={zeichnung ? 'lot-erstnutzung' : 'flex flex-col items-center gap-3 px-4 py-6 text-center text-ink-muted'}>
       {zeichnung && <LotZeichnung motiv={zeichnung} art="leer" />}
       {titel && <h2>{titel}</h2>}
       <p>{children}</p>
-      {action && <div className={aktionImDaumen ? 'lot-naechster-schritt lot-naechster-schritt-breit' : 'lot-naechster-schritt'}>{action}</div>}
+      {schritte && (
+        <div className={aktionImDaumen && !nebenAktion ? 'lot-naechster-schritt lot-naechster-schritt-breit' : 'lot-naechster-schritt'}>
+          {action && aktionImDaumen && nebenAktion ? <span className="lot-naechster-schritt-breit">{action}</span> : action}
+          {nebenAktion}
+        </div>
+      )}
     </div>
   );
 }

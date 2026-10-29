@@ -112,7 +112,7 @@ function zeichne() {
  * darüber das längste Formular der App.
  */
 async function formOeffnen() {
-  await userEvent.click(await screen.findByRole('button', { name: 'Neues Angebot' }));
+  await userEvent.click((await screen.findAllByRole('button', { name: 'Neues Angebot' }))[0]);
 }
 
 beforeEach(() => {
@@ -167,7 +167,7 @@ describe('Angebot kalkulieren', () => {
     // Gemessen: 1332 px bis zur ersten Zeile. Das Kalkulationsformular ist
     // das längste der vier Ansichten und der seltenste Vorgang.
     zeichne();
-    await screen.findByRole('button', { name: 'Neues Angebot' });
+    (await screen.findAllByRole('button', { name: 'Neues Angebot' }))[0];
     expect(screen.queryByLabelText('Kunde')).not.toBeInTheDocument();
   });
 
@@ -1031,7 +1031,7 @@ describe('Angebote auf der Linie „Lot“', () => {
     expect(screen.getByText('AN-2026-0011')).toBeInTheDocument();
     await nutzer.clear(screen.getByLabelText('Suche'));
     await nutzer.type(screen.getByLabelText('Suche'), 'gibt es nicht');
-    expect(screen.getByText('Kein Angebot passt zur Suche.')).toBeInTheDocument();
+    expect(screen.getByText(/^Gesucht wurde „.+“ in Nummer, Kunde, Ort und Baustelle\.$/)).toBeInTheDocument();
   });
 
   /*
@@ -1128,5 +1128,48 @@ describe('Hilfe zu dieser Seite (Runde 5, G8)', () => {
     zeichne();
     await userEvent.click(await screen.findByRole('button', { name: 'Hilfe zu dieser Seite' }));
     expect(await screen.findByText(/„Erledigt“ die angenommenen, abgelehnten und\s+ersetzten/)).toBeInTheDocument();
+  });
+});
+
+/*
+  LEERZUSTÄNDE MIT NÄCHSTEM SCHRITT (29.10.2026): nicht geladen ist nicht
+  „noch keines“; das erste Angebot bekommt Zeichnung, Überschrift und
+  „Neues Angebot“; eine Suche ohne Treffer ihr Zurücksetzen.
+*/
+describe('Angebote — leer', () => {
+  it('nicht geladen: der Fehler steht oben — nicht „Noch kein Angebot erstellt.“', async () => {
+    const { listRecentQuotes } = await import('@/lib/db/quotes');
+    vi.mocked(listRecentQuotes).mockRejectedValueOnce(new Error('Die Angebote konnten nicht geladen werden.'));
+    zeichne();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Die Angebote konnten nicht geladen werden.');
+    expect(screen.queryByText(/Noch kein Angebot/)).toBeNull();
+    expect(document.querySelector('.lot-erstnutzung')).toBeNull();
+  });
+
+  it('Erstnutzung: Zeichnung „beleg“, Überschrift — und „Neues Angebot“ öffnet die Kalkulation', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    const ueberschrift = await screen.findByRole('heading', { level: 2, name: 'Dein erstes Angebot.' });
+    const leer = ueberschrift.parentElement!;
+    expect(leer.querySelector('svg[data-motiv]')).toHaveAttribute('data-motiv', 'beleg');
+    const knopf = within(leer).getByRole('button', { name: 'Neues Angebot' });
+    expect(knopf.parentElement).toHaveClass('lot-naechster-schritt-breit');
+    await nutzer.click(knopf);
+    expect(await screen.findByLabelText('Kunde')).toBeInTheDocument();
+  });
+
+  it('Suche ohne Treffer: Zeichnung „suche“ — „Suche zurücksetzen“ leert das Feld', async () => {
+    const nutzer = userEvent.setup();
+    versendetesAngebot();
+    zeichne();
+    await screen.findByText('AN-2026-0007');
+    await nutzer.type(screen.getByLabelText('Suche'), 'gibt es nicht');
+    const leer = (await screen.findByRole('heading', { level: 2, name: 'Keine passenden Angebote.' })).parentElement!;
+    expect(within(leer).getByText('Gesucht wurde „gibt es nicht“ in Nummer, Kunde, Ort und Baustelle.')).toBeInTheDocument();
+    expect(leer.querySelector('svg[data-motiv]')).toHaveAttribute('data-motiv', 'suche');
+    expect(within(leer).queryByRole('button', { name: 'Neues Angebot' })).toBeNull();
+    await nutzer.click(within(leer).getByRole('button', { name: 'Suche zurücksetzen' }));
+    expect(screen.getByLabelText('Suche')).toHaveValue('');
+    expect(await screen.findByText('AN-2026-0007')).toBeInTheDocument();
   });
 });

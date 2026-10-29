@@ -685,6 +685,13 @@ export default function WorkSheetsListView() {
   /** Steht über der Liste etwas (Fehler, Suchauskunft, verworfene Entwürfe)? */
   const obenEtwas = !!error || !!suche.trim() || verworfene > 0;
   const suchend = !!suche.trim();
+  /*
+    DER ERSTE BESUCH: geladen werden die jüngsten Scheine ohne Datumsgrenze —
+    null heißt, es gibt noch keinen. Dann gibt es nichts zu filtern und nichts
+    zu prüfen (die Prüfung „Stunden ohne Buchung“ geht über Scheine); Leiste
+    und Prüfkarte kommen mit dem ersten Schein.
+  */
+  const ersterSchein = !loading && !error && scheine.length === 0 && !suchend && !nurUnverrechnet;
 
   return (
     <div className="space-y-4 lg:space-y-5">
@@ -698,7 +705,6 @@ export default function WorkSheetsListView() {
         „Kein Zugriff" (Prüflauf 25.09.2026, P4-04).
       */}
       <PageHeader
-        zeichnung="beleg"
         title="Handwerksscheine"
         // In der Liste stehen auch Entwürfe (Analyse 03.10.2026, Paket 1).
         subtitle="Leistungsnachweise der Baustellen, auch Entwürfe"
@@ -733,7 +739,7 @@ export default function WorkSheetsListView() {
         die niemand bucht, wird nie verrechnet und fehlt zugleich in der
         Arbeitszeitaufzeichnung nach § 26 AZG.
       */}
-      {darfZeitenSehen && (
+      {darfZeitenSehen && !ersterSchein && (
         <Card
           title={pruefungBereit && !pruefungFehler ? `Stunden ohne Buchung (${ohneBuchung.length})` : 'Stunden ohne Buchung'}
           hint={
@@ -942,12 +948,14 @@ export default function WorkSheetsListView() {
           und rutscht deshalb nicht unter dem Finger weg. Der Platzhalter
           nennt, was die Suche findet — auch einen Monat („09.2026“).
         */}
-        <Listenleiste
-          reiter={!suchend && !nurUnverrechnet ? (
-            <Segmente name="Ansicht" werte={ANSICHTEN} wert={ansicht} onChange={ansichtSetzen} />
-          ) : undefined}
-          suche={{ id: 'scheine-suche', wert: suche, onChange: setSuche, platzhalter: 'Kunde, Baustelle oder Monat', name: 'Scheine durchsuchen' }}
-        />
+        {!ersterSchein && (
+          <Listenleiste
+            reiter={!suchend && !nurUnverrechnet ? (
+              <Segmente name="Ansicht" werte={ANSICHTEN} wert={ansicht} onChange={ansichtSetzen} />
+            ) : undefined}
+            suche={{ id: 'scheine-suche', wert: suche, onChange: setSuche, platzhalter: 'Kunde, Baustelle oder Monat', name: 'Scheine durchsuchen' }}
+          />
+        )}
         {obenEtwas && (
           <div className="p-4 pb-1">
             {error && <div className="mb-3"><ErrorState message={error} /></div>}
@@ -1028,8 +1036,8 @@ export default function WorkSheetsListView() {
             /* Nicht geladen ist nicht „noch keiner“: der Fehler oben sagt, was los ist. */
             error ? null : (
               <EmptyState
-                zeichnung="beleg"
-                titel="Noch kein Handwerksschein erstellt."
+                zeichnung="schein"
+                titel={darfSchreiben ? 'Dein erster Handwerksschein.' : 'Noch kein Handwerksschein erstellt.'}
                 aktionImDaumen
                 action={darfSchreiben ? <KnopfLink to="/worksheet">Neuer Schein</KnopfLink> : undefined}
               >
@@ -1069,15 +1077,16 @@ export default function WorkSheetsListView() {
           null
         ) : sichtbar.length === 0 ? (
           <EmptyState
-            zeichnung={unverrechnet ? undefined : scheine.length === 0 ? 'beleg' : suchend ? 'suche' : undefined}
-            action={!unverrechnet && scheine.length > 0 && suchend ? <button type="button" className="link min-h-touch" onClick={() => setSuche('')}>Suche zurücksetzen</button> : undefined}
+            zeichnung={unverrechnet ? undefined : scheine.length === 0 ? 'schein' : suchend ? 'suche' : undefined}
+            titel={!unverrechnet && scheine.length > 0 && suchend ? 'Keine passenden Scheine.' : undefined}
+            action={!unverrechnet && scheine.length > 0 && suchend ? <Button variant="secondary" onClick={() => setSuche('')}>Suche zurücksetzen</Button> : undefined}
           >
             {unverrechnet
               ? 'Unter den jüngsten Scheinen ist keiner unverrechnet.'
               : scheine.length === 0
               ? 'Noch kein Handwerksschein erstellt.'
               : suchend
-                ? `Kein Schein passt zu „${suche}“.`
+                ? `Gesucht wurde „${suche.trim()}“ in Kunde, Baustelle und Monat.`
                 : 'Kein offener Schein — nur verworfene Entwürfe.'}
           </EmptyState>
         ) : (

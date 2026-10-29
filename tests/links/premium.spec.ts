@@ -93,13 +93,11 @@ for (const [route, aktion] of [['/admin-projects', 'Neue Baustelle'], ['/quotes'
       await r.fulfill({ response, body: (await response.text()) + '\nbaustellen.length=0;angebote.length=0;' });
     });
     await page.goto(`./?pfad=${encodeURIComponent(route)}&rolle=Administrator`);
-    await expect(page.locator('.lot-leerzeichnung')).toHaveCount(1);
+    await expect(page.locator('.lot-erstnutzung .lot-zeichnung')).toHaveCount(1);
+    // Am Handy steht die Hauptaktion nur im Daumenbereich — der Leerzustand blendet seine aus.
     await expect(page.getByRole('button', { name: aktion, exact: true })).toHaveCount(1);
-    if (route === '/quotes') {
-      await page.locator('main input[type=search]').fill('zzzz');
-      await expect(page.locator('.lot-leerzeichnung')).toHaveCount(0);
-      await expect(page.getByText('Kein Angebot passt zur Suche.', { exact: true })).toBeVisible();
-    }
+    // Beim ersten Besuch gibt es noch nichts zu suchen oder zu filtern.
+    await expect(page.locator('main input[type=search]')).toHaveCount(0);
     await page.getByRole('button', { name: aktion, exact: true }).click();
     await expect(page.getByLabel(route === '/quotes' ? 'Bezeichnung' : 'Projektnummer', { exact: true })).toBeVisible();
   });

@@ -30,14 +30,30 @@ import { klingtNachBueroBeleg } from './bueroBeleg';
 /*
   Der Grund steht in der Ablage unter dem Dateinamen — „„Grundriss.dwg“: nur
   PDF …“ nannte ihn ein zweites Mal. Auf der Seite (ohne Liste) bleibt der
-  volle Satz mit Namen.
+  volle Satz mit Namen. `dateiPruefen` kennt zwei Formen: mit Doppelpunkt
+  (falscher Typ) und als Satz („… ist leer.“, „… ist 30 MB groß“) — beide
+  verlieren den Namen, sonst stünde er bei Größe und Leere doppelt da.
 */
 function grundOhneName(datei: File): string | null {
   const grund = dateiPruefen(datei);
   if (!grund) return null;
-  const ohne = grund.replace(`„${datei.name}“: `, '');
-  return ohne.charAt(0).toUpperCase() + ohne.slice(1);
+  const name = `„${datei.name}“`;
+  if (grund.startsWith(`${name}: `)) {
+    const rest = grund.slice(name.length + 2);
+    return rest.charAt(0).toUpperCase() + rest.slice(1);
+  }
+  if (grund.startsWith(`${name} `)) return `Die Datei ${grund.slice(name.length + 1)}`;
+  return grund;
 }
+
+/*
+  GESCHEITERT IST NICHT UNGÜLTIG: eine Datei, die am Netz scheiterte, bleibt
+  mit dem Grund stehen und geht beim nächsten „Hochladen“ wieder mit. Als
+  `problem` geführt, zählte der Knopf sie nicht mehr, und dieselbe Datei neu
+  zu wählen verhinderte die Doppelprüfung — „bitte erneut versuchen“ ginge
+  dann nur über Entfernen und neu Wählen.
+*/
+type Auswahl = AblageDatei & { gescheitert?: boolean };
 
 export default function BaustellenPlaene({
   companyId,
@@ -56,7 +72,7 @@ export default function BaustellenPlaene({
   const toast = useToast();
   const { stand, neuLaden } = usePlaene(companyId, [projectId]);
   const [ablageOffen, setAblageOffen] = useState(false);
-  const [auswahl, setAuswahl] = useState<AblageDatei[]>([]);
+  const [auswahl, setAuswahl] = useState<Auswahl[]>([]);
   const [laeuft, setLaeuft] = useState(false);
   const [fortschritt, setFortschritt] = useState<string | null>(null);
   const [fehler, setFehler] = useState<string[]>([]);
@@ -76,9 +92,11 @@ export default function BaustellenPlaene({
   // Der Hinweis gilt nur, solange „Nur fürs Büro“ nicht gesetzt ist — dann sieht es ohnehin kein Monteur.
   const liste = auswahl.map((a) => ({
     ...a,
-    hinweis: !a.problem && !nurBuero && klingtNachBuero(a.datei)
-      ? 'Klingt nach einem Beleg aus dem Büro — ohne „Nur fürs Büro“ sehen es die Monteure'
-      : null,
+    hinweis: a.gescheitert
+      ? 'Konnte nicht hochgeladen werden — bitte erneut versuchen'
+      : !a.problem && !nurBuero && klingtNachBuero(a.datei)
+        ? 'Klingt nach einem Beleg aus dem Büro — ohne „Nur fürs Büro“ sehen es die Monteure'
+        : null,
   }));
 
   function dazu(dateien: File[]) {
@@ -120,7 +138,7 @@ export default function BaustellenPlaene({
   async function hochladen(nurFuersBuero: boolean) {
     const gueltig = auswahl.filter((a) => !a.problem);
     const ungueltig = auswahl.filter((a) => a.problem);
-    const gescheitert: AblageDatei[] = [];
+    const gescheitert: Auswahl[] = [];
     let geschafft = 0;
     setLaeuft(true);
     for (const [i, a] of gueltig.entries()) {
@@ -129,7 +147,7 @@ export default function BaustellenPlaene({
         await dokumentHochladen(companyId, projectId, a.datei, meinName, nurFuersBuero);
         geschafft += 1;
       } catch {
-        gescheitert.push({ ...a, problem: 'Konnte nicht hochgeladen werden — bitte erneut versuchen' });
+        gescheitert.push({ ...a, gescheitert: true });
       }
     }
     setLaeuft(false);
@@ -178,7 +196,7 @@ export default function BaustellenPlaene({
 
   const dokumente = planeVon(stand, projectId);
   // Im leeren Reiter ist es der nächste Schritt; unter einer Liste steht es ruhig darunter.
-  const hinzufuegen = (variant: 'primary' | 'ghost') => (
+  const hinzufuegen = (variant: 'primary' | 'secondary') => (
     <Button variant={variant} onClick={() => setAblageOffen(true)}>
       Dokumente hinzufügen
     </Button>
@@ -236,7 +254,7 @@ export default function BaustellenPlaene({
         </Hinweiszeile>
       )}
 
-      {darfAendern && dokumente.length > 0 && <div className="flex flex-wrap items-center gap-3">{hinzufuegen('ghost')}</div>}
+      {darfAendern && dokumente.length > 0 && <div className="flex flex-wrap items-center gap-3">{hinzufuegen('secondary')}</div>}
 
       {darfAendern && (
         <DokumentAblage
