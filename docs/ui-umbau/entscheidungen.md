@@ -371,3 +371,35 @@ Keine Grenze: am Tablet und Schreibtisch bleiben Raster, Monat und Tag
 unverändert; die Legende unter dem Monatsraster ab dem Tablet bleibt offen,
 weil sie dort neben dem Raster Platz hat.
 
+
+**E29 — Linienzeichnungen und klare nächste Schritte (29.10.2026).**
+Grundlage: der freigegebene Illustrationsentwurf
+(`senklot-illustrationen-gesamtentwurf-2026-10-29`, Commit `5e4c0694` auf
+`bilder/landingpage-2026-10-14`) und die Konzeptbilder des Auftraggebers
+„Kleine Bilder. Klare nächste Schritte.“ und „Orientierung, die Platz lässt.“
+
+- **Eine Zeichnungsfamilie** (`LotZeichnung`): zwölf Motive im Zeichenraum
+  160 × 104 — Kontur 1,4 in Petrol (`--accent-deep`), Hilfslinien 1,0
+  (`--border-strong`), Flächen mit 12 % Deckkraft. Hell und dunkel aus den
+  Theme-Variablen; rein dekorativ (`aria-hidden`), nie Träger einer Aussage.
+- **Kopfakzent** auf 14 Hauptseiten, erst ab 1280 px; am Tablet und Handy
+  nicht. Im globalen Admin nur auf Bereichsebene, nie bei Notzugang,
+  Passwort, zweitem Faktor oder Löschvorgängen.
+- **Leerzustände unterscheiden**: Erstnutzung (Motiv des Bereichs, Titel,
+  Erklärung, die Hauptaktion als nächster Schritt — am Handy steht sie schon
+  im Daumenbereich), Suche ohne Treffer (Motiv „Suche“, „Suche
+  zurücksetzen“), leere Auswahl (ohne Zeichnung, das ist der gute Fall),
+  nicht geladen (kein „noch keine …“, der Fehler spricht). Die Startseite
+  zeigt die Abschlusszeichnung nur, wenn alles geladen ist.
+- **Keine Zeichnung** über Planungsrastern, in Formularen, Akten mit Inhalt,
+  Finanzformularen und Sicherheitsabläufen.
+- **Dokumente hinzufügen**: erst sammeln, dann hochladen — Ablagefläche mit
+  Zeichnung, Liste mit Größe, Zustand und „Entfernen“. Die Ablagefläche
+  trägt eine durchgezogene Linie (gestrichelt gibt es in der Linie nicht);
+  beim Darüberziehen antwortet sie in Petrol.
+- **Anmeldung**: am Schreibtisch eine ruhige Bühne mit Marke, Zeichnung und
+  einem Satz neben dem unveränderten Formular; Handy und Tablet behalten
+  die Karte.
+- **Knopf-Links aus einem Guss** (`knopf.ts`, `KnopfLink`): ein Link in der
+  Rolle eines Knopfs sieht aus wie der Knopf — ohne eigene Schatten oder
+  Skalierung.
