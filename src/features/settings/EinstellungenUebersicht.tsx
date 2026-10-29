@@ -149,7 +149,8 @@ export default function EinstellungenUebersicht() {
 
   return (
     <div className="space-y-6">
-      <PageHeader ort="Betrieb" title="Einstellungen" subtitle="Was den Betrieb einrichtet — und dein Konto" />
+      <PageHeader
+zeichnung="einrichtung" ort="Betrieb" title="Einstellungen" subtitle="Was den Betrieb einrichtet — und dein Konto" />
 
       <div className="formular">
         <InputField

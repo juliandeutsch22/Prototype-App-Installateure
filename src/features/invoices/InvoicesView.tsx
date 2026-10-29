@@ -2775,6 +2775,7 @@ export default function InvoicesView() {
         hereinkommen. Am Handy steht der Knopf im Daumenbereich.
       */}
       <PageHeader
+        zeichnung="beleg"
         ort="Geld"
         title="Rechnungen"
         subtitle={nurLesen
@@ -4486,8 +4487,17 @@ export default function InvoicesView() {
           <div className="px-4 pb-4">
             <SkeletonList rows={4} />
           </div>
+        ) : liste.length === 0 && error && invoices.length === 0 && !suchbegriff ? (
+          /* Nicht geladen ist nicht „noch keine“: der Fehler oben sagt, was los ist. */
+          null
         ) : liste.length === 0 ? (
-          <EmptyState>
+          <EmptyState
+            zeichnung={
+              suchbegriff
+                ? serverTreffer || suchFehler ? 'suche' : undefined
+                : invoices.length === 0 ? 'beleg' : undefined
+            }
+          >
             {suchbegriff
               ? !serverTreffer && !suchFehler
                 ? 'Suche in allen Rechnungen …'

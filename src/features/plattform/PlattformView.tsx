@@ -281,7 +281,7 @@ export default function PlattformView() {
         </nav>
         <main>
           <Bereich offen={bereich === 'betriebe'}>
-            <PageHeader ort="Globaler Administrator" title={betriebSeite === 'neu' ? 'Betrieb anlegen' : betriebSeite === 'angelegt' ? 'Betrieb angelegt' : betriebSeite === 'geloescht' ? 'Löschprotokoll' : 'Betriebe'}
+            <PageHeader zeichnung={betriebSeite === 'liste' ? 'betrieb' : undefined} ort="Globaler Administrator" title={betriebSeite === 'neu' ? 'Betrieb anlegen' : betriebSeite === 'angelegt' ? 'Betrieb angelegt' : betriebSeite === 'geloescht' ? 'Löschprotokoll' : 'Betriebe'}
               subtitle={betriebSeite === 'liste' ? 'Einrichten und verwalten – ohne Einblick in Betriebsinhalte.' : betriebSeite === 'neu' ? 'Betrieb und ersten Administrator gemeinsam einrichten.' : betriebSeite === 'geloescht' ? 'Gelöschte Betriebe und dauerhaft gesperrte Kennungen.' : 'Den ersten Zugang jetzt an den Administrator weitergeben.'}
               hilfe="Dieses Konto gehört zu keinem Betrieb und sieht in keinen hinein. Betriebsinhalte bleiben nur über eine gültige Supportfreigabe oder einen protokollierten Notzugang erreichbar."
               action={betriebSeite === 'liste' ? <Button onClick={() => setBetriebSeite('neu')}>Betrieb anlegen</Button> : undefined} />
@@ -538,7 +538,7 @@ export default function PlattformView() {
             </div>
           </Bereich>
           <Bereich offen={bereich === 'support'}>
-            <PageHeader ort="Globaler Administrator" title={supportSeite === 'notzugang' ? 'Notzugang öffnen' : supportSeite === 'passwort' ? 'Passwort neu setzen' : supportSeite === 'zweiter-faktor' ? 'Zwei-Faktor zurücksetzen' : 'Supportzugänge'}
+            <PageHeader zeichnung={supportSeite === 'liste' ? 'betrieb' : undefined} ort="Globaler Administrator" title={supportSeite === 'notzugang' ? 'Notzugang öffnen' : supportSeite === 'passwort' ? 'Passwort neu setzen' : supportSeite === 'zweiter-faktor' ? 'Zwei-Faktor zurücksetzen' : 'Supportzugänge'}
               subtitle="Nur ausdrücklich freigegebene oder protokollierte Zugänge."
               hilfe="Ansehen ist lesend; Mitarbeiten erlaubt die ausdrücklich freigegebenen Änderungen. Notzugänge sind lesend, höchstens 24 Stunden gültig, im Betrieb sichtbar und protokolliert."
               action={supportSeite === 'liste' ? <Button variant="secondary" onClick={() => setSupportSeite('notzugang')}>Notzugang öffnen</Button> : undefined} />
@@ -676,7 +676,7 @@ export default function PlattformView() {
             </div>
           </Bereich>
           <Bereich offen={bereich === 'fehler'}>
-            <PageHeader ort="Globaler Administrator" title="Fehlerprotokoll" subtitle="Meldungen und technische Vorfälle der letzten 14 Tage." hilfe="Nur ausdrücklich an den Support gesendete Meldungen. Technische Vorfälle werden nach Art und Meldung gruppiert; der bestehende Zeitraum von 14 Tagen bleibt erhalten." />
+            <PageHeader zeichnung="betrieb" ort="Globaler Administrator" title="Fehlerprotokoll" subtitle="Meldungen und technische Vorfälle der letzten 14 Tage." hilfe="Nur ausdrücklich an den Support gesendete Meldungen. Technische Vorfälle werden nach Art und Meldung gruppiert; der bestehende Zeitraum von 14 Tagen bleibt erhalten." />
       <section aria-label="Fehler aus den Betrieben" className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="titel-karte">Fehler aus den Betrieben (14 Tage)</h2>
@@ -690,11 +690,11 @@ export default function PlattformView() {
       </section>
           </Bereich>
           <Bereich offen={bereich === 'basiszins'}>
-            <PageHeader ort="Globaler Administrator" title="Basiszinssatz" subtitle="Zentral je Halbjahr – für alle Betriebe." />
+            <PageHeader zeichnung="betrieb" ort="Globaler Administrator" title="Basiszinssatz" subtitle="Zentral je Halbjahr – für alle Betriebe." />
             <div className="plattform-spalten"><div><BasiszinsZentral /></div><aside className="plattform-kontext"><h2>Vorrang des zentralen Satzes</h2><h3>Zentral hinterlegt</h3><p>Gilt für dieses Halbjahr in allen Betrieben.</p><h3>Zentral nicht hinterlegt</h3><p>Der Eintrag des jeweiligen Betriebs bleibt der Rückfall.</p></aside></div>
           </Bereich>
           <Bereich offen={bereich === 'konto'}>
-            <PageHeader ort="Globaler Administrator" title="Mein Konto" subtitle="Passwort und Zwei-Faktor-Anmeldung des Plattformkontos." />
+            <PageHeader zeichnung="betrieb" ort="Globaler Administrator" title="Mein Konto" subtitle="Passwort und Zwei-Faktor-Anmeldung des Plattformkontos." />
             <div className="plattform-spalten"><div><PasswortAendern /><ZweiFaktorKarte /><Card title="Sitzung"><div className="flex flex-wrap gap-2"><Button variant="ghost" onClick={() => void signOut()}>Abmelden</Button><Button variant="ghost" onClick={() => void signOut(true)}>Auf allen Geräten abmelden</Button></div></Card></div><aside className="plattform-kontext"><h2>Plattformkonto</h2><h3>Rolle</h3><p>Globaler Administrator</p><h3>Betriebszuordnung</h3><p>Keine</p><h3>Zwei-Faktor-Anmeldung</h3><p>Verpflichtend</p></aside></div>
           </Bereich>
         </main>

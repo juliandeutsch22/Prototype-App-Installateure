@@ -32,10 +32,26 @@
   .lot-erstnutzung { max-width: 37rem; margin: 0 auto; padding: 2.75rem 1rem; text-align: center; }
   .lot-erstnutzung h2 { font-size: 1.1875rem; line-height: 1.5; font-weight: 600; }
   .lot-erstnutzung p { color: var(--text-muted); margin: .5rem auto 1.25rem; max-width: 50ch; font-size: .875rem; }
-  .lot-leerzeichnung { width: 9.25rem; height: 6.25rem; display: block; margin: 0 auto 1.375rem; color: var(--accent-deep); }
-  .lot-leerzeichnung .konstruktion { stroke: var(--border-strong); stroke-width: 1; fill: none; }
-  .lot-leerzeichnung .lot { stroke: currentColor; stroke-width: 1.6; fill: none; }
-  .lot-leerzeichnung .flaeche { fill: currentColor; stroke: none; }
+  /*
+    DIE ZEICHNUNGEN (Illustrationsentwurf 29.10.2026, `LotZeichnung`).
+    Kontur 1,4 in Petrol, Hilfslinie 1,0 in der kräftigen Linienfarbe,
+    Flächen mit 12 % Deckkraft — alles aus den Theme-Variablen, damit die
+    dunkle Darstellung dieselbe Zeichnung trägt. Rein dekorativ: keine
+    Klickfläche, keine Auswahl.
+  */
+  .lot-zeichnung { display: block; flex: none; overflow: visible; color: var(--accent-deep); pointer-events: none; user-select: none; }
+  .lot-zeichnung .guide { stroke: var(--border-strong); stroke-width: 1; }
+  .lot-zeichnung .ink { stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  .lot-zeichnung .wash { fill: currentColor; fill-opacity: .12; stroke: none; }
+  /* Kopfakzent: nur wo neben Titel, Hilfe und Hauptaktion Platz bleibt (ab 1280 px). */
+  .lot-zeichnung-kopf { display: none; width: 7rem; height: 4.5625rem; margin-right: 1rem; align-self: flex-start; }
+  .lot-zeichnung-leer { width: 8.5rem; height: 5.5rem; margin: 0 auto 1.125rem; }
+  .lot-zeichnung-hinweis { width: 5.25rem; height: 3.75rem; }
+  .lot-einrichtung { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; border-block: 1px solid var(--border); }
+  .lot-einrichtung p { font-size: .8125rem; line-height: 1.65; color: var(--text-muted); max-width: 52ch; }
+  .lot-einrichtung b { display: block; color: var(--ink-deep); font-weight: 600; }
+  @media (min-width: 1280px) { .lot-zeichnung-kopf { display: block; } }
+  @media (max-width: 759px) { .lot-zeichnung-leer { width: 6.5rem; height: 4.25rem; margin-bottom: 0.875rem; } }
   .darstellung-schalter { display: inline-flex; align-items: center; justify-content: center; flex: none; align-self: flex-start; width: 3.75rem; min-height: 2.75rem; margin-left: 0.5rem; padding: 0.25rem; border: 0; border-radius: var(--radius); background: none; cursor: pointer; }
   .darstellung-schiene { position: relative; display: block; width: 3.25rem; height: 1.75rem; border: 1px solid var(--text-muted); border-radius: 999px; background: var(--surface-3); }
   .darstellung-griff { position: absolute; top: 2px; left: 2px; display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: 50%; background: var(--accent-deep); color: var(--bg); transition: transform var(--motion-state) var(--ease-response); }

@@ -726,6 +726,7 @@ export default function AdminProjectsView() {
   return (
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
+        zeichnung="bau"
         title="Baustellen"
         subtitle="Anlegen und suchen — geändert wird in der Akte"
         // Eine Hilfe je Seite (Testbericht Runde 5, G8) — der Wortlaut aus dem Handbuch.
@@ -823,10 +824,13 @@ export default function AdminProjectsView() {
           <div className="border-t border-line p-4">
             <SkeletonList rows={4} />
           </div>
+        ) : visible.length === 0 && error && projects.length === 0 && !suche ? (
+          /* Nicht geladen ist nicht „noch keine“: der Fehler oben sagt, was los ist. */
+          null
         ) : visible.length === 0 ? (
           <div className="border-t border-line">
             <EmptyState
-              zeichnung={ersteBaustelle ? 'baustelle' : undefined}
+              zeichnung={ersteBaustelle ? 'bau' : suche ? 'suche' : undefined}
               titel={ersteBaustelle ? 'Noch keine Baustellen angelegt.' : undefined}
             >
               {ersteBaustelle

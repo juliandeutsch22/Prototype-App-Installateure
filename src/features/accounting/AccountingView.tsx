@@ -888,6 +888,7 @@ export default function AccountingView() {
         dort verschlossen), ebenso wenig ohne eine Zeile.
       */}
       <PageHeader
+        zeichnung="team"
         ort="Team"
         title="Mitarbeiterübersicht"
         subtitle="Buchungen prüfen und Zeitkonten vergleichen."

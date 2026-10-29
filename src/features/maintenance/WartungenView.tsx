@@ -687,12 +687,20 @@ export default function WartungenView() {
         ]
       : [{ id: 'alle', titel: 'Alle Vereinbarungen', zeilen: gefiltert }];
   const sichtbar = gruppen.filter((g) => g.zeilen.length > 0);
-  const leer =
-    ansicht === 'anstehend' && !suche.trim()
-      ? `In den nächsten ${VORLAUF_TAGE} Tagen steht keine Wartung an.`
-      : wartungen.length === 0
-        ? 'Noch keine Wartung erfasst.'
-        : 'Kein Treffer für diese Suche.';
+  /*
+    ERST DER BESTAND, DANN DIE FRIST. Ohne eine einzige Vereinbarung stand
+    unter „Steht an“ „In den nächsten 30 Tagen steht keine Wartung an“ —
+    das klang nach einem ruhigen Monat, nicht nach einem Bereich, der noch
+    eingerichtet werden will.
+  */
+  const ersteWartung = wartungen.length === 0 && !suche.trim();
+  const leer = ersteWartung
+    ? 'Noch keine Wartung erfasst.'
+    : suche.trim()
+      ? 'Kein Treffer für diese Suche.'
+      : ansicht === 'anstehend'
+        ? `In den nächsten ${VORLAUF_TAGE} Tagen steht keine Wartung an.`
+        : 'Noch keine Wartung erfasst.';
 
   const einzelheiten = einzelheitenId
     ? (gefiltert.find((w) => w.id === einzelheitenId) ?? wartungen.find((w) => w.id === einzelheitenId) ?? null)
@@ -701,6 +709,7 @@ export default function WartungenView() {
   return (
     <div className="space-y-6">
       <PageHeader
+        zeichnung="wartung"
         title="Wartungen"
         subtitle="Wiederkehrende Wartungen"
         // Eine Hilfe je Seite (Testbericht Runde 5, G8) — der Wortlaut aus dem Handbuch.
@@ -743,7 +752,7 @@ export default function WartungenView() {
           </div>
         ) : sichtbar.length === 0 ? (
           <div className="border-t border-line">
-            <EmptyState>{leer}</EmptyState>
+            <EmptyState zeichnung={ersteWartung ? 'wartung' : suche.trim() ? 'suche' : undefined}>{leer}</EmptyState>
           </div>
         ) : (
           sichtbar.map((g) => <Gruppe key={`${ansicht}-${g.id}`} titel={g.titel} zeilen={g.zeilen} zeile={zeile} />)

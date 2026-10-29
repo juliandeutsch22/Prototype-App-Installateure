@@ -94,6 +94,7 @@ export default function RechnungenLesen() {
   return (
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
+        zeichnung="beleg"
         ort="Geld"
         title="Rechnungen"
         subtitle="Die Rechnungen deiner Baustellen — nur lesen."

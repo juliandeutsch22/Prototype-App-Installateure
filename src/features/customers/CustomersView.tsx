@@ -104,6 +104,13 @@ export default function CustomersView() {
   const [kunden, setKunden] = useState<WithId<Customer>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /*
+    DER FEHLER DER LISTE GEHÖRT AN DIE LISTE. Er teilte sich `error` mit dem
+    Formular und der Übernahme und stand nur dort; die Liste darunter sagte
+    bei einem Ladefehler „Noch keine Kunden“ — für einen Betrieb mit
+    vierhundert Kunden eine falsche und erschreckende Auskunft.
+  */
+  const [listenFehler, setListenFehler] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
   const [form, setForm] = useState<NewCustomer>(LEER);
   const [bearbeitet, setBearbeitet] = useState<WithId<Customer> | null>(null);
@@ -213,6 +220,7 @@ export default function CustomersView() {
     () => async () => {
       if (!user) return;
       setLoading(true);
+      setListenFehler(null);
       try {
         const treffer = nurPruefen
           ? await kundenAdressePruefen(user.companyId)
@@ -230,7 +238,7 @@ export default function CustomersView() {
         */
         if (!begriff.trim()) setOhneSuche(treffer.length);
       } catch (e) {
-        setError((e as Error).message);
+        setListenFehler(grundAus(e, 'Die Kunden konnten nicht geladen werden.'));
       } finally {
         setLoading(false);
       }
@@ -464,6 +472,7 @@ export default function CustomersView() {
   return (
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
+        zeichnung="akte"
         title="Kunden"
         subtitle="Stammdaten, Ansprechpartner und Baustellenhistorie"
         mehr={seitenMenue.length > 0 ? <RowMenu about="Kunden" items={seitenMenue} /> : undefined}
@@ -508,9 +517,18 @@ export default function CustomersView() {
           <div className="border-t border-line p-4">
             <SkeletonList rows={4} />
           </div>
+        ) : listenFehler ? (
+          <div className="border-t border-line p-4">
+            <ErrorState message={listenFehler} onRetry={() => void laden()} />
+          </div>
         ) : sichtbar.length === 0 ? (
           <div className="border-t border-line">
-            <EmptyState>
+            {/*
+              DIE ZEICHNUNG NUR, WO SIE ETWAS ERKLÄRT: beim ersten Bestand und
+              bei einer Suche ohne Treffer — nicht bei einer leeren Auswahl,
+              die der gute Fall ist (Designlinie der Zeichnungen, Regel 5).
+            */}
+            <EmptyState zeichnung={suche.trim() ? 'suche' : !nurPruefen && !nurOhneArt ? 'akte' : undefined}>
               {/*
                 DIE UNTERSCHEIDUNG HÄNGT AM SUCHBEGRIFF, NICHT AN DER LISTE.
 

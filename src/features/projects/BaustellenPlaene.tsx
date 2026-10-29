@@ -127,7 +127,7 @@ export default function BaustellenPlaene({
       ) : stand.zustand === 'fehler' ? (
         <TeilFehler was="Die Pläne" onRetry={neuLaden} />
       ) : dokumente.length === 0 ? (
-        <EmptyState>Noch keine Pläne oder Dokumente.</EmptyState>
+        <EmptyState zeichnung="plan">Noch keine Pläne oder Dokumente.</EmptyState>
       ) : (
         <PlaeneListe
           dokumente={dokumente}

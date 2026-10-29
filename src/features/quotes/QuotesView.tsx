@@ -775,6 +775,7 @@ export default function QuotesView() {
   return (
     <div className="space-y-6">
       <PageHeader
+        zeichnung="beleg"
         title="Angebote"
         subtitle="Kalkulieren, versenden, in einen Auftrag überführen"
         // Eine Hilfe je Seite (Testbericht Runde 5, G8) — der Wortlaut aus dem Handbuch.
@@ -1181,10 +1182,13 @@ export default function QuotesView() {
           <div className="p-4">
             <SkeletonList rows={3} />
           </div>
+        ) : sichtbar.length === 0 && error && angebote.length === 0 && !begriff ? (
+          /* Nicht geladen ist nicht „noch keines“: der Fehler oben sagt, was los ist. */
+          null
         ) : sichtbar.length === 0 ? (
           <div className="border-t border-line">
             <EmptyState
-              zeichnung={erstesAngebot ? 'angebot' : undefined}
+              zeichnung={erstesAngebot ? 'beleg' : begriff ? 'suche' : undefined}
               titel={erstesAngebot ? 'Noch kein Angebot erstellt.' : undefined}
             >{erstesAngebot ? 'Erstelle ein Angebot für einen Kunden. Entwürfe und versandte Angebote findest du anschließend in dieser Übersicht.' : leer}</EmptyState>
           </div>

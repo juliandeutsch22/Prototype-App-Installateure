@@ -697,6 +697,7 @@ export default function WorkSheetsListView() {
         „Kein Zugriff" (Prüflauf 25.09.2026, P4-04).
       */}
       <PageHeader
+        zeichnung="beleg"
         title="Handwerksscheine"
         // In der Liste stehen auch Entwürfe (Analyse 03.10.2026, Paket 1).
         subtitle="Leistungsnachweise der Baustellen, auch Entwürfe"
@@ -1028,7 +1029,8 @@ export default function WorkSheetsListView() {
           </div>
         ) : offeneAnsicht ? (
           scheine.length === 0 ? (
-            <EmptyState>Noch kein Handwerksschein erstellt.</EmptyState>
+            /* Nicht geladen ist nicht „noch keiner“: der Fehler oben sagt, was los ist. */
+            error ? null : <EmptyState zeichnung="beleg">Noch kein Handwerksschein erstellt.</EmptyState>
           ) : (
             <>
               <Abschnitt titel="Entwürfe" anzahl={entwuerfe.length}>
@@ -1058,8 +1060,10 @@ export default function WorkSheetsListView() {
               )}
             </>
           )
+        ) : sichtbar.length === 0 && error && scheine.length === 0 && !suchend ? (
+          null
         ) : sichtbar.length === 0 ? (
-          <EmptyState>
+          <EmptyState zeichnung={unverrechnet ? undefined : scheine.length === 0 ? 'beleg' : suchend ? 'suche' : undefined}>
             {unverrechnet
               ? 'Unter den jüngsten Scheinen ist keiner unverrechnet.'
               : scheine.length === 0

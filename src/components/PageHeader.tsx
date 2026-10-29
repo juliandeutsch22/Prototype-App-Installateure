@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useInRouterContext, useLocation } from 'react-router-dom';
 import { SeitenHilfeKnopf } from './SeitenHilfe';
 import { gruppeVon } from '@/app/navigation';
+import LotZeichnung, { type LotMotiv } from './LotZeichnung';
 
 /**
  * DER SEITENKOPF DER LINIE „LOT“ (Regel 2): überall gleich gebaut.
@@ -12,6 +13,9 @@ import { gruppeVon } from '@/app/navigation';
  *   Meta        eine Zeile darunter
  *   Stand       die Kennzahlen der Seite als ruhige Zeile (E24)
  *   rechts      „Hilfe zu dieser Seite“, das ⋯ der Seite, die Hauptaktion
+ *   Zeichnung   kleiner Kopfakzent der Hauptseiten (Illustrationsentwurf
+ *               29.10.2026) — erst ab 1280 px, wo neben Titel und
+ *               Aktionen Platz bleibt; am Tablet und Handy entfällt er
  *
  * AM HANDY GEHT DIE HAUPTAKTION IN DEN DAUMENBEREICH: eine feste Leiste über
  * der unteren Navigation (`.daumen`). Oben rechts wäre sie mit einer Hand
@@ -31,6 +35,7 @@ export default function PageHeader({
   mehr,
   hilfe,
   stand,
+  zeichnung,
 }: {
   title: string;
   subtitle?: ReactNode;
@@ -44,6 +49,8 @@ export default function PageHeader({
   hilfe?: ReactNode;
   /** Der Stand der Seite — eine `MetricRow` (oder ihr Platzhalter). */
   stand?: ReactNode;
+  /** Kleiner Kopfakzent der Hauptseite; rein dekorativ, nur am breiten Schreibtisch. */
+  zeichnung?: LotMotiv;
 }) {
   const imRouter = useInRouterContext();
   return (
@@ -55,6 +62,7 @@ export default function PageHeader({
         {stand && <div className="seitenkopf-stand">{stand}</div>}
       </div>
       <div className="seitenkopf-rechts">
+        {zeichnung && <LotZeichnung motiv={zeichnung} art="kopf" />}
         <SeitenHilfeKnopf seite={title} einleitung={hilfe} />
         {mehr}
         {action && <div className="daumen">{action}</div>}

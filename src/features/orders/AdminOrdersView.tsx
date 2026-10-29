@@ -663,6 +663,7 @@ export default function AdminOrdersView() {
   return (
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
+        zeichnung="lager"
         title="Anforderungen"
         subtitle="Anforderungen bearbeiten, Rückgaben sichten"
         hilfe={
@@ -775,7 +776,8 @@ export default function AdminOrdersView() {
               <ErrorState message={error} />
             </div>
           ) : rows.length === 0 ? (
-            <EmptyState>
+            /* Die Zeichnung nur bei „nichts offen“ im laufenden Bereich und bei einer Suche ohne Treffer. */
+            <EmptyState zeichnung={suche ? 'suche' : tab === 'aktiv' && !adressFilter ? 'lager' : undefined}>
               {suche
                 ? `Nichts passt zu „${suche}“.`
                 : tab === 'retouren'

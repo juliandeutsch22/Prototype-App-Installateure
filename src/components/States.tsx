@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import Button from './Button';
 import Hinweiszeile from './Hinweiszeile';
-import LotLeerzeichnung from './LotLeerzeichnung';
+import LotZeichnung, { type LotMotiv } from './LotZeichnung';
 
 /**
  * Ladezustand — sichtbar, kein stiller Abbruch. Erst nach 200 ms
@@ -161,10 +161,10 @@ export function TeilFehler({ was, onRetry }: { was: string; onRetry?: () => void
  * da" stand in einer Karte wie eine zweite Karte und war damit lauter als
  * der Inhalt, der sonst dort steht. Ein ruhiger, zentrierter Satz genügt.
  */
-export function EmptyState({ children, action, titel, zeichnung }: { children: ReactNode; action?: ReactNode; titel?: string; zeichnung?: 'baustelle' | 'angebot' }) {
+export function EmptyState({ children, action, titel, zeichnung }: { children: ReactNode; action?: ReactNode; titel?: string; zeichnung?: LotMotiv }) {
   return (
     <div className={zeichnung ? 'lot-erstnutzung' : 'flex flex-col items-center gap-3 px-4 py-6 text-center text-ink-muted'}>
-      {zeichnung && <LotLeerzeichnung art={zeichnung} />}
+      {zeichnung && <LotZeichnung motiv={zeichnung} art="leer" />}
       {titel && <h2>{titel}</h2>}
       <p>{children}</p>
       {action}

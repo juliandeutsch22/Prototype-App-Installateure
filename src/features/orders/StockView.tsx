@@ -360,6 +360,7 @@ export default function StockView() {
   return (
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
+        zeichnung="lager"
         title="Lager"
         subtitle="Bestände führen und den Materialkatalog pflegen"
         hilfe={
@@ -481,7 +482,7 @@ export default function StockView() {
                   <SkeletonList rows={5} />
                 </div>
               ) : rows.length === 0 ? (
-                <EmptyState>
+                <EmptyState zeichnung={imKatalog !== 0 && materials.some(imLager) && search.trim() ? 'suche' : undefined}>
                   {imKatalog === 0
                     ? 'Noch kein Material im Katalog. Der Bereich „Katalog“ legt den ersten Eintrag an.'
                     : !materials.some(imLager)

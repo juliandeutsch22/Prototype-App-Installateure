@@ -7,6 +7,8 @@ import { istZeichenbar } from '@/lib/pdfBriefkopf';
 import { urteil } from '@/lib/kontrast';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import LotZeichnung from '@/components/LotZeichnung';
+import { einrichtungsstand } from './EinstellungenUebersicht';
 import PageHeader from '@/components/PageHeader';
 import { InputField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { firmenbuchEingetragen, imFirmenbuch } from '@/lib/firmenbuch';
@@ -258,6 +260,24 @@ export default function FirmendatenView() {
         title="Firmendaten"
         subtitle="Briefkopf für Rechnung, Bericht und Schein"
       />
+
+      {/*
+        DER EINRICHTUNGSHINWEIS — NUR, SOLANGE DER BRIEFKOPF FEHLT
+        (Illustrationsentwurf 29.10.2026, „Firmendaten · Ersteinrichtung“).
+        Er richtet sich nach dem GESPEICHERTEN Stand wie der Einrichtungsstand
+        der Übersicht, nicht nach dem Getippten: nach dem ersten vollständigen
+        Speichern ist er weg und kommt in keinem späteren Formular wieder.
+      */}
+      {einrichtungsstand(company)[0].wort === 'offen' && (
+        <div className="lot-einrichtung" role="note">
+          <LotZeichnung motiv="einrichtung" art="hinweis" />
+          <p>
+            <b>Deine Firma auf jedem Beleg.</b>
+            Name und Anschrift stehen oben auf jedem Angebot und jeder Rechnung — hier einmal
+            eintragen, dann stimmt jeder Beleg.
+          </p>
+        </div>
+      )}
 
       <form onSubmit={submit} className="space-y-6">
         <Card

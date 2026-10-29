@@ -376,6 +376,7 @@ export default function OrderView() {
   return (
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
+        zeichnung="lager"
         title="Material anfordern"
         subtitle="Anfordern, Lieferung verfolgen, zurückgeben"
         hilfe={
