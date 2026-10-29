@@ -1,0 +1,53 @@
+{
+  "sourcePR": "https://github.com/juliandeutsch22/Prototype-App-Installateure/pull/386",
+  "sourceHead": "1ae766f598045c35815df36aa48dab40a889b3e2",
+  "mergeCommit": "d133f64ddcf99f6378797e3a4fe9d73a0ae5a43c",
+  "sourceContentMatchesMerge": true,
+  "ci": [
+    {
+      "id": 40839477810,
+      "head_sha": "1ae766f598045c35815df36aa48dab40a889b3e2",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/40839477810"
+    },
+    {
+      "id": 40839477742,
+      "head_sha": "1ae766f598045c35815df36aa48dab40a889b3e2",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/40839477742"
+    }
+  ],
+  "deployRun": 40841887033,
+  "deployRunUrl": "https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/40841887033",
+  "deployConclusion": "success",
+  "jobs": [
+    {
+      "name": "Migrationen von null an, mit allen Prüfungen",
+      "conclusion": "success",
+      "html_url": "https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/40841887033/job/123339974213"
+    },
+    {
+      "name": "Ins Projekt einspielen",
+      "conclusion": "success",
+      "html_url": "https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/40841887033/job/123344539693"
+    },
+    {
+      "name": "App ausliefern / Typen, Lint und Tests",
+      "conclusion": "success",
+      "html_url": "https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/40841887033/job/123345785906"
+    },
+    {
+      "name": "App ausliefern / Auf Firebase Hosting veröffentlichen",
+      "conclusion": "success",
+      "html_url": "https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/40841887033/job/123347603210"
+    }
+  ],
+  "liveUrl": "https://installateur-demo.firebaseapp.com/",
+  "liveVersion": "d133f64 · 29.10.2026, 09:44",
+  "liveCheckedAt": "2026-10-29T08:45:30.646Z",
+  "physicalDevicesTested": false
+}

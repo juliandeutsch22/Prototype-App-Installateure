@@ -1,0 +1,26 @@
+{
+  "expectedMergeCommit": "d133f64ddcf99f6378797e3a4fe9d73a0ae5a43c",
+  "browser": "WebKit",
+  "tlsVerification": true,
+  "checkedAt": "2026-10-29T08:45:30.646Z",
+  "cases": [
+    {
+      "width": 390,
+      "status": 200,
+      "version": "d133f64 · 29.10.2026, 09:44",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedResponses": [],
+      "scrollWidth": 390
+    },
+    {
+      "width": 1440,
+      "status": 200,
+      "version": "d133f64 · 29.10.2026, 09:44",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedResponses": [],
+      "scrollWidth": 1440
+    }
+  ]
+}
