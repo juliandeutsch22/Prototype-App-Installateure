@@ -1,0 +1,1150 @@
+[
+  {
+    "name": "start",
+    "route": "/",
+    "role": "Administrator",
+    "title": "Start · Administration",
+    "group": "Start",
+    "motif": "bau",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "start-monteur",
+    "route": "/",
+    "role": "Mitarbeiter",
+    "title": "Start · Mitarbeiter",
+    "group": "Start",
+    "motif": "bau",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "start-buchhaltung",
+    "route": "/",
+    "role": "Buchhaltung",
+    "title": "Start · Buchhaltung",
+    "group": "Start",
+    "motif": "bau",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "zeit",
+    "route": "/time",
+    "role": "Mitarbeiter",
+    "title": "Zeit",
+    "group": "Team und Zeit",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "material",
+    "route": "/material",
+    "role": "Mitarbeiter",
+    "title": "Material",
+    "group": "Material",
+    "motif": "lager",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "anforderungen",
+    "route": "/anforderungen",
+    "role": "Verwaltung",
+    "title": "Anforderungen",
+    "group": "Material",
+    "motif": "lager",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "lager",
+    "route": "/lager",
+    "role": "Verwaltung",
+    "title": "Lager",
+    "group": "Material",
+    "motif": "lager",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "eigener-plan",
+    "route": "/my-schedule/mein",
+    "role": "Mitarbeiter",
+    "title": "Eigener · plan",
+    "group": "Planung",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "teamplan",
+    "route": "/my-schedule/team",
+    "role": "Mitarbeiter",
+    "title": "Teamplan",
+    "group": "Planung",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "meine-baustellen",
+    "route": "/my-projects",
+    "role": "Mitarbeiter",
+    "title": "Meine · baustellen",
+    "group": "Aufträge und Kunden",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "urlaub",
+    "route": "/vacations",
+    "role": "Administrator",
+    "title": "Urlaub",
+    "group": "Team und Zeit",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "sonderurlaub",
+    "route": "/sonderurlaub",
+    "role": "Administrator",
+    "title": "Sonderurlaub",
+    "group": "Team und Zeit",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "scheine",
+    "route": "/worksheets",
+    "role": "Administrator",
+    "title": "Scheine",
+    "group": "Aufträge und Kunden",
+    "motif": "beleg",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "schein-neu",
+    "route": "/worksheet",
+    "role": "Mitarbeiter",
+    "title": "Schein · neu",
+    "group": "Aufträge und Kunden",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "angebote",
+    "route": "/quotes",
+    "role": "Administrator",
+    "title": "Angebote",
+    "group": "Aufträge und Kunden",
+    "motif": "beleg",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "angebotsakte",
+    "route": "/quotes/q1",
+    "role": "Administrator",
+    "title": "Angebotsakte",
+    "group": "Aufträge und Kunden",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "kunden",
+    "route": "/customers",
+    "role": "Administrator",
+    "title": "Kunden",
+    "group": "Aufträge und Kunden",
+    "motif": "akte",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "kundenakte",
+    "route": "/customers/k1",
+    "role": "Administrator",
+    "title": "Kundenakte · Übersicht",
+    "group": "Aufträge und Kunden",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "wartungen",
+    "route": "/wartungen",
+    "role": "Administrator",
+    "title": "Wartungen",
+    "group": "Aufträge und Kunden",
+    "motif": "wartung",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "baustellen",
+    "route": "/admin-projects",
+    "role": "Administrator",
+    "title": "Baustellen",
+    "group": "Aufträge und Kunden",
+    "motif": "bau",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "baustellenakte",
+    "route": "/admin-projects/p1",
+    "role": "Administrator",
+    "title": "Baustellenakte · Auftrag",
+    "group": "Aufträge und Kunden",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "wochenplan",
+    "route": "/assignments/woche",
+    "role": "Projektleiter",
+    "title": "Einsatzplanung · Woche",
+    "group": "Planung",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "tagesplan",
+    "route": "/assignments/tag",
+    "role": "Projektleiter",
+    "title": "Tagesplan",
+    "group": "Planung",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "benutzer",
+    "route": "/user-mgmt",
+    "role": "Administrator",
+    "title": "Benutzer",
+    "group": "Team und Zeit",
+    "motif": "team",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "benutzerakte",
+    "route": "/user-mgmt/u1",
+    "role": "Administrator",
+    "title": "Benutzerakte · Person",
+    "group": "Team und Zeit",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "konto",
+    "route": "/settings/meldungen",
+    "role": "Mitarbeiter",
+    "title": "Mein Konto",
+    "group": "Einstellungen",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "einstellungen",
+    "route": "/settings/uebersicht",
+    "role": "Administrator",
+    "title": "Einstellungen",
+    "group": "Einstellungen",
+    "motif": "einrichtung",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "firmendaten",
+    "route": "/settings/firma",
+    "role": "Administrator",
+    "title": "Einstellungen · Firmendaten",
+    "group": "Einstellungen",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "saetze",
+    "route": "/settings/saetze",
+    "role": "Administrator",
+    "title": "Sätze und Kosten",
+    "group": "Einstellungen",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "rechnungsvorgaben",
+    "route": "/settings/rechnung",
+    "role": "Buchhaltung",
+    "title": "Rechnungsvorgaben",
+    "group": "Einstellungen",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "nummern",
+    "route": "/settings/nummern",
+    "role": "Administrator",
+    "title": "Nummernkreise",
+    "group": "Einstellungen",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "personal",
+    "route": "/settings/personal",
+    "role": "Administrator",
+    "title": "Personal",
+    "group": "Einstellungen",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "konten",
+    "route": "/settings/konten",
+    "role": "Buchhaltung",
+    "title": "Kontenrahmen",
+    "group": "Einstellungen",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "support",
+    "route": "/settings/support",
+    "role": "Administrator",
+    "title": "Supportzugang",
+    "group": "Einstellungen",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "module",
+    "route": "/settings/module",
+    "role": "Administrator",
+    "title": "Module",
+    "group": "Einstellungen",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "sicherung",
+    "route": "/settings/sicherung",
+    "role": "Administrator",
+    "title": "Datensicherung",
+    "group": "Einstellungen",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "kalkulation",
+    "route": "/costing",
+    "role": "Administrator",
+    "title": "Kalkulation",
+    "group": "Finanzen",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "rechnungen",
+    "route": "/invoices",
+    "role": "Buchhaltung",
+    "title": "Rechnungen",
+    "group": "Finanzen",
+    "motif": "beleg",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "mitarbeiter",
+    "route": "/accounting",
+    "role": "Buchhaltung",
+    "title": "Mitarbeiterübersicht · Monat",
+    "group": "Team und Zeit",
+    "motif": "team",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "impressum",
+    "route": "/impressum",
+    "role": "Administrator",
+    "title": "Impressum",
+    "group": "Zugang und Rechtliches",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "datenschutz",
+    "route": "/datenschutz",
+    "role": "Administrator",
+    "title": "Datenschutz",
+    "group": "Zugang und Rechtliches",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "plattform",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "title": "Globaler Admin · Betriebe",
+    "group": "Globaler Admin",
+    "motif": "betrieb",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "planung-monat",
+    "route": "/assignments/woche?ansicht=monat",
+    "role": "Projektleiter",
+    "title": "Planung · monat",
+    "group": "Planung",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "mitarbeiter-woche",
+    "route": "/accounting?ansicht=woche",
+    "role": "Buchhaltung",
+    "title": "Mitarbeiter · woche",
+    "group": "Team und Zeit",
+    "motif": "team",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "mitarbeiter-tage",
+    "route": "/accounting?tage=alle",
+    "role": "Buchhaltung",
+    "title": "Mitarbeiterübersicht · Alle Tage vergleichen",
+    "group": "Team und Zeit",
+    "motif": "team",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "lager-katalog",
+    "route": "/lager?reiter=katalog",
+    "role": "Administrator",
+    "title": "Lager · katalog",
+    "group": "Material",
+    "motif": "lager",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "lager-import",
+    "route": "/lager?reiter=import",
+    "role": "Administrator",
+    "title": "Lager · import",
+    "group": "Material",
+    "motif": "lager",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "anforderungen-einkauf",
+    "route": "/anforderungen?reiter=einkauf",
+    "role": "Verwaltung",
+    "title": "Anforderungen · einkauf",
+    "group": "Material",
+    "motif": "lager",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "anforderungen-retouren",
+    "route": "/anforderungen?reiter=retouren",
+    "role": "Verwaltung",
+    "title": "Anforderungen · retouren",
+    "group": "Material",
+    "motif": "lager",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "anforderungen-erledigt",
+    "route": "/anforderungen?reiter=erledigt",
+    "role": "Verwaltung",
+    "title": "Anforderungen · erledigt",
+    "group": "Material",
+    "motif": "lager",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "plattform-support",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Supportzugänge",
+    "title": "Plattform · support",
+    "group": "Globaler Admin",
+    "motif": "betrieb",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "plattform-fehler",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Fehlerprotokoll",
+    "title": "Plattform · fehler",
+    "group": "Globaler Admin",
+    "motif": "betrieb",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "plattform-zins",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Basiszinssatz",
+    "title": "Plattform · zins",
+    "group": "Globaler Admin",
+    "motif": "betrieb",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "plattform-konto",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "tab": "Mein Konto",
+    "title": "Plattform · konto",
+    "group": "Globaler Admin",
+    "motif": "betrieb",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "urlaub-krank",
+    "route": "/vacations",
+    "role": "Administrator",
+    "tab": "Krankenstände",
+    "title": "Urlaub · krank",
+    "group": "Team und Zeit",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "urlaub-betrieb",
+    "route": "/vacations",
+    "role": "Administrator",
+    "tab": "Betriebsurlaub",
+    "title": "Urlaub · betrieb",
+    "group": "Team und Zeit",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "baustellenakte-scheine",
+    "route": "/admin-projects/p1?bereich=dokumente",
+    "role": "Administrator",
+    "area": "Scheine",
+    "title": "Baustellenakte · scheine",
+    "group": "Aufträge und Kunden",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "baustellenakte-termine",
+    "route": "/admin-projects/p1?bereich=planung",
+    "role": "Administrator",
+    "area": "Termine",
+    "title": "Baustellenakte · termine",
+    "group": "Aufträge und Kunden",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "baustellenakte-plaene",
+    "route": "/admin-projects/p1?bereich=plaene",
+    "role": "Administrator",
+    "area": "Pläne",
+    "title": "Baustellenakte · plaene",
+    "group": "Aufträge und Kunden",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "kundenakte-baustellen",
+    "route": "/customers/k1?bereich=baustellen",
+    "role": "Administrator",
+    "area": "Baustellen",
+    "title": "Kundenakte · baustellen",
+    "group": "Aufträge und Kunden",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "kundenakte-belege",
+    "route": "/customers/k1?bereich=belege",
+    "role": "Administrator",
+    "area": "Belege",
+    "title": "Kundenakte · belege",
+    "group": "Aufträge und Kunden",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "kundenakte-termine",
+    "route": "/customers/k1?bereich=wartung",
+    "role": "Administrator",
+    "area": "Termine und Wartungen",
+    "title": "Kundenakte · termine",
+    "group": "Aufträge und Kunden",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "kundenakte-stammdaten",
+    "route": "/customers/k1?bereich=daten",
+    "role": "Administrator",
+    "area": "Stammdaten",
+    "title": "Kundenakte · stammdaten",
+    "group": "Aufträge und Kunden",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "benutzerakte-arbeitszeit",
+    "route": "/user-mgmt/u1?bereich=arbeitszeit",
+    "role": "Administrator",
+    "area": "Arbeitszeit und Urlaub",
+    "title": "Benutzerakte · arbeitszeit",
+    "group": "Team und Zeit",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "benutzerakte-zugang",
+    "route": "/user-mgmt/u1?bereich=zugang",
+    "role": "Administrator",
+    "area": "Zugang und Rechte",
+    "title": "Benutzerakte · zugang",
+    "group": "Team und Zeit",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "anmeldung",
+    "route": "/login",
+    "role": "Mitarbeiter",
+    "auth": "login",
+    "title": "Anmeldung",
+    "group": "Zugang und Rechtliches",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "passwort-vergessen",
+    "route": "/login",
+    "role": "Mitarbeiter",
+    "auth": "login",
+    "tab": "Passwort vergessen?",
+    "title": "Passwort · vergessen",
+    "group": "Zugang und Rechtliches",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "zweiter-faktor",
+    "route": "/",
+    "role": "Mitarbeiter",
+    "auth": "mfa",
+    "title": "Zweiter · faktor",
+    "group": "Zugang und Rechtliches",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "wiederherstellung",
+    "route": "/",
+    "role": "Mitarbeiter",
+    "auth": "mfa",
+    "tab": "Wiederherstellungscode verwenden",
+    "title": "Wiederherstellung",
+    "group": "Zugang und Rechtliches",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "start-verwaltung",
+    "route": "/",
+    "role": "Verwaltung",
+    "title": "Start · Verwaltung",
+    "group": "Start",
+    "motif": "bau",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "start-projektleitung",
+    "route": "/",
+    "role": "Projektleiter",
+    "title": "Start · Projektleiter",
+    "group": "Start",
+    "motif": "bau",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "start-geschaeftsfuehrung",
+    "route": "/",
+    "role": "Geschäftsführung",
+    "title": "Start · Geschäftsführung",
+    "group": "Start",
+    "motif": "bau",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "rechnungen-erledigt",
+    "route": "/invoices?ansicht=erledigt",
+    "role": "Administrator",
+    "title": "Rechnungen · Erledigt",
+    "group": "Finanzen",
+    "motif": "beleg",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "rechnungen-alle",
+    "route": "/invoices?ansicht=alle",
+    "role": "Administrator",
+    "title": "Rechnungen · Alle",
+    "group": "Finanzen",
+    "motif": "beleg",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "angebote-erledigt",
+    "route": "/quotes?ansicht=erledigt",
+    "role": "Administrator",
+    "title": "Angebote · Erledigt",
+    "group": "Aufträge und Kunden",
+    "motif": "beleg",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "angebote-alle",
+    "route": "/quotes?ansicht=alle",
+    "role": "Administrator",
+    "title": "Angebote · Alle",
+    "group": "Aufträge und Kunden",
+    "motif": "beleg",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "baustellen-erledigt",
+    "route": "/admin-projects?stand=archiv",
+    "role": "Administrator",
+    "title": "Baustellen · Erledigt",
+    "group": "Aufträge und Kunden",
+    "motif": "bau",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "baustellen-alle",
+    "route": "/admin-projects?stand=alle",
+    "role": "Administrator",
+    "title": "Baustellen · Alle",
+    "group": "Aufträge und Kunden",
+    "motif": "bau",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "kunden-anschrift",
+    "route": "/customers?auswahl=pruefen",
+    "role": "Administrator",
+    "title": "Kunden · Anschrift prüfen",
+    "group": "Aufträge und Kunden",
+    "motif": "akte",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "kunden-art",
+    "route": "/customers?auswahl=ohne-art",
+    "role": "Administrator",
+    "title": "Kunden · Ohne Kundenart",
+    "group": "Aufträge und Kunden",
+    "motif": "akte",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "benutzer-inaktiv",
+    "route": "/user-mgmt?status=inaktiv",
+    "role": "Administrator",
+    "title": "Benutzer · Deaktivierte",
+    "group": "Team und Zeit",
+    "motif": "team",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "benutzer-alle",
+    "route": "/user-mgmt?status=alle",
+    "role": "Administrator",
+    "title": "Benutzer · Alle",
+    "group": "Team und Zeit",
+    "motif": "team",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "scheine-alle",
+    "route": "/worksheets?ansicht=alle",
+    "role": "Administrator",
+    "title": "Handwerksscheine · Alle",
+    "group": "Aufträge und Kunden",
+    "motif": "beleg",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "lager-knapp",
+    "route": "/lager?filter=knapp",
+    "role": "Administrator",
+    "title": "Lager · Knapp",
+    "group": "Material",
+    "motif": "lager",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "lager-fehlt",
+    "route": "/lager?filter=fehlt",
+    "role": "Administrator",
+    "title": "Lager · Fehlend",
+    "group": "Material",
+    "motif": "lager",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "urlaub-eigene",
+    "route": "/vacations",
+    "role": "Mitarbeiter",
+    "title": "Urlaub · Eigene Anträge",
+    "group": "Team und Zeit",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "rechnungen-lesend",
+    "route": "/invoices",
+    "role": "Projektleiter",
+    "title": "Rechnungen · Lesender Zugriff",
+    "extraAuth": "rechnungenLesen",
+    "group": "Finanzen",
+    "motif": "beleg",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "planung-baustellen",
+    "route": "/assignments/woche?sicht=baustellen",
+    "role": "Projektleiter",
+    "title": "Wochenplan · Nach Baustellen",
+    "group": "Planung",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "einsatz-planen",
+    "route": "/assignments/woche",
+    "role": "Projektleiter",
+    "title": "Einsatzplanung · Einsatz planen",
+    "open": "Einsatz planen",
+    "group": "Planung",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "mitarbeiter-person",
+    "route": "/accounting",
+    "role": "Buchhaltung",
+    "title": "Mitarbeiterübersicht · Person im Monat",
+    "action": "person",
+    "group": "Team und Zeit",
+    "motif": "team",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "kunde-neu",
+    "route": "/customers",
+    "role": "Administrator",
+    "title": "Kunden · Anlegen",
+    "open": "Neuer Kunde",
+    "group": "Aufträge und Kunden",
+    "motif": "akte",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "baustelle-neu",
+    "route": "/admin-projects",
+    "role": "Administrator",
+    "title": "Baustellen · Anlegen",
+    "open": "Neue Baustelle",
+    "group": "Aufträge und Kunden",
+    "motif": "bau",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "benutzer-neu",
+    "route": "/user-mgmt",
+    "role": "Administrator",
+    "title": "Benutzer · Anlegen",
+    "open": "Benutzer anlegen",
+    "group": "Team und Zeit",
+    "motif": "team",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "angebot-neu",
+    "route": "/quotes",
+    "role": "Administrator",
+    "title": "Angebote · Neuer Entwurf",
+    "open": "Neues Angebot",
+    "group": "Aufträge und Kunden",
+    "motif": "beleg",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "rechnung-neu",
+    "route": "/invoices",
+    "role": "Administrator",
+    "title": "Rechnungen · Erstellen",
+    "open": "Neue Rechnung",
+    "group": "Finanzen",
+    "motif": "beleg",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "plattform-neu",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "title": "Globaler Admin · Betrieb anlegen",
+    "open": "Betrieb anlegen",
+    "group": "Globaler Admin",
+    "motif": "betrieb",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "plattform-notzugang",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "title": "Globaler Admin · Notzugang",
+    "open": "Notzugang öffnen",
+    "group": "Globaler Admin",
+    "motif": "betrieb",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "plattform-loeschprotokoll",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "title": "Globaler Admin · Löschprotokoll",
+    "open": "Löschprotokoll (1)",
+    "group": "Globaler Admin",
+    "motif": "betrieb",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "plattform-sitzung",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "title": "Globaler Admin · Sitzungsübersicht",
+    "open": "In dieser Sitzung angelegt (1)",
+    "group": "Globaler Admin",
+    "motif": "betrieb",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "plattform-passwort",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "title": "Globaler Admin · Passwort im Notzugang",
+    "tab": "Supportzugänge",
+    "open": "Passwort neu setzen",
+    "group": "Globaler Admin",
+    "motif": "betrieb",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "plattform-zweiter-faktor",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "title": "Globaler Admin · Zweiten Faktor verwalten",
+    "tab": "Supportzugänge",
+    "open": "Zwei-Faktor zurücksetzen",
+    "group": "Globaler Admin",
+    "motif": "betrieb",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "rechnung-details",
+    "route": "/invoices",
+    "role": "Buchhaltung",
+    "title": "Rechnung · Detaildialog",
+    "action": "invoice",
+    "group": "Finanzen",
+    "motif": "beleg",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "plattform-betrieb",
+    "route": "/plattform",
+    "role": "Plattformadministrator",
+    "title": "Globaler Admin · Betriebsakte",
+    "action": "betrieb",
+    "group": "Globaler Admin",
+    "motif": "betrieb",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "baustellenakte-bearbeiten",
+    "route": "/admin-projects/p1",
+    "role": "Administrator",
+    "title": "Baustellenakte · Stammdaten bearbeiten",
+    "action": "projekt-edit",
+    "group": "Aufträge und Kunden",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "kundenakte-bearbeiten",
+    "route": "/customers/k1?bereich=daten",
+    "role": "Administrator",
+    "title": "Kundenakte · Stammdaten bearbeiten",
+    "action": "kunde-edit",
+    "group": "Aufträge und Kunden",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "benutzerakte-bearbeiten",
+    "route": "/user-mgmt/u1",
+    "role": "Administrator",
+    "title": "Benutzerakte · Profil bearbeiten",
+    "action": "benutzer-edit",
+    "group": "Team und Zeit",
+    "motif": null,
+    "decision": "Bewusst ohne Zusatzillustration; Inhalt und Bedienung bleiben im Fokus"
+  },
+  {
+    "name": "baustellen-erstnutzung",
+    "route": "/admin-projects",
+    "role": "Administrator",
+    "title": "Baustellen · Erste Anlage",
+    "fixture": "baustellen",
+    "state": true,
+    "emptyMotif": "bau",
+    "group": "Aufträge und Kunden",
+    "motif": "bau",
+    "decision": "Erklärende Zeichnung im leeren Bereich"
+  },
+  {
+    "name": "kunden-erstnutzung",
+    "route": "/customers",
+    "role": "Administrator",
+    "title": "Kunden · Erste Anlage",
+    "fixture": "kunden",
+    "state": true,
+    "emptyMotif": "akte",
+    "group": "Aufträge und Kunden",
+    "motif": "akte",
+    "decision": "Erklärende Zeichnung im leeren Bereich"
+  },
+  {
+    "name": "angebote-erstnutzung",
+    "route": "/quotes",
+    "role": "Administrator",
+    "title": "Angebote · Erster Entwurf",
+    "fixture": "angebote",
+    "state": true,
+    "emptyMotif": "beleg",
+    "group": "Aufträge und Kunden",
+    "motif": "beleg",
+    "decision": "Erklärende Zeichnung im leeren Bereich"
+  },
+  {
+    "name": "rechnungen-erstnutzung",
+    "route": "/invoices",
+    "role": "Administrator",
+    "title": "Rechnungen · Noch keine Belege",
+    "fixture": "rechnungen",
+    "state": true,
+    "emptyMotif": "beleg",
+    "group": "Finanzen",
+    "motif": "beleg",
+    "decision": "Erklärende Zeichnung im leeren Bereich"
+  },
+  {
+    "name": "scheine-erstnutzung",
+    "route": "/worksheets",
+    "role": "Administrator",
+    "title": "Handwerksscheine · Erster Schein",
+    "fixture": "scheine",
+    "state": true,
+    "emptyMotif": "beleg",
+    "group": "Aufträge und Kunden",
+    "motif": "beleg",
+    "decision": "Erklärende Zeichnung im leeren Bereich"
+  },
+  {
+    "name": "wartungen-erstnutzung",
+    "route": "/wartungen",
+    "role": "Administrator",
+    "title": "Wartungen · Noch keine Vereinbarung",
+    "fixture": "wartungen",
+    "state": true,
+    "emptyMotif": "wartung",
+    "group": "Aufträge und Kunden",
+    "motif": "wartung",
+    "decision": "Erklärende Zeichnung im leeren Bereich"
+  },
+  {
+    "name": "anforderungen-leer",
+    "route": "/anforderungen",
+    "role": "Administrator",
+    "title": "Anforderungen · Nichts offen",
+    "fixture": "bestellungen",
+    "state": true,
+    "emptyMotif": "lager",
+    "group": "Material",
+    "motif": "lager",
+    "decision": "Erklärende Zeichnung im leeren Bereich"
+  },
+  {
+    "name": "wochenplan-leer",
+    "route": "/assignments/woche",
+    "role": "Administrator",
+    "title": "Einsatzplanung · Leere Woche",
+    "fixture": "einsaetze",
+    "state": true,
+    "group": "Planung",
+    "motif": null,
+    "decision": "Leeres Planungsraster bleibt vollständig bedienbar; keine Zeichnung über dem Raster"
+  },
+  {
+    "name": "baustellenakte-plaene-leer",
+    "route": "/admin-projects/p1?bereich=plaene",
+    "role": "Administrator",
+    "title": "Baustellenakte · Pläne hinzufügen",
+    "fixture": null,
+    "state": true,
+    "emptyMotif": "plan",
+    "group": "Aufträge und Kunden",
+    "motif": null,
+    "decision": "Erklärende Zeichnung im leeren Bereich"
+  },
+  {
+    "name": "start-ruhig",
+    "route": "/",
+    "role": "Administrator",
+    "title": "Start · Aktuell nichts zu erledigen",
+    "state": true,
+    "action": "ruhig",
+    "emptyMotif": "fertig",
+    "group": "Start",
+    "motif": "bau",
+    "decision": "Erklärende Zeichnung im leeren Bereich"
+  },
+  {
+    "name": "start-unvollstaendig",
+    "route": "/",
+    "role": "Administrator",
+    "title": "Start · Fehlende Daten bleiben als Warnung sichtbar",
+    "state": true,
+    "action": "ladefehler",
+    "group": "Start",
+    "motif": "bau",
+    "decision": "Kleiner Kopfakzent nur bei ausreichend Platz am Desktop"
+  },
+  {
+    "name": "rechnungen-suche-leer",
+    "route": "/invoices?suche=KeinTreffer",
+    "role": "Buchhaltung",
+    "title": "Rechnungen · Keine Suchtreffer",
+    "state": true,
+    "emptyMotif": "suche",
+    "group": "Finanzen",
+    "motif": "beleg",
+    "decision": "Erklärende Zeichnung im leeren Bereich"
+  },
+  {
+    "name": "firma-einrichtung",
+    "route": "/settings/firma",
+    "role": "Administrator",
+    "title": "Firmendaten · Ersteinrichtung",
+    "state": true,
+    "action": "einrichtung",
+    "group": "Einstellungen",
+    "motif": null,
+    "decision": "Einmaliger Einrichtungshinweis"
+  }
+]

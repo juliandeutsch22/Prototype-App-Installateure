@@ -1,0 +1,37 @@
+[
+  {
+    "width": 390,
+    "filters": true,
+    "keyboardViewer": true,
+    "escapeAndFocusReturn": true,
+    "scrollWidth": 390,
+    "errors": [],
+    "failed": []
+  },
+  {
+    "width": 834,
+    "filters": true,
+    "keyboardViewer": true,
+    "escapeAndFocusReturn": true,
+    "scrollWidth": 834,
+    "errors": [],
+    "failed": []
+  },
+  {
+    "width": 1440,
+    "filters": true,
+    "keyboardViewer": true,
+    "escapeAndFocusReturn": true,
+    "scrollWidth": 1440,
+    "errors": [],
+    "failed": []
+  },
+  {
+    "localBundleWithExternalNetworkBlocked": true,
+    "noExternalRequests": true,
+    "fileNavigationCheck": "blocked by managed browser policy; no policy change",
+    "filters": true,
+    "viewer": true,
+    "errors": []
+  }
+]

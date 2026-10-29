@@ -1,0 +1,22 @@
+{
+  "contexts": 119,
+  "views": 375,
+  "viewportImages": 375,
+  "fullPageImages": 375,
+  "widths": [
+    390,
+    834,
+    1440
+  ],
+  "darkViews": 18,
+  "axeRuns": 128,
+  "errors": [],
+  "axeViolations": [],
+  "controlsUnchanged": true,
+  "copyUnchanged": true,
+  "headersUnchanged": true,
+  "noDocumentOverflow": true,
+  "sourceCommit": "1ae766f598045c35815df36aa48dab40a889b3e2",
+  "deployedBaseline": "d133f64ddcf99f6378797e3a4fe9d73a0ae5a43c",
+  "productionChanged": false
+}

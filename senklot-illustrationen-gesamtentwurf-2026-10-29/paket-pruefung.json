@@ -1,0 +1,12 @@
+{
+  "viewportImages": 375,
+  "fullPageImages": 375,
+  "overviewBoards": 9,
+  "svgs": 12,
+  "checkedRelativeReferences": 2012,
+  "brokenReferences": [],
+  "allJpegsDecode": true,
+  "localGalleryWithoutExternalRequestsVerified": true,
+  "sourceWorktreeClean": true,
+  "sourceContentMatchesDeployedBaseline": true
+}
