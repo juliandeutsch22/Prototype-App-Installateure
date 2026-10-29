@@ -14,6 +14,7 @@
  *   kopf     kleiner Akzent im Seitenkopf der Hauptseiten, erst ab 1280 px
  *   leer     erklärende Zeichnung im tatsächlich leeren Bereich
  *   hinweis  kompakt neben einem einmaligen Einrichtungshinweis
+ *   buehne   groß auf der Bühne der Anmeldung am Schreibtisch
  */
 const MOTIVE = {
   bau: {
@@ -90,6 +91,7 @@ const KLASSE = {
   kopf: 'lot-zeichnung lot-zeichnung-kopf',
   leer: 'lot-zeichnung lot-zeichnung-leer',
   hinweis: 'lot-zeichnung lot-zeichnung-hinweis',
+  buehne: 'lot-zeichnung lot-zeichnung-buehne',
 } as const;
 
 export default function LotZeichnung({ motiv, art }: { motiv: LotMotiv; art: keyof typeof KLASSE }) {

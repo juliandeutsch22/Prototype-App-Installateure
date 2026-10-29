@@ -161,13 +161,32 @@ export function TeilFehler({ was, onRetry }: { was: string; onRetry?: () => void
  * da" stand in einer Karte wie eine zweite Karte und war damit lauter als
  * der Inhalt, der sonst dort steht. Ein ruhiger, zentrierter Satz genügt.
  */
-export function EmptyState({ children, action, titel, zeichnung }: { children: ReactNode; action?: ReactNode; titel?: string; zeichnung?: LotMotiv }) {
+export function EmptyState({
+  children,
+  action,
+  titel,
+  zeichnung,
+  aktionImDaumen = false,
+}: {
+  children: ReactNode;
+  /** Der nächste Schritt („Kunde anlegen“, „Suche zurücksetzen“). */
+  action?: ReactNode;
+  titel?: string;
+  zeichnung?: LotMotiv;
+  /**
+   * Die Aktion ist die Hauptaktion der Seite und steht am Handy schon im
+   * Daumenbereich (`PageHeader`). Dort zeigt der Leerzustand sie nicht noch
+   * einmal; ab Tablet steht sie als nächster Schritt neben der Erklärung
+   * (Konzept „Kleine Bilder. Klare nächste Schritte.“, 29.10.2026).
+   */
+  aktionImDaumen?: boolean;
+}) {
   return (
     <div className={zeichnung ? 'lot-erstnutzung' : 'flex flex-col items-center gap-3 px-4 py-6 text-center text-ink-muted'}>
       {zeichnung && <LotZeichnung motiv={zeichnung} art="leer" />}
       {titel && <h2>{titel}</h2>}
       <p>{children}</p>
-      {action}
+      {action && <div className={aktionImDaumen ? 'lot-naechster-schritt lot-naechster-schritt-breit' : 'lot-naechster-schritt'}>{action}</div>}
     </div>
   );
 }

@@ -1,0 +1,81 @@
+/*
+  DIE GESTALT EINES KNOPFS AN EINER STELLE — für `Button` und für `KnopfLink`
+  (einen Link, der wie ein Knopf aussieht, etwa „Neuer Schein“). Vorher
+  trugen solche Links ihre Klassen von Hand, mit Schatten und Skalierung beim
+  Drücken, die die Knöpfe der Linie nicht haben.
+*/
+export type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'ghost-dark';
+
+/**
+ * `klein` ist für NEBENKNÖPFE IN EINER ZEILE und Reihen von Schaltern, nicht
+ * für Hauptaktionen.
+ *
+ * Drei Zeitraum-Schalter in voller Grösse nebeneinander passen auf einem
+ * Telefon nicht in eine Zeile; sie brechen um und stehen dann als drei
+ * Blöcke da, die aussehen, als wäre jeder für sich wichtig. Wichtig ist aber
+ * die Auswahl, nicht der einzelne Schalter.
+ *
+ * Bis zur Designlinie „Fassung 3" blieb die Höhe dabei 48 px, wegen der
+ * Arbeitshandschuhe. Die Linie setzt kleine Knöpfe auf 36 px (Regel 8) —
+ * das liegt weiter deutlich über den 24 px, die WCAG 2.2 als Mindestmass
+ * für Ziele nennt, und die Hauptaktionen, die ein Monteur mit Handschuhen
+ * trifft, bleiben ausnahmslos `normal`.
+ */
+export type Groesse = 'normal' | 'klein';
+
+/**
+ * Alle Knöpfe sind EINFARBIG.
+ *
+ * Der erste Entwurf gab den Hauptaktionen einen Verlauf, um die Rangordnung
+ * schon vor dem Lesen sichtbar zu machen. Auf einem Formular mit fünf Knöpfen
+ * nebeneinander war das aber kein Rang mehr, sondern Unruhe — und die
+ * Rangordnung steht ohnehin in der Farbe: gefüllt in der Marke gegen weiss
+ * mit Rahmen. Verläufe bleiben den grossen dunklen Trägerflächen vorbehalten
+ * (siehe index.css).
+ */
+export const variants: Record<Variant, string> = {
+  /*
+    GEWICHT NACH RANG: die Hauptaktion halbfett, alles Übrige normal (Linie
+    „Lot“ kennt zwei Stärken). Vorher standen alle Knöpfe halbfett, und fünf
+    davon nebeneinander riefen gleich laut.
+
+    GEFAHR IST UMRANDET, NICHT GEFÜLLT (Entwurf `.gefahr`). Eine rote Fläche
+    wäre die lauteste Stelle der Seite; das Unumkehrbare soll erkennbar sein,
+    nicht den Blick anziehen.
+  */
+  primary: 'bg-brand font-semibold text-brand-fg hover:opacity-90',
+  secondary: 'border border-line-strong bg-surface font-normal text-ink hover:border-brand-fixed',
+  /*
+    „accent" GIBT ES NICHT MEHR. Anmelden, Passwort setzen, Betrieb anlegen
+    und die Berichte trugen die Hauptaktion in Türkis, „Zeit buchen" in
+    Petrol — zwei Farben für dieselbe Rolle (Prüflauf 24.09.2026, C11). Eine
+    Hauptaktion ist `primary`, überall.
+  */
+  danger: 'border border-danger bg-surface font-semibold text-danger hover:bg-danger-bg',
+  ghost: 'bg-transparent font-normal text-ink-muted hover:bg-surface-2',
+  // Derselbe zurückhaltende Knopf, aber auf einer dunklen Trägerfläche
+  // (Seitenleiste). Eine eigene Spielart statt einer mitgegebenen Klasse:
+  // zwei Textfarben in einem class-Attribut entscheidet nicht die
+  // Reihenfolge im Attribut, sondern die im erzeugten Stylesheet — das
+  // wäre stiller Zufall.
+  'ghost-dark': 'bg-transparent font-normal text-navi-text hover:bg-navi-tief hover:text-white',
+};
+
+/**
+ * `normal`: 48 px hoch (`min-h-touch`), Schrift 15 px — die Grösse der
+ * Linie für jeden Knopf, am Telefon wie am Schreibtisch.
+ *
+ * `klein`: 36 px hoch, kleinere Rundung. Seit der Designlinie „Fassung 3"
+ * (docs/design/linie.md § 7, Regel 8) ist das die eine erlaubte Ausnahme
+ * von 44 px — für Nebenknöpfe IN einer Zeile („Hinzufügen" neben einem
+ * Artikel) und Reihen von Schaltern, nie für die Hauptaktion einer Seite.
+ */
+export const groessen: Record<Groesse, string> = {
+  normal: 'min-h-touch rounded px-4 py-2 text-fliess',
+  klein: 'min-h-[2.25rem] rounded-sm px-3 py-1.5 text-sm',
+};
+
+/** Die Klassen eines Knopfs dieser Variante und Größe. */
+export function knopfKlassen(variant: Variant = 'primary', groesse: Groesse = 'normal'): string {
+  return `lot-knopf inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50 ${groessen[groesse]} ${variants[variant]}`;
+}

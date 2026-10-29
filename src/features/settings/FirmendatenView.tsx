@@ -46,6 +46,28 @@ import { bicFehler, ibanAnzeige, ibanFehler, ibanNormal } from '@shared/iban';
  */
 export default function FirmendatenView() {
   const { user, company, reloadCompany } = useAuth();
+  /*
+    „HINWEIS AUSBLENDEN“ GILT FÜR DIESES GERÄT. Es ist eine Bequemlichkeit,
+    keine Angabe des Betriebs — deshalb im Browser gemerkt. Fehlt der
+    Speicher (privates Fenster), steht der Hinweis eben wieder da; sobald der
+    Briefkopf vollständig gespeichert ist, kommt er ohnehin nicht mehr.
+  */
+  const hinweisSchluessel = `senklot.einrichtungshinweis.${company?.id ?? ''}`;
+  const [hinweisWeg, setHinweisWeg] = useState(() => {
+    try {
+      return localStorage.getItem(hinweisSchluessel) === 'aus';
+    } catch {
+      return false;
+    }
+  });
+  function hinweisAusblenden() {
+    setHinweisWeg(true);
+    try {
+      localStorage.setItem(hinweisSchluessel, 'aus');
+    } catch {
+      /* ohne Speicher gilt es bis zum Neuladen */
+    }
+  }
   const toast = useToast();
 
   const [name, setName] = useState(company?.name ?? '');
@@ -268,14 +290,19 @@ export default function FirmendatenView() {
         der Übersicht, nicht nach dem Getippten: nach dem ersten vollständigen
         Speichern ist er weg und kommt in keinem späteren Formular wieder.
       */}
-      {einrichtungsstand(company)[0].wort === 'offen' && (
+      {einrichtungsstand(company)[0].wort === 'offen' && !hinweisWeg && (
         <div className="lot-einrichtung" role="note">
           <LotZeichnung motiv="einrichtung" art="hinweis" />
-          <p>
-            <b>Deine Firma auf jedem Beleg.</b>
-            Name und Anschrift stehen oben auf jedem Angebot und jeder Rechnung — hier einmal
-            eintragen, dann stimmt jeder Beleg.
-          </p>
+          <div>
+            <p>
+              <b>Bereit für den ersten Beleg?</b>
+              Name und Anschrift stehen oben auf jedem Angebot und jeder Rechnung — hier einmal
+              eintragen, dann stimmt jeder Beleg.
+            </p>
+            <button type="button" className="link min-h-touch" onClick={hinweisAusblenden}>
+              Hinweis ausblenden
+            </button>
+          </div>
         </div>
       )}
 

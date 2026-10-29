@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import KnopfLink from '@/components/KnopfLink';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -713,12 +714,7 @@ export default function WorkSheetsListView() {
         }
         action={
           darfSchreiben && (
-            <Link
-              to="/worksheet"
-              className="inline-flex min-h-touch items-center justify-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm transition hover:opacity-95 active:scale-[0.98] sm:text-base"
-            >
-              Neuer Schein
-            </Link>
+            <KnopfLink to="/worksheet">Neuer Schein</KnopfLink>
           )
         }
       />
@@ -1030,7 +1026,16 @@ export default function WorkSheetsListView() {
         ) : offeneAnsicht ? (
           scheine.length === 0 ? (
             /* Nicht geladen ist nicht „noch keiner“: der Fehler oben sagt, was los ist. */
-            error ? null : <EmptyState zeichnung="beleg">Noch kein Handwerksschein erstellt.</EmptyState>
+            error ? null : (
+              <EmptyState
+                zeichnung="beleg"
+                titel="Noch kein Handwerksschein erstellt."
+                aktionImDaumen
+                action={darfSchreiben ? <KnopfLink to="/worksheet">Neuer Schein</KnopfLink> : undefined}
+              >
+                Ein Schein hält Stunden und Material einer Baustelle fest — mit Unterschrift des Kunden vor Ort.
+              </EmptyState>
+            )
           ) : (
             <>
               <Abschnitt titel="Entwürfe" anzahl={entwuerfe.length}>
@@ -1063,7 +1068,10 @@ export default function WorkSheetsListView() {
         ) : sichtbar.length === 0 && error && scheine.length === 0 && !suchend ? (
           null
         ) : sichtbar.length === 0 ? (
-          <EmptyState zeichnung={unverrechnet ? undefined : scheine.length === 0 ? 'beleg' : suchend ? 'suche' : undefined}>
+          <EmptyState
+            zeichnung={unverrechnet ? undefined : scheine.length === 0 ? 'beleg' : suchend ? 'suche' : undefined}
+            action={!unverrechnet && scheine.length > 0 && suchend ? <button type="button" className="link min-h-touch" onClick={() => setSuche('')}>Suche zurücksetzen</button> : undefined}
+          >
             {unverrechnet
               ? 'Unter den jüngsten Scheinen ist keiner unverrechnet.'
               : scheine.length === 0

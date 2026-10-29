@@ -832,6 +832,14 @@ export default function AdminProjectsView() {
             <EmptyState
               zeichnung={ersteBaustelle ? 'bau' : suche ? 'suche' : undefined}
               titel={ersteBaustelle ? 'Noch keine Baustellen angelegt.' : undefined}
+              aktionImDaumen={ersteBaustelle}
+              action={
+                ersteBaustelle
+                  ? <Button onClick={() => setFormOffen(true)}>Neue Baustelle</Button>
+                  : suche
+                    ? <button type="button" className="link min-h-touch" onClick={() => setSuche('')}>Suche zurücksetzen</button>
+                    : undefined
+              }
             >
               {ersteBaustelle
                 ? 'Lege deine erste Baustelle an. Hier findest du anschließend Auftrag, Planung und zugehörige Belege zusammen.'

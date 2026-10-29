@@ -777,7 +777,10 @@ export default function AdminOrdersView() {
             </div>
           ) : rows.length === 0 ? (
             /* Die Zeichnung nur bei „nichts offen“ im laufenden Bereich und bei einer Suche ohne Treffer. */
-            <EmptyState zeichnung={suche ? 'suche' : tab === 'aktiv' && !adressFilter ? 'lager' : undefined}>
+            <EmptyState
+              zeichnung={suche ? 'suche' : tab === 'aktiv' && !adressFilter ? 'lager' : undefined}
+              action={suche ? <button type="button" className="link min-h-touch" onClick={() => setSuche('')}>Suche zurücksetzen</button> : undefined}
+            >
               {suche
                 ? `Nichts passt zu „${suche}“.`
                 : tab === 'retouren'

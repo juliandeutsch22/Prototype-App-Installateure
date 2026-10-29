@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import KnopfLink from '@/components/KnopfLink';
 import type { KalenderAbo, KalenderAboArt } from '@/types';
 import { kalenderAboAnlegen, kalenderAboBeenden, kalenderAboStand } from '@/lib/db/assignments';
 import Card from '@/components/Card';
@@ -142,12 +143,7 @@ export default function KalenderAboKarte({
                 className="w-full rounded border border-line bg-surface-2 px-3 py-2 font-mono text-xs text-ink"
               />
               <div className="flex flex-wrap gap-2">
-                <a
-                  href={webcalAdresse(link)}
-                  className="flex min-h-touch items-center rounded bg-brand px-4 py-2 font-semibold text-brand-fg shadow-sm"
-                >
-                  Im Kalender öffnen
-                </a>
+                <KnopfLink href={webcalAdresse(link)}>Im Kalender öffnen</KnopfLink>
                 <Button variant="secondary" onClick={() => void kopieren()}>Link kopieren</Button>
               </div>
             </div>

@@ -528,7 +528,18 @@ export default function CustomersView() {
               bei einer Suche ohne Treffer — nicht bei einer leeren Auswahl,
               die der gute Fall ist (Designlinie der Zeichnungen, Regel 5).
             */}
-            <EmptyState zeichnung={suche.trim() ? 'suche' : !nurPruefen && !nurOhneArt ? 'akte' : undefined}>
+            <EmptyState
+              zeichnung={suche.trim() ? 'suche' : !nurPruefen && !nurOhneArt ? 'akte' : undefined}
+              titel={!suche.trim() && !nurPruefen && !nurOhneArt ? 'Noch keine Kunden.' : undefined}
+              aktionImDaumen={!suche.trim()}
+              action={
+                suche.trim()
+                  ? <button type="button" className="link min-h-touch" onClick={() => setSuche('')}>Suche zurücksetzen</button>
+                  : !nurPruefen && !nurOhneArt && darfAendern && !formOffen
+                    ? <Button onClick={neuerKunde}>Neuer Kunde</Button>
+                    : undefined
+              }
+            >
               {/*
                 DIE UNTERSCHEIDUNG HÄNGT AM SUCHBEGRIFF, NICHT AN DER LISTE.
 
@@ -549,7 +560,7 @@ export default function CustomersView() {
                   ? 'Keine Anschrift ist zu prüfen.'
                   : nurOhneArt
                     ? 'Jeder Kunde hat eine Kundenart.'
-                    : 'Noch keine Kunden. Über „Bestehende Baustellen übernehmen“ lassen sich die vorhandenen anlegen.'}
+                    : 'Kontaktdaten, Baustellen und Belege eines Kunden stehen hier zusammen. Über „Bestehende Baustellen übernehmen“ lassen sich die vorhandenen anlegen.'}
             </EmptyState>
           </div>
         ) : (

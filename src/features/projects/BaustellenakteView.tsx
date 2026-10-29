@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import KnopfLink from '@/components/KnopfLink';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { useUngespeichertWarnung } from '@/lib/ungespeichert';
@@ -462,7 +463,7 @@ export default function BaustellenakteView() {
         title={baustellenTitel(b)}
         kontakt={<><TelefonLink nummer={b.contactPhone} name={b.contactName} /><a className="akten-verweis" href="#baustelle-kontext">Adresse und Kontakt</a></>}
         action={(scheineSichtbar || darfAendern) && <div className="akten-aktionen">
-          {scheineSichtbar && <Link to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`} className="inline-flex min-h-touch items-center justify-center rounded bg-brand px-4 py-2 text-fliess font-semibold text-brand-fg">Schein schreiben</Link>}
+          {scheineSichtbar && <KnopfLink to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}>Schein schreiben</KnopfLink>}
           {darfAendern && <Button variant={scheineSichtbar ? 'secondary' : 'primary'} onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
         </div>}
       />

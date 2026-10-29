@@ -752,7 +752,19 @@ export default function WartungenView() {
           </div>
         ) : sichtbar.length === 0 ? (
           <div className="border-t border-line">
-            <EmptyState zeichnung={ersteWartung ? 'wartung' : suche.trim() ? 'suche' : undefined}>{leer}</EmptyState>
+            <EmptyState
+              zeichnung={ersteWartung ? 'wartung' : suche.trim() ? 'suche' : undefined}
+              aktionImDaumen={ersteWartung}
+              action={
+                ersteWartung && darfAendern
+                  ? <Button onClick={() => formOeffnen()}>Neue Wartung</Button>
+                  : suche.trim()
+                    ? <button type="button" className="link min-h-touch" onClick={() => setSuche('')}>Suche zurücksetzen</button>
+                    : undefined
+              }
+            >
+              {leer}
+            </EmptyState>
           </div>
         ) : (
           sichtbar.map((g) => <Gruppe key={`${ansicht}-${g.id}`} titel={g.titel} zeilen={g.zeilen} zeile={zeile} />)

@@ -753,7 +753,7 @@ export default function UserMgmtView() {
             E-Mail und Rolle genügen.
           </EmptyState>
         ) : gefiltert.length === 0 ? (
-          <EmptyState zeichnung={suche ? 'suche' : undefined}>
+          <EmptyState zeichnung={suche ? 'suche' : undefined} action={suche ? <button type="button" className="link min-h-touch" onClick={() => setSuche('')}>Suche zurücksetzen</button> : undefined}>
             {suche ? `Niemand passt zu „${suche}“.` : 'Kein Benutzer in dieser Auswahl.'}
           </EmptyState>
         ) : (

@@ -32,6 +32,8 @@
   .lot-erstnutzung { max-width: 37rem; margin: 0 auto; padding: 2.75rem 1rem; text-align: center; }
   .lot-erstnutzung h2 { font-size: 1.1875rem; line-height: 1.5; font-weight: 600; }
   .lot-erstnutzung p { color: var(--text-muted); margin: .5rem auto 1.25rem; max-width: 50ch; font-size: .875rem; }
+  .lot-naechster-schritt { display: flex; justify-content: center; }
+  @media (max-width: 759px) { .lot-naechster-schritt-breit { display: none; } }
   /*
     DIE ZEICHNUNGEN (Illustrationsentwurf 29.10.2026, `LotZeichnung`).
     Kontur 1,4 in Petrol, Hilfslinie 1,0 in der kräftigen Linienfarbe,
@@ -47,7 +49,8 @@
   .lot-zeichnung-kopf { display: none; width: 7rem; height: 4.5625rem; margin-right: 1rem; align-self: flex-start; }
   .lot-zeichnung-leer { width: 8.5rem; height: 5.5rem; margin: 0 auto 1.125rem; }
   .lot-zeichnung-hinweis { width: 5.25rem; height: 3.75rem; }
-  .lot-einrichtung { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; border-block: 1px solid var(--border); }
+  .lot-einrichtung { display: flex; align-items: center; gap: 1.25rem; padding: 1rem 1.25rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+  .lot-einrichtung .link { font-size: .8125rem; }
   .lot-einrichtung p { font-size: .8125rem; line-height: 1.65; color: var(--text-muted); max-width: 52ch; }
   .lot-einrichtung b { display: block; color: var(--ink-deep); font-weight: 600; }
   /*

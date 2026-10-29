@@ -4497,13 +4497,22 @@ export default function InvoicesView() {
                 ? serverTreffer || suchFehler ? 'suche' : undefined
                 : invoices.length === 0 ? 'beleg' : undefined
             }
+            titel={!suchbegriff && invoices.length === 0 ? 'Noch keine Rechnungen.' : undefined}
+            aktionImDaumen={!suchbegriff}
+            action={
+              suchbegriff
+                ? serverTreffer || suchFehler ? <button type="button" className="link min-h-touch" onClick={() => sucheAendern('')}>Suche zurücksetzen</button> : undefined
+                : invoices.length === 0 && !nurLesen
+                  ? <Button onClick={erstellenOeffnen}>Neue Rechnung</Button>
+                  : undefined
+            }
           >
             {suchbegriff
               ? !serverTreffer && !suchFehler
                 ? 'Suche in allen Rechnungen …'
                 : `Keine Rechnung passt zu „${suchbegriff}“.`
               : invoices.length === 0
-                ? 'Noch keine Rechnungen.'
+                ? 'Rechnungen entstehen aus Baustellen, Scheinen und Angeboten — hier stehen sie danach mit ihrem Zahlungsstand.'
                 : filter === 'offen' && !sicht
                   ? 'Keine offene Rechnung — alles bezahlt.'
                   : 'Keine Rechnung in dieser Auswahl.'}

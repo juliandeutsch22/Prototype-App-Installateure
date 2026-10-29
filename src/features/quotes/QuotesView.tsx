@@ -1189,6 +1189,14 @@ export default function QuotesView() {
           <div className="border-t border-line">
             <EmptyState
               zeichnung={erstesAngebot ? 'beleg' : begriff ? 'suche' : undefined}
+              aktionImDaumen={erstesAngebot}
+              action={
+                erstesAngebot && darfAendern
+                  ? <Button onClick={() => setFormOffen(true)}>Neues Angebot</Button>
+                  : begriff
+                    ? <button type="button" className="link min-h-touch" onClick={() => setSuche('')}>Suche zurücksetzen</button>
+                    : undefined
+              }
               titel={erstesAngebot ? 'Noch kein Angebot erstellt.' : undefined}
             >{erstesAngebot ? 'Erstelle ein Angebot für einen Kunden. Entwürfe und versandte Angebote findest du anschließend in dieser Übersicht.' : leer}</EmptyState>
           </div>
