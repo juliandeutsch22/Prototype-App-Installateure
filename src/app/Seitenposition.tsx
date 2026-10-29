@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
+import { positionHalten } from '@/lib/ansichtswechsel';
 
 /** Die Position je Eintrag im Verlauf — nur für diese Sitzung im Speicher. */
 const positionen = new Map<string, number>();
@@ -21,6 +22,7 @@ export default function Seitenposition() {
   const ort = useLocation();
   const art = useNavigationType();
   const vorigerPfad = useRef<string | null>(null);
+  const vorigerSchluessel = useRef<string | null>(null);
 
   useEffect(() => {
     if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
@@ -28,11 +30,15 @@ export default function Seitenposition() {
 
   useLayoutEffect(() => {
     const schluessel = ort.key;
+    const altePosition = vorigerSchluessel.current ? positionen.get(vorigerSchluessel.current) : undefined;
+    const ansicht = vorigerPfad.current !== null && positionHalten(ort.state);
     const gleicheSeite = vorigerPfad.current === ort.pathname;
     vorigerPfad.current = ort.pathname;
+    vorigerSchluessel.current = schluessel;
     let abbrechen = false;
-    if (art === 'POP' && positionen.has(schluessel)) {
-      const ziel = positionen.get(schluessel) ?? 0;
+    const ziel = art === 'POP' && positionen.has(schluessel) ? positionen.get(schluessel)
+      : ansicht ? altePosition : undefined;
+    if (ziel !== undefined) {
       let versuche = 0;
       const nachziehen = () => {
         if (abbrechen) return;
@@ -52,7 +58,7 @@ export default function Seitenposition() {
       abbrechen = true;
       window.removeEventListener('scroll', merken);
     };
-  }, [ort.key, ort.pathname, ort.hash, art]);
+  }, [ort.key, ort.pathname, ort.hash, ort.state, art]);
 
   return null;
 }

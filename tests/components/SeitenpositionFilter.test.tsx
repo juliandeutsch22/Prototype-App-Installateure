@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import Seitenposition from '@/app/Seitenposition';
+import { ANSICHTSWECHSEL } from '@/lib/ansichtswechsel';
 
 let position = 0;
 const original = Object.getOwnPropertyDescriptor(window, 'scrollY');
@@ -23,6 +24,7 @@ function Steuerung() {
     <button onClick={() => gehen('?ansicht=erledigt', { replace: true })}>Filter ersetzen</button>
     <button onClick={() => gehen('?ansicht=monat')}>Ansicht wählen</button>
     <button onClick={() => gehen('/customers/k1')}>Akte öffnen</button>
+    <button onClick={() => gehen('/assignments/tag', { state: ANSICHTSWECHSEL })}>Andere Teilansicht</button>
     <button onClick={() => gehen(-1)}>Zurück</button>
     <button onClick={() => gehen('/invoices#liste')}>Sprungziel</button>
   </>;
@@ -58,4 +60,12 @@ it('ein explizites Sprungziel wird nicht durch ein Zurücksetzen auf null übers
   aufbauen('filter-hash'); rollen(320); vi.mocked(window.scrollTo).mockClear();
   fireEvent.click(screen.getByText('Sprungziel'));
   expect(window.scrollTo).not.toHaveBeenCalled();
+});
+
+it('ein ausdrücklich markierter Pfadwechsel der Teilansicht hält die Position und lässt neue Akten oben beginnen', () => {
+  aufbauen('teilansicht'); rollen(440);
+  fireEvent.click(screen.getByText('Andere Teilansicht'));
+  expect(position).toBe(440);
+  fireEvent.click(screen.getByText('Akte öffnen'));
+  expect(position).toBe(0);
 });

@@ -3,6 +3,7 @@ import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from '@/app/AuthContext';
 import { unterseitenFuer } from '@/app/navigation';
 import { useReiterImBild } from './reiterImBild';
+import { ANSICHTSWECHSEL } from '@/lib/ansichtswechsel';
 
 /**
  * Mehrere Ansichten unter EINEM Reiter.
@@ -94,6 +95,7 @@ export default function Unterreiter({
             <NavLink
               key={s.pfad}
               to={`${basis}/${s.pfad}`}
+              state={ANSICHTSWECHSEL}
               className={({ isActive }) =>
                 [
                   'lot-reiter min-h-touch whitespace-nowrap border-b-2 px-3 py-2 text-sm',

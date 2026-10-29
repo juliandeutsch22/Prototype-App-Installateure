@@ -21,7 +21,10 @@ for (const fall of [
   { route: '/invoices', rolle: 'Administrator', role: 'button' as const, name: 'Erledigt', selected: 'aria-pressed' },
   { route: '/customers/k1', rolle: 'Administrator', role: 'tab' as const, name: 'Stammdaten', selected: 'aria-selected' },
   { route: '/assignments/woche', rolle: 'Administrator', role: 'button' as const, name: 'Monat', selected: 'aria-pressed' },
-]) test(`Filter und Ansicht halten die Seitenposition ${fall.route}`, async ({ page }) => {
+  { route: '/assignments/woche', rolle: 'Administrator', role: 'button' as const, name: 'Tag', selected: 'aria-pressed' },
+  { route: '/assignments/tag', rolle: 'Administrator', role: 'button' as const, name: 'Monat', selected: 'aria-pressed' },
+  { route: '/settings/firma', rolle: 'Administrator', role: 'link' as const, name: 'Personal', selected: 'aria-current' },
+]) test(`Filter und Ansicht halten die Seitenposition ${fall.route} → ${fall.name}`, async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`./?pfad=${encodeURIComponent(fall.route)}&rolle=${fall.rolle}`);
   const wahl = page.getByRole(fall.role, { name: fall.name, exact: true });
@@ -37,7 +40,7 @@ for (const fall of [
   const vorher = await page.evaluate(() => scrollY);
   expect(vorher).toBeGreaterThan(100);
   await wahl.click();
-  await expect(wahl).toHaveAttribute(fall.selected, 'true');
+  await expect(wahl).toHaveAttribute(fall.selected, fall.role === 'link' ? 'page' : 'true');
   expect(Math.abs(await page.evaluate(() => scrollY) - vorher)).toBeLessThanOrEqual(2);
 });
 
