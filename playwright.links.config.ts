@@ -39,7 +39,7 @@ export default defineConfig({
     },
     {
       name: 'webkit-premium',
-      testMatch: 'premium.spec.ts',
+      testMatch: ['premium.spec.ts', 'interaktionen.spec.ts'],
       use: { ...devices['iPhone 13'] },
     },
   ],
