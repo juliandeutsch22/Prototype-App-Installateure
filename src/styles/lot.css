@@ -57,7 +57,7 @@
   .blatt-griff { padding: 0.75rem 1rem 0.5rem; cursor: grab; touch-action: none; }
   .blatt-griff-strich { width: 2.5rem; height: 4px; margin: 0 auto; border-radius: 999px; background: var(--border-strong); }
   /* `overscroll-behavior: contain`: am Ende der Liste geht das Wischen nicht an die Seite dahinter weiter. */
-  .blatt-inhalt { overflow-y: auto; overscroll-behavior: contain; max-height: 70vh; }
+  .blatt-inhalt { min-width: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; max-height: 70vh; }
   /*
     AB DEM TABLET STEHT DAS FENSTER RECHTS, die Übersicht bleibt links
     sichtbar (Regel 8). Am Handy ist dasselbe Fenster ein Blatt von unten.
@@ -73,7 +73,7 @@
   @media (min-width: 760px) { .fenster-kopf { padding: 1rem 1.25rem; } }
   .fenster-schliessen { flex: none; white-space: nowrap; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: var(--text-muted); font-size: 0.875rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
   .fenster-titel { font-size: 1.125rem; line-height: 1.5rem; font-weight: 600; color: var(--ink-deep); }
-  .fenster-inhalt { overflow-y: auto; overscroll-behavior: contain; max-height: 70vh; padding-top: 1rem; }
+  .fenster-inhalt { min-width: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; max-height: 70vh; padding-top: 1rem; }
   @media (min-width: 760px) { .fenster-inhalt { flex: 1; max-height: none; padding: 1.25rem; } }
   .fenster-griff { padding: 0.75rem 1rem 0.25rem; cursor: grab; touch-action: none; }
   @media (min-width: 760px) { .fenster-griff { display: none; } }

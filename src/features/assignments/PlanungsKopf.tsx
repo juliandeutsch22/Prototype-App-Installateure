@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import { Segmente } from '@/components/LotBausteine';
+import { ANSICHTSWECHSEL } from '@/lib/ansichtswechsel';
 
 /*
   DER KOPF DER EINSATZPLANUNG (Runde 4, Auftrag 4.1) — für „Woche“, „Monat“
@@ -62,9 +63,9 @@ export function AnsichtWahl({
       wert={ansicht}
       onChange={(neu: PlanAnsicht) => {
         if (neu === ansicht) return;
-        if (neu === 'tag') navigate('/assignments/tag');
+        if (neu === 'tag') navigate('/assignments/tag', { state: ANSICHTSWECHSEL });
         else if (onWocheMonat) onWocheMonat(neu);
-        else navigate(neu === 'monat' ? '/assignments/woche?ansicht=monat' : '/assignments/woche');
+        else navigate(neu === 'monat' ? '/assignments/woche?ansicht=monat' : '/assignments/woche', { state: ANSICHTSWECHSEL });
       }}
     />
   );

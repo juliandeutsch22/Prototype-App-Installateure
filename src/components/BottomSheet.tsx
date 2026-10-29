@@ -4,11 +4,7 @@ import { AB_TABLET } from '@/lib/breiten';
 import { ImFenster } from './imFenster';
 import { useHintergrundSperre } from './hintergrundSperre';
 import { useOverlayAnwesenheit } from '@/lib/useOverlayAnwesenheit';
-
-/** Ab wie vielen Pixeln nach unten das Blatt losgelassen als „zu" gilt. */
-const SCHWELLE = 90;
-/** Schnelles Wischen schliesst auch bei kurzer Strecke (px pro Millisekunde). */
-const TEMPO = 0.5;
+import { useBlattGeste } from './useBlattGeste';
 
 interface BottomSheetProps {
   open: boolean;
@@ -47,18 +43,18 @@ interface BottomSheetProps {
  * steht. Sonst nähme das Blatt jede Wischbewegung entgegen und die Liste
  * darin liesse sich nicht mehr scrollen.
  *
- * Pointer-Events statt Touch-Events: dieselbe Behandlung für Finger, Stift
- * und Maus, ohne drei Wege zu pflegen.
+ * Am Griff laufen Pointer-Events für Finger, Stift und Maus. Im scrollbaren
+ * Inhalt trennt ein nativer Touch-Listener die Schließgeste vom Scrollen;
+ * Abbrüche und seitliche Gesten schließen das Blatt nicht.
  */
 export default function BottomSheet({ open, onClose, label, auchBreit = false, titel, breit = false, children }: BottomSheetProps) {
-  const [dy, setDy] = useState(0);
-  const [zieht, setZieht] = useState(false);
-  const start = useRef<{ y: number; t: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const blattRef = useRef<HTMLDivElement>(null);
   const { sichtbar, phase } = useOverlayAnwesenheit(open);
   const abTablet = useAbTablet();
   const modalSichtbar = sichtbar && (auchBreit || !abTablet);
+  const geste = useBlattGeste({ open, aktiv: !abTablet, blatt: blattRef, inhalt: scrollRef, onClose });
+  const { dy, zieht } = geste;
   /*
     DER FOKUS KOMMT HEREIN UND GEHT ZURÜCK. Vorher blieb er beim Öffnen auf
     dem Auslöser hinter dem Blatt, Tab lief in die verdeckte Seite, und nach
@@ -78,15 +74,11 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
 
   const schliessen = useCallback(() => {
     if (!open) return;
-    setDy(0);
-    setZieht(false);
-    start.current = null;
     onClose();
   }, [onClose, open]);
 
   useEffect(() => {
     if (!open) return;
-    setDy(0);
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && istOben(blattRef) && schliessen();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -120,37 +112,6 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
 
   if (!sichtbar) return null;
 
-  function beginn(e: React.PointerEvent, nurWennOben: boolean) {
-    // Vom Inhalt aus nur ziehen, wenn er nicht gescrollt ist — sonst kaempfen
-    // Wischen und Scrollen gegeneinander.
-    if (nurWennOben && (scrollRef.current?.scrollTop ?? 0) > 0) return;
-    // Als Fenster in der Mitte wird nicht gezogen: wer mit der Maus Text
-    // markiert, soll das Fenster dabei nicht nach unten wegschieben.
-    if (auchBreit && window.matchMedia?.(AB_TABLET).matches) return;
-    start.current = { y: e.clientY, t: e.timeStamp };
-    setZieht(true);
-  }
-
-  function bewegung(e: React.PointerEvent) {
-    if (!start.current) return;
-    const d = e.clientY - start.current.y;
-    // Nur nach unten. Nach oben zu ziehen soll das Blatt nicht anheben.
-    setDy(d > 0 ? d : 0);
-  }
-
-  function ende(e: React.PointerEvent) {
-    if (!start.current) {
-      setZieht(false);
-      return;
-    }
-    const d = e.clientY - start.current.y;
-    const dauer = Math.max(e.timeStamp - start.current.t, 1);
-    start.current = null;
-    setZieht(false);
-    if (d > SCHWELLE || d / dauer > TEMPO) schliessen();
-    else setDy(0);
-  }
-
   return (
     /*
       AB DEM TABLET EIN SEITENFENSTER RECHTS, am Handy ein Blatt von unten
@@ -164,7 +125,10 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
       data-phase={phase}
       onClick={schliessen}
       onClickCapture={(e) => { if (!open) { e.preventDefault(); e.stopPropagation(); } }}
-      style={{ opacity: dy > 0 ? Math.max(0.15, 1 - dy / 320) : 1 }}
+      style={{
+        opacity: phase === 'schliesst' ? 0 : dy > 0 ? Math.max(0.15, 1 - dy / 320) : 1,
+        transition: zieht ? 'none' : 'opacity var(--motion-exit) var(--ease-response)',
+      }}
     >
       <div
         ref={blattRef}
@@ -176,17 +140,18 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
         className={`${auchBreit ? (breit ? 'fenster-breit' : 'fenster') : 'blatt'} pb-[max(1rem,env(safe-area-inset-bottom))] focus-visible:outline-none`}
         style={{
           transform: `translateY(${dy}px)`,
-          transition: zieht ? 'none' : 'transform 180ms ease-out',
+          transition: zieht ? 'none' : phase === 'schliesst' ? 'transform var(--motion-exit) var(--ease-response)' : 'transform 180ms ease-out',
         }}
         onClick={(e) => e.stopPropagation()}
-        onPointerMove={bewegung}
-        onPointerUp={ende}
-        onPointerCancel={ende}
+        onPointerMove={geste.bewegung}
+        onPointerUp={geste.ende}
+        onPointerCancel={geste.abbruch}
+        onLostPointerCapture={geste.abbruch}
       >
         {/* Grosszuegige Grifffläche: die sichtbare Leiste ist 4 px hoch, das
             Ziel darunter misst die volle Touch-Höhe. */}
         <div
-          onPointerDown={(e) => beginn(e, false)}
+          onPointerDown={(e) => geste.beginn(e, true)}
           className={auchBreit ? 'fenster-griff' : 'blatt-griff'}
           aria-hidden="true"
         >
@@ -213,7 +178,7 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
 
         <div
           ref={scrollRef}
-          onPointerDown={(e) => beginn(e, true)}
+          onPointerDown={(e) => geste.beginn(e, false)}
           className={auchBreit ? 'fenster-inhalt' : 'blatt-inhalt'}
         >
           <ImFenster>{children}</ImFenster>

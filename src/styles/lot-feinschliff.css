@@ -41,6 +41,9 @@
 @keyframes lot-ausblenden { from { opacity: 1; } to { opacity: 0; } }
 /* Kontrast auf dunklen Trägern bleibt unabhängig von der Hausfarbe. */
 :root :focus-visible { outline-color: var(--accent-deep); }
+/* Der äußere Suchrahmen zeigt den Fokus für Lupe und Eingabe gemeinsam.
+   Der globale Feld-Schatten gehört hier nicht noch einmal ins Innere. */
+.listenleiste-suche input:focus { outline: none; box-shadow: none; }
 :root :where(.navi, .kopfzeile, .meldung, .meldung-fehler) :where(button, a, input):focus-visible { outline-color: #fff; }
 .unten :where(button, a):focus-visible { outline-offset: -4px; }
 @media (prefers-reduced-motion: reduce) {
