@@ -1,0 +1,58 @@
+[
+  {
+    "theme": "light",
+    "viewportWidth": 390,
+    "nav": {
+      "visible": true,
+      "color": "rgb(15, 69, 82)",
+      "width": "3px",
+      "offset": "-4px"
+    },
+    "field": {
+      "color": "rgb(15, 69, 82)",
+      "width": "3px"
+    }
+  },
+  {
+    "theme": "light",
+    "viewportWidth": 1440,
+    "nav": {
+      "visible": true,
+      "color": "rgb(255, 255, 255)",
+      "width": "3px",
+      "offset": "2px"
+    },
+    "field": {
+      "color": "rgb(15, 69, 82)",
+      "width": "3px"
+    }
+  },
+  {
+    "theme": "dark",
+    "viewportWidth": 390,
+    "nav": {
+      "visible": true,
+      "color": "rgb(124, 196, 210)",
+      "width": "3px",
+      "offset": "-4px"
+    },
+    "field": {
+      "color": "rgb(124, 196, 210)",
+      "width": "3px"
+    }
+  },
+  {
+    "theme": "dark",
+    "viewportWidth": 1440,
+    "nav": {
+      "visible": true,
+      "color": "rgb(255, 255, 255)",
+      "width": "3px",
+      "offset": "2px"
+    },
+    "field": {
+      "color": "rgb(124, 196, 210)",
+      "width": "3px"
+    }
+  }
+]

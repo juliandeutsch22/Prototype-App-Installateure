@@ -1,6 +1,6 @@
 # Lot · implementierte Premium-Linie
 
-**Echte App-Komponenten mit fiktiven Vorschau-Daten. Aktueller Quellcode, CI und Auslieferungsstand: [PR #385](https://github.com/juliandeutsch22/Prototype-App-Installateure/pull/385).**
+**Bildstand der ausgelieferten Premium-Umsetzung aus PR #385 (`d5dffd56`). Echte App-Komponenten mit fiktiven Vorschau-Daten. [Auslieferungsnachweis](RELEASE.md) · [Nachfolgende Interaktionskorrekturen](https://github.com/juliandeutsch22/Prototype-App-Installateure/pull/386).**
 
 [![Mobile Beispiele](ueberblick-mobil.jpg)](ueberblick-mobil.jpg)
 

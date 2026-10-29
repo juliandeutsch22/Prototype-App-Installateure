@@ -1,0 +1,57 @@
+{
+  "sourceHead": "7e5dfcb57e4a7405e260152627e941400b60e7f6",
+  "mergeCommit": "d5dffd5628b2d67938bd678dd78e394c8e635784",
+  "sourcePR": "https://github.com/juliandeutsch22/Prototype-App-Installateure/pull/385",
+  "sourceContentMatchesMain": true,
+  "preMergeCI": [
+    {
+      "id": 40760871404,
+      "head_sha": "7e5dfcb57e4a7405e260152627e941400b60e7f6",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/40760871404"
+    },
+    {
+      "id": 40760871370,
+      "head_sha": "7e5dfcb57e4a7405e260152627e941400b60e7f6",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/40760871370"
+    },
+    {
+      "id": 40760871428,
+      "head_sha": "7e5dfcb57e4a7405e260152627e941400b60e7f6",
+      "conclusion": "success",
+      "run_attempt": 2,
+      "html_url": "https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/40760871428"
+    }
+  ],
+  "deployRun": 40765216126,
+  "deployRunUrl": "https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/40765216126",
+  "deployConclusion": "success",
+  "deployJobs": [
+    {
+      "name": "Migrationen von null an, mit allen Prüfungen",
+      "conclusion": "success",
+      "html_url": "https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/40765216126/job/123087418570"
+    },
+    {
+      "name": "Ins Projekt einspielen",
+      "conclusion": "success",
+      "html_url": "https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/40765216126/job/123093178506"
+    },
+    {
+      "name": "App ausliefern / Typen, Lint und Tests",
+      "conclusion": "success",
+      "html_url": "https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/40765216126/job/123094815705"
+    },
+    {
+      "name": "App ausliefern / Auf Firebase Hosting veröffentlichen",
+      "conclusion": "success",
+      "html_url": "https://github.com/juliandeutsch22/Prototype-App-Installateure/actions/runs/40765216126/job/123097766492"
+    }
+  ],
+  "liveVersion": "d5dffd5 · 28.10.2026, 22:00",
+  "liveCheckedAt": "2026-10-29T07:44:23.785Z",
+  "physicalDevicesTested": false
+}
