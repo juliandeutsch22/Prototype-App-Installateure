@@ -56,7 +56,7 @@
 :root :where(.navi, .kopfzeile, .meldung, .meldung-fehler) :where(button, a, input):focus-visible { outline-color: #fff; }
 .unten :where(button, a):focus-visible { outline-offset: -4px; }
 @media (prefers-reduced-motion: reduce) {
-  .darstellung-griff { transition: none; }
+  .darstellung-griff { transition: none !important; }
   .lot-knopf, .lot-knopf *, .lot-overlay, .lot-overlay *, .lot-menue, .lot-menue *,
   .reiterleiste a, .segment > button, [role=tab],
   :is(.lot-knopf, .lot-overlay, .lot-menue, .reiterleiste a, .segment > button, [role=tab])::before,
