@@ -25,6 +25,7 @@ import ProblemMelden from '@/components/ProblemMelden';
 import RechtLinks from '@/components/RechtLinks';
 import { SeitenHilfeProvider } from '@/components/SeitenHilfe';
 import { useDarstellung } from '@/lib/darstellung';
+import DarstellungsSchalter from '@/components/DarstellungsSchalter';
 import Suchfenster from './Suchfenster';
 import Ladebalken from '@/components/Ladebalken';
 import { datenSparen, imLeerlauf, vorladen } from '@/lib/ansichten';
@@ -278,18 +279,6 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const unterGruppen = groups.filter((g) => g.group !== 'Einstellungen');
   const einstellungen = groups.find((g) => g.group === 'Einstellungen')?.items ?? [];
-  const darstellungKnopf = (
-    <button
-      type="button"
-      className="mehr-punkt"
-      onClick={() => setDarstellung(darstellung === 'dunkel' ? 'hell' : 'dunkel')}
-      aria-pressed={darstellung === 'dunkel'}
-    >
-      <Icon name="sun" size={20} className="shrink-0" />
-      <span>Dunkle Darstellung</span>
-      <span className="ml-auto text-sm text-ink-muted">{darstellung === 'dunkel' ? 'an' : 'aus'}</span>
-    </button>
-  );
 
   const naviEintrag = (item: NavItem) => (
     <NavLink key={item.path} to={item.path} end={item.path === '/'} className={naviPunkt}>
@@ -378,14 +367,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 </button>
               )}
             />
-            <button
-              type="button"
-              className="navi-punkt w-full"
-              onClick={() => setDarstellung(darstellung === 'dunkel' ? 'hell' : 'dunkel')}
-              aria-pressed={darstellung === 'dunkel'}
-            >
-              Dunkle Darstellung: {darstellung === 'dunkel' ? 'an' : 'aus'}
-            </button>
+            <DarstellungsSchalter darstellung={darstellung} onChange={setDarstellung} />
             <button type="button" className="navi-punkt w-full" onClick={() => void abmelden()}>
               Abmelden
             </button>
@@ -557,7 +539,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               </button>
             )}
           />
-          {darstellungKnopf}
+          <DarstellungsSchalter darstellung={darstellung} onChange={setDarstellung} />
         </div>
         <Button
           variant="secondary"
