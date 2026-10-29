@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { dateiGroesse } from '@/lib/dateiGroesse';
 import type { BaustellenDokument } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import IconButton from '@/components/IconButton';
@@ -65,11 +66,6 @@ function Vorschau({ pfad }: { pfad: string }) {
       {url && <img src={url} alt="" className="h-12 w-12 object-cover" />}
     </span>
   );
-}
-
-function groesse(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} MB`;
 }
 
 function datum(ms?: number): string {
@@ -144,7 +140,7 @@ export default function PlaeneListe({
               </button>
               {fehler?.id === d.id && <p role="alert" className="text-sm text-danger">{fehler.text}</p>}
               <p className="text-xs text-ink-muted">
-                {[groesse(d.bytes), datum(d.createdAt), d.hochgeladenVonName].filter(Boolean).join(' · ')}
+                {[dateiGroesse(d.bytes), datum(d.createdAt), d.hochgeladenVonName].filter(Boolean).join(' · ')}
               </p>
               {/*
                 DER ZUSTAND ALS ETIKETT, DIE AKTION ALS VERB (Runde 6, G20):

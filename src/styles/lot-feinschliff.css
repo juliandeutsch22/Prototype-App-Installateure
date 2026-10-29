@@ -50,6 +50,32 @@
   .lot-einrichtung { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; border-block: 1px solid var(--border); }
   .lot-einrichtung p { font-size: .8125rem; line-height: 1.65; color: var(--text-muted); max-width: 52ch; }
   .lot-einrichtung b { display: block; color: var(--ink-deep); font-weight: 600; }
+  /*
+    DIE ABLAGE (`DokumentAblage`): eine ruhige Fläche mit durchgezogener
+    Linie — gestrichelt gibt es in der Linie nicht. Zieht man Dateien
+    darüber, antwortet sie in Petrol; die Liste darunter trennt mit Linien,
+    nicht mit Karten.
+  */
+  .lot-ablage-fenster { display: flex; flex-direction: column; gap: 1.25rem; }
+  .lot-ablage-unterzeile { font-size: .875rem; color: var(--text-muted); }
+  .lot-ablage { display: flex; align-items: center; gap: 1.5rem; padding: 1.25rem 1.5rem; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface-2); transition: border-color var(--motion-state) var(--ease-response), background-color var(--motion-state) var(--ease-response); }
+  .lot-ablage[data-darueber] { border-color: var(--accent-deep); background: var(--petrol-hell); }
+  .lot-ablage-text h3 { font-size: 1rem; line-height: 1.5rem; font-weight: 600; color: var(--ink-deep); }
+  .lot-ablage-text p { margin: .125rem 0 .875rem; font-size: .8125rem; line-height: 1.5; color: var(--text-muted); }
+  .lot-ablage-grob { display: none; }
+  .lot-ablage-titel { font-size: .875rem; line-height: 1.5rem; font-weight: 600; margin-bottom: .25rem; }
+  .lot-ablage-liste > li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .625rem 0; border-bottom: 1px solid var(--border); }
+  .lot-ablage-liste > li:first-child { border-top: 1px solid var(--border); }
+  .lot-ablage-liste > li > :last-child { flex: none; white-space: nowrap; }
+  .lot-ablage-name { font-size: .875rem; line-height: 1.375rem; overflow-wrap: anywhere; }
+  .lot-ablage-zustand { font-size: .75rem; line-height: 1.25rem; color: var(--text-muted); }
+  /* Zustand der Datei wie die übrigen Zustände: Punkt und Wort, umbrechend (ein Grund kann lang sein). */
+  .lot-ablage-zustand[data-stand] { color: var(--text); }
+  .lot-ablage-zustand[data-stand]::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: .375rem; border-radius: 999px; vertical-align: 1px; }
+  .lot-ablage-zustand[data-stand=warn]::before { background: var(--warning); }
+  .lot-ablage-zustand[data-stand=fehl]::before { background: var(--danger); }
+  @media (pointer: coarse) { .lot-ablage-fein { display: none; } .lot-ablage-grob { display: inline; } }
+  @media (max-width: 759px) { .lot-ablage { flex-direction: column; text-align: center; } }
   @media (min-width: 1280px) { .lot-zeichnung-kopf { display: block; } }
   @media (max-width: 759px) { .lot-zeichnung-leer { width: 6.5rem; height: 4.25rem; margin-bottom: 0.875rem; } }
   .darstellung-schalter { display: inline-flex; align-items: center; justify-content: center; flex: none; align-self: flex-start; width: 3.75rem; min-height: 2.75rem; margin-left: 0.5rem; padding: 0.25rem; border: 0; border-radius: var(--radius); background: none; cursor: pointer; }
