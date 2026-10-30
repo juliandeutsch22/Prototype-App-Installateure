@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import Button from './Button';
 import Hinweiszeile from './Hinweiszeile';
 import LotZeichnung, { type LotMotiv } from './LotZeichnung';
+import { LotZeichen } from './Planlinie';
 
 /**
  * Ladezustand — sichtbar, kein stiller Abbruch. Erst nach 200 ms
@@ -18,10 +19,8 @@ export function LoadingState({ label = 'Wird geladen …', sofort = false }: { l
       className={`${sofort ? '' : 'laden-verzoegert '}flex items-center justify-center gap-3 p-6 text-ink-muted`}
       role="status"
     >
-      <span
-        className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-accent-deep"
-        aria-hidden="true"
-      />
+      {/* Das Lot pendelt zweimal aus und steht dann (Planlinie B4) — statt eines Kreisels ohne Ende. */}
+      <LotZeichen pendelt />
       <span>{label}</span>
     </div>
   );

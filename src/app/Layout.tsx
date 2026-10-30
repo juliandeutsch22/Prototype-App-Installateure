@@ -410,7 +410,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         ref={inhalt}
         // Programmatisch fokussierbar (Sprunglink, Seitenwechsel), aber kein Tab-Halt.
         tabIndex={-1}
-        className="min-w-0 flex-1 pb-24 outline-none md:pb-6"
+        className="hauptflaeche min-w-0 flex-1 pb-24 outline-none md:pb-6"
       >
         {/* Ganz oben im Inhalt, nicht in der Kopfleiste: dort wäre es auf dem
             Schreibtisch gar nicht zu sehen, wo es keine mobile Top-Bar gibt. */}

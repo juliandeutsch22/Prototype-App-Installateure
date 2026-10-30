@@ -22,7 +22,12 @@
   .start-rahmen { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 1.75rem; padding-top: 0.5rem; }
   .start-einspaltig { padding-top: 0.5rem; }
   .start-arbeit { min-width: 0; display: flex; flex-direction: column; gap: 1.5rem; }
-  .start-kontext { min-width: 0; padding: 0.5rem 1.25rem 1rem; background: var(--surface-2); border-top: 1px solid var(--border); }
+  /*
+    DIE MANNSCHAFT OHNE GRAUEN KASTEN (Planlinie, E30). Der Akzent der
+    Startseite ist die Skizze im Plankopf — höchstens einer je Seite; die
+    Spalte steht deshalb auf dem Grund, getrennt durch eine Hilfslinie.
+  */
+  .start-kontext { min-width: 0; padding: 0.5rem 0 1rem; background: none; border-top: 1px solid var(--border-strong); }
   .start-seite .start-karte { background: transparent; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
   .start-seite .start-karte-kopf { padding: 0.5rem 0 1rem; border: 0; }
   .start-seite .start-karte-inhalt { border: 0; }
@@ -36,7 +41,8 @@
   .start-kontext .start-karte-kopf h2 .start-karte-zusatz { flex: none; white-space: nowrap; font-weight: 400; font-size: 0.6875rem; margin-left: 0; }
   .start-karte-verweis { display: inline-flex; align-items: center; min-height: 2.75rem; margin-top: 0.5rem; font-size: 0.75rem; }
   .start-seite .start-gruppe { padding-bottom: 0.875rem; }
-  .start-seite .start-abschnitt { padding: 0.625rem 0; background: transparent; font-size: 0.75rem; color: var(--text-muted); }
+  .start-seite .start-abschnitt { display: flex; align-items: center; gap: 0.625rem; padding: 1rem 0 0.5rem; background: transparent; font-size: 0.71875rem; line-height: 1.375rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text); }
+  .stand-leise-wort { color: var(--text-muted); }
   .start-seite .start-zeile { padding: 0.875rem 0; font-size: 0.875rem; }
   .start-seite .start-zeile .text-meta { font-size: 0.75rem; line-height: 1.25rem; }
   .start-seite .start-zeile .stand { font-size: 0.6875rem; }
@@ -68,7 +74,7 @@
   @media (min-width: 760px) {
     .start-planaktion { display: inline-flex; }
     .start-rahmen { grid-template-columns: minmax(0, 1fr) 15.5rem; gap: 1.5rem; }
-    .start-kontext { border-top: 0; border-left: 1px solid var(--border); }
+    .start-kontext { border-top: 0; border-left: 1px solid var(--border-strong); padding-left: 1.5rem; }
   }
   @media (min-width: 1200px) {
     .start-rahmen { grid-template-columns: minmax(0, 1fr) 19.125rem; gap: 2.25rem; }

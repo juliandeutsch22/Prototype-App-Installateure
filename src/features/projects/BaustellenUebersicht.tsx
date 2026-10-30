@@ -3,6 +3,7 @@ import { stundenDerBaustellen, type BaustellenStunden } from '@/lib/db/timeEntri
 import { calcBudgetState, fmtStd, fmtStunden } from '@/lib/time';
 import type { Project } from '@/types';
 import { TeilFehler } from '@/components/States';
+import { Masslinie, MasslinieZeile } from '@/components/Planlinie';
 import { datumAT } from '@/lib/datum';
 
 /**
@@ -124,27 +125,49 @@ export default function BaustellenUebersicht({
     );
   }
 
+  /*
+    DIE MASSLINIE STATT SATZ UND BALKEN (Planlinie B2): gebucht gegen das
+    Budget, was darüber geht läuft rot über die Marke hinaus. Was frei
+    bleibt, steht an der Marke; nahe am Budget in Ocker wie zuvor der Satz.
+  */
+  const restMin = projekt.estimatedHours ? Math.abs(projekt.estimatedHours * 60 - stand.fachMin) : 0;
   if (kompakt) return <div className="akten-stunden">
-    <p className="baustelle-summe"><span className="akten-stunden-zahl">{fmtStd(stand.fachMin)} h</span>
-      {projekt.estimatedHours ? <> von {fmtStunden(projekt.estimatedHours)} h Budget</> : ' Arbeitszeit'}
-      {davonLehrling(stand.lehrlingImBudgetMin)}
-      {projekt.estimatedHours ? null : ' · kein Stundenbudget hinterlegt'}</p>
-    {projekt.estimatedHours ? <p className={budget.over ? 'text-danger' : budget.tone === 'warning' ? 'text-warning' : 'text-ink-muted'}>
-      <span className="akten-stunden-zahl">{fmtStd(Math.abs(projekt.estimatedHours * 60 - stand.fachMin))} h</span>{' '}{budget.over ? 'über Budget' : 'verbleibend'}
-    </p> : null}
-    {budget.pct !== null && <svg className="akten-budgetlinie" viewBox="0 0 100 2" preserveAspectRatio="none"
-      role="img" aria-label={`${budget.pct} % des Stundenbudgets verbraucht`}>
-      <rect width="100" height="2" className="akten-budgetgrund" />
-      <rect width={Math.max(0, Math.min(100, budget.pct))} height="2" className={RING_TON[budget.tone]} />
-    </svg>}
+    {projekt.estimatedHours ? (
+      <MasslinieZeile name="Stundenbudget">
+        <Masslinie
+          ist={stand.fachMin / 60}
+          soll={projekt.estimatedHours}
+          achtung={budget.tone === 'warning'}
+          istText={`${fmtStd(stand.fachMin)} h gebucht${davonLehrling(stand.lehrlingImBudgetMin)}`}
+          sollText={budget.over ? `Budget ${fmtStunden(projekt.estimatedHours)} h` : `Budget ${fmtStunden(projekt.estimatedHours)} h · ${fmtStd(restMin)} h verbleibend`}
+          ueberText={`+${fmtStd(restMin)} h über Budget`}
+          name={`${fmtStd(stand.fachMin)} h gebucht von ${fmtStunden(projekt.estimatedHours)} h Budget, ${fmtStd(restMin)} h ${budget.over ? 'über Budget' : 'verbleibend'}`}
+        />
+      </MasslinieZeile>
+    ) : (
+      <p className="baustelle-summe"><span className="akten-stunden-zahl">{fmtStd(stand.fachMin)} h</span>
+        {' Arbeitszeit'}{davonLehrling(stand.lehrlingImBudgetMin)}{' · kein Stundenbudget hinterlegt'}</p>
+    )}
     {stand.helperMin > 0 && <p className="text-sm text-ink-muted">zusätzlich {fmtStd(stand.helperMin)} h Helfer · separat vom Budget</p>}
     {stand.lehrlingMin > 0 && <p className="text-sm text-ink-muted">+{fmtStd(stand.lehrlingMin)} h Lehrling, nicht im Budget</p>}
-    <details><summary>Stunden nach Person</summary><ul className="divide-y divide-line">
-      {stand.personen.map((p) => <li key={p.name} className="py-2 text-sm"><span className="font-semibold">{p.name}</span><br />
-        {fmtStd(p.fachMin)} h{davonLehrling(p.lehrlingImBudgetMin)}{p.helperMin > 0 && <> · +{fmtStd(p.helperMin)} h Helfer</>}
-        {p.lehrlingMin > 0 && <> · +{fmtStd(p.lehrlingMin)} h nicht im Budget</>}
-      </li>)}
-    </ul>{stand.zuletzt && <p className="text-xs text-ink-muted">Zuletzt gebucht am {fmtDatum(stand.zuletzt)}.</p>}</details>
+    {/* Stunden nach Person als Stückliste (Planlinie B6): Pos, Person, Stunden, Summe über der Doppellinie. */}
+    <details><summary>Stunden nach Person</summary>
+      <div className="overflow-x-auto">
+        <table className="tabelle tabelle-eng">
+          <thead><tr><th scope="col">Pos</th><th scope="col">Person</th><th scope="col" className="r">Stunden</th></tr></thead>
+          <tbody>
+            {stand.personen.map((p, i) => <tr key={p.name}>
+              <td className="pos">{String(i + 1).padStart(2, '0')}</td>
+              <td>{p.name}{(p.lehrlingImBudgetMin > 0 || p.helperMin > 0 || p.lehrlingMin > 0) && <span className="block text-xs text-ink-muted">
+                {davonLehrling(p.lehrlingImBudgetMin).trim()}{p.helperMin > 0 && <> +{fmtStd(p.helperMin)} h Helfer</>}
+                {p.lehrlingMin > 0 && <> +{fmtStd(p.lehrlingMin)} h nicht im Budget</>}</span>}</td>
+              <td className="r">{fmtStd(p.fachMin)} h</td>
+            </tr>)}
+            <tr className="summe"><td /><td>Summe</td><td className="r">{fmtStd(stand.fachMin)} h</td></tr>
+          </tbody>
+        </table>
+      </div>
+      {stand.zuletzt && <p className="text-xs text-ink-muted">Zuletzt gebucht am {fmtDatum(stand.zuletzt)}.</p>}</details>
   </div>;
 
   return (

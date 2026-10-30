@@ -66,3 +66,8 @@
   .position-preis-fehlt { width: 7rem; text-align: right; border-color: var(--warning); }
   .position-preis-fehlt:focus { outline: none; border-color: var(--warning); box-shadow: 0 0 0 1px var(--warning); }
 }
+
+/* Die Teilzahlung als schmale Maßlinie unter der Zeile (Planlinie B2). */
+@layer components {
+  .rechnung-mass { display: block; width: 17.5rem; max-width: 100%; margin-top: 0.375rem; }
+}

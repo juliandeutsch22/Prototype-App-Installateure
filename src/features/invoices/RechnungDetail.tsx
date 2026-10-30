@@ -49,6 +49,11 @@ export interface RechnungAktion {
  * Die Handlungen stehen oben, vor den Einzelheiten: wer zum Zahlen kommt,
  * soll nicht erst über die Positionen rollen.
  */
+/** Die laufende Nummer einer Position — Titel- und Textzeilen zählen nicht mit, wie auf dem PDF. */
+function positionsNummer(positionen: { art?: string }[], index: number): number {
+  return positionen.slice(0, index + 1).filter((p) => p.art !== 'titel' && p.art !== 'text').length;
+}
+
 export default function RechnungDetail({
   inv,
   onClose,
@@ -121,33 +126,37 @@ export default function RechnungDetail({
               Zeile „1 Stk7 500,50“. Köpfe und Zahlen bleiben ganz und halten
               Abstand zur Spalte davor.
             */}
-            <table className="w-full text-left">
+            {/* Als Stückliste (Planlinie B6): Kopf zwischen zwei Linien, Pos-Nummer, Zahlen in Mono. */}
+            <table className="tabelle tabelle-eng rechnung-stueckliste">
               <thead>
-                <tr className="text-xs text-ink-muted">
-                  <th className="py-1 font-normal">Bezeichnung</th>
-                  <th className="whitespace-nowrap py-1 pl-3 text-right font-normal">Menge</th>
-                  <th className="whitespace-nowrap py-1 pl-3 text-right font-normal">Netto</th>
+                <tr>
+                  <th scope="col">Pos</th>
+                  <th scope="col">Bezeichnung</th>
+                  <th scope="col" className="r">Menge</th>
+                  <th scope="col" className="r">Netto</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line">
+              <tbody>
                 {inv.positions.map((p, i) =>
                   // Titel und Text ohne Beträge, wie auf dem PDF (M18).
                   p.art === 'titel' || p.art === 'text' ? (
                     <tr key={i}>
-                      <td colSpan={3} className={`py-1 pr-2 ${p.art === 'titel' ? 'font-semibold' : 'text-ink-muted'}`}>{p.label}</td>
+                      <td className="pos" />
+                      <td colSpan={3} className={p.art === 'titel' ? 'font-semibold' : 'text-ink-muted'}>{p.label}</td>
                     </tr>
                   ) : (
                     <tr key={i}>
-                      <td className="py-1 pr-2">
+                      <td className="pos">{String(positionsNummer(inv.positions ?? [], i)).padStart(2, '0')}</td>
+                      <td>
                         {p.label}
                         {positionsRabattText(p.rabattProzent) && (
                           <span className="block text-xs text-ink-muted">{positionsRabattText(p.rabattProzent)}</span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap py-1 pl-3 text-right">
+                      <td className="r whitespace-nowrap">
                         {String(p.qty).replace('.', ',')} {p.unit}
                       </td>
-                      <td className="whitespace-nowrap py-1 pl-3 text-right">{euroBetrag(p.netto)}</td>
+                      <td className="r whitespace-nowrap">{euroBetrag(p.netto)}</td>
                     </tr>
                   ),
                 )}

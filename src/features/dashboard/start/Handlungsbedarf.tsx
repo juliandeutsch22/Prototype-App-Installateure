@@ -4,12 +4,19 @@ import Icon from '@/components/Icon';
 import OhneUmbruch from '@/components/OhneUmbruch';
 import { summe, type Abschnitt, type Ton, type Zeile } from './abschnitte';
 
+/*
+  DIE ZEICHEN DER STARTSEITE (Planlinie B3). „Leise“ heißt hier: zu tun, aber
+  ohne Eile (einplanen, zuteilen, nachbestellen) — also der offene Kreis mit
+  gedämpftem Wort, nicht der Haken von „erledigt“.
+*/
 const TON: Record<Ton, string> = {
   fehl: 'stand-fehl',
   warn: 'stand-warn',
-  leise: 'stand-leise',
-  ok: 'stand-ok',
-  info: 'stand-info',
+  leise: 'stand-offen stand-leise-wort',
+  ok: 'stand-erledigt',
+  info: 'stand-geplant',
+  abwesend: 'stand-storniert',
+  einsatz: 'stand-info',
 };
 
 /**
@@ -56,8 +63,10 @@ function AbschnittBlock({ a }: { a: Abschnitt }) {
   const rest = a.anzahl - a.zeilen.length;
   return (
     <section aria-label={a.titel} className="start-gruppe">
+      {/* Die Zahl im Achskreis, der Titel auf der Achse (Planlinie B5). */}
       <h3 className="start-abschnitt">
-        {a.titel} <span className="font-normal text-ink-muted">· {a.anzahl}</span>
+        <span className="achskreis">{a.anzahl}</span> <span>{a.titel}</span>
+        <span className="abschnitt-linie" aria-hidden="true" />
       </h3>
       <ul>
         {zeilen.map((z) => <EintragZeile key={z.key} z={z} />)}

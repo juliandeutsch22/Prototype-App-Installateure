@@ -25,10 +25,16 @@
   .akten-bereich[hidden] { display: none; }
   .akten-rahmen { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem; align-items: start; }
   .akten-hauptteil { min-width: 0; }
-  .akten-kontext { min-width: 0; padding: 0.25rem 1.25rem 1rem; background: var(--surface-2); border-left: 1px solid var(--border); scroll-margin-top: 1rem; }
+  /*
+    DIE KONTEXTSPALTE MIT ECKMARKEN statt grauer Fläche (Planlinie B7): vier
+    Ecken wie Passermarken, die Fläche ist Grund. Sie ist der Akzent der
+    Akte; deshalb trägt der Aktenkopf keine Skizze.
+  */
+  .akten-kontext { min-width: 0; padding: 0.75rem 1.375rem 1rem; scroll-margin-top: 1rem; border-left: 0; background-color: var(--bg); background-image: linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)); background-repeat: no-repeat; background-size: 14px 1px, 1px 14px, 14px 1px, 1px 14px, 14px 1px, 1px 14px, 14px 1px, 1px 14px; background-position: left top, left top, right top, right top, left bottom, left bottom, right bottom, right bottom; }
   .akten-kontext .karte { background: transparent; }
   .akten-kontext .karte-koerper { padding-bottom: 0.625rem; }
-  .akten-kontext .karte-kopf h2 { font-size: 0.75rem; font-weight: 400; color: var(--text-muted); }
+  /* Die Überschriften der Kontextspalte wie die Felder eines Schriftfelds (Planlinie). */
+  .akten-kontext .karte-kopf h2 { font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text-muted); }
   .akten-kontext .akten-angaben { grid-template-columns: minmax(0, 1fr); gap: 0.875rem; }
   .akten-kontext .akten-angaben dd { font-size: 0.8125rem; }
   .akten-kontext .link-kontakt { text-decoration: none; }
@@ -96,7 +102,7 @@
     .akten-mobil-kontakt { display: flex; align-items: center; flex-wrap: wrap; gap: 0 1rem; margin-top: 0.75rem; font-size: 0.75rem; }
     .akten-mobil-kontakt .link-kontakt { text-decoration: none; }
     .akten-mobil-kontakt > * { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
-    .akten-kontext { border-left: 0; border-top: 1px solid var(--border); }
+    .akten-kontext { border-left: 0; }
     .akten-aktionen { width: 100%; }
     .akten-aktionen > * { flex: 1; }
     .akten-angaben { gap: 1rem 1.25rem; }

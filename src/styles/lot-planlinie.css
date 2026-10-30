@@ -115,6 +115,7 @@
   .masslinie-marke-rot { background: var(--danger); }
   .masslinie-marke-rot::after { background: var(--danger); }
   .masslinie-soll { position: absolute; top: 0; padding-right: 0.4375rem; font-size: 0.71875rem; line-height: 0.875rem; color: var(--text-muted); white-space: nowrap; transform: translateX(-100%); }
+  .masslinie-achtung .masslinie-soll { color: var(--warning); }
   .masslinie-plus { position: absolute; top: 0; right: 0; font-size: 0.71875rem; line-height: 0.875rem; color: var(--danger); white-space: nowrap; }
   .masslinie-ist { position: absolute; left: 0; top: 1.875rem; font-size: 0.75rem; line-height: 0.875rem; white-space: nowrap; }
   .masslinie-schmal .masslinie-soll, .masslinie-schmal .masslinie-plus { top: -0.125rem; font-size: 0.6875rem; }
@@ -238,6 +239,8 @@
   /* ── B11 Schraffur, Einsatzbalken, Maßkette ───────────────────────────── */
   /* Abwesenheit wie eine geschnittene Wand: Diagonalen unter 135°, Abstand 6 px. */
   .schraffur { background-color: var(--bg); background-image: repeating-linear-gradient(135deg, var(--border-strong) 0, var(--border-strong) 1px, var(--bg) 1px, var(--bg) 6px); border: 1px solid var(--border-strong); color: var(--text-muted); }
+  /* Der Einsatz mit Anfang und Ende: helle Fläche, Endmarken links und rechts in Petrol. */
+  .einsatzbalken { background: var(--petrol-hell); border-left: 2px solid var(--accent-deep); border-right: 2px solid var(--accent-deep); color: var(--accent-deep); }
   .masskette { position: relative; height: 2.75rem; margin-top: 0.5rem; font-family: var(--schrift-mono); font-variant-numeric: tabular-nums; }
   .masskette-grund { position: absolute; left: 0; right: 0; top: 1.25rem; height: 1px; background: var(--accent-deep); }
   .masskette-teil { position: absolute; top: 0; height: 1.25rem; font-size: 0.75rem; line-height: 1rem; text-align: center; color: var(--text); white-space: nowrap; }
@@ -262,4 +265,13 @@
 /* Ab dem Tablet sitzen die Aktionen auf der Grundlinie des Titelblocks, wie im Plankopf. */
 @layer components {
   @media (min-width: 760px) { .plankopf > .seitenkopf { align-items: flex-end; } }
+}
+
+/*
+  DUNKEL = BLAUPAUSE (Planlinie § 5): die Hauptfläche trägt im dunklen Satz
+  ein Raster von 24 px in der Farbe der Flächen — helle Petrol-Konturen auf
+  dunklem Grund wie auf einer Blaupause. Hell bleibt die Fläche ruhig.
+*/
+@layer components {
+  :root[data-theme='dark'] .hauptflaeche { background-image: linear-gradient(var(--surface) 1px, transparent 1px), linear-gradient(90deg, var(--surface) 1px, transparent 1px); background-size: 24px 24px; }
 }

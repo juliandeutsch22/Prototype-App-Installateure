@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import type { WithId } from '@/lib/db/core';
 import type { Invoice } from '@/types';
 import { MehrAnzeigen } from '@/components/LotBausteine';
+import Abschnitt from '@/components/Abschnitt';
 import { istUeberfaellig, mahnbar, offenerRuecklass, ruecklassFaelligAm, zahlstand } from './zahlstand';
 
 /**
@@ -144,12 +145,8 @@ export function RechnungsGruppe({
 }) {
   return (
     <>
-      {titel && (
-        <div className="abschnitt">
-          <h3>{titel}</h3>
-          <span className="gruppe-anzahl">{anzahlText(rechnungen)}</span>
-        </div>
-      )}
+      {/* Die Gruppe mit ihrer Zahl im Achskreis (Planlinie B5), wie überall. */}
+      {titel && <Abschnitt titel={titel} anzahl={anzahlText(rechnungen)} />}
       <GekuerzteListe eintraege={rechnungen} zeile={zeile} />
     </>
   );

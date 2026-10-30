@@ -13,7 +13,11 @@ import {
   ohneEinsatzListe,
   ohneProjektleiter,
   planFenster,
+  type BudgetZeile,
 } from './baustellenLage';
+import Metric, { MetricRow } from '@/components/Metric';
+import { Masslinie } from '@/components/Planlinie';
+import { ZIEL } from '@/features/dashboard/start/ziele';
 import { stundenDerBaustellen } from '@/lib/db/timeEntries';
 import { listAssignmentsInRange } from '@/lib/db/assignments';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
@@ -49,7 +53,7 @@ import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
-import { fmtStunden, todayStr } from '@/lib/time';
+import { fmtStd, fmtStunden, todayStr } from '@/lib/time';
 import ZahlFeld from '@/components/ZahlFeld';
 import AdresseFeld from '@/components/AdresseFeld';
 import { baustellenTitel } from '@/lib/baustellenTitel';
@@ -505,6 +509,37 @@ export default function AdminProjectsView() {
   }, [user, adressFilter, aktiveNummern]);
   const lageFehlt = (adressFilter === 'budget' || adressFilter === 'ohne-einsatz') && lage?.art !== adressFilter;
 
+  /*
+    DER BUDGETSTAND JE BAUSTELLE (Planlinie, E30): dieselbe Rechnung wie die
+    Startseite (`budgetStand` aus den Summen von `stundenDerBaustellen`) —
+    für die Maßlinie in der Zeile und das Schriftfeld. Bis sie da ist, steht
+    in der Zeile das Budget wie bisher; scheitert sie, bleibt es dabei, und
+    die Budgetfelder im Schriftfeld fehlen statt einer geratenen Null.
+  */
+  const [budgetJe, setBudgetJe] = useState<Map<string, BudgetZeile> | null | 'fehler'>(null);
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    const mitBudget = projects.filter((p) => p.status === 'Aktiv' && (p.estimatedHours ?? 0) > 0);
+    void (async () => {
+      try {
+        const stunden = mitBudget.length ? await stundenDerBaustellen(mitBudget.map((p) => p.projectNumber)) : [];
+        if (!weg) setBudgetJe(new Map(budgetStand(mitBudget, stunden).map((b) => [b.projectNumber, b])));
+      } catch {
+        if (!weg) setBudgetJe('fehler');
+      }
+    })();
+    return () => {
+      weg = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- an den aktiven Nummern, nicht an jeder Live-Meldung
+  }, [user, aktiveNummern]);
+  const budgetListe = budgetJe instanceof Map ? [...budgetJe.values()] : [];
+  const ueberBudget = budgetListe.filter((b) => b.pct > 100).length;
+  const nahBudget = budgetListe.filter((b) => b.pct >= BUDGET_AB_PROZENT && b.pct <= 100).length;
+  const aktivZahl = projects.filter((p) => p.status === 'Aktiv').length;
+  const endeZahl = projects.filter((p) => endeVorbei(p, todayStr())).length;
+
   const visible = useMemo(() => {
     const heute = todayStr();
     const nachAdresse = !adressFilter
@@ -750,6 +785,23 @@ export default function AdminProjectsView() {
             <Button onClick={() => setFormOffen(true)}>Neue Baustelle</Button>
           )
         }
+        /*
+          DAS SCHRIFTFELD (Planlinie B1): was die Liste ohnehin weiß — aktive
+          Baustellen, Budgetstand wie auf der Startseite, Endtermin vorbei —,
+          jedes Feld ein Weg in die passende Auswahl.
+        */
+        stand={!loading && aktivZahl > 0 ? (
+          <MetricRow label="Stand der Baustellen">
+            <Metric label="Aktiv" value={aktivZahl} hint="laufende Baustellen" to={ZIEL.baustellen('aktiv')} />
+            {budgetJe !== 'fehler' && (
+              <>
+                <Metric label="Über Budget" value={ueberBudget} hint="Stunden über Budget" tone={ueberBudget ? 'danger' : 'default'} to={ZIEL.baustellen('budget')} bereit={budgetJe !== null} zusatzMuster="Stunden über Budget" />
+                <Metric label="Ab 90 %" value={nahBudget} hint="nahe am Budget" tone={nahBudget ? 'warning' : 'default'} to={ZIEL.baustellen('budget')} bereit={budgetJe !== null} zusatzMuster="nahe am Budget" />
+              </>
+            )}
+            <Metric label="Ende überschritten" value={endeZahl} hint="Endtermin vorbei" tone={endeZahl ? 'danger' : 'default'} to={ZIEL.baustellen('ende-ueberschritten')} />
+          </MetricRow>
+        ) : undefined}
       />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
@@ -902,7 +954,31 @@ export default function AdminProjectsView() {
                         }
                         /* Ohne Leitung ist ein Zustand, keine Fußnote: er steht in der Spalte, wo man nach Achtung sucht. */
                         zustand={leitung.length === 0 ? <Zustand stand="achtung">ohne Projektleitung</Zustand> : undefined}
-                        wert={p.estimatedHours ? <>{fmtStunden(p.estimatedHours)} h<small>Budget</small></> : undefined}
+                        /*
+                          DIE MASSLINIE STATT „16 h Budget“ (Planlinie B2): gebucht gegen
+                          das Budget, was darüber geht läuft rot über die Marke. Solange
+                          der Stand lädt (oder nicht kam), steht das Budget wie bisher.
+                        */
+                        wert={p.estimatedHours ? (() => {
+                          const b = budgetJe instanceof Map ? budgetJe.get(p.projectNumber) : undefined;
+                          if (!b) return <>{fmtStunden(p.estimatedHours)} h<small>Budget</small></>;
+                          const ist = b.usedMin / 60;
+                          const ueber = ist - b.estimatedHours;
+                          // Gebucht mit einer Nachkommastelle wie im Plan („45,0 h“), das Budget, wie es eingetragen ist.
+                          return (
+                            <span className="zeile-mass">
+                              <Masslinie
+                                schmal
+                                ist={ist}
+                                soll={b.estimatedHours}
+                                istText={`${fmtStd(b.usedMin)} h gebucht`}
+                                sollText={`${fmtStunden(b.estimatedHours)} h`}
+                                ueberText={`+${fmtStd(ueber * 60)} h`}
+                                name={`${fmtStd(b.usedMin)} h gebucht von ${fmtStunden(b.estimatedHours)} h Budget${ueber > 0 ? `, ${fmtStd(ueber * 60)} h darüber` : ''}`}
+                              />
+                            </span>
+                          );
+                        })() : undefined}
                       >
                         {/*
                           LÖSCHEN STEHT IM MENÜ, NICHT ALS ✕ IN DER ZEILE.

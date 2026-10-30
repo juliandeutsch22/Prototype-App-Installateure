@@ -48,7 +48,8 @@
   */
   @media (min-width: 1200px) {
     .anmelde-seite { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-    .anmelde-buehne { display: flex; flex-direction: column; justify-content: space-between; gap: 2rem; padding: 2.5rem 3.5rem; background: var(--surface-2); border-right: 1px solid var(--border); }
+    /* Die Bühne auf dem Raster der Planlinie (B12) — einer der drei Orte, an denen es steht. */
+    .anmelde-buehne { display: flex; flex-direction: column; justify-content: space-between; gap: 2rem; padding: 2.5rem 3.5rem; background-color: var(--bg); background-image: linear-gradient(var(--surface-3) 1px, transparent 1px), linear-gradient(90deg, var(--surface-3) 1px, transparent 1px); background-size: 16px 16px; border-right: 1px solid var(--border-strong); }
     .anmelde-markenband { display: none; }
     /* Neben der Bühne ist die Hälfte selbst die Fläche — ein Kasten darin wäre eine Karte auf der Karte. */
     .anmelde-karte { border-color: transparent; background: none; }

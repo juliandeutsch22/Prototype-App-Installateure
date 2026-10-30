@@ -33,6 +33,7 @@ export function Masslinie({
   ueberText,
   name,
   schmal = false,
+  achtung = false,
 }: {
   ist: number;
   /** Die Grenze; ohne Grenze gibt es keine Maßlinie. */
@@ -47,12 +48,15 @@ export function Masslinie({
   name: string;
   /** Die schmale Fassung für Listenzeilen (32 px, ohne Notiz). */
   schmal?: boolean;
+  /** Nahe an der Grenze (ab 80/90 %): die Beschriftung an der Marke in Ocker. Über der Grenze ist es ohnehin rot. */
+  achtung?: boolean;
 }) {
   const darueber = soll > 0 && ist > soll;
   const ganz = darueber ? ist : soll;
   const sollLage = prozent(soll, ganz);
+  const klasse = `masslinie${schmal ? ' masslinie-schmal' : ''}${achtung && !darueber ? ' masslinie-achtung' : ''}`;
   return (
-    <div className={schmal ? 'masslinie masslinie-schmal' : 'masslinie'} role="img" aria-label={name} data-darueber={darueber || undefined}>
+    <div className={klasse} role="img" aria-label={name} data-darueber={darueber || undefined}>
       {sollText && <span className="masslinie-soll" style={{ left: sollLage }}>{sollText}</span>}
       {darueber && ueberText && <span className="masslinie-plus">{ueberText}</span>}
       <span className="masslinie-grund" />
