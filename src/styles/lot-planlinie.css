@@ -68,6 +68,7 @@
   .schriftfeld a.lage-eintrag:hover { background: var(--surface-2); }
   .schriftfeld .lage-name { font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   .schriftfeld .lage-wert { font-family: var(--schrift-mono); font-size: 1.0625rem; line-height: 1.375rem; font-weight: 400; color: var(--text); font-variant-numeric: tabular-nums; }
+  .schriftfeld .lage-wert-wort { font-family: inherit; }
   .schriftfeld .lage-wert-rot { color: var(--danger); }
   .schriftfeld .lage-wert-warn { color: var(--warning); }
   .schriftfeld .lage-zusatz { font-size: 0.71875rem; line-height: 1rem; color: var(--text-muted); overflow-wrap: anywhere; }

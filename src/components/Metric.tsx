@@ -77,7 +77,8 @@ export default function Metric({ label, value, hint, tone = 'default', to, berei
   const inhalt = (
     <>
       <span className="lage-name">{label}</span>{' '}
-      <span className={`lage-wert ${fertig ? valueTone[tone] : ''}`}>
+      {/* Ein Wort ohne Ziffer („Pauschal“, „Aktiv“) ist nichts Gemessenes — im Schriftfeld nicht in Mono (Planlinie, E30). */}
+      <span className={`lage-wert ${typeof value === 'string' && !/\d/.test(value) ? 'lage-wert-wort ' : ''}${fertig ? valueTone[tone] : ''}`}>
         {mitLaden ? <Wert bereit={fertig} muster="€ 00 000,00">{value}</Wert> : value}
       </span>
       {/* Der Zusatz rechnet aus derselben Grundlage — bis dahin ein Platzhalter in seiner Zeile. */}

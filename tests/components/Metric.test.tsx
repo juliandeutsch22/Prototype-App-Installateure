@@ -173,3 +173,21 @@ describe('Eine Kennzahl, die lädt', () => {
     expect(screen.getByText('€ 0,00')).toBeInTheDocument();
   });
 });
+
+/*
+  PLANLINIE (E30): im Schriftfeld steht Gemessenes in Mono. Ein Wort ohne
+  Ziffer („Pauschal“, „Aktiv“) ist keine Messung und bleibt in der Schrift
+  des Textes.
+*/
+describe('Kennzahl — Wort oder Zahl', () => {
+  it('ein Wort ohne Ziffer trägt die Klasse für die Textschrift', () => {
+    render(<MemoryRouter><Metric label="Abrechnung" value="Pauschal" /></MemoryRouter>);
+    expect(screen.getByText('Pauschal')).toHaveClass('lage-wert', 'lage-wert-wort');
+  });
+
+  it('Gegenprobe: eine Zahl bleibt gemessen', () => {
+    render(<MemoryRouter><Metric label="Beginn" value="07.10.2026" /><Metric label="Aktiv" value={8} /></MemoryRouter>);
+    expect(screen.getByText('07.10.2026')).not.toHaveClass('lage-wert-wort');
+    expect(screen.getByText('8')).not.toHaveClass('lage-wert-wort');
+  });
+});
