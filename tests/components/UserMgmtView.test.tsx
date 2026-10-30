@@ -379,6 +379,20 @@ describe('Benutzerverwaltung — die Liste', () => {
     expect(screen.queryByText(/inaktiv/i)).not.toBeInTheDocument();
   });
 
+  it('trägt „deaktiviert“ mit dem Zeichen „storniert“, ein aktives Konto keines (Planlinie B3)', async () => {
+    leute = [
+      person({ uid: 'u2', name: 'Erna Beispiel' }),
+      person({ uid: 'u3', name: 'Ausgeschieden', active: false }),
+    ];
+    zeige();
+    const filter = await screen.findByRole('group', { name: 'Benutzer nach Status filtern' });
+    await userEvent.click(within(filter).getByRole('button', { name: 'Alle' }));
+    expect(await screen.findByText('deaktiviert')).toHaveClass('stand', 'stand-storniert');
+    // Gegenprobe: an der aktiven Zeile steht kein Zeichen — „aktiv“ ist der Normalfall und kein Wort wert.
+    const erna = screen.getByText('Erna Beispiel').closest('li, a') as HTMLElement;
+    expect(erna.querySelector('.stand')).toBeNull();
+  });
+
   it('führt mit der ganzen Zeile in die Akte (Linie „Lot“)', async () => {
     leute = [person({ uid: 'u2', name: 'Erna Beispiel' })];
     zeige();

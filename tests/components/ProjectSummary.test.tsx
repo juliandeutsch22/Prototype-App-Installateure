@@ -415,3 +415,57 @@ describe('Projektauswertung als Zeilen einer Gruppe', () => {
     expect(screen.getByRole('button', { name: /Max Musterkunde/ })).toHaveAttribute('aria-expanded', 'true');
   });
 });
+
+/*
+  PLANLINIE B2: das Stundenbudget als Maßlinie statt als Balken — mit den
+  Zahlen an der Linie, und rot über die Soll-Marke hinaus, wenn es darüber
+  geht.
+*/
+describe('Projektauswertung: Budget als Maßlinie (Planlinie B2)', () => {
+  const august = eintrag({ id: 'aug', date: '2026-08-03', startTime: '07:00', endTime: '15:00', breakDuration: 0 } as Partial<TimeEntry>);
+  const september = eintrag({ id: 'sep' } as Partial<TimeEntry>);
+
+  it('bemaßt die ganze Baustelle gegen ihr Budget, mit Anteil und Budget an der Linie', () => {
+    render(
+      <ProjectSummary
+        entries={[september]}
+        gesamtFach={fachAus([august, september])}
+        projects={[{ ...projekt, estimatedHours: 20 }]}
+        label="September 2026"
+      />,
+    );
+    const linie = screen.getByRole('img', { name: '16:30 Std von 20:00 Std Budget, 83 %' });
+    expect(linie).toHaveClass('masslinie');
+    expect(linie).toHaveTextContent('83 %');
+    expect(linie).toHaveTextContent('Budget 20:00 Std');
+    expect(linie).not.toHaveAttribute('data-darueber');
+    expect(document.querySelector('.rounded-pill')).toBeNull();
+  });
+
+  it('über dem Budget läuft die Linie rot weiter und nennt den Überhang', () => {
+    render(
+      <ProjectSummary
+        entries={[september]}
+        gesamtFach={fachAus([august, september])}
+        projects={[{ ...projekt, estimatedHours: 10 }]}
+        label="September 2026"
+      />,
+    );
+    const linie = screen.getByRole('img', { name: /^16:30 Std von 10:00 Std Budget, 165 %, 06:30 Std darüber$/ });
+    expect(linie).toHaveAttribute('data-darueber', 'true');
+    expect(linie).toHaveTextContent('+06:30 Std');
+  });
+
+  it('Gegenprobe: ohne Budget keine Linie', () => {
+    render(
+      <ProjectSummary
+        entries={[september]}
+        gesamtFach={fachAus([august, september])}
+        projects={[{ ...projekt, estimatedHours: 0 }]}
+        label="September 2026"
+      />,
+    );
+    expect(document.querySelector('.masslinie')).toBeNull();
+    expect(screen.getByText('Kein Stundenbudget hinterlegt.')).toBeInTheDocument();
+  });
+});

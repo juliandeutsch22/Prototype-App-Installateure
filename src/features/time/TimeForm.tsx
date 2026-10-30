@@ -24,9 +24,9 @@ import { bearbeitungsvermerk } from './bearbeitungsvermerk';
 import { istAussendienst, canExtendTimeEntry, canEditTime } from '@/lib/permissions';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
-import Icon from '@/components/Icon';
 import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
+import { Hinweislinie, Masskette } from '@/components/Planlinie';
 import { eintrittsHinweis } from './eintrittsHinweis';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -1339,38 +1339,53 @@ export default function TimeForm({
             Lohnverrechnung auf — oder gar nicht. Warum genau diese drei
             Faelle einen Satz bekommen, steht in `zeitPlausibilitaet.ts`.
           */}
-          {bild && (
-            <>
-              <p
-                className={
-                  bild.befund === 'ok'
-                    ? 'text-sm text-ink-muted'
-                    : // Ein Befund als Hinweiszeile: Dreieck in der Farbe, Satz in Tinte.
-                      'hinweiszeile hinweiszeile-warn'
-                }
-                /*
-                  Nur der Befund wird angesagt, die normale Zahl nicht: eine
-                  Vorlesehilfe, die bei jedem Tastendruck im Zeitfeld die
-                  Arbeitszeit dazwischenruft, macht die Maske unbenutzbar.
-                */
-                role={bild.befund === 'ok' ? undefined : 'alert'}
-              >
-                {bild.befund !== 'ok' && <Icon name="warnung" size={16} />}
-                <span>
-                  Arbeitszeit: <strong>{fmtMin(bild.minuten)} Std</strong>
-                  {zeitSatz(bild) && <span className="block">{zeitSatz(bild)}</span>}
-                </span>
-              </p>
-              {bild.befund === 'ok' && Number(breakDuration) >= 0 && (
-                <div className="zeitbild">
-                  <div className="zeitband" role="img" aria-label="Zeitverteilung" aria-description={`${fmtMin(bild.minuten)} Std Arbeit und ${fmtMin(Number(breakDuration))} Std Pause`}>
-                    <span className="zeitband-arbeit" style={{ flexGrow: bild.minuten }} />
-                    {Number(breakDuration) > 0 && <span className="zeitband-pause" style={{ flexGrow: Number(breakDuration) }} />}
-                  </div>
-                  <p className="zeitband-legende" aria-hidden="true"><span>Arbeit</span><span>Pause {fmtMin(Number(breakDuration))} Std</span></p>
-                </div>
+          {bild && bild.befund === 'ok' && (
+            /*
+              DIE MASSKETTE STATT DES BALKENS „ARBEIT / PAUSE“ (Planlinie B11):
+              von Beginn bis Ende bemaßt, die Pause schraffiert. Wann die
+              Pause war, erfasst die Maske nicht — gebucht wird ihre Dauer.
+              Die Kette zeichnet sie deshalb in die Mitte, und der Satz
+              darunter sagt das, damit niemand eine Uhrzeit hineinliest.
+            */
+            <div className="zeitbild">
+              {Number(breakDuration) >= 0 && (
+                <Masskette
+                  vonText={startTime}
+                  bisText={endTime}
+                  gesamtMinuten={bild.minuten + Math.max(0, Number(breakDuration) || 0)}
+                  pauseMinuten={Math.max(0, Number(breakDuration) || 0)}
+                  dauer={fmtMin}
+                  /*
+                    Der Name sagt „unterbrochen“, nicht „Pause“: das Feld heißt
+                    „Pause (Min.)“, und eine Vorlesehilfe, die über die
+                    Beschriftung springt, soll zwei Ziele nicht verwechseln.
+                  */
+                  name={`Zeitverteilung ${startTime} bis ${endTime}: ${fmtMin(bild.minuten)} Std Arbeit, ${fmtMin(Math.max(0, Number(breakDuration) || 0))} Std unterbrochen`}
+                />
               )}
-            </>
+              <p className="text-sm text-ink-muted">
+                Arbeitszeit: <strong>{fmtMin(bild.minuten)} Std</strong>
+                {Number(breakDuration) > 0 && (
+                  <span className="zeitbild-satz"> · Pause schraffiert, in der Mitte gezeichnet — wann sie war, wird nicht erfasst.</span>
+                )}
+                {zeitSatz(bild) && <span className="block">{zeitSatz(bild)}</span>}
+              </p>
+            </div>
+          )}
+          {bild && bild.befund !== 'ok' && (
+            /*
+              EIN BEFUND AN DEN ZEITFELDERN als Hinweislinie (Planlinie B8):
+              Punkt, Linie mit Knick, der Satz daneben. Nur der Befund wird
+              angesagt, die normale Zahl nicht: eine Vorlesehilfe, die bei
+              jedem Tastendruck im Zeitfeld die Arbeitszeit dazwischenruft,
+              macht die Maske unbenutzbar.
+            */
+            <div role="alert">
+              <Hinweislinie>
+                Arbeitszeit: <strong>{fmtMin(bild.minuten)} Std</strong>
+                {zeitSatz(bild) && <span className="block">{zeitSatz(bild)}</span>}
+              </Hinweislinie>
+            </div>
           )}
 
           {/*
@@ -1447,14 +1462,11 @@ export default function TimeForm({
                 die Rechnung eine Position, ohne dass jemand es merkt.
               */}
               {!erweitert && entry && (entry.projectNumber || entry.isEmergency) && (
-                <div className="mt-2">
-                  <Hinweiszeile stufe="warn">
-                    <p>
-                      Dieser Eintrag hat eine Baustelle oder Zuschläge hinterlegt. Speichern ohne
-                      erweiterte Erfassung entfernt sie.
-                    </p>
-                  </Hinweiszeile>
-                </div>
+                /* Ein Hinweis am Haken, keine Rückfrage: als Hinweislinie (Planlinie B8). */
+                <Hinweislinie>
+                  Dieser Eintrag hat eine Baustelle oder Zuschläge hinterlegt. Speichern ohne
+                  erweiterte Erfassung entfernt sie.
+                </Hinweislinie>
               )}
             </div>
           )}

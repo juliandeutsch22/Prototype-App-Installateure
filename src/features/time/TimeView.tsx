@@ -43,7 +43,7 @@ import InfoHint from '@/components/InfoHint';
 import Icon from '@/components/Icon';
 import Card from '@/components/Card';
 import Metric, { MetricRow } from '@/components/Metric';
-import { Marke, Warnung } from '@/components/Badge';
+import { Marke, Warnung, Zustand } from '@/components/Badge';
 import Zeitmarker from './Zeitmarker';
 import { zuschlagszeit, hatZuschlaege } from '@/features/accounting/zuschlaege';
 import Button from '@/components/Button';
@@ -614,6 +614,14 @@ export default function TimeView() {
         onOeffnen={bearbeitbar ? () => bearbeiten(e) : undefined}
         subtitle={
           <>
+            {/*
+              ABWESENHEIT SCHRAFFIERT (Planlinie B11): Urlaub, Krankenstand,
+              Berufsschule, Zeitausgleich und Freistellungen tragen vor dem
+              Wort ein kleines schraffiertes Feld — dieselbe Schraffur wie in
+              Planung und Kalender. Das Wort steht daneben; das Feld sagt
+              nichts, was nicht dort steht.
+            */}
+            {e.status !== 'Anwesend' && <span className="zeit-schraffur schraffur" aria-hidden="true" />}
             {subtitle}
             {e.lastEditedBy && (
               <span className="mt-1 block text-xs text-ink-muted">
@@ -637,7 +645,8 @@ export default function TimeView() {
         {/* Verrechnete Einträge sind Grundlage einer
             verschickten Rechnung und bleiben gesperrt. */}
         {e.isBilled ? (
-          <Marke>verrechnet</Marke>
+          /* Verrechnet ist abgeschlossen: das Zeichen „erledigt“ mit dem Wort (Planlinie B3). */
+          <Zustand stand="erledigt">verrechnet</Zustand>
         ) : e.krankmeldungId ? (
           // Ein Tag einer Krankmeldung wird nur über sie
           // geändert — Ende ändern oder löschen.
@@ -1015,7 +1024,8 @@ export default function TimeView() {
             {kommend.length > 0 && (
               <Abschnitt
                 titel="Kommende Wochen"
-                anzahl={kommend.length === 1 ? '1 Eintrag' : `${kommend.length} Einträge`}
+                /* Die Zahl der Einträge im Achskreis (Planlinie B5) statt „· 5 Einträge“. */
+                anzahl={kommend.length}
                 link={
                   <span className="whitespace-nowrap text-sm text-ink-muted">
                     bis {datumAT(kommend[kommend.length - 1].date)}
@@ -1036,7 +1046,7 @@ export default function TimeView() {
                       dort, wo in den Zeilen darunter die Stunden stehen. */}
                   <Abschnitt
                     titel={week}
-                    anzahl={rows.length === 1 ? '1 Eintrag' : `${rows.length} Einträge`}
+                    anzahl={rows.length}
                     link={<span className="text-sm font-normal text-ink-deep">{fmtMin(weekMin)}</span>}
                     offen={wocheOffen(week, rows, index)}
                     onUmschalten={() =>

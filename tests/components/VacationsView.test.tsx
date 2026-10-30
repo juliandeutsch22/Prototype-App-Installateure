@@ -444,9 +444,11 @@ describe('Urlaub beim Laden', () => {
     await waitFor(() => expect(eigene.gefragt).toBe(true));
     expect(screen.queryByLabelText('Von')).not.toBeInTheDocument();
     expect(screen.queryByText(/genehmigt:/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /genehmigt:/ })).not.toBeInTheDocument();
     await act(async () => eigene.liefern([]));
     expect(await screen.findByLabelText('Von')).toBeInTheDocument();
-    expect(screen.getByText(/genehmigt:/)).toBeInTheDocument();
+    // Seit der Planlinie eine Maßlinie; der Satz ist ihr Name für die Vorlesehilfe.
+    expect(screen.getByRole('img', { name: /genehmigt:/ })).toBeInTheDocument();
   });
 
   it('Gegenprobe: nach dem Einreichen bleibt alles stehen, während neu geladen wird', async () => {
@@ -935,7 +937,7 @@ describe('Zeitausgleich beantragen', () => {
         tage: 1, status: 'Genehmigt', art: 'Urlaub' },
     );
     zeichne();
-    expect(await screen.findByText(/genehmigt:/)).toHaveTextContent(/genehmigt: 1 von/);
+    expect(await screen.findByRole('img', { name: /genehmigt: 1 von/ })).toBeInTheDocument();
     expect(screen.getByText(/ZA – 2 Tage \(16:00 Std\)/)).toBeInTheDocument();
   });
 
@@ -1190,6 +1192,7 @@ describe('Ohne Zeitkonto kein Resturlaub (Testbericht 30.09.2026, G13)', () => {
     await datum('Bis (einschließlich)', '2026-10-30');
     expect(screen.getByText(/4 Arbeitstage/)).toBeInTheDocument();
     expect(screen.queryByText(/genehmigt:/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /genehmigt:/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/danach bleiben/)).not.toBeInTheDocument();
   });
 
@@ -1198,8 +1201,27 @@ describe('Ohne Zeitkonto kein Resturlaub (Testbericht 30.09.2026, G13)', () => {
     expect(await screen.findByText('Resturlaub')).toBeInTheDocument();
     await datum('Von', '2026-10-26');
     await datum('Bis (einschließlich)', '2026-10-30');
-    expect(screen.getByText(/genehmigt:/)).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /genehmigt:/ })).toBeInTheDocument();
     expect(screen.getByText(/danach bleiben/)).toBeInTheDocument();
+  });
+});
+
+/*
+  PLANLINIE B2: die Urlaubstage stehen als Maßlinie gegen den Anspruch — mit
+  beiden Zahlen an der Linie, nie als Strecke ohne Zahl.
+*/
+describe('Urlaubstage als Maßlinie (Planlinie B2)', () => {
+  it('zeigt genehmigt gegen Anspruch mit beiden Zahlen an der Linie', async () => {
+    antraege.push({ id: 'u', companyId: 'perl', userId: 'm1', userName: 'Max', von: '2026-03-04', bis: '2026-03-05',
+      tage: 2, status: 'Genehmigt', art: 'Urlaub' });
+    zeichne();
+    const linie = await screen.findByRole('img', { name: /genehmigt: 2 von 25 Tagen/ });
+    expect(linie).toHaveClass('masslinie');
+    expect(linie).toHaveTextContent('2 Tage genehmigt');
+    expect(linie).toHaveTextContent('Anspruch 25');
+    // Bis zur Grenze kein roter Überhang.
+    expect(linie).not.toHaveAttribute('data-darueber');
+    expect(screen.queryByText(/genehmigt: 2 von/)).not.toBeInTheDocument();
   });
 });
 
