@@ -215,7 +215,10 @@ describe('Ohne interne Kostensätze', () => {
     projekte = [projekt('2026-001')];
     zeige();
 
-    expect(await screen.findByText('Kostensätze fehlen')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Kostensätze fehlen' })).toBeInTheDocument();
+    // Eine fehlende Voraussetzung: die kleine Einrichtungs-Zeichnung, keine große Leere (Planlinie § 6).
+    expect(document.querySelector('.lot-zeichnung-hinweis[data-motiv="einrichtung"]')).not.toBeNull();
+    expect(document.querySelector('.lot-zeichnung-leer')).toBeNull();
     expect(listEntriesForProjects).not.toHaveBeenCalled();
     expect(screen.queryByText('Ergebnis je Baustelle')).not.toBeInTheDocument();
   });
@@ -357,6 +360,35 @@ describe('Mit Kostensätzen', () => {
     expect(zahl('Ohne Erlös')).toHaveTextContent('1');
   });
 
+  /*
+    PLANLINIE (E30): Kosten gegen Erlös als Maßlinie, ein Verlust läuft über
+    den Erlös hinaus. Ohne Erlös keine Grenze, also keine Linie — und kein
+    Haken, denn „ohne Erlös“ ist nicht „erledigt“.
+  */
+  it('bemaßt Kosten gegen Erlös je Baustelle; ohne Erlös keine Linie und kein Haken (Planlinie)', async () => {
+    projekte = [projekt('2026-002'), projekt('2026-004')];
+    eintraege = [...stunden('2026-002', 1), ...stunden('2026-004', 2)];
+    rechnungen = [rechnung('2026-004', 300)];
+    zeige();
+    const verlust = (await screen.findByText(/Kunde 2026-004/)).closest('li') as HTMLElement;
+    const linie = within(verlust).getByRole('img', { name: /^Kosten € .*640,00 von € .*300,00 Erlös/ });
+    expect(linie).toHaveAttribute('data-darueber', 'true');
+    const ohne = screen.getByText(/Kunde 2026-002/).closest('li') as HTMLElement;
+    expect(within(ohne).queryByRole('img')).not.toBeInTheDocument();
+    const zeichen = within(ohne).getByText('keine Aussage');
+    expect(zeichen).toHaveClass('stand-offen');
+    expect(zeichen).not.toHaveClass('stand-leise');
+  });
+
+  it('Gegenprobe: ohne Verlust läuft die Linie nicht über den Erlös', async () => {
+    projekte = [projekt('2026-001')];
+    eintraege = stunden('2026-001', 2);
+    rechnungen = [rechnung('2026-001', 2000)];
+    zeige();
+    const zeile = (await screen.findByText(/Kunde 2026-001/)).closest('li') as HTMLElement;
+    expect(within(zeile).getByRole('img', { name: /^Kosten/ })).not.toHaveAttribute('data-darueber');
+  });
+
   it('Gegenprobe: ohne Baustelle keine Kennzahlen', async () => {
     zeige();
     await screen.findByText('Keine Baustelle in dieser Auswahl.');
@@ -396,7 +428,9 @@ describe('Material im Ergebnis', () => {
     ];
     zeige();
 
-    const zeile = await screen.findByText(/− Material/);
+    // Seit der Planlinie (E30) stehen die Posten in der Unterzeile, der
+    // Deckungsbeitrag als Betrag daneben — geprüft wird die Zeile.
+    const zeile = (await screen.findByText(/Material €\s350,00/)).closest('li') as HTMLElement;
     // Erlös 2000 − Personal 0 − Material 350 = 1650. Die Zahl selbst zählt:
     // stünde hier 2000, wäre das Material zwar geholt, aber nicht abgezogen.
     expect(zeile.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('1650,00');
@@ -455,8 +489,8 @@ describe('Material im Ergebnis', () => {
     expect(await screen.findByText(/Spezialdichtung/)).toBeInTheDocument();
     expect(screen.getByText(/Deckungsbeitrag ist um deren Einkaufspreis zu hoch; der ist nicht hinterlegt/)).toBeInTheDocument();
     // Und keine Materialzeile: es ist nichts eingerechnet worden, ein
-    // „− Material 0,00 €" läse sich wie „kein Material verbaut".
-    expect(screen.queryByText(/− Material/)).not.toBeInTheDocument();
+    // „Material 0,00 €" läse sich wie „kein Material verbaut".
+    expect(screen.queryByText(/Material €/)).not.toBeInTheDocument();
   });
 
   it('holt die Scheine je Baustelle, nicht einmal für alle', async () => {
@@ -483,9 +517,9 @@ describe('Material im Ergebnis', () => {
     zeige();
 
     // Nicht /Erlös/: so heisst auch die Überschrift der Karte.
-    const zeile = await screen.findByText(/− Personal/);
+    const zeile = (await screen.findByText(/Personal €/)).closest('li') as HTMLElement;
     expect(zeile.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('2000,00');
-    expect(screen.queryByText(/− Material/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Material €/)).not.toBeInTheDocument();
   });
 });
 

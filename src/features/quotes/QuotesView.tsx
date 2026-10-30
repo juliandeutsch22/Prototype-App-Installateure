@@ -1062,8 +1062,8 @@ export default function QuotesView() {
               onChange={(e) => setNotes(e.target.value)}
             />
 
-            {/* Die Summen mit einer Linie abgesetzt, nicht in einem Kasten. */}
-            <div className="border-t border-line pt-3">
+            {/* Die Summen unter der Doppellinie der Stückliste (Planlinie B6), nicht in einem Kasten. */}
+            <div className="angebot-summe">
               <p className="text-sm text-ink">
                 Netto {euro(summen.totalNetto)} · USt {euro(summen.totalVat)} ·{' '}
                 <strong className="font-semibold">Brutto {euro(summen.totalBrutto)}</strong>

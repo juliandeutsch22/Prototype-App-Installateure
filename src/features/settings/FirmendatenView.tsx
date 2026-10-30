@@ -10,6 +10,7 @@ import Button from '@/components/Button';
 import LotZeichnung from '@/components/LotZeichnung';
 import { einrichtungsstand } from './EinstellungenUebersicht';
 import PageHeader from '@/components/PageHeader';
+import { Hinweislinie } from '@/components/Planlinie';
 import { InputField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { firmenbuchEingetragen, imFirmenbuch } from '@/lib/firmenbuch';
 import { useToast } from '@/components/Toast';
@@ -409,7 +410,8 @@ export default function FirmendatenView() {
                 aria-describedby={uidFalsch ? 'fd-uid-fehler' : undefined}
                 onChange={(e) => setVatId(e.target.value)}
               />
-              {uidFalsch && <p id="fd-uid-fehler" className="mt-1 text-sm text-danger">{uidFalsch}</p>}
+              {/* Die Warnung am Feld als Hinweislinie (Planlinie B8), wie eine Notiz im Plan. */}
+              {uidFalsch && <Hinweislinie stufe="fehl" id="fd-uid-fehler">{uidFalsch}</Hinweislinie>}
             </div>
             <div className="sm:col-span-2">
               <CheckboxField
@@ -445,10 +447,10 @@ export default function FirmendatenView() {
                 onBlur={() => setIban((x) => ibanAnzeige(x))}
               />
               {ibanFalsch && (
-                <p id="fd-iban-fehler" className="mt-1 text-sm text-danger">
+                <Hinweislinie stufe="fehl" id="fd-iban-fehler">
                   {ibanFalsch}
                   {ibanNormal(iban) === ibanNormal(company?.iban) && ' Mit dieser IBAN lässt sich keine Rechnung erstellen.'}
-                </p>
+                </Hinweislinie>
               )}
             </div>
             <div>
@@ -461,7 +463,7 @@ export default function FirmendatenView() {
                 aria-describedby={bicFalsch ? 'fd-bic-fehler' : undefined}
                 onChange={(e) => setBic(e.target.value)}
               />
-              {bicFalsch && <p id="fd-bic-fehler" className="mt-1 text-sm text-danger">{bicFalsch}</p>}
+              {bicFalsch && <Hinweislinie stufe="fehl" id="fd-bic-fehler">{bicFalsch}</Hinweislinie>}
             </div>
             <InputField
               id="fd-bank"
