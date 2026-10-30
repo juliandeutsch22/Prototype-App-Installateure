@@ -32,6 +32,7 @@ import {
 import { ruestZeile, vorschauInhalt, type ProjektKurz, type TagesDaten, type VorschauZiel } from './monatsVorschau';
 import MonatsVorschau from './MonatsVorschau';
 import MonatsKalender from './MonatsKalender';
+import { GruppenAchse } from './PlanRaster';
 import { DB_QUELLE, type MonatsQuelle } from './monatsQuelle';
 
 /** Gruppen höchstens 20 Zeilen, dann „und N weitere“ (Regel 4). */
@@ -537,7 +538,7 @@ export default function MonatsAnsicht({
             b.art === 'konflikt'
               ? gewaehlt ? 'mo-balken-konflikt-gewaehlt' : 'mo-balken-konflikt'
               : b.art === 'weg'
-                ? gewaehlt ? 'mo-balken-weg-gewaehlt' : 'mo-balken-weg'
+                ? gewaehlt ? 'mo-balken-weg-gewaehlt schraffur' : 'mo-balken-weg schraffur'
                 : gewaehlt ? 'mo-balken-gewaehlt' : 'mo-balken';
           const span = b.ende - b.start + 1;
           const von = tagKurz(tage[b.start]);
@@ -604,6 +605,8 @@ export default function MonatsAnsicht({
                 oeffnen({ ziel: { art: 'tag', tag: t }, zeile: 'k', anker: e.currentTarget, klickX: null });
               }}
             >
+              {/* Das Senkblei des Lots (Planlinie, B4) — auch am gewählten Tag, wenn er heute ist. */}
+              {t === heute && <span className="spalten-lot" aria-hidden="true" />}
               <span className="mo-wt" aria-hidden="true">
                 {wt.slice(0, 2)}
               </span>
@@ -621,7 +624,8 @@ export default function MonatsAnsicht({
 
       {sicht === 'baustellen' ? (
         baustellen.length === 0 ? (
-          <EmptyState>In diesem Monat ist keine Baustelle eingeplant.</EmptyState>
+          // Echte Leere (Planlinie, Seitenplan): die Zeichnung „plan“ unter den Köpfen, nicht in einer Zeile.
+          <EmptyState zeichnung="plan">In diesem Monat ist keine Baustelle eingeplant.</EmptyState>
         ) : (
           baustellen.map((b) =>
             zeile({
@@ -641,12 +645,7 @@ export default function MonatsAnsicht({
           const offenG = !zu.has(g.name);
           return (
             <Fragment key={g.name}>
-              {mitKoepfen && (
-                <button type="button" className="mo-gruppe" aria-expanded={offenG} onClick={() => onGruppe(g.name)}>
-                  <span aria-hidden="true">{offenG ? '▾' : '▸'}</span>
-                  {g.name} · {g.leute.length}
-                </button>
-              )}
+              {mitKoepfen && <GruppenAchse gruppe={g} offen={offenG} onUmschalten={() => onGruppe(g.name)} linie />}
               {(offenG || !mitKoepfen) &&
                 g.leute.map((u) =>
                   zeile({
@@ -673,10 +672,20 @@ export default function MonatsAnsicht({
           <>
             <span className="mo-legende-plan">eingeplant</span>
             <span className="mo-legende-konflikt">eingeteilt, aber abwesend</span>
-            <span className="mo-legende-weg">abwesend</span>
+            <span className="mo-legende-weg">
+              <span className="mo-legende-muster schraffur" aria-hidden="true" />
+              abwesend
+            </span>
           </>
         )}
         <span className="mo-legende-ruhe">Wochenende, Feiertag</span>
+        {/* Das Lot ersetzt den getönten Tag — neu im Plan, darum hier benannt. */}
+        <span className="mo-legende-heute">
+          <span className="lot-legende" aria-hidden="true">
+            <span className="tag-lot" />
+          </span>
+          heute
+        </span>
         <span className="mo-legende-satz">Punkt im Kopf: Termine an diesem Tag · Tag antippen zeigt die Vorschau</span>
       </p>
     </div>

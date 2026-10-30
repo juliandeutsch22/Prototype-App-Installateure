@@ -81,3 +81,20 @@ describe('Woche als Adresse', () => {
     expect(montagAusKw('2025-W53')).toBeNull();
   });
 });
+
+/*
+  DAS FELD „WOCHE“ IM SCHRIFTFELD (Planlinie, B1): die KW, darunter der
+  Zeitraum mit dem Jahr des letzten Tages — auch über den Jahreswechsel.
+*/
+describe('Feld „Woche“ im Schriftfeld', () => {
+  it('nennt KW und Zeitraum mit Jahr', async () => {
+    const { wochenFeld } = await import('@/features/assignments/planungKopf');
+    expect(wochenFeld('2026-10-26')).toEqual({ kw: 'KW 44', spanne: '26.10. bis 01.11.2026' });
+  });
+
+  it('über den Jahreswechsel: das Jahr des Sonntags, die KW des Donnerstags', async () => {
+    const { wochenFeld } = await import('@/features/assignments/planungKopf');
+    expect(wochenFeld('2026-12-28')).toEqual({ kw: 'KW 53', spanne: '28.12. bis 03.01.2027' });
+    expect(wochenFeld('2025-12-29')).toEqual({ kw: 'KW 1', spanne: '29.12. bis 04.01.2026' });
+  });
+});

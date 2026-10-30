@@ -2,10 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 
 /*
-  HEUTE IM MONATSPLAN (20.10.2026): Die Spalte von heute trägt nur noch den
-  leisen Ton `--heute`, ohne Linien. Der Kopf bleibt die eine deutliche
-  Markierung, der gewählte Tag behält als einziger einen Rahmen; Woche und
-  Handy-Kalender bleiben, wie sie sind.
+  HEUTE TRÄGT DAS LOT (Planlinie, B4; 30.10.2026). Bis dahin trug die Spalte
+  von heute einen leisen Ton (`--heute`) und der Kopf eine getönte Fläche
+  mit Strich unten (Entscheidung vom 20.10.2026: keine Linien, weil zwei
+  Linien je Zelle an jeder Zeilengrenze abbrachen). Jetzt ist es EINE Linie
+  links, die durch Kopf und alle Zeilen läuft, im Kopf das Senkblei daran —
+  in Woche und Monat; über dem Tag in Tagesleiste und Kalender. Der
+  gewählte Tag behält als einziger einen Rahmen.
 */
 
 const monat = readFileSync('src/styles/lot-monat.css', 'utf8');
@@ -19,14 +22,19 @@ function regel(css: string, selektor: string): string {
   return treffer[0][1];
 }
 
-describe('Monatsplan: die Spalte von heute', () => {
-  it('trägt nur den Ton --heute — keine Linien, kein Rahmen', () => {
-    const r = regel(monat, '.mo-hg-heute');
-    expect(r).toMatch(/background: var\(--heute\)/);
-    expect(r).not.toMatch(/box-shadow|border|outline/);
+describe('Monatsplan: heute als Lot', () => {
+  it('die Spalte trägt keinen Ton mehr, sondern links eine Linie in Petrol, die über die Zeilengrenze reicht', () => {
+    expect(regel(monat, '.mo-hg-heute')).toMatch(/background: var\(--surface\)/);
+    const linie = regel(monat, '.mo-hg-heute::before');
+    expect(linie).toMatch(/left: 0;/);
+    expect(linie).toMatch(/bottom: -1px;/);
+    expect(linie).toMatch(/width: 1px;/);
+    expect(linie).toMatch(/background: var\(--accent-deep\)/);
+    // Sie liegt über den Balken, fängt aber keinen Klick.
+    expect(linie).toMatch(/pointer-events: none/);
   });
 
-  it('auch keine andere Regel in den Stilen zeichnet Linien an die Zellen von heute', () => {
+  it('keine Regel zeichnet einen Rahmen um die Zellen von heute (nur die eine Linie links)', () => {
     for (const datei of readdirSync('src/styles').filter((d) => d.endsWith('.css'))) {
       const css = readFileSync(`src/styles/${datei}`, 'utf8');
       for (const [, sel, rumpf] of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
@@ -39,21 +47,16 @@ describe('Monatsplan: die Spalte von heute', () => {
     }
   });
 
-  it('der Ton hat hell und dunkel einen eigenen Wert, leiser als --petrol-hell', () => {
-    const index = readFileSync('src/index.css', 'utf8');
-    expect(index).toMatch(/--heute: #f4f8f9;/);
-    expect(index).toMatch(/:root\[data-theme='dark'\] \{[^}]*--heute: #132c32;/);
+  it('der Kopf von heute: keine getönte Fläche, Petrol-Schrift, dieselbe Linie links', () => {
+    const r = regel(monat, '.mo-kopf-heute');
+    expect(r).toMatch(/background: var\(--surface\)/);
+    expect(r).toMatch(/color: var\(--accent-deep\)/);
+    expect(r).not.toMatch(/petrol-hell|box-shadow/);
+    expect(regel(monat, '.mo-kopf-heute::before')).toMatch(/width: 1px; background: var\(--accent-deep\)/);
   });
 });
 
 describe('Monatsplan: was gleich bleibt', () => {
-  it('der Kopf von heute: heller Petrol-Grund, fette Zahl, 3-px-Strich unten', () => {
-    const r = regel(monat, '.mo-kopf-heute');
-    expect(r).toMatch(/background: var\(--petrol-hell\)/);
-    expect(r).toMatch(/font-weight: 600/);
-    expect(r).toMatch(/box-shadow: inset 0 -3px 0 var\(--petrol\)/);
-  });
-
   it('der gewählte Tag behält seinen Rahmen, in der Spalte wie im Kopf', () => {
     expect(regel(monat, '.mo-hg-gewaehlt')).toMatch(/background: var\(--petrol-hell\); box-shadow: inset 0 0 0 2px var\(--petrol\)/);
     expect(regel(monat, '.mo-kopf-gewaehlt')).toMatch(/box-shadow: inset 0 0 0 2px var\(--petrol\)/);
@@ -62,13 +65,39 @@ describe('Monatsplan: was gleich bleibt', () => {
   it('Überfahren hebt heute weiter hervor', () => {
     expect(monat).toMatch(/\.mo-hg:hover, \.mo-hg-we:hover, \.mo-hg-heute:hover \{ background: var\(--petrol-hell\); \}/);
   });
+});
 
-  it('die Woche: Spalte im Ton, Kopf mit Strich — unverändert', () => {
-    expect(regel(planung, '.wp-zelle-heute')).toBe(' background: var(--heute); ');
-    expect(regel(planung, '.wp-kopf-heute')).toBe(' background: var(--petrol-hell); box-shadow: inset 0 -3px 0 var(--petrol); ');
+describe('Woche: heute als Lot', () => {
+  it('Zelle und Kopf von heute: kein Ton, die Linie links in Petrol — auch an einem schmalen Tag', () => {
+    expect(regel(planung, '.wp-zelle-heute')).toBe(' background: none; border-left-color: var(--accent-deep); ');
+    expect(regel(planung, '.wp-zelle-schmal-heute')).toBe(' background: var(--surface-2); border-left-color: var(--accent-deep); ');
+    expect(regel(planung, '.wp-kopf-heute')).toBe(' background: var(--surface); border-left-color: var(--accent-deep); ');
+    expect(regel(planung, '.wp-kopf-schmal-heute')).toBe(' background: var(--surface-2); border-left-color: var(--accent-deep); ');
   });
 
-  it('der Handy-Kalender: Kachel von heute mit Rahmen — unverändert', () => {
-    expect(regel(monat, '.kal-tag-heute')).toBe(' background: var(--petrol-hell); box-shadow: inset 0 0 0 2px var(--petrol); ');
+  it('das Senkblei im Kopf: Faden und Raute in Petrol, ohne Klickfläche', () => {
+    expect(regel(planung, '.spalten-lot')).toMatch(/pointer-events: none/);
+    expect(regel(planung, '.spalten-lot::before')).toMatch(/width: 1px;.*background: var\(--accent-deep\)/);
+    expect(regel(planung, '.spalten-lot::after')).toMatch(/clip-path: polygon\(50% 0, 100% 40%, 50% 100%, 0 40%\)/);
+  });
+
+  it('der aus dem Monat markierte Tag behält seinen Ring (gleich geblieben)', () => {
+    expect(regel(planung, '.wp-kopf-markiert')).toBe(' background: var(--petrol-hell); box-shadow: inset 0 0 0 2px var(--petrol); ');
+  });
+
+  it('die Tagesleiste am Handy: heute ohne eigene Fläche, der gewählte Tag unterstrichen statt gefüllt', () => {
+    expect(planung).not.toMatch(/\.tagwahl-tag-heute/);
+    const an = regel(planung, '.tagwahl-tag-an');
+    expect(an).toMatch(/background: var\(--surface\)/);
+    expect(an).toMatch(/box-shadow: inset 0 -2px 0 var\(--accent-deep\)/);
+    expect(an).not.toMatch(/background: var\(--petrol\)/);
+  });
+});
+
+describe('Handy-Kalender: heute als Lot', () => {
+  it('die Kachel von heute trägt keinen Rahmen und keine Fläche mehr — das Lot hängt über der Zahl', () => {
+    const r = regel(monat, '.kal-tag-heute');
+    expect(r).not.toMatch(/box-shadow|background/);
+    expect(r).toMatch(/color: var\(--accent-deep\)/);
   });
 });

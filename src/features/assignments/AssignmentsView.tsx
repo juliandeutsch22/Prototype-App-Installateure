@@ -16,7 +16,9 @@ import type { WithId } from '@/lib/db/core';
 import type { Project, AppUser, Assignment, Betriebsurlaub, Termin } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Metric, { MetricRow } from '@/components/Metric';
 import { Marke } from '@/components/Badge';
+import { Stempel } from '@/components/Planlinie';
 import MonthCalendar from '@/components/MonthCalendar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import RowMenu from '@/components/RowMenu';
@@ -255,6 +257,28 @@ export default function AssignmentsView() {
     }
   }
 
+  /*
+    DAS SCHRIFTFELD WIE IN WOCHE UND MONAT (Planlinie, B1): derselbe Kopf in
+    allen drei Ansichten, damit der Umschalter darunter an derselben Stelle
+    steht (Runde 5, G9). Nur was diese Seite schon rechnet: der gewählte Tag
+    und — wie die Zeile unter den Einsätzen — wer verfügbar ist und noch
+    keinen Einsatz hat. Die Zahl steht unter denselben Bedingungen wie jene
+    Zeile: erst wenn an dem Tag geplant ist und die Belegschaft da ist.
+  */
+  const tagDatum = new Date(`${date}T00:00:00`);
+  const stand = (
+    <MetricRow label="Stand der Planung">
+      <Metric
+        label="Tag"
+        value={`${date.slice(8, 10)}.${date.slice(5, 7)}.${date.slice(0, 4)}`}
+        hint={tagDatum.toLocaleDateString('de-AT', { weekday: 'long' })}
+      />
+      {dayAssignments.length > 0 && staff.length > 0 && (
+        <Metric label="Ohne Einsatz" value={nichtEingeteilt.length} hint="verfügbar, noch nicht eingeteilt" />
+      )}
+    </MetricRow>
+  );
+
   return (
     <div className="space-y-3 lg:space-y-5">
       {/*
@@ -263,6 +287,7 @@ export default function AssignmentsView() {
         Umschalter statt der Reiter, darunter die Seite wie bisher.
       */}
       <PlanungsSeitenkopf
+        stand={stand}
         mehr={
           // Dasselbe ⋯ wie in Woche und Monat; hier öffnet es das Fenster der Karte „Termine“ für den gewählten Tag.
           user && darfTermineSchreiben(user.role) ? (
@@ -308,7 +333,10 @@ export default function AssignmentsView() {
               Baustellen geplant
             </span>
             <span className="flex items-center gap-2">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-info-bg ring-1 ring-info" />
+              {/* Dasselbe Lot wie über dem heutigen Tag im Kalender (Planlinie, B4). */}
+              <span className="lot-legende" aria-hidden="true">
+                <span className="tag-lot" />
+              </span>
               Heute
             </span>
             <span className="flex items-center gap-2">
@@ -387,7 +415,8 @@ export default function AssignmentsView() {
                       <div className="abschnitt flex-wrap">
                         <h3>
                           {proj?.customerName ?? pn}{' '}
-                          <span className="text-sm font-normal text-ink-muted">({pn})</span>
+                          {/* Die Nummer als Stempel statt in Klammern (Planlinie, B10). */}
+                          <Stempel>{pn}</Stempel>
                         </h3>
                         <span className="flex flex-wrap items-center gap-2">
                           {einsatzZeit(rows[0]) && <Marke>{einsatzZeit(rows[0])}</Marke>}

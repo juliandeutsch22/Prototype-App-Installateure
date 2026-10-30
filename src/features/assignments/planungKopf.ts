@@ -98,3 +98,15 @@ export function montagAusKw(schluessel: string | null): string | null {
   // „2026-W53“ gibt es nicht: die Woche läge schon im nächsten Jahr.
   return kwSchluessel(montag) === `${m[1]}-W${m[2]}` ? montag : null;
 }
+
+/**
+ * Das Feld „Woche“ im Schriftfeld des Plankopfs (Planlinie, B1): groß die
+ * KW, darunter der Zeitraum mit Jahr am Ende — „26.10. bis 01.11.2026“.
+ * Das Jahr steht hier immer: das Schriftfeld ist der Kopf des Plans, und
+ * ein ausgedruckter Plan muss ohne Bildschirm sagen, welche Woche er zeigt.
+ */
+export function wochenFeld(montag: string): { kw: string; spanne: string } {
+  const bis = wocheAb(montag)[6];
+  const tm = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
+  return { kw: `KW ${kalenderwoche(montag)}`, spanne: `${tm(montag)} bis ${tm(bis)}${bis.slice(0, 4)}` };
+}
