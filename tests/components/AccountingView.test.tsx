@@ -5,6 +5,7 @@ import { ToastProvider } from '@/components/Toast';
 import userEvent from '@testing-library/user-event';
 import type { AppUser, Project, TimeEntry } from '@/types';
 import AccountingView from '@/features/accounting/AccountingView';
+import { saldoMassstab } from '@/features/accounting/saldoMassstab';
 import { stundenDerBaustellen } from '@/lib/db/timeEntries';
 import { listUsers } from '@/lib/db/users';
 import { listProjectsByNumbers } from '@/lib/db/projects';
@@ -873,6 +874,9 @@ function zeichneSeite(start = '/accounting?tage=alle') {
 
 /** Ein Feld des Streifens bzw. eine Zelle der Woche — beim `aria-label` gesucht (Person, Tag, Zustand). */
 const tagKnopf = (muster: RegExp) => screen.getByRole('button', { name: muster });
+/** Ein Feld des Schriftfelds im Plankopf, nach seiner Beschriftung. */
+const schriftfeld = (name: string) =>
+  [...document.querySelectorAll('.schriftfeld .lage-name')].find((n) => n.textContent === name)!.closest('.lage-punkt') as HTMLElement;
 
 describe('Mitarbeiterübersicht: mobile Tage ohne Buchung', () => {
   it('beginnt eingeklappt und behält den offenen Zustand beim Rückweg aus der Zeiterfassung', async () => {
@@ -945,7 +949,8 @@ describe('Mitarbeiterübersicht: der Monat als Streifen (Runde 4, Auftrag 3.3)',
     zeichneSeite();
     await personKnopf('Neu Eingestellt');
     const gruppen = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
-    expect(gruppen).toEqual(['Mit Tagen ohne Buchung · 2', 'Vollständig · 1']);
+    // Die Anzahl steht im Achskreis vor dem Titel (Planlinie B5).
+    expect(gruppen).toEqual(['2 Mit Tagen ohne Buchung', '1 Vollständig']);
     const namen = Array.from(document.querySelectorAll('.ue-name')).map((n) => n.textContent);
     expect(namen).toEqual(['Bert Dritter', 'Anna Zweite', 'Neu Eingestellt']);
   });
@@ -1050,7 +1055,11 @@ describe('Mitarbeiterübersicht: kompakter Prüfbereich', () => {
     const nutzer = zeichneSeite('/accounting');
     await personKnopf('Neu Eingestellt');
     const kennzahl = screen.getByRole('checkbox', { name: /Nur Tage ohne Buchung/ });
-    expect(screen.getByText('2 Tage ohne Buchung bei 1 von 2 Personen')).toBeInTheDocument();
+    // Die Zahl steht im Schriftfeld des Kopfs (Planlinie B1), nicht mehr als Satz über der Liste.
+    const feld = schriftfeld('Tage ohne Buchung');
+    expect(feld.querySelector('.lage-wert')).toHaveTextContent(/^2$/);
+    expect(feld).toHaveTextContent('bei 1 von 2 Personen');
+    expect(screen.queryByText(/Tage ohne Buchung bei/)).toBeNull();
     expect(kennzahl).not.toBeChecked();
 
     await nutzer.click(kennzahl);
@@ -1072,13 +1081,18 @@ describe('Mitarbeiterübersicht: kompakter Prüfbereich', () => {
     expect(screen.getByRole('button', { name: /August 2026/ })).toBeInTheDocument();
   });
 
-  it('„Gebucht bisher“ ist die Summe der Zeilen', async () => {
+  it('„Gebucht“ ist die Summe der Zeilen — im Schriftfeld und in der Summenzeile', async () => {
     luecke();
     zeichneSeite();
     await personKnopf('Neu Eingestellt');
     // 80:00 + 64:00 gebucht; Soll je 80:00.
-    expect(screen.getByText('144:00')).toBeInTheDocument();
-    expect(screen.getByText('von 160:00 Soll · alle Personen')).toBeInTheDocument();
+    const feld = schriftfeld('Gebucht');
+    expect(feld.querySelector('.lage-wert')).toHaveTextContent('144:00');
+    expect(feld).toHaveTextContent('von 160:00 Soll');
+    const summe = screen.getByRole('region', { name: 'Gesamt aller Personen' });
+    expect(summe).toHaveTextContent('Alle Personen');
+    expect(summe).toHaveTextContent('144:00');
+    expect(summe).toHaveTextContent('160:00');
   });
 
   it('die ruhige Gesamtsumme steht hinter der Liste und bleibt beim Filtern unverändert', async () => {
@@ -1091,7 +1105,10 @@ describe('Mitarbeiterübersicht: kompakter Prüfbereich', () => {
     await nutzer.click(screen.getByRole('checkbox', { name: /Nur Tage ohne Buchung/ }));
     expect(document.querySelectorAll('.ue-name')).toHaveLength(1);
     expect(summe).toHaveTextContent('144:00');
-    expect(summe).toHaveTextContent('von 160:00 Soll · alle Personen');
+    expect(summe).toHaveTextContent('160:00');
+    // Die Summenzeile steht unter den Zeilen, gebucht und Soll über der Doppellinie (Stückliste).
+    expect(summe).toHaveClass('ue-summe');
+    expect(summe.querySelectorAll('.ue-zahl')).toHaveLength(2);
   });
 
   it('der Fall steht in der Karte und als Tag im Streifen — mit EINER Prüfung, ohne eigene Kennzahl', async () => {
@@ -1165,9 +1182,9 @@ describe('Mitarbeiterübersicht: die Woche (Runde 4, Auftrag 3.4)', () => {
     await personKnopf('Neu Eingestellt');
     await nutzer.click(screen.getByRole('button', { name: 'Vorige Woche' }));
     const summe = screen.getByRole('region', { name: 'Gesamt aller Personen' });
-    expect(summe).toHaveTextContent('Gebucht in dieser Woche');
+    expect(summe).toHaveTextContent('Alle Personen');
     expect(summe).toHaveTextContent('32:00');
-    expect(summe).toHaveTextContent('von 40:00 Soll · alle Personen');
+    expect(summe).toHaveTextContent('40:00');
   });
 
   it('?ansicht=woche zeigt die laufende Woche mit Stunden, Von–Bis und „fehlt“, darunter die Summen', async () => {
@@ -1184,7 +1201,7 @@ describe('Mitarbeiterübersicht: die Woche (Runde 4, Auftrag 3.4)', () => {
     expect(gebucht).toHaveTextContent('07:00–15:30');
     expect(tagKnopf(/^Neu Eingestellt, Mi 26\.08\. · keine Buchung/)).toHaveTextContent('fehlt');
     // Gruppe und Stand der Woche, Summen der Woche: 4 × 8 gebucht, 5 × 8 Soll.
-    expect(screen.getByRole('heading', { name: 'Mit Tagen ohne Buchung in dieser Woche · 1' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '1 Mit Tagen ohne Buchung in dieser Woche' })).toBeInTheDocument();
     const zeile = (await personKnopf('Neu Eingestellt')).parentElement!;
     expect(zeile).toHaveTextContent('1 Tag fehlt');
     expect(zeile).toHaveTextContent('32:00');
@@ -1497,5 +1514,73 @@ describe('Überstunden nach dem KV: die Woche vor dem Monatsersten zählt mit (1
     } finally {
       authWert.company = vorher;
     }
+  });
+});
+
+/*
+  DIE PLANLINIE IN DER MITARBEITERÜBERSICHT (Auftrag 30.10.2026, E30):
+  Saldolinie mit genanntem Maßstab, Statuszeichen „Achtung“ bei Tagen ohne
+  Buchung, die Zeichnung `fertig` nur beim echten „alles gebucht“.
+*/
+describe('Mitarbeiterübersicht: Planlinie', () => {
+  it('zeichnet den Gesamtsaldo als Saldolinie und nennt den Maßstab unter der Liste', async () => {
+    zeichneSeite('/accounting');
+    const zeile = (await personKnopf('Neu Eingestellt')).parentElement!;
+    const linie = await within(zeile).findByRole('img', { name: /^Gesamtsaldo -03:15 Stunden, Maßstab halbe Breite 8 Stunden$/ });
+    expect(linie).toHaveClass('saldolinie');
+    // −3:15 Std. wächst nach links (Minus), nicht nach rechts.
+    expect(linie.querySelector('.saldolinie-minus')).not.toBeNull();
+    expect(linie.querySelector('.saldolinie-plus')).toBeNull();
+    expect(zeile.querySelector('.ue-gesamtsaldo-zahl')).toHaveTextContent('-03:15');
+    expect(screen.getByText(/Maßstab: halbe Breite = 8 Std\./)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne Gesamtsaldo keine Linie und kein Maßstab — die Zahl bleibt „—“', async () => {
+    gesamtsaldenLaden.mockRejectedValue(new Error('weg'));
+    try {
+      zeichneSeite('/accounting');
+      const zeile = (await personKnopf('Neu Eingestellt')).parentElement!;
+      await waitFor(() => expect(zeile.querySelector('.ue-gesamtsaldo-zahl')).toHaveTextContent('—'));
+      expect(zeile.querySelector('.saldolinie')).toBeNull();
+      expect(screen.queryByText(/Maßstab: halbe Breite/)).toBeNull();
+    } finally {
+      gesamtsaldenLaden.mockReset();
+      gesamtsaldenLaden.mockImplementation(async (_betrieb: string, personen: AppUser[]) =>
+        new Map(personen.filter((p) => p.appStartDate).map((p) => [p.uid, -3.25])));
+    }
+  });
+
+  it('der Maßstab ist die kleinste runde Stufe, in die der größte Saldo passt', () => {
+    expect(saldoMassstab([-195, 60])).toBe(8);
+    expect(saldoMassstab([8 * 60])).toBe(8);
+    expect(saldoMassstab([8 * 60 + 1])).toBe(16);
+    expect(saldoMassstab([-239 * 60, null])).toBe(240);
+    expect(saldoMassstab([5000 * 60])).toBe(800);
+    expect(saldoMassstab([])).toBe(8);
+  });
+
+  it('Tage ohne Buchung tragen das Zeichen „Achtung“, eine vollständige Person keines', async () => {
+    const zweite = { ...monteur, id: 'u2', uid: 'u2', name: 'Anna Zweite' } as AppUser;
+    benutzer = [monteur, zweite];
+    buchungen = [...eintraege, ...eintraege.filter((e) => e.date !== '2026-08-20').map((e) => ({ ...e, id: `${e.id}-2`, userId: 'u2' }))];
+    zeichneSeite('/accounting');
+    const anna = (await personKnopf('Anna Zweite')).parentElement!;
+    expect(within(anna).getByText('1 Tag ohne Buchung')).toHaveClass('stand', 'stand-warn');
+    const neu = (await personKnopf('Neu Eingestellt')).parentElement!;
+    expect(neu.querySelector('.stand-warn')).toBeNull();
+  });
+
+  it('„alle gebucht“ unter dem Filter zeigt die Zeichnung `fertig`', async () => {
+    zeichneSeite('/accounting?nur=offen');
+    expect(await screen.findByText('Alle Zeitkonten sind vollständig.')).toBeInTheDocument();
+    expect(document.querySelector('svg[data-motiv="fertig"]')).not.toBeNull();
+  });
+
+  it('Gegenprobe: keine Treffer der Suche bleiben Text ohne Zeichnung', async () => {
+    const nutzer = zeichneSeite('/accounting');
+    await personKnopf('Neu Eingestellt');
+    await nutzer.type(screen.getByRole('searchbox', { name: 'Person suchen' }), 'Niemand');
+    expect(await screen.findByText('Kein Mitarbeiter passt zu „Niemand“.')).toBeInTheDocument();
+    expect(document.querySelector('svg[data-motiv]')).toBeNull();
   });
 });

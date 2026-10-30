@@ -6,7 +6,6 @@ import {
   calcWorkMin,
   fmtMin,
   fmtDauer,
-  balkenBreite,
 } from '@/lib/time';
 import type { Project, TimeEntry } from '@/types';
 import { budgetArt } from '@/lib/einstufung';
@@ -15,14 +14,8 @@ import { Warnung } from '@/components/Badge';
 import Zeitmarker from '@/features/time/Zeitmarker';
 import type { Nachtzeit } from '@/lib/lohnregeln';
 import Icon from '@/components/Icon';
+import { Masslinie } from '@/components/Planlinie';
 import { EmptyState, SkeletonList } from '@/components/States';
-
-const BAR_TONE = {
-  success: 'bg-success',
-  warning: 'bg-warning',
-  danger: 'bg-accent',
-  neutral: 'bg-line',
-} as const;
 
 /**
  * 'YYYY-MM-DD' -> 'Mo., 15.06.2026'. Vierstellig wie überall in der App
@@ -286,20 +279,26 @@ export default function ProjectSummary({
                       <span className="font-semibold">{dauer(r.gesamtFachMin)}</span> von{' '}
                       <span>{budgetDauer(r.project?.estimatedHours ?? 0)}</span>
                     </p>
-                    <div className="mt-1 flex items-center gap-2">
-                      <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-surface-3">
-                        <span
-                          className={`block h-full ${BAR_TONE[r.budget.tone]}`}
-                          style={{ width: balkenBreite(r.budget.pct) }}
-                        />
-                      </span>
-                      <span
-                        className={`shrink-0 text-xs font-semibold ${
-                          r.budget.over ? 'text-accent-deep' : 'text-ink-muted'
+                    {/*
+                      DIE MASSLINIE STATT DES BALKENS (Planlinie B2): die ganze
+                      Baustelle gegen ihr Budget, mit Endmarken; was darüber
+                      geht, läuft rot über die Soll-Marke hinaus. Die Zahlen
+                      stehen daran — der Anteil unter dem Anfang, das Budget
+                      über der Marke, der Überhang rechts.
+                    */}
+                    <div className="ps-masslinie">
+                      <Masslinie
+                        ist={r.gesamtFachMin}
+                        soll={Math.round((r.project?.estimatedHours ?? 0) * 60)}
+                        istText={`${r.budget.pct} %`}
+                        sollText={`Budget ${budgetDauer(r.project?.estimatedHours ?? 0)}`}
+                        ueberText={`+${dauer(r.gesamtFachMin - Math.round((r.project?.estimatedHours ?? 0) * 60))}`}
+                        name={`${dauer(r.gesamtFachMin)} von ${budgetDauer(r.project?.estimatedHours ?? 0)} Budget, ${r.budget.pct} %${
+                          r.budget.over
+                            ? `, ${dauer(r.gesamtFachMin - Math.round((r.project?.estimatedHours ?? 0) * 60))} darüber`
+                            : ''
                         }`}
-                      >
-                        {r.budget.pct} %
-                      </span>
+                      />
                     </div>
                   </>
                 ) : (

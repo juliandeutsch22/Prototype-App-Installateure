@@ -51,11 +51,18 @@
   .antrag-aktionen { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-top: 1rem; margin-top: 0.25rem; border-top: 1px solid var(--border); }
 }
 
-/* Das Band erklärt die vorhandene Dauer, ohne eine eigene Zeitberechnung einzuführen. */
+/* Die Maßkette erklärt die vorhandene Dauer, ohne eine eigene Zeitberechnung einzuführen. */
 @layer components {
-  .zeitbild { margin: 0.5rem 0 1rem; }
-  .zeitband { display: flex; gap: 0.25rem; height: 0.375rem; }
-  .zeitband-arbeit { flex-basis: 0; background: var(--petrol); }
-  .zeitband-pause { flex-basis: 0; background: var(--border-strong); }
-  .zeitband-legende { display: flex; justify-content: space-between; gap: 1rem; margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted); }
+  .zeitbild { margin: 0.25rem 0 1rem; }
+}
+
+/*
+  DIE PLANLINIE IN DER ZEITERFASSUNG (Auftrag 30.10.2026, E30).
+*/
+@layer components {
+  /* Das schraffierte Feld vor einem Abwesenheitseintrag, so hoch wie ein Statuszeichen. */
+  .zeit-schraffur { display: inline-block; width: 14px; height: 14px; margin-right: 0.375rem; vertical-align: -2px; }
+  /* Der Satz unter der Maßkette: Arbeitszeit und warum die Pause in der Mitte steht. */
+  .zeitbild .masskette { margin-bottom: 0.25rem; }
+  .zeitbild-satz { color: var(--text-muted); }
 }

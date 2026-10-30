@@ -9,7 +9,7 @@ import Card from '@/components/Card';
 import Abschnitt from '@/components/Abschnitt';
 import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
-import { Marke } from '@/components/Badge';
+import { Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
@@ -783,7 +783,8 @@ export default function UserMgmtView() {
                             {u.name}
                             {/* Die Rolle steht bereits in der Gruppenueberschrift —
                                 sie an jeder Zeile zu wiederholen ist Laerm. */}
-                            {u.active === false && <Marke>deaktiviert</Marke>}
+                            {/* Deaktiviert mit dem Zeichen „storniert“ (Planlinie B3): gilt nicht mehr, das Wort daneben. */}
+                            {u.active === false && <Zustand stand="storniert">deaktiviert</Zustand>}
                           </span>
                         }
                         subtitle={kontoAnzeige(u.email)}

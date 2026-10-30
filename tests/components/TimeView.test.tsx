@@ -263,6 +263,34 @@ describe('Zeiterfassung — verrechnete Einträge', () => {
     const offen = screen.getByText('31.08.2026').closest('li') as HTMLElement;
     expect(within(offen).getByRole('button', { name: BEARBEITEN })).toBeInTheDocument();
   });
+
+  it('trägt „verrechnet“ mit dem Zeichen „erledigt“ (Planlinie B3)', async () => {
+    eintraege = [
+      eintrag({ id: 'verrechnet', date: '2026-09-01', isBilled: true }),
+      eintrag({ id: 'offen', date: '2026-08-31' }),
+    ];
+    zeige();
+    const gesperrt = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    expect(within(gesperrt).getByText('verrechnet')).toHaveClass('stand', 'stand-erledigt');
+    // Gegenprobe in derselben Liste: der offene Eintrag trägt kein Zeichen.
+    const offen = screen.getByText('31.08.2026').closest('li') as HTMLElement;
+    expect(offen.querySelector('.stand-erledigt')).toBeNull();
+  });
+});
+
+describe('Zeiterfassung — Abwesenheit schraffiert (Planlinie B11)', () => {
+  it('ein Urlaubstag trägt das schraffierte Feld vor dem Wort, ein Arbeitstag nicht', async () => {
+    eintraege = [
+      eintrag({ id: 'u', date: '2026-09-01', status: 'Urlaub', startTime: undefined, endTime: undefined }),
+      eintrag({ id: 'a', date: '2026-08-31' }),
+    ];
+    zeige();
+    const urlaub = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    expect(urlaub.querySelector('.zeit-schraffur.schraffur')).not.toBeNull();
+    expect(urlaub).toHaveTextContent('Urlaub');
+    const arbeit = screen.getByText('31.08.2026').closest('li') as HTMLElement;
+    expect(arbeit.querySelector('.zeit-schraffur')).toBeNull();
+  });
 });
 
 /*
@@ -301,7 +329,8 @@ describe('Zeiterfassung — der Saldo erst mit seinen Buchungen', () => {
     eintraege = [eintrag({ id: 'e1' })];
     zeige();
     await waitFor(() => expect(within(kachel()).queryAllByRole('status')).toHaveLength(0));
-    expect(kachel().closest('.seitenkopf')).not.toBeNull();
+    // Seit der Planlinie steht der Stand als Schriftfeld im Plankopf, unter der Titelzeile.
+    expect(kachel().closest('.plankopf')).not.toBeNull();
     expect(kachel()).toHaveTextContent(/Tage ohne Buchung — unvollständig/);
     expect(kachel()).not.toHaveTextContent('Über-/Unterstunden');
   });
@@ -995,7 +1024,9 @@ describe('Zeiterfassung — Wochen zum Aufklappen', () => {
     expect(screen.queryByText('18.08.2026')).toBeNull();
 
     const knoepfe = screen.getAllByRole('button', { expanded: false });
-    const alteWoche = knoepfe.find((k) => /1 Eintrag/.test(k.textContent ?? ''))!;
+    // Die Zahl der Einträge steht im Achskreis vor der Woche (Planlinie B5).
+    const alteWoche = knoepfe.find((k) => /KW 34 \/ 2026/.test(k.textContent ?? ''))!;
+    expect(alteWoche.querySelector('.achskreis')).toHaveTextContent(/^1$/);
     expect(alteWoche).toHaveTextContent('08:00');
 
     await userEvent.click(alteWoche);
@@ -1046,7 +1077,7 @@ describe('Zeiterfassung — kommende Wochen', () => {
 
     const kopf = screen.getByRole('button', { name: /Kommende Wochen/ });
     expect(kopf).toHaveAttribute('aria-expanded', 'false');
-    expect(kopf).toHaveTextContent('2 Einträge');
+    expect(kopf.querySelector('.achskreis')).toHaveTextContent(/^2$/);
     expect(kopf).toHaveTextContent('bis 04.01.2027');
 
     // Der Abschnitt steht über der laufenden Woche.
