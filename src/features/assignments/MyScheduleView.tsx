@@ -651,7 +651,7 @@ export default function MyScheduleView() {
                     <ListRow
                       key={v.id}
                       title={v.von === v.bis ? fmtDay(v.von) : `${fmtDay(v.von)} – ${fmtDay(v.bis)}`}
-                      zustand={<Zustand stand={v.status === 'Genehmigt' ? 'gut' : 'achtung'}>{v.status}</Zustand>}
+                      zustand={<Zustand stand={v.status === 'Genehmigt' ? 'erledigt' : 'achtung'}>{v.status}</Zustand>}
                       wert={<span className="text-xs text-ink-muted">{tageWort(Number(v.tage))}</span>}
                     />
                   ))}

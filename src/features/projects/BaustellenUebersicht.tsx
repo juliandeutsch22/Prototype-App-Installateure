@@ -141,7 +141,7 @@ export default function BaustellenUebersicht({
           istText={`${fmtStd(stand.fachMin)} h gebucht${davonLehrling(stand.lehrlingImBudgetMin)}`}
           sollText={budget.over ? `Budget ${fmtStunden(projekt.estimatedHours)} h` : `Budget ${fmtStunden(projekt.estimatedHours)} h · ${fmtStd(restMin)} h verbleibend`}
           ueberText={`+${fmtStd(restMin)} h über Budget`}
-          name={`${fmtStd(stand.fachMin)} h gebucht von ${fmtStunden(projekt.estimatedHours)} h Budget, ${fmtStd(restMin)} h ${budget.over ? 'über Budget' : 'verbleibend'}`}
+          name={`${fmtStd(stand.fachMin)} h gebucht von ${fmtStunden(projekt.estimatedHours)} h Budget (${budget.pct} %), ${fmtStd(restMin)} h ${budget.over ? 'über Budget' : 'verbleibend'}`}
         />
       </MasslinieZeile>
     ) : (

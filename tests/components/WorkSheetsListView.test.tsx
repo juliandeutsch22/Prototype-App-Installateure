@@ -244,7 +244,7 @@ describe('Liste der Handwerksscheine', () => {
     expect(neu).toHaveAttribute('href', '/worksheet');
     // Er steht neben der Überschrift, nicht in einer Karte darunter.
     expect(neu.closest('section')).toBeNull();
-    expect(screen.getByRole('heading', { level: 1, name: 'Handwerksscheine' }).parentElement?.parentElement)
+    expect(screen.getByRole('heading', { level: 1, name: 'Handwerksscheine' }).closest('.plankopf'))
       .toContainElement(neu);
   });
 
@@ -1162,7 +1162,7 @@ describe('Ansicht und Seitenfenster', () => {
     aufRechnung = ['r1'];
     zeichne();
 
-    expect(await screen.findByRole('heading', { name: /Nicht verrechnet/ })).toHaveTextContent('· 2');
+    expect(await screen.findByRole('heading', { name: /Nicht verrechnet/ })).toHaveTextContent('2 Nicht verrechnet');
     expect(verrechnungGeholt).toHaveBeenCalled();
     const alt = screen.getByText('Familie Alt');
     const neu = screen.getByText('Familie Neu');
@@ -1171,6 +1171,37 @@ describe('Ansicht und Seitenfenster', () => {
     expect(screen.queryByText('Familie Verrechnet')).not.toBeInTheDocument();
     // Die Entwürfe bleiben dabei.
     expect(screen.getByText(/Familie Huber/)).toBeInTheDocument();
+  });
+
+  /*
+    PLANLINIE B1: das Schriftfeld nennt Entwürfe und Unverrechnetes mit
+    Zahl — es ersetzt keinen Satz, sondern trägt, was die Gruppen schon
+    zählen. Die Zahl der alten Scheine kommt aus derselben Liste.
+  */
+  it('zeigt dem Büro im Schriftfeld Entwürfe und Nicht verrechnet, die alten in Ocker', async () => {
+    authWert.user.role = 'Buchhaltung';
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 9, 30, 9, 0, 0));
+    try {
+      geladen = [
+        scheine[0],
+        unterschrieben('n1', '2026-10-25', 'Familie Neu'),
+        unterschrieben('a1', '2026-08-01', 'Familie Alt'),
+      ];
+      zeichne();
+      const feld = await screen.findByRole('list', { name: 'Stand der Handwerksscheine' });
+      expect(feld.closest('.schriftfeld')).not.toBeNull();
+      await waitFor(() => expect(feld).toHaveTextContent('Nicht verrechnet 2 davon 1 über 4 Wochen'));
+      expect(feld).toHaveTextContent('Entwürfe 1');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('Gegenprobe: der Monteur sieht im Schriftfeld nichts zur Verrechnung', async () => {
+    zeichne();
+    const feld = await screen.findByRole('list', { name: 'Stand der Handwerksscheine' });
+    expect(feld).not.toHaveTextContent('Nicht verrechnet');
   });
 
   it('sucht über alle Scheine, auch in „Offen“ — und blendet die Segmente dabei aus', async () => {

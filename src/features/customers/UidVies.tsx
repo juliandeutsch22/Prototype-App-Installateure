@@ -94,7 +94,7 @@ export default function UidVies({
       ) : letzte ? (
         <div className="space-y-0.5 text-sm">
           <p className="flex flex-wrap items-center gap-x-2">
-            <Zustand stand={letzte.gueltig ? 'gut' : 'schlecht'}>{letzte.gueltig ? 'gültig' : 'nicht gültig'}</Zustand>
+            <Zustand stand={letzte.gueltig ? 'erledigt' : 'schlecht'}>{letzte.gueltig ? 'gültig' : 'nicht gültig'}</Zustand>
             <span className="text-ink">laut VIES am {zeitpunkt(letzte.abgefragtAm)}</span>
           </p>
           <p className="text-ink-muted">

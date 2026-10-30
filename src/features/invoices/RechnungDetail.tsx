@@ -132,8 +132,8 @@ export default function RechnungDetail({
                 <tr>
                   <th scope="col">Pos</th>
                   <th scope="col">Bezeichnung</th>
-                  <th scope="col" className="r">Menge</th>
-                  <th scope="col" className="r">Netto</th>
+                  <th scope="col" className="r whitespace-nowrap pl-3">Menge</th>
+                  <th scope="col" className="r whitespace-nowrap pl-3">Netto</th>
                 </tr>
               </thead>
               <tbody>
@@ -153,10 +153,10 @@ export default function RechnungDetail({
                           <span className="block text-xs text-ink-muted">{positionsRabattText(p.rabattProzent)}</span>
                         )}
                       </td>
-                      <td className="r whitespace-nowrap">
+                      <td className="r whitespace-nowrap pl-3">
                         {String(p.qty).replace('.', ',')} {p.unit}
                       </td>
-                      <td className="r whitespace-nowrap">{euroBetrag(p.netto)}</td>
+                      <td className="r whitespace-nowrap pl-3">{euroBetrag(p.netto)}</td>
                     </tr>
                   ),
                 )}

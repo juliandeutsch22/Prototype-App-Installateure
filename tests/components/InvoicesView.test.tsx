@@ -2933,7 +2933,19 @@ describe('Zahlungen erfassen', () => {
   it('zeigt bei einer Teilzahlung, was bezahlt und was offen ist', async () => {
     rechnungen = [offeneRechnung({ paymentStatus: 'Teilbezahlt', bezahltBetrag: 400 })];
     zeige();
-    expect(await screen.findByText(/400,00 bezahlt · € 800,00 offen/)).toBeInTheDocument();
+    // Planlinie B2: bezahlt gegen den Betrag als Maßlinie, der Rest an der Marke.
+    const linie = await screen.findByRole('img', { name: /^€\s400,00 bezahlt von €\s1\s200,00, €\s800,00 offen/ });
+    expect(linie).toHaveClass('masslinie', 'masslinie-schmal');
+    expect(within(linie).getByText(/400,00 bezahlt$/)).toBeInTheDocument();
+    expect(within(linie).getByText(/800,00 offen$/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: vor dem Zahlungsziel bleibt die Maßlinie ohne Achtung und ohne „überfällig“', async () => {
+    rechnungen = [offeneRechnung({ paymentStatus: 'Teilbezahlt', bezahltBetrag: 400, dueDate: '2099-12-31' })];
+    zeige();
+    const linie = await screen.findByRole('img', { name: /800,00 offen$/ });
+    expect(linie).not.toHaveClass('masslinie-achtung');
+    expect(linie.parentElement).not.toHaveTextContent(/überfällig/);
   });
 
   /*
@@ -2944,7 +2956,9 @@ describe('Zahlungen erfassen', () => {
   it('führt eine angezahlte Rechnung nach Ablauf des Ziels als überfällig', async () => {
     rechnungen = [offeneRechnung({ paymentStatus: 'Teilbezahlt', bezahltBetrag: 400, dueDate: '2026-07-15' })];
     zeige();
-    expect(await screen.findByText(/800,00 offen/)).toHaveTextContent(/offen · überfällig$/);
+    const linie = await screen.findByRole('img', { name: /€ 800,00 offen, überfällig$/ });
+    expect(linie).toHaveClass('masslinie-achtung');
+    expect(linie.parentElement).toHaveTextContent(/überfällig$/);
 
     const kachel = screen.getAllByText('Überfällig').find((e) => e.classList.contains('lage-name'))!.parentElement!;
     expect(kachel).toHaveTextContent('€ 800,00');
@@ -3908,8 +3922,8 @@ describe('Die Kennzahlen „Offen“ und „Überfällig“', () => {
   it('steht im Seitenkopf (E24) — was „Bezahlt im Monat“ meint, steht in der Hilfe', async () => {
     zeige('/invoices?ansicht=alle');
     await waitFor(() => expect(kachel('Bezahlt im Monat')).toHaveTextContent(/seit \d\d\.\d\d\.\d{4}/));
-    expect(kachel('Offen').closest('.seitenkopf')).not.toBeNull();
-    expect(kachel('Bezahlt im Monat').closest('.seitenkopf')).not.toBeNull();
+    expect(kachel('Offen').closest('.plankopf')).not.toBeNull();
+    expect(kachel('Bezahlt im Monat').closest('.plankopf')).not.toBeNull();
     // Die Erklärung ist kein Zusatz mehr — sie ändert sich nicht und gehört nicht dauerhaft auf die Seite.
     expect(screen.queryByText(/Zahlungseingänge seit/)).toBeNull();
   });
@@ -4532,7 +4546,7 @@ describe('Linie „Lot“ — die Rechnungsliste', () => {
     ];
     zeige();
     await screen.findByRole('button', { name: / RE-2026-0042$/ });
-    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(['Überfällig', 'Offen']);
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(['1 Überfällig', '1 Offen']);
     const reihenfolge = screen.getAllByRole('button', { name: / RE-2026-004\d$/ }).map((b) => b.textContent);
     expect(reihenfolge).toEqual(['Kunde 0042 RE-2026-0042', 'Kunde 0043 RE-2026-0043']);
     expect(screen.queryByRole('button', { name: / RE-2026-0044$/ })).toBeNull();

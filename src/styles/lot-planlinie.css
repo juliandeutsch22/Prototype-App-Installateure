@@ -102,7 +102,7 @@
     Was darüber geht, läuft rot über die Soll-Marke hinaus bis an eine eigene
     Endmarke. Die Lage kommt aus der Komponente (`left`, `width` in Prozent).
   */
-  .masslinie { position: relative; min-width: 7.5rem; height: 2.75rem; font-family: var(--schrift-mono); font-variant-numeric: tabular-nums; color: var(--text); }
+  .masslinie { display: block; position: relative; min-width: 7.5rem; height: 2.75rem; font-family: var(--schrift-mono); font-variant-numeric: tabular-nums; color: var(--text); }
   .masslinie-schmal { height: 2rem; }
   .masslinie-grund { position: absolute; left: 0; right: 0; top: 1.375rem; height: 1px; background: var(--border-strong); }
   .masslinie-schmal .masslinie-grund { top: 0.875rem; }
@@ -267,10 +267,6 @@
   .lot-skizze .griff { stroke-width: 2.4; }
 }
 
-/* Ab dem Tablet sitzen die Aktionen auf der Grundlinie des Titelblocks, wie im Plankopf. */
-@layer components {
-  @media (min-width: 760px) { .plankopf > .seitenkopf { align-items: flex-end; } }
-}
 
 /*
   DUNKEL = BLAUPAUSE (Planlinie § 5): die Hauptfläche trägt im dunklen Satz

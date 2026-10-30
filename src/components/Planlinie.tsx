@@ -56,7 +56,8 @@ export function Masslinie({
   const sollLage = prozent(soll, ganz);
   const klasse = `masslinie${schmal ? ' masslinie-schmal' : ''}${achtung && !darueber ? ' masslinie-achtung' : ''}`;
   return (
-    <div className={klasse} role="img" aria-label={name} data-darueber={darueber || undefined}>
+    // Ein span, kein div: die Linie steht auch in Listenzeilen, die ein <p> sind.
+    <span className={klasse} role="img" aria-label={name} data-darueber={darueber || undefined}>
       {sollText && <span className="masslinie-soll" style={{ left: sollLage }}>{sollText}</span>}
       {/* Steht die Soll-Marke weit rechts, träfe der Überhang oben auf ihre Beschriftung — dann steht er unten rechts. */}
       {darueber && ueberText && <span className={soll / ist > 0.6 ? 'masslinie-plus masslinie-plus-unten' : 'masslinie-plus'}>{ueberText}</span>}
@@ -67,7 +68,7 @@ export function Masslinie({
       <span className={darueber ? 'masslinie-marke' : 'masslinie-marke masslinie-marke-ende'} style={{ left: sollLage }} />
       {darueber && <span className="masslinie-marke masslinie-marke-ende masslinie-marke-rot" style={{ left: '100%' }} />}
       <span className="masslinie-ist">{istText}</span>
-    </div>
+    </span>
   );
 }
 

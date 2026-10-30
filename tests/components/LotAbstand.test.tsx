@@ -34,12 +34,16 @@ describe('Der Stand im Seitenkopf', () => {
         />
       </MemoryRouter>,
     );
-    const kopf = container.querySelector('.seitenkopf')!;
+    // Seit der Planlinie (E30) steht der Stand als Schriftfeld unter dem Titelblock, im selben Plankopf.
+    const kopf = container.querySelector('.plankopf')!;
     const stand = kopf.querySelector('.seitenkopf-stand')!;
     expect(stand).not.toBeNull();
+    expect(stand).toHaveClass('schriftfeld');
     expect(stand.querySelector('.lage-zeile')).not.toBeNull();
-    // Unter dem Untertitel, nicht daneben bei den Knöpfen.
-    expect(stand.previousElementSibling).toHaveClass('seitenkopf-meta');
+    // Unter dem Titelblock mit dem Untertitel, nicht daneben bei den Knöpfen.
+    expect(stand.previousElementSibling).toHaveClass('seitenkopf');
+    expect(stand.previousElementSibling!.querySelector('.seitenkopf-meta')).not.toBeNull();
+    expect(stand.previousElementSibling!.querySelector('.seitenkopf-rechts')).not.toBeNull();
     expect(screen.getByRole('link', { name: /^Offen/ })).toHaveAttribute('href', '/invoices?ansicht=offen');
   });
 
@@ -50,9 +54,12 @@ describe('Der Stand im Seitenkopf', () => {
 
   it('mit Stand steht die Hauptaktion oben neben dem Titel — seit dem gleichen Kopf auf jeder Seite', () => {
     const css = lesen('index.css');
-    // Die Grundregel richtet nach oben aus; keine breitere Regel darf das wieder nach unten ziehen.
+    // Die Grundregel richtet nach oben aus; keine breitere Regel darf das wieder nach unten ziehen —
+    // auch nicht die Planlinie, die den Kopf seit E30 umgibt.
     expect(css).toMatch(/\.seitenkopf \{ display: flex; align-items: flex-start;/);
-    expect(css).not.toMatch(/\.seitenkopf(:has\([^)]*\))? \{[^}]*align-items: flex-end/);
+    for (const datei of [css, lesen('styles/lot-planlinie.css')]) {
+      expect(datei).not.toMatch(/\.seitenkopf(:has\([^)]*\))? \{[^}]*align-items: flex-end/);
+    }
   });
 });
 
